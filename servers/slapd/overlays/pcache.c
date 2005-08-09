@@ -186,7 +186,7 @@ merge_entry(
 			op->o_tag = LDAP_REQ_MODIFY;
 			op->orm_modlist = modlist;
 			op->o_bd->be_modify( op, &sreply );
-			slap_mods_free( modlist );
+			slap_mods_free( modlist, 1 );
 		} else if ( rc == LDAP_REFERRAL ||
 					rc == LDAP_NO_SUCH_OBJECT ) {
 			syncrepl_add_glue( op, e );
@@ -1609,7 +1609,7 @@ static ConfigTable pccfg[] = {
 			"DESC 'Filter template, attrset, and cache TTL' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "response-callback", "head|tail(default)",
-		2, 2, 0, ARG_MAGIC|ARG_STRING|PC_RESP, pc_cf_gen,
+		2, 2, 0, ARG_MAGIC|PC_RESP, pc_cf_gen,
 		"( OLcfgOvAt:2.4 NAME 'olcProxyResponseCB' "
 			"DESC 'Response callback position in overlay stack' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
@@ -1733,11 +1733,9 @@ pc_cf_gen( ConfigArgs *c )
 			break;
 		case PC_RESP:
 			if ( cm->response_cb == PCACHE_RESPONSE_CB_HEAD ) {
-				bv.bv_val = "head";
-				bv.bv_len = STRLENOF("head");
+				BER_BVSTR( &bv, "head" );
 			} else {
-				bv.bv_val = "tail";
-				bv.bv_len = STRLENOF("tail");
+				BER_BVSTR( &bv, "tail" );
 			}
 			value_add_one( &c->rvalue_vals, &bv );
 			break;
@@ -2026,17 +2024,24 @@ proxy_cache_destroy(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
-	int rc = 0;
 
-	if ( cm->db.bd_info->bi_db_destroy ) {
-		rc = cm->db.bd_info->bi_db_destroy( &cm->db );
-	}
-	ldap_pvt_thread_mutex_destroy(&qm->lru_mutex);
-	ldap_pvt_thread_mutex_destroy(&cm->cache_mutex);
-	ldap_pvt_thread_mutex_destroy(&cm->remove_mutex);
+	/* cleanup stuff inherited from the original database... */
+	cm->db.be_suffix = NULL;
+	cm->db.be_nsuffix = NULL;
+	BER_BVZERO( &cm->db.be_rootdn );
+	BER_BVZERO( &cm->db.be_rootndn );
+	BER_BVZERO( &cm->db.be_rootpw );
+	/* FIXME: there might be more... */
+
+	backend_destroy_one( &cm->db, 0 );
+
+	ldap_pvt_thread_mutex_destroy( &qm->lru_mutex );
+	ldap_pvt_thread_mutex_destroy( &cm->cache_mutex );
+	ldap_pvt_thread_mutex_destroy( &cm->remove_mutex );
 	free( qm );
 	free( cm );
-	return rc;
+
+	return 0;
 }
 
 static slap_overinst proxy_cache;

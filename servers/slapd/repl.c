@@ -41,15 +41,14 @@
 
 int
 add_replica_info(
-    Backend     *be,
-    const char  *uri, 
-    const char  *host 
-)
+	Backend		*be,
+	const char	*uri, 
+	const char	*host )
 {
 	int i = 0;
 
-	assert( be );
-	assert( host );
+	assert( be != NULL );
+	assert( host != NULL );
 
 	if ( be->be_replica != NULL ) {
 		for ( ; be->be_replica[ i ] != NULL; i++ );
@@ -67,6 +66,45 @@ add_replica_info(
 	be->be_replica[ i + 1 ] = NULL;
 
 	return( i );
+}
+
+int
+destroy_replica_info(
+	Backend		*be )
+{
+	int i = 0;
+
+	assert( be != NULL );
+
+	if ( be->be_replica == NULL ) {
+		return 0;
+	}
+
+	for ( ; be->be_replica[ i ] != NULL; i++ ) {
+
+		ch_free( (char *)be->be_replica[ i ]->ri_uri );
+
+		ber_bvarray_free( be->be_replica[ i ]->ri_nsuffix );
+
+		if ( be->be_replica[ i ]->ri_attrs ) {
+			AttributeName	*an = be->be_replica[ i ]->ri_attrs;
+			int		j;
+
+			for ( j = 0; !BER_BVISNULL( &an[ j ].an_name ); j++ )
+			{
+				ch_free( an[ j ].an_name.bv_val );
+			}
+			ch_free( an );
+		}
+
+		bindconf_free( &be->be_replica[ i ]->ri_bindconf );
+
+		ch_free( be->be_replica[ i ] );
+	}
+
+	ch_free( be->be_replica );
+
+	return 0;
 }
 
 int
@@ -126,8 +164,6 @@ replog1( struct slap_replica_info *ri, Operation *op, FILE *fp, long now);
 void
 replog( Operation *op )
 {
-	Modifications	*ml = NULL;
-	Attribute	*a = NULL;
 	FILE	*fp, *lfp;
 	int	i;
 /* undef NO_LOG_WHEN_NO_REPLICAS */
@@ -278,7 +314,7 @@ replog1(
 
 	case LDAP_REQ_MODIFY:
 		for ( ml = op->orm_modlist; ml != NULL; ml = ml->sml_next ) {
-			char *did, *type = ml->sml_desc->ad_cname.bv_val;
+			char *did = NULL, *type = ml->sml_desc->ad_cname.bv_val;
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
 				did = "add"; break;

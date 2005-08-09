@@ -57,8 +57,7 @@ monitor_subsys_backend_init(
 		return -1;
 	}
 
-	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_backend ) )
-	{
+	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_backend ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_backend_init: "
 			"unable to get entry \"%s\"\n",
@@ -73,7 +72,7 @@ monitor_subsys_backend_init(
 	i = -1;
 	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
-		BackendDB		*be;
+		BackendDB	*be;
 		struct berval 	bv;
 		int		j;
 		Entry		*e;
@@ -85,6 +84,8 @@ monitor_subsys_backend_init(
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
 				"cn: Backend %d\n"
+				"%s: %s\n"
+				"%s: %s\n"
 				"creatorsName: %s\n"
 				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
@@ -94,6 +95,10 @@ monitor_subsys_backend_init(
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
+				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
+					bi->bi_type,
+				mi->mi_ad_monitorRuntimeConfig->ad_cname.bv_val,
+					bi->bi_cf_ocs == NULL ? "FALSE" : "TRUE",
 				mi->mi_creatorsName.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
@@ -109,8 +114,6 @@ monitor_subsys_backend_init(
 		}
 		
 		ber_str2bv( bi->bi_type, 0, 0, &bv );
-		attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
-				&bv, NULL );
 		attr_merge_normalize_one( e_backend, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
 

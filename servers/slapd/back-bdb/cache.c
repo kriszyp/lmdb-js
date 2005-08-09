@@ -884,9 +884,11 @@ bdb_cache_add(
 	u_int32_t locker )
 {
 	EntryInfo *new, ei;
-	struct berval rdn = e->e_name;
 	DB_LOCK lock;
 	int rc;
+#ifdef BDB_HIER
+	struct berval rdn = e->e_name;
+#endif
 
 	ei.bei_id = e->e_id;
 	ei.bei_parent = eip;
@@ -972,20 +974,22 @@ bdb_cache_modify(
  */
 int
 bdb_cache_modrdn(
+	struct bdb_info *bdb,
 	Entry *e,
 	struct berval *nrdn,
 	Entry *new,
 	EntryInfo *ein,
-	DB_ENV *env,
 	u_int32_t locker,
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e), *pei;
-	struct berval rdn;
 	int rc;
+#ifdef BDB_HIER
+	struct berval rdn;
+#endif
 
 	/* Get write lock on data */
-	rc =  bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc =  bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ei, 1, 0, lock );
 	if ( rc ) return rc;
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
@@ -1030,12 +1034,11 @@ bdb_cache_modrdn(
 	}
 #ifdef BDB_HIER
 	{
-		int max = ei->bei_modrdns;
 		/* Record the generation number of this change */
-		for ( pei = ein; pei->bei_parent; pei = pei->bei_parent ) {
-			if ( pei->bei_modrdns > max ) max = pei->bei_modrdns;
-		}
-		ei->bei_modrdns = max + 1;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_modrdns_mutex );
+		bdb->bi_modrdns++;
+		ei->bei_modrdns = bdb->bi_modrdns;
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_modrdns_mutex );
 	}
 #endif
 	avl_insert( &ein->bei_kids, ei, bdb_rdn_cmp, avl_dup_error );
@@ -1060,7 +1063,7 @@ bdb_cache_delete(
 	EntryInfo *ei = BEI(e);
 	int	rc;
 
-	assert( e->e_private );
+	assert( e->e_private != NULL );
 
 	/* Set this early, warn off any queriers */
 	ei->bei_state |= CACHE_ENTRY_DELETED;
@@ -1315,15 +1318,15 @@ static void
 bdb_locker_id_free( void *key, void *data )
 {
 	DB_ENV *env = key;
-	int lockid = (int) data;
+	u_int32_t lockid = (u_int32_t) data;
 	int rc;
 
 	rc = XLOCK_ID_FREE( env, lockid );
 	if ( rc == EINVAL ) {
 		DB_LOCKREQ lr;
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_locker_id_free: %d err %s(%d)\n",
-			lockid, db_strerror(rc), rc );
+			"bdb_locker_id_free: %lu err %s(%d)\n",
+			(unsigned long) lockid, db_strerror(rc), rc );
 		/* release all locks held by this locker. */
 		lr.op = DB_LOCK_PUT_ALL;
 		lr.obj = NULL;
@@ -1333,9 +1336,10 @@ bdb_locker_id_free( void *key, void *data )
 }
 
 int
-bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
+bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
 {
-	int i, rc, lockid;
+	int i, rc;
+	u_int32_t lockid;
 	void *data;
 	void *ctx;
 
@@ -1372,12 +1376,12 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 			return rc;
 		}
 	} else {
-		lockid = (int)data;
+		lockid = (u_int32_t) data;
 	}
 	*locker = lockid;
 	return 0;
 }
-#endif
+#endif /* BDB_REUSE_LOCKERS */
 
 void
 bdb_cache_delete_entry(

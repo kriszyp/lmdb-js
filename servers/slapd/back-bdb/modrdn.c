@@ -797,8 +797,8 @@ retry:	/* transaction retry */
 		}
 
 	} else {
-		rc = bdb_cache_modrdn( e, &op->orr_nnewrdn, &dummy, neip,
-			bdb->bi_dbenv, locker, &lock );
+		rc = bdb_cache_modrdn( bdb, e, &op->orr_nnewrdn, &dummy, neip,
+			locker, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -874,7 +874,7 @@ done:
 			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
 			free( mod );
 		}
-		slap_mods_free( mod );
+		slap_mods_free( mod, 1 );
 	}
 
 	/* LDAP v3 Support */

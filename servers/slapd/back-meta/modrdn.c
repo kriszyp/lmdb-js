@@ -34,13 +34,14 @@
 int
 meta_back_modrdn( Operation *op, SlapReply *rs )
 {
-	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metaconn_t		*mc;
-	int			candidate = -1;
-	struct berval		mdn = BER_BVNULL,
-				mnewSuperior = BER_BVNULL;
-	dncookie		dc;
-	int			do_retry = 1;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t	*mc;
+	int		candidate = -1;
+	struct berval	mdn = BER_BVNULL,
+			mnewSuperior = BER_BVNULL;
+	dncookie	dc;
+	int		msgid;
+	int		do_retry = 1;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
@@ -101,14 +102,52 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	}
 
 retry:;
-	rs->sr_err = ldap_rename_s( mc->mc_conns[ candidate ].msc_ld,
+	rs->sr_err = ldap_rename( mc->mc_conns[ candidate ].msc_ld,
 			mdn.bv_val, op->orr_newrdn.bv_val,
 			mnewSuperior.bv_val, op->orr_deleteoldrdn,
-			op->o_ctrls, NULL );
+			op->o_ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
+		}
+
+	} else if ( rs->sr_err == LDAP_SUCCESS ) {
+		struct timeval	tv, *tvp = NULL;
+		LDAPMessage	*res = NULL;
+		int		rc;
+
+		if ( mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODRDN ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODRDN ];
+			tv.tv_usec = 0;
+			tvp = &tv;
+		}
+
+		rs->sr_err = LDAP_OTHER;
+		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
+			msgid, LDAP_MSG_ONE, tvp, &res );
+		switch ( rc ) {
+		case -1:
+			break;
+
+		case 0:
+			ldap_abandon_ext( mc->mc_conns[ candidate ].msc_ld,
+				msgid, NULL, NULL );
+			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
+			break;
+
+		case LDAP_RES_RENAME:
+			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
+				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
+			if ( rc != LDAP_SUCCESS ) {
+				rs->sr_err = rc;
+			}
+			break;
+
+		default:
+			ldap_msgfree( res );
+			break;
 		}
 	}
 
@@ -127,9 +166,9 @@ cleanup:;
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		meta_back_op_result( mc, op, rs, candidate );
+	} else {
+		send_ldap_result( op, rs );
 	}
-
-	send_ldap_result( op, rs );
 
 	meta_back_release_conn( op, mc );
 

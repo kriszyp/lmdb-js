@@ -482,6 +482,8 @@ do_syncrep1(
 
 			LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
 
+			/* ctxcsn wasn't parsed yet, do it now */
+			slap_parse_sync_cookie( sc, op->o_tmpmemctx );
 			if ( BER_BVISNULL( &sc->ctxcsn ) ) {
 				/* if cmdline cookie does not have ctxcsn */
 				/* component, set it to an initial value */
@@ -535,8 +537,8 @@ do_syncrep2(
 
 	int		syncstate;
 	struct berval	syncUUID = BER_BVNULL;
-	struct sync_cookie	syncCookie = { 0 };
-	struct sync_cookie	syncCookie_req = { 0 };
+	struct sync_cookie	syncCookie = { BER_BVNULL };
+	struct sync_cookie	syncCookie_req = { BER_BVNULL };
 	struct berval		cookie = BER_BVNULL;
 
 	int	rc, err, i;
@@ -615,7 +617,7 @@ do_syncrep2(
 					}
 					if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 					{
-						slap_parse_sync_cookie( &syncCookie );
+						slap_parse_sync_cookie( &syncCookie, NULL );
 					}
 				}
 				if ( syncrepl_message_to_entry( si, op, msg,
@@ -629,7 +631,7 @@ do_syncrep2(
 				}
 				ldap_controls_free( rctrls );
 				if ( modlist ) {
-					slap_mods_free( modlist );
+					slap_mods_free( modlist, 1 );
 				}
 				if ( rc_efree && entry ) {
 					entry_free( entry );
@@ -660,7 +662,7 @@ do_syncrep2(
 						}
 						if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 						{
-							slap_parse_sync_cookie( &syncCookie );
+							slap_parse_sync_cookie( &syncCookie, NULL );
 						}
 					}
 					if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDELETES )
@@ -744,7 +746,7 @@ do_syncrep2(
 							}
 							if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 							{
-								slap_parse_sync_cookie( &syncCookie );
+								slap_parse_sync_cookie( &syncCookie, NULL );
 							}
 						}
 						if ( ber_peek_tag( ber, &len ) ==
@@ -771,7 +773,7 @@ do_syncrep2(
 							}
 							if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 							{
-								slap_parse_sync_cookie( &syncCookie );
+								slap_parse_sync_cookie( &syncCookie, NULL );
 							}
 						}
 						if ( ber_peek_tag( ber, &len ) ==
@@ -1022,7 +1024,7 @@ do_syncrepl(
 	return NULL;
 }
 
-int
+static int
 syncrepl_message_to_entry(
 	syncinfo_t	*si,
 	Operation	*op,
@@ -1193,7 +1195,7 @@ typedef struct dninfo {
 	AttributeDescription **ads;
 } dninfo;
 
-int
+static int
 syncrepl_entry(
 	syncinfo_t* si,
 	Operation *op,
@@ -1205,7 +1207,7 @@ syncrepl_entry(
 	struct berval* syncCSN )
 {
 	Backend *be = op->o_bd;
-	slap_callback	cb = { NULL };
+	slap_callback	cb = { NULL, NULL, NULL, NULL };
 	struct berval	*syncuuid_bv = NULL;
 	struct berval	syncUUID_strrep = BER_BVNULL;
 	struct berval	uuid_bv = BER_BVNULL;
@@ -1465,7 +1467,7 @@ retry_add:;
 
 			op->o_tag = LDAP_REQ_MODIFY;
 
-			assert( *modlist );
+			assert( *modlist != NULL );
 
 			/* Delete all the old attrs */
 			for ( i = 0; i < dni.attrs; i++ ) {
@@ -1858,7 +1860,7 @@ syncrepl_add_glue(
 	return;
 }
 
-void
+static void
 syncrepl_updateCookie(
 	syncinfo_t *si,
 	Operation *op,
@@ -2072,7 +2074,7 @@ null_callback(
 	return LDAP_SUCCESS;
 }
 
-struct berval *
+static struct berval *
 slap_uuidstr_from_normalized(
 	struct berval* uuidstr,
 	struct berval* normalized,
@@ -2659,7 +2661,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 {
 	struct berval bc;
 	char buf[BUFSIZ*2], *ptr;
-	int i, len;
+	int i;
 
 	bindconf_unparse( &si->si_bindconf, &bc );
 	ptr = buf;

@@ -69,7 +69,7 @@ glue_back_select (
 	int i;
 
 	for (i = 0; i<gi->gi_nodes; i++) {
-		assert( gi->gi_n[i].gn_be->be_nsuffix );
+		assert( gi->gi_n[i].gn_be->be_nsuffix != NULL );
 
 		if (dnIsSuffix(dn, &gi->gi_n[i].gn_be->be_nsuffix[0])) {
 			return gi->gi_n[i].gn_be;
@@ -153,22 +153,14 @@ glue_op_response ( Operation *op, SlapReply *rs )
 	return 0;
 }
 
-enum glue_which {
-	op_modify = 0,
-	op_modrdn,
-	op_add,
-	op_delete
-};
-
 static int
 glue_op_func ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	BI_op_modify **func;
-	enum glue_which which;
+	slap_operation_t which;
 	int rc;
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
@@ -181,7 +173,7 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	case LDAP_REQ_MODRDN: which = op_modrdn; break;
 	}
 
-	func = &op->o_bd->bd_info->bi_op_modify;
+	func = &op->o_bd->bd_info->bi_op_bind;
 	if ( func[which] )
 		rc = func[which]( op, rs );
 	else
@@ -196,7 +188,6 @@ static int
 glue_chk_referrals ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int rc;
@@ -218,7 +209,6 @@ static int
 glue_chk_controls ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int rc = SLAP_CB_CONTINUE;
@@ -341,8 +331,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			}
 			op->o_bd = btmp;
 
-			assert( op->o_bd->be_suffix );
-			assert( op->o_bd->be_nsuffix );
+			assert( op->o_bd->be_suffix != NULL );
+			assert( op->o_bd->be_nsuffix != NULL );
 			
 			if (scope0 == LDAP_SCOPE_ONELEVEL && 
 				dn_match(pdn, &ndn))
@@ -526,10 +516,8 @@ glue_close (
 	BackendInfo *bi
 )
 {
-	slap_overinst *on = glue_tool_inst( bi );
-	glueinfo		*gi = on->on_bi.bi_private;
 	static int glueClosed = 0;
-	int i, rc = 0;
+	int rc = 0;
 
 	if (glueClosed) return 0;
 
@@ -654,7 +642,7 @@ glue_tool_entry_put (
 )
 {
 	BackendDB *be, b2;
-	int rc = NOID;
+	int rc = -1;
 
 	b2 = *b0;
 	b2.bd_info = (BackendInfo *)glue_tool_inst( b0->bd_info );
@@ -800,10 +788,9 @@ glue_db_config(
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;
 
 	if ( strcasecmp( argv[0], "glue-sub" ) == 0 ) {
-		int i, async = 0, advertise = 0;
-		BackendDB *b2;
-		struct berval bv, dn;
-		gluenode *gn;
+		int		i, async = 0, advertise = 0;
+		BackendDB	*b2;
+		struct berval	bv, dn = BER_BVNULL;
 
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: too few arguments in "
@@ -828,6 +815,7 @@ glue_db_config(
 			return -1;
 		}
 		b2 = select_backend( &dn, 0, 1 );
+		ber_memfree( dn.bv_val );
 		if ( !b2 ) {
 			fprintf( stderr, "%s: line %d: unknown suffix \"%s\"\n",
 				fname, lineno, argv[1] );

@@ -90,7 +90,7 @@ modify_add_values(
 		for ( p = i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ ) {
 			int	match;
 
-			assert( a->a_vals[0].bv_val );
+			assert( a->a_vals[0].bv_val != NULL );
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[j] ); j++ ) {
 				if ( mod->sm_nvalues ) {
 					rc = ordered_value_match( &match, mod->sm_desc, mr,
@@ -245,7 +245,7 @@ modify_delete_vindex(
 			}
 
 			if( mod->sm_nvalues ) {
-				assert( a->a_nvals );
+				assert( a->a_nvals != NULL );
 				rc = ordered_value_match( &match, a->a_desc, mr,
 					SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
 						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
@@ -432,14 +432,16 @@ slap_mod_free(
 
 void
 slap_mods_free(
-    Modifications	*ml )
+    Modifications	*ml,
+    int			freevals )
 {
 	Modifications *next;
 
 	for ( ; ml != NULL; ml = next ) {
 		next = ml->sml_next;
 
-		slap_mod_free( &ml->sml_mod, 0 );
+		if ( freevals )
+			slap_mod_free( &ml->sml_mod, 0 );
 		free( ml );
 	}
 }

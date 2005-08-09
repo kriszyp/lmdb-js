@@ -111,11 +111,8 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	}
 
 	if ( olddn != op->o_req_dn.bv_val ) {
-		ch_free( op->ora_e->e_name.bv_val );
-		ch_free( op->ora_e->e_nname.bv_val );
-
-		ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
-		ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
+		ber_bvreplace( &op->ora_e->e_name, &op->o_req_dn );
+		ber_bvreplace( &op->ora_e->e_nname, &op->o_req_ndn );
 	}
 
 	/* Count number of attributes in entry */ 
@@ -207,7 +204,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 			}
 		
 			if ( mapping != NULL ) {
-				assert( mapping->m_dst_ad );
+				assert( mapping->m_dst_ad != NULL );
 				(*ap)->a_desc = mapping->m_dst_ad;
 			}
 		}
@@ -258,8 +255,6 @@ static int
 rwm_op_bind( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
-	struct ldaprwmap	*rwmap = 
-			(struct ldaprwmap *)on->on_bi.bi_private;
 	int			rc;
 
 #ifdef ENABLE_REWRITE
@@ -327,8 +322,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			return -1;
 
 		} else if ( mapped_vals[0].bv_val != op->orc_ava->aa_value.bv_val ) {
-			free( op->orc_ava->aa_value.bv_val );
-			op->orc_ava->aa_value = mapped_vals[0];
+			ber_bvreplace_x( &op->orc_ava->aa_value, &mapped_vals[0], op->o_tmpmemctx );
 		}
 		mapped_at = op->orc_ava->aa_desc->ad_cname;
 
@@ -346,7 +340,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			}
 
 		} else {
-			assert( mapping->m_dst_ad );
+			assert( mapping->m_dst_ad != NULL );
 			ad = mapping->m_dst_ad;
 		}
 
@@ -373,7 +367,14 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 				return -1;
 			}
 
-			op->orc_ava->aa_value = mapped_vals[0];
+			if ( mapped_vals[ 0 ].bv_val != op->orc_ava->aa_value.bv_val ) {
+				/* NOTE: if we get here, rwm_dnattr_rewrite()
+				 * already freed the old value, so now 
+				 * it's invalid */
+				ber_dupbv_x( &op->orc_ava->aa_value, &mapped_vals[0],
+						op->o_tmpmemctx );
+				ber_memfree_x( mapped_vals[ 0 ].bv_val, NULL );
+			}
 		}
 		op->orc_ava->aa_desc = ad;
 	}
@@ -526,7 +527,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 next_mod:;
 		if ( mapping != NULL ) {
 			/* use new attribute description */
-			assert( mapping->m_dst_ad );
+			assert( mapping->m_dst_ad != NULL );
 			(*mlp)->sml_desc = mapping->m_dst_ad;
 		}
 
@@ -934,8 +935,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 					 * the value is replaced by
 					 * ch_alloc'ed memory
 					 */
-					ch_free( bv[0].bv_val );
-					ber_dupbv( &bv[0], &mapped );
+					ber_bvreplace( &bv[0], &mapped );
 				}
 			}
 
@@ -974,7 +974,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 
 		if ( mapping != NULL ) {
 			/* rewrite the attribute description */
-			assert( mapping->m_dst_ad );
+			assert( mapping->m_dst_ad != NULL );
 			(*ap)->a_desc = mapping->m_dst_ad;
 		}
 
@@ -1000,13 +1000,13 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	Entry			*e = NULL;
-	int			flags;
+	slap_mask_t		flags;
 	struct berval		dn = BER_BVNULL,
 				ndn = BER_BVNULL;
 	dncookie		dc;
 	int			rc;
 
-	assert( rs->sr_entry );
+	assert( rs->sr_entry != NULL );
 
 	/*
 	 * Rewrite the dn of the result, if needed
@@ -1421,9 +1421,11 @@ rwm_db_init(
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldapmapping	*mapping = NULL;
 	struct ldaprwmap	*rwmap;
+#ifdef ENABLE_REWRITE
+	char			*rargv[ 3 ];
+#endif /* ENABLE_REWRITE */
 
-	rwmap = (struct ldaprwmap *)ch_malloc(sizeof(struct ldaprwmap));
-	memset(rwmap, 0, sizeof(struct ldaprwmap));
+	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
 
 #ifdef ENABLE_REWRITE
  	rwmap->rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
@@ -1432,22 +1434,17 @@ rwm_db_init(
  		return -1;
  	}
 
-	{
-		char	*rargv[3];
+	/* this rewriteContext by default must be null;
+	 * rules can be added if required */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "searchFilter";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
 
-		/* this rewriteContext by default must be null;
-		 * rules can be added if required */
-		rargv[ 0 ] = "rewriteContext";
-		rargv[ 1 ] = "searchFilter";
-		rargv[ 2 ] = NULL;
-		rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
-
-		rargv[ 0 ] = "rewriteContext";
-		rargv[ 1 ] = "default";
-		rargv[ 2 ] = NULL;
-		rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
-	}
-	
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "default";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
 #endif /* ENABLE_REWRITE */
 
 	if ( rwm_map_init( &rwmap->rwm_oc, &mapping ) != LDAP_SUCCESS ||
@@ -1487,6 +1484,8 @@ rwm_db_destroy(
 		avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
 		avl_free( rwmap->rwm_at.remap, NULL );
 		avl_free( rwmap->rwm_at.map, rwm_mapping_free );
+
+		ch_free( rwmap );
 	}
 
 	return rc;

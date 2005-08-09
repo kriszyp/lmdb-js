@@ -53,7 +53,7 @@ static const char* skip_url_prefix LDAP_P((
 
 int ldap_pvt_url_scheme2proto( const char *scheme )
 {
-	assert( scheme );
+	assert( scheme != NULL );
 
 	if( scheme == NULL ) {
 		return -1;
@@ -81,7 +81,7 @@ int ldap_pvt_url_scheme2proto( const char *scheme )
 
 int ldap_pvt_url_scheme_port( const char *scheme, int port )
 {
-	assert( scheme );
+	assert( scheme != NULL );
 
 	if( port ) return port;
 	if( scheme == NULL ) return port;
@@ -110,7 +110,7 @@ int ldap_pvt_url_scheme_port( const char *scheme, int port )
 int
 ldap_pvt_url_scheme2tls( const char *scheme )
 {
-	assert( scheme );
+	assert( scheme != NULL );
 
 	if( scheme == NULL ) {
 		return -1;
@@ -804,7 +804,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		return LDAP_URL_ERR_BADSCHEME;
 	}
 
-	assert( scheme );
+	assert( scheme != NULL );
 
 	/* make working copy of the remainder of the URL */
 	url = LDAP_STRDUP( url_tmp );

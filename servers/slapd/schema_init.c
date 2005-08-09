@@ -404,7 +404,7 @@ octetStringSubstringsIndexer(
 	BerVarray *keysp,
 	void *ctx )
 {
-	ber_len_t i, j, len, nkeys;
+	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	BerVarray keys;
 
@@ -521,7 +521,7 @@ octetStringSubstringsFilter (
 {
 	SubstringsAssertion *sa;
 	char pre;
-	ber_len_t len, max, nkeys = 0;
+	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	BerVarray keys;
 	HASH_CONTEXT HASHcontext;
@@ -892,8 +892,8 @@ nameUIDPretty(
 	struct berval *out,
 	void *ctx )
 {
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 
 	Debug( LDAP_DEBUG_TRACE, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
@@ -2362,7 +2362,6 @@ serialNumberAndIssuerValidate(
 	struct berval *in )
 {
 	int rc;
-	int state;
 	ber_len_t n;
 	struct berval sn, i;
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
@@ -2396,12 +2395,11 @@ serialNumberAndIssuerPretty(
 	void *ctx )
 {
 	int rc;
-	int state;
 	ber_len_t n;
 	struct berval sn, i, newi;
 
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerPretty: <%s>\n",
 		val->bv_val, 0, 0 );
@@ -2436,13 +2434,14 @@ serialNumberAndIssuerPretty(
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
 	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
-	if( BER_BVISNULL( out ) ) {
+	if( out->bv_val == NULL ) {
+		out->bv_len = 0;
 		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
 	/* push issuer over */
-	AC_MEMCPY( &out->bv_val[sn.bv_len+1], newi.bv_val, newi.bv_len );
+	AC_MEMCPY( &out->bv_val[sn.bv_len+1], out->bv_val, newi.bv_len );
 	/* insert sn and "$" */
 	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
 	out->bv_val[sn.bv_len] = '$';
@@ -2471,12 +2470,11 @@ serialNumberAndIssuerNormalize(
 	void *ctx )
 {
 	int rc;
-	int state;
 	ber_len_t n;
 	struct berval sn, i, newi;
 
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerNormalize: <%s>\n",
 		val->bv_val, 0, 0 );
@@ -2513,13 +2511,14 @@ serialNumberAndIssuerNormalize(
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
 	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
-	if( BER_BVISNULL( out ) ) {
+	if( out->bv_val == NULL ) {
+		out->bv_len = 0;
 		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
 	/* push issuer over */
-	AC_MEMCPY( &out->bv_val[sn.bv_len+1], newi.bv_val, newi.bv_len );
+	AC_MEMCPY( &out->bv_val[sn.bv_len+1], out->bv_val, newi.bv_len );
 	/* insert sn and "$" */
 	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
 	out->bv_val[sn.bv_len] = '$';
@@ -2900,7 +2899,6 @@ int generalizedTimeIndexer(
 	void *ctx )
 {
 	int i, j;
-	size_t slen, mlen;
 	BerVarray keys;
 	char tmp[5];
 	BerValue bvtmp; /* 40 bit index */

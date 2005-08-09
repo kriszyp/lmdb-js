@@ -53,7 +53,7 @@ backsql_db_config(
 	backsql_info 	*bi = (backsql_info *)be->be_private;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_config()\n", 0, 0, 0 );
-	assert( bi );
+	assert( bi != NULL );
   
 	if ( !strcasecmp( argv[ 0 ], "dbhost" ) ) {
 		if ( argc < 2 ) {
@@ -649,7 +649,7 @@ read_baseObject(
 	int		rc = 0, lineno = 0, lmax = 0;
 	char		*buf = NULL;
 
-	assert( fname );
+	assert( fname != NULL );
 
 	fp = ldif_open( fname, "r" );
 	if ( fp == NULL ) {
@@ -788,7 +788,7 @@ create_baseObject(
 		struct berval			bv = BER_BVNULL;
 		const char			*text = NULL;
 
-		assert( ava );
+		assert( ava != NULL );
 
 		rc = slap_bv2ad( &ava->la_attr, &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {

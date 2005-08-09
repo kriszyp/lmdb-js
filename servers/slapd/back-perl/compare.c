@@ -30,7 +30,7 @@ perl_back_compare(
 	SlapReply	*rs )
 {
 	int count;
-	char *avastr, *ptr;
+	char *avastr;
 
 	PerlBackend *perl_back = (PerlBackend *)op->o_bd->be_private;
 

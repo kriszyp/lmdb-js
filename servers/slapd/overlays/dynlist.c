@@ -87,8 +87,8 @@ dynlist_make_filter( Operation *op, struct berval *oldf, struct berval *newf )
 
 	char		*ptr;
 
-	assert( oldf );
-	assert( newf );
+	assert( oldf != NULL );
+	assert( newf != NULL );
 	assert( !BER_BVISNULL( oldf ) );
 	assert( !BER_BVISEMPTY( oldf ) );
 
@@ -289,7 +289,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs )
 	SlapReply	r = { REP_SEARCH };
 	struct berval	*url;
 	Entry		*e;
-	int		e_flags;
+	slap_mask_t	e_flags;
 	int		opattrs,
 			userattrs;
 	dynlist_sc_t	dlc = { 0 };

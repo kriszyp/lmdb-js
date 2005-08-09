@@ -389,9 +389,9 @@ ldif_must_b64_encode_register( LDAP_CONST char *name, LDAP_CONST char *oid )
 	int		i;
 	ber_len_t	len;
 
-	assert( must_b64_encode );
-	assert( name );
-	assert( oid );
+	assert( must_b64_encode != NULL );
+	assert( name != NULL );
+	assert( oid != NULL );
 
 	len = strlen( name );
 
@@ -444,7 +444,7 @@ ldif_must_b64_encode_release( void )
 {
 	int	i;
 
-	assert( must_b64_encode );
+	assert( must_b64_encode != NULL );
 
 	if ( must_b64_encode == default_must_b64_encode ) {
 		return;
@@ -470,8 +470,8 @@ ldif_must_b64_encode( LDAP_CONST char *s )
 	int		i;
 	struct berval	bv;
 
-	assert( must_b64_encode );
-	assert( s );
+	assert( must_b64_encode != NULL );
+	assert( s != NULL );
 
 	ber_str2bv( s, 0, 0, &bv );
 

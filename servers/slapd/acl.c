@@ -37,10 +37,6 @@
 #include "lber_pvt.h"
 #include "lutil.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif /* LDAPI_SLAPI */
-
 #define ACL_BUF_SIZE 	1024	/* use most appropriate size */
 
 /*
@@ -166,7 +162,7 @@ slap_access_always_allowed(
 	AccessControlState	*state,
 	slap_mask_t		*maskp )
 {
-	assert( maskp );
+	assert( maskp != NULL );
 
 	ACL_PRIV_SET( *maskp, ACL_ACCESS2PRIV( access ) );
 
@@ -206,16 +202,6 @@ slap_access_allowed(
 	attr = desc->ad_cname.bv_val;
 
 	assert( attr != NULL );
-
-#ifdef LDAP_SLAPI
-	if ( op->o_pb != NULL ) {
-		ret = slapi_int_access_allowed( op, e, desc, val, access, state );
-		if ( ret == 0 ) {
-			/* ACL plugin denied access */
-			goto done;
-		}
-	}
-#endif /* LDAP_SLAPI */
 
 	/* grant database root access */
 	if ( be_isroot( op ) ) {
@@ -351,6 +337,39 @@ done:
 }
 
 int
+fe_access_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	BackendDB		*be_orig;
+	int			rc;
+
+	/*
+	 * NOTE: control gets here if FIXME
+	 * if an appropriate backend cannot be selected for the operation,
+	 * we assume that the frontend should handle this
+	 * FIXME: should select_backend() take care of this,
+	 * and return frontendDB instead of NULL?  maybe for some value
+	 * of the flags?
+	 */
+	be_orig = op->o_bd;
+
+	op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+	if ( op->o_bd == NULL ) {
+		op->o_bd = frontendDB;
+	}
+	rc = slap_access_allowed( op, e, desc, val, access, state, maskp );
+	op->o_bd = be_orig;
+
+	return rc;
+}
+
+int
 access_allowed_mask(
 	Operation		*op,
 	Entry			*e,
@@ -373,7 +392,6 @@ access_allowed_mask(
 	const char			*attr;
 	int				st_same_attr = 0;
 	static AccessControlState	state_init = ACL_STATE_INIT;
-	BI_access_allowed		*bi_access_allowed = NULL;
 
 	assert( e != NULL );
 	assert( desc != NULL );
@@ -444,11 +462,18 @@ access_allowed_mask(
 	/* this is enforced in backend_add() */
 	if ( op->o_bd->bd_info->bi_access_allowed ) {
 		/* delegate to backend */
-		ret = op->o_bd->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
+		ret = op->o_bd->bd_info->bi_access_allowed( op, e,
+				desc, val, access, state, &mask );
 
 	} else {
-		/* use default */
-		ret = slap_access_allowed( op, e, desc, val, access, state, &mask );
+		BackendDB	*be_orig = op->o_bd;
+
+		/* use default (but pass through frontend
+		 * for global ACL overlays) */
+		op->o_bd = frontendDB;
+		ret = frontendDB->bd_info->bi_access_allowed( op, e,
+				desc, val, access, state, &mask );
+		op->o_bd = be_orig;
 	}
 
 	if ( !ret ) {
@@ -580,16 +605,6 @@ access_allowed_mask(
 		}
 	}
 	assert( be != NULL );
-
-#ifdef LDAP_SLAPI
-	if ( op->o_pb != NULL ) {
-		ret = slapi_int_access_allowed( op, e, desc, val, access, state );
-		if ( ret == 0 ) {
-			/* ACL plugin denied access */
-			goto done;
-		}
-	}
-#endif /* LDAP_SLAPI */
 
 	/* grant database root access */
 	if ( be_isroot( op ) ) {
@@ -1751,6 +1766,9 @@ slap_acl_mask(
 				continue;
 			}
 
+			Debug( LDAP_DEBUG_ACL, "<= check a_group_pat: %s\n",
+				b->a_group_pat.bv_val, 0, 0 );
+
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
 			 * the values in the attribute group
@@ -1837,6 +1855,9 @@ slap_acl_mask(
 		if ( !BER_BVISEMPTY( &b->a_set_pat ) ) {
 			struct berval	bv;
 			char		buf[ACL_BUF_SIZE];
+
+			Debug( LDAP_DEBUG_ACL, "<= check a_set_pat: %s\n",
+				b->a_set_pat.bv_val, 0, 0 );
 
 			if ( b->a_set_style == ACL_STYLE_EXPAND ) {
 				int		tmp_nmatch;
@@ -1940,6 +1961,9 @@ slap_acl_mask(
 			slap_dynacl_t	*da;
 			slap_access_t	tgrant, tdeny;
 
+			Debug( LDAP_DEBUG_ACL, "<= check a_dynacl\n",
+				0, 0, 0 );
+
 			/* this case works different from the others above.
 			 * since aci's themselves give permissions, we need
 			 * to first check b->a_access_mask, the ACL's access level.
@@ -1962,6 +1986,9 @@ slap_acl_mask(
 
 			for ( da = b->a_dynacl; da; da = da->da_next ) {
 				slap_access_t	grant, deny;
+
+				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
+					da->da_name, 0, 0 );
 
 				(void)( *da->da_mask )( da->da_private, op, e, desc, val, nmatch, matches, &grant, &deny );
 
@@ -2006,6 +2033,9 @@ slap_acl_mask(
 			struct berval	parent_ndn;
 			BerVarray	bvals = NULL;
 			int		ret, stop;
+
+			Debug( LDAP_DEBUG_ACL, "    <= check a_aci_at: %s\n",
+				b->a_aci_at->ad_cname.bv_val, 0, 0 );
 
 			/* this case works different from the others above.
 			 * since aci's themselves give permissions, we need
@@ -3208,7 +3238,7 @@ dynacl_aci_unparse( void *priv, struct berval *bv )
 	AttributeDescription	*ad = ( AttributeDescription * )priv;
 	char *ptr;
 
-	assert( ad );
+	assert( ad != NULL );
 
 	bv->bv_val = ch_malloc( STRLENOF(" aci=") + ad->ad_cname.bv_len + 1 );
 	ptr = lutil_strcopy( bv->bv_val, " aci=" );
@@ -3440,8 +3470,8 @@ slap_dynacl_get( const char *name )
 int
 acl_init( void )
 {
-	int		i, rc;
 #ifdef SLAP_DYNACL
+	int		i, rc;
 	slap_dynacl_t	*known_dynacl[] = {
 #ifdef SLAPD_ACI_ENABLED
 		&dynacl_aci,

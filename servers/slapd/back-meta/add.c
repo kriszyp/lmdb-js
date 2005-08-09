@@ -43,6 +43,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	LDAPMod		**attrs;
 	struct berval	mdn = BER_BVNULL, mapped;
 	dncookie	dc;
+	int		msgid;
 	int		do_retry = 1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
@@ -163,20 +164,58 @@ meta_back_add( Operation *op, SlapReply *rs )
 	attrs[ i ] = NULL;
 
 retry:;
-#if 0
 	rs->sr_err = ldap_add_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			      attrs, op->o_ctrls, NULL, &msgid );
-	rs->sr_err = meta_back_op_result( op, rs, &mc->mc_conns[ candidate ], msgid, LDAP_BACK_SENDERR );
-#endif
-	rs->sr_err = ldap_add_ext_s( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			      attrs, op->o_ctrls, NULL );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
+
+	} else if ( rs->sr_err == LDAP_SUCCESS ) {
+		struct timeval	tv, *tvp = NULL;
+		LDAPMessage	*res = NULL;
+		int		rc;
+
+		if ( mi->mi_targets[ candidate ].mt_timeout[ META_OP_ADD ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ META_OP_ADD ];
+			tv.tv_usec = 0;
+			tvp = &tv;
+		}
+
+		rs->sr_err = LDAP_OTHER;
+		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
+			msgid, LDAP_MSG_ONE, tvp, &res );
+		switch ( rc ) {
+		case -1:
+			send_ldap_result( op, rs );
+			goto cleanup;
+
+		case 0:
+			ldap_abandon_ext( mc->mc_conns[ candidate ].msc_ld,
+				msgid, NULL, NULL );
+			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
+			send_ldap_result( op, rs );
+			goto cleanup;
+
+		case LDAP_RES_ADD:
+			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
+				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
+			if ( rc != LDAP_SUCCESS ) {
+				rs->sr_err = rc;
+			}
+			break;
+
+		default:
+			ldap_msgfree( res );
+			break;
+		}
 	}
 
+	(void)meta_back_op_result( mc, op, rs, candidate );
+
+cleanup:;
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ]->mod_bvalues );
 		free( attrs[ i ] );
@@ -186,8 +225,6 @@ retry:;
 		free( mdn.bv_val );
 		BER_BVZERO( &mdn );
 	}
-
-	(void)meta_back_op_result( mc, op, rs, candidate );
 
 done:;
 	meta_back_release_conn( op, mc );

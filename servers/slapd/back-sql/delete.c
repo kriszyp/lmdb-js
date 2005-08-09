@@ -93,7 +93,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	struct berval		pdn = BER_BVNULL;
 	int			manageDSAit = get_manageDSAit( op );
 	/* first parameter no */
-	SQLUSMALLINT		pno;
+	SQLUSMALLINT		pno = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_delete(): deleting entry \"%s\"\n",
 			op->o_req_ndn.bv_val, 0, 0 );
@@ -115,7 +115,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 	bsi.bsi_e = &d;
 	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
 	switch ( rs->sr_err ) {
@@ -172,7 +171,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = backsql_has_children( bi, dbh, &op->o_req_ndn );
+	rs->sr_err = backsql_has_children( op, dbh, &op->o_req_ndn );
 	switch ( rs->sr_err ) {
 	case LDAP_COMPARE_FALSE:
 		rs->sr_err = LDAP_SUCCESS;
@@ -223,7 +222,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 	e_id = bsi.bsi_base_id;
 	rs->sr_err = backsql_init_search( &bsi, &pdn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
 			BACKSQL_ISF_GET_ENTRY );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -287,9 +285,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 			e = NULL;
 			goto done;
 		}
-
-	} else {
-		pno = 0;
 	}
 
 	rc = backsql_BindParamID( sth, pno + 1, SQL_PARAM_INPUT, &e_id.eid_keyval );

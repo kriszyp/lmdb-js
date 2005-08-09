@@ -119,9 +119,9 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 		return 1;
 	}
 
-	om = (OidMacro *) SLAP_MALLOC( sizeof(OidMacro) );
+	om = (OidMacro *) SLAP_CALLOC( sizeof(OidMacro), 1 );
 	if( om == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "parse_oidm: SLAP_MALLOC failed", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "parse_oidm: SLAP_CALLOC failed", 0, 0, 0 );
 		return 1;
 	}
 
@@ -156,7 +156,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 {
 	OidMacro *om;
 	int i, j, num;
-	struct berval bv, *bva = NULL, idx;
+	struct berval *bva = NULL, idx;
 	char ibuf[32], *ptr;
 
 	if ( !start )

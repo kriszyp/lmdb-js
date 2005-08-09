@@ -31,6 +31,17 @@
 #include "ldif.h"
 #include "back-monitor.h"
 
+static int
+monitor_subsys_log_destroy(
+	BackendDB		*be,
+	monitor_subsys_t	*ms );
+
+static int 
+monitor_subsys_log_modify( 
+	Operation		*op,
+	SlapReply		*rs,
+	Entry 			*e );
+
 /*
  * log mutex
  */
@@ -77,6 +88,9 @@ monitor_subsys_log_init(
 	Entry		*e;
 	int		i;
 
+	ms->mss_destroy = monitor_subsys_log_destroy;
+	ms->mss_modify = monitor_subsys_log_modify;
+
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );
 
 	mi = ( monitor_info_t * )be->be_private;
@@ -118,7 +132,23 @@ monitor_subsys_log_init(
 	return( 0 );
 }
 
-int 
+static int
+monitor_subsys_log_destroy(
+	BackendDB		*be,
+	monitor_subsys_t	*ms )
+{
+	int		i;
+
+	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
+		if ( !BER_BVISNULL( &int_2_level[ i ].n ) ) {
+			ch_free( int_2_level[ i ].n.bv_val );
+		}
+	}
+
+	return 0;
+}
+
+static int 
 monitor_subsys_log_modify( 
 	Operation		*op,
 	SlapReply		*rs,
@@ -197,7 +227,7 @@ monitor_subsys_log_modify(
 		}
 
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check( be_monitor, e, save_attrs, 0,
+		rc = entry_schema_check( op, e, save_attrs, 0,
 			&text, textbuf, sizeof( textbuf ) );
 		if ( rc != LDAP_SUCCESS ) {
 			rs->sr_err = rc;

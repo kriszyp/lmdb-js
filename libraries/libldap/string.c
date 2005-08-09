@@ -126,7 +126,7 @@ ldap_pvt_str2upperbv( char *str, struct berval *bv )
 {
 	char    *s = NULL;
 
-	assert( bv );
+	assert( bv != NULL );
 
 	/* to upper */
 	if ( str ) {
@@ -161,7 +161,7 @@ ldap_pvt_str2lowerbv( char *str, struct berval *bv )
 {
 	char    *s = NULL;
 
-	assert( bv );
+	assert( bv != NULL );
 
 	/* to lower */
 	if ( str ) {

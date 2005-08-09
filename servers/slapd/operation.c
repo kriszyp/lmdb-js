@@ -63,21 +63,19 @@ void slap_op_destroy(void)
 void
 slap_op_free( Operation *op )
 {
-	struct berval slap_empty_bv_dup;
-
 	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
 
 	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );
 	}
 	if ( !BER_BVISNULL( &op->o_dn ) ) {
-		free( op->o_dn.bv_val );
+		ch_free( op->o_dn.bv_val );
 	}
 	if ( !BER_BVISNULL( &op->o_ndn ) ) {
-		free( op->o_ndn.bv_val );
+		ch_free( op->o_ndn.bv_val );
 	}
 	if ( !BER_BVISNULL( &op->o_authmech ) ) {
-		free( op->o_authmech.bv_val );
+		ch_free( op->o_authmech.bv_val );
 	}
 	if ( op->o_ctrls != NULL ) {
 		slap_free_ctrls( op, op->o_ctrls );
@@ -99,8 +97,7 @@ slap_op_free( Operation *op )
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( op->o_pb != NULL ) {
-		slapi_pblock_destroy( (Slapi_PBlock *)op->o_pb );
+	if ( slapi_plugins_used ) {
 		slapi_int_free_object_extensions( SLAPI_X_EXT_OPERATION, op );
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -124,7 +121,6 @@ slap_op_alloc(
 )
 {
 	Operation	*op;
-	struct berval slap_empty_bv_dup;
 
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	if ((op = LDAP_STAILQ_FIRST( &slap_free_ops ))) {
@@ -155,7 +151,6 @@ slap_op_alloc(
 
 #if defined( LDAP_SLAPI )
 	if ( slapi_plugins_used ) {
-		op->o_pb = slapi_pblock_new();
 		slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 	}
 #endif /* defined( LDAP_SLAPI ) */

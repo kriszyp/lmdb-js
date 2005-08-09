@@ -413,7 +413,7 @@ void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e,
 #if 0
 void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 #else
-#define	bdb_unlocked_cache_return_entry_rw( a, b, c )
+#define	bdb_unlocked_cache_return_entry_rw( a, b, c )	((void)0)
 #endif
 #define bdb_unlocked_cache_return_entry_r( c, e ) \
 	bdb_unlocked_cache_return_entry_rw((c), (e), 0)
@@ -445,11 +445,11 @@ int bdb_cache_add(
 	u_int32_t locker
 );
 int bdb_cache_modrdn(
+	struct bdb_info *bdb,
 	Entry	*e,
 	struct berval *nrdn,
 	Entry	*new,
 	EntryInfo *ein,
-	DB_ENV *env,
 	u_int32_t locker,
 	DB_LOCK *lock
 );
@@ -522,9 +522,9 @@ int bdb_cache_entry_db_unlock(
 #ifdef BDB_REUSE_LOCKERS
 
 #define bdb_locker_id				BDB_SYMBOL(locker_id)
-int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
+int bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker );
 
-#define	LOCK_ID_FREE(env, locker)
+#define	LOCK_ID_FREE(env, locker)	((void)0)
 #define	LOCK_ID(env, locker)	bdb_locker_id(op, env, locker)
 
 #else

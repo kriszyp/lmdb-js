@@ -71,7 +71,7 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 	const char		*text;
 	int			rc;
 
-	assert( m );
+	assert( m != NULL );
 
 	*m = NULL;
 	
@@ -82,19 +82,21 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 	}
 
 	/* FIXME: I don't think this is needed any more... */
-	rc = slap_str2ad( "objectClass", &mapping->m_src_ad, &text );
+	rc = slap_str2ad( "objectClass", &mapping[0].m_src_ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	mapping->m_dst_ad = mapping->m_src_ad;
-	ber_dupbv( &mapping->m_dst, &mapping->m_src_ad->ad_cname );
-	ber_dupbv( &mapping->m_dst, &mapping->m_src );
+	mapping[0].m_dst_ad = mapping[0].m_src_ad;
+	ber_dupbv( &mapping[0].m_src, &mapping[0].m_src_ad->ad_cname );
+	ber_dupbv( &mapping[0].m_dst, &mapping[0].m_src );
 
-	mapping[1].m_src = mapping->m_src;
-	mapping[1].m_dst = mapping->m_dst;
+	mapping[1].m_src = mapping[0].m_src;
+	mapping[1].m_dst = mapping[0].m_dst;
+	mapping[1].m_src_ad = mapping[0].m_src_ad;
+	mapping[1].m_dst_ad = mapping[1].m_src_ad;
 
-	avl_insert( &lm->map, (caddr_t)mapping, 
+	avl_insert( &lm->map, (caddr_t)&mapping[0], 
 			rwm_mapping_cmp, rwm_mapping_dup );
 	avl_insert( &lm->remap, (caddr_t)&mapping[1], 
 			rwm_mapping_cmp, rwm_mapping_dup );
@@ -110,7 +112,7 @@ rwm_mapping( struct ldapmap *map, struct berval *s, struct ldapmapping **m, int 
 	Avlnode *tree;
 	struct ldapmapping fmapping;
 
-	assert( m );
+	assert( m != NULL );
 
 	if ( remap == RWM_REMAP ) {
 		tree = map->remap;
@@ -163,7 +165,7 @@ rwm_map_attrnames(
 {
 	int		i, j;
 
-	assert( anp );
+	assert( anp != NULL );
 
 	*anp = NULL;
 
@@ -456,7 +458,10 @@ rwm_int_filter_map_rewrite(
 			/* better than nothing... */
 			ber_bvtrue = BER_BVC( "(objectClass=*)" ),
 			ber_bvtf_true = BER_BVC( "(&)" ),
+#if 0
+			/* no longer needed; preserved for completeness */
 			ber_bvundefined = BER_BVC( "(?=undefined)" ),
+#endif
 			ber_bverror = BER_BVC( "(?=error)" ),
 			ber_bvunknown = BER_BVC( "(?=unknown)" ),
 			ber_bvnone = BER_BVC( "(?=none)" );
@@ -791,7 +796,7 @@ rwm_referral_rewrite(
 	struct berval		dn = BER_BVNULL,
 				ndn = BER_BVNULL;
 
-	assert( a_vals );
+	assert( a_vals != NULL );
 
 	/*
 	 * Rewrite the dn if needed

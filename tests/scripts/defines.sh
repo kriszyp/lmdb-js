@@ -24,6 +24,7 @@ GLUE=${AC_glue-glueno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
+RETCODE=${AC_retcode-retcodeno}
 RWM=${AC_rwm-rwmno}
 TRANSLUCENT=${AC_translucent-translucentno}
 UNIQUE=${AC_unique-uniqueno}
@@ -48,6 +49,7 @@ DBDIR3=$TESTDIR/db.3.a
 DBDIR4=$TESTDIR/db.4.a
 DBDIR5=$TESTDIR/db.5.a
 DBDIR6=$TESTDIR/db.6.a
+SQLCONCURRENCYDIR=$DATADIR/sql-concurrency
 
 CONF=$DATADIR/slapd.conf
 CONFTWO=$DATADIR/slapd2.conf
@@ -72,6 +74,7 @@ REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
+RETCODECONF=$DATADIR/slapd-retcode.conf
 UNIQUECONF=$DATADIR/slapd-unique.conf
 LIMITSCONF=$DATADIR/slapd-limits.conf
 DNCONF=$DATADIR/slapd-dn.conf
@@ -91,6 +94,7 @@ TRANSLUCENTLOCALCONF=$DATADIR/slapd-translucent-local.conf
 TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
 METACONF2=$DATADIR/slapd-meta2.conf
+GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -191,6 +195,7 @@ BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,dc=exampl
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 REFINTDN="cn=Manager,o=refint"
+RETCODEDN="ou=RetCodes,$BASEDN"
 UNIQUEDN="cn=Manager,o=unique"
 EMPTYDNDN="cn=Manager,c=US"
 TRANSLUCENTROOT="o=translucent"

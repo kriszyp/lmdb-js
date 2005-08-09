@@ -620,6 +620,9 @@
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
+/* Define if you have the <utime.h> header file.  */
+#undef HAVE_UTIME_H
+
 /* Define if you have the <winsock.h> header file.  */
 #undef HAVE_WINSOCK_H
 
@@ -1060,6 +1063,9 @@
 
 /* define for Referential Integrity overlay */
 #undef SLAPD_OVER_REFINT
+
+/* define for Referential Integrity overlay */
+#undef SLAPD_OVER_RETCODE
 
 /* define for Rewrite/Remap overlay */
 #undef SLAPD_OVER_RWM

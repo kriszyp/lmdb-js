@@ -87,7 +87,7 @@ ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping **m )
 {
 	struct ldapmapping *mapping;
 
-	assert( m );
+	assert( m != NULL );
 
 	*m = NULL;
 	
@@ -116,7 +116,7 @@ ldap_back_mapping ( struct ldapmap *map, struct berval *s, struct ldapmapping **
 	Avlnode *tree;
 	struct ldapmapping fmapping;
 
-	assert( m );
+	assert( m != NULL );
 
 	if ( remap == BACKLDAP_REMAP ) {
 		tree = map->remap;
@@ -601,8 +601,8 @@ ldap_back_referral_result_rewrite(
 {
 	int		i, last;
 
-	assert( dc );
-	assert( a_vals );
+	assert( dc != NULL );
+	assert( a_vals != NULL );
 
 	for ( last = 0; !BER_BVISNULL( &a_vals[ last ] ); last++ )
 		;

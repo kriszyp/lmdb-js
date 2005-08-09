@@ -49,7 +49,7 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 #ifdef LDAP_PF_LOCAL
 #if defined( SO_PEERCRED )
 	struct ucred peercred;
-	size_t peercredlen = sizeof peercred;
+	socklen_t peercredlen = sizeof peercred;
 
 	if(( getsockopt( s, SOL_SOCKET, SO_PEERCRED,
 		(void *)&peercred, &peercredlen ) == 0 )

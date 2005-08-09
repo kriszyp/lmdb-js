@@ -159,9 +159,9 @@ rwm_dn_massage(
 	struct berval	mdn;
 	static char	*dmy = "";
 
-	assert( dc );
-	assert( in );
-	assert( dn );
+	assert( dc != NULL );
+	assert( in != NULL );
+	assert( dn != NULL );
 
 	rc = rewrite_session( dc->rwmap->rwm_rw, dc->ctx,
 			( in->bv_val ? in->bv_val : dmy ), 
@@ -221,9 +221,9 @@ rwm_dn_massage(
 	int     	i, src, dst;
 	struct berval	tmpin;
 
-	assert( dc );
-	assert( in );
-	assert( dn );
+	assert( dc != NULL );
+	assert( in != NULL );
+	assert( dn != NULL );
 
 	BER_BVZERO( dn );
 

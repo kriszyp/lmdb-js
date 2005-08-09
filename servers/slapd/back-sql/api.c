@@ -35,8 +35,8 @@ backsql_api_config( backsql_info *bi, const char *name, int argc, char *argv[] )
 {
 	backsql_api	*ba;
 
-	assert( bi );
-	assert( name );
+	assert( bi != NULL );
+	assert( name != NULL );
 
 	for ( ba = backsqlapi; ba; ba = ba->ba_next ) {
 		if ( strcasecmp( name, ba->ba_name ) == 0 ) {
@@ -66,7 +66,7 @@ backsql_api_destroy( backsql_info *bi )
 {
 	backsql_api	*ba;
 
-	assert( bi );
+	assert( bi != NULL );
 
 	ba = bi->sql_api;
 
@@ -88,7 +88,7 @@ backsql_api_register( backsql_api *ba )
 {
 	backsql_api	*ba2;
 
-	assert( ba );
+	assert( ba != NULL );
 	assert( ba->ba_private == NULL );
 
 	if ( ba->ba_name == NULL ) {

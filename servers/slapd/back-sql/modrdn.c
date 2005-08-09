@@ -74,7 +74,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	bsi.bsi_e = &r;
 	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs,
 			slap_anlist_all_attributes,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
@@ -129,7 +128,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if ( backsql_has_children( bi, dbh, &op->o_req_ndn ) == LDAP_COMPARE_TRUE ) {
+	if ( backsql_has_children( op, dbh, &op->o_req_ndn ) == LDAP_COMPARE_TRUE ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"entry \"%s\" has children\n",
 			op->o_req_dn.bv_val, 0, 0 );
@@ -171,7 +170,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	e_id = bsi.bsi_base_id;
 	rs->sr_err = backsql_init_search( &bsi, &pndn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs,
 			slap_anlist_all_attributes,
 			BACKSQL_ISF_GET_ENTRY );
@@ -226,7 +224,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		bsi.bsi_e = &n;
 		rs->sr_err = backsql_init_search( &bsi, new_npdn,
 				LDAP_SCOPE_BASE, 
-				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 				(time_t)(-1), NULL, dbh, op, rs,
 				slap_anlist_all_attributes,
 				( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
@@ -455,7 +452,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		bsi.bsi_e = &r;
 		rs->sr_err = backsql_init_search( &bsi, &new_ndn,
 				LDAP_SCOPE_BASE, 
-				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 				(time_t)(-1), NULL, dbh, op, rs,
 				slap_anlist_all_attributes,
 				( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
@@ -495,7 +491,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 		e_id = bsi.bsi_base_id;
 
-		rs->sr_err = entry_schema_check( op->o_bd, &r, NULL, 0,
+		rs->sr_err = entry_schema_check( op, &r, NULL, 0,
 			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "

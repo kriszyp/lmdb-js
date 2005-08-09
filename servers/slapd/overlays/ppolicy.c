@@ -211,10 +211,8 @@ account_locked( Operation *op, Entry *e,
 		PassPolicy *pp, Modifications **mod ) 
 {
 	Attribute       *la;
-	int rc;
-	Entry *de;
 
-	assert(mod);
+	assert(mod != NULL);
 
 	if ( (la = attr_find( e->e_attrs, ad_pwdAccountLockedTime )) != NULL ) {
 		BerVarray vals = la->a_nvals;
@@ -225,7 +223,6 @@ account_locked( Operation *op, Entry *e,
 		 */
 		if (vals[0].bv_val != NULL) {
 			time_t then, now;
-			struct berval bv;
 			Modifications *m;
 
 			if (!pp->pwdLockoutDuration)
@@ -310,12 +307,11 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	pp_info *pi = on->on_bi.bi_private;
 	Attribute *a;
 	BerVarray vals;
-	int i, rc, nent;
+	int rc;
 	Entry *pe = NULL;
-	AttributeDescription *oca = slap_schema.si_ad_objectClass;
+#if 0
 	const char *text;
-	AttributeDescription *ad;
-	struct berval bv;
+#endif
 
 	memset( pp, 0, sizeof(PassPolicy) );
 
@@ -432,7 +428,6 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 {
 	int rc = LDAP_SUCCESS, ok = LDAP_SUCCESS;
 	char *ptr = cred->bv_val;
-	char *modpath;
 	struct berval sch;
 
 	assert( cred != NULL );
@@ -681,10 +676,9 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 	slap_overinst *on = ppb->on;
 	Modifications *mod = ppb->mod, *m;
 	int pwExpired = 0;
-	int ngut = -1, warn = -1, age, rc, i;
+	int ngut = -1, warn = -1, age, rc;
 	Attribute *a;
-	time_t now, then, pwtime = (time_t)-1;
-	const char *txt;
+	time_t now, pwtime = (time_t)-1;
 	char nowstr[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	struct berval timestamp;
 	BackendInfo *bi = op->o_bd->bd_info;
@@ -925,7 +919,7 @@ locked:
 		op2.o_ndn = op->o_bd->be_rootndn;
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = op->o_bd->be_modify( &op2, &r2 );
-		slap_mods_free( mod );
+		slap_mods_free( mod, 1 );
 	}
 
 	if ( ppb->send_ctrl ) {
@@ -953,7 +947,7 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 	/* Root bypasses policy */
 	if ( !be_isroot_dn( op->o_bd, &op->o_req_ndn )) {
 		Entry *e;
-		int i, rc;
+		int rc;
 		ppbind *ppb;
 		slap_callback *cb;
 
@@ -1017,7 +1011,7 @@ ppolicy_restrict(
 	SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
-	int i, send_ctrl = 0;
+	int send_ctrl = 0;
 
 	/* Did we receive a password policy request control? */
 	if ( op->o_ctrlflag[ppolicy_cid] ) {
@@ -1052,7 +1046,6 @@ ppolicy_add(
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	pp_info *pi = on->on_bi.bi_private;
 	PassPolicy pp;
-	int pw;
 	Attribute *pa;
 	const char *txt;
 
@@ -1071,7 +1064,7 @@ ppolicy_add(
 		ppolicy_get( op, op->ora_e, &pp );
 		if (pp.pwdCheckQuality > 0 && !be_isroot( op )) {
 			struct berval *bv = &(pa->a_vals[0]);
-			int rc, i, send_ctrl = 0; 
+			int rc, send_ctrl = 0;
 			LDAPPasswordPolicyError pErr = PP_noError;
 
 			/* Did we receive a password policy request control? */
@@ -1149,7 +1142,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				hsize = 0;
 	PassPolicy		pp;
 	Modifications		*mods = NULL, *modtail, *ml, *delmod, *addmod;
-	Attribute		*pa, *ha, *ra, at;
+	Attribute		*pa, *ha, at;
 	const char		*txt;
 	pw_hist			*tl = NULL, *p;
 	int			zapReset, send_ctrl = 0;
@@ -1271,7 +1264,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	if (pp.pwdInHistory > 0 && (ha = attr_find( e->e_attrs, ad_pwdHistory ))) {
 		struct berval oldpw;
 		time_t oldtime;
-		char *oid;
 
 		for(i=0; ha->a_nvals[i].bv_val; i++) {
 			rc = parse_pwdhistory( &(ha->a_nvals[i]), NULL,
@@ -1438,7 +1430,6 @@ do_modify:
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		time_t now = slap_get_time();
-		Attribute *ga;
 		
 		/*
 		 * keep the necessary pwd.. operational attributes
@@ -1458,7 +1449,7 @@ do_modify:
 			ber_dupbv( &mods->sml_values[0], &timestamp );
 			mods->sml_values[1].bv_len = 0;
 			mods->sml_values[1].bv_val = NULL;
-			assert( mods->sml_values[0].bv_val );
+			assert( mods->sml_values[0].bv_val != NULL );
 		} else {
 			mods->sml_op = LDAP_MOD_DELETE;
 			mods->sml_values = NULL;

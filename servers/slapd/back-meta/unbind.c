@@ -40,6 +40,8 @@ meta_back_conn_destroy(
 	metainfo_t	*mi = ( metainfo_t * )be->be_private;
 	metaconn_t	*mc,
 			mc_curr = { 0 };
+	int		i;
+
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=>meta_back_conn_destroy: fetching conn %ld\n",
@@ -47,24 +49,12 @@ meta_back_conn_destroy(
 	
 	mc_curr.mc_conn = conn;
 	
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
-
+	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 	mc = avl_delete( &mi->mi_conntree, ( caddr_t )&mc_curr,
 			meta_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
 	if ( mc ) {
-		int	i;
-
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_conn_destroy: destroying conn %ld\n",
 			mc->mc_conn->c_connid, 0, 0 );
@@ -75,16 +65,20 @@ retry_lock:;
 		 * Cleanup rewrite session
 		 */
 		for ( i = 0; i < mi->mi_ntargets; ++i ) {
-			rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
-
 			if ( mc->mc_conns[ i ].msc_ld != NULL ) {
 				meta_clear_one_candidate( &mc->mc_conns[ i ] );
 			}
 		}
+
 		meta_back_conn_free( mc );
 	}
 
-	/* no response to unbind */
+	/*
+	 * Cleanup rewrite session
+	 */
+	for ( i = 0; i < mi->mi_ntargets; ++i ) {
+		rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
+	}
 
 	return 0;
 }

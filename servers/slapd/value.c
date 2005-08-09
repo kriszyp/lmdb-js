@@ -312,7 +312,6 @@ ordered_value_sort( Attribute *a, int do_renumber )
 	int i, vals;
 	int index = 0, noindex = 0, renumber = 0, gotnvals = 0;
 	struct berval tmp;
-	char *ptr;
 
 	if ( a->a_nvals && a->a_nvals != a->a_vals )
 		gotnvals = 1;
@@ -386,6 +385,7 @@ ordered_value_sort( Attribute *a, int do_renumber )
 		if ( indexes[0] != 0 || indexes[vals-1] != vals-1 ) {
 			renumber = 1;
 		}
+		ch_free( indexes );
 	} else {
 		renumber = 1;
 	}

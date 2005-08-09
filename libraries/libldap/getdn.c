@@ -358,7 +358,7 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn_normalize\n", 0, 0, 0 );
 
-	assert( dnout );
+	assert( dnout != NULL );
 
 	*dnout = NULL;
 
@@ -557,14 +557,14 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
  * LDAPAVA helpers (will become part of the API for operations 
  * on structural representations of DNs).
  */
-LDAPAVA *
+static LDAPAVA *
 ldapava_new( const struct berval *attr, const struct berval *val, 
 		unsigned flags, void *ctx )
 {
 	LDAPAVA *ava;
 
-	assert( attr );
-	assert( val );
+	assert( attr != NULL );
+	assert( val != NULL );
 
 	ava = LDAP_MALLOCX( sizeof( LDAPAVA ) + attr->bv_len + 1, ctx );
 
@@ -586,7 +586,7 @@ ldapava_new( const struct berval *attr, const struct berval *val,
 void
 ldapava_free( LDAPAVA *ava, void *ctx )
 {
-	assert( ava );
+	assert( ava != NULL );
 
 #if 0
 	/* ava's private must be freed by caller
@@ -673,7 +673,7 @@ ldap_str2dn( LDAP_CONST char *str, LDAPDN *dn, unsigned flags )
 {
 	struct berval	bv;
 
-	assert( str );
+	assert( str != NULL );
 
 	bv.bv_len = strlen( str );
 	bv.bv_val = (char *) str;
@@ -700,9 +700,9 @@ ldap_bv2dn_x( struct berval *bvin, LDAPDN *dn, unsigned flags, void *ctx )
 	char		*str, *end;
 	struct berval	bvtmp, *bv = &bvtmp;
 	
-	assert( bvin );
-	assert( bvin->bv_val );
-	assert( dn );
+	assert( bvin != NULL );
+	assert( bvin->bv_val != NULL );
+	assert( dn != NULL );
 
 	*bv = *bvin;
 	str = bv->bv_val;
@@ -911,7 +911,7 @@ ldap_str2rdn( LDAP_CONST char *str, LDAPRDN *rdn,
 {
 	struct berval	bv;
 
-	assert( str );
+	assert( str != NULL );
 	assert( str[ 0 ] != '\0' );	/* FIXME: is this required? */
 
 	bv.bv_len = strlen( str );
@@ -949,11 +949,11 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 	char		*str;
 	ber_len_t	stoplen;
 	
-	assert( bv );
-	assert( bv->bv_len );
-	assert( bv->bv_val );
+	assert( bv != NULL );
+	assert( bv->bv_len != 0 );
+	assert( bv->bv_val != NULL );
 	assert( rdn || flags & LDAP_DN_SKIP );
-	assert( n );
+	assert( n != NULL );
 
 	str = bv->bv_val;
 	stoplen = bv->bv_len;
@@ -1435,9 +1435,9 @@ str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char *
 	const char 	*p, *end, *startPos, *endPos = NULL;
 	ber_len_t	len, escapes;
 
-	assert( str );
-	assert( val );
-	assert( next );
+	assert( str != NULL );
+	assert( val != NULL );
+	assert( next != NULL );
 
 	*next = NULL;
 	end = str + stoplen;
@@ -1581,9 +1581,9 @@ DCE2strval( const char *str, struct berval *val, const char **next, unsigned fla
 	const char 	*p, *startPos, *endPos = NULL;
 	ber_len_t	len, escapes;
 
-	assert( str );
-	assert( val );
-	assert( next );
+	assert( str != NULL );
+	assert( val != NULL );
+	assert( next != NULL );
 
 	*next = NULL;
 	
@@ -1666,9 +1666,9 @@ IA52strval( const char *str, struct berval *val, const char **next, unsigned fla
 	const char 	*p, *startPos, *endPos = NULL;
 	ber_len_t	len, escapes;
 
-	assert( str );
-	assert( val );
-	assert( next );
+	assert( str != NULL );
+	assert( val != NULL );
+	assert( next != NULL );
 
 	*next = NULL;
 
@@ -1742,9 +1742,9 @@ quotedIA52strval( const char *str, struct berval *val, const char **next, unsign
 	ber_len_t	len;
 	unsigned	escapes = 0;
 
-	assert( str );
-	assert( val );
-	assert( next );
+	assert( str != NULL );
+	assert( val != NULL );
+	assert( next != NULL );
 
 	*next = NULL;
 
@@ -1832,8 +1832,8 @@ hexstr2bin( const char *str, char *c )
 {
 	char	c1, c2;
 
-	assert( str );
-	assert( c );
+	assert( str != NULL );
+	assert( c != NULL );
 
 	c1 = str[ 0 ];
 	c2 = str[ 1 ];
@@ -1874,9 +1874,9 @@ hexstr2binval( const char *str, struct berval *val, const char **next, unsigned 
 	ber_len_t	len;
 	ber_len_t	s, d;
 
-	assert( str );
-	assert( val );
-	assert( next );
+	assert( str != NULL );
+	assert( val != NULL );
+	assert( next != NULL );
 
 	*next = NULL;
 
@@ -1976,8 +1976,8 @@ byte2hexpair( const char *val, char *pair )
 {
 	static const char	hexdig[] = "0123456789ABCDEF";
 
-	assert( val );
-	assert( pair );
+	assert( val != NULL );
+	assert( pair != NULL );
 
 	/* 
 	 * we assume the string has enough room for the hex encoding
@@ -1998,8 +1998,8 @@ binval2hexstr( struct berval *val, char *str )
 {
 	ber_len_t	s, d;
 
-	assert( val );
-	assert( str );
+	assert( val != NULL );
+	assert( str != NULL );
 
 	if ( val->bv_len == 0 ) {
 		return( 0 );
@@ -2031,8 +2031,8 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 	int		escaped_ascii_len = LDAP_DN_IS_PRETTY( flags ) ? 2 : 3;
 #endif /* PRETTY_ESCAPE */
 	
-	assert( val );
-	assert( len );
+	assert( val != NULL );
+	assert( len != NULL );
 
 	*len = 0;
 	if ( val->bv_len == 0 ) {
@@ -2109,9 +2109,9 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
 	ber_len_t	s, d, end;
 
-	assert( val );
-	assert( str );
-	assert( len );
+	assert( val != NULL );
+	assert( str != NULL );
+	assert( len != NULL );
 
 	if ( val->bv_len == 0 ) {
 		*len = 0;
@@ -2208,8 +2208,8 @@ strval2IA5strlen( struct berval *val, unsigned flags, ber_len_t *len )
 	ber_len_t	l;
 	char		*p;
 
-	assert( val );
-	assert( len );
+	assert( val != NULL );
+	assert( len != NULL );
 
 	*len = 0;
 	if ( val->bv_len == 0 ) {
@@ -2250,9 +2250,9 @@ strval2IA5str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
 	ber_len_t	s, d, end;
 
-	assert( val );
-	assert( str );
-	assert( len );
+	assert( val != NULL );
+	assert( str != NULL );
+	assert( len != NULL );
 
 	if ( val->bv_len == 0 ) {
 		*len = 0;
@@ -2298,8 +2298,8 @@ strval2DCEstrlen( struct berval *val, unsigned flags, ber_len_t *len )
 	ber_len_t	l;
 	char		*p;
 
-	assert( val );
-	assert( len );
+	assert( val != NULL );
+	assert( len != NULL );
 
 	*len = 0;
 	if ( val->bv_len == 0 ) {
@@ -2338,9 +2338,9 @@ strval2DCEstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
 	ber_len_t	s, d;
 
-	assert( val );
-	assert( str );
-	assert( len );
+	assert( val != NULL );
+	assert( str != NULL );
+	assert( len != NULL );
 
 	if ( val->bv_len == 0 ) {
 		*len = 0;
@@ -2384,8 +2384,8 @@ strval2ADstrlen( struct berval *val, unsigned flags, ber_len_t *len )
 	ber_len_t	l;
 	char		*p;
 
-	assert( val );
-	assert( len );
+	assert( val != NULL );
+	assert( len != NULL );
 
 	*len = 0;
 	if ( val->bv_len == 0 ) {
@@ -2424,9 +2424,9 @@ strval2ADstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
 	ber_len_t	s, d;
 
-	assert( val );
-	assert( str );
-	assert( len );
+	assert( val != NULL );
+	assert( str != NULL );
+	assert( len != NULL );
 
 	if ( val->bv_len == 0 ) {
 		*len = 0;
@@ -2477,9 +2477,9 @@ dn2domain( LDAPDN dn, struct berval *bv, int pos, int *iRDN )
 	/* we are guaranteed there's enough memory in str */
 
 	/* sanity */
-	assert( dn );
-	assert( bv );
-	assert( iRDN );
+	assert( dn != NULL );
+	assert( bv != NULL );
+	assert( iRDN != NULL );
 	assert( *iRDN >= 0 );
 
 	str = bv->bv_val + pos;
@@ -2488,10 +2488,10 @@ dn2domain( LDAPDN dn, struct berval *bv, int pos, int *iRDN )
 		LDAPRDN		rdn;
 		LDAPAVA		*ava;
 
-		assert( dn[ i ] );
+		assert( dn[ i ] != NULL );
 		rdn = dn[ i ];
 
-		assert( rdn[ 0 ] );
+		assert( rdn[ 0 ] != NULL );
 		ava = rdn[ 0 ];
 
 		if ( !LDAP_DN_IS_RDN_DC( rdn ) ) {
@@ -2678,8 +2678,8 @@ rdn2UFNstrlen( LDAPRDN rdn, unsigned flags, ber_len_t *len )
 	int		iAVA;
 	ber_len_t	l = 0;
 
-	assert( rdn );
-	assert( len );
+	assert( rdn != NULL );
+	assert( len != NULL );
 
 	*len = 0;
 
@@ -2757,8 +2757,8 @@ rdn2ADstrlen( LDAPRDN rdn, unsigned flags, ber_len_t *len )
 	int		iAVA;
 	ber_len_t	l = 0;
 
-	assert( rdn );
-	assert( len );
+	assert( rdn != NULL );
+	assert( len != NULL );
 
 	*len = 0;
 
@@ -2838,7 +2838,7 @@ ldap_rdn2str( LDAPRDN rdn, char **str, unsigned flags )
 	struct berval bv;
 	int rc;
 
-	assert( str );
+	assert( str != NULL );
 
 	if((flags & LDAP_DN_FORMAT_MASK) == LDAP_DN_FORMAT_LBER) {
 		return LDAP_PARAM_ERROR;
@@ -2861,7 +2861,7 @@ ldap_rdn2bv_x( LDAPRDN rdn, struct berval *bv, unsigned flags, void *ctx )
 	int		rc, back;
 	ber_len_t	l;
 	
-	assert( bv );
+	assert( bv != NULL );
 
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
@@ -2971,7 +2971,7 @@ int ldap_dn2str( LDAPDN dn, char **str, unsigned flags )
 	struct berval bv;
 	int rc;
 
-	assert( str );
+	assert( str != NULL );
 
 	if((flags & LDAP_DN_FORMAT_MASK) == LDAP_DN_FORMAT_LBER) {
 		return LDAP_PARAM_ERROR;
@@ -2997,7 +2997,7 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 	int ( *sv2l ) ( struct berval *v, unsigned f, ber_len_t *l );
 	int ( *sv2s ) ( struct berval *v, char *s, unsigned f, ber_len_t *l );
 
-	assert( bv );
+	assert( bv != NULL );
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
 
@@ -3356,7 +3356,7 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 
 	struct berval	Val;
 
-	assert( bv );
+	assert( bv != NULL );
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
 

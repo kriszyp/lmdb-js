@@ -39,7 +39,7 @@ backsql_free_entryID( Operation *op, backsql_entryID *id, int freeit )
 {
 	backsql_entryID 	*next;
 
-	assert( id );
+	assert( id != NULL );
 
 	next = id->eid_next;
 
@@ -154,7 +154,7 @@ backsql_dn2id(
 	/* begin TimesTen */
 	Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): id_query \"%s\"\n",
 			ndn->bv_val, bi->sql_id_query, 0 );
-	assert( bi->sql_id_query );
+	assert( bi->sql_id_query != NULL );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_id_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -231,7 +231,7 @@ backsql_dn2id(
 		goto done;
 	}
 
-	backsql_BindRowAsStrings( sth, &row );
+	backsql_BindRowAsStrings_x( sth, &row, op->o_tmpmemctx );
 	rc = SQLFetch( sth );
 	if ( BACKSQL_SUCCESS( rc ) ) {
 		char	buf[ SLAP_TEXT_BUFLEN ];
@@ -324,9 +324,10 @@ backsql_dn2id(
 			}
 		}
 	}
-	backsql_FreeRow( &row );
 
 done:;
+	backsql_FreeRow_x( &row, op->o_tmpmemctx );
+
 	Debug( LDAP_DEBUG_TRACE,
 		"<==backsql_dn2id(\"%s\"): err=%d\n",
 		ndn->bv_val, res, 0 );
@@ -343,11 +344,12 @@ done:;
 
 int
 backsql_count_children(
-	backsql_info		*bi,
+	Operation		*op,
 	SQLHDBC			dbh,
 	struct berval		*dn,
 	unsigned long		*nchildren )
 {
+	backsql_info 		*bi = (backsql_info *)op->o_bd->be_private;
 	SQLHSTMT		sth = SQL_NULL_HSTMT;
 	BACKSQL_ROW_NTS		row;
 	RETCODE 		rc;
@@ -367,7 +369,7 @@ backsql_count_children(
 	/* begin TimesTen */
 	Debug(LDAP_DEBUG_TRACE, "children id query \"%s\"\n", 
 			bi->sql_has_children_query, 0, 0);
-	assert( bi->sql_has_children_query );
+	assert( bi->sql_has_children_query != NULL );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_has_children_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -399,7 +401,7 @@ backsql_count_children(
 		return LDAP_OTHER;
 	}
 
-	backsql_BindRowAsStrings( sth, &row );
+	backsql_BindRowAsStrings_x( sth, &row, op->o_tmpmemctx );
 	
 	rc = SQLFetch( sth );
 	if ( BACKSQL_SUCCESS( rc ) ) {
@@ -416,7 +418,7 @@ backsql_count_children(
 	} else {
 		res = LDAP_OTHER;
 	}
-	backsql_FreeRow( &row );
+	backsql_FreeRow_x( &row, op->o_tmpmemctx );
 
 	SQLFreeStmt( sth, SQL_DROP );
 
@@ -428,14 +430,14 @@ backsql_count_children(
 
 int
 backsql_has_children(
-	backsql_info		*bi,
+	Operation		*op,
 	SQLHDBC			dbh,
 	struct berval		*dn )
 {
 	unsigned long	nchildren;
 	int		rc;
 
-	rc = backsql_count_children( bi, dbh, dn, &nchildren );
+	rc = backsql_count_children( op, dbh, dn, &nchildren );
 
 	if ( rc == LDAP_SUCCESS ) {
 		return nchildren > 0 ? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
@@ -455,11 +457,13 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	BACKSQL_ROW_NTS		row;
 	unsigned long		i,
 				k = 0,
-				oldcount = 0;
+				oldcount = 0,
+				res = 0;
 #ifdef BACKSQL_COUNTQUERY
 	unsigned long		count,
 				countsize = sizeof( count ),
-				j;
+				j,
+				append = 0;
 	Attribute		*attr = NULL;
 
 	slap_mr_normalize_func		*normfunc = NULL;
@@ -469,8 +473,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	slap_syntax_transform_func	*pretty = NULL;
 #endif /* BACKSQL_PRETTY_VALIDATE */
 
-	assert( at );
-	assert( bsi );
+	assert( at != NULL );
+	assert( bsi != NULL );
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
@@ -581,7 +585,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		}
 
 	} else {
-		Attribute	**ap;
+		append = 1;
 
 		/* Make space for the array of values */
 		attr = (Attribute *) ch_malloc( sizeof( Attribute ) );
@@ -609,10 +613,6 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
-
-		for ( ap = &bsi->bsi_e->e_attrs; (*ap) != NULL; ap = &(*ap)->a_next )
-			/* goto last */ ;
-		*ap =  attr;
 	}
 #endif /* BACKSQL_COUNTQUERY */
 
@@ -654,7 +654,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		return 1;
 	}
 
-	backsql_BindRowAsStrings( sth, &row );
+	backsql_BindRowAsStrings_x( sth, &row, bsi->bsi_op->o_tmpmemctx );
 #ifdef BACKSQL_COUNTQUERY
 	j = oldcount;
 #endif /* BACKSQL_COUNTQUERY */
@@ -679,7 +679,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 						"in schema (%d)\n",
 						bsi->bsi_e->e_name.bv_val,
 						row.col_names[ i ].bv_val, retval );
-					return 1;
+					res = 1;
+					goto done;
 				}
 
 				if ( ad != at->bam_ad ) {
@@ -690,7 +691,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 						bsi->bsi_e->e_name.bv_val,
 						ad->ad_cname.bv_val,
 						at->bam_ad->ad_cname.bv_val );
-					return 1;
+					res = 1;
+					goto done;
 				}
 #endif /* BACKSQL_TRACE */
 
@@ -804,15 +806,35 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		}
 	}
 
-	backsql_FreeRow( &row );
+#ifdef BACKSQL_COUNTQUERY
+	if ( BER_BVISNULL( &attr->a_vals[ 0 ] ) ) {
+		/* don't leave around attributes with no values */
+		attr_free( attr );
+
+	} else if ( append ) {
+		Attribute	**ap;
+
+		for ( ap = &bsi->bsi_e->e_attrs; (*ap) != NULL; ap = &(*ap)->a_next )
+			/* goto last */ ;
+		*ap =  attr;
+	}
+#endif /* BACKSQL_COUNTQUERY */
+
 	SQLFreeStmt( sth, SQL_DROP );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_get_attr_vals()\n", 0, 0, 0 );
 
 	if ( at->bam_next ) {
-		return backsql_get_attr_vals( at->bam_next, v_bsi );
+		res = backsql_get_attr_vals( at->bam_next, v_bsi );
+	} else {
+		res = 1;
 	}
 
-	return 1;
+#ifdef BACKSQL_TRACE
+done:;
+#endif /* BACKSQL_TRACE */
+	backsql_FreeRow_x( &row, bsi->bsi_op->o_tmpmemctx );
+
+	return res;
 }
 
 int
@@ -825,7 +847,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_id2entry()\n", 0, 0, 0 );
 
-	assert( bsi->bsi_e );
+	assert( bsi->bsi_e != NULL );
 
 	memset( bsi->bsi_e, 0, sizeof( Entry ) );
 

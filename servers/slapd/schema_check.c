@@ -43,7 +43,7 @@ static int entry_naming_check(
 
 int
 entry_schema_check( 
-	Backend *be,
+	Operation *op,
 	Entry *e,
 	Attribute *oldattrs,
 	int manage,
@@ -64,7 +64,11 @@ entry_schema_check(
 	int subentry = is_entry_subentry( e );
 	int collectiveSubentry = 0;
 
-	if ( SLAP_NO_SCHEMA_CHECK( be )) {
+	if ( SLAP_NO_SCHEMA_CHECK( op->o_bd )) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( get_no_schema_check( op ) ) {
 		return LDAP_SUCCESS;
 	}
 
@@ -79,12 +83,12 @@ entry_schema_check(
 		const char *type = a->a_desc->ad_cname.bv_val;
 
 		/* there should be at least one value */
-		assert( a->a_vals );
+		assert( a->a_vals != NULL );
 		assert( a->a_vals[0].bv_val != NULL ); 
 
 		if( a->a_desc->ad_type->sat_check ) {
 			int rc = (a->a_desc->ad_type->sat_check)(
-				be, e, a, text, textbuf, textlen );
+				op->o_bd, e, a, text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
@@ -308,7 +312,7 @@ entry_schema_check(
 		}
 
 		if ( oc->soc_check ) {
-			int rc = (oc->soc_check)( be, e, oc,
+			int rc = (oc->soc_check)( op->o_bd, e, oc,
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;

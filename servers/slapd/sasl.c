@@ -147,7 +147,7 @@ slap_sasl_log(
 static const char *slap_propnames[] = {
 	"*slapConn", "*slapAuthcDN", "*slapAuthzDN", NULL };
 
-static Filter generic_filter = { LDAP_FILTER_PRESENT };
+static Filter generic_filter = { LDAP_FILTER_PRESENT, { 0 }, NULL };
 static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 
 #define	PROP_CONN	0
@@ -439,7 +439,7 @@ slap_auxprop_store(
 			}
 		}
 	}
-	slap_mods_free( modlist );
+	slap_mods_free( modlist, 1 );
 	return rc != LDAP_SUCCESS ? SASL_FAIL : SASL_OK;
 }
 #endif /* SASL_VERSION_FULL >= 2.1.16 */
@@ -609,7 +609,7 @@ slap_sasl_authorize(
 {
 	Connection *conn = (Connection *)context;
 	struct propval auxvals[3];
-	struct berval authcDN, authzDN=BER_BVNULL;
+	struct berval authcDN, authzDN = BER_BVNULL;
 	int rc;
 
 	/* Simple Binds don't support proxy authorization, ignore it */
@@ -654,7 +654,17 @@ slap_sasl_authorize(
 		return SASL_NOAUTHZ;
 	}
 
-	conn->c_sasl_authz_dn = authzDN;
+	/* FIXME: we need yet another dup because slap_sasl_getdn()
+	 * is using the bind operation slab */
+	if ( conn->c_sasl_bindop ) {
+		ber_dupbv( &conn->c_sasl_authz_dn, &authzDN );
+		slap_sl_free( authzDN.bv_val,
+				conn->c_sasl_bindop->o_tmpmemctx );
+
+	} else {
+		conn->c_sasl_authz_dn = authzDN;
+	}
+
 ok:
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
@@ -678,7 +688,7 @@ slap_sasl_authorize(
 	const char **user,
 	const char **errstr)
 {
-	struct berval authcDN, authzDN;
+	struct berval authcDN, authzDN = BER_BVNULL;
 	int rc;
 	Connection *conn = context;
 	char *realm;
@@ -732,7 +742,7 @@ slap_sasl_authorize(
 		return SASL_NOAUTHZ;
 	}
 
-	rc = slap_sasl_authorized(conn->c_sasl_bindop, &authcDN, &authzDN );
+	rc = slap_sasl_authorized( conn->c_sasl_bindop, &authcDN, &authzDN );
 	if( rc ) {
 		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 			"proxy authorization disallowed (%d)\n",
@@ -742,7 +752,17 @@ slap_sasl_authorize(
 		ch_free( authzDN.bv_val );
 		return SASL_NOAUTHZ;
 	}
-	conn->c_sasl_authz_dn = authzDN;
+
+	/* FIXME: we need yet another dup because slap_sasl_getdn()
+	 * is using the bind operation slab */
+	if ( conn->c_sasl_bindop ) {
+		ber_dupbv( &conn->c_sasl_authz_dn, &authzDN );
+		slap_sl_free( authzDN.bv_val,
+				conn->c_sasl_bindop->o_tmpmemctx );
+
+	} else {
+		conn->c_sasl_authz_dn = authzDN;
+	}
 
 ok:
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
@@ -750,7 +770,7 @@ ok:
 		(long) (conn ? conn->c_connid : -1),
 		authzDN.bv_val ? authzDN.bv_val : "", 0 );
 
-	if (conn->c_sasl_bindop) {
+	if ( conn->c_sasl_bindop ) {
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%lu op=%lu BIND authcid=\"%s\" authzid=\"%s\"\n",
 			conn->c_connid, conn->c_sasl_bindop->o_opid, 
@@ -1522,8 +1542,8 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	int rc, is_dn = SET_NONE, do_norm = 1;
 	struct berval dn2, *mech;
 
-	assert( conn );
-	assert( id );
+	assert( conn != NULL );
+	assert( id != NULL );
 
 	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: conn %lu id=%s [len=%lu]\n", 
 		conn->c_connid,
@@ -1534,6 +1554,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	if ( !op ) {
 		op = conn->c_sasl_bindop;
 	}
+	assert( op != NULL );
 
 	BER_BVZERO( dn );
 
@@ -1647,13 +1668,16 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 		irdn++;
 		DN[ irdn ] = NULL;
 
-		rc = ldap_dn2bv_x( DN, dn, LDAP_DN_FORMAT_LDAPV3, op->o_tmpmemctx );
+		rc = ldap_dn2bv_x( DN, dn, LDAP_DN_FORMAT_LDAPV3,
+				op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
 			BER_BVZERO( dn );
 			return rc;
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "slap_sasl_getdn: u:id converted to %s\n", dn->bv_val,0,0 );
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_sasl_getdn: u:id converted to %s\n",
+			dn->bv_val, 0, 0 );
 
 	} else {
 		
@@ -1683,7 +1707,8 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	if( !BER_BVISNULL( &dn2 ) ) {
 		slap_sl_free( dn->bv_val, op->o_tmpmemctx );
 		*dn = dn2;
-		Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n",
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_sasl_getdn: dn:id converted to %s\n",
 			dn->bv_val, 0, 0 );
 	}
 

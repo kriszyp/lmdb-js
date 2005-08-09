@@ -36,7 +36,7 @@ bdb_hasSubordinates(
 {
 	int		rc;
 	
-	assert( e );
+	assert( e != NULL );
 
 	/* NOTE: this should never happen, but it actually happens
 	 * when using back-relay; until we find a better way to
@@ -89,7 +89,7 @@ bdb_operational(
 {
 	Attribute	**ap;
 
-	assert( rs->sr_entry );
+	assert( rs->sr_entry != NULL );
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count */ ;
@@ -102,7 +102,7 @@ bdb_operational(
 		rc = bdb_hasSubordinates( op, rs->sr_entry, &hasSubordinates );
 		if ( rc == LDAP_SUCCESS ) {
 			*ap = slap_operational_hasSubordinate( hasSubordinates == LDAP_COMPARE_TRUE );
-			assert( *ap );
+			assert( *ap != NULL );
 
 			ap = &(*ap)->a_next;
 		}

@@ -172,6 +172,16 @@ ldap_ld_free(
 	}
 #endif
 
+	if ( ld->ld_options.ldo_sctrls != NULL ) {
+		ldap_controls_free( ld->ld_options.ldo_sctrls );
+		ld->ld_options.ldo_sctrls = NULL;
+	}
+
+	if ( ld->ld_options.ldo_cctrls != NULL ) {
+		ldap_controls_free( ld->ld_options.ldo_cctrls );
+		ld->ld_options.ldo_cctrls = NULL;
+	}
+
 	ber_sockbuf_free( ld->ld_sb );   
    
 #ifdef LDAP_R_COMPILE

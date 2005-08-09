@@ -243,7 +243,7 @@ int passwd_extop(
 		op->o_tag = LDAP_REQ_EXTENDED;
 		op->o_callback = sc;
 	}
-	slap_mods_free( qpw->rs_mods );
+	slap_mods_free( qpw->rs_mods, 1 );
 	if ( rsp ) {
 		free( qpw->rs_new.bv_val );
 	}
@@ -470,7 +470,7 @@ slap_passwd_hash_type(
 	new->bv_len = 0;
 	new->bv_val = NULL;
 
-	assert( hash );
+	assert( hash != NULL );
 
 	lutil_passwd_hash( cred , hash, new, text );
 }

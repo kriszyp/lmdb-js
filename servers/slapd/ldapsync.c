@@ -86,7 +86,8 @@ slap_sync_cookie_free(
 
 int
 slap_parse_sync_cookie(
-	struct sync_cookie *cookie
+	struct sync_cookie *cookie,
+	void *memctx
 )
 {
 	char *csn_ptr;
@@ -94,16 +95,32 @@ slap_parse_sync_cookie(
 	int csn_str_len;
 	int valid = 0;
 	char *rid_ptr;
-	char *rid_str;
 	char *cval;
 
 	if ( cookie == NULL )
 		return -1;
 
+	cookie->rid = -1;
+	if (( rid_ptr = strstr( cookie->octet_str.bv_val, "rid=" )) != NULL ) {
+		if ( (cval = strchr( rid_ptr, ',' )) != NULL ) {
+			*cval = '\0';
+		}
+		cookie->rid = atoi( rid_ptr + sizeof("rid=") - 1 );
+		if ( cval != NULL ) {
+			*cval = ',';
+		}
+	} else {
+		return -1;
+	}
+
 	while (( csn_ptr = strstr( cookie->octet_str.bv_val, "csn=" )) != NULL ) {
 		AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
 		slap_syntax_validate_func *validate;
 		struct berval stamp;
+
+		/* This only happens when called from main */
+		if ( ad == NULL )
+			break;
 
 		csn_str = csn_ptr + STRLENOF("csn=");
 		cval = strchr( csn_str, ',' );
@@ -125,22 +142,11 @@ slap_parse_sync_cookie(
 		break;
 	}
 	if ( valid ) {
-		ber_str2bv( csn_str, csn_str_len, 1, &cookie->ctxcsn );
+		ber_str2bv_x( csn_str, csn_str_len, 1, &cookie->ctxcsn, memctx );
 	} else {
 		BER_BVZERO( &cookie->ctxcsn );
 	}
 
-	if (( rid_ptr = strstr( cookie->octet_str.bv_val, "rid=" )) != NULL ) {
-		rid_str = SLAP_STRNDUP( rid_ptr,
-							SLAP_SYNC_RID_SIZE + sizeof("rid=") - 1 );
-		if ( (cval = strchr( rid_str, ',' )) != NULL ) {
-			*cval = '\0';
-		}
-		cookie->rid = atoi( rid_str + sizeof("rid=") - 1 );
-		ch_free( rid_str );
-	} else {
-		cookie->rid = -1;
-	}
 	return 0;
 }
 
@@ -176,9 +182,7 @@ slap_dup_sync_cookie(
 	struct sync_cookie *src
 )
 {
-	int i;
 	struct sync_cookie *new;
-	struct berval tmp_bv;
 
 	if ( src == NULL )
 		return NULL;

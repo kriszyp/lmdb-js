@@ -970,11 +970,6 @@ ldap_attributetype2bv(  LDAPAttributeType * at, struct berval *bv )
 #define TK_DOLLAR	6
 #define TK_QDESCR	TK_QDSTRING
 
-struct token {
-	int type;
-	char *sval;
-};
-
 static int
 get_token( const char ** sp, char ** token_val )
 {
@@ -1312,6 +1307,11 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 		     ( allow_quoted && kind == TK_QDSTRING ) ) {
 			res[pos++] = sval;
 			res[pos] = NULL;
+		} else if ( kind == TK_RIGHTPAREN ) {
+			/* FIXME: be liberal in what we accept... */
+			parse_whsp(sp);
+			LDAP_FREE(res);
+			return NULL;
 		} else {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
 			LDAP_FREE(sval);
@@ -1924,7 +1924,7 @@ ldap_str2matchingruleuse( LDAP_CONST char * s,
 				mru->mru_applies_oids = parse_oids(&ss,
 							     code,
 							     flags);
-				if ( !mru->mru_applies_oids ) {
+				if ( !mru->mru_applies_oids && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_matchingruleuse_free(mru);
 					return NULL;
@@ -2520,7 +2520,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 				oc->oc_sup_oids = parse_oids(&ss,
 							     code,
 							     flags);
-				if ( !oc->oc_sup_oids ) {
+				if ( !oc->oc_sup_oids && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
 					return NULL;
@@ -2568,7 +2568,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 				}
 				seen_must = 1;
 				oc->oc_at_oids_must = parse_oids(&ss,code,0);
-				if ( !oc->oc_at_oids_must ) {
+				if ( !oc->oc_at_oids_must && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
 					return NULL;
@@ -2584,7 +2584,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 				}
 				seen_may = 1;
 				oc->oc_at_oids_may = parse_oids(&ss,code,0);
-				if ( !oc->oc_at_oids_may ) {
+				if ( !oc->oc_at_oids_may && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
 					return NULL;
@@ -2809,7 +2809,7 @@ ldap_str2contentrule( LDAP_CONST char * s,
 				}
 				seen_must = 1;
 				cr->cr_at_oids_must = parse_oids(&ss,code,0);
-				if ( !cr->cr_at_oids_must ) {
+				if ( !cr->cr_at_oids_must && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_contentrule_free(cr);
 					return NULL;
@@ -2825,7 +2825,7 @@ ldap_str2contentrule( LDAP_CONST char * s,
 				}
 				seen_may = 1;
 				cr->cr_at_oids_may = parse_oids(&ss,code,0);
-				if ( !cr->cr_at_oids_may ) {
+				if ( !cr->cr_at_oids_may && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_contentrule_free(cr);
 					return NULL;
@@ -2841,7 +2841,7 @@ ldap_str2contentrule( LDAP_CONST char * s,
 				}
 				seen_not = 1;
 				cr->cr_at_oids_not = parse_oids(&ss,code,0);
-				if ( !cr->cr_at_oids_not ) {
+				if ( !cr->cr_at_oids_not && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_contentrule_free(cr);
 					return NULL;
@@ -3211,7 +3211,7 @@ ldap_str2nameform( LDAP_CONST char * s,
 				}
 				seen_must = 1;
 				nf->nf_at_oids_must = parse_oids(&ss,code,0);
-				if ( !nf->nf_at_oids_must ) {
+				if ( !nf->nf_at_oids_must && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_nameform_free(nf);
 					return NULL;
@@ -3227,7 +3227,7 @@ ldap_str2nameform( LDAP_CONST char * s,
 				}
 				seen_may = 1;
 				nf->nf_at_oids_may = parse_oids(&ss,code,0);
-				if ( !nf->nf_at_oids_may ) {
+				if ( !nf->nf_at_oids_may && *code != LDAP_SUCCESS ) {
 					*errp = ss;
 					ldap_nameform_free(nf);
 					return NULL;

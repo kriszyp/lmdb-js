@@ -33,15 +33,6 @@
 #include "lutil.h"
 #include "slap.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-
-static void init_search_pblock( Operation *op, char **attrs, int managedsait );
-static int call_search_preop_plugins( Operation *op );
-static int call_search_rewrite_plugins( Operation *op );
-static void call_search_postop_plugins( Operation *op );
-#endif /* LDAPI_SLAPI */
-
 int
 do_search(
     Operation	*op,	/* info about the op to which we're responding */
@@ -247,9 +238,6 @@ fe_op_search( Operation *op, SlapReply *rs )
 {
 	int			manageDSAit;
 	int			be_manageDSAit;
-#ifdef LDAP_SLAPI
-	char			**attrs = NULL;
-#endif
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -270,15 +258,6 @@ fe_op_search( Operation *op, SlapReply *rs )
 				goto return_results;
 			}
 
-#ifdef LDAP_SLAPI
-			if ( op->o_pb ) {
-				attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
-				init_search_pblock( op, attrs, manageDSAit );
-				rs->sr_err = call_search_preop_plugins( op );
-				if ( rs->sr_err ) break;
-				call_search_rewrite_plugins( op );
-			}
-#endif /* LDAP_SLAPI */
 			rs->sr_err = root_dse_info( op->o_conn, &entry, &rs->sr_text );
 
 		} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
@@ -288,23 +267,11 @@ fe_op_search( Operation *op, SlapReply *rs )
 				goto return_results;
 			}
 
-#ifdef LDAP_SLAPI
-			if ( op->o_pb ) {
-				attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
-				init_search_pblock( op, attrs, manageDSAit );
-				rs->sr_err = call_search_preop_plugins( op );
-				if ( rs->sr_err ) break;
-				call_search_rewrite_plugins( op );
-			}
-#endif /* LDAP_SLAPI */
 			rs->sr_err = schema_info( &entry, &rs->sr_text );
 		}
 
 		if( rs->sr_err != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
-#ifdef LDAP_SLAPI
-			if ( op->o_pb ) call_search_postop_plugins( op );
-#endif /* LDAP_SLAPI */
 			goto return_results;
 
 		} else if ( entry != NULL ) {
@@ -322,9 +289,6 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 			rs->sr_err = LDAP_SUCCESS;
 			send_ldap_result( op, rs );
-#ifdef LDAP_SLAPI
-			if ( op->o_pb ) call_search_postop_plugins( op );
-#endif /* LDAP_SLAPI */
 			goto return_results;
 		}
 		break;
@@ -374,19 +338,6 @@ fe_op_search( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-#ifdef LDAP_SLAPI
-	if ( op->o_pb ) {
-		attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
-		init_search_pblock( op, attrs, manageDSAit );
-		rs->sr_err = call_search_preop_plugins( op );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			goto return_results;
-		}
-
-		call_search_rewrite_plugins( op );
-	}
-#endif /* LDAP_SLAPI */
-
 	/* actually do the search and send the result(s) */
 	if ( op->o_bd->be_search ) {
 		if ( limits_check( op, rs ) == 0 ) {
@@ -399,115 +350,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 			"operation not supported within namingContext" );
 	}
 
-#ifdef LDAP_SLAPI
-	if ( op->o_pb ) call_search_postop_plugins( op );
-#endif /* LDAP_SLAPI */
-
-#ifdef LDAP_SLAPI
-	if( attrs != NULL) op->o_tmpfree( attrs, op->o_tmpmemctx );
-#endif /* LDAP_SLAPI */
-
 return_results:;
 	return rs->sr_err;
 }
-
-#ifdef LDAP_SLAPI
-
-static void init_search_pblock( Operation *op,
-	char **attrs, int managedsait )
-{
-	slapi_int_pblock_set_operation( op->o_pb, op );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_TARGET, (void *)op->o_req_dn.bv_val );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_SCOPE, (void *)op->ors_scope );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_DEREF, (void *)op->ors_deref );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_SIZELIMIT, (void *)op->ors_slimit );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_TIMELIMIT, (void *)op->ors_tlimit );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_FILTER, (void *)op->ors_filter );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_STRFILTER, (void *)op->ors_filterstr.bv_val );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_ATTRS, (void *)attrs );
-	slapi_pblock_set( op->o_pb, SLAPI_SEARCH_ATTRSONLY, (void *)op->ors_attrsonly );
-	slapi_pblock_set( op->o_pb, SLAPI_MANAGEDSAIT, (void *)managedsait );
-}
-
-static int call_search_preop_plugins( Operation *op )
-{
-	int rc;
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_SEARCH_FN, op->o_pb );
-	if ( rc < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
-		Debug(LDAP_DEBUG_TRACE, "call_search_preop_plugins: search preoperation plugin "
-				"returned %d.\n", rc, 0, 0);
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 ) ||
-		     rc == LDAP_SUCCESS ) {
-			rc = LDAP_OTHER;
-		}
-	} else {
-		rc = LDAP_SUCCESS;
-	}
-
-	return rc;
-}
-
-static int call_search_rewrite_plugins( Operation *op )
-{
-	if ( slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, op->o_pb ) == 0 ) {
-		int rc;
-
-		/*
-		 * The plugin can set the SLAPI_SEARCH_FILTER.
-		 * SLAPI_SEARCH_STRFILER is not normative.
-		 */
-		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_FILTER, (void *)&op->ors_filter );
-		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
-
-		/*
-		 * Also permit other search parameters to be reset. One thing
-	 	 * this doesn't (yet) deal with is plugins that change a root
-		 * DSE search to a non-root DSE search...
-		 */
-		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_TARGET, (void **)&op->o_req_dn.bv_val );
-		op->o_req_dn.bv_len = strlen( op->o_req_dn.bv_val );
-
-		if( !BER_BVISNULL( &op->o_req_ndn ) ) {
-			slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-		}
-		rc = dnNormalize( 0, NULL, NULL, &op->o_req_dn, &op->o_req_ndn,
-			op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			return rc;
-		}
-
-		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_SCOPE, (void **)&op->ors_scope );
-		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_DEREF, (void **)&op->ors_deref );
-
-		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
-			!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
-	}
-
-	return LDAP_SUCCESS;
-}
-
-static void call_search_postop_plugins( Operation *op )
-{
-	if ( slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_SEARCH_FN, op->o_pb ) < 0 ) {
-		Debug(LDAP_DEBUG_TRACE, "call_search_postop_plugins: search postoperation plugins "
-				"failed.\n", 0, 0, 0);
-	}
-}
-
-void slapi_int_dummy(void)
-{
-	/*
-	 * XXX slapi_search_internal() was no getting pulled
-	 * in; all manner of linker flags failed to link it.
-	 * FIXME
-	 */
-	slapi_search_internal( NULL, 0, NULL, NULL, NULL, 0 );
-}
-#endif /* LDAP_SLAPI */
 

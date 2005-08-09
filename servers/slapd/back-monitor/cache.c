@@ -44,9 +44,8 @@ typedef struct monitor_cache_t {
  */
 int
 monitor_cache_cmp(
-		const void	*c1,
-		const void	*c2
-)
+	const void	*c1,
+	const void	*c2 )
 {
 	monitor_cache_t 	*cc1 = ( monitor_cache_t * )c1;
 	monitor_cache_t 	*cc2 = ( monitor_cache_t * )c2;
@@ -62,9 +61,8 @@ monitor_cache_cmp(
  */
 int
 monitor_cache_dup(
-		void		*c1,
-		void		*c2
-)
+	void		*c1,
+	void		*c2 )
 {
 	monitor_cache_t *cc1 = ( monitor_cache_t * )c1;
 	monitor_cache_t *cc2 = ( monitor_cache_t * )c2;
@@ -80,9 +78,8 @@ monitor_cache_dup(
  */
 int
 monitor_cache_add(
-		monitor_info_t	*mi,
-		Entry		*e
-)
+	monitor_info_t	*mi,
+	Entry		*e )
 {
 	monitor_cache_t	*mc;
 	monitor_entry_t	*mp;
@@ -110,18 +107,17 @@ monitor_cache_add(
  */
 int
 monitor_cache_lock(
-		Entry		*e
-)
+	Entry		*e )
 {
-		monitor_entry_t *mp;
+	monitor_entry_t *mp;
 
-		assert( e != NULL );
-		assert( e->e_private != NULL );
+	assert( e != NULL );
+	assert( e->e_private != NULL );
 
-		mp = ( monitor_entry_t * )e->e_private;
-		ldap_pvt_thread_mutex_lock( &mp->mp_mutex );
+	mp = ( monitor_entry_t * )e->e_private;
+	ldap_pvt_thread_mutex_lock( &mp->mp_mutex );
 
-		return( 0 );
+	return( 0 );
 }
 
 /*
@@ -130,16 +126,17 @@ monitor_cache_lock(
  */
 int
 monitor_cache_get(
-		monitor_info_t	*mi,
-		struct berval	*ndn,
-		Entry		**ep
-)
+	monitor_info_t	*mi,
+	struct berval	*ndn,
+	Entry		**ep )
 {
 	monitor_cache_t tmp_mc, *mc;
 
 	assert( mi != NULL );
 	assert( ndn != NULL );
 	assert( ep != NULL );
+
+	*ep = NULL;
 
 	tmp_mc.mc_ndn = *ndn;
 	ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
@@ -149,16 +146,12 @@ monitor_cache_get(
 	if ( mc != NULL ) {
 		/* entry is returned with mutex locked */
 		monitor_cache_lock( mc->mc_e );
-		ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
 		*ep = mc->mc_e;
-
-		return( 0 );
 	}
-	
-	ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
-	*ep = NULL;
 
-	return( -1 );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
+
+	return ( *ep == NULL ? -1 : 0 );
 }
 
 /*
@@ -169,12 +162,11 @@ monitor_cache_get(
  */
 int
 monitor_cache_dn2entry(
-		Operation		*op,
-		SlapReply		*rs,
-		struct berval		*ndn,
-		Entry			**ep,
-		Entry			**matched
-)
+	Operation		*op,
+	SlapReply		*rs,
+	struct berval		*ndn,
+	Entry			**ep,
+	Entry			**matched )
 {
 	monitor_info_t *mi = (monitor_info_t *)op->o_bd->be_private;
 	int 			rc;
@@ -219,7 +211,9 @@ monitor_cache_dn2entry(
 	}
 
 	if ( !rc ) {
+		monitor_cache_lock( *ep );
 		monitor_cache_release( mi, e_parent );
+
 	} else {
 		*matched = e_parent;
 	}
@@ -234,8 +228,7 @@ monitor_cache_dn2entry(
 int
 monitor_cache_release(
 	monitor_info_t	*mi,
-	Entry		*e
-)
+	Entry		*e )
 {
 	monitor_entry_t *mp;
 
@@ -254,7 +247,9 @@ monitor_cache_release(
 		mc = avl_delete( &mi->mi_cache,
 				( caddr_t )&tmp_mc, monitor_cache_cmp );
 		ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
-		ch_free( mc );
+		if ( mc != NULL ) {
+			ch_free( mc );
+		}
 		
 		ldap_pvt_thread_mutex_unlock( &mp->mp_mutex );
 		ldap_pvt_thread_mutex_destroy( &mp->mp_mutex );
@@ -268,5 +263,46 @@ monitor_cache_release(
 	ldap_pvt_thread_mutex_unlock( &mp->mp_mutex );
 
 	return( 0 );
+}
+
+static void
+monitor_entry_destroy( void *v_mc )
+{
+	monitor_cache_t		*mc = (monitor_cache_t *)v_mc;
+
+	if ( mc->mc_e != NULL ) {
+		monitor_entry_t *mp;
+
+		assert( mc->mc_e->e_private != NULL );
+	
+		mp = ( monitor_entry_t * )mc->mc_e->e_private;
+
+		if ( mp->mp_cb ) {
+			if ( mp->mp_cb->mc_free ) {
+				mp->mp_cb->mc_free( mc->mc_e,
+					mp->mp_cb->mc_private );
+			}
+			ch_free( mp->mp_cb );
+		}
+
+		ldap_pvt_thread_mutex_destroy( &mp->mp_mutex );
+
+		ch_free( mp );
+		mc->mc_e->e_private = NULL;
+		entry_free( mc->mc_e );
+	}
+
+	ch_free( mc );
+}
+
+int
+monitor_cache_destroy(
+	monitor_info_t	*mi )
+{
+	if ( mi->mi_cache ) {
+		avl_free( mi->mi_cache, monitor_entry_destroy );
+	}
+
+	return 0;
 }
 

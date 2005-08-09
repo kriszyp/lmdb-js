@@ -436,8 +436,6 @@ typedef struct backsql_srch_info {
  * is used */
 #define BACKSQL_SCOPE_BASE_LIKE		( LDAP_SCOPE_BASE | 0x1000 )
 	Filter			*bsi_filter;
-	int			bsi_slimit,
-				bsi_tlimit;
 	time_t			bsi_stoptime;
 
 	backsql_entryID		*bsi_id_list,

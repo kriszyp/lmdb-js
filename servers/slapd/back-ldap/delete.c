@@ -45,14 +45,14 @@ ldap_back_delete(
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
-		return -1;
+		return rs->sr_err;
 	}
 
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
-		rc = -1;
+		rc = rs->sr_err;
 		goto cleanup;
 	}
 

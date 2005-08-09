@@ -22,6 +22,12 @@
 #include <ac/stdlib.h>
 #include <ac/errno.h>
 #include <sys/stat.h>
+#ifdef HAVE_UTIME_H
+#  ifdef HAVE_SYS_TYPES_H
+#    include <sys/types.h>
+#  endif
+#  include <utime.h>
+#endif /* HAVE_UTIME_H */
 #include "back-bdb.h"
 #include <lutil.h>
 #include <ldap_rq.h>
@@ -66,6 +72,9 @@ bdb_db_init( BackendDB *be )
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
+#ifdef BDB_HIER
+	ldap_pvt_thread_mutex_init( &bdb->bi_modrdns_mutex );
+#endif
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
@@ -243,7 +252,6 @@ bdb_db_recover( BackendDB *be )
 		return bdb_do_recovery( be );
 	}
 
-re_exit:
 	Debug( LDAP_DEBUG_ANY,
 		"bdb_db_recover: Database cannot be recovered. "\
 		"Restore from backup!\n", 0, 0, 0);
@@ -261,6 +269,13 @@ bdb_db_open( BackendDB *be )
 	u_int32_t flags;
 	char path[MAXPATHLEN];
 	char *ptr;
+
+	if ( be->be_suffix == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_open: need suffix\n",
+			0, 0, 0 );
+		return -1;
+	}
 
 	Debug( LDAP_DEBUG_ARGS,
 		"bdb_db_open: %s\n",
@@ -543,6 +558,10 @@ bdb_db_close( BackendDB *be )
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
 
+	/* backend_shutdown closes everything, even if not all were opened */
+	if ( !( bdb->bi_flags & BDB_IS_OPEN ))
+		return 0;
+
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
 	ber_bvarray_free( bdb->bi_db_config );
@@ -605,6 +624,32 @@ bdb_db_close( BackendDB *be )
 				db_strerror(rc), rc, 0 );
 			return rc;
 		}
+
+#if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR == 2
+		/* Delete the environment if we were in quick mode. This
+		 * works around a bug in bdb4.2 that interferes with the
+		 * operation of db_stat and other tools after a slapadd -q
+		 * or slapindex -q has taken place.
+		 */
+		if( slapMode & SLAP_TOOL_QUICK ) {
+			rc = db_env_create( &bdb->bi_dbenv, 0 );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_close: db_env_create failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+				return rc;
+			}
+			rc = bdb->bi_dbenv->remove(bdb->bi_dbenv, bdb->bi_dbenv_home,
+					DB_FORCE);
+			bdb->bi_dbenv = NULL;
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_close: dbenv_remove failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+				return rc;
+			}
+		}
+#endif
 	}
 
 	rc = alock_close( &bdb->bi_alock_info );
@@ -620,7 +665,6 @@ bdb_db_close( BackendDB *be )
 static int
 bdb_db_destroy( BackendDB *be )
 {
-	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
@@ -631,6 +675,9 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
+#ifdef BDB_HIER
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_modrdns_mutex );
+#endif
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
 	ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );

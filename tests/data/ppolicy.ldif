@@ -23,7 +23,7 @@ cn: Standard Policy
 pwdAttribute: 2.5.4.35
 pwdLockoutDuration: 15
 pwdInHistory: 6
-pwdCheckQuality: 1
+pwdCheckQuality: 2
 pwdExpireWarning: 10
 pwdMaxAge: 30
 pwdMinLength: 5

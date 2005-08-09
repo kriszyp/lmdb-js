@@ -37,15 +37,6 @@
 #include "lutil.h"
 #include "lber_pvt.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-
-static void init_group_pblock( Operation *op, Entry *target,
-	Entry *e, struct berval *op_ndn, AttributeDescription *group_at );
-static int call_group_preop_plugins( Operation *op );
-static void call_group_postop_plugins( Operation *op );
-#endif /* LDAP_SLAPI */
-
 /*
  * If a module is configured as dynamic, its header should not
  * get included into slapd. While this is a general rule and does
@@ -99,7 +90,7 @@ int backend_init(void)
 	}
 
 	for( bi=slap_binfo; bi->bi_type != NULL; bi++,nBackendInfo++ ) {
-		assert( bi->bi_init );
+		assert( bi->bi_init != 0 );
 
 		rc = bi->bi_init( bi );
 
@@ -202,7 +193,7 @@ int backend_startup_one(Backend *be)
 {
 	int		rc = 0;
 
-	assert( be );
+	assert( be != NULL );
 
 	be->be_pending_csn_list = (struct be_pcl *)
 		ch_calloc( 1, sizeof( struct be_pcl ));
@@ -331,7 +322,6 @@ int backend_num( Backend *be )
 
 int backend_shutdown( Backend *be )
 {
-	int i;
 	int rc = 0;
 	BackendInfo *bi;
 
@@ -392,9 +382,11 @@ int backend_shutdown( Backend *be )
 	return 0;
 }
 
-void backend_destroy_one( BackendDB *bd )
+void backend_destroy_one( BackendDB *bd, int dynamic )
 {
-	LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
+	if ( dynamic ) {
+		LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
+	}
 
 	if ( bd->be_syncinfo ) {
 		syncinfo_free( bd->be_syncinfo );
@@ -411,6 +403,7 @@ void backend_destroy_one( BackendDB *bd )
 			csne = LDAP_TAILQ_NEXT( csne, ce_csn_link );
 			ch_free( tmp_csne );
 		}
+		ch_free( bd->be_pending_csn_list );
 	}
 
 	if ( bd->bd_info->bi_db_destroy ) {
@@ -428,18 +421,31 @@ void backend_destroy_one( BackendDB *bd )
 		free( bd->be_rootpw.bv_val );
 	}
 	acl_destroy( bd->be_acl, frontendDB->be_acl );
-	free( bd );
+	limits_destroy( bd->be_limits );
+	if ( bd->be_replogfile ) {
+		ch_free( bd->be_replogfile );
+	}
+	destroy_replica_info( bd );
+	if ( !BER_BVISNULL( &bd->be_update_ndn ) ) {
+		ch_free( bd->be_update_ndn.bv_val );
+	}
+	if ( bd->be_update_refs ) {
+		ber_bvarray_free( bd->be_update_refs );
+	}
+
+	if ( dynamic ) {
+		free( bd );
+	}
 }
 
 int backend_destroy(void)
 {
-	int i;
 	BackendDB *bd;
 	BackendInfo *bi;
 
 	/* destroy each backend database */
 	while (( bd = LDAP_STAILQ_FIRST(&backendDB))) {
-		backend_destroy_one( bd );
+		backend_destroy_one( bd, 1 );
 	}
 
 	/* destroy each backend type */
@@ -470,6 +476,9 @@ int backend_destroy(void)
 			free( bd->be_rootpw.bv_val );
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
+
+		assert( bd->be_replogfile == NULL );
+		assert( bd->be_replica == NULL );
 	}
 
 	return 0;
@@ -540,7 +549,6 @@ void
 be_db_close( void )
 {
 	BackendDB *be;
-	int	i;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->bd_info->bi_db_close ) {
@@ -560,7 +568,7 @@ select_backend(
 	int manageDSAit,
 	int noSubs )
 {
-	int		i, j;
+	int		j;
 	ber_len_t	len, dnlen = dn->bv_len;
 	Backend		*be, *b2 = NULL;
 
@@ -726,45 +734,13 @@ be_entry_release_rw(
 int
 backend_unbind( Operation *op, SlapReply *rs )
 {
-	int		i = 0;
 	BackendDB *be;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
-#if defined( LDAP_SLAPI )
-		if ( op->o_pb ) {
-			int rc;
-			if ( i == 0 ) slapi_int_pblock_set_operation( op->o_pb, op );
-			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)be );
-			rc = slapi_int_call_plugins( be,
-				SLAPI_PLUGIN_PRE_UNBIND_FN, (Slapi_PBlock *)op->o_pb );
-			if ( rc < 0 ) {
-				/*
-				 * A preoperation plugin failure will abort the
-				 * entire operation.
-				 */
-				Debug(LDAP_DEBUG_TRACE,
-					"do_bind: Unbind preoperation plugin failed\n",
-					0, 0, 0);
-				return 0;
-			}
-		}
-#endif /* defined( LDAP_SLAPI ) */
-
 		if ( be->be_unbind ) {
 			op->o_bd = be;
 			be->be_unbind( op, rs );
 		}
-
-#if defined( LDAP_SLAPI )
-		if ( op->o_pb != NULL && slapi_int_call_plugins( be,
-			SLAPI_PLUGIN_POST_UNBIND_FN, (Slapi_PBlock *)op->o_pb ) < 0 )
-		{
-			Debug(LDAP_DEBUG_TRACE,
-				"do_unbind: Unbind postoperation plugins failed\n",
-				0, 0, 0);
-		}
-#endif /* defined( LDAP_SLAPI ) */
-		i++;
 	}
 
 	return 0;
@@ -1221,7 +1197,7 @@ be_entry_get_rw(
 }
 
 int 
-backend_group(
+fe_acl_group(
 	Operation *op,
 	Entry	*target,
 	struct berval *gr_ndn,
@@ -1234,8 +1210,6 @@ backend_group(
 	int rc;
 	GroupAssertion *g;
 	Backend *be = op->o_bd;
-
-	if ( op->o_abandon ) return SLAPD_ABANDON;
 
 	op->o_bd = select_backend( gr_ndn, 0, 0 );
 
@@ -1262,17 +1236,6 @@ backend_group(
 		rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
 	}
 	if ( e ) {
-#ifdef LDAP_SLAPI
-		if ( op->o_pb != NULL ) {
-			init_group_pblock( op, target, e, op_ndn, group_at );
-
-			rc = call_group_preop_plugins( op );
-			if ( rc == LDAP_SUCCESS ) {
-				goto done;
-			}
-		}
-#endif /* LDAP_SLAPI */
-
 		a = attr_find( e->e_attrs, group_at );
 		if ( a ) {
 			/* If the attribute is a subtype of labeledURI, treat this as
@@ -1382,10 +1345,6 @@ loopit:
 		rc = LDAP_NO_SUCH_OBJECT;
 	}
 
-#ifdef LDAP_SLAPI
-	if ( op->o_pb ) call_group_postop_plugins( op );
-#endif /* LDAP_SLAPI */
-
 	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
 		g = op->o_tmpalloc( sizeof( GroupAssertion ) + gr_ndn->bv_len,
 			op->o_tmpmemctx );
@@ -1403,60 +1362,33 @@ done:
 	return rc;
 }
 
-#ifdef LDAP_SLAPI
-static int backend_compute_output_attr(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
+int 
+backend_group(
+	Operation *op,
+	Entry	*target,
+	struct berval *gr_ndn,
+	struct berval *op_ndn,
+	ObjectClass *group_oc,
+	AttributeDescription *group_at )
 {
-	BerVarray v;
-	int rc;
-	BerVarray *vals = (BerVarray *)c->cac_private;
-	Operation *op = NULL;
-	int i, j;
+	int			rc;
+	BackendDB		*be_orig;
 
-	slapi_pblock_get( c->cac_pb, SLAPI_OPERATION, &op );
-	if ( op == NULL ) {
-		return 1;
+	if ( op->o_abandon ) {
+		return SLAPD_ABANDON;
 	}
 
-	if ( op->o_conn && access_allowed( op,
-		e, a->a_desc, NULL, ACL_AUTH,
-		&c->cac_acl_state ) == 0 ) {
-		return 1;
-	}
-
-	for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) ;
-			
-	v = op->o_tmpalloc( sizeof(struct berval) * (i+1),
-		op->o_tmpmemctx );
-	for ( i = 0, j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
-		if ( op->o_conn && access_allowed( op,
-			e, a->a_desc,
-			&a->a_nvals[i],
-			ACL_AUTH, &c->cac_acl_state ) == 0 ) {
-			continue;
-		}
-		ber_dupbv_x( &v[j],
-			&a->a_nvals[i], op->o_tmpmemctx );
-		if ( !BER_BVISNULL( &v[j] ) ) {
-			j++;
-		}
-	}
-
-	if ( j == 0 ) {
-		op->o_tmpfree( v, op->o_tmpmemctx );
-		*vals = NULL;
-		rc = 1;
-	} else {
-		BER_BVZERO( &v[j] );
-		*vals = v;
-		rc = 0;
-	}
+	be_orig = op->o_bd;
+	op->o_bd = frontendDB;
+	rc = frontendDB->be_group( op, target, gr_ndn,
+		op_ndn, group_oc, group_at );
+	op->o_bd = be_orig;
 
 	return rc;
 }
-#endif /* LDAP_SLAPI */
 
 int 
-backend_attribute(
+fe_acl_attribute(
 	Operation *op,
 	Entry	*target,
 	struct berval	*edn,
@@ -1551,29 +1483,6 @@ backend_attribute(
 				rc = LDAP_SUCCESS;
 			}
 		}
-#ifdef LDAP_SLAPI
-		else if ( op->o_pb ) {
-			/* try any computed attributes */
-			computed_attr_context	ctx;
-
-			slapi_int_pblock_set_operation( op->o_pb, op );
-
-			ctx.cac_pb = op->o_pb;
-			ctx.cac_attrs = NULL;
-			ctx.cac_userattrs = 0;
-			ctx.cac_opattrs = 0;
-			ctx.cac_acl_state = acl_state;
-			ctx.cac_private = (void *)vals;
-
-			rc = compute_evaluator( &ctx, entry_at->ad_cname.bv_val, e, backend_compute_output_attr );
-			if ( rc == 1 ) {
-				rc = LDAP_INSUFFICIENT_ACCESS;
-
-			} else {
-				rc = LDAP_SUCCESS;
-			}
-		}
-#endif /* LDAP_SLAPI */
 freeit:		if ( e != target ) {
 			be_entry_release_r( op, e );
 		}
@@ -1586,20 +1495,26 @@ freeit:		if ( e != target ) {
 	return rc;
 }
 
-#ifdef LDAP_SLAPI
-static int backend_compute_output_attr_access(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
+int 
+backend_attribute(
+	Operation *op,
+	Entry	*target,
+	struct berval	*edn,
+	AttributeDescription *entry_at,
+	BerVarray *vals,
+	slap_access_t access )
 {
-	struct berval	*nval = (struct berval *)c->cac_private;
-	Operation	*op = NULL;
+	int			rc;
+	BackendDB		*be_orig;
 
-	slapi_pblock_get( c->cac_pb, SLAPI_OPERATION, &op );
-	if ( op == NULL ) {
-		return 1;
-	}
+	be_orig = op->o_bd;
+	op->o_bd = frontendDB;
+	rc = frontendDB->be_attribute( op, target, edn,
+		entry_at, vals, access );
+	op->o_bd = be_orig;
 
-	return access_allowed( op, e, a->a_desc, nval, ACL_AUTH, NULL ) == 0;
+	return rc;
 }
-#endif /* LDAP_SLAPI */
 
 int 
 backend_access(
@@ -1616,9 +1531,9 @@ backend_access(
 	Backend		*be = op->o_bd;
 
 	/* pedantic */
-	assert( op );
-	assert( op->o_conn );
-	assert( edn );
+	assert( op != NULL );
+	assert( op->o_conn != NULL );
+	assert( edn != NULL );
 	assert( access > ACL_NONE );
 
 	op->o_bd = select_backend( edn, 0, 0 );
@@ -1689,28 +1604,6 @@ backend_access(
 				}
 				rc = LDAP_SUCCESS;
 			}
-#ifdef LDAP_SLAPI
-			else if ( op->o_pb ) {
-				/* try any computed attributes */
-				computed_attr_context	ctx;
-
-				slapi_int_pblock_set_operation( op->o_pb, op );
-
-				ctx.cac_pb = op->o_pb;
-				ctx.cac_attrs = NULL;
-				ctx.cac_userattrs = 0;
-				ctx.cac_opattrs = 0;
-				ctx.cac_private = (void *)nval;
-
-				rc = compute_evaluator( &ctx, entry_at->ad_cname.bv_val, e, backend_compute_output_attr_access );
-				if ( rc == 1 ) {
-					rc = LDAP_INSUFFICIENT_ACCESS;
-
-				} else {
-					rc = LDAP_SUCCESS;
-				}
-			}
-#endif /* LDAP_SLAPI */
 		}
 freeit:		if ( e != target ) {
 			be_entry_release_r( op, e );
@@ -1724,13 +1617,14 @@ freeit:		if ( e != target ) {
 	return rc;
 }
 
-int backend_operational(
+int
+fe_aux_operational(
 	Operation *op,
 	SlapReply *rs )
 {
-	Attribute	**ap;
-	int		rc = 0;
-	BackendDB	*be_orig;
+	Attribute		**ap;
+	int			rc = 0;
+	BackendDB		*be_orig;
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count them */ ;
@@ -1754,59 +1648,35 @@ int backend_operational(
 		ap = &(*ap)->a_next;
 	}
 
-	/* Let the overlays have a chance at this */
-	be_orig = op->o_bd;
-	if ( SLAP_ISOVERLAY( be_orig ) )
-		op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
-
-	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
-		op->o_bd && op->o_bd->be_operational != NULL )
+	if ( op->o_bd != NULL )
 	{
-		rc = op->o_bd->be_operational( op, rs );
+		/* Let the overlays have a chance at this */
+		be_orig = op->o_bd;
+		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		if ( op->o_bd != frontendDB &&
+			( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
+			op->o_bd != NULL && op->o_bd->be_operational != NULL )
+		{
+			rc = op->o_bd->be_operational( op, rs );
+		}
+		op->o_bd = be_orig;
 	}
+
+	return rc;
+}
+
+int backend_operational( Operation *op, SlapReply *rs )
+{
+	int rc;
+	BackendDB *be_orig;
+
+	/* Moved this into the frontend so global overlays are called */
+
+	be_orig = op->o_bd;
+	op->o_bd = frontendDB;
+	rc = frontendDB->be_operational( op, rs );
 	op->o_bd = be_orig;
 
 	return rc;
 }
-
-#ifdef LDAP_SLAPI
-static void init_group_pblock( Operation *op, Entry *target,
-	Entry *e, struct berval *op_ndn, AttributeDescription *group_at )
-{
-	slapi_int_pblock_set_operation( op->o_pb, op );
-
-	slapi_pblock_set( op->o_pb,
-		SLAPI_X_GROUP_ENTRY, (void *)e );
-	slapi_pblock_set( op->o_pb,
-		SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
-	slapi_pblock_set( op->o_pb,
-		SLAPI_X_GROUP_ATTRIBUTE, (void *)group_at->ad_cname.bv_val );
-	slapi_pblock_set( op->o_pb,
-		SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
-}
-
-static int call_group_preop_plugins( Operation *op )
-{
-	int rc;
-
-	rc = slapi_int_call_plugins( op->o_bd,
-		SLAPI_X_PLUGIN_PRE_GROUP_FN, op->o_pb );
-	if ( rc < 0 ) {
-		if (( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
-			(void *)&rc ) != 0 ) || rc == LDAP_SUCCESS )
-		{
-			rc = LDAP_NO_SUCH_ATTRIBUTE;
-		}
-	} else {
-		rc = LDAP_SUCCESS;
-	}
-
-	return rc;
-}
-
-static void call_group_postop_plugins( Operation *op )
-{
-	(void) slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_POST_GROUP_FN, op->o_pb );
-}
-#endif /* LDAP_SLAPI */
 

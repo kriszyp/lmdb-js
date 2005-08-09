@@ -510,7 +510,6 @@ int ad_inlist(
 	for( ; attrs->an_name.bv_val; attrs++ ) {
 		AttributeType *a;
 		ObjectClass *oc;
-		int rc;
 		
 		if ( attrs->an_desc ) {
 			int lr;
@@ -584,8 +583,6 @@ int ad_inlist(
 		}
 		if( oc != NULL ) {
 			if ( attrs->an_oc_exclude ) {
-				int gotit = 0;
-
 				if ( oc == slap_schema.si_oc_extensibleObject ) {
 					/* extensibleObject allows the return of anything */
 					return 0;
@@ -778,13 +775,17 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	AttributeName *anew;
 
 	/* find last element in list */
-	for (i = 0; an && an[i].an_name.bv_val; i++);
+	i = 0;
+	if ( an != NULL ) {
+		for ( i = 0; !BER_BVISNULL( &an[ i ].an_name ) ; i++)
+			;
+	}
 	
 	/* protect the input string from strtok */
 	str = ch_strdup( in );
 
 	/* Count words in string */
-	j=1;
+	j = 1;
 	for ( s = str; *s; s++ ) {
 		if ( strchr( brkstr, *s ) != NULL ) {
 			j++;
@@ -842,7 +843,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 		anew++;
 	}
 
-	anew->an_name.bv_val = NULL;
+	BER_BVZERO( &anew->an_name );
 	free( str );
 	return( an );
 
@@ -993,8 +994,6 @@ file2anlist( AttributeName *an, const char *fname, const char *brkstr )
 	}
 
 	while ( fgets( lcur, LBUFSIZ, fp ) != NULL ) {
-		char *str, *s, *next;
-		const char *delimstr = brkstr;
 		if ( ( c = strchr( lcur, '\n' ) ) ) {
 			if ( c == line ) {
 				*c = '\0';

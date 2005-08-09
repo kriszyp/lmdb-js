@@ -598,21 +598,21 @@ void connection2anonymous( Connection *c )
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
-	if(c->c_authmech.bv_val != NULL ) {
-		free(c->c_authmech.bv_val);
+	if ( !BER_BVISNULL( &c->c_authmech ) ) {
+		ch_free(c->c_authmech.bv_val);
 	}
 	BER_BVZERO( &c->c_authmech );
 
-	if(c->c_dn.bv_val != NULL) {
-		free(c->c_dn.bv_val);
+	if ( !BER_BVISNULL( &c->c_dn ) ) {
+		ch_free(c->c_dn.bv_val);
 	}
 	BER_BVZERO( &c->c_dn );
-	if(c->c_ndn.bv_val != NULL) {
-		free(c->c_ndn.bv_val);
+	if ( !BER_BVISNULL( &c->c_ndn ) ) {
+		ch_free(c->c_ndn.bv_val);
 	}
 	BER_BVZERO( &c->c_ndn );
-	if(c->c_sasl_authz_dn.bv_val != NULL) {
-		free(c->c_sasl_authz_dn.bv_val);
+	if ( !BER_BVISNULL( &c->c_sasl_authz_dn ) ) {
+		ber_memfree_x( c->c_sasl_authz_dn.bv_val, NULL );
 	}
 	BER_BVZERO( &c->c_sasl_authz_dn );
 

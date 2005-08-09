@@ -37,7 +37,6 @@ slap_get_commit_csn(
 )
 {
 	struct slap_csn_entry *csne, *committed_csne = NULL;
-	int i = 0;
 
 	if ( maxcsn ) {
 		BER_BVZERO( maxcsn );
@@ -125,7 +124,6 @@ slap_create_context_csn_entry(
 	struct berval *context_csn )
 {
 	Entry* e;
-	int rc;
 
 	struct berval bv;
 

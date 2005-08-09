@@ -800,9 +800,9 @@ backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
 	struct supad2at_t	va = { 0 };
 	int			rc;
 
-	assert( objclass );
-	assert( supad );
-	assert( pret );
+	assert( objclass != NULL );
+	assert( supad != NULL );
+	assert( pret != NULL );
 
 	*pret = NULL;
 
@@ -842,6 +842,12 @@ backsql_free_attr( void *v_at )
 	if ( at->bam_query != NULL ) {
 		ch_free( at->bam_query );
 	}
+
+#ifdef BACKSQL_COUNTQUERY
+	if ( at->bam_countquery != NULL ) {
+		ch_free( at->bam_countquery );
+	}
+#endif /* BACKSQL_COUNTQUERY */
 
 	/* TimesTen */
 	if ( !BER_BVISNULL( &at->bam_sel_expr_u ) ) {

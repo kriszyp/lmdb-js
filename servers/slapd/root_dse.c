@@ -52,8 +52,10 @@ root_dse_info(
 	const char **text )
 {
 	Entry		*e;
-	struct berval val, *bv;
-	struct berval nval;
+	struct berval val;
+#ifdef LDAP_SLAPI
+	struct berval *bv;
+#endif
 	int		i, j;
 	char ** supportedSASLMechanisms;
 	BackendDB *be;
@@ -64,8 +66,10 @@ root_dse_info(
 		= slap_schema.si_ad_objectClass;
 	AttributeDescription *ad_namingContexts
 		= slap_schema.si_ad_namingContexts;
+#ifdef LDAP_SLAPI
 	AttributeDescription *ad_supportedExtension
 		= slap_schema.si_ad_supportedExtension;
+#endif
 	AttributeDescription *ad_supportedLDAPVersion
 		= slap_schema.si_ad_supportedLDAPVersion;
 	AttributeDescription *ad_supportedSASLMechanisms

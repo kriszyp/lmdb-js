@@ -32,9 +32,6 @@
 #include <ac/time.h>
 
 #include "slap.h"
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif
 #include "lutil.h"
 
 
@@ -207,7 +204,7 @@ cleanup:
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( op->orm_modlist != NULL ) slap_mods_free( op->orm_modlist );
+	if ( op->orm_modlist != NULL ) slap_mods_free( op->orm_modlist, 1 );
 
 	return rs->sr_err;
 }
@@ -221,11 +218,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	int		manageDSAit;
 	Modifications	*modlist = op->orm_modlist;
 	Modifications	**modtail = &modlist;
-#ifdef LDAP_SLAPI
-	LDAPMod		**modv = NULL;
-#endif
 	int		increment = op->orm_increment;
-	int		rc = 0;
 	BackendDB *op_be;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
@@ -366,61 +359,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			"modify/increment not supported in context" );
 	}
 
-#if defined( LDAP_SLAPI )
-#define pb	op->o_pb
-	if ( pb ) {
-		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)op->o_req_dn.bv_val );
-		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-		modv = slapi_int_modifications2ldapmods( &modlist );
-		slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
-
-		rs->sr_err = slapi_int_call_plugins( op->o_bd,
-			SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
-
-		/*
-		 * It's possible that the preoperation plugin changed the
-		 * modification array, so we need to convert it back to
-		 * a Modification list.
-		 *
-		 * Calling slapi_int_modifications2ldapmods() destroyed modlist so
-		 * we don't need to free it.
-		 */
-		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
-		modlist = slapi_int_ldapmods2modifications( modv );
-
-		if ( rs->sr_err < 0 ) {
-			/*
-			 * A preoperation plugin failure will abort the
-			 * entire operation.
-			 */
-			Debug(LDAP_DEBUG_TRACE,
-				"do_modify: modify preoperation plugin failed.\n",
-				0, 0, 0);
-			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
-				(void *)&rs->sr_err ) != 0 ) || rs->sr_err == LDAP_SUCCESS )
-			{
-				rs->sr_err = LDAP_OTHER;
-			}
-			slapi_int_free_ldapmods( modv );
-			modv = NULL;
-			goto cleanup;
-		}
-	}
-
-	/*
-	 * NB: it is valid for the plugin to return no modifications
-	 * (for example, a plugin might store some attributes elsewhere
-	 * and remove them from the modification list; if only those
-	 * attribute types were included in the modification request,
-	 * then slapi_int_ldapmods2modifications() above will return
-	 * NULL).
-	 *
-	 * However, the post-operation plugin should still be 
-	 * called.
-	 */
-#endif /* defined( LDAP_SLAPI ) */
-
 	/*
 	 * do the modify if 1 && (2 || 3)
 	 * 1) there is a modify function implemented in this backend;
@@ -511,20 +449,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		    "operation not supported within namingContext" );
 	}
 
-#if defined( LDAP_SLAPI )
-	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
-		SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 )
-	{
-		Debug(LDAP_DEBUG_TRACE,
-			"do_modify: modify postoperation plugins failed.\n", 0, 0, 0);
-	}
-#endif /* defined( LDAP_SLAPI ) */
-
 cleanup:;
-#if defined( LDAP_SLAPI )
-	if ( modv != NULL ) slapi_int_free_ldapmods( modv );
-#endif
-
 	return rs->sr_err;
 }
 
@@ -600,6 +525,34 @@ slap_mods_no_user_mod_check(
 	return LDAP_SUCCESS;
 }
 
+int
+slap_mods_no_repl_user_mod_check(
+	Operation *op,
+	Modifications *ml,
+	const char **text,
+	char *textbuf,
+	size_t textlen )
+{
+	Modifications *mods;
+	Modifications *modp;
+
+	for ( mods = ml; mods != NULL; mods = mods->sml_next ) {
+		assert( mods->sml_op == LDAP_MOD_ADD );
+
+		/* check doesn't already appear */
+		for ( modp = ml; modp != NULL; modp = modp->sml_next ) {
+			if ( mods->sml_desc == modp->sml_desc && mods != modp ) {
+				snprintf( textbuf, textlen,
+					"attribute '%s' provided more than once",
+					mods->sml_desc->ad_cname.bv_val );
+				return LDAP_TYPE_OR_VALUE_EXISTS;
+			}
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
 /*
  * Do basic attribute type checking and syntax validation.
  */
@@ -616,13 +569,14 @@ int slap_mods_check(
 		AttributeDescription *ad = NULL;
 
 		/* convert to attribute description */
-		rc = slap_bv2ad( &ml->sml_type, &ml->sml_desc, text );
-
-		if( rc != LDAP_SUCCESS ) {
-			snprintf( textbuf, textlen, "%s: %s",
-				ml->sml_type.bv_val, *text );
-			*text = textbuf;
-			return rc;
+		if ( ml->sml_desc == NULL ) {
+			rc = slap_bv2ad( &ml->sml_type, &ml->sml_desc, text );
+			if( rc != LDAP_SUCCESS ) {
+				snprintf( textbuf, textlen, "%s: %s",
+					ml->sml_type.bv_val, *text );
+				*text = textbuf;
+				return rc;
+			}
 		}
 
 		ad = ml->sml_desc;
@@ -911,13 +865,13 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &tmpval );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_nvalues[0], &tmpval );
 			mod->sml_nvalues[1].bv_len = 0;
 			mod->sml_nvalues[1].bv_val = NULL;
-			assert( mod->sml_nvalues[0].bv_val );
+			assert( mod->sml_nvalues[0].bv_val != NULL );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 		}
@@ -938,7 +892,7 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &tmpval );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			(*mod->sml_desc->ad_type->sat_equality->smr_normalize)(
@@ -961,13 +915,13 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &name );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_nvalues[0], &nname );
 			mod->sml_nvalues[1].bv_len = 0;
 			mod->sml_nvalues[1].bv_val = NULL;
-			assert( mod->sml_nvalues[0].bv_val );
+			assert( mod->sml_nvalues[0].bv_val != NULL );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 
@@ -981,7 +935,7 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &timestamp );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues = NULL;
 			*modtail = mod;
 			modtail = &mod->sml_next;
@@ -998,7 +952,7 @@ int slap_mods_opattrs(
 		ber_dupbv( &mod->sml_values[0], &csn );
 		mod->sml_values[1].bv_len = 0;
 		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
+		assert( mod->sml_values[0].bv_val != NULL );
 		mod->sml_nvalues = NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -1012,13 +966,13 @@ int slap_mods_opattrs(
 		ber_dupbv( &mod->sml_values[0], &name );
 		mod->sml_values[1].bv_len = 0;
 		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
+		assert( mod->sml_values[0].bv_val != NULL );
 		mod->sml_nvalues =
 			(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_nvalues[0], &nname );
 		mod->sml_nvalues[1].bv_len = 0;
 		mod->sml_nvalues[1].bv_val = NULL;
-		assert( mod->sml_nvalues[0].bv_val );
+		assert( mod->sml_nvalues[0].bv_val != NULL );
 		*modtail = mod;
 		modtail = &mod->sml_next;
 
@@ -1031,7 +985,7 @@ int slap_mods_opattrs(
 		ber_dupbv( &mod->sml_values[0], &timestamp );
 		mod->sml_values[1].bv_len = 0;
 		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
+		assert( mod->sml_values[0].bv_val != NULL );
 		mod->sml_nvalues = NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;

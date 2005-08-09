@@ -59,14 +59,14 @@ LDAPRDN_validate( LDAPRDN rdn )
 	int		iAVA;
 	int 		rc;
 
-	assert( rdn );
+	assert( rdn != NULL );
 
 	for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 		LDAPAVA			*ava = rdn[ iAVA ];
 		AttributeDescription	*ad;
 		slap_syntax_validate_func *validate = NULL;
 
-		assert( ava );
+		assert( ava != NULL );
 		
 		if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 			const char	*text = NULL;
@@ -112,20 +112,20 @@ LDAPDN_validate( LDAPDN dn )
 	int 		iRDN;
 	int 		rc;
 
-	assert( dn );
+	assert( dn != NULL );
 
 	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
 		LDAPRDN		rdn = dn[ iRDN ];
 		int		iAVA;
 
-		assert( rdn );
+		assert( rdn != NULL );
 
 		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 			LDAPAVA			*ava = rdn[ iAVA ];
 			AttributeDescription	*ad;
 			slap_syntax_validate_func *validate = NULL;
 
-			assert( ava );
+			assert( ava != NULL );
 			
 			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 				const char	*text = NULL;
@@ -173,7 +173,7 @@ dnValidate(
 	int		rc;
 	LDAPDN		dn = NULL;
 
-	assert( in );
+	assert( in != NULL );
 
 	if ( in->bv_len == 0 ) {
 		return LDAP_SUCCESS;
@@ -211,7 +211,7 @@ rdnValidate(
 	LDAPRDN		rdn;
 	char*		p;
 
-	assert( in );
+	assert( in != NULL );
 	if ( in->bv_len == 0 ) {
 		return LDAP_SUCCESS;
 
@@ -261,14 +261,14 @@ AVA_Sort( LDAPRDN rdn, int iAVA )
 	int		i;
 	LDAPAVA		*ava_in = rdn[ iAVA ];
 
-	assert( rdn );
-	assert( ava_in );
+	assert( rdn != NULL );
+	assert( ava_in != NULL );
 	
 	for ( i = 0; i < iAVA; i++ ) {
 		LDAPAVA		*ava = rdn[ i ];
 		int		a, j;
 
-		assert( ava );
+		assert( ava != NULL );
 
 		a = strcmp( ava_in->la_attr.bv_val, ava->la_attr.bv_val );
 
@@ -337,7 +337,7 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 		struct berval		bv = BER_BVNULL;
 		int			do_sort = 0;
 
-		assert( ava );
+		assert( ava != NULL );
 
 		if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 			const char	*text = NULL;
@@ -444,13 +444,13 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 	int 		iRDN;
 	int 		rc;
 
-	assert( dn );
+	assert( dn != NULL );
 
 	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
 		LDAPRDN		rdn = dn[ iRDN ];
 		int		iAVA;
 
-		assert( rdn );
+		assert( rdn != NULL );
 
 		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 			LDAPAVA			*ava = rdn[ iAVA ];
@@ -462,7 +462,7 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 			struct berval		bv = BER_BVNULL;
 			int			do_sort = 0;
 
-			assert( ava );
+			assert( ava != NULL );
 
 			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 				const char	*text = NULL;
@@ -570,8 +570,8 @@ dnNormalize(
     struct berval *out,
     void *ctx)
 {
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: <%s>\n", val->bv_val, 0, 0 );
 
@@ -626,8 +626,8 @@ rdnNormalize(
     struct berval *out,
     void *ctx)
 {
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: <%s>\n", val->bv_val, 0, 0 );
 	if ( val->bv_len != 0 ) {
@@ -682,8 +682,8 @@ dnPretty(
 	struct berval *out,
 	void *ctx)
 {
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
 
@@ -739,8 +739,8 @@ rdnPretty(
 	struct berval *out,
 	void *ctx)
 {
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
 
@@ -800,8 +800,8 @@ dnPrettyNormalDN(
 	int flags,
 	void *ctx )
 {
-	assert( val );
-	assert( dn );
+	assert( val != NULL );
+	assert( dn != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> dn%sDN: <%s>\n", 
 			flags == SLAP_LDAPDN_PRETTY ? "Pretty" : "Normal", 
@@ -854,9 +854,9 @@ dnPrettyNormal(
 {
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPrettyNormal: <%s>\n", val->bv_val, 0, 0 );
 
-	assert( val );
-	assert( pretty );
-	assert( normal );
+	assert( val != NULL );
+	assert( pretty != NULL );
+	assert( normal != NULL );
 
 	if ( val->bv_len == 0 ) {
 		ber_dupbv_x( pretty, val, ctx );
@@ -940,9 +940,9 @@ dnMatch(
 	int match;
 	struct berval *asserted = (struct berval *) assertedValue;
 
-	assert( matchp );
-	assert( value );
-	assert( assertedValue );
+	assert( matchp != NULL );
+	assert( value != NULL );
+	assert( assertedValue != NULL );
 	assert( !BER_BVISNULL( value ) );
 	assert( !BER_BVISNULL( asserted ) );
 	
@@ -975,9 +975,9 @@ dnRelativeMatch(
 	int match;
 	struct berval *asserted = (struct berval *) assertedValue;
 
-	assert( matchp );
-	assert( value );
-	assert( assertedValue );
+	assert( matchp != NULL );
+	assert( value != NULL );
+	assert( assertedValue != NULL );
 	assert( !BER_BVISNULL( value ) );
 	assert( !BER_BVISNULL( asserted ) );
 
@@ -1074,9 +1074,9 @@ rdnMatch(
 	int match;
 	struct berval *asserted = (struct berval *) assertedValue;
 
-	assert( matchp );
-	assert( value );
-	assert( assertedValue );
+	assert( matchp != NULL );
+	assert( value != NULL );
+	assert( assertedValue != NULL );
 	
 	match = value->bv_len - asserted->bv_len;
 
@@ -1165,8 +1165,8 @@ dnExtractRdn(
 	const char	*p;
 	int		rc;
 
-	assert( dn );
-	assert( rdn );
+	assert( dn != NULL );
+	assert( rdn != NULL );
 
 	if( dn->bv_len == 0 ) {
 		return LDAP_OTHER;
@@ -1194,7 +1194,7 @@ dn_rdnlen(
 {
 	const char	*p;
 
-	assert( dn_in );
+	assert( dn_in != NULL );
 
 	if ( dn_in == NULL ) {
 		return 0;
@@ -1319,8 +1319,8 @@ dnIsSuffix(
 {
 	int	d = dn->bv_len - suffix->bv_len;
 
-	assert( dn );
-	assert( suffix );
+	assert( dn != NULL );
+	assert( suffix != NULL );
 
 	/* empty suffix matches any dn */
 	if ( suffix->bv_len == 0 ) {

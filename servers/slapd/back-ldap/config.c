@@ -72,7 +72,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "tls", "what", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_TLS,
+		ARG_MAGIC|LDAP_BACK_CFG_TLS,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.1 "
 			"NAME 'olcDbStartTLS' "
 			"DESC 'StartTLS' "
@@ -88,12 +88,12 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDN "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; aliases "acl-authcDN" */
+	/* deprecated, will be removed; aliases "acl-authcDN" */
 	{ "binddn", "DN", 2, 2, 0,
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_ACL_AUTHCDN,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "acl-passwd", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.3 "
 			"NAME 'olcDbACLPasswd' "
 			"DESC 'Remote ACL administrative identity credentials' "
@@ -101,22 +101,22 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; aliases "acl-passwd" */
+	/* deprecated, will be removed; aliases "acl-passwd" */
 	{ "bindpw", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
+		ldap_back_cf_gen, NULL, NULL, NULL },
+	/* deprecated, will be removed; aliases "acl-bind" */
+	{ "acl-method", "args", 2, 0, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_METHOD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "acl-bind", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.4 "
 			"NAME 'olcDbACLBind' "
 			"DESC 'Remote ACL administrative identity auth bind configuration' "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; aliases "acl-bind" */
-	{ "acl-method", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
-		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-authcDN", "DN", 2, 2, 0,
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHCDN,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.5 "
@@ -126,12 +126,12 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDN "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; partially aliases "idassert-authcDN" */
+	/* deprecated, will be removed; partially aliases "idassert-authcDN" */
 	{ "proxyauthzdn", "DN", 2, 2, 0,
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHCDN,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-passwd", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.6 "
 			"NAME 'olcDbIDAssertPasswd' "
 			"DESC 'Remote Identity Assertion administrative identity credentials' "
@@ -139,12 +139,12 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; partially aliases "idassert-passwd" */
+	/* deprecated, will be removed; partially aliases "idassert-passwd" */
 	{ "proxyauthzpw", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-bind", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.7 "
 			"NAME 'olcDbIDAssertBind' "
 			"DESC 'Remote Identity Assertion administrative identity auth bind configuration' "
@@ -152,7 +152,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "idassert-method", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_METHOD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-mode", "mode>|u:<user>|[dn:]<DN", 2, 0, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_MODE,
@@ -164,7 +164,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE)",
 		NULL, NULL },
 	{ "idassert-authzFrom", "authzRule", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHZFROM,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHZFROM,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.9 "
 			"NAME 'olcDbIDAssertAuthzFrom' "
 			"DESC 'Remote Identity Assertion authz rules' "
@@ -172,7 +172,7 @@ static ConfigTable ldapcfg[] = {
 			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
 	{ "rebind-as-user", "NO|yes", 1, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_REBIND,
+		ARG_MAGIC|LDAP_BACK_CFG_REBIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.10 "
 			"NAME 'olcDbRebindAsUser' "
 			"DESC 'Rebind as user' "
@@ -180,7 +180,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "chase-referrals", "YES|no", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_CHASE,
+		ARG_MAGIC|LDAP_BACK_CFG_CHASE,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.11 "
 			"NAME 'olcDbChaseReferrals' "
 			"DESC 'Chase referrals' "
@@ -188,7 +188,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "t-f-support", "NO|yes|discover", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_T_F,
+		ARG_MAGIC|LDAP_BACK_CFG_T_F,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.12 "
 			"NAME 'olcDbTFSupport' "
 			"DESC 'Absolute filters support' "
@@ -196,7 +196,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "proxy-whoami", "NO|yes", 1, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_WHOAMI,
+		ARG_MAGIC|LDAP_BACK_CFG_WHOAMI,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.13 "
 			"NAME 'olcDbProxyWhoAmI' "
 			"DESC 'Proxy whoAmI exop' "
@@ -301,7 +301,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -315,17 +315,18 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_ACL_BIND: {
 			int	i;
 
-			bindconf_unparse( &li->acl_sb, &c->value_bv );
+			bindconf_unparse( &li->acl_sb, &bv );
 
-			for ( i = 0; isspace( c->value_bv.bv_val[ i ] ); i++ )
+			for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
 				/* count spaces */ ;
 
 			if ( i ) {
-				c->value_bv.bv_len -= i;
-				AC_MEMCPY( c->value_bv.bv_val, &c->value_bv.bv_val[ i ],
-						c->value_bv.bv_len + 1 );
+				bv.bv_len -= i;
+				AC_MEMCPY( bv.bv_val, &bv.bv_val[ i ],
+					bv.bv_len + 1 );
 			}
-			
+
+			ber_bvarray_add( &c->rvalue_vals, &bv );
 			break;
 		}
 
@@ -347,23 +348,18 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 			for ( i = 0; !BER_BVISNULL( &li->idassert_authz[ i ] ); i++ )
 			{
-				struct berval	bv;
-
-				ber_dupbv( &bv, &li->idassert_authz[ i ] );
-				ber_bvarray_add( &c->rvalue_vals, &bv );
+				value_add_one( &c->rvalue_vals, &li->idassert_authz[ i ] );
 			}
 			break;
 		}
 
 		case LDAP_BACK_CFG_IDASSERT_BIND: {
 			int		i;
-			struct berval	bv = BER_BVNULL,
-					bc = BER_BVNULL;
+			struct berval	bc = BER_BVNULL;
 			char		*ptr;
 
 			if ( li->idassert_authmethod != LDAP_AUTH_NONE ) {
-				ber_len_t	len = bv.bv_len
-					+ STRLENOF( "flags=override,non-prescriptive" );
+				ber_len_t	len;
 
 				switch ( li->idassert_mode ) {
 				case LDAP_BACK_IDASSERT_OTHERID:
@@ -391,7 +387,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				}
 
 				if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
-					ber_len_t	len = bv.bv_len + STRLENOF( "authz=native" );
+					len = bv.bv_len + STRLENOF( "authz=native" );
 
 					if ( !BER_BVISEMPTY( &bv ) ) {
 						len += STRLENOF( " " );
@@ -399,7 +395,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 					bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
 
-					ptr = bv.bv_val + bv.bv_len;
+					ptr = &bv.bv_val[ bv.bv_len ];
 
 					if ( !BER_BVISEMPTY( &bv ) ) {
 						ptr = lutil_strcopy( ptr, " " );
@@ -408,6 +404,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 					(void)lutil_strcopy( ptr, "authz=native" );
 				}
 
+				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override" );
 				/* flags */
 				if ( !BER_BVISEMPTY( &bv ) ) {
 					len += STRLENOF( " " );
@@ -440,17 +437,15 @@ ldap_back_cf_gen( ConfigArgs *c )
 			bindconf_unparse( &li->idassert_sb, &bc );
 
 			if ( !BER_BVISNULL( &bv ) ) {
-				char	*ptr;
+				ber_len_t	len = bv.bv_len + bc.bv_len;
 
-				c->value_bv.bv_len = bv.bv_len + bc.bv_len;
-				c->value_bv.bv_val = ch_realloc( bv.bv_val, c->value_bv.bv_len + 1 );
+				bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
 
 				assert( bc.bv_val[ 0 ] == ' ' );
 
-				ptr = lutil_strcopy( c->value_bv.bv_val, bv.bv_val );
-				(void)lutil_strcopy( ptr, bc.bv_val );
-
+				ptr = lutil_strcopy( &bv.bv_val[ bv.bv_len ], bc.bv_val );
 				free( bc.bv_val );
+				bv.bv_len = ptr - bv.bv_val;
 
 			} else {
 				for ( i = 0; isspace( bc.bv_val[ i ] ); i++ )
@@ -461,9 +456,11 @@ ldap_back_cf_gen( ConfigArgs *c )
 					AC_MEMCPY( bc.bv_val, &bc.bv_val[ i ], bc.bv_len + 1 );
 				}
 
-				c->value_bv = bv;
+				bv = bc;
 			}
 			
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+
 			break;
 		}
 
@@ -475,7 +472,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -487,7 +484,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -499,7 +496,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -511,12 +508,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
 		default:
-			/* we need to handle all... */
+			/* FIXME: we need to handle all... */
 			assert( 0 );
 			break;
 		}
@@ -545,6 +542,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_TLS:
+			rc = 1;
+			break;
+
 		case LDAP_BACK_CFG_ACL_AUTHCDN:
 		case LDAP_BACK_CFG_ACL_PASSWD:
 		case LDAP_BACK_CFG_ACL_METHOD:
@@ -583,7 +583,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		default:
-			/* we need to handle all... */
+			/* FIXME: we need to handle all... */
 			assert( 0 );
 			break;
 		}
@@ -594,7 +594,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 	switch( c->type ) {
 	case LDAP_BACK_CFG_URI: {
 		LDAPURLDesc	*tmpludp;
+#if 0
 		char		**urllist;
+#endif
 		int		urlrc, i;
 
 		if ( c->argc != 2 ) {
@@ -688,7 +690,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				tmpludp;
 				i++, tmpludp = tmpludp->lud_next )
 			/* just count */
-		
+			;
 		urllist = ch_calloc( sizeof( char * ), i + 1 );
 
 		for ( i = 0, tmpludp = li->lud;
@@ -722,7 +724,8 @@ ldap_back_cf_gen( ConfigArgs *c )
 		li->url = ldap_charray2str( urllist, " " );
 		ldap_charray_free( urllist );
 #else
-		li->url = ch_strdup( c->value_string );
+		li->url = c->value_string;
+		c->value_string = NULL;
 #endif
 		break;
 	}
@@ -755,7 +758,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
 			free( li->acl_authcDN.bv_val );
 		}
+		ber_memfree_x( c->value_dn.bv_val, NULL );
 		li->acl_authcDN = c->value_ndn;
+		BER_BVZERO( &c->value_dn );
+		BER_BVZERO( &c->value_ndn );
 		break;
 
 	case LDAP_BACK_CFG_ACL_PASSWD:
@@ -777,7 +783,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->acl_passwd ) ) {
 			free( li->acl_passwd.bv_val );
 		}
-		li->acl_passwd = c->value_bv;
+		ber_str2bv( c->argv[ 1 ], 0, 1, &li->acl_passwd );
 		break;
 
 	case LDAP_BACK_CFG_ACL_METHOD:
@@ -872,7 +878,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
 			free( li->idassert_authcDN.bv_val );
 		}
+		ber_memfree_x( c->value_dn.bv_val, NULL );
 		li->idassert_authcDN = c->value_ndn;
+		BER_BVZERO( &c->value_dn );
+		BER_BVZERO( &c->value_ndn );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_PASSWD:
@@ -894,12 +903,15 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
 			free( li->idassert_passwd.bv_val );
 		}
-		li->idassert_passwd = c->value_bv;
+		ber_str2bv( c->argv[ 1 ], 0, 1, &li->idassert_passwd );
 		break;
 
-	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
-		ber_bvarray_add( &li->idassert_authz, &c->value_bv );
-		break;
+	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
+		struct berval	bv;
+
+		ber_str2bv( c->argv[ 1 ], 0, 1, &bv );
+		ber_bvarray_add( &li->idassert_authz, &bv );
+		} break;
 
 	case LDAP_BACK_CFG_IDASSERT_METHOD:
 		/* no longer supported */
@@ -1091,7 +1103,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 		return 1;
 		
 	default:
+		/* FIXME: try to catch inconsistencies */
 		assert( 0 );
+		break;
 	}
 
 	return 0;
@@ -1175,7 +1189,9 @@ ldap_back_db_config(
 	/* URI of server to query (obsoletes "server" directive) */
 	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
 		LDAPURLDesc	*tmpludp;
+#if 0
 		char		**urllist;
+#endif
 		int		urlrc, i;
 
 		if ( argc != 2 ) {
@@ -1267,7 +1283,7 @@ ldap_back_db_config(
 				tmpludp;
 				i++, tmpludp = tmpludp->lud_next )
 			/* just count */
-		
+			;
 		urllist = ch_calloc( sizeof( char * ), i + 1 );
 
 		for ( i = 0, tmpludp = li->lud;
@@ -1605,10 +1621,10 @@ retry:
 	/* else just do the same as before */
 		bv = (struct berval *) ch_malloc( sizeof(struct berval) );
 		if ( !BER_BVISEMPTY( &op->o_dn ) ) {
-			bv->bv_len = op->o_dn.bv_len + sizeof("dn:") - 1;
+			bv->bv_len = op->o_dn.bv_len + STRLENOF("dn:");
 			bv->bv_val = ch_malloc( bv->bv_len + 1 );
-			AC_MEMCPY( bv->bv_val, "dn:", sizeof("dn:") - 1 );
-			AC_MEMCPY( &bv->bv_val[sizeof("dn:") - 1], op->o_dn.bv_val,
+			AC_MEMCPY( bv->bv_val, "dn:", STRLENOF("dn:") );
+			AC_MEMCPY( &bv->bv_val[STRLENOF("dn:")], op->o_dn.bv_val,
 				op->o_dn.bv_len );
 			bv->bv_val[bv->bv_len] = '\0';
 		} else {

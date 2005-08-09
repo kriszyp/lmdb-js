@@ -159,8 +159,6 @@ syncprov_state_ctrl(
 {
 	Attribute* a;
 	int ret;
-	int res;
-	const char *text = NULL;
 
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
@@ -402,7 +400,6 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 {
 	opcookie *opc = op->o_callback->sc_private;
 	slap_overinst *on = opc->son;
-	syncprov_info_t		*si = on->on_bi.bi_private;
 
 	slap_callback cb = {0};
 	Operation fop;
@@ -746,7 +743,6 @@ static int
 syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mode, int queue )
 {
 	slap_overinst *on = opc->son;
-	syncprov_info_t *si = on->on_bi.bi_private;
 
 	SlapReply rs = { REP_SEARCH };
 	LDAPControl *ctrls[2];
@@ -1184,10 +1180,10 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 		se->se_tag = op->o_tag;
 
 		se->se_uuid.bv_val = (char *)(se+1);
-		se->se_csn.bv_val = se->se_uuid.bv_val + opc->suuid.bv_len + 1;
 		AC_MEMCPY( se->se_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
 		se->se_uuid.bv_len = opc->suuid.bv_len;
 
+		se->se_csn.bv_val = se->se_uuid.bv_val + opc->suuid.bv_len;
 		AC_MEMCPY( se->se_csn.bv_val, csn->bv_val, csn->bv_len );
 		se->se_csn.bv_val[csn->bv_len] = '\0';
 		se->se_csn.bv_len = csn->bv_len;
@@ -1231,7 +1227,6 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	struct berval *oldcsn, struct berval *ctxcsn )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	syncprov_info_t		*si = on->on_bi.bi_private;
 	slog_entry *se;
 	int i, j, ndel, num, nmods, mmods;
 	BerVarray uuids;
@@ -1692,18 +1687,16 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 {
 	searchstate *ss = op->o_callback->sc_private;
 	slap_overinst *on = ss->ss_on;
-	syncprov_info_t		*si = on->on_bi.bi_private;
 	sync_control *srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
-		int i;
 		/* If we got a referral without a referral object, there's
 		 * something missing that we cannot replicate. Just ignore it.
 		 * The consumer will abort because we didn't send the expected
 		 * control.
 		 */
 		if ( !rs->sr_entry ) {
-			assert( rs->sr_entry );
+			assert( rs->sr_entry != NULL );
 			Debug( LDAP_DEBUG_ANY, "bogus referral in context\n",0,0,0 );
 			return SLAP_CB_CONTINUE;
 		}
@@ -2293,7 +2286,8 @@ static int syncprov_parseCtrl (
 	LDAPControl *ctrl )
 {
 	ber_tag_t tag;
-	BerElement *ber;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 	ber_int_t mode;
 	ber_len_t len;
 	struct berval cookie = BER_BVNULL;
@@ -2327,11 +2321,7 @@ static int syncprov_parseCtrl (
 	 *      }
 	 */
 
-	ber = ber_init( &ctrl->ldctl_value );
-	if( ber == NULL ) {
-		rs->sr_text = "internal error";
-		return LDAP_OTHER;
-	}
+	ber_init2( ber, &ctrl->ldctl_value, 0 );
 
 	if ( (tag = ber_scanf( ber, "{i" /*}*/, &mode )) == LBER_ERROR ) {
 		rs->sr_text = "Sync control : mode decoding error";
@@ -2353,7 +2343,7 @@ static int syncprov_parseCtrl (
 	tag = ber_peek_tag( ber, &len );
 
 	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
-		if (( ber_scanf( ber, /*{*/ "o", &cookie )) == LBER_ERROR ) {
+		if (( ber_scanf( ber, /*{*/ "m", &cookie )) == LBER_ERROR ) {
 			rs->sr_text = "Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
@@ -2371,13 +2361,15 @@ static int syncprov_parseCtrl (
 	sr = op->o_tmpcalloc( 1, sizeof(struct sync_control), op->o_tmpmemctx );
 	sr->sr_rhint = rhint;
 	if (!BER_BVISNULL(&cookie)) {
-		ber_dupbv( &sr->sr_state.octet_str, &cookie );
-		slap_parse_sync_cookie( &sr->sr_state );
+		ber_dupbv_x( &sr->sr_state.octet_str, &cookie, op->o_tmpmemctx );
+		slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx );
+		if ( sr->sr_state.rid == -1 ) {
+			rs->sr_text = "Sync control : cookie parsing error";
+			return LDAP_PROTOCOL_ERROR;
+		}
 	}
 
 	op->o_controls[slap_cids.sc_LDAPsync] = sr;
-
-	(void) ber_free( ber, 1 );
 
 	op->o_sync = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL

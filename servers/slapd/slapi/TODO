@@ -10,7 +10,7 @@
 - This is a very tough task: try to implement a sandbox to execute
   plugins in, trap deadly signals and possibly disable unsafe plugins
   without crashing slapd (fork from inside thread? trap signals
-  and longjump to next plugin execution? Brrr).
+  and longjump to next plugin execution? Brrr). 
 
 ---
 $OpenLDAP$

@@ -109,8 +109,6 @@ backsql_init_search(
 	backsql_srch_info 	*bsi, 
 	struct berval		*nbase, 
 	int 			scope, 
-	int 			slimit,
-	int 			tlimit,
 	time_t 			stoptime, 
 	Filter 			*filter, 
 	SQLHDBC 		dbh,
@@ -127,8 +125,6 @@ backsql_init_search(
 	BER_BVZERO( &bsi->bsi_base_id.eid_dn );
 	BER_BVZERO( &bsi->bsi_base_id.eid_ndn );
 	bsi->bsi_scope = scope;
-	bsi->bsi_slimit = slimit;
-	bsi->bsi_tlimit = tlimit;
 	bsi->bsi_filter = filter;
 	bsi->bsi_dbh = dbh;
 	bsi->bsi_op = op;
@@ -272,7 +268,7 @@ backsql_init_search(
 		int	getentry = BACKSQL_IS_GET_ENTRY( flags );
 		int	gotit = 0;
 
-		assert( op->o_bd->be_private );
+		assert( op->o_bd->be_private != NULL );
 
 		rc = backsql_dn2id( op, rs, dbh, nbase, &bsi->bsi_base_id,
 				matched, 1 );
@@ -1250,7 +1246,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	int			rc;
 
-	assert( query );
+	assert( query != NULL );
 	BER_BVZERO( query );
 
 	bsi->bsi_use_subtree_shortcut = 0;
@@ -1344,7 +1340,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 			int		i;
 			BackendDB	*bd = bsi->bsi_op->o_bd;
 
-			assert( bd->be_nsuffix );
+			assert( bd->be_nsuffix != NULL );
 
 			for ( i = 0; !BER_BVISNULL( &bd->be_nsuffix[ i ] ); i++ )
 			{
@@ -1695,7 +1691,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		return BACKSQL_AVL_CONTINUE;
 	}
 
-	backsql_BindRowAsStrings( sth, &row );
+	backsql_BindRowAsStrings_x( sth, &row, bsi->bsi_op->o_tmpmemctx );
 	rc = SQLFetch( sth );
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
 		struct berval		dn, pdn, ndn;
@@ -1761,7 +1757,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			break;
 		}
 	}
-	backsql_FreeRow( &row );
+	backsql_FreeRow_x( &row, bsi->bsi_op->o_tmpmemctx );
 	SQLFreeStmt( sth, SQL_DROP );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_oc_get_candidates(): %d\n",
@@ -1827,7 +1823,6 @@ backsql_search( Operation *op, SlapReply *rs )
 	bsi.bsi_e = &base_entry;
 	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			op->ors_scope,
-			op->ors_slimit, op->ors_tlimit,
 			stoptime, op->ors_filter,
 			dbh, op, rs, op->ors_attrs,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
@@ -1848,6 +1843,10 @@ backsql_search( Operation *op, SlapReply *rs )
 			}
 			break;
 		}
+
+		/* an entry was created; free it */
+		entry_clean( bsi.bsi_e );
+
 		/* fall thru */
 
 	default:
@@ -1868,8 +1867,13 @@ backsql_search( Operation *op, SlapReply *rs )
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 		send_ldap_result( op, rs );
-		goto done;
 
+		if ( rs->sr_ref ) {
+			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
+		}
+
+		goto done;
 	}
 #ifdef SLAP_ACL_HONOR_DISCLOSE
 	/* NOTE: __NEW__ "search" access is required
@@ -1945,6 +1949,7 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
+			eid = bsi.bsi_id_list;
 			rs->sr_err = SLAPD_ABANDON;
 			goto send_results;
 		}
@@ -2078,7 +2083,6 @@ backsql_search( Operation *op, SlapReply *rs )
 				rc = backsql_init_search( &bsi2,
 						&e->e_nname,
 						LDAP_SCOPE_BASE, 
-						SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 						(time_t)(-1), NULL,
 						dbh, op, rs, NULL,
 						BACKSQL_ISF_GET_ENTRY );
@@ -2131,7 +2135,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		 * filter_has_subordinates()
 		 */
 		if ( bsi.bsi_flags & BSQL_SF_FILTER_HASSUBORDINATE ) {
-			rc = backsql_has_children( bi, dbh, &e->e_nname );
+			rc = backsql_has_children( op, dbh, &e->e_nname );
 
 			switch ( rc ) {
 			case LDAP_COMPARE_TRUE:
@@ -2216,9 +2220,7 @@ next_entry:;
 		}
 
 next_entry2:;
-		if ( op->ors_slimit != SLAP_NO_LIMIT
-				&& rs->sr_nentries >= op->ors_slimit )
-		{
+		if ( --op->ors_slimit == -1 ) {
 			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 			goto send_results;
 		}
@@ -2238,6 +2240,12 @@ send_results:;
 	if ( rs->sr_err != SLAPD_ABANDON ) {
 		send_ldap_result( op, rs );
 	}
+
+	/* cleanup in case of abandon */
+	for ( ; eid != NULL; 
+			eid = backsql_free_entryID( op,
+				eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
+		;
 
 	backsql_entry_clean( op, &base_entry );
 
@@ -2328,7 +2336,6 @@ backsql_entry_get(
 	rc = backsql_init_search( &bsi,
 			ndn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL,
 			dbh, op, &rs, at ? anlist : NULL,
 			BACKSQL_ISF_GET_ENTRY );

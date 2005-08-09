@@ -381,10 +381,7 @@ bdb_dn2idl(
 }
 
 #else	/* BDB_HIER */
-/* Experimental management routines for a hierarchically structured database.
- *
- * Unsupported! Use at your own risk!
- * -- Howard Chu, Symas Corp. 2003.
+/* Management routines for a hierarchically structured database.
  *
  * Instead of a ldbm-style dn2id database, we use a hierarchical one. Each
  * entry in this database is a struct diskNode, keyed by entryID and with
@@ -402,9 +399,9 @@ bdb_dn2idl(
  */
 typedef struct diskNode {
 	unsigned char nrdnlen[2];
-	unsigned char nrdn[1];
-	unsigned char rdn[1];
-	unsigned char entryID[sizeof(ID)];
+	char nrdn[1];
+	char rdn[1];                        /* variable placement */
+	unsigned char entryID[sizeof(ID)];  /* variable placement */
 } diskNode;
 
 /* This function constructs a full DN for a given entry.
@@ -516,7 +513,7 @@ hdb_dn2id_add(
 	 * will fail harmlessly.
 	 */
 	if ( eip->bei_id == 0 ) {
-		diskNode dummy = {0};
+		diskNode dummy = {{0, 0}, "", "", ""};
 		data.data = &dummy;
 		data.size = sizeof(diskNode);
 		data.flags = DB_DBT_USERMEM;
@@ -555,7 +552,7 @@ hdb_dn2id_delete(
 	DBT		key, data;
 	DBC	*cursor;
 	diskNode *d;
-	int rc, nrlen;
+	int rc;
 	ID	nid;
 	unsigned char dlen[2];
 
@@ -634,7 +631,7 @@ hdb_dn2id(
 	diskNode *d;
 	char	*ptr;
 	unsigned char dlen[2];
-	ID idp;
+	ID idp, parentID;
 
 	nrlen = dn_rdnlen( op->o_bd, in );
 	if (!nrlen) nrlen = in->bv_len;
@@ -644,7 +641,8 @@ hdb_dn2id(
 	key.data = &idp;
 	key.ulen = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
-	BDB_ID2DISK( ei->bei_parent->bei_id, &idp );
+	parentID = ( ei->bei_parent != NULL ) ? ei->bei_parent->bei_id : 0;
+	BDB_ID2DISK( parentID, &idp );
 
 	DBTzero(&data);
 	data.size = sizeof(diskNode) + nrlen - sizeof(ID) - 1;
@@ -675,7 +673,7 @@ hdb_dn2id(
 		ei->bei_rdn.bv_len = data.size - sizeof(diskNode) - nrlen;
 		ptr = d->nrdn + nrlen + 1;
 		ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
-		if ( !ei->bei_parent->bei_dkids ) {
+		if ( ei->bei_parent != NULL && !ei->bei_parent->bei_dkids ) {
 			db_recno_t dkids;
 			/* How many children does the parent have? */
 			/* FIXME: do we need to lock the parent
@@ -705,7 +703,6 @@ hdb_dn2id_parent(
 	int		rc = 0;
 	diskNode *d;
 	char	*ptr;
-	unsigned char *pt2;
 	ID	nid;
 
 	DBTzero(&key);

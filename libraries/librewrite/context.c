@@ -433,7 +433,7 @@ rewrite_context_free(
 {
 	struct rewrite_context *context = (struct rewrite_context *)tmp;
 
-	assert( tmp );
+	assert( tmp != NULL );
 
 	rewrite_context_destroy( &context );
 }
@@ -446,12 +446,12 @@ rewrite_context_destroy(
 	struct rewrite_context *context;
 	struct rewrite_rule *r;
 
-	assert( pcontext );
-	assert( *pcontext );
+	assert( pcontext != NULL );
+	assert( *pcontext != NULL );
 
 	context = *pcontext;
 
-	assert( context->lc_rule );
+	assert( context->lc_rule != NULL );
 
 	for ( r = context->lc_rule->lr_next; r; ) {
 		struct rewrite_rule *cr = r;
@@ -463,7 +463,7 @@ rewrite_context_destroy(
 	free( context->lc_rule );
 	context->lc_rule = NULL;
 
-	assert( context->lc_name );
+	assert( context->lc_name != NULL );
 	free( context->lc_name );
 	context->lc_name = NULL;
 

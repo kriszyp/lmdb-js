@@ -298,6 +298,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
 #define LDAP_SEARCH_FLAG_DOMAIN_SCOPE		1 /* do not generate referrals */
 #define LDAP_SEARCH_FLAG_PHANTOM_ROOT		2 /* search all NCs subordinate to base */
+#define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
@@ -1959,7 +1960,7 @@ ldap_parse_vlv_control LDAP_P((
  * LDAP Transactions
  *	in txn.c
  */
-#ifdef LDAP_GROUPING_TRANSACTION
+#ifdef LDAP_GROUP_TRANSACTION
 LDAP_F( int )
 ldap_parse_txn_create LDAP_P((
 	LDAP *ld,

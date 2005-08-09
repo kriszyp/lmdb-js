@@ -32,11 +32,24 @@
 #define MONITOR_LEGACY_CONN
 #endif
 
+static int
+monitor_subsys_conn_update(
+	Operation		*op,
+	SlapReply		*rs,
+	Entry                   *e );
+
+static int 
+monitor_subsys_conn_create( 
+	Operation		*op,
+	SlapReply		*rs,
+	struct berval		*ndn,
+	Entry 			*e_parent,
+	Entry			**ep );
+
 int
 monitor_subsys_conn_init(
 	BackendDB		*be,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_info_t	*mi;
 	Entry		*e, **ep, *e_conn;
@@ -45,6 +58,9 @@ monitor_subsys_conn_init(
 	struct berval	bv;
 
 	assert( be != NULL );
+
+	ms->mss_update = monitor_subsys_conn_update;
+	ms->mss_create = monitor_subsys_conn_create;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -171,12 +187,11 @@ monitor_subsys_conn_init(
 	return( 0 );
 }
 
-int
+static int
 monitor_subsys_conn_update(
 	Operation		*op,
 	SlapReply		*rs,
-	Entry                   *e
-)
+	Entry                   *e )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 
@@ -185,8 +200,8 @@ monitor_subsys_conn_update(
 				current_bv = BER_BVC( "cn=current" );
 	struct berval		rdn;
 
-	assert( mi );
-	assert( e );
+	assert( mi != NULL );
+	assert( e != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
 	
@@ -234,8 +249,7 @@ conn_create(
 	monitor_info_t		*mi,
 	Connection		*c,
 	Entry			**ep,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_entry_t *mp;
 	struct tm	*ltm;
@@ -427,12 +441,13 @@ conn_create(
 		mi->mi_ad_monitorConnectionAuthzDN->ad_cname.bv_val,
 			c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
 
+		/* NOTE: client connections leave the c_peer_* fields NULL */
 		mi->mi_ad_monitorConnectionListener->ad_cname.bv_val,
 			c->c_listener_url.bv_val,
 		mi->mi_ad_monitorConnectionPeerDomain->ad_cname.bv_val,
-			c->c_peer_domain.bv_val,
+			BER_BVISNULL( &c->c_peer_domain ) ? "unknown" : c->c_peer_domain.bv_val,
 		mi->mi_ad_monitorConnectionLocalAddress->ad_cname.bv_val,
-			c->c_peer_name.bv_val,
+			BER_BVISNULL( &c->c_peer_name ) ? "unknown" : c->c_peer_name.bv_val,
 		mi->mi_ad_monitorConnectionPeerAddress->ad_cname.bv_val,
 			c->c_sock_name.bv_val,
 
@@ -471,14 +486,13 @@ conn_create(
 	return SLAP_CB_CONTINUE;
 }
 
-int 
+static int 
 monitor_subsys_conn_create( 
 	Operation		*op,
 	SlapReply		*rs,
 	struct berval		*ndn,
 	Entry 			*e_parent,
-	Entry			**ep
-)
+	Entry			**ep )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 
@@ -503,9 +517,11 @@ monitor_subsys_conn_create(
 		/* create all the children of e_parent */
 		for ( c = connection_first( &connindex );
 				c != NULL;
-				c = connection_next( c, &connindex ))
+				c = connection_next( c, &connindex ) )
 		{
-			if ( conn_create( mi, c, &e, ms ) || e == NULL ) {
+			if ( conn_create( mi, c, &e, ms ) != SLAP_CB_CONTINUE
+					|| e == NULL )
+			{
 				for ( ; e_tmp != NULL; ) {
 					mp = ( monitor_entry_t * )e_tmp->e_private;
 					e = mp->mp_next;
@@ -523,7 +539,7 @@ monitor_subsys_conn_create(
 			mp->mp_next = e_tmp;
 			e_tmp = e;
 		}
-		connection_done(c);
+		connection_done( c );
 		*ep = e;
 
 	} else {

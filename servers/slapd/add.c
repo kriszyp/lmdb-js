@@ -32,15 +32,6 @@
 
 #include "slap.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-
-static void init_add_pblock( Operation *op, struct berval *dn, Entry *e,
-	int manageDSAit );
-static int call_add_preop_plugins( Operation *op );
-static void call_add_postop_plugins( Operation *op );
-#endif /* LDAP_SLAPI */
-
 int
 do_add( Operation *op, SlapReply *rs )
 {
@@ -175,6 +166,14 @@ do_add( Operation *op, SlapReply *rs )
 	/* temporary; remove if not invoking backend function */
 	op->ora_modlist = modlist;
 
+	/* call this so global overlays/SLAPI have access to ora_e */
+	rs->sr_err = slap_mods2entry( op->ora_modlist, &op->ora_e,
+		1, 0, &rs->sr_text, textbuf, textlen );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto done;
+	}
+
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
 	if ( rc == 0 ) {
@@ -196,8 +195,9 @@ done:;
 	slap_graduate_commit_csn( op );
 
 	if ( modlist != NULL ) {
-		slap_mods_free( modlist );
+		slap_mods_free( modlist, 0 );
 	}
+
 	if ( op->ora_e != NULL ) {
 		entry_free( op->ora_e );
 	}
@@ -273,10 +273,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-#ifdef LDAP_SLAPI
-	if ( op->o_pb ) init_add_pblock( op, &op->o_req_dn, op->ora_e, manageDSAit );
-#endif /* LDAP_SLAPI */
-
 	/*
 	 * do the add if 1 && (2 || 3)
 	 * 1) there is an add function implemented in this backend;
@@ -315,6 +311,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 					assert( (*modtail)->sml_desc != NULL );
 				}
 
+
 				rs->sr_err = slap_mods_opattrs( op, modlist,
 						modtail, &rs->sr_text,
 						textbuf, textlen, 1 );
@@ -322,28 +319,22 @@ fe_op_add( Operation *op, SlapReply *rs )
 					send_ldap_result( op, rs );
 					goto done;
 				}
-			}
 
-			rs->sr_err = slap_mods2entry( modlist, &op->ora_e,
-				repl_user, 0, &rs->sr_text, textbuf, textlen );
-			if ( rs->sr_err != LDAP_SUCCESS ) {
-				send_ldap_result( op, rs );
-				goto done;
-			}
-
-#ifdef LDAP_SLAPI
-			/*
-			 * Call the preoperation plugin here, because the entry
-			 * will actually contain something.
-			 */
-			if ( op->o_pb ) {
-				rs->sr_err = call_add_preop_plugins( op );
+				/* check for duplicate values */
+				rs->sr_err = slap_mods_no_repl_user_mod_check( op,
+					modlist, &rs->sr_text, textbuf, textlen );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
-					/* plugin will have sent result */
+					send_ldap_result( op, rs );
+					goto done;
+				}
+
+				rs->sr_err = slap_mods2entry( *modtail, &op->ora_e,
+					0, 0, &rs->sr_text, textbuf, textlen );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					send_ldap_result( op, rs );
 					goto done;
 				}
 			}
-#endif /* LDAP_SLAPI */
 
 #ifdef SLAPD_MULTIMASTER
 			if ( !repl_user )
@@ -364,19 +355,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
-#ifdef LDAP_SLAPI
-			/*
-			 * SLAPI_ADD_ENTRY will be empty, but this may be acceptable
-			 * on replicas (for now, it involves the minimum code intrusion).
-			 */
-			if ( op->o_pb ) {
-				rs->sr_err = call_add_preop_plugins( op );
-				if ( rs->sr_err != LDAP_SUCCESS ) {
-					/* plugin will have sent result */
-					goto done;
-				}
-			}
-#endif /* LDAP_SLAPI */
 
 			defref = op->o_bd->be_update_refs
 				? op->o_bd->be_update_refs : default_referral;
@@ -400,23 +378,10 @@ fe_op_add( Operation *op, SlapReply *rs )
 #endif /* SLAPD_MULTIMASTER */
 		}
 	} else {
-#ifdef LDAP_SLAPI
-		if ( op->o_pb ) {
-			rs->sr_err = call_add_preop_plugins( op );
-			if ( rs->sr_err != LDAP_SUCCESS ) {
-				/* plugin will have sent result */
-				goto done;
-			}
-		}
-#endif
 	    Debug( LDAP_DEBUG_ARGS, "	 do_add: no backend support\n", 0, 0, 0 );
 	    send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
 	}
-
-#ifdef LDAP_SLAPI
-	if ( op->o_pb ) call_add_postop_plugins( op );
-#endif /* LDAP_SLAPI */
 
 done:;
 	return rc;
@@ -426,22 +391,25 @@ int
 slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
-	int repl_user,
+	int initial,
 	int dup,
 	const char **text,
 	char *textbuf, size_t textlen )
 {
-	Attribute **tail = &(*e)->e_attrs;
-	assert( *tail == NULL );
+	Attribute **tail;
+
+	if ( initial ) {
+		assert( (*e)->e_attrs == NULL );
+	}
+
+	for ( tail = &(*e)->e_attrs; *tail != NULL; tail = &(*tail)->a_next )
+		;
 
 	*text = textbuf;
 
 	for( ; mods != NULL; mods = mods->sml_next ) {
 		Attribute *attr;
 
-		if ( !repl_user ) {
-			assert( mods->sml_op == LDAP_MOD_ADD );
-		}
 		assert( mods->sml_desc != NULL );
 
 		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
@@ -451,11 +419,15 @@ slap_mods2entry(
 #ifdef SLURPD_FRIENDLY
 			ber_len_t i,j;
 
-			if( !repl_user ) {
-				snprintf( textbuf, textlen,
-					"attribute '%s' provided more than once",
-					mods->sml_desc->ad_cname.bv_val );
-				return LDAP_TYPE_OR_VALUE_EXISTS;
+			if ( !initial ) {
+				/*	
+				 * This check allows overlays to override operational
+				 * attributes by setting them directly in the entry.
+				 * We assume slap_mods_no_user_mod_check() was called
+				 * with the user modifications.
+				 */
+				*text = NULL;
+				return LDAP_SUCCESS;
 			}
 
 			for( i=0; attr->a_vals[i].bv_val; i++ ) {
@@ -475,12 +447,11 @@ slap_mods2entry(
 				for ( j = 0; mods->sml_values[j].bv_val; j++ ) {
 					ber_dupbv( &attr->a_vals[i+j], &mods->sml_values[j] );
 				}
-				BER_BVZERO( &attr->a_vals[i+j] );	
+				BER_BVZERO( &attr->a_vals[i+j] );
+				j++;
 			} else {
 				AC_MEMCPY( &attr->a_vals[i], mods->sml_values,
 					sizeof( struct berval ) * j );
-				ch_free( mods->sml_values );
-				mods->sml_values = NULL;
 			}
 
 			if( mods->sml_nvalues ) {
@@ -494,8 +465,6 @@ slap_mods2entry(
 				} else {
 					AC_MEMCPY( &attr->a_nvals[i], mods->sml_nvalues,
 						sizeof( struct berval ) * j );
-					ch_free( mods->sml_nvalues );
-					mods->sml_nvalues = NULL;
 				}
 			} else {
 				attr->a_nvals = attr->a_vals;
@@ -549,7 +518,6 @@ slap_mods2entry(
 
 		/* move ad to attr structure */
 		attr->a_desc = mods->sml_desc;
-		if ( !dup ) mods->sml_desc = NULL;
 
 		/* move values to attr structure */
 		/*	should check for duplicates */
@@ -563,7 +531,6 @@ slap_mods2entry(
 			BER_BVZERO( &attr->a_vals[i] );
 		} else {
 			attr->a_vals = mods->sml_values;
-			mods->sml_values = NULL;
 		}
 
 		if ( mods->sml_nvalues ) {
@@ -577,7 +544,6 @@ slap_mods2entry(
 				BER_BVZERO( &attr->a_nvals[i] );
 			} else {
 				attr->a_nvals = mods->sml_nvalues;
-				mods->sml_nvalues = NULL;
 			}
 		} else {
 			attr->a_nvals = attr->a_vals;
@@ -660,51 +626,3 @@ slap_entry2mods(
 	return LDAP_SUCCESS;
 }
 
-#ifdef LDAP_SLAPI
-static void init_add_pblock( Operation *op,
-	struct berval *dn, Entry *e, int manageDSAit )
-{
-	slapi_int_pblock_set_operation( op->o_pb, op );
-	slapi_pblock_set( op->o_pb, SLAPI_ADD_TARGET, (void *)dn->bv_val );
-	slapi_pblock_set( op->o_pb, SLAPI_ADD_ENTRY, (void *)e );
-	slapi_pblock_set( op->o_pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-}
-
-static int call_add_preop_plugins( Operation *op )
-{
-	int rc;
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_ADD_FN, op->o_pb );
-	if ( rc < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
-		Debug(LDAP_DEBUG_TRACE,
-			"do_add: add preoperation plugin failed.\n",
-			0, 0, 0);
-
-		if (( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
-			(void *)&rc ) != 0 ) || rc == LDAP_SUCCESS )
-		{
-			rc = LDAP_OTHER;
-		}
-	} else {
-		rc = LDAP_SUCCESS;
-	}
-
-	return rc;
-}
-
-static void call_add_postop_plugins( Operation *op )
-{
-	int rc;
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_ADD_FN, op->o_pb );
-	if ( rc < 0 ) {
-		Debug(LDAP_DEBUG_TRACE,
-			"do_add: add postoperation plugin failed\n",
-			0, 0, 0);
-	}
-}
-#endif /* LDAP_SLAPI */

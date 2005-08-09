@@ -21,7 +21,7 @@ documentTitle: book2
 documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
 documentIdentifier: document 2
 
-# refldap://localhost:9010/dc=example,dc=com??one
+# refldap://localhost:9012/dc=example,dc=com??one
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -63,7 +63,7 @@ documentTitle: book2
 documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
 documentIdentifier: document 2
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: dc=example,dc=com
 objectClass: organization
@@ -115,7 +115,7 @@ dn: ou=Referral,dc=example,dc=com
 objectClass: referral
 objectClass: extensibleObject
 ou: Referral
-ref: ldap://localhost:9010/
+ref: ldap://localhost:9012/
 
 dn: dc=example,dc=com
 objectClass: organization
@@ -149,7 +149,7 @@ givenName: Akakiy
 
 # Testing invalid filter...
 # Testing exact search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -162,7 +162,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing substrings initial search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -175,7 +175,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing substrings any search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -188,7 +188,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing substrings final search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -201,7 +201,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing approx search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -214,7 +214,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing extensible filter search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -227,7 +227,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing search for telephoneNumber...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -240,7 +240,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing AND search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -260,7 +260,7 @@ o: Example
 dc: example
 
 # Testing OR search...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -325,7 +325,7 @@ documentTitle: book2
 documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
 documentIdentifier: document 2
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: dc=example,dc=com
 objectClass: organization
@@ -349,7 +349,7 @@ documentTitle: book2
 documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
 documentIdentifier: document 2
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson
@@ -415,7 +415,7 @@ o: Example
 dc: example
 
 # Testing hasSubordinates in filter...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: dc=example,dc=com
 objectClass: organization
@@ -435,7 +435,7 @@ telephoneNumber: 222-3234
 telephoneNumber: 332-2334
 
 # Testing attribute inheritance in requested attributes...
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 cn: Mitya Kovalev
@@ -449,7 +449,7 @@ objectClass: document
 dn: documentTitle=book2,dc=example,dc=com
 objectClass: document
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: dc=example,dc=com
 objectClass: organization
@@ -479,7 +479,7 @@ subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
 entryUUID: 00000002-0000-0002-0000-000000000000
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 dn: dc=example,dc=com
 structuralObjectClass: organization

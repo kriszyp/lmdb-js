@@ -330,7 +330,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
 
 				ck->rs->sr_entry = e;
-				rc = send_search_reference( ck->op, ck->rs );
+				rc = send_search_reference( ck->op, ck->rs ) < 0;
 				ber_bvarray_free( ck->rs->sr_ref );
 				ber_bvarray_free( erefs );
 				ck->rs->sr_ref = NULL;
@@ -341,7 +341,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				ck->rs->sr_entry = e;
 				ck->rs->sr_attrs = ck->op->ors_attrs;
 				ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
-				rc = send_search_entry(ck->op, ck->rs);
+				rc = send_search_entry(ck->op, ck->rs) < 0;
 				ck->rs->sr_entry = NULL;
 			}
 			fd = 1;
@@ -388,7 +388,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 		while(1) {
 			struct berval fname, itmp;
 			struct dirent * dir;
-			bvlist *bvl, *prev;
+			bvlist *bvl, **prev;
 
 			dir = readdir(dir_of_path);
 			if(dir == NULL) break; /* end of the directory */
@@ -416,15 +416,14 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				}
 			}
 
-			for (ptr = list, prev = (bvlist *)&list; ptr;
-				prev = ptr, ptr = ptr->next) {
+			for (prev = &list; (ptr = *prev) != NULL; prev = &ptr->next) {
 				int cmp = strcmp( bvl->bv.bv_val, ptr->bv.bv_val );
 				if ( !cmp && bvl->num.bv_val )
 					cmp = bvl->inum - ptr->inum;
 				if ( cmp < 0 )
 					break;
 			}
-			prev->next = bvl;
+			*prev = bvl;
 			bvl->next = ptr;
 				
 		}
@@ -467,11 +466,14 @@ enum_tree(
 	struct ldif_info *ni = (struct ldif_info *) ck->op->o_bd->be_private;
 	struct berval path;
 	struct berval pdn, pndn;
+	int rc;
 
 	dnParent( &ck->op->o_req_dn, &pdn );
 	dnParent( &ck->op->o_req_ndn, &pndn );
 	dn2path( &ck->op->o_req_ndn, &ck->op->o_bd->be_nsuffix[0], &ni->li_base_path, &path);
-	return r_enum_tree(ck, &path, &pdn, &pndn);
+	rc = r_enum_tree(ck, &path, &pdn, &pndn);
+	ch_free( path.bv_val );
+	return rc;
 }
 
 /* Get the parent path plus the LDIF suffix */
@@ -518,7 +520,6 @@ static int apply_modify_to_entry(Entry * entry,
 				get_permissiveModify(op),
 				&rs->sr_text, textbuf,
 				sizeof( textbuf ) );
-
 			break;
 				
 		case LDAP_MOD_REPLACE:
@@ -526,10 +527,17 @@ static int apply_modify_to_entry(Entry * entry,
 				 get_permissiveModify(op),
 				 &rs->sr_text, textbuf,
 				 sizeof( textbuf ) );
+			break;
+
+		case LDAP_MOD_INCREMENT:
+			rc = modify_increment_values( entry,
+				mods, get_permissiveModify(op),
+				&rs->sr_text, textbuf,
+				sizeof( textbuf ) );
+			break;
 
 			break;
-		case LDAP_MOD_INCREMENT:
-			break;
+
 		case SLAP_MOD_SOFTADD:
 			mods->sm_op = LDAP_MOD_ADD;
 			rc = modify_add_values(entry, mods,
@@ -552,7 +560,7 @@ static int apply_modify_to_entry(Entry * entry,
 			entry->e_ocflags = 0;
 		}
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check(op->o_bd, entry, NULL, 0,
+		rc = entry_schema_check(op, entry, NULL, 0,
 			  &rs->sr_text, textbuf, sizeof( textbuf ) );
 	}
 	return rc;
@@ -677,9 +685,9 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 
 		rs->sr_matched = NULL;
 		ber_bvarray_free( refs );
-
-		entry_free( entry );
 	}
+
+	entry_free( entry );
 
 	return rc;
 }
@@ -738,7 +746,7 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 static int ldif_back_search(Operation *op, SlapReply *rs)
 {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
-	enumCookie ck = {0};
+	enumCookie ck = { NULL, NULL, NULL, 0, 0 };
 
 	ck.op = op;
 	ck.rs = rs;
@@ -759,7 +767,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	int statres;
 	char textbuf[SLAP_TEXT_BUFLEN];
 
-	rs->sr_err = entry_schema_check(op->o_bd, e, NULL, 0,
+	rs->sr_err = entry_schema_check(op, e, NULL, 0,
 		&rs->sr_text, textbuf, sizeof( textbuf ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
 				
@@ -1001,39 +1009,25 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	return 0;
 }
 
-static int ldif_back_compare(Operation *op, SlapReply *rs) {
+/* return LDAP_SUCCESS IFF we can retrieve the specified entry.
+ */
+int ldif_back_entry_get(
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **ent )
+{
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
-	Entry * e = NULL;
-	Attribute	*a;
 
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
+	ldap_pvt_thread_mutex_lock( &ni->li_mutex );
 
-	e = (Entry *) get_entry(op, &ni->li_base_path);
-	if(e != NULL) {
-		for(a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
-			a != NULL;
-			a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc )) {
-			rs->sr_err = LDAP_COMPARE_FALSE;
-		
-			if (value_find_ex(op->oq_compare.rs_ava->aa_desc,
-						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-						a->a_nvals, &op->oq_compare.rs_ava->aa_value,
-						op->o_tmpmemctx ) == 0) {
-				rs->sr_err = LDAP_COMPARE_TRUE;
-				break;
-			}
-		}
-	}
-	else {
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-	}
+	*ent = (Entry *) get_entry( op, &ni->li_base_path );
 
-	if(e != NULL)
-		entry_free(e);
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
-	send_ldap_result(op, rs);
-	return 0;
+	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+
+	return ( *ent == NULL ? 1 : 0 );
 }
 
 static int ldif_tool_entry_open(BackendDB * be, int mode) {
@@ -1162,6 +1156,8 @@ ldif_back_db_destroy(
 			   )
 {
 	struct ldif_info *ni = be->be_private;
+
+	ch_free(ni->li_base_path.bv_val);
 	ldap_pvt_thread_mutex_destroy(&ni->li_mutex);
 	free( be->be_private );
 	return 0;
@@ -1192,6 +1188,7 @@ ldif_back_initialize(
 	int rc;
 
 	bi->bi_flags |=
+		SLAP_BFLAG_INCREMENT |
 		SLAP_BFLAG_REFERRALS;
 
 	bi->bi_controls = controls;
@@ -1210,7 +1207,7 @@ ldif_back_initialize(
 	bi->bi_op_bind = ldif_back_bind;
 	bi->bi_op_unbind = 0;
 	bi->bi_op_search = ldif_back_search;
-	bi->bi_op_compare = ldif_back_compare;
+	bi->bi_op_compare = 0;
 	bi->bi_op_modify = ldif_back_modify;
 	bi->bi_op_modrdn = ldif_back_modrdn;
 	bi->bi_op_add = ldif_back_add;
@@ -1224,6 +1221,14 @@ ldif_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
+	bi->bi_entry_get_rw = ldif_back_entry_get;
+
+#if 0	/* NOTE: uncomment to completely disable access control */
+#ifdef SLAP_OVERLAY_ACCESS
+	bi->bi_access_allowed = slap_access_always_allowed;
+#endif /* SLAP_OVERLAY_ACCESS */
+#endif
+
 	bi->bi_tool_entry_open = ldif_tool_entry_open;
 	bi->bi_tool_entry_close = ldif_tool_entry_close;
 	bi->bi_tool_entry_first = ldif_tool_entry_first;
@@ -1236,6 +1241,8 @@ ldif_back_initialize(
 	bi->bi_tool_dn2id_get = 0;
 	bi->bi_tool_id2entry_get = 0;
 	bi->bi_tool_entry_modify = 0;
+
+	bi->bi_cf_ocs = ldifocs;
 
 	rc = config_register_schema( ldifcfg, ldifocs );
 	if ( rc ) return rc;

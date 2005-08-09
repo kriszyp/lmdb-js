@@ -122,7 +122,7 @@ dn2id(
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
 
-	assert( idp );
+	assert( idp != NULL );
 
 	/* first check the cache */
 	*idp = cache_find_entry_ndn2id( be, &li->li_cache, dn );

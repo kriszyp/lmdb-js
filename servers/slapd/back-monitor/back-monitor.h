@@ -40,7 +40,7 @@ typedef struct monitor_callback_t {
 						/* modify callback
 						   for user-defined entries */
 	int				(*mc_free)( Entry *e, void *priv );
-						/* update callback
+						/* delete callback
 						   for user-defined entries */
 	void				*mc_private;	/* opaque pointer to
 						   private data */
@@ -122,6 +122,7 @@ typedef struct monitor_info_t {
 	AttributeDescription	*mi_ad_monitorConnectionActivityTime;
 	AttributeDescription	*mi_ad_monitorIsShadow;
 	AttributeDescription	*mi_ad_monitorUpdateRef;
+	AttributeDescription	*mi_ad_monitorRuntimeConfig;
 
 	/*
 	 * Generic description attribute
@@ -192,7 +193,7 @@ enum {
 #define SLAPD_MONITOR_OPS_DN	\
 	SLAPD_MONITOR_OPS_RDN "," SLAPD_MONITOR_DN
 
-#define SLAPD_MONITOR_OVERLAY_NAME	"Overlay"
+#define SLAPD_MONITOR_OVERLAY_NAME	"Overlays"
 #define SLAPD_MONITOR_OVERLAY_RDN  \
 	SLAPD_MONITOR_AT "=" SLAPD_MONITOR_OVERLAY_NAME
 #define SLAPD_MONITOR_OVERLAY_DN   \
@@ -250,6 +251,8 @@ typedef struct monitor_subsys_t {
 
 	/* initialize entry and subentries */
 	int		( *mss_open )( BackendDB *, struct monitor_subsys_t *ms );
+	/* destroy structure */
+	int		( *mss_destroy )( BackendDB *, struct monitor_subsys_t *ms );
 	/* update existing dynamic entry and subentries */
 	int		( *mss_update )( Operation *, SlapReply *, Entry * );
 	/* create new dynamic subentries */

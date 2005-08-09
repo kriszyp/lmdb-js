@@ -1212,8 +1212,6 @@ ID bdb_idl_next( ID *ids, ID *cursor )
  */
 int bdb_idl_append_one( ID *ids, ID id )
 {
-	unsigned x;
-
 	if (BDB_IDL_IS_RANGE( ids )) {
 		/* if already in range, treat as a dup */
 		if (id >= BDB_IDL_FIRST(ids) && id <= BDB_IDL_LAST(ids))

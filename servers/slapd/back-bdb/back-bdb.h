@@ -195,6 +195,10 @@ struct bdb_info {
 #define	BDB_UPD_CONFIG	0x04
 #define	BDB_DEL_INDEX	0x08
 #define	BDB_RE_OPEN		0x10
+#ifdef BDB_HIER
+	int		bi_modrdns;		/* number of modrdns completed */
+	ldap_pvt_thread_mutex_t	bi_modrdns_mutex;
+#endif
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
@@ -261,11 +265,11 @@ struct bdb_op_info {
 /* Copy an ID "src" to pointer "dst" in big-endian byte order */
 #define BDB_ID2DISK( src, dst )	\
 	do { int i0; ID tmp; unsigned char *_p;	\
-		tmp = (src); _p = (char *)(dst);	\
+		tmp = (src); _p = (unsigned char *)(dst);	\
 		for ( i0=sizeof(ID)-1; i0>=0; i0-- ) {	\
 			_p[i0] = tmp & 0xff; tmp >>= 8;	\
 		} \
-	} while(0);
+	} while(0)
 
 /* Copy a pointer "src" to a pointer "dst" from big-endian to native order */
 #define BDB_DISK2ID( src, dst ) \
@@ -274,7 +278,7 @@ struct bdb_op_info {
 		for ( i0=0; i0<sizeof(ID); i0++ ) {	\
 			tmp <<= 8; tmp |= *_p++;	\
 		} *(dst) = tmp; \
-	} while (0);
+	} while (0)
 
 LDAP_END_DECL
 

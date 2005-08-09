@@ -385,6 +385,7 @@ oc_destroy( void )
 		if (o->soc_sups) ldap_memfree(o->soc_sups);
 		if (o->soc_required) ldap_memfree(o->soc_required);
 		if (o->soc_allowed) ldap_memfree(o->soc_allowed);
+		if (o->soc_oidmacro) ldap_memfree(o->soc_oidmacro);
 		ldap_objectclass_free((LDAPObjectClass *)o);
 	}
 	
@@ -462,8 +463,8 @@ oc_insert(
 		oir->oir_name.bv_len = strlen( soc->soc_oid );
 		oir->oir_oc = soc;
 
-		assert( oir->oir_name.bv_val );
-		assert( oir->oir_oc );
+		assert( oir->oir_name.bv_val != NULL );
+		assert( oir->oir_oc != NULL );
 
 		if ( avl_insert( &oc_index, (caddr_t) oir,
 			oc_index_cmp, avl_dup_error ) )
@@ -493,8 +494,8 @@ oc_insert(
 			oir->oir_name.bv_len = strlen( *names );
 			oir->oir_oc = soc;
 
-			assert( oir->oir_name.bv_val );
-			assert( oir->oir_oc );
+			assert( oir->oir_name.bv_val != NULL );
+			assert( oir->oir_oc != NULL );
 
 			if ( avl_insert( &oc_index, (caddr_t) oir,
 				oc_index_cmp, avl_dup_error ) )
@@ -604,7 +605,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 	ObjectClass *oc;
 	int i, num;
 	struct berval bv, *bva = NULL, idx;
-	char ibuf[32], *ptr;
+	char ibuf[32];
 
 	if ( !start )
 		start = LDAP_STAILQ_FIRST( &oc_list );

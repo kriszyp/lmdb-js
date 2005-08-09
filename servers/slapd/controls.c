@@ -32,7 +32,9 @@ static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseManageDIT;
 #endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
+#ifdef LDAP_CONTROL_MODIFY_INCREMENT
 static SLAP_CTRL_PARSE_FN parseModifyIncrement;
+#endif
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 #ifdef LDAP_DEVEL
@@ -253,7 +255,6 @@ int
 slap_controls_init( void )
 {
 	int i, rc;
-	struct slap_control *sc;
 
 	rc = LDAP_SUCCESS;
 
@@ -326,10 +327,9 @@ int
 get_supported_controls(char ***ctrloidsp,
 	slap_mask_t **ctrlmasks)
 {
-	int i, n;
+	int n;
 	char **oids;
 	slap_mask_t *masks;
-	int rc;
 	struct slap_control *sc;
 
 	n = 0;
@@ -441,6 +441,95 @@ void slap_free_ctrls(
 	op->o_tmpfree( ctrls, op->o_tmpmemctx );
 }
 
+int slap_parse_ctrl(
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *control,
+	const char **text )
+{
+	struct slap_control *sc;
+
+	sc = find_ctrl( control->ldctl_oid );
+	if( sc != NULL ) {
+		/* recognized control */
+		slap_mask_t tagmask;
+		switch( op->o_tag ) {
+		case LDAP_REQ_ADD:
+			tagmask = SLAP_CTRL_ADD;
+			break;
+		case LDAP_REQ_BIND:
+			tagmask = SLAP_CTRL_BIND;
+			break;
+		case LDAP_REQ_COMPARE:
+			tagmask = SLAP_CTRL_COMPARE;
+			break;
+		case LDAP_REQ_DELETE:
+			tagmask = SLAP_CTRL_DELETE;
+			break;
+		case LDAP_REQ_MODIFY:
+			tagmask = SLAP_CTRL_MODIFY;
+			break;
+		case LDAP_REQ_RENAME:
+			tagmask = SLAP_CTRL_RENAME;
+			break;
+		case LDAP_REQ_SEARCH:
+			tagmask = SLAP_CTRL_SEARCH;
+			break;
+		case LDAP_REQ_UNBIND:
+			tagmask = SLAP_CTRL_UNBIND;
+			break;
+		case LDAP_REQ_ABANDON:
+			tagmask = SLAP_CTRL_ABANDON;
+			break;
+		case LDAP_REQ_EXTENDED:
+			tagmask=~0L;
+			assert( op->ore_reqoid.bv_val != NULL );
+			if( sc->sc_extendedops != NULL ) {
+				int i;
+				for( i=0; sc->sc_extendedops[i] != NULL; i++ ) {
+					if( strcmp( op->ore_reqoid.bv_val,
+						sc->sc_extendedops[i] ) == 0 )
+					{
+						tagmask=0L;
+						break;
+					}
+				}
+			}
+			break;
+		default:
+			*text = "controls internal error";
+			return LDAP_OTHER;
+		}
+
+		if (( sc->sc_mask & tagmask ) == tagmask ) {
+			/* available extension */
+			int	rc;
+
+			if( !sc->sc_parse ) {
+				*text = "not yet implemented";
+				return LDAP_OTHER;
+			}
+
+			rc = sc->sc_parse( op, rs, control );
+			if ( rc ) {
+				assert( rc != LDAP_UNAVAILABLE_CRITICAL_EXTENSION );
+				return rc;
+			}
+
+		} else if( control->ldctl_iscritical ) {
+			/* unavailable CRITICAL control */
+			*text = "critical extension is unavailable";
+			return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+		}
+	} else if( control->ldctl_iscritical ) {
+		/* unrecognized CRITICAL control */
+		*text = "critical extension is not recognized";
+		return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+	}
+
+	return LDAP_SUCCESS;
+}
+
 int get_ctrls(
 	Operation *op,
 	SlapReply *rs,
@@ -451,7 +540,6 @@ int get_ctrls(
 	ber_len_t len;
 	char *opaque;
 	BerElement *ber = op->o_ber;
-	struct slap_control *sc;
 	struct berval bv;
 
 	len = ber_pvt_ber_remaining(ber);
@@ -591,90 +679,10 @@ int get_ctrls(
 			"=> get_ctrls: oid=\"%s\" (%scritical)\n",
 			c->ldctl_oid, c->ldctl_iscritical ? "" : "non", 0 );
 
-		sc = find_ctrl( c->ldctl_oid );
-		if( sc != NULL ) {
-			/* recognized control */
-			slap_mask_t tagmask;
-			switch( op->o_tag ) {
-			case LDAP_REQ_ADD:
-				tagmask = SLAP_CTRL_ADD;
-				break;
-			case LDAP_REQ_BIND:
-				tagmask = SLAP_CTRL_BIND;
-				break;
-			case LDAP_REQ_COMPARE:
-				tagmask = SLAP_CTRL_COMPARE;
-				break;
-			case LDAP_REQ_DELETE:
-				tagmask = SLAP_CTRL_DELETE;
-				break;
-			case LDAP_REQ_MODIFY:
-				tagmask = SLAP_CTRL_MODIFY;
-				break;
-			case LDAP_REQ_RENAME:
-				tagmask = SLAP_CTRL_RENAME;
-				break;
-			case LDAP_REQ_SEARCH:
-				tagmask = SLAP_CTRL_SEARCH;
-				break;
-			case LDAP_REQ_UNBIND:
-				tagmask = SLAP_CTRL_UNBIND;
-				break;
-			case LDAP_REQ_ABANDON:
-				tagmask = SLAP_CTRL_ABANDON;
-				break;
-			case LDAP_REQ_EXTENDED:
-				tagmask=~0L;
-				assert( op->ore_reqoid.bv_val != NULL );
-				if( sc->sc_extendedops != NULL ) {
-					int i;
-					for( i=0; sc->sc_extendedops[i] != NULL; i++ ) {
-						if( strcmp( op->ore_reqoid.bv_val,
-							sc->sc_extendedops[i] ) == 0 )
-						{
-							tagmask=0L;
-							break;
-						}
-					}
-				}
-				break;
-			default:
-				rs->sr_err = LDAP_OTHER;
-				rs->sr_text = "controls internal error";
-				goto return_results;
-			}
-
-			if (( sc->sc_mask & tagmask ) == tagmask ) {
-				/* available extension */
-				int	rc;
-
-				if( !sc->sc_parse ) {
-					rs->sr_err = LDAP_OTHER;
-					rs->sr_text = "not yet implemented";
-					goto return_results;
-				}
-
-				rc = sc->sc_parse( op, rs, c );
-				if ( rc ) {
-					assert( rc != LDAP_UNAVAILABLE_CRITICAL_EXTENSION );
-					rs->sr_err = rc;
-					goto return_results;
-				}
-
-			} else if( c->ldctl_iscritical ) {
-				/* unavailable CRITICAL control */
-				rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
-				rs->sr_text = "critical extension is unavailable";
-				goto return_results;
-			}
-
-		} else if( c->ldctl_iscritical ) {
-			/* unrecognized CRITICAL control */
-			rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
-			rs->sr_text = "critical extension is not recognized";
+		rs->sr_err = slap_parse_ctrl( op, rs, c, &rs->sr_text );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
 			goto return_results;
 		}
-next_ctrl:;
 	}
 
 return_results:
@@ -695,6 +703,7 @@ return_results:
 	return rs->sr_err;
 }
 
+#ifdef LDAP_CONTROL_MODIFY_INCREMENT
 static int parseModifyIncrement (
 	Operation *op,
 	SlapReply *rs,
@@ -720,6 +729,7 @@ static int parseModifyIncrement (
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 #ifdef LDAP_DEVEL
 static int parseManageDIT (
@@ -1026,7 +1036,6 @@ static int parseAssert (
 {
 	BerElement	*ber;
 	struct berval	fstr = BER_BVNULL;
-	const char *err_msg = "";
 
 	if ( op->o_assert != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "assert control specified multiple times";
@@ -1192,14 +1201,13 @@ static int parsePostRead (
 	return LDAP_SUCCESS;
 }
 
-int parseValuesReturnFilter (
+static int parseValuesReturnFilter (
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
 	BerElement	*ber;
 	struct berval	fstr = BER_BVNULL;
-	const char *err_msg = "";
 
 	if ( op->o_valuesreturnfilter != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "valuesReturnFilter control specified multiple times";

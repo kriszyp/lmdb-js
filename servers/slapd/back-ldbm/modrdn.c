@@ -52,7 +52,6 @@ ldbm_back_modrdn(
 	int		isroot = -1;
 	int 		rc_id = 0;
 	ID              id = NOID;
-	const char	*text = NULL;
 	char		textbuf[SLAP_TEXT_BUFLEN];
 	size_t		textlen = sizeof textbuf;
 	/* Added to support newSuperior */ 
@@ -530,7 +529,7 @@ return_results:
 			tmp = mod->sml_next;
 			free( mod );
 		}
-		slap_mods_free( mod );
+		slap_mods_free( mod, 1 );
 	}
 
 	/* LDAP v3 Support */

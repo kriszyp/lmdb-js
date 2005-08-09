@@ -34,7 +34,6 @@ int cancel_extop( Operation *op, SlapReply *rs )
 	int rc;
 	int opid;
 	BerElement *ber;
-	int i;
 
 	assert( ber_bvcmp( &slap_EXOP_CANCEL, &op->ore_reqoid ) == 0 );
 

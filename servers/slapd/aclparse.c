@@ -961,12 +961,12 @@ parse_acl(
 							fprintf( stderr,
 								"%s: line %d: \"onelevel\" should be used "
 								"instead of \"level{1}\" in by DN clause\n",
-								fname, lineno, 0 );
+								fname, lineno );
 						} else if ( level == 0 && sty == ACL_STYLE_LEVEL ) {
 							fprintf( stderr,
 								"%s: line %d: \"base\" should be used "
 								"instead of \"level{0}\" in by DN clause\n",
-								fname, lineno, 0 );
+								fname, lineno );
 						}
 
 						bdn->a_level = level;
@@ -1034,7 +1034,7 @@ parse_acl(
 						fprintf( stderr, "%s: line %d: "
 							"deprecated group style \"regex\"; "
 							"use \"expand\" instead\n",
-							fname, lineno, style );
+							fname, lineno );
 						sty = ACL_STYLE_EXPAND;
 						break;
 
@@ -2290,7 +2290,7 @@ acl_destroy( AccessControl *a, AccessControl *end )
 {
 	AccessControl *n;
 
-	for (; a && a!= end; a=n) {
+	for ( ; a && a != end; a = n ) {
 		n = a->acl_next;
 		acl_free( a );
 	}
@@ -2454,10 +2454,10 @@ access2text( Access *b, char *ptr )
 	if ( !BER_BVISEMPTY( &b->a_group_pat ) ) {
 		ptr = lutil_strcopy( ptr, " group/" );
 		ptr = lutil_strcopy( ptr, b->a_group_oc ?
-			b->a_group_oc->soc_cname.bv_val : "groupOfNames" );
+			b->a_group_oc->soc_cname.bv_val : SLAPD_GROUP_CLASS );
 		*ptr++ = '/';
 		ptr = lutil_strcopy( ptr, b->a_group_at ?
-			b->a_group_at->ad_cname.bv_val : "member" );
+			b->a_group_at->ad_cname.bv_val : SLAPD_GROUP_ATTR );
 		*ptr++ = '.';
 		ptr = lutil_strcopy( ptr, style_strings[b->a_group_style] );
 		*ptr++ = '=';

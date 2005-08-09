@@ -100,7 +100,7 @@ relay_back_db_open( Backend *be )
 		ri->ri_bd = select_backend( &ri->ri_realsuffix, 0, 1 );
 
 		/* must be there: it was during config! */
-		assert( ri->ri_bd );
+		assert( ri->ri_bd != NULL );
 
 		/* inherit controls */
 		AC_MEMCPY( be->be_ctrls, ri->ri_bd->be_ctrls, sizeof( be->be_ctrls ) );

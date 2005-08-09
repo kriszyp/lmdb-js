@@ -222,7 +222,6 @@ ldap_pvt_thread_pool_submit (
 	if (ctx) {
 		LDAP_SLIST_REMOVE_HEAD(&pool->ltp_free_list, ltc_next.l);
 	} else {
-		int i;
 		ctx = (ldap_int_thread_ctx_t *) LDAP_MALLOC(
 			sizeof(ldap_int_thread_ctx_t));
 		if (ctx == NULL) {

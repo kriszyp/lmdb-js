@@ -72,8 +72,8 @@ destroy_action(
 {
 	struct rewrite_action	*action;
 
-	assert( paction );
-	assert( *paction );
+	assert( paction != NULL );
+	assert( *paction != NULL );
 
 	action = *paction;
 
@@ -462,8 +462,8 @@ rewrite_rule_destroy(
 	struct rewrite_rule *rule;
 	struct rewrite_action *action;
 
-	assert( prule );
-	assert( *prule );
+	assert( prule != NULL );
+	assert( *prule != NULL );
 
 	rule = *prule;
 

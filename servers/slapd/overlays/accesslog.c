@@ -43,11 +43,13 @@
 #define LOG_OP_UNBIND	0x080
 #define	LOG_OP_ABANDON	0x100
 #define	LOG_OP_EXTENDED	0x200
+#define LOG_OP_UNKNOWN	0x400
 
 #define	LOG_OP_WRITES	(LOG_OP_ADD|LOG_OP_DELETE|LOG_OP_MODIFY|LOG_OP_MODRDN)
 #define	LOG_OP_READS	(LOG_OP_COMPARE|LOG_OP_SEARCH)
 #define	LOG_OP_SESSION	(LOG_OP_BIND|LOG_OP_UNBIND|LOG_OP_ABANDON)
-#define LOG_OP_ALL		(LOG_OP_READS|LOG_OP_WRITES|LOG_OP_SESSION|LOG_OP_EXTENDED)
+#define LOG_OP_ALL		(LOG_OP_READS|LOG_OP_WRITES|LOG_OP_SESSION| \
+	LOG_OP_EXTENDED|LOG_OP_UNKNOWN)
 
 typedef struct log_info {
 	BackendDB *li_db;
@@ -109,6 +111,7 @@ static slap_verbmasks logops[] = {
 	{ BER_BVC("unbind"),	LOG_OP_UNBIND },
 	{ BER_BVC("abandon"),	LOG_OP_ABANDON },
 	{ BER_BVC("extended"),	LOG_OP_EXTENDED },
+	{ BER_BVC("unknown"),	LOG_OP_UNKNOWN },
 	{ BER_BVNULL, 0 }
 };
 
@@ -126,6 +129,7 @@ enum {
 	LOG_EN_UNBIND,
 	LOG_EN_ABANDON,
 	LOG_EN_EXTENDED,
+	LOG_EN_UNKNOWN,
 	LOG_EN__COUNT
 };
 
@@ -142,7 +146,10 @@ static AttributeDescription *ad_reqDN, *ad_reqStart, *ad_reqEnd, *ad_reqType,
 	*ad_reqNewSuperior, *ad_reqDeleteOldRDN, *ad_reqMod,
 	*ad_reqScope, *ad_reqFilter, *ad_reqAttr, *ad_reqEntries,
 	*ad_reqSizeLimit, *ad_reqTimeLimit, *ad_reqAttrsOnly, *ad_reqData,
-	*ad_reqId, *ad_reqMessage, *ad_oldest;
+	*ad_reqId, *ad_reqMessage;
+#if 0
+static AttributeDescription *ad_oldest;
+#endif
 
 static struct {
 	char *at;
@@ -338,7 +345,6 @@ static struct {
 static int
 log_age_parse(char *agestr)
 {
-	char *ptr;
 	int t1, t2;
 	int gotdays = 0;
 
@@ -723,6 +729,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	case LDAP_REQ_SEARCH:	logop = LOG_EN_SEARCH; break;
 	case LDAP_REQ_BIND:		logop = LOG_EN_BIND; break;
 	case LDAP_REQ_EXTENDED:	logop = LOG_EN_EXTENDED; break;
+	default:	/* unknown operation type */
+		logop = LOG_EN_UNKNOWN; break;
 	}	/* Unbind and Abandon never reach here */
 
 	lo = logops+logop+EN_OFFSET;
@@ -810,16 +818,22 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			if ( m->sml_values ) {
 				for (b=m->sml_values; !BER_BVISNULL( b ); b++,i++) {
 					char c_op;
-					vals[i].bv_len = a->a_desc->ad_cname.bv_len + b->bv_len +3;
+					vals[i].bv_len = m->sml_desc->ad_cname.bv_len + b->bv_len +3;
 					vals[i].bv_val = ch_malloc( vals[i].bv_len+1 );
 					ptr = lutil_strcopy( vals[i].bv_val,
-						a->a_desc->ad_cname.bv_val );
+						m->sml_desc->ad_cname.bv_val );
 					*ptr++ = ':';
 					switch( m->sml_op ) {
 					case LDAP_MOD_ADD: c_op = '+'; break;
 					case LDAP_MOD_DELETE:	c_op = '-'; break;
 					case LDAP_MOD_REPLACE:	c_op = '='; break;
 					case LDAP_MOD_INCREMENT:	c_op = '#'; break;
+
+					/* unknown op. there shouldn't be any of these. we
+					 * don't know what to do with it, but we shouldn't just
+					 * ignore it.
+					 */
+					default: c_op = '?'; break;
 					}
 					*ptr++ = c_op;
 					*ptr++ = ' ';
@@ -827,7 +841,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 					vals[i].bv_val[vals[i].bv_len] = '\0';
 				}
 			} else if ( m->sml_op == LDAP_MOD_DELETE ) {
-				vals[i].bv_len = a->a_desc->ad_cname.bv_len + 2;
+				vals[i].bv_len = m->sml_desc->ad_cname.bv_len + 2;
 				vals[i].bv_val = ch_malloc( vals[i].bv_len+1 );
 				ptr = lutil_strcopy( vals[i].bv_val,
 					a->a_desc->ad_cname.bv_val );
@@ -915,6 +929,10 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		if ( op->ore_reqdata ) {
 			attr_merge_one( e, ad_reqData, op->ore_reqdata, NULL );
 		}
+		break;
+
+	case LOG_EN_UNKNOWN:
+		/* we don't know its parameters, don't add any */
 		break;
 	}
 

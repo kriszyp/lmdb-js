@@ -179,7 +179,7 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( str );
+	assert( str != NULL );
 
 	e = ldap_int_error( ld->ld_errno );
 

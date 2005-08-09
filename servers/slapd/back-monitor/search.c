@@ -39,14 +39,17 @@ monitor_send_children(
 )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
-	Entry 			*e, *e_tmp, *e_ch;
+	Entry 			*e,
+				*e_tmp,
+				*e_ch = NULL,
+				*e_nonvolatile = NULL;
 	monitor_entry_t *mp;
-	int			rc;
+	int			rc,
+				nonvolatile = 0;
 
 	mp = ( monitor_entry_t * )e_parent->e_private;
-	e = mp->mp_children;
+	e_nonvolatile = e = mp->mp_children;
 
-	e_ch = NULL;
 	if ( MONITOR_HAS_VOLATILE_CH( mp ) ) {
 		monitor_entry_create( op, rs, NULL, e_parent, &e_ch );
 	}
@@ -64,7 +67,6 @@ monitor_send_children(
 		/* if no persistent, return only volatile */
 		if ( e == NULL ) {
 			e = e_ch;
-			monitor_cache_lock( e_ch );
 
 		/* else append persistent to volatile */
 		} else {
@@ -83,13 +85,27 @@ monitor_send_children(
 	}
 
 	/* return entries */
-	for ( ; e != NULL; ) {
-		mp = ( monitor_entry_t * )e->e_private;
-
+	for ( monitor_cache_lock( e ); e != NULL; ) {
 		monitor_entry_update( op, rs, e );
 
 		if ( op->o_abandon ) {
-			monitor_cache_release( mi, e );
+			/* FIXME: may leak generated children */
+			if ( nonvolatile == 0 ) {
+				for ( e_tmp = e; e_tmp != NULL; ) {
+					mp = ( monitor_entry_t * )e_tmp->e_private;
+					e = e_tmp;
+					e_tmp = mp->mp_next;
+					monitor_cache_release( mi, e );
+
+					if ( e_tmp == e_nonvolatile ) {
+						break;
+					}
+				}
+
+			} else {
+				monitor_cache_release( mi, e );
+			}
+
 			return SLAPD_ABANDON;
 		}
 		
@@ -101,22 +117,43 @@ monitor_send_children(
 			rs->sr_entry = NULL;
 		}
 
-		if ( ( mp->mp_children || MONITOR_HAS_VOLATILE_CH( mp ) )
-				&& sub )
-		{
+		mp = ( monitor_entry_t * )e->e_private;
+		e_tmp = mp->mp_next;
+
+		if ( sub ) {
 			rc = monitor_send_children( op, rs, e, sub );
 			if ( rc ) {
-				monitor_cache_release( mi, e );
+				/* FIXME: may leak generated children */
+				if ( nonvolatile == 0 ) {
+					for ( ; e_tmp != NULL; ) {
+						mp = ( monitor_entry_t * )e_tmp->e_private;
+						e = e_tmp;
+						e_tmp = mp->mp_next;
+						monitor_cache_release( mi, e );
+	
+						if ( e_tmp == e_nonvolatile ) {
+							break;
+						}
+					}
+				}
+
 				return( rc );
 			}
 		}
 
-		e_tmp = mp->mp_next;
 		if ( e_tmp != NULL ) {
 			monitor_cache_lock( e_tmp );
 		}
-		monitor_cache_release( mi, e );
+
+		if ( !sub ) {
+			/* otherwise the recursive call already released */
+			monitor_cache_release( mi, e );
+		}
+
 		e = e_tmp;
+		if ( e == e_nonvolatile ) {
+			nonvolatile = 1;
+		}
 	}
 	
 	return LDAP_SUCCESS;

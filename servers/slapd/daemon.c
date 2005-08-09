@@ -206,7 +206,7 @@ static struct slap_daemon {
 #define SLAP_EVENT_FD(i)	SLAP_EV_PTRFD(revents[i].data.ptr)
 #define	SLAP_SOCK_SET_MUTE(s)	SLAP_SOCK_CLR_READ(s)
 #define	SLAP_SOCK_CLR_MUTE(s)	SLAP_SOCK_SET_READ(s)
-#define	SLAP_SOCK_IS_MUTE(s)	!SLAP_SOCK_IS_READ(s)
+#define	SLAP_SOCK_IS_MUTE(s)	(!SLAP_SOCK_IS_READ(s))
 
 #define SLAP_SOCK_SET_INIT	\
 	slap_daemon.sd_epolls = ch_malloc(sizeof(struct epoll_event) * dtblsize * 2);	\
@@ -301,7 +301,7 @@ static struct slap_daemon {
 
 #define	SLAP_SOCK_SET_MUTE(s)	FD_CLR(s, &readfds)
 #define SLAP_SOCK_CLR_MUTE(s)	FD_SET(s, &readfds)
-#define	SLAP_SOCK_IS_MUTE(s)	FD_ISSET(s, &readfds)
+#define	SLAP_SOCK_IS_MUTE(s)	(!FD_ISSET(s, &readfds))
 
 #endif
 
@@ -558,9 +558,9 @@ static int get_url_perms(
 {
 	int	i;
 
-	assert( exts );
-	assert( perms );
-	assert( crit );
+	assert( exts != NULL );
+	assert( perms != NULL );
+	assert( crit != NULL );
 
 	*crit = 0;
 	for ( i = 0; exts[ i ]; i++ ) {
@@ -1005,16 +1005,6 @@ static int slap_open_listener(
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL: {
 		char *addr = ((struct sockaddr_un *)*sal)->sun_path;
-#if 0 /* don't muck with socket perms */
-		if ( chmod( addr, l.sl_perms ) < 0 && crit ) {
-			int err = sock_errno();
-			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
-			       (long) l.sl_sd, err, sock_errstr(err) );
-			tcp_close( l.sl_sd );
-			slap_free_listener_addresses(psal);
-			return -1;
-		}
-#endif
 		l.sl_name.bv_len = strlen(addr) + sizeof("PATH=") - 1;
 		l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len + 1 );
 		snprintf( l.sl_name.bv_val, l.sl_name.bv_len + 1, 
@@ -1768,14 +1758,14 @@ slapd_daemon_task(
 			if ( !SLAP_EVENT_IS_READ( slap_listeners[l]->sl_sd ))
 				continue;
 			
-			ns--;
-
 			rc = slapd_handle_listener(slap_listeners[l]);
 
 #ifdef LDAP_CONNECTIONLESS
 			/* This is a UDP session, let the data loop process it */
 			if ( rc ) continue;
 #endif
+
+			ns--;
 
 			/* Don't need to look at this in the data loops */
 			SLAP_EVENT_CLR_READ( slap_listeners[l]->sl_sd );
@@ -2063,7 +2053,7 @@ int slapd_daemon( void )
 
 }
 
-int sockinit(void)
+static int sockinit(void)
 {
 #if defined( HAVE_WINSOCK2 )
     WORD wVersionRequested;
@@ -2104,7 +2094,7 @@ int sockinit(void)
 	return 0;
 }
 
-int sockdestroy(void)
+static int sockdestroy(void)
 {
 #if defined( HAVE_WINSOCK2 ) || defined( HAVE_WINSOCK )
 	WSACleanup();

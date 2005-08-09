@@ -126,7 +126,7 @@ ldap_back_dn_massage(
 	int     i, src, dst;
 	struct berval pretty = {0,NULL}, *dn = odn;
 
-	assert( res );
+	assert( res != NULL );
 
 	if ( dn == NULL ) {
 		res->bv_val = NULL;

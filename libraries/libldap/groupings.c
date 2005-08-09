@@ -127,6 +127,7 @@ int ldap_grouping_end(
 	LDAPControl **cctrls,
 	int *msgidp )
 {
+	return 0;
 }
 
 int ldap_grouping_end_s(
@@ -137,6 +138,7 @@ int ldap_grouping_end_s(
 	LDAPControl **cctrls,
 	struct berval **retgrpdatap )
 {
+	return 0;
 }
 
 #endif

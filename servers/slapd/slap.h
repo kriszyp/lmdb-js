@@ -76,6 +76,10 @@ LDAP_BEGIN_DECL
 #endif
 #endif
 
+#if defined(LDAP_SLAPI) && !defined(SLAP_OVERLAY_ACCESS)
+#define SLAP_OVERLAY_ACCESS
+#endif
+
 /*
  * ITS#3705: bail out if unknown config directives appear in slapd.conf
  */
@@ -1985,6 +1989,12 @@ typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
 typedef int (BI_access_allowed) LDAP_P(( struct slap_op *op, Entry *e,
 	AttributeDescription *desc, struct berval *val, slap_access_t access,
 	AccessControlState *state, slap_mask_t *maskp ));
+typedef int (BI_acl_group) LDAP_P(( struct slap_op *op, Entry *target,
+	struct berval *gr_ndn, struct berval *op_ndn,
+	ObjectClass *group_oc, AttributeDescription *group_at ));
+typedef int (BI_acl_attribute) LDAP_P(( struct slap_op *op, Entry *target,
+	struct berval *entry_ndn, AttributeDescription *entry_at,
+	BerVarray *vals, slap_access_t access ));
 #endif /* SLAP_OVERLAY_ACCESS */
 
 typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
@@ -2087,6 +2097,8 @@ struct slap_backend_info {
 	BI_has_subordinates	*bi_has_subordinates;
 #ifdef SLAP_OVERLAY_ACCESS
 	BI_access_allowed	*bi_access_allowed;
+	BI_acl_group		*bi_acl_group;
+	BI_acl_attribute	*bi_acl_attribute;
 #endif /* SLAP_OVERLAY_ACCESS */
 
 	BI_connection_init	*bi_connection_init;
@@ -2168,6 +2180,24 @@ typedef struct slap_callback {
 } slap_callback;
 
 struct slap_overinfo;
+
+typedef enum slap_operation_e {
+	op_bind = 0,
+	op_unbind,
+	op_search,
+	op_compare,
+	op_modify,
+	op_modrdn,
+	op_add,
+	op_delete,
+	op_abandon,
+	op_cancel,
+	op_extended,
+	op_aux_operational,
+	op_aux_chk_referrals,
+	op_aux_chk_controls,
+	op_last
+} slap_operation_t;
 
 typedef struct slap_overinst {
 	BackendInfo on_bi;
@@ -2262,7 +2292,6 @@ typedef struct slap_op_header {
 	char		oh_log_prefix[sizeof("conn=18446744073709551615 op=18446744073709551615")];
 
 #ifdef LDAP_SLAPI
-	void    *oh_pb;                  /* NS-SLAPI plugin */
 	void	*oh_extensions;		/* NS-SLAPI plugin */
 #endif
 } Opheader;
@@ -2286,11 +2315,6 @@ typedef struct slap_op {
 #define	o_tmpfree	o_tmpmfuncs->bmf_free
 
 #define o_log_prefix o_hdr->oh_log_prefix
-
-#ifdef LDAP_SLAPI
-#define o_pb o_hdr->oh_pb
-#define o_extensions o_hdr->oh_extensions
-#endif
 
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
@@ -2371,6 +2395,8 @@ typedef struct slap_op {
 
 	char o_nocaching;
 	char o_delete_glue_parent;
+	char o_no_schema_check;
+#define get_no_schema_check(op)			((op)->o_no_schema_check)
 
 #define SLAP_CONTROL_NONE	0
 #define SLAP_CONTROL_IGNORED	1

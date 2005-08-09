@@ -170,7 +170,7 @@ static int indexer(
 	DB *db;
 	struct berval *keys;
 
-	assert( mask );
+	assert( mask != 0 );
 
 	rc = bdb_db_cache( op->o_bd, atname->bv_val, &db );
 	
@@ -389,7 +389,7 @@ bdb_index_entry(
 #ifdef LDAP_COMP_MATCH
 	ComponentReference *cr_list = NULL;
 	ComponentReference *cr = NULL, *dupped_cr = NULL;
-	void* decoded_comp, *extracted_comp;
+	void* decoded_comp;
 	ComponentSyntaxInfo* csi_attr;
 	Syntax* syn;
 	AttributeType* at;

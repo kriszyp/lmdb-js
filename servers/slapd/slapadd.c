@@ -63,9 +63,14 @@ slapadd( int argc, char **argv )
 	ID	ctxcsn_id, id;
 	int ret;
 	struct berval bvtext;
-	int i, checkvals;
-	struct berval mc;
+	int checkvals;
+	char opbuf[OPERATION_BUFFER_SIZE];
+	Operation *op;
+
 	slap_tool_init( progname, SLAPADD, argc, argv );
+
+	memset( opbuf, 0, sizeof(opbuf) );
+	op = (Operation *)opbuf;
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
@@ -182,7 +187,9 @@ slapadd( int argc, char **argv )
 			}
 
 			/* check schema */
-			rc = entry_schema_check( be, e, NULL, manage,
+			op->o_bd = be;
+
+			rc = entry_schema_check( op, e, NULL, manage,
 				&text, textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -302,19 +309,15 @@ slapadd( int argc, char **argv )
 				if( continuemode ) continue;
 				break;
 			}
-		}
-
-		if ( verbose ) {
-			if ( dryrun ) {
-				fprintf( stderr, "added: \"%s\"\n",
-					e->e_dn );
-			} else {
+			if ( verbose )
 				fprintf( stderr, "added: \"%s\" (%08lx)\n",
 					e->e_dn, (long) id );
-			}
+		} else {
+			if ( verbose )
+				fprintf( stderr, "added: \"%s\"\n",
+					e->e_dn );
 		}
 
-done:;
 		entry_free( e );
 	}
 

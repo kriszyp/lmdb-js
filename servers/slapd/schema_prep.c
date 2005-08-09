@@ -297,8 +297,8 @@ static int objectSubClassIndexer(
 
 				ocvalues[noc] = sup->soc_cname;
 
-				assert( ocvalues[noc].bv_val );
-				assert( ocvalues[noc].bv_len );
+				assert( ocvalues[noc].bv_val != NULL );
+				assert( ocvalues[noc].bv_len != 0 );
 
 				noc++;
 
@@ -321,7 +321,9 @@ static ObjectClassSchemaCheckFN rootDseObjectClass;
 static ObjectClassSchemaCheckFN aliasObjectClass;
 static ObjectClassSchemaCheckFN referralObjectClass;
 static ObjectClassSchemaCheckFN subentryObjectClass;
+#ifdef LDAP_DYNAMIC_OBJECTS
 static ObjectClassSchemaCheckFN dynamicObjectClass;
+#endif
 
 static struct slap_schema_oc_map {
 	char *ssom_name;
@@ -417,7 +419,9 @@ static AttributeTypeSchemaCheckFN aliasAttribute;
 static AttributeTypeSchemaCheckFN referralAttribute;
 static AttributeTypeSchemaCheckFN subentryAttribute;
 static AttributeTypeSchemaCheckFN administrativeRoleAttribute;
+#ifdef LDAP_DYNAMIC_OBJECTS
 static AttributeTypeSchemaCheckFN dynamicAttribute;
+#endif
 
 static struct slap_schema_ad_map {
 	char *ssam_name;
@@ -1231,6 +1235,7 @@ slap_schema_load( void )
 					mr->smr_filter = ad_map[i].ssam_mr_filter;
 				}
 
+				/* FIXME: no-one will free this at exit */
 				(*adp)->ad_type->sat_equality = mr;
 			}
 		}
@@ -1400,6 +1405,7 @@ static int subentryObjectClass (
 	return LDAP_SUCCESS;
 }
 
+#ifdef LDAP_DYNAMIC_OBJECTS
 static int dynamicObjectClass (
 	Backend *be,
 	Entry *e,
@@ -1418,6 +1424,7 @@ static int dynamicObjectClass (
 
 	return LDAP_SUCCESS;
 }
+#endif /* LDAP_DYNAMIC_OBJECTS */
 
 static int rootDseAttribute (
 	Backend *be,
@@ -1540,6 +1547,7 @@ static int administrativeRoleAttribute (
 	return LDAP_OBJECT_CLASS_VIOLATION;
 }
 
+#ifdef LDAP_DYNAMIC_OBJECTS
 static int dynamicAttribute (
 	Backend *be,
 	Entry *e,
@@ -1565,3 +1573,4 @@ static int dynamicAttribute (
 
 	return LDAP_SUCCESS;
 }
+#endif /* LDAP_DYNAMIC_OBJECTS */

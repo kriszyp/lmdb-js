@@ -238,6 +238,7 @@ do_abandon(
 			} else {
 				/* send the message */
 				if ( lr != NULL ) {
+					assert( lr->lr_conn != NULL );
 					sb = lr->lr_conn->lconn_sb;
 				} else {
 					sb = ld->ld_sb;

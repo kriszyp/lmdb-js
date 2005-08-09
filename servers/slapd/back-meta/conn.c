@@ -178,16 +178,7 @@ meta_back_freeconn(
 
 	assert( mc != NULL );
 
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
+	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 
 	if ( --mc->mc_refcnt == 0 ) {
 		meta_back_conn_free( mc );
@@ -217,8 +208,7 @@ meta_back_init_one_conn(
 	 * Already init'ed
 	 */
 	if ( msc->msc_ld != NULL ) {
-		rs->sr_err = LDAP_SUCCESS;
-		goto error_return;
+		return rs->sr_err = LDAP_SUCCESS;
 	}
        
 	/*
@@ -242,14 +232,14 @@ meta_back_init_one_conn(
 	}
 
 #ifdef HAVE_TLS
-	/* start TLS ("start-tls"/"try-start-tls" statements) */
+	/* start TLS ("tls [try-]{start|propagate}" statement) */
 	if ( ( LDAP_BACK_USE_TLS( mi ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( mi ) ) )
 			&& !ldap_is_ldaps_url( mt->mt_uri ) )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
-		 * use asynchronous StartTLS
-		 * in case, chase referral (not implemented yet)
+		 * use asynchronous StartTLS; in case, chase referral
+		 * FIXME: OpenLDAP does not return referral on StartTLS yet
 		 */
 		int		msgid;
 
@@ -346,11 +336,6 @@ retry:;
 	}
 
 	/*
-	 * Sets a cookie for the rewrite session
-	 */
-	( void )rewrite_session_init( mt->mt_rwmap.rwm_rw, op->o_conn );
-
-	/*
 	 * If the connection DN is not null, an attempt to rewrite it is made
 	 */
 	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
@@ -382,7 +367,13 @@ retry:;
 	msc->msc_bound = META_UNBOUND;
 
 error_return:;
-	if ( rs->sr_err != LDAP_SUCCESS ) {
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		/*
+		 * Sets a cookie for the rewrite session
+		 */
+		( void )rewrite_session_init( mt->mt_rwmap.rwm_rw, op->o_conn );
+
+	} else {
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			send_ldap_result( op, rs );
@@ -412,24 +403,22 @@ meta_back_retry(
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
 retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
+	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 
 	assert( mc->mc_refcnt > 0 );
 
 	if ( mc->mc_refcnt == 1 ) {
-		ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
+		while ( ldap_pvt_thread_mutex_trylock( &mc->mc_mutex ) ) {
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+			ldap_pvt_thread_yield();
+			goto retry_lock;
+		}
 
 		ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
 		msc->msc_ld = NULL;
 		msc->msc_bound = 0;
+
+		( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
 
 		/* mc here must be the regular mc, reset and ready for init */
 		rc = meta_back_init_one_conn( op, rs, mt, msc, sendok );
@@ -570,7 +559,6 @@ meta_back_candidates_get( Operation *op )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metacandidates_t	*mc;
-	SlapReply		*rs;
 
 	if ( op->o_threadctx ) {
 		void		*data = NULL;
@@ -670,16 +658,7 @@ meta_back_getconn(
 
 	/* Searches for a metaconn in the avl tree */
 	mc_curr.mc_conn = op->o_conn;
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
+	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 	mc = (metaconn_t *)avl_find( mi->mi_conntree, 
 		(caddr_t)&mc_curr, meta_back_conn_cmp );
 	if ( mc ) {
@@ -848,16 +827,7 @@ retry_lock:;
 			 * the reason is that the connection might have been
 			 * created by meta_back_get_candidate() */
 			mc_curr.mc_conn = op->o_conn;
-retry_lock2:;
-			switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-			case LDAP_PVT_THREAD_EBUSY:
-			default:
-				ldap_pvt_thread_yield();
-				goto retry_lock2;
-
-			case 0:
-				break;
-			}
+			ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 			mc = (metaconn_t *)avl_find( mi->mi_conntree, 
 				(caddr_t)&mc_curr, meta_back_conn_cmp );
 			if ( mc != NULL ) {
@@ -1002,16 +972,7 @@ done:;
 		/*
 		 * Inserts the newly created metaconn in the avl tree
 		 */
-retry_lock3:;
-		switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-		case LDAP_PVT_THREAD_EBUSY:
-		default:
-			ldap_pvt_thread_yield();
-			goto retry_lock3;
-
-		case 0:
-			break;
-		}
+		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 		err = avl_insert( &mi->mi_conntree, ( caddr_t )mc,
 			       	meta_back_conn_cmp, meta_back_conn_dup );
 
@@ -1064,17 +1025,7 @@ meta_back_release_conn(
 
 	assert( mc != NULL );
 
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
-
+	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );

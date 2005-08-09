@@ -207,7 +207,7 @@ sb_sasl_pkt_length( const unsigned char *buf, int debuglevel )
 		| buf[1] << 16
 		| buf[2] << 8
 		| buf[3];
-   
+
 	if ( size > SASL_MAX_BUFF_SIZE ) {
 		/* somebody is trying to mess me up. */
 		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
@@ -877,7 +877,7 @@ static struct {
 	{ BER_BVC("minssf="), 0, GOT_MINSSF, 0 },
 	{ BER_BVC("maxssf="), 0, GOT_MAXSSF, INT_MAX },
 	{ BER_BVC("maxbufsize="), 0, GOT_MAXBUF, 65536 },
-	{ BER_BVNULL, 0, 0 }
+	{ BER_BVNULL, 0, 0, 0 }
 };
 
 void ldap_pvt_sasl_secprops_unparse(
@@ -895,7 +895,7 @@ void ldap_pvt_sasl_secprops_unparse(
 	comma = 0;
 	for ( i=0; !BER_BVISNULL( &sprops[i].key ); i++ ) {
 		if ( sprops[i].ival ) {
-			int v;
+			int v = 0;
 
 			switch( sprops[i].ival ) {
 			case GOT_MINSSF: v = secprops->min_ssf; break;
@@ -928,7 +928,7 @@ void ldap_pvt_sasl_secprops_unparse(
 	comma = 0;
 	for ( i=0; !BER_BVISNULL( &sprops[i].key ); i++ ) {
 		if ( sprops[i].ival ) {
-			int v;
+			int v = 0;
 
 			switch( sprops[i].ival ) {
 			case GOT_MINSSF: v = secprops->min_ssf; break;
@@ -1206,7 +1206,7 @@ int ldap_pvt_sasl_mutex_lock(void *mutex)
 		return SASL_OK;
 	}
 #else /* !LDAP_DEBUG_R_SASL */
-	assert( mutex );
+	assert( mutex != NULL );
 #endif /* !LDAP_DEBUG_R_SASL */
 	return ldap_pvt_thread_mutex_lock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
@@ -1219,7 +1219,7 @@ int ldap_pvt_sasl_mutex_unlock(void *mutex)
 		return SASL_OK;
 	}
 #else /* !LDAP_DEBUG_R_SASL */
-	assert( mutex );
+	assert( mutex != NULL );
 #endif /* !LDAP_DEBUG_R_SASL */
 	return ldap_pvt_thread_mutex_unlock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
@@ -1232,7 +1232,7 @@ void ldap_pvt_sasl_mutex_dispose(void *mutex)
 		return;
 	}
 #else /* !LDAP_DEBUG_R_SASL */
-	assert( mutex );
+	assert( mutex != NULL );
 #endif /* !LDAP_DEBUG_R_SASL */
 	(void) ldap_pvt_thread_mutex_destroy( (ldap_pvt_thread_mutex_t *)mutex );
 	LDAP_FREE( mutex );

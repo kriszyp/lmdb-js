@@ -36,8 +36,8 @@
 #include "slap.h"
 #include "ldif.h"
 
-static unsigned char	*ebuf;	/* buf returned by entry2str		 */
-static unsigned char	*ecur;	/* pointer to end of currently used ebuf */
+static char		*ebuf;	/* buf returned by entry2str		 */
+static char		*ecur;	/* pointer to end of currently used ebuf */
 static int		emaxsize;/* max size of ebuf			 */
 
 /*
@@ -70,7 +70,6 @@ str2entry2( char *s, int checkvals )
 {
 	int rc;
 	Entry		*e;
-	struct berval	*nvalsp;
 	struct berval	*type, *vals, *nvals;
 	char 	*freeval;
 	AttributeDescription *ad, *ad_prev;
@@ -231,6 +230,7 @@ str2entry2( char *s, int checkvals )
 			int j, k;
 			atail->a_next = (Attribute *) ch_malloc( sizeof(Attribute) );
 			atail = atail->a_next;
+			atail->a_flags = 0;
 			atail->a_desc = ad_prev;
 			atail->a_vals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
 			if( ad_prev->ad_type->sat_equality &&
@@ -347,7 +347,7 @@ fail:
 		while ( ecur + (n) > ebuf + emaxsize ) { \
 			ptrdiff_t	offset; \
 			offset = (int) (ecur - ebuf); \
-			ebuf = (unsigned char *) ch_realloc( (char *) ebuf, \
+			ebuf = ch_realloc( ebuf, \
 				emaxsize + GRABSIZE ); \
 			emaxsize += GRABSIZE; \
 			ecur = ebuf + offset; \
@@ -379,7 +379,7 @@ entry2str(
 		/* put "dn: <dn>" */
 		tmplen = e->e_name.bv_len;
 		MAKE_SPACE( LDIF_SIZE_NEEDED( 2, tmplen ));
-		ldif_sput( (char **) &ecur, LDIF_PUT_VALUE, "dn", e->e_dn, tmplen );
+		ldif_sput( &ecur, LDIF_PUT_VALUE, "dn", e->e_dn, tmplen );
 	}
 
 	/* put the attributes */
@@ -389,7 +389,7 @@ entry2str(
 			bv = &a->a_vals[i];
 			tmplen = a->a_desc->ad_cname.bv_len;
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
-			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE,
+			ldif_sput( &ecur, LDIF_PUT_VALUE,
 				a->a_desc->ad_cname.bv_val,
 				bv->bv_val, bv->bv_len );
 		}
@@ -398,7 +398,7 @@ entry2str(
 	*ecur = '\0';
 	*len = ecur - ebuf;
 
-	return( (char *) ebuf );
+	return( ebuf );
 }
 
 void

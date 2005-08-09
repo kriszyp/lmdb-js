@@ -36,8 +36,6 @@ static int slapi_int_load_plugin( Slapi_PBlock *, const char *, const char *, in
 
 /* pointer to link list of extended objects */
 static ExtendedOp *pGExtendedOps = NULL;
-/* global plugins not associated with a specific backend */
-static Slapi_PBlock *pGPlugins = NULL;
 
 /*********************************************************************
  * Function Name:      plugin_pblock_new
@@ -72,9 +70,9 @@ plugin_pblock_new(
 	Slapi_PluginDesc *pPluginDesc = NULL;
 	lt_dlhandle	hdLoadHandle;
 	int		rc;
-	char **av2 = NULL, **ppPluginArgv;
-	char *path = argv[2];
-	char *initfunc = argv[3];
+	char		**av2 = NULL, **ppPluginArgv;
+	char		*path = argv[2];
+	char		*initfunc = argv[3];
 
 	pPlugin = slapi_pblock_new();
 	if ( pPlugin == NULL ) {
@@ -82,18 +80,11 @@ plugin_pblock_new(
 		goto done;
 	}
 
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)type );
-	if ( rc != 0 ) {
-		goto done;
-	}
-
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGC, (void *)argc );
-	if ( rc != 0 ) {
-		goto done;
-	}
+	slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)&type );
+	slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGC, (void *)&argc );
 
 	av2 = ldap_charray_dup( argv );
-	if ( !av2 ) {
+	if ( av2 == NULL ) {
 		rc = LDAP_NO_MEMORY;
 		goto done;
 	}
@@ -103,17 +94,11 @@ plugin_pblock_new(
 	} else {
 		ppPluginArgv = NULL;
 	}
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGV, (void *)ppPluginArgv );
-	if ( rc != 0 ) { 
-		goto done;
-	}
 
-	rc = slapi_pblock_set( pPlugin, SLAPI_X_CONFIG_ARGV, (void *)av2 );
-	if ( rc != 0 ) { 
-		goto done;
-	}
+	slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGV, (void *)ppPluginArgv );
+	slapi_pblock_set( pPlugin, SLAPI_X_CONFIG_ARGV, (void *)av2 );
 
-	rc = slapi_int_load_plugin( pPlugin, path, initfunc, TRUE, NULL, &hdLoadHandle );
+	rc = slapi_int_load_plugin( pPlugin, path, initfunc, 1, NULL, &hdLoadHandle );
 	if ( rc != 0 ) {
 		goto done;
 	}
@@ -132,7 +117,7 @@ done:
 	if ( rc != 0 && pPlugin != NULL ) {
 		slapi_pblock_destroy( pPlugin );
 		pPlugin = NULL;
-		if ( av2 ) {
+		if ( av2 != NULL ) {
 			ldap_charray_free( av2 );
 		}
 	}
@@ -161,37 +146,27 @@ slapi_int_register_plugin(
 	Backend *be, 
 	Slapi_PBlock *pPB )
 { 
-	Slapi_PBlock *pTmpPB;
-	Slapi_PBlock *pSavePB;
-	int    rc = LDAP_SUCCESS;
+	Slapi_PBlock	*pTmpPB;
+	Slapi_PBlock	*pSavePB;
+	int   		 rc = LDAP_SUCCESS;
 
-	pTmpPB = ( be == NULL ) ? pGPlugins : (Slapi_PBlock *)(be->be_pb);
+	assert( be != NULL );
 
+	pTmpPB = SLAPI_BACKEND_PBLOCK( be );
 	if ( pTmpPB == NULL ) {
-		if ( be != NULL )
-			be->be_pb = (void *)pPB;
-		else
-			pGPlugins = pPB;
+		SLAPI_BACKEND_PBLOCK( be ) = pPB;
 	} else {
 		while ( pTmpPB != NULL && rc == LDAP_SUCCESS ) {
 			pSavePB = pTmpPB;
-			rc = slapi_pblock_get( pTmpPB, SLAPI_IBM_PBLOCK,
-					&pTmpPB );
-			if ( rc != LDAP_SUCCESS ) {
-				rc = LDAP_OTHER;
-			}
+			rc = slapi_pblock_get( pTmpPB, SLAPI_IBM_PBLOCK, &pTmpPB );
 		}
 
 		if ( rc == LDAP_SUCCESS ) { 
-			rc = slapi_pblock_set( pSavePB, SLAPI_IBM_PBLOCK,
-					(void *)pPB ); 
-			if ( rc != LDAP_SUCCESS ) {
-				rc = LDAP_OTHER;
-			}
+			rc = slapi_pblock_set( pSavePB, SLAPI_IBM_PBLOCK, (void *)pPB ); 
 		}
 	}
      
-	return rc;
+	return ( rc != LDAP_SUCCESS ) ? LDAP_OTHER : LDAP_SUCCESS;
 }
        
 /*********************************************************************
@@ -223,49 +198,23 @@ slapi_int_get_plugins(
 	int		numPB = 0;
 	int		rc = LDAP_SUCCESS;
 
-	assert( ppFuncPtrs );
+	assert( ppFuncPtrs != NULL );
 
-	/*
-	 * First, count the plugins associated with a specific
-	 * backend.
-	 */
-	if ( be != NULL ) {
-		pCurrentPB = (Slapi_PBlock *)be->be_pb;
-
-		while ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
-			rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
-			if ( rc == LDAP_SUCCESS ) {
-				if ( FuncPtr != NULL )  {
-					numPB++;
-				}
-				rc = slapi_pblock_get( pCurrentPB,
-						SLAPI_IBM_PBLOCK, &pCurrentPB );
-			}
-		}
-	}
-
-	if ( rc != LDAP_SUCCESS ) {
+	if ( be == NULL ) {
 		goto done;
 	}
 
-	/*
-	 * Then, count the global plugins.
-	 */
-	pCurrentPB = pGPlugins;
+	pCurrentPB = SLAPI_BACKEND_PBLOCK( be );
 
-	while  ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
+	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
 		if ( rc == LDAP_SUCCESS ) {
 			if ( FuncPtr != NULL )  {
 				numPB++;
 			}
 			rc = slapi_pblock_get( pCurrentPB,
-					SLAPI_IBM_PBLOCK, &pCurrentPB );
+				SLAPI_IBM_PBLOCK, &pCurrentPB );
 		}
-	}
-
-	if ( rc != LDAP_SUCCESS ) {
-		goto done;
 	}
 
 	if ( numPB == 0 ) {
@@ -285,23 +234,7 @@ slapi_int_get_plugins(
 		goto done;
 	}
 
-	if ( be != NULL ) {
-		pCurrentPB = (Slapi_PBlock *)be->be_pb;
-
-		while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
-			rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
-			if ( rc == LDAP_SUCCESS ) {
-				if ( FuncPtr != NULL )  {
-					*pTmpFuncPtr = FuncPtr;
-					pTmpFuncPtr++;
-				} 
-				rc = slapi_pblock_get( pCurrentPB,
-						SLAPI_IBM_PBLOCK, &pCurrentPB );
-			}
-		}
-	}
-
-	pCurrentPB = pGPlugins;
+	pCurrentPB = SLAPI_BACKEND_PBLOCK( be );
 
 	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
@@ -314,7 +247,9 @@ slapi_int_get_plugins(
 					SLAPI_IBM_PBLOCK, &pCurrentPB );
 		}
 	}
-	*pTmpFuncPtr = NULL ;
+
+	*pTmpFuncPtr = NULL;
+
 
 done:
 	if ( rc != LDAP_SUCCESS && *ppFuncPtrs != NULL ) {
@@ -338,14 +273,12 @@ createExtendedOp()
 {
 	ExtendedOp *ret;
 
-	ret = (ExtendedOp *)ch_malloc(sizeof(ExtendedOp));
-	if ( ret != NULL ) {
-		ret->ext_oid.bv_val = NULL;
-		ret->ext_oid.bv_len = 0;
-		ret->ext_func = NULL;
-		ret->ext_be = NULL;
-		ret->ext_next = NULL;
-	}
+	ret = (ExtendedOp *)slapi_ch_malloc(sizeof(ExtendedOp));
+	ret->ext_oid.bv_val = NULL;
+	ret->ext_oid.bv_len = 0;
+	ret->ext_func = NULL;
+	ret->ext_be = NULL;
+	ret->ext_next = NULL;
 
 	return ret;
 }
@@ -610,7 +543,7 @@ slapi_int_load_plugin(
 	int		rc = LDAP_SUCCESS;
 	SLAPI_FUNC	fpInitFunc = NULL;
 
-	assert( pLdHandle );
+	assert( pLdHandle != NULL );
 
 	if ( lt_dlinit() ) {
 		return LDAP_LOCAL_ERROR;
@@ -619,16 +552,20 @@ slapi_int_load_plugin(
 	/* load in the module */
 	*pLdHandle = lt_dlopen( path );
 	if ( *pLdHandle == NULL ) {
+		fprintf( stderr, "failed to load plugin %s: %s\n",
+			 path, lt_dlerror() );
 		return LDAP_LOCAL_ERROR;
 	}
 
 	fpInitFunc = (SLAPI_FUNC)lt_dlsym( *pLdHandle, initfunc );
 	if ( fpInitFunc == NULL ) {
+		fprintf( stderr, "failed to find symbol %s in plugin %s: %s\n",
+			 initfunc, path, lt_dlerror() );
 		lt_dlclose( *pLdHandle );
 		return LDAP_LOCAL_ERROR;
 	}
 
-	if ( doInit == TRUE ) {
+	if ( doInit ) {
 		rc = ( *fpInitFunc )( pPlugin );
 		if ( rc != LDAP_SUCCESS ) {
 			lt_dlclose( *pLdHandle );
@@ -665,12 +602,6 @@ slapi_int_call_plugins(
 	}
 
 	for ( pGetPlugin = tmpPlugin ; *pGetPlugin != NULL; pGetPlugin++ ) {
-		/*
-		 * FIXME: we should provide here a sort of sandbox,
-		 * to protect from plugin faults; e.g. trap signals
-		 * and longjump here, marking the plugin as unsafe for
-		 * later executions ...
-		 */
 		rc = (*pGetPlugin)(pPB);
 
 		/*
@@ -710,6 +641,14 @@ slapi_int_read_config(
 			"<init_function> [<arguments>]\" line\n",
 			fname, lineno );
 		return 1;
+	}
+
+	/* automatically instantiate overlay if necessary */
+	if ( !slapi_over_is_inst( be ) ) {
+		if ( slapi_over_config( be ) != 0 ) {
+			fprintf( stderr, "Failed to instantiate SLAPI overlay\n");
+			return -1;
+		}
 	}
 	
 	if ( strcasecmp( argv[1], "preoperation" ) == 0 ) {
@@ -768,15 +707,21 @@ slapi_int_plugin_unparse(
 )
 {
 	Slapi_PBlock *pp;
-	int i, j, rc;
+	int i, j;
 	char **argv, ibuf[32], *ptr;
 	struct berval idx, bv;
 
 	*out = NULL;
 	idx.bv_val = ibuf;
 	i = 0;
-	for ( pp=be->be_pb; pp; slapi_pblock_get( pp, SLAPI_IBM_PBLOCK, &pp ) ) {
+
+	for ( pp = SLAPI_BACKEND_PBLOCK( be );
+	      pp != NULL;
+	      slapi_pblock_get( pp, SLAPI_IBM_PBLOCK, &pp ) )
+	{
 		slapi_pblock_get( pp, SLAPI_X_CONFIG_ARGV, &argv );
+		if ( argv == NULL ) /* could be dynamic plugin */
+			continue;
 		idx.bv_len = sprintf( idx.bv_val, "{%d}", i );
 		bv.bv_len = idx.bv_len;
 		for (j=1; argv[j]; j++) {
@@ -791,32 +736,5 @@ slapi_int_plugin_unparse(
 		}
 		ber_bvarray_add( out, &bv );
 	}
-}
-
-int
-slapi_int_initialize(void)
-{
-	if ( ldap_pvt_thread_mutex_init( &slapi_hn_mutex ) ) {
-		return -1;
-	}
-	
-	if ( ldap_pvt_thread_mutex_init( &slapi_time_mutex ) ) {
-		return -1;
-	}
-
-	if ( ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex ) ) {
-		return -1;
-	}
-
-	slapi_log_file = ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
-	if ( slapi_log_file == NULL ) {
-		return -1;
-	}
-
-	if ( slapi_int_init_object_extensions() != 0 ) {
-		return -1;
-	}
-
-	return 0;
 }
 

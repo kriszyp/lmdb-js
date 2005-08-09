@@ -263,7 +263,7 @@ bdb_online_index( void *ctx, void *arg )
 		id++;
 		getnext = 1;
 	}
-out:
+
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	bdb->bi_index_task = NULL;
@@ -356,12 +356,12 @@ bdb_cf_gen(ConfigArgs *c)
 					bdb->bi_flags |= BDB_HAS_CONFIG;
 					while ( fgets( buf, sizeof(buf), f )) {
 						ber_str2bv( buf, 0, 1, &bv );
-						if ( bv.bv_val[bv.bv_len-1] == '\n' ) {
+						if ( bv.bv_len > 0 && bv.bv_val[bv.bv_len-1] == '\n' ) {
 							bv.bv_len--;
 							bv.bv_val[bv.bv_len] = '\0';
 						}
 						/* shouldn't need this, but ... */
-						if ( bv.bv_val[bv.bv_len-1] == '\r' ) {
+						if ( bv.bv_len > 0 && bv.bv_val[bv.bv_len-1] == '\r' ) {
 							bv.bv_len--;
 							bv.bv_val[bv.bv_len] = '\0';
 						}

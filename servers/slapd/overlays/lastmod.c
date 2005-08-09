@@ -283,7 +283,6 @@ lastmod_op_func( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
-	unsigned		i;
 	Modifications		*ml;
 
 	if ( dn_match( &op->o_req_ndn, &lmi->lmi_e->e_nname ) ) {
@@ -692,7 +691,6 @@ lastmod_response( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
-	unsigned int		i;
 
 	/* don't record failed operations */
 	switch ( rs->sr_err ) {
@@ -730,7 +728,6 @@ lastmod_response( Operation *op, SlapReply *rs )
 	}
 	ldap_pvt_thread_mutex_unlock( &lmi->lmi_entry_mutex );
 
-process:;
 	(void)lastmod_update( op, rs );
 
 	return SLAP_CB_CONTINUE;

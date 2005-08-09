@@ -39,8 +39,7 @@ ldbm_back_search(
     SlapReply	*rs )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
-	int		rc, err;
-	const char *text = NULL;
+	int		rc;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
 	ID		id, cursor;
@@ -368,6 +367,8 @@ searchit:
 					op->ors_scope == LDAP_SCOPE_ONELEVEL
 						? LDAP_SCOPE_BASE
 						: LDAP_SCOPE_SUBTREE );
+
+				ber_bvarray_free( erefs );
 
 				send_search_reference( op, rs );
 

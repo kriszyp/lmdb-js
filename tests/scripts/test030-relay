@@ -17,7 +17,7 @@ echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
 if test $RWM = rwmno ; then 
-	echo "Rewrite/remap overlay not available, test skipped"
+	echo "rwm (Rewrite/remap) overlay not available, test skipped"
 	exit 0
 fi 
 

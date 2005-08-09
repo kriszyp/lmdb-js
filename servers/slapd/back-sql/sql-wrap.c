@@ -130,7 +130,7 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 }
 
 RETCODE
-backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
+backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 {
 	RETCODE		rc;
 	SQLCHAR		colname[ 64 ];
@@ -161,62 +161,45 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 			"ncols=%d\n", (int)row->ncols, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-		row->col_names = (BerVarray)ch_calloc( row->ncols + 1, 
-				sizeof( struct berval ) );
-		row->cols = (char **)ch_calloc( row->ncols + 1, 
-				sizeof( char * ) );
-		row->col_prec = (UDWORD *)ch_calloc( row->ncols,
-				sizeof( UDWORD ) );
-		row->value_len = (SQLINTEGER *)ch_calloc( row->ncols,
-				sizeof( SQLINTEGER ) );
+		row->col_names = (BerVarray)ber_memcalloc_x( row->ncols + 1, 
+				sizeof( struct berval ), ctx );
+		row->cols = (char **)ber_memcalloc_x( row->ncols + 1, 
+				sizeof( char * ), ctx );
+		row->col_prec = (UDWORD *)ber_memcalloc_x( row->ncols,
+				sizeof( UDWORD ), ctx );
+		row->value_len = (SQLINTEGER *)ber_memcalloc_x( row->ncols,
+				sizeof( SQLINTEGER ), ctx );
 		for ( i = 1; i <= row->ncols; i++ ) {
 			rc = SQLDescribeCol( sth, (SQLSMALLINT)i, &colname[ 0 ],
 					(SQLUINTEGER)( sizeof( colname ) - 1 ),
 					&name_len, &col_type,
 					&col_prec, &col_scale, &col_null );
-			ber_str2bv( (char *)colname, 0, 1, &row->col_names[ i - 1 ] );
+			/* FIXME: test rc? */
+
+			ber_str2bv_x( (char *)colname, 0, 1,
+					&row->col_names[ i - 1 ], ctx );
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 				"col_name=%s, col_prec[%d]=%d\n",
 				colname, (int)i, (int)col_prec );
 #endif /* BACKSQL_TRACE */
-			if ( col_type == SQL_LONGVARCHAR 
-					|| col_type == SQL_LONGVARBINARY) {
-#if 0
-				row->cols[ i - 1 ] = NULL;
-				row->col_prec[ i - 1 ] = -1;
-
-				/*
-				 * such fields must be handled 
-				 * in some other way since they return 2G 
-				 * as their precision (at least it does so 
-				 * with MS SQL Server w/native driver)
-				 * for now, we just set fixed precision 
-				 * for such fields - dirty hack, but...
-				 * no time to deal with SQLGetData()
-				 */
-#endif
+			if ( col_type != SQL_CHAR && col_type != SQL_VARCHAR )
+			{
 				col_prec = MAX_ATTR_LEN;
-				row->cols[ i - 1 ] = (char *)ch_calloc( col_prec + 1, sizeof( char ) );
-				row->col_prec[ i - 1 ] = col_prec;
-				rc = SQLBindCol( sth, (SQLUSMALLINT)i,
-						SQL_C_CHAR,
-						(SQLPOINTER)row->cols[ i - 1 ],
-						col_prec + 1,
-						&row->value_len[ i - 1 ] );
-			} else {
-				row->cols[ i - 1 ] = (char *)ch_calloc( col_prec + 1, sizeof( char ) );
-				row->col_prec[ i - 1 ] = col_prec;
-				rc = SQLBindCol( sth, (SQLUSMALLINT)i,
-						SQL_C_CHAR,
-						(SQLPOINTER)row->cols[ i - 1 ],
-						col_prec + 1,
-						&row->value_len[ i - 1 ] );
 			}
+
+			row->cols[ i - 1 ] = (char *)ber_memcalloc_x( col_prec + 1,
+					sizeof( char ), ctx );
+			row->col_prec[ i - 1 ] = col_prec;
+			rc = SQLBindCol( sth, (SQLUSMALLINT)i,
+					 SQL_C_CHAR,
+					 (SQLPOINTER)row->cols[ i - 1 ],
+					 col_prec + 1,
+					 &row->value_len[ i - 1 ] );
+			/* FIXME: test rc? */
 		}
 
-		row->col_names[ i - 1 ].bv_val = NULL;
-		row->col_names[ i - 1 ].bv_len = 0;
+		BER_BVZERO( &row->col_names[ i - 1 ] );
 		row->cols[ i - 1 ] = NULL;
 	}
 
@@ -228,18 +211,31 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 }
 
 RETCODE
-backsql_FreeRow( BACKSQL_ROW_NTS *row )
+backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
+{
+	return backsql_BindRowAsStrings_x( sth, row, NULL );
+}
+
+RETCODE
+backsql_FreeRow_x( BACKSQL_ROW_NTS *row, void *ctx )
 {
 	if ( row->cols == NULL ) {
 		return SQL_ERROR;
 	}
 
-	ber_bvarray_free( row->col_names );
-	ldap_charray_free( row->cols );
-	free( row->col_prec );
-	free( row->value_len );
+	ber_bvarray_free_x( row->col_names, ctx );
+	ber_memvfree_x( (void **)row->cols, ctx );
+	ber_memfree_x( row->col_prec, ctx );
+	ber_memfree_x( row->value_len, ctx );
 
 	return SQL_SUCCESS;
+}
+
+
+RETCODE
+backsql_FreeRow( BACKSQL_ROW_NTS *row )
+{
+	return backsql_FreeRow_x( row, NULL );
 }
 
 static int
@@ -257,10 +253,13 @@ backsql_cmp_connid( const void *v_c1, const void *v_c2 )
 	return 0;
 }
 
-static int
-backsql_close_db_conn( backsql_db_conn *conn )
+static void
+backsql_close_db_conn( void *v_conn )
 {
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_close_db_conn()\n", 0, 0, 0 );
+	backsql_db_conn	*conn = 	(backsql_db_conn *)v_conn;
+
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_close_db_conn(%lu)\n",
+		conn->ldap_cid, 0, 0 );
 
 	/*
 	 * Default transact is SQL_ROLLBACK; commit is required only
@@ -272,8 +271,19 @@ backsql_close_db_conn( backsql_db_conn *conn )
 	SQLTransact( SQL_NULL_HENV, conn->dbh, SQL_ROLLBACK );
 	SQLDisconnect( conn->dbh );
 	SQLFreeConnect( conn->dbh );
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_close_db_conn()\n", 0, 0, 0 );
-	return 1;
+	ch_free( conn );
+
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_close_db_conn(%lu)\n",
+		conn->ldap_cid, 0, 0 );
+}
+
+int
+backsql_conn_destroy(
+	backsql_info	*bi )
+{
+	avl_free( bi->sql_db_conns, backsql_close_db_conn );
+
+	return 0;
 }
 
 int
@@ -283,6 +293,7 @@ backsql_init_db_env( backsql_info *bi )
 	int		ret = SQL_SUCCESS;
 	
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_init_db_env()\n", 0, 0, 0 );
+
 	rc = SQLAllocEnv( &bi->sql_db_env );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "init_db_env: SQLAllocEnv failed:\n",
@@ -291,7 +302,9 @@ backsql_init_db_env( backsql_info *bi )
 				SQL_NULL_HENV, rc );
 		ret = SQL_ERROR;
 	}
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_init_db_env()=%d\n", ret, 0, 0 );
+
 	return ret;
 }
 
@@ -300,10 +313,8 @@ backsql_free_db_env( backsql_info *bi )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_env()\n", 0, 0, 0 );
 
-#ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "free_db_env(): delete AVL tree here!!!\n",
-			0, 0, 0 );
-#endif /* BACKSQL_TRACE */
+	(void)SQLFreeEnv( bi->sql_db_env );
+	bi->sql_db_env = SQL_NULL_HENV;
 
 	/*
 	 * stop, if frontend waits for all threads to shutdown 
@@ -311,6 +322,7 @@ backsql_free_db_env( backsql_info *bi )
 	 * everything is already deleted...
 	 */
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_free_db_env()\n", 0, 0, 0 );
+
 	return SQL_SUCCESS;
 }
 
@@ -322,16 +334,18 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 	backsql_db_conn		*dbc;
 	int			rc;
 
-	assert( pdbc );
+	assert( pdbc != NULL );
 	*pdbc = NULL;
  
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_open_db_conn()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_open_db_conn(%lu)\n",
+		ldap_cid, 0, 0 );
+
 	dbc = (backsql_db_conn *)ch_calloc( 1, sizeof( backsql_db_conn ) );
 	dbc->ldap_cid = ldap_cid;
 	rc = SQLAllocConnect( bi->sql_db_env, &dbc->dbh );
 	if ( !BACKSQL_SUCCESS( rc ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
-			"SQLAllocConnect() failed:\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+			"SQLAllocConnect() failed:\n", ldap_cid, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, SQL_NULL_HDBC,
 				SQL_NULL_HENV, rc );
 		return LDAP_UNAVAILABLE;
@@ -342,9 +356,9 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 			(SQLCHAR*)bi->sql_dbuser, SQL_NTS,
 			(SQLCHAR*)bi->sql_dbpasswd, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
-			"SQLConnect() to database \"%s\" as user \"%s\" "
-			"%s:\n", bi->sql_dbname, bi->sql_dbuser,
+		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+			"SQLConnect() to database \"%s\" %s.\n",
+			ldap_cid, bi->sql_dbname,
 			rc == SQL_SUCCESS_WITH_INFO ?
 			"succeeded with info" : "failed" );
 		backsql_PrintErrors( bi->sql_db_env, dbc->dbh, SQL_NULL_HENV, rc );
@@ -371,28 +385,28 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 	if ( rc == SQL_SUCCESS ) {
 		if ( strcmp( DBMSName, "TimesTen" ) == 0 ||
 				strcmp( DBMSName, "Front-Tier" ) == 0 ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
-				"TimesTen database!\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+				"TimesTen database!\n", ldap_cid, 0, 0 );
 			bi->sql_flags |= BSQLF_USE_REVERSE_DN;
 		}
 	} else {
-		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
-			"SQLGetInfo() failed:\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+			"SQLGetInfo() failed.\n", ldap_cid, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbc->dbh, SQL_NULL_HENV, rc );
 		return rc;
 	}
 	/* end TimesTen */
 
-	Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(): "
-		"connected, adding to tree\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+		"connected, adding to tree.\n", ldap_cid, 0, 0 );
 	ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
 	if ( avl_insert( &bi->sql_db_conns, dbc, backsql_cmp_connid, avl_dup_error ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
-			"duplicate connection ID\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+			"duplicate connection ID.\n", ldap_cid, 0, 0 );
 		return LDAP_OTHER;
 	}
 	ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn(%lu)\n", ldap_cid, 0, 0 );
 
 	*pdbc = dbc;
 
@@ -418,11 +432,14 @@ backsql_free_db_conn( Operation *op )
 	 */
 	if ( conn != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_free_db_conn(): "
-			"closing db connection\n", 0, 0, 0 );
-		backsql_close_db_conn( conn );
+			"closing db connection %lu (%p)\n",
+			op->o_connid, conn, 0 );
+		backsql_close_db_conn( (void *)conn );
 	}
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_free_db_conn()\n", 0, 0, 0 );
-	return SQL_SUCCESS;
+
+	return conn ? SQL_SUCCESS : SQL_ERROR;
 }
 
 int
@@ -435,7 +452,7 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_db_conn()\n", 0, 0, 0 );
 
-	assert( dbh );
+	assert( dbh != NULL );
 	*dbh = SQL_NULL_HDBC;
 
 	tmp.ldap_cid = op->o_connid;

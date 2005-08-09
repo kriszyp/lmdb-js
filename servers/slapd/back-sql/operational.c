@@ -84,7 +84,7 @@ backsql_operational_entryCSN( Operation *op )
 
 #ifdef BACKSQL_SYNCPROV
 	if ( op->o_sync && op->o_tag == LDAP_REQ_SEARCH ) {
-		assert( op->o_private );
+		assert( op->o_private != NULL );
 
 		entryCSN = *((struct berval *)op->o_private);
 
@@ -158,13 +158,13 @@ backsql_operational(
 			&& !got[ BACKSQL_OP_HASSUBORDINATES ]
 			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL )
 	{
-		rc = backsql_has_children( bi, dbh, &rs->sr_entry->e_nname );
+		rc = backsql_has_children( op, dbh, &rs->sr_entry->e_nname );
 
 		switch( rc ) {
 		case LDAP_COMPARE_TRUE:
 		case LDAP_COMPARE_FALSE:
 			*ap = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
-			assert( *ap );
+			assert( *ap != NULL );
 			ap = &(*ap)->a_next;
 			rc = 0;
 			break;
@@ -184,7 +184,6 @@ backsql_operational(
 
 		rc = backsql_init_search( &bsi, &rs->sr_entry->e_nname,
 				LDAP_SCOPE_BASE,
-				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 				(time_t)(-1), NULL, dbh, op, rs, NULL,
 				BACKSQL_ISF_GET_ID );
 		if ( rc != LDAP_SUCCESS ) {

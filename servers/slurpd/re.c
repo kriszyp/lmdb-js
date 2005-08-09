@@ -423,6 +423,7 @@ getchangetype(
 
 
 
+#if 0
 /*
  * Find the first line which is not a "replica:" line in buf.
  * Returns a pointer to the line.  Returns NULL if there are
@@ -448,6 +449,7 @@ skip_replica_lines(
 	}
     }
 }
+#endif /* 0 */
 
 
 

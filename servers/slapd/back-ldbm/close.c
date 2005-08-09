@@ -26,8 +26,6 @@
 int
 ldbm_back_db_close( Backend *be )
 {
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend syncing\n", 0, 0, 0 );
 
 	ldbm_cache_flush_all( be );

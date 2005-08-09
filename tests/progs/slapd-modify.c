@@ -148,10 +148,12 @@ do_modify( char *uri, char *host, int port, char *manager,
 
 	struct ldapmod mod;
 	struct ldapmod *mods[2];
-	char *values[2] = { value, NULL };
+	char *values[2];
 
 	pid = getpid();
 	
+	values[0] = value;
+	values[1] = NULL;
 	mod.mod_op = LDAP_MOD_ADD;
 	mod.mod_type = attr;
 	mod.mod_values = values;
