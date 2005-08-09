@@ -1,4 +1,4 @@
-# Copyright 1999-2003, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2005, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Using SASL
@@ -328,15 +328,15 @@ become available (see below).
 
 The LDAP administrator will need to tell the slapd server how to
 map an authentication request DN to a user's authentication DN.
-This is done by adding one or more {{EX:sasl-regexp}} directives to
+This is done by adding one or more {{EX:authz-regexp}} directives to
 the {{slapd.conf}}(5) file.  This directive takes two arguments:
 
->	sasl-regexp   <search pattern>   <replacement pattern>
+>	authz-regexp   <search pattern>   <replacement pattern>
 
 The authentication request DN is compared to the search pattern
 using the regular expression functions {{regcomp}}() and {{regexec}}(),
 and if it matches, it is rewritten as the replacement pattern. If
-there are multiple {{EX:sasl-regexp}} directives, only the first
+there are multiple {{EX:authz-regexp}} directives, only the first
 whose search pattern matches the authentication identity is used.
 The string that is output from the replacement pattern should be
 the authentication DN of the user or an LDAP URL.  If replacement
@@ -375,16 +375,16 @@ and the user's actual LDAP entry is:
 
 >	uid=adamson,ou=people,dc=example,dc=com
 
-then the following {{EX:sasl-regexp}} directive in {{slapd.conf}}(5)
+then the following {{EX:authz-regexp}} directive in {{slapd.conf}}(5)
 would provide for direct mapping.
 
->	sasl-regexp 
+>	authz-regexp 
 >	  uid=([^,]*),cn=example.com,cn=gssapi,cn=auth
 >	  uid=$1,ou=people,dc=example,dc=com
 
 An even more lenient rule could be written as
 
->	sasl-regexp
+>	authz-regexp
 >	  uid=([^,]*),cn=[^,]*,cn=auth 
 >	  uid=$1,ou=people,dc=example,dc=com
 
@@ -395,11 +395,11 @@ several strict directives than one lenient directive which has
 security holes.  If there is only one authentication mechanism in
 place at your site, and zero or one realms in use, you might be
 able to map between authentication identities and LDAP DN's with a
-single {{EX:sasl-regexp}} directive.
+single {{EX:authz-regexp}} directive.
 
 Don't forget to allow for the case where the realm is omitted as
 well as the case with an explicitly specified realm. This may well
-require a separate {{EX:sasl-regexp}} directive for each case, with
+require a separate {{EX:authz-regexp}} directive for each case, with
 the explicit-realm entry being listed first.
 
 H3: Search-based mappings
@@ -421,7 +421,7 @@ user whose entry is as follows:
 The information in the authentication request DN is insufficient
 to allow the user's DN to be directly derived, instead the user's
 DN must be searched for.  For these situations, a replacement pattern
-which produces a LDAP URL can be used in the {{EX:sasl-regexp}}
+which produces a LDAP URL can be used in the {{EX:authz-regexp}}
 directives.  This URL will then be used to perform an internal
 search of the LDAP database to find the person's authentication DN.
 
@@ -441,10 +441,10 @@ maintain the clarity of what information goes where in the string.
 
 Suppose that the person in the example from above did in fact have
 an authentication username of "adamson" and that information was
-kept in the attribute "uid" in their LDAP entry. The {{EX:sasl-regexp}}
+kept in the attribute "uid" in their LDAP entry. The {{EX:authz-regexp}}
 directive might be written as
 
->	sasl-regexp 
+>	authz-regexp 
 >	  uid=([^,]*),cn=example.com,cn=gssapi,cn=auth  
 >	  ldap:///ou=people,dc=example,dc=com??one?(uid=$1)
 
@@ -465,17 +465,17 @@ to a different subtree in the directory.  These can be handled with
 statements of the form:
 
 >	# Match Engineering realm
->	sasl-regexp
+>	authz-regexp
 >	   uid=([^,]*),cn=engineering.example.com,cn=digest-md5,cn=auth
 >	   ldap:///dc=eng,dc=example,dc=com??one?(&(uid=$1)(objectClass=person))
 >
 >	# Match Accounting realm
->	sasl-regexp
+>	authz-regexp
 >	   uid=([^,].*),cn=accounting.example.com,cn=digest-md5,cn=auth
 >	   ldap:///dc=accounting,dc=example,dc=com??one?(&(uid=$1)(objectClass=person))
 >
 >	# Default realm is customers.example.com
->	sasl-regexp
+>	authz-regexp
 >	   uid=([^,]*),cn=digest-md5,cn=auth
 >	   ldap:///dc=customers,dc=example,dc=com??one?(&(uid=$1)(objectClass=person))
 
@@ -580,7 +580,7 @@ an {{authorization request DN}} of the form
 >	uid=<username>,cn=<realm>,cn=<mechanism>,cn=auth
 
 That authorization request DN is then run through the same
-{{EX:sasl-regexp}} process to convert it into a legitimate authorization
+{{EX:authz-regexp}} process to convert it into a legitimate authorization
 DN from the database. If it cannot be converted due to a failed
 search from an LDAP URL, the authorization request fails with
 "inappropriate access".  Otherwise, the DN string is now a legitimate
@@ -597,10 +597,10 @@ Once slapd has the authorization DN, the actual approval process
 begins. There are two attributes that the LDAP administrator can
 put into LDAP entries to allow authorization:
 
->	saslAuthzTo
->	saslAuthzFrom
+>	authzTo
+>	authzFrom
 
-Both can be multivalued.  The {{EX:saslAuthzTo}} attribute is a
+Both can be multivalued.  The {{EX:authzTo}} attribute is a
 source rule, and it is placed into the entry associated with the
 authentication DN to tell what authorization DNs the authenticated
 DN is allowed to assume.  The second attribute is a destination
@@ -609,8 +609,8 @@ authorization DN to tell which authenticated DNs may assume it.
 
 The choice of which authorization policy attribute to use is up to
 the administrator.  Source rules are checked first in the person's
-authentication DN entry, and if none of the {{EX:saslAuthzTo}} rules
-specify the authorization is permitted, the {{EX:saslAuthzFrom}}
+authentication DN entry, and if none of the {{EX:authzTo}} rules
+specify the authorization is permitted, the {{EX:authzFrom}}
 rules in the authorization DN entry are then checked. If neither
 case specifies that the request be honored, the request is denied.
 Since the default behaviour is to deny authorization requests, rules
@@ -618,16 +618,16 @@ only specify that a request be allowed; there are no negative rules
 telling what authorizations to deny.
 
 The value(s) in the two attributes are of the same form as the
-output of the replacement pattern of a {{EX:sasl-regexp}} directive:
-either a DN or an LDAP URL. For example, if a {{EX:saslAuthzTo}}
+output of the replacement pattern of a {{EX:authz-regexp}} directive:
+either a DN or an LDAP URL. For example, if a {{EX:authzTo}}
 value is a DN, that DN is one the authenticated user can authorize
-to. On the other hand, if the {{EX:saslAuthzTo}} value is an LDAP
+to. On the other hand, if the {{EX:authzTo}} value is an LDAP
 URL, the URL is used as an internal search of the LDAP database,
 and the authenticated user can become ANY DN returned by the search.
 If an LDAP entry looked like:
 
 >	dn: cn=WebUpdate,dc=example,dc=com
->	saslAuthzTo: ldap:///dc=example,dc=com??sub?(objectclass=person)
+>	authzTo: ldap:///dc=example,dc=com??sub?(objectclass=person)
 
 then any user who authenticated as {{EX:cn=WebUpdate,dc=example,dc=com}}
 could authorize to any other LDAP entry under the search base
@@ -636,18 +636,18 @@ could authorize to any other LDAP entry under the search base
 
 H4: Notes on Proxy Authorization Rules
 
-An LDAP URL in a {{EX:saslAuthzTo}} or {{EX:saslAuthzFrom}} attribute
+An LDAP URL in a {{EX:authzTo}} or {{EX:authzFrom}} attribute
 will return a set of DNs.  Each DN returned will be checked.  Searches
 which return a large set can cause the authorization process to
 take an uncomfortably long time. Also, searches should be performed
 on attributes that have been indexed by slapd.
 
-To help produce more sweeping rules for {{EX:saslAuthzFrom}} and
-{{EX:saslAuthzTo}}, the values of these attributes are allowed to
+To help produce more sweeping rules for {{EX:authzFrom}} and
+{{EX:authzTo}}, the values of these attributes are allowed to
 be DNs with regular expression characters in them. This means a
 source rule like
 
->	saslAuthzTo: uid=[^,]*,dc=example,dc=com
+>	authzTo: uid=[^,]*,dc=example,dc=com
 
 would allow that authenticated user to authorize to any DN that
 matches the regular expression pattern given. This regular expression
@@ -663,8 +663,8 @@ identity of the form "{{EX:u:<username>}}" as an authorization rule.
 
 H4: Policy Configuration
 
-The decision of which type of rules to use, {{EX:saslAuthzFrom}}
-or {{EX:saslAuthzTo}}, will depend on the site's situation. For
+The decision of which type of rules to use, {{EX:authzFrom}}
+or {{EX:authzTo}}, will depend on the site's situation. For
 example, if the set of people who may become a given identity can
 easily be written as a search filter, then a single destination
 rule could be written. If the set of people is not easily defined
@@ -673,16 +673,16 @@ to write a source rule in the entries of each of those people who
 should be allowed to perform the proxy authorization.
 
 By default, processing of proxy authorization rules is disabled.
-The {{EX:sasl-authz-policy}} directive must be set in the
+The {{EX:authz-policy}} directive must be set in the
 {{slapd.conf}}(5) file to enable authorization. This directive can
 be set to {{EX:none}} for no rules (the default), {{EX:from}} for
 source rules, {{EX:to}} for destination rules, or {{EX:both}} for
 both source and destination rules.
 
 Destination rules are extremely powerful. If ordinary users have
-access to write the {{EX:saslAuthzTo}} attribute in their own
+access to write the {{EX:authzTo}} attribute in their own
 entries, then they can write rules that would allow them to authorize
 as anyone else.  As such, when using destination rules, the
-{{EX:saslAuthzTo}} attribute should be protected with an ACL that
+{{EX:authzTo}} attribute should be protected with an ACL that
 only allows privileged users to set its values.
 

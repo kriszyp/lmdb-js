@@ -12,12 +12,12 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#include <string.h>
 #include <unistd.h>
 
 #include <lber.h>
 #include <lber_pvt.h>	/* BER_BVC definition */
 #include "lutil.h"
+#include <ac/string.h>
 
 #ifdef HAVE_KRB5
 #include <krb5.h>

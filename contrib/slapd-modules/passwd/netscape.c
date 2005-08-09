@@ -12,13 +12,13 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#include <string.h>
 #include <unistd.h>
 
 #include <lber.h>
 #include <lber_pvt.h>
 #include "lutil.h"
 #include "lutil_md5.h"
+#include <ac/string.h>
 
 static LUTIL_PASSWD_CHK_FUNC chk_ns_mta_md5;
 static const struct berval scheme = BER_BVC("{NS-MTA-MD5}");

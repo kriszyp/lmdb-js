@@ -338,8 +338,7 @@ handle_private_option( int i )
 					exit( EXIT_FAILURE );
 				}
 			} else {
-				fprintf( stderr, _("Invalid value for PagedResultsControl.\n"),
-					cvalue);
+				fprintf(stderr, _("Invalid value for PagedResultsControl.\n"));
 				exit( EXIT_FAILURE );
 			}
 			pageSize = (ber_int_t) tmp;
@@ -466,7 +465,7 @@ handle_private_option( int i )
 		++ldif;
 		break;
 	case 's':	/* search scope */
-		if ( strncasecmp( optarg, "base", sizeof("base"-1) ) == 0 ) {
+		if ( strncasecmp( optarg, "base", sizeof("base")-1 ) == 0 ) {
 			scope = LDAP_SCOPE_BASE;
 		} else if ( strncasecmp( optarg, "one", sizeof("one")-1 ) == 0 ) {
 			scope = LDAP_SCOPE_ONELEVEL;
@@ -604,7 +603,7 @@ main( int argc, char **argv )
 	{
 		filtpattern = "(objectclass=*)";
 	} else {
-		filtpattern = strdup( argv[optind++] );
+		filtpattern = argv[optind++];
 	}
 
 	if ( argv[optind] != NULL ) {

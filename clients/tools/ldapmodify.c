@@ -316,12 +316,12 @@ main( int argc, char **argv )
 #endif
 		|| preread || postread )
 	{
-		int err;
 		int i = 0;
 		LDAPControl c[1];
 
 #ifdef LDAP_GROUP_TRANSACTION
 		if( txn ) {
+			int err;
 			txnber = ber_alloc_t( LBER_USE_DER );
 			if( txnber == NULL ) return EXIT_FAILURE;
 
@@ -720,6 +720,9 @@ end_line:
 	if ( newrdn != NULL ) {
 		free( newrdn );
 	}
+	if ( newsup != NULL ) {
+		free( newsup );
+	}
 	if ( pmods != NULL ) {
 		ldap_mods_free( pmods, 1 );
 	}
@@ -1117,7 +1120,7 @@ static int process_response(
 {
 	LDAPMessage	*res;
 	int		rc = LDAP_OTHER;
-	struct timeval	tv = { 0 };
+	struct timeval	tv = { 0, 0 };
 
 	for ( ; ; ) {
 		tv.tv_sec = 0;
@@ -1144,7 +1147,6 @@ static int process_response(
 		}
 	}
 
-done:;
 	if ( ldap_msgtype( res ) != LDAP_RES_INTERMEDIATE ) {
 		rc = ldap_result2error( ld, res, 1 );
 		if( rc != LDAP_SUCCESS ) ldap_perror( ld, opstr );

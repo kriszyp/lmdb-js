@@ -25,6 +25,10 @@ command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
 describes the general format of the configuration system, followed by a
 detailed description of commonly used config settings.
 
+Note: some of the backends and of the distributed overlays
+do not support runtime configuration yet.  In those cases,
+the old style {{slapd.conf}}(5) file must be used.
+
 Note: the current version of {{slurpd}} has not been updated for
 compatibility with this new configuration engine. If you must use
 slurpd for replication at your site, you will have to maintain an
@@ -371,7 +375,9 @@ supported backend types listed in Table 5.2.
 	title="Table 5.2: Database Backends"
 Types	Description
 bdb	Berkeley DB transactional backend
+config	Slapd configuration backend
 dnssrv	DNS SRV backend
+hdb	Hierarchical variant of bdb backend
 ldap	Lightweight Directory Access Protocol (Proxy) backend
 ldbm	Lightweight DBM backend
 ldif	Lightweight Data Interchange Format backend
@@ -387,9 +393,10 @@ sql	SQL Programmable backend
 
 >	olcBackend: bdb
 
-There are no other directives defined for this entry, so generally
-it will not be needed. However, specific backend types may define
-additional attributes for their particular use.
+There are no other directives defined for this entry.  Specific backend
+types may define additional attributes for their particular use but so
+far none have ever been defined.  As such, these directives usually do
+not appear in any actual configurations.
 
 
 H4: Sample Entry
@@ -416,6 +423,11 @@ The {{EX:frontend}} is a special database that is used to hold
 database-level options that should be applied to all the other
 databases. Subsequent database definitions may also override some
 frontend settings.
+
+The {{EX:config}} database is also special; both the {{EX:config}} and
+the {{EX:frontend}} databases are always created implicitly even if they
+are not explicitly configured, and they are created before any other
+databases.
 
 \Example:
 
@@ -761,12 +773,19 @@ If specified multiple times, each {{TERM:URL}} is provided.
 >	olcUpdateref:	ldap://master.example.net
 
 
-H4: Sample Entry
+H4: Sample Entries
 
 >dn: olcDatabase=frontend,cn=config
 >objectClass: olcDatabaseConfig
+>objectClass: olcFrontendConfig
 >olcDatabase: frontend
 >olcReadOnly: FALSE
+>
+>dn: olcDatabase=config,cn=config
+>objectClass: olcDatabaseConfig
+>olcDatabase: config
+>olcRootDN: cn=Manager,dc=example,dc=com
+
 
 H3: BDB and HDB Database Directives
 

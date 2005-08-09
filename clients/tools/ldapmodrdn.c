@@ -265,7 +265,7 @@ static int domodrdn(
 	}
 
 	for ( ; ; ) {
-		struct timeval	tv = { 0 };
+		struct timeval	tv = { 0, 0 };
 
 		if ( tool_check_abandon( ld, id ) ) {
 			return LDAP_CANCELLED;
