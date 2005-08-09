@@ -2286,7 +2286,8 @@ static int syncprov_parseCtrl (
 	LDAPControl *ctrl )
 {
 	ber_tag_t tag;
-	BerElement *ber;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 	ber_int_t mode;
 	ber_len_t len;
 	struct berval cookie = BER_BVNULL;
@@ -2320,11 +2321,7 @@ static int syncprov_parseCtrl (
 	 *      }
 	 */
 
-	ber = ber_init( &ctrl->ldctl_value );
-	if( ber == NULL ) {
-		rs->sr_text = "internal error";
-		return LDAP_OTHER;
-	}
+	ber_init2( ber, &ctrl->ldctl_value, 0 );
 
 	if ( (tag = ber_scanf( ber, "{i" /*}*/, &mode )) == LBER_ERROR ) {
 		rs->sr_text = "Sync control : mode decoding error";
@@ -2364,13 +2361,15 @@ static int syncprov_parseCtrl (
 	sr = op->o_tmpcalloc( 1, sizeof(struct sync_control), op->o_tmpmemctx );
 	sr->sr_rhint = rhint;
 	if (!BER_BVISNULL(&cookie)) {
-		ber_dupbv( &sr->sr_state.octet_str, &cookie );
+		ber_dupbv_x( &sr->sr_state.octet_str, &cookie, op->o_tmpmemctx );
 		slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx );
+		if ( sr->sr_state.rid == -1 ) {
+			rs->sr_text = "Sync control : cookie parsing error";
+			return LDAP_PROTOCOL_ERROR;
+		}
 	}
 
 	op->o_controls[slap_cids.sc_LDAPsync] = sr;
-
-	(void) ber_free( ber, 1 );
 
 	op->o_sync = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
