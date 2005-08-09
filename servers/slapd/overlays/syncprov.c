@@ -2346,7 +2346,7 @@ static int syncprov_parseCtrl (
 	tag = ber_peek_tag( ber, &len );
 
 	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
-		if (( ber_scanf( ber, /*{*/ "o", &cookie )) == LBER_ERROR ) {
+		if (( ber_scanf( ber, /*{*/ "m", &cookie )) == LBER_ERROR ) {
 			rs->sr_text = "Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
