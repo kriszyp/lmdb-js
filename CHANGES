@@ -11,6 +11,7 @@ OpenLDAP 2.2.28 Engineering
 	Fixed back-meta add w/o parent add (ITS#3804)
 	Fixed back-meta control propagation bug (ITS#3813)
 	Fixed syncrepl SASL bind crash (ITS#3792)
+	Fixed libldap infinite referral loop (ITS#2894, ITS#3578)
 
 OpenLDAP 2.2.27 Release
 	Fixed back-bdb/hdb slapcat checkpoint on close (ITS#3703)
