@@ -903,6 +903,7 @@ slapi_dn_parent( const char *_dn )
 {
 	struct berval	dn, prettyDN;
 	struct berval	parentDN;
+	char		*ret;
 
 	if ( _dn == NULL ) {
 		return NULL;
@@ -921,13 +922,15 @@ slapi_dn_parent( const char *_dn )
 
 	dnParent( &prettyDN, &parentDN ); /* in-place */
 
-	slapi_ch_free( (void **)&prettyDN.bv_val );
-
 	if ( parentDN.bv_len == 0 ) {
+		slapi_ch_free_string( &prettyDN.bv_val );
 		return NULL;
 	}
 
-	return slapi_ch_strdup( parentDN.bv_val );
+	ret = slapi_ch_strdup( parentDN.bv_val );
+	slapi_ch_free_string( &prettyDN.bv_val );
+
+	return ret;
 }
 
 int slapi_dn_isbesuffix( Slapi_PBlock *pb, char *ldn )
@@ -2691,19 +2694,13 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 
 /*
  * Synthesise an LDAPMod array from a Modifications list to pass
- * to SLAPI. This synthesis is destructive and as such the 
- * Modifications list may not be used after calling this 
- * function.
- * 
- * This function must also be called before slap_mods_check().
+ * to SLAPI.
  */
-LDAPMod **slapi_int_modifications2ldapmods( Modifications **pmodlist )
+LDAPMod **slapi_int_modifications2ldapmods( Modifications *modlist )
 {
-	Modifications *ml, *modlist;
+	Modifications *ml;
 	LDAPMod **mods, *modp;
 	int i, j;
-
-	modlist = *pmodlist;
 
 	for( i = 0, ml = modlist; ml != NULL; i++, ml = ml->sml_next )
 		;
@@ -2731,14 +2728,9 @@ LDAPMod **slapi_int_modifications2ldapmods( Modifications **pmodlist )
 			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ ) {
 				modp->mod_bvalues[j] = (struct berval *)slapi_ch_malloc(
 						sizeof(struct berval) );
-				/* Take ownership of original values. */
-				modp->mod_bvalues[j]->bv_len = ml->sml_values[j].bv_len;
-				modp->mod_bvalues[j]->bv_val = ml->sml_values[j].bv_val;
-				ml->sml_values[j].bv_len = 0;
-				ml->sml_values[j].bv_val = NULL;
+				ber_dupbv( modp->mod_bvalues[j], &ml->sml_values[j] );
 			}
 			modp->mod_bvalues[j] = NULL;
-			slapi_ch_free( (void **)&ml->sml_values );
 		} else {
 			modp->mod_bvalues = NULL;
 		}
@@ -2746,9 +2738,6 @@ LDAPMod **slapi_int_modifications2ldapmods( Modifications **pmodlist )
 	}
 
 	mods[i] = NULL;
-
-	slap_mods_free( modlist, 1 );
-	*pmodlist = NULL;
 
 	return mods;
 }

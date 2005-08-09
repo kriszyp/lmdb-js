@@ -607,7 +607,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 				rc = PBLOCK_ERROR;
 				break;
 			}
-			mods = slapi_int_modifications2ldapmods( &pb->pb_op->orm_modlist );
+			mods = slapi_int_modifications2ldapmods( pb->pb_op->orm_modlist );
 			pblock_set_default( pb, param, (void *)mods );
 		}
 		*((LDAPMod ***)value) = mods;
