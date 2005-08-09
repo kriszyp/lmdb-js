@@ -110,16 +110,7 @@ slapi_str2entry(
 	char		*s, 
 	int		flags )
 {
-	Slapi_Entry	*e = NULL;
-	char		*pTmpS;
-
-	pTmpS = slapi_ch_strdup( s );
-	if ( pTmpS != NULL ) {
-		e = str2entry( pTmpS ); 
-		slapi_ch_free( (void **)&pTmpS );
-	}
-
-	return e;
+	return str2entry( s );
 }
 
 char *
@@ -127,10 +118,13 @@ slapi_entry2str(
 	Slapi_Entry	*e, 
 	int		*len ) 
 {
-	char		*ret;
+	char		*ret = NULL;
+	char		*s;
 
 	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-	ret = entry2str( e, len );
+	s = entry2str( e, len );
+	if ( s != NULL )
+		ret = slapi_ch_strdup( s );
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 	return ret;
