@@ -210,7 +210,7 @@ ldap_parse_extended_result (
 		return ld->ld_errno;
 	}
 
-	rc = ber_scanf( ber, "{iaa" /*}*/, &errcode,
+	rc = ber_scanf( ber, "{eaa" /*}*/, &errcode,
 		&ld->ld_matched, &ld->ld_error );
 
 	if( rc == LBER_ERROR ) {

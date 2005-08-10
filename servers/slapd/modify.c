@@ -90,7 +90,7 @@ do_modify(
 
 		tmp.sml_nvalues = NULL;
 
-		if ( ber_scanf( op->o_ber, "{i{m[W]}}", &mop,
+		if ( ber_scanf( op->o_ber, "{e{m[W]}}", &mop,
 		    &tmp.sml_type, &tmp.sml_values ) == LBER_ERROR )
 		{
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR,

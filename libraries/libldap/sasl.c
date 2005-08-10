@@ -306,7 +306,7 @@ ldap_parse_sasl_bind_result(
 	} else {
 		ber_len_t len;
 
-		tag = ber_scanf( ber, "{iaa" /*}*/,
+		tag = ber_scanf( ber, "{eaa" /*}*/,
 			&errcode, &ld->ld_matched, &ld->ld_error );
 
 		if( tag == LBER_ERROR ) {
