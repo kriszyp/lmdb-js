@@ -223,11 +223,9 @@ typedef struct {
 #undef BACKSQL_ARBITRARY_KEY
 
 /*
- * define to enable experimental support for syncporv overlay
+ * define to enable support for syncprov overlay
  */
-#ifdef LDAP_DEVEL
 #define BACKSQL_SYNCPROV
-#endif /* LDAP_DEVEL */
 
 /*
  * define to the appropriate aliasing string
