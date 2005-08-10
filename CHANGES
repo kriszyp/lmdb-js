@@ -30,6 +30,7 @@ OpenLDAP 2.3.5 Engineering
 	Fixed slapcat cn=config segfault (ITS#3796)
 	Build Environment
 		Upgraded shtool (ITS#3752)
+		Upgraded config.guess/config.sub
 		Fixed FreeBSD thread stacksize problem (ITS#3456)
 		Fixed cygwin shared libraries build problem (ITS#3712)
 		Fixed acl_get/acl_mask v AIX symbol clash (ITS#3787)
