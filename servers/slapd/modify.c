@@ -344,13 +344,11 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	{
-		rs->sr_err = slap_mods_obsolete_check( op, modlist,
-			&rs->sr_text, textbuf, textlen );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			send_ldap_result( op, rs );
-			goto cleanup;
-		}
+	rs->sr_err = slap_mods_obsolete_check( op, modlist,
+		&rs->sr_text, textbuf, textlen );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto cleanup;
 	}
 
 	/* check for modify/increment support */
