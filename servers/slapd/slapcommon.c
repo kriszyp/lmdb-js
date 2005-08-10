@@ -525,12 +525,17 @@ slap_tool_init(
 		}
 
 	} else if ( dbnum == -1 ) {
+		/* no suffix and no dbnum specified, just default to
+		 * the first available database
+		 */
 		if ( nbackends <= 0 ) {
 			fprintf( stderr, "No available databases\n" );
 			exit( EXIT_FAILURE );
 		}
 		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 			dbnum++;
+
+			/* db #0 is cn=config, don't select it as a default */
 			if ( dbnum < 1 ) continue;
 		
 		 	if ( SLAP_MONITOR(be))
@@ -552,19 +557,19 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 		}
 		
-		if ( nosubordinates == 0 && dbnum > 0 ) {
+		if ( nosubordinates == 0 && dbnum > 1 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"The first database does not allow %s;"
 				" using the first available one (%d)\n",
-				progname, dbnum + 1, 0 );
+				progname, dbnum, 0 );
 		}
 
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr,
 			"Database number selected via -n is out of range\n"
-			"Must be in the range 1 to %d"
-			" (number of databases in the config file)\n",
-			nbackends );
+			"Must be in the range 0 to %d"
+			" (number of configured databases)\n",
+			nbackends-1 );
 		exit( EXIT_FAILURE );
 
 	} else {
