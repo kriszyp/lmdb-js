@@ -1380,8 +1380,13 @@ backend_group(
 
 	be_orig = op->o_bd;
 	op->o_bd = frontendDB;
+#ifdef SLAP_OVERLAY_ACCESS
 	rc = frontendDB->be_group( op, target, gr_ndn,
 		op_ndn, group_oc, group_at );
+#else /* ! SLAP_OVERLAY_ACCESS */
+	rc = fe_acl_group( op, target, gr_ndn,
+		op_ndn, group_oc, group_at );
+#endif /* ! SLAP_OVERLAY_ACCESS */
 	op->o_bd = be_orig;
 
 	return rc;
@@ -1509,8 +1514,13 @@ backend_attribute(
 
 	be_orig = op->o_bd;
 	op->o_bd = frontendDB;
+#ifdef SLAP_OVERLAY_ACCESS
 	rc = frontendDB->be_attribute( op, target, edn,
 		entry_at, vals, access );
+#else /* !SLAP_OVERLAY_ACCESS */
+	rc = fe_acl_attribute( op, target, edn,
+		entry_at, vals, access );
+#endif /* !SLAP_OVERLAY_ACCESS */
 	op->o_bd = be_orig;
 
 	return rc;
