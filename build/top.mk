@@ -70,8 +70,7 @@ MKDEP_CFLAGS = @OL_MKDEP_FLAGS@
 
 MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 
-# libtool 1.5+ requires "--tag=CC", but leave it off until we migrate
-LIBTOOL = @LIBTOOL@ # --tag=CC
+LIBTOOL = @LIBTOOL@
 LIBRELEASE = @OPENLDAP_LIBRELEASE@
 LIBVERSION = @OPENLDAP_LIBVERSION@
 LTVERSION = -release $(LIBRELEASE) -version-info $(LIBVERSION)
