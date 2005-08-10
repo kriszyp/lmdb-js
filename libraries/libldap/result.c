@@ -555,7 +555,7 @@ nextresp2:
 			ber_len_t	len;
 			char		*lr_res_error = NULL;
 
-			if ( ber_scanf( &tmpber, "{iaa",/*}*/ &lderr,
+			if ( ber_scanf( &tmpber, "{eaa",/*}*/ &lderr,
 				    &lr->lr_res_matched, &lr_res_error )
 				    != LBER_ERROR )
 			{
@@ -636,7 +636,7 @@ nextresp2:
 				 */
 				if ( tag == LDAP_RES_SEARCH_RESULT )
 					refer_cnt = 0;
-			} else if ( ber_scanf( &tmpber, "{iaa}", &lderr,
+			} else if ( ber_scanf( &tmpber, "{eaa}", &lderr,
 				&lr->lr_res_matched, &lr_res_error )
 				!= LBER_ERROR )
 			{
@@ -978,7 +978,7 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 		return( LBER_ERROR );
 	}
 
-	if ( ber_get_int( ber, &along ) == LBER_ERROR ) {
+	if ( ber_get_enum( ber, &along ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free(ber, 1);
 		return( LBER_ERROR );
