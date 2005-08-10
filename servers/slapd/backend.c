@@ -196,7 +196,7 @@ int backend_startup_one(Backend *be)
 	assert( be != NULL );
 
 	be->be_pending_csn_list = (struct be_pcl *)
-		ch_calloc( 1, sizeof( struct be_pcl ));
+		ch_calloc( 1, sizeof( struct be_pcl ) );
 
 	LDAP_TAILQ_INIT( be->be_pending_csn_list );
 

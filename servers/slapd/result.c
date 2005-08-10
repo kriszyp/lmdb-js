@@ -266,7 +266,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 
 		ber_init2( sber, NULL, LBER_USE_DER );
 
-		ber_printf( sber, "{i}", LDAP_UNWILLING_TO_PERFORM );
+		ber_printf( sber, "{e}", LDAP_UNWILLING_TO_PERFORM );
 
 		if( ber_flatten2( ber, &sorted.ldctl_value, 0 ) == -1 ) {
 			return -1;

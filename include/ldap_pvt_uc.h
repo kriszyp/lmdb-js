@@ -33,12 +33,8 @@ LDAP_BEGIN_DECL
  * UTF-8 (in utf-8.c)
  */
 
-typedef short ldap_ucs2_t;
-
-/* UCDATA uses UCS-2 passed in an unsigned long */
-typedef unsigned long ldap_unicode_t;
-#define ldap_utf8_to_unicode( p ) ldap_utf8_to_ucs4((p))
-#define ldap_unicode_to_utf8( c, buf ) ldap_ucs4_to_ucs4((c),(buf))
+/* UCDATA uses UCS-2 passed in a 4 byte unsigned int */
+typedef ac_uint4 ldap_unicode_t;
 
 /* Convert a string with csize octets per character to UTF-8 */
 LDAP_F( int ) ldap_ucs_to_utf8s LDAP_P((

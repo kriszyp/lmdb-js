@@ -8,6 +8,11 @@ OpenLDAP 2.3.5 Engineering
 	Fixed slapd-sql truncating keyval column problem (ITS#3888)
 	Fixed slapd-sql return code ignored problem (ITS#3891)
 	Fixed slapd-ldap access to freed connection (ITS#3913)
+	Fixed slapo-ppolicy hashed length problem (ITS#3783)
+	Fixed slapi slapi_int_init operation problem (ITS#3868)
+	Fixed slapi slapi_entry_has_children bug (ITS#3879)
+	Fixed slapd substrings filter length checks (ITS#3790)
+	Fixed slapd thread pool initialization (ITS#3793)
 	Build Environment
 		Upgraded shtool (ITS#3752)
 		Fixed cygwin shared libraries build problem (ITS#3712)
@@ -17,6 +22,9 @@ OpenLDAP 2.3.5 Engineering
 		Fixed test037 manageDIT discovery issue (ITS#3898)
 		Fixed <sasl.h> inclusion (ITS#3905)
 		Fixed TLS inclusion (ITS#3912)
+	Documentation
+		Fixed Admin Guide authz v. saslauthz problem (ITS#3875)
+		Updated slapd.conf (ITS#3866)
 
 OpenLDAP 2.3.4 Release
 	Initial release for "general use".

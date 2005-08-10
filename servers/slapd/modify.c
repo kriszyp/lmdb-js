@@ -90,7 +90,7 @@ do_modify(
 
 		tmp.sml_nvalues = NULL;
 
-		if ( ber_scanf( op->o_ber, "{i{m[W]}}", &mop,
+		if ( ber_scanf( op->o_ber, "{e{m[W]}}", &mop,
 		    &tmp.sml_type, &tmp.sml_values ) == LBER_ERROR )
 		{
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR,
@@ -344,13 +344,11 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	{
-		rs->sr_err = slap_mods_obsolete_check( op, modlist,
-			&rs->sr_text, textbuf, textlen );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			send_ldap_result( op, rs );
-			goto cleanup;
-		}
+	rs->sr_err = slap_mods_obsolete_check( op, modlist,
+		&rs->sr_text, textbuf, textlen );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto cleanup;
 	}
 
 	/* check for modify/increment support */

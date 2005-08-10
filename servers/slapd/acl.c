@@ -387,7 +387,6 @@ access_allowed_mask(
 	char				accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif
 	slap_mask_t			mask;
-	slap_control_t			control;
 	slap_access_t			access_level;
 	const char			*attr;
 	int				st_same_attr = 0;
@@ -483,14 +482,12 @@ access_allowed_mask(
 				e->e_dn, attr, 0 );
 			ACL_INIT( mask );
 
-		} else if ( control == ACL_BREAK ) {
+		} else {
 			Debug( LDAP_DEBUG_ACL,
 				"=> access_allowed: no more rules\n", 0, 0, 0 );
 
 			goto done;
 		}
-
-		ret = ACL_GRANT( mask, access );
 	}
 
 	Debug( LDAP_DEBUG_ACL,
