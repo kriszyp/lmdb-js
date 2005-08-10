@@ -272,6 +272,8 @@ int main( int argc, char **argv )
 
 	slap_sl_mem_init();
 
+	(void) ldap_pvt_thread_initialize();
+
 	serverName = lutil_progname( "slapd", argc, argv );
 
 	if ( strcmp( serverName, "slapd" ) ) {
@@ -530,8 +532,6 @@ unhandled_option:;
 			goto stop;
 		}
 	}
-
-	(void) ldap_pvt_thread_initialize();
 
 	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
