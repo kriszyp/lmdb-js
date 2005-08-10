@@ -1,6 +1,22 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.5 Engineering
+	Added slapd-sql enhancements (ITS#3432)
+	Fixed FreeBSD thread stacksize problem (ITS#3456)
+	Fixed slapi acl skipped issue (ITS#3886)
+	Fixed slapi authorization name issue (ITS#3892)
+	Fixed slapd-sql truncating keyval column problem (ITS#3888)
+	Fixed slapd-sql return code ignored problem (ITS#3891)
+	Fixed slapd-ldap access to freed connection (ITS#3913)
+	Build Environment
+		Upgraded shtool (ITS#3752)
+		Fixed cygwin shared libraries build problem (ITS#3712)
+		Fixed acl_get/acl_mask v AIX symbol clash (ITS#3787)
+		Fixed test020 logging problem (ITS#3811)
+		Fixed duplicate symbol problem (ITS#3843)
+		Fixed test037 manageDIT discovery issue (ITS#3898)
+		Fixed <sasl.h> inclusion (ITS#3905)
+		Fixed TLS inclusion (ITS#3912)
 
 OpenLDAP 2.3.4 Release
 	Initial release for "general use".
