@@ -268,15 +268,24 @@ str2entry2( char *s, int checkvals )
 			slap_syntax_transform_func *pretty =
 				ad->ad_type->sat_syntax->ssyn_pretty;
 
-			if( pretty ) {
+			if ( pretty ) {
+#ifdef SLAP_ORDERED_PRETTYNORM
+				rc = ordered_value_pretty( ad,
+					&vals[i], &pval, NULL );
+#else /* ! SLAP_ORDERED_PRETTYNORM */
 				rc = pretty( ad->ad_type->sat_syntax,
 					&vals[i], &pval, NULL );
+#endif /* ! SLAP_ORDERED_PRETTYNORM */
 
-			} else if( validate ) {
+			} else if ( validate ) {
 				/*
 			 	 * validate value per syntax
 			 	 */
+#ifdef SLAP_ORDERED_PRETTYNORM
+				rc = ordered_value_validate( ad, &vals[i] );
+#else /* ! SLAP_ORDERED_PRETTYNORM */
 				rc = validate( ad->ad_type->sat_syntax, &vals[i] );
+#endif /* ! SLAP_ORDERED_PRETTYNORM */
 
 			} else {
 				Debug( LDAP_DEBUG_ANY,
@@ -303,16 +312,24 @@ str2entry2( char *s, int checkvals )
 			}
 		}
 
-		if( ad->ad_type->sat_equality &&
+		if ( ad->ad_type->sat_equality &&
 			ad->ad_type->sat_equality->smr_normalize )
 		{
+#ifdef SLAP_ORDERED_PRETTYNORM
+			rc = ordered_value_normalize(
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+				ad,
+				ad->ad_type->sat_equality,
+				&vals[i], &nvals[i], NULL );
+#else /* ! SLAP_ORDERED_PRETTYNORM */
 			rc = ad->ad_type->sat_equality->smr_normalize(
 				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 				ad->ad_type->sat_syntax,
 				ad->ad_type->sat_equality,
 				&vals[i], &nvals[i], NULL );
+#endif /* ! SLAP_ORDERED_PRETTYNORM */
 
-			if( rc ) {
+			if ( rc ) {
 				Debug( LDAP_DEBUG_ANY,
 			   		"<= str2entry NULL (smr_normalize %d)\n", rc, 0, 0 );
 				goto fail;

@@ -1513,6 +1513,24 @@ LDAP_SLAPD_F (int) ordered_value_add LDAP_P((
 	BerVarray vals,
 	BerVarray nvals ));
 
+LDAP_SLAPD_F (int) ordered_value_validate LDAP_P((
+	AttributeDescription *ad,
+	struct berval *in ));
+
+LDAP_SLAPD_F (int) ordered_value_pretty LDAP_P((
+	AttributeDescription *ad,
+	struct berval *val,
+	struct berval *out,
+	void *ctx ));
+
+LDAP_SLAPD_F (int) ordered_value_normalize LDAP_P((
+	slap_mask_t usage,
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx ));
+
 LDAP_SLAPD_F (int) ordered_value_match LDAP_P((
 	int *match,
 	AttributeDescription *ad,
