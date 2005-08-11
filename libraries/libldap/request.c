@@ -201,8 +201,8 @@ ldap_send_server_request(
 		if ( srvlist == NULL ) {
 			lc = ld->ld_defconn;
 		} else {
-			if (( lc = find_connection( ld, srvlist, 1 )) ==
-			    NULL ) {
+			lc = find_connection( ld, srvlist, 1 );
+			if ( lc == NULL ) {
 				if ( (bind != NULL) && (parentreq != NULL) ) {
 					/* Remember the bind in the parent */
 					incparent = 1;
@@ -357,7 +357,9 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 		/* V3 rebind function */
 		if ( ld->ld_rebind_proc != NULL) {
 			LDAPURLDesc	*srvfunc;
-			if( ( srvfunc = ldap_url_dup( srvlist)) == NULL) {
+
+			srvfunc = ldap_url_dup( srvlist );
+			if ( srvfunc == NULL ) {
 				ld->ld_errno = LDAP_NO_MEMORY;
 				err = -1;
 			} else {
