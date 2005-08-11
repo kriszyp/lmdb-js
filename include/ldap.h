@@ -1338,6 +1338,10 @@ ldap_initialize LDAP_P((
  */
 
 LDAP_F( int )
+ldap_tls_inplace LDAP_P((
+	LDAP *ld ));
+
+LDAP_F( int )
 ldap_start_tls LDAP_P((
 	LDAP *ld,
 	LDAPControl **serverctrls,

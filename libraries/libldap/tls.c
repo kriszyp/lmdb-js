@@ -827,6 +827,20 @@ ldap_pvt_tls_inplace ( Sockbuf *sb )
 	return HAS_TLS( sb ) ? 1 : 0;
 }
 
+int
+ldap_tls_inplace( LDAP *ld )
+{
+	Sockbuf		*sb = NULL;
+	int		rc;
+
+	rc = ldap_get_option( ld, LDAP_OPT_SOCKBUF, (void *)&sb );
+	if ( rc != LDAP_SUCCESS || sb == NULL ) {
+		return 0;
+	}
+
+	return ldap_pvt_tls_inplace( sb );
+}
+
 static X509 *
 tls_get_cert( SSL *s )
 {
