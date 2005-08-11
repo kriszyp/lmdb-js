@@ -908,8 +908,22 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 		struct berval	bv;
+#ifdef SLAP_AUTHZ_SYNTAX
+		struct berval	in;
+		int		rc;
 
+		ber_str2bv( c->argv[ 1 ], 0, 0, &in );
+		rc = authzNormalize( 0, NULL, NULL, &in, &bv, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: %d: "
+				"\"idassert-authzFrom <authz>\": "
+				"invalid syntax.\n",
+				c->fname, c->lineno );
+			return 1;
+		}
+#else /* !SLAP_AUTHZ_SYNTAX */
 		ber_str2bv( c->argv[ 1 ], 0, 1, &bv );
+#endif /* !SLAP_AUTHZ_SYNTAX */
 		ber_bvarray_add( &li->idassert_authz, &bv );
 		} break;
 

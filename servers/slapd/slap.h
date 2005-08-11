@@ -72,6 +72,7 @@ LDAP_BEGIN_DECL
 #define SLAPD_CONF_UNKNOWN_BAILOUT
 
 #define SLAP_ORDERED_PRETTYNORM
+#define SLAP_AUTHZ_SYNTAX
 
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
