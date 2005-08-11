@@ -90,14 +90,14 @@ ldap_ld_free(
 	while ( ld->ld_requests != NULL ) {
 		ldap_free_request( ld, ld->ld_requests );
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
 
 	/* free and unbind from all open connections */
 	while ( ld->ld_conns != NULL ) {
 		ldap_free_connection( ld, ld->ld_conns, 1, close );
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
@@ -199,7 +199,8 @@ ldap_unbind_s( LDAP *ld )
 	return( ldap_unbind_ext( ld, NULL, NULL ) );
 }
 
-
+/* FIXME: this function is called only by ldap_free_connection(),
+ * which, most of the times, is called with ld_req_mutex locked */
 int
 ldap_send_unbind(
 	LDAP *ld,
@@ -221,7 +222,8 @@ ldap_send_unbind(
 		return( ld->ld_errno );
 	}
 
-	LDAP_NEXT_MSGID( ld, id );
+	id = ++(ld)->ld_msgid;
+
 	/* fill it in */
 	if ( ber_printf( ber, "{itn" /*}*/, id,
 	    LDAP_REQ_UNBIND ) == -1 ) {
@@ -242,18 +244,12 @@ ldap_send_unbind(
 		return( ld->ld_errno );
 	}
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
 	ld->ld_errno = LDAP_SUCCESS;
 	/* send the message */
 	if ( ber_flush( sb, ber, 1 ) == -1 ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;
 		ber_free( ber, 1 );
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
 
 	return( ld->ld_errno );
 }

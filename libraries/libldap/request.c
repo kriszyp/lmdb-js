@@ -482,7 +482,8 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		if ( lc->lconn_status == LDAP_CONNST_CONNECTED ) {
 			ldap_mark_select_clear( ld, lc->lconn_sb );
 			if ( unbind ) {
-				ldap_send_unbind( ld, lc->lconn_sb, NULL, NULL );
+				ldap_send_unbind( ld, lc->lconn_sb,
+						NULL, NULL );
 			}
 		}
 
@@ -909,10 +910,10 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 #endif
 		if ( rc < 0 ) {
 			/* Failure, try next referral in the list */
-			Debug( LDAP_DEBUG_ANY, "Unable to chase referral \"%s\" (%s)\n", 
-				refarray[i], ldap_err2string( ld->ld_errno ), 0);
-			unfollowedcnt += ldap_append_referral( ld, &unfollowed, refarray[i]);
-			ldap_free_urllist(srv);
+			Debug( LDAP_DEBUG_ANY, "Unable to chase referral \"%s\" (%d: %s)\n", 
+				refarray[i], ld->ld_errno, ldap_err2string( ld->ld_errno ) );
+			unfollowedcnt += ldap_append_referral( ld, &unfollowed, refarray[i] );
+			ldap_free_urllist( srv );
 			srv = NULL;
 		} else {
 			/* Success, no need to try this referral list further */
@@ -921,30 +922,30 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			*hadrefp = 1;
 
 			/* check if there is a queue of referrals that came in during bind */
-			if( lc == NULL) {
-				if (( lc = find_connection( ld, srv, 1 )) == NULL ) {
+			if ( lc == NULL) {
+				lc = find_connection( ld, srv, 1 );
+				if ( lc == NULL ) {
 					ld->ld_errno = LDAP_OPERATIONS_ERROR;
 					rc = -1;
 					goto done;
 				}
 			}
 
-			if( lc->lconn_rebind_queue != NULL) {
+			if ( lc->lconn_rebind_queue != NULL ) {
 				/* Release resources of previous list */
-				LDAP_VFREE(refarray);
+				LDAP_VFREE( refarray );
 				refarray = NULL;
-				ldap_free_urllist(srv);
+				ldap_free_urllist( srv );
 				srv = NULL;
 
 				/* Pull entries off end of queue so list always null terminated */
-				for( j = 0; lc->lconn_rebind_queue[j] != NULL; j++) {
+				for( j = 0; lc->lconn_rebind_queue[j] != NULL; j++ )
 					;
-				}
-				refarray = lc->lconn_rebind_queue[j-1];
+				refarray = lc->lconn_rebind_queue[j - 1];
 				lc->lconn_rebind_queue[j-1] = NULL;
 				/* we pulled off last entry from queue, free queue */
 				if ( j == 1 ) {
-					LDAP_FREE( lc->lconn_rebind_queue);
+					LDAP_FREE( lc->lconn_rebind_queue );
 					lc->lconn_rebind_queue = NULL;
 				}
 				/* restart the loop the with new referral list */
@@ -1029,10 +1030,9 @@ ldap_chase_referrals( LDAP *ld,
 
 	/* parse out & follow referrals */
 	for ( ref = p; rc == 0 && ref != NULL; ref = p ) {
-		if (( p = strchr( ref, '\n' )) != NULL ) {
+		p = strchr( ref, '\n' );
+		if ( p != NULL ) {
 			*p++ = '\0';
-		} else {
-			p = NULL;
 		}
 
 		rc = ldap_url_parse_ext( ref, &srv );
@@ -1045,7 +1045,7 @@ ldap_chase_referrals( LDAP *ld,
 			continue;
 		}
 
-		if( srv->lud_dn != NULL && srv->lud_dn == '\0' ) {
+		if ( srv->lud_dn != NULL && srv->lud_dn == '\0' ) {
 			LDAP_FREE( srv->lud_dn );
 			srv->lud_dn = NULL;
 		}
@@ -1059,7 +1059,7 @@ ldap_chase_referrals( LDAP *ld,
 		ber = re_encode_request( ld, origreq->lr_ber,
 		    id, sref, srv, &rinfo.ri_request );
 
-		if( ber == NULL ) {
+		if ( ber == NULL ) {
 			return -1 ;
 		}
 
@@ -1083,8 +1083,8 @@ ldap_chase_referrals( LDAP *ld,
 			++count;
 		} else {
 			Debug( LDAP_DEBUG_ANY,
-			    "Unable to chase referral (%s)\n", 
-			    ldap_err2string( ld->ld_errno ), 0, 0 );
+				"Unable to chase referral \"%s\" (%d: %s)\n", 
+				ref, ld->ld_errno, ldap_err2string( ld->ld_errno ) );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 		}
 
