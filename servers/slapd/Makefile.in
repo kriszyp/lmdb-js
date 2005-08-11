@@ -401,7 +401,7 @@ all-cffiles: slapd $(SLAPD_DYNAMIC_BACKENDS) dynamic_overlays
 	touch all-cffiles
 
 install-schema: FORCE
-	@if test -e $(DESTDIR)$(schemadir) ; then \
+	@if test -d $(DESTDIR)$(schemadir) ; then \
 		echo "MOVING EXISTING SCHEMA DIR to $(DESTDIR)$(schemadir).$$$$" ; \
 		mv $(DESTDIR)$(schemadir) $(DESTDIR)$(schemadir).$$$$ ; \
 	fi
