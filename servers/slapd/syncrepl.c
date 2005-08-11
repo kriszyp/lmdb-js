@@ -1868,8 +1868,8 @@ syncrepl_updateCookie(
 	struct sync_cookie *syncCookie )
 {
 	Backend *be = op->o_bd;
-	Modifications mod = {0};
-	struct berval vals[2];
+	Modifications mod = { { 0 } };
+	struct berval vals[ 2 ];
 
 	int rc;
 
