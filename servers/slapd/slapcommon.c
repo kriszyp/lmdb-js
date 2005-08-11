@@ -427,7 +427,8 @@ slap_tool_init(
 	rc = read_config( conffile, confdir );
 
 	if ( rc != 0 ) {
-		fprintf( stderr, "%s: bad configuration file!\n", progname );
+		fprintf( stderr, "%s: bad configuration %s!\n",
+			progname, confdir ? "directory" : "file" );
 		exit( EXIT_FAILURE );
 	}
 
