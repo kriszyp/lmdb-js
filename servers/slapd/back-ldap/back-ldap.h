@@ -26,19 +26,19 @@
 
 LDAP_BEGIN_DECL
 
-struct slap_conn;
-struct slap_op;
-struct slap_backend_db;
-
 struct ldapconn {
-	struct slap_conn	*lc_conn;
+	Connection		*lc_conn;
+#define	LDAP_BACK_PRIV_CONN	((void *)0x0)
+#define	LDAP_BACK_PRIV_CONN_TLS	((void *)0x1)
 	LDAP			*lc_ld;
 	struct berval		lc_cred;
 	struct berval 		lc_bound_ndn;
 	struct berval		lc_local_ndn;
 	int			lc_bound;
 	int			lc_ispriv;
+	int			lc_is_tls;
 	unsigned		lc_refcnt;
+	unsigned		lc_flags;
 };
 
 /*
