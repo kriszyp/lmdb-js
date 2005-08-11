@@ -586,6 +586,14 @@ startup:;
 	mal_leaktrace(1);
 #endif
 
+	if ( conffile != NULL ) {
+		ch_free( conffile );
+	}
+
+	if ( ldiffile != NULL ) {
+		ch_free( ldiffile );
+	}
+
 	/* slapdn doesn't specify a backend to startup */
 	if ( !dryrun && tool != SLAPDN && slap_startup( be ) ) {
 		switch ( tool ) {
