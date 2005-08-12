@@ -46,7 +46,7 @@ install-common:
 			for link in `$(CAT) $(srcdir)/$$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
 				$(RM) $(DESTDIR)$(MANDIR)/$$link ; \
-				$(LN_S) $$page $(DESTDIR)$(MANDIR)/$$link; \
+				$(LN_S) $(DESTDIR)$(MANDIR)/$$page $(DESTDIR)$(MANDIR)/$$link; \
 			done; \
 		fi; \
 	done
