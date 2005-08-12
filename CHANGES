@@ -14,7 +14,7 @@ OpenLDAP 2.3.5 Engineering
 	Fixed slapd cn=config default search base bug (ITS#3900)
 	Fixed slapd whitespace config parsing bug (ITS#3901)
 	Fixed slapi authorization name issue (ITS#3892)
-	Fixed slapi slapi_int_init operation problem (ITS#3868)
+	Fixed slapi slapi_int_connection_init operation problem (ITS#3868)
 	Fixed slapi slapi_entry_has_children bug (ITS#3879)
 	Fixed slapd-hdb modrdn base bug (ITS#3857)
 	Fixed slapd-ldap access to freed connection (ITS#3913)
