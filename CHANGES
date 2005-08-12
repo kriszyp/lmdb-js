@@ -67,6 +67,7 @@ OpenLDAP 2.3.5 Release
 		Fixed liblunicode 64bit builds (ITS#3869)
 		Fixed passwd/kerberos module builds (ITS#3896)
 		Fixed test037 manageDIT discovery issue (ITS#3898)
+		Fixed installed man page symlinks (ITS#3904)
 		Fixed <sasl.h> inclusion (ITS#3905)
 		Fixed TLS inclusion (ITS#3912)
 		Fixed smbk5pwd Heimdal compat issue (ITS#3910)
