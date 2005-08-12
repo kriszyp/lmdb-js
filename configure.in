@@ -2350,7 +2350,7 @@ fi
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
-AM_TYPE_PTRDIFF_T
+AC_CHECK_TYPES([ptrdiff_t])
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 
@@ -2406,9 +2406,9 @@ if test $ac_cv_func_memcmp_working = no ; then
 		[define if memcmp is not 8-bit clean or is otherwise broken])
 fi
 
-dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
+dnl AC_FUNC_MKTIME([]) dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
-dnl AM_FUNC_STRTOD
+dnl AC_FUNC_STRTOD([])
 
 OL_FUNC_INET_ATON
 
@@ -3042,7 +3042,7 @@ dnl ----------------------------------------------------------------
 dnl final output
 dnl
 
-AC_OUTPUT( \
+AC_CONFIG_FILES([\
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk \
 doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk \
@@ -3083,7 +3083,8 @@ servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/run \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
-,[
+])
+AC_CONFIG_COMMANDS([default],[[
 chmod +x tests/run
 date > stamp-h
 BACKENDSC="servers/slapd/backends.c"
@@ -3119,7 +3120,7 @@ ENDX
 
 	cat >> $BACKENDSC << ENDX
 
-BackendInfo slap_binfo[[]] = {
+BackendInfo slap_binfo[] = {
 ENDX
 
 	for b in config ${STATIC_BACKENDS}; do
@@ -3139,4 +3140,5 @@ ENDX
 fi
 
 echo Please run \"make depend\" to build dependencies
-],[STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS"])
+]],[[STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS"]])
+AC_OUTPUT
