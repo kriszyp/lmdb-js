@@ -35,8 +35,11 @@ define([AC_INIT_BINSH],
 # <http://www.OpenLDAP.org/license.html>.
 
 echo "Copyright 1998-2005 The OpenLDAP Foundation. All rights reserved."
-echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
+echo "Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
+AC_COPYRIGHT([[Copyright 1998-2005 The OpenLDAP Foundation. All rights reserved.
+Restrictions apply, see COPYRIGHT and LICENSE files.]])
+AC_REVSION(++ $OpenLDAP$ ++)
 dnl ----------------------------------------------------------------
 dnl OpenLDAP Autoconf Macros
 builtin(include, build/openldap.m4)dnl
