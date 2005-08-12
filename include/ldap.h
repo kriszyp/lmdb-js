@@ -207,6 +207,9 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1" /* RFC 3672 */
 #define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"  /* RFC 2696 */
 #define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"  /* RFC 3876 */
+#define LDAP_CONTROL_ASSERT				"1.3.6.1.1.12"
+#define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"
+#define LDAP_CONTROL_POST_READ			"1.3.6.1.1.13.2"
 
 /*  standard track - not implemented in slapd(8) */
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
@@ -216,10 +219,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
 
 /* various works in progress */
-#define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
 #define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
-#define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
-#define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
 #define LDAP_CONTROL_NO_SUBORDINATES	"1.3.6.1.4.1.4203.666.5.11"
 #define LDAP_CONTROL_MANAGEDIT			"1.3.6.1.4.1.4203.666.5.12"
 #define LDAP_CONTROL_SLURP				"1.3.6.1.4.1.4203.666.5.13"
