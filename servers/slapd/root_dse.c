@@ -29,6 +29,7 @@
 #endif
 
 static struct berval supportedFeatures[] = {
+	BER_BVC(LDAP_FEATURE_MODIFY_INCREMENT),		/* Modify/increment */
 	BER_BVC(LDAP_FEATURE_ALL_OP_ATTRS),			/* All Op Attrs (+) */
 	BER_BVC(LDAP_FEATURE_OBJECTCLASS_ATTRS),	/* OCs in Attrs List (@class) */
 	BER_BVC(LDAP_FEATURE_ABSOLUTE_FILTERS),		/* (&) and (|) search filters */
@@ -37,7 +38,6 @@ static struct berval supportedFeatures[] = {
 
 #ifdef LDAP_DEVEL
 	BER_BVC(LDAP_FEATURE_SUBORDINATE_SCOPE),	/* "children" search scope */
-	BER_BVC(LDAP_FEATURE_MODIFY_INCREMENT),		/* Modify/increment */
 #endif
 	{0,NULL}
 };
