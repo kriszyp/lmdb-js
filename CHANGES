@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.5 Engineering
+OpenLDAP 2.3.5 Release
 	Fixed slapd integerBitOr/AndMatch logic (ITS#3782)
 	Fixed slapd substrings filter length checks (ITS#3790)
 	Fixed slapd thread pool initialization (ITS#3793)
@@ -31,6 +31,8 @@ OpenLDAP 2.3.5 Engineering
 	Fixed slapd authzTo/From syntax issue (ITS#3921)
 	Fixed libldap start_tls referral chasing (ITS#3791)
 	Fixed libldap referral chasing issues (ITS#2894,ITS#3578)
+    Updated Assertion control to use IANA-assigned OID
+    Updated pre/post read controls to use IANA-assigned OIDs
 	Build Environment
 		Upgraded shtool (ITS#3752)
 		Upgraded config.guess/config.sub
