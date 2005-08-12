@@ -66,7 +66,7 @@ dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
 dnl
 dnl ====================================================================
 dnl
-AC_DEFUN(AC_COMPILE_CHECK_SIZEOF,
+AC_DEFUN([AC_COMPILE_CHECK_SIZEOF],
 [changequote(<<, >>)dnl 
 dnl The name to #define. 
 define(<<AC_TYPE_NAME>>, translit(sizeof_$1, [a-z *], [A-Z_P]))dnl 
@@ -174,7 +174,7 @@ fi
 dnl
 dnl --------------------------------------------------------------------
 dnl OpenLDAP version of STDC header check w/ EBCDIC support
-AC_DEFUN(OL_HEADER_STDC,
+AC_DEFUN([OL_HEADER_STDC],
 [AC_REQUIRE_CPP()dnl
 AC_REQUIRE([OL_CPP_EBCDIC])dnl
 AC_CACHE_CHECK([for ANSI C header files], ol_cv_header_stdc,
@@ -1126,7 +1126,7 @@ dnl ====================================================================
 dnl Early MIPS compilers (used in Ultrix 4.2) don't like
 dnl "int x; int *volatile a = &x; *a = 0;"
 dnl 	-- borrowed from PDKSH
-AC_DEFUN(OL_C_VOLATILE,
+AC_DEFUN([OL_C_VOLATILE],
  [AC_CACHE_CHECK(if compiler understands volatile, ol_cv_c_volatile,
     [AC_TRY_COMPILE([int x, y, z;],
       [volatile int a; int * volatile b = x ? &y : &z;
@@ -1162,7 +1162,7 @@ fi
 dnl
 dnl ====================================================================
 dnl Define sig_atomic_t if not defined in signal.h
-AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
+AC_DEFUN([OL_TYPE_SIG_ATOMIC_T],
  [AC_CACHE_CHECK(for sig_atomic_t, ol_cv_type_sig_atomic_t,
     [AC_TRY_COMPILE([#include <signal.h>], [sig_atomic_t atomic;],
 		ol_cv_type_sig_atomic_t=yes, ol_cv_type_sig_atomic_t=no)])
@@ -1174,7 +1174,7 @@ AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
 dnl
 dnl ====================================================================
 dnl Define socklen_t if not defined in sys/types.h or sys/socket.h
-AC_DEFUN(OL_TYPE_SOCKLEN_T,
+AC_DEFUN([OL_TYPE_SOCKLEN_T],
  [AC_CACHE_CHECK(for socklen_t, ol_cv_type_socklen_t,
     [AC_TRY_COMPILE([
 #ifdef HAVE_SYS_TYPES_H
@@ -1193,7 +1193,7 @@ AC_DEFUN(OL_TYPE_SOCKLEN_T,
 dnl
 dnl ====================================================================
 dnl Define inet_aton is available
-AC_DEFUN(OL_FUNC_INET_ATON,
+AC_DEFUN([OL_FUNC_INET_ATON],
  [AC_CACHE_CHECK([for inet_aton()], ol_cv_func_inet_aton,
     [AC_TRY_LINK([
 #ifdef HAVE_SYS_TYPES_H
@@ -1220,7 +1220,7 @@ int rc = inet_aton( "255.255.255.255", &in );],
 dnl
 dnl ====================================================================
 dnl check no of arguments for ctime_r
-AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
+AC_DEFUN([OL_FUNC_CTIME_R_NARGS],
  [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,
    [AC_TRY_COMPILE([#include <time.h>],
 		[time_t ti; char *buffer; ctime_r(&ti,buffer,32);],
@@ -1255,7 +1255,7 @@ AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
 dnl
 dnl --------------------------------------------------------------------
 dnl check return type of ctime_r()
-AC_DEFUN(OL_FUNC_CTIME_R_TYPE,
+AC_DEFUN([OL_FUNC_CTIME_R_TYPE],
  [AC_CACHE_CHECK(return type of ctime_r, ol_cv_func_ctime_r_type,
    [AC_TRY_COMPILE([#include <time.h>],
 		[extern int (ctime_r)();],
@@ -1267,7 +1267,7 @@ AC_DEFUN(OL_FUNC_CTIME_R_TYPE,
 ])dnl
 dnl ====================================================================
 dnl check no of arguments for gethostbyname_r
-AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,
+AC_DEFUN([OL_FUNC_GETHOSTBYNAME_R_NARGS],
  [AC_CACHE_CHECK(number of arguments of gethostbyname_r,
 	ol_cv_func_gethostbyname_r_nargs,
 	[AC_TRY_COMPILE([#include <sys/types.h>
@@ -1317,7 +1317,7 @@ AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,
 ])dnl
 dnl
 dnl check no of arguments for gethostbyaddr_r
-AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
+AC_DEFUN([OL_FUNC_GETHOSTBYADDR_R_NARGS],
  [AC_CACHE_CHECK(number of arguments of gethostbyaddr_r,
 	[ol_cv_func_gethostbyaddr_r_nargs],
 	[AC_TRY_COMPILE([#include <sys/types.h>
@@ -1393,7 +1393,7 @@ AC_DEFUN([OL_SASL_COMPAT],
 ])
 dnl ====================================================================
 dnl check for msg_accrights in msghdr
-AC_DEFUN(OL_MSGHDR_MSG_ACCRIGHTS,
+AC_DEFUN([OL_MSGHDR_MSG_ACCRIGHTS],
  [AC_CACHE_CHECK(for msg_accrights in msghdr, ol_cv_msghdr_msg_accrights,
    [AC_TRY_COMPILE([#include <sys/socket.h>],
 		[struct msghdr m; m.msg_accrightslen=0],
@@ -1406,7 +1406,7 @@ AC_DEFUN(OL_MSGHDR_MSG_ACCRIGHTS,
 ])dnl
 dnl ====================================================================
 dnl check for cmsghdr
-AC_DEFUN(OL_MSGHDR_MSG_CONTROL,
+AC_DEFUN([OL_MSGHDR_MSG_CONTROL],
  [AC_CACHE_CHECK(for msg_control in msghdr, ol_cv_msghdr_msg_control,
    [AC_TRY_COMPILE([#include <sys/socket.h>],
 		[struct msghdr m; m.msg_control=(struct cmsghdr *)0],
