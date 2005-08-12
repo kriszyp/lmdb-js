@@ -30333,13 +30333,14 @@ if test "${ol_cv_pthread_create+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-		if test "$cross_compiling" = yes; then
+			if test "$cross_compiling" = yes; then
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -30442,11 +30443,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -30568,6 +30565,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -30670,11 +30668,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -30801,6 +30795,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -30903,11 +30898,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31034,6 +31025,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31136,11 +31128,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31267,6 +31255,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31369,11 +31358,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31500,6 +31485,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31602,11 +31588,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31734,6 +31716,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31836,11 +31819,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -31967,6 +31946,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32069,11 +32049,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32201,6 +32177,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32303,11 +32280,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32435,6 +32408,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32537,11 +32511,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32668,6 +32638,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32770,11 +32741,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -32902,6 +32869,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33004,11 +32972,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33136,6 +33100,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33238,11 +33203,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33369,6 +33330,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33471,11 +33433,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33602,6 +33560,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33704,11 +33663,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33836,6 +33791,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -33938,11 +33894,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -34691,11 +34643,7 @@ else
   				ol_cv_pthread_create_works=yes
 else
   cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
+
 /* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
@@ -43102,8 +43050,8 @@ if test $ol_enable_bdb != no -o $ol_enable_hdb != no; then
 echo "$as_me: error: BDB/HDB: BerkeleyDB not available" >&2;}
    { (exit 1); exit 1; }; }
 	else
-		echo "$as_me:$LINENO: checking Berkeley DB version for BDB backend" >&5
-echo $ECHO_N "checking Berkeley DB version for BDB backend... $ECHO_C" >&6
+		echo "$as_me:$LINENO: checking Berkeley DB version for BDB/HDB backends" >&5
+echo $ECHO_N "checking Berkeley DB version for BDB/HDB backends... $ECHO_C" >&6
 if test "${ol_cv_bdb_compat+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
