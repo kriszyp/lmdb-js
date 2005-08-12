@@ -312,7 +312,7 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 	attr_merge_normalize_one( e, slap_schema.si_ad_cn, &val, NULL );	/* required by person */
 	attr_merge_normalize_one( e, ad_sn, &val, NULL );	/* required by person */
 
-#ifdef HAVE_PW_GECOS
+#ifdef HAVE_STRUCT_PASSWD_PW_GECOS
 	/*
 	 * if gecos is present, add it as a cn. first process it
 	 * according to standard BSD usage. If the processed cn has
@@ -352,7 +352,7 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 			attr_merge_normalize_one( e, ad_sn, &val, NULL );
 		}
 	}
-#endif /* HAVE_PW_GECOS */
+#endif /* HAVE_STRUCT_PASSWD_PW_GECOS */
 
 	return( 0 );
 }

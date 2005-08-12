@@ -42,7 +42,7 @@
 #ifdef SLAPD_CRYPT
 # include <ac/crypt.h>
 
-# if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
+# if defined( HAVE_GETPWNAM ) && defined( HAVE_STRUCT_PASSWD_PW_PASSWD )
 #  ifdef HAVE_SHADOW_H
 #	include <shadow.h>
 #  endif
@@ -110,7 +110,7 @@ static LUTIL_PASSWD_HASH_FUNC hash_lanman;
 static LUTIL_PASSWD_CHK_FUNC chk_crypt;
 static LUTIL_PASSWD_HASH_FUNC hash_crypt;
 
-#if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
+#if defined( HAVE_GETPWNAM ) && defined( HAVE_STRUCT_PASSWD_PW_PASSWD )
 static LUTIL_PASSWD_CHK_FUNC chk_unix;
 #endif
 #endif
@@ -140,7 +140,7 @@ static const struct pw_scheme pw_schemes_default[] =
 
 #ifdef SLAPD_CRYPT
 	{ BER_BVC("{CRYPT}"),		chk_crypt, hash_crypt },
-# if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
+# if defined( HAVE_GETPWNAM ) && defined( HAVE_STRUCT_PASSWD_PW_PASSWD )
 	{ BER_BVC("{UNIX}"),		chk_unix, NULL },
 # endif
 #endif
@@ -810,7 +810,7 @@ static int chk_crypt(
 	return lutil_cryptptr( cred->bv_val, passwd->bv_val, NULL );
 }
 
-# if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
+# if defined( HAVE_GETPWNAM ) && defined( HAVE_STRUCT_PASSWD_PW_PASSWD )
 static int chk_unix(
 	const struct berval *sc,
 	const struct berval * passwd,

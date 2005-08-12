@@ -63,32 +63,6 @@ AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
 dnl AC_MSG_RESULT([OpenLDAP --with-$1 $ol_with_$1])
 # end --with-$1
 ])dnl
-dnl
-dnl ====================================================================
-dnl check if hard links are supported.
-dnl
-AC_DEFUN([OL_PROG_LN_H], [# test for ln hardlink support
-AC_MSG_CHECKING(whether ln works)
-AC_CACHE_VAL(ol_cv_prog_LN_H,
-[rm -f conftest.src conftest.dst
-echo "conftest" > conftest.src
-if ln conftest.src conftest.dst 2>/dev/null
-then
-  ol_cv_prog_LN_H="ln"
-else
-  ol_cv_prog_LN_H="cp"
-fi
-rm -f conftest.src conftest.dst
-])dnl
-LN_H="$ol_cv_prog_LN_H"
-if test "$ol_cv_prog_LN_H" = "ln"; then
-	AC_MSG_RESULT(yes)
-else
-	AC_MSG_RESULT(no)
-fi
-AC_SUBST(LN_H)dnl
-])dnl
-dnl
 dnl ====================================================================
 dnl Check for dependency generation flag
 AC_DEFUN([OL_MKDEPEND], [# test for make depend flag
@@ -185,32 +159,6 @@ if test $ol_cv_header_stdc = yes; then
   AC_DEFINE(STDC_HEADERS)
 fi
 ac_cv_header_stdc=disable
-])
-dnl
-dnl ====================================================================
-dnl Check if struct passwd has pw_gecos
-AC_DEFUN([OL_STRUCT_PASSWD_PW_GECOS], [# test for pw_gecos in struct passwd
-AC_CACHE_CHECK([struct passwd for pw_gecos],ol_cv_struct_passwd_pw_gecos,[
-	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <pwd.h>]], [[
-	struct passwd pwd;
-	pwd.pw_gecos = pwd.pw_name;
-]])],[ol_cv_struct_passwd_pw_gecos=yes],[ol_cv_struct_passwd_pw_gecos=no])])
-if test $ol_cv_struct_passwd_pw_gecos = yes ; then
-	AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
-fi
-])
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if struct passwd has pw_passwd
-AC_DEFUN([OL_STRUCT_PASSWD_PW_PASSWD], [# test for pw_passwd in struct passwd
-AC_CACHE_CHECK([struct passwd for pw_passwd],ol_cv_struct_passwd_pw_passwd,[
-	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <pwd.h>]], [[
-	struct passwd pwd;
-	pwd.pw_passwd = pwd.pw_name;
-]])],[ol_cv_struct_passwd_pw_passwd=yes],[ol_cv_struct_passwd_pw_passwd=no])])
-if test $ol_cv_struct_passwd_pw_passwd = yes ; then
-	AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
-fi
 ])
 dnl
 dnl ====================================================================
@@ -1316,8 +1264,10 @@ dnl ====================================================================
 dnl check for msg_accrights in msghdr
 AC_DEFUN([OL_MSGHDR_MSG_ACCRIGHTS],
  [AC_CACHE_CHECK(for msg_accrights in msghdr, ol_cv_msghdr_msg_accrights,
-   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/socket.h>]], [[struct msghdr m; m.msg_accrightslen=0]])],[ol_cv_msghdr_msg_accrights=yes],[ol_cv_msghdr_msg_accrights=no])
-	])
+   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/socket.h>]],
+		[[struct msghdr m; m.msg_accrightslen=0]])],
+		[ol_cv_msghdr_msg_accrights=yes],
+		[ol_cv_msghdr_msg_accrights=no])])
   if test $ol_cv_msghdr_msg_accrights = "yes" ; then
 	AC_DEFINE(HAVE_MSGHDR_MSG_ACCRIGHTS,1,
 		[define if struct msghdr has msg_accrights])
@@ -1327,8 +1277,10 @@ dnl ====================================================================
 dnl check for cmsghdr
 AC_DEFUN([OL_MSGHDR_MSG_CONTROL],
  [AC_CACHE_CHECK(for msg_control in msghdr, ol_cv_msghdr_msg_control,
-   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/socket.h>]], [[struct msghdr m; m.msg_control=(struct cmsghdr *)0]])],[ol_cv_msghdr_msg_control=yes],[ol_cv_msghdr_msg_control=no])
-	])
+   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/socket.h>]],
+		[[struct msghdr m; m.msg_control=(struct cmsghdr *)0]])],
+		[ol_cv_msghdr_msg_control=yes],
+		[ol_cv_msghdr_msg_control=no])])
   if test $ol_cv_msghdr_msg_control = "yes" ; then
 	AC_DEFINE(HAVE_MSGHDR_MSG_CONTROL,1,
 		[define if struct msghdr has msg_control])
