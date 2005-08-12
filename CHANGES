@@ -17,6 +17,7 @@ OpenLDAP 2.3.5 Release
 	Fixed slapd cn=config olcDbConfig bug (ITS#3815)
 	Fixed slapd cn=config olcReadOnly bug (ITS#3820)
 	Fixed slapd cn=config hdb+bdb bug (ITS#3821)
+	Fixed slapd index_substr_any_step keyword (ITS#3818)
 	Fixed slapd -f directory issue (ITS#3865)
 	Fixed slapd attributeOptions config parsing (ITS#3829)
 	Fixed slapd whitespace config parsing bug (ITS#3901)
