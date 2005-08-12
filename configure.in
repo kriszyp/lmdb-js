@@ -2416,8 +2416,8 @@ OL_TYPE_SIG_ATOMIC_T
 AC_HEADER_TIME
 AC_STRUCT_TM
 AC_CHECK_MEMBERS([struct stat.st_blksize])
-AC_CHECK_MEMBERS([struct passwd.pw_gecos])
-AC_CHECK_MEMBERS([struct passwd.pw_passwd])
+AC_CHECK_MEMBERS([struct passwd.pw_gecos],,,[#include <pwd.h>])
+AC_CHECK_MEMBERS([struct passwd.pw_passwd],,,[#include <pwd.h>])
 
 OL_C_UPPER_LOWER
 AC_C_CONST
@@ -2456,9 +2456,7 @@ if test $ac_cv_func_memcmp_working = no ; then
 		[define if memcmp is not 8-bit clean or is otherwise broken])
 fi
 
-dnl AC_FUNC_MKTIME([]) dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
-dnl AC_FUNC_STRTOD([])
 
 OL_FUNC_INET_ATON
 
