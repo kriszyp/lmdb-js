@@ -32,9 +32,6 @@ static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseManageDIT;
 #endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
-#ifdef LDAP_CONTROL_MODIFY_INCREMENT
-static SLAP_CTRL_PARSE_FN parseModifyIncrement;
-#endif
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 #ifdef LDAP_DEVEL
@@ -162,12 +159,6 @@ static struct slap_control control_defs[] = {
  		(int)offsetof(struct slap_control_ids, sc_noOp),
 		SLAP_CTRL_HIDE|SLAP_CTRL_ACCESS, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef LDAP_CONTROL_MODIFY_INCREMENT
-	{ LDAP_CONTROL_MODIFY_INCREMENT,
- 		(int)offsetof(struct slap_control_ids, sc_modifyIncrement),
-		SLAP_CTRL_HIDE|SLAP_CTRL_MODIFY, NULL,
-		parseModifyIncrement, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
 #ifdef LDAP_DEVEL
 	{ LDAP_CONTROL_MANAGEDIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDIT),
@@ -702,34 +693,6 @@ return_results:
 
 	return rs->sr_err;
 }
-
-#ifdef LDAP_CONTROL_MODIFY_INCREMENT
-static int parseModifyIncrement (
-	Operation *op,
-	SlapReply *rs,
-	LDAPControl *ctrl )
-{
-#if 0
-	if ( op->o_modifyIncrement != SLAP_CONTROL_NONE ) {
-		rs->sr_text = "modifyIncrement control specified multiple times";
-		return LDAP_PROTOCOL_ERROR;
-	}
-#endif
-
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "modifyIncrement control value not empty";
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-#if 0
-	op->o_modifyIncrement = ctrl->ldctl_iscritical
-		? SLAP_CONTROL_CRITICAL
-		: SLAP_CONTROL_NONCRITICAL;
-#endif
-
-	return LDAP_SUCCESS;
-}
-#endif
 
 #ifdef LDAP_DEVEL
 static int parseManageDIT (
