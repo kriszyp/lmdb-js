@@ -827,6 +827,24 @@ ldap_pvt_tls_inplace ( Sockbuf *sb )
 	return HAS_TLS( sb ) ? 1 : 0;
 }
 
+int
+ldap_tls_inplace( LDAP *ld )
+{
+	Sockbuf		*sb = NULL;
+
+	if ( ld->ld_defconn && ld->ld_defconn->lconn_sb ) {
+		sb = ld->ld_defconn->lconn_sb;
+
+	} else if ( ld->ld_sb ) {
+		sb = ld->ld_sb;
+
+	} else {
+		return 0;
+	}
+
+	return ldap_pvt_tls_inplace( sb );
+}
+
 static X509 *
 tls_get_cert( SSL *s )
 {
@@ -1667,7 +1685,7 @@ ldap_install_tls( LDAP *ld )
 #ifndef HAVE_TLS
 	return LDAP_NOT_SUPPORTED;
 #else
-	if ( ld->ld_sb != NULL && ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
+	if ( ldap_tls_inplace( ld ) ) {
 		return LDAP_LOCAL_ERROR;
 	}
 
@@ -1689,7 +1707,7 @@ ldap_start_tls_s ( LDAP *ld,
 
 	/* XXYYZ: this initiates operation only on default connection! */
 
-	if ( ld->ld_sb != NULL && ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
+	if ( ldap_tls_inplace( ld ) ) {
 		return LDAP_LOCAL_ERROR;
 	}
 

@@ -67,7 +67,7 @@ static ConfigTable bdbcfg[] = {
 	{ "dbconfig", "DB_CONFIG setting", 1, 0, 0, ARG_MAGIC|BDB_CONFIG,
 		bdb_cf_gen, "( OLcfgDbAt:1.3 NAME 'olcDbConfig' "
 			"DESC 'BerkeleyDB DB_CONFIG configuration directives' "
-			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "dbnosync", NULL, 1, 2, 0, ARG_ON_OFF|ARG_MAGIC|BDB_NOSYNC,
 		bdb_cf_gen, "( OLcfgDbAt:1.4 NAME 'olcDbNoSync' "
 			"DESC 'Disable synchronous database writes' "

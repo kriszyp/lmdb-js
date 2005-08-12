@@ -174,12 +174,15 @@ int slap_bv2ad(
 	}
 
 	/* find valid base attribute type; parse in place */
-	memset( &desc, 0, sizeof( desc ));
+	memset( &desc, 0, sizeof( desc ) );
 	desc.ad_cname = *bv;
 	name = bv->bv_val;
-	options = strchr(name, ';');
-	if( options != NULL ) {
+	options = strchr( name, ';' );
+	if ( options != NULL && ( options - name ) < bv->bv_len ) {
+		/* don't go past the end of the berval! */
 		desc.ad_cname.bv_len = options - name;
+	} else {
+		options = NULL;
 	}
 	desc.ad_type = at_bvfind( &desc.ad_cname );
 	if( desc.ad_type == NULL ) {

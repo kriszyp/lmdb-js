@@ -69,6 +69,11 @@
 #define csnIndexer				generalizedTimeIndexer
 #define csnFilter				generalizedTimeFilter
 
+#ifdef SLAP_AUTHZ_SYNTAX
+/* FIXME: temporary */
+#define authzMatch				octetStringMatch
+#endif /* SLAP_AUTHZ_SYNTAX */
+
 unsigned int index_substr_if_minlen = SLAP_INDEX_SUBSTR_IF_MINLEN_DEFAULT;
 unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
 unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
@@ -3441,6 +3446,13 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
 		SLAP_SYNTAX_HIDE, inValidate, NULL},
+
+#ifdef SLAP_AUTHZ_SYNTAX
+	/* FIXME: OID is unused, but not registered yet */
+	{"( 1.3.6.1.4.1.4203.666.2.7 DESC 'OpenLDAP authz' )",
+		SLAP_SYNTAX_HIDE, authzValidate, authzPretty},
+#endif /* SLAP_AUTHZ_SYNTAX */
+
 	{NULL, 0, NULL, NULL}
 };
 
@@ -3885,6 +3897,16 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL, csnOrderingMatch,
 		NULL, NULL,
 		"CSNMatch" },
+
+#ifdef SLAP_AUTHZ_SYNTAX
+	/* FIXME: OID is unused, but not registered yet */
+	{"( 1.3.6.1.4.1.4203.666.4.12 NAME 'authzMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.2.7 )",
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
+		NULL, authzNormalize, authzMatch,
+		NULL, NULL,
+		NULL},
+#endif /* SLAP_AUTHZ_SYNTAX */
 
 	{NULL, SLAP_MR_NONE, NULL,
 		NULL, NULL, NULL, NULL, NULL,

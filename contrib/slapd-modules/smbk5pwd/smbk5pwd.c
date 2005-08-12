@@ -37,6 +37,12 @@
 #include <kadm5/admin.h>
 #include <hdb.h>
 
+#ifndef HDB_INTERFACE_VERSION
+#define	HDB_MASTER_KEY_SET	master_key_set
+#else
+#define	HDB_MASTER_KEY_SET	hdb_master_key_set
+#endif
+
 static krb5_context context;
 static void *kadm_context;
 static kadm5_config_params conf;
@@ -70,18 +76,21 @@ static const char hex[] = "0123456789abcdef";
 
 /* From liblutil/passwd.c... */
 static void lmPasswd_to_key(
-	const unsigned char *lmPasswd,
+	const char *lmPasswd,
 	des_cblock *key)
 {
+	const unsigned char *lpw = (const unsigned char *)lmPasswd;
+	unsigned char *k = (unsigned char *)key;
+
 	/* make room for parity bits */
-	((char *)key)[0] = lmPasswd[0];
-	((char *)key)[1] = ((lmPasswd[0]&0x01)<<7) | (lmPasswd[1]>>1);
-	((char *)key)[2] = ((lmPasswd[1]&0x03)<<6) | (lmPasswd[2]>>2);
-	((char *)key)[3] = ((lmPasswd[2]&0x07)<<5) | (lmPasswd[3]>>3);
-	((char *)key)[4] = ((lmPasswd[3]&0x0F)<<4) | (lmPasswd[4]>>4);
-	((char *)key)[5] = ((lmPasswd[4]&0x1F)<<3) | (lmPasswd[5]>>5);
-	((char *)key)[6] = ((lmPasswd[5]&0x3F)<<2) | (lmPasswd[6]>>6);
-	((char *)key)[7] = ((lmPasswd[6]&0x7F)<<1);
+	k[0] = lpw[0];
+	k[1] = ((lpw[0]&0x01)<<7) | (lpw[1]>>1);
+	k[2] = ((lpw[1]&0x03)<<6) | (lpw[2]>>2);
+	k[3] = ((lpw[2]&0x07)<<5) | (lpw[3]>>3);
+	k[4] = ((lpw[3]&0x0F)<<4) | (lpw[4]>>4);
+	k[5] = ((lpw[4]&0x1F)<<3) | (lpw[5]>>5);
+	k[6] = ((lpw[5]&0x3F)<<2) | (lpw[6]>>6);
+	k[7] = ((lpw[6]&0x7F)<<1);
 
 	des_set_odd_parity( key );
 }
@@ -154,7 +163,7 @@ static void nthash(
 		
 	MD4_Init( &ctx );
 	MD4_Update( &ctx, passwd->bv_val, passwd->bv_len );
-	MD4_Final( hbuf, &ctx );
+	MD4_Final( (unsigned char *)hbuf, &ctx );
 
 	hexify( hbuf, hash );
 }
@@ -264,7 +273,7 @@ static int k5key_chk(
 		ent.keys.val = &ekey;
 		decode_Key((unsigned char *) a->a_vals[0].bv_val,
 			(size_t) a->a_vals[0].bv_len, &ent.keys.val[0], &l);
-		if ( db->master_key_set )
+		if ( db->HDB_MASTER_KEY_SET )
 			hdb_unseal_keys( context, db, &ent );
 
 		krb5_string_to_key_salt( context, ekey.key.keytype, cred->bv_val,
@@ -353,7 +362,7 @@ static int smbk5pwd_exop_passwd(
 			if (ret != 0)
 				break;
 			
-			keys[i].bv_val = buf;
+			keys[i].bv_val = (char *)buf;
 			keys[i].bv_len = len;
 		}
 		keys[i].bv_val = NULL;

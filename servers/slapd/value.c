@@ -396,6 +396,166 @@ ordered_value_sort( Attribute *a, int do_renumber )
 	return 0;
 }
 
+/*
+ * wrapper for validate function
+ * uses the validate function of the syntax after removing
+ * the index, if allowed an present
+ */
+int
+ordered_value_validate(
+	AttributeDescription *ad,
+	struct berval *in )
+{
+	struct berval	bv = *in;
+
+	assert( ad->ad_type->sat_syntax != NULL );
+	assert( ad->ad_type->sat_syntax->ssyn_validate != NULL );
+
+	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+
+		/* Skip past the assertion index */
+		if ( bv.bv_val[0] == '{' ) {
+			char	*ptr;
+
+			ptr = strchr( bv.bv_val, '}' );
+			if ( ptr == NULL ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			ptr++;
+			bv.bv_len -= ptr - bv.bv_val;
+			bv.bv_val = ptr;
+			in = &bv;
+		}
+	}
+
+	return ad->ad_type->sat_syntax->ssyn_validate( ad->ad_type->sat_syntax, in );
+}
+
+/*
+ * wrapper for pretty function
+ * uses the pretty function of the syntax after removing
+ * the index, if allowed and present; in case, it's prepended
+ * to the pretty value
+ */
+int
+ordered_value_pretty(
+	AttributeDescription *ad,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	struct berval	bv = *val,
+			idx = BER_BVNULL;
+	int		rc;
+
+	assert( ad->ad_type->sat_syntax != NULL );
+	assert( ad->ad_type->sat_syntax->ssyn_pretty != NULL );
+	assert( val != NULL );
+	assert( out != NULL );
+
+	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+
+		/* Skip past the assertion index */
+		if ( bv.bv_val[0] == '{' ) {
+			char	*ptr;
+
+			ptr = strchr( bv.bv_val, '}' );
+			if ( ptr == NULL ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			ptr++;
+
+			idx = bv;
+			idx.bv_len = ptr - bv.bv_val;
+
+			bv.bv_len -= idx.bv_len;
+			bv.bv_val = ptr;
+
+			val = &bv;
+		}
+	}
+
+	rc = ad->ad_type->sat_syntax->ssyn_pretty( ad->ad_type->sat_syntax, val, out, ctx );
+
+	if ( rc == LDAP_SUCCESS && !BER_BVISNULL( &idx ) ) {
+		bv = *out;
+
+		out->bv_len = idx.bv_len + bv.bv_len;
+		out->bv_val = ber_memalloc_x( out->bv_len + 1, ctx );
+		
+		AC_MEMCPY( out->bv_val, idx.bv_val, idx.bv_len );
+		AC_MEMCPY( &out->bv_val[ idx.bv_len ], bv.bv_val, bv.bv_len + 1 );
+
+		ber_memfree_x( bv.bv_val, ctx );
+	}
+
+	return rc;
+}
+
+/*
+ * wrapper for normalize function
+ * uses the normalize function of the attribute description equality rule
+ * after removing the index, if allowed and present; in case, it's
+ * prepended to the value
+ */
+int
+ordered_value_normalize(
+	slap_mask_t usage,
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	struct berval	bv = *val,
+			idx = BER_BVNULL;
+	int		rc;
+
+	assert( ad->ad_type->sat_equality != NULL );
+	assert( ad->ad_type->sat_equality->smr_normalize != NULL );
+	assert( val != NULL );
+	assert( normalized != NULL );
+
+	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+
+		/* Skip past the assertion index */
+		if ( bv.bv_val[0] == '{' ) {
+			char	*ptr;
+
+			ptr = strchr( bv.bv_val, '}' );
+			if ( ptr == NULL ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			ptr++;
+
+			idx = bv;
+			idx.bv_len = ptr - bv.bv_val;
+
+			bv.bv_len -= idx.bv_len;
+			bv.bv_val = ptr;
+
+			val = &bv;
+		}
+	}
+
+	rc = ad->ad_type->sat_equality->smr_normalize( usage,
+		ad->ad_type->sat_syntax, mr, val, normalized, ctx );
+
+	if ( rc == LDAP_SUCCESS && !BER_BVISNULL( &idx ) ) {
+		bv = *normalized;
+
+		normalized->bv_len = idx.bv_len + bv.bv_len;
+		normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
+		
+		AC_MEMCPY( normalized->bv_val, idx.bv_val, idx.bv_len );
+		AC_MEMCPY( &normalized->bv_val[ idx.bv_len ], bv.bv_val, bv.bv_len + 1 );
+
+		ber_memfree_x( bv.bv_val, ctx );
+	}
+
+	return rc;
+}
+
 /* A wrapper for value match, handles Equality matches for attributes
  * with ordered values.
  */

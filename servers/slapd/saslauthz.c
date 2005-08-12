@@ -203,13 +203,744 @@ int slap_parse_user( struct berval *id, struct berval *user,
 	return LDAP_SUCCESS;
 }
 
-static int slap_parseURI( Operation *op, struct berval *uri,
-	struct berval *base, struct berval *nbase,
-	int *scope, Filter **filter, struct berval *fstr )
+#ifdef SLAP_AUTHZ_SYNTAX
+int
+authzValidate(
+	Syntax *syntax,
+	struct berval *in )
 {
-	struct berval bv;
-	int rc;
-	LDAPURLDesc *ludp;
+	struct berval	bv;
+	int		rc = LDAP_INVALID_SYNTAX;
+	LDAPURLDesc	*ludp = NULL;
+	int		scope = -1;
+
+	/*
+	 * 1) <DN>
+	 * 2) dn[.{exact|children|subtree|onelevel}]:{*|<DN>}
+	 * 3) dn.regex:<pattern>
+	 * 4) u[.mech[/realm]]:<ID>
+	 * 5) group[/<groupClass>[/<memberAttr>]]:<DN>
+	 * 6) <URL>
+	 */
+
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"authzValidate: parsing %s\n", in->bv_val, 0, 0 );
+
+	/*
+	 * 2) dn[.{exact|children|subtree|onelevel}]:{*|<DN>}
+	 * 3) dn.regex:<pattern>
+	 *
+	 * <DN> must pass DN normalization
+	 */
+	if ( !strncasecmp( in->bv_val, "dn", STRLENOF( "dn" ) ) ) {
+		bv.bv_val = in->bv_val + STRLENOF( "dn" );
+
+		if ( bv.bv_val[ 0 ] == '.' ) {
+			bv.bv_val++;
+
+			if ( !strncasecmp( bv.bv_val, "exact:", STRLENOF( "exact:" ) ) ) {
+				bv.bv_val += STRLENOF( "exact:" );
+				scope = LDAP_X_SCOPE_EXACT;
+
+			} else if ( !strncasecmp( bv.bv_val, "regex:", STRLENOF( "regex:" ) ) ) {
+				bv.bv_val += STRLENOF( "regex:" );
+				scope = LDAP_X_SCOPE_REGEX;
+
+			} else if ( !strncasecmp( bv.bv_val, "children:", STRLENOF( "children:" ) ) ) {
+				bv.bv_val += STRLENOF( "children:" );
+				scope = LDAP_X_SCOPE_CHILDREN;
+
+			} else if ( !strncasecmp( bv.bv_val, "subtree:", STRLENOF( "subtree:" ) ) ) {
+				bv.bv_val += STRLENOF( "subtree:" );
+				scope = LDAP_X_SCOPE_SUBTREE;
+
+			} else if ( !strncasecmp( bv.bv_val, "onelevel:", STRLENOF( "onelevel:" ) ) ) {
+				bv.bv_val += STRLENOF( "onelevel:" );
+				scope = LDAP_X_SCOPE_ONELEVEL;
+
+			} else {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+		} else {
+			if ( bv.bv_val[ 0 ] != ':' ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			scope = LDAP_X_SCOPE_EXACT;
+			bv.bv_val++;
+		}
+
+		bv.bv_val += strspn( bv.bv_val, " " );
+		/* jump here in case no type specification was present
+		 * and uri was not an URI... HEADS-UP: assuming EXACT */
+is_dn:		bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
+
+		/* a single '*' means any DN without using regexes */
+		if ( ber_bvccmp( &bv, '*' ) ) {
+			/* LDAP_X_SCOPE_USERS */
+			return LDAP_SUCCESS;
+		}
+
+		switch ( scope ) {
+		case LDAP_X_SCOPE_EXACT:
+		case LDAP_X_SCOPE_CHILDREN:
+		case LDAP_X_SCOPE_SUBTREE:
+		case LDAP_X_SCOPE_ONELEVEL:
+			return dnValidate( NULL, &bv );
+
+		case LDAP_X_SCOPE_REGEX:
+			return LDAP_SUCCESS;
+		}
+
+		return rc;
+
+	/*
+	 * 4) u[.mech[/realm]]:<ID>
+	 */
+	} else if ( ( in->bv_val[ 0 ] == 'u' || in->bv_val[ 0 ] == 'U' )
+			&& ( in->bv_val[ 1 ] == ':' 
+				|| in->bv_val[ 1 ] == '/' 
+				|| in->bv_val[ 1 ] == '.' ) )
+	{
+		char		buf[ SLAP_LDAPDN_MAXLEN ];
+		struct berval	id,
+				user = BER_BVNULL,
+				realm = BER_BVNULL,
+				mech = BER_BVNULL;
+
+		if ( sizeof( buf ) <= in->bv_len ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		id.bv_len = in->bv_len;
+		id.bv_val = buf;
+		strncpy( buf, in->bv_val, sizeof( buf ) );
+
+		rc = slap_parse_user( &id, &user, &realm, &mech );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		return rc;
+
+	/*
+	 * 5) group[/groupClass[/memberAttr]]:<DN>
+	 *
+	 * <groupClass> defaults to "groupOfNames"
+	 * <memberAttr> defaults to "member"
+	 * 
+	 * <DN> must pass DN normalization
+	 */
+	} else if ( strncasecmp( in->bv_val, "group", STRLENOF( "group" ) ) == 0 )
+	{
+		struct berval	group_dn = BER_BVNULL,
+				group_oc = BER_BVNULL,
+				member_at = BER_BVNULL;
+
+		bv.bv_val = in->bv_val + STRLENOF( "group" );
+		group_dn.bv_val = strchr( bv.bv_val, ':' );
+		if ( group_dn.bv_val == NULL ) {
+			/* last chance: assume it's a(n exact) DN ... */
+			bv.bv_val = in->bv_val;
+			scope = LDAP_X_SCOPE_EXACT;
+			goto is_dn;
+		}
+		
+		/*
+		 * FIXME: we assume that "member" and "groupOfNames"
+		 * are present in schema...
+		 */
+		if ( bv.bv_val[ 0 ] == '/' ) {
+			group_oc.bv_val = &bv.bv_val[ 1 ];
+
+			member_at.bv_val = strchr( group_oc.bv_val, '/' );
+			if ( member_at.bv_val ) {
+				AttributeDescription	*ad = NULL;
+				const char		*text = NULL;
+
+				group_oc.bv_len = member_at.bv_val - group_oc.bv_val;
+				member_at.bv_val++;
+				member_at.bv_len = group_dn.bv_val - member_at.bv_val;
+				rc = slap_bv2ad( &member_at, &ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					return rc;
+				}
+
+			} else {
+				group_oc.bv_len = group_dn.bv_val - group_oc.bv_val;
+
+				if ( oc_bvfind( &group_oc ) == NULL ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			}
+		}
+
+		group_dn.bv_val++;
+		group_dn.bv_len = in->bv_len - ( group_dn.bv_val - in->bv_val );
+
+		rc = dnValidate( NULL, &group_dn );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+
+		return rc;
+	}
+
+	/*
+	 * ldap:///<base>??<scope>?<filter>
+	 * <scope> ::= {base|one|subtree}
+	 *
+	 * <scope> defaults to "base"
+	 * <base> must pass DN normalization
+	 * <filter> must pass str2filter()
+	 */
+	rc = ldap_url_parse( in->bv_val, &ludp );
+	switch ( rc ) {
+	case LDAP_URL_SUCCESS:
+		/* FIXME: the check is pedantic, but I think it's necessary,
+		 * because people tend to use things like ldaps:// which
+		 * gives the idea SSL is being used.  Maybe we could
+		 * accept ldapi:// as well, but the point is that we use
+		 * an URL as an easy means to define bits of a search with
+		 * little parsing.
+		 */
+		if ( strcasecmp( ludp->lud_scheme, "ldap" ) != 0 ) {
+			/*
+			 * must be ldap:///
+			 */
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+		break;
+
+	case LDAP_URL_ERR_BADSCHEME:
+		/*
+		 * last chance: assume it's a(n exact) DN ...
+		 *
+		 * NOTE: must pass DN normalization
+		 */
+		ldap_free_urldesc( ludp );
+		bv.bv_val = in->bv_val;
+		scope = LDAP_X_SCOPE_EXACT;
+		goto is_dn;
+
+	default:
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	if ( ( ludp->lud_host && *ludp->lud_host )
+		|| ludp->lud_attrs || ludp->lud_exts )
+	{
+		/* host part must be empty */
+		/* attrs and extensions parts must be empty */
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	/* Grab the filter */
+	if ( ludp->lud_filter ) {
+		Filter	*f = str2filter( ludp->lud_filter );
+		if ( f == NULL ) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+		filter_free( f );
+	}
+
+	/* Grab the searchbase */
+	assert( ludp->lud_dn );
+	ber_str2bv( ludp->lud_dn, 0, 0, &bv );
+	rc = dnValidate( NULL, &bv );
+
+done:
+	ldap_free_urldesc( ludp );
+	return( rc );
+}
+
+#if 0
+int
+authzMatch(
+	int		*matchp,
+	slap_mask_t	flags,
+	Syntax		*syntax,
+	MatchingRule	*mr,
+	struct berval	*value,
+	void		*assertedValue )
+{
+	return octetStringMatch( matchp, flags, syntax, mr, value, assertedValue );
+}
+#endif
+
+static int
+authzPrettyNormal(
+	struct berval	*val,
+	struct berval	*normalized,
+	void		*ctx,
+	int		normalize )
+{
+	struct berval	bv;
+	int		rc = LDAP_INVALID_SYNTAX;
+	LDAPURLDesc	*ludp = NULL;
+	char		*lud_dn = NULL,
+			*lud_filter = NULL;
+	int		scope = -1;
+
+	/*
+	 * 1) <DN>
+	 * 2) dn[.{exact|children|subtree|onelevel}]:{*|<DN>}
+	 * 3) dn.regex:<pattern>
+	 * 4) u[.mech[/realm]]:<ID>
+	 * 5) group[/<groupClass>[/<memberAttr>]]:<DN>
+	 * 6) <URL>
+	 */
+
+	assert( val != NULL );
+	assert( !BER_BVISNULL( val ) );
+
+	/*
+	 * 2) dn[.{exact|children|subtree|onelevel}]:{*|<DN>}
+	 * 3) dn.regex:<pattern>
+	 *
+	 * <DN> must pass DN normalization
+	 */
+	if ( !strncasecmp( val->bv_val, "dn", STRLENOF( "dn" ) ) ) {
+		struct berval	out = BER_BVNULL,
+				prefix = BER_BVNULL;
+		char		*ptr;
+
+		bv.bv_val = val->bv_val + STRLENOF( "dn" );
+
+		if ( bv.bv_val[ 0 ] == '.' ) {
+			bv.bv_val++;
+
+			if ( !strncasecmp( bv.bv_val, "exact:", STRLENOF( "exact:" ) ) ) {
+				bv.bv_val += STRLENOF( "exact:" );
+				scope = LDAP_X_SCOPE_EXACT;
+
+			} else if ( !strncasecmp( bv.bv_val, "regex:", STRLENOF( "regex:" ) ) ) {
+				bv.bv_val += STRLENOF( "regex:" );
+				scope = LDAP_X_SCOPE_REGEX;
+
+			} else if ( !strncasecmp( bv.bv_val, "children:", STRLENOF( "children:" ) ) ) {
+				bv.bv_val += STRLENOF( "children:" );
+				scope = LDAP_X_SCOPE_CHILDREN;
+
+			} else if ( !strncasecmp( bv.bv_val, "subtree:", STRLENOF( "subtree:" ) ) ) {
+				bv.bv_val += STRLENOF( "subtree:" );
+				scope = LDAP_X_SCOPE_SUBTREE;
+
+			} else if ( !strncasecmp( bv.bv_val, "onelevel:", STRLENOF( "onelevel:" ) ) ) {
+				bv.bv_val += STRLENOF( "onelevel:" );
+				scope = LDAP_X_SCOPE_ONELEVEL;
+
+			} else {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+		} else {
+			if ( bv.bv_val[ 0 ] != ':' ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			scope = LDAP_X_SCOPE_EXACT;
+			bv.bv_val++;
+		}
+
+		bv.bv_val += strspn( bv.bv_val, " " );
+		/* jump here in case no type specification was present
+		 * and uri was not an URI... HEADS-UP: assuming EXACT */
+is_dn:		bv.bv_len = val->bv_len - ( bv.bv_val - val->bv_val );
+
+		/* a single '*' means any DN without using regexes */
+		if ( ber_bvccmp( &bv, '*' ) ) {
+			ber_str2bv_x( "dn:*", STRLENOF( "dn:*" ), 1, normalized, ctx );
+			return LDAP_SUCCESS;
+		}
+
+		switch ( scope ) {
+		case LDAP_X_SCOPE_EXACT:
+		case LDAP_X_SCOPE_CHILDREN:
+		case LDAP_X_SCOPE_SUBTREE:
+		case LDAP_X_SCOPE_ONELEVEL:
+			if ( normalize ) {
+				rc = dnNormalize( 0, NULL, NULL, &bv, &out, ctx );
+			} else {
+				rc = dnPretty( NULL, &bv, &out, ctx );
+			}
+			if( rc != LDAP_SUCCESS ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			break;
+
+		case LDAP_X_SCOPE_REGEX:
+			normalized->bv_len = STRLENOF( "dn.regex:" ) + bv.bv_len;
+			normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
+			ptr = lutil_strcopy( normalized->bv_val, "dn.regex:" );
+			ptr = lutil_strncopy( ptr, bv.bv_val, bv.bv_len );
+			ptr[ 0 ] = '\0';
+			return LDAP_SUCCESS;
+
+		default:
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* prepare prefix */
+		switch ( scope ) {
+		case LDAP_X_SCOPE_EXACT:
+			BER_BVSTR( &prefix, "dn:" );
+			break;
+
+		case LDAP_X_SCOPE_CHILDREN:
+			BER_BVSTR( &prefix, "dn.children:" );
+			break;
+
+		case LDAP_X_SCOPE_SUBTREE:
+			BER_BVSTR( &prefix, "dn.subtree:" );
+			break;
+
+		case LDAP_X_SCOPE_ONELEVEL:
+			BER_BVSTR( &prefix, "dn.onelevel:" );
+			break;
+
+		default:
+			assert( 0 );
+			break;
+		}
+
+		normalized->bv_len = prefix.bv_len + out.bv_len;
+		normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
+		
+		ptr = lutil_strcopy( normalized->bv_val, prefix.bv_val );
+		ptr = lutil_strncopy( ptr, out.bv_val, out.bv_len );
+		ptr[ 0 ] = '\0';
+		ber_memfree_x( out.bv_val, ctx );
+
+		return LDAP_SUCCESS;
+
+	/*
+	 * 4) u[.mech[/realm]]:<ID>
+	 */
+	} else if ( ( val->bv_val[ 0 ] == 'u' || val->bv_val[ 0 ] == 'U' )
+			&& ( val->bv_val[ 1 ] == ':' 
+				|| val->bv_val[ 1 ] == '/' 
+				|| val->bv_val[ 1 ] == '.' ) )
+	{
+		char		buf[ SLAP_LDAPDN_MAXLEN ];
+		struct berval	id,
+				user = BER_BVNULL,
+				realm = BER_BVNULL,
+				mech = BER_BVNULL;
+
+		if ( sizeof( buf ) <= val->bv_len ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		id.bv_len = val->bv_len;
+		id.bv_val = buf;
+		strncpy( buf, val->bv_val, sizeof( buf ) );
+
+		rc = slap_parse_user( &id, &user, &realm, &mech );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		ber_dupbv_x( normalized, val, ctx );
+
+		return rc;
+
+	/*
+	 * 5) group[/groupClass[/memberAttr]]:<DN>
+	 *
+	 * <groupClass> defaults to "groupOfNames"
+	 * <memberAttr> defaults to "member"
+	 * 
+	 * <DN> must pass DN normalization
+	 */
+	} else if ( strncasecmp( val->bv_val, "group", STRLENOF( "group" ) ) == 0 )
+	{
+		struct berval	group_dn = BER_BVNULL,
+				group_oc = BER_BVNULL,
+				member_at = BER_BVNULL,
+				out = BER_BVNULL;
+		char		*ptr;
+
+		bv.bv_val = val->bv_val + STRLENOF( "group" );
+		group_dn.bv_val = strchr( bv.bv_val, ':' );
+		if ( group_dn.bv_val == NULL ) {
+			/* last chance: assume it's a(n exact) DN ... */
+			bv.bv_val = val->bv_val;
+			scope = LDAP_X_SCOPE_EXACT;
+			goto is_dn;
+		}
+
+		/*
+		 * FIXME: we assume that "member" and "groupOfNames"
+		 * are present in schema...
+		 */
+		if ( bv.bv_val[ 0 ] == '/' ) {
+			group_oc.bv_val = &bv.bv_val[ 1 ];
+
+			member_at.bv_val = strchr( group_oc.bv_val, '/' );
+			if ( member_at.bv_val ) {
+				AttributeDescription	*ad = NULL;
+				const char		*text = NULL;
+
+				group_oc.bv_len = member_at.bv_val - group_oc.bv_val;
+				member_at.bv_val++;
+				member_at.bv_len = group_dn.bv_val - member_at.bv_val;
+				rc = slap_bv2ad( &member_at, &ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					return rc;
+				}
+
+				member_at = ad->ad_cname;
+
+			} else {
+				ObjectClass		*oc = NULL;
+
+				group_oc.bv_len = group_dn.bv_val - group_oc.bv_val;
+
+				oc = oc_bvfind( &group_oc );
+				if ( oc == NULL ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+
+				group_oc = oc->soc_cname;
+			}
+		}
+
+		group_dn.bv_val++;
+		group_dn.bv_len = val->bv_len - ( group_dn.bv_val - val->bv_val );
+
+		if ( normalize ) {
+			rc = dnNormalize( 0, NULL, NULL, &group_dn, &out, ctx );
+		} else {
+			rc = dnPretty( NULL, &group_dn, &out, ctx );
+		}
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+
+		normalized->bv_len = STRLENOF( "group" ":" ) + out.bv_len;
+		if ( !BER_BVISNULL( &group_oc ) ) {
+			normalized->bv_len += STRLENOF( "/" ) + group_oc.bv_len;
+			if ( !BER_BVISNULL( &member_at ) ) {
+				normalized->bv_len += STRLENOF( "/" ) + member_at.bv_len;
+			}
+		}
+
+		normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
+		ptr = lutil_strcopy( normalized->bv_val, "group" );
+		if ( !BER_BVISNULL( &group_oc ) ) {
+			ptr[ 0 ] = '/';
+			ptr++;
+			ptr = lutil_strncopy( ptr, group_oc.bv_val, group_oc.bv_len );
+			if ( !BER_BVISNULL( &member_at ) ) {
+				ptr[ 0 ] = '/';
+				ptr++;
+				ptr = lutil_strncopy( ptr, member_at.bv_val, member_at.bv_len );
+			}
+		}
+		ptr[ 0 ] = ':';
+		ptr++;
+		ptr = lutil_strncopy( ptr, out.bv_val, out.bv_len );
+		ptr[ 0 ] = '\0';
+		ber_memfree_x( out.bv_val, ctx );
+
+		return rc;
+	}
+
+	/*
+	 * ldap:///<base>??<scope>?<filter>
+	 * <scope> ::= {base|one|subtree}
+	 *
+	 * <scope> defaults to "base"
+	 * <base> must pass DN normalization
+	 * <filter> must pass str2filter()
+	 */
+	rc = ldap_url_parse( val->bv_val, &ludp );
+	switch ( rc ) {
+	case LDAP_URL_SUCCESS:
+		/* FIXME: the check is pedantic, but I think it's necessary,
+		 * because people tend to use things like ldaps:// which
+		 * gives the idea SSL is being used.  Maybe we could
+		 * accept ldapi:// as well, but the point is that we use
+		 * an URL as an easy means to define bits of a search with
+		 * little parsing.
+		 */
+		if ( strcasecmp( ludp->lud_scheme, "ldap" ) != 0 ) {
+			/*
+			 * must be ldap:///
+			 */
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+
+		AC_MEMCPY( ludp->lud_scheme, "ldap", STRLENOF( "ldap" ) );
+		break;
+
+	case LDAP_URL_ERR_BADSCHEME:
+		/*
+		 * last chance: assume it's a(n exact) DN ...
+		 *
+		 * NOTE: must pass DN normalization
+		 */
+		ldap_free_urldesc( ludp );
+		bv.bv_val = val->bv_val;
+		scope = LDAP_X_SCOPE_EXACT;
+		goto is_dn;
+
+	default:
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	if ( ( ludp->lud_host && *ludp->lud_host )
+		|| ludp->lud_attrs || ludp->lud_exts )
+	{
+		/* host part must be empty */
+		/* attrs and extensions parts must be empty */
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	/* Grab the filter */
+	if ( ludp->lud_filter ) {
+		struct berval	filterstr;
+		Filter		*f;
+
+		lud_filter = ludp->lud_filter;
+
+		f = str2filter( lud_filter );
+		if ( f == NULL ) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+		filter2bv( f, &filterstr );
+		filter_free( f );
+		if ( BER_BVISNULL( &filterstr ) ) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+
+		ludp->lud_filter = filterstr.bv_val;
+	}
+
+	/* Grab the searchbase */
+	assert( ludp->lud_dn );
+	if ( ludp->lud_dn ) {
+		struct berval	out = BER_BVNULL;
+
+		lud_dn = ludp->lud_dn;
+
+		ber_str2bv( lud_dn, 0, 0, &bv );
+		if ( normalize ) {
+			rc = dnNormalize( 0, NULL, NULL, &bv, &out, ctx );
+		} else {
+			rc = dnPretty( NULL, &bv, &out, ctx );
+		}
+
+		if ( rc != LDAP_SUCCESS ) {
+			goto done;
+		}
+
+		ludp->lud_dn = out.bv_val;
+	}
+
+	ludp->lud_port = 0;
+	normalized->bv_val = ldap_url_desc2str( ludp );
+	if ( normalized->bv_val ) {
+		normalized->bv_len = strlen( normalized->bv_val );
+
+	} else {
+		rc = LDAP_INVALID_SYNTAX;
+	}
+
+done:
+	if ( lud_filter ) {
+		if ( ludp->lud_filter != lud_filter ) {
+			ber_memfree( ludp->lud_filter );
+		}
+		ludp->lud_filter = lud_filter;
+	}
+
+	if ( lud_dn ) {
+		if ( ludp->lud_dn != lud_dn ) {
+			ber_memfree( ludp->lud_dn );
+		}
+		ludp->lud_dn = lud_dn;
+	}
+
+	ldap_free_urldesc( ludp );
+
+	return( rc );
+}
+
+int
+authzNormalize(
+	slap_mask_t	usage,
+	Syntax		*syntax,
+	MatchingRule	*mr,
+	struct berval	*val,
+	struct berval	*normalized,
+	void		*ctx )
+{
+	int		rc;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> authzNormalize: <%s>\n",
+		val->bv_val, 0, 0 );
+
+	rc = authzPrettyNormal( val, normalized, ctx, 1 );
+
+	Debug( LDAP_DEBUG_TRACE, "<<< authzNormalize: <%s> (%d)\n",
+		normalized->bv_val, rc, 0 );
+
+	return rc;
+}
+
+int
+authzPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx)
+{
+	int		rc;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> authzPretty: <%s>\n",
+		val->bv_val, 0, 0 );
+
+	rc = authzPrettyNormal( val, out, ctx, 0 );
+
+	Debug( LDAP_DEBUG_TRACE, "<<< authzPretty: <%s> (%d)\n",
+		out->bv_val, rc, 0 );
+
+	return rc;
+}
+
+#endif /* SLAP_AUTHZ_SYNTAX */
+
+static int
+slap_parseURI(
+	Operation	*op,
+	struct berval	*uri,
+	struct berval	*base,
+	struct berval	*nbase,
+	int		*scope,
+	Filter		**filter,
+	struct berval	*fstr,
+	int		normalize )
+{
+	struct berval	bv;
+	int		rc;
+	LDAPURLDesc	*ludp;
+
+#ifdef SLAP_ORDERED_PRETTYNORM
+	struct berval	idx;
+#endif /* SLAP_ORDERED_PRETTYNORM */
 
 	assert( uri != NULL && !BER_BVISNULL( uri ) );
 	BER_BVZERO( base );
@@ -222,6 +953,21 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 
 	rc = LDAP_PROTOCOL_ERROR;
+
+#ifdef SLAP_ORDERED_PRETTYNORM
+	idx = *uri;
+	if ( idx.bv_val[ 0 ] == '{' ) {
+		char	*ptr;
+
+		ptr = strchr( idx.bv_val, '}' ) + 1;
+
+		assert( ptr != (void *)1 );
+
+		idx.bv_len -= ptr - idx.bv_val;
+		idx.bv_val = ptr;
+		uri = &idx;
+	}
+#endif /* SLAP_ORDERED_PRETTYNORM */
 
 	/*
 	 * dn[.<dnstyle>]:<dnpattern>
@@ -283,9 +1029,14 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		case LDAP_X_SCOPE_CHILDREN:
 		case LDAP_X_SCOPE_SUBTREE:
 		case LDAP_X_SCOPE_ONELEVEL:
-			rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
-			if( rc != LDAP_SUCCESS ) {
-				*scope = -1;
+			if ( normalize ) {
+				rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
+				if( rc != LDAP_SUCCESS ) {
+					*scope = -1;
+				}
+			} else {
+				ber_dupbv_x( nbase, &bv, op->o_tmpmemctx );
+				rc = LDAP_SUCCESS;
 			}
 			break;
 
@@ -390,10 +1141,15 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		group_dn.bv_val++;
 		group_dn.bv_len = uri->bv_len - ( group_dn.bv_val - uri->bv_val );
 
-		rc = dnNormalize( 0, NULL, NULL, &group_dn, nbase, op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			*scope = -1;
-			return rc;
+		if ( normalize ) {
+			rc = dnNormalize( 0, NULL, NULL, &group_dn, nbase, op->o_tmpmemctx );
+			if ( rc != LDAP_SUCCESS ) {
+				*scope = -1;
+				return rc;
+			}
+		} else {
+			ber_dupbv_x( nbase, &group_dn, op->o_tmpmemctx );
+			rc = LDAP_SUCCESS;
 		}
 		*scope = LDAP_X_SCOPE_GROUP;
 
@@ -481,7 +1237,12 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 	/* Grab the searchbase */
 	ber_str2bv( ludp->lud_dn, 0, 0, base );
-	rc = dnNormalize( 0, NULL, NULL, base, nbase, op->o_tmpmemctx );
+	if ( normalize ) {
+		rc = dnNormalize( 0, NULL, NULL, base, nbase, op->o_tmpmemctx );
+	} else {
+		ber_dupbv_x( nbase, base, op->o_tmpmemctx );
+		rc = LDAP_SUCCESS;
+	}
 
 done:
 	if( rc != LDAP_SUCCESS ) {
@@ -909,9 +1670,16 @@ slap_sasl_match( Operation *opx, struct berval *rule,
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n",
 		assertDN->bv_val, rule->bv_val, 0 );
 
-	rc = slap_parseURI( opx, rule, &base,
-		&op.o_req_ndn, &op.ors_scope, &op.ors_filter,
-		&op.ors_filterstr );
+	/* NOTE: don't normalize rule if authz syntax is enabled */
+	rc = slap_parseURI( opx, rule, &base, &op.o_req_ndn,
+		&op.ors_scope, &op.ors_filter, &op.ors_filterstr, 
+#ifdef SLAP_AUTHZ_SYNTAX
+		0
+#else /* ! SLAP_AUTHZ_SYNTAX */
+		1
+#endif /* ! SLAP_AUTHZ_SYNTAX */
+		);
+
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	switch ( op.ors_scope ) {
@@ -1166,9 +1934,10 @@ slap_sasl2dn(
 		goto FINISHED;
 	}
 
-	rc = slap_parseURI( opx, &regout, &base,
-		&op.o_req_ndn, &op.ors_scope, &op.ors_filter,
-		&op.ors_filterstr );
+	/* NOTE: always normalize regout because it results
+	 * from string submatch expansion */
+	rc = slap_parseURI( opx, &regout, &base, &op.o_req_ndn,
+		&op.ors_scope, &op.ors_filter, &op.ors_filterstr, 1 );
 	if ( !BER_BVISNULL( &regout ) ) slap_sl_free( regout.bv_val, opx->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
 		goto FINISHED;

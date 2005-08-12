@@ -833,7 +833,7 @@ fetch_entry_retry:
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
-			if ( --op->ors_slimit == -1) {
+			if ( --op->ors_slimit == -1 ) {
 #ifdef SLAP_ZONE_ALLOC
 				slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif

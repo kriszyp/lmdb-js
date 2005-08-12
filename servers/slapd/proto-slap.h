@@ -1337,6 +1337,31 @@ LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P((
 	int argc, 
 	char **argv ));
 #endif /* SLAP_AUTH_REWRITE */
+#ifdef SLAP_AUTHZ_SYNTAX
+LDAP_SLAPD_F (int) authzValidate LDAP_P((
+	Syntax *syn, struct berval *in ));
+#if 0
+LDAP_SLAPD_F (int) authzMatch LDAP_P((
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue ));
+#endif
+LDAP_SLAPD_F (int) authzPretty LDAP_P((
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx ));
+LDAP_SLAPD_F (int) authzNormalize LDAP_P((
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx ));
+#endif /* SLAP_AUTHZ_SYNTAX */
 
 /*
  * schema.c
@@ -1512,6 +1537,24 @@ LDAP_SLAPD_F (int) ordered_value_add LDAP_P((
 	Attribute *a,
 	BerVarray vals,
 	BerVarray nvals ));
+
+LDAP_SLAPD_F (int) ordered_value_validate LDAP_P((
+	AttributeDescription *ad,
+	struct berval *in ));
+
+LDAP_SLAPD_F (int) ordered_value_pretty LDAP_P((
+	AttributeDescription *ad,
+	struct berval *val,
+	struct berval *out,
+	void *ctx ));
+
+LDAP_SLAPD_F (int) ordered_value_normalize LDAP_P((
+	slap_mask_t usage,
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx ));
 
 LDAP_SLAPD_F (int) ordered_value_match LDAP_P((
 	int *match,
