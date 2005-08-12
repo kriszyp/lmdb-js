@@ -38,6 +38,23 @@ echo "Copyright 1998-2005 The OpenLDAP Foundation. All rights reserved."
 echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------
+dnl OpenLDAP Autoconf Macros
+dnl $OpenLDAP$
+dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
+dnl
+dnl Copyright 1998-2005 The OpenLDAP Foundation.
+dnl All rights reserved.
+dnl
+dnl Redistribution and use in source and binary forms, with or without
+dnl modification, are permitted only as authorized by the OpenLDAP
+dnl Public License.
+dnl
+dnl A copy of this license is available in the file LICENSE in the
+dnl top-level directory of the distribution or, alternatively, at
+dnl <http://www.OpenLDAP.org/license.html>.
+builtin(include, build/openldap.m4)dnl
+
+dnl ----------------------------------------------------------------
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
@@ -2216,7 +2233,7 @@ if test $ol_enable_proctitle != no ; then
 			[have_setproctitle=yes
 			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
 			[have_setproctitle=no
-			LIBOBJS="$LIBOBJS setproctitle.o"
+			AC_LIBOBJ(setproctitle)
 			LIBSRCS="$LIBSRCS setproctitle.c"])])
 
 	if test $have_setproctitle = yes ; then
@@ -2401,7 +2418,7 @@ dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
 
-if test $ac_cv_func_memcmp_clean = no ; then
+if test $ac_cv_func_memcmp_working = no ; then
 	AC_DEFINE(NEED_MEMCMP_REPLACEMENT,1,
 		[define if memcmp is not 8-bit clean or is otherwise broken])
 fi
