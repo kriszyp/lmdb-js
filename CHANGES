@@ -28,6 +28,9 @@ OpenLDAP 2.3.5 Engineering
 	Fixed slapo-rwm leak (ITS#3914)
 	Fixed slapadd segfault (ITS#3926)
 	Fixed slapcat cn=config segfault (ITS#3796)
+	Fixed slapd authzTo/From syntax issue (ITS#3921)
+	Fixed libldap start_tls referral chasing (ITS#3791)
+	Fixed libldap referral chasing issues (ITS#2894,ITS#3578)
 	Build Environment
 		Upgraded shtool (ITS#3752)
 		Upgraded config.guess/config.sub
@@ -41,9 +44,15 @@ OpenLDAP 2.3.5 Engineering
 		Fixed test037 manageDIT discovery issue (ITS#3898)
 		Fixed <sasl.h> inclusion (ITS#3905)
 		Fixed TLS inclusion (ITS#3912)
+		Fixed smbk5pwd Heimdal compat issue (ITS#3910)
+		Fixed slapd make install issue (ITS#3929)
 	Documentation
 		Fixed Admin Guide authz v. saslauthz problem (ITS#3875)
-		Updated slapd.conf (ITS#3866)
+		Fixed Admin Guide --disable-bdb issue (ITS#3837)
+		Updated slapd.conf(5) (ITS#3866)
+		Updated slapd(8) OPTIONS section (ITS#3816)
+		Updated slapd-monitor(5) (ITS#3822)
+		Updated slapd-bdb(5) (ITS#3823)
 
 OpenLDAP 2.3.4 Release
 	Initial release for "general use".
