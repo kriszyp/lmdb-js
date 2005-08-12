@@ -393,7 +393,9 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
 	int		vers = op->o_protocol;
 	LDAP		*ld = NULL;
+#ifdef HAVE_TLS
 	int		is_tls = op->o_conn->c_is_tls;
+#endif /* HAVE_TLS */
 
 	assert( lcp != NULL );
 
@@ -428,7 +430,9 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 	}
 	(*lcp)->lc_ld = ld;
 	(*lcp)->lc_refcnt = 1;
+#ifdef HAVE_TLS
 	(*lcp)->lc_is_tls = is_tls;
+#endif /* HAVE_TLS */
 
 error_return:;
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -464,16 +468,28 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		lc_curr.lc_conn = op->o_conn;
 
 	} else {
-		lc_curr.lc_conn = op->o_conn->c_is_tls ? 
-			LDAP_BACK_PRIV_CONN_TLS : LDAP_BACK_PRIV_CONN;
+#ifdef HAVE_TLS
+		if ( op->o_conn->c_is_tls ) {
+			lc_curr.lc_conn = LDAP_BACK_PRIV_CONN_TLS;
+		} else
+#endif /* HAVE_TLS */
+		{
+			lc_curr.lc_conn = LDAP_BACK_PRIV_CONN;
+		}
 	}
 	
 	/* Internal searches are privileged and shared. So is root. */
 	/* FIXME: there seem to be concurrency issues */
 	if ( op->o_do_not_cache || be_isroot( op ) ) {
 		lc_curr.lc_local_ndn = op->o_bd->be_rootndn;
-		lc_curr.lc_conn = op->o_conn->c_is_tls ? 
-			LDAP_BACK_PRIV_CONN_TLS : LDAP_BACK_PRIV_CONN;
+#ifdef HAVE_TLS
+		if ( op->o_conn->c_is_tls ) {
+			lc_curr.lc_conn = LDAP_BACK_PRIV_CONN_TLS;
+		} else
+#endif /* HAVE_TLS */
+		{
+			lc_curr.lc_conn = LDAP_BACK_PRIV_CONN;
+		}
 		lc_curr.lc_ispriv = 1;
 
 	} else {
