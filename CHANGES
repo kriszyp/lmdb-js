@@ -4,7 +4,8 @@ OpenLDAP 2.3.5 Release
 	Fixed slapd integerBitOr/AndMatch logic (ITS#3782)
 	Fixed slapd substrings filter length checks (ITS#3790)
 	Fixed slapd thread pool initialization (ITS#3793)
-	Fixed slapi acl skipped issue (ITS#3886)
+	Fixed slapi bind bound DN issue (ITS#2971)
+	Fixed slapi issues (ITS#3884,3885,3886)
 	Fixed slapd cancel exop (ITS#3549)
 	Fixed slapd syncrepl cookie problem (ITS#3917)
 	Fixed slapd inequality filter index bug (ITS#3920)
@@ -30,7 +31,7 @@ OpenLDAP 2.3.5 Release
 	Fixed slapcat cn=config segfault (ITS#3796)
 	Fixed slapd authzTo/From syntax issue (ITS#3921)
 	Fixed libldap start_tls referral chasing (ITS#3791)
-	Fixed libldap referral chasing issues (ITS#2894,ITS#3578)
+	Fixed libldap referral chasing issues (ITS#2894,3578)
     Updated Assertion control to use IANA-assigned OID
     Updated pre/post read controls to use IANA-assigned OIDs
 	Build Environment
@@ -51,9 +52,10 @@ OpenLDAP 2.3.5 Release
 	Documentation
 		Fixed Admin Guide authz v. saslauthz problem (ITS#3875)
 		Fixed Admin Guide --disable-bdb issue (ITS#3837)
+		Fixed slapd-meta(5) lastmod issue (ITS#3789)
 		Updated slapd.conf(5) (ITS#3866)
 		Updated slapd(8) OPTIONS section (ITS#3816)
-		Updated slapd-monitor(5) (ITS#3822)
+		Updated slapd-monitor(5) (ITS#3822,3836)
 		Updated slapd-bdb(5) (ITS#3823)
 
 OpenLDAP 2.3.4 Release
