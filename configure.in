@@ -784,11 +784,7 @@ fi
 
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
-AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
-if test $am_cv_sys_posix_termios = yes ; then
-	AC_DEFINE(HAVE_POSIX_TERMIOS,1,
-		[define if you have POSIX termios])
-fi
+AC_HEADER_TIOCGWINSZ
 
 AC_CHECK_HEADERS(		\
 	arpa/inet.h		\
