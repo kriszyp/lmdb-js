@@ -113,7 +113,123 @@ dnl aclocal.m4 should be built using aclocal from automake 1.5
 dnl libtool 1.5 should be installed.
 AC_PREREQ(2.59)dnl Required Autoconf version
 
-AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
+AH_TOP([
+/* begin of portable.h.pre */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2005 The OpenLDAP Foundation
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+
+#ifndef _LDAP_PORTABLE_H
+#define _LDAP_PORTABLE_H
+
+/* define this if needed to get reentrant functions */
+#ifndef REENTRANT
+#undef REENTRANT
+#endif
+#ifndef _REENTRANT
+#undef _REENTRANT
+#endif
+
+/* define this if needed to get threadsafe functions */
+#ifndef THREADSAFE
+#undef THREADSAFE
+#endif
+#ifndef _THREADSAFE
+#undef _THREADSAFE
+#endif
+#ifndef THREAD_SAFE
+#undef THREAD_SAFE
+#endif
+#ifndef _THREAD_SAFE
+#undef _THREAD_SAFE
+#endif
+
+#ifndef _SGI_MP_SOURCE
+#undef _SGI_MP_SOURCE
+#endif
+
+/* These are defined in ldap_features.h */
+/*
+	LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
+	LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
+	LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+*/
+
+/* These are defined in lber_types.h */
+/*
+	LBER_INT_T
+	LBER_LEN_T
+	LBER_SOCKET_T
+	LBER_TAG_T
+*/
+
+/* end of portable.h.pre */
+])
+AH_BOTTOM([
+/* begin of portable.h.post */
+
+#ifdef _WIN32
+	/* don't suck in all of the win32 api */
+#	define WIN32_LEAN_AND_MEAN 1
+#endif
+
+#ifndef LDAP_NEEDS_PROTOTYPES
+/* force LDAP_P to always include prototypes */
+#define LDAP_NEEDS_PROTOTYPES 1
+#endif
+
+#ifndef LDAP_REL_ENG
+#if (LDAP_VENDOR_VERSION == 000000) && !defined(LDAP_DEVEL)
+#define LDAP_DEVEL
+#endif
+#if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
+#define LDAP_TEST
+#endif
+#endif
+
+#ifdef HAVE_STDDEF_H
+#	include <stddef.h>
+#endif
+
+#ifdef HAVE_EBCDIC 
+/* ASCII/EBCDIC converting replacements for stdio funcs
+ * vsnprintf and snprintf are used too, but they are already
+ * checked by the configure script
+ */
+#define fputs ber_pvt_fputs
+#define fgets ber_pvt_fgets
+#define printf ber_pvt_printf
+#define fprintf ber_pvt_fprintf
+#define vfprintf ber_pvt_vfprintf
+#define vsprintf ber_pvt_vsprintf
+#endif
+
+#include "ac/fdset.h"
+
+#include "ldap_cdefs.h"
+#include "ldap_features.h"
+
+#include "ac/assert.h"
+#include "ac/localize.h"
+
+#endif /* _LDAP_PORTABLE_H */
+/* end of portable.h.post */
+])
+
+AC_CONFIG_HEADERS([include/portable.h:include/portable.hin])
+AC_CONFIG_HEADERS([include/ldap_features.h:include/ldap_features.hin])
+AC_CONFIG_HEADERS([include/lber_types.h:include/lber_types.hin])
 
 dnl ================================================================
 dnl Start Args
@@ -661,12 +777,9 @@ dnl AC_ISC_POSIX
 dnl AC_MINIX
 
 dnl ----------------------------------------------------------------
-dnl Checks for system services
-AC_CYGWIN
-AC_MINGW32
+dnl Checks for file extensions
 AC_EXEEXT
 AC_OBJEXT
-
 AC_DEFINE_UNQUOTED(EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
 
 dnl ----------------------------------------------------------------
@@ -2358,7 +2471,7 @@ AC_CHECK_TYPE(ssize_t, [signed int])
 AC_CHECK_TYPE(caddr_t,	[char *])
 
 OL_TYPE_SOCKLEN_T
-AC_STRUCT_ST_BLKSIZE
+AC_CHECK_MEMBERS([struct stat.st_blksize])
 AC_HEADER_TIME
 AC_STRUCT_TM
 AC_TYPE_UID_T
