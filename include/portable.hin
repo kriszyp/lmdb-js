@@ -358,7 +358,7 @@
 /* Define to 1 if you have the `lockf' function. */
 #undef HAVE_LOCKF
 
-/* define if you have 'long long' */
+/* Define to 1 if the system has the type `long long'. */
 #undef HAVE_LONG_LONG
 
 /* Define to 1 if you have the <ltdl.h> header file. */
@@ -912,16 +912,16 @@
 /* Define to the type of arg 5 for `select'. */
 #undef SELECT_TYPE_ARG5
 
-/* The number of bytes in type int */
+/* The size of a `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
-/* The number of bytes in type long */
+/* The size of a `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The number of bytes in type short */
+/* The size of a `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
-/* The number of bytes in type wchar_t */
+/* The size of a `wchar_t', as computed by sizeof. */
 #undef SIZEOF_WCHAR_T
 
 /* define to support per-object ACIs */
