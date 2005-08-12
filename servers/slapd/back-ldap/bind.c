@@ -529,6 +529,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 			}
 		}
 
+#ifdef HAVE_TLS
 		/* if start TLS failed but it was not mandatory,
 		 * check if the non-TLS connection was already
 		 * in cache; in case, destroy the newly created
@@ -553,6 +554,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 				goto done;
 			}
 		}
+#endif /* HAVE_TLS */
 
 		lc->lc_bound = 0;
 
