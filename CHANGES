@@ -53,8 +53,7 @@ OpenLDAP 2.3.5 Release
 	Fixed slapd authzTo/From syntax issue (ITS#3921)
 	Fixed libldap start_tls referral chasing (ITS#3791)
 	Fixed libldap referral chasing issues (ITS#2894,3578)
-    Updated Assertion control to use IANA-assigned OID
-    Updated pre/post read controls to use IANA-assigned OIDs
+    Use IANA-assigned OIDs for recently approved LDAP extensions
 	Removed lint (ITS#3857)
 	Build Environment
 		Upgraded shtool (ITS#3752)
