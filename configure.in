@@ -60,7 +60,8 @@ define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
-AC_INIT(build/version.sh)dnl
+AC_INIT
+AC_CONFIG_SRCDIR([build/version.sh])dnl
 
 # set unset (borrowed from autoconf 2.49c)
 if (OL_FOO=OL_FOO; unset OL_FOO) >/dev/null 2>&1; then
@@ -99,7 +100,7 @@ echo "Configuring ${TB}${OL_STRING}${TN} ${OPENLDAP_CVS}..."
 
 dnl Determine host platform
 dnl		we try not to use this for much
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_TARGET([])
 
 AM_INIT_AUTOMAKE([$OL_PACKAGE],[$OL_VERSION], [no defines])dnl
 AC_SUBST(PACKAGE)dnl
@@ -124,7 +125,7 @@ AC_SUBST(OPENLDAP_RELEASE_DATE)dnl
 dnl We use autoconf features new to 2.13.  Later versions like won't work.
 dnl aclocal.m4 should be built using aclocal from automake 1.4
 dnl libtool 1.4.3 should be installed.
-AC_PREREQ(2.13)dnl Required Autoconf version
+AC_PREREQ(2.59)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
 
@@ -675,8 +676,18 @@ dnl AC_MINIX
 
 dnl ----------------------------------------------------------------
 dnl Checks for system services
-AC_CYGWIN
-AC_MINGW32
+AC_CANONICAL_HOST()
+AC_DIAGNOSE([obsolete],[AC_CYGWIN is obsolete: use AC_CANONICAL_HOST and $host_os])case $host_os in
+  *cygwin* ) CYGWIN=yes;;
+	 * ) CYGWIN=no;;
+esac
+
+AC_CANONICAL_HOST()
+AC_DIAGNOSE([obsolete],[AC_MINGW32 is obsolete: use AC_CANONICAL_HOST and $host_os])case $host_os in
+  *mingw32* ) MINGW32=yes;;
+	  * ) MINGW32=no;;
+esac
+
 AC_EXEEXT
 AC_OBJEXT
 
@@ -688,7 +699,14 @@ AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot -lnet"], :, [-lroot -lnet])
 
 dnl ----------------------------------------------------------------
 dnl OpenLDAP requires STDC features
-AM_PROG_CC_STDC
+AC_PROG_CC()
+AC_DIAGNOSE([obsolete],[AM_PROG_CC_STDC:
+	your code should no longer depend upon `am_cv_prog_cc_stdc', but upon
+	`ac_cv_prog_cc_stdc'.  Remove this warning and the assignment when
+	you adjust the code.  You can also remove the above call to
+	AC_PROG_CC if you already called it elsewhere.])
+am_cv_prog_cc_stdc=$ac_cv_prog_cc_stdc
+
 if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
 	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC constructs.])
 fi
@@ -845,15 +863,13 @@ AC_CACHE_CHECK([for winsock], [ol_cv_winsock],
 save_LIBS="$LIBS"
 for curlib in ws2_32 wsock32; do
 	LIBS="$LIBS -l$curlib"
-	AC_TRY_LINK([#include <winsock.h>
-			],
-			[
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <winsock.h>
+			]], [[
 			socket(0,0,0);
 			select(0,NULL,NULL,NULL,NULL);
 			closesocket(0);
 			gethostname(NULL,0);
-			],
-			ol_cv_winsock=yes, ol_cv_winsock=no)
+			]])],[ol_cv_winsock=yes],[ol_cv_winsock=no])
 
 	if test $ol_cv_winsock = yes; then
 		AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
@@ -908,14 +924,12 @@ dnl ----------------------------------------------------------------
 AC_CHECK_HEADERS( sys/epoll.h )
 if test "${ac_cv_header_sys_epoll_h}" = yes; then
 AC_MSG_CHECKING(for epoll system call)
-AC_TRY_RUN(
-int main(int argc, char *argv[])
+AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(int argc, char *argv)
 {
 	int epfd = epoll_create(256);
 	exit (epfd == -1 ? 1 : 0);
-}, [AC_MSG_RESULT(yes)
-AC_DEFINE(HAVE_EPOLL,1, [define if your system supports epoll])],
-AC_MSG_RESULT(no),AC_MSG_RESULT(no))
+}]])],[AC_MSG_RESULT(yes)
+AC_DEFINE(HAVE_EPOLL,1, [define if your system supports epoll])],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
 fi
 
 dnl ----------------------------------------------------------------
@@ -960,15 +974,13 @@ if test $have_uuid = no ; then
 	AC_MSG_CHECKING(to see if -lrpcrt4 is needed for win32 UUID support)
 	save_LIBS="$LIBS"
 	LIBS="$LIBS -lrpcrt4"
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 		int __stdcall UuidCreate(void *);
 		int __stdcall UuidToStringA(void *,void **);
-		],
-		[
+		]], [[
 		UuidCreate(0);
 		UuidToStringA(0,0);
-		],
-		need_rpcrt=yes, need_rpcrt=no)
+		]])],[need_rpcrt=yes],[need_rpcrt=no])
 	if test $need_rpcrt = yes; then
 		SLAPD_LIBS="$SLAPD_LIBS -lrpcrt4"
 	fi
@@ -1025,13 +1037,12 @@ elif test $ol_enable_ipv6 != no ; then
 
 
 	AC_CACHE_CHECK([struct sockaddr_storage],ol_cv_struct_sockaddr_storage,[
-		AC_TRY_COMPILE([
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
-],[
+]], [[
 			struct sockaddr_storage ss;
-],			[ol_cv_struct_sockaddr_storage=yes],
-			[ol_cv_struct_sockaddr_storage=no])])
+]])],[ol_cv_struct_sockaddr_storage=yes],[ol_cv_struct_sockaddr_storage=no])])
 
 	if test $ol_cv_inet6_addrstrlen = yes \
 		-a $ol_cv_struct_sockaddr_storage = yes ; then
@@ -1158,13 +1169,13 @@ if test $ol_link_krb5 = yes -a \( $ol_with_kerberos = yes -o \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="$KRB4_LIBS $KRB5_LIBS $LIBS"
-				AC_TRY_LINK([
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <kerberosIV/krb.h>
 #include <kerberosIV/des.h>
 extern int des_debug;
-],[
+]], [[
 des_debug = 1;
-],				ol_cv_var_des_debug=yes, ol_cv_var_des_debug=no)
+]])],[ol_cv_var_des_debug=yes],[ol_cv_var_des_debug=no])
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
@@ -1277,7 +1288,7 @@ if test $ol_with_tls != no ; then
 	fi
 
 else
-	AC_WARN([TLS data protection not supported!])
+	AC_MSG_WARN([TLS data protection not supported!])
 fi
 
 WITH_TLS=no
@@ -1286,18 +1297,18 @@ if test $ol_link_tls = yes ; then
 	WITH_TLS=yes
 
 elif test $ol_with_tls = auto ; then
-	AC_WARN([Could not locate TLS/SSL package])
-	AC_WARN([TLS data protection not supported!])
+	AC_MSG_WARN([Could not locate TLS/SSL package])
+	AC_MSG_WARN([TLS data protection not supported!])
 
 elif test $ol_with_tls != no ; then
-	AC_ERROR([Could not locate TLS/SSL package])
+	AC_MSG_ERROR([Could not locate TLS/SSL package])
 fi
 
 dnl ----------------------------------------------------------------
 dnl LAN Manger password checking requires DES from OpenSSL
 if test $ol_enable_lmpasswd != no; then
 	if test $ol_link_tls != yes ; then
-		AC_ERROR([LAN Manager passwords require OpenSSL])
+		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
 	fi
 
 	AC_DEFINE(SLAPD_LMHASH, 1, [define to support LAN Manager passwords])
@@ -1387,10 +1398,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl pthread_create in $LIBS
 		AC_CACHE_CHECK([for pthread_create in default libraries],
 			ol_cv_pthread_create,[
-		AC_TRY_RUN(OL_PTHREAD_TEST_PROGRAM,
-			[ol_cv_pthread_create=yes],
-			[ol_cv_pthread_create=no],
-			[AC_TRY_LINK(OL_PTHREAD_TEST_INCLUDES,OL_PTHREAD_TEST_FUNCTION,
+		AC_RUN_IFELSE([AC_LANG_SOURCE([[OL_PTHREAD_TEST_PROGRAM]])],[ol_cv_pthread_create=yes],[ol_cv_pthread_create=no],[_au_changequote([,])AC_TRY_LINK(OL_PTHREAD_TEST_INCLUDES,OL_PTHREAD_TEST_FUNCTION,
 				[ol_cv_pthread_create=yes],
 				[ol_cv_pthread_create=no])])])
 
@@ -1468,15 +1476,12 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			AC_CACHE_CHECK([for pthread_detach with <pthread.h>],
 				[ol_cv_func_pthread_detach], [
 				dnl save the flags
-				AC_TRY_LINK([
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <pthread.h>
 #ifndef NULL
 #define NULL (void*)0
 #endif
-],
-					[pthread_detach(NULL);],
-					[ol_cv_func_pthread_detach=yes],
-					[ol_cv_func_pthread_detach=no])
+]], [[pthread_detach(NULL);]])],[ol_cv_func_pthread_detach=yes],[ol_cv_func_pthread_detach=no])
 			])
 
 			if test $ol_cv_func_pthread_detach = no ; then
@@ -1503,10 +1508,7 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 
 			AC_CACHE_CHECK([if pthread_create() works],
 				ol_cv_pthread_create_works,[
-			AC_TRY_RUN(OL_PTHREAD_TEST_PROGRAM,
-				[ol_cv_pthread_create_works=yes],
-				[ol_cv_pthread_create_works=no],
-				[dnl assume yes
+			AC_RUN_IFELSE([AC_LANG_SOURCE([[OL_PTHREAD_TEST_PROGRAM]])],[ol_cv_pthread_create_works=yes],[ol_cv_pthread_create_works=no],[dnl assume yes
 				ol_cv_pthread_create_works=yes])])
 
 			if test $ol_cv_pthread_create_works = no ; then
@@ -1517,7 +1519,7 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			if test $ol_with_yielding_select = auto ; then
 				AC_CACHE_CHECK([if select yields when using pthreads],
 					ol_cv_pthread_select_yields,[
-				AC_TRY_RUN([
+				AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -1590,10 +1592,7 @@ int main(argc, argv)
 #endif
 
 	exit(2);
-}],
-				[ol_cv_pthread_select_yields=no],
-				[ol_cv_pthread_select_yields=yes],
-				[ol_cv_pthread_select_yields=cross])])
+}]])],[ol_cv_pthread_select_yields=no],[ol_cv_pthread_select_yields=yes],[ol_cv_pthread_select_yields=cross])])
 
 				if test $ol_cv_pthread_select_yields = cross ; then
 					AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])
@@ -1636,9 +1635,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-all_load $LIBS"
-				AC_TRY_LINK([#include <mach/cthreads.h>],[
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <mach/cthreads.h>]], [[
 					cthread_fork((void *)0, (void *)0);
-					], ol_cv_cthread_all_load=yes, ol_cv_cthread_all_load=no)
+					]])],[ol_cv_cthread_all_load=yes],[ol_cv_cthread_all_load=no])
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
@@ -1782,18 +1781,14 @@ if test $ol_link_threads != no -a $ol_link_threads != nt ; then
 	dnl If it does, we must link with thread support.
 	AC_CACHE_CHECK([for thread specific errno],
 		[ol_cv_errno_thread_specific], [
-		AC_TRY_LINK([#include <errno.h>], [errno = 0;],
-			[ol_cv_errno_thread_specific=yes],
-			[ol_cv_errno_thread_specific=no])
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <errno.h>]], [[errno = 0;]])],[ol_cv_errno_thread_specific=yes],[ol_cv_errno_thread_specific=no])
 	])
 
 	dnl The h_errno declaration may dependent upon _REENTRANT.
 	dnl If it does, we must link with thread support.
 	AC_CACHE_CHECK([for thread specific h_errno],
 		[ol_cv_h_errno_thread_specific], [
-		AC_TRY_LINK([#include <netdb.h>], [h_errno = 0;],
-			[ol_cv_h_errno_thread_specific=yes],
-			[ol_cv_h_errno_thread_specific=no])
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <netdb.h>]], [[h_errno = 0;]])],[ol_cv_h_errno_thread_specific=yes],[ol_cv_h_errno_thread_specific=no])
 	])
 
 	if test $ol_cv_errno_thread_specific != yes \
@@ -2017,20 +2012,20 @@ if test $ol_enable_wrappers != no ; then
 		AC_MSG_CHECKING([for TCP wrappers library])
 		save_LIBS="$LIBS"
 		LIBS="$LIBS -lwrap"
-		AC_TRY_LINK([
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <tcpd.h>
 int allow_severity = 0;
 int deny_severity  = 0;
 
 struct request_info *req;
-		],[
+		]], [[
 hosts_access(req)
-		],[AC_MSG_RESULT([-lwrap])
+		]])],[AC_MSG_RESULT([-lwrap])
 		have_wrappers=yes
 		LIBS="$save_LIBS"],[
 		dnl try with -lnsl
 		LIBS="$LIBS -lnsl"
-		AC_TRY_LINK([
+		_au_changequote([,])AC_TRY_LINK([
 #include <tcpd.h>
 int allow_severity = 0;
 int deny_severity  = 0;
@@ -2043,8 +2038,7 @@ hosts_access(req)
 		LIBS="$save_LIBS -lnsl"],[
 		AC_MSG_RESULT(no)
 		have_wrappers=no
-		LIBS=$save_LIBS])],[
-		have_wrappers=no])],[have_wrappers=no])
+		LIBS=$save_LIBS])])],[have_wrappers=no])
 
 	if test $have_wrappers = yes ; then
 		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
@@ -2357,9 +2351,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for long long
 AC_CACHE_CHECK([long long], ol_cv_type_long_long, [
-	AC_TRY_COMPILE([], [long long x;],
-		[ol_cv_type_long_long=yes],
-		[ol_cv_type_long_long=no])])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[long long x;]])],[ol_cv_type_long_long=yes],[ol_cv_type_long_long=no])])
 if test $ol_cv_type_long_long = yes; then
 	AC_DEFINE(HAVE_LONG_LONG, 1, [define if you have 'long long'])
 fi
@@ -2367,7 +2359,7 @@ fi
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
-AM_TYPE_PTRDIFF_T
+AC_CHECK_TYPES([ptrdiff_t])
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 
@@ -2375,7 +2367,15 @@ AC_CHECK_TYPE(ssize_t, [signed int])
 AC_CHECK_TYPE(caddr_t,	[char *])
 
 OL_TYPE_SOCKLEN_T
-AC_STRUCT_ST_BLKSIZE
+AC_DIAGNOSE([obsolete],[AC_STRUCT_ST_BLKSIZE:
+	your code should no longer depend upon `HAVE_ST_BLKSIZE', but
+	`HAVE_STRUCT_STAT_ST_BLKSIZE'.  Remove this warning and
+	the `AC_DEFINE' when you adjust the code.])
+AC_CHECK_MEMBERS([struct stat.st_blksize],[AC_DEFINE(HAVE_ST_BLKSIZE, 1,
+			    [Define to 1 if your `struct stat' has
+			     `st_blksize'.  Deprecated, use
+			     `HAVE_STRUCT_STAT_ST_BLKSIZE' instead.])])
+
 AC_HEADER_TIME
 AC_STRUCT_TM
 AC_TYPE_UID_T
@@ -2423,9 +2423,9 @@ if test $ac_cv_func_memcmp_working = no ; then
 		[define if memcmp is not 8-bit clean or is otherwise broken])
 fi
 
-dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
+dnl AC_FUNC_MKTIME([]) dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
-dnl AM_FUNC_STRTOD
+dnl AC_FUNC_STRTOD([])
 
 OL_FUNC_INET_ATON
 
@@ -3059,7 +3059,7 @@ dnl ----------------------------------------------------------------
 dnl final output
 dnl
 
-AC_OUTPUT( \
+AC_CONFIG_FILES([\
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk \
 doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk \
@@ -3100,7 +3100,8 @@ servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/run \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
-,[
+])
+AC_CONFIG_COMMANDS([default],[[
 chmod +x tests/run
 date > stamp-h
 BACKENDSC="servers/slapd/backends.c"
@@ -3156,4 +3157,5 @@ ENDX
 fi
 
 echo Please run \"make depend\" to build dependencies
-],[STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS"])
+]],[[STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS"]])
+AC_OUTPUT
