@@ -158,22 +158,6 @@ AH_TOP([
 #undef _SGI_MP_SOURCE
 #endif
 
-/* These are defined in ldap_features.h */
-/*
-	LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
-	LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
-	LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-*/
-
-/* These are defined in lber_types.h */
-/*
-	LBER_INT_T
-	LBER_LEN_T
-	LBER_SOCKET_T
-	LBER_TAG_T
-*/
-
 /* end of portable.h.pre */
 ])
 AH_BOTTOM([
@@ -1965,7 +1949,8 @@ if test $ol_link_threads = no ; then
 fi
 
 if test $ol_link_threads != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1)
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1,
+		[define to 1 if library is thread safe])
 fi
 
 dnl ----------------------------------------------------------------
@@ -2501,14 +2486,14 @@ AC_COMPILE_CHECK_SIZEOF(wchar_t)
 if test "$ac_cv_sizeof_int" -lt 4 ; then
 	AC_MSG_WARN([OpenLDAP requires 'int' to be 32 bits or greater.])
 
-	AC_DEFINE(LBER_INT_T,long)
+	AC_DEFINE(LBER_INT_T,long,[define to 32-bit or greater integer type])
 else
-	AC_DEFINE(LBER_INT_T,int)
+	AC_DEFINE(LBER_INT_T,int,[define to 32-bit or greater integer type])
 fi
 
-AC_DEFINE(LBER_LEN_T,long)
-AC_DEFINE(LBER_SOCKET_T,int)
-AC_DEFINE(LBER_TAG_T,long)
+AC_DEFINE(LBER_LEN_T,long,[define to large integer type])
+AC_DEFINE(LBER_SOCKET_T,int,[define to socket descriptor type])
+AC_DEFINE(LBER_TAG_T,long,[define to large integer type])
 
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
@@ -2651,14 +2636,16 @@ if test "$ol_enable_syslog" = yes ; then
 		[define this to add syslog code])
 fi
 if test "$ol_link_kbind" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION)
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION,
+		[define to LDAP VENDOR VERSION])
 fi
 if test "$ol_enable_proctitle" != no ; then
 	AC_DEFINE(LDAP_PROCTITLE,1,
 		[define this for LDAP process title support])
 fi
 if test "$ol_enable_referrals" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION)
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION,
+		[define to LDAP VENDOR VERSION])
 fi
 if test "$ol_enable_local" != no; then
 	AC_DEFINE(LDAP_PF_LOCAL,1,[define to support PF_LOCAL])

@@ -33,7 +33,7 @@ veryclean-local: clean-local FORCE
 
 depend-local: ldap_config.h FORCE
 
-LDAP_CONFIG=$(srcdir)/ldap_config.h.in
+LDAP_CONFIG=$(srcdir)/ldap_config.hin
 
 ldap_config.h: $(LDAP_CONFIG) Makefile
 	@$(RM) $@

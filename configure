@@ -37154,7 +37154,8 @@ _ACEOF
 fi
 
 if test $ol_link_threads != no ; then
-	cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE 1
 _ACEOF
 
@@ -48798,24 +48799,29 @@ if test "$ac_cv_sizeof_int" -lt 4 ; then
 	{ echo "$as_me:$LINENO: WARNING: OpenLDAP requires 'int' to be 32 bits or greater." >&5
 echo "$as_me: WARNING: OpenLDAP requires 'int' to be 32 bits or greater." >&2;}
 
-	cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define LBER_INT_T long
 _ACEOF
 
 else
-	cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define LBER_INT_T int
 _ACEOF
 
 fi
 
+
 cat >>confdefs.h <<\_ACEOF
 #define LBER_LEN_T long
 _ACEOF
 
+
 cat >>confdefs.h <<\_ACEOF
 #define LBER_SOCKET_T int
 _ACEOF
+
 
 cat >>confdefs.h <<\_ACEOF
 #define LBER_TAG_T long
@@ -50510,7 +50516,8 @@ _ACEOF
 
 fi
 if test "$ol_link_kbind" != no ; then
-	cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND LDAP_VENDOR_VERSION
 _ACEOF
 
@@ -50523,7 +50530,8 @@ _ACEOF
 
 fi
 if test "$ol_enable_referrals" != no ; then
-	cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS LDAP_VENDOR_VERSION
 _ACEOF
 
