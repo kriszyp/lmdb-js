@@ -239,8 +239,6 @@ OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support
 
 dnl ----------------------------------------------------------------
 dnl General "with" options
-dnl OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	  enable debug malloc support], no)dnl
-
 OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
@@ -734,12 +732,6 @@ fi
 AC_PROG_CPP
 
 dnl ----------------------------------------------------------------
-dnl Checks for UNIX Variants
-dnl AC_AIX
-dnl AC_ISC_POSIX
-dnl AC_MINIX
-
-dnl ----------------------------------------------------------------
 dnl Checks for file extensions
 AC_EXEEXT
 AC_OBJEXT
@@ -854,7 +846,6 @@ AC_CHECK_HEADERS(		\
 	psap.h			\
 	pwd.h			\
 	process.h		\
-	resolv.h		\
 	sgtty.h			\
 	shadow.h		\
 	stddef.h		\
@@ -873,7 +864,6 @@ AC_CHECK_HEADERS(		\
 	sys/syslog.h		\
 	sys/time.h		\
 	sys/types.h		\
-	sys/ucred.h		\
 	sys/uio.h		\
 	syslog.h		\
 	termios.h		\
@@ -882,6 +872,18 @@ AC_CHECK_HEADERS(		\
 	winsock.h		\
 	winsock2.h		\
 )
+
+AC_CHECK_HEADERS( resolv.h, [], [],
+[$ac_includes_default]
+#include <netinet/in.h>
+)
+
+AC_CHECK_HEADERS(sys/ucred.h, [], [],
+[$ac_includes_default
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+])
 
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
@@ -2107,13 +2109,6 @@ if test $ol_enable_syslog != no ; then
 	fi
 	ol_enable_syslog=$ac_cv_func_openlog
 fi
-
-dnl ----------------------------------------------------------------
-dnl dmalloc support (deprecated in favor of -DCSRIMALLOC support)
-dnl if test $ol_enable_dmalloc != no ; then
-dnl 	AC_CHECK_HEADERS(dmalloc.h)
-dnl 	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
-dnl fi
 
 dnl ----------------------------------------------------------------
 dnl SQL
