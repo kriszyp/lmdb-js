@@ -1218,6 +1218,9 @@ dn_match_cleanup:;
 				continue;
 			}
 
+			Debug( LDAP_DEBUG_ACL, "<= check a_group_pat: %s\n",
+				b->a_group_pat.bv_val, 0, 0 );
+
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
 			 * the values in the attribute group
@@ -1251,16 +1254,21 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_set_pat.bv_len != 0 ) {
-			struct berval bv;
-			char buf[ACL_BUF_SIZE];
-			if( b->a_set_style == ACL_STYLE_REGEX ){
+			struct berval	bv;
+			char	buf[ACL_BUF_SIZE];
+
+ 			Debug( LDAP_DEBUG_ACL, "<= check a_set_pat: %s\n",
+ 				b->a_set_pat.bv_val, 0, 0 );
+
+			if ( b->a_set_style == ACL_STYLE_REGEX ) {
 				bv.bv_len = sizeof(buf) - 1;
 				bv.bv_val = buf;
 				string_expand( &bv, &b->a_set_pat, e->e_ndn, matches );
-			}else{
+			} else {
 				bv = b->a_set_pat;
 			}
-			if (aci_match_set( &bv, op, e, 0 ) == 0) {
+
+			if ( aci_match_set( &bv, op, e, 0 ) == 0)  {
 				continue;
 			}
 		}
@@ -1335,6 +1343,9 @@ dn_match_cleanup:;
 			struct berval parent_ndn, old_parent_ndn;
 			BerVarray bvals = NULL;
 			int ret,stop;
+
+			Debug( LDAP_DEBUG_ACL, "    <= check a_aci_at: %s\n",
+				b->a_aci_at->ad_cname.bv_val, 0, 0 );
 
 			/* this case works different from the others above.
 			 * since aci's themselves give permissions, we need
