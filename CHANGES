@@ -24,7 +24,7 @@ OpenLDAP 2.3.5 Release
 	Fixed slapd attributeOptions config parsing (ITS#3829)
 	Fixed slapd whitespace config parsing bug (ITS#3901)
 	Fixed slapd rootdn space issue (ITS#3806)
-	Fixed slapd passwwd change w/ {CRYPT} bug (ITS#3805)
+	Fixed slapd passwd change w/ {CRYPT} bug (ITS#3805)
 	Fixed slapd backend_init_controls assert (ITS#3853)
 	Fixed slapd loglevel -1 bug (ITS#3858)
 	Fixed slapi bind bound DN issue (ITS#2971)
@@ -39,7 +39,7 @@ OpenLDAP 2.3.5 Release
 	Fixed slapd-ldap/meta connection pooling (ITS#3813)
 	Fixed slapd-ldap/meta memory leak (ITS#3862)
 	Added slapd-sql enhancements (ITS#3432)
-	Fixed slapd-sql change password issue (ITS#3861)
+	Fixed slapd-sql attribute with no values issue (ITS#3861)
 	Fixed slapd-sql truncating keyval column problem (ITS#3888)
 	Fixed slapd-sql return code ignored problem (ITS#3891)
 	Fixed slapo-glue alock bug (ITS#3817,3841)
@@ -52,11 +52,12 @@ OpenLDAP 2.3.5 Release
 	Fixed slapadd segfault (ITS#3926)
 	Fixed slapadd/index bdb/hdb db_stat issue (ITS#3824)
 	Fixed slapcat cn=config segfault (ITS#3796)
+	Fixed slaptest -F crash (ITS#3912)
 	Fixed slapd authzTo/From syntax issue (ITS#3921)
 	Fixed libldap abandon concurrency issue (ITS#3800)
 	Fixed libldap start_tls referral chasing (ITS#3791)
 	Fixed libldap referral chasing issues (ITS#2894,3578)
-    Use IANA-assigned OIDs for recently approved LDAP extensions
+	Use IANA-assigned OIDs for recently approved LDAP extensions
 	Removed lint (ITS#3857)
 	Build Environment
 		Upgraded shtool (ITS#3752)
@@ -71,7 +72,6 @@ OpenLDAP 2.3.5 Release
 		Fixed test037 manageDIT discovery issue (ITS#3898)
 		Fixed installed man page symlinks (ITS#3904)
 		Fixed <sasl.h> inclusion (ITS#3905)
-		Fixed TLS inclusion (ITS#3912)
 		Fixed smbk5pwd Heimdal compat issue (ITS#3910)
 		Fixed slapd make install issue (ITS#3929)
 	Documentation
