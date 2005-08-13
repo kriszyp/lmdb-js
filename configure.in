@@ -2402,17 +2402,28 @@ AC_CHECK_TYPE(size_t, unsigned)
 AC_CHECK_TYPES([long long])
 AC_CHECK_TYPES([ptrdiff_t])
 
+AC_CHECK_TYPE([socklen_t], [int],,,[$ac_includes_default
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+])
+
+AC_CHECK_TYPE([sig_atomic_t], [int],,,[$ac_includes_default
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
+])
+
 AC_TYPE_SIGNAL
 AC_TYPE_UID_T
-dnl AC_TYPE_GETGROUPS
-OL_TYPE_SOCKLEN_T
-OL_TYPE_SIG_ATOMIC_T
 
 AC_HEADER_TIME
 AC_STRUCT_TM
 AC_CHECK_MEMBERS([struct stat.st_blksize])
-AC_CHECK_MEMBERS([struct passwd.pw_gecos],,,[#include <pwd.h>])
-AC_CHECK_MEMBERS([struct passwd.pw_passwd],,,[#include <pwd.h>])
+AC_CHECK_MEMBERS([struct passwd.pw_gecos],,,[$ac_includes_default
+#include <pwd.h>])
+AC_CHECK_MEMBERS([struct passwd.pw_passwd],,,[$ac_includes_default
+#include <pwd.h>])
 
 OL_C_UPPER_LOWER
 AC_C_CONST

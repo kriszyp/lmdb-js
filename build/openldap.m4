@@ -1053,35 +1053,6 @@ fi
 ])dnl
 dnl
 dnl ====================================================================
-dnl Define sig_atomic_t if not defined in signal.h
-AC_DEFUN([OL_TYPE_SIG_ATOMIC_T],
- [AC_CACHE_CHECK(for sig_atomic_t, ol_cv_type_sig_atomic_t,
-    [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <signal.h>]], [[sig_atomic_t atomic;]])],[ol_cv_type_sig_atomic_t=yes],[ol_cv_type_sig_atomic_t=no])])
-  if test $ol_cv_type_sig_atomic_t = no; then
-    AC_DEFINE(sig_atomic_t,int,
-		[define to atomic type if sig_atomic_t is not available])
-  fi
- ])dnl
-dnl
-dnl ====================================================================
-dnl Define socklen_t if not defined in sys/types.h or sys/socket.h
-AC_DEFUN([OL_TYPE_SOCKLEN_T],
- [AC_CACHE_CHECK(for socklen_t, ol_cv_type_socklen_t,
-    [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-]], [[socklen_t len;]])],[ol_cv_type_socklen_t=yes],[ol_cv_type_socklen_t=no])])
-  if test $ol_cv_type_socklen_t = no; then
-    AC_DEFINE(socklen_t, int,
-		[define to int if socklen_t is not available])
-  fi
- ])dnl
-dnl
-dnl ====================================================================
 dnl Define inet_aton is available
 AC_DEFUN([OL_FUNC_INET_ATON],
  [AC_CACHE_CHECK([for inet_aton()], ol_cv_func_inet_aton,

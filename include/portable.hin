@@ -1069,7 +1069,7 @@
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t
 
-/* define to atomic type if sig_atomic_t is not available */
+/* Define to `int' if <sys/types.h> does not define. */
 #undef sig_atomic_t
 
 /* Define to `unsigned' if <sys/types.h> does not define. */
@@ -1078,7 +1078,7 @@
 /* define to snprintf routine */
 #undef snprintf
 
-/* define to int if socklen_t is not available */
+/* Define to `int' if <sys/types.h> does not define. */
 #undef socklen_t
 
 /* Define to `signed int' if <sys/types.h> does not define. */
