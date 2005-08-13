@@ -32,6 +32,8 @@ OpenLDAP 2.3.5 Release
 	Fixed slapi authorization name issue (ITS#3892)
 	Fixed slapi slapi_int_connection_init operation problem (ITS#3868)
 	Fixed slapi slapi_entry_has_children bug (ITS#3879)
+	Fixed slapd-bdb manual recovery startup (ITS#3607,3824)
+	Fixed slapd-bdb manual recovery startup (ITS#3833)
 	Fixed slapd-bdb/hdb checkpoint before suffix bug (ITS#3784)
 	Fixed slapd-hdb modrdn base bug (ITS#3857)
 	Fixed slapd-ldap access to freed connection (ITS#3913)
@@ -50,14 +52,14 @@ OpenLDAP 2.3.5 Release
 	Fixed slapo-rwm leak (ITS#3914)
 	Fixed slapo-glue/rwm conflict (ITS#3788)
 	Fixed slapadd segfault (ITS#3926)
-	Fixed slapadd/index bdb/hdb db_stat issue (ITS#3824)
 	Fixed slapcat cn=config segfault (ITS#3796)
 	Fixed slaptest -F crash (ITS#3912)
 	Fixed slapd authzTo/From syntax issue (ITS#3921)
 	Fixed libldap abandon concurrency issue (ITS#3800)
 	Fixed libldap start_tls referral chasing (ITS#3791)
 	Fixed libldap referral chasing issues (ITS#2894,3578)
-	Use IANA-assigned OIDs for recently approved LDAP extensions
+	Fixed librewrite concurrency issue (ITS#3932)
+	Use IANA-assigned OIDs for recently approved IETF LDAP extensions
 	Removed lint (ITS#3857)
 	Build Environment
 		Upgraded shtool (ITS#3752)
@@ -74,6 +76,7 @@ OpenLDAP 2.3.5 Release
 		Fixed <sasl.h> inclusion (ITS#3905)
 		Fixed smbk5pwd Heimdal compat issue (ITS#3910)
 		Fixed slapd make install issue (ITS#3929)
+		Fixed DESTDIR reporting (ITS#3916)
 	Documentation
 		Fixed Admin Guide authz v. saslauthz problem (ITS#3875)
 		Fixed Admin Guide --disable-bdb issue (ITS#3837)

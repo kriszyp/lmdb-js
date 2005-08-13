@@ -404,7 +404,17 @@ int main( int argc, char **argv )
 
 				slap_debug |= level;
 			} else {
-				slap_debug |= atoi( optarg );
+				int	level;
+				char	*next = NULL;
+
+				level = strtol( optarg, &next, 0 );
+				if ( next == NULL || next[ 0 ] != '\0' ) {
+					fprintf( stderr,
+						"unrecognized log level "
+						"\"%s\"\n", optarg );
+					goto destroy;
+				}
+				slap_debug |= level;
 			}
 #else
 			if ( atoi( optarg ) != 0 )

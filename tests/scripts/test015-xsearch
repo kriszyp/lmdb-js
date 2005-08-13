@@ -161,18 +161,18 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-#FILTER="(:rdnMatch:=cn=All Staff)"
-#echo "        f=$FILTER ..."
-#echo "#         f=$FILTER ..." >> $SEARCHOUT
-#$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-#	"$FILTER" >> $SEARCHOUT 2>&1
-#
-#RC=$?
-#if test $RC != 0 ; then
-#	echo "ldapsearch failed ($RC)!"
-#	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-#	exit $RC
-#fi
+FILTER="(name:dn:=whatever)"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "" -s base -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 echo "Testing values return filter searching:"
 echo "# Testing values return filter searching:" >> $SEARCHOUT

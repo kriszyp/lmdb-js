@@ -39,12 +39,12 @@ install-common:
 	-$(MKDIR) $(DESTDIR)$(MANDIR)
 	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
 	for page in $$PAGES; do \
-		echo "installing $(MANDIR)/$$page"; \
+		echo "installing $$page in $(DESTDIR)$(MANDIR)"; \
 		$(RM) $(DESTDIR)$(MANDIR)/$$page; \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$page.$(TMP_SUFFIX) $(DESTDIR)$(MANDIR)/$$page; \
 		if test -f "$(srcdir)/$$page.links" ; then \
 			for link in `$(CAT) $(srcdir)/$$page.links`; do \
-				echo "installing $(MANDIR)/$$link as link to $$page"; \
+				echo "installing $$link in $(DESTDIR)$(MANDIR) as link to $$page"; \
 				$(RM) $(DESTDIR)$(MANDIR)/$$link ; \
 				$(LN_S) $(DESTDIR)$(MANDIR)/$$page $(DESTDIR)$(MANDIR)/$$link; \
 			done; \
