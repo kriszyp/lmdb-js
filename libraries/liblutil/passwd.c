@@ -831,6 +831,7 @@ static int chk_crypt(
 	const char **text )
 {
 	unsigned int i;
+	char *cr;
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
@@ -874,7 +875,7 @@ static int chk_unix(
 	const char **text )
 {
 	unsigned int i;
-	char *pw;
+	char *pw, *cr;
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
