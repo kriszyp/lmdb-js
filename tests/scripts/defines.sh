@@ -14,6 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 MONITORDB=${AC_MONITOR-no}
+BACKLDAP=${AC_ldap-ldapno}
 PROXYCACHE=${AC_pcache-pcacheno}
 WITHTLS=${AC_WITHTLS-yes}
 

@@ -23,6 +23,11 @@ if test $PROXYCACHE = pcacheno; then
 	exit 0
 fi 
 
+if test $BACKLDAP = "ldapno" ; then 
+	echo "LDAP backend not available, test skipped"
+	exit 0
+fi 
+
 if test "x$LVL" = "x0" ; then
 	echo "test020 needs a minimal log level; setting to LDAP_DEBUG_NONE..."
 	LVL=2048
