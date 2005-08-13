@@ -15,6 +15,7 @@ OpenLDAP 2.2.28 Release
 	Fixed syncrepl SASL bind crash (ITS#3792)
 	Fixed slurpd error messages
 	Fixed libldap infinite referral loop (ITS#2894, ITS#3578)
+	Fixed librewrite regex concurrency issue (ITS#3932)
 	Use IANA assigned OIDs for recently approved IETF LDAP extensions
 	Build Environment
 		Fixed test020 logging problem (ITS#3811)

@@ -206,6 +206,9 @@ struct rewrite_rule {
 	char                           *lr_pattern;
 	char                           *lr_subststring;
 	char                           *lr_flagstring;
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+	ldap_pvt_thread_mutex_t         lr_mutex;
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	regex_t                         lr_regex;
 
 	/*
