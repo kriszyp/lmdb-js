@@ -17,6 +17,8 @@ OpenLDAP 2.3.5 Release
 	Fixed slapd cn=config olcDbConfig bug (ITS#3815)
 	Fixed slapd cn=config olcReadOnly bug (ITS#3820)
 	Fixed slapd cn=config hdb+bdb bug (ITS#3821)
+	Fixed slapd ACL attrs/val EQUALITY issue (ITS#3830)
+	Fixed slapd authx-regexp diagnostics (ITS#3819)
 	Fixed slapd index_substr_any_step keyword (ITS#3818)
 	Fixed slapd -f directory issue (ITS#3865)
 	Fixed slapd attributeOptions config parsing (ITS#3829)
@@ -51,6 +53,7 @@ OpenLDAP 2.3.5 Release
 	Fixed slapadd/index bdb/hdb db_stat issue (ITS#3824)
 	Fixed slapcat cn=config segfault (ITS#3796)
 	Fixed slapd authzTo/From syntax issue (ITS#3921)
+	Fixed libldap abandon concurrency issue (ITS#3800)
 	Fixed libldap start_tls referral chasing (ITS#3791)
 	Fixed libldap referral chasing issues (ITS#2894,3578)
     Use IANA-assigned OIDs for recently approved LDAP extensions
