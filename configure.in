@@ -20,7 +20,7 @@ dnl ================================================================
 dnl Configure.in for OpenLDAP
 AC_COPYRIGHT([[Copyright 1998-2005 The OpenLDAP Foundation. All rights reserved.
 Restrictions apply, see COPYRIGHT and LICENSE files.]])
-AC_REVISION($OpenLDAP$)
+AC_REVISION([$OpenLDAP$])
 AC_INIT([OpenLDAP],,[http://www.openldap.org/its/])
 AC_CONFIG_SRCDIR(build/version.sh)dnl
 dnl ----------------------------------------------------------------
@@ -2536,9 +2536,17 @@ if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
 fi
 if test "$ac_cv_func_getpeereid" != yes; then
-	OL_MSGHDR_MSG_ACCRIGHTS
-	if test "$ac_cv_func_getpeereid" != yes; then
-		OL_MSGHDR_MSG_CONTROL
+	AC_CHECK_MEMBERS([struct msghdr.msg_accrightslen],,,
+		[$ac_includes_default
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif])
+	if test "$ac_cv_member_struct_msghdr_msg_accrightslen" != yes; then
+		AC_CHECK_MEMBERS([struct msghdr.msg_control],,,
+			[$ac_includes_default
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif])
 	fi
 	LIBSRCS="$LIBSRCS getpeereid.c"
 fi

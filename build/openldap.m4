@@ -1261,31 +1261,7 @@ AC_DEFUN([OL_SASL_COMPAT],
 	],	[ol_cv_sasl_compat=yes], [ol_cv_sasl_compat=no])])
 ])
 dnl ====================================================================
-dnl check for msg_accrights in msghdr
-AC_DEFUN([OL_MSGHDR_MSG_ACCRIGHTS],
- [AC_CACHE_CHECK(for msg_accrights in msghdr, ol_cv_msghdr_msg_accrights,
-   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/socket.h>]],
-		[[struct msghdr m; m.msg_accrightslen=0]])],
-		[ol_cv_msghdr_msg_accrights=yes],
-		[ol_cv_msghdr_msg_accrights=no])])
-  if test $ol_cv_msghdr_msg_accrights = "yes" ; then
-	AC_DEFINE(HAVE_MSGHDR_MSG_ACCRIGHTS,1,
-		[define if struct msghdr has msg_accrights])
-  fi
-])dnl
-dnl ====================================================================
-dnl check for cmsghdr
-AC_DEFUN([OL_MSGHDR_MSG_CONTROL],
- [AC_CACHE_CHECK(for msg_control in msghdr, ol_cv_msghdr_msg_control,
-   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/socket.h>]],
-		[[struct msghdr m; m.msg_control=(struct cmsghdr *)0]])],
-		[ol_cv_msghdr_msg_control=yes],
-		[ol_cv_msghdr_msg_control=no])])
-  if test $ol_cv_msghdr_msg_control = "yes" ; then
-	AC_DEFINE(HAVE_MSGHDR_MSG_CONTROL,1,
-		[define if struct msghdr has msg_control])
-  fi
-])dnl
+dnl check for SSL compatibility
 AC_DEFUN([OL_SSL_COMPAT],
 [AC_CACHE_CHECK([OpenSSL library version (CRL checking capability)], [ol_cv_ssl_crl_compat],[
 	AC_EGREP_CPP(__ssl_compat,[
