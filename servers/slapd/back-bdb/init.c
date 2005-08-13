@@ -87,179 +87,6 @@ bdb_db_init( BackendDB *be )
 	return 0;
 }
 
-/*
- * Unconditionally perform a database recovery. Only works on
- * databases that were previously opened with transactions and
- * logs enabled.
- */
-static int
-bdb_do_recovery( BackendDB *be )
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	DB_ENV  *re_dbenv;
-	u_int32_t flags;
-	int		rc;
-	char	path[MAXPATHLEN], *ptr;
-
-	/* Create and init the recovery environment */
-	rc = db_env_create( &re_dbenv, 0 );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_do_recovery: db_env_create failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-	}
-	re_dbenv->set_errpfx( re_dbenv, be->be_suffix[0].bv_val );
-	re_dbenv->set_errcall( re_dbenv, bdb_errcall );
-	(void)re_dbenv->set_verbose(re_dbenv, DB_VERB_RECOVERY, 1);
-#if DB_VERSION_FULL < 0x04030000
-	(void)re_dbenv->set_verbose(re_dbenv, DB_VERB_CHKPOINT, 1);
-#else
-	re_dbenv->set_msgcall( re_dbenv, bdb_msgcall );
-#endif
-
-	flags = DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
-		DB_INIT_TXN | DB_USE_ENVIRON | DB_RECOVER;
-
-	/* If a key was set, use shared memory for the BDB environment */
-	if ( bdb->bi_shm_key ) {
-		re_dbenv->set_shm_key( re_dbenv, bdb->bi_shm_key );
-		flags |= DB_SYSTEM_MEM;
-	}
-
-	/* Open the environment, which will also perform the recovery */
-#ifdef HAVE_EBCDIC
-	strcpy( path, bdb->bi_dbenv_home );
-	__atoe( path );
-	rc = re_dbenv->open( re_dbenv,
-		path,
-		flags,
-		bdb->bi_dbenv_mode );
-#else
-	rc = re_dbenv->open( re_dbenv,
-		bdb->bi_dbenv_home,
-		flags,
-		bdb->bi_dbenv_mode );
-#endif
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_do_recovery: dbenv_open failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-	}
-	(void) re_dbenv->close( re_dbenv, 0 );
-
-	/* By convention we reset the mtime for id2entry.bdb to the current time */
-	ptr = lutil_strcopy( path, bdb->bi_dbenv_home);
-	*ptr++ = LDAP_DIRSEP[0];
-	strcpy( ptr, bdbi_databases[0].file);
-	(void) utime( path, NULL);
-
-	return 0;
-}
-
-/*
- * Database recovery logic:
- * This function is called whenever the database appears to have been
- * shut down uncleanly, as determined by the alock functions. 
- * Because of the -q function in slapadd, there is also the possibility
- * that the shutdown happened when transactions weren't being used and
- * the database is likely to be corrupt. The function checks for this
- * condition by examining the environment to make sure it had previously
- * been opened with transactions enabled. If this is the case, the
- * database is recovered as usual. If transactions were not enabled,
- * then this function will return a fail.
- */
-static int
-bdb_db_recover( BackendDB *be )
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	DB_ENV  *re_dbenv;
-	u_int32_t flags;
-	int		rc;
-#ifdef HAVE_EBCDIC
-	char	path[MAXPATHLEN];
-#endif
-
-	/* Create the recovery environment, then open it.
-	 * We use the DB_JOIN in combination with a flags value of
-	 * zero so we join an existing environment and can read the
-	 * value of the flags that were used the last time the 
-	 * environment was opened. DB_CREATE is added because the
-	 * open would fail if the only thing that had been done
-	 * was an open with transactions and logs disabled.
-	 */
-	rc = db_env_create( &re_dbenv, 0 );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_recover: db_env_create failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-	}
-	re_dbenv->set_errpfx( re_dbenv, be->be_suffix[0].bv_val );
-	re_dbenv->set_errcall( re_dbenv, bdb_errcall );
-
-	Debug( LDAP_DEBUG_TRACE,
-		"bdb_db_recover: dbenv_open(%s)\n",
-		bdb->bi_dbenv_home, 0, 0);
-
-#ifdef HAVE_EBCDIC
-	strcpy( path, bdb->bi_dbenv_home );
-	__atoe( path );
-	rc = re_dbenv->open( re_dbenv,
-		path,
-		DB_JOINENV,
-		bdb->bi_dbenv_mode );
-#else
-	rc = re_dbenv->open( re_dbenv,
-		bdb->bi_dbenv_home,
-		DB_JOINENV,
-		bdb->bi_dbenv_mode );
-#endif
-
-	if( rc == ENOENT ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_db_recover: DB environment files are missing, assuming it was "
-			"manually recovered\n", 0, 0, 0 );
-		return 0;
-	}
-	else if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_recover: dbenv_open failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-	}
-
-	/*
-	 * Check the flags that had been used in the previous open.
-	 * The environment needed to have had both
-	 * DB_INIT_LOG and DB_INIT_TXN set for us to be willing to
-	 * recover the database. Otherwise the an app failed while running
-	 * without transactions and logs enabled and the dn2id and id2entry
-	 * mapping is likely to be corrupt.
-	 */
-	rc = re_dbenv->get_open_flags( re_dbenv, &flags );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_recover: get_open_flags failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-	}
-
-	(void) re_dbenv->close( re_dbenv, 0 );
-
-	if( (flags & DB_INIT_LOG) && (flags & DB_INIT_TXN) ) {
-		return bdb_do_recovery( be );
-	}
-
-	Debug( LDAP_DEBUG_ANY,
-		"bdb_db_recover: Database cannot be recovered. "\
-		"Restore from backup!\n", 0, 0, 0);
-	return -1;
-
-}
-
-
 static int
 bdb_db_open( BackendDB *be )
 {
@@ -268,7 +95,8 @@ bdb_db_open( BackendDB *be )
 	struct stat stat1, stat2;
 	u_int32_t flags;
 	char path[MAXPATHLEN];
-	char *ptr;
+	char *dbhome;
+	int do_recover = 0, do_alock_recover = 0, open_env = 1, got_env = 0;
 
 	if ( be->be_suffix == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -297,7 +125,7 @@ bdb_db_open( BackendDB *be )
 			bdb->bi_dbenv_home, errno, 0 );
 			return -1;
 	}
-	
+
 	/* Perform database use arbitration/recovery logic */
 	rc = alock_open( &bdb->bi_alock_info, 
 				"slapd", 
@@ -310,19 +138,8 @@ bdb_db_open( BackendDB *be )
 			"bdb_db_open: unclean shutdown detected;"
 			" attempting recovery.\n", 
 			0, 0, 0 );
-		if( bdb_db_recover( be ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: DB recovery failed.\n",
-				0, 0, 0 );
-			return -1;
-		}
-		if( alock_recover (&bdb->bi_alock_info) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: alock_recover failed\n",
-				0, 0, 0 );
-			return -1;
-		}
-
+		do_alock_recover = 1;
+		do_recover = 1;
 	} else if( rc == ALOCK_BUSY ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_open: database already in use\n", 
@@ -334,30 +151,26 @@ bdb_db_open( BackendDB *be )
 			0, 0, 0 );
 		return -1;
 	}
-	
+
 	/*
 	 * The DB_CONFIG file may have changed. If so, recover the
 	 * database so that new settings are put into effect. Also
 	 * note the possible absence of DB_CONFIG in the log.
 	 */
 	if( stat( bdb->bi_db_config_path, &stat1 ) == 0 ) {
-		ptr = lutil_strcopy(path, bdb->bi_dbenv_home);
-		*ptr++ = LDAP_DIRSEP[0];
-		strcpy( ptr, bdbi_databases[0].file);
-		if( stat( path, &stat2 ) == 0 ) {
-			if( stat2.st_mtime <= stat1.st_mtime ) {
-				Debug( LDAP_DEBUG_ANY,
-					"bdb_db_open: DB_CONFIG for suffix %s has changed.\n"
-					"Performing database recovery to activate new settings.\n",
-					be->be_suffix[0].bv_val, 0, 0 );
-				if( bdb_do_recovery( be ) != 0) {
+		if ( !do_recover ) {
+			char *ptr = lutil_strcopy(path, bdb->bi_dbenv_home);
+			*ptr++ = LDAP_DIRSEP[0];
+			strcpy( ptr, "__db.001" );
+			if( stat( path, &stat2 ) == 0 ) {
+				if( stat2.st_mtime <= stat1.st_mtime ) {
 					Debug( LDAP_DEBUG_ANY,
-						"bdb_db_open: db recovery failed.\n",
-						0, 0, 0 );
-					return -1;
+						"bdb_db_open: DB_CONFIG for suffix %s has changed.\n"
+						"Performing database recovery to activate new settings.\n",
+						be->be_suffix[0].bv_val, 0, 0 );
+					do_recover = 1;
 				}
 			}
-					
 		}
 	}
 	else {
@@ -367,10 +180,6 @@ bdb_db_open( BackendDB *be )
 			"Expect poor performance for suffix %s.\n",
 			bdb->bi_dbenv_home, errno, be->be_suffix[0].bv_val );
 	}
-		
-	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE;
-	if ( !( slapMode & SLAP_TOOL_QUICK ))
-		flags |= DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
 
 	rc = db_env_create( &bdb->bi_dbenv, 0 );
 	if( rc != 0 ) {
@@ -380,18 +189,195 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	/* If a key was set, use shared memory for the BDB environment */
-	if ( bdb->bi_shm_key ) {
-		bdb->bi_dbenv->set_shm_key( bdb->bi_dbenv, bdb->bi_shm_key );
-		flags |= DB_SYSTEM_MEM;
-	}
-
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
+
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
 
 	/* One long-lived TXN per thread, two TXNs per write op */
 	bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv, connection_pool_max * 3 );
+
+	if( bdb->bi_dbenv_xflags != 0 ) {
+		rc = bdb->bi_dbenv->set_flags( bdb->bi_dbenv,
+			bdb->bi_dbenv_xflags, 1);
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			return rc;
+		}
+	}
+
+#define	BDB_TXN_FLAGS	(DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN)
+
+#ifdef HAVE_EBCDIC
+	strcpy( path, bdb->bi_dbenv_home );
+	__atoe( path );
+	dbhome = path;
+#else
+	dbhome = bdb->bi_dbenv_home;
+#endif
+
+	Debug( LDAP_DEBUG_TRACE,
+		"bdb_db_open: dbenv_open(%s)\n",
+		bdb->bi_dbenv_home, 0, 0);
+
+	/* Check if there is a usable existing environment */
+	flags = DB_JOINENV | DB_THREAD;
+
+	rc = bdb->bi_dbenv->open( bdb->bi_dbenv, dbhome,
+		flags, bdb->bi_dbenv_mode );
+	if( rc == 0 ) {
+		int flags_ok = 0;
+
+		got_env = 1;
+
+		rc = bdb->bi_dbenv->get_open_flags( bdb->bi_dbenv, &flags );
+		if ( rc == 0 ) {
+			int flag2 = flags & BDB_TXN_FLAGS;
+
+			/* In quick mode, none of these flags are allowed */
+			if ( slapMode & SLAP_TOOL_QUICK ) {
+				if ( !flag2 )
+					flags_ok = 1;
+			} else {
+			/* In normal mode, all of these flags are required */
+				if ( flag2 == BDB_TXN_FLAGS )
+					flags_ok = 1;
+			}
+		}
+
+		/* In Quick mode, we cannot Recover... */
+		if ( slapMode & SLAP_TOOL_QUICK ) {
+			/* If we need to recover but we had no TXNs, just fail */
+			if ( do_recover && flags_ok ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_open: Database cannot be recovered. "
+					"Restore from backup!\n", 0, 0, 0);
+				return -1;
+			}
+			/* We need to recover, and we had TXN support before:
+			 * Close this env, open a new one with recovery flags.
+			 */
+			if ( do_recover ) {
+				bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
+				bdb->bi_dbenv = NULL;
+				rc = db_env_create( &bdb->bi_dbenv, 0 );
+				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"bdb_db_open: db_env_create failed: %s (%d)\n",
+						db_strerror(rc), rc, 0 );
+					return rc;
+				}
+				bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv,
+					be->be_suffix[0].bv_val );
+				bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
+				rc = bdb->bi_dbenv->open( bdb->bi_dbenv, dbhome,
+					flags | DB_RECOVER, bdb->bi_dbenv_mode );
+				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"bdb_db_open: recovery failed: %s (%d)\n",
+						db_strerror(rc), rc, 0 );
+					return rc;
+				}
+				do_recover = 0;
+			}
+			/* Prev environment had TXN support, get rid of it */
+			if ( !flags_ok ) {
+				bdb->bi_dbenv->remove( bdb->bi_dbenv, dbhome, 0 );
+				bdb->bi_dbenv = NULL;
+			}
+		/* Normal TXN mode */
+		} else {
+			/* If we need to recover but we had no TXNs, just fail */
+			if ( do_recover && !flags_ok ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_open: Database cannot be recovered. "
+					"Restore from backup!\n", 0, 0, 0);
+				return -1;
+			}
+			/* Prev environment had no TXN support, close it */
+			if ( !flags_ok ) {
+				bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
+				bdb->bi_dbenv = NULL;
+				do_recover = 1;
+			}
+		}
+
+		if ( flags_ok && !do_recover ) {
+			/* This environment is fine, don't reopen it */
+			open_env = 0;
+		} else {
+			/* Create a new env that can take the desired settings */
+			rc = db_env_create( &bdb->bi_dbenv, 0 );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_open: db_env_create failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+				return rc;
+			}
+
+			bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
+			bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
+			bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
+
+			/* One long-lived TXN per thread, two TXNs per write op */
+			bdb->bi_dbenv->set_tx_max( bdb->bi_dbenv, connection_pool_max * 3 );
+
+			if( bdb->bi_dbenv_xflags != 0 ) {
+				rc = bdb->bi_dbenv->set_flags( bdb->bi_dbenv,
+					bdb->bi_dbenv_xflags, 1);
+				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
+						db_strerror(rc), rc, 0 );
+					return rc;
+				}
+			}
+		}
+	}
+
+	/* If we need to recover but there was no existing environment,
+	 * then we assume that someone has already manually recovered using
+	 * db_recover. Just ignore it.
+	 */
+	if ( do_recover && !got_env ) {
+		do_recover = 0;
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_db_open: Recovery needed but environment is missing - "
+			"assuming recovery was done manually...\n", 0, 0, 0 );
+	}
+
+	if ( open_env ) {
+		flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE;
+		if ( !( slapMode & SLAP_TOOL_QUICK ))
+			flags |= BDB_TXN_FLAGS;
+
+		if ( do_recover )
+			flags |= DB_RECOVER;
+
+		/* If a key was set, use shared memory for the BDB environment */
+		if ( bdb->bi_shm_key ) {
+			bdb->bi_dbenv->set_shm_key( bdb->bi_dbenv, bdb->bi_shm_key );
+			flags |= DB_SYSTEM_MEM;
+		}
+
+		rc = bdb->bi_dbenv->open( bdb->bi_dbenv, dbhome,
+			flags, bdb->bi_dbenv_mode );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_open: dbenv_open failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			return rc;
+		}
+	}
+
+	if ( do_alock_recover && alock_recover (&bdb->bi_alock_info) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_open: alock_recover failed\n",
+			0, 0, 0 );
+		return -1;
+	}
 
 #ifdef SLAP_ZONE_ALLOC
 	if ( bdb->bi_cache.c_maxsize ) {
@@ -406,41 +392,6 @@ bdb_db_open( BackendDB *be )
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;
 		bdb->bi_idl_cache_size = 0;
-	}
-
-	if( bdb->bi_dbenv_xflags != 0 ) {
-		rc = bdb->bi_dbenv->set_flags( bdb->bi_dbenv,
-			bdb->bi_dbenv_xflags, 1);
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-			return rc;
-		}
-	}
-
-	Debug( LDAP_DEBUG_TRACE,
-		"bdb_db_open: dbenv_open(%s)\n",
-		bdb->bi_dbenv_home, 0, 0);
-
-#ifdef HAVE_EBCDIC
-	strcpy( path, bdb->bi_dbenv_home );
-	__atoe( path );
-	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
-		path,
-		flags,
-		bdb->bi_dbenv_mode );
-#else
-	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
-		bdb->bi_dbenv_home,
-		flags,
-		bdb->bi_dbenv_mode );
-#endif
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: dbenv_open failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
 	}
 
 	flags = DB_THREAD | bdb->bi_db_opflags;
@@ -523,6 +474,13 @@ bdb_db_open( BackendDB *be )
 				buf, db_strerror(rc), rc );
 			return rc;
 		}
+
+#if 0
+		if( i == BDB_ID2ENTRY && ( slapMode & SLAP_TOOL_MODE )) {
+			db->bdi_db->mpf->set_priority( db->bdi_db->mpf,
+				DB_PRIORITY_VERY_LOW );
+		}
+#endif
 
 		flags &= ~(DB_CREATE | DB_RDONLY);
 		db->bdi_name = bdbi_databases[i].name;
@@ -624,32 +582,6 @@ bdb_db_close( BackendDB *be )
 				db_strerror(rc), rc, 0 );
 			return rc;
 		}
-
-#if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR == 2
-		/* Delete the environment if we were in quick mode. This
-		 * works around a bug in bdb4.2 that interferes with the
-		 * operation of db_stat and other tools after a slapadd -q
-		 * or slapindex -q has taken place.
-		 */
-		if( slapMode & SLAP_TOOL_QUICK ) {
-			rc = db_env_create( &bdb->bi_dbenv, 0 );
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"bdb_db_close: db_env_create failed: %s (%d)\n",
-					db_strerror(rc), rc, 0 );
-				return rc;
-			}
-			rc = bdb->bi_dbenv->remove(bdb->bi_dbenv, bdb->bi_dbenv_home,
-					DB_FORCE);
-			bdb->bi_dbenv = NULL;
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"bdb_db_close: dbenv_remove failed: %s (%d)\n",
-					db_strerror(rc), rc, 0 );
-				return rc;
-			}
-		}
-#endif
 	}
 
 	rc = alock_close( &bdb->bi_alock_info );
