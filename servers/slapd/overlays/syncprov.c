@@ -2000,7 +2000,7 @@ static ConfigTable spcfg[] = {
 		sp_cf_gen, "( OLcfgOvAt:1.1 NAME 'olcSpCheckpoint' "
 			"DESC 'ContextCSN checkpoint interval in ops and minutes' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "syncprov-sessionlog", "size", 2, 2, 0, ARG_INT|ARG_MAGIC|SP_SESSL,
+	{ "syncprov-sessionlog", "ops", 2, 2, 0, ARG_INT|ARG_MAGIC|SP_SESSL,
 		sp_cf_gen, "( OLcfgOvAt:1.2 NAME 'olcSpSessionlog' "
 			"DESC 'Session log size in ops' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },

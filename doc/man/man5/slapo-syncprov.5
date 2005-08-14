@@ -44,10 +44,10 @@ write operations or more than
 time have passed
 since the last checkpoint. Checkpointing is disabled by default.
 .TP
-.B syncprov-sessionlog <size>
+.B syncprov-sessionlog <ops>
 Specify a session log for recording information about write operations made
 on the database.  The
-.B <size>
+.B <ops>
 specifies the number of operations that are recorded in the log. All write
 operations (except Adds) are recorded in the log.
 When using the session log, it is helpful to set an eq index on the
