@@ -202,6 +202,14 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 				"slap_ap_lookup: str2ad(%s): %s\n", name, text, 0 );
 			continue;
 		}
+
+		/* If it's the rootdn and a rootpw was present, we already set
+		 * it so don't override it here.
+		 */
+		if ( ad == slap_schema.si_ad_userPassword && sl->list[i].values && 
+			be_isroot_dn( op->o_bd, &op->o_req_ndn ))
+			continue;
+
 		a = attr_find( rs->sr_entry->e_attrs, ad );
 		if ( !a ) continue;
 		if ( ! access_allowed( op, rs->sr_entry, ad, NULL, ACL_AUTH, NULL ) ) {
@@ -318,26 +326,69 @@ slap_auxprop_lookup(
 
 		op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 
-		if ( op.o_bd && op.o_bd->be_search ) {
-			SlapReply rs = {REP_RESULT};
-			op.o_hdr = conn->c_sasl_bindop->o_hdr;
-			op.o_tag = LDAP_REQ_SEARCH;
-			op.o_ndn = conn->c_ndn;
-			op.o_callback = &cb;
-			op.o_time = slap_get_time();
-			op.o_do_not_cache = 1;
-			op.o_is_auth_check = 1;
-			op.o_req_dn = op.o_req_ndn;
-			op.ors_scope = LDAP_SCOPE_BASE;
-			op.ors_deref = LDAP_DEREF_NEVER;
-			op.ors_tlimit = SLAP_NO_LIMIT;
-			op.ors_slimit = 1;
-			op.ors_filter = &generic_filter;
-			op.ors_filterstr = generic_filterstr;
-			/* FIXME: we want all attributes, right? */
-			op.ors_attrs = NULL;
+		if ( op.o_bd ) {
+			/* For rootdn, see if we can use the rootpw */
+			if ( be_isroot_dn( op.o_bd, &op.o_req_ndn ) &&
+				!BER_BVISEMPTY( &op.o_bd->be_rootpw )) {
+				struct berval cbv = BER_BVNULL;
 
-			op.o_bd->be_search( &op, &rs );
+				/* If there's a recognized scheme, see if it's CLEARTEXT */
+				if ( lutil_passwd_scheme( op.o_bd->be_rootpw.bv_val )) {
+					if ( !strncasecmp( op.o_bd->be_rootpw.bv_val,
+						sc_cleartext.bv_val, sc_cleartext.bv_len )) {
+
+						/* If it's CLEARTEXT, skip past scheme spec */
+						cbv.bv_len = op.o_bd->be_rootpw.bv_len -
+							sc_cleartext.bv_len;
+						if ( cbv.bv_len ) {
+							cbv.bv_val = op.o_bd->be_rootpw.bv_val +
+								sc_cleartext.bv_len;
+						}
+					}
+				/* No scheme, use the whole value */
+				} else {
+					cbv = op.o_bd->be_rootpw;
+				}
+				if ( !BER_BVISEMPTY( &cbv )) {
+					for( i = 0; sl.list[i].name; i++ ) {
+						const char *name = sl.list[i].name;
+
+						if ( name[0] == '*' ) {
+							if ( flags & SASL_AUXPROP_AUTHZID ) continue;
+								name++;
+						} else if ( !(flags & SASL_AUXPROP_AUTHZID ) )
+							continue;
+
+						if ( !strcasecmp(name,"userPassword") ) {
+							sl.sparams->utils->prop_set( sl.sparams->propctx,
+								sl.list[i].name, cbv.bv_val, cbv.bv_len );
+							break;
+						}
+					}
+				}
+			}
+
+			if ( op.o_bd->be_search ) {
+				SlapReply rs = {REP_RESULT};
+				op.o_hdr = conn->c_sasl_bindop->o_hdr;
+				op.o_tag = LDAP_REQ_SEARCH;
+				op.o_ndn = conn->c_ndn;
+				op.o_callback = &cb;
+				op.o_time = slap_get_time();
+				op.o_do_not_cache = 1;
+				op.o_is_auth_check = 1;
+				op.o_req_dn = op.o_req_ndn;
+				op.ors_scope = LDAP_SCOPE_BASE;
+				op.ors_deref = LDAP_DEREF_NEVER;
+				op.ors_tlimit = SLAP_NO_LIMIT;
+				op.ors_slimit = 1;
+				op.ors_filter = &generic_filter;
+				op.ors_filterstr = generic_filterstr;
+				/* FIXME: we want all attributes, right? */
+				op.ors_attrs = NULL;
+
+				op.o_bd->be_search( &op, &rs );
+			}
 		}
 	}
 }
