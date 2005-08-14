@@ -577,7 +577,8 @@ LDAP_SLAPD_F (long) connection_init LDAP_P((
 	slap_ssf_t ssf,
 	struct berval *id ));
 
-LDAP_SLAPD_F (void) connection_closing LDAP_P(( Connection *c ));
+LDAP_SLAPD_F (void) connection_closing LDAP_P((
+	Connection *c, const char *why ));
 LDAP_SLAPD_F (int) connection_state_closing LDAP_P(( Connection *c ));
 LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 	LDAP_GCCATTR((const));

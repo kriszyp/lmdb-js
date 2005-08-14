@@ -27,6 +27,9 @@ starttls_extop ( Operation *op, SlapReply *rs )
 {
 	int rc;
 
+	Statslog( LDAP_DEBUG_STATS, "%s STARTTLS\n",
+	    op->o_log_prefix, 0, 0, 0, 0 );
+
 	if ( op->ore_reqdata != NULL ) {
 		/* no request data should be provided */
 		rs->sr_text = "no request data expected";

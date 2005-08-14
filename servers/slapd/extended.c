@@ -166,6 +166,8 @@ do_extended(
 
 	/* check for controls inappropriate for all extended operations */
 	if( get_manageDSAit( op ) == SLAP_CONTROL_CRITICAL ) {
+		Statslog( LDAP_DEBUG_STATS, "%s EXT oid=%s\n",
+		    op->o_log_prefix, op->ore_reqoid.bv_val, 0, 0, 0 );
 		send_ldap_error( op, rs,
 			LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 			"manageDSAit control inappropriate" );
@@ -196,6 +198,8 @@ fe_extended( Operation *op, SlapReply *rs )
 
 	if( !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
 	{
+		Statslog( LDAP_DEBUG_STATS, "%s EXT oid=%s\n",
+		    op->o_log_prefix, op->ore_reqoid.bv_val, 0, 0, 0 );
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
 			op->ore_reqoid.bv_val, 0 ,0 );
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
@@ -327,6 +331,9 @@ whoami_extop (
 		rs->sr_text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;
 	}
+
+	Statslog( LDAP_DEBUG_STATS, "%s WHOAMI\n",
+	    op->o_log_prefix, 0, 0, 0, 0 );
 
 	op->o_bd = op->o_conn->c_authz_backend;
 	if( backend_check_restrictions( op, rs,

@@ -62,6 +62,8 @@ int passwd_extop(
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
 	if( op->o_dn.bv_len == 0 ) {
+		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD\n",
+			op->o_log_prefix, 0, 0, 0, 0 );
 		rs->sr_text = "only authenticated users may change passwords";
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
@@ -73,6 +75,16 @@ int passwd_extop(
 
 	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id, &qpw->rs_old,
 		&qpw->rs_new, &rs->sr_text );
+
+	if ( rs->sr_err == LDAP_SUCCESS && !BER_BVISEMPTY( &id ) ) {
+		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD id=\"%s\"%s%s\n",
+			op->o_log_prefix, id.bv_val,
+			qpw->rs_old.bv_val ? " old" : "",
+			qpw->rs_new.bv_val ? " new" : "", 0 );
+	} else {
+		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD\n",
+			op->o_log_prefix, 0, 0, 0, 0 );
+	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return rs->sr_err;

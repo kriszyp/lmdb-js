@@ -1576,6 +1576,9 @@ ldap_back_exop_whoami(
 		return rs->sr_err = LDAP_PROTOCOL_ERROR;
 	}
 
+	Statslog( LDAP_DEBUG_STATS, "%s WHOAMI\n",
+	    op->o_log_prefix, 0, 0, 0, 0 );
+
 	rs->sr_err = backend_check_restrictions( op, rs, 
 			(struct berval *)&slap_EXOP_WHOAMI );
 	if( rs->sr_err != LDAP_SUCCESS ) return rs->sr_err;
