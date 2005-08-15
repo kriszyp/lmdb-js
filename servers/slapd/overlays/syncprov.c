@@ -1609,6 +1609,8 @@ typedef struct searchstate {
 	slap_overinst *ss_on;
 	syncops *ss_so;
 	int ss_present;
+	struct berval ss_ctxcsn;
+	char ss_csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 } searchstate;
 
 static int
@@ -1707,6 +1709,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	sync_control *srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
+		Attribute *a;
 		/* If we got a referral without a referral object, there's
 		 * something missing that we cannot replicate. Just ignore it.
 		 * The consumer will abort because we didn't send the expected
@@ -1717,12 +1720,15 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY, "bogus referral in context\n",0,0,0 );
 			return SLAP_CB_CONTINUE;
 		}
-		if ( !BER_BVISNULL( &srs->sr_state.ctxcsn )) {
-			Attribute *a = attr_find( rs->sr_entry->e_attrs,
-				slap_schema.si_ad_entryCSN );
-			
+		a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryCSN );
+		if ( a ) {
+			/* Make sure entry is less than the snaphot'd contextCSN */
+			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 )
+				return LDAP_SUCCESS;
+
 			/* Don't send the ctx entry twice */
-			if ( a && bvmatch( &a->a_nvals[0], &srs->sr_state.ctxcsn ) )
+			if ( !BER_BVISNULL( &srs->sr_state.ctxcsn ) &&
+				bvmatch( &a->a_nvals[0], &srs->sr_state.ctxcsn ) )
 				return LDAP_SUCCESS;
 		}
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
@@ -1733,8 +1739,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		struct berval cookie;
 
-		slap_compose_sync_cookie( op, &cookie,
-			&op->ors_filter->f_and->f_ava->aa_value,
+		slap_compose_sync_cookie( op, &cookie, &ss->ss_ctxcsn,
 			srs->sr_state.rid );
 
 		/* Is this a regular refresh? */
@@ -1780,7 +1785,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
 	slap_callback	*cb;
 	int gotstate = 0, nochange = 0, do_present = 1;
-	Filter *fand, *fava;
 	syncops *sop = NULL;
 	searchstate *ss;
 	sync_control *srs;
@@ -1904,21 +1908,15 @@ shortcut:
 		sop->s_filterstr= op->ors_filterstr;
 	}
 
-	fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
-	fand->f_choice = LDAP_FILTER_AND;
-	fand->f_next = NULL;
-	fava = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
-	fava->f_choice = LDAP_FILTER_LE;
-	fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
-	fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
-#ifdef LDAP_COMP_MATCH
-	fava->f_ava->aa_cf = NULL;
-#endif
-	ber_dupbv_x( &fava->f_ava->aa_value, &ctxcsn, op->o_tmpmemctx );
-	fand->f_and = fava;
-	if ( gotstate ) {
-		fava->f_next = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
-		fava = fava->f_next;
+	/* If something changed, find the changes */
+	if ( gotstate && !nochange ) {
+		Filter *fand, *fava;
+
+		fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+		fand->f_choice = LDAP_FILTER_AND;
+		fand->f_next = NULL;
+		fava = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+		fand->f_and = fava;
 		fava->f_choice = LDAP_FILTER_GE;
 		fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
 		fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
@@ -1926,10 +1924,10 @@ shortcut:
 		fava->f_ava->aa_cf = NULL;
 #endif
 		ber_dupbv_x( &fava->f_ava->aa_value, &srs->sr_state.ctxcsn, op->o_tmpmemctx );
+		fava->f_next = op->ors_filter;
+		op->ors_filter = fand;
+		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 	}
-	fava->f_next = op->ors_filter;
-	op->ors_filter = fand;
-	filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 
 	/* Let our callback add needed info to returned entries */
 	cb = op->o_tmpcalloc(1, sizeof(slap_callback)+sizeof(searchstate), op->o_tmpmemctx);
@@ -1937,6 +1935,9 @@ shortcut:
 	ss->ss_on = on;
 	ss->ss_so = sop;
 	ss->ss_present = do_present;
+	ss->ss_ctxcsn.bv_len = ctxcsn.bv_len;
+	ss->ss_ctxcsn.bv_val = ss->ss_csnbuf;
+	strcpy( ss->ss_ctxcsn.bv_val, ctxcsn.bv_val );
 	cb->sc_response = syncprov_search_response;
 	cb->sc_cleanup = syncprov_search_cleanup;
 	cb->sc_private = ss;
