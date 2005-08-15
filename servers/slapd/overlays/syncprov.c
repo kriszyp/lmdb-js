@@ -597,6 +597,7 @@ again:
 		maxcsn.bv_len = si->si_ctxcsn.bv_len;
 		break;
 	case FIND_CSN:
+		cf.f_av_value = srs->sr_state.ctxcsn;
 		/* Look for exact match the first time */
 		if ( findcsn_retry ) {
 			cf.f_choice = LDAP_FILTER_EQUALITY;
@@ -608,7 +609,6 @@ again:
 			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
 				cf.f_av_value.bv_val );
 		}
-		cf.f_av_value = srs->sr_state.ctxcsn;
 		fop.ors_attrsonly = 1;
 		fop.ors_attrs = slap_anlist_no_attrs;
 		fop.ors_slimit = 1;
