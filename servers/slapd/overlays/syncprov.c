@@ -447,8 +447,8 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
  * was not checkpointed at the previous shutdown.
  *
  * 2: when the current contextCSN is known and we have a sync cookie, we search
- * for one entry with CSN <= the cookie CSN. (Used to search for =.) If an
- * entry is found, the cookie CSN is valid, otherwise it is stale.
+ * for one entry with CSN = the cookie CSN. If not found, try <= cookie CSN.
+ * If an entry is found, the cookie CSN is valid, otherwise it is stale.
  *
  * 3: during a refresh phase, we search for all entries with CSN <= the cookie
  * CSN, and generate Present records for them. We always collect this result
@@ -555,6 +555,7 @@ syncprov_findcsn( Operation *op, int mode )
 	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
 	sync_control *srs = NULL;
+	int findcsn_retry = 1;
 
 	if ( mode != FIND_MAXCSN ) {
 		srs = op->o_controls[slap_cids.sc_LDAPsync];
@@ -579,6 +580,7 @@ syncprov_findcsn( Operation *op, int mode )
 	fop.ors_filter = &cf;
 	fop.ors_filterstr.bv_val = buf;
 
+again:
 	switch( mode ) {
 	case FIND_MAXCSN:
 		cf.f_choice = LDAP_FILTER_GE;
@@ -595,10 +597,18 @@ syncprov_findcsn( Operation *op, int mode )
 		maxcsn.bv_len = si->si_ctxcsn.bv_len;
 		break;
 	case FIND_CSN:
-		cf.f_choice = LDAP_FILTER_LE;
+		/* Look for exact match the first time */
+		if ( findcsn_retry ) {
+			cf.f_choice = LDAP_FILTER_EQUALITY;
+			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN=%s)",
+				cf.f_av_value.bv_val );
+		/* On retry, look for <= */
+		} else {
+			cf.f_choice = LDAP_FILTER_LE;
+			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
+				cf.f_av_value.bv_val );
+		}
 		cf.f_av_value = srs->sr_state.ctxcsn;
-		fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
-			cf.f_av_value.bv_val );
 		fop.ors_attrsonly = 1;
 		fop.ors_attrs = slap_anlist_no_attrs;
 		fop.ors_slimit = 1;
@@ -646,7 +656,14 @@ syncprov_findcsn( Operation *op, int mode )
 		break;
 	case FIND_CSN:
 		/* If matching CSN was not found, invalidate the context. */
-		if ( !cb.sc_private ) rc = LDAP_NO_SUCH_OBJECT;
+		if ( !cb.sc_private ) {
+			/* If we didn't find an exact match, then try for <= */
+			if ( findcsn_retry ) {
+				findcsn_retry = 0;
+				goto again;
+			}
+			rc = LDAP_NO_SUCH_OBJECT;
+		}
 		break;
 	case FIND_PRESENT:
 		op->o_tmpfree( pcookie.uuids, op->o_tmpmemctx );
