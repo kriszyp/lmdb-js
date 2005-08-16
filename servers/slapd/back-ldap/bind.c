@@ -382,7 +382,6 @@ retry:;
 		*is_tls = 0;
 	}
 
-error_return:;
 	return rc;
 }
 #endif /* HAVE_TLS */
