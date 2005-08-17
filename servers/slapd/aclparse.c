@@ -2250,6 +2250,7 @@ access_free( Access *a )
 	if ( !BER_BVISNULL( &a->a_group_pat ) ) {
 		free( a->a_group_pat.bv_val );
 	}
+#ifdef SLAP_DYNACL
 	if ( a->a_dynacl != NULL ) {
 		slap_dynacl_t	*da;
 		for ( da = a->a_dynacl; da; ) {
@@ -2264,6 +2265,7 @@ access_free( Access *a )
 			ch_free( tmp );
 		}
 	}
+#endif /* SLAP_DYNACL */
 	free( a );
 }
 
