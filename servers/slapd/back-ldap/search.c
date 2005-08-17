@@ -394,6 +394,15 @@ fail:;
 				BER_BVZERO( &rs->sr_ref[ cnt ] );
 			}
 
+			if ( match.bv_val != NULL ) {
+				if ( match.bv_val[ 0 ] == '\0' ) {
+					LDAP_FREE( match.bv_val );
+					BER_BVZERO( &match );
+				} else {
+					match.bv_len = strlen( match.bv_val );
+				}
+			}
+
 			/* cleanup */
 			if ( references ) {
 				ldap_value_free( references );
