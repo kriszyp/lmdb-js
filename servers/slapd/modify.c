@@ -184,8 +184,8 @@ do_modify(
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
-		textbuf, textlen, NULL );
+	rs->sr_err = slap_mods_check( modlist,
+		&rs->sr_text, textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
@@ -499,8 +499,9 @@ slap_mods_no_user_mod_check(
 	for ( ; ml != NULL; ml = ml->sml_next ) {
 		if ( !is_at_no_user_mod( ml->sml_desc->ad_type ) ) continue;
 
-		if( get_manageDIT( op )) {
+		if ( get_manageDIT( op ) ) {
 			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
+				ml->sml_managing = 1;
 				continue;
 			}
 
