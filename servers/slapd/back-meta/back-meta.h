@@ -203,6 +203,7 @@ enum {
 
 typedef struct metatarget_t {
 	char			*mt_uri;
+	int			mt_scope;
 
 	struct berval		mt_psuffix;		/* pretty suffix */
 	struct berval		mt_nsuffix;		/* normalized suffix */
@@ -351,6 +352,7 @@ meta_back_conn_dup(
 extern int
 meta_back_is_candidate(
 	struct berval		*nsuffix,
+	int			suffixscope,
 	struct berval		*ndn,
 	int			scope );
 

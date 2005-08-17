@@ -97,6 +97,11 @@ meta_back_search_start(
 					&op->o_req_ndn ) )
 			{
 				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
+#ifdef LDAP_SCOPE_SUBORDINATE
+				if ( mi->mi_targets[ candidate ].mt_scope == LDAP_SCOPE_SUBORDINATE ) {
+					realscope = LDAP_SCOPE_SUBORDINATE;
+				}
+#endif /* LDAP_SCOPE_SUBORDINATE */
 
 			} else {
 				/*
@@ -124,7 +129,11 @@ meta_back_search_start(
 				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
 #ifdef LDAP_SCOPE_SUBORDINATE
 				if ( op->ors_scope == LDAP_SCOPE_SUBORDINATE ) {
-					realscope = LDAP_SCOPE_SUBTREE;
+					if ( mi->mi_targets[ candidate ].mt_scope == LDAP_SCOPE_SUBORDINATE ) {
+						realscope = LDAP_SCOPE_SUBORDINATE;
+					} else {
+						realscope = LDAP_SCOPE_SUBTREE;
+					}
 				} else
 #endif /* LDAP_SCOPE_SUBORDINATE */
 				{

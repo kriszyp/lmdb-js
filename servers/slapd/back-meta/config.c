@@ -159,9 +159,7 @@ meta_back_db_config(
 		/*
 		 * copies and stores uri and suffix
 		 */
-		dn.bv_val = ludp->lud_dn;
-		dn.bv_len = strlen( ludp->lud_dn );
-
+		ber_str2bv( ludp->lud_dn, 0, 0, &dn );
 		rc = dnPrettyNormal( NULL, &dn, &mi->mi_targets[ i ].mt_psuffix,
 			&mi->mi_targets[ i ].mt_nsuffix, NULL );
 		if( rc != LDAP_SUCCESS ) {
@@ -173,6 +171,25 @@ meta_back_db_config(
 
 		ludp->lud_dn[ 0 ] = '\0';
 
+		switch ( ludp->lud_scope ) {
+		case LDAP_SCOPE_DEFAULT:
+			mi->mi_targets[ i ].mt_scope = LDAP_SCOPE_SUBTREE;
+			break;
+
+		case LDAP_SCOPE_SUBTREE:
+#ifdef LDAP_SCOPE_SUBORDINATE
+		case LDAP_SCOPE_SUBORDINATE:
+#endif /* LDAP_SCOPE_SUBORDINATE */
+			mi->mi_targets[ i ].mt_scope = ludp->lud_scope;
+			break;
+
+		default:
+			fprintf( stderr, "%s: line %d: "
+					"invalid scope for target '%s'\n",
+					fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+
 		/* check all, to apply the scope check on the first one */
 		for ( tmpludp = ludp; tmpludp; tmpludp = tmpludp->lud_next ) {
 			if ( tmpludp->lud_dn != NULL && tmpludp->lud_dn[ 0 ] != '\0' ) {
@@ -182,10 +199,6 @@ meta_back_db_config(
 					fname, lineno );
 				return( 1 );
 
-			}
-
-			if ( tmpludp->lud_scope == LDAP_SCOPE_BASE ) {
-				tmpludp->lud_scope = LDAP_SCOPE_DEFAULT;
 			}
 		}
 
