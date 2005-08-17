@@ -69,7 +69,8 @@ ldap_back_add(
 
 	isupdate = be_shadow_update( op );
 	for ( i = 0, a = op->oq_add.rs_e->e_attrs; a; a = a->a_next ) {
-		if ( !isupdate && a->a_desc->ad_type->sat_no_user_mod  ) {
+		if ( !isupdate && !get_manageDIT( op ) && a->a_desc->ad_type->sat_no_user_mod  )
+		{
 			continue;
 		}
 
