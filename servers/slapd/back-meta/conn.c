@@ -538,6 +538,9 @@ meta_back_get_candidate(
 			}
 			break;
 		}
+
+	} else {
+		rs->sr_err = LDAP_SUCCESS;
 	}
 
 	return candidate;
@@ -795,6 +798,13 @@ meta_back_getconn(
 			}
 	
 			if ( rs->sr_err != LDAP_SUCCESS ) {
+				if ( new_conn ) {
+					meta_back_freeconn( op, mc );
+
+				} else {
+					meta_back_release_conn( op, mc );
+				}
+
 				if ( sendok & LDAP_BACK_SENDERR ) {
 					if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 						rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
@@ -803,18 +813,27 @@ meta_back_getconn(
 					rs->sr_text = NULL;
 					rs->sr_matched = NULL;
 				}
+			
 				return NULL;
 			}
 		}
 
 		if ( newparent && meta_back_get_candidate( op, rs, op->orr_nnewSup ) != i )
 		{
+			if ( new_conn ) {
+				meta_back_freeconn( op, mc );
+
+			} else {
+				meta_back_release_conn( op, mc );
+			}
+
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			rs->sr_text = "cross-target rename not supported";
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				send_ldap_result( op, rs );
 				rs->sr_text = NULL;
 			}
+
 			return NULL;
 		}
 
@@ -894,6 +913,7 @@ meta_back_getconn(
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			if ( i == cached 
 				|| meta_back_is_candidate( &mi->mi_targets[ i ].mt_nsuffix,
+						mi->mi_targets[ i ].mt_scope,
 						&op->o_req_ndn, LDAP_SCOPE_SUBTREE ) )
 			{
 
