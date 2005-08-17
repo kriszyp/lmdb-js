@@ -111,6 +111,32 @@ changetype: modify
 replace: modifiersName
 modifiersName: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 
+dn: dc=example,dc=com
+# change timestamps
+changetype: modify
+replace: modifyTimestamp
+modifyTimestamp: 19700101000000Z
+-
+replace: createTimestamp
+createTimestamp: 19700101000000Z
+-
+
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+# change entryUUID
+changetype: modify
+replace: entryUUID
+entryUUID: badbadba-dbad-1029-92f7-badbadbadbad
+
+dn: cn=All Staff,dc=example,dc=com
+changetype: add
+objectClass: groupOfNames
+cn: All Staff
+member:
+creatorsName: cn=Someone
+createTimestamp: 19700101000000Z
+modifiersName: cn=Someone Else
+modifyTimestamp: 19700101000000Z
+entryUUID: badbadef-dbad-1029-92f7-badbadbadbad
 EOMODS
 
 RC=$?
@@ -161,7 +187,6 @@ delete: structuralObjectClass
 -
 add: structuralObjectClass
 structuralObjectClass: testPerson
-
 EOMODS
 
 RC=$?
@@ -174,6 +199,25 @@ fi
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
     'objectClass=*' '*' creatorsName modifiersName > $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	echo "ldapsearch failed ($RC)!"
+	exit $RC
+fi
+
+$LDAPSEARCH -S "" -b "$BASEDN" -s base -h $LOCALHOST -p $PORT1 \
+    'objectClass=*' '*' creatorsName createTimestamp \
+    modifiersName modifyTimestamp >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	echo "ldapsearch failed ($RC)!"
+	exit $RC
+fi
+
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+    '(cn=All Staff)' '*' entryUUID >> $SEARCHOUT 2>&1
 RC=$?
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 if test $RC != 0 ; then

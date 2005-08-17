@@ -1,3 +1,10 @@
+dn: cn=All Staff,dc=example,dc=com
+objectClass: groupOfNames
+cn: All Staff
+member:
+creatorsName: cn=Someone
+modifiersName: cn=Someone Else
+
 dn: cn=All Staff,ou=Groups,dc=example,dc=com
 member: cn=Manager,dc=example,dc=com
 member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=exam
@@ -291,7 +298,8 @@ uniqueMember: cn=James A Jones 2,ou=Information Technology Division,ou=People,
 uniqueMember: cn=John Doe,ou=Information Technology Division,ou=People,dc=exam
  ple,dc=com
 creatorsName: cn=Manager,dc=example,dc=com
-modifiersName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc
+ =example,dc=com
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -448,4 +456,52 @@ facsimileTelephoneNumber: +1 313 555 9700
 telephoneNumber: +1 313 555 5331
 creatorsName: cn=Manager,dc=example,dc=com
 modifiersName: cn=Manager,dc=example,dc=com
+
+dn: dc=example,dc=com
+objectClass: top
+objectClass: organization
+objectClass: domainRelatedObject
+objectClass: dcObject
+dc: example
+l: Anytown, Michigan
+st: Michigan
+o: Example, Inc.
+o: EX
+o: Ex.
+description: The Example, Inc. at Anytown
+postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
+telephoneNumber: +1 313 555 1817
+associatedDomain: example.com
+creatorsName: cn=Manager,dc=example,dc=com
+modifyTimestamp: 19700101000000Z
+createTimestamp: 19700101000000Z
+modifiersName: cn=Manager,dc=example,dc=com
+
+dn: cn=All Staff,dc=example,dc=com
+objectClass: groupOfNames
+cn: All Staff
+member:
+entryUUID: badbadef-dbad-1029-92f7-badbadbadbad
+
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+member: cn=Manager,dc=example,dc=com
+member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=exam
+ ple,dc=com
+member: cn=Jane Doe,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc
+ =com
+member: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=exa
+ mple,dc=com
+member: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=exampl
+ e,dc=com
+owner: cn=Manager,dc=example,dc=com
+cn: All Staff
+description: Everyone in the sample data
+objectClass: groupOfNames
+entryUUID: badbadba-dbad-1029-92f7-badbadbadbad
 
