@@ -850,6 +850,12 @@ fetch_entry_retry:
 
 			if ( get_pagedresults(op) > SLAP_CONTROL_IGNORED ) {
 				if ( rs->sr_nentries >= ((PagedResultsState *)op->o_pagedresults_state)->ps_size ) {
+#ifdef SLAP_ZONE_ALLOC
+					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
+					bdb_cache_return_entry_r( bdb->bi_dbenv,
+							&bdb->bi_cache, e, &lock );
+					e = NULL;
 					send_paged_response( op, rs, &lastid, tentries );
 					goto done;
 				}

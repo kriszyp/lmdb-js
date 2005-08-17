@@ -50,7 +50,7 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
-#define	OpenLDAPaciMatch			NULL
+#define	OpenLDAPaciMatch			octetStringMatch
 
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
@@ -1861,7 +1861,7 @@ telephoneNumberNormalize(
 	return LDAP_SUCCESS;
 }
 
-static int
+int
 numericoidValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -3427,8 +3427,8 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		SLAP_SYNTAX_HIDE,
-		UTF8StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
-		NULL},
+		OpenLDAPaciValidate,
+		OpenLDAPaciPretty},
 #endif
 
 #ifdef SLAPD_AUTHPASSWD
@@ -3851,7 +3851,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
-		NULL, NULL, OpenLDAPaciMatch,
+		NULL, OpenLDAPaciNormalize, OpenLDAPaciMatch,
 		NULL, NULL,
 		NULL},
 #endif

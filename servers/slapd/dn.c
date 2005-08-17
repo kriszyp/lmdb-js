@@ -996,7 +996,7 @@ dnRelativeMatch(
 					asserted->bv_val, 
 					asserted->bv_len );
 			} else {
-				return 1;
+				match = 1;
 			}
 		}
 
@@ -1022,7 +1022,7 @@ dnRelativeMatch(
 					asserted->bv_val, 
 					asserted->bv_len );
 			} else {
-				return 1;
+				match = 1;
 			}
 		}
 
@@ -1049,7 +1049,7 @@ dnRelativeMatch(
 					match = dnIsOneLevelRDN( &rdn ) ? 0 : 1;
 				}
 			} else {
-				return 1;
+				match = 1;
 			}
 		}
 

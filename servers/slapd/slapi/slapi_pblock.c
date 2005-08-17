@@ -277,6 +277,7 @@ pblock_get_param_class( int param )
 	case SLAPI_X_GROUP_ATTRIBUTE:
 	case SLAPI_X_GROUP_OPERATION_DN:
 	case SLAPI_X_GROUP_TARGET_ENTRY:
+	case SLAPI_X_ADD_STRUCTURAL_CLASS:
 	case SLAPI_PLUGIN_AUDIT_DATA:
 	case SLAPI_IBM_PBLOCK:
 	case SLAPI_PLUGIN_VERSION:
@@ -471,6 +472,20 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((int *)value) = get_no_schema_check( pb->pb_op );
+		break;
+	case SLAPI_X_ADD_STRUCTURAL_CLASS:
+		PBLOCK_ASSERT_OP( pb, 0 );
+
+		if ( pb->pb_op->o_tag == LDAP_REQ_ADD ) {
+			struct berval tmpval = BER_BVNULL;
+
+			rc = mods_structural_class( pb->pb_op->ora_modlist,
+				&tmpval, &pb->pb_rs->sr_text,
+				pb->pb_textbuf, sizeof( pb->pb_textbuf ));
+			*((char **)value) = tmpval.bv_val;
+		} else {
+			rc = PBLOCK_ERROR;
+		}
 		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1203,6 +1218,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_X_CONN_CLIENTPATH:
 	case SLAPI_CONN_SERVERIP:
 	case SLAPI_X_CONN_SERVERPATH:
+	case SLAPI_X_ADD_STRUCTURAL_CLASS:
 		/* These parameters cannot be set */
 		rc = PBLOCK_ERROR;
 		break;

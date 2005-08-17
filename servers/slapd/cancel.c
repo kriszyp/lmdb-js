@@ -60,6 +60,9 @@ int cancel_extop( Operation *op, SlapReply *rs )
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	Statslog( LDAP_DEBUG_STATS, "%s CANCEL msg=%d\n",
+		op->o_log_prefix, opid, 0, 0, 0 );
+
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == opid ) {

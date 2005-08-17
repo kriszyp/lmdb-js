@@ -97,6 +97,11 @@ meta_back_search_start(
 					&op->o_req_ndn ) )
 			{
 				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
+#ifdef LDAP_SCOPE_SUBORDINATE
+				if ( mi->mi_targets[ candidate ].mt_scope == LDAP_SCOPE_SUBORDINATE ) {
+					realscope = LDAP_SCOPE_SUBORDINATE;
+				}
+#endif /* LDAP_SCOPE_SUBORDINATE */
 
 			} else {
 				/*
@@ -124,7 +129,11 @@ meta_back_search_start(
 				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
 #ifdef LDAP_SCOPE_SUBORDINATE
 				if ( op->ors_scope == LDAP_SCOPE_SUBORDINATE ) {
-					realscope = LDAP_SCOPE_SUBTREE;
+					if ( mi->mi_targets[ candidate ].mt_scope == LDAP_SCOPE_SUBORDINATE ) {
+						realscope = LDAP_SCOPE_SUBORDINATE;
+					} else {
+						realscope = LDAP_SCOPE_SUBTREE;
+					}
 				} else
 #endif /* LDAP_SCOPE_SUBORDINATE */
 				{
@@ -693,17 +702,52 @@ really_bad:;
 	 * 
 	 * FIXME: only the last one gets caught!
 	 */
-	if ( candidate_match > 0 && rs->sr_nentries > 0 ) {
+	savepriv = op->o_private;
+	op->o_private = (void *)mi->mi_ntargets;
+	if ( candidate_match > 0 ) {
+		struct berval	pmatched = BER_BVNULL;
+
 		/* we use the first one */
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			if ( candidates[ i ].sr_tag == META_CANDIDATE
 					&& candidates[ i ].sr_matched )
 			{
-				matched = (char *)candidates[ i ].sr_matched;
-				candidates[ i ].sr_matched = NULL;
-				break;
+				struct berval	bv, pbv;
+				int		rc;
+
+				ber_str2bv( candidates[ i ].sr_matched, 0, 0, &bv );
+				rc = dnPretty( NULL, &bv, &pbv, op->o_tmpmemctx );
+
+				if ( rc == LDAP_SUCCESS ) {
+
+					/* NOTE: if they all are superiors
+					 * of the baseDN, the shorter is also 
+					 * superior of the longer... */
+					if ( pbv.bv_len > pmatched.bv_len ) {
+						if ( !BER_BVISNULL( &pmatched ) ) {
+							op->o_tmpfree( pmatched.bv_val, op->o_tmpmemctx );
+						}
+						pmatched = pbv;
+						op->o_private = (void *)i;
+
+					} else {
+						op->o_tmpfree( pbv.bv_val, op->o_tmpmemctx );
+					}
+				}
+
+				if ( candidates[ i ].sr_matched != NULL ) {
+					free( (char *)candidates[ i ].sr_matched );
+					candidates[ i ].sr_matched = NULL;
+				}
 			}
 		}
+
+		if ( !BER_BVISNULL( &pmatched ) ) {
+			matched = pmatched.bv_val;
+		}
+
+	} else if ( sres == LDAP_NO_SUCH_OBJECT ) {
+		matched = ch_strdup( op->o_bd->be_suffix[ 0 ].bv_val );
 	}
 
 #if 0
@@ -742,8 +786,6 @@ really_bad:;
 	rs->sr_err = sres;
 	rs->sr_matched = matched;
 	rs->sr_ref = ( sres == LDAP_REFERRAL ? rs->sr_v2ref : NULL );
-	savepriv = op->o_private;
-	op->o_private = (void *)mi->mi_ntargets;
 	send_ldap_result( op, rs );
 	op->o_private = savepriv;
 	rs->sr_matched = NULL;
@@ -751,7 +793,7 @@ really_bad:;
 
 finish:;
 	if ( matched ) {
-		free( matched );
+		op->o_tmpfree( matched, op->o_tmpmemctx );
 	}
 
 	if ( rs->sr_v2ref ) {
@@ -786,7 +828,7 @@ finish:;
 
 	meta_back_release_conn( op, mc );
 
-	return rc;
+	return rs->sr_err;
 }
 
 static int

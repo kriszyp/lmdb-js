@@ -1109,7 +1109,7 @@ parse_acl(
 						}
 
 					} else {
-						b->a_group_oc = oc_find(SLAPD_GROUP_CLASS);
+						b->a_group_oc = oc_find( SLAPD_GROUP_CLASS );
 
 						if( b->a_group_oc == NULL ) {
 							fprintf( stderr,
@@ -2250,6 +2250,20 @@ access_free( Access *a )
 	if ( !BER_BVISNULL( &a->a_group_pat ) ) {
 		free( a->a_group_pat.bv_val );
 	}
+	if ( a->a_dynacl != NULL ) {
+		slap_dynacl_t	*da;
+		for ( da = a->a_dynacl; da; ) {
+			slap_dynacl_t	*tmp = da;
+
+			da = da->da_next;
+
+			if ( tmp->da_destroy ) {
+				tmp->da_destroy( tmp->da_private );
+			}
+
+			ch_free( tmp );
+		}
+	}
 	free( a );
 }
 
@@ -2263,6 +2277,9 @@ acl_free( AccessControl *a )
 		filter_free( a->acl_filter );
 	}
 	if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
+		if ( a->acl_dn_style == ACL_STYLE_REGEX ) {
+			regfree( &a->acl_dn_re );
+		}
 		free ( a->acl_dn_pat.bv_val );
 	}
 	if ( a->acl_attrs ) {
@@ -2523,8 +2540,9 @@ access2text( Access *b, char *ptr )
 
 		for ( da = b->a_dynacl; da; da = da->da_next ) {
 			if ( da->da_unparse ) {
-				struct berval bv;
+				struct berval bv = BER_BVNULL;
 				(void)( *da->da_unparse )( da->da_private, &bv );
+				assert( !BER_BVISNULL( &bv ) );
 				ptr = lutil_strcopy( ptr, bv.bv_val );
 				ch_free( bv.bv_val );
 			}

@@ -58,7 +58,7 @@ attributes, as these will generally not be unique, nor are they operational
 attributes.
 .TP
 .B unique_attributes <attribute...>
-Specify one or more attributes which for which uniqueness will be enforced.
+Specify one or more attributes for which uniqueness will be enforced.
 If not specified, all attributes which are not operational (eg, system
 attributes such as
 .B entryUUID )
@@ -79,7 +79,15 @@ on the
 list, and included in the
 .B unique_attributes
 list, in that order. This makes it possible to create interesting and
-unusable configurations.
+unusable configurations. Usually only one of
+.B unique_ignore
+or
+.B unique_attributes
+should be configured; use
+.B unique_ignore
+if the majority of attributes should be unique, and use
+.B unique_attributes
+if only a small set of attributes should be unique.
 .LP
 Typical attributes for the
 .B unique_ignore

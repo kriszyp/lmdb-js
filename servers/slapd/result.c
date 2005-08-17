@@ -189,7 +189,7 @@ static long send_ldap_ber(
 		    err, sock_errstr(err), 0 );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
-			connection_closing( conn );
+			connection_closing( conn, "connection lost on write" );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
@@ -613,7 +613,12 @@ send_ldap_sasl( Operation *op, SlapReply *rs )
 	rs->sr_tag = req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
-	send_ldap_response( op, rs );
+	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
+		Statslog( LDAP_DEBUG_STATS,
+			"%s RESULT tag=%lu err=%d text=%s\n",
+			op->o_log_prefix, rs->sr_tag, rs->sr_err,
+			rs->sr_text ? rs->sr_text : "", 0 );
+	}
 }
 
 void
@@ -630,7 +635,12 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 	rs->sr_tag = req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
-	send_ldap_response( op, rs );
+	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
+		Statslog( LDAP_DEBUG_STATS,
+			"%s RESULT oid=%s err=%d text=%s\n",
+			op->o_log_prefix, rs->sr_rspoid ? rs->sr_rspoid : "",
+			rs->sr_err, rs->sr_text ? rs->sr_text : "", 0 );
+	}
 }
 
 void
@@ -644,7 +654,12 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
 	rs->sr_tag = LDAP_RES_INTERMEDIATE;
 	rs->sr_msgid = op->o_msgid;
-	send_ldap_response( op, rs );
+	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
+		Statslog( LDAP_DEBUG_STATS2,
+			"%s INTERM oid=%s\n",
+			op->o_log_prefix,
+			rs->sr_rspoid ? rs->sr_rspoid : "", 0, 0, 0 );
+	}
 }
 
 int

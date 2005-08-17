@@ -447,8 +447,8 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
  * was not checkpointed at the previous shutdown.
  *
  * 2: when the current contextCSN is known and we have a sync cookie, we search
- * for one entry with CSN <= the cookie CSN. (Used to search for =.) If an
- * entry is found, the cookie CSN is valid, otherwise it is stale.
+ * for one entry with CSN = the cookie CSN. If not found, try <= cookie CSN.
+ * If an entry is found, the cookie CSN is valid, otherwise it is stale.
  *
  * 3: during a refresh phase, we search for all entries with CSN <= the cookie
  * CSN, and generate Present records for them. We always collect this result
@@ -555,6 +555,7 @@ syncprov_findcsn( Operation *op, int mode )
 	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
 	sync_control *srs = NULL;
+	int findcsn_retry = 1;
 
 	if ( mode != FIND_MAXCSN ) {
 		srs = op->o_controls[slap_cids.sc_LDAPsync];
@@ -579,6 +580,7 @@ syncprov_findcsn( Operation *op, int mode )
 	fop.ors_filter = &cf;
 	fop.ors_filterstr.bv_val = buf;
 
+again:
 	switch( mode ) {
 	case FIND_MAXCSN:
 		cf.f_choice = LDAP_FILTER_GE;
@@ -595,10 +597,18 @@ syncprov_findcsn( Operation *op, int mode )
 		maxcsn.bv_len = si->si_ctxcsn.bv_len;
 		break;
 	case FIND_CSN:
-		cf.f_choice = LDAP_FILTER_LE;
 		cf.f_av_value = srs->sr_state.ctxcsn;
-		fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
-			cf.f_av_value.bv_val );
+		/* Look for exact match the first time */
+		if ( findcsn_retry ) {
+			cf.f_choice = LDAP_FILTER_EQUALITY;
+			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN=%s)",
+				cf.f_av_value.bv_val );
+		/* On retry, look for <= */
+		} else {
+			cf.f_choice = LDAP_FILTER_LE;
+			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
+				cf.f_av_value.bv_val );
+		}
 		fop.ors_attrsonly = 1;
 		fop.ors_attrs = slap_anlist_no_attrs;
 		fop.ors_slimit = 1;
@@ -646,7 +656,14 @@ syncprov_findcsn( Operation *op, int mode )
 		break;
 	case FIND_CSN:
 		/* If matching CSN was not found, invalidate the context. */
-		if ( !cb.sc_private ) rc = LDAP_NO_SUCH_OBJECT;
+		if ( !cb.sc_private ) {
+			/* If we didn't find an exact match, then try for <= */
+			if ( findcsn_retry ) {
+				findcsn_retry = 0;
+				goto again;
+			}
+			rc = LDAP_NO_SUCH_OBJECT;
+		}
 		break;
 	case FIND_PRESENT:
 		op->o_tmpfree( pcookie.uuids, op->o_tmpmemctx );
@@ -1592,6 +1609,8 @@ typedef struct searchstate {
 	slap_overinst *ss_on;
 	syncops *ss_so;
 	int ss_present;
+	struct berval ss_ctxcsn;
+	char ss_csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 } searchstate;
 
 static int
@@ -1690,6 +1709,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	sync_control *srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
+		Attribute *a;
 		/* If we got a referral without a referral object, there's
 		 * something missing that we cannot replicate. Just ignore it.
 		 * The consumer will abort because we didn't send the expected
@@ -1700,12 +1720,15 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY, "bogus referral in context\n",0,0,0 );
 			return SLAP_CB_CONTINUE;
 		}
-		if ( !BER_BVISNULL( &srs->sr_state.ctxcsn )) {
-			Attribute *a = attr_find( rs->sr_entry->e_attrs,
-				slap_schema.si_ad_entryCSN );
-			
+		a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryCSN );
+		if ( a ) {
+			/* Make sure entry is less than the snaphot'd contextCSN */
+			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 )
+				return LDAP_SUCCESS;
+
 			/* Don't send the ctx entry twice */
-			if ( a && bvmatch( &a->a_nvals[0], &srs->sr_state.ctxcsn ) )
+			if ( !BER_BVISNULL( &srs->sr_state.ctxcsn ) &&
+				bvmatch( &a->a_nvals[0], &srs->sr_state.ctxcsn ) )
 				return LDAP_SUCCESS;
 		}
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
@@ -1716,8 +1739,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		struct berval cookie;
 
-		slap_compose_sync_cookie( op, &cookie,
-			&op->ors_filter->f_and->f_ava->aa_value,
+		slap_compose_sync_cookie( op, &cookie, &ss->ss_ctxcsn,
 			srs->sr_state.rid );
 
 		/* Is this a regular refresh? */
@@ -1763,7 +1785,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
 	slap_callback	*cb;
 	int gotstate = 0, nochange = 0, do_present = 1;
-	Filter *fand, *fava;
 	syncops *sop = NULL;
 	searchstate *ss;
 	sync_control *srs;
@@ -1887,21 +1908,15 @@ shortcut:
 		sop->s_filterstr= op->ors_filterstr;
 	}
 
-	fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
-	fand->f_choice = LDAP_FILTER_AND;
-	fand->f_next = NULL;
-	fava = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
-	fava->f_choice = LDAP_FILTER_LE;
-	fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
-	fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
-#ifdef LDAP_COMP_MATCH
-	fava->f_ava->aa_cf = NULL;
-#endif
-	ber_dupbv_x( &fava->f_ava->aa_value, &ctxcsn, op->o_tmpmemctx );
-	fand->f_and = fava;
-	if ( gotstate ) {
-		fava->f_next = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
-		fava = fava->f_next;
+	/* If something changed, find the changes */
+	if ( gotstate && !nochange ) {
+		Filter *fand, *fava;
+
+		fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+		fand->f_choice = LDAP_FILTER_AND;
+		fand->f_next = NULL;
+		fava = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+		fand->f_and = fava;
 		fava->f_choice = LDAP_FILTER_GE;
 		fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
 		fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
@@ -1909,10 +1924,10 @@ shortcut:
 		fava->f_ava->aa_cf = NULL;
 #endif
 		ber_dupbv_x( &fava->f_ava->aa_value, &srs->sr_state.ctxcsn, op->o_tmpmemctx );
+		fava->f_next = op->ors_filter;
+		op->ors_filter = fand;
+		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 	}
-	fava->f_next = op->ors_filter;
-	op->ors_filter = fand;
-	filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 
 	/* Let our callback add needed info to returned entries */
 	cb = op->o_tmpcalloc(1, sizeof(slap_callback)+sizeof(searchstate), op->o_tmpmemctx);
@@ -1920,6 +1935,9 @@ shortcut:
 	ss->ss_on = on;
 	ss->ss_so = sop;
 	ss->ss_present = do_present;
+	ss->ss_ctxcsn.bv_len = ctxcsn.bv_len;
+	ss->ss_ctxcsn.bv_val = ss->ss_csnbuf;
+	strcpy( ss->ss_ctxcsn.bv_val, ctxcsn.bv_val );
 	cb->sc_response = syncprov_search_response;
 	cb->sc_cleanup = syncprov_search_cleanup;
 	cb->sc_private = ss;
@@ -2000,7 +2018,7 @@ static ConfigTable spcfg[] = {
 		sp_cf_gen, "( OLcfgOvAt:1.1 NAME 'olcSpCheckpoint' "
 			"DESC 'ContextCSN checkpoint interval in ops and minutes' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "syncprov-sessionlog", "size", 2, 2, 0, ARG_INT|ARG_MAGIC|SP_SESSL,
+	{ "syncprov-sessionlog", "ops", 2, 2, 0, ARG_INT|ARG_MAGIC|SP_SESSL,
 		sp_cf_gen, "( OLcfgOvAt:1.2 NAME 'olcSpSessionlog' "
 			"DESC 'Session log size in ops' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },

@@ -452,7 +452,7 @@ is_dn:		bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
 	}
 
 	/* Grab the searchbase */
-	assert( ludp->lud_dn );
+	assert( ludp->lud_dn != NULL );
 	ber_str2bv( ludp->lud_dn, 0, 0, &bv );
 	rc = dnValidate( NULL, &bv );
 
@@ -830,7 +830,7 @@ is_dn:		bv.bv_len = val->bv_len - ( bv.bv_val - val->bv_val );
 	}
 
 	/* Grab the searchbase */
-	assert( ludp->lud_dn );
+	assert( ludp->lud_dn != NULL );
 	if ( ludp->lud_dn ) {
 		struct berval	out = BER_BVNULL;
 

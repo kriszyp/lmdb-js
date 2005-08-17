@@ -914,7 +914,7 @@ struct slap_internal_schema {
 #endif
 	AttributeDescription *si_ad_description;
 	AttributeDescription *si_ad_seeAlso;
-        
+
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
 
@@ -1480,6 +1480,53 @@ typedef struct slap_acl_state {
 } AccessControlState;
 #define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, \
 	{ { 0, 0 } }, 0, NULL, 0, 0, NULL }
+
+#ifdef SLAPD_ACI_ENABLED
+typedef enum slap_aci_scope_t {
+	SLAP_ACI_SCOPE_ENTRY		= 0x1,
+	SLAP_ACI_SCOPE_CHILDREN		= 0x2,
+	SLAP_ACI_SCOPE_SUBTREE		= ( SLAP_ACI_SCOPE_ENTRY | SLAP_ACI_SCOPE_CHILDREN )
+} slap_aci_scope_t;
+#endif /* SLAPD_ACI_ENABLED */
+
+enum {
+	ACI_BV_ENTRY,
+	ACI_BV_CHILDREN,
+	ACI_BV_ONELEVEL,
+	ACI_BV_SUBTREE,
+	ACI_BV_BR_ENTRY,
+	ACI_BV_BR_ALL,
+	ACI_BV_ACCESS_ID,
+#if 0
+	ACI_BV_ANONYMOUS	= BER_BVC("anonymous"),
+#endif
+	ACI_BV_PUBLIC,
+	ACI_BV_USERS,
+	ACI_BV_SELF,
+	ACI_BV_DNATTR,
+	ACI_BV_GROUP,
+	ACI_BV_ROLE,
+	ACI_BV_SET,
+	ACI_BV_SET_REF,
+	ACI_BV_GRANT,
+	ACI_BV_DENY,
+
+	ACI_BV_IP_EQ,
+#ifdef LDAP_PF_LOCAL
+	ACI_BV_PATH_EQ,
+#if 0
+	ACI_BV_DIRSEP,
+#endif
+#endif /* LDAP_PF_LOCAL */
+	
+	ACI_BV_GROUP_CLASS,
+	ACI_BV_GROUP_ATTR,
+	ACI_BV_ROLE_CLASS,
+	ACI_BV_ROLE_ATTR,
+	ACI_BV_SET_ATTR,
+
+	ACI_BV_LAST
+};
 
 /*
  * Backend-info
@@ -2535,6 +2582,7 @@ typedef struct slap_conn {
 	int			c_struct_state; /* structure management state */
 	int			c_conn_state;	/* connection state */
 	int			c_conn_idx;		/* slot in connections array */
+	const char	*c_close_reason; /* why connection is closing */
 
 	ldap_pvt_thread_mutex_t	c_mutex; /* protect the connection */
 	Sockbuf		*c_sb;			/* ber connection stuff		  */

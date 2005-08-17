@@ -502,15 +502,22 @@ meta_back_dobind(
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 
-	int			bound = 0, i;
+	int			bound = 0,
+				i,
+				isroot = 0;
 
 	SlapReply		*candidates = meta_back_candidates_get( op );
 
-	ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
+	if ( be_isroot( op ) ) {
+		isroot = 1;
+	}
 
 	Debug( LDAP_DEBUG_TRACE,
-		"%s meta_back_dobind: conn=%ld\n",
-		op->o_log_prefix, mc->mc_conn->c_connid, 0 );
+		"%s meta_back_dobind: conn=%ld%s\n",
+		op->o_log_prefix, mc->mc_conn->c_connid,
+		isroot ? " (isroot)" : "" );
+
+	ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
 
 	/*
 	 * all the targets are bound as pseudoroot
@@ -546,8 +553,23 @@ meta_back_dobind(
 			continue;
 		}
 
-		rc = meta_back_single_dobind( op, rs, mc, i,
+		if ( isroot && !BER_BVISNULL( &mi->mi_targets[ i ].mt_pseudorootdn ) )
+		{
+			Operation	op2 = *op;
+
+			op2.o_tag = LDAP_REQ_BIND;
+			op2.o_req_dn = mi->mi_targets[ i ].mt_pseudorootdn;
+			op2.o_req_ndn = mi->mi_targets[ i ].mt_pseudorootdn;
+			op2.orb_cred = mi->mi_targets[ i ].mt_pseudorootpw;
+			op2.orb_method = LDAP_AUTH_SIMPLE;
+
+			rc = meta_back_single_bind( &op2, rs, mc, i );
+
+		} else {
+			rc = meta_back_single_dobind( op, rs, mc, i,
 				LDAP_BACK_DONTSEND, mt->mt_nretries, 1 );
+		}
+
 		if ( rc != LDAP_SUCCESS ) {
 			rs->sr_err = slap_map_api2result( rs );
 

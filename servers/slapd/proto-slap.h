@@ -32,6 +32,30 @@
 LDAP_BEGIN_DECL
 
 /*
+ * aci.c
+ */
+#ifdef SLAPD_ACI_ENABLED
+LDAP_SLAPD_F (int) aci_mask LDAP_P((
+	Operation *op, Entry *e,
+	AttributeDescription *desc,
+	struct berval *val,
+	struct berval *aci,
+	int nmatch,
+	regmatch_t *matches,
+	slap_access_t *grant,
+	slap_access_t *deny,
+	slap_aci_scope_t scope));
+LDAP_SLAPD_F (int) OpenLDAPaciValidate LDAP_P((
+	Syntax *syn, struct berval *in ));
+LDAP_SLAPD_F (int) OpenLDAPaciPretty LDAP_P((
+	Syntax *syn, struct berval *val, struct berval *out, void *ctx ));
+LDAP_SLAPD_F (slap_mr_normalize_func) OpenLDAPaciNormalize;
+#ifdef SLAP_DYNACL
+LDAP_SLAPD_F (int) dynacl_aci_init LDAP_P(( void ));
+#endif /* SLAP_DYNACL */
+#endif /* SLAPD_ACI_ENABLED */
+
+/*
  * acl.c
  */
 LDAP_SLAPD_F (int) access_allowed_mask LDAP_P((
@@ -70,6 +94,22 @@ LDAP_SLAPD_F (int) slap_dynacl_register LDAP_P(( slap_dynacl_t *da ));
 LDAP_SLAPD_F (slap_dynacl_t *) slap_dynacl_get LDAP_P(( const char *name ));
 #endif /* SLAP_DYNACL */
 LDAP_SLAPD_F (int) acl_init LDAP_P(( void ));
+
+LDAP_SLAPD_V (const struct berval) aci_bv[];
+
+LDAP_SLAPD_F (int) acl_get_part LDAP_P((
+	struct berval	*list,
+	int		ix,
+	char		sep,
+	struct berval	*bv ));
+LDAP_SLAPD_F (int) acl_match_set LDAP_P((
+	struct berval *subj,
+	Operation *op,
+	Entry *e,
+	int setref ));
+LDAP_SLAPD_F (int) acl_string_expand LDAP_P((
+	struct berval *newbuf, struct berval *pattern,
+	char *match, int nmatch, regmatch_t *matches ));
 
 /*
  * aclparse.c
@@ -577,7 +617,8 @@ LDAP_SLAPD_F (long) connection_init LDAP_P((
 	slap_ssf_t ssf,
 	struct berval *id ));
 
-LDAP_SLAPD_F (void) connection_closing LDAP_P(( Connection *c ));
+LDAP_SLAPD_F (void) connection_closing LDAP_P((
+	Connection *c, const char *why ));
 LDAP_SLAPD_F (int) connection_state_closing LDAP_P(( Connection *c ));
 LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 	LDAP_GCCATTR((const));
@@ -1406,7 +1447,9 @@ LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F( slap_mr_indexer_func ) octetStringIndexer;
 LDAP_SLAPD_F( slap_mr_filter_func ) octetStringFilter;
-
+LDAP_SLAPD_F( int ) numericoidValidate LDAP_P((
+	struct slap_syntax *syntax,
+        struct berval *in ));
 
 /*
  * schema_prep.c

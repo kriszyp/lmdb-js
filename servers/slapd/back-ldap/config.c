@@ -908,8 +908,22 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 		struct berval	bv;
+#ifdef SLAP_AUTHZ_SYNTAX
+		struct berval	in;
+		int		rc;
 
+		ber_str2bv( c->argv[ 1 ], 0, 0, &in );
+		rc = authzNormalize( 0, NULL, NULL, &in, &bv, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: %d: "
+				"\"idassert-authzFrom <authz>\": "
+				"invalid syntax.\n",
+				c->fname, c->lineno );
+			return 1;
+		}
+#else /* !SLAP_AUTHZ_SYNTAX */
 		ber_str2bv( c->argv[ 1 ], 0, 1, &bv );
+#endif /* !SLAP_AUTHZ_SYNTAX */
 		ber_bvarray_add( &li->idassert_authz, &bv );
 		} break;
 
@@ -1561,6 +1575,9 @@ ldap_back_exop_whoami(
 		rs->sr_text = "no request data expected";
 		return rs->sr_err = LDAP_PROTOCOL_ERROR;
 	}
+
+	Statslog( LDAP_DEBUG_STATS, "%s WHOAMI\n",
+	    op->o_log_prefix, 0, 0, 0, 0 );
 
 	rs->sr_err = backend_check_restrictions( op, rs, 
 			(struct berval *)&slap_EXOP_WHOAMI );

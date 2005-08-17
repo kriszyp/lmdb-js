@@ -51,6 +51,9 @@ do_abandon( Operation *op, SlapReply *rs )
 		return SLAPD_DISCONNECT;
 	}
 
+	Statslog( LDAP_DEBUG_STATS, "%s ABANDON msg=%ld\n",
+		op->o_log_prefix, (long) id, 0, 0, 0 );
+
 	if( get_ctrls( op, rs, 0 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_abandon: get_ctrls failed\n", 0, 0 ,0 );
 		return rs->sr_err;
