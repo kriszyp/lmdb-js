@@ -1109,7 +1109,7 @@ parse_acl(
 						}
 
 					} else {
-						b->a_group_oc = oc_find(SLAPD_GROUP_CLASS);
+						b->a_group_oc = oc_find( SLAPD_GROUP_CLASS );
 
 						if( b->a_group_oc == NULL ) {
 							fprintf( stderr,
