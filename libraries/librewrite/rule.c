@@ -346,14 +346,6 @@ rewrite_rule_compile(
 		return REWRITE_ERR;
 	}
 	
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-        if ( ldap_pvt_thread_mutex_init( &rule->lr_mutex ) ) {
-		regfree( &rule->lr_regex );
-		free( rule );
-		return REWRITE_ERR;
-	}
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
 	/*
 	 * Just to remember them ...
 	 */
@@ -427,13 +419,7 @@ recurse:;
 	
 	op->lo_num_passes++;
 
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-        ldap_pvt_thread_mutex_lock( &rule->lr_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	rc = regexec( &rule->lr_regex, string, nmatch, match, 0 );
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-        ldap_pvt_thread_mutex_unlock( &rule->lr_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	if ( rc != 0 ) {
 		if ( *result == NULL && string != arg ) {
 			free( string );
@@ -503,9 +489,6 @@ rewrite_rule_destroy(
 	}
 
 	regfree( &rule->lr_regex );
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-        ldap_pvt_thread_mutex_destroy( &rule->lr_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 
 	for ( action = rule->lr_action; action; ) {
 		struct rewrite_action *curraction = action;
