@@ -1387,14 +1387,15 @@ slap_acl_mask(
 	AccessControlState	*state )
 {
 	int		i;
-	Access	*b;
+	Access		*b;
 #ifdef LDAP_DEBUG
-	char accessmaskbuf[ACCESSMASK_MAXLEN];
+	char		accessmaskbuf[ACCESSMASK_MAXLEN];
 #if !defined( SLAP_DYNACL ) && defined( SLAPD_ACI_ENABLED )
-	char accessmaskbuf1[ACCESSMASK_MAXLEN];
+	char		accessmaskbuf1[ACCESSMASK_MAXLEN];
 #endif /* !SLAP_DYNACL && SLAPD_ACI_ENABLED */
 #endif /* DEBUG */
-	const char *attr;
+	const char	*attr;
+	slap_mask_t	a2pmask = ACL_ACCESS2PRIV( *mask );
 
 	assert( a != NULL );
 	assert( mask != NULL );
@@ -1973,7 +1974,7 @@ slap_acl_mask(
 			/* first check if the right being requested
 			 * is allowed by the ACL clause.
 			 */
-			if ( ! ACL_GRANT( b->a_access_mask, *mask ) ) {
+			if ( ! ACL_PRIV_ISSET( b->a_access_mask, a2pmask ) ) {
 				continue;
 			}
 
@@ -1982,7 +1983,11 @@ slap_acl_mask(
 			ACL_INIT(tdeny);
 
 			for ( da = b->a_dynacl; da; da = da->da_next ) {
-				slap_access_t	grant, deny;
+				slap_access_t	grant,
+						deny;
+
+				ACL_INIT(grant);
+				ACL_INIT(deny);
 
 				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
 					da->da_name, 0, 0 );
@@ -2067,11 +2072,11 @@ slap_acl_mask(
 				* rights given by the acis.
 				*/
 				for ( i = 0; !BER_BVISNULL( &at->a_nvals[i] ); i++ ) {
-					if (aci_mask( op,
+					if ( aci_mask( op,
 						e, desc, val,
 						&at->a_nvals[i],
 						nmatch, matches,
-						&grant, &deny, SLAP_ACI_SCOPE_ENTRY ) != 0)
+						&grant, &deny, SLAP_ACI_SCOPE_ENTRY ) != 0 )
 					{
 						tgrant |= grant;
 						tdeny |= deny;
@@ -2098,13 +2103,13 @@ slap_acl_mask(
 							break;
 						}
 
-						for( i = 0; bvals[i].bv_val != NULL; i++){
+						for ( i = 0; !BER_BVISNULL( &bvals[i] ); i++ ) {
 #if 0
 							/* FIXME: this breaks acl caching;
 							 * see also ACL_RECORD_VALUE_STATE above */
 							ACL_RECORD_VALUE_STATE;
 #endif
-							if (aci_mask(op, e, desc, val, &bvals[i],
+							if ( aci_mask( op, e, desc, val, &bvals[i],
 									nmatch, matches,
 									&grant, &deny, SLAP_ACI_SCOPE_CHILDREN ) != 0 )
 							{
@@ -2212,6 +2217,8 @@ slap_acl_mask(
 			/* assign privs */
 			*mask = modmask;
 		}
+
+		a2pmask = *mask;
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
