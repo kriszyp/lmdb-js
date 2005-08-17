@@ -551,7 +551,7 @@ static struct slap_schema_ad_map {
 			"ORDERING UUIDOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.2.6 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, SLAP_AT_HIDE,
+		NULL, SLAP_AT_HIDE|SLAP_AT_MANAGEABLE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
