@@ -1228,14 +1228,9 @@ ldap_url_duplist (LDAPURLDesc *ludlist)
 	return dest;
 }
 
-int
-ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
-{
-	return ldap_url_parselist_ext( ludlist, url, ", " );
-}
-
-int
-ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep )
+static int
+ldap_url_parselist_int (LDAPURLDesc **ludlist, const char *url, const char *sep,
+	int (*url_parse)( const char *, LDAPURLDesc ** ) )
 {
 	int i, rc;
 	LDAPURLDesc *ludp;
@@ -1254,7 +1249,7 @@ ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep 
 	for (i = 0; urls[i] != NULL; i++) ;
 	/* ...and put them in the "stack" backward */
 	while (--i >= 0) {
-		rc = ldap_url_parse( urls[i], &ludp );
+		rc = url_parse( urls[i], &ludp );
 		if ( rc != 0 ) {
 			ldap_charray_free(urls);
 			ldap_free_urllist(*ludlist);
@@ -1266,6 +1261,18 @@ ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep 
 	}
 	ldap_charray_free(urls);
 	return LDAP_URL_SUCCESS;
+}
+
+int
+ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
+{
+	return ldap_url_parselist_int( ludlist, url, ", ", ldap_url_parse );
+}
+
+int
+ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep )
+{
+	return ldap_url_parselist_int( ludlist, url, sep, ldap_url_parse_ext );
 }
 
 int
