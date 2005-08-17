@@ -882,7 +882,7 @@ retry:;
 		ldap_memfree( text );
 	}
 	rs->sr_text = NULL;
-	return( ERR_OK( rs->sr_err ) ? 0 : -1 );
+	return( ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
 }
 
 /* return true if bound, false if failed */

@@ -2290,7 +2290,9 @@ acl_check_modlist(
 		 * by ACL_WRITE checking as any found here are not provided
 		 * by the user
 		 */
-		if ( is_at_no_user_mod( mlist->sml_desc->ad_type ) ) {
+		if ( is_at_no_user_mod( mlist->sml_desc->ad_type )
+				&& !mlist->sml_managing )
+		{
 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
 				mlist->sml_desc->ad_cname.bv_val, 0, 0 );

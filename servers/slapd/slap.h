@@ -1173,6 +1173,7 @@ typedef struct slap_mod_list {
 #define	sml_type	sml_mod.sm_type
 #define sml_values	sml_mod.sm_values
 #define sml_nvalues	sml_mod.sm_nvalues
+	char sml_managing;
 	struct slap_mod_list *sml_next;
 } Modifications;
 
