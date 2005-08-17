@@ -161,8 +161,8 @@ retry:;
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
-			if ( do_retry == 1 ) {
-				do_retry = 0;
+			if ( do_retry > 0 ) {
+				do_retry--;
 				sleep( 1 );
 				goto retry;
 			}
@@ -180,8 +180,8 @@ retry:;
 				filter, attrs, 0, &res );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_search" );
-			if ( rc == LDAP_BUSY && do_retry == 1 ) {
-				do_retry = 0;
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				do_retry--;
 				goto retry;
 			}
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;

@@ -71,7 +71,17 @@ static char argbuf[BUFSIZ];
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s -H <uri> | ([-h <host>] -p <port>) -D <manager> -w <passwd> -d <datadir> [-j <maxchild>] [-l <loops>] -P <progdir>\n", name );
+	fprintf( stderr,
+		"usage: %s "
+		"-H <uri> | ([-h <host>] -p <port>) "
+		"-D <manager> "
+		"-w <passwd> "
+		"-d <datadir> "
+		"[-j <maxchild>] "
+		"[-l <loops>] "
+		"-P <progdir> "
+		"[-r <maxretries>]\n",
+		name );
 	exit( EXIT_FAILURE );
 }
 
