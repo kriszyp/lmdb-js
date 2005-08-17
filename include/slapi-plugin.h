@@ -530,6 +530,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_X_OPERATION_DELETE_GLUE_PARENT	1305
 #define SLAPI_X_MANAGEDIT			1306
 #define SLAPI_X_OPERATION_NO_SCHEMA_CHECK	1307
+#define SLAPI_X_ADD_STRUCTURAL_CLASS		1308
 
 /*  Authentication types */
 #define SLAPD_AUTH_NONE   "none"
