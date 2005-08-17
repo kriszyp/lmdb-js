@@ -62,7 +62,14 @@ cannot be used in conjunction with the
 option.
 .TP
 .BI \-a " filter"
-Only dump entries matching the asserted filter.  
+Only dump entries matching the asserted filter.
+For example
+
+slapcat -a \\
+    "(!(entryDN:dnSubtreeMatch:=ou=People,dc=example,dc=com))"
+
+will dump all but the "ou=People,dc=example,dc=com" subtree
+of the "dc=example,dc=com" database.
 .TP
 .BI \-s " subtree-dn"
 Only dump entries in the subtree specified by this DN.
