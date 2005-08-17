@@ -998,9 +998,9 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 
 /* Reset the restricted flag for the next session on this connection */
 static int
-ppolicy_unbind( Operation *op, SlapReply *rs )
+ppolicy_connection_destroy( BackendDB *bd, Connection *conn )
 {
-	pwcons[op->o_conn->c_conn_idx].restricted = 0;
+	pwcons[conn->c_conn_idx].restricted = 0;
 	return SLAP_CB_CONTINUE;
 }
 
@@ -1785,11 +1785,11 @@ int ppolicy_init()
 
 	ppolicy.on_bi.bi_op_add = ppolicy_add;
 	ppolicy.on_bi.bi_op_bind = ppolicy_bind;
-	ppolicy.on_bi.bi_op_unbind = ppolicy_unbind;
 	ppolicy.on_bi.bi_op_compare = ppolicy_restrict;
 	ppolicy.on_bi.bi_op_delete = ppolicy_restrict;
 	ppolicy.on_bi.bi_op_modify = ppolicy_modify;
 	ppolicy.on_bi.bi_op_search = ppolicy_restrict;
+	ppolicy.on_bi.bi_connection_destroy = ppolicy_connection_destroy;
 
 	return overlay_register( &ppolicy );
 }
