@@ -192,8 +192,12 @@ slap_access_allowed(
 	 * no-user-modification operational attributes are ignored
 	 * by ACL_WRITE checking as any found here are not provided
 	 * by the user
+	 *
+	 * NOTE: but they are not ignored for ACL_MANAGE, because
+	 * if we get here it means a non-root user is trying to 
+	 * manage data, so we need to check its privileges.
 	 */
-	if ( access_level >= ACL_WRITE && is_at_no_user_mod( desc->ad_type )
+	if ( access_level == ACL_WRITE && is_at_no_user_mod( desc->ad_type )
 		&& desc != slap_schema.si_ad_entry
 		&& desc != slap_schema.si_ad_children )
 	{
@@ -384,10 +388,17 @@ access_allowed_mask(
 
 	assert( attr != NULL );
 
-	if ( op && op->o_is_auth_check &&
-		( access_level == ACL_SEARCH || access_level == ACL_READ ) )
-	{
-		access = ACL_AUTH;
+	if ( op ) {
+		if ( op->o_is_auth_check &&
+			( access_level == ACL_SEARCH || access_level == ACL_READ ) )
+		{
+			access = ACL_AUTH;
+
+		} else if ( get_manageDIT( op ) && access_level == ACL_WRITE &&
+			desc == slap_schema.si_ad_entry )
+		{
+			access = ACL_MANAGE;
+		}
 	}
 
 	if ( state ) {
@@ -528,10 +539,17 @@ access_allowed_mask(
 
 	assert( attr != NULL );
 
-	if ( op && op->o_is_auth_check &&
-		( access_level == ACL_SEARCH || access_level == ACL_READ ) )
-	{
-		access = ACL_AUTH;
+	if ( op ) {
+		if ( op->o_is_auth_check &&
+			( access_level == ACL_SEARCH || access_level == ACL_READ ) )
+		{
+			access = ACL_AUTH;
+
+		} else if ( get_manageDIT( op ) && access_level == ACL_WRITE &&
+			desc == slap_schema.si_ad_entry )
+		{
+			access = ACL_MANAGE;
+		}
 	}
 
 	if ( state ) {
@@ -595,8 +613,12 @@ access_allowed_mask(
 	 * no-user-modification operational attributes are ignored
 	 * by ACL_WRITE checking as any found here are not provided
 	 * by the user
+	 *
+	 * NOTE: but they are not ignored for ACL_MANAGE, because
+	 * if we get here it means a non-root user is trying to 
+	 * manage data, so we need to check its privileges.
 	 */
-	if ( access_level >= ACL_WRITE && is_at_no_user_mod( desc->ad_type )
+	if ( access_level == ACL_WRITE && is_at_no_user_mod( desc->ad_type )
 		&& desc != slap_schema.si_ad_entry
 		&& desc != slap_schema.si_ad_children )
 	{
@@ -2237,8 +2259,7 @@ int
 acl_check_modlist(
 	Operation	*op,
 	Entry	*e,
-	Modifications	*mlist
-)
+	Modifications	*mlist )
 {
 	struct berval *bv;
 	AccessControlState state = ACL_STATE_INIT;
@@ -2307,7 +2328,9 @@ acl_check_modlist(
 			 * This prevents abuse from selfwriters.
 			 */
 			if ( ! access_allowed( op, e,
-				mlist->sml_desc, NULL, ACL_WDEL, &state ) )
+				mlist->sml_desc, NULL,
+				mlist->sml_managing ? ACL_MANAGE : ACL_WDEL,
+				&state ) )
 			{
 				ret = 0;
 				goto done;
@@ -2325,7 +2348,9 @@ acl_check_modlist(
 				bv->bv_val != NULL; bv++ )
 			{
 				if ( ! access_allowed( op, e,
-					mlist->sml_desc, bv, ACL_WADD, &state ) )
+					mlist->sml_desc, bv,
+					mlist->sml_managing ? ACL_MANAGE : ACL_WADD,
+					&state ) )
 				{
 					ret = 0;
 					goto done;
@@ -2336,7 +2361,9 @@ acl_check_modlist(
 		case LDAP_MOD_DELETE:
 			if ( mlist->sml_values == NULL ) {
 				if ( ! access_allowed( op, e,
-					mlist->sml_desc, NULL, ACL_WDEL, NULL ) )
+					mlist->sml_desc, NULL,
+					mlist->sml_managing ? ACL_MANAGE : ACL_WDEL,
+					NULL ) )
 				{
 					ret = 0;
 					goto done;
@@ -2348,7 +2375,9 @@ acl_check_modlist(
 				bv->bv_val != NULL; bv++ )
 			{
 				if ( ! access_allowed( op, e,
-					mlist->sml_desc, bv, ACL_WDEL, &state ) )
+					mlist->sml_desc, bv,
+					mlist->sml_managing ? ACL_MANAGE : ACL_WDEL,
+					&state ) )
 				{
 					ret = 0;
 					goto done;

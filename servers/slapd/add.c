@@ -110,6 +110,7 @@ do_add( Operation *op, SlapReply *rs )
 		}
 
 		mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
+		mod->sml_managing = 0;
 		mod->sml_op = LDAP_MOD_ADD;
 		mod->sml_flags = 0;
 		mod->sml_next = NULL;
@@ -577,6 +578,7 @@ slap_entry2mods(
 	while ( a_new != NULL ) {
 		a_new_desc = a_new->a_desc;
 		mod = (Modifications *) malloc( sizeof( Modifications ));
+		mod->sml_managing = 0;
 		
 		mod->sml_op = LDAP_MOD_REPLACE;
 		mod->sml_flags = 0;
