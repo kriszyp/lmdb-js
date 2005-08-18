@@ -1229,10 +1229,13 @@ parse_woid(const char **sp, int *code)
 
 /* Parse a noidlen */
 static char *
-parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
+parse_noidlen(const char **sp, int *code, int *len, int flags)
 {
 	char * sval;
+	const char *savepos;
 	int quoted = 0;
+	int allow_quoted = ( flags & LDAP_SCHEMA_ALLOW_QUOTED );
+	int allow_oidmacro = ( flags & LDAP_SCHEMA_ALLOW_OID_MACRO );
 
 	*len = 0;
 	/* Netscape puts the SYNTAX value in quotes (incorrectly) */
@@ -1240,9 +1243,22 @@ parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
 		quoted = 1;
 		(*sp)++;
 	}
+	savepos = *sp;
 	sval = ldap_int_parse_numericoid(sp, code, 0);
 	if ( !sval ) {
-		return NULL;
+		if ( allow_oidmacro
+			&& *sp == savepos
+			&& *code == LDAP_SCHERR_NODIGIT )
+		{
+			if ( get_token(sp, &sval) == TK_BAREWORD ) {
+				int len = *sp - savepos;
+				sval = LDAP_MALLOC(len+1);
+				strncpy(sval, savepos, len);
+				sval[len] = '\0';
+			}
+		} else {
+			return NULL;
+		}
 	}
 	if ( **sp == '{' /*}*/ ) {
 		(*sp)++;
