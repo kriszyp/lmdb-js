@@ -1666,7 +1666,7 @@ fe_aux_operational(
 		/* Let the overlays have a chance at this */
 		be_orig = op->o_bd;
 		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
-		if ( op->o_bd != frontendDB &&
+		if ( !be_match( op->o_bd, frontendDB ) &&
 			( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 			op->o_bd != NULL && op->o_bd->be_operational != NULL )
 		{
