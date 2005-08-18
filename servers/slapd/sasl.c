@@ -460,7 +460,6 @@ slap_auxprop_store(
 		BER_BVZERO( &mod->sml_values[j] );
 		mod->sml_nvalues = NULL;
 		mod->sml_desc = NULL;
-		mod->sml_managing = 0;
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}

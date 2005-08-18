@@ -2312,7 +2312,7 @@ acl_check_modlist(
 		 * by the user
 		 */
 		if ( is_at_no_user_mod( mlist->sml_desc->ad_type )
-				&& !mlist->sml_managing )
+				&& ! ( mlist->sml_flags & SLAP_MOD_MANAGING ) )
 		{
 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
@@ -2329,7 +2329,7 @@ acl_check_modlist(
 			 */
 			if ( ! access_allowed( op, e,
 				mlist->sml_desc, NULL,
-				mlist->sml_managing ? ACL_MANAGE : ACL_WDEL,
+				( mlist->sml_flags & SLAP_MOD_MANAGING ) ? ACL_MANAGE : ACL_WDEL,
 				&state ) )
 			{
 				ret = 0;
@@ -2349,7 +2349,7 @@ acl_check_modlist(
 			{
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv,
-					mlist->sml_managing ? ACL_MANAGE : ACL_WADD,
+					( mlist->sml_flags & SLAP_MOD_MANAGING ) ? ACL_MANAGE : ACL_WADD,
 					&state ) )
 				{
 					ret = 0;
@@ -2362,7 +2362,7 @@ acl_check_modlist(
 			if ( mlist->sml_values == NULL ) {
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, NULL,
-					mlist->sml_managing ? ACL_MANAGE : ACL_WDEL,
+					( mlist->sml_flags & SLAP_MOD_MANAGING ) ? ACL_MANAGE : ACL_WDEL,
 					NULL ) )
 				{
 					ret = 0;
@@ -2376,7 +2376,7 @@ acl_check_modlist(
 			{
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv,
-					mlist->sml_managing ? ACL_MANAGE : ACL_WDEL,
+					( mlist->sml_flags & SLAP_MOD_MANAGING ) ? ACL_MANAGE : ACL_WDEL,
 					&state ) )
 				{
 					ret = 0;

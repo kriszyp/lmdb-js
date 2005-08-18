@@ -106,7 +106,6 @@ do_modify(
 		mod->sml_values = tmp.sml_values;
 		mod->sml_nvalues = NULL;
 		mod->sml_desc = NULL;
-		mod->sml_managing = 0;
 		mod->sml_next = NULL;
 		*modtail = mod;
 
@@ -502,7 +501,7 @@ slap_mods_no_user_mod_check(
 
 		if ( get_manageDIT( op ) ) {
 			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
-				ml->sml_managing = 1;
+				ml->sml_flags |= SLAP_MOD_MANAGING;
 				continue;
 			}
 
@@ -884,7 +883,6 @@ int slap_mods_opattrs(
 			if( rc != LDAP_SUCCESS ) return rc;
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			mod->sml_managing = 0;
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
 			BER_BVZERO( &mod->sml_type );
@@ -920,7 +918,6 @@ int slap_mods_opattrs(
 				tmpval.bv_val = uuidbuf;
 			
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-				mod->sml_managing = 0;
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
 				BER_BVZERO( &mod->sml_type );
@@ -953,7 +950,6 @@ int slap_mods_opattrs(
 
 			if ( mod == *modtail ) {
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-				mod->sml_managing = 0;
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
 				BER_BVZERO( &mod->sml_type );
@@ -983,7 +979,6 @@ int slap_mods_opattrs(
 
 			if ( mod == *modtail ) {
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-				mod->sml_managing = 0;
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
 				BER_BVZERO( &mod->sml_type );
@@ -1002,7 +997,6 @@ int slap_mods_opattrs(
 
 	if ( SLAP_LASTMOD( op->o_bd ) ) {
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-		mod->sml_managing = 0;
 		mod->sml_op = mop;
 		mod->sml_flags = SLAP_MOD_INTERNAL;
 		BER_BVZERO( &mod->sml_type );
@@ -1026,7 +1020,6 @@ int slap_mods_opattrs(
 
 		if ( mod == *modtail ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			mod->sml_managing = 0;
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
 			BER_BVZERO( &mod->sml_type );
@@ -1055,7 +1048,6 @@ int slap_mods_opattrs(
 
 		if ( mod == *modtail ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			mod->sml_managing = 0;
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
 			BER_BVZERO( &mod->sml_type );

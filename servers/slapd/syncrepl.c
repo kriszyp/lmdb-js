@@ -1102,7 +1102,6 @@ syncrepl_message_to_entry(
 		mod->sml_type = tmp.sml_type;
 		mod->sml_values = tmp.sml_values;
 		mod->sml_nvalues = NULL;
-		mod->sml_managing = 0;
 
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -1479,7 +1478,6 @@ retry_add:;
 				mod->sml_type = mod->sml_desc->ad_cname;
 				mod->sml_values = NULL;
 				mod->sml_nvalues = NULL;
-				mod->sml_managing = 0;
 				if ( !modhead ) modhead = mod;
 				if ( modtail ) {
 					modtail->sml_next = mod;
@@ -1509,7 +1507,6 @@ retry_add:;
 			ber_bvarray_add( &mod->sml_values, &uuid_bv );
 			ber_dupbv( &uuid_bv, syncUUID );
 			ber_bvarray_add( &mod->sml_nvalues, &uuid_bv );
-			mod->sml_managing = 0;
 			modtail->sml_next = mod;
 					
 			op->o_tag = LDAP_REQ_MODIFY;

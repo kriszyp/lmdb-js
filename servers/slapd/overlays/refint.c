@@ -294,7 +294,6 @@ refint_delete_cb(
 				mp->sml_flags = 0;
 				ber_dupbv(&mp->sml_values[0],  &dd->nothing);
 				ber_dupbv(&mp->sml_nvalues[0], &dd->nnothing);
-				mp->sml_managing = 0;
 				mp->sml_next = ma;
 				ma = mp;
 			}
@@ -310,7 +309,6 @@ refint_delete_cb(
 			mp->sml_flags = 0;
 			ber_dupbv(&mp->sml_values[0], &dd->dn);
 			ber_dupbv(&mp->sml_nvalues[0], &mp->sml_values[0]);
-			mp->sml_managing = 0;
 			mp->sml_next = ma;
 			ma = mp;
 			Debug(LDAP_DEBUG_TRACE, "refint_delete_cb: %s: %s\n",
@@ -402,7 +400,6 @@ refint_modrdn_cb(
 			ber_dupbv(&mp->sml_nvalues[0], &dd->nnewdn);
 			mp->sml_values[1].bv_len = mp->sml_nvalues[1].bv_len = 0;
 			mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
-			mp->sml_managing = 0;
 			mp->sml_next = ip->mm;
 			ip->mm = mp;
 			mp = ch_malloc(sizeof(Modifications));
@@ -416,7 +413,6 @@ refint_modrdn_cb(
 			ber_dupbv(&mp->sml_nvalues[0], &dd->dn);
 			mp->sml_values[1].bv_len = mp->sml_nvalues[1].bv_len = 0;
 			mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
-			mp->sml_managing = 0;
 			mp->sml_next = ip->mm;
 			ip->mm = mp;
 			Debug(LDAP_DEBUG_TRACE, "refint_modrdn_cb: %s: %s\n",

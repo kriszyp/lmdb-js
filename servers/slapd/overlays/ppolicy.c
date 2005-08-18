@@ -241,7 +241,6 @@ account_locked( Operation *op, Entry *e,
 			m->sml_flags = 0;
 			m->sml_type = ad_pwdAccountLockedTime->ad_cname;
 			m->sml_desc = ad_pwdAccountLockedTime;
-			m->sml_managing = 0;
 			m->sml_next = *mod;
 			*mod = m;
 		}
@@ -714,7 +713,6 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 
 		ber_dupbv( &m->sml_values[0], &timestamp );
-		m->sml_managing = 0;
 		m->sml_next = mod;
 		mod = m;
 
@@ -761,7 +759,6 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			m->sml_desc = ad_pwdAccountLockedTime;
 			m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 			ber_dupbv( &m->sml_values[0], &timestamp );
-			m->sml_managing = 0;
 			m->sml_next = mod;
 			mod = m;
 		}
@@ -776,7 +773,6 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			m->sml_flags = 0;
 			m->sml_type = ad_pwdFailureTime->ad_cname;
 			m->sml_desc = ad_pwdFailureTime;
-			m->sml_managing = 0;
 			m->sml_next = mod;
 			mod = m;
 		}
@@ -865,7 +861,6 @@ grace:
 		m->sml_desc = ad_pwdGraceUseTime;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 		ber_dupbv( &m->sml_values[0], &timestamp );
-		m->sml_managing = 0;
 		m->sml_next = mod;
 		mod = m;
 
@@ -1306,7 +1301,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		ml->sml_values[1].bv_len = 0;
 		ml->sml_values[1].bv_val = NULL;
 		ml->sml_nvalues = NULL;
-		ml->sml_managing = 0;
 		ml->sml_next = op->orm_modlist;
 		op->orm_modlist = ml;
 		delmod = ml;
@@ -1465,7 +1459,6 @@ do_modify:
 		}
 		mods->sml_flags = SLAP_MOD_INTERNAL;
 		mods->sml_nvalues = NULL;
-		mods->sml_managing = 0;
 		mods->sml_next = NULL;
 		modtail->sml_next = mods;
 		modtail = mods;
@@ -1478,7 +1471,6 @@ do_modify:
 			mods->sml_desc = ad_pwdGraceUseTime;
 			mods->sml_values = NULL;
 			mods->sml_nvalues = NULL;
-			mods->sml_managing = 0;
 			mods->sml_next = NULL;
 			modtail->sml_next = mods;
 			modtail = mods;
@@ -1493,7 +1485,6 @@ do_modify:
 			mods->sml_desc = ad_pwdReset;
 			mods->sml_values = NULL;
 			mods->sml_nvalues = NULL;
-			mods->sml_managing = 0;
 			mods->sml_next = NULL;
 			modtail->sml_next = mods;
 			modtail = mods;
@@ -1532,7 +1523,6 @@ do_modify:
 					mods->sml_values[i].bv_len = 0;
 					ber_dupbv( &(mods->sml_values[i]), &p->bv );
 				}
-				mods->sml_managing = 0;
 				mods->sml_next = NULL;
 				modtail->sml_next = mods;
 				modtail = mods;
@@ -1561,7 +1551,6 @@ do_modify:
 				mods->sml_values[ 1 ].bv_val = NULL;
 				mods->sml_values[ 1 ].bv_len = 0;
 				make_pwd_history_value( timebuf, &mods->sml_values[0], pa );
-				mods->sml_managing = 0;
 				mods->sml_next = NULL;
 				modtail->sml_next = mods;
 				modtail = mods;

@@ -443,7 +443,6 @@ slap_modrdn2mods(
 		}
 		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
 		mod_tmp->sml_flags = SLAP_MOD_INTERNAL;
-		mod_tmp->sml_managing = 0;
 		mod_tmp->sml_next = mod;
 		mod = mod_tmp;
 	}
@@ -499,7 +498,6 @@ slap_modrdn2mods(
 			}
 			mod_tmp->sml_op = LDAP_MOD_DELETE;
 			mod_tmp->sml_flags = SLAP_MOD_INTERNAL;
-			mod_tmp->sml_managing = 0;
 			mod_tmp->sml_next = mod;
 			mod = mod_tmp;
 		}
