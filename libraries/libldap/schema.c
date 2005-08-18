@@ -2439,6 +2439,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 				}
 			}
 			LDAP_FREE(sval);
+			*code = 0;
 		} else {
 			*errp = ss;
 			ldap_objectclass_free(oc);
@@ -2527,6 +2528,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 					ldap_objectclass_free(oc);
 					return NULL;
 				}
+				*code = 0;
 			} else if ( !strcasecmp(sval,"ABSTRACT") ) {
 				LDAP_FREE(sval);
 				if ( seen_kind ) {
@@ -2575,6 +2577,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 					ldap_objectclass_free(oc);
 					return NULL;
 				}
+				*code = 0;
 				parse_whsp(&ss);
 			} else if ( !strcasecmp(sval,"MAY") ) {
 				LDAP_FREE(sval);
@@ -2591,10 +2594,12 @@ ldap_str2objectclass( LDAP_CONST char * s,
 					ldap_objectclass_free(oc);
 					return NULL;
 				}
+				*code = 0;
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
 				/* Should be parse_qdstrings */
 				ext_vals = parse_qdescrs(&ss, code);
+				*code = 0;
 				if ( !ext_vals ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
