@@ -944,6 +944,9 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 
+	/* Reset lockout status on all Bind requests */
+	pwcons[op->o_conn->c_conn_idx].restricted = 0;
+
 	/* Root bypasses policy */
 	if ( !be_isroot_dn( op->o_bd, &op->o_req_ndn )) {
 		Entry *e;
