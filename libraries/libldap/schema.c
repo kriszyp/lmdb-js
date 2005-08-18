@@ -959,21 +959,23 @@ ldap_attributetype2bv(  LDAPAttributeType * at, struct berval *bv )
  * interpretation of the specs).
  */
 
-#define TK_NOENDQUOTE	-2
-#define TK_OUTOFMEM	-1
-#define TK_EOS		0
-#define TK_UNEXPCHAR	1
-#define TK_BAREWORD	2
-#define TK_QDSTRING	3
-#define TK_LEFTPAREN	4
-#define TK_RIGHTPAREN	5
-#define TK_DOLLAR	6
-#define TK_QDESCR	TK_QDSTRING
+typedef enum tk_t {
+	TK_NOENDQUOTE	= -2,
+	TK_OUTOFMEM	= -1,
+	TK_EOS		= 0,
+	TK_UNEXPCHAR	= 1,
+	TK_BAREWORD	= 2,
+	TK_QDSTRING	= 3,
+	TK_LEFTPAREN	= 4,
+	TK_RIGHTPAREN	= 5,
+	TK_DOLLAR	= 6,
+	TK_QDESCR	= TK_QDSTRING
+} tk_t;
 
-static int
+static tk_t
 get_token( const char ** sp, char ** token_val )
 {
-	int kind;
+	tk_t kind;
 	const char * p;
 	const char * q;
 	char * res;
@@ -1145,7 +1147,7 @@ parse_qdescrs(const char **sp, int *code)
 {
 	char ** res;
 	char ** res1;
-	int kind;
+	tk_t kind;
 	char * sval;
 	int size;
 	int pos;
@@ -1212,7 +1214,7 @@ static char *
 parse_woid(const char **sp, int *code)
 {
 	char * sval;
-	int kind;
+	tk_t kind;
 
 	parse_whsp(sp);
 	kind = get_token(sp, &sval);
@@ -1279,7 +1281,7 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 {
 	char ** res;
 	char ** res1;
-	int kind;
+	tk_t kind;
 	char * sval;
 	int size;
 	int pos;
@@ -1441,7 +1443,7 @@ ldap_str2syntax( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind;
+	tk_t kind;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
@@ -1583,7 +1585,7 @@ ldap_str2matchingrule( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind;
+	tk_t kind;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
@@ -1782,7 +1784,7 @@ ldap_str2matchingruleuse( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind;
+	tk_t kind;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
@@ -1984,7 +1986,7 @@ ldap_str2attributetype( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind;
+	tk_t kind;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
@@ -2362,7 +2364,7 @@ ldap_str2objectclass( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind;
+	tk_t kind;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
@@ -2644,7 +2646,7 @@ ldap_str2contentrule( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind;
+	tk_t kind;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
@@ -2898,7 +2900,8 @@ ldap_str2structurerule( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind, ret;
+	tk_t kind;
+	int ret;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
@@ -3081,7 +3084,7 @@ ldap_str2nameform( LDAP_CONST char * s,
 	LDAP_CONST char ** errp,
 	LDAP_CONST unsigned flags )
 {
-	int kind;
+	tk_t kind;
 	const char * ss = s;
 	char * sval;
 	int seen_name = 0;
