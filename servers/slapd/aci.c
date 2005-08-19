@@ -348,8 +348,7 @@ aci_mask(
 	 * both match "subtree" */
 	switch ( asserted_scope ) {
 	case SLAP_ACI_SCOPE_ENTRY:
-		/* TODO: use ber_bvcmp */
-		if ( ber_bvstrcasecmp( &scope, &aci_bv[ ACI_BV_ENTRY ] ) != 0
+		if ( ber_bvcmp( &scope, &aci_bv[ ACI_BV_ENTRY ] ) != 0
 				&& ber_bvstrcasecmp( &scope, &aci_bv[ ACI_BV_SUBTREE ] ) != 0 )
 		{
 			return 0;
@@ -357,22 +356,21 @@ aci_mask(
 		break;
 
 	case SLAP_ACI_SCOPE_CHILDREN:
-		/* TODO: use ber_bvcmp */
-		if ( ber_bvstrcasecmp( &scope, &aci_bv[ ACI_BV_CHILDREN ] ) != 0
+		if ( ber_bvcmp( &scope, &aci_bv[ ACI_BV_CHILDREN ] ) != 0
 				&& ber_bvstrcasecmp( &scope, &aci_bv[ ACI_BV_SUBTREE ] ) != 0 )
 		{
 			return 0;
 		}
 		break;
 
-	default:
-		/* TODO: add assertion */
+	case SLAP_ACI_SCOPE_SUBTREE:
+		/* TODO: add assertion? */
 		return 0;
 	}
 
 	/* get the list of permissions clauses, bail if empty */
 	if ( acl_get_part( aci, 2, '#', &perms ) <= 0 ) {
-		/* TODO: add assertion */
+		assert( 0 );
 		return 0;
 	}
 
@@ -383,13 +381,12 @@ aci_mask(
 
 	/* see if we have a DN match */
 	if ( acl_get_part( aci, 3, '#', &type ) < 0 ) {
-		/* TODO: add assertion */
+		assert( 0 );
 		return 0;
 	}
 
 	/* see if we have a public (i.e. anonymous) access */
-	/* TODO: use ber_bvcmp */
-	if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_PUBLIC ], &type ) == 0 ) {
+	if ( ber_bvcmp( &aci_bv[ ACI_BV_PUBLIC ], &type ) == 0 ) {
 		return 1;
 	}
 	
@@ -399,8 +396,7 @@ aci_mask(
 	}
 
 	/* see if we have a users access */
-	/* TODO: use ber_bvcmp */
-	if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_USERS ], &type ) == 0 ) {
+	if ( ber_bvcmp( &aci_bv[ ACI_BV_USERS ], &type ) == 0 ) {
 		return 1;
 	}
 	
@@ -417,95 +413,32 @@ aci_mask(
 	sdn.bv_val = type.bv_val + type.bv_len + STRLENOF( "#" );
 	sdn.bv_len = aci->bv_len - ( sdn.bv_val - aci->bv_val );
 
-	/* TODO: use ber_bvcmp */
-	if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_ACCESS_ID ], &type ) == 0 ) {
-		struct berval ndn;
+	if ( ber_bvcmp( &aci_bv[ ACI_BV_ACCESS_ID ], &type ) == 0 ) {
+		return dn_match( &op->o_ndn, &sdn );
+
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_SUBTREE ], &type ) == 0 ) {
+		return dnIsSuffix( &op->o_ndn, &sdn );
+
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_ONELEVEL ], &type ) == 0 ) {
+		struct berval pdn;
 		
-		/* TODO: don't normalize */
-		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			return 0;
-		}
+		dnParent( &sdn, &pdn );
 
-		if ( dn_match( &op->o_ndn, &ndn ) ) {
-			rc = 1;
-		}
-		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+		return dn_match( &op->o_ndn, &pdn );
 
-		return rc;
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_CHILDREN ], &type ) == 0 ) {
+		return ( !dn_match( &op->o_ndn, &sdn ) && dnIsSuffix( &op->o_ndn, &sdn ) );
 
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_SUBTREE ], &type ) == 0 ) {
-		struct berval ndn;
-		
-		/* TODO: don't normalize */
-		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			return 0;
-		}
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_SELF ], &type ) == 0 ) {
+		return dn_match( &op->o_ndn, &e->e_nname );
 
-		if ( dnIsSuffix( &op->o_ndn, &ndn ) ) {
-			rc = 1;
-		}
-		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
-
-		return rc;
-
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_ONELEVEL ], &type ) == 0 ) {
-		struct berval ndn, pndn;
-		
-		/* TODO: don't normalize */
-		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			return 0;
-		}
-
-		dnParent( &ndn, &pndn );
-
-		if ( dn_match( &op->o_ndn, &pndn ) ) {
-			rc = 1;
-		}
-		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
-
-		return rc;
-
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_CHILDREN ], &type ) == 0 ) {
-		struct berval ndn;
-		
-		/* TODO: don't normalize */
-		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
-		if ( rc != LDAP_SUCCESS ) {
-			return 0;
-		}
-
-		if ( !dn_match( &op->o_ndn, &ndn )
-				&& dnIsSuffix( &op->o_ndn, &ndn ) )
-		{
-			rc = 1;
-		}
-		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
-
-		return rc;
-
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_SELF ], &type ) == 0 ) {
-		if ( dn_match( &op->o_ndn, &e->e_nname ) ) {
-			return 1;
-		}
-
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_DNATTR ], &type ) == 0 ) {
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_DNATTR ], &type ) == 0 ) {
 		Attribute		*at;
 		AttributeDescription	*ad = NULL;
 		const char		*text;
 
 		rc = slap_bv2ad( &sdn, &ad, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			/* TODO: add assertion */
-			return 0;
-		}
+		assert( rc == LDAP_SUCCESS );
 
 		rc = 0;
 		for ( at = attrs_find( e->e_attrs, ad );
@@ -525,30 +458,26 @@ aci_mask(
 
 		return rc;
 
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_GROUP ], &type ) == 0 ) {
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_GROUP ], &type ) == 0 ) {
 		if ( aci_group_member( &sdn, &aci_bv[ ACI_BV_GROUP_CLASS ],
 				&aci_bv[ ACI_BV_GROUP_ATTR ], op, e, nmatch, matches ) )
 		{
 			return 1;
 		}
 
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_ROLE ], &type ) == 0 ) {
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_ROLE ], &type ) == 0 ) {
 		if ( aci_group_member( &sdn, &aci_bv[ ACI_BV_ROLE_CLASS ],
 				&aci_bv[ ACI_BV_ROLE_ATTR ], op, e, nmatch, matches ) )
 		{
 			return 1;
 		}
 
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_SET ], &type ) == 0 ) {
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_SET ], &type ) == 0 ) {
 		if ( acl_match_set( &sdn, op, e, 0 ) ) {
 			return 1;
 		}
 
-	/* TODO: use ber_bvcmp */
-	} else if ( ber_bvstrcasecmp( &aci_bv[ ACI_BV_SET_REF ], &type ) == 0 ) {
+	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_SET_REF ], &type ) == 0 ) {
 		if ( acl_match_set( &sdn, op, e, 1 ) ) {
 			return 1;
 		}
@@ -1079,6 +1008,7 @@ OpenLDAPaciNormalizeRights(
 static const struct berval *OpenLDAPaciscopes[] = {
 	&aci_bv[ ACI_BV_ENTRY ],
 	&aci_bv[ ACI_BV_CHILDREN ],
+	&aci_bv[ ACI_BV_SUBTREE ],
 
 	NULL
 };

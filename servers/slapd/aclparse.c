@@ -2119,7 +2119,7 @@ acl_usage( void )
 			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n"
 			"\t[domain[.<domainstyle>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAPD_ACI_ENABLED
-			"\t[aci=[<attrname>]]\n"
+			"\t[aci[=<attrname>]]\n"
 #endif
 #ifdef SLAP_DYNACL
 			"\t[dynacl/<name>[.<dynstyle>][=<pattern>]]\n"
