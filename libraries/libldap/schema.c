@@ -1250,11 +1250,11 @@ parse_noidlen(const char **sp, int *code, int *len, int flags)
 			&& *sp == savepos
 			&& *code == LDAP_SCHERR_NODIGIT )
 		{
-			if ( get_token(sp, &sval) == TK_BAREWORD ) {
-				int len = *sp - savepos;
-				sval = LDAP_MALLOC(len+1);
-				strncpy(sval, savepos, len);
-				sval[len] = '\0';
+			if ( get_token(sp, &sval) != TK_BAREWORD ) {
+				if ( sval != NULL ) {
+					LDAP_FREE(sval);
+				}
+				return NULL;
 			}
 		} else {
 			return NULL;
