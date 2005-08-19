@@ -38,12 +38,20 @@
 
 static void
 do_modrdn( char *uri, char *host, int port, char *manager, char *passwd,
-		char *entry, int maxloop, int maxretries );
+		char *entry, int maxloop, int maxretries, int delay );
 
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p port -D <managerDN> -w <passwd> -e <entry> [-l <loops>]\n",
+        fprintf( stderr,
+		"usage: %s "
+		"-H <uri> | ([-h <host>] -p <port>) "
+		"-D <manager> "
+		"-w <passwd> "
+		"-e <entry> "
+		"[-l <loops>] "
+		"[-r <maxretries>] "
+		"[-t <delay>]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -60,8 +68,9 @@ main( int argc, char **argv )
 	char		*entry = NULL;
 	int		loops = LOOPS;
 	int		retries = RETRIES;
+	int		delay = 0;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:l:r:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:l:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -95,6 +104,10 @@ main( int argc, char **argv )
 			retries = atoi( optarg );
 			break;
 
+		case 't':		/* delay in seconds */
+			delay = atoi( optarg );
+			break;
+
 		default:
 			usage( argv[0] );
 			break;
@@ -112,14 +125,14 @@ main( int argc, char **argv )
 
 	}
 
-	do_modrdn( uri, host, port, manager, passwd, entry, loops, retries );
+	do_modrdn( uri, host, port, manager, passwd, entry, loops, retries, delay );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
 do_modrdn( char *uri, char *host, int port, char *manager,
-	char *passwd, char *entry, int maxloop, int maxretries )
+	char *passwd, char *entry, int maxloop, int maxretries, int delay )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -180,9 +193,11 @@ retry:;
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
-			if ( do_retry == 1 ) {
-				do_retry = 0;
-				sleep( 1 );
+			if ( do_retry > 0 ) {
+				do_retry--;
+				if ( delay > 0) {
+				    sleep( delay );
+				}
 				goto retry;
 			}
 		/* fallthru */

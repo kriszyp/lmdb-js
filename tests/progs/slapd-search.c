@@ -38,12 +38,21 @@
 
 static void
 do_search( char *uri, char *host, int port, char *manager, char *passwd,
-		char *sbase, char *filter, int maxloop, int maxretries );
+		char *sbase, char *filter, int maxloop, int maxretries, int delay );
 
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p port -b <searchbase> -f <searchfiter> [-l <loops>]\n",
+        fprintf( stderr,
+		"usage: %s "
+		"-H <uri> | ([-h <host>] -p <port>) "
+		"-D <manager> "
+		"-w <passwd> "
+		"-b <searchbase> "
+		"-f <searchfilter> "
+		"[-l <loops>] "
+		"[-r <maxretries>] "
+		"[-t <delay>]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -61,8 +70,9 @@ main( int argc, char **argv )
 	char		*filter  = NULL;
 	int		loops = LOOPS;
 	int		retries = RETRIES;
+	int		delay = 0;
 
-	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:p:w:r:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:p:w:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -100,6 +110,10 @@ main( int argc, char **argv )
 			retries = atoi( optarg );
 			break;
 
+		case 't':		/* delay in seconds */
+			delay = atoi( optarg );
+			break;
+
 		default:
 			usage( argv[0] );
 			break;
@@ -118,14 +132,14 @@ main( int argc, char **argv )
 	}
 
 	do_search( uri, host, port, manager, passwd, sbase, filter,
-			( 10 * loops ), retries );
+			( 10 * loops ), retries, delay );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
 do_search( char *uri, char *host, int port, char *manager, char *passwd,
-		char *sbase, char *filter, int maxloop, int maxretries )
+		char *sbase, char *filter, int maxloop, int maxretries, int delay )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -163,7 +177,9 @@ retry:;
 		case LDAP_UNAVAILABLE:
 			if ( do_retry > 0 ) {
 				do_retry--;
-				sleep( 1 );
+				if ( delay != 0 ) {
+				    sleep( delay );
+				}
 				goto retry;
 			}
 		/* fallthru */
@@ -196,5 +212,3 @@ retry:;
 
 	ldap_unbind( ld );
 }
-
-

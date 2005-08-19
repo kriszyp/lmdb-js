@@ -35,13 +35,21 @@
 static void
 do_modify( char *uri, char *host, int port, char *manager, char *passwd,
 		char *entry, char *attr, char *value, int maxloop,
-		int maxretries );
+		int maxretries, int delay );
 
 
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p port -D <managerDN> -w <passwd> -e <entry> [-l <loops>]\n",
+        fprintf( stderr,
+		"usage: %s "
+		"-H <uri> | ([-h <host>] -p <port>) "
+		"-D <manager> "
+		"-w <passwd> "
+		"-e <entry> "
+		"[-l <loops>] "
+		"[-r <maxretries>] "
+		"[-t <delay>]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -60,8 +68,9 @@ main( int argc, char **argv )
 	char		*value = NULL;
 	int		loops = LOOPS;
 	int		retries = RETRIES;
+	int		delay = 0;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:a:l:r:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:a:l:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -95,8 +104,12 @@ main( int argc, char **argv )
 			loops = atoi( optarg );
 			break;
 
-		case 'r':
+		case 'r':		/* number of retries */
 			retries = atoi( optarg );
+			break;
+
+		case 't':		/* delay in seconds */
+			delay = atoi( optarg );
 			break;
 
 		default:
@@ -131,7 +144,7 @@ main( int argc, char **argv )
 		value++;
 
 	do_modify( uri, host, port, manager, passwd, entry, ava, value,
-			loops, retries );
+			loops, retries, delay );
 	exit( EXIT_SUCCESS );
 }
 
@@ -139,7 +152,7 @@ main( int argc, char **argv )
 static void
 do_modify( char *uri, char *host, int port, char *manager,
 	char *passwd, char *entry, char* attr, char* value,
-	int maxloop, int maxretries )
+	int maxloop, int maxretries, int delay )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -188,9 +201,11 @@ retry:;
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
-			if ( do_retry == 1 ) {
-				do_retry = 0;
-				sleep( 1 );
+			if ( do_retry > 0 ) {
+				do_retry--;
+				if ( delay > 0 ) {
+				    sleep( delay );
+				}
 				goto retry;
 			}
 		/* fallthru */
