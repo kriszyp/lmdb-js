@@ -1,9 +1,9 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.6 Engineering
-	3951
+OpenLDAP 2.3.6 Release
 	Fixed slapd dnRelativeMatch return (ITS#3931)
-	Fixed slapd-bdb/hdb release entry in paged resposne
+	Fixed slapd send_search_entry issue (ITS#3951)
+	Fixed slapd-bdb/hdb release entry in paged response
 	Fixed slapd-meta resources release issue (ITS#3943)
 	Fixed slapd-ldap/meta matched return (ITS#3942,ITS#3944)
 	Fixed slapo-ppolicy reset lockouts issue (ITS#3946)
