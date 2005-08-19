@@ -80,7 +80,8 @@ usage( char *name )
 		"[-j <maxchild>] "
 		"[-l <loops>] "
 		"-P <progdir> "
-		"[-r <maxretries>]\n",
+		"[-r <maxretries>]"
+		"[-t <delay>]\n",
 		name );
 	exit( EXIT_FAILURE );
 }
@@ -98,6 +99,7 @@ main( int argc, char **argv )
 	char		*progdir = NULL;
 	char		*loops = LOOPS;
 	char		*retries = RETRIES;
+	char		*delay = "0";
 	DIR			*datadir;
 	struct dirent	*file;
 	char		*sfile = NULL;
@@ -132,7 +134,7 @@ main( int argc, char **argv )
 	char		*moddn[MAXREQS];
 	int		modnum = 0;
 
-	while ( (i = getopt( argc, argv, "D:d:H:h:j:l:P:p:r:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "D:d:H:h:j:l:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
 		case 'D':		/* slapd manager */
 			manager = ArgDup( optarg );
@@ -166,8 +168,12 @@ main( int argc, char **argv )
 			port = strdup( optarg );
 			break;
 
-		case 'r':
+		case 'r':		/* the number of retries in case of error */
 			retries = strdup( optarg );
+			break;
+
+		case 't':		/* the delay in seconds between each retry */
+			delay = strdup( optarg );
 			break;
 
 		case 'w':		/* the managers passwd */
@@ -264,6 +270,8 @@ main( int argc, char **argv )
 	sargs[sanum++] = loops;
 	sargs[sanum++] = "-r";
 	sargs[sanum++] = retries;
+	sargs[sanum++] = "-t";
+	sargs[sanum++] = delay;
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
@@ -291,6 +299,8 @@ main( int argc, char **argv )
 	rargs[ranum++] = loops;
 	rargs[ranum++] = "-r";
 	rargs[ranum++] = retries;
+	rargs[ranum++] = "-t";
+	rargs[ranum++] = delay;
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
 	rargs[ranum++] = NULL;
@@ -320,6 +330,8 @@ main( int argc, char **argv )
 	margs[manum++] = loops;
 	margs[manum++] = "-r";
 	margs[manum++] = retries;
+	margs[manum++] = "-t";
+	margs[manum++] = delay;
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
 	margs[manum++] = NULL;
@@ -349,6 +361,8 @@ main( int argc, char **argv )
 	modargs[modanum++] = loops;
 	modargs[modanum++] = "-r";
 	modargs[modanum++] = retries;
+	modargs[modanum++] = "-t";
+	modargs[modanum++] = delay;
 	modargs[modanum++] = "-e";
 	modargs[modanum++] = NULL;		/* will hold the modify entry */
 	modargs[modanum++] = "-a";;
@@ -380,6 +394,8 @@ main( int argc, char **argv )
 	aargs[aanum++] = loops;
 	aargs[aanum++] = "-r";
 	aargs[aanum++] = retries;
+	aargs[aanum++] = "-t";
+	aargs[aanum++] = delay;
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
 	aargs[aanum++] = NULL;

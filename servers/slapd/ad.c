@@ -557,6 +557,20 @@ int ad_inlist(
 			continue;
 		}
 
+		if ( ber_bvccmp( &attrs->an_name, '*' ) ) {
+			if ( !is_at_operational( desc->ad_type ) ) {
+				return 1;
+			}
+			continue;
+		}
+
+		if ( ber_bvccmp( &attrs->an_name, '+' ) ) {
+			if ( is_at_operational( desc->ad_type ) ) {
+				return 1;
+			}
+			continue;
+		}
+
 		/*
 		 * EXTENSION: see if requested description is @objectClass
 		 * if so, return attributes which the class requires/allows

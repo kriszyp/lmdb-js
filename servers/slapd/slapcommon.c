@@ -424,6 +424,13 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+#ifdef SLAP_DYNACL
+	if ( acl_init() ) {
+		fprintf( stderr, "%s: acl_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+#endif /* SLAP_DYNACL */
+
 	rc = read_config( conffile, confdir );
 
 	if ( rc != 0 ) {

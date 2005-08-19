@@ -320,8 +320,20 @@ meta_back_search( Operation *op, SlapReply *rs )
 #endif
 
 	if ( initial_candidates == 0 ) {
+		/* NOTE: here we are not sending any matchedDN;
+		 * this is intended, because if the back-meta
+		 * is serving this search request, but no valid
+		 * candidate could be looked up, it means that
+		 * there is a hole in the mapping of the targets
+		 * and thus no knowledge of any remote superior
+		 * is available */
+		Debug( LDAP_DEBUG_ANY, "%s meta_back_search: "
+			"base=\"%s\" scope=%d: "
+			"no candidate could be selected\n",
+			op->o_log_prefix, op->o_req_dn.bv_val,
+			op->ors_scope );
+
 		send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT, NULL );
-		/* FIXME: find a way to look up the best match */
 
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto finish;
@@ -924,7 +936,9 @@ meta_send_entry(
 		}
 
 		/* no subschemaSubentry */
-		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
+		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry
+			|| attr->a_desc == slap_schema.si_ad_entryDN )
+		{
 
 			/* 
 			 * We eat target's subschemaSubentry because
@@ -932,6 +946,10 @@ meta_send_entry(
 			 * to resolve to the appropriate backend;
 			 * later, the local subschemaSubentry is
 			 * added.
+			 *
+			 * We also eat entryDN because the frontend
+			 * will reattach it without checking if already
+			 * present...
 			 */
 			( void )ber_scanf( &ber, "x" /* [W] */ );
 

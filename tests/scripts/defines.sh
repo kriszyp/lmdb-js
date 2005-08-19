@@ -273,6 +273,7 @@ TRANSLUCENTOUT=$DATADIR/translucent.search.out
 METAOUT=$DATADIR/meta.out
 METACONCURRENCYOUT=$DATADIR/metaconcurrency.out
 MANAGEOUT=$DATADIR/manage.out
+SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

@@ -545,7 +545,9 @@ ldap_build_entry(
 		}
 
 		/* no subschemaSubentry */
-		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
+		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry
+			|| attr->a_desc == slap_schema.si_ad_entryDN )
+		{
 
 			/* 
 			 * We eat target's subschemaSubentry because
@@ -553,6 +555,10 @@ ldap_build_entry(
 			 * to resolve to the appropriate backend;
 			 * later, the local subschemaSubentry is
 			 * added.
+			 *
+			 * We also eat entryDN because the frontend
+			 * will reattach it without checking if already
+			 * present...
 			 */
 			( void )ber_scanf( &ber, "x" /* [W] */ );
 

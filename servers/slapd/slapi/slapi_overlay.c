@@ -190,7 +190,7 @@ slapi_over_call_plugins( Slapi_PBlock *pb, int type )
 	PBLOCK_ASSERT_OP( pb, 0 );
 	op = pb->pb_op;
 
-	if ( op->o_bd != frontendDB ) {
+	if ( !be_match( op->o_bd, frontendDB ) ) {
 		rc = slapi_int_call_plugins( frontendDB, type, pb );
 	}
 	if ( rc >= 0 ) {

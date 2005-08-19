@@ -140,7 +140,7 @@ do_modify(
 					goto cleanup;
 				}
 
-				if( mod->sml_values[1].bv_val ) {
+				if ( !BER_BVISNULL( &mod->sml_values[ 1 ] ) ) {
 					Debug( LDAP_DEBUG_ANY, "do_modify: modify/increment "
 						"operation (%ld) requires single value\n",
 						(long) mop, 0, 0 );
@@ -251,10 +251,10 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		if ( tmp->sml_values == NULL ) {
 			Debug( LDAP_DEBUG_ARGS, "%s\n",
 			   "\t\tno values", NULL, NULL );
-		} else if ( tmp->sml_values[0].bv_val == NULL ) {
+		} else if ( BER_BVISNULL( &tmp->sml_values[ 0 ] ) ) {
 			Debug( LDAP_DEBUG_ARGS, "%s\n",
 			   "\t\tzero values", NULL, NULL );
-		} else if ( tmp->sml_values[1].bv_val == NULL ) {
+		} else if ( BER_BVISNULL( &tmp->sml_values[ 1 ] ) ) {
 			Debug( LDAP_DEBUG_ARGS, "%s, length %ld\n",
 			   "\t\tone value", (long) tmp->sml_values[0].bv_len, NULL );
 		} else {
@@ -501,7 +501,7 @@ slap_mods_no_user_mod_check(
 
 		if ( get_manageDIT( op ) ) {
 			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
-				ml->sml_managing = 1;
+				ml->sml_flags |= SLAP_MOD_MANAGING;
 				continue;
 			}
 
@@ -885,20 +885,18 @@ int slap_mods_opattrs(
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
-			mod->sml_type.bv_val = NULL;
+			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
 			mod->sml_values =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &tmpval );
-			mod->sml_values[1].bv_len = 0;
-			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val != NULL );
+			BER_BVZERO( &mod->sml_values[1] );
+			assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_nvalues[0], &tmpval );
-			mod->sml_nvalues[1].bv_len = 0;
-			mod->sml_nvalues[1].bv_val = NULL;
-			assert( mod->sml_nvalues[0].bv_val != NULL );
+			BER_BVZERO( &mod->sml_nvalues[1] );
+			assert( !BER_BVISNULL( &mod->sml_nvalues[0] ) );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 		}
@@ -922,14 +920,13 @@ int slap_mods_opattrs(
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
-				mod->sml_type.bv_val = NULL;
+				BER_BVZERO( &mod->sml_type );
 				mod->sml_desc = slap_schema.si_ad_entryUUID;
 				mod->sml_values =
 					(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 				ber_dupbv( &mod->sml_values[0], &tmpval );
-				mod->sml_values[1].bv_len = 0;
-				mod->sml_values[1].bv_val = NULL;
-				assert( mod->sml_values[0].bv_val != NULL );
+				BER_BVZERO( &mod->sml_values[1] );
+				assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 				mod->sml_nvalues =
 					(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 				(*mod->sml_desc->ad_type->sat_equality->smr_normalize)(
@@ -937,8 +934,7 @@ int slap_mods_opattrs(
 						mod->sml_desc->ad_type->sat_syntax,
 						mod->sml_desc->ad_type->sat_equality,
 						mod->sml_values, mod->sml_nvalues, NULL );
-				mod->sml_nvalues[1].bv_len = 0;
-				mod->sml_nvalues[1].bv_val = NULL;
+				BER_BVZERO( &mod->sml_nvalues[1] );
 				*modtail = mod;
 				modtail = &mod->sml_next;
 			}
@@ -956,20 +952,18 @@ int slap_mods_opattrs(
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
-				mod->sml_type.bv_val = NULL;
+				BER_BVZERO( &mod->sml_type );
 				mod->sml_desc = slap_schema.si_ad_creatorsName;
 				mod->sml_values =
 					(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 				ber_dupbv( &mod->sml_values[0], &name );
-				mod->sml_values[1].bv_len = 0;
-				mod->sml_values[1].bv_val = NULL;
-				assert( mod->sml_values[0].bv_val != NULL );
+				BER_BVZERO( &mod->sml_values[1] );
+				assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 				mod->sml_nvalues =
 					(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 				ber_dupbv( &mod->sml_nvalues[0], &nname );
-				mod->sml_nvalues[1].bv_len = 0;
-				mod->sml_nvalues[1].bv_val = NULL;
-				assert( mod->sml_nvalues[0].bv_val != NULL );
+				BER_BVZERO( &mod->sml_nvalues[1] );
+				assert( !BER_BVISNULL( &mod->sml_nvalues[0] ) );
 				*modtail = mod;
 				modtail = &mod->sml_next;
 			}
@@ -987,14 +981,13 @@ int slap_mods_opattrs(
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
-				mod->sml_type.bv_val = NULL;
+				BER_BVZERO( &mod->sml_type );
 				mod->sml_desc = slap_schema.si_ad_createTimestamp;
 				mod->sml_values =
 					(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 				ber_dupbv( &mod->sml_values[0], &timestamp );
-				mod->sml_values[1].bv_len = 0;
-				mod->sml_values[1].bv_val = NULL;
-				assert( mod->sml_values[0].bv_val != NULL );
+				BER_BVZERO( &mod->sml_values[1] );
+				assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 				mod->sml_nvalues = NULL;
 				*modtail = mod;
 				modtail = &mod->sml_next;
@@ -1006,13 +999,12 @@ int slap_mods_opattrs(
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_flags = SLAP_MOD_INTERNAL;
-		mod->sml_type.bv_val = NULL;
+		BER_BVZERO( &mod->sml_type );
 		mod->sml_desc = slap_schema.si_ad_entryCSN;
 		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_values[0], &csn );
-		mod->sml_values[1].bv_len = 0;
-		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val != NULL );
+		BER_BVZERO( &mod->sml_values[1] );
+		assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 		mod->sml_nvalues = NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -1030,19 +1022,17 @@ int slap_mods_opattrs(
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
-			mod->sml_type.bv_val = NULL;
+			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_modifiersName;
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &name );
-			mod->sml_values[1].bv_len = 0;
-			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val != NULL );
+			BER_BVZERO( &mod->sml_values[1] );
+			assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_nvalues[0], &nname );
-			mod->sml_nvalues[1].bv_len = 0;
-			mod->sml_nvalues[1].bv_val = NULL;
-			assert( mod->sml_nvalues[0].bv_val != NULL );
+			BER_BVZERO( &mod->sml_nvalues[1] );
+			assert( !BER_BVISNULL( &mod->sml_nvalues[0] ) );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 		}
@@ -1060,13 +1050,12 @@ int slap_mods_opattrs(
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
-			mod->sml_type.bv_val = NULL;
+			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &timestamp );
-			mod->sml_values[1].bv_len = 0;
-			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val != NULL );
+			BER_BVZERO( &mod->sml_values[1] );
+			assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 			mod->sml_nvalues = NULL;
 			*modtail = mod;
 			modtail = &mod->sml_next;

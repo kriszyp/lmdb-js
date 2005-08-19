@@ -835,11 +835,14 @@ backend_check_controls(
 		}
 	}
 
+	/* temporarily removed */
+#if 0
 	/* check should be generalized */
 	if( get_manageDIT(op) && !be_isroot(op)) {
 		rs->sr_text = "requires manager authorization";
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
+#endif
 
 done:;
 	return rs->sr_err;
@@ -1663,7 +1666,7 @@ fe_aux_operational(
 		/* Let the overlays have a chance at this */
 		be_orig = op->o_bd;
 		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
-		if ( op->o_bd != frontendDB &&
+		if ( !be_match( op->o_bd, frontendDB ) &&
 			( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 			op->o_bd != NULL && op->o_bd->be_operational != NULL )
 		{

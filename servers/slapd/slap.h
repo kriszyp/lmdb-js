@@ -1158,6 +1158,7 @@ typedef struct slap_mod {
  * running as non-root user, for user modifiable attributes.
  */
 #define	SLAP_MOD_INTERNAL	0x01
+#define	SLAP_MOD_MANAGING	0x02
 
 	AttributeDescription *sm_desc;
 	struct berval sm_type;
@@ -1173,7 +1174,6 @@ typedef struct slap_mod_list {
 #define	sml_type	sml_mod.sm_type
 #define sml_values	sml_mod.sm_values
 #define sml_nvalues	sml_mod.sm_nvalues
-	char sml_managing;
 	struct slap_mod_list *sml_next;
 } Modifications;
 

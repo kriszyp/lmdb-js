@@ -1,29 +1,34 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.6 Engineering
+	3951
 	Fixed slapd dnRelativeMatch return (ITS#3931)
-	Added slapd ACI syntax validater (ITS#3877)
-	Added slapd posixgroup ACL module to contrib
 	Fixed slapd-bdb/hdb release entry in paged resposne
-	Added slapd-meta overlapping targets enhancement (ITS#3711)
 	Fixed slapd-meta resources release issue (ITS#3943)
-	Updated slapo-syncprov CSN filter checks
 	Fixed slapd-ldap/meta matched return (ITS#3942,ITS#3944)
 	Fixed slapo-ppolicy reset lockouts issue (ITS#3946)
 	Fixed nis.schema posixGroup object class kind (ITS#3941)
 	Revert librewrite regex mutex change (ITS#3932)
+	Updated slapd manage capability
+	Updated slapo-syncprov CSN filter checks
 	Updated libldap url list parsing
+	Added slapd SASL rootpw support (ITS#3845)
+	Added slapd Stats logging for additional cases
+	Added slapd ACI syntax validater (ITS#3877)
+	Added slapd posixgroup ACL module to contrib
 	Added slapi SLAPI_X_ADD_STRUCTURAL_CLASS extension
-	Add slapd SASL rootpw support (ITS#3845)
-	Add slapd Stats logging for additional cases
+	Added slapd-ldap subtree renaming proxing
+	Added slapd-meta overlapping targets enhancement (ITS#3711)
 	Removed lint
 	Documentation
 		Added slapcat(8) -a usage example (ITS#3930)
 		Updated slapo-unique(5) for clarity (ITS#3936)
 		Updated slapo-syncprov(5) sessionlog description (ITS#3935)
+		Updated doc/drafts
 	Build Environment
 		Updated test prog bind retry code
 		Fixed test015-xsearch regression (ITS#3506)
+		Added test040-subtree-rename
 
 OpenLDAP 2.3.5 Release
 	Fixed slapd integerBitOr/AndMatch logic (ITS#3782)

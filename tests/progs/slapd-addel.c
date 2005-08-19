@@ -41,12 +41,20 @@ get_add_entry( char *filename, LDAPMod ***mods );
 
 static void
 do_addel( char *uri, char *host, int port, char *manager, char *passwd,
-	char *dn, LDAPMod **attrs, int maxloop, int maxretries );
+	char *dn, LDAPMod **attrs, int maxloop, int maxretries, int delay );
 
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p port -D <managerDN> -w <passwd> -f <addfile> [-l <loops>]\n",
+        fprintf( stderr,
+		"usage: %s "
+		"-H <uri> | ([-h <host>] -p <port>) "
+		"-D <manager> "
+		"-w <passwd> "
+		"-f <addfile> "
+		"[-l <loops>] "
+		"[-r <maxretries>] "
+		"[-t <delay>]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -64,9 +72,10 @@ main( int argc, char **argv )
 	char		*entry = NULL;
 	int		loops = LOOPS;
 	int		retries = RETRIES;
+	int		delay = 0;
 	LDAPMod		**attrs = NULL;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:f:l:r:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:D:w:f:l:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server's URI */
 			uri = strdup( optarg );
@@ -96,8 +105,12 @@ main( int argc, char **argv )
 			loops = atoi( optarg );
 			break;
 
-		case 'r':
+		case 'r':		/* number of retries */
 			retries = atoi( optarg );
+			break;
+
+		case 't':		/* delay in seconds */
+			delay = atoi( optarg );
 			break;
 
 		default:
@@ -128,7 +141,7 @@ main( int argc, char **argv )
 	}
 
 	do_addel( uri, host, port, manager, passwd, entry, attrs,
-			loops, retries );
+			loops, retries, delay );
 
 	exit( EXIT_SUCCESS );
 }
@@ -258,7 +271,8 @@ do_addel(
 	char *entry,
 	LDAPMod **attrs,
 	int maxloop,
-	int maxretries
+	int maxretries,
+	int delay
 )
 {
 	LDAP	*ld = NULL;
@@ -294,9 +308,11 @@ retry:;
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
-			if ( do_retry == 1 ) {
-				do_retry = 0;
-				sleep( 1 );
+			if ( do_retry > 0 ) {
+				do_retry--;
+				if ( delay != 0 ) {
+				    sleep( delay );
+				}
 				goto retry;
 			}
 		/* fallthru */

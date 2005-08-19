@@ -296,6 +296,10 @@ LDAP_SLAPD_F (void) ava_free LDAP_P((
 /*
  * backend.c
  */
+
+#define be_match( be1, be2 )	( (be1) == (be2) || \
+				  ( (be1) && (be2) && (be1)->be_nsuffix == (be2)->be_nsuffix ) )
+
 LDAP_SLAPD_F (int) backend_init LDAP_P((void));
 LDAP_SLAPD_F (int) backend_add LDAP_P((BackendInfo *aBackendInfo));
 LDAP_SLAPD_F (int) backend_num LDAP_P((Backend *be));

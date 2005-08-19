@@ -1028,9 +1028,9 @@ static struct slap_schema_ad_map {
 };
 
 static AttributeType slap_at_undefined = {
-	{ "1.1.1", NULL, NULL, 1, NULL,
+	{ "1.1.1", NULL, "Catchall for undefined attribute types", 1, NULL,
 		NULL, NULL, NULL, NULL,
-		0, 0, 0, 1, 3, NULL }, /* LDAPAttributeType */
+		0, 0, 0, 1, LDAP_SCHEMA_DSA_OPERATION, NULL }, /* LDAPAttributeType */
 	BER_BVC("UNDEFINED"), /* cname */
 	NULL, /* sup */
 	NULL, /* subtypes */
