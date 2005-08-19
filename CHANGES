@@ -6,9 +6,9 @@ OpenLDAP 2.3.6 Engineering
 	Added slapd posixgroup ACL module to contrib
 	Fixed slapd-bdb/hdb release entry in paged resposne
 	Added slapd-meta overlapping targets enhancement (ITS#3711)
-	Fixed slapd-meta resources release issue
+	Fixed slapd-meta resources release issue (ITS#3943)
 	Updated slapo-syncprov CSN filter checks
-	Add slapd-meta matched return (ITS#3942,3944)
+	Fixed slapd-ldap/meta matched return (ITS#3942,ITS#3944)
 	Fixed slapo-ppolicy reset lockouts issue (ITS#3946)
 	Fixed nis.schema posixGroup object class kind (ITS#3941)
 	Revert librewrite regex mutex change (ITS#3932)
