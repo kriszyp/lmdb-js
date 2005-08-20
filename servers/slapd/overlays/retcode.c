@@ -40,6 +40,7 @@ static AttributeDescription	*ad_errText;
 static AttributeDescription	*ad_errOp;
 static AttributeDescription	*ad_errSleepTime;
 static ObjectClass		*oc_errObject;
+static ObjectClass		*oc_errAuxObject;
 
 typedef enum retcode_op_e {
 	SN_DG_OP_NONE		= 0x0000,
@@ -211,7 +212,8 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	op2.ors_attrsonly = 0;
 	op2.ors_attrs = slap_anlist_all_attributes;
 
-	ber_str2bv_x( "(objectClass=errObject)", STRLENOF( "(objectClass=errObject)" ),
+	ber_str2bv_x( "(|(objectClass=errObject)(objectClass=errAuxObject))",
+		STRLENOF( "(|(objectClass=errObject)(objectClass=errAuxObject))" ),
 		1, &op2.ors_filterstr, op2.o_tmpmemctx );
 	op2.ors_filter = str2filter_x( &op2, op2.ors_filterstr.bv_val );
 
@@ -448,7 +450,8 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 		return SLAP_CB_CONTINUE;
 	}
 
-	if ( !is_entry_objectclass( e, oc_errObject, 0 ) ) {
+	if ( !is_entry_objectclass( e, oc_errObject, 0 )
+		&& !is_entry_objectclass( e, oc_errAuxObject, 0 ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1037,6 +1040,18 @@ retcode_init( void )
 				"$ errSleepTime "
 			") )",
 			&oc_errObject },
+		{ "errAuxObject", "( 1.3.6.1.4.1.4203.666.11.4.3.2 "
+			"NAME ( 'errAuxObject' ) "
+			"SUP top AUXILIARY "
+			"MUST ( errCode ) "
+			"MAY ( "
+				"cn "
+				"$ description "
+				"$ errOp "
+				"$ errText "
+				"$ errSleepTime "
+			") )",
+			&oc_errAuxObject },
 		{ NULL }
 	};
 
