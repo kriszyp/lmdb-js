@@ -404,6 +404,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 		if ( rs->sr_ref != NULL ) {
 			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
 		}
 		rs->sr_matched = NULL;
 		rs->sr_text = NULL;
