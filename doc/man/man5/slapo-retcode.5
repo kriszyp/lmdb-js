@@ -28,12 +28,13 @@ Well-known response codes from standard track documents are provided
 in \fBretcode.conf\fP, which can be included after instantiating
 the overlay.
 .LP
-In the second case, objects of \fBerrObject\fP or \fBerrAuxObject\fP class,
-when returned as intermediate responses of a search request, are changed into 
-the response dictated by their content.
+In the second case, objects of classes inherited from 
+the \fBerrAbsObject\fP, like \fBerrObject\fP or \fBerrAuxObject\fP,
+when returned as intermediate responses of a search request, are changed
+into the response dictated by their content.
 .LP
 A third mode causes objects to be looked up from the underlying database 
-to discover if their class is \fBerrObject\fPor \fBerrAuxObject\fP; 
+to discover if their class inherits from \fBerrABsObject\fP;
 in that case, their content is used to compute the corresponding response.
 .LP
 The behavior is disabled by using the \fBmanageDSAit\fP control (RFC 3296);
@@ -68,7 +69,7 @@ response code.
 .RE
 .TP
 .B retcode\-indir
-Enables exploitation of in-directory stored errObject/errAuxObject.
+Enables exploitation of in-directory stored errAbsObject.
 May result in a lot of unnecessary overhead.
 
 .SH SCHEMA
@@ -116,22 +117,27 @@ The sleep time before the response is actually returned to the client:
     SINGLE-VALUE )
 .RE
 .LP
+The abstract class that triggers the overlay:
+.RS 4
+( 1.3.6.1.4.1.4203.666.11.4.3.0
+    NAME ( 'errAbsObject' )
+    SUP top ABSTRACT
+    MUST ( errCode )
+    MAY ( cn $ description $ errOp $ errText $ errSleepTime ) )
+.RE
+.LP
 The standalone structural objectclass for specifically created data:
 .RS 4
 ( 1.3.6.1.4.1.4203.666.11.4.3.1
     NAME ( 'errObject' )
-    SUP top STRUCTURAL
-    MUST ( errCode )
-    MAY ( cn $ description $ errOp $ errText $ errSleepTime ) )
+    SUP errAbsObject STRUCTURAL )
 .RE
 .LP
 The auxiliary objectclass to alter the behavior of existing objects:
 .RS 4
 ( 1.3.6.1.4.1.4203.666.11.4.3.2
     NAME ( 'errAuxObject' )
-    SUP top AUXILIARY
-    MUST ( errCode )
-    MAY ( cn $ description $ errOp $ errText $ errSleepTime ) )
+    SUP errAbsObject AUXILIARY )
 .RE
 
 .SH EXAMPLE
