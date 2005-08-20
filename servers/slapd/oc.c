@@ -57,7 +57,7 @@ int is_object_subclass(
 int is_entry_objectclass(
 	Entry*	e,
 	ObjectClass *oc,
-	int set_flags )
+	unsigned flags )
 {
 	/*
 	 * set_flags should only be true if oc is one of operational
@@ -67,15 +67,16 @@ int is_entry_objectclass(
 
 	Attribute *attr;
 	struct berval *bv;
-	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
 
-	assert(!( e == NULL || oc == NULL ));
+	assert( !( e == NULL || oc == NULL ) );
+	assert( ( flags & SLAP_OCF_MASK ) != SLAP_OCF_MASK );
 
 	if( e == NULL || oc == NULL ) {
 		return 0;
 	}
 
-	if( set_flags && ( e->e_ocflags & SLAP_OC__END )) {
+	if( flags == SLAP_OCF_SET_FLAGS && ( e->e_ocflags & SLAP_OC__END ) )
+	{
 		/* flags are set, use them */
 		return (e->e_ocflags & oc->soc_flags & SLAP_OC__MASK) != 0;
 	}
@@ -83,7 +84,7 @@ int is_entry_objectclass(
 	/*
 	 * find objectClass attribute
 	 */
-	attr = attr_find(e->e_attrs, objectClass);
+	attr = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	if( attr == NULL ) {
 		/* no objectClass attribute */
 		Debug( LDAP_DEBUG_ANY, "is_entry_objectclass(\"%s\", \"%s\") "
@@ -97,19 +98,30 @@ int is_entry_objectclass(
 	for( bv=attr->a_vals; bv->bv_val; bv++ ) {
 		ObjectClass *objectClass = oc_bvfind( bv );
 
-		if ( !set_flags && objectClass == oc ) {
-			return 1;
+		if ( objectClass == NULL ) {
+			/* FIXME: is this acceptable? */
+			continue;
+		}
+
+		if ( !( flags & SLAP_OCF_SET_FLAGS ) ) {
+			if ( objectClass == oc ) {
+				return 1;
+			}
+
+			if ( ( flags & SLAP_OCF_CHECK_SUP )
+				&& is_object_subclass( oc, objectClass ) )
+			{
+				return 1;
+			}
 		}
 		
-		if ( objectClass != NULL ) {
-			e->e_ocflags |= objectClass->soc_flags;
-		}
+		e->e_ocflags |= objectClass->soc_flags;
 	}
 
 	/* mark flags as set */
 	e->e_ocflags |= SLAP_OC__END;
 
-	return (e->e_ocflags & oc->soc_flags & SLAP_OC__MASK) != 0;
+	return ( e->e_ocflags & oc->soc_flags & SLAP_OC__MASK ) != 0;
 }
 
 

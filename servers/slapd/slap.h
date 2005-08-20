@@ -743,6 +743,10 @@ typedef struct slap_object_class {
 	LDAP_STAILQ_ENTRY(slap_object_class) soc_next;
 } ObjectClass;
 
+#define	SLAP_OCF_SET_FLAGS	0x1
+#define	SLAP_OCF_CHECK_SUP	0x2
+#define	SLAP_OCF_MASK		(SLAP_OCF_SET_FLAGS|SLAP_OCF_CHECK_SUP)
+
 #define	SLAP_OC_ALIAS		0x0001
 #define	SLAP_OC_REFERRAL	0x0002
 #define	SLAP_OC_SUBENTRY	0x0004

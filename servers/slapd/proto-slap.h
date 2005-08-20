@@ -1131,39 +1131,41 @@ LDAP_SLAPD_F (int) is_object_subclass LDAP_P((
 	ObjectClass *sub ));
 
 LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
-	Entry *, ObjectClass *oc, int set_flags ));
+	Entry *, ObjectClass *oc, unsigned flags ));
+#define	is_entry_objectclass_or_sub(e,oc) \
+	(is_entry_objectclass((e),(oc),SLAP_OCF_CHECK_SUP))
 #define is_entry_alias(e)		\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_ALIAS) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_alias, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_alias, SLAP_OCF_SET_FLAGS))
 #define is_entry_referral(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_REFERRAL) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_referral, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_referral, SLAP_OCF_SET_FLAGS))
 #define is_entry_subentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_SUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_subentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_subentry, SLAP_OCF_SET_FLAGS))
 #define is_entry_collectiveAttributeSubentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributeSubentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributeSubentry, SLAP_OCF_SET_FLAGS))
 #define is_entry_dynamicObject(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, SLAP_OCF_SET_FLAGS))
 #define is_entry_glue(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_GLUE) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_glue, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_glue, SLAP_OCF_SET_FLAGS))
 #define is_entry_syncProviderSubentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_SYNCPROVIDERSUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_syncProviderSubentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_syncProviderSubentry, SLAP_OCF_SET_FLAGS))
 #define is_entry_syncConsumerSubentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_SYNCCONSUMERSUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_syncConsumerSubentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_syncConsumerSubentry, SLAP_OCF_SET_FLAGS))
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 LDAP_SLAPD_F (void) oc_unparse LDAP_P((
