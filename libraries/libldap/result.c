@@ -407,7 +407,11 @@ try_read1msg(
 	 * v3ref = flag for V3 referral / search reference
 	 * 0 = not a ref, 1 = sucessfully chased ref, -1 = pass ref to application
 	 */
-	int     v3ref;
+	enum {
+		V3REF_NOREF	= 0,
+		V3REF_SUCCESS	= 1,
+		V3REF_TOAPP	= -1
+	}	v3ref;
 
 	assert( ld != NULL );
 	assert( lcp != NULL );
@@ -519,15 +523,16 @@ nextresp2:
 	 * This code figures out if we are going to chase a
 	 * referral / search reference, or pass it back to the application
 	 */
-	v3ref = 0;	/* Assume not a V3 search reference or referral */
+	v3ref = V3REF_NOREF;	/* Assume not a V3 search reference/referral */
 	if( (tag != LDAP_RES_SEARCH_ENTRY) && (ld->ld_version > LDAP_VERSION2) ) {
 		BerElement	tmpber = *ber; 	/* struct copy */
 		char **refs = NULL;
 
-		if( tag == LDAP_RES_SEARCH_REFERENCE) {
+		if( tag == LDAP_RES_SEARCH_REFERENCE ) {
 			/* This is a V3 search reference */
-			/* Assume we do not chase the reference, but pass it to application */
-			v3ref = -1;
+			/* Assume we do not chase the reference,
+			 * but pass it to application */
+			v3ref = V3REF_TOAPP;
 			if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
 					(lr->lr_parent != NULL) )
 			{
@@ -535,18 +540,23 @@ nextresp2:
 				if ( ber_scanf( &tmpber, "{v}", &refs ) == LBER_ERROR ) {
 					rc = LDAP_DECODING_ERROR;
 				} else {
-					/* Note: refs arrary is freed by ldap_chase_v3referrals */
+					/* Note: refs array is freed by ldap_chase_v3referrals */
 					refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
 					    1, &lr->lr_res_error, &hadref );
-					if ( refer_cnt > 0 ) {	/* sucessfully chased reference */
+					if ( refer_cnt > 0 ) {
+						/* sucessfully chased reference */
 						/* If haven't got end search, set chasing referrals */
 						if( lr->lr_status != LDAP_REQST_COMPLETED) {
 							lr->lr_status = LDAP_REQST_CHASINGREFS;
 							Debug( LDAP_DEBUG_TRACE,
-							    "read1msg:  search ref chased, mark request chasing refs, id = %d\n",
-							    lr->lr_msgid, 0, 0);
+								"read1msg:  search ref chased, "
+								"mark request chasing refs, "
+								"id = %d\n",
+								lr->lr_msgid, 0, 0);
 						}
-						v3ref = 1;	/* We sucessfully chased the reference */
+
+						/* We sucessfully chased the reference */
+						v3ref = V3REF_SUCCESS;
 					}
 				}
 			}
@@ -572,11 +582,13 @@ nextresp2:
 				/* Check if V3 referral */
 				if ( ber_peek_tag( &tmpber, &len ) == LDAP_TAG_REFERRAL ) {
 					/* We have a V3 referral, assume we cannot chase it */
-					v3ref = -1;
+					v3ref = V3REF_TOAPP;
 					if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
 							 || (lr->lr_parent != NULL) )
 					{
-						v3ref = -1;  /* Assume referral not chased and return it to app */
+						/* Assume referral not chased and return it to app */
+						v3ref = V3REF_TOAPP;
+
 						/* Get the referral list */
 						if( ber_scanf( &tmpber, "{v}", &refs) == LBER_ERROR) {
 							rc = LDAP_DECODING_ERROR;
@@ -595,7 +607,8 @@ nextresp2:
 							    "read1msg:  referral chased, mark request completed, id = %d\n",
 							    lr->lr_msgid, 0, 0);
 							if( refer_cnt > 0) {
-								v3ref = 1;  /* Referral successfully chased */
+								/* Referral successfully chased */
+								v3ref = V3REF_SUCCESS;
 							}
 						}
 					}
@@ -617,7 +630,7 @@ nextresp2:
 	 * go through the following code.  This code also chases V2 referrals
 	 * and checks if all referrals have been chased.
 	 */
-	if ( (tag != LDAP_RES_SEARCH_ENTRY) && (v3ref > -1) &&
+	if ( (tag != LDAP_RES_SEARCH_ENTRY) && (v3ref != V3REF_TOAPP) &&
 		(tag != LDAP_RES_INTERMEDIATE ))
 	{
 		/* For a v3 search referral/reference, only come here if already chased it */
@@ -628,7 +641,7 @@ nextresp2:
 			char		*lr_res_error = NULL;
 
 			tmpber = *ber;	/* struct copy */
-			if ( v3ref == 1 ) {
+			if ( v3ref == V3REF_SUCCESS ) {
 				/* V3 search reference or V3 referral
 				 * sucessfully chased. If this message
 				 * is a search result, then it has no more
