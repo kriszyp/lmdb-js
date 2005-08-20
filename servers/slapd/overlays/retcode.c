@@ -39,6 +39,7 @@ static AttributeDescription	*ad_errCode;
 static AttributeDescription	*ad_errText;
 static AttributeDescription	*ad_errOp;
 static AttributeDescription	*ad_errSleepTime;
+static ObjectClass		*oc_errAbsObject;
 static ObjectClass		*oc_errObject;
 static ObjectClass		*oc_errAuxObject;
 
@@ -79,6 +80,7 @@ typedef struct retcode_t {
 	unsigned		rd_flags;
 #define	RETCODE_FNONE		0x00
 #define	RETCODE_FINDIR		0x01
+#define	RETCODE_FSTOP		0x02
 #define	RETCODE_INDIR( rd )	( (rd)->rd_flags & RETCODE_FINDIR )
 } retcode_t;
 
@@ -183,7 +185,9 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 	}
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
-		rdc->rdc_flags = SLAP_CB_CONTINUE;
+		if ( ! ( rdc->rdc_flags & RETCODE_FSTOP ) ) {
+			rdc->rdc_flags = SLAP_CB_CONTINUE;
+		}
 		return 0;
 	}
 
@@ -212,8 +216,8 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	op2.ors_attrsonly = 0;
 	op2.ors_attrs = slap_anlist_all_attributes;
 
-	ber_str2bv_x( "(|(objectClass=errObject)(objectClass=errAuxObject))",
-		STRLENOF( "(|(objectClass=errObject)(objectClass=errAuxObject))" ),
+	ber_str2bv_x( "(objectClass=errAbsObject)",
+		STRLENOF( "(objectClass=errAbsObject)" ),
 		1, &op2.ors_filterstr, op2.o_tmpmemctx );
 	op2.ors_filter = str2filter_x( &op2, op2.ors_filterstr.bv_val );
 
@@ -221,6 +225,9 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	op2.o_bd = &db;
 
 	rdc.rdc_flags = RETCODE_FINDIR;
+	if ( op->o_tag == LDAP_REQ_SEARCH && op->ors_scope == LDAP_SCOPE_BASE ) {
+		rdc.rdc_flags |= RETCODE_FSTOP;
+	}
 	rdc.rdc_tag = op->o_tag;
 	sc.sc_response = retcode_cb_response;
 	sc.sc_private = &rdc;
@@ -450,8 +457,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 		return SLAP_CB_CONTINUE;
 	}
 
-	if ( !is_entry_objectclass( e, oc_errObject, 0 )
-		&& !is_entry_objectclass( e, oc_errAuxObject, 0 ) ) {
+	if ( !is_entry_objectclass( e, oc_errAbsObject, 0 ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1028,9 +1034,9 @@ retcode_init( void )
 		char		*desc;
 		ObjectClass	**oc;
 	} retcode_oc[] = {
-		{ "errObject", "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
-			"NAME ( 'errObject' ) "
-			"SUP top STRUCTURAL "
+		{ "errAbsObject", "( 1.3.6.1.4.1.4203.666.11.4.3.0 "
+			"NAME ( 'errAbsObject' ) "
+			"SUP top ABSTRACT "
 			"MUST ( errCode ) "
 			"MAY ( "
 				"cn "
@@ -1039,18 +1045,16 @@ retcode_init( void )
 				"$ errText "
 				"$ errSleepTime "
 			") )",
+			&oc_errAbsObject },
+		{ "errObject", "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
+			"NAME ( 'errObject' ) "
+			"SUP errAbsObject STRUCTURAL "
+			")",
 			&oc_errObject },
 		{ "errAuxObject", "( 1.3.6.1.4.1.4203.666.11.4.3.2 "
 			"NAME ( 'errAuxObject' ) "
-			"SUP top AUXILIARY "
-			"MUST ( errCode ) "
-			"MAY ( "
-				"cn "
-				"$ description "
-				"$ errOp "
-				"$ errText "
-				"$ errSleepTime "
-			") )",
+			"SUP errAbsObject AUXILIARY "
+			")",
 			&oc_errAuxObject },
 		{ NULL }
 	};
