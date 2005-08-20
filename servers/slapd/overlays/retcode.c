@@ -80,7 +80,6 @@ typedef struct retcode_t {
 	unsigned		rd_flags;
 #define	RETCODE_FNONE		0x00
 #define	RETCODE_FINDIR		0x01
-#define	RETCODE_FSTOP		0x02
 #define	RETCODE_INDIR( rd )	( (rd)->rd_flags & RETCODE_FINDIR )
 } retcode_t;
 
@@ -166,6 +165,7 @@ retcode_op_add( Operation *op, SlapReply *rs )
 typedef struct retcode_cb_t {
 	unsigned	rdc_flags;
 	ber_tag_t	rdc_tag;
+	AttributeName	*rdc_attrs;
 } retcode_cb_t;
 
 static int
@@ -178,6 +178,9 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 		int		rc;
 
 		op->o_tag = rdc->rdc_tag;
+		if ( op->o_tag == LDAP_REQ_SEARCH ) {
+			rs->sr_attrs = rdc->rdc_attrs;
+		}
 		rc = retcode_entry_response( op, rs, rs->sr_entry );
 		op->o_tag = o_tag;
 
@@ -185,9 +188,7 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 	}
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
-		if ( ! ( rdc->rdc_flags & RETCODE_FSTOP ) ) {
-			rdc->rdc_flags = SLAP_CB_CONTINUE;
-		}
+		rdc->rdc_flags = SLAP_CB_CONTINUE;
 		return 0;
 	}
 
@@ -225,8 +226,8 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	op2.o_bd = &db;
 
 	rdc.rdc_flags = RETCODE_FINDIR;
-	if ( op->o_tag == LDAP_REQ_SEARCH && op->ors_scope == LDAP_SCOPE_BASE ) {
-		rdc.rdc_flags |= RETCODE_FSTOP;
+	if ( op->o_tag == LDAP_REQ_SEARCH ) {
+		rdc.rdc_attrs = op->ors_attrs;
 	}
 	rdc.rdc_tag = op->o_tag;
 	sc.sc_response = retcode_cb_response;
@@ -457,7 +458,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 		return SLAP_CB_CONTINUE;
 	}
 
-	if ( !is_entry_objectclass( e, oc_errAbsObject, 0 ) ) {
+	if ( !is_entry_objectclass_or_sub( e, oc_errAbsObject ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
