@@ -993,7 +993,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		AttributeDescription *desc = a->a_desc;
 
 		if ( rs->sr_attrs == NULL ) {
-			/* all attrs request, skip operational attributes */
+			/* all user attrs request, skip operational attributes */
 			if( is_at_operational( desc->ad_type ) ) {
 				continue;
 			}
@@ -1002,7 +1002,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			/* specific attrs requested */
 			if( is_at_operational( desc->ad_type ) ) {
 				if ( !SLAP_OPATTRS( rs->sr_attr_flags ) && 
-						!ad_inlist( desc, rs->sr_attrs ) )
+					!ad_inlist( desc, rs->sr_attrs ) )
 				{
 					continue;
 				}
