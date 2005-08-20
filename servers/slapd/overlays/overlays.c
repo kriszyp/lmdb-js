@@ -26,6 +26,9 @@
 #if SLAPD_OVER_ACCESSLOG == SLAPD_MOD_STATIC
 extern int accesslog_init();
 #endif
+#if SLAPD_OVER_ALLOP == SLAPD_MOD_STATIC
+extern int allop_init();
+#endif
 #if SLAPD_OVER_DENYOP == SLAPD_MOD_STATIC
 extern int denyop_init();
 #endif
@@ -72,6 +75,9 @@ static struct {
 } funcs[] = {
 #if SLAPD_OVER_ACCESSLOG == SLAPD_MOD_STATIC
 	{ "Access Log", accesslog_init },
+#endif
+#if SLAPD_OVER_ALLOP == SLAPD_MOD_STATIC
+	{ "All Operational", allop_init },
 #endif
 #if SLAPD_OVER_DENYOP == SLAPD_MOD_STATIC
 	{ "Deny Operation", denyop_init },
