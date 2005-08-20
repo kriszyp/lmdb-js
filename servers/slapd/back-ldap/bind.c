@@ -105,19 +105,11 @@ done:;
 
 		/* wait for all other ops to release the connection */
 retry_lock:;
-		switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-		case LDAP_PVT_THREAD_EBUSY:
-		default:
+		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+		if ( lc->lc_refcnt > 1 ) {
+			ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 			ldap_pvt_thread_yield();
 			goto retry_lock;
-
-		case 0:
-			if ( lc->lc_refcnt > 1 ) {
-				ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
-				ldap_pvt_thread_yield();
-				goto retry_lock;
-			}
-			break;
 		}
 
 		assert( lc->lc_refcnt == 1 );
