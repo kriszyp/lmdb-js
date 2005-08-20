@@ -1333,10 +1333,19 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONNECTIONLESS
 	}
 #endif
+	if ( rs->sr_ref != NULL ) {
+		int	r;
 
-	Statslog( LDAP_DEBUG_STATS2, "%s REF dn=\"%s\"\n",
-		op->o_log_prefix, rs->sr_entry ? rs->sr_entry->e_dn : "(null)",
-		0, 0, 0 );
+		for ( r = 0; !BER_BVISNULL( &rs->sr_ref[ r ] ); r++ ) {
+			Statslog( LDAP_DEBUG_STATS2, "%s REF #%d \"%s\"\n",
+				op->o_log_prefix, r, rs->sr_ref[0].bv_val,
+				0, 0 );
+		}
+
+	} else {
+		Statslog( LDAP_DEBUG_STATS2, "%s REF \"(null)\"\n",
+			op->o_log_prefix, 0, 0, 0, 0 );
+	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 
