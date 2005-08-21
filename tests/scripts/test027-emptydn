@@ -28,7 +28,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running slapadd to build empty DN slapd database..."
-$SLAPADD -f $CONF1 -n 3 -l $LDIFEMPTYDN2
+$SLAPADD -f $CONF1 -b "" -l $LDIFEMPTYDN2
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
