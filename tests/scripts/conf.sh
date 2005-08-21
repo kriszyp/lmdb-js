@@ -12,12 +12,11 @@
 ## A copy of this license is available in the file LICENSE in the
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
+MONMOD=nomod
 if [ x"$MONITORDB" = xyes -o x"$MONITORDB" = xmod ] ; then
 	MON=monitor
 	if [ $MONITORDB = mod ] ; then
 		MONMOD=monitormod
-	else
-		MONMOD=nomod
 	fi
 else
 	MON=nomonitor
