@@ -2719,7 +2719,6 @@ struct slap_listener {
 #define sl_addr	sl_sa.sa_in_addr
 };
 
-#ifdef SLAPD_MONITOR
 /*
  * Operation indices
  */
@@ -2736,7 +2735,6 @@ enum {
 	SLAP_OP_EXTENDED,
 	SLAP_OP_LAST
 };
-#endif /* SLAPD_MONITOR */
 
 typedef struct slap_counters_t {
 	ldap_pvt_thread_mutex_t	sc_sent_mutex;
