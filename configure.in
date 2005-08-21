@@ -2741,7 +2741,7 @@ if test "$ol_enable_relay" != no ; then
 fi
 
 if test "$ol_enable_shell" != no ; then
-	if test "$ol_link_thread" != no ; then
+	if test "$ol_link_threads" != no ; then
 		AC_MSG_WARN([Use of --without-threads is recommended with back-shell])
 	fi
 	BUILD_SLAPD=yes
