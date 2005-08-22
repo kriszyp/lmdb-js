@@ -244,7 +244,6 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 Overlays="accesslog \
-	allop \
 	denyop \
 	dyngroup \
 	dynlist \
@@ -266,8 +265,6 @@ OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no
 	--, [no yes mod])dnl
 test -n "$ol_enable_overlays" && ol_dflt_overlays="$ol_enable_overlays"
 OL_ARG_ENABLE(accesslog,[    --enable-accesslog	  In-Directory Access Logging overlay no|yes|mod],
-	${ol_dflt_overlays-no}, [no yes mod])
-OL_ARG_ENABLE(allop,[    --enable-allop    	  All Operational attributes overlay no|yes|mod],
 	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod],
 	${ol_dflt_overlays-no}, [no yes mod])
@@ -2779,18 +2776,6 @@ if test "$ol_enable_accesslog" != no ; then
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS accesslog.o"
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_ACCESSLOG,$MFLAG,[define for In-Directory Access Logging overlay])
-fi
-
-if test "$ol_enable_allop" != no ; then
-	BUILD_ALLOP=$ol_enable_allop
-	if test "$ol_enable_aallop" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS allop.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS allop.o"
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_ALLOP,$MFLAG,[define for All Operational Attributes overlay])
 fi
 
 if test "$ol_enable_denyop" != no ; then
