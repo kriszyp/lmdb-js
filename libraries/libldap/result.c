@@ -660,15 +660,31 @@ nextresp2:
 					} else {
 						lr->lr_res_error = lr_res_error;
 					}
+					lr_res_error = NULL;
 				}
 
-				if ( lderr != LDAP_SUCCESS ) {
+				switch ( lderr ) {
+				case LDAP_SUCCESS:
+				case LDAP_COMPARE_TRUE:
+				case LDAP_COMPARE_FALSE:
+					break;
+
+				default:
+					if ( lr->lr_res_error == NULL
+						|| lr->lr_res_error[ 0 ] == '\0' )
+					{
+						break;
+					}
+
 					/* referrals are in error string */
 					refer_cnt = ldap_chase_referrals( ld, lr,
 						&lr->lr_res_error, -1, &hadref );
 					lr->lr_status = LDAP_REQST_COMPLETED;
 					Debug( LDAP_DEBUG_TRACE,
-					    "read1msg:  V2 referral chased, mark request completed, id = %d\n", lr->lr_msgid, 0, 0);
+						"read1msg:  V2 referral chased, "
+						"mark request completed, id = %d\n",
+						lr->lr_msgid, 0, 0 );
+					break;
 				}
 
 				/* save errno, message, and matched string */
