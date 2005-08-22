@@ -255,7 +255,7 @@ It can have the forms
 	sasl_ssf=<n>
 
 	aci[=<attrname>]
-	dynacl/name[.<dynstyle>][=<pattern>]
+	dynacl/name[/<options>][.<dynstyle>][=<pattern>]
 .fi
 .LP
 with
@@ -633,7 +633,7 @@ operational attribute is used.
 ACIs are experimental; they must be enabled at compile time.
 .LP
 The statement
-.B dynacl/<name>[.<dynstyle>][=<pattern>]
+.B dynacl/<name>[/<options>][.<dynstyle>][=<pattern>]
 means that access checking is delegated to the admin-defined method
 indicated by
 .BR <name> ,
@@ -641,6 +641,7 @@ which can be registered at run-time by means of the
 .B moduleload
 statement.
 The fields
+.BR <options> ,
 .B <dynstyle>
 and
 .B <pattern>
