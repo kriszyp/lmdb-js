@@ -1259,9 +1259,10 @@ struct slap_op;
 /*
  * "dynamic" ACL infrastructure (for ACIs and more)
  */
-typedef int (slap_dynacl_parse)( const char *fname, int lineno, slap_style_t, const char *, void **privp );
-typedef int (slap_dynacl_unparse)( void *priv, struct berval *bv );
-typedef int (slap_dynacl_mask)(
+typedef int (slap_dynacl_parse) LDAP_P(( const char *fname, int lineno,
+	const char *opts, slap_style_t, const char *, void **privp ));
+typedef int (slap_dynacl_unparse) LDAP_P(( void *priv, struct berval *bv ));
+typedef int (slap_dynacl_mask) LDAP_P((
 		void			*priv,
 		struct slap_op		*op,
 		Entry			*e,
@@ -1270,8 +1271,8 @@ typedef int (slap_dynacl_mask)(
 		int			nmatch,
 		regmatch_t		*matches,
 		slap_access_t		*grant,
-		slap_access_t		*deny );
-typedef int (slap_dynacl_destroy)( void *priv );
+		slap_access_t		*deny ));
+typedef int (slap_dynacl_destroy) LDAP_P(( void *priv ));
 
 typedef struct slap_dynacl_t {
 	char			*da_name;

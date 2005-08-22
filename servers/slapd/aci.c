@@ -608,7 +608,13 @@ aci_init( void )
  * umbrella, because sets share some helpers with ACIs.
  */
 static int
-dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *right, void **privp )
+dynacl_aci_parse(
+	const char *fname,
+	int lineno,
+	const char *opts,
+	slap_style_t sty,
+	const char *right,
+	void **privp )
 {
 	AttributeDescription	*ad = NULL;
 	const char		*text = NULL;
