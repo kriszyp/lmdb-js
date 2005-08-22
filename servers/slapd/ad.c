@@ -738,7 +738,7 @@ int slap_bv2undef_ad(
 		ldap_pvt_str2upper( desc->ad_cname.bv_val );
 
 		/* shouldn't we protect this for concurrency? */
-		desc->ad_type = at;
+		desc->ad_type = slap_schema.si_at_undefined;
 		ldap_pvt_thread_mutex_lock( &ad_undef_mutex );
 		desc->ad_next = desc->ad_type->sat_ad;
 		desc->ad_type->sat_ad = desc;
