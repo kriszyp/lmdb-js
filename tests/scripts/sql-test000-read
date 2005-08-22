@@ -71,7 +71,7 @@ fi
 echo -n "Testing incorrect bind (should fail)... "
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w "XXX"
 RC=$?
-if test $RC == 0 ; then
+if test $RC = 0 ; then
 	echo "ldapwhoami should have failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
