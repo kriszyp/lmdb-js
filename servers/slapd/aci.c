@@ -85,6 +85,20 @@ aci_list_map_rights(
 		}
 
 		switch ( *bv.bv_val ) {
+		case 'x':
+			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt does not 
+			 * define any equivalent to the AUTH right, so I've just used
+			 * 'x' for now.
+			 */
+			ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
+			break;
+		case 'd':
+			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt defines
+			 * the right 'd' to mean "delete"; we hijack it to mean
+			 * "disclose" for consistency wuith the rest of slapd.
+			 */
+			ACL_PRIV_SET(mask, ACL_PRIV_DISCLOSE);
+			break;
 		case 'c':
 			ACL_PRIV_SET(mask, ACL_PRIV_COMPARE);
 			break;
@@ -101,13 +115,6 @@ aci_list_map_rights(
 			break;
 		case 'w':
 			ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
-			break;
-		case 'x':
-			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt does not 
-			 * define any equivalent to the AUTH right, so I've just used
-			 * 'x' for now.
-			 */
-			ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
 			break;
 		default:
 			break;
@@ -267,7 +274,7 @@ aci_group_member (
 	const char		*text;
 	int			rc;
 
-	/* format of string is "group/objectClassValue/groupAttrName" */
+	/* format of string is "{group|role}/objectClassValue/groupAttrName" */
 	if ( acl_get_part( subj, 0, '/', &subjdn ) < 0 ) {
 		return 0;
 	}
@@ -327,7 +334,12 @@ aci_mask(
 	slap_access_t		*deny,
 	slap_aci_scope_t	asserted_scope )
 {
-	struct berval		bv, scope, perms, type, sdn;
+	struct berval		bv,
+				scope,
+				perms,
+				type,
+				opts,
+				sdn;
 	int			rc;
 		
 
@@ -441,6 +453,15 @@ aci_mask(
 	sdn.bv_val = type.bv_val + type.bv_len + STRLENOF( "#" );
 	sdn.bv_len = aci->bv_len - ( sdn.bv_val - aci->bv_val );
 
+	/* get the type options, if any */
+	if ( acl_get_part( &type, 1, '/', &opts ) > 0 ) {
+		opts.bv_len = type.bv_len - ( opts.bv_val - type.bv_val );
+		type.bv_len = opts.bv_val - type.bv_val - 1;
+
+	} else {
+		BER_BVZERO( &opts );
+	}
+
 	if ( ber_bvcmp( &aci_bv[ ACI_BV_ACCESS_ID ], &type ) == 0 ) {
 		return dn_match( &op->o_ndn, &sdn );
 
@@ -487,15 +508,47 @@ aci_mask(
 		return rc;
 
 	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_GROUP ], &type ) == 0 ) {
-		if ( aci_group_member( &sdn, &aci_bv[ ACI_BV_GROUP_CLASS ],
-				&aci_bv[ ACI_BV_GROUP_ATTR ], op, e, nmatch, matches ) )
+		struct berval	oc,
+				at;
+
+		if ( BER_BVISNULL( &opts ) ) {
+			oc = aci_bv[ ACI_BV_GROUP_CLASS ];
+			at = aci_bv[ ACI_BV_GROUP_ATTR ];
+
+		} else {
+			if ( acl_get_part( &opts, 0, '/', &oc ) < 0 ) {
+				assert( 0 );
+			}
+
+			if ( acl_get_part( &opts, 1, '/', &at ) < 0 ) {
+				at = aci_bv[ ACI_BV_GROUP_ATTR ];
+			}
+		}
+
+		if ( aci_group_member( &sdn, &oc, &at, op, e, nmatch, matches ) )
 		{
 			return 1;
 		}
 
 	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_ROLE ], &type ) == 0 ) {
-		if ( aci_group_member( &sdn, &aci_bv[ ACI_BV_ROLE_CLASS ],
-				&aci_bv[ ACI_BV_ROLE_ATTR ], op, e, nmatch, matches ) )
+		struct berval	oc,
+				at;
+
+		if ( BER_BVISNULL( &opts ) ) {
+			oc = aci_bv[ ACI_BV_ROLE_CLASS ];
+			at = aci_bv[ ACI_BV_ROLE_ATTR ];
+
+		} else {
+			if ( acl_get_part( &opts, 0, '/', &oc ) < 0 ) {
+				assert( 0 );
+			}
+
+			if ( acl_get_part( &opts, 1, '/', &at ) < 0 ) {
+				at = aci_bv[ ACI_BV_ROLE_ATTR ];
+			}
+		}
+
+		if ( aci_group_member( &sdn, &oc, &at, op, e, nmatch, matches ) )
 		{
 			return 1;
 		}
@@ -509,6 +562,10 @@ aci_mask(
 		if ( acl_match_set( &sdn, op, e, 1 ) ) {
 			return 1;
 		}
+
+	} else {
+		/* it passed normalization! */
+		assert( 0 );
 	}
 
 	return 0;
@@ -907,11 +964,12 @@ OpenLDAPaciValidatePerms(
 
 	for ( i = 0; i < perms->bv_len; ) {
 		switch ( perms->bv_val[ i ] ) {
+		case 'x':
+		case 'd':
 		case 'c':
 		case 's':
 		case 'r':
 		case 'w':
-		case 'x':
 			break;
 
 		default:
@@ -1444,7 +1502,8 @@ OpenLDAPaciPrettyNormal(
 						- ( ocbv.bv_val - type.bv_val );
 				}
 
-				if ( oc_bvfind( &ocbv ) == NULL ) {
+				oc = oc_bvfind( &ocbv );
+				if ( oc == NULL ) {
 					rc = LDAP_INVALID_SYNTAX;
 					goto cleanup;
 				}
