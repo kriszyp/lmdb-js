@@ -32,6 +32,7 @@ SYNCPROV=${AC_syncprov-syncprovno}
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}
+ACI=${AC_ACI_ENABLED-acino}
 
 DATADIR=./testdata
 PROGDIR=./progs
@@ -95,6 +96,7 @@ TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
 METACONF2=$DATADIR/slapd-meta2.conf
 GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
+ACICONF=$DATADIR/slapd-aci.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -274,6 +276,7 @@ METAOUT=$DATADIR/meta.out
 METACONCURRENCYOUT=$DATADIR/metaconcurrency.out
 MANAGEOUT=$DATADIR/manage.out
 SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
+ACIOUT=$DATADIR/aci.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

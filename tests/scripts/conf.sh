@@ -53,6 +53,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/^#${MONMOD}#//"				\
 	-e "s/^#${SASL}#//"				\
+	-e "s/^#${ACI}#//"				\
 	-e "s;@URI1@;${URI1};"				\
 	-e "s;@URI2@;${URI2};"				\
 	-e "s;@URI3@;${URI3};"				\
