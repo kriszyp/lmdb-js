@@ -35,12 +35,21 @@ allop-URI	<ldapURI>
 
 #include "portable.h"
 
-#ifdef SLAPD_OVER_ALLOP
-
 #include <stdio.h>
 #include <ac/string.h>
 
 #include "slap.h"
+
+#define	SLAP_OVER_VERSION_REQUIRE(major,minor,patch) \
+	( \
+		( LDAP_VENDOR_VERSION_MAJOR == X || LDAP_VENDOR_VERSION_MAJOR >= (major) ) \
+		&& ( LDAP_VENDOR_VERSION_MINOR == X || LDAP_VENDOR_VERSION_MINOR >= (minor) ) \
+		&& ( LDAP_VENDOR_VERSION_PATCH == X || LDAP_VENDOR_VERSION_PATCH >= (patch) ) \
+	)
+
+#if !SLAP_OVER_VERSION_REQUIRE(2,3,0)
+#error "version mismatch"
+#endif
 
 typedef struct allop_t {
 	struct berval	ao_ndn;
@@ -243,12 +252,9 @@ allop_init()
 	return overlay_register( &allop );
 }
 
-#if SLAPD_OVER_ALLOP == SLAPD_MOD_DYNAMIC
 int
 init_module( int argc, char *argv[] )
 {
 	return allop_init();
 }
-#endif /* SLAPD_OVER_ALLOP == SLAPD_MOD_DYNAMIC */
 
-#endif /* defined(SLAPD_OVER_ALLOP) */
