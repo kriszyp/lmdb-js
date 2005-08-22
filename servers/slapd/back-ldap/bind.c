@@ -286,7 +286,7 @@ ldap_back_start_tls(
 		if ( rc == LDAP_SUCCESS ) {
 			LDAPMessage	*res = NULL;
 			int		retries = 1;
-			struct timeval	tv = { 0, 0 };
+			struct timeval	tv = { 0, 100000 };
 
 retry:;
 			rc = ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res );
@@ -811,7 +811,7 @@ ldap_back_op_result(
 	 * remote server response */
 	if ( ERR_OK( rs->sr_err ) ) {
 		int		rc;
-		struct timeval	tv = { 0, 0 };
+		struct timeval	tv = { 0, 100000 };
 
 retry:;
 		/* if result parsing fails, note the failure reason */

@@ -211,7 +211,7 @@ rebind:;
 			op->o_ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		LDAPMessage	*res;
-		struct timeval	tv;
+		struct timeval	tv = { 0, 100000 };
 		int		rc;
 		int		nretries = mt->mt_nretries;
 
@@ -234,6 +234,8 @@ retry:;
 				if ( nretries > 0 ) {
 					nretries--;
 				}
+				tv.tv_sec = 0;
+				tv.tv_usec = 100000;
 				goto retry;
 			}
 			rs->sr_err = LDAP_BUSY;
@@ -380,7 +382,7 @@ rebind:;
 			NULL, NULL, &msgid );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAPMessage	*res;
-		struct timeval	tv;
+		struct timeval	tv = { 0, 100000 };
 
 		/*
 		 * handle response!!!
@@ -401,6 +403,8 @@ retry:;
 				if ( nretries > 0 ) {
 					nretries--;
 				}
+				tv.tv_sec = 0;
+				tv.tv_usec = 100000;
 				goto retry;
 			}
 
