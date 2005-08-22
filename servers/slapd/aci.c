@@ -42,6 +42,34 @@
 
 #define ACI_BUF_SIZE 	1024	/* use most appropriate size */
 
+#ifdef SLAP_DYNACL
+static
+#endif /* SLAP_DYNACL */
+AttributeDescription *slap_ad_aci;
+
+static int
+OpenLDAPaciValidate(
+	Syntax		*syntax,
+	struct berval	*val );
+
+static int
+OpenLDAPaciPretty(
+	Syntax		*syntax,
+	struct berval	*val,
+	struct berval	*out,
+	void		*ctx );
+
+static int
+OpenLDAPaciNormalize(
+	slap_mask_t	use,
+	Syntax		*syntax,
+	MatchingRule	*mr,
+	struct berval	*val,
+	struct berval	*out,
+	void		*ctx );
+
+#define	OpenLDAPaciMatch			octetStringMatch
+
 static int
 aci_list_map_rights(
 	struct berval	*list )
@@ -486,6 +514,93 @@ aci_mask(
 	return 0;
 }
 
+int
+aci_init( void )
+{
+	/* OpenLDAP Experimental Syntax */
+	static slap_syntax_defs_rec aci_syntax_def = {
+		"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
+			SLAP_SYNTAX_HIDE,
+			OpenLDAPaciValidate,
+			OpenLDAPaciPretty
+	};
+	static slap_mrule_defs_rec aci_mr_def = {
+		"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
+			SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
+			NULL, OpenLDAPaciNormalize, OpenLDAPaciMatch,
+			NULL, NULL,
+			NULL
+	};
+	static struct {
+		char			*name;
+		char			*desc;
+		slap_mask_t		flags;
+		AttributeDescription	**ad;
+	}		aci_at = {
+		"OpenLDAPaci", "( 1.3.6.1.4.1.4203.666.1.5 "
+			"NAME 'OpenLDAPaci' "
+			"DESC 'OpenLDAP access control information (experimental)' "
+			"EQUALITY OpenLDAPaciMatch "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 "
+			"USAGE directoryOperation )",
+		SLAP_AT_HIDE,
+		&slap_ad_aci
+	};
+
+	LDAPAttributeType	*at;
+	AttributeType		*sat;
+	int			rc;
+	const char		*text;
+
+	/* ACI syntax */
+	rc = register_syntax( &aci_syntax_def );
+	if ( rc != 0 ) {
+		return rc;
+	}
+	
+	/* ACI equality rule */
+	rc = register_matching_rule( &aci_mr_def );
+	if ( rc != 0 ) {
+		return rc;
+	}
+
+	/* ACI attribute */
+	at = ldap_str2attributetype( aci_at.desc,
+		&rc, &text, LDAP_SCHEMA_ALLOW_ALL );
+	if ( !at ) {
+		Debug( LDAP_DEBUG_ANY,
+			"%s AttributeType load failed: %s %s\n",
+			aci_at.name, ldap_scherr2str( rc ), text );
+		return rc;
+	}
+
+	rc = at_add( at, 0, &sat, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_attributetype_free( at );
+		fprintf( stderr, "iMUX_monitor_schema_init: "
+			"AttributeType load failed: %s %s\n",
+			scherr2str( rc ), text );
+		return rc;
+	}
+	ldap_memfree( at );
+
+	rc = slap_str2ad( aci_at.name,
+			aci_at.ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"unable to find AttributeDescription "
+			"\"%s\": %d (%s)\n",
+			aci_at.name, rc, text );
+		return 1;
+	}
+
+	/* install flags */
+	sat->sat_flags |= aci_at.flags;
+
+	return rc;
+}
+
 #ifdef SLAP_DYNACL
 /*
  * FIXME: there is a silly dependence that makes it difficult
@@ -514,7 +629,7 @@ dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *r
 		}
 
 	} else {
-		ad = slap_schema.si_ad_aci;
+		ad = slap_ad_aci;
 	}
 
 	if ( !is_at_syntax( ad->ad_type, SLAPD_ACI_SYNTAX) ) {
@@ -706,7 +821,15 @@ static slap_dynacl_t	dynacl_aci = {
 int
 dynacl_aci_init( void )
 {
-	return slap_dynacl_register( &dynacl_aci );
+	int	rc;
+
+	rc = aci_init();
+
+	if ( rc == 0 ) {
+		rc = slap_dynacl_register( &dynacl_aci );
+	}
+	
+	return rc;
 }
 
 #endif /* SLAP_DYNACL */
@@ -1040,7 +1163,7 @@ static const struct berval *OpenLDAPacitypes[] = {
 	NULL
 };
 
-int
+static int
 OpenLDAPaciValidate(
 	Syntax		*syntax,
 	struct berval	*val )
@@ -1406,7 +1529,7 @@ cleanup:;
 	return rc;
 }
 
-int
+static int
 OpenLDAPaciPretty(
 	Syntax		*syntax,
 	struct berval	*val,
@@ -1416,7 +1539,7 @@ OpenLDAPaciPretty(
 	return OpenLDAPaciPrettyNormal( val, out, ctx, 0 );
 }
 
-int
+static int
 OpenLDAPaciNormalize(
 	slap_mask_t	use,
 	Syntax		*syntax,

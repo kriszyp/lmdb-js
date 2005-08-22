@@ -894,9 +894,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_children;
 	AttributeDescription *si_ad_saslAuthzTo;
 	AttributeDescription *si_ad_saslAuthzFrom;
-#ifdef SLAPD_ACI_ENABLED
-	AttributeDescription *si_ad_aci;
-#endif /* SLAPD_ACI_ENABLED */
 
 	/* dynamic entries */
 	AttributeDescription *si_ad_entryTtl;

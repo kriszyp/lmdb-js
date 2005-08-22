@@ -50,8 +50,6 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
-#define	OpenLDAPaciMatch			octetStringMatch
-
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
 #define directoryStringApproxMatch		approxMatch
@@ -129,7 +127,7 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 #define certificateValidate sequenceValidate
 #endif
 
-static int
+int
 octetStringMatch(
 	int *matchp,
 	slap_mask_t flags,
@@ -3426,14 +3424,6 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		serialNumberAndIssuerValidate,
 		serialNumberAndIssuerPretty},
 
-#ifdef SLAPD_ACI_ENABLED
-	/* OpenLDAP Experimental Syntaxes */
-	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
-		SLAP_SYNTAX_HIDE,
-		OpenLDAPaciValidate,
-		OpenLDAPaciPretty},
-#endif
-
 #ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
@@ -3846,15 +3836,6 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
 		NULL, NULL, authPasswordMatch,
-		NULL, NULL,
-		NULL},
-#endif
-
-#ifdef SLAPD_ACI_ENABLED
-	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
-		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
-		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
-		NULL, OpenLDAPaciNormalize, OpenLDAPaciMatch,
 		NULL, NULL,
 		NULL},
 #endif

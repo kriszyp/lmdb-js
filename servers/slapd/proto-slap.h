@@ -45,14 +45,12 @@ LDAP_SLAPD_F (int) aci_mask LDAP_P((
 	slap_access_t *grant,
 	slap_access_t *deny,
 	slap_aci_scope_t scope));
-LDAP_SLAPD_F (int) OpenLDAPaciValidate LDAP_P((
-	Syntax *syn, struct berval *in ));
-LDAP_SLAPD_F (int) OpenLDAPaciPretty LDAP_P((
-	Syntax *syn, struct berval *val, struct berval *out, void *ctx ));
-LDAP_SLAPD_F (slap_mr_normalize_func) OpenLDAPaciNormalize;
 #ifdef SLAP_DYNACL
 LDAP_SLAPD_F (int) dynacl_aci_init LDAP_P(( void ));
-#endif /* SLAP_DYNACL */
+#else /* !SLAP_DYNACL */
+LDAP_SLAPD_F (int) aci_init LDAP_P(( void ));
+LDAP_SLAPD_V (AttributeDescription *) slap_ad_aci;
+#endif /* !SLAP_DYNACL */
 #endif /* SLAPD_ACI_ENABLED */
 
 /*
@@ -1453,9 +1451,17 @@ LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F( slap_mr_indexer_func ) octetStringIndexer;
 LDAP_SLAPD_F( slap_mr_filter_func ) octetStringFilter;
+
 LDAP_SLAPD_F( int ) numericoidValidate LDAP_P((
 	struct slap_syntax *syntax,
         struct berval *in ));
+LDAP_SLAPD_F( int ) octetStringMatch LDAP_P((
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue ));
 
 /*
  * schema_prep.c

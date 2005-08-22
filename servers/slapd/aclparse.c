@@ -1539,7 +1539,7 @@ parse_acl(
 						}
 
 					} else {
-						b->a_aci_at = slap_schema.si_ad_aci;
+						b->a_aci_at = slap_ad_aci;
 					}
 
 					if( !is_at_syntax( b->a_aci_at->ad_type,

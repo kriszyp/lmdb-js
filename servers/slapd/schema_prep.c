@@ -887,18 +887,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_saslAuthzFrom) },
-#ifdef SLAPD_ACI_ENABLED
-	{ "OpenLDAPaci", "( 1.3.6.1.4.1.4203.666.1.5 "
-			"NAME 'OpenLDAPaci' "
-			"DESC 'OpenLDAP access control information (experimental)' "
-			"EQUALITY OpenLDAPaciMatch "
-			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 "
-			"USAGE directoryOperation )",
-		NULL, SLAP_AT_HIDE,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_aci) },
-#endif
 
 #ifdef LDAP_DYNAMIC_OBJECTS
 	{ "entryTtl", "( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl' "
