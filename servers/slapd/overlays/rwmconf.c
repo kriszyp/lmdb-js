@@ -206,7 +206,7 @@ rwm_map_config(
 			if ( rc != LDAP_SUCCESS ) {
 				fprintf( stderr,
 	"%s: line %d: destination attributeType '%s': %d (%s)\n",
-					fname, lineno, src, rc, text ? text : "null" );
+					fname, lineno, dst, rc, text ? text : "null" );
 				return 1;
 			}
 		}
