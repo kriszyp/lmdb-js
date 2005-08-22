@@ -178,14 +178,15 @@ register_syntax(
 
 	code = syn_add( syn, def, &err );
 
-	ldap_memfree( syn );
-
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, def->sd_desc );
+		ldap_syntax_free( syn );
 
 		return( -1 );
 	}
+
+	ldap_memfree( syn );
 
 	return( 0 );
 }
