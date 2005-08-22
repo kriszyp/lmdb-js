@@ -65,3 +65,4 @@ uniqueMember: cn=James A Jones 2,ou=Information Technology Division,ou=People,
 uniqueMember: cn=John Doe,ou=Information Technology Division,ou=People,dc=exam
  ple,dc=com
 
+# Searching "ou=Groups,dc=example,dc=com" as "cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com" (should succeed with no results)...

@@ -217,6 +217,21 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# Search must fail
+BINDDN="cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjensen
+echo "Searching \"$BASEDN\" as \"$BINDDN\" (should succeed with no results)..."
+echo "# Searching \"$BASEDN\" as \"$BINDDN\" (should succeed with no results)..." >> $SEARCHOUT
+$LDAPSEARCH -s one -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	-D "$BINDDN" -w "$BINDPW" \
+	'(objectClass=*)' >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIF=$ACIOUT
