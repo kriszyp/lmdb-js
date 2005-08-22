@@ -1704,6 +1704,9 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 #endif
 
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	ad_undef_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	oc_undef_mutex;
+
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
 
 LDAP_SLAPD_V (int)		use_reverse_lookup;

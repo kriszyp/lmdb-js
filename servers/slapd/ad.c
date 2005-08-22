@@ -737,9 +737,12 @@ int slap_bv2undef_ad(
 		/* canonical to upper case */
 		ldap_pvt_str2upper( desc->ad_cname.bv_val );
 
-		desc->ad_type = slap_schema.si_at_undefined;
+		/* shouldn't we protect this for concurrency? */
+		desc->ad_type = at;
+		ldap_pvt_thread_mutex_lock( &ad_undef_mutex );
 		desc->ad_next = desc->ad_type->sat_ad;
 		desc->ad_type->sat_ad = desc;
+		ldap_pvt_thread_mutex_unlock( &ad_undef_mutex );
 	}
 
 	if( !*ad ) {

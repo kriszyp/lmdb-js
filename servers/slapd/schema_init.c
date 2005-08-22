@@ -79,6 +79,9 @@ unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
 unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
 unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
 
+ldap_pvt_thread_mutex_t	ad_undef_mutex;
+ldap_pvt_thread_mutex_t	oc_undef_mutex;
+
 static int
 inValidate(
 	Syntax *syntax,
@@ -3966,4 +3969,7 @@ schema_destroy( void )
 	mr_destroy();
 	mru_destroy();
 	syn_destroy();
+
+	ldap_pvt_thread_mutex_destroy( &ad_undef_mutex );
+	ldap_pvt_thread_mutex_destroy( &oc_undef_mutex );
 }
