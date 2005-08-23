@@ -208,11 +208,8 @@ ldap_pvt_thread_pool_purgekey LDAP_P(( void *key ));
 LDAP_F( void *)
 ldap_pvt_thread_pool_context LDAP_P(( void ));
 
-LDAP_F( void *)
-ldap_pvt_thread_pool_fake_context_init LDAP_P(( void ));
-
 LDAP_F( void )
-ldap_pvt_thread_pool_fake_context_destroy LDAP_P(( void *key ));
+ldap_pvt_thread_pool_context_reset LDAP_P(( void *key ));
 
 LDAP_END_DECL
 

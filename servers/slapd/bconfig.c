@@ -2600,7 +2600,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		return 1;
 
 	if ( readit ) {
-		void *thrctx = ldap_pvt_thread_pool_fake_context_init();
+		void *thrctx = ldap_pvt_thread_pool_context();
 
 		op = (Operation *)opbuf;
 		connection_fake_init( &conn, op, thrctx );
@@ -2633,7 +2633,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		op->o_bd = &cfb->cb_db;
 		rc = op->o_bd->be_search( op, &rs );
 
-		ldap_pvt_thread_pool_fake_context_destroy( thrctx );
+		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
 
 	cfb->cb_use_ldif = 1;
@@ -3989,7 +3989,7 @@ config_back_db_open( BackendDB *be )
 		return 0;
 
 	if ( cfb->cb_use_ldif ) {
-		thrctx = ldap_pvt_thread_pool_fake_context_init();
+		thrctx = ldap_pvt_thread_pool_context();
 		op = (Operation *)opbuf;
 		connection_fake_init( &conn, op, thrctx );
 
@@ -4103,7 +4103,7 @@ config_back_db_open( BackendDB *be )
 		}
 	}
 	if ( thrctx )
-		ldap_pvt_thread_pool_fake_context_destroy( thrctx );
+		ldap_pvt_thread_pool_context_reset( thrctx );
 
 	return 0;
 }
