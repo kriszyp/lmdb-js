@@ -2114,15 +2114,8 @@ sp_cf_gen(ConfigArgs *c)
 /* Cheating - we have no thread pool context for these functions,
  * so make one.
  */
-typedef struct thread_keys {
-	void *key;
-	void *data;
-	ldap_pvt_thread_pool_keyfree_t *xfree;
-} thread_keys;
 
-#define MAXKEYS	32
-/* A fake thread context */
-static thread_keys thrctx[MAXKEYS];
+static void *syncprov_thrctx;
 
 /* ITS#3456 we cannot run this search on the main thread, must use a
  * child thread in order to insure we have a big enough stack.
@@ -2165,7 +2158,8 @@ syncprov_db_open(
 		return rc;
 	}
 
-	connection_fake_init( &conn, op, thrctx );
+	syncprov_thrctx = ldap_pvt_thread_pool_fake_context_init();
+	connection_fake_init( &conn, op, syncprov_thrctx );
 	op->o_bd = be;
 	op->o_dn = be->be_rootdn;
 	op->o_ndn = be->be_rootndn;
@@ -2241,17 +2235,14 @@ syncprov_db_close(
 		Operation *op = (Operation *)opbuf;
 		SlapReply rs = {REP_RESULT};
 
-		connection_fake_init( &conn, op, thrctx );
+		connection_fake_init( &conn, op, syncprov_thrctx );
 		op->o_bd = be;
 		op->o_dn = be->be_rootdn;
 		op->o_ndn = be->be_rootndn;
 		syncprov_checkpoint( op, &rs, on );
 	}
-	for ( i=0; thrctx[i].key; i++) {
-		if ( thrctx[i].xfree )
-			thrctx[i].xfree( thrctx[i].key, thrctx[i].data );
-		thrctx[i].key = NULL;
-	}
+	ldap_pvt_thread_pool_fake_context_destroy( syncprov_thrctx );
+	syncprov_thrctx = NULL;
 
     return 0;
 }

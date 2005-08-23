@@ -660,4 +660,21 @@ void *ldap_pvt_thread_pool_context( )
 	return thread_keys[i].ctx;
 }
 
+void *ldap_pvt_thread_pool_fake_context_init( )
+{
+	return LDAP_CALLOC( LDAP_MAXTHR, sizeof(ldap_int_thread_key_t) );
+}
+
+void ldap_pvt_thread_pool_fake_context_destroy( void *vctx )
+{
+	ldap_int_thread_key_t *ctx = vctx;
+	int i;
+
+	for ( i=0; ctx[i].ltk_key; i++) {
+		if ( ctx[i].ltk_free )
+			ctx[i].ltk_free( ctx[i].ltk_key, ctx[i].ltk_data );
+		ctx[i].ltk_key = NULL;
+	}
+	LDAP_FREE( vctx );
+}
 #endif /* LDAP_THREAD_HAVE_TPOOL */
