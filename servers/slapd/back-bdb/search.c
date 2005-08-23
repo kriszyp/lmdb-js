@@ -477,7 +477,7 @@ dn2entry_retry:
 			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
 		send_ldap_result( op, rs );
-		return 1;
+		return rs->sr_err;
 	}
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
