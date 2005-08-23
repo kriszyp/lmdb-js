@@ -1378,7 +1378,7 @@ OpenLDAPaciPrettyNormal(
 			subject = BER_BVNULL,
 			nsubject = BER_BVNULL;
 	int		idx,
-			rc,
+			rc = LDAP_SUCCESS,
 			freesubject = 0,
 			freetype = 0;
 	char		*ptr;
