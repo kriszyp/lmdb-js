@@ -32,6 +32,10 @@ SRCS = overlays.c \
 OBJS = overlays.o \
 	@SLAPD_STATIC_OVERLAYS@
 
+# Add here the objs that are needed by overlays, but do not make it
+# into SLAPD_STATIC_OVERLAYS...
+OBJDEP=rwm.o rwmconf.o rwmdn.o rwmmap.o
+
 LTONLY_MOD = $(LTONLY_mod)
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -120,7 +124,7 @@ $(LIBRARY): $(OBJS) version.lo
 # Must fixup depends for non-libtool objects
 depend-local:
 	@if test -n "$(OBJS)"; then \
-	OBJ2=`echo $(OBJS) | $(SED) -e 's/\.o//g'`; \
+	OBJ2=`echo $(OBJS) $(OBJDEP) | $(SED) -e 's/\.o//g'`; \
 	SCR=''; for i in $$OBJ2; do SCR="$$SCR -e s/^$$i.lo:/$$i.o:/"; done; \
 	mv Makefile Makefile.bak; $(SED) $$SCR Makefile.bak > Makefile && \
 	$(RM) Makefile.bak; fi
