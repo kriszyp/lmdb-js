@@ -16,7 +16,7 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Howard Chu for inclusion in
- * OpenLDAP Software.
+ * OpenLDAP Software. This work was sponsored by Stanford University.
  */
 
 /*
