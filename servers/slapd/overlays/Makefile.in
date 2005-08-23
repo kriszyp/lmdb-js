@@ -27,7 +27,8 @@ SRCS = overlays.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c \
 	syncprov.c \
 	translucent.c \
-	unique.c
+	unique.c \
+	valsort.c
 OBJS = overlays.o \
 	@SLAPD_STATIC_OVERLAYS@
 
@@ -96,6 +97,9 @@ translucent.la : translucent.lo
 
 unique.la : unique.lo
 	$(LTLINK_MOD) -module -o $@ unique.lo version.lo $(LINK_LIBS)
+
+valsort.la : valsort.lo
+	$(LTLINK_MOD) -module -o $@ valsort.lo version.lo $(LINK_LIBS)
 
 install-local:	$(PROGRAMS)
 	@if test -n "$?" ; then \
