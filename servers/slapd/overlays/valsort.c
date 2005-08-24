@@ -87,7 +87,7 @@ valsort_cf_func(ConfigArgs *c) {
 	valsort_info vitmp, *vi;
 	const char *text = NULL;
 	int i;
-	struct berval bv;
+	struct berval bv = BER_BVNULL;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		for ( vi = on->on_bi.bi_private; vi; vi = vi->vi_next ) {
@@ -112,12 +112,14 @@ valsort_cf_func(ConfigArgs *c) {
 			*ptr++ = '"';
 			ptr = lutil_strcopy( ptr, vi->vi_dn.bv_val );
 			*ptr++ = '"';
-			*ptr++ = ' ';
 			if ( vi->vi_sort & VALSORT_WEIGHTED ) {
-				ptr = lutil_strcopy( ptr, bv2.bv_val );
 				*ptr++ = ' ';
+				ptr = lutil_strcopy( ptr, bv2.bv_val );
 			}
-			strcpy( ptr, bv.bv_val );
+			if ( !BER_BVISNULL( &bv )) {
+				*ptr++ = ' ';
+				strcpy( ptr, bv.bv_val );
+			}
 			ber_bvarray_add( &c->rvalue_vals, &bvret );
 		}
 		i = ( c->rvalue_vals != NULL ) ? 0 : 1;
@@ -148,6 +150,13 @@ valsort_cf_func(ConfigArgs *c) {
 		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
 			c->log, c->msg, c->argv[1] );
 		return(1);
+	}
+	if ( is_at_single_value( vitmp.vi_ad->ad_type )) {
+		sprintf( c->msg, "<%s> %s is single-valued, ignoring", c->argv[0],
+			vitmp.vi_ad->ad_cname.bv_val );
+		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
+			c->log, c->msg, c->argv[1] );
+		return(0);
 	}
 	ber_str2bv( c->argv[2], 0, 0, &bv );
 	i = dnNormalize( 0, NULL, NULL, &bv, &vitmp.vi_dn, NULL );
