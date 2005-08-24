@@ -99,16 +99,17 @@ valsort_cf_func(ConfigArgs *c) {
 			char *ptr;
 			int len;
 			
-			len = vi->vi_ad->ad_cname.bv_len + 1 + vi->vi_dn.bv_len + 3;
+			len = vi->vi_ad->ad_cname.bv_len + 1 + vi->vi_dn.bv_len + 2;
 			i = vi->vi_sort;
 			if ( i & VALSORT_WEIGHTED ) {
 				enum_to_verb( sorts, VALSORT_WEIGHTED, &bv2 );
 				len += bv2.bv_len + 1;
 				i ^= VALSORT_WEIGHTED;
 			}
-			BER_BVZERO( &bv );
-			enum_to_verb( sorts, i, &bv );
-			len += bv.bv_len;
+			if ( i ) {
+				enum_to_verb( sorts, i, &bv );
+				len += bv.bv_len + 1;
+			}
 			bvret.bv_val = ch_malloc( len+1 );
 			bvret.bv_len = len;
 
@@ -121,7 +122,7 @@ valsort_cf_func(ConfigArgs *c) {
 				*ptr++ = ' ';
 				ptr = lutil_strcopy( ptr, bv2.bv_val );
 			}
-			if ( !BER_BVISNULL( &bv )) {
+			if ( i ) {
 				*ptr++ = ' ';
 				strcpy( ptr, bv.bv_val );
 			}
@@ -131,7 +132,7 @@ valsort_cf_func(ConfigArgs *c) {
 		return i;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		if ( c->valx < 0 ) {
-			for ( vi = on->on_bi.bi_private; vi; vi = c->be->be_private ) {
+			for ( vi = on->on_bi.bi_private; vi; vi = on->on_bi.bi_private ) {
 				on->on_bi.bi_private = vi->vi_next;
 				ch_free( vi->vi_dn.bv_val );
 				ch_free( vi );
