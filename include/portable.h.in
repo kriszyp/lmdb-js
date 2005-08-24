@@ -1079,6 +1079,9 @@
 /* define for Attribute Uniqueness overlay */
 #undef SLAPD_OVER_UNIQUE
 
+/* define for Value Sorting overlay */
+#undef SLAPD_OVER_VALSORT
+
 /* define to enable rewriting in back-ldap and back-meta */
 #undef ENABLE_REWRITE
 
