@@ -81,12 +81,14 @@ static slap_verbmasks sorts[] = {
 	{ BER_BVNULL, 0 }
 };
 
+static Syntax *syn_numericString;
+
 static int
 valsort_cf_func(ConfigArgs *c) {
 	slap_overinst *on = (slap_overinst *)c->bi;
 	valsort_info vitmp, *vi;
 	const char *text = NULL;
-	int i;
+	int i, is_numeric;
 	struct berval bv = BER_BVNULL;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
@@ -159,6 +161,9 @@ valsort_cf_func(ConfigArgs *c) {
 			c->log, c->msg, c->argv[1] );
 		return(0);
 	}
+	is_numeric = ( vitmp.vi_ad->ad_type->sat_syntax == syn_numericString ||
+		vitmp.vi_ad->ad_type->sat_syntax == slap_schema.si_syn_integer ) ? 1
+		: 0;
 	ber_str2bv( c->argv[2], 0, 0, &bv );
 	i = dnNormalize( 0, NULL, NULL, &bv, &vitmp.vi_dn, NULL );
 	if ( i ) {
@@ -184,6 +189,13 @@ valsort_cf_func(ConfigArgs *c) {
 			return(1);
 		}
 		vitmp.vi_sort |= sorts[i].mask;
+	}
+	if (( vitmp.vi_sort & VALSORT_NUMERIC ) && !is_numeric ) {
+		sprintf( c->msg, "<%s> numeric sort specified for non-numeric syntax",
+			c->argv[0] );
+		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
+			c->log, c->msg, c->argv[1] );
+		return(1);
 	}
 	vi = ch_malloc( sizeof(valsort_info) );
 	*vi = vitmp;
@@ -484,6 +496,8 @@ int valsort_init()
 	valsort.on_response = valsort_response;
 
 	valsort.on_bi.bi_cf_ocs = valsort_cfocs;
+
+	syn_numericString = syn_find( "1.3.6.1.4.1.1466.115.121.1.36" );
 
 	rc = config_register_schema( valsort_cfats, valsort_cfocs );
 	if ( rc ) return rc;
