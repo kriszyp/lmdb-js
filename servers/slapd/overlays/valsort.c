@@ -102,6 +102,7 @@ valsort_cf_func(ConfigArgs *c) {
 				len += bv2.bv_len + 1;
 				i ^= VALSORT_WEIGHTED;
 			}
+			BER_BVZERO( &bv );
 			enum_to_verb( sorts, i, &bv );
 			len += bv.bv_len;
 			bvret.bv_val = ch_malloc( len+1 );
