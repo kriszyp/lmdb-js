@@ -33,6 +33,7 @@ WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}
 ACI=${AC_ACI_ENABLED-acino}
+VALSORT=${AC_valsort-valsortno}
 
 DATADIR=./testdata
 PROGDIR=./progs
@@ -97,6 +98,7 @@ METACONF=$DATADIR/slapd-meta.conf
 METACONF2=$DATADIR/slapd-meta2.conf
 GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
+VALSORTCONF=$DATADIR/slapd-valsort.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -186,6 +188,7 @@ LDIFTRANSLUCENTCONFIG=$DATADIR/test-translucent-config.ldif
 LDIFTRANSLUCENTADD=$DATADIR/test-translucent-add.ldif
 LDIFTRANSLUCENTMERGED=$DATADIR/test-translucent-merged.ldif
 LDIFMETA=$DATADIR/test-meta.ldif
+LDIFVALSORT=$DATADIR/test-valsort.ldif
 SQLADD=$DATADIR/sql-add.ldif
 MONITOR=""
 REFDN="c=US"
@@ -206,6 +209,8 @@ TRANSLUCENTDN="uid=binder,o=translucent"
 TRANSLUCENTPASSWD="bindtest"
 METABASEDN="ou=Meta,dc=example,dc=com"
 METAMANAGERDN="cn=Manager,$METABASEDN"
+VALSORTDN="cn=Manager,o=valsort"
+VALSORTBASEDN="o=valsort"
 
 LOG1=$TESTDIR/slapd.1.log
 LOG2=$TESTDIR/slapd.2.log
@@ -223,6 +228,9 @@ SEARCHFLT2=$TESTDIR/ldapsearch2.flt
 LDIFFLT=$TESTDIR/ldif.flt
 TESTOUT=$TESTDIR/test.out
 INITOUT=$TESTDIR/init.out
+VALSORTOUT1=$DATADIR/valsort1.out
+VALSORTOUT2=$DATADIR/valsort2.out
+VALSORTOUT3=$DATADIR/valsort3.out
 
 SERVER1OUT=$TESTDIR/server1.out
 SERVER1FLT=$TESTDIR/server1.flt
