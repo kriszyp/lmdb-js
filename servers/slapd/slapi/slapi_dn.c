@@ -215,9 +215,13 @@ void slapi_sdn_get_parent( const Slapi_DN *sdn, Slapi_DN *sdn_parent )
 {
 	struct berval parent_dn;
 
-	dnParent( (struct berval *)&sdn->dn, &parent_dn );
-
-	slapi_sdn_set_dn_byval( sdn_parent, parent_dn.bv_val );
+	if ( !(sdn->flag & FLAG_DN) ) {
+		dnParent( (struct berval *)&sdn->ndn, &parent_dn );
+		slapi_sdn_set_ndn_byval( sdn_parent, parent_dn.bv_val );
+	} else {
+		dnParent( (struct berval *)&sdn->dn, &parent_dn );
+		slapi_sdn_set_dn_byval( sdn_parent, parent_dn.bv_val );
+	}
 }
 
 void slapi_sdn_get_backend_parent( const Slapi_DN *sdn,
