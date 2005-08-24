@@ -256,7 +256,8 @@ Overlays="accesslog \
 	rwm \
 	syncprov \
 	translucent \
-	unique"
+	unique \
+	valsort"
 
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
@@ -291,6 +292,8 @@ OL_ARG_ENABLE(syncprov,[    --enable-syncprov	  Syncrepl Provider overlay no|yes
 OL_ARG_ENABLE(translucent,[    --enable-translucent  Translucent Proxy overlay no|yes|mod],
 	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod],
+	${ol_dflt_overlays-no}, [no yes mod])
+OL_ARG_ENABLE(valsort,[    --enable-valsort      Value Sorting overlay no|yes|mod],
 	${ol_dflt_overlays-no}, [no yes mod])
 
 
@@ -533,6 +536,7 @@ BUILD_RWM=no
 BUILD_SYNCPROV=no
 BUILD_TRANSLUCENT=no
 BUILD_UNIQUE=no
+BUILD_VALSORT=no
 
 SLAPD_STATIC_OVERLAYS=
 SLAPD_DYNAMIC_OVERLAYS=
@@ -2935,6 +2939,18 @@ if test "$ol_enable_unique" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_UNIQUE,$MFLAG,[define for Attribute Uniqueness overlay])
 fi
 
+if test "$ol_enable_valsort" != no ; then
+	BUILD_VALSORT=$ol_enable_valsort
+	if test "$ol_enable_valsort" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS valsort.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS valsort.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_VALSORT,$MFLAG,[define for Value Sorting overlay])
+fi
+
 if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
@@ -3005,6 +3021,7 @@ dnl overlays
   AC_SUBST(BUILD_SYNCPROV)
   AC_SUBST(BUILD_TRANSLUCENT)
   AC_SUBST(BUILD_UNIQUE)
+  AC_SUBST(BUILD_VALSORT)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
