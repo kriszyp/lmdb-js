@@ -786,7 +786,7 @@ AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[[
 ]])
 
 AC_DEFUN([OL_PTHREAD_TEST_PROGRAM],
-[OL_PTHREAD_TEST_INCLUDES
+AC_LANG_SOURCE([OL_PTHREAD_TEST_INCLUDES
 
 int main(argc, argv)
 	int argc;
@@ -794,7 +794,7 @@ int main(argc, argv)
 {
 OL_PTHREAD_TEST_FUNCTION
 }
-])
+]))
 dnl --------------------------------------------------------------------
 AC_DEFUN([OL_PTHREAD_TRY], [# Pthread try link: $1 ($2)
 if test "$ol_link_threads" = no ; then
@@ -807,7 +807,8 @@ if test "$ol_link_threads" = no ; then
 		AC_RUN_IFELSE([OL_PTHREAD_TEST_PROGRAM],
 			[$2=yes],
 			[$2=no],
-			[AC_TRY_LINK(OL_PTHREAD_TEST_INCLUDES,OL_PTHREAD_TEST_FUNCTION,
+			[AC_LINK_IFELSE([AC_LANG_PROGRAM(OL_PTHREAD_TEST_INCLUDES,
+				OL_PTHREAD_TEST_FUNCTION)],
 				[$2=yes], [$2=no])])
 
 		# restore the LIBS
