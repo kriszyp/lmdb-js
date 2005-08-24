@@ -54,7 +54,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the database..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD -e manageDIT < \
 	$LDIFPPOLICY > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
