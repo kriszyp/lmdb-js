@@ -78,7 +78,7 @@ static slap_verbmasks sorts[] = {
 	{ BER_BVC("alpha-ascend"), VALSORT_ASCEND|VALSORT_ALPHA },
 	{ BER_BVC("alpha-descend"), VALSORT_DESCEND|VALSORT_ALPHA },
 	{ BER_BVC("numeric-ascend"), VALSORT_ASCEND|VALSORT_NUMERIC },
-	{ BER_BVC("numeric-ascend"), VALSORT_DESCEND|VALSORT_NUMERIC },
+	{ BER_BVC("numeric-descend"), VALSORT_DESCEND|VALSORT_NUMERIC },
 	{ BER_BVC("weighted"), VALSORT_WEIGHTED },
 	{ BER_BVNULL, 0 }
 };
