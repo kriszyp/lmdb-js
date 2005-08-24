@@ -51,6 +51,8 @@ typedef struct valsort_info {
 	slap_mask_t vi_sort;
 } valsort_info;
 
+static int valsort_cid;
+
 static ConfigDriver valsort_cf_func;
 
 static ConfigTable valsort_cfats[] = {
@@ -481,6 +483,22 @@ valsort_destroy(
 	return 0;
 }
 
+static int
+valsort_parseCtrl(
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	if ( ctrl->ldctl_value.bv_len ) {
+		rs->sr_text = "valSort control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+	op->o_ctrlflag[valsort_cid] = ctrl->ldctl_iscritical ?
+		SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
+
+	return LDAP_SUCCESS;
+}
+
 static slap_overinst valsort;
 
 int valsort_init()
@@ -496,6 +514,14 @@ int valsort_init()
 	valsort.on_response = valsort_response;
 
 	valsort.on_bi.bi_cf_ocs = valsort_cfocs;
+
+	rc = register_supported_control( LDAP_CONTROL_VALSORT,
+		SLAP_CTRL_SEARCH | SLAP_CTRL_HIDE, NULL, valsort_parseCtrl,
+		&valsort_cid );
+	if ( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "Failed to register control %d\n", rc );
+		return rc;
+	}
 
 	syn_numericString = syn_find( "1.3.6.1.4.1.1466.115.121.1.36" );
 
