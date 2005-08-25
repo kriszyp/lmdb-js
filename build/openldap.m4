@@ -22,7 +22,7 @@ dnl $3 = default value	(auto).  "--" means do not set it by default
 dnl $4 = allowed values (auto yes no)
 AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
 	AC_ARG_ENABLE($1,ifelse($3,--,[$2],
-		[changequote(<,>)<$2 [>ifelse($3,,auto,$3)<]>changequote([,])]),[
+		[$2 @<:@]ifelse($3,,auto,$3)@:>@),[
 	ol_arg=invalid
 	for ol_val in ifelse($4,,[auto yes no],[$4]) ; do
 		if test "$enableval" = "$ol_val" ; then
@@ -47,7 +47,7 @@ dnl $2 = help-string
 dnl $3 = default value (no)
 dnl $4 = allowed values (yes or no)
 AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
-	AC_ARG_WITH($1,changequote(<,>)<$2 [>ifelse($3,,yes,$3)<]>changequote([,]),[
+	AC_ARG_WITH($1,[$2 @<:@]ifelse($3,,yes,$3)@:>@,[
 	ol_arg=invalid
 	for ol_val in ifelse($4,,[yes no],[$4]) ; do
 		if test "$withval" = "$ol_val" ; then
