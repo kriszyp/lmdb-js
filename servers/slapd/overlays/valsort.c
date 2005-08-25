@@ -275,6 +275,9 @@ valsort_response( Operation *op, SlapReply *rs )
 	/* We only want search responses */
 	if ( rs->sr_type != REP_SEARCH ) return SLAP_CB_CONTINUE;
 
+	/* If this is a syncrepl response, pass thru unmodified */
+	if ( op->o_sync > SLAP_CONTROL_IGNORED ) return SLAP_CB_CONTINUE;
+		
 	on = (slap_overinst *) op->o_bd->bd_info;
 	vi = on->on_bi.bi_private;
 
