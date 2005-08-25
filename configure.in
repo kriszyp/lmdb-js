@@ -273,8 +273,19 @@ OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Backend Options
-Backends="bdb dnssrv hdb ldap ldbm meta monitor null \
-	passwd perl relay shell sql"
+Backends="bdb \
+	dnssrv \
+	hdb \
+	ldap \
+	ldbm \
+	meta \
+	monitor \
+	null \
+	passwd \
+	perl \
+	relay \
+	shell \
+	sql"
 
 AC_ARG_ENABLE(xxslapbackends,[
 SLAPD Backend Options:])
@@ -363,7 +374,7 @@ OL_ARG_ENABLE(translucent,[    --enable-translucent  Translucent Proxy overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(unique,[    --enable-valsort      Value Sorting overlay],
+OL_ARG_ENABLE(valsort,[    --enable-valsort      Value Sorting overlay],
 	no, [no yes mod], ol_enable_overlays)
 
 dnl ----------------------------------------------------------------
