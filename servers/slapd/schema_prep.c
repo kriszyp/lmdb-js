@@ -887,18 +887,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_saslAuthzFrom) },
-#ifdef SLAPD_ACI_ENABLED
-	{ "OpenLDAPaci", "( 1.3.6.1.4.1.4203.666.1.5 "
-			"NAME 'OpenLDAPaci' "
-			"DESC 'OpenLDAP access control information (experimental)' "
-			"EQUALITY OpenLDAPaciMatch "
-			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 "
-			"USAGE directoryOperation )",
-		NULL, SLAP_AT_HIDE,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_aci) },
-#endif
 
 #ifdef LDAP_DYNAMIC_OBJECTS
 	{ "entryTtl", "( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl' "
@@ -1143,6 +1131,12 @@ slap_schema_load( void )
 		}
 	}
 
+	slap_at_undefined.sat_syntax = slap_schema.si_syn_octetString;
+	slap_schema.si_at_undefined = &slap_at_undefined;
+
+	ldap_pvt_thread_mutex_init( &ad_undef_mutex );
+	ldap_pvt_thread_mutex_init( &oc_undef_mutex );
+
 	for( i=0; ad_map[i].ssam_name; i++ ) {
 		assert( ad_map[i].ssam_defn != NULL );
 		{
@@ -1312,9 +1306,6 @@ slap_schema_load( void )
 			(*ocp)->soc_flags |= oc_map[i].ssom_flags;
 		}
 	}
-
-	slap_at_undefined.sat_syntax = slap_schema.si_syn_octetString;
-	slap_schema.si_at_undefined = &slap_at_undefined;
 
 	return LDAP_SUCCESS;
 }

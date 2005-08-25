@@ -47,6 +47,9 @@ ldbm_back_search(
 	Entry	*matched = NULL;
 	struct berval	realbase = BER_BVNULL;
 	int		manageDSAit = get_manageDSAit( op );
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+	slap_mask_t	mask;
+#endif
 
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
 
@@ -130,10 +133,16 @@ ldbm_back_search(
 	}
 
 #ifdef SLAP_ACL_HONOR_DISCLOSE
-	if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
-				NULL, ACL_DISCLOSE, NULL ) )
+	/* NOTE: __NEW__ "search" access is required
+	 * on searchBase object */
+	if ( ! access_allowed_mask( op, e, slap_schema.si_ad_entry,
+				NULL, ACL_SEARCH, NULL, &mask ) )
 	{
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		if ( !ACL_GRANT( mask, ACL_DISCLOSE ) ) {
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else {
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		}
 
 		cache_return_entry_r( &li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
