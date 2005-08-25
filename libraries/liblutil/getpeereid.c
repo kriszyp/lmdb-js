@@ -32,8 +32,8 @@
 #endif
 
 #if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
-	defined(HAVE_SENDMSG) && (defined(HAVE_MSGHDR_MSG_ACCRIGHTS) || \
-				  defined(HAVE_MSGHDR_MSG_CONTROL))
+	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTS) || \
+				  defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
 #define DO_SENDMSG
 #ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
@@ -77,7 +77,7 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 	int err, fd[2];
 	struct iovec iov;
 	struct msghdr msg = {0};
-# ifdef HAVE_MSGHDR_MSG_CONTROL
+# ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 # ifndef CMSG_SPACE
 # define CMSG_SPACE(len)	(_CMSG_ALIGN(sizeof(struct cmsghdr)) + _CMSG_ALIGN(len))
 # endif
@@ -89,7 +89,7 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 		unsigned char control[CMSG_SPACE(sizeof(int))];
 	} control_un;
 	struct cmsghdr *cmsg;
-# endif /* HAVE_MSGHDR_MSG_CONTROL */
+# endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL */
 	struct stat st;
 
 	msg.msg_name = NULL;
@@ -99,7 +99,7 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 	iov.iov_len = sizeof dummy;
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
-# ifdef HAVE_MSGHDR_MSG_CONTROL
+# ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 	msg.msg_control = control_un.control;
 	msg.msg_controllen = sizeof( control_un.control );
 
@@ -118,12 +118,12 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 	msg.msg_accrights = (char *)fd;
 	msg.msg_accrightslen = sizeof(fd);
 	if( recvmsg( s, &msg, MSG_PEEK) >= 0 && msg.msg_accrightslen == sizeof(int) )
-# endif /* HAVE_MSGHDR_MSG_CONTROL*/
+# endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL*/
 	{
 		/* We must receive a valid descriptor, it must be a pipe,
 		 * and it must only be accessible by its owner.
 		 */
-# ifdef HAVE_MSGHDR_MSG_CONTROL
+# ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 		fd[0] = (*(int *)CMSG_DATA( cmsg ));
 # endif
 		err = fstat( fd[0], &st );

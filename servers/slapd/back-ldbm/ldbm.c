@@ -644,7 +644,7 @@ ldbm_errno( LDBM ldbm )
 
 #elif defined( HAVE_GDBM )
 
-#ifdef HAVE_ST_BLKSIZE
+#ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
 #include <sys/stat.h>
 #endif
 
@@ -658,7 +658,7 @@ LDBM
 ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		db;
-#ifdef HAVE_ST_BLKSIZE
+#ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
 		struct stat	st;
 #endif
 #ifdef HAVE_EBCDIC
@@ -677,7 +677,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 		return( NULL );
 	}
 
-#ifdef HAVE_ST_BLKSIZE
+#ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
 	if ( dbcachesize > 0 && stat( name, &st ) == 0 ) {
 		dbcachesize /= st.st_blksize;
 		if( dbcachesize == 0 ) dbcachesize = 1;
