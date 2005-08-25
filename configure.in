@@ -747,6 +747,13 @@ fi
 AC_PROG_CPP
 
 dnl ----------------------------------------------------------------
+dnl Checks for Windows NT
+case $host_os in
+  *mingw32* ) ac_cv_mingw32=yes ;;
+  *cygwin* ) ac_cv_cygwin=yes ;;
+esac
+
+dnl ----------------------------------------------------------------
 dnl Checks for file extensions
 AC_EXEEXT
 AC_OBJEXT
