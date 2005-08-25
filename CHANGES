@@ -21,7 +21,7 @@ OpenLDAP 2.3.7 Engineering
 		Fixed slapo-rwm dependency checking (ITS#3965)
 		Fixed tests --disable-monitor support
 		Fixed veryclean-local testdata cleanup
-		Add rename test
+		Add subtree rename test (hdb only)
 	
 
 OpenLDAP 2.3.6 Release
