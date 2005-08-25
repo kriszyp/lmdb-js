@@ -1,6 +1,28 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.7 Engineering
+	Updated slapd ManageDIT support
+	Fixed slapd STATS2 referral logging
+	Fixed slapd (ITS#3951)
+	Fixed slaptest cn=config segfault (ITS#3961)
+	Fixed slapd-bdb/hdb paged results deadlock (ITS#3940)
+	Fixed slapd-bdb/hdb/ldbm searchBase disclose (ITS#3964)
+	Fixed slapd-meta generic attribute normalize/pretty (ITS#3956)
+	Fixed slapd-ldap/meta 'undefined' attribute mutex protection (ITS#3958)
+	Fixed slapd-meta matchedDN handling (ITS#3944)
+	Fixed slapo-ppolicy lockout status at Bind (ITS#3946)
+	Fixed libldap schema handling
+	Fixed libldap secprops parsing (ITS#3955)
+	Updated liblutil password scheme check
+	Updated libldap schema to allow OID macros in syntaxes
+	Updated slapd ACI syntax checking (ITS#3877)
+	Removed lint
+	Build Environment
+		Fixed slapo-rwm dependency checking (ITS#3965)
+		Fixed tests --disable-monitor support
+		Fixed veryclean-local testdata cleanup
+		Add rename test
+	
 
 OpenLDAP 2.3.6 Release
 	Fixed slapd dnRelativeMatch return (ITS#3931)
