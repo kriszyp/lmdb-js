@@ -609,6 +609,7 @@ do_syncrep2(
 				rctrlp = *rctrls;
 				ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
 				ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID );
+				/* FIXME: what if syncUUID is NULL or empty? */
 				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 					ber_scanf( ber, /*"{"*/ "m}", &cookie );
 					if ( !BER_BVISNULL( &cookie ) ) {

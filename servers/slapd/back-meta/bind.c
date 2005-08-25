@@ -129,6 +129,11 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			rs->sr_err = lerr;
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 
+			if ( META_BACK_ONERR_STOP( mi ) ) {
+				rc = rs->sr_err;
+				break;
+			}
+				
 		} else {
 			rc = LDAP_SUCCESS;
 		}
@@ -589,6 +594,10 @@ meta_back_dobind(
 			 * so better clear the handle
 			 */
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+			if ( META_BACK_ONERR_STOP( mi ) ) {
+				bound = 0;
+				goto done;
+			}
 			continue;
 		} /* else */
 		
