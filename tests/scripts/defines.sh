@@ -124,7 +124,8 @@ SLAPCAT="../servers/slapd/slapd -Tc $LDAP_VERBOSE"
 SLAPINDEX="../servers/slapd/slapd -Ti $LDAP_VERBOSE"
 
 unset DIFF_OPTIONS
-DIFF="diff -iu"
+# NOTE: -u/-c is not that portable...
+DIFF="diff -i"
 CMP="diff -i"
 BCMP="diff -iB"
 CMPOUT=/dev/null
