@@ -171,17 +171,22 @@ get_filter(
 		err = slap_bv2ad( &type, &f.f_desc, text );
 
 		if( err != LDAP_SUCCESS ) {
-			/* unrecognized attribute description or other error */
-			Debug( LDAP_DEBUG_ANY, 
-				"get_filter: conn %lu unknown attribute "
-				"type=%s (%d)\n",
-				op->o_connid, type.bv_val, err );
+			err = slap_bv2undef_ad( &type, &f.f_desc, text,
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
 
-			f.f_choice = SLAPD_FILTER_COMPUTED;
-			f.f_result = LDAP_COMPARE_FALSE;
-			err = LDAP_SUCCESS;
-			*text = NULL;
-			break;
+			if ( err != LDAP_SUCCESS ) {
+				/* unrecognized attribute description or other error */
+				Debug( LDAP_DEBUG_ANY, 
+					"get_filter: conn %lu unknown attribute "
+					"type=%s (%d)\n",
+					op->o_connid, type.bv_val, err );
+
+				f.f_choice = SLAPD_FILTER_COMPUTED;
+				f.f_result = LDAP_COMPARE_FALSE;
+				err = LDAP_SUCCESS;
+				*text = NULL;
+				break;
+			}
 		}
 
 		assert( f.f_desc != NULL );
@@ -348,17 +353,22 @@ get_ssa(
 	rc = slap_bv2ad( &desc, &ssa.sa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, 
-			"get_ssa: conn %lu unknown attribute type=%s (%ld)\n",
-			op->o_connid, desc.bv_val, (long) rc );
+		rc = slap_bv2undef_ad( &desc, &ssa.sa_desc, text,
+			SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
 
-		/* skip over the rest of this filter */
-		for ( tag = ber_first_element( ber, &len, &last );
-			tag != LBER_DEFAULT;
-			tag = ber_next_element( ber, &len, last ) ) {
-			ber_scanf( ber, "x" );
+		if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, 
+				"get_ssa: conn %lu unknown attribute type=%s (%ld)\n",
+				op->o_connid, desc.bv_val, (long) rc );
+	
+			/* skip over the rest of this filter */
+			for ( tag = ber_first_element( ber, &len, &last );
+				tag != LBER_DEFAULT;
+				tag = ber_next_element( ber, &len, last ) ) {
+				ber_scanf( ber, "x" );
+			}
+			return rc;
 		}
-		return rc;
 	}
 
 	rc = LDAP_PROTOCOL_ERROR;
@@ -880,16 +890,21 @@ get_simple_vrFilter(
 		err = slap_bv2ad( &type, &vrf.vrf_desc, text );
 
 		if( err != LDAP_SUCCESS ) {
-			/* unrecognized attribute description or other error */
-			Debug( LDAP_DEBUG_ANY, 
-				"get_simple_vrFilter: conn %lu unknown "
-				"attribute type=%s (%d)\n",
-				op->o_connid, type.bv_val, err );
+			err = slap_bv2undef_ad( &type, &vrf.vrf_desc, text,
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
 
-			vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
-			vrf.vrf_result = LDAP_COMPARE_FALSE;
-			err = LDAP_SUCCESS;
-			break;
+			if( err != LDAP_SUCCESS ) {
+				/* unrecognized attribute description or other error */
+				Debug( LDAP_DEBUG_ANY, 
+					"get_simple_vrFilter: conn %lu unknown "
+					"attribute type=%s (%d)\n",
+					op->o_connid, type.bv_val, err );
+	
+				vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
+				vrf.vrf_result = LDAP_COMPARE_FALSE;
+				err = LDAP_SUCCESS;
+				break;
+			}
 		}
 		} break;
 

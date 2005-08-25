@@ -99,8 +99,13 @@ do_compare(
 
 	rs->sr_err = slap_bv2ad( &desc, &ava.aa_desc, &rs->sr_text );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		send_ldap_result( op, rs );
-		goto cleanup;
+		rs->sr_err = slap_bv2undef_ad( &desc, &ava.aa_desc,
+				&rs->sr_text,
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+		if( rs->sr_err != LDAP_SUCCESS ) {
+			send_ldap_result( op, rs );
+			goto cleanup;
+		}
 	}
 
 	rs->sr_err = asserted_value_validate_normalize( ava.aa_desc,

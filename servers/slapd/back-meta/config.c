@@ -897,7 +897,20 @@ ldap_back_map_config(
 				/*
 				 * FIXME: this should become an err
 				 */
-				goto error_return;
+				/*
+				 * we create a fake "proxied" ad 
+				 * and add it here.
+				 */
+
+				rc = slap_bv2undef_ad( &mapping->src,
+						&ad, &text, SLAP_AD_PROXIED );
+				if ( rc != LDAP_SUCCESS ) {
+					fprintf( stderr,
+	"%s: line %d: source attributeType '%s': %d (%s)\n",
+						fname, lineno, src,
+						rc, text ? text : "" );
+					goto error_return;
+				}
 			}
 
 			ad = NULL;
@@ -909,6 +922,21 @@ ldap_back_map_config(
 	"%s: line %d: warning, destination attributeType '%s' "
 	"is not defined in schema\n",
 				fname, lineno, dst );
+
+			/*
+			 * we create a fake "proxied" ad 
+			 * and add it here.
+			 */
+
+			rc = slap_bv2undef_ad( &mapping->dst,
+					&ad, &text, SLAP_AD_PROXIED );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr,
+	"%s: line %d: source attributeType '%s': %d (%s)\n",
+					fname, lineno, dst,
+					rc, text ? text : "" );
+				return 1;
+			}
 		}
 	}
 

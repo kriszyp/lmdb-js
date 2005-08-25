@@ -159,12 +159,17 @@ LDAP_SLAPD_F (int) ad_inlist LDAP_P((
 LDAP_SLAPD_F (int) slap_str2undef_ad LDAP_P((
 	const char *,
 	AttributeDescription **ad,
-	const char **text ));
+	const char **text,
+	unsigned proxied ));
 
 LDAP_SLAPD_F (int) slap_bv2undef_ad LDAP_P((
 	struct berval *bv,
 	AttributeDescription **ad,
-	const char **text ));
+	const char **text,
+	unsigned proxied ));
+
+LDAP_SLAPD_F (int) slap_ad_undef_remove LDAP_P((
+	char *name ));
 
 LDAP_SLAPD_F (AttributeDescription *) ad_find_tags LDAP_P((
 	AttributeType *type,

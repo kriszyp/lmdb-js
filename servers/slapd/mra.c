@@ -141,7 +141,12 @@ get_mra(
 	if( type.bv_val != NULL ) {
 		rc = slap_bv2ad( &type, &ma.ma_desc, text );
 		if( rc != LDAP_SUCCESS ) {
-			return rc;
+			rc = slap_bv2undef_ad( &type, &ma.ma_desc, text,
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+
+			if( rc != LDAP_SUCCESS ) {
+				return rc;
+			}
 		}
 	}
 

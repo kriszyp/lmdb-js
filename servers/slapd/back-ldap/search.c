@@ -534,12 +534,13 @@ ldap_build_entry(
 		if ( slap_bv2ad( &a, &attr->a_desc, &text ) 
 				!= LDAP_SUCCESS )
 		{
-			if ( slap_bv2undef_ad( &a, &attr->a_desc, &text ) 
-					!= LDAP_SUCCESS )
+			if ( slap_bv2undef_ad( &a, &attr->a_desc, &text,
+				SLAP_AD_PROXIED ) != LDAP_SUCCESS )
 			{
 				Debug( LDAP_DEBUG_ANY, 
-					"slap_bv2undef_ad(%s):	%s\n",
-					a.bv_val, text, 0 );
+					"%s ldap_build_entry: "
+					"slap_bv2undef_ad(%s): %s\n",
+					op->o_log_prefix, a.bv_val, text );
 				ch_free( attr );
 				continue;
 			}

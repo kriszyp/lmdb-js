@@ -247,6 +247,10 @@ at_destroy( void )
 	if ( slap_schema.si_at_undefined ) {
 		ad_destroy(slap_schema.si_at_undefined->sat_ad);
 	}
+
+	if ( slap_schema.si_at_proxied ) {
+		ad_destroy(slap_schema.si_at_proxied->sat_ad);
+	}
 }
 
 int
@@ -396,6 +400,18 @@ at_insert(
 			}
 			/* FIX: temporal consistency check */
 			at_bvfind(&air->air_name);
+			names++;
+		}
+	}
+
+	if ( sat->sat_oid ) {
+		slap_ad_undef_remove( sat->sat_oid );
+	}
+
+	names = sat->sat_names;
+	if ( names ) {
+		while ( *names ) {
+			slap_ad_undef_remove( *names );
 			names++;
 		}
 	}

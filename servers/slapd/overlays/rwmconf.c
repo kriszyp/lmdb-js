@@ -175,14 +175,13 @@ rwm_map_config(
 					fname, lineno, src );
 
 				/*
-				 * FIXME: this should become an err
-				 *
-				 * FIXME: or, we should create a fake ad
+				 * we create a fake "proxied" ad 
 				 * and add it here.
 				 */
 
 				rc = slap_bv2undef_ad( &mapping[0].m_src,
-						&mapping[0].m_src_ad, &text );
+						&mapping[0].m_src_ad, &text,
+						SLAP_AD_PROXIED );
 				if ( rc != LDAP_SUCCESS ) {
 					fprintf( stderr,
 	"%s: line %d: source attributeType '%s': %d (%s)\n",
@@ -202,7 +201,8 @@ rwm_map_config(
 				fname, lineno, dst );
 
 			rc = slap_bv2undef_ad( &mapping[0].m_dst,
-					&mapping[0].m_dst_ad, &text );
+					&mapping[0].m_dst_ad, &text,
+					SLAP_AD_PROXIED );
 			if ( rc != LDAP_SUCCESS ) {
 				fprintf( stderr,
 	"%s: line %d: destination attributeType '%s': %d (%s)\n",

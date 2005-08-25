@@ -803,6 +803,13 @@ typedef struct slap_attr_desc {
 #define SLAP_DESC_TAG_RANGE		0x80U
 } AttributeDescription;
 
+/* flags to slap_*2undef_ad to register undefined (0, the default)
+ * or proxied (SLAP_AD_PROXIED) AttributeDescriptions; the additional
+ * SLAP_AD_NOINSERT is to lookup without insert */
+#define SLAP_AD_UNDEF			0x00U
+#define SLAP_AD_PROXIED			0x01U
+#define	SLAP_AD_NOINSERT		0x02U
+
 typedef struct slap_attr_name {
 	struct berval an_name;
 	AttributeDescription *an_desc;
@@ -918,6 +925,9 @@ struct slap_internal_schema {
 
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
+
+	/* "Proxied" Attribute Type */
+	AttributeType	*si_at_proxied;
 
 	/* Matching Rules */
 	MatchingRule	*si_mr_distinguishedNameMatch;
