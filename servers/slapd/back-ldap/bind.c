@@ -105,19 +105,11 @@ done:;
 
 		/* wait for all other ops to release the connection */
 retry_lock:;
-		switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-		case LDAP_PVT_THREAD_EBUSY:
-		default:
+		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+		if ( lc->lc_refcnt > 1 ) {
+			ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 			ldap_pvt_thread_yield();
 			goto retry_lock;
-
-		case 0:
-			if ( lc->lc_refcnt > 1 ) {
-				ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
-				ldap_pvt_thread_yield();
-				goto retry_lock;
-			}
-			break;
 		}
 
 		assert( lc->lc_refcnt == 1 );
@@ -294,7 +286,7 @@ ldap_back_start_tls(
 		if ( rc == LDAP_SUCCESS ) {
 			LDAPMessage	*res = NULL;
 			int		retries = 1;
-			struct timeval	tv = { 0, 0 };
+			struct timeval	tv = { 0, 100000 };
 
 retry:;
 			rc = ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res );
@@ -819,7 +811,7 @@ ldap_back_op_result(
 	 * remote server response */
 	if ( ERR_OK( rs->sr_err ) ) {
 		int		rc;
-		struct timeval	tv = { 0, 0 };
+		struct timeval	tv = { 0, 100000 };
 
 retry:;
 		/* if result parsing fails, note the failure reason */

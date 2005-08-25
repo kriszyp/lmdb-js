@@ -70,7 +70,14 @@ static int		check_scope( BackendDB *be, AccessControl *a );
 
 #ifdef SLAP_DYNACL
 static int
-slap_dynacl_config( const char *fname, int lineno, Access *b, const char *name, slap_style_t sty, const char *right )
+slap_dynacl_config(
+	const char *fname,
+	int lineno,
+	Access *b,
+	const char *name,
+	const char *opts,
+	slap_style_t sty,
+	const char *right )
 {
 	slap_dynacl_t	*da, *tmp;
 	int		rc = 0;
@@ -93,7 +100,7 @@ slap_dynacl_config( const char *fname, int lineno, Access *b, const char *name, 
 	*tmp = *da;
 
 	if ( tmp->da_parse ) {
-		rc = ( *tmp->da_parse )( fname, lineno, sty, right, &tmp->da_private );
+		rc = ( *tmp->da_parse )( fname, lineno, opts, sty, right, &tmp->da_private );
 		if ( rc ) {
 			ch_free( tmp );
 			return rc;
@@ -1490,17 +1497,23 @@ parse_acl(
 
 #ifdef SLAP_DYNACL
 				{
-					char		*name = NULL;
+					char		*name = NULL,
+							*opts = NULL;
 					
 					if ( strcasecmp( left, "aci" ) == 0 ) {
 						name = "aci";
 						
 					} else if ( strncasecmp( left, "dynacl/", STRLENOF( "dynacl/" ) ) == 0 ) {
 						name = &left[ STRLENOF( "dynacl/" ) ];
+						opts = strchr( name, '/' );
+						if ( opts ) {
+							opts[ 0 ] = '\0';
+							opts++;
+						}
 					}
 
 					if ( name ) {
-						if ( slap_dynacl_config( fname, lineno, b, name, sty, right ) ) {
+						if ( slap_dynacl_config( fname, lineno, b, name, opts, sty, right ) ) {
 							fprintf( stderr, "%s: line %d: "
 								"unable to configure dynacl \"%s\"\n",
 								fname, lineno, name );
@@ -1539,7 +1552,7 @@ parse_acl(
 						}
 
 					} else {
-						b->a_aci_at = slap_schema.si_ad_aci;
+						b->a_aci_at = slap_ad_aci;
 					}
 
 					if( !is_at_syntax( b->a_aci_at->ad_type,
@@ -2122,7 +2135,7 @@ acl_usage( void )
 			"\t[aci[=<attrname>]]\n"
 #endif
 #ifdef SLAP_DYNACL
-			"\t[dynacl/<name>[.<dynstyle>][=<pattern>]]\n"
+			"\t[dynacl/<name>[/<options>][.<dynstyle>][=<pattern>]]\n"
 #endif /* SLAP_DYNACL */
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n",
 		"<style> ::= exact | regex | base(Object)\n"

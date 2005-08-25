@@ -902,7 +902,9 @@ meta_send_entry(
 
 	dc.ctx = "searchAttrDN";
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
-		int		last = 0;
+		int				last = 0;
+		slap_syntax_validate_func	*validate;
+		slap_syntax_transform_func	*pretty;
 
 		ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
@@ -962,11 +964,23 @@ meta_send_entry(
 		{
 			attr->a_vals = (struct berval *)&slap_dummy_bv;
 
-		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
+		} else {
+			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); ++last )
+				;
+		}
+
+		validate = attr->a_desc->ad_type->sat_syntax->ssyn_validate;
+		pretty = attr->a_desc->ad_type->sat_syntax->ssyn_pretty;
+
+		if ( !validate && !pretty ) {
+			attr->a_nvals = NULL;
+			attr_free( attr );
+			goto next_attr;
+		}
+
+		if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass )
 		{
-			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); ++last );
-
 			for ( bv = attr->a_vals; !BER_BVISNULL( bv ); bv++ ) {
 				ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
@@ -1003,10 +1017,33 @@ meta_send_entry(
 
 		} else if ( attr->a_desc == slap_schema.si_ad_ref ) {
 			ldap_back_referral_result_rewrite( &dc, attr->a_vals );
+
+		} else {
+			int	i;
+
+			for ( i = 0; i < last; i++ ) {
+				struct berval	pval;
+				int		rc;
+
+				if ( pretty ) {
+					rc = pretty( attr->a_desc->ad_type->sat_syntax,
+						&attr->a_vals[i], &pval, NULL );
+
+				} else {
+					rc = validate( attr->a_desc->ad_type->sat_syntax,
+						&attr->a_vals[i] );
+				}
+
+				if ( pretty ) {
+					LBER_FREE( attr->a_vals[i].bv_val );
+					attr->a_vals[i] = pval;
+				}
+			}
 		}
 
 		if ( last && attr->a_desc->ad_type->sat_equality &&
-			attr->a_desc->ad_type->sat_equality->smr_normalize ) {
+			attr->a_desc->ad_type->sat_equality->smr_normalize )
+		{
 			int i;
 
 			attr->a_nvals = ch_malloc( ( last + 1 ) * sizeof( struct berval ) );
@@ -1026,6 +1063,7 @@ meta_send_entry(
 
 		*attrp = attr;
 		attrp = &attr->a_next;
+next_attr:;
 	}
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;

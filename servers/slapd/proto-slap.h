@@ -45,14 +45,12 @@ LDAP_SLAPD_F (int) aci_mask LDAP_P((
 	slap_access_t *grant,
 	slap_access_t *deny,
 	slap_aci_scope_t scope));
-LDAP_SLAPD_F (int) OpenLDAPaciValidate LDAP_P((
-	Syntax *syn, struct berval *in ));
-LDAP_SLAPD_F (int) OpenLDAPaciPretty LDAP_P((
-	Syntax *syn, struct berval *val, struct berval *out, void *ctx ));
-LDAP_SLAPD_F (slap_mr_normalize_func) OpenLDAPaciNormalize;
 #ifdef SLAP_DYNACL
 LDAP_SLAPD_F (int) dynacl_aci_init LDAP_P(( void ));
-#endif /* SLAP_DYNACL */
+#else /* !SLAP_DYNACL */
+LDAP_SLAPD_F (int) aci_init LDAP_P(( void ));
+LDAP_SLAPD_V (AttributeDescription *) slap_ad_aci;
+#endif /* !SLAP_DYNACL */
 #endif /* SLAPD_ACI_ENABLED */
 
 /*
@@ -1131,39 +1129,41 @@ LDAP_SLAPD_F (int) is_object_subclass LDAP_P((
 	ObjectClass *sub ));
 
 LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
-	Entry *, ObjectClass *oc, int set_flags ));
+	Entry *, ObjectClass *oc, unsigned flags ));
+#define	is_entry_objectclass_or_sub(e,oc) \
+	(is_entry_objectclass((e),(oc),SLAP_OCF_CHECK_SUP))
 #define is_entry_alias(e)		\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_ALIAS) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_alias, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_alias, SLAP_OCF_SET_FLAGS))
 #define is_entry_referral(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_REFERRAL) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_referral, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_referral, SLAP_OCF_SET_FLAGS))
 #define is_entry_subentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_SUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_subentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_subentry, SLAP_OCF_SET_FLAGS))
 #define is_entry_collectiveAttributeSubentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributeSubentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributeSubentry, SLAP_OCF_SET_FLAGS))
 #define is_entry_dynamicObject(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, SLAP_OCF_SET_FLAGS))
 #define is_entry_glue(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_GLUE) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_glue, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_glue, SLAP_OCF_SET_FLAGS))
 #define is_entry_syncProviderSubentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_SYNCPROVIDERSUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_syncProviderSubentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_syncProviderSubentry, SLAP_OCF_SET_FLAGS))
 #define is_entry_syncConsumerSubentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_SYNCCONSUMERSUBENTRY) != 0) \
-	 : is_entry_objectclass((e), slap_schema.si_oc_syncConsumerSubentry, 1))
+	 : is_entry_objectclass((e), slap_schema.si_oc_syncConsumerSubentry, SLAP_OCF_SET_FLAGS))
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 LDAP_SLAPD_F (void) oc_unparse LDAP_P((
@@ -1451,9 +1451,17 @@ LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F( slap_mr_indexer_func ) octetStringIndexer;
 LDAP_SLAPD_F( slap_mr_filter_func ) octetStringFilter;
+
 LDAP_SLAPD_F( int ) numericoidValidate LDAP_P((
 	struct slap_syntax *syntax,
         struct berval *in ));
+LDAP_SLAPD_F( int ) octetStringMatch LDAP_P((
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue ));
 
 /*
  * schema_prep.c
@@ -1701,6 +1709,9 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
 #ifndef HAVE_GMTIME_R
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 #endif
+
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	ad_undef_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	oc_undef_mutex;
 
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
 

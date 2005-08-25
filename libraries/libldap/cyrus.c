@@ -983,9 +983,10 @@ int ldap_pvt_sasl_secprops(
 				sprops[j].key.bv_len )) continue;
 			if ( sprops[j].ival ) {
 				int v;
-				if ( props[i][sprops[j].key.bv_len] != '=' ) continue;
-				if ( !isdigit( props[i][sprops[j].key.bv_len+1] )) continue;
-				v = atoi( props[i]+sprops[j].key.bv_len+1 );
+				char *next = NULL;
+				if ( !isdigit( props[i][sprops[j].key.bv_len] )) continue;
+				v = strtoul( &props[i][sprops[j].key.bv_len], &next, 10 );
+				if ( next == NULL || next[ 0 ] != '\0' ) continue;
 				switch( sprops[j].ival ) {
 				case GOT_MINSSF:
 					min_ssf = v; got_min_ssf++; break;

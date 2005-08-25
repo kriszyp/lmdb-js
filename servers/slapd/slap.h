@@ -743,6 +743,10 @@ typedef struct slap_object_class {
 	LDAP_STAILQ_ENTRY(slap_object_class) soc_next;
 } ObjectClass;
 
+#define	SLAP_OCF_SET_FLAGS	0x1
+#define	SLAP_OCF_CHECK_SUP	0x2
+#define	SLAP_OCF_MASK		(SLAP_OCF_SET_FLAGS|SLAP_OCF_CHECK_SUP)
+
 #define	SLAP_OC_ALIAS		0x0001
 #define	SLAP_OC_REFERRAL	0x0002
 #define	SLAP_OC_SUBENTRY	0x0004
@@ -890,9 +894,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_children;
 	AttributeDescription *si_ad_saslAuthzTo;
 	AttributeDescription *si_ad_saslAuthzFrom;
-#ifdef SLAPD_ACI_ENABLED
-	AttributeDescription *si_ad_aci;
-#endif /* SLAPD_ACI_ENABLED */
 
 	/* dynamic entries */
 	AttributeDescription *si_ad_entryTtl;
@@ -1258,9 +1259,10 @@ struct slap_op;
 /*
  * "dynamic" ACL infrastructure (for ACIs and more)
  */
-typedef int (slap_dynacl_parse)( const char *fname, int lineno, slap_style_t, const char *, void **privp );
-typedef int (slap_dynacl_unparse)( void *priv, struct berval *bv );
-typedef int (slap_dynacl_mask)(
+typedef int (slap_dynacl_parse) LDAP_P(( const char *fname, int lineno,
+	const char *opts, slap_style_t, const char *, void **privp ));
+typedef int (slap_dynacl_unparse) LDAP_P(( void *priv, struct berval *bv ));
+typedef int (slap_dynacl_mask) LDAP_P((
 		void			*priv,
 		struct slap_op		*op,
 		Entry			*e,
@@ -1269,8 +1271,8 @@ typedef int (slap_dynacl_mask)(
 		int			nmatch,
 		regmatch_t		*matches,
 		slap_access_t		*grant,
-		slap_access_t		*deny );
-typedef int (slap_dynacl_destroy)( void *priv );
+		slap_access_t		*deny ));
+typedef int (slap_dynacl_destroy) LDAP_P(( void *priv ));
 
 typedef struct slap_dynacl_t {
 	char			*da_name;
@@ -2715,7 +2717,6 @@ struct slap_listener {
 #define sl_addr	sl_sa.sa_in_addr
 };
 
-#ifdef SLAPD_MONITOR
 /*
  * Operation indices
  */
@@ -2732,7 +2733,6 @@ enum {
 	SLAP_OP_EXTENDED,
 	SLAP_OP_LAST
 };
-#endif /* SLAPD_MONITOR */
 
 typedef struct slap_counters_t {
 	ldap_pvt_thread_mutex_t	sc_sent_mutex;

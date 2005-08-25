@@ -38,6 +38,7 @@ static int
 pg_dynacl_parse(
 	const char	*fname,
 	int 		lineno,
+	const char	*opts,
 	slap_style_t	style,
 	const char	*pattern,
 	void		**privp )
@@ -75,6 +76,8 @@ pg_dynacl_parse(
 		goto cleanup;
 	}
 
+	/* TODO: use opts to allow the use of different
+	 * group objects and member attributes */
 	if ( pg_posixGroup == NULL ) {
 		pg_posixGroup = oc_find( "posixGroup" );
 		if ( pg_posixGroup == NULL ) {

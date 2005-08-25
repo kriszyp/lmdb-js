@@ -111,7 +111,7 @@ attr_dup( Attribute *a )
 	tmp = attr_alloc( a->a_desc );
 
 	if ( a->a_vals != NULL ) {
-		int i;
+		int	i;
 
 		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
 			/* EMPTY */ ;
@@ -129,13 +129,17 @@ attr_dup( Attribute *a )
 		assert( a->a_nvals != NULL );
 
 		if ( a->a_nvals != a->a_vals ) {
+			int	j;
+
 			tmp->a_nvals = ch_malloc( (i + 1) * sizeof(struct berval) );
-			for ( i = 0; !BER_BVISNULL( &a->a_nvals[i] ); i++ ) {
-				ber_dupbv( &tmp->a_nvals[i], &a->a_nvals[i] );
-				if ( BER_BVISNULL( &tmp->a_nvals[i] ) ) break;
+			for ( j = 0; !BER_BVISNULL( &a->a_nvals[j] ); j++ ) {
+				assert( j < i );
+				ber_dupbv( &tmp->a_nvals[j], &a->a_nvals[j] );
+				if ( BER_BVISNULL( &tmp->a_nvals[j] ) ) break;
 				/* FIXME: error? */
 			}
-			BER_BVZERO( &tmp->a_nvals[i] );
+			assert( j == i );
+			BER_BVZERO( &tmp->a_nvals[j] );
 
 		} else {
 			tmp->a_nvals = tmp->a_vals;

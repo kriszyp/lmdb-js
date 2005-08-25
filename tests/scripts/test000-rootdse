@@ -49,8 +49,10 @@ if test $RC = 0 ; then
 
 fi
 
+count=2
 if test $RC = 0 ; then
 	if test $MONITORDB = yes -o $MONITORDB = mod ; then
+		count=3
 		echo "Using ldapsearch to retrieve the cn=Monitor..."
 		$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 \
 			'+extensibleObject' >> $SEARCHOUT 2>&1
@@ -67,8 +69,8 @@ if test $RC != 0 ; then
 	echo ">>>>> Test failed"
 else
 	RC=`grep '^dn:' $SEARCHOUT | wc -l`
-	if test $RC != 3 ; then
-		echo ">>>>> Test failed: expected 3 entries, got" $RC
+	if test $RC != $count ; then
+		echo ">>>>> Test failed: expected $count entries, got" $RC
 		RC=1
 	else
 		echo ">>>>> Test succeeded"

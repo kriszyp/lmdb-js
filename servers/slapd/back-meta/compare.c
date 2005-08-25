@@ -179,7 +179,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			struct timeval		tv = { 0 };
 
 			tv.tv_sec = 0;
-			tv.tv_usec = 0;
+			tv.tv_usec = 100000;	/* 0.1 s */
 
 			if ( msgid[ i ] == -1 ) {
 				continue;

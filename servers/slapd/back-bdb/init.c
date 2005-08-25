@@ -278,6 +278,15 @@ bdb_db_open( BackendDB *be )
 			}
 			/* Prev environment had TXN support, get rid of it */
 			if ( !flags_ok ) {
+				bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
+				bdb->bi_dbenv = NULL;
+				rc = db_env_create( &bdb->bi_dbenv, 0 );
+				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"bdb_db_open: db_env_create failed: %s (%d)\n",
+						db_strerror(rc), rc, 0 );
+					return rc;
+				}
 				bdb->bi_dbenv->remove( bdb->bi_dbenv, dbhome, 0 );
 				bdb->bi_dbenv = NULL;
 			}

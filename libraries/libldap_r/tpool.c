@@ -96,9 +96,15 @@ static ldap_pvt_thread_mutex_t ldap_pvt_thread_pool_mutex;
 
 static void *ldap_int_thread_pool_wrapper( void *pool );
 
+static ldap_pvt_thread_t ldap_int_main_tid;
+
+static ldap_int_thread_key_t ldap_int_main_thrctx[LDAP_MAXTHR];
+
 int
 ldap_int_thread_pool_startup ( void )
 {
+	ldap_int_main_tid = ldap_pvt_thread_self();
+
 	return ldap_pvt_thread_mutex_init(&ldap_pvt_thread_pool_mutex);
 }
 
@@ -652,6 +658,8 @@ void *ldap_pvt_thread_pool_context( )
 	int i, hash;
 
 	tid = ldap_pvt_thread_self();
+	if ( TID_EQ( tid, ldap_int_main_tid ))
+		return ldap_int_main_thrctx;
 
 	TID_HASH( tid, hash );
 	for (i = hash & (LDAP_MAXTHR-1); !TID_EQ(thread_keys[i].id, tid_zero) &&
@@ -660,4 +668,15 @@ void *ldap_pvt_thread_pool_context( )
 	return thread_keys[i].ctx;
 }
 
+void ldap_pvt_thread_pool_context_reset( void *vctx )
+{
+	ldap_int_thread_key_t *ctx = vctx;
+	int i;
+
+	for ( i=0; i<MAXKEYS && ctx[i].ltk_key; i++) {
+		if ( ctx[i].ltk_free )
+			ctx[i].ltk_free( ctx[i].ltk_key, ctx[i].ltk_data );
+		ctx[i].ltk_key = NULL;
+	}
+}
 #endif /* LDAP_THREAD_HAVE_TPOOL */

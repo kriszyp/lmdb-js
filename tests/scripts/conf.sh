@@ -12,12 +12,11 @@
 ## A copy of this license is available in the file LICENSE in the
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
+MONMOD=nomod
 if [ x"$MONITORDB" = xyes -o x"$MONITORDB" = xmod ] ; then
 	MON=monitor
 	if [ $MONITORDB = mod ] ; then
 		MONMOD=monitormod
-	else
-		MONMOD=nomod
 	fi
 else
 	MON=nomonitor
@@ -51,9 +50,11 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_syncprov}#//"			\
 	-e "s/^#${AC_translucent}#//"			\
 	-e "s/^#${AC_unique}#//"			\
+	-e "s/^#${AC_valsort}#//"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/^#${MONMOD}#//"				\
 	-e "s/^#${SASL}#//"				\
+	-e "s/^#${ACI}#//"				\
 	-e "s;@URI1@;${URI1};"				\
 	-e "s;@URI2@;${URI2};"				\
 	-e "s;@URI3@;${URI3};"				\

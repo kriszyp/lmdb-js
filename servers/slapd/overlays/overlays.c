@@ -65,6 +65,9 @@ extern int translucent_init();
 #if SLAPD_OVER_UNIQUE == SLAPD_MOD_STATIC
 extern int unique_init();
 #endif
+#if SLAPD_OVER_VALSORT == SLAPD_MOD_STATIC
+extern int valsort_init();
+#endif
 
 static struct {
 	char *name;
@@ -111,6 +114,9 @@ static struct {
 #endif
 #if SLAPD_OVER_UNIQUE == SLAPD_MOD_STATIC
 	{ "Attribute Uniqueness", unique_init },
+#endif
+#if SLAPD_OVER_VALSORT == SLAPD_MOD_STATIC
+	{ "Value Sorting", valsort_init },
 #endif
 	{ NULL, NULL }
 };

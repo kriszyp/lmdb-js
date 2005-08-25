@@ -2600,8 +2600,10 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		return 1;
 
 	if ( readit ) {
+		void *thrctx = ldap_pvt_thread_pool_context();
+
 		op = (Operation *)opbuf;
-		connection_fake_init( &conn, op, cfb );
+		connection_fake_init( &conn, op, thrctx );
 
 		filter.f_desc = slap_schema.si_ad_objectClass;
 
@@ -2631,7 +2633,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		op->o_bd = &cfb->cb_db;
 		rc = op->o_bd->be_search( op, &rs );
 
-		slap_sl_mem_destroy( NULL, op->o_tmpmemctx );
+		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
 
 	cfb->cb_use_ldif = 1;
@@ -3980,14 +3982,16 @@ config_back_db_open( BackendDB *be )
 	Operation *op;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	SlapReply rs = {REP_RESULT};
+	void *thrctx = NULL;
 
 	/* If we read the config from back-ldif, nothing to do here */
 	if ( cfb->cb_got_ldif )
 		return 0;
 
 	if ( cfb->cb_use_ldif ) {
+		thrctx = ldap_pvt_thread_pool_context();
 		op = (Operation *)opbuf;
-		connection_fake_init( &conn, op, cfb );
+		connection_fake_init( &conn, op, thrctx );
 
 		op->o_dn = be->be_rootdn;
 		op->o_ndn = be->be_rootndn;
@@ -4098,8 +4102,8 @@ config_back_db_open( BackendDB *be )
 			}
 		}
 	}
-	if ( op )
-		slap_sl_mem_destroy( NULL, op->o_tmpmemctx );
+	if ( thrctx )
+		ldap_pvt_thread_pool_context_reset( thrctx );
 
 	return 0;
 }

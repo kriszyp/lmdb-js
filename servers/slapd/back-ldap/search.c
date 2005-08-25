@@ -179,6 +179,7 @@ ldap_back_search(
 
 	} else {
 		tv.tv_sec = 0;
+		tv.tv_usec = 100000;
 	}
 
 	if ( op->ors_attrs ) {

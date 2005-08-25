@@ -517,6 +517,7 @@ policy rules will be enforced.
    EQUALITY distinguishedNameMatch
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
    SINGLE-VALUE
+   NO-USER-MODIFICATION
    USAGE directoryOperation)
 .RE
 
@@ -537,6 +538,7 @@ does not exist, the user's password will not expire.
    EQUALITY generalizedTimeMatch
    ORDERING generalizedTimeOrderingMatch
    SINGLE-VALUE
+   NO-USER-MODIFICATION
    USAGE directoryOperation)
 .RE
 
@@ -557,6 +559,7 @@ and may only be unlocked by an administrator.
    EQUALITY generalizedTimeMatch
    ORDERING generalizedTimeOrderingMatch
    SINGLE-VALUE
+   NO-USER-MODIFICATION
    USAGE directoryOperation)
 .RE
 
@@ -590,6 +593,7 @@ will be cleansed of entries.
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
    EQUALITY generalizedTimeMatch
    ORDERING generalizedTimeOrderingMatch
+   NO-USER-MODIFICATION
    USAGE directoryOperation )
 .RE
 
@@ -643,6 +647,7 @@ field is in GMT format.
    DESC 'The history of user passwords'
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
    EQUALITY octetStringMatch
+   NO-USER-MODIFICATION
    USAGE directoryOperation)
 .RE
 
@@ -667,6 +672,7 @@ attribute.
    DESC 'The timestamps of the grace login once the password has expired'
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
    EQUALITY generalizedTimeMatch
+   NO-USER-MODIFICATION
    USAGE directoryOperation)
 .RE
 
@@ -712,7 +718,7 @@ ppolicy_default "cn=Standard,ou=Policies,dc=example,dc=com"
 .LP
 IETF LDAP password policy proposal by P. Behera, L.  Poitou and J.
 Sermersheim:  documented in IETF document
-"draft-behera-ldap-password-policy-08.txt".
+"draft-behera-ldap-password-policy-09.txt".
 
 .SH BUGS
 The LDAP Password Policy specification is not yet an approved standard,
@@ -731,8 +737,8 @@ IETF LDAP password policy proposal by P. Behera, L.
 Poitou and J. Sermersheim.
 The proposal is fully documented in
 the
-IETF document named draft-behera-ldap-password-policy-08.txt,
-written in October of 2004.
+IETF document named draft-behera-ldap-password-policy-09.txt,
+written in July of 2005.
 .P
 .B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).

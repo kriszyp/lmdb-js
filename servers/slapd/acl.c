@@ -2794,19 +2794,20 @@ slap_dynacl_get( const char *name )
 int
 acl_init( void )
 {
-#ifdef SLAP_DYNACL
-	int	rc;
+	int	rc = 0;
 
 #ifdef SLAPD_ACI_ENABLED
+#ifdef SLAP_DYNACL
 	rc = dynacl_aci_init();
+#else /* !SLAP_DYNACL */
+	rc = aci_init();
+#endif /* !SLAP_DYNACL */
 	if ( rc != 0 ) {
 		return rc;
 	}
 #endif /* SLAPD_ACI_ENABLED */
 
-#endif /* SLAP_DYNACL */
-
-	return 0;
+	return rc;
 }
 
 int

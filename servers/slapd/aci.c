@@ -42,6 +42,34 @@
 
 #define ACI_BUF_SIZE 	1024	/* use most appropriate size */
 
+#ifdef SLAP_DYNACL
+static
+#endif /* SLAP_DYNACL */
+AttributeDescription *slap_ad_aci;
+
+static int
+OpenLDAPaciValidate(
+	Syntax		*syntax,
+	struct berval	*val );
+
+static int
+OpenLDAPaciPretty(
+	Syntax		*syntax,
+	struct berval	*val,
+	struct berval	*out,
+	void		*ctx );
+
+static int
+OpenLDAPaciNormalize(
+	slap_mask_t	use,
+	Syntax		*syntax,
+	MatchingRule	*mr,
+	struct berval	*val,
+	struct berval	*out,
+	void		*ctx );
+
+#define	OpenLDAPaciMatch			octetStringMatch
+
 static int
 aci_list_map_rights(
 	struct berval	*list )
@@ -57,6 +85,20 @@ aci_list_map_rights(
 		}
 
 		switch ( *bv.bv_val ) {
+		case 'x':
+			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt does not 
+			 * define any equivalent to the AUTH right, so I've just used
+			 * 'x' for now.
+			 */
+			ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
+			break;
+		case 'd':
+			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt defines
+			 * the right 'd' to mean "delete"; we hijack it to mean
+			 * "disclose" for consistency wuith the rest of slapd.
+			 */
+			ACL_PRIV_SET(mask, ACL_PRIV_DISCLOSE);
+			break;
 		case 'c':
 			ACL_PRIV_SET(mask, ACL_PRIV_COMPARE);
 			break;
@@ -73,13 +115,6 @@ aci_list_map_rights(
 			break;
 		case 'w':
 			ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
-			break;
-		case 'x':
-			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt does not 
-			 * define any equivalent to the AUTH right, so I've just used
-			 * 'x' for now.
-			 */
-			ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
 			break;
 		default:
 			break;
@@ -239,7 +274,7 @@ aci_group_member (
 	const char		*text;
 	int			rc;
 
-	/* format of string is "group/objectClassValue/groupAttrName" */
+	/* format of string is "{group|role}/objectClassValue/groupAttrName" */
 	if ( acl_get_part( subj, 0, '/', &subjdn ) < 0 ) {
 		return 0;
 	}
@@ -299,7 +334,12 @@ aci_mask(
 	slap_access_t		*deny,
 	slap_aci_scope_t	asserted_scope )
 {
-	struct berval		bv, scope, perms, type, sdn;
+	struct berval		bv,
+				scope,
+				perms,
+				type,
+				opts,
+				sdn;
 	int			rc;
 		
 
@@ -413,6 +453,15 @@ aci_mask(
 	sdn.bv_val = type.bv_val + type.bv_len + STRLENOF( "#" );
 	sdn.bv_len = aci->bv_len - ( sdn.bv_val - aci->bv_val );
 
+	/* get the type options, if any */
+	if ( acl_get_part( &type, 1, '/', &opts ) > 0 ) {
+		opts.bv_len = type.bv_len - ( opts.bv_val - type.bv_val );
+		type.bv_len = opts.bv_val - type.bv_val - 1;
+
+	} else {
+		BER_BVZERO( &opts );
+	}
+
 	if ( ber_bvcmp( &aci_bv[ ACI_BV_ACCESS_ID ], &type ) == 0 ) {
 		return dn_match( &op->o_ndn, &sdn );
 
@@ -459,15 +508,47 @@ aci_mask(
 		return rc;
 
 	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_GROUP ], &type ) == 0 ) {
-		if ( aci_group_member( &sdn, &aci_bv[ ACI_BV_GROUP_CLASS ],
-				&aci_bv[ ACI_BV_GROUP_ATTR ], op, e, nmatch, matches ) )
+		struct berval	oc,
+				at;
+
+		if ( BER_BVISNULL( &opts ) ) {
+			oc = aci_bv[ ACI_BV_GROUP_CLASS ];
+			at = aci_bv[ ACI_BV_GROUP_ATTR ];
+
+		} else {
+			if ( acl_get_part( &opts, 0, '/', &oc ) < 0 ) {
+				assert( 0 );
+			}
+
+			if ( acl_get_part( &opts, 1, '/', &at ) < 0 ) {
+				at = aci_bv[ ACI_BV_GROUP_ATTR ];
+			}
+		}
+
+		if ( aci_group_member( &sdn, &oc, &at, op, e, nmatch, matches ) )
 		{
 			return 1;
 		}
 
 	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_ROLE ], &type ) == 0 ) {
-		if ( aci_group_member( &sdn, &aci_bv[ ACI_BV_ROLE_CLASS ],
-				&aci_bv[ ACI_BV_ROLE_ATTR ], op, e, nmatch, matches ) )
+		struct berval	oc,
+				at;
+
+		if ( BER_BVISNULL( &opts ) ) {
+			oc = aci_bv[ ACI_BV_ROLE_CLASS ];
+			at = aci_bv[ ACI_BV_ROLE_ATTR ];
+
+		} else {
+			if ( acl_get_part( &opts, 0, '/', &oc ) < 0 ) {
+				assert( 0 );
+			}
+
+			if ( acl_get_part( &opts, 1, '/', &at ) < 0 ) {
+				at = aci_bv[ ACI_BV_ROLE_ATTR ];
+			}
+		}
+
+		if ( aci_group_member( &sdn, &oc, &at, op, e, nmatch, matches ) )
 		{
 			return 1;
 		}
@@ -481,9 +562,100 @@ aci_mask(
 		if ( acl_match_set( &sdn, op, e, 1 ) ) {
 			return 1;
 		}
+
+	} else {
+		/* it passed normalization! */
+		assert( 0 );
 	}
 
 	return 0;
+}
+
+int
+aci_init( void )
+{
+	/* OpenLDAP Experimental Syntax */
+	static slap_syntax_defs_rec aci_syntax_def = {
+		"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
+			SLAP_SYNTAX_HIDE,
+			OpenLDAPaciValidate,
+			OpenLDAPaciPretty
+	};
+	static slap_mrule_defs_rec aci_mr_def = {
+		"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
+			SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
+			NULL, OpenLDAPaciNormalize, OpenLDAPaciMatch,
+			NULL, NULL,
+			NULL
+	};
+	static struct {
+		char			*name;
+		char			*desc;
+		slap_mask_t		flags;
+		AttributeDescription	**ad;
+	}		aci_at = {
+		"OpenLDAPaci", "( 1.3.6.1.4.1.4203.666.1.5 "
+			"NAME 'OpenLDAPaci' "
+			"DESC 'OpenLDAP access control information (experimental)' "
+			"EQUALITY OpenLDAPaciMatch "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 "
+			"USAGE directoryOperation )",
+		SLAP_AT_HIDE,
+		&slap_ad_aci
+	};
+
+	LDAPAttributeType	*at;
+	AttributeType		*sat;
+	int			rc;
+	const char		*text;
+
+	/* ACI syntax */
+	rc = register_syntax( &aci_syntax_def );
+	if ( rc != 0 ) {
+		return rc;
+	}
+	
+	/* ACI equality rule */
+	rc = register_matching_rule( &aci_mr_def );
+	if ( rc != 0 ) {
+		return rc;
+	}
+
+	/* ACI attribute */
+	at = ldap_str2attributetype( aci_at.desc,
+		&rc, &text, LDAP_SCHEMA_ALLOW_ALL );
+	if ( !at ) {
+		Debug( LDAP_DEBUG_ANY,
+			"%s AttributeType load failed: %s %s\n",
+			aci_at.name, ldap_scherr2str( rc ), text );
+		return rc;
+	}
+
+	rc = at_add( at, 0, &sat, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_attributetype_free( at );
+		fprintf( stderr, "iMUX_monitor_schema_init: "
+			"AttributeType load failed: %s %s\n",
+			scherr2str( rc ), text );
+		return rc;
+	}
+	ldap_memfree( at );
+
+	rc = slap_str2ad( aci_at.name,
+			aci_at.ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"unable to find AttributeDescription "
+			"\"%s\": %d (%s)\n",
+			aci_at.name, rc, text );
+		return 1;
+	}
+
+	/* install flags */
+	sat->sat_flags |= aci_at.flags;
+
+	return rc;
 }
 
 #ifdef SLAP_DYNACL
@@ -493,7 +665,13 @@ aci_mask(
  * umbrella, because sets share some helpers with ACIs.
  */
 static int
-dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *right, void **privp )
+dynacl_aci_parse(
+	const char *fname,
+	int lineno,
+	const char *opts,
+	slap_style_t sty,
+	const char *right,
+	void **privp )
 {
 	AttributeDescription	*ad = NULL;
 	const char		*text = NULL;
@@ -514,7 +692,7 @@ dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *r
 		}
 
 	} else {
-		ad = slap_schema.si_ad_aci;
+		ad = slap_ad_aci;
 	}
 
 	if ( !is_at_syntax( ad->ad_type, SLAPD_ACI_SYNTAX) ) {
@@ -706,7 +884,15 @@ static slap_dynacl_t	dynacl_aci = {
 int
 dynacl_aci_init( void )
 {
-	return slap_dynacl_register( &dynacl_aci );
+	int	rc;
+
+	rc = aci_init();
+
+	if ( rc == 0 ) {
+		rc = slap_dynacl_register( &dynacl_aci );
+	}
+	
+	return rc;
 }
 
 #endif /* SLAP_DYNACL */
@@ -778,11 +964,12 @@ OpenLDAPaciValidatePerms(
 
 	for ( i = 0; i < perms->bv_len; ) {
 		switch ( perms->bv_val[ i ] ) {
+		case 'x':
+		case 'd':
 		case 'c':
 		case 's':
 		case 'r':
 		case 'w':
-		case 'x':
 			break;
 
 		default:
@@ -1040,7 +1227,7 @@ static const struct berval *OpenLDAPacitypes[] = {
 	NULL
 };
 
-int
+static int
 OpenLDAPaciValidate(
 	Syntax		*syntax,
 	struct berval	*val )
@@ -1191,7 +1378,7 @@ OpenLDAPaciPrettyNormal(
 			subject = BER_BVNULL,
 			nsubject = BER_BVNULL;
 	int		idx,
-			rc,
+			rc = LDAP_SUCCESS,
 			freesubject = 0,
 			freetype = 0;
 	char		*ptr;
@@ -1315,7 +1502,8 @@ OpenLDAPaciPrettyNormal(
 						- ( ocbv.bv_val - type.bv_val );
 				}
 
-				if ( oc_bvfind( &ocbv ) == NULL ) {
+				oc = oc_bvfind( &ocbv );
+				if ( oc == NULL ) {
 					rc = LDAP_INVALID_SYNTAX;
 					goto cleanup;
 				}
@@ -1406,7 +1594,7 @@ cleanup:;
 	return rc;
 }
 
-int
+static int
 OpenLDAPaciPretty(
 	Syntax		*syntax,
 	struct berval	*val,
@@ -1416,7 +1604,7 @@ OpenLDAPaciPretty(
 	return OpenLDAPaciPrettyNormal( val, out, ctx, 0 );
 }
 
-int
+static int
 OpenLDAPaciNormalize(
 	slap_mask_t	use,
 	Syntax		*syntax,

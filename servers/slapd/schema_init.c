@@ -50,8 +50,6 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
-#define	OpenLDAPaciMatch			octetStringMatch
-
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
 #define directoryStringApproxMatch		approxMatch
@@ -78,6 +76,9 @@ unsigned int index_substr_if_minlen = SLAP_INDEX_SUBSTR_IF_MINLEN_DEFAULT;
 unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
 unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
 unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
+
+ldap_pvt_thread_mutex_t	ad_undef_mutex;
+ldap_pvt_thread_mutex_t	oc_undef_mutex;
 
 static int
 inValidate(
@@ -126,7 +127,7 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 #define certificateValidate sequenceValidate
 #endif
 
-static int
+int
 octetStringMatch(
 	int *matchp,
 	slap_mask_t flags,
@@ -3423,14 +3424,6 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		serialNumberAndIssuerValidate,
 		serialNumberAndIssuerPretty},
 
-#ifdef SLAPD_ACI_ENABLED
-	/* OpenLDAP Experimental Syntaxes */
-	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
-		SLAP_SYNTAX_HIDE,
-		OpenLDAPaciValidate,
-		OpenLDAPaciPretty},
-#endif
-
 #ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
@@ -3847,15 +3840,6 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL},
 #endif
 
-#ifdef SLAPD_ACI_ENABLED
-	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
-		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
-		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
-		NULL, OpenLDAPaciNormalize, OpenLDAPaciMatch,
-		NULL, NULL,
-		NULL},
-#endif
-
 	{"( 1.2.840.113556.1.4.803 NAME 'integerBitAndMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EXT, NULL,
@@ -3966,4 +3950,7 @@ schema_destroy( void )
 	mr_destroy();
 	mru_destroy();
 	syn_destroy();
+
+	ldap_pvt_thread_mutex_destroy( &ad_undef_mutex );
+	ldap_pvt_thread_mutex_destroy( &oc_undef_mutex );
 }

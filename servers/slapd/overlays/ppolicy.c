@@ -2,7 +2,7 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2004-2005 The OpenLDAP Foundation.
- * Portions Copyright 2004 Howard Chu, Symas Corporation.
+ * Portions Copyright 2004-2005 Howard Chu, Symas Corporation.
  * Portions Copyright 2004 Hewlett-Packard Company.
  * All rights reserved.
  *
@@ -23,7 +23,7 @@
 #include "portable.h"
 
 /* This file implements "Password Policy for LDAP Directories",
- * based on draft behera-ldap-password-policy-08
+ * based on draft behera-ldap-password-policy-09
  */
 
 #ifdef SLAPD_OVER_PPOLICY
@@ -111,7 +111,7 @@ static struct schema_info {
 		"EQUALITY generalizedTimeMatch "
 		"ORDERING generalizedTimeOrderingMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"SINGLE-VALUE USAGE directoryOperation NO-USER-MODIFICATION )",
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdChangedTime },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.17 "
 		"NAME ( 'pwdAccountLockedTime' ) "
@@ -119,7 +119,7 @@ static struct schema_info {
 		"EQUALITY generalizedTimeMatch "
 		"ORDERING generalizedTimeOrderingMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"SINGLE-VALUE USAGE directoryOperation )",
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdAccountLockedTime },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.19 "
 		"NAME ( 'pwdFailureTime' ) "
@@ -127,21 +127,21 @@ static struct schema_info {
 		"EQUALITY generalizedTimeMatch "
 		"ORDERING generalizedTimeOrderingMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"USAGE directoryOperation )",
+		"NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdFailureTime },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.20 "
 		"NAME ( 'pwdHistory' ) "
 		"DESC 'The history of users passwords' "
 		"EQUALITY octetStringMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
-		"USAGE directoryOperation NO-USER-MODIFICATION )",
+		"NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdHistory },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.21 "
 		"NAME ( 'pwdGraceUseTime' ) "
 		"DESC 'The timestamps of the grace login once the password has expired' "
 		"EQUALITY generalizedTimeMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"USAGE directoryOperation NO-USER-MODIFICATION )",
+		"NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdGraceUseTime }, 
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.22 "
 		"NAME ( 'pwdReset' ) "
@@ -155,7 +155,7 @@ static struct schema_info {
 		"DESC 'The pwdPolicy subentry in effect for this object' "
 		"EQUALITY distinguishedNameMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
-		"SINGLE-VALUE USAGE directoryOperation )",
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		&ad_pwdPolicySubentry },
 	{ NULL, NULL }
 };
@@ -1767,6 +1767,11 @@ int ppolicy_init()
 			fprintf( stderr, "AttributeType Load failed %s %s\n",
 				scherr2str(code), err );
 			return code;
+		}
+		/* Allow Manager to set these as needed */
+		if ( is_at_no_user_mod( (*pwd_OpSchema[i].ad)->ad_type )) {
+			(*pwd_OpSchema[i].ad)->ad_type->sat_flags |=
+				SLAP_AT_MANAGEABLE;
 		}
 	}
 

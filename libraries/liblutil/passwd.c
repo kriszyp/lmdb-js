@@ -303,10 +303,15 @@ lutil_passwd(
 	}
 
 #ifdef SLAPD_CLEARTEXT
+	/* Do we think there is a scheme specifier here that we
+	 * didn't recognize? Assume a scheme name is at least 1 character.
+	 */
+	if (( passwd->bv_val[0] == '{' ) &&
+		( strchr( passwd->bv_val, '}' ) > passwd->bv_val+1 ))
+		return 1;
 	if( is_allowed_scheme("{CLEARTEXT}", schemes ) ) {
-		return (( passwd->bv_len == cred->bv_len ) &&
-				( passwd->bv_val[0] != '{' /*'}'*/ ))
-			? memcmp( passwd->bv_val, cred->bv_val, passwd->bv_len )
+		return ( passwd->bv_len == cred->bv_len ) ?
+			memcmp( passwd->bv_val, cred->bv_val, passwd->bv_len )
 			: 1;
 	}
 #endif

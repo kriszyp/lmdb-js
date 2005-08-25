@@ -39,7 +39,9 @@ static AttributeDescription	*ad_errCode;
 static AttributeDescription	*ad_errText;
 static AttributeDescription	*ad_errOp;
 static AttributeDescription	*ad_errSleepTime;
+static ObjectClass		*oc_errAbsObject;
 static ObjectClass		*oc_errObject;
+static ObjectClass		*oc_errAuxObject;
 
 typedef enum retcode_op_e {
 	SN_DG_OP_NONE		= 0x0000,
@@ -163,6 +165,7 @@ retcode_op_add( Operation *op, SlapReply *rs )
 typedef struct retcode_cb_t {
 	unsigned	rdc_flags;
 	ber_tag_t	rdc_tag;
+	AttributeName	*rdc_attrs;
 } retcode_cb_t;
 
 static int
@@ -175,6 +178,9 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 		int		rc;
 
 		op->o_tag = rdc->rdc_tag;
+		if ( op->o_tag == LDAP_REQ_SEARCH ) {
+			rs->sr_attrs = rdc->rdc_attrs;
+		}
 		rc = retcode_entry_response( op, rs, rs->sr_entry );
 		op->o_tag = o_tag;
 
@@ -211,7 +217,8 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	op2.ors_attrsonly = 0;
 	op2.ors_attrs = slap_anlist_all_attributes;
 
-	ber_str2bv_x( "(objectClass=errObject)", STRLENOF( "(objectClass=errObject)" ),
+	ber_str2bv_x( "(objectClass=errAbsObject)",
+		STRLENOF( "(objectClass=errAbsObject)" ),
 		1, &op2.ors_filterstr, op2.o_tmpmemctx );
 	op2.ors_filter = str2filter_x( &op2, op2.ors_filterstr.bv_val );
 
@@ -219,6 +226,9 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	op2.o_bd = &db;
 
 	rdc.rdc_flags = RETCODE_FINDIR;
+	if ( op->o_tag == LDAP_REQ_SEARCH ) {
+		rdc.rdc_attrs = op->ors_attrs;
+	}
 	rdc.rdc_tag = op->o_tag;
 	sc.sc_response = retcode_cb_response;
 	sc.sc_private = &rdc;
@@ -394,6 +404,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 		if ( rs->sr_ref != NULL ) {
 			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
 		}
 		rs->sr_matched = NULL;
 		rs->sr_text = NULL;
@@ -448,7 +459,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 		return SLAP_CB_CONTINUE;
 	}
 
-	if ( !is_entry_objectclass( e, oc_errObject, 0 ) ) {
+	if ( !is_entry_objectclass_or_sub( e, oc_errAbsObject ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1025,9 +1036,9 @@ retcode_init( void )
 		char		*desc;
 		ObjectClass	**oc;
 	} retcode_oc[] = {
-		{ "errObject", "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
-			"NAME ( 'errObject' ) "
-			"SUP top STRUCTURAL "
+		{ "errAbsObject", "( 1.3.6.1.4.1.4203.666.11.4.3.0 "
+			"NAME ( 'errAbsObject' ) "
+			"SUP top ABSTRACT "
 			"MUST ( errCode ) "
 			"MAY ( "
 				"cn "
@@ -1036,7 +1047,17 @@ retcode_init( void )
 				"$ errText "
 				"$ errSleepTime "
 			") )",
+			&oc_errAbsObject },
+		{ "errObject", "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
+			"NAME ( 'errObject' ) "
+			"SUP errAbsObject STRUCTURAL "
+			")",
 			&oc_errObject },
+		{ "errAuxObject", "( 1.3.6.1.4.1.4203.666.11.4.3.2 "
+			"NAME ( 'errAuxObject' ) "
+			"SUP errAbsObject AUXILIARY "
+			")",
+			&oc_errAuxObject },
 		{ NULL }
 	};
 
