@@ -142,7 +142,7 @@ typedef struct fbase_cookie {
 	int fscope;	/* if TRUE then fdn is within the psearch scope */
 } fbase_cookie;
 
-static AttributeName csn_anlist[2];
+static AttributeName csn_anlist[3];
 static AttributeName uuid_anlist[2];
 
 /* Build a LDAPsync intermediate state control */
@@ -177,6 +177,8 @@ syncprov_state_ctrl(
 			break;
 		}
 	}
+
+	/* FIXME: what if entryuuid is NULL or empty ? */
 
 	if ( send_cookie && cookie ) {
 		ber_printf( ber, "{eOON}",
@@ -2261,6 +2263,8 @@ syncprov_db_init(
 
 	csn_anlist[0].an_desc = slap_schema.si_ad_entryCSN;
 	csn_anlist[0].an_name = slap_schema.si_ad_entryCSN->ad_cname;
+	csn_anlist[1].an_desc = slap_schema.si_ad_entryUUID;
+	csn_anlist[1].an_name = slap_schema.si_ad_entryUUID->ad_cname;
 
 	uuid_anlist[0].an_desc = slap_schema.si_ad_entryUUID;
 	uuid_anlist[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
