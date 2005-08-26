@@ -668,7 +668,7 @@ int ad_inlist(
 			if (!slap_schema.si_at_undefined->sat_ad) {
 				const char *text;
 				slap_bv2undef_ad(&attrs->an_name,
-					&attrs->an_desc, &text);
+					&attrs->an_desc, &text, 0);
 			} else {
 				attrs->an_desc =
 					slap_schema.si_at_undefined->sat_ad;
@@ -683,21 +683,24 @@ int ad_inlist(
 int slap_str2undef_ad(
 	const char *str,
 	AttributeDescription **ad,
-	const char **text )
+	const char **text,
+	unsigned flags )
 {
 	struct berval bv;
 	bv.bv_val = (char *) str;
 	bv.bv_len = strlen( str );
 
-	return slap_bv2undef_ad( &bv, ad, text );
+	return slap_bv2undef_ad( &bv, ad, text, flags );
 }
 
 int slap_bv2undef_ad(
 	struct berval *bv,
 	AttributeDescription **ad,
-	const char **text )
+	const char **text,
+	unsigned flags )
 {
 	AttributeDescription *desc;
+	AttributeType *at;
 
 	assert( ad != NULL );
 
@@ -712,23 +715,33 @@ int slap_bv2undef_ad(
 		return LDAP_UNDEFINED_TYPE;
 	}
 
-	for( desc = slap_schema.si_at_undefined->sat_ad; desc;
-		desc=desc->ad_next ) 
-	{
+	/* use the appropriate type */
+	if ( flags & SLAP_AD_PROXIED ) {
+		at = slap_schema.si_at_proxied;
+
+	} else {
+		at = slap_schema.si_at_undefined;
+	}
+
+	for( desc = at->sat_ad; desc; desc=desc->ad_next ) {
 		if( desc->ad_cname.bv_len == bv->bv_len &&
-		    !strcasecmp( desc->ad_cname.bv_val, bv->bv_val ))
+		    !strcasecmp( desc->ad_cname.bv_val, bv->bv_val ) )
 		{
 		    	break;
 		}
 	}
-	
+
 	if( !desc ) {
+		if ( flags & SLAP_AD_NOINSERT ) {
+			*text = NULL;
+			return LDAP_UNDEFINED_TYPE;
+		}
+	
 		desc = ch_malloc(sizeof(AttributeDescription) + 1 +
 			bv->bv_len);
 		
 		desc->ad_flags = SLAP_DESC_NONE;
-		desc->ad_tags.bv_val = NULL;
-		desc->ad_tags.bv_len = 0;
+		BER_BVZERO( &desc->ad_tags );
 
 		desc->ad_cname.bv_len = bv->bv_len;
 		desc->ad_cname.bv_val = (char *)(desc+1);
@@ -738,7 +751,7 @@ int slap_bv2undef_ad(
 		ldap_pvt_str2upper( desc->ad_cname.bv_val );
 
 		/* shouldn't we protect this for concurrency? */
-		desc->ad_type = slap_schema.si_at_undefined;
+		desc->ad_type = at;
 		ldap_pvt_thread_mutex_lock( &ad_undef_mutex );
 		desc->ad_next = desc->ad_type->sat_ad;
 		desc->ad_type->sat_ad = desc;
@@ -752,6 +765,56 @@ int slap_bv2undef_ad(
 	}
 
 	return LDAP_SUCCESS;
+}
+
+static int
+undef_remove(
+	AttributeType	*at,
+	char		*name )
+{
+	AttributeDescription	**u_ad;
+
+	for ( u_ad = &at->sat_ad; *u_ad; ) {
+		struct berval	bv;
+
+		ber_str2bv( name, 0, 0, &bv );
+
+		/* remove iff undef == name or undef == name;tag */
+		if ( (*u_ad)->ad_cname.bv_len >= bv.bv_len
+			&& strncasecmp( (*u_ad)->ad_cname.bv_val, bv.bv_val, bv.bv_len ) == 0
+			&& ( (*u_ad)->ad_cname.bv_val[ bv.bv_len ] == '\0'
+				|| (*u_ad)->ad_cname.bv_val[ bv.bv_len ] == ';' ) )
+		{
+			AttributeDescription	*tmp = *u_ad;
+
+			*u_ad = (*u_ad)->ad_next;
+
+			ch_free( tmp );
+
+		} else {
+			u_ad = &(*u_ad)->ad_next;
+		}
+	}
+
+	return 0;
+}
+
+int
+slap_ad_undef_remove(
+	char *name )
+{
+	int	rc;
+
+	ldap_pvt_thread_mutex_lock( &ad_undef_mutex );
+
+	rc = undef_remove( slap_schema.si_at_undefined, name );
+	if ( rc == 0 ) {
+		rc = undef_remove( slap_schema.si_at_proxied, name );
+	}
+
+	ldap_pvt_thread_mutex_unlock( &ad_undef_mutex );
+
+	return rc;
 }
 
 int

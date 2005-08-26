@@ -1023,7 +1023,24 @@ static AttributeType slap_at_undefined = {
 	NULL, /* sup */
 	NULL, /* subtypes */
 	NULL, NULL, NULL, NULL,	/* matching rules routines */
-	NULL, /* syntax (this may need to be defined) */
+	NULL, /* syntax (will be set later to "octetString") */
+	NULL, /* schema check function */
+	NULL, /* oidmacro */
+	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
+	{ NULL }, /* next */
+	NULL /* attribute description */
+	/* mutex (don't know how to initialize it :) */
+};
+
+static AttributeType slap_at_proxied = {
+	{ "1.1.1", NULL, "Catchall for undefined proxied attribute types", 1, NULL,
+		NULL, NULL, NULL, NULL,
+		0, 0, 0, 0, LDAP_SCHEMA_USER_APPLICATIONS, NULL }, /* LDAPAttributeType */
+	BER_BVC("PROXIED"), /* cname */
+	NULL, /* sup */
+	NULL, /* subtypes */
+	NULL, NULL, NULL, NULL,	/* matching rules routines (will be set later) */
+	NULL, /* syntax (will be set later to "octetString") */
 	NULL, /* schema check function */
 	NULL, /* oidmacro */
 	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
@@ -1133,6 +1150,13 @@ slap_schema_load( void )
 
 	slap_at_undefined.sat_syntax = slap_schema.si_syn_octetString;
 	slap_schema.si_at_undefined = &slap_at_undefined;
+
+	slap_at_proxied.sat_equality = mr_find( "octetStringMatch" );
+	slap_at_proxied.sat_approx = mr_find( "octetStringMatch" );
+	slap_at_proxied.sat_ordering = mr_find( "octetStringOrderingMatch" );
+	slap_at_proxied.sat_substr = mr_find( "octetStringSubstringsMatch" );
+	slap_at_proxied.sat_syntax = slap_schema.si_syn_octetString;
+	slap_schema.si_at_proxied = &slap_at_proxied;
 
 	ldap_pvt_thread_mutex_init( &ad_undef_mutex );
 	ldap_pvt_thread_mutex_init( &oc_undef_mutex );

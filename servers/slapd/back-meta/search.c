@@ -920,8 +920,8 @@ meta_send_entry(
 		attr->a_desc = NULL;
 		if ( slap_bv2ad( &mapped, &attr->a_desc, &text )
 				!= LDAP_SUCCESS) {
-			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text ) 
-					!= LDAP_SUCCESS )
+			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text,
+				SLAP_AD_PROXIED ) != LDAP_SUCCESS )
 			{
 				char	buf[ SLAP_TEXT_BUFLEN ];
 

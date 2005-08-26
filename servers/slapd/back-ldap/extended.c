@@ -31,11 +31,11 @@
 BI_op_extended ldap_back_exop_passwd;
 
 static struct exop {
-	struct berval	*oid;
+	struct berval	oid;
 	BI_op_extended	*extended;
 } exop_table[] = {
-	{ (struct berval *)&slap_EXOP_MODIFY_PASSWD, ldap_back_exop_passwd },
-	{ NULL, NULL }
+	{ BER_BVC(LDAP_EXOP_MODIFY_PASSWD), ldap_back_exop_passwd },
+	{ BER_BVNULL, NULL }
 };
 
 int
@@ -46,7 +46,7 @@ ldap_back_extended(
 	int	i;
 
 	for ( i = 0; exop_table[i].extended != NULL; i++ ) {
-		if ( bvmatch( exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
+		if ( bvmatch( &exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
 		{
 			struct ldapconn	*lc;
 			LDAPControl	**oldctrls = NULL;

@@ -216,10 +216,10 @@ str2entry2( char *s, int checkvals )
 					goto fail;
 				}
 
-				rc = slap_bv2undef_ad( type+i, &ad, &text );
+				rc = slap_bv2undef_ad( type+i, &ad, &text, 0 );
 				if( rc != LDAP_SUCCESS ) {
 					Debug( LDAP_DEBUG_ANY,
-						"<= str2entry: str2undef_ad(%s): %s\n",
+						"<= str2entry: slap_str2undef_ad(%s): %s\n",
 							type[i].bv_val, text, 0 );
 					goto fail;
 				}
@@ -743,11 +743,11 @@ int entry_decode(struct berval *bv, Entry **e)
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<= entry_decode: str2ad(%s): %s\n", ptr, text, 0 );
-			rc = slap_bv2undef_ad( &bv, &ad, &text );
+			rc = slap_bv2undef_ad( &bv, &ad, &text, 0 );
 
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"<= entry_decode: str2undef_ad(%s): %s\n",
+					"<= entry_decode: slap_str2undef_ad(%s): %s\n",
 						ptr, text, 0 );
 				return rc;
 			}
