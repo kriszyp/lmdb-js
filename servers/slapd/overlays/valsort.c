@@ -507,7 +507,7 @@ static slap_overinst valsort;
 
 int valsort_init()
 {
-	int i, rc;
+	int rc;
 
 	valsort.on_bi.bi_type = "valsort";
 	valsort.on_bi.bi_db_destroy = valsort_destroy;
