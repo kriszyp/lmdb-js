@@ -103,8 +103,9 @@ static int	regex_matches(
 	int nmatch, regmatch_t *matches);
 
 typedef	struct AclSetCookie {
-	Operation *op;
-	Entry *e;
+	SetCookie	asc_cookie;
+#define	asc_op		asc_cookie.set_op
+	Entry		*asc_e;
 } AclSetCookie;
 
 SLAP_SET_GATHER acl_set_gather;
@@ -142,7 +143,8 @@ slap_access_always_allowed(
 {
 	assert( maskp != NULL );
 
-	ACL_PRIV_SET( *maskp, ACL_ACCESS2PRIV( access ) );
+	/* assign all */
+	ACL_LVL_ASSIGN_MANAGE( *maskp );
 
 	return 1;
 }
@@ -181,6 +183,8 @@ slap_access_allowed(
 
 	assert( attr != NULL );
 
+	ACL_INIT( mask );
+
 	/* grant database root access */
 	if ( be_isroot( op ) ) {
 		Debug( LDAP_DEBUG_ACL, "<= root access granted\n", 0, 0, 0 );
@@ -197,7 +201,8 @@ slap_access_allowed(
 	 * if we get here it means a non-root user is trying to 
 	 * manage data, so we need to check its privileges.
 	 */
-	if ( access_level == ACL_WRITE && is_at_no_user_mod( desc->ad_type )
+	if ( access_level == ACL_WRITE
+		&& is_at_no_user_mod( desc->ad_type )
 		&& desc != slap_schema.si_ad_entry
 		&& desc != slap_schema.si_ad_children )
 	{
@@ -1192,7 +1197,7 @@ acl_mask_dn(
 			}
 
 			rdnlen = dn_rdnlen( NULL, opndn );
-			if ( rdnlen != odnlen - patlen - 1 ) {
+			if ( rdnlen - ( odnlen - patlen - 1 ) != 0 ) {
 				goto dn_match_cleanup;
 			}
 
@@ -1211,8 +1216,8 @@ acl_mask_dn(
 			}
 
 		} else if ( b->a_style == ACL_STYLE_LEVEL ) {
-			int level;
-			struct berval ndn;
+			int		level = b->a_level;
+			struct berval	ndn;
 
 			if ( odnlen <= patlen ) {
 				goto dn_match_cleanup;
@@ -1223,7 +1228,6 @@ acl_mask_dn(
 				goto dn_match_cleanup;
 			}
 			
-			level = b->a_level;
 			ndn = *opndn;
 			for ( ; level > 0; level-- ) {
 				if ( BER_BVISEMPTY( &ndn ) ) {
@@ -2535,7 +2539,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	/* Grab the searchbase and see if an appropriate database can be found */
 	ber_str2bv( ludp->lud_dn, 0, 0, &op2.o_req_dn );
 	rc = dnNormalize( 0, NULL, NULL, &op2.o_req_dn,
-			&op2.o_req_ndn, cp->op->o_tmpmemctx );
+			&op2.o_req_ndn, cp->asc_op->o_tmpmemctx );
 	BER_BVZERO( &op2.o_req_dn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto url_done;
@@ -2550,13 +2554,13 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	/* Grab the filter */
 	if ( ludp->lud_filter ) {
 		ber_str2bv_x( ludp->lud_filter, 0, 0, &op2.ors_filterstr,
-				cp->op->o_tmpmemctx );
+				cp->asc_op->o_tmpmemctx );
 		
 	} else {
 		op2.ors_filterstr = defaultFilter_bv;
 	}
 
-	op2.ors_filter = str2filter_x( cp->op, op2.ors_filterstr.bv_val );
+	op2.ors_filter = str2filter_x( cp->asc_op, op2.ors_filterstr.bv_val );
 	if ( op2.ors_filter == NULL ) {
 		rc = LDAP_PROTOCOL_ERROR;
 		goto url_done;
@@ -2571,7 +2575,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 			;
 
 		anlistp = slap_sl_malloc( sizeof( AttributeName ) * ( nattrs + 2 ),
-				cp->op->o_tmpmemctx );
+				cp->asc_op->o_tmpmemctx );
 
 		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ ) {
 			ber_str2bv( ludp->lud_attrs[ nattrs ], 0, 0, &anlistp[ nattrs ].an_name );
@@ -2594,19 +2598,19 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	
 	p.cookie = cookie;
 	
-	op2.o_hdr = cp->op->o_hdr;
+	op2.o_hdr = cp->asc_op->o_hdr;
 	op2.o_tag = LDAP_REQ_SEARCH;
 	op2.o_ndn = op2.o_bd->be_rootndn;
 	op2.o_callback = &cb;
 	op2.o_time = slap_get_time();
 	op2.o_do_not_cache = 1;
 	op2.o_is_auth_check = 0;
-	ber_dupbv_x( &op2.o_req_dn, &op2.o_req_ndn, cp->op->o_tmpmemctx );
+	ber_dupbv_x( &op2.o_req_dn, &op2.o_req_ndn, cp->asc_op->o_tmpmemctx );
 	op2.ors_slimit = SLAP_NO_LIMIT;
 	op2.ors_tlimit = SLAP_NO_LIMIT;
 	op2.ors_attrs = anlistp;
 	op2.ors_attrsonly = 0;
-	op2.o_private = cp->op->o_private;
+	op2.o_private = cp->asc_op->o_private;
 
 	cb.sc_private = &p;
 
@@ -2617,19 +2621,19 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 
 url_done:;
 	if ( op2.ors_filter ) {
-		filter_free_x( cp->op, op2.ors_filter );
+		filter_free_x( cp->asc_op, op2.ors_filter );
 	}
 	if ( !BER_BVISNULL( &op2.o_req_ndn ) ) {
-		slap_sl_free( op2.o_req_ndn.bv_val, cp->op->o_tmpmemctx );
+		slap_sl_free( op2.o_req_ndn.bv_val, cp->asc_op->o_tmpmemctx );
 	}
 	if ( !BER_BVISNULL( &op2.o_req_dn ) ) {
-		slap_sl_free( op2.o_req_dn.bv_val, cp->op->o_tmpmemctx );
+		slap_sl_free( op2.o_req_dn.bv_val, cp->asc_op->o_tmpmemctx );
 	}
 	if ( ludp ) {
 		ldap_free_urldesc( ludp );
 	}
 	if ( anlistp && anlistp != anlist ) {
-		slap_sl_free( anlistp, cp->op->o_tmpmemctx );
+		slap_sl_free( anlistp, cp->asc_op->o_tmpmemctx );
 	}
 
 	return p.bvals;
@@ -2647,22 +2651,22 @@ acl_set_gather2( SetCookie *cookie, struct berval *name, AttributeDescription *d
 	 * plain strings, since syntax is not known.  It should
 	 * also return the syntax or some "comparison cookie".
 	 */
-	rc = dnNormalize( 0, NULL, NULL, name, &ndn, cp->op->o_tmpmemctx );
+	rc = dnNormalize( 0, NULL, NULL, name, &ndn, cp->asc_op->o_tmpmemctx );
 	if ( rc == LDAP_SUCCESS ) {
 		if ( desc == slap_schema.si_ad_entryDN ) {
 			bvals = (BerVarray)slap_sl_malloc( sizeof( BerValue ) * 2,
-					cp->op->o_tmpmemctx );
+					cp->asc_op->o_tmpmemctx );
 			bvals[ 0 ] = ndn;
 			BER_BVZERO( &bvals[ 1 ] );
 			BER_BVZERO( &ndn );
 
 		} else {
-			backend_attribute( cp->op,
-				cp->e, &ndn, desc, &bvals, ACL_NONE );
+			backend_attribute( cp->asc_op,
+				cp->asc_e, &ndn, desc, &bvals, ACL_NONE );
 		}
 
 		if ( !BER_BVISNULL( &ndn ) ) {
-			slap_sl_free( ndn.bv_val, cp->op->o_tmpmemctx );
+			slap_sl_free( ndn.bv_val, cp->asc_op->o_tmpmemctx );
 		}
 	}
 
@@ -2724,9 +2728,11 @@ acl_match_set (
 	}
 
 	if ( !BER_BVISNULL( &set ) ) {
-		cookie.op = op;
-		cookie.e = e;
-		rc = ( slap_set_filter( acl_set_gather, (SetCookie *)&cookie, &set,
+		cookie.asc_op = op;
+		cookie.asc_e = e;
+		rc = ( slap_set_filter(
+			acl_set_gather,
+			(SetCookie *)&cookie, &set,
 			&op->o_ndn, &e->e_nname, NULL ) > 0 );
 		slap_sl_free( set.bv_val, op->o_tmpmemctx );
 	}
