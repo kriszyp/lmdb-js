@@ -3216,7 +3216,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	}
 
 	if ( rc != LDAP_SUCCESS )
-		goto leave;
+		goto done;
 
 	/* Parse all the values and check for simple syntax errors before
 	 * performing any set actions.
@@ -3236,7 +3236,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	 */
 	rc = check_name_index( last, colst[0]->co_type, e, rs, renum );
 	if ( rc )
-		goto leave;
+		goto done;
 
 	init_config_argv( ca );
 
@@ -3248,7 +3248,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		rc = check_vals( ct, ca, a, 1 );
-		if ( rc ) goto leave;
+		if ( rc ) goto done;
 	}
 
 	/* Basic syntax checks are OK. Do the actual settings. */
@@ -3266,7 +3266,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 			rc = config_parse_add( ct, ca );
 			if ( rc ) {
 				rc = LDAP_OTHER;
-				goto leave;
+				goto done;
 			}
 		}
 	}
@@ -3289,7 +3289,7 @@ ok:
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
 				ca->log, ca->msg, ca->argv[1] );
 			rc = LDAP_OTHER;
-			goto leave;
+			goto done;
 		}
 	}
 
@@ -3313,7 +3313,7 @@ ok:
 		last->ce_kids = ce;
 	}
 
-leave:
+done:
 	if ( rc ) {
 		if ( (colst[0]->co_type == Cft_Database) && ca->be ) {
 			if ( ca->be != frontendDB )

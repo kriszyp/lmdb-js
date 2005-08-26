@@ -346,7 +346,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 			}
 			fd = 1;
 			if ( rc )
-				goto leave;
+				goto done;
 		} else {
 		/* Queueing up for tool mode */
 			if(ck->entries == NULL) {
@@ -382,7 +382,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 					"=> ldif_enum_tree: failed to opendir %s (%d)\n",
 					path->bv_val, errno, 0 );
 			}
-			goto leave;
+			goto done;
 		}
 	
 		while(1) {
@@ -453,7 +453,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 			free(ptr);
 		}
 	}
-leave:
+done:
 	if ( fd ) entry_free( e );
 	return rc;
 }
