@@ -178,7 +178,7 @@ int slap_bv2ad(
 	desc.ad_cname = *bv;
 	name = bv->bv_val;
 	options = strchr( name, ';' );
-	if ( options != NULL && ( options - name ) < bv->bv_len ) {
+	if ( options != NULL && (unsigned) ( options - name ) < bv->bv_len ) {
 		/* don't go past the end of the berval! */
 		desc.ad_cname.bv_len = options - name;
 	} else {
@@ -250,7 +250,7 @@ int slap_bv2ad(
 
 				rc = strncasecmp( opt, tags[i].bv_val,
 					(unsigned) optlen < tags[i].bv_len
-						? optlen : tags[i].bv_len );
+						? (unsigned) optlen : tags[i].bv_len );
 
 				if( rc == 0 && (unsigned)optlen == tags[i].bv_len ) {
 					/* duplicate (ignore) */
@@ -388,7 +388,7 @@ done:;
 					if( lp != desc.ad_tags.bv_val ) {
 						*cp++ = ';';
 						j = (lp
-						     ? lp - desc.ad_tags.bv_val - 1
+						     ? (unsigned) (lp - desc.ad_tags.bv_val - 1)
 						     : strlen( desc.ad_tags.bv_val ));
 						cp = lutil_strncopy(cp, desc.ad_tags.bv_val, j);
 					}
@@ -664,15 +664,12 @@ int ad_inlist(
 			}
 
 		} else {
-			/* short-circuit this search next time around */
-			if (!slap_schema.si_at_undefined->sat_ad) {
-				const char *text;
-				slap_bv2undef_ad(&attrs->an_name,
-					&attrs->an_desc, &text, 0);
-			} else {
-				attrs->an_desc =
-					slap_schema.si_at_undefined->sat_ad;
-			}
+			const char      *text;
+
+			/* give it a chance of being retrieved by a proxy... */
+			(void)slap_bv2undef_ad( &attrs->an_name,
+				&attrs->an_desc, &text,
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
 		}
 	}
 
