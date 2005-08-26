@@ -90,8 +90,7 @@ rwm_x.o: rwm.o rwmconf.o rwmdn.o rwmmap.o
 	$(LD) -r -o $@ rwm.o rwmconf.o rwmdn.o rwmmap.o
 	
 rwm.la : rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
-	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo \
-		version.lo $(LINK_LIBS) $(LDAP_LIBLREWRITE_LA)
+	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
 
 syncprov.la : syncprov.lo
 	$(LTLINK_MOD) -module -o $@ syncprov.lo version.lo $(LINK_LIBS)
