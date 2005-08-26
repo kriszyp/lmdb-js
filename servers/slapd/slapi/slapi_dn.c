@@ -267,7 +267,7 @@ int slapi_sdn_compare( const Slapi_DN *sdn1, const Slapi_DN *sdn2 )
 
 int slapi_sdn_isempty( const Slapi_DN *sdn)
 {
-	return ( BER_BVISEMPTY( &sdn->dn ) );
+	return ( BER_BVISEMPTY( &sdn->dn ) && BER_BVISEMPTY( &sdn->ndn ) );
 }
 
 int slapi_sdn_issuffix( const Slapi_DN *sdn, const Slapi_DN *suffix_sdn )
