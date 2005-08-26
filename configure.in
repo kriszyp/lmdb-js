@@ -302,12 +302,12 @@ OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend],
 	no, [no yes mod], ol_enable_backends)dnl
-AC_WITH(ldbm_api,[
+AC_ARG_WITH(ldbm_api,,[
 	AC_MSG_WARN([Please use --enable-ldbm-api instead of --with-ldbm-api])
 	enable_ldbm_api="$with_ldbm_api"])
 OL_ARG_ENABLE(ldbm_api,[      --enable-ldbm-api   use LDBM API],
 	auto, [auto berkeley bcompat mdbm gdbm])
-AC_WITH(ldbm_type,[
+AC_ARG_WITH(ldbm_type,,[
 	AC_MSG_WARN([Please use --enable-ldbm-type instead of --with-ldbm-type])
 	enable_ldbm_type="$with_ldbm_type"])
 OL_ARG_ENABLE(ldbm_type,[      --enable-ldbm-type  use LDBM type],
