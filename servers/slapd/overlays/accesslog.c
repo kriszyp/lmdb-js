@@ -844,7 +844,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 				vals[i].bv_len = m->sml_desc->ad_cname.bv_len + 2;
 				vals[i].bv_val = ch_malloc( vals[i].bv_len+1 );
 				ptr = lutil_strcopy( vals[i].bv_val,
-					a->a_desc->ad_cname.bv_val );
+					m->sml_desc->ad_cname.bv_val );
 				*ptr++ = ':';
 				*ptr++ = '-';
 				*ptr = '\0';
