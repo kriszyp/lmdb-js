@@ -667,8 +667,6 @@ meta_back_op_result(
 				rerr = LDAP_SUCCESS;
 	char			*rmsg = NULL;
 	char			*rmatch = NULL;
-	int			free_rmsg = 0,
-				free_rmatch = 0;
 
 	if ( candidate != META_TARGET_NONE ) {
 		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
@@ -685,16 +683,19 @@ meta_back_op_result(
 			 */
 			ldap_get_option( msc->msc_ld,
 					LDAP_OPT_ERROR_STRING, &rmsg );
+			if ( rmsg != NULL && rmsg[ 0 ] == '\0' ) {
+				ldap_memfree( rmsg );
+				rmsg = NULL;
+			}
+
 			ldap_get_option( msc->msc_ld,
 					LDAP_OPT_MATCHED_DN, &rmatch );
-			rerr = rs->sr_err = slap_map_api2result( rs );
+			if ( rmatch != NULL && rmatch[ 0 ] == '\0' ) {
+				ldap_memfree( rmatch );
+				rmatch = NULL;
+			}
 
-			if ( rmsg ) {
-				free_rmsg = 1;
-			}
-			if ( rmatch ) {
-				free_rmatch = 1;
-			}
+			rerr = rs->sr_err = slap_map_api2result( rs );
 
 			Debug(LDAP_DEBUG_ANY,
 					"==> meta_back_op_result: target"
@@ -722,8 +723,18 @@ meta_back_op_result(
 				 */
 				ldap_get_option( msc->msc_ld,
 						LDAP_OPT_ERROR_STRING, &msg );
+				if ( msg != NULL && msg[ 0 ] == '\0' ) {
+					ldap_memfree( msg );
+					msg = NULL;
+				}
+
 				ldap_get_option( msc->msc_ld,
 						LDAP_OPT_MATCHED_DN, &match );
+				if ( match != NULL && match[ 0 ] == '\0' ) {
+					ldap_memfree( match );
+					match = NULL;
+				}
+
 				rs->sr_err = slap_map_api2result( rs );
 	
 				Debug(LDAP_DEBUG_ANY,
@@ -739,27 +750,29 @@ meta_back_op_result(
 				switch ( rs->sr_err ) {
 				default:
 					rerr = rs->sr_err;
-					if ( rmsg ) {
-						ber_memfree( rmsg );
+					if ( msg != NULL ) {
+						if ( rmsg ) {
+							ldap_memfree( rmsg );
+						}
+						rmsg = msg;
+						msg = NULL;
 					}
-					rmsg = msg;
-					free_rmsg = 1;
-					msg = NULL;
-					if ( rmatch ) {
-						ber_memfree( rmatch );
+					if ( match != NULL ) {
+						if ( rmatch ) {
+							ldap_memfree( rmatch );
+						}
+						rmatch = match;
+						match = NULL;
 					}
-					rmatch = match;
-					free_rmatch = 1;
-					match = NULL;
 					break;
 				}
-	
-				/* better test the pointers before freeing? */
-				if ( match ) {
-					free( match );
-				}
+
 				if ( msg ) {
-					free( msg );
+					ldap_memfree( msg );
+				}
+	
+				if ( match ) {
+					ldap_memfree( match );
 				}
 			}
 		}
@@ -767,16 +780,35 @@ meta_back_op_result(
 	
 	rs->sr_err = rerr;
 	rs->sr_text = rmsg;
-	rs->sr_matched = rmatch;
+	if ( rmatch != NULL ) {
+		struct berval	dn, pdn;
+
+		ber_str2bv( rmatch, 0, 0, &dn );
+		if ( dnPretty( NULL, &dn, &pdn, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
+			rs->sr_matched = pdn.bv_val;
+			ldap_memfree( rmatch );
+			rmatch = NULL;
+		} else {
+			rs->sr_matched = rmatch;
+		}
+
+	} else {
+		rs->sr_matched = NULL;
+	}
 	send_ldap_result( op, rs );
-	if ( free_rmsg ) {
+	if ( rmsg != NULL ) {
 		ber_memfree( rmsg );
 	}
-	if ( free_rmatch ) {
-		ber_memfree( rmatch );
+	if ( rs->sr_matched != NULL ) {
+		if ( rmatch == NULL ) {
+			ber_memfree_x( rs->sr_matched, op->o_tmpmemctx );
+
+		} else {
+			ldap_memfree( rmatch );
+		}
+		rs->sr_matched = NULL;
 	}
 	rs->sr_text = NULL;
-	rs->sr_matched = NULL;
 
 	return ( ( rerr == LDAP_SUCCESS ) ? 0 : -1 );
 }

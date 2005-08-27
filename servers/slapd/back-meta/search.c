@@ -759,7 +759,7 @@ really_bad:;
 		}
 
 	} else if ( sres == LDAP_NO_SUCH_OBJECT ) {
-		matched = ch_strdup( op->o_bd->be_suffix[ 0 ].bv_val );
+		matched = op->o_bd->be_suffix[ 0 ].bv_val;
 	}
 
 #if 0
@@ -804,7 +804,7 @@ really_bad:;
 	rs->sr_ref = NULL;
 
 finish:;
-	if ( matched ) {
+	if ( matched && matched != op->o_bd->be_suffix[ 0 ].bv_val ) {
 		op->o_tmpfree( matched, op->o_tmpmemctx );
 	}
 
