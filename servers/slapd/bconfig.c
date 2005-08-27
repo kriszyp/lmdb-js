@@ -2535,6 +2535,10 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 
 		sc->cfb->cb_got_ldif = 1;
 		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "config error processing %s: %s\n",
+				rs->sr_entry->e_name.bv_val, sc->ca->msg, 0 );
+		}
 	}
 	return rs->sr_err;
 }
