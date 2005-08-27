@@ -5,6 +5,7 @@ OpenLDAP 2.3.7 Engineering
 	Fixed slapd STATS2 referral logging
 	Fixed slapd (ITS#3951)
 	Fixed slaptest cn=config segfault (ITS#3961)
+	Refixed slapd cn=config default search base bug (ITS#3900)
 	Fixed slapd-bdb/hdb paged results deadlock (ITS#3940)
 	Fixed slapd-bdb/hdb/ldbm searchBase disclose (ITS#3964)
 	Fixed slapd-meta generic attribute normalize/pretty (ITS#3956)
