@@ -598,7 +598,7 @@ static ConfigOCs cf_ocs[] = {
 		"MAY ( cn $ olcConfigFile $ olcConfigDir $ olcAllows $ olcArgsFile $ "
 		 "olcAttributeOptions $ olcAuthIDRewrite $ "
 		 "olcAuthzPolicy $ olcAuthzRegexp $ olcConcurrency $ "
-		 "olcConnMaxPending $ olcConnMaxPendingAuth $ olcDefaultSearchBase $ "
+		 "olcConnMaxPending $ olcConnMaxPendingAuth $ "
 		 "olcDisallows $ olcGentleHUP $ olcIdleTimeout $ "
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
