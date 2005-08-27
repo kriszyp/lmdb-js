@@ -2667,6 +2667,9 @@ if test "$ol_enable_rlookups" != no ; then
 fi
 if test "$ol_enable_aci" != no ; then
 	AC_DEFINE(SLAPD_ACI_ENABLED,1,[define to support per-object ACIs])
+	WITH_ACI_ENABLED=yes
+else
+	WITH_ACI_ENABLED=no
 fi
 
 if test "$ol_link_modules" != no ; then
@@ -3067,6 +3070,7 @@ AC_SUBST(PLAT)
 AC_SUBST(WITH_SASL)
 AC_SUBST(WITH_TLS)
 AC_SUBST(WITH_MODULES_ENABLED)
+AC_SUBST(WITH_ACI_ENABLED)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
 AC_SUBST(BUILD_SLAPD)
