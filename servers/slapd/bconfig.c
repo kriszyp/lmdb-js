@@ -1977,6 +1977,9 @@ config_loglevel(ConfigArgs *c) {
 	}
 
 	if (c->op == SLAP_CONFIG_EMIT) {
+		/* Get default or commandline slapd setting */
+		if ( ldap_syslog && !config_syslog )
+			config_syslog = ldap_syslog;
 		return mask_to_verbs( loglevel_ops, config_syslog, &c->rvalue_vals );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		if ( !c->line ) {
@@ -2013,9 +2016,9 @@ config_loglevel(ConfigArgs *c) {
 			}
 		}
 		config_syslog |= level;
-		if ( slapMode & SLAP_SERVER_MODE ) {
-			ldap_syslog = config_syslog;
-		}
+	}
+	if ( slapMode & SLAP_SERVER_MODE ) {
+		ldap_syslog = config_syslog;
 	}
 	return(0);
 }
