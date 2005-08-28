@@ -1965,6 +1965,8 @@ str2loglevel( const char *s, int *l )
 	return 0;
 }
 
+static int config_syslog;
+
 static int
 config_loglevel(ConfigArgs *c) {
 	int i;
@@ -1975,18 +1977,21 @@ config_loglevel(ConfigArgs *c) {
 	}
 
 	if (c->op == SLAP_CONFIG_EMIT) {
-		return mask_to_verbs( loglevel_ops, ldap_syslog, &c->rvalue_vals );
+		return mask_to_verbs( loglevel_ops, config_syslog, &c->rvalue_vals );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		if ( !c->line ) {
-			ldap_syslog = 0;
+			config_syslog = 0;
 		} else {
 			int level = verb_to_mask( c->line, loglevel_ops );
-			ldap_syslog ^= level;
+			config_syslog ^= level;
+		}
+		if ( slapMode & SLAP_SERVER_MODE ) {
+			ldap_syslog = config_syslog;
 		}
 		return 0;
 	}
 
-	ldap_syslog = 0;
+	config_syslog = 0;
 
 	for( i=1; i < c->argc; i++ ) {
 		int	level;
@@ -2007,7 +2012,10 @@ config_loglevel(ConfigArgs *c) {
 				return( 1 );
 			}
 		}
-		ldap_syslog |= level;
+		config_syslog |= level;
+		if ( slapMode & SLAP_SERVER_MODE ) {
+			ldap_syslog = config_syslog;
+		}
 	}
 	return(0);
 }
