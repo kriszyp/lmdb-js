@@ -604,59 +604,11 @@ unhandled_option:;
 	lutil_passwd_init();
 	slap_op_init();
 
-#ifdef SLAPD_MODULES
-	if ( module_init() != 0 ) {
-		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 17 );
-		goto destroy;
-	}
-#endif
-
-	if ( slap_schema_init( ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "schema initialization error\n",
-		    0, 0, 0 );
-
-		goto destroy;
-	}
-
-	if ( slap_init( serverMode, serverName ) != 0 ) {
-		rc = 1;
+	rc = slap_init( serverMode, serverName );
+	if ( rc ) {
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
 		goto destroy;
 	}
-
-	if ( slap_controls_init( ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "controls initialization error\n",
-		    0, 0, 0 );
-
-		goto destroy;
-	}
-
-#ifdef HAVE_TLS
-	/* Library defaults to full certificate checking. This is correct when
-	 * a client is verifying a server because all servers should have a
-	 * valid cert. But few clients have valid certs, so we want our default
-	 * to be no checking. The config file can override this as usual.
-	 */
-	rc = 0;
-	(void) ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
-#endif
-
-	if ( frontend_init() ) {
-		goto destroy;
-	}
-
-	if ( overlay_init() ) {
-		goto destroy;
-	}
-
-#ifdef SLAP_DYNACL
-	if ( acl_init() ) {
-		goto destroy;
-	}
-#endif /* SLAP_DYNACL */
 
 	if ( read_config( configfile, configdir ) != 0 ) {
 		rc = 1;
