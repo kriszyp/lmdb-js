@@ -139,7 +139,7 @@ static int unique_config(
 				up->next = ud->attrs;
 				ud->attrs = up;
 			}
-			Debug(LDAP_DEBUG_ANY, "%s: line %d: new attribute <%s>\n",
+			Debug(LDAP_DEBUG_CONFIG, "%s: line %d: new attribute <%s>\n",
 				fname, lineno, argv[i]);
 		}
 	} else if(!strcasecmp(*argv, "unique_strict")) {
@@ -149,7 +149,7 @@ static int unique_config(
 		ber_str2bv( argv[1], 0, 0, &bv );
 		ch_free(ud->dn.bv_val);
 		dnNormalize(0, NULL, NULL, &bv, &ud->dn, NULL);
-		Debug(LDAP_DEBUG_ANY, "%s: line %d: new base dn <%s>\n",
+		Debug(LDAP_DEBUG_CONFIG, "%s: line %d: new base dn <%s>\n",
 			fname, lineno, argv[1]);
 	} else {
 		return(SLAP_CONF_UNKNOWN);
