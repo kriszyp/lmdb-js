@@ -1965,6 +1965,8 @@ str2loglevel( const char *s, int *l )
 	return 0;
 }
 
+static int config_syslog;
+
 static int
 config_loglevel(ConfigArgs *c) {
 	int i;
@@ -1975,18 +1977,24 @@ config_loglevel(ConfigArgs *c) {
 	}
 
 	if (c->op == SLAP_CONFIG_EMIT) {
-		return mask_to_verbs( loglevel_ops, ldap_syslog, &c->rvalue_vals );
+		/* Get default or commandline slapd setting */
+		if ( ldap_syslog && !config_syslog )
+			config_syslog = ldap_syslog;
+		return mask_to_verbs( loglevel_ops, config_syslog, &c->rvalue_vals );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		if ( !c->line ) {
-			ldap_syslog = 0;
+			config_syslog = 0;
 		} else {
 			int level = verb_to_mask( c->line, loglevel_ops );
-			ldap_syslog ^= level;
+			config_syslog ^= level;
+		}
+		if ( slapMode & SLAP_SERVER_MODE ) {
+			ldap_syslog = config_syslog;
 		}
 		return 0;
 	}
 
-	ldap_syslog = 0;
+	config_syslog = 0;
 
 	for( i=1; i < c->argc; i++ ) {
 		int	level;
@@ -2007,7 +2015,10 @@ config_loglevel(ConfigArgs *c) {
 				return( 1 );
 			}
 		}
-		ldap_syslog |= level;
+		config_syslog |= level;
+	}
+	if ( slapMode & SLAP_SERVER_MODE ) {
+		ldap_syslog = config_syslog;
 	}
 	return(0);
 }
@@ -2898,8 +2909,11 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	if ( a && ( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL )) {
 		sort = 1;
 		rc = ordered_value_sort( a, 1 );
-		if ( rc )
+		if ( rc ) {
+			sprintf(ca->msg, "ordered_value_sort failed on attr %s\n",
+				ad->ad_cname.bv_val );
 			return rc;
+		}
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
 		ca->line = vals[i].bv_val;
@@ -3220,7 +3234,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	}
 
 	if ( rc != LDAP_SUCCESS )
-		goto leave;
+		goto done;
 
 	/* Parse all the values and check for simple syntax errors before
 	 * performing any set actions.
@@ -3240,7 +3254,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	 */
 	rc = check_name_index( last, colst[0]->co_type, e, rs, renum );
 	if ( rc )
-		goto leave;
+		goto done;
 
 	init_config_argv( ca );
 
@@ -3252,7 +3266,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		rc = check_vals( ct, ca, a, 1 );
-		if ( rc ) goto leave;
+		if ( rc ) goto done;
 	}
 
 	/* Basic syntax checks are OK. Do the actual settings. */
@@ -3270,7 +3284,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 			rc = config_parse_add( ct, ca );
 			if ( rc ) {
 				rc = LDAP_OTHER;
-				goto leave;
+				goto done;
 			}
 		}
 	}
@@ -3293,7 +3307,7 @@ ok:
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
 				ca->log, ca->msg, ca->argv[1] );
 			rc = LDAP_OTHER;
-			goto leave;
+			goto done;
 		}
 	}
 
@@ -3317,7 +3331,7 @@ ok:
 		last->ce_kids = ce;
 	}
 
-leave:
+done:
 	if ( rc ) {
 		if ( (colst[0]->co_type == Cft_Database) && ca->be ) {
 			if ( ca->be != frontendDB )

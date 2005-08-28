@@ -322,7 +322,7 @@ ordered_value_sort( Attribute *a, int do_renumber )
 			char *ptr;
 			index = 1;
 			ptr = strchr( a->a_vals[i].bv_val, '}' );
-			if ( !ptr || !ptr[1] )
+			if ( !ptr )
 				return LDAP_INVALID_SYNTAX;
 			if ( noindex )
 				return LDAP_INVALID_SYNTAX;
@@ -361,8 +361,14 @@ ordered_value_sort( Attribute *a, int do_renumber )
 #endif
 				
 		indexes = ch_malloc( vals * sizeof(int) );
-		for ( i=0; i<vals; i++)
-			indexes[i] = strtol(a->a_vals[i].bv_val+1, NULL, 0);
+		for ( i=0; i<vals; i++) {
+			char *ptr;
+			indexes[i] = strtol(a->a_vals[i].bv_val+1, &ptr, 0);
+			if ( *ptr != '}' ) {
+				ch_free( indexes );
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
 
 		/* Insertion sort */
 		for ( i=1; i<vals; i++ ) {
