@@ -273,8 +273,10 @@ else
 	exit 1
 fi
 
-echo "Comparing cache output..."
-$CMP $SLAVEOUT $PROXYCACHEOUT > $CMPOUT
+echo "Filtering ldapsearch results..."
+. $LDIFFILTER < $SLAVEOUT > $SEARCHFLT
+echo "Comparing filter output..."
+$CMP $SEARCHFLT $PROXYCACHEOUT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed"
