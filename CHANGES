@@ -19,9 +19,10 @@ OpenLDAP 2.3.7 Engineering
 	Updated slapd ACI syntax checking (ITS#3877)
 	Removed lint
 	Build Environment
+		Updated build tools
 		Fixed slapo-rwm dependency checking (ITS#3965)
 		Fixed tests --disable-monitor support
-		Fixed veryclean-local testdata cleanup
+		Fixed tests veryclean-local testdata cleanup
 		Add subtree rename test (hdb only)
 	
 
