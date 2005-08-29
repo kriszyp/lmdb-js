@@ -41,7 +41,7 @@ ldbm_cache_open(
 	int		i, lru, empty;
 	time_t		oldtime;
 	char		buf[MAXPATHLEN];
-#ifdef HAVE_ST_BLKSIZE
+#ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
 	struct stat	st;
 #endif
 
@@ -162,7 +162,7 @@ ldbm_cache_open(
 	li->li_dbcache[i].dbc_lastref = slap_get_time();
 	li->li_dbcache[i].dbc_flags = flags;
 	li->li_dbcache[i].dbc_dirty = 0;
-#ifdef HAVE_ST_BLKSIZE
+#ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
 	if ( stat( buf, &st ) == 0 ) {
 		li->li_dbcache[i].dbc_blksize = st.st_blksize;
 	} else

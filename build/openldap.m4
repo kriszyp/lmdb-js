@@ -20,9 +20,10 @@ dnl $1 = option name
 dnl $2 = help-string
 dnl $3 = default value	(auto).  "--" means do not set it by default
 dnl $4 = allowed values (auto yes no)
+dnl $5 = overridden default
 AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
-	AC_ARG_ENABLE($1,ifelse($3,--,[$2],
-		[changequote(<,>)<$2 [>ifelse($3,,auto,$3)<]>changequote([,])]),[
+	pushdef([ol_DefVal],ifelse($3,,auto,$3))
+	AC_ARG_ENABLE($1,ifelse($4,,[$2],[$2] translit([$4],[ ],[|])) ifelse($3,--,,@<:@ol_DefVal@:>@),[
 	ol_arg=invalid
 	for ol_val in ifelse($4,,[auto yes no],[$4]) ; do
 		if test "$enableval" = "$ol_val" ; then
@@ -34,8 +35,9 @@ AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
 	fi
 	ol_enable_$1="$ol_arg"
 ]ifelse($3,--,,[,
-[	ol_enable_$1=ifelse($3,,"auto","$3")]]))dnl
-dnl AC_VERBOSE(OpenLDAP -enable-$1 $ol_enable_$1)
+[	ol_enable_$1=ifelse($5,,ol_DefVal,[${]$5[:-]ol_DefVal[}])]]))dnl
+dnl AC_MSG_RESULT([OpenLDAP -enable-$1 $ol_enable_$1])
+	popdef([ol_DefVal])
 # end --enable-$1
 ])dnl
 dnl
@@ -47,7 +49,7 @@ dnl $2 = help-string
 dnl $3 = default value (no)
 dnl $4 = allowed values (yes or no)
 AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
-	AC_ARG_WITH($1,changequote(<,>)<$2 [>ifelse($3,,yes,$3)<]>changequote([,]),[
+	AC_ARG_WITH($1,[$2 @<:@]ifelse($3,,yes,$3)@:>@,[
 	ol_arg=invalid
 	for ol_val in ifelse($4,,[yes no],[$4]) ; do
 		if test "$withval" = "$ol_val" ; then
@@ -60,63 +62,9 @@ AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
 	ol_with_$1="$ol_arg"
 ],
 [	ol_with_$1=ifelse($3,,"no","$3")])dnl
-dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
+dnl AC_MSG_RESULT([OpenLDAP --with-$1 $ol_with_$1])
 # end --with-$1
 ])dnl
-dnl
-dnl ====================================================================
-dnl
-AC_DEFUN([AC_COMPILE_CHECK_SIZEOF],
-[changequote(<<, >>)dnl 
-dnl The name to #define. 
-define(<<AC_TYPE_NAME>>, translit(sizeof_$1, [a-z *], [A-Z_P]))dnl 
-dnl The cache variable name. 
-define(<<AC_CV_NAME>>, translit(ac_cv_sizeof_$1, [ *], [_p]))dnl 
-changequote([, ])dnl 
-AC_MSG_CHECKING(size of $1) 
-AC_CACHE_VAL(AC_CV_NAME, 
-[for ac_size in 4 8 1 2 16 $2 ; do # List sizes in rough order of prevalence. 
-  AC_TRY_COMPILE([#include "confdefs.h" 
-#include <stdlib.h>
-#include <sys/types.h> 
-$2 
-], [switch (0) case 0: case (sizeof ($1) == $ac_size):;], AC_CV_NAME=$ac_size) 
-  if test x$AC_CV_NAME != x ; then break; fi 
-done 
-]) 
-if test x$AC_CV_NAME = x ; then 
-  AC_MSG_ERROR([cannot determine a size for $1]) 
-fi 
-AC_MSG_RESULT($AC_CV_NAME) 
-AC_DEFINE_UNQUOTED(AC_TYPE_NAME, $AC_CV_NAME, [The number of bytes in type $1]) 
-undefine([AC_TYPE_NAME])dnl 
-undefine([AC_CV_NAME])dnl 
-])
-dnl ====================================================================
-dnl check if hard links are supported.
-dnl
-AC_DEFUN([OL_PROG_LN_H], [# test for ln hardlink support
-AC_MSG_CHECKING(whether ln works)
-AC_CACHE_VAL(ol_cv_prog_LN_H,
-[rm -f conftest.src conftest.dst
-echo "conftest" > conftest.src
-if ln conftest.src conftest.dst 2>/dev/null
-then
-  ol_cv_prog_LN_H="ln"
-else
-  ol_cv_prog_LN_H="cp"
-fi
-rm -f conftest.src conftest.dst
-])dnl
-LN_H="$ol_cv_prog_LN_H"
-if test "$ol_cv_prog_LN_H" = "ln"; then
-	AC_MSG_RESULT(yes)
-else
-	AC_MSG_RESULT(no)
-fi
-AC_SUBST(LN_H)dnl
-])dnl
-dnl
 dnl ====================================================================
 dnl Check for dependency generation flag
 AC_DEFUN([OL_MKDEPEND], [# test for make depend flag
@@ -160,13 +108,11 @@ dnl ====================================================================
 dnl Check if system uses EBCDIC instead of ASCII
 AC_DEFUN([OL_CPP_EBCDIC], [# test for EBCDIC
 AC_CACHE_CHECK([for EBCDIC],ol_cv_cpp_ebcdic,[
-	AC_TRY_CPP([
+	AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #if !('M' == 0xd4)
 #include <__ASCII__/generate_error.h>
 #endif
-],
-	[ol_cv_cpp_ebcdic=yes],
-	[ol_cv_cpp_ebcdic=no])])
+]])],[ol_cv_cpp_ebcdic=yes],[ol_cv_cpp_ebcdic=no])])
 if test $ol_cv_cpp_ebcdic = yes ; then
 	AC_DEFINE(HAVE_EBCDIC,1, [define if system uses EBCDIC instead of ASCII])
 fi
@@ -178,10 +124,10 @@ AC_DEFUN([OL_HEADER_STDC],
 [AC_REQUIRE_CPP()dnl
 AC_REQUIRE([OL_CPP_EBCDIC])dnl
 AC_CACHE_CHECK([for ANSI C header files], ol_cv_header_stdc,
-[AC_TRY_CPP([#include <stdlib.h>
+[AC_PREPROC_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <float.h>], ol_cv_header_stdc=yes, ol_cv_header_stdc=no)
+#include <float.h>]])],[ol_cv_header_stdc=yes],[ol_cv_header_stdc=no])
 
 if test $ol_cv_header_stdc = yes; then
   # SunOS 4.x string.h does not declare mem*, contrary to ANSI.
@@ -195,7 +141,7 @@ fi
 
 if test $ol_cv_header_stdc = yes; then
   # /bin/cc in Irix-4.0.5 gets non-ANSI ctype macros unless using -ansi.
-AC_TRY_RUN([#include <ctype.h>
+AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <ctype.h>
 #ifndef HAVE_EBCDIC
 #	define ISLOWER(c) ('a' <= (c) && (c) <= 'z')
 #	define TOUPPER(c) (ISLOWER(c) ? 'A' + ((c) - 'a') : (c))
@@ -209,42 +155,12 @@ AC_TRY_RUN([#include <ctype.h>
 int main () { int i; for (i = 0; i < 256; i++)
 if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
-], , ol_cv_header_stdc=no, :)
+]])],[],[ol_cv_header_stdc=no],[:])
 fi])
 if test $ol_cv_header_stdc = yes; then
   AC_DEFINE(STDC_HEADERS)
 fi
 ac_cv_header_stdc=disable
-])
-dnl
-dnl ====================================================================
-dnl Check if struct passwd has pw_gecos
-AC_DEFUN([OL_STRUCT_PASSWD_PW_GECOS], [# test for pw_gecos in struct passwd
-AC_CACHE_CHECK([struct passwd for pw_gecos],ol_cv_struct_passwd_pw_gecos,[
-	AC_TRY_COMPILE([#include <pwd.h>],[
-	struct passwd pwd;
-	pwd.pw_gecos = pwd.pw_name;
-],
-	[ol_cv_struct_passwd_pw_gecos=yes],
-	[ol_cv_struct_passwd_pw_gecos=no])])
-if test $ol_cv_struct_passwd_pw_gecos = yes ; then
-	AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
-fi
-])
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if struct passwd has pw_passwd
-AC_DEFUN([OL_STRUCT_PASSWD_PW_PASSWD], [# test for pw_passwd in struct passwd
-AC_CACHE_CHECK([struct passwd for pw_passwd],ol_cv_struct_passwd_pw_passwd,[
-	AC_TRY_COMPILE([#include <pwd.h>],[
-	struct passwd pwd;
-	pwd.pw_passwd = pwd.pw_name;
-],
-	[ol_cv_struct_passwd_pw_passwd=yes],
-	[ol_cv_struct_passwd_pw_passwd=no])])
-if test $ol_cv_struct_passwd_pw_passwd = yes ; then
-	AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
-fi
 ])
 dnl
 dnl ====================================================================
@@ -257,7 +173,7 @@ AC_DEFUN([OL_RESOLVER_TRY],
 	ol_LIBS=$LIBS
 	LIBS="$ol_RESOLVER_LIB $LIBS"
 
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #ifdef HAVE_SYS_TYPES_H
 #	include <sys/types.h>
 #endif
@@ -268,7 +184,7 @@ AC_DEFUN([OL_RESOLVER_TRY],
 #ifdef HAVE_RESOLV_H
 #	include <resolv.h>
 #endif
-],[{
+]], [[{
 	int len, status;
 	char *request = NULL;
 	unsigned char reply[64*1024];
@@ -297,7 +213,7 @@ AC_DEFUN([OL_RESOLVER_TRY],
 	p += sizeof(HEADER);
 #endif
 	status = dn_expand( reply, reply+len, p, host, sizeof(host));
-}],[$1=yes],[$1=no])
+}]])],[$1=yes],[$1=no])
 
 	LIBS="$ol_LIBS"
 ])
@@ -329,7 +245,7 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #ifdef HAVE_DB_185_H
 # include <db_185.h>
 #else
@@ -343,7 +259,7 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
-],[
+]], [[
 #if DB_VERSION_MAJOR > 1
 	{
 		char *version;
@@ -369,7 +285,7 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 #else
 	(void) dbopen( NULL, 0, 0, 0, NULL);
 #endif
-],[$1=yes],[$1=no])
+]])],[$1=yes],[$1=no])
 
 	LIBS="$ol_LIBS"
 ])
@@ -418,7 +334,7 @@ AC_DEFUN([OL_BERKELEY_DB_VERSION],
 		LIBS="$ol_cv_lib_db $LIBS"
 	fi
 
-	AC_TRY_RUN([
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #ifdef HAVE_DB_185_H
 	choke me;
 #else
@@ -450,10 +366,7 @@ main()
 #endif
 
 	return 0;
-}],
-	[ol_cv_berkeley_db_version=yes],
-	[ol_cv_berkeley_db_version=no],
-	[ol_cv_berkeley_db_version=cross])
+}]])],[ol_cv_berkeley_db_version=yes],[ol_cv_berkeley_db_version=no],[ol_cv_berkeley_db_version=cross])
 
 	LIBS="$ol_LIBS"
 ])
@@ -473,7 +386,7 @@ AC_DEFUN([OL_BERKELEY_DB_THREAD],
 		LIBS="$ol_cv_lib_db $LIBS"
 	fi
 
-	AC_TRY_RUN([
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #ifdef HAVE_DB_185_H
 	choke me;
 #else
@@ -536,10 +449,7 @@ main()
 #endif
 
 	return rc;
-}],
-	[ol_cv_berkeley_db_thread=yes],
-	[ol_cv_berkeley_db_thread=no],
-	[ol_cv_berkeley_db_thread=cross])
+}]])],[ol_cv_berkeley_db_thread=yes],[ol_cv_berkeley_db_thread=no],[ol_cv_berkeley_db_thread=cross])
 
 	LIBS="$ol_LIBS"
 ])
@@ -567,7 +477,7 @@ fi
 dnl --------------------------------------------------------------------
 dnl Check for version compatility with back-bdb
 AC_DEFUN([OL_BDB_COMPAT],
-[AC_CACHE_CHECK([Berkeley DB version for BDB backend], [ol_cv_bdb_compat],[
+[AC_CACHE_CHECK([Berkeley DB version for BDB/HDB backends], [ol_cv_bdb_compat],[
 	AC_EGREP_CPP(__db_version_compat,[
 #include <db.h>
 
@@ -788,11 +698,11 @@ dnl Draft 9 and 10 are equivalent for our purposes.
 dnl
 AC_DEFUN([OL_POSIX_THREAD_VERSION],
 [AC_CACHE_CHECK([POSIX thread version],[ol_cv_pthread_version],[
-	AC_TRY_COMPILE([
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #		include <pthread.h>
-	],[
+	]], [[
 		int i = PTHREAD_CREATE_JOINABLE;
-	],[
+	]])],[
 	AC_EGREP_HEADER(pthread_detach,pthread.h,
 	ol_cv_pthread_version=10, ol_cv_pthread_version=8)],[
 	AC_EGREP_CPP(draft7,[
@@ -813,8 +723,8 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 ])dnl
 dnl
 dnl --------------------------------------------------------------------
-AC_DEFUN([OL_PTHREAD_TEST_INCLUDES],
-[/* pthread test headers */
+AC_DEFUN([OL_PTHREAD_TEST_INCLUDES], [[
+/* pthread test headers */
 #include <pthread.h>
 #if HAVE_PTHREADS < 7
 #include <errno.h>
@@ -828,8 +738,8 @@ static void *task(p)
 {
 	return (void *) (p == NULL);
 }
-])
-AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
+]])
+AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[[
 	/* pthread test function */
 #ifndef PTHREAD_CREATE_DETACHED
 #define	PTHREAD_CREATE_DETACHED	1
@@ -875,10 +785,10 @@ AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
 #endif
 
 	return 0;
-])
+]])
 
 AC_DEFUN([OL_PTHREAD_TEST_PROGRAM],
-[OL_PTHREAD_TEST_INCLUDES
+AC_LANG_SOURCE([OL_PTHREAD_TEST_INCLUDES
 
 int main(argc, argv)
 	int argc;
@@ -886,7 +796,7 @@ int main(argc, argv)
 {
 OL_PTHREAD_TEST_FUNCTION
 }
-])
+]))
 dnl --------------------------------------------------------------------
 AC_DEFUN([OL_PTHREAD_TRY], [# Pthread try link: $1 ($2)
 if test "$ol_link_threads" = no ; then
@@ -896,9 +806,11 @@ if test "$ol_link_threads" = no ; then
 		ol_LIBS="$LIBS"
 		LIBS="$1 $LIBS"
 
-		AC_TRY_RUN(OL_PTHREAD_TEST_PROGRAM,
-			[$2=yes], [$2=no],
-			[AC_TRY_LINK(OL_PTHREAD_TEST_INCLUDES,OL_PTHREAD_TEST_FUNCTION,
+		AC_RUN_IFELSE([OL_PTHREAD_TEST_PROGRAM],
+			[$2=yes],
+			[$2=no],
+			[AC_LINK_IFELSE([AC_LANG_PROGRAM(OL_PTHREAD_TEST_INCLUDES,
+				OL_PTHREAD_TEST_FUNCTION)],
 				[$2=yes], [$2=no])])
 
 		# restore the LIBS
@@ -998,7 +910,7 @@ dnl ====================================================================
 dnl Check for POSIX Regex
 AC_DEFUN([OL_POSIX_REGEX], [
 AC_CACHE_CHECK([for compatible POSIX regex],ol_cv_c_posix_regex,[
-	AC_TRY_RUN([
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <sys/types.h>
 #include <regex.h>
 static char *pattern, *string;
@@ -1020,17 +932,14 @@ main()
 	regfree(&re);
 
 	return rc;
-}],
-	[ol_cv_c_posix_regex=yes],
-	[ol_cv_c_posix_regex=no],
-	[ol_cv_c_posix_regex=cross])])
+}]])],[ol_cv_c_posix_regex=yes],[ol_cv_c_posix_regex=no],[ol_cv_c_posix_regex=cross])])
 ])
 dnl
 dnl ====================================================================
 dnl Check if toupper() requires islower() to be called first
 AC_DEFUN([OL_C_UPPER_LOWER],
 [AC_CACHE_CHECK([if toupper() requires islower()],ol_cv_c_upper_lower,[
-	AC_TRY_RUN([
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <ctype.h>
 main()
 {
@@ -1038,10 +947,7 @@ main()
 		exit(0);
 	else
 		exit(1);
-}],
-	[ol_cv_c_upper_lower=no],
-	[ol_cv_c_upper_lower=yes],
-	[ol_cv_c_upper_lower=safe])])
+}]])],[ol_cv_c_upper_lower=no],[ol_cv_c_upper_lower=yes],[ol_cv_c_upper_lower=safe])])
 if test $ol_cv_c_upper_lower != no ; then
 	AC_DEFINE(C_UPPER_LOWER,1, [define if toupper() requires islower()])
 fi
@@ -1055,17 +961,14 @@ dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
 dnl Reported by Keith Bostic.
 AC_DEFUN([OL_SYS_ERRLIST],
 [AC_CACHE_CHECK([declaration of sys_errlist],ol_cv_dcl_sys_errlist,[
-	AC_TRY_COMPILE([
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
 #ifdef WINNT
 #include <stdlib.h>
-#endif ],
-	[char *c = (char *) *sys_errlist],
-	[ol_cv_dcl_sys_errlist=yes
-	ol_cv_have_sys_errlist=yes],
-	[ol_cv_dcl_sys_errlist=no])])
+#endif ]], [[char *c = (char *) *sys_errlist]])],[ol_cv_dcl_sys_errlist=yes
+	ol_cv_have_sys_errlist=yes],[ol_cv_dcl_sys_errlist=no])])
 #
 # It's possible (for near-UNIX clones) that sys_errlist doesn't exist
 if test $ol_cv_dcl_sys_errlist = no ; then
@@ -1073,10 +976,7 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 		[define if sys_errlist is not declared in stdio.h or errno.h])
 
 	AC_CACHE_CHECK([existence of sys_errlist],ol_cv_have_sys_errlist,[
-		AC_TRY_LINK([#include <errno.h>],
-			[char *c = (char *) *sys_errlist],
-			[ol_cv_have_sys_errlist=yes],
-			[ol_cv_have_sys_errlist=no])])
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <errno.h>]], [[char *c = (char *) *sys_errlist]])],[ol_cv_have_sys_errlist=yes],[ol_cv_have_sys_errlist=no])])
 fi
 if test $ol_cv_have_sys_errlist = yes ; then
 	AC_DEFINE(HAVE_SYS_ERRLIST,1,
@@ -1089,21 +989,20 @@ AC_DEFUN([OL_NONPOSIX_STRERROR_R],
 		ol_decl_strerror_r=yes, ol_decl_strerror_r=no)dnl
 
 	if test $ol_decl_strerror_r = yes ; then
-		AC_TRY_COMPILE([#include <string.h>],
-			[   /* from autoconf 2.59 */
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <string.h>]], [[   /* from autoconf 2.59 */
 				char buf[100];
 				char x = *strerror_r (0, buf, sizeof buf);
 				char *p = strerror_r (0, buf, sizeof buf);
-			], ol_cv_nonposix_strerror_r=yes, ol_cv_nonposix_strerror_r=no)
+			]])],[ol_cv_nonposix_strerror_r=yes],[ol_cv_nonposix_strerror_r=no])
 	else
-		AC_TRY_RUN([
+		AC_RUN_IFELSE([AC_LANG_SOURCE([[
 			main() {
 				char buf[100];
 				buf[0] = 0;
 				strerror_r( 1, buf, sizeof buf );
 				exit( buf[0] == 0 );
 			}
-			], ol_cv_nonposix_strerror_r=yes, ol_cv_nonposix_strerror=no, ol_cv_nonposix_strerror=no)
+			]])],[ol_cv_nonposix_strerror_r=yes],[ol_cv_nonposix_strerror=no],[ol_cv_nonposix_strerror=no])
 	fi
 	])
 if test $ol_cv_nonposix_strerror_r = yes ; then
@@ -1128,10 +1027,9 @@ dnl "int x; int *volatile a = &x; *a = 0;"
 dnl 	-- borrowed from PDKSH
 AC_DEFUN([OL_C_VOLATILE],
  [AC_CACHE_CHECK(if compiler understands volatile, ol_cv_c_volatile,
-    [AC_TRY_COMPILE([int x, y, z;],
-      [volatile int a; int * volatile b = x ? &y : &z;
+    [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int x, y, z;]], [[volatile int a; int * volatile b = x ? &y : &z;
       /* Older MIPS compilers (eg., in Ultrix 4.2) don't like *b = 0 */
-      *b = 0;], ol_cv_c_volatile=yes, ol_cv_c_volatile=no)])
+      *b = 0;]])],[ol_cv_c_volatile=yes],[ol_cv_c_volatile=no])])
   if test $ol_cv_c_volatile = yes; then
     : 
   else
@@ -1145,13 +1043,10 @@ AC_DEFUN([OL_LIB_FETCH],
 [ol_LIBS=$LIBS
 LIBS="-lfetch -lcom_err $LIBS"
 AC_CACHE_CHECK([fetch(3) library],ol_cv_lib_fetch,[
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/param.h>
 #include <stdio.h>
-#include <fetch.h>],
-	[struct url *u = fetchParseURL("file:///"); ],
-	[ol_cv_lib_fetch=yes],
-	[ol_cv_lib_fetch=no])])
+#include <fetch.h>]], [[struct url *u = fetchParseURL("file:///"); ]])],[ol_cv_lib_fetch=yes],[ol_cv_lib_fetch=no])])
 LIBS=$ol_LIBS
 if test $ol_cv_lib_fetch != no ; then
 	ol_link_fetch="-lfetch -lcom_err"
@@ -1161,41 +1056,10 @@ fi
 ])dnl
 dnl
 dnl ====================================================================
-dnl Define sig_atomic_t if not defined in signal.h
-AC_DEFUN([OL_TYPE_SIG_ATOMIC_T],
- [AC_CACHE_CHECK(for sig_atomic_t, ol_cv_type_sig_atomic_t,
-    [AC_TRY_COMPILE([#include <signal.h>], [sig_atomic_t atomic;],
-		ol_cv_type_sig_atomic_t=yes, ol_cv_type_sig_atomic_t=no)])
-  if test $ol_cv_type_sig_atomic_t = no; then
-    AC_DEFINE(sig_atomic_t,int,
-		[define to atomic type if sig_atomic_t is not available])
-  fi
- ])dnl
-dnl
-dnl ====================================================================
-dnl Define socklen_t if not defined in sys/types.h or sys/socket.h
-AC_DEFUN([OL_TYPE_SOCKLEN_T],
- [AC_CACHE_CHECK(for socklen_t, ol_cv_type_socklen_t,
-    [AC_TRY_COMPILE([
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-], [socklen_t len;],
-		ol_cv_type_socklen_t=yes, ol_cv_type_socklen_t=no)])
-  if test $ol_cv_type_socklen_t = no; then
-    AC_DEFINE(socklen_t, int,
-		[define to int if socklen_t is not available])
-  fi
- ])dnl
-dnl
-dnl ====================================================================
 dnl Define inet_aton is available
 AC_DEFUN([OL_FUNC_INET_ATON],
  [AC_CACHE_CHECK([for inet_aton()], ol_cv_func_inet_aton,
-    [AC_TRY_LINK([
+    [AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #ifdef HAVE_SYS_TYPES_H
 #	include <sys/types.h>
 #endif
@@ -1209,9 +1073,8 @@ AC_DEFUN([OL_FUNC_INET_ATON],
 #		include <arpa/inet.h>
 #	endif
 #endif
-], [struct in_addr in;
-int rc = inet_aton( "255.255.255.255", &in );],
-		ol_cv_func_inet_aton=yes, ol_cv_func_inet_aton=no)])
+]], [[struct in_addr in;
+int rc = inet_aton( "255.255.255.255", &in );]])],[ol_cv_func_inet_aton=yes],[ol_cv_func_inet_aton=no])])
   if test $ol_cv_func_inet_aton != no; then
     AC_DEFINE(HAVE_INET_ATON, 1,
 		[define to you inet_aton(3) is available])
@@ -1222,15 +1085,9 @@ dnl ====================================================================
 dnl check no of arguments for ctime_r
 AC_DEFUN([OL_FUNC_CTIME_R_NARGS],
  [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,
-   [AC_TRY_COMPILE([#include <time.h>],
-		[time_t ti; char *buffer; ctime_r(&ti,buffer,32);],
-			ol_cv_func_ctime_r_nargs3=yes,
-			ol_cv_func_ctime_r_nargs3=no)
+   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <time.h>]], [[time_t ti; char *buffer; ctime_r(&ti,buffer,32);]])],[ol_cv_func_ctime_r_nargs3=yes],[ol_cv_func_ctime_r_nargs3=no])
 
-	AC_TRY_COMPILE([#include <time.h>],
-		[time_t ti; char *buffer; ctime_r(&ti,buffer);],
-			ol_cv_func_ctime_r_nargs2=yes,
-			ol_cv_func_ctime_r_nargs2=no)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <time.h>]], [[time_t ti; char *buffer; ctime_r(&ti,buffer);]])],[ol_cv_func_ctime_r_nargs2=yes],[ol_cv_func_ctime_r_nargs2=no])
 
 	if test $ol_cv_func_ctime_r_nargs3 = yes -a \
 		$ol_cv_func_ctime_r_nargs2 = no ; then
@@ -1257,9 +1114,7 @@ dnl --------------------------------------------------------------------
 dnl check return type of ctime_r()
 AC_DEFUN([OL_FUNC_CTIME_R_TYPE],
  [AC_CACHE_CHECK(return type of ctime_r, ol_cv_func_ctime_r_type,
-   [AC_TRY_COMPILE([#include <time.h>],
-		[extern int (ctime_r)();],
-			ol_cv_func_ctime_r_type="int", ol_cv_func_ctime_r_type="charp")
+   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <time.h>]], [[extern int (ctime_r)();]])],[ol_cv_func_ctime_r_type="int"],[ol_cv_func_ctime_r_type="charp"])
 	])
   if test $ol_cv_func_ctime_r_type = "int" ; then
 	AC_DEFINE(CTIME_R_RETURNS_INT,1, [define if ctime_r() returns int])
@@ -1270,30 +1125,24 @@ dnl check no of arguments for gethostbyname_r
 AC_DEFUN([OL_FUNC_GETHOSTBYNAME_R_NARGS],
  [AC_CACHE_CHECK(number of arguments of gethostbyname_r,
 	ol_cv_func_gethostbyname_r_nargs,
-	[AC_TRY_COMPILE([#include <sys/types.h>
+	[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#define BUFSIZE (sizeof(struct hostent)+10)],
-		[struct hostent hent; char buffer[BUFSIZE];
+#define BUFSIZE (sizeof(struct hostent)+10)]], [[struct hostent hent; char buffer[BUFSIZE];
 		int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyname_r("segovia.cs.purdue.edu", &hent,
-			buffer, bufsize, &h_errno);],
-		ol_cv_func_gethostbyname_r_nargs5=yes, 
-		ol_cv_func_gethostbyname_r_nargs5=no)
+			buffer, bufsize, &h_errno);]])],[ol_cv_func_gethostbyname_r_nargs5=yes],[ol_cv_func_gethostbyname_r_nargs5=no])
 
-	AC_TRY_COMPILE([#include <sys/types.h>
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#define BUFSIZE (sizeof(struct hostent)+10)],
-		[struct hostent hent;struct hostent *rhent;
+#define BUFSIZE (sizeof(struct hostent)+10)]], [[struct hostent hent;struct hostent *rhent;
 		char buffer[BUFSIZE];
 		int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyname_r("localhost", &hent, buffer, bufsize,
-			&rhent, &h_errno);],
-		ol_cv_func_gethostbyname_r_nargs6=yes,
-		ol_cv_func_gethostbyname_r_nargs6=no)
+			&rhent, &h_errno);]])],[ol_cv_func_gethostbyname_r_nargs6=yes],[ol_cv_func_gethostbyname_r_nargs6=no])
 
 	if test $ol_cv_func_gethostbyname_r_nargs5 = yes -a \
 		$ol_cv_func_gethostbyname_r_nargs6 = no ; then
@@ -1320,35 +1169,29 @@ dnl check no of arguments for gethostbyaddr_r
 AC_DEFUN([OL_FUNC_GETHOSTBYADDR_R_NARGS],
  [AC_CACHE_CHECK(number of arguments of gethostbyaddr_r,
 	[ol_cv_func_gethostbyaddr_r_nargs],
-	[AC_TRY_COMPILE([#include <sys/types.h>
+	[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#define BUFSIZE (sizeof(struct hostent)+10)],
-	   [struct hostent hent; char buffer[BUFSIZE]; 
+#define BUFSIZE (sizeof(struct hostent)+10)]], [[struct hostent hent; char buffer[BUFSIZE]; 
 	    struct in_addr add;
 	    size_t alen=sizeof(struct in_addr);
 	    int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyaddr_r( (void *)&(add.s_addr),
-			alen, AF_INET, &hent, buffer, bufsize, &h_errno);],
-		ol_cv_func_gethostbyaddr_r_nargs7=yes,
-		ol_cv_func_gethostbyaddr_r_nargs7=no)
+			alen, AF_INET, &hent, buffer, bufsize, &h_errno);]])],[ol_cv_func_gethostbyaddr_r_nargs7=yes],[ol_cv_func_gethostbyaddr_r_nargs7=no])
 
-	AC_TRY_COMPILE([#include <sys/types.h>
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#define BUFSIZE (sizeof(struct hostent)+10)],
-		[struct hostent hent;
+#define BUFSIZE (sizeof(struct hostent)+10)]], [[struct hostent hent;
 		struct hostent *rhent; char buffer[BUFSIZE]; 
 		struct in_addr add;
 		size_t alen=sizeof(struct in_addr);
 		int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyaddr_r( (void *)&(add.s_addr),
 			alen, AF_INET, &hent, buffer, bufsize, 
-			&rhent, &h_errno);],
-		ol_cv_func_gethostbyaddr_r_nargs8=yes,
-		ol_cv_func_gethostbyaddr_r_nargs8=no)
+			&rhent, &h_errno);]])],[ol_cv_func_gethostbyaddr_r_nargs8=yes],[ol_cv_func_gethostbyaddr_r_nargs8=no])
 
 	if test $ol_cv_func_gethostbyaddr_r_nargs7 = yes -a \
 		$ol_cv_func_gethostbyaddr_r_nargs8 = no ; then
@@ -1392,31 +1235,7 @@ AC_DEFUN([OL_SASL_COMPAT],
 	],	[ol_cv_sasl_compat=yes], [ol_cv_sasl_compat=no])])
 ])
 dnl ====================================================================
-dnl check for msg_accrights in msghdr
-AC_DEFUN([OL_MSGHDR_MSG_ACCRIGHTS],
- [AC_CACHE_CHECK(for msg_accrights in msghdr, ol_cv_msghdr_msg_accrights,
-   [AC_TRY_COMPILE([#include <sys/socket.h>],
-		[struct msghdr m; m.msg_accrightslen=0],
-		ol_cv_msghdr_msg_accrights=yes, ol_cv_msghdr_msg_accrights=no)
-	])
-  if test $ol_cv_msghdr_msg_accrights = "yes" ; then
-	AC_DEFINE(HAVE_MSGHDR_MSG_ACCRIGHTS,1,
-		[define if struct msghdr has msg_accrights])
-  fi
-])dnl
-dnl ====================================================================
-dnl check for cmsghdr
-AC_DEFUN([OL_MSGHDR_MSG_CONTROL],
- [AC_CACHE_CHECK(for msg_control in msghdr, ol_cv_msghdr_msg_control,
-   [AC_TRY_COMPILE([#include <sys/socket.h>],
-		[struct msghdr m; m.msg_control=(struct cmsghdr *)0],
-		ol_cv_msghdr_msg_control=yes, ol_cv_msghdr_msg_control=no)
-	])
-  if test $ol_cv_msghdr_msg_control = "yes" ; then
-	AC_DEFINE(HAVE_MSGHDR_MSG_CONTROL,1,
-		[define if struct msghdr has msg_control])
-  fi
-])dnl
+dnl check for SSL compatibility
 AC_DEFUN([OL_SSL_COMPAT],
 [AC_CACHE_CHECK([OpenSSL library version (CRL checking capability)], [ol_cv_ssl_crl_compat],[
 	AC_EGREP_CPP(__ssl_compat,[

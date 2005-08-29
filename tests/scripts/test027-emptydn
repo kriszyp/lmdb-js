@@ -78,8 +78,10 @@ wait
 
 LDIFOUT=$EMPTYDNOUT1
 
+echo "Filtering ldapsearch results..."
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing ldapsearch results against original..."
-$CMP $SEARCHOUT $LDIFOUT > $CMPOUT
+$CMP $SEARCHFLT $LDIFOUT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - empty DN write operations did not complete correctly"
@@ -150,8 +152,10 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIFOUT=$EMPTYDNOUT2
 
+echo "Filtering ldapsearch results..."
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Comparing ldapsearch results against original..."
-$CMP $SEARCHOUT $LDIFOUT > $CMPOUT
+$CMP $SEARCHFLT $LDIFOUT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - empty DN write operations did not complete correctly"
