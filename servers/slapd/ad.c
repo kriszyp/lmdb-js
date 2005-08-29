@@ -753,6 +753,11 @@ int slap_bv2undef_ad(
 		desc->ad_next = desc->ad_type->sat_ad;
 		desc->ad_type->sat_ad = desc;
 		ldap_pvt_thread_mutex_unlock( &ad_undef_mutex );
+
+		Debug( LDAP_DEBUG_ANY,
+			"%s attributeDescription \"%s\" inserted.\n",
+			( flags & SLAP_AD_PROXIED ) ? "PROXIED" : "UNKNOWN",
+			desc->ad_cname.bv_val, 0 );
 	}
 
 	if( !*ad ) {
