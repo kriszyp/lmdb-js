@@ -421,7 +421,7 @@ log_age_unparse( int age, struct berval *agebv )
 	agebv->bv_len = ptr - agebv->bv_val;
 }
 
-static slap_callback nullsc = { NULL, slap_null_cb, NULL, NULL };
+static slap_callback nullsc = { NULL, NULL, NULL, NULL };
 
 #define PURGE_INCREMENT	100
 
@@ -844,7 +844,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 				vals[i].bv_len = m->sml_desc->ad_cname.bv_len + 2;
 				vals[i].bv_val = ch_malloc( vals[i].bv_len+1 );
 				ptr = lutil_strcopy( vals[i].bv_val,
-					a->a_desc->ad_cname.bv_val );
+					m->sml_desc->ad_cname.bv_val );
 				*ptr++ = ':';
 				*ptr++ = '-';
 				*ptr = '\0';
@@ -1062,6 +1062,8 @@ int accesslog_init()
 	accesslog.on_response = accesslog_response;
 
 	accesslog.on_bi.bi_cf_ocs = log_cfocs;
+
+	nullsc.sc_response = slap_null_cb;
 
 	rc = config_register_schema( log_cfats, log_cfocs );
 	if ( rc ) return rc;

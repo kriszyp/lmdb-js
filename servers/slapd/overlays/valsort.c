@@ -272,11 +272,13 @@ valsort_response( Operation *op, SlapReply *rs )
 	valsort_info *vi;
 	Attribute *a;
 
-	/* We only want search responses */
-	if ( rs->sr_type != REP_SEARCH ) return SLAP_CB_CONTINUE;
-
-	/* If this is a syncrepl response, pass thru unmodified */
-	if ( op->o_sync > SLAP_CONTROL_IGNORED ) return SLAP_CB_CONTINUE;
+	/* If this is not a search response, or it is a syncrepl response,
+	 * or the valsort control wants raw results, pass thru unmodified.
+	 */
+	if ( rs->sr_type != REP_SEARCH ||
+		( _SCM(op->o_sync) > SLAP_CONTROL_IGNORED ) ||
+		( op->o_ctrlflag[valsort_cid] & SLAP_CONTROL_DATA0))
+		return SLAP_CB_CONTINUE;
 		
 	on = (slap_overinst *) op->o_bd->bd_info;
 	vi = on->on_bi.bi_private;
@@ -471,6 +473,14 @@ valsort_modify( Operation *op, SlapReply *rs )
 }
 
 static int
+valsort_db_open(
+	BackendDB *be
+)
+{
+	return overlay_register_control( be, LDAP_CONTROL_VALSORT );
+}
+
+static int
 valsort_destroy(
 	BackendDB *be
 )
@@ -493,12 +503,26 @@ valsort_parseCtrl(
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "valSort control value not empty";
+	ber_tag_t tag;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_int_t flag = 0;
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		rs->sr_text = "valSort control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
+
+	ber_init2( ber, &ctrl->ldctl_value, 0 );
+	if (( tag = ber_scanf( ber, "{b}", &flag )) == LBER_ERROR ) {
+		rs->sr_text = "valSort control: flag decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	op->o_ctrlflag[valsort_cid] = ctrl->ldctl_iscritical ?
 		SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL;
+	if ( flag )
+		op->o_ctrlflag[valsort_cid] |= SLAP_CONTROL_DATA0;
 
 	return LDAP_SUCCESS;
 }
@@ -507,10 +531,11 @@ static slap_overinst valsort;
 
 int valsort_init()
 {
-	int i, rc;
+	int rc;
 
 	valsort.on_bi.bi_type = "valsort";
 	valsort.on_bi.bi_db_destroy = valsort_destroy;
+	valsort.on_bi.bi_db_open = valsort_db_open;
 
 	valsort.on_bi.bi_op_add = valsort_add;
 	valsort.on_bi.bi_op_modify = valsort_modify;

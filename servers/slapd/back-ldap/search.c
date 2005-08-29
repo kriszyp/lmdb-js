@@ -429,7 +429,14 @@ fail:;
 	 * Rewrite the matched portion of the search base, if required
 	 */
 	if ( !BER_BVISNULL( &match ) && !BER_BVISEMPTY( &match ) ) {
-		rs->sr_matched = match.bv_val;
+		struct berval	pmatch;
+
+		if ( dnPretty( NULL, &match, &pmatch, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
+			rs->sr_matched = pmatch.bv_val;
+
+		} else {
+			rs->sr_matched = match.bv_val;
+		}
 	}
 
 	if ( rs->sr_v2ref ) {
@@ -448,9 +455,14 @@ finish:;
 		rs->sr_ctrls = NULL;
 	}
 
-	if ( match.bv_val ) {
+	if ( rs->sr_matched != NULL ) {
+		if ( rs->sr_matched != match.bv_val ) {
+			ber_memfree_x( (char *)rs->sr_matched, op->o_tmpmemctx );
+
+		} else {
+			LDAP_FREE( match.bv_val );
+		}
 		rs->sr_matched = NULL;
-		LDAP_FREE( match.bv_val );
 	}
 
 	if ( !BER_BVISNULL( &filter ) && filter.bv_val != op->ors_filterstr.bv_val ) {
@@ -477,7 +489,7 @@ finish:;
 		ldap_back_release_conn( op, rs, lc );
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 static int

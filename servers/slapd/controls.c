@@ -1333,7 +1333,7 @@ static int parseSearchOptions (
 	ber_tag_t tag;
 
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "searchOptions control value not empty";
+		rs->sr_text = "searchOptions control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1367,7 +1367,7 @@ static int parseSearchOptions (
 		 * including:
 		 *		LDAP_SEARCH_FLAG_PHANTOM_ROOM
 		 */
-		rs->sr_text = "searchOptions contained unrecongized flag";
+		rs->sr_text = "searchOptions contained unrecognized flag";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 

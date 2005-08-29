@@ -92,6 +92,8 @@ slap_init( int mode, const char *name )
 	assert( mode );
 
 	if ( slapMode != SLAP_UNDEFINED_MODE ) {
+		/* Make sure we write something to stderr */
+		ldap_debug |= 1;
 		Debug( LDAP_DEBUG_ANY,
 		 "%s init: init called twice (old=%d, new=%d)\n",
 		 name, slapMode, mode );
@@ -100,6 +102,25 @@ slap_init( int mode, const char *name )
 	}
 
 	slapMode = mode;
+
+#ifdef SLAPD_MODULES
+	if ( module_init() != 0 ) {
+		ldap_debug |= 1;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: module_init failed\n",
+			name, 0, 0 );
+		return 1;
+	}
+#endif
+
+	if ( slap_schema_init( ) != 0 ) {
+		ldap_debug |= 1;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: slap_schema_init failed\n",
+		    name, 0, 0 );
+		return 1;
+	}
+
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
@@ -153,6 +174,7 @@ slap_init( int mode, const char *name )
 		break;
 
 	default:
+		ldap_debug |= 1;
 		Debug( LDAP_DEBUG_ANY,
 			"%s init: undefined mode (%d).\n", name, mode, 0 );
 
@@ -160,6 +182,49 @@ slap_init( int mode, const char *name )
 		break;
 	}
 
+	if ( slap_controls_init( ) != 0 ) {
+		ldap_debug |= 1;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: slap_controls_init failed\n",
+		    name, 0, 0 );
+		return 1;
+	}
+
+#ifdef HAVE_TLS
+	/* Library defaults to full certificate checking. This is correct when
+	 * a client is verifying a server because all servers should have a
+	 * valid cert. But few clients have valid certs, so we want our default
+	 * to be no checking. The config file can override this as usual.
+	 */
+	rc = 0;
+	(void) ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
+#endif
+
+	if ( frontend_init() ) {
+		ldap_debug |= 1;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: frontend_init failed\n",
+		    name, 0, 0 );
+		return 1;
+	}
+
+	if ( overlay_init() ) {
+		ldap_debug |= 1;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: overlay_init failed\n",
+		    name, 0, 0 );
+		return 1;
+	}
+
+#ifdef SLAP_DYNACL
+	if ( acl_init() ) {
+		ldap_debug |= 1;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: acl_init failed\n",
+		    name, 0, 0 );
+		return 1;
+	}
+#endif /* SLAP_DYNACL */
 	return rc;
 }
 

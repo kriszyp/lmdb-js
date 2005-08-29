@@ -393,43 +393,11 @@ slap_tool_init(
 	 * initialize stuff and figure out which backend we're dealing with
 	 */
 
-#ifdef SLAPD_MODULES
-	if ( module_init() != 0 ) {
-		fprintf( stderr, "%s: module_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-#endif
-		
-	rc = slap_schema_init();
-
-	if ( rc != 0 ) {
-		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-
 	rc = slap_init( mode, progname );
-
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_init failed!\n", progname );
 		exit( EXIT_FAILURE );
 	}
-
-	if ( frontend_init() ) {
-		fprintf( stderr, "%s: frontend_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-
-	if ( overlay_init() ) {
-		fprintf( stderr, "%s: overlay_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-
-#ifdef SLAP_DYNACL
-	if ( acl_init() ) {
-		fprintf( stderr, "%s: acl_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-#endif /* SLAP_DYNACL */
 
 	rc = read_config( conffile, confdir );
 

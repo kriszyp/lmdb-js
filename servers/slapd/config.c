@@ -638,7 +638,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 		ch_free( c->tline );
 		if ( fp_parse_line( c ) ) {
 			rc = 1;
-			goto leave;
+			goto done;
 		}
 
 		if ( c->argc < 1 ) {
@@ -647,7 +647,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				c->log, 0, 0);
 #ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 			rc = 1;
-			goto leave;
+			goto done;
 #else /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 			continue;
 #endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
@@ -665,11 +665,11 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				Debug(LDAP_DEBUG_CONFIG, "%s: unknown user type <%s>\n",
 					c->log, c->argv[0], 0);
 				rc = 1;
-				goto leave;
+				goto done;
 
 			} else if ( rc == ARG_BAD_CONF ) {
 				rc = 1;
-				goto leave;
+				goto done;
 			}
 			
 		} else if ( c->bi && !c->be ) {
@@ -696,7 +696,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 #endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 				default:
 					rc = 1;
-					goto leave;
+					goto done;
 				}
 			}
 
@@ -724,7 +724,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 #endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 				default:
 					rc = 1;
-					goto leave;
+					goto done;
 				}
 			}
 
@@ -742,7 +742,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 #endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 				default:
 					rc = 1;
-					goto leave;
+					goto done;
 				}
 			}
 			
@@ -753,7 +753,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				c->log, *c->argv, 0);
 #ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 			rc = 1;
-			goto leave;
+			goto done;
 #else /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 			continue;
 #endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
@@ -762,7 +762,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 
 	rc = 0;
 
-leave:
+done:
 	ch_free(c->tline);
 	fclose(fp);
 	ch_free(c->argv);

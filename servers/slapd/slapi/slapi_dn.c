@@ -267,7 +267,7 @@ int slapi_sdn_compare( const Slapi_DN *sdn1, const Slapi_DN *sdn2 )
 
 int slapi_sdn_isempty( const Slapi_DN *sdn)
 {
-	return ( BER_BVISEMPTY( &sdn->dn ) );
+	return ( BER_BVISEMPTY( &sdn->dn ) && BER_BVISEMPTY( &sdn->ndn ) );
 }
 
 int slapi_sdn_issuffix( const Slapi_DN *sdn, const Slapi_DN *suffix_sdn )
@@ -409,12 +409,12 @@ void slapi_rdn_set_dn( Slapi_RDN *rdn, const char *dn )
 
 void slapi_rdn_set_sdn( Slapi_RDN *rdn, const Slapi_DN *sdn )
 {
-	return slapi_rdn_set_dn( rdn, slapi_sdn_get_dn( sdn ) );
+	slapi_rdn_set_dn( rdn, slapi_sdn_get_dn( sdn ) );
 }
 
 void slapi_rdn_set_rdn( Slapi_RDN *rdn, const Slapi_RDN *fromrdn )
 {
-	return slapi_rdn_set_dn( rdn, fromrdn->bv.bv_val );
+	slapi_rdn_set_dn( rdn, fromrdn->bv.bv_val );
 }
 
 void slapi_rdn_free( Slapi_RDN **rdn )

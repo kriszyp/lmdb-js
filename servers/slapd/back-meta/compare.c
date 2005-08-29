@@ -289,13 +289,19 @@ finish:;
 		 * At least one compare failed with matched portion,
 		 * and none was successful
 		 */
-	} else if ( match != NULL &&  match[0] != '\0' ) {
-		struct berval matched;
+	} else if ( match != NULL && match[ 0 ] != '\0' ) {
+		struct berval matched, pmatched;
 
 		ber_str2bv( match, 0, 0, &matched );
 
 		dc.ctx = "matchedDN";
 		ldap_back_dn_massage( &dc, &matched, &mmatch );
+		if ( dnPretty( NULL, &mmatch, &pmatched, NULL ) == LDAP_SUCCESS ) {
+			if ( mmatch.bv_val != match ) {
+				free( mmatch.bv_val );
+			}
+			mmatch = pmatched;
+		}
 	}
 
 	if ( rres != LDAP_SUCCESS ) {
