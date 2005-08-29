@@ -457,7 +457,7 @@ finish:;
 
 	if ( rs->sr_matched != NULL ) {
 		if ( rs->sr_matched != match.bv_val ) {
-			ber_memfree_x( rs->sr_matched, op->o_tmpmemctx );
+			ber_memfree_x( (char *)rs->sr_matched, op->o_tmpmemctx );
 
 		} else {
 			LDAP_FREE( match.bv_val );
