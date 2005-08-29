@@ -1158,6 +1158,13 @@ void connection_client_stop(
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
 	c->c_close_reason = "?";			/* should never be needed */
+	ber_sockbuf_free( c->c_sb );
+	c->c_sb = ber_sockbuf_alloc( );
+	{
+		ber_len_t max = sockbuf_max_incoming;
+		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+	}
+
 	connection_return( c );
 	slapd_remove( s, 0, 1 );
 }
