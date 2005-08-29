@@ -1269,8 +1269,8 @@ int connection_read(ber_socket_t s)
 					s, rc, c->c_connid );
 			}
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu TLS established tls_ssf=%u ssf=%u\n",
-			    c->c_connid, c->c_tls_ssf, c->c_ssf, 0, 0 );
+				"conn=%lu fd=%d TLS established tls_ssf=%u ssf=%u\n",
+			    c->c_connid, (int) s, c->c_tls_ssf, c->c_ssf, 0 );
 			slap_sasl_external( c, c->c_tls_ssf, &authid );
 			if ( authid.bv_val ) free( authid.bv_val );
 		}
