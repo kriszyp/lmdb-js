@@ -25,10 +25,11 @@ makefiles:	FORCE
 install-common: all FORCE
 
 clean-local: FORCE
-	$(RM) config.log
+	$(RM) config.cache config.log configure.lineno
+	$(RM) -r autom4te.cache
 
 veryclean-local: FORCE
-	$(RM) config.cache config.status libtool stamp-h stamp-h.in
+	$(RM) config.status libtool stamp-h stamp-h.in
 
 distclean: veryclean FORCE
 
