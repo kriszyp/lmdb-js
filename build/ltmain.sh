@@ -1105,14 +1105,15 @@ EOF
 	  if test -n "$link_static_flag"; then
 	    dlopen_self=$dlopen_self_static
 	  fi
+	  prefer_static_libs=yes
 	else
 	  if test -z "$pic_flag" && test -n "$link_static_flag"; then
 	    dlopen_self=$dlopen_self_static
 	  fi
+	  prefer_static_libs=built
 	fi
 	build_libtool_libs=no
 	build_old_libs=yes
-	prefer_static_libs=yes
 	break
 	;;
       esac
@@ -2491,8 +2492,12 @@ EOF
 	fi
 
 	link_static=no # Whether the deplib will be linked statically
+	use_static_libs="$prefer_static_libs"
+	if test "$use_static_libs" = built && test "$installed" = yes ; then
+	  use_static_libs=no
+	fi
 	if test -n "$library_names" &&
-	   { test "$prefer_static_libs" = no || test -z "$old_library"; }; then
+	   { test "$use_static_libs" = no || test -z "$old_library"; }; then
 	  if test "$installed" = no; then
 	    notinst_deplibs="$notinst_deplibs $lib"
 	    need_relink=yes
