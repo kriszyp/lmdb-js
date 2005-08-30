@@ -665,9 +665,10 @@ meta_back_op_result(
 
 	int			i,
 				rerr = LDAP_SUCCESS;
-	char			*rmsg = NULL;
-	char			*rmatch = NULL;
-	char			*save_rmatch = NULL;
+	char			*rmsg = NULL,
+				*save_rmsg = NULL,
+				*rmatch = NULL,
+				*save_rmatch = NULL;
 	void			*rmatch_ctx = NULL;
 
 	if ( candidate != META_TARGET_NONE ) {
@@ -781,7 +782,10 @@ meta_back_op_result(
 	}
 	
 	rs->sr_err = rerr;
-	rs->sr_text = rmsg;
+	if ( rmsg != NULL ) {
+		save_rmsg = rs->sr_text;
+		rs->sr_text = rmsg;
+	}
 	if ( rmatch != NULL ) {
 		struct berval	dn, pdn;
 
@@ -797,12 +801,12 @@ meta_back_op_result(
 	send_ldap_result( op, rs );
 	if ( rmsg != NULL ) {
 		ber_memfree( rmsg );
+		rs->sr_text = save_rmsg;
 	}
 	if ( rmatch != NULL ) {
 		ber_memfree_x( rmatch, rmatch_ctx );
 		rs->sr_matched = save_rmatch;
 	}
-	rs->sr_text = NULL;
 
 	return ( ( rerr == LDAP_SUCCESS ) ? 0 : -1 );
 }
