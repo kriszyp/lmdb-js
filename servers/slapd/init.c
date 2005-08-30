@@ -216,7 +216,6 @@ slap_init( int mode, const char *name )
 		return 1;
 	}
 
-#ifdef SLAP_DYNACL
 	if ( acl_init() ) {
 		ldap_debug |= 1;
 		Debug( LDAP_DEBUG_ANY,
@@ -224,7 +223,7 @@ slap_init( int mode, const char *name )
 		    name, 0, 0 );
 		return 1;
 	}
-#endif /* SLAP_DYNACL */
+
 	return rc;
 }
 
