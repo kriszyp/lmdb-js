@@ -19,6 +19,7 @@ bdb|hdb|ldbm)
 *)
 	echo "Test does not support $BACKEND backend"
 	exit 0
+	;;
 esac
 
 echo "running defines.sh"
