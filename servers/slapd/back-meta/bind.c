@@ -667,6 +667,7 @@ meta_back_op_result(
 				rerr = LDAP_SUCCESS;
 	char			*rmsg = NULL;
 	char			*rmatch = NULL;
+	void			*rmatch_ctx = NULL;
 
 	if ( candidate != META_TARGET_NONE ) {
 		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
@@ -785,27 +786,17 @@ meta_back_op_result(
 
 		ber_str2bv( rmatch, 0, 0, &dn );
 		if ( dnPretty( NULL, &dn, &pdn, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
-			rs->sr_matched = pdn.bv_val;
 			ldap_memfree( rmatch );
-			rmatch = NULL;
-		} else {
-			rs->sr_matched = rmatch;
+			rmatch_ctx = op->o_tmpmemctx;
+			rmatch = pdn.bv_val;
 		}
-
-	} else {
-		rs->sr_matched = NULL;
 	}
 	send_ldap_result( op, rs );
 	if ( rmsg != NULL ) {
 		ber_memfree( rmsg );
 	}
-	if ( rs->sr_matched != NULL ) {
-		if ( rmatch == NULL ) {
-			ber_memfree_x( rs->sr_matched, op->o_tmpmemctx );
-
-		} else {
-			ldap_memfree( rmatch );
-		}
+	if ( rmatch != NULL ) {
+		ber_memfree_x( rmatch, rmatch_ctx );
 		rs->sr_matched = NULL;
 	}
 	rs->sr_text = NULL;
