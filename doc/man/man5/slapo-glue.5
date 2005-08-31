@@ -17,6 +17,14 @@ All search and write operations will be intercepted by this overlay. Searches
 against the root database will be propagated to all the subordinates. Write
 operations will pass unaltered to the relevant target database.
 
+If the slap tools
+.BR slapcat (8),
+.BR slapadd (8)
+and
+.BR slapindex (8)
+are used on the root database, any glued subordinates that support these
+tools are opened as well.
+
 Note that
 any overlays on the root database configured before this overlay will fail
 to execute. As such, the glue overlay should always be the first overlay
