@@ -488,6 +488,7 @@ retry:;
 		}
 
 	} else {
+		rs->sr_err = rc;
 		rc = slap_map_api2result( rs );
 	}
 
@@ -580,8 +581,6 @@ meta_back_dobind(
 		}
 
 		if ( rc != LDAP_SUCCESS ) {
-			rs->sr_err = slap_map_api2result( rs );
-
 			Debug( LDAP_DEBUG_ANY, "%s meta_back_dobind[%d]: "
 					"(anonymous) err=%d\n",
 					op->o_log_prefix, i, rc );
@@ -593,7 +592,8 @@ meta_back_dobind(
 			 * due to technical reasons (remote host down?)
 			 * so better clear the handle
 			 */
-			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+			/* leave the target candidate, but record the error for later use */
+			candidates[ i ].sr_err = rc;
 			if ( META_BACK_ONERR_STOP( mi ) ) {
 				bound = 0;
 				goto done;
@@ -665,8 +665,11 @@ meta_back_op_result(
 
 	int			i,
 				rerr = LDAP_SUCCESS;
-	char			*rmsg = NULL;
-	char			*rmatch = NULL;
+	char			*rmsg = NULL,
+				*rmatch = NULL;
+	const char		*save_rmsg = NULL,
+				*save_rmatch = NULL;
+	void			*rmatch_ctx = NULL;
 
 	if ( candidate != META_TARGET_NONE ) {
 		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
@@ -779,36 +782,31 @@ meta_back_op_result(
 	}
 	
 	rs->sr_err = rerr;
-	rs->sr_text = rmsg;
+	if ( rmsg != NULL ) {
+		save_rmsg = rs->sr_text;
+		rs->sr_text = rmsg;
+	}
 	if ( rmatch != NULL ) {
 		struct berval	dn, pdn;
 
 		ber_str2bv( rmatch, 0, 0, &dn );
 		if ( dnPretty( NULL, &dn, &pdn, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
-			rs->sr_matched = pdn.bv_val;
 			ldap_memfree( rmatch );
-			rmatch = NULL;
-		} else {
-			rs->sr_matched = rmatch;
+			rmatch_ctx = op->o_tmpmemctx;
+			rmatch = pdn.bv_val;
 		}
-
-	} else {
-		rs->sr_matched = NULL;
+		save_rmatch = rs->sr_matched;
+		rs->sr_matched = rmatch;
 	}
 	send_ldap_result( op, rs );
 	if ( rmsg != NULL ) {
 		ber_memfree( rmsg );
+		rs->sr_text = save_rmsg;
 	}
-	if ( rs->sr_matched != NULL ) {
-		if ( rmatch == NULL ) {
-			ber_memfree_x( rs->sr_matched, op->o_tmpmemctx );
-
-		} else {
-			ldap_memfree( rmatch );
-		}
-		rs->sr_matched = NULL;
+	if ( rmatch != NULL ) {
+		ber_memfree_x( rmatch, rmatch_ctx );
+		rs->sr_matched = save_rmatch;
 	}
-	rs->sr_text = NULL;
 
 	return ( ( rerr == LDAP_SUCCESS ) ? 0 : -1 );
 }

@@ -1663,8 +1663,16 @@ config_suffix(ConfigArgs *c)
 		free(pdn.bv_val);
 		free(ndn.bv_val);
 	} else if(tbe) {
-		sprintf( c->msg, "<%s> suffix already served by a preceding backend",
-			c->argv[0] );
+		char	*type = tbe->bd_info->bi_type;
+
+		if ( overlay_is_over( tbe ) ) {
+			slap_overinfo	*oi = (slap_overinfo *)tbe->bd_info->bi_private;
+			type = oi->oi_orig->bi_type;
+		}
+
+		sprintf( c->msg, "<%s> namingContext \"%s\" already served by "
+			"a preceding %s database serving namingContext",
+			c->argv[0], pdn.bv_val, type );
 		Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 			c->log, c->msg, tbe->be_suffix[0].bv_val);
 		free(pdn.bv_val);

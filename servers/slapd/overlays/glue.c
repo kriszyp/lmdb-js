@@ -821,6 +821,12 @@ glue_db_config(
 				fname, lineno, argv[1] );
 			return -1;
 		}
+		if ( SLAP_GLUE_INSTANCE( b2 )) {
+			fprintf( stderr, "%s: line %d: backend for %s is already glued; "
+				"only one glue overlay is allowed per tree.\n",
+				fname, lineno, argv[1] );
+			return -1;
+		}
 		SLAP_DBFLAGS(b2) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
 		if ( advertise ) {
 			SLAP_DBFLAGS(b2) |= SLAP_DBFLAG_GLUE_ADVERTISE;

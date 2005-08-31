@@ -1380,8 +1380,10 @@ monitor_back_db_init(
 	BackendDB	*be )
 {
 	int		rc;
-	struct berval	dn, ndn;
-	struct berval	bv;
+	struct berval	dn = BER_BVC( SLAPD_MONITOR_DN ),
+			pdn,
+			ndn;
+	BackendDB	*be2;
 
 	/*
 	 * database monitor can be defined once only
@@ -1396,19 +1398,15 @@ monitor_back_db_init(
 	/* indicate system schema supported */
 	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
 
-	dn.bv_val = SLAPD_MONITOR_DN;
-	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
-
-	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"unable to normalize monitor DN \"%s\" (%d)\n",
+			"unable to normalize/pretty monitor DN \"%s\" (%d)\n",
 			dn.bv_val, rc, 0 );
 		return -1;
 	}
 
-	ber_dupbv( &bv, &dn );
-	ber_bvarray_add( &be->be_suffix, &bv );
+	ber_bvarray_add( &be->be_suffix, &pdn );
 	ber_bvarray_add( &be->be_nsuffix, &ndn );
 
 	/* NOTE: only one monitor database is allowed,
@@ -1416,6 +1414,22 @@ monitor_back_db_init(
 	ldap_pvt_thread_mutex_init( &monitor_info.mi_cache_mutex );
 
 	be->be_private = &monitor_info;
+
+	be2 = select_backend( &ndn, 0, 0 );
+	if ( be2 != be ) {
+		char	*type = be2->bd_info->bi_type;
+
+		if ( overlay_is_over( be2 ) ) {
+			slap_overinfo	*oi = (slap_overinfo *)be2->bd_info->bi_private;
+			type = oi->oi_orig->bi_type;
+		}
+
+		Debug( LDAP_DEBUG_ANY,
+			"\"monitor\" database serving namingContext \"%s\" "
+			"is hidden by \"%s\" database serving namingContext \"%s\".\n",
+			pdn.bv_val, type, be2->be_nsuffix[ 0 ].bv_val );
+		return -1;
+	}
 
 	return 0;
 }
