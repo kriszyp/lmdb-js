@@ -26,7 +26,7 @@
 #include "slap.h"
 
 struct null_info {
-	int bind_allowed;
+	int ni_bind_allowed;
 };
 
 static int
@@ -34,7 +34,7 @@ null_back_bind( Operation *op, SlapReply *rs )
 {
 	struct null_info *ni = (struct null_info *) op->o_bd->be_private;
 
-	if ( ni->bind_allowed ) {
+	if ( ni->ni_bind_allowed ) {
 		/* front end will send result on success (0) */
 		return LDAP_SUCCESS;
 	}
@@ -87,7 +87,7 @@ null_back_db_config(
 			         fname, lineno );
 			return 1;
 		}
-		ni->bind_allowed = strcasecmp( argv[1], "off" );
+		ni->ni_bind_allowed = strcasecmp( argv[1], "off" );
 
 	/* anything else */
 	} else {
@@ -103,7 +103,7 @@ null_back_db_init( BackendDB *be )
 	struct null_info *ni;
 
 	ni = ch_calloc( 1, sizeof(struct null_info) );
-	ni->bind_allowed = 0;
+	ni->ni_bind_allowed = 0;
 	be->be_private = ni;
 	return 0;
 }
