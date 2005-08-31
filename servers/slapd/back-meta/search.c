@@ -272,16 +272,16 @@ meta_back_search( Operation *op, SlapReply *rs )
 		metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
 		candidates[ i ].sr_msgid = -1;
-
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
-			continue;
-		}
-
-		candidates[ i ].sr_err = LDAP_SUCCESS;
 		candidates[ i ].sr_matched = NULL;
 		candidates[ i ].sr_text = NULL;
 		candidates[ i ].sr_ref = NULL;
 		candidates[ i ].sr_ctrls = NULL;
+
+		if ( candidates[ i ].sr_tag != META_CANDIDATE
+			|| candidates[ i ].sr_err != LDAP_SUCCESS )
+		{
+			continue;
+		}
 
 		switch ( meta_back_search_start( op, rs, &dc, msc, i, candidates ) )
 		{
@@ -333,9 +333,20 @@ meta_back_search( Operation *op, SlapReply *rs )
 			op->o_log_prefix, op->o_req_dn.bv_val,
 			op->ors_scope );
 
-		send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT, NULL );
-
+		/* FIXME: we're sending the first error we encounter;
+		 * maybe we should pick the worst... */
 		rc = LDAP_NO_SUCH_OBJECT;
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			if ( candidates[ i ].sr_tag == META_CANDIDATE
+				&& candidates[ i ].sr_err != LDAP_SUCCESS )
+			{
+				rc = candidates[ i ].sr_err;
+				break;
+			}
+		}
+
+		send_ldap_error( op, rs, rc, NULL );
+
 		goto finish;
 	}
 

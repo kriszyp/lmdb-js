@@ -547,6 +547,8 @@ meta_back_get_candidate(
 	return candidate;
 }
 
+static void	*meta_back_candidates_dummy;
+
 static void
 meta_back_candidates_keyfree(
 	void		*key,
@@ -568,7 +570,7 @@ meta_back_candidates_get( Operation *op )
 		void		*data = NULL;
 
 		ldap_pvt_thread_pool_getkey( op->o_threadctx,
-				meta_back_candidates_keyfree, &data, NULL );
+				&meta_back_candidates_dummy, &data, NULL );
 		mc = (metacandidates_t *)data;
 
 	} else {
@@ -584,7 +586,7 @@ meta_back_candidates_get( Operation *op )
 
 			data = (void *)mc;
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
-					meta_back_candidates_keyfree, data,
+					&meta_back_candidates_dummy, data,
 					meta_back_candidates_keyfree );
 
 		} else {
@@ -728,9 +730,11 @@ meta_back_getconn(
 			 * The target is activated; if needed, it is
 			 * also init'd
 			 */
-			int lerr = meta_back_init_one_conn( op, rs, &mi->mi_targets[ i ],
-					&mc->mc_conns[ i ], sendok );
-			if ( lerr == LDAP_SUCCESS ) {
+			candidates[ i ].sr_err =
+				meta_back_init_one_conn( op, rs,
+						&mi->mi_targets[ i ],
+						&mc->mc_conns[ i ], sendok );
+			if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
 				candidates[ i ].sr_tag = META_CANDIDATE;
 				ncandidates++;
 				
@@ -742,7 +746,7 @@ meta_back_getconn(
 				 * be tried?
 				 */
 				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
-				err = lerr;
+				err = candidates[ i ].sr_err;
 				continue;
 			}
 		}
@@ -892,6 +896,7 @@ meta_back_getconn(
 			return NULL;
 		}
 
+		candidates[ i ].sr_err = LDAP_SUCCESS;
 		candidates[ i ].sr_tag = META_CANDIDATE;
 		ncandidates++;
 
@@ -927,6 +932,7 @@ meta_back_getconn(
 						&mc->mc_conns[ i ], sendok );
 				if ( lerr == LDAP_SUCCESS ) {
 					candidates[ i ].sr_tag = META_CANDIDATE;
+					candidates[ i ].sr_err = LDAP_SUCCESS;
 					ncandidates++;
 
 					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_init_one_conn(%d)\n",
@@ -942,7 +948,8 @@ meta_back_getconn(
 					if ( new_conn ) {
 						( void )meta_clear_one_candidate( &mc->mc_conns[ i ] );
 					}
-					candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+					/* leave the target candidate, but record the error for later use */
+					candidates[ i ].sr_err = lerr;
 					err = lerr;
 
 					Debug( LDAP_DEBUG_ANY, "%s: meta_back_init_one_conn(%d) failed: %d\n",

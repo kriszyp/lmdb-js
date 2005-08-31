@@ -488,6 +488,7 @@ retry:;
 		}
 
 	} else {
+		rs->sr_err = rc;
 		rc = slap_map_api2result( rs );
 	}
 
@@ -580,8 +581,6 @@ meta_back_dobind(
 		}
 
 		if ( rc != LDAP_SUCCESS ) {
-			rs->sr_err = slap_map_api2result( rs );
-
 			Debug( LDAP_DEBUG_ANY, "%s meta_back_dobind[%d]: "
 					"(anonymous) err=%d\n",
 					op->o_log_prefix, i, rc );
@@ -593,7 +592,8 @@ meta_back_dobind(
 			 * due to technical reasons (remote host down?)
 			 * so better clear the handle
 			 */
-			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+			/* leave the target candidate, but record the error for later use */
+			candidates[ i ].sr_err = rc;
 			if ( META_BACK_ONERR_STOP( mi ) ) {
 				bound = 0;
 				goto done;
@@ -666,8 +666,8 @@ meta_back_op_result(
 	int			i,
 				rerr = LDAP_SUCCESS;
 	char			*rmsg = NULL,
-				*save_rmsg = NULL,
-				*rmatch = NULL,
+				*rmatch = NULL;
+	const char		*save_rmsg = NULL,
 				*save_rmatch = NULL;
 	void			*rmatch_ctx = NULL;
 
