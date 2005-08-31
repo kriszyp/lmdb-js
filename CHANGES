@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.7 Engineering
+OpenLDAP 2.3.7 Release
 	Updated slapd ManageDIT support
 	Updated slapd ACI syntax checking (ITS#3877)
 	Fixed slapd STATS2 referral logging
