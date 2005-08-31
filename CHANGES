@@ -4,16 +4,21 @@ OpenLDAP 2.3.7 Engineering
 	Updated slapd ManageDIT support
 	Updated slapd ACI syntax checking (ITS#3877)
 	Fixed slapd STATS2 referral logging
-	Fixed slapd (ITS#3951)
-	Fixed slaptest cn=config segfault (ITS#3961)
 	Refixed slapd cn=config default search base bug (ITS#3900)
+	Fixed slapd cn=config TLSVerifyClient bug (ITS#3962)
+	Fixed slapd winsock assert (ITS#3983)
 	Fixed slapd-bdb/hdb paged results deadlock (ITS#3940)
 	Fixed slapd-bdb/hdb/ldbm searchBase disclose (ITS#3964)
 	Fixed slapd-meta generic attribute normalize/pretty (ITS#3956)
 	Fixed slapd-ldap/meta 'undefined' attribute mutex protection (ITS#3958)
 	Added slapd-ldap/meta 'proxied' attribute support (ITS#3959)
+	Fixed slapd-meta no candidate target selected bug (ITS#3990)
 	Fixed slapd-meta matchedDN handling (ITS#3944)
+	Fixed slapd-monitor hiding issue (ITS#3986)
 	Fixed slapo-ppolicy lockout status at Bind (ITS#3946)
+	Fixed slaptest cn=config segfault (ITS#3961)
+	Fixed slaptools logging issue (ITS#3937)
+	Fixed slaptools fails after db clean (ITS#3970)
 	Fixed libldap schema handling
 	Fixed libldap secprops parsing (ITS#3955)
 	Updated liblutil password scheme check
