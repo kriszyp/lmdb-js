@@ -803,10 +803,7 @@ meta_back_getconn(
 			}
 	
 			if ( rs->sr_err != LDAP_SUCCESS ) {
-				if ( new_conn ) {
-					meta_back_freeconn( op, mc );
-
-				} else {
+				if ( mc != NULL ) {
 					meta_back_release_conn( op, mc );
 				}
 
@@ -825,10 +822,7 @@ meta_back_getconn(
 
 		if ( newparent && meta_back_get_candidate( op, rs, op->orr_nnewSup ) != i )
 		{
-			if ( new_conn ) {
-				meta_back_freeconn( op, mc );
-
-			} else {
+			if ( mc != NULL ) {
 				meta_back_release_conn( op, mc );
 			}
 
