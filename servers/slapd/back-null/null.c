@@ -26,8 +26,12 @@
 #include "slap.h"
 
 struct null_info {
-	int ni_bind_allowed;
+	int	ni_bind_allowed;
+	ID	ni_nextid;
 };
+
+
+/* LDAP operations */
 
 static int
 null_back_bind( Operation *op, SlapReply *rs )
@@ -62,6 +66,50 @@ null_back_false( Operation *op, SlapReply *rs )
 	send_ldap_result( op, rs );
 	return 0;
 }
+
+
+/* Slap tools */
+
+static int
+null_tool_entry_open( BackendDB *be, int mode )
+{
+	return 0;
+}
+
+static int
+null_tool_entry_close( BackendDB *be )
+{
+	assert( be != NULL );
+	return 0;
+}
+
+static ID
+null_tool_entry_next( BackendDB *be )
+{
+	return NOID;
+}
+
+static Entry *
+null_tool_entry_get( BackendDB *be, ID id )
+{
+	assert( slapMode & SLAP_TOOL_MODE );
+	return NULL;
+}
+
+static ID
+null_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
+{
+	assert( slapMode & SLAP_TOOL_MODE );
+	assert( text != NULL );
+	assert( text->bv_val != NULL );
+	assert( text->bv_val[0] == '\0' );	/* overconservative? */
+
+	e->e_id = ((struct null_info *) be->be_private)->ni_nextid++;
+	return e->e_id;
+}
+
+
+/* Setup */
 
 static int
 null_back_db_config(
@@ -100,10 +148,9 @@ null_back_db_config(
 static int
 null_back_db_init( BackendDB *be )
 {
-	struct null_info *ni;
-
-	ni = ch_calloc( 1, sizeof(struct null_info) );
+	struct null_info *ni = ch_calloc( 1, sizeof(struct null_info) );
 	ni->ni_bind_allowed = 0;
+	ni->ni_nextid = 1;
 	be->be_private = ni;
 	return 0;
 }
@@ -146,6 +193,13 @@ null_back_initialize( BackendInfo *bi )
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_tool_entry_open = null_tool_entry_open;
+	bi->bi_tool_entry_close = null_tool_entry_close;
+	bi->bi_tool_entry_first = null_tool_entry_next;
+	bi->bi_tool_entry_next = null_tool_entry_next;
+	bi->bi_tool_entry_get = null_tool_entry_get;
+	bi->bi_tool_entry_put = null_tool_entry_put;
 
 	return 0;
 }
