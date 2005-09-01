@@ -74,7 +74,11 @@ slapadd( int argc, char **argv )
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
-		!be->be_entry_put )
+		!be->be_entry_put ||
+		(update_ctxcsn &&
+		 (!be->be_dn2id_get ||
+		  !be->be_id2entry_get ||
+		  !be->be_entry_modify)) )
 	{
 		fprintf( stderr, "%s: database doesn't support necessary operations.\n",
 			progname );

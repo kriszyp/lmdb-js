@@ -19,11 +19,16 @@ OpenLDAP 2.3.7 Release
 	Fixed slaptest cn=config segfault (ITS#3961)
 	Fixed slaptools logging issue (ITS#3937)
 	Fixed slaptools fails after db clean (ITS#3970)
+	Fixed slaptools reject unsupported -w (ITS#3939)
+	Fixed libldap global_opt failure 
 	Fixed libldap schema handling
 	Fixed libldap secprops parsing (ITS#3955)
+	Fixed libldap_r tpool (ITS#3925)
 	Updated liblutil password scheme check
 	Updated libldap schema to allow OID macros in syntaxes
 	Removed lint
+	Documentation
+		Updated misc. man pages
 	Build Environment
 		Updated build tools (ITS#3928)
 		Fixed tests diff -u usage (ITS#3969)
