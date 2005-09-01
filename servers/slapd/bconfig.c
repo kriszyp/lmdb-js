@@ -483,7 +483,7 @@ static ConfigTable config_back_cf_table[] = {
 		"( OLcfgGlAt:63 NAME 'olcSrvtab' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "subordinate", "[advertise]", 1, 2, 0, ARG_DB|ARG_MAGIC,
-		&config_subordinate, "( OLcfgDbAt:0.14 NAME 'olcSubordinate' "
+		&config_subordinate, "( OLcfgDbAt:0.15 NAME 'olcSubordinate' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_suffix, "( OLcfgDbAt:0.10 NAME 'olcSuffix' "
