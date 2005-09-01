@@ -105,6 +105,7 @@ static ConfigDriver config_schema_dn;
 static ConfigDriver config_sizelimit;
 static ConfigDriver config_timelimit;
 static ConfigDriver config_overlay;
+static ConfigDriver config_subordinate; 
 static ConfigDriver config_suffix; 
 static ConfigDriver config_rootdn;
 static ConfigDriver config_rootpw;
@@ -481,6 +482,9 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:63 NAME 'olcSrvtab' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "subordinate", "[advertise]", 1, 2, 0, ARG_DB|ARG_MAGIC,
+		&config_subordinate, "( OLcfgDbAt:0.14 NAME 'olcSubordinate' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_suffix, "( OLcfgDbAt:0.10 NAME 'olcSuffix' "
 			"SYNTAX OMsDN )", NULL, NULL },
@@ -634,7 +638,7 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcDatabase "
-		"MAY ( olcSuffix $ olcAccess $ olcLastMod $ olcLimits $ "
+		"MAY ( olcSuffix $ olcSubordinate $ olcAccess $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
@@ -1558,6 +1562,42 @@ config_overlay(ConfigArgs *c) {
 	oi = (slap_overinfo *)c->be->bd_info;
 	c->bi = &oi->oi_list->on_bi;
 	return(0);
+}
+
+static int
+config_subordinate(ConfigArgs *c)
+{
+	int rc = 1;
+	int advertise;
+
+	switch( c->op ) {
+	case SLAP_CONFIG_EMIT:
+		if ( SLAP_GLUE_SUBORDINATE( c->be )) {
+			struct berval bv;
+
+			bv.bv_val = SLAP_GLUE_ADVERTISE( c->be ) ? "advertise" : "TRUE";
+			bv.bv_len = SLAP_GLUE_ADVERTISE( c->be ) ? STRLENOF("advertise") :
+				STRLENOF("TRUE");
+
+			value_add_one( &c->rvalue_vals, &bv );
+			rc = 0;
+		}
+		break;
+	case LDAP_MOD_DELETE:
+		if ( !c->line  || strcasecmp( c->line, "advertise" )) {
+			glue_sub_del( c->be );
+		} else {
+			SLAP_DBFLAGS( c->be ) &= ~SLAP_DBFLAG_GLUE_ADVERTISE;
+		}
+		rc = 0;
+		break;
+	case LDAP_MOD_ADD:
+	case SLAP_CONFIG_ADD:
+		advertise = ( c->argc == 2 && !strcasecmp( c->argv[1], "advertise" ));
+		rc = glue_sub_add( c->be, advertise, CONFIG_ONLINE_ADD( c ));
+		break;
+	}
+	return rc;
 }
 
 static int

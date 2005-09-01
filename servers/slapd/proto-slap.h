@@ -390,6 +390,14 @@ LDAP_SLAPD_F (int) backend_operational LDAP_P((
 LDAP_SLAPD_V(BackendInfo) slap_binfo[]; 
 
 /*
+ * backglue.c
+ */
+
+LDAP_SLAPD_F (int) glue_sub_init( void );
+LDAP_SLAPD_F (int) glue_sub_add( BackendDB *be, int advert, int online );
+LDAP_SLAPD_F (int) glue_sub_del( BackendDB *be );
+
+/*
  * backover.c
  */
 LDAP_SLAPD_F (int) overlay_register LDAP_P(( slap_overinst *on ));
