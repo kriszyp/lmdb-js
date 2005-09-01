@@ -26,9 +26,9 @@ database.
 It opens the given database determined by the database number or
 suffix and adds entries corresponding to the provided LDIF to
 the database.
-Subordinate databases glued with
-.BR slapo-glue (5)
-are also updated.
+Databases configured as
+.B subordinate
+of this one are also updated.
 The LDIF input is read from standard input or the specified file.
 .LP
 As

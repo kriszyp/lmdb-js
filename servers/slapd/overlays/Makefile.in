@@ -18,7 +18,6 @@ SRCS = overlays.c \
 	denyop.c \
 	dyngroup.c \
 	dynlist.c \
-	glue.c \
 	lastmod.c \
 	pcache.c \
 	ppolicy.c \
@@ -67,9 +66,6 @@ dyngroup.la : dyngroup.lo
 
 dynlist.la : dynlist.lo
 	$(LTLINK_MOD) -module -o $@ dynlist.lo version.lo $(LINK_LIBS)
-
-glue.la : glue.lo
-	$(LTLINK_MOD) -module -o $@ glue.lo version.lo $(LINK_LIBS)
 
 lastmod.la : lastmod.lo
 	$(LTLINK_MOD) -module -o $@ lastmod.lo version.lo $(LINK_LIBS)

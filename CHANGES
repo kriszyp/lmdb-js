@@ -9,6 +9,7 @@ OpenLDAP 2.3.7 Release
 	Fixed slapd winsock assert (ITS#3983)
 	Fixed slapd-bdb/hdb paged results deadlock (ITS#3940)
 	Fixed slapd-bdb/hdb/ldbm searchBase disclose (ITS#3964)
+	Fixed slapd-bdb/hdb bi_dbenv check (ITS#3992)
 	Fixed slapd-meta generic attribute normalize/pretty (ITS#3956)
 	Fixed slapd-ldap/meta 'undefined' attribute mutex protection (ITS#3958)
 	Added slapd-ldap/meta 'proxied' attribute support (ITS#3959)
@@ -16,6 +17,7 @@ OpenLDAP 2.3.7 Release
 	Fixed slapd-meta matchedDN handling (ITS#3944)
 	Fixed slapd-monitor hiding issue (ITS#3986)
 	Fixed slapo-ppolicy lockout status at Bind (ITS#3946)
+	Moved slapo-glue into slapd core
 	Fixed slaptest cn=config segfault (ITS#3961)
 	Fixed slaptools logging issue (ITS#3937)
 	Fixed slaptools fails after db clean (ITS#3970)

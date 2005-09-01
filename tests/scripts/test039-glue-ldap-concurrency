@@ -23,11 +23,6 @@ if test $BACKLDAP = ldapno ; then
 	exit 0
 fi
 
-if test $GLUE = "glueno" ; then 
-	echo "glue overlay not available, test skipped"
-	exit 0
-fi 
-
 if test $RWM = rwmno ; then 
 	echo "rwm (rewrite/remap) overlay not available, test skipped"
 	exit 0

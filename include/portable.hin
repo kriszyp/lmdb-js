@@ -984,9 +984,6 @@
 /* define for Dynamic List overlay */
 #undef SLAPD_OVER_DYNLIST
 
-/* define for Backend Glue overlay */
-#undef SLAPD_OVER_GLUE
-
 /* define for Last Modification overlay */
 #undef SLAPD_OVER_LASTMOD
 

@@ -312,8 +312,10 @@ bdb_db_open( BackendDB *be )
 			open_env = 0;
 		} else {
 			/* Create a new env that can take the desired settings */
-			bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
-			bdb->bi_dbenv = NULL;
+			if ( bdb->bi_dbenv != NULL ) {
+				bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
+				bdb->bi_dbenv = NULL;
+			}
 			rc = db_env_create( &bdb->bi_dbenv, 0 );
 			if( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,

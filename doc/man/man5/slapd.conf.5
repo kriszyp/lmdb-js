@@ -2,7 +2,6 @@
 .\" Copyright 1998-2005 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
-.SH NAME
 slapd.conf \- configuration file for slapd, the stand-alone LDAP daemon
 .SH SYNOPSIS
 ETCDIR/slapd.conf
@@ -1392,6 +1391,36 @@ backend database.  Multiple suffix lines can be given and at least one is
 required for each database definition.
 If the suffix of one database is "inside" that of another, the database
 with the inner suffix must come first in the configuration file.
+.TP
+.B subordinate [advertise]
+Specify that the current backend database is a subordinate of another
+backend database. A subordinate  database may have only one suffix. This
+option may be used to glue multiple databases into a single namingContext.
+If the suffix of the current database is within the namingContext of a
+superior database, searches against the superior database will be
+propagated to the subordinate as well. All of the databases
+associated with a single namingContext should have identical rootdns.
+Behavior of other LDAP operations is unaffected by this setting. In
+particular, it is not possible to use moddn to move an entry from
+one subordinate to another subordinate within the namingContext.
+
+If the optional \fBadvertise\fP flag is supplied, the naming context of
+this database is advertised in the root DSE. The default is to hide this
+database context, so that only the superior context is visible.
+
+If the slap tools
+.BR slapcat (8),
+.BR slapadd (8),
+or
+.BR slapindex (8)
+are used on the superior database, any glued subordinates that support
+these tools are opened as well.
+
+Databases that are glued together should usually be configured with the
+same indices (assuming they support indexing), even for attributes that
+only exist in some of these databases. In general, all of the glued
+databases should be configured as similarly as possible, since the intent
+is to provide the appearance of a single directory.
 .HP
 .hy 0
 .B syncrepl rid=<replica ID>
@@ -1665,10 +1694,6 @@ It has no effect on any other operations.
 Dynamic List.
 This overlay allows expansion of dynamic groups and more.
 .TP
-.B glue
-Backend Glue.
-This overlay glues multiple databases into a single namingContext.
-.TP
 .B lastmod
 Last Modification.
 This overlay maintains a service entry in the database with the DN,
@@ -1764,15 +1789,6 @@ lastmod   off
 "OpenLDAP Administrator's Guide" contains a longer annotated
 example of a configuration file.
 The original ETCDIR/slapd.conf is another example.
-.SH OBSOLETED DIRECTIVES
-.TP
-.B subordinate
-This directive was used in OpenLDAP 2.1 and 2.2 to glue a database
-with its superior.  The same functionality is now provided by the
-.B glue
-overlay; see
-.BR slapo-glue (5)
-for details.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
@@ -1812,7 +1828,6 @@ Known overlays are documented in
 .BR slapo\-auditlog (5),
 .BR slapo\-chain (5),
 .BR slapo\-dynlist (5),
-.BR slapo\-glue (5),
 .BR slapo\-lastmod (5),
 .BR slapo\-pcache (5),
 .BR slapo\-ppolicy (5),
