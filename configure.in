@@ -340,7 +340,6 @@ Overlays="accesslog \
 	denyop \
 	dyngroup \
 	dynlist \
-	glue \
 	lastmod \
 	ppolicy \
 	proxycache \
@@ -365,8 +364,6 @@ OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dynlist,[    --enable-dynlist	  Dynamic List overlay],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(glue,[    --enable-glue	  Backend Glue overlay],
-	yes, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(lastmod,[    --enable-lastmod	  Last Modification overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay],
@@ -617,7 +614,6 @@ BUILD_ACCESSLOG=no
 BUILD_DENYOP=no
 BUILD_DYNGROUP=no
 BUILD_DYNLIST=no
-BUILD_GLUE=no
 BUILD_LASTMOD=no
 BUILD_PPOLICY=no
 BUILD_PROXYCACHE=no
@@ -2907,18 +2903,6 @@ if test "$ol_enable_dynlist" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNLIST,$MFLAG,[define for Dynamic List overlay])
 fi
 
-if test "$ol_enable_glue" != no ; then
-	BUILD_GLUE=$ol_enable_glue
-	if test "$ol_enable_glue" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS glue.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS glue.o"
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_GLUE,$MFLAG,[define for Backend Glue overlay])
-fi
-
 if test "$ol_enable_lastmod" != no ; then
 	BUILD_LASTMOD=$ol_enable_lastmod
 	if test "$ol_enable_lastmod" = mod ; then
@@ -3101,7 +3085,6 @@ dnl overlays
   AC_SUBST(BUILD_DENYOP)
   AC_SUBST(BUILD_DYNGROUP)
   AC_SUBST(BUILD_DYNLIST)
-  AC_SUBST(BUILD_GLUE)
   AC_SUBST(BUILD_LASTMOD)
   AC_SUBST(BUILD_PPOLICY)
   AC_SUBST(BUILD_PROXYCACHE)
