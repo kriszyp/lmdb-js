@@ -1,5 +1,8 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.8 Engineering
+	Fixed slapd undef HAVE_EPOLL issue
+
 OpenLDAP 2.3.7 Release
 	Updated slapd ManageDIT support
 	Updated slapd ACI syntax checking (ITS#3877)
@@ -38,7 +41,6 @@ OpenLDAP 2.3.7 Release
 		Fixed tests --disable-monitor support
 		Fixed tests veryclean-local testdata cleanup
 		Add subtree rename test (hdb only)
-	
 
 OpenLDAP 2.3.6 Release
 	Fixed slapd dnRelativeMatch return (ITS#3931)
