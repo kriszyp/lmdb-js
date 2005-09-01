@@ -543,7 +543,7 @@ ldap_pvt_thread_pool_pause (
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
 	/* If someone else has already requested a pause, we have to wait */
-	if (pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING) {
+	while (pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING) {
 		pool->ltp_pending_count++;
 		pool->ltp_active_count--;
 		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
