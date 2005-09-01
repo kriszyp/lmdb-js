@@ -29,12 +29,12 @@
 
 #ifndef LDAP_THREAD_HAVE_TPOOL
 
-enum ldap_int_thread_pool_state {
+typedef enum ldap_int_thread_pool_state_e {
 	LDAP_INT_THREAD_POOL_RUNNING,
 	LDAP_INT_THREAD_POOL_FINISHING,
 	LDAP_INT_THREAD_POOL_STOPPING,
 	LDAP_INT_THREAD_POOL_PAUSING
-};
+} ldap_int_thread_pool_state_t;
 
 typedef struct ldap_int_thread_key_s {
 	void *ltk_key;
@@ -79,7 +79,7 @@ struct ldap_int_thread_pool_s {
 	LDAP_STAILQ_HEAD(tcq, ldap_int_thread_ctx_s) ltp_pending_list;
 	LDAP_SLIST_HEAD(tcl, ldap_int_thread_ctx_s) ltp_free_list;
 	LDAP_SLIST_HEAD(tclq, ldap_int_thread_ctx_s) ltp_active_list;
-	long ltp_state;
+	ldap_int_thread_pool_state_t ltp_state;
 	long ltp_max_count;
 	long ltp_max_pending;
 	long ltp_pending_count;
@@ -193,7 +193,7 @@ ldap_pvt_thread_pool_init (
 	return(0);
 }
 
-#define	TID_HASH(tid, hash) do { int i; \
+#define	TID_HASH(tid, hash) do { unsigned i; \
 	unsigned char *ptr = (unsigned char *)&(tid); \
 	for (i=0, hash=0; i<sizeof(tid); i++) hash += ptr[i]; } while(0)
 
@@ -469,8 +469,11 @@ ldap_int_thread_pool_wrapper (
 			 *       check timer, leave thread (break;)
 			 */
 
-			if (pool->ltp_state == LDAP_INT_THREAD_POOL_RUNNING)
+			if (pool->ltp_state == LDAP_INT_THREAD_POOL_RUNNING
+				|| pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING)
+			{
 				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+			}
 
 			continue;
 		}
