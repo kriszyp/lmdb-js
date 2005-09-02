@@ -427,7 +427,9 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 	fop.ors_filter = fc->fss->s_op->ors_filter;
 	fop.ors_filterstr = fc->fss->s_op->ors_filterstr;
 
+	fop.o_req_dn = fc->fss->s_op->o_req_dn;
 	fop.o_req_ndn = fc->fss->s_op->o_req_ndn;
+	fop.o_authz = fc->fss->s_op->o_authz;
 
 	fop.o_bd->bd_info = on->on_info->oi_orig;
 	rc = fop.o_bd->be_search( &fop, &frs );
