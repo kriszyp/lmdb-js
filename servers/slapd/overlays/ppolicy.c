@@ -1060,6 +1060,10 @@ ppolicy_add(
 	if ( ppolicy_restrict( op, rs ) != SLAP_CB_CONTINUE )
 		return rs->sr_err;
 
+	/* If this is a replica, assume the master checked everything */
+	if ( be_shadow_update( op ))
+		return SLAP_CB_CONTINUE;
+
 	/* Check for password in entry */
 	if ((pa = attr_find( op->oq_add.rs_e->e_attrs,
 		slap_schema.si_ad_userPassword )))
@@ -1126,7 +1130,7 @@ ppolicy_add(
 			}
 		}
 		/* If password aging is in effect, set the pwdChangedTime */
-		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_shadow_update( op )) {
+		if ( pp.pwdMaxAge || pp.pwdMinAge ) {
 			struct berval timestamp;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 			time_t now = slap_get_time();
@@ -1158,6 +1162,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	struct berval		newpw = BER_BVNULL, oldpw = BER_BVNULL,
 				*bv, cr[2];
 	LDAPPasswordPolicyError pErr = PP_noError;
+
+	/* If this is a replica, assume the master checked everything */
+	if ( be_shadow_update( op ))
+		return SLAP_CB_CONTINUE;
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
@@ -1434,7 +1442,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	}
 
 do_modify:
-	if ((pwmod) && (!be_shadow_update( op ))) {
+	if (pwmod) {
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		time_t now = slap_get_time();
