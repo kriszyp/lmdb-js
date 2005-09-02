@@ -119,7 +119,12 @@ static struct schema_info {
 		"EQUALITY generalizedTimeMatch "
 		"ORDERING generalizedTimeOrderingMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		"SINGLE-VALUE "
+#if 0
+		/* Not until MANAGEDIT control is released */
+		"NO-USER-MODIFICATION "
+#endif
+		"USAGE directoryOperation )",
 		&ad_pwdAccountLockedTime },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.19 "
 		"NAME ( 'pwdFailureTime' ) "
@@ -1482,6 +1487,19 @@ do_modify:
 			mods->sml_flags = SLAP_MOD_INTERNAL;
 			mods->sml_type.bv_val = NULL;
 			mods->sml_desc = ad_pwdGraceUseTime;
+			mods->sml_values = NULL;
+			mods->sml_nvalues = NULL;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
+
+		if (attr_find(e->e_attrs, ad_pwdAccountLockedTime )) {
+			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_type.bv_val = NULL;
+			mods->sml_desc = ad_pwdAccountLockedTime;
 			mods->sml_values = NULL;
 			mods->sml_nvalues = NULL;
 			mods->sml_next = NULL;
