@@ -1764,6 +1764,7 @@ ppolicy_config(
 			return ( 1 );
 		}
 		pi->hash_passwords = 1;
+		return 0;
 	}
 	return SLAP_CONF_UNKNOWN;
 }
