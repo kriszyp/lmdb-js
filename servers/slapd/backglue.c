@@ -779,7 +779,7 @@ glue_sub_del( BackendDB *b0 )
 
 	/* Find the top backend for this subordinate */
 	be = b0;
-	while ( be=LDAP_STAILQ_NEXT( be, be_next )) {
+	while ( (be=LDAP_STAILQ_NEXT( be, be_next )) != NULL ) {
 		slap_overinfo *oi;
 		slap_overinst *on;
 		glueinfo *gi;
@@ -840,7 +840,7 @@ glue_sub_attach()
 
 		/* Find the top backend for this subordinate */
 		be = ga->ga_be;
-		while ( be=LDAP_STAILQ_NEXT( be, be_next )) {
+		while ( (be=LDAP_STAILQ_NEXT( be, be_next )) != NULL ) {
 			slap_overinfo *oi;
 			slap_overinst *on;
 			glueinfo *gi;

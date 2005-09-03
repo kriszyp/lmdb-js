@@ -1572,7 +1572,10 @@ slapd_daemon_task(
 		ber_socket_t i;
 		int ns, nwriters;
 		int at;
-		ber_socket_t nfds, nrfds, nwfds;
+		ber_socket_t nfds;
+#if SLAP_EVENTS_ARE_INDEXED
+		ber_socket_t nrfds, nwfds;
+#endif
 #define SLAPD_EBADF_LIMIT 16
 
 		time_t	now;
