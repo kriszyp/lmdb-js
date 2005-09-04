@@ -1211,48 +1211,34 @@ add_filter_attrs(
  * performing the pagedResults search only within the client
  * and the proxy.  This requires pcache to understand pagedResults. */
 static int
-proxy_cache_remove_paged_results(
-	Operation	*op,
-	SlapReply	*rs )
-{
-	if ( op->o_pagedresults == SLAP_CONTROL_CRITICAL ) {
-		Debug( LDAP_DEBUG_ANY, "%s: "
-			"critical pagedResults control disabled with proxy cache.\n",
-			op->o_log_prefix, 0, 0 );
-
-	} else if ( op->o_pagedresults == SLAP_CONTROL_NONCRITICAL ) {
-		Debug( LDAP_DEBUG_ANY, "%s: "
-			"non-critical pagedResults control disabled with proxy cache; stripped.\n",
-			op->o_log_prefix, 0, 0 );
-	}
-
-	assert( op->o_pagedresults_state != NULL );
-	op->o_tmpfree( op->o_pagedresults_state, op->o_tmpmemctx );
-	op->o_pagedresults_state = NULL;
-
-	return 0;
-}
-
-static int
 proxy_cache_chk_controls(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	int		rc = SLAP_CB_CONTINUE;
+	const char	*non = "";
+	const char	*stripped = "";
 
-	if ( op->o_pagedresults ) {
-		int	tmprc;
+	switch( op->o_pagedresults ) {
+	case SLAP_CONTROL_NONCRITICAL:
+		non = "non-";
+		stripped = "; stripped";
+		/* fallthru */
 
-		tmprc = slap_remove_control( op, rs, slap_cids.sc_pagedResults,
-				proxy_cache_remove_paged_results );
-		if ( tmprc != SLAP_CB_CONTINUE ) {
-			rc = tmprc;
-		}
+	case SLAP_CONTROL_CRITICAL:
+		Debug( LDAP_DEBUG_ANY, "%s: "
+			"%scritical pagedResults control "
+			"disabled with proxy cache%s.\n",
+			op->o_log_prefix, non, stripped );
+		
+		slap_remove_control( op, rs, slap_cids.sc_pagedResults, NULL );
+		break;
+
+	default:
+		rs->sr_err = SLAP_CB_CONTINUE;
+		break;
 	}
 
-	rs->sr_err = rc;
-
-	return rc;
+	return rs->sr_err;
 }
 
 static int
