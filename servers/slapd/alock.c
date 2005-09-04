@@ -21,7 +21,7 @@
 
 #include "portable.h"
 
-#if SLAPD_BDB || SLAPD_HDB
+#if SLAPD_BDB || SLAPD_HDB || SLAPD_LDBM
 
 #include "alock.h"
 
