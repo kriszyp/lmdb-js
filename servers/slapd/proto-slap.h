@@ -574,6 +574,11 @@ LDAP_SLAPD_F (int) slap_find_control_id LDAP_P ((
 	const char *oid, int *cid ));
 LDAP_SLAPD_F (int) slap_global_control LDAP_P ((
 	Operation *op, const char *oid, int *cid ));
+LDAP_SLAPD_F (int) slap_remove_control LDAP_P((
+	Operation	*op,
+	SlapReply	*rs,
+	int		ctrl,
+	BI_chk_controls	fnc ));
 
 /*
  * config.c
