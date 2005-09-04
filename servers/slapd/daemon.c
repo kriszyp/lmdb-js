@@ -1918,6 +1918,10 @@ slapd_daemon_task(
 #endif
 			 ) continue;
 
+			/* Don't log internal wake events */
+			if ( SLAP_EVENT_FD( i ) == wake_sds[0] )
+				continue;
+
 			r = SLAP_EVENT_IS_READ( i );
 			w = SLAP_EVENT_IS_WRITE( i );
 			if ( r || w ) {
@@ -1938,6 +1942,10 @@ slapd_daemon_task(
 			 */
 			if ( rc ) {
 				fd = SLAP_EVENT_FD( i );
+
+				/* Ignore wake events, they were handled above */
+				if ( fd == wake_sds[0] )
+					continue;
 
 				if( SLAP_EVENT_IS_WRITE( i ) ) {
 					Debug( LDAP_DEBUG_CONNS,
