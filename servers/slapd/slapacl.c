@@ -66,7 +66,7 @@ slapacl( int argc, char **argv )
 	Connection		conn = { 0 };
 	Listener		listener;
 	char			opbuf[OPERATION_BUFFER_SIZE];
-	Operation		*op;
+	Operation		*op = NULL;
 	Entry			e = { 0 }, *ep = &e;
 	char			*attr = NULL;
 	int			doclose = 0;
