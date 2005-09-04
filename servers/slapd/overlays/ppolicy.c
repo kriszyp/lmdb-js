@@ -1174,24 +1174,73 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 
 	if ( rc != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
 
-	/* If this is a replica, we may need to filter out some of the
+	/* If this is a replica, we may need to tweak some of the
 	 * master's modifications. Otherwise, just pass it through.
 	 */
 	if ( be_shadow_update( op )) {
 		Modifications **prev;
+		int got_del_grace = 0, got_del_lock = 0, got_pw = 0;
+		Attribute *a_grace, *a_lock;
+
+		a_grace = attr_find( e->e_attrs, ad_pwdGraceUseTime );
+		a_lock = attr_find( e->e_attrs, ad_pwdAccountLockedTime );
+
 		for( prev = &op->oq_modify.rs_modlist, ml = *prev; ml;
 			prev = &ml->sml_next, ml = *prev ) {
+
+			if ( ml->sml_desc == slap_schema.si_ad_userPassword )
+				got_pw = 1;
 
 			/* If we're deleting an attr that didn't exist,
 			 * drop this delete op
 			 */
-			if ( ml->sml_op == LDAP_MOD_DELETE && 
-				( ml->sml_desc == ad_pwdGraceUseTime ||
-				ml->sml_desc == ad_pwdAccountLockedTime ) &&
-				attr_find( e->e_attrs, ml->sml_desc ) == NULL ) {
-				*prev = ml->sml_next;
+			if ( ml->sml_op == LDAP_MOD_DELETE ) {
+				int drop = 0;
+
+				if ( ml->sml_desc == ad_pwdGraceUseTime ) {
+					got_del_grace = 1;
+					if ( !a_grace )
+						drop = 1;
+				} else
+				if ( ml->sml_desc == ad_pwdAccountLockedTime ) {
+					got_del_lock = 1;
+					if ( !a_lock )
+						drop = 1;
+				}
+				if ( drop ) {
+					*prev = ml->sml_next;
+					ml->sml_next = NULL;
+					slap_mods_free( ml, 1 );
+				}
+			}
+		}
+
+		/* If we're resetting the password, make sure grace and accountlock
+		 * also get removed.
+		 */
+		if ( got_pw ) {
+			if ( a_grace && !got_del_grace ) {
+				ml = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				ml->sml_op = LDAP_MOD_DELETE;
+				ml->sml_flags = SLAP_MOD_INTERNAL;
+				ml->sml_type.bv_val = NULL;
+				ml->sml_desc = ad_pwdGraceUseTime;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
 				ml->sml_next = NULL;
-				slap_mods_free( ml, 1 );
+				*prev = ml;
+				prev = &ml->sml_next;
+			}
+			if ( a_lock && !got_del_lock ) {
+				ml = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				ml->sml_op = LDAP_MOD_DELETE;
+				ml->sml_flags = SLAP_MOD_INTERNAL;
+				ml->sml_type.bv_val = NULL;
+				ml->sml_desc = ad_pwdAccountLockedTime;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
+				ml->sml_next = NULL;
+				*prev = ml;
 			}
 		}
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
