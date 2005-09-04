@@ -48,7 +48,7 @@ ldap_back_conn_destroy(
 	lc_curr.lc_conn = conn;
 	lc_curr.lc_local_ndn = conn->c_ndn;
 	
-	ldap_pvt_thread_mutex_trylock( &li->conn_mutex );
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = avl_delete( &li->conntree, (caddr_t)&lc_curr, ldap_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
