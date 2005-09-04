@@ -1168,15 +1168,36 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				*bv, cr[2];
 	LDAPPasswordPolicyError pErr = PP_noError;
 
-	/* If this is a replica, assume the master checked everything */
-	if ( be_shadow_update( op ))
-		return SLAP_CB_CONTINUE;
-
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 	op->o_bd->bd_info = (BackendInfo *)on;
 
 	if ( rc != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
+
+	/* If this is a replica, we may need to filter out some of the
+	 * master's modifications. Otherwise, just pass it through.
+	 */
+	if ( be_shadow_update( op )) {
+		Modifications **prev;
+		for( prev = &op->oq_modify.rs_modlist, ml = *prev; ml;
+			prev = &ml->sml_next, ml = *prev ) {
+
+			/* If we're deleting an attr that didn't exist,
+			 * drop this delete op
+			 */
+			if ( ml->sml_op == LDAP_MOD_DELETE && 
+				( ml->sml_desc == ad_pwdGraceUseTime ||
+				ml->sml_desc == ad_pwdAccountLockedTime ) &&
+				attr_find( e->e_attrs, ml->sml_desc ) == NULL ) {
+				*prev = ml->sml_next;
+				ml->sml_next = NULL;
+				slap_mods_free( ml, 1 );
+			}
+		}
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		be_entry_release_r( op, e );
+		return SLAP_CB_CONTINUE;
+	}
 
 	/* Did we receive a password policy request control? */
 	if ( op->o_ctrlflag[ppolicy_cid] ) {
