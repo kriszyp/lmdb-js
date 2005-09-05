@@ -945,7 +945,7 @@ static struct slap_schema_ad_map {
 	{ "uidNumber", /* for ldapi:// "
 		"( 1.3.6.1.1.1.1.0 NAME 'uidNumber' "
     		"DESC 'An integer uniquely identifying a user "
-				in an administrative domain' "
+				"in an administrative domain' "
     		"EQUALITY integerMatch "
     		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )",
 		NULL, 0,
@@ -955,9 +955,9 @@ static struct slap_schema_ad_map {
 	{ "gidNumber", /* for ldapi:// */
 		"( 1.3.6.1.1.1.1.1 NAME 'gidNumber' "
     		"DESC 'An integer uniquely identifying a group "
-				in an administrative domain' "
+				"in an administrative domain' "
     		"EQUALITY integerMatch"
-    		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )"
+    		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )",
 		NULL, 0,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
