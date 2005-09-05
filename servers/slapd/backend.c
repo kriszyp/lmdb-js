@@ -477,7 +477,9 @@ int backend_destroy(void)
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
 
-		assert( bd->be_replogfile == NULL );
+		if ( bd->be_replogfile != NULL ) {
+			free( bd->be_replogfile );
+		}
 		assert( bd->be_replica == NULL );
 	}
 
