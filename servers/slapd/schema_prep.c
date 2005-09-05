@@ -942,6 +942,26 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_uid) },
+	{ "uidNumber", /* for ldapi:// "
+		"( 1.3.6.1.1.1.1.0 NAME 'uidNumber' "
+    		"DESC 'An integer uniquely identifying a user "
+				in an administrative domain' "
+    		"EQUALITY integerMatch "
+    		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )",
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_uidNumber) },
+	{ "gidNumber", /* for ldapi:// */
+		"( 1.3.6.1.1.1.1.1 NAME 'gidNumber'
+    		"DESC 'An integer uniquely identifying a group "
+				in an administrative domain' "
+    		"EQUALITY integerMatch"
+    		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )"
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_gidNumber) },
 	{ "userPassword", "( 2.5.4.35 NAME 'userPassword' "
 			"DESC 'RFC2256/2307: password of user' "
 			"EQUALITY octetStringMatch "
