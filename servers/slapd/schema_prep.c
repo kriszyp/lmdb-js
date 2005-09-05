@@ -953,7 +953,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_uidNumber) },
 	{ "gidNumber", /* for ldapi:// */
-		"( 1.3.6.1.1.1.1.1 NAME 'gidNumber'
+		"( 1.3.6.1.1.1.1.1 NAME 'gidNumber' "
     		"DESC 'An integer uniquely identifying a group "
 				in an administrative domain' "
     		"EQUALITY integerMatch"
