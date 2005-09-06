@@ -669,7 +669,10 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	char			*text = NULL;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "searchDN" );
+	rc = rewrite_session_var_set( rwmap->rwm_rw, op->o_conn,
+		"searchFilter", op->ors_filterstr.bv_val );
+	if ( rc == LDAP_SUCCESS )
+		rc = rwm_op_dn_massage( op, rs, "searchDN" );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
