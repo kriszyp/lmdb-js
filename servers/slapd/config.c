@@ -81,6 +81,7 @@ static void fp_getline_init(ConfigArgs *c);
 static int fp_parse_line(ConfigArgs *c);
 
 static char	*strtok_quote(char *line, char *sep, char **quote_ptr);
+static char *strtok_quote_ldif(char **line);
 
 ConfigArgs *
 new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **argv )
@@ -493,11 +494,87 @@ init_config_ocs( ConfigOCs *ocs ) {
 	return 0;
 }
 
+/* Split an LDIF line into space-separated tokens. Words may be grouped
+ * by quotes. A quoted string may begin in the middle of a word, but must
+ * end at the end of the word (be followed by whitespace or EOS). Any other
+ * quotes are passed through unchanged. All other characters are passed
+ * through unchanged.
+ */
+static char *
+strtok_quote_ldif( char **line )
+{
+	char *beg, *ptr, *quote=NULL;
+	int inquote=0;
+
+	ptr = *line;
+
+	if ( !ptr || !*ptr )
+		return NULL;
+
+	while( isspace( *ptr )) ptr++;
+
+	if ( *ptr == '"' ) {
+		inquote = 1;
+		ptr++;
+	}
+
+	beg = ptr;
+
+	for (;*ptr;ptr++) {
+		if ( *ptr == '"' ) {
+			if ( inquote && ( !ptr[1] || isspace(ptr[1]))) {
+				*ptr++ = '\0';
+				break;
+			}
+			inquote = 1;
+			quote = ptr;
+			continue;
+		}
+		if ( inquote )
+			continue;
+		if ( isspace( *ptr )) {
+			*ptr++ = '\0';
+			break;
+		}
+	}
+	if ( quote ) {
+		while ( quote < ptr ) {
+			*quote = quote[1];
+			quote++;
+		}
+	}
+	if ( !*ptr ) {
+		*line = NULL;
+	} else {
+		while ( isspace( *ptr )) ptr++;
+		*line = ptr;
+	}
+	return beg;
+}
+
+static void
+config_parse_ldif( ConfigArgs *c )
+{
+	char *next;
+	c->tline = ch_strdup(c->line);
+	next = c->tline;
+
+	while ((c->argv[c->argc] = strtok_quote_ldif( &next )) != NULL) {
+		c->argc++;
+		if ( c->argc >= c->argv_size ) {
+			char **tmp = ch_realloc( c->argv, (c->argv_size + ARGS_STEP) *
+				sizeof( *c->argv ));
+			c->argv = tmp;
+			c->argv_size += ARGS_STEP;
+		}
+	}
+	c->argv[c->argc] = NULL;
+}
+
 int
 config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
 {
 	int 	rc = 0;
-	char	*saveline = NULL;
 
 	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
 		ct->ad->ad_cname.bv_val, valx );
@@ -505,29 +582,19 @@ config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
 	c->argv[0] = ct->ad->ad_cname.bv_val;
 
 	if ( ( ct->arg_type & ARG_QUOTE ) && c->line[ 0 ] != '"' ) {
-		ber_len_t	len;
-
-		saveline = c->line;
-		len = strlen( c->line );
-		c->line = ch_malloc( len + STRLENOF( "\"\"" ) + 1 );
-		sprintf( c->line, "\"%s\"", saveline );
-	}
-
-	if ( fp_parse_line( c ) ) {
-		rc = 1;
+		c->argv[c->argc] = c->line;
+		c->argc++;
+		c->argv[c->argc] = NULL;
+		c->tline = NULL;
 	} else {
-		rc = config_check_vals( ct, c, 1 );
+		config_parse_ldif( c );
 	}
-
-	if ( saveline ) {
-		ch_free( c->line );
-		c->line = saveline;
-	}
+	rc = config_check_vals( ct, c, 1 );
+	ch_free( c->tline );
 
 	if ( rc )
 		rc = LDAP_CONSTRAINT_VIOLATION;
 
-	ch_free( c->tline );
 	return rc;
 }
 
@@ -535,7 +602,6 @@ int
 config_parse_add(ConfigTable *ct, ConfigArgs *c)
 {
 	int	rc = 0;
-	char	*saveline = NULL;
 
 	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
 		ct->ad->ad_cname.bv_val, c->valx );
@@ -543,28 +609,17 @@ config_parse_add(ConfigTable *ct, ConfigArgs *c)
 	c->argv[0] = ct->ad->ad_cname.bv_val;
 
 	if ( ( ct->arg_type & ARG_QUOTE ) && c->line[ 0 ] != '"' ) {
-		ber_len_t	len;
-
-		saveline = c->line;
-		len = strlen( c->line );
-			
-		c->line = ch_malloc( len + STRLENOF( "\"\"" ) + 1 );
-		sprintf( c->line, "\"%s\"", saveline );
-	}
-
-	if ( fp_parse_line( c ) ) {
-		rc = 1;
+		c->argv[c->argc] = c->line;
+		c->argc++;
+		c->argv[c->argc] = NULL;
+		c->tline = NULL;
 	} else {
-		c->op = LDAP_MOD_ADD;
-		rc = config_add_vals( ct, c );
+		config_parse_ldif( c );
 	}
-
-	if ( saveline ) {
-		ch_free( c->line );
-		c->line = saveline;
-	}
-
+	c->op = LDAP_MOD_ADD;
+	rc = config_add_vals( ct, c );
 	ch_free( c->tline );
+
 	return rc;
 }
 
