@@ -59,9 +59,16 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s",
 			op->o_req_dn.bv_val, "", "" );
 
-	if ( op->orb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op ) ) {
+	if ( op->orb_method == LDAP_AUTH_SIMPLE
+		&& be_isroot_dn( op->o_bd, &op->o_req_ndn ) )
+	{
+		if ( !be_isroot_pw( op ) ) {
+			rs->sr_err = LDAP_INVALID_CREDENTIALS;
+			rs->sr_text = NULL;
+			send_ldap_result( op, rs );
+			return rs->sr_err;
+		}
 		isroot = 1;
-		ber_dupbv( &op->orb_edn, be_root_dn( op->o_bd ) );
 	}
 
 	/* we need meta_back_getconn() not send result even on error,
@@ -139,8 +146,9 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if ( isroot ) {
+	if ( isroot && rc == LDAP_SUCCESS ) {
 		mc->mc_auth_target = META_BOUND_ALL;
+		ber_dupbv( &op->orb_edn, be_root_dn( op->o_bd ) );
 	}
 
 	meta_back_release_conn( op, mc );
