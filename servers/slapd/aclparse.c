@@ -2131,12 +2131,13 @@ acl_usage( void )
 			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
 			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n"
 			"\t[domain[.<domainstyle>]=<domain>] [sockurl[.<style>]=<url>]\n"
-#ifdef SLAPD_ACI_ENABLED
-			"\t[aci[=<attrname>]]\n"
-#endif
 #ifdef SLAP_DYNACL
 			"\t[dynacl/<name>[/<options>][.<dynstyle>][=<pattern>]]\n"
-#endif /* SLAP_DYNACL */
+#else /* ! SLAP_DYNACL */
+#ifdef SLAPD_ACI_ENABLED
+			"\t[aci[=<attrname>]]\n"
+#endif /* SLAPD_ACI_ENABLED */
+#endif /* ! SLAP_DYNACL */
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n",
 		"<style> ::= exact | regex | base(Object)\n"
 		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
@@ -2149,6 +2150,12 @@ acl_usage( void )
 		"<level> ::= none|disclose|auth|compare|search|read|{write|add|delete}|manage\n"
 		"<priv> ::= {=|+|-}{0|d|x|c|s|r|{w|a|z}|m}+\n"
 		"<control> ::= [ stop | continue | break ]\n"
+#ifdef SLAP_DYNACL
+#ifdef SLAPD_ACI_ENABLED
+		"dynacl:\n"
+		"\t<name>=ACI\t<pattern>=<attrname>\n"
+#endif /* SLAPD_ACI_ENABLED */
+#endif /* ! SLAP_DYNACL */
 	);
 	exit( EXIT_FAILURE );
 }
