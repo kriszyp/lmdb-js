@@ -216,6 +216,10 @@ void *ldap_pvt_thread_pool_context( )
 	return(NULL);
 }
 
+void ldap_pvt_thread_pool_context_reset( void *vctx )
+{
+}
+
 ldap_pvt_thread_t
 ldap_pvt_thread_self( void )
 {
