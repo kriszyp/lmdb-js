@@ -168,7 +168,7 @@ slapd.def: libbackends.a liboverlays.a version.o
 		    done="" ;\
 		    base=`expr "$$i" : "-l\(.*\)"`; \
 		    for p in $$paths ; do \
-			for ext in la dll a ; do \
+			for ext in la dll dll.a a ; do \
 			    path=$$p/lib$$base.$$ext; \
 			    test ! -f $$path && continue; \
 			    if test $$ext = la ; then \
@@ -192,11 +192,13 @@ slapd.def: libbackends.a liboverlays.a version.o
 		    test -z "$$obj" && continue; \
 		    ;; \
 		*.la) \
-		    if test -n "$LTSTATIC"; then \
+		    if test -n "$(LTSTATIC)"; then \
 			    base=`expr "$$i" : ".*/\(.*\).la"`; \
 			    path=`expr "$$i" : "\(.*/\).*"`; \
 			    obj=$$path.libs/$$base.a; \
 		    fi; \
+		    ;; \
+		*.dll.a) \
 		    ;; \
 		*.o | *.a) \
 		    obj=$$i; \
