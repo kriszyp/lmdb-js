@@ -565,10 +565,10 @@ bdb_cache_lru_add(
 					elru->bei_e = NULL;
 					decr = 1;
 				}
-				/* ITS#4010 if we're in slapcat, and this node is a leaf
-				 * node, free it.
+				/* ITS#4010 if we're in slapcat/slapindex, and this node
+				 * is a leaf node, free it.
 				 */
-				if ( slapMode & SLAP_TOOL_READONLY ) {
+				if ( slapMode & SLAP_TOOL_READMAIN ) {
 					if ( !elru->bei_kids ) {
 						/* This does LRU_DELETE for us */
 						bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
