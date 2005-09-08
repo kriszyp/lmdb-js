@@ -522,9 +522,9 @@ backsql_entryUUID(
 	/* note: works only with 32 bit architectures... */
 	snprintf( uuidbuf, sizeof( uuidbuf ),
 			"%08x-%04x-%04x-0000-000000000000",
-			( id->eid_oc_id & 0xFFFFFFFF ),
-			( ( id->eid_keyval & 0xFFFF0000 ) >> 020 /* 16 */ ),
-			( id->eid_keyval & 0xFFFF ) );
+			( (unsigned)id->eid_oc_id & 0xFFFFFFFF ),
+			( ( (unsigned)id->eid_keyval & 0xFFFF0000 ) >> 020 /* 16 */ ),
+			( (unsigned)id->eid_keyval & 0xFFFF ) );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
 	uuid.bv_val = uuidbuf;
