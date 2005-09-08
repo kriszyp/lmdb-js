@@ -262,11 +262,27 @@ typedef struct entry_limbo_t {
 } entry_limbo_t;
 
 int
+monitor_back_is_configured( void )
+{
+	return be_monitor != NULL;
+}
+
+int
 monitor_back_register_entry(
 	Entry			*e,
 	monitor_callback_t	*cb )
 {
-	monitor_info_t 	*mi = ( monitor_info_t * )be_monitor->be_private;
+	monitor_info_t 	*mi;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_entry(\"%s\"): "
+			"monitor backend not configured.\n",
+			e->e_name.bv_val, 0, 0 );
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
 
 	assert( mi != NULL );
 	assert( e != NULL );
@@ -413,8 +429,20 @@ monitor_back_register_entry_parent(
 	int			scope,
 	struct berval		*filter )
 {
-	monitor_info_t 	*mi = ( monitor_info_t * )be_monitor->be_private;
+	monitor_info_t 	*mi;
 	struct berval	ndn = BER_BVNULL;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_entry_parent(base=\"%s\" scope=%s filter=\"%s\"): "
+			"monitor backend not configured.\n",
+			BER_BVISNULL( base ) ? "" : base->bv_val,
+			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
+			BER_BVISNULL( filter ) ? "" : filter->bv_val );
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
 
 	assert( mi != NULL );
 	assert( e != NULL );
@@ -712,8 +740,26 @@ monitor_back_register_entry_attrs(
 	int			scope,
 	struct berval		*filter )
 {
-	monitor_info_t 	*mi = ( monitor_info_t * )be_monitor->be_private;
+	monitor_info_t 	*mi;
 	struct berval	ndn = BER_BVNULL;
+	char		*fname = ( a == NULL ? "callback" : "attrs" );
+
+	if ( be_monitor == NULL ) {
+		char		buf[ SLAP_TEXT_BUFLEN ];
+
+		snprintf( buf, sizeof( buf ),
+			"monitor_back_register_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
+			"monitor backend not configured.\n",
+			fname,
+			BER_BVISNULL( base ) ? "" : base->bv_val,
+			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
+			BER_BVISNULL( filter ) ? "" : filter->bv_val );
+		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
+
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
 
 	assert( mi != NULL );
 
@@ -731,9 +777,9 @@ monitor_back_register_entry_attrs(
 	{
 		/* need a filter */
 		Debug( LDAP_DEBUG_ANY,
-			"monitor_back_register_entry_*(\"\"): "
+			"monitor_back_register_entry_%s(\"\"): "
 			"need a valid filter\n",
-			0, 0, 0 );
+			fname, 0, 0 );
 		return -1;
 	}
 
@@ -747,13 +793,18 @@ monitor_back_register_entry_attrs(
 
 		if ( BER_BVISNULL( &ndn ) ) {
 			if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
-				/* entry does not exist */
-				Debug( LDAP_DEBUG_ANY,
-					"monitor_back_register_entry_*(\"\"): "
+				char		buf[ SLAP_TEXT_BUFLEN ];
+
+				snprintf( buf, sizeof( buf ),
+					"monitor_back_register_entry_%s(\"\"): "
 					"base=%s scope=%d filter=%s : "
 					"unable to find entry\n",
+					fname,
 					base->bv_val ? base->bv_val : "\"\"",
 					scope, filter->bv_val );
+
+				/* entry does not exist */
+				Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
 				return -1;
 			}
 
@@ -763,9 +814,9 @@ monitor_back_register_entry_attrs(
 		if ( monitor_cache_get( mi, &ndn, &e ) != 0 ) {
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
-				"monitor_back_register_entry_*(\"%s\"): "
+				"monitor_back_register_entry_%s(\"%s\"): "
 				"entry does not exist\n",
-				ndn.bv_val, 0, 0 );
+				fname, ndn.bv_val, 0 );
 			rc = -1;
 			goto done;
 		}
@@ -776,9 +827,9 @@ monitor_back_register_entry_attrs(
 		if ( mp->mp_flags & MONITOR_F_VOLATILE ) {
 			/* entry is volatile; cannot append callback */
 			Debug( LDAP_DEBUG_ANY,
-				"monitor_back_register_entry_*(\"%s\"): "
+				"monitor_back_register_entry_%s(\"%s\"): "
 				"entry is volatile\n",
-				e->e_name.bv_val, 0, 0 );
+				fname, e->e_name.bv_val, 0 );
 			rc = -1;
 			goto done;
 		}
@@ -790,9 +841,9 @@ monitor_back_register_entry_attrs(
 			*atp = attrs_dup( a );
 			if ( *atp == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
-					"monitor_back_register_entry_*(\"%s\"): "
+					"monitor_back_register_entry_%s(\"%s\"): "
 					"attrs_dup() failed\n",
-					e->e_name.bv_val, 0, 0 );
+					fname, e->e_name.bv_val, 0 );
 				rc = -1;
 				goto done;
 			}
