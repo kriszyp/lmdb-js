@@ -381,7 +381,7 @@ hdb_cache_find_parent(
 	char ndn[SLAP_LDAPDN_MAXLEN];
 	ID parent;
 	int rc;
-	int addlru = 1;
+	int addlru;
 
 	ei.bei_id = id;
 	ei.bei_kids = NULL;
@@ -427,9 +427,12 @@ hdb_cache_find_parent(
 				bdb_cache_entryinfo_unlock( ein );
 			}
 
-			if ( !eir ) {
-				addlru = 0;
-			}
+			addlru = 0;
+		}
+		if ( addlru ) {
+			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
+			LRU_ADD( &bdb->bi_cache, ein );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
 		}
 
 		/* If this is the first time, save this node
@@ -545,27 +548,43 @@ bdb_cache_lru_add(
 			 */
 			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, bdb->bi_cache.c_locker, elru, 1, 1,
 				lockp ) == 0 ) {
-				int stop = 0;
+				int stop = 0, decr = 0;
 
-				/* If there's no entry, or this node is in
-				 * the process of linking into the cache,
+				/* If this node is in the process of linking into the cache,
 				 * or this node is being deleted, skip it.
 				 */
-				if ( !elru->bei_e || (elru->bei_state & 
-					( CACHE_ENTRY_NOT_LINKED | CACHE_ENTRY_DELETED ))) {
+				if ( elru->bei_state & 
+					( CACHE_ENTRY_NOT_LINKED | CACHE_ENTRY_DELETED )) {
 					bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 					continue;
 				}
-				LRU_DELETE( &bdb->bi_cache, elru );
-				elru->bei_e->e_private = NULL;
-				bdb_entry_return( elru->bei_e );
-				elru->bei_e = NULL;
+				/* Free entry for this node if it's present */
+				if ( elru->bei_e ) {
+					elru->bei_e->e_private = NULL;
+					bdb_entry_return( elru->bei_e );
+					elru->bei_e = NULL;
+					decr = 1;
+				}
+				/* ITS#4010 if we're in slapcat, and this node is a leaf
+				 * node, free it.
+				 */
+				if ( slapMode & SLAP_TOOL_READONLY ) {
+					if ( !elru->bei_kids ) {
+						/* This does LRU_DELETE for us */
+						bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
+						bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
+					}
+					/* Leave node on LRU list for a future pass */
+				} else {
+					LRU_DELETE( &bdb->bi_cache, elru );
+				}
+				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 				ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
-				--bdb->bi_cache.c_cursize;
+				if (decr)
+					--bdb->bi_cache.c_cursize;
 				if (bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize)
 					stop = 1;
 				ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
-				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 				if (stop) break;
 			}
 		}
@@ -1037,7 +1056,15 @@ bdb_cache_delete(
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
+
+	/* set cache write lock */
+	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
+
 	rc = bdb_cache_delete_internal( cache, e->e_private, 1 );
+
+	/* free cache write lock */
+	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
+
 	/* free lru mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
@@ -1085,9 +1112,6 @@ bdb_cache_delete_internal(
 {
 	int rc = 0;	/* return code */
 
-	/* set cache write lock */
-	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
-
 	/* Lock the parent's kids tree */
 	bdb_cache_entryinfo_lock( e->bei_parent );
 
@@ -1107,21 +1131,17 @@ bdb_cache_delete_internal(
 		rc = -1;
 	}
 
-	if (rc != 0) {
-		return rc;
+	if (rc == 0) {
+		cache->c_eiused--;
+
+		/* lru */
+		LRU_DELETE( cache, e );
+		if ( e->bei_e ) cache->c_cursize--;
 	}
 
-	cache->c_eiused--;
-
-	/* lru */
-	LRU_DELETE( cache, e );
-	if ( e->bei_e ) cache->c_cursize--;
-
-	/* free cache write lock */
-	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 	bdb_cache_entryinfo_unlock( e->bei_parent );
 
-	return( 0 );
+	return( rc );
 }
 
 static void
