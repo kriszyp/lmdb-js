@@ -286,7 +286,7 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 				c->log, c->msg, 0);
 			return(ARG_BAD_CONF);
 		}
-		ptr = (void *)((char *)ptr + (int)Conf->arg_item);
+		ptr = (void *)((char *)ptr + (long)Conf->arg_item);
 	} else if (arg_type & ARGS_POINTER) {
 		ptr = Conf->arg_item;
 	}
@@ -372,7 +372,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 				ptr = c->bi->bi_private;
 			else
 				return 1;
-			ptr = (void *)((char *)ptr + (int)cf->arg_item);
+			ptr = (void *)((char *)ptr + (long)cf->arg_item);
 		} else {
 			ptr = cf->arg_item;
 		}
