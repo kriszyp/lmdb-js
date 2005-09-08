@@ -52,7 +52,7 @@ replicate(
     Ri		*ri = (Ri *) ri_arg;
 
     Debug( LDAP_DEBUG_ARGS, "begin replication thread for %s:%d\n",
-	    ((Ri *)ri)->ri_hostname, ((Ri *)ri)->ri_port, 0 );
+	    ri->ri_hostname, ri->ri_port, 0 );
 
     ri->ri_process( ri );
 
