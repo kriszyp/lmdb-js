@@ -1357,7 +1357,7 @@ static void
 bdb_locker_id_free( void *key, void *data )
 {
 	DB_ENV *env = key;
-	u_int32_t lockid = (u_int32_t) data;
+	u_int32_t lockid = (long)data;
 	int rc;
 
 	rc = XLOCK_ID_FREE( env, lockid );
@@ -1405,7 +1405,7 @@ bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
 		if ( rc != 0) {
 			return rc;
 		}
-		data = (void *)lockid;
+		data = (void *)((long)lockid);
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, env,
 			data, bdb_locker_id_free ) ) ) {
 			XLOCK_ID_FREE( env, lockid );
@@ -1415,7 +1415,7 @@ bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
 			return rc;
 		}
 	} else {
-		lockid = (u_int32_t) data;
+		lockid = (long)data;
 	}
 	*locker = lockid;
 	return 0;
