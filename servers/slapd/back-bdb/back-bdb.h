@@ -124,6 +124,7 @@ typedef struct bdb_cache {
 	int             c_maxsize;
 	int             c_cursize;
 	int		c_eiused;	/* EntryInfo's in use */
+	int		c_leaves;	/* EntryInfo leaf nodes */
 	EntryInfo	c_dntree;
 	EntryInfo	*c_eifree;	/* free list */
 	Avlnode         *c_idtree;
