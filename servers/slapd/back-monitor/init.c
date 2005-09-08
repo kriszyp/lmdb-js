@@ -277,7 +277,7 @@ monitor_back_register_entry(
 	if ( be_monitor == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_back_register_entry(\"%s\"): "
-			"monitor backend not configured.\n",
+			"monitor database not configured.\n",
 			e->e_name.bv_val, 0, 0 );
 		return -1;
 	}
@@ -435,7 +435,7 @@ monitor_back_register_entry_parent(
 	if ( be_monitor == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_back_register_entry_parent(base=\"%s\" scope=%s filter=\"%s\"): "
-			"monitor backend not configured.\n",
+			"monitor database not configured.\n",
 			BER_BVISNULL( base ) ? "" : base->bv_val,
 			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
@@ -749,7 +749,7 @@ monitor_back_register_entry_attrs(
 
 		snprintf( buf, sizeof( buf ),
 			"monitor_back_register_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
-			"monitor backend not configured.\n",
+			"monitor database not configured.\n",
 			fname,
 			BER_BVISNULL( base ) ? "" : base->bv_val,
 			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
