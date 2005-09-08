@@ -1048,6 +1048,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 				"search base has changed" );
 			sprev->s_next = snext;
 			syncprov_drop_psearch( ss, 1 );
+			ss = sprev;
 			continue;
 		}
 
