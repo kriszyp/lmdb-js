@@ -909,16 +909,9 @@ glue_sub_add( BackendDB *be, int advert, int online )
 		SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_ADVERTISE;
 
 	ga = ch_malloc( sizeof( glue_Addrec ));
-	ga->ga_next = NULL;
+	ga->ga_next = ga_list;
 	ga->ga_be = be;
-	if ( ga_list ) {
-		glue_Addrec *g2 = ga_list;
-
-		for ( ; g2 && g2->ga_next; g2=g2->ga_next );
-		g2->ga_next = ga;
-	} else {
-		ga_list = ga;
-	}
+	ga_list = ga;
 
 	if ( online )
 		rc = glue_sub_attach();
