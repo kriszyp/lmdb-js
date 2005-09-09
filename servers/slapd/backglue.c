@@ -477,16 +477,17 @@ glue_open (
 	if (slapMode & SLAP_TOOL_MODE) {
 		for (i = 0; i<gi->gi_nodes; i++) {
 			same = 0;
-			/* Same type as our main backend? */
-			if ( gi->gi_n[i].gn_be->bd_info == on->on_info->oi_orig )
+			/* Same bi_open as our main backend? */
+			if ( gi->gi_n[i].gn_be->bd_info->bi_open ==
+				on->on_info->oi_orig->bi_open )
 				bsame = 1;
 
 			/* Loop thru the bd_info's and make sure we only
 			 * invoke their bi_open functions once each.
 			 */
 			for ( j = 0; j<i; j++ ) {
-				if ( gi->gi_n[i].gn_be->bd_info ==
-					gi->gi_n[j].gn_be->bd_info ) {
+				if ( gi->gi_n[i].gn_be->bd_info->bi_open ==
+					gi->gi_n[j].gn_be->bd_info->bi_open ) {
 					same = 1;
 					break;
 				}
