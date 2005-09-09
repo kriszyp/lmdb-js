@@ -716,6 +716,7 @@ glue_db_init(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	slap_overinfo	*oi = on->on_info;
+	BackendInfo	*bi = oi->oi_orig;
 	glueinfo *gi;
 
 	gi = ch_calloc( 1, sizeof(glueinfo));
@@ -730,14 +731,23 @@ glue_db_init(
 
 	oi->oi_bi.bi_entry_release_rw = glue_entry_release_rw;
 
-	oi->oi_bi.bi_tool_entry_open = glue_tool_entry_open;
-	oi->oi_bi.bi_tool_entry_close = glue_tool_entry_close;
-	oi->oi_bi.bi_tool_entry_first = glue_tool_entry_first;
-	oi->oi_bi.bi_tool_entry_next = glue_tool_entry_next;
-	oi->oi_bi.bi_tool_entry_get = glue_tool_entry_get;
-	oi->oi_bi.bi_tool_entry_put = glue_tool_entry_put;
-	oi->oi_bi.bi_tool_entry_reindex = glue_tool_entry_reindex;
-	oi->oi_bi.bi_tool_sync = glue_tool_sync;
+	/* Only advertise these if the root DB supports them */
+	if ( bi->bi_tool_entry_open )
+		oi->oi_bi.bi_tool_entry_open = glue_tool_entry_open;
+	if ( bi->bi_tool_entry_close )
+		oi->oi_bi.bi_tool_entry_close = glue_tool_entry_close;
+	if ( bi->bi_tool_entry_first )
+		oi->oi_bi.bi_tool_entry_first = glue_tool_entry_first;
+	if ( bi->bi_tool_entry_next )
+		oi->oi_bi.bi_tool_entry_next = glue_tool_entry_next;
+	if ( bi->bi_tool_entry_get )
+		oi->oi_bi.bi_tool_entry_get = glue_tool_entry_get;
+	if ( bi->bi_tool_entry_put )
+		oi->oi_bi.bi_tool_entry_put = glue_tool_entry_put;
+	if ( bi->bi_tool_entry_reindex )
+		oi->oi_bi.bi_tool_entry_reindex = glue_tool_entry_reindex;
+	if ( bi->bi_tool_sync )
+		oi->oi_bi.bi_tool_sync = glue_tool_sync;
 
 	/*FIXME : need to add support */
 	oi->oi_bi.bi_tool_dn2id_get = 0;
