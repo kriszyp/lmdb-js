@@ -408,28 +408,29 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 	SlapReply frs = { REP_RESULT };
 	int rc;
 
-	fop = *op;
+	/* Use basic parameters from syncrepl search, but use
+	 * current op's threadctx / tmpmemctx
+	 */
+	fop = *fc->fss->s_op;
+
+	fop.o_hdr = op->o_hdr;
+	fop.o_bd = op->o_bd;
+	fop.o_time = op->o_time;
+	fop.o_tincr = op->o_tincr;
 
 	cb.sc_response = findbase_cb;
 	cb.sc_private = fc;
 
-	fop.o_sync_mode &= SLAP_CONTROL_MASK;	/* turn off sync mode */
+	fop.o_sync_mode = 0;	/* turn off sync mode */
 	fop.o_managedsait = SLAP_CONTROL_CRITICAL;
 	fop.o_callback = &cb;
 	fop.o_tag = LDAP_REQ_SEARCH;
 	fop.ors_scope = LDAP_SCOPE_BASE;
-	fop.ors_deref = fc->fss->s_op->ors_deref;
 	fop.ors_limit = NULL;
 	fop.ors_slimit = 1;
 	fop.ors_tlimit = SLAP_NO_LIMIT;
 	fop.ors_attrs = slap_anlist_no_attrs;
 	fop.ors_attrsonly = 1;
-	fop.ors_filter = fc->fss->s_op->ors_filter;
-	fop.ors_filterstr = fc->fss->s_op->ors_filterstr;
-
-	fop.o_req_dn = fc->fss->s_op->o_req_dn;
-	fop.o_req_ndn = fc->fss->s_op->o_req_ndn;
-	fop.o_authz = fc->fss->s_op->o_authz;
 
 	fop.o_bd->bd_info = on->on_info->oi_orig;
 	rc = fop.o_bd->be_search( &fop, &frs );
@@ -782,6 +783,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mod
 	sop.o_bd = op->o_bd;
 	sop.o_controls = op->o_controls;
 	sop.o_private = op->o_private;
+	sop.o_callback = NULL;
 
 	/* If queueing is allowed */
 	if ( queue ) {
@@ -1696,6 +1698,8 @@ syncprov_detach_op( Operation *op, syncops *so )
 		g2->ga_next = op2->o_groups;
 		op2->o_groups = g2;
 	}
+	/* Don't allow any further group caching */
+	op2->o_do_not_cache = 1;
 
 	/* Add op2 to conn so abandon will find us */
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
