@@ -741,6 +741,9 @@ retry:;
 		rc = ldap_back_op_result( lc, op, rs, msgid, sendok );
 		if ( rc == LDAP_SUCCESS ) {
 			lc->lc_bound = 1;
+
+		} else {
+			ldap_back_release_conn( op, rs, lc );
 		}
 	}
 
