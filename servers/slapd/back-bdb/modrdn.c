@@ -373,8 +373,8 @@ retry:	/* transaction retry */
 			/* newSuperior == oldParent? - checked above */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			if ( dnIsSuffix( np_ndn, &e->e_nname )) {
-				rs->sr_err = LDAP_NAMING_VIOLATION;
-				rs->sr_text = "new superior is invalid";
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+				rs->sr_text = "new superior not found";
 				goto return_results;
 			}
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
@@ -404,7 +404,7 @@ retry:	/* transaction retry */
 					": newSup(ndn=%s) not here!\n",
 					np_ndn->bv_val, 0, 0);
 				rs->sr_text = "new superior not found";
-				rs->sr_err = LDAP_OTHER;
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				goto return_results;
 			}
 
