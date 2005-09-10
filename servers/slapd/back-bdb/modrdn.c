@@ -29,7 +29,6 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	struct berval	p_dn, p_ndn;
 	struct berval	new_dn = {0, NULL}, new_ndn = {0, NULL};
-	int		isroot = -1;
 	Entry		*e = NULL;
 	Entry		*p = NULL;
 	EntryInfo	*ei = NULL, *eip = NULL, *nei = NULL, *neip = NULL;
@@ -253,7 +252,15 @@ retry:	/* transaction retry */
 	}
 
 	if ( be_issuffix( op->o_bd, &e->e_nname ) ) {
+#ifdef BDB_MULTIPLE_SUFFIXES
+		/* Allow renaming one suffix entry to another */
 		p_ndn = slap_empty_bv;
+#else
+		/* There can only be one suffix entry */
+		rs->sr_err = LDAP_NAMING_VIOLATION;
+		rs->sr_text = "cannot rename suffix entry";
+		goto return_results;
+#endif
 	} else {
 		dnParent( &e->e_nname, &p_ndn );
 	}
@@ -290,100 +297,47 @@ retry:	/* transaction retry */
 			rs->sr_text = "old entry's parent does not exist";
 			goto return_results;
 		}
-
-		/* check parent for "children" acl */
-		rs->sr_err = access_allowed( op, p,
-			children, NULL,
-			op->oq_modrdn.rs_newSup == NULL ?
-				ACL_WRITE : ACL_WDEL,
-			NULL );
-
-		if ( ! rs->sr_err ) {
-			switch( opinfo.boi_err ) {
-			case DB_LOCK_DEADLOCK:
-			case DB_LOCK_NOTGRANTED:
-				goto retry;
-			}
-
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
-				0, 0 );
-			rs->sr_text = "no write access to old parent's children";
-			goto return_results;
-		}
-
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_modrdn) ": wr to children "
-			"of entry %s OK\n", p_ndn.bv_val, 0, 0 );
-		
-		if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
-			p_dn = slap_empty_bv;
-		} else {
-			dnParent( &e->e_name, &p_dn );
-		}
-
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_modrdn) ": parent dn=%s\n",
-			p_dn.bv_val, 0, 0 );
-
 	} else {
-		/* no parent, modrdn entry directly under root */
-		isroot = be_isroot( op );
-		if ( ! isroot ) {
-			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-				|| be_shadow_update( op ) ) {
-
-				p = (Entry *)&slap_entry_root;
-
-				/* check parent for "children" acl */
-				rs->sr_err = access_allowed( op, p,
-					children, NULL,
-					op->oq_modrdn.rs_newSup == NULL ?
-						ACL_WRITE : ACL_WDEL,
-					NULL );
-
-				p = NULL;
-
-				if ( ! rs->sr_err ) {
-					switch( opinfo.boi_err ) {
-					case DB_LOCK_DEADLOCK:
-					case DB_LOCK_NOTGRANTED:
-						goto retry;
-					}
-
-					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-					Debug( LDAP_DEBUG_TRACE, 
-						"no access to parent\n", 
-						0, 0, 0 );
-					rs->sr_text = "no write access to old parent";
-					goto return_results;
-				}
-
-				Debug( LDAP_DEBUG_TRACE,
-					LDAP_XSTRING(bdb_modrdn)
-					": wr to children of entry \"\" OK\n",
-					0, 0, 0 );
-		
-				p_dn.bv_val = "";
-				p_dn.bv_len = 0;
-
-				Debug( LDAP_DEBUG_TRACE,
-					LDAP_XSTRING(bdb_modrdn)
-					": parent dn=\"\"\n",
-					0, 0, 0 );
-
-			} else {
-				Debug( LDAP_DEBUG_TRACE,
-					LDAP_XSTRING(bdb_modrdn)
-					": no parent, not root "
-					"& \"\" is not suffix\n",
-					0, 0, 0);
-				rs->sr_text = "no write access to old parent";
-				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-				goto return_results;
-			}
-		}
+		p = (Entry *)&slap_entry_root;
 	}
+
+	/* check parent for "children" acl */
+	rs->sr_err = access_allowed( op, p,
+		children, NULL,
+		op->oq_modrdn.rs_newSup == NULL ?
+			ACL_WRITE : ACL_WDEL,
+		NULL );
+
+	if ( !p_ndn.bv_len )
+		p = NULL;
+
+	if ( ! rs->sr_err ) {
+		switch( opinfo.boi_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
+			0, 0 );
+		rs->sr_text = "no write access to old parent's children";
+		goto return_results;
+	}
+
+	Debug( LDAP_DEBUG_TRACE,
+		LDAP_XSTRING(bdb_modrdn) ": wr to children "
+		"of entry %s OK\n", p_ndn.bv_val, 0, 0 );
+	
+	if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
+		p_dn = slap_empty_bv;
+	} else {
+		dnParent( &e->e_name, &p_dn );
+	}
+
+	Debug( LDAP_DEBUG_TRACE,
+		LDAP_XSTRING(bdb_modrdn) ": parent dn=%s\n",
+		p_dn.bv_val, 0, 0 );
 
 	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
@@ -402,6 +356,15 @@ retry:	/* transaction retry */
 		}
 	}
 
+	/* There's a BDB_MULTIPLE_SUFFIXES case here that this code doesn't
+	 * support. E.g., two suffixes dc=foo,dc=com and dc=bar,dc=net.
+	 * We do not allow modDN
+	 *   dc=foo,dc=com
+	 *    newrdn dc=bar
+	 *    newsup dc=net
+	 * and we probably should. But since MULTIPLE_SUFFIXES is deprecated
+	 * I'm ignoring this problem for now.
+	 */
 	if ( op->oq_modrdn.rs_newSup != NULL ) {
 		if ( op->oq_modrdn.rs_newSup->bv_len ) {
 			np_dn = op->oq_modrdn.rs_newSup;
@@ -493,62 +456,35 @@ retry:	/* transaction retry */
 			}
 
 		} else {
-			if ( isroot == -1 ) {
-				isroot = be_isroot( op );
-			}
-			
 			np_dn = NULL;
 
 			/* no parent, modrdn entry directly under root */
-			if ( ! isroot ) {
-				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-					|| be_isupdate( op ) ) {
-					np = (Entry *)&slap_entry_root;
+			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
+				|| be_isupdate( op ) ) {
+				np = (Entry *)&slap_entry_root;
 
-					/* check parent for "children" acl */
-					rs->sr_err = access_allowed( op, np,
-						children, NULL, ACL_WADD, NULL );
+				/* check parent for "children" acl */
+				rs->sr_err = access_allowed( op, np,
+					children, NULL, ACL_WADD, NULL );
 
-					np = NULL;
+				np = NULL;
 
-					if ( ! rs->sr_err ) {
-						switch( opinfo.boi_err ) {
-						case DB_LOCK_DEADLOCK:
-						case DB_LOCK_NOTGRANTED:
-							goto retry;
-						}
-
-						rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-						Debug( LDAP_DEBUG_TRACE, 
-							"no access to new superior\n", 
-							0, 0, 0 );
-						rs->sr_text =
-							"no write access to new superior's children";
-						goto return_results;
+				if ( ! rs->sr_err ) {
+					switch( opinfo.boi_err ) {
+					case DB_LOCK_DEADLOCK:
+					case DB_LOCK_NOTGRANTED:
+						goto retry;
 					}
 
-					Debug( LDAP_DEBUG_TRACE,
-						LDAP_XSTRING(bdb_modrdn)
-						": wr to children "
-						"of entry \"\" OK\n",
-						0, 0, 0 );
-		
-				} else {
-					Debug( LDAP_DEBUG_TRACE,
-						LDAP_XSTRING(bdb_modrdn)
-						": new superior=\"\", not root "
-						"& \"\" is not suffix\n",
-						0, 0, 0 );
-					rs->sr_text = "no write access to new superior's children";
 					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+					Debug( LDAP_DEBUG_TRACE, 
+						"no access to new superior\n", 
+						0, 0, 0 );
+					rs->sr_text =
+						"no write access to new superior's children";
 					goto return_results;
 				}
 			}
-
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_modrdn)
-				": new superior=\"\"\n",
-				0, 0, 0 );
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
