@@ -451,11 +451,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 	/* Searches for a ldapconn in the avl tree */
 
 	/* Explicit binds must not be shared */
-	if ( op->o_tag == LDAP_REQ_BIND
-		|| ( op->o_conn
-			&& op->o_conn->c_authz_backend
-			&& op->o_bd->be_private == op->o_conn->c_authz_backend->be_private ) )
-	{
+	if ( op->o_tag == LDAP_REQ_BIND || SLAP_IS_AUTHZ_BACKEND( op ) ) {
 		lc_curr.lc_conn = op->o_conn;
 
 	} else {
@@ -513,8 +509,8 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		} else {
 			BER_BVZERO( &lc->lc_cred );
 			BER_BVZERO( &lc->lc_bound_ndn );
-			if ( op->o_conn && !BER_BVISEMPTY( &op->o_ndn )
-				&& op->o_bd->be_private == op->o_conn->c_authz_backend->be_private )
+			if ( !BER_BVISEMPTY( &op->o_ndn )
+				&& SLAP_IS_AUTHZ_BACKEND( op ) )
 			{
 				ber_dupbv( &lc->lc_bound_ndn, &op->o_ndn );
 			}

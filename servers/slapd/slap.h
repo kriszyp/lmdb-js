@@ -2621,6 +2621,14 @@ typedef struct slap_conn {
 
 	/* authorization backend */
 	Backend *c_authz_backend;
+	void	*c_authz_cookie;
+#define SLAP_IS_AUTHZ_BACKEND( op )	\
+	( (op)->o_bd != NULL \
+		&& (op)->o_bd->be_private != NULL \
+		&& (op)->o_conn != NULL \
+		&& (op)->o_conn->c_authz_backend != NULL \
+		&& ( (op)->o_bd->be_private == (op)->o_conn->c_authz_backend->be_private \
+			|| (op)->o_bd->be_private == (op)->o_conn->c_authz_cookie ) )
 
 	AuthorizationInformation c_authz;
 
