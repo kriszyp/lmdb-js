@@ -219,7 +219,7 @@ fi
 
 echo "Testing modrdn with newSuperior as child of target "
 $LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
-	/dev/null 2>&1  -s 'cn=Sub1, ou=FooBar, cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones 1' \
+	$TESTOUT 2>&1  -s 'cn=Sub1, ou=FooBar, cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' \
 	'cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones 1'
 
 RC=$?
