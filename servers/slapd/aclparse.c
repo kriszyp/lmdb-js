@@ -267,7 +267,7 @@ regex_done:;
 					sep = 1;
 				}
 
-				rdnlen = (ber_len_t)dn_rdnlen( NULL, &dn );
+				rdnlen = dn_rdnlen( NULL, &dn );
 				if ( rdnlen != dn.bv_len - patlen - sep )
 					return ACL_SCOPE_ERR;
 			}

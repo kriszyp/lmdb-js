@@ -251,7 +251,9 @@ wait4msg(
 	LDAPMessage **result )
 {
 	int		rc;
-	struct timeval	tv, tv0, *tvp;
+	struct timeval	tv = { 0 },
+			tv0 = { 0 },
+			*tvp;
 	time_t		start_time = 0;
 	time_t		tmp_time;
 	LDAPConn	*lc, *nextlc;
@@ -281,9 +283,9 @@ wait4msg(
 	rc = -2;
 	while ( rc == -2 ) {
 #ifdef LDAP_DEBUG
-		Debug( LDAP_DEBUG_TRACE, "wait4msg continue, msgid %d, all %d\n",
-		    msgid, all, 0 );
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
+			Debug( LDAP_DEBUG_TRACE, "wait4msg continue, msgid %d, all %d\n",
+				msgid, all, 0 );
 			ldap_dump_connection( ld, ld->ld_conns, 1 );
 			ldap_dump_requests_and_responses( ld );
 		}
@@ -360,7 +362,8 @@ wait4msg(
 
 		if ( rc == -2 && tvp != NULL ) {
 			tmp_time = time( NULL );
-			if (( tv0.tv_sec -=  ( tmp_time - start_time )) <= 0 ) {
+			tv0.tv_sec -= ( tmp_time - start_time );
+			if ( tv0.tv_sec <= 0 ) {
 				rc = 0;	/* timed out */
 				ld->ld_errno = LDAP_TIMEOUT;
 				break;
@@ -1070,7 +1073,7 @@ int
 ldap_msgtype( LDAPMessage *lm )
 {
 	assert( lm != NULL );
-	return ( lm != NULL ) ? lm->lm_msgtype : -1;
+	return ( lm != NULL ) ? (int)lm->lm_msgtype : -1;
 }
 
 

@@ -783,7 +783,7 @@ LDAP_SLAPD_F (int) dnExtractRdn LDAP_P((
 
 LDAP_SLAPD_F (int) rdn_validate LDAP_P(( struct berval * rdn ));
 
-LDAP_SLAPD_F (int) dn_rdnlen LDAP_P(( Backend *be, struct berval *dn ));
+LDAP_SLAPD_F (ber_len_t) dn_rdnlen LDAP_P(( Backend *be, struct berval *dn ));
 
 LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	struct berval * new_dn,

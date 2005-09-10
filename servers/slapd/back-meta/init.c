@@ -30,7 +30,9 @@ int
 meta_back_open(
 	BackendInfo	*bi )
 {
+	/* FIXME: need to remove the pagedResults, and likely more... */
 	bi->bi_controls = slap_known_controls;
+
 	return 0;
 }
 

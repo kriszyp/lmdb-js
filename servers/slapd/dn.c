@@ -1207,7 +1207,7 @@ dnExtractRdn(
 /*
  * We can assume the input is a prettied or normalized DN
  */
-int 
+ber_len_t
 dn_rdnlen(
 	Backend		*be,
 	struct berval	*dn_in )
