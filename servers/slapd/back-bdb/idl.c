@@ -1302,10 +1302,12 @@ int bdb_idl_append( ID *a, ID *b )
 #define SMALL	8
 #define	SWAP(a,b)	a^=b;b^=a;a^=b	/* Swap integers without temp var */
 
+#define ISTACK	((BDB_IDL_LOGN+1)*2)
+
 void
 bdb_idl_sort( ID *ids )
 {
-	int istack[(BDB_IDL_LOGN+1)*2];
+	int istack[ISTACK];
 	int i,j,k,l,ir,jstack;
 	ID a;
 
@@ -1352,7 +1354,7 @@ bdb_idl_sort( ID *ids )
 			ids[l+1] = ids[j];
 			ids[j] = a;
 			jstack += 2;
-			assert(jstack <= BDB_IDL_LOGN*4);
+			assert(jstack <= ISTACK);
 			if (ir-i+1 >= j-1) {
 				istack[jstack] = ir;
 				istack[jstack-1] = i;
