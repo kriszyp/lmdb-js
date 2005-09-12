@@ -1305,7 +1305,7 @@ int bdb_idl_append( ID *a, ID *b )
 void
 bdb_idl_sort( ID *ids )
 {
-	int istack[BDB_IDL_LOGN*4];
+	int istack[(BDB_IDL_LOGN+1)*2];
 	int i,j,k,l,ir,jstack;
 	ID a;
 
