@@ -1297,43 +1297,71 @@ int bdb_idl_append( ID *a, ID *b )
 	
 }
 
-/* Sort an IDL using HeapSort */
-static void
-siftDown(ID *ids, int root, int bottom)
-{
-	int child;
-	ID temp;
+/* Quicksort + Insertion sort for small arrays */
 
-	temp = ids[root];
-	while ((child=root*2) <= bottom) {
-		if (child < bottom && ids[child] < ids[child + 1])
-			child++;
-
-		if (temp >= ids[child])
-			break;
-		ids[root] = ids[child];
-		root = child;
-	}
-	ids[root] = temp;
-}
+#define SMALL	8
+#define	SWAP(a,b)	a^=b;b^=a;a^=b	/* Swap integers without temp var */
 
 void
 bdb_idl_sort( ID *ids )
 {
-	int i;
-	ID temp;
+	int istack[BDB_IDL_LOGN*4];
+	int i,j,k,l,ir,jstack;
+	ID a;
 
 	if ( BDB_IDL_IS_RANGE( ids ))
 		return;
 
-	for (i = ids[0] / 2; i >= 1; i--)
-		siftDown(ids, i, ids[0]);
-
-	for (i = ids[0]; i > 1; i--)
-	{
-		temp = ids[i];
-		ids[i] = ids[1];
-		ids[1] = temp;
-		siftDown(ids, 1, i-1);
+	ir = ids[0];
+	l = 1;
+	jstack = 0;
+	for(;;) {
+		if (ir - l < SMALL) {	/* Insertion sort */
+			for (j=l+1;j<=ir;j++) {
+				a = ids[j];
+				for (i=j-1;i>=1;i--) {
+					if (ids[i] <= a) break;
+					ids[i+1] = ids[i];
+				}
+				ids[i+1] = a;
+			}
+			if (jstack == 0) break;
+			ir = istack[jstack--];
+			l = istack[jstack--];
+		} else {
+			k = (l + ir) >> 1;	/* Choose median of left, center, right */
+			SWAP(ids[k], ids[l+1]);
+			if (ids[l] > ids[ir]) {
+				SWAP(ids[l], ids[ir]);
+			}
+			if (ids[l+1] > ids[ir]) {
+				SWAP(ids[l+1], ids[ir]);
+			}
+			if (ids[l] > ids[l+1]) {
+				SWAP(ids[l], ids[l+1]);
+			}
+			i = l+1;
+			j = ir;
+			a = ids[l+1];
+			for(;;) {
+				do i++; while(ids[i] < a);
+				do j--; while(ids[j] > a);
+				if (j < i) break;
+				SWAP(ids[i],ids[j]);
+			}
+			ids[l+1] = ids[j];
+			ids[j] = a;
+			jstack += 2;
+			assert(jstack <= BDB_IDL_LOGN*4);
+			if (ir-i+1 >= j-1) {
+				istack[jstack] = ir;
+				istack[jstack-1] = i;
+				ir = j-1;
+			} else {
+				istack[jstack] = j-1;
+				istack[jstack-1] = l;
+				l = i;
+			}
+		}
 	}
 }
