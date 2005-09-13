@@ -1244,12 +1244,13 @@ int bdb_idl_append_one( ID *ids, ID id )
 	return 0;
 }
 
-/* Append unsorted list b to unsorted list a. Both lists must have their
- * lowest value in slot 1 and highest value in slot 2.
+/* Merge sorted list b to sorted list a. There are no common values
+ * in list a and b.
  */
-int bdb_idl_append( ID *a, ID *b )
+int bdb_idl_merge( ID *a, ID *b )
 {
 	ID ida, idb;
+	ID cursora, cursorb, cursorc;
 
 	if ( BDB_IDL_IS_ZERO( b ) ) {
 		return 0;
@@ -1263,38 +1264,31 @@ int bdb_idl_append( ID *a, ID *b )
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
 		a[0] + b[0] >= BDB_IDL_UM_MAX ) {
 		ida = IDL_MIN( a[1], b[1] );
-		idb = IDL_MAX( a[2], b[2] );
+		idb = IDL_MAX( a[a[0]], b[b[0]] );
 		a[0] = NOID;
 		a[1] = ida;
 		a[2] = idb;
 		return 0;
 	}
 
-	if ( b[1] < a[1] ) {
-		ida = a[1];
-		a[1] = b[1];
-	} else {
-		ida = b[1];
-	}
-	a[0]++;
-	a[a[0]] = ida;
+	cursora = a[0];
+	cursorb = b[0];
+	cursorc = cursora + cursorb;
+	a[0] = cursorc;
 
-	if ( b[0] > 1 && b[2] > a[2] ) {
-		ida = a[2];
-		a[2] = b[2];
-	} else {
-		ida = b[2];
-	}
-	a[0]++;
-	a[a[0]] = ida;
-
-	if ( b[0] > 2 ) {
-		int i = b[0] - 2;
-		AC_MEMCPY(a+a[0]+1, b+3, i * sizeof(ID));
-		a[0] += i;
+	while ( cursorc > 0 ) {
+		if ( b[cursorb] > a[cursora] ) {
+			a[cursorc] = b[cursorb];
+			cursorb--;
+		} else {
+			if ( cursora == cursorc )
+				break;
+			a[cursorc] = a[cursora];
+			cursora --;
+		}
+		cursorc--;
 	}
 	return 0;
-	
 }
 
 /* Quicksort + Insertion sort for small arrays */

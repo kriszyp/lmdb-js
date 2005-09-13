@@ -245,7 +245,7 @@ bdb_idl_cache_del(
 #define bdb_idl_intersection		BDB_SYMBOL(idl_intersection)
 #define bdb_idl_union				BDB_SYMBOL(idl_union)
 #define bdb_idl_sort				BDB_SYMBOL(idl_sort)
-#define bdb_idl_append				BDB_SYMBOL(idl_append)
+#define bdb_idl_merge				BDB_SYMBOL(idl_merge)
 #define bdb_idl_append_one			BDB_SYMBOL(idl_append_one)
 
 #define bdb_idl_fetch_key			BDB_SYMBOL(idl_fetch_key)

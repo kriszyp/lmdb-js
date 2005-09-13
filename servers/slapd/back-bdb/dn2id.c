@@ -953,13 +953,15 @@ hdb_dn2idl_internal(
 saveit:
 	if ( cx->bdb->bi_idl_cache_max_size ) {
 		cx->key.data = &cx->id;
+		if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 1 )
+			bdb_idl_sort( cx->tmp );
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
 	}
 	;
 gotit:
 	if ( !BDB_IDL_IS_ZERO( cx->tmp )) {
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			bdb_idl_append( cx->ids, cx->tmp );
+			bdb_idl_merge( cx->ids, cx->tmp );
 			if ( !(cx->ei->bei_state & CACHE_ENTRY_NO_GRANDKIDS)) {
 				ID *save, idcurs;
 				EntryInfo *ei = cx->ei;
@@ -1038,8 +1040,6 @@ hdb_dn2idl(
 	DBTzero(&cx.data);
 
 	hdb_dn2idl_internal(&cx);
-	if ( !BDB_IDL_IS_ZERO( ids ) && !BDB_IDL_IS_RANGE( ids ))
-		bdb_idl_sort( ids );
 
 	return cx.rc;
 }
