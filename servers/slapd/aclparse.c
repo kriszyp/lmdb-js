@@ -1648,7 +1648,7 @@ parse_acl(
 							"ACI \"%s\": inappropriate syntax: %s.",
 							right,
 							b->a_aci_at->ad_type->sat_syntax_oid );
-						Debug( LDAP_DEBUG_ANY, "%s: line %d: %s\n"
+						Debug( LDAP_DEBUG_ANY, "%s: line %d: %s\n",
 							fname, lineno, buf );
 						acl_usage();
 					}
