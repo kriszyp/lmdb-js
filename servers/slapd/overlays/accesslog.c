@@ -969,7 +969,14 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	op2.ora_e = e;
 	op2.o_callback = &nullsc;
 
+	if ( lo->mask & LOG_OP_WRITES ) {
+		slap_get_commit_csn( op, NULL, &bv );
+		attr_merge_one( e, slap_schema.si_ad_entryCSN, &bv, NULL );
+		slap_queue_csn( &op2, &bv );
+	}
+
 	op2.o_bd->be_add( &op2, &rs2 );
+	slap_graduate_commit_csn( &op2 );
 	entry_free( e );
 
 	return SLAP_CB_CONTINUE;
