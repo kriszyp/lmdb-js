@@ -57,6 +57,7 @@ typedef struct log_info {
 	int li_age;
 	int li_cycle;
 	struct re_s *li_task;
+	int li_success;
 } log_info;
 
 static ConfigDriver log_cf_gen;
@@ -64,7 +65,8 @@ static ConfigDriver log_cf_gen;
 enum {
 	LOG_DB = 1,
 	LOG_OPS,
-	LOG_PURGE
+	LOG_PURGE,
+	LOG_SUCCESS
 };
 
 static ConfigTable log_cfats[] = {
@@ -82,6 +84,10 @@ static ConfigTable log_cfats[] = {
 		log_cf_gen, "( OLcfgOvAt:4.3 NAME 'olcAccessLogPurge' "
 			"DESC 'Log cleanup parameters' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "logsuccess", NULL, 2, 2, 0, ARG_MAGIC|ARG_ON_OFF|LOG_SUCCESS,
+		log_cf_gen, "( OLcfgOvAt:4.4 NAME 'olcAccessLogSuccess' "
+			"DESC 'Log successful ops only' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL }
 };
 
@@ -91,7 +97,7 @@ static ConfigOCs log_cfocs[] = {
 		"DESC 'Access log configuration' "
 		"SUP olcOverlayConfig "
 		"MUST olcAccessLogDB "
-		"MAY ( olcAccessLogOps $ olcAccessLogPurge ) )",
+		"MAY ( olcAccessLogOps $ olcAccessLogPurge $ olcAccessLogSuccess ) )",
 			Cft_Overlay, log_cfats },
 	{ NULL }
 };
@@ -188,7 +194,7 @@ static struct {
 		"SYNTAX OMsInteger "
 		"SINGLE-VALUE )", &ad_reqResult },
 	{ "( " LOG_SCHEMA_AT ".7 NAME 'reqAuthzID' "
-		"DESC 'AUthorization ID of requestor' "
+		"DESC 'Authorization ID of requestor' "
 		"EQUALITY distinguishedNameMatch "
 		"SYNTAX OMsDN "
 		"SINGLE-VALUE )", &ad_reqAuthzID },
@@ -556,6 +562,12 @@ log_cf_gen(ConfigArgs *c)
 			agebv.bv_len += cyclebv.bv_len;
 			value_add_one( &c->rvalue_vals, &agebv );
 			break;
+		case LOG_SUCCESS:
+			if ( li->li_success )
+				c->value_int = li->li_success;
+			else
+				rc = 1;
+			break;
 		}
 		break;
 	case LDAP_MOD_DELETE:
@@ -582,6 +594,9 @@ log_cf_gen(ConfigArgs *c)
 			}
 			li->li_age = 0;
 			li->li_cycle = 0;
+			break;
+		case LOG_SUCCESS:
+			li->li_success = 0;
 			break;
 		}
 		break;
@@ -624,6 +639,9 @@ log_cf_gen(ConfigArgs *c)
 								c->be->be_suffix[0].bv_val );
 				}
 			}
+			break;
+		case LOG_SUCCESS:
+			li->li_success = c->value_int;
 			break;
 		}
 		break;
@@ -718,6 +736,9 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	SlapReply rs2 = {REP_RESULT};
 
 	if ( rs->sr_type != REP_RESULT && rs->sr_type != REP_EXTENDED )
+		return SLAP_CB_CONTINUE;
+
+	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
 		return SLAP_CB_CONTINUE;
 
 	switch ( op->o_tag ) {
