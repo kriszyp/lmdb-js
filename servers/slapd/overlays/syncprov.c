@@ -116,6 +116,7 @@ typedef struct syncprov_info_t {
 	int		si_chkops;	/* checkpointing info */
 	int		si_chktime;
 	int		si_numops;	/* number of ops since last checkpoint */
+	int		si_nopres;	/* Skip present phase */
 	time_t	si_chklast;	/* time of last checkpoint */
 	Avlnode	*si_mods;	/* entries being modified */
 	sessionlog	*si_logs;
@@ -1793,7 +1794,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
 	slap_callback	*cb;
-	int gotstate = 0, nochange = 0, do_present = 1;
+	int gotstate = 0, nochange = 0, do_present;
 	syncops *sop = NULL;
 	searchstate *ss;
 	sync_control *srs;
@@ -1806,6 +1807,8 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "illegal value for derefAliases" );
 		return rs->sr_err;
 	}
+
+	do_present = si->si_nopres ? 0 : 1;
 
 	srs = op->o_controls[slap_cids.sc_LDAPsync];
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
@@ -2017,7 +2020,8 @@ syncprov_operational(
 
 enum {
 	SP_CHKPT = 1,
-	SP_SESSL
+	SP_SESSL,
+	SP_NOPRES
 };
 
 static ConfigDriver sp_cf_gen;
@@ -2031,6 +2035,10 @@ static ConfigTable spcfg[] = {
 		sp_cf_gen, "( OLcfgOvAt:1.2 NAME 'olcSpSessionlog' "
 			"DESC 'Session log size in ops' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "syncprov-nopresent", NULL, 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|SP_NOPRES,
+		sp_cf_gen, "( OLcfgOvAt:1.3 NAME 'olcSpNoPresent' "
+			"DESC 'Omit Present phase processing' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -2039,7 +2047,7 @@ static ConfigOCs spocs[] = {
 		"NAME 'olcSyncProvConfig' "
 		"DESC 'SyncRepl Provider configuration' "
 		"SUP olcOverlayConfig "
-		"MAY ( olcSpCheckpoint $ olcSpSessionlog ) )",
+		"MAY ( olcSpCheckpoint $ olcSpSessionlog $ olcSpNoPresent ) )",
 			Cft_Overlay, spcfg },
 	{ NULL, 0, NULL }
 };
@@ -2071,6 +2079,13 @@ sp_cf_gen(ConfigArgs *c)
 				rc = 1;
 			}
 			break;
+		case SP_NOPRES:
+			if ( si->si_nopres ) {
+				c->value_int = 1;
+			} else {
+				rc = 1;
+			}
+			break;
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
@@ -2082,6 +2097,12 @@ sp_cf_gen(ConfigArgs *c)
 		case SP_SESSL:
 			if ( si->si_logs )
 				si->si_logs->sl_size = 0;
+			else
+				rc = LDAP_NO_SUCH_ATTRIBUTE;
+			break;
+		case SP_NOPRES:
+			if ( si->si_nopres )
+				si->si_nopres = 0;
 			else
 				rc = LDAP_NO_SUCH_ATTRIBUTE;
 			break;
@@ -2115,6 +2136,9 @@ sp_cf_gen(ConfigArgs *c)
 		}
 		sl->sl_size = size;
 		}
+		break;
+	case SP_NOPRES:
+		si->si_nopres = c->value_int;
 		break;
 	}
 	return rc;
