@@ -71,9 +71,9 @@ loaded from config files or added at runtime.
 
 The usual rules for LDIF files apply to the configuration information:
 Comment lines beginning with a '{{EX:#}}' character
-are ignored.  If a line begins with white space, it is considered a
+are ignored.  If a line begins with a single space, it is considered a
 continuation of the previous line (even if the previous line is a
-comment). Entries are separated by blank lines.
+comment) and the single leading space is removed. Entries are separated by blank lines.
 
 The general layout of the config LDIF is as follows:
 
