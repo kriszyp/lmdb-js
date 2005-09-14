@@ -732,7 +732,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	struct berval bv;
 	char *ptr;
 	BerVarray vals;
-	Operation op2;
+	Operation op2 = {0};
 	SlapReply rs2 = {REP_RESULT};
 
 	if ( rs->sr_type != REP_RESULT && rs->sr_type != REP_EXTENDED )
