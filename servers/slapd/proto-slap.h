@@ -168,8 +168,9 @@ LDAP_SLAPD_F (int) slap_bv2undef_ad LDAP_P((
 	const char **text,
 	unsigned proxied ));
 
-LDAP_SLAPD_F (int) slap_ad_undef_remove LDAP_P((
-	char *name ));
+LDAP_SLAPD_F (int) slap_ad_undef_promote LDAP_P((
+	char *name,
+	AttributeType *nat ));
 
 LDAP_SLAPD_F (AttributeDescription *) ad_find_tags LDAP_P((
 	AttributeType *type,

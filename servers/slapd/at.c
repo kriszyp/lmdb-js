@@ -405,13 +405,13 @@ at_insert(
 	}
 
 	if ( sat->sat_oid ) {
-		slap_ad_undef_remove( sat->sat_oid );
+		slap_ad_undef_promote( sat->sat_oid, sat );
 	}
 
 	names = sat->sat_names;
 	if ( names ) {
 		while ( *names ) {
-			slap_ad_undef_remove( *names );
+			slap_ad_undef_promote( *names, sat );
 			names++;
 		}
 	}

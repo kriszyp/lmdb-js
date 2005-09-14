@@ -770,11 +770,15 @@ int slap_bv2undef_ad(
 }
 
 static int
-undef_remove(
+undef_promote(
 	AttributeType	*at,
-	char		*name )
+	char		*name,
+	AttributeType	*nat )
 {
-	AttributeDescription	**u_ad;
+	AttributeDescription	**u_ad, **n_ad;
+
+	/* Get to last ad on the new type */
+	for ( n_ad = &nat->sat_ad; *n_ad; n_ad = &(*n_ad)->ad_next ) ;
 
 	for ( u_ad = &at->sat_ad; *u_ad; ) {
 		struct berval	bv;
@@ -791,8 +795,9 @@ undef_remove(
 
 			*u_ad = (*u_ad)->ad_next;
 
-			ch_free( tmp );
-
+			tmp->ad_next = NULL;
+			*n_ad = tmp;
+			n_ad = &tmp->ad_next;
 		} else {
 			u_ad = &(*u_ad)->ad_next;
 		}
@@ -802,16 +807,17 @@ undef_remove(
 }
 
 int
-slap_ad_undef_remove(
-	char *name )
+slap_ad_undef_promote(
+	char *name,
+	AttributeType *at )
 {
 	int	rc;
 
 	ldap_pvt_thread_mutex_lock( &ad_undef_mutex );
 
-	rc = undef_remove( slap_schema.si_at_undefined, name );
+	rc = undef_promote( slap_schema.si_at_undefined, name, at );
 	if ( rc == 0 ) {
-		rc = undef_remove( slap_schema.si_at_proxied, name );
+		rc = undef_promote( slap_schema.si_at_proxied, name, at );
 	}
 
 	ldap_pvt_thread_mutex_unlock( &ad_undef_mutex );
