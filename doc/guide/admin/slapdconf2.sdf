@@ -132,9 +132,7 @@ prefix attached.
 
 A configuration directive may take arguments.  If so, the arguments are
 separated by white space.  If an argument contains white space,
-the argument should be enclosed in double quotes {{EX:"like this"}}. If
-an argument contains a double quote or a backslash character `{{EX:\}}',
-the character should be preceded by a backslash character `{{EX:\}}'.
+the argument should be enclosed in double quotes {{EX:"like this"}}.
 In the descriptions that follow, arguments that should be replaced
 by actual text are shown in brackets {{EX:<>}}.
 
@@ -349,13 +347,13 @@ H4: Sample Entries
 >objectClass: olcSchemaConfig
 >cn: test
 >olcAttributeTypes: ( 1.1.1
-> NAME 'testAttr'
-> EQUALITY integerMatch
-> SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+>  NAME 'testAttr'
+>  EQUALITY integerMatch
+>  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 >olcAttributeTypes: ( 1.1.2 NAME 'testTwo' EQUALITY caseIgnoreMatch
-> SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 )
+>  SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 )
 >olcObjectClasses: ( 1.1.3 NAME 'testObject'
-> MAY ( testAttr $ testTwo ) AUXILIARY )
+>  MAY ( testAttr $ testTwo ) AUXILIARY )
 
 
 H3: Backend-specific Directives
