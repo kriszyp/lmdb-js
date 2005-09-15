@@ -1244,13 +1244,12 @@ int bdb_idl_append_one( ID *ids, ID id )
 	return 0;
 }
 
-/* Merge sorted list b to sorted list a. There are no common values
- * in list a and b.
+/* Append sorted list b to sorted list a. The result is unsorted but
+ * a[1] is the min of the result and a[a[0]] is the max.
  */
-int bdb_idl_merge( ID *a, ID *b )
+int bdb_idl_append( ID *a, ID *b )
 {
-	ID ida, idb;
-	ID cursora, cursorb, cursorc;
+	ID ida, idb, tmp;
 
 	if ( BDB_IDL_IS_ZERO( b ) ) {
 		return 0;
@@ -1261,34 +1260,34 @@ int bdb_idl_merge( ID *a, ID *b )
 		return 0;
 	}
 
+	ida = BDB_IDL_LAST( a );
+	idb = BDB_IDL_LAST( b );
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
 		a[0] + b[0] >= BDB_IDL_UM_MAX ) {
-		ida = BDB_IDL_LAST( a );
-		idb = BDB_IDL_LAST( b );
 		a[2] = IDL_MAX( ida, idb );
 		a[1] = IDL_MIN( a[1], b[1] );
 		a[0] = NOID;
 		return 0;
 	}
 
-	cursora = a[0];
-	cursorb = b[0];
-	cursorc = cursora + cursorb;
-	a[0] = cursorc;
+	if ( b[0] > 1 && ida > idb ) {
+		a[a[0]] = idb;
+		b[b[0]] = ida;
+	}
 
-	while ( cursorc > 0 ) {
-		if ( b[cursorb] > a[cursora] ) {
-			a[cursorc] = b[cursorb];
-			cursorb--;
-			if ( !cursorb )
-				break;
-		} else {
-			if ( cursora == cursorc )
-				break;
-			a[cursorc] = a[cursora];
-			cursora --;
-		}
-		cursorc--;
+	if ( b[1] < a[1] ) {
+		tmp = a[1];
+		a[1] = b[1];
+	} else {
+		tmp = b[1];
+	}
+	a[0]++;
+	a[a[0]] = tmp;
+
+	if ( b[0] > 1 ) {
+		int i = b[0] - 1;
+		AC_MEMCPY(a+a[0]+1, b+2, i * sizeof(ID));
+		a[0] += i;
 	}
 	return 0;
 }
@@ -1298,12 +1297,10 @@ int bdb_idl_merge( ID *a, ID *b )
 #define SMALL	8
 #define	SWAP(a,b)	a^=b;b^=a;a^=b	/* Swap integers without temp var */
 
-#define ISTACK	((BDB_IDL_LOGN+1)*4)
-
 void
-bdb_idl_sort( ID *ids )
+bdb_idl_sort( ID *ids, ID *tmp )
 {
-	int istack[ISTACK];
+	int *istack = (int *)tmp;
 	int i,j,k,l,ir,jstack;
 	ID a;
 
@@ -1350,7 +1347,6 @@ bdb_idl_sort( ID *ids )
 			ids[l+1] = ids[j];
 			ids[j] = a;
 			jstack += 2;
-			assert(jstack <= ISTACK);
 			if (ir-i+1 >= j-1) {
 				istack[jstack] = ir;
 				istack[jstack-1] = i;

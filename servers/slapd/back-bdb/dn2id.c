@@ -818,12 +818,13 @@ struct dn2id_cookie {
 	ID dbuf;
 	ID *ids;
 	void *ptr;
-	ID tmp[BDB_IDL_UM_SIZE];
+	ID *tmp;
 	ID *buf;
 	DBT key;
 	DBT data;
 	DBC *dbc;
 	Operation *op;
+	int need_sort;
 };
 
 static int
@@ -952,7 +953,7 @@ hdb_dn2idl_internal(
 
 saveit:
 	if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 1 )
-		bdb_idl_sort( cx->tmp );
+		bdb_idl_sort( cx->tmp, cx->buf );
 	if ( cx->bdb->bi_idl_cache_max_size ) {
 		cx->key.data = &cx->id;
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
@@ -961,7 +962,8 @@ saveit:
 gotit:
 	if ( !BDB_IDL_IS_ZERO( cx->tmp )) {
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			bdb_idl_merge( cx->ids, cx->tmp );
+			bdb_idl_append( cx->ids, cx->tmp );
+			cx->need_sort = 1;
 			if ( !(cx->ei->bei_state & CACHE_ENTRY_NO_GRANDKIDS)) {
 				ID *save, idcurs;
 				EntryInfo *ei = cx->ei;
@@ -1024,8 +1026,10 @@ hdb_dn2idl(
 	cx.prefix = (op->ors_scope == LDAP_SCOPE_ONELEVEL) ?
 		DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
 	cx.ids = ids;
-	cx.buf = stack;
+	cx.tmp = stack;
+	cx.buf = stack + BDB_IDL_UM_SIZE;
 	cx.op = op;
+	cx.need_sort = 0;
 
 	BDB_IDL_ZERO( ids );
 	if ( cx.prefix == DN_SUBTREE_PREFIX ) {
@@ -1040,6 +1044,8 @@ hdb_dn2idl(
 	DBTzero(&cx.data);
 
 	hdb_dn2idl_internal(&cx);
+	if ( cx.need_sort && !BDB_IDL_IS_RANGE( cx.ids ) && cx.ids[0] > 1 )
+		bdb_idl_sort( cx.ids, cx.tmp );
 
 	return cx.rc;
 }
