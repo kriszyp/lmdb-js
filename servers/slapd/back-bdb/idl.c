@@ -1298,7 +1298,7 @@ int bdb_idl_merge( ID *a, ID *b )
 #define SMALL	8
 #define	SWAP(a,b)	a^=b;b^=a;a^=b	/* Swap integers without temp var */
 
-#define ISTACK	((BDB_IDL_LOGN+1)*2)
+#define ISTACK	((BDB_IDL_LOGN+1)*4)
 
 void
 bdb_idl_sort( ID *ids )
