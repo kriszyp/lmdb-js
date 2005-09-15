@@ -1264,7 +1264,7 @@ int bdb_idl_merge( ID *a, ID *b )
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
 		a[0] + b[0] >= BDB_IDL_UM_MAX ) {
 		ida = IDL_MIN( a[1], b[1] );
-		idb = IDL_MAX( a[a[0]], b[b[0]] );
+		idb = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
 		a[0] = NOID;
 		a[1] = ida;
 		a[2] = idb;
