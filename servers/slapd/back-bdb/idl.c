@@ -1263,11 +1263,11 @@ int bdb_idl_merge( ID *a, ID *b )
 
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
 		a[0] + b[0] >= BDB_IDL_UM_MAX ) {
-		ida = IDL_MIN( a[1], b[1] );
-		idb = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
+		ida = BDB_IDL_LAST( a );
+		idb = BDB_IDL_LAST( b );
+		a[2] = IDL_MAX( ida, idb );
+		a[1] = IDL_MIN( a[1], b[1] );
 		a[0] = NOID;
-		a[1] = ida;
-		a[2] = idb;
 		return 0;
 	}
 
@@ -1280,6 +1280,8 @@ int bdb_idl_merge( ID *a, ID *b )
 		if ( b[cursorb] > a[cursora] ) {
 			a[cursorc] = b[cursorb];
 			cursorb--;
+			if ( !cursorb )
+				break;
 		} else {
 			if ( cursora == cursorc )
 				break;
