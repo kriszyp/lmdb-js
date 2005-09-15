@@ -951,10 +951,10 @@ hdb_dn2idl_internal(
 	}
 
 saveit:
+	if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 1 )
+		bdb_idl_sort( cx->tmp );
 	if ( cx->bdb->bi_idl_cache_max_size ) {
 		cx->key.data = &cx->id;
-		if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 1 )
-			bdb_idl_sort( cx->tmp );
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
 	}
 	;
