@@ -1145,6 +1145,7 @@ syncrepl_changelog_mods(
 	struct berval *vals
 )
 {
+	return NULL;	/* FIXME */
 }
 
 static int
@@ -1211,6 +1212,7 @@ syncrepl_message_to_op(
 					"syncrepl_message_to_op : unknown op %s",
 					bvals[0].bv_val, 0, 0 );
 				ch_free( bvals );
+				rc = -1;
 				goto done;
 			}
 			op->o_tag = modops[i].mask;
@@ -1232,8 +1234,10 @@ syncrepl_message_to_op(
 	}
 
 	/* If we didn't get a mod type or a target DN, bail out */
-	if ( op->o_tag == LBER_DEFAULT || BER_BVISNULL( &dn ))
+	if ( op->o_tag == LBER_DEFAULT || BER_BVISNULL( &dn )) {
+		rc = -1;
 		goto done;
+	}
 
 	op->o_callback = &cb;
 
@@ -1301,6 +1305,7 @@ done:
 			ch_free( prdn.bv_val );
 	}
 	ber_free ( ber, 0 );
+	return rc;
 }
 
 static int
