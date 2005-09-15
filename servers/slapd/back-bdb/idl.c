@@ -1295,14 +1295,14 @@ int bdb_idl_append( ID *a, ID *b )
 /* Quicksort + Insertion sort for small arrays */
 
 #define SMALL	8
-#define	SWAP(a,b)	a^=b;b^=a;a^=b	/* Swap integers without temp var */
+#define	SWAP(a,b)	itmp=(a);(a)=(b);(b)=itmp
 
 void
 bdb_idl_sort( ID *ids, ID *tmp )
 {
 	int *istack = (int *)tmp;
 	int i,j,k,l,ir,jstack;
-	ID a;
+	ID a, itmp;
 
 	if ( BDB_IDL_IS_RANGE( ids ))
 		return;
