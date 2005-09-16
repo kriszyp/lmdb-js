@@ -455,6 +455,14 @@ parse_acl(
 				} else if ( strcasecmp( left, "attr" ) == 0		/* TOLERATED */
 						|| strcasecmp( left, "attrs" ) == 0 )	/* DOCUMENTED */
 				{
+					if ( strcasecmp( left, "attr" ) == 0 ) {
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: \"attr\" "
+							"is deprecated (and undocumented); "
+							"use \"attrs\" instead.\n",
+							fname, lineno, 0 );
+					}
+
 					a->acl_attrs = str2anlist( a->acl_attrs,
 						right, "," );
 					if ( a->acl_attrs == NULL ) {
@@ -967,6 +975,16 @@ parse_acl(
 							acl_usage();
 						}
 						free( bv.bv_val );
+						if ( sty == ACL_STYLE_BASE
+							&& be != NULL
+							&& !BER_BVISNULL( &be->be_rootndn )
+							&& dn_match( &bdn->a_pat, &be->be_rootndn ) )
+						{
+							Debug( LDAP_DEBUG_ANY,
+								"%s: line %d: rootdn is always granted "
+								"unlimited privileges.\n",
+								fname, lineno, 0 );
+						}
 
 					} else {
 						bdn->a_pat = bv;
