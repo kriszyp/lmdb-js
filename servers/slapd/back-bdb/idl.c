@@ -1207,8 +1207,11 @@ ID bdb_idl_next( ID *ids, ID *cursor )
 	return NOID;
 }
 
-/* Add one ID to an unsorted list. We still maintain a lo/hi reference
- * for fast range compaction.
+#ifdef BDB_HIER
+
+/* Add one ID to an unsorted list. We ensure that the first element is the
+ * minimum and the last element is the maximum, for fast range compaction.
+ *   this means IDLs up to length 3 are always sorted...
  */
 int bdb_idl_append_one( ID *ids, ID id )
 {
@@ -1229,15 +1232,17 @@ int bdb_idl_append_one( ID *ids, ID id )
 			tmp = ids[1];
 			ids[1] = id;
 			id = tmp;
-		} else if ( ids[0] > 1 && id > ids[2] ) {
-			tmp = ids[2];
-			ids[2] = id;
+		}
+		if ( ids[0] > 1 && id < ids[ids[0]] ) {
+			tmp = ids[ids[0]];
+			ids[ids[0]] = id;
 			id = tmp;
 		}
 	}
 	ids[0]++;
 	if ( ids[0] >= BDB_IDL_UM_MAX ) {
 		ids[0] = NOID;
+		ids[2] = id;
 	} else {
 		ids[ids[0]] = id;
 	}
@@ -1291,6 +1296,8 @@ int bdb_idl_append( ID *a, ID *b )
 	}
 	return 0;
 }
+
+#if 0
 
 /* Quicksort + Insertion sort for small arrays */
 
@@ -1359,3 +1366,113 @@ bdb_idl_sort( ID *ids, ID *tmp )
 		}
 	}
 }
+
+#else
+
+/* 8 bit Radix sort + insertion sort
+ * 
+ * based on code from http://www.cubic.org/docs/radix.htm
+ * with improvements by mbackes@symas.com and hyc@symas.com
+ *
+ * This code is O(n) but has a relatively high constant factor. For lists
+ * up to ~50 Quicksort is slightly faster; up to ~100 they are even.
+ * Much faster than quicksort for lists longer than ~100. Insertion
+ * sort is actually superior for lists <50.
+ */
+
+#define BUCKETS	(1<<8)
+#define SMALL	50
+
+void
+bdb_idl_sort( ID *ids, ID *tmp )
+{
+	int count, soft_limit, phase = 0, size = ids[0];
+	ID *idls[2], mask, maxval = ids[size];
+
+ 	if ( BDB_IDL_IS_RANGE( ids ))
+ 		return;
+
+	/* Use insertion sort for small lists */
+	if ( size <= SMALL ) {
+		int i,j;
+		ID a;
+
+		for (j=1;j<=size;j++) {
+			a = ids[j];
+			for (i=j-1;i>=1;i--) {
+				if (ids[i] <= a) break;
+				ids[i+1] = ids[i];
+			}
+			ids[i+1] = a;
+		}
+		return;
+	}
+
+	tmp[0] = size;
+	idls[0] = ids;
+	idls[1] = tmp;
+
+	soft_limit = sizeof(ID) - 1;
+	mask = (ID)0xff << (sizeof(ID) - 1) * 8;
+
+	while (!(maxval & mask)) {
+		soft_limit--;
+		mask >>= 8;
+	}
+
+	for (
+#if BYTE_ORDER == BIG_ENDIAN
+	count = soft_limit; count >= 0; --count
+#else
+	count = 0; count <= soft_limit; ++count
+#endif
+	) {
+		unsigned int num[BUCKETS], * np, n, sum;
+		int i;
+        ID *sp, *source, *dest;
+        unsigned char *bp, *source_start;
+
+		source = idls[phase]+1;
+		dest = idls[phase^1]+1;
+		source_start =  ((unsigned char *) source) + count;
+
+        np = num;
+        for ( i = BUCKETS; i > 0; --i ) *np++ = 0;
+
+		/* count occurences of every byte value */
+		bp = source_start;
+        for ( i = size; i > 0; --i, bp += sizeof(ID) )
+				num[*bp]++;
+
+		/* transform count into index by summing elements and storing
+		 * into same array
+		 */
+        sum = 0;
+        np = num;
+        for ( i = BUCKETS; i > 0; --i ) {
+                n = *np;
+                *np++ = sum;
+                sum += n;
+        }
+
+		/* fill dest with the right values in the right place */
+		bp = source_start;
+        sp = source;
+        for ( i = size; i > 0; --i, bp += sizeof(ID) ) {
+                np = num + *bp;
+                dest[*np] = *sp++;
+                ++(*np);
+        }
+		phase ^= 1;
+	}
+
+	/* copy back from temp if needed */
+	if ( phase ) {
+		ids++; tmp++;
+		for ( count = 0; count < size; ++count ) 
+			*ids++ = *tmp++;
+	}
+}
+#endif	/* Quick vs Radix */
+
+#endif	/* BDB_HIER */

@@ -952,13 +952,13 @@ hdb_dn2idl_internal(
 	}
 
 saveit:
-	if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 1 )
+	if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 3 )
 		bdb_idl_sort( cx->tmp, cx->buf );
 	if ( cx->bdb->bi_idl_cache_max_size ) {
 		cx->key.data = &cx->id;
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
 	}
-	;
+
 gotit:
 	if ( !BDB_IDL_IS_ZERO( cx->tmp )) {
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
@@ -1044,7 +1044,7 @@ hdb_dn2idl(
 	DBTzero(&cx.data);
 
 	hdb_dn2idl_internal(&cx);
-	if ( cx.need_sort && !BDB_IDL_IS_RANGE( cx.ids ) && cx.ids[0] > 1 )
+	if ( cx.need_sort && !BDB_IDL_IS_RANGE( cx.ids ) && cx.ids[0] > 3 )
 		bdb_idl_sort( cx.ids, cx.tmp );
 
 	return cx.rc;
