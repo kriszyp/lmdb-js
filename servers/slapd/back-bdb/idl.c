@@ -1387,7 +1387,8 @@ void
 bdb_idl_sort( ID *ids, ID *tmp )
 {
 	int count, soft_limit, phase = 0, size = ids[0];
-	ID *idls[2], mask, maxval = ids[size];
+	ID *idls[2];
+	unsigned char *maxv = (unsigned char *)&ids[size];
 
  	if ( BDB_IDL_IS_RANGE( ids ))
  		return;
@@ -1412,17 +1413,15 @@ bdb_idl_sort( ID *ids, ID *tmp )
 	idls[0] = ids;
 	idls[1] = tmp;
 
-	soft_limit = sizeof(ID) - 1;
-	mask = (ID)0xff << (sizeof(ID) - 1) * 8;
-
-	while (!(maxval & mask)) {
-		soft_limit--;
-		mask >>= 8;
-	}
+#if BYTE_ORDER == BIG_ENDIAN
+    for (soft_limit = 0; !maxv[soft_limit]; soft_limit++);
+#else
+    for (soft_limit = sizeof(ID)-1; !maxv[soft_limit]; soft_limit--);
+#endif
 
 	for (
 #if BYTE_ORDER == BIG_ENDIAN
-	count = soft_limit; count >= 0; --count
+	count = sizeof(ID)-1; count >= soft_limit; --count
 #else
 	count = 0; count <= soft_limit; ++count
 #endif
