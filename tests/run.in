@@ -19,8 +19,9 @@ USAGE="$0 [-b <backend>] [-c] [-k] [-p] [-u] [-w] <script>"
 SRCDIR="@srcdir@"
 TOPSRCDIR="@top_srcdir@"
 LN_S="@LN_S@"
+EGREP_CMD="@EGREP@"
 
-export SRCDIR TOPSRCDIR LN_S
+export SRCDIR TOPSRCDIR LN_S EGREP_CMD
 
 # backends
 AC_bdb=@BUILD_BDB@
