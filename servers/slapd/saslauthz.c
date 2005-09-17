@@ -1397,6 +1397,12 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 		"SASL match pattern %s could not be compiled by regexp engine\n",
 		reg->sr_match, 0, 0 );
 
+#ifdef ENABLE_REWRITE
+	/* Dummy block to force symbol references in librewrite */
+	if ( slapMode == ( SLAP_SERVER_MODE|SLAP_TOOL_MODE )) {
+		rewrite_info_init( 0 );
+	}
+#endif
 		return( LDAP_OTHER );
 	}
 
