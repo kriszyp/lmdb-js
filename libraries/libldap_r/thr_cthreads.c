@@ -20,7 +20,9 @@
 #include "portable.h"
 
 #if defined( HAVE_MACH_CTHREADS )
-#include "ldap_pvt_thread.h"
+#include "ldap_pvt_thread.h" /* Get the thread interface */
+#define LDAP_THREAD_IMPLEMENTATION
+#include "ldap_thr_debug.h"  /* May rename the symbols defined below */
 
 int
 ldap_int_thread_initialize( void )

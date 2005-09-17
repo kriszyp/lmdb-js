@@ -18,7 +18,9 @@
 
 #if defined( HAVE_NT_THREADS )
 
-#include "ldap_pvt_thread.h"
+#include "ldap_pvt_thread.h" /* Get the thread interface */
+#define LDAP_THREAD_IMPLEMENTATION
+#include "ldap_thr_debug.h"	 /* May rename the symbols defined below */
 
 typedef struct ldap_int_thread_s {
 	long tid;

@@ -38,7 +38,9 @@
 
 #include "ldap-int.h"
 
-#include "ldap_pvt_thread.h"
+#include "ldap_pvt_thread.h" /* Get the thread interface */
+#define LDAP_THREAD_IMPLEMENTATION
+#include "ldap_thr_debug.h"	 /* May rename the symbols defined below */
 
 #include <lwp/lwp.h>
 #include <lwp/stackdep.h>
@@ -67,7 +69,7 @@ ldap_int_thread_initialize( void )
 int
 ldap_int_thread_destroy( void )
 {
-	/* need to destory lwp_scheduler thread and clean up private
+	/* need to destroy lwp_scheduler thread and clean up private
 		variables */
 	return 0;
 }
@@ -311,7 +313,7 @@ ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
-	ldap_int_thread_mutex_t *mutex )
+	ldap_pvt_thread_mutex_t *mutex )
 {
 	if ( ! cond->lcv_created ) {
 		cv_create( &cond->lcv_cv, *mutex );

@@ -24,8 +24,10 @@
 #include <ac/errno.h>
 
 #include "ldap-int.h"
-#include "ldap_pvt_thread.h"
+#include "ldap_pvt_thread.h" /* Get the thread interface */
 #include "ldap_queue.h"
+#define LDAP_THREAD_POOL_IMPLEMENTATION
+#include "ldap_thr_debug.h"  /* May rename symbols defined below */
 
 #ifndef LDAP_THREAD_HAVE_TPOOL
 
@@ -50,11 +52,6 @@ typedef struct ldap_int_thread_key_s {
 
 static ldap_pvt_thread_t tid_zero;
 
-#ifdef HAVE_PTHREADS
-#define	TID_EQ(a,b)	pthread_equal((a),(b))
-#else
-#define	TID_EQ(a,b)	((a) == (b))
-#endif
 static struct {
 	ldap_pvt_thread_t id;
 	ldap_int_thread_key_t *ctx;
@@ -115,7 +112,7 @@ ldap_int_thread_pool_shutdown ( void )
 
 	while ((pool = LDAP_STAILQ_FIRST(&ldap_int_thread_pool_list)) != NULL) {
 		LDAP_STAILQ_REMOVE_HEAD(&ldap_int_thread_pool_list, ltp_next);
-		ldap_pvt_thread_pool_destroy( &pool, 0);
+		(ldap_pvt_thread_pool_destroy)(&pool, 0); /* ignore thr_debug macro */
 	}
 	ldap_pvt_thread_mutex_destroy(&ldap_pvt_thread_pool_mutex);
 	return(0);
@@ -277,7 +274,7 @@ ldap_pvt_thread_pool_submit (
 			 */
 			TID_HASH(thr, hash);
 			for (rc = hash & (LDAP_MAXTHR-1);
-				!TID_EQ(thread_keys[rc].id, tid_zero);
+				!ldap_pvt_thread_equal(thread_keys[rc].id, tid_zero);
 				rc = (rc+1) & (LDAP_MAXTHR-1));
 			thread_keys[rc].id = thr;
 		} else {
@@ -437,7 +434,8 @@ ldap_int_thread_pool_wrapper (
 
 	/* store pointer to our keys */
 	TID_HASH(tid, hash);
-	for (i = hash & (LDAP_MAXTHR-1); !TID_EQ(thread_keys[i].id, tid);
+	for (i = hash & (LDAP_MAXTHR-1);
+				!ldap_pvt_thread_equal(thread_keys[i].id, tid);
 				i = (i+1) & (LDAP_MAXTHR-1));
 	thread_keys[i].ctx = ltc_key;
 	keyslot = i;
@@ -661,12 +659,14 @@ void *ldap_pvt_thread_pool_context( )
 	int i, hash;
 
 	tid = ldap_pvt_thread_self();
-	if ( TID_EQ( tid, ldap_int_main_tid ))
+	if ( ldap_pvt_thread_equal( tid, ldap_int_main_tid ))
 		return ldap_int_main_thrctx;
 
 	TID_HASH( tid, hash );
-	for (i = hash & (LDAP_MAXTHR-1); !TID_EQ(thread_keys[i].id, tid_zero) &&
-		!TID_EQ(thread_keys[i].id, tid); i = (i+1) & (LDAP_MAXTHR-1));
+	for (i = hash & (LDAP_MAXTHR-1);
+		!ldap_pvt_thread_equal(thread_keys[i].id, tid_zero) &&
+		!ldap_pvt_thread_equal(thread_keys[i].id, tid);
+		i = (i+1) & (LDAP_MAXTHR-1));
 
 	return thread_keys[i].ctx;
 }
