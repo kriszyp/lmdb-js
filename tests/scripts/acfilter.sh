@@ -15,4 +15,4 @@
 #
 # Strip comments
 #
-egrep -iv '^#'
+grep -v '^#'

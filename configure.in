@@ -40,7 +40,7 @@ if test -z "$OL_STRING"; then
 	AC_MSG_ERROR([could not determine version])
 fi
 
-if test -f "$ac_aux_dir/shtool" -a ! -d $ac_aux_dir/shtool; then
+if test -f "$ac_aux_dir/shtool" && test ! -d $ac_aux_dir/shtool; then
 	ac_cv_shtool="$ac_aux_dir/shtool"
 else
 	AC_MSG_ERROR([no shtool found in $ac_aux_dir])
@@ -483,19 +483,19 @@ elif test $ol_enable_ldbm = no ; then
 		AC_MSG_WARN([LDBM disabled, ignoring --enable-ldbm-type argument])
 	fi
 
-	if test $ol_enable_modules != yes -a \
-		$ol_enable_bdb = no -a \
-		$ol_enable_dnssrv = no -a \
-		$ol_enable_hdb = no -a \
-		$ol_enable_ldap = no -a \
-		$ol_enable_meta = no -a \
-		$ol_enable_monitor = no -a \
-		$ol_enable_null = no -a \
-		$ol_enable_passwd = no -a \
-		$ol_enable_perl = no -a \
-		$ol_enable_relay = no -a \
-		$ol_enable_shell = no -a \
-		$ol_enable_sql = no ; then
+	if test $ol_enable_modules != yes &&
+	   test $ol_enable_bdb = no &&
+	   test $ol_enable_dnssrv = no &&
+	   test $ol_enable_hdb = no &&
+	   test $ol_enable_ldap = no &&
+	   test $ol_enable_meta = no &&
+	   test $ol_enable_monitor = no &&
+	   test $ol_enable_null = no &&
+	   test $ol_enable_passwd = no &&
+	   test $ol_enable_perl = no &&
+	   test $ol_enable_relay = no &&
+	   test $ol_enable_shell = no &&
+	   test $ol_enable_sql = no ; then
 
 		if test $ol_enable_slapd = yes ; then
 			AC_MSG_ERROR([slapd requires a backend])
@@ -508,26 +508,26 @@ elif test $ol_enable_ldbm = no ; then
 	ol_enable_ldbm_api=no
 	ol_enable_ldbm_type=no
 
-	if test $ol_enable_bdb != no -o $ol_enable_hdb != no; then
+	if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
 		ol_enable_ldbm_api=berkeley
 	fi
 
 else
 	dnl SLAPD with LDBM
-	if test $ol_enable_ldbm_api = gdbm -a \
-		$ol_enable_ldbm_type = btree ; then
+	if test $ol_enable_ldbm_api = gdbm &&
+	   test $ol_enable_ldbm_type = btree ; then
 		AC_MSG_ERROR([GDBM only supports LDBM type hash])
 	fi
-	if test $ol_enable_ldbm_api = mdbm -a \
-		$ol_enable_ldbm_type = btree ; then
+	if test $ol_enable_ldbm_api = mdbm &&
+	   test $ol_enable_ldbm_type = btree ; then
 		AC_MSG_ERROR([MDBM only supports LDBM type hash])
 	fi
-	if test $ol_enable_ldbm_api = ndbm -a \
-		$ol_enable_ldbm_type = btree ; then
+	if test $ol_enable_ldbm_api = ndbm &&
+	   test $ol_enable_ldbm_type = btree ; then
 		AC_MSG_ERROR([NDBM only supports LDBM type hash])
 	fi
 
-	if test $ol_enable_bdb != no -o $ol_enable_hdb != no ; then
+	if test $ol_enable_bdb/$ol_enable_hdb != no/no ; then
 		if test $ol_enable_ldbm_api = auto ; then
 			ol_enable_ldbm_api=berkeley
 		elif test $ol_enable_ldbm_api != berkeley ; then
@@ -536,7 +536,7 @@ else
 	fi
 fi
 
-if test $ol_enable_meta = yes -a $ol_enable_ldap = no ; then
+if test $ol_enable_meta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
 
@@ -700,10 +700,11 @@ if test $ol_aix_threads = yes ; then
   		fi
 	fi
 
-	if test "${CC}" = "cc_r" -o "${CC}" = "xlc_r" ; then
+	case ${CC} in cc_r | xlc_r)
 		ol_with_threads=posix
 		ol_cv_pthread_create=yes
-	fi
+		;;
+	esac
 fi
 
 if test -z "${CC}"; then
@@ -1078,7 +1079,7 @@ if test "$ol_cv_lib_resolver" != no ; then
 	fi
 fi
 
-if test "$ol_enable_dnssrv" = yes -o "$ol_enable_dnssrv" = mod ; then
+if test "$ol_enable_dnssrv" = yes || test "$ol_enable_dnssrv" = mod ; then
 	if test "$ol_link_dnssrv" = no ; then
 		AC_MSG_ERROR([DNSSRV requires res_query()])
 	fi
@@ -1094,7 +1095,7 @@ dnl PF_LOCAL may use getaddrinfo in available
 AC_CHECK_FUNCS( getaddrinfo getnameinfo gai_strerror inet_ntop )
 
 ol_link_ipv6=no
-if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop = no ; then
+if test $ac_cv_func_getaddrinfo = no || test $ac_cv_func_inet_ntop = no ; then
 	if test $ol_enable_ipv6 = yes ; then
 		AC_MSG_ERROR([IPv6 support requires getaddrinfo() and inet_ntop()])
 	fi
@@ -1116,14 +1117,14 @@ elif test $ol_enable_ipv6 != no ; then
 			struct sockaddr_storage ss;
 ]])],[ol_cv_struct_sockaddr_storage=yes],[ol_cv_struct_sockaddr_storage=no])])
 
-	if test $ol_cv_inet6_addrstrlen = yes \
-		-a $ol_cv_struct_sockaddr_storage = yes ; then
+	if test $ol_cv_inet6_addrstrlen = yes &&
+	   test $ol_cv_struct_sockaddr_storage = yes ; then
 		ol_link_ipv6=yes
-	elif test $ol_enable_ipv6 = yes \
-			-a $ol_cv_inet6_addrstrlen = no ; then
+	elif test $ol_enable_ipv6 = yes &&
+	     test $ol_cv_inet6_addrstrlen = no ; then
 		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
-	elif test $ol_enable_ipv6 = yes \
-			-a $ol_cv_struct_sockaddr_storage = no ; then
+	elif test $ol_enable_ipv6 = yes &&
+	     test $ol_cv_struct_sockaddr_storage = no ; then
 		AC_MSG_ERROR([IPv6 support requires struct sockaddr_storage])
 	fi
 fi
@@ -1144,9 +1145,7 @@ ol_link_kbind=no
 ol_link_krb5=no
 ol_link_krb4=no
 
-if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
-	-o $ol_with_kerberos = k5 -o $ol_with_kerberos = k5only \
-	-o $ol_with_kerberos = k425 ; then
+case $ol_with_kerberos in yes | auto | k5 | k5only | k425)
 
 	AC_CHECK_HEADERS(krb5.h)
 
@@ -1204,10 +1203,13 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 		fi
 
 	fi
-fi
+	;;
+esac
 
-if test $ol_link_krb5 = yes -a \( $ol_with_kerberos = yes -o \
-	$ol_with_kerberos = auto -o $ol_with_kerberos = k425 \) ; then
+if test $ol_link_krb5 = yes &&
+   { test $ol_with_kerberos = yes ||
+     test $ol_with_kerberos = auto ||
+     test $ol_with_kerberos = k425; }; then
 
 	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
 
@@ -1266,8 +1268,7 @@ if test $ol_link_krb5 = yes ; then
 	ol_with_kerberos=found
 fi
 
-if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
-	-o $ol_with_kerberos = k4 -o $ol_with_kerberos = kth ; then
+case $ol_with_kerberos in yes | auto | k4 | kth)
 
 	AC_CHECK_HEADERS(krb.h des.h krb-archaeology.h )
 
@@ -1289,19 +1290,20 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 			fi
 		fi
 	fi
-fi
+	;;
+esac
 
-if test $ol_link_krb4 = yes -a $ol_enable_kbind != no ; then
+if test $ol_link_krb4 = yes && test $ol_enable_kbind != no ; then
 	ol_link_kbind=yes
 
 elif test $ol_enable_kbind = yes ; then
 	AC_MSG_ERROR([Kerberos IV detection failed])
 fi
 
-if test $ol_link_krb4 = yes -o $ol_link_krb5 = yes ; then
+if test $ol_link_krb4 = yes || test $ol_link_krb5 = yes ; then
 	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
 
-elif test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
+elif test $ol_with_kerberos != auto && test $ol_with_kerberos != no ; then
 	AC_MSG_ERROR([Kerberos detection failed])
 fi
 
@@ -1312,8 +1314,8 @@ ol_link_tls=no
 if test $ol_with_tls != no ; then
 	AC_CHECK_HEADERS(openssl/ssl.h ssl.h)
 
-	if test $ac_cv_header_openssl_ssl_h = yes \
-		-o $ac_cv_header_ssl_h = yes ; then
+	if test $ac_cv_header_openssl_ssl_h = yes ||
+	   test $ac_cv_header_ssl_h = yes ; then
 		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
 			[have_ssleay=yes
 			need_rsaref=no],
@@ -1390,8 +1392,7 @@ dnl ----------------------------------------------------------------
 dnl Threads?
 ol_link_threads=no
 
-if test $ol_with_threads = auto -o $ol_with_threads = yes \
-	-o $ol_with_threads = nt ; then
+case $ol_with_threads in auto | yes | nt)
 
 	OL_NT_THREADS
 
@@ -1407,10 +1408,10 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	if test $ol_with_threads = nt ; then
 		AC_MSG_ERROR([could not locate NT Threads])
 	fi
-fi
+	;;
+esac
 
-if test $ol_with_threads = auto -o $ol_with_threads = yes \
-	-o $ol_with_threads = posix ; then
+case $ol_with_threads in auto | yes | posix)
 
 	AC_CHECK_HEADERS(pthread.h)
 
@@ -1526,9 +1527,9 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			dnl check for both, and thr_yield for Solaris
 			AC_CHECK_FUNCS(sched_yield pthread_yield thr_yield)
 
-			if test $ac_cv_func_sched_yield = no -a \
-				$ac_cv_func_pthread_yield = no -a \
-				$ac_cv_func_thr_yield = no ; then
+			if test $ac_cv_func_sched_yield = no &&
+			   test $ac_cv_func_pthread_yield = no &&
+			   test $ac_cv_func_thr_yield = no ; then
 				dnl Digital UNIX has sched_yield() in -lrt
 				AC_CHECK_LIB(rt, sched_yield,
 					[LTHREAD_LIBS="$LTHREAD_LIBS -lrt"
@@ -1537,9 +1538,9 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 					ac_cv_func_sched_yield=yes],
 					[ac_cv_func_sched_yield=no])
 			fi
-			if test $ac_cv_func_sched_yield = no -a \
-				$ac_cv_func_pthread_yield = no -a \
-				"$ac_cv_func_thr_yield" = no ; then
+			if test $ac_cv_func_sched_yield = no &&
+			   test $ac_cv_func_pthread_yield = no &&
+			   test "$ac_cv_func_thr_yield" = no ; then
 				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
 			fi
 
@@ -1692,10 +1693,10 @@ int main(argc, argv)
 	if test $ol_with_threads = posix ; then
 		AC_MSG_ERROR([could not locate POSIX Threads])
 	fi
-fi
+	;;
+esac
 
-if test $ol_with_threads = auto -o $ol_with_threads = yes \
-	-o $ol_with_threads = mach ; then
+case $ol_with_threads in auto | yes | mach)
 
 	dnl check for Mach CThreads
 	AC_CHECK_HEADERS(mach/cthreads.h cthreads.h)
@@ -1757,10 +1758,10 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	elif test $ol_with_threads = found ; then
 		AC_MSG_ERROR([could not link with Mach CThreads])
 	fi
-fi
+	;;
+esac
 
-if test $ol_with_threads = auto -o $ol_with_threads = yes \
-	-o $ol_with_threads = pth ; then
+case $ol_with_threads in auto | yes | pth)
 
 	AC_CHECK_HEADERS(pth.h)
 
@@ -1778,14 +1779,15 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			fi
 		fi
 	fi
-fi
+	;;
+esac
 
-if test $ol_with_threads = auto -o $ol_with_threads = yes \
-	-o $ol_with_threads = lwp ; then
+case $ol_with_threads in auto | yes | lwp)
 
 	dnl check for SunOS5 LWP
 	AC_CHECK_HEADERS(thread.h synch.h)
-	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
+	if test $ac_cv_header_thread_h = yes &&
+	   test $ac_cv_header_synch_h = yes ; then
 		AC_CHECK_LIB(thread, thr_create, [have_thr=yes], [have_thr=no])
 
 		if test $have_thr = yes ; then
@@ -1822,7 +1824,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			fi
 		fi
 	fi
-fi
+	;;
+esac
 
 if test $ol_with_yielding_select = yes ; then
 	AC_DEFINE(HAVE_YIELDING_SELECT,1,
@@ -1844,7 +1847,7 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
-if test $ol_link_threads != no -a $ol_link_threads != nt ; then  
+if test $ol_link_threads != no && test $ol_link_threads != nt ; then
 	dnl needed to get reentrant/threadsafe versions
 	dnl
 	AC_DEFINE(REENTRANT,1)
@@ -1869,8 +1872,8 @@ if test $ol_link_threads != no -a $ol_link_threads != nt ; then
 		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <netdb.h>]], [[h_errno = 0;]])],[ol_cv_h_errno_thread_specific=yes],[ol_cv_h_errno_thread_specific=no])
 	])
 
-	if test $ol_cv_errno_thread_specific != yes \
-		-o $ol_cv_h_errno_thread_specific != yes ; then
+	if test $ol_cv_errno_thread_specific != yes ||
+	   test $ol_cv_h_errno_thread_specific != yes ; then
 		LIBS="$LTHREAD_LIBS $LIBS"
 		LTHREAD_LIBS=""
 	fi
@@ -1975,9 +1978,7 @@ fi
 dnl ----------------------------------------------------------------
 ol_link_ldbm=no 
 
-if test $ol_enable_ldbm_api = auto \
-	-o $ol_enable_ldbm_api = berkeley \
-	-o $ol_enable_ldbm_api = bcompat ; then
+case $ol_enable_ldbm_api in auto | berkeley | bcompat)
 
 	if test $ol_enable_ldbm_api = bcompat; then \
 		OL_BERKELEY_COMPAT_DB
@@ -2006,9 +2007,10 @@ if test $ol_enable_ldbm_api = auto \
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db"
 		fi
 	fi
-fi
+	;;
+esac
 
-if test $ol_enable_bdb != no -o $ol_enable_hdb != no; then
+if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
 	if test $ol_link_ldbm != berkeley ; then
 		AC_MSG_ERROR(BDB/HDB: BerkeleyDB not available)
 	else
@@ -2020,12 +2022,12 @@ if test $ol_enable_bdb != no -o $ol_enable_hdb != no; then
 	fi
 fi
 
-if test $ol_link_ldbm = no -a $ol_enable_ldbm_type = btree ; then
+if test $ol_link_ldbm = no && test $ol_enable_ldbm_type = btree ; then
 	AC_MSG_WARN([Could not find LDBM with BTREE support])
 	ol_enable_ldbm_api=none
 fi
 
-if test $ol_enable_ldbm_api = auto -o $ol_enable_ldbm_api = mdbm ; then
+if test $ol_enable_ldbm_api = auto || test $ol_enable_ldbm_api = mdbm ; then
 	OL_MDBM
 
 	if test $ol_cv_mdbm = yes ; then
@@ -2037,7 +2039,7 @@ if test $ol_enable_ldbm_api = auto -o $ol_enable_ldbm_api = mdbm ; then
 	fi
 fi
 
-if test $ol_enable_ldbm_api = auto -o $ol_enable_ldbm_api = gdbm ; then
+if test $ol_enable_ldbm_api = auto || test $ol_enable_ldbm_api = gdbm ; then
 	OL_GDBM
 
 	if test $ol_cv_gdbm = yes ; then
@@ -2063,19 +2065,19 @@ if test $ol_enable_ldbm_api = ndbm ; then
 	fi
 fi
 
-if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
+if test $ol_link_ldbm = no && test $ol_enable_ldbm != no ; then
 	AC_MSG_ERROR([could not find suitable LDBM backend])
 fi
 
-if test $ol_enable_bdb = yes -o \
-	$ol_enable_hdb = yes -o \
-	$ol_enable_ldbm = yes ; then
+if test $ol_enable_bdb = yes ||
+   test $ol_enable_hdb = yes ||
+   test $ol_enable_ldbm = yes ; then
 	SLAPD_LIBS="$SLAPD_LIBS \$(LDBM_LIBS)"
 fi
 
 dnl ----------------------------------------------------------------
 
-if test $ol_enable_dynamic = yes -a $enable_shared = yes ; then
+if test $ol_enable_dynamic = yes && test $enable_shared = yes ; then
 	BUILD_LIBS_DYNAMIC=shared
 	AC_DEFINE(LDAP_LIBS_DYNAMIC, 1, [define if LDAP libs are dynamic])
 	LTSTATIC=""
@@ -2133,7 +2135,7 @@ fi
 dnl ----------------------------------------------------------------
 if test $ol_enable_syslog != no ; then
 	AC_CHECK_FUNC(openlog)
-	if test $ac_cv_func_openlog = no -a $ol_enable_syslog = yes; then
+	if test $ac_cv_func_openlog = no && test $ol_enable_syslog = yes; then
 		AC_MSG_ERROR(could not find syslog, select appropriate options or disable)
 	fi
 	ol_enable_syslog=$ac_cv_func_openlog
@@ -2180,7 +2182,8 @@ ol_link_spasswd=no
 if test $ol_with_cyrus_sasl != no ; then
 	AC_CHECK_HEADERS(sasl/sasl.h sasl.h)
 
-	if test $ac_cv_header_sasl_sasl_h = yes -o $ac_cv_header_sasl_h = yes; then
+	if test $ac_cv_header_sasl_sasl_h = yes ||
+	   test $ac_cv_header_sasl_h = yes; then
 		AC_CHECK_LIB(sasl2, sasl_client_init,
 			[ol_link_sasl="-lsasl2"],
 			[AC_CHECK_LIB(sasl, sasl_client_init,
@@ -2228,7 +2231,7 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for entropy sources
-if test $cross_compiling != yes -a "$ac_cv_mingw32" != yes ; then
+if test $cross_compiling != yes && test "$ac_cv_mingw32" != yes ; then
 	dev=no
 	if test -r /dev/urandom ; then
 		dev="/dev/urandom";
@@ -2339,18 +2342,18 @@ if test "$ol_with_multiple_precision" != "no" ; then
 		ol_have_bn_h=no
 		ol_have_crypto_h=no
 
-		if test "$ac_cv_header_openssl_bn_h" = "yes" \
-				-o "$ac_cv_header_bn_h" = "yes" ; then
+		if test "$ac_cv_header_openssl_bn_h" = "yes" ||
+		   test "$ac_cv_header_bn_h" = "yes" ; then
 			ol_have_bn_h=yes
 		fi
 
-		if test "$ac_cv_header_openssl_crypto_h" = "yes" \
-				-o "$ac_cv_header_crypto_h" = "yes" ; then
+		if test "$ac_cv_header_openssl_crypto_h" = "yes" ||
+		   test "$ac_cv_header_crypto_h" = "yes" ; then
 			ol_have_crypto_h=yes
 		fi
 
-		if test "$ol_have_bn_h" = "yes" \
-				-a "$ol_have_crypto_h" = "yes" ; then
+		if test "$ol_have_bn_h" = "yes" &&
+		   test "$ol_have_crypto_h" = "yes" ; then
 			ol_have_bignum=yes
 		fi
 	fi
@@ -2595,7 +2598,8 @@ if test "$ac_cv_func_getpeereid" != yes; then
 	fi
 	LIBSRCS="$LIBSRCS getpeereid.c"
 fi
-if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then
+if test "$ac_cv_func_snprintf" != yes ||
+   test "$ac_cv_func_vsnprintf" != yes; then
 	if test "$ac_cv_func_snprintf" != yes; then
 		AC_DEFINE(snprintf, ber_pvt_snprintf, [define to snprintf routine])
 	fi
@@ -2734,7 +2738,7 @@ if test "$ol_enable_ldap" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_LDAP,$MFLAG,[define to support LDAP backend])
 fi
 
-if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
+if test "$ol_link_ldbm" != no && test $ol_enable_ldbm != no; then
 	BUILD_SLAPD=yes
 	BUILD_LDBM=$ol_enable_ldbm
 	if test "$ol_enable_ldbm" = mod ; then
@@ -3024,8 +3028,9 @@ if test "$ol_enable_valsort" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_VALSORT,$MFLAG,[define for Value Sorting overlay])
 fi
 
-if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
-	$BUILD_SLAPD = yes ; then
+if test "$ol_enable_slurpd" != no &&
+   test "$ol_link_threads" != no &&
+   test $BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
 fi
 

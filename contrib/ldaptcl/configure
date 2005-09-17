@@ -1002,7 +1002,7 @@ else
   ok=no
 fi
 
-if test "$ok" = "yes" -a "${SHLIB_SUFFIX}" != ""; then
+if test "$ok" = "yes" && test "${SHLIB_SUFFIX}" != ""; then
     NEO_SHLIB_CFLAGS="${SHLIB_CFLAGS}"
     eval "NEO_LIB_FILE=libldaptcl${TCL_SHARED_LIB_SUFFIX}"
     MAKE_LIB="\${SHLIB_LD} $TCL_LIB_HNAME -o ${NEO_LIB_FILE} \${OBJS} \${LDAP_LIBFLAGS}"

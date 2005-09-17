@@ -337,7 +337,7 @@ backends.o: backends.c $(srcdir)/slap.h
 
 depend-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
-		if test -d $$i -a -f $$i/Makefile ; then \
+		if test -d $$i && test -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -353,7 +353,7 @@ veryclean-local:
 
 clean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
-		if test -d $$i -a -f $$i/Makefile ; then \
+		if test -d $$i && test -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -363,7 +363,7 @@ clean-local-srv: FORCE
 
 veryclean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
-		if test -d $$i -a -f $$i/Makefile ; then \
+		if test -d $$i && test -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
 		fi; \
@@ -378,7 +378,7 @@ install-slapd: FORCE
 	$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@for i in $(SUBDIRS); do \
-	    if test -d $$i -a -f $$i/Makefile ; then \
+	    if test -d $$i && test -f $$i/Makefile ; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 		( cd $$i; $(MAKE) $(MFLAGS) install ); \
 		if test $$? != 0 ; then exit 1; fi ; \

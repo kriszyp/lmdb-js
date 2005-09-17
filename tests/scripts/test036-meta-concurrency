@@ -40,7 +40,7 @@ rm -rf $TESTDIR
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 # NOTE: this could be added to all tests...
-if test "$BACKEND" = "bdb" -o "$BACKEND" = "hdb" ; then
+if test "$BACKEND" = "bdb" || test "$BACKEND" = "hdb" ; then
 	if test "x$DB_CONFIG" != "x" ; then \
 		if test -f $DB_CONFIG ; then
 			echo "==> using DB_CONFIG \"$DB_CONFIG\""

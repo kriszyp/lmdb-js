@@ -51,13 +51,14 @@ fi
 
 count=2
 if test $RC = 0 ; then
-	if test $MONITORDB = yes -o $MONITORDB = mod ; then
+	case $MONITORDB in yes | mod)
 		count=3
 		echo "Using ldapsearch to retrieve the cn=Monitor..."
 		$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 \
 			'+extensibleObject' >> $SEARCHOUT 2>&1
 		RC=$?
-	fi
+		;;
+	esac
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS

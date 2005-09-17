@@ -161,7 +161,7 @@ for i in $files; do
 	esac
 done
 for i in $FILES; do
-	$MKDEP_CC $MKDEP_CFLAGS $FLAGS $i | egrep '^#.*"' > $TMP.sed
+	$MKDEP_CC $MKDEP_CFLAGS $FLAGS $i | grep '^#.*"' > $TMP.sed
 awk '
 BEGIN {
 	file = "'$i'"
