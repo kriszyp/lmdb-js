@@ -1054,10 +1054,28 @@ meta_send_entry(
 						&attr->a_vals[i] );
 				}
 
+				if ( rc ) {
+					LBER_FREE( attr->a_vals[i].bv_val );
+					if ( --last == i ) {
+						BER_BVZERO( &attr->a_vals[ i ] );
+						break;
+					}
+					attr->a_vals[i] = attr->a_vals[last];
+					BER_BVZERO( &attr->a_vals[last] );
+					i--;
+					continue;
+				}
+
 				if ( pretty ) {
 					LBER_FREE( attr->a_vals[i].bv_val );
 					attr->a_vals[i] = pval;
 				}
+			}
+
+			if ( last == 0 ) {
+				ch_free( attr->a_vals );
+				ch_free( attr );
+				goto next_attr;
 			}
 		}
 
