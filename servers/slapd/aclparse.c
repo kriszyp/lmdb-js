@@ -2234,12 +2234,16 @@ str2accessmask( const char *str )
 static void
 acl_usage( void )
 {
-	Debug( LDAP_DEBUG_ANY, "%s%s%s\n",
+	char *access =
 		"<access clause> ::= access to <what> "
-				"[ by <who> <access> [ <control> ] ]+ \n"
+				"[ by <who> <access> [ <control> ] ]+ \n";
+
+	char *what =
 		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> [val[/matchingRule][.<attrstyle>]=<value>] | <attr> , <attrlist>\n"
-		"<attr> ::= <attrname> | entry | children\n",
+		"<attr> ::= <attrname> | entry | children\n";
+
+	char *who =
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[ realanonymous | realusers | realself | realdn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
@@ -2254,7 +2258,7 @@ acl_usage( void )
 			"\t[aci[=<attrname>]]\n"
 #endif /* SLAPD_ACI_ENABLED */
 #endif /* ! SLAP_DYNACL */
-			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n",
+			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
 		"<style> ::= exact | regex | base(Object)\n"
 		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
 			"exact | regex\n"
@@ -2272,7 +2276,9 @@ acl_usage( void )
 		"\t<name>=ACI\t<pattern>=<attrname>\n"
 #endif /* SLAPD_ACI_ENABLED */
 #endif /* ! SLAP_DYNACL */
-	);
+		"";
+
+	Debug( LDAP_DEBUG_ANY, "%s%s%s\n", access, who, what );
 	exit( EXIT_FAILURE );
 }
 
