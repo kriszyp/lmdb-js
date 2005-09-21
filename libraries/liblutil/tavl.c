@@ -1,0 +1,431 @@
+/* avl.c - routines to implement an avl tree */
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2005 The OpenLDAP Foundation.
+ * Portions Copyright (c) 2005 by Howard Chu, Symas Corp.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Howard Chu for inclusion
+ * in OpenLDAP software.
+ */
+
+#include "portable.h"
+
+#include <stdio.h>
+#include <ac/stdlib.h>
+
+#ifdef CSRIMALLOC
+#define ber_memalloc malloc
+#define ber_memrealloc realloc
+#define ber_memfree free
+#else
+#include "lber.h"
+#endif
+
+#define AVL_INTERNAL
+#include "avl.h"
+
+static const int avl_bfs[] = {LH, RH};
+
+/*
+ * Threaded AVL trees - for fast in-order traversal of nodes.
+ */
+/*
+ * tavl_insert -- insert a node containing data data into the avl tree
+ * with root root.  fcmp is a function to call to compare the data portion
+ * of two nodes.  it should take two arguments and return <, >, or == 0,
+ * depending on whether its first argument is <, >, or == its second
+ * argument (like strcmp, e.g.).  fdup is a function to call when a duplicate
+ * node is inserted.  it should return 0, or -1 and its return value
+ * will be the return value from avl_insert in the case of a duplicate node.
+ * the function will be called with the original node's data as its first
+ * argument and with the incoming duplicate node's data as its second
+ * argument.  this could be used, for example, to keep a count with each
+ * node.
+ *
+ * NOTE: this routine may malloc memory
+ */
+int
+tavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
+{
+    Avlnode *t, *p, *s, *q, *r;
+    int a, cmp, ncmp;
+
+	if ( *root == NULL ) {
+		if (( r = (Avlnode *) ber_memalloc( sizeof( Avlnode ))) == NULL ) {
+			return( -1 );
+		}
+		r->avl_link[0] = r->avl_link[1] = NULL;
+		r->avl_data = data;
+		r->avl_bf = EH;
+		r->avl_bits[0] = r->avl_bits[1] = AVL_THREAD;
+		*root = r;
+
+		return( 0 );
+	}
+
+    t = NULL;
+    s = p = *root;
+
+	/* find insertion point */
+    while (1) {
+		cmp = fcmp( data, p->avl_data );
+		if ( cmp == 0 )
+			return (*fdup)( p->avl_data, data );
+
+		cmp = (cmp > 0);
+		q = avl_child( p, cmp );
+		if (q == NULL) {
+			/* insert */
+			if (( q = (Avlnode *) ber_memalloc( sizeof( Avlnode ))) == NULL ) {
+				return( -1 );
+			}
+			q->avl_link[cmp] = p->avl_link[cmp];
+			q->avl_link[!cmp] = p;
+			q->avl_data = data;
+			q->avl_bf = EH;
+			q->avl_bits[0] = q->avl_bits[1] = AVL_THREAD;
+
+			p->avl_link[cmp] = q;
+			p->avl_bits[cmp] = AVL_CHILD;
+			break;
+		} else if ( q->avl_bf ) {
+			t = p;
+			s = q;
+		}
+		p = q;
+    }
+
+    /* adjust balance factors */
+    cmp = fcmp( data, s->avl_data ) > 0;
+	r = p = s->avl_link[cmp];
+	a = avl_bfs[cmp];
+
+	while ( p != q ) {
+		cmp = fcmp( data, p->avl_data ) > 0;
+		p->avl_bf = avl_bfs[cmp];
+		p = p->avl_link[cmp];
+	}
+
+	/* checks and balances */
+
+	if ( s->avl_bf == EH ) {
+		s->avl_bf = a;
+		return 0;
+	} else if ( s->avl_bf == -a ) {
+		s->avl_bf = EH;
+		return 0;
+    } else if ( s->avl_bf == a ) {
+		cmp = (a > 0);
+		ncmp = !cmp;
+		if ( r->avl_bf == a ) {
+			/* single rotation */
+			p = r;
+			if ( r->avl_bits[ncmp] == AVL_THREAD ) {
+				r->avl_bits[ncmp] = AVL_CHILD;
+				s->avl_bits[cmp] = AVL_THREAD;
+			} else {
+				s->avl_link[cmp] = r->avl_link[ncmp];
+				r->avl_link[ncmp] = s;
+			}
+			s->avl_bf = 0;
+			r->avl_bf = 0;
+		} else if ( r->avl_bf == -a ) {
+			/* double rotation */
+			p = r->avl_link[ncmp];
+			if ( p->avl_bits[cmp] == AVL_THREAD ) {
+				p->avl_bits[cmp] = AVL_CHILD;
+				r->avl_bits[ncmp] = AVL_THREAD;
+			} else {
+				r->avl_link[ncmp] = p->avl_link[cmp];
+				p->avl_link[cmp] = r;
+			}
+			if ( p->avl_bits[ncmp] == AVL_THREAD ) {
+				p->avl_bits[ncmp] = AVL_CHILD;
+				s->avl_link[cmp] = p;
+				s->avl_bits[cmp] = AVL_THREAD;
+			} else {
+				s->avl_link[cmp] = p->avl_link[ncmp];
+				p->avl_link[ncmp] = s;
+			}
+			if ( p->avl_bf == a ) {
+				s->avl_bf = -a;
+				r->avl_bf = 0;
+			} else if ( p->avl_bf == -a ) {
+				s->avl_bf = 0;
+				r->avl_bf = a;
+			} else {
+				s->avl_bf = 0;
+				r->avl_bf = 0;
+			}
+			p->avl_bf = 0;
+		}
+		/* Update parent */
+		if ( t == NULL )
+			*root = p;
+		else if ( s == t->avl_right )
+			t->avl_right = p;
+		else
+			t->avl_left = p;
+    }
+
+  return 0;
+}
+
+void*
+tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
+{
+	Avlnode *p, *q, *r, *top;
+	int side, side_bf, shorter, cmp;
+
+	/* parent stack */
+	Avlnode *pptr[sizeof(void *)*8];
+	unsigned char pdir[sizeof(void *)*8];
+	int depth = 0;
+
+	if ( *root == NULL )
+		return NULL;
+
+	p = *root;
+
+	while (1) {
+		cmp = fcmp( data, p->avl_data );
+		if ( !cmp )
+			break;
+		cmp = ( cmp > 0 );
+		pdir[depth] = cmp;
+		pptr[depth++] = p;
+
+		p = avl_child( p, cmp );
+		if ( p == NULL )
+			return NULL;
+	}
+
+	/* If this node has two children, swap so we are deleting a node with
+	 * at most one child.
+	 */
+	if ( p->avl_bits[0] == AVL_CHILD && p->avl_bits[1] == AVL_CHILD &&
+		p->avl_link[0] && p->avl_link[1] ) {
+		void *temp;
+
+		/* find the immediate predecessor <q> */
+		q = p->avl_link[0];
+		pdir[depth] = 0;
+		pptr[depth++] = p;
+		while (q->avl_bits[1] == AVL_CHILD && q->avl_link[1]) {
+			pdir[depth] = 1;
+			pptr[depth++] = q;
+			q = q->avl_link[1];
+		}
+		/* swap */
+		temp = p->avl_data;
+		p->avl_data = q->avl_data;
+		q->avl_data = temp;
+		p = q;
+	}
+
+	/* now <p> has at most one child, get it */
+	if ( p->avl_link[0] && p->avl_bits[0] == AVL_CHILD ) {
+		q = p->avl_link[0];
+	} else if ( p->avl_link[1] && p->avl_bits[1] == AVL_CHILD ) {
+		q = p->avl_link[1];
+	} else {
+		q = NULL;
+	}
+
+  	data = p->avl_data;
+	ber_memfree( p );
+
+	if ( !depth ) {
+		*root = q;
+		return data;
+	}
+
+	/* set the child into p's parent */
+	depth--;
+	side = pdir[depth];
+	p = pptr[depth];
+	p->avl_link[side] = q;
+	side_bf = avl_bfs[side];
+	top = NULL;
+
+	/* Update child thread */
+	if ( q ) {
+		while ( q->avl_bits[!side] == AVL_CHILD )
+			q = q->avl_link[!side];
+		q->avl_link[!side] = p;
+	}
+
+	shorter = 1;
+  
+	while ( shorter ) {
+		/* case 1: height unchanged */
+		if ( p->avl_bf == EH ) {
+			/* Tree is now heavier on opposite side */
+			p->avl_bf = avl_bfs[!side];
+			shorter = 0;
+		  
+		} else if ( p->avl_bf == side_bf ) {
+		/* case 2: taller subtree shortened, height reduced */
+			p->avl_bf = EH;
+		} else {
+		/* case 3: shorter subtree shortened */
+			if ( depth )
+				top = pptr[depth-1]; /* p->parent; */
+			else
+				top = NULL;
+			/* set <q> to the taller of the two subtrees of <p> */
+			q = p->avl_link[!side];
+			if ( q->avl_bf == EH ) {
+				/* case 3a: height unchanged, single rotate */
+				if ( q->avl_bits[side] == AVL_THREAD ) {
+					q->avl_bits[side] = AVL_CHILD;
+					p->avl_bits[!side] = AVL_THREAD;
+				} else {
+					p->avl_link[!side] = q->avl_link[side];
+					q->avl_link[side] = p;
+				}
+				shorter = 0;
+				q->avl_bf = side_bf;
+				p->avl_bf = (- side_bf);
+
+			} else if ( q->avl_bf == p->avl_bf ) {
+				/* case 3b: height reduced, single rotate */
+				if ( q->avl_bits[side] == AVL_THREAD ) {
+					q->avl_bits[side] = AVL_CHILD;
+					p->avl_bits[!side] = AVL_THREAD;
+				} else {
+					p->avl_link[!side] = q->avl_link[side];
+					q->avl_link[side] = p;
+				}
+				shorter = 1;
+				q->avl_bf = EH;
+				p->avl_bf = EH;
+
+			} else {
+				/* case 3c: height reduced, balance factors opposite */
+				r = q->avl_link[side];
+				if ( r->avl_bits[!side] == AVL_THREAD ) {
+					r->avl_bits[!side] = AVL_CHILD;
+					q->avl_bits[side] = AVL_THREAD;
+				} else {
+					q->avl_link[side] = r->avl_link[!side];
+					r->avl_link[!side] = q;
+				}
+
+				if ( r->avl_bits[side] == AVL_THREAD ) {
+					r->avl_bits[side] = AVL_CHILD;
+					p->avl_bits[!side] = AVL_THREAD;
+					p->avl_link[!side] = r;
+				} else {
+					p->avl_link[!side] = r->avl_link[side];
+					r->avl_link[side] = p;
+				}
+
+				if ( r->avl_bf == side_bf ) {
+					q->avl_bf = (- side_bf);
+					p->avl_bf = EH;
+				} else if ( r->avl_bf == (- side_bf)) {
+					q->avl_bf = EH;
+					p->avl_bf = side_bf;
+				} else {
+					q->avl_bf = EH;
+					p->avl_bf = EH;
+				}
+				r->avl_bf = EH;
+				q = r;
+			}
+			/* a rotation has caused <q> (or <r> in case 3c) to become
+			 * the root.  let <p>'s former parent know this.
+			 */
+			if ( top == NULL ) {
+				*root = q;
+			} else if (top->avl_link[0] == p) {
+				top->avl_link[0] = q;
+			} else {
+				top->avl_link[1] = q;
+			}
+			/* end case 3 */
+			p = q;
+		}
+		if ( !depth )
+			break;
+		depth--;
+		p = pptr[depth];
+		side = pdir[depth];
+		side_bf = avl_bfs[side];
+	} /* end while(shorter) */
+
+	return data;
+}
+
+/*
+ * tavl_free -- traverse avltree root, freeing the memory it is using.
+ * the dfree() is called to free the data portion of each node.  The
+ * number of items actually freed is returned.
+ */
+
+int
+tavl_free( Avlnode *root, AVL_FREE dfree )
+{
+	int	nleft, nright;
+
+	if ( root == 0 )
+		return( 0 );
+
+	nleft = tavl_free( avl_lchild( root ), dfree );
+
+	nright = tavl_free( avl_rchild( root ), dfree );
+
+	if ( dfree )
+		(*dfree)( root->avl_data );
+	ber_memfree( root );
+
+	return( nleft + nright + 1 );
+}
+
+/*
+ * tavl_find -- search avltree root for a node with data data.  the function
+ * cmp is used to compare things.  it is called with data as its first arg 
+ * and the current node data as its second.  it should return 0 if they match,
+ * < 0 if arg1 is less than arg2 and > 0 if arg1 is greater than arg2.
+ */
+
+Avlnode *
+tavl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
+{
+	int	cmp;
+
+	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
+		if ( cmp < 0 )
+			root = avl_lchild( root );
+		else
+			root = avl_rchild( root );
+	}
+	return root;
+}
+
+void*
+tavl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
+{
+	int	cmp;
+
+	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
+		if ( cmp < 0 )
+			root = avl_lchild( root );
+		else
+			root = avl_rchild( root );
+	}
+
+	return( root ? root->avl_data : 0 );
+}
