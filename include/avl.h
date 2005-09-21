@@ -40,10 +40,15 @@ typedef struct avlnode Avlnode;
 
 struct avlnode {
 	void*		avl_data;
-	signed int		avl_bf;
-	struct avlnode	*avl_left;
-	struct avlnode	*avl_right;
+	struct avlnode	*avl_link[2];
+	char		avl_bits[2];
+	signed char		avl_bf;
 };
+
+#define avl_left	avl_link[0]
+#define avl_right	avl_link[1]
+#define avl_lbit	avl_bits[0]
+#define avl_rbit	avl_bits[1]
 
 #ifdef AVL_INTERNAL
 
@@ -54,11 +59,20 @@ struct avlnode {
 #define EH 	0
 #define RH 	1
 
+/* thread bits */
+#define	AVL_THREAD	0
+#define	AVL_CHILD	1
+
 /* avl routines */
 #define avl_getone(x)	((x) == 0 ? 0 : (x)->avl_data)
 #define avl_onenode(x)	((x) == 0 || ((x)->avl_left == 0 && (x)->avl_right == 0))
 
 #endif /* AVL_INTERNALS */
+
+#define	avl_child(x,dir)	((x)->avl_bits[dir]) == AVL_CHILD ? \
+	(x)->avl_link[dir] : NULL
+#define	avl_lchild(x)	avl_child(x,0)
+#define	avl_rchild(x)	avl_child(x,1)
 
 typedef int		(*AVL_APPLY) LDAP_P((void *, void*));
 typedef int		(*AVL_CMP) LDAP_P((const void*, const void*));
@@ -102,6 +116,21 @@ avl_apply LDAP_P((Avlnode *, AVL_APPLY, void*, int, int));
 
 LDAP_AVL_F( int )
 avl_prefixapply LDAP_P((Avlnode *, void*, AVL_CMP, void*, AVL_CMP, void*, int));
+
+LDAP_AVL_F( int )
+tavl_free LDAP_P(( Avlnode *root, AVL_FREE dfree ));
+
+LDAP_AVL_F( int )
+tavl_insert LDAP_P((Avlnode **, void*, AVL_CMP, AVL_DUP));
+
+LDAP_AVL_F( void* )
+tavl_delete LDAP_P((Avlnode **, void*, AVL_CMP));
+
+LDAP_AVL_F( void* )
+tavl_find LDAP_P((Avlnode *, const void*, AVL_CMP));
+
+LDAP_AVL_F( Avlnode* )
+tavl_find2 LDAP_P((Avlnode *, const void*, AVL_CMP));
 
 /* apply traversal types */
 #define AVL_PREORDER	1
