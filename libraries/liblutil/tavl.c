@@ -244,7 +244,10 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 		nside = 0;
 	} else {
 		q = NULL;
-		/* No children, no thread to preserve */
+		if ( depth > 0 )
+			r = p->avl_link[pdir[depth-1]];
+		else
+			r = NULL;
 	}
 
 	ber_memfree( p );
@@ -256,8 +259,8 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 
 	/* set the child into p's parent */
 	depth--;
-	side = pdir[depth];
 	p = pptr[depth];
+	side = pdir[depth];
 	p->avl_link[side] = q;
 
 	/* Update child thread */
@@ -266,16 +269,19 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 			q = q->avl_link[nside] ) ;
 		q->avl_link[nside] = r;
 	} else {
-		/* NULL links are always threads */
 		p->avl_bits[side] = AVL_THREAD;
+		p->avl_link[side] = r;
 	}
 
-	side_bf = avl_bfs[side];
 	top = NULL;
 	shorter = 1;
-	nside = !side;
   
 	while ( shorter ) {
+		p = pptr[depth];
+		side = pdir[depth];
+		nside = !side;
+		side_bf = avl_bfs[side];
+
 		/* case 1: height unchanged */
 		if ( p->avl_bf == EH ) {
 			/* Tree is now heavier on opposite side */
@@ -368,9 +374,6 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 		if ( !depth )
 			break;
 		depth--;
-		p = pptr[depth];
-		side = pdir[depth];
-		side_bf = avl_bfs[side];
 	} /* end while(shorter) */
 
 	return data;
