@@ -132,6 +132,15 @@ tavl_find LDAP_P((Avlnode *, const void*, AVL_CMP));
 LDAP_AVL_F( Avlnode* )
 tavl_find2 LDAP_P((Avlnode *, const void*, AVL_CMP));
 
+#define	TAVL_DIR_LEFT	0
+#define	TAVL_DIR_RIGHT	1
+
+LDAP_AVL_F( Avlnode* )
+tavl_end LDAP_P((Avlnode *, int direction ));
+
+LDAP_AVL_F( Avlnode* )
+tavl_next LDAP_P((Avlnode *, int direction ));
+
 /* apply traversal types */
 #define AVL_PREORDER	1
 #define AVL_INORDER	2
