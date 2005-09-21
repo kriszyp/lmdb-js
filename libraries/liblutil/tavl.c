@@ -220,16 +220,48 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 
 		/* find the immediate predecessor <q> */
 		q = p->avl_link[0];
-		pdir[depth] = 0;
-		pptr[depth++] = p;
+		side = depth;
+		pdir[depth++] = 0;
 		while (q->avl_bits[1] == AVL_CHILD && q->avl_link[1]) {
 			pdir[depth] = 1;
 			pptr[depth++] = q;
 			q = q->avl_link[1];
 		}
-		/* swap */
-		p->avl_data = q->avl_data;
-		p = q;
+		/* swap links */
+		r = p->avl_link[0];
+		p->avl_link[0] = q->avl_link[0];
+		q->avl_link[0] = r;
+
+		q->avl_link[1] = p->avl_link[1];
+		p->avl_link[1] = q;
+
+		p->avl_bits[0] = q->avl_bits[0];
+		p->avl_bits[1] = q->avl_bits[1];
+		q->avl_bits[0] = q->avl_bits[1] = AVL_CHILD;
+
+		/* fix stack positions: old parent of p points to q */
+		pptr[side] = q;
+		if ( side ) {
+			--side;
+			r = pptr[side];
+			r->avl_link[pdir[side]] = q;
+		} else {
+			*root = q;
+		}
+		/* new parent of p points to p */
+		if ( depth > 2 ) {
+			r = pptr[depth-2];
+			r->avl_link[1] = p;
+			pptr[depth-1] = p;
+		} else {
+			q->avl_link[0] = p;
+		}
+
+		/* fix right subtree: successor of p points to q */
+		r = q->avl_link[1];
+		while ( r->avl_bits[0] == AVL_CHILD && r->avl_link[0] )
+			r = r->avl_link[0];
+		r->avl_link[0] = q;
 	}
 
 	/* now <p> has at most one child, get it */
