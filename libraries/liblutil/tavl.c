@@ -185,8 +185,8 @@ tavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 void*
 tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 {
-	Avlnode *p, *q, *r, *top;
-	int side, side_bf, shorter, cmp;
+	Avlnode *p, *q, *r, *s, *top;
+	int side, side_bf, shorter, nside;
 
 	/* parent stack */
 	Avlnode *pptr[sizeof(void *)*8];
@@ -199,24 +199,24 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 	p = *root;
 
 	while (1) {
-		cmp = fcmp( data, p->avl_data );
-		if ( !cmp )
+		side = fcmp( data, p->avl_data );
+		if ( !side )
 			break;
-		cmp = ( cmp > 0 );
-		pdir[depth] = cmp;
+		side = ( side > 0 );
+		pdir[depth] = side;
 		pptr[depth++] = p;
 
-		p = avl_child( p, cmp );
-		if ( p == NULL )
+		if ( p->avl_bits[side] == AVL_THREAD )
 			return NULL;
+		p = p->avl_link[side];
 	}
+  	data = p->avl_data;
 
 	/* If this node has two children, swap so we are deleting a node with
 	 * at most one child.
 	 */
 	if ( p->avl_bits[0] == AVL_CHILD && p->avl_bits[1] == AVL_CHILD &&
 		p->avl_link[0] && p->avl_link[1] ) {
-		void *temp;
 
 		/* find the immediate predecessor <q> */
 		q = p->avl_link[0];
@@ -228,22 +228,25 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 			q = q->avl_link[1];
 		}
 		/* swap */
-		temp = p->avl_data;
 		p->avl_data = q->avl_data;
-		q->avl_data = temp;
 		p = q;
 	}
 
 	/* now <p> has at most one child, get it */
 	if ( p->avl_link[0] && p->avl_bits[0] == AVL_CHILD ) {
 		q = p->avl_link[0];
+		/* Preserve thread continuity */
+		r = p->avl_link[1];
+		nside = 1;
 	} else if ( p->avl_link[1] && p->avl_bits[1] == AVL_CHILD ) {
 		q = p->avl_link[1];
+		r = p->avl_link[0];
+		nside = 0;
 	} else {
 		q = NULL;
+		/* No children, no thread to preserve */
 	}
 
-  	data = p->avl_data;
 	ber_memfree( p );
 
 	if ( !depth ) {
@@ -256,23 +259,27 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 	side = pdir[depth];
 	p = pptr[depth];
 	p->avl_link[side] = q;
-	side_bf = avl_bfs[side];
-	top = NULL;
 
 	/* Update child thread */
 	if ( q ) {
-		while ( q->avl_bits[!side] == AVL_CHILD )
-			q = q->avl_link[!side];
-		q->avl_link[!side] = p;
+		for ( ; q->avl_bits[nside] == AVL_CHILD && q->avl_link[nside];
+			q = q->avl_link[nside] ) ;
+		q->avl_link[nside] = r;
+	} else {
+		/* NULL links are always threads */
+		p->avl_bits[side] = AVL_THREAD;
 	}
 
+	side_bf = avl_bfs[side];
+	top = NULL;
 	shorter = 1;
+	nside = !side;
   
 	while ( shorter ) {
 		/* case 1: height unchanged */
 		if ( p->avl_bf == EH ) {
 			/* Tree is now heavier on opposite side */
-			p->avl_bf = avl_bfs[!side];
+			p->avl_bf = avl_bfs[nside];
 			shorter = 0;
 		  
 		} else if ( p->avl_bf == side_bf ) {
@@ -285,14 +292,14 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 			else
 				top = NULL;
 			/* set <q> to the taller of the two subtrees of <p> */
-			q = p->avl_link[!side];
+			q = p->avl_link[nside];
 			if ( q->avl_bf == EH ) {
 				/* case 3a: height unchanged, single rotate */
 				if ( q->avl_bits[side] == AVL_THREAD ) {
 					q->avl_bits[side] = AVL_CHILD;
-					p->avl_bits[!side] = AVL_THREAD;
+					p->avl_bits[nside] = AVL_THREAD;
 				} else {
-					p->avl_link[!side] = q->avl_link[side];
+					p->avl_link[nside] = q->avl_link[side];
 					q->avl_link[side] = p;
 				}
 				shorter = 0;
@@ -303,9 +310,9 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 				/* case 3b: height reduced, single rotate */
 				if ( q->avl_bits[side] == AVL_THREAD ) {
 					q->avl_bits[side] = AVL_CHILD;
-					p->avl_bits[!side] = AVL_THREAD;
+					p->avl_bits[nside] = AVL_THREAD;
 				} else {
-					p->avl_link[!side] = q->avl_link[side];
+					p->avl_link[nside] = q->avl_link[side];
 					q->avl_link[side] = p;
 				}
 				shorter = 1;
@@ -315,20 +322,20 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 			} else {
 				/* case 3c: height reduced, balance factors opposite */
 				r = q->avl_link[side];
-				if ( r->avl_bits[!side] == AVL_THREAD ) {
-					r->avl_bits[!side] = AVL_CHILD;
+				if ( r->avl_bits[nside] == AVL_THREAD ) {
+					r->avl_bits[nside] = AVL_CHILD;
 					q->avl_bits[side] = AVL_THREAD;
 				} else {
-					q->avl_link[side] = r->avl_link[!side];
-					r->avl_link[!side] = q;
+					q->avl_link[side] = r->avl_link[nside];
+					r->avl_link[nside] = q;
 				}
 
 				if ( r->avl_bits[side] == AVL_THREAD ) {
 					r->avl_bits[side] = AVL_CHILD;
-					p->avl_bits[!side] = AVL_THREAD;
-					p->avl_link[!side] = r;
+					p->avl_bits[nside] = AVL_THREAD;
+					p->avl_link[nside] = r;
 				} else {
-					p->avl_link[!side] = r->avl_link[side];
+					p->avl_link[nside] = r->avl_link[side];
 					r->avl_link[side] = p;
 				}
 
@@ -407,10 +414,8 @@ tavl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 	int	cmp;
 
 	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
-		if ( cmp < 0 )
-			root = avl_lchild( root );
-		else
-			root = avl_rchild( root );
+		cmp = cmp > 0;
+		root = avl_child( root, cmp );
 	}
 	return root;
 }
@@ -421,11 +426,37 @@ tavl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 	int	cmp;
 
 	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
-		if ( cmp < 0 )
-			root = avl_lchild( root );
-		else
-			root = avl_rchild( root );
+		cmp = cmp > 0;
+		root = avl_child( root, cmp );
 	}
 
 	return( root ? root->avl_data : 0 );
+}
+
+/* Return the leftmost or rightmost node in the tree */
+Avlnode *
+tavl_end( Avlnode *root, int dir )
+{
+	if ( root ) {
+		while ( root->avl_bits[dir] == AVL_CHILD )
+			root = root->avl_link[dir];
+	}
+	return root;
+}
+
+/* Return the next node in the given direction */
+Avlnode *
+tavl_next( Avlnode *root, int dir )
+{
+	if ( root ) {
+		int c = root->avl_bits[dir];
+
+		root = root->avl_link[dir];
+		if ( c == AVL_CHILD ) {
+			dir ^= 1;
+			while ( root->avl_bits[dir] == AVL_CHILD )
+				root = root->avl_link[dir];
+		}
+	}
+	return root;
 }

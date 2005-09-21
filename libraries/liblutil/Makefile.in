@@ -41,6 +41,9 @@ OBJS	= base64.o csn.o entropy.o sasl.o signal.o hash.o passfile.o \
 testavl: $(XLIBS) testavl.o
 	(LTLINK) -o $@ testavl.o $(LIBS)
 
+testtavl: $(XLIBS) testtavl.o
+	(LTLINK) -o $@ testtavl.o $(LIBS)
+
 # These rules are for a Mingw32 build, specifically.
 # It's ok for them to be here because the clean rule is harmless, and
 # slapdmsg.res won't get built unless it's declared in OBJS.
