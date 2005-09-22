@@ -64,11 +64,16 @@ static Entry * deref_base (
 	rs->sr_err = LDAP_ALIAS_DEREF_PROBLEM;
 	rs->sr_text = "maximum deref depth exceeded";
 
-	while (BDB_IDL_N(tmp) < op->o_bd->be_max_deref_depth) {
+	for (;;) {
 		/* Remember the last entry we looked at, so we can
 		 * report broken links
 		 */
 		*matched = e;
+
+		if (BDB_IDL_N(tmp) >= op->o_bd->be_max_deref_depth) {
+			e = NULL;
+			break;
+		}
 
 		/* If this is part of a subtree or onelevel search,
 		 * have we seen this ID before? If so, quit.
@@ -360,6 +365,9 @@ bdb_search( Operation *op, SlapReply *rs )
 		ei = &ei_root;
 		rs->sr_err = LDAP_SUCCESS;
 	} else {
+		if ( op->ors_deref & LDAP_DEREF_FINDING ) {
+			BDB_IDL_ZERO(candidates);
+		}
 dn2entry_retry:
 		/* get entry with reader lock */
 		rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei,
@@ -388,10 +396,26 @@ dn2entry_retry:
 		return rs->sr_err;
 	}
 
-	if ( e && (op->ors_deref & LDAP_DEREF_FINDING) && is_entry_alias(e) ) {
-		BDB_IDL_ZERO(candidates);
-		e = deref_base( op, rs, e, &matched, locker, &lock,
-			candidates, NULL );
+	if ( op->ors_deref & LDAP_DEREF_FINDING ) {
+		if ( matched && is_entry_alias( matched )) {
+			struct berval stub;
+
+			stub.bv_val = op->o_req_ndn.bv_val;
+			stub.bv_len = op->o_req_ndn.bv_len - matched->e_nname.bv_len - 1;
+			e = deref_base( op, rs, matched, &matched, locker, &lock,
+				candidates, NULL );
+			if ( e ) {
+				build_new_dn( &op->o_req_ndn, &e->e_nname, &stub,
+					op->o_tmpmemctx );
+				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
+					e, &lock);
+				matched = NULL;
+				goto dn2entry_retry;
+			}
+		} else if ( e && is_entry_alias( e )) {
+			e = deref_base( op, rs, e, &matched, locker, &lock,
+				candidates, NULL );
+		}
 	}
 
 	if ( e == NULL ) {
@@ -417,7 +441,8 @@ dn2entry_retry:
 				erefs = is_entry_referral( matched )
 					? get_entry_referrals( op, matched )
 					: NULL;
-				rs->sr_err = LDAP_REFERRAL;
+				if ( rs->sr_err == DB_NOTFOUND )
+					rs->sr_err = LDAP_REFERRAL;
 				rs->sr_matched = matched_dn.bv_val;
 			}
 
