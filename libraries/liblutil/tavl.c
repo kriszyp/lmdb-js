@@ -239,6 +239,8 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 		p->avl_bits[1] = q->avl_bits[1];
 		q->avl_bits[0] = q->avl_bits[1] = AVL_CHILD;
 
+		q->avl_bf = p->avl_bf;
+
 		/* fix stack positions: old parent of p points to q */
 		pptr[side] = q;
 		if ( side ) {
