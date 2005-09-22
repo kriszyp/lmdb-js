@@ -632,14 +632,14 @@ do_syncrep2(
 					entry = NULL;
 					modlist = NULL;
 					if ( syncrepl_message_to_op( si, op, msg ) == LDAP_SUCCESS &&
-						!BER_BVISNULL( &syncCookie.octet_str ) ) {
+						!BER_BVISNULL( &syncCookie.ctxcsn ) ) {
 						syncrepl_updateCookie( si, op, psub, &syncCookie );
 					}
 				} else if ( syncrepl_message_to_entry( si, op, msg,
 					&modlist, &entry, syncstate ) == LDAP_SUCCESS ) {
 					rc_efree = syncrepl_entry( si, op, entry, &modlist,
 						syncstate, &syncUUID, &syncCookie_req, &syncCookie.ctxcsn );
-					if ( !BER_BVISNULL( &syncCookie.octet_str ) )
+					if ( !BER_BVISNULL( &syncCookie.ctxcsn ) )
 					{
 						syncrepl_updateCookie( si, op, psub, &syncCookie );
 					}
@@ -697,7 +697,7 @@ do_syncrep2(
 						&syncCookie_req.ctxcsn, &syncCookie.ctxcsn,
 						&text );
 				}
-				if ( !BER_BVISNULL( &syncCookie.octet_str ) &&
+				if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
 					match < 0 && err == LDAP_SUCCESS )
 				{
 					syncrepl_updateCookie( si, op, psub, &syncCookie );
