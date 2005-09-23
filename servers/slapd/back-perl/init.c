@@ -37,18 +37,6 @@ perl_back_initialize(
 {
 	char *embedding[] = { "", "-e", "0" };
 
-	Debug( LDAP_DEBUG_TRACE, "perl backend open\n", 0, 0, 0 );
-
-	if( PERL_INTERPRETER != NULL ) {
-		Debug( LDAP_DEBUG_ANY, "perl backend open: already opened\n",
-			0, 0, 0 );
-		return 1;
-	}
-	
-	PERL_INTERPRETER = perl_alloc();
-	perl_construct(PERL_INTERPRETER);
-	perl_parse(PERL_INTERPRETER, perl_back_xs_init, 3, embedding, (char **)NULL);
-	perl_run(PERL_INTERPRETER);
 
 	bi->bi_open = perl_back_open;
 	bi->bi_config = 0;
@@ -86,7 +74,20 @@ perl_back_open(
 	BackendInfo	*bi
 )
 {
+	Debug( LDAP_DEBUG_TRACE, "perl backend open\n", 0, 0, 0 );
+
+	if( PERL_INTERPRETER != NULL ) {
+		Debug( LDAP_DEBUG_ANY, "perl backend open: already opened\n",
+			0, 0, 0 );
+		return 1;
+	}
+	
 	ldap_pvt_thread_mutex_init( &perl_interpreter_mutex );
+
+	PERL_INTERPRETER = perl_alloc();
+	perl_construct(PERL_INTERPRETER);
+	perl_parse(PERL_INTERPRETER, perl_back_xs_init, 3, embedding, (char **)NULL);
+	perl_run(PERL_INTERPRETER);
 	return 0;
 }
 

@@ -28,20 +28,7 @@ perl_back_close(
 	BackendInfo *bd
 )
 {
-	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
-
 	perl_destruct(PERL_INTERPRETER);
-
-	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
-
-	return 0;
-}
-
-int
-perl_back_destroy(
-	BackendInfo *bd
-)
-{
 	perl_free(PERL_INTERPRETER);
 	PERL_INTERPRETER = NULL;
 
