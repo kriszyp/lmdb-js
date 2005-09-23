@@ -475,7 +475,7 @@ Avlnode *
 tavl_end( Avlnode *root, int dir )
 {
 	if ( root ) {
-		while ( root->avl_bits[dir] == AVL_CHILD && root->avl_link[dir] )
+		while ( root->avl_bits[dir] == AVL_CHILD )
 			root = root->avl_link[dir];
 	}
 	return root;
@@ -491,7 +491,7 @@ tavl_next( Avlnode *root, int dir )
 		root = root->avl_link[dir];
 		if ( c == AVL_CHILD ) {
 			dir ^= 1;
-			while ( root && root->avl_bits[dir] == AVL_CHILD )
+			while ( root->avl_bits[dir] == AVL_CHILD )
 				root = root->avl_link[dir];
 		}
 	}
