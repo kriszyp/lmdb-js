@@ -55,7 +55,7 @@ ldap_back_conn_destroy(
 	if ( lc ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_conn_destroy: destroying conn %ld (refcnt=%u)\n",
-			lc->lc_conn->c_connid, lc->lc_refcnt, 0 );
+			LDAP_BACK_PCONN_ID( lc->lc_conn ), lc->lc_refcnt, 0 );
 
 		assert( lc->lc_refcnt == 0 );
 

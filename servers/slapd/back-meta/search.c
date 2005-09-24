@@ -358,7 +358,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		stoptime = op->o_time + op->ors_tlimit;
-		tv.tv_sec = 0;
 	}
 
 	/*
@@ -703,8 +702,7 @@ really_bad:;
 		}
 
 		if ( gotit == 0 ) {
-			tv.tv_sec = 0;
-                        tv.tv_usec = 100000;	/* 0.1 s */
+			LDAP_BACK_TV_SET( &tv );
                         ldap_pvt_thread_yield();
 
 		} else {

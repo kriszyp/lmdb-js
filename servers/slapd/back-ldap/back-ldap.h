@@ -28,15 +28,55 @@ LDAP_BEGIN_DECL
 
 struct ldapconn {
 	Connection		*lc_conn;
-#define	LDAP_BACK_PRIV_CONN	((void *)0x0)
-#define	LDAP_BACK_PRIV_CONN_TLS	((void *)0x1)
+#define	LDAP_BACK_PCONN		((void *)0x0)
+#define	LDAP_BACK_PCONN_TLS	((void *)0x1)
+#define	LDAP_BACK_PCONN_ID(c)	((void *)(c) > LDAP_BACK_PCONN_TLS ? (c)->c_connid : -1)
+#ifdef HAVE_TLS
+#define	LDAP_BACK_PCONN_SET(op)	((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_TLS : LDAP_BACK_PCONN)
+#else /* ! HAVE_TLS */
+#define	LDAP_BACK_PCONN_SET(op)	(LDAP_BACK_PCONN)
+#endif /* ! HAVE_TLS */
+
 	LDAP			*lc_ld;
 	struct berval		lc_cred;
 	struct berval 		lc_bound_ndn;
 	struct berval		lc_local_ndn;
-	int			lc_bound;
-	int			lc_ispriv;
-	int			lc_is_tls;
+	unsigned		lc_lcflags;
+#define LDAP_BACK_CONN_ISSET(lc,f)	((lc)->lc_lcflags & (f))
+#define	LDAP_BACK_CONN_SET(lc,f)	((lc)->lc_lcflags |= (f))
+#define	LDAP_BACK_CONN_CLEAR(lc,f)	((lc)->lc_lcflags &= ~(f))
+#define	LDAP_BACK_CONN_CPY(lc,f,mlc) \
+	do { \
+		if ( ((f) & (mlc)->lc_lcflags) == (f) ) { \
+			(lc)->lc_lcflags |= (f); \
+		} else { \
+			(lc)->lc_lcflags &= ~(f); \
+		} \
+	} while ( 0 )
+
+#define	LDAP_BACK_FCONN_ISBOUND	(0x01)
+#define	LDAP_BACK_FCONN_ISANON	(0x02)
+#define	LDAP_BACK_FCONN_ISBMASK	(LDAP_BACK_FCONN_ISBOUND|LDAP_BACK_FCONN_ISANON)
+#define	LDAP_BACK_FCONN_ISPRIV	(0x04)
+#define	LDAP_BACK_FCONN_ISTLS	(0x08)
+
+#define	LDAP_BACK_CONN_ISBOUND(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ISBOUND)
+#define	LDAP_BACK_CONN_ISBOUND_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ISBOUND)
+#define	LDAP_BACK_CONN_ISBOUND_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_ISBMASK)
+#define	LDAP_BACK_CONN_ISBOUND_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), LDAP_BACK_FCONN_ISBOUND, (mlc))
+#define	LDAP_BACK_CONN_ISANON(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ISANON)
+#define	LDAP_BACK_CONN_ISANON_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ISANON)
+#define	LDAP_BACK_CONN_ISANON_CLEAR(lc)		LDAP_BACK_CONN_ISBOUND_CLEAR((lc))
+#define	LDAP_BACK_CONN_ISANON_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), LDAP_BACK_FCONN_ISANON, (mlc))
+#define	LDAP_BACK_CONN_ISPRIV(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ISPRIV)
+#define	LDAP_BACK_CONN_ISPRIV_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ISPRIV)
+#define	LDAP_BACK_CONN_ISPRIV_CLEAR(lc)		LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_ISPRIV)
+#define	LDAP_BACK_CONN_ISPRIV_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), LDAP_BACK_FCONN_ISPRIV, (mlc))
+#define	LDAP_BACK_CONN_ISTLS(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ISTLS)
+#define	LDAP_BACK_CONN_ISTLS_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ISTLS)
+#define	LDAP_BACK_CONN_ISTLS_CLEAR(lc)		LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_ISTLS)
+#define	LDAP_BACK_CONN_ISTLS_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), LDAP_BACK_FCONN_ISTLS, (mlc))
+
 	unsigned		lc_refcnt;
 	unsigned		lc_flags;
 };
@@ -89,6 +129,12 @@ struct ldapinfo {
 	BerVarray	idassert_authz;
 	/* end of ID assert stuff */
 
+	int		nretries;
+#define LDAP_BACK_RETRY_UNDEFINED	(-2)
+#define LDAP_BACK_RETRY_FOREVER		(-1)
+#define LDAP_BACK_RETRY_NEVER		(0)
+#define LDAP_BACK_RETRY_DEFAULT		(3)
+
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	unsigned	flags;
 #define LDAP_BACK_F_NONE		0x00U
@@ -128,6 +174,15 @@ typedef enum ldap_back_send_t {
 
 /* define to use asynchronous StartTLS */
 #define SLAP_STARTTLS_ASYNCHRONOUS
+
+/* timeout to use when calling ldap_result() */
+#define	LDAP_BACK_RESULT_TIMEOUT	(0)
+#define	LDAP_BACK_RESULT_UTIMEOUT	(100000)
+#define	LDAP_BACK_TV_SET(tv) \
+	do { \
+		(tv)->tv_sec = LDAP_BACK_RESULT_TIMEOUT; \
+		(tv)->tv_usec = LDAP_BACK_RESULT_UTIMEOUT; \
+	} while ( 0 )
 
 LDAP_END_DECL
 

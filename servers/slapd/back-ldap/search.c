@@ -178,8 +178,7 @@ ldap_back_search(
 		stoptime = op->o_time + op->ors_tlimit;
 
 	} else {
-		tv.tv_sec = 0;
-		tv.tv_usec = 100000;
+		LDAP_BACK_TV_SET( &tv );
 	}
 
 	if ( op->ors_attrs ) {
@@ -264,8 +263,7 @@ fail:;
 		}
 
 		if ( rc == 0 ) {
-			tv.tv_sec = 0;
-			tv.tv_usec = 100000;
+			LDAP_BACK_TV_SET( &tv );
 			ldap_pvt_thread_yield();
 
 			/* check time limit */

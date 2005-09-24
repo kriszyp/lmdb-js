@@ -69,6 +69,21 @@ new_target(
 	return 0;
 }
 
+static int
+check_true_false( char *str )
+{
+	if ( strcasecmp( str, "true" ) == 0 || strcasecmp( str, "yes" ) == 0 ) {
+		return 1;
+	}
+
+	if ( strcasecmp( str, "false" ) == 0 || strcasecmp( str, "no" ) == 0 ) {
+		return 0;
+	}
+
+	return -1;
+}
+
+
 int
 meta_back_db_config(
 		BackendDB	*be,
@@ -378,20 +393,23 @@ meta_back_db_config(
 
 		if ( argc == 1 ) {
 			fprintf( stderr,
-	"%s: line %d: deprecated use of \"rebind-as-user {NO|yes}\" with no arguments.\n",
+	"%s: line %d: deprecated use of \"rebind-as-user {FALSE|true}\" with no arguments.\n",
 			    fname, lineno );
 			mi->flags |= LDAP_BACK_F_SAVECRED;
 
 		} else {
-			if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			switch ( check_true_false( argv[ 1 ] ) ) {
+			case 0:
 				mi->flags &= ~LDAP_BACK_F_SAVECRED;
+				break;
 
-			} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			case 1:
 				mi->flags |= LDAP_BACK_F_SAVECRED;
+				break;
 
-			} else {
+			default:
 				fprintf( stderr,
-	"%s: line %d: \"rebind-as-user {NO|yes}\" unknown argument \"%s\".\n",
+	"%s: line %d: \"rebind-as-user {FALSE|true}\" unknown argument \"%s\".\n",
 				    fname, lineno, argv[ 1 ] );
 				return 1;
 			}
@@ -404,21 +422,24 @@ meta_back_db_config(
 
 		if ( argc != 2 ) {
 			fprintf( stderr,
-	"%s: line %d: \"chase-referrals\" needs 1 argument.\n",
+	"%s: line %d: \"chase-referrals {TRUE|false}\" needs 1 argument.\n",
 					fname, lineno );
 			return( 1 );
 		}
 
 		/* this is the default; we add it because the default might change... */
-		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 1:
 			*flagsp |= LDAP_BACK_F_CHASE_REFERRALS;
+			break;
 
-		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+		case 0:
 			*flagsp &= ~LDAP_BACK_F_CHASE_REFERRALS;
+			break;
 
-		} else {
+		default:
 			fprintf( stderr,
-		"%s: line %d: \"chase-referrals {YES|no}\": unknown argument \"%s\".\n",
+		"%s: line %d: \"chase-referrals {TRUE|false}\": unknown argument \"%s\".\n",
 					fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
@@ -467,25 +488,31 @@ meta_back_db_config(
 
 		if ( argc != 2 ) {
 			fprintf( stderr,
-		"%s: line %d: \"t-f-support {NO|yes|discover}\" needs 1 argument.\n",
+		"%s: line %d: \"t-f-support {FALSE|true|discover}\" needs 1 argument.\n",
 					fname, lineno );
 			return( 1 );
 		}
 
-		if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 0:
 			*flagsp &= ~(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER);
+			break;
 
-		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+		case 1:
 			*flagsp |= LDAP_BACK_F_SUPPORT_T_F;
+			break;
 
-		} else if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
-			*flagsp |= LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+		default:
+			if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
+				*flagsp |= LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
 
-		} else {
-			fprintf( stderr,
+			} else {
+				fprintf( stderr,
 	"%s: line %d: unknown value \"%s\" for \"t-f-support {no|yes|discover}\".\n",
-				fname, lineno, argv[ 1 ] );
-			return 1;
+					fname, lineno, argv[ 1 ] );
+				return 1;
+			}
+			break;
 		}
 
 	/* onerr? */
@@ -506,6 +533,31 @@ meta_back_db_config(
 		} else {
 			fprintf( stderr,
 	"%s: line %d: \"onerr {CONTINUE|stop}\": invalid arg \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
+	/* bind-defer? */
+	} else if ( strcasecmp( argv[ 0 ], "pseudoroot-bind-defer" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\" takes 1 argument\n",
+			    fname, lineno );
+			return( 1 );
+		}
+
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 0:
+			mi->flags &= ~META_BACK_F_DEFER_ROOTDN_BIND;
+			break;
+
+		case 1:
+			mi->flags |= META_BACK_F_DEFER_ROOTDN_BIND;
+			break;
+
+		default:
+			fprintf( stderr,
+	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
