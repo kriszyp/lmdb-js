@@ -244,8 +244,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	LDAPMessage	*res = NULL, *e;
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;
-	int		i, last = 0, ncandidates = 0,
+	int		last = 0, ncandidates = 0,
 			initial_candidates = 0, candidate_match = 0;
+	long		i;
 	dncookie	dc;
 	int		is_ok = 0;
 	void		*savepriv;
@@ -726,7 +727,7 @@ really_bad:;
 	 * FIXME: only the last one gets caught!
 	 */
 	savepriv = op->o_private;
-	op->o_private = (void *)mi->mi_ntargets;
+	op->o_private = (void *)(long)mi->mi_ntargets;
 	if ( candidate_match > 0 ) {
 		struct berval	pmatched = BER_BVNULL;
 
@@ -1072,9 +1073,8 @@ meta_send_entry(
 				}
 			}
 
-			if ( last == 0 ) {
-				ch_free( attr->a_vals );
-				ch_free( attr );
+			if ( last == 0 && attr->a_vals != &slap_dummy_bv ) {
+				attr_free( attr );
 				goto next_attr;
 			}
 		}
