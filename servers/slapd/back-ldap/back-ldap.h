@@ -162,7 +162,10 @@ struct ldapinfo {
 
 	Avlnode		*conntree;
 
+#if 0
+	/* FIXME: automatic rwm instantiation removed */
 	int		rwm_started;
+#endif
 };
 
 typedef enum ldap_back_send_t {
