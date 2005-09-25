@@ -35,13 +35,10 @@ perl_back_initialize(
 	BackendInfo	*bi
 )
 {
-	char *embedding[] = { "", "-e", "0" };
-
-
 	bi->bi_open = perl_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = perl_back_close;
-	bi->bi_destroy = perl_back_destroy;
+	bi->bi_destroy = 0;
 
 	bi->bi_db_init = perl_back_db_init;
 	bi->bi_db_config = perl_back_db_config;
@@ -74,6 +71,8 @@ perl_back_open(
 	BackendInfo	*bi
 )
 {
+	char *embedding[] = { "", "-e", "0" };
+
 	Debug( LDAP_DEBUG_TRACE, "perl backend open\n", 0, 0, 0 );
 
 	if( PERL_INTERPRETER != NULL ) {
