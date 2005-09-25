@@ -1086,8 +1086,8 @@ uniqueMemberMatch(
 		}
 	}
 
+	valueDN = *value;
 	if ( !BER_BVISEMPTY( value ) ) {
-		valueDN = *value;
 
 		valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
 		if ( !BER_BVISNULL( &valueUID ) ) {
