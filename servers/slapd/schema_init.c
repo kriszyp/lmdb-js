@@ -1066,7 +1066,7 @@ uniqueMemberMatch(
 	struct berval *asserted = (struct berval *) assertedValue;
 	struct berval assertedDN = *asserted;
 	struct berval assertedUID = BER_BVNULL;
-	struct berval valueDN = BER_BVNULL;
+	struct berval valueDN = *value;
 	struct berval valueUID = BER_BVNULL;
 	int approx = ((flags & SLAP_MR_EQUALITY_APPROX) == SLAP_MR_EQUALITY_APPROX);
 
@@ -1086,7 +1086,6 @@ uniqueMemberMatch(
 		}
 	}
 
-	valueDN = *value;
 	if ( !BER_BVISEMPTY( value ) ) {
 
 		valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
