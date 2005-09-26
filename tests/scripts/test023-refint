@@ -107,6 +107,7 @@ $CMP $SEARCHOUT $SEARCHOUT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - modify operations did not complete correctly"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
@@ -139,6 +140,7 @@ fi
 RC=`grep -c foster $SEARCHFLT`
 if test $RC != 0 ; then
 	echo "dependent modify failed - dependents were not deleted"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
