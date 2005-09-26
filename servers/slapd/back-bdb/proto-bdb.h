@@ -217,6 +217,8 @@ BI_entry_get_rw bdb_entry_get;
 #define bdb_idl_cache_get			BDB_SYMBOL(idl_cache_get)
 #define bdb_idl_cache_put			BDB_SYMBOL(idl_cache_put)
 #define bdb_idl_cache_del			BDB_SYMBOL(idl_cache_del)
+#define bdb_idl_cache_add_id		BDB_SYMBOL(idl_cache_add_id)
+#define bdb_idl_cache_del_id		BDB_SYMBOL(idl_cache_del_id)
 
 int bdb_idl_cache_get(
 	struct bdb_info *bdb,
@@ -237,6 +239,20 @@ bdb_idl_cache_del(
 	struct bdb_info	*bdb,
 	DB		*db,
 	DBT		*key );
+
+void
+bdb_idl_cache_add_id(
+	struct bdb_info	*bdb,
+	DB		*db,
+	DBT		*key,
+	ID		id );
+
+void
+bdb_idl_cache_del_id(
+	struct bdb_info	*bdb,
+	DB		*db,
+	DBT		*key,
+	ID		id );
 
 #define bdb_idl_first				BDB_SYMBOL(idl_first)
 #define bdb_idl_next				BDB_SYMBOL(idl_next)

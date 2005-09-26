@@ -87,13 +87,15 @@ typedef struct bdb_entry_info {
 	 * that is always zero.
 	 */
 	char bei_lockpad;
-						
+
 	short bei_state;
 #define	CACHE_ENTRY_DELETED	1
 #define	CACHE_ENTRY_NO_KIDS	2
 #define	CACHE_ENTRY_NOT_LINKED	4
 #define CACHE_ENTRY_NO_GRANDKIDS	8
 #define	CACHE_ENTRY_LOADING	0x10
+#define	CACHE_ENTRY_WALKING	0x20
+#define	CACHE_ENTRY_ONELEVEL	0x40
 
 	/*
 	 * remaining fields require backend cache lock to access

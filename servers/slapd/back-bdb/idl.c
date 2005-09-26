@@ -224,8 +224,7 @@ int bdb_idl_insert( ID *ids, ID id )
 	return 0;
 }
 
-#if 0	/* unused */
-static int idl_delete( ID *ids, ID id )
+static int bdb_idl_delete( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
 
@@ -264,7 +263,6 @@ static int idl_delete( ID *ids, ID id )
 
 	return 0;
 }
-#endif	/* unused */
 
 static char *
 bdb_show_key(
@@ -403,6 +401,65 @@ bdb_idl_cache_del(
 		if ( matched_idl_entry->idl )
 			free( matched_idl_entry->idl );
 		free( matched_idl_entry );
+	}
+	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
+}
+
+void
+bdb_idl_cache_add_id(
+	struct bdb_info	*bdb,
+	DB			*db,
+	DBT			*key,
+	ID			id )
+{
+	bdb_idl_cache_entry_t *cache_entry, idl_tmp;
+	DBT2bv( key, &idl_tmp.kstr );
+	idl_tmp.db = db;
+	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
+	cache_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+				      bdb_idl_entry_cmp );
+	if ( cache_entry != NULL ) {
+		if ( !BDB_IDL_IS_RANGE( cache_entry->idl ) &&
+			cache_entry->idl[0] < BDB_IDL_DB_MAX ) {
+			size_t s = BDB_IDL_SIZEOF( cache_entry->idl ) + sizeof(ID);
+			cache_entry->idl = ch_realloc( cache_entry->idl, s );
+		}
+		bdb_idl_insert( cache_entry->idl, id );
+	}
+	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
+}
+
+void
+bdb_idl_cache_del_id(
+	struct bdb_info	*bdb,
+	DB			*db,
+	DBT			*key,
+	ID			id )
+{
+	bdb_idl_cache_entry_t *cache_entry, idl_tmp;
+	DBT2bv( key, &idl_tmp.kstr );
+	idl_tmp.db = db;
+	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
+	cache_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+				      bdb_idl_entry_cmp );
+	if ( cache_entry != NULL ) {
+		bdb_idl_delete( cache_entry->idl, id );
+		if ( cache_entry->idl[0] == 0 ) {
+			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) cache_entry,
+						bdb_idl_entry_cmp ) == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_del: "
+					"AVL delete failed\n",
+					0, 0, 0 );
+			}
+			--bdb->bi_idl_cache_size;
+			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
+			IDL_LRU_DELETE( bdb, cache_entry );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
+			free( cache_entry->kstr.bv_val );
+			if ( cache_entry->idl )
+				free( cache_entry->idl );
+			free( cache_entry );
+		}
 	}
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 }
