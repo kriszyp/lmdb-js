@@ -528,10 +528,8 @@ avl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 	int	cmp;
 
 	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
-		if ( cmp < 0 )
-			root = root->avl_left;
-		else
-			root = root->avl_right;
+		cmp = cmp > 0;
+		root = root->avl_link[cmp];
 	}
 	return root;
 }
@@ -542,10 +540,8 @@ avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 	int	cmp;
 
 	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
-		if ( cmp < 0 )
-			root = root->avl_left;
-		else
-			root = root->avl_right;
+		cmp = cmp > 0;
+		root = root->avl_link[cmp];
 	}
 
 	return( root ? root->avl_data : 0 );
