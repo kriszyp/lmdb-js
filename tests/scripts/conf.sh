@@ -41,7 +41,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_relay}#//"				\
 	-e "s/^#${AC_sql}#//"				\
 		-e "s/^#${RDBMS}#//"			\
-	-e "s/^#${AC_glue}#//"				\
 	-e "s/^#${AC_pcache}#//"			\
 	-e "s/^#${AC_ppolicy}#//"			\
 	-e "s/^#${AC_refint}#//"			\
