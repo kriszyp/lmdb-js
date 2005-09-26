@@ -185,7 +185,7 @@ tavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 void*
 tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 {
-	Avlnode *p, *q, *r, *s, *top;
+	Avlnode *p, *q, *r, *top;
 	int side, side_bf, shorter, nside;
 
 	/* parent stack */
