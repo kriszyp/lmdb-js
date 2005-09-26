@@ -545,13 +545,13 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryDN) },
-	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
+	{ "entryUUID", "( 1.3.6.1.1.16.4 NAME 'entryUUID' "   
 			"DESC 'UUID of the entry' "
 			"EQUALITY UUIDMatch "
 			"ORDERING UUIDOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.4203.666.2.6 "
+			"SYNTAX 1.3.6.1.1.16.1 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, SLAP_AT_HIDE|SLAP_AT_MANAGEABLE,
+		NULL, SLAP_AT_MANAGEABLE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
@@ -579,8 +579,9 @@ static struct slap_schema_ad_map {
 #ifdef LDAP_SUPERIOR_UUID
 	{ "superiorUUID", "( 1.3.6.1.4.1.4203.666.1.11 NAME 'superiorUUID' "   
 			"DESC 'UUID of the superior entry' "
-			"EQUALITY octetStringMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"EQUALITY UUIDMatch "
+			"ORDERING UUIDOrderingMatch "
+			"SYNTAX 1.3.6.1.1.16.1 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,

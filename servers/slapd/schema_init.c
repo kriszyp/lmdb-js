@@ -3429,8 +3429,8 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		SLAP_SYNTAX_HIDE, NULL, NULL},
 #endif
 
-	{"( 1.3.6.1.4.1.4203.666.2.6 DESC 'UUID' )",
-		SLAP_SYNTAX_HIDE, UUIDValidate, NULL},
+	{"( 1.3.6.1.1.16.1 DESC 'UUID' )",
+		0, UUIDValidate, NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.1 DESC 'CSN' )",
 		SLAP_SYNTAX_HIDE, csnValidate, NULL},
@@ -3853,16 +3853,16 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL,
 		"integerMatch" },
 
-	{"( 1.3.6.1.4.1.4203.666.4.6 NAME 'UUIDMatch' "
-		"SYNTAX 1.3.6.1.4.1.4203.666.2.6 )",
-		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
+	{"( 1.3.6.1.1.16.2 NAME 'UUIDMatch' "
+		"SYNTAX 1.3.6.1.1.16.1 )",
+		SLAP_MR_EQUALITY, NULL,
 		NULL, UUIDNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL},
 
-	{"( 1.3.6.1.4.1.4203.666.4.7 NAME 'UUIDOrderingMatch' "
-		"SYNTAX 1.3.6.1.4.1.4203.666.2.6 )",
-		SLAP_MR_HIDE | SLAP_MR_ORDERING, NULL,
+	{"( 1.3.6.1.1.16.3 NAME 'UUIDOrderingMatch' "
+		"SYNTAX 1.3.6.1.1.16.1 )",
+		SLAP_MR_ORDERING, NULL,
 		NULL, UUIDNormalize, octetStringOrderingMatch,
 		octetStringIndexer, octetStringFilter,
 		"UUIDMatch"},
