@@ -27,9 +27,6 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 5 seconds for slapadd to build slapd database..."
-sleep 5
-
 echo "Starting slapd on TCP/IP port $PORT1..."
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
