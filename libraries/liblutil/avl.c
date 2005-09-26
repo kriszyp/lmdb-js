@@ -230,14 +230,13 @@ avl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 		/* fix stack positions: old parent of p points to q */
 		pptr[side] = q;
 		if ( side ) {
-			--side;
-			r = pptr[side];
-			r->avl_link[pdir[side]] = q;
+			r = pptr[side-1];
+			r->avl_link[pdir[side-1]] = q;
 		} else {
 			*root = q;
 		}
 		/* new parent of p points to p */
-		if ( depth > 1 ) {
+		if ( depth-side > 1 ) {
 			r = pptr[depth-1];
 			r->avl_link[1] = p;
 		} else {
@@ -246,7 +245,7 @@ avl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 	}
 
 	/* now <p> has at most one child, get it */
-	q = p->avl_link[0];
+	q = p->avl_link[0] ? p->avl_link[0] : p->avl_link[1];
 
 	ber_memfree( p );
 
