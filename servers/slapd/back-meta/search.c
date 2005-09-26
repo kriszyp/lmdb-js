@@ -630,11 +630,11 @@ really_bad:;
 				sres = slap_map_api2result( rs );
 
 				snprintf( buf, sizeof( buf ),
-					"%s meta_back_search[%d] "
-					"match=\"%s\" err=%d\n",
+					"%s meta_back_search[%ld] "
+					"match=\"%s\" err=%ld\n",
 					op->o_log_prefix, i,
 					candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
-					candidates[ i ].sr_err );
+					(long) candidates[ i ].sr_err );
 				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
 
 				switch ( sres ) {
