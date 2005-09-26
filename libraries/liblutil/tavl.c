@@ -251,10 +251,9 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 			*root = q;
 		}
 		/* new parent of p points to p */
-		if ( depth > 2 ) {
-			r = pptr[depth-2];
+		if ( depth > 1 ) {
+			r = pptr[depth-1];
 			r->avl_link[1] = p;
-			pptr[depth-1] = p;
 		} else {
 			q->avl_link[0] = p;
 		}
