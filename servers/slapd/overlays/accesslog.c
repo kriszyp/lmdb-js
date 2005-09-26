@@ -995,6 +995,9 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 		SlapReply rs2 = {REP_RESULT};
 		Entry *e;
 
+		if ( !( li->li_ops & LOG_OP_UNBIND ))
+			return SLAP_CB_CONTINUE;
+
 		e = accesslog_entry( op, LOG_EN_UNBIND );
 		op2.o_hdr = op->o_hdr;
 		op2.o_tag = LDAP_REQ_ADD;
@@ -1025,7 +1028,7 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	char buf[64];
 	struct berval bv;
 
-	if ( !op->o_time )
+	if ( !op->o_time || !( li->li_ops & LOG_OP_ABANDON ))
 		return SLAP_CB_CONTINUE;
 
 	e = accesslog_entry( op, LOG_EN_ABANDON );
