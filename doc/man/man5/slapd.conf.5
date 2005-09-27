@@ -1422,6 +1422,24 @@ same indices (assuming they support indexing), even for attributes that
 only exist in some of these databases. In general, all of the glued
 databases should be configured as similarly as possible, since the intent
 is to provide the appearance of a single directory.
+
+Note that the \fIsubordinate\fP functionality is implemented internally
+by the \fIglue\fP overlay and as such its behavior will interact with other
+overlays in use. By default, the glue overlay is automatically configured as
+the last overlay on the superior backend. Its position on the backend
+can be explicitly configured by setting an \fBoverlay glue\fP directive
+at the desired position. This explicit configuration is necessary e.g.
+when using the \fIsyncprov\fP overlay, which needs to follow \fIglue\fP
+in order to work over all of the glued databases. E.g.
+.RS
+.nf
+	database bdb
+	suffix dc=example,dc=com
+	...
+	overlay glue
+	overlay syncprov
+.fi
+.RE
 .HP
 .hy 0
 .B syncrepl rid=<replica ID>
