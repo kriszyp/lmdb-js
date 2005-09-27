@@ -216,6 +216,15 @@ slap_init( int mode, const char *name )
 		return 1;
 	}
 
+	if ( glue_sub_init() ) {
+		ldap_debug |= 1;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: glue/subordinate init failed\n",
+		    name, 0, 0 );
+
+		return 1;
+	}
+
 	if ( acl_init() ) {
 		ldap_debug |= 1;
 		Debug( LDAP_DEBUG_ANY,

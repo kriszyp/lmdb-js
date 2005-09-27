@@ -837,7 +837,7 @@ typedef struct glue_Addrec {
 static glue_Addrec *ga_list;
 
 /* Attach all the subordinate backends to their superior */
-static int
+int
 glue_sub_attach()
 {
 	glue_Addrec *ga, *gnext = NULL;
@@ -939,8 +939,5 @@ glue_sub_init()
 	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
 	glue.on_bi.bi_chk_controls = glue_chk_controls;
 
-	rc = overlay_register( &glue );
-	if ( rc ) return rc;
-
-	return glue_sub_attach();
+	return overlay_register( &glue );
 }
