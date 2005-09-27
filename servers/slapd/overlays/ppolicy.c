@@ -1740,6 +1740,44 @@ ppolicy_parseCtrl(
 }
 
 static int
+attrPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	AttributeDescription *ad = NULL;
+	const char *err;
+	int code;
+
+	code = slap_bv2ad( val, &ad, &err );
+	if ( !code ) {
+		ber_dupbv_x( out, &ad->ad_type->sat_cname, ctx );
+	}
+	return code;
+}
+
+static int
+attrNormalize(
+	slap_mask_t use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	AttributeDescription *ad = NULL;
+	const char *err;
+	int code;
+
+	code = slap_bv2ad( val, &ad, &err );
+	if ( !code ) {
+		ber_str2bv_x( ad->ad_type->sat_oid, 0, 1, out, ctx );
+	}
+	return code;
+}
+
+static int
 ppolicy_db_init(
 	BackendDB *be
 )
@@ -1757,6 +1795,20 @@ ppolicy_db_init(
 				fprintf( stderr, "User Schema Load failed %d: %s\n", code, err );
 				return code;
 			}
+		}
+		{
+			Syntax *syn;
+			MatchingRule *mr;
+
+			syn = ch_malloc( sizeof( Syntax ));
+			*syn = *ad_pwdAttribute->ad_type->sat_syntax;
+			syn->ssyn_pretty = attrPretty;
+			ad_pwdAttribute->ad_type->sat_syntax = syn;
+
+			mr = ch_malloc( sizeof( MatchingRule ));
+			*mr = *ad_pwdAttribute->ad_type->sat_equality;
+			mr->smr_normalize = attrNormalize;
+			ad_pwdAttribute->ad_type->sat_equality = mr;
 		}
 	}
 
