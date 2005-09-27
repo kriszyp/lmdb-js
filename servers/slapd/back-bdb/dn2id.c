@@ -532,11 +532,17 @@ hdb_dn2id_add(
 
 	/* Update all parents' IDL cache entries */
 	if ( rc == 0 && bdb->bi_idl_cache_size ) {
+		ID tmp[2];
+		char *ptr = ((char *)&tmp[1])-1;
+		key.data = ptr;
+		key.size = sizeof(ID)+1;
+		tmp[1] = eip->bei_id;
+		*ptr = DN_ONE_PREFIX;
+		bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
+		*ptr = DN_SUBTREE_PREFIX;
 		for (; eip && eip->bei_parent->bei_id; eip = eip->bei_parent) {
-			char *db2 = ((char *)db) + 1;
-			key.data = &eip->bei_id;
+			tmp[1] = eip->bei_id;
 			bdb_idl_cache_add_id( bdb, db, &key, e->e_id );
-			bdb_idl_cache_add_id( bdb, (DB *)db2, &key, e->e_id );
 		}
 	}
 	op->o_tmpfree( d, op->o_tmpmemctx );
@@ -609,11 +615,17 @@ hdb_dn2id_delete(
 
 	/* Delete IDL cache entries */
 	if ( rc == 0 && bdb->bi_idl_cache_size ) {
+		ID tmp[2];
+		char *ptr = ((char *)&tmp[1])-1;
+		key.data = ptr;
+		key.size = sizeof(ID)+1;
+		tmp[1] = eip->bei_id;
+		*ptr = DN_ONE_PREFIX;
+		bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
+		*ptr = DN_SUBTREE_PREFIX;
 		for (; eip && eip->bei_parent->bei_id; eip = eip->bei_parent) {
-			char *db2 = ((char *)db) + 1;
-			key.data = &eip->bei_id;
+			tmp[1] = eip->bei_id;
 			bdb_idl_cache_del_id( bdb, db, &key, e->e_id );
-			bdb_idl_cache_del_id( bdb, (DB *)db2, &key, e->e_id );
 		}
 	}
 	return rc;
@@ -813,23 +825,22 @@ hdb_dn2id_children(
 
 struct dn2id_cookie {
 	struct bdb_info *bdb;
-	DB *db;
-	int prefix;
-	int rc;
+	Operation *op;
 	EntryInfo *ei;
-	ID id;
-	ID nid;
-	ID dbuf;
 	ID *ids;
-	void *ptr;
 	ID *tmp;
 	ID *buf;
+	DB *db;
+	DBC *dbc;
 	DBT key;
 	DBT data;
-	DBC *dbc;
-	Operation *op;
-	int need_sort;
+	ID dbuf;
+	ID id;
+	ID nid;
+	int rc;
 	int depth;
+	char need_sort;
+	char prefix;
 };
 
 static int
@@ -852,14 +863,14 @@ hdb_dn2idl_internal(
 	BDB_IDL_ZERO( cx->tmp );
 
 	if ( cx->bdb->bi_idl_cache_size ) {
-		cx->key.data = &cx->id;
+		char *ptr = ((char *)&cx->id)-1;
+
+		cx->key.data = ptr;
+		cx->key.size = sizeof(ID)+1;
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			ID *ids;
-			char *db = ((char *)cx->db) + 1;
-			
-			/* Rather than rehash the ID, we offset the DB pointer by 1 */
-			ids = cx->depth ? cx->tmp : cx->ids;
-			cx->rc = bdb_idl_cache_get(cx->bdb, (DB *)db, &cx->key, ids);
+			ID *ids = cx->depth ? cx->tmp : cx->ids;
+			*ptr = cx->prefix;
+			cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, ids);
 			if ( cx->rc == LDAP_SUCCESS ) {
 				if ( cx->depth ) {
 					bdb_idl_append( cx->ids, cx->tmp );
@@ -868,6 +879,7 @@ hdb_dn2idl_internal(
 				return cx->rc;
 			}
 		}
+		*ptr = DN_ONE_PREFIX;
 		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
 		if ( cx->rc == LDAP_SUCCESS ) {
 			goto gotit;
@@ -912,6 +924,7 @@ hdb_dn2idl_internal(
 
 		/* The first item holds the parent ID. Ignore it. */
 		cx->key.data = &cx->nid;
+		cx->key.size = sizeof(ID);
 		cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
 		if ( cx->rc ) {
 			cx->dbc->c_close( cx->dbc );
@@ -935,9 +948,10 @@ hdb_dn2idl_internal(
 			DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
 			u_int8_t *j;
 			size_t len;
-			DB_MULTIPLE_INIT( cx->ptr, &cx->data );
-			while (cx->ptr) {
-				DB_MULTIPLE_NEXT( cx->ptr, &cx->data, j, len );
+			void *ptr;
+			DB_MULTIPLE_INIT( ptr, &cx->data );
+			while (ptr) {
+				DB_MULTIPLE_NEXT( ptr, &cx->data, j, len );
 				if (j) {
 					EntryInfo *ei2;
 					diskNode *d = (diskNode *)j;
@@ -978,7 +992,10 @@ synced:
 	if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 3 )
 		bdb_idl_sort( cx->tmp, cx->buf );
 	if ( cx->bdb->bi_idl_cache_max_size ) {
-		cx->key.data = &cx->id;
+		char *ptr = ((char *)&cx->id)-1;
+		cx->key.data = ptr;
+		cx->key.size = sizeof(ID)+1;
+		*ptr = DN_ONE_PREFIX;
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
 	}
 
@@ -1079,12 +1096,14 @@ hdb_dn2idl(
 
 	hdb_dn2idl_internal(&cx);
 	if ( cx.need_sort ) {
-		char *db = (char *)cx.db + 1;
+		char *ptr = ((char *)&cx.id)-1;
 		if ( !BDB_IDL_IS_RANGE( cx.ids ) && cx.ids[0] > 3 ) 
 			bdb_idl_sort( cx.ids, cx.tmp );
+		cx.key.data = ptr;
+		cx.key.size = sizeof(ID)+1;
+		*ptr = cx.prefix;
 		cx.id = e->e_id;
-		cx.key.data = &cx.id;
-		bdb_idl_cache_put( cx.bdb, (DB *)db, &cx.key, cx.ids, cx.rc );
+		bdb_idl_cache_put( cx.bdb, cx.db, &cx.key, cx.ids, cx.rc );
 	}
 
 	if ( cx.rc == DB_NOTFOUND )
