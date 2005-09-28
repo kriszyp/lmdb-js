@@ -15,6 +15,7 @@ slapadd \- Add entries to a SLAPD database
 .B [\-b suffix]
 .B [\-n dbnum]
 .B [\-f slapd.conf]
+.B [\-F confdir]
 .B [\-l ldif-file]
 .SH DESCRIPTION
 .LP
@@ -84,6 +85,20 @@ option.
 specify an alternative
 .BR slapd.conf (5)
 file.
+.TP
+.BI \-F " confdir"
+specify a config directory.
+If both
+.B -f
+and
+.B -F
+are specified, the config file will be read and converted to
+config directory format and written to the specified directory.
+If neither option is specified, an attempt to read the
+default config directory wll be made before trying to use the default
+config file. If a valid config directory exists then the
+default config file is ignored. If dryrun mode is also specified,
+no conversion will occur.
 .TP
 .BI \-l " ldif-file"
 Read LDIF from the specified file instead of standard input.
