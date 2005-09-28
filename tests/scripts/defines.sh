@@ -37,6 +37,7 @@ VALSORT=${AC_valsort-valsortno}
 DATADIR=./testdata
 PROGDIR=./progs
 TESTDIR=./testrun
+SCHEMADIR=./schema
 
 DBDIR1A=$TESTDIR/db.1.a
 DBDIR1B=$TESTDIR/db.1.b
