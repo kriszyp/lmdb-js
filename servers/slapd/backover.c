@@ -145,6 +145,8 @@ over_db_config(
 			ct = config_find_keyword( on->on_bi.bi_cf_ocs->co_table, &ca );
 			if ( ct ) {
 				rc = config_add_vals( ct, &ca );
+				if ( rc != SLAP_CONF_UNKNOWN )
+					break;
 			}
 		}
 		if (on->on_bi.bi_db_config && rc == SLAP_CONF_UNKNOWN) {
