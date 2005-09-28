@@ -2,6 +2,8 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.29 Engineering
 	Fixed slapd uniqueMemberMatch (ITS#4040)
+	Fixed back-bdb/hdb/ldbm modrdn permission checks (ITS#2757)
+	Fixed back-bdb/hdb pointer/integer size warnings (ITS#4015)
 	Fixed back-hdb slapcat EntryInfo cache growth (ITS#4010)
 	Fixed liblber sb_dgram_read length (ITS#4046)
 
