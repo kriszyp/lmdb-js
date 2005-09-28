@@ -199,8 +199,6 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'cn=James A Jones 1' > $SEARCHOUT 2>&1
 RC=$?
 
-test $KILLSERVERS != no && kill -HUP $KILLPIDS
-
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	exit $RC
@@ -219,6 +217,20 @@ if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
 	exit 1
 fi
+
+echo "Testing modrdn with newSuperior as child of target "
+$LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	$TESTOUT 2>&1  -s 'cn=Sub1, ou=FooBar, cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan,c=us' \
+	'cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones 1'
+
+RC=$?
+if test $RC -eq 0 ; then
+	echo "ldapmodrdn succeeded, should have failed!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 exit 0
