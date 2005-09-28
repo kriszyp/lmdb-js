@@ -163,10 +163,15 @@ ldbm_back_modrdn(
 	}
 
 	/* check parent for "children" acl */
-	if ( ! access_allowed( op, p, children, NULL,
+	rs->sr_err = access_allowed( op, p, children, NULL,
 			op->oq_modrdn.rs_newSup != NULL ?
 				ACL_WDEL : ACL_WRITE,
-			NULL ) )
+			NULL );
+
+	if ( BER_BVISEMPTY( &p_ndn ))
+		p = NULL;
+
+	if ( !rs->sr_err )
 	{
 		Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 			0, 0 );
@@ -175,9 +180,6 @@ ldbm_back_modrdn(
 			NULL );
 		goto return_results;
 	}
-
-	if ( BER_BVISEMPTY( &p_ndn ))
-		p = NULL;
 
 	Debug( LDAP_DEBUG_TRACE,
 		   "ldbm_back_modrdn: wr to children of entry %s OK\n",
