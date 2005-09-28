@@ -26,6 +26,7 @@ OpenLDAP 2.3.8 Engineering
 	Fixed slapo-syncprov/unique interact issues (ITS#3989)
 	Fixed slapo-syncprov/subordinate interact issues (ITS#3996)
 	Fixed slapo-syncprov schema check assert (ITS#4031)
+	Fixed slapo-valsort unknown valsort-attr bug (ITS#4047)
 	Fixed slapcat out-of-memory problem (ITS#4010)
 	Fixed slurpd unrecognized slave names bug (ITS#4012)
 	Fixed liblber dgram len bug (ITS#4046)
