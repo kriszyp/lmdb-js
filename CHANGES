@@ -2,8 +2,42 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.8 Engineering
 	Fixed slapd undef HAVE_EPOLL issue
+	Fixed slapd connection-get wake bug (ITS#3999)
+	Fixed slapd uninitialized var bug (ITS#3854)
+	Fixed slapd add entry without parent bug (ITS#2757)
+	Fixed slapd cn=config value escaping bug (ITS#3807)
+	Fixed slapd cn=config missing host/uri bug (ITS#4009)
+	Fixed slapd alock symbol bug (ITS#3978)
+	Fixed slapd replogfile assert (ITS#4003)
+	Fixed slapd rewrite session var set bug (ITS#4023)
+	Fixed slapd syncrepl empty uniqueMember bug (ITS#4040)
+	Fixed slapd alias resolution bug (ITS#4030)
+	Fixed slapd-bdb/hdb pointer/integer size mismatch (ITS#4015)
+	Fixed slapd-glue mixtures bug (ITS#3979)
+	Fixed slapd-ldap unlock issue (ITS#4001)
+	Fixed slapd-ldap manageDIT check bug (ITS#4005)
+	Fixed slapd-ldap resource release issue (ITS#4016)
+	Fixed slapd-meta rootdn lookup bug (ITS#4004)
+	Fixed slapd-meta null value assert issue (ITS#4028)
+	Fixed slapd-monitor unavailable issue (ITS#4013)
+	Fixed slapd-perl init/destroy bug (ITS#3923)
+	Fixed slapo-ppolicy replication issues (ITS#3980)
+	Added slapo-ppolicy pwdattribute descriptor support (ITS#4025)
+	Fixed slapo-syncprov/unique interact issues (ITS#3989)
+	Fixed slapo-syncprov/subordinate interact issues (ITS#3996)
+	Fixed slapo-syncprov schema check assert (ITS#4031)
+	Fixed slapcat out-of-memory problem (ITS#4010)
+	Fixed slurpd unrecognized slave names bug (ITS#4012)
+	Fixed liblber dgram len bug (ITS#4046)
+	Updated slapd authz backend detection (ITS#4018)
+	Fixed slapd realloc zero bug (ITS#3981)
 	Documentation
-		Add slapo-valsort(5) man page
+		Added slapo-valsort(5) man page
+		Added slap tool -F option documentation (ITS#4026)
+	Build Environment
+		Fixed misc POSIX conformance issues (ITS#2667)
+		Fixed --without-threads build issue (ITS#4006)
+		Fixed test script exit checks (ITS#4045)
 
 OpenLDAP 2.3.7 Release
 	Updated slapd ManageDIT support

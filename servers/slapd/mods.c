@@ -334,7 +334,7 @@ modify_delete_vindex(
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
 	} else if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) {
-	/* For an ordered attribute, renumber the value indices */
+		/* For an ordered attribute, renumber the value indices */
 		ordered_value_sort( a, 1 );
 	}
 
