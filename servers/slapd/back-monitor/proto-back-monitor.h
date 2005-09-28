@@ -130,6 +130,8 @@ monitor_back_get_subsys_by_dn LDAP_P((
 	struct berval		*ndn,
 	int			sub ));
 extern int
+monitor_back_is_configured LDAP_P(( void ));
+extern int
 monitor_back_register_entry LDAP_P((
 	Entry			*e,
 	monitor_callback_t	*cb ));

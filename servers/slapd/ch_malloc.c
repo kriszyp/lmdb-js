@@ -75,6 +75,7 @@ ch_realloc(
 
 	if( size == 0 ) {
 		ch_free( block );
+		return NULL;
 	}
 
 	ctx = slap_sl_context( block );

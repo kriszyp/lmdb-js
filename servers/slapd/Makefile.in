@@ -38,7 +38,7 @@ SRCS	= main.c globals.c bconfig.c config.c daemon.c \
 		backglue.c backover.c ctxcsn.c ldapsync.c frontend.c \
 		slapadd.c slapcat.c slapcommon.c slapdn.c slapindex.c \
 		slappasswd.c slaptest.c slapauth.c slapacl.c component.c \
-		aci.c \
+		aci.c alock.c \
 		$(@PLAT@_SRCS)
 
 OBJS	= main.o globals.o bconfig.o config.o daemon.o \
@@ -56,7 +56,7 @@ OBJS	= main.o globals.o bconfig.o config.o daemon.o \
 		backglue.o backover.o ctxcsn.o ldapsync.o frontend.o \
 		slapadd.o slapcat.o slapcommon.o slapdn.o slapindex.o \
 		slappasswd.o slaptest.o slapauth.o slapacl.o component.o \
-		aci.o \
+		aci.o alock.o \
 		$(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include -I$(srcdir) -I$(srcdir)/slapi -I.
@@ -168,7 +168,7 @@ slapd.def: libbackends.a liboverlays.a version.o
 		    done="" ;\
 		    base=`expr "$$i" : "-l\(.*\)"`; \
 		    for p in $$paths ; do \
-			for ext in la dll a ; do \
+			for ext in la dll dll.a a ; do \
 			    path=$$p/lib$$base.$$ext; \
 			    test ! -f $$path && continue; \
 			    if test $$ext = la ; then \
@@ -192,11 +192,13 @@ slapd.def: libbackends.a liboverlays.a version.o
 		    test -z "$$obj" && continue; \
 		    ;; \
 		*.la) \
-		    if test -n "$LTSTATIC"; then \
+		    if test -n "$(LTSTATIC)"; then \
 			    base=`expr "$$i" : ".*/\(.*\).la"`; \
 			    path=`expr "$$i" : "\(.*/\).*"`; \
 			    obj=$$path.libs/$$base.a; \
 		    fi; \
+		    ;; \
+		*.dll.a) \
 		    ;; \
 		*.o | *.a) \
 		    obj=$$i; \
@@ -335,7 +337,7 @@ backends.o: backends.c $(srcdir)/slap.h
 
 depend-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
-		if test -d $$i -a -f $$i/Makefile ; then \
+		if test -d $$i && test -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -351,7 +353,7 @@ veryclean-local:
 
 clean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
-		if test -d $$i -a -f $$i/Makefile ; then \
+		if test -d $$i && test -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -361,7 +363,7 @@ clean-local-srv: FORCE
 
 veryclean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
-		if test -d $$i -a -f $$i/Makefile ; then \
+		if test -d $$i && test -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
 		fi; \
@@ -376,7 +378,7 @@ install-slapd: FORCE
 	$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@for i in $(SUBDIRS); do \
-	    if test -d $$i -a -f $$i/Makefile ; then \
+	    if test -d $$i && test -f $$i/Makefile ; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 		( cd $$i; $(MAKE) $(MFLAGS) install ); \
 		if test $$? != 0 ; then exit 1; fi ; \

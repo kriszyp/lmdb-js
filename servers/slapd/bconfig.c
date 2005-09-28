@@ -393,7 +393,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SUP labeledURI SINGLE-VALUE )", NULL, NULL },
 	{ "replica", "host or uri", 2, 0, 0, ARG_DB|ARG_MAGIC,
 		&config_replica, "( OLcfgDbAt:0.7 NAME 'olcReplica' "
-			"SUP labeledURI )", NULL, NULL },
+			"SUP labeledURI X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "replica-argsfile", NULL, 0, 0, 0, ARG_STRING,
 		&replica_argsFile, "( OLcfgGlAt:43 NAME 'olcReplicaArgsFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },

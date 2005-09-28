@@ -14,6 +14,16 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+
+LDAP_BEGIN_DECL
+
+/* Can be done twice in libldap_r.  See libldap_r/ldap_thr_debug.h. */
+LDAP_F(int) ldap_int_thread_initialize LDAP_P(( void ));
+LDAP_F(int) ldap_int_thread_destroy    LDAP_P(( void ));
+
+LDAP_END_DECL
+
+
 #ifndef _LDAP_INT_THREAD_H
 #define _LDAP_INT_THREAD_H
 
@@ -35,6 +45,8 @@ typedef pthread_t		ldap_int_thread_t;
 typedef pthread_mutex_t		ldap_int_thread_mutex_t;
 typedef pthread_cond_t		ldap_int_thread_cond_t;
 
+#define ldap_int_thread_equal(a, b)	pthread_equal((a), (b))
+
 #if defined( _POSIX_REENTRANT_FUNCTIONS ) || \
 	defined( _POSIX_THREAD_SAFE_FUNCTIONS ) || \
 	defined( _POSIX_THREADSAFE_FUNCTIONS )
@@ -53,7 +65,7 @@ typedef pthread_cond_t		ldap_int_thread_cond_t;
 
 #if 0 && defined( HAVE_PTHREAD_RWLOCK_DESTROY )
 #define LDAP_THREAD_HAVE_RDWR 1
-typedef pthread_rwlock_t ldap_pvt_thread_rdwr_t;
+typedef pthread_rwlock_t ldap_int_thread_rdwr_t;
 #endif
 
 LDAP_END_DECL
@@ -97,7 +109,7 @@ typedef pth_cond_t	ldap_int_thread_cond_t;
 
 #if 0
 #define LDAP_THREAD_HAVE_RDWR 1
-typedef pth_rwlock_t ldap_pvt_thread_rdwr_t;
+typedef pth_rwlock_t ldap_int_thread_rdwr_t;
 #endif
 
 LDAP_END_DECL
@@ -155,6 +167,11 @@ typedef struct ldap_int_thread_lwp_cv ldap_int_thread_cond_t;
 LDAP_END_DECL
 
 #elif defined(HAVE_NT_THREADS)
+/*************************************
+ *                                   *
+ * thread definitions for NT threads *
+ *                                   *
+ *************************************/
 
 #include <process.h>
 #include <windows.h>
@@ -168,7 +185,6 @@ typedef HANDLE	ldap_int_thread_cond_t;
 LDAP_END_DECL
 
 #else
-
 /***********************************
  *                                 *
  * thread definitions for no       *
@@ -193,10 +209,17 @@ LDAP_END_DECL
 
 #endif /* no threads support */
 
+
 LDAP_BEGIN_DECL
 
-LDAP_F(int) ldap_int_thread_initialize LDAP_P(( void ));
-LDAP_F(int) ldap_int_thread_destroy LDAP_P(( void ));
+#ifndef ldap_int_thread_equal
+#define ldap_int_thread_equal(a, b)	((a) == (b))
+#endif
+
+#ifndef LDAP_THREAD_HAVE_RDWR
+typedef struct ldap_int_thread_rdwr_s * ldap_int_thread_rdwr_t;
+#endif
+
 LDAP_F(int) ldap_int_thread_pool_startup ( void );
 LDAP_F(int) ldap_int_thread_pool_shutdown ( void );
 
@@ -205,5 +228,47 @@ typedef struct ldap_int_thread_pool_s * ldap_int_thread_pool_t;
 #endif
 
 LDAP_END_DECL
+
+
+#if defined(LDAP_THREAD_DEBUG) && !((LDAP_THREAD_DEBUG +0) & 2U)
+#define LDAP_THREAD_DEBUG_WRAP 1
+#endif
+
+#ifdef LDAP_THREAD_DEBUG_WRAP
+/**************************************
+ *                                    *
+ * definitions for type-wrapped debug *
+ *                                    *
+ **************************************/
+
+LDAP_BEGIN_DECL
+
+#ifndef LDAP_UINTPTR_T	/* May be configured in CPPFLAGS */
+#define LDAP_UINTPTR_T	unsigned long
+#endif
+
+typedef union {
+	unsigned char			*ptr;
+	LDAP_UINTPTR_T			num;
+} ldap_debug_usage_info_t;
+
+typedef struct {
+	ldap_int_thread_mutex_t	wrapped;
+	ldap_debug_usage_info_t	usage;
+} ldap_debug_thread_mutex_t;
+
+typedef struct {
+	ldap_int_thread_cond_t	wrapped;
+	ldap_debug_usage_info_t	usage;
+} ldap_debug_thread_cond_t;
+
+typedef struct {
+	ldap_int_thread_rdwr_t	wrapped;
+	ldap_debug_usage_info_t	usage;
+} ldap_debug_thread_rdwr_t;
+
+LDAP_END_DECL
+
+#endif /* LDAP_THREAD_DEBUG_WRAP */
 
 #endif /* _LDAP_INT_THREAD_H */

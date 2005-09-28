@@ -911,6 +911,8 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_name;
 	AttributeDescription *si_ad_cn;
 	AttributeDescription *si_ad_uid;
+	AttributeDescription *si_ad_uidNumber;
+	AttributeDescription *si_ad_gidNumber;
 	AttributeDescription *si_ad_userPassword;
 	AttributeDescription *si_ad_labeledURI;
 #ifdef SLAPD_AUTHPASSWD
@@ -2619,6 +2621,14 @@ typedef struct slap_conn {
 
 	/* authorization backend */
 	Backend *c_authz_backend;
+	void	*c_authz_cookie;
+#define SLAP_IS_AUTHZ_BACKEND( op )	\
+	( (op)->o_bd != NULL \
+		&& (op)->o_bd->be_private != NULL \
+		&& (op)->o_conn != NULL \
+		&& (op)->o_conn->c_authz_backend != NULL \
+		&& ( (op)->o_bd->be_private == (op)->o_conn->c_authz_backend->be_private \
+			|| (op)->o_bd->be_private == (op)->o_conn->c_authz_cookie ) )
 
 	AuthorizationInformation c_authz;
 

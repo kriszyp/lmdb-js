@@ -18,6 +18,7 @@
 #define _BACK_LDBM_H_
 
 #include "ldbm.h"
+#include "alock.h"
 
 LDAP_BEGIN_DECL
 
@@ -152,6 +153,7 @@ struct ldbminfo {
 	int			li_dbsyncwaitn;
 	int			li_dbsyncwaitinterval;
 	int			li_dbsyncwaitcount;
+	alock_info_t	li_alock_info;
 };
 
 LDAP_END_DECL

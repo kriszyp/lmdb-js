@@ -80,7 +80,7 @@ if test -z "${MKDEP}"; then
  noCode;
 EOF
 				if AC_TRY_COMMAND($OL_MKDEP $flag conftest.c) \
-					| egrep '^conftest\.'"${ac_objext}" >/dev/null 2>&1
+					| grep '^conftest\.'"${ac_objext}" >/dev/null 2>&1
 				then
 					if test ! -f conftest."${ac_object}" ; then
 						ol_cv_mkdep=$flag
@@ -500,7 +500,7 @@ dnl --------------------------------------------------------------------
 dnl Find old Berkeley DB 1.85/1.86
 AC_DEFUN([OL_BERKELEY_COMPAT_DB],
 [AC_CHECK_HEADERS(db_185.h db.h)
-if test $ac_cv_header_db_185_h = yes -o $ac_cv_header_db_h = yes; then
+if test $ac_cv_header_db_185_h = yes || test $ac_cv_header_db_h = yes; then
 	AC_CACHE_CHECK([if Berkeley DB header compatibility], [ol_cv_header_db1],[
 		AC_EGREP_CPP(__db_version_1,[
 #if HAVE_DB_185_H
@@ -562,7 +562,7 @@ AC_DEFUN([OL_GDBM],
 [AC_REQUIRE([OL_LIB_GDBM])
  AC_CHECK_HEADERS(gdbm.h)
  AC_CACHE_CHECK(for db, [ol_cv_gdbm], [
-	if test $ol_cv_lib_gdbm = no -o $ac_cv_header_gdbm_h = no ; then
+	if test $ol_cv_lib_gdbm = no || test $ac_cv_header_gdbm_h = no ; then
 		ol_cv_gdbm=no
 	else
 		ol_cv_gdbm=yes
@@ -607,7 +607,7 @@ AC_DEFUN([OL_MDBM],
 [AC_REQUIRE([OL_LIB_MDBM])
  AC_CHECK_HEADERS(mdbm.h)
  AC_CACHE_CHECK(for db, [ol_cv_mdbm], [
-	if test $ol_cv_lib_mdbm = no -o $ac_cv_header_mdbm_h = no ; then
+	if test $ol_cv_lib_mdbm = no || test $ac_cv_header_mdbm_h = no ; then
 		ol_cv_mdbm=no
 	else
 		ol_cv_mdbm=yes
@@ -663,7 +663,7 @@ AC_DEFUN([OL_NDBM],
 [AC_REQUIRE([OL_LIB_NDBM])
  AC_CHECK_HEADERS(ndbm.h)
  AC_CACHE_CHECK(for db, [ol_cv_ndbm], [
-	if test $ol_cv_lib_ndbm = no -o $ac_cv_header_ndbm_h = no ; then
+	if test $ol_cv_lib_ndbm = no || test $ac_cv_header_ndbm_h = no ; then
 		ol_cv_ndbm=no
 	else
 		ol_cv_ndbm=yes
@@ -894,11 +894,11 @@ AC_DEFUN([OL_LINUX_THREADS], [
 	AC_REQUIRE([OL_HEADER_LINUX_THREADS])
 	AC_REQUIRE([OL_SYS_LINUX_THREADS])
 	AC_CACHE_CHECK([for LinuxThreads consistency], [ol_cv_linux_threads], [
-		if test $ol_cv_header_linux_threads = yes -a \
-			$ol_cv_sys_linux_threads = yes; then
+		if test $ol_cv_header_linux_threads = yes &&
+		   test $ol_cv_sys_linux_threads = yes; then
 			ol_cv_linux_threads=yes
-		elif test $ol_cv_header_linux_threads = no -a \
-			$ol_cv_sys_linux_threads = no; then
+		elif test $ol_cv_header_linux_threads = no &&
+		     test $ol_cv_sys_linux_threads = no; then
 			ol_cv_linux_threads=no
 		else
 			ol_cv_linux_threads=error
@@ -1089,13 +1089,13 @@ AC_DEFUN([OL_FUNC_CTIME_R_NARGS],
 
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <time.h>]], [[time_t ti; char *buffer; ctime_r(&ti,buffer);]])],[ol_cv_func_ctime_r_nargs2=yes],[ol_cv_func_ctime_r_nargs2=no])
 
-	if test $ol_cv_func_ctime_r_nargs3 = yes -a \
-		$ol_cv_func_ctime_r_nargs2 = no ; then
+	if test $ol_cv_func_ctime_r_nargs3 = yes &&
+	   test $ol_cv_func_ctime_r_nargs2 = no ; then
 
 		ol_cv_func_ctime_r_nargs=3
 
-	elif test $ol_cv_func_ctime_r_nargs3 = no -a \
-		$ol_cv_func_ctime_r_nargs2 = yes ; then
+	elif test $ol_cv_func_ctime_r_nargs3 = no &&
+	     test $ol_cv_func_ctime_r_nargs2 = yes ; then
 
 		ol_cv_func_ctime_r_nargs=2
 
@@ -1144,13 +1144,13 @@ AC_DEFUN([OL_FUNC_GETHOSTBYNAME_R_NARGS],
 		(void)gethostbyname_r("localhost", &hent, buffer, bufsize,
 			&rhent, &h_errno);]])],[ol_cv_func_gethostbyname_r_nargs6=yes],[ol_cv_func_gethostbyname_r_nargs6=no])
 
-	if test $ol_cv_func_gethostbyname_r_nargs5 = yes -a \
-		$ol_cv_func_gethostbyname_r_nargs6 = no ; then
+	if test $ol_cv_func_gethostbyname_r_nargs5 = yes &&
+	   test $ol_cv_func_gethostbyname_r_nargs6 = no ; then
 
 		ol_cv_func_gethostbyname_r_nargs=5
 
-	elif test $ol_cv_func_gethostbyname_r_nargs5 = no -a \
-		$ol_cv_func_gethostbyname_r_nargs6 = yes ; then
+	elif test $ol_cv_func_gethostbyname_r_nargs5 = no &&
+	     test $ol_cv_func_gethostbyname_r_nargs6 = yes ; then
 
 		ol_cv_func_gethostbyname_r_nargs=6
 
@@ -1193,13 +1193,13 @@ AC_DEFUN([OL_FUNC_GETHOSTBYADDR_R_NARGS],
 			alen, AF_INET, &hent, buffer, bufsize, 
 			&rhent, &h_errno);]])],[ol_cv_func_gethostbyaddr_r_nargs8=yes],[ol_cv_func_gethostbyaddr_r_nargs8=no])
 
-	if test $ol_cv_func_gethostbyaddr_r_nargs7 = yes -a \
-		$ol_cv_func_gethostbyaddr_r_nargs8 = no ; then
+	if test $ol_cv_func_gethostbyaddr_r_nargs7 = yes &&
+	   test $ol_cv_func_gethostbyaddr_r_nargs8 = no ; then
 
 		ol_cv_func_gethostbyaddr_r_nargs=7
 
-	elif test $ol_cv_func_gethostbyaddr_r_nargs7 = no -a \
-		$ol_cv_func_gethostbyaddr_r_nargs8 = yes ; then
+	elif test $ol_cv_func_gethostbyaddr_r_nargs7 = no &&
+	     test $ol_cv_func_gethostbyaddr_r_nargs8 = yes ; then
 
 		ol_cv_func_gethostbyaddr_r_nargs=8
 

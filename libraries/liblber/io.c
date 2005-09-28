@@ -559,7 +559,7 @@ ber_get_next(
 
 		/* Now look for the length */
 		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
-			ber_len_t i;
+			int i;
 			unsigned char *p = (unsigned char *)ber->ber_ptr;
 			int llen = *p++ & 0x7f;
 			if (llen > (int)sizeof(ber_len_t)) {

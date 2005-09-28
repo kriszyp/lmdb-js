@@ -204,7 +204,7 @@ int lutil_parsetime( char *atm, struct lutil_tm *tm )
 {
 	while (atm && tm) {
 		char *ptr = atm;
-		int i, fracs;
+		unsigned i, fracs;
 
 		/* Is the stamp reasonably long? */
 		for (i=0; isdigit(atm[i]); i++);

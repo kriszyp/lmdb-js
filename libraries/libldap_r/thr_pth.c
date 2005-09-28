@@ -18,7 +18,11 @@
 
 #if defined( HAVE_GNU_PTH )
 
-#include "ldap_pvt_thread.h"
+#include "ldap_pvt_thread.h" /* Get the thread interface */
+#define LDAP_THREAD_IMPLEMENTATION
+#define LDAP_THREAD_RDWR_IMPLEMENTATION
+#include "ldap_thr_debug.h"	 /* May rename the symbols defined below */
+
 #include <errno.h>
 
 /*******************

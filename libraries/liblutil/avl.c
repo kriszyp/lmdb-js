@@ -27,6 +27,7 @@
  * This work was originally developed by the University of Michigan
  * (as part of U-MICH LDAP).  Additional significant contributors
  * include:
+ *   Howard Y. Chu
  *   Hallvard B. Furuseth
  *   Kurt D. Zeilenga
  */
@@ -47,170 +48,7 @@
 #define AVL_INTERNAL
 #include "avl.h"
 
-#define ROTATERIGHT(x)	{ \
-	Avlnode *tmp;\
-	if ( *(x) == NULL || (*(x))->avl_left == NULL ) {\
-		(void) fputs("RR error\n", stderr); exit( EXIT_FAILURE ); \
-	}\
-	tmp = (*(x))->avl_left;\
-	(*(x))->avl_left = tmp->avl_right;\
-	tmp->avl_right = *(x);\
-	*(x) = tmp;\
-}
-#define ROTATELEFT(x)	{ \
-	Avlnode *tmp;\
-	if ( *(x) == NULL || (*(x))->avl_right == NULL ) {\
-		(void) fputs("RL error\n", stderr); exit( EXIT_FAILURE ); \
-	}\
-	tmp = (*(x))->avl_right;\
-	(*(x))->avl_right = tmp->avl_left;\
-	tmp->avl_left = *(x);\
-	*(x) = tmp;\
-}
-
-/*
- * ravl_insert - called from avl_insert() to do a recursive insert into
- * and balance of an avl tree.
- */
-
-static int
-ravl_insert(
-    Avlnode	**iroot,
-    void*	data,
-    int		*taller,
-    AVL_CMP		fcmp,			/* comparison function */
-    AVL_DUP		fdup,			/* function to call for duplicates */
-    int		depth
-)
-{
-	int	rc, cmp, tallersub;
-	Avlnode	*l, *r;
-
-	if ( *iroot == 0 ) {
-		if ( (*iroot = (Avlnode *) ber_memalloc( sizeof( Avlnode ) ))
-		    == NULL ) {
-			return( -1 );
-		}
-		(*iroot)->avl_left = 0;
-		(*iroot)->avl_right = 0;
-		(*iroot)->avl_bf = 0;
-		(*iroot)->avl_data = data;
-		*taller = 1;
-		return( 0 );
-	}
-
-	cmp = (*fcmp)( data, (*iroot)->avl_data );
-
-	/* equal - duplicate name */
-	if ( cmp == 0 ) {
-		*taller = 0;
-		return( (*fdup)( (*iroot)->avl_data, data ) );
-	}
-
-	/* go right */
-	else if ( cmp > 0 ) {
-		rc = ravl_insert( &((*iroot)->avl_right), data, &tallersub,
-		   fcmp, fdup, depth );
-		if ( tallersub )
-			switch ( (*iroot)->avl_bf ) {
-			case LH	: /* left high - balance is restored */
-				(*iroot)->avl_bf = EH;
-				*taller = 0;
-				break;
-			case EH	: /* equal height - now right heavy */
-				(*iroot)->avl_bf = RH;
-				*taller = 1;
-				break;
-			case RH	: /* right heavy to start - right balance */
-				r = (*iroot)->avl_right;
-				switch ( r->avl_bf ) {
-				case LH	: /* double rotation left */
-					l = r->avl_left;
-					switch ( l->avl_bf ) {
-					case LH	: (*iroot)->avl_bf = EH;
-						  r->avl_bf = RH;
-						  break;
-					case EH	: (*iroot)->avl_bf = EH;
-						  r->avl_bf = EH;
-						  break;
-					case RH	: (*iroot)->avl_bf = LH;
-						  r->avl_bf = EH;
-						  break;
-					}
-					l->avl_bf = EH;
-					ROTATERIGHT( (&r) )
-					(*iroot)->avl_right = r;
-					ROTATELEFT( iroot )
-					*taller = 0;
-					break;
-				case EH	: /* This should never happen */
-					break;
-				case RH	: /* single rotation left */
-					(*iroot)->avl_bf = EH;
-					r->avl_bf = EH;
-					ROTATELEFT( iroot )
-					*taller = 0;
-					break;
-				}
-				break;
-			}
-		else
-			*taller = 0;
-	}
-
-	/* go left */
-	else {
-		rc = ravl_insert( &((*iroot)->avl_left), data, &tallersub,
-		   fcmp, fdup, depth );
-		if ( tallersub )
-			switch ( (*iroot)->avl_bf ) {
-			case LH	: /* left high to start - left balance */
-				l = (*iroot)->avl_left;
-				switch ( l->avl_bf ) {
-				case LH	: /* single rotation right */
-					(*iroot)->avl_bf = EH;
-					l->avl_bf = EH;
-					ROTATERIGHT( iroot )
-					*taller = 0;
-					break;
-				case EH	: /* this should never happen */
-					break;
-				case RH	: /* double rotation right */
-					r = l->avl_right;
-					switch ( r->avl_bf ) {
-					case LH	: (*iroot)->avl_bf = RH;
-						  l->avl_bf = EH;
-						  break;
-					case EH	: (*iroot)->avl_bf = EH;
-						  l->avl_bf = EH;
-						  break;
-					case RH	: (*iroot)->avl_bf = EH;
-						  l->avl_bf = LH;
-						  break;
-					}
-					r->avl_bf = EH;
-					ROTATELEFT( (&l) )
-					(*iroot)->avl_left = l;
-					ROTATERIGHT( iroot )
-					*taller = 0;
-					break;
-				}
-				break;
-			case EH	: /* equal height - now left heavy */
-				(*iroot)->avl_bf = LH;
-				*taller = 1;
-				break;
-			case RH	: /* right high - balance is restored */
-				(*iroot)->avl_bf = EH;
-				*taller = 0;
-				break;
-			}
-		else
-			*taller = 0;
-	}
-
-	return( rc );
-}
+static const int avl_bfs[] = {LH, RH};
 
 /*
  * avl_insert -- insert a node containing data data into the avl tree
@@ -227,245 +65,284 @@ ravl_insert(
  *
  * NOTE: this routine may malloc memory
  */
-
 int
-avl_insert( Avlnode **root, void* data, AVL_CMP fcmp, AVL_DUP fdup )
+avl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 {
-	int	taller;
+    Avlnode *t, *p, *s, *q, *r;
+    int a, cmp, ncmp;
 
-	return( ravl_insert( root, data, &taller, fcmp, fdup, 0 ) );
-}
-
-/* 
- * right_balance() - called from delete when root's right subtree has
- * been shortened because of a deletion.
- */
-
-static int
-right_balance( Avlnode **root )
-{
-	int	shorter = -1;
-	Avlnode	*r, *l;
-
-	switch( (*root)->avl_bf ) {
-	case RH:	/* was right high - equal now */
-		(*root)->avl_bf = EH;
-		shorter = 1;
-		break;
-	case EH:	/* was equal - left high now */
-		(*root)->avl_bf = LH;
-		shorter = 0;
-		break;
-	case LH:	/* was right high - balance */
-		l = (*root)->avl_left;
-		switch ( l->avl_bf ) {
-		case RH	: /* double rotation left */
-			r = l->avl_right;
-			switch ( r->avl_bf ) {
-			case RH	:
-				(*root)->avl_bf = EH;
-				l->avl_bf = LH;
-				break;
-			case EH	:
-				(*root)->avl_bf = EH;
-				l->avl_bf = EH;
-				break;
-			case LH	:
-				(*root)->avl_bf = RH;
-				l->avl_bf = EH;
-				break;
-			}
-			r->avl_bf = EH;
-			ROTATELEFT( (&l) )
-			(*root)->avl_left = l;
-			ROTATERIGHT( root )
-			shorter = 1;
-			break;
-		case EH	: /* right rotation */
-			(*root)->avl_bf = LH;
-			l->avl_bf = RH;
-			ROTATERIGHT( root );
-			shorter = 0;
-			break;
-		case LH	: /* single rotation right */
-			(*root)->avl_bf = EH;
-			l->avl_bf = EH;
-			ROTATERIGHT( root )
-			shorter = 1;
-			break;
+	if ( *root == NULL ) {
+		if (( r = (Avlnode *) ber_memalloc( sizeof( Avlnode ))) == NULL ) {
+			return( -1 );
 		}
-		break;
-	}
+		r->avl_link[0] = r->avl_link[1] = NULL;
+		r->avl_data = data;
+		r->avl_bf = EH;
+		*root = r;
 
-	return( shorter );
-}
-
-/* 
- * left_balance() - called from delete when root's left subtree has
- * been shortened because of a deletion.
- */
-
-static int
-left_balance( Avlnode **root )
-{
-	int	shorter = -1;
-	Avlnode	*r, *l;
-
-	switch( (*root)->avl_bf ) {
-	case LH:	/* was left high - equal now */
-		(*root)->avl_bf = EH;
-		shorter = 1;
-		break;
-	case EH:	/* was equal - right high now */
-		(*root)->avl_bf = RH;
-		shorter = 0;
-		break;
-	case RH:	/* was right high - balance */
-		r = (*root)->avl_right;
-		switch ( r->avl_bf ) {
-		case LH	: /* double rotation left */
-			l = r->avl_left;
-			switch ( l->avl_bf ) {
-			case LH	:
-				(*root)->avl_bf = EH;
-				r->avl_bf = RH;
-				break;
-			case EH	:
-				(*root)->avl_bf = EH;
-				r->avl_bf = EH;
-				break;
-			case RH	:
-				(*root)->avl_bf = LH;
-				r->avl_bf = EH;
-				break;
-			}
-			l->avl_bf = EH;
-			ROTATERIGHT( (&r) )
-			(*root)->avl_right = r;
-			ROTATELEFT( root )
-			shorter = 1;
-			break;
-		case EH	: /* single rotation left */
-			(*root)->avl_bf = RH;
-			r->avl_bf = LH;
-			ROTATELEFT( root );
-			shorter = 0;
-			break;
-		case RH	: /* single rotation left */
-			(*root)->avl_bf = EH;
-			r->avl_bf = EH;
-			ROTATELEFT( root )
-			shorter = 1;
-			break;
-		}
-		break;
-	}
-
-	return( shorter );
-}
-
-/*
- * ravl_delete() - called from avl_delete to do recursive deletion of a
- * node from an avl tree.  It finds the node recursively, deletes it,
- * and returns shorter if the tree is shorter after the deletion and
- * rebalancing.
- */
-
-static void*
-ravl_delete( Avlnode **root, void* data, AVL_CMP fcmp, int *shorter )
-{
-	int	shortersubtree = 0;
-	int	cmp;
-	void*	savedata;
-	Avlnode	*minnode, *savenode;
-
-	if ( *root == NULLAVL )
 		return( 0 );
-
-	cmp = (*fcmp)( data, (*root)->avl_data );
-
-	/* found it! */
-	if ( cmp == 0 ) {
-		savenode = *root;
-		savedata = savenode->avl_data;
-
-		/* simple cases: no left child */
-		if ( (*root)->avl_left == 0 ) {
-			*root = (*root)->avl_right;
-			*shorter = 1;
-			ber_memfree( (char *) savenode );
-			return( savedata );
-		/* no right child */
-		} else if ( (*root)->avl_right == 0 ) {
-			*root = (*root)->avl_left;
-			*shorter = 1;
-			ber_memfree( (char *) savenode );
-			return( savedata );
-		}
-
-		/* 
-		 * avl_getmin will return to us the smallest node greater
-		 * than the one we are trying to delete.  deleting this node
-		 * from the right subtree is guaranteed to end in one of the
-		 * simple cases above.
-		 */
-
-		minnode = (*root)->avl_right;
-		while ( minnode->avl_left != NULLAVL )
-			minnode = minnode->avl_left;
-
-		/* swap the data */
-		(*root)->avl_data = minnode->avl_data;
-		minnode->avl_data = savedata;
-
-		savedata = ravl_delete( &(*root)->avl_right, data, fcmp,
-		    &shortersubtree );
-
-		if ( shortersubtree )
-			*shorter = right_balance( root );
-		else
-			*shorter = 0;
-	/* go left */
-	} else if ( cmp < 0 ) {
-		if ( (savedata = ravl_delete( &(*root)->avl_left, data, fcmp,
-		    &shortersubtree )) == 0 ) {
-			*shorter = 0;
-			return( 0 );
-		}
-
-		/* left subtree shorter? */
-		if ( shortersubtree )
-			*shorter = left_balance( root );
-		else
-			*shorter = 0;
-	/* go right */
-	} else {
-		if ( (savedata = ravl_delete( &(*root)->avl_right, data, fcmp,
-		    &shortersubtree )) == 0 ) {
-			*shorter = 0;
-			return( 0 );
-		}
-
-		if ( shortersubtree ) 
-			*shorter = right_balance( root );
-		else
-			*shorter = 0;
 	}
 
-	return( savedata );
-}
+    t = NULL;
+    s = p = *root;
 
-/*
- * avl_delete() - deletes the node containing data (according to fcmp) from
- * the avl tree rooted at root.
- */
+	/* find insertion point */
+    while (1) {
+		cmp = fcmp( data, p->avl_data );
+		if ( cmp == 0 )
+			return (*fdup)( p->avl_data, data );
+
+		cmp = (cmp > 0);
+		q = p->avl_link[cmp];
+		if (q == NULL) {
+			/* insert */
+			if (( q = (Avlnode *) ber_memalloc( sizeof( Avlnode ))) == NULL ) {
+				return( -1 );
+			}
+			q->avl_link[0] = q->avl_link[1] = NULL;
+			q->avl_data = data;
+			q->avl_bf = EH;
+
+			p->avl_link[cmp] = q;
+			break;
+		} else if ( q->avl_bf ) {
+			t = p;
+			s = q;
+		}
+		p = q;
+    }
+
+    /* adjust balance factors */
+    cmp = fcmp( data, s->avl_data ) > 0;
+	r = p = s->avl_link[cmp];
+	a = avl_bfs[cmp];
+
+	while ( p != q ) {
+		cmp = fcmp( data, p->avl_data ) > 0;
+		p->avl_bf = avl_bfs[cmp];
+		p = p->avl_link[cmp];
+	}
+
+	/* checks and balances */
+
+	if ( s->avl_bf == EH ) {
+		s->avl_bf = a;
+		return 0;
+	} else if ( s->avl_bf == -a ) {
+		s->avl_bf = EH;
+		return 0;
+    } else if ( s->avl_bf == a ) {
+		cmp = (a > 0);
+		ncmp = !cmp;
+		if ( r->avl_bf == a ) {
+			/* single rotation */
+			p = r;
+			s->avl_link[cmp] = r->avl_link[ncmp];
+			r->avl_link[ncmp] = s;
+			s->avl_bf = 0;
+			r->avl_bf = 0;
+		} else if ( r->avl_bf == -a ) {
+			/* double rotation */
+			p = r->avl_link[ncmp];
+			r->avl_link[ncmp] = p->avl_link[cmp];
+			p->avl_link[cmp] = r;
+			s->avl_link[cmp] = p->avl_link[ncmp];
+			p->avl_link[ncmp] = s;
+
+			if ( p->avl_bf == a ) {
+				s->avl_bf = -a;
+				r->avl_bf = 0;
+			} else if ( p->avl_bf == -a ) {
+				s->avl_bf = 0;
+				r->avl_bf = a;
+			} else {
+				s->avl_bf = 0;
+				r->avl_bf = 0;
+			}
+			p->avl_bf = 0;
+		}
+		/* Update parent */
+		if ( t == NULL )
+			*root = p;
+		else if ( s == t->avl_right )
+			t->avl_right = p;
+		else
+			t->avl_left = p;
+    }
+
+  return 0;
+}
 
 void*
 avl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 {
-	int	shorter;
+	Avlnode *p, *q, *r, *top;
+	int side, side_bf, shorter, nside;
 
-	return( ravl_delete( root, data, fcmp, &shorter ) );
+	/* parent stack */
+	Avlnode *pptr[sizeof(void *)*8];
+	unsigned char pdir[sizeof(void *)*8];
+	int depth = 0;
+
+	if ( *root == NULL )
+		return NULL;
+
+	p = *root;
+
+	while (1) {
+		side = fcmp( data, p->avl_data );
+		if ( !side )
+			break;
+		side = ( side > 0 );
+		pdir[depth] = side;
+		pptr[depth++] = p;
+
+		p = p->avl_link[side];
+		if ( p == NULL )
+			return p;
+	}
+  	data = p->avl_data;
+
+	/* If this node has two children, swap so we are deleting a node with
+	 * at most one child.
+	 */
+	if ( p->avl_link[0] && p->avl_link[1] ) {
+
+		/* find the immediate predecessor <q> */
+		q = p->avl_link[0];
+		side = depth;
+		pdir[depth++] = 0;
+		while (q->avl_link[1]) {
+			pdir[depth] = 1;
+			pptr[depth++] = q;
+			q = q->avl_link[1];
+		}
+		/* swap links */
+		r = p->avl_link[0];
+		p->avl_link[0] = q->avl_link[0];
+		q->avl_link[0] = r;
+
+		q->avl_link[1] = p->avl_link[1];
+		p->avl_link[1] = NULL;
+
+		q->avl_bf = p->avl_bf;
+
+		/* fix stack positions: old parent of p points to q */
+		pptr[side] = q;
+		if ( side ) {
+			r = pptr[side-1];
+			r->avl_link[pdir[side-1]] = q;
+		} else {
+			*root = q;
+		}
+		/* new parent of p points to p */
+		if ( depth-side > 1 ) {
+			r = pptr[depth-1];
+			r->avl_link[1] = p;
+		} else {
+			q->avl_link[0] = p;
+		}
+	}
+
+	/* now <p> has at most one child, get it */
+	q = p->avl_link[0] ? p->avl_link[0] : p->avl_link[1];
+
+	ber_memfree( p );
+
+	if ( !depth ) {
+		*root = q;
+		return data;
+	}
+
+	/* set the child into p's parent */
+	depth--;
+	p = pptr[depth];
+	side = pdir[depth];
+	p->avl_link[side] = q;
+
+	top = NULL;
+	shorter = 1;
+  
+	while ( shorter ) {
+		p = pptr[depth];
+		side = pdir[depth];
+		nside = !side;
+		side_bf = avl_bfs[side];
+
+		/* case 1: height unchanged */
+		if ( p->avl_bf == EH ) {
+			/* Tree is now heavier on opposite side */
+			p->avl_bf = avl_bfs[nside];
+			shorter = 0;
+		  
+		} else if ( p->avl_bf == side_bf ) {
+		/* case 2: taller subtree shortened, height reduced */
+			p->avl_bf = EH;
+		} else {
+		/* case 3: shorter subtree shortened */
+			if ( depth )
+				top = pptr[depth-1]; /* p->parent; */
+			else
+				top = NULL;
+			/* set <q> to the taller of the two subtrees of <p> */
+			q = p->avl_link[nside];
+			if ( q->avl_bf == EH ) {
+				/* case 3a: height unchanged, single rotate */
+				p->avl_link[nside] = q->avl_link[side];
+				q->avl_link[side] = p;
+				shorter = 0;
+				q->avl_bf = side_bf;
+				p->avl_bf = (- side_bf);
+
+			} else if ( q->avl_bf == p->avl_bf ) {
+				/* case 3b: height reduced, single rotate */
+				p->avl_link[nside] = q->avl_link[side];
+				q->avl_link[side] = p;
+				shorter = 1;
+				q->avl_bf = EH;
+				p->avl_bf = EH;
+
+			} else {
+				/* case 3c: height reduced, balance factors opposite */
+				r = q->avl_link[side];
+				q->avl_link[side] = r->avl_link[nside];
+				r->avl_link[nside] = q;
+
+				p->avl_link[nside] = r->avl_link[side];
+				r->avl_link[side] = p;
+
+				if ( r->avl_bf == side_bf ) {
+					q->avl_bf = (- side_bf);
+					p->avl_bf = EH;
+				} else if ( r->avl_bf == (- side_bf)) {
+					q->avl_bf = EH;
+					p->avl_bf = side_bf;
+				} else {
+					q->avl_bf = EH;
+					p->avl_bf = EH;
+				}
+				r->avl_bf = EH;
+				q = r;
+			}
+			/* a rotation has caused <q> (or <r> in case 3c) to become
+			 * the root.  let <p>'s former parent know this.
+			 */
+			if ( top == NULL ) {
+				*root = q;
+			} else if (top->avl_link[0] == p) {
+				top->avl_link[0] = q;
+			} else {
+				top->avl_link[1] = q;
+			}
+			/* end case 3 */
+			p = q;
+		}
+		if ( !depth )
+			break;
+		depth--;
+	} /* end while(shorter) */
+
+	return data;
 }
 
 static int
@@ -650,10 +527,8 @@ avl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 	int	cmp;
 
 	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
-		if ( cmp < 0 )
-			root = root->avl_left;
-		else
-			root = root->avl_right;
+		cmp = cmp > 0;
+		root = root->avl_link[cmp];
 	}
 	return root;
 }
@@ -664,10 +539,8 @@ avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 	int	cmp;
 
 	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
-		if ( cmp < 0 )
-			root = root->avl_left;
-		else
-			root = root->avl_right;
+		cmp = cmp > 0;
+		root = root->avl_link[cmp];
 	}
 
 	return( root ? root->avl_data : 0 );

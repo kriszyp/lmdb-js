@@ -26,12 +26,18 @@
 int
 ldbm_back_db_close( Backend *be )
 {
+	struct ldbminfo *li = be->be_private;
+
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend syncing\n", 0, 0, 0 );
 
 	ldbm_cache_flush_all( be );
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend done syncing\n", 0, 0, 0 );
 
-	cache_release_all( &((struct ldbminfo *) be->be_private)->li_cache );
+	cache_release_all( &li->li_cache );
+	if ( alock_close( &li->li_alock_info )) {
+		Debug( LDAP_DEBUG_ANY,
+			"ldbm_back_db_close: alock_close failed\n", 0, 0, 0 );
+	}
 
 	return 0;
 }

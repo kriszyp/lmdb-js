@@ -91,7 +91,7 @@ fi
 echo "Comparison of database generated via slapadd succeeded"
 
 echo "Cleaning up database directories..."
-/bin/rm -rf testrun/db.*
+/bin/rm -rf $TESTDIR/db.*
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 

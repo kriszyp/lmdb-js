@@ -819,7 +819,7 @@ backsql_add_attr(
 			if ( rc != SQL_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_add_attr(): "
-					"error binding output parameter for %s[%d]\n",
+					"error binding output parameter for %s[%lu]\n",
 					at_rec->bam_ad->ad_cname.bv_val, i, 0 );
 				backsql_PrintErrors( bi->sql_db_env, dbh, 
 					sth, rc );
@@ -840,7 +840,7 @@ backsql_add_attr(
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_add_attr(): "
-				"error binding keyval parameter for %s[%d]\n",
+				"error binding keyval parameter for %s[%lu]\n",
 				at_rec->bam_ad->ad_cname.bv_val, i, 0 );
 			backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
@@ -861,7 +861,7 @@ backsql_add_attr(
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_add_attr(): "
-				"error binding value parameter for %s[%d]\n",
+				"error binding value parameter for %s[%lu]\n",
 				at_rec->bam_ad->ad_cname.bv_val, i, 0 );
 			backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );

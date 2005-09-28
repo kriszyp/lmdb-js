@@ -2,6 +2,8 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.8 Engineering
 	Fixed slapd undef HAVE_EPOLL issue
+	Documentation
+		Add slapo-valsort(5) man page
 
 OpenLDAP 2.3.7 Release
 	Updated slapd ManageDIT support

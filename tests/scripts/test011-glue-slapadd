@@ -49,6 +49,7 @@ done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 

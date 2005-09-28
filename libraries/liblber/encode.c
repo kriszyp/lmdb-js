@@ -56,18 +56,20 @@ static int ber_put_int_or_enum LDAP_P((
 	ber_int_t num,
 	ber_tag_t tag ));
 
+#define	BER_TOP_BYTE(type)	(sizeof(type)-1)
+#define	BER_TOP_MASK(type)	((type)0xffU << (BER_TOP_BYTE(type)*8))
 
 static int
 ber_calc_taglen( ber_tag_t tag )
 {
-	int	i;
-	ber_tag_t	mask;
+	int	i = BER_TOP_BYTE(ber_tag_t);
+	ber_tag_t	mask = BER_TOP_MASK(ber_tag_t);
 
 	/* find the first non-all-zero byte in the tag */
-	for ( i = sizeof(ber_tag_t) - 1; i > 0; i-- ) {
-		mask = ((ber_tag_t)0xffU << (i * 8));
+	for ( ; i > 0; i-- ) {
 		/* not all zero */
 		if ( tag & mask ) break;
+		mask >>= 8;
 	}
 
 	return i + 1;
@@ -80,7 +82,7 @@ ber_put_tag(
 	int nosos )
 {
 	int rc;
-	int	taglen;
+	int taglen;
 	int	i;
 	unsigned char nettag[sizeof(ber_tag_t)];
 
@@ -89,14 +91,12 @@ ber_put_tag(
 
 	taglen = ber_calc_taglen( tag );
 
-	for( i=0; i<taglen; i++ ) {
-		nettag[(sizeof(ber_tag_t)-1) - i] = (unsigned char)(tag & 0xffU);
+	for( i=taglen-1; i>=0; i-- ) {
+		nettag[i] = (unsigned char)(tag & 0xffU);
 		tag >>= 8;
 	}
 
-	rc = ber_write( ber,
-		(char *) &nettag[sizeof(ber_tag_t) - taglen],
-	    taglen, nosos );
+	rc = ber_write( ber, (char *) nettag, taglen, nosos );
 
 	return rc;
 }
@@ -151,10 +151,12 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	 */
 
 	/* find the first non-all-zero byte */
-	for ( i = sizeof(ber_len_t) - 1; i > 0; i-- ) {
-		mask = ((ber_len_t)0xffU << (i * 8));
+	i = BER_TOP_BYTE(ber_len_t);
+	mask = BER_TOP_MASK(ber_len_t);
+	for ( ; i > 0; i-- ) {
 		/* not all zero */
 		if ( len & mask ) break;
+		mask >>= 8;
 	}
 	lenlen = (unsigned char) ++i;
 	if ( lenlen > 4 ) return -1;
@@ -164,15 +166,13 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	/* write the length of the length */
 	if ( ber_write( ber, &lenlen, 1, nosos ) != 1 ) return -1;
 
-	for( j=0; j<i; j++) {
-		netlen[(sizeof(ber_len_t)-1) - j] = (unsigned char)(len & 0xffU);
+	for( j=i-1; j>=0; j-- ) {
+		netlen[j] = (unsigned char)(len & 0xffU);
 		len >>= 8;
 	}
 
 	/* write the length itself */
-	rc = ber_write( ber,
-		(char *) &netlen[sizeof(ber_len_t)-i],
-		i, nosos );
+	rc = ber_write( ber, (char *) netlen, i, nosos );
 
 	return rc == i ?  i+1 : -1;
 }
@@ -199,9 +199,9 @@ ber_put_int_or_enum(
 	 * high bit is set - look for first non-all-one byte
 	 * high bit is clear - look for first non-all-zero byte
 	 */
-	for ( i = sizeof(ber_int_t) - 1; i > 0; i-- ) {
-		mask = ((ber_uint_t)0xffU << (i * 8));
-
+	i = BER_TOP_BYTE(ber_int_t);
+	mask = BER_TOP_MASK(ber_uint_t);
+	for ( ; i > 0; i-- ) {
 		if ( sign ) {
 			/* not all ones */
 			if ( (unum & mask) != mask ) break;
@@ -209,6 +209,7 @@ ber_put_int_or_enum(
 			/* not all zero */
 			if ( unum & mask ) break;
 		}
+		mask >>= 8;
 	}
 
 	/*
@@ -231,14 +232,12 @@ ber_put_int_or_enum(
 	}
 	i++;
 
-	for( j=0; j<i; j++ ) {
-		netnum[(sizeof(ber_int_t)-1) - j] = (unsigned char)(unum & 0xffU);
+	for( j=i-1; j>=0; j-- ) {
+		netnum[j] = (unsigned char)(unum & 0xffU);
 		unum >>= 8;
 	}
 
-	rc = ber_write( ber,
-		(char *) &netnum[sizeof(ber_int_t) - i],
-		i, 0 );
+	rc = ber_write( ber, (char *) netnum, i, 0 );
 
 	/* length of tag + length + contents */
 	return rc == i ? taglen + lenlen + i : -1;
@@ -536,13 +535,14 @@ ber_put_seqorset( BerElement *ber )
 	}
 
 	if( lenlen > 1 ) {
-		ber_len_t i;
-		for( i=0; i < lenlen-1; i++ ) {
-			netlen[(sizeof(ber_len_t)-1) - i] = 
-				(unsigned char)((len >> i*8) & 0xffU);
+		int i;
+		ber_len_t j = len;
+		for( i=lenlen-2; i >= 0; i-- ) {
+			netlen[i] = j & 0xffU;
+			j >>= 8;
 		}
 	} else {
-		netlen[sizeof(ber_len_t)-1] = (unsigned char)(len & 0x7fU);
+		netlen[0] = (unsigned char)(len & 0x7fU);
 	}
 
 	if ( (next = (*sos)->sos_next) == NULL ) {
@@ -575,9 +575,7 @@ ber_put_seqorset( BerElement *ber )
 			}
 
 			/* the length itself */
-			rc  = ber_write( ber,
-				(char *) &netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN-1)],
-				FOUR_BYTE_LEN-1, 1 );
+			rc  = ber_write( ber, (char *) netlen, FOUR_BYTE_LEN-1, 1 );
 
 			if( rc != FOUR_BYTE_LEN - 1 ) {
 				return -1;
@@ -609,14 +607,12 @@ ber_put_seqorset( BerElement *ber )
 		/* the tag */
 		taglen = ber_calc_taglen( tmptag );
 
-		for( i = 0; i < taglen; i++ ) {
-			nettag[(sizeof(ber_tag_t)-1) - i] = (unsigned char)(tmptag & 0xffU);
+		for( i = taglen-1; i >= 0; i-- ) {
+			nettag[i] = (unsigned char)(tmptag & 0xffU);
 			tmptag >>= 8;
 		}
 
-		AC_FMEMCPY( (*sos)->sos_first,
-			&nettag[sizeof(ber_tag_t) - taglen],
-			taglen );
+		AC_FMEMCPY( (*sos)->sos_first, nettag, taglen );
 
 		if ( ber->ber_options & LBER_USE_DER ) {
 			ltag = (lenlen == 1)
@@ -630,9 +626,7 @@ ber_put_seqorset( BerElement *ber )
 		if ( ber->ber_options & LBER_USE_DER ) {
 			if (lenlen > 1) {
 				/* Write the length itself */
-				AC_FMEMCPY( (*sos)->sos_first + 2,
-				    &netlen[sizeof(ber_len_t) - (lenlen - 1)],
-					lenlen - 1 );
+				AC_FMEMCPY( (*sos)->sos_first + 2, netlen, lenlen - 1 );
 			}
 			if (lenlen != FOUR_BYTE_LEN) {
 				/*
@@ -647,8 +641,7 @@ ber_put_seqorset( BerElement *ber )
 		} else {
 			/* the length itself */
 			AC_FMEMCPY( (*sos)->sos_first + taglen + 1,
-			    &netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN - 1)],
-				FOUR_BYTE_LEN - 1 );
+			    netlen, FOUR_BYTE_LEN - 1 );
 		}
 
 		next->sos_clen += (taglen + lenlen + len);

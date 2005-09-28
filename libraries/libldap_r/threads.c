@@ -22,7 +22,8 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
-#include "ldap_pvt_thread.h"
+#include "ldap_pvt_thread.h" /* Get the thread interface */
+#include "ldap_thr_debug.h"  /* May redirect thread initialize/destroy calls */
 
 
 /*
@@ -59,6 +60,15 @@ int ldap_pvt_thread_destroy( void )
 #endif
 	return ldap_int_thread_destroy();
 }
+
+
+/*
+ * Default implementations of some LDAP thread routines
+ */
+
+#define LDAP_THREAD_IMPLEMENTATION
+#include "ldap_thr_debug.h"	/* May rename the symbols defined below */
+
 
 #ifndef LDAP_THREAD_HAVE_GETCONCURRENCY
 int

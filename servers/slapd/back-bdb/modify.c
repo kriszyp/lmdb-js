@@ -345,8 +345,6 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
 		locker, &lock );
 
-	e = ei->bei_e;
-
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_modify) ": dn2entry failed (%d)\n",
@@ -379,6 +377,8 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	}
+
+	e = ei->bei_e;
 
 	/* acquire and lock entry */
 	/* FIXME: dn2entry() should return non-glue entry */

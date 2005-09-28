@@ -58,11 +58,11 @@ typedef struct alock_slot {
 	char * al_appname;
 } alock_slot_t;
 
-extern int alock_open LDAP_P(( alock_info_t * info, const char * appname,
+LDAP_SLAPD_F (int) alock_open LDAP_P(( alock_info_t * info, const char * appname,
 	const char * envdir, int locktype ));
-extern int alock_scan LDAP_P(( alock_info_t * info ));
-extern int alock_close LDAP_P(( alock_info_t * info ));
-extern int alock_recover LDAP_P(( alock_info_t * info ));
+LDAP_SLAPD_F (int) alock_scan LDAP_P(( alock_info_t * info ));
+LDAP_SLAPD_F (int) alock_close LDAP_P(( alock_info_t * info ));
+LDAP_SLAPD_F (int) alock_recover LDAP_P(( alock_info_t * info ));
 
 LDAP_END_DECL
 

@@ -20,8 +20,9 @@
 /* IDL sizes - likely should be even bigger
  *   limiting factors: sizeof(ID), thread stack size
  */
-#define BDB_IDL_DB_SIZE		(1<<16) /* 64K IDL on disk */
-#define BDB_IDL_UM_SIZE		(1<<17) /* 128K IDL in memory */
+#define	BDB_IDL_LOGN	16	/* DB_SIZE is 2^16, UM_SIZE is 2^17 */
+#define BDB_IDL_DB_SIZE		(1<<BDB_IDL_LOGN)
+#define BDB_IDL_UM_SIZE		(1<<(BDB_IDL_LOGN+1))
 #define BDB_IDL_UM_SIZEOF	(BDB_IDL_UM_SIZE * sizeof(ID))
 
 #define BDB_IDL_DB_MAX		(BDB_IDL_DB_SIZE-1)

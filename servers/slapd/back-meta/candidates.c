@@ -188,6 +188,7 @@ meta_clear_one_candidate(
 	}
 
 	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
 		ber_memfree( msc->msc_cred.bv_val );
 		BER_BVZERO( &msc->msc_cred );
 	}

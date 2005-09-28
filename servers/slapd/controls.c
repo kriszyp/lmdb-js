@@ -694,6 +694,74 @@ return_results:
 	return rs->sr_err;
 }
 
+int
+slap_remove_control(
+	Operation	*op,
+	SlapReply	*rs,
+	int		ctrl,
+	BI_chk_controls	fnc )
+{
+	int		i, j;
+
+	switch ( op->o_ctrlflag[ ctrl ] ) {
+	case SLAP_CONTROL_NONCRITICAL:
+		for ( i = 0, j = -1; op->o_ctrls[ i ] != NULL; i++ ) {
+			if ( strcmp( op->o_ctrls[ i ]->ldctl_oid, slap_known_controls[ ctrl - 1 ] ) == 0 )
+			{
+				j = i;
+			}
+		}
+
+		if ( j == -1 ) {
+			rs->sr_err = LDAP_OTHER;
+			break;
+		}
+
+		if ( fnc ) {
+			(void)fnc( op, rs );
+		}
+
+		op->o_tmpfree( op->o_ctrls[ j ], op->o_tmpmemctx );
+
+		if ( i > 1 ) {
+			AC_MEMCPY( &op->o_ctrls[ j ], &op->o_ctrls[ j + 1 ],
+				( i - j ) * sizeof( LDAPControl * ) );
+
+		} else {
+			op->o_tmpfree( op->o_ctrls, op->o_tmpmemctx );
+			op->o_ctrls = NULL;
+		}
+
+		op->o_ctrlflag[ ctrl ] = SLAP_CONTROL_IGNORED;
+
+		Debug( LDAP_DEBUG_ANY, "%s: "
+			"non-critical control \"%s\" not supported; stripped.\n",
+			op->o_log_prefix, slap_known_controls[ ctrl ], 0 );
+		/* fall thru */
+
+	case SLAP_CONTROL_IGNORED:
+	case SLAP_CONTROL_NONE:
+		rs->sr_err = SLAP_CB_CONTINUE;
+		break;
+
+	case SLAP_CONTROL_CRITICAL:
+		rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+		if ( fnc ) {
+			(void)fnc( op, rs );
+		}
+		Debug( LDAP_DEBUG_ANY, "%s: "
+			"critical control \"%s\" not supported.\n",
+			op->o_log_prefix, slap_known_controls[ ctrl ], 0 );
+		break;
+
+	default:
+		/* handle all cases! */
+		assert( 0 );
+	}
+
+	return rs->sr_err;
+}
+
 #ifdef LDAP_DEVEL
 static int parseManageDIT (
 	Operation *op,
@@ -891,48 +959,6 @@ static int parsePagedResults (
 		rc = LDAP_PROTOCOL_ERROR;
 		goto done;
 	}
-
-#if 0
-	/* defer cookie decoding/checks to backend... */
-	if ( cookie.bv_len ) {
-		PagedResultsCookie reqcookie;
-		if( cookie.bv_len != sizeof( reqcookie ) ) {
-			/* bad cookie */
-			rs->sr_text = "paged results cookie is invalid";
-			rc = LDAP_PROTOCOL_ERROR;
-			goto done;
-		}
-
-		AC_MEMCPY( &reqcookie, cookie.bv_val, sizeof( reqcookie ));
-
-		if ( reqcookie > op->o_pagedresults_state.ps_cookie ) {
-			/* bad cookie */
-			rs->sr_text = "paged results cookie is invalid";
-			rc = LDAP_PROTOCOL_ERROR;
-			goto done;
-
-		} else if ( reqcookie < op->o_pagedresults_state.ps_cookie ) {
-			rs->sr_text = "paged results cookie is invalid or old";
-			rc = LDAP_UNWILLING_TO_PERFORM;
-			goto done;
-		}
-
-	} else {
-		/* Initial request.  Initialize state. */
-#if 0
-		if ( op->o_conn->c_pagedresults_state.ps_cookie != 0 ) {
-			/* There's another pagedResults control on the
-			 * same connection; reject new pagedResults controls 
-			 * (allowed by RFC2696) */
-			rs->sr_text = "paged results cookie unavailable; try later";
-			rc = LDAP_UNWILLING_TO_PERFORM;
-			goto done;
-		}
-#endif
-		op->o_pagedresults_state.ps_cookie = 0;
-		op->o_pagedresults_state.ps_count = 0;
-	}
-#endif
 
 	ps = op->o_tmpalloc( sizeof(PagedResultsState), op->o_tmpmemctx );
 	*ps = op->o_conn->c_pagedresults_state;

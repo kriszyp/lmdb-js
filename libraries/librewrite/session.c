@@ -204,6 +204,13 @@ rewrite_session_var_set_f(
 	session = rewrite_session_find( info, cookie );
 	if ( session == NULL ) {
 		session = rewrite_session_init( info, cookie );
+		if ( session == NULL ) {
+			return REWRITE_ERR;
+		}
+
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+		ldap_pvt_thread_mutex_lock( &session->ls_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	}
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS

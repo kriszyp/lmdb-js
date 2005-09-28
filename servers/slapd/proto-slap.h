@@ -168,8 +168,9 @@ LDAP_SLAPD_F (int) slap_bv2undef_ad LDAP_P((
 	const char **text,
 	unsigned proxied ));
 
-LDAP_SLAPD_F (int) slap_ad_undef_remove LDAP_P((
-	char *name ));
+LDAP_SLAPD_F (int) slap_ad_undef_promote LDAP_P((
+	char *name,
+	AttributeType *nat ));
 
 LDAP_SLAPD_F (AttributeDescription *) ad_find_tags LDAP_P((
 	AttributeType *type,
@@ -394,6 +395,7 @@ LDAP_SLAPD_V(BackendInfo) slap_binfo[];
  */
 
 LDAP_SLAPD_F (int) glue_sub_init( void );
+LDAP_SLAPD_F (int) glue_sub_attach( void );
 LDAP_SLAPD_F (int) glue_sub_add( BackendDB *be, int advert, int online );
 LDAP_SLAPD_F (int) glue_sub_del( BackendDB *be );
 
@@ -574,6 +576,11 @@ LDAP_SLAPD_F (int) slap_find_control_id LDAP_P ((
 	const char *oid, int *cid ));
 LDAP_SLAPD_F (int) slap_global_control LDAP_P ((
 	Operation *op, const char *oid, int *cid ));
+LDAP_SLAPD_F (int) slap_remove_control LDAP_P((
+	Operation	*op,
+	SlapReply	*rs,
+	int		ctrl,
+	BI_chk_controls	fnc ));
 
 /*
  * config.c
@@ -778,7 +785,7 @@ LDAP_SLAPD_F (int) dnExtractRdn LDAP_P((
 
 LDAP_SLAPD_F (int) rdn_validate LDAP_P(( struct berval * rdn ));
 
-LDAP_SLAPD_F (int) dn_rdnlen LDAP_P(( Backend *be, struct berval *dn ));
+LDAP_SLAPD_F (ber_len_t) dn_rdnlen LDAP_P(( Backend *be, struct berval *dn ));
 
 LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	struct berval * new_dn,

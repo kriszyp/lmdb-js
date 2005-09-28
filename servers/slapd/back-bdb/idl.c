@@ -224,8 +224,7 @@ int bdb_idl_insert( ID *ids, ID id )
 	return 0;
 }
 
-#if 0	/* unused */
-static int idl_delete( ID *ids, ID id )
+static int bdb_idl_delete( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
 
@@ -264,7 +263,6 @@ static int idl_delete( ID *ids, ID id )
 
 	return 0;
 }
-#endif	/* unused */
 
 static char *
 bdb_show_key(
@@ -403,6 +401,65 @@ bdb_idl_cache_del(
 		if ( matched_idl_entry->idl )
 			free( matched_idl_entry->idl );
 		free( matched_idl_entry );
+	}
+	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
+}
+
+void
+bdb_idl_cache_add_id(
+	struct bdb_info	*bdb,
+	DB			*db,
+	DBT			*key,
+	ID			id )
+{
+	bdb_idl_cache_entry_t *cache_entry, idl_tmp;
+	DBT2bv( key, &idl_tmp.kstr );
+	idl_tmp.db = db;
+	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
+	cache_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+				      bdb_idl_entry_cmp );
+	if ( cache_entry != NULL ) {
+		if ( !BDB_IDL_IS_RANGE( cache_entry->idl ) &&
+			cache_entry->idl[0] < BDB_IDL_DB_MAX ) {
+			size_t s = BDB_IDL_SIZEOF( cache_entry->idl ) + sizeof(ID);
+			cache_entry->idl = ch_realloc( cache_entry->idl, s );
+		}
+		bdb_idl_insert( cache_entry->idl, id );
+	}
+	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
+}
+
+void
+bdb_idl_cache_del_id(
+	struct bdb_info	*bdb,
+	DB			*db,
+	DBT			*key,
+	ID			id )
+{
+	bdb_idl_cache_entry_t *cache_entry, idl_tmp;
+	DBT2bv( key, &idl_tmp.kstr );
+	idl_tmp.db = db;
+	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
+	cache_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+				      bdb_idl_entry_cmp );
+	if ( cache_entry != NULL ) {
+		bdb_idl_delete( cache_entry->idl, id );
+		if ( cache_entry->idl[0] == 0 ) {
+			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) cache_entry,
+						bdb_idl_entry_cmp ) == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_del: "
+					"AVL delete failed\n",
+					0, 0, 0 );
+			}
+			--bdb->bi_idl_cache_size;
+			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
+			IDL_LRU_DELETE( bdb, cache_entry );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
+			free( cache_entry->kstr.bv_val );
+			if ( cache_entry->idl )
+				free( cache_entry->idl );
+			free( cache_entry );
+		}
 	}
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 }
@@ -1207,8 +1264,11 @@ ID bdb_idl_next( ID *ids, ID *cursor )
 	return NOID;
 }
 
-/* Add one ID to an unsorted list. We still maintain a lo/hi reference
- * for fast range compaction.
+#ifdef BDB_HIER
+
+/* Add one ID to an unsorted list. We ensure that the first element is the
+ * minimum and the last element is the maximum, for fast range compaction.
+ *   this means IDLs up to length 3 are always sorted...
  */
 int bdb_idl_append_one( ID *ids, ID id )
 {
@@ -1229,27 +1289,29 @@ int bdb_idl_append_one( ID *ids, ID id )
 			tmp = ids[1];
 			ids[1] = id;
 			id = tmp;
-		} else if ( ids[0] > 1 && id > ids[2] ) {
-			tmp = ids[2];
-			ids[2] = id;
+		}
+		if ( ids[0] > 1 && id < ids[ids[0]] ) {
+			tmp = ids[ids[0]];
+			ids[ids[0]] = id;
 			id = tmp;
 		}
 	}
 	ids[0]++;
 	if ( ids[0] >= BDB_IDL_UM_MAX ) {
 		ids[0] = NOID;
+		ids[2] = id;
 	} else {
 		ids[ids[0]] = id;
 	}
 	return 0;
 }
 
-/* Append unsorted list b to unsorted list a. Both lists must have their
- * lowest value in slot 1 and highest value in slot 2.
+/* Append sorted list b to sorted list a. The result is unsorted but
+ * a[1] is the min of the result and a[a[0]] is the max.
  */
 int bdb_idl_append( ID *a, ID *b )
 {
-	ID ida, idb;
+	ID ida, idb, tmp;
 
 	if ( BDB_IDL_IS_ZERO( b ) ) {
 		return 0;
@@ -1260,80 +1322,213 @@ int bdb_idl_append( ID *a, ID *b )
 		return 0;
 	}
 
+	ida = BDB_IDL_LAST( a );
+	idb = BDB_IDL_LAST( b );
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
 		a[0] + b[0] >= BDB_IDL_UM_MAX ) {
-		ida = IDL_MIN( a[1], b[1] );
-		idb = IDL_MAX( a[2], b[2] );
+		a[2] = IDL_MAX( ida, idb );
+		a[1] = IDL_MIN( a[1], b[1] );
 		a[0] = NOID;
-		a[1] = ida;
-		a[2] = idb;
 		return 0;
 	}
 
+	if ( b[0] > 1 && ida > idb ) {
+		a[a[0]] = idb;
+		b[b[0]] = ida;
+	}
+
 	if ( b[1] < a[1] ) {
-		ida = a[1];
+		tmp = a[1];
 		a[1] = b[1];
 	} else {
-		ida = b[1];
+		tmp = b[1];
 	}
 	a[0]++;
-	a[a[0]] = ida;
+	a[a[0]] = tmp;
 
-	if ( b[0] > 1 && b[2] > a[2] ) {
-		ida = a[2];
-		a[2] = b[2];
-	} else {
-		ida = b[2];
-	}
-	a[0]++;
-	a[a[0]] = ida;
-
-	if ( b[0] > 2 ) {
-		int i = b[0] - 2;
-		AC_MEMCPY(a+a[0]+1, b+3, i * sizeof(ID));
+	if ( b[0] > 1 ) {
+		int i = b[0] - 1;
+		AC_MEMCPY(a+a[0]+1, b+2, i * sizeof(ID));
 		a[0] += i;
 	}
 	return 0;
-	
 }
 
-/* Sort an IDL using HeapSort */
-static void
-siftDown(ID *ids, int root, int bottom)
-{
-	int child;
-	ID temp;
+#if 0
 
-	temp = ids[root];
-	while ((child=root*2) <= bottom) {
-		if (child < bottom && ids[child] < ids[child + 1])
-			child++;
+/* Quicksort + Insertion sort for small arrays */
 
-		if (temp >= ids[child])
-			break;
-		ids[root] = ids[child];
-		root = child;
-	}
-	ids[root] = temp;
-}
+#define SMALL	8
+#define	SWAP(a,b)	itmp=(a);(a)=(b);(b)=itmp
 
 void
-bdb_idl_sort( ID *ids )
+bdb_idl_sort( ID *ids, ID *tmp )
 {
-	int i;
-	ID temp;
+	int *istack = (int *)tmp;
+	int i,j,k,l,ir,jstack;
+	ID a, itmp;
 
 	if ( BDB_IDL_IS_RANGE( ids ))
 		return;
 
-	for (i = ids[0] / 2; i >= 1; i--)
-		siftDown(ids, i, ids[0]);
-
-	for (i = ids[0]; i > 1; i--)
-	{
-		temp = ids[i];
-		ids[i] = ids[1];
-		ids[1] = temp;
-		siftDown(ids, 1, i-1);
+	ir = ids[0];
+	l = 1;
+	jstack = 0;
+	for(;;) {
+		if (ir - l < SMALL) {	/* Insertion sort */
+			for (j=l+1;j<=ir;j++) {
+				a = ids[j];
+				for (i=j-1;i>=1;i--) {
+					if (ids[i] <= a) break;
+					ids[i+1] = ids[i];
+				}
+				ids[i+1] = a;
+			}
+			if (jstack == 0) break;
+			ir = istack[jstack--];
+			l = istack[jstack--];
+		} else {
+			k = (l + ir) >> 1;	/* Choose median of left, center, right */
+			SWAP(ids[k], ids[l+1]);
+			if (ids[l] > ids[ir]) {
+				SWAP(ids[l], ids[ir]);
+			}
+			if (ids[l+1] > ids[ir]) {
+				SWAP(ids[l+1], ids[ir]);
+			}
+			if (ids[l] > ids[l+1]) {
+				SWAP(ids[l], ids[l+1]);
+			}
+			i = l+1;
+			j = ir;
+			a = ids[l+1];
+			for(;;) {
+				do i++; while(ids[i] < a);
+				do j--; while(ids[j] > a);
+				if (j < i) break;
+				SWAP(ids[i],ids[j]);
+			}
+			ids[l+1] = ids[j];
+			ids[j] = a;
+			jstack += 2;
+			if (ir-i+1 >= j-1) {
+				istack[jstack] = ir;
+				istack[jstack-1] = i;
+				ir = j-1;
+			} else {
+				istack[jstack] = j-1;
+				istack[jstack-1] = l;
+				l = i;
+			}
+		}
 	}
 }
+
+#else
+
+/* 8 bit Radix sort + insertion sort
+ * 
+ * based on code from http://www.cubic.org/docs/radix.htm
+ * with improvements by mbackes@symas.com and hyc@symas.com
+ *
+ * This code is O(n) but has a relatively high constant factor. For lists
+ * up to ~50 Quicksort is slightly faster; up to ~100 they are even.
+ * Much faster than quicksort for lists longer than ~100. Insertion
+ * sort is actually superior for lists <50.
+ */
+
+#define BUCKETS	(1<<8)
+#define SMALL	50
+
+void
+bdb_idl_sort( ID *ids, ID *tmp )
+{
+	int count, soft_limit, phase = 0, size = ids[0];
+	ID *idls[2];
+	unsigned char *maxv = (unsigned char *)&ids[size];
+
+ 	if ( BDB_IDL_IS_RANGE( ids ))
+ 		return;
+
+	/* Use insertion sort for small lists */
+	if ( size <= SMALL ) {
+		int i,j;
+		ID a;
+
+		for (j=1;j<=size;j++) {
+			a = ids[j];
+			for (i=j-1;i>=1;i--) {
+				if (ids[i] <= a) break;
+				ids[i+1] = ids[i];
+			}
+			ids[i+1] = a;
+		}
+		return;
+	}
+
+	tmp[0] = size;
+	idls[0] = ids;
+	idls[1] = tmp;
+
+#if BYTE_ORDER == BIG_ENDIAN
+    for (soft_limit = 0; !maxv[soft_limit]; soft_limit++);
+#else
+    for (soft_limit = sizeof(ID)-1; !maxv[soft_limit]; soft_limit--);
+#endif
+
+	for (
+#if BYTE_ORDER == BIG_ENDIAN
+	count = sizeof(ID)-1; count >= soft_limit; --count
+#else
+	count = 0; count <= soft_limit; ++count
+#endif
+	) {
+		unsigned int num[BUCKETS], * np, n, sum;
+		int i;
+        ID *sp, *source, *dest;
+        unsigned char *bp, *source_start;
+
+		source = idls[phase]+1;
+		dest = idls[phase^1]+1;
+		source_start =  ((unsigned char *) source) + count;
+
+        np = num;
+        for ( i = BUCKETS; i > 0; --i ) *np++ = 0;
+
+		/* count occurences of every byte value */
+		bp = source_start;
+        for ( i = size; i > 0; --i, bp += sizeof(ID) )
+				num[*bp]++;
+
+		/* transform count into index by summing elements and storing
+		 * into same array
+		 */
+        sum = 0;
+        np = num;
+        for ( i = BUCKETS; i > 0; --i ) {
+                n = *np;
+                *np++ = sum;
+                sum += n;
+        }
+
+		/* fill dest with the right values in the right place */
+		bp = source_start;
+        sp = source;
+        for ( i = size; i > 0; --i, bp += sizeof(ID) ) {
+                np = num + *bp;
+                dest[*np] = *sp++;
+                ++(*np);
+        }
+		phase ^= 1;
+	}
+
+	/* copy back from temp if needed */
+	if ( phase ) {
+		ids++; tmp++;
+		for ( count = 0; count < size; ++count ) 
+			*ids++ = *tmp++;
+	}
+}
+#endif	/* Quick vs Radix */
+
+#endif	/* BDB_HIER */

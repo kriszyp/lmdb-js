@@ -176,10 +176,9 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 			int			lrc;
 			LDAPMessage		*res = NULL;
-			struct timeval		tv = { 0 };
+			struct timeval		tv;
 
-			tv.tv_sec = 0;
-			tv.tv_usec = 100000;	/* 0.1 s */
+			LDAP_BACK_TV_SET( &tv );
 
 			if ( msgid[ i ] == -1 ) {
 				continue;

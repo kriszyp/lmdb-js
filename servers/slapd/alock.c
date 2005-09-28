@@ -20,6 +20,9 @@
  */
 
 #include "portable.h"
+
+#if SLAPD_BDB || SLAPD_HDB || SLAPD_LDBM
+
 #include "alock.h"
 
 #include <ac/stdlib.h>
@@ -622,3 +625,5 @@ alock_recover ( alock_info_t * info )
 
 	return ALOCK_CLEAN;
 }
+
+#endif /* SLAPD_BDB || SLAPD_HDB */

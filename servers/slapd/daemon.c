@@ -1572,7 +1572,10 @@ slapd_daemon_task(
 		ber_socket_t i;
 		int ns, nwriters;
 		int at;
-		ber_socket_t nfds, nrfds, nwfds;
+		ber_socket_t nfds;
+#if SLAP_EVENTS_ARE_INDEXED
+		ber_socket_t nrfds, nwfds;
+#endif
 #define SLAPD_EBADF_LIMIT 16
 
 		time_t	now;
@@ -1915,6 +1918,10 @@ slapd_daemon_task(
 #endif
 			 ) continue;
 
+			/* Don't log internal wake events */
+			if ( SLAP_EVENT_FD( i ) == wake_sds[0] )
+				continue;
+
 			r = SLAP_EVENT_IS_READ( i );
 			w = SLAP_EVENT_IS_WRITE( i );
 			if ( r || w ) {
@@ -1935,6 +1942,10 @@ slapd_daemon_task(
 			 */
 			if ( rc ) {
 				fd = SLAP_EVENT_FD( i );
+
+				/* Ignore wake events, they were handled above */
+				if ( fd == wake_sds[0] )
+					continue;
 
 				if( SLAP_EVENT_IS_WRITE( i ) ) {
 					Debug( LDAP_DEBUG_CONNS,

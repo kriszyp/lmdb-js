@@ -244,8 +244,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	LDAPMessage	*res = NULL, *e;
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;
-	int		i, last = 0, ncandidates = 0,
+	int		last = 0, ncandidates = 0,
 			initial_candidates = 0, candidate_match = 0;
+	long		i;
 	dncookie	dc;
 	int		is_ok = 0;
 	void		*savepriv;
@@ -357,7 +358,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		stoptime = op->o_time + op->ors_tlimit;
-		tv.tv_sec = 0;
 	}
 
 	/*
@@ -630,11 +630,11 @@ really_bad:;
 				sres = slap_map_api2result( rs );
 
 				snprintf( buf, sizeof( buf ),
-					"%s meta_back_search[%d] "
-					"match=\"%s\" err=%d\n",
+					"%s meta_back_search[%ld] "
+					"match=\"%s\" err=%ld\n",
 					op->o_log_prefix, i,
 					candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
-					candidates[ i ].sr_err );
+					(long) candidates[ i ].sr_err );
 				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
 
 				switch ( sres ) {
@@ -702,8 +702,7 @@ really_bad:;
 		}
 
 		if ( gotit == 0 ) {
-			tv.tv_sec = 0;
-                        tv.tv_usec = 100000;	/* 0.1 s */
+			LDAP_BACK_TV_SET( &tv );
                         ldap_pvt_thread_yield();
 
 		} else {
@@ -726,7 +725,7 @@ really_bad:;
 	 * FIXME: only the last one gets caught!
 	 */
 	savepriv = op->o_private;
-	op->o_private = (void *)mi->mi_ntargets;
+	op->o_private = (void *)(long)mi->mi_ntargets;
 	if ( candidate_match > 0 ) {
 		struct berval	pmatched = BER_BVNULL;
 
@@ -867,9 +866,11 @@ meta_send_entry(
 	Entry 			ent = { 0 };
 	BerElement 		ber = *e->lm_ber;
 	Attribute 		*attr, **attrp;
-	struct berval 		*bv, bdn;
+	struct berval 		bdn,
+				dn = BER_BVNULL;
 	const char 		*text;
 	dncookie		dc;
+	int			rc;
 
 	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;
@@ -883,7 +884,7 @@ meta_send_entry(
 	dc.rs = rs;
 	dc.ctx = "searchResult";
 
-	rs->sr_err = ldap_back_dn_massage( &dc, &bdn, &ent.e_name );
+	rs->sr_err = ldap_back_dn_massage( &dc, &bdn, &dn );
 	if ( rs->sr_err != LDAP_SUCCESS) {
 		return rs->sr_err;
 	}
@@ -895,9 +896,14 @@ meta_send_entry(
 	 * 
 	 * FIXME: should we log anything, or delegate to dnNormalize?
 	 */
-	if ( dnNormalize( 0, NULL, NULL, &ent.e_name, &ent.e_nname,
-		op->o_tmpmemctx ) != LDAP_SUCCESS )
-	{
+	rc = dnPrettyNormal( NULL, &dn, &ent.e_name, &ent.e_nname,
+		op->o_tmpmemctx );
+	if ( dn.bv_val != bdn.bv_val ) {
+		free( dn.bv_val );
+	}
+	BER_BVZERO( &dn );
+
+	if ( rc != LDAP_SUCCESS ) {
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 
@@ -992,6 +998,8 @@ meta_send_entry(
 		if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass )
 		{
+			struct berval 	*bv;
+
 			for ( bv = attr->a_vals; !BER_BVISNULL( bv ); bv++ ) {
 				ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
@@ -1045,10 +1053,27 @@ meta_send_entry(
 						&attr->a_vals[i] );
 				}
 
+				if ( rc ) {
+					LBER_FREE( attr->a_vals[i].bv_val );
+					if ( --last == i ) {
+						BER_BVZERO( &attr->a_vals[ i ] );
+						break;
+					}
+					attr->a_vals[i] = attr->a_vals[last];
+					BER_BVZERO( &attr->a_vals[last] );
+					i--;
+					continue;
+				}
+
 				if ( pretty ) {
 					LBER_FREE( attr->a_vals[i].bv_val );
 					attr->a_vals[i] = pval;
 				}
+			}
+
+			if ( last == 0 && attr->a_vals != &slap_dummy_bv ) {
+				attr_free( attr );
+				goto next_attr;
 			}
 		}
 
@@ -1084,9 +1109,7 @@ next_attr:;
 	rs->sr_attrs = NULL;
 	
 	if ( !BER_BVISNULL( &ent.e_name ) ) {
-		if ( ent.e_name.bv_val != bdn.bv_val ) {
-			free( ent.e_name.bv_val );
-		}
+		free( ent.e_name.bv_val );
 		BER_BVZERO( &ent.e_name );
 	}
 	if ( !BER_BVISNULL( &ent.e_nname ) ) {

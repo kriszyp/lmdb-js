@@ -43,7 +43,7 @@ ucgendat: $(XLIBS) ucgendat.o
 	done
 	touch .links
 
-$(XXSRCS) : .links
+$(XXSRCS) $(XXHEADERS) : .links
 
 clean-local: FORCE
 	@$(RM) *.dat .links $(XXHEADERS) ucgendat

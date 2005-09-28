@@ -64,7 +64,7 @@ ldap_back_modify(
 
 	isupdate = be_shadow_update( op );
 	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
-		if ( !isupdate && !!get_manageDIT( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
+		if ( !isupdate && !get_manageDIT( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
 			continue;
 		}

@@ -209,9 +209,7 @@ static const struct pw_scheme *get_scheme(
 	bv.bv_val = (char *) scheme;
 
 	for( pws=pw_schemes; pws; pws=pws->next ) {
-		if( bv.bv_len != pws->s.name.bv_len )
-			continue;
-		if( strncasecmp(bv.bv_val, pws->s.name.bv_val, bv.bv_len ) == 0 ) {
+		if ( ber_bvstrcasecmp(&bv, &pws->s.name ) == 0 ) {
 			return &(pws->s);
 		}
 	}

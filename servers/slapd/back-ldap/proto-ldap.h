@@ -78,6 +78,8 @@ ldap_back_proxy_authz_ctrl_free(
 
 extern int chain_init( void );
 
+extern LDAP_REBIND_PROC		*ldap_back_rebind_f;
+
 LDAP_END_DECL
 
 #endif /* PROTO_LDAP_H */

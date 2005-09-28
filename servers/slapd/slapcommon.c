@@ -424,7 +424,7 @@ slap_tool_init(
 		break;
 	}
 
-	rc = glue_sub_init();
+	rc = glue_sub_attach();
 
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: subordinate configuration error\n", progname );

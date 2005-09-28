@@ -459,7 +459,7 @@ parse_replica_line(
 		ri->ri_port = atoi( hp );
 	    }
 	    if ( ri->ri_port <= 0 ) {
-		ri->ri_port = 0;
+		ri->ri_port = LDAP_PORT;
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;

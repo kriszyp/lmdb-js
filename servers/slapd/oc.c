@@ -236,10 +236,10 @@ oc_bvfind_undef( struct berval *ocname )
 
 static int
 oc_create_required(
-    ObjectClass		*soc,
-    char		**attrs,
+	ObjectClass		*soc,
+	char			**attrs,
 	int			*op,
-    const char		**err )
+	const char		**err )
 {
 	char		**attrs1;
 	AttributeType	*sat;
@@ -267,7 +267,7 @@ oc_create_required(
 		}
 		/* Now delete duplicates from the allowed list */
 		for ( satp = soc->soc_required; *satp; satp++ ) {
-			i = at_find_in_list(*satp,soc->soc_allowed);
+			i = at_find_in_list(*satp, soc->soc_allowed);
 			if ( i >= 0 ) {
 				at_delete_from_list(i, &soc->soc_allowed);
 			}
@@ -312,10 +312,10 @@ oc_create_allowed(
 
 static int
 oc_add_sups(
-    ObjectClass		*soc,
-    char			**sups,
+	ObjectClass		*soc,
+	char			**sups,
 	int			*op,
-    const char		**err )
+	const char		**err )
 {
 	int		code;
 	ObjectClass	*soc1;
@@ -594,22 +594,54 @@ oc_add(
 		code = oc_add_sups( soc, soc->soc_sup_oids, &op, err );
 	}
 
-	if ( code != 0 ) return code;
-	if( user && op ) return SLAP_SCHERR_CLASS_BAD_SUP;
+	if ( code != 0 ) {
+		goto done;
+	}
+
+	if ( user && op ) {
+		code = SLAP_SCHERR_CLASS_BAD_SUP;
+		goto done;
+	}
 
 	code = oc_create_required( soc, soc->soc_at_oids_must, &op, err );
-	if ( code != 0 ) return code;
+	if ( code != 0 ) {
+		goto done;
+	}
 
 	code = oc_create_allowed( soc, soc->soc_at_oids_may, &op, err );
-	if ( code != 0 ) return code;
+	if ( code != 0 ) {
+		goto done;
+	}
 
-	if( user && op ) return SLAP_SCHERR_CLASS_BAD_USAGE;
+	if ( user && op ) {
+		code = SLAP_SCHERR_CLASS_BAD_USAGE;
+		goto done;
+	}
 
-	if( !user ) soc->soc_flags |= SLAP_OC_HARDCODE;
+	if ( !user ) {
+		soc->soc_flags |= SLAP_OC_HARDCODE;
+	}
 
 	code = oc_insert(soc,err);
-	if ( code == 0 && rsoc )
+done:;
+	if ( code != 0 ) {
+		if ( soc->soc_sups ) {
+			ch_free( soc->soc_sups );
+		}
+
+		if ( soc->soc_required ) {
+			ch_free( soc->soc_required );
+		}
+
+		if ( soc->soc_allowed ) {
+			ch_free( soc->soc_allowed );
+		}
+
+		ch_free( soc );
+
+	} else if ( rsoc ) {
 		*rsoc = soc;
+	}
 	return code;
 }
 

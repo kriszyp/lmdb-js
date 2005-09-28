@@ -550,7 +550,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-		"number of values in query: %d\n", count, 0, 0 );
+		"number of values in query: %lu\n", count, 0, 0 );
 	SQLFreeStmt( sth, SQL_DROP );
 	if ( count == 0 ) {
 		return 1;
@@ -662,7 +662,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 			BACKSQL_SUCCESS( rc );
 			rc = SQLFetch( sth ), k++ )
 	{
-		for ( i = 0; i < row.ncols; i++ ) {
+		for ( i = 0; i < (unsigned long)row.ncols; i++ ) {
 
 			if ( row.value_len[ i ] > 0 ) {
 				struct berval		bv;
@@ -722,11 +722,11 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 					 * but we're accepting the attributes;
 					 * should we fail at all? */
 					snprintf( buf, sizeof( buf ),
-							"unable to %s value #%d "
+							"unable to %s value #%lu "
 							"of AttributeDescription %s",
 							pretty ? "prettify" : "validate",
-							at->bam_ad->ad_cname.bv_val,
-							k - oldcount );
+							k - oldcount,
+							at->bam_ad->ad_cname.bv_val );
 					Debug( LDAP_DEBUG_TRACE,
 						"==>backsql_get_attr_vals(\"%s\"): "
 						"%s (%d)\n",
@@ -757,10 +757,10 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 						 * but we're accepting the attributes;
 						 * should we fail at all? */
 						snprintf( buf, sizeof( buf ),
-							"unable to normalize value #%d "
+							"unable to normalize value #%lu "
 							"of AttributeDescription %s",
-							at->bam_ad->ad_cname.bv_val,
-							k - oldcount );
+							k - oldcount,
+							at->bam_ad->ad_cname.bv_val );
 						Debug( LDAP_DEBUG_TRACE,
 							"==>backsql_get_attr_vals(\"%s\"): "
 							"%s (%d)\n",

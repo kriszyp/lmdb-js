@@ -49,7 +49,6 @@ ldbm_back_modrdn(
 	/* LDAP v2 supporting correct attribute handling. */
 	LDAPRDN		new_rdn = NULL;
 	LDAPRDN		old_rdn = NULL;
-	int		isroot = -1;
 	int 		rc_id = 0;
 	ID              id = NOID;
 	char		textbuf[SLAP_TEXT_BUFLEN];
@@ -159,78 +158,39 @@ ldbm_back_modrdn(
 
 			goto return_results;
 		}
-
-		/* check parent for "children" acl */
-		if ( ! access_allowed( op, p, children, NULL,
-				op->oq_modrdn.rs_newSup != NULL ?
-					ACL_WDEL : ACL_WRITE,
-				NULL ) )
-		{
-			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
-				0, 0 );
-
-			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
-				NULL );
-			goto return_results;
-		}
-
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: wr to children of entry %s OK\n",
-		       p_ndn.bv_val, 0, 0 );
-
-		if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
-			p_dn = slap_empty_bv;
-		} else {
-			dnParent( &e->e_name, &p_dn );
-		}
-
-		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: parent dn=%s\n",
-		       p_dn.bv_val, 0, 0 );
-
 	} else {
-		/* no parent, must be root to modify rdn */
-		isroot = be_isroot( op );
-		if ( ! isroot ) {
-			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-				|| be_shadow_update( op ) ) {
-				int	can_access;
-				p = (Entry *)&slap_entry_root;
-				
-				can_access = access_allowed( op, p,
-						children, NULL,
-						op->oq_modrdn.rs_newSup ?
-							ACL_WDEL : ACL_WRITE,
-						NULL );
-				p = NULL;
-								
-				/* check parent for "children" acl */
-				if ( ! can_access ) {
-					Debug( LDAP_DEBUG_TRACE,
-						"<=- ldbm_back_modrdn: no "
-						"access to parent\n", 0, 0, 0 );
-
-					send_ldap_error( op, rs,
-						LDAP_INSUFFICIENT_ACCESS,
-						NULL );
-					goto return_results;
-				}
-
-			} else {
-				Debug( LDAP_DEBUG_TRACE,
-					"<=- ldbm_back_modrdn: no parent & "
-					"not root\n", 0, 0, 0);
-
-				send_ldap_error( op, rs,
-					LDAP_INSUFFICIENT_ACCESS,
-					NULL );
-				goto return_results;
-			}
-		}
-
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: no parent, locked root\n",
-		       0, 0, 0 );
+		p = (Entry *)&slap_entry_root;
 	}
+
+	/* check parent for "children" acl */
+	if ( ! access_allowed( op, p, children, NULL,
+			op->oq_modrdn.rs_newSup != NULL ?
+				ACL_WDEL : ACL_WRITE,
+			NULL ) )
+	{
+		Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
+			0, 0 );
+
+		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
+			NULL );
+		goto return_results;
+	}
+
+	if ( BER_BVISEMPTY( &p_ndn ))
+		p = NULL;
+
+	Debug( LDAP_DEBUG_TRACE,
+		   "ldbm_back_modrdn: wr to children of entry %s OK\n",
+		   p_ndn.bv_val, 0, 0 );
+
+	if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
+		p_dn = slap_empty_bv;
+	} else {
+		dnParent( &e->e_name, &p_dn );
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: parent dn=%s\n",
+		   p_dn.bv_val, 0, 0 );
 
 	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
@@ -262,7 +222,7 @@ ldbm_back_modrdn(
 				    "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
 				    np_ndn->bv_val, 0, 0);
 
-				send_ldap_error( op, rs, LDAP_OTHER,
+				send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT,
 					"newSuperior not found" );
 				goto return_results;
 			}
@@ -306,27 +266,20 @@ ldbm_back_modrdn(
 			}
 
 		} else {
-
-			/* no parent, must be root to modify newSuperior */
-			if ( isroot == -1 ) {
-				isroot = be_isroot( op );
-			}
-
-			if ( ! isroot ) {
-				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-					|| be_shadow_update( op ) ) {
-					int	can_access;
-					np = (Entry *)&slap_entry_root;
-				
-					can_access = access_allowed( op, np,
-							children, NULL, ACL_WADD, NULL );
-					np = NULL;
-								
-					/* check parent for "children" acl */
-					if ( ! can_access ) {
-						Debug( LDAP_DEBUG_TRACE,
-							"<=- ldbm_back_modrdn: no "
-							"access to new superior\n", 0, 0, 0 );
+			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
+				|| be_shadow_update( op ) ) {
+				int	can_access;
+				np = (Entry *)&slap_entry_root;
+			
+				can_access = access_allowed( op, np,
+						children, NULL, ACL_WADD, NULL );
+				np = NULL;
+							
+				/* check parent for "children" acl */
+				if ( ! can_access ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"<=- ldbm_back_modrdn: no "
+						"access to new superior\n", 0, 0, 0 );
 
 						send_ldap_error( op, rs,
 							LDAP_INSUFFICIENT_ACCESS,
@@ -334,17 +287,16 @@ ldbm_back_modrdn(
 						goto return_results;
 					}
 
-				} else {
-					Debug( LDAP_DEBUG_TRACE,
-						"<=- ldbm_back_modrdn: \"\" "
-						"not allowed as new superior\n", 
-						0, 0, 0);
+			} else {
+				Debug( LDAP_DEBUG_TRACE,
+					"<=- ldbm_back_modrdn: \"\" "
+					"not allowed as new superior\n", 
+					0, 0, 0);
 
-					send_ldap_error( op, rs,
-						LDAP_INSUFFICIENT_ACCESS,
-						NULL );
-					goto return_results;
-				}
+				send_ldap_error( op, rs,
+					LDAP_INSUFFICIENT_ACCESS,
+					NULL );
+				goto return_results;
 			}
 		}
 

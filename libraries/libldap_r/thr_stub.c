@@ -18,7 +18,10 @@
 
 #if defined( NO_THREADS )
 
-#include "ldap_pvt_thread.h"
+#include "ldap_pvt_thread.h" /* Get the thread interface */
+#define LDAP_THREAD_IMPLEMENTATION
+#define LDAP_THREAD_POOL_IMPLEMENTATION
+#include "ldap_thr_debug.h"  /* May rename the symbols defined below */
 
 /***********************************************************************
  *                                                                     *
@@ -214,6 +217,10 @@ int ldap_pvt_thread_pool_resume (
 void *ldap_pvt_thread_pool_context( )
 {
 	return(NULL);
+}
+
+void ldap_pvt_thread_pool_context_reset( void *vctx )
+{
 }
 
 ldap_pvt_thread_t

@@ -119,7 +119,12 @@ static struct schema_info {
 		"EQUALITY generalizedTimeMatch "
 		"ORDERING generalizedTimeOrderingMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		"SINGLE-VALUE "
+#if 0
+		/* Not until MANAGEDIT control is released */
+		"NO-USER-MODIFICATION "
+#endif
+		"USAGE directoryOperation )",
 		&ad_pwdAccountLockedTime },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.19 "
 		"NAME ( 'pwdFailureTime' ) "
@@ -1060,6 +1065,10 @@ ppolicy_add(
 	if ( ppolicy_restrict( op, rs ) != SLAP_CB_CONTINUE )
 		return rs->sr_err;
 
+	/* If this is a replica, assume the master checked everything */
+	if ( be_shadow_update( op ))
+		return SLAP_CB_CONTINUE;
+
 	/* Check for password in entry */
 	if ((pa = attr_find( op->oq_add.rs_e->e_attrs,
 		slap_schema.si_ad_userPassword )))
@@ -1126,7 +1135,7 @@ ppolicy_add(
 			}
 		}
 		/* If password aging is in effect, set the pwdChangedTime */
-		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_shadow_update( op )) {
+		if ( pp.pwdMaxAge || pp.pwdMinAge ) {
 			struct berval timestamp;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 			time_t now = slap_get_time();
@@ -1164,6 +1173,80 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	op->o_bd->bd_info = (BackendInfo *)on;
 
 	if ( rc != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
+
+	/* If this is a replica, we may need to tweak some of the
+	 * master's modifications. Otherwise, just pass it through.
+	 */
+	if ( be_shadow_update( op )) {
+		Modifications **prev;
+		int got_del_grace = 0, got_del_lock = 0, got_pw = 0;
+		Attribute *a_grace, *a_lock;
+
+		a_grace = attr_find( e->e_attrs, ad_pwdGraceUseTime );
+		a_lock = attr_find( e->e_attrs, ad_pwdAccountLockedTime );
+
+		for( prev = &op->oq_modify.rs_modlist, ml = *prev; ml;
+			prev = &ml->sml_next, ml = *prev ) {
+
+			if ( ml->sml_desc == slap_schema.si_ad_userPassword )
+				got_pw = 1;
+
+			/* If we're deleting an attr that didn't exist,
+			 * drop this delete op
+			 */
+			if ( ml->sml_op == LDAP_MOD_DELETE ) {
+				int drop = 0;
+
+				if ( ml->sml_desc == ad_pwdGraceUseTime ) {
+					got_del_grace = 1;
+					if ( !a_grace )
+						drop = 1;
+				} else
+				if ( ml->sml_desc == ad_pwdAccountLockedTime ) {
+					got_del_lock = 1;
+					if ( !a_lock )
+						drop = 1;
+				}
+				if ( drop ) {
+					*prev = ml->sml_next;
+					ml->sml_next = NULL;
+					slap_mods_free( ml, 1 );
+				}
+			}
+		}
+
+		/* If we're resetting the password, make sure grace and accountlock
+		 * also get removed.
+		 */
+		if ( got_pw ) {
+			if ( a_grace && !got_del_grace ) {
+				ml = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				ml->sml_op = LDAP_MOD_DELETE;
+				ml->sml_flags = SLAP_MOD_INTERNAL;
+				ml->sml_type.bv_val = NULL;
+				ml->sml_desc = ad_pwdGraceUseTime;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
+				ml->sml_next = NULL;
+				*prev = ml;
+				prev = &ml->sml_next;
+			}
+			if ( a_lock && !got_del_lock ) {
+				ml = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				ml->sml_op = LDAP_MOD_DELETE;
+				ml->sml_flags = SLAP_MOD_INTERNAL;
+				ml->sml_type.bv_val = NULL;
+				ml->sml_desc = ad_pwdAccountLockedTime;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
+				ml->sml_next = NULL;
+				*prev = ml;
+			}
+		}
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		be_entry_release_r( op, e );
+		return SLAP_CB_CONTINUE;
+	}
 
 	/* Did we receive a password policy request control? */
 	if ( op->o_ctrlflag[ppolicy_cid] ) {
@@ -1434,7 +1517,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	}
 
 do_modify:
-	if ((pwmod) && (!be_shadow_update( op ))) {
+	if (pwmod) {
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		time_t now = slap_get_time();
@@ -1474,6 +1557,19 @@ do_modify:
 			mods->sml_flags = SLAP_MOD_INTERNAL;
 			mods->sml_type.bv_val = NULL;
 			mods->sml_desc = ad_pwdGraceUseTime;
+			mods->sml_values = NULL;
+			mods->sml_nvalues = NULL;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
+
+		if (attr_find(e->e_attrs, ad_pwdAccountLockedTime )) {
+			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_type.bv_val = NULL;
+			mods->sml_desc = ad_pwdAccountLockedTime;
 			mods->sml_values = NULL;
 			mods->sml_nvalues = NULL;
 			mods->sml_next = NULL;
@@ -1644,6 +1740,44 @@ ppolicy_parseCtrl(
 }
 
 static int
+attrPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	AttributeDescription *ad = NULL;
+	const char *err;
+	int code;
+
+	code = slap_bv2ad( val, &ad, &err );
+	if ( !code ) {
+		ber_dupbv_x( out, &ad->ad_type->sat_cname, ctx );
+	}
+	return code;
+}
+
+static int
+attrNormalize(
+	slap_mask_t use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	AttributeDescription *ad = NULL;
+	const char *err;
+	int code;
+
+	code = slap_bv2ad( val, &ad, &err );
+	if ( !code ) {
+		ber_str2bv_x( ad->ad_type->sat_oid, 0, 1, out, ctx );
+	}
+	return code;
+}
+
+static int
 ppolicy_db_init(
 	BackendDB *be
 )
@@ -1661,6 +1795,20 @@ ppolicy_db_init(
 				fprintf( stderr, "User Schema Load failed %d: %s\n", code, err );
 				return code;
 			}
+		}
+		{
+			Syntax *syn;
+			MatchingRule *mr;
+
+			syn = ch_malloc( sizeof( Syntax ));
+			*syn = *ad_pwdAttribute->ad_type->sat_syntax;
+			syn->ssyn_pretty = attrPretty;
+			ad_pwdAttribute->ad_type->sat_syntax = syn;
+
+			mr = ch_malloc( sizeof( MatchingRule ));
+			*mr = *ad_pwdAttribute->ad_type->sat_equality;
+			mr->smr_normalize = attrNormalize;
+			ad_pwdAttribute->ad_type->sat_equality = mr;
 		}
 	}
 
@@ -1738,6 +1886,7 @@ ppolicy_config(
 			return ( 1 );
 		}
 		pi->hash_passwords = 1;
+		return 0;
 	}
 	return SLAP_CONF_UNKNOWN;
 }

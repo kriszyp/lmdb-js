@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-if test "$BACKEND" != "bdb" -a "$BACKEND" != "hdb" ; then
+if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
 	echo "Test does not support $BACKEND"
 	exit 0
 fi
@@ -67,7 +67,7 @@ fi
 echo "Searching unmodified database..."
 
 $LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 | \
-	egrep "(manager|secretary):" | sed "s/george/foster/g" | \
+	$EGREP_CMD "(manager|secretary):" | sed "s/george/foster/g" | \
 	sort > $SEARCHOUT 2>&1
 
 RC=$?
@@ -93,7 +93,7 @@ fi
 echo "Using ldapsearch to check dependents new rdn..."
 
 $LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 | \
-	egrep "(manager|secretary):" | sort > $SEARCHFLT 2>&1
+	$EGREP_CMD "(manager|secretary):" | sort > $SEARCHFLT 2>&1
 
 RC=$?
 	if test $RC != 0 ; then
@@ -107,6 +107,7 @@ $CMP $SEARCHOUT $SEARCHOUT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - modify operations did not complete correctly"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
@@ -127,7 +128,7 @@ fi
 
 echo "Using ldapsearch to verify dependents have been deleted..."
 $LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 | \
-	egrep "(manager|secretary):" > $SEARCHFLT 2>&1
+	$EGREP_CMD "(manager|secretary):" > $SEARCHFLT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -139,6 +140,7 @@ fi
 RC=`grep -c foster $SEARCHFLT`
 if test $RC != 0 ; then
 	echo "dependent modify failed - dependents were not deleted"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 

@@ -1205,6 +1205,42 @@ add_filter_attrs(
 	}
 }
 
+/* NOTE: this is a quick workaround to let pcache minimally interact
+ * with pagedResults.  A more articulated solutions would be to
+ * perform the remote query without control and cache all results,
+ * performing the pagedResults search only within the client
+ * and the proxy.  This requires pcache to understand pagedResults. */
+static int
+proxy_cache_chk_controls(
+	Operation	*op,
+	SlapReply	*rs )
+{
+	const char	*non = "";
+	const char	*stripped = "";
+
+	switch( op->o_pagedresults ) {
+	case SLAP_CONTROL_NONCRITICAL:
+		non = "non-";
+		stripped = "; stripped";
+		/* fallthru */
+
+	case SLAP_CONTROL_CRITICAL:
+		Debug( LDAP_DEBUG_ANY, "%s: "
+			"%scritical pagedResults control "
+			"disabled with proxy cache%s.\n",
+			op->o_log_prefix, non, stripped );
+		
+		slap_remove_control( op, rs, slap_cids.sc_pagedResults, NULL );
+		break;
+
+	default:
+		rs->sr_err = SLAP_CB_CONTINUE;
+		break;
+	}
+
+	return rs->sr_err;
+}
+
 static int
 proxy_cache_search(
 	Operation	*op,
@@ -1240,6 +1276,9 @@ proxy_cache_search(
 
 	Debug( LDAP_DEBUG_ANY, "query template of incoming query = %s\n",
 					tempstr.bv_val, 0, 0 );
+
+	/* FIXME: cannot cache/answer requests with pagedResults control */
+	
 
 	/* find attr set */
 	attr_set = get_attr_set(op->ors_attrs, qm, cm->numattrsets);
@@ -2079,6 +2118,8 @@ int pcache_init()
 	proxy_cache.on_bi.bi_db_close = proxy_cache_close;
 	proxy_cache.on_bi.bi_db_destroy = proxy_cache_destroy;
 	proxy_cache.on_bi.bi_op_search = proxy_cache_search;
+
+	proxy_cache.on_bi.bi_chk_controls = proxy_cache_chk_controls;
 
 	proxy_cache.on_bi.bi_cf_ocs = pcocs;
 

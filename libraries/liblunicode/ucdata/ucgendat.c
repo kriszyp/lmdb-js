@@ -38,6 +38,7 @@
 #include "ldap_config.h"
 
 #include <stdio.h>
+#include <ac/ctype.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
@@ -1223,7 +1224,7 @@ read_compexdata(FILE *in)
          */
 
 	for (s = line, i = code = 0; *s != '#' && i < 6; i++, s++) {
-	    if (isspace(*s)) break;
+	    if (isspace((unsigned char)*s)) break;
             code <<= 4;
             if (*s >= '0' && *s <= '9')
 		code += *s - '0';
@@ -1268,8 +1269,9 @@ write_case(FILE *out, _case_t *tab, int num, int first)
     for (i=0; i<num; i++) {
 	if (first) first = 0;
 	else fprintf(out, ",");
-	fprintf(out, "\n\t0x%08x, 0x%08x, 0x%08x",
-		tab[i].key, tab[i].other1, tab[i].other2);
+	fprintf(out, "\n\t0x%08lx, 0x%08lx, 0x%08lx",
+		(unsigned long) tab[i].key, (unsigned long) tab[i].other1,
+		(unsigned long) tab[i].other2);
     }
 }
 
@@ -1283,7 +1285,9 @@ write_cdata(char *opath)
     FILE *out;
 	ac_uint4 bytes;
     ac_uint4 i, idx, nprops;
+#if !(HARDCODE_DATA)
     ac_uint2 casecnt[2];
+#endif
     char path[BUFSIZ];
 #if HARDCODE_DATA
     int j, k;
@@ -1364,7 +1368,7 @@ write_cdata(char *opath)
 	    if (!(k&3)) fprintf(out,"\n\t");
 	    else fprintf(out, " ");
 	    k++;
-	    fprintf(out, "0x%08x", proptbl[i].ranges[j]);
+	    fprintf(out, "0x%08lx", (unsigned long) proptbl[i].ranges[j]);
 	  }
 	}
     }
@@ -1404,11 +1408,11 @@ write_cdata(char *opath)
      *****************************************************************/
 
 #if HARDCODE_DATA
-    fprintf(out, PREF "ac_uint4 _uccase_size = %d;\n\n",
-	upper_used + lower_used + title_used);
+    fprintf(out, PREF "ac_uint4 _uccase_size = %ld;\n\n",
+        (long) (upper_used + lower_used + title_used));
 
-    fprintf(out, PREF "ac_uint2 _uccase_len[2] = {%d, %d};\n\n",
-	upper_used, lower_used);
+    fprintf(out, PREF "ac_uint2 _uccase_len[2] = {%ld, %ld};\n\n",
+        (long) upper_used, (long) lower_used);
     fprintf(out, PREF "ac_uint4 _uccase_map[] = {");
 
     if (upper_used > 0)
@@ -1491,8 +1495,8 @@ write_cdata(char *opath)
     create_comps();
     
 #if HARDCODE_DATA
-    fprintf(out, PREF "ac_uint4 _uccomp_size = %d;\n\n",
-	comps_used * 4);
+    fprintf(out, PREF "ac_uint4 _uccomp_size = %ld;\n\n",
+        comps_used * 4L);
 
     fprintf(out, PREF "ac_uint4 _uccomp_data[] = {");
 
@@ -1502,8 +1506,9 @@ write_cdata(char *opath)
     if (comps_used > 0) {
 	for (i=0; i<comps_used; i++) {
 	    if (i) fprintf(out, ",");
-	    fprintf(out, "\n\t0x%08x, 0x%08x, 0x%08x, 0x%08x",
-		comps[i].comp, comps[i].count, comps[i].code1, comps[i].code2);
+	    fprintf(out, "\n\t0x%08lx, 0x%08lx, 0x%08lx, 0x%08lx",
+	        (unsigned long) comps[i].comp, (unsigned long) comps[i].count,
+	        (unsigned long) comps[i].code1, (unsigned long) comps[i].code2);
 	}
     } else {
 	fprintf(out, "\t0");
@@ -1550,8 +1555,8 @@ write_cdata(char *opath)
     expand_decomp();
 
 #if HARDCODE_DATA
-    fprintf(out, PREF "ac_uint4 _ucdcmp_size = %d;\n\n",
-	decomps_used * 2);
+    fprintf(out, PREF "ac_uint4 _ucdcmp_size = %ld;\n\n",
+        decomps_used * 2L);
 
     fprintf(out, PREF "ac_uint4 _ucdcmp_nodes[] = {");
 
@@ -1560,14 +1565,15 @@ write_cdata(char *opath)
 	 * Write the list of decomp nodes.
 	 */
 	for (i = idx = 0; i < decomps_used; i++) {
-	    fprintf(out, "\n\t0x%08x, 0x%08x,", decomps[i].code, idx);
+	    fprintf(out, "\n\t0x%08lx, 0x%08lx,",
+	        (unsigned long) decomps[i].code, (unsigned long) idx);
 	    idx += decomps[i].used;
 	}
 
 	/*
 	 * Write the sentinel index as the last decomp node.
 	 */
-	fprintf(out, "\n\t0x%08x\n};\n\n", idx);
+	fprintf(out, "\n\t0x%08lx\n};\n\n", (unsigned long) idx);
 
 	fprintf(out, PREF "ac_uint4 _ucdcmp_decomp[] = {");
 	/*
@@ -1580,7 +1586,7 @@ write_cdata(char *opath)
 	    if (!(k&3)) fprintf(out,"\n\t");
 	    else fprintf(out, " ");
 	    k++;
-	    fprintf(out, "0x%08x", decomps[i].decomp[j]);
+	    fprintf(out, "0x%08lx", (unsigned long) decomps[i].decomp[j]);
 	  }
 	fprintf(out, "\n};\n\n");
     }
@@ -1641,8 +1647,8 @@ write_cdata(char *opath)
 #endif
 
 #ifdef HARDCODE_DATA
-    fprintf(out, PREF "ac_uint4 _uckdcmp_size = %d;\n\n",
-	kdecomps_used * 2);
+    fprintf(out, PREF "ac_uint4 _uckdcmp_size = %ld;\n\n",
+        kdecomps_used * 2L);
 
     fprintf(out, PREF "ac_uint4 _uckdcmp_nodes[] = {");
 
@@ -1651,14 +1657,15 @@ write_cdata(char *opath)
 	 * Write the list of kdecomp nodes.
 	 */
 	for (i = idx = 0; i < kdecomps_used; i++) {
-	    fprintf(out, "\n\t0x%08x, 0x%08x,", kdecomps[i].code, idx);
+	    fprintf(out, "\n\t0x%08lx, 0x%08lx,",
+	        (unsigned long) kdecomps[i].code, (unsigned long) idx);
 	    idx += kdecomps[i].used;
 	}
 
 	/*
 	 * Write the sentinel index as the last decomp node.
 	 */
-	fprintf(out, "\n\t0x%08x\n};\n\n", idx);
+	fprintf(out, "\n\t0x%08lx\n};\n\n", (unsigned long) idx);
 
 	fprintf(out, PREF "ac_uint4 _uckdcmp_decomp[] = {");
 
@@ -1672,7 +1679,7 @@ write_cdata(char *opath)
 	    if (!(k&3)) fprintf(out,"\n\t");
 	    else fprintf(out, " ");
 	    k++;
-	    fprintf(out, "0x%08x", kdecomps[i].decomp[j]);
+	    fprintf(out, "0x%08lx", (unsigned long) kdecomps[i].decomp[j]);
 	  }
 	fprintf(out, "\n};\n\n");
     }
@@ -1738,7 +1745,7 @@ write_cdata(char *opath)
      *
      *****************************************************************/
 #ifdef HARDCODE_DATA
-    fprintf(out, PREF "ac_uint4 _uccmcl_size = %d;\n\n", ccl_used);
+    fprintf(out, PREF "ac_uint4 _uccmcl_size = %ld;\n\n", (long) ccl_used);
 
     fprintf(out, PREF "ac_uint4 _uccmcl_nodes[] = {");
 
@@ -1750,7 +1757,7 @@ write_cdata(char *opath)
 	    if (i) fprintf(out, ",");
 	    if (!(i&3)) fprintf(out, "\n\t");
 	    else fprintf(out, " ");
-	    fprintf(out, "0x%08x", ccl[i]);
+	    fprintf(out, "0x%08lx", (unsigned long) ccl[i]);
 	}
     } else {
 	fprintf(out, "\t0");
@@ -1797,7 +1804,8 @@ write_cdata(char *opath)
      *****************************************************************/
 
 #if HARDCODE_DATA
-    fprintf(out, PREF "ac_uint4 _ucnum_size = %d;\n\n", ncodes_used<<1);
+    fprintf(out, PREF "ac_uint4 _ucnum_size = %lu;\n\n",
+        (unsigned long)ncodes_used<<1);
 
     fprintf(out, PREF "ac_uint4 _ucnum_nodes[] = {");
 
@@ -1809,7 +1817,8 @@ write_cdata(char *opath)
 	    if (i) fprintf(out, ",");
 	    if (!(i&1)) fprintf(out, "\n\t");
 	    else fprintf(out, " ");
-	    fprintf(out, "0x%08x, 0x%08x", ncodes[i].code, ncodes[i].idx);
+	    fprintf(out, "0x%08lx, 0x%08lx",
+	        (unsigned long) ncodes[i].code, (unsigned long) ncodes[i].idx);
 	}
 	fprintf(out, "\n};\n\n");
 

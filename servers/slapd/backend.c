@@ -477,7 +477,9 @@ int backend_destroy(void)
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
 
-		assert( bd->be_replogfile == NULL );
+		if ( bd->be_replogfile != NULL ) {
+			free( bd->be_replogfile );
+		}
 		assert( bd->be_replica == NULL );
 	}
 
@@ -1184,19 +1186,17 @@ be_entry_get_rw(
 	int rw,
 	Entry **e )
 {
-	int rc;
-
 	*e = NULL;
 
-	if (op->o_bd == NULL) {
-		rc = LDAP_NO_SUCH_OBJECT;
-	} else if ( op->o_bd->be_fetch ) {
-		rc = ( op->o_bd->be_fetch )( op, ndn,
-			oc, at, rw, e );
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+	if ( op->o_bd == NULL ) {
+		return LDAP_NO_SUCH_OBJECT;
 	}
-	return rc;
+
+	if ( op->o_bd->be_fetch ) {
+		return op->o_bd->be_fetch( op, ndn, oc, at, rw, e );
+	}
+
+	return LDAP_UNWILLING_TO_PERFORM;
 }
 
 int 

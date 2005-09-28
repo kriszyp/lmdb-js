@@ -259,7 +259,7 @@ case $RC in
 		exit 0
 	;;
 	*)
-		echo "Compare failed ($RC)!"
+		echo "Modify failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	;;
@@ -485,7 +485,7 @@ case $RC in
 		echo "### Hit LDAP_BUSY problem; you may want to re-run the test"
 	;;
 	*)
-		echo "Compare failed ($RC)!"
+		echo "WhoAmI failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	;;

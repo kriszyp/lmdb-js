@@ -885,6 +885,7 @@ int slap_mods_opattrs(
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
+			mod->sml_next = NULL;
 			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
 			mod->sml_values =
@@ -920,6 +921,7 @@ int slap_mods_opattrs(
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
+				mod->sml_next = NULL;
 				BER_BVZERO( &mod->sml_type );
 				mod->sml_desc = slap_schema.si_ad_entryUUID;
 				mod->sml_values =
@@ -952,6 +954,7 @@ int slap_mods_opattrs(
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
+				mod->sml_next = NULL;
 				BER_BVZERO( &mod->sml_type );
 				mod->sml_desc = slap_schema.si_ad_creatorsName;
 				mod->sml_values =
@@ -981,6 +984,7 @@ int slap_mods_opattrs(
 				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = mop;
 				mod->sml_flags = SLAP_MOD_INTERNAL;
+				mod->sml_next = NULL;
 				BER_BVZERO( &mod->sml_type );
 				mod->sml_desc = slap_schema.si_ad_createTimestamp;
 				mod->sml_values =
@@ -999,6 +1003,7 @@ int slap_mods_opattrs(
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_flags = SLAP_MOD_INTERNAL;
+		mod->sml_next = NULL;
 		BER_BVZERO( &mod->sml_type );
 		mod->sml_desc = slap_schema.si_ad_entryCSN;
 		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
@@ -1022,6 +1027,7 @@ int slap_mods_opattrs(
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
+			mod->sml_next = NULL;
 			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_modifiersName;
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
@@ -1050,6 +1056,7 @@ int slap_mods_opattrs(
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
+			mod->sml_next = NULL;
 			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );

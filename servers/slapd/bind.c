@@ -452,6 +452,8 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	}
 
 	if( op->o_bd->be_bind ) {
+		op->o_conn->c_authz_cookie = NULL;
+
 		rs->sr_err = (op->o_bd->be_bind)( op, rs );
 
 		if ( rs->sr_err == 0 ) {

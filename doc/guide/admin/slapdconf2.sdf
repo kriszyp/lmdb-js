@@ -71,9 +71,9 @@ loaded from config files or added at runtime.
 
 The usual rules for LDIF files apply to the configuration information:
 Comment lines beginning with a '{{EX:#}}' character
-are ignored.  If a line begins with white space, it is considered a
+are ignored.  If a line begins with a single space, it is considered a
 continuation of the previous line (even if the previous line is a
-comment). Entries are separated by blank lines.
+comment) and the single leading space is removed. Entries are separated by blank lines.
 
 The general layout of the config LDIF is as follows:
 
@@ -132,9 +132,7 @@ prefix attached.
 
 A configuration directive may take arguments.  If so, the arguments are
 separated by white space.  If an argument contains white space,
-the argument should be enclosed in double quotes {{EX:"like this"}}. If
-an argument contains a double quote or a backslash character `{{EX:\}}',
-the character should be preceded by a backslash character `{{EX:\}}'.
+the argument should be enclosed in double quotes {{EX:"like this"}}.
 In the descriptions that follow, arguments that should be replaced
 by actual text are shown in brackets {{EX:<>}}.
 
@@ -349,13 +347,13 @@ H4: Sample Entries
 >objectClass: olcSchemaConfig
 >cn: test
 >olcAttributeTypes: ( 1.1.1
-> NAME 'testAttr'
-> EQUALITY integerMatch
-> SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+>  NAME 'testAttr'
+>  EQUALITY integerMatch
+>  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 >olcAttributeTypes: ( 1.1.2 NAME 'testTwo' EQUALITY caseIgnoreMatch
-> SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 )
+>  SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 )
 >olcObjectClasses: ( 1.1.3 NAME 'testObject'
-> MAY ( testAttr $ testTwo ) AUXILIARY )
+>  MAY ( testAttr $ testTwo ) AUXILIARY )
 
 
 H3: Backend-specific Directives
