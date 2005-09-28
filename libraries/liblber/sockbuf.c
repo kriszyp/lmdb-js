@@ -909,6 +909,7 @@ sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	addrlen = sizeof( struct sockaddr );
 	src = buf;
 	buf += addrlen;
+	len -= addrlen;
 	rc = recvfrom( sbiod->sbiod_sb->sb_fd, buf, len, 0, src, &addrlen );
 
 	return rc > 0 ? rc+sizeof(struct sockaddr) : rc;
