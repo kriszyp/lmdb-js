@@ -60,6 +60,36 @@ $LDAPSEARCH -h $LOCALHOST -p $PORT1 \
 	-b "$BASEDN" \
 	'objectclass=*' >> $SEARCHOUT 2>&1
 
+echo "Using ldappasswd to test a few error conditions ..."
+echo "Pass 0" >> $TESTOUT
+$LDAPPASSWD -h $LOCALHOST -p $PORT1 \
+	-w secret -a "" -s newsecret \
+	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "ldappasswd unexpectantly passed ($RC)! old empty"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+$LDAPPASSWD -h $LOCALHOST -p $PORT1 \
+	-w secret -a oldsecret -s "" \
+	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "ldappasswd unexpectantly passed ($RC)! new empty"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+$LDAPPASSWD -h $LOCALHOST -p $PORT1 \
+	-w secret -a oldsecret -s newsecret \
+	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "ldappasswd unexpectantly passed ($RC)! wrong old"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Using ldappasswd (PASS 1)  ..."
 echo "Pass 1" >> $TESTOUT
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
@@ -141,7 +171,7 @@ fi
 
 echo "Logging end state with ldapsearch..."
 echo "" >> $TESTOUT
-echo "++ Initial search" >> $TESTOUT
+echo "++ End search" >> $TESTOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 \
 	-D "$MANAGERDN" -w $PASSWD \
 	-b "$BASEDN" \

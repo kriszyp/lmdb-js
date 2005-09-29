@@ -55,6 +55,9 @@ export AC_pcache AC_ppolicy AC_refint AC_retcode AC_rwm AC_unique AC_syncprov
 export AC_translucent AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED
 export AC_valsort
 
+# need defines.sh for the definitions of the directories
+. $SRCDIR/scripts/defines.sh
+
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
 	exit 1
@@ -85,7 +88,7 @@ while test $# -gt 0 ; do
 
 		-c | -clean)
 			CLEAN=yes
-			shift; shift ;;
+			shift ;;
 
 		-k | -kill)
 			KILLSERVERS=no
@@ -141,20 +144,20 @@ else
 	exit 1;
 fi
 
-if test ! -r testdata/test.ldif ; then
-	${LN_S} ${SRCDIR}/data testdata
+if test ! -r ${DATADIR}/test.ldif ; then
+	${LN_S} ${SRCDIR}/data ${DATADIR}
 fi
-if test ! -r schema/core.schema ; then
-	${LN_S} ${TOPSRCDIR}/servers/slapd/schema schema
+if test ! -r ${SCHEMADIR}/core.schema ; then
+	${LN_S} ${TOPSRCDIR}/servers/slapd/schema ${SCHEMADIR}
 fi
 
-if test -d testrun ; then
+if test -d ${TESTDIR} ; then
 	if test $PRESERVE = no ; then
 		echo "Cleaning up test run directory leftover from previous run."
-		/bin/rm -rf testrun
+		/bin/rm -rf ${TESTDIR}
 	elif test $PRESERVE = yes ; then
 		echo "Cleaning up only database directories leftover from previous run."
-		/bin/rm -rf testrun/db.*
+		/bin/rm -rf ${TESTDIR}/db.*
 	fi
 fi
 
@@ -163,8 +166,8 @@ if test $USERDATA = yes ; then
 		echo "User data directory (userdata) does not exist."
 		exit 1
 	fi
-	mkdir -p testrun
-	cp -R userdata/* testrun
+	mkdir -p ${TESTDIR}
+	cp -R userdata/* ${TESTDIR}
 fi
 
 # disable LDAP initialization
@@ -176,9 +179,9 @@ RC=$?
 
 if test $CLEAN = yes ; then
 	echo "Cleaning up test run directory from this run."
-	/bin/rm -rf testrun
+	/bin/rm -rf ${TESTDIR}
 	echo "Cleaning up symlinks."
-	/bin/rm -f testdata schema
+	/bin/rm -f ${DATADIR} ${SCHEMADIR}
 fi
 
 exit $RC

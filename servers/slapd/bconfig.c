@@ -1379,7 +1379,7 @@ config_passwd_hash(ConfigArgs *c) {
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!lutil_passwd_scheme(c->argv[i])) {
-			sprintf( c->msg, "<%s> schema not available", c->argv[0] );
+			sprintf( c->msg, "<%s> scheme not available", c->argv[0] );
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n",
 				c->log, c->msg, c->argv[i]);
 		} else {

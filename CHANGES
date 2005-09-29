@@ -12,6 +12,11 @@ OpenLDAP 2.3.8 Release
 	Fixed slapd rewrite session var set bug (ITS#4023)
 	Fixed slapd syncrepl empty uniqueMember bug (ITS#4040)
 	Fixed slapd alias resolution bug (ITS#4030)
+	Fixed slapd password-hash cleartext bug (ITS#4021)
+	Fixed slapd realloc zero bug (ITS#3981)
+	Fixed slapd nested overlay configuration bug (ITS#4047)
+	Fixed slapd password modify oldPassword ignore bug (ITS#4049)
+	Updated slapd authz backend detection (ITS#4018)
 	Fixed slapd-bdb/hdb pointer/integer size mismatch (ITS#4015)
 	Updated slapd-hdb index management
 	Fixed slapd-glue mixtures bug (ITS#3979)
@@ -31,8 +36,6 @@ OpenLDAP 2.3.8 Release
 	Fixed slapcat out-of-memory problem (ITS#4010)
 	Fixed slurpd unrecognized slave names bug (ITS#4012)
 	Fixed liblber dgram len bug (ITS#4046)
-	Updated slapd authz backend detection (ITS#4018)
-	Fixed slapd realloc zero bug (ITS#3981)
 	Documentation
 		Added slapo-valsort(5) man page (ITS#3994)
 		Added slap tool -F option documentation (ITS#4026)
@@ -40,6 +43,7 @@ OpenLDAP 2.3.8 Release
 		Fixed misc POSIX conformance issues (ITS#2667)
 		Fixed --without-threads build issue (ITS#4006)
 		Fixed test script exit checks (ITS#4045)
+		Added test suite parameterized directory support
 
 OpenLDAP 2.3.7 Release
 	Updated slapd ManageDIT support

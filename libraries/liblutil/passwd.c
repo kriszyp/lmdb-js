@@ -73,6 +73,10 @@ static lutil_cryptfunc lutil_crypt;
 lutil_cryptfunc *lutil_cryptptr = lutil_crypt;
 #endif
 
+/* KLUDGE:
+ *  chk_fn is NULL iff name is {CLEARTEXT}
+ *	otherwise, things will break
+ */
 struct pw_scheme {
 	struct berval name;
 	LUTIL_PASSWD_CHK_FUNC *chk_fn;
@@ -147,7 +151,7 @@ static const struct pw_scheme pw_schemes_default[] =
 
 #ifdef SLAPD_CLEARTEXT
 	/* pseudo scheme */
-	{ {0, "{CLEARTEXT}"},		NULL, hash_clear },
+	{ BER_BVC("{CLEARTEXT}"),	NULL, hash_clear },
 #endif
 
 	{ BER_BVNULL, NULL, NULL }
@@ -306,7 +310,9 @@ lutil_passwd(
 	 */
 	if (( passwd->bv_val[0] == '{' ) &&
 		( strchr( passwd->bv_val, '}' ) > passwd->bv_val+1 ))
+	{
 		return 1;
+	}
 	if( is_allowed_scheme("{CLEARTEXT}", schemes ) ) {
 		return ( passwd->bv_len == cred->bv_len ) ?
 			memcmp( passwd->bv_val, cred->bv_val, passwd->bv_len )

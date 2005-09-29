@@ -68,13 +68,15 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
+	qpw->rs_old.bv_len = 0;
 	qpw->rs_old.bv_val = NULL;
+	qpw->rs_new.bv_len = 0;
 	qpw->rs_new.bv_val = NULL;
 	qpw->rs_mods = NULL;
 	qpw->rs_modtail = NULL;
 
-	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id, &qpw->rs_old,
-		&qpw->rs_new, &rs->sr_text );
+	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id,
+		&qpw->rs_old, &qpw->rs_new, &rs->sr_text );
 
 	if ( rs->sr_err == LDAP_SUCCESS && !BER_BVISEMPTY( &id ) ) {
 		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD id=\"%s\"%s%s\n",
@@ -109,6 +111,12 @@ int passwd_extop(
 	}
 
 	if( op->o_bd == NULL ) {
+		if ( qpw->rs_old.bv_val != NULL ) {
+			rs->sr_text = "unwilling to verify old password";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto error_return;
+		}
+
 #ifdef HAVE_CYRUS_SASL
 		rc = slap_sasl_setpass( op, rs );
 #else
@@ -196,6 +204,12 @@ int passwd_extop(
 	/* The backend didn't handle it, so try it here */
 	if( op->o_bd && !op->o_bd->be_modify ) {
 		rs->sr_text = "operation not supported for current user";
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		goto error_return;
+	}
+
+	if ( qpw->rs_old.bv_val != NULL ) {
+		rs->sr_text = "unwilling to verify old password";
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto error_return;
 	}
@@ -349,6 +363,15 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto decoding_error;
 		}
 
+		if( oldpass->bv_len == 0 ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD empty.\n",
+				0, 0, 0 );
+
+			*text = "old password value is empty";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+
 		tag = ber_peek_tag( ber, &len );
 	}
 
@@ -369,6 +392,15 @@ int slap_passwd_parse( struct berval *reqdata,
 				0, 0, 0 );
 
 			goto decoding_error;
+		}
+
+		if( newpass->bv_len == 0 ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: NEW empty.\n",
+				0, 0, 0 );
+
+			*text = "new password value is empty";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
 		}
 
 		tag = ber_peek_tag( ber, &len );
