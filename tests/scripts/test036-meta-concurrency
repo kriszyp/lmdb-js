@@ -25,7 +25,7 @@ fi
 
 # to be removed some time...
 if test "x$TEST_META" = "xno" ; then
-	echo "### disabled by \"TEST_META=no\"; unset TEST_META to re-enable"
+	echo '### Test disabled by "TEST_META=no"; unset TEST_META to re-enable'
 	echo ""
 	exit 0
 else
@@ -214,4 +214,3 @@ fi
 
 echo ">>>>> Test succeeded"
 exit 0
-

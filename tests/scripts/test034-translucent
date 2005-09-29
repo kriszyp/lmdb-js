@@ -26,7 +26,7 @@ if test $TRANSLUCENT = translucentno ; then
 fi 
 
 if test $BACKEND = ldbm ; then
-	echo "Translucent Proxy overlay not qualified for use with LDBM, skipping"
+	echo "Translucent Proxy overlay not qualified for use with LDBM, test skipped"
 	exit 0
 fi
 

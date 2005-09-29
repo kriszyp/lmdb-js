@@ -27,7 +27,7 @@ if test $RDBMS = "rdbmsno" ; then
 fi
 
 SQLDATADIR=$TESTDIR/sql-concurrency
-mkdir -p $SQLDATADIR
+mkdir -p $TESTDIR $SQLDATADIR
 
 echo "Starting slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $SQLCONF > $CONF1
