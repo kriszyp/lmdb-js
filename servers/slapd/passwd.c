@@ -349,6 +349,15 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto decoding_error;
 		}
 
+		if( oldpass->bv_len == 0 ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD empty.\n",
+				0, 0, 0 );
+
+			*text = "old password value is empty";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+
 		tag = ber_peek_tag( ber, &len );
 	}
 
@@ -369,6 +378,15 @@ int slap_passwd_parse( struct berval *reqdata,
 				0, 0, 0 );
 
 			goto decoding_error;
+		}
+
+		if( newpass->bv_len == 0 ) {
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: NEW empty.\n",
+				0, 0, 0 );
+
+			*text = "new password value is empty";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
 		}
 
 		tag = ber_peek_tag( ber, &len );
