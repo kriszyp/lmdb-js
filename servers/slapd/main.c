@@ -261,14 +261,15 @@ int main( int argc, char **argv )
 	struct sync_cookie *scp = NULL;
 	struct sync_cookie *scp_entry = NULL;
 
+	char	*serverNamePrefix = "";
+	size_t	l;
+
 #ifdef CSRIMALLOC
 	FILE *leakfile;
 	if( ( leakfile = fopen( "slapd.leak", "w" )) == NULL ) {
 		leakfile = stderr;
 	}
 #endif
-	char	*serverNamePrefix = "";
-	size_t	l;
 
 	slap_sl_mem_init();
 
