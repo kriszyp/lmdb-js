@@ -73,8 +73,8 @@ int passwd_extop(
 	qpw->rs_mods = NULL;
 	qpw->rs_modtail = NULL;
 
-	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id, &qpw->rs_old,
-		&qpw->rs_new, &rs->sr_text );
+	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id,
+		&qpw->rs_old, &qpw->rs_new, &rs->sr_text );
 
 	if ( rs->sr_err == LDAP_SUCCESS && !BER_BVISEMPTY( &id ) ) {
 		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD id=\"%s\"%s%s\n",
@@ -196,6 +196,12 @@ int passwd_extop(
 	/* The backend didn't handle it, so try it here */
 	if( op->o_bd && !op->o_bd->be_modify ) {
 		rs->sr_text = "operation not supported for current user";
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		goto error_return;
+	}
+
+	if ( qpw->rs_old.bv_val != NULL ) {
+		rs->sr_text = "unwilling to verify old password";
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto error_return;
 	}
