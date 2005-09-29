@@ -109,6 +109,12 @@ int passwd_extop(
 	}
 
 	if( op->o_bd == NULL ) {
+		if ( qpw->rs_old.bv_val != NULL ) {
+			rs->sr_text = "unwilling to verify old password";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto error_return;
+		}
+
 #ifdef HAVE_CYRUS_SASL
 		rc = slap_sasl_setpass( op, rs );
 #else
