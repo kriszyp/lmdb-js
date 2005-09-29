@@ -55,9 +55,6 @@ export AC_pcache AC_ppolicy AC_refint AC_retcode AC_rwm AC_unique AC_syncprov
 export AC_translucent AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED
 export AC_valsort
 
-# need defines.sh for the definitions of the directories
-. $SRCDIR/scripts/defines.sh
-
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
 	exit 1
@@ -130,6 +127,9 @@ export BACKEND BACKENDTYPE WAIT KILLSERVERS PRESERVE USERDATA
 if test $# = 0 ; then
 	echo "$USAGE"; exit 1
 fi
+
+# need defines.sh for the definitions of the directories
+. $SRCDIR/scripts/defines.sh
 
 SCRIPTDIR="${SRCDIR}/scripts"
 SCRIPTNAME="$1"
