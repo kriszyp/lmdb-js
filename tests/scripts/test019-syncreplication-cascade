@@ -26,7 +26,7 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
-mkdir $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3 $DBDIR4 $DBDIR5 $DBDIR6
+mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3 $DBDIR4 $DBDIR5 $DBDIR6
 
 #
 # Test replication:

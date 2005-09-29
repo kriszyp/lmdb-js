@@ -55,25 +55,12 @@ export AC_pcache AC_ppolicy AC_refint AC_retcode AC_rwm AC_unique AC_syncprov
 export AC_translucent AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED
 export AC_valsort
 
-# need defines.sh for the definitions of the directories
-. $SRCDIR/scripts/defines.sh
-
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
 	exit 1
 fi
 
-if test $AC_bdb != no ; then
-	BACKEND=bdb
-elif test $AC_ldbm != no ; then
-	BACKEND=ldbm
-elif test $AC_hdb != no ; then
-	BACKEND=hdb
-else
-	echo "Not configured with a suitable database backend"
-	exit 1
-fi
-
+BACKEND=
 CLEAN=no
 WAIT=0
 KILLSERVERS=yes
@@ -119,6 +106,18 @@ while test $# -gt 0 ; do
 	esac
 done
 
+if test -z "$BACKEND" ; then
+	for b in bdb ldbm hdb ; do
+		if eval "test \"\$AC_$b\" != no" ; then
+			BACKEND=$b
+			break
+		fi
+	done
+	if test -z "$BACKEND" ; then
+		echo "No suitable default database backend configured" >&2
+		exit 1
+	fi
+fi
 BACKENDTYPE=`eval 'echo $AC_'$BACKEND`
 if test "x$BACKENDTYPE" = "x" ; then
 	BACKENDTYPE="unknown"
@@ -128,6 +127,9 @@ export BACKEND BACKENDTYPE WAIT KILLSERVERS PRESERVE USERDATA
 if test $# = 0 ; then
 	echo "$USAGE"; exit 1
 fi
+
+# need defines.sh for the definitions of the directories
+. $SRCDIR/scripts/defines.sh
 
 SCRIPTDIR="${SRCDIR}/scripts"
 SCRIPTNAME="$1"

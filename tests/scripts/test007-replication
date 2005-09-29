@@ -17,7 +17,7 @@ echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
 if test ! -x $SLURPD ; then
-	echo ">>>>> $SLURPD is not executable or do not exist."
+	echo ">>>>> $SLURPD is not executable or does not exist."
 	echo ">>>>> Test skipped."
 	exit 0
 fi

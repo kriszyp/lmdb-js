@@ -20,8 +20,8 @@ echo "running defines.sh"
 ## Make sure that you turn on LDAP_COMP_MATCH in slapd source codes
 ## and --enable-modules  is configured yes
 if test "$AC_WITH_MODULES_ENABLED" != "yes" ; then
-        echo "dynamic module disabled "
-        exit
+        echo "dynamic module disabled, test skipped"
+        exit 0
 fi
 
 mkdir -p $TESTDIR $DBDIR1
@@ -38,7 +38,8 @@ if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	echo "Be sure to have a certificate module in tests/data/comp_libs "
 	echo "The module is in openldap/contrib/slapd-modules/comp_match"
-	exit 
+	echo "Test skipped."
+	exit 0
 fi
 
 echo "Running slapindex to index slapd database..."

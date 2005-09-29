@@ -29,7 +29,7 @@ echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
 if test "$ACI" = "acino" ; then
-	echo "ACI not enabled; skipping..."
+	echo "ACI not enabled, test skipped"
 	exit 0
 fi
 

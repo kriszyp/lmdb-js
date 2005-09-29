@@ -20,7 +20,7 @@ echo "running defines.sh"
 # Test default referral
 #
 
-mkdir $TESTDIR $DBDIR1 $DBDIR2
+mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1

@@ -18,7 +18,7 @@ RCODE=10
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $TESTDIR $DBDIR1
+mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $RCONF > $CONF1

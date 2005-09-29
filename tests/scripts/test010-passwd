@@ -69,7 +69,7 @@ RC=$?
 if test $RC = 0 ; then
 	echo "ldappasswd unexpectantly passed ($RC)! old empty"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
 	-w secret -a oldsecret -s "" \
@@ -78,7 +78,7 @@ RC=$?
 if test $RC = 0 ; then
 	echo "ldappasswd unexpectantly passed ($RC)! new empty"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
 	-w secret -a oldsecret -s newsecret \
@@ -87,7 +87,7 @@ RC=$?
 if test $RC = 0 ; then
 	echo "ldappasswd unexpectantly passed ($RC)! wrong old"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Using ldappasswd (PASS 1)  ..."
