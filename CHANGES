@@ -13,6 +13,7 @@ OpenLDAP 2.3.8 Release
 	Fixed slapd syncrepl empty uniqueMember bug (ITS#4040)
 	Fixed slapd alias resolution bug (ITS#4030)
 	Fixed slapd-bdb/hdb pointer/integer size mismatch (ITS#4015)
+	Updated slapd-hdb index management
 	Fixed slapd-glue mixtures bug (ITS#3979)
 	Fixed slapd-ldap unlock issue (ITS#4001)
 	Fixed slapd-ldap manageDIT check bug (ITS#4005)
@@ -33,7 +34,7 @@ OpenLDAP 2.3.8 Release
 	Updated slapd authz backend detection (ITS#4018)
 	Fixed slapd realloc zero bug (ITS#3981)
 	Documentation
-		Added slapo-valsort(5) man page
+		Added slapo-valsort(5) man page (ITS#3994)
 		Added slap tool -F option documentation (ITS#4026)
 	Build Environment
 		Fixed misc POSIX conformance issues (ITS#2667)
