@@ -63,17 +63,7 @@ if test ! -x ../servers/slapd/slapd ; then
 	exit 1
 fi
 
-if test $AC_bdb != no ; then
-	BACKEND=bdb
-elif test $AC_ldbm != no ; then
-	BACKEND=ldbm
-elif test $AC_hdb != no ; then
-	BACKEND=hdb
-else
-	echo "Not configured with a suitable database backend"
-	exit 1
-fi
-
+BACKEND=
 CLEAN=no
 WAIT=0
 KILLSERVERS=yes
@@ -119,6 +109,18 @@ while test $# -gt 0 ; do
 	esac
 done
 
+if test -z "$BACKEND" ; then
+	for b in bdb ldbm hdb ; do
+		if eval "test \"\$AC_$b\" != no" ; then
+			BACKEND=$b
+			break
+		fi
+	done
+	if test -z "$BACKEND" ; then
+		echo "No suitable default database backend configured" >&2
+		exit 1
+	fi
+fi
 BACKENDTYPE=`eval 'echo $AC_'$BACKEND`
 if test "x$BACKENDTYPE" = "x" ; then
 	BACKENDTYPE="unknown"
