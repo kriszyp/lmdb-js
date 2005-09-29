@@ -922,8 +922,6 @@ glue_sub_add( BackendDB *be, int advert, int online )
 int
 glue_sub_init()
 {
-	int rc;
-
 	glue.on_bi.bi_type = "glue";
 
 	glue.on_bi.bi_db_init = glue_db_init;
