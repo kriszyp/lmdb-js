@@ -168,7 +168,7 @@ if test $RC != 50 ; then
 	echo "ldapadd failed ($RC), expected INSUFFICIENT ACCESS!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing add: valid local record, no_glue..."
@@ -181,7 +181,7 @@ if test $RC != 32 ; then
 	echo "ldapadd failed ($RC), expected NO SUCH OBJECT!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing modrdn: valid local record, no_glue..."
@@ -194,7 +194,7 @@ if test $RC != 32 ; then
 	echo "ldapmodrdn failed ($RC), expected NO SUCH OBJECT!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Shutting down local slapd..."
@@ -274,7 +274,7 @@ RC=$?
 if test $RC != 6 ; then
 	echo "ldapcompare failed ($RC), expected TRUE!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing compare: valid remote..."
@@ -286,7 +286,7 @@ RC=$?
 if test $RC != 6 ; then
 	echo "ldapcompare failed ($RC), expected TRUE!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing compare: bogus local..."
@@ -298,7 +298,7 @@ RC=$?
 if test $RC != 5 ; then
 	echo "ldapcompare failed ($RC), expected FALSE!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing compare: bogus remote..."
@@ -310,7 +310,7 @@ RC=$?
 if test $RC != 5 ; then
 	echo "ldapcompare failed ($RC), expected FALSE!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing modify: nonexistent record..."
@@ -329,7 +329,7 @@ if test $RC != 32 ; then
 	echo "ldapmodify failed ($RC), expected NO SUCH OBJECT!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing modify: valid local record, nonexistent attribute..."
@@ -428,7 +428,7 @@ if test $RC != 16 ; then
 	echo "ldapmodify failed ($RC), expected NO SUCH ATTRIBUTE!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing delete: valid local record, nonexistent attribute..."
@@ -459,7 +459,7 @@ if test $RC != 50 ; then
 	echo "ldapmodrdn failed ($RC), expected INSUFFICIENT ACCESS!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing modrdn: valid local record..."
@@ -489,7 +489,7 @@ if test $RC != 50 ; then
 	echo "ldapadd failed ($RC), expected INSUFFICIENT ACCESS!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing delete: valid local record..."
@@ -523,7 +523,7 @@ if test $RC != 32 ; then
 	echo "ldapmodify failed ($RC), expected NO SUCH OBJECT!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing delete: nonexistent local record, nonexistent attribute..."
@@ -568,7 +568,7 @@ if test $RC != 16 ; then
 	echo "ldapmodify failed ($RC), expected NO SUCH ATTRIBUTE!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing modify: valid remote record, combination add-modify-delete..."
@@ -667,7 +667,7 @@ if test $RC != 19 ; then
 	echo "ldapmodify failed ($RC), expected CONSTRAINT VIOLATION!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing strict mode delete: nonexistent remote attribute..."
@@ -685,7 +685,7 @@ if test $RC != 19 ; then
 	echo "ldapmodify failed ($RC), expected CONSTRAINT VIOLATION!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Testing strict mode modify: combination add-modify-delete..."
@@ -709,7 +709,7 @@ if test $RC != 19 ; then
 	echo "ldapmodify failed ($RC), expected CONSTRAINT VIOLATION!"
 	grep "$FAILURE" $TESTOUT
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS

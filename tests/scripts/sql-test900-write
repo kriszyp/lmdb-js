@@ -348,7 +348,7 @@ EOMODS
 	if test $RC = 0 ; then
 		echo "ldapmodify should have failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	fi
 
 	echo "Modifying a referral (should fail)..."
@@ -367,7 +367,7 @@ EOMODS
 	if test $RC = 0 ; then
 		echo "ldapmodify should have failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	fi
 
 	echo "Renaming a referral (should fail)..."
@@ -385,7 +385,7 @@ EOMODS
 	if test $RC = 0 ; then
 		echo "ldapmodify should have failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	fi
 
 	echo "Deleting a referral (should fail)..."
@@ -401,7 +401,7 @@ EOMODS
 	if test $RC = 0 ; then
 		echo "ldapmodify should have failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		exit 1
 	fi
 
 	echo "Adding a referral..."
@@ -571,4 +571,3 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 exit 0
-
