@@ -27,12 +27,13 @@ echo "running defines.sh $SRCDIR $BACKEND"
 
 if test -d "$TESTDIR"; then
 	echo "Cleaning up in $TESTDIR..."
-	/bin/rm -rf testrun/db.*
+	/bin/rm -rf $TESTDIR/db.*
 fi
 mkdir -p $TESTDIR
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-$SLAPD -f $PASSWDCONF -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+. $CONFFILTER $BACKEND $MONITORDB < $PASSWDCONF > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test ${WAIT-0} != 0 ; then
     echo PID $PID
