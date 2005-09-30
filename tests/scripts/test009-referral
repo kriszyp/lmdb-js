@@ -50,6 +50,8 @@ fi
 
 KILLPIDS="$PID $SLAVEPID"
 
+sleep 1
+
 echo "Testing for master slapd..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \

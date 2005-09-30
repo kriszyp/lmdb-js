@@ -57,6 +57,8 @@ fi
 REMOTEPID="$PID"
 KILLPIDS="$PID"
 
+sleep 1
+
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
@@ -88,6 +90,8 @@ if test $WAIT != 0 ; then
 fi
 LOCALPID="$PID"
 KILLPIDS="$LOCALPID $REMOTEPID"
+
+sleep 1
 
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
@@ -214,6 +218,8 @@ if test $WAIT != 0 ; then
 fi
 LOCALPID="$PID"
 KILLPIDS="$REMOTEPID $PID"
+
+sleep 1
 
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
@@ -634,6 +640,8 @@ if test $WAIT != 0 ; then
 fi
 LOCALPID="$PID"
 KILLPIDS="$REMOTEPID $PID"
+
+sleep 1
 
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \

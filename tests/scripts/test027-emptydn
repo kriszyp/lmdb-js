@@ -44,6 +44,8 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$PID"
 
+sleep 1
+
 echo "Testing slapd empty DN handling..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
@@ -103,6 +105,8 @@ if test $WAIT != 0 ; then
     read foo
 fi
 KILLPIDS="$PID"
+
+sleep 1
 
 echo "Testing slapd empty DN handling..."
 for i in 0 1 2 3 4 5; do

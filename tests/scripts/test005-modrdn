@@ -36,6 +36,8 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$PID"
 
+sleep 1
+
 echo "Testing slapd modrdn operations..."
 
 # Make sure we can search the database
