@@ -710,11 +710,13 @@ ldap_int_sasl_bind(
 		}
 
 		if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
-			if( scred && scred->bv_len ) {
-				/* and server provided us with data? */
-				Debug( LDAP_DEBUG_TRACE,
-					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
-					rc, saslrc, scred->bv_len );
+			if( scred ) {
+				if ( scred->bv_len ) {
+					/* and server provided us with data? */
+					Debug( LDAP_DEBUG_TRACE,
+						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+						rc, saslrc, scred->bv_len );
+				}
 				ber_bvfree( scred );
 			}
 			rc = ld->ld_errno;
@@ -723,11 +725,13 @@ ldap_int_sasl_bind(
 
 		if( rc == LDAP_SUCCESS && saslrc == SASL_OK ) {
 			/* we're done, no need to step */
-			if( scred && scred->bv_len ) {
-				/* but server provided us with data! */
-				Debug( LDAP_DEBUG_TRACE,
-					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
-					rc, saslrc, scred->bv_len );
+			if( scred ) {
+				if ( scred->bv_len ) {
+					/* but server provided us with data! */
+					Debug( LDAP_DEBUG_TRACE,
+						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+						rc, saslrc, scred->bv_len );
+				}
 				ber_bvfree( scred );
 				rc = ld->ld_errno = LDAP_LOCAL_ERROR;
 				goto done;
