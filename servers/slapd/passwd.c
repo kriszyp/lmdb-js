@@ -68,9 +68,7 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	qpw->rs_old.bv_len = 0;
 	qpw->rs_old.bv_val = NULL;
-	qpw->rs_new.bv_len = 0;
 	qpw->rs_new.bv_val = NULL;
 	qpw->rs_mods = NULL;
 	qpw->rs_modtail = NULL;
@@ -84,8 +82,10 @@ int passwd_extop(
 			qpw->rs_old.bv_val ? " old" : "",
 			qpw->rs_new.bv_val ? " new" : "", 0 );
 	} else {
-		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD\n",
-			op->o_log_prefix, 0, 0, 0, 0 );
+		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD %s%s\n",
+			op->o_log_prefix,
+			qpw->rs_old.bv_val ? " old" : "",
+			qpw->rs_new.bv_val ? " new" : "", 0, 0 );
 	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
