@@ -140,6 +140,13 @@ ldap_ld_free(
 		ld->ld_options.ldo_defludp = NULL;
 	}
 
+#ifdef LDAP_CONNECTIONLESS
+	if ( ld->ld_options.ldo_peer != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_peer );
+		ld->ld_options.ldo_peer = NULL;
+	}
+#endif
+
 	if ( ld->ld_options.ldo_tm_api != NULL ) {
 		LDAP_FREE( ld->ld_options.ldo_tm_api );
 		ld->ld_options.ldo_tm_api = NULL;
