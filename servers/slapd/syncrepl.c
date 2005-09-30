@@ -2227,10 +2227,11 @@ dn_callback(
 				 * discover if the deleteOldRdn argument applies here. It
 				 * would save an unnecessary Modify if we detected it, but
 				 * that's a fair amount of trouble to compare the two attr
-				 * lists in detail.
+				 * lists in detail. (Just test normalized DN; we ignore
+				 * insignificant changes here.)
 				 */
-				if ( !dn_match( &rs->sr_entry->e_name,
-						&dni->new_entry->e_name ) )
+				if ( !dn_match( &rs->sr_entry->e_nname,
+						&dni->new_entry->e_nname ) )
 				{
 					dni->renamed = 1;
 				}
