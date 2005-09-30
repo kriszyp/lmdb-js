@@ -719,17 +719,19 @@ ldap_int_sasl_bind(
 		}
 
 		if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
-			if( scred && scred->bv_len ) {
-				/* and server provided us with data? */
+			if( scred ) {
+				if ( scred->bv_len ) {
+					/* and server provided us with data? */
 #ifdef NEW_LOGGING
-				LDAP_LOG ( TRANSPORT, DETAIL1, 
-					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n", 
-					rc, saslrc, scred->bv_len );
+					LDAP_LOG ( TRANSPORT, DETAIL1, 
+						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n", 
+						rc, saslrc, scred->bv_len );
 #else
-				Debug( LDAP_DEBUG_TRACE,
-					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
-					rc, saslrc, scred->bv_len );
+					Debug( LDAP_DEBUG_TRACE,
+						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+						rc, saslrc, scred->bv_len );
 #endif
+				}
 				ber_bvfree( scred );
 			}
 			rc = ld->ld_errno;
@@ -738,17 +740,19 @@ ldap_int_sasl_bind(
 
 		if( rc == LDAP_SUCCESS && saslrc == SASL_OK ) {
 			/* we're done, no need to step */
-			if( scred && scred->bv_len ) {
+			if( scred ) {
+				if ( scred->bv_len ) {
 				/* but server provided us with data! */
 #ifdef NEW_LOGGING
-				LDAP_LOG ( TRANSPORT, DETAIL1, 
-					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n", 
-					rc, saslrc, scred->bv_len );
+					LDAP_LOG ( TRANSPORT, DETAIL1, 
+						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n", 
+						rc, saslrc, scred->bv_len );
 #else
-				Debug( LDAP_DEBUG_TRACE,
-					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
-					rc, saslrc, scred->bv_len );
+					Debug( LDAP_DEBUG_TRACE,
+						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+						rc, saslrc, scred->bv_len );
 #endif
+				}
 				ber_bvfree( scred );
 				rc = ld->ld_errno = LDAP_LOCAL_ERROR;
 				goto done;
