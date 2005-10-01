@@ -25,6 +25,8 @@ OpenLDAP 2.3.8 Release
 	Fixed slapd-ldap resource release issue (ITS#4016)
 	Fixed slapd-meta rootdn lookup bug (ITS#4004)
 	Fixed slapd-meta null value assert issue (ITS#4028)
+	Added slapd-meta pooled connections (ITS#4056)
+	Added slapd-meta target DSA bind defer when auth'd as rootdn (ITS#4057)
 	Fixed slapd-monitor unavailable issue (ITS#4013)
 	Fixed slapd-perl init/destroy bug (ITS#3923)
 	Fixed slapo-ppolicy replication issues (ITS#3980)
