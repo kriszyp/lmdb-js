@@ -245,6 +245,13 @@ Note: cleartext credentials must be supplied here; as a consequence,
 using the pseudorootdn/pseudorootpw directives is inherently unsafe.
 
 .TP
+.B pseudoroot-bind-defer {NO|yes}
+This directive, when set to 
+.BR yes ,
+causes the authentication to the remote servers with the pseudo-root
+identity to be deferred until actually needed by subsequent operations.
+
+.TP
 .B rewrite* ...
 The rewrite options are described in the "REWRITING" section.
 
