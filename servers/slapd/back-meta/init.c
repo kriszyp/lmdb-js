@@ -126,12 +126,19 @@ meta_back_db_open(
 	return 0;
 }
 
-static void
-conn_free( 
+void
+meta_back_conn_free( 
 	void 		*v_mc )
 {
 	metaconn_t		*mc = v_mc;
 	int			i, ntargets;
+
+	assert( mc != NULL );
+	assert( mc->mc_refcnt == 0 );
+
+	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
+		free( mc->mc_local_ndn.bv_val );
+	}
 
 	assert( mc->mc_conns != NULL );
 
@@ -156,6 +163,7 @@ conn_free(
 		}
 	}
 
+	ldap_pvt_thread_mutex_destroy( &mc->mc_mutex );
 	free( mc );
 }
 
@@ -220,7 +228,7 @@ meta_back_db_destroy(
 		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 
 		if ( mi->mi_conntree ) {
-			avl_free( mi->mi_conntree, conn_free );
+			avl_free( mi->mi_conntree, meta_back_conn_free );
 		}
 
 		/*

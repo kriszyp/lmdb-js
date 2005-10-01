@@ -312,14 +312,17 @@ meta_back_retry(
 
 extern void
 meta_back_conn_free(
-	metaconn_t		*mc );
+	void			*v_mc );
 
 extern int
 meta_back_init_one_conn(
 	Operation		*op,
 	SlapReply		*rs,
 	metatarget_t		*mt, 
+	metaconn_t		*mc,
 	metasingleconn_t	*msc,
+	int			ispriv,
+	int			isauthz,
 	ldap_back_send_t	sendok );
 
 extern int
