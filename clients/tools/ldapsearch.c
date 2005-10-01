@@ -117,6 +117,7 @@ usage( void )
 #endif
 	fprintf( stderr, _("             [!]sync=ro[/<cookie>]            (LDAP Sync refreshOnly)\n"));
 	fprintf( stderr, _("                     rp[/<cookie>][/<slimit>] (LDAP Sync refreshAndPersist)\n"));
+	fprintf( stderr, _("             [!]<oid>=:<value>           (generic control; no response handling)\n"));
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
 	fprintf( stderr, _("  -l limit   time limit (in seconds, or \"none\" or \"max\") for search\n"));
 	fprintf( stderr, _("  -L         print responses in LDIFv1 format\n"));
@@ -211,6 +212,58 @@ static int npagedentries;
 static int npagedreferences;
 static int npagedextended;
 static int npagedpartial;
+
+static LDAPControl *c = NULL;
+static int nctrls = 0;
+
+static int
+ctrl_add( void )
+{
+	LDAPControl	*tmpc;
+
+	nctrls++;
+	tmpc = realloc( c, sizeof( LDAPControl ) * nctrls );
+	if ( tmpc == NULL ) {
+		nctrls--;
+		fprintf( stderr,
+			_("unable to make room for control; out of memory?\n"));
+		return -1;
+	}
+	c = tmpc;
+
+	return 0;
+}
+
+static int
+is_oid( const char *s )
+{
+	int		first = 1;
+
+	if ( !isdigit( s[ 0 ] ) ) {
+		return 0;
+	}
+
+	for ( ; s[ 0 ]; s++ ) {
+		if ( s[ 0 ] == '.' ) {
+			if ( s[ 1 ] == '\0' ) {
+				return 0;
+			}
+			first = 1;
+			continue;
+		}
+
+		if ( !isdigit( s[ 0 ] ) ) {
+			return 0;
+		}
+
+		if ( first == 1 && s[ 0 ] == '0' && s[ 1 ] != '.' ) {
+			return 0;
+		}
+		first = 0;
+	}
+
+	return 1;
+}
 
 static int parse_page_control(
 	LDAP *ld,
@@ -428,6 +481,38 @@ handle_private_option( int i )
 				exit( EXIT_FAILURE );
 			}
 			if ( crit ) ldapsync *= -1;
+
+		} else if ( is_oid( control ) ) {
+			if ( ctrl_add() ) {
+				exit( EXIT_FAILURE );
+			}
+
+			/* OID */
+			c[ nctrls - 1 ].ldctl_oid = control;
+
+			/* value */
+			if ( cvalue == NULL ) {
+				c[ nctrls - 1 ].ldctl_value.bv_val = NULL;
+				c[ nctrls - 1 ].ldctl_value.bv_len = 0;
+
+			} else if ( cvalue[ 0 ] == ':' ) {
+				struct berval	type;
+				int		freeval;
+
+				cvalue++;
+
+				/* dummy type "x"
+				 * to use ldif_parse_line2() */
+				cvalue[ -2 ] = 'x';
+				ldif_parse_line2( &cvalue[ -2 ], &type,
+					&c[ nctrls - 1 ].ldctl_value, &freeval );
+				cvalue[ -2 ] = '\0';
+
+				/* NOTE: if freeval == TRUE, leaks value */
+			}
+
+			/* criticality */
+			c[ nctrls - 1 ].ldctl_iscritical = crit;
 
 		} else {
 			fprintf( stderr, _("Invalid search extension name: %s\n"),
@@ -658,7 +743,7 @@ main( int argc, char **argv )
 	tool_bind( ld );
 
 getNextPage:
-	if ( assertion || authzid || manageDSAit || noop
+	if ( nctrls > 0 || assertion || authzid || manageDSAit || noop
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 		|| domainScope
 #endif
@@ -672,11 +757,15 @@ getNextPage:
 		|| subentries || valuesReturnFilter )
 	{
 		int err;
-		int i=0;
-		LDAPControl c[10];
+		int i = nctrls;
+		int save_nctrls = nctrls;
 
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 		if ( domainScope ) {
+			if ( ctrl_add() ) {
+				return EXIT_FAILURE;
+			}
+
 			c[i].ldctl_oid = LDAP_CONTROL_X_DOMAIN_SCOPE;
 			c[i].ldctl_value.bv_val = NULL;
 			c[i].ldctl_value.bv_len = 0;
@@ -687,6 +776,10 @@ getNextPage:
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		if ( subentries ) {
+			if ( ctrl_add() ) {
+				return EXIT_FAILURE;
+			}
+
 			if (( seber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
@@ -709,6 +802,10 @@ getNextPage:
 #endif
 
 		if ( ldapsync ) {
+			if ( ctrl_add() ) {
+				return EXIT_FAILURE;
+			}
+
 			if (( syncber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
@@ -737,11 +834,15 @@ getNextPage:
 		}
 
 		if ( valuesReturnFilter ) {
-	        if (( vrber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+			if ( ctrl_add() ) {
 				return EXIT_FAILURE;
 			}
 
-	    	if ( ( err = ldap_put_vrFilter( vrber, vrFilter ) ) == -1 ) {
+			if (( vrber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+				return EXIT_FAILURE;
+			}
+
+			if ( ( err = ldap_put_vrFilter( vrber, vrFilter ) ) == -1 ) {
 				ber_free( vrber, 1 );
 				fprintf( stderr, _("Bad ValuesReturnFilter: %s\n"), vrFilter );
 				return EXIT_FAILURE;
@@ -758,6 +859,10 @@ getNextPage:
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 		if ( pagedResults ) {
+			if ( ctrl_add() ) {
+				return EXIT_FAILURE;
+			}
+
 			if (( prber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
@@ -778,6 +883,10 @@ getNextPage:
 #endif
 
 		tool_server_controls( ld, c, i );
+
+		/* step back to the original number of controls, so that 
+		 * those set while parsing args are preserved */
+		nctrls = save_nctrls;
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		ber_free( seber, 1 );
@@ -928,6 +1037,12 @@ getNextPage:
 
 	tool_unbind( ld );
 	tool_destroy();
+
+	if ( c ) {
+		free( c );
+		c = NULL;
+	}
+
 	return( rc );
 }
 
