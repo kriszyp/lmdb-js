@@ -215,6 +215,7 @@ static int npagedpartial;
 
 static LDAPControl *c = NULL;
 static int nctrls = 0;
+static int save_nctrls = 0;
 
 static int
 ctrl_add( void )
@@ -497,6 +498,7 @@ handle_private_option( int i )
 
 			} else if ( cvalue[ 0 ] == ':' ) {
 				struct berval	type;
+				struct berval	value;
 				int		freeval;
 
 				cvalue++;
@@ -505,10 +507,15 @@ handle_private_option( int i )
 				 * to use ldif_parse_line2() */
 				cvalue[ -2 ] = 'x';
 				ldif_parse_line2( &cvalue[ -2 ], &type,
-					&c[ nctrls - 1 ].ldctl_value, &freeval );
+					&value, &freeval );
 				cvalue[ -2 ] = '\0';
 
-				/* NOTE: if freeval == TRUE, leaks value */
+				if ( freeval ) {
+					c[ nctrls - 1 ].ldctl_value = value;
+
+				} else {
+					ber_dupbv( &c[ nctrls - 1 ].ldctl_value, &value );
+				}
 			}
 
 			/* criticality */
@@ -758,7 +765,7 @@ getNextPage:
 	{
 		int err;
 		int i = nctrls;
-		int save_nctrls = nctrls;
+		save_nctrls = nctrls;
 
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 		if ( domainScope ) {
@@ -1039,6 +1046,9 @@ getNextPage:
 	tool_destroy();
 
 	if ( c ) {
+		for ( ; save_nctrls-- > 0; ) {
+			ber_memfree( c[ save_nctrls ].ldctl_value.bv_val );
+		}
 		free( c );
 		c = NULL;
 	}
