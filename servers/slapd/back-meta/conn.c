@@ -351,8 +351,16 @@ retry:;
 	 */
 
 	if ( ispriv ) {
-		ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
-		ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
+		if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
+			ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
+			if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
+				ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
+			}
+
+		} else {
+			ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
+		}
+
 		LDAP_BACK_CONN_ISPRIV_SET( msc );
 
 	} else {
