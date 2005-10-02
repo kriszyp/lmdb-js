@@ -69,7 +69,7 @@ typedef struct syncops {
 	int		s_inuse;	/* reference count */
 	struct syncres *s_res;
 	struct syncres *s_restail;
-	void	*s_qtask;	/* task for playing psearch responses */
+	struct re_s	*s_qtask;	/* task for playing psearch responses */
 	ldap_pvt_thread_mutex_t	s_mutex;
 } syncops;
 
@@ -900,12 +900,14 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	if ( so->s_flags & PS_IS_DETACHED ) {
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		if ( !so->s_qtask ) {
-			so->s_qtask = ldap_pvt_runqueue_insert( &slapd_rq, 0,
+			so->s_qtask = ldap_pvt_runqueue_insert( &slapd_rq, 1,
 				syncprov_qtask, so, "syncprov_qtask",
 				so->s_op->o_conn->c_peer_name.bv_val );
 		} else {
 			if (!ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask )) {
+				so->s_qtask->interval.tv_sec = 0;
 				ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 0 );
+				so->s_qtask->interval.tv_sec = 1;
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
