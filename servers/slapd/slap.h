@@ -2274,6 +2274,7 @@ typedef struct slap_overinst {
 typedef struct slap_overinfo {
 	BackendInfo oi_bi;
 	BackendInfo *oi_orig;
+	BackendDB	*oi_origdb;
 	struct slap_overinst *oi_list;
 } slap_overinfo;
 

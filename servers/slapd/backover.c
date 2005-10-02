@@ -868,6 +868,7 @@ overlay_config( BackendDB *be, const char *ov )
 		oi = ch_malloc( sizeof( slap_overinfo ) );
 		oi->oi_orig = be->bd_info;
 		oi->oi_bi = *be->bd_info;
+		oi->oi_origdb = be;
 
 		/* NOTE: the first time a global overlay is configured,
 		 * frontendDB gets this flag; it is used later by overlays
