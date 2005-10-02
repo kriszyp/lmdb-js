@@ -1057,6 +1057,11 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
 		if ( a )
 			ber_dupbv_x( &opc->suuid, &a->a_nvals[0], op->o_tmpmemctx );
+	} else if ( op->o_tag == LDAP_REQ_MODRDN && !saveit ) {
+		op->o_tmpfree( opc->sndn.bv_val, op->o_tmpmemctx );
+		op->o_tmpfree( opc->sdn.bv_val, op->o_tmpmemctx );
+		ber_dupbv_x( &opc->sdn, &e->e_name, op->o_tmpmemctx );
+		ber_dupbv_x( &opc->sndn, &e->e_nname, op->o_tmpmemctx );
 	}
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
