@@ -61,6 +61,11 @@ typedef struct syncops {
 	int		s_rid;
 	struct berval s_filterstr;
 	int		s_flags;	/* search status */
+#define	PS_IS_REFRESHING	0x01
+#define	PS_IS_DETACHED		0x02
+#define	PS_WROTE_BASE		0x04
+#define	PS_FIND_BASE		0x08
+
 	int		s_inuse;	/* reference count */
 	struct syncres *s_res;
 	struct syncres *s_restail;
@@ -84,9 +89,6 @@ typedef struct sync_control {
 #define SLAP_SYNC_REFRESH				(LDAP_SYNC_REFRESH_ONLY<<SLAP_CONTROL_SHIFT)
 #define SLAP_SYNC_PERSIST				(LDAP_SYNC_RESERVED<<SLAP_CONTROL_SHIFT)
 #define SLAP_SYNC_REFRESH_AND_PERSIST	(LDAP_SYNC_REFRESH_AND_PERSIST<<SLAP_CONTROL_SHIFT)
-
-#define	PS_IS_REFRESHING	0x01
-#define	PS_IS_DETACHED		0x02
 
 /* Record of which searches matched at premodify step */
 typedef struct syncmatches {
@@ -362,36 +364,15 @@ findbase_cb( Operation *op, SlapReply *rs )
 		 * Just store whatever we got.
 		 */
 		if ( fc->fss->s_eid == NOID ) {
-			fc->fbase = 1;
+			fc->fbase = 2;
 			fc->fss->s_eid = rs->sr_entry->e_id;
 			ber_dupbv( &fc->fss->s_base, &rs->sr_entry->e_nname );
 
 		} else if ( rs->sr_entry->e_id == fc->fss->s_eid &&
 			dn_match( &rs->sr_entry->e_nname, &fc->fss->s_base )) {
 
-		/* OK, the DN is the same and the entryID is the same. Now
-		 * see if the fdn resides in the scope.
-		 */
+		/* OK, the DN is the same and the entryID is the same. */
 			fc->fbase = 1;
-			switch ( fc->fss->s_op->ors_scope ) {
-			case LDAP_SCOPE_BASE:
-				fc->fscope = dn_match( fc->fdn, &rs->sr_entry->e_nname );
-				break;
-			case LDAP_SCOPE_ONELEVEL: {
-				struct berval pdn;
-				dnParent( fc->fdn, &pdn );
-				fc->fscope = dn_match( &pdn, &rs->sr_entry->e_nname );
-				break; }
-			case LDAP_SCOPE_SUBTREE:
-				fc->fscope = dnIsSuffix( fc->fdn, &rs->sr_entry->e_nname );
-				break;
-#ifdef LDAP_SCOPE_SUBORDINATE
-			case LDAP_SCOPE_SUBORDINATE:
-				fc->fscope = dnIsSuffix( fc->fdn, &rs->sr_entry->e_nname ) &&
-					!dn_match( fc->fdn, &rs->sr_entry->e_nname );
-				break;
-#endif
-			}
 		}
 	}
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -406,40 +387,73 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 	opcookie *opc = op->o_callback->sc_private;
 	slap_overinst *on = opc->son;
 
-	slap_callback cb = {0};
-	Operation fop;
-	SlapReply frs = { REP_RESULT };
-	int rc;
-
 	/* Use basic parameters from syncrepl search, but use
 	 * current op's threadctx / tmpmemctx
 	 */
-	fop = *fc->fss->s_op;
+	ldap_pvt_thread_mutex_lock( &fc->fss->s_mutex );
+	if ( fc->fss->s_flags & PS_FIND_BASE ) {
+		slap_callback cb = {0};
+		Operation fop;
+		SlapReply frs = { REP_RESULT };
+		int rc;
 
-	fop.o_hdr = op->o_hdr;
-	fop.o_bd = op->o_bd;
-	fop.o_time = op->o_time;
-	fop.o_tincr = op->o_tincr;
+		fc->fss->s_flags ^= PS_FIND_BASE;
+		ldap_pvt_thread_mutex_unlock( &fc->fss->s_mutex );
 
-	cb.sc_response = findbase_cb;
-	cb.sc_private = fc;
+		fop = *fc->fss->s_op;
 
-	fop.o_sync_mode = 0;	/* turn off sync mode */
-	fop.o_managedsait = SLAP_CONTROL_CRITICAL;
-	fop.o_callback = &cb;
-	fop.o_tag = LDAP_REQ_SEARCH;
-	fop.ors_scope = LDAP_SCOPE_BASE;
-	fop.ors_limit = NULL;
-	fop.ors_slimit = 1;
-	fop.ors_tlimit = SLAP_NO_LIMIT;
-	fop.ors_attrs = slap_anlist_no_attrs;
-	fop.ors_attrsonly = 1;
+		fop.o_hdr = op->o_hdr;
+		fop.o_bd = op->o_bd;
+		fop.o_time = op->o_time;
+		fop.o_tincr = op->o_tincr;
 
-	fop.o_bd->bd_info = on->on_info->oi_orig;
-	rc = fop.o_bd->be_search( &fop, &frs );
-	fop.o_bd->bd_info = (BackendInfo *)on;
+		cb.sc_response = findbase_cb;
+		cb.sc_private = fc;
 
-	if ( fc->fbase ) return LDAP_SUCCESS;
+		fop.o_sync_mode = 0;	/* turn off sync mode */
+		fop.o_managedsait = SLAP_CONTROL_CRITICAL;
+		fop.o_callback = &cb;
+		fop.o_tag = LDAP_REQ_SEARCH;
+		fop.ors_scope = LDAP_SCOPE_BASE;
+		fop.ors_limit = NULL;
+		fop.ors_slimit = 1;
+		fop.ors_tlimit = SLAP_NO_LIMIT;
+		fop.ors_attrs = slap_anlist_no_attrs;
+		fop.ors_attrsonly = 1;
+
+		fop.o_bd->bd_info = on->on_info->oi_orig;
+		rc = fop.o_bd->be_search( &fop, &frs );
+		fop.o_bd->bd_info = (BackendInfo *)on;
+	} else {
+		ldap_pvt_thread_mutex_unlock( &fc->fss->s_mutex );
+		fc->fbase = 1;
+	}
+
+	/* After the first call, see if the fdn resides in the scope */
+	if ( fc->fbase == 1 ) {
+		switch ( fc->fss->s_op->ors_scope ) {
+		case LDAP_SCOPE_BASE:
+			fc->fscope = dn_match( fc->fdn, &fc->fss->s_base );
+			break;
+		case LDAP_SCOPE_ONELEVEL: {
+			struct berval pdn;
+			dnParent( fc->fdn, &pdn );
+			fc->fscope = dn_match( &pdn, &fc->fss->s_base );
+			break; }
+		case LDAP_SCOPE_SUBTREE:
+			fc->fscope = dnIsSuffix( fc->fdn, &fc->fss->s_base );
+			break;
+#ifdef LDAP_SCOPE_SUBORDINATE
+		case LDAP_SCOPE_SUBORDINATE:
+			fc->fscope = dnIsSuffix( fc->fdn, &fc->fss->s_base ) &&
+				!dn_match( fc->fdn, &fc->fss->s_base );
+			break;
+#endif
+		}
+	}
+
+	if ( fc->fbase )
+		return LDAP_SUCCESS;
 
 	/* If entryID has changed, then the base of this search has
 	 * changed. Invalidate the psearch.
@@ -853,7 +867,6 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 {
 	syncres *sr;
 
-	ldap_pvt_thread_mutex_lock( &so->s_mutex );
 	sr = ch_malloc(sizeof(syncres) + opc->suuid.bv_len + 1 +
 		opc->sdn.bv_len + 1 + opc->sndn.bv_len + 1 + opc->sctxcsn.bv_len + 1 );
 	sr->s_next = NULL;
@@ -871,12 +884,19 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	sr->s_csn.bv_len = opc->sctxcsn.bv_len;
 	strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
 
+	ldap_pvt_thread_mutex_lock( &so->s_mutex );
 	if ( !so->s_res ) {
 		so->s_res = sr;
 	} else {
 		so->s_restail->s_next = sr;
 	}
 	so->s_restail = sr;
+
+	/* If the base of the psearch was modified, check it next time round */
+	if ( so->s_flags & PS_WROTE_BASE ) {
+		so->s_flags ^= PS_WROTE_BASE;
+		so->s_flags |= PS_FIND_BASE;
+	}
 	if ( so->s_flags & PS_IS_DETACHED ) {
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		if ( !so->s_qtask ) {
@@ -1064,9 +1084,18 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			continue;
 		}
 
+
 		/* If we're sending results now, look for this op in old matches */
 		if ( !saveit ) {
 			syncmatches *old;
+
+			/* Did we modify the search base? */
+			if ( dn_match( &op->o_req_ndn, &ss->s_base )) {
+				ldap_pvt_thread_mutex_lock( &ss->s_mutex );
+				ss->s_flags |= PS_WROTE_BASE;
+				ldap_pvt_thread_mutex_unlock( &ss->s_mutex );
+			}
+
 			for ( sm=opc->smatches, old=(syncmatches *)&opc->smatches; sm;
 				old=sm, sm=sm->sm_next ) {
 				if ( sm->sm_op == ss ) {
@@ -1090,17 +1119,13 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			} else {
 				/* if found send UPDATE else send ADD */
 				ss->s_inuse++;
-				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 				syncprov_qresp( opc, ss,
 					found ? LDAP_SYNC_MODIFY : LDAP_SYNC_ADD );
-				ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 				ss->s_inuse--;
 			}
 		} else if ( !saveit && found ) {
 			/* send DELETE */
-			ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 			syncprov_qresp( opc, ss, LDAP_SYNC_DELETE );
-			ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 		}
 	}
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
@@ -1831,7 +1856,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		fc.fbase = 0;
 		so.s_eid = NOID;
 		so.s_op = op;
-		so.s_flags = PS_IS_REFRESHING;
+		so.s_flags = PS_IS_REFRESHING | PS_FIND_BASE;
 		/* syncprov_findbase expects to be called as a callback... */
 		sc.sc_private = &opc;
 		opc.son = on;
