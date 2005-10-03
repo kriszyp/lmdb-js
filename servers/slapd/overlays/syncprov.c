@@ -834,9 +834,10 @@ syncprov_qtask( void *ctx, void *arg )
 	BackendDB be;
 
 	op = (Operation *)opbuf;
-	memset( op, 0, sizeof(opbuf));
+	*op = *so->s_op;
 	op->o_hdr = (Opheader *)(op+1);
 	op->o_controls = (void **)(op->o_hdr+1);
+	memset( op->o_controls, 0, SLAP_MAX_CIDS * sizeof(void *));
 
 	*op->o_hdr = *so->s_op->o_hdr;
 
@@ -905,7 +906,8 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 				syncprov_qtask, so, "syncprov_qtask",
 				so->s_op->o_conn->c_peer_name.bv_val );
 		} else {
-			if (!ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask )) {
+			if (!ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask ) &&
+				!so->s_qtask->next_sched.tv_sec ) {
 				so->s_qtask->interval.tv_sec = 0;
 				ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 0 );
 				so->s_qtask->interval.tv_sec = RUNQ_INTERVAL;
