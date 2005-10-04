@@ -320,7 +320,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 		snprintf( tmp, sizeof(tmp), 
 			"DELETE FROM ldap_referrals "
 			"WHERE entry_id=(SELECT id FROM ldap_entries "
-			"WHERE oc_map_id=%lu"
+			"WHERE oc_map_id=%lu "
 			"AND keyval=?) and url=?",
 			oc_map->bom_id );
 		at_map->bam_delete_proc = ch_strdup( tmp );
