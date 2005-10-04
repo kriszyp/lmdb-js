@@ -1815,13 +1815,6 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			syncprov_sendinfo( op, rs, ( ss->ss_present && rs->sr_nentries ) ?
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				&cookie, 1, NULL, 0 );
-			/* Flush any queued persist messages */
-			if ( ss->ss_so->s_res ) {
-				slap_callback *sc = op->o_callback;
-				op->o_callback = NULL;
-				syncprov_qplay( op, on, ss->ss_so );
-				op->o_callback = sc;
-			}
 
 			/* Detach this Op from frontend control */
 			ldap_pvt_thread_mutex_lock( &ss->ss_so->s_mutex );
