@@ -781,6 +781,10 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 
 		if ((err = ERR_peek_error())) {
 			char buf[256];
+
+			if (ld->ld_error ) {
+				LDAP_FREE( ld->ld_error );
+			}
 			ld->ld_error = LDAP_STRDUP(ERR_error_string(err, buf));
 #ifdef HAVE_EBCDIC
 			if ( ld->ld_error ) __etoa(ld->ld_error);
@@ -1068,7 +1072,10 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 				"TLS: unable to get common name from peer certificate.\n",
 				0, 0, 0 );
 #endif
-       		ret = LDAP_CONNECT_ERROR;
+			ret = LDAP_CONNECT_ERROR;
+			if (ld->ld_error ) {
+				LDAP_FREE( ld->ld_error );
+			}
 			ld->ld_error = LDAP_STRDUP(
 				_("TLS: unable to get CN from peer certificate"));
 
@@ -1094,17 +1101,20 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 
 		if( ret == LDAP_LOCAL_ERROR ) {
 #ifdef NEW_LOGGING
-       		 LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_check_hostname: "
-      			 "TLS hostname (%s) does not match "
-       			 "common name in certificate (%s).\n", name, buf, 0 );
+			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_check_hostname: "
+				"TLS hostname (%s) does not match "
+				"common name in certificate (%s).\n", name, buf, 0 );
 #else
-       		 Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
-       			 "common name in certificate (%s).\n", 
-       			 name, buf, 0 );
+			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+				"common name in certificate (%s).\n", 
+				name, buf, 0 );
 #endif
-       		 ret = LDAP_CONNECT_ERROR;
-       		 ld->ld_error = LDAP_STRDUP(
-       		  	 _("TLS: hostname does not match CN in peer certificate"));
+			ret = LDAP_CONNECT_ERROR;
+			if (ld->ld_error ) {
+				LDAP_FREE( ld->ld_error );
+			}
+			ld->ld_error = LDAP_STRDUP(
+				_("TLS: hostname does not match CN in peer certificate"));
 		}
 	}
 	X509_free(x);
