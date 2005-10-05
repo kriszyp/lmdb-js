@@ -24,12 +24,12 @@ LDAPSearchReference::LDAPSearchReference(const LDAPRequest *req,
     int err = ldap_parse_reference(con->getSessionHandle(), msg, &ref, 
             &srvctrls,0);
     if (err != LDAP_SUCCESS){
-        ldap_value_free(ref);
+        ber_memvfree((void**) ref);
         ldap_controls_free(srvctrls);
         throw LDAPException(err);
     }else{
         m_urlList=LDAPUrlList(ref);
-        ldap_value_free(ref);
+        ber_memvfree((void**) ref);
         if (srvctrls){
             m_srvControls = LDAPControlSet(srvctrls);
             m_hasControls = true;
