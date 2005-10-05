@@ -347,6 +347,7 @@ static int unique_search(
 	nop->o_req_ndn	= ud->dn;
 	nop->o_ndn = op->o_bd->be_rootndn;
 
+	nop->o_bd = on->on_info->oi_origdb;
 	rc = nop->o_bd->be_search(nop, &nrs);
 	filter_free_x(nop, nop->ors_filter);
 	ch_free( key );
@@ -384,21 +385,8 @@ static int unique_add(
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_add <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
-	/* validate backend. Should have already been done, but whatever */
-	nop.o_bd = select_backend(&ud->dn, 0, 1);
-	if(nop.o_bd) {
-		if (!nop.o_bd->be_search) {
-			op->o_bd->bd_info = (BackendInfo *) on->on_info;
-			send_ldap_error(op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"backend missing search function");
-			return(rs->sr_err);
-		}
-	} else {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, LDAP_OTHER,
-			"no known backend? this shouldn't be happening!");
-		return(rs->sr_err);
-	}
+	if ( !dnIsSuffix( &op->o_req_ndn, &ud->dn ))
+		return SLAP_CB_CONTINUE;
 
 /*
 ** count everything first;
@@ -447,20 +435,8 @@ static int unique_modify(
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modify <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
-	nop.o_bd = select_backend(&ud->dn, 0, 1);
-	if(nop.o_bd) {
-		if (!nop.o_bd->be_search) {
-			op->o_bd->bd_info = (BackendInfo *) on->on_info;
-			send_ldap_error(op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"backend missing search function");
-			return(rs->sr_err);
-		}
-	} else {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, LDAP_OTHER,
-			"no known backend? this shouldn't be happening!");
-		return(rs->sr_err);
-	}
+	if ( !dnIsSuffix( &op->o_req_ndn, &ud->dn ))
+		return SLAP_CB_CONTINUE;
 
 /*
 ** count everything first;
@@ -513,20 +489,9 @@ static int unique_modrdn(
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modrdn <%s> <%s>\n",
 		op->o_req_dn.bv_val, op->orr_newrdn.bv_val, 0);
 
-	nop.o_bd = select_backend(&ud->dn, 0, 1);
-	if(nop.o_bd) {
-		if (!nop.o_bd->be_search) {
-			op->o_bd->bd_info = (BackendInfo *) on->on_info;
-			send_ldap_error(op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"backend missing search function");
-			return(rs->sr_err);
-		}
-	} else {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, LDAP_OTHER,
-			"no known backend? this shouldn't be happening!");
-		return(rs->sr_err);
-	}
+	if ( !dnIsSuffix( &op->o_req_ndn, &ud->dn ) && 
+		(!op->orr_nnewSup || !dnIsSuffix( &op->orr_nnewSup, &ud->dn )))
+		return SLAP_CB_CONTINUE;
 
 	if(ldap_bv2rdn_x(&op->oq_modrdn.rs_newrdn, &newrdn,
 		(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx )) {
