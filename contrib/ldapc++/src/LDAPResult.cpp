@@ -24,13 +24,13 @@ LDAPResult::LDAPResult(const LDAPRequest *req, LDAPMessage *msg) :
         int err=ldap_parse_result(con->getSessionHandle(),msg,&m_resCode,
                 &matchedDN, &errMsg,&refs,&srvctrls,0);
         if(err != LDAP_SUCCESS){
-            ldap_value_free(refs);
+            ber_memvfree((void**) refs);
             ldap_controls_free(srvctrls);
             throw LDAPException(err);
         }else{
             if (refs){
                 m_referrals=LDAPUrlList(refs);
-                ldap_value_free(refs);
+                ber_memvfree((void**) refs);
             }
             if (srvctrls){
                 m_srvControls = LDAPControlSet(srvctrls);

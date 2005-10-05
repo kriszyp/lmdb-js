@@ -21,6 +21,7 @@
 #include "LDAPRebind.h"
 #include "LDAPRebindAuth.h"
 #include "LDAPSearchRequest.h"
+#include <sstream>
 
 using namespace std;
 
@@ -48,7 +49,10 @@ void LDAPAsynConnection::init(const string& hostname, int port){
     DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
             "   hostname:" << hostname << endl
             << "   port:" << port << endl);
-    cur_session=ldap_init(hostname.c_str(),port);
+    std::ostringstream urlstream;
+    urlstream << "ldap://" + hostname << ":" << port;
+    std::string url = urlstream.str();
+    ldap_initialize(&cur_session, url.c_str());
     m_host=hostname;
     m_port=port;
     int opt=3;
@@ -270,18 +274,20 @@ LDAPAsynConnection* LDAPAsynConnection::referralConnect(
             string dn = auth->getDN();
             string passwd = auth->getPassword();
             const char* c_dn=0;
-            const char* c_passwd=0;
+            struct berval c_passwd = { 0, 0 };
             if(dn != ""){
                 c_dn = dn.c_str();
             }
             if(passwd != ""){
-                c_passwd = passwd.c_str();
+                c_passwd.bv_val = const_cast<char*>(passwd.c_str());
+                c_passwd.bv_len = passwd.size();
             }
-            err = ldap_simple_bind_s(tmpConn->getSessionHandle(), c_dn,
-                    c_passwd);
+            err = ldap_sasl_bind_s(tmpConn->getSessionHandle(), c_dn,
+                    LDAP_SASL_SIMPLE, &c_passwd, NULL, NULL, NULL);
         } else {   
             // Do anonymous bind
-            err = ldap_simple_bind_s(tmpConn->getSessionHandle(), 0,0);
+            err = ldap_sasl_bind_s(tmpConn->getSessionHandle(),NULL,
+                    LDAP_SASL_SIMPLE, NULL, NULL, NULL, NULL);
         }
         if( err == LDAP_SUCCESS ){
             usedUrl=conUrl;

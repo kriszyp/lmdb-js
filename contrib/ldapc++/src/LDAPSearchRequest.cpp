@@ -70,7 +70,7 @@ LDAPMessageQueue* LDAPSearchRequest::sendRequest(){
             m_scope, m_filter.c_str(), tmpattrs, m_attrsOnly, tmpSrvCtrl,
             tmpClCtrl, tmptime, m_cons->getSizeLimit(), &msgID );
     delete tmptime;
-    ldap_value_free(tmpattrs);
+    ber_memvfree((void**)tmpattrs);
     LDAPControlSet::freeLDAPControlArray(tmpSrvCtrl);
     LDAPControlSet::freeLDAPControlArray(tmpClCtrl);
 
