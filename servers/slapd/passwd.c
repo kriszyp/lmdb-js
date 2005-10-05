@@ -68,9 +68,7 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	qpw->rs_old.bv_len = 0;
 	qpw->rs_old.bv_val = NULL;
-	qpw->rs_new.bv_len = 0;
 	qpw->rs_new.bv_val = NULL;
 	qpw->rs_mods = NULL;
 	qpw->rs_modtail = NULL;
@@ -84,8 +82,10 @@ int passwd_extop(
 			qpw->rs_old.bv_val ? " old" : "",
 			qpw->rs_new.bv_val ? " new" : "", 0 );
 	} else {
-		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD\n",
-			op->o_log_prefix, 0, 0, 0, 0 );
+		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD %s%s\n",
+			op->o_log_prefix,
+			qpw->rs_old.bv_val ? " old" : "",
+			qpw->rs_new.bv_val ? " new" : "", 0, 0 );
 	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -209,11 +209,27 @@ int passwd_extop(
 	}
 
 	if ( qpw->rs_old.bv_val != NULL ) {
+		Entry *e = NULL;
+
+		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL,
+			slap_schema.si_ad_userPassword, 0, &e );
+		if ( rc == LDAP_SUCCESS && e ) {
+			Attribute *a = attr_find( e->e_attrs,
+				slap_schema.si_ad_userPassword );
+			if ( a )
+				rc = slap_passwd_check( op, e, a, &qpw->rs_old, &rs->sr_text );
+			else
+				rc = 1;
+			be_entry_release_r( op, e );
+			if ( rc == LDAP_SUCCESS )
+				goto old_good;
+		}
 		rs->sr_text = "unwilling to verify old password";
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto error_return;
 	}
 
+old_good:
 	ml = ch_malloc( sizeof(Modifications) );
 	if ( !qpw->rs_modtail ) qpw->rs_modtail = &ml->sml_next;
 

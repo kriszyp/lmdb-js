@@ -38,6 +38,7 @@ OpenLDAP 2.3.8 Release
 	Fixed slapcat out-of-memory problem (ITS#4010)
 	Fixed slurpd unrecognized slave names bug (ITS#4012)
 	Fixed liblber dgram len bug (ITS#4046)
+	Updated contrib/ldapc++ to avoid deprecated functions
 	Documentation
 		Added slapo-valsort(5) man page (ITS#3994)
 		Added slap tool -F option documentation (ITS#4026)
@@ -46,6 +47,7 @@ OpenLDAP 2.3.8 Release
 		Fixed --without-threads build issue (ITS#4006)
 		Fixed test script exit checks (ITS#4045)
 		Added test suite parameterized directory support
+		Updated contrib/ldapc++ build environment
 
 OpenLDAP 2.3.7 Release
 	Updated slapd ManageDIT support

@@ -614,7 +614,13 @@ select_backend(
 						continue;
 					}
 				} else {
-					b2 = be;
+					/* If any parts of the tree are glued, use the first
+					 * match regardless of manageDSAit. Otherwise use the
+					 * last match.
+					 */
+					if( !( SLAP_DBFLAGS( be ) & ( SLAP_DBFLAG_GLUE_INSTANCE |
+						SLAP_DBFLAG_GLUE_SUBORDINATE )))
+						b2 = be;
 				}
 				return b2;
 			}

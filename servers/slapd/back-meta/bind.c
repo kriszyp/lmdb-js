@@ -391,7 +391,9 @@ retry:;
 				        /* mc here must be the regular mc,
 					 * reset and ready for init */
 				        rc = meta_back_init_one_conn( op, rs,
-						mt, msc, LDAP_BACK_DONTSEND );
+						mt, mc, msc, LDAP_BACK_CONN_ISPRIV( mc ),
+						candidate == mc->mc_authz_target,
+						LDAP_BACK_DONTSEND );
 
 				} else {
 					/* can't do anything about it */
@@ -567,7 +569,10 @@ retry:;
 				        /* mc here must be the regular mc,
 					 * reset and ready for init */
 				        rc = meta_back_init_one_conn( op, rs,
-						mt, msc, LDAP_BACK_DONTSEND );
+						mt, mc, msc,
+						LDAP_BACK_CONN_ISPRIV( mc ),
+						candidate == mc->mc_authz_target,
+						LDAP_BACK_DONTSEND );
 				
 
 				} else {

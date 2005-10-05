@@ -654,30 +654,41 @@ static Entry *accesslog_entry( Operation *op, int logop ) {
 	log_info *li = on->on_bi.bi_private;
 
 	char rdnbuf[STRLENOF(RDNEQ)+LDAP_LUTIL_GENTIME_BUFSIZE+8];
-	struct berval rdn, timestamp, bv;
+	char nrdnbuf[STRLENOF(RDNEQ)+LDAP_LUTIL_GENTIME_BUFSIZE+8];
+
+	struct berval rdn, nrdn, timestamp, ntimestamp, bv;
 	slap_verbmasks *lo = logops+logop+EN_OFFSET;
 
 	Entry *e = ch_calloc( 1, sizeof(Entry) );
 
 	strcpy( rdnbuf, RDNEQ );
 	rdn.bv_val = rdnbuf;
+	strcpy( nrdnbuf, RDNEQ );
+	nrdn.bv_val = nrdnbuf;
 
 	timestamp.bv_val = rdnbuf+STRLENOF(RDNEQ);
 	timestamp.bv_len = sizeof(rdnbuf) - STRLENOF(RDNEQ);
 	slap_timestamp( &op->o_time, &timestamp );
-	if ( op->o_tincr ) {
-		sprintf( timestamp.bv_val + timestamp.bv_len-1, ".%06dZ", op->o_tincr );
-		timestamp.bv_len += 7;
-	}
+	sprintf( timestamp.bv_val + timestamp.bv_len-1, ".%06dZ", op->o_tincr );
+	timestamp.bv_len += 7;
+
 	rdn.bv_len = STRLENOF(RDNEQ)+timestamp.bv_len;
+	ad_reqStart->ad_type->sat_equality->smr_normalize(
+		SLAP_MR_VALUE_OF_ASSERTION_SYNTAX, ad_reqStart->ad_type->sat_syntax,
+		ad_reqStart->ad_type->sat_equality, &timestamp, &ntimestamp,
+		op->o_tmpmemctx );
+
+	strcpy( nrdn.bv_val + STRLENOF(RDNEQ), ntimestamp.bv_val );
+	nrdn.bv_len += ntimestamp.bv_len;
 	build_new_dn( &e->e_name, li->li_db->be_suffix, &rdn, NULL );
-	build_new_dn( &e->e_nname, li->li_db->be_nsuffix, &rdn, NULL );
+	build_new_dn( &e->e_nname, li->li_db->be_nsuffix, &nrdn, NULL );
 
 	attr_merge_one( e, slap_schema.si_ad_objectClass,
 		&log_ocs[logop]->soc_cname, NULL );
 	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
 		&log_ocs[logop]->soc_cname, NULL );
-	attr_merge_one( e, ad_reqStart, &timestamp, NULL );
+	attr_merge_one( e, ad_reqStart, &timestamp, &ntimestamp );
+	op->o_tmpfree( ntimestamp.bv_val, op->o_tmpmemctx );
 
 	/* Exops have OID appended */
 	if ( logop == LOG_EN_EXTENDED ) {

@@ -176,27 +176,6 @@ metaconn_alloc(
 	return mc;
 }
 
-/*
- * meta_back_conn_free
- *
- * clears a metaconn
- */
-
-void
-meta_back_conn_free(
-	metaconn_t	*mc )
-{
-	assert( mc != NULL );
-	assert( mc->mc_refcnt == 0 );
-
-	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
-		free( mc->mc_local_ndn.bv_val );
-	}
-
-	ldap_pvt_thread_mutex_destroy( &mc->mc_mutex );
-	free( mc );
-}
-
 static void
 meta_back_freeconn(
 	Operation	*op,
@@ -225,7 +204,10 @@ meta_back_init_one_conn(
 	Operation		*op,
 	SlapReply		*rs,
 	metatarget_t		*mt, 
+	metaconn_t		*mc,
 	metasingleconn_t	*msc,
+	int			ispriv,
+	int			isauthz,
 	ldap_back_send_t	sendok )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
@@ -367,31 +349,53 @@ retry:;
 	/*
 	 * If the connection DN is not null, an attempt to rewrite it is made
 	 */
-	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
-		dc.target = mt;
-		dc.conn = op->o_conn;
-		dc.rs = rs;
-		dc.ctx = "bindDN";
-		
-		/*
-		 * Rewrite the bind dn if needed
-		 */
-		if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
-					&msc->msc_bound_ndn ) )
-		{
-			goto error_return;
+
+	if ( ispriv ) {
+		if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
+			ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
+			if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
+				ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
+			}
+
+		} else {
+			ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
 		}
 
-		/* copy the DN idf needed */
-		if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
-			ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
-		}
-
-		assert( !BER_BVISNULL( &msc->msc_bound_ndn ) );
+		LDAP_BACK_CONN_ISPRIV_SET( msc );
 
 	} else {
-		ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
+		BER_BVZERO( &msc->msc_cred );
+		BER_BVZERO( &msc->msc_bound_ndn );
+		if ( !BER_BVISEMPTY( &op->o_ndn )
+			&& SLAP_IS_AUTHZ_BACKEND( op )
+			&& isauthz )
+		{
+			dc.target = mt;
+			dc.conn = op->o_conn;
+			dc.rs = rs;
+			dc.ctx = "bindDN";
+		
+			/*
+			 * Rewrite the bind dn if needed
+			 */
+			if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
+						&msc->msc_bound_ndn ) )
+			{
+				ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+				goto error_return;
+			}
+			
+			/* copy the DN idf needed */
+			if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
+				ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
+			}
+
+		} else {
+			ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
+		}
 	}
+
+	assert( !BER_BVISNULL( &msc->msc_bound_ndn ) );
 
 	LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
@@ -450,7 +454,9 @@ retry_lock:;
 		( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
 
 		/* mc here must be the regular mc, reset and ready for init */
-		rc = meta_back_init_one_conn( op, rs, mt, msc, sendok );
+		rc = meta_back_init_one_conn( op, rs, mt, mc, msc,
+			LDAP_BACK_CONN_ISPRIV( mc ),
+			candidate == mc->mc_authz_target, sendok );
 
 		if ( rc == LDAP_SUCCESS ) {
         		rc = meta_back_single_dobind( op, rs, mc, candidate,
@@ -781,27 +787,13 @@ meta_back_getconn(
 			 * also init'd
 			 */
 			candidates[ i ].sr_err = meta_back_init_one_conn( op,
-				rs, mt, msc, sendok );
+				rs, mt, mc, msc,
+				LDAP_BACK_CONN_ISPRIV( &mc_curr ),
+				i == mc->mc_authz_target, sendok );
 			if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
 				candidates[ i ].sr_tag = META_CANDIDATE;
 				ncandidates++;
 	
-				if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
-					ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
-					ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
-					LDAP_BACK_CONN_ISPRIV_SET( msc );
-
-				} else {
-					BER_BVZERO( &msc->msc_cred );
-					BER_BVZERO( &msc->msc_bound_ndn );
-					if ( !BER_BVISEMPTY( &op->o_ndn )
-						&& SLAP_IS_AUTHZ_BACKEND( op )
-						&& i == mc->mc_authz_target )
-					{
-						ber_dupbv( &msc->msc_bound_ndn, &op->o_ndn );
-					}
-				}
-			
 			} else {
 				
 				/*
@@ -941,7 +933,9 @@ meta_back_getconn(
 		 * also init'd. In case of error, meta_back_init_one_conn
 		 * sends the appropriate result.
 		 */
-		err = meta_back_init_one_conn( op, rs, mt, msc, sendok );
+		err = meta_back_init_one_conn( op, rs, mt, mc, msc,
+			LDAP_BACK_CONN_ISPRIV( &mc_curr ),
+			i == mc->mc_authz_target, sendok );
 		if ( err != LDAP_SUCCESS ) {
 			/*
 			 * FIXME: in case one target cannot
@@ -967,22 +961,6 @@ meta_back_getconn(
 			*candidate = i;
 		}
 
-		if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
-			ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
-			ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
-			LDAP_BACK_CONN_ISPRIV_SET( msc );
-
-		} else {
-			BER_BVZERO( &msc->msc_cred );
-			BER_BVZERO( &msc->msc_bound_ndn );
-			if ( !BER_BVISEMPTY( &op->o_ndn )
-				&& SLAP_IS_AUTHZ_BACKEND( op )
-				&& i == mc->mc_authz_target )
-			{
-				ber_dupbv( &msc->msc_bound_ndn, &op->o_ndn );
-			}
-		}
-			
 	/*
 	 * if no unique candidate ...
 	 */
@@ -1012,28 +990,15 @@ meta_back_getconn(
 				 * also init'd
 				 */
 				int lerr = meta_back_init_one_conn( op, rs,
-						mt, msc, sendok );
+						mt, mc, msc,
+						LDAP_BACK_CONN_ISPRIV( &mc_curr ),
+						i == mc->mc_authz_target,
+						sendok );
 				if ( lerr == LDAP_SUCCESS ) {
 					candidates[ i ].sr_tag = META_CANDIDATE;
 					candidates[ i ].sr_err = LDAP_SUCCESS;
 					ncandidates++;
 
-					if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
-						ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
-						ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
-						LDAP_BACK_CONN_ISPRIV_SET( msc );
-
-					} else {
-						BER_BVZERO( &msc->msc_cred );
-						BER_BVZERO( &msc->msc_bound_ndn );
-						if ( !BER_BVISEMPTY( &op->o_ndn )
-							&& SLAP_IS_AUTHZ_BACKEND( op )
-							&& i == mc->mc_authz_target )
-						{
-							ber_dupbv( &msc->msc_bound_ndn, &op->o_ndn );
-						}
-					}
-			
 					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_init_one_conn(%d)\n",
 						op->o_log_prefix, i, 0 );
 
