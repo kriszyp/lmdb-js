@@ -110,7 +110,7 @@ static const struct ol_attribute {
 	{0, ATTR_NONE,		NULL,		NULL,	0}
 };
 
-#define MAX_LDAP_ATTR_LEN  sizeof("TLS_CIPHER_SUITE")
+#define MAX_LDAP_ATTR_LEN  sizeof("TLS_CACERTDIR")
 #define MAX_LDAP_ENV_PREFIX_LEN 8
 
 static void openldap_ldap_init_w_conf(

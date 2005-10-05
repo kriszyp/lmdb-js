@@ -47,7 +47,6 @@ OpenLDAP 2.3.8 Release
 	Fixed slapcat out-of-memory problem (ITS#4010)
 	Fixed slurpd unrecognized slave names bug (ITS#4012)
 	Fixed liblber dgram len bug (ITS#4046)
-	Added libldap TLS Diffie-Hellman parameters support (ITS#4017)
 	Fixed libldap SASL and TLS potential ld_error leaks (ITS#4064)
 	Fixed liblutil/csn time counter issue 
 	Updated contrib/ldapc++ to avoid deprecated functions
