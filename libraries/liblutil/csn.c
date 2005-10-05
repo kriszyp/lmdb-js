@@ -67,7 +67,7 @@ lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 		csntime = t;
 		csnop = 0;
 	}
-	op = ++csnop;
+	op = csnop++;
 
 #ifdef HAVE_GMTIME_R
 	ltm = gmtime_r( &t, &ltm_buf );
