@@ -21,7 +21,7 @@ dnl AC_PROG_RANLIB
 dnl AM_DISABLE_SHARED
 AC_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
-AC_ARG_ENABLE(debug,--enable-debug,[
+AC_ARG_ENABLE(debug,[  --enable-debug],[
 	CXXFLAGS="-g -O0 -Wall"
     AC_DEFINE(WITH_DEBUG)
 	],[
