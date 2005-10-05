@@ -136,6 +136,7 @@ enum {
 	CFG_TLS_CERT_KEY,
 	CFG_TLS_CA_PATH,
 	CFG_TLS_CA_FILE,
+	CFG_TLS_DH_DIR,
 	CFG_TLS_VERIFY,
 	CFG_TLS_CRLCHECK,
 	CFG_CONCUR,
@@ -561,6 +562,14 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:75 NAME 'olcTLSVerifyClient' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "TLSDHParamDir", NULL, 0, 0, 0,
+#ifdef HAVE_TLS
+		CFG_TLS_DH_DIR|ARG_STRING|ARG_MAGIC, &config_tls_option,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:77 NAME 'olcTLSDHParamDir' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "ucdata-path", "path", 2, 2, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL },
 	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
@@ -618,7 +627,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
-		 "olcTLSRandFile $ olcTLSVerifyClient $ "
+		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamDir $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
 		 "olcDitContentRules ) )", Cft_Global },
 	{ "( OLcfgGlOc:2 "
@@ -2481,6 +2490,7 @@ config_tls_option(ConfigArgs *c) {
 	case CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
 	case CFG_TLS_CA_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
 	case CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
+	case CFG_TLS_DH_DIR:	flag = LDAP_OPT_X_TLS_DHPARAMDIR;	break;
 	default:		Debug(LDAP_DEBUG_ANY, "%s: "
 					"unknown tls_option <0x%x>\n",
 					c->log, c->type, 0);
