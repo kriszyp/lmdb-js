@@ -16,6 +16,8 @@ OpenLDAP 2.3.8 Release
 	Fixed slapd realloc zero bug (ITS#3981)
 	Fixed slapd nested overlay configuration bug (ITS#4047)
 	Fixed slapd password modify oldPassword ignore bug (ITS#4049)
+	Added slapd password oldPassword verify (ITS#4051)
+	Fixed slapd select_backend manageDSAit with glue issue (ITS#4027)
 	Updated slapd authz backend detection (ITS#4018)
 	Fixed slapd-bdb/hdb pointer/integer size mismatch (ITS#4015)
 	Updated slapd-hdb index management
@@ -27,17 +29,26 @@ OpenLDAP 2.3.8 Release
 	Fixed slapd-meta null value assert issue (ITS#4028)
 	Added slapd-meta pooled connections (ITS#4056)
 	Added slapd-meta target DSA bind defer when auth'd as rootdn (ITS#4057)
+	Fixed slapd-meta pseudorootdn issue
 	Fixed slapd-monitor unavailable issue (ITS#4013)
 	Fixed slapd-perl init/destroy bug (ITS#3923)
+	Fixed slapd-sql missing space issue (ITS#4061)
+	Fixed slapo-accesslog timestamp normalization issue
+	Fixed slapo-accesslog normalizer issue 
 	Fixed slapo-ppolicy replication issues (ITS#3980)
 	Added slapo-ppolicy pwdattribute descriptor support (ITS#4025)
 	Fixed slapo-syncprov/unique interact issues (ITS#3989)
 	Fixed slapo-syncprov/subordinate interact issues (ITS#3996)
 	Fixed slapo-syncprov schema check assert (ITS#4031)
+	Fixed slapo-syncprov psearch flush in qtask
+	Fixed slapo-syncprov abandon checks
+	Fixed slapo-unique ignore writes not under unique_base (ITS#4066)
 	Fixed slapo-valsort unknown valsort-attr bug (ITS#4047)
 	Fixed slapcat out-of-memory problem (ITS#4010)
 	Fixed slurpd unrecognized slave names bug (ITS#4012)
 	Fixed liblber dgram len bug (ITS#4046)
+	Fixed libldap SASL and TLS potential ld_error leaks (ITS#4064)
+	Fixed liblutil/csn time counter issue 
 	Updated contrib/ldapc++ to avoid deprecated functions
 	Documentation
 		Added slapo-valsort(5) man page (ITS#3994)
@@ -47,6 +58,7 @@ OpenLDAP 2.3.8 Release
 		Fixed --without-threads build issue (ITS#4006)
 		Fixed test script exit checks (ITS#4045)
 		Added test suite parameterized directory support
+		Fixed test suite tool error handling
 		Updated contrib/ldapc++ build environment
 
 OpenLDAP 2.3.7 Release
