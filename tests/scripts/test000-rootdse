@@ -28,6 +28,8 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$PID"
 
+sleep 1
+
 echo "Using ldapsearch to retrieve the root DSE..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -b "" -s base -h $LOCALHOST -p $PORT1 \

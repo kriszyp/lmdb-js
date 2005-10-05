@@ -36,6 +36,8 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$PID"
 
+sleep 1
+
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
@@ -49,7 +51,8 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 50
+time $SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 50
+#$SLAPDTESTER -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 50
 RC=$?
 
 if test $RC != 0 ; then

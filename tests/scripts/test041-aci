@@ -13,9 +13,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-echo "Test disabled."
-exit 0
-
 case "$BACKEND" in
 bdb|hdb|ldbm)
 	;;
@@ -52,6 +49,8 @@ if test $WAIT != 0 ; then
     read foo
 fi
 KILLPIDS="$PID"
+
+sleep 1
 
 echo "Testing slapd ACI access control..."
 for i in 0 1 2 3 4 5; do

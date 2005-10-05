@@ -34,10 +34,10 @@ WITHTLS=${AC_WITHTLS-yes}
 ACI=${AC_ACI_ENABLED-acino}
 VALSORT=${AC_valsort-valsortno}
 
-DATADIR=./testdata
 PROGDIR=./progs
-TESTDIR=./testrun
-SCHEMADIR=./schema
+DATADIR=${USER_DATADIR-./testdata}
+TESTDIR=${USER_TESTDIR-./testrun}
+SCHEMADIR=${USER_SCHEMADIR-./schema}
 
 DBDIR1A=$TESTDIR/db.1.a
 DBDIR1B=$TESTDIR/db.1.b

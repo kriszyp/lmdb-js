@@ -62,6 +62,8 @@ fi
 
 KILLPIDS="$PID1 $PID2"
 
+sleep 1
+
 echo "Using ldapsearch to check that first slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
