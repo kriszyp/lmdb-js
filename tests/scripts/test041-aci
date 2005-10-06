@@ -13,6 +13,9 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
+echo "Test disabled."
+exit 0
+
 case "$BACKEND" in
 bdb|hdb|ldbm)
 	;;
