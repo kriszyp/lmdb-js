@@ -988,8 +988,9 @@ anlist2attrs( AttributeName * anlist )
 	char **attrs;
 	ObjectClass *oc;
 
-	attrs = anlist2charray( anlist, 1 );
-                                                                                
+	if ( anlist == NULL )
+		return NULL;
+
 	for ( i = 0; anlist[i].an_name.bv_val; i++ ) {
 		if ( ( oc = anlist[i].an_oc ) ) {
 			for ( j = 0; oc->soc_required && oc->soc_required[j]; j++ ) ;
@@ -1001,6 +1002,8 @@ anlist2attrs( AttributeName * anlist )
 
 	if ( i == 0 )
 		return NULL;
+                                                                                
+	attrs = anlist2charray( anlist, 1 );
                                                                                 
 	n = i;
                                                                                 
