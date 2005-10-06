@@ -1029,9 +1029,8 @@ anlist2attrs( AttributeName * anlist )
 	i = 0;
 	while ( attrs && attrs[i] ) {
 		if ( *attrs[i] == '@' ) {
+			ch_free( attrs[i] );
 			for ( j = i; attrs[j]; j++ ) {
-				if ( j == i )
-					ch_free( attrs[i] );
 				attrs[j] = attrs[j+1];
 			}
 		} else {
@@ -1043,9 +1042,8 @@ anlist2attrs( AttributeName * anlist )
 		j = i + 1;
 		while ( attrs && attrs[j] ) {
 			if ( !strcmp( attrs[i], attrs[j] )) {
+				ch_free( attrs[j] );
 				for ( k = j; attrs && attrs[k]; k++ ) {
-					if ( k == j )
-						ch_free( attrs[j] );
 					attrs[k] = attrs[k+1];
 				}
 			} else {
