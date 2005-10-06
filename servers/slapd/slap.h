@@ -1948,9 +1948,7 @@ typedef struct req_extended_s {
 } req_extended_s;
 
 typedef struct req_pwdexop_s {
-	struct berval rs_reqoid;
-	int rs_flags;
-	struct berval *rs_reqdata;
+	struct req_extended_s rs_extended;
 	struct berval rs_old;
 	struct berval rs_new;
 	Modifications *rs_mods;
