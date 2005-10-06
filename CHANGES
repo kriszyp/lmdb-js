@@ -1,5 +1,9 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.9 Engineering
+	Build Environment
+		Disable test041-aci
+
 OpenLDAP 2.3.8 Release
 	Fixed slapd undef HAVE_EPOLL issue
 	Fixed slapd connection-get wake bug (ITS#3999)
