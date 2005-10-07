@@ -207,7 +207,7 @@ static struct slap_daemon {
 #define	SLAP_SOCK_IS_MUTE(s)	(!SLAP_SOCK_IS_READ(s))
 
 #define SLAP_SOCK_SET_INIT	\
-	slap_daemon.sd_epolls = ch_malloc(sizeof(struct epoll_event) * dtblsize * 2);	\
+	slap_daemon.sd_epolls = ch_calloc(1, sizeof(struct epoll_event) * dtblsize * 2);	\
 	slap_daemon.sd_index = ch_malloc(sizeof(int) * dtblsize);	\
 	slap_daemon.sd_epfd = epoll_create( dtblsize );	\
 	for (i=0; i<dtblsize; i++) slap_daemon.sd_index[i] = -1

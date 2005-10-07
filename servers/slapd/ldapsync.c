@@ -55,7 +55,8 @@ slap_compose_sync_cookie(
 					"csn=%s,rid=%03d", csn->bv_val, rid );
 		}
 	}
-	ber_str2bv( cookiestr, strlen(cookiestr), 1, cookie );
+	ber_str2bv_x( cookiestr, strlen(cookiestr), 1, cookie, 
+		op ? op->o_tmpmemctx : NULL );
 }
 
 void

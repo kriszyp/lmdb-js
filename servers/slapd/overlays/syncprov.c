@@ -749,6 +749,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mod
 	a_uuid.a_nvals = &opc->suuid;
 	rs.sr_err = syncprov_state_ctrl( op, &rs, &e_uuid,
 		mode, ctrls, 0, 1, &cookie );
+	op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 
 	rs.sr_ctrls = ctrls;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -910,13 +911,14 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	sr->s_dn.bv_len = opc->sdn.bv_len;
 	sr->s_mode = mode;
 	sr->s_isreference = opc->sreference;
-	sr->s_ndn.bv_val = lutil_strcopy( sr->s_dn.bv_val, opc->sdn.bv_val );
+	sr->s_ndn.bv_val = lutil_strcopy( sr->s_dn.bv_val,
+		 opc->sdn.bv_val ) + 1;
 	sr->s_ndn.bv_len = opc->sndn.bv_len;
-	*(sr->s_ndn.bv_val++) = '\0';
-	sr->s_uuid.bv_val = lutil_strcopy( sr->s_ndn.bv_val, opc->sndn.bv_val );
+	sr->s_uuid.bv_val = lutil_strcopy( sr->s_ndn.bv_val,
+		 opc->sndn.bv_val ) + 1;
 	sr->s_uuid.bv_len = opc->suuid.bv_len;
-	*(sr->s_uuid.bv_val++) = '\0';
-	sr->s_csn.bv_val = lutil_strcopy( sr->s_uuid.bv_val, opc->suuid.bv_val );
+	AC_MEMCPY( sr->s_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
+	sr->s_csn.bv_val = sr->s_uuid.bv_val + sr->s_uuid.bv_len + 1;
 	sr->s_csn.bv_len = opc->sctxcsn.bv_len;
 	strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
 
@@ -1810,11 +1812,13 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			rs->sr_err = syncprov_done_ctrl( op, rs, rs->sr_ctrls,
 				0, 1, &cookie, ss->ss_present ?  LDAP_SYNC_REFRESH_PRESENTS :
 					LDAP_SYNC_REFRESH_DELETES );
+			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 		} else {
 		/* It's RefreshAndPersist, transition to Persist phase */
 			syncprov_sendinfo( op, rs, ( ss->ss_present && rs->sr_nentries ) ?
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				&cookie, 1, NULL, 0 );
+			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 
 			/* Detach this Op from frontend control */
 			ldap_pvt_thread_mutex_lock( &ss->ss_so->s_mutex );

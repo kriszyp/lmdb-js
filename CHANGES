@@ -1,7 +1,13 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.9 Engineering
+	Fixed slapd req_pwdexop bug
+	Fixed slapo-syncprov queued UUIDs bug (ITS#4068)
+	Fixed slapo-syncprov memory leak
+	Fixed slapd anlist leak
+	Removed lint
 	Build Environment
+		Updated testsuite to test only primary backends by default
 		Disable test041-aci
 
 OpenLDAP 2.3.8 Release

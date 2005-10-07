@@ -988,8 +988,9 @@ anlist2attrs( AttributeName * anlist )
 	char **attrs;
 	ObjectClass *oc;
 
-	attrs = anlist2charray( anlist, 1 );
-                                                                                
+	if ( anlist == NULL )
+		return NULL;
+
 	for ( i = 0; anlist[i].an_name.bv_val; i++ ) {
 		if ( ( oc = anlist[i].an_oc ) ) {
 			for ( j = 0; oc->soc_required && oc->soc_required[j]; j++ ) ;
@@ -1001,6 +1002,8 @@ anlist2attrs( AttributeName * anlist )
 
 	if ( i == 0 )
 		return NULL;
+                                                                                
+	attrs = anlist2charray( anlist, 1 );
                                                                                 
 	n = i;
                                                                                 
@@ -1026,9 +1029,8 @@ anlist2attrs( AttributeName * anlist )
 	i = 0;
 	while ( attrs && attrs[i] ) {
 		if ( *attrs[i] == '@' ) {
+			ch_free( attrs[i] );
 			for ( j = i; attrs[j]; j++ ) {
-				if ( j == i )
-					ch_free( attrs[i] );
 				attrs[j] = attrs[j+1];
 			}
 		} else {
@@ -1040,9 +1042,8 @@ anlist2attrs( AttributeName * anlist )
 		j = i + 1;
 		while ( attrs && attrs[j] ) {
 			if ( !strcmp( attrs[i], attrs[j] )) {
+				ch_free( attrs[j] );
 				for ( k = j; attrs && attrs[k]; k++ ) {
-					if ( k == j )
-						ch_free( attrs[j] );
 					attrs[k] = attrs[k+1];
 				}
 			} else {

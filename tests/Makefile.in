@@ -21,9 +21,13 @@ BUILD_HDB=@BUILD_HDB@
 BUILD_LDBM=@BUILD_LDBM@
 BUILD_SQL=@BUILD_SQL@
 
+# test primary backends (default)
 test tests:
 	@$(MAKE) bdb
 	@$(MAKE) hdb
+
+# test all backends
+alltests: tests
 	@$(MAKE) ldbm
 	@$(MAKE) sql
 

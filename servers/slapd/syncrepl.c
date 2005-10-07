@@ -231,9 +231,8 @@ init_syncrepl(syncinfo_t *si)
 			j = 0;
 			while ( exattrs[j] != NULL ) {
 				if ( !strcmp( exattrs[j], sync_descs[i]->ad_cname.bv_val )) {
+					ch_free( exattrs[j] );
 					for ( k = j; exattrs[k] != NULL; k++ ) {
-						if ( k == j )
-							ch_free( exattrs[k] );
 						exattrs[k] = exattrs[k+1];
 					}
 				} else {
@@ -250,9 +249,8 @@ init_syncrepl(syncinfo_t *si)
 					while ( oc->soc_required[k] ) {
 						if ( !strcmp( exattrs[i],
 							 oc->soc_required[k]->sat_cname.bv_val )) {
+							ch_free( exattrs[i] );
 							for ( l = i; exattrs[l]; l++ ) {
-								if ( l == i )
-									ch_free( exattrs[i] );
 								exattrs[l] = exattrs[l+1];
 							}
 						} else {
