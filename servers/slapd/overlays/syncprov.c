@@ -911,13 +911,14 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	sr->s_dn.bv_len = opc->sdn.bv_len;
 	sr->s_mode = mode;
 	sr->s_isreference = opc->sreference;
-	sr->s_ndn.bv_val = lutil_strcopy( sr->s_dn.bv_val, opc->sdn.bv_val );
+	sr->s_ndn.bv_val = lutil_strcopy( sr->s_dn.bv_val,
+		 opc->sdn.bv_val ) + 1;
 	sr->s_ndn.bv_len = opc->sndn.bv_len;
-	*(sr->s_ndn.bv_val++) = '\0';
-	sr->s_uuid.bv_val = lutil_strcopy( sr->s_ndn.bv_val, opc->sndn.bv_val );
+	sr->s_uuid.bv_val = lutil_strcopy( sr->s_ndn.bv_val,
+		 opc->sndn.bv_val ) + 1;
 	sr->s_uuid.bv_len = opc->suuid.bv_len;
-	*(sr->s_uuid.bv_val++) = '\0';
-	sr->s_csn.bv_val = lutil_strcopy( sr->s_uuid.bv_val, opc->suuid.bv_val );
+	AC_MEMCPY( sr->s_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
+	sr->s_csn.bv_val = sr->s_uuid.bv_val + sr->s_uuid.bv_len + 1;
 	sr->s_csn.bv_len = opc->sctxcsn.bv_len;
 	strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
 
