@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.9 Engineering
+OpenLDAP 2.3.9 Release
 	Fixed slapd req_pwdexop bug
 	Fixed slapo-syncprov queued UUIDs bug (ITS#4068)
 	Fixed slapo-syncprov memory leak
