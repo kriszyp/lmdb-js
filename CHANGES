@@ -1,5 +1,7 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.30 Engineering
+
 OpenLDAP 2.2.29 Release
 	Fixed slapd ch_realloc(x,0) bug (ITS#3981)
 	Fixed slapd uniqueMemberMatch (ITS#4040)
