@@ -611,7 +611,7 @@ typedef struct ldapcontrol {
 #define LDAP_NOT_SUPPORTED				(-12)
 #define LDAP_CONTROL_NOT_FOUND			(-13)
 #define LDAP_NO_RESULTS_RETURNED		(-14)
-#define LDAP_MORE_RESULTS_TO_RETURN		(-15)
+#define LDAP_MORE_RESULTS_TO_RETURN		(-15)	/* Obsolete */
 #define LDAP_CLIENT_LOOP				(-16)
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	(-17)
 
