@@ -120,6 +120,13 @@ meta_back_db_config(
 				fname, lineno );
 			return 1;
 		}
+
+		if ( be->be_nsuffix == NULL ) {
+			fprintf( stderr,
+	"%s: line %d: the suffix must be defined before any target.\n",
+				fname, lineno );
+			return 1;
+		}
 		
 		++mi->mi_ntargets;
 
@@ -163,12 +170,29 @@ meta_back_db_config(
 		/*
 		 * uri MUST have the <dn> part!
 		 */
-		if ( ludp->lud_dn == NULL || ludp->lud_dn[ 0 ] == '\0' ) {
+		if ( ludp->lud_dn == NULL ) {
 			fprintf( stderr,
 	"%s: line %d: missing <naming context> "
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
 				fname, lineno );
 			return 1;
+
+		} else if ( ludp->lud_dn[ 0 ] == '\0' ) {
+			int	j = -1;
+
+			for ( j = 0; !BER_BVISNULL( &be->be_nsuffix[ j ] ); j++ ) {
+				if ( BER_BVISEMPTY( &be->be_nsuffix[ j ] ) ) {
+					break;
+				}
+			}
+
+			if ( BER_BVISNULL( &be->be_nsuffix[ j ] ) ) {
+				fprintf( stderr,
+		"%s: line %d: missing <naming context> "
+		" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+					fname, lineno );
+				return 1;
+			}
 		}
 
 		/*
@@ -1029,6 +1053,10 @@ suffix_massage_regexize( const char *s )
 	const char *p, *r;
 	int i;
 
+	if ( s[ 0 ] == '\0' ) {
+		return ch_strdup( "^(.+)$" );
+	}
+
 	for ( i = 0, p = s; 
 			( r = strchr( p, ',' ) ) != NULL; 
 			p = r + 1, i++ )
@@ -1036,10 +1064,11 @@ suffix_massage_regexize( const char *s )
 
 	res = ch_calloc( sizeof( char ),
 			strlen( s )
-			+ STRLENOF( "(.+,)?" )
-			+ STRLENOF( "[ ]?" ) * i + 1 );
+			+ STRLENOF( "((.+),)?" )
+			+ STRLENOF( "[ ]?" ) * i
+			+ STRLENOF( "$" ) + 1 );
 
-	ptr = lutil_strcopy( res, "(.+,)?" );
+	ptr = lutil_strcopy( res, "((.+),)?" );
 	for ( i = 0, p = s;
 			( r = strchr( p, ',' ) ) != NULL;
 			p = r + 1 , i++ ) {
@@ -1050,26 +1079,37 @@ suffix_massage_regexize( const char *s )
 			r++;
 		}
 	}
-	lutil_strcopy( ptr, p );
+	ptr = lutil_strcopy( ptr, p );
+	ptr[ 0 ] = '$';
+	ptr++;
+	ptr[ 0 ] = '\0';
 
 	return res;
 }
 
 static char *
-suffix_massage_patternize( const char *s )
+suffix_massage_patternize( const char *s, const char *p )
 {
 	ber_len_t	len;
-	char		*res;
+	char		*res, *ptr;
 
-	len = strlen( s );
+	len = strlen( p );
+
+	if ( s[ 0 ] == '\0' ) {
+		len++;
+	}
 
 	res = ch_calloc( sizeof( char ), len + STRLENOF( "%1" ) + 1 );
 	if ( res == NULL ) {
 		return NULL;
 	}
 
-	strcpy( res, "%1" );
-	strcpy( &res[ STRLENOF( "%1" ) ], s );
+	ptr = lutil_strcopy( res, ( p[ 0 ] == '\0' ? "%2" : "%1" ) );
+	if ( s[ 0 ] == '\0' ) {
+		ptr[ 0 ] = ',';
+		ptr++;
+	}
+	lutil_strcopy( ptr, p );
 
 	return res;
 }
@@ -1098,12 +1138,21 @@ suffix_massage_config(
 
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = suffix_massage_regexize( pvnc->bv_val );
-	rargv[ 2 ] = suffix_massage_patternize( prnc->bv_val );
+	rargv[ 2 ] = suffix_massage_patternize( pvnc->bv_val, prnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
+
+	if ( BER_BVISEMPTY( pvnc ) ) {
+		rargv[ 0 ] = "rewriteRule";
+		rargv[ 1 ] = "^$";
+		rargv[ 2 ] = prnc->bv_val;
+		rargv[ 3 ] = ":";
+		rargv[ 4 ] = NULL;
+		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	}
 	
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchEntryDN";
@@ -1112,13 +1161,22 @@ suffix_massage_config(
 
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
-	rargv[ 2 ] = suffix_massage_patternize( pvnc->bv_val );
+	rargv[ 2 ] = suffix_massage_patternize( prnc->bv_val, pvnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 
+	if ( BER_BVISEMPTY( prnc ) ) {
+		rargv[ 0 ] = "rewriteRule";
+		rargv[ 1 ] = "^$";
+		rargv[ 2 ] = pvnc->bv_val;
+		rargv[ 3 ] = ":";
+		rargv[ 4 ] = NULL;
+		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	}
+	
 	/* backward compatibility */
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchResult";
