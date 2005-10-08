@@ -249,7 +249,7 @@ rwm_suffix_massage_regexize( const char *s )
 	int i;
 
 	if ( s[0] == '\0' ) {
-		return ch_strdup( "(.+)" );
+		return ch_strdup( "^(.+)$" );
 	}
 
 	for ( i = 0, p = s; 
