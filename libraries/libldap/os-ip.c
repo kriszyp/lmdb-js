@@ -232,11 +232,11 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	osip_debug(ld, "ldap_connect_timeout: fd: %d tm: %ld async: %d\n",
 			s, opt_tv ? tv.tv_sec : -1L, async);
 
-	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
+	if ( opt_tv && ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );
 
 	if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR ) {
-		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
+		if ( opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
 			return ( -1 );
 		return ( 0 );
 	}
