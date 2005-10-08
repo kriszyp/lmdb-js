@@ -540,7 +540,7 @@ retry:
 			if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
 				ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err);
-				if ( rs->sr_err = LDAP_SERVER_DOWN && do_retry ) {
+				if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 					do_retry = 0;
 					if ( ldap_back_retry( lc, op, rs ))
 						goto retry;
@@ -586,14 +586,21 @@ suffix_massage_regexize( const char *s )
 	const char *p, *r;
 	int i;
 
+	if ( s[ 0 ] == '\0' ) {
+		return ch_strdup( "^(.+)$" );
+	}
+
 	for ( i = 0, p = s; 
 			( r = strchr( p, ',' ) ) != NULL; 
 			p = r + 1, i++ )
 		;
 
-	res = ch_calloc( sizeof( char ), strlen( s ) + 4 + 4*i + 1 );
+	res = ch_calloc( sizeof( char ), strlen( s )
+		+ STRLENOF( "((.+),)?" )
+		+ STRLENOF( "[ ]?" ) * i
+		+ STRLENOF( "$" ) + 1 );
 
-	ptr = lutil_strcopy( res, "(.*)" );
+	ptr = lutil_strcopy( res, "((.+),)?" );
 	for ( i = 0, p = s;
 			( r = strchr( p, ',' ) ) != NULL;
 			p = r + 1 , i++ ) {
@@ -604,26 +611,37 @@ suffix_massage_regexize( const char *s )
 			r++;
 		}
 	}
-	lutil_strcopy( ptr, p );
+	ptr = lutil_strcopy( ptr, p );
+	ptr[ 0 ] = '$';
+	ptr++;
+	ptr[ 0 ] = '\0';
 
 	return res;
 }
 
 static char *
-suffix_massage_patternize( const char *s )
+suffix_massage_patternize( const char *s, const char *p )
 {
 	ber_len_t	len;
-	char		*res;
+	char		*res, *ptr;
 
-	len = strlen( s );
+	len = strlen( p );
+
+	if ( s[ 0 ] == '\0' ) {
+		len++;
+	}
 
 	res = ch_calloc( sizeof( char ), len + sizeof( "%1" ) );
 	if ( res == NULL ) {
 		return NULL;
 	}
 
-	strcpy( res, "%1" );
-	strcpy( res + sizeof( "%1" ) - 1, s );
+	ptr = lutil_strcopy( res, ( p[ 0 ] == '\0' ? "%2" : "%1" ) );
+	if ( s[ 0 ] == '\0' ) {
+		ptr[ 0 ] = ',';
+		ptr++;
+	}
+	ptr = lutil_strcopy( ptr, p );
 
 	return res;
 }
@@ -652,12 +670,21 @@ suffix_massage_config(
 
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = suffix_massage_regexize( pvnc->bv_val );
-	rargv[ 2 ] = suffix_massage_patternize( prnc->bv_val );
+	rargv[ 2 ] = suffix_massage_patternize( pvnc->bv_val, prnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
+
+	if ( BER_BVISEMPTY( pvnc ) ) {
+		rargv[ 0 ] = "rewriteRule";
+		rargv[ 1 ] = "^$";
+		rargv[ 2 ] = prnc->bv_val;
+		rargv[ 3 ] = ":";
+		rargv[ 4 ] = NULL;
+		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	}
 	
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchResult";
@@ -666,13 +693,22 @@ suffix_massage_config(
 	
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
-	rargv[ 2 ] = suffix_massage_patternize( pvnc->bv_val );
+	rargv[ 2 ] = suffix_massage_patternize( prnc->bv_val, pvnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 
+	if ( BER_BVISEMPTY( prnc ) ) {
+		rargv[ 0 ] = "rewriteRule";
+		rargv[ 1 ] = "^$";
+		rargv[ 2 ] = pvnc->bv_val;
+		rargv[ 3 ] = ":";
+		rargv[ 4 ] = NULL;
+		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	}
+	
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDN";
 	rargv[ 2 ] = "alias";
