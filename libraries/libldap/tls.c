@@ -203,6 +203,12 @@ ldap_pvt_tls_init_def_ctx( void )
 	char *certfile = tls_opt_certfile;
 	char *keyfile = tls_opt_keyfile;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
+#endif
+	if (( !cacertfile && !cacertdir ) || !certfile || !keyfile )
+		return LDAP_NOT_SUPPORTED;
+
 #ifdef HAVE_EBCDIC
 	/* This ASCII/EBCDIC handling is a real pain! */
 	if ( ciphersuite ) {
@@ -225,10 +231,6 @@ ldap_pvt_tls_init_def_ctx( void )
 		keyfile = LDAP_STRDUP( keyfile );
 		__atoe( keyfile );
 	}
-#endif
-
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
 #endif
 	if ( tls_def_ctx == NULL ) {
 		int i;

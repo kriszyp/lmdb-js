@@ -69,9 +69,6 @@ static struct {
 	{ &slap_EXOP_CANCEL, SLAP_EXOP_HIDE, cancel_extop },
 	{ &slap_EXOP_WHOAMI, 0, whoami_extop },
 	{ &slap_EXOP_MODIFY_PASSWD, SLAP_EXOP_WRITES, passwd_extop },
-#ifdef HAVE_TLS
-	{ &slap_EXOP_START_TLS, 0, starttls_extop },
-#endif
 	{ NULL, 0, NULL }
 };
 
