@@ -3437,6 +3437,11 @@ config_back_add( Operation *op, SlapReply *rs )
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
 		op->o_bd = &cfb->cb_db;
+		/* FIXME: there must be a better way. */
+		if ( op->o_bd->be_rootndn.bv_val != be->be_rootndn.bv_val ) {
+			op->o_bd->be_rootdn = be->be_rootdn;
+			op->o_bd->be_rootndn= be->be_rootndn;
+		}
 		sc.sc_next = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_add( op, rs );
@@ -3761,6 +3766,10 @@ config_back_modify( Operation *op, SlapReply *rs )
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
 		op->o_bd = &cfb->cb_db;
+		if ( op->o_bd->be_rootndn.bv_val != be->be_rootndn.bv_val ) {
+			op->o_bd->be_rootdn = be->be_rootdn;
+			op->o_bd->be_rootndn= be->be_rootndn;
+		}
 		sc.sc_next = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_modify( op, rs );
