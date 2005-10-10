@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.10 Engineering
+OpenLDAP 2.3.10 Release
 	Fixed libldap ndelay without timeout
 	Fixed libldap chasing of chased referrals (ITS#2942)
 	Added libldap LDAP_NOT_SUPPORTED for TLS (ITS#4072)
