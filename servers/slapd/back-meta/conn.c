@@ -503,7 +503,7 @@ meta_back_get_candidate(
 	struct berval	*ndn )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	int		candidate;
+	long		candidate;
 
 	/*
 	 * tries to get a unique candidate
