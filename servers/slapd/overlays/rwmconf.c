@@ -248,6 +248,10 @@ rwm_suffix_massage_regexize( const char *s )
 	const char *p, *r;
 	int i;
 
+	if ( s[0] == '\0' ) {
+		return ch_strdup( "^(.+)$" );
+	}
+
 	for ( i = 0, p = s; 
 			( r = strchr( p, ',' ) ) != NULL; 
 			p = r + 1, i++ )
@@ -277,20 +281,28 @@ rwm_suffix_massage_regexize( const char *s )
 }
 
 static char *
-rwm_suffix_massage_patternize( const char *s )
+rwm_suffix_massage_patternize( const char *s, const char *p )
 {
 	ber_len_t	len;
-	char		*res;
+	char		*res, *ptr;
 
-	len = strlen( s );
+	len = strlen( p );
+
+	if ( s[ 0 ] == '\0' ) {
+		len++;
+	}
 
 	res = ch_calloc( sizeof( char ), len + STRLENOF( "%1" ) + 1 );
 	if ( res == NULL ) {
 		return NULL;
 	}
 
-	strcpy( res, "%1" );
-	strcpy( res + STRLENOF( "%1" ), s );
+	ptr = lutil_strcopy( res, ( p[0] == '\0' ? "%2" : "%1" ) );
+	if ( s[ 0 ] == '\0' ) {
+		ptr[ 0 ] = ',';
+		ptr++;
+	}
+	lutil_strcopy( ptr, p );
 
 	return res;
 }
@@ -319,13 +331,22 @@ rwm_suffix_massage_config(
 
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = rwm_suffix_massage_regexize( pvnc->bv_val );
-	rargv[ 2 ] = rwm_suffix_massage_patternize( prnc->bv_val );
+	rargv[ 2 ] = rwm_suffix_massage_patternize( pvnc->bv_val, prnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 	
+	if ( BER_BVISEMPTY( pvnc ) ) {
+		rargv[ 0 ] = "rewriteRule";
+		rargv[ 1 ] = "^$";
+		rargv[ 2 ] = prnc->bv_val;
+		rargv[ 3 ] = ":";
+		rargv[ 4 ] = NULL;
+		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	}
+
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchEntryDN";
 	rargv[ 2 ] = NULL;
@@ -333,12 +354,21 @@ rwm_suffix_massage_config(
 	
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = rwm_suffix_massage_regexize( prnc->bv_val );
-	rargv[ 2 ] = rwm_suffix_massage_patternize( pvnc->bv_val );
+	rargv[ 2 ] = rwm_suffix_massage_patternize( prnc->bv_val, pvnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
+
+	if ( BER_BVISEMPTY( prnc ) ) {
+		rargv[ 0 ] = "rewriteRule";
+		rargv[ 1 ] = "^$";
+		rargv[ 2 ] = pvnc->bv_val;
+		rargv[ 3 ] = ":";
+		rargv[ 4 ] = NULL;
+		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	}
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDN";

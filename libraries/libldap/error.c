@@ -273,26 +273,12 @@ ldap_parse_result(
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
 #endif
-	/* Find the next result... */
-	if ( r->lm_chain == NULL ) {
-		if ((r->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
-			(r->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-			(r->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
-			lm = NULL;	
-		} else {
-			lm = r;
-		}
-	} else {
-		if ((r->lm_chain_tail->lm_chain->lm_msgtype
-				== LDAP_RES_SEARCH_ENTRY) ||
-			(r->lm_chain_tail->lm_chain->lm_msgtype
-				== LDAP_RES_SEARCH_REFERENCE) ||
-			(r->lm_chain_tail->lm_chain->lm_msgtype
-				== LDAP_RES_INTERMEDIATE)) {
-			lm = NULL;
-		} else {
-			lm = r->lm_chain_tail->lm_chain;
-		}
+	/* Find the result, last msg in chain... */
+	lm = r->lm_chain_tail;
+	if ((lm->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
+		(lm->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
+		(lm->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
+		lm = NULL;	
 	}
 
 	if( lm == NULL ) {
@@ -395,28 +381,6 @@ ldap_parse_result(
 
 		if( referralsp != NULL) {
 			*referralsp = ldap_value_dup( ld->ld_referrals );
-		}
-
-		/* Find the next result... */
-		lm = lm->lm_chain;
-		if ( lm ) {
-			if ( lm->lm_chain == NULL ) {
-				if ((lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY) &&
-					(lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE) &&
-					(lm->lm_msgtype != LDAP_RES_INTERMEDIATE)) {
-					/* more results to return */
-					errcode = LDAP_MORE_RESULTS_TO_RETURN;
-				}
-			} else {
-				if ((lm->lm_chain_tail->lm_chain->lm_msgtype
-						!= LDAP_RES_SEARCH_ENTRY) &&
-					(lm->lm_chain_tail->lm_chain->lm_msgtype
-						!= LDAP_RES_SEARCH_REFERENCE) &&
-					(lm->lm_chain_tail->lm_chain->lm_msgtype
-						!= LDAP_RES_INTERMEDIATE)) {
-					errcode = LDAP_MORE_RESULTS_TO_RETURN;
-				}
-			}
 		}
 	}
 

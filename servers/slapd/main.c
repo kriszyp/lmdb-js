@@ -669,7 +669,12 @@ unhandled_option:;
 		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, NULL );
 
 		rc = ldap_pvt_tls_init_def_ctx();
-		if( rc != 0) {
+		if( rc == 0) {
+			ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
+			/* Restore previous ctx */
+			ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, def_ctx );
+			load_extop( &slap_EXOP_START_TLS, 0, starttls_extop );
+		} else if ( rc != LDAP_NOT_SUPPORTED ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "main: TLS init def ctx failed: %d\n",
 			    rc, 0, 0 );
@@ -677,10 +682,6 @@ unhandled_option:;
 			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 			goto destroy;
 		}
-		/* Retrieve slapd's own ctx */
-		ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
-		/* Restore previous ctx */
-		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, def_ctx );
 	}
 #endif
 

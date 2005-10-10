@@ -256,6 +256,7 @@ typedef struct ldapreq {
 	char		*lr_res_matched;/* result matched DN string */
 	BerElement	*lr_ber;	/* ber encoded request contents */
 	LDAPConn	*lr_conn;	/* connection used to send request */
+	struct berval	lr_dn;	/* DN of request, in lr_ber */
 	struct ldapreq	*lr_parent;	/* request that spawned this referral */
 	struct ldapreq	*lr_child;	/* first child request */
 	struct ldapreq	*lr_refnext;	/* next referral spawned */
