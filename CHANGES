@@ -3,10 +3,10 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.10 Engineering
 	Fixed libldap ndelay without timeout
 	Fixed libldap chasing of chased referrals (ITS#2942)
-	Added libldap LDAP_NO_SUPPORT for TLS (ITS#4072)
+	Added libldap LDAP_NOT_SUPPORTED for TLS (ITS#4072)
 	Added libldap LDAP_MSG_RECEIVED support
 	Dropped libldap LDAP_MORE_RESULTS_TO_RETURN use
-	Fixed slapd cn=config undated rootdn issue (ITS#4035)
+	Fixed slapd cn=config updated rootdn issue (ITS#4035)
 	Fixed slapd-meta bus error (ITS#4073)
 	Fixed slapd-meta/ldap/rwm empty naming context issue (ITS#4071)
 
