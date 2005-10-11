@@ -232,7 +232,9 @@ static struct slap_daemon {
 #define SLAP_EVENT_INIT \
 	AC_MEMCPY( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );	\
 	if ( nwriters )	\
-		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) )
+		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) ); \
+	else \
+		FD_ZERO( &writefds )
 
 #ifdef FD_SETSIZE
 #define	CHK_SETSIZE	\
