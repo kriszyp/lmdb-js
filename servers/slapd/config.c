@@ -191,7 +191,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		int j;
 		iarg = 0; larg = 0; barg = 0;
 		switch(arg_type & ARGS_NUMERIC) {
-			case ARG_INT:		iarg = atoi(c->argv[1]);		break;
+			case ARG_INT:		iarg = strtol(c->argv[1], NULL, 0); break;
 			case ARG_LONG:		larg = strtol(c->argv[1], NULL, 0);	break;
 			case ARG_BER_LEN_T:	barg = (ber_len_t)atol(c->argv[1]);	break;
 			case ARG_ON_OFF:
