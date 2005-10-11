@@ -31,10 +31,6 @@
 
 #include "ldap_rq.h"
 
-/* FIXME: for ldap_ld_free() */
-#undef ldap_debug
-#include "../../libraries/libldap/ldap-int.h"
-
 struct nonpresent_entry {
 	struct berval *npe_name;
 	struct berval *npe_nname;
@@ -2497,7 +2493,7 @@ syncinfo_free( syncinfo_t *sie )
 	    avl_free( sie->si_presentlist, avl_ber_bvfree );
 	}
 	if ( sie->si_ld ) {
-		ldap_ld_free( sie->si_ld, 1, NULL, NULL );
+		ldap_unbind_ext( sie->si_ld, NULL, NULL );
 	}
 	while ( !LDAP_LIST_EMPTY( &sie->si_nonpresentlist )) {
 		struct nonpresent_entry* npe;
