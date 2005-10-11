@@ -679,7 +679,7 @@ static Entry *accesslog_entry( Operation *op, int logop ) {
 		op->o_tmpmemctx );
 
 	strcpy( nrdn.bv_val + STRLENOF(RDNEQ), ntimestamp.bv_val );
-	nrdn.bv_len += ntimestamp.bv_len;
+	nrdn.bv_len = STRLENOF(RDNEQ)+ntimestamp.bv_len;
 	build_new_dn( &e->e_name, li->li_db->be_suffix, &rdn, NULL );
 	build_new_dn( &e->e_nname, li->li_db->be_nsuffix, &nrdn, NULL );
 

@@ -490,7 +490,7 @@ static int unique_modrdn(
 		op->o_req_dn.bv_val, op->orr_newrdn.bv_val, 0);
 
 	if ( !dnIsSuffix( &op->o_req_ndn, &ud->dn ) && 
-		(!op->orr_nnewSup || !dnIsSuffix( &op->orr_nnewSup, &ud->dn )))
+		(!op->orr_nnewSup || !dnIsSuffix( op->orr_nnewSup, &ud->dn )))
 		return SLAP_CB_CONTINUE;
 
 	if(ldap_bv2rdn_x(&op->oq_modrdn.rs_newrdn, &newrdn,
