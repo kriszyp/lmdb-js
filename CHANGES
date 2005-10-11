@@ -1,7 +1,13 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.10 Release
+OpenLDAP 2.3.11 Engineering
 	Fixed libldap ndelay without timeout
+	Fixed slapd-bdb/hdb mode argument parsing (ITS#4077)
+	Fixed slapd WIN32 writefds init issue
+	Updated slapd syncrepl to use ldap_unbind_ext
+	Removed lint
+
+OpenLDAP 2.3.10 Release
 	Fixed libldap chasing of chased referrals (ITS#2942)
 	Added libldap LDAP_NOT_SUPPORTED for TLS (ITS#4072)
 	Added libldap LDAP_MSG_RECEIVED support
