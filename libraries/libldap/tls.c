@@ -202,8 +202,11 @@ ldap_pvt_tls_init_def_ctx( void )
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
 #endif
-	if (( !cacertfile && !cacertdir ) || !certfile || !keyfile )
+
+	if ( !certfile && !keyfile && !cacertfile && !cacertdir ) {
+		/* minimum configuration not provided */
 		return LDAP_NOT_SUPPORTED;
+	}
 
 #ifdef HAVE_EBCDIC
 	/* This ASCII/EBCDIC handling is a real pain! */
