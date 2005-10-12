@@ -232,7 +232,9 @@ static struct slap_daemon {
 #define SLAP_EVENT_INIT \
 	AC_MEMCPY( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );	\
 	if ( nwriters )	\
-		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) )
+		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) ); \
+	else \
+		FD_ZERO( &writefds )
 
 #ifdef FD_SETSIZE
 #define	CHK_SETSIZE	\
@@ -836,13 +838,6 @@ static int slap_open_listener(
 #else
 	l.sl_is_tls = ldap_pvt_url_scheme2tls( lud->lud_scheme );
 
-	if ( l.sl_is_tls && !slap_tls_ctx ) {
-		Debug( LDAP_DEBUG_ANY,
-			"daemon: TLS not configured (%s)\n",
-			url, 0, 0 );
-		ldap_free_urldesc( lud );
-		return -1;
-	}
 	if(! lud->lud_port ) {
 		lud->lud_port = l.sl_is_tls ? LDAPS_PORT : LDAP_PORT;
 	}
