@@ -1,11 +1,12 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.11 Engineering
+OpenLDAP 2.3.11 Release
 	Fixed libldap reentrancy issue (ITS#3988)
 	Fixed libldap ndelay without timeout
-	Fixed slapd ldaps:// not configured issue
+	Fixed slapd ldaps:// not configured issue (ITS#4082,4083)
 	Fixed slapd-bdb/hdb mode argument parsing (ITS#4077)
 	Fixed slapd WIN32 writefds init issue
+	Fixed slapadd buffer alignment issue (ITS#4078)
 	Updated slapd syncrepl to use ldap_unbind_ext
 	Removed lint
 
