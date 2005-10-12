@@ -2555,7 +2555,11 @@ typedef struct slap_op {
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 
 } Operation;
-#define	OPERATION_BUFFER_SIZE	(sizeof(Operation)+sizeof(Opheader)+SLAP_MAX_CIDS*sizeof(void *))
+#define	OPERATION_BUFFER_SIZE	( sizeof(Operation) + sizeof(Opheader) + \
+	SLAP_MAX_CIDS*sizeof(void *) )
+
+typedef LBER_ALIGNED_BUFFER(operation_buffer_u,OPERATION_BUFFER_SIZE)
+	OperationBuffer;
 
 #define send_ldap_error( op, rs, err, text ) do { \
 		(rs)->sr_err = err; (rs)->sr_text = text; \

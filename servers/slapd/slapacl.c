@@ -65,7 +65,7 @@ slapacl( int argc, char **argv )
 	const char		*progname = "slapacl";
 	Connection		conn = { 0 };
 	Listener		listener;
-	char			opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer	opbuf;
 	Operation		*op = NULL;
 	Entry			e = { 0 }, *ep = &e;
 	char			*attr = NULL;
@@ -94,7 +94,7 @@ slapacl( int argc, char **argv )
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	op = (Operation *)opbuf;
+	op = (Operation *) &opbuf;
 	connection_fake_init( &conn, op, &conn );
 
 	conn.c_listener = &listener;

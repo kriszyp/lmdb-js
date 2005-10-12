@@ -1462,7 +1462,7 @@ consistency_check(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 	Connection conn = {0};
-	char opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer opbuf;
 	Operation *op;
 
 	SlapReply rs = {REP_RESULT};
@@ -1470,7 +1470,7 @@ consistency_check(
 	int i, return_val, pause = 1;
 	QueryTemplate* templ;
 
-	op = (Operation *)opbuf;
+	op = (Operation *) &opbuf;
 	connection_fake_init( &conn, op, ctx );
 
 	op->o_bd = &cm->db;

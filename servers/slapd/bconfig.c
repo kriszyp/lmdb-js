@@ -2613,7 +2613,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	setup_cookie sc;
 	slap_callback cb = { NULL, config_ldif_resp, NULL, NULL };
 	Connection conn = {0};
-	char opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer opbuf;
 	Operation *op;
 	SlapReply rs = {REP_RESULT};
 	Filter filter = { LDAP_FILTER_PRESENT };
@@ -2665,7 +2665,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	if ( readit ) {
 		void *thrctx = ldap_pvt_thread_pool_context();
 
-		op = (Operation *)opbuf;
+		op = (Operation *) &opbuf;
 		connection_fake_init( &conn, op, thrctx );
 
 		filter.f_desc = slap_schema.si_ad_objectClass;
@@ -4053,7 +4053,7 @@ config_back_db_open( BackendDB *be )
 	BackendInfo *bi;
 	ConfigArgs c;
 	Connection conn = {0};
-	char opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer opbuf;
 	Operation *op;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	SlapReply rs = {REP_RESULT};
@@ -4065,7 +4065,7 @@ config_back_db_open( BackendDB *be )
 
 	if ( cfb->cb_use_ldif ) {
 		thrctx = ldap_pvt_thread_pool_context();
-		op = (Operation *)opbuf;
+		op = (Operation *) &opbuf;
 		connection_fake_init( &conn, op, thrctx );
 
 		op->o_dn = be->be_rootdn;
