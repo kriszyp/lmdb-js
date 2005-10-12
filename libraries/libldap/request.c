@@ -363,8 +363,14 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	}
 
 	lc->lconn_status = LDAP_CONNST_CONNECTED;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+#endif
 	lc->lconn_next = ld->ld_conns;
 	ld->ld_conns = lc;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+#endif
 
 	/*
 	 * XXX for now, we always do a synchronous bind.  This will have
@@ -458,7 +464,11 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 	LDAPConn	*lc;
 	LDAPURLDesc	*lcu, *lsu;
 	int lcu_port, lsu_port;
+	int found = 0;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+#endif
 	for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
 		lcu = lc->lconn_server;
 		lcu_port = ldap_pvt_url_scheme_port( lcu->lud_scheme,
@@ -468,20 +478,25 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 			lsu_port = ldap_pvt_url_scheme_port( lsu->lud_scheme,
 				lsu->lud_port );
 
-			if ( strcmp( lcu->lud_scheme, lsu->lud_scheme ) == 0
+			if ( lsu_port == lcu_port
+				&& strcmp( lcu->lud_scheme, lsu->lud_scheme ) == 0
 				&& lcu->lud_host != NULL && *lcu->lud_host != '\0'
 			    && lsu->lud_host != NULL && *lsu->lud_host != '\0'
-				&& strcasecmp( lsu->lud_host, lcu->lud_host ) == 0
-			    && lsu_port == lcu_port )
+				&& strcasecmp( lsu->lud_host, lcu->lud_host ) == 0 )
 			{
-				return lc;
+				found = 1;
+				break;
 			}
 
 			if ( !any ) break;
 		}
+		if ( found )
+			break;
 	}
-
-	return NULL;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+#endif
+	return lc;
 }
 
 
@@ -519,6 +534,9 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		ldap_int_sasl_close( ld, lc );
 
 		prevlc = NULL;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+#endif
 		for ( tmplc = ld->ld_conns;
 			tmplc != NULL;
 			tmplc = tmplc->lconn_next )
@@ -533,6 +551,9 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			}
 			prevlc = tmplc;
 		}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+#endif
 		ldap_free_urllist( lc->lconn_server );
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		if ( lc->lconn_krbinstance != NULL ) {

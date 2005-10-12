@@ -160,6 +160,7 @@ ldap_create( LDAP **ldp )
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_init( &ld->ld_req_mutex );
 	ldap_pvt_thread_mutex_init( &ld->ld_res_mutex );
+	ldap_pvt_thread_mutex_init( &ld->ld_conn_mutex );
 #endif
 	*ldp = ld;
 	return LDAP_SUCCESS;

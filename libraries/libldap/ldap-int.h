@@ -334,6 +334,7 @@ struct ldap {
 	LDAPMessage	*ld_responses;	/* list of outstanding responses */
 
 #ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_t	ld_conn_mutex;
 	ldap_pvt_thread_mutex_t	ld_req_mutex;
 	ldap_pvt_thread_mutex_t	ld_res_mutex;
 #endif

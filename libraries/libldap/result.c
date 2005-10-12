@@ -272,16 +272,28 @@ wait4msg(
 		} else {
 			int lc_ready = 0;
 
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+#endif
 			for ( lc = ld->ld_conns; lc != NULL; lc = nextlc ) {
 				nextlc = lc->lconn_next;
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
 						LBER_SB_OPT_DATA_READY, NULL ) ) {
+#ifdef LDAP_R_COMPILE
+					ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+#endif
 					rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
 						&lc, result );
+#ifdef LDAP_R_COMPILE
+					ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+#endif
 					lc_ready = 1;
 					break;
 				}
-	        	}
+			}
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+#endif
 
 		    	if ( !lc_ready ) {
 				rc = ldap_int_select( ld, tvp );
@@ -318,6 +330,7 @@ wait4msg(
 					}
 #ifdef LDAP_R_COMPILE
 					ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+					ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
 #endif
 					for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
 						lc = nextlc )
@@ -326,11 +339,20 @@ wait4msg(
 						if ( lc->lconn_status == LDAP_CONNST_CONNECTED &&
 							ldap_is_read_ready( ld, lc->lconn_sb ))
 						{
+#ifdef LDAP_R_COMPILE
+							ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+#endif
 							rc = try_read1msg( ld, msgid, all,
 								lc->lconn_sb, &lc, result );
 								if ( lc == NULL ) lc = nextlc;
+#ifdef LDAP_R_COMPILE
+							ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+#endif
 						}
 					}
+#ifdef LDAP_R_COMPILE
+					ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+#endif
 				}
 			}
 		}
