@@ -464,8 +464,8 @@ accesslog_purge( void *ctx, void *arg )
 	struct log_info *li = rtask->arg;
 
 	Connection conn = {0};
-	char opbuf[OPERATION_BUFFER_SIZE];
-	Operation *op = (Operation *)opbuf;
+	OperationBuffer opbuf;
+	Operation *op = (Operation *) &opbuf;
 	SlapReply rs = {REP_RESULT};
 	slap_callback cb = { NULL, log_old_lookup, NULL, NULL };
 	Filter f;

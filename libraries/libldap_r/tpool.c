@@ -29,6 +29,10 @@
 #define LDAP_THREAD_POOL_IMPLEMENTATION
 #include "ldap_thr_debug.h"  /* May rename symbols defined below */
 
+#ifdef LDAP_DEVEL
+#define SLAP_SEM_LOAD_CONTROL
+#endif
+
 #ifndef LDAP_THREAD_HAVE_TPOOL
 
 typedef enum ldap_int_thread_pool_state_e {
@@ -116,6 +120,123 @@ ldap_int_thread_pool_shutdown ( void )
 	}
 	ldap_pvt_thread_mutex_destroy(&ldap_pvt_thread_pool_mutex);
 	return(0);
+}
+
+typedef struct ldap_lazy_sem_t {
+	ldap_pvt_thread_mutex_t ls_mutex;
+	ldap_pvt_thread_cond_t	ls_cond;
+	int ls_sem_value;
+	/*
+	 * when more than ls_lazy_count number of resources
+	 * becmoes available, the thread wating for the resources will
+	 * be waken up in order to prevent frequent blocking/waking-up
+	 */
+	unsigned int ls_lazy_count;
+	/*
+	 * only one thread(listener) will wait on this semaphore
+	 * using a flag instead of a list
+	 */
+	int ls_wait;
+} ldap_lazy_sem_t;
+
+ldap_lazy_sem_t* thread_pool_sem = NULL;
+
+int
+ldap_lazy_sem_init( unsigned int value, unsigned int lazyness ) {
+	thread_pool_sem = (ldap_lazy_sem_t*) LDAP_CALLOC(1,
+		sizeof( ldap_lazy_sem_t ));
+
+	if( thread_pool_sem == NULL ) return -1;
+
+	ldap_pvt_thread_mutex_init( &thread_pool_sem->ls_mutex );
+	ldap_pvt_thread_cond_init( &thread_pool_sem->ls_cond );
+	thread_pool_sem->ls_sem_value = value;
+	thread_pool_sem->ls_lazy_count = lazyness;
+	thread_pool_sem->ls_wait = 0;
+
+	return 0;
+}
+
+/*
+ * ldap_lazy_sem_wait is used if a caller is blockable(listener).
+ * Otherwise use ldap_lazy_sem_dec (worker)
+ */
+int
+ldap_lazy_sem_op_submit( ldap_lazy_sem_t* ls ) {
+	if ( ls == NULL ) return -1;
+
+	/* only worker thread has its thread ctx */
+	if ( ldap_pvt_thread_pool_context() ) {
+		/* worker thread */
+		return ldap_lazy_sem_dec( ls );
+	} else {
+		/* listener */
+		return ldap_lazy_sem_wait( ls );
+	}
+}
+
+/*
+ * test if given semaphore's count is zero.
+ * If 0, the caller is blocked 
+ * If not, the count is decremented.
+ */
+int
+ldap_lazy_sem_wait ( ldap_lazy_sem_t* ls ) {
+	ldap_pvt_thread_mutex_lock( &ls->ls_mutex );
+
+lazy_sem_retry:
+	if ( ls->ls_sem_value <= 0 ) {
+		/* no more avaliable resources */
+		ls->ls_wait = 1;
+		ldap_pvt_thread_cond_wait( &ls->ls_cond, &ls->ls_mutex );
+		goto lazy_sem_retry;
+	} else {
+		/* avaliable resources */
+		ls->ls_sem_value--;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &ls->ls_mutex );
+
+	return 0;
+}
+
+/*
+ * decrement the count without blocking
+ * even when the count becomes less than or equal to 0
+ */
+int
+ldap_lazy_sem_dec ( ldap_lazy_sem_t* ls ) {
+	ldap_pvt_thread_mutex_lock( &ls->ls_mutex );
+
+	ls->ls_sem_value--;
+
+	ldap_pvt_thread_mutex_unlock( &ls->ls_mutex );
+
+	return 0;
+}
+
+/*
+ * Increment the count by one and test if it is greater or
+ * equal to lazyness. If it is, wake up a blocked thread.
+ */
+int
+ldap_lazy_sem_post( ldap_lazy_sem_t* ls ) {
+
+	if( ls == NULL ) return (-1);
+
+	ldap_pvt_thread_mutex_lock( &ls->ls_mutex );
+
+	ls->ls_sem_value++;
+	if ( ls->ls_wait ) {
+		if ( ls->ls_sem_value >= ls->ls_lazy_count ) {
+			ls->ls_wait = 0;
+			ldap_pvt_thread_cond_signal( &ls->ls_cond );
+		}
+	}
+
+	ldap_pvt_thread_mutex_unlock( &ls->ls_mutex );
+
+	return 0;
 }
 
 int
@@ -256,6 +377,10 @@ ldap_pvt_thread_pool_submit (
 		need_thread = 1;
 	}
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+
+#ifdef SLAP_SEM_LOAD_CONTROL
+	ldap_lazy_sem_op_submit( thread_pool_sem );
+#endif
 
 	if (need_thread) {
 		int rc;
@@ -408,6 +533,11 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 	LDAP_FREE(pool);
+#ifdef SLAP_SEM_LOAD_CONTROL
+	if ( thread_pool_sem ) {
+		LDAP_FREE( thread_pool_sem );
+	}
+#endif
 	return(0);
 }
 
@@ -484,6 +614,9 @@ ldap_int_thread_pool_wrapper (
 
 		ctx->ltc_start_routine(ltc_key, ctx->ltc_arg);
 
+#ifdef SLAP_SEM_LOAD_CONTROL
+		ldap_lazy_sem_post( thread_pool_sem );
+#endif
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 		LDAP_SLIST_REMOVE(&pool->ltp_active_list, ctx,
 			ldap_int_thread_ctx_s, ltc_next.al);

@@ -642,7 +642,7 @@ monitor_filter2ndn(
 	struct berval	*ndn )
 {
 	Connection	conn = { 0 };
-	char		opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer	opbuf;
 	Operation	*op;
 	SlapReply	rs = { 0 };
 	slap_callback	cb = { NULL, monitor_filter2ndn_cb, NULL, NULL };
@@ -654,7 +654,7 @@ monitor_filter2ndn(
 		return -1;
 	}
 
-	op = (Operation *)opbuf;
+	op = (Operation *) &opbuf;
 	connection_fake_init( &conn, op, &conn );
 
 	op->o_tag = LDAP_REQ_SEARCH;

@@ -861,11 +861,11 @@ syncprov_qtask( void *ctx, void *arg )
 	struct re_s *rtask = arg;
 	syncops *so = rtask->arg;
 	slap_overinst *on = so->s_op->o_private;
-	char opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer opbuf;
 	Operation *op;
 	BackendDB be;
 
-	op = (Operation *)opbuf;
+	op = (Operation *) &opbuf;
 	*op = *so->s_op;
 	op->o_hdr = (Opheader *)(op+1);
 	op->o_controls = (void **)(op->o_hdr+1);
@@ -2217,9 +2217,9 @@ syncprov_db_open(
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 
 	Connection conn;
-	char opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer opbuf;
 	char ctxcsnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-	Operation *op = (Operation *)opbuf;
+	Operation *op = (Operation *) &opbuf;
 	Entry *e;
 	Attribute *a;
 	int rc;
@@ -2307,8 +2307,8 @@ syncprov_db_close(
 	}
 	if ( si->si_numops ) {
 		Connection conn;
-		char opbuf[OPERATION_BUFFER_SIZE];
-		Operation *op = (Operation *)opbuf;
+		OperationBuffer opbuf;
+		Operation *op = (Operation *) &opbuf;
 		SlapReply rs = {REP_RESULT};
 		void *thrctx;
 

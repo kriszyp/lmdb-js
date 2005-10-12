@@ -902,7 +902,7 @@ do_syncrepl(
 	struct re_s* rtask = arg;
 	syncinfo_t *si = ( syncinfo_t * ) rtask->arg;
 	Connection conn = {0};
-	char opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer opbuf;
 	Operation *op;
 	int rc = LDAP_SUCCESS;
 	int first = 0;
@@ -938,7 +938,7 @@ do_syncrepl(
 		return NULL;
 	}
 
-	op = (Operation *)opbuf;
+	op = (Operation *) &opbuf;
 	connection_fake_init( &conn, op, ctx );
 
 	/* use global malloc for now */

@@ -646,7 +646,11 @@ LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 	LDAP_GCCATTR((const));
 
 LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
+#ifdef SLAP_LIGHTWEIGHT_LISTENER
+LDAP_SLAPD_F (int) connection_read LDAP_P((ber_socket_t, Operation **));
+#else
 LDAP_SLAPD_F (int) connection_read LDAP_P((ber_socket_t s));
+#endif
 
 LDAP_SLAPD_F (unsigned long) connections_nextid(void);
 

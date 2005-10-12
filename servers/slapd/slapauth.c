@@ -80,7 +80,7 @@ slapauth( int argc, char **argv )
 	int			rc = EXIT_SUCCESS;
 	const char		*progname = "slapauth";
 	Connection		conn = {0};
-	char			opbuf[OPERATION_BUFFER_SIZE];
+	OperationBuffer	opbuf;
 	Operation		*op;
 
 	slap_tool_init( progname, SLAPAUTH, argc, argv );
@@ -88,7 +88,7 @@ slapauth( int argc, char **argv )
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	op = (Operation *)opbuf;
+	op = (Operation *) &opbuf;
 	connection_fake_init( &conn, op, &conn );
 
 	conn.c_sasl_bind_mech = mech;

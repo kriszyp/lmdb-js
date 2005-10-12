@@ -60,6 +60,10 @@ LDAP_BEGIN_DECL
 
 
 #ifdef LDAP_DEVEL
+#define SLAP_LIGHTWEIGHT_LISTENER /* experimental slapd architecture */
+#define SLAP_SEM_LOAD_CONTROL /* must also be defined in libldap_r/tpool.c */
+#define SLAP_MULTI_CONN_ARRAY
+
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 #define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
 #define SLAP_DYNACL
@@ -2555,7 +2559,11 @@ typedef struct slap_op {
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 
 } Operation;
-#define	OPERATION_BUFFER_SIZE	(sizeof(Operation)+sizeof(Opheader)+SLAP_MAX_CIDS*sizeof(void *))
+#define	OPERATION_BUFFER_SIZE	( sizeof(Operation) + sizeof(Opheader) + \
+	SLAP_MAX_CIDS*sizeof(void *) )
+
+typedef LBER_ALIGNED_BUFFER(operation_buffer_u,OPERATION_BUFFER_SIZE)
+	OperationBuffer;
 
 #define send_ldap_error( op, rs, err, text ) do { \
 		(rs)->sr_err = err; (rs)->sr_text = text; \

@@ -56,8 +56,8 @@ slapadd( int argc, char **argv )
 	Attribute *attr;
 	Entry *ctxcsn_e;
 	ID	ctxcsn_id, id;
+	OperationBuffer opbuf;
 	Operation *op;
-	char opbuf[OPERATION_BUFFER_SIZE];
 
 	int match;
 	int ret;
@@ -69,8 +69,8 @@ slapadd( int argc, char **argv )
 
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
-	memset( opbuf, 0, sizeof(opbuf) );
-	op = (Operation *)opbuf;
+	memset( &opbuf, 0, sizeof(opbuf) );
+	op = (Operation *) &opbuf;
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
