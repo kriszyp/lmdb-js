@@ -604,7 +604,7 @@ ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 	LDAPConn	*lc;
    	char		timebuf[32];
 
-	fprintf( stderr, "** Connection%s:\n", all ? "s" : "" );
+	fprintf( stderr, "** ld %p Connection%s:\n", ld, all ? "s" : "" );
 	for ( lc = lconns; lc != NULL; lc = lc->lconn_next ) {
 		if ( lc->lconn_server != NULL ) {
 			fprintf( stderr, "* host: %s  port: %d%s\n",
@@ -651,7 +651,7 @@ ldap_dump_requests_and_responses( LDAP *ld )
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
-	fprintf( stderr, "** Outstanding Requests:\n" );
+	fprintf( stderr, "** ld %p Outstanding Requests:\n", ld );
 	if (( lr = ld->ld_requests ) == NULL ) {
 		fprintf( stderr, "   Empty\n" );
 	}
@@ -669,7 +669,7 @@ ldap_dump_requests_and_responses( LDAP *ld )
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
-	fprintf( stderr, "** Response Queue:\n" );
+	fprintf( stderr, "** ld %p Response Queue:\n", ld );
 	if (( lm = ld->ld_responses ) == NULL ) {
 		fprintf( stderr, "   Empty\n" );
 	}
