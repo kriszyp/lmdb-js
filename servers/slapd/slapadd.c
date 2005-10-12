@@ -44,28 +44,28 @@ static char maxcsnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 int
 slapadd( int argc, char **argv )
 {
-	char		*buf = NULL;
-	int         lineno;
-	int         lmax;
-	int			rc = EXIT_SUCCESS;
-
+	char *buf = NULL;
 	const char *text;
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 	const char *progname = "slapadd";
-	int manage = 0;	
 
 	struct berval csn;
 	struct berval maxcsn;
-	int match;
+	struct berval bvtext;
 	Attribute *attr;
 	Entry *ctxcsn_e;
 	ID	ctxcsn_id, id;
-	int ret;
-	struct berval bvtext;
-	int checkvals;
-	char opbuf[OPERATION_BUFFER_SIZE];
 	Operation *op;
+	char opbuf[OPERATION_BUFFER_SIZE];
+
+	int match;
+	int ret;
+	int checkvals;
+	int lineno;
+	int lmax;
+	int rc = EXIT_SUCCESS;
+	int manage = 0;	
 
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
