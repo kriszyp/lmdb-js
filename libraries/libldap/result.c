@@ -242,7 +242,7 @@ wait4msg(
 		    ld, msgid, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "wait4msg ld %p msgid %d (timeout %ld usec)\n",
-		    ld, (long)timeout->tv_sec * 1000000 + timeout->tv_usec, msgid );
+		    ld, msgid, (long)timeout->tv_sec * 1000000 + timeout->tv_usec );
 	}
 #endif /* LDAP_DEBUG */
 
