@@ -24,6 +24,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
+#include "lutil.h"
 
 int
 ldbm_back_delete(
@@ -75,7 +76,7 @@ ldbm_back_delete(
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_flags |= REP_MATCHED_MUST_BE_FREED | REP_REF_MUSTBEFREED;
+		rs->sr_flags |= REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
 		goto return_results;
 	}
 
