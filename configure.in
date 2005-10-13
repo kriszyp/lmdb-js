@@ -245,7 +245,7 @@ ol_with_kerberos=${ol_with_kerberos-auto}
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
-	auto, [auto ssleay openssl yes no] )
+	auto, [auto openssl yes no] )
 OL_ARG_WITH(yielding_select,[  --with-yielding-select  with implicitly yielding select],
 	auto, [auto yes no manual] )
 OL_ARG_WITH(multiple_precision,[  --with-multiple-precision
@@ -1312,40 +1312,31 @@ dnl TLS/SSL
 	
 ol_link_tls=no
 if test $ol_with_tls != no ; then
-	AC_CHECK_HEADERS(openssl/ssl.h ssl.h)
+	AC_CHECK_HEADERS(openssl/ssl.h)
 
-	if test $ac_cv_header_openssl_ssl_h = yes ||
-	   test $ac_cv_header_ssl_h = yes ; then
-		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
-			[have_ssleay=yes
-			need_rsaref=no],
-			[have_ssleay=no],
+	if test $ac_cv_header_openssl_ssl_h = yes ; then
+		AC_CHECK_LIB(ssl, SSL_library_init,
+			[have_openssl=yes
+			need_rsaref=no], [have_openssl=no],
 			[-lcrypto])
-			
-		if test $have_ssleay = no ; then
-			AC_CHECK_LIB(ssl, SSL_library_init,
-				[have_ssleay=yes
-				need_rsaref=no], [have_ssleay=no],
-				[-lcrypto])
-		fi
 
-		if test $have_ssleay = no ; then
+		if test $have_openssl = no ; then
 			AC_CHECK_LIB(ssl, ssl3_accept, 
-				[have_ssleay=yes
-				need_rsaref=yes], [have_ssleay=no],
+				[have_openssl=yes
+				need_rsaref=yes], [have_openssl=no],
 				[-lcrypto -lRSAglue -lrsaref])
 		fi
 
-		if test $have_ssleay = yes ; then
+		if test $have_openssl = yes ; then
 			ol_with_tls=found
 			ol_link_tls=yes
 
-			AC_DEFINE(HAVE_SSLEAY, 1, 
-				[define if you have SSLeay or OpenSSL])
+			AC_DEFINE(HAVE_OPENSSL, 1, 
+				[define if you have OpenSSL])
 
 			if test $need_rsaref = yes; then
 				AC_DEFINE(HAVE_RSAREF, 1, 
-					[define if you have RSAref])
+					[define if OpenSSL needs RSAref])
 
 				TLS_LIBS="-lssl -lcrypto -lRSAglue -lrsaref"
 			else
@@ -2408,7 +2399,7 @@ if test "$ol_with_multiple_precision" != "no" ; then
 	case "$ol_mp_support" in
 	bignum)
 		AC_DEFINE(HAVE_BIGNUM, 1,
-			[define if you have SSLeay or OpenSSL's BIGNUM])
+			[define if you have OpenSSL's BIGNUM])
 		;;
 	gmp)
 		AC_DEFINE(HAVE_GMP, 1, [define if you have -lgmp])

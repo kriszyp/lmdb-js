@@ -2386,7 +2386,7 @@ if test "${with_tls+set}" = set; then
   withval="$with_tls"
 
 	ol_arg=invalid
-	for ol_val in auto ssleay openssl yes no  ; do
+	for ol_val in auto openssl yes no  ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -19164,8 +19164,7 @@ fi
 ol_link_tls=no
 if test $ol_with_tls != no ; then
 
-
-for ac_header in openssl/ssl.h ssl.h
+for ac_header in openssl/ssl.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
@@ -19315,82 +19314,8 @@ fi
 done
 
 
-	if test $ac_cv_header_openssl_ssl_h = yes ||
-	   test $ac_cv_header_ssl_h = yes ; then
-		echo "$as_me:$LINENO: checking for SSLeay_add_ssl_algorithms in -lssl" >&5
-echo $ECHO_N "checking for SSLeay_add_ssl_algorithms in -lssl... $ECHO_C" >&6
-if test "${ac_cv_lib_ssl_SSLeay_add_ssl_algorithms+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lssl -lcrypto $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char SSLeay_add_ssl_algorithms ();
-int
-main ()
-{
-SSLeay_add_ssl_algorithms ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_lib_ssl_SSLeay_add_ssl_algorithms=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-ac_cv_lib_ssl_SSLeay_add_ssl_algorithms=no
-fi
-rm -f conftest.err conftest.$ac_objext \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_ssl_SSLeay_add_ssl_algorithms" >&5
-echo "${ECHO_T}$ac_cv_lib_ssl_SSLeay_add_ssl_algorithms" >&6
-if test $ac_cv_lib_ssl_SSLeay_add_ssl_algorithms = yes; then
-  have_ssleay=yes
-			need_rsaref=no
-else
-  have_ssleay=no
-fi
-
-
-		if test $have_ssleay = no ; then
-			echo "$as_me:$LINENO: checking for SSL_library_init in -lssl" >&5
+	if test $ac_cv_header_openssl_ssl_h = yes ; then
+		echo "$as_me:$LINENO: checking for SSL_library_init in -lssl" >&5
 echo $ECHO_N "checking for SSL_library_init in -lssl... $ECHO_C" >&6
 if test "${ac_cv_lib_ssl_SSL_library_init+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -19455,15 +19380,14 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_ssl_SSL_library_init" >&5
 echo "${ECHO_T}$ac_cv_lib_ssl_SSL_library_init" >&6
 if test $ac_cv_lib_ssl_SSL_library_init = yes; then
-  have_ssleay=yes
-				need_rsaref=no
+  have_openssl=yes
+			need_rsaref=no
 else
-  have_ssleay=no
+  have_openssl=no
 fi
 
-		fi
 
-		if test $have_ssleay = no ; then
+		if test $have_openssl = no ; then
 			echo "$as_me:$LINENO: checking for ssl3_accept in -lssl" >&5
 echo $ECHO_N "checking for ssl3_accept in -lssl... $ECHO_C" >&6
 if test "${ac_cv_lib_ssl_ssl3_accept+set}" = set; then
@@ -19529,21 +19453,21 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_ssl_ssl3_accept" >&5
 echo "${ECHO_T}$ac_cv_lib_ssl_ssl3_accept" >&6
 if test $ac_cv_lib_ssl_ssl3_accept = yes; then
-  have_ssleay=yes
+  have_openssl=yes
 				need_rsaref=yes
 else
-  have_ssleay=no
+  have_openssl=no
 fi
 
 		fi
 
-		if test $have_ssleay = yes ; then
+		if test $have_openssl = yes ; then
 			ol_with_tls=found
 			ol_link_tls=yes
 
 
 cat >>confdefs.h <<\_ACEOF
-#define HAVE_SSLEAY 1
+#define HAVE_OPENSSL 1
 _ACEOF
 
 
