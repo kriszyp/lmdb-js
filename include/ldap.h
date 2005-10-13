@@ -1665,6 +1665,11 @@ ldap_msgdelete LDAP_P((
  * in search.c:
  */
 LDAP_F( int )
+ldap_bv2escaped_filter_value LDAP_P(( 
+	struct berval *in, 
+	struct berval *out ));
+
+LDAP_F( int )
 ldap_search_ext LDAP_P((
 	LDAP			*ld,
 	LDAP_CONST char	*base,

@@ -365,3 +365,53 @@ ldap_search_s(
 	return( ldap_result2error( ld, *res, 0 ) );
 }
 
+int
+ldap_bv2escaped_filter_value( struct berval *in, struct berval *out )
+{
+	char c;
+	ber_len_t i;
+	static char escape[128] = {
+		1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1,
+
+		1, 1, 1, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 1
+	};
+
+	out->bv_len = 0;
+	out->bv_val = NULL;
+
+	if( in->bv_len == 0 ) return 0;
+
+	/* assume we'll escape everything */
+	out->bv_val = LDAP_MALLOC( 3 * in->bv_len + 1 );
+	if( out->bv_val == NULL ) return -1;
+
+	for( i=0; i<in->bv_len; i++ ) {
+		if (c & 0x80 || escape[in->bv_val[i]]) {
+			out->bv_val[out->bv_len++] = '\\';
+			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & (c>>4)];
+			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & c];
+		} else {
+			out->bv_val[out->bv_len++] = c;
+		}
+	}
+
+	out->bv_val[out->bv_len] = '\0';
+	return 0;
+}
+
