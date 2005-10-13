@@ -112,6 +112,21 @@ slap_op_free( Operation *op )
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
 }
 
+void
+slap_op_time(time_t *t, int *nop)
+{
+	*t = slap_get_time();
+	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
+	if ( *t == last_time ) {
+		*nop = ++last_incr;
+	} else {
+		last_time = *t;
+		last_incr = 0;
+		*nop = 0;
+	}
+	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
+}
+
 Operation *
 slap_op_alloc(
     BerElement		*ber,
@@ -139,13 +154,7 @@ slap_op_alloc(
 	op->o_msgid = msgid;
 	op->o_tag = tag;
 
-	op->o_time = slap_get_time();
-	if ( op->o_time == last_time ) {
-		op->o_tincr = ++last_incr;
-	} else {
-		last_time = op->o_time;
-		last_incr = 0;	/* o_tincr is alredy zero */
-	}
+	slap_op_time( &op->o_time, &op->o_tincr );
 	op->o_opid = id;
 	op->o_res_ber = NULL;
 

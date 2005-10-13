@@ -2553,6 +2553,7 @@ typedef struct slap_op {
 	BerElement	*o_res_ber;	/* ber of the CLDAP reply or readback control */
 	slap_callback *o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
+	struct berval o_csn;
 
 	void	*o_private;	/* anything the backend needs */
 

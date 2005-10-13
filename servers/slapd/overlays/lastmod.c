@@ -370,7 +370,9 @@ best_guess( Operation *op,
 		char		csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 		struct berval	entryCSN;
 	
-		slap_get_csn( NULL, csnbuf, sizeof(csnbuf), &entryCSN, 0 );
+		entryCSN.bv_val = csnbuf;
+		entryCSN.bv_len = sizeof( csnbuf );
+		slap_get_csn( NULL, &entryCSN, 0 );
 
 		ber_dupbv( bv_entryCSN, &entryCSN );
 		ber_dupbv( bv_nentryCSN, &entryCSN );
@@ -909,7 +911,9 @@ lastmod_db_open(
 	timestamp.bv_len = sizeof(tmbuf);
 	slap_timestamp( &starttime, &timestamp );
 
-	slap_get_csn( NULL, csnbuf, sizeof(csnbuf), &entryCSN, 0 );
+	entryCSN.bv_val = csnbuf;
+	entryCSN.bv_len = sizeof( csnbuf );
+	slap_get_csn( NULL, &entryCSN, 0 );
 
 	if ( BER_BVISNULL( &lmi->lmi_rdnvalue ) ) {
 		ber_str2bv( "Lastmod", 0, 1, &lmi->lmi_rdnvalue );

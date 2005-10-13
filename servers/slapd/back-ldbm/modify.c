@@ -241,6 +241,9 @@ ldbm_back_modify(
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_mods_opattrs( op, op->orm_modlist, 1 );
+
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
@@ -250,7 +253,7 @@ ldbm_back_modify(
 	/* FIXME: dn2entry() should return non-glue entry */
 	if (( e == NULL ) || ( !manageDSAit && e && is_entry_glue( e ))) {
 		if ( matched != NULL ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
+			rs->sr_matched = ber_strdup_x( matched->e_dn, op->o_tmpmemctx );
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
@@ -260,16 +263,9 @@ ldbm_back_modify(
 						&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
-		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_err = LDAP_REFERRAL;
-		send_ldap_result( op, rs );
-
-		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-		free( (char *)rs->sr_matched );
-
-		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
-		return rs->sr_err;
+		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+		goto return_results;
 	}
 
 	if ( !manageDSAit && is_entry_referral( e ) )
@@ -282,47 +278,31 @@ ldbm_back_modify(
 		    0, 0 );
 
 		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_matched = e->e_name.bv_val;
-		send_ldap_result( op, rs );
-
-		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
-		goto error_return;
+		rs->sr_matched = ber_strdup_x( e->e_name.bv_val, op->o_tmpmemctx );
+		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+		goto return_results;
 	}
 	
 	/* Modify the entry */
 	rs->sr_err = ldbm_modify_internal( op, op->oq_modify.rs_modlist, e,
 		&rs->sr_text, textbuf, textlen );
 
-	if( rs->sr_err != LDAP_SUCCESS ) {
-		if( rs->sr_err != SLAPD_ABANDON ) {
-			send_ldap_result( op, rs );
-		}
-
-		goto error_return;
-	}
-
 	/* change the entry itself */
-	if ( id2entry_add( op->o_bd, e ) != 0 ) {
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"id2entry failure" );
-		rs->sr_err = LDAP_OTHER;
-		goto error_return;
+	if( rs->sr_err == LDAP_SUCCESS ) {
+		if ( id2entry_add( op->o_bd, e ) != 0 ) {
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "id2entry failure";
+		}
 	}
 
-	rs->sr_text = NULL;
-	send_ldap_error( op, rs, LDAP_SUCCESS,
-		NULL );
-
+return_results:;
 	cache_return_entry_w( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-	return LDAP_SUCCESS;
+	send_ldap_result( op, rs );
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
 
-error_return:;
-	cache_return_entry_w( &li->li_cache, e );
-	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	rs->sr_text = NULL;
 	return rs->sr_err;
 }

@@ -621,10 +621,6 @@ refint_response(
 	*/
 
 	for(dp = dd.mods; dp; dp = dp->next) {
-		Modifications **tail, *m;
-
-		for(m = dp->mm; m && m->sml_next; m = m->sml_next);
-		tail = &m->sml_next;
 		nop.o_req_dn	= dp->dn;
 		nop.o_req_ndn	= dp->dn;
 		nop.o_bd = select_backend(&dp->dn, 0, 1);
@@ -637,8 +633,6 @@ refint_response(
 		nop.orm_modlist = dp->mm;	/* callback did all the work */
 		nop.o_dn = refint_dn;
 		nop.o_ndn = refint_dn;
-		rs->sr_err = slap_mods_opattrs( &nop, nop.orm_modlist,
-			tail, &rs->sr_text, NULL, 0, 1 );
 		nop.o_dn = nop.o_bd->be_rootdn;
 		nop.o_ndn = nop.o_bd->be_rootndn;
 		if(rs->sr_err != LDAP_SUCCESS) goto done;

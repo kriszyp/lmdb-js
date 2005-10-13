@@ -58,6 +58,8 @@ typedef struct log_info {
 	int li_cycle;
 	struct re_s *li_task;
 	int li_success;
+	ldap_pvt_thread_mutex_t li_op_mutex;
+	ldap_pvt_thread_mutex_t li_log_mutex;
 } log_info;
 
 static ConfigDriver log_cf_gen;
@@ -735,11 +737,11 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	Modifications *m;
 	struct berval *b;
 	time_t endtime;
-	int i;
+	int i, nop;
 	int logop;
 	slap_verbmasks *lo;
 	Entry *e;
-	char timebuf[LDAP_LUTIL_GENTIME_BUFSIZE];
+	char timebuf[LDAP_LUTIL_GENTIME_BUFSIZE+8];
 	struct berval bv;
 	char *ptr;
 	BerVarray vals;
@@ -747,9 +749,6 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	SlapReply rs2 = {REP_RESULT};
 
 	if ( rs->sr_type != REP_RESULT && rs->sr_type != REP_EXTENDED )
-		return SLAP_CB_CONTINUE;
-
-	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
 		return SLAP_CB_CONTINUE;
 
 	switch ( op->o_tag ) {
@@ -769,15 +768,25 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( !( li->li_ops & lo->mask ))
 		return SLAP_CB_CONTINUE;
 
-	endtime = slap_get_time();
+	if ( lo->mask & LOG_OP_WRITES ) {
+		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
+		ldap_pvt_thread_mutex_unlock( &li->li_op_mutex );
+	}
+
+	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
+		goto done;
+
+	slap_op_time( &endtime, &nop );
 
 	e = accesslog_entry( op, logop );
 
 	bv.bv_val = timebuf;
 	bv.bv_len = sizeof(timebuf);
 	slap_timestamp( &endtime, &bv );
+	sprintf( bv.bv_val + bv.bv_len-1, ".%06dZ", nop );
+	bv.bv_len += 7;
 
-	attr_merge_one( e, ad_reqEnd, &bv, NULL );
+	attr_merge_normalize_one( e, ad_reqEnd, &bv, op->o_tmpmemctx );
 
 	attr_merge_one( e, ad_reqDN, &op->o_req_dn, &op->o_req_ndn );
 
@@ -980,16 +989,30 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	op2.ora_e = e;
 	op2.o_callback = &nullsc;
 
-	if ( lo->mask & LOG_OP_WRITES ) {
-		slap_get_commit_csn( op, NULL, &bv );
-		attr_merge_one( e, slap_schema.si_ad_entryCSN, &bv, NULL );
-		slap_queue_csn( &op2, &bv );
+	if (( lo->mask & LOG_OP_WRITES ) && !BER_BVISEMPTY( &op->o_csn )) {
+		slap_queue_csn( &op2, &op->o_csn );
 	}
 
 	op2.o_bd->be_add( &op2, &rs2 );
-	slap_graduate_commit_csn( &op2 );
 	entry_free( e );
 
+done:
+	ldap_pvt_thread_mutex_unlock( &li->li_log_mutex );
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+accesslog_op_mod( Operation *op, SlapReply *rs )
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	log_info *li = on->on_bi.bi_private;
+
+	if ( li->li_ops & LOG_OP_WRITES ) {
+		/* FIXME: this needs to be a recursive mutex to allow
+		 * overlays like refint to keep working.
+		 */
+		ldap_pvt_thread_mutex_lock( &li->li_op_mutex );
+	}
 	return SLAP_CB_CONTINUE;
 }
 
@@ -1076,6 +1099,8 @@ accesslog_db_init(
 	log_info *li = ch_calloc(1, sizeof(log_info));
 
 	on->on_bi.bi_private = li;
+	ldap_pvt_thread_mutex_init( &li->li_op_mutex );
+	ldap_pvt_thread_mutex_init( &li->li_log_mutex );
 	return 0;
 }
 
@@ -1087,6 +1112,8 @@ accesslog_db_destroy(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	log_info *li = on->on_bi.bi_private;
 	
+	ldap_pvt_thread_mutex_destroy( &li->li_log_mutex );
+	ldap_pvt_thread_mutex_destroy( &li->li_op_mutex );
 	free( li );
 	return LDAP_SUCCESS;
 }
@@ -1099,6 +1126,10 @@ int accesslog_init()
 	accesslog.on_bi.bi_db_init = accesslog_db_init;
 	accesslog.on_bi.bi_db_destroy = accesslog_db_destroy;
 
+	accesslog.on_bi.bi_op_add = accesslog_op_mod;
+	accesslog.on_bi.bi_op_delete = accesslog_op_mod;
+	accesslog.on_bi.bi_op_modify = accesslog_op_mod;
+	accesslog.on_bi.bi_op_modrdn = accesslog_op_mod;
 	accesslog.on_bi.bi_op_unbind = accesslog_unbind;
 	accesslog.on_bi.bi_op_abandon = accesslog_abandon;
 	accesslog.on_response = accesslog_response;

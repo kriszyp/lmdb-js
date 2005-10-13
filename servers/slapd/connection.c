@@ -2138,7 +2138,7 @@ connection_fake_init(
 	op->o_connid = op->o_conn->c_connid;
 	connection_init_log_prefix( op );
 
-	op->o_time = slap_get_time();
+	slap_op_time( &op->o_time, &op->o_tincr );
 }
 
 void

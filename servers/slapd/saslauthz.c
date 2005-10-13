@@ -1831,7 +1831,7 @@ exact_match:
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_ndn = *authc;
 	op.o_callback = &cb;
-	op.o_time = slap_get_time();
+	slap_op_time( &op.o_time, &op.o_tincr );
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
@@ -1999,7 +1999,7 @@ slap_sasl2dn(
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_ndn = opx->o_conn->c_ndn;
 	op.o_callback = &cb;
-	op.o_time = slap_get_time();
+	slap_op_time( &op.o_time, &op.o_tincr );
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
 	op.ors_deref = LDAP_DEREF_NEVER;

@@ -100,6 +100,9 @@ slap_graduate_commit_csn( Operation *op )
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
 			LDAP_TAILQ_REMOVE( op->o_bd->be_pending_csn_list,
 				csne, ce_csn_link );
+			if ( op->o_csn.bv_val == csne->ce_csn.bv_val ) {
+				BER_BVZERO( &op->o_csn );
+			}
 			ch_free( csne->ce_csn.bv_val );
 			ch_free( csne );
 			break;
@@ -163,6 +166,7 @@ slap_queue_csn(
 	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	ber_dupbv( &pending->ce_csn, csn );
+	op->o_csn = pending->ce_csn;
 	pending->ce_connid = op->o_connid;
 	pending->ce_opid = op->o_opid;
 	pending->ce_state = SLAP_CSN_PENDING;
@@ -174,8 +178,6 @@ slap_queue_csn(
 int
 slap_get_csn(
 	Operation *op,
-	char *csnbuf,
-	int	len,
 	struct berval *csn,
 	int manage_ctxcsn )
 {
@@ -184,11 +186,10 @@ slap_get_csn(
 #ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #endif
-	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
+	csn->bv_len = lutil_csnstr( csn->bv_val, csn->bv_len, 0, 0 );
 #ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif
-	csn->bv_val = csnbuf;
 
 	if ( manage_ctxcsn )
 		slap_queue_csn( op, csn );

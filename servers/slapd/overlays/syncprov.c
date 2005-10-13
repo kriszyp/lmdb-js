@@ -2275,8 +2275,8 @@ syncprov_db_open(
 	}
 
 	if ( BER_BVISEMPTY( &si->si_ctxcsn ) ) {
-		slap_get_csn( op, si->si_ctxcsnbuf, sizeof(si->si_ctxcsnbuf),
-				&si->si_ctxcsn, 0 );
+		si->si_ctxcsn.bv_len = sizeof( si->si_ctxcsnbuf );
+		slap_get_csn( op, &si->si_ctxcsn, 0 );
 	}
 
 	/* If our ctxcsn is different from what was read from the root

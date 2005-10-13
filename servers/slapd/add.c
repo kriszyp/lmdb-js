@@ -30,6 +30,7 @@
 #include <ac/time.h>
 #include <ac/socket.h>
 
+#include "lutil.h"
 #include "slap.h"
 
 int
@@ -192,8 +193,6 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 done:;
-	slap_graduate_commit_csn( op );
-
 	if ( modlist != NULL ) {
 		slap_mods_free( modlist, 0 );
 	}
@@ -311,14 +310,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 					assert( (*modtail)->sml_desc != NULL );
 				}
 
-
-				rs->sr_err = slap_mods_opattrs( op, modlist,
-						modtail, &rs->sr_text,
-						textbuf, textlen, 1 );
-				if ( rs->sr_err != LDAP_SUCCESS ) {
-					send_ldap_result( op, rs );
-					goto done;
-				}
 
 				/* check for duplicate values */
 				rs->sr_err = slap_mods_no_repl_user_mod_check( op,
@@ -626,3 +617,119 @@ slap_entry2mods(
 	return LDAP_SUCCESS;
 }
 
+int slap_add_opattrs(
+	Operation *op,
+	const char **text,
+	char *textbuf,
+	size_t textlen,
+	int manage_ctxcsn )
+{
+	struct berval name, timestamp, csn = BER_BVNULL;
+	struct berval nname, tmp;
+	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+	Attribute *a;
+
+	a = attr_find( op->ora_e->e_attrs,
+		slap_schema.si_ad_structuralObjectClass );
+
+	if ( !a ) {
+		Attribute *oc;
+		int rc;
+
+		oc = attr_find( op->ora_e->e_attrs, slap_schema.si_ad_objectClass );
+		if ( oc ) {
+			rc = structural_class( oc->a_vals, &tmp, NULL, text,
+				textbuf, textlen );
+			if( rc != LDAP_SUCCESS ) return rc;
+
+			attr_merge_one( op->ora_e, slap_schema.si_ad_structuralObjectClass,
+				&tmp, NULL );
+		}
+	}
+
+	if ( SLAP_LASTMOD( op->o_bd ) ) {
+		char *ptr;
+		timestamp.bv_val = timebuf;
+		if ( BER_BVISEMPTY( &op->o_csn )) {
+			if ( SLAP_SHADOW( op->o_bd ))
+				manage_ctxcsn = 0;
+			csn.bv_val = csnbuf;
+			csn.bv_len = sizeof(csnbuf);
+			slap_get_csn( op, &csn, manage_ctxcsn );
+		} else {
+			csn = op->o_csn;
+		}
+		ptr = strchr( csn.bv_val, '#' );
+		if ( ptr ) {
+			timestamp.bv_len = ptr - csn.bv_val;
+			if ( timestamp.bv_len >= sizeof(timebuf) )
+				timestamp.bv_len = sizeof(timebuf) - 1;
+			strncpy( timebuf, csn.bv_val, timestamp.bv_len );
+			timebuf[timestamp.bv_len] = '\0';
+		} else {
+			time_t now = slap_get_time();
+
+			timestamp.bv_len = sizeof(timebuf);
+
+			slap_timestamp( &now, &timestamp );
+		}
+
+		if ( BER_BVISEMPTY( &op->o_dn ) ) {
+			BER_BVSTR( &name, SLAPD_ANONYMOUS );
+			nname = name;
+		} else {
+			name = op->o_dn;
+			nname = op->o_ndn;
+		}
+
+		a = attr_find( op->ora_e->e_attrs,
+			slap_schema.si_ad_entryUUID );
+		if ( !a ) {
+			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
+
+			tmp.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+			tmp.bv_val = uuidbuf;
+			
+			attr_merge_normalize_one( op->ora_e,
+				slap_schema.si_ad_entryUUID, &tmp, op->o_tmpmemctx );
+		}
+
+		a = attr_find( op->ora_e->e_attrs,
+			slap_schema.si_ad_creatorsName );
+		if ( !a ) {
+			attr_merge_one( op->ora_e,
+				slap_schema.si_ad_creatorsName, &name, &nname );
+		}
+
+		a = attr_find( op->ora_e->e_attrs,
+			slap_schema.si_ad_createTimestamp );
+		if ( !a ) {
+			attr_merge_one( op->ora_e,
+				slap_schema.si_ad_createTimestamp, &timestamp, NULL );
+		}
+
+		a = attr_find( op->ora_e->e_attrs,
+			slap_schema.si_ad_entryCSN );
+		if ( !a ) {
+			attr_merge_one( op->ora_e,
+				slap_schema.si_ad_entryCSN, &csn, NULL );
+		}
+
+		a = attr_find( op->ora_e->e_attrs,
+			slap_schema.si_ad_modifiersName );
+		if ( !a ) {
+			attr_merge_one( op->ora_e,
+				slap_schema.si_ad_modifiersName, &name, &nname );
+		}
+
+		a = attr_find( op->ora_e->e_attrs,
+			slap_schema.si_ad_modifyTimestamp );
+		if ( !a ) {
+			attr_merge_one( op->ora_e,
+				slap_schema.si_ad_modifyTimestamp, &timestamp, NULL );
+		}
+
+	}
+	return LDAP_SUCCESS;
+}

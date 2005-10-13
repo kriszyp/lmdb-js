@@ -767,6 +767,8 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	int statres;
 	char textbuf[SLAP_TEXT_BUFLEN];
 
+	slap_add_opattrs( op, &rs->sr_text, textbuf, sizeof( textbuf ), 1 );
+
 	rs->sr_err = entry_schema_check(op, e, NULL, 0,
 		&rs->sr_text, textbuf, sizeof( textbuf ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
@@ -815,6 +817,8 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 
 send_res:
 	send_ldap_result(op, rs);
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
 	return 0;
 }
 
@@ -824,6 +828,9 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	struct berval path = BER_BVNULL;
 	Entry * entry = NULL;
 	int spew_res;
+
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_mods_opattrs( op, op->orm_modlist, 1 );
 
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
 	dn2path(&op->o_req_ndn, &op->o_bd->be_nsuffix[0], &ni->li_base_path,
@@ -853,6 +860,8 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	rs->sr_text = NULL;
 	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
 	send_ldap_result(op, rs);
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
 	return 0;
 }
 
@@ -860,6 +869,15 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
 	struct berval path = BER_BVNULL;
 	int res = 0;
+
+	if ( !SLAP_SHADOW( op->o_bd )) {
+		struct berval csn;
+		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+
+		csn.bv_val = csnbuf;
+		csn.bv_len = sizeof( csnbuf );
+		slap_get_csn( op, &csn, 1 );
+	}
 
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
 	dn2path(&op->o_req_ndn, &op->o_bd->be_nsuffix[0], &ni->li_base_path, &path);
@@ -885,6 +903,8 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 	SLAP_FREE(path.bv_val);
 	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
 	send_ldap_result(op, rs);
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
 	return 0;
 }
 

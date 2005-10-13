@@ -1633,6 +1633,11 @@ syncrepl_entry(
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
+		{
+			Attribute *a = attr_find( entry->e_attrs, slap_schema.si_ad_entryCSN );
+			if ( a )
+				op->o_csn = a->a_vals[0];
+		}
 retry_add:;
 		if ( BER_BVISNULL( &dni.dn )) {
 
@@ -1852,6 +1857,7 @@ done :
 	if ( !BER_BVISNULL( &dni.dn ) ) {
 		op->o_tmpfree( dni.dn.bv_val, op->o_tmpmemctx );
 	}
+	BER_BVZERO( &op->o_csn );
 	return ret;
 }
 

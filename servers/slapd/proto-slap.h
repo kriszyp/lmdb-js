@@ -206,6 +206,12 @@ LDAP_SLAPD_F (int) slap_mods2entry LDAP_P(( Modifications *mods, Entry **e,
 LDAP_SLAPD_F (int) slap_entry2mods LDAP_P(( Entry *e,
 						Modifications **mods, const char **text,
 						char *textbuf, size_t textlen ));
+LDAP_SLAPD_F( int ) slap_add_opattrs(
+	Operation *op,
+	const char **text,
+	char *textbuf, size_t textlen,
+	int manage_ctxcsn );
+
 
 /*
  * at.c
@@ -697,7 +703,7 @@ LDAP_SLAPD_F (void) slap_get_commit_csn LDAP_P((
 LDAP_SLAPD_F (void) slap_rewind_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (void) slap_graduate_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (Entry *) slap_create_context_csn_entry LDAP_P(( Backend *, struct berval *));
-LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, char *, int, struct berval *, int ));
+LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, struct berval *, int ));
 LDAP_SLAPD_F (void) slap_queue_csn LDAP_P(( Operation *, struct berval * ));
 
 /*
@@ -1041,12 +1047,9 @@ LDAP_SLAPD_F( void ) slap_timestamp(
 	time_t *tm,
 	struct berval *bv );
 
-LDAP_SLAPD_F( int ) slap_mods_opattrs(
+LDAP_SLAPD_F( void ) slap_mods_opattrs(
 	Operation *op,
 	Modifications *mods,
-	Modifications **modlist,
-	const char **text,
-	char *textbuf, size_t textlen,
 	int manage_ctxcsn );
 
 /*
@@ -1210,6 +1213,7 @@ LDAP_SLAPD_F (int) parse_oidm LDAP_P((
 LDAP_SLAPD_F (void) slap_op_init LDAP_P(( void ));
 LDAP_SLAPD_F (void) slap_op_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) slap_op_free LDAP_P(( Operation *op ));
+LDAP_SLAPD_F (void) slap_op_time LDAP_P(( time_t *t, int *n ));
 LDAP_SLAPD_F (Operation *) slap_op_alloc LDAP_P((
 	BerElement *ber, ber_int_t msgid,
 	ber_tag_t tag, ber_int_t id ));
