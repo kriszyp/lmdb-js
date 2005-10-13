@@ -41,23 +41,23 @@
 #include "ldap_rq.h"
 
 #if defined(HAVE_SYS_EPOLL_H) && defined(HAVE_EPOLL)
-#include <sys/epoll.h>
+# include <sys/epoll.h>
 #endif
 
 #ifdef HAVE_TCPD
-#include <tcpd.h>
+# include <tcpd.h>
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 
-#define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
+# define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
 #else /* ! TCP Wrappers */
-#define SLAP_STRING_UNKNOWN	"unknown"
+# define SLAP_STRING_UNKNOWN	"unknown"
 #endif /* ! TCP Wrappers */
 
 #ifdef LDAP_PF_LOCAL
-#include <sys/stat.h>
+# include <sys/stat.h>
 /* this should go in <ldap.h> as soon as it is accepted */
-#define LDAPI_MOD_URLEXT		"x-mod"
+# define LDAPI_MOD_URLEXT		"x-mod"
 #endif /* LDAP_PF_LOCAL */
 
 #ifdef LDAP_PF_INET6
@@ -89,7 +89,8 @@ static int waking;
 	} \
 } while(0)
 
-volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
+volatile sig_atomic_t slapd_shutdown = 0;
+volatile sig_atomic_t slapd_gentle_shutdown = 0;
 volatile sig_atomic_t slapd_abrupt_shutdown = 0;
 
 static struct slap_daemon {
