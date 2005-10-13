@@ -722,8 +722,8 @@ rwm_filter_map_rewrite(
 	rc = rwm_int_filter_map_rewrite( dc, f, fstr );
 
 #ifdef ENABLE_REWRITE
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
+	if ( rc != 0 ) {
+		return LDAP_OTHER;
 	}
 
 	fdc = *dc;
