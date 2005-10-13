@@ -50,18 +50,22 @@ static ldap_pvt_thread_mutex_t* connections_mutex;
 static Connection **connections = NULL;
 
 /* set to the number of processors */
-#define NUM_CONNECTION_ARRAY 2
+#	define NUM_CONNECTION_ARRAY 4
 
 /* partition the array in a modulo manner */
-#define MCA_conn_array_id( fd ) ((int)fd%NUM_CONNECTION_ARRAY)
-#define MCA_conn_array_element_id( fd ) ((int)fd/NUM_CONNECTION_ARRAY)
+#	define MCA_conn_array_id(fd)		((int)(fd)%NUM_CONNECTION_ARRAY)
+#	define MCA_conn_array_element_id(fd)	((int)(fd)/NUM_CONNECTION_ARRAY)
+#	define MCA_GET_CONNECTION(fd) (&(connections[MCA_conn_array_id(fd)])\
+		[MCA_conn_array_element_id(fd)])
+#	define MCA_GET_CONN_MUTEX(fd) (&connections_mutex[MCA_conn_array_id(fd)])
 
-#define MCA_GET_CONNECTION(fd) &(connections[MCA_conn_array_id(fd)])[MCA_conn_array_element_id( fd )]
-#define MCA_GET_CONN_MUTEX(fd) &connections_mutex[MCA_conn_array_id(fd)]
 #else
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
+
+#	define MCA_GET_CONNECTION(fd) (&connections[s])
+#	define MCA_GET_CONN_MUTEX(fd) (&connections_mutex)
 #endif
 
 static ldap_pvt_thread_mutex_t conn_nextid_mutex;
@@ -414,11 +418,7 @@ static Connection* connection_get( ber_socket_t s )
 	}
 
 #ifndef HAVE_WINSOCK
-#ifdef SLAP_MULTI_CONN_ARRAY
 	c = MCA_GET_CONNECTION(s);
-#else
-	c = &connections[s];
-#endif
 
 	assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
@@ -534,19 +534,10 @@ long connection_init(
 	assert( s < dtblsize );
 #endif
 
-#ifdef SLAP_MULTI_CONN_ARRAY
 	ldap_pvt_thread_mutex_lock( MCA_GET_CONN_MUTEX(s) );
-#else
-	ldap_pvt_thread_mutex_lock( &connections_mutex );
-#endif
 
 #ifndef HAVE_WINSOCK
-#ifdef SLAP_MULTI_CONN_ARRAY
 	c = MCA_GET_CONNECTION(s);
-#else
-	c = &connections[s];
-#endif
-
 #else
 	{
 		ber_socket_t i;
@@ -672,11 +663,7 @@ long connection_init(
 		c->c_close_reason = "?";			/* should never be needed */
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &s );
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-#ifdef SLAP_MULTI_CONN_ARRAY
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 
 		return 0;
 	}
@@ -764,11 +751,7 @@ long connection_init(
 	slap_sasl_external( c, ssf, authid );
 
 	ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-#ifdef SLAP_MULTI_CONN_ARRAY
 	ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-	ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 
 	backend_connection_init(c);
 
@@ -1490,11 +1473,7 @@ int connection_read(ber_socket_t s)
 
 	assert( connections != NULL );
 
-#ifdef SLAP_MULTI_CONN_ARRAY
 	ldap_pvt_thread_mutex_lock( MCA_GET_CONN_MUTEX(s) );
-#else
-	ldap_pvt_thread_mutex_lock( &connections_mutex );
-#endif
 
 	/* get (locked) connection */
 	c = connection_get( s );
@@ -1505,11 +1484,7 @@ int connection_read(ber_socket_t s)
 			(long) s, 0, 0 );
 		slapd_remove(s, 1, 0);
 
-#ifdef SLAP_MULTI_CONN_ARRAY
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 		return -1;
 	}
 
@@ -1520,11 +1495,7 @@ int connection_read(ber_socket_t s)
 			"connection_read(%d): closing, ignoring input for id=%lu\n",
 			s, c->c_connid, 0 );
 		connection_return( c );
-#ifdef SLAP_MULTI_CONN_ARRAY
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
 		slapd_resume( s );
@@ -1541,11 +1512,7 @@ int connection_read(ber_socket_t s)
 			c->c_clientfunc, c->c_clientarg );
 
 		connection_return( c );
-#ifdef SLAP_MULTI_CONN_ARRAY
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 		return 0;
 	}
 
@@ -1619,11 +1586,7 @@ int connection_read(ber_socket_t s)
 			!ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) )
 		{
 			connection_return( c );
-#ifdef SLAP_MULTI_CONN_ARRAY
 			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-			ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
 			slapd_resume( s );
@@ -1638,11 +1601,7 @@ int connection_read(ber_socket_t s)
 		/* If previous layer is not removed yet, give up for now */
 		if ( !c->c_sasl_sockctx ) {
 			connection_return( c );
-#ifdef SLAP_MULTI_CONN_ARRAY
 			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-			ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
 			slapd_resume( s );
@@ -1665,11 +1624,7 @@ int connection_read(ber_socket_t s)
 			connection_closing( c, "SASL layer install failure" );
 			connection_close( c );
 			connection_return( c );
-#ifdef SLAP_MULTI_CONN_ARRAY
 			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-			ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 			return 0;
 		}
 	}
@@ -1713,11 +1668,7 @@ int connection_read(ber_socket_t s)
 		connection_closing( c, conn_lost_str );
 		connection_close( c );
 		connection_return( c );
-#ifdef SLAP_MULTI_CONN_ARRAY
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 		return 0;
 	}
 
@@ -1734,11 +1685,7 @@ int connection_read(ber_socket_t s)
 	}
 
 	connection_return( c );
-#ifdef SLAP_MULTI_CONN_ARRAY
 	ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-	ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 
 	return 0;
 }
@@ -1978,11 +1925,7 @@ connection_resched( Connection *conn )
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
 
 		/* use trylock to avoid possible deadlock */
-#ifdef SLAP_MULTI_CONN_ARRAY
 		rc = ldap_pvt_thread_mutex_trylock( MCA_GET_CONN_MUTEX( sd ) );
-#else
-		rc = ldap_pvt_thread_mutex_trylock( &connections_mutex );
-#endif
 
 		if( rc ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -1994,11 +1937,7 @@ connection_resched( Connection *conn )
 			 * so recheck state below.
 			 */
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-#ifdef SLAP_MULTI_CONN_ARRAY
 			ldap_pvt_thread_mutex_lock( MCA_GET_CONN_MUTEX ( sd ) );
-#else
-			ldap_pvt_thread_mutex_lock( &connections_mutex );
-#endif
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		}
 
@@ -2013,11 +1952,7 @@ connection_resched( Connection *conn )
 			connection_close( conn );
 		}
 
-#ifdef SLAP_MULTI_CONN_ARRAY
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX( sd ) );
-#else
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 		return 0;
 	}
 
@@ -2127,11 +2062,7 @@ int connection_write(ber_socket_t s)
 
 	assert( connections != NULL );
 
-#ifdef SLAP_MULTI_CONN_ARRAY
 	ldap_pvt_thread_mutex_lock( MCA_GET_CONN_MUTEX( s ) );
-#else
-	ldap_pvt_thread_mutex_lock( &connections_mutex );
-#endif
 
 	c = connection_get( s );
 	if( c == NULL ) {
@@ -2139,11 +2070,7 @@ int connection_write(ber_socket_t s)
 			"connection_write(%ld): no connection!\n",
 			(long)s, 0, 0 );
 		slapd_remove(s, 1, 0);
-#ifdef SLAP_MULTI_CONN_ARRAY
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX( s ) );
-#else
-		ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 		return -1;
 	}
 
@@ -2184,11 +2111,7 @@ int connection_write(ber_socket_t s)
 	}
 	connection_return( c );
 
-#ifdef SLAP_MULTI_CONN_ARRAY
 	ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-#else
-	ldap_pvt_thread_mutex_unlock( &connections_mutex );
-#endif
 
 	return 0;
 }

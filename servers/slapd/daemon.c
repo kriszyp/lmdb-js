@@ -98,20 +98,16 @@ static struct slap_daemon {
 	ber_socket_t sd_nactives;
 	int sd_nwriters;
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-	/*
-	 * 0: reading on a FD is suspended
-	 * 1: reading on a FD is allowed
-	 */
-	int *sd_suspend;
-#endif
-
 #ifdef HAVE_EPOLL
 	struct epoll_event *sd_epolls;
 	int	sd_nepolls;
 	int	*sd_index;
 	int	sd_epfd;
 	int	sd_nfds;
+# ifdef SLAP_LIGHTWEIGHT_LISTENER
+	int *sd_suspend;  /* 0: suspended, 1: not suspended */
+# endif
+
 #else
 #ifndef HAVE_WINSOCK
 	/* In winsock, accept() returns values higher than dtblsize
@@ -121,6 +117,9 @@ static struct slap_daemon {
 	fd_set sd_actives;
 	fd_set sd_readers;
 	fd_set sd_writers;
+# ifdef SLAP_LIGHTWEIGHT_LISTENER
+	fd_set sd_suspend;  /* unset: suspended, set: not suspended */
+# endif
 #endif
 } slap_daemon;
 
@@ -300,10 +299,9 @@ static struct slap_daemon {
 # ifdef SLAP_LIGHTWEIGHT_LISTENER
 #  define	SLAP_SOCK_SET_INIT do { \
 	CHK_SETSIZE; \
-	slap_daemon.sd_suspend = ch_malloc(sizeof(int) * dtblsize); \
-	for (i=0; i<dtblsize; i++) slap_daemon.sd_suspend[i] = 0; \
 	FD_ZERO(&slap_daemon.sd_readers); \
 	FD_ZERO(&slap_daemon.sd_writers); \
+	FD_ZERO(&slap_daemon.sd_suspend); \
 } while (0)
 # else
 #  define	SLAP_SOCK_SET_INIT do { \
@@ -321,9 +319,9 @@ static struct slap_daemon {
 	 !SLAP_SOCK_IS_READ(fd) && !SLAP_SOCK_IS_WRITE(fd))
 
 # ifdef SLAP_LIGHTWEIGHT_LISTENER
-#  define SLAP_SOCK_SET_SUSPEND(s) ( slap_daemon.sd_suspend[(s)] = 1 )
-#  define SLAP_SOCK_CLR_SUSPEND(s) ( slap_daemon.sd_suspend[(s)] = 0 )
-#  define SLAP_SOCK_IS_SUSPEND(s) ( slap_daemon.sd_suspend[(s)] == 1 )
+#  define SLAP_SOCK_SET_SUSPEND(s)	FD_SET((s), &slap_daemon.sd_suspend)
+#  define SLAP_SOCK_CLR_SUSPEND(s)  FD_CLR((s), &slap_daemon.sd_suspend)
+#  define SLAP_SOCK_IS_SUSPEND(s)	FD_ISSET((s), &slap_daemon.sd_suspend)
 # endif
 
 # ifdef HAVE_WINSOCK
@@ -1945,12 +1943,8 @@ slapd_daemon_task(
 			int rc;
 
 			if ( ns <= 0 ) break;
-
-			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
-				continue;
-
-			if ( !SLAP_EVENT_IS_READ( slap_listeners[l]->sl_sd ))
-				continue;
+			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID ) continue;
+			if ( !SLAP_EVENT_IS_READ( slap_listeners[l]->sl_sd )) continue;
 			
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
@@ -2116,13 +2110,15 @@ slapd_daemon_task(
 
 			if ( SLAP_EVENT_IS_LISTENER(i)
 #ifdef LDAP_CONNECTIONLESS
-			&& !((SLAP_EVENT_LISTENER(i))->sl_is_udp)
+				&& !((SLAP_EVENT_LISTENER(i))->sl_is_udp)
 #endif
-			 ) continue;
+				)
+			{
+				continue;
+			}
 
 			/* Don't log internal wake events */
-			if ( SLAP_EVENT_FD( i ) == wake_sds[0] )
-				continue;
+			if ( SLAP_EVENT_FD( i ) == wake_sds[0] ) continue;
 
 			r = SLAP_EVENT_IS_READ( i );
 			w = SLAP_EVENT_IS_WRITE( i );
@@ -2138,7 +2134,7 @@ slapd_daemon_task(
 
 			if ( SLAP_EVENT_IS_LISTENER(i) ) {
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-				rc = new_connection_activate(SLAP_EVENT_LISTENER( i ));
+				rc = new_connection_activate( SLAP_EVENT_LISTENER( i ));
 #else
 				rc = slapd_handle_listener( SLAP_EVENT_LISTENER( i ));
 #endif
@@ -2151,8 +2147,7 @@ slapd_daemon_task(
 				fd = SLAP_EVENT_FD( i );
 
 				/* Ignore wake events, they were handled above */
-				if ( fd == wake_sds[0] )
-					continue;
+				if ( fd == wake_sds[0] ) continue;
 
 				if( SLAP_EVENT_IS_WRITE( i ) ) {
 					Debug( LDAP_DEBUG_CONNS,
@@ -2186,9 +2181,7 @@ slapd_daemon_task(
 						connection_processing_activate( fd );
 					}
 #else
-					if ( connection_read( fd ) < 0 ) {
-						slapd_close( fd );
-					}
+					if ( connection_read( fd ) < 0 ) slapd_close( fd );
 #endif
 				}
 			}
@@ -2221,9 +2214,7 @@ slapd_daemon_task(
 		       0, 0, 0 );
 	}
 
-	if( slapd_gentle_shutdown != 2 ) {
-		close_listeners ( 0 );
-	}
+	if( slapd_gentle_shutdown != 2 ) close_listeners ( 0 );
 
 	if( !slapd_gentle_shutdown ) {
 		slapd_abrupt_shutdown = 1;
@@ -2309,10 +2300,9 @@ static int sockinit(void)
 	/* The WinSock DLL is acceptable. Proceed. */
 #elif defined( HAVE_WINSOCK )
 	WSADATA wsaData;
-	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return -1;
-	}
+	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) return -1;
 #endif
+
 	return 0;
 }
 
@@ -2325,7 +2315,8 @@ static int sockdestroy(void)
 }
 
 RETSIGTYPE
-slap_sig_shutdown( int sig ) {
+slap_sig_shutdown( int sig )
+{
 #if 0
 	Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: signal %d\n", sig, 0, 0);
 #endif
