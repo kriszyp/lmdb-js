@@ -57,6 +57,7 @@ static ObjectClass *oc_krb5KDCEntry;
 #ifdef DO_SAMBA
 #include <openssl/des.h>
 #include <openssl/md4.h>
+#include "ldap_utf8.h"
 
 static AttributeDescription *ad_sambaLMPassword;
 static AttributeDescription *ad_sambaNTPassword;
@@ -155,7 +156,6 @@ static void nthash(
 	 * 256 UCS2 characters, not 256 bytes...
 	 */
 	char hbuf[HASHLEN];
-	int i;
 	MD4_CTX ctx;
 
 	if (passwd->bv_len > MAX_PWLEN*2)
@@ -307,10 +307,9 @@ static int smbk5pwd_exop_passwd(
 	Operation *op,
 	SlapReply *rs )
 {
-	int i, rc;
+	int rc;
 	req_pwdexop_s *qpw = &op->oq_pwdexop;
 	Entry *e;
-	Attribute *a;
 	Modifications *ml;
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 
@@ -329,7 +328,8 @@ static int smbk5pwd_exop_passwd(
 		krb5_error_code ret;
 		hdb_entry ent;
 		struct berval *keys;
-		int kvno;
+		int kvno, i;
+		Attribute *a;
 
 		if ( !is_entry_objectclass(e, oc_krb5KDCEntry, 0 ) ) break;
 
@@ -488,7 +488,7 @@ static int smbk5pwd_exop_passwd(
 		keys[1].bv_val = NULL;
 		keys[1].bv_len = 0;
 		keys[0].bv_val = ch_malloc(16);
-		keys[0].bv_len = sprintf(keys[0].bv_val, "%d",
+		keys[0].bv_len = sprintf(keys[0].bv_val, "%ld",
 			slap_get_time());
 		
 		ml->sml_desc = ad_sambaPwdLastSet;
