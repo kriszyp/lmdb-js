@@ -58,14 +58,14 @@ and how often to scan the database for old entries. Both the
 and
 .B interval
 are specified as a time span in days, hours, minutes, and seconds. The
-time format is [dd+]hh:mm[:ss] i.e., the days and seconds components are
-optional but hours and minutes are required. Each numeric field must be
-exactly two digits. For example
+time format is [ddd+]hh:mm[:ss] i.e., the days and seconds components are
+optional but hours and minutes are required. Except for days, which can
+be up to 5 digits, each numeric field must be exactly two digits. For example
 .RS
 .RS
 .PD 0
 .TP
-logpurge 02+00:00 01+00:00
+logpurge 2+00:00 1+00:00
 .RE
 .PD
 would specify that the log database should be scanned every day for old
