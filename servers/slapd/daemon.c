@@ -1170,7 +1170,22 @@ static int slap_open_listener(
 		return -1;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
+#ifdef LDAP_CONNECTIONLESS
+	if( l.sl_is_udp ) {
+		long id = connection_init( l.sl_sd, &l, "", "", CONN_IS_UDP,
+			(slap_ssf_t) 0, NULL );
+
+		if( id < 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"slap_open_listener: connectionless init failed on %s (%d)\n",
+				url, l.sl_sd, 0 );
+			return -1;
+		}
+		l.sl_is_udp++;
+	}
+#endif
+
+	Debug( LDAP_DEBUG_TRACE, "daemon: listener initialized %s\n",
 		l.sl_url.bv_val, 0, 0 );
 	return 0;
 }
@@ -1244,6 +1259,7 @@ int slapd_daemon_init( const char *urls )
 
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened\n",
 		i, 0, 0 );
+
 
 #ifdef HAVE_SLP
 	if( slapd_register_slp ) {
@@ -1338,18 +1354,7 @@ slapd_handle_listener(
 	peername[0] = '\0';
 
 #ifdef LDAP_CONNECTIONLESS
-	if ( sl->sl_is_udp ) {
-		/* The first time we receive a query, we set this
-		 * up as a "connection". It remains open for the life
-		 * of the slapd.
-		 */
-		if ( sl->sl_is_udp < 2 ) {
-			id = connection_init( sl->sl_sd, sl, "", "",
-				CONN_IS_UDP, ssf, NULL );
-		    sl->sl_is_udp++;
-		}
-		return 1;
-	}
+	if ( sl->sl_is_udp ) return 1;
 #endif
 
 #  ifdef LDAP_PF_LOCAL
@@ -1930,25 +1935,21 @@ slapd_daemon_task(
 
 			if ( ns <= 0 ) break;
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID ) continue;
+#ifdef LDAP_CONNECTIONLESS
+			if ( slap_listeners[l]->sl_is_udp ) continue;
+#endif
 			if ( !SLAP_EVENT_IS_READ( slap_listeners[l]->sl_sd )) continue;
 			
+			/* clear events */
+			SLAP_EVENT_CLR_READ( slap_listeners[l]->sl_sd );
+			SLAP_EVENT_CLR_WRITE( slap_listeners[l]->sl_sd );
+			ns--;
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
 			rc = new_connection_activate(slap_listeners[l]);
 #else
 			rc = slapd_handle_listener(slap_listeners[l]);
 #endif
-
-#ifdef LDAP_CONNECTIONLESS
-			/* This is a UDP session, let the data loop process it */
-			if ( rc ) continue;
-#endif
-
-			ns--;
-
-			/* Don't need to look at this in the data loops */
-			SLAP_EVENT_CLR_READ( slap_listeners[l]->sl_sd );
-			SLAP_EVENT_CLR_WRITE( slap_listeners[l]->sl_sd );
 		}
 
 		/* bypass the following tests if no descriptors left */
@@ -2005,11 +2006,11 @@ slapd_daemon_task(
 #ifdef HAVE_WINSOCK
 			wd = writefds.fd_array[i];
 #else
-			if( ! SLAP_EVENT_IS_WRITE( i ) ) {
-				continue;
-			}
+			if( ! SLAP_EVENT_IS_WRITE( i ) ) continue;
 			wd = i;
 #endif
+
+			SLAP_EVENT_CLR_WRITE( wd );
 			nwfds--;
 
 			Debug( LDAP_DEBUG_CONNS,
@@ -2029,7 +2030,6 @@ slapd_daemon_task(
 				}
 				slapd_close( wd );
 			}
-			SLAP_EVENT_CLR_WRITE( wd );
 		}
 
 		for ( i = 0; nrfds > 0; i++ ) {
@@ -2037,11 +2037,10 @@ slapd_daemon_task(
 #ifdef HAVE_WINSOCK
 			rd = readfds.fd_array[i];
 #else
-			if( ! SLAP_EVENT_IS_READ( i ) ) {
-				continue;
-			}
+			if( ! SLAP_EVENT_IS_READ( i ) ) continue;
 			rd = i;
 #endif
+			SLAP_EVENT_CLR_READ( rd );
 			nrfds--;
 
 			Debug ( LDAP_DEBUG_CONNS,
@@ -2092,6 +2091,7 @@ slapd_daemon_task(
 		for (i=0; i<ns; i++) {
 			int	r, w;
 
+			/* Don't log listener events */
 			if ( SLAP_EVENT_IS_LISTENER(i)
 #ifdef LDAP_CONNECTIONLESS
 				&& !((SLAP_EVENT_LISTENER(i))->sl_is_udp)
@@ -2161,9 +2161,7 @@ slapd_daemon_task(
 					 */
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-					if ( fd != wake_sds[0] ) {
-						connection_processing_activate( fd );
-					}
+					connection_processing_activate( fd );
 #else
 					if ( connection_read( fd ) < 0 ) slapd_close( fd );
 #endif
