@@ -685,6 +685,7 @@ computed:;
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
 		case LDAP_COMPARE_FALSE:
+		/* FIXME: treat UNDEFINED as FALSE */
 		case SLAPD_COMPARE_UNDEFINED:
 			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
 				tmp = &ber_bvtf_false;
@@ -696,10 +697,9 @@ computed:;
 		case LDAP_COMPARE_TRUE:
 			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
 				tmp = &ber_bvtf_true;
-
-			} else {
-				tmp = &ber_bvtrue;
+				break;
 			}
+			tmp = &ber_bvtrue;
 			break;
 			
 		default:
