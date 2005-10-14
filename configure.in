@@ -2531,6 +2531,7 @@ AC_CHECK_FUNCS(		\
 	getspnam		\
 	gettimeofday	\
 	initgroups		\
+	inet_ntoa_b		\
 	lockf			\
 	memcpy			\
 	memmove			\
