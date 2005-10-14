@@ -920,6 +920,8 @@ void slap_mods_opattrs(
 			BER_BVZERO( &mod->sml_values[1] );
 			assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 			mod->sml_nvalues = NULL;
+			*modtail = mod;
+			modtail = &mod->sml_next;
 		}
 	}
 }
