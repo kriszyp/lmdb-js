@@ -360,6 +360,9 @@ log_age_parse(char *agestr)
 	t1 = strtol( agestr, &endptr, 10 );
 	/* Is there a days delimiter? */
 	if ( *endptr == '+' ) {
+		/* 32 bit time only covers about 68 years */
+		if ( t1 < 0 || t1 > 25000 )
+			return -1;
 		t1 *= 24;
 		gotdays = 1;
 	} else if ( *endptr != ':' ) {
