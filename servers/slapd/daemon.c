@@ -522,8 +522,8 @@ void slapd_remove(
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	if ( wasactive ) slap_daemon.sd_nactives--;
-	waswriter = SLAP_SOCK_IS_WRITE(s);
 
+	waswriter = SLAP_SOCK_IS_WRITE(s);
 	Debug( LDAP_DEBUG_CONNS, "daemon: removing %ld%s%s\n",
 		(long) s, SLAP_SOCK_IS_READ(s) ? "r" : "",
 		waswriter ? "w" : "" );
@@ -543,6 +543,7 @@ void slapd_remove(
 		for ( i = 0; slap_listeners[i] != NULL; i++ ) {
 			if ( slap_listeners[i]->sl_sd != AC_SOCKET_INVALID ) {
 				if ( slap_listeners[i]->sl_sd == s ) continue;
+
 				if ( slap_listeners[i]->sl_is_mute ) {
 					slap_listeners[i]->sl_is_mute = 0;
 					emfile--;
@@ -640,8 +641,7 @@ void slapd_set_read(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( SLAP_SOCK_IS_ACTIVE( s ));
-	if (!SLAP_SOCK_IS_READ( s ))
-		SLAP_SOCK_SET_READ( s );
+	if (!SLAP_SOCK_IS_READ( s )) SLAP_SOCK_SET_READ( s );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 	WAKE_LISTENER(wake);
@@ -656,13 +656,8 @@ static void slapd_close(ber_socket_t s) {
 static void slap_free_listener_addresses(struct sockaddr **sal)
 {
 	struct sockaddr **sap;
-
 	if (sal == NULL) return;
-
-	for (sap = sal; *sap != NULL; sap++) {
-		ch_free(*sap);
-	}
-
+	for (sap = sal; *sap != NULL; sap++) ch_free(*sap);
 	ch_free(sal);
 }
 
@@ -848,6 +843,7 @@ static int slap_get_listener_addresses(
 		}
 
 		freeaddrinfo(res);
+
 #else
 		int i, n = 1;
 		struct in_addr in;
@@ -863,28 +859,22 @@ static int slap_get_listener_addresses(
 					"daemon: invalid host %s", host, 0, 0);
 				return -1;
 			}
-			for (n = 0; he->h_addr_list[n]; n++) ;
+			for (n = 0; he->h_addr_list[n]; n++) /* empty */;
 		}
 
 		*sal = ch_malloc((n+1) * sizeof(void *));
-		if (*sal == NULL) {
-			return -1;
-		}
+		if (*sal == NULL) return -1;
 
 		sap = *sal;
 		for ( i = 0; i<n; i++ ) {
 			sap[i] = ch_malloc(sizeof(struct sockaddr_in));
 			if (*sap == NULL) goto errexit;
+
 			(void)memset( (void *)sap[i], '\0', sizeof(struct sockaddr_in) );
 			sap[i]->sa_family = AF_INET;
 			((struct sockaddr_in *)sap[i])->sin_port = htons(port);
-			if (he) {
-				AC_MEMCPY( &((struct sockaddr_in *)sap[i])->sin_addr,
-					he->h_addr_list[i], sizeof(struct in_addr) );
-			} else {
-				AC_MEMCPY( &((struct sockaddr_in *)sap[i])->sin_addr,
-					&in, sizeof(struct in_addr) );
-			}
+			AC_MEMCPY( &((struct sockaddr_in *)sap[i])->sin_addr,
+				he ? he->h_addr_list[i] : &in, sizeof(struct in_addr) );
 		}
 		sap[i] = NULL;
 #endif
@@ -933,8 +923,7 @@ static int slap_open_listener(
 
 #ifndef HAVE_TLS
 	if( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"daemon: TLS not supported (%s)\n",
+		Debug( LDAP_DEBUG_ANY, "daemon: TLS not supported (%s)\n",
 			url, 0, 0 );
 		ldap_free_urldesc( lud );
 		return -1;
@@ -1051,7 +1040,7 @@ static int slap_open_listener(
 
 #ifdef LDAP_PF_LOCAL
 		if ( (*sal)->sa_family == AF_LOCAL ) {
-			unlink ( ((struct sockaddr_un *)*sal)->sun_path );
+			unlink( ((struct sockaddr_un *)*sal)->sun_path );
 		} else
 #endif
 		{
@@ -1196,9 +1185,7 @@ int slapd_daemon_init( const char *urls )
 
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
 		urls ? urls : "<null>", 0, 0 );
-	if( (rc = sockinit()) != 0 ) {
-		return rc;
-	}
+	if( (rc = sockinit()) != 0 ) return rc;
 
 #ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
@@ -1221,9 +1208,7 @@ int slapd_daemon_init( const char *urls )
 
 	SLAP_SOCK_SET_INIT;
 
-	if( urls == NULL ) {
-		urls = "ldap:///";
-	}
+	if( urls == NULL ) urls = "ldap:///";
 
 	u = ldap_str2charray( urls, " " );
 
@@ -1818,13 +1803,13 @@ slapd_daemon_task(
 		SLAP_EVENT_INIT;
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
-				continue;
-			if ( slap_listeners[l]->sl_is_mute )
+			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID ) continue;
+
+			if ( slap_listeners[l]->sl_is_mute ) {
 				SLAP_SOCK_SET_MUTE( slap_listeners[l]->sl_sd );
-			else
-			if ( SLAP_SOCK_IS_MUTE( slap_listeners[l]->sl_sd ))
+			} else if ( SLAP_SOCK_IS_MUTE( slap_listeners[l]->sl_sd )) {
 			    SLAP_SOCK_CLR_MUTE( slap_listeners[l]->sl_sd );
+			}
 		}
 
 		nfds = SLAP_EVENT_MAX;
@@ -2015,8 +2000,7 @@ slapd_daemon_task(
 
 
 		/* loop through the writers */
-		for ( i = 0; nwfds > 0; i++ )
-		{
+		for ( i = 0; nwfds > 0; i++ ) {
 			ber_socket_t wd;
 #ifdef HAVE_WINSOCK
 			wd = writefds.fd_array[i];
@@ -2034,7 +2018,7 @@ slapd_daemon_task(
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
-			 * connection_write() must valid the stream is still
+			 * connection_write() must validitate the stream is still
 			 * active.
 			 */
 
@@ -2048,8 +2032,7 @@ slapd_daemon_task(
 			SLAP_EVENT_CLR_WRITE( wd );
 		}
 
-		for ( i = 0; nrfds > 0; i++ )
-		{
+		for ( i = 0; nrfds > 0; i++ ) {
 			ber_socket_t rd;
 #ifdef HAVE_WINSOCK
 			rd = readfds.fd_array[i];
