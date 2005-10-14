@@ -695,7 +695,7 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	dc.normalized = 0;
 #endif /* ! ENABLE_REWRITE */
 
-	rc = rwm_filter_map_rewrite( &dc, op->ors_filter, &fstr );
+	rc = rwm_filter_map_rewrite( op, &dc, op->ors_filter, &fstr );
 	if ( rc != LDAP_SUCCESS ) {
 		text = "searchFilter/searchFilterAttrDN massage error";
 		goto error_return;
@@ -1395,9 +1395,14 @@ rwm_db_config(
 		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F;
 
-#if 0
 		/* TODO: not implemented yet */
 		} else if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
+			fprintf( stderr,
+		"%s: line %d: \"discover\" not supported yet "
+		"in \"t-f-support {no|yes|discover}\".\n",
+					fname, lineno );
+			return( 1 );
+#if 0
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F_DISCOVER;
 #endif
 
