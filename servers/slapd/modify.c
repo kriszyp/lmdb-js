@@ -818,7 +818,7 @@ void slap_mods_opattrs(
 	struct berval nname;
 	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-	Modifications *mod, **modtail;
+	Modifications *mod, **modtail, *modlast;
 
 	if ( SLAP_LASTMOD( op->o_bd ) ) {
 		char *ptr;
@@ -869,18 +869,18 @@ void slap_mods_opattrs(
 		assert( !BER_BVISNULL( &mod->sml_values[0] ) );
 		mod->sml_nvalues = NULL;
 		*modtail = mod;
+		modlast = mod;
 		modtail = &mod->sml_next;
 	
-		mod = *modtail;
 		if ( get_manageDIT( op ) ) {
-			for ( mod = mods; mod->sml_next; mod = mod->sml_next ) {
+			for ( mod = mods; mod != modlast; mod = mod->sml_next ) {
 				if ( mod->sml_desc == slap_schema.si_ad_modifiersName ) {
 					break;
 				}
 			}
 		}
 
-		if ( mod == *modtail ) {
+		if ( mod->sml_desc != slap_schema.si_ad_modifiersName ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = LDAP_MOD_REPLACE;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
@@ -900,16 +900,15 @@ void slap_mods_opattrs(
 			modtail = &mod->sml_next;
 		}
 
-		mod = *modtail;
 		if ( get_manageDIT( op ) ) {
-			for ( mod = mods; mod->sml_next; mod = mod->sml_next ) {
+			for ( mod = mods; mod != modlast; mod = mod->sml_next ) {
 				if ( mod->sml_desc == slap_schema.si_ad_modifyTimestamp ) {
 					break;
 				}
 			}
 		}
 
-		if ( mod == *modtail ) {
+		if ( mod->sml_desc != slap_schema.si_ad_modifyTimestamp ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = LDAP_MOD_REPLACE;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
