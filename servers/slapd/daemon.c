@@ -1327,7 +1327,7 @@ close_listeners(
 }
 
 static int
-slapd_handle_listener(
+connection_accept(
 	Listener *sl )
 {
 	Sockaddr		from;
@@ -1590,25 +1590,25 @@ slapd_handle_listener(
 }
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-void*
-slapd_handle_listener_thread(
+static void*
+connection_accept_thread(
 	void* ctx,
 	void* ptr )
 {
 	int rc;
 
-	rc = slapd_handle_listener( (Listener*)ptr );
+	rc = connection_accept( (Listener*)ptr );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"slapd_handle_listener_thread: failed", 0, 0, 0 );
+			"connection_accept_thread: failed %d", rc, 0, 0 );
 	}
 
 	return (void*)NULL;
 }
 
 static int
-new_connection_activate(
+connection_accept_activate(
 	Listener* sl )
 {
 	int status;
@@ -1616,11 +1616,11 @@ new_connection_activate(
 	if( !slapd_suspend( sl->sl_sd ) ) return (0);
 
 	status = ldap_pvt_thread_pool_submit( &connection_pool,
-		slapd_handle_listener_thread, (void *) sl );
+		connection_accept_thread, (void *) sl );
 
 	if( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"new_connection_activate: ldap_pvt_thread_pool_submit failed\n",
+			"connection_accept_activate: ldap_pvt_thread_pool_submit failed\n",
 			0, 0, 0 );
 		return (-1);
 	}
@@ -1944,9 +1944,9 @@ slapd_daemon_task(
 			ns--;
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-			rc = new_connection_activate(slap_listeners[l]);
+			rc = connection_accept_activate(slap_listeners[l]);
 #else
-			rc = slapd_handle_listener(slap_listeners[l]);
+			rc = connection_accept(slap_listeners[l]);
 #endif
 		}
 
@@ -2120,9 +2120,9 @@ slapd_daemon_task(
 
 			if ( SLAP_EVENT_IS_LISTENER(i) ) {
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-				rc = new_connection_activate( SLAP_EVENT_LISTENER( i ));
+				rc = connection_accept_activate( SLAP_EVENT_LISTENER( i ));
 #else
-				rc = slapd_handle_listener( SLAP_EVENT_LISTENER( i ));
+				rc = connection_accept( SLAP_EVENT_LISTENER( i ));
 #endif
 			}
 			/* If we found a regular listener, rc is now zero, and we
