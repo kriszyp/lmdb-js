@@ -215,7 +215,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 #endif
 	int		manageDSAit;
 	Modifications	*modlist = op->orm_modlist;
-	Modifications	**modtail = &modlist;
 	int		increment = op->orm_increment;
 	BackendDB *op_be;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
