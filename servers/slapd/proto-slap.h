@@ -868,7 +868,7 @@ typedef int (SLAP_EXTOP_GETOID_FN) LDAP_P((
 	int index, struct berval *oid, int blen ));
 
 LDAP_SLAPD_F (int) load_extop LDAP_P((
-	struct berval *ext_oid,
+	const struct berval *ext_oid,
 	slap_mask_t flags,
 	SLAP_EXTOP_MAIN_FN *ext_main ));
 
