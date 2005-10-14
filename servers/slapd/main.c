@@ -669,7 +669,7 @@ unhandled_option:;
 		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, NULL );
 
 		rc = ldap_pvt_tls_init_def_ctx();
-		if( rc == 0) {
+		if( rc == 0 ) {
 			ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
 			/* Restore previous ctx */
 			ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, def_ctx );
@@ -721,7 +721,7 @@ unhandled_option:;
 	 */
 	time( &starttime );
 
-	if ( slap_startup( NULL )  != 0 ) {
+	if ( slap_startup( NULL ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
 		goto shutdown;
@@ -729,33 +729,51 @@ unhandled_option:;
 
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
-
 	if ( slapd_pid_file != NULL ) {
 		FILE *fp = fopen( slapd_pid_file, "w" );
 
-		if( fp != NULL ) {
-			fprintf( fp, "%d\n", (int) getpid() );
-			fclose( fp );
+		if ( fp == NULL ) {
+			int save_errno = errno;
 
-		} else {
-			free(slapd_pid_file);
+			Debug( LDAP_DEBUG_ANY, "unable to open pid file "
+				"\"%s\": %d (%s)\n",
+				slapd_pid_file,
+				save_errno, strerror( save_errno ) );
+
+			free( slapd_pid_file );
 			slapd_pid_file = NULL;
+
+			rc = 1;
+			goto shutdown;
 		}
+
+		fprintf( fp, "%d\n", (int) getpid() );
+		fclose( fp );
 	}
 
 	if ( slapd_args_file != NULL ) {
 		FILE *fp = fopen( slapd_args_file, "w" );
 
-		if( fp != NULL ) {
-			for ( i = 0; i < g_argc; i++ ) {
-				fprintf( fp, "%s ", g_argv[i] );
-			}
-			fprintf( fp, "\n" );
-			fclose( fp );
-		} else {
-			free(slapd_args_file);
+		if ( fp == NULL ) {
+			int save_errno = errno;
+
+			Debug( LDAP_DEBUG_ANY, "unable to open args file "
+				"\"%s\": %d (%s)\n",
+				slapd_args_file,
+				save_errno, strerror( save_errno ) );
+
+			free( slapd_args_file );
 			slapd_args_file = NULL;
+
+			rc = 1;
+			goto shutdown;
 		}
+
+		for ( i = 0; i < g_argc; i++ ) {
+			fprintf( fp, "%s ", g_argv[i] );
+		}
+		fprintf( fp, "\n" );
+		fclose( fp );
 	}
 
 #ifdef HAVE_NT_EVENT_LOG
