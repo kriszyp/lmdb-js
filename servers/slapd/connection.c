@@ -1409,7 +1409,7 @@ void connection_client_stop(
 }
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-void* connection_processing_thread( void* ctx, void* argv )
+static void* connection_read_thread( void* ctx, void* argv )
 {
 	int rc ;
 	Operation* new_op = NULL;
@@ -1434,7 +1434,7 @@ void* connection_processing_thread( void* ctx, void* argv )
 	return (void*)rc;
 }
 
-int connection_processing_activate( ber_socket_t s )
+int connection_read_activate( ber_socket_t s )
 {
 	int status;
 
@@ -1446,7 +1446,7 @@ int connection_processing_activate( ber_socket_t s )
 	if( !slapd_suspend( s ) ) return 0;
 
 	status = ldap_pvt_thread_pool_submit( &connection_pool,
-		connection_processing_thread, (void *) s );
+		connection_read_thread, (void *) s );
 
 	if( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "connection_processing_activiate(%d): "

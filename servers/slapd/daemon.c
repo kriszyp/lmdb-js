@@ -1413,10 +1413,8 @@ slapd_handle_listener(
 
 #ifdef LDAP_DEBUG
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-
 	/* newly accepted stream should not be in any of the FD SETS */
 	assert( SLAP_SOCK_NOT_ACTIVE( s ));
-
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 #endif
 
@@ -2016,13 +2014,17 @@ slapd_daemon_task(
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: write active on %d\n",
 				wd, 0, 0 );
+
+#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#else
+#endif
+
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
 			 * connection_write() must validitate the stream is still
 			 * active.
 			 */
-
 			if ( connection_write( wd ) < 0 ) {
 				if ( SLAP_EVENT_IS_READ( wd )) {
 					SLAP_EVENT_CLR_READ( (unsigned) wd );
@@ -2053,7 +2055,7 @@ slapd_daemon_task(
 			 */
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-			connection_processing_activate( rd );
+			connection_read_activate( rd );
 #else
 			if ( connection_read( rd ) < 0 ) {
 				slapd_close( rd );
@@ -2161,7 +2163,7 @@ slapd_daemon_task(
 					 */
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-					connection_processing_activate( fd );
+					connection_read_activate( fd );
 #else
 					if ( connection_read( fd ) < 0 ) slapd_close( fd );
 #endif
