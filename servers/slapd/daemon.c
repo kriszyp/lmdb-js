@@ -584,7 +584,7 @@ int slapd_suspend(ber_socket_t s) {
 	return rc;
 }
 
-void slapd_resume ( ber_socket_t s ) {
+void slapd_resume ( ber_socket_t s, int wake ) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	SLAP_SOCK_SET_READ( s );
@@ -595,7 +595,7 @@ void slapd_resume ( ber_socket_t s ) {
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-	WAKE_LISTENER(1);
+	WAKE_LISTENER(wake);
 }
 #endif
 
@@ -1364,13 +1364,14 @@ connection_accept(
 #  endif /* LDAP_PF_LOCAL */
 
 	s = accept( sl->sl_sd, (struct sockaddr *) &from, &len );
+
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-	/*
-	 * As soon as a TCP connection is accepted, the listener FD is resumed
-	 * for concurrent-processing of incoming TCP connections.
+	/* Resume the listener FD to allow concurrent-processing of
+	 * additional incoming connections.
 	 */
-	slapd_resume( sl->sl_sd );
+	slapd_resume( sl->sl_sd, 1 );
 #endif
+
 	if ( s == AC_SOCKET_INVALID ) {
 		int err = sock_errno();
 

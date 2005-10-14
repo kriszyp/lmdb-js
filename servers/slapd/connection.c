@@ -1498,14 +1498,14 @@ int connection_read(ber_socket_t s)
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-		slapd_resume( s );
+		slapd_resume( s, 1 );
 #endif
 		return 0;
 	}
 
 	if ( c->c_conn_state == SLAP_C_CLIENT ) {
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-		slapd_resume( s );
+		slapd_resume( s, 1 );
 #endif
 		slapd_clr_read( s, 0 );
 		ldap_pvt_thread_pool_submit( &connection_pool,
@@ -1589,7 +1589,7 @@ int connection_read(ber_socket_t s)
 			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-			slapd_resume( s );
+			slapd_resume( s, 1 );
 #endif
 			return 0;
 		}
@@ -1604,7 +1604,7 @@ int connection_read(ber_socket_t s)
 			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-			slapd_resume( s );
+			slapd_resume( s, 1 );
 #endif
 			return 0;
 		}
@@ -1621,7 +1621,7 @@ int connection_read(ber_socket_t s)
 			/* connections_mutex and c_mutex are locked */
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-			slapd_resume( s );
+			slapd_resume( s, 1 );
 #endif
 			connection_closing( c, "SASL layer install failure" );
 			connection_close( c );
@@ -1676,7 +1676,7 @@ int connection_read(ber_socket_t s)
 	}
 
 #ifdef SLAP_LIGHTWEIGHT_LISTENER
-	if ( need_resume ) slapd_resume( s );
+	if ( need_resume ) slapd_resume( s, 1 );
 #endif
 
 	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
