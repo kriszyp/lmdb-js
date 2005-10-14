@@ -346,22 +346,23 @@ static struct {
 
 #define	RDNEQ	"reqStart="
 
-/* Our time intervals are of the form [dd+]hh:mm[:ss]
- * If a field is present, it must be two digits. We assume no one
- * will want to keep log records for longer than 99 days.
+/* Our time intervals are of the form [ddd+]hh:mm[:ss]
+ * If a field is present, it must be two digits. (Except for
+ * days, which can be arbitrary width.)
  */
 static int
 log_age_parse(char *agestr)
 {
 	int t1, t2;
 	int gotdays = 0;
+	char *endptr;
 
-	t1 = atoi( agestr );
+	t1 = strtol( agestr, &endptr, 10 );
 	/* Is there a days delimiter? */
-	if ( agestr[2] == '+' ) {
+	if ( *endptr == '+' ) {
 		t1 *= 24;
 		gotdays = 1;
-	} else if ( agestr[2] != ':' ) {
+	} else if ( *endptr != ':' ) {
 	/* No valid delimiter found, fail */
 		return -1;
 	}
@@ -421,7 +422,7 @@ log_age_unparse( int age, struct berval *agebv )
 	ptr = agebv->bv_val;
 
 	if ( dd ) 
-		ptr += sprintf( ptr, "%02d+", dd );
+		ptr += sprintf( ptr, "%d+", dd );
 	ptr += sprintf( ptr, "%02d:%02d", hh, mm );
 	if ( ss )
 		ptr += sprintf( ptr, ":%02d", ss );
