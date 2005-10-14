@@ -259,7 +259,7 @@ static struct slap_daemon {
 		sizeof(struct epoll_event) * dtblsize * 2); \
 	slap_daemon.sd_index = ch_malloc(sizeof(int) * dtblsize); \
 	slap_daemon.sd_epfd = epoll_create( dtblsize ); \
-	for (i=0; i<dtblsize; i++) slap_daemon.sd_index[i] = -1 \
+	for (i=0; i<dtblsize; i++) slap_daemon.sd_index[i] = -1; \
 } while (0)
 # endif
 
