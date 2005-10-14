@@ -442,6 +442,7 @@ map_attr_value(
 
 static int
 rwm_int_filter_map_rewrite(
+		Operation		*op,
 		dncookie		*dc,
 		Filter			*f,
 		struct berval		*fstr )
@@ -477,7 +478,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(=)" );
@@ -493,7 +494,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(>=)" );
@@ -509,7 +510,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(<=)" );
@@ -525,7 +526,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(~=)" );
@@ -541,7 +542,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_sub_desc, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		/* cannot be a DN ... */
@@ -603,7 +604,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_desc, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + STRLENOF( "(=*)" );
@@ -626,7 +627,7 @@ rwm_int_filter_map_rewrite(
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			len = fstr->bv_len;
 
-			if ( rwm_int_filter_map_rewrite( dc, p, &vtmp ) )
+			if ( rwm_int_filter_map_rewrite( op, dc, p, &vtmp ) )
 			{
 				return -1;
 			}
@@ -647,7 +648,7 @@ rwm_int_filter_map_rewrite(
 			if ( map_attr_value( dc, &f->f_mr_desc, &atmp,
 						&f->f_mr_value, &vtmp, RWM_MAP ) )
 			{
-				return -1;
+				goto computed;
 			}
 
 		} else {
@@ -672,16 +673,21 @@ rwm_int_filter_map_rewrite(
 		break;
 	}
 
+	case 0:
+computed:;
+		filter_free_x( op, f );
+		f->f_choice = SLAPD_FILTER_COMPUTED;
+		f->f_result = SLAPD_COMPARE_UNDEFINED;
+		/* fallthru */
+
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
 		case LDAP_COMPARE_FALSE:
+		case SLAPD_COMPARE_UNDEFINED:
 			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
 				tmp = ber_bvtf_false;
 				break;
 			}
-			/* fallthru */
-
-		case SLAPD_COMPARE_UNDEFINED:
 			tmp = ber_bvfalse;
 			break;
 
@@ -711,6 +717,7 @@ rwm_int_filter_map_rewrite(
 
 int
 rwm_filter_map_rewrite(
+		Operation		*op,
 		dncookie		*dc,
 		Filter			*f,
 		struct berval		*fstr )
@@ -719,7 +726,7 @@ rwm_filter_map_rewrite(
 	dncookie 	fdc;
 	struct berval	ftmp;
 
-	rc = rwm_int_filter_map_rewrite( dc, f, fstr );
+	rc = rwm_int_filter_map_rewrite( op, dc, f, fstr );
 
 #ifdef ENABLE_REWRITE
 	if ( rc != 0 ) {
