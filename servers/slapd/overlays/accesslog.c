@@ -542,7 +542,7 @@ log_cf_gen(ConfigArgs *c)
 	struct log_info *li = on->on_bi.bi_private;
 	int rc = 0;
 	slap_mask_t tmask = 0;
-	char agebuf[2*STRLENOF("dd+hh:mm:ss  ")];
+	char agebuf[2*STRLENOF("ddddd+hh:mm:ss  ")];
 	struct berval agebv, cyclebv;
 
 	switch( c->op ) {
