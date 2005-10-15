@@ -383,6 +383,9 @@ findbase_cb( Operation *op, SlapReply *rs )
 	return LDAP_SUCCESS;
 }
 
+static Filter generic_filter = { LDAP_FILTER_PRESENT, { 0 }, NULL };
+static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
+
 static int
 syncprov_findbase( Operation *op, fbase_cookie *fc )
 {
@@ -422,6 +425,8 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		fop.ors_tlimit = SLAP_NO_LIMIT;
 		fop.ors_attrs = slap_anlist_no_attrs;
 		fop.ors_attrsonly = 1;
+		fop.ors_filter = &generic_filter;
+		fop.ors_filterstr = generic_filterstr;
 
 		fop.o_bd->bd_info = on->on_info->oi_orig;
 		rc = fop.o_bd->be_search( &fop, &frs );
@@ -2530,6 +2535,8 @@ syncprov_init()
 	syncprov.on_bi.bi_operational = syncprov_operational;
 
 	syncprov.on_bi.bi_cf_ocs = spocs;
+
+	generic_filter.f_desc = slap_schema.si_ad_objectClass;
 
 	rc = config_register_schema( spcfg, spocs );
 	if ( rc ) return rc;
