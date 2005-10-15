@@ -62,7 +62,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPADD:
-		options = " [-c]\n\t[-n databasenumber | -b suffix]\n"
+		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]\n"
 			"\t[-l ldiffile] [-q] [-u] [-w]\n";
 		break;
 
@@ -71,7 +71,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPCAT:
-		options = " [-c]\n\t[-n databasenumber | -b suffix]"
+		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]"
 			" [-l ldiffile] [-a filter]\n";
 		break;
 
@@ -80,7 +80,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPINDEX:
-		options = " [-c]\n\t[-n databasenumber | -b suffix] [-q]\n";
+		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix] [-q]\n";
 		break;
 
 	case SLAPTEST:
@@ -178,6 +178,7 @@ slap_tool_init(
 	int rc, i, dbnum;
 	int mode = SLAP_TOOL_MODE;
 	int truncatemode = 0;
+	int use_glue = 1;
 
 #ifdef CSRIMALLOC
 	leakfilename = malloc( strlen( progname ) + STRLENOF( ".leak" ) + 1 );
@@ -190,11 +191,11 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:F:l:n:qtuvw";
+		options = "b:cd:f:F:gl:n:qtuvw";
 		break;
 
 	case SLAPCAT:
-		options = "a:b:cd:f:F:l:n:s:v";
+		options = "a:b:cd:f:F:gl:n:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -214,7 +215,7 @@ slap_tool_init(
 		break;
 
 	case SLAPINDEX:
-		options = "b:cd:f:F:n:qv";
+		options = "b:cd:f:F:gn:qv";
 		mode |= SLAP_TOOL_READMAIN;
 		break;
 
@@ -257,6 +258,10 @@ slap_tool_init(
 
 		case 'F':	/* specify a conf dir */
 			confdir = strdup( optarg );
+			break;
+
+		case 'g':	/* disable subordinate glue */
+			use_glue = 0;
 			break;
 
 		case 'l':	/* LDIF file */
@@ -424,11 +429,14 @@ slap_tool_init(
 		break;
 	}
 
-	rc = glue_sub_attach();
+	if ( use_glue ) {
+		rc = glue_sub_attach();
 
-	if ( rc != 0 ) {
-		fprintf( stderr, "%s: subordinate configuration error\n", progname );
-		exit( EXIT_FAILURE );
+		if ( rc != 0 ) {
+			fprintf( stderr,
+				"%s: subordinate configuration error\n", progname );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	rc = slap_schema_check();
@@ -559,12 +567,6 @@ slap_tool_init(
 		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 			if ( dbnum == 0 ) break;
 			dbnum--;
-		}
-		/* If a glued database is specified by number, just operate
-		 * on the single database.
-		 */
-		if ( SLAP_GLUE_INSTANCE( be ) ) {
-			glue_sub_detach( be );
 		}
 	}
 

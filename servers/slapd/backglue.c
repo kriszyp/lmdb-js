@@ -919,51 +919,6 @@ glue_sub_add( BackendDB *be, int advert, int online )
 	return rc;
 }
 
-/* Detach all glued subordinates from the superior. Only
- * called in tool mode.
- */
-void
-glue_sub_detach( BackendDB *be )
-{
-	slap_overinfo *oi = (slap_overinfo *)be->bd_info;
-	slap_overinst *on, **oprev;
-
-	/* If glue is the only overlay, just remove the overlay framework */
-	if ( oi->oi_list->on_bi.bi_type == glue.on_bi.bi_type &&
-		oi->oi_list->on_next == NULL ) {
-		/* We don't do any cleanup. Doesn't matter in tool mode. */
-		be->bd_info = oi->oi_orig;
-		return;
-	}
-
-	/* There are multiple overlays, just drop ours from the list */
-	for ( on=oi->oi_list, oprev = &oi->oi_list; on; on=on->on_next ) {
-		if ( on->on_bi.bi_type == glue.on_bi.bi_type ) {
-			*oprev = on->on_next;
-			break;
-		}
-		oprev = &on->on_next;
-
-		/* Undo the glue_db_init() changes in oi */
-		oi->oi_bi.bi_open = oi->oi_orig->bi_open;
-		oi->oi_bi.bi_close = oi->oi_orig->bi_close;
-
-		oi->oi_bi.bi_entry_release_rw = oi->oi_orig->bi_entry_release_rw;
-
-		oi->oi_bi.bi_tool_entry_open = oi->oi_orig->bi_tool_entry_open;
-		oi->oi_bi.bi_tool_entry_close = oi->oi_orig->bi_tool_entry_close;
-		oi->oi_bi.bi_tool_entry_first = oi->oi_orig->bi_tool_entry_first;
-		oi->oi_bi.bi_tool_entry_get = oi->oi_orig->bi_tool_entry_get;
-		oi->oi_bi.bi_tool_entry_put = oi->oi_orig->bi_tool_entry_put;
-		oi->oi_bi.bi_tool_entry_reindex = oi->oi_orig->bi_tool_entry_reindex;
-		oi->oi_bi.bi_tool_sync = oi->oi_orig->bi_tool_sync;
-		oi->oi_bi.bi_tool_dn2id_get = oi->oi_orig->bi_tool_dn2id_get;
-		oi->oi_bi.bi_tool_id2entry_get = oi->oi_orig->bi_tool_id2entry_get;
-		oi->oi_bi.bi_tool_entry_modify = oi->oi_orig->bi_tool_entry_modify;
-	}
-	return;
-}
-
 int
 glue_sub_init()
 {

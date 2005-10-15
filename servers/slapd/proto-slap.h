@@ -404,7 +404,6 @@ LDAP_SLAPD_F (int) glue_sub_init( void );
 LDAP_SLAPD_F (int) glue_sub_attach( void );
 LDAP_SLAPD_F (int) glue_sub_add( BackendDB *be, int advert, int online );
 LDAP_SLAPD_F (int) glue_sub_del( BackendDB *be );
-LDAP_SLAPD_F (void) glue_sub_detach( BackendDB *be );
 
 /*
  * backover.c
