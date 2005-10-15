@@ -2022,6 +2022,38 @@ str2loglevel( const char *s, int *l )
 	return 0;
 }
 
+const char *
+loglevel2str( int l )
+{
+	struct berval	bv = BER_BVNULL;
+
+	loglevel2bv( l, &bv );
+
+	return bv.bv_val;
+}
+
+int
+loglevel2bv( int l, struct berval *bv )
+{
+	if ( loglevel_ops == NULL ) {
+		loglevel_init();
+	}
+
+	BER_BVZERO( bv );
+
+	return enum_to_verb( loglevel_ops, l, bv ) == -1;
+}
+
+int
+loglevel2bvarray( int l, BerVarray *bva )
+{
+	if ( loglevel_ops == NULL ) {
+		loglevel_init();
+	}
+
+	return mask_to_verbs( loglevel_ops, l, bva );
+}
+
 static int config_syslog;
 
 static int
@@ -2037,7 +2069,8 @@ config_loglevel(ConfigArgs *c) {
 		/* Get default or commandline slapd setting */
 		if ( ldap_syslog && !config_syslog )
 			config_syslog = ldap_syslog;
-		return mask_to_verbs( loglevel_ops, config_syslog, &c->rvalue_vals );
+		return loglevel2bvarray( config_syslog, &c->rvalue_vals );
+
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		if ( !c->line ) {
 			config_syslog = 0;
