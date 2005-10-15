@@ -34,6 +34,7 @@ AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@
 
 # overlays
+AC_accesslog=accesslog@BUILD_ACCESSLOG@
 AC_pcache=pcache@BUILD_PROXYCACHE@
 AC_ppolicy=ppolicy@BUILD_PPOLICY@
 AC_refint=refint@BUILD_REFINT@
@@ -53,7 +54,7 @@ AC_ACI_ENABLED=aci@WITH_ACI_ENABLED@
 export AC_bdb AC_hdb AC_ldap AC_ldbm AC_meta AC_monitor AC_relay AC_sql 
 export AC_pcache AC_ppolicy AC_refint AC_retcode AC_rwm AC_unique AC_syncprov
 export AC_translucent AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED
-export AC_valsort
+export AC_valsort AC_accesslog
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
