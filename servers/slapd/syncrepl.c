@@ -284,12 +284,11 @@ ldap_sync_search(
 
 	if ( !BER_BVISNULL( &si->si_syncCookie.octet_str ) )
 	{
-		ber_printf( ber, "{eO}",
-			abs(si->si_type),
-			&si->si_syncCookie.octet_str );
+		ber_printf( ber, "{eOb}",
+			abs(si->si_type), &si->si_syncCookie.octet_str, 1 );
 	} else {
-		ber_printf( ber, "{e}",
-			abs(si->si_type) );
+		ber_printf( ber, "{eb}",
+			abs(si->si_type), 1 );
 	}
 
 	if ( (rc = ber_flatten2( ber, &c[0].ldctl_value, 0 )) == LBER_ERROR ) {
