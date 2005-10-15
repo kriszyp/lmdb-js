@@ -326,7 +326,7 @@ check_constraints( Modification *mod, int *newlevel )
 				int_2_level[ l ].n.bv_val,
 				int_2_level[ l ].n.bv_len );
 
-		*newlevel |= l;
+		*newlevel |= int_2_level[ l ].i;
 	}
 
 	return LDAP_SUCCESS;
@@ -411,6 +411,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		if ( rc ) {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
+
 		} else {
 			*newlevel = 0;
 			rc = LDAP_SUCCESS;
