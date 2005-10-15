@@ -122,6 +122,7 @@ typedef struct syncprov_info_t {
 	int		si_chktime;
 	int		si_numops;	/* number of ops since last checkpoint */
 	int		si_nopres;	/* Skip present phase */
+	int		si_usehint;	/* use reload hint */
 	time_t	si_chklast;	/* time of last checkpoint */
 	Avlnode	*si_mods;	/* entries being modified */
 	sessionlog	*si_logs;
@@ -1943,12 +1944,11 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		/* Is the CSN still present in the database? */
 		if ( syncprov_findcsn( op, FIND_CSN ) != LDAP_SUCCESS ) {
 			/* No, so a reload is required */
-#if 0		/* the consumer doesn't seem to send this hint */
-			if ( op->o_sync_rhint == 0 ) {
+			/* the 2.2 consumer doesn't send this hint */
+			if ( si->si_usehint && srs->sr_rhint == 0 ) {
 				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
 				return rs->sr_err;
 			}
-#endif
 		} else {
 			gotstate = 1;
 			/* If changed and doing Present lookup, send Present UUIDs */
@@ -2069,7 +2069,8 @@ syncprov_operational(
 enum {
 	SP_CHKPT = 1,
 	SP_SESSL,
-	SP_NOPRES
+	SP_NOPRES,
+	SP_USEHINT
 };
 
 static ConfigDriver sp_cf_gen;
@@ -2086,6 +2087,10 @@ static ConfigTable spcfg[] = {
 	{ "syncprov-nopresent", NULL, 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|SP_NOPRES,
 		sp_cf_gen, "( OLcfgOvAt:1.3 NAME 'olcSpNoPresent' "
 			"DESC 'Omit Present phase processing' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "syncprov-reloadhint", NULL, 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|SP_USEHINT,
+		sp_cf_gen, "( OLcfgOvAt:1.4 NAME 'olcSpReloadHint' "
+			"DESC 'Observe Reload Hint in Request control' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
