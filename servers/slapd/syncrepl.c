@@ -1182,10 +1182,12 @@ syncrepl_accesslog_mods(
 			*modtail = mod;
 			modtail = &mod->sml_next;
 		}
-		bv.bv_val = colon + 3;
-		bv.bv_len = vals[i].bv_len - ( bv.bv_val - vals[i].bv_val );
-		ber_dupbv( &bv2, &bv );
-		ber_bvarray_add( &mod->sml_values, &bv2 );
+		if ( colon[2] == ' ' ) {
+			bv.bv_val = colon + 3;
+			bv.bv_len = vals[i].bv_len - ( bv.bv_val - vals[i].bv_val );
+			ber_dupbv( &bv2, &bv );
+			ber_bvarray_add( &mod->sml_values, &bv2 );
+		}
 	}
 	return modlist;
 }
@@ -1343,6 +1345,9 @@ syncrepl_message_to_op(
 		op->orr_nnewrdn = nrdn;
 		op->orr_deleteoldrdn = deleteOldRdn;
 		rc = op->o_bd->be_modrdn( op, &rs );
+		break;
+	case LDAP_REQ_DELETE:
+		rc = op->o_bd->be_delete( op, &rs );
 		break;
 	}
 done:
