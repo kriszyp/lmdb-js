@@ -103,7 +103,7 @@ connection_state2str( int state )
 
 static Connection* connection_get( ber_socket_t s );
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 static int connection_input( Connection *c, Operation** op );
 #else
 static int connection_input( Connection *c );
@@ -111,7 +111,7 @@ static int connection_input( Connection *c );
 static void connection_close( Connection *c );
 
 static int connection_op_activate( Operation *op );
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 static void connection_op_queue( Operation *op );
 #endif
 static int connection_resched( Connection *conn );
@@ -1408,7 +1408,9 @@ void connection_client_stop(
 	slapd_remove( s, 0, 1 );
 }
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+static int connection_read( ber_socket_t s, Operation** op );
+
 static void* connection_read_thread( void* ctx, void* argv )
 {
 	int rc ;
@@ -1436,40 +1438,37 @@ static void* connection_read_thread( void* ctx, void* argv )
 
 int connection_read_activate( ber_socket_t s )
 {
-	int status;
+	int rc;
 
 	/*
 	 * suspend reading on this file descriptor until a connection processing
 	 * thread reads data on it. Otherwise the listener thread will repeatedly
 	 * submit the same event on it to the pool.
 	 */
-	if( !slapd_suspend( s ) ) return 0;
+	slapd_clr_read( s, 0 );
 
-	status = ldap_pvt_thread_pool_submit( &connection_pool,
+	rc = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_read_thread, (void *) s );
 
-	if( status != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "connection_processing_activiate(%d): "
-			"ldap_pvt_thread_pool_submit failed\n",
-			s, 0, 0 );
-		return -1;
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"connection_read_activiate(%d): submit failed (%d)\n",
+			s, rc, 0 );
 	}
 
-	return 1;
+	return rc;
 }
 #endif
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-int connection_read( ber_socket_t s, Operation** op )
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+static int
+connection_read( ber_socket_t s, Operation** op )
 #else
 int connection_read(ber_socket_t s)
 #endif
 {
 	int rc = 0;
 	Connection *c;
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-	int need_resume = 1;
-#endif
 
 	assert( connections != NULL );
 
@@ -1497,17 +1496,18 @@ int connection_read(ber_socket_t s)
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-		slapd_resume( s, 1 );
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+		slapd_set_read( s, 1);
 #endif
 		return 0;
 	}
 
 	if ( c->c_conn_state == SLAP_C_CLIENT ) {
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-		slapd_resume( s, 1 );
-#endif
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+		/* read should already be cleared */
+#else
 		slapd_clr_read( s, 0 );
+#endif
 		ldap_pvt_thread_pool_submit( &connection_pool,
 			c->c_clientfunc, c->c_clientarg );
 
@@ -1588,8 +1588,8 @@ int connection_read(ber_socket_t s)
 			connection_return( c );
 			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-			slapd_resume( s, 1 );
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+			slapd_set_read( s, 1 );
 #endif
 			return 0;
 		}
@@ -1603,8 +1603,8 @@ int connection_read(ber_socket_t s)
 			connection_return( c );
 			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-			slapd_resume( s, 1 );
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+			slapd_set_read( s, 1 );
 #endif
 			return 0;
 		}
@@ -1620,9 +1620,10 @@ int connection_read(ber_socket_t s)
 
 			/* connections_mutex and c_mutex are locked */
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-			slapd_resume( s, 1 );
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+			slapd_set_read( s, 1 );
 #endif
+
 			connection_closing( c, "SASL layer install failure" );
 			connection_close( c );
 			connection_return( c );
@@ -1637,21 +1638,10 @@ int connection_read(ber_socket_t s)
 
 	do {
 		/* How do we do this without getting into a busy loop ? */
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		rc = connection_input( c, op );
 #else
 		rc = connection_input( c );
-#endif
-
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-		if( *op && (*op)->o_tag == LDAP_REQ_UNBIND ) {
-			/*
-			 * After the reception of an unbind request,
-			 * no more incoming requests via the connection
-			 * is expected. Therefore, don't resume connection reading.
-			 */
-			need_resume = 0;
-		}
 #endif
 	}
 #ifdef DATA_READY_LOOP
@@ -1675,10 +1665,13 @@ int connection_read(ber_socket_t s)
 		return 0;
 	}
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-	if ( need_resume ) slapd_resume( s, 1 );
-#endif
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
+		slapd_set_write( s, 0 );
+	}
 
+	slapd_set_read( s, 1 );
+#else
 	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
 		slapd_set_read( s, 1 );
 	}
@@ -1686,6 +1679,7 @@ int connection_read(ber_socket_t s)
 	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
 		slapd_set_write( s, 1 );
 	}
+#endif
 
 	connection_return( c );
 	ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
@@ -1694,7 +1688,7 @@ int connection_read(ber_socket_t s)
 }
 
 static int
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 connection_input( Connection *conn , Operation** c_op )
 #else
 connection_input( Connection *conn )
@@ -1884,7 +1878,7 @@ connection_input( Connection *conn )
 	} else {
 		conn->c_n_ops_executing++;
 
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#if 0
 		/*
 		 * The first op will be processed in the same thread context,
 		 * Subsequent ops will be submitted to the pool by
@@ -2033,24 +2027,53 @@ static void connection_op_queue( Operation *op )
 
 static int connection_op_activate( Operation *op )
 {
-	int status;
+	int rc;
 	ber_tag_t tag = op->o_tag;
 
 	connection_op_queue( op );
 
-	status = ldap_pvt_thread_pool_submit( &connection_pool,
+	rc = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_operation, (void *) op );
 
-	if ( status != 0 ) {
+	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"ldap_pvt_thread_pool_submit: failed (%d) for conn=%lu\n",
-			status, op->o_connid, 0 );
+			"connection_op_activate: submit failed (%d) for conn=%lu\n",
+			rc, op->o_connid, 0 );
 		/* should move op to pending list */
 	}
 
-	return status;
+	return rc;
 }
 
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+int connection_write_activate( ber_socket_t s )
+{
+	int rc;
+
+	/*
+	 * suspend reading on this file descriptor until a connection processing
+	 * thread write data on it. Otherwise the listener thread will repeatedly
+	 * submit the same event on it to the pool.
+	 */
+
+#ifndef SLAP_LIGHTWEIGHT_DISPATCHER
+	slapd_clr_write( s, 0);
+	c->c_n_write++;
+#endif
+
+	rc = ldap_pvt_thread_pool_submit( &connection_pool,
+		connection_read_thread, (void *) s );
+
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"connection_write_activiate(%d): submit failed (%d)\n",
+			(int) s, rc, 0 );
+	}
+	return rc;
+}
+
+static
+#endif
 int connection_write(ber_socket_t s)
 {
 	Connection *c;
@@ -2070,8 +2093,10 @@ int connection_write(ber_socket_t s)
 		return -1;
 	}
 
+#ifndef SLAP_LIGHTWEIGHT_DISPATCHER
 	slapd_clr_write( s, 0);
 	c->c_n_write++;
+#endif
 
 	Debug( LDAP_DEBUG_TRACE,
 		"connection_write(%d): waking output for id=%lu\n",

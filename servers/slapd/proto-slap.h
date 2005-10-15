@@ -651,12 +651,11 @@ LDAP_SLAPD_F (int) connection_state_closing LDAP_P(( Connection *c ));
 LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 	LDAP_GCCATTR((const));
 
-LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
-
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+LDAP_SLAPD_F (int) connection_write_activate LDAP_P((ber_socket_t s));
 LDAP_SLAPD_F (int) connection_read_activate LDAP_P((ber_socket_t s));
-LDAP_SLAPD_F (int) connection_read LDAP_P((ber_socket_t, Operation **));
 #else
+LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
 LDAP_SLAPD_F (int) connection_read LDAP_P((ber_socket_t s));
 #endif
 
@@ -721,11 +720,6 @@ LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wasactive, int wake
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));
 LDAP_SLAPD_F (void) slap_wake_listener LDAP_P((void));
-
-#ifdef SLAP_LIGHTWEIGHT_LISTENER
-LDAP_SLAPD_F (int) slapd_suspend LDAP_P((ber_socket_t s));
-LDAP_SLAPD_F (void) slapd_resume LDAP_P((ber_socket_t s, int wake ));
-#endif
 
 LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));

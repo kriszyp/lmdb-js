@@ -60,7 +60,7 @@ LDAP_BEGIN_DECL
 
 
 #ifdef LDAP_DEVEL
-#define SLAP_LIGHTWEIGHT_LISTENER /* experimental slapd architecture */
+#define SLAP_LIGHTWEIGHT_DISPATCHER /* experimental slapd architecture */
 #define SLAP_SEM_LOAD_CONTROL /* must also be defined in libldap_r/tpool.c */
 #define SLAP_MULTI_CONN_ARRAY
 
@@ -2740,7 +2740,10 @@ struct slap_listener {
 #ifdef LDAP_CONNECTIONLESS
 	int	sl_is_udp;		/* UDP listener is also data port */
 #endif
-	int	sl_is_mute;	/* Listening is temporarily disabled */
+	int	sl_mute;	/* Listener is temporarily disabled due to emfile */
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+	int	sl_busy;	/* Listener is busy (accept thread activated */
+#endif
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
