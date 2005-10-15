@@ -2139,6 +2139,13 @@ sp_cf_gen(ConfigArgs *c)
 				rc = 1;
 			}
 			break;
+		case SP_USEHINT:
+			if ( si->si_usehint ) {
+				c->value_int = 1;
+			} else {
+				rc = 1;
+			}
+			break;
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
@@ -2156,6 +2163,12 @@ sp_cf_gen(ConfigArgs *c)
 		case SP_NOPRES:
 			if ( si->si_nopres )
 				si->si_nopres = 0;
+			else
+				rc = LDAP_NO_SUCH_ATTRIBUTE;
+			break;
+		case SP_USEHINT:
+			if ( si->si_usehint )
+				si->si_usehint = 0;
 			else
 				rc = LDAP_NO_SUCH_ATTRIBUTE;
 			break;
@@ -2192,6 +2205,9 @@ sp_cf_gen(ConfigArgs *c)
 		break;
 	case SP_NOPRES:
 		si->si_nopres = c->value_int;
+		break;
+	case SP_USEHINT:
+		si->si_usehint = c->value_int;
 		break;
 	}
 	return rc;
@@ -2440,6 +2456,7 @@ static int syncprov_parseCtrl (
 			rs->sr_text = "Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
+		tag = ber_peek_tag( ber, &len );
 	}
 	if ( tag == LDAP_TAG_RELOAD_HINT ) {
 		if (( ber_scanf( ber, /*{*/ "b", &rhint )) == LBER_ERROR ) {
