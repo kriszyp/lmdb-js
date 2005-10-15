@@ -272,7 +272,32 @@ init_syncrepl(syncinfo_t *si)
 	si->si_exattrs = exattrs;	
 }
 
-static char *allattrs[] = {"*", "+", NULL};
+typedef struct logschema {
+	struct berval ls_dn;
+	struct berval ls_req;
+	struct berval ls_mod;
+	struct berval ls_newRdn;
+	struct berval ls_delRdn;
+	struct berval ls_newSup;
+} logschema;
+
+static logschema changelog_sc = {
+	BER_BVC("targetDN"),
+	BER_BVC("changeType"),
+	BER_BVC("changes"),
+	BER_BVC("newRDN"),
+	BER_BVC("deleteOldRDN"),
+	BER_BVC("newSuperior")
+};
+
+static logschema accesslog_sc = {
+	BER_BVC("reqDN"),
+	BER_BVC("reqType"),
+	BER_BVC("reqMod"),
+	BER_BVC("reqNewRDN"),
+	BER_BVC("reqDeleteOldRDN"),
+	BER_BVC("reqNewSuperior")
+};
 
 static int
 ldap_sync_search(
@@ -287,7 +312,7 @@ ldap_sync_search(
 	int rc;
 	int rhint;
 	char *base;
-	char **attrs;
+	char **attrs, *lattrs[8];
 	char *filter;
 	int attrsonly;
 	int stype;
@@ -305,10 +330,24 @@ ldap_sync_search(
 
 	/* Use the log parameters if we're in log mode */
 	if ( si->si_syncdata && si->si_logstate == SYNCLOG_LOGGING ) {
+		logschema *ls;
+		if ( si->si_syncdata == SYNCDATA_ACCESSLOG )
+			ls = &accesslog_sc;
+		else
+			ls = &changelog_sc;
+		lattrs[0] = ls->ls_dn.bv_val;
+		lattrs[1] = ls->ls_req.bv_val;
+		lattrs[2] = ls->ls_mod.bv_val;
+		lattrs[3] = ls->ls_newRdn.bv_val;
+		lattrs[4] = ls->ls_delRdn.bv_val;
+		lattrs[5] = ls->ls_newSup.bv_val;
+		lattrs[6] = slap_schema.si_ad_entryCSN->ad_cname.bv_val;
+		lattrs[7] = NULL;
+
 		rhint = 0;
 		base = si->si_logbase.bv_val;
 		filter = si->si_logfilterstr.bv_val;
-		attrs = allattrs;
+		attrs = lattrs;
 		attrsonly = 0;
 		scope = LDAP_SCOPE_ONELEVEL;
 	} else {
@@ -1089,33 +1128,6 @@ reload:
 
 	return NULL;
 }
-
-typedef struct logschema {
-	struct berval ls_dn;
-	struct berval ls_req;
-	struct berval ls_mod;
-	struct berval ls_newRdn;
-	struct berval ls_delRdn;
-	struct berval ls_newSup;
-} logschema;
-
-static logschema changelog_sc = {
-	BER_BVC("targetDN"),
-	BER_BVC("changeType"),
-	BER_BVC("changes"),
-	BER_BVC("newRDN"),
-	BER_BVC("deleteOldRDN"),
-	BER_BVC("newSuperior")
-};
-
-static logschema accesslog_sc = {
-	BER_BVC("reqDN"),
-	BER_BVC("reqType"),
-	BER_BVC("reqMod"),
-	BER_BVC("reqNewRDN"),
-	BER_BVC("reqDeleteOldRDN"),
-	BER_BVC("reqNewSuperior")
-};
 
 static slap_verbmasks modops[] = {
 	{ BER_BVC("add"), LDAP_REQ_ADD },
