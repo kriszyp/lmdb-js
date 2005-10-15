@@ -64,7 +64,8 @@ typedef struct syncinfo_s {
 	int					si_allattrs;
 	int					si_allopattrs;
 	int					si_schemachecking;
-	int					si_type;
+	int					si_type;	/* the active type */
+	int					si_ctype;	/* the configured type */
 	time_t				si_interval;
 	time_t				*si_retryinterval;
 	int					*si_retrynum_init;
@@ -315,7 +316,6 @@ ldap_sync_search(
 	char **attrs, *lattrs[8];
 	char *filter;
 	int attrsonly;
-	int stype;
 	int scope;
 
 	/* setup LDAP SYNC control */
@@ -359,18 +359,18 @@ ldap_sync_search(
 		scope = si->si_scope;
 	}
 	if ( si->si_syncdata && si->si_logstate == SYNCLOG_FALLBACK ) {
-		stype = LDAP_SYNC_REFRESH_ONLY;
+		si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	} else {
-		stype = si->si_type;
+		si->si_type = si->si_ctype;
 	}
 
 	if ( !BER_BVISNULL( &si->si_syncCookie.octet_str ) )
 	{
 		ber_printf( ber, "{eOb}",
-			abs(stype), &si->si_syncCookie.octet_str, rhint );
+			abs(si->si_type), &si->si_syncCookie.octet_str, rhint );
 	} else {
 		ber_printf( ber, "{eb}",
-			abs(stype), rhint );
+			abs(si->si_type), rhint );
 	}
 
 	if ( (rc = ber_flatten2( ber, &c[0].ldctl_value, 0 )) == LBER_ERROR ) {
@@ -1045,20 +1045,22 @@ do_syncrepl(
 
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
-reload:
 		first = 1;
 		si->si_refreshDelete = 0;
 		si->si_refreshPresent = 0;
 		rc = do_syncrep1( op, si );
 	}
 
+reload:
 	/* Process results */
 	if ( rc == LDAP_SUCCESS ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 
 		rc = do_syncrep2( op, si );
-		if ( rc == LDAP_SYNC_REFRESH_REQUIRED )	
+		if ( rc == LDAP_SYNC_REFRESH_REQUIRED )	{
+			rc = ldap_sync_search( si, op->o_tmpmemctx );
 			goto reload;
+		}
 
 		if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 			/* If we succeeded, enable the connection for further listening.
@@ -2837,11 +2839,11 @@ parse_syncrepl_line(
 			if ( !strncasecmp( val, "refreshOnly",
 						STRLENOF("refreshOnly") ))
 			{
-				si->si_type = LDAP_SYNC_REFRESH_ONLY;
+				si->si_type = si->si_ctype = LDAP_SYNC_REFRESH_ONLY;
 			} else if ( !strncasecmp( val, "refreshAndPersist",
 						STRLENOF("refreshAndPersist") ))
 			{
-				si->si_type = LDAP_SYNC_REFRESH_AND_PERSIST;
+				si->si_type = si->si_ctype = LDAP_SYNC_REFRESH_AND_PERSIST;
 				si->si_interval = 60;
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
@@ -3020,7 +3022,7 @@ add_syncrepl(
 	si->si_allattrs = 0;
 	si->si_allopattrs = 0;
 	si->si_exattrs = NULL;
-	si->si_type = LDAP_SYNC_REFRESH_ONLY;
+	si->si_type = si->si_ctype = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
 	si->si_retryinterval = NULL;
 	si->si_retrynum_init = NULL;
