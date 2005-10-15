@@ -113,10 +113,21 @@ meta_back_db_config(
 		int		rc;
 		int		c;
 		
-		if ( argc != 2 ) {
+		switch ( argc ) {
+		case 1:
 			fprintf( stderr,
-	"%s: line %d: missing address"
-	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+	"%s: line %d: missing URI "
+	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+				fname, lineno );
+			return 1;
+
+		case 2:
+			break;
+
+		default:
+			fprintf( stderr,
+	"%s: line %d: too many args "
+	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
 				fname, lineno );
 			return 1;
 		}
