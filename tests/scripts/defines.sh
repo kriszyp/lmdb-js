@@ -14,6 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 MONITORDB=${AC_monitor-no}
+ACCESSLOG=${AC_accesslog-accesslogno}
 BACKLDAP=${AC_ldap-ldapno}
 BACKMETA=${AC_meta-metano}
 BACKRELAY=${AC_relay-relayno}
@@ -63,6 +64,8 @@ ACLCONF=$DATADIR/slapd-acl.conf
 RCONF=$DATADIR/slapd-referrals.conf
 MASTERCONF=$DATADIR/slapd-repl-master.conf
 SRMASTERCONF=$DATADIR/slapd-syncrepl-master.conf
+DSRMASTERCONF=$DATADIR/slapd-deltasync-master.conf
+DSRSLAVECONF=$DATADIR/slapd-deltasync-slave.conf
 SLAVECONF=$DATADIR/slapd-repl-slave.conf
 PPOLICYCONF=$DATADIR/slapd-ppolicy.conf
 PROXYCACHECONF=$DATADIR/slapd-proxycache.conf
