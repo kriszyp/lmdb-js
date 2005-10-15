@@ -560,6 +560,12 @@ slap_tool_init(
 			if ( dbnum == 0 ) break;
 			dbnum--;
 		}
+		/* If a glued database is specified by number, just operate
+		 * on the single database.
+		 */
+		if ( SLAP_GLUE_INSTANCE( be ) ) {
+			glue_sub_detach( be );
+		}
 	}
 
 startup:;
