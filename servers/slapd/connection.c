@@ -1545,6 +1545,9 @@ int connection_read(ber_socket_t s)
 #endif
 
 			connection_close( c );
+			connection_return( c );
+			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
+			return 0;
 
 		} else if ( rc == 0 ) {
 			void *ssl;
@@ -1578,7 +1581,7 @@ int connection_read(ber_socket_t s)
 			!ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) )
 		{
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-			if( rc == 0 ) slapd_set_read( s, 1 );
+			slapd_set_read( s, 1 );
 #endif
 
 			connection_return( c );
