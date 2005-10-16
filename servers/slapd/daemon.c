@@ -180,8 +180,8 @@ static struct slap_daemon {
 		slap_daemon.sd_nfds++; \
 	} else { \
 		Debug( LDAP_DEBUG_ANY, \
-			"daemon: epoll_ctl ADD failed, errno %d, shutting down\n", \
-			errno, 0, 0 ); \
+			"daemon: epoll_ctl(ADD,fd=%d) failed, errno=%d, shutting down\n", \
+			s, errno, 0 ); \
 		slapd_shutdown = 2; \
 	} \
 } while (0)
@@ -690,7 +690,7 @@ static int slap_get_listener_addresses(
 		snprintf(serv, sizeof serv, "%d", port);
 
 		if ( (err = getaddrinfo(host, serv, &hints, &res)) ) {
-			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
+			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo() failed: %s\n",
 				AC_GAI_STRERROR(err), 0, 0);
 			return -1;
 		}
