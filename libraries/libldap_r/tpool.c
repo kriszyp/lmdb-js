@@ -29,10 +29,6 @@
 #define LDAP_THREAD_POOL_IMPLEMENTATION
 #include "ldap_thr_debug.h"  /* May rename symbols defined below */
 
-#ifdef LDAP_DEVEL
-/* #define SLAP_SEM_LOAD_CONTROL /* must also be defined in slapd.h */
-#endif
-
 #ifndef LDAP_THREAD_HAVE_TPOOL
 
 typedef enum ldap_int_thread_pool_state_e {
@@ -142,7 +138,8 @@ typedef struct ldap_lazy_sem_t {
 ldap_lazy_sem_t* thread_pool_sem = NULL;
 
 int
-ldap_lazy_sem_init( unsigned int value, unsigned int lazyness ) {
+ldap_lazy_sem_init( unsigned int value, unsigned int lazyness )
+{
 	thread_pool_sem = (ldap_lazy_sem_t*) LDAP_CALLOC(1,
 		sizeof( ldap_lazy_sem_t ));
 
@@ -157,12 +154,17 @@ ldap_lazy_sem_init( unsigned int value, unsigned int lazyness ) {
 	return 0;
 }
 
+/* FIXME: move to some approprite header */
+int ldap_lazy_sem_dec( ldap_lazy_sem_t* ls );
+int ldap_lazy_sem_wait ( ldap_lazy_sem_t* ls );
+
 /*
  * ldap_lazy_sem_wait is used if a caller is blockable(listener).
  * Otherwise use ldap_lazy_sem_dec (worker)
  */
 int
-ldap_lazy_sem_op_submit( ldap_lazy_sem_t* ls ) {
+ldap_lazy_sem_op_submit( ldap_lazy_sem_t* ls )
+{
 	if ( ls == NULL ) return -1;
 
 	/* only worker thread has its thread ctx */
@@ -181,7 +183,8 @@ ldap_lazy_sem_op_submit( ldap_lazy_sem_t* ls ) {
  * If not, the count is decremented.
  */
 int
-ldap_lazy_sem_wait ( ldap_lazy_sem_t* ls ) {
+ldap_lazy_sem_wait ( ldap_lazy_sem_t* ls )
+{
 	ldap_pvt_thread_mutex_lock( &ls->ls_mutex );
 
 lazy_sem_retry:
@@ -205,7 +208,8 @@ lazy_sem_retry:
  * even when the count becomes less than or equal to 0
  */
 int
-ldap_lazy_sem_dec ( ldap_lazy_sem_t* ls ) {
+ldap_lazy_sem_dec( ldap_lazy_sem_t* ls )
+{
 	ldap_pvt_thread_mutex_lock( &ls->ls_mutex );
 
 	ls->ls_sem_value--;
@@ -220,8 +224,8 @@ ldap_lazy_sem_dec ( ldap_lazy_sem_t* ls ) {
  * equal to lazyness. If it is, wake up a blocked thread.
  */
 int
-ldap_lazy_sem_post( ldap_lazy_sem_t* ls ) {
-
+ldap_lazy_sem_post( ldap_lazy_sem_t* ls )
+{
 	if( ls == NULL ) return (-1);
 
 	ldap_pvt_thread_mutex_lock( &ls->ls_mutex );
@@ -378,7 +382,7 @@ ldap_pvt_thread_pool_submit (
 	}
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
-#ifdef SLAP_SEM_LOAD_CONTROL
+#ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
 	ldap_lazy_sem_op_submit( thread_pool_sem );
 #endif
 
@@ -533,7 +537,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 	LDAP_FREE(pool);
-#ifdef SLAP_SEM_LOAD_CONTROL
+#ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
 	if ( thread_pool_sem ) {
 		LDAP_FREE( thread_pool_sem );
 	}
@@ -614,7 +618,7 @@ ldap_int_thread_pool_wrapper (
 
 		ctx->ltc_start_routine(ltc_key, ctx->ltc_arg);
 
-#ifdef SLAP_SEM_LOAD_CONTROL
+#ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
 		ldap_lazy_sem_post( thread_pool_sem );
 #endif
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);

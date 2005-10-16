@@ -62,7 +62,9 @@ LDAP_BEGIN_DECL
 #ifdef LDAP_DEVEL
 #define SLAP_LIGHTWEIGHT_DISPATCHER /* experimental slapd architecture */
 #define SLAP_MULTI_CONN_ARRAY
-/* #define SLAP_SEM_LOAD_CONTROL /* must also be defined in libldap_r/tpool.c */
+#ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
+#define SLAP_SEM_LOAD_CONTROL
+#endif /* LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL */
 
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 #define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
