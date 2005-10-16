@@ -1362,9 +1362,10 @@ int connection_client_setup(
 	c = connection_get( s );
 	c->c_clientfunc = func;
 	c->c_clientarg = arg;
-	connection_return( c );
+
 	slapd_add_internal( s, 0 );
 	slapd_set_read( s, 1 );
+	connection_return( c );
 	return 0;
 }
 
@@ -1395,8 +1396,8 @@ void connection_client_stop(
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
-	connection_return( c );
 	slapd_remove( s, 0, 1 );
+	connection_return( c );
 }
 
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
@@ -1484,12 +1485,12 @@ int connection_read(ber_socket_t s)
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_read(%d): closing, ignoring input for id=%lu\n",
 			s, c->c_connid, 0 );
-		connection_return( c );
-		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-		slapd_set_read( s, 1);
+		slapd_set_read( s, 1 );
 #endif
+		connection_return( c );
+		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 		return 0;
 	}
 
@@ -1576,12 +1577,12 @@ int connection_read(ber_socket_t s)
 		if( rc != 0 ||
 			!ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) )
 		{
-			connection_return( c );
-			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			slapd_set_read( s, 1 );
 #endif
+
+			connection_return( c );
+			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 			return 0;
 		}
 	}
@@ -1591,12 +1592,12 @@ int connection_read(ber_socket_t s)
 	if ( c->c_sasl_layers ) {
 		/* If previous layer is not removed yet, give up for now */
 		if ( !c->c_sasl_sockctx ) {
-			connection_return( c );
-			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			slapd_set_read( s, 1 );
 #endif
+
+			connection_return( c );
+			ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 			return 0;
 		}
 
@@ -2121,10 +2122,9 @@ int connection_write(ber_socket_t s)
 
 		break;
 	}
+
 	connection_return( c );
-
 	ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
-
 	return 0;
 }
 
