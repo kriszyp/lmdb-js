@@ -8,6 +8,7 @@ slapadd \- Add entries to a SLAPD database
 .B SBINDIR/slapadd
 .B [\-v]
 .B [\-c]
+.B [\-g]
 .B [\-u]
 .B [\-q]
 .B [\-w]
@@ -29,7 +30,7 @@ suffix and adds entries corresponding to the provided LDIF to
 the database.
 Databases configured as
 .B subordinate
-of this one are also updated.
+of this one are also updated, unless \fB-g\fP is specified.
 The LDIF input is read from standard input or the specified file.
 .LP
 As
@@ -47,6 +48,10 @@ enable verbose mode.
 .TP
 .B \-c
 enable continue (ignore errors) mode.
+.TP
+.B \-g
+disable subordinate gluing.  Only the specified database will be
+processed, and not its glued subordinates (if any).
 .TP
 .B \-u
 enable dry-run (don't write to backend) mode.

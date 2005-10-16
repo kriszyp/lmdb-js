@@ -8,6 +8,7 @@ slapindex \- SLAPD index to LDIF utility
 .B SBINDIR/slapindex
 .B [\-v]
 .B [\-c]
+.B [\-g]
 .B [\-q]
 .B [\-d level]
 .B [\-b suffix]
@@ -27,7 +28,7 @@ suffix and updates the indices for all values of all attributes
 of all entries.
 Databases configured as
 .B subordinate
-of this one are also re-indexed.
+of this one are also re-indexed, unless \fB-g\fP is specified.
 .SH OPTIONS
 .TP
 .B \-v
@@ -35,6 +36,10 @@ enable verbose mode.
 .TP
 .B \-c
 enable continue (ignore errors) mode.
+.TP
+.B \-g
+disable subordinate gluing.  Only the specified database will be
+processed, and not its glued subordinates (if any).
 .TP
 .B \-q
 enable quick (fewer integrity checks) mode. Performs no consistency checks
