@@ -49,13 +49,13 @@
 static ldap_pvt_thread_mutex_t* connections_mutex;
 static Connection **connections = NULL;
 
-/* set to the number of processors */
+/* set to the number of processors (round up to a power of 2) */
 #	define NUM_CONNECTION_ARRAY 4
 
 /* partition the array in a modulo manner */
 #	define MCA_conn_array_id(fd)		((int)(fd)%NUM_CONNECTION_ARRAY)
 #	define MCA_conn_array_element_id(fd)	((int)(fd)/NUM_CONNECTION_ARRAY)
-#	define MCA_GET_CONNECTION(fd) (&(connections[MCA_conn_array_id(fd)])\
+#	define MCA_GET_CONNECTION(fd) (&(connections[MCA_conn_array_id(fd)]) \
 		[MCA_conn_array_element_id(fd)])
 #	define MCA_GET_CONN_MUTEX(fd) (&connections_mutex[MCA_conn_array_id(fd)])
 
@@ -137,26 +137,29 @@ int connections_init(void)
 		return -1;
 	}
 
-	connections_mutex = (ldap_pvt_thread_mutex_t*) ch_calloc( NUM_CONNECTION_ARRAY, sizeof(ldap_pvt_thread_mutex_t) );
+	connections_mutex = (ldap_pvt_thread_mutex_t*) ch_calloc(
+		NUM_CONNECTION_ARRAY, sizeof(ldap_pvt_thread_mutex_t) );
 	if( connections_mutex == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-				"connections_init: allocation of connection mutex[%d] failed\n", i, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "connections_init: "
+			"allocation of connection mutex[%d] failed\n", i, 0, 0 );
 		return -1;
 	}
 
-	connections = (Connection**) ch_calloc( NUM_CONNECTION_ARRAY, sizeof(Connection*));
+	connections = (Connection**) ch_calloc(
+		NUM_CONNECTION_ARRAY, sizeof(Connection*));
 	if( connections == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"connections_init: allocation of connection[%d] failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "connections_init: "
+			"allocation of connection[%d] failed\n", 0, 0, 0 );
 		return -1;
 	}
 
 	for ( i = 0; i < NUM_CONNECTION_ARRAY; i++ ) {
 		ldap_pvt_thread_mutex_init( connections_mutex+i );
-		connections[i] = (Connection*) ch_calloc( (dtblsize/NUM_CONNECTION_ARRAY), sizeof(Connection) );
+		connections[i] = (Connection*) ch_calloc(
+			dtblsize/NUM_CONNECTION_ARRAY, sizeof(Connection) );
 		if( connections[i] == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-				"connections_init: allocation (%d*%ld) of connection array[%d] failed\n",
+			Debug( LDAP_DEBUG_ANY, "connections_init: "
+				"allocation (%d*%ld) of connection array[%d] failed\n",
 				dtblsize, (long) sizeof(Connection), i );
 			return -1;
 		}
@@ -166,7 +169,8 @@ int connections_init(void)
 	ldap_pvt_thread_mutex_init( &conn_nextid_mutex );
 
 	assert( connections[0]->c_struct_state == SLAP_C_UNINITIALIZED );
-	assert( connections[NUM_CONNECTION_ARRAY-1]->c_struct_state == SLAP_C_UNINITIALIZED );
+	assert( connections[NUM_CONNECTION_ARRAY-1]->c_struct_state ==
+		SLAP_C_UNINITIALIZED );
 
 	for ( i = 0; i < NUM_CONNECTION_ARRAY; i++ ) {
 		conn = connections[i];
@@ -201,8 +205,8 @@ int connections_init(void)
 	connections = (Connection *) ch_calloc( dtblsize, sizeof(Connection) );
 
 	if( connections == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"connections_init: allocation (%d*%ld) of connection array failed\n",
+		Debug( LDAP_DEBUG_ANY, "connections_init: "
+			"allocation (%d*%ld) of connection array failed\n",
 			dtblsize, (long) sizeof(Connection), 0 );
 		return -1;
 	}
@@ -386,8 +390,9 @@ int connections_timeout_idle(time_t now)
 	{
 		/* Don't timeout a slow-running request or a persistent
 		 * outbound connection */
-		if( c->c_n_ops_executing ||
-			c->c_conn_state == SLAP_C_CLIENT ) continue;
+		if( c->c_n_ops_executing || c->c_conn_state == SLAP_C_CLIENT ) {
+			continue;
+		}
 
 		if( difftime( c->c_activitytime+global_idletimeout, now) < 0 ) {
 			/* close it */
@@ -413,9 +418,7 @@ static Connection* connection_get( ber_socket_t s )
 
 	assert( connections != NULL );
 
-	if(s == AC_SOCKET_INVALID) {
-		return NULL;
-	}
+	if(s == AC_SOCKET_INVALID) return NULL;
 
 #ifndef HAVE_WINSOCK
 	c = MCA_GET_CONNECTION(s);
@@ -564,9 +567,7 @@ long connection_init(
 				break;
 			}
 
-			if( connections[i].c_conn_state == SLAP_C_CLIENT ) {
-				continue;
-			}
+			if( connections[i].c_conn_state == SLAP_C_CLIENT ) continue;
 
 			assert( connections[i].c_struct_state == SLAP_C_USED );
 			assert( connections[i].c_conn_state != SLAP_C_INVALID );
@@ -1028,9 +1029,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 	assert( index != NULL );
 	assert( *index <= (dtblsize/NUM_CONNECTION_ARRAY) );
 
-	if( c != NULL ) {
-		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-	}
+	if( c != NULL ) ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
 	c = NULL;
 
@@ -1056,9 +1055,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 		assert( conn->c_conn_state == SLAP_C_INVALID );
 	}
 
-	if( c != NULL ) {
-		ldap_pvt_thread_mutex_lock( &c->c_mutex );
-	}
+	if( c != NULL ) ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
 	return c;
 
@@ -1069,9 +1066,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 	assert( index != NULL );
 	assert( *index <= dtblsize );
 
-	if( c != NULL ) {
-		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-	}
+	if( c != NULL ) ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
 	c = NULL;
 
@@ -1095,10 +1090,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 		assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 	}
 
-	if( c != NULL ) {
-		ldap_pvt_thread_mutex_lock( &c->c_mutex );
-	}
-
+	if( c != NULL ) ldap_pvt_thread_mutex_lock( &c->c_mutex );
 	return c;
 }
 #endif
@@ -1111,9 +1103,7 @@ void connection_done( Connection *c )
 
 	assert( connections != NULL );
 
-	if( c != NULL ) {
-		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-	}
+	if( c != NULL ) ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
 #ifdef SLAP_MULTI_CONN_ARRAY
 	for ( conn_array_id = 0;
@@ -1311,10 +1301,11 @@ operations_error:
 	}
 
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
-		if ( rc == SLAPD_ABANDON )
+		if ( rc == SLAPD_ABANDON ) {
 			op->o_cancel = SLAP_CANCEL_ACK;
-		else
+		} else {
 			op->o_cancel = LDAP_TOO_LATE;
+		}
 	}
 	while ( op->o_cancel != SLAP_CANCEL_NONE &&
 		op->o_cancel != SLAP_CANCEL_DONE )
@@ -1336,8 +1327,8 @@ operations_error:
 	case LBER_ERROR:
 	case LDAP_REQ_UNBIND:
 		/* c_mutex is locked */
-		connection_closing(
-			conn, tag == LDAP_REQ_UNBIND ? NULL : "operations error" );
+		connection_closing( conn,
+			tag == LDAP_REQ_UNBIND ? NULL : "operations error" );
 		break;
 
 	case LDAP_REQ_BIND:

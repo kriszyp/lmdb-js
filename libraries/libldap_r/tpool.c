@@ -30,7 +30,7 @@
 #include "ldap_thr_debug.h"  /* May rename symbols defined below */
 
 #ifdef LDAP_DEVEL
-#define SLAP_SEM_LOAD_CONTROL
+/* #define SLAP_SEM_LOAD_CONTROL /* must also be defined in slapd.h */
 #endif
 
 #ifndef LDAP_THREAD_HAVE_TPOOL
