@@ -1517,7 +1517,7 @@ int connection_read(ber_socket_t s)
 		rc = ldap_pvt_tls_accept( c->c_sb, slap_tls_ctx );
 		if ( rc < 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"connection_read(%d): TLS accept error "
+				"connection_read(%d): TLS accept failure "
 				"error=%d id=%lu, closing\n",
 				s, rc, c->c_connid );
 
@@ -1578,7 +1578,7 @@ int connection_read(ber_socket_t s)
 			!ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) )
 		{
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-			slapd_set_read( s, 1 );
+			if( rc == 0 ) slapd_set_read( s, 1 );
 #endif
 
 			connection_return( c );
@@ -1611,11 +1611,6 @@ int connection_read(ber_socket_t s)
 				s, rc, c->c_connid );
 
 			/* connections_mutex and c_mutex are locked */
-
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-			slapd_set_read( s, 1 );
-#endif
-
 			connection_closing( c, "SASL layer install failure" );
 			connection_close( c );
 			connection_return( c );
