@@ -185,15 +185,12 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
 	int rc;
 	Entry *e = NULL;
-#ifndef BDB_HIER
 	struct berval bv;
-#endif
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( data.data != NULL );
 
-#ifndef BDB_HIER
 	DBT2bv( &data, &bv );
 
 #ifdef SLAP_ZONE_ALLOC
@@ -206,7 +203,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	if( rc == LDAP_SUCCESS ) {
 		e->e_id = id;
 	}
-#else
+#ifdef BDB_HIER
 	{
 		EntryInfo *ei = NULL;
 		Operation op = {0};
@@ -217,9 +214,15 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 		op.o_tmpmemctx = NULL;
 		op.o_tmpmfuncs = &ch_mfuncs;
 
-		rc = bdb_cache_find_id( &op, NULL, id, &ei, 0, 0, NULL );
-		if ( rc == LDAP_SUCCESS )
-			e = ei->bei_e;
+		rc = bdb_cache_find_parent( &op, NULL, id, &ei );
+		if ( rc == LDAP_SUCCESS ) {
+			bdb_cache_entryinfo_unlock( ei );
+			e->e_private = ei;
+			ei->bei_e = e;
+			bdb_fix_dn( e, 0 );
+			ei->bei_e = NULL;
+			e->e_private = NULL;
+		}
 	}
 #endif
 	return e;

@@ -212,14 +212,10 @@ int bdb_entry_return(
 		e->e_nname.bv_val = NULL;
 	}
 #ifndef SLAP_ZONE_ALLOC
-#ifndef BDB_HIER
 	/* In tool mode the e_bv buffer is realloc'd, leave it alone */
 	if( !(slapMode & SLAP_TOOL_MODE) ) {
 		free( e->e_bv.bv_val );
 	}
-#else
-	free( e->e_bv.bv_val );
-#endif /* BDB_HIER */
 #endif /* !SLAP_ZONE_ALLOC */
 
 #ifdef SLAP_ZONE_ALLOC

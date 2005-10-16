@@ -384,7 +384,7 @@ bdb_cache_find_ndn(
 /* Walk up the tree from a child node, looking for an ID that's already
  * been linked into the cache.
  */
-static int
+int
 hdb_cache_find_parent(
 	Operation *op,
 	DB_TXN *txn,

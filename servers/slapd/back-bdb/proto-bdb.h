@@ -443,6 +443,7 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 #define bdb_cache_find_id			BDB_SYMBOL(cache_find_id)
 #define bdb_cache_find_info			BDB_SYMBOL(cache_find_info)
 #define bdb_cache_find_ndn			BDB_SYMBOL(cache_find_ndn)
+#define bdb_cache_find_parent		BDB_SYMBOL(cache_find_parent)
 #define bdb_cache_modify			BDB_SYMBOL(cache_modify)
 #define bdb_cache_modrdn			BDB_SYMBOL(cache_modrdn)
 #define bdb_cache_release_all		BDB_SYMBOL(cache_release_all)
@@ -494,6 +495,13 @@ int bdb_cache_find_id(
 	int	islocked,
 	u_int32_t	locker,
 	DB_LOCK		*lock
+);
+int
+bdb_cache_find_parent(
+	Operation *op,
+	DB_TXN *txn,
+	ID id,
+	EntryInfo **res
 );
 int bdb_cache_delete(
 	Cache	*cache,
