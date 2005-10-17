@@ -262,6 +262,7 @@ static struct {
 		"SINGLE-VALUE )", &ad_reqNewSuperior },
 	{ "( " LOG_SCHEMA_AT ".21 NAME 'reqScope' "
 		"DESC 'Scope of request' "
+		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString "
 		"SINGLE-VALUE )", &ad_reqScope },
 	{ "( " LOG_SCHEMA_AT ".22 NAME 'reqDerefAliases' "
