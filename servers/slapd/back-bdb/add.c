@@ -378,6 +378,7 @@ retry:	/* transaction retry */
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
 			rs->sr_err = LDAP_NO_OPERATION;
+			ltid = NULL;
 			goto return_results;
 		}
 
@@ -427,8 +428,8 @@ return_results:
 
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
-		op->o_private = NULL;
 	}
+	op->o_private = NULL;
 
 	if( postread_ctrl != NULL ) {
 		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
