@@ -638,11 +638,11 @@ ldap_int_sasl_bind(
 #if !defined(_WIN32)
 	/* Check for local */
 	if ( ldap_pvt_url_scheme2proto( ld->ld_defconn->lconn_server->lud_scheme ) == LDAP_PROTO_IPC ) {
-		char authid[sizeof("uidNumber=4294967295+gidNumber=4294967295,"
+		char authid[sizeof("gidNumber=4294967295+uidNumber=4294967295,"
 			"cn=peercred,cn=external,cn=auth")];
-		sprintf( authid, "uidNumber=%d+gidNumber=%d,"
+		sprintf( authid, "gidNumber=%d+uidNumber=%d,"
 			"cn=peercred,cn=external,cn=auth",
-			(int) geteuid(), (int) getegid() );
+			(int) getegid(), (int) geteuid() );
 		(void) ldap_int_sasl_external( ld, ld->ld_defconn, authid, LDAP_PVT_SASL_LOCAL_SSF );
 	}
 #endif
