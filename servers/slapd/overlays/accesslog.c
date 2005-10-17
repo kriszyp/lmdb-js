@@ -727,9 +727,9 @@ static Entry *accesslog_entry( Operation *op, int logop ) {
 
 static struct berval scopes[] = {
 	BER_BVC("base"),
-	BER_BVC("onelevel"),
-	BER_BVC("subtree"),
-	BER_BVC("subordinate")
+	BER_BVC("one"),
+	BER_BVC("sub"),
+	BER_BVC("subord")
 };
 
 static struct berval simple = BER_BVC("SIMPLE");
@@ -1005,6 +1005,47 @@ done:
 	return SLAP_CB_CONTINUE;
 }
 
+/* Since Bind success is sent by the frontend, it won't normally enter
+ * the overlay response callback. Add another callback to make sure it
+ * gets here.
+ */
+static int
+accesslog_bind_resp( Operation *op, SlapReply *rs )
+{
+	BackendDB *be, db;
+	int rc;
+	slap_callback *sc;
+
+	be = op->o_bd;
+	db = *be;
+	op->o_bd = &db;
+	db.bd_info = op->o_callback->sc_private;
+	rc = accesslog_response( op, rs );
+	op->o_bd = be;
+	sc = op->o_callback;
+	op->o_callback = sc->sc_next;
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+	return rc;
+}
+
+static int
+accesslog_op_bind( Operation *op, SlapReply *rs )
+{
+	slap_callback *sc;
+
+	sc = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
+	sc->sc_response = accesslog_bind_resp;
+	sc->sc_private = op->o_bd->bd_info;
+
+	if ( op->o_callback ) {
+		sc->sc_next = op->o_callback->sc_next;
+		op->o_callback->sc_next = sc;
+	} else {
+		op->o_callback = sc;
+	}
+	return SLAP_CB_CONTINUE;
+}
+
 static int
 accesslog_op_mod( Operation *op, SlapReply *rs )
 {
@@ -1026,10 +1067,11 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 static int
 accesslog_unbind( Operation *op, SlapReply *rs )
 {
-	if ( op->o_conn->c_authz_backend == op->o_bd ) {
-		slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	if ( op->o_conn->c_authz_backend == on->on_info->oi_origdb ) {
 		log_info *li = on->on_bi.bi_private;
 		Operation op2;
+		void *cids[SLAP_MAX_CIDS];
 		SlapReply rs2 = {REP_RESULT};
 		Entry *e;
 
@@ -1048,6 +1090,9 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 		op2.o_req_ndn = e->e_nname;
 		op2.ora_e = e;
 		op2.o_callback = &nullsc;
+		op2.o_controls = cids;
+		memset(cids, 0, sizeof( cids ));
+		memset(op2.o_ctrlflag, 0, sizeof( op2.o_ctrlflag ));
 
 		op2.o_bd->be_add( &op2, &rs2 );
 		entry_free( e );
@@ -1061,6 +1106,7 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
 	Operation op2;
+	void *cids[SLAP_MAX_CIDS];
 	SlapReply rs2 = {REP_RESULT};
 	Entry *e;
 	char buf[64];
@@ -1085,6 +1131,9 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	op2.o_req_ndn = e->e_nname;
 	op2.ora_e = e;
 	op2.o_callback = &nullsc;
+	op2.o_controls = cids;
+	memset(cids, 0, sizeof( cids ));
+	memset(op2.o_ctrlflag, 0, sizeof( op2.o_ctrlflag ));
 
 	op2.o_bd->be_add( &op2, &rs2 );
 	entry_free( e );
@@ -1131,6 +1180,7 @@ int accesslog_init()
 	accesslog.on_bi.bi_db_destroy = accesslog_db_destroy;
 
 	accesslog.on_bi.bi_op_add = accesslog_op_mod;
+	accesslog.on_bi.bi_op_bind = accesslog_op_bind;
 	accesslog.on_bi.bi_op_delete = accesslog_op_mod;
 	accesslog.on_bi.bi_op_modify = accesslog_op_mod;
 	accesslog.on_bi.bi_op_modrdn = accesslog_op_mod;
