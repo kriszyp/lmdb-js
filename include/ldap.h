@@ -216,7 +216,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
 
-/* but not yet formalized controls */
+/* but not yet formalized controls *//* submitted for publication */
 #define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
 
 /* various works in progress */
