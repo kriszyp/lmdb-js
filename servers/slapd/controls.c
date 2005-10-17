@@ -162,7 +162,7 @@ static struct slap_control control_defs[] = {
 #ifdef LDAP_DEVEL
 	{ LDAP_CONTROL_MANAGEDIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDIT),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE, NULL,
 		parseManageDIT, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
