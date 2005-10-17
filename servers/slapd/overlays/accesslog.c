@@ -36,7 +36,7 @@
 #define LOG_OP_ADD	0x001
 #define LOG_OP_DELETE	0x002
 #define	LOG_OP_MODIFY	0x004
-#define LOG_OP_MODDN	0x008
+#define LOG_OP_MODRDN	0x008
 #define	LOG_OP_COMPARE	0x010
 #define	LOG_OP_SEARCH	0x020
 #define LOG_OP_BIND	0x040
@@ -45,7 +45,7 @@
 #define	LOG_OP_EXTENDED	0x200
 #define LOG_OP_UNKNOWN	0x400
 
-#define	LOG_OP_WRITES	(LOG_OP_ADD|LOG_OP_DELETE|LOG_OP_MODIFY|LOG_OP_MODDN)
+#define	LOG_OP_WRITES	(LOG_OP_ADD|LOG_OP_DELETE|LOG_OP_MODIFY|LOG_OP_MODRDN)
 #define	LOG_OP_READS	(LOG_OP_COMPARE|LOG_OP_SEARCH)
 #define	LOG_OP_SESSION	(LOG_OP_BIND|LOG_OP_UNBIND|LOG_OP_ABANDON)
 #define LOG_OP_ALL		(LOG_OP_READS|LOG_OP_WRITES|LOG_OP_SESSION| \
@@ -112,7 +112,7 @@ static slap_verbmasks logops[] = {
 	{ BER_BVC("add"),		LOG_OP_ADD },
 	{ BER_BVC("delete"),	LOG_OP_DELETE },
 	{ BER_BVC("modify"),	LOG_OP_MODIFY },
-	{ BER_BVC("moddn"),		LOG_OP_MODDN },
+	{ BER_BVC("modrdn"),	LOG_OP_MODRDN },
 	{ BER_BVC("compare"),	LOG_OP_COMPARE },
 	{ BER_BVC("search"),	LOG_OP_SEARCH },
 	{ BER_BVC("bind"),		LOG_OP_BIND },
@@ -130,7 +130,7 @@ enum {
 	LOG_EN_ADD = 0,
 	LOG_EN_DELETE,
 	LOG_EN_MODIFY,
-	LOG_EN_MODDN,
+	LOG_EN_MODRDN,
 	LOG_EN_COMPARE,
 	LOG_EN_SEARCH,
 	LOG_EN_BIND,
@@ -352,11 +352,11 @@ static struct {
 		"DESC 'Modify operation' "
 		"SUP auditWriteObject STRUCTURAL "
 		"MAY reqOld MUST reqMod )", &log_ocs[LOG_EN_MODIFY] },
-	{ "( " LOG_SCHEMA_OC ".9 NAME 'auditModDN' "
-		"DESC 'ModDN operation' "
+	{ "( " LOG_SCHEMA_OC ".9 NAME 'auditModRDN' "
+		"DESC 'ModRDN operation' "
 		"SUP auditWriteObject STRUCTURAL "
 		"MUST ( reqNewRDN $ reqDeleteOldRDN ) "
-		"MAY reqNewSuperior )", &log_ocs[LOG_EN_MODDN] },
+		"MAY reqNewSuperior )", &log_ocs[LOG_EN_MODRDN] },
 	{ "( " LOG_SCHEMA_OC ".10 NAME 'auditSearch' "
 		"DESC 'Search operation' "
 		"SUP auditReadObject STRUCTURAL "
@@ -805,7 +805,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	case LDAP_REQ_ADD:		logop = LOG_EN_ADD; break;
 	case LDAP_REQ_DELETE:	logop = LOG_EN_DELETE; break;
 	case LDAP_REQ_MODIFY:	logop = LOG_EN_MODIFY; break;
-	case LDAP_REQ_MODRDN:	logop = LOG_EN_MODDN; break;
+	case LDAP_REQ_MODRDN:	logop = LOG_EN_MODRDN; break;
 	case LDAP_REQ_COMPARE:	logop = LOG_EN_COMPARE; break;
 	case LDAP_REQ_SEARCH:	logop = LOG_EN_SEARCH; break;
 	case LDAP_REQ_BIND:		logop = LOG_EN_BIND; break;
@@ -940,7 +940,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		last_attr->a_next = a;
 		break;
 
-	case LOG_EN_MODDN:
+	case LOG_EN_MODRDN:
 		attr_merge_one( e, ad_reqNewRDN, &op->orr_newrdn, &op->orr_nnewrdn );
 		attr_merge_one( e, ad_reqDeleteOldRDN, op->orr_deleteoldrdn ?
 			(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv,
