@@ -188,126 +188,126 @@ static struct {
 		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString "
 		"SINGLE-VALUE )", &ad_reqSession },
-	{ "( " LOG_SCHEMA_AT ".6 NAME 'reqResult' "
+	{ "( " LOG_SCHEMA_AT ".6 NAME 'reqAuthzID' "
+		"DESC 'Authorization ID of requestor' "
+		"EQUALITY distinguishedNameMatch "
+		"SYNTAX OMsDN "
+		"SINGLE-VALUE )", &ad_reqAuthzID },
+	{ "( " LOG_SCHEMA_AT ".7 NAME 'reqResult' "
 		"DESC 'Result code of request' "
 		"EQUALITY integerMatch "
 		"ORDERING integerOrderingMatch "
 		"SYNTAX OMsInteger "
 		"SINGLE-VALUE )", &ad_reqResult },
-	{ "( " LOG_SCHEMA_AT ".7 NAME 'reqAuthzID' "
-		"DESC 'Authorization ID of requestor' "
-		"EQUALITY distinguishedNameMatch "
-		"SYNTAX OMsDN "
-		"SINGLE-VALUE )", &ad_reqAuthzID },
-	{ "( " LOG_SCHEMA_AT ".8 NAME 'reqControls' "
-		"DESC 'Request controls' "
-		"SYNTAX OMsOctetString )", &ad_reqControls },
-	{ "( " LOG_SCHEMA_AT ".9 NAME 'reqRespControls' "
-		"DESC 'Response controls of request' "
-		"SYNTAX OMsOctetString )", &ad_reqRespControls },
-	{ "( " LOG_SCHEMA_AT ".10 NAME 'reqMethod' "
-		"DESC 'Bind method of request' "
-		"EQUALITY caseIgnoreMatch "
-		"SYNTAX OMsDirectoryString "
-		"SINGLE-VALUE )", &ad_reqMethod },
-	{ "( " LOG_SCHEMA_AT ".11 NAME 'reqAssertion' "
-		"DESC 'Compare Assertion of request' "
-		"SYNTAX OMsDirectoryString "
-		"SINGLE-VALUE )", &ad_reqAssertion },
-	{ "( " LOG_SCHEMA_AT ".12 NAME 'reqNewRDN' "
-		"DESC 'New RDN of request' "
-		"EQUALITY distinguishedNameMatch "
-		"SYNTAX OMsDN "
-		"SINGLE-VALUE )", &ad_reqNewRDN },
-	{ "( " LOG_SCHEMA_AT ".13 NAME 'reqNewSuperior' "
-		"DESC 'New superior DN of request' "
-		"EQUALITY distinguishedNameMatch "
-		"SYNTAX OMsDN "
-		"SINGLE-VALUE )", &ad_reqNewSuperior },
-	{ "( " LOG_SCHEMA_AT ".14 NAME 'reqDeleteOldRDN' "
-		"DESC 'Delete old RDN' "
-		"EQUALITY booleanMatch "
-		"SYNTAX OMsBoolean "
-		"SINGLE-VALUE )", &ad_reqDeleteOldRDN },
-	{ "( " LOG_SCHEMA_AT ".15 NAME 'reqMod' "
-		"DESC 'Modifications of request' "
-		"SYNTAX OMsDirectoryString "
-		"EQUALITY caseIgnoreMatch "
-		"SUBSTR caseIgnoreSubstringsMatch )", &ad_reqMod },
-	{ "( " LOG_SCHEMA_AT ".16 NAME 'reqScope' "
-		"DESC 'Scope of request' "
-		"SYNTAX OMsDirectoryString "
-		"SINGLE-VALUE )", &ad_reqScope },
-	{ "( " LOG_SCHEMA_AT ".17 NAME 'reqFilter' "
-		"DESC 'Filter of request' "
-		"EQUALITY caseIgnoreMatch "
-		"SUBSTR caseIgnoreSubstringsMatch "
-		"SYNTAX OMsDirectoryString "
-		"SINGLE-VALUE )", &ad_reqFilter },
-	{ "( " LOG_SCHEMA_AT ".18 NAME 'reqAttr' "
-		"DESC 'Attributes of request' "
-		"EQUALITY caseIgnoreMatch "
-		"SYNTAX OMsDirectoryString )", &ad_reqAttr },
-	{ "( " LOG_SCHEMA_AT ".19 NAME 'reqEntries' "
-		"DESC 'Number of entries returned' "
-		"EQUALITY integerMatch "
-		"ORDERING integerOrderingMatch "
-		"SYNTAX OMsInteger "
-		"SINGLE-VALUE )", &ad_reqEntries },
-	{ "( " LOG_SCHEMA_AT ".20 NAME 'reqSizeLimit' "
-		"DESC 'Size limit of request' "
-		"EQUALITY integerMatch "
-		"ORDERING integerOrderingMatch "
-		"SYNTAX OMsInteger "
-		"SINGLE-VALUE )", &ad_reqSizeLimit },
-	{ "( " LOG_SCHEMA_AT ".21 NAME 'reqTimeLimit' "
-		"DESC 'Time limit of request' "
-		"EQUALITY integerMatch "
-		"ORDERING integerOrderingMatch "
-		"SYNTAX OMsInteger "
-		"SINGLE-VALUE )", &ad_reqTimeLimit },
-	{ "( " LOG_SCHEMA_AT ".22 NAME 'reqAttrsOnly' "
-		"DESC 'Attributes and values of request' "
-		"EQUALITY booleanMatch "
-		"SYNTAX OMsBoolean "
-		"SINGLE-VALUE )", &ad_reqAttrsOnly },
-	{ "( " LOG_SCHEMA_AT ".23 NAME 'reqData' "
-		"DESC 'Data of extended request' "
-		"EQUALITY octetStringMatch "
-		"SUBSTR octetStringSubstringsMatch "
-		"SYNTAX OMsOctetString "
-		"SINGLE-VALUE )", &ad_reqData },
-	{ "( " LOG_SCHEMA_AT ".24 NAME 'reqId' "
-		"DESC 'ID of Request to Abandon' "
-		"EQUALITY integerMatch "
-		"ORDERING integerOrderingMatch "
-		"SYNTAX OMsInteger "
-		"SINGLE-VALUE )", &ad_reqId },
-	{ "( " LOG_SCHEMA_AT ".25 NAME 'reqMessage' "
+	{ "( " LOG_SCHEMA_AT ".8 NAME 'reqMessage' "
 		"DESC 'Error text of request' "
 		"EQUALITY caseIgnoreMatch "
 		"SUBSTR caseIgnoreSubstringsMatch "
 		"SYNTAX OMsDirectoryString "
 		"SINGLE-VALUE )", &ad_reqMessage },
-	{ "( " LOG_SCHEMA_AT ".26 NAME 'reqVersion' "
+	{ "( " LOG_SCHEMA_AT ".9 NAME 'reqReferral' "
+		"DESC 'Referrals returned for request' "
+		"SUP labeledURI )", &ad_reqReferral },
+	{ "( " LOG_SCHEMA_AT ".10 NAME 'reqControls' "
+		"DESC 'Request controls' "
+		"SYNTAX OMsOctetString )", &ad_reqControls },
+	{ "( " LOG_SCHEMA_AT ".11 NAME 'reqRespControls' "
+		"DESC 'Response controls of request' "
+		"SYNTAX OMsOctetString )", &ad_reqRespControls },
+	{ "( " LOG_SCHEMA_AT ".12 NAME 'reqId' "
+		"DESC 'ID of Request to Abandon' "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX OMsInteger "
+		"SINGLE-VALUE )", &ad_reqId },
+	{ "( " LOG_SCHEMA_AT ".13 NAME 'reqVersion' "
 		"DESC 'Protocol version of Bind request' "
 		"EQUALITY integerMatch "
 		"ORDERING integerOrderingMatch "
 		"SYNTAX OMsInteger "
 		"SINGLE-VALUE )", &ad_reqVersion },
-	{ "( " LOG_SCHEMA_AT ".27 NAME 'reqDerefAliases' "
-		"DESC 'Disposition of Aliases in request' "
+	{ "( " LOG_SCHEMA_AT ".14 NAME 'reqMethod' "
+		"DESC 'Bind method of request' "
 		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString "
-		"SINGLE-VALUE )", &ad_reqDerefAliases },
-	{ "( " LOG_SCHEMA_AT ".28 NAME 'reqReferral' "
-		"DESC 'Referrals returned for request' "
-		"SUP labeledURI )", &ad_reqReferral },
-	{ "( " LOG_SCHEMA_AT ".29 NAME 'reqOld' "
+		"SINGLE-VALUE )", &ad_reqMethod },
+	{ "( " LOG_SCHEMA_AT ".15 NAME 'reqAssertion' "
+		"DESC 'Compare Assertion of request' "
+		"SYNTAX OMsDirectoryString "
+		"SINGLE-VALUE )", &ad_reqAssertion },
+	{ "( " LOG_SCHEMA_AT ".16 NAME 'reqMod' "
+		"DESC 'Modifications of request' "
+		"SYNTAX OMsDirectoryString "
+		"EQUALITY caseIgnoreMatch "
+		"SUBSTR caseIgnoreSubstringsMatch )", &ad_reqMod },
+	{ "( " LOG_SCHEMA_AT ".17 NAME 'reqOld' "
 		"DESC 'Old values of entry before request completed' "
 		"EQUALITY caseIgnoreMatch "
 		"SUBSTR caseIgnoreSubstringsMatch "
 		"SYNTAX OMsDirectoryString )", &ad_reqOld },
+	{ "( " LOG_SCHEMA_AT ".18 NAME 'reqNewRDN' "
+		"DESC 'New RDN of request' "
+		"EQUALITY distinguishedNameMatch "
+		"SYNTAX OMsDN "
+		"SINGLE-VALUE )", &ad_reqNewRDN },
+	{ "( " LOG_SCHEMA_AT ".19 NAME 'reqDeleteOldRDN' "
+		"DESC 'Delete old RDN' "
+		"EQUALITY booleanMatch "
+		"SYNTAX OMsBoolean "
+		"SINGLE-VALUE )", &ad_reqDeleteOldRDN },
+	{ "( " LOG_SCHEMA_AT ".20 NAME 'reqNewSuperior' "
+		"DESC 'New superior DN of request' "
+		"EQUALITY distinguishedNameMatch "
+		"SYNTAX OMsDN "
+		"SINGLE-VALUE )", &ad_reqNewSuperior },
+	{ "( " LOG_SCHEMA_AT ".21 NAME 'reqScope' "
+		"DESC 'Scope of request' "
+		"SYNTAX OMsDirectoryString "
+		"SINGLE-VALUE )", &ad_reqScope },
+	{ "( " LOG_SCHEMA_AT ".22 NAME 'reqDerefAliases' "
+		"DESC 'Disposition of Aliases in request' "
+		"EQUALITY caseIgnoreMatch "
+		"SYNTAX OMsDirectoryString "
+		"SINGLE-VALUE )", &ad_reqDerefAliases },
+	{ "( " LOG_SCHEMA_AT ".23 NAME 'reqAttrsOnly' "
+		"DESC 'Attributes and values of request' "
+		"EQUALITY booleanMatch "
+		"SYNTAX OMsBoolean "
+		"SINGLE-VALUE )", &ad_reqAttrsOnly },
+	{ "( " LOG_SCHEMA_AT ".24 NAME 'reqFilter' "
+		"DESC 'Filter of request' "
+		"EQUALITY caseIgnoreMatch "
+		"SUBSTR caseIgnoreSubstringsMatch "
+		"SYNTAX OMsDirectoryString "
+		"SINGLE-VALUE )", &ad_reqFilter },
+	{ "( " LOG_SCHEMA_AT ".25 NAME 'reqAttr' "
+		"DESC 'Attributes of request' "
+		"EQUALITY caseIgnoreMatch "
+		"SYNTAX OMsDirectoryString )", &ad_reqAttr },
+	{ "( " LOG_SCHEMA_AT ".26 NAME 'reqSizeLimit' "
+		"DESC 'Size limit of request' "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX OMsInteger "
+		"SINGLE-VALUE )", &ad_reqSizeLimit },
+	{ "( " LOG_SCHEMA_AT ".27 NAME 'reqTimeLimit' "
+		"DESC 'Time limit of request' "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX OMsInteger "
+		"SINGLE-VALUE )", &ad_reqTimeLimit },
+	{ "( " LOG_SCHEMA_AT ".28 NAME 'reqEntries' "
+		"DESC 'Number of entries returned' "
+		"EQUALITY integerMatch "
+		"ORDERING integerOrderingMatch "
+		"SYNTAX OMsInteger "
+		"SINGLE-VALUE )", &ad_reqEntries },
+	{ "( " LOG_SCHEMA_AT ".29 NAME 'reqData' "
+		"DESC 'Data of extended request' "
+		"EQUALITY octetStringMatch "
+		"SUBSTR octetStringSubstringsMatch "
+		"SYNTAX OMsOctetString "
+		"SINGLE-VALUE )", &ad_reqData },
 	{ NULL, NULL }
 };
 
@@ -348,29 +348,29 @@ static struct {
 		"DESC 'Compare operation' "
 		"SUP auditReadObject STRUCTURAL "
 		"MUST reqAssertion )", &log_ocs[LOG_EN_COMPARE] },
-	{ "( " LOG_SCHEMA_OC ".8 NAME 'auditModify' "
+	{ "( " LOG_SCHEMA_OC ".8 NAME 'auditDelete' "
+		"DESC 'Delete operation' "
+		"SUP auditWriteObject STRUCTURAL "
+		"MAY reqOld )", &log_ocs[LOG_EN_DELETE] },
+	{ "( " LOG_SCHEMA_OC ".9 NAME 'auditModify' "
 		"DESC 'Modify operation' "
 		"SUP auditWriteObject STRUCTURAL "
 		"MAY reqOld MUST reqMod )", &log_ocs[LOG_EN_MODIFY] },
-	{ "( " LOG_SCHEMA_OC ".9 NAME 'auditModRDN' "
+	{ "( " LOG_SCHEMA_OC ".10 NAME 'auditModRDN' "
 		"DESC 'ModRDN operation' "
 		"SUP auditWriteObject STRUCTURAL "
 		"MUST ( reqNewRDN $ reqDeleteOldRDN ) "
 		"MAY reqNewSuperior )", &log_ocs[LOG_EN_MODRDN] },
-	{ "( " LOG_SCHEMA_OC ".10 NAME 'auditSearch' "
+	{ "( " LOG_SCHEMA_OC ".11 NAME 'auditSearch' "
 		"DESC 'Search operation' "
 		"SUP auditReadObject STRUCTURAL "
 		"MUST ( reqScope $ reqDerefAliases $ reqAttrsonly ) "
 		"MAY ( reqFilter $ reqAttr $ reqEntries $ reqSizeLimit $ "
 			"reqTimeLimit ) )", &log_ocs[LOG_EN_SEARCH] },
-	{ "( " LOG_SCHEMA_OC ".11 NAME 'auditExtended' "
+	{ "( " LOG_SCHEMA_OC ".12 NAME 'auditExtended' "
 		"DESC 'Extended operation' "
 		"SUP auditObject STRUCTURAL "
 		"MAY reqData )", &log_ocs[LOG_EN_EXTENDED] },
-	{ "( " LOG_SCHEMA_OC ".12 NAME 'auditDelete' "
-		"DESC 'Delete operation' "
-		"SUP auditWriteObject STRUCTURAL "
-		"MAY reqOld )", &log_ocs[LOG_EN_DELETE] },
 	{ NULL, NULL }
 };
 
