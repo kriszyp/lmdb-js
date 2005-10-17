@@ -194,6 +194,7 @@ static struct slap_daemon {
 
 # define SLAP_DEL_SOCK(s) do { \
 	int fd, rc, index = SLAP_SOCK_IX((s)); \
+	if ( index < 0 ) break; \
 	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_DEL, \
 		(s), &SLAP_SOCK_EP((s))); \
 	slap_daemon.sd_epolls[index] = \
