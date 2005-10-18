@@ -388,6 +388,7 @@ int
 hdb_cache_find_parent(
 	Operation *op,
 	DB_TXN *txn,
+	u_int32_t	locker,
 	ID id,
 	EntryInfo **res )
 {
@@ -401,7 +402,7 @@ hdb_cache_find_parent(
 	ei.bei_ckids = 0;
 
 	for (;;) {
-		rc = hdb_dn2id_parent( op, txn, &ei, &eip.bei_id );
+		rc = hdb_dn2id_parent( op, txn, locker, &ei, &eip.bei_id );
 		if ( rc ) break;
 
 		/* Save the previous node, if any */
@@ -718,7 +719,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			}
 		}
 #else
-		rc = hdb_cache_find_parent(op, tid, id, eip );
+		rc = hdb_cache_find_parent(op, tid, locker, id, eip );
 		if ( rc == 0 && *eip ) islocked = 1;
 #endif
 	}

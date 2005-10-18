@@ -709,6 +709,7 @@ int
 hdb_dn2id_parent(
 	Operation *op,
 	DB_TXN *txn,
+	u_int32_t	locker,
 	EntryInfo *ei,
 	ID *idp )
 {
@@ -733,6 +734,9 @@ hdb_dn2id_parent(
 
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
+	if ( !txn && locker ) {
+		cursor->locker = locker;
+	}
 
 	data.ulen = sizeof(diskNode) + (SLAP_LDAPDN_MAXLEN * 2);
 	d = op->o_tmpalloc( data.ulen, op->o_tmpmemctx );
