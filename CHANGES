@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.12 Engineering
+
 OpenLDAP 2.3.11 Release
 	Fixed libldap reentrancy issue (ITS#3988)
 	Fixed libldap ndelay without timeout
