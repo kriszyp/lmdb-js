@@ -1464,6 +1464,9 @@ in order to work over all of the glued databases. E.g.
 .B [credentials=<passwd>]
 .B [realm=<realm>]
 .B [secprops=<properties>]
+.B [logbase=<base DN>]
+.B [logfilter=<filter str>]
+.B [syncdata=default|accesslog|changelog]
 .RS
 Specify the current database as a replica which is kept up-to-date with the 
 master content by establishing the current
@@ -1568,6 +1571,22 @@ keyword above) for a SASL bind can be set with the
 option. A non default SASL realm can be set with the
 .B realm 
 option.
+
+Rather than replicating whole entries, the consumer can query logs of
+data modifications. This mode of operation is referred to as \fIdelta
+syncrepl\fP. In addition to the above parameters, the
+.B logbase
+and
+.B logfilter
+parameters must be set appropriately for the log that will be used. The
+.B syncdata
+parameter must be set to either "accesslog" if the log conforms to the
+.BR slapo-accesslog (5)
+log format, or "changelog" if the log conforms
+to the obsolete \fIchangelog\fP format. If the
+.B syncdata
+parameter is omitted or set to "default" then the log parameters are
+ignored.
 .RE
 .TP
 .B updatedn <dn>
