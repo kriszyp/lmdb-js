@@ -35,14 +35,6 @@ static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 static void	bdb_lru_print(Cache *cache);
 #endif
 
-/* 4.2.52 */
-#if DB_VERSION_FULL == 0x04020034
-#define	READ_TXN_FLAG	ReadFlag
-static int ReadFlag = DB_TXN_NOT_DURABLE;
-#else
-#define READ_TXN_FLAG	0
-#endif
-
 static EntryInfo *
 bdb_cache_entryinfo_new( Cache *cache )
 {
