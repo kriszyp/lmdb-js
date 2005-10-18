@@ -192,6 +192,7 @@ int bdb_id2entry_delete(
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
+	u_int32_t locker,
 	ID id,
 	Entry **e);
 #endif

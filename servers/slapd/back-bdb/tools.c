@@ -40,11 +40,22 @@ static Avlnode *index_attrs, index_dummy;
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+
 	/* initialize key and data thangs */
 	DBTzero( &key );
 	DBTzero( &data );
 	key.flags = DB_DBT_REALLOC;
 	data.flags = DB_DBT_REALLOC;
+
+	if (cursor == NULL) {
+		int rc = bdb->bi_id2entry->bdi_db->cursor(
+			bdb->bi_id2entry->bdi_db, NULL, &cursor,
+			bdb->bi_db_opflags );
+		if( rc != 0 ) {
+			return -1;
+		}
+	}
 
 	return 0;
 }
@@ -94,16 +105,6 @@ ID bdb_tool_entry_next(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( bdb != NULL );
 	
-	/* Initialization */
-	if (cursor == NULL) {
-		rc = bdb->bi_id2entry->bdi_db->cursor(
-			bdb->bi_id2entry->bdi_db, NULL, &cursor,
-			bdb->bi_db_opflags );
-		if( rc != 0 ) {
-			return NOID;
-		}
-	}
-
 	rc = cursor->c_get( cursor, &key, &data, DB_NEXT );
 
 	if( rc != 0 ) {
@@ -165,7 +166,7 @@ int bdb_tool_id2entry_get(
 	Entry **e
 )
 {
-	int rc = bdb_id2entry( be, NULL, id, e );
+	int rc = bdb_id2entry( be, NULL, 0, id, e );
 
 	if ( rc == DB_NOTFOUND && id == 0 ) {
 		Entry *dummy = ch_calloc( 1, sizeof(Entry) );

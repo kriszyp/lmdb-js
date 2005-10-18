@@ -92,12 +92,14 @@ int bdb_id2entry_update(
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
+	u_int32_t locker,
 	ID id,
 	Entry **e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
+	DBC *cursor;
 	struct berval bv;
 	int rc = 0;
 	ID nid;
@@ -113,7 +115,15 @@ int bdb_id2entry(
 	data.flags = DB_DBT_MALLOC;
 
 	/* fetch it */
-	rc = db->get( db, tid, &key, &data, bdb->bi_db_opflags );
+	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
+	if ( rc ) return rc;
+
+	/* Use our own locker if needed */
+	if ( !tid && locker )
+		cursor->locker = locker;
+
+	rc = cursor->c_get( cursor, &key, &data, DB_SET );
+	cursor->c_close( cursor );
 
 	if( rc != 0 ) {
 		return rc;
