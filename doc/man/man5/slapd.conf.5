@@ -1648,14 +1648,12 @@ It uses Berkeley DB or GDBM to store data.
 .B ldif
 This database uses the filesystem to build the tree structure
 of the database, using plain ascii files to store data.
-Its usage should be limited to very simple databases, where performances
-are not a requirement.
+Its usage should be limited to very simple databases, where performance
+is not a requirement.
 .TP
 .B meta
 This backend performs basic LDAP proxying with respect to a set of
-remote LDAP servers. It is an enhancement of the ldap backend. The
-proxy cache extension of meta backend provides answering of search
-requests from the proxy using results of previously cached requests.
+remote LDAP servers. It is an enhancement of the ldap backend.
 .TP
 .B monitor
 This backend provides information about the running status of the slapd
@@ -1741,6 +1739,7 @@ operation performed on that database.
 .B pcache
 Proxycache.
 This overlay allows caching of LDAP search requests in a local database.
+It is most often used with the ldap or meta backends.
 .TP
 .B ppolicy
 Password Policy.
