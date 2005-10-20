@@ -594,7 +594,8 @@ ldap_int_sasl_bind(
 		rc = ldap_open_defconn( ld );
 		if( rc < 0 ) return ld->ld_errno;
 
-		ber_sockbuf_ctrl( ld->ld_defconn->lconn_sb, LBER_SB_OPT_GET_FD, &sd );
+		ber_sockbuf_ctrl( ld->ld_defconn->lconn_sb,
+			LBER_SB_OPT_GET_FD, &sd );
 
 		if( sd == AC_SOCKET_INVALID ) {
 			ld->ld_errno = LDAP_LOCAL_ERROR;
@@ -612,9 +613,11 @@ ldap_int_sasl_bind(
 		ld->ld_defconn->lconn_sasl_authctx = NULL;
 	}
 
-	{ char *saslhost = ldap_host_connected_to( ld->ld_defconn->lconn_sb, "localhost" );
-	rc = ldap_int_sasl_open( ld, ld->ld_defconn, saslhost );
-	LDAP_FREE( saslhost );
+	{
+		char *saslhost = ldap_host_connected_to( ld->ld_defconn->lconn_sb,
+			"localhost" );
+		rc = ldap_int_sasl_open( ld, ld->ld_defconn, saslhost );
+		LDAP_FREE( saslhost );
 	}
 
 	if ( rc != LDAP_SUCCESS ) return rc;
@@ -637,13 +640,16 @@ ldap_int_sasl_bind(
 
 #if !defined(_WIN32)
 	/* Check for local */
-	if ( ldap_pvt_url_scheme2proto( ld->ld_defconn->lconn_server->lud_scheme ) == LDAP_PROTO_IPC ) {
+	if ( ldap_pvt_url_scheme2proto(
+		ld->ld_defconn->lconn_server->lud_scheme ) == LDAP_PROTO_IPC )
+	{
 		char authid[sizeof("gidNumber=4294967295+uidNumber=4294967295,"
 			"cn=peercred,cn=external,cn=auth")];
 		sprintf( authid, "gidNumber=%d+uidNumber=%d,"
 			"cn=peercred,cn=external,cn=auth",
 			(int) getegid(), (int) geteuid() );
-		(void) ldap_int_sasl_external( ld, ld->ld_defconn, authid, LDAP_PVT_SASL_LOCAL_SSF );
+		(void) ldap_int_sasl_external( ld, ld->ld_defconn, authid,
+			LDAP_PVT_SASL_LOCAL_SSF );
 	}
 #endif
 
@@ -703,7 +709,8 @@ ldap_int_sasl_bind(
 
 		scred = NULL;
 
-		rc = ldap_sasl_bind_s( ld, dn, mech, &ccred, sctrls, cctrls, &scred );
+		rc = ldap_sasl_bind_s( ld, dn, mech, &ccred, sctrls, cctrls,
+			&scred );
 
 		if ( ccred.bv_val != NULL ) {
 #if SASL_VERSION_MAJOR < 2
@@ -714,13 +721,12 @@ ldap_int_sasl_bind(
 
 		if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
 			if( scred ) {
-				if ( scred->bv_len ) {
-					/* and server provided us with data? */
-					Debug( LDAP_DEBUG_TRACE,
-						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
-						rc, saslrc, scred->bv_len );
-				}
+				/* and server provided us with data? */
+				Debug( LDAP_DEBUG_TRACE,
+					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+					rc, saslrc, scred ? scred->bv_len : -1 );
 				ber_bvfree( scred );
+				scred = NULL;
 			}
 			rc = ld->ld_errno;
 			goto done;
@@ -729,12 +735,11 @@ ldap_int_sasl_bind(
 		if( rc == LDAP_SUCCESS && saslrc == SASL_OK ) {
 			/* we're done, no need to step */
 			if( scred ) {
-				if ( scred->bv_len ) {
-					/* but server provided us with data! */
-					Debug( LDAP_DEBUG_TRACE,
-						"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
-						rc, saslrc, scred->bv_len );
-				}
+				/* but we got additional data? */
+				Debug( LDAP_DEBUG_TRACE,
+					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+					rc, saslrc, scred ? scred->bv_len : -1 );
+
 				ber_bvfree( scred );
 				rc = ld->ld_errno = LDAP_LOCAL_ERROR;
 				goto done;
@@ -743,6 +748,13 @@ ldap_int_sasl_bind(
 		}
 
 		do {
+			if( ! scred ) {
+				/* no data! */
+				Debug( LDAP_DEBUG_TRACE,
+					"ldap_int_sasl_bind: no data in step!\n",
+					0, 0, 0 );
+			}
+
 			saslrc = sasl_client_step( ctx,
 				(scred == NULL) ? NULL : scred->bv_val,
 				(scred == NULL) ? 0 : scred->bv_len,
@@ -791,13 +803,15 @@ ldap_int_sasl_bind(
 	}
 
 	if( flags != LDAP_SASL_QUIET ) {
-		saslrc = sasl_getprop( ctx, SASL_USERNAME, (SASL_CONST void **) &data );
+		saslrc = sasl_getprop( ctx, SASL_USERNAME,
+			(SASL_CONST void **) &data );
 		if( saslrc == SASL_OK && data && *data ) {
 			fprintf( stderr, "SASL username: %s\n", data );
 		}
 
 #if SASL_VERSION_MAJOR < 2
-		saslrc = sasl_getprop( ctx, SASL_REALM, (SASL_CONST void **) &data );
+		saslrc = sasl_getprop( ctx, SASL_REALM,
+			(SASL_CONST void **) &data );
 		if( saslrc == SASL_OK && data && *data ) {
 			fprintf( stderr, "SASL realm: %s\n", data );
 		}
