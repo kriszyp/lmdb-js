@@ -1029,16 +1029,18 @@ meta_send_entry(
 		 * ACLs to the target directory server, and letting
 		 * everything pass thru the ldap backend.
 		 */
-		} else if ( attr->a_desc->ad_type->sat_syntax ==
-				slap_schema.si_syn_distinguishedName )
-		{
-			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
-
-		} else if ( attr->a_desc == slap_schema.si_ad_ref ) {
-			ldap_back_referral_result_rewrite( &dc, attr->a_vals );
-
 		} else {
 			int	i;
+
+			if ( attr->a_desc->ad_type->sat_syntax ==
+				slap_schema.si_syn_distinguishedName )
+			{
+				ldap_dnattr_result_rewrite( &dc, attr->a_vals );
+
+			} else if ( attr->a_desc == slap_schema.si_ad_ref ) {
+				ldap_back_referral_result_rewrite( &dc, attr->a_vals );
+
+			}
 
 			for ( i = 0; i < last; i++ ) {
 				struct berval	pval;
