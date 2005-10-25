@@ -426,6 +426,10 @@ bdb_db_open( BackendDB *be )
 		}
 
 		if( i == BDB_ID2ENTRY ) {
+			if ( slapMode & SLAP_TOOL_MODE )
+				db->bdi_db->mpf->set_priority( db->bdi_db->mpf,
+					DB_PRIORITY_VERY_LOW );
+
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
@@ -481,13 +485,6 @@ bdb_db_open( BackendDB *be )
 				buf, db_strerror(rc), rc );
 			return rc;
 		}
-
-#if 0
-		if( i == BDB_ID2ENTRY && ( slapMode & SLAP_TOOL_MODE )) {
-			db->bdi_db->mpf->set_priority( db->bdi_db->mpf,
-				DB_PRIORITY_VERY_LOW );
-		}
-#endif
 
 		flags &= ~(DB_CREATE | DB_RDONLY);
 		db->bdi_name = bdbi_databases[i].name;
