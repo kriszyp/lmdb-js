@@ -928,13 +928,10 @@ meta_send_entry(
 		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
 			continue;
 		}
-		attr = ( Attribute * )ch_malloc( sizeof( Attribute ) );
+		attr = ( Attribute * )ch_calloc( 1, sizeof( Attribute ) );
 		if ( attr == NULL ) {
 			continue;
 		}
-		attr->a_flags = 0;
-		attr->a_next = 0;
-		attr->a_desc = NULL;
 		if ( slap_bv2ad( &mapped, &attr->a_desc, &text )
 				!= LDAP_SUCCESS) {
 			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text,
@@ -990,7 +987,6 @@ meta_send_entry(
 		pretty = attr->a_desc->ad_type->sat_syntax->ssyn_pretty;
 
 		if ( !validate && !pretty ) {
-			attr->a_nvals = NULL;
 			attr_free( attr );
 			goto next_attr;
 		}
