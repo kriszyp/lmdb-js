@@ -214,7 +214,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 		e->e_id = id;
 	}
 #ifdef BDB_HIER
-	{
+	if ( slapMode & SLAP_TOOL_READONLY ) {
 		EntryInfo *ei = NULL;
 		Operation op = {0};
 		Opheader ohdr = {0};
