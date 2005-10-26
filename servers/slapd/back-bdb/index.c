@@ -48,7 +48,7 @@ static AttrInfo *index_mask(
 		/* has tagging option */
 		ai = bdb_attr_mask( be->be_private, desc->ad_type->sat_ad );
 
-		if ( ai && ( ai->ai_indexmask ^ SLAP_INDEX_NOTAGS ) ) {
+		if ( ai && !( ai->ai_indexmask & SLAP_INDEX_NOTAGS ) ) {
 			*atname = desc->ad_type->sat_cname;
 			return ai;
 		}
@@ -61,7 +61,7 @@ static AttrInfo *index_mask(
 
 		ai = bdb_attr_mask( be->be_private, at->sat_ad );
 
-		if ( ai && ( ai->ai_indexmask ^ SLAP_INDEX_NOSUBTYPES ) ) {
+		if ( ai && !( ai->ai_indexmask & SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = at->sat_cname;
 			return ai;
 		}
