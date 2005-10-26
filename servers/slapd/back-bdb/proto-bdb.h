@@ -32,24 +32,31 @@ LDAP_BEGIN_DECL
 
 #define bdb_attr_mask				BDB_SYMBOL(attr_mask)
 #define bdb_attr_flush				BDB_SYMBOL(attr_flush)
+#define bdb_attr_slot				BDB_SYMBOL(attr_slot)
 #define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
 #define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
 #define bdb_attr_index_free			BDB_SYMBOL(attr_index_free)
 #define bdb_attr_index_unparse		BDB_SYMBOL(attr_index_unparse)
+#define bdb_attr_info_free			BDB_SYMBOL(attr_info_free)
 
 AttrInfo *bdb_attr_mask( struct bdb_info *bdb,
 	AttributeDescription *desc );
 
 void bdb_attr_flush( struct bdb_info *bdb );
 
+unsigned bdb_attr_slot( struct bdb_info *bdb,
+	AttributeDescription *desc );
+
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
 	int argc, char **argv ));
 
 void bdb_attr_index_unparse LDAP_P(( struct bdb_info *bdb, BerVarray *bva ));
-void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
+void bdb_attr_index_destroy LDAP_P(( struct bdb_info *bdb ));
 void bdb_attr_index_free LDAP_P(( struct bdb_info *bdb,
 	AttributeDescription *ad ));
+
+void bdb_attr_info_free( AttrInfo *ai );
 
 /*
  * config.c

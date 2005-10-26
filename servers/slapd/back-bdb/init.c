@@ -606,7 +606,7 @@ bdb_db_destroy( BackendDB *be )
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );
 
-	bdb_attr_index_destroy( bdb->bi_attrs );
+	bdb_attr_index_destroy( bdb );
 
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );

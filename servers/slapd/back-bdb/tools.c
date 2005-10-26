@@ -36,7 +36,7 @@ static dn_id hbuf[HOLE_SIZE], *holes = hbuf;
 static unsigned nhmax = HOLE_SIZE;
 static unsigned nholes;
 
-static Avlnode *index_attrs, index_dummy;
+static int index_nattrs;
 
 #define bdb_tool_idl_cmp		BDB_SYMBOL(tool_idl_cmp)
 #define bdb_tool_idl_flush_one		BDB_SYMBOL(tool_idl_flush_one)
@@ -115,8 +115,6 @@ int bdb_tool_entry_close(
 	return 0;
 }
 
-static int bdb_reindex_cmp(const void *a, const void *b) { return 0; }
-
 ID bdb_tool_entry_next(
 	BackendDB *be )
 {
@@ -134,14 +132,13 @@ ID bdb_tool_entry_next(
 		/* If we're doing linear indexing and there are more attrs to
 		 * index, and we're at the end of the database, start over.
 		 */
-		if ( bdb->bi_attrs == &index_dummy ) {
-			if ( index_attrs && rc == DB_NOTFOUND ) {
-				/* optional - do a checkpoint here? */
-				index_dummy.avl_data = avl_delete(&index_attrs, NULL, bdb_reindex_cmp);
-				rc = cursor->c_get( cursor, &key, &data, DB_FIRST );
-			}
+		if ( index_nattrs && rc == DB_NOTFOUND ) {
+			/* optional - do a checkpoint here? */
+			bdb_attr_info_free( bdb->bi_attrs[0] );
+			bdb->bi_attrs[0] = bdb->bi_attrs[index_nattrs];
+			index_nattrs--;
+			rc = cursor->c_get( cursor, &key, &data, DB_FIRST );
 			if ( rc ) {
-				bdb->bi_attrs = NULL;
 				return NOID;
 			}
 		} else {
@@ -468,10 +465,9 @@ int bdb_tool_entry_reindex(
 	}
 
 	/* Get the first attribute to index */
-	if (bi->bi_linear_index && !index_attrs && bi->bi_attrs != &index_dummy) {
-		index_attrs = bi->bi_attrs;
-		bi->bi_attrs = &index_dummy;
-		index_dummy.avl_data = avl_delete(&index_attrs, NULL, bdb_reindex_cmp);
+	if (bi->bi_linear_index && !index_nattrs) {
+		index_nattrs = bi->bi_nattrs - 1;
+		bi->bi_nattrs = 1;
 	}
 
 	e = bdb_tool_entry_get( be, id );

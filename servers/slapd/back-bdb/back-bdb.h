@@ -166,7 +166,8 @@ struct bdb_info {
 
 	slap_mask_t	bi_defaultmask;
 	Cache		bi_cache;
-	Avlnode		*bi_attrs;
+	struct bdb_attrinfo		**bi_attrs;
+	int			bi_nattrs;
 	void		*bi_search_stack;
 	int		bi_search_stack_depth;
 	int		bi_linear_index;
