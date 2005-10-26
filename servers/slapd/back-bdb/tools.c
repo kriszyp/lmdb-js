@@ -44,6 +44,11 @@ static Avlnode *index_attrs, index_dummy;
 
 static int bdb_tool_idl_flush( BackendDB *be );
 
+#define	IDBLOCK	1024
+
+static ID *bdb_tool_idls;
+static int bdb_tool_idl_next;
+
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
 {
@@ -63,6 +68,11 @@ int bdb_tool_entry_open(
 			return -1;
 		}
 	}
+
+	/* Get a block of memory for the IDL cache */
+	if ( !(slapMode & SLAP_TOOL_READONLY ) && bdb->bi_idl_cache_max_size )
+		bdb_tool_idls = ch_malloc( bdb->bi_idl_cache_max_size *
+			sizeof( ID ) * IDBLOCK );
 
 	return 0;
 }
@@ -87,6 +97,10 @@ int bdb_tool_entry_close(
 	}
 
 	bdb_tool_idl_flush( be );
+
+	free( bdb_tool_idls );
+	bdb_tool_idls = NULL;
+	bdb_tool_idl_next = 0;
 
 	if( nholes ) {
 		unsigned i;
@@ -640,21 +654,13 @@ done:
 	return e->e_id;
 }
 
-#define	IDBLOCK	1024
-
-typedef struct bdb_tool_idl_cache_entry {
-	struct bdb_tool_idl_cache_entry *next;
-	ID ids[IDBLOCK];
-} bdb_tool_idl_cache_entry;
 
 typedef struct bdb_tool_idl_cache {
 	struct berval kstr;
-	bdb_tool_idl_cache_entry *head, *tail;
 	ID first, last;
-	int count;
+	int idls[BDB_IDL_DB_SIZE / IDBLOCK];
+	int idn, count;
 } bdb_tool_idl_cache;
-
-static bdb_tool_idl_cache_entry *bdb_tool_idl_free_list;
 
 static int
 bdb_tool_idl_cmp( const void *v1, const void *v2 )
@@ -671,11 +677,13 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 {
 	bdb_tool_idl_cache *ic = v1;
 	DB *db = arg;
-	bdb_tool_idl_cache_entry *ice;
 	DBC *curs;
 	DBT key, data;
 	int i, rc;
 	ID id, nid;
+
+	if ( !ic->count )
+		return 0;
 
 	rc = db->cursor( db, NULL, &curs, 0 );
 	if ( rc )
@@ -692,7 +700,7 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 
 	rc = curs->c_get( curs, &key, &data, DB_SET );
 	/* If key already exists and we're writing a range... */
-	if ( rc == 0 && ic->head == NULL ) {
+	if ( rc == 0 && ic->idn == -1 ) {
 		/* If it's not currently a range, must delete old info */
 		if ( nid ) {
 			/* Skip lo */
@@ -718,7 +726,7 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 		rc = 0;
 	} else if ( rc && rc != DB_NOTFOUND ) {
 		rc = -1;
-	} else if ( ic->head == NULL ) {
+	} else if ( ic->idn == -1 ) {
 		/* range, didn't exist before */
 		nid = 0;
 		rc = curs->c_put( curs, &key, &data, DB_KEYLAST );
@@ -734,14 +742,16 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 			rc = -1;
 		}
 	} else {
+		int n;
+
 		/* Just a normal write */
 		rc = 0;
-		for ( ice = ic->head; ice; ice = ic->head ) {
-			int end = ice->next ? IDBLOCK : (ic->count & (IDBLOCK-1));
-			ic->head = ice->next;
+		for ( n=0; n<=ic->idn; n++ ) {
+			ID *ids = bdb_tool_idls + ic->idls[n];
+			int end = ( n < ic->idn ) ? IDBLOCK : (ic->count & (IDBLOCK-1));
 			for ( i=0; i<end; i++ ) {
-				if ( !ice->ids[i] ) continue;
-				BDB_ID2DISK( ice->ids[i], &nid );
+				if ( !ids[i] ) continue;
+				BDB_ID2DISK( ids[i], &nid );
 				rc = curs->c_put( curs, &key, &data, DB_NODUPDATA );
 				if ( rc ) {
 					if ( rc == DB_KEYEXIST ) {
@@ -752,8 +762,6 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 					break;
 				}
 			}
-			ice->next = bdb_tool_idl_free_list;
-			bdb_tool_idl_free_list = ice;
 			if ( rc ) {
 				rc = -1;
 				break;
@@ -780,11 +788,14 @@ bdb_tool_idl_flush( BackendDB *be )
 			AVL_INORDER );
 		avl_free( db->app_private, NULL );
 		db->app_private = NULL;
-		if ( rc == -1 ) break;
+		if ( rc == -1 )
+			break;
 		rc = 0;
 	}
-	if ( !rc )
+	if ( !rc ) {
 		bdb->bi_idl_cache_size = 0;
+		bdb_tool_idl_next = 0;
+	}
 	return rc;
 }
 
@@ -797,13 +808,14 @@ int bdb_tool_idl_add(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	bdb_tool_idl_cache *ic, itmp;
-	bdb_tool_idl_cache_entry *ice;
+	ID *ids;
 	Avlnode *root;
 	int rc;
 
 	if ( !bdb->bi_idl_cache_max_size )
 		return bdb_idl_insert_key( be, db, txn, key, id );
 
+retry:
 	root = db->app_private;
 
 	DBT2bv( key, &itmp.kstr );
@@ -821,7 +833,7 @@ int bdb_tool_idl_add(
 		ic->kstr.bv_len = itmp.kstr.bv_len;
 		ic->kstr.bv_val = (char *)(ic+1);
 		AC_MEMCPY( ic->kstr.bv_val, itmp.kstr.bv_val, ic->kstr.bv_len );
-		ic->head = ic->tail = NULL;
+		ic->idn = -1;
 		ic->last = 0;
 		ic->count = 0;
 		avl_insert( &root, ic, bdb_tool_idl_cmp, avl_dup_error );
@@ -854,43 +866,31 @@ int bdb_tool_idl_add(
 		return 0;
 	/* Are we at the limit, and converting to a range? */
 	} else if ( ic->count == BDB_IDL_DB_SIZE ) {
-		for (ice = ic->head; ice; ice = ice->next ) {
-			bdb->bi_idl_cache_size--;
-		}
-		ic->tail->next = bdb_tool_idl_free_list;
-		bdb_tool_idl_free_list = ic->head;
-		ic->head = ic->tail = NULL;
 		ic->last = id;
 		ic->count++;
+		ic->idn = -1;
 		return 0;
 	}
 	/* No free block, create that too */
-	if ( !ic->tail || ( ic->count & (IDBLOCK-1)) == 0) {
-		if ( bdb_tool_idl_free_list ) {
-			ice = bdb_tool_idl_free_list;
-			bdb_tool_idl_free_list = ice->next;
-		} else {
-			ice = ch_malloc( sizeof( bdb_tool_idl_cache_entry ));
-		}
-		memset( ice, 0, sizeof( *ice ));
-		if ( !ic->head ) {
-			ic->head = ice;
-		} else {
-			ic->tail->next = ice;
-		}
-		ic->tail = ice;
+	if ( ic->idn == -1 || ( ic->count & (IDBLOCK-1)) == 0) {
 		bdb->bi_idl_cache_size++;
+		if ( bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
+			rc = bdb_tool_idl_flush( be );
+			if ( rc )
+				return rc;
+			goto retry;
+		}
+		ic->idls[++ic->idn] = bdb_tool_idl_next;
+		ids = bdb_tool_idls + bdb_tool_idl_next;
+		bdb_tool_idl_next += IDBLOCK;
+
+		memset( ids, 0, IDBLOCK * sizeof( ID ));
 		if ( !ic->count )
 			ic->first = id;
 	}
-	ice = ic->tail;
-	ice->ids[ ic->count & (IDBLOCK-1) ] = id;
+	ids = bdb_tool_idls + ic->idls[ic->idn];
+	ids[ ic->count & (IDBLOCK-1) ] = id;
 	ic->count++;
 
-	rc = 0;
-	/* Check for flush */
-	if ( bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
-		rc = bdb_tool_idl_flush( be );
-	}
-	return rc;
+	return 0;
 }
