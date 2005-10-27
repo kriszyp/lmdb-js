@@ -758,8 +758,8 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 	int i, rc;
 	ID id, nid;
 
-	if ( !ic->count ) {
-		ch_free( ic );
+	/* Freshly allocated, ignore it */
+	if ( !ic->head && ic->count <= BDB_IDL_DB_SIZE ) {
 		return 0;
 	}
 
@@ -852,22 +852,31 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 			}
 		}
 		if ( ic->head ) {
+			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 			ic->tail->next = bdb_tool_idl_free_list;
 			bdb_tool_idl_free_list = ic->head;
 			bdb->bi_idl_cache_size -= n;
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 		}
 	}
-	ch_free( ic );
+	if ( ic != db->app_private ) {
+		ch_free( ic );
+	} else {
+		ic->head = ic->tail = NULL;
+	}
 	curs->c_close( curs );
 	return rc;
 }
 
 static int
-bdb_tool_idl_flush_db( DB *db )
+bdb_tool_idl_flush_db( DB *db, bdb_tool_idl_cache *ic )
 {
-	int rc = avl_apply( db->app_private, bdb_tool_idl_flush_one, db, -1,
-			AVL_INORDER );
-	avl_free( db->app_private, NULL );
+	Avlnode *root = db->app_private;
+	int rc;
+
+	db->app_private = ic;
+	rc = avl_apply( root, bdb_tool_idl_flush_one, db, -1, AVL_INORDER );
+	avl_free( root, NULL );
 	db->app_private = NULL;
 	if ( rc != -1 )
 		rc = 0;
@@ -885,7 +894,7 @@ bdb_tool_idl_flush( BackendDB *be )
 	for ( i=BDB_NDB; i < bdb->bi_ndatabases; i++ ) {
 		db = bdb->bi_databases[i]->bdi_db;
 		if ( !db->app_private ) continue;
-		rc = bdb_tool_idl_flush_db( db );
+		rc = bdb_tool_idl_flush_db( db, NULL );
 		if ( rc )
 			break;
 	}
@@ -905,18 +914,14 @@ int bdb_tool_idl_add(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	bdb_tool_idl_cache *ic, itmp;
 	bdb_tool_idl_cache_entry *ice;
-	Avlnode *root;
-	int rc, do_retry = 1;
+	int rc;
 
 	if ( !bdb->bi_idl_cache_max_size )
 		return bdb_idl_insert_key( be, db, txn, key, id );
 
 	DBT2bv( key, &itmp.kstr );
 
-retry:
-	root = db->app_private;
-
-	ic = avl_find( root, &itmp, bdb_tool_idl_cmp );
+	ic = avl_find( (Avlnode *)db->app_private, &itmp, bdb_tool_idl_cmp );
 
 	/* No entry yet, create one */
 	if ( !ic ) {
@@ -932,8 +937,8 @@ retry:
 		ic->head = ic->tail = NULL;
 		ic->last = 0;
 		ic->count = 0;
-		avl_insert( &root, ic, bdb_tool_idl_cmp, avl_dup_error );
-		db->app_private = root;
+		avl_insert( (Avlnode **)&db->app_private, ic, bdb_tool_idl_cmp,
+			avl_dup_error );
 
 		/* load existing key count here */
 		rc = db->cursor( db, NULL, &curs, 0 );
@@ -979,21 +984,24 @@ retry:
 	}
 	/* No free block, create that too */
 	if ( !ic->tail || ( ic->count & (IDBLOCK-1)) == 0) {
+		ice = NULL;
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
-		if ( do_retry &&
-			bdb->bi_idl_cache_size >= bdb->bi_idl_cache_max_size ) {
-			do_retry = 0;
-			rc = bdb_tool_idl_flush_db( db );
+		if ( bdb->bi_idl_cache_size >= bdb->bi_idl_cache_max_size ) {
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
+			rc = bdb_tool_idl_flush_db( db, ic );
 			if ( rc )
 				return rc;
-			goto retry;
+			avl_insert( (Avlnode **)&db->app_private, ic, bdb_tool_idl_cmp,
+				avl_dup_error );
+			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 		}
 		bdb->bi_idl_cache_size++;
 		if ( bdb_tool_idl_free_list ) {
 			ice = bdb_tool_idl_free_list;
 			bdb_tool_idl_free_list = ice->next;
-		} else {
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
+		if ( !ice ) {
 			ice = ch_malloc( sizeof( bdb_tool_idl_cache_entry ));
 		}
 		memset( ice, 0, sizeof( *ice ));
@@ -1003,7 +1011,6 @@ retry:
 			ic->tail->next = ice;
 		}
 		ic->tail = ice;
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 		if ( !ic->count )
 			ic->first = id;
 	}
