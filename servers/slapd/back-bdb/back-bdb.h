@@ -300,6 +300,19 @@ typedef struct bdb_attrinfo {
 #define	BDB_INDEX_DELETING	0x8000U	/* index is being modified */
 #define	BDB_INDEX_UPDATE_OP	0x03	/* performing an index update */
 
+/* For slapindex to record which attrs in an entry belong to which
+ * index database 
+ */
+typedef struct AttrList {
+	struct AttrList *next;
+	Attribute *attr;
+} AttrList;
+
+typedef struct IndexRec {
+	AttrInfo *ai;
+	AttrList *attrs;
+} IndexRec;
+
 #include "proto-bdb.h"
 
 #endif /* _BACK_BDB_H_ */

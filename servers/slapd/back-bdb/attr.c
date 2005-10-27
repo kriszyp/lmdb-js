@@ -25,12 +25,15 @@
 #include "back-bdb.h"
 #include "lutil.h"
 
-unsigned
-bdb_attr_slot( struct bdb_info *bdb, AttributeDescription *ad )
+/* Find the ad, return -1 if not found,
+ * set point for insertion if ins is non-NULL
+ */
+int
+bdb_attr_slot( struct bdb_info *bdb, AttributeDescription *ad, unsigned *ins )
 {
 	unsigned base = 0, cursor = 0;
 	unsigned n = bdb->bi_nattrs;
-	int val;
+	int val = 0;
 	
 	while ( 0 < n ) {
 		int pivot = n >> 1;
@@ -46,18 +49,22 @@ bdb_attr_slot( struct bdb_info *bdb, AttributeDescription *ad )
 			return cursor;
 		}
 	}
-	if ( val > 0 )
-		++cursor;
-	return cursor;
+	if ( ins ) {
+		if ( val > 0 )
+			++cursor;
+		*ins = cursor;
+	}
+	return -1;
 }
 
 static int
 ainfo_insert( struct bdb_info *bdb, AttrInfo *a )
 {
-	unsigned x = bdb_attr_slot( bdb, a->ai_desc );
+	unsigned x;
+	int i = bdb_attr_slot( bdb, a->ai_desc, &x );
 
 	/* Is it a dup? */
-	if ( x < bdb->bi_nattrs && bdb->bi_attrs[x]->ai_desc == a->ai_desc )
+	if ( i >= 0 )
 		return -1;
 
 	bdb->bi_attrs = ch_realloc( bdb->bi_attrs, ( bdb->bi_nattrs+1 ) * 
@@ -75,9 +82,8 @@ bdb_attr_mask(
 	struct bdb_info	*bdb,
 	AttributeDescription *desc )
 {
-	unsigned i = bdb_attr_slot( bdb, desc );
-	return ( i < bdb->bi_nattrs && bdb->bi_attrs[i]->ai_desc == desc ) ?
-		bdb->bi_attrs[i] : NULL;
+	int i = bdb_attr_slot( bdb, desc, NULL );
+	return i < 0 ? NULL : bdb->bi_attrs[i];
 }
 
 int
@@ -352,10 +358,10 @@ bdb_attr_index_destroy( struct bdb_info *bdb )
 
 void bdb_attr_index_free( struct bdb_info *bdb, AttributeDescription *ad )
 {
-	unsigned i;
+	int i;
 
-	i = bdb_attr_slot( bdb, ad );
-	if ( i < bdb->bi_nattrs && bdb->bi_attrs[i]->ai_desc == ad ) {
+	i = bdb_attr_slot( bdb, ad, NULL );
+	if ( i >= 0 ) {
 		bdb_attr_info_free( bdb->bi_attrs[i] );
 		bdb->bi_nattrs--;
 		for (; i<bdb->bi_nattrs; i++)

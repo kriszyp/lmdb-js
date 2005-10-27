@@ -43,11 +43,21 @@ static int index_nattrs;
 #define bdb_tool_idl_flush		BDB_SYMBOL(tool_idl_flush)
 
 static int bdb_tool_idl_flush( BackendDB *be );
+static int bdb_tool_ix_rec( int base );
+static void * bdb_tool_index_task( void *ctx, void *ptr );
 
 #define	IDBLOCK	1024
 
 static ID *bdb_tool_idls;
 static int bdb_tool_idl_next;
+
+static ID bdb_tool_ix_id;
+static Operation *bdb_tool_ix_op;
+static volatile int *bdb_tool_index_threads;
+static void *bdb_tool_index_rec;
+static struct bdb_info *bdb_tool_info;
+static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
+static ldap_pvt_thread_cond_t bdb_tool_index_cond;
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -69,10 +79,27 @@ int bdb_tool_entry_open(
 		}
 	}
 
-	/* Get a block of memory for the IDL cache */
-	if ( !(slapMode & SLAP_TOOL_READONLY ) && bdb->bi_idl_cache_max_size )
-		bdb_tool_idls = ch_malloc( bdb->bi_idl_cache_max_size *
-			sizeof( ID ) * IDBLOCK );
+	/* Set up for slapindex */
+	if ( !(slapMode & SLAP_TOOL_READONLY )) {
+		int i;
+		if ( bdb->bi_idl_cache_max_size )
+			bdb_tool_idls = ch_malloc( bdb->bi_idl_cache_max_size *
+				sizeof( ID ) * IDBLOCK );
+		if ( !bdb_tool_info && ( slapMode & SLAP_TOOL_QUICK )) {
+			ldap_pvt_thread_mutex_init( &bdb_tool_index_mutex );
+			ldap_pvt_thread_cond_init( &bdb_tool_index_cond );
+			bdb_tool_index_threads = ch_malloc( slap_tool_thread_max * sizeof( int ));
+			bdb_tool_index_rec = ch_malloc( bdb->bi_nattrs * sizeof( IndexRec ));
+			for (i=1; i<slap_tool_thread_max; i++) {
+				int *ptr = ch_malloc( sizeof( int ));
+				*ptr = i;
+				ldap_pvt_thread_pool_submit( &connection_pool,
+					bdb_tool_index_task, ptr );
+				ldap_pvt_thread_yield();
+			}
+		}
+		bdb_tool_info = bdb;
+	}
 
 	return 0;
 }
@@ -80,7 +107,14 @@ int bdb_tool_entry_open(
 int bdb_tool_entry_close(
 	BackendDB *be )
 {
-	assert( be != NULL );
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+
+	if ( bdb_tool_info ) {
+		slapd_shutdown = 1;
+		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond );
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
+	}
 
 	if( key.data ) {
 		ch_free( key.data );
@@ -341,6 +375,53 @@ static int bdb_tool_next_id(
 	return rc;
 }
 
+static int
+bdb_tool_index_add(
+	Operation *op,
+	DB_TXN *txn,
+	Entry *e )
+{
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+
+	if ( slapMode & SLAP_TOOL_QUICK ) {
+		IndexRec *ir;
+		int i, rc;
+		Attribute *a;
+		
+		ir = bdb_tool_index_rec;
+		memset(ir, 0, bdb->bi_nattrs * sizeof( IndexRec ));
+
+		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+			rc = bdb_index_recset( bdb, a, a->a_desc->ad_type, 
+				&a->a_desc->ad_tags, ir );
+			if ( rc )
+				return rc;
+		}
+		bdb_tool_ix_id = e->e_id;
+		bdb_tool_ix_op = op;
+		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+		for ( i=1; i<slap_tool_thread_max; i++ )
+			bdb_tool_index_threads[i] = LDAP_BUSY;
+		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond );
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
+		rc = bdb_index_recrun( op, bdb, ir, e->e_id, 0 );
+		if ( rc )
+			return rc;
+		for ( i=1; i<slap_tool_thread_max; i++ ) {
+			if ( bdb_tool_index_threads[i] == LDAP_BUSY ) {
+				ldap_pvt_thread_yield();
+				i--;
+				continue;
+			}
+			if ( bdb_tool_index_threads[i] )
+				return bdb_tool_index_threads[i];
+		}
+		return 0;
+	} else {
+		return bdb_index_entry_add( op, txn, e );
+	}
+}
+
 ID bdb_tool_entry_put(
 	BackendDB *be,
 	Entry *e,
@@ -400,7 +481,7 @@ ID bdb_tool_entry_put(
 	}
 
 	if ( !bdb->bi_linear_index )
-		rc = bdb_index_entry_add( &op, tid, e );
+		rc = bdb_tool_index_add( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_add failed: %s (%d)",
@@ -507,7 +588,7 @@ int bdb_tool_entry_reindex(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-	rc = bdb_index_entry_add( &op, tid, e );
+	rc = bdb_tool_index_add( &op, tid, e );
 
 done:
 	if( rc == 0 ) {
@@ -878,9 +959,11 @@ retry:
 	}
 	/* No free block, create that too */
 	if ( ic->idn == -1 || ( ic->count & (IDBLOCK-1)) == 0) {
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 		bdb->bi_idl_cache_size++;
 		if ( bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
 			rc = bdb_tool_idl_flush( be );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 			if ( rc )
 				return rc;
 			goto retry;
@@ -888,6 +971,7 @@ retry:
 		ic->idls[++ic->idn] = bdb_tool_idl_next;
 		ids = bdb_tool_idls + bdb_tool_idl_next;
 		bdb_tool_idl_next += IDBLOCK;
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 
 		memset( ids, 0, IDBLOCK * sizeof( ID ));
 		if ( !ic->count )
@@ -898,4 +982,25 @@ retry:
 	ic->count++;
 
 	return 0;
+}
+
+static void *
+bdb_tool_index_task( void *ctx, void *ptr )
+{
+	int base = *(int *)ptr;
+
+	free( ptr );
+	while ( 1 ) {
+		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+		ldap_pvt_thread_cond_wait( &bdb_tool_index_cond,
+			&bdb_tool_index_mutex );
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
+		if ( slapd_shutdown )
+			break;
+
+		bdb_tool_index_threads[base] = bdb_index_recrun( bdb_tool_ix_op,
+			bdb_tool_info, bdb_tool_index_rec, bdb_tool_ix_id, base );
+	}
+
+	return NULL;
 }

@@ -44,8 +44,8 @@ AttrInfo *bdb_attr_mask( struct bdb_info *bdb,
 
 void bdb_attr_flush( struct bdb_info *bdb );
 
-unsigned bdb_attr_slot( struct bdb_info *bdb,
-	AttributeDescription *desc );
+int bdb_attr_slot( struct bdb_info *bdb,
+	AttributeDescription *desc, unsigned *insert );
 
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
@@ -329,6 +329,8 @@ int bdb_idl_append_one( ID *ids, ID id );
 #define bdb_index_param				BDB_SYMBOL(index_param)
 #define bdb_index_values			BDB_SYMBOL(index_values)
 #define bdb_index_entry				BDB_SYMBOL(index_entry)
+#define bdb_index_recset			BDB_SYMBOL(index_recset)
+#define bdb_index_recrun			BDB_SYMBOL(index_recrun)
 
 extern int
 bdb_index_is_indexed LDAP_P((
@@ -352,6 +354,22 @@ bdb_index_values LDAP_P((
 	BerVarray vals,
 	ID id,
 	int opid ));
+
+extern int
+bdb_index_recset LDAP_P((
+	struct bdb_info *bdb,
+	Attribute *a,
+	AttributeType *type,
+	struct berval *tags,
+	IndexRec *ir ));
+
+extern int
+bdb_index_recrun LDAP_P((
+	Operation *op,
+	struct bdb_info *bdb,
+	IndexRec *ir,
+	ID id,
+	int base ));
 
 int bdb_index_entry LDAP_P(( Operation *op, DB_TXN *t, int r, Entry *e ));
 
