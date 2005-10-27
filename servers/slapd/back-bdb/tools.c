@@ -38,13 +38,12 @@ static unsigned nholes;
 
 static int index_nattrs;
 
+#ifdef BDB_TOOL_IDL_CACHING
 #define bdb_tool_idl_cmp		BDB_SYMBOL(tool_idl_cmp)
 #define bdb_tool_idl_flush_one		BDB_SYMBOL(tool_idl_flush_one)
 #define bdb_tool_idl_flush		BDB_SYMBOL(tool_idl_flush)
 
 static int bdb_tool_idl_flush( BackendDB *be );
-static int bdb_tool_ix_rec( int base );
-static void * bdb_tool_index_task( void *ctx, void *ptr );
 
 #define	IDBLOCK	1024
 
@@ -61,6 +60,7 @@ typedef struct bdb_tool_idl_cache {
 } bdb_tool_idl_cache;
 
 static bdb_tool_idl_cache_entry *bdb_tool_idl_free_list;
+#endif	/* BDB_TOOL_IDL_CACHING */
 
 static ID bdb_tool_ix_id;
 static Operation *bdb_tool_ix_op;
@@ -69,6 +69,9 @@ static void *bdb_tool_index_rec;
 static struct bdb_info *bdb_tool_info;
 static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond;
+
+static int bdb_tool_ix_rec( int base );
+static void * bdb_tool_index_task( void *ctx, void *ptr );
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -138,7 +141,9 @@ int bdb_tool_entry_close(
 		cursor = NULL;
 	}
 
+#ifdef BDB_TOOL_IDL_CACHING
 	bdb_tool_idl_flush( be );
+#endif
 
 	if( nholes ) {
 		unsigned i;
@@ -735,7 +740,7 @@ done:
 	return e->e_id;
 }
 
-
+#ifdef BDB_TOOL_IDL_CACHING
 static int
 bdb_tool_idl_cmp( const void *v1, const void *v2 )
 {
@@ -1020,6 +1025,7 @@ int bdb_tool_idl_add(
 
 	return 0;
 }
+#endif
 
 static void *
 bdb_tool_index_task( void *ctx, void *ptr )
