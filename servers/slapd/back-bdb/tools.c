@@ -678,8 +678,10 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 	int i, rc;
 	ID id, nid;
 
-	if ( !ic->count )
+	if ( !ic->count ) {
+		ch_free( ic );
 		return 0;
+	}
 
 	rc = db->cursor( db, NULL, &curs, 0 );
 	if ( rc )
@@ -696,7 +698,7 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 
 	rc = curs->c_get( curs, &key, &data, DB_SET );
 	/* If key already exists and we're writing a range... */
-	if ( rc == 0 && ic->idn == -1 ) {
+	if ( rc == 0 && ic->count > BDB_IDL_DB_SIZE ) {
 		/* If it's not currently a range, must delete old info */
 		if ( nid ) {
 			/* Skip lo */
@@ -722,7 +724,7 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 		rc = 0;
 	} else if ( rc && rc != DB_NOTFOUND ) {
 		rc = -1;
-	} else if ( ic->idn == -1 ) {
+	} else if ( ic->count > BDB_IDL_DB_SIZE ) {
 		/* range, didn't exist before */
 		nid = 0;
 		rc = curs->c_put( curs, &key, &data, DB_KEYLAST );
@@ -744,7 +746,14 @@ bdb_tool_idl_flush_one( void *v1, void *arg )
 		rc = 0;
 		for ( n=0; n<=ic->idn; n++ ) {
 			ID *ids = bdb_tool_idls + ic->idls[n];
-			int end = ( n < ic->idn ) ? IDBLOCK : (ic->count & (IDBLOCK-1));
+			int end;
+			if ( n < ic->idn ) {
+				end = IDBLOCK;
+			} else {
+				end = ic->count & (IDBLOCK-1);
+				if ( !end )
+					end = IDBLOCK;
+			}
 			for ( i=0; i<end; i++ ) {
 				if ( !ids[i] ) continue;
 				BDB_ID2DISK( ids[i], &nid );
@@ -811,10 +820,10 @@ int bdb_tool_idl_add(
 	if ( !bdb->bi_idl_cache_max_size )
 		return bdb_idl_insert_key( be, db, txn, key, id );
 
+	DBT2bv( key, &itmp.kstr );
+
 retry:
 	root = db->app_private;
-
-	DBT2bv( key, &itmp.kstr );
 
 	ic = avl_find( root, &itmp, bdb_tool_idl_cmp );
 
