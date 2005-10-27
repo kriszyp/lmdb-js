@@ -163,6 +163,7 @@ enum {
 	CFG_SASLSECP,
 	CFG_SSTR_IF_MAX,
 	CFG_SSTR_IF_MIN,
+	CFG_TTHREADS,
 
 	CFG_LAST
 };
@@ -570,6 +571,9 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:77 NAME 'olcTLSDHParamDir' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "tool-threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_TTHREADS,
+		&config_generic, "( OLcfgGlAt:80 NAME 'olcToolThreads' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "ucdata-path", "path", 2, 2, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL },
 	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
@@ -628,6 +632,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
 		 "olcTLSRandFile $ olcTLSVerifyClient $ olcTLSDHParamDir $ "
+		 "olcToolThreads $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
 		 "olcDitContentRules ) )", Cft_Global },
 	{ "( OLcfgGlOc:2 "
@@ -699,6 +704,9 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_THREADS:
 			c->value_int = connection_pool_max;
+			break;
+		case CFG_TTHREADS:
+			c->value_int = slap_tool_thread_max;
 			break;
 		case CFG_SALT:
 			if ( passwd_salt )
@@ -909,6 +917,7 @@ config_generic(ConfigArgs *c) {
 		/* single-valued attrs, no-ops */
 		case CFG_CONCUR:
 		case CFG_THREADS:
+		case CFG_TTHREADS:
 		case CFG_RO:
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
@@ -1020,6 +1029,11 @@ config_generic(ConfigArgs *c) {
 		case CFG_THREADS:
 			ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			connection_pool_max = c->value_int;	/* save for reference */
+			break;
+
+		case CFG_TTHREADS:
+			ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
+			slap_tool_thread_max = c->value_int;	/* save for reference */
 			break;
 
 		case CFG_SALT:
