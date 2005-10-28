@@ -908,6 +908,12 @@ server private key that matches the certificate stored in the
 file.  Currently, the private key must not be protected with a password, so
 it is of critical importance that it is protected carefully. 
 .TP
+.B TLSDHParamFile <filename>
+This directive specifies the file that contains parameters for Diffie-Hellman
+ephemeral key exchange.  This is required in order to use a DSA certificate on
+the server. If multiple sets of parameters are present in the file, all of
+them will be processed.
+.TP
 .B TLSRandFile <filename>
 Specifies the file to obtain random bits from when /dev/[u]random
 is not available.  Generally set to the name of the EGD/PRNGD socket.
