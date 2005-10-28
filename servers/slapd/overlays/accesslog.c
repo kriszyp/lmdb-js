@@ -237,14 +237,14 @@ static struct {
 		"SINGLE-VALUE )", &ad_reqAssertion },
 	{ "( " LOG_SCHEMA_AT ".16 NAME 'reqMod' "
 		"DESC 'Modifications of request' "
-		"SYNTAX OMsDirectoryString "
-		"EQUALITY caseIgnoreMatch "
-		"SUBSTR caseIgnoreSubstringsMatch )", &ad_reqMod },
+		"EQUALITY octetStringMatch "
+		"SUBSTR octetStringSubstringsMatch "
+		"SYNTAX OMsOctetString )", &ad_reqMod },
 	{ "( " LOG_SCHEMA_AT ".17 NAME 'reqOld' "
 		"DESC 'Old values of entry before request completed' "
-		"EQUALITY caseIgnoreMatch "
-		"SUBSTR caseIgnoreSubstringsMatch "
-		"SYNTAX OMsDirectoryString )", &ad_reqOld },
+		"EQUALITY octetStringMatch "
+		"SUBSTR octetStringSubstringsMatch "
+		"SYNTAX OMsOctetString )", &ad_reqOld },
 	{ "( " LOG_SCHEMA_AT ".18 NAME 'reqNewRDN' "
 		"DESC 'New RDN of request' "
 		"EQUALITY distinguishedNameMatch "
