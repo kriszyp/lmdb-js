@@ -50,7 +50,7 @@
 static int  tls_opt_trace = 1;
 static char *tls_opt_certfile = NULL;
 static char *tls_opt_keyfile = NULL;
-static char *tls_opt_dhparamdir = NULL;
+static char *tls_opt_dhfile = NULL;
 static char *tls_opt_cacertfile = NULL;
 static char *tls_opt_cacertdir = NULL;
 static int  tls_opt_require_cert = LDAP_OPT_X_TLS_DEMAND;
@@ -59,7 +59,6 @@ static int  tls_opt_crlcheck = LDAP_OPT_X_TLS_CRL_NONE;
 #endif
 static char *tls_opt_ciphersuite = NULL;
 static char *tls_opt_randfile = NULL;
-static int tls_opt_dhparamdirlen;
 
 #define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
 				(void *)&sb_tls_sbio )
@@ -75,6 +74,14 @@ static STACK_OF(X509_NAME) * get_ca_list( char * bundle, char * dir );
 static DH * tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length );
 
 static SSL_CTX *tls_def_ctx = NULL;
+
+typedef struct dhplist {
+	struct dhplist *next;
+	int keylength;
+	DH *param;
+} dhplist;
+
+static dhplist *dhparams;
 
 static int tls_seed_PRNG( const char *randfile );
 
@@ -134,9 +141,9 @@ ldap_pvt_tls_destroy( void )
 		LDAP_FREE( tls_opt_keyfile );
 		tls_opt_keyfile = NULL;
 	}
-	if ( tls_opt_dhparamdir ) {
-		LDAP_FREE( tls_opt_dhparamdir );
-		tls_opt_dhparamdir = NULL;
+	if ( tls_opt_dhfile ) {
+		LDAP_FREE( tls_opt_dhfile );
+		tls_opt_dhfile = NULL;
 	}
 	if ( tls_opt_cacertfile ) {
 		LDAP_FREE( tls_opt_cacertfile );
@@ -202,6 +209,7 @@ ldap_pvt_tls_init_def_ctx( void )
 	char *cacertdir = tls_opt_cacertdir;
 	char *certfile = tls_opt_certfile;
 	char *keyfile = tls_opt_keyfile;
+	char *dhfile = tls_opt_dhfile;
 
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
@@ -233,6 +241,10 @@ ldap_pvt_tls_init_def_ctx( void )
 	if ( keyfile ) {
 		keyfile = LDAP_STRDUP( keyfile );
 		__atoe( keyfile );
+	}
+	if ( dhfile ) {
+		dhfile = LDAP_STRDUP( dhfile );
+		__atoe( dhfile );
 	}
 #endif
 	if ( tls_def_ctx == NULL ) {
@@ -325,6 +337,31 @@ ldap_pvt_tls_init_def_ctx( void )
 			goto error_exit;
 		}
 
+		if ( tls_opt_dhfile ) {
+			DH *dh = NULL;
+			BIO *bio;
+			dhplist *p;
+
+			if (( bio=BIO_new_file( dhfile,"r" )) == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"TLS: could not use DH parameters file `%s'.\n",
+					tls_opt_dhfile,0,0);
+				tls_report_error();
+				rc = -1;
+				goto error_exit;
+			}
+			while (( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
+				p = LDAP_MALLOC( sizeof(dhplist) );
+				if ( p != NULL ) {
+					p->keylength = DH_size( dh ) * 8;
+					p->param = dh;
+					p->next = dhparams;
+					dhparams = p;
+				}
+			}
+			BIO_free( bio );
+		}
+
 		if ( tls_opt_trace ) {
 			SSL_CTX_set_info_callback( tls_def_ctx, tls_info_cb );
 		}
@@ -366,6 +403,7 @@ error_exit:
 	LDAP_FREE( cacertdir );
 	LDAP_FREE( certfile );
 	LDAP_FREE( keyfile );
+	LDAP_FREE( dhfile );
 #endif
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
@@ -1125,7 +1163,7 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 	case LDAP_OPT_X_TLS_KEYFILE:
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
-	case LDAP_OPT_X_TLS_DHPARAMDIR:
+	case LDAP_OPT_X_TLS_DHFILE:
 		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
 
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
@@ -1223,9 +1261,9 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		*(char **)arg = tls_opt_keyfile ?
 			LDAP_STRDUP( tls_opt_keyfile ) : NULL;
 		break;
-	case LDAP_OPT_X_TLS_DHPARAMDIR:
-		*(char **)arg = tls_opt_dhparamdir ?
-			LDAP_STRDUP( tls_opt_dhparamdir ) : NULL;
+	case LDAP_OPT_X_TLS_DHFILE:
+		*(char **)arg = tls_opt_dhfile ?
+			LDAP_STRDUP( tls_opt_dhfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		*(int *)arg = tls_opt_require_cert;
@@ -1338,11 +1376,9 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		if ( tls_opt_keyfile ) LDAP_FREE( tls_opt_keyfile );
 		tls_opt_keyfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
-	case LDAP_OPT_X_TLS_DHPARAMDIR:
-		if ( tls_opt_dhparamdir ) LDAP_FREE( tls_opt_dhparamdir );
-		tls_opt_dhparamdir = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
-		if ( tls_opt_dhparamdir )
-			tls_opt_dhparamdirlen = strlen( tls_opt_dhparamdir );
+	case LDAP_OPT_X_TLS_DHFILE:
+		if ( tls_opt_dhfile ) LDAP_FREE( tls_opt_dhfile );
+		tls_opt_dhfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		switch( *(int *) arg ) {
@@ -1647,13 +1683,6 @@ struct dhinfo {
 	size_t size;
 };
 
-struct dhplist {
-	struct dhplist *next;
-	int keylength;
-	DH *param;
-};
-
-static struct dhplist *dhparams;
 
 /* From the OpenSSL 0.9.7 distro */
 static const char dhpem512[] =
@@ -1702,18 +1731,13 @@ static const struct dhinfo dhpem[] = {
 	{ 0, NULL, 0 }
 };
 
-#define MAXDIGITS	12
-
-#define	DHFILEPATTERN	"dh%d.pem"
-
 static DH *
 tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 {
 	struct dhplist *p = NULL;
 	BIO *b = NULL;
-	FILE *f;
-	char *file;
 	DH *dh = NULL;
+	int i;
 
 	/* Do we have params of this length already? */
 #ifdef LDAP_R_COMPILE
@@ -1728,37 +1752,15 @@ tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 		}
 	}
 
-	/* See if there's a file to load */
-	if ( tls_opt_dhparamdir ) {
-		file = LDAP_MALLOC( tls_opt_dhparamdirlen + 1 + MAXDIGITS +
-			sizeof(DHFILEPATTERN) );
-		if ( file == NULL )
-			goto done;
-		sprintf( file, "%s/" DHFILEPATTERN, tls_opt_dhparamdir, key_length );
-	} else {
-		file = LDAP_MALLOC( STRLENOF(LDAP_SYSCONFDIR) + 1 + MAXDIGITS +
-			sizeof(DHFILEPATTERN) );
-		if ( file == NULL )
-			goto done;
-		sprintf( file, LDAP_SYSCONFDIR "/" DHFILEPATTERN, key_length );
-	}
-	f = fopen(file,"r");
-	/* Did we get the file? */
-	if ( f ) {
-		b = BIO_new_fp( f, BIO_CLOSE );
-		if ( b == NULL )
-			fclose( f );
-	} else {
-		/* No - check for hardcoded params */
-		int i;
+	/* No - check for hardcoded params */
 
-		for (i=0; dhpem[i].keylength; i++) {
-			if ( dhpem[i].keylength == key_length ) {
-				b = BIO_new_mem_buf( (char *)dhpem[i].pem, dhpem[i].size );
-				break;
-			}
+	for (i=0; dhpem[i].keylength; i++) {
+		if ( dhpem[i].keylength == key_length ) {
+			b = BIO_new_mem_buf( (char *)dhpem[i].pem, dhpem[i].size );
+			break;
 		}
 	}
+
 	if ( b ) {
 		dh = PEM_read_bio_DHparams( b, NULL, NULL, NULL );
 		BIO_free( b );
