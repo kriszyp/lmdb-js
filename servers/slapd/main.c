@@ -332,7 +332,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:f:F:h:n:o:s:StT:V"
+			     "c:d:f:F:h:n:o:s:tT:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
