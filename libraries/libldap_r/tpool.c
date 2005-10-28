@@ -368,8 +368,9 @@ ldap_pvt_thread_pool_submit (
 		return(0);
 	}
 	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
-	if (pool->ltp_max_count <= 0
-			|| pool->ltp_open_count < pool->ltp_max_count)
+	if (pool->ltp_open_count < pool->ltp_active_count + pool->ltp_pending_count
+		&& (pool->ltp_open_count < pool->ltp_max_count ||
+			pool->ltp_max_count <= 0 ))
 	{
 		pool->ltp_open_count++;
 		pool->ltp_starting++;
