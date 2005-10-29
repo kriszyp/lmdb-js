@@ -1407,7 +1407,7 @@ static void* connection_read_thread( void* ctx, void* argv )
 {
 	int rc ;
 	Operation* new_op = NULL;
-	ber_socket_t s = (ber_socket_t)argv;
+	ber_socket_t s = (long)argv;
 
 	/*
 	 * read incoming LDAP requests. If there is more than one,
@@ -1416,16 +1416,16 @@ static void* connection_read_thread( void* ctx, void* argv )
 	if( ( rc = connection_read( s, &new_op ) ) < 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "connection_read(%d) error\n", s, 0, 0 );
 		tcp_close( s );
-		return (void*)rc;
+		return (void*)(long)rc;
 	}
 
 	/* execute the queued request in the same thread */
 	if( new_op ) {
-		rc = (int)connection_operation(
+		rc = (long)connection_operation(
 			ldap_pvt_thread_pool_context(), new_op );
 	}
 
-	return (void*)rc;
+	return (void*)(long)rc;
 }
 
 int connection_read_activate( ber_socket_t s )
@@ -1440,7 +1440,7 @@ int connection_read_activate( ber_socket_t s )
 	slapd_clr_read( s, 0 );
 
 	rc = ldap_pvt_thread_pool_submit( &connection_pool,
-		connection_read_thread, (void *) s );
+		connection_read_thread, (void *)(long)s );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -2036,6 +2036,12 @@ static int connection_op_activate( Operation *op )
 }
 
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+static int connection_write( ber_socket_t s );
+static void *connection_write_thread( void *ctx, void *arg )
+{
+	return (void *)(long)connection_write((long)arg);
+}
+
 int connection_write_activate( ber_socket_t s )
 {
 	int rc;
@@ -2045,18 +2051,14 @@ int connection_write_activate( ber_socket_t s )
 	 * thread write data on it. Otherwise the listener thread will repeatedly
 	 * submit the same event on it to the pool.
 	 */
-
-#ifndef SLAP_LIGHTWEIGHT_DISPATCHER
 	slapd_clr_write( s, 0);
-	c->c_n_write++;
-#endif
 
 	rc = ldap_pvt_thread_pool_submit( &connection_pool,
-		connection_read_thread, (void *) s );
+		connection_write_thread, (void *)(long)s );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"connection_write_activiate(%d): submit failed (%d)\n",
+			"connection_write_activate(%d): submit failed (%d)\n",
 			(int) s, rc, 0 );
 	}
 	return rc;
@@ -2085,8 +2087,8 @@ int connection_write(ber_socket_t s)
 
 #ifndef SLAP_LIGHTWEIGHT_DISPATCHER
 	slapd_clr_write( s, 0);
-	c->c_n_write++;
 #endif
+	c->c_n_write++;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"connection_write(%d): waking output for id=%lu\n",

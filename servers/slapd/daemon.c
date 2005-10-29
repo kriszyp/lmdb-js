@@ -1711,13 +1711,11 @@ slapd_daemon_task(
 			}
 		}
 #endif
-
 		at = 0;
 
 		ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 		nwriters = slap_daemon.sd_nwriters;
-		SLAP_EVENT_INIT;
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			Listener *lr = slap_listeners[l];
@@ -1730,6 +1728,8 @@ slapd_daemon_task(
 				SLAP_SOCK_SET_READ( lr->sl_sd );
 			}
 		}
+
+		SLAP_EVENT_INIT;
 
 		nfds = SLAP_EVENT_MAX;
 
@@ -1954,7 +1954,7 @@ slapd_daemon_task(
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
-			 * connection_write() must validitate the stream is still
+			 * connection_write() must validate the stream is still
 			 * active.
 			 */
 			if ( connection_write( wd ) < 0 ) {
