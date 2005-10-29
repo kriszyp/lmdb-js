@@ -2064,6 +2064,7 @@ slapd_daemon_task(
 				    r ? "r" : "", w ? "w" : "" );
 			}
 		}
+		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
 #endif
 
 		for (i=0; i<ns; i++) {
