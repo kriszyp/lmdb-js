@@ -1516,7 +1516,6 @@ slap_listener(
 		id, (long) s, peername, sl->sl_name.bv_val,
 		0 );
 
-	slapd_add( s, 1, NULL );
 	return 0;
 }
 

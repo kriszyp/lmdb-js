@@ -751,6 +751,7 @@ long connection_init(
 	slap_sasl_open( c, 0 );
 	slap_sasl_external( c, ssf, authid );
 
+	slapd_add_internal( s, 1 );
 	ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 	ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 
@@ -1393,13 +1394,13 @@ void connection_client_stop(
 	c->c_close_reason = "?";			/* should never be needed */
 	slapd_sd_lock();
 	ber_sockbuf_free( c->c_sb );
+	slapd_remove( s, 0, 1, 1 );
 	c->c_sb = ber_sockbuf_alloc( );
 	{
 		ber_len_t max = sockbuf_max_incoming;
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
-	slapd_remove( s, 0, 1, 1 );
 	connection_return( c );
 }
 
@@ -1447,7 +1448,7 @@ int connection_read_activate( ber_socket_t s )
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"connection_read_activiate(%d): submit failed (%d)\n",
+			"connection_read_activate(%d): submit failed (%d)\n",
 			s, rc, 0 );
 	}
 
