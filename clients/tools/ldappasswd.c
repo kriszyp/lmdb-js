@@ -345,7 +345,6 @@ main( int argc, char *argv[] )
 
 	rc = ldap_parse_result( ld, res,
 		&code, &matcheddn, &text, &refs, NULL, 0 );
-
 	if( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_parse_result" );
 		rc = EXIT_FAILURE;
@@ -353,9 +352,8 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
-
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_parse_result" );
+		ldap_perror( ld, "ldap_parse_extended_result" );
 		rc = EXIT_FAILURE;
 		goto done;
 	}
