@@ -452,18 +452,32 @@ static void slapd_add(ber_socket_t s, int isactive, Listener *sl) {
 #endif
 }
 
+void slapd_sd_lock()
+{
+	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+}
+
+void slapd_sd_unlock()
+{
+	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+}
+
 /*
  * Remove the descriptor from daemon control
  */
 void slapd_remove(
 	ber_socket_t s,
 	int wasactive,
-	int wake )
+	int wake,
+	int locked )
 {
 	int waswriter;
 	int wasreader;
 
-	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+	if ( !locked )
+		ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+
+	assert( SLAP_SOCK_IS_ACTIVE( s ));
 
 	if ( wasactive ) slap_daemon.sd_nactives--;
 
@@ -533,14 +547,18 @@ void slapd_set_write(ber_socket_t s, int wake) {
 	WAKE_LISTENER(wake);
 }
 
-void slapd_clr_read(ber_socket_t s, int wake) {
+int slapd_clr_read(ber_socket_t s, int wake) {
+	int rc = 1;
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
-	assert( SLAP_SOCK_IS_ACTIVE( s ));
-	SLAP_SOCK_CLR_READ( s );
-
+	if ( SLAP_SOCK_IS_ACTIVE( s )) {
+		SLAP_SOCK_CLR_READ( s );
+		rc = 0;
+	}
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER(wake);
+	if ( !rc )
+		WAKE_LISTENER(wake);
+	return rc;
 }
 
 void slapd_set_read(ber_socket_t s, int wake) {
@@ -1212,7 +1230,7 @@ close_listeners(
 		Listener *lr = slap_listeners[l];
 
 		if ( lr->sl_sd != AC_SOCKET_INVALID ) {
-			if ( remove ) slapd_remove( lr->sl_sd, 0, 0 );
+			if ( remove ) slapd_remove( lr->sl_sd, 0, 0, 0 );
 
 #ifdef LDAP_PF_LOCAL
 			if ( lr->sl_sa.sa_addr.sa_family == AF_LOCAL ) {

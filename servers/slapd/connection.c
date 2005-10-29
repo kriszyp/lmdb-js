@@ -844,16 +844,18 @@ connection_destroy( Connection *c )
 	}
 
 	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
+	slapd_sd_lock();
+	ber_sockbuf_free( c->c_sb );
 	if ( sd != AC_SOCKET_INVALID ) {
-		slapd_remove( sd, 1, 0 );
+		slapd_remove( sd, 1, 0, 1 );
 
 		Statslog( LDAP_DEBUG_STATS, (close_reason
 									 ? "conn=%lu fd=%ld closed (%s)\n"
 									 : "conn=%lu fd=%ld closed\n"),
 			connid, (long) sd, close_reason, 0, 0 );
+	} else {
+		slapd_sd_unlock();
 	}
-
-	ber_sockbuf_free( c->c_sb );
 
 	c->c_sb = ber_sockbuf_alloc( );
 
@@ -1389,6 +1391,7 @@ void connection_client_stop(
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
 	c->c_close_reason = "?";			/* should never be needed */
+	slapd_sd_lock();
 	ber_sockbuf_free( c->c_sb );
 	c->c_sb = ber_sockbuf_alloc( );
 	{
@@ -1396,7 +1399,7 @@ void connection_client_stop(
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
-	slapd_remove( s, 0, 1 );
+	slapd_remove( s, 0, 1, 1 );
 	connection_return( c );
 }
 
@@ -1414,15 +1417,13 @@ static void* connection_read_thread( void* ctx, void* argv )
 	 * the first one is returned with new_op
 	 */
 	if( ( rc = connection_read( s, &new_op ) ) < 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "connection_read(%d) error\n", s, 0, 0 );
-		tcp_close( s );
+		Debug( LDAP_DEBUG_CONNS, "connection_read(%d) error\n", s, 0, 0 );
 		return (void*)(long)rc;
 	}
 
 	/* execute the queued request in the same thread */
 	if( new_op ) {
-		rc = (long)connection_operation(
-			ldap_pvt_thread_pool_context(), new_op );
+		rc = (long)connection_operation( ctx, new_op );
 	}
 
 	return (void*)(long)rc;
@@ -1437,7 +1438,9 @@ int connection_read_activate( ber_socket_t s )
 	 * thread reads data on it. Otherwise the listener thread will repeatedly
 	 * submit the same event on it to the pool.
 	 */
-	slapd_clr_read( s, 0 );
+	rc = slapd_clr_read( s, 0 );
+	if ( rc )
+		return rc;
 
 	rc = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_read_thread, (void *)(long)s );
@@ -1473,7 +1476,6 @@ int connection_read(ber_socket_t s)
 		Debug( LDAP_DEBUG_ANY,
 			"connection_read(%ld): no connection!\n",
 			(long) s, 0, 0 );
-		slapd_remove(s, 1, 0);
 
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 		return -1;
@@ -2080,7 +2082,6 @@ int connection_write(ber_socket_t s)
 		Debug( LDAP_DEBUG_ANY,
 			"connection_write(%ld): no connection!\n",
 			(long)s, 0, 0 );
-		slapd_remove(s, 1, 0);
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX( s ) );
 		return -1;
 	}
