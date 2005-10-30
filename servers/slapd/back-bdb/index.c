@@ -433,7 +433,7 @@ int bdb_index_recrun(
 {
 	IndexRec *ir;
 	AttrList *al;
-	int i, rc;
+	int i, rc = 0;
 
 	for (i=base; i<bdb->bi_nattrs; i+=slap_tool_thread_max) {
 		ir = ir0 + i;
