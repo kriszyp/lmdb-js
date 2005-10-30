@@ -1333,14 +1333,6 @@ operations_error:
 		connection_closing( conn,
 			tag == LDAP_REQ_UNBIND ? NULL : "operations error" );
 		break;
-
-	case LDAP_REQ_BIND:
-		conn->c_sasl_bind_in_progress =
-			rc == LDAP_SASL_BIND_IN_PROGRESS ? 1 : 0;
-
-		if( conn->c_conn_state == SLAP_C_BINDING) {
-			conn->c_conn_state = SLAP_C_ACTIVE;
-		}
 	}
 
 	connection_resched( conn );
@@ -1978,12 +1970,28 @@ connection_init_log_prefix( Operation *op )
 	}
 }
 
+static int connection_bind_cb( Operation *op, SlapReply *rs )
+{
+	slap_callback *cb = op->o_callback;
+	op->o_callback = cb->sc_next;
+
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+	op->o_conn->c_conn_state = SLAP_C_ACTIVE;
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+
+	return SLAP_CB_CONTINUE;
+}
+
 static void connection_op_queue( Operation *op )
 {
 	int status;
 	ber_tag_t tag = op->o_tag;
 
 	if (tag == LDAP_REQ_BIND) {
+		slap_callback *sc = ch_calloc( 1, sizeof( slap_callback ));
+		sc->sc_response = connection_bind_cb;
+		sc->sc_next = op->o_callback;
+		op->o_callback = sc;
 		op->o_conn->c_conn_state = SLAP_C_BINDING;
 	}
 
