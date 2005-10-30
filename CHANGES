@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.30 Engineering
+	Fixed slapd spurious deferred binding messages (ITS#3850)
 	Fixed back-ldap empty real/virtual naming ctx suffixmassage (ITS#4071)
 
 OpenLDAP 2.2.29 Release
