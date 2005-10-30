@@ -2025,18 +2025,10 @@ slapd_daemon_task(
 	 * an event, so we could use pointers to the listener structure
 	 * instead of just the file descriptor. For /dev/poll we have to
 	 * search the listeners array for a matching descriptor.
+	 *
+	 * We now handle wake events when we see them; they are not given
+	 * higher priority.
 	 */
-		/* if waking is set and we woke up, we'll read whatever
-		 * we can.
-		 */
-		if ( waking ) {
-			char c[BUFSIZ];
-			tcp_read( wake_sds[0], c, sizeof(c) );
-			waking = 0;
-			ns--;
-			continue;
-		}
-
 #ifdef LDAP_DEBUG
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
 
@@ -2084,8 +2076,13 @@ slapd_daemon_task(
 			if ( rc ) {
 				fd = SLAP_EVENT_FD( i );
 
-				/* Ignore wake events, they were handled above */
-				if ( fd == wake_sds[0] ) continue;
+				/* Handle wake events */
+				if ( fd == wake_sds[0] ) {
+					char c[BUFSIZ];
+					tcp_read( wake_sds[0], c, sizeof(c) );
+					waking = 0;
+					break;
+				}
 
 				if( SLAP_EVENT_IS_WRITE( i ) ) {
 					Debug( LDAP_DEBUG_CONNS,
