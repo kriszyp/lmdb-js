@@ -13,7 +13,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS:
- * This work was initially developed by Kurt Spanier for inclusion
+ * This work was initially developed by Howard Chu for inclusion
  * in OpenLDAP Software.
  */
 
@@ -36,12 +36,19 @@
 
 #define LOOPS	100
 
-static void
+static int
 do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop );
 
-static void
+static int
 do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop );
 
+/* This program can be invoked two ways: if -D is used to specify a Bind DN,
+ * that DN will be used repeatedly for all of the Binds. If instead -b is used
+ * to specify a base DN, a search will be done for all "person" objects under
+ * that base DN. Then DNs from this list will be randomly selected for each
+ * Bind request. All of the users must have identical passwords. Also it is
+ * assumed that the users are all onelevel children of the base.
+ */
 static void
 usage( char *name )
 {
@@ -110,11 +117,11 @@ main( int argc, char **argv )
 }
 
 
-static void
+static int
 do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop )
 {
 	LDAP	*ld = NULL;
-	int  	i;
+	int  	i, rc;
 	char	*attrs[] = { "1.1", NULL };
 	pid_t	pid = getpid();
 
@@ -124,7 +131,6 @@ do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop )
 
 	for ( i = 0; i < maxloop; i++ ) {
 		LDAPMessage *res;
-		int         rc;
 
 		if ( uri ) {
 			ldap_initialize( &ld, uri );
@@ -133,6 +139,7 @@ do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop )
 		}
 		if ( ld == NULL ) {
 			perror( "ldap_init" );
+			rc = -1;
 			break;
 		}
 
@@ -155,10 +162,11 @@ do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop )
 	if ( maxloop > 1 )
 		fprintf( stderr, " PID=%ld - Bind done.\n", (long) pid );
 
+	return rc;
 }
 
 
-static void
+static int
 do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop )
 {
 	LDAP	*ld = NULL;
@@ -170,6 +178,7 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop )
 	char **rdns = NULL;
 	char *attrs[] = { "dn", NULL };
 	int nrdns = 0;
+	time_t beg, end;
 
 	srand(pid);
 
@@ -196,7 +205,7 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop )
 		exit( EXIT_FAILURE );
 	}
 
-	rc = ldap_search_ext( ld, base, LDAP_SCOPE_SUBTREE,
+	rc = ldap_search_ext( ld, base, LDAP_SCOPE_ONE,
 			filter, attrs, 0, NULL, NULL, 0, 0, &msgid );
 	if ( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_search_ex" );
@@ -235,6 +244,7 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop )
 	}
 	ldap_unbind( ld );
 
+	beg = time(0L);
 	/* Ok, got list of RDNs, now start binding to each */
 	for (i=0; i<maxloop; i++) {
 		char dn[BUFSIZ], *ptr;
@@ -242,6 +252,10 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop )
 		ptr = lutil_strcopy(dn, rdns[j]);
 		*ptr++ = ',';
 		strcpy(ptr, base);
-		do_bind( uri, host, port, dn, pass, 1 );
+		if ( do_bind( uri, host, port, dn, pass, 1 ))
+			break;
 	}
+	end = time(0L);
+	fprintf( stderr, "Done %d Binds in %d seconds.\n", i, end - beg );
+	return 0;
 }
