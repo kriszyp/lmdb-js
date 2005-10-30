@@ -300,16 +300,23 @@ send_ldap_response(
 	int		rc = LDAP_SUCCESS;
 	long	bytes;
 
-	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
-		rc = SLAP_CB_CONTINUE;
-		for ( ; op->o_callback; ) {
-			if ( op->o_callback->sc_response ) {
-				rc = op->o_callback->sc_response( op, rs );
-				if ( rc != SLAP_CB_CONTINUE ) break;
-			}
-			op->o_callback = op->o_callback->sc_next;
-		}
+  	if ( op->o_callback ) {
+		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
+			*sc_next;
+  
+  		rc = SLAP_CB_CONTINUE;
+  		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+  			sc_next = op->o_callback->sc_next;
+  			if ( op->o_callback->sc_response ) {
+  				rc = op->o_callback->sc_response( op, rs );
+				if ( op->o_callback != *sc_prev ) {
+					*sc_prev = op->o_callback;
+  				}
+				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
+  			}
+			sc_prev = &op->o_callback->sc_next;
+  		}
+
 		op->o_callback = sc;
 		if ( rc != SLAP_CB_CONTINUE ) goto clean2;
 	}
@@ -479,18 +486,19 @@ cleanup:
 
 clean2:;
 	if ( op->o_callback ) {
-		int		first = 1;
-		slap_callback	*sc = op->o_callback, *sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
+			*sc_next;
 
 		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( first && op->o_callback != sc ) {
-					sc = op->o_callback;
+				if ( op->o_callback != *sc_prev ) {
+					*sc_prev = op->o_callback;
 				}
+				if ( !op->o_callback ) break;
 			}
-			first = 0;
+			sc_prev = &op->o_callback->sc_next;
 		}
 		op->o_callback = sc;
 	}
@@ -756,15 +764,21 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCH;
 	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
+		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
+			*sc_next;
 		rc = SLAP_CB_CONTINUE;
-		for ( ; op->o_callback; ) {
-			if ( op->o_callback->sc_response ) {
-				rc = op->o_callback->sc_response( op, rs );
-				if ( rc != SLAP_CB_CONTINUE ) break;
-			}
-			op->o_callback = op->o_callback->sc_next;
-		}
+  		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+  			sc_next = op->o_callback->sc_next;
+  			if ( op->o_callback->sc_response ) {
+  				rc = op->o_callback->sc_response( op, rs );
+				if ( op->o_callback != *sc_prev ) {
+					*sc_prev = op->o_callback;
+  				}
+				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
+  			}
+			sc_prev = &op->o_callback->sc_next;
+  		}
+  
 		op->o_callback = sc;
 		if ( rc != SLAP_CB_CONTINUE ) goto error_return;
 	}
@@ -1348,18 +1362,19 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 error_return:;
 	if ( op->o_callback ) {
-		int		first = 1;
-		slap_callback	*sc = op->o_callback, *sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
+			*sc_next;
 
 		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( first && op->o_callback != sc ) {
-					sc = op->o_callback;
+				if ( op->o_callback != *sc_prev ) {
+					*sc_prev = op->o_callback;
 				}
+				if ( !op->o_callback ) break;
 			}
-			first = 0;
+			sc_prev = &op->o_callback->sc_next;
 		}
 		op->o_callback = sc;
 	}
@@ -1398,16 +1413,23 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
 	rs->sr_type = REP_SEARCHREF;
-	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
-		rc = SLAP_CB_CONTINUE;
-		for ( ; op->o_callback; ) {
-			if ( op->o_callback->sc_response ) {
-				rc = op->o_callback->sc_response( op, rs );
-				if ( rc != SLAP_CB_CONTINUE ) break;
-			}
-			op->o_callback = op->o_callback->sc_next;
-		}
+	if ( op->o_callback ) {
+		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
+			*sc_next;
+  
+  		rc = SLAP_CB_CONTINUE;
+  		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+  			sc_next = op->o_callback->sc_next;
+  			if ( op->o_callback->sc_response ) {
+  				rc = op->o_callback->sc_response( op, rs );
+				if ( op->o_callback != *sc_prev ) {
+					*sc_prev = op->o_callback;
+  				}
+				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
+  			}
+			sc_prev = &op->o_callback->sc_next;
+  		}
+
 		op->o_callback = sc;
 		if ( rc != SLAP_CB_CONTINUE ) goto rel;
 	}
@@ -1564,18 +1586,19 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 rel:
 	if ( op->o_callback ) {
-		int		first = 1;
-		slap_callback *sc = op->o_callback, *sc_next;
-
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next ) {
-			sc_next = op->o_callback->sc_next;
-			if ( op->o_callback->sc_cleanup ) {
-				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( first && op->o_callback != sc ) {
-					sc = op->o_callback;
-				}
-			}
-			first = 0;
+		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
+			*sc_next;
+  
+  		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+  			sc_next = op->o_callback->sc_next;
+  			if ( op->o_callback->sc_cleanup ) {
+  				(void)op->o_callback->sc_cleanup( op, rs );
+				if ( op->o_callback != *sc_prev ) {
+					*sc_prev = op->o_callback;
+  				}
+				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
+  			}
+			sc_prev = &op->o_callback->sc_next;
 		}
 		op->o_callback = sc;
 	}
