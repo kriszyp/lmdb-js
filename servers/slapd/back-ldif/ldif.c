@@ -767,7 +767,8 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	int statres;
 	char textbuf[SLAP_TEXT_BUFLEN];
 
-	slap_add_opattrs( op, &rs->sr_text, textbuf, sizeof( textbuf ), 1 );
+	slap_add_opattrs( op, &rs->sr_text, textbuf, sizeof( textbuf ),
+		op->o_bd->be_pcl_mutexp != NULL ? 1 : 0 );
 
 	rs->sr_err = entry_schema_check(op, e, NULL, 0,
 		&rs->sr_text, textbuf, sizeof( textbuf ) );
