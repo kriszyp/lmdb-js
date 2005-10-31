@@ -303,7 +303,7 @@ int ldap_pvt_get_hname(
 		rc = 0;
 	} else {
 		rc = h_errno;
-		*err = (char *)hp_strerror( h_errno );
+		*err = (char *)HSTRERROR( h_errno );
 	}
 #if defined( LDAP_R_COMPILE )
 	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
