@@ -958,6 +958,8 @@ config_generic(ConfigArgs *c) {
 				else
 					end = frontendDB->be_acl;
 				acl_destroy( c->be->be_acl, end );
+				c->be->be_acl = end;
+
 			} else {
 				AccessControl **prev, *a;
 				int i;
@@ -1132,7 +1134,9 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_ACL:
-			parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx);
+			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx) ) {
+				return 1;
+			}
 			break;
 
 		case CFG_REPLOG:
