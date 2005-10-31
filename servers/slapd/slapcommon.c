@@ -245,7 +245,38 @@ slap_tool_init(
 			break;
 
 		case 'd':	/* turn on debugging */
-			ldap_debug += atoi( optarg );
+#ifdef LDAP_DEBUG
+			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
+			{
+				int	level;
+
+				if ( str2loglevel( optarg, &level ) ) {
+					fprintf( stderr,
+						"unrecognized log level "
+						"\"%s\"\n", optarg );
+					exit( EXIT_FAILURE );
+				}
+
+				ldap_debug |= level;
+
+			} else {
+				int	level;
+				char	*next = NULL;
+
+				level = strtol( optarg, &next, 0 );
+				if ( next == NULL || next[ 0 ] != '\0' ) {
+					fprintf( stderr,
+						"unrecognized log level "
+						"\"%s\"\n", optarg );
+					exit( EXIT_FAILURE );
+				}
+				ldap_debug |= level;
+			}
+#else
+			if ( atoi( optarg ) != 0 )
+				fputs( "must compile with LDAP_DEBUG for debugging\n",
+				       stderr );
+#endif
 			break;
 
 		case 'D':
