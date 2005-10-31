@@ -2241,11 +2241,11 @@ acl_usage( void )
 	char *access =
 		"<access clause> ::= access to <what> "
 				"[ by <who> <access> [ <control> ] ]+ \n";
-
 	char *what =
-		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
-		"<attrlist> ::= <attr> [val[/matchingRule][.<attrstyle>]=<value>] | <attr> , <attrlist>\n"
-		"<attr> ::= <attrname> | entry | children\n";
+		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrspec>]\n"
+		"<attrspec> ::= <attrname> [val[/<matchingRule>][.<attrstyle>]=<value>] | <attrlist>\n"
+		"<attrlist> ::= <attr> [ , <attrlist> ]\n"
+		"<attr> ::= <attrname> | @<objectClass> | !<objectClass> | entry | children\n";
 
 	char *who =
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
@@ -2282,7 +2282,7 @@ acl_usage( void )
 #endif /* ! SLAP_DYNACL */
 		"";
 
-	Debug( LDAP_DEBUG_ANY, "%s%s%s\n", access, who, what );
+	Debug( LDAP_DEBUG_ANY, "%s%s%s\n", access, what, who );
 
 	return 1;
 }
