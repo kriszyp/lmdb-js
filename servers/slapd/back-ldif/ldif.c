@@ -831,7 +831,8 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	int spew_res;
 
 	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, op->orm_modlist, 1 );
+		slap_mods_opattrs( op, op->orm_modlist,
+			op->o_bd->be_pcl_mutexp != NULL ? 1 : 0 );
 
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
 	dn2path(&op->o_req_ndn, &op->o_bd->be_nsuffix[0], &ni->li_base_path,
