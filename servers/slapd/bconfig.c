@@ -40,7 +40,7 @@
 static struct berval config_rdn = BER_BVC("cn=config");
 static struct berval schema_rdn = BER_BVC("cn=schema");
 
-#define	IFMT	"{%d}"
+#define	SLAP_X_ORDERED_FMT	"{%d}"
 
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
@@ -721,7 +721,7 @@ config_generic(ConfigArgs *c) {
 				int i;
 
 				for ( i=0; c->be->be_limits[i]; i++ ) {
-					bv.bv_len = sprintf( buf, IFMT, i );
+					bv.bv_len = sprintf( buf, SLAP_X_ORDERED_FMT, i );
 					bv.bv_val = buf+bv.bv_len;
 					limits_unparse( c->be->be_limits[i], &bv );
 					bv.bv_len += bv.bv_val - buf;
@@ -807,7 +807,7 @@ config_generic(ConfigArgs *c) {
 			char *src, *dst, ibuf[11];
 			struct berval bv, abv;
 			for (i=0, a=c->be->be_acl; a; i++,a=a->acl_next) {
-				abv.bv_len = sprintf( ibuf, IFMT, i );
+				abv.bv_len = sprintf( ibuf, SLAP_X_ORDERED_FMT, i );
 				acl_unparse( a, &bv );
 				abv.bv_val = ch_malloc( abv.bv_len + bv.bv_len + 1 );
 				AC_MEMCPY( abv.bv_val, ibuf, abv.bv_len );
@@ -863,7 +863,7 @@ config_generic(ConfigArgs *c) {
 				for (i=0; !BER_BVISNULL(&mp->mp_loads[i]); i++) {
 					struct berval bv;
 					bv.bv_val = c->log;
-					bv.bv_len = sprintf( bv.bv_val, IFMT "%s", i,
+					bv.bv_len = sprintf( bv.bv_val, SLAP_X_ORDERED_FMT "%s", i,
 						mp->mp_loads[i].bv_val );
 					value_add_one( &c->rvalue_vals, &bv );
 				}
@@ -896,7 +896,7 @@ config_generic(ConfigArgs *c) {
 
 				idx.bv_val = ibuf;
 				for ( i=0; !BER_BVISNULL( &authz_rewrites[i] ); i++ ) {
-					idx.bv_len = sprintf( idx.bv_val, IFMT, i );
+					idx.bv_len = sprintf( idx.bv_val, SLAP_X_ORDERED_FMT, i );
 					bv.bv_len = idx.bv_len + authz_rewrites[i].bv_len;
 					bv.bv_val = ch_malloc( bv.bv_len + 1 );
 					strcpy( bv.bv_val, idx.bv_val );
@@ -2255,7 +2255,7 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 	struct berval bc = BER_BVNULL;
 	char numbuf[32];
 
-	len = sprintf(numbuf, IFMT, i );
+	len = sprintf(numbuf, SLAP_X_ORDERED_FMT, i );
 
 	len += strlen( ri->ri_uri ) + STRLENOF("uri=");
 	if ( ri->ri_nsuffix ) {
@@ -3109,7 +3109,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 			if (!a ) return LDAP_NAMING_VIOLATION;
 
 			ival.bv_val = ibuf;
-			ival.bv_len = sprintf( ibuf, IFMT, nsibs );
+			ival.bv_len = sprintf( ibuf, SLAP_X_ORDERED_FMT, nsibs );
 			
 			newrdn.bv_len = rdn.bv_len + ival.bv_len;
 			newrdn.bv_val = ch_malloc( newrdn.bv_len+1 );
@@ -4045,7 +4045,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		ptr = strchr( bv.bv_val, '.' );
 		if ( ptr )
 			bv.bv_len = ptr - bv.bv_val;
-		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=" IFMT, c->depth);
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=" SLAP_X_ORDERED_FMT, c->depth);
 		strncpy( c->value_dn.bv_val + c->value_dn.bv_len, bv.bv_val,
 			bv.bv_len );
 		c->value_dn.bv_len += bv.bv_len;
@@ -4071,7 +4071,7 @@ config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 
 	for (i=0; cf; cf=cf->c_sibs, i++) {
 		c->value_dn.bv_val = c->log;
-		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=include" IFMT, i);
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=include" SLAP_X_ORDERED_FMT, i);
 		c->private = cf;
 		e = config_build_entry( op, rs, ceparent, c, &c->value_dn,
 			&CFOC_INCLUDE, NULL );
@@ -4095,7 +4095,7 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 		if ( BER_BVISNULL( &mp->mp_path ) && !mp->mp_loads )
 			continue;
 		c->value_dn.bv_val = c->log;
-		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=module" IFMT, i);
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=module" SLAP_X_ORDERED_FMT, i);
 		c->private = mp;
 		config_build_entry( op, rs, ceparent, c, &c->value_dn,
 			&CFOC_MODULE, NULL );
@@ -4210,7 +4210,7 @@ config_back_db_open( BackendDB *be )
 			bi = be->bd_info;
 		}
 		rdn.bv_val = c.log;
-		rdn.bv_len = sprintf(rdn.bv_val, "%s=" IFMT "%s", cfAd_database->ad_cname.bv_val,
+		rdn.bv_len = sprintf(rdn.bv_val, "%s=" SLAP_X_ORDERED_FMT "%s", cfAd_database->ad_cname.bv_val,
 			i, bi->bi_type);
 		c.be = be;
 		c.bi = bi;
@@ -4227,7 +4227,7 @@ config_back_db_open( BackendDB *be )
 
 			for (j=0,on=oi->oi_list; on; j++,on=on->on_next) {
 				rdn.bv_val = c.log;
-				rdn.bv_len = sprintf(rdn.bv_val, "%s=" IFMT "%s",
+				rdn.bv_len = sprintf(rdn.bv_val, "%s=" SLAP_X_ORDERED_FMT "%s",
 					cfAd_overlay->ad_cname.bv_val, j, on->on_bi.bi_type );
 				c.be = be;
 				c.bi = &on->on_bi;
