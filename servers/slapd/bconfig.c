@@ -4190,7 +4190,11 @@ config_back_db_open( BackendDB *be )
 		if (!bi->bi_private) continue;
 
 		rdn.bv_val = c.log;
-		rdn.bv_len = sprintf(rdn.bv_val, "%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
+		rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
+			"%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
+		if ( rdn.bv_len >= sizeof( c.log ) ) {
+			/* FIXME: holler ... */ ;
+		}
 		c.bi = bi;
 		e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_BACKEND,
 			bi->bi_cf_ocs );
@@ -4210,8 +4214,12 @@ config_back_db_open( BackendDB *be )
 			bi = be->bd_info;
 		}
 		rdn.bv_val = c.log;
-		rdn.bv_len = sprintf(rdn.bv_val, "%s=" SLAP_X_ORDERED_FMT "%s", cfAd_database->ad_cname.bv_val,
+		rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
+			"%s=" SLAP_X_ORDERED_FMT "%s", cfAd_database->ad_cname.bv_val,
 			i, bi->bi_type);
+		if ( rdn.bv_len >= sizeof( c.log ) ) {
+			/* FIXME: holler ... */ ;
+		}
 		c.be = be;
 		c.bi = bi;
 		e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_DATABASE,
@@ -4227,8 +4235,12 @@ config_back_db_open( BackendDB *be )
 
 			for (j=0,on=oi->oi_list; on; j++,on=on->on_next) {
 				rdn.bv_val = c.log;
-				rdn.bv_len = sprintf(rdn.bv_val, "%s=" SLAP_X_ORDERED_FMT "%s",
+				rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
+					"%s=" SLAP_X_ORDERED_FMT "%s",
 					cfAd_overlay->ad_cname.bv_val, j, on->on_bi.bi_type );
+				if ( rdn.bv_len >= sizeof( c.log ) ) {
+					/* FIXME: holler ... */ ;
+				}
 				c.be = be;
 				c.bi = &on->on_bi;
 				oe = config_build_entry( op, &rs, ce, &c, &rdn,
