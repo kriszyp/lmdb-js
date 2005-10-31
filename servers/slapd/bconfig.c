@@ -1984,7 +1984,8 @@ loglevel_init( void )
 		{ BER_BVC("Cache"),	LDAP_DEBUG_CACHE },
 		{ BER_BVC("Index"),	LDAP_DEBUG_INDEX },
 		{ BER_BVC("Sync"),	LDAP_DEBUG_SYNC },
-		{ BER_BVNULL,	0 }
+		{ BER_BVC("None"),	LDAP_DEBUG_NONE },
+		{ BER_BVNULL,		0 }
 	};
 
 	return slap_verbmasks_init( &loglevel_ops, lo );
