@@ -380,8 +380,7 @@ retry:;
 			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
 				ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 				if ( mc->mc_refcnt == 1 ) {
-					ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
-					msc->msc_ld = NULL;
+					meta_clear_one_candidate( msc );
 				        LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
 					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
@@ -558,8 +557,7 @@ retry:;
 				}
 
 				if ( mc->mc_refcnt == 1 ) {
-					ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
-					msc->msc_ld = NULL;
+					meta_clear_one_candidate( msc );
 				        LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
 					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
