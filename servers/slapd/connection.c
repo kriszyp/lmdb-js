@@ -1789,6 +1789,7 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 	op->o_conn->c_conn_state = SLAP_C_ACTIVE;
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
+	ch_free( cb );
 	return SLAP_CB_CONTINUE;
 }
 
