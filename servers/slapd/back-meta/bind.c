@@ -184,7 +184,9 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			rs->sr_err = lerr;
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 
-			if ( META_BACK_ONERR_STOP( mi ) ) {
+			if ( lerr == LDAP_INVALID_CREDENTIALS
+				|| META_BACK_ONERR_STOP( mi ) )
+			{
 				rc = rs->sr_err;
 				break;
 			}
