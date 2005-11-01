@@ -12,9 +12,9 @@ backend database on another database. This allows all of the activity on
 a given database to be reviewed using arbitrary LDAP queries, instead of
 just logging to local flat text files. Configuration options are available
 for selecting a subset of operation types to log, and to automatically
-prune older log records from the logging database. Log records are stored
-with a custom schema to assure their readability whether viewed as LDIF
-or in raw form.
+prune older log records from the logging database.  Log records are stored
+with audit schema (see below) to assure their readability whether viewed
+as LDIF or in raw form.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -98,10 +98,23 @@ succeed or not. The default is FALSE.
 	logops writes reads
 .fi
 
-.SH OBJECT CLASSES
+.SH SCHEMA
 The
 .B accesslog
-overlay defines a number of object classes for use in the logs. There is
+overlay utilizes the "audit" schema described herein.
+This schema is specifically designed for
+.B accesslog
+auditing and is not intended to be used otherwise.  It is also
+noted that the schema describe here is
+.I a work in
+.IR progress ,
+and hence subject to change without notice.
+The schema is loaded automatically by the overlay.
+
+The schema includes a number of object classes and associated
+attribute types as described below.
+
+There is
 a basic
 .B auditObject
 class from which two additional classes,
@@ -148,7 +161,7 @@ being logged, e.g.
 .BR search ,
 etc. For extended operations, the type also includes the OID of the
 extended operation, e.g.
-.B extended(1.2.3.4.1)
+.B extended(1.1.1.1)
 
 The
 .B reqSession
