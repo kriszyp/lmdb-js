@@ -919,7 +919,8 @@ hdb_dn2idl_internal(
 
 		cx->rc = cx->db->cursor( cx->db, NULL, &cx->dbc,
 			cx->bdb->bi_db_opflags );
-		if ( cx->rc ) return cx->rc;
+		if ( cx->rc )
+			goto done_one;
 
 		cx->data.data = &cx->dbuf;
 		cx->data.ulen = sizeof(ID);
@@ -932,7 +933,7 @@ hdb_dn2idl_internal(
 		cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
 		if ( cx->rc ) {
 			cx->dbc->c_close( cx->dbc );
-			return cx->rc;
+			goto done_one;
 		}
 
 		/* If the on-disk count is zero we've never checked it.
@@ -977,6 +978,13 @@ hdb_dn2idl_internal(
 			}
 		}
 		cx->rc = cx->dbc->c_close( cx->dbc );
+done_one:
+		bdb_cache_entryinfo_lock( cx->ei );
+		cx->ei->bei_state ^= CACHE_ENTRY_ONELEVEL;
+		bdb_cache_entryinfo_unlock( cx->ei );
+		if ( cx->rc )
+			return cx->rc;
+
 	} else {
 		/* The in-memory cache is in sync with the on-disk data.
 		 * do we have any kids?
