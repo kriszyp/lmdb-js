@@ -301,8 +301,7 @@ send_ldap_response(
 	long	bytes;
 
   	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
-			*sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
   
   		rc = SLAP_CB_CONTINUE;
   		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
@@ -486,8 +485,7 @@ cleanup:
 
 clean2:;
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
-			*sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
 
 		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
 			sc_next = op->o_callback->sc_next;
@@ -764,8 +762,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCH;
 	if (op->o_callback) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
-			*sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
 		rc = SLAP_CB_CONTINUE;
   		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
   			sc_next = op->o_callback->sc_next;
@@ -1362,8 +1359,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 error_return:;
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
-			*sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
 
 		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
 			sc_next = op->o_callback->sc_next;
@@ -1414,8 +1410,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCHREF;
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
-			*sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
   
   		rc = SLAP_CB_CONTINUE;
   		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
@@ -1586,8 +1581,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 rel:
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &op->o_callback,
-			*sc_next;
+		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
   
   		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
   			sc_next = op->o_callback->sc_next;
