@@ -1990,7 +1990,6 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 
 static void connection_op_queue( Operation *op )
 {
-	int status;
 	ber_tag_t tag = op->o_tag;
 
 	if (tag == LDAP_REQ_BIND) {
@@ -2035,7 +2034,6 @@ static void connection_op_queue( Operation *op )
 static int connection_op_activate( Operation *op )
 {
 	int rc;
-	ber_tag_t tag = op->o_tag;
 
 	connection_op_queue( op );
 
