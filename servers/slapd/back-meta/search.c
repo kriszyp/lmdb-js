@@ -926,6 +926,7 @@ meta_send_entry(
 		ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
 		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
+			( void )ber_scanf( &ber, "x" /* [W] */ );
 			continue;
 		}
 		attr = ( Attribute * )ch_calloc( 1, sizeof( Attribute ) );
