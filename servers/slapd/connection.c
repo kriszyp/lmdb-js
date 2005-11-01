@@ -268,6 +268,9 @@ int connections_destroy(void)
 		ldap_pvt_thread_mutex_destroy( &connections_mutex[i] );
 	}
 
+	free( connections );
+	free( connections_mutex );
+
 	ldap_pvt_thread_mutex_destroy( &conn_nextid_mutex );
 
 	return 0;
