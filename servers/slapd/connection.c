@@ -43,7 +43,6 @@
 #include "slapi/slapi.h"
 #endif
 
-
 #ifdef SLAP_MULTI_CONN_ARRAY
 /* for Multiple Connection Arrary (MCA) Support */
 static ldap_pvt_thread_mutex_t* connections_mutex;
@@ -55,6 +54,8 @@ static Connection **connections = NULL;
 /* partition the array in a modulo manner */
 #	define MCA_conn_array_id(fd)		((int)(fd)%NUM_CONNECTION_ARRAY)
 #	define MCA_conn_array_element_id(fd)	((int)(fd)/NUM_CONNECTION_ARRAY)
+#	define MCA_ARRAY_SIZE			((int)(MCA_conn_array_element_id(dtblsize) + (MCA_conn_array_id(dtblsize) ? 1 : 0)))
+#	define MCA_conn_check(fd)		(dtblsize > 0 && (fd) >= 0 && (fd) < (MCA_ARRAY_SIZE*NUM_CONNECTION_ARRAY))
 #	define MCA_GET_CONNECTION(fd) (&(connections[MCA_conn_array_id(fd)]) \
 		[MCA_conn_array_element_id(fd)])
 #	define MCA_GET_CONN_MUTEX(fd) (&connections_mutex[MCA_conn_array_id(fd)])
@@ -64,6 +65,7 @@ static Connection **connections = NULL;
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
 
+#	define MCA_conn_check(fd)		(dtblsize > 0 && (fd) < dtblsize)
 #	define MCA_GET_CONNECTION(fd) (&connections[s])
 #	define MCA_GET_CONN_MUTEX(fd) (&connections_mutex)
 #endif
@@ -126,8 +128,8 @@ static ldap_pvt_thread_start_t connection_operation;
 int connections_init(void)
 #ifdef SLAP_MULTI_CONN_ARRAY
 {
-	int i, j;
-	Connection* conn;
+	int		i, j;
+	Connection*	conn;
 
 	assert( connections == NULL );
 
@@ -156,7 +158,7 @@ int connections_init(void)
 	for ( i = 0; i < NUM_CONNECTION_ARRAY; i++ ) {
 		ldap_pvt_thread_mutex_init( connections_mutex+i );
 		connections[i] = (Connection*) ch_calloc(
-			dtblsize/NUM_CONNECTION_ARRAY, sizeof(Connection) );
+			MCA_ARRAY_SIZE, sizeof(Connection) );
 		if( connections[i] == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "connections_init: "
 				"allocation (%d*%ld) of connection array[%d] failed\n",
@@ -174,7 +176,7 @@ int connections_init(void)
 
 	for ( i = 0; i < NUM_CONNECTION_ARRAY; i++ ) {
 		conn = connections[i];
-		for ( j = 0; j < (dtblsize/NUM_CONNECTION_ARRAY); j++ ) {
+		for ( j = 0; j < MCA_ARRAY_SIZE; j++ ) {
 			conn[j].c_conn_idx = j;
 		}
 	}
@@ -243,7 +245,7 @@ int connections_destroy(void)
 
     for ( i = 0; i < NUM_CONNECTION_ARRAY; i++ ) {
 		Connection* conn = connections[i];
-		for ( j = 0; j < (dtblsize/NUM_CONNECTION_ARRAY); j++ ) {
+		for ( j = 0; j < MCA_ARRAY_SIZE; j++ ) {
 			if( conn[j].c_struct_state != SLAP_C_UNINITIALIZED ) {
 				ber_sockbuf_free( conn[j].c_sb );
 				ldap_pvt_thread_mutex_destroy( &conn[j].c_mutex );
@@ -319,7 +321,7 @@ int connections_shutdown(void)
 	for ( i = 0; i < NUM_CONNECTION_ARRAY; i++ ) {
 		Connection* conn = connections[i];
 		ldap_pvt_thread_mutex_lock( &connections_mutex[i] );
-		for ( j = 0; j < (dtblsize/NUM_CONNECTION_ARRAY); j++ ) {
+		for ( j = 0; j < MCA_ARRAY_SIZE; j++ ) {
 			if( conn[j].c_struct_state != SLAP_C_USED ) {
 				continue;
 			}
@@ -421,6 +423,7 @@ static Connection* connection_get( ber_socket_t s )
 	if(s == AC_SOCKET_INVALID) return NULL;
 
 #ifndef HAVE_WINSOCK
+	assert( MCA_conn_check( s ) );
 	c = MCA_GET_CONNECTION(s);
 
 	assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
@@ -540,6 +543,7 @@ long connection_init(
 	ldap_pvt_thread_mutex_lock( MCA_GET_CONN_MUTEX(s) );
 
 #ifndef HAVE_WINSOCK
+	assert( MCA_conn_check( s ) );
 	c = MCA_GET_CONNECTION(s);
 #else
 	{
@@ -1030,13 +1034,14 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 
 	assert( connections != NULL );
 	assert( index != NULL );
-	assert( *index <= (dtblsize/NUM_CONNECTION_ARRAY) );
+	assert( *index >= 0 && *index < MCA_ARRAY_SIZE );
 
 	if( c != NULL ) ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
 	c = NULL;
 
 	for(; *index < dtblsize; (*index)++) {
+		assert( MCA_conn_check( *index ) );
 		conn = MCA_GET_CONNECTION(*index);
 		if( conn->c_struct_state == SLAP_C_UNINITIALIZED ) {
 			assert( conn->c_conn_state == SLAP_C_INVALID );
