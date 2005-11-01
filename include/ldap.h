@@ -204,10 +204,11 @@ typedef struct ldapcontrol {
 
 /* LDAP Controls */
 /*	standard track controls */
-#define LDAP_CONTROL_MANAGEDSAIT		"2.16.840.1.113730.3.4.2" /* RFC 3296 */
-#define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1" /* RFC 3672 */
-#define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"  /* RFC 2696 */
-#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"  /* RFC 3876 */
+#define LDAP_CONTROL_MANAGEDSAIT	"2.16.840.1.113730.3.4.2"  /* RFC 3296 */
+#define LDAP_CONTROL_PROXY_AUTHZ	"2.16.840.1.113730.3.4.18" /* RFC TBD  */
+#define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"  /* RFC 3672 */
+
+#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3" /*RFC 3876*/
 #define LDAP_CONTROL_ASSERT				"1.3.6.1.1.12"
 #define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"
 #define LDAP_CONTROL_POST_READ			"1.3.6.1.1.13.2"
@@ -216,8 +217,8 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
 
-/* but not yet formalized controls *//* submitted for publication */
-#define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
+/*	non-standard track controls */
+#define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"   /* RFC 2696 */
 
 /* various works in progress */
 #define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
@@ -292,14 +293,16 @@ typedef struct ldapcontrol {
 #define LDAP_REFERRALS_REQUIRED				3
 #endif
 
-/* MS ActiveDirectory controls (for compatibility) */
-#define LDAP_CONTROL_X_DOMAIN_SCOPE		"1.2.840.113556.1.4.1339"
-#define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
+/* MS Active Directory controls (for compatibility) */
 #define LDAP_CONTROL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
-#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
+#define LDAP_CONTROL_X_DOMAIN_SCOPE			"1.2.840.113556.1.4.1339"
+#define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
 #define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
-#define LDAP_SEARCH_FLAG_DOMAIN_SCOPE		1 /* do not generate referrals */
-#define LDAP_SEARCH_FLAG_PHANTOM_ROOT		2 /* search all NCs subordinate to base */
+#define LDAP_SEARCH_FLAG_DOMAIN_SCOPE 1 /* do not generate referrals */
+#define LDAP_SEARCH_FLAG_PHANTOM_ROOT 2 /* search all subordinate NCs */
+
+/* MS Active Directory controls - not implemented in slapd(8) */
+#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
 
 /* LDAP Unsolicited Notifications */
