@@ -131,7 +131,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		c->argv[1] = "";
 	}
 	if(Conf->min_args && (c->argc < Conf->min_args)) {
-		sprintf( c->msg, "<%s> missing <%s> argument",
+		snprintf( c->msg, sizeof( c->msg ), "<%s> missing <%s> argument",
 			c->argv[0], Conf->what );
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n", c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
@@ -139,7 +139,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 	if(Conf->max_args && (c->argc > Conf->max_args)) {
 		char	*ignored = " ignored";
 
-		sprintf( c->msg, "<%s> extra cruft after <%s>",
+		snprintf( c->msg, sizeof( c->msg ), "<%s> extra cruft after <%s>",
 			c->argv[0], Conf->what );
 
 #ifdef LDAP_DEVEL
@@ -152,34 +152,34 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 #endif /* LDAP_DEVEL */
 	}
 	if((arg_type & ARG_DB) && !c->be) {
-		sprintf( c->msg, "<%s> only allowed within database declaration",
+		snprintf( c->msg, sizeof( c->msg ), "<%s> only allowed within database declaration",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_BI) && c->bi) {
-		sprintf( c->msg, "<%s> must occur before any backend %sdeclaration",
+		snprintf( c->msg, sizeof( c->msg ), "<%s> must occur before any backend %sdeclaration",
 			c->argv[0], (arg_type & ARG_PRE_DB) ? "or database " : "" );
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
 			c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_DB) && c->be && c->be != frontendDB) {
-		sprintf( c->msg, "<%s> must occur before any database declaration",
+		snprintf( c->msg, sizeof( c->msg ), "<%s> must occur before any database declaration",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PAREN) && *c->argv[1] != '(' /*')'*/) {
-		sprintf( c->msg, "<%s> old format not supported", c->argv[0] );
+		snprintf( c->msg, sizeof( c->msg ), "<%s> old format not supported", c->argv[0] );
 		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARGS_POINTER) && !Conf->arg_item && !(arg_type & ARG_OFFSET)) {
-		sprintf( c->msg, "<%s> invalid config_table, arg_item is NULL",
+		snprintf( c->msg, sizeof( c->msg ), "<%s> invalid config_table, arg_item is NULL",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
 			c->log, c->msg, 0);
@@ -204,7 +204,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					!strcasecmp(c->argv[1], "false")) {
 					iarg = 0;
 				} else {
-					sprintf( c->msg, "<%s> invalid value, ignored",
+					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value, ignored",
 						c->argv[0] );
 					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
 						c->log, c->msg, 0 );
@@ -215,7 +215,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		j = (arg_type & ARG_NONZERO) ? 1 : 0;
 		if(iarg < j && larg < j && barg < j ) {
 			larg = larg ? larg : (barg ? barg : iarg);
-			sprintf( c->msg, "<%s> invalid value, ignored",
+			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value, ignored",
 				c->argv[0] );
 			Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
 				c->log, c->msg, 0 );
@@ -238,7 +238,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		ber_str2bv( c->argv[1], 0, 0, &bv );
 		rc = dnPrettyNormal( NULL, &bv, &c->value_dn, &c->value_ndn, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			sprintf( c->msg, "<%s> invalid DN %d (%s)",
+			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid DN %d (%s)",
 				c->argv[0], rc, ldap_err2string( rc ));
 			Debug(LDAP_DEBUG_CONFIG, "%s: %s\n" , c->log, c->msg, 0);
 			return(ARG_BAD_CONF);
@@ -265,7 +265,7 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 #endif
 		if(rc) {
 			if ( !c->msg[0] ) {
-				sprintf( c->msg, "<%s> handler exited with %d",
+				snprintf( c->msg, sizeof( c->msg ), "<%s> handler exited with %d",
 					c->argv[0], rc );
 				Debug(LDAP_DEBUG_CONFIG, "%s: %s!\n",
 					c->log, c->msg, 0 );
@@ -280,7 +280,7 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 		else if (c->bi)
 			ptr = c->bi->bi_private;
 		else {
-			sprintf( c->msg, "<%s> offset is missing base pointer",
+			snprintf( c->msg, sizeof( c->msg ), "<%s> offset is missing base pointer",
 				c->argv[0] );
 			Debug(LDAP_DEBUG_CONFIG, "%s: %s!\n",
 				c->log, c->msg, 0);
@@ -393,10 +393,10 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 	if ( cf->arg_type & ARGS_POINTER) {
 		bv.bv_val = c->log;
 		switch(cf->arg_type & ARGS_POINTER) {
-		case ARG_INT: bv.bv_len = sprintf(bv.bv_val, "%d", c->value_int); break;
-		case ARG_LONG: bv.bv_len = sprintf(bv.bv_val, "%ld", c->value_long); break;
-		case ARG_BER_LEN_T: bv.bv_len = sprintf(bv.bv_val, "%ld", c->value_ber_t); break;
-		case ARG_ON_OFF: bv.bv_len = sprintf(bv.bv_val, "%s",
+		case ARG_INT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%d", c->value_int); break;
+		case ARG_LONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_long); break;
+		case ARG_BER_LEN_T: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_ber_t); break;
+		case ARG_ON_OFF: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%s",
 			c->value_int ? "TRUE" : "FALSE"); break;
 		case ARG_STRING:
 			if ( c->value_string && c->value_string[0]) {
@@ -412,6 +412,9 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 				return 1;
 			}
 			break;
+		}
+		if (bv.bv_val == c->log && bv.bv_len >= sizeof( c->log ) ) {
+			return 1;
 		}
 		if (( cf->arg_type & ARGS_POINTER ) == ARG_STRING )
 			ber_bvarray_add(&c->rvalue_vals, &bv);
@@ -1385,7 +1388,7 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 	c.argc = argc;
 	c.argv = argv;
 	c.valx = -1;
-	sprintf( c.log, "%s: line %d", fname, lineno );
+	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
 
 	rc = SLAP_CONF_UNKNOWN;
 	ct = config_find_keyword( be->be_cf_ocs->co_table, &c );
