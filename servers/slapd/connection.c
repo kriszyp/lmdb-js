@@ -1410,21 +1410,21 @@ static int connection_read( ber_socket_t s, Operation** op );
 static void* connection_read_thread( void* ctx, void* argv )
 {
 	int rc ;
-	Operation* new_op = NULL;
+	Operation* new_op[2] = { NULL, NULL };
 	ber_socket_t s = (long)argv;
 
 	/*
 	 * read incoming LDAP requests. If there is more than one,
 	 * the first one is returned with new_op
 	 */
-	if( ( rc = connection_read( s, &new_op ) ) < 0 ) {
+	if( ( rc = connection_read( s, new_op ) ) < 0 ) {
 		Debug( LDAP_DEBUG_CONNS, "connection_read(%d) error\n", s, 0, 0 );
 		return (void*)(long)rc;
 	}
 
-	/* execute the queued request in the same thread */
-	if( new_op ) {
-		rc = (long)connection_operation( ctx, new_op );
+	/* execute a single queued request in the same thread */
+	if( new_op[0] && !new_op[1] ) {
+		rc = (long)connection_operation( ctx, new_op[0] );
 	}
 
 	return (void*)(long)rc;
@@ -1871,21 +1871,26 @@ connection_input( Connection *conn )
 	} else {
 		conn->c_n_ops_executing++;
 
-#if 0
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		/*
 		 * The first op will be processed in the same thread context,
+		 * as long as there is only one op total.
 		 * Subsequent ops will be submitted to the pool by
 		 * calling connection_op_activate()
 		 */
-		if ( *c_op == NULL ) {
+		if ( c_op[0] == NULL ) {
 			/* the first incoming request */
 			connection_op_queue( op );
-			*c_op = op;
-		} else
-#endif
-		{
+			c_op[0] = op;
+		} else {
+			c_op[1] = op;
+			rc = ldap_pvt_thread_pool_submit( &connection_pool,
+				connection_operation, (void *) c_op[0] );
 			connection_op_activate( op );
 		}
+#else
+		connection_op_activate( op );
+#endif
 	}
 
 #ifdef NO_THREADS
