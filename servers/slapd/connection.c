@@ -106,7 +106,15 @@ connection_state2str( int state )
 static Connection* connection_get( ber_socket_t s );
 
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-static int connection_input( Connection *c, Operation** op );
+
+typedef struct conn_readinfo {
+	Operation *op;
+	ldap_pvt_thread_start_t *func;
+	void *arg;
+	int nullop;
+} conn_readinfo;
+
+static int connection_input( Connection *c, conn_readinfo *cri );
 #else
 static int connection_input( Connection *c );
 #endif
@@ -1405,26 +1413,29 @@ void connection_client_stop(
 }
 
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-static int connection_read( ber_socket_t s, Operation** op );
+
+static int connection_read( ber_socket_t s, conn_readinfo *cri );
 
 static void* connection_read_thread( void* ctx, void* argv )
 {
 	int rc ;
-	Operation* new_op[2] = { NULL, NULL };
+	conn_readinfo cri = { NULL, NULL, NULL, 0 };
 	ber_socket_t s = (long)argv;
 
 	/*
 	 * read incoming LDAP requests. If there is more than one,
 	 * the first one is returned with new_op
 	 */
-	if( ( rc = connection_read( s, new_op ) ) < 0 ) {
+	if( ( rc = connection_read( s, &cri ) ) < 0 ) {
 		Debug( LDAP_DEBUG_CONNS, "connection_read(%d) error\n", s, 0, 0 );
 		return (void*)(long)rc;
 	}
 
 	/* execute a single queued request in the same thread */
-	if( new_op[0] && !new_op[1] ) {
-		rc = (long)connection_operation( ctx, new_op[0] );
+	if( cri.op && !cri.nullop ) {
+		rc = (long)connection_operation( ctx, cri.op );
+	} else if ( cri.func ) {
+		rc = (long)cri.func( ctx, cri.arg );
 	}
 
 	return (void*)(long)rc;
@@ -1458,7 +1469,7 @@ int connection_read_activate( ber_socket_t s )
 
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 static int
-connection_read( ber_socket_t s, Operation** op )
+connection_read( ber_socket_t s, conn_readinfo *cri )
 #else
 int connection_read(ber_socket_t s)
 #endif
@@ -1499,13 +1510,14 @@ int connection_read(ber_socket_t s)
 
 	if ( c->c_conn_state == SLAP_C_CLIENT ) {
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+		cri->func = c->c_clientfunc;
+		cri->arg = c->c_clientarg;
 		/* read should already be cleared */
 #else
 		slapd_clr_read( s, 0 );
-#endif
 		ldap_pvt_thread_pool_submit( &connection_pool,
 			c->c_clientfunc, c->c_clientarg );
-
+#endif
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( MCA_GET_CONN_MUTEX(s) );
 		return 0;
@@ -1632,7 +1644,7 @@ int connection_read(ber_socket_t s)
 	do {
 		/* How do we do this without getting into a busy loop ? */
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-		rc = connection_input( c, op );
+		rc = connection_input( c, cri );
 #else
 		rc = connection_input( c );
 #endif
@@ -1682,7 +1694,7 @@ int connection_read(ber_socket_t s)
 
 static int
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-connection_input( Connection *conn , Operation** c_op )
+connection_input( Connection *conn , conn_readinfo *cri )
 #else
 connection_input( Connection *conn )
 #endif
@@ -1878,14 +1890,14 @@ connection_input( Connection *conn )
 		 * Subsequent ops will be submitted to the pool by
 		 * calling connection_op_activate()
 		 */
-		if ( c_op[0] == NULL ) {
+		if ( cri->op == NULL ) {
 			/* the first incoming request */
 			connection_op_queue( op );
-			c_op[0] = op;
+			cri->op = op;
 		} else {
-			c_op[1] = op;
+			cri->nullop = 1;
 			rc = ldap_pvt_thread_pool_submit( &connection_pool,
-				connection_operation, (void *) c_op[0] );
+				connection_operation, (void *) cri->op );
 			connection_op_activate( op );
 		}
 #else
