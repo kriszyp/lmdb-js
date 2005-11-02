@@ -217,6 +217,9 @@ ldap_pvt_tls_init_def_ctx( void )
 
 	if ( !certfile && !keyfile && !cacertfile && !cacertdir ) {
 		/* minimum configuration not provided */
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
+#endif
 		return LDAP_NOT_SUPPORTED;
 	}
 
