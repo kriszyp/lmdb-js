@@ -81,10 +81,13 @@ rewrite_info_init(
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	if ( ldap_pvt_thread_rdwr_init( &info->li_cookies_mutex ) ) {
+		avl_free( info->li_context, rewrite_context_free );
 		free( info );
 		return NULL;
 	}
 	if ( ldap_pvt_thread_rdwr_init( &info->li_params_mutex ) ) {
+		ldap_pvt_thread_rdwr_destroy( &info->li_cookies_mutex );
+		avl_free( info->li_context, rewrite_context_free );
 		free( info );
 		return NULL;
 	}
@@ -116,7 +119,7 @@ rewrite_info_delete(
 	if ( info->li_maps ) {
 		avl_free( info->li_maps, rewrite_builtin_map_free );
 	}
-	info->li_context = NULL;
+	info->li_maps = NULL;
 
 	rewrite_session_destroy( info );
 

@@ -302,6 +302,25 @@ rewrite_session_var_get(
 	return REWRITE_SUCCESS;
 }
 
+static void
+rewrite_session_free( void *v_session )
+{
+	struct rewrite_session	*session = (struct rewrite_session *)v_session;
+
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+	ldap_pvt_thread_rdwr_wlock( &session->ls_vars_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
+
+	rewrite_var_delete( session->ls_vars );
+
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+	ldap_pvt_thread_rdwr_wunlock( &session->ls_vars_mutex );
+	ldap_pvt_thread_rdwr_destroy( &session->ls_vars_mutex );
+	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
+	ldap_pvt_thread_mutex_destroy( &session->ls_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
+}
+
 /*
  * Deletes a session
  */
@@ -329,18 +348,7 @@ rewrite_session_delete(
 		return REWRITE_SUCCESS;
 	}
 
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-	ldap_pvt_thread_rdwr_wlock( &session->ls_vars_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-	rewrite_var_delete( session->ls_vars );
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-	ldap_pvt_thread_rdwr_wunlock( &session->ls_vars_mutex );
-	ldap_pvt_thread_rdwr_destroy( &session->ls_vars_mutex );
-	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
-	ldap_pvt_thread_mutex_destroy( &session->ls_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
+	rewrite_session_free( session );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_rdwr_wlock( &info->li_cookies_mutex );
@@ -382,7 +390,7 @@ rewrite_session_destroy(
 	 * Should call per-session destruction routine ...
 	 */
 	
-	count = avl_free( info->li_cookies, NULL );
+	count = avl_free( info->li_cookies, rewrite_session_free );
 	info->li_cookies = NULL;
 
 #if 0
