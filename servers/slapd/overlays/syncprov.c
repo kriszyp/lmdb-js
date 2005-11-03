@@ -1222,7 +1222,6 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	Operation opm;
 	struct berval bv[2];
 	slap_callback cb = {0};
-	int manage = get_manageDSAit(op);
 
 	mod.sml_values = bv;
 	bv[1].bv_val = NULL;
@@ -1243,7 +1242,9 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_bd->be_modify( &opm, rs );
-	opm.o_managedsait = manage;
+	if ( mod.sml_next != NULL ) {
+		slap_mods_free( mod.sml_next, 1 );
+	}
 }
 
 static void
