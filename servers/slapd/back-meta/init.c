@@ -164,6 +164,17 @@ mapping_free(
 }
 
 static void
+mapping_dst_free(
+	void		*v_mapping )
+{
+	struct ldapmapping *mapping = v_mapping;
+
+	if ( BER_BVISEMPTY( &mapping->dst ) ) {
+		mapping_free( &mapping[ -1 ] );
+	}
+}
+
+static void
 target_free(
 	metatarget_t	*mt )
 {
@@ -191,9 +202,9 @@ target_free(
 	if ( mt->mt_rwmap.rwm_rw ) {
 		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
 	}
-	avl_free( mt->mt_rwmap.rwm_oc.remap, NULL );
+	avl_free( mt->mt_rwmap.rwm_oc.remap, mapping_dst_free );
 	avl_free( mt->mt_rwmap.rwm_oc.map, mapping_free );
-	avl_free( mt->mt_rwmap.rwm_at.remap, NULL );
+	avl_free( mt->mt_rwmap.rwm_at.remap, mapping_dst_free );
 	avl_free( mt->mt_rwmap.rwm_at.map, mapping_free );
 }
 
