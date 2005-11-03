@@ -980,6 +980,9 @@ done:
 	if ( res ) ldap_msgfree( res );
 
 	if ( rc && rc != LDAP_SYNC_REFRESH_REQUIRED && si->si_ld ) {
+		ber_socket_t s;
+		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
+		connection_client_stop( s );
 		ldap_unbind_ext( si->si_ld, NULL, NULL );
 		si->si_ld = NULL;
 	}
