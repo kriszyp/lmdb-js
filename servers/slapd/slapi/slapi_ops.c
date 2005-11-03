@@ -409,7 +409,6 @@ slapi_delete_internal_pb( Slapi_PBlock *pb )
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_DELETE );
 
 	slapi_int_func_internal_pb( pb, op_delete );
-	slap_graduate_commit_csn( pb->pb_op );
 
 	return 0;
 }
@@ -492,7 +491,6 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 	}
 
 cleanup:
-	slap_graduate_commit_csn( pb->pb_op );
 
 	if ( pb->pb_op->ora_e != NULL ) {
 		slapi_entry_free( pb->pb_op->ora_e );
@@ -524,7 +522,6 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 	slapi_int_func_internal_pb( pb, op_modrdn );
 
 cleanup:
-	slap_graduate_commit_csn( pb->pb_op );
 
 	return 0;
 }
@@ -561,7 +558,6 @@ slapi_modify_internal_pb( Slapi_PBlock *pb )
 	slapi_int_func_internal_pb( pb, op_modify );
 
 cleanup:
-	slap_graduate_commit_csn( pb->pb_op );
 
 	return 0;
 }

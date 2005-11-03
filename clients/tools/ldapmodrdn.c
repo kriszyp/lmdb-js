@@ -206,7 +206,7 @@ main(int argc, char **argv)
     if (havedn)
 	retval = domodrdn( ld, entrydn, rdn, newSuperior, remove_old_RDN );
     else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
-	if ( *buf != '\0' ) {	/* blank lines optional, skip */
+	if ( *buf != '\n' ) {	/* blank lines optional, skip */
 	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
 
 	    if ( havedn ) {	/* have DN, get RDN */

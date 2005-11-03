@@ -35,16 +35,6 @@ static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 static void	bdb_lru_print(Cache *cache);
 #endif
 
-static int bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset );
-
-/* 4.2.52 */
-#if DB_VERSION_FULL == 0x04020034
-#define	READ_TXN_FLAG	ReadFlag
-static int ReadFlag = DB_TXN_NOT_DURABLE;
-#else
-#define READ_TXN_FLAG	0
-#endif
-
 static EntryInfo *
 bdb_cache_entryinfo_new( Cache *cache )
 {
@@ -384,10 +374,11 @@ bdb_cache_find_ndn(
 /* Walk up the tree from a child node, looking for an ID that's already
  * been linked into the cache.
  */
-static int
+int
 hdb_cache_find_parent(
 	Operation *op,
 	DB_TXN *txn,
+	u_int32_t	locker,
 	ID id,
 	EntryInfo **res )
 {
@@ -401,7 +392,7 @@ hdb_cache_find_parent(
 	ei.bei_ckids = 0;
 
 	for (;;) {
-		rc = hdb_dn2id_parent( op, txn, &ei, &eip.bei_id );
+		rc = hdb_dn2id_parent( op, txn, locker, &ei, &eip.bei_id );
 		if ( rc ) break;
 
 		/* Save the previous node, if any */
@@ -703,7 +694,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 	/* See if the ID exists in the database; add it to the cache if so */
 	if ( !*eip ) {
 #ifndef BDB_HIER
-		rc = bdb_id2entry( op->o_bd, tid, id, &ep );
+		rc = bdb_id2entry( op->o_bd, tid, locker, id, &ep );
 		if ( rc == 0 ) {
 			rc = bdb_cache_find_ndn( op, tid,
 				&ep->e_nname, eip );
@@ -718,7 +709,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			}
 		}
 #else
-		rc = hdb_cache_find_parent(op, tid, id, eip );
+		rc = hdb_cache_find_parent(op, tid, locker, id, eip );
 		if ( rc == 0 && *eip ) islocked = 1;
 #endif
 	}
@@ -751,31 +742,14 @@ load1:
 				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lock );
 			} else if ( rc == 0 ) {
 				if ( load ) {
-					DB_TXN *ltid;
-					u_int32_t locker2 = locker;
-
-					/* We don't wrap entire read operations in txn's, but
-					 * we need our cache entry lock and any DB page locks
-					 * to be associated, in order for deadlock detection
-					 * to work properly. So if we need to read from the DB,
-					 * we use a long-lived per-thread txn for this step.
-					 */
-					if ( !ep && !tid ) {
-						rc = bdb_txn_get( op, bdb->bi_dbenv, &ltid, 0 );
-						if ( ltid )
-							locker2 = TXN_ID( ltid );
-					} else {
-						ltid = tid;
-					}
-					/* Give up original read lock, obtain write lock with
-					 * (possibly) new locker ID.
+					/* Give up original read lock, obtain write lock
 					 */
 				    if ( rc == 0 ) {
-						rc = bdb_cache_entry_db_relock( bdb->bi_dbenv, locker2,
+						rc = bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
 							*eip, 1, 0, lock );
 					}
 					if ( rc == 0 && !ep) {
-						rc = bdb_id2entry( op->o_bd, ltid, id, &ep );
+						rc = bdb_id2entry( op->o_bd, tid, locker, id, &ep );
 					}
 					if ( rc == 0 ) {
 						ep->e_private = *eip;
@@ -796,22 +770,6 @@ load1:
 					} else {
 						/* Otherwise, release the lock. */
 						bdb_cache_entry_db_unlock( bdb->bi_dbenv, lock );
-					}
-					if ( locker2 != locker ) {
-						/* If we're using the per-thread txn, release all
-						 * of its page locks now.
-						 */
-						DB_LOCKREQ list;
-						list.op = DB_LOCK_PUT_ALL;
-						list.obj = NULL;
-						bdb->bi_dbenv->lock_vec( bdb->bi_dbenv, locker2,
-							0, &list, 1, NULL );
-						/* If this txn was deadlocked, we must abort it
-						 * and invalidate this per-thread txn.
-						 */
-						if ( rc == DB_LOCK_DEADLOCK ) {
-							bdb_txn_get( op, bdb->bi_dbenv, &ltid, 1 );
-						}
 					}
 				} else if ( !(*eip)->bei_e ) {
 					/* Some other thread is trying to load the entry,
@@ -1280,77 +1238,6 @@ bdb_lru_print( Cache *cache )
 	}
 }
 #endif
-
-static void
-bdb_txn_free( void *key, void *data )
-{
-	DB_TXN *txn = data;
-	TXN_ABORT( txn );
-}
-
-/* Obtain a long-lived transaction for the current thread.
- * If reset == 1, remove the current transaction. */
-static int
-bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
-{
-	int i, rc;
-	void *ctx, *data = NULL;
-
-	if ( slapMode & SLAP_TOOL_MODE ) {
-		*txn = NULL;
-		return 0;
-	}
-
-	/* If no op was provided, try to find the ctx anyway... */
-	if ( op ) {
-		ctx = op->o_threadctx;
-	} else {
-		ctx = ldap_pvt_thread_pool_context();
-	}
-
-	/* Shouldn't happen unless we're single-threaded */
-	if ( !ctx ) {
-		*txn = NULL;
-		return 0;
-	}
-
-	if ( reset ) {
-		TXN_ABORT( *txn );
-		return ldap_pvt_thread_pool_setkey( ctx, ((char *)env)+1, NULL, NULL );
-	}
-
-	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ||
-		data == NULL ) {
-		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
-			rc = TXN_BEGIN( env, NULL, txn, READ_TXN_FLAG );
-#if DB_VERSION_FULL == 0x04020034
-			if ( rc == EINVAL && READ_TXN_FLAG ) {
-				READ_TXN_FLAG = 0;
-				Debug( LDAP_DEBUG_ANY,
-					"bdb_txn_get: BerkeleyDB 4.2.52 library needs TXN patch!\n",
-					0, 0, 0 );
-				i--;
-				continue;
-			}
-#endif
-			if (rc) ldap_pvt_thread_yield();
-		}
-		if ( rc != 0) {
-			return rc;
-		}
-		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, ((char *)env)+1,
-			*txn, bdb_txn_free ) ) ) {
-			TXN_ABORT( *txn );
-			Debug( LDAP_DEBUG_ANY, "bdb_txn_get: err %s(%d)\n",
-				db_strerror(rc), rc, 0 );
-
-			return rc;
-		}
-	} else {
-		*txn = data;
-	}
-	return 0;
-}
 
 #ifdef BDB_REUSE_LOCKERS
 static void

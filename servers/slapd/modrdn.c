@@ -178,8 +178,6 @@ do_modrdn(
 	rs->sr_err = frontendDB->be_modrdn( op, rs );
 
 cleanup:
-	slap_graduate_commit_csn( op );
-
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
@@ -386,7 +384,6 @@ slap_modrdn2mods(
 	Modifications	**pmod )
 {
 	Modifications	*mod = NULL;
-	Modifications	**modtail = &mod;
 	int		a_cnt, d_cnt;
 	int repl_user;
 
@@ -506,18 +503,7 @@ slap_modrdn2mods(
 done:
 
 	if ( rs->sr_err == LDAP_SUCCESS && !repl_user ) {
-		char textbuf[ SLAP_TEXT_BUFLEN ];
-		size_t textlen = sizeof textbuf;
-
-		for( modtail = &mod;
-			*modtail != NULL;
-			modtail = &(*modtail)->sml_next )
-		{
-			/* empty */
-		}
-
-		rs->sr_err = slap_mods_opattrs( op, mod, modtail,
-						&rs->sr_text, textbuf, textlen, 1 );
+		slap_mods_opattrs( op, mod, 1 );
 	}
 
 	/* LDAP v2 supporting correct attribute handling. */

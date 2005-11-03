@@ -122,6 +122,7 @@ typedef struct syncprov_info_t {
 	int		si_chktime;
 	int		si_numops;	/* number of ops since last checkpoint */
 	int		si_nopres;	/* Skip present phase */
+	int		si_usehint;	/* use reload hint */
 	time_t	si_chklast;	/* time of last checkpoint */
 	Avlnode	*si_mods;	/* entries being modified */
 	sessionlog	*si_logs;
@@ -382,6 +383,9 @@ findbase_cb( Operation *op, SlapReply *rs )
 	return LDAP_SUCCESS;
 }
 
+static Filter generic_filter = { LDAP_FILTER_PRESENT, { 0 }, NULL };
+static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
+
 static int
 syncprov_findbase( Operation *op, fbase_cookie *fc )
 {
@@ -421,6 +425,8 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		fop.ors_tlimit = SLAP_NO_LIMIT;
 		fop.ors_attrs = slap_anlist_no_attrs;
 		fop.ors_attrsonly = 1;
+		fop.ors_filter = &generic_filter;
+		fop.ors_filterstr = generic_filterstr;
 
 		fop.o_bd->bd_info = on->on_info->oi_orig;
 		rc = fop.o_bd->be_search( &fop, &frs );
@@ -728,7 +734,8 @@ syncprov_free_syncop( syncops *so )
 
 /* Send a persistent search response */
 static int
-syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mode)
+syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
+	Entry **e, int mode )
 {
 	slap_overinst *on = opc->son;
 
@@ -1943,12 +1950,11 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		/* Is the CSN still present in the database? */
 		if ( syncprov_findcsn( op, FIND_CSN ) != LDAP_SUCCESS ) {
 			/* No, so a reload is required */
-#if 0		/* the consumer doesn't seem to send this hint */
-			if ( op->o_sync_rhint == 0 ) {
+			/* the 2.2 consumer doesn't send this hint */
+			if ( si->si_usehint && srs->sr_rhint == 0 ) {
 				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
 				return rs->sr_err;
 			}
-#endif
 		} else {
 			gotstate = 1;
 			/* If changed and doing Present lookup, send Present UUIDs */
@@ -2069,7 +2075,8 @@ syncprov_operational(
 enum {
 	SP_CHKPT = 1,
 	SP_SESSL,
-	SP_NOPRES
+	SP_NOPRES,
+	SP_USEHINT
 };
 
 static ConfigDriver sp_cf_gen;
@@ -2086,6 +2093,10 @@ static ConfigTable spcfg[] = {
 	{ "syncprov-nopresent", NULL, 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|SP_NOPRES,
 		sp_cf_gen, "( OLcfgOvAt:1.3 NAME 'olcSpNoPresent' "
 			"DESC 'Omit Present phase processing' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "syncprov-reloadhint", NULL, 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|SP_USEHINT,
+		sp_cf_gen, "( OLcfgOvAt:1.4 NAME 'olcSpReloadHint' "
+			"DESC 'Observe Reload Hint in Request control' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -2134,6 +2145,13 @@ sp_cf_gen(ConfigArgs *c)
 				rc = 1;
 			}
 			break;
+		case SP_USEHINT:
+			if ( si->si_usehint ) {
+				c->value_int = 1;
+			} else {
+				rc = 1;
+			}
+			break;
 		}
 		return rc;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
@@ -2151,6 +2169,12 @@ sp_cf_gen(ConfigArgs *c)
 		case SP_NOPRES:
 			if ( si->si_nopres )
 				si->si_nopres = 0;
+			else
+				rc = LDAP_NO_SUCH_ATTRIBUTE;
+			break;
+		case SP_USEHINT:
+			if ( si->si_usehint )
+				si->si_usehint = 0;
 			else
 				rc = LDAP_NO_SUCH_ATTRIBUTE;
 			break;
@@ -2187,6 +2211,9 @@ sp_cf_gen(ConfigArgs *c)
 		break;
 	case SP_NOPRES:
 		si->si_nopres = c->value_int;
+		break;
+	case SP_USEHINT:
+		si->si_usehint = c->value_int;
 		break;
 	}
 	return rc;
@@ -2275,8 +2302,8 @@ syncprov_db_open(
 	}
 
 	if ( BER_BVISEMPTY( &si->si_ctxcsn ) ) {
-		slap_get_csn( op, si->si_ctxcsnbuf, sizeof(si->si_ctxcsnbuf),
-				&si->si_ctxcsn, 0 );
+		si->si_ctxcsn.bv_len = sizeof( si->si_ctxcsnbuf );
+		slap_get_csn( op, &si->si_ctxcsn, 0 );
 	}
 
 	/* If our ctxcsn is different from what was read from the root
@@ -2435,6 +2462,7 @@ static int syncprov_parseCtrl (
 			rs->sr_text = "Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
+		tag = ber_peek_tag( ber, &len );
 	}
 	if ( tag == LDAP_TAG_RELOAD_HINT ) {
 		if (( ber_scanf( ber, /*{*/ "b", &rhint )) == LBER_ERROR ) {
@@ -2508,6 +2536,8 @@ syncprov_init()
 	syncprov.on_bi.bi_operational = syncprov_operational;
 
 	syncprov.on_bi.bi_cf_ocs = spocs;
+
+	generic_filter.f_desc = slap_schema.si_ad_objectClass;
 
 	rc = config_register_schema( spcfg, spocs );
 	if ( rc ) return rc;

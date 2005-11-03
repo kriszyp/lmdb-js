@@ -8,6 +8,7 @@ slapauth \- Check a list of string-represented IDs for authc/authz.
 .B [\-v]
 .B [\-d level]
 .B [\-f slapd.conf]
+.B [\-F confdir]
 .B [\-M mech]
 .B [\-R realm]
 .B [\-U authcID]
@@ -43,6 +44,19 @@ enable debugging messages as defined by the specified
 specify an alternative
 .BR slapd.conf (5)
 file.
+.TP
+.BI \-F " confdir"
+specify a config directory.
+If both
+.B -f
+and
+.B -F
+are specified, the config file will be read and converted to
+config directory format and written to the specified directory.
+If neither option is specified, an attempt to read the
+default config directory wll be made before trying to use the default
+config file. If a valid config directory exists then the
+default config file is ignored.
 .TP
 .BI \-M " mech"
 specify a mechanism.

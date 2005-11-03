@@ -52,10 +52,25 @@ specifies the number of operations that are recorded in the log. All write
 operations (except Adds) are recorded in the log.
 When using the session log, it is helpful to set an eq index on the
 entryUUID attribute in the underlying database.
+.TP
+.B syncprov-nopresent TRUE | FALSE
+Specify that the Present phase of refreshing should be skipped. This value
+should only be set TRUE for a syncprov instance on top of a log database
+(such as one managed by the accesslog overlay).
+The default is FALSE.
+.TP
+.B syncprov-reloadhint TRUE | FALSE
+Specify that the overlay should honor the reloadHint flag in the Syncrepl
+Control. In OpenLDAP releases 2.3.11 and earlier the Syncrepl consumer did
+not properly set this flag, so the overlay must ignore it. This option
+should be set TRUE when working with newer releases that properly support
+this flag. It must be set TRUE when using the accesslog overlay for
+delta-based Syncrepl support.  The default is FALSE.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
-.BR slapd.conf (5).
+.BR slapd.conf (5),
+.BR slapo-accesslog (5).
 OpenLDAP Administrator's Guide.

@@ -926,15 +926,13 @@ meta_send_entry(
 		ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
 		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
+			( void )ber_scanf( &ber, "x" /* [W] */ );
 			continue;
 		}
-		attr = ( Attribute * )ch_malloc( sizeof( Attribute ) );
+		attr = ( Attribute * )ch_calloc( 1, sizeof( Attribute ) );
 		if ( attr == NULL ) {
 			continue;
 		}
-		attr->a_flags = 0;
-		attr->a_next = 0;
-		attr->a_desc = NULL;
 		if ( slap_bv2ad( &mapped, &attr->a_desc, &text )
 				!= LDAP_SUCCESS) {
 			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text,
@@ -990,7 +988,6 @@ meta_send_entry(
 		pretty = attr->a_desc->ad_type->sat_syntax->ssyn_pretty;
 
 		if ( !validate && !pretty ) {
-			attr->a_nvals = NULL;
 			attr_free( attr );
 			goto next_attr;
 		}
@@ -1029,16 +1026,18 @@ meta_send_entry(
 		 * ACLs to the target directory server, and letting
 		 * everything pass thru the ldap backend.
 		 */
-		} else if ( attr->a_desc->ad_type->sat_syntax ==
-				slap_schema.si_syn_distinguishedName )
-		{
-			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
-
-		} else if ( attr->a_desc == slap_schema.si_ad_ref ) {
-			ldap_back_referral_result_rewrite( &dc, attr->a_vals );
-
 		} else {
 			int	i;
+
+			if ( attr->a_desc->ad_type->sat_syntax ==
+				slap_schema.si_syn_distinguishedName )
+			{
+				ldap_dnattr_result_rewrite( &dc, attr->a_vals );
+
+			} else if ( attr->a_desc == slap_schema.si_ad_ref ) {
+				ldap_back_referral_result_rewrite( &dc, attr->a_vals );
+
+			}
 
 			for ( i = 0; i < last; i++ ) {
 				struct berval	pval;

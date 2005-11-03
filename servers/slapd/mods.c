@@ -73,11 +73,15 @@ modify_add_values(
 		}
 
 		if ( permissive ) {
-			for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ ) /* count 'em */;
-			pmod.sm_values = (BerVarray)ch_malloc( (i + 1)*sizeof( struct berval ) );
+			for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ ) {
+				/* EMPTY -- just counting 'em */;
+			}
+
+			pmod.sm_values = (BerVarray)ch_malloc(
+				(i + 1) * sizeof( struct berval ));
 			if ( pmod.sm_nvalues != NULL ) {
 				pmod.sm_nvalues = (BerVarray)ch_malloc(
-					(i + 1)*sizeof( struct berval ) );
+					(i + 1) * sizeof( struct berval ));
 			}
 		}
 

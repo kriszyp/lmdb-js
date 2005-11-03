@@ -18,7 +18,7 @@ echo "running defines.sh"
 
 ## If you use this script then
 ## Make sure that you turn on LDAP_COMP_MATCH in slapd source codes
-## and --enable-modules  is configured yes
+## and --enable-modules is configured yes
 if test "$AC_WITH_MODULES_ENABLED" != "yes" ; then
         echo "dynamic module disabled, test skipped"
         exit 0
@@ -163,7 +163,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{component \"toBeSigned.extensions.\2a.extnID\",rule allComponentsMatch, value 2.5.29.14 })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.extensions.\2a.extnID\", rule allComponentsMatch, value 2.5.29.14 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -176,7 +176,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=not:item:{component \"toBeSigned.extensions.\2a\",rule allComponentsMatch, value { extnID 2.5.29.19 , extnValue '30030101FF'H })"
+FILTER="(userCertificate:componentFilterMatch:=not:item:{ component \"toBeSigned.extensions.\2a\", rule allComponentsMatch, value { extnID 2.5.29.19 , extnValue '30030101FF'H })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -255,6 +255,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# extraction filter
 FILTER="(x509CertificateIssuer=c=US)"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
@@ -268,6 +269,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# extraction filter
 FILTER="(x509CertificateSerial=0)"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
@@ -281,6 +283,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# extraction filter
 FILTER="(x509CertificateSerialAndIssuer:certificateExactMatch:=0\$c=US)"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT

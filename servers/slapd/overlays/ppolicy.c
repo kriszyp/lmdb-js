@@ -1179,11 +1179,12 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	 */
 	if ( be_shadow_update( op )) {
 		Modifications **prev;
-		int got_del_grace = 0, got_del_lock = 0, got_pw = 0;
-		Attribute *a_grace, *a_lock;
+		int got_del_grace = 0, got_del_lock = 0, got_pw = 0, got_del_fail = 0;
+		Attribute *a_grace, *a_lock, *a_fail;
 
 		a_grace = attr_find( e->e_attrs, ad_pwdGraceUseTime );
 		a_lock = attr_find( e->e_attrs, ad_pwdAccountLockedTime );
+		a_fail = attr_find( e->e_attrs, ad_pwdFailureTime );
 
 		for( prev = &op->oq_modify.rs_modlist, ml = *prev; ml;
 			prev = &ml->sml_next, ml = *prev ) {
@@ -1206,6 +1207,11 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 					got_del_lock = 1;
 					if ( !a_lock )
 						drop = 1;
+				} else
+				if ( ml->sml_desc == ad_pwdFailureTime ) {
+					got_del_fail = 1;
+					if ( !a_fail )
+						drop = 1;
 				}
 				if ( drop ) {
 					*prev = ml->sml_next;
@@ -1215,8 +1221,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			}
 		}
 
-		/* If we're resetting the password, make sure grace and accountlock
-		 * also get removed.
+		/* If we're resetting the password, make sure grace, accountlock,
+		 * and failure also get removed.
 		 */
 		if ( got_pw ) {
 			if ( a_grace && !got_del_grace ) {
@@ -1237,6 +1243,17 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				ml->sml_flags = SLAP_MOD_INTERNAL;
 				ml->sml_type.bv_val = NULL;
 				ml->sml_desc = ad_pwdAccountLockedTime;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
+				ml->sml_next = NULL;
+				*prev = ml;
+			}
+			if ( a_fail && !got_del_fail ) {
+				ml = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				ml->sml_op = LDAP_MOD_DELETE;
+				ml->sml_flags = SLAP_MOD_INTERNAL;
+				ml->sml_type.bv_val = NULL;
+				ml->sml_desc = ad_pwdFailureTime;
 				ml->sml_values = NULL;
 				ml->sml_nvalues = NULL;
 				ml->sml_next = NULL;
@@ -1570,6 +1587,19 @@ do_modify:
 			mods->sml_flags = SLAP_MOD_INTERNAL;
 			mods->sml_type.bv_val = NULL;
 			mods->sml_desc = ad_pwdAccountLockedTime;
+			mods->sml_values = NULL;
+			mods->sml_nvalues = NULL;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
+
+		if (attr_find(e->e_attrs, ad_pwdFailureTime )) {
+			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_type.bv_val = NULL;
+			mods->sml_desc = ad_pwdFailureTime;
 			mods->sml_values = NULL;
 			mods->sml_nvalues = NULL;
 			mods->sml_next = NULL;

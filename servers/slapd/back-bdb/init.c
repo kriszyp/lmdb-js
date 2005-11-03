@@ -426,6 +426,10 @@ bdb_db_open( BackendDB *be )
 		}
 
 		if( i == BDB_ID2ENTRY ) {
+			if ( slapMode & SLAP_TOOL_MODE )
+				db->bdi_db->mpf->set_priority( db->bdi_db->mpf,
+					DB_PRIORITY_VERY_LOW );
+
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
@@ -481,13 +485,6 @@ bdb_db_open( BackendDB *be )
 				buf, db_strerror(rc), rc );
 			return rc;
 		}
-
-#if 0
-		if( i == BDB_ID2ENTRY && ( slapMode & SLAP_TOOL_MODE )) {
-			db->bdi_db->mpf->set_priority( db->bdi_db->mpf,
-				DB_PRIORITY_VERY_LOW );
-		}
-#endif
 
 		flags &= ~(DB_CREATE | DB_RDONLY);
 		db->bdi_name = bdbi_databases[i].name;
@@ -609,7 +606,7 @@ bdb_db_destroy( BackendDB *be )
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );
 
-	bdb_attr_index_destroy( bdb->bi_attrs );
+	bdb_attr_index_destroy( bdb );
 
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );

@@ -178,18 +178,18 @@ meta_clear_one_candidate(
 	metasingleconn_t	*msc )
 {
 	if ( msc->msc_ld ) {
-		ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+		ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 		msc->msc_ld = NULL;
 	}
 
 	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
-		ber_memfree( msc->msc_bound_ndn.bv_val );
+		ber_memfree_x( msc->msc_bound_ndn.bv_val, NULL );
 		BER_BVZERO( &msc->msc_bound_ndn );
 	}
 
 	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
-		ber_memfree( msc->msc_cred.bv_val );
+		ber_memfree_x( msc->msc_cred.bv_val, NULL );
 		BER_BVZERO( &msc->msc_cred );
 	}
 

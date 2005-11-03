@@ -1320,11 +1320,15 @@ OpenLDAPaciValidate(
 				atbv = BER_BVNULL;
 
 		ocbv.bv_val = strchr( type.bv_val, '/' );
-		if ( ocbv.bv_val != NULL ) {
+		if ( ocbv.bv_val != NULL
+			&& ( ocbv.bv_val - type.bv_val ) < type.bv_len )
+		{
 			ocbv.bv_val++;
 
 			atbv.bv_val = strchr( ocbv.bv_val, '/' );
-			if ( atbv.bv_val != NULL ) {
+			if ( atbv.bv_val != NULL
+				&& ( atbv.bv_val - ocbv.bv_val ) < ocbv.bv_len )
+			{
 				AttributeDescription	*ad = NULL;
 				const char		*text = NULL;
 				int			rc;
@@ -1471,7 +1475,9 @@ OpenLDAPaciPrettyNormal(
 					atbv = BER_BVNULL;
 
 			ocbv.bv_val = strchr( type.bv_val, '/' );
-			if ( ocbv.bv_val != NULL ) {
+			if ( ocbv.bv_val != NULL
+				&& ( ocbv.bv_val - type.bv_val ) < type.bv_len )
+			{
 				ObjectClass		*oc = NULL;
 				AttributeDescription	*ad = NULL;
 				const char		*text = NULL;
@@ -1483,7 +1489,9 @@ OpenLDAPaciPrettyNormal(
 				ocbv.bv_val++;
 
 				atbv.bv_val = strchr( ocbv.bv_val, '/' );
-				if ( atbv.bv_val != NULL ) {
+				if ( atbv.bv_val != NULL
+					&& ( atbv.bv_val - ocbv.bv_val ) < ocbv.bv_len )
+				{
 					atbv.bv_val++;
 					atbv.bv_len = type.bv_len
 						- ( atbv.bv_val - type.bv_val );
@@ -1615,6 +1623,18 @@ OpenLDAPaciNormalize(
 {
 	return OpenLDAPaciPrettyNormal( val, out, ctx, 1 );
 }
+
+#if SLAPD_ACI_ENABLED == SLAPD_MOD_DYNAMIC
+/*
+ * FIXME: need config and Makefile.am code to ease building
+ * as dynamic module
+ */
+int
+init_module( int argc, char *argv[] )
+{
+	return slap_dynacl_register();
+}
+#endif /* SLAPD_ACI_ENABLED == SLAPD_MOD_DYNAMIC */
 
 #endif /* SLAPD_ACI_ENABLED */
 

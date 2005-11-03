@@ -529,8 +529,18 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 				sizeof(sin.sin_addr) );
 		}
 
+#ifdef HAVE_INET_NTOA_B
+		{
+			/* for VxWorks */
+			char address[INET_ADDR_LEN];
+			inet_ntoa_b(sin.sin_address, address);
+			osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
+				address, port, 0);
+		}
+#else
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
 			inet_ntoa(sin.sin_addr), port, 0);
+#endif
 
 		rc = ldap_pvt_connect(ld, s,
 			(struct sockaddr *)&sin, sizeof(sin),

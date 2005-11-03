@@ -113,10 +113,21 @@ meta_back_db_config(
 		int		rc;
 		int		c;
 		
-		if ( argc != 2 ) {
+		switch ( argc ) {
+		case 1:
 			fprintf( stderr,
-	"%s: line %d: missing address"
-	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+	"%s: line %d: missing URI "
+	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+				fname, lineno );
+			return 1;
+
+		case 2:
+			break;
+
+		default:
+			fprintf( stderr,
+	"%s: line %d: too many args "
+	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
 				fname, lineno );
 			return 1;
 		}
@@ -928,17 +939,17 @@ ldap_back_map_config(
 			fname, lineno );
 		return 1;
 	}
-	ber_str2bv( src, 0, 1, &mapping->src );
-	ber_str2bv( dst, 0, 1, &mapping->dst );
-	mapping[ 1 ].src = mapping->dst;
-	mapping[ 1 ].dst = mapping->src;
+	ber_str2bv( src, 0, 1, &mapping[ 0 ].src );
+	ber_str2bv( dst, 0, 1, &mapping[ 0 ].dst );
+	mapping[ 1 ].src = mapping[ 0 ].dst;
+	mapping[ 1 ].dst = mapping[ 0 ].src;
 
 	/*
 	 * schema check
 	 */
 	if ( is_oc ) {
 		if ( src[ 0 ] != '\0' ) {
-			if ( oc_bvfind( &mapping->src ) == NULL ) {
+			if ( oc_bvfind( &mapping[ 0 ].src ) == NULL ) {
 				fprintf( stderr,
 	"%s: line %d: warning, source objectClass '%s' "
 	"should be defined in schema\n",
@@ -951,7 +962,7 @@ ldap_back_map_config(
 			}
 		}
 
-		if ( oc_bvfind( &mapping->dst ) == NULL ) {
+		if ( oc_bvfind( &mapping[ 0 ].dst ) == NULL ) {
 			fprintf( stderr,
 	"%s: line %d: warning, destination objectClass '%s' "
 	"is not defined in schema\n",
@@ -963,7 +974,7 @@ ldap_back_map_config(
 		AttributeDescription	*ad = NULL;
 
 		if ( src[ 0 ] != '\0' ) {
-			rc = slap_bv2ad( &mapping->src, &ad, &text );
+			rc = slap_bv2ad( &mapping[ 0 ].src, &ad, &text );
 			if ( rc != LDAP_SUCCESS ) {
 				fprintf( stderr,
 	"%s: line %d: warning, source attributeType '%s' "
@@ -978,7 +989,7 @@ ldap_back_map_config(
 				 * and add it here.
 				 */
 
-				rc = slap_bv2undef_ad( &mapping->src,
+				rc = slap_bv2undef_ad( &mapping[ 0 ].src,
 						&ad, &text, SLAP_AD_PROXIED );
 				if ( rc != LDAP_SUCCESS ) {
 					fprintf( stderr,
@@ -992,7 +1003,7 @@ ldap_back_map_config(
 			ad = NULL;
 		}
 
-		rc = slap_bv2ad( &mapping->dst, &ad, &text );
+		rc = slap_bv2ad( &mapping[ 0 ].dst, &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr,
 	"%s: line %d: warning, destination attributeType '%s' "
@@ -1004,7 +1015,7 @@ ldap_back_map_config(
 			 * and add it here.
 			 */
 
-			rc = slap_bv2undef_ad( &mapping->dst,
+			rc = slap_bv2undef_ad( &mapping[ 0 ].dst,
 					&ad, &text, SLAP_AD_PROXIED );
 			if ( rc != LDAP_SUCCESS ) {
 				fprintf( stderr,
@@ -1016,7 +1027,7 @@ ldap_back_map_config(
 		}
 	}
 
-	if ( (src[ 0 ] != '\0' && avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL)
+	if ( (src[ 0 ] != '\0' && avl_find( map->map, (caddr_t)&mapping[ 0 ], mapping_cmp ) != NULL)
 			|| avl_find( map->remap, (caddr_t)&mapping[ 1 ], mapping_cmp ) != NULL)
 	{
 		fprintf( stderr,
@@ -1026,7 +1037,7 @@ ldap_back_map_config(
 	}
 
 	if ( src[ 0 ] != '\0' ) {
-		avl_insert( &map->map, (caddr_t)mapping,
+		avl_insert( &map->map, (caddr_t)&mapping[ 0 ],
 					mapping_cmp, mapping_dup );
 	}
 	avl_insert( &map->remap, (caddr_t)&mapping[ 1 ],
@@ -1036,8 +1047,8 @@ ldap_back_map_config(
 
 error_return:;
 	if ( mapping ) {
-		ch_free( mapping->src.bv_val );
-		ch_free( mapping->dst.bv_val );
+		ch_free( mapping[ 0 ].src.bv_val );
+		ch_free( mapping[ 0 ].dst.bv_val );
 		ch_free( mapping );
 	}
 

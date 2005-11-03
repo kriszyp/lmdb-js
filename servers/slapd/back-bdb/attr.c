@@ -25,26 +25,56 @@
 #include "back-bdb.h"
 #include "lutil.h"
 
-
-static int
-ainfo_type_cmp(
-	const void *v_desc,
-	const void *v_a
-)
+/* Find the ad, return -1 if not found,
+ * set point for insertion if ins is non-NULL
+ */
+int
+bdb_attr_slot( struct bdb_info *bdb, AttributeDescription *ad, unsigned *ins )
 {
-	const AttributeDescription *desc = v_desc;
-	const AttrInfo	*a = v_a;
-	return SLAP_PTRCMP(desc, a->ai_desc);
+	unsigned base = 0, cursor = 0;
+	unsigned n = bdb->bi_nattrs;
+	int val = 0;
+	
+	while ( 0 < n ) {
+		int pivot = n >> 1;
+		cursor = base + pivot;
+
+		val = SLAP_PTRCMP( ad, bdb->bi_attrs[cursor]->ai_desc );
+		if ( val < 0 ) {
+			n = pivot;
+		} else if ( val > 0 ) {
+			base = cursor + 1;
+			n -= pivot + 1;
+		} else {
+			return cursor;
+		}
+	}
+	if ( ins ) {
+		if ( val > 0 )
+			++cursor;
+		*ins = cursor;
+	}
+	return -1;
 }
 
 static int
-ainfo_cmp(
-	const void	*v_a,
-	const void	*v_b
-)
+ainfo_insert( struct bdb_info *bdb, AttrInfo *a )
 {
-	const AttrInfo *a = v_a, *b = v_b;
-	return SLAP_PTRCMP(a->ai_desc, b->ai_desc);
+	unsigned x;
+	int i = bdb_attr_slot( bdb, a->ai_desc, &x );
+
+	/* Is it a dup? */
+	if ( i >= 0 )
+		return -1;
+
+	bdb->bi_attrs = ch_realloc( bdb->bi_attrs, ( bdb->bi_nattrs+1 ) * 
+		sizeof( AttrInfo * ));
+	if ( x < bdb->bi_nattrs )
+		AC_MEMCPY( &bdb->bi_attrs[x+1], &bdb->bi_attrs[x],
+			( bdb->bi_nattrs - x ) * sizeof( AttrInfo *));
+	bdb->bi_attrs[x] = a;
+	bdb->bi_nattrs++;
+	return 0;
 }
 
 AttrInfo *
@@ -52,8 +82,8 @@ bdb_attr_mask(
 	struct bdb_info	*bdb,
 	AttributeDescription *desc )
 {
-
-	return avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
+	int i = bdb_attr_slot( bdb, desc, NULL );
+	return i < 0 ? NULL : bdb->bi_attrs[i];
 }
 
 int
@@ -220,7 +250,7 @@ bdb_attr_index_config(
 
 #ifdef LDAP_COMP_MATCH
 		if ( cr ) {
-			a_cr = avl_find( bdb->bi_attrs, ad, ainfo_type_cmp );
+			a_cr = bdb_attr_mask( bdb, ad );
 			if ( a_cr ) {
 				/*
 				 * AttrInfo is already in AVL
@@ -242,12 +272,10 @@ bdb_attr_index_config(
 			}
 		}
 #endif
-		rc = avl_insert( &bdb->bi_attrs, (caddr_t) a,
-		                 ainfo_cmp, avl_dup_error );
-
+		rc = ainfo_insert( bdb, a );
 		if( rc ) {
 			if ( bdb->bi_flags & BDB_IS_OPEN ) {
-				AttrInfo *b = avl_find( bdb->bi_attrs, ad, ainfo_type_cmp );
+				AttrInfo *b = bdb_attr_mask( bdb, ad );
 				/* If we were editing this attr, reset it */
 				b->ai_indexmask &= ~BDB_INDEX_DELETING;
 				/* If this is leftover from a previous add, commit it */
@@ -298,17 +326,19 @@ static AttrInfo aidef = { &addef };
 void
 bdb_attr_index_unparse( struct bdb_info *bdb, BerVarray *bva )
 {
+	int i;
+
 	if ( bdb->bi_defaultmask ) {
 		aidef.ai_indexmask = bdb->bi_defaultmask;
 		bdb_attr_index_unparser( &aidef, bva );
 	}
-	avl_apply( bdb->bi_attrs, bdb_attr_index_unparser, bva, -1, AVL_INORDER );
+	for ( i=0; i<bdb->bi_nattrs; i++ )
+		bdb_attr_index_unparser( bdb->bi_attrs[i], bva );
 }
 
-static void
-bdb_attrinfo_free( void *v )
+void
+bdb_attr_info_free( AttrInfo *ai )
 {
-	AttrInfo *ai = v;
 #ifdef LDAP_COMP_MATCH
 	free( ai->ai_cr );
 #endif
@@ -316,52 +346,41 @@ bdb_attrinfo_free( void *v )
 }
 
 void
-bdb_attr_index_destroy( Avlnode *tree )
+bdb_attr_index_destroy( struct bdb_info *bdb )
 {
-	avl_free( tree, bdb_attrinfo_free );
+	int i;
+
+	for ( i=0; i<bdb->bi_nattrs; i++ ) 
+		bdb_attr_info_free( bdb->bi_attrs[i] );
+
+	free( bdb->bi_attrs );
 }
 
 void bdb_attr_index_free( struct bdb_info *bdb, AttributeDescription *ad )
 {
-	AttrInfo *ai;
+	int i;
 
-	ai = avl_delete( &bdb->bi_attrs, ad, ainfo_type_cmp );
-	if ( ai )
-		bdb_attrinfo_free( ai );
-}
-
-/* Get a list of AttrInfo's to delete */
-
-typedef struct Alist {
-	struct Alist *next;
-	AttrInfo *ptr;
-} Alist;
-
-static int
-bdb_attrinfo_flush( void *v1, void *arg )
-{
-	AttrInfo *ai = v1;
-
-	if ( ai->ai_indexmask & BDB_INDEX_DELETING ) {
-		Alist **al = arg;
-		Alist *a = ch_malloc( sizeof( Alist ));
-		a->ptr = ai;
-		a->next = *al;
-		*al = a;
+	i = bdb_attr_slot( bdb, ad, NULL );
+	if ( i >= 0 ) {
+		bdb_attr_info_free( bdb->bi_attrs[i] );
+		bdb->bi_nattrs--;
+		for (; i<bdb->bi_nattrs; i++)
+			bdb->bi_attrs[i] = bdb->bi_attrs[i+1];
 	}
-	return 0;
 }
 
 void bdb_attr_flush( struct bdb_info *bdb )
 {
-	Alist *al = NULL, *a2;
+	int i;
 
-	avl_apply( bdb->bi_attrs, bdb_attrinfo_flush, &al, -1, AVL_INORDER );
-
-	while (( a2 = al )) {
-		al = al->next;
-		avl_delete( &bdb->bi_attrs, a2->ptr, ainfo_cmp );
-		bdb_attrinfo_free( a2->ptr );
-		ch_free( a2 );
+	for ( i=0; i<bdb->bi_nattrs; i++ ) {
+		if ( bdb->bi_attrs[i]->ai_indexmask & BDB_INDEX_DELETING ) {
+			int j;
+			bdb_attr_info_free( bdb->bi_attrs[i] );
+			bdb->bi_nattrs--;
+			for (j=i; j<bdb->bi_nattrs; j++)
+				bdb->bi_attrs[j] = bdb->bi_attrs[j+1];
+			i--;
+		}
 	}
 }

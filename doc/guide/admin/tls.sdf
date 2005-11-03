@@ -1,4 +1,4 @@
-# Copyright 1999-2003, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2005, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Using TLS
@@ -131,6 +131,16 @@ use the {{EX:.rnd}} file, just create the file and copy a few hundred
 bytes of arbitrary data into the file. The file is only used to
 provide a seed for the pseudo-random number generator, and it doesn't
 need very much data to work.
+
+H4: TLSEphemeralDHParamFile <filename>
+
+This directive specifies the file that contains parameters for Diffie-Hellman
+ephemeral key exchange.  This is required in order to use a DSA certificate on
+the server side (i.e. {{EX:TLSCertificateKeyFile}} points to a DSA key).
+Multiple sets of parameters can be included in the file; all of them will
+be processed.  Parameters can be generated using the following command
+
+>	openssl dhparam [-dsaparam] -out <filename> <numbits>
 
 H4: TLSVerifyClient { never | allow | try | demand }
 

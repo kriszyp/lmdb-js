@@ -248,7 +248,7 @@ done:;
 
 int
 load_extop(
-	struct berval *ext_oid,
+	const struct berval *ext_oid,
 	slap_mask_t ext_flags,
 	SLAP_EXTOP_MAIN_FN *ext_main )
 {

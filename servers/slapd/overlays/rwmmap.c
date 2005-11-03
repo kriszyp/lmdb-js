@@ -442,6 +442,7 @@ map_attr_value(
 
 static int
 rwm_int_filter_map_rewrite(
+		Operation		*op,
 		dncookie		*dc,
 		Filter			*f,
 		struct berval		*fstr )
@@ -450,7 +451,7 @@ rwm_int_filter_map_rewrite(
 	Filter		*p;
 	struct berval	atmp,
 			vtmp,
-			tmp;
+			*tmp;
 	static struct berval
 			/* better than nothing... */
 			ber_bvfalse = BER_BVC( "(!(objectClass=*))" ),
@@ -469,7 +470,7 @@ rwm_int_filter_map_rewrite(
 
 	if ( f == NULL ) {
 		ber_dupbv( fstr, &ber_bvnone );
-		return -1;
+		return LDAP_OTHER;
 	}
 
 	switch ( f->f_choice ) {
@@ -477,7 +478,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(=)" );
@@ -493,7 +494,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(>=)" );
@@ -509,7 +510,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(<=)" );
@@ -525,7 +526,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(~=)" );
@@ -541,7 +542,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_sub_desc, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		/* cannot be a DN ... */
@@ -603,7 +604,7 @@ rwm_int_filter_map_rewrite(
 		if ( map_attr_value( dc, &f->f_desc, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + STRLENOF( "(=*)" );
@@ -624,11 +625,13 @@ rwm_int_filter_map_rewrite(
 			f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
 
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
+			int	rc;
+
 			len = fstr->bv_len;
 
-			if ( rwm_int_filter_map_rewrite( dc, p, &vtmp ) )
-			{
-				return -1;
+			rc = rwm_int_filter_map_rewrite( op, dc, p, &vtmp );
+			if ( rc != LDAP_SUCCESS ) {
+				return rc;
 			}
 			
 			fstr->bv_len += vtmp.bv_len;
@@ -647,7 +650,7 @@ rwm_int_filter_map_rewrite(
 			if ( map_attr_value( dc, &f->f_mr_desc, &atmp,
 						&f->f_mr_value, &vtmp, RWM_MAP ) )
 			{
-				return -1;
+				goto computed;
 			}
 
 		} else {
@@ -672,33 +675,39 @@ rwm_int_filter_map_rewrite(
 		break;
 	}
 
+	case 0:
+computed:;
+		filter_free_x( op, f );
+		f->f_choice = SLAPD_FILTER_COMPUTED;
+		f->f_result = SLAPD_COMPARE_UNDEFINED;
+		/* fallthru */
+
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
 		case LDAP_COMPARE_FALSE:
+		/* FIXME: treat UNDEFINED as FALSE */
+		case SLAPD_COMPARE_UNDEFINED:
 			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
-				tmp = ber_bvtf_false;
+				tmp = &ber_bvtf_false;
 				break;
 			}
-			/* fallthru */
-
-		case SLAPD_COMPARE_UNDEFINED:
-			tmp = ber_bvfalse;
+			tmp = &ber_bvfalse;
 			break;
 
 		case LDAP_COMPARE_TRUE:
 			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
-				tmp = ber_bvtf_true;
-			} else {
-				tmp = ber_bvtrue;
+				tmp = &ber_bvtf_true;
+				break;
 			}
+			tmp = &ber_bvtrue;
 			break;
 			
 		default:
-			tmp = ber_bverror;
+			tmp = &ber_bverror;
 			break;
 		}
 
-		ber_dupbv( fstr, &tmp );
+		ber_dupbv( fstr, tmp );
 		break;
 		
 	default:
@@ -706,11 +715,12 @@ rwm_int_filter_map_rewrite(
 		break;
 	}
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 int
 rwm_filter_map_rewrite(
+		Operation		*op,
 		dncookie		*dc,
 		Filter			*f,
 		struct berval		*fstr )
@@ -719,10 +729,10 @@ rwm_filter_map_rewrite(
 	dncookie 	fdc;
 	struct berval	ftmp;
 
-	rc = rwm_int_filter_map_rewrite( dc, f, fstr );
+	rc = rwm_int_filter_map_rewrite( op, dc, f, fstr );
 
 #ifdef ENABLE_REWRITE
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rc != 0 ) {
 		return rc;
 	}
 
@@ -766,8 +776,8 @@ rwm_filter_map_rewrite(
 		rc = LDAP_OTHER;
 		break;
 	}
-
 #endif /* ENABLE_REWRITE */
+
 	return rc;
 }
 
@@ -1186,6 +1196,16 @@ rwm_dnattr_result_rewrite(
 	}
 
 	return 0;
+}
+
+void
+rwm_mapping_dst_free( void *v_mapping )
+{
+	struct ldapmapping *mapping = v_mapping;
+
+	if ( BER_BVISEMPTY( &mapping[0].m_dst ) ) {
+		rwm_mapping_free( &mapping[ -1 ] );
+	}
 }
 
 void

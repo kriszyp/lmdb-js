@@ -12,9 +12,9 @@ backend database on another database. This allows all of the activity on
 a given database to be reviewed using arbitrary LDAP queries, instead of
 just logging to local flat text files. Configuration options are available
 for selecting a subset of operation types to log, and to automatically
-prune older log records from the logging database. Log records are stored
-with a custom schema to assure their readability whether viewed as LDIF
-or in raw form.
+prune older log records from the logging database.  Log records are stored
+with audit schema (see below) to assure their readability whether viewed
+as LDIF or in raw form.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -58,14 +58,14 @@ and how often to scan the database for old entries. Both the
 and
 .B interval
 are specified as a time span in days, hours, minutes, and seconds. The
-time format is [dd+]hh:mm[:ss] i.e., the days and seconds components are
-optional but hours and minutes are required. Each numeric field must be
-exactly two digits. For example
+time format is [ddd+]hh:mm[:ss] i.e., the days and seconds components are
+optional but hours and minutes are required. Except for days, which can
+be up to 5 digits, each numeric field must be exactly two digits. For example
 .RS
 .RS
 .PD 0
 .TP
-logpurge 02+00:00 01+00:00
+logpurge 2+00:00 1+00:00
 .RE
 .PD
 would specify that the log database should be scanned every day for old
@@ -74,6 +74,13 @@ log database that supports ordered indexing on generalizedTime attributes,
 specifying an eq index on the
 .B reqStart
 attribute will greatly benefit the performance of the purge operation.
+.RE
+.TP
+.B logsuccess TRUE | FALSE
+If set to TRUE then log records will only be generated for successful
+requests, i.e., requests that produce a result code of 0 (LDAP_SUCCESS).
+If FALSE, log records are generated for all requests whether they
+succeed or not. The default is FALSE.
 
 .SH EXAMPLES
 .LP
@@ -91,10 +98,23 @@ attribute will greatly benefit the performance of the purge operation.
 	logops writes reads
 .fi
 
-.SH OBJECT CLASSES
+.SH SCHEMA
 The
 .B accesslog
-overlay defines a number of object classes for use in the logs. There is
+overlay utilizes the "audit" schema described herein.
+This schema is specifically designed for
+.B accesslog
+auditing and is not intended to be used otherwise.  It is also
+noted that the schema describe here is
+.I a work in
+.IR progress ,
+and hence subject to change without notice.
+The schema is loaded automatically by the overlay.
+
+The schema includes a number of object classes and associated
+attribute types as described below.
+
+There is
 a basic
 .B auditObject
 class from which two additional classes,
@@ -116,7 +136,7 @@ class is as follows:
     SUP top STRUCTURAL
     MUST ( reqStart $ reqType $ reqSession )
     MAY ( reqDN $ reqAuthzID $ reqControls $ reqRespControls $
-        reqEnd $ reqResult $ reqMessage ) )
+        reqEnd $ reqResult $ reqMessage $ reqReferral ) )
 .RE
 .P
 Note that all of the OIDs used in the logging schema currently reside
@@ -141,7 +161,7 @@ being logged, e.g.
 .BR search ,
 etc. For extended operations, the type also includes the OID of the
 extended operation, e.g.
-.B extended(1.2.3.4.1)
+.B extended(1.1.1.1)
 
 The
 .B reqSession
@@ -179,6 +199,11 @@ accompanied by a text error message which will be recorded in the
 .B reqMessage
 attribute.
 
+The
+.B reqReferral
+attribute carries any referrals that were returned with the result of the
+request.
+
 Operation-specific classes are defined with additional attributes to carry
 all of the relevant parameters associated with the operation:
 
@@ -210,36 +235,37 @@ The
 .B Add
 class inherits from the
 .B auditWriteObject
-class. The Add and Modify classes are essentially the same. The
+class. The Add and Modify classes are very similar. The
 .B reqMod
 attribute carries all of the attributes of the original entry being added.
 (Or in the case of a Modify operation, all of the modifications being
 performed.) The values are formatted as
 .RS
-.RS
 .PD 0
 .TP
 attribute:<+|-|=|#> [ value]
+.RE
 .RE
 .PD
 Where '+' indicates an Add of a value, '-' for Delete, '=' for Replace,
 and '#' for Increment. In an Add operation, all of the reqMod values will
 have the '+' designator.
-.RE
 .P
-
 .LP
 .RS 4
 (  1.3.6.1.4.1.4203.666.11.5.2.6
     NAME 'auditBind'
     DESC 'Bind operation'
     SUP auditObject STRUCTURAL
-    MUST reqMethod )
+    MUST ( reqVersion $ reqMethod ) )
 .RE
 .P
 The
 .B Bind
-class just adds the
+class includes the
+.B reqVersion
+attribute which contains the LDAP protocol version specified in the Bind
+as well as the
 .B reqMethod
 attribute which contains the Bind Method used in the Bind. This will be
 the string
@@ -268,19 +294,48 @@ attribute carries the Attribute Value Assertion used in the compare request.
 .LP
 .RS 4
 (  1.3.6.1.4.1.4203.666.11.5.2.8
-    NAME 'auditModify'
-    DESC 'Modify operation'
+    NAME 'auditDelete'
+    DESC 'Delete operation'
     SUP auditWriteObject STRUCTURAL
-    MUST reqMod )
+    MAY reqOld )
 .RE
 .P
 The
-.B Modify
-operation has already been described.
+.B Delete
+operation needs no further parameters. However, the
+.B reqOld
+attribute may optionally be used to record the contents of the entry prior
+to its deletion. The values are formatted as
+.RS
+.PD 0
+.TP
+attribute: value
+.RE
+.PD
+This option is not yet implemented.
 
 .LP
 .RS 4
 (  1.3.6.1.4.1.4203.666.11.5.2.9
+    NAME 'auditModify'
+    DESC 'Modify operation'
+    SUP auditWriteObject STRUCTURAL
+    MAY reqOld MUST reqMod )
+.RE
+.P
+The
+.B Modify
+operation contains a description of modifications in the
+.B reqMod
+attribute, which was already described above in the Add operation. It may
+optionally contain the previous contents of any modified attributes in the
+.B reqOld
+attribute, using the same format as described above for the Delete operation.
+This option is not yet implemented.
+
+.LP
+.RS 4
+(  1.3.6.1.4.1.4203.666.11.5.2.10
     NAME 'auditModRDN'
     DESC 'ModRDN operation'
     SUP auditWriteObject STRUCTURAL
@@ -307,11 +362,11 @@ the new parent.
 
 .LP
 .RS 4
-(  1.3.6.1.4.1.4203.666.11.5.2.10
+(  1.3.6.1.4.1.4203.666.11.5.2.11
     NAME 'auditSearch'
     DESC 'Search operation'
     SUP auditReadObject STRUCTURAL
-    MUST ( reqScope $ reqAttrsOnly )
+    MUST ( reqScope $ reqDerefAliases $ reqAttrsOnly )
     MAY ( reqFilter $ reqAttr $ reqEntries $ reqSizeLimit $
           reqTimeLimit ) )
 .RE
@@ -320,12 +375,22 @@ For the
 .B Search
 class the
 .B reqScope
-attribute contains the scope of the original search request, i.e.
+attribute contains the scope of the original search request, using the
+values specified for the LDAP URL format. I.e.
 .BR base ,
-.BR onelevel ,
-.BR subtree ,
+.BR one ,
+.BR sub ,
 or
-.BR subordinate .
+.BR subord .
+The
+.B reqDerefAliases
+attribute is one of
+.BR never ,
+.BR finding ,
+.BR searching ,
+or
+.BR always ,
+denoting how aliases will be processed during the search.
 The
 .B reqAttrsOnly
 attribute is a Boolean value showing
@@ -352,7 +417,7 @@ attributes indicate what limits were requested on the search operation.
 
 .LP
 .RS 4
-(  1.3.6.1.4.1.4203.666.11.5.2.11
+(  1.3.6.1.4.1.4203.666.11.5.2.12
     NAME 'auditExtended'
     DESC 'Extended operation'
     SUP auditObject STRUCTURAL

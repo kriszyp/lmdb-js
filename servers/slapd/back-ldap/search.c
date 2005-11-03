@@ -431,6 +431,7 @@ fail:;
 
 		if ( dnPretty( NULL, &match, &pmatch, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
 			rs->sr_matched = pmatch.bv_val;
+			LDAP_FREE( match.bv_val );
 
 		} else {
 			rs->sr_matched = match.bv_val;

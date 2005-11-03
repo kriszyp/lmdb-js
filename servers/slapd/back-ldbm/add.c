@@ -25,6 +25,16 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
+static int
+ldbm_csn_cb(
+	Operation *op,
+	SlapReply *rs )
+{
+	op->o_callback = op->o_callback->sc_next;
+	slap_graduate_commit_csn( op );
+	return SLAP_CB_CONTINUE;
+}
+
 int
 ldbm_back_add(
     Operation	*op,
@@ -38,6 +48,7 @@ ldbm_back_add(
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
+	slap_callback cb = { NULL };
 #ifdef LDBM_SUBENTRIES
 	int subentry;
 #endif
@@ -45,6 +56,12 @@ ldbm_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 	
+	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+
+	cb.sc_cleanup = ldbm_csn_cb;
+	cb.sc_next = op->o_callback;
+	op->o_callback = &cb;
+
 	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
 		get_manageDIT(op), &rs->sr_text, textbuf, textlen );
 

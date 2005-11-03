@@ -302,32 +302,10 @@ rewrite_session_var_get(
 	return REWRITE_SUCCESS;
 }
 
-/*
- * Deletes a session
- */
-int
-rewrite_session_delete(
-		struct rewrite_info *info,
-		const void *cookie
-)
+static void
+rewrite_session_clean( void *v_session )
 {
-	struct rewrite_session *session, tmp;
-
-	assert( info != NULL );
-	assert( cookie != NULL );
-
-	tmp.ls_cookie = ( void * )cookie;
-	
-	session = rewrite_session_find( info, cookie );
-
-	if ( session == NULL ) {
-		return REWRITE_SUCCESS;
-	}
-
-	if ( --session->ls_count > 0 ) {
-		rewrite_session_return( info, session );
-		return REWRITE_SUCCESS;
-	}
+	struct rewrite_session	*session = (struct rewrite_session *)v_session;
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_rdwr_wlock( &session->ls_vars_mutex );
@@ -341,6 +319,41 @@ rewrite_session_delete(
 	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
 	ldap_pvt_thread_mutex_destroy( &session->ls_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
+}
+
+static void
+rewrite_session_free( void *v_session )
+{
+	rewrite_session_clean( v_session );
+	free( v_session );
+}
+
+/*
+ * Deletes a session
+ */
+int
+rewrite_session_delete(
+		struct rewrite_info *info,
+		const void *cookie
+)
+{
+	struct rewrite_session *session, tmp = { 0 };
+
+	assert( info != NULL );
+	assert( cookie != NULL );
+
+	session = rewrite_session_find( info, cookie );
+
+	if ( session == NULL ) {
+		return REWRITE_SUCCESS;
+	}
+
+	if ( --session->ls_count > 0 ) {
+		rewrite_session_return( info, session );
+		return REWRITE_SUCCESS;
+	}
+
+	rewrite_session_clean( session );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_rdwr_wlock( &info->li_cookies_mutex );
@@ -352,7 +365,9 @@ rewrite_session_delete(
 	/*
 	 * There is nothing to delete in the return value
 	 */
+	tmp.ls_cookie = ( void * )cookie;
 	avl_delete( &info->li_cookies, ( caddr_t )&tmp, rewrite_cookie_cmp );
+
 	free( session );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
@@ -382,7 +397,7 @@ rewrite_session_destroy(
 	 * Should call per-session destruction routine ...
 	 */
 	
-	count = avl_free( info->li_cookies, NULL );
+	count = avl_free( info->li_cookies, rewrite_session_free );
 	info->li_cookies = NULL;
 
 #if 0

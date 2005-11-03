@@ -289,6 +289,9 @@ bdb_modify( Operation *op, SlapReply *rs )
 
 	ctrls[num_ctrls] = NULL;
 
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_mods_opattrs( op, op->orm_modlist, 1 );
+
 	if( 0 ) {
 retry:	/* transaction retry */
 		if ( dummy.e_attrs ) {
@@ -524,7 +527,8 @@ retry:	/* transaction retry */
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
-			rs->sr_err = LDAP_NO_OPERATION;
+			rs->sr_err = LDAP_X_NO_OPERATION;
+			ltid = NULL;
 			goto return_results;
 		}
 	} else {
@@ -573,6 +577,8 @@ return_results:
 		attrs_free( dummy.e_attrs );
 	}
 	send_ldap_result( op, rs );
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
@@ -583,8 +589,8 @@ return_results:
 done:
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
-		op->o_private = NULL;
 	}
+	op->o_private = NULL;
 
 	if( e != NULL ) {
 		bdb_unlocked_cache_return_entry_w (&bdb->bi_cache, e);

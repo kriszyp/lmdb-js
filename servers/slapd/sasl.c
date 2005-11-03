@@ -374,7 +374,7 @@ slap_auxprop_lookup(
 				op.o_tag = LDAP_REQ_SEARCH;
 				op.o_ndn = conn->c_ndn;
 				op.o_callback = &cb;
-				op.o_time = slap_get_time();
+				slap_op_time( &op.o_time, &op.o_tincr );
 				op.o_do_not_cache = 1;
 				op.o_is_auth_check = 1;
 				op.o_req_dn = op.o_req_ndn;
@@ -472,22 +472,17 @@ slap_auxprop_store(
 			&text, textbuf, textlen );
 
 		if ( rc == LDAP_SUCCESS ) {
-			rc = slap_mods_opattrs( &op, modlist, modtail,
-					&text, textbuf, textlen, 1 );
+			op.o_hdr = conn->c_sasl_bindop->o_hdr;
+			op.o_tag = LDAP_REQ_MODIFY;
+			op.o_ndn = op.o_req_ndn;
+			op.o_callback = &cb;
+			slap_op_time( &op.o_time, &op.o_tincr );
+			op.o_do_not_cache = 1;
+			op.o_is_auth_check = 1;
+			op.o_req_dn = op.o_req_ndn;
+			op.orm_modlist = modlist;
 
-			if ( rc == LDAP_SUCCESS ) {
-				op.o_hdr = conn->c_sasl_bindop->o_hdr;
-				op.o_tag = LDAP_REQ_MODIFY;
-				op.o_ndn = op.o_req_ndn;
-				op.o_callback = &cb;
-				op.o_time = slap_get_time();
-				op.o_do_not_cache = 1;
-				op.o_is_auth_check = 1;
-				op.o_req_dn = op.o_req_ndn;
-				op.orm_modlist = modlist;
-
-				rc = op.o_bd->be_modify( &op, &rs );
-			}
+			rc = op.o_bd->be_modify( &op, &rs );
 		}
 	}
 	slap_mods_free( modlist, 1 );

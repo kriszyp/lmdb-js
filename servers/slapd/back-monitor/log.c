@@ -31,8 +31,8 @@
 #include "ldif.h"
 #include "back-monitor.h"
 
-static int
-monitor_subsys_log_destroy(
+static int 
+monitor_subsys_log_open( 
 	BackendDB		*be,
 	monitor_subsys_t	*ms );
 
@@ -47,34 +47,9 @@ monitor_subsys_log_modify(
  */
 ldap_pvt_thread_mutex_t		monitor_log_mutex;
 
-static struct {
-	int i;
-	struct berval s;
-	struct berval n;
-} int_2_level[] = {
-	{ LDAP_DEBUG_TRACE,	BER_BVC("Trace"),	BER_BVNULL },
-	{ LDAP_DEBUG_PACKETS,	BER_BVC("Packets"),	BER_BVNULL },
-	{ LDAP_DEBUG_ARGS,	BER_BVC("Args"),	BER_BVNULL },
-	{ LDAP_DEBUG_CONNS,	BER_BVC("Conns"),	BER_BVNULL },
-	{ LDAP_DEBUG_BER,	BER_BVC("BER"),	BER_BVNULL },
-	{ LDAP_DEBUG_FILTER,	BER_BVC("Filter"),	BER_BVNULL },
-	{ LDAP_DEBUG_CONFIG,	BER_BVC("Config"),	BER_BVNULL },	/* useless */
-	{ LDAP_DEBUG_ACL,	BER_BVC("ACL"),	BER_BVNULL },
-	{ LDAP_DEBUG_STATS,	BER_BVC("Stats"),	BER_BVNULL },
-	{ LDAP_DEBUG_STATS2,	BER_BVC("Stats2"),	BER_BVNULL },
-	{ LDAP_DEBUG_SHELL,	BER_BVC("Shell"),	BER_BVNULL },
-	{ LDAP_DEBUG_PARSE,	BER_BVC("Parse"),	BER_BVNULL },
-	{ LDAP_DEBUG_CACHE,	BER_BVC("Cache"),	BER_BVNULL },
-	{ LDAP_DEBUG_INDEX,	BER_BVC("Index"),	BER_BVNULL },
-	{ 0,			BER_BVNULL,	BER_BVNULL }
-};
-
-static int loglevel2int( struct berval *l );
-static int int2loglevel( int n );
-
-static int add_values( Entry *e, Modification *mod, int *newlevel );
-static int delete_values( Entry *e, Modification *mod, int *newlevel );
-static int replace_values( Entry *e, Modification *mod, int *newlevel );
+static int add_values( Operation *op, Entry *e, Modification *mod, int *newlevel );
+static int delete_values( Operation *op, Entry *e, Modification *mod, int *newlevel );
+static int replace_values( Operation *op, Entry *e, Modification *mod, int *newlevel );
 
 /*
  * initializes log subentry
@@ -84,68 +59,46 @@ monitor_subsys_log_init(
 	BackendDB		*be,
 	monitor_subsys_t	*ms )
 {
-	monitor_info_t	*mi;
-	Entry		*e;
-	int		i;
-
-	ms->mss_destroy = monitor_subsys_log_destroy;
+	ms->mss_open = monitor_subsys_log_open;
 	ms->mss_modify = monitor_subsys_log_modify;
 
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );
 
-	mi = ( monitor_info_t * )be->be_private;
-
-	if ( monitor_cache_get( mi, &ms->mss_ndn, 
-				&e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_log_init: "
-			"unable to get entry \"%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-
-	/* initialize the debug level(s) */
-	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
-		if ( mi->mi_ad_managedInfo->ad_type->sat_equality->smr_normalize ) {
-			int	rc;
-
-			rc = (*mi->mi_ad_managedInfo->ad_type->sat_equality->smr_normalize)(
-					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					mi->mi_ad_managedInfo->ad_type->sat_syntax,
-					mi->mi_ad_managedInfo->ad_type->sat_equality,
-					&int_2_level[ i ].s,
-					&int_2_level[ i ].n, NULL );
-			if ( rc ) {
-				return( -1 );
-			}
-		}
-
-		if ( int_2_level[ i ].i & ldap_syslog ) {
-			attr_merge_one( e, mi->mi_ad_managedInfo,
-					&int_2_level[ i ].s,
-					&int_2_level[ i ].n );
-		}
-	}
-
-	monitor_cache_release( mi, e );
-
 	return( 0 );
 }
 
-static int
-monitor_subsys_log_destroy(
+/*
+ * opens log subentry
+ */
+int
+monitor_subsys_log_open(
 	BackendDB		*be,
 	monitor_subsys_t	*ms )
 {
-	int		i;
+	BerVarray	bva = NULL;
 
-	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
-		if ( !BER_BVISNULL( &int_2_level[ i ].n ) ) {
-			ch_free( int_2_level[ i ].n.bv_val );
+	if ( loglevel2bvarray( ldap_syslog, &bva ) == 0 && bva != NULL ) {
+		monitor_info_t	*mi;
+		Entry		*e;
+
+		mi = ( monitor_info_t * )be->be_private;
+
+		if ( monitor_cache_get( mi, &ms->mss_ndn, &e ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_log_init: "
+				"unable to get entry \"%s\"\n",
+				ms->mss_ndn.bv_val, 0, 0 );
+			ber_bvarray_free( bva );
+			return( -1 );
 		}
+
+		attr_merge_normalize( e, mi->mi_ad_managedInfo, bva, NULL );
+		ber_bvarray_free( bva );
+
+		monitor_cache_release( mi, e );
 	}
 
-	return 0;
+	return( 0 );
 }
 
 static int 
@@ -176,7 +129,8 @@ monitor_subsys_log_modify(
 		 */
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {
 			( void ) attr_delete( &e->e_attrs, mod->sm_desc );
-			rc = rs->sr_err = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
+			rc = rs->sr_err = attr_merge( e, mod->sm_desc,
+					mod->sm_values, mod->sm_nvalues );
 			if ( rc != LDAP_SUCCESS ) {
 				break;
 			}
@@ -192,15 +146,15 @@ monitor_subsys_log_modify(
 
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
-			rc = add_values( e, mod, &newlevel );
+			rc = add_values( op, e, mod, &newlevel );
 			break;
 			
 		case LDAP_MOD_DELETE:
-			rc = delete_values( e, mod, &newlevel );
+			rc = delete_values( op, e, mod, &newlevel );
 			break;
 
 		case LDAP_MOD_REPLACE:
-			rc = replace_values( e, mod, &newlevel );
+			rc = replace_values( op, e, mod, &newlevel );
 			break;
 
 		default:
@@ -267,64 +221,31 @@ cleanup:;
 }
 
 static int
-loglevel2int( struct berval *l )
-{
-	int		i;
-	
-	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
-		if ( l->bv_len != int_2_level[ i ].s.bv_len ) {
-			continue;
-		}
-
-		if ( strcasecmp( l->bv_val, int_2_level[ i ].s.bv_val ) == 0 ) {
-			return int_2_level[ i ].i;
-		}
-	}
-
-	return 0;
-}
-
-static int
-int2loglevel( int n )
-{
-	int		i;
-	
-	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
-		if ( int_2_level[ i ].i == n ) {
-			return i;
-		}
-	}
-
-	return -1;
-}
-
-static int
 check_constraints( Modification *mod, int *newlevel )
 {
 	int		i;
 
-	for ( i = 0; mod->sm_values && !BER_BVISNULL( &mod->sm_values[ i ] ); i++ ) {
+	if ( mod->sm_nvalues != NULL ) {
+		ber_bvarray_free( mod->sm_nvalues );
+		mod->sm_nvalues = NULL;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &mod->sm_values[ i ] ); i++ ) {
 		int		l;
-		
-		l = loglevel2int( &mod->sm_values[ i ] );
-		if ( !l ) {
+		struct berval	bv;
+
+		if ( str2loglevel( mod->sm_values[ i ].bv_val, &l ) ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 
-		if ( ( l = int2loglevel( l ) ) == -1 ) {
-			return LDAP_OTHER;
+		if ( loglevel2bv( l, &bv ) ) {
+			return LDAP_CONSTRAINT_VIOLATION;
 		}
-
-		assert( int_2_level[ l ].s.bv_len
-				== mod->sm_values[ i ].bv_len );
+		
+		assert( bv.bv_len == mod->sm_values[ i ].bv_len );
 		
 		AC_MEMCPY( mod->sm_values[ i ].bv_val,
-				int_2_level[ l ].s.bv_val,
-				int_2_level[ l ].s.bv_len );
-
-		AC_MEMCPY( mod->sm_nvalues[ i ].bv_val,
-				int_2_level[ l ].n.bv_val,
-				int_2_level[ l ].n.bv_len );
+				bv.bv_val, bv.bv_len );
 
 		*newlevel |= l;
 	}
@@ -333,11 +254,13 @@ check_constraints( Modification *mod, int *newlevel )
 }	
 
 static int 
-add_values( Entry *e, Modification *mod, int *newlevel )
+add_values( Operation *op, Entry *e, Modification *mod, int *newlevel )
 {
 	Attribute	*a;
 	int		i, rc;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
+
+	assert( mod->sm_values != NULL );
 
 	rc = check_constraints( mod, newlevel );
 	if ( rc != LDAP_SUCCESS ) {
@@ -360,7 +283,8 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 
 			rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr, SLAP_MR_EQUALITY,
-				&mod->sm_values[ i ], &asserted, &text, NULL );
+				&mod->sm_values[ i ], &asserted, &text,
+				op->o_tmpmemctx );
 
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -369,7 +293,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
-					0, &a->a_vals[ j ], &asserted, &text );
+					0, &a->a_nvals[ j ], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
 					free( asserted.bv_val );
@@ -382,9 +306,9 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* no - add them */
-	rc = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
+	rc = attr_merge_normalize( e, mod->sm_desc, mod->sm_values,
+		op->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
-		/* this should return result of attr_mergeit */
 		return rc;
 	}
 
@@ -392,18 +316,11 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 }
 
 static int
-delete_values( Entry *e, Modification *mod, int *newlevel )
+delete_values( Operation *op, Entry *e, Modification *mod, int *newlevel )
 {
 	int             i, j, k, found, rc, nl = 0;
 	Attribute       *a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
-
-	rc = check_constraints( mod, &nl );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
-
-	*newlevel &= ~nl;
 
 	/* delete the entire attribute */
 	if ( mod->sm_values == NULL ) {
@@ -411,12 +328,20 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		if ( rc ) {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
+
 		} else {
 			*newlevel = 0;
 			rc = LDAP_SUCCESS;
 		}
 		return rc;
 	}
+
+	rc = check_constraints( mod, &nl );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	*newlevel &= ~nl;
 
 	if ( mr == NULL || !mr->smr_match ) {
 		/* disallow specific attributes from being deleted if
@@ -438,7 +363,8 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr, SLAP_MR_EQUALITY,
-				&mod->sm_values[ i ], &asserted, &text, NULL );
+				&mod->sm_values[ i ], &asserted, &text,
+				op->o_tmpmemctx );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 
@@ -446,8 +372,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 		for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
-				0,
-				&a->a_vals[ j ], &asserted, &text );
+				0, &a->a_nvals[ j ], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {
 				continue;
@@ -457,6 +382,14 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 			found = 1;
 
 			/* delete it */
+			if ( a->a_nvals != a->a_vals ) {
+				free( a->a_nvals[ j ].bv_val );
+				for ( k = j + 1; !BER_BVISNULL( &a->a_nvals[ k ] ); k++ ) {
+					a->a_nvals[ k - 1 ] = a->a_nvals[ k ];
+				}
+				BER_BVZERO( &a->a_nvals[ k - 1 ] );
+			}
+
 			free( a->a_vals[ j ].bv_val );
 			for ( k = j + 1; !BER_BVISNULL( &a->a_vals[ k ] ); k++ ) {
 				a->a_vals[ k - 1 ] = a->a_vals[ k ];
@@ -488,14 +421,16 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 }
 
 static int
-replace_values( Entry *e, Modification *mod, int *newlevel )
+replace_values( Operation *op, Entry *e, Modification *mod, int *newlevel )
 {
 	int rc;
 
-	*newlevel = 0;
-	rc = check_constraints( mod, newlevel );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
+	if ( mod->sm_values != NULL ) {
+		*newlevel = 0;
+		rc = check_constraints( mod, newlevel );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
 	}
 
 	rc = attr_delete( &e->e_attrs, mod->sm_desc );
@@ -505,7 +440,8 @@ replace_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	if ( mod->sm_values != NULL ) {
-		rc = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
+		rc = attr_merge_normalize( e, mod->sm_desc, mod->sm_values,
+				op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return rc;
 		}

@@ -503,11 +503,15 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		} else {
 			BER_BVZERO( &lc->lc_cred );
 			BER_BVZERO( &lc->lc_bound_ndn );
+#if 0
+			/* FIXME: if we set lc_bound_ndn = o_ndn
+			 * we end up with a bind with DN but no password! */
 			if ( !BER_BVISEMPTY( &op->o_ndn )
 				&& SLAP_IS_AUTHZ_BACKEND( op ) )
 			{
 				ber_dupbv( &lc->lc_bound_ndn, &op->o_ndn );
 			}
+#endif
 		}
 
 #ifdef HAVE_TLS

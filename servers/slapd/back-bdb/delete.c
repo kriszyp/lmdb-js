@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 
+#include "lutil.h"
 #include "back-bdb.h"
 
 int
@@ -51,15 +52,20 @@ bdb_delete( Operation *op, SlapReply *rs )
 	int	parent_is_glue = 0;
 	int parent_is_leaf = 0;
 
-	struct berval ctxcsn_ndn = BER_BVNULL;
-
 	ctrls[num_ctrls] = 0;
 
 	Debug( LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(bdb_delete) ": %s\n",
 		op->o_req_dn.bv_val, 0, 0 );
 
-	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
-				(struct berval *)&slap_ldapsync_cn_bv, op->o_tmpmemctx );
+	/* allocate CSN */
+	if ( !SLAP_SHADOW( op->o_bd )) {
+		struct berval csn;
+		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+
+		csn.bv_val = csnbuf;
+		csn.bv_len = sizeof(csnbuf);
+		slap_get_csn( op, &csn, 1 );
+	}
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -166,17 +172,8 @@ retry:	/* transaction retry */
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
-		send_ldap_result( op, rs );
-
-		if ( rs->sr_ref != default_referral ) {
-			ber_bvarray_free( rs->sr_ref );
-		}
-		free( (char *)rs->sr_matched );
-		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
-
-		rs->sr_err = -1;
-		goto done;
+		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+		goto return_results;
 	}
 
 	rc = bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
@@ -296,15 +293,9 @@ retry:	/* transaction retry */
 			0, 0, 0 );
 
 		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_matched = e->e_name.bv_val;
-		send_ldap_result( op, rs );
-
-		ber_bvarray_free( rs->sr_ref );
-		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
-
-		rs->sr_err = 1;
-		goto done;
+		rs->sr_matched = ch_strdup( e->e_name.bv_val );
+		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+		goto return_results;
 	}
 
 	/* pre-read */
@@ -455,7 +446,8 @@ retry:	/* transaction retry */
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
-			rs->sr_err = LDAP_NO_OPERATION;
+			rs->sr_err = LDAP_X_NO_OPERATION;
+			ltid = NULL;
 			goto return_results;
 		}
 	} else {
@@ -492,19 +484,10 @@ retry:	/* transaction retry */
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
-	send_ldap_result( op, rs );
-
-	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
-		ldap_pvt_thread_yield();
-		TXN_CHECKPOINT( bdb->bi_dbenv,
-			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
-	}
-
 	if ( rs->sr_err == LDAP_SUCCESS && parent_is_glue && parent_is_leaf ) {
 		op->o_delete_glue_parent = 1;
 	}
 
-done:
 	if ( p )
 		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
 
@@ -520,14 +503,22 @@ done:
 
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
-		op->o_private = NULL;
 	}
+	op->o_private = NULL;
 
-	slap_sl_free( ctxcsn_ndn.bv_val, op->o_tmpmemctx );
+	send_ldap_result( op, rs );
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
 
 	if( preread_ctrl != NULL ) {
 		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
 		slap_sl_free( *preread_ctrl, op->o_tmpmemctx );
+	}
+
+	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+		ldap_pvt_thread_yield();
+		TXN_CHECKPOINT( bdb->bi_dbenv,
+			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
 	}
 	return rs->sr_err;
 }

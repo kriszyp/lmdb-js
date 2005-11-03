@@ -91,7 +91,9 @@ backsql_operational_entryCSN( Operation *op )
 	} else
 #endif /* BACKSQL_SYNCPROV */
 	{
-		slap_get_csn( op, csnbuf, sizeof(csnbuf), &entryCSN, 0 );
+		entryCSN.bv_val = csnbuf;
+		entryCSN.bv_len = sizeof( csnbuf );
+		slap_get_csn( op, &entryCSN, 0 );
 	}
 
 	ber_dupbv( &a->a_vals[ 0 ], &entryCSN );

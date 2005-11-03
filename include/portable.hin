@@ -102,7 +102,7 @@
 /* define if Berkeley DB has DB_THREAD support */
 #undef HAVE_BERKELEY_DB_THREAD
 
-/* define if you have SSLeay or OpenSSL's BIGNUM */
+/* define if you have OpenSSL's BIGNUM */
 #undef HAVE_BIGNUM
 
 /* Define to 1 if you have the <bits/types.h> header file. */
@@ -277,6 +277,9 @@
 /* define to you inet_aton(3) is available */
 #undef HAVE_INET_ATON
 
+/* Define to 1 if you have the `inet_ntoa_b' function. */
+#undef HAVE_INET_NTOA_B
+
 /* Define to 1 if you have the `inet_ntop' function. */
 #undef HAVE_INET_NTOP
 
@@ -427,6 +430,9 @@
 /* if you have NT Threads */
 #undef HAVE_NT_THREADS
 
+/* define if you have OpenSSL */
+#undef HAVE_OPENSSL
+
 /* Define to 1 if you have the <openssl/bn.h> header file. */
 #undef HAVE_OPENSSL_BN_H
 
@@ -508,7 +514,7 @@
 /* define if you have res_query() */
 #undef HAVE_RES_QUERY
 
-/* define if you have RSAref */
+/* define if OpenSSL needs RSAref */
 #undef HAVE_RSAREF
 
 /* Define to 1 if you have the <sasl.h> header file. */
@@ -588,12 +594,6 @@
 
 /* Define to 1 if you have the <sql.h> header file. */
 #undef HAVE_SQL_H
-
-/* define if you have SSLeay or OpenSSL */
-#undef HAVE_SSLEAY
-
-/* Define to 1 if you have the <ssl.h> header file. */
-#undef HAVE_SSL_H
 
 /* Define to 1 if you have the <stddef.h> header file. */
 #undef HAVE_STDDEF_H

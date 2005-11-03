@@ -936,9 +936,11 @@ backsql_add( Operation *op, SlapReply *rs )
 	 */
 	if ( op->o_sync ) {
 		char		buf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-		struct berval	csn = BER_BVNULL;
+		struct berval	csn;
 
-		slap_get_csn( op, buf, sizeof( buf ), &csn, 1 );
+		csn.bv_val = buf;
+		csn.bv_len = sizeof( buf );
+		slap_get_csn( op, &csn, 1 );
 
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );

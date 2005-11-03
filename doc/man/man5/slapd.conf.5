@@ -859,9 +859,15 @@ See
 .BR limits
 for an explanation of the different flags.
 .TP
-.B ucdata-path <path>
-Specify the path to the directory containing the Unicode character
-tables. The default path is DATADIR/ucdata.
+.B tool-threads <integer>
+Specify the maximum number of threads to use in tool mode.
+This should not be greater than the number of CPUs in the system.
+The default is 1.
+.\"ucdata-path is obsolete / ignored...
+.\".TP
+.\".B ucdata-path <path>
+.\"Specify the path to the directory containing the Unicode character
+.\"tables. The default path is DATADIR/ucdata.
 .SH TLS OPTIONS
 If
 .B slapd
@@ -901,6 +907,12 @@ server private key that matches the certificate stored in the
 .B TLSCertificateFile
 file.  Currently, the private key must not be protected with a password, so
 it is of critical importance that it is protected carefully. 
+.TP
+.B TLSDHParamFile <filename>
+This directive specifies the file that contains parameters for Diffie-Hellman
+ephemeral key exchange.  This is required in order to use a DSA certificate on
+the server. If multiple sets of parameters are present in the file, all of
+them will be processed.
 .TP
 .B TLSRandFile <filename>
 Specifies the file to obtain random bits from when /dev/[u]random
@@ -1464,6 +1476,9 @@ in order to work over all of the glued databases. E.g.
 .B [credentials=<passwd>]
 .B [realm=<realm>]
 .B [secprops=<properties>]
+.B [logbase=<base DN>]
+.B [logfilter=<filter str>]
+.B [syncdata=default|accesslog|changelog]
 .RS
 Specify the current database as a replica which is kept up-to-date with the 
 master content by establishing the current
@@ -1568,6 +1583,22 @@ keyword above) for a SASL bind can be set with the
 option. A non default SASL realm can be set with the
 .B realm 
 option.
+
+Rather than replicating whole entries, the consumer can query logs of
+data modifications. This mode of operation is referred to as \fIdelta
+syncrepl\fP. In addition to the above parameters, the
+.B logbase
+and
+.B logfilter
+parameters must be set appropriately for the log that will be used. The
+.B syncdata
+parameter must be set to either "accesslog" if the log conforms to the
+.BR slapo-accesslog (5)
+log format, or "changelog" if the log conforms
+to the obsolete \fIchangelog\fP format. If the
+.B syncdata
+parameter is omitted or set to "default" then the log parameters are
+ignored.
 .RE
 .TP
 .B updatedn <dn>
@@ -1629,14 +1660,12 @@ It uses Berkeley DB or GDBM to store data.
 .B ldif
 This database uses the filesystem to build the tree structure
 of the database, using plain ascii files to store data.
-Its usage should be limited to very simple databases, where performances
-are not a requirement.
+Its usage should be limited to very simple databases, where performance
+is not a requirement.
 .TP
 .B meta
 This backend performs basic LDAP proxying with respect to a set of
-remote LDAP servers. It is an enhancement of the ldap backend. The
-proxy cache extension of meta backend provides answering of search
-requests from the proxy using results of previously cached requests.
+remote LDAP servers. It is an enhancement of the ldap backend.
 .TP
 .B monitor
 This backend provides information about the running status of the slapd
@@ -1722,6 +1751,7 @@ operation performed on that database.
 .B pcache
 Proxycache.
 This overlay allows caching of LDAP search requests in a local database.
+It is most often used with the ldap or meta backends.
 .TP
 .B ppolicy
 Password Policy.

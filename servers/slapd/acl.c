@@ -2603,7 +2603,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	op2.o_tag = LDAP_REQ_SEARCH;
 	op2.o_ndn = op2.o_bd->be_rootndn;
 	op2.o_callback = &cb;
-	op2.o_time = slap_get_time();
+	slap_op_time( &op2.o_time, &op2.o_tincr );
 	op2.o_do_not_cache = 1;
 	op2.o_is_auth_check = 0;
 	ber_dupbv_x( &op2.o_req_dn, &op2.o_req_ndn, cp->asc_op->o_tmpmemctx );

@@ -135,6 +135,12 @@ retry:
 					(char **)&rs->sr_matched,
 					(char **)&rs->sr_text,
 					NULL, NULL, 0 );
+			if ( rs->sr_matched && rs->sr_matched[ 0 ] == '\0' ) {
+				free( (char *)rs->sr_matched );
+			}
+			if ( rs->sr_text && rs->sr_text[ 0 ] == '\0' ) {
+				free( (char *)rs->sr_text );
+			}
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					struct berval	newpw;
@@ -165,16 +171,18 @@ retry:
 			}
 		}
 		send_ldap_result( op, rs );
-		if ( rs->sr_matched ) {
-			free( (char *)rs->sr_matched );
-		}
-		if ( rs->sr_text ) {
-			free( (char *)rs->sr_text );
-		}
-		rs->sr_matched = NULL;
-		rs->sr_text = NULL;
 		rc = -1;
 	}
+
+	/* these have to be freed anyway... */
+	if ( rs->sr_matched ) {
+		free( (char *)rs->sr_matched );
+	}
+	if ( rs->sr_text ) {
+		free( (char *)rs->sr_text );
+	}
+	rs->sr_matched = NULL;
+	rs->sr_text = NULL;
 
 	if ( lc != NULL ) {
 		ldap_back_release_conn( op, rs, lc );

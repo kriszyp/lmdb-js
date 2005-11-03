@@ -447,8 +447,7 @@ retry_lock:;
 			goto retry_lock;
 		}
 
-		ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
-		msc->msc_ld = NULL;
+		meta_clear_one_candidate( msc );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
 		( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );

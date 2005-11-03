@@ -80,7 +80,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		if ( META_BACK_DEFER_ROOTDN_BIND( mi ) ) {
 			rs->sr_err = LDAP_SUCCESS;
 			rs->sr_text = NULL;
-			send_ldap_result( op, rs );
+			/* frontend will return success */
 			return rs->sr_err;
 		}
 
@@ -184,10 +184,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			rs->sr_err = lerr;
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 
-			if ( META_BACK_ONERR_STOP( mi ) ) {
-				rc = rs->sr_err;
-				break;
-			}
+			rc = rs->sr_err;
+			break;
 		}
 	}
 
@@ -382,8 +380,7 @@ retry:;
 			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
 				ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 				if ( mc->mc_refcnt == 1 ) {
-					ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
-					msc->msc_ld = NULL;
+					meta_clear_one_candidate( msc );
 				        LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
 					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
@@ -560,8 +557,7 @@ retry:;
 				}
 
 				if ( mc->mc_refcnt == 1 ) {
-					ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
-					msc->msc_ld = NULL;
+					meta_clear_one_candidate( msc );
 				        LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
 					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );

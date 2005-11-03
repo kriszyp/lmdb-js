@@ -114,7 +114,7 @@ LDAP_SLAPD_F (int) acl_string_expand LDAP_P((
  */
 LDAP_SLAPD_V (char *) style_strings[];
 
-LDAP_SLAPD_F (void) parse_acl LDAP_P(( Backend *be,
+LDAP_SLAPD_F (int) parse_acl LDAP_P(( Backend *be,
 	const char *fname, int lineno,
 	int argc, char **argv, int pos ));
 
@@ -206,6 +206,12 @@ LDAP_SLAPD_F (int) slap_mods2entry LDAP_P(( Modifications *mods, Entry **e,
 LDAP_SLAPD_F (int) slap_entry2mods LDAP_P(( Entry *e,
 						Modifications **mods, const char **text,
 						char *textbuf, size_t textlen ));
+LDAP_SLAPD_F( int ) slap_add_opattrs(
+	Operation *op,
+	const char **text,
+	char *textbuf, size_t textlen,
+	int manage_ctxcsn );
+
 
 /*
  * at.c
@@ -426,6 +432,9 @@ LDAP_SLAPD_F (int) overlay_op_walk LDAP_P((
  */
 LDAP_SLAPD_F (int) slap_loglevel_register LDAP_P (( slap_mask_t m, struct berval *s ));
 LDAP_SLAPD_F (int) str2loglevel LDAP_P(( const char *s, int *l ));
+LDAP_SLAPD_F (int) loglevel2bvarray LDAP_P(( int l, BerVarray *bva ));
+LDAP_SLAPD_F (const char *) loglevel2str LDAP_P(( int l ));
+LDAP_SLAPD_F (int) loglevel2bv LDAP_P(( int l, struct berval *bv ));
 
 /*
  * ch_malloc.c
@@ -645,8 +654,13 @@ LDAP_SLAPD_F (int) connection_state_closing LDAP_P(( Connection *c ));
 LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 	LDAP_GCCATTR((const));
 
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+LDAP_SLAPD_F (int) connection_write_activate LDAP_P((ber_socket_t s));
+LDAP_SLAPD_F (int) connection_read_activate LDAP_P((ber_socket_t s));
+#else
 LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
 LDAP_SLAPD_F (int) connection_read LDAP_P((ber_socket_t s));
+#endif
 
 LDAP_SLAPD_F (unsigned long) connections_nextid(void);
 
@@ -693,7 +707,7 @@ LDAP_SLAPD_F (void) slap_get_commit_csn LDAP_P((
 LDAP_SLAPD_F (void) slap_rewind_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (void) slap_graduate_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (Entry *) slap_create_context_csn_entry LDAP_P(( Backend *, struct berval *));
-LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, char *, int, struct berval *, int ));
+LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, struct berval *, int ));
 LDAP_SLAPD_F (void) slap_queue_csn LDAP_P(( Operation *, struct berval * ));
 
 /*
@@ -704,7 +718,10 @@ LDAP_SLAPD_F (int) slapd_daemon_init( const char *urls );
 LDAP_SLAPD_F (int) slapd_daemon_destroy(void);
 LDAP_SLAPD_F (int) slapd_daemon(void);
 LDAP_SLAPD_F (Listener **)	slapd_get_listeners LDAP_P((void));
-LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wasactive, int wake));
+LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wasactive,
+	int wake, int locked ));
+LDAP_SLAPD_F (void) slapd_sd_lock();
+LDAP_SLAPD_F (void) slapd_sd_unlock();
 
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LDAP_SLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));
@@ -713,7 +730,7 @@ LDAP_SLAPD_F (void) slap_wake_listener LDAP_P((void));
 LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_set_read LDAP_P((ber_socket_t s, int wake));
-LDAP_SLAPD_F (void) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
+LDAP_SLAPD_F (int) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_abrupt_shutdown;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
@@ -858,7 +875,7 @@ typedef int (SLAP_EXTOP_GETOID_FN) LDAP_P((
 	int index, struct berval *oid, int blen ));
 
 LDAP_SLAPD_F (int) load_extop LDAP_P((
-	struct berval *ext_oid,
+	const struct berval *ext_oid,
 	slap_mask_t flags,
 	SLAP_EXTOP_MAIN_FN *ext_main ));
 
@@ -1037,12 +1054,9 @@ LDAP_SLAPD_F( void ) slap_timestamp(
 	time_t *tm,
 	struct berval *bv );
 
-LDAP_SLAPD_F( int ) slap_mods_opattrs(
+LDAP_SLAPD_F( void ) slap_mods_opattrs(
 	Operation *op,
 	Modifications *mods,
-	Modifications **modlist,
-	const char **text,
-	char *textbuf, size_t textlen,
 	int manage_ctxcsn );
 
 /*
@@ -1206,6 +1220,7 @@ LDAP_SLAPD_F (int) parse_oidm LDAP_P((
 LDAP_SLAPD_F (void) slap_op_init LDAP_P(( void ));
 LDAP_SLAPD_F (void) slap_op_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) slap_op_free LDAP_P(( Operation *op ));
+LDAP_SLAPD_F (void) slap_op_time LDAP_P(( time_t *t, int *n ));
 LDAP_SLAPD_F (Operation *) slap_op_alloc LDAP_P((
 	BerElement *ber, ber_int_t msgid,
 	ber_tag_t tag, ber_int_t id ));
@@ -1722,6 +1737,7 @@ LDAP_SLAPD_V (time_t)		starttime;
 
 LDAP_SLAPD_V (ldap_pvt_thread_pool_t)	connection_pool;
 LDAP_SLAPD_V (int)			connection_pool_max;
+LDAP_SLAPD_V (int)			slap_tool_thread_max;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;

@@ -348,6 +348,12 @@ attributetype ( 2.5.4.65 NAME 'pseudonym'
 # Standard object classes from RFC2256
 
 # system schema
+#objectclass ( 2.5.6.0 NAME 'top'
+#	DESC 'RFC2256: top of the superclass chain'
+#	ABSTRACT
+#	MUST objectClass )
+
+# system schema
 #objectclass ( 2.5.6.1 NAME 'alias'
 #	DESC 'RFC2256: an alias'
 #	SUP top STRUCTURAL

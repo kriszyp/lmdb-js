@@ -85,6 +85,19 @@ static struct ldaperror ldap_builtin_errlist[] = {
 
 	{LDAP_OTHER, 					N_("Internal (implementation specific) error")},
 
+	{LDAP_CANCELLED,				N_("Cancelled")},
+	{LDAP_NO_SUCH_OPERATION,		N_("No Operation to Cancel")},
+	{LDAP_TOO_LATE,					N_("Too Late to Cancel")},
+	{LDAP_CANNOT_CANCEL,			N_("Cannot Cancel")},
+
+	{LDAP_ASSERTION_FAILED,			N_("Assertion Failed")},
+	{LDAP_X_ASSERTION_FAILED,		N_("Assertion Failed (X)")},
+
+	{LDAP_SYNC_REFRESH_REQUIRED,	N_("Content Sync Refresh Required")},
+	{LDAP_X_SYNC_REFRESH_REQUIRED,	N_("Content Sync Refresh Required (X)")},
+
+	{LDAP_X_NO_OPERATION,			N_("No Operation (X)")},
+
 	/* API ResultCodes */
 	{LDAP_SERVER_DOWN,				N_("Can't contact LDAP server")},
 	{LDAP_LOCAL_ERROR,				N_("Local error")},
@@ -105,21 +118,11 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_CLIENT_LOOP,				N_("Client Loop")},
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	N_("Referral Limit Exceeded")},
 
-	{LDAP_SYNC_REFRESH_REQUIRED,	N_("Content Sync Refresh Required")},
-
-	{LDAP_NO_OPERATION,				N_("No Operation")},
-	{LDAP_ASSERTION_FAILED,			N_("Assertion Failed")},
-
 	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("LCUP Resources Exhausted")},
 	{LDAP_CUP_SECURITY_VIOLATION,	N_("LCUP Security Violation")},
 	{LDAP_CUP_INVALID_DATA,			N_("LCUP Invalid Data")},
 	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
 	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
-
-	{LDAP_CANCELLED,				N_("Cancelled")},
-	{LDAP_NO_SUCH_OPERATION,		N_("No Operation to Cancel")},
-	{LDAP_TOO_LATE,					N_("Too Late to Cancel")},
-	{LDAP_CANNOT_CANCEL,			N_("Cannot Cancel")},
 
 	{0, NULL}
 };

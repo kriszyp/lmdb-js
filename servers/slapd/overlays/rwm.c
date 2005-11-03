@@ -695,7 +695,7 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	dc.normalized = 0;
 #endif /* ! ENABLE_REWRITE */
 
-	rc = rwm_filter_map_rewrite( &dc, op->ors_filter, &fstr );
+	rc = rwm_filter_map_rewrite( op, &dc, op->ors_filter, &fstr );
 	if ( rc != LDAP_SUCCESS ) {
 		text = "searchFilter/searchFilterAttrDN massage error";
 		goto error_return;
@@ -1043,6 +1043,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			goto fail;
 		}
 
+		flags &= ~REP_ENTRY_MUSTRELEASE;
 		flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 	}
 
@@ -1075,11 +1076,9 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	 * to return, and remap them accordingly */
 	(void)rwm_attrs( op, rs, &e->e_attrs, 1 );
 
-#if 0
-	if ( rs->sr_operational_attrs ) {
-		(void)rwm_attrs( op, rs, &rs->sr_operational_attrs, 0 );
+	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		be_entry_release_rw( op, rs->sr_entry, 0 );
 	}
-#endif
 
 	rs->sr_entry = e;
 	rs->sr_flags = flags;
@@ -1395,9 +1394,14 @@ rwm_db_config(
 		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F;
 
-#if 0
 		/* TODO: not implemented yet */
 		} else if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
+			fprintf( stderr,
+		"%s: line %d: \"discover\" not supported yet "
+		"in \"t-f-support {no|yes|discover}\".\n",
+					fname, lineno );
+			return( 1 );
+#if 0
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F_DISCOVER;
 #endif
 
@@ -1477,7 +1481,7 @@ rwm_db_destroy(
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 #ifdef ENABLE_REWRITE
-		if (rwmap->rwm_rw) {
+		if ( rwmap->rwm_rw ) {
 			rewrite_info_delete( &rwmap->rwm_rw );
 		}
 #else /* !ENABLE_REWRITE */
@@ -1486,9 +1490,9 @@ rwm_db_destroy(
  		}
 #endif /* !ENABLE_REWRITE */
 
-		avl_free( rwmap->rwm_oc.remap, NULL );
+		avl_free( rwmap->rwm_oc.remap, rwm_mapping_dst_free );
 		avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
-		avl_free( rwmap->rwm_at.remap, NULL );
+		avl_free( rwmap->rwm_at.remap, rwm_mapping_dst_free );
 		avl_free( rwmap->rwm_at.map, rwm_mapping_free );
 
 		ch_free( rwmap );

@@ -26,13 +26,60 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <ac/unistd.h>
+#include <ac/errno.h>
 
 #include <lber.h>
 #include <ldif.h>
 #include <lutil.h>
 
 #include "slapcommon.h"
+
+static int
+test_file( const char *fname, const char *ftype )
+{
+	struct stat	st;
+	int		save_errno;
+
+	switch ( stat( fname, &st ) ) {
+	case 0:
+		if ( !( st.st_mode & S_IWUSR ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s file "
+				"\"%s\" exists, but user does not have access\n",
+				ftype, fname, 0 );
+			return -1;
+		}
+		break;
+
+	case -1:
+	default:
+		save_errno = errno;
+		if ( save_errno == ENOENT ) {
+			FILE		*fp = fopen( fname, "w" );
+
+			if ( fp == NULL ) {
+				save_errno = errno;
+
+				Debug( LDAP_DEBUG_ANY, "unable to open file "
+					"\"%s\": %d (%s)\n",
+					fname,
+					save_errno, strerror( save_errno ) );
+
+				return -1;
+			}
+			unlink( fname );
+			break;
+		}
+
+		Debug( LDAP_DEBUG_ANY, "unable to stat file "
+			"\"%s\": %d (%s)\n",
+			slapd_pid_file,
+			save_errno, strerror( save_errno ) );
+		return -1;
+	}
+}
 
 int
 slaptest( int argc, char **argv )
@@ -41,6 +88,18 @@ slaptest( int argc, char **argv )
 	const char		*progname = "slaptest";
 
 	slap_tool_init( progname, SLAPTEST, argc, argv );
+
+	if ( slapd_pid_file != NULL ) {
+		if ( test_file( slapd_pid_file, "pid" ) ) {
+			return EXIT_FAILURE;
+		}
+	}
+
+	if ( slapd_args_file != NULL ) {
+		if ( test_file( slapd_args_file, "args" ) ) {
+			return EXIT_FAILURE;
+		}
+	}
 
 	fprintf( stderr, "config file testing succeeded\n");
 

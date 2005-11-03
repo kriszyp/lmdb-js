@@ -51,6 +51,8 @@ bdb_add(Operation *op, SlapReply *rs )
 
 	ctrls[num_ctrls] = 0;
 
+	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+
 	/* check entry's schema */
 	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
 		get_manageDIT(op), &rs->sr_text, textbuf, textlen );
@@ -170,14 +172,8 @@ retry:	/* transaction retry */
 				"does not exist\n", 0, 0, 0 );
 
 			rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-
-			ber_bvarray_free( rs->sr_ref );
-			op->o_tmpfree( (char *)rs->sr_matched, op->o_tmpmemctx );
-			rs->sr_ref = NULL;
-			rs->sr_matched = NULL;
-
-			goto done;
+			rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+			goto return_results;
 		}
 
 		rs->sr_err = access_allowed( op, p,
@@ -221,22 +217,18 @@ retry:	/* transaction retry */
 
 		if ( is_entry_referral( p ) ) {
 			/* parent is a referral, don't allow add */
-			rs->sr_matched = p->e_name.bv_val;
+			rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
+				op->o_tmpmemctx );
 			rs->sr_ref = get_entry_referrals( op, p );
-
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			p = NULL;
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(bdb_add) ": parent is referral\n",
 				0, 0, 0 );
 
 			rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-
-			ber_bvarray_free( rs->sr_ref );
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
-			rs->sr_ref = NULL;
-			rs->sr_matched = NULL;
-			p = NULL;
-			goto done;
+			rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+			goto return_results;
 		}
 
 #ifdef BDB_SUBENTRIES
@@ -385,7 +377,8 @@ retry:	/* transaction retry */
 		if (( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
-			rs->sr_err = LDAP_NO_OPERATION;
+			rs->sr_err = LDAP_X_NO_OPERATION;
+			ltid = NULL;
 			goto return_results;
 		}
 
@@ -430,22 +423,23 @@ retry:	/* transaction retry */
 
 return_results:
 	send_ldap_result( op, rs );
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
+
+	if( ltid != NULL ) {
+		TXN_ABORT( ltid );
+	}
+	op->o_private = NULL;
+
+	if( postread_ctrl != NULL ) {
+		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
+		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
+	}
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
-	}
-
-done:
-	if( ltid != NULL ) {
-		TXN_ABORT( ltid );
-		op->o_private = NULL;
-	}
-
-	if( postread_ctrl != NULL ) {
-		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
-		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
 	}
 	return rs->sr_err;
 }

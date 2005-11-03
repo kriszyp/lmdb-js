@@ -48,7 +48,7 @@ static AttrInfo *index_mask(
 		/* has tagging option */
 		ai = bdb_attr_mask( be->be_private, desc->ad_type->sat_ad );
 
-		if ( ai && ( ai->ai_indexmask ^ SLAP_INDEX_NOTAGS ) ) {
+		if ( ai && !( ai->ai_indexmask & SLAP_INDEX_NOTAGS ) ) {
 			*atname = desc->ad_type->sat_cname;
 			return ai;
 		}
@@ -61,7 +61,7 @@ static AttrInfo *index_mask(
 
 		ai = bdb_attr_mask( be->be_private, at->sat_ad );
 
-		if ( ai && ( ai->ai_indexmask ^ SLAP_INDEX_NOSUBTYPES ) ) {
+		if ( ai && !( ai->ai_indexmask & SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = at->sat_cname;
 			return ai;
 		}
@@ -374,6 +374,80 @@ int bdb_index_values(
 		desc->ad_type, &desc->ad_tags,
 		vals, id, opid );
 
+	return rc;
+}
+
+/* Get the list of which indices apply to this attr */
+int
+bdb_index_recset(
+	struct bdb_info *bdb,
+	Attribute *a,
+	AttributeType *type,
+	struct berval *tags,
+	IndexRec *ir )
+{
+	int rc, slot;
+	AttrList *al;
+
+	if( type->sat_sup ) {
+		/* recurse */
+		rc = bdb_index_recset( bdb, a, type->sat_sup, tags, ir );
+		if( rc ) return rc;
+	}
+	/* If this type has no AD, we've never used it before */
+	if( type->sat_ad ) {
+		slot = bdb_attr_slot( bdb, type->sat_ad, NULL );
+		if ( slot >= 0 ) {
+			ir[slot].ai = bdb->bi_attrs[slot];
+			al = ch_malloc( sizeof( AttrList ));
+			al->attr = a;
+			al->next = ir[slot].attrs;
+			ir[slot].attrs = al;
+		}
+	}
+	if( tags->bv_len ) {
+		AttributeDescription *desc;
+
+		desc = ad_find_tags( type, tags );
+		if( desc ) {
+			slot = bdb_attr_slot( bdb, desc, NULL );
+			if ( slot >= 0 ) {
+				ir[slot].ai = bdb->bi_attrs[slot];
+				al = ch_malloc( sizeof( AttrList ));
+				al->attr = a;
+				al->next = ir[slot].attrs;
+				ir[slot].attrs = al;
+			}
+		}
+	}
+	return LDAP_SUCCESS;
+}
+
+/* Apply the indices for the recset */
+int bdb_index_recrun(
+	Operation *op,
+	struct bdb_info *bdb,
+	IndexRec *ir0,
+	ID id,
+	int base )
+{
+	IndexRec *ir;
+	AttrList *al;
+	int i, rc = 0;
+
+	for (i=base; i<bdb->bi_nattrs; i+=slap_tool_thread_max) {
+		ir = ir0 + i;
+		if ( !ir->ai ) continue;
+		while (( al = ir->attrs )) {
+			ir->attrs = al->next;
+			rc = indexer( op, NULL, ir->ai->ai_desc,
+				&ir->ai->ai_desc->ad_type->sat_cname,
+				al->attr->a_nvals, id, SLAP_INDEX_ADD_OP,
+				ir->ai->ai_indexmask );
+			free( al );
+			if ( rc ) break;
+		}
+	}
 	return rc;
 }
 

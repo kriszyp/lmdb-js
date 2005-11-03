@@ -166,7 +166,8 @@ struct bdb_info {
 
 	slap_mask_t	bi_defaultmask;
 	Cache		bi_cache;
-	Avlnode		*bi_attrs;
+	struct bdb_attrinfo		**bi_attrs;
+	int			bi_nattrs;
 	void		*bi_search_stack;
 	int		bi_search_stack_depth;
 	int		bi_linear_index;
@@ -298,6 +299,19 @@ typedef struct bdb_attrinfo {
 /* These flags must not clash with SLAP_INDEX flags or ops in slap.h! */
 #define	BDB_INDEX_DELETING	0x8000U	/* index is being modified */
 #define	BDB_INDEX_UPDATE_OP	0x03	/* performing an index update */
+
+/* For slapindex to record which attrs in an entry belong to which
+ * index database 
+ */
+typedef struct AttrList {
+	struct AttrList *next;
+	Attribute *attr;
+} AttrList;
+
+typedef struct IndexRec {
+	AttrInfo *ai;
+	AttrList *attrs;
+} IndexRec;
 
 #include "proto-bdb.h"
 

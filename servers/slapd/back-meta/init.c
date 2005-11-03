@@ -146,21 +146,7 @@ meta_back_conn_free(
 	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
 
 	for ( i = 0; i < ntargets; i++ ) {
-		metasingleconn_t	*msc = &mc->mc_conns[ i ];
-
-		if ( msc->msc_ld != NULL ) {
-			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
-		}
-
-		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
-			ber_memfree( msc->msc_bound_ndn.bv_val );
-		}
-
-		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
-			/* destroy sensitive data */
-			memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
-			ber_memfree( msc->msc_cred.bv_val );
-		}
+		(void)meta_clear_one_candidate( &mc->mc_conns[ i ] );
 	}
 
 	ldap_pvt_thread_mutex_destroy( &mc->mc_mutex );
@@ -175,6 +161,17 @@ mapping_free(
 	ch_free( mapping->src.bv_val );
 	ch_free( mapping->dst.bv_val );
 	ch_free( mapping );
+}
+
+static void
+mapping_dst_free(
+	void		*v_mapping )
+{
+	struct ldapmapping *mapping = v_mapping;
+
+	if ( BER_BVISEMPTY( &mapping->dst ) ) {
+		mapping_free( &mapping[ -1 ] );
+	}
 }
 
 static void
@@ -205,9 +202,9 @@ target_free(
 	if ( mt->mt_rwmap.rwm_rw ) {
 		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
 	}
-	avl_free( mt->mt_rwmap.rwm_oc.remap, NULL );
+	avl_free( mt->mt_rwmap.rwm_oc.remap, mapping_dst_free );
 	avl_free( mt->mt_rwmap.rwm_oc.map, mapping_free );
-	avl_free( mt->mt_rwmap.rwm_at.remap, NULL );
+	avl_free( mt->mt_rwmap.rwm_at.remap, mapping_dst_free );
 	avl_free( mt->mt_rwmap.rwm_at.map, mapping_free );
 }
 
@@ -235,11 +232,13 @@ meta_back_db_destroy(
 		 * Destroy the per-target stuff (assuming there's at
 		 * least one ...)
 		 */
-		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			target_free( &mi->mi_targets[ i ] );
-		}
+		if ( mi->mi_targets != NULL ) {
+			for ( i = 0; i < mi->mi_ntargets; i++ ) {
+				target_free( &mi->mi_targets[ i ] );
+			}
 
-		free( mi->mi_targets );
+			free( mi->mi_targets );
+		}
 
 		ldap_pvt_thread_mutex_lock( &mi->mi_cache.mutex );
 		if ( mi->mi_cache.tree ) {

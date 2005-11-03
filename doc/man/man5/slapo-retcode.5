@@ -73,7 +73,20 @@ Enables exploitation of in-directory stored errAbsObject.
 May result in a lot of unnecessary overhead.
 
 .SH SCHEMA
-The following schema items are created and used by the overlay:
+The
+.B retcode
+overlay utilizes the "return code" schema described herein. 
+This schema is specifically designed for use with this
+overlay and is not intended to be used otherwise.
+It is also noted that the schema describe here is
+.I a work in
+.IR progress ,
+and hence subject to change without notice.
+The schema is loaded automatically by the overlay.
+
+The schema includes a number of object classes and associated
+attribute types as described below.
+
 .LP
 The error code:
 .RS 4

@@ -438,6 +438,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	oc = backsql_id2oc( bi, e_id.eid_oc_id );
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, mod );
+	slap_graduate_commit_csn( op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		e = &r;
 		goto done;

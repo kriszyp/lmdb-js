@@ -208,6 +208,7 @@ map_attr_value(
 
 	ldap_back_map( &dc->target->mt_rwmap.rwm_at, &ad->ad_cname, mapped_attr, remap );
 	if ( BER_BVISNULL( mapped_attr ) || BER_BVISEMPTY( mapped_attr ) ) {
+#if 0
 		/*
 		 * FIXME: are we sure we need to search oc_map if at_map fails?
 		 */
@@ -215,6 +216,12 @@ map_attr_value(
 		if ( BER_BVISNULL( mapped_attr ) || BER_BVISEMPTY( mapped_attr ) ) {
 			*mapped_attr = ad->ad_cname;
 		}
+#endif
+		if ( dc->target->mt_rwmap.rwm_at.drop_missing ) {
+			return -1;
+		}
+
+		*mapped_attr = ad->ad_cname;
 	}
 
 	if ( value == NULL ) {
@@ -271,13 +278,28 @@ ldap_back_int_filter_map_rewrite(
 {
 	int		i;
 	Filter		*p;
-	struct berval	atmp;
-	struct berval	vtmp;
+	struct berval	atmp,
+			vtmp,
+			*tmp;
+	static struct berval
+			/* better than nothing... */
+			ber_bvfalse = BER_BVC( "(!(objectClass=*))" ),
+			ber_bvtf_false = BER_BVC( "(|)" ),
+			/* better than nothing... */
+			ber_bvtrue = BER_BVC( "(objectClass=*)" ),
+			ber_bvtf_true = BER_BVC( "(&)" ),
+#if 0
+			/* no longer needed; preserved for completeness */
+			ber_bvundefined = BER_BVC( "(?=undefined)" ),
+#endif
+			ber_bverror = BER_BVC( "(?=error)" ),
+			ber_bvunknown = BER_BVC( "(?=unknown)" ),
+			ber_bvnone = BER_BVC( "(?=none)" );
 	ber_len_t	len;
 
 	if ( f == NULL ) {
-		ber_str2bv( "No filter!", STRLENOF( "No filter!" ), 1, fstr );
-		return -1;
+		ber_dupbv( fstr, &ber_bvnone );
+		return LDAP_OTHER;
 	}
 
 	switch ( f->f_choice ) {
@@ -285,7 +307,7 @@ ldap_back_int_filter_map_rewrite(
 		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -302,7 +324,7 @@ ldap_back_int_filter_map_rewrite(
 		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -319,7 +341,7 @@ ldap_back_int_filter_map_rewrite(
 		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -336,7 +358,7 @@ ldap_back_int_filter_map_rewrite(
 		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -353,7 +375,7 @@ ldap_back_int_filter_map_rewrite(
 		if ( map_attr_value( dc, f->f_sub_desc, &atmp,
 					NULL, NULL, remap ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		/* cannot be a DN ... */
@@ -415,7 +437,7 @@ ldap_back_int_filter_map_rewrite(
 		if ( map_attr_value( dc, f->f_desc, &atmp,
 					NULL, NULL, remap ) )
 		{
-			return -1;
+			goto computed;
 		}
 
 		fstr->bv_len = atmp.bv_len + ( STRLENOF( "(=*)" ) );
@@ -436,11 +458,13 @@ ldap_back_int_filter_map_rewrite(
 			f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
 
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
+			int	rc;
+
 			len = fstr->bv_len;
 
-			if ( ldap_back_int_filter_map_rewrite( dc, p, &vtmp, remap ) )
-			{
-				return -1;
+			rc = ldap_back_int_filter_map_rewrite( dc, p, &vtmp, remap );
+			if ( rc != LDAP_SUCCESS ) {
+				return rc;
 			}
 			
 			fstr->bv_len += vtmp.bv_len;
@@ -459,7 +483,7 @@ ldap_back_int_filter_map_rewrite(
 			if ( map_attr_value( dc, f->f_mr_desc, &atmp,
 						&f->f_mr_value, &vtmp, remap ) )
 			{
-				return -1;
+				goto computed;
 			}
 
 		} else {
@@ -483,43 +507,38 @@ ldap_back_int_filter_map_rewrite(
 		ber_memfree( vtmp.bv_val );
 		break;
 
-	case SLAPD_FILTER_COMPUTED: {
-		struct berval	bv;
-
+	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
 		case LDAP_COMPARE_FALSE:
-			if ( dc->target->mt_flags & LDAP_BACK_F_SUPPORT_T_F ) {
-				BER_BVSTR( &bv, "(|)" );
-				break;
-			}
-			/* fallthru */
-
 		/* FIXME: treat UNDEFINED as FALSE */
 		case SLAPD_COMPARE_UNDEFINED:
-			/* better than nothing... */
-			BER_BVSTR( &bv, "(!(objectClass=*))" );
+computed:;
+			if ( dc->target->mt_flags & LDAP_BACK_F_SUPPORT_T_F ) {
+				tmp = &ber_bvtf_false;
+				break;
+			}
+			tmp = &ber_bvfalse;
 			break;
 
 		case LDAP_COMPARE_TRUE:
 			if ( dc->target->mt_flags & LDAP_BACK_F_SUPPORT_T_F ) {
-				BER_BVSTR( &bv, "(&)" );
+				tmp = &ber_bvtf_true;
 				break;
 			}
 
-			/* better than nothing... */
-			BER_BVSTR( &bv, "(objectClass=*)" );
+			tmp = &ber_bvtrue;
 			break;
 
 		default:
-			BER_BVSTR( &bv, "(?=error)" );
+			tmp = &ber_bverror;
 			break;
 		}
 
-		ber_dupbv( fstr, &bv );
-		} break;
+		ber_dupbv( fstr, tmp );
+		break;
 
 	default:
-		ber_str2bv( "(?=unknown)", STRLENOF( "(?=unknown)" ), 1, fstr );
+		ber_dupbv( fstr, &ber_bvunknown );
 		break;
 	}
 
@@ -655,6 +674,7 @@ ldap_back_referral_result_rewrite(
 
 				ludp->lud_dn = dn.bv_val;
 				newurl = ldap_url_desc2str( ludp );
+				free( dn.bv_val );
 				if ( newurl == NULL ) {
 					/* FIXME: leave attr untouched
 					 * even if ldap_url_desc2str failed...

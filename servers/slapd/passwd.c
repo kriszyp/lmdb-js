@@ -273,12 +273,7 @@ old_good:
 		cb2.sc_private = qpw;	/* let Modify know this was pwdMod,
 					 * if it cares... */
 
-		rs->sr_err = slap_mods_opattrs( op, ml, qpw->rs_modtail, &rs->sr_text,
-			NULL, 0, 1 );
-		
-		if ( rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = op->o_bd->be_modify( op, rs );
-		}
+		rs->sr_err = op->o_bd->be_modify( op, rs );
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_rspdata = rsp;
 		} else if ( rsp ) {

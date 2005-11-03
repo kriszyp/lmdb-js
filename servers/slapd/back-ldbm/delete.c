@@ -24,6 +24,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
+#include "lutil.h"
 
 int
 ldbm_back_delete(
@@ -43,6 +44,16 @@ ldbm_back_delete(
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
+
+	/* allocate CSN */
+	if ( !SLAP_SHADOW( op->o_bd )) {
+		struct berval csn;
+		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+
+		csn.bv_val = csnbuf;
+		csn.bv_len = sizeof(csnbuf);
+		slap_get_csn( op, &csn, 1 );
+	}
 
 	/* get entry with writer lock */
 	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
@@ -64,16 +75,9 @@ ldbm_back_delete(
 							&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
-		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-
 		rs->sr_err = LDAP_REFERRAL;
-		send_ldap_result( op, rs );
-
-		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-		free( (char *)rs->sr_matched );
-		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
-		return( -1 );
+		rs->sr_flags |= REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+		goto return_results;
 	}
 
 	/* check entry for "entry" acl */
@@ -83,10 +87,8 @@ ldbm_back_delete(
 			"<=- ldbm_back_delete: no write access to entry\n", 0,
 			0, 0 );
 
-		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
-			"no write access to entry" );
-
-		rc = LDAP_INSUFFICIENT_ACCESS;
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		rs->sr_text = "no write access to entry";
 		goto return_results;
 	}
 
@@ -99,13 +101,8 @@ ldbm_back_delete(
 		    0, 0 );
 
 		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_matched = e->e_name.bv_val;
-		send_ldap_result( op, rs );
-
-		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
-		rc = LDAP_REFERRAL;
+		rs->sr_matched = ch_strdup( e->e_name.bv_val );
+		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
 		goto return_results;
 	}
 
@@ -113,8 +110,8 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
 			op->o_req_dn.bv_val, 0, 0);
 
-		send_ldap_error( op, rs, LDAP_NOT_ALLOWED_ON_NONLEAF,
-			"subordinate objects must be deleted first");
+		rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
+		rs->sr_text = "subordinate objects must be deleted first";
 		goto return_results;
 	}
 
@@ -126,8 +123,8 @@ ldbm_back_delete(
 				"<=- ldbm_back_delete: parent does not exist\n",
 				0, 0, 0);
 
-			send_ldap_error( op, rs, LDAP_OTHER,
-				"could not locate parent of entry" );
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "could not locate parent of entry";
 			goto return_results;
 		}
 
@@ -139,8 +136,8 @@ ldbm_back_delete(
 				"<=- ldbm_back_delete: no access to parent\n", 0,
 				0, 0 );
 
-			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
-				"no write access to parent" );
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			rs->sr_text = "no write access to parent";
 			goto return_results;
 		}
 
@@ -161,8 +158,8 @@ ldbm_back_delete(
 						"<=- ldbm_back_delete: no "
 						"access to parent\n", 0, 0, 0 );
 
-					send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
-						"no write access to parent" );
+					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+					rs->sr_text = "no write access to parent";
 					goto return_results;
 				}
 
@@ -171,9 +168,7 @@ ldbm_back_delete(
 					"<=- ldbm_back_delete: no parent & "
 					"not root\n", 0, 0, 0);
 
-				send_ldap_error( op, rs,
-					LDAP_INSUFFICIENT_ACCESS,
-					NULL );
+				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
 		}
@@ -185,8 +180,8 @@ ldbm_back_delete(
 			"<=- ldbm_back_delete: operations error %s\n",
 			op->o_req_dn.bv_val, 0, 0);
 
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"DN index delete failed" );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "DN index delete failed";
 		goto return_results;
 	}
 
@@ -196,8 +191,8 @@ ldbm_back_delete(
 			"<=- ldbm_back_delete: operations error %s\n",
 			op->o_req_dn.bv_val, 0, 0);
 
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"entry delete failed" );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "entry delete failed";
 		goto return_results;
 	}
 
@@ -205,19 +200,25 @@ ldbm_back_delete(
 	(void) index_entry_del( op, e );
 
 	rs->sr_err = LDAP_SUCCESS;
-	send_ldap_result( op, rs );
-	rc = LDAP_SUCCESS;
 
 return_results:;
+	rc = rs->sr_err;
+
 	if( p != NULL ) {
 		/* free parent and writer lock */
 		cache_return_entry_w( &li->li_cache, p );
 	}
 
-	/* free entry and writer lock */
-	cache_return_entry_w( &li->li_cache, e );
+	if ( e != NULL ) {
+		/* free entry and writer lock */
+		cache_return_entry_w( &li->li_cache, e );
+	}
 
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
+
+	send_ldap_result( op, rs );
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_graduate_commit_csn( op );
 
 	return rc;
 }

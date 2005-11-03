@@ -1,6 +1,13 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.12 Engineering
+	Fixed libldap ldapi:// authdn construction
+	Added libldap ldap_bv2escaped_filter_value
+	Updated contrib smbk5pwd module
+	Build environment
+		Added slapd-bind test program
+		Added inet_ntoa_b support for VxWorks
+		Dropped SSLeay support
 
 OpenLDAP 2.3.11 Release
 	Fixed libldap reentrancy issue (ITS#3988)

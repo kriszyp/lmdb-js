@@ -32,24 +32,31 @@ LDAP_BEGIN_DECL
 
 #define bdb_attr_mask				BDB_SYMBOL(attr_mask)
 #define bdb_attr_flush				BDB_SYMBOL(attr_flush)
+#define bdb_attr_slot				BDB_SYMBOL(attr_slot)
 #define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
 #define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
 #define bdb_attr_index_free			BDB_SYMBOL(attr_index_free)
 #define bdb_attr_index_unparse		BDB_SYMBOL(attr_index_unparse)
+#define bdb_attr_info_free			BDB_SYMBOL(attr_info_free)
 
 AttrInfo *bdb_attr_mask( struct bdb_info *bdb,
 	AttributeDescription *desc );
 
 void bdb_attr_flush( struct bdb_info *bdb );
 
+int bdb_attr_slot( struct bdb_info *bdb,
+	AttributeDescription *desc, unsigned *insert );
+
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
 	int argc, char **argv ));
 
 void bdb_attr_index_unparse LDAP_P(( struct bdb_info *bdb, BerVarray *bva ));
-void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
+void bdb_attr_index_destroy LDAP_P(( struct bdb_info *bdb ));
 void bdb_attr_index_free LDAP_P(( struct bdb_info *bdb,
 	AttributeDescription *ad ));
+
+void bdb_attr_info_free( AttrInfo *ai );
 
 /*
  * config.c
@@ -124,6 +131,7 @@ int bdb_dn2idl(
 int bdb_dn2id_parent(
 	Operation *op,
 	DB_TXN *txn,
+	u_int32_t locker,
 	EntryInfo *ei,
 	ID *idp );
 
@@ -191,6 +199,7 @@ int bdb_id2entry_delete(
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
+	u_int32_t locker,
 	ID id,
 	Entry **e);
 #endif
@@ -320,6 +329,8 @@ int bdb_idl_append_one( ID *ids, ID id );
 #define bdb_index_param				BDB_SYMBOL(index_param)
 #define bdb_index_values			BDB_SYMBOL(index_values)
 #define bdb_index_entry				BDB_SYMBOL(index_entry)
+#define bdb_index_recset			BDB_SYMBOL(index_recset)
+#define bdb_index_recrun			BDB_SYMBOL(index_recrun)
 
 extern int
 bdb_index_is_indexed LDAP_P((
@@ -343,6 +354,22 @@ bdb_index_values LDAP_P((
 	BerVarray vals,
 	ID id,
 	int opid ));
+
+extern int
+bdb_index_recset LDAP_P((
+	struct bdb_info *bdb,
+	Attribute *a,
+	AttributeType *type,
+	struct berval *tags,
+	IndexRec *ir ));
+
+extern int
+bdb_index_recrun LDAP_P((
+	Operation *op,
+	struct bdb_info *bdb,
+	IndexRec *ir,
+	ID id,
+	int base ));
 
 int bdb_index_entry LDAP_P(( Operation *op, DB_TXN *t, int r, Entry *e ));
 
@@ -443,6 +470,7 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 #define bdb_cache_find_id			BDB_SYMBOL(cache_find_id)
 #define bdb_cache_find_info			BDB_SYMBOL(cache_find_info)
 #define bdb_cache_find_ndn			BDB_SYMBOL(cache_find_ndn)
+#define bdb_cache_find_parent		BDB_SYMBOL(cache_find_parent)
 #define bdb_cache_modify			BDB_SYMBOL(cache_modify)
 #define bdb_cache_modrdn			BDB_SYMBOL(cache_modrdn)
 #define bdb_cache_release_all		BDB_SYMBOL(cache_release_all)
@@ -494,6 +522,14 @@ int bdb_cache_find_id(
 	int	islocked,
 	u_int32_t	locker,
 	DB_LOCK		*lock
+);
+int
+bdb_cache_find_parent(
+	Operation *op,
+	DB_TXN *txn,
+	u_int32_t	locker,
+	ID id,
+	EntryInfo **res
 );
 int bdb_cache_delete(
 	Cache	*cache,
@@ -584,6 +620,7 @@ bdb_trans_backoff( int num_retries );
 #define bdb_tool_dn2id_get		BDB_SYMBOL(tool_dn2id_get)
 #define bdb_tool_id2entry_get		BDB_SYMBOL(tool_id2entry_get)
 #define bdb_tool_entry_modify		BDB_SYMBOL(tool_entry_modify)
+#define bdb_tool_idl_add		BDB_SYMBOL(tool_idl_add)
 
 extern BI_init				bdb_back_initialize;
 
@@ -614,6 +651,8 @@ extern BI_tool_entry_reindex		bdb_tool_entry_reindex;
 extern BI_tool_dn2id_get		bdb_tool_dn2id_get;
 extern BI_tool_id2entry_get		bdb_tool_id2entry_get;
 extern BI_tool_entry_modify		bdb_tool_entry_modify;
+
+int bdb_tool_idl_add( BackendDB *be, DB *db, DB_TXN *txn, DBT *key, ID id );
 
 LDAP_END_DECL
 

@@ -60,6 +60,12 @@ LDAP_BEGIN_DECL
 
 
 #ifdef LDAP_DEVEL
+#define SLAP_LIGHTWEIGHT_DISPATCHER /* experimental slapd architecture */
+#define SLAP_MULTI_CONN_ARRAY
+#ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
+#define SLAP_SEM_LOAD_CONTROL
+#endif /* LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL */
+
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 #define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
 #define SLAP_DYNACL
@@ -2549,6 +2555,7 @@ typedef struct slap_op {
 	BerElement	*o_res_ber;	/* ber of the CLDAP reply or readback control */
 	slap_callback *o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
+	struct berval o_csn;
 
 	void	*o_private;	/* anything the backend needs */
 
@@ -2735,7 +2742,10 @@ struct slap_listener {
 #ifdef LDAP_CONNECTIONLESS
 	int	sl_is_udp;		/* UDP listener is also data port */
 #endif
-	int	sl_is_mute;	/* Listening is temporarily disabled */
+	int	sl_mute;	/* Listener is temporarily disabled due to emfile */
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+	int	sl_busy;	/* Listener is busy (accept thread activated) */
+#endif
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr

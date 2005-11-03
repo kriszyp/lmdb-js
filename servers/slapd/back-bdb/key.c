@@ -84,7 +84,13 @@ bdb_key_change(
 
 	if (op == SLAP_INDEX_ADD_OP) {
 		/* Add values */
-		rc = bdb_idl_insert_key( be, db, txn, &key, id );
+
+#ifdef BDB_TOOL_IDL_CACHING
+		if ( slapMode & SLAP_TOOL_QUICK )
+			rc = bdb_tool_idl_add( be, db, txn, &key, id );
+		else
+#endif
+			rc = bdb_idl_insert_key( be, db, txn, &key, id );
 		if ( rc == DB_KEYEXIST ) rc = 0;
 	} else {
 		/* Delete values */

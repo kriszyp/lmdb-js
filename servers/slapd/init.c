@@ -67,6 +67,7 @@ struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
  */
 ldap_pvt_thread_pool_t	connection_pool;
 int			connection_pool_max = SLAP_MAX_WORKER_THREADS;
+int		slap_tool_thread_max = 1;
 #ifndef HAVE_GMTIME_R
 ldap_pvt_thread_mutex_t	gmtime_mutex;
 #endif
@@ -124,8 +125,6 @@ slap_init( int mode, const char *name )
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
-		ldap_pvt_thread_pool_init( &connection_pool,
-				connection_pool_max, 0);
 
 		/* FALLTHRU */
 	case SLAP_TOOL_MODE:
@@ -135,6 +134,9 @@ slap_init( int mode, const char *name )
 			0 );
 
 		slap_name = name;
+
+		ldap_pvt_thread_pool_init( &connection_pool,
+				connection_pool_max, 0);
 
 		ldap_pvt_thread_mutex_init( &entry2str_mutex );
 		ldap_pvt_thread_mutex_init( &replog_mutex );

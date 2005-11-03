@@ -91,8 +91,6 @@ do_delete(
 	rs->sr_err = frontendDB->be_delete( op, rs );
 
 cleanup:;
-	slap_graduate_commit_csn( op );
-
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 	return rs->sr_err;
@@ -173,12 +171,6 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			slap_callback 	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
-
-			if ( !repl_user ) {
-				struct berval csn = BER_BVNULL;
-				char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
-			}
 
 #ifdef SLAPD_MULTIMASTER
 			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
