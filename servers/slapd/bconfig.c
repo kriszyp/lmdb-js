@@ -1039,7 +1039,7 @@ config_generic(ConfigArgs *c) {
 			} else if ( !strcasecmp( c->argv[1], "frontend" )) {
 				c->be = frontendDB;
 			} else {
-				c->be = backend_db_init(c->argv[1]);
+				c->be = backend_db_init(c->argv[1], NULL);
 				if ( !c->be ) {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> failed init", c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
@@ -2770,10 +2770,8 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	if ( !cfb->cb_db.bd_info )
 		return 0;	/* FIXME: eventually this will be a fatal error */
 
-	if ( cfb->cb_db.bd_info->bi_db_init( &cfb->cb_db )) return 1;
-
-	/* Mark that back-ldif type is in use */
-	cfb->cb_db.bd_info->bi_nDB++;
+	if ( backend_db_init( "ldif", &cfb->cb_db ) == NULL )
+		return 1;
 
 	cfb->cb_db.be_suffix = be->be_suffix;
 	cfb->cb_db.be_nsuffix = be->be_nsuffix;
@@ -2880,7 +2878,7 @@ read_config(const char *fname, const char *dir) {
 	int rc;
 
 	/* Setup the config backend */
-	be = backend_db_init( "config" );
+	be = backend_db_init( "config", NULL );
 	if ( !be )
 		return 1;
 

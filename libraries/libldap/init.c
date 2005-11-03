@@ -410,10 +410,13 @@ ldap_int_destroy_global_options(void)
 	WSACleanup( );
 #endif
 
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
+	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	if ( ldap_int_hostname ) {
 		LDAP_FREE( ldap_int_hostname );
 		ldap_int_hostname = NULL;
 	}
+#endif
 }
 
 /* 
