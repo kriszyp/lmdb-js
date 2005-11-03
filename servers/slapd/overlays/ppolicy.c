@@ -1594,6 +1594,19 @@ do_modify:
 			modtail = mods;
 		}
 
+		if (attr_find(e->e_attrs, ad_pwdFailureTime )) {
+			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_type.bv_val = NULL;
+			mods->sml_desc = ad_pwdFailureTime;
+			mods->sml_values = NULL;
+			mods->sml_nvalues = NULL;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
+
 		/* Delete the pwdReset attribute, since it's being reset */
 		if ((zapReset) && (attr_find(e->e_attrs, ad_pwdReset ))) {
 			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
