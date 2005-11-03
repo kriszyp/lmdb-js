@@ -95,6 +95,9 @@ volatile sig_atomic_t slapd_abrupt_shutdown = 0;
 
 static struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
+#ifdef HAVE_TCPD
+	ldap_pvt_thread_mutex_t tcpd_mutex;
+#endif
 
 	ber_socket_t sd_nactives;
 	int sd_nwriters;
@@ -1197,6 +1200,10 @@ int slapd_daemon_init( const char *urls )
 	ldap_charray_free( u );
 	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
 
+#ifdef HAVE_TCPD
+	ldap_pvt_thread_mutex_init( &slap_daemon.tcpd_mutex );
+#endif
+
 	return !i;
 }
 
@@ -1216,6 +1223,11 @@ slapd_daemon_destroy(void)
 	}
 #endif
 
+#ifdef HAVE_TCPD
+	ldap_pvt_thread_mutex_destroy( &slap_daemon.tcpd_mutex );
+#endif
+
+	ldap_pvt_thread_mutex_destroy( &slap_daemon.sd_mutex );
 	return 0;
 }
 
@@ -1472,20 +1484,25 @@ slap_listener(
 #endif /* SLAPD_RLOOKUPS */
 
 #ifdef HAVE_TCPD
-		if ( !hosts_ctl("slapd",
-			dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
-			peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
-			SLAP_STRING_UNKNOWN ))
 		{
-			/* DENY ACCESS */
-			Statslog( LDAP_DEBUG_STATS,
-				"fd=%ld DENIED from %s (%s)\n",
-				(long) s,
+			int rc;
+			ldap_pvt_thread_mutex_lock( &slap_daemon.tcpd_mutex );
+			rc = hosts_ctl("slapd",
 				dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
 				peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
-				0, 0 );
-			slapd_close(s);
-			return 0;
+				SLAP_STRING_UNKNOWN );
+			ldap_pvt_thread_mutex_unlock( &slap_daemon.tcpd_mutex );
+			if ( !rc ) {
+				/* DENY ACCESS */
+				Statslog( LDAP_DEBUG_STATS,
+					"fd=%ld DENIED from %s (%s)\n",
+					(long) s,
+					dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
+					peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+					0, 0 );
+				slapd_close(s);
+				return 0;
+			}
 		}
 #endif /* HAVE_TCPD */
 	}
