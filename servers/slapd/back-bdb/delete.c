@@ -446,7 +446,7 @@ retry:	/* transaction retry */
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
-			rs->sr_err = LDAP_NO_OPERATION;
+			rs->sr_err = LDAP_X_NO_OPERATION;
 			ltid = NULL;
 			goto return_results;
 		}

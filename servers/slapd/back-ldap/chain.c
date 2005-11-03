@@ -576,7 +576,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	if ( rc != LDAP_SUCCESS || sc2.sc_private == LDAP_CH_ERR ) {
-		if ( rs->sr_err == LDAP_CANNOT_CHAIN ) {
+		if ( rs->sr_err == LDAP_X_CANNOT_CHAIN ) {
 			goto cannot_chain;
 		}
 
@@ -584,7 +584,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		case LDAP_CHAINING_REQUIRED:
 cannot_chain:;
 			op->o_callback = NULL;
-			send_ldap_error( op, rs, LDAP_CANNOT_CHAIN, "operation cannot be completed without chaining" );
+			send_ldap_error( op, rs, LDAP_X_CANNOT_CHAIN,
+				"operation cannot be completed without chaining" );
 			break;
 
 		default:

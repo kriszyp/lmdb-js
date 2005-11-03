@@ -738,6 +738,12 @@ do_syncrep2(
 					"do_syncrep2: LDAP_RES_SEARCH_RESULT\n", 0, 0, 0 );
 				ldap_parse_result( si->si_ld, msg, &err, NULL, NULL, NULL,
 					&rctrls, 0 );
+#ifdef LDAP_X_SYNC_REFRESH_REQUIRED
+				if ( err == LDAP_X_SYNC_REFRESH_REQUIRED ) {
+					/* map old result code to registered code */
+					err = LDAP_SYNC_REFRESH_REQUIRED;
+				}
+#endif
 				if ( err == LDAP_SYNC_REFRESH_REQUIRED ) {
 					if ( si->si_logstate == SYNCLOG_LOGGING ) {
 						si->si_logstate = SYNCLOG_FALLBACK;

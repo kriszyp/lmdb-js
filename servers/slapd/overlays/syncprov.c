@@ -734,7 +734,8 @@ syncprov_free_syncop( syncops *so )
 
 /* Send a persistent search response */
 static int
-syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mode)
+syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
+	Entry **e, int mode )
 {
 	slap_overinst *on = opc->son;
 

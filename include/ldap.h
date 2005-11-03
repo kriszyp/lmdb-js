@@ -208,10 +208,10 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_PROXY_AUTHZ	"2.16.840.1.113730.3.4.18" /* RFC TBD  */
 #define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"  /* RFC 3672 */
 
-#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3" /*RFC 3876*/
-#define LDAP_CONTROL_ASSERT				"1.3.6.1.1.12"
-#define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"
-#define LDAP_CONTROL_POST_READ			"1.3.6.1.1.13.2"
+#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"/* RFC 3876 */
+#define LDAP_CONTROL_ASSERT				"1.3.6.1.1.12"			/* RFC TBD */
+#define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"		/* RFC TBD */
+#define LDAP_CONTROL_POST_READ			"1.3.6.1.1.13.2"		/* RFC TBD */
 
 /*  standard track - not implemented in slapd(8) */
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
@@ -220,36 +220,17 @@ typedef struct ldapcontrol {
 /*	non-standard track controls */
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"   /* RFC 2696 */
 
+/* Password policy Controls *//* work in progress */
+/* ITS#3458: released; disabled by default */
+#define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
+#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
+
 /* various works in progress */
 #define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
 #define LDAP_CONTROL_NO_SUBORDINATES	"1.3.6.1.4.1.4203.666.5.11"
 #define LDAP_CONTROL_MANAGEDIT			"1.3.6.1.4.1.4203.666.5.12"
 #define LDAP_CONTROL_SLURP				"1.3.6.1.4.1.4203.666.5.13"
 #define LDAP_CONTROL_VALSORT			"1.3.6.1.4.1.4203.666.5.14"
-
-/* LDAP Duplicated Entry Control Extension *//* not implemented in slapd(8) */
-#define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
-#define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
-#define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
-#define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
-
-/* LDAP Persistent Search Control *//* not implemented in slapd(8) */
-/* draft-ietf-ldapext-psearch-03.txt (expired) */
-#define LDAP_CONTROL_PERSIST_REQUEST				"2.16.840.1.113730.3.4.3"
-#define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE	"2.16.840.1.113730.3.4.7"
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_ADD		0x1
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_DELETE	0x2
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_MODIFY	0x4
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_RENAME	0x8
-
-/* LDAP VLV *//* not implemented in slapd(8) */
-#define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
-#define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
-
-/* Password policy Controls *//* work in progress */
-/* ITS#3458: released; disabled by default */
-#define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
-#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
 
 /* LDAP Sync -- draft-zeilenga-ldup-sync *//* submitted for publication */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"
@@ -305,6 +286,26 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
 
+/* various expired works */
+/* LDAP Duplicated Entry Control Extension *//* not implemented in slapd(8) */
+#define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
+#define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
+#define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
+#define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
+
+/* LDAP Persistent Search Control *//* not implemented in slapd(8) */
+#define LDAP_CONTROL_PERSIST_REQUEST				"2.16.840.1.113730.3.4.3"
+#define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE	"2.16.840.1.113730.3.4.7"
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_ADD		0x1
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_DELETE	0x2
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_MODIFY	0x4
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_RENAME	0x8
+
+/* LDAP VLV *//* not implemented in slapd(8) */
+#define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
+#define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
+
+
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
@@ -322,7 +323,6 @@ typedef struct ldapcontrol {
 #define LDAP_EXOP_X_CANCEL		LDAP_EXOP_CANCEL
 
 /* various works in progress */
-
 #define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
 
@@ -474,7 +474,6 @@ typedef struct ldapcontrol {
 #define LDAP_SUBSTRING_FINAL	((ber_tag_t) 0x82U)	/* context specific */
 
 /* search scopes */
-#define LDAP_SCOPE_DEFAULT		((ber_int_t) -1)	 /* OpenLDAP extension */
 #define LDAP_SCOPE_BASE			((ber_int_t) 0x0000)
 #define LDAP_SCOPE_BASEOBJECT	LDAP_SCOPE_BASE
 #define LDAP_SCOPE_ONELEVEL		((ber_int_t) 0x0001)
@@ -483,6 +482,7 @@ typedef struct ldapcontrol {
 #define LDAP_SCOPE_SUB			LDAP_SCOPE_SUBTREE
 #define LDAP_SCOPE_SUBORDINATE	((ber_int_t) 0x0003) /* OpenLDAP extension */
 #define LDAP_SCOPE_CHILDREN		LDAP_SCOPE_SUBORDINATE
+#define LDAP_SCOPE_DEFAULT		((ber_int_t) -1)	 /* OpenLDAP extension */
 
 /* substring filter component types */
 #define LDAP_SUBSTRING_INITIAL	((ber_tag_t) 0x80U)	/* context specific */
@@ -554,7 +554,7 @@ typedef struct ldapcontrol {
 #define LDAP_ALREADY_EXISTS			0x44
 #define LDAP_NO_OBJECT_CLASS_MODS	0x45
 #define LDAP_RESULTS_TOO_LARGE		0x46 /* CLDAP */
-#define LDAP_AFFECTS_MULTIPLE_DSAS	0x47 /* LDAPv3 */
+#define LDAP_AFFECTS_MULTIPLE_DSAS	0x47
 
 #define LDAP_OTHER					0x50
 
@@ -571,26 +571,33 @@ typedef struct ldapcontrol {
 #define LDAP_TOO_LATE				0x78
 #define LDAP_CANNOT_CANCEL			0x79
 
+/* Assertion control (122) */ 
+#define LDAP_ASSERTION_FAILED		0x7A
+
 
 /* Experimental result codes */
-#define LDAP_E_ERROR(n)	LDAP_RANGE((n),0x1000,0x3FFF) /* experimental */
-#define LDAP_X_ERROR(n)	LDAP_RANGE((n),0x4000,0xFFFF) /* private use */
+#define LDAP_E_ERROR(n)	LDAP_RANGE((n),0x1000,0x3FFF)
 
-/* for the LDAP Sync operation */
-#define LDAP_SYNC_REFRESH_REQUIRED		0x4100
+/* LDAP Sync (4096) */
+#define LDAP_SYNC_REFRESH_REQUIRED		0x1000
+
+
+/* Private Use result codes */
+#define LDAP_X_ERROR(n)	LDAP_RANGE((n),0x4000,0xFFFF)
+
+#define LDAP_X_SYNC_REFRESH_REQUIRED	0x4100 /* defunct */
+#define LDAP_X_ASSERTION_FAILED			0x410f /* defunct */
 
 /* for the LDAP No-Op control */
-#define LDAP_NO_OPERATION				0x410e
-
-/* for the Assertion control */
-#define LDAP_ASSERTION_FAILED			0x410f
+#define LDAP_X_NO_OPERATION				0x410e
 
 /* for the Chaining Behavior control (consecutive result codes requested;
  * see <draft-sermersheim-ldap-chaining> ) */
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-#define	LDAP_NO_REFERRALS_FOUND			0x4110
-#define LDAP_CANNOT_CHAIN			0x4111
+#define	LDAP_X_NO_REFERRALS_FOUND		0x4110
+#define LDAP_X_CANNOT_CHAIN				0x4111
 #endif
+
 
 /* API Error Codes
  *
