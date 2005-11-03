@@ -674,6 +674,7 @@ ldap_back_referral_result_rewrite(
 
 				ludp->lud_dn = dn.bv_val;
 				newurl = ldap_url_desc2str( ludp );
+				free( dn.bv_val );
 				if ( newurl == NULL ) {
 					/* FIXME: leave attr untouched
 					 * even if ldap_url_desc2str failed...
