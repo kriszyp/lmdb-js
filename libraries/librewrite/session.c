@@ -319,6 +319,8 @@ rewrite_session_free( void *v_session )
 	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
 	ldap_pvt_thread_mutex_destroy( &session->ls_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
+
+	free( session );
 }
 
 /*
