@@ -303,7 +303,7 @@ rewrite_session_var_get(
 }
 
 static void
-rewrite_session_free( void *v_session )
+rewrite_session_clean( void *v_session )
 {
 	struct rewrite_session	*session = (struct rewrite_session *)v_session;
 
@@ -319,8 +319,13 @@ rewrite_session_free( void *v_session )
 	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
 	ldap_pvt_thread_mutex_destroy( &session->ls_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
+}
 
-	free( session );
+static void
+rewrite_session_free( void *v_session )
+{
+	rewrite_session_clean( v_session );
+	free( v_session );
 }
 
 /*
@@ -332,13 +337,11 @@ rewrite_session_delete(
 		const void *cookie
 )
 {
-	struct rewrite_session *session, tmp;
+	struct rewrite_session *session, tmp = { 0 };
 
 	assert( info != NULL );
 	assert( cookie != NULL );
 
-	tmp.ls_cookie = ( void * )cookie;
-	
 	session = rewrite_session_find( info, cookie );
 
 	if ( session == NULL ) {
@@ -350,7 +353,7 @@ rewrite_session_delete(
 		return REWRITE_SUCCESS;
 	}
 
-	rewrite_session_free( session );
+	rewrite_session_clean( session );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_rdwr_wlock( &info->li_cookies_mutex );
@@ -362,7 +365,9 @@ rewrite_session_delete(
 	/*
 	 * There is nothing to delete in the return value
 	 */
+	tmp.ls_cookie = ( void * )cookie;
 	avl_delete( &info->li_cookies, ( caddr_t )&tmp, rewrite_cookie_cmp );
+
 	free( session );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
