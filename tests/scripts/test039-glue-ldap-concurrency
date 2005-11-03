@@ -191,7 +191,7 @@ echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
-	echo "comparison failed - meta search/modification didn't succeed"
+	echo "comparison failed - slapd-ldap search/modification didn't succeed"
 	exit 1
 fi
 
