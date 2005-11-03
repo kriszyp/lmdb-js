@@ -1799,21 +1799,11 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		cm->db.bd_info = backend_info( c->argv[1] );
-		if ( !cm->db.bd_info ) {
+		if ( ! backend_db_init( c->argv[1], &cm->db )) {
 			sprintf( c->msg, "unknown backend type" );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		if ( cm->db.bd_info->bi_db_init( &cm->db ) ) {
-			sprintf( c->msg, "backend %s init failed", c->argv[1] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
-			return( 1 );
-		}
-
-		/* This type is in use, needs to be opened */
-		cm->db.bd_info->bi_nDB++;
-
 		cm->max_entries = atoi( c->argv[2] );
 
 		cm->num_entries_limit = atoi( c->argv[4] );
