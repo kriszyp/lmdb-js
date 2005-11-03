@@ -1799,7 +1799,7 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		if ( ! backend_db_init( c->argv[1], &cm->db )) {
+		if ( !backend_db_init( c->argv[1], &cm->db )) {
 			sprintf( c->msg, "unknown backend type" );
 			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 			return( 1 );
