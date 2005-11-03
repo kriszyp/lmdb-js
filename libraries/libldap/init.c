@@ -409,6 +409,11 @@ ldap_int_destroy_global_options(void)
 #if defined(HAVE_WINSOCK) || defined(HAVE_WINSOCK2)
 	WSACleanup( );
 #endif
+
+	if ( ldap_int_hostname ) {
+		LDAP_FREE( ldap_int_hostname );
+		ldap_int_hostname = NULL;
+	}
 }
 
 /* 
@@ -529,7 +534,15 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
 	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
-	ldap_int_hostname = ldap_pvt_get_fqdn( ldap_int_hostname );
+	{
+		char	*name = ldap_int_hostname;
+
+		ldap_int_hostname = ldap_pvt_get_fqdn( name );
+
+		if ( name != NULL && name != ldap_int_hostname ) {
+			LDAP_FREE( name );
+		}
+	}
 #endif
 
 #ifndef HAVE_POLL
