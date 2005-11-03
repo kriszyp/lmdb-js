@@ -503,9 +503,9 @@ BackendInfo* backend_info(const char *type)
 
 BackendDB *
 backend_db_init(
-    const char	*type )
+    const char	*type,
+	BackendDB *be )
 {
-	Backend	*be;
 	BackendInfo *bi = backend_info(type);
 	int	rc = 0;
 
@@ -514,9 +514,14 @@ backend_db_init(
 		return NULL;
 	}
 
-	be = ch_calloc( 1, sizeof(Backend) );
-	nbackends++;
-	LDAP_STAILQ_INSERT_TAIL(&backendDB, be, be_next);
+	/* If be is provided, treat it as private. Otherwise allocate
+	 * one and add it to the global list.
+	 */
+	if ( !be ) {
+		be = ch_calloc( 1, sizeof(Backend) );
+		nbackends++;
+		LDAP_STAILQ_INSERT_TAIL(&backendDB, be, be_next);
+	}
 
 	be->bd_info = bi;
 
