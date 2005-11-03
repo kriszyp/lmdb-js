@@ -2744,7 +2744,7 @@ struct slap_listener {
 #endif
 	int	sl_mute;	/* Listener is temporarily disabled due to emfile */
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-	int	sl_busy;	/* Listener is busy (accept thread activated */
+	int	sl_busy;	/* Listener is busy (accept thread activated) */
 #endif
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;

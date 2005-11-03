@@ -1756,7 +1756,12 @@ slapd_daemon_task(
 
 			if ( lr->sl_sd == AC_SOCKET_INVALID ) continue;
 
-			if ( lr->sl_mute || lr->sl_busy ) {
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+			if ( lr->sl_mute || lr->sl_busy )
+#else
+			if ( lr->sl_mute )
+#endif
+			{
 			    SLAP_SOCK_CLR_READ( lr->sl_sd );
 			} else {
 				SLAP_SOCK_SET_READ( lr->sl_sd );
@@ -1823,12 +1828,14 @@ slapd_daemon_task(
 				continue;
 			}
 
+#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			if ( lr->sl_busy ) {
 				Debug( LDAP_DEBUG_CONNS,
 					"daemon: select: listen=%d busy\n",
 					lr->sl_sd, 0, 0 );
 				continue;
 			}
+#endif
 
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: select: listen=%d active_threads=%d tvp=%s\n",
