@@ -78,6 +78,7 @@ typedef struct syncinfo_s {
 	int					si_refreshPresent;
 	int					si_syncdata;
 	int					si_logstate;
+	int					si_conn_setup;
 	Avlnode				*si_presentlist;
 	LDAP				*si_ld;
 	LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
@@ -986,9 +987,12 @@ done:
 	if ( res ) ldap_msgfree( res );
 
 	if ( rc && rc != LDAP_SYNC_REFRESH_REQUIRED && si->si_ld ) {
-		ber_socket_t s;
-		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
-		connection_client_stop( s );
+		if ( si->si_conn_setup ) {
+			ber_socket_t s;
+			ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
+			connection_client_stop( s );
+			si->si_conn_setup = 0;
+		}
 		ldap_unbind_ext( si->si_ld, NULL, NULL );
 		si->si_ld = NULL;
 	}
@@ -1007,7 +1011,6 @@ do_syncrepl(
 	OperationBuffer opbuf;
 	Operation *op;
 	int rc = LDAP_SUCCESS;
-	int first = 0;
 	int dostop = 0;
 	ber_socket_t s;
 	int i, defer = 1;
@@ -1031,8 +1034,11 @@ do_syncrepl(
 
 	if ( slapd_shutdown ) {
 		if ( si->si_ld ) {
-			ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
-			connection_client_stop( s );
+			if ( si->si_conn_setup ) {
+				ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
+				connection_client_stop( s );
+				si->si_conn_setup = 0;
+			}
 			ldap_unbind_ext( si->si_ld, NULL, NULL );
 			si->si_ld = NULL;
 		}
@@ -1054,7 +1060,6 @@ do_syncrepl(
 
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
-		first = 1;
 		si->si_refreshDelete = 0;
 		si->si_refreshPresent = 0;
 		rc = do_syncrep1( op, si );
@@ -1076,12 +1081,14 @@ reload:
 			 * If we failed, tear down the connection and reschedule.
 			 */
 			if ( rc == LDAP_SUCCESS ) {
-				if ( first ) {
-					rc = connection_client_setup( s, do_syncrepl, arg );
-				} else {
+				if ( si->si_conn_setup ) {
 					connection_client_enable( s );
+				} else {
+					rc = connection_client_setup( s, do_syncrepl, arg );
+					if ( rc == 0 )
+						si->si_conn_setup = 1;
 				} 
-			} else if ( !first ) {
+			} else if ( si->si_conn_setup ) {
 				dostop = 1;
 			}
 		} else {
@@ -3039,6 +3046,7 @@ add_syncrepl(
 	si->si_manageDSAit = 0;
 	si->si_tlimit = 0;
 	si->si_slimit = 0;
+	si->si_conn_setup = 0;
 
 	si->si_presentlist = NULL;
 	LDAP_LIST_INIT( &si->si_nonpresentlist );
