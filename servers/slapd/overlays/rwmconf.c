@@ -146,7 +146,7 @@ rwm_map_config(
 			if ( mapping[0].m_dst_oc == NULL ) {
 				fprintf( stderr, "%s: line %d: unable to mimic destination objectClass '%s'\n",
 					fname, lineno, dst );
-				return 1;
+				goto error_return;
 			}
 
 #if 0
@@ -186,7 +186,7 @@ rwm_map_config(
 					fprintf( stderr,
 	"%s: line %d: source attributeType '%s': %d (%s)\n",
 						fname, lineno, src, rc, text ? text : "null" );
-					return 1;
+					goto error_return;
 				}
 
 			}
@@ -207,7 +207,7 @@ rwm_map_config(
 				fprintf( stderr,
 	"%s: line %d: destination attributeType '%s': %d (%s)\n",
 					fname, lineno, dst, rc, text ? text : "null" );
-				return 1;
+				goto error_return;
 			}
 		}
 		mapping[1].m_src_ad = mapping[0].m_dst_ad;

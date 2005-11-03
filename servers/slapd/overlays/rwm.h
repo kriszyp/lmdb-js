@@ -138,6 +138,8 @@ rwm_map_attrnames(
 		AttributeName **anp,
 		int remap );
 
+extern void rwm_mapping_dst_free ( void *mapping );
+
 extern void rwm_mapping_free ( void *mapping );
 
 extern int rwm_map_config(

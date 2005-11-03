@@ -1199,6 +1199,16 @@ rwm_dnattr_result_rewrite(
 }
 
 void
+rwm_mapping_dst_free( void *v_mapping )
+{
+	struct ldapmapping *mapping = v_mapping;
+
+	if ( BER_BVISEMPTY( &mapping[0].m_dst ) ) {
+		rwm_mapping_free( &mapping[ -1 ] );
+	}
+}
+
+void
 rwm_mapping_free( void *v_mapping )
 {
 	struct ldapmapping *mapping = v_mapping;
