@@ -19,6 +19,8 @@ OpenLDAP 2.3.12 Engineering
 	Fixed slapd-meta proxying bind result issue (ITS#4129)
 	Fixed slapd-meta/slapo-rwm rwm-mapping issue (ITS#4086)
 	Fixed slapo-ppolicy pwdFailureTIme after bind success issue (ITS#4134)
+	Added slapd delta syncrepl support
+	Added slapadd thread support
 	Updated slapcat subordinate database handling (ITS#4089)
 	Added slaptest pid/arg file consistency check (ITS#4074)
 	Updated contrib smbk5pwd module
