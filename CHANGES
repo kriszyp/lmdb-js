@@ -2,11 +2,29 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.12 Engineering
 	Fixed libldap ldapi:// authdn construction
-	Added libldap ldap_bv2escaped_filter_value
+	Added libldap ldap_bv2escaped_filter_value (ITS#2535)
+	Fixed libldap HSTRERROR issue (ITS#4124)
+	Added libldap/slapd TLS DSA certificate support (ITS#4017)
+	Fixed slapd illegal S option bug (ITS#4119)
+	Fixed slapd cn=monitor log level mod issue (ITS#4091)
+	Fixed slapd cn=config bad access issue (ITS#4111)
+	Fixed slapd cn=config access modify issue (ITS#4127)
+	Fixed slapd cn=config init issue (ITS#4128)
+	Fixed slapd non-reentrant libwrap issue (ITS#4099)
+	Fixed slapd AIX IFMT issue (ITS#4123)
+	Fixed ldapmodrdn empty line handling (ITS#4101)
+	Fixed slapd-hdb syncrepl deadlock issue (ITS#4088)
+	Fixed slapd-meta invalid DN attrs normalize/pretty issue (ITS#4107)
+	Fixed slapd-meta rootdn erroneous success issue (ITS#4122)
+	Fixed slapd-meta proxying bind result issue (ITS#4129)
+	Fixed slapd-meta/slapo-rwm rwm-mapping issue (ITS#4086)
+	Fixed slapo-ppolicy pwdFailureTIme after bind success issue (ITS#4134)
+	Updated slapcat subordinate database handling (ITS#4089)
+	Added slaptest pid/arg file consistency check (ITS#4074)
 	Updated contrib smbk5pwd module
 	Build environment
 		Added slapd-bind test program
-		Added inet_ntoa_b support for VxWorks
+		Added inet_ntoa_b support for VxWorks (ITS#3440)
 		Dropped SSLeay support
 
 OpenLDAP 2.3.11 Release
