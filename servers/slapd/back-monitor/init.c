@@ -1855,6 +1855,14 @@ monitor_back_db_destroy(
 			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_rdn ) ) {
 				ch_free( monitor_subsys[ i ]->mss_rdn.bv_val );
 			}
+
+			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_dn ) ) {
+				ch_free( monitor_subsys[ i ]->mss_dn.bv_val );
+			}
+
+			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_ndn ) ) {
+				ch_free( monitor_subsys[ i ]->mss_ndn.bv_val );
+			}
 		}
 
 		ch_free( monitor_subsys );
