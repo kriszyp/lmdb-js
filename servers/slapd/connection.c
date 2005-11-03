@@ -1895,9 +1895,11 @@ connection_input( Connection *conn )
 			connection_op_queue( op );
 			cri->op = op;
 		} else {
-			cri->nullop = 1;
-			rc = ldap_pvt_thread_pool_submit( &connection_pool,
-				connection_operation, (void *) cri->op );
+			if ( !cri->nullop ) {
+				cri->nullop = 1;
+				rc = ldap_pvt_thread_pool_submit( &connection_pool,
+					connection_operation, (void *) cri->op );
+			}
 			connection_op_activate( op );
 		}
 #else
