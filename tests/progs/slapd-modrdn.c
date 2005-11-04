@@ -235,6 +235,9 @@ retry:;
 			ldap_perror( ld, "ldap_modrdn" );
 			switch ( rc ) {
 			case LDAP_NO_SUCH_OBJECT:
+				/* NOTE: this likely means
+				 * the first modrdn failed
+				 * during the previous round... */
 				break;
 
 			case LDAP_BUSY:

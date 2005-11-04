@@ -329,6 +329,12 @@ retry:;
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_add" );
 			switch ( rc ) {
+			case LDAP_ALREADY_EXISTS:
+				/* NOTE: this likely means
+				 * the delete failed
+				 * during the previous round... */
+				break;
+
 			case LDAP_BUSY:
 			case LDAP_UNAVAILABLE:
 				if ( do_retry > 0 ) {
@@ -353,6 +359,12 @@ retry:;
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_delete" );
 			switch ( rc ) {
+			case LDAP_NO_SUCH_OBJECT:
+				/* NOTE: this likely means
+				 * the add failed
+				 * during the previous round... */
+				break;
+
 			case LDAP_BUSY:
 			case LDAP_UNAVAILABLE:
 				if ( do_retry > 0 ) {

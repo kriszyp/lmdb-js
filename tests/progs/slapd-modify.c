@@ -220,12 +220,24 @@ retry:;
 		rc = ldap_modify_s( ld, entry, mods );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_TYPE_OR_VALUE_EXISTS:
+				/* NOTE: this likely means
+				 * the second modify failed
+				 * during the previous round... */
+				break;
+
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
 		}
 		
 		mod.mod_op = LDAP_MOD_DELETE;
@@ -233,7 +245,10 @@ retry:;
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
 			switch ( rc ) {
-			case LDAP_NO_SUCH_OBJECT:
+			case LDAP_NO_SUCH_ATTRIBUTE:
+				/* NOTE: this likely means
+				 * the first modify failed
+				 * during the previous round... */
 				break;
 
 			case LDAP_BUSY:
