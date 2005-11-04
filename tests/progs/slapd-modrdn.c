@@ -211,25 +211,47 @@ retry:;
 		rc = ldap_modrdn2_s( ld, DNs[0], rdns[0], 0 );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modrdn" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_NO_SUCH_OBJECT:
+				/* NOTE: this likely means
+				 * the second modrdn failed
+				 * during the previous round... */
+				break;
+
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
 		}
 		rc = ldap_modrdn2_s( ld, DNs[1], rdns[1], 1 );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modrdn" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_NO_SUCH_OBJECT:
+				break;
+
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
 		}
 	}
 
+done:;
 	fprintf( stderr, " PID=%ld - Modrdn done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );

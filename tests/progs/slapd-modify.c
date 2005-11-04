@@ -232,16 +232,26 @@ retry:;
 		rc = ldap_modify_s( ld, entry, mods );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_NO_SUCH_OBJECT:
+				break;
+
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
 		}
 
 	}
 
+done:;
 	fprintf( stderr, " PID=%ld - Modify done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );

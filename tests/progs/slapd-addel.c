@@ -328,12 +328,18 @@ retry:;
 		rc = ldap_add_s( ld, entry, attrs );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_add" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
-			}
-			break;
+			switch ( rc ) {
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
 
+			default:
+				goto done;
+			}
 		}
 
 #if 0
@@ -346,14 +352,22 @@ retry:;
 		rc = ldap_delete_s( ld, entry );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_delete" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			break;
 		}
 	}
 
+done:;
 	fprintf( stderr, " PID=%ld - Add/Delete done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );
