@@ -69,6 +69,8 @@ typedef struct ldap_chain_t {
 #define LDAP_CHAIN_F_NONE		0x00U
 #define	LDAP_CHAIN_F_CHAINING		0x01U
 
+	ldap_pvt_thread_mutex_t	lc_mutex;
+
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	LDAPControl		lc_chaining_ctrl;
 	char			lc_chaining_ctrlflag;
@@ -259,7 +261,10 @@ ldap_chain_op(
 {
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-	struct ldapinfo	li, *lip = lc->lc_li;
+
+	struct ldapinfo	*lip = lc->lc_li;
+	char		*save_url = NULL;
+	SlapReply	rs2 = { 0 };
 
 	/* NOTE: returned if ref is empty... */
 	int		rc = LDAP_OTHER;
@@ -272,12 +277,14 @@ ldap_chain_op(
 
 	if ( lip->url != NULL ) {
 		op->o_bd->be_private = lip;
-		rc = ( *op_f )( op, rs );
+		rc = ( *op_f )( op, &rs2 );
+		rs->sr_err = rs2.sr_err;
 		goto done;
 	}
 
-	li = *lip;
-	op->o_bd->be_private = &li;
+	save_url = lip->url;
+	lip->url = NULL;
+	op->o_bd->be_private = lip;
 
 	/* if we parse the URI then by no means 
 	 * we can cache stuff or reuse connections, 
@@ -321,25 +328,28 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 		save_dn = srv->lud_dn;
 		srv->lud_dn = "";
 		srv->lud_scope = LDAP_SCOPE_DEFAULT;
-		li.url = ldap_url_desc2str( srv );
+		lip->url = ldap_url_desc2str( srv );
 		srv->lud_dn = save_dn;
 		ldap_free_urldesc( srv );
 
-		if ( li.url == NULL ) {
+		if ( lip->url == NULL ) {
 			/* try next */
 			rc = LDAP_OTHER;
 			continue;
 		}
 
-		rc = ( *op_f )( op, rs );
+		rc = ( *op_f )( op, &rs2 );
+		rs->sr_err = rs2.sr_err;
 
-		ldap_memfree( li.url );
-		li.url = NULL;
+		ldap_memfree( lip->url );
+		lip->url = NULL;
 		
 		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
 			break;
 		}
 	}
+
+	lip->url = save_url;
 
 done:;
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -362,7 +372,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	struct berval	ndn = op->o_ndn;
 
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-	struct ldapinfo	li, *lip = lc->lc_li;
+	struct ldapinfo	*lip = lc->lc_li;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	int		sr_err = rs->sr_err;
@@ -401,6 +411,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		}
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 
 	/*
 	 * TODO: add checks on who/when chain operations; e.g.:
@@ -441,8 +453,6 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		}
 		break;
 	case LDAP_REQ_ADD:
-		/* slap_mods2entry () should be called in do_add() */
-		assert( op->ora_e->e_attrs != NULL );
 		rc = ldap_chain_op( op, rs, lback->bi_op_add, ref );
 		break;
 	case LDAP_REQ_DELETE:
@@ -462,6 +472,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 			struct berval	*curr = ref,
 					odn = op->o_req_dn,
 					ondn = op->o_req_ndn;
+			char		*save_url = NULL;
+			SlapReply	rs2 = { 0 };
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			LDAPControl	**ctrls = NULL;
@@ -473,9 +485,9 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 			sc2.sc_response = ldap_chain_cb_search_response;
 
-			li = *lip;
-			li.url = NULL;
-			op->o_bd->be_private = &li;
+			save_url = lip->url;
+			lip->url = NULL;
+			op->o_bd->be_private = lip;
 			
 			/* if we parse the URI then by no means 
 			 * we can cache stuff or reuse connections, 
@@ -504,8 +516,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 				save_dn = srv->lud_dn;
 				srv->lud_dn = "";
 				srv->lud_scope = LDAP_SCOPE_DEFAULT;
-				li.url = ldap_url_desc2str( srv );
-				if ( li.url != NULL ) {
+				lip->url = ldap_url_desc2str( srv );
+				if ( lip->url != NULL ) {
 					ber_str2bv_x( save_dn, 0, 1, &op->o_req_dn,
 							op->o_tmpmemctx );
 					ber_dupbv_x( &op->o_req_ndn, &op->o_req_dn,
@@ -515,7 +527,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 				srv->lud_dn = save_dn;
 				ldap_free_urldesc( srv );
 
-				if ( li.url == NULL ) {
+				if ( lip->url == NULL ) {
 					/* try next */
 					rs->sr_err = LDAP_OTHER;
 					continue;
@@ -524,10 +536,11 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 				/* FIXME: should we also copy filter and scope?
 				 * according to RFC3296, no */
-				rc = lback->bi_op_search( op, rs );
+				rc = lback->bi_op_search( op, &rs2 );
+				rs->sr_err = rs2.sr_err;
 
-				ldap_memfree( li.url );
-				li.url = NULL;
+				ldap_memfree( lip->url );
+				lip->url = NULL;
 
 				op->o_tmpfree( op->o_req_dn.bv_val,
 						op->o_tmpmemctx );
@@ -544,6 +557,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			(void)chaining_control_remove( op, &ctrls );
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+			lip->url = save_url;
 
 			op->o_req_dn = odn;
 			op->o_req_ndn = ondn;
@@ -612,6 +627,8 @@ dont_chain:;
 	op->o_callback = sc;
 	op->o_ndn = ndn;
 	rs->sr_ref = ref;
+
+	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 
 	return rc;
 }
@@ -1074,6 +1091,8 @@ ldap_chain_db_init(
 	lc = ch_malloc( sizeof( ldap_chain_t ) );
 	memset( lc, 0, sizeof( ldap_chain_t ) );
 
+	ldap_pvt_thread_mutex_init( &lc->lc_mutex );
+
 	bd.be_private = NULL;
 	rc = lback->bi_db_init( &bd );
 	lc->lc_li = (struct ldapinfo *)bd.be_private;
@@ -1108,7 +1127,7 @@ ldap_chain_db_destroy(
 
 	be->be_private = (void *)lc->lc_li;
 	rc = lback->bi_db_destroy( be );
-	lc->lc_li = be->be_private;
+	ldap_pvt_thread_mutex_destroy( &lc->lc_mutex );
 	ch_free( lc );
 	on->on_bi.bi_private = NULL;
 	be->be_private = private;
