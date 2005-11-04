@@ -388,7 +388,13 @@ retry:	/* transaction retry */
 		struct berval nrdn;
 		Entry *e = entry_dup( op->ora_e );
 
-		dnRdn( &e->e_nname, &nrdn );
+		/* pick the RDN if not suffix; otherwise pick the entire DN */
+		if (pdn.bv_len) {
+			nrdn.bv_val = e->e_nname.bv_val;
+			nrdn.bv_len = pdn.bv_val - op->ora_e->e_nname.bv_val - 1;
+		} else {
+			nrdn = e->e_nname;
+		}
 
 		bdb_cache_add( bdb, ei, e, &nrdn, locker );
 
