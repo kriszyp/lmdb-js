@@ -35,7 +35,7 @@
 static void
 do_modify( char *uri, char *host, int port, char *manager, char *passwd,
 		char *entry, char *attr, char *value, int maxloop,
-		int maxretries, int delay );
+		int maxretries, int delay, int friendly );
 
 
 static void
@@ -69,9 +69,14 @@ main( int argc, char **argv )
 	int		loops = LOOPS;
 	int		retries = RETRIES;
 	int		delay = 0;
+	int		friendly = 0;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:a:l:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:a:l:r:t:" )) != EOF ) {
 		switch( i ) {
+		case 'F':
+			friendly++;
+			break;
+
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
 			break;
@@ -144,7 +149,7 @@ main( int argc, char **argv )
 		value++;
 
 	do_modify( uri, host, port, manager, passwd, entry, ava, value,
-			loops, retries, delay );
+			loops, retries, delay, friendly );
 	exit( EXIT_SUCCESS );
 }
 
@@ -152,7 +157,7 @@ main( int argc, char **argv )
 static void
 do_modify( char *uri, char *host, int port, char *manager,
 	char *passwd, char *entry, char* attr, char* value,
-	int maxloop, int maxretries, int delay )
+	int maxloop, int maxretries, int delay, int friendly )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -225,6 +230,9 @@ retry:;
 				/* NOTE: this likely means
 				 * the second modify failed
 				 * during the previous round... */
+				if ( !friendly ) {
+					goto done;
+				}
 				break;
 
 			case LDAP_BUSY:
@@ -249,6 +257,9 @@ retry:;
 				/* NOTE: this likely means
 				 * the first modify failed
 				 * during the previous round... */
+				if ( !friendly ) {
+					goto done;
+				}
 				break;
 
 			case LDAP_BUSY:
