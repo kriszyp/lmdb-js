@@ -51,8 +51,9 @@ bdb_add(Operation *op, SlapReply *rs )
 
 	ctrls[num_ctrls] = 0;
 
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+	/* add opattrs to shadow as well, only missing attrs will actually
+	 * be added; helps compatibility with older OL versions */
+	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 
 	/* check entry's schema */
 	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
