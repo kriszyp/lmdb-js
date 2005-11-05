@@ -2004,6 +2004,8 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	op->o_conn->c_conn_state = SLAP_C_ACTIVE;
+	op->o_conn->c_sasl_bind_in_progress =
+		( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS );
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	ch_free( cb );
