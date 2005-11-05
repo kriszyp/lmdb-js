@@ -188,6 +188,33 @@ NULL
 	}
 }
 
+void tool_perror(
+	int err,
+	char *extra,
+	char *matched,
+	char *info,
+	char **refs )
+{
+	fprintf( stderr, "ldap_bind: %s%s\n",
+		ldap_err2string( err ), extra ? extra : "" );
+
+	if ( matched && *matched ) {
+		fprintf( stderr, _("\tmatched DN: %s\n"), matched );
+	}
+
+	if ( info && *info ) {
+		fprintf( stderr, _("\tadditional info: %s\n"), info );
+	}
+
+	if ( refs && *refs ) {
+		int i;
+		fprintf( stderr, _("\treferrals:\n") );
+		for( i=0; refs[i]; i++ ) {
+			fprintf( stderr, "\t\t%s\n", refs[i] );
+		}
+	}
+}
+
 
 void
 tool_args( int argc, char **argv )
@@ -931,11 +958,14 @@ tool_bind( LDAP *ld )
 		LDAPMessage *result;
 		LDAPControl **ctrls;
 		char msgbuf[256];
+		char *matched = NULL;
+		char *info = NULL;
+		char **refs = NULL;
 
 		msgbuf[0] = 0;
 
-		if (( msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod )) == -1 )
-		{
+		msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
+		if ( msgid == -1 ) {
 			ldap_perror( ld, "ldap_bind" );
 			exit( EXIT_FAILURE );
 		}
@@ -945,8 +975,9 @@ tool_bind( LDAP *ld )
 			exit( EXIT_FAILURE );
 		}
 
-		if ( ldap_parse_result( ld, result, &err, NULL, NULL, NULL,
-			&ctrls, 1 ) != LDAP_SUCCESS ) {
+		if ( ldap_parse_result( ld, result, &err, &matched, &info, &refs,
+			&ctrls, 1 ) != LDAP_SUCCESS )
+		{
 			ldap_perror( ld, "ldap_bind parse result" );
 			exit( EXIT_FAILURE );
 		}
@@ -957,9 +988,12 @@ tool_bind( LDAP *ld )
 			int expire, grace, len = 0;
 			LDAPPasswordPolicyError pErr = -1;
 			
-			ctrl = ldap_find_control( LDAP_CONTROL_PASSWORDPOLICYRESPONSE, ctrls );
+			ctrl = ldap_find_control( LDAP_CONTROL_PASSWORDPOLICYRESPONSE,
+				ctrls );
+
 			if ( ctrl && ldap_parse_passwordpolicy_control( ld, ctrl,
-				&expire, &grace, &pErr ) == LDAP_SUCCESS ) {
+				&expire, &grace, &pErr ) == LDAP_SUCCESS )
+			{
 				if ( pErr != PP_noError ){
 					msgbuf[0] = ';';
 					msgbuf[1] = ' ';
@@ -967,22 +1001,30 @@ tool_bind( LDAP *ld )
 					len = strlen( msgbuf );
 				}
 				if ( expire >= 0 ) {
-					sprintf( msgbuf+len, " (Password expires in %d seconds)", expire );
+					sprintf( msgbuf+len,
+						" (Password expires in %d seconds)",
+						expire );
 				} else if ( grace >= 0 ) {
-					sprintf( msgbuf+len, " (Password expired, %d grace logins remain)", grace );
+					sprintf( msgbuf+len,
+						" (Password expired, %d grace logins remain)",
+						grace );
 				}
 			}
 		}
 #endif
+
 		if ( ctrls ) {
 			ldap_controls_free( ctrls );
 		}
-		if ( err != LDAP_SUCCESS || msgbuf[0] ) {
-			fprintf( stderr, "ldap_bind: %s%s\n", ldap_err2string( err ),
-				msgbuf );
-			if ( err != LDAP_SUCCESS ) {
-				exit( EXIT_FAILURE );
-			}
+
+		if ( err != LDAP_SUCCESS || msgbuf[0] || matched || info || refs ) {
+			tool_perror( err, msgbuf, matched, info, refs );
+
+			if( matched ) ber_memfree( matched );
+			if( info ) ber_memfree( info );
+			if( refs ) ber_memvfree( (void **)refs );
+
+			if ( err != LDAP_SUCCESS ) exit( EXIT_FAILURE );
 		}
 	}
 }

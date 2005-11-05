@@ -82,6 +82,12 @@ void tool_unbind LDAP_P(( LDAP * ));
 void tool_destroy LDAP_P(( void ));
 void tool_server_controls LDAP_P(( LDAP *, LDAPControl *, int ));
 int tool_check_abandon LDAP_P(( LDAP *ld, int msgid ));
+void tool_perror LDAP_P((
+	int err,
+	char *extra,
+	char *matched,
+	char *info,
+	char **refs ));
 
 LDAP_END_DECL
 
