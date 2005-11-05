@@ -1186,8 +1186,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		a_lock = attr_find( e->e_attrs, ad_pwdAccountLockedTime );
 		a_fail = attr_find( e->e_attrs, ad_pwdFailureTime );
 
-		for( prev = &op->oq_modify.rs_modlist, ml = *prev; ml;
-			prev = &ml->sml_next, ml = *prev ) {
+		for( prev = &op->oq_modify.rs_modlist, ml = *prev; ml; ml = *prev ) {
 
 			if ( ml->sml_desc == slap_schema.si_ad_userPassword )
 				got_pw = 1;
@@ -1217,8 +1216,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 					*prev = ml->sml_next;
 					ml->sml_next = NULL;
 					slap_mods_free( ml, 1 );
+					continue;
 				}
 			}
+			prev = &ml->sml_next;
 		}
 
 		/* If we're resetting the password, make sure grace, accountlock,
