@@ -1017,7 +1017,12 @@ tool_bind( LDAP *ld )
 			ldap_controls_free( ctrls );
 		}
 
-		if ( err != LDAP_SUCCESS || msgbuf[0] || matched || info || refs ) {
+		if ( err != LDAP_SUCCESS
+			|| msgbuf[0]
+			|| ( matched && matched[ 0 ] )
+			|| ( info && info[ 0 ] )
+			|| refs )
+		{
 			tool_perror( err, msgbuf, matched, info, refs );
 
 			if( matched ) ber_memfree( matched );
