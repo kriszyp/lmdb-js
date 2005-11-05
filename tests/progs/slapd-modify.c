@@ -35,7 +35,7 @@
 static void
 do_modify( char *uri, char *host, int port, char *manager, char *passwd,
 		char *entry, char *attr, char *value, int maxloop,
-		int maxretries, int delay );
+		int maxretries, int delay, int friendly );
 
 
 static void
@@ -69,9 +69,14 @@ main( int argc, char **argv )
 	int		loops = LOOPS;
 	int		retries = RETRIES;
 	int		delay = 0;
+	int		friendly = 0;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:a:l:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:a:l:r:t:" )) != EOF ) {
 		switch( i ) {
+		case 'F':
+			friendly++;
+			break;
+
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
 			break;
@@ -144,7 +149,7 @@ main( int argc, char **argv )
 		value++;
 
 	do_modify( uri, host, port, manager, passwd, entry, ava, value,
-			loops, retries, delay );
+			loops, retries, delay, friendly );
 	exit( EXIT_SUCCESS );
 }
 
@@ -152,7 +157,7 @@ main( int argc, char **argv )
 static void
 do_modify( char *uri, char *host, int port, char *manager,
 	char *passwd, char *entry, char* attr, char* value,
-	int maxloop, int maxretries, int delay )
+	int maxloop, int maxretries, int delay, int friendly )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -220,28 +225,59 @@ retry:;
 		rc = ldap_modify_s( ld, entry, mods );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_TYPE_OR_VALUE_EXISTS:
+				/* NOTE: this likely means
+				 * the second modify failed
+				 * during the previous round... */
+				if ( !friendly ) {
+					goto done;
+				}
+				break;
+
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
 		}
 		
 		mod.mod_op = LDAP_MOD_DELETE;
 		rc = ldap_modify_s( ld, entry, mods );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_NO_SUCH_ATTRIBUTE:
+				/* NOTE: this likely means
+				 * the first modify failed
+				 * during the previous round... */
+				if ( !friendly ) {
+					goto done;
+				}
+				break;
+
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
 		}
 
 	}
 
+done:;
 	fprintf( stderr, " PID=%ld - Modify done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );

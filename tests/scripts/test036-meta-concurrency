@@ -185,7 +185,8 @@ for f in $TESTDIR/$DATADIR/do_read.* ; do
 done
 
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT3 -D "cn=Manager,$METABASEDN" -w $PASSWD -l 50 # -r 20
+$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT3 \
+	-D "cn=Manager,$METABASEDN" -w $PASSWD -l 50 -r 20 -F
 RC=$?
 
 if test $RC != 0 ; then

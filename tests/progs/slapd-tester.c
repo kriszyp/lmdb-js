@@ -80,8 +80,9 @@ usage( char *name )
 		"[-j <maxchild>] "
 		"[-l <loops>] "
 		"-P <progdir> "
-		"[-r <maxretries>]"
-		"[-t <delay>]\n",
+		"[-r <maxretries>] "
+		"[-t <delay>] "
+		"[-F]\n",
 		name );
 	exit( EXIT_FAILURE );
 }
@@ -133,8 +134,9 @@ main( int argc, char **argv )
 	char		*modreqs[MAXREQS];
 	char		*moddn[MAXREQS];
 	int		modnum = 0;
+	int		friendly = 0;
 
-	while ( (i = getopt( argc, argv, "D:d:H:h:j:l:P:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "D:d:FH:h:j:l:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
 		case 'D':		/* slapd manager */
 			manager = ArgDup( optarg );
@@ -142,6 +144,10 @@ main( int argc, char **argv )
 
 		case 'd':		/* data directory */
 			dirname = strdup( optarg );
+			break;
+
+		case 'F':
+			friendly++;
 			break;
 
 		case 'H':		/* slapd uri */
@@ -332,6 +338,9 @@ main( int argc, char **argv )
 	margs[manum++] = retries;
 	margs[manum++] = "-t";
 	margs[manum++] = delay;
+	if ( friendly ) {
+		margs[manum++] = "-F";
+	}
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
 	margs[manum++] = NULL;
@@ -363,6 +372,9 @@ main( int argc, char **argv )
 	modargs[modanum++] = retries;
 	modargs[modanum++] = "-t";
 	modargs[modanum++] = delay;
+	if ( friendly ) {
+		modargs[modanum++] = "-F";
+	}
 	modargs[modanum++] = "-e";
 	modargs[modanum++] = NULL;		/* will hold the modify entry */
 	modargs[modanum++] = "-a";;
@@ -396,6 +408,9 @@ main( int argc, char **argv )
 	aargs[aanum++] = retries;
 	aargs[aanum++] = "-t";
 	aargs[aanum++] = delay;
+	if ( friendly ) {
+		aargs[aanum++] = "-F";
+	}
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
 	aargs[aanum++] = NULL;

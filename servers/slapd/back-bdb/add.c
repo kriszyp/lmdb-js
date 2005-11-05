@@ -51,6 +51,8 @@ bdb_add(Operation *op, SlapReply *rs )
 
 	ctrls[num_ctrls] = 0;
 
+	/* add opattrs to shadow as well, only missing attrs will actually
+	 * be added; helps compatibility with older OL versions */
 	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 
 	/* check entry's schema */
@@ -386,6 +388,7 @@ retry:	/* transaction retry */
 		struct berval nrdn;
 		Entry *e = entry_dup( op->ora_e );
 
+		/* pick the RDN if not suffix; otherwise pick the entire DN */
 		if (pdn.bv_len) {
 			nrdn.bv_val = e->e_nname.bv_val;
 			nrdn.bv_len = pdn.bv_val - op->ora_e->e_nname.bv_val - 1;

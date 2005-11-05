@@ -506,68 +506,92 @@ option description.  The default is 71.
 Specify the level at which debugging statements and operation 
 statistics should be syslogged (currently logged to the
 .BR syslogd (8) 
-LOG_LOCAL4 facility).  Log levels are additive, and available levels
-are:
+LOG_LOCAL4 facility).
+They must be considered subsystems rather than increasingly verbose 
+log levels.
+Some messages with higher priority are logged regardless 
+of the configured loglevel as soon as some logging is configured,
+otherwise anything is logged at all.
+Log levels are additive, and available levels are:
 .RS
 .RS
 .PD 0
 .TP
 .B 1
-.B (trace)
+.B (0x1 trace)
 trace function calls
 .TP
 .B 2
-.B (packet)
+.B (0x2 packet)
 debug packet handling
 .TP
 .B 4
-.B (args)
-heavy trace debugging
+.B (0x4 args)
+heavy trace debugging (function args)
 .TP
 .B 8
-.B (conns)
+.B (0x8 conns)
 connection management
 .TP
 .B 16
-.B (BER)
+.B (0x10 BER)
 print out packets sent and received
 .TP
 .B 32
-.B (filter)
+.B (0x20 filter)
 search filter processing
 .TP
 .B 64
-.B (config)
+.B (0x40 config)
 configuration file processing
 .TP
 .B 128
-.B (ACL)
+.B (0x80 ACL)
 access control list processing
 .TP
 .B 256
-.B (stats)
+.B (0x100 stats)
 stats log connections/operations/results
 .TP
 .B 512
-.B (stats2)
+.B (0x200 stats2)
 stats log entries sent
 .TP
 .B 1024
-.B (shell)
+.B (0x400 shell)
 print communication with shell backends
 .TP
 .B 2048
-.B (parse)
+.B (0x800 parse)
 entry parsing
+.TP
+.B 4096
+.B (0x1000 cache)
+caching (unused)
+.TP
+.B 8192
+.B (0x2000 index)
+data indexing (unused)
+.TP
+.B 16384
+.B (0x4000 sync)
+LDAPSync replication
+.TP
+.B 32768
+.B (0x8000 none)
+only messages that get logged whatever log level is set
 .PD
 .RE
 The desired log level can be input as a single integer that combines 
-the (ORed) desired levels, as a list of integers (that are ORed internally),
+the (ORed) desired levels, both in decimal or in hexadecimal notation,
+as a list of integers (that are ORed internally),
 or as a list of the names that are shown between brackets, such that
 .LP
 .nf
     loglevel 129
+    loglevel 0x81
     loglevel 128 1
+    loglevel 0x80 0x1
     loglevel acl trace
 .fi
 .LP
@@ -575,6 +599,14 @@ are equivalent.
 The keyword 
 .B any
 can be used as a shortcut to enable logging at all levels (equivalent to -1).
+The keyword
+.BR none ,
+or the equivalent integer representation, causes those messages
+that are logged regardless of the configured loglevel to be logged.
+In fact, if no loglevel (or a 0 level) is defined, no logging occurs, 
+so at least the 
+.B none
+level is required to have high priority messages logged.
 .RE
 .TP
 .B moduleload <filename>

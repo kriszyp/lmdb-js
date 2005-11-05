@@ -47,6 +47,7 @@ do_add( Operation *op, SlapReply *rs )
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 	int		rc = 0;
+	int		freevals = 1;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 	/*
@@ -175,6 +176,8 @@ do_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	freevals = 0;
+
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
 	if ( rc == 0 ) {
@@ -194,7 +197,8 @@ do_add( Operation *op, SlapReply *rs )
 
 done:;
 	if ( modlist != NULL ) {
-		slap_mods_free( modlist, 0 );
+		/* in case of error, free the values as well */
+		slap_mods_free( modlist, freevals );
 	}
 
 	if ( op->ora_e != NULL ) {

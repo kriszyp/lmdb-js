@@ -41,7 +41,8 @@ get_add_entry( char *filename, LDAPMod ***mods );
 
 static void
 do_addel( char *uri, char *host, int port, char *manager, char *passwd,
-	char *dn, LDAPMod **attrs, int maxloop, int maxretries, int delay );
+	char *dn, LDAPMod **attrs, int maxloop, int maxretries, int delay,
+	int friendly );
 
 static void
 usage( char *name )
@@ -73,10 +74,15 @@ main( int argc, char **argv )
 	int		loops = LOOPS;
 	int		retries = RETRIES;
 	int		delay = 0;
+	int		friendly = 0;
 	LDAPMod		**attrs = NULL;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:f:l:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "FH:h:p:D:w:f:l:r:t:" )) != EOF ) {
 		switch( i ) {
+		case 'F':
+			friendly++;
+			break;
+			
 		case 'H':		/* the server's URI */
 			uri = strdup( optarg );
 			break;
@@ -141,7 +147,7 @@ main( int argc, char **argv )
 	}
 
 	do_addel( uri, host, port, manager, passwd, entry, attrs,
-			loops, retries, delay );
+			loops, retries, delay, friendly );
 
 	exit( EXIT_SUCCESS );
 }
@@ -272,7 +278,8 @@ do_addel(
 	LDAPMod **attrs,
 	int maxloop,
 	int maxretries,
-	int delay
+	int delay,
+	int friendly
 )
 {
 	LDAP	*ld = NULL;
@@ -328,12 +335,27 @@ retry:;
 		rc = ldap_add_s( ld, entry, attrs );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_add" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
-			}
-			break;
+			switch ( rc ) {
+			case LDAP_ALREADY_EXISTS:
+				/* NOTE: this likely means
+				 * the delete failed
+				 * during the previous round... */
+				if ( !friendly ) {
+					goto done;
+				}
+				break;
 
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
+			}
 		}
 
 #if 0
@@ -346,14 +368,31 @@ retry:;
 		rc = ldap_delete_s( ld, entry );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_delete" );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
+			switch ( rc ) {
+			case LDAP_NO_SUCH_OBJECT:
+				/* NOTE: this likely means
+				 * the add failed
+				 * during the previous round... */
+				if ( !friendly ) {
+					goto done;
+				}
+				break;
+
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					do_retry--;
+					goto retry;
+				}
+				/* fall thru */
+
+			default:
+				goto done;
 			}
-			break;
 		}
 	}
 
+done:;
 	fprintf( stderr, " PID=%ld - Add/Delete done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );

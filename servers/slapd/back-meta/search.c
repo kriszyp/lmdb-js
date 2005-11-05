@@ -61,19 +61,17 @@ meta_back_search_start(
 	struct berval	mfilter = BER_BVNULL;
 	char		**mapped_attrs = NULL;
 	int		rc;
+	struct timeval	tv, *tvp = NULL;
 
 	/* should we check return values? */
 	if ( op->ors_deref != -1 ) {
 		ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
-				( void * )&op->ors_deref);
+				( void * )&op->ors_deref );
 	}
+
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
-		ldap_set_option( msc->msc_ld, LDAP_OPT_TIMELIMIT,
-				( void * )&op->ors_tlimit);
-	}
-	if ( op->ors_slimit != SLAP_NO_LIMIT ) {
-		ldap_set_option( msc->msc_ld, LDAP_OPT_SIZELIMIT,
-				( void * )&op->ors_slimit);
+		tv.tv_sec = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
+		tvp = &tv;
 	}
 
 	dc->target = &mi->mi_targets[ candidate ];
@@ -210,7 +208,7 @@ meta_back_search_start(
 	rc = ldap_search_ext( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
-			op->o_ctrls, NULL, NULL, op->ors_slimit,
+			op->o_ctrls, NULL, tvp, op->ors_slimit,
 			&candidates[ candidate ].sr_msgid ); 
 	if ( rc == LDAP_SUCCESS ) {
 		rc = 1;
