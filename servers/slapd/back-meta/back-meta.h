@@ -184,6 +184,7 @@ typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;
 	ldap_pvt_thread_mutex_t	mc_mutex;
 	unsigned		mc_refcnt;
+	int			mc_tainted;
 	
 	struct berval          	mc_local_ndn;
 	/* NOTE: msc_mscflags is used to recycle the #define

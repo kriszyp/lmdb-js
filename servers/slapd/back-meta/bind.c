@@ -46,7 +46,8 @@ meta_back_single_bind(
 	Operation		*op,
 	SlapReply		*rs,
 	metaconn_t		*mc,
-	int			candidate );
+	int			candidate,
+	int			massage );
 
 int
 meta_back_bind( Operation *op, SlapReply *rs )
@@ -124,6 +125,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		int		lerr;
 		Operation	op2 = *op;
+		int		massage = 1;
 
 		/*
 		 * Skip non-candidates
@@ -177,9 +179,12 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			op2.o_req_ndn = mi->mi_targets[ i ].mt_pseudorootdn;
 			op2.orb_cred = mi->mi_targets[ i ].mt_pseudorootpw;
 			op2.orb_method = LDAP_AUTH_SIMPLE;
+
+			massage = 0;
 		}
 		
-		lerr = meta_back_single_bind( &op2, rs, mc, i );
+		lerr = meta_back_single_bind( &op2, rs, mc, i, massage );
+
 		if ( lerr != LDAP_SUCCESS ) {
 			rs->sr_err = lerr;
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
@@ -274,12 +279,12 @@ meta_back_single_bind(
 	Operation		*op,
 	SlapReply		*rs,
 	metaconn_t		*mc,
-	int			candidate )
+	int			candidate,
+	int			massage )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metatarget_t		*mt = &mi->mi_targets[ candidate ];
 	struct berval		mdn = BER_BVNULL;
-	dncookie		dc;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			msgid,
 				rebinding = 0;
@@ -300,14 +305,21 @@ meta_back_single_bind(
 	/*
 	 * Rewrite the bind dn if needed
 	 */
-	dc.target = mt;
-	dc.conn = op->o_conn;
-	dc.rs = rs;
-	dc.ctx = "bindDN";
+	if ( massage ) {
+		dncookie		dc;
 
-	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
-		send_ldap_result( op, rs );
-		return -1;
+		dc.target = mt;
+		dc.conn = op->o_conn;
+		dc.rs = rs;
+		dc.ctx = "bindDN";
+
+		if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+			send_ldap_result( op, rs );
+			return -1;
+		}
+
+	} else {
+		mdn = op->o_req_dn;
 	}
 
 	/* FIXME: this fixes the bind problem right now; we need
@@ -378,27 +390,7 @@ retry:;
 
 			rc = slap_map_api2result( rs );
 			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
-				ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
-				if ( mc->mc_refcnt == 1 ) {
-					meta_clear_one_candidate( msc );
-				        LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
-
-					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
-
-				        /* mc here must be the regular mc,
-					 * reset and ready for init */
-				        rc = meta_back_init_one_conn( op, rs,
-						mt, mc, msc, LDAP_BACK_CONN_ISPRIV( mc ),
-						candidate == mc->mc_authz_target,
-						LDAP_BACK_DONTSEND );
-
-				} else {
-					/* can't do anything about it */
-					rc = 0;
-				}
-
-				ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
-
+				rc = meta_back_retry( op, rs, mc, candidate, LDAP_BACK_DONTSEND );
 				if ( rc ) {
 					if ( nretries > 0 ) {
 						nretries--;
@@ -552,6 +544,9 @@ retry:;
 
 			rc = slap_map_api2result( rs );
 			if ( rc == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
+				/* NOTE: we do not use meta_back_retry() here
+				 * to avoid circular loops; mc_mutex is set
+				 * by the caller */
 				if ( dolock ) {
 					ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 				}
@@ -569,7 +564,6 @@ retry:;
 						LDAP_BACK_CONN_ISPRIV( mc ),
 						candidate == mc->mc_authz_target,
 						LDAP_BACK_DONTSEND );
-				
 
 				} else {
 					/* can't do anything about it */
@@ -685,7 +679,7 @@ meta_back_dobind(
 
 			rootdn = mi->mi_targets[ i ].mt_pseudorootdn.bv_val;
 
-			rc = meta_back_single_bind( &op2, rs, mc, i );
+			rc = meta_back_single_bind( &op2, rs, mc, i, 0 );
 
 		} else {
 			rc = meta_back_single_dobind( op, rs, mc, i,
