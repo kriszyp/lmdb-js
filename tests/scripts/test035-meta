@@ -412,6 +412,38 @@ case $RC in
 	;;
 esac
 
+echo "Waiting 10 seconds for cached connections to timeout..."
+sleep 10
+
+echo "Searching with a timed out connection..."
+echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
+echo "# 	attrs=\"member\"" >> $SEARCHOUT
+echo "# 	base=\"$BASEDN\"" >> $SEARCHOUT
+echo "# 	with a timed out connection..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -D "cn=Manager,$BASEDN" -w $PASSWD \
+	-b "$BASEDN" "$FILTER" member \
+	>> $SEARCHOUT 2>&1
+RC=$?
+#if test $RC != 0 ; then
+#	echo "Search failed ($RC)!"
+#	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+#	exit $RC
+#fi
+case $RC in 
+	0)
+	;;
+	51)
+		echo "### Hit LDAP_BUSY problem; you may want to re-run the test"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 0
+	;;
+	*)
+		echo "Search failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	;;
+esac
+
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."
@@ -576,7 +608,7 @@ RC=$?
 #if test $RC != 6 ; then
 #	echo "Compare failed ($RC)!"
 #	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-#	exit $RC
+#	exit -1
 #fi
 case $RC in 
 	6)

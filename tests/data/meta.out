@@ -1411,3 +1411,13 @@ member: cn=Another Added Group,ou=Groups,o=Example,c=US
 
 # refldap://localhost:9016/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
 
+# searching filter="(member=cn=Another Added Group,ou=Groups,o=Example,c=US)"
+# 	attrs="member"
+# 	base="o=Example,c=US"
+# 	with a timed out connection...
+dn: cn=Another Added Group,ou=Groups,o=Example,c=US
+member: cn=Added Group,ou=Groups,o=Example,c=US
+member: cn=Another Added Group,ou=Groups,o=Example,c=US
+
+# refldap://localhost:9016/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+
