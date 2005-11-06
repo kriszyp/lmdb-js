@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include <ac/stdlib.h>
+#include <ac/time.h>
 
 #include <ac/ctype.h>
 #include <ac/param.h>
@@ -52,7 +53,7 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop );
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p port (-D <dn>|-b <baseDN>) -w <passwd> [-l <loops>]\n",
+	fprintf( stderr, "usage: %s [-h <host>] -p port (-D <dn>|-b <baseDN> [-f <searchfilter>]) -w <passwd> [-l <loops>]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -64,14 +65,14 @@ main( int argc, char **argv )
 {
 	int		i;
 	char		*uri = NULL;
-	char        *host = "localhost";
+	char		*host = "localhost";
 	char		*dn = NULL;
 	char		*base = NULL;
 	char		*pass = NULL;
-	int			port = -1;
-	int			loops = LOOPS;
+	int		port = -1;
+	int		loops = LOOPS;
 
-	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:f:" )) != EOF ) {
 		switch( i ) {
 			case 'b':		/* base DN of a tree of user DNs */
 				base = strdup( optarg );
@@ -100,6 +101,10 @@ main( int argc, char **argv )
 				loops = atoi( optarg );
 				break;
 
+			case 'f':
+				filter = optarg;
+				break;
+
 			default:
 				usage( argv[0] );
 				break;
@@ -121,8 +126,7 @@ static int
 do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop )
 {
 	LDAP	*ld = NULL;
-	int  	i, rc;
-	char	*attrs[] = { "1.1", NULL };
+	int  	i, rc = -1;
 	pid_t	pid = getpid();
 
 	if ( maxloop > 1 )
@@ -130,8 +134,6 @@ do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop )
 			 (long) pid, maxloop, dn );
 
 	for ( i = 0; i < maxloop; i++ ) {
-		LDAPMessage *res;
-
 		if ( uri ) {
 			ldap_initialize( &ld, uri );
 		} else {
@@ -243,6 +245,11 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop )
 		if ( done ) break;
 	}
 	ldap_unbind( ld );
+
+	if ( nrdns == 0 ) {
+		fprintf( stderr, "No RDNs.\n" );
+		return 1;
+	}
 
 	beg = time(0L);
 	/* Ok, got list of RDNs, now start binding to each */
