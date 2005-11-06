@@ -319,6 +319,21 @@ If set to
 .BR discover ,
 support is detected by reading the remote server's root DSE.
 
+.TP
+.B timeout [{add|delete|modify|modrdn}=]<val> [...]
+This directive allows to set per-operation timeouts.
+If no operation is specified, it affects all.
+Currently, only write operations are addressed, because searches
+can already be limited by means of the
+.B limits
+directive (see 
+.BR slapd.conf (5)
+for details), and other operations are not supposed to incur into the
+need for timeouts.
+Note: if the timelimit is exceeded, the operation is abandoned;
+the protocol does not provide any means to rollback the operation,
+so the client will not know if the operation eventually succeeded or not.
+
 .SH BACKWARD COMPATIBILITY
 The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
 as a side-effect, some of the traditional directives have been

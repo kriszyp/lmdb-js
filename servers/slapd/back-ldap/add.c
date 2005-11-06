@@ -36,6 +36,8 @@ ldap_back_add(
 	Operation	*op,
 	SlapReply	*rs )
 {
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+
 	struct ldapconn	*lc;
 	int		i = 0,
 			j = 0;
@@ -100,7 +102,8 @@ ldap_back_add(
 retry:
 	rs->sr_err = ldap_add_ext( lc->lc_ld, op->o_req_dn.bv_val, attrs,
 			ctrls, NULL, &msgid );
-	rs->sr_err = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
+	rs->sr_err = ldap_back_op_result( lc, op, rs, msgid,
+		li->timeout[ LDAP_BACK_OP_ADD ], LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {

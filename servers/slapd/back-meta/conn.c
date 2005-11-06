@@ -448,9 +448,11 @@ retry_lock:;
 			goto retry_lock;
 		}
 
-		Debug( LDAP_DEBUG_ANY, "%s meta_back_retry: retrying uri=\"%s\" DN=\"%s\"\n",
+		Debug( LDAP_DEBUG_ANY,
+			"%s meta_back_retry: retrying URI=\"%s\" DN=\"%s\"\n",
 			op->o_log_prefix, mt->mt_uri,
-			BER_BVISNULL( &msc->msc_bound_ndn ) ? "" : msc->msc_bound_ndn.bv_val );
+			BER_BVISNULL( &msc->msc_bound_ndn ) ?
+				"" : msc->msc_bound_ndn.bv_val );
 
 		meta_clear_one_candidate( msc );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );

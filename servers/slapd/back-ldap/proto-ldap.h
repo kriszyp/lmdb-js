@@ -55,7 +55,7 @@ int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_bac
 int ldap_back_retry(struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok);
 int ldap_back_map_result(SlapReply *rs);
 int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
-	ber_int_t msgid, ldap_back_send_t sendok);
+	ber_int_t msgid, time_t timeout, ldap_back_send_t sendok);
 int	back_ldap_LTX_init_module(int argc, char *argv[]);
 
 int ldap_back_init_cf( BackendInfo *bi );

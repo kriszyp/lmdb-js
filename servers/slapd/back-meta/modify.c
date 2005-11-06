@@ -186,8 +186,8 @@ retry:;
 		struct timeval	tv, *tvp = NULL;
 		LDAPMessage	*res = NULL;
 
-		if ( mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODIFY ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODIFY ];
+		if ( mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODIFY ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODIFY ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}

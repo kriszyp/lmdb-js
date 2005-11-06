@@ -143,7 +143,7 @@ ldap_back_search(
 {
 	struct ldapconn *lc;
 	struct timeval	tv;
-	time_t		stoptime;
+	time_t		stoptime = (time_t)-1;
 	LDAPMessage	*res,
 			*e;
 	int		rc = 0,
@@ -223,7 +223,7 @@ fail:;
 					goto retry;
 				}
 			}
-			rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
+			rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_DONTSEND );
 			ldap_back_freeconn( op, lc );
 			lc = NULL;
 			goto finish;
@@ -346,7 +346,7 @@ fail:;
 
 			/* cleanup */
 			if ( references ) {
-				ldap_value_free( references );
+				ber_memvfree( (void **)references );
 				ch_free( rs->sr_ref );
 				rs->sr_ref = NULL;
 			}
@@ -404,7 +404,7 @@ fail:;
 
 			/* cleanup */
 			if ( references ) {
-				ldap_value_free( references );
+				ber_memvfree( (void **)references );
 			}
 
 			rc = 0;

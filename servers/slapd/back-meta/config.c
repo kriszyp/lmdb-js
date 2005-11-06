@@ -163,7 +163,7 @@ meta_back_db_config(
 		mi->mi_targets[ i ].mt_flags = mi->flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
 
-		for ( c = 0; c < META_OP_LAST; c++ ) {
+		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
 			mi->mi_targets[ i ].mt_timeout[ c ] = mi->mi_timeout[ c ];
 		}
 
@@ -619,13 +619,13 @@ meta_back_db_config(
 				size_t	len = sep - argv[ c ];
 
 				if ( strncasecmp( argv[ c ], "add", len ) == 0 ) {
-					t = &tv[ META_OP_ADD ];
+					t = &tv[ LDAP_BACK_OP_ADD ];
 				} else if ( strncasecmp( argv[ c ], "delete", len ) == 0 ) {
-					t = &tv[ META_OP_DELETE ];
+					t = &tv[ LDAP_BACK_OP_DELETE ];
 				} else if ( strncasecmp( argv[ c ], "modify", len ) == 0 ) {
-					t = &tv[ META_OP_MODIFY ];
+					t = &tv[ LDAP_BACK_OP_MODIFY ];
 				} else if ( strncasecmp( argv[ c ], "modrdn", len ) == 0 ) {
-					t = &tv[ META_OP_MODRDN ];
+					t = &tv[ LDAP_BACK_OP_MODRDN ];
 				} else {
 					fprintf( stderr,
 		"%s: line %d: unknown operation \"%s\" for timeout #%d.\n",
@@ -652,7 +652,7 @@ meta_back_db_config(
 			} else {
 				int	i;
 	
-				for ( i = 0; i < META_OP_LAST; i++ ) {
+				for ( i = 0; i < LDAP_BACK_OP_LAST; i++ ) {
 					tv[ i ] = val;
 				}
 			}

@@ -245,7 +245,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t	*mc;
 	struct timeval	tv = { 0, 0 };
-	time_t		stoptime;
+	time_t		stoptime = (time_t)-1;
 	LDAPMessage	*res = NULL, *e;
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;

@@ -117,8 +117,8 @@ retry:;
 		LDAPMessage	*res = NULL;
 		int		rc;
 
-		if ( mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODRDN ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODRDN ];
+		if ( mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODRDN ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODRDN ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}
