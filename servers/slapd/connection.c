@@ -151,7 +151,7 @@ int connections_init(void)
 		NUM_CONNECTION_ARRAY, sizeof(ldap_pvt_thread_mutex_t) );
 	if( connections_mutex == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "connections_init: "
-			"allocation of connection mutex[%d] failed\n", i, 0, 0 );
+			"allocation of connection mutexes failed\n", 0, 0, 0 );
 		return -1;
 	}
 
