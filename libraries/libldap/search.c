@@ -368,7 +368,6 @@ ldap_search_s(
 int
 ldap_bv2escaped_filter_value( struct berval *in, struct berval *out )
 {
-	char c;
 	ber_len_t i;
 	static char escape[128] = {
 		1, 1, 1, 1, 1, 1, 1, 1,
@@ -402,7 +401,8 @@ ldap_bv2escaped_filter_value( struct berval *in, struct berval *out )
 	if( out->bv_val == NULL ) return -1;
 
 	for( i=0; i<in->bv_len; i++ ) {
-		if (c & 0x80 || escape[in->bv_val[i]]) {
+		char c = in->bv_val[ i ];
+		if (c & 0x80 || escape[ c ]) {
 			out->bv_val[out->bv_len++] = '\\';
 			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & (c>>4)];
 			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & c];
