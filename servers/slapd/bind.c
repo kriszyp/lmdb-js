@@ -286,7 +286,6 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			BER_BVZERO( &op->orb_edn );
 			op->o_conn->c_authmech = op->o_conn->c_sasl_bind_mech;
 			BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
-			op->o_conn->c_sasl_bind_in_progress = 0;
 
 			op->o_conn->c_sasl_ssf = op->orb_ssf;
 			if( op->orb_ssf > op->o_conn->c_ssf ) {
@@ -312,15 +311,11 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				BER_BVISNULL( &op->o_conn->c_dn ) ? "<empty>" : op->o_conn->c_dn.bv_val,
 				op->orb_ssf );
 
-		} else if ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS ) {
-			op->o_conn->c_sasl_bind_in_progress = 1;
-
-		} else {
+		} else if ( rs->sr_err != LDAP_SASL_BIND_IN_PROGRESS ) {
 			if ( !BER_BVISNULL( &op->o_conn->c_sasl_bind_mech ) ) {
 				free( op->o_conn->c_sasl_bind_mech.bv_val );
 				BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
 			}
-			op->o_conn->c_sasl_bind_in_progress = 0;
 		}
 
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
