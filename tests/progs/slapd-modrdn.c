@@ -52,7 +52,8 @@ usage( char *name )
 		"-e <entry> "
 		"[-l <loops>] "
 		"[-r <maxretries>] "
-		"[-t <delay>]\n",
+		"[-t <delay>] "
+		"[-F]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
