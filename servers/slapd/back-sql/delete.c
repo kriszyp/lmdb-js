@@ -217,34 +217,38 @@ backsql_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Get the parent
 	 */
-	dnParent( &op->o_req_ndn, &pdn );
-	bsi.bsi_e = &p;
-	e_id = bsi.bsi_base_id;
-	rs->sr_err = backsql_init_search( &bsi, &pdn,
-			LDAP_SCOPE_BASE, 
-			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
-			BACKSQL_ISF_GET_ENTRY );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
-			"could not retrieve deleteDN ID - no such entry\n", 
-			0, 0, 0 );
-		e = &p;
-		goto done;
-	}
+	if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
+		dnParent( &op->o_req_ndn, &pdn );
+		bsi.bsi_e = &p;
+		e_id = bsi.bsi_base_id;
+		rs->sr_err = backsql_init_search( &bsi, &pdn,
+				LDAP_SCOPE_BASE, 
+				(time_t)(-1), NULL, dbh, op, rs,
+				slap_anlist_no_attrs,
+				BACKSQL_ISF_GET_ENTRY );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
+				"could not retrieve deleteDN ID "
+				"- no such entry\n", 
+				0, 0, 0 );
+			e = &p;
+			goto done;
+		}
 
-	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
 
-	/* check parent for "children" acl */
-	if ( !access_allowed( op, &p, slap_schema.si_ad_children, 
-			NULL, ACL_WDEL, NULL ) )
-	{
-		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
-			"no write access to parent\n", 
-			0, 0, 0 );
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		e = &p;
-		goto done;
+		/* check parent for "children" acl */
+		if ( !access_allowed( op, &p, slap_schema.si_ad_children, 
+				NULL, ACL_WDEL, NULL ) )
+		{
+			Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
+				"no write access to parent\n", 
+				0, 0, 0 );
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			e = &p;
+			goto done;
 
+		}
 	}
 
 	/* avl_apply ... */
