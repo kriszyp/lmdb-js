@@ -460,10 +460,10 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				oldcount = 0,
 				res = 0;
 #ifdef BACKSQL_COUNTQUERY
-	unsigned long		count,
-				countsize = sizeof( count ),
+	unsigned 		count,
 				j,
 				append = 0;
+	SQLLEN			countsize = sizeof( count );
 	Attribute		*attr = NULL;
 
 	slap_mr_normalize_func		*normfunc = NULL;
