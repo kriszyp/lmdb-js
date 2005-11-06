@@ -39,6 +39,7 @@ static AttributeDescription	*ad_errCode;
 static AttributeDescription	*ad_errText;
 static AttributeDescription	*ad_errOp;
 static AttributeDescription	*ad_errSleepTime;
+static AttributeDescription	*ad_errMatchedDN;
 static ObjectClass		*oc_errAbsObject;
 static ObjectClass		*oc_errObject;
 static ObjectClass		*oc_errAuxObject;
@@ -63,6 +64,7 @@ typedef struct retcode_item_t {
 	struct berval		rdi_dn;
 	struct berval		rdi_ndn;
 	struct berval		rdi_text;
+	struct berval		rdi_matched;
 	int			rdi_err;
 	BerVarray		rdi_ref;
 	int			rdi_sleeptime;
@@ -188,7 +190,9 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 	}
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
-		rdc->rdc_flags = SLAP_CB_CONTINUE;
+		if ( !op->o_abandon ) {
+			rdc->rdc_flags = SLAP_CB_CONTINUE;
+		}
 		return 0;
 	}
 
@@ -264,16 +268,27 @@ retcode_op_func( Operation *op, SlapReply *rs )
 				return retcode_op_add( op, rs );
 
 			case LDAP_REQ_BIND:
+				/* skip if rootdn */
 				if ( be_isroot_pw( op ) ) {
 					return SLAP_CB_CONTINUE;
 				}
-				/* fallthru */
+				return retcode_op_internal( op, rs );
+
+			case LDAP_REQ_SEARCH:
+				if ( op->ors_scope == LDAP_SCOPE_BASE ) {
+					rs->sr_err = retcode_op_internal( op, rs );
+					if ( rs->sr_err == SLAP_CB_CONTINUE ) {
+						rs->sr_err = LDAP_SUCCESS;
+					}
+					send_ldap_result( op, rs );
+					return rs->sr_err;
+				}
+				break;
 
 			case LDAP_REQ_MODIFY:
 			case LDAP_REQ_DELETE:
 			case LDAP_REQ_MODRDN:
 			case LDAP_REQ_COMPARE:
-			case LDAP_REQ_SEARCH:
 				return retcode_op_internal( op, rs );
 			}
 		}
@@ -362,6 +377,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 	} else {
 		rs->sr_err = rdi->rdi_err;
 		rs->sr_text = rdi->rdi_text.bv_val;
+		rs->sr_matched = rdi->rdi_matched.bv_val;
 
 		/* FIXME: we only honor the rdi_ref field in case rdi_err
 		 * is LDAP_REFERRAL otherwise send_ldap_result() bails out */
@@ -520,6 +536,12 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 			rs->sr_text = a->a_vals[ 0 ].bv_val;
 		}
 
+		/* matched DN */
+		a = attr_find( e->e_attrs, ad_errMatchedDN );
+		if ( a != NULL ) {
+			rs->sr_matched = a->a_vals[ 0 ].bv_val;
+		}
+
 		db.bd_info = on->on_info->oi_orig;
 		op->o_bd = &db;
 		op->o_callback = NULL;
@@ -544,6 +566,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 		}
 
 		rs->sr_text = NULL;
+		rs->sr_matched = NULL;
 		op->o_callback = o_callback;
 	}
 	
@@ -711,13 +734,15 @@ retcode_db_config(
 						} else if ( strcasecmp( ops[ j ], "compare" ) == 0 ) {
 							rdi.rdi_mask |= SN_DG_OP_COMPARE;
 
-						} else if ( strcasecmp( ops[ j ], "add" ) == 0 ) {
+						} else if ( strcasecmp( ops[ j ], "delete" ) == 0 ) {
 							rdi.rdi_mask |= SN_DG_OP_DELETE;
 
 						} else if ( strcasecmp( ops[ j ], "modify" ) == 0 ) {
 							rdi.rdi_mask |= SN_DG_OP_MODIFY;
 
-						} else if ( strcasecmp( ops[ j ], "rename" ) == 0 ) {
+						} else if ( strcasecmp( ops[ j ], "rename" ) == 0
+							|| strcasecmp( ops[ j ], "modrdn" ) == 0 )
+						{
 							rdi.rdi_mask |= SN_DG_OP_RENAME;
 
 						} else if ( strcasecmp( ops[ j ], "search" ) == 0 ) {
@@ -756,6 +781,24 @@ retcode_db_config(
 						return 1;
 					}
 					ber_str2bv( &argv[ i ][ STRLENOF( "text=" ) ], 0, 1, &rdi.rdi_text );
+
+				} else if ( strncasecmp( argv[ i ], "matched=", STRLENOF( "matched=" ) ) == 0 )
+				{
+					struct berval	dn;
+
+					if ( !BER_BVISNULL( &rdi.rdi_matched ) ) {
+						fprintf( stderr, "%s: line %d: retcode: "
+							"\"matched\" already provided.\n",
+							fname, lineno );
+						return 1;
+					}
+					ber_str2bv( &argv[ i ][ STRLENOF( "matched=" ) ], 0, 0, &dn );
+					if ( dnPretty( NULL, &dn, &rdi.rdi_matched, NULL ) != LDAP_SUCCESS ) {
+						fprintf( stderr, "%s: line %d: retcode: "
+							"unable to prettify matched DN \"%s\".\n",
+							fname, lineno, &argv[ i ][ STRLENOF( "matched=" ) ] );
+						return 1;
+					}
 
 				} else if ( strncasecmp( argv[ i ], "ref=", STRLENOF( "ref=" ) ) == 0 )
 				{
@@ -898,6 +941,13 @@ retcode_db_open( BackendDB *be )
 			attr_merge_normalize_one( &rdi->rdi_e, ad_errText, &val[ 0 ], NULL );
 		}
 
+		/* matched */
+		if ( !BER_BVISNULL( &rdi->rdi_matched ) ) {
+			val[ 0 ] = rdi->rdi_matched;
+
+			attr_merge_normalize_one( &rdi->rdi_e, ad_errMatchedDN, &val[ 0 ], NULL );
+		}
+
 		/* sleep time */
 		if ( rdi->rdi_sleeptime > 0 ) {
 			snprintf( buf, sizeof( buf ), "%d", rdi->rdi_sleeptime );
@@ -968,6 +1018,10 @@ retcode_db_destroy( BackendDB *be )
 				ber_memfree( rdi->rdi_text.bv_val );
 			}
 
+			if ( !BER_BVISNULL( &rdi->rdi_matched ) ) {
+				ber_memfree( rdi->rdi_matched.bv_val );
+			}
+
 			BER_BVZERO( &rdi->rdi_e.e_name );
 			BER_BVZERO( &rdi->rdi_e.e_nname );
 
@@ -1028,6 +1082,13 @@ retcode_init( void )
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"SINGLE-VALUE )",
 			&ad_errSleepTime },
+		{ "errMatchedDN", "( 1.3.6.1.4.1.4203.666.11.4.1.5 "
+			"NAME ( 'errMatchedDN' ) "
+			"DESC 'Value to be returned as matched DN' "
+			"EQUALITY distinguishedNameMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"SINGLE-VALUE )",
+			&ad_errMatchedDN },
 		{ NULL }
 	};
 
@@ -1046,6 +1107,7 @@ retcode_init( void )
 				"$ errOp "
 				"$ errText "
 				"$ errSleepTime "
+				"$ errMatchedDN "
 			") )",
 			&oc_errAbsObject },
 		{ "errObject", "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
