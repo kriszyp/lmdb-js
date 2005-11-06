@@ -436,6 +436,8 @@ LDAP_SLAPD_F (int) str2loglevel LDAP_P(( const char *s, int *l ));
 LDAP_SLAPD_F (int) loglevel2bvarray LDAP_P(( int l, BerVarray *bva ));
 LDAP_SLAPD_F (const char *) loglevel2str LDAP_P(( int l ));
 LDAP_SLAPD_F (int) loglevel2bv LDAP_P(( int l, struct berval *bv ));
+LDAP_SLAPD_F (int) slap_cf_aux_table_parse LDAP_P(( const char *word, void *bc, slap_cf_aux_table *tab0, LDAP_CONST char *tabmsg ));
+LDAP_SLAPD_F (int) slap_cf_aux_table_unparse LDAP_P(( void *bc, struct berval *bv, slap_cf_aux_table *tab0 ));
 
 /*
  * ch_malloc.c

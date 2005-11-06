@@ -1607,6 +1607,14 @@ typedef struct slap_verbmasks {
 	const slap_mask_t mask;
 } slap_verbmasks;
 
+typedef struct slap_cf_aux_table {
+	struct berval key;
+	int off;
+	char type;
+	char quote;
+	slap_verbmasks *aux;
+} slap_cf_aux_table;
+
 #define SLAP_LIMIT_TIME	1
 #define SLAP_LIMIT_SIZE	2
 
