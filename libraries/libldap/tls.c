@@ -1783,7 +1783,7 @@ tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 			dhparams = p;
 		}
 	}
-done:
+
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
 #endif

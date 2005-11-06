@@ -59,7 +59,7 @@ passwd_back_search(
     SlapReply	*rs )
 {
 	struct passwd	*pw;
-	time_t		stoptime;
+	time_t		stoptime = (time_t)-1;
 
 	LDAPRDN rdn = NULL;
 	struct berval parent = BER_BVNULL;

@@ -189,8 +189,8 @@ monitor_subsys_ops_update(
 {
 	monitor_info_t		*mi = ( monitor_info_t * )op->o_bd->be_private;
 
-	ldap_pvt_mp_t		nInitiated,
-				nCompleted;
+	ldap_pvt_mp_t		nInitiated = LDAP_PVT_MP_INIT,
+				nCompleted = LDAP_PVT_MP_INIT;
 	struct berval		rdn;
 	int 			i;
 	Attribute		*a;

@@ -1155,10 +1155,11 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	pp_info			*pi = on->on_bi.bi_private;
-	int			i, rc, mod_pw_only, pwmod, pwmop, deladd,
+	int			i, rc, mod_pw_only, pwmod, pwmop = -1, deladd,
 				hsize = 0;
 	PassPolicy		pp;
-	Modifications		*mods = NULL, *modtail, *ml, *delmod, *addmod;
+	Modifications		*mods = NULL, *modtail = NULL,
+				*ml, *delmod, *addmod;
 	Attribute		*pa, *ha, at;
 	const char		*txt;
 	pw_hist			*tl = NULL, *p;
@@ -1290,12 +1291,13 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 
 	ppolicy_get( op, e, &pp );
 
-	for(ml = op->oq_modify.rs_modlist,
+	for ( ml = op->oq_modify.rs_modlist,
 			pwmod = 0, mod_pw_only = 1,
 			deladd = 0, delmod = NULL,
 			addmod = NULL,
 			zapReset = 1;
-		ml != NULL; modtail = ml, ml = ml->sml_next ) {
+		ml != NULL; modtail = ml, ml = ml->sml_next )
+	{
 		if ( ml->sml_desc == pp.ad ) {
 			pwmod = 1;
 			pwmop = ml->sml_op;

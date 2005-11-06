@@ -186,7 +186,7 @@ void*
 tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 {
 	Avlnode *p, *q, *r, *top;
-	int side, side_bf, shorter, nside;
+	int side, side_bf, shorter, nside = -1;
 
 	/* parent stack */
 	Avlnode *pptr[sizeof(void *)*8];

@@ -79,6 +79,8 @@ test_file( const char *fname, const char *ftype )
 			save_errno, strerror( save_errno ) );
 		return -1;
 	}
+
+	return 0;
 }
 
 int

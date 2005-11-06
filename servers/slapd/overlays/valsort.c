@@ -212,7 +212,7 @@ static void
 do_sort( Operation *op, Attribute *a, int beg, int num, slap_mask_t sort )
 {
 	int i, j, gotnvals;
-	struct berval tmp, ntmp, *vals, *nvals;
+	struct berval tmp, ntmp, *vals = NULL, *nvals;
 
 	gotnvals = (a->a_vals != a->a_nvals );
 
