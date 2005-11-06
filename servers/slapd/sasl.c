@@ -833,6 +833,18 @@ slap_sasl_err2ldap( int saslerr )
 {
 	int rc;
 
+	/* map SASL errors to LDAP resultCode returned by:
+	 *	sasl_server_new()
+	 *		SASL_OK, SASL_NOMEM
+	 *	sasl_server_step()
+	 *		SASL_OK, SASL_CONTINUE, SASL_TRANS, SASL_BADPARAM, SASL_BADPROT,
+	 *      ...
+	 *	sasl_server_start()
+	 *      + SASL_NOMECH
+	 *	sasl_setprop()
+	 *		SASL_OK, SASL_BADPARAM
+	 */
+
 	switch (saslerr) {
 		case SASL_OK:
 			rc = LDAP_SUCCESS;
@@ -841,8 +853,6 @@ slap_sasl_err2ldap( int saslerr )
 			rc = LDAP_SASL_BIND_IN_PROGRESS;
 			break;
 		case SASL_FAIL:
-			rc = LDAP_OTHER;
-			break;
 		case SASL_NOMEM:
 			rc = LDAP_OTHER;
 			break;
@@ -850,6 +860,9 @@ slap_sasl_err2ldap( int saslerr )
 			rc = LDAP_AUTH_METHOD_NOT_SUPPORTED;
 			break;
 		case SASL_BADAUTH:
+		case SASL_NOUSER:
+		case SASL_TRANS:
+		case SASL_EXPIRED:
 			rc = LDAP_INVALID_CREDENTIALS;
 			break;
 		case SASL_NOAUTHZ:
@@ -858,6 +871,13 @@ slap_sasl_err2ldap( int saslerr )
 		case SASL_TOOWEAK:
 		case SASL_ENCRYPT:
 			rc = LDAP_INAPPROPRIATE_AUTH;
+			break;
+		case SASL_UNAVAIL:
+		case SASL_TRYAGAIN:
+			rc = LDAP_UNAVAILABLE;
+			break;
+		case SASL_DISABLED:
+			rc = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		default:
 			rc = LDAP_OTHER;

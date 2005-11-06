@@ -98,6 +98,13 @@ static struct ldaperror ldap_builtin_errlist[] = {
 
 	{LDAP_X_NO_OPERATION,			N_("No Operation (X)")},
 
+	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("LCUP Resources Exhausted")},
+	{LDAP_CUP_SECURITY_VIOLATION,	N_("LCUP Security Violation")},
+	{LDAP_CUP_INVALID_DATA,			N_("LCUP Invalid Data")},
+	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
+	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
+
+
 	/* API ResultCodes */
 	{LDAP_SERVER_DOWN,				N_("Can't contact LDAP server")},
 	{LDAP_LOCAL_ERROR,				N_("Local error")},
@@ -117,12 +124,6 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_MORE_RESULTS_TO_RETURN,	N_("More results to return")},
 	{LDAP_CLIENT_LOOP,				N_("Client Loop")},
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	N_("Referral Limit Exceeded")},
-
-	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("LCUP Resources Exhausted")},
-	{LDAP_CUP_SECURITY_VIOLATION,	N_("LCUP Security Violation")},
-	{LDAP_CUP_INVALID_DATA,			N_("LCUP Invalid Data")},
-	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
-	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
 
 	{0, NULL}
 };

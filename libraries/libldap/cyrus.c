@@ -455,6 +455,15 @@ sasl_err2ldap( int saslerr )
 {
 	int rc;
 
+	/* map SASL errors to LDAP API errors returned by:
+	 *	sasl_client_new()
+	 *		SASL_OK, SASL_NOMECH, SASL_NOMEM
+	 *	sasl_client_start()
+	 *		SASL_OK, SASL_NOMECH, SASL_NOMEM, SASL_INTERACT
+	 *	sasl_client_step()
+	 *		SASL_OK, SASL_INTERACT, SASL_BADPROT, SASL_BADSERV
+	 */
+
 	switch (saslerr) {
 		case SASL_CONTINUE:
 			rc = LDAP_MORE_RESULTS_TO_RETURN;
@@ -465,20 +474,28 @@ sasl_err2ldap( int saslerr )
 		case SASL_OK:
 			rc = LDAP_SUCCESS;
 			break;
-		case SASL_FAIL:
-			rc = LDAP_LOCAL_ERROR;
-			break;
 		case SASL_NOMEM:
 			rc = LDAP_NO_MEMORY;
 			break;
 		case SASL_NOMECH:
 			rc = LDAP_AUTH_UNKNOWN;
 			break;
+		case SASL_BADPROT:
+			rc = LDAP_DECODING_ERROR;
+			break;
+		case SASL_BADSERV:
+			rc = LDAP_AUTH_UNKNOWN;
+			break;
+
+		/* other codes */
 		case SASL_BADAUTH:
 			rc = LDAP_AUTH_UNKNOWN;
 			break;
 		case SASL_NOAUTHZ:
 			rc = LDAP_PARAM_ERROR;
+			break;
+		case SASL_FAIL:
+			rc = LDAP_LOCAL_ERROR;
 			break;
 		case SASL_TOOWEAK:
 		case SASL_ENCRYPT:
