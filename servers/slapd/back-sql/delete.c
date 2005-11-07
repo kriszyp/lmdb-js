@@ -217,10 +217,10 @@ backsql_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Get the parent
 	 */
+	e_id = bsi.bsi_base_id;
 	if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
 		dnParent( &op->o_req_ndn, &pdn );
 		bsi.bsi_e = &p;
-		e_id = bsi.bsi_base_id;
 		rs->sr_err = backsql_init_search( &bsi, &pdn,
 				LDAP_SCOPE_BASE, 
 				(time_t)(-1), NULL, dbh, op, rs,
