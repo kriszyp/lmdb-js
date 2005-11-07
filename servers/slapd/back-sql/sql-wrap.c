@@ -257,9 +257,10 @@ static void
 backsql_close_db_conn( void *v_conn )
 {
 	backsql_db_conn	*conn = 	(backsql_db_conn *)v_conn;
+	unsigned long	cid = conn->ldap_cid;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_close_db_conn(%lu)\n",
-		conn->ldap_cid, 0, 0 );
+		cid, 0, 0 );
 
 	/*
 	 * Default transact is SQL_ROLLBACK; commit is required only
@@ -274,7 +275,7 @@ backsql_close_db_conn( void *v_conn )
 	ch_free( conn );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_close_db_conn(%lu)\n",
-		conn->ldap_cid, 0, 0 );
+		cid, 0, 0 );
 }
 
 int
