@@ -1027,6 +1027,9 @@ get_token( const char ** sp, char ** token_val )
 			**sp != ')' &&
 			**sp != '$' &&
 			**sp != '\'' &&
+			/* for suggested minimum upper bound on the number
+			 * of characters <draft-ietf-ldapbis-syntaxes> */
+			**sp != '{' &&
 			**sp != '\0' )
 			(*sp)++;
 		q = *sp;
@@ -2053,7 +2056,8 @@ ldap_str2attributetype( LDAP_CONST char * s,
 	if ( !at->at_oid ) {
 		if ( ( flags & ( LDAP_SCHEMA_ALLOW_NO_OID
 				| LDAP_SCHEMA_ALLOW_OID_MACRO ) )
-			    && (ss == savepos) ) {
+			    && (ss == savepos) )
+		{
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
@@ -2070,11 +2074,13 @@ ldap_str2attributetype( LDAP_CONST char * s,
 				     !strcasecmp(sval, "COLLECTIVE") ||
 				     !strcasecmp(sval, "NO-USER-MODIFICATION") ||
 				     !strcasecmp(sval, "USAGE") ||
-				     !strncasecmp(sval, "X-", 2) ) {
+				     !strncasecmp(sval, "X-", 2) )
+				{
 					/* Missing OID, backtrack */
 					ss = savepos;
 				} else if ( flags
-					& LDAP_SCHEMA_ALLOW_OID_MACRO) {
+					& LDAP_SCHEMA_ALLOW_OID_MACRO)
+				{
 					/* Non-numerical OID ... */
 					int len = ss-savepos;
 					at->at_oid = LDAP_MALLOC(len+1);
