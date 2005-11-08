@@ -483,9 +483,11 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
  * CSN, and generate Present records for them. We always collect this result
  * in SyncID sets, even if there's only one match.
  */
-#define	FIND_MAXCSN	1
-#define	FIND_CSN	2
-#define	FIND_PRESENT	3
+typedef enum find_csn_t {
+	FIND_MAXCSN	= 1,
+	FIND_CSN	= 2,
+	FIND_PRESENT	= 3
+} find_csn_t;
 
 static int
 findmax_cb( Operation *op, SlapReply *rs )
@@ -564,7 +566,7 @@ findpres_cb( Operation *op, SlapReply *rs )
 }
 
 static int
-syncprov_findcsn( Operation *op, int mode )
+syncprov_findcsn( Operation *op, find_csn_t mode )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
