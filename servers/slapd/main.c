@@ -668,7 +668,7 @@ unhandled_option:;
 		/* Force new ctx to be created */
 		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, NULL );
 
-		rc = ldap_pvt_tls_init_def_ctx();
+		rc = ldap_pvt_tls_init_def_ctx( 1 );
 		if( rc == 0 ) {
 			ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
 			/* Restore previous ctx */

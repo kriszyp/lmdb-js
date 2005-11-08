@@ -155,7 +155,7 @@ int main( int argc, char **argv )
     }
 
 #ifdef HAVE_TLS
-	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx() ) {
+	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx( 0 ) ) {
 		rc = 0;
 		/* See if we actually need TLS */
 		for ( i=0; i < sglob->num_replicas; i++ ) {
