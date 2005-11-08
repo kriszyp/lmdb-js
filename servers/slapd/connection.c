@@ -2008,6 +2008,7 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 		( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS );
 
 	/* Moved here from bind.c due to ITS#4158 */
+	op->o_conn->c_sasl_bindop = NULL;
 	if ( op->orb_method == LDAP_AUTH_SASL ) {
 		if( rs->sr_err == LDAP_SUCCESS ) {
 			ber_dupbv(&op->o_conn->c_dn, &op->orb_edn);

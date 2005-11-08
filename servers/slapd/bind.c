@@ -207,8 +207,6 @@ cleanup:
 		op->o_conn->c_authtype = op->orb_method;
 	}
 
-	op->o_conn->c_sasl_bindop = NULL;
-
 	if( !BER_BVISNULL( &op->o_req_dn ) ) {
 		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &op->o_req_dn );
