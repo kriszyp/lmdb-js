@@ -1030,6 +1030,10 @@ retcode_db_destroy( BackendDB *be )
 				ber_memfree( rdi->rdi_matched.bv_val );
 			}
 
+			if ( rdi->rdi_ref ) {
+				ber_bvarray_free( rdi->rdi_ref );
+			}
+
 			BER_BVZERO( &rdi->rdi_e.e_name );
 			BER_BVZERO( &rdi->rdi_e.e_nname );
 
