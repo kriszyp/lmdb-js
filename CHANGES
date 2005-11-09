@@ -22,7 +22,7 @@ OpenLDAP 2.3.12 Engineering
 	Added slapd delta syncrepl support
 	Added slapadd thread support
 	Updated slapcat subordinate database handling (ITS#4089)
-	Added slaptest pid/arg file consistency check (ITS#4074)
+	Added slapd/slaptest pid/arg file consistency check (ITS#4074)
 	Updated contrib smbk5pwd module
 	Build environment
 		Added slapd-bind test program
