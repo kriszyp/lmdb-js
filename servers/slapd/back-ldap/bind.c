@@ -1261,7 +1261,7 @@ ldap_back_proxy_authz_ctrl(
 		rs->sr_text = "proxyAuthz not allowed within namingContext";
 	}
 
-	if ( op->o_do_not_cache && op->o_is_auth_check ) {
+	if ( op->o_is_auth_check ) {
 		mode = LDAP_BACK_IDASSERT_NOASSERT;
 
 	} else {
