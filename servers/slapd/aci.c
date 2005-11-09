@@ -1487,6 +1487,7 @@ OpenLDAPaciPrettyNormal(
 				bv.bv_len = ntype.bv_len;
 
 				ocbv.bv_val++;
+				ocbv.bv_len = type.bv_len - ( ocbv.bv_val - type.bv_val );
 
 				atbv.bv_val = strchr( ocbv.bv_val, '/' );
 				if ( atbv.bv_val != NULL
