@@ -122,9 +122,9 @@ CLIENTDIR=../clients/tools
 LDIFFILTER=$SRCDIR/scripts/acfilter.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
 
-SLAPADD="../servers/slapd/slapd -Ta $LDAP_VERBOSE"
-SLAPCAT="../servers/slapd/slapd -Tc $LDAP_VERBOSE"
-SLAPINDEX="../servers/slapd/slapd -Ti $LDAP_VERBOSE"
+SLAPADD="../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
+SLAPCAT="../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
+SLAPINDEX="../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
 
 unset DIFF_OPTIONS
 # NOTE: -u/-c is not that portable...
