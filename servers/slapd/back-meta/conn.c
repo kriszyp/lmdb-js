@@ -1141,6 +1141,8 @@ meta_back_release_conn(
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
 	if ( mc->mc_refcnt == 0 && mc->mc_tainted ) {
+		(void)avl_delete( &mi->mi_conntree, ( caddr_t )mc,
+				meta_back_conn_cmp );
 		meta_back_conn_free( mc );
 	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
