@@ -1044,6 +1044,14 @@ retcode_db_destroy( BackendDB *be )
 			ch_free( rdi );
 		}
 
+		if ( !BER_BVISNULL( &rd->rd_pdn ) ) {
+			ber_memfree( rd->rd_pdn.bv_val );
+		}
+
+		if ( !BER_BVISNULL( &rd->rd_npdn ) ) {
+			ber_memfree( rd->rd_npdn.bv_val );
+		}
+
 		ber_memfree( rd );
 	}
 
