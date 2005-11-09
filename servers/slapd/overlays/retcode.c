@@ -86,7 +86,7 @@ typedef struct retcode_t {
 } retcode_t;
 
 static int
-retcode_entry_response( Operation *op, SlapReply *rs, Entry *e );
+retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e );
 
 static int
 retcode_cleanup_cb( Operation *op, SlapReply *rs )
@@ -161,10 +161,11 @@ done:;
 static int
 retcode_op_add( Operation *op, SlapReply *rs )
 {
-	return retcode_entry_response( op, rs, op->ora_e );
+	return retcode_entry_response( op, rs, NULL, op->ora_e );
 }
 
 typedef struct retcode_cb_t {
+	BackendInfo	*rdc_info;
 	unsigned	rdc_flags;
 	ber_tag_t	rdc_tag;
 	AttributeName	*rdc_attrs;
@@ -183,7 +184,7 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {
 			rs->sr_attrs = rdc->rdc_attrs;
 		}
-		rc = retcode_entry_response( op, rs, rs->sr_entry );
+		rc = retcode_entry_response( op, rs, rdc->rdc_info, rs->sr_entry );
 		op->o_tag = o_tag;
 
 		return rc;
@@ -229,6 +230,7 @@ retcode_op_internal( Operation *op, SlapReply *rs )
 	db.bd_info = on->on_info->oi_orig;
 	op2.o_bd = &db;
 
+	rdc.rdc_info = on->on_info->oi_orig;
 	rdc.rdc_flags = RETCODE_FINDIR;
 	if ( op->o_tag == LDAP_REQ_SEARCH ) {
 		rdc.rdc_attrs = op->ors_attrs;
@@ -463,10 +465,8 @@ retcode_op2str( ber_tag_t op, struct berval *bv )
 }
 
 static int
-retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
+retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e )
 {
-	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-
 	Attribute	*a;
 	int		err;
 	char		*next;
@@ -527,7 +527,8 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		BackendDB	db = *op->o_bd;
+		BackendDB	db = *op->o_bd,
+				*o_bd = op->o_bd;
 		void		*o_callback = op->o_callback;
 
 		/* message text */
@@ -542,7 +543,13 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 			rs->sr_matched = a->a_vals[ 0 ].bv_val;
 		}
 
-		db.bd_info = on->on_info->oi_orig;
+		if ( bi == NULL ) {
+			slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+
+			bi = on->on_info->oi_orig;
+		}
+
+		db.bd_info = bi;
 		op->o_bd = &db;
 		op->o_callback = NULL;
 
@@ -567,6 +574,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, Entry *e )
 
 		rs->sr_text = NULL;
 		rs->sr_matched = NULL;
+		op->o_bd = o_bd;
 		op->o_callback = o_callback;
 	}
 	
@@ -588,7 +596,7 @@ retcode_response( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	return retcode_entry_response( op, rs, rs->sr_entry );
+	return retcode_entry_response( op, rs, NULL, rs->sr_entry );
 }
 
 static int
