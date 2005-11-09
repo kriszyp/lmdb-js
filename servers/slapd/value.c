@@ -424,7 +424,7 @@ ordered_value_validate(
 			char	*ptr;
 
 			ptr = strchr( bv.bv_val, '}' );
-			if ( ptr == NULL ) {
+			if ( ptr == NULL || ptr > &bv.bv_val[ bv.bv_len ] ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;
@@ -466,7 +466,7 @@ ordered_value_pretty(
 			char	*ptr;
 
 			ptr = strchr( bv.bv_val, '}' );
-			if ( ptr == NULL ) {
+			if ( ptr == NULL || ptr > &bv.bv_val[ bv.bv_len ] ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;
@@ -525,11 +525,11 @@ ordered_value_normalize(
 	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 
 		/* Skip past the assertion index */
-		if ( bv.bv_val[0] == '{' ) {
+		if ( bv.bv_val[ 0 ] == '{' ) {
 			char	*ptr;
 
 			ptr = strchr( bv.bv_val, '}' );
-			if ( ptr == NULL ) {
+			if ( ptr == NULL || ptr > &bv.bv_val[ bv.bv_len ] ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;
@@ -600,7 +600,11 @@ ordered_value_match(
 
 		/* Skip past the assertion index */
 		if ( bv2.bv_val[0] == '{' ) {
-			ptr = strchr( bv2.bv_val, '}' ) + 1;
+			ptr = strchr( bv2.bv_val, '}' );
+			if ( ptr == NULL || ptr > &bv2.bv_val[ bv2.bv_len ] ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			ptr++;
 			bv2.bv_len -= ptr - bv2.bv_val;
 			bv2.bv_val = ptr;
 			v2 = &bv2;
@@ -627,7 +631,11 @@ ordered_value_match(
 		}
 		/* Skip past the attribute index */
 		if ( bv1.bv_val[0] == '{' ) {
-			ptr = strchr( bv1.bv_val, '}' ) + 1;
+			ptr = strchr( bv1.bv_val, '}' );
+			if ( ptr == NULL || ptr > &bv1.bv_val[ bv1.bv_len ] ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			ptr++;
 			bv1.bv_len -= ptr - bv1.bv_val;
 			bv1.bv_val = ptr;
 			v1 = &bv1;
@@ -684,9 +692,17 @@ ordered_value_add(
 	}
 
 	for (i=0; i<vnum; i++) {
+		char	*next;
+
 		k = -1;
 		if ( vals[i].bv_val[0] == '{' ) {
-			k = strtol( vals[i].bv_val+1, NULL, 0 );
+			k = strtol( vals[i].bv_val+1, &next, 0 );
+			if ( next == vals[i].bv_val + 1 ||
+				next[ 0 ] != '}' ||
+				next - vals[i].bv_val > vals[i].bv_len )
+			{
+				return -1;
+			}
 			if ( k > anum ) k = -1;
 		}
 		/* No index, or index is greater than current number of
