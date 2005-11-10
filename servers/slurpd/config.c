@@ -58,7 +58,7 @@
 static void	add_replica LDAP_P(( char **, int ));
 static int	parse_replica_line LDAP_P(( char **, int, Ri *));
 static void	parse_line LDAP_P(( char * ));
-static char	*getline LDAP_P(( FILE * ));
+static char	*slurpd_getline LDAP_P(( FILE * ));
 static char	*strtok_quote LDAP_P(( char *, char * ));
 
 int	cargc = 0, cargv_size = 0;
@@ -96,7 +96,7 @@ slurpd_read_config(
     }
 
     lineno = 0;
-    while ( (line = getline( fp )) != NULL ) {
+    while ( (line = slurpd_getline( fp )) != NULL ) {
 	/* skip comments and blank lines */
 	if ( line[0] == '#' || line[0] == '\0' ) {
 	    continue;
@@ -321,7 +321,7 @@ strtok_quote(
  * Get a line of input.
  */
 static char *
-getline(
+slurpd_getline(
     FILE *fp
 )
 {
