@@ -84,7 +84,7 @@ int passwd_extop(
 			qpw->rs_old.bv_val ? " old" : "",
 			qpw->rs_new.bv_val ? " new" : "", 0 );
 	} else {
-		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD %s%s\n",
+		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD%s%s\n",
 			op->o_log_prefix,
 			qpw->rs_old.bv_val ? " old" : "",
 			qpw->rs_new.bv_val ? " new" : "", 0, 0 );
