@@ -293,9 +293,11 @@ old_good:
 error_return:;
 	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
 		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_dn );
 	}
 	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
 		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_ndn );
 	}
 
 	return rc;
