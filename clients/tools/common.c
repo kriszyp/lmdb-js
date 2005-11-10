@@ -189,14 +189,15 @@ NULL
 }
 
 void tool_perror(
+	char *func,
 	int err,
 	char *extra,
 	char *matched,
 	char *info,
 	char **refs )
 {
-	fprintf( stderr, "ldap_bind: %s%s\n",
-		ldap_err2string( err ), extra ? extra : "" );
+	fprintf( stderr, "%s: %s (%d)%s\n",
+		func, ldap_err2string( err ), err, extra ? extra : "" );
 
 	if ( matched && *matched ) {
 		fprintf( stderr, _("\tmatched DN: %s\n"), matched );
@@ -1023,7 +1024,7 @@ tool_bind( LDAP *ld )
 			|| ( info && info[ 0 ] )
 			|| refs )
 		{
-			tool_perror( err, msgbuf, matched, info, refs );
+			tool_perror( "ldap_bind", err, msgbuf, matched, info, refs );
 
 			if( matched ) ber_memfree( matched );
 			if( info ) ber_memfree( info );
