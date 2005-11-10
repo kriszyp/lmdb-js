@@ -93,8 +93,6 @@ LDAP_SLAPD_F (slap_dynacl_t *) slap_dynacl_get LDAP_P(( const char *name ));
 #endif /* SLAP_DYNACL */
 LDAP_SLAPD_F (int) acl_init LDAP_P(( void ));
 
-LDAP_SLAPD_V (const struct berval) aci_bv[];
-
 LDAP_SLAPD_F (int) acl_get_part LDAP_P((
 	struct berval	*list,
 	int		ix,
@@ -104,7 +102,7 @@ LDAP_SLAPD_F (int) acl_match_set LDAP_P((
 	struct berval *subj,
 	Operation *op,
 	Entry *e,
-	int setref ));
+	struct berval *default_set_attribute ));
 LDAP_SLAPD_F (int) acl_string_expand LDAP_P((
 	struct berval *newbuf, struct berval *pattern,
 	char *match, int nmatch, regmatch_t *matches ));

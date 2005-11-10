@@ -39,46 +39,10 @@
 
 #define ACL_BUF_SIZE 	1024	/* use most appropriate size */
 
-/*
- * speed up compares
- */
-const struct berval	aci_bv[] = {
-	BER_BVC("entry"),
-	BER_BVC("children"),
-	BER_BVC("onelevel"),
-	BER_BVC("subtree"),
-	BER_BVC("[entry]"),
-	BER_BVC("[all]"),
-	BER_BVC("access-id"),
-#if 0
-	BER_BVC("anonymous"),
-#endif
-	BER_BVC("public"),
-	BER_BVC("users"),
-	BER_BVC("self"),
-	BER_BVC("dnattr"),
-	BER_BVC("group"),
-	BER_BVC("role"),
-	BER_BVC("set"),
-	BER_BVC("set-ref"),
-	BER_BVC("grant"),
-	BER_BVC("deny"),
-
-	BER_BVC("IP="),
+static const struct berval	acl_bv_ip_eq = BER_BVC( "IP=" );
 #ifdef LDAP_PF_LOCAL
-	BER_BVC("PATH="),
-#if 0
-	BER_BVC(LDAP_DIRSEP),
-#endif
+static const struct berval	acl_bv_path_eq = BER_BVC("PATH=");
 #endif /* LDAP_PF_LOCAL */
-	
-	BER_BVC(SLAPD_GROUP_CLASS),
-	BER_BVC(SLAPD_GROUP_ATTR),
-	BER_BVC(SLAPD_ROLE_CLASS),
-	BER_BVC(SLAPD_ROLE_ATTR),
-
-	BER_BVC(SLAPD_ACI_SET_ATTR)
-};
 
 static AccessControl * slap_acl_get(
 	AccessControl *ac, int *count,
@@ -1395,9 +1359,6 @@ slap_acl_mask(
 	Access		*b;
 #ifdef LDAP_DEBUG
 	char		accessmaskbuf[ACCESSMASK_MAXLEN];
-#if !defined( SLAP_DYNACL ) && defined( SLAPD_ACI_ENABLED )
-	char		accessmaskbuf1[ACCESSMASK_MAXLEN];
-#endif /* !SLAP_DYNACL && SLAPD_ACI_ENABLED */
 #endif /* DEBUG */
 	const char	*attr;
 	slap_mask_t	a2pmask = ACL_ACCESS2PRIV( *mask );
@@ -1633,12 +1594,12 @@ slap_acl_mask(
 						int		port_number = -1;
 						
 						if ( strncasecmp( op->o_conn->c_peer_name.bv_val, 
-									aci_bv[ ACI_BV_IP_EQ ].bv_val,
-									aci_bv[ ACI_BV_IP_EQ ].bv_len ) != 0 ) 
+									acl_bv_ip_eq.bv_val,
+									acl_bv_ip_eq.bv_len ) != 0 ) 
 							continue;
 
-						ip.bv_val = op->o_conn->c_peer_name.bv_val + aci_bv[ ACI_BV_IP_EQ ].bv_len;
-						ip.bv_len = op->o_conn->c_peer_name.bv_len - aci_bv[ ACI_BV_IP_EQ ].bv_len;
+						ip.bv_val = op->o_conn->c_peer_name.bv_val + acl_bv_ip_eq.bv_len;
+						ip.bv_len = op->o_conn->c_peer_name.bv_len - acl_bv_ip_eq.bv_len;
 
 						port = strrchr( ip.bv_val, ':' );
 						if ( port ) {
@@ -1677,14 +1638,14 @@ slap_acl_mask(
 						struct berval path;
 						
 						if ( strncmp( op->o_conn->c_peer_name.bv_val,
-									aci_bv[ ACI_BV_PATH_EQ ].bv_val,
-									aci_bv[ ACI_BV_PATH_EQ ].bv_len ) != 0 )
+									acl_bv_path_eq.bv_val,
+									acl_bv_path_eq.bv_len ) != 0 )
 							continue;
 
 						path.bv_val = op->o_conn->c_peer_name.bv_val
-							+ aci_bv[ ACI_BV_PATH_EQ ].bv_len;
+							+ acl_bv_path_eq.bv_len;
 						path.bv_len = op->o_conn->c_peer_name.bv_len
-							- aci_bv[ ACI_BV_PATH_EQ ].bv_len;
+							- acl_bv_path_eq.bv_len;
 
 						if ( ber_bvcmp( &b->a_peername_pat, &path ) != 0 )
 							continue;
@@ -1923,7 +1884,7 @@ slap_acl_mask(
 				bv = b->a_set_pat;
 			}
 			
-			if ( acl_match_set( &bv, op, e, 0 ) == 0 ) {
+			if ( acl_match_set( &bv, op, e, NULL ) == 0 ) {
 				continue;
 			}
 		}
@@ -1972,14 +1933,9 @@ slap_acl_mask(
 				0, 0, 0 );
 
 			/* this case works different from the others above.
-			 * since aci's themselves give permissions, we need
+			 * since dynamic ACL's themselves give permissions, we need
 			 * to first check b->a_access_mask, the ACL's access level.
 			 */
-			if ( BER_BVISEMPTY( &e->e_nname ) ) {
-				/* no ACIs in the root DSE */
-				continue;
-			}
-
 			/* first check if the right being requested
 			 * is allowed by the ACL clause.
 			 */
@@ -2037,6 +1993,8 @@ slap_acl_mask(
 		} else
 #else /* !SLAP_DYNACL */
 
+		/* NOTE: this entire block can be eliminated when SLAP_DYNACL
+		 * moves outside of LDAP_DEVEL */
 #ifdef SLAPD_ACI_ENABLED
 		if ( b->a_aci_at != NULL ) {
 			Attribute	*at;
@@ -2044,6 +2002,9 @@ slap_acl_mask(
 			struct berval	parent_ndn;
 			BerVarray	bvals = NULL;
 			int		ret, stop;
+#ifdef LDAP_DEBUG
+			char		accessmaskbuf1[ACCESSMASK_MAXLEN];
+#endif /* DEBUG */
 
 			Debug( LDAP_DEBUG_ACL, "    <= check a_aci_at: %s\n",
 				b->a_aci_at->ad_cname.bv_val, 0, 0 );
@@ -2679,13 +2640,13 @@ acl_match_set (
 	struct berval *subj,
 	Operation *op,
 	Entry *e,
-	int setref )
+	struct berval *default_set_attribute )
 {
 	struct berval	set = BER_BVNULL;
 	int		rc = 0;
 	AclSetCookie	cookie;
 
-	if ( setref == 0 ) {
+	if ( default_set_attribute == NULL ) {
 		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
 
 	} else {
@@ -2701,7 +2662,7 @@ acl_match_set (
 		}
 
 		if ( acl_get_part( subj, 1, '/', &setat ) < 0 ) {
-			setat = aci_bv[ ACI_BV_SET_ATTR ];
+			setat = *default_set_attribute;
 		}
 
 		/*
@@ -2798,23 +2759,34 @@ slap_dynacl_get( const char *name )
 }
 #endif /* SLAP_DYNACL */
 
+/*
+ * statically built-in dynamic ACL initialization
+ */
+static int (*acl_init_func[])( void ) = {
+#ifdef SLAPD_ACI_ENABLED
+#ifdef SLAP_DYNACL
+	dynacl_aci_init,
+#else /* !SLAP_DYNACL */
+	aci_init,
+#endif /* !SLAP_DYNACL */
+#endif /* SLAPD_ACI_ENABLED */
+
+	NULL
+};
+
 int
 acl_init( void )
 {
-	int	rc = 0;
+	int	i, rc;
 
-#ifdef SLAPD_ACI_ENABLED
-#ifdef SLAP_DYNACL
-	rc = dynacl_aci_init();
-#else /* !SLAP_DYNACL */
-	rc = aci_init();
-#endif /* !SLAP_DYNACL */
-	if ( rc != 0 ) {
-		return rc;
+	for ( i = 0; acl_init_func[ i ] != NULL; i++ ) {
+		rc = (*(acl_init_func[ i ]))();
+		if ( rc != 0 ) {
+			return rc;
+		}
 	}
-#endif /* SLAPD_ACI_ENABLED */
 
-	return rc;
+	return 0;
 }
 
 int
