@@ -190,7 +190,11 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 	char **rdns = NULL;
 	char *attrs[] = { "dn", NULL };
 	int nrdns = 0;
+#ifdef _WIN32
+	DWORD beg, end;
+#else
 	struct timeval beg, end;
+#endif
 
 	srand(pid);
 
@@ -256,7 +260,11 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 	}
 	ldap_unbind( ld );
 
+#ifdef _WIN32
+	beg = GetTickCount();
+#else
 	gettimeofday( &beg, NULL );
+#endif
 
 	if ( nrdns == 0 ) {
 		fprintf( stderr, "No RDNs.\n" );
@@ -273,6 +281,13 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 		if ( do_bind( uri, host, port, dn, pass, 1, force ) && !force )
 			break;
 	}
+#ifdef _WIN32
+	end = GetTickCount();
+	end -= beg;
+
+	fprintf( stderr, "Done %d Binds in %d.%03d seconds.\n", i,
+		end / 1000, end % 1000 );
+#else
 	gettimeofday( &end, NULL );
 	end.tv_usec -= beg.tv_usec;
 	if (end.tv_usec < 0 ) {
@@ -283,5 +298,6 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 
 	fprintf( stderr, "Done %d Binds in %d.%06d seconds.\n", i,
 		end.tv_sec, end.tv_usec );
+#endif
 	return 0;
 }
