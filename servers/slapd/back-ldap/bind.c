@@ -316,7 +316,12 @@ retry:;
 				rc = ldap_parse_extended_result( ld, res,
 						NULL, &data, 0 );
 				if ( rc == LDAP_SUCCESS ) {
-					rc = ldap_result2error( ld, res, 1 );
+					int err;
+					rc = ldap_parse_result( ld, res, &err,
+						NULL, NULL, NULL, NULL, 1 );
+					if ( rc == LDAP_SUCCESS ) {
+						rc = err;
+					}
 					res = NULL;
 					
 					/* FIXME: in case a referral 
@@ -834,7 +839,8 @@ retry:;
 		case 0:
 			if ( timeout ) {
 				(void)ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+					LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
 				rs->sr_text = "Operation timed out";
 				break;
 			}
