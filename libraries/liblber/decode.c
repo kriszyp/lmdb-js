@@ -479,6 +479,57 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 	return tag;
 }
 
+#ifdef LDAP_NULL_IS_NULL
+ber_tag_t
+ber_get_stringbv_null( BerElement *ber, struct berval *bv, int alloc )
+{
+	ber_tag_t	tag;
+
+	assert( ber != NULL );
+	assert( bv != NULL );
+
+	assert( LBER_VALID( ber ) );
+
+	if ( (tag = ber_skip_tag( ber, &bv->bv_len )) == LBER_DEFAULT ) {
+		bv->bv_val = NULL;
+		return LBER_DEFAULT;
+	}
+
+	if ( (ber_len_t) ber_pvt_ber_remaining( ber ) < bv->bv_len ) {
+		return LBER_DEFAULT;
+	}
+
+	if ( bv->bv_len == 0 ) {
+		bv->bv_val = NULL;
+		ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+		return tag;
+	}
+
+	if ( alloc ) {
+		bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1,
+			ber->ber_memctx );
+		if ( bv->bv_val == NULL ) {
+			return LBER_DEFAULT;
+		}
+
+		if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
+			bv->bv_len ) != bv->bv_len )
+		{
+			LBER_FREE( bv->bv_val );
+			bv->bv_val = NULL;
+			return LBER_DEFAULT;
+		}
+	} else {
+		bv->bv_val = ber->ber_ptr;
+		ber->ber_ptr += bv->bv_len;
+	}
+	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+	bv->bv_val[bv->bv_len] = '\0';
+
+	return tag;
+}
+#endif /* LDAP_NULL_IS_NULL */
+
 ber_tag_t
 ber_get_stringa( BerElement *ber, char **buf )
 {
@@ -492,6 +543,22 @@ ber_get_stringa( BerElement *ber, char **buf )
 
 	return tag;
 }
+
+#ifdef LDAP_NULL_IS_NULL
+ber_tag_t
+ber_get_stringa_null( BerElement *ber, char **buf )
+{
+	BerValue	bv;
+	ber_tag_t	tag;
+
+	assert( buf != NULL );
+
+	tag = ber_get_stringbv_null( ber, &bv, 1 );
+	*buf = bv.bv_val;
+
+	return tag;
+}
+#endif /* LDAP_NULL_IS_NULL */
 
 ber_tag_t
 ber_get_stringal( BerElement *ber, struct berval **bv )
@@ -692,9 +759,23 @@ ber_scanf ( BerElement *ber,
 			rc = ber_get_stringa( ber, ss );
 			break;
 
+#ifdef LDAP_NULL_IS_NULL
+		case 'A':	/* octet string - allocate storage as needed,
+				 * but return NULL if len == 0 */
+			ss = va_arg( ap, char ** );
+			rc = ber_get_stringa_null( ber, ss );
+			break;
+#endif /* LDAP_NULL_IS_NULL */
+
 		case 'b':	/* boolean */
 			i = va_arg( ap, ber_int_t * );
 			rc = ber_get_boolean( ber, i );
+			break;
+
+		case 'B':	/* bit string - allocate storage as needed */
+			ss = va_arg( ap, char ** );
+			l = va_arg( ap, ber_len_t * ); /* for length, in bits */
+			rc = ber_get_bitstringa( ber, ss, l );
 			break;
 
 		case 'e':	/* enumerated */
@@ -708,19 +789,30 @@ ber_scanf ( BerElement *ber,
 			rc = ber_peek_tag( ber, l );
 			break;
 
-		case 'n':	/* null */
-			rc = ber_get_null( ber );
-			break;
-
-		case 's':	/* octet string - in a buffer */
-			s = va_arg( ap, char * );
-			l = va_arg( ap, ber_len_t * );
-			rc = ber_get_stringb( ber, s, l );
-			break;
-
 		case 'm':	/* octet string in berval, in-place */
 			bval = va_arg( ap, struct berval * );
 			rc = ber_get_stringbv( ber, bval, 0 );
+			break;
+
+		case 'M':	/* bvoffarray - must include address of
+				 * a record len, and record offset.
+				 * number of records will be returned thru
+				 * len ptr on finish. parsed in-place.
+				 */
+		{
+			bgbvr cookie = { BvOff };
+			cookie.ber = ber;
+			cookie.res.ba = va_arg( ap, struct berval ** );
+			cookie.alloc = 0;
+			l = va_arg( ap, ber_len_t * );
+			cookie.siz = *l;
+			cookie.off = va_arg( ap, ber_len_t );
+			rc = ber_get_stringbvl( &cookie, l );
+			break;
+		}
+
+		case 'n':	/* null */
+			rc = ber_get_null( ber );
 			break;
 
 		case 'o':	/* octet string in a supplied berval */
@@ -733,10 +825,10 @@ ber_scanf ( BerElement *ber,
 			rc = ber_get_stringal( ber, bvp );
 			break;
 
-		case 'B':	/* bit string - allocate storage as needed */
-			ss = va_arg( ap, char ** );
-			l = va_arg( ap, ber_len_t * ); /* for length, in bits */
-			rc = ber_get_bitstringa( ber, ss, l );
+		case 's':	/* octet string - in a buffer */
+			s = va_arg( ap, char * );
+			l = va_arg( ap, ber_len_t * );
+			rc = ber_get_stringb( ber, s, l );
 			break;
 
 		case 't':	/* tag of next item */
@@ -776,23 +868,6 @@ ber_scanf ( BerElement *ber,
 			cookie.res.ba = va_arg( ap, struct berval ** );
 			cookie.alloc = 1;
 			rc = ber_get_stringbvl( &cookie, NULL );
-			break;
-		}
-
-		case 'M':	/* bvoffarray - must include address of
-				 * a record len, and record offset.
-				 * number of records will be returned thru
-				 * len ptr on finish. parsed in-place.
-				 */
-		{
-			bgbvr cookie = { BvOff };
-			cookie.ber = ber;
-			cookie.res.ba = va_arg( ap, struct berval ** );
-			cookie.alloc = 0;
-			l = va_arg( ap, ber_len_t * );
-			cookie.siz = *l;
-			cookie.off = va_arg( ap, ber_len_t );
-			rc = ber_get_stringbvl( &cookie, l );
 			break;
 		}
 
@@ -845,6 +920,9 @@ ber_scanf ( BerElement *ber,
 			} break;
 
 		case 'a':	/* octet string - allocate storage as needed */
+#ifdef LDAP_NULL_IS_NULL
+		case 'A':
+#endif /* LDAP_NULL_IS_NULL */
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
 				LBER_FREE( *ss );
@@ -858,18 +936,8 @@ ber_scanf ( BerElement *ber,
 			(void) va_arg( ap, int * );
 			break;
 
-		case 's':	/* octet string - in a buffer */
-			(void) va_arg( ap, char * );
-			(void) va_arg( ap, ber_len_t * );
-			break;
-
 		case 'l':	/* length of next item */
 			(void) va_arg( ap, ber_len_t * );
-			break;
-
-		case 't':	/* tag of next item */
-		case 'T':	/* skip tag of next item */
-			(void) va_arg( ap, ber_tag_t * );
 			break;
 
 		case 'o':	/* octet string in a supplied berval */
@@ -889,6 +957,16 @@ ber_scanf ( BerElement *ber,
 			}
 			break;
 
+		case 's':	/* octet string - in a buffer */
+			(void) va_arg( ap, char * );
+			(void) va_arg( ap, ber_len_t * );
+			break;
+
+		case 't':	/* tag of next item */
+		case 'T':	/* skip tag of next item */
+			(void) va_arg( ap, ber_tag_t * );
+			break;
+
 		case 'B':	/* bit string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
@@ -898,12 +976,12 @@ ber_scanf ( BerElement *ber,
 			*(va_arg( ap, ber_len_t * )) = 0; /* for length, in bits */
 			break;
 
-		case 'v':	/* sequence of strings */
-		case 'V':	/* sequence of strings + lengths */
-		case 'W':	/* BerVarray */
 		case 'm':	/* berval in-place */
 		case 'M':	/* BVoff array in-place */
 		case 'n':	/* null */
+		case 'v':	/* sequence of strings */
+		case 'V':	/* sequence of strings + lengths */
+		case 'W':	/* BerVarray */
 		case 'x':	/* skip the next element - whatever it is */
 		case '{':	/* begin sequence */
 		case '[':	/* begin set */

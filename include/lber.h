@@ -622,6 +622,10 @@ LBER_F( int * ) ber_errno_addr LDAP_P((void));
 #define LBER_ERROR_PARAM	0x1
 #define LBER_ERROR_MEMORY	0x2
 
+#ifdef LDAP_DEVEL
+#define LDAP_NULL_IS_NULL
+#endif
+
 LDAP_END_DECL
 
 #endif /* _LBER_H */

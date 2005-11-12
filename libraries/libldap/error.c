@@ -311,12 +311,24 @@ ldap_parse_result(
 	ber = ber_dup( lm->lm_ber );
 
 	if ( ld->ld_version < LDAP_VERSION2 ) {
+#ifdef LDAP_NULL_IS_NULL
+		tag = ber_scanf( ber, "{iA}",
+			&ld->ld_errno, &ld->ld_error );
+#else /* ! LDAP_NULL_IS_NULL */
 		tag = ber_scanf( ber, "{ia}",
 			&ld->ld_errno, &ld->ld_error );
+#endif /* ! LDAP_NULL_IS_NULL */
+
 	} else {
 		ber_len_t len;
+
+#ifdef LDAP_NULL_IS_NULL
+		tag = ber_scanf( ber, "{iAA" /*}*/,
+			&ld->ld_errno, &ld->ld_matched, &ld->ld_error );
+#else /* ! LDAP_NULL_IS_NULL */
 		tag = ber_scanf( ber, "{iaa" /*}*/,
 			&ld->ld_errno, &ld->ld_matched, &ld->ld_error );
+#endif /* ! LDAP_NULL_IS_NULL */
 
 		if( tag != LBER_ERROR ) {
 			/* peek for referrals */
@@ -377,10 +389,20 @@ ldap_parse_result(
 	}
 	if ( errcode == LDAP_SUCCESS ) {
 		if( matcheddnp != NULL ) {
-			*matcheddnp = LDAP_STRDUP( ld->ld_matched );
+#ifdef LDAP_NULL_IS_NULL
+			if ( ld->ld_matched )
+#endif /* LDAP_NULL_IS_NULL */
+			{
+				*matcheddnp = LDAP_STRDUP( ld->ld_matched );
+			}
 		}
 		if( errmsgp != NULL ) {
-			*errmsgp = LDAP_STRDUP( ld->ld_error );
+#ifdef LDAP_NULL_IS_NULL
+			if ( ld->ld_error )
+#endif /* LDAP_NULL_IS_NULL */
+			{
+				*errmsgp = LDAP_STRDUP( ld->ld_error );
+			}
 		}
 
 		if( referralsp != NULL) {
