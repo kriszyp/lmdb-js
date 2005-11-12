@@ -81,10 +81,9 @@ Listener **slap_listeners = NULL;
 static ber_socket_t wake_sds[2];
 static int emfile;
 
-static int waking;
+static volatile int waking;
 #define WAKE_LISTENER(w)	do { \
-	if ((w) && waking < 5) { \
-		waking++; \
+	if ((w) && ++waking < 5) { \
 		tcp_write( wake_sds[1], "0", 1 ); \
 	} \
 } while(0)
@@ -1887,14 +1886,11 @@ slapd_daemon_task(
 
 #if SLAP_EVENTS_ARE_INDEXED
 		if ( SLAP_EVENT_IS_READ( wake_sds[0] )) {
+			char c[BUFSIZ];
 			SLAP_EVENT_CLR_READ( wake_sds[0] );
-			ns--;
-			{
-				char c[BUFSIZ];
-				tcp_read( wake_sds[0], c, sizeof(c) );
-			}
-			Debug( LDAP_DEBUG_CONNS, "daemon: waked\n", 0, 0, 0 );
 			waking = 0;
+			tcp_read( wake_sds[0], c, sizeof(c) );
+			Debug( LDAP_DEBUG_CONNS, "daemon: waked\n", 0, 0, 0 );
 			continue;
 		}
 
@@ -2103,8 +2099,8 @@ slapd_daemon_task(
 				/* Handle wake events */
 				if ( fd == wake_sds[0] ) {
 					char c[BUFSIZ];
-					tcp_read( wake_sds[0], c, sizeof(c) );
 					waking = 0;
+					tcp_read( wake_sds[0], c, sizeof(c) );
 					break;
 				}
 
