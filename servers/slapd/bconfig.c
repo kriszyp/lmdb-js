@@ -195,10 +195,23 @@ static OidRec OidMacros[] = {
 };
 
 /*
+ * Backend/Database registry
+ *
  * OLcfg{Bk|Db}{Oc|At}:0		-> common
  * OLcfg{Bk|Db}{Oc|At}:1		-> bdb
  * OLcfg{Bk|Db}{Oc|At}:2		-> ldif
  * OLcfg{Bk|Db}{Oc|At}:3		-> ldap?
+ */
+
+/*
+ * Overlay registry
+ *
+ * OLcfgOv{Oc|At}:1			-> syncprov
+ * OLcfgOv{Oc|At}:2			-> pcache
+ * OLcfgOv{Oc|At}:3			-> chain
+ * OLcfgOv{Oc|At}:4			-> accesslog
+ * OLcfgOv{Oc|At}:5			-> valsort
+ * OLcfgOv{Oc|At}:6			-> smbk5pwd (use a separate arc for contrib?)
  */
 
 /* alphabetical ordering */
