@@ -21,9 +21,6 @@
 #include "lber-int.h"
 
 #ifdef LDAP_MEMORY_TRACE
-# ifndef LDAP_MEMORY_DEBUG
-#  define LDAP_MEMORY_DEBUG 1
-# endif
 #include <stdio.h>
 #endif
 
@@ -67,7 +64,7 @@ struct ber_mem_hdr {
 
 static const struct ber_mem_hdr ber_int_mem_hdr = { LBER_MEM_JUNK, 0, 0 };
 
-/* Note sequence and ber_int_options.lbu_meminuse are counters, but are not
+/* Note sequence and ber_int_meminuse are counters, but are not
  * thread safe.  If you want to use these values for multithreaded applications,
  * you must put mutexes around them, otherwise they will have incorrect values.
  * When debugging, if you sort the debug output, the sequence number will 
@@ -125,8 +122,6 @@ BerMemoryFunctions *ber_int_memory_fns = NULL;
 void
 ber_memfree_x( void *p, void *ctx )
 {
-    ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if( p == NULL ) {
 		return;
 	}
@@ -140,12 +135,12 @@ ber_memfree_x( void *p, void *ctx )
 		assert( mh->bm_top == LBER_MEM_JUNK);
 		assert( testdatatop( mh));
 		assert( testend( (char *)&mh[1] + mh->bm_length) );
-		ber_int_options.lbo_meminuse -= mh->bm_length;
+		ber_int_meminuse -= mh->bm_length;
 
 #ifdef LDAP_MEMORY_TRACE
 		fprintf(stderr, "0x%08lx 0x%08lx -f- %ld ber_memfree %ld\n",
 			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
-			ber_int_options.lbo_meminuse);
+			ber_int_meminuse);
 #endif
 		/* Fill the free space with poison */
 		memset( mh, 0xff, mh->bm_length + sizeof(struct ber_mem_hdr) + sizeof(ber_int_t));
@@ -172,8 +167,6 @@ ber_memvfree_x( void **vec, void *ctx )
 {
 	int	i;
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if( vec == NULL ) {
 		return;
 	}
@@ -197,7 +190,6 @@ void *
 ber_memalloc_x( ber_len_t s, void *ctx )
 {
 	void *new;
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
 	assert( s != 0 );
@@ -217,13 +209,13 @@ ber_memalloc_x( ber_len_t s, void *ctx )
 		setdatatop( mh);
 		setend( (char *)&mh[1] + mh->bm_length );
 
-		ber_int_options.lbo_meminuse += mh->bm_length;	/* Count mem inuse */
+		ber_int_meminuse += mh->bm_length;	/* Count mem inuse */
 
 #ifdef LDAP_MEMORY_TRACE
 		mh->bm_sequence = sequence++;
 		fprintf(stderr, "0x%08lx 0x%08lx -a- %ld ber_memalloc %ld\n",
 			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
-			ber_int_options.lbo_meminuse);
+			ber_int_meminuse);
 #endif
 		/* poison new memory */
 		memset( (char *)&mh[1], 0xff, s);
@@ -254,7 +246,6 @@ void *
 ber_memcalloc_x( ber_len_t n, ber_len_t s, void *ctx )
 {
 	void *new;
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
 	assert( n != 0 && s != 0);
@@ -275,13 +266,13 @@ ber_memcalloc_x( ber_len_t n, ber_len_t s, void *ctx )
 		setdatatop( mh);
 		setend( (char *)&mh[1] + mh->bm_length );
 
-		ber_int_options.lbo_meminuse += mh->bm_length;
+		ber_int_meminuse += mh->bm_length;
 
 #ifdef LDAP_MEMORY_TRACE
 		mh->bm_sequence = sequence++;
 		fprintf(stderr, "0x%08lx 0x%08lx -a- %ld ber_memcalloc %ld\n",
 			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
-			ber_int_options.lbo_meminuse);
+			ber_int_meminuse);
 #endif
 		BER_MEM_VALID( &mh[1] );
 		new = &mh[1];
@@ -310,7 +301,6 @@ void *
 ber_memrealloc_x( void* p, ber_len_t s, void *ctx )
 {
 	void *new = NULL;
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	/* realloc(NULL,s) -> malloc(s) */
 	if( p == NULL ) {
@@ -352,11 +342,11 @@ ber_memrealloc_x( void* p, ber_len_t s, void *ctx )
 		assert( mh->bm_top == LBER_MEM_JUNK);
 		assert( testdatatop( mh));
 
-		ber_int_options.lbo_meminuse += s - oldlen;
+		ber_int_meminuse += s - oldlen;
 #ifdef LDAP_MEMORY_TRACE
 		fprintf(stderr, "0x%08lx 0x%08lx -a- %ld ber_memrealloc %ld\n",
 			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
-			ber_int_options.lbo_meminuse);
+			ber_int_meminuse);
 #endif
 			BER_MEM_VALID( &mh[1] );
 		return &mh[1];
@@ -383,8 +373,6 @@ ber_memrealloc( void* p, ber_len_t s )
 void
 ber_bvfree_x( struct berval *bv, void *ctx )
 {
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if( bv == NULL ) {
 		return;
 	}
@@ -408,8 +396,6 @@ void
 ber_bvecfree_x( struct berval **bv, void *ctx )
 {
 	int	i;
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( bv == NULL ) {
 		return;
@@ -439,8 +425,6 @@ ber_bvecadd_x( struct berval ***bvec, struct berval *bv, void *ctx )
 {
 	ber_len_t i;
 	struct berval **new;
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( *bvec == NULL ) {
 		if( bv == NULL ) {
@@ -497,8 +481,6 @@ ber_dupbv_x(
 {
 	struct berval *new;
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if( src == NULL ) {
 		ber_errno = LBER_ERROR_PARAM;
 		return NULL;
@@ -554,8 +536,6 @@ ber_str2bv_x(
 {
 	struct berval *new;
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if( s == NULL ) {
 		ber_errno = LBER_ERROR_PARAM;
 		return NULL;
@@ -601,8 +581,6 @@ ber_mem2bv_x(
 	void *ctx)
 {
 	struct berval *new;
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( s == NULL ) {
 		ber_errno = LBER_ERROR_PARAM;
@@ -650,8 +628,6 @@ ber_strdup_x( LDAP_CONST char *s, void *ctx )
 	char    *p;
 	size_t	len;
 	
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 #ifdef LDAP_MEMORY_DEBUG
 	assert(s != NULL);			/* bv damn better point to something */
 #endif
@@ -684,8 +660,6 @@ ber_strndup_x( LDAP_CONST char *s, ber_len_t l, void *ctx )
 	char    *p;
 	size_t	len;
 	
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 #ifdef LDAP_MEMORY_DEBUG
 	assert(s != NULL);			/* bv damn better point to something */
 #endif
@@ -748,8 +722,6 @@ ber_bvarray_free_x( BerVarray a, void *ctx )
 {
 	int i;
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if (a) {
 		BER_MEM_VALID( a );
 
@@ -775,8 +747,6 @@ int
 ber_bvarray_add_x( BerVarray *a, BerValue *bv, void *ctx )
 {
 	int	n;
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if ( *a == NULL ) {
 		if (bv == NULL) {

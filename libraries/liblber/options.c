@@ -23,7 +23,7 @@
 char ber_pvt_opt_on;	/* used to get a non-NULL address for *_OPT_ON */
 
 struct lber_options ber_int_options = {
-	LBER_UNINITIALIZED, 0, 0, 0 };
+	LBER_UNINITIALIZED, 0, 0 };
 
 static BerMemoryFunctions	ber_int_memory_fns_datum;
 
@@ -35,8 +35,6 @@ ber_get_option(
 {
 	const BerElement *ber;
 	const Sockbuf *sb;
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if(outvalue == NULL) {
 		/* no place to get to */
@@ -59,7 +57,7 @@ ber_get_option(
 			 * The counter is not accurate for multithreaded ldap applications.
 			 */
 #ifdef LDAP_MEMORY_DEBUG
-			* (int *) outvalue = ber_int_options.lbo_meminuse;
+			* (int *) outvalue = ber_int_meminuse;
 			return LBER_OPT_SUCCESS;
 #else
 			return LBER_OPT_ERROR;
@@ -126,31 +124,6 @@ ber_set_option(
 	BerElement *ber;
 	Sockbuf *sb;
 
-	if( (ber_int_options.lbo_valid == LBER_UNINITIALIZED)
-		&& ( ber_int_memory_fns == NULL )
-		&& ( option == LBER_OPT_MEMORY_FNS )
-		&& ( invalue != NULL ) )
-	{
-		const BerMemoryFunctions *f =
-			(const BerMemoryFunctions *) invalue;
-		/* make sure all functions are provided */
-		if(!( f->bmf_malloc && f->bmf_calloc
-			&& f->bmf_realloc && f->bmf_free ))
-		{
-			ber_errno = LBER_ERROR_PARAM;
-			return LBER_OPT_ERROR;
-		}
-
-		ber_int_memory_fns = &ber_int_memory_fns_datum;
-
-		AC_MEMCPY(ber_int_memory_fns, f, sizeof(BerMemoryFunctions));
-
-		ber_int_options.lbo_valid = LBER_INITIALIZED;
-		return LBER_OPT_SUCCESS;
-	}
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if(invalue == NULL) {
 		/* no place to set from */
 		ber_errno = LBER_ERROR_PARAM;
@@ -180,11 +153,33 @@ ber_set_option(
 			 * The counter is not accurate for multithreaded applications.
 			 */
 #ifdef LDAP_MEMORY_DEBUG
-			ber_int_options.lbo_meminuse = * (int *) invalue;
+			ber_int_meminuse = * (int *) invalue;
 			return LBER_OPT_SUCCESS;
 #else
 			return LBER_OPT_ERROR;
 #endif
+		case LBER_OPT_MEMORY_FNS:
+			if ( ber_int_memory_fns == NULL )
+			{
+				const BerMemoryFunctions *f =
+					(const BerMemoryFunctions *) invalue;
+				/* make sure all functions are provided */
+				if(!( f->bmf_malloc && f->bmf_calloc
+					&& f->bmf_realloc && f->bmf_free ))
+				{
+					ber_errno = LBER_ERROR_PARAM;
+					return LBER_OPT_ERROR;
+				}
+
+				ber_int_memory_fns = &ber_int_memory_fns_datum;
+
+				AC_MEMCPY(ber_int_memory_fns, f,
+					 sizeof(BerMemoryFunctions));
+
+				return LBER_OPT_SUCCESS;
+			}
+			break;
+
 		case LBER_OPT_LOG_PROC:
 			ber_int_log_proc = (BER_LOG_FN)invalue;
 			return LBER_OPT_SUCCESS;
