@@ -282,7 +282,7 @@ static struct slap_daemon {
 	if (!SLAP_SOCK_IS_WRITE(fd)) { FD_SET((fd), &slap_daemon.sd_writers); } \
 } while(0)
 
-#  define SLAP_ADDTEST(s)	do { } while 0
+#  define SLAP_ADDTEST(s)	
 #  define SLAP_EVENT_MAX	dtblsize
 # else
 #  define SLAP_SOCK_SET_READ(fd)	FD_SET((fd), &slap_daemon.sd_readers)
@@ -1678,7 +1678,7 @@ slapd_daemon_task(
 	}
 
 #ifdef HAVE_NT_SERVICE_MANAGER
-	if ( started_event != NULL ) }
+	if ( started_event != NULL ) {
 		ldap_pvt_thread_cond_signal( &started_event );
 	}
 #endif
