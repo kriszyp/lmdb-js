@@ -597,7 +597,7 @@ static ConfigOCs smbk5pwd_cfocs[] = {
 
 /*
  * add here other functionalities; handle their initialization
- * as appropriate in FIXME
+ * as appropriate in smbk5pwd_modules_init().
  */
 static slap_verbmasks smbk5pwd_modules[] = {
 	{ BER_BVC( "krb5" ),		SMBK5PWD_F_KRB5	},
@@ -742,7 +742,8 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"krb5KDCEntry\" objectClass.\n",
 				0, 0, 0 );
-			return -1;
+			rc = -1;
+			goto cleanup_krb5;
 		}
 
 		rc = slap_str2ad( "krb5Key", &ad_krb5Key, &text );
@@ -750,7 +751,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"krb5Key\" attributeType: %s (%d).\n",
 				text, rc, 0 );
-			return rc;
+			goto cleanup_krb5;
 		}
 
 		rc = slap_str2ad( "krb5KeyVersionNumber", &ad_krb5KeyVersionNumber, &text );
@@ -758,7 +759,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"krb5KeyVersionNumber\" attributeType: %s (%d).\n",
 				text, rc, 0 );
-			return rc;
+			goto cleanup_krb5;
 		}
 
 		rc = slap_str2ad( "krb5PrincipalName", &ad_krb5PrincipalName, &text );
@@ -766,7 +767,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"krb5PrincipalName\" attributeType: %s (%d).\n",
 				text, rc, 0 );
-			return rc;
+			goto cleanup_krb5;
 		}
 
 		/* Initialize Kerberos context */
@@ -775,7 +776,8 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to initialize krb5 context.\n",
 				0, 0, 0 );
-			return -1;
+			rc = -1;
+			goto cleanup_krb5;
 		}
 
 		ret = kadm5_s_init_with_password_ctx( context,
@@ -785,6 +787,13 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			&conf, 0, 0, &kadm_context );
 	
 		db = _kadm5_s_get_db(kadm_context);
+
+		if ( 0 ) {
+cleanup_krb5:;
+			oc_krb5KDCEntry = NULL;
+
+			return rc;
+		}
 	}
 #endif /* DO_KRB5 */
 
@@ -795,7 +804,8 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"sambaSamAccount\" objectClass.\n",
 				0, 0, 0 );
-			return -1;
+			rc = -1;
+			goto cleanup_samba;
 		}
 
 		rc = slap_str2ad( "sambaLMPassword", &ad_sambaLMPassword, &text );
@@ -803,7 +813,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"sambaLMPassword\" attributeType: %s (%d).\n",
 				text, rc, 0 );
-			return rc;
+			goto cleanup_samba;
 		}
 
 		rc = slap_str2ad( "sambaNTPassword", &ad_sambaNTPassword, &text );
@@ -811,7 +821,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"sambaLMPassword\" attributeType: %s (%d).\n",
 				text, rc, 0 );
-			return rc;
+			goto cleanup_samba;
 		}
 
 		rc = slap_str2ad( "sambaPwdLastSet", &ad_sambaPwdLastSet, &text );
@@ -819,6 +829,13 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"sambaLMPassword\" attributeType: %s (%d).\n",
 				text, rc, 0 );
+			goto cleanup_samba;
+		}
+
+		if ( 0 ) {
+cleanup_samba:;
+			oc_sambaSamAccount = NULL;
+
 			return rc;
 		}
 	}
