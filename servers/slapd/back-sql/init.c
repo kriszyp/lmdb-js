@@ -335,7 +335,7 @@ backsql_db_open(
 			 * UPPER(ldap_entries.dn) LIKE UPPER(CONCAT('%',?))
 			 */
 
-			backsql_strfcat( &bb, "blbbb",
+			backsql_strfcat_x( &bb, NULL, "blbbb",
 					&bi->sql_upper_func,
 					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE " ),
 						"(ldap_entries.dn) LIKE ",
@@ -349,7 +349,7 @@ backsql_db_open(
 			 * ldap_entries.dn LIKE CONCAT('%',?)
 			 */
 
-			backsql_strfcat( &bb, "lb",
+			backsql_strfcat_x( &bb, NULL, "lb",
 					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE " ),
 						"ldap_entries.dn LIKE ",
 					&concat );
@@ -373,7 +373,7 @@ backsql_db_open(
 			 * UPPER(ldap_entries.dn) LIKE UPPER(CONCAT('%,',?))
 			 */
 
-			backsql_strfcat( &bb, "blbl",
+			backsql_strfcat_x( &bb, NULL, "blbl",
 					&bi->sql_upper_func,
 					(ber_len_t)STRLENOF( "(ldap_entries.dn)=" ),
 						"(ldap_entries.dn)=",
@@ -386,7 +386,7 @@ backsql_db_open(
 			 * ldap_entries.dn LIKE CONCAT('%,',?)
 			 */
 
-			backsql_strfcat( &bb, "l",
+			backsql_strfcat_x( &bb, NULL, "l",
 					(ber_len_t)STRLENOF( "ldap_entries.dn=?" ),
 						"ldap_entries.dn=?");
 		}
@@ -497,20 +497,20 @@ backsql_db_open(
 	if ( bi->sql_id_query == NULL ) {
 		/* no custom id_query provided */
 		if ( bi->sql_upper_func.bv_val == NULL ) {
-			backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
+			backsql_strcat_x( &bb, NULL, backsql_id_query, "dn=?", NULL );
 
 		} else {
 			if ( BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ) {
-				backsql_strcat( &bb, backsql_id_query,
+				backsql_strcat_x( &bb, NULL, backsql_id_query,
 						"dn_ru=?", NULL );
 			} else {
 				if ( BACKSQL_USE_REVERSE_DN( bi ) ) {
-					backsql_strfcat( &bb, "sbl",
+					backsql_strfcat_x( &bb, NULL, "sbl",
 							backsql_id_query,
 							&bi->sql_upper_func, 
 							(ber_len_t)STRLENOF( "(dn)=?" ), "(dn)=?" );
 				} else {
-					backsql_strfcat( &bb, "sblbcb",
+					backsql_strfcat_x( &bb, NULL, "sblbcb",
 							backsql_id_query,
 							&bi->sql_upper_func, 
 							(ber_len_t)STRLENOF( "(dn)=" ), "(dn)=",
@@ -528,7 +528,7 @@ backsql_db_open(
 	 */
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "sbsb",
+	backsql_strfcat_x( &bb, NULL, "sbsb",
 			"SELECT COUNT(distinct subordinates.id) "
 			"FROM ldap_entries,ldap_entries ",
 			&bi->sql_aliasing, "subordinates "
@@ -541,7 +541,7 @@ backsql_db_open(
 	 */
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "sbbsbsbbsb",
+	backsql_strfcat_x( &bb, NULL, "sbbsbsbbsb",
 			" ", &bi->sql_aliasing, &bi->sql_aliasing_quote,
 			"objectClass", &bi->sql_aliasing_quote,
 			",ldap_entries.dn ", &bi->sql_aliasing,

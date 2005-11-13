@@ -106,7 +106,7 @@ backsql_make_attr_query(
 {
 	struct berbuf	bb = BB_NULL;
 
-	backsql_strfcat( &bb, "lblbbbblblbcbl", 
+	backsql_strfcat_x( &bb, NULL, "lblbbbblblbcbl", 
 			(ber_len_t)STRLENOF( "SELECT " ), "SELECT ", 
 			&at_map->bam_sel_expr, 
 			(ber_len_t)STRLENOF( " " ), " ",
@@ -123,12 +123,12 @@ backsql_make_attr_query(
 			(ber_len_t)STRLENOF( "=?" ), "=?" );
 
 	if ( !BER_BVISNULL( &at_map->bam_join_where ) ) {
-		backsql_strfcat( &bb, "lb",
+		backsql_strfcat_x( &bb, NULL, "lb",
 				(ber_len_t)STRLENOF( " AND " ), " AND ", 
 				&at_map->bam_join_where );
 	}
 
-	backsql_strfcat( &bb, "lbbb", 
+	backsql_strfcat_x( &bb, NULL, "lbbb", 
 			(ber_len_t)STRLENOF( " ORDER BY " ), " ORDER BY ",
 			&bi->sql_aliasing_quote,
 			&at_map->bam_ad->ad_cname,
@@ -140,7 +140,7 @@ backsql_make_attr_query(
 	/* Query to count how many rows will be returned. */
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "lblbcbl", 
+	backsql_strfcat_x( &bb, NULL, "lblbcbl", 
 			(ber_len_t)STRLENOF( "SELECT COUNT(*) FROM " ),
 				"SELECT COUNT(*) FROM ", 
 			&at_map->bam_from_tbls, 
@@ -151,7 +151,7 @@ backsql_make_attr_query(
 			(ber_len_t)STRLENOF( "=?" ), "=?" );
 
 	if ( !BER_BVISNULL( &at_map->bam_join_where ) ) {
-		backsql_strfcat( &bb, "lb",
+		backsql_strfcat_x( &bb, NULL, "lb",
 				(ber_len_t)STRLENOF( " AND " ), " AND ", 
 				&at_map->bam_join_where );
 	}
@@ -189,7 +189,7 @@ backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "lbcblb",
+	backsql_strfcat_x( &bb, NULL, "lbcblb",
 			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entries.keyval=" ),
 				"ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
@@ -254,7 +254,7 @@ backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 	ch_free( at_map->bam_join_where.bv_val );
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "lbcblb",
+	backsql_strfcat_x( &bb, NULL, "lbcblb",
 			(ber_len_t)STRLENOF( /* "ldap_entries.id=ldap_entry_objclasses.entry_id AND " */ "ldap_entries.keyval=" ),
 				/* "ldap_entries.id=ldap_entry_objclasses.entry_id AND " */ "ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
@@ -405,7 +405,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		{
 			struct berbuf	bb = BB_NULL;
 
-			backsql_strfcat( &bb, "bcbc",
+			backsql_strfcat_x( &bb, NULL, "bcbc",
 					&bas->bas_bi->sql_upper_func,
 					'(' /* ) */ ,
 					&at_map->bam_sel_expr,

@@ -242,8 +242,8 @@ extern char
 extern char 
 	backsql_check_dn_ru_query[];
 
-struct berbuf * backsql_strcat( struct berbuf *dest, ... );
-struct berbuf * backsql_strfcat( struct berbuf *dest, const char *fmt, ... );
+struct berbuf * backsql_strcat_x( struct berbuf *dest, void *memctx, ... );
+struct berbuf * backsql_strfcat_x( struct berbuf *dest, void *memctx, const char *fmt, ... );
 
 int backsql_entry_addattr( Entry *e, AttributeDescription *ad, 
 		struct berval *at_val, void *memctx );
