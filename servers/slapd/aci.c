@@ -1394,16 +1394,14 @@ OpenLDAPaciValidate(
 		struct berval	ocbv = BER_BVNULL,
 				atbv = BER_BVNULL;
 
-		ocbv.bv_val = strchr( type.bv_val, '/' );
-		if ( ocbv.bv_val != NULL
-			&& ( ocbv.bv_val - type.bv_val ) < type.bv_len )
-		{
+		ocbv.bv_val = ber_bvchr( &type, '/' );
+		if ( ocbv.bv_val != NULL ) {
 			ocbv.bv_val++;
+			ocbv.bv_len = type.bv_len
+					- ( ocbv.bv_val - type.bv_val );
 
-			atbv.bv_val = strchr( ocbv.bv_val, '/' );
-			if ( atbv.bv_val != NULL
-				&& ( atbv.bv_val - ocbv.bv_val ) < ocbv.bv_len )
-			{
+			atbv.bv_val = ber_bvchr( &ocbv, '/' );
+			if ( atbv.bv_val != NULL ) {
 				AttributeDescription	*ad = NULL;
 				const char		*text = NULL;
 				int			rc;
@@ -1417,10 +1415,6 @@ OpenLDAPaciValidate(
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
 				}
-				
-			} else {
-				ocbv.bv_len = type.bv_len
-					- ( ocbv.bv_val - type.bv_val );
 			}
 
 			if ( oc_bvfind( &ocbv ) == NULL ) {
@@ -1549,10 +1543,8 @@ OpenLDAPaciPrettyNormal(
 			struct berval	ocbv = BER_BVNULL,
 					atbv = BER_BVNULL;
 
-			ocbv.bv_val = strchr( type.bv_val, '/' );
-			if ( ocbv.bv_val != NULL
-				&& ( ocbv.bv_val - type.bv_val ) < type.bv_len )
-			{
+			ocbv.bv_val = ber_bvchr( &type, '/' );
+			if ( ocbv.bv_val != NULL ) {
 				ObjectClass		*oc = NULL;
 				AttributeDescription	*ad = NULL;
 				const char		*text = NULL;
@@ -1564,10 +1556,8 @@ OpenLDAPaciPrettyNormal(
 				ocbv.bv_val++;
 				ocbv.bv_len = type.bv_len - ( ocbv.bv_val - type.bv_val );
 
-				atbv.bv_val = strchr( ocbv.bv_val, '/' );
-				if ( atbv.bv_val != NULL
-					&& ( atbv.bv_val - ocbv.bv_val ) < ocbv.bv_len )
-				{
+				atbv.bv_val = ber_bvchr( &ocbv, '/' );
+				if ( atbv.bv_val != NULL ) {
 					atbv.bv_val++;
 					atbv.bv_len = type.bv_len
 						- ( atbv.bv_val - type.bv_val );
@@ -1580,10 +1570,6 @@ OpenLDAPaciPrettyNormal(
 					}
 
 					bv.bv_len += STRLENOF( "/" ) + ad->ad_cname.bv_len;
-					
-				} else {
-					ocbv.bv_len = type.bv_len
-						- ( ocbv.bv_val - type.bv_val );
 				}
 
 				oc = oc_bvfind( &ocbv );

@@ -314,7 +314,7 @@ valsort_response( Operation *op, SlapReply *rs )
 			gotnvals = (a->a_vals != a->a_nvals );
 
 			for (i=0; i<n; i++) {
-				char *ptr = strchr( a->a_nvals[i].bv_val, '{' );
+				char *ptr = ber_bvchr( &a->a_nvals[i], '{' );
 				char *end = NULL;
 				if ( !ptr ) {
 					Debug(LDAP_DEBUG_TRACE, "weights missing from attr %s "
@@ -339,7 +339,8 @@ valsort_response( Operation *op, SlapReply *rs )
 
 				if ( a->a_vals != a->a_nvals ) {
 					ptr = a->a_vals[i].bv_val;
-					end = strchr( ptr, '}' ) + 1;
+					end = ber_bvchr( &a->a_vals[i], '}' ) + 1;
+					assert( end != NULL );
 					for (;*end;)
 						*ptr++ = *end++;
 					*ptr = '\0';
@@ -407,7 +408,7 @@ valsort_add( Operation *op, SlapReply *rs )
 		if ( !a )
 			continue;
 		for (i=0; !BER_BVISNULL( &a->a_vals[i] ); i++) {
-			ptr = strchr(a->a_vals[i].bv_val, '{' );
+			ptr = ber_bvchr(&a->a_vals[i], '{' );
 			if ( !ptr ) {
 				Debug(LDAP_DEBUG_TRACE, "weight missing from attribute %s\n",
 					vi->vi_ad->ad_cname.bv_val, 0, 0);
@@ -451,7 +452,7 @@ valsort_modify( Operation *op, SlapReply *rs )
 		if ( !ml )
 			continue;
 		for (i=0; !BER_BVISNULL( &ml->sml_values[i] ); i++) {
-			ptr = strchr(ml->sml_values[i].bv_val, '{' );
+			ptr = ber_bvchr(&ml->sml_values[i], '{' );
 			if ( !ptr ) {
 				Debug(LDAP_DEBUG_TRACE, "weight missing from attribute %s\n",
 					vi->vi_ad->ad_cname.bv_val, 0, 0);

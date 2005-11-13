@@ -1129,7 +1129,7 @@ dnParent(
 {
 	char	*p;
 
-	p = strchr( dn->bv_val, ',' );
+	p = ber_bvchr( dn, ',' );
 
 	/* one-level dn */
 	if ( p == NULL ) {
@@ -1161,7 +1161,7 @@ dnRdn(
 	char	*p;
 
 	*rdn = *dn;
-	p = strchr( dn->bv_val, ',' );
+	p = ber_bvchr( dn, ',' );
 
 	/* one-level dn */
 	if ( p == NULL ) {
@@ -1228,7 +1228,7 @@ dn_rdnlen(
 		return 0;
 	}
 
-	p = strchr( dn_in->bv_val, ',' );
+	p = ber_bvchr( dn_in, ',' );
 
 	return p ? p - dn_in->bv_val : dn_in->bv_len;
 }
@@ -1252,7 +1252,7 @@ rdn_validate( struct berval *rdn )
 	{
 		return LDAP_INVALID_SYNTAX;
 	}
-	return strchr( rdn->bv_val, ',' ) == NULL
+	return ber_bvchr( rdn, ',' ) == NULL
 		? LDAP_SUCCESS : LDAP_INVALID_SYNTAX;
 
 #else

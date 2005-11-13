@@ -324,10 +324,10 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 		ber_str2bv( pw->pw_gecos, 0, 0, &val );
 		attr_merge_normalize_one( e, ad_desc, &val, NULL );
 
-		s = strchr( val.bv_val, ',' );
+		s = ber_bvchr( &val, ',' );
 		if ( s ) *s = '\0';
 
-		s = strchr( val.bv_val, '&' );
+		s = ber_bvchr( &val, '&' );
 		if ( s ) {
 			char buf[1024];
 

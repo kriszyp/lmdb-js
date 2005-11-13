@@ -63,18 +63,12 @@ void glue_parent(Operation *op) {
 	Operation nop = *op;
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	struct berval dn = { 0, NULL };
-	char *odn = op->o_req_ndn.bv_val;
 	Attribute *a;
 	Entry *e;
-	int idn, ldn;
+	struct berval	pdn;
 
-	/* tis more work to use strchr() for a berval... */
-	for(idn = 0; odn[idn] && odn[idn] != ','; idn++);
-	if(!idn || !odn[idn]) return;   /* because you never know */
-	idn++;
-	ldn = dn.bv_len = op->o_req_ndn.bv_len - idn;
-	dn.bv_val = ch_malloc(ldn + 1);
-	strcpy(dn.bv_val, odn + idn);
+	dnParent( &op->o_req_ndn, &pdn );
+	ber_dupbv( &dn, &pdn );
 
 	Debug(LDAP_DEBUG_TRACE, "=> glue_parent: fabricating glue for <%s>\n", dn.bv_val, 0, 0);
 

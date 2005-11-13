@@ -2389,7 +2389,7 @@ serialNumberAndIssuerValidate(
 	struct berval sn, i;
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	i.bv_val = strchr( in->bv_val, '$' );
+	i.bv_val = ber_bvchr( in, '$' );
 	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
 	sn.bv_val = in->bv_val;
@@ -2429,7 +2429,7 @@ serialNumberAndIssuerPretty(
 
 	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	i.bv_val = strchr( val->bv_val, '$' );
+	i.bv_val = ber_bvchr( val, '$' );
 	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
 	sn.bv_val = val->bv_val;
@@ -2504,7 +2504,7 @@ serialNumberAndIssuerNormalize(
 
 	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	i.bv_val = strchr( val->bv_val, '$' );
+	i.bv_val = ber_bvchr( val, '$' );
 	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
 	sn.bv_val = val->bv_val;

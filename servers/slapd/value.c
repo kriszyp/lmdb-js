@@ -271,7 +271,8 @@ ordered_value_renumber( Attribute *a, int vals )
 		ibv.bv_len = sprintf(ibv.bv_val, "{%d}", i);
 		vtmp = a->a_vals[i];
 		if ( vtmp.bv_val[0] == '{' ) {
-			ptr = strchr(vtmp.bv_val, '}') + 1;
+			ptr = ber_bvchr(&vtmp, '}') + 1;
+			assert( ptr != NULL );
 			vtmp.bv_len -= ptr - vtmp.bv_val;
 			vtmp.bv_val = ptr;
 		}
@@ -286,7 +287,8 @@ ordered_value_renumber( Attribute *a, int vals )
 		if ( a->a_nvals && a->a_nvals != a->a_vals ) {
 			vtmp = a->a_nvals[i];
 			if ( vtmp.bv_val[0] == '{' ) {
-				ptr = strchr(vtmp.bv_val, '}') + 1;
+				ptr = ber_bvchr(&vtmp, '}') + 1;
+				assert( ptr != NULL );
 				vtmp.bv_len -= ptr - vtmp.bv_val;
 				vtmp.bv_val = ptr;
 			}
@@ -321,7 +323,7 @@ ordered_value_sort( Attribute *a, int do_renumber )
 		if ( a->a_vals[i].bv_val[0] == '{' ) {
 			char *ptr;
 			index = 1;
-			ptr = strchr( a->a_vals[i].bv_val, '}' );
+			ptr = ber_bvchr( &a->a_vals[i], '}' );
 			if ( !ptr )
 				return LDAP_INVALID_SYNTAX;
 			if ( noindex )
@@ -345,7 +347,7 @@ ordered_value_sort( Attribute *a, int do_renumber )
 			a->a_nvals = ch_malloc( (vals+1)*sizeof(struct berval));
 			BER_BVZERO(a->a_nvals+vals);
 			for ( i=0; i<vals; i++ ) {
-				ptr = strchr(a->a_vals[i].bv_val, '}') + 1;
+				ptr = ber_bvchr(&a->a_vals[i], '}') + 1;
 				a->a_nvals[i].bv_len = a->a_vals[i].bv_len -
 					(ptr - a->a_vals[i].bv_val);
 				a->a_nvals[i].bv_val = ch_malloc( a->a_nvals[i].bv_len + 1);
@@ -353,7 +355,7 @@ ordered_value_sort( Attribute *a, int do_renumber )
 			}
 		} else {
 			for ( i=0; i<vals; i++ ) {
-				ptr = strchr(a->a_nvals[i].bv_val, '}') + 1;
+				ptr = ber_bvchr(&a->a_nvals[i], '}') + 1;
 				a->a_nvals[i].bv_len -= ptr - a->a_nvals[i].bv_val;
 				strcpy(a->a_nvals[i].bv_val, ptr);
 			}
@@ -423,8 +425,8 @@ ordered_value_validate(
 		if ( bv.bv_val[0] == '{' ) {
 			char	*ptr;
 
-			ptr = strchr( bv.bv_val, '}' );
-			if ( ptr == NULL || ptr > &bv.bv_val[ bv.bv_len ] ) {
+			ptr = ber_bvchr( &bv, '}' );
+			if ( ptr == NULL ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;
@@ -465,8 +467,8 @@ ordered_value_pretty(
 		if ( bv.bv_val[0] == '{' ) {
 			char	*ptr;
 
-			ptr = strchr( bv.bv_val, '}' );
-			if ( ptr == NULL || ptr > &bv.bv_val[ bv.bv_len ] ) {
+			ptr = ber_bvchr( &bv, '}' );
+			if ( ptr == NULL ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;
@@ -528,8 +530,8 @@ ordered_value_normalize(
 		if ( bv.bv_val[ 0 ] == '{' ) {
 			char	*ptr;
 
-			ptr = strchr( bv.bv_val, '}' );
-			if ( ptr == NULL || ptr > &bv.bv_val[ bv.bv_len ] ) {
+			ptr = ber_bvchr( &bv, '}' );
+			if ( ptr == NULL ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;
@@ -600,8 +602,8 @@ ordered_value_match(
 
 		/* Skip past the assertion index */
 		if ( bv2.bv_val[0] == '{' ) {
-			ptr = strchr( bv2.bv_val, '}' );
-			if ( ptr == NULL || ptr > &bv2.bv_val[ bv2.bv_len ] ) {
+			ptr = ber_bvchr( &bv2, '}' );
+			if ( ptr == NULL ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;
@@ -631,8 +633,8 @@ ordered_value_match(
 		}
 		/* Skip past the attribute index */
 		if ( bv1.bv_val[0] == '{' ) {
-			ptr = strchr( bv1.bv_val, '}' );
-			if ( ptr == NULL || ptr > &bv1.bv_val[ bv1.bv_len ] ) {
+			ptr = ber_bvchr( &bv1, '}' );
+			if ( ptr == NULL ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 			ptr++;

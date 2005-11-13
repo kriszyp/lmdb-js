@@ -94,6 +94,13 @@ int (strncasecmp)();
 #define memcmp lutil_memcmp
 #endif
 
+#ifndef HAVE_MEMRCHR
+	/* Actually, I think this is a GNU extension only */
+	void * lutil_memrchr(const void *b, int c, size_t len);
+#undef memrchr
+#define memrchr lutil_memrchr
+#endif /* ! HAVE_MEMRCHR */
+
 #define STRLENOF(s)	(sizeof(s)-1)
 
 #if defined( HAVE_NONPOSIX_STRERROR_R )

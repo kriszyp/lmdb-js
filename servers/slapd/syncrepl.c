@@ -1182,7 +1182,7 @@ syncrepl_accesslog_mods(
 		ad = NULL;
 		bv = vals[i];
 
-		colon = strchr( bv.bv_val, ':' );
+		colon = ber_bvchr( &bv, ':' );
 		if ( !colon )
 			continue;	/* invalid */
 		bv.bv_len = colon - bv.bv_val;
@@ -2130,11 +2130,12 @@ syncrepl_add_glue(
 	int	rc;
 	int suffrdns;
 	int i;
-	struct berval dn = {0, NULL};
-	struct berval ndn = {0, NULL};
+	struct berval dn = BER_BVNULL;
+	struct berval ndn = BER_BVNULL;
 	Entry	*glue;
 	SlapReply	rs_add = {REP_RESULT};
-	char	*ptr, *comma;
+	struct berval	ptr, nptr;
+	char		*comma;
 
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
@@ -2146,8 +2147,10 @@ syncrepl_add_glue(
 
 	/* count RDNs in suffix */
 	if ( !BER_BVISEMPTY( &be->be_nsuffix[0] ) ) {
-		for ( i = 0, ptr = be->be_nsuffix[0].bv_val; ptr; ptr = strchr( ptr, ',' ) ) {
-			ptr++;
+		for ( i = 0, ptr = be->be_nsuffix[0], comma = ptr.bv_val; comma != NULL; comma = ber_bvchr( &ptr, ',' ) ) {
+			comma++;
+			ptr.bv_len -= comma - ptr.bv_val;
+			ptr.bv_val = comma;
 			i++;
 		}
 		suffrdns = i;
@@ -2157,23 +2160,34 @@ syncrepl_add_glue(
 	}
 
 	/* Start with BE suffix */
-	for ( i = 0, ptr = NULL; i < suffrdns; i++ ) {
-		comma = strrchr( dn.bv_val, ',' );
-		if ( ptr ) *ptr = ',';
-		if ( comma ) *comma = '\0';
-		ptr = comma;
+	ptr = dn;
+	for ( i = 0; i < suffrdns; i++ ) {
+		comma = ber_bvrchr( &ptr, ',' );
+		if ( comma != NULL ) {
+			ptr.bv_len = comma - ptr.bv_val;
+		} else {
+			ptr.bv_len = 0;
+			break;
+		}
 	}
-	if ( ptr ) {
-		*ptr++ = ',';
-		dn.bv_len -= ptr - dn.bv_val;
-		dn.bv_val = ptr;
+	
+	if ( !BER_BVISEMPTY( &ptr ) ) {
+		dn.bv_len -= ptr.bv_len + 1;
+		dn.bv_val += ptr.bv_len + 1;
 	}
+
 	/* the normalizedDNs are always the same length, no counting
 	 * required.
 	 */
+	nptr = ndn;
 	if ( ndn.bv_len > be->be_nsuffix[0].bv_len ) {
 		ndn.bv_val += ndn.bv_len - be->be_nsuffix[0].bv_len;
 		ndn.bv_len = be->be_nsuffix[0].bv_len;
+
+		nptr.bv_len = ndn.bv_val - nptr.bv_val - 1;
+
+	} else {
+		nptr.bv_len = 0;
 	}
 
 	while ( ndn.bv_val > e->e_nname.bv_val ) {
@@ -2218,20 +2232,21 @@ syncrepl_add_glue(
 		}
 
 		/* Move to next child */
-		for (ptr = dn.bv_val-2; ptr > e->e_name.bv_val && *ptr != ','; ptr--) {
-			/* empty */
+		comma = ber_bvrchr( &ptr, ',' );
+		if ( comma == NULL ) {
+			break;
 		}
-		if ( ptr == e->e_name.bv_val ) break;
-		dn.bv_val = ++ptr;
-		dn.bv_len = e->e_name.bv_len - (ptr-e->e_name.bv_val);
-		for( ptr = ndn.bv_val-2;
-			ptr > e->e_nname.bv_val && *ptr != ',';
-			ptr--)
-		{
-			/* empty */
-		}
-		ndn.bv_val = ++ptr;
-		ndn.bv_len = e->e_nname.bv_len - (ptr-e->e_nname.bv_val);
+		ptr.bv_len = comma - ptr.bv_val;
+		
+		dn.bv_val = ++comma;
+		dn.bv_len = e->e_name.bv_len - (dn.bv_val - e->e_name.bv_val);
+
+		comma = ber_bvrchr( &nptr, ',' );
+		assert( comma != NULL );
+		nptr.bv_len = comma - nptr.bv_val;
+
+		ndn.bv_val = ++comma;
+		ndn.bv_len = e->e_nname.bv_len - (ndn.bv_val - e->e_nname.bv_val);
 	}
 
 	op->o_req_dn = e->e_name;

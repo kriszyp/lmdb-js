@@ -310,3 +310,23 @@ int mkstemp( char * template )
 #endif
 }
 #endif
+
+/* 
+ * Memory Reverse Search
+ */
+void *
+lutil_memrchr(const void *b, int c, size_t n) 
+{
+	if (n != 0) {
+		const unsigned char *s;
+
+		for ( s = b + n; s-- > b; ) {
+			if ( *s == c ) {
+				return s;
+			}
+		}
+	}
+
+	return NULL;
+} 
+

@@ -2490,6 +2490,8 @@ if test $ac_cv_func_memcmp_working = no ; then
 		[define if memcmp is not 8-bit clean or is otherwise broken])
 fi
 
+AC_CHECK_FUNC(memrchr, AC_DEFINE(HAVE_MEMRCHR,1,[if you have memrchr()]))
+
 AC_FUNC_STRFTIME
 
 OL_FUNC_INET_ATON

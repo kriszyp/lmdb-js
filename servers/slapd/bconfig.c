@@ -1324,7 +1324,7 @@ config_generic(ConfigArgs *c) {
 				/* quote all args but the first */
 				line = ldap_charray2str( c->argv, "\" \"" );
 				ber_str2bv( line, 0, 0, &bv );
-				s = strchr( bv.bv_val, '"' );
+				s = ber_bvchr( &bv, '"' );
 				assert( s != NULL );
 				/* move the trailing quote of argv[0] to the end */
 				AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
@@ -3162,7 +3162,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 
 	/* See if the rdn has an index already */
 	dnRdn( &e->e_name, &rdn );
-	ptr1 = strchr( e->e_name.bv_val, '{' );
+	ptr1 = ber_bvchr( &e->e_name, '{' );
 	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
 		ptr2 = strchr( ptr1, '}' );
 		if (!ptr2 || ptr2 - e->e_name.bv_val > rdn.bv_len)

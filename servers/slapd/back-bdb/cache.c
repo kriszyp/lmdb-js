@@ -899,7 +899,8 @@ bdb_cache_add(
 
 #ifdef BDB_HIER
 	if ( nrdn->bv_len != e->e_nname.bv_len ) {
-		char *ptr = strchr( rdn.bv_val, ',' );
+		char *ptr = ber_bvchr( &rdn, ',' );
+		assert( ptr != NULL );
 		rdn.bv_len = ptr - rdn.bv_val;
 	}
 	ber_dupbv( &ei.bei_rdn, &rdn );
@@ -1012,7 +1013,8 @@ bdb_cache_modrdn(
 
 	rdn = e->e_name;
 	if ( nrdn->bv_len != e->e_nname.bv_len ) {
-		char *ptr = strchr(rdn.bv_val, ',');
+		char *ptr = ber_bvchr(&rdn, ',');
+		assert( ptr != NULL );
 		rdn.bv_len = ptr - rdn.bv_val;
 	}
 	ber_dupbv( &ei->bei_rdn, &rdn );
