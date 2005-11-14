@@ -397,7 +397,7 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
-/* if you have memrchr() */
+/* Define to 1 if you have the `memrchr' function. */
 #undef HAVE_MEMRCHR
 
 /* Define to 1 if you have the `mkstemp' function. */
