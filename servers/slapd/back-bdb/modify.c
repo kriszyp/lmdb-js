@@ -381,7 +381,9 @@ retry:	/* transaction retry */
 		}
 	}
 
-	e = ei->bei_e;
+	if ( !fakeroot ) {
+		e = ei->bei_e;
+	}
 
 	/* acquire and lock entry */
 	/* FIXME: dn2entry() should return non-glue entry */
@@ -537,6 +539,8 @@ retry:	/* transaction retry */
 		if ( fakeroot ) {
 			e->e_private = NULL;
 			entry_free( e );
+			e = NULL;
+
 		} else {
 			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
 			switch( rc ) {

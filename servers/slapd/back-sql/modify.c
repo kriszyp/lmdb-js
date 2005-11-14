@@ -122,6 +122,8 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	slap_mods_opattrs( op, op->orm_modlist, 1 );
+
 	oc = backsql_id2oc( bi, bsi.bsi_base_id.eid_oc_id );
 	assert( oc != NULL );
 

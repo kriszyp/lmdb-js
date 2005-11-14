@@ -55,7 +55,8 @@ usage( char *name )
 		"-f <addfile> "
 		"[-l <loops>] "
 		"[-r <maxretries>] "
-		"[-t <delay>]\n",
+		"[-t <delay>] "
+		"[-F]\n",
 			name );
 	exit( EXIT_FAILURE );
 }

@@ -83,7 +83,7 @@ backsql_operational_entryCSN( Operation *op )
 	BER_BVZERO( &a->a_vals[ 1 ] );
 
 #ifdef BACKSQL_SYNCPROV
-	if ( op->o_sync && op->o_tag == LDAP_REQ_SEARCH ) {
+	if ( op->o_sync && op->o_tag == LDAP_REQ_SEARCH && op->o_private != NULL ) {
 		assert( op->o_private != NULL );
 
 		entryCSN = *((struct berval *)op->o_private);

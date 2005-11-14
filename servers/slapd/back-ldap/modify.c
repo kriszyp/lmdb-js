@@ -36,6 +36,8 @@ ldap_back_modify(
 		Operation	*op,
 		SlapReply	*rs )
 {
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+
 	struct ldapconn	*lc;
 	LDAPMod		**modv = NULL,
 			*mods = NULL;
@@ -107,7 +109,8 @@ ldap_back_modify(
 retry:
 	rs->sr_err = ldap_modify_ext( lc->lc_ld, op->o_req_ndn.bv_val, modv,
 			ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
+	rc = ldap_back_op_result( lc, op, rs, msgid,
+		li->timeout[ LDAP_BACK_OP_MODIFY], LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {

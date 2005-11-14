@@ -172,6 +172,7 @@ metaconn_alloc(
 	mc->mc_authz_target = META_BOUND_NONE;
 	ldap_pvt_thread_mutex_init( &mc->mc_mutex );
 	mc->mc_refcnt = 1;
+	mc->mc_tainted = 0;
 
 	return mc;
 }
@@ -447,6 +448,12 @@ retry_lock:;
 			goto retry_lock;
 		}
 
+		Debug( LDAP_DEBUG_ANY,
+			"%s meta_back_retry: retrying URI=\"%s\" DN=\"%s\"\n",
+			op->o_log_prefix, mt->mt_uri,
+			BER_BVISNULL( &msc->msc_bound_ndn ) ?
+				"" : msc->msc_bound_ndn.bv_val );
+
 		meta_clear_one_candidate( msc );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
@@ -463,6 +470,10 @@ retry_lock:;
         	}
 
 		ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
+	}
+
+	if ( rc != LDAP_SUCCESS ) {
+		mc->mc_tainted = 1;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
@@ -720,6 +731,13 @@ meta_back_getconn(
 	mc = (metaconn_t *)avl_find( mi->mi_conntree, 
 		(caddr_t)&mc_curr, meta_back_conn_cmp );
 	if ( mc ) {
+		if ( mc->mc_tainted ) {
+			rs->sr_err = LDAP_UNAVAILABLE;
+			rs->sr_text = "remote server unavailable";
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+			return NULL;
+		}
+			
 		mc->mc_refcnt++;
 	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
@@ -1122,5 +1140,10 @@ meta_back_release_conn(
 	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
+	if ( mc->mc_refcnt == 0 && mc->mc_tainted ) {
+		(void)avl_delete( &mi->mi_conntree, ( caddr_t )mc,
+				meta_back_conn_cmp );
+		meta_back_conn_free( mc );
+	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 }

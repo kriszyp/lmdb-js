@@ -891,7 +891,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_X_CONN_SSF:
 		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
-		pb->pb_conn->c_ssf = (slap_ssf_t)value;
+		pb->pb_conn->c_ssf = (slap_ssf_t)(long)value;
 		PBLOCK_UNLOCK_CONN( pb );
 		break;
 	case SLAPI_X_CONN_SASL_CONTEXT:

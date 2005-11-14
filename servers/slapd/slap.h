@@ -1510,45 +1510,6 @@ typedef enum slap_aci_scope_t {
 } slap_aci_scope_t;
 #endif /* SLAPD_ACI_ENABLED */
 
-enum {
-	ACI_BV_ENTRY,
-	ACI_BV_CHILDREN,
-	ACI_BV_ONELEVEL,
-	ACI_BV_SUBTREE,
-	ACI_BV_BR_ENTRY,
-	ACI_BV_BR_ALL,
-	ACI_BV_ACCESS_ID,
-#if 0
-	ACI_BV_ANONYMOUS	= BER_BVC("anonymous"),
-#endif
-	ACI_BV_PUBLIC,
-	ACI_BV_USERS,
-	ACI_BV_SELF,
-	ACI_BV_DNATTR,
-	ACI_BV_GROUP,
-	ACI_BV_ROLE,
-	ACI_BV_SET,
-	ACI_BV_SET_REF,
-	ACI_BV_GRANT,
-	ACI_BV_DENY,
-
-	ACI_BV_IP_EQ,
-#ifdef LDAP_PF_LOCAL
-	ACI_BV_PATH_EQ,
-#if 0
-	ACI_BV_DIRSEP,
-#endif
-#endif /* LDAP_PF_LOCAL */
-	
-	ACI_BV_GROUP_CLASS,
-	ACI_BV_GROUP_ATTR,
-	ACI_BV_ROLE_CLASS,
-	ACI_BV_ROLE_ATTR,
-	ACI_BV_SET_ATTR,
-
-	ACI_BV_LAST
-};
-
 /*
  * Backend-info
  * represents a backend 
@@ -1606,6 +1567,14 @@ typedef struct slap_verbmasks {
 	struct berval word;
 	const slap_mask_t mask;
 } slap_verbmasks;
+
+typedef struct slap_cf_aux_table {
+	struct berval key;
+	int off;
+	char type;
+	char quote;
+	slap_verbmasks *aux;
+} slap_cf_aux_table;
 
 #define SLAP_LIMIT_TIME	1
 #define SLAP_LIMIT_SIZE	2

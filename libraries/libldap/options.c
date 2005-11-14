@@ -261,7 +261,7 @@ ldap_get_option(
 		if( ld->ld_matched == NULL ) {
 			* (char **) outvalue = NULL;
 		} else {
-			* (char **) outvalue = LDAP_STRDUP(ld->ld_matched);
+			* (char **) outvalue = LDAP_STRDUP( ld->ld_matched );
 		}
 
 		return LDAP_OPT_SUCCESS;
@@ -615,24 +615,30 @@ ldap_set_option(
 
 			if( ld->ld_error ) {
 				LDAP_FREE(ld->ld_error);
+				ld->ld_error = NULL;
 			}
 
-			ld->ld_error = LDAP_STRDUP(err);
+			if ( err ) {
+				ld->ld_error = LDAP_STRDUP(err);
+			}
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_MATCHED_DN: {
-			const char *err = (const char *) invalue;
+			const char *matched = (const char *) invalue;
 
-			if(ld == NULL) {
+			if (ld == NULL) {
 				/* need a struct ldap */
 				break;
 			}
 
 			if( ld->ld_matched ) {
 				LDAP_FREE(ld->ld_matched);
+				ld->ld_matched = NULL;
 			}
 
-			ld->ld_matched = LDAP_STRDUP(err);
+			if ( matched ) {
+				ld->ld_matched = LDAP_STRDUP( matched );
+			}
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_REFERRAL_URLS: {

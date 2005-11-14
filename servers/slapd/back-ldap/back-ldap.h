@@ -93,6 +93,17 @@ enum {
 	LDAP_BACK_IDASSERT_OTHERID
 };
 
+/*
+ * operation enumeration for timeouts
+ */
+enum {
+	LDAP_BACK_OP_ADD = 0,
+	LDAP_BACK_OP_DELETE,
+	LDAP_BACK_OP_MODIFY,
+	LDAP_BACK_OP_MODRDN,
+	LDAP_BACK_OP_LAST
+};
+
 struct ldapinfo {
 	char		*url;
 	LDAPURLDesc	*lud;
@@ -166,6 +177,8 @@ struct ldapinfo {
 	/* FIXME: automatic rwm instantiation removed */
 	int		rwm_started;
 #endif
+
+	time_t			timeout[ LDAP_BACK_OP_LAST ];
 };
 
 typedef enum ldap_back_send_t {

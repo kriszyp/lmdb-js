@@ -158,7 +158,7 @@ static int test_mra_filter(
 	void		*memctx;
 	BER_MEMFREE_FN	*memfree;
 #ifdef LDAP_COMP_MATCH
-	int i, num_attr_vals;
+	int i, num_attr_vals = 0;
 #endif
 
 	if ( op == NULL ) {

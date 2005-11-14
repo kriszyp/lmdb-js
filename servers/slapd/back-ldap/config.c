@@ -59,6 +59,7 @@ enum {
 	LDAP_BACK_CFG_CHASE,
 	LDAP_BACK_CFG_T_F,
 	LDAP_BACK_CFG_WHOAMI,
+	LDAP_BACK_CFG_TIMEOUT,
 	LDAP_BACK_CFG_REWRITE
 };
 
@@ -203,6 +204,14 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "timeout", "timeout", 0, 2, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_TIMEOUT,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.14 "
+			"NAME 'olcDbTimeout' "
+			"DESC 'Per-operation timeouts' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -235,6 +244,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbChaseReferrals "
 			"$ olcDbTFSupport "
 			"$ olcDbProxyWhoAmI "
+			"$ olcDbTimeout "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -270,6 +280,14 @@ static slap_verbmasks t_f_mode[] = {
 	{ BER_BVC( "discover" ),	LDAP_BACK_F_SUPPORT_T_F_DISCOVER },
 	{ BER_BVC( "no" ),		LDAP_BACK_C_NO },
 	{ BER_BVNULL,			0 }
+};
+
+static slap_cf_aux_table timeout_table[] = {
+	{ BER_BVC("add="), 0 * sizeof( time_t ), 'u', 0, NULL },
+	{ BER_BVC("delete="), 1 * sizeof( time_t ), 'u', 0, NULL },
+	{ BER_BVC("modify="), 2 * sizeof( time_t ), 'u', 0, NULL },
+	{ BER_BVC("modrdn="), 3 * sizeof( time_t ), 'u', 0, NULL },
+	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
 static int
@@ -512,6 +530,25 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 			break;
 
+		case LDAP_BACK_CFG_TIMEOUT:
+			BER_BVZERO( &bv );
+
+			slap_cf_aux_table_unparse( li->timeout, &bv, timeout_table );
+
+			if ( !BER_BVISNULL( &bv ) ) {	
+				for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
+					/* count spaces */ ;
+
+				if ( i ) {
+					bv.bv_len -= i;
+					AC_MEMCPY( bv.bv_val, &bv.bv_val[ i ],
+						bv.bv_len + 1 );
+				}
+
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -580,6 +617,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_T_F:
 		case LDAP_BACK_CFG_WHOAMI:
 			rc = 1;
+			break;
+
+		case LDAP_BACK_CFG_TIMEOUT:
+			for ( i = 0; i < LDAP_BACK_OP_LAST; i++ ) {
+				li->timeout[ i ] = 0;
+			}
 			break;
 
 		default:
@@ -1040,8 +1083,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		} else {
 			li->flags &= ~LDAP_BACK_F_SAVECRED;
 		}
-		break;
-	}
+		} break;
 
 	case LDAP_BACK_CFG_CHASE: {
 		int	dochase = 0;
@@ -1066,8 +1108,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		} else {
 			li->flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
 		}
-		break;
-	}
+		} break;
 
 	case LDAP_BACK_CFG_T_F:
 		i = verb_to_mask( c->argv[1], t_f_mode );
@@ -1104,8 +1145,36 @@ ldap_back_cf_gen( ConfigArgs *c )
 		} else {
 			li->flags &= ~LDAP_BACK_F_PROXY_WHOAMI;
 		}
+		} break;
+
+	case LDAP_BACK_CFG_TIMEOUT:
+		if ( c->argc < 2 ) {
+			return 1;
+		}
+
+		for ( i = 1; i < c->argc; i++ ) {
+			if ( isdigit( c->argv[ i ][ 0 ] ) ) {
+				char		*next;
+				int		j;
+				unsigned	u;
+
+				u = strtoul( c->argv[ i ], &next, 0 );
+				if ( next == c->argv[ i ] || next[ 0 ] != '\0' ) {
+					return 1;
+				}
+
+				for ( j = 0; j < LDAP_BACK_OP_LAST; j++ ) {
+					li->timeout[ j ] = u;
+				}
+
+				continue;
+			}
+
+			if ( slap_cf_aux_table_parse( c->argv[ i ], li->timeout, timeout_table, "slapd-ldap timeout" ) ) {
+				return 1;
+			}
+		}
 		break;
-	}
 
 	case LDAP_BACK_CFG_REWRITE:
 		fprintf( stderr, "%s: line %d: "

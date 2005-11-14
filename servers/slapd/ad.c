@@ -177,7 +177,7 @@ int slap_bv2ad(
 	memset( &desc, 0, sizeof( desc ) );
 	desc.ad_cname = *bv;
 	name = bv->bv_val;
-	options = strchr( name, ';' );
+	options = ber_bvchr( bv, ';' );
 	if ( options != NULL && (unsigned) ( options - name ) < bv->bv_len ) {
 		/* don't go past the end of the berval! */
 		desc.ad_cname.bv_len = options - name;

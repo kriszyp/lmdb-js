@@ -844,7 +844,7 @@ verbs_to_mask(int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m) {
 	int i, j;
 	for(i = 1; i < argc; i++) {
 		j = verb_to_mask(argv[i], v);
-		if(BER_BVISNULL(&v[j].word)) return(1);
+		if(BER_BVISNULL(&v[j].word)) return i;
 		while (!v[j].mask) j--;
 		*m |= v[j].mask;
 	}
@@ -991,15 +991,7 @@ static slap_verbmasks methkey[] = {
 	{ BER_BVNULL, 0 }
 };
 
-typedef struct cf_aux_table {
-	struct berval key;
-	int off;
-	char type;
-	char quote;
-	slap_verbmasks *aux;
-} cf_aux_table;
-
-static cf_aux_table bindkey[] = {
+static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
 	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
@@ -1012,31 +1004,34 @@ static cf_aux_table bindkey[] = {
 	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
-int bindconf_parse( const char *word, slap_bindconf *bc ) {
+int
+slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, LDAP_CONST char *tabmsg )
+{
 	int rc = 0;
-	cf_aux_table *tab;
+	slap_cf_aux_table *tab;
 
-	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
+	for (tab = tab0; !BER_BVISNULL(&tab->key); tab++ ) {
 		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len )) {
-			char **cptr;
+			char **cptr, *next;
 			int *iptr, j;
+			unsigned *uptr;
 			struct berval *bptr;
 			const char *val = word + tab->key.bv_len;
 
 			switch ( tab->type ) {
 			case 's':
-				cptr = (char **)((char *)bc + tab->off);
+				cptr = (char **)((char *)dst + tab->off);
 				*cptr = ch_strdup( val );
 				break;
 
 			case 'b':
-				bptr = (struct berval *)((char *)bc + tab->off);
+				bptr = (struct berval *)((char *)dst + tab->off);
 				ber_str2bv( val, 0, 1, bptr );
 				break;
 
 			case 'd':
 				assert( tab->aux != NULL );
-				iptr = (int *)((char *)bc + tab->off);
+				iptr = (int *)((char *)dst + tab->off);
 
 				rc = 1;
 				for ( j = 0; !BER_BVISNULL( &tab->aux[j].word ); j++ ) {
@@ -1046,11 +1041,29 @@ int bindconf_parse( const char *word, slap_bindconf *bc ) {
 					}
 				}
 				break;
+
+			case 'i':
+				iptr = (int *)((char *)dst + tab->off);
+
+				*iptr = strtol( val, &next, 0 );
+				if ( next == val || next[ 0 ] != '\0' ) {
+					rc = 1;
+				}
+				break;
+
+			case 'u':
+				uptr = (unsigned *)((char *)dst + tab->off);
+
+				*uptr = strtoul( val, &next, 0 );
+				if ( next == val || next[ 0 ] != '\0' ) {
+					rc = 1;
+				}
+				break;
 			}
 
 			if ( rc ) {
-				Debug( LDAP_DEBUG_ANY, "invalid bind config value %s\n",
-					word, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "invalid %s value %s\n",
+					tabmsg, word, 0 );
 			}
 			
 			return rc;
@@ -1060,22 +1073,25 @@ int bindconf_parse( const char *word, slap_bindconf *bc ) {
 	return rc;
 }
 
-int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
+int
+slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0 )
+{
 	char buf[BUFSIZ], *ptr;
-	cf_aux_table *tab;
+	slap_cf_aux_table *tab;
 	struct berval tmp;
 
 	ptr = buf;
-	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
+	for (tab = tab0; !BER_BVISNULL(&tab->key); tab++ ) {
 		char **cptr;
 		int *iptr, i;
+		unsigned *uptr;
 		struct berval *bptr;
 
-		cptr = (char **)((char *)bc + tab->off);
+		cptr = (char **)((char *)src + tab->off);
 
 		switch ( tab->type ) {
 		case 'b':
-			bptr = (struct berval *)((char *)bc + tab->off);
+			bptr = (struct berval *)((char *)src + tab->off);
 			cptr = &bptr->bv_val;
 		case 's':
 			if ( *cptr ) {
@@ -1089,7 +1105,7 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 
 		case 'd':
 			assert( tab->aux != NULL );
-			iptr = (int *)((char *)bc + tab->off);
+			iptr = (int *)((char *)src + tab->off);
 		
 			for ( i = 0; !BER_BVISNULL( &tab->aux[i].word ); i++ ) {
 				if ( *iptr == tab->aux[i].mask ) {
@@ -1100,12 +1116,38 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 				}
 			}
 			break;
+
+		case 'i':
+			iptr = (int *)((char *)src + tab->off);
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, tab->key.bv_val );
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%d", *iptr );
+			break;
+
+		case 'u':
+			uptr = (unsigned *)((char *)src + tab->off);
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, tab->key.bv_val );
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%u", *uptr );
+			break;
 		}
 	}
 	tmp.bv_val = buf;
 	tmp.bv_len = ptr - buf;
 	ber_dupbv( bv, &tmp );
 	return 0;
+}
+
+int
+bindconf_parse( const char *word, slap_bindconf *bc )
+{
+	return slap_cf_aux_table_parse( word, bc, bindkey, "bind config" );
+}
+
+int
+bindconf_unparse( slap_bindconf *bc, struct berval *bv )
+{
+	return slap_cf_aux_table_unparse( bc, bv, bindkey );
 }
 
 void bindconf_free( slap_bindconf *bc ) {

@@ -169,6 +169,8 @@ struct ldapoptions {
 	ber_int_t		ldo_sizelimit;
 
 #ifdef HAVE_TLS
+   	/* tls context */
+   	void		*ldo_tls_ctx;
    	int			ldo_tls_mode;
 	LDAP_TLS_CONNECT_CB	*ldo_tls_connect_cb;
 	void*			ldo_tls_connect_arg;
@@ -210,10 +212,6 @@ struct ldapoptions {
  */
 typedef struct ldap_conn {
 	Sockbuf		*lconn_sb;
-#ifdef HAVE_TLS
-   	/* tls context */
-   	void		*lconn_tls_ctx;
-#endif
 #ifdef HAVE_CYRUS_SASL
 	void		*lconn_sasl_authctx;	/* context for bind */
 	void		*lconn_sasl_sockctx;	/* for security layer */

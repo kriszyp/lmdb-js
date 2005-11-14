@@ -210,8 +210,13 @@ ldap_parse_extended_result (
 		return ld->ld_errno;
 	}
 
+#ifdef LDAP_NULL_IS_NULL
+	rc = ber_scanf( ber, "{eAA" /*}*/, &errcode,
+		&ld->ld_matched, &ld->ld_error );
+#else /* ! LDAP_NULL_IS_NULL */
 	rc = ber_scanf( ber, "{eaa" /*}*/, &errcode,
 		&ld->ld_matched, &ld->ld_error );
+#endif /* ! LDAP_NULL_IS_NULL */
 
 	if( rc == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
@@ -242,6 +247,10 @@ ldap_parse_extended_result (
 			ber_free( ber, 0 );
 			return ld->ld_errno;
 		}
+
+#ifdef LDAP_NULL_IS_NULL
+		assert( resoid[ 0 ] != '\0' );
+#endif /* LDAP_NULL_IS_NULL */
 
 		tag = ber_peek_tag( ber, &len );
 	}
@@ -349,6 +358,10 @@ ldap_parse_intermediate (
 			ber_free( ber, 0 );
 			return ld->ld_errno;
 		}
+
+#ifdef LDAP_NULL_IS_NULL
+		assert( resoid[ 0 ] != '\0' );
+#endif /* LDAP_NULL_IS_NULL */
 
 		tag = ber_peek_tag( ber, &len );
 	}

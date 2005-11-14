@@ -42,7 +42,38 @@ To use the overlay, add:
 to your slapd configuration file. (You should obtain the necessary schema
 files from the Heimdal and/or Samba distributions. At this time, there
 are several known errors in these schema files that you will have to
-correct before they will load in slapd.)
+correct before they will load in slapd.  As of Samba 3.0 the schema looks
+fine as shipped.)
+
+All modules compiled in (i.e. krb5 and samba) are enabled; the statement
+
+	smbk5pwd-enable		<module>
+
+can be used to enable only the desired one(s); legal values for <module>
+are "krb5" and "samba", if they are respectively enabled by defining
+DO_KRB5 and DO_SAMBA.
+
+The samba module also supports the
+
+	smbk5pwd-must-change	<seconds>
+
+which sets the "sambaPwdMustChange" attribute accordingly to force passwd
+expiry.  A value of 0 disables this feature.
+
+The overlay now supports table-driven configuration, and thus can be run-time
+loaded and configured via back-config.  The layout of the entry is
+
+	# {0}smbk5pwd, {1}bdb, config
+	dn: olcOverlay={0}smbk5pwd,olcDatabase={1}bdb,cn=config
+	objectClass: olcOverlayConfig
+	objectClass: olcSmbK5PwdConfig
+	olcOverlay: {0}smbk5pwd
+	olcSmbK5PwdEnable: krb5
+	olcSmbK5PwdEnable: samba
+	olcSmbK5PwdMustChange: 2592000
+
+which enables both krb5 and samba modules with a password expiry time
+of 30 days.
 
 The provided Makefile builds both Kerberos and Samba support by default.
 You must edit the Makefile to insure that the correct include and library

@@ -98,6 +98,13 @@ static struct ldaperror ldap_builtin_errlist[] = {
 
 	{LDAP_X_NO_OPERATION,			N_("No Operation (X)")},
 
+	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("LCUP Resources Exhausted")},
+	{LDAP_CUP_SECURITY_VIOLATION,	N_("LCUP Security Violation")},
+	{LDAP_CUP_INVALID_DATA,			N_("LCUP Invalid Data")},
+	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
+	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
+
+
 	/* API ResultCodes */
 	{LDAP_SERVER_DOWN,				N_("Can't contact LDAP server")},
 	{LDAP_LOCAL_ERROR,				N_("Local error")},
@@ -117,12 +124,6 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_MORE_RESULTS_TO_RETURN,	N_("More results to return")},
 	{LDAP_CLIENT_LOOP,				N_("Client Loop")},
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	N_("Referral Limit Exceeded")},
-
-	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("LCUP Resources Exhausted")},
-	{LDAP_CUP_SECURITY_VIOLATION,	N_("LCUP Security Violation")},
-	{LDAP_CUP_INVALID_DATA,			N_("LCUP Invalid Data")},
-	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
-	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
 
 	{0, NULL}
 };
@@ -310,12 +311,24 @@ ldap_parse_result(
 	ber = ber_dup( lm->lm_ber );
 
 	if ( ld->ld_version < LDAP_VERSION2 ) {
+#ifdef LDAP_NULL_IS_NULL
+		tag = ber_scanf( ber, "{iA}",
+			&ld->ld_errno, &ld->ld_error );
+#else /* ! LDAP_NULL_IS_NULL */
 		tag = ber_scanf( ber, "{ia}",
 			&ld->ld_errno, &ld->ld_error );
+#endif /* ! LDAP_NULL_IS_NULL */
+
 	} else {
 		ber_len_t len;
+
+#ifdef LDAP_NULL_IS_NULL
+		tag = ber_scanf( ber, "{iAA" /*}*/,
+			&ld->ld_errno, &ld->ld_matched, &ld->ld_error );
+#else /* ! LDAP_NULL_IS_NULL */
 		tag = ber_scanf( ber, "{iaa" /*}*/,
 			&ld->ld_errno, &ld->ld_matched, &ld->ld_error );
+#endif /* ! LDAP_NULL_IS_NULL */
 
 		if( tag != LBER_ERROR ) {
 			/* peek for referrals */
@@ -376,10 +389,20 @@ ldap_parse_result(
 	}
 	if ( errcode == LDAP_SUCCESS ) {
 		if( matcheddnp != NULL ) {
-			*matcheddnp = LDAP_STRDUP( ld->ld_matched );
+#ifdef LDAP_NULL_IS_NULL
+			if ( ld->ld_matched )
+#endif /* LDAP_NULL_IS_NULL */
+			{
+				*matcheddnp = LDAP_STRDUP( ld->ld_matched );
+			}
 		}
 		if( errmsgp != NULL ) {
-			*errmsgp = LDAP_STRDUP( ld->ld_error );
+#ifdef LDAP_NULL_IS_NULL
+			if ( ld->ld_error )
+#endif /* LDAP_NULL_IS_NULL */
+			{
+				*errmsgp = LDAP_STRDUP( ld->ld_error );
+			}
 		}
 
 		if( referralsp != NULL) {

@@ -184,6 +184,7 @@ typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;
 	ldap_pvt_thread_mutex_t	mc_mutex;
 	unsigned		mc_refcnt;
+	int			mc_tainted;
 	
 	struct berval          	mc_local_ndn;
 	/* NOTE: msc_mscflags is used to recycle the #define
@@ -203,14 +204,6 @@ typedef struct metaconn_t {
 	 * the required number of conns is malloc'ed
 	 * in one block with the metaconn_t structure */
 } metaconn_t;
-
-enum {
-	META_OP_ADD = 0,
-	META_OP_DELETE,
-	META_OP_MODIFY,
-	META_OP_MODRDN,
-	META_OP_LAST
-};
 
 typedef struct metatarget_t {
 	char			*mt_uri;
@@ -235,7 +228,7 @@ typedef struct metatarget_t {
 
 	unsigned		mt_flags;
 	int			mt_version;
-	time_t			mt_timeout[ META_OP_LAST ];
+	time_t			mt_timeout[ LDAP_BACK_OP_LAST ];
 } metatarget_t;
 
 typedef struct metadncache_t {
@@ -278,7 +271,7 @@ typedef struct metainfo_t {
 #define META_BACK_DEFER_ROOTDN_BIND(mi)	( (mi)->flags & META_BACK_F_DEFER_ROOTDN_BIND )
 
 	int			mi_version;
-	time_t			mi_timeout[ META_OP_LAST ];
+	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];
 } metainfo_t;
 
 typedef enum meta_op_type {

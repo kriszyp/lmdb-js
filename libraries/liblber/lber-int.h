@@ -38,11 +38,20 @@ typedef void (*BER_LOG_FN)(FILE *file,
 
 LBER_V (BER_ERRNO_FN) ber_int_errno_fn;
 
+#ifdef LDAP_MEMORY_TRACE
+# ifndef LDAP_MEMORY_DEBUG
+#  define LDAP_MEMORY_DEBUG 1
+# endif
+#endif
+
+#ifdef LDAP_MEMORY_DEBUG
+LBER_V (long)	ber_int_meminuse;
+#endif
+
 struct lber_options {
 	short lbo_valid;
 	unsigned short		lbo_options;
 	int			lbo_debug;
-	long		lbo_meminuse;
 };
 
 LBER_F( int ) ber_pvt_log_output(

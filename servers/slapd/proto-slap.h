@@ -93,8 +93,6 @@ LDAP_SLAPD_F (slap_dynacl_t *) slap_dynacl_get LDAP_P(( const char *name ));
 #endif /* SLAP_DYNACL */
 LDAP_SLAPD_F (int) acl_init LDAP_P(( void ));
 
-LDAP_SLAPD_V (const struct berval) aci_bv[];
-
 LDAP_SLAPD_F (int) acl_get_part LDAP_P((
 	struct berval	*list,
 	int		ix,
@@ -104,7 +102,7 @@ LDAP_SLAPD_F (int) acl_match_set LDAP_P((
 	struct berval *subj,
 	Operation *op,
 	Entry *e,
-	int setref ));
+	struct berval *default_set_attribute ));
 LDAP_SLAPD_F (int) acl_string_expand LDAP_P((
 	struct berval *newbuf, struct berval *pattern,
 	char *match, int nmatch, regmatch_t *matches ));
@@ -436,6 +434,8 @@ LDAP_SLAPD_F (int) str2loglevel LDAP_P(( const char *s, int *l ));
 LDAP_SLAPD_F (int) loglevel2bvarray LDAP_P(( int l, BerVarray *bva ));
 LDAP_SLAPD_F (const char *) loglevel2str LDAP_P(( int l ));
 LDAP_SLAPD_F (int) loglevel2bv LDAP_P(( int l, struct berval *bv ));
+LDAP_SLAPD_F (int) slap_cf_aux_table_parse LDAP_P(( const char *word, void *bc, slap_cf_aux_table *tab0, LDAP_CONST char *tabmsg ));
+LDAP_SLAPD_F (int) slap_cf_aux_table_unparse LDAP_P(( void *bc, struct berval *bv, slap_cf_aux_table *tab0 ));
 
 /*
  * ch_malloc.c

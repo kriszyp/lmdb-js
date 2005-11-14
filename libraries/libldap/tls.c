@@ -200,7 +200,7 @@ ldap_pvt_tls_init( void )
  * initialize the default context
  */
 int
-ldap_pvt_tls_init_def_ctx( void )
+ldap_pvt_tls_init_def_ctx( int is_server )
 {
 	STACK_OF(X509_NAME) *calist;
 	int rc = 0;
@@ -215,7 +215,7 @@ ldap_pvt_tls_init_def_ctx( void )
 	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
 #endif
 
-	if ( !certfile && !keyfile && !cacertfile && !cacertdir ) {
+	if ( is_server && !certfile && !keyfile && !cacertfile && !cacertdir ) {
 		/* minimum configuration not provided */
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
@@ -441,7 +441,7 @@ get_ca_list( char * bundle, char * dir )
 }
 
 static SSL *
-alloc_handle( void *ctx_arg )
+alloc_handle( void *ctx_arg, int is_server )
 {
 	SSL_CTX	*ctx;
 	SSL	*ssl;
@@ -449,7 +449,7 @@ alloc_handle( void *ctx_arg )
 	if ( ctx_arg ) {
 		ctx = (SSL_CTX *) ctx_arg;
 	} else {
-		if ( ldap_pvt_tls_init_def_ctx() < 0 ) return NULL;
+		if ( ldap_pvt_tls_init_def_ctx( is_server ) < 0 ) return NULL;
 		ctx = tls_def_ctx;
 	}
 
@@ -764,10 +764,12 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 
 	} else {
 		struct ldapoptions *lo;
-		void *ctx = ld->ld_defconn
-			? ld->ld_defconn->lconn_tls_ctx : NULL;
+		void *ctx;
 
-		ssl = alloc_handle( ctx );
+		lo = &ld->ld_options;
+		ctx = lo->ldo_tls_ctx;
+
+		ssl = alloc_handle( ctx, 0 );
 
 		if ( ssl == NULL ) return -1;
 
@@ -780,9 +782,8 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 
 		if( ctx == NULL ) {
 			ctx = tls_def_ctx;
-			conn->lconn_tls_ctx = tls_def_ctx;
+			lo->ldo_tls_ctx = ctx;
 		}
-		lo = &ld->ld_options;
 		if ( lo->ldo_tls_connect_cb )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 		lo = LDAP_INT_GLOBAL_OPT();   
@@ -841,7 +842,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
 
 	} else {
-		ssl = alloc_handle( ctx_arg );
+		ssl = alloc_handle( ctx_arg, 1 );
 		if ( ssl == NULL ) return -1;
 
 #ifdef LDAP_DEBUG
@@ -1245,7 +1246,7 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		if ( ld == NULL ) {
 			*(void **)arg = (void *) tls_def_ctx;
 		} else {
-			*(void **)arg = ld->ld_defconn->lconn_tls_ctx;
+			*(void **)arg = lo->ldo_tls_ctx;
 		}
 		break;
 	case LDAP_OPT_X_TLS_CACERTFILE:
@@ -1347,7 +1348,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 			tls_def_ctx = (SSL_CTX *) arg;
 
 		} else {
-			ld->ld_defconn->lconn_tls_ctx = arg;
+			lo->ldo_tls_ctx = arg;
 		}
 		return 0;
 	case LDAP_OPT_X_TLS_CONNECT_CB:
@@ -1782,7 +1783,7 @@ tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 			dhparams = p;
 		}
 	}
-done:
+
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
 #endif

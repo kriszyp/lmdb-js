@@ -65,7 +65,7 @@ char backsql_def_concat_func[] = "CONCAT(?,?)";
 char backsql_check_dn_ru_query[] = "SELECT dn_ru FROM ldap_entries";
 
 struct berbuf *
-backsql_strcat( struct berbuf *dest, ... )
+backsql_strcat_x( struct berbuf *dest, void *memctx, ... )
 {
 	va_list		strs;
 	ber_len_t	cdlen, cslen, grow;
@@ -79,10 +79,9 @@ backsql_strcat( struct berbuf *dest, ... )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_strcat()\n", 0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-	va_start( strs, dest );
+	va_start( strs, memctx );
 	if ( dest->bb_val.bv_val == NULL || dest->bb_len == 0 ) {
-		dest->bb_val.bv_val = (char *)ch_calloc( BACKSQL_STR_GROW, 
-				sizeof( char ) );
+		dest->bb_val.bv_val = (char *)ber_memalloc_x( BACKSQL_STR_GROW * sizeof( char ), memctx );
 		dest->bb_val.bv_len = 0;
 		dest->bb_len = BACKSQL_STR_GROW;
 	}
@@ -100,8 +99,8 @@ backsql_strcat( struct berbuf *dest, ... )
 				dest->bb_len, cdlen + 1, cslen );
 #endif /* BACKSQL_TRACE */
 
-			tmp_dest = (char *)ch_realloc( dest->bb_val.bv_val,
-					( dest->bb_len ) + grow * sizeof( char ) );
+			tmp_dest = (char *)ber_memrealloc_x( dest->bb_val.bv_val,
+					dest->bb_len + grow * sizeof( char ), memctx );
 			if ( tmp_dest == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "backsql_strcat(): "
 					"could not reallocate string buffer.\n",
@@ -133,7 +132,7 @@ backsql_strcat( struct berbuf *dest, ... )
 } 
 
 struct berbuf *
-backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
+backsql_strfcat_x( struct berbuf *dest, void *memctx, const char *fmt, ... )
 {
 	va_list		strs;
 	ber_len_t	cdlen;
@@ -150,8 +149,7 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 
 	va_start( strs, fmt );
 	if ( dest->bb_val.bv_val == NULL || dest->bb_len == 0 ) {
-		dest->bb_val.bv_val = (char *)ch_calloc( BACKSQL_STR_GROW, 
-				sizeof( char ) );
+		dest->bb_val.bv_val = (char *)ber_memalloc_x( BACKSQL_STR_GROW * sizeof( char ), memctx );
 		dest->bb_val.bv_len = 0;
 		dest->bb_len = BACKSQL_STR_GROW;
 	}
@@ -208,8 +206,8 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 				dest->bb_len, cdlen + 1, cslen );
 #endif /* BACKSQL_TRACE */
 
-			tmp_dest = (char *)ch_realloc( dest->bb_val.bv_val,
-					( dest->bb_len ) + grow * sizeof( char ) );
+			tmp_dest = (char *)ber_memrealloc_x( dest->bb_val.bv_val,
+					( dest->bb_len ) + grow * sizeof( char ), memctx );
 			if ( tmp_dest == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "backsql_strfcat(): "
 					"could not reallocate string buffer.\n",
@@ -302,7 +300,7 @@ backsql_get_table_spec( backsql_info *bi, char **p )
 
 	BACKSQL_NEXT_WORD;
 	/* table name */
-	backsql_strcat( &res, s, NULL );
+	backsql_strcat_x( &res, NULL, s, NULL );
 	s = q;
 
 	BACKSQL_NEXT_WORD;
@@ -312,7 +310,7 @@ backsql_get_table_spec( backsql_info *bi, char **p )
 	}
 
 	/* oracle doesn't understand "AS" :( and other RDBMSes don't need it */
-	backsql_strfcat( &res, "lbbsb",
+	backsql_strfcat_x( &res, NULL, "lbbsb",
 			STRLENOF( " " ), " ",
 			&bi->sql_aliasing,
 			&bi->sql_aliasing_quote,
@@ -353,13 +351,13 @@ backsql_merge_from_clause(
 			"p=\"%s\" s=\"%s\"\n", p, s, 0 );
 #endif /* BACKSQL_TRACE */
 
-		if ( res.bb_val.bv_val == NULL ) {
-			backsql_strcat( &res, s, NULL );
+		if ( BER_BVISNULL( &res.bb_val ) ) {
+			backsql_strcat_x( &res, NULL, s, NULL );
 
 		} else {
 			pos = strstr( res.bb_val.bv_val, s );
 			if ( pos == NULL || ( ( e = pos[ strlen( s ) ] ) != '\0' && e != ',' ) ) {
-				backsql_strfcat( &res, "cs", ',', s );
+				backsql_strfcat_x( &res, NULL, "cs", ',', s );
 			}
 		}
 		
@@ -464,8 +462,8 @@ backsql_prepare_pattern(
 			ch_free( bb.bb_val.bv_val );
 			return -1;
 		}
-		backsql_strfcat( &bb, "b", &split_pattern[ i ] );
-		backsql_strfcat( &bb, "b", &values[ i ] );
+		backsql_strfcat_x( &bb, NULL, "b", &split_pattern[ i ] );
+		backsql_strfcat_x( &bb, NULL, "b", &values[ i ] );
 	}
 
 	if ( split_pattern[ i ].bv_val == NULL ) {
@@ -473,7 +471,7 @@ backsql_prepare_pattern(
 		return -1;
 	}
 
-	backsql_strfcat( &bb, "b", &split_pattern[ i ] );
+	backsql_strfcat_x( &bb, NULL, "b", &split_pattern[ i ] );
 
 	*res = bb.bb_val;
 

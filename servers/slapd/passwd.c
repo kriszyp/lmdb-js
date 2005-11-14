@@ -84,7 +84,7 @@ int passwd_extop(
 			qpw->rs_old.bv_val ? " old" : "",
 			qpw->rs_new.bv_val ? " new" : "", 0 );
 	} else {
-		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD %s%s\n",
+		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD%s%s\n",
 			op->o_log_prefix,
 			qpw->rs_old.bv_val ? " old" : "",
 			qpw->rs_new.bv_val ? " new" : "", 0, 0 );
@@ -293,9 +293,11 @@ old_good:
 error_return:;
 	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
 		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_dn );
 	}
 	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
 		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_ndn );
 	}
 
 	return rc;

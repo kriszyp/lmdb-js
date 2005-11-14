@@ -157,7 +157,7 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	BI_op_modify **func;
-	slap_operation_t which;
+	slap_operation_t which = op_bind;
 	int rc;
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
@@ -168,6 +168,7 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	case LDAP_REQ_DELETE: which = op_delete; break;
 	case LDAP_REQ_MODIFY: which = op_modify; break;
 	case LDAP_REQ_MODRDN: which = op_modrdn; break;
+	default: assert( 0 ); break;
 	}
 
 	func = &op->o_bd->bd_info->bi_op_bind;

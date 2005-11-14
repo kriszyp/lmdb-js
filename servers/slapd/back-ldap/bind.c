@@ -71,7 +71,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld, op->o_req_dn.bv_val,
 			LDAP_SASL_SIMPLE,
 			&op->orb_cred, op->o_ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
+	rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_SENDERR );
 
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
@@ -316,7 +316,12 @@ retry:;
 				rc = ldap_parse_extended_result( ld, res,
 						NULL, &data, 0 );
 				if ( rc == LDAP_SUCCESS ) {
-					rc = ldap_result2error( ld, res, 1 );
+					int err;
+					rc = ldap_parse_result( ld, res, &err,
+						NULL, NULL, NULL, NULL, 1 );
+					if ( rc == LDAP_SUCCESS ) {
+						rc = err;
+					}
 					res = NULL;
 					
 					/* FIXME: in case a referral 
@@ -737,7 +742,7 @@ retry:;
 		return 0;
 	}
 
-	rc = ldap_back_op_result( lc, op, rs, msgid, sendok );
+	rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 
@@ -800,6 +805,7 @@ ldap_back_op_result(
 		Operation		*op,
 		SlapReply		*rs,
 		ber_int_t		msgid,
+		time_t			timeout,
 		ldap_back_send_t	sendok )
 {
 	char		*match = NULL;
@@ -818,12 +824,27 @@ ldap_back_op_result(
 		int		rc;
 		struct timeval	tv;
 
-		LDAP_BACK_TV_SET( &tv );
+		if ( timeout ) {
+			tv.tv_sec = timeout;
+			tv.tv_usec = 0;
+
+		} else {
+			LDAP_BACK_TV_SET( &tv );
+		}
 
 retry:;
 		/* if result parsing fails, note the failure reason */
-		switch ( ldap_result( lc->lc_ld, msgid, 1, &tv, &res ) ) {
+		rc = ldap_result( lc->lc_ld, msgid, 1, &tv, &res );
+		switch ( rc ) {
 		case 0:
+			if ( timeout ) {
+				(void)ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+				rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+					LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
+				rs->sr_text = "Operation timed out";
+				break;
+			}
+
 			LDAP_BACK_TV_SET( &tv );
 			ldap_pvt_thread_yield();
 			goto retry;
@@ -893,6 +914,12 @@ ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_se
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
 	if ( lc->lc_refcnt == 1 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"%s ldap_back_retry: retrying URI=\"%s\" DN=\"%s\"\n",
+			op->o_log_prefix, li->url,
+			BER_BVISNULL( &lc->lc_bound_ndn ) ?
+				"" : lc->lc_bound_ndn.bv_val );
+
 		ldap_unbind_ext( lc->lc_ld, NULL, NULL );
 		lc->lc_ld = NULL;
 		LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
@@ -1089,7 +1116,7 @@ ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
+	rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_SENDERR );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 	}
@@ -1240,7 +1267,7 @@ ldap_back_proxy_authz_ctrl(
 		rs->sr_text = "proxyAuthz not allowed within namingContext";
 	}
 
-	if ( op->o_do_not_cache && op->o_is_auth_check ) {
+	if ( op->o_is_auth_check ) {
 		mode = LDAP_BACK_IDASSERT_NOASSERT;
 
 	} else {

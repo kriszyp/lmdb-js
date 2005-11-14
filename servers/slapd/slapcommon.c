@@ -180,6 +180,12 @@ slap_tool_init(
 	int truncatemode = 0;
 	int use_glue = 1;
 
+#ifdef LDAP_DEBUG
+	/* tools default to "none", so that at least LDAP_DEBUG_ANY 
+	 * messages show up; use -d 0 to reset */
+	ldap_debug = LDAP_DEBUG_NONE;
+#endif
+
 #ifdef CSRIMALLOC
 	leakfilename = malloc( strlen( progname ) + STRLENOF( ".leak" ) + 1 );
 	sprintf( leakfilename, "%s.leak", progname );
@@ -245,11 +251,12 @@ slap_tool_init(
 			break;
 
 		case 'd':	/* turn on debugging */
+			{
 #ifdef LDAP_DEBUG
+			int	level;
+
 			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
 			{
-				int	level;
-
 				if ( str2loglevel( optarg, &level ) ) {
 					fprintf( stderr,
 						"unrecognized log level "
@@ -257,10 +264,7 @@ slap_tool_init(
 					exit( EXIT_FAILURE );
 				}
 
-				ldap_debug |= level;
-
 			} else {
-				int	level;
 				char	*next = NULL;
 
 				level = strtol( optarg, &next, 0 );
@@ -270,14 +274,20 @@ slap_tool_init(
 						"\"%s\"\n", optarg );
 					exit( EXIT_FAILURE );
 				}
+			}
+
+			if ( level ) {
 				ldap_debug |= level;
+			} else {
+				/* allow to reset log level */
+				ldap_debug = 0;
 			}
 #else
 			if ( atoi( optarg ) != 0 )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
-			break;
+			} break;
 
 		case 'D':
 			ber_str2bv( optarg, 0, 1, &authcDN );

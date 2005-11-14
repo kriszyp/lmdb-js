@@ -930,6 +930,9 @@ backsql_add( Operation *op, SlapReply *rs )
 	int			colnum;
 	slap_mask_t		mask;
 
+	char			textbuf[ SLAP_TEXT_BUFLEN ];
+	size_t			textlen = sizeof( textbuf );
+
 #ifdef BACKSQL_SYNCPROV
 	/*
 	 * NOTE: fake successful result to force contextCSN to be bumped up
@@ -953,6 +956,8 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(\"%s\")\n",
 			op->ora_e->e_name.bv_val, 0, 0 );
+
+	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 
 	/* check schema */
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
@@ -1050,6 +1055,16 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	/* check write access */
+	if ( !access_allowed_mask( op, op->ora_e,
+				slap_schema.si_ad_entry,
+				NULL, ACL_WADD, NULL, &mask ) )
+	{
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		e = op->ora_e;
+		goto done;
+	}
+
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
@@ -1063,7 +1078,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	/*
 	 * Check if entry exists
-	*
+	 *
 	 * NOTE: backsql_api_dn2odbc() is called explicitly because
 	 * we need the mucked DN to pass it to the create procedure.
 	 */
@@ -1096,34 +1111,34 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	} else {
 		dnParent( &op->ora_e->e_nname, &pdn );
-	}
 
-	/*
-	 * Get the parent
-	 */
-	bsi.bsi_e = &p;
-	rs->sr_err = backsql_init_search( &bsi, &pdn,
-			LDAP_SCOPE_BASE, 
-			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
-			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
-			"could not retrieve addDN parent "
-			"\"%s\" ID - %s matched=\"%s\"\n", 
-			pdn.bv_val,
-			rs->sr_err == LDAP_REFERRAL ? "referral" : "no such entry",
-			rs->sr_matched ? rs->sr_matched : "(null)" );
-		e = &p;
-		goto done;
-	}
+		/*
+		 * Get the parent
+		 */
+		bsi.bsi_e = &p;
+		rs->sr_err = backsql_init_search( &bsi, &pdn,
+				LDAP_SCOPE_BASE, 
+				(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
+				( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
+				"could not retrieve addDN parent "
+				"\"%s\" ID - %s matched=\"%s\"\n", 
+				pdn.bv_val,
+				rs->sr_err == LDAP_REFERRAL ? "referral" : "no such entry",
+				rs->sr_matched ? rs->sr_matched : "(null)" );
+			e = &p;
+			goto done;
+		}
 
-	/* check "children" pseudo-attribute access to parent */
-	if ( !access_allowed( op, &p, slap_schema.si_ad_children,
-				NULL, ACL_WADD, NULL ) )
-	{
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		e = &p;
-		goto done;
+		/* check "children" pseudo-attribute access to parent */
+		if ( !access_allowed( op, &p, slap_schema.si_ad_children,
+					NULL, ACL_WADD, NULL ) )
+		{
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			e = &p;
+			goto done;
+		}
 	}
 
 	if ( get_assert( op ) &&
@@ -1131,15 +1146,6 @@ backsql_add( Operation *op, SlapReply *rs )
 			!= LDAP_COMPARE_TRUE ) )
 	{
 		rs->sr_err = LDAP_ASSERTION_FAILED;
-		e = op->ora_e;
-		goto done;
-	}
-
-	if ( !access_allowed_mask( op, op->ora_e,
-				slap_schema.si_ad_entry,
-				NULL, ACL_WADD, NULL, &mask ) )
-	{
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		e = op->ora_e;
 		goto done;
 	}

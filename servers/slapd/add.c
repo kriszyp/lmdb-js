@@ -664,7 +664,7 @@ int slap_add_opattrs(
 		} else {
 			csn = op->o_csn;
 		}
-		ptr = strchr( csn.bv_val, '#' );
+		ptr = ber_bvchr( &csn, '#' );
 		if ( ptr ) {
 			timestamp.bv_len = ptr - csn.bv_val;
 			if ( timestamp.bv_len >= sizeof(timebuf) )

@@ -193,8 +193,8 @@ fe_extended( Operation *op, SlapReply *rs )
 		reqdata = *op->ore_reqdata;
 	}
 
-	if( !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
-	{
+	ext = find_extop(supp_ext_list, &op->ore_reqoid );
+	if ( ext == NULL ) {
 		Statslog( LDAP_DEBUG_STATS, "%s EXT oid=%s\n",
 		    op->o_log_prefix, op->ore_reqoid.bv_val, 0, 0, 0 );
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
@@ -210,6 +210,8 @@ fe_extended( Operation *op, SlapReply *rs )
 		op->ore_reqoid.bv_val, 0 ,0 );
 
 	{ /* start of OpenLDAP extended operation */
+		BackendDB	*bd = op->o_bd;
+
 		rs->sr_err = (ext->ext_main)( op, rs );
 
 		if( rs->sr_err != SLAPD_ABANDON ) {
@@ -224,7 +226,7 @@ fe_extended( Operation *op, SlapReply *rs )
 			}
 
 			if ( op->o_bd == NULL )
-				op->o_bd = frontendDB;
+				op->o_bd = bd;
 			send_ldap_extended( op, rs );
 
 			if ( rs->sr_ref != default_referral ) {

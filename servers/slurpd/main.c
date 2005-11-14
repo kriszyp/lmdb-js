@@ -155,7 +155,7 @@ int main( int argc, char **argv )
     }
 
 #ifdef HAVE_TLS
-	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx() ) {
+	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx( 0 ) ) {
 		rc = 0;
 		/* See if we actually need TLS */
 		for ( i=0; i < sglob->num_replicas; i++ ) {
@@ -215,31 +215,57 @@ int main( int argc, char **argv )
 	}
 #endif
 
-	if ( slurpd_pid_file != NULL ) {
-		FILE *fp = fopen( slurpd_pid_file, "w" );
+	/*
+	 * don't open pid/args file in one-shot mode (ITS#4152)
+	 *
+	 * bail out if files were specified but cannot be opened (ITS#4074)
+	 */
+	if ( !sglob->one_shot_mode) {
+		if ( slurpd_pid_file != NULL ) {
+			FILE *fp = fopen( slurpd_pid_file, "w" );
 
-		if( fp != NULL ) {
+			if ( fp == NULL ) {
+				int save_errno = errno;
+
+				fprintf( stderr, "unable to open pid file "
+					"\"%s\": %d (%s)\n",
+					slurpd_pid_file,
+					save_errno, strerror( save_errno ) );
+
+				free( slurpd_pid_file );
+				slurpd_pid_file = NULL;
+
+				rc = 1;
+				goto stop;
+			}
+
 			fprintf( fp, "%d\n", (int) getpid() );
 			fclose( fp );
-
-		} else {
-		free(slurpd_pid_file);
-		slurpd_pid_file = NULL;
 		}
-	}
 
-	if ( slurpd_args_file != NULL ) {
-		FILE *fp = fopen( slurpd_args_file, "w" );
+		if ( slurpd_args_file != NULL ) {
+			FILE *fp = fopen( slurpd_args_file, "w" );
 
-		if( fp != NULL ) {
+			if ( fp == NULL ) {
+				int save_errno = errno;
+
+				fprintf( stderr, "unable to open args file "
+					"\"%s\": %d (%s)\n",
+					slurpd_args_file,
+					save_errno, strerror( save_errno ) );
+
+				free( slurpd_args_file );
+				slurpd_pid_file = NULL;
+
+				rc = 1;
+				goto stop;
+			}
+
 			for ( i = 0; i < argc; i++ ) {
 				fprintf( fp, "%s ", argv[i] );
 			}
 			fprintf( fp, "\n" );
 			fclose( fp );
-		} else {
-			free(slurpd_args_file);
-			slurpd_args_file = NULL;
 		}
 	}
 

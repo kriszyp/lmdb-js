@@ -248,8 +248,6 @@ ber_alloc_t( int options )
 {
 	BerElement	*ber;
 
-    ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	ber = (BerElement *) LBER_CALLOC( 1, sizeof(BerElement) );
 
 	if ( ber == NULL ) {
@@ -301,8 +299,6 @@ ber_init2( BerElement *ber, struct berval *bv, int options )
 {
 	assert( ber != NULL );
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	(void) memset( (char *)ber, '\0', sizeof( BerElement ));
 	ber->ber_valid = LBER_VALID_BERELEMENT;
 	ber->ber_tag = LBER_DEFAULT;
@@ -335,8 +331,6 @@ ber_init( struct berval *bv )
 	BerElement *ber;
 
 	assert( bv != NULL );
-
-    ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if ( bv == NULL ) {
 		return NULL;
@@ -377,8 +371,6 @@ int ber_flatten2(
 {
 	assert( bv != NULL );
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	if ( bv == NULL ) {
 		return -1;
 	}
@@ -415,8 +407,6 @@ int ber_flatten(
 	int rc;
  
 	assert( bvPtr != NULL );
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if(bvPtr == NULL) {
 		return -1;

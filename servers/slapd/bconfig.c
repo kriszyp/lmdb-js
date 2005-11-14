@@ -195,10 +195,23 @@ static OidRec OidMacros[] = {
 };
 
 /*
+ * Backend/Database registry
+ *
  * OLcfg{Bk|Db}{Oc|At}:0		-> common
  * OLcfg{Bk|Db}{Oc|At}:1		-> bdb
  * OLcfg{Bk|Db}{Oc|At}:2		-> ldif
  * OLcfg{Bk|Db}{Oc|At}:3		-> ldap?
+ */
+
+/*
+ * Overlay registry
+ *
+ * OLcfgOv{Oc|At}:1			-> syncprov
+ * OLcfgOv{Oc|At}:2			-> pcache
+ * OLcfgOv{Oc|At}:3			-> chain
+ * OLcfgOv{Oc|At}:4			-> accesslog
+ * OLcfgOv{Oc|At}:5			-> valsort
+ * OLcfgOv{Oc|At}:6			-> smbk5pwd (use a separate arc for contrib?)
  */
 
 /* alphabetical ordering */
@@ -1311,7 +1324,7 @@ config_generic(ConfigArgs *c) {
 				/* quote all args but the first */
 				line = ldap_charray2str( c->argv, "\" \"" );
 				ber_str2bv( line, 0, 0, &bv );
-				s = strchr( bv.bv_val, '"' );
+				s = ber_bvchr( &bv, '"' );
 				assert( s != NULL );
 				/* move the trailing quote of argv[0] to the end */
 				AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
@@ -2377,7 +2390,7 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 static int
 config_replica(ConfigArgs *c) {
 	int i, nr = -1;
-	char *replicahost, *replicauri;
+	char *replicahost = NULL, *replicauri = NULL;
 	LDAPURLDesc *ludp;
 
 	if (c->op == SLAP_CONFIG_EMIT) {
@@ -2407,6 +2420,12 @@ config_replica(ConfigArgs *c) {
 		if(!strncasecmp(c->argv[i], "host=", STRLENOF("host="))) {
 			ber_len_t	len;
 
+			if ( replicauri ) {
+				snprintf( c->msg, sizeof( c->msg ), "<%s> replica host/URI already specified", c->argv[0] );
+				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg, replicauri );
+				return(1);
+			}
+
 			replicahost = c->argv[i] + STRLENOF("host=");
 			len = strlen( replicahost ) + STRLENOF("ldap://");
 			replicauri = ch_malloc( len + 1 );
@@ -2415,6 +2434,12 @@ config_replica(ConfigArgs *c) {
 			nr = add_replica_info(c->be, replicauri, replicahost);
 			break;
 		} else if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
+			if ( replicauri ) {
+				snprintf( c->msg, sizeof( c->msg ), "<%s> replica host/URI already specified", c->argv[0] );
+				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg, replicauri );
+				return(1);
+			}
+
 			if(ldap_url_parse(c->argv[i] + STRLENOF("uri="), &ludp) != LDAP_SUCCESS) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> invalid uri", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
@@ -2442,7 +2467,8 @@ config_replica(ConfigArgs *c) {
 		return(1);
 	} else if(nr == -1) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> unable to add replica", c->argv[0] );
-		Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg, replicauri );
+		Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg,
+			replicauri ? replicauri : "" );
 		return(1);
 	} else {
 		for(i = 1; i < c->argc; i++) {
@@ -2622,6 +2648,7 @@ config_tls_option(ConfigArgs *c) {
 	default:		Debug(LDAP_DEBUG_ANY, "%s: "
 					"unknown tls_option <0x%x>\n",
 					c->log, c->type, 0);
+		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return ldap_pvt_tls_get_option( NULL, flag, &c->value_string );
@@ -2656,6 +2683,7 @@ config_tls_config(ConfigArgs *c) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 				"unknown tls_option <0x%x>\n",
 				c->log, c->type, 0);
+		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
 		ldap_pvt_tls_get_option( NULL, flag, &c->value_int );
@@ -3120,7 +3148,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	CfEntryInfo *ce;
 	int index = -1, gotindex = 0, nsibs;
 	int renumber = 0, tailindex = 0;
-	char *ptr1, *ptr2;
+	char *ptr1, *ptr2 = NULL;
 	struct berval rdn;
 
 	if ( renum ) *renum = 0;
@@ -3134,7 +3162,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 
 	/* See if the rdn has an index already */
 	dnRdn( &e->e_name, &rdn );
-	ptr1 = strchr( e->e_name.bv_val, '{' );
+	ptr1 = ber_bvchr( &e->e_name, '{' );
 	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
 		ptr2 = strchr( ptr1, '}' );
 		if (!ptr2 || ptr2 - e->e_name.bv_val > rdn.bv_len)
@@ -3626,7 +3654,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 		switch (ml->sml_op) {
 		case LDAP_MOD_DELETE:
 		case LDAP_MOD_REPLACE: {
-			BerVarray vals = NULL, nvals;
+			BerVarray vals = NULL, nvals = NULL;
 			int *idx = NULL;
 			if ( ct && ( ct->arg_type & ARG_NO_DELETE )) {
 				rc = LDAP_OTHER;
@@ -3737,9 +3765,9 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			switch (ml->sml_op) {
 			case LDAP_MOD_DELETE:
 			case LDAP_MOD_REPLACE: {
-				BerVarray vals = NULL, nvals;
+				BerVarray vals = NULL, nvals = NULL;
 				Attribute *a;
-				delrec *d;
+				delrec *d = NULL;
 
 				a = attr_find( e->e_attrs, ml->sml_desc );
 

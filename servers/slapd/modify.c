@@ -220,7 +220,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 	
-	if( op->o_req_ndn.bv_len == 0 ) {
+	if( BER_BVISEMPTY( &op->o_req_ndn ) ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -650,7 +650,7 @@ int slap_mods_check(
 			 * check that each value is valid per syntax
 			 *	and pretty if appropriate
 			 */
-			for ( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
+			for ( nvals = 0; !BER_BVISNULL( &ml->sml_values[nvals] ); nvals++ ) {
 				struct berval pval;
 
 				if ( pretty ) {
@@ -713,7 +713,7 @@ int slap_mods_check(
 				ml->sml_nvalues = ber_memalloc_x(
 					(nvals+1)*sizeof(struct berval), ctx );
 
-				for ( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
+				for ( nvals = 0; !BER_BVISNULL( &ml->sml_values[nvals] ); nvals++ ) {
 #ifdef SLAP_ORDERED_PRETTYNORM
 					rc = ordered_value_normalize(
 						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
@@ -829,8 +829,8 @@ void slap_mods_opattrs(
 		} else {
 			csn = op->o_csn;
 		}
-		ptr = strchr( csn.bv_val, '#' );
-		if ( ptr ) {
+		ptr = ber_bvchr( &csn, '#' );
+		if ( ptr && ptr < &csn.bv_val[csn.bv_len] ) {
 			timestamp.bv_len = ptr - csn.bv_val;
 			if ( timestamp.bv_len >= sizeof( timebuf ))
 				timestamp.bv_len = sizeof( timebuf ) - 1;

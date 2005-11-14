@@ -70,7 +70,6 @@ static struct bdb_info *bdb_tool_info;
 static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond;
 
-static int bdb_tool_ix_rec( int base );
 static void * bdb_tool_index_task( void *ctx, void *ptr );
 
 int bdb_tool_entry_open(
@@ -118,8 +117,6 @@ int bdb_tool_entry_open(
 int bdb_tool_entry_close(
 	BackendDB *be )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-
 	if ( bdb_tool_info ) {
 		slapd_shutdown = 1;
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );

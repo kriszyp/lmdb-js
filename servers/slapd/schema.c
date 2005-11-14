@@ -83,7 +83,7 @@ schema_info( Entry **entry, const char **text )
 		int rc;
 		AttributeDescription *desc = NULL;
 		struct berval rdn = frontendDB->be_schemadn;
-		vals[0].bv_val = strchr( rdn.bv_val, '=' );
+		vals[0].bv_val = ber_bvchr( &rdn, '=' );
 
 		if( vals[0].bv_val == NULL ) {
 			*text = "improperly configured subschema subentry";
@@ -102,7 +102,7 @@ schema_info( Entry **entry, const char **text )
 			return LDAP_OTHER;
 		}
 
-		nvals[0].bv_val = strchr( frontendDB->be_schemandn.bv_val, '=' );
+		nvals[0].bv_val = ber_bvchr( &frontendDB->be_schemandn, '=' );
 		assert( nvals[0].bv_val != NULL );
 		nvals[0].bv_val++;
 		nvals[0].bv_len = frontendDB->be_schemandn.bv_len -

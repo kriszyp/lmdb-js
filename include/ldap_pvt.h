@@ -235,7 +235,7 @@ LDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldap *ld,
 
 LDAP_F (void) ldap_pvt_tls_destroy LDAP_P(( void ));
 LDAP_F (int) ldap_pvt_tls_init LDAP_P(( void ));
-LDAP_F (int) ldap_pvt_tls_init_def_ctx LDAP_P(( void ));
+LDAP_F (int) ldap_pvt_tls_init_def_ctx LDAP_P(( int is_server ));
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
 LDAP_F (void *) ldap_pvt_tls_sb_ctx LDAP_P(( Sockbuf *sb ));
@@ -279,6 +279,7 @@ LDAP_END_DECL
 #endif /* HAVE_OPENSSL_BN_H || HAVE_BN_H */
 
 typedef	BIGNUM*		ldap_pvt_mp_t;
+#define	LDAP_PVT_MP_INIT	(NULL)
 
 #define	ldap_pvt_mp_init(mp) \
 	(mp) = BN_new()
@@ -305,6 +306,8 @@ typedef	BIGNUM*		ldap_pvt_mp_t;
 #endif
 
 typedef mpz_t		ldap_pvt_mp_t;
+#define	LDAP_PVT_MP_INIT	{ 0 }
+
 #define ldap_pvt_mp_init(mp) \
 	mpz_init((mp))
 
@@ -327,8 +330,10 @@ typedef mpz_t		ldap_pvt_mp_t;
 
 #ifdef HAVE_LONG_LONG
 typedef	unsigned long long	ldap_pvt_mp_t;
+#define	LDAP_PVT_MP_INIT	(0LL)
 #else /* !HAVE_LONG_LONG */
 typedef	unsigned long		ldap_pvt_mp_t;
+#define	LDAP_PVT_MP_INIT	(0L)
 #endif /* !HAVE_LONG_LONG */
 
 #define ldap_pvt_mp_init(mp) \

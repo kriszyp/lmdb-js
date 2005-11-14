@@ -57,8 +57,6 @@ ber_sockbuf_alloc( void )
 {
 	Sockbuf			*sb;
 
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
 	sb = LBER_CALLOC( 1, sizeof( Sockbuf ) );
 
 	if( sb == NULL ) return NULL;

@@ -42,6 +42,75 @@
 
 #define ACI_BUF_SIZE 	1024	/* use most appropriate size */
 
+enum {
+	ACI_BV_ENTRY,
+	ACI_BV_CHILDREN,
+	ACI_BV_ONELEVEL,
+	ACI_BV_SUBTREE,
+
+	ACI_BV_BR_ENTRY,
+	ACI_BV_BR_ALL,
+
+	ACI_BV_ACCESS_ID,
+	ACI_BV_PUBLIC,
+	ACI_BV_USERS,
+	ACI_BV_SELF,
+	ACI_BV_DNATTR,
+	ACI_BV_GROUP,
+	ACI_BV_ROLE,
+	ACI_BV_SET,
+	ACI_BV_SET_REF,
+
+	ACI_BV_GRANT,
+	ACI_BV_DENY,
+
+	ACI_BV_GROUP_CLASS,
+	ACI_BV_GROUP_ATTR,
+	ACI_BV_ROLE_CLASS,
+	ACI_BV_ROLE_ATTR,
+
+	ACI_BV_SET_ATTR,
+
+	ACI_BV_LAST
+};
+
+static const struct berval	aci_bv[] = {
+	/* scope */
+	BER_BVC("entry"),
+	BER_BVC("children"),
+	BER_BVC("onelevel"),
+	BER_BVC("subtree"),
+
+	/* */
+	BER_BVC("[entry]"),
+	BER_BVC("[all]"),
+
+	/* type */
+	BER_BVC("access-id"),
+	BER_BVC("public"),
+	BER_BVC("users"),
+	BER_BVC("self"),
+	BER_BVC("dnattr"),
+	BER_BVC("group"),
+	BER_BVC("role"),
+	BER_BVC("set"),
+	BER_BVC("set-ref"),
+
+	/* actions */
+	BER_BVC("grant"),
+	BER_BVC("deny"),
+
+	/* schema */
+	BER_BVC(SLAPD_GROUP_CLASS),
+	BER_BVC(SLAPD_GROUP_ATTR),
+	BER_BVC(SLAPD_ROLE_CLASS),
+	BER_BVC(SLAPD_ROLE_ATTR),
+
+	BER_BVC(SLAPD_ACI_SET_ATTR),
+
+	BER_BVNULL
+};
+
 #ifdef SLAP_DYNACL
 static
 #endif /* SLAP_DYNACL */
@@ -554,12 +623,12 @@ aci_mask(
 		}
 
 	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_SET ], &type ) == 0 ) {
-		if ( acl_match_set( &sdn, op, e, 0 ) ) {
+		if ( acl_match_set( &sdn, op, e, NULL ) ) {
 			return 1;
 		}
 
 	} else if ( ber_bvcmp( &aci_bv[ ACI_BV_SET_REF ], &type ) == 0 ) {
-		if ( acl_match_set( &sdn, op, e, 1 ) ) {
+		if ( acl_match_set( &sdn, op, e, (struct berval *)&aci_bv[ ACI_BV_SET_ATTR ] ) ) {
 			return 1;
 		}
 
@@ -574,7 +643,7 @@ aci_mask(
 int
 aci_init( void )
 {
-	/* OpenLDAP Experimental Syntax */
+	/* OpenLDAP eXperimental Syntax */
 	static slap_syntax_defs_rec aci_syntax_def = {
 		"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 			SLAP_SYNTAX_HIDE,
@@ -659,11 +728,6 @@ aci_init( void )
 }
 
 #ifdef SLAP_DYNACL
-/*
- * FIXME: there is a silly dependence that makes it difficult
- * to move ACIs in a run-time loadable module under the "dynacl" 
- * umbrella, because sets share some helpers with ACIs.
- */
 static int
 dynacl_aci_parse(
 	const char *fname,
@@ -744,6 +808,11 @@ dynacl_aci_mask(
 	char			accessmaskbuf1[ACCESSMASK_MAXLEN];
 #endif /* LDAP_DEBUG */
 
+	if ( BER_BVISEMPTY( &e->e_nname ) ) {
+		/* no ACIs in the root DSE */
+		return -1;
+	}
+
 	/* start out with nothing granted, nothing denied */
 	ACL_INIT(tgrant);
 	ACL_INIT(tdeny);
@@ -767,7 +836,7 @@ dynacl_aci_mask(
 			}
 		}
 		
-		Debug( LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n",
+		Debug( LDAP_DEBUG_ACL, "        <= aci_mask grant %s deny %s\n",
 			  accessmask2str( tgrant, accessmaskbuf, 1 ), 
 			  accessmask2str( tdeny, accessmaskbuf1, 1 ), 0 );
 	}
@@ -779,35 +848,41 @@ dynacl_aci_mask(
 	if ( tgrant == ACL_PRIV_NONE && tdeny == ACL_PRIV_NONE ) {
 		struct berval	parent_ndn;
 
-#if 1
-		/* to solve the chicken'n'egg problem of accessing
-		 * the OpenLDAPaci attribute, the direct access
-		 * to the entry's attribute is unchecked; however,
-		 * further accesses to OpenLDAPaci values in the 
-		 * ancestors occur through backend_attribute(), i.e.
-		 * with the identity of the operation, requiring
-		 * further access checking.  For uniformity, this
-		 * makes further requests occur as the rootdn, if
-		 * any, i.e. searching for the OpenLDAPaci attribute
-		 * is considered an internal search.  If this is not
-		 * acceptable, then the same check needs be performed
-		 * when accessing the entry's attribute. */
-		Operation	op2 = *op;
-
-		if ( !BER_BVISNULL( &op->o_bd->be_rootndn ) ) {
-			op2.o_dn = op->o_bd->be_rootdn;
-			op2.o_ndn = op->o_bd->be_rootndn;
-		}
-#endif
-
 		dnParent( &e->e_nname, &parent_ndn );
 		while ( !BER_BVISEMPTY( &parent_ndn ) ){
 			int		i;
 			BerVarray	bvals = NULL;
 			int		ret, stop;
 
-			Debug( LDAP_DEBUG_ACL, "checking ACI of \"%s\"\n", parent_ndn.bv_val, 0, 0 );
-			ret = backend_attribute( &op2, NULL, &parent_ndn, ad, &bvals, ACL_AUTH );
+			/* to solve the chicken'n'egg problem of accessing
+			 * the OpenLDAPaci attribute, the direct access
+			 * to the entry's attribute is unchecked; however,
+			 * further accesses to OpenLDAPaci values in the 
+			 * ancestors occur through backend_attribute(), i.e.
+			 * with the identity of the operation, requiring
+			 * further access checking.  For uniformity, this
+			 * makes further requests occur as the rootdn, if
+			 * any, i.e. searching for the OpenLDAPaci attribute
+			 * is considered an internal search.  If this is not
+			 * acceptable, then the same check needs be performed
+			 * when accessing the entry's attribute. */
+			struct berval	save_o_dn, save_o_ndn;
+	
+			if ( !BER_BVISNULL( &op->o_bd->be_rootndn ) ) {
+				save_o_dn = op->o_dn;
+				save_o_ndn = op->o_ndn;
+
+				op->o_dn = op->o_bd->be_rootdn;
+				op->o_ndn = op->o_bd->be_rootndn;
+			}
+
+			Debug( LDAP_DEBUG_ACL, "        checking ACI of \"%s\"\n", parent_ndn.bv_val, 0, 0 );
+			ret = backend_attribute( op, NULL, &parent_ndn, ad, &bvals, ACL_AUTH );
+
+			if ( !BER_BVISNULL( &op->o_bd->be_rootndn ) ) {
+				op->o_dn = save_o_dn;
+				op->o_ndn = save_o_ndn;
+			}
 
 			switch ( ret ) {
 			case LDAP_SUCCESS :
@@ -1319,16 +1394,14 @@ OpenLDAPaciValidate(
 		struct berval	ocbv = BER_BVNULL,
 				atbv = BER_BVNULL;
 
-		ocbv.bv_val = strchr( type.bv_val, '/' );
-		if ( ocbv.bv_val != NULL
-			&& ( ocbv.bv_val - type.bv_val ) < type.bv_len )
-		{
+		ocbv.bv_val = ber_bvchr( &type, '/' );
+		if ( ocbv.bv_val != NULL ) {
 			ocbv.bv_val++;
+			ocbv.bv_len = type.bv_len
+					- ( ocbv.bv_val - type.bv_val );
 
-			atbv.bv_val = strchr( ocbv.bv_val, '/' );
-			if ( atbv.bv_val != NULL
-				&& ( atbv.bv_val - ocbv.bv_val ) < ocbv.bv_len )
-			{
+			atbv.bv_val = ber_bvchr( &ocbv, '/' );
+			if ( atbv.bv_val != NULL ) {
 				AttributeDescription	*ad = NULL;
 				const char		*text = NULL;
 				int			rc;
@@ -1342,10 +1415,6 @@ OpenLDAPaciValidate(
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
 				}
-				
-			} else {
-				ocbv.bv_len = type.bv_len
-					- ( ocbv.bv_val - type.bv_val );
 			}
 
 			if ( oc_bvfind( &ocbv ) == NULL ) {
@@ -1474,10 +1543,8 @@ OpenLDAPaciPrettyNormal(
 			struct berval	ocbv = BER_BVNULL,
 					atbv = BER_BVNULL;
 
-			ocbv.bv_val = strchr( type.bv_val, '/' );
-			if ( ocbv.bv_val != NULL
-				&& ( ocbv.bv_val - type.bv_val ) < type.bv_len )
-			{
+			ocbv.bv_val = ber_bvchr( &type, '/' );
+			if ( ocbv.bv_val != NULL ) {
 				ObjectClass		*oc = NULL;
 				AttributeDescription	*ad = NULL;
 				const char		*text = NULL;
@@ -1487,11 +1554,10 @@ OpenLDAPaciPrettyNormal(
 				bv.bv_len = ntype.bv_len;
 
 				ocbv.bv_val++;
+				ocbv.bv_len = type.bv_len - ( ocbv.bv_val - type.bv_val );
 
-				atbv.bv_val = strchr( ocbv.bv_val, '/' );
-				if ( atbv.bv_val != NULL
-					&& ( atbv.bv_val - ocbv.bv_val ) < ocbv.bv_len )
-				{
+				atbv.bv_val = ber_bvchr( &ocbv, '/' );
+				if ( atbv.bv_val != NULL ) {
 					atbv.bv_val++;
 					atbv.bv_len = type.bv_len
 						- ( atbv.bv_val - type.bv_val );
@@ -1504,10 +1570,6 @@ OpenLDAPaciPrettyNormal(
 					}
 
 					bv.bv_len += STRLENOF( "/" ) + ad->ad_cname.bv_len;
-					
-				} else {
-					ocbv.bv_len = type.bv_len
-						- ( ocbv.bv_val - type.bv_val );
 				}
 
 				oc = oc_bvfind( &ocbv );
