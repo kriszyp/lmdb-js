@@ -749,13 +749,38 @@ smbk5pwd_cf_func( ConfigArgs *c )
 static int
 smbk5pwd_modules_init( smbk5pwd_t *pi )
 {
-	int		rc;
-	const char	*text;
+	static struct {
+		const char		*name;
+		AttributeDescription	**adp;
+	}
+#ifdef DO_KRB5
+	krb5_ad[] = {
+		{ "krb5Key",			&ad_krb5Key },
+		{ "krb5KeyVersionNumber",	&ad_krb5KeyVersionNumber },
+		{ "krb5PrincipalName",		&ad_krb5PrincipalName },
+		{ NULL }
+	},
+#endif /* DO_KRB5 */
+#ifdef DO_SAMBA
+	samba_ad[] = {
+		{ "sambaLMPassword",		&ad_sambaLMPassword },
+		{ "sambaNTPassword",		&ad_sambaNTPassword },
+		{ "sambaPwdLastSet",		&ad_sambaPwdLastSet },
+		{ "sambaPwdMustChange",		&ad_sambaPwdMustChange },
+		{ NULL }
+	},
+#endif /* DO_SAMBA */
+	dummy_ad;
+
+	/* this is to silence the unused var warning */
+	dummy_ad.name = NULL;
 
 #ifdef DO_KRB5
 	if ( SMBK5PWD_DO_KRB5( pi ) && oc_krb5KDCEntry == NULL ) {
 		krb5_error_code	ret;
 		extern HDB 	*_kadm5_s_get_db(void *);
+
+		int		i, rc;
 
 		/* Make sure all of our necessary schema items are loaded */
 		oc_krb5KDCEntry = oc_find( "krb5KDCEntry" );
@@ -763,35 +788,22 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"krb5KDCEntry\" objectClass.\n",
 				0, 0, 0 );
-			rc = -1;
-			goto cleanup_krb5;
+			return -1;
 		}
 
-		ad_krb5Key = NULL;
-		rc = slap_str2ad( "krb5Key", &ad_krb5Key, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"krb5Key\" attributeType: %s (%d).\n",
-				text, rc, 0 );
-			goto cleanup_krb5;
-		}
+		for ( i = 0; krb5_ad[ i ].name != NULL; i++ ) {
+			const char	*text;
 
-		ad_krb5KeyVersionNumber = NULL;
-		rc = slap_str2ad( "krb5KeyVersionNumber", &ad_krb5KeyVersionNumber, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"krb5KeyVersionNumber\" attributeType: %s (%d).\n",
-				text, rc, 0 );
-			goto cleanup_krb5;
-		}
+			*(krb5_ad[ i ].adp) = NULL;
 
-		ad_krb5PrincipalName = NULL;
-		rc = slap_str2ad( "krb5PrincipalName", &ad_krb5PrincipalName, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"krb5PrincipalName\" attributeType: %s (%d).\n",
-				text, rc, 0 );
-			goto cleanup_krb5;
+			rc = slap_str2ad( krb5_ad[ i ].name, krb5_ad[ i ].adp, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
+					"unable to find \"%s\" attributeType: %s (%d).\n",
+					krb5_ad[ i ].name, text, rc );
+				oc_krb5KDCEntry = NULL;
+				return rc;
+			}
 		}
 
 		/* Initialize Kerberos context */
@@ -800,80 +812,47 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to initialize krb5 context.\n",
 				0, 0, 0 );
-			rc = -1;
-			goto cleanup_krb5;
-		}
-
-		if ( context == NULL ) {
-			ret = kadm5_s_init_with_password_ctx( context,
-				KADM5_ADMIN_SERVICE,
-				NULL,
-				KADM5_ADMIN_SERVICE,
-				&conf, 0, 0, &kadm_context );
-	
-			db = _kadm5_s_get_db( kadm_context );
-		}
-
-		if ( 0 ) {
-cleanup_krb5:;
 			oc_krb5KDCEntry = NULL;
-
-			return rc;
+			return -1;
 		}
+
+		/* FIXME: check return code? */
+		ret = kadm5_s_init_with_password_ctx( context,
+			KADM5_ADMIN_SERVICE,
+			NULL,
+			KADM5_ADMIN_SERVICE,
+			&conf, 0, 0, &kadm_context );
+
+		/* FIXME: check return code? */
+		db = _kadm5_s_get_db( kadm_context );
 	}
 #endif /* DO_KRB5 */
 
 #ifdef DO_SAMBA
 	if ( SMBK5PWD_DO_SAMBA( pi ) && oc_sambaSamAccount == NULL ) {
+		int		i, rc;
+
 		oc_sambaSamAccount = oc_find( "sambaSamAccount" );
 		if ( !oc_sambaSamAccount ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"sambaSamAccount\" objectClass.\n",
 				0, 0, 0 );
-			rc = -1;
-			goto cleanup_samba;
+			return -1;
 		}
 
-		ad_sambaLMPassword = NULL;
-		rc = slap_str2ad( "sambaLMPassword", &ad_sambaLMPassword, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"sambaLMPassword\" attributeType: %s (%d).\n",
-				text, rc, 0 );
-			goto cleanup_samba;
-		}
+		for ( i = 0; samba_ad[ i ].name != NULL; i++ ) {
+			const char	*text;
 
-		ad_sambaNTPassword = NULL;
-		rc = slap_str2ad( "sambaNTPassword", &ad_sambaNTPassword, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"sambaNTPassword\" attributeType: %s (%d).\n",
-				text, rc, 0 );
-			goto cleanup_samba;
-		}
+			*(samba_ad[ i ].adp) = NULL;
 
-		ad_sambaPwdLastSet = NULL;
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"sambaPwdLastSet\" attributeType: %s (%d).\n",
-				text, rc, 0 );
-			goto cleanup_samba;
-		}
-
-		ad_sambaPwdMustChange = NULL;
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"sambaPwdMustChange\" attributeType: %s (%d).\n",
-				text, rc, 0 );
-			goto cleanup_samba;
-		}
-
-		if ( 0 ) {
-cleanup_samba:;
-			oc_sambaSamAccount = NULL;
-
-
-			return rc;
+			rc = slap_str2ad( samba_ad[ i ].name, samba_ad[ i ].adp, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
+					"unable to find \"%s\" attributeType: %s (%d).\n",
+					samba_ad[ i ].name, text, rc );
+				oc_sambaSamAccount = NULL;
+				return rc;
+			}
 		}
 	}
 #endif /* DO_SAMBA */
