@@ -61,7 +61,9 @@ static LDAPMod *alloc_ldapmod LDAP_P(( void ));
 static void free_ldapmod LDAP_P(( LDAPMod * ));
 static void free_ldmarr LDAP_P(( LDAPMod ** ));
 static int getmodtype LDAP_P(( char * ));
+#ifdef SLAPD_UNUSED
 static void dump_ldm_array LDAP_P(( LDAPMod ** ));
+#endif
 static int do_bind LDAP_P(( Ri *, int * ));
 static int do_unbind LDAP_P(( Ri * ));
 
@@ -877,6 +879,7 @@ retry:
 /*
  * For debugging.  Print the contents of an ldmarr array.
  */
+#ifdef SLAPD_UNUSED
 static void
 dump_ldm_array(
     LDAPMod **ldmarr
@@ -910,3 +913,4 @@ dump_ldm_array(
 	}
     }
 }
+#endif

@@ -550,7 +550,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-		"number of values in query: %lu\n", count, 0, 0 );
+		"number of values in query: %u\n", count, 0, 0 );
 	SQLFreeStmt( sth, SQL_DROP );
 	if ( count == 0 ) {
 		return 1;

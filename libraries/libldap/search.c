@@ -402,7 +402,7 @@ ldap_bv2escaped_filter_value( struct berval *in, struct berval *out )
 
 	for( i=0; i<in->bv_len; i++ ) {
 		char c = in->bv_val[ i ];
-		if (c & 0x80 || escape[ c ]) {
+		if (c & 0x80 || escape[ (unsigned)c ]) {
 			out->bv_val[out->bv_len++] = '\\';
 			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & (c>>4)];
 			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & c];

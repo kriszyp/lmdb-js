@@ -22,7 +22,9 @@
 #include "slap.h"
 
 static struct slab_object * slap_replenish_sopool(struct slab_heap* sh);
+#ifdef SLAPD_UNUSED
 static void print_slheap(int level, void *ctx);
+#endif
 
 void
 slap_sl_mem_destroy(
@@ -598,6 +600,7 @@ slap_replenish_sopool(
     return so_block;
 }
 
+#ifdef SLAPD_UNUSED
 static void
 print_slheap(int level, void *ctx)
 {
@@ -638,3 +641,4 @@ print_slheap(int level, void *ctx)
 		}
 	}
 }
+#endif

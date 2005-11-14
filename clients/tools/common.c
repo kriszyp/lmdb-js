@@ -747,7 +747,7 @@ tool_args( int argc, char **argv )
 		}
 
 		ldap_memfree( api.ldapai_vendor_name );
-		ldap_value_free( api.ldapai_extensions );
+		ber_memvfree( (void **)api.ldapai_extensions );
 	}
 
 	if (protocol == -1)

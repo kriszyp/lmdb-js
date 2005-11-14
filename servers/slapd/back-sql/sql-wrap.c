@@ -434,7 +434,7 @@ backsql_free_db_conn( Operation *op )
 	if ( conn != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_free_db_conn(): "
 			"closing db connection %lu (%p)\n",
-			op->o_connid, conn, 0 );
+			op->o_connid, (void *)conn, 0 );
 		backsql_close_db_conn( (void *)conn );
 	}
 
