@@ -5,6 +5,9 @@ OpenLDAP 2.3.12 Engineering
 	Added libldap ldap_bv2escaped_filter_value (ITS#2535)
 	Fixed libldap HSTRERROR issue (ITS#4124)
 	Added libldap/slapd TLS DSA certificate support (ITS#4017)
+	Fixed libldap SASL bind issue (ITS#4158)
+	Fixed client tools additional info printing (ITS#4147)
+	Updated slapd ldaps:// not configured fix (ITS#4082,4083)
 	Fixed slapd illegal S option bug (ITS#4119)
 	Fixed slapd cn=monitor log level mod issue (ITS#4091)
 	Fixed slapd cn=config bad access issue (ITS#4111)
@@ -13,21 +16,35 @@ OpenLDAP 2.3.12 Engineering
 	Fixed slapd non-reentrant libwrap issue (ITS#4099)
 	Fixed slapd AIX IFMT issue (ITS#4123)
 	Fixed ldapmodrdn empty line handling (ITS#4101)
+	Fixed slapd-bdb uninitialized condition in tool mode (ITS#4143)
+	Fixed slapd-bdb empty suffix and syncprov issue (ITS#4171)
 	Fixed slapd-hdb syncrepl deadlock issue (ITS#4088)
+	Added slapd-ldap write op timeout support (ITS#4157)
 	Fixed slapd-meta invalid DN attrs normalize/pretty issue (ITS#4107)
 	Fixed slapd-meta rootdn erroneous success issue (ITS#4122)
 	Fixed slapd-meta proxying bind result issue (ITS#4129)
 	Fixed slapd-meta/slapo-rwm rwm-mapping issue (ITS#4086)
+	Fixed slapd-meta per-target retry (ITS#4150)
+	Fixed slapd-meta size/time limit handling (ITS#4145)
 	Fixed slapo-ppolicy pwdFailureTIme after bind success issue (ITS#4134)
+	Fixed slapd spurious defer message (ITS#3850)
+	Fixed slapd attribute SYNTAX OIDM issue (ITS#4116)
 	Added slapd delta syncrepl support
 	Added slapadd thread support
 	Updated slapcat subordinate database handling (ITS#4089)
 	Added slapd/slaptest pid/arg file consistency check (ITS#4074)
+	Fixed slurpd backwards compat issue (ITS#4151)
+	Added slurpd pid/arg file consistency check (ITS#4152)
 	Updated contrib smbk5pwd module
 	Build environment
 		Added slapd-bind test program
 		Added inet_ntoa_b support for VxWorks (ITS#3440)
+		Updated test036 (ITS#4095)
+		Fixed test036 cmp issue (ITS#4142)
 		Dropped SSLeay support
+	Documentation
+		slapd.conf(5) defaultSearchBase issue (ITS#4162)
+		slap tool man pages wll typo (ITS#4169)
 
 OpenLDAP 2.3.11 Release
 	Fixed libldap reentrancy issue (ITS#3988)
