@@ -381,7 +381,9 @@ retry:	/* transaction retry */
 		}
 	}
 
-	e = ei->bei_e;
+	if ( !fakeroot ) {
+		e = ei->bei_e;
+	}
 
 	/* acquire and lock entry */
 	/* FIXME: dn2entry() should return non-glue entry */
