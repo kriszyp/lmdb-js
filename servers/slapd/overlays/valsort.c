@@ -339,7 +339,7 @@ valsort_response( Operation *op, SlapReply *rs )
 
 				if ( a->a_vals != a->a_nvals ) {
 					ptr = a->a_vals[i].bv_val;
-					end = ber_bvchr( &a->a_vals[i], '}' ) + 1;
+					end = (char *) ber_bvchr( &a->a_vals[i], '}' ) + 1;
 					assert( end != NULL );
 					for (;*end;)
 						*ptr++ = *end++;
