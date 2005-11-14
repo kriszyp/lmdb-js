@@ -540,6 +540,7 @@ retry:	/* transaction retry */
 			e->e_private = NULL;
 			entry_free( e );
 			e = NULL;
+			attrs_free( dummy.e_attrs );
 
 		} else {
 			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
