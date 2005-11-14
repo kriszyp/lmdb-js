@@ -1125,7 +1125,7 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 			break;
 
 		case 'u':
-			uptr = (int *)((char *)src + tab->off);
+			uptr = (unsigned *)((char *)src + tab->off);
 			*ptr++ = ' ';
 			ptr = lutil_strcopy( ptr, tab->key.bv_val );
 			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%u", *uptr );
