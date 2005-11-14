@@ -844,7 +844,7 @@ verbs_to_mask(int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m) {
 	int i, j;
 	for(i = 1; i < argc; i++) {
 		j = verb_to_mask(argv[i], v);
-		if(BER_BVISNULL(&v[j].word)) return(1);
+		if(BER_BVISNULL(&v[j].word)) return i;
 		while (!v[j].mask) j--;
 		*m |= v[j].mask;
 	}
