@@ -539,6 +539,8 @@ retry:	/* transaction retry */
 		if ( fakeroot ) {
 			e->e_private = NULL;
 			entry_free( e );
+			e = NULL;
+
 		} else {
 			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
 			switch( rc ) {
