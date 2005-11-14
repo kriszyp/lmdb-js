@@ -296,8 +296,8 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 	}
 	end.tv_sec -= beg.tv_sec;
 
-	fprintf( stderr, "Done %d Binds in %d.%06d seconds.\n", i,
-		end.tv_sec, end.tv_usec );
+	fprintf( stderr, "Done %d Binds in %ld.%06ld seconds.\n", i,
+		(long) end.tv_sec, (long) end.tv_usec );
 #endif
 	return 0;
 }
