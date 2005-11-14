@@ -12,6 +12,12 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
+/*
+ * Support for sambaPwdMustChange added by Marco D'Ettorre.
+ * Support for table-driven configuration added by Pierangelo Masarati.
+ *
+ * The conditions of the OpenLDAP Public License apply.
+ */
 
 #include <portable.h>
 
@@ -666,6 +672,12 @@ smbk5pwd_cf_func( ConfigArgs *c )
 	switch( c->type ) {
 	case PC_SMB_MUST_CHANGE:
 #ifdef DO_SAMBA
+		if ( c->value_int < 0 ) {
+			Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
+				"<%s> invalid negative value \"%d\".",
+				c->log, c->argv[ 0 ], 0 );
+			return 1;
+		}
 		pi->smb_must_change = c->value_int;
 #else /* ! DO_SAMBA */
 		Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
@@ -677,22 +689,27 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		break;
 
 	case PC_SMB_ENABLE: {
-		slap_mask_t	m;
+		slap_mask_t	mode = pi->mode, m;
 
 		rc = verbs_to_mask( c->argc, c->argv, smbk5pwd_modules, &m );
-		if ( rc ) {
+		if ( rc > 0 ) {
 			Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
 				"<%s> unknown module \"%s\".\n",
 				c->log, c->argv[ 0 ], c->argv[ rc ] );
 			return 1;
 		}
+
+		/* we can hijack the smbk5pwd_t structure because
+		 * from within the configuration, this is the only
+		 * active thread. */
 		pi->mode |= m;
 
 #ifndef DO_KRB5
 		if ( SMBK5PWD_DO_KRB5( pi ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
 				"<%s> module \"%s\" only allowed when compiled with -DDO_KRB5.\n",
-				c->log, c->argv[ 0 ], c->argv[ i ] );
+				c->log, c->argv[ 0 ], c->argv[ rc ] );
+			pi->mode = mode;
 			return 1;
 		}
 #endif /* ! DO_KRB5 */
@@ -701,7 +718,8 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		if ( SMBK5PWD_DO_SAMBA( pi ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
 				"<%s> module \"%s\" only allowed when compiled with -DDO_SAMBA.\n",
-				c->log, c->argv[ 0 ], c->argv[ i ] );
+				c->log, c->argv[ 0 ], c->argv[ rc ] );
+			pi->mode = mode;
 			return 1;
 		}
 #endif /* ! DO_SAMBA */
@@ -709,9 +727,12 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		{
 			BackendDB	db = *c->be;
 
+			/* Re-initialize the module, because
+			 * the configuration might have changed */
 			db.bd_info = (BackendInfo *)on;
 			rc = smbk5pwd_modules_init( pi );
 			if ( rc ) {
+				pi->mode = mode;
 				return 1;
 			}
 		}
@@ -737,7 +758,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 		extern HDB 	*_kadm5_s_get_db(void *);
 
 		/* Make sure all of our necessary schema items are loaded */
-		oc_krb5KDCEntry = oc_find("krb5KDCEntry");
+		oc_krb5KDCEntry = oc_find( "krb5KDCEntry" );
 		if ( !oc_krb5KDCEntry ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
 				"unable to find \"krb5KDCEntry\" objectClass.\n",
@@ -746,6 +767,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			goto cleanup_krb5;
 		}
 
+		ad_krb5Key = NULL;
 		rc = slap_str2ad( "krb5Key", &ad_krb5Key, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
@@ -754,6 +776,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			goto cleanup_krb5;
 		}
 
+		ad_krb5KeyVersionNumber = NULL;
 		rc = slap_str2ad( "krb5KeyVersionNumber", &ad_krb5KeyVersionNumber, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
@@ -762,6 +785,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			goto cleanup_krb5;
 		}
 
+		ad_krb5PrincipalName = NULL;
 		rc = slap_str2ad( "krb5PrincipalName", &ad_krb5PrincipalName, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
@@ -780,13 +804,15 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 			goto cleanup_krb5;
 		}
 
-		ret = kadm5_s_init_with_password_ctx( context,
-			KADM5_ADMIN_SERVICE,
-			NULL,
-			KADM5_ADMIN_SERVICE,
-			&conf, 0, 0, &kadm_context );
+		if ( context == NULL ) {
+			ret = kadm5_s_init_with_password_ctx( context,
+				KADM5_ADMIN_SERVICE,
+				NULL,
+				KADM5_ADMIN_SERVICE,
+				&conf, 0, 0, &kadm_context );
 	
-		db = _kadm5_s_get_db(kadm_context);
+			db = _kadm5_s_get_db( kadm_context );
+		}
 
 		if ( 0 ) {
 cleanup_krb5:;
@@ -808,6 +834,7 @@ cleanup_krb5:;
 			goto cleanup_samba;
 		}
 
+		ad_sambaLMPassword = NULL;
 		rc = slap_str2ad( "sambaLMPassword", &ad_sambaLMPassword, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
@@ -816,18 +843,27 @@ cleanup_krb5:;
 			goto cleanup_samba;
 		}
 
+		ad_sambaNTPassword = NULL;
 		rc = slap_str2ad( "sambaNTPassword", &ad_sambaNTPassword, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"sambaLMPassword\" attributeType: %s (%d).\n",
+				"unable to find \"sambaNTPassword\" attributeType: %s (%d).\n",
 				text, rc, 0 );
 			goto cleanup_samba;
 		}
 
-		rc = slap_str2ad( "sambaPwdLastSet", &ad_sambaPwdLastSet, &text );
+		ad_sambaPwdLastSet = NULL;
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to find \"sambaLMPassword\" attributeType: %s (%d).\n",
+				"unable to find \"sambaPwdLastSet\" attributeType: %s (%d).\n",
+				text, rc, 0 );
+			goto cleanup_samba;
+		}
+
+		ad_sambaPwdMustChange = NULL;
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
+				"unable to find \"sambaPwdMustChange\" attributeType: %s (%d).\n",
 				text, rc, 0 );
 			goto cleanup_samba;
 		}
@@ -835,6 +871,7 @@ cleanup_krb5:;
 		if ( 0 ) {
 cleanup_samba:;
 			oc_sambaSamAccount = NULL;
+
 
 			return rc;
 		}
