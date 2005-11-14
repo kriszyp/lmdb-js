@@ -167,10 +167,10 @@ ber_bvarray_add_x LDAP_P(( BerVarray *p, BerValue *bv, void *ctx ));
 	( (s)[0] == (c) && (s)[1] == '\0' )
 
 #define ber_bvchr(bv,c) \
-	memchr( (bv)->bv_val, (c), (bv)->bv_len )
+	((char *) memchr( (bv)->bv_val, (c), (bv)->bv_len ))
 
 #define ber_bvrchr(bv,c) \
-	memrchr( (bv)->bv_val, (c), (bv)->bv_len )
+	((char *) memrchr( (bv)->bv_val, (c), (bv)->bv_len ))
 
 #define ber_bvchr_right(dst,bv,c) \
 	do { \
