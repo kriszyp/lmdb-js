@@ -48,7 +48,9 @@ typedef struct ldbm_entry_info {
 
 static int	cache_delete_entry_internal(Cache *cache, Entry *e);
 #ifdef LDAP_DEBUG
+#ifdef SLAPD_UNUSED
 static void	lru_print(Cache *cache);
+#endif
 #endif
 
 static int
@@ -652,6 +654,7 @@ cache_release_all( Cache *cache )
 }
 
 #ifdef LDAP_DEBUG
+#ifdef SLAPD_UNUSED
 static void
 lru_print( Cache *cache )
 {
@@ -668,4 +671,5 @@ lru_print( Cache *cache )
 			e->e_dn, e->e_id, LEI(e)->lei_refcnt );
 	}
 }
+#endif
 #endif

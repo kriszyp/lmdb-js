@@ -2055,6 +2055,8 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	ch_free( cb );
+	op->o_callback = NULL;
+
 	return SLAP_CB_CONTINUE;
 }
 

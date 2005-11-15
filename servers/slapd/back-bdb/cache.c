@@ -32,7 +32,9 @@
 
 static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 #ifdef LDAP_DEBUG
+#ifdef SLAPD_UNUSED
 static void	bdb_lru_print(Cache *cache);
+#endif
 #endif
 
 static EntryInfo *
@@ -1223,6 +1225,7 @@ bdb_cache_release_all( Cache *cache )
 }
 
 #ifdef LDAP_DEBUG
+#ifdef SLAPD_UNUSED
 static void
 bdb_lru_print( Cache *cache )
 {
@@ -1239,6 +1242,7 @@ bdb_lru_print( Cache *cache )
 			e->bei_nrdn.bv_val, e->bei_id );
 	}
 }
+#endif
 #endif
 
 #ifdef BDB_REUSE_LOCKERS

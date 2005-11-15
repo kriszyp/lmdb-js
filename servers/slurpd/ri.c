@@ -158,7 +158,7 @@ Ri_process(
 	rq->rq_unlock( rq );
 	if ( sglob->slurpd_shutdown ) {
 	    if ( ri->ri_ldp ) {
-	    	ldap_unbind( ri->ri_ldp );
+	    	ldap_unbind_ext( ri->ri_ldp, NULL, NULL );
 		ri->ri_ldp = NULL;
 	    }
 	    return 0;

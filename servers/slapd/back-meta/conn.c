@@ -283,8 +283,15 @@ retry:;
 				rs->sr_err = ldap_parse_extended_result( msc->msc_ld, res,
 						NULL, &data, 0 );
 				if ( rs->sr_err == LDAP_SUCCESS ) {
-					rs->sr_err = ldap_result2error( msc->msc_ld, res, 1 );
+					int		err;
+
+					rs->sr_err = ldap_parse_result( msc->msc_ld, res,
+						&err, NULL, NULL, NULL, NULL, 1 );
 					res = NULL;
+
+					if ( rs->sr_err == LDAP_SUCCESS ) {
+						rs->sr_err = err;
+					}
 					
 					/* FIXME: in case a referral 
 					 * is returned, should we try

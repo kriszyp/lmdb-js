@@ -1222,6 +1222,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	syncprov_info_t		*si = on->on_bi.bi_private;
 	Modifications mod;
 	Operation opm;
+	SlapReply rsm;
 	struct berval bv[2];
 	slap_callback cb = {0};
 
@@ -1243,7 +1244,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_req_ndn = op->o_bd->be_nsuffix[0];
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
-	opm.o_bd->be_modify( &opm, rs );
+	opm.o_bd->be_modify( &opm, &rsm );
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}

@@ -759,6 +759,7 @@ error_return:;
 }
 
 #ifdef LDAP_DEBUG
+#ifdef SLAPD_UNUSED
 static int
 at_index_printnode( void *v_air, void *ignore )
 {
@@ -775,6 +776,7 @@ at_index_print( void )
 	printf("Printing attribute type index:\n");
 	(void) avl_apply( attr_index, at_index_printnode, 0, -1, AVL_INORDER );
 }
+#endif
 #endif
 
 void
