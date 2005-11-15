@@ -1447,6 +1447,9 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		}
 	} else if ( sc == SASL_CONTINUE ) {
 		rs->sr_err = LDAP_SASL_BIND_IN_PROGRESS,
+#if SASL_VERSION_MAJOR >= 2
+		rs->sr_text = sasl_errdetail( ctx );
+#endif
 		rs->sr_sasldata = &response;
 		send_ldap_sasl( op, rs );
 
@@ -1459,9 +1462,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 	}
 
 #if SASL_VERSION_MAJOR < 2
-	if( response.bv_len ) {
-		ch_free( response.bv_val );
-	}
+	if( response.bv_len ) ch_free( response.bv_val );
 #endif
 
 	Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: rc=%d\n", rs->sr_err, 0, 0);
