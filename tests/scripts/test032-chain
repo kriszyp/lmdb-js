@@ -21,6 +21,8 @@ if test $BACKLDAP = "ldapno" ; then
 	exit 0
 fi 
 
+rm -rf $TESTDIR
+
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 echo "Running slapadd to build slapd database..."
@@ -50,6 +52,7 @@ if test $WAIT != 0 ; then
     echo PID $PID1
     read foo
 fi
+KILLPIDS="$PID1"
 
 echo "Starting second slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $CHAINCONF2 > $CONF2
@@ -60,7 +63,7 @@ if test $WAIT != 0 ; then
     read foo
 fi
 
-KILLPIDS="$PID1 $PID2"
+KILLPIDS="$KILLPIDS $PID2"
 
 sleep 1
 
@@ -76,6 +79,12 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Using ldapsearch to check that second slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
@@ -87,6 +96,12 @@ for i in 0 1 2 3 4 5; do
 	echo "Waiting 5 seconds for slapd to start..."
 	sleep 5
 done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 for P in $PORT1 $PORT2 ; do
 	echo "Testing ldapsearch as anonymous for \"$BASEDN\" on port $P..."

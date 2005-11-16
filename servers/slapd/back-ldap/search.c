@@ -155,6 +155,8 @@ ldap_back_search(
 	int		freetext = 0;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
+	/* FIXME: shouldn't this be null? */
+	const char	*save_matched = rs->sr_matched;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
@@ -454,14 +456,14 @@ finish:;
 		rs->sr_ctrls = NULL;
 	}
 
-	if ( rs->sr_matched != NULL ) {
+	if ( rs->sr_matched != NULL && rs->sr_matched != save_matched ) {
 		if ( rs->sr_matched != match.bv_val ) {
 			ber_memfree_x( (char *)rs->sr_matched, op->o_tmpmemctx );
 
 		} else {
 			LDAP_FREE( match.bv_val );
 		}
-		rs->sr_matched = NULL;
+		rs->sr_matched = save_matched;
 	}
 
 	if ( !BER_BVISNULL( &filter ) && filter.bv_val != op->ors_filterstr.bv_val ) {
