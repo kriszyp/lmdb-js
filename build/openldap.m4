@@ -233,6 +233,32 @@ OL_RESOLVER_TRY(ol_cv_resolver_bind,[-lbind])
 ])
 dnl
 dnl ====================================================================
+dnl International Components for Unicode (ICU)
+AC_DEFUN([OL_ICU],
+[ol_icu=no
+AC_CHECK_HEADERS( unicode/utypes.h )
+if test $ac_cv_header_unicode_utypes_h = yes ; then
+	ICULIBS="-licui18n -licuuc -licudata"
+
+	AC_CACHE_CHECK([for ICU libraries], [ol_cv_lib_icu], [
+		ol_LIBS="$LIBS"
+		LIBS="$ICULIBS $LIBS"
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <unicode/utypes.h>
+]], [[
+(void) u_errorName(0);
+]])],[ol_cv_lib_icu=yes],[ol_cv_lib_icu=no])
+		LIBS="$ol_LIBS"
+])
+
+	if test $ol_cv_lib_icu != no ; then
+		ol_icu="$ICULIBS"
+		AC_DEFINE(HAVE_ICU,1,[define if you actually have ICU])
+	fi
+fi
+])
+dnl
+dnl ====================================================================
 dnl Berkeley DB macros
 dnl
 dnl --------------------------------------------------------------------

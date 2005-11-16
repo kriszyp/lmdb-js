@@ -1010,6 +1010,15 @@ dnl ----------------------------------------------------------------
 OL_STRERROR
 
 dnl ----------------------------------------------------------------
+dnl International Components for Unicode
+dnl		don't use yet
+dnl OL_ICU
+dnl if test "$ol_icu" = no ; then
+dnl 	AC_MSG_ERROR([ICU not available])
+dnl else
+dnl 	LIBS="$LIBS $ol_icu"
+dnl fi
+dnl ----------------------------------------------------------------
 dnl require POSIX regex
 AC_CHECK_HEADERS( regex.h )
 if test "$ac_cv_header_regex_h" != yes ; then
