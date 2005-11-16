@@ -64,7 +64,7 @@ static bdb_tool_idl_cache_entry *bdb_tool_idl_free_list;
 
 static ID bdb_tool_ix_id;
 static Operation *bdb_tool_ix_op;
-static volatile int *bdb_tool_index_threads;
+static int *bdb_tool_index_threads, bdb_tool_index_tcount;
 static void *bdb_tool_index_rec;
 static struct bdb_info *bdb_tool_info;
 static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
@@ -100,12 +100,12 @@ int bdb_tool_entry_open(
 			ldap_pvt_thread_cond_init( &bdb_tool_index_cond );
 			bdb_tool_index_threads = ch_malloc( slap_tool_thread_max * sizeof( int ));
 			bdb_tool_index_rec = ch_malloc( bdb->bi_nattrs * sizeof( IndexRec ));
+			bdb_tool_index_tcount = slap_tool_thread_max - 1;
 			for (i=1; i<slap_tool_thread_max; i++) {
 				int *ptr = ch_malloc( sizeof( int ));
 				*ptr = i;
 				ldap_pvt_thread_pool_submit( &connection_pool,
 					bdb_tool_index_task, ptr );
-				ldap_pvt_thread_yield();
 			}
 		}
 		bdb_tool_info = bdb;
@@ -120,6 +120,7 @@ int bdb_tool_entry_close(
 	if ( bdb_tool_info ) {
 		slapd_shutdown = 1;
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+		bdb_tool_index_tcount = slap_tool_thread_max - 1;
 		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 	}
@@ -406,8 +407,15 @@ bdb_tool_index_add(
 		bdb_tool_ix_id = e->e_id;
 		bdb_tool_ix_op = op;
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+		/* Wait for all threads to be ready */
+		while ( bdb_tool_index_tcount ) {
+			ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
+			ldap_pvt_thread_yield();
+			ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+		}
 		for ( i=1; i<slap_tool_thread_max; i++ )
 			bdb_tool_index_threads[i] = LDAP_BUSY;
+		bdb_tool_index_tcount = slap_tool_thread_max - 1;
 		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 		rc = bdb_index_recrun( op, bdb, ir, e->e_id, 0 );
@@ -1032,6 +1040,7 @@ bdb_tool_index_task( void *ctx, void *ptr )
 	free( ptr );
 	while ( 1 ) {
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+		bdb_tool_index_tcount--;
 		ldap_pvt_thread_cond_wait( &bdb_tool_index_cond,
 			&bdb_tool_index_mutex );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
