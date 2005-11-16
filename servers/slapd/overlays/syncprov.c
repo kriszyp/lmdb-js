@@ -1222,7 +1222,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	syncprov_info_t		*si = on->on_bi.bi_private;
 	Modifications mod;
 	Operation opm;
-	SlapReply rsm;
+	SlapReply rsm = { 0 };
 	struct berval bv[2];
 	slap_callback cb = {0};
 
