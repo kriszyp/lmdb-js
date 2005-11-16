@@ -34,6 +34,7 @@ OpenLDAP 2.3.12 Release
 	Added slapadd thread support
 	Updated slapcat subordinate database handling (ITS#4089)
 	Added slapd/slaptest pid/arg file consistency check (ITS#4074)
+	Updated slaptools default debug level to "none" (ITS#4044)
 	Fixed slurpd backwards compat issue (ITS#4151)
 	Added slurpd pid/arg file consistency check (ITS#4152)
 	Updated contrib smbk5pwd module
