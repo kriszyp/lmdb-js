@@ -79,6 +79,10 @@ static const unsigned char crypt64[] =
 static char *salt_format = NULL;
 #endif
 
+/* KLUDGE:
+ *  chk_fn is NULL iff name is {CLEARTEXT}
+ *     otherwise, things will break
+ */
 struct pw_scheme {
 	struct berval name;
 	LUTIL_PASSWD_CHK_FUNC *chk_fn;
@@ -161,7 +165,7 @@ static const struct pw_scheme pw_schemes_default[] =
 
 #ifdef SLAPD_CLEARTEXT
 	/* pseudo scheme */
-	{ {0, "{CLEARTEXT}"},		NULL, hash_clear },
+	{ BER_BVC("{CLEARTEXT}"),	NULL, hash_clear },
 #endif
 
 	{ BER_BVNULL, NULL, NULL }
@@ -223,9 +227,7 @@ static const struct pw_scheme *get_scheme(
 	bv.bv_val = (char *) scheme;
 
 	for( pws=pw_schemes; pws; pws=pws->next ) {
-		if( bv.bv_len != pws->s.name.bv_len )
-			continue;
-		if( strncasecmp(bv.bv_val, pws->s.name.bv_val, bv.bv_len ) == 0 ) {
+		if ( ber_bvstrcasecmp(&bv, &pws->s.name ) == 0 ) {
 			return &(pws->s);
 		}
 	}
@@ -317,10 +319,17 @@ lutil_passwd(
 	}
 
 #ifdef SLAPD_CLEARTEXT
+	/* Do we think there is a scheme specifier here that we
+	* didn't recognize? Assume a scheme name is at least 1 character.
+	*/
+	if (( passwd->bv_val[0] == '{' ) &&
+		( strchr( passwd->bv_val, '}' ) > passwd->bv_val+1 ))
+	{
+		return 1;
+	}
 	if( is_allowed_scheme("{CLEARTEXT}", schemes ) ) {
-		return (( passwd->bv_len == cred->bv_len ) &&
-				( passwd->bv_val[0] != '{' /*'}'*/ ))
-			? memcmp( passwd->bv_val, cred->bv_val, passwd->bv_len )
+		return ( passwd->bv_len == cred->bv_len ) ?
+			memcmp( passwd->bv_val, cred->bv_val, passwd->bv_len )
 			: 1;
 	}
 #endif
