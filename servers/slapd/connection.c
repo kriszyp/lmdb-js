@@ -1787,9 +1787,59 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	op->o_conn->c_conn_state = SLAP_C_ACTIVE;
+    op->o_conn->c_sasl_bind_in_progress =
+        ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS );
+
+    /* Moved here from bind.c due to ITS#4158 */
+    op->o_conn->c_sasl_bindop = NULL;
+	if ( op->orb_method == LDAP_AUTH_SASL ) {
+		if( rs->sr_err == LDAP_SUCCESS ) {
+			ber_dupbv(&op->o_conn->c_dn, &op->orb_edn);
+			if( !BER_BVISEMPTY( &op->orb_edn ) ) {
+				/* edn is always normalized already */
+				ber_dupbv( &op->o_conn->c_ndn, &op->o_conn->c_dn );
+			}
+			op->o_tmpfree( op->orb_edn.bv_val, op->o_tmpmemctx );
+			BER_BVZERO( &op->orb_edn );
+			op->o_conn->c_authmech = op->o_conn->c_sasl_bind_mech;
+			BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
+
+			op->o_conn->c_sasl_ssf = op->orb_ssf;
+			if( op->orb_ssf > op->o_conn->c_ssf ) {
+				op->o_conn->c_ssf = op->orb_ssf;
+			}
+
+			if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
+				ber_len_t max = sockbuf_max_incoming_auth;
+				ber_sockbuf_ctrl( op->o_conn->c_sb,
+					LBER_SB_OPT_SET_MAX_INCOMING, &max );
+			}
+
+			/* log authorization identity */
+			Statslog( LDAP_DEBUG_STATS,
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=%d\n",
+				op->o_connid, op->o_opid,
+				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
+				op->o_conn->c_authmech.bv_val, op->orb_ssf );
+
+			Debug( LDAP_DEBUG_TRACE,
+				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
+				op->o_conn->c_authmech.bv_val,
+				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
+				op->orb_ssf );
+
+		} else if ( rs->sr_err != LDAP_SASL_BIND_IN_PROGRESS ) {
+			if ( !BER_BVISNULL( &op->o_conn->c_sasl_bind_mech ) ) {
+				free( op->o_conn->c_sasl_bind_mech.bv_val );
+				BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
+			}
+		}
+	}
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	ch_free( cb );
+	op->o_callback = NULL;
+
 	return SLAP_CB_CONTINUE;
 }
 

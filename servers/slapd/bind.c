@@ -299,63 +299,6 @@ do_bind(
 
 		rs->sr_err = slap_sasl_bind( op, rs );
 
-		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-		if( rs->sr_err == LDAP_SUCCESS ) {
-			ber_dupbv(&op->o_conn->c_dn, &op->orb_edn);
-			if( op->orb_edn.bv_len != 0 ) {
-				/* edn is always normalized already */
-				ber_dupbv( &op->o_conn->c_ndn, &op->o_conn->c_dn );
-			}
-			op->o_tmpfree( op->orb_edn.bv_val, op->o_tmpmemctx );
-			BER_BVZERO( &op->orb_edn );
-			op->o_conn->c_authmech = op->o_conn->c_sasl_bind_mech;
-			BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
-			op->o_conn->c_sasl_bind_in_progress = 0;
-
-			op->o_conn->c_sasl_ssf = op->orb_ssf;
-			if( op->orb_ssf > op->o_conn->c_ssf ) {
-				op->o_conn->c_ssf = op->orb_ssf;
-			}
-
-			if( op->o_conn->c_dn.bv_len != 0 ) {
-				ber_len_t max = sockbuf_max_incoming_auth;
-				ber_sockbuf_ctrl( op->o_conn->c_sb,
-					LBER_SB_OPT_SET_MAX_INCOMING, &max );
-			}
-
-			/* log authorization identity */
-			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=%d\n",
-				op->o_connid, op->o_opid,
-				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->o_conn->c_authmech.bv_val, op->orb_ssf );
-
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, DETAIL1, 
-				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
-				op->o_conn->c_authmech.bv_val,
-				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->orb_ssf );
-#else
-			Debug( LDAP_DEBUG_TRACE,
-				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
-				op->o_conn->c_authmech.bv_val,
-				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->orb_ssf );
-#endif
-
-		} else if ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS ) {
-			op->o_conn->c_sasl_bind_in_progress = 1;
-
-		} else {
-			if ( op->o_conn->c_sasl_bind_mech.bv_val ) {
-				free( op->o_conn->c_sasl_bind_mech.bv_val );
-				op->o_conn->c_sasl_bind_mech.bv_val = NULL;
-				op->o_conn->c_sasl_bind_mech.bv_len = 0;
-			}
-			op->o_conn->c_sasl_bind_in_progress = 0;
-		}
-
 #ifdef LDAP_SLAPI
 #define	pb	op->o_pb
 		/*
@@ -374,8 +317,6 @@ do_bind(
 			(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb );
 		}
 #endif /* LDAP_SLAPI */
-
-		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 		goto cleanup;
 
@@ -696,8 +637,6 @@ cleanup:
 		}
 		op->o_conn->c_authtype = op->orb_method;
 	}
-
-	op->o_conn->c_sasl_bindop = NULL;
 
 	if( op->o_req_dn.bv_val != NULL ) {
 		sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
