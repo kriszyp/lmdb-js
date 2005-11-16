@@ -992,6 +992,7 @@ static slap_verbmasks methkey[] = {
 };
 
 static slap_cf_aux_table bindkey[] = {
+	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
 	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
 	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
@@ -1151,6 +1152,10 @@ bindconf_unparse( slap_bindconf *bc, struct berval *bv )
 }
 
 void bindconf_free( slap_bindconf *bc ) {
+	if ( !BER_BVISNULL( &bc->sb_uri ) ) {
+		ch_free( bc->sb_uri.bv_val );
+		BER_BVZERO( &bc->sb_uri );
+	}
 	if ( !BER_BVISNULL( &bc->sb_binddn ) ) {
 		ch_free( bc->sb_binddn.bv_val );
 		BER_BVZERO( &bc->sb_binddn );

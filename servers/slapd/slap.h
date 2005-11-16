@@ -1543,6 +1543,7 @@ LDAP_SLAPD_V (int) slapMode;
 #define SB_TLS_CRITICAL		2
 
 typedef struct slap_bindconf {
+	struct berval sb_uri;
 	int sb_tls;
 	int sb_method;
 	struct berval sb_binddn;
@@ -1555,7 +1556,6 @@ typedef struct slap_bindconf {
 } slap_bindconf;
 
 struct slap_replica_info {
-	const char *ri_uri;			/* supersedes be_replica */
 	const char *ri_host;		/* points to host part of uri */
 	BerVarray ri_nsuffix;		/* array of suffixes this replica accepts */
 	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
