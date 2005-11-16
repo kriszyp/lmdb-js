@@ -238,7 +238,8 @@ AC_DEFUN([OL_ICU],
 [ol_icu=no
 AC_CHECK_HEADERS( unicode/utypes.h )
 if test $ac_cv_header_unicode_utypes_h = yes ; then
-	OL_ICULIBS="-licui18n -licuuc -licudata"
+	dnl OL_ICULIBS="-licui18n -licuuc -licudata"
+	OL_ICULIBS="-licuuc -licudata"
 
 	AC_CACHE_CHECK([for ICU libraries], [ol_cv_lib_icu], [
 		ol_LIBS="$LIBS"
@@ -327,6 +328,10 @@ dnl Try to locate appropriate library
 AC_DEFUN([OL_BERKELEY_DB_LINK],
 [ol_cv_lib_db=no
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
+OL_BERKELEY_DB_TRY(ol_cv_db_db44,[-ldb44])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-44])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4_4,[-ldb-4-4])
 OL_BERKELEY_DB_TRY(ol_cv_db_db43,[-ldb43])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-43])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
