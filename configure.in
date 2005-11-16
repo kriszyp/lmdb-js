@@ -651,6 +651,7 @@ SLAPI_LIBS=
 LIBSLAPI=
 LIBSLAPITOOLS=
 AUTH_LIBS=
+ICU_LIBS=
 
 SLAPD_SLP_LIBS=
 SLAPD_GMP_LIBS=
@@ -1009,15 +1010,6 @@ dnl ----------------------------------------------------------------
 # strerror checks
 OL_STRERROR
 
-dnl ----------------------------------------------------------------
-dnl International Components for Unicode
-dnl		don't use yet
-dnl OL_ICU
-dnl if test "$ol_icu" = no ; then
-dnl 	AC_MSG_ERROR([ICU not available])
-dnl else
-dnl 	LIBS="$LIBS $ol_icu"
-dnl fi
 dnl ----------------------------------------------------------------
 dnl require POSIX regex
 AC_CHECK_HEADERS( regex.h )
@@ -2173,6 +2165,14 @@ if test $ol_enable_sql != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl International Components for Unicode
+OL_ICU
+if test "$ol_icu" = no ; then
+	AC_MSG_WARN([ICU not available])
+else
+	ICU_LIBS="$ol_icu"
+fi
+dnl ----------------------------------------------------------------
 dnl
 dnl Check for Cyrus SASL
 dnl
@@ -3134,6 +3134,7 @@ AC_SUBST(SLAPI_LIBS)
 AC_SUBST(LIBSLAPI)
 AC_SUBST(LIBSLAPITOOLS)
 AC_SUBST(AUTH_LIBS)
+AC_SUBST(ICU_LIBS)
 
 AC_SUBST(SLAPD_SLP_LIBS)
 AC_SUBST(SLAPD_GMP_LIBS)

@@ -238,11 +238,11 @@ AC_DEFUN([OL_ICU],
 [ol_icu=no
 AC_CHECK_HEADERS( unicode/utypes.h )
 if test $ac_cv_header_unicode_utypes_h = yes ; then
-	ICULIBS="-licui18n -licuuc -licudata"
+	OL_ICULIBS="-licui18n -licuuc -licudata"
 
 	AC_CACHE_CHECK([for ICU libraries], [ol_cv_lib_icu], [
 		ol_LIBS="$LIBS"
-		LIBS="$ICULIBS $LIBS"
+		LIBS="$OL_ICULIBS $LIBS"
 		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <unicode/utypes.h>
 ]], [[
@@ -252,7 +252,7 @@ if test $ac_cv_header_unicode_utypes_h = yes ; then
 ])
 
 	if test $ol_cv_lib_icu != no ; then
-		ol_icu="$ICULIBS"
+		ol_icu="$OL_ICULIBS"
 		AC_DEFINE(HAVE_ICU,1,[define if you actually have ICU])
 	fi
 fi
