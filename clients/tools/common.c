@@ -49,6 +49,18 @@
 
 #include "common.h"
 
+#if !LDAP_DEPRECATED
+/*
+ * NOTE: we declare it here only because we want to keep supporting
+ * (how long?) ancient, deprecated LDAP_AUTH_KRB* auth methods
+ */
+LDAP_F( int )
+ldap_bind LDAP_P((	/* deprecated */
+	LDAP *ld,
+	LDAP_CONST char *who,
+	LDAP_CONST char *passwd,
+	int authmethod ));
+#endif
 
 int   authmethod = -1;
 char *binddn = NULL;
@@ -189,11 +201,11 @@ NULL
 }
 
 void tool_perror(
-	char *func,
+	const char *func,
 	int err,
-	char *extra,
-	char *matched,
-	char *info,
+	const char *extra,
+	const char *matched,
+	const char *info,
 	char **refs )
 {
 	fprintf( stderr, "%s: %s (%d)%s\n",
@@ -886,12 +898,13 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 			exit( EXIT_FAILURE );
 		}
 
-		if ( use_tls &&
-			( ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ))
-		{
-			ldap_perror( ld, "ldap_start_tls" );
-			if ( use_tls > 1 ) {
-				exit( EXIT_FAILURE );
+		if ( use_tls ) {
+			rc = ldap_start_tls_s( ld, NULL, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+				tool_perror( "ldap_start_tls", rc, NULL, NULL, NULL, NULL );
+				if ( use_tls > 1 ) {
+					exit( EXIT_FAILURE );
+				}
 			}
 		}
 	}
@@ -946,7 +959,8 @@ tool_bind( LDAP *ld )
 
 		lutil_sasl_freedefs( defaults );
 		if( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_sasl_interactive_bind_s" );
+			tool_perror( "ldap_sasl_interactive_bind_s",
+				rc, NULL, NULL, NULL, NULL );
 			exit( EXIT_FAILURE );
 		}
 #else
@@ -955,7 +969,7 @@ tool_bind( LDAP *ld )
 		exit( EXIT_FAILURE );
 #endif
 	} else {
-		int msgid, err;
+		int msgid, err, rc;
 		LDAPMessage *result;
 		LDAPControl **ctrls;
 		char msgbuf[256];
@@ -967,19 +981,19 @@ tool_bind( LDAP *ld )
 
 		msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
 		if ( msgid == -1 ) {
-			ldap_perror( ld, "ldap_bind" );
+			tool_perror( "ldap_bind", -1, NULL, NULL, NULL, NULL );
 			exit( EXIT_FAILURE );
 		}
 
 		if ( ldap_result( ld, msgid, 1, NULL, &result ) == -1 ) {
-			ldap_perror( ld, "ldap_result" );
+			tool_perror( "ldap_result", -1, NULL, NULL, NULL, NULL );
 			exit( EXIT_FAILURE );
 		}
 
-		if ( ldap_parse_result( ld, result, &err, &matched, &info, &refs,
-			&ctrls, 1 ) != LDAP_SUCCESS )
-		{
-			ldap_perror( ld, "ldap_bind parse result" );
+		rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
+			&ctrls, 1 );
+		if ( rc != LDAP_SUCCESS ) {
+			tool_perror( "ldap_bind parse result", rc, NULL, NULL, NULL, NULL );
 			exit( EXIT_FAILURE );
 		}
 
@@ -1263,7 +1277,7 @@ tool_check_abandon( LDAP *ld, int msgid )
 		return -1;
 
 	case LDAP_REQ_ABANDON:
-		rc = ldap_abandon( ld, msgid );
+		rc = ldap_abandon_ext( ld, msgid, NULL, NULL );
 		fprintf( stderr, "got interrupt, abandon got %d: %s\n",
 				rc, ldap_err2string( rc ) );
 		return -1;

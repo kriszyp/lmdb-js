@@ -71,6 +71,23 @@
 
 #include "common.h"
 
+#if !LDAP_DEPRECATED
+/*
+ * NOTE: we use this deprecated function only because
+ * we want ldapsearch to provide some client-side sorting 
+ * capability.
+ */
+/* from ldap.h */
+typedef int (LDAP_SORT_AD_CMP_PROC) LDAP_P(( /* deprecated */
+	LDAP_CONST char *left,
+	LDAP_CONST char *right ));
+
+LDAP_F( int )	/* deprecated */
+ldap_sort_entries LDAP_P(( LDAP *ld,
+	LDAPMessage **chain,
+	LDAP_CONST char *attr,
+	LDAP_SORT_AD_CMP_PROC *cmp ));
+#endif
 
 static int scope = LDAP_SCOPE_SUBTREE;
 static int deref = -1;
@@ -1234,7 +1251,7 @@ static int dosearch(
 
 done:
 	if ( rc == -1 ) {
-		ldap_perror( ld, "ldap_result" );
+		tool_perror( "ldap_result", rc, NULL, NULL, NULL, NULL );
 		return( rc );
 	}
 
@@ -1295,7 +1312,7 @@ print_entry(
 	rc = ldap_get_entry_controls( ld, entry, &ctrls );
 	if( rc != LDAP_SUCCESS ) {
 		fprintf(stderr, _("print_entry: %d\n"), rc );
-		ldap_perror( ld, "ldap_get_entry_controls" );
+		tool_perror( "ldap_get_entry_controls", rc, NULL, NULL, NULL, NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -1393,7 +1410,7 @@ static void print_reference(
 	rc = ldap_parse_reference( ld, reference, &refs, &ctrls, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_reference");
+		tool_perror( "ldap_parse_reference", rc, NULL, NULL, NULL, NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -1428,7 +1445,7 @@ static void print_extended(
 		&retoid, &retdata, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_extended_result");
+		tool_perror( "ldap_parse_extended_result", rc, NULL, NULL, NULL, NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -1466,7 +1483,7 @@ static void print_partial(
 		&retoid, &retdata, &ctrls, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_intermediate");
+		tool_perror( "ldap_parse_intermediate", rc, NULL, NULL, NULL, NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -1516,7 +1533,7 @@ static int print_result(
 		&err, &matcheddn, &text, &refs, &ctrls, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_result");
+		tool_perror( "ldap_parse_result", rc, NULL, NULL, NULL, NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -1669,7 +1686,7 @@ parse_page_control(
 		&err, NULL, NULL, NULL, &ctrl, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_result");
+		tool_perror( "ldap_parse_result", rc, NULL, NULL, NULL, NULL );
 		exit( EXIT_FAILURE );
 	}
 

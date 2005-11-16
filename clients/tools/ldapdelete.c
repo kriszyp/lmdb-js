@@ -246,7 +246,7 @@ static int dodelete(
 
 		rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, &tv, &res );
 		if ( rc < 0 ) {
-			ldap_perror( ld, "ldapdelete: ldap_result" );
+			tool_perror( "ldap_result", rc, NULL, NULL, NULL, NULL );
 			return rc;
 		}
 
@@ -316,7 +316,7 @@ static int deletechildren(
 	rc = ldap_search_ext_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
 		NULL, NULL, NULL, -1, &res );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_search" );
+		tool_perror( "ldap_search", rc, NULL, NULL, NULL, NULL );
 		return( rc );
 	}
 
@@ -331,15 +331,15 @@ static int deletechildren(
 			char *dn = ldap_get_dn( ld, e );
 
 			if( dn == NULL ) {
-				ldap_perror( ld, "ldap_prune" );
 				ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+				tool_perror( "ldap_prune", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
 				return rc;
 			}
 
 			rc = deletechildren( ld, dn );
 			if ( rc == -1 ) {
-				ldap_perror( ld, "ldap_prune" );
+				tool_perror( "ldap_prune", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
 				return rc;
 			}
@@ -348,9 +348,9 @@ static int deletechildren(
 				printf( _("\tremoving %s\n"), dn );
 			}
 
-			rc = ldap_delete_s( ld, dn );
+			rc = ldap_delete_ext_s( ld, dn, NULL, NULL );
 			if ( rc == -1 ) {
-				ldap_perror( ld, "ldap_delete" );
+				tool_perror( "ldap_delete", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
 				return rc;
 
@@ -390,7 +390,7 @@ static int deletechildren(
 	rc = ldap_search_ext_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
 		ctrls, NULL, NULL, -1, &res_se );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_search" );
+		tool_perror( "ldap_search", rc, NULL, NULL, NULL, NULL );
 		return( rc );
 	}
 	ber_free( ber, 1 );
@@ -406,8 +406,8 @@ static int deletechildren(
 			char *dn = ldap_get_dn( ld, e );
 
 			if( dn == NULL ) {
-				ldap_perror( ld, "ldap_prune" );
 				ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+				tool_perror( "ldap_prune", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
 				return rc;
 			}
@@ -416,9 +416,9 @@ static int deletechildren(
 				printf( _("\tremoving %s\n"), dn );
 			}
 
-			rc = ldap_delete_s( ld, dn );
+			rc = ldap_delete_ext_s( ld, dn, NULL, NULL );
 			if ( rc == -1 ) {
-				ldap_perror( ld, "ldap_delete" );
+				tool_perror( "ldap_delete", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
 				return rc;
 
