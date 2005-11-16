@@ -155,7 +155,8 @@ ldap_back_search(
 	int		freetext = 0;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
-	char		*save_matched = rs->sr_matched;
+	/* FIXME: shouldn't this be null? */
+	const char	*save_matched = rs->sr_matched;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
