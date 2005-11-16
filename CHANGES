@@ -27,6 +27,7 @@ OpenLDAP 2.3.12 Release
 	Fixed slapd-meta per-target retry (ITS#4150)
 	Fixed slapd-meta size/time limit handling (ITS#4145)
 	Fixed slapo-ppolicy pwdFailureTIme after bind success issue (ITS#4134)
+	Fixed slapo-ppolicy add passord_hash quality config dependency
 	Fixed slapo-syncprov LDAP response types (ITS#4183)
 	Fixed slapd spurious defer message (ITS#3850)
 	Fixed slapd attribute SYNTAX OIDM issue (ITS#4116)

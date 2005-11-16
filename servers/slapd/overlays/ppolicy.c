@@ -1102,38 +1102,39 @@ ppolicy_add(
 				send_ldap_error( op, rs, rc, "Password fails quality checking policy" );
 				return rs->sr_err;
 			}
-			    /*
-			     * A controversial bit. We hash cleartext
-			     * passwords provided via add and modify operations
-			     * You're not really supposed to do this, since
-			     * the X.500 model says "store attributes" as they
-			     * get provided. By default, this is what we do
-			     *
-			     * But if the hash_passwords flag is set, we hash
-			     * any cleartext password attribute values via the
-			     * default password hashing scheme.
-			     */
-			if ((pi->hash_passwords) &&
-				(password_scheme( &(pa->a_vals[0]), NULL ) != LDAP_SUCCESS)) {
-				struct berval hpw;
-
-				slap_passwd_hash( &(pa->a_vals[0]), &hpw, &txt );
-				if (hpw.bv_val == NULL) {
-				    /*
-				     * hashing didn't work. Emit an error.
-				     */
-					rs->sr_err = LDAP_OTHER;
-					rs->sr_text = txt;
-					send_ldap_error( op, rs, LDAP_OTHER, "Password hashing failed" );
-					return rs->sr_err;
-				}
-
-				memset( pa->a_vals[0].bv_val, 0, pa->a_vals[0].bv_len);
-				ber_memfree( pa->a_vals[0].bv_val );
-				pa->a_vals[0].bv_val = hpw.bv_val;
-				pa->a_vals[0].bv_len = hpw.bv_len;
-			}
 		}
+			/*
+			 * A controversial bit. We hash cleartext
+			 * passwords provided via add and modify operations
+			 * You're not really supposed to do this, since
+			 * the X.500 model says "store attributes" as they
+			 * get provided. By default, this is what we do
+			 *
+			 * But if the hash_passwords flag is set, we hash
+			 * any cleartext password attribute values via the
+			 * default password hashing scheme.
+			 */
+		if ((pi->hash_passwords) &&
+			(password_scheme( &(pa->a_vals[0]), NULL ) != LDAP_SUCCESS)) {
+			struct berval hpw;
+
+			slap_passwd_hash( &(pa->a_vals[0]), &hpw, &txt );
+			if (hpw.bv_val == NULL) {
+				/*
+				 * hashing didn't work. Emit an error.
+				 */
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = txt;
+				send_ldap_error( op, rs, LDAP_OTHER, "Password hashing failed" );
+				return rs->sr_err;
+			}
+
+			memset( pa->a_vals[0].bv_val, 0, pa->a_vals[0].bv_len);
+			ber_memfree( pa->a_vals[0].bv_val );
+			pa->a_vals[0].bv_val = hpw.bv_val;
+			pa->a_vals[0].bv_len = hpw.bv_len;
+		}
+
 		/* If password aging is in effect, set the pwdChangedTime */
 		if ( pp.pwdMaxAge || pp.pwdMinAge ) {
 			struct berval timestamp;
