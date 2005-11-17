@@ -169,6 +169,14 @@ do_modify(
 	}
 	*modtail = NULL;
 
+	if ( modlist == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: no modifications\n", 0, 0, 0 );
+		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
+			"empty change secquence in modify operation" );
+
+		goto cleanup;
+	}
+
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 
