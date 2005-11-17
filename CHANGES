@@ -6,6 +6,7 @@ OpenLDAP 2.3.12 Release
 	Fixed libldap HSTRERROR issue (ITS#4124)
 	Added libldap/slapd TLS DSA certificate support (ITS#4017)
 	Fixed libldap SASL bind issue (ITS#4158)
+	Fixed ldapmodrdn empty line handling (ITS#4101)
 	Fixed client tools additional info printing (ITS#4147)
 	Updated slapd ldaps:// not configured fix (ITS#4082,4083)
 	Fixed slapd illegal S option bug (ITS#4119)
@@ -16,7 +17,9 @@ OpenLDAP 2.3.12 Release
 	Fixed slapd non-reentrant libwrap issue (ITS#4099)
 	Fixed slapd AIX IFMT issue (ITS#4123)
 	Fixed slapd thread v. tools_threads settings
-	Fixed ldapmodrdn empty line handling (ITS#4101)
+	Fixed slapd spurious defer message (ITS#3850)
+	Fixed slapd attribute SYNTAX OIDM issue (ITS#4116)
+	Fixed slapd modify empty sequence bug (ITS#4183)
 	Fixed slapd-bdb uninitialized condition in tool mode (ITS#4143)
 	Fixed slapd-bdb empty suffix and syncprov issue (ITS#4171)
 	Fixed slapd-hdb syncrepl deadlock issue (ITS#4088)
@@ -32,8 +35,6 @@ OpenLDAP 2.3.12 Release
 	Fixed slapo-ppolicy pwdFailureTIme after bind success issue (ITS#4134)
 	Fixed slapo-ppolicy add passord_hash quality config dependency
 	Fixed slapo-syncprov LDAP response types (ITS#4183)
-	Fixed slapd spurious defer message (ITS#3850)
-	Fixed slapd attribute SYNTAX OIDM issue (ITS#4116)
 	Added slapd delta syncrepl support
 	Added slapadd thread support
 	Updated slapcat subordinate database handling (ITS#4089)
