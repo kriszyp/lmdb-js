@@ -368,6 +368,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 			sc2 = { 0 };
 	int		rc = 0;
 	int		cache = op->o_do_not_cache;
+	char		*matched;
 	BerVarray	ref;
 	struct berval	ndn = op->o_ndn;
 
@@ -423,6 +424,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	 *   e) what ssf
 	 */
 
+	matched = rs->sr_matched;
+	rs->sr_matched = NULL;
 	ref = rs->sr_ref;
 	rs->sr_ref = NULL;
 
@@ -626,6 +629,7 @@ dont_chain:;
 	op->o_bd->be_private = private;
 	op->o_callback = sc;
 	op->o_ndn = ndn;
+	rs->sr_matched = matched;
 	rs->sr_ref = ref;
 
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );

@@ -48,7 +48,6 @@ typedef struct syncinfo_s {
 	struct slap_backend_db *si_be;
 	struct re_s			*si_re;
 	long				si_rid;
-	struct berval		si_provideruri;
 	slap_bindconf		si_bindconf;
 	struct berval		si_base;
 	struct berval		si_logbase;
@@ -420,11 +419,11 @@ do_syncrep1(
 	psub = &si->si_be->be_nsuffix[0];
 
 	/* Init connection to master */
-	rc = ldap_initialize( &si->si_ld, si->si_provideruri.bv_val );
+	rc = ldap_initialize( &si->si_ld, si->si_bindconf.sb_uri.bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"do_syncrep1: ldap_initialize failed (%s)\n",
-			si->si_provideruri.bv_val, 0, 0 );
+			si->si_bindconf.sb_uri.bv_val, 0, 0 );
 		return rc;
 	}
 
@@ -455,7 +454,7 @@ do_syncrep1(
 			if( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(%s,SECPROPS,\"%s\") failed!\n",
-					si->si_provideruri.bv_val, si->si_bindconf.sb_secprops, 0 );
+					si->si_bindconf.sb_uri.bv_val, si->si_bindconf.sb_secprops, 0 );
 				goto done;
 			}
 		}
@@ -2559,9 +2558,6 @@ void
 syncinfo_free( syncinfo_t *sie )
 {
  	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
-	if ( !BER_BVISNULL( &sie->si_provideruri ) ) {
-		ch_free( sie->si_provideruri.bv_val );
-	}
 
 	bindconf_free( &sie->si_bindconf );
 
@@ -2733,7 +2729,7 @@ parse_syncrepl_line(
 					STRLENOF( PROVIDERSTR "=" ) ) )
 		{
 			val = cargv[ i ] + STRLENOF( PROVIDERSTR "=" );
-			ber_str2bv( val, 0, 1, &si->si_provideruri );
+			ber_str2bv( val, 0, 1, &si->si_bindconf.sb_uri );
 			gots |= GOT_PROVIDER;
 		} else if ( !strncasecmp( cargv[ i ], SCHEMASTR "=",
 					STRLENOF( SCHEMASTR "=" ) ) )
@@ -3091,8 +3087,8 @@ add_syncrepl(
 	} else {
 		Debug( LDAP_DEBUG_CONFIG,
 			"Config: ** successfully added syncrepl \"%s\"\n",
-			BER_BVISNULL( &si->si_provideruri ) ?
-			"(null)" : si->si_provideruri.bv_val, 0, 0 );
+			BER_BVISNULL( &si->si_bindconf.sb_uri ) ?
+			"(null)" : si->si_bindconf.sb_uri.bv_val, 0, 0 );
 		if ( !si->si_schemachecking ) {
 			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
@@ -3104,14 +3100,19 @@ add_syncrepl(
 static void
 syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 {
-	struct berval bc;
+	struct berval bc, uri;
 	char buf[BUFSIZ*2], *ptr;
 	int i;
 
+	/* temporarily inhibit bindconf from printing URI */
+	uri = si->si_bindconf.sb_uri;
+	BER_BVZERO( &si->si_bindconf.sb_uri );
 	bindconf_unparse( &si->si_bindconf, &bc );
+	si->si_bindconf.sb_uri = uri;
+
 	ptr = buf;
-	ptr += sprintf( ptr, IDSTR "=%03ld " PROVIDERSTR "=%s",
-		si->si_rid, si->si_provideruri.bv_val );
+	ptr += snprintf( ptr, sizeof( buf ), IDSTR "=%03ld " PROVIDERSTR "=%s",
+		si->si_rid, si->si_bindconf.sb_uri.bv_val );
 	if ( !BER_BVISNULL( &bc )) {
 		ptr = lutil_strcopy( ptr, bc.bv_val );
 		free( bc.bv_val );

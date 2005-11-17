@@ -470,6 +470,7 @@ slap_mods2entry(
 			snprintf( textbuf, textlen,
 				"attribute '%s' provided more than once",
 				mods->sml_desc->ad_cname.bv_val );
+			*text = textbuf;
 			return LDAP_TYPE_OR_VALUE_EXISTS;
 #endif
 		}
@@ -500,6 +501,7 @@ slap_mods2entry(
 						snprintf( textbuf, textlen,
 							"%s: value #%d provided more than once",
 							mods->sml_desc->ad_cname.bv_val, j );
+						*text = textbuf;
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 
 					} else if ( rc != LDAP_SUCCESS ) {

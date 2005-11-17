@@ -1067,12 +1067,14 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_THREADS:
-			ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
+			if ( slapMode & SLAP_SERVER_MODE )
+				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			connection_pool_max = c->value_int;	/* save for reference */
 			break;
 
 		case CFG_TTHREADS:
-			ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
+			if ( slapMode & SLAP_TOOL_MODE )
+				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			slap_tool_thread_max = c->value_int;	/* save for reference */
 			break;
 
@@ -2337,6 +2339,8 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 	struct berval bc = BER_BVNULL;
 	char numbuf[32];
 
+	assert( !BER_BVISNULL( &ri->ri_bindconf.sb_uri ) );
+	
 	BER_BVZERO( bv );
 
 	len = snprintf(numbuf, sizeof( numbuf ), SLAP_X_ORDERED_FMT, i );
@@ -2345,14 +2349,13 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 		return;
 	}
 
-	len += strlen( ri->ri_uri ) + STRLENOF("uri=");
 	if ( ri->ri_nsuffix ) {
 		for (i=0; !BER_BVISNULL( &ri->ri_nsuffix[i] ); i++) {
 			len += ri->ri_nsuffix[i].bv_len + STRLENOF(" suffix=\"\"");
 		}
 	}
 	if ( ri->ri_attrs ) {
-		len += STRLENOF("attr");
+		len += STRLENOF(" attrs");
 		if ( ri->ri_exclude ) len++;
 		for (i=0; !BER_BVISNULL( &ri->ri_attrs[i].an_name ); i++) {
 			len += 1 + ri->ri_attrs[i].an_name.bv_len;
@@ -2365,8 +2368,13 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 	bv->bv_len = len;
 
 	ptr = lutil_strcopy( bv->bv_val, numbuf );
-	ptr = lutil_strcopy( ptr, "uri=" );
-	ptr = lutil_strcopy( ptr, ri->ri_uri );
+
+	/* start with URI from bindconf */
+	assert( !BER_BVISNULL( &bc ) );
+	if ( bc.bv_val ) {
+		strcpy( ptr, bc.bv_val );
+		ch_free( bc.bv_val );
+	}
 
 	if ( ri->ri_nsuffix ) {
 		for (i=0; !BER_BVISNULL( &ri->ri_nsuffix[i] ); i++) {
@@ -2376,14 +2384,10 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 		}
 	}
 	if ( ri->ri_attrs ) {
-		ptr = lutil_strcopy( ptr, "attr" );
+		ptr = lutil_strcopy( ptr, " attrs" );
 		if ( ri->ri_exclude ) *ptr++ = '!';
 		*ptr++ = '=';
 		ptr = anlist_unparse( ri->ri_attrs, ptr );
-	}
-	if ( bc.bv_val ) {
-		strcpy( ptr, bc.bv_val );
-		ch_free( bc.bv_val );
 	}
 }
 
@@ -2472,7 +2476,11 @@ config_replica(ConfigArgs *c) {
 		return(1);
 	} else {
 		for(i = 1; i < c->argc; i++) {
-			if(!strncasecmp(c->argv[i], "suffix=", STRLENOF( "suffix="))) {
+			if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
+				/* dealt with separately; don't let it get to bindconf */
+				;
+
+			} else if(!strncasecmp(c->argv[i], "suffix=", STRLENOF( "suffix="))) {
 				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
 					case 1:
 						Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
@@ -2494,9 +2502,20 @@ config_replica(ConfigArgs *c) {
 						break;
 				}
 
-			} else if(!strncasecmp(c->argv[i], "attr", STRLENOF("attr"))) {
+			} else if (!strncasecmp(c->argv[i], "attr", STRLENOF("attr"))
+				|| !strncasecmp(c->argv[i], "attrs", STRLENOF("attrs")))
+			{
 				int exclude = 0;
 				char *arg = c->argv[i] + STRLENOF("attr");
+				if (arg[0] == 's') {
+					arg++;
+				} else {
+					Debug( LDAP_DEBUG_ANY,
+						"%s: \"attr\" "
+						"is deprecated (and undocumented); "
+						"use \"attrs\" instead.\n",
+						c->log, 0, 0 );
+				}
 				if(arg[0] == '!') {
 					arg++;
 					exclude = 1;

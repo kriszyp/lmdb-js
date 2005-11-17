@@ -525,6 +525,7 @@ slap_mods_no_repl_user_mod_check(
 				snprintf( textbuf, textlen,
 					"attribute '%s' provided more than once",
 					mods->sml_desc->ad_cname.bv_val );
+				*text = textbuf;
 				return LDAP_TYPE_OR_VALUE_EXISTS;
 			}
 		}

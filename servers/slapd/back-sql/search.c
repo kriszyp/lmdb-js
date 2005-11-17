@@ -2305,6 +2305,11 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE )
 		{
+			if ( --op->ors_slimit == -1 ) {
+				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+				goto send_results;
+			}
+
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;
 			rs->sr_entry = e;
@@ -2334,10 +2339,6 @@ next_entry:;
 		}
 
 next_entry2:;
-		if ( --op->ors_slimit == -1 ) {
-			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-			goto send_results;
-		}
 	}
 
 end_of_search:;
