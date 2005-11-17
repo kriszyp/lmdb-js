@@ -201,6 +201,15 @@ static int translucent_delete(Operation *op, SlapReply *rs) {
 	return(SLAP_CB_CONTINUE);
 }
 
+static int
+translucent_tag_cb( Operation *op, SlapReply *rs )
+{
+	op->o_tag = (ber_tag_t)op->o_callback->sc_private;
+	rs->sr_tag = slap_req2res( op->o_tag );
+
+	return SLAP_CB_CONTINUE;
+}
+
 /*
 ** translucent_modify()
 **	modify in local backend if exists in both;
@@ -220,6 +229,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	Attribute *a, *ax;
 	Modifications *m, *mm;
 	int del, rc, erc = 0;
+	slap_callback cb = { 0 }, *save_cb;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_modify: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
@@ -376,7 +386,13 @@ release:
 	op->o_bd->bd_info = (BackendInfo *) on;
 	glue_parent(&nop);
 
+	save_cb = op->o_callback;
+	cb.sc_response = translucent_tag_cb;
+	cb.sc_private = (void *)LDAP_REQ_MODIFY;
+	cb.sc_next = nop.o_callback;
+	nop.o_callback = &cb;
 	rc = on->on_info->oi_orig->bi_op_add(&nop, &nrs);
+	nop.o_callback = save_cb;
 	free_attr_chain(a);
 
 	return(rc);

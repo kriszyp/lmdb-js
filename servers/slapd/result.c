@@ -115,7 +115,8 @@ static char *v2ref( BerVarray ref, const char *text )
 	return v2;
 }
 
-static ber_tag_t req2res( ber_tag_t tag )
+ber_tag_t
+slap_req2res( ber_tag_t tag )
 {
 	switch( tag ) {
 	case LDAP_REQ_ADD:
@@ -503,7 +504,7 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 
 	if ( op->o_protocol < LDAP_VERSION3 ) {
 		rs->sr_rspoid = NULL;
-		rs->sr_tag = req2res( op->o_tag );
+		rs->sr_tag = slap_req2res( op->o_tag );
 		rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
 	} else {
@@ -573,7 +574,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 		rs->sr_ref = NULL;
 	}
 
-	rs->sr_tag = req2res( op->o_tag );
+	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
 abandon:
@@ -608,7 +609,7 @@ send_ldap_sasl( Operation *op, SlapReply *rs )
 		rs->sr_err,
 		rs->sr_sasldata ? (long) rs->sr_sasldata->bv_len : -1, NULL );
 
-	rs->sr_tag = req2res( op->o_tag );
+	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
@@ -630,7 +631,7 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 		rs->sr_rspoid ? rs->sr_rspoid : "",
 		rs->sr_rspdata != NULL ? rs->sr_rspdata->bv_len : 0 );
 
-	rs->sr_tag = req2res( op->o_tag );
+	rs->sr_tag = slap_req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {

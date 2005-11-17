@@ -1057,7 +1057,7 @@ LDAP_SLAPD_F( void ) slap_timestamp(
 
 LDAP_SLAPD_F( void ) slap_mods_opattrs(
 	Operation *op,
-	Modifications *mods,
+	Modifications **modsp,
 	int manage_ctxcsn );
 
 /*
@@ -1341,6 +1341,7 @@ LDAP_SLAPD_F (int) str2result LDAP_P(( char *s,
 	int *code, char **matched, char **info ));
 LDAP_SLAPD_F (int) slap_map_api2result LDAP_P(( SlapReply *rs ));
 LDAP_SLAPD_F (slap_mask_t) slap_attr_flags LDAP_P(( AttributeName *an ));
+LDAP_SLAPD_F (ber_tag_t) slap_req2res LDAP_P(( ber_tag_t tag ));
 
 LDAP_SLAPD_V( const struct berval ) slap_dummy_bv;
 
