@@ -1067,12 +1067,14 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_THREADS:
-			ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
+			if ( slapMode & SLAP_SERVER_MODE )
+				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			connection_pool_max = c->value_int;	/* save for reference */
 			break;
 
 		case CFG_TTHREADS:
-			ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
+			if ( slapMode & SLAP_TOOL_MODE )
+				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			slap_tool_thread_max = c->value_int;	/* save for reference */
 			break;
 
