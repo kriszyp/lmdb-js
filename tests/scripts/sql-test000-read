@@ -412,6 +412,49 @@ fi
 
 grep -v '^entryCSN:' $SEARCHFLT >> $SEARCHOUT 
 
+SIZELIMIT=4
+echo "Testing size limit..."
+$LDAPRSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	-z $SIZELIMIT -S "" '(objectClass=*)' >$SEARCHFLT 2>&1
+RC=$?
+COUNT=`awk '/^# numEntries:/ {print $3}' $SEARCHFLT`
+case $RC in
+	0)
+		if test x"$COUNT" != x ; then
+			if test "$COUNT" -gt "$SIZELIMIT" ; then
+				echo "...error: got $COUNT entries instead of the requested $SIZELIMIT"
+				test $KILLSERVERS != no && kill -HUP $KILLPIDS
+				exit 1
+			fi
+			echo "...didn't bump into the requested size limit ($SIZELIMIT; got $COUNT entries)"
+		else
+			echo "...error: did not expect ldapsearch success ($RC)!"
+			test $KILLSERVERS != no && kill -HUP $KILLPIDS
+			exit 1
+		fi
+	;;
+	4)
+		if test x"$COUNT" != x ; then
+			if test "$COUNT" = "$SIZELIMIT" ; then
+				echo "...bumped into requested size limit ($SIZELIMIT)"
+			else
+				echo "...error: got $COUNT entries with a requested sizelimit of $SIZELIMIT"
+				test $KILLSERVERS != no && kill -HUP $KILLPIDS
+				exit $RC
+			fi
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                        test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                        exit $RC
+		fi
+	;;
+	*)
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	;;
+esac
+
 echo -n "Testing compare (should be TRUE)... "
 $LDAPCOMPARE -h $LOCALHOST -p $PORT1 "$BINDDN" \
 	 "sn:kovalev" >> $TESTOUT 2>&1
