@@ -172,7 +172,7 @@ do_modify(
 	if ( modlist == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: no modifications\n", 0, 0, 0 );
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
-			"empty change secquence in modify operation" );
+			"change sequence empty" );
 
 		goto cleanup;
 	}
