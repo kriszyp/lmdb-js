@@ -49,17 +49,16 @@
 
 #include "common.h"
 
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 #if !LDAP_DEPRECATED
-/*
- * NOTE: we declare it here only because we want to keep supporting
- * (how long?) ancient, deprecated LDAP_AUTH_KRB* auth methods
- */
+/* Necessary for old LDAPv2 Kerberos Bind methods */
 LDAP_F( int )
 ldap_bind LDAP_P((	/* deprecated */
 	LDAP *ld,
 	LDAP_CONST char *who,
 	LDAP_CONST char *passwd,
 	int authmethod ));
+#endif
 #endif
 
 int   authmethod = -1;
@@ -788,6 +787,7 @@ tool_args( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 	}
+
 	if( protocol == LDAP_VERSION2 ) {
 		if( assertctl || authzid || manageDIT || manageDSAit ||
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -811,8 +811,9 @@ tool_args( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 #endif
-	} else {
+
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	} else {
 		if ( authmethod == LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
 			fprintf( stderr, "%s: -k/-K incompatible with LDAPv%d\n",
 				prog, protocol );
@@ -979,10 +980,24 @@ tool_bind( LDAP *ld )
 
 		msgbuf[0] = 0;
 
-		msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
-		if ( msgid == -1 ) {
-			tool_perror( "ldap_bind", -1, NULL, NULL, NULL, NULL );
-			exit( EXIT_FAILURE );
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+		if ( authmethod == LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
+			msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
+			if ( msgid == -1 ) {
+				tool_perror( "ldap_bind", -1, NULL, NULL, NULL, NULL );
+				exit( EXIT_FAILURE );
+			}
+		} else
+#endif
+		{
+			/* simple bind */
+			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE,
+				&passwd, NULL, NULL, &msgid );
+			if ( msgid == -1 ) {
+				tool_perror( "ldap_sasl_bind(SIMPLE)", rc,
+					NULL, NULL, NULL, NULL );
+				exit( EXIT_FAILURE );
+			}
 		}
 
 		if ( ldap_result( ld, msgid, 1, NULL, &result ) == -1 ) {
