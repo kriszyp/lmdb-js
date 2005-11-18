@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.13 Engineering
+
 OpenLDAP 2.3.12 Release
 	Fixed libldap ldapi:// authdn construction
 	Added libldap ldap_bv2escaped_filter_value (ITS#2535)
