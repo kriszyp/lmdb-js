@@ -242,7 +242,7 @@ ldbm_back_modify(
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
 	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, op->orm_modlist, 1 );
+		slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);

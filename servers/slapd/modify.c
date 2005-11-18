@@ -169,14 +169,6 @@ do_modify(
 	}
 	*modtail = NULL;
 
-	if ( modlist == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: no modifications\n", 0, 0, 0 );
-		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
-			"change sequence empty" );
-
-		goto cleanup;
-	}
-
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 
@@ -819,7 +811,7 @@ void slap_timestamp( time_t *tm, struct berval *bv )
  */
 void slap_mods_opattrs(
 	Operation *op,
-	Modifications *mods,
+	Modifications **modsp,
 	int manage_ctxcsn )
 {
 	struct berval name, timestamp, csn = BER_BVNULL;
@@ -861,9 +853,8 @@ void slap_mods_opattrs(
 			nname = op->o_ndn;
 		}
 
-		for ( mod = mods; mod->sml_next; mod = mod->sml_next )
+		for ( modtail = modsp; *modtail; modtail = &(*modtail)->sml_next )
 			;
-		modtail = &mod->sml_next;
 
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = LDAP_MOD_REPLACE;
@@ -881,7 +872,7 @@ void slap_mods_opattrs(
 		modtail = &mod->sml_next;
 	
 		if ( get_manageDIT( op ) ) {
-			for ( mod = mods; mod != modlast; mod = mod->sml_next ) {
+			for ( mod = *modsp; mod != modlast; mod = mod->sml_next ) {
 				if ( mod->sml_desc == slap_schema.si_ad_modifiersName ) {
 					break;
 				}
@@ -909,7 +900,7 @@ void slap_mods_opattrs(
 		}
 
 		if ( get_manageDIT( op ) ) {
-			for ( mod = mods; mod != modlast; mod = mod->sml_next ) {
+			for ( mod = *modsp; mod != modlast; mod = mod->sml_next ) {
 				if ( mod->sml_desc == slap_schema.si_ad_modifyTimestamp ) {
 					break;
 				}
