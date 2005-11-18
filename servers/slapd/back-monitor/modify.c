@@ -70,7 +70,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 
 	} else {
 		assert( !SLAP_SHADOW( op->o_bd ) );
-		slap_mods_opattrs( op, op->orm_modlist, 0 );
+		slap_mods_opattrs( op, &op->orm_modlist, 0 );
 
 		rc = monitor_entry_modify( op, rs, e );
 	}

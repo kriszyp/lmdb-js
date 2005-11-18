@@ -290,7 +290,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	ctrls[num_ctrls] = NULL;
 
 	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, op->orm_modlist, 1 );
+		slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
 	if( 0 ) {
 retry:	/* transaction retry */
