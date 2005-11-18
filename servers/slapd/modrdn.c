@@ -503,7 +503,7 @@ slap_modrdn2mods(
 done:
 
 	if ( rs->sr_err == LDAP_SUCCESS && !repl_user ) {
-		slap_mods_opattrs( op, mod, 1 );
+		slap_mods_opattrs( op, &mod, 1 );
 	}
 
 	/* LDAP v2 supporting correct attribute handling. */
