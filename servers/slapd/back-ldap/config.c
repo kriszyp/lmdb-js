@@ -67,7 +67,7 @@ enum {
 
 static ConfigTable ldapcfg[] = {
 	{ "uri", "uri", 2, 2, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_URI,
+		ARG_MAGIC|LDAP_BACK_CFG_URI,
 		ldap_back_cf_gen, "( OLcfgDbAt:0.14 "
 			"NAME 'olcDbURI' "
 			"DESC 'URI (list) for remote DSA' "
@@ -298,7 +298,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		switch( c->type ) {
 		case LDAP_BACK_CFG_URI:
 			if ( li->li_uri != NULL ) {
-				c->value_string = ch_strdup( li->li_uri );
+				struct berval	bv;
+
+				ber_str2bv( li->li_uri, 0, 0, &bv );
+				value_add_one( &c->rvalue_vals, &bv );
 
 			} else {
 				rc = 1;
@@ -629,7 +632,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		/* PARANOID: DN and more are not required nor allowed */
-		urlrc = ldap_url_parselist_ext( &lud, c->value_string, ", \t" );
+		urlrc = ldap_url_parselist_ext( &lud, c->argv[ 1 ], ", \t" );
 		if ( urlrc != LDAP_URL_SUCCESS ) {
 			char	*why;
 

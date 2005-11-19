@@ -1408,6 +1408,7 @@ ldap_chain_db_destroy(
 	rc = ldap_chain_db_func( be, db_destroy );
 
 	if ( lc ) {
+		avl_free( lc->lc_lai.lai_tree, NULL );
 		ch_free( lc );
 	}
 
