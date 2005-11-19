@@ -524,6 +524,30 @@ oc_insert(
 				rc = oc_check_dup( old_soc, soc );
 
 				ldap_memfree( oir );
+
+				while ( names > soc->soc_names ) {
+					struct oindexrec	tmpoir;
+
+					names--;
+					ber_str2bv( *names, 0, 0, &tmpoir.oir_name );
+					tmpoir.oir_oc = soc;
+					oir = (struct oindexrec *)avl_delete( &oc_index,
+						(caddr_t)&tmpoir, oc_index_cmp );
+					assert( oir != NULL );
+					ldap_memfree( oir );
+				}
+
+				if ( soc->soc_oid ) {
+					struct oindexrec	tmpoir;
+
+					ber_str2bv( soc->soc_oid, 0, 0, &tmpoir.oir_name );
+					tmpoir.oir_oc = soc;
+					oir = (struct oindexrec *)avl_delete( &oc_index,
+						(caddr_t)&tmpoir, oc_index_cmp );
+					assert( oir != NULL );
+					ldap_memfree( oir );
+				}
+
 				return rc;
 			}
 

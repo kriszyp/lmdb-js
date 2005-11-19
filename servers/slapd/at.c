@@ -394,27 +394,27 @@ at_insert(
 
 				ldap_memfree(air);
 
-				if ( rc ) {
+				while ( names > sat->sat_names ) {
 					struct aindexrec	tmpair;
 
-					while ( names > sat->sat_names ) {
-						names--;
-						ber_str2bv( *names, 0, 0, &tmpair.air_name );
-						tmpair.air_at = sat;
-						air = avl_delete( &attr_index,
-							(caddr_t)&tmpair, attr_index_cmp );
-						assert( air != NULL );
-						ldap_memfree( air );
-					}
+					names--;
+					ber_str2bv( *names, 0, 0, &tmpair.air_name );
+					tmpair.air_at = sat;
+					air = (struct aindexrec *)avl_delete( &attr_index,
+						(caddr_t)&tmpair, attr_index_cmp );
+					assert( air != NULL );
+					ldap_memfree( air );
+				}
 
-					if ( sat->sat_oid ) {
-						ber_str2bv( sat->sat_oid, 0, 0, &tmpair.air_name );
-						tmpair.air_at = sat;
-						air = avl_delete( &attr_index,
-							(caddr_t)&tmpair, attr_index_cmp );
-						assert( air != NULL );
-						ldap_memfree( air );
-					}
+				if ( sat->sat_oid ) {
+					struct aindexrec	tmpair;
+
+					ber_str2bv( sat->sat_oid, 0, 0, &tmpair.air_name );
+					tmpair.air_at = sat;
+					air = (struct aindexrec *)avl_delete( &attr_index,
+						(caddr_t)&tmpair, attr_index_cmp );
+					assert( air != NULL );
+					ldap_memfree( air );
 				}
 
 				return rc;
