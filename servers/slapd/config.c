@@ -448,6 +448,7 @@ init_config_attrs(ConfigTable *ct) {
 				freeit = 1;
 
 			} else {
+				ldap_attributetype_free( at );
 				fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
 					ct[i].attribute, scherr2str(code), err );
 				return code;
