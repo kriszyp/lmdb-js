@@ -173,19 +173,19 @@ static ConfigTable ldapcfg[] = {
 			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
 	{ "rebind-as-user", "NO|yes", 1, 2, 0,
-		ARG_MAGIC|LDAP_BACK_CFG_REBIND,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_REBIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.10 "
 			"NAME 'olcDbRebindAsUser' "
 			"DESC 'Rebind as user' "
-			"SYNTAX OMsDirectoryString "
+			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "chase-referrals", "YES|no", 2, 2, 0,
-		ARG_MAGIC|LDAP_BACK_CFG_CHASE,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_CHASE,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.11 "
 			"NAME 'olcDbChaseReferrals' "
 			"DESC 'Chase referrals' "
-			"SYNTAX OMsDirectoryString "
+			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "t-f-support", "NO|yes|discover", 2, 2, 0,
@@ -197,11 +197,11 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "proxy-whoami", "NO|yes", 1, 2, 0,
-		ARG_MAGIC|LDAP_BACK_CFG_WHOAMI,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_WHOAMI,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.13 "
 			"NAME 'olcDbProxyWhoAmI' "
 			"DESC 'Proxy whoAmI exop' "
-			"SYNTAX OMsDirectoryString "
+			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "timeout", "timeout", 0, 2, 0,
@@ -250,14 +250,6 @@ static ConfigOCs ldapocs[] = {
 	{ NULL, 0, NULL }
 };
 
-#define	LDAP_BACK_C_NO			(0x0U)
-#define	LDAP_BACK_C_YES			(0x1U)
-static slap_verbmasks yn_mode[] = {
-	{ BER_BVC( "yes" ),		LDAP_BACK_C_YES},
-	{ BER_BVC( "no" ),		LDAP_BACK_C_NO },
-	{ BER_BVNULL,			0 }
-};
-
 static slap_verbmasks idassert_mode[] = {
 	{ BER_BVC("self"),		LDAP_BACK_IDASSERT_SELF },
 	{ BER_BVC("anonymous"),		LDAP_BACK_IDASSERT_ANONYMOUS },
@@ -271,14 +263,14 @@ static slap_verbmasks tls_mode[] = {
 	{ BER_BVC( "try-propagate" ),	LDAP_BACK_F_PROPAGATE_TLS },
 	{ BER_BVC( "start" ),		LDAP_BACK_F_TLS_USE_MASK },
 	{ BER_BVC( "try-start" ),	LDAP_BACK_F_USE_TLS },
-	{ BER_BVC( "none" ),		LDAP_BACK_C_NO },
+	{ BER_BVC( "none" ),		LDAP_BACK_F_NONE },
 	{ BER_BVNULL,			0 }
 };
 
 static slap_verbmasks t_f_mode[] = {
 	{ BER_BVC( "yes" ),		LDAP_BACK_F_SUPPORT_T_F },
 	{ BER_BVC( "discover" ),	LDAP_BACK_F_SUPPORT_T_F_DISCOVER },
-	{ BER_BVC( "no" ),		LDAP_BACK_C_NO },
+	{ BER_BVC( "no" ),		LDAP_BACK_F_NONE },
 	{ BER_BVNULL,			0 }
 };
 
@@ -483,31 +475,15 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		case LDAP_BACK_CFG_REBIND:
-			enum_to_verb( yn_mode, ( ( li->li_flags & LDAP_BACK_F_SAVECRED ) == LDAP_BACK_F_SAVECRED ), &bv );
-			if ( BER_BVISNULL( &bv ) ) {
-				/* there's something wrong... */
-				assert( 0 );
-				rc = 1;
-
-			} else {
-				value_add_one( &c->rvalue_vals, &bv );
-			}
+			c->value_int = LDAP_BACK_SAVECRED( li );
 			break;
 
 		case LDAP_BACK_CFG_CHASE:
-			enum_to_verb( yn_mode, ( ( li->li_flags & LDAP_BACK_F_CHASE_REFERRALS ) == LDAP_BACK_F_CHASE_REFERRALS ), &bv );
-			if ( BER_BVISNULL( &bv ) ) {
-				/* there's something wrong... */
-				assert( 0 );
-				rc = 1;
-
-			} else {
-				value_add_one( &c->rvalue_vals, &bv );
-			}
+			c->value_int = LDAP_BACK_CHASE_REFERRALS( li );
 			break;
 
 		case LDAP_BACK_CFG_T_F:
-			enum_to_verb( t_f_mode, ( ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F_MASK ) == LDAP_BACK_F_SUPPORT_T_F_MASK ), &bv );
+			enum_to_verb( t_f_mode, (li->li_flags & LDAP_BACK_F_SUPPORT_T_F_MASK), &bv );
 			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
@@ -519,15 +495,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_WHOAMI:
-			enum_to_verb( yn_mode, ( ( li->li_flags & LDAP_BACK_F_PROXY_WHOAMI ) == LDAP_BACK_F_PROXY_WHOAMI ), &bv );
-			if ( BER_BVISNULL( &bv ) ) {
-				/* there's something wrong... */
-				assert( 0 );
-				rc = 1;
-
-			} else {
-				value_add_one( &c->rvalue_vals, &bv );
-			}
+			c->value_int = LDAP_BACK_PROXY_WHOAMI( li );
 			break;
 
 		case LDAP_BACK_CFG_TIMEOUT:
@@ -738,7 +706,6 @@ ldap_back_cf_gen( ConfigArgs *c )
 				i++, tmpludp = tmpludp->lud_next )
 		{
 			LDAPURLDesc	tmplud;
-			ber_len_t	oldlen = 0, len;
 
 			tmplud = *tmpludp;
 			tmplud.lud_dn = "";
@@ -1073,55 +1040,23 @@ done_url:;
 		}
 		break;
 
-	case LDAP_BACK_CFG_REBIND: {
-		int	dorebind = 0;
-
-		if ( c->argc == 1 ) {
-			/* legacy */
-			dorebind = 1;
-
-		} else {
-			i = verb_to_mask( c->argv[1], yn_mode );
-			if ( BER_BVISNULL( &yn_mode[i].word ) ) {
-				return 1;
-			}
-			if ( yn_mode[i].mask & LDAP_BACK_C_YES ) {
-				dorebind = 1;
-			}
-		}
-
-		if ( dorebind ) {
+	case LDAP_BACK_CFG_REBIND:
+		if ( c->argc == 1 || c->value_int ) {
 			li->li_flags |= LDAP_BACK_F_SAVECRED;
 
 		} else {
 			li->li_flags &= ~LDAP_BACK_F_SAVECRED;
 		}
-		} break;
+		break;
 
-	case LDAP_BACK_CFG_CHASE: {
-		int	dochase = 0;
-
-		if ( c->argc == 1 ) {
-			/* legacy */
-			dochase = 1;
-
-		} else {
-			i = verb_to_mask( c->argv[1], yn_mode );
-			if ( BER_BVISNULL( &yn_mode[i].word ) ) {
-				return 1;
-			}
-			if ( yn_mode[i].mask & LDAP_BACK_C_YES ) {
-				dochase = 1;
-			}
-		}
-
-		if ( dochase ) {
+	case LDAP_BACK_CFG_CHASE:
+		if ( c->argc == 1 || c->value_int ) {
 			li->li_flags |= LDAP_BACK_F_CHASE_REFERRALS;
 
 		} else {
 			li->li_flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
 		}
-		} break;
+		break;
 
 	case LDAP_BACK_CFG_T_F:
 		i = verb_to_mask( c->argv[1], t_f_mode );
@@ -1132,33 +1067,16 @@ done_url:;
 		li->li_flags |= t_f_mode[i].mask;
 		break;
 
-	case LDAP_BACK_CFG_WHOAMI: {
-		int	dowhoami = 0;
-
-		if ( c->argc == 1 ) {
-			/* legacy */
-			dowhoami = 1;
-
-		} else {
-			i = verb_to_mask( c->argv[1], yn_mode );
-			if ( BER_BVISNULL( &yn_mode[i].word ) ) {
-				return 1;
-			}
-			if ( yn_mode[i].mask & LDAP_BACK_C_YES ) {
-				dowhoami = 1;
-			}
-		}
-
-		if ( dowhoami ) {
+	case LDAP_BACK_CFG_WHOAMI:
+		if ( c->argc == 1 || c->value_int ) {
 			li->li_flags |= LDAP_BACK_F_PROXY_WHOAMI;
-
 			load_extop( (struct berval *)&slap_EXOP_WHOAMI,
 					0, ldap_back_exop_whoami );
 
 		} else {
 			li->li_flags &= ~LDAP_BACK_F_PROXY_WHOAMI;
 		}
-		} break;
+		break;
 
 	case LDAP_BACK_CFG_TIMEOUT:
 		if ( c->argc < 2 ) {

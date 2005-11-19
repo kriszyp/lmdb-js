@@ -66,10 +66,10 @@ static BackendInfo	*lback;
 
 typedef struct ldap_chain_t {
 	/*
-	 * TODO: create a template ldapinfo_t that gets all common 
-	 * configuration items; then for each configured URI create
-	 * an entry in this tree; all the specific configuration
-	 * items get in the current URI structure.
+	 * A "template" ldapinfo_t gets all common configuration items;
+	 * then, for each configured URI, an entry is created in the tree;
+	 * all the specific configuration items get in the current URI 
+	 * structure.
 	 *
  	 * Then, for each referral, extract the URI and lookup the
 	 * related structure.  If configured to do so, allow URIs
@@ -77,19 +77,23 @@ typedef struct ldap_chain_t {
 	 * that chains anonymously; maybe it can also be added to 
 	 * the tree?  Should be all configurable.
 	 */
-	/* tree of configured[/generated] "uri" info */
-	int			lc_lai_count;
-	ldap_avl_info_t		lc_lai;
+
+	/* "common" configuration info (all occurring before an "uri") */
+	ldapinfo_t		*lc_common_li;
 
 	/* current configuration info */
 	ldapinfo_t		*lc_cfg_li;
-	/* "common" configuration info (all occurring before an "uri") */
-	ldapinfo_t		*lc_common_li;
+
+	/* tree of configured[/generated?] "uri" info */
+	ldap_avl_info_t		lc_lai;
 
 	unsigned		lc_flags;
 #define LDAP_CHAIN_F_NONE		(0x00U)
 #define	LDAP_CHAIN_F_CHAINING		(0x01U)
-#define	LDAP_CHAIN_F_CACHE_INFO		(0x10U)
+#define	LDAP_CHAIN_F_CACHE_URI		(0x10U)
+
+#define	LDAP_CHAIN_CHAINING( lc )	( ( (lc)->lc_flags & LDAP_CHAIN_F_CHAINING ) == LDAP_CHAIN_F_CHAINING )
+#define	LDAP_CHAIN_CACHE_URI( lc )	( ( (lc)->lc_flags & LDAP_CHAIN_F_CACHE_URI ) == LDAP_CHAIN_F_CACHE_URI )
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	LDAPControl		lc_chaining_ctrl;
@@ -98,6 +102,9 @@ typedef struct ldap_chain_t {
 } ldap_chain_t;
 
 static int ldap_chain_db_init_one( BackendDB *be );
+#define	ldap_chain_db_open_one(be)	(lback)->bi_db_open( (be) )
+#define	ldap_chain_db_close_one(be)	(0)
+#define	ldap_chain_db_destroy_one(be)	(lback)->bi_db_destroy( (be) )
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static int
@@ -112,7 +119,7 @@ chaining_control_add(
 	*oldctrlsp = op->o_ctrls;
 
 	/* default chaining control not defined */
-	if ( !( lc->lc_flags & LDAP_CHAIN_F_CHAINING ) ) {
+	if ( !LDAP_CHAIN_CHAINING( lc ) ) {
 		return 0;
 	}
 
@@ -430,12 +437,27 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 			lip = (ldapinfo_t *)op->o_bd->be_private;
 			lip->li_uri = li.li_uri;
 			lip->li_bvuri = bvuri;
-			rc = lback->bi_db_open( op->o_bd );
+			rc = ldap_chain_db_open_one( op->o_bd );
 			if ( rc != 0 ) {
-				(void)lback->bi_db_destroy( op->o_bd );
+				(void)ldap_chain_db_destroy_one( op->o_bd );
 				goto cleanup;
 			}
-			temporary = 1;
+
+			if ( LDAP_CHAIN_CACHE_URI( lc ) ) {
+				ldap_pvt_thread_mutex_lock( &lc->lc_lai.lai_mutex );
+				if ( avl_insert( &lc->lc_lai.lai_tree,
+					(caddr_t)lip, ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
+				{
+					/* someone just inserted another;
+					 * don't bother, use this and then
+					 * just free it */
+					temporary = 1;
+				}
+				ldap_pvt_thread_mutex_unlock( &lc->lc_lai.lai_mutex );
+
+			} else {
+				temporary = 1;
+			}
 		}
 
 		rc = ( *op_f )( op, rs );
@@ -447,10 +469,8 @@ cleanup:;
 		if ( temporary ) {
 			lip->li_uri = NULL;
 			lip->li_bvuri = NULL;
-#if 0	/* does not exist yet */
-			(void)lback->bi_db_close( op->o_bd );
-#endif
-			(void)lback->bi_db_destroy( op->o_bd );
+			(void)ldap_chain_db_close_one( op->o_bd );
+			(void)ldap_chain_db_destroy_one( op->o_bd );
 		}
 		
 		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
@@ -662,12 +682,27 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 					lip = (ldapinfo_t *)op->o_bd->be_private;
 					lip->li_uri = li.li_uri;
 					lip->li_bvuri = bvuri;
-					rc = lback->bi_db_open( op->o_bd );
+					rc = ldap_chain_db_open_one( op->o_bd );
 					if ( rc != 0 ) {
-						(void)lback->bi_db_destroy( op->o_bd );
+						(void)ldap_chain_db_destroy_one( op->o_bd );
 						goto cleanup;
 					}
-					temporary = 1;
+
+					if ( LDAP_CHAIN_CACHE_URI( lc ) ) {
+						ldap_pvt_thread_mutex_lock( &lc->lc_lai.lai_mutex );
+						if ( avl_insert( &lc->lc_lai.lai_tree,
+							(caddr_t)lip, ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
+						{
+							/* someone just inserted another;
+							 * don't bother, use this and then
+							 * just free it */
+							temporary = 1;
+						}
+						ldap_pvt_thread_mutex_unlock( &lc->lc_lai.lai_mutex );
+		
+					} else {
+						temporary = 1;
+					}
 				}
 
 				/* FIXME: should we also copy filter and scope?
@@ -686,10 +721,8 @@ cleanup:;
 				if ( temporary ) {
 					lip->li_uri = NULL;
 					lip->li_bvuri = NULL;
-#if 0	/* does not exist yet */
-					(void)lback->bi_db_close( op->o_bd );
-#endif
-					(void)lback->bi_db_destroy( op->o_bd );
+					(void)ldap_chain_db_close_one( op->o_bd );
+					(void)ldap_chain_db_destroy_one( op->o_bd );
 				}
 		
 				if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
@@ -825,7 +858,10 @@ str2chain( const char *s )
  */
 
 enum {
-	PC_CHAINING = 1
+	PC_CHAINING = 1,
+	PC_CACHE_URI = 2,
+
+	PC_LAST
 };
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -842,6 +878,11 @@ static ConfigTable chaincfg[] = {
 			"DESC 'Chaining behavior control parameters (draft-sermersheim-ldap-chaining)' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+	{ "chain-cache-uris", "TRUE/FALSE",
+		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|PC_CACHE_URI, chain_cf_gen,
+		"( OLcfgOvAt:3.2 NAME 'olcCacheURIs' "
+			"DESC 'Enables caching of URIs not present in configuration' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -851,12 +892,16 @@ static ConfigOCs chainocs[] = {
 		"NAME 'olcChainConfig' "
 		"DESC 'Chain configuration' "
 		"SUP olcOverlayConfig "
-		"MAY olcChainingBehavior )", Cft_Overlay, chaincfg, NULL, chain_cfadd },
+		"MAY ( olcChainingBehavior "
+			"$ olcCacheURIs "
+			") )",
+		Cft_Overlay, chaincfg, NULL, chain_cfadd },
 #endif
 	{ "( OLcfgOvOc:3.2 "
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
-		"AUXILIARY )", Cft_Misc, chaincfg, chain_ldadd },
+		"AUXILIARY )",
+		Cft_Misc, chaincfg, chain_ldadd },
 	{ NULL, 0, NULL }
 };
 
@@ -958,7 +1003,7 @@ chain_cf_gen( ConfigArgs *c )
 			struct berval	resolve = BER_BVNULL,
 					continuation = BER_BVNULL;
 
-			if ( !( lc->lc_flags & LDAP_CHAIN_F_CHAINING ) ) {
+			if ( !LDAP_CHAIN_CHAINING( lc ) ) {
 				return 1;
 			}
 
@@ -985,6 +1030,10 @@ chain_cf_gen( ConfigArgs *c )
 		}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+		case PC_CACHE_URI:
+			c->value_int = LDAP_CHAIN_CACHE_URI( lc );
+			break;
+
 		default:
 			assert( 0 );
 			rc = 1;
@@ -992,14 +1041,18 @@ chain_cf_gen( ConfigArgs *c )
 		return rc;
 
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		return 1;	/* FIXME */
-#if 0
 		switch( c->type ) {
-		case PC_ATTR:
-		case PC_TEMP:
+		case PC_CHAINING:
+			return 1;
+
+		case PC_CACHE_URI:
+			lc->lc_flags &= ~LDAP_CHAIN_F_CACHE_URI;
+			break;
+
+		default:
+			return 1;
 		}
 		return rc;
-#endif
 	}
 
 	switch( c->type ) {
@@ -1119,6 +1172,14 @@ chain_cf_gen( ConfigArgs *c )
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+	case PC_CACHE_URI:
+		if ( c->value_int ) {
+			lc->lc_flags |= LDAP_CHAIN_F_CACHE_URI;
+		} else {
+			lc->lc_flags &= ~LDAP_CHAIN_F_CACHE_URI;
+		}
+		break;
+
 	default:
 		assert( 0 );
 		return 1;
@@ -1211,7 +1272,7 @@ private_destroy:;
 
 				db.bd_info = lback;
 				db.be_private = (void *)lc->lc_cfg_li;
-				lback->bi_db_destroy( &db );
+				ldap_chain_db_destroy_one( &db );
 				lc->lc_cfg_li = NULL;
 
 			} else {
@@ -1560,12 +1621,16 @@ chain_init( void )
 {
 	int	rc;
 
+	assert( PC_LAST <= ARGS_USERLAND );
+
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,
 			/* SLAP_CTRL_GLOBAL| */ SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
 			ldap_chain_parse_ctrl, &sc_chainingBehavior );
 	if ( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "Failed to register chaining behavior control: %d\n", rc );
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+			"unable to register chaining behavior control: %d\n",
+			rc, 0, 0 );
 		return rc;
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */

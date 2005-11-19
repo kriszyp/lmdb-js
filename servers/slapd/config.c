@@ -198,10 +198,14 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				if(c->argc == 1) {
 					iarg = 1;
 				} else if(!strcasecmp(c->argv[1], "on") ||
-					!strcasecmp(c->argv[1], "true")) {
+					!strcasecmp(c->argv[1], "true") ||
+					!strcasecmp(c->argv[1], "yes"))
+				{
 					iarg = 1;
 				} else if(!strcasecmp(c->argv[1], "off") ||
-					!strcasecmp(c->argv[1], "false")) {
+					!strcasecmp(c->argv[1], "false") ||
+					!strcasecmp(c->argv[1], "no"))
+				{
 					iarg = 0;
 				} else {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value, ignored",
