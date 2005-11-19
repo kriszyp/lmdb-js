@@ -206,7 +206,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "timeout", "timeout", 0, 2, 0,
+	{ "timeout", "timeout(list)", 2, 0, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_TIMEOUT,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.14 "
 			"NAME 'olcDbTimeout' "
