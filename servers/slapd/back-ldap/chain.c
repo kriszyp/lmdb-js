@@ -101,6 +101,7 @@ typedef struct ldap_chain_t {
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 } ldap_chain_t;
 
+static int ldap_chain_db_init_common( BackendDB	*be );
 static int ldap_chain_db_init_one( BackendDB *be );
 #define	ldap_chain_db_open_one(be)	(lback)->bi_db_open( (be) )
 #define	ldap_chain_db_close_one(be)	(0)
@@ -359,7 +360,7 @@ ldap_chain_op(
 {
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-	ldapinfo_t	li = *lc->lc_common_li, *lip = NULL;
+	ldapinfo_t	li = { 0 }, *lip = NULL;
 	struct berval	bvuri[ 2 ] = { { 0 } };
 
 	/* NOTE: returned if ref is empty... */
@@ -602,7 +603,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	case LDAP_REQ_SEARCH:
 		if ( rs->sr_type == REP_SEARCHREF ) {
 			ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-			ldapinfo_t	li = *lc->lc_common_li, *lip = NULL;
+			ldapinfo_t	li = { 0 }, *lip = NULL;
 			struct berval	bvuri[ 2 ] = { { 0 } };
 
 			struct berval	*curr = ref,
@@ -908,6 +909,17 @@ static ConfigOCs chainocs[] = {
 static int
 chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 {
+	slap_overinst		*on;
+	ldap_chain_t		*lc;
+
+	ldapinfo_t		*li;
+
+	AttributeDescription	*ad = NULL;
+	Attribute		*at;
+	const char		*text;
+
+	int			rc;
+
 	if ( p->ce_type != Cft_Overlay
 		|| !p->ce_bi
 		|| p->ce_bi->bi_cf_ocs != chainocs )
@@ -915,7 +927,76 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
-	return LDAP_SUCCESS;
+	on = (slap_overinst *)p->ce_bi;
+	lc = (ldap_chain_t *)on->on_bi.bi_private;
+
+	assert( ca->be == NULL );
+	ca->be = (BackendDB *)ch_calloc( 1, sizeof( BackendDB ) );
+
+	ca->be->bd_info = (BackendInfo *)on;
+
+	rc = slap_str2ad( "olcDbURI", &ad, &text );
+	assert( rc == LDAP_SUCCESS );
+
+	at = attr_find( e->e_attrs, ad );
+	if ( lc->lc_common_li == NULL && at != NULL ) {
+		/* FIXME: we should generate an empty default entry
+		 * if none is supplied */
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+			"first underlying database \"%s\" "
+			"cannot contain attribute \"%s\".\n",
+			e->e_name.bv_val, ad->ad_cname.bv_val, 0 );
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		goto done;
+
+	} else if ( lc->lc_common_li != NULL && at == NULL ) {
+		/* FIXME: we should generate an empty default entry
+		 * if none is supplied */
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+			"subsequent underlying database \"%s\" "
+			"must contain attribute \"%s\".\n",
+			e->e_name.bv_val, ad->ad_cname.bv_val, 0 );
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		goto done;
+	}
+
+	if ( lc->lc_common_li == NULL ) {
+		rc = ldap_chain_db_init_common( ca->be );
+
+	} else {
+		rc = ldap_chain_db_init_one( ca->be );
+	}
+
+	if ( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+			"unable to init %sunderlying database \"%s\".\n",
+			lc->lc_common_li == NULL ? "common " : "", e->e_name.bv_val, 0 );
+		return LDAP_CONSTRAINT_VIOLATION;
+	}
+
+	li = ca->be->be_private;
+
+	if ( lc->lc_common_li == NULL ) {
+		lc->lc_common_li = li;
+
+	} else if ( avl_insert( &lc->lc_lai.lai_tree, (caddr_t)li,
+		ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
+	{
+		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+			"database \"%s\" insert failed.\n",
+			e->e_name.bv_val, 0, 0 );
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		goto done;
+	}
+
+done:;
+	if ( rc != LDAP_SUCCESS ) {
+		(void)ldap_chain_db_destroy_one( ca->be );
+		ch_free( ca->be );
+		ca->be = NULL;
+	}
+
+	return rc;
 }
 
 typedef struct ldap_chain_cfadd_apply_t {
@@ -963,7 +1044,7 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 		lca.rs = rs;
 		lca.p = p;
 		lca.ca = ca;
-		lca.count = -1;
+		lca.count = 0;
 
 		(void)ldap_chain_cfadd_apply( (void *)lc->lc_common_li, (void *)&lca );
 
@@ -990,9 +1071,7 @@ static int
 chain_cf_gen( ConfigArgs *c )
 {
 	slap_overinst	*on = (slap_overinst *)c->bi;
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-#endif
 
 	int		rc = 0;
 
@@ -1195,8 +1274,8 @@ ldap_chain_db_init(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_chain_t	*lc = NULL;
+
 	int		rc;
-	BackendDB	bd = *be;
 
 	if ( lback == NULL ) {
 		lback = backend_info( "ldap" );
@@ -1209,9 +1288,6 @@ ldap_chain_db_init(
 	lc = ch_malloc( sizeof( ldap_chain_t ) );
 	memset( lc, 0, sizeof( ldap_chain_t ) );
 
-	bd.be_private = NULL;
-	rc = lback->bi_db_init( &bd );
-	lc->lc_cfg_li = lc->lc_common_li = (ldapinfo_t *)bd.be_private;
 	on->on_bi.bi_private = (void *)lc;
 
 	return rc;
@@ -1230,7 +1306,12 @@ ldap_chain_db_config(
 
 	int		rc = SLAP_CONF_UNKNOWN;
 		
-	/* Something for the cache database? */
+	if ( lc->lc_common_li == NULL ) {
+		ldap_chain_db_init_common( be );
+		lc->lc_common_li = lc->lc_cfg_li = (ldapinfo_t *)be->be_private;
+	}
+
+	/* Something for the chain database? */
 	if ( strncasecmp( argv[ 0 ], "chain-", STRLENOF( "chain-" ) ) == 0 ) {
 		char		*save_argv0 = argv[ 0 ];
 		BackendInfo	*bd_info = bd_info;
@@ -1342,7 +1423,7 @@ ldap_chain_db_func(
 	if ( lc ) {
 		BI_db_func	*func = (&lback->bi_db_open)[ which ];
 
-		if ( func != NULL ) {
+		if ( func != NULL && lc->lc_common_li != NULL ) {
 			BackendDB		db = *be;
 
 			db.bd_info = lback;
@@ -1416,23 +1497,48 @@ ldap_chain_db_destroy(
 }
 
 static int
+ldap_chain_db_init_common(
+	BackendDB	*be )
+{
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+
+	BackendInfo	*bi = be->bd_info;
+
+	int		t;
+
+	assert( lc->lc_common_li == NULL );
+
+	be->bd_info = lback;
+	be->be_private = NULL;
+	t = lback->bi_db_init( be );
+	if ( t != 0 ) {
+		return t;
+	}
+	be->bd_info = bi;
+
+	return 0;
+}
+
+static int
 ldap_chain_db_init_one(
 	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
 
-	BackendDB	db = *be;
-	int		t;
+	BackendInfo	*bi = be->bd_info;
 	ldapinfo_t	*li;
 
-	db.bd_info = lback;
-	db.be_private = NULL;
-	t = lback->bi_db_init( &db );
+	int		t;
+
+	be->bd_info = lback;
+	be->be_private = NULL;
+	t = lback->bi_db_init( be );
 	if ( t != 0 ) {
 		return t;
 	}
-	li = (ldapinfo_t *)db.be_private;
+	li = (ldapinfo_t *)be->be_private;
 
 	/* copy common data */
 	li->li_nretries = lc->lc_common_li->li_nretries;
@@ -1441,8 +1547,7 @@ ldap_chain_db_init_one(
 	for ( t = 0; t < LDAP_BACK_OP_LAST; t++ ) {
 		li->li_timeout[ t ] = lc->lc_common_li->li_timeout[ t ];
 	}
-
-	be->be_private = li;
+	be->bd_info = bi;
 
 	return 0;
 }
