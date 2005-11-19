@@ -60,7 +60,9 @@ enum {
 	LDAP_BACK_CFG_T_F,
 	LDAP_BACK_CFG_WHOAMI,
 	LDAP_BACK_CFG_TIMEOUT,
-	LDAP_BACK_CFG_REWRITE
+	LDAP_BACK_CFG_REWRITE,
+
+	LDAP_BACK_CFG_LAST
 };
 
 static ConfigTable ldapcfg[] = {
@@ -1131,6 +1133,9 @@ ldap_back_init_cf( BackendInfo *bi )
 	int			rc;
 	AttributeDescription	*ad = NULL;
 	const char		*text;
+
+	/* Make sure we don't exceed the bits reserved for userland */
+	config_check_userland( LDAP_BACK_CFG_LAST );
 
 	bi->bi_cf_ocs = ldapocs;
 

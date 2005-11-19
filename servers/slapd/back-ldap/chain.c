@@ -858,10 +858,10 @@ str2chain( const char *s )
  */
 
 enum {
-	PC_CHAINING = 1,
-	PC_CACHE_URI = 2,
+	CH_CHAINING = 1,
+	CH_CACHE_URI = 2,
 
-	PC_LAST
+	CH_LAST
 };
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -873,13 +873,13 @@ static ConfigLDAPadd chain_ldadd;
 static ConfigTable chaincfg[] = {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	{ "chain-chaining", "args",
-		2, 4, 0, ARG_MAGIC|ARG_BERVAL|PC_CHAINING, chain_cf_gen,
+		2, 4, 0, ARG_MAGIC|ARG_BERVAL|CH_CHAINING, chain_cf_gen,
 		"( OLcfgOvAt:3.1 NAME 'olcChainingBehavior' "
 			"DESC 'Chaining behavior control parameters (draft-sermersheim-ldap-chaining)' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	{ "chain-cache-uris", "TRUE/FALSE",
-		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|PC_CACHE_URI, chain_cf_gen,
+		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|CH_CACHE_URI, chain_cf_gen,
 		"( OLcfgOvAt:3.2 NAME 'olcCacheURIs' "
 			"DESC 'Enables caching of URIs not present in configuration' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
@@ -999,7 +999,7 @@ chain_cf_gen( ConfigArgs *c )
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		switch( c->type ) {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-		case PC_CHAINING: {
+		case CH_CHAINING: {
 			struct berval	resolve = BER_BVNULL,
 					continuation = BER_BVNULL;
 
@@ -1030,7 +1030,7 @@ chain_cf_gen( ConfigArgs *c )
 		}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
-		case PC_CACHE_URI:
+		case CH_CACHE_URI:
 			c->value_int = LDAP_CHAIN_CACHE_URI( lc );
 			break;
 
@@ -1042,10 +1042,10 @@ chain_cf_gen( ConfigArgs *c )
 
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		switch( c->type ) {
-		case PC_CHAINING:
+		case CH_CHAINING:
 			return 1;
 
-		case PC_CACHE_URI:
+		case CH_CACHE_URI:
 			lc->lc_flags &= ~LDAP_CHAIN_F_CACHE_URI;
 			break;
 
@@ -1057,7 +1057,7 @@ chain_cf_gen( ConfigArgs *c )
 
 	switch( c->type ) {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-	case PC_CHAINING: {
+	case CH_CHAINING: {
 		char			**argv = c->argv;
 		int			argc = c->argc;
 		BerElementBuffer	berbuf;
@@ -1172,7 +1172,7 @@ chain_cf_gen( ConfigArgs *c )
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
-	case PC_CACHE_URI:
+	case CH_CACHE_URI:
 		if ( c->value_int ) {
 			lc->lc_flags |= LDAP_CHAIN_F_CACHE_URI;
 		} else {
@@ -1621,7 +1621,8 @@ chain_init( void )
 {
 	int	rc;
 
-	assert( PC_LAST <= ARGS_USERLAND );
+	/* Make sure we don't exceed the bits reserved for userland */
+	config_check_userland( CH_LAST );
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,

@@ -14,6 +14,9 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+#ifndef CONFIG_H
+#define CONFIG_H
+
 typedef struct ConfigTable {
 	char *name;
 	char *what;
@@ -169,3 +172,9 @@ int read_config_file(const char *fname, int depth, ConfigArgs *cf,
 ConfigTable * config_find_keyword(ConfigTable *ct, ConfigArgs *c);
 Entry * config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ConfigArgs *c, struct berval *rdn, ConfigOCs *main, ConfigOCs *extra );
+
+	/* Make sure we don't exceed the bits reserved for userland */
+#define	config_check_userland(last) \
+	assert( ( ( (last) - 1 ) & ARGS_USERLAND ) == ( (last) - 1 ) );
+
+#endif /* CONFIG_H */
