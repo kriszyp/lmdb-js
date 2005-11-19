@@ -1846,21 +1846,23 @@ struct slap_conn;
 struct slap_op;
 
 /* Backend function typedefs */
-typedef int (BI_init) LDAP_P((BackendInfo *bi));
+typedef int (BI_bi_func) LDAP_P((BackendInfo *bi));
+typedef BI_bi_func BI_init;
+typedef BI_bi_func BI_open;
+typedef BI_bi_func BI_close;
+typedef BI_bi_func BI_destroy;
 typedef int (BI_config) LDAP_P((BackendInfo *bi,
 	const char *fname, int lineno,
 	int argc, char **argv));
-typedef int (BI_open) LDAP_P((BackendInfo *bi));
-typedef int (BI_close) LDAP_P((BackendInfo *bi));
-typedef int (BI_destroy) LDAP_P((BackendInfo *bi));
 
-typedef int (BI_db_init) LDAP_P((Backend *bd));
+typedef int (BI_db_func) LDAP_P((Backend *bd));
+typedef BI_db_func BI_db_init;
+typedef BI_db_func BI_db_open;
+typedef BI_db_func BI_db_close;
+typedef BI_db_func BI_db_destroy;
 typedef int (BI_db_config) LDAP_P((Backend *bd,
 	const char *fname, int lineno,
 	int argc, char **argv));
-typedef int (BI_db_open) LDAP_P((Backend *bd));
-typedef int (BI_db_close) LDAP_P((Backend *bd));
-typedef int (BI_db_destroy) LDAP_P((Backend *bd));
 
 typedef struct req_bind_s {
 	int rb_method;
@@ -2001,22 +2003,20 @@ typedef struct slap_rep {
 #define	sr_rspdata sr_un.sru_extended.r_rspdata
 #define	sr_sasldata sr_un.sru_sasl.r_sasldata
 
-typedef int (BI_op_bind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_unbind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_search) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_compare) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_modify) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_modrdn) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_add) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_delete) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_abandon) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_cancel) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_extended) LDAP_P((
-	struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_chk_referrals) LDAP_P((
-	struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_chk_controls) LDAP_P((
-	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_func) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef BI_op_func BI_op_bind;
+typedef BI_op_func BI_op_unbind;
+typedef BI_op_func BI_op_search;
+typedef BI_op_func BI_op_compare;
+typedef BI_op_func BI_op_modify;
+typedef BI_op_func BI_op_modrdn;
+typedef BI_op_func BI_op_add;
+typedef BI_op_func BI_op_delete;
+typedef BI_op_func BI_op_abandon;
+typedef BI_op_func BI_op_cancel;
+typedef BI_op_func BI_op_extended;
+typedef BI_op_func BI_chk_referrals;
+typedef BI_op_func BI_chk_controls;
 typedef int (BI_entry_release_rw)
 	LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
@@ -2036,10 +2036,9 @@ typedef int (BI_acl_attribute) LDAP_P(( struct slap_op *op, Entry *target,
 	BerVarray *vals, slap_access_t access ));
 #endif /* SLAP_OVERLAY_ACCESS */
 
-typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
-	struct slap_conn *c ));
-typedef int (BI_connection_destroy) LDAP_P(( BackendDB *bd,
-	struct slap_conn *c ));
+typedef int (BI_conn_func) LDAP_P(( BackendDB *bd, struct slap_conn *c ));
+typedef BI_conn_func BI_connection_init;
+typedef BI_conn_func BI_connection_destroy;
 
 typedef int (BI_tool_entry_open) LDAP_P(( BackendDB *be, int mode ));
 typedef int (BI_tool_entry_close) LDAP_P(( BackendDB *be ));
