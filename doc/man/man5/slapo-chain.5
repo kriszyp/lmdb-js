@@ -33,7 +33,7 @@ database or to other stacked overlays.
 
 .LP
 There are no chain overlay specific directives; however, directives 
-related to the \fIldap\fP database that is implicitly instantiated 
+related to the \fIslapd-ldap\fP database that is implicitly instantiated 
 by the overlay may assume a special meaning when used in conjunction
 with this overlay.  They are described in
 .BR slapd-ldap (5).
@@ -42,8 +42,11 @@ with this overlay.  They are described in
 This directive adds the chain overlay to the current backend.
 The chain overlay may be used with any backend, but it is mainly 
 intended for use with local storage backends that may return referrals.
-It is useless in conjunction with the \fIldap\fP and \fImeta\fP backends
-because they already exploit the libldap specific referral chase feature.
+It is useless in conjunction with the \fIslapd-ldap\fP and \fIslapd-meta\fP
+backends because they already exploit the libldap specific referral chase 
+feature.
+[Note: this may change in the future, as \fBslapd-ldap\fP(5) and 
+\fBslapd-meta\fP(5) might no longer chase referrals on their own.]
 .TP
 .B chain-uri <ldapuri>
 This directive instructs the underlying ldap database about which
@@ -57,16 +60,23 @@ be required, as shown here:
 .LP
 .RS
 .nf
-chain-idassert-method	"simple"
-chain-idassert-authcDN	"cn=Auth,dc=example,dc=com"
-chain-idassert-passwd	"secret"
-chain-idassert-mode	"self"
+chain-idassert-bind	bindmethod="simple"
+			binddn="cn=Auth,dc=example,dc=com"
+			credentials="secret"
+			mode="self"
 .fi
 .RE
 .LP
 Any valid directives for the ldap database may be used; see
 .BR slapd-ldap (5)
 for details.
+Multiple occurrences of the \fBchain-uri\fP directive may appear,
+to define multiple "trusted" URIs where operations with 
+\fIidentity assertion\fP are chained.
+All URIs not listed in the configuration are chained anonymously.
+All \fBslapd-ldap\fP(5) directives appearing before the first 
+occurrence of \fBchain-uri\fP are shared among all operations,
+unless specifically overridden inside each URI configuration.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
