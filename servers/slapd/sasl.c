@@ -150,10 +150,10 @@ static const char *slap_propnames[] = {
 static Filter generic_filter = { LDAP_FILTER_PRESENT, { 0 }, NULL };
 static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 
-#define	PROP_CONN	0
-#define	PROP_AUTHC	1
-#define	PROP_AUTHZ	2
-#define	PROP_COUNT	3	/* Number of properties we used */
+#define	SLAP_SASL_PROP_CONN	0
+#define	SLAP_SASL_PROP_AUTHC	1
+#define	SLAP_SASL_PROP_AUTHZ	2
+#define	SLAP_SASL_PROP_COUNT	3	/* Number of properties we used */
 
 typedef struct lookup_info {
 	int flags;
@@ -185,7 +185,7 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 			if ( sl->flags & SASL_AUXPROP_AUTHZID ) continue;
 			/* Skip our private properties */
 			if ( !strcmp( name, slap_propnames[0] )) {
-				i += PROP_COUNT-1;
+				i += SLAP_SASL_PROP_COUNT - 1;
 				continue;
 			}
 			name++;
@@ -275,19 +275,19 @@ slap_auxprop_lookup(
 	/* Find our DN and conn first */
 	for( i = 0; sl.list[i].name; i++ ) {
 		if ( sl.list[i].name[0] == '*' ) {
-			if ( !strcmp( sl.list[i].name, slap_propnames[PROP_CONN] ) ) {
+			if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_CONN] ) ) {
 				if ( sl.list[i].values && sl.list[i].values[0] )
 					AC_MEMCPY( &conn, sl.list[i].values[0], sizeof( conn ) );
 				continue;
 			}
 			if ( (flags & SASL_AUXPROP_AUTHZID) &&
-				!strcmp( sl.list[i].name, slap_propnames[PROP_AUTHZ] ) ) {
+				!strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHZ] ) ) {
 
 				if ( sl.list[i].values && sl.list[i].values[0] )
 					AC_MEMCPY( &op.o_req_ndn, sl.list[i].values[0], sizeof( struct berval ) );
 				break;
 			}
-			if ( !strcmp( sl.list[i].name, slap_propnames[PROP_AUTHC] ) ) {
+			if ( !strcmp( sl.list[i].name, slap_propnames[SLAP_SASL_PROP_AUTHC] ) ) {
 				if ( sl.list[i].values && sl.list[i].values[0] ) {
 					AC_MEMCPY( &op.o_req_ndn, sl.list[i].values[0], sizeof( struct berval ) );
 					if ( !(flags & SASL_AUXPROP_AUTHZID) )
@@ -305,7 +305,7 @@ slap_auxprop_lookup(
 			if ( flags & SASL_AUXPROP_AUTHZID ) continue;
 			/* Skip our private properties */
 			if ( !strcmp( name, slap_propnames[0] )) {
-				i += PROP_COUNT-1;
+				i += SLAP_SASL_PROP_COUNT - 1;
 				continue;
 			}
 			name++;
@@ -423,12 +423,12 @@ slap_auxprop_store(
 	/* Find our DN and conn first */
 	for( i = 0; pr[i].name; i++ ) {
 		if ( pr[i].name[0] == '*' ) {
-			if ( !strcmp( pr[i].name, slap_propnames[PROP_CONN] ) ) {
+			if ( !strcmp( pr[i].name, slap_propnames[SLAP_SASL_PROP_CONN] ) ) {
 				if ( pr[i].values && pr[i].values[0] )
 					AC_MEMCPY( &conn, pr[i].values[0], sizeof( conn ) );
 				continue;
 			}
-			if ( !strcmp( pr[i].name, slap_propnames[PROP_AUTHC] ) ) {
+			if ( !strcmp( pr[i].name, slap_propnames[SLAP_SASL_PROP_AUTHC] ) ) {
 				if ( pr[i].values && pr[i].values[0] ) {
 					AC_MEMCPY( &op.o_req_ndn, pr[i].values[0], sizeof( struct berval ) );
 				}
@@ -542,7 +542,7 @@ slap_sasl_canonicalize(
 {
 	Connection *conn = (Connection *)context;
 	struct propctx *props = sasl_auxprop_getctx( sconn );
-	struct propval auxvals[3];
+	struct propval auxvals[ SLAP_SASL_PROP_COUNT ] = { 0 };
 	struct berval dn;
 	int rc, which;
 	const char *names[2];
@@ -575,13 +575,13 @@ slap_sasl_canonicalize(
 		prop_request( props, slap_propnames );
 
 	if ( flags & SASL_CU_AUTHID )
-		which = PROP_AUTHC;
+		which = SLAP_SASL_PROP_AUTHC;
 	else
-		which = PROP_AUTHZ;
+		which = SLAP_SASL_PROP_AUTHZ;
 
 	/* Need to store the Connection for auxprop_lookup */
-	if ( !auxvals[PROP_CONN].values ) {
-		names[0] = slap_propnames[PROP_CONN];
+	if ( !auxvals[SLAP_SASL_PROP_CONN].values ) {
+		names[0] = slap_propnames[SLAP_SASL_PROP_CONN];
 		names[1] = NULL;
 		prop_set( props, names[0], (char *)&conn, sizeof( conn ) );
 	}
@@ -605,7 +605,7 @@ slap_sasl_canonicalize(
 	 * it does authzID before the authcID. If we see that authzID
 	 * has already been done, don't do anything special with authcID.
 	 */
-	if ( flags == SASL_CU_AUTHID && !auxvals[PROP_AUTHZ].values ) {
+	if ( flags == SASL_CU_AUTHID && !auxvals[SLAP_SASL_PROP_AUTHZ].values ) {
 		conn->c_sasl_dn.bv_val = (char *) in;
 	} else if ( flags == SASL_CU_AUTHZID && conn->c_sasl_dn.bv_val ) {
 		rc = strcmp( in, conn->c_sasl_dn.bv_val );
@@ -654,7 +654,11 @@ slap_sasl_authorize(
 	struct propctx *props)
 {
 	Connection *conn = (Connection *)context;
-	struct propval auxvals[3];
+	/* actually:
+	 *	(SLAP_SASL_PROP_COUNT - 1)	because we skip "conn",
+	 *	+ 1				for NULL termination?
+	 */
+	struct propval auxvals[ SLAP_SASL_PROP_COUNT ] = { 0 };
 	struct berval authcDN, authzDN = BER_BVNULL;
 	int rc;
 
@@ -670,7 +674,7 @@ slap_sasl_authorize(
 		BER_BVZERO( &conn->c_sasl_dn );
 	}
 
-	/* Skip PROP_CONN */
+	/* Skip SLAP_SASL_PROP_CONN */
 	prop_getnames( props, slap_propnames+1, auxvals );
 	
 	/* Should not happen */
