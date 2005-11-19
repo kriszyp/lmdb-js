@@ -345,14 +345,13 @@ at_insert(
     const char		**err )
 {
 	struct aindexrec	*air;
-	char			**names;
+	char			**names = NULL;
 
 
 	if ( sat->sat_oid ) {
 		air = (struct aindexrec *)
 			ch_calloc( 1, sizeof(struct aindexrec) );
-		air->air_name.bv_val = sat->sat_oid;
-		air->air_name.bv_len = strlen(sat->sat_oid);
+		ber_str2bv( sat->sat_oid, 0, 0, &air->air_name );
 		air->air_at = sat;
 		if ( avl_insert( &attr_index, (caddr_t) air,
 		                 attr_index_cmp, avl_dup_error ) )
@@ -379,8 +378,7 @@ at_insert(
 		while ( *names ) {
 			air = (struct aindexrec *)
 				ch_calloc( 1, sizeof(struct aindexrec) );
-			air->air_name.bv_val = *names;
-			air->air_name.bv_len = strlen(*names);
+			ber_str2bv( *names, 0, 0, &air->air_name );
 			air->air_at = sat;
 			if ( avl_insert( &attr_index, (caddr_t) air,
 			                 attr_index_cmp, avl_dup_error ) )
@@ -395,6 +393,29 @@ at_insert(
 				rc = at_check_dup( old_sat, sat );
 
 				ldap_memfree(air);
+
+				if ( rc ) {
+					struct aindexrec	tmpair;
+
+					while ( names > sat->sat_names ) {
+						names--;
+						ber_str2bv( *names, 0, 0, &tmpair.air_name );
+						tmpair.air_at = sat;
+						air = avl_delete( &attr_index,
+							(caddr_t)&tmpair, attr_index_cmp );
+						assert( air != NULL );
+						ldap_memfree( air );
+					}
+
+					if ( sat->sat_oid ) {
+						ber_str2bv( sat->sat_oid, 0, 0, &tmpair.air_name );
+						tmpair.air_at = sat;
+						air = avl_delete( &attr_index,
+							(caddr_t)&tmpair, attr_index_cmp );
+						assert( air != NULL );
+						ldap_memfree( air );
+					}
+				}
 
 				return rc;
 			}
@@ -428,16 +449,17 @@ at_add(
 	AttributeType		**rsat,
 	const char		**err )
 {
-	AttributeType	*sat;
-	MatchingRule	*mr;
-	Syntax		*syn;
+	AttributeType	*sat = NULL;
+	MatchingRule	*mr = NULL;
+	Syntax		*syn = NULL;
 	int		i;
-	int		code;
-	char	*cname;
-	char	*oid;
-	char	*oidm = NULL;
+	int		code = LDAP_SUCCESS;
+	char		*cname = NULL;
+	char		*oidm = NULL;
 
 	if ( !OID_LEADCHAR( at->at_oid[0] )) {
+		char	*oid;
+
 		/* Expand OID macros */
 		oid = oidm_find( at->at_oid );
 		if ( !oid ) {
@@ -451,11 +473,14 @@ at_add(
 	}
 
 	if ( at->at_syntax_oid && !OID_LEADCHAR( at->at_syntax_oid[0] )) {
+		char	*oid;
+
 		/* Expand OID macros */
 		oid = oidm_find( at->at_syntax_oid );
 		if ( !oid ) {
 			*err = at->at_syntax_oid;
-			return SLAP_SCHERR_OIDM;
+			code = SLAP_SCHERR_OIDM;
+			goto error_return;
 		}
 		if ( oid != at->at_syntax_oid ) {
 			ldap_memfree( at->at_syntax_oid );
@@ -469,7 +494,8 @@ at_add(
 		for( i=0; at->at_names[i]; i++ ) {
 			if( !slap_valid_descr( at->at_names[i] ) ) {
 				*err = at->at_names[i];
-				return SLAP_SCHERR_BAD_DESCR;
+				code = SLAP_SCHERR_BAD_DESCR;
+				goto error_return;
 			}
 		}
 
@@ -480,25 +506,29 @@ at_add(
 
 	} else {
 		*err = "";
-		return SLAP_SCHERR_ATTR_INCOMPLETE;
+		code = SLAP_SCHERR_ATTR_INCOMPLETE;
+		goto error_return;
 	}
 
 	*err = cname;
 
 	if ( !at->at_usage && at->at_no_user_mod ) {
 		/* user attribute must be modifable */
-		return SLAP_SCHERR_ATTR_BAD_USAGE;
+		code = SLAP_SCHERR_ATTR_BAD_USAGE;
+		goto error_return;
 	}
 
 	if ( at->at_collective ) {
 		if( at->at_usage ) {
 			/* collective attributes cannot be operational */
-			return SLAP_SCHERR_ATTR_BAD_USAGE;
+			code = SLAP_SCHERR_ATTR_BAD_USAGE;
+			goto error_return;
 		}
 
 		if( at->at_single_value ) {
 			/* collective attributes cannot be single-valued */
-			return SLAP_SCHERR_ATTR_BAD_USAGE;
+			code = SLAP_SCHERR_ATTR_BAD_USAGE;
+			goto error_return;
 		}
 	}
 
