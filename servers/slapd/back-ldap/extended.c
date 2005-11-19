@@ -48,7 +48,7 @@ ldap_back_extended(
 	for ( i = 0; exop_table[i].extended != NULL; i++ ) {
 		if ( bvmatch( &exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
 		{
-			struct ldapconn	*lc;
+			ldapconn_t	*lc;
 			LDAPControl	**oldctrls = NULL;
 			int		rc;
 
@@ -98,7 +98,7 @@ ldap_back_exop_passwd(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	struct ldapconn	*lc;
+	ldapconn_t	*lc;
 	req_pwdexop_s	*qpw = &op->oq_pwdexop;
 	LDAPMessage	*res;
 	ber_int_t	msgid;
@@ -124,7 +124,7 @@ retry:
 	if ( rc == LDAP_SUCCESS ) {
 		if ( ldap_result( lc->lc_ld, msgid, 1, NULL, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
-			ldap_back_freeconn( op, lc );
+			ldap_back_freeconn( op, lc, 0 );
 			lc = NULL;
 
 		} else {
@@ -168,7 +168,7 @@ retry:
 		rs->sr_err = slap_map_api2result( rs );
 		if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 				goto retry;
 			}
 		}

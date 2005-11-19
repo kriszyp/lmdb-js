@@ -293,7 +293,7 @@ static slap_cf_aux_table timeout_table[] = {
 static int
 ldap_back_cf_gen( ConfigArgs *c )
 {
-	struct ldapinfo	*li = ( struct ldapinfo * )c->be->be_private;
+	ldapinfo_t	*li = ( ldapinfo_t * )c->be->be_private;
 	int		rc;
 	int		i;
 
@@ -303,8 +303,8 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		switch( c->type ) {
 		case LDAP_BACK_CFG_URI:
-			if ( li->url != NULL ) {
-				c->value_string = ch_strdup( li->url );
+			if ( li->li_uri != NULL ) {
+				c->value_string = ch_strdup( li->li_uri );
 
 			} else {
 				rc = 1;
@@ -312,7 +312,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_TLS:
-			enum_to_verb( tls_mode, ( li->flags & LDAP_BACK_F_TLS_MASK ), &bv );
+			enum_to_verb( tls_mode, ( li->li_flags & LDAP_BACK_F_TLS_MASK ), &bv );
 			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
@@ -333,7 +333,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_ACL_BIND: {
 			int	i;
 
-			bindconf_unparse( &li->acl_sb, &bv );
+			bindconf_unparse( &li->li_acl, &bv );
 
 			for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
 				/* count spaces */ ;
@@ -359,14 +359,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 			int		i;
 
-			if ( li->idassert_authz == NULL ) {
+			if ( li->li_idassert_authz == NULL ) {
 				rc = 1;
 				break;
 			}
 
-			for ( i = 0; !BER_BVISNULL( &li->idassert_authz[ i ] ); i++ )
+			for ( i = 0; !BER_BVISNULL( &li->li_idassert_authz[ i ] ); i++ )
 			{
-				value_add_one( &c->rvalue_vals, &li->idassert_authz[ i ] );
+				value_add_one( &c->rvalue_vals, &li->li_idassert_authz[ i ] );
 			}
 			break;
 		}
@@ -376,10 +376,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 			struct berval	bc = BER_BVNULL;
 			char		*ptr;
 
-			if ( li->idassert_authmethod != LDAP_AUTH_NONE ) {
+			if ( li->li_idassert_authmethod != LDAP_AUTH_NONE ) {
 				ber_len_t	len;
 
-				switch ( li->idassert_mode ) {
+				switch ( li->li_idassert_mode ) {
 				case LDAP_BACK_IDASSERT_OTHERID:
 				case LDAP_BACK_IDASSERT_OTHERDN:
 					break;
@@ -387,7 +387,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				default: {
 					struct berval	mode = BER_BVNULL;
 
-					enum_to_verb( idassert_mode, li->idassert_mode, &mode );
+					enum_to_verb( idassert_mode, li->li_idassert_mode, &mode );
 					if ( BER_BVISNULL( &mode ) ) {
 						/* there's something wrong... */
 						assert( 0 );
@@ -404,7 +404,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				}
 				}
 
-				if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
+				if ( li->li_idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
 					len = bv.bv_len + STRLENOF( "authz=native" );
 
 					if ( !BER_BVISEMPTY( &bv ) ) {
@@ -438,13 +438,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 				ptr = lutil_strcopy( ptr, "flags=" );
 
-				if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+				if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
 					ptr = lutil_strcopy( ptr, "prescriptive" );
 				} else {
 					ptr = lutil_strcopy( ptr, "non-prescriptive" );
 				}
 
-				if ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
+				if ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
 					ptr = lutil_strcopy( ptr, ",override" );
 				}
 
@@ -452,7 +452,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				/* end-of-flags */
 			}
 
-			bindconf_unparse( &li->idassert_sb, &bc );
+			bindconf_unparse( &li->li_idassert, &bc );
 
 			if ( !BER_BVISNULL( &bv ) ) {
 				ber_len_t	len = bv.bv_len + bc.bv_len;
@@ -483,7 +483,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		case LDAP_BACK_CFG_REBIND:
-			enum_to_verb( yn_mode, ( ( li->flags & LDAP_BACK_F_SAVECRED ) == LDAP_BACK_F_SAVECRED ), &bv );
+			enum_to_verb( yn_mode, ( ( li->li_flags & LDAP_BACK_F_SAVECRED ) == LDAP_BACK_F_SAVECRED ), &bv );
 			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
@@ -495,7 +495,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_CHASE:
-			enum_to_verb( yn_mode, ( ( li->flags & LDAP_BACK_F_CHASE_REFERRALS ) == LDAP_BACK_F_CHASE_REFERRALS ), &bv );
+			enum_to_verb( yn_mode, ( ( li->li_flags & LDAP_BACK_F_CHASE_REFERRALS ) == LDAP_BACK_F_CHASE_REFERRALS ), &bv );
 			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
@@ -507,7 +507,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_T_F:
-			enum_to_verb( t_f_mode, ( ( li->flags & LDAP_BACK_F_SUPPORT_T_F_MASK ) == LDAP_BACK_F_SUPPORT_T_F_MASK ), &bv );
+			enum_to_verb( t_f_mode, ( ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F_MASK ) == LDAP_BACK_F_SUPPORT_T_F_MASK ), &bv );
 			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
@@ -519,7 +519,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_WHOAMI:
-			enum_to_verb( yn_mode, ( ( li->flags & LDAP_BACK_F_PROXY_WHOAMI ) == LDAP_BACK_F_PROXY_WHOAMI ), &bv );
+			enum_to_verb( yn_mode, ( ( li->li_flags & LDAP_BACK_F_PROXY_WHOAMI ) == LDAP_BACK_F_PROXY_WHOAMI ), &bv );
 			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
@@ -533,7 +533,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_TIMEOUT:
 			BER_BVZERO( &bv );
 
-			slap_cf_aux_table_unparse( li->timeout, &bv, timeout_table );
+			slap_cf_aux_table_unparse( li->li_timeout, &bv, timeout_table );
 
 			if ( !BER_BVISNULL( &bv ) ) {	
 				for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
@@ -560,21 +560,22 @@ ldap_back_cf_gen( ConfigArgs *c )
 		rc = 0;
 		switch( c->type ) {
 		case LDAP_BACK_CFG_URI:
-			if ( li->url != NULL ) {
-				ch_free( li->url );
-				li->url = NULL;
+			if ( li->li_uri != NULL ) {
+				ch_free( li->li_uri );
+				li->li_uri = NULL;
+
+				assert( li->li_bvuri != NULL );
+				ber_bvarray_free( li->li_bvuri );
+				li->li_bvuri = NULL;
 			}
 
-			if ( li->lud != NULL ) {
-				ldap_free_urllist( li->lud );
-				li->lud = NULL;
-			}
-			
 			/* better cleanup the cached connections... */
 			/* NOTE: don't worry about locking: if we got here,
 			 * other threads are suspended. */
-			avl_free( li->conntree, ldap_back_conn_free );
-			li->conntree = NULL;
+			if ( li->li_conninfo.lai_tree != NULL ) {
+				avl_free( li->li_conninfo.lai_tree, ldap_back_conn_free );
+				li->li_conninfo.lai_tree = NULL;
+			}
 			
 			break;
 
@@ -590,7 +591,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_ACL_BIND:
-			bindconf_free( &li->acl_sb );
+			bindconf_free( &li->li_acl );
 			break;
 
 		case LDAP_BACK_CFG_IDASSERT_MODE:
@@ -602,14 +603,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
-			if ( li->idassert_authz != NULL ) {
-				ber_bvarray_free( li->idassert_authz );
-				li->idassert_authz = NULL;
+			if ( li->li_idassert_authz != NULL ) {
+				ber_bvarray_free( li->li_idassert_authz );
+				li->li_idassert_authz = NULL;
 			}
 			break;
 
 		case LDAP_BACK_CFG_IDASSERT_BIND:
-			bindconf_free( &li->idassert_sb );
+			bindconf_free( &li->li_idassert );
 			break;
 
 		case LDAP_BACK_CFG_REBIND:
@@ -621,7 +622,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_TIMEOUT:
 			for ( i = 0; i < LDAP_BACK_OP_LAST; i++ ) {
-				li->timeout[ i ] = 0;
+				li->li_timeout[ i ] = 0;
 			}
 			break;
 
@@ -636,11 +637,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 	switch( c->type ) {
 	case LDAP_BACK_CFG_URI: {
-		LDAPURLDesc	*tmpludp;
-#if 0
-		char		**urllist;
-#endif
-		int		urlrc, i;
+		LDAPURLDesc	*tmpludp, *lud;
+		char		**urllist = NULL;
+		int		urlrc = LDAP_URL_SUCCESS, i;
 
 		if ( c->argc != 2 ) {
 			fprintf( stderr, "%s: line %d: "
@@ -650,20 +649,17 @@ ldap_back_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 
-		if ( li->url != NULL ) {
-			ch_free( li->url );
+		if ( li->li_uri != NULL ) {
+			ch_free( li->li_uri );
+			li->li_uri = NULL;
+
+			assert( li->li_bvuri != NULL );
+			ber_bvarray_free( li->li_bvuri );
+			li->li_bvuri = NULL;
 		}
 
-		if ( li->lud != NULL ) {
-			ldap_free_urllist( li->lud );
-		}
-
-#if 0
 		/* PARANOID: DN and more are not required nor allowed */
-		urlrc = ldap_url_parselist_ext( &li->lud, c->value_string, "\t" );
-#else
-		urlrc = ldap_url_parselist( &li->lud, c->value_string );
-#endif
+		urlrc = ldap_url_parselist_ext( &lud, c->value_string, ", \t" );
 		if ( urlrc != LDAP_URL_SUCCESS ) {
 			char	*why;
 
@@ -682,6 +678,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				break;
 			case LDAP_URL_ERR_BADURL:
 				why = "URL is bad";
+				break;
 			case LDAP_URL_ERR_BADHOST:
 				why = "host/port is bad";
 				break;
@@ -705,10 +702,11 @@ ldap_back_cf_gen( ConfigArgs *c )
 					"unable to parse uri \"%s\" "
 					"in \"uri <uri>\" line: %s\n",
 					c->fname, c->lineno, c->value_string, why );
-			return 1;
+			urlrc = 1;
+			goto done_url;
 		}
 
-		for ( i = 0, tmpludp = li->lud;
+		for ( i = 0, tmpludp = lud;
 				tmpludp;
 				i++, tmpludp = tmpludp->lud_next )
 		{
@@ -728,15 +726,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 		}
 
-#if 0
-		for ( i = 0, tmpludp = li->lud;
+		for ( i = 0, tmpludp = lud;
 				tmpludp;
 				i++, tmpludp = tmpludp->lud_next )
 			/* just count */
 			;
 		urllist = ch_calloc( sizeof( char * ), i + 1 );
 
-		for ( i = 0, tmpludp = li->lud;
+		for ( i = 0, tmpludp = lud;
 				tmpludp;
 				i++, tmpludp = tmpludp->lud_next )
 		{
@@ -759,17 +756,33 @@ ldap_back_cf_gen( ConfigArgs *c )
 					"unable to rebuild uri "
 					"in \"uri <uri>\" statement "
 					"for \"%s\"\n",
-					c->fname, c->lineno, argv[ 1 ] );
-				return 1;
+					c->fname, c->lineno, c->argv[ 1 ] );
+				urlrc = 1;
+				goto done_url;
 			}
 		}
 
-		li->url = ldap_charray2str( urllist, " " );
-		ldap_charray_free( urllist );
-#else
-		li->url = c->value_string;
-		c->value_string = NULL;
-#endif
+		li->li_uri = ldap_charray2str( urllist, " " );
+		for ( i = 0; urllist[ i ] != NULL; i++ ) {
+			struct berval	bv;
+
+			ber_str2bv( urllist[ i ], 0, 0, &bv );
+			ber_bvarray_add( &li->li_bvuri, &bv );
+			urllist[ i ] = NULL;
+		}
+		ldap_memfree( urllist );
+		urllist = NULL;
+
+done_url:;
+		if ( urllist ) {
+			ldap_charray_free( urllist );
+		}
+		if ( lud ) {
+			ldap_free_urllist( lud );
+		}
+		if ( urlrc != LDAP_URL_SUCCESS ) {
+			return 1;
+		}
 		break;
 	}
 
@@ -778,14 +791,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( BER_BVISNULL( &tls_mode[i].word ) ) {
 			return 1;
 		}
-		li->flags &= ~LDAP_BACK_F_TLS_MASK;
-		li->flags |= tls_mode[i].mask;
+		li->li_flags &= ~LDAP_BACK_F_TLS_MASK;
+		li->li_flags |= tls_mode[i].mask;
 		break;
 
 	case LDAP_BACK_CFG_ACL_AUTHCDN:
-		switch ( li->acl_authmethod ) {
+		switch ( li->li_acl_authmethod ) {
 		case LDAP_AUTH_NONE:
-			li->acl_authmethod = LDAP_AUTH_SIMPLE;
+			li->li_acl_authmethod = LDAP_AUTH_SIMPLE;
 			break;
 
 		case LDAP_AUTH_SIMPLE:
@@ -795,22 +808,22 @@ ldap_back_cf_gen( ConfigArgs *c )
 			fprintf( stderr, "%s: line %d: "
 				"\"acl-authcDN <DN>\" incompatible "
 				"with auth method %d.",
-				c->fname, c->lineno, li->acl_authmethod );
+				c->fname, c->lineno, li->li_acl_authmethod );
 			return 1;
 		}
-		if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
-			free( li->acl_authcDN.bv_val );
+		if ( !BER_BVISNULL( &li->li_acl_authcDN ) ) {
+			free( li->li_acl_authcDN.bv_val );
 		}
 		ber_memfree_x( c->value_dn.bv_val, NULL );
-		li->acl_authcDN = c->value_ndn;
+		li->li_acl_authcDN = c->value_ndn;
 		BER_BVZERO( &c->value_dn );
 		BER_BVZERO( &c->value_ndn );
 		break;
 
 	case LDAP_BACK_CFG_ACL_PASSWD:
-		switch ( li->acl_authmethod ) {
+		switch ( li->li_acl_authmethod ) {
 		case LDAP_AUTH_NONE:
-			li->acl_authmethod = LDAP_AUTH_SIMPLE;
+			li->li_acl_authmethod = LDAP_AUTH_SIMPLE;
 			break;
 
 		case LDAP_AUTH_SIMPLE:
@@ -820,19 +833,19 @@ ldap_back_cf_gen( ConfigArgs *c )
 			fprintf( stderr, "%s: line %d: "
 				"\"acl-passwd <cred>\" incompatible "
 				"with auth method %d.",
-				c->fname, c->lineno, li->acl_authmethod );
+				c->fname, c->lineno, li->li_acl_authmethod );
 			return 1;
 		}
-		if ( !BER_BVISNULL( &li->acl_passwd ) ) {
-			free( li->acl_passwd.bv_val );
+		if ( !BER_BVISNULL( &li->li_acl_passwd ) ) {
+			free( li->li_acl_passwd.bv_val );
 		}
-		ber_str2bv( c->argv[ 1 ], 0, 1, &li->acl_passwd );
+		ber_str2bv( c->argv[ 1 ], 0, 1, &li->li_acl_passwd );
 		break;
 
 	case LDAP_BACK_CFG_ACL_METHOD:
 	case LDAP_BACK_CFG_ACL_BIND:
 		for ( i = 1; i < c->argc; i++ ) {
-			if ( bindconf_parse( c->argv[ i ], &li->acl_sb ) ) {
+			if ( bindconf_parse( c->argv[ i ], &li->li_acl ) ) {
 				return 1;
 			}
 		}
@@ -842,9 +855,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 		i = verb_to_mask( c->argv[1], idassert_mode );
 		if ( BER_BVISNULL( &idassert_mode[i].word ) ) {
 			if ( strncasecmp( c->argv[1], "u:", STRLENOF( "u:" ) ) == 0 ) {
-				li->idassert_mode = LDAP_BACK_IDASSERT_OTHERID;
-				ber_str2bv( c->argv[1], 0, 1, &li->idassert_authzID );
-				li->idassert_authzID.bv_val[ 0 ] = 'u';
+				li->li_idassert_mode = LDAP_BACK_IDASSERT_OTHERID;
+				ber_str2bv( c->argv[1], 0, 1, &li->li_idassert_authzID );
+				li->li_idassert_authzID.bv_val[ 0 ] = 'u';
 				
 			} else {
 				struct berval	id, ndn;
@@ -864,17 +877,17 @@ ldap_back_cf_gen( ConfigArgs *c )
                                         return 1;
                                 }
 
-                                li->idassert_authzID.bv_len = STRLENOF( "dn:" ) + ndn.bv_len;
-                                li->idassert_authzID.bv_val = ch_malloc( li->idassert_authzID.bv_len + 1 );
-                                AC_MEMCPY( li->idassert_authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
-                                AC_MEMCPY( &li->idassert_authzID.bv_val[ STRLENOF( "dn:" ) ], ndn.bv_val, ndn.bv_len + 1 );
+                                li->li_idassert_authzID.bv_len = STRLENOF( "dn:" ) + ndn.bv_len;
+                                li->li_idassert_authzID.bv_val = ch_malloc( li->li_idassert_authzID.bv_len + 1 );
+                                AC_MEMCPY( li->li_idassert_authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
+                                AC_MEMCPY( &li->li_idassert_authzID.bv_val[ STRLENOF( "dn:" ) ], ndn.bv_val, ndn.bv_len + 1 );
                                 ch_free( ndn.bv_val );
 
-                                li->idassert_mode = LDAP_BACK_IDASSERT_OTHERDN;
+                                li->li_idassert_mode = LDAP_BACK_IDASSERT_OTHERDN;
 			}
 
 		} else {
-			li->idassert_mode = idassert_mode[i].mask;
+			li->li_idassert_mode = idassert_mode[i].mask;
 		}
 
 		if ( c->argc > 2 ) {
@@ -882,13 +895,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 			for ( i = 2; i < c->argc; i++ ) {
 				if ( strcasecmp( c->argv[ i ], "override" ) == 0 ) {
-					li->idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
+					li->li_idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
 
 				} else if ( strcasecmp( c->argv[ i ], "prescriptive" ) == 0 ) {
-					li->idassert_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
+					li->li_idassert_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
 
 				} else if ( strcasecmp( c->argv[ i ], "non-prescriptive" ) == 0 ) {
-					li->idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
+					li->li_idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
 
 				} else {
 					Debug( LDAP_DEBUG_ANY,
@@ -903,9 +916,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHCDN:
-		switch ( li->idassert_authmethod ) {
+		switch ( li->li_idassert_authmethod ) {
 		case LDAP_AUTH_NONE:
-			li->idassert_authmethod = LDAP_AUTH_SIMPLE;
+			li->li_idassert_authmethod = LDAP_AUTH_SIMPLE;
 			break;
 
 		case LDAP_AUTH_SIMPLE:
@@ -915,22 +928,22 @@ ldap_back_cf_gen( ConfigArgs *c )
 			fprintf( stderr, "%s: line %d: "
 				"\"idassert-authcDN <DN>\" incompatible "
 				"with auth method %d.",
-				c->fname, c->lineno, li->idassert_authmethod );
+				c->fname, c->lineno, li->li_idassert_authmethod );
 			return 1;
 		}
-		if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
-			free( li->idassert_authcDN.bv_val );
+		if ( !BER_BVISNULL( &li->li_idassert_authcDN ) ) {
+			free( li->li_idassert_authcDN.bv_val );
 		}
 		ber_memfree_x( c->value_dn.bv_val, NULL );
-		li->idassert_authcDN = c->value_ndn;
+		li->li_idassert_authcDN = c->value_ndn;
 		BER_BVZERO( &c->value_dn );
 		BER_BVZERO( &c->value_ndn );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_PASSWD:
-		switch ( li->idassert_authmethod ) {
+		switch ( li->li_idassert_authmethod ) {
 		case LDAP_AUTH_NONE:
-			li->idassert_authmethod = LDAP_AUTH_SIMPLE;
+			li->li_idassert_authmethod = LDAP_AUTH_SIMPLE;
 			break;
 
 		case LDAP_AUTH_SIMPLE:
@@ -940,13 +953,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 			fprintf( stderr, "%s: line %d: "
 				"\"idassert-passwd <cred>\" incompatible "
 				"with auth method %d.",
-				c->fname, c->lineno, li->idassert_authmethod );
+				c->fname, c->lineno, li->li_idassert_authmethod );
 			return 1;
 		}
-		if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
-			free( li->idassert_passwd.bv_val );
+		if ( !BER_BVISNULL( &li->li_idassert_passwd ) ) {
+			free( li->li_idassert_passwd.bv_val );
 		}
-		ber_str2bv( c->argv[ 1 ], 0, 1, &li->idassert_passwd );
+		ber_str2bv( c->argv[ 1 ], 0, 1, &li->li_idassert_passwd );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
@@ -967,7 +980,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 #else /* !SLAP_AUTHZ_SYNTAX */
 		ber_str2bv( c->argv[ 1 ], 0, 1, &bv );
 #endif /* !SLAP_AUTHZ_SYNTAX */
-		ber_bvarray_add( &li->idassert_authz, &bv );
+		ber_bvarray_add( &li->li_idassert_authz, &bv );
 		} break;
 
 	case LDAP_BACK_CFG_IDASSERT_METHOD:
@@ -993,13 +1006,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 					return 1;
 				}
 
-				li->idassert_mode = idassert_mode[ j ].mask;
+				li->li_idassert_mode = idassert_mode[ j ].mask;
 
 			} else if ( strncasecmp( c->argv[ i ], "authz=", STRLENOF( "authz=" ) ) == 0 ) {
 				char	*argvi = c->argv[ i ] + STRLENOF( "authz=" );
 
 				if ( strcasecmp( argvi, "native" ) == 0 ) {
-					if ( li->idassert_authmethod != LDAP_AUTH_SASL ) {
+					if ( li->li_idassert_authmethod != LDAP_AUTH_SASL ) {
 						fprintf( stderr, "%s: %d: "
 							"\"idassert-bind <args>\": "
 							"authz=\"native\" incompatible "
@@ -1007,10 +1020,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 							c->fname, c->lineno );
 						return 1;
 					}
-					li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
+					li->li_idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
 
 				} else if ( strcasecmp( argvi, "proxyAuthz" ) == 0 ) {
-					li->idassert_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
+					li->li_idassert_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
 
 				} else {
 					fprintf( stderr, "%s: %d: "
@@ -1035,13 +1048,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 				for ( j = 0; flags[ j ] != NULL; j++ ) {
 					if ( strcasecmp( flags[ j ], "override" ) == 0 ) {
-						li->idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
+						li->li_idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
 
 					} else if ( strcasecmp( flags[ j ], "prescriptive" ) == 0 ) {
-						li->idassert_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
+						li->li_idassert_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
 
 					} else if ( strcasecmp( flags[ j ], "non-prescriptive" ) == 0 ) {
-						li->idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
+						li->li_idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
 
 					} else {
 						fprintf( stderr, "%s: %d: "
@@ -1054,7 +1067,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 				ldap_charray_free( flags );
 
-			} else if ( bindconf_parse( c->argv[ i ], &li->idassert_sb ) ) {
+			} else if ( bindconf_parse( c->argv[ i ], &li->li_idassert ) ) {
 				return 1;
 			}
 		}
@@ -1078,10 +1091,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		if ( dorebind ) {
-			li->flags |= LDAP_BACK_F_SAVECRED;
+			li->li_flags |= LDAP_BACK_F_SAVECRED;
 
 		} else {
-			li->flags &= ~LDAP_BACK_F_SAVECRED;
+			li->li_flags &= ~LDAP_BACK_F_SAVECRED;
 		}
 		} break;
 
@@ -1103,10 +1116,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		if ( dochase ) {
-			li->flags |= LDAP_BACK_F_CHASE_REFERRALS;
+			li->li_flags |= LDAP_BACK_F_CHASE_REFERRALS;
 
 		} else {
-			li->flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
+			li->li_flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
 		}
 		} break;
 
@@ -1115,8 +1128,8 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( BER_BVISNULL( &t_f_mode[i].word ) ) {
 			return 1;
 		}
-		li->flags &= ~LDAP_BACK_F_SUPPORT_T_F_MASK;
-		li->flags |= t_f_mode[i].mask;
+		li->li_flags &= ~LDAP_BACK_F_SUPPORT_T_F_MASK;
+		li->li_flags |= t_f_mode[i].mask;
 		break;
 
 	case LDAP_BACK_CFG_WHOAMI: {
@@ -1137,13 +1150,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		if ( dowhoami ) {
-			li->flags |= LDAP_BACK_F_PROXY_WHOAMI;
+			li->li_flags |= LDAP_BACK_F_PROXY_WHOAMI;
 
 			load_extop( (struct berval *)&slap_EXOP_WHOAMI,
 					0, ldap_back_exop_whoami );
 
 		} else {
-			li->flags &= ~LDAP_BACK_F_PROXY_WHOAMI;
+			li->li_flags &= ~LDAP_BACK_F_PROXY_WHOAMI;
 		}
 		} break;
 
@@ -1164,13 +1177,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 				}
 
 				for ( j = 0; j < LDAP_BACK_OP_LAST; j++ ) {
-					li->timeout[ j ] = u;
+					li->li_timeout[ j ] = u;
 				}
 
 				continue;
 			}
 
-			if ( slap_cf_aux_table_parse( c->argv[ i ], li->timeout, timeout_table, "slapd-ldap timeout" ) ) {
+			if ( slap_cf_aux_table_parse( c->argv[ i ], li->li_timeout, timeout_table, "slapd-ldap timeout" ) ) {
 				return 1;
 			}
 		}
@@ -1239,400 +1252,6 @@ ldap_back_init_cf( BackendInfo *bi )
 
 
 static int
-parse_idassert( BackendDB *be, const char *fname, int lineno,
-		int argc, char **argv );
-
-static int
-parse_acl_auth( BackendDB *be, const char *fname, int lineno,
-		int argc, char **argv );
-
-int
-ldap_back_db_config(
-		BackendDB	*be,
-		const char	*fname,
-		int		lineno,
-		int		argc,
-		char		**argv )
-{
-	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
-
-	if ( li == NULL ) {
-		fprintf( stderr, "%s: line %d: ldap backend info is null!\n",
-				fname, lineno );
-		return 1;
-	}
-
-	/* server address to query (no longer supported, use "uri" directive) */
-	if ( strcasecmp( argv[0], "server" ) == 0 ) {
-		fprintf( stderr,
-	"%s: line %d: \"server <address>\" directive is no longer supported.\n",
-					fname, lineno );
-		return 1;
-
-	/* URI of server to query (obsoletes "server" directive) */
-	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
-		LDAPURLDesc	*tmpludp;
-#if 0
-		char		**urllist;
-#endif
-		int		urlrc, i;
-
-		if ( argc != 2 ) {
-			fprintf( stderr, "%s: line %d: "
-					"missing uri "
-					"in \"uri <uri>\" line\n",
-					fname, lineno );
-			return 1;
-		}
-		if ( li->url != NULL ) {
-			ch_free( li->url );
-		}
-		if ( li->lud != NULL ) {
-			ldap_free_urllist( li->lud );
-		}
-
-#if 0
-		/* PARANOID: DN and more are not required nor allowed */
-		urlrc = ldap_url_parselist_ext( &li->lud, argv[ 1 ], "\t" );
-#else
-		urlrc = ldap_url_parselist( &li->lud, argv[ 1 ] );
-#endif
-		if ( urlrc != LDAP_URL_SUCCESS ) {
-			char	*why;
-
-			switch ( urlrc ) {
-			case LDAP_URL_ERR_MEM:
-				why = "no memory";
-				break;
-			case LDAP_URL_ERR_PARAM:
-		  		why = "parameter is bad";
-				break;
-			case LDAP_URL_ERR_BADSCHEME:
-				why = "URL doesn't begin with \"[c]ldap[si]://\"";
-				break;
-			case LDAP_URL_ERR_BADENCLOSURE:
-				why = "URL is missing trailing \">\"";
-				break;
-			case LDAP_URL_ERR_BADURL:
-				why = "URL is bad";
-			case LDAP_URL_ERR_BADHOST:
-				why = "host/port is bad";
-				break;
-			case LDAP_URL_ERR_BADATTRS:
-				why = "bad (or missing) attributes";
-				break;
-			case LDAP_URL_ERR_BADSCOPE:
-				why = "scope string is invalid (or missing)";
-				break;
-			case LDAP_URL_ERR_BADFILTER:
-				why = "bad or missing filter";
-				break;
-			case LDAP_URL_ERR_BADEXTS:
-				why = "bad or missing extensions";
-				break;
-			default:
-				why = "unknown reason";
-				break;
-			}
-			fprintf( stderr, "%s: line %d: "
-					"unable to parse uri \"%s\" "
-					"in \"uri <uri>\" line: %s\n",
-					fname, lineno, argv[ 1 ], why );
-			return 1;
-		}
-
-		for ( i = 0, tmpludp = li->lud;
-				tmpludp;
-				i++, tmpludp = tmpludp->lud_next )
-		{
-			if ( ( tmpludp->lud_dn != NULL
-						&& tmpludp->lud_dn[0] != '\0' )
-					|| tmpludp->lud_attrs != NULL
-					/* || tmpludp->lud_scope != LDAP_SCOPE_DEFAULT */
-					|| tmpludp->lud_filter != NULL
-					|| tmpludp->lud_exts != NULL )
-			{
-				fprintf( stderr, "%s: line %d: "
-						"warning, only protocol, "
-						"host and port allowed "
-						"in \"uri <uri>\" statement "
-						"for uri #%d of \"%s\"\n",
-						fname, lineno, i, argv[1] );
-			}
-		}
-
-#if 0
-		for ( i = 0, tmpludp = li->lud;
-				tmpludp;
-				i++, tmpludp = tmpludp->lud_next )
-			/* just count */
-			;
-		urllist = ch_calloc( sizeof( char * ), i + 1 );
-
-		for ( i = 0, tmpludp = li->lud;
-				tmpludp;
-				i++, tmpludp = tmpludp->lud_next )
-		{
-			LDAPURLDesc	tmplud;
-			ber_len_t	oldlen = 0, len;
-
-			tmplud = *tmpludp;
-			tmplud.lud_dn = "";
-			tmplud.lud_attrs = NULL;
-			tmplud.lud_filter = NULL;
-			if ( !ldap_is_ldapi_url( tmplud.lud_scheme ) ) {
-				tmplud.lud_exts = NULL;
-				tmplud.lud_crit_exts = 0;
-			}
-
-			urllist[ i ]  = ldap_url_desc2str( &tmplud );
-
-			if ( urllist[ i ] == NULL ) {
-				fprintf( stderr, "%s: line %d: "
-					"unable to rebuild uri "
-					"in \"uri <uri>\" statement "
-					"for \"%s\"\n",
-					fname, lineno, argv[ 1 ] );
-				return 1;
-			}
-		}
-
-		li->url = ldap_charray2str( urllist, " " );
-		ldap_charray_free( urllist );
-#else
-		li->url = ch_strdup( argv[ 1 ] );
-#endif
-
-	} else if ( strcasecmp( argv[0], "tls" ) == 0 ) {
-		if ( argc != 2 ) {
-			fprintf( stderr,
-		"%s: line %d: \"tls <what>\" needs 1 argument.\n",
-					fname, lineno );
-			return( 1 );
-		}
-
-		/* none */
-		if ( strcasecmp( argv[1], "none" ) == 0 ) {
-			li->flags &= ~LDAP_BACK_F_TLS_MASK;
-	
-		/* try start tls */
-		} else if ( strcasecmp( argv[1], "start" ) == 0 ) {
-			li->flags |= LDAP_BACK_F_TLS_USE_MASK;
-	
-		/* try start tls */
-		} else if ( strcasecmp( argv[1], "try-start" ) == 0 ) {
-			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
-			li->flags |= LDAP_BACK_F_USE_TLS;
-	
-		/* propagate start tls */
-		} else if ( strcasecmp( argv[1], "propagate" ) == 0 ) {
-			li->flags |= LDAP_BACK_F_TLS_PROPAGATE_MASK;
-		
-		/* try start tls */
-		} else if ( strcasecmp( argv[1], "try-propagate" ) == 0 ) {
-			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
-			li->flags |= LDAP_BACK_F_PROPAGATE_TLS;
-
-		} else {
-			fprintf( stderr,
-		"%s: line %d: \"tls <what>\": unknown argument \"%s\".\n",
-					fname, lineno, argv[1] );
-			return( 1 );
-		}
-	
-	/* remote ACL stuff... */
-	} else if ( strncasecmp( argv[0], "acl-", STRLENOF( "acl-" ) ) == 0
-			|| strncasecmp( argv[0], "bind", STRLENOF( "bind" ) ) == 0 )
-	{
-		/* NOTE: "bind{DN,pw}" was initially used; it's now
-		 * deprected and undocumented, it can be dropped at some
-		 * point, since nobody should be really using it */
-		return parse_acl_auth( be, fname, lineno, argc, argv );
-
-	/* identity assertion stuff... */
-	} else if ( strncasecmp( argv[0], "idassert-", STRLENOF( "idassert-" ) ) == 0
-			|| strncasecmp( argv[0], "proxyauthz", STRLENOF( "proxyauthz" ) ) == 0 )
-	{
-		/* NOTE: "proxyauthz{DN,pw}" was initially used; it's now
-		 * deprected and undocumented, it can be dropped at some
-		 * point, since nobody should be really using it */
-		return parse_idassert( be, fname, lineno, argc, argv );
-
-	/* save bind creds for referral rebinds? */
-	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
-		switch ( argc ) {
-		case 1:
-			fprintf( stderr,
-	"%s: line %d: \"rebind-as-user {NO|yes}\": use without args is deprecated.\n",
-				fname, lineno );
-	
-			li->flags |= LDAP_BACK_F_SAVECRED;
-			break;
-
-		case 2:
-			if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
-				li->flags |= LDAP_BACK_F_SAVECRED;
-
-			} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
-				li->flags &= ~LDAP_BACK_F_SAVECRED;
-
-			} else {
-				fprintf( stderr,
-	"%s: line %d: \"rebind-as-user {NO|yes}\": unknown argument \"%s\".\n",
-					fname, lineno, argv[ 1 ] );
-				return( 1 );
-			}
-			break;
-
-		default:
-			fprintf( stderr,
-	"%s: line %d: \"rebind-as-user {NO|yes}\" needs 1 argument.\n",
-					fname, lineno );
-			return( 1 );
-		}
-
-	} else if ( strcasecmp( argv[0], "chase-referrals" ) == 0 ) {
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: \"chase-referrals {YES|no}\" needs 1 argument.\n",
-					fname, lineno );
-			return( 1 );
-		}
-
-		/* this is the default; we add it because the default might change... */
-		if ( strcasecmp( argv[1], "yes" ) == 0 ) {
-			li->flags |= LDAP_BACK_F_CHASE_REFERRALS;
-
-		} else if ( strcasecmp( argv[1], "no" ) == 0 ) {
-			li->flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
-
-		} else {
-			fprintf( stderr,
-		"%s: line %d: \"chase-referrals {YES|no}\": unknown argument \"%s\".\n",
-					fname, lineno, argv[1] );
-			return( 1 );
-		}
-	
-	} else if ( strcasecmp( argv[ 0 ], "t-f-support" ) == 0 ) {
-		if ( argc != 2 ) {
-			fprintf( stderr,
-		"%s: line %d: \"t-f-support {NO|yes|discover}\" needs 1 argument.\n",
-					fname, lineno );
-			return( 1 );
-		}
-
-		if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
-			li->flags &= ~(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER);
-
-		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
-			li->flags |= LDAP_BACK_F_SUPPORT_T_F;
-
-		} else if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
-			li->flags |= LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
-
-		} else {
-			fprintf( stderr,
-	"%s: line %d: \"t-f-support {NO|yes|discover}\": unknown argument \"%s\".\n",
-				fname, lineno, argv[ 1 ] );
-			return 1;
-		}
-
-	/* intercept exop_who_am_i? */
-	} else if ( strcasecmp( argv[0], "proxy-whoami" ) == 0 ) {
-		int	doload_extop = 0;
-
-		switch ( argc ) {
-		case 1:
-			fprintf( stderr,
-	"%s: line %d: \"proxy-whoami {NO|yes}\": use without args is deprecated.\n",
-				fname, lineno );
-	
-			doload_extop = 1;
-			break;
-
-		case 2:
-			if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
-				doload_extop = 1;
-
-			} else if ( strcasecmp( argv[ 1 ], "no" ) != 0 ) {
-				fprintf( stderr,
-	"%s: line %d: \"proxy-whoami {NO|yes}\": unknown argument \"%s\".\n",
-					fname, lineno, argv[ 1 ] );
-				return( 1 );
-			}
-			break;
-
-		default:
-			fprintf( stderr,
-	"%s: line %d: \"proxy-whoami {NO|yes}\" needs 1 argument.\n",
-					fname, lineno );
-			return( 1 );
-		}
-
-		if ( doload_extop ) {
-			li->flags |= LDAP_BACK_F_PROXY_WHOAMI;
-
-			load_extop( (struct berval *)&slap_EXOP_WHOAMI,
-					0, ldap_back_exop_whoami );
-		}
-
-	/* FIXME: legacy: intercept old rewrite/remap directives
-	 * and try to start the rwm overlay */
-	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0
-			|| strcasecmp( argv[0], "map" ) == 0
-			|| strncasecmp( argv[0], "rewrite", STRLENOF( "rewrite" ) ) == 0 )
-	{
-#if 0
-		fprintf( stderr, "%s: line %d: "
-			"rewrite/remap capabilities have been moved "
-			"to the \"rwm\" overlay; see slapo-rwm(5) "
-			"for details.  I'm trying to do my best "
-			"to preserve backwards compatibility...\n",
-			fname, lineno );
-
-		if ( li->rwm_started == 0 ) {
-			if ( overlay_config( be, "rwm" ) ) {
-				fprintf( stderr, "%s: line %d: "
-					"unable to configure the \"rwm\" "
-					"overlay, required by directive "
-					"\"%s\".\n",
-					fname, lineno, argv[0] );
-#if SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC
-				fprintf( stderr, "\thint: try loading the \"rwm.la\" dynamic module.\n" );
-#endif /* SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC */
-				return( 1 );
-			}
-
-			fprintf( stderr, "%s: line %d: back-ldap: "
-				"automatically starting \"rwm\" overlay, "
-				"triggered by \"%s\" directive.\n",
-				fname, lineno, argv[ 0 ] );
-
-		/* this is the default; we add it because the default might change... */
-			li->rwm_started = 1;
-
-			return ( *be->bd_info->bi_db_config )( be, fname, lineno, argc, argv );
-		}
-#else
-		fprintf( stderr, "%s: line %d: "
-			"rewrite/remap capabilities have been moved "
-			"to the \"rwm\" overlay; see slapo-rwm(5) "
-			"for details (hint: add \"overlay rwm\" "
-			"and prefix all directives with \"rwm-\").\n",
-			fname, lineno );
-#endif
-
-		return 1;
-	
-	/* anything else */
-	} else {
-		return SLAP_CONF_UNKNOWN;
-	}
-
-	return 0;
-}
-
-static int
 ldap_back_exop_whoami(
 		Operation	*op,
 		SlapReply	*rs )
@@ -1654,7 +1273,7 @@ ldap_back_exop_whoami(
 
 	/* if auth'd by back-ldap and request is proxied, forward it */
 	if ( op->o_conn->c_authz_backend && !strcmp(op->o_conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &op->o_conn->c_ndn)) {
-		struct ldapconn *lc;
+		ldapconn_t	*lc;
 
 		LDAPControl c, *ctrls[2] = {NULL, NULL};
 		LDAPMessage *res;
@@ -1683,10 +1302,10 @@ retry:
 					&rs->sr_err);
 				if ( rs->sr_err == LDAP_SERVER_DOWN && doretry ) {
 					doretry = 0;
-					if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) )
+					if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) )
 						goto retry;
 				}
-				ldap_back_freeconn( op, lc );
+				ldap_back_freeconn( op, lc, 1 );
 				lc = NULL;
 
 			} else {
@@ -1723,563 +1342,4 @@ retry:
 	return rs->sr_err;
 }
 
-
-static int
-parse_idassert(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
-
-	/* identity assertion mode */
-	if ( strcasecmp( argv[0], "idassert-mode" ) == 0 ) {
-		if ( argc < 2 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s: line %d: illegal args number %d in \"idassert-mode <args> [<flag> [...]]\" line.\n",
-				fname, lineno, argc );
-			return 1;
-		}
-
-		if ( strcasecmp( argv[1], "legacy" ) == 0 ) {
-			/* will proxyAuthz as client's identity only if bound */
-			li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
-
-		} else if ( strcasecmp( argv[1], "self" ) == 0 ) {
-			/* will proxyAuthz as client's identity */
-			li->idassert_mode = LDAP_BACK_IDASSERT_SELF;
-
-		} else if ( strcasecmp( argv[1], "anonymous" ) == 0 ) {
-			/* will proxyAuthz as anonymous */
-			li->idassert_mode = LDAP_BACK_IDASSERT_ANONYMOUS;
-
-		} else if ( strcasecmp( argv[1], "none" ) == 0 ) {
-			/* will not proxyAuthz */
-			li->idassert_mode = LDAP_BACK_IDASSERT_NOASSERT;
-
-		} else {
-			struct berval	id;
-			int		rc;
-
-			/* will proxyAuthz as argv[1] */
-			ber_str2bv( argv[1], 0, 0, &id );
-
-			if ( strncasecmp( id.bv_val, "u:", STRLENOF( "u:" ) ) == 0 ) {
-				/* force lowercase... */
-				id.bv_val[0] = 'u';
-				li->idassert_mode = LDAP_BACK_IDASSERT_OTHERID;
-				ber_dupbv( &li->idassert_authzID, &id );
-
-			} else {
-				struct berval	dn;
-
-				/* default is DN? */
-				if ( strncasecmp( id.bv_val, "dn:", STRLENOF( "dn:" ) ) == 0 ) {
-					id.bv_val += STRLENOF( "dn:" );
-					id.bv_len -= STRLENOF( "dn:" );
-				}
-
-				rc = dnNormalize( 0, NULL, NULL, &id, &dn, NULL );
-				if ( rc != LDAP_SUCCESS ) {
-					Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: idassert ID \"%s\" is not a valid DN\n",
-						fname, lineno, argv[1] );
-					return 1;
-				}
-
-				li->idassert_authzID.bv_len = STRLENOF( "dn:" ) + dn.bv_len;
-				li->idassert_authzID.bv_val = ch_malloc( li->idassert_authzID.bv_len + 1 );
-				AC_MEMCPY( li->idassert_authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
-				AC_MEMCPY( &li->idassert_authzID.bv_val[ STRLENOF( "dn:" ) ], dn.bv_val, dn.bv_len + 1 );
-				ch_free( dn.bv_val );
-
-				li->idassert_mode = LDAP_BACK_IDASSERT_OTHERDN;
-			}
-		}
-
-		for ( argc -= 2, argv += 2; argc--; argv++ ) {
-			if ( strcasecmp( argv[0], "override" ) == 0 ) {
-				li->idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
-
-			} else {
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: unknown flag \"%s\" "
-					"in \"idassert-mode <args> "
-					"[<flags>]\" line.\n",
-					fname, lineno, argv[0] );
-				return 1;
-			}
-		}
-
-	/* name to use for proxyAuthz propagation */
-	} else if ( strcasecmp( argv[0], "idassert-authcdn" ) == 0
-			|| strcasecmp( argv[0], "proxyauthzdn" ) == 0 )
-	{
-		struct berval	dn;
-		int		rc;
-
-		/* FIXME: "proxyauthzdn" is no longer documented, and
-		 * temporarily supported for backwards compatibility */
-
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing name in \"%s <name>\" line\n",
-			    fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
-			fprintf( stderr, "%s: line %d: "
-					"authcDN already defined; replacing...\n",
-					fname, lineno );
-			ch_free( li->idassert_authcDN.bv_val );
-		}
-		
-		ber_str2bv( argv[1], 0, 0, &dn );
-		rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_authcDN, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s: line %d: idassert ID \"%s\" is not a valid DN\n",
-				fname, lineno, argv[1] );
-			return 1;
-		}
-
-	/* password to use for proxyAuthz propagation */
-	} else if ( strcasecmp( argv[0], "idassert-passwd" ) == 0
-			|| strcasecmp( argv[0], "proxyauthzpw" ) == 0 )
-	{
-		/* FIXME: "proxyauthzpw" is no longer documented, and
-		 * temporarily supported for backwards compatibility */
-
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing password in \"%s <password>\" line\n",
-			    fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
-			fprintf( stderr, "%s: line %d: "
-					"passwd already defined; replacing...\n",
-					fname, lineno );
-			ch_free( li->idassert_passwd.bv_val );
-		}
-		
-		ber_str2bv( argv[1], 0, 1, &li->idassert_passwd );
-
-	/* rules to accept identity assertion... */
-	} else if ( strcasecmp( argv[0], "idassert-authzFrom" ) == 0 ) {
-		struct berval	rule;
-
-		ber_str2bv( argv[1], 0, 1, &rule );
-
-		ber_bvarray_add( &li->idassert_authz, &rule );
-
-	} else if ( strcasecmp( argv[0], "idassert-method" ) == 0 ) {
-		char	*argv1;
-
-		if ( argc < 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing method in \"%s <method>\" line\n",
-			    fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		argv1 = argv[1];
-		if ( strncasecmp( argv1, "bindmethod=", STRLENOF( "bindmethod=" ) ) == 0 ) {
-			argv1 += STRLENOF( "bindmethod=" );
-		}
-
-		if ( strcasecmp( argv1, "none" ) == 0 ) {
-			/* FIXME: is this at all useful? */
-			li->idassert_authmethod = LDAP_AUTH_NONE;
-
-			if ( argc != 2 ) {
-				fprintf( stderr,
-	"%s: line %d: trailing args in \"%s %s ...\" line ignored\"\n",
-					fname, lineno, argv[0], argv[1] );
-			}
-
-		} else if ( strcasecmp( argv1, "simple" ) == 0 ) {
-			int	arg;
-
-			for ( arg = 2; arg < argc; arg++ ) {
-				if ( strncasecmp( argv[arg], "authcdn=", STRLENOF( "authcdn=" ) ) == 0 ) {
-					char		*val = argv[arg] + STRLENOF( "authcdn=" );
-					struct berval	dn;
-					int		rc;
-
-					if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL authcDN already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->idassert_authcDN.bv_val );
-					}
-					if ( strncasecmp( argv[arg], "dn:", STRLENOF( "dn:" ) ) == 0 ) {
-						val += STRLENOF( "dn:" );
-					}
-
-					ber_str2bv( val, 0, 0, &dn );
-					rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_authcDN, NULL );
-					if ( rc != LDAP_SUCCESS ) {
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: SASL authcdn \"%s\" is not a valid DN\n",
-							fname, lineno, val );
-						return 1;
-					}
-
-				} else if ( strncasecmp( argv[arg], "cred=", STRLENOF( "cred=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "cred=" );
-
-					if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL cred already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->idassert_passwd.bv_val );
-					}
-					ber_str2bv( val, 0, 1, &li->idassert_passwd );
-
-				} else {
-					fprintf( stderr, "%s: line %d: "
-							"unknown parameter %s\n",
-		    					fname, lineno, argv[arg] );
-					return 1;
-				}
-			}
-
-			li->idassert_authmethod = LDAP_AUTH_SIMPLE;
-
-		} else if ( strcasecmp( argv1, "sasl" ) == 0 ) {
-#ifdef HAVE_CYRUS_SASL
-			int	arg;
-
-			for ( arg = 2; arg < argc; arg++ ) {
-				if ( strncasecmp( argv[arg], "mech=", STRLENOF( "mech=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "mech=" );
-
-					if ( !BER_BVISNULL( &li->idassert_sasl_mech ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL mech already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->idassert_sasl_mech.bv_val );
-					}
-					ber_str2bv( val, 0, 1, &li->idassert_sasl_mech );
-
-				} else if ( strncasecmp( argv[arg], "realm=", STRLENOF( "realm=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "realm=" );
-
-					if ( !BER_BVISNULL( &li->idassert_sasl_realm ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL realm already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->idassert_sasl_realm.bv_val );
-					}
-					ber_str2bv( val, 0, 1, &li->idassert_sasl_realm );
-
-				} else if ( strncasecmp( argv[arg], "authcdn=", STRLENOF( "authcdn=" ) ) == 0 ) {
-					char		*val = argv[arg] + STRLENOF( "authcdn=" );
-					struct berval	dn;
-					int		rc;
-
-					if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL authcDN already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->idassert_authcDN.bv_val );
-					}
-					if ( strncasecmp( argv[arg], "dn:", STRLENOF( "dn:" ) ) == 0 ) {
-						val += STRLENOF( "dn:" );
-					}
-
-					ber_str2bv( val, 0, 0, &dn );
-					rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_authcDN, NULL );
-					if ( rc != LDAP_SUCCESS ) {
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: SASL authcdn \"%s\" is not a valid DN\n",
-							fname, lineno, val );
-						return 1;
-					}
-
-				} else if ( strncasecmp( argv[arg], "authcid=", STRLENOF( "authcid=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "authcid=" );
-
-					if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL authcID already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->idassert_authcID.bv_val );
-					}
-					if ( strncasecmp( argv[arg], "u:", STRLENOF( "u:" ) ) == 0 ) {
-						val += STRLENOF( "u:" );
-					}
-					ber_str2bv( val, 0, 1, &li->idassert_authcID );
-
-				} else if ( strncasecmp( argv[arg], "cred=", STRLENOF( "cred=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "cred=" );
-
-					if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL cred already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->idassert_passwd.bv_val );
-					}
-					ber_str2bv( val, 0, 1, &li->idassert_passwd );
-
-				} else if ( strncasecmp( argv[arg], "authz=", STRLENOF( "authz=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "authz=" );
-
-					if ( strcasecmp( val, "proxyauthz" ) == 0 ) {
-						li->idassert_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
-
-					} else if ( strcasecmp( val, "native" ) == 0 ) {
-						li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
-
-					} else {
-						fprintf( stderr, "%s: line %d: "
-							"unknown authz mode \"%s\"\n",
-							fname, lineno, val );
-						return 1;
-					}
-
-				} else {
-					fprintf( stderr, "%s: line %d: "
-							"unknown SASL parameter %s\n",
-		    					fname, lineno, argv[arg] );
-					return 1;
-				}
-			}
-
-			li->idassert_authmethod = LDAP_AUTH_SASL;
-
-#else /* !HAVE_CYRUS_SASL */
-			fprintf( stderr, "%s: line %d: "
-					"compile --with-cyrus-sasl to enable SASL auth\n",
-					fname, lineno );
-			return 1;
-#endif /* !HAVE_CYRUS_SASL */
-
-		} else {
-			fprintf( stderr, "%s: line %d: "
-					"unhandled idassert-method method %s\n",
-					fname, lineno, argv[1] );
-			return 1;
-		}
-
-	} else {
-		return SLAP_CONF_UNKNOWN;
-	}
-
-	return 0;
-}
-
-static int
-parse_acl_auth(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
-
-	/* name to use for remote ACL access */
-	if ( strcasecmp( argv[0], "acl-authcdn" ) == 0
-			|| strcasecmp( argv[0], "binddn" ) == 0 )
-	{
-		struct berval	dn;
-		int		rc;
-
-		/* FIXME: "binddn" is no longer documented, and
-		 * temporarily supported for backwards compatibility */
-
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing name in \"%s <name>\" line\n",
-			    fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
-			fprintf( stderr, "%s: line %d: "
-					"authcDN already defined; replacing...\n",
-					fname, lineno );
-			ch_free( li->acl_authcDN.bv_val );
-		}
-		
-		ber_str2bv( argv[1], 0, 0, &dn );
-		rc = dnNormalize( 0, NULL, NULL, &dn, &li->acl_authcDN, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s: line %d: acl ID \"%s\" is not a valid DN\n",
-				fname, lineno, argv[1] );
-			return 1;
-		}
-
-	/* password to use for remote ACL access */
-	} else if ( strcasecmp( argv[0], "acl-passwd" ) == 0
-			|| strcasecmp( argv[0], "bindpw" ) == 0 )
-	{
-		/* FIXME: "bindpw" is no longer documented, and
-		 * temporarily supported for backwards compatibility */
-
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing password in \"%s <password>\" line\n",
-			    fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		if ( !BER_BVISNULL( &li->acl_passwd ) ) {
-			fprintf( stderr, "%s: line %d: "
-					"passwd already defined; replacing...\n",
-					fname, lineno );
-			ch_free( li->acl_passwd.bv_val );
-		}
-		
-		ber_str2bv( argv[1], 0, 1, &li->acl_passwd );
-
-	} else if ( strcasecmp( argv[0], "acl-method" ) == 0 ) {
-		char	*argv1;
-
-		if ( argc < 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing method in \"%s <method>\" line\n",
-			    fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		argv1 = argv[1];
-		if ( strncasecmp( argv1, "bindmethod=", STRLENOF( "bindmethod=" ) ) == 0 ) {
-			argv1 += STRLENOF( "bindmethod=" );
-		}
-
-		if ( strcasecmp( argv1, "none" ) == 0 ) {
-			/* FIXME: is this at all useful? */
-			li->acl_authmethod = LDAP_AUTH_NONE;
-
-			if ( argc != 2 ) {
-				fprintf( stderr,
-	"%s: line %d: trailing args in \"%s %s ...\" line ignored\"\n",
-					fname, lineno, argv[0], argv[1] );
-			}
-
-		} else if ( strcasecmp( argv1, "simple" ) == 0 ) {
-			li->acl_authmethod = LDAP_AUTH_SIMPLE;
-
-			if ( argc != 2 ) {
-				fprintf( stderr,
-	"%s: line %d: trailing args in \"%s %s ...\" line ignored\"\n",
-					fname, lineno, argv[0], argv[1] );
-			}
-
-		} else if ( strcasecmp( argv1, "sasl" ) == 0 ) {
-#ifdef HAVE_CYRUS_SASL
-			int	arg;
-
-			for ( arg = 2; arg < argc; arg++ ) {
-				if ( strncasecmp( argv[arg], "mech=", STRLENOF( "mech=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "mech=" );
-
-					if ( !BER_BVISNULL( &li->acl_sasl_mech ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL mech already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->acl_sasl_mech.bv_val );
-					}
-					ber_str2bv( val, 0, 1, &li->acl_sasl_mech );
-
-				} else if ( strncasecmp( argv[arg], "realm=", STRLENOF( "realm=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "realm=" );
-
-					if ( !BER_BVISNULL( &li->acl_sasl_realm ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL realm already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->acl_sasl_realm.bv_val );
-					}
-					ber_str2bv( val, 0, 1, &li->acl_sasl_realm );
-
-				} else if ( strncasecmp( argv[arg], "authcdn=", STRLENOF( "authcdn=" ) ) == 0 ) {
-					char		*val = argv[arg] + STRLENOF( "authcdn=" );
-					struct berval	dn;
-					int		rc;
-
-					if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL authcDN already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->acl_authcDN.bv_val );
-					}
-					if ( strncasecmp( argv[arg], "dn:", STRLENOF( "dn:" ) ) == 0 ) {
-						val += STRLENOF( "dn:" );
-					}
-
-					ber_str2bv( val, 0, 0, &dn );
-					rc = dnNormalize( 0, NULL, NULL, &dn, &li->acl_authcDN, NULL );
-					if ( rc != LDAP_SUCCESS ) {
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: SASL authcdn \"%s\" is not a valid DN\n",
-							fname, lineno, val );
-						return 1;
-					}
-
-				} else if ( strncasecmp( argv[arg], "authcid=", STRLENOF( "authcid=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "authcid=" );
-
-					if ( !BER_BVISNULL( &li->acl_authcID ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL authcID already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->acl_authcID.bv_val );
-					}
-					if ( strncasecmp( argv[arg], "u:", STRLENOF( "u:" ) ) == 0 ) {
-						val += STRLENOF( "u:" );
-					}
-					ber_str2bv( val, 0, 1, &li->acl_authcID );
-
-				} else if ( strncasecmp( argv[arg], "cred=", STRLENOF( "cred=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "cred=" );
-
-					if ( !BER_BVISNULL( &li->acl_passwd ) ) {
-						fprintf( stderr, "%s: line %d: "
-								"SASL cred already defined; replacing...\n",
-			    					fname, lineno );
-						ch_free( li->acl_passwd.bv_val );
-					}
-					ber_str2bv( val, 0, 1, &li->acl_passwd );
-
-				} else {
-					fprintf( stderr, "%s: line %d: "
-							"unknown SASL parameter %s\n",
-		    					fname, lineno, argv[arg] );
-					return 1;
-				}
-			}
-
-			li->acl_authmethod = LDAP_AUTH_SASL;
-
-#else /* !HAVE_CYRUS_SASL */
-			fprintf( stderr, "%s: line %d: "
-					"compile --with-cyrus-sasl to enable SASL auth\n",
-					fname, lineno );
-			return 1;
-#endif /* !HAVE_CYRUS_SASL */
-
-		} else {
-			fprintf( stderr, "%s: line %d: "
-					"unhandled acl-method method %s\n",
-					fname, lineno, argv[1] );
-			return 1;
-		}
-
-	} else {
-		return SLAP_CONF_UNKNOWN;
-	}
-
-	return 0;
-}
 

@@ -49,7 +49,7 @@ ldap_back_munge_filter(
 	Operation	*op,
 	struct berval	*filter )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
 	char		*ptr;
 	int		gotit = 0;
@@ -75,7 +75,7 @@ ldap_back_munge_filter(
 
 		if ( strncmp( ptr, bv_true.bv_val, bv_true.bv_len ) == 0 ) {
 			oldbv = &bv_true;
-			if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
 				newbv = &bv_t;
 
 			} else {
@@ -85,7 +85,7 @@ ldap_back_munge_filter(
 		} else if ( strncmp( ptr, bv_false.bv_val, bv_false.bv_len ) == 0 )
 		{
 			oldbv = &bv_false;
-			if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
 				newbv = &bv_f;
 
 			} else {
@@ -141,7 +141,7 @@ ldap_back_search(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	struct ldapconn *lc;
+	ldapconn_t	*lc;
 	struct timeval	tv;
 	time_t		stoptime = (time_t)-1;
 	LDAPMessage	*res,
@@ -221,13 +221,20 @@ fail:;
 		case LDAP_SERVER_DOWN:
 			if ( do_retry ) {
 				do_retry = 0;
-				if ( ldap_back_retry( lc, op, rs, LDAP_BACK_DONTSEND ) ) {
+				if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_DONTSEND ) ) {
 					goto retry;
 				}
 			}
-			rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_DONTSEND );
-			ldap_back_freeconn( op, lc );
-			lc = NULL;
+			if ( lc == NULL ) {
+				/* reset by ldap_back_retry ... */
+				rs->sr_err = slap_map_api2result( rs );
+
+			} else {
+				rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_DONTSEND );
+				ldap_back_freeconn( op, lc, 0 );
+				lc = NULL;
+			}
+				
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
@@ -417,12 +424,13 @@ fail:;
 	if ( rc == -1 ) {
 		if ( do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 				goto retry;
 			}
 		}
 		rs->sr_err = LDAP_SERVER_DOWN;
-		goto fail;
+		rs->sr_err = slap_map_api2result( rs );
+		goto finish;
 	}
 
 	/*
@@ -688,7 +696,7 @@ ldap_back_entry_get(
 		Entry			**ent
 )
 {
-	struct ldapconn *lc;
+	ldapconn_t	*lc;
 	int		rc = 1,
 			do_not_cache;
 	struct berval	bdn;
@@ -746,7 +754,7 @@ retry:
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
+			if ( ldap_back_retry( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 				goto retry;
 			}
 		}

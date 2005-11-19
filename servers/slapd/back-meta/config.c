@@ -160,7 +160,7 @@ meta_back_db_config(
 		}
 
 		mi->mi_targets[ i ].mt_nretries = mi->mi_nretries;
-		mi->mi_targets[ i ].mt_flags = mi->flags;
+		mi->mi_targets[ i ].mt_flags = mi->mi_flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
 
 		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
@@ -430,16 +430,16 @@ meta_back_db_config(
 			fprintf( stderr,
 	"%s: line %d: deprecated use of \"rebind-as-user {FALSE|true}\" with no arguments.\n",
 			    fname, lineno );
-			mi->flags |= LDAP_BACK_F_SAVECRED;
+			mi->mi_flags |= LDAP_BACK_F_SAVECRED;
 
 		} else {
 			switch ( check_true_false( argv[ 1 ] ) ) {
 			case 0:
-				mi->flags &= ~LDAP_BACK_F_SAVECRED;
+				mi->mi_flags &= ~LDAP_BACK_F_SAVECRED;
 				break;
 
 			case 1:
-				mi->flags |= LDAP_BACK_F_SAVECRED;
+				mi->mi_flags |= LDAP_BACK_F_SAVECRED;
 				break;
 
 			default:
@@ -453,7 +453,7 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "chase-referrals" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_flags
-				: &mi->flags;
+				: &mi->mi_flags;
 
 		if ( argc != 2 ) {
 			fprintf( stderr,
@@ -482,7 +482,7 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "tls" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_flags
-				: &mi->flags;
+				: &mi->mi_flags;
 
 		if ( argc != 2 ) {
 			fprintf( stderr,
@@ -519,7 +519,7 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "t-f-support" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_flags
-				: &mi->flags;
+				: &mi->mi_flags;
 
 		if ( argc != 2 ) {
 			fprintf( stderr,
@@ -560,10 +560,10 @@ meta_back_db_config(
 		}
 
 		if ( strcasecmp( argv[ 1 ], "continue" ) == 0 ) {
-			mi->flags &= ~META_BACK_F_ONERR_STOP;
+			mi->mi_flags &= ~META_BACK_F_ONERR_STOP;
 
 		} else if ( strcasecmp( argv[ 1 ], "stop" ) == 0 ) {
-			mi->flags |= META_BACK_F_ONERR_STOP;
+			mi->mi_flags |= META_BACK_F_ONERR_STOP;
 
 		} else {
 			fprintf( stderr,
@@ -583,11 +583,11 @@ meta_back_db_config(
 
 		switch ( check_true_false( argv[ 1 ] ) ) {
 		case 0:
-			mi->flags &= ~META_BACK_F_DEFER_ROOTDN_BIND;
+			mi->mi_flags &= ~META_BACK_F_DEFER_ROOTDN_BIND;
 			break;
 
 		case 1:
-			mi->flags |= META_BACK_F_DEFER_ROOTDN_BIND;
+			mi->mi_flags |= META_BACK_F_DEFER_ROOTDN_BIND;
 			break;
 
 		default:

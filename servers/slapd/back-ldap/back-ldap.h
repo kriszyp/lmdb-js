@@ -26,7 +26,7 @@
 
 LDAP_BEGIN_DECL
 
-struct ldapconn {
+typedef struct ldapconn_t {
 	Connection		*lc_conn;
 #define	LDAP_BACK_PCONN		((void *)0x0)
 #define	LDAP_BACK_PCONN_TLS	((void *)0x1)
@@ -79,7 +79,7 @@ struct ldapconn {
 
 	unsigned		lc_refcnt;
 	unsigned		lc_flags;
-};
+} ldapconn_t;
 
 /*
  * identity assertion modes
@@ -104,50 +104,58 @@ enum {
 	LDAP_BACK_OP_LAST
 };
 
-struct ldapinfo {
-	char		*url;
-	LDAPURLDesc	*lud;
+typedef struct ldap_avl_info_t {
+	ldap_pvt_thread_mutex_t		lai_mutex;
+	Avlnode				*lai_tree;
+} ldap_avl_info_t;
 
-	slap_bindconf	acl_sb;
-#define	acl_authcID	acl_sb.sb_authcId
-#define	acl_authcDN	acl_sb.sb_binddn
-#define	acl_passwd	acl_sb.sb_cred
-#define	acl_authzID	acl_sb.sb_authzId
-#define	acl_authmethod	acl_sb.sb_method
-#define	acl_sasl_mech	acl_sb.sb_saslmech
-#define	acl_sasl_realm	acl_sb.sb_realm
-#define	acl_secprops	acl_sb.sb_secprops
+typedef struct ldapinfo_t {
+	/* li_uri: the string that goes into ldap_initialize()
+	 * TODO: use li_acl.sb_uri instead */
+	char		*li_uri;
+	/* li_bvuri: an array of each single URI that is equivalent;
+	 * to be checked for the presence of a certain item */
+	BerVarray	li_bvuri;
+
+	slap_bindconf	li_acl;
+#define	li_acl_authcID	li_acl.sb_authcId
+#define	li_acl_authcDN	li_acl.sb_binddn
+#define	li_acl_passwd	li_acl.sb_cred
+#define	li_acl_authzID	li_acl.sb_authzId
+#define	li_acl_authmethod	li_acl.sb_method
+#define	li_acl_sasl_mech	li_acl.sb_saslmech
+#define	li_acl_sasl_realm	li_acl.sb_realm
+#define	li_acl_secprops	li_acl.sb_secprops
 
 	/* ID assert stuff */
-	int		idassert_mode;
+	int		li_idassert_mode;
 
-	slap_bindconf	idassert_sb;
-#define	idassert_authcID	idassert_sb.sb_authcId
-#define	idassert_authcDN	idassert_sb.sb_binddn
-#define	idassert_passwd		idassert_sb.sb_cred
-#define	idassert_authzID	idassert_sb.sb_authzId
-#define	idassert_authmethod	idassert_sb.sb_method
-#define	idassert_sasl_mech	idassert_sb.sb_saslmech
-#define	idassert_sasl_realm	idassert_sb.sb_realm
-#define	idassert_secprops	idassert_sb.sb_secprops
+	slap_bindconf	li_idassert;
+#define	li_idassert_authcID	li_idassert.sb_authcId
+#define	li_idassert_authcDN	li_idassert.sb_binddn
+#define	li_idassert_passwd	li_idassert.sb_cred
+#define	li_idassert_authzID	li_idassert.sb_authzId
+#define	li_idassert_authmethod	li_idassert.sb_method
+#define	li_idassert_sasl_mech	li_idassert.sb_saslmech
+#define	li_idassert_sasl_realm	li_idassert.sb_realm
+#define	li_idassert_secprops	li_idassert.sb_secprops
 
-	unsigned 	idassert_flags;
+	unsigned 	li_idassert_flags;
 #define LDAP_BACK_AUTH_NONE		0x00U
 #define	LDAP_BACK_AUTH_NATIVE_AUTHZ	0x01U
 #define	LDAP_BACK_AUTH_OVERRIDE		0x02U
 #define	LDAP_BACK_AUTH_PRESCRIPTIVE	0x04U
 
-	BerVarray	idassert_authz;
+	BerVarray	li_idassert_authz;
 	/* end of ID assert stuff */
 
-	int		nretries;
+	int		li_nretries;
 #define LDAP_BACK_RETRY_UNDEFINED	(-2)
 #define LDAP_BACK_RETRY_FOREVER		(-1)
 #define LDAP_BACK_RETRY_NEVER		(0)
 #define LDAP_BACK_RETRY_DEFAULT		(3)
 
-	ldap_pvt_thread_mutex_t		conn_mutex;
-	unsigned	flags;
+	unsigned	li_flags;
 #define LDAP_BACK_F_NONE		0x00U
 #define LDAP_BACK_F_SAVECRED		0x01U
 #define LDAP_BACK_F_USE_TLS		0x02U
@@ -163,23 +171,18 @@ struct ldapinfo {
 #define	LDAP_BACK_F_SUPPORT_T_F_DISCOVER	0x40U
 #define	LDAP_BACK_F_SUPPORT_T_F_MASK		(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER)
 
-#define LDAP_BACK_SAVECRED(li)		( (li)->flags & LDAP_BACK_F_SAVECRED )
-#define LDAP_BACK_USE_TLS(li)		( (li)->flags & LDAP_BACK_F_USE_TLS )
-#define LDAP_BACK_PROPAGATE_TLS(li)	( (li)->flags & LDAP_BACK_F_PROPAGATE_TLS )
-#define LDAP_BACK_TLS_CRITICAL(li)	( (li)->flags & LDAP_BACK_F_TLS_CRITICAL )
-#define LDAP_BACK_CHASE_REFERRALS(li)	( (li)->flags & LDAP_BACK_F_CHASE_REFERRALS )
+#define LDAP_BACK_SAVECRED(li)		( (li)->li_flags & LDAP_BACK_F_SAVECRED )
+#define LDAP_BACK_USE_TLS(li)		( (li)->li_flags & LDAP_BACK_F_USE_TLS )
+#define LDAP_BACK_PROPAGATE_TLS(li)	( (li)->li_flags & LDAP_BACK_F_PROPAGATE_TLS )
+#define LDAP_BACK_TLS_CRITICAL(li)	( (li)->li_flags & LDAP_BACK_F_TLS_CRITICAL )
+#define LDAP_BACK_CHASE_REFERRALS(li)	( (li)->li_flags & LDAP_BACK_F_CHASE_REFERRALS )
 
-	int		version;
+	int		li_version;
 
-	Avlnode		*conntree;
+	ldap_avl_info_t	li_conninfo;
 
-#if 0
-	/* FIXME: automatic rwm instantiation removed */
-	int		rwm_started;
-#endif
-
-	time_t			timeout[ LDAP_BACK_OP_LAST ];
-};
+	time_t		li_timeout[ LDAP_BACK_OP_LAST ];
+} ldapinfo_t;
 
 typedef enum ldap_back_send_t {
 	LDAP_BACK_DONTSEND		= 0x00,
