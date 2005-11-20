@@ -1313,7 +1313,7 @@ ldap_chain_db_config(
 	/* Something for the chain database? */
 	if ( strncasecmp( argv[ 0 ], "chain-", STRLENOF( "chain-" ) ) == 0 ) {
 		char		*save_argv0 = argv[ 0 ];
-		BackendInfo	*bd_info = bd_info;
+		BackendInfo	*bd_info = be->bd_info;
 		void		*be_private = be->be_private;
 		ConfigOCs	*be_cf_ocs = be->be_cf_ocs;
 		int		is_uri = 0;
