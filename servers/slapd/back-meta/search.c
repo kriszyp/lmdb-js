@@ -595,11 +595,14 @@ really_bad:;
 
 				/* massage matchedDN if need be */
 				if ( candidates[ i ].sr_matched != NULL ) {
+#ifndef LDAP_NULL_IS_NULL
 					if ( candidates[ i ].sr_matched[ 0 ] == '\0' ) {
 						ldap_memfree( (char *)candidates[ i ].sr_matched );
 						candidates[ i ].sr_matched = NULL;
 
-					} else {
+					} else
+#endif /* LDAP_NULL_IS_NULL */
+					{
 						struct berval	match, mmatch;
 
 						ber_str2bv( candidates[ i ].sr_matched,
@@ -622,12 +625,14 @@ really_bad:;
 					}
 				}
 
+#ifndef LDAP_NULL_IS_NULL
 				/* just get rid of the error message, if any */
 				if ( candidates[ i ].sr_text && candidates[ i ].sr_text[ 0 ] == '\0' )
 				{
 					ldap_memfree( (char *)candidates[ i ].sr_text );
 					candidates[ i ].sr_text = NULL;
 				}
+#endif /* LDAP_NULL_IS_NULL */
 
 				/* add references to array */
 				if ( references ) {

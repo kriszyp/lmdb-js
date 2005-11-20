@@ -866,6 +866,16 @@ retry:;
 		default:
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match, &text, NULL, NULL, 1 );
+#ifndef LDAP_NULL_IS_NULL
+			if ( match != NULL && match[ 0 ] == '\0' ) {
+				ldap_memfree( match );
+				match = NULL;
+			}
+			if ( text != NULL && text[ 0 ] == '\0' ) {
+				ldap_memfree( text );
+				text = NULL;
+			}
+#endif /* LDAP_NULL_IS_NULL */
 			rs->sr_text = text;
 			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;

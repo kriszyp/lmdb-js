@@ -135,6 +135,7 @@ retry:
 					(char **)&rs->sr_matched,
 					(char **)&rs->sr_text,
 					NULL, NULL, 0 );
+#ifndef LDAP_NULL_IS_NULL
 			if ( rs->sr_matched && rs->sr_matched[ 0 ] == '\0' ) {
 				free( (char *)rs->sr_matched );
 				rs->sr_matched = NULL;
@@ -143,6 +144,7 @@ retry:
 				free( (char *)rs->sr_text );
 				rs->sr_text = NULL;
 			}
+#endif /* LDAP_NULL_IS_NULL */
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					struct berval	newpw;
