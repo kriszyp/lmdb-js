@@ -1275,22 +1275,23 @@ ldap_chain_db_init(
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_chain_t	*lc = NULL;
 
-	int		rc;
-
 	if ( lback == NULL ) {
 		lback = backend_info( "ldap" );
 
 		if ( lback == NULL ) {
-			return -1;
+			return 1;
 		}
 	}
 
 	lc = ch_malloc( sizeof( ldap_chain_t ) );
+	if ( lc == NULL ) {
+		return 1;
+	}
 	memset( lc, 0, sizeof( ldap_chain_t ) );
 
 	on->on_bi.bi_private = (void *)lc;
 
-	return rc;
+	return 0;
 }
 
 static int
