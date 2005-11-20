@@ -1308,8 +1308,10 @@ ldap_chain_db_config(
 	int		rc = SLAP_CONF_UNKNOWN;
 		
 	if ( lc->lc_common_li == NULL ) {
+		void	*be_private = be->be_private;
 		ldap_chain_db_init_common( be );
 		lc->lc_common_li = lc->lc_cfg_li = (ldapinfo_t *)be->be_private;
+		be->be_private = be_private;
 	}
 
 	/* Something for the chain database? */
