@@ -795,7 +795,6 @@ overlay_is_inst( BackendDB *be, const char *over_type )
 int
 overlay_register_control( BackendDB *be, const char *oid )
 {
-	int		rc = 0;
 	int		gotit = 0;
 	int		cid;
 
@@ -818,12 +817,12 @@ overlay_register_control( BackendDB *be, const char *oid )
 
 	}
 	
-	if ( rc == 0 && !gotit ) {
+	if ( !gotit ) {
 		be->be_ctrls[ cid ] = 1;
 		be->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 	}
 
-	return rc;
+	return 0;
 }
 
 void
