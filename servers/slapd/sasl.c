@@ -542,7 +542,7 @@ slap_sasl_canonicalize(
 {
 	Connection *conn = (Connection *)context;
 	struct propctx *props = sasl_auxprop_getctx( sconn );
-	struct propval auxvals[ SLAP_SASL_PROP_COUNT ] = { 0 };
+	struct propval auxvals[ SLAP_SASL_PROP_COUNT ] = { { 0 } };
 	struct berval dn;
 	int rc, which;
 	const char *names[2];
@@ -658,7 +658,7 @@ slap_sasl_authorize(
 	 *	(SLAP_SASL_PROP_COUNT - 1)	because we skip "conn",
 	 *	+ 1				for NULL termination?
 	 */
-	struct propval auxvals[ SLAP_SASL_PROP_COUNT ] = { 0 };
+	struct propval auxvals[ SLAP_SASL_PROP_COUNT ] = { { 0 } };
 	struct berval authcDN, authzDN = BER_BVNULL;
 	int rc;
 

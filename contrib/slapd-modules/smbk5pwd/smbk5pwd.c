@@ -864,7 +864,7 @@ static int
 smbk5pwd_db_init(BackendDB *be)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	smbk5pwd_t *pi;
+	smbk5pwd_t	*pi;
 
 	pi = ch_calloc( 1, sizeof( smbk5pwd_t ) );
 	if ( pi == NULL ) {

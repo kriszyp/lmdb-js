@@ -216,7 +216,6 @@ retry:
 			op->ors_slimit, &msgid );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-fail:;
 		switch ( rs->sr_err ) {
 		case LDAP_SERVER_DOWN:
 			if ( do_retry ) {
