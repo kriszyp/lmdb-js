@@ -583,10 +583,10 @@ syncprov_findcsn( Operation *op, find_csn_t mode )
 #else
 	AttributeAssertion eq = { NULL, BER_BVNULL };
 #endif
-	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
 	sync_control *srs = NULL;
-	int findcsn_retry = 1;
+	struct slap_limits_set fc_limits;
+	int i, rc = LDAP_SUCCESS, findcsn_retry = 1;
 
 	if ( mode != FIND_MAXCSN ) {
 		srs = op->o_controls[slap_cids.sc_LDAPsync];
@@ -637,6 +637,8 @@ again:
 		/* On retry, look for <= */
 		} else {
 			cf.f_choice = LDAP_FILTER_LE;
+			fop.ors_limit = &fc_limits;
+			fc_limits.lms_s_unchecked = 1;
 			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
 				cf.f_av_value.bv_val );
 		}
@@ -1244,7 +1246,9 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_req_ndn = op->o_bd->be_nsuffix[0];
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
+	SLAP_DBFLAGS( opm.o_bd ) |= SLAP_DBFLAG_NOLASTMOD;
 	opm.o_bd->be_modify( &opm, &rsm );
+	SLAP_DBFLAGS( opm.o_bd ) ^= SLAP_DBFLAG_NOLASTMOD;
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}
