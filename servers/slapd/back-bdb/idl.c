@@ -1311,7 +1311,7 @@ int bdb_idl_append_one( ID *ids, ID id )
  */
 int bdb_idl_append( ID *a, ID *b )
 {
-	ID ida, idb, tmp;
+	ID ida, idb, tmp, swap = 0;
 
 	if ( BDB_IDL_IS_ZERO( b ) ) {
 		return 0;
@@ -1333,6 +1333,7 @@ int bdb_idl_append( ID *a, ID *b )
 	}
 
 	if ( b[0] > 1 && ida > idb ) {
+		swap = idb;
 		a[a[0]] = idb;
 		b[b[0]] = ida;
 	}
@@ -1350,6 +1351,9 @@ int bdb_idl_append( ID *a, ID *b )
 		int i = b[0] - 1;
 		AC_MEMCPY(a+a[0]+1, b+2, i * sizeof(ID));
 		a[0] += i;
+	}
+	if ( swap ) {
+		b[b[0]] = swap;
 	}
 	return 0;
 }
