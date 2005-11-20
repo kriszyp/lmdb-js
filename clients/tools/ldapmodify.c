@@ -475,7 +475,7 @@ process_ldif_rec( char *rbuf, int count )
 				{
 					use_record = 1;
 				}
-	    	} else if ( count == 1 && linenum == 1 && 
+	    		} else if ( count == 1 && linenum == 1 && 
 				strcasecmp( type, T_VERSION_STR ) == 0 )
 			{
 				if( val.bv_len == 0 || atoi(val.bv_val) != 1 ) {
@@ -647,6 +647,11 @@ process_ldif_rec( char *rbuf, int count )
 				prog, linenum, dn );
 			rc = LDAP_PARAM_ERROR;
 		} else {
+			if ( new_entry && strcasecmp( type, T_DN_STR ) == 0 ) {
+				fprintf( stderr, _("%s: attributeType \"%s\": "
+					"(missing newline after line %d of entry \"%s\"?)\n"),
+					prog, type, linenum - 1, dn );
+			}
 			addmodifyop( &pmods, modop, type, &val );
 		}
 
