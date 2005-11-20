@@ -395,6 +395,7 @@ monitor_subsys_database_init(
 						slap_schema.si_ad_labeledURI,
 						&bv, NULL );
 				}
+				ldap_charray_free( urls );
 			}
 #endif /* defined(SLAPD_META) */
 		}
