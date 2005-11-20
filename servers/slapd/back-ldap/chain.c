@@ -498,9 +498,9 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	BerVarray	ref;
 	struct berval	ndn = op->o_ndn;
 
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	int		sr_err = rs->sr_err;
 	slap_reply_t	sr_type = rs->sr_type;
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	slap_mask_t	chain_mask = 0;
 	ber_len_t	chain_shift = 0;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
@@ -813,9 +813,7 @@ cannot_chain:;
 		send_ldap_result( op, rs );
 	}
 
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 dont_chain:;
-#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	rs->sr_err = sr_err;
 	rs->sr_type = sr_type;
 	rs->sr_matched = matched;
@@ -865,9 +863,7 @@ enum {
 	CH_LAST
 };
 
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static ConfigDriver chain_cf_gen;
-#endif
 static ConfigCfAdd chain_cfadd;
 static ConfigLDAPadd chain_ldadd;
 
@@ -888,16 +884,17 @@ static ConfigTable chaincfg[] = {
 };
 
 static ConfigOCs chainocs[] = {
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	{ "( OLcfgOvOc:3.1 "
 		"NAME 'olcChainConfig' "
 		"DESC 'Chain configuration' "
 		"SUP olcOverlayConfig "
-		"MAY ( olcChainingBehavior "
+		"MAY ( "
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+			"olcChainingBehavior "
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 			"$ olcCacheURIs "
 			") )",
 		Cft_Overlay, chaincfg, NULL, chain_cfadd },
-#endif
 	{ "( OLcfgOvOc:3.2 "
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
@@ -1058,7 +1055,6 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 }
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-
 static slap_verbmasks chaining_mode[] = {
 	{ BER_BVC("referralsRequired"),		LDAP_REFERRALS_REQUIRED },
 	{ BER_BVC("referralsPreferred"),	LDAP_REFERRALS_PREFERRED },
@@ -1066,6 +1062,7 @@ static slap_verbmasks chaining_mode[] = {
 	{ BER_BVC("chainingPreferred"),		LDAP_CHAINING_PREFERRED },
 	{ BER_BVNULL,				0 }
 };
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 static int
 chain_cf_gen( ConfigArgs *c )
@@ -1135,8 +1132,8 @@ chain_cf_gen( ConfigArgs *c )
 	}
 
 	switch( c->type ) {
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	case CH_CHAINING: {
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 		char			**argv = c->argv;
 		int			argc = c->argc;
 		BerElementBuffer	berbuf;
@@ -1153,20 +1150,20 @@ chain_cf_gen( ConfigArgs *c )
 			if ( strncasecmp( argv[ 0 ], "resolve=", STRLENOF( "resolve=" ) ) == 0 ) {
 				resolve = str2chain( argv[ 0 ] + STRLENOF( "resolve=" ) );
 				if ( resolve == -1 ) {
-					fprintf( stderr, "%s line %d: "
+					Debug( LDAP_DEBUG_ANY, "%s: "
 						"illegal <resolve> value %s "
-						"in \"chain-chaining>\"\n",
-						c->fname, c->lineno, argv[ 0 ] );
+						"in \"chain-chaining>\".\n",
+						c->log, argv[ 0 ], 0 );
 					return 1;
 				}
 
 			} else if ( strncasecmp( argv[ 0 ], "continuation=", STRLENOF( "continuation=" ) ) == 0 ) {
 				continuation = str2chain( argv[ 0 ] + STRLENOF( "continuation=" ) );
 				if ( continuation == -1 ) {
-					fprintf( stderr, "%s line %d: "
+					Debug( LDAP_DEBUG_ANY, "%s: "
 						"illegal <continuation> value %s "
-						"in \"chain-chaining\"\n",
-						c->fname, c->lineno, argv[ 0 ] );
+						"in \"chain-chaining\".\n",
+						c->log, argv[ 0 ], 0 );
 					return 1;
 				}
 
@@ -1174,9 +1171,9 @@ chain_cf_gen( ConfigArgs *c )
 				iscritical = 1;
 
 			} else {
-				fprintf( stderr, "%s line %d: "
-					"unknown option in \"chain-chaining\"\n",
-					c->fname, c->lineno );
+				Debug( LDAP_DEBUG_ANY, "%s: "
+					"unknown option in \"chain-chaining\".\n",
+					c->log, 0, 0 );
 				return 1;
 			}
 		}
@@ -1194,9 +1191,9 @@ chain_cf_gen( ConfigArgs *c )
 			err = ber_printf( ber, "{e" /* } */, resolve );
 	    		if ( err == -1 ) {
 				ber_free( ber, 1 );
-				fprintf( stderr, "%s line %d: "
+				Debug( LDAP_DEBUG_ANY, "%s: "
 					"chaining behavior control encoding error!\n",
-					c->fname, c->lineno );
+					c->log, 0, 0 );
 				return 1;
 			}
 
@@ -1204,9 +1201,9 @@ chain_cf_gen( ConfigArgs *c )
 				err = ber_printf( ber, "e", continuation );
 	    			if ( err == -1 ) {
 					ber_free( ber, 1 );
-					fprintf( stderr, "%s line %d: "
+					Debug( LDAP_DEBUG_ANY, "%s: "
 						"chaining behavior control encoding error!\n",
-						c->fname, c->lineno );
+						c->log, 0, 0 );
 					return 1;
 				}
 			}
@@ -1214,9 +1211,9 @@ chain_cf_gen( ConfigArgs *c )
 			err = ber_printf( ber, /* { */ "N}" );
 	    		if ( err == -1 ) {
 				ber_free( ber, 1 );
-				fprintf( stderr, "%s line %d: "
+				Debug( LDAP_DEBUG_ANY, "%s: "
 					"chaining behavior control encoding error!\n",
-					c->fname, c->lineno );
+					c->log, 0, 0 );
 				return 1;
 			}
 
@@ -1233,10 +1230,9 @@ chain_cf_gen( ConfigArgs *c )
 
 		if ( ldap_chain_parse_ctrl( &op, &rs, &lc->lc_chaining_ctrl ) != LDAP_SUCCESS )
 		{
-			fprintf( stderr, "%s line %d: "
-				"unable to parse chaining control%s%s\n",
-				c->fname, c->lineno,
-				rs.sr_text ? ": " : "",
+			Debug( LDAP_DEBUG_ANY, "%s: "
+				"unable to parse chaining control%s%s.\n",
+				c->log, rs.sr_text ? ": " : "",
 				rs.sr_text ? rs.sr_text : "" );
 			return 1;
 		}
@@ -1246,10 +1242,12 @@ chain_cf_gen( ConfigArgs *c )
 		lc->lc_flags |= LDAP_CHAIN_F_CHAINING;
 
 		rc = 0;
-
-		break;
-	}
+#else /* ! LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+		Debug( LDAP_DEBUG_ANY, "%s: "
+			"\"chaining\" control unsupported (ignored).\n",
+			c->log, 0, 0 );
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+		} break;
 
 	case CH_CACHE_URI:
 		if ( c->value_int ) {
@@ -1265,8 +1263,6 @@ chain_cf_gen( ConfigArgs *c )
 	}
 	return rc;
 }
-
-#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 static int
 ldap_chain_db_init(
@@ -1324,19 +1320,24 @@ ldap_chain_db_config(
 
 		argv[ 0 ] += STRLENOF( "chain-" );
 
-		/* TODO: create a new structure and, after parsing the URI,
-		 * put it in the lc->lc_lai tree */
 		if ( strcasecmp( argv[ 0 ], "uri" ) == 0 ) {
 			rc = ldap_chain_db_init_one( be );
 			if ( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"underlying slapd-ldap initialization failed\n.",
+					"underlying slapd-ldap initialization failed.\n.",
 					fname, lineno, 0 );
 				return 1;
 			}
 			lc->lc_cfg_li = be->be_private;
 			is_uri = 1;
 		}
+
+		/* TODO: add checks on what other slapd-ldap(5) args
+		 * should be put in the template; this is not quite
+		 * harmful, because attributes that shouldn't don't
+		 * get actually used, but the user should at least
+		 * be warned.
+		 */
 
 		be->bd_info = lback;
 		be->be_private = (void *)lc->lc_cfg_li;
@@ -1467,9 +1468,6 @@ ldap_chain_db_open(
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
-	/* FIXME: right now slapd-ldap has no open function;
-	 * in case one is introduced, this needs be fixed */
-
 	return ldap_chain_db_func( be, db_open );
 }
 
@@ -1499,18 +1497,16 @@ ldap_chain_db_destroy(
 	return rc;
 }
 
+/*
+ * inits one instance of the slapd-ldap backend, and stores
+ * the private info in be_private of the arg
+ */
 static int
 ldap_chain_db_init_common(
 	BackendDB	*be )
 {
-	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-
 	BackendInfo	*bi = be->bd_info;
-
 	int		t;
-
-	assert( lc->lc_common_li == NULL );
 
 	be->bd_info = lback;
 	be->be_private = NULL;
@@ -1523,6 +1519,14 @@ ldap_chain_db_init_common(
 	return 0;
 }
 
+/*
+ * inits one instance of the slapd-ldap backend, stores
+ * the private info in be_private of the arg and fills
+ * selected fields with data from the template.
+ *
+ * NOTE: add checks about the other fields of the template,
+ * which are ignored and SHOULD NOT be configured by the user.
+ */
 static int
 ldap_chain_db_init_one(
 	BackendDB	*be )
@@ -1739,7 +1743,7 @@ chain_init( void )
 			ldap_chain_parse_ctrl, &sc_chainingBehavior );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
-			"unable to register chaining behavior control: %d\n",
+			"unable to register chaining behavior control: %d.\n",
 			rc, 0, 0 );
 		return rc;
 	}
