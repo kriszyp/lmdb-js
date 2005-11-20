@@ -948,35 +948,38 @@ hdb_dn2idl_internal(
 		cx->data.ulen = BDB_IDL_UM_SIZE * sizeof(ID);
 		cx->data.flags = DB_DBT_USERMEM;
 
-		/* Fetch the rest of the IDs in a loop... */
-		while ( (cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data,
-			DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
-			u_int8_t *j;
-			size_t len;
-			void *ptr;
-			DB_MULTIPLE_INIT( ptr, &cx->data );
-			while (ptr) {
-				DB_MULTIPLE_NEXT( ptr, &cx->data, j, len );
-				if (j) {
-					EntryInfo *ei2;
-					diskNode *d = (diskNode *)j;
-					short nrlen;
+		if ( dkids > 1 ) {
+			/* Fetch the rest of the IDs in a loop... */
+			while ( (cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data,
+				DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
+				u_int8_t *j;
+				size_t len;
+				void *ptr;
+				DB_MULTIPLE_INIT( ptr, &cx->data );
+				while (ptr) {
+					DB_MULTIPLE_NEXT( ptr, &cx->data, j, len );
+					if (j) {
+						EntryInfo *ei2;
+						diskNode *d = (diskNode *)j;
+						short nrlen;
 
-					BDB_DISK2ID( j + len - sizeof(ID), &ei.bei_id );
-					nrlen = ((d->nrdnlen[0] ^ 0x80) << 8) | d->nrdnlen[1];
-					ei.bei_nrdn.bv_len = nrlen;
-					/* nrdn/rdn are set in-place.
-					 * hdb_cache_load will copy them as needed
-					 */
-					ei.bei_nrdn.bv_val = d->nrdn;
-					ei.bei_rdn.bv_len = len - sizeof(diskNode)
-						- ei.bei_nrdn.bv_len;
-					ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
-					bdb_idl_append_one( cx->tmp, ei.bei_id );
-					hdb_cache_load( cx->bdb, &ei, &ei2 );
+						BDB_DISK2ID( j + len - sizeof(ID), &ei.bei_id );
+						nrlen = ((d->nrdnlen[0] ^ 0x80) << 8) | d->nrdnlen[1];
+						ei.bei_nrdn.bv_len = nrlen;
+						/* nrdn/rdn are set in-place.
+						 * hdb_cache_load will copy them as needed
+						 */
+						ei.bei_nrdn.bv_val = d->nrdn;
+						ei.bei_rdn.bv_len = len - sizeof(diskNode)
+							- ei.bei_nrdn.bv_len;
+						ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
+						bdb_idl_append_one( cx->tmp, ei.bei_id );
+						hdb_cache_load( cx->bdb, &ei, &ei2 );
+					}
 				}
 			}
 		}
+
 		cx->rc = cx->dbc->c_close( cx->dbc );
 done_one:
 		bdb_cache_entryinfo_lock( cx->ei );
