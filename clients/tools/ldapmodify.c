@@ -648,7 +648,7 @@ process_ldif_rec( char *rbuf, int count )
 			rc = LDAP_PARAM_ERROR;
 		} else {
 			if ( new_entry && strcasecmp( type, T_DN_STR ) == 0 ) {
-				fprintf( stderr, _("%s: attributeType \"%s\":"
+				fprintf( stderr, _("%s: attributeDescription \"%s\":"
 					" (possible missing newline"
 						" after line %d of entry \"%s\"?)\n"),
 					prog, type, linenum - 1, dn );
