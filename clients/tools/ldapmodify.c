@@ -960,47 +960,51 @@ domodify(
 	}
 
 	if ( pmods == NULL ) {
-		fprintf( stderr,
-			_("%s: no attributes to change or add (entry=\"%s\")\n"),
-			prog, dn );
-		return( LDAP_PARAM_ERROR );
-	} 
+		/* implement "touch" (empty sequence)
+		 * modify operation (note that there
+		 * is no symmetry with the UNIX command,
+		 * since \"touch\" on a non-existent entry
+		 * will fail)*/
+		printf( "warning: no attributes to %sadd (entry=\"%s\")\n",
+			newentry ? "" : "change or ", dn );
 
-	for ( i = 0; pmods[ i ] != NULL; ++i ) {
-		op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
-		if( op == LDAP_MOD_ADD && ( pmods[i]->mod_bvalues == NULL )) {
-			fprintf( stderr,
-				_("%s: attribute \"%s\" has no values (entry=\"%s\")\n"),
-				prog, pmods[i]->mod_type, dn );
-			return LDAP_PARAM_ERROR;
-		}
-	}
-
-	if ( verbose ) {
+	} else {
 		for ( i = 0; pmods[ i ] != NULL; ++i ) {
 			op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
-			printf( "%s %s:\n",
-				op == LDAP_MOD_REPLACE ? _("replace") :
-					op == LDAP_MOD_ADD ?  _("add") :
-						op == LDAP_MOD_INCREMENT ?  _("increment") :
-							op == LDAP_MOD_DELETE ?  _("delete") :
-								_("unknown"),
-				pmods[ i ]->mod_type );
+			if( op == LDAP_MOD_ADD && ( pmods[i]->mod_bvalues == NULL )) {
+				fprintf( stderr,
+					_("%s: attribute \"%s\" has no values (entry=\"%s\")\n"),
+					prog, pmods[i]->mod_type, dn );
+				return LDAP_PARAM_ERROR;
+			}
+		}
 
-			if ( pmods[ i ]->mod_bvalues != NULL ) {
-				for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
-					bvp = pmods[ i ]->mod_bvalues[ j ];
-					notascii = 0;
-					for ( k = 0; (unsigned long) k < bvp->bv_len; ++k ) {
-						if ( !isascii( bvp->bv_val[ k ] )) {
-							notascii = 1;
-							break;
+		if ( verbose ) {
+			for ( i = 0; pmods[ i ] != NULL; ++i ) {
+				op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
+				printf( "%s %s:\n",
+					op == LDAP_MOD_REPLACE ? _("replace") :
+						op == LDAP_MOD_ADD ?  _("add") :
+							op == LDAP_MOD_INCREMENT ?  _("increment") :
+								op == LDAP_MOD_DELETE ?  _("delete") :
+									_("unknown"),
+					pmods[ i ]->mod_type );
+	
+				if ( pmods[ i ]->mod_bvalues != NULL ) {
+					for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
+						bvp = pmods[ i ]->mod_bvalues[ j ];
+						notascii = 0;
+						for ( k = 0; (unsigned long) k < bvp->bv_len; ++k ) {
+							if ( !isascii( bvp->bv_val[ k ] )) {
+								notascii = 1;
+								break;
+							}
 						}
-					}
-					if ( notascii ) {
-						printf( _("\tNOT ASCII (%ld bytes)\n"), bvp->bv_len );
-					} else {
-						printf( "\t%s\n", bvp->bv_val );
+						if ( notascii ) {
+							printf( _("\tNOT ASCII (%ld bytes)\n"), bvp->bv_len );
+						} else {
+							printf( "\t%s\n", bvp->bv_val );
+						}
 					}
 				}
 			}
