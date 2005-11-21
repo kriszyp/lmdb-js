@@ -1200,13 +1200,84 @@ accesslog_db_destroy(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	log_info *li = on->on_bi.bi_private;
-	
+
 	ldap_pvt_thread_mutex_destroy( &li->li_log_mutex );
 	ldap_pvt_thread_mutex_destroy( &li->li_op_mutex );
 	free( li );
 	return LDAP_SUCCESS;
 }
 
+static int
+accesslog_db_open(
+	BackendDB *be
+)
+{
+	slap_overinst *on = (slap_overinst *)be->bd_info;
+	log_info *li = on->on_bi.bi_private;
+
+	Connection conn;
+	OperationBuffer opbuf;
+	Operation *op = (Operation *) &opbuf;
+	Entry *e;
+	int rc;
+	void *thrctx;
+
+	if ( slapMode & SLAP_TOOL_READMAIN )
+		return 0;
+
+	thrctx = ldap_pvt_thread_pool_context();
+	connection_fake_init( &conn, op, thrctx );
+	op->o_bd = li->li_db;
+	op->o_dn = li->li_db->be_rootdn;
+	op->o_ndn = li->li_db->be_rootndn;
+
+	rc = be_entry_get_rw( op, li->li_db->be_nsuffix, NULL, NULL, 0, &e );
+
+	if ( !e ) {
+		SlapReply rs = {REP_RESULT};
+		struct berval rdn, nrdn, attr;
+		char *ptr;
+		AttributeDescription *ad = NULL;
+		const char *text = NULL;
+		e = ch_calloc( 1, sizeof( Entry ));
+		e->e_name = *li->li_db->be_suffix;
+		e->e_nname = *li->li_db->be_nsuffix;
+
+		attr_merge_one( e, slap_schema.si_ad_objectClass,
+			&log_container->soc_cname, NULL );
+
+		dnRdn( &e->e_name, &rdn );
+		dnRdn( &e->e_nname, &nrdn );
+		ptr = ber_bvchr( &rdn, '=' );
+
+		assert( ptr != NULL );
+
+		attr.bv_val = rdn.bv_val;
+		attr.bv_len = ptr - rdn.bv_val;
+
+		slap_bv2ad( &attr, &ad, &text );
+
+		rdn.bv_val = ptr+1;
+		rdn.bv_len -= attr.bv_len + 1;
+		ptr = ber_bvchr( &nrdn, '=' );
+		nrdn.bv_len -= ptr - nrdn.bv_val + 1;
+		nrdn.bv_val = ptr+1;
+		attr_merge_one( e, ad, &rdn, &nrdn );
+
+		op->ora_e = e;
+		op->o_req_dn = e->e_name;
+		op->o_req_ndn = e->e_nname;
+		op->o_callback = &nullsc;
+		SLAP_DBFLAGS( op->o_bd ) |= SLAP_DBFLAG_NOLASTMOD;
+		rc = op->o_bd->be_add( op, &rs );
+		SLAP_DBFLAGS( op->o_bd ) ^= SLAP_DBFLAG_NOLASTMOD;
+		attrs_free( e->e_attrs );
+		ch_free( e );
+	}
+	ldap_pvt_thread_pool_context_reset( thrctx );
+	return rc;
+}
+	
 int accesslog_init()
 {
 	int i, rc;
@@ -1214,6 +1285,7 @@ int accesslog_init()
 	accesslog.on_bi.bi_type = "accesslog";
 	accesslog.on_bi.bi_db_init = accesslog_db_init;
 	accesslog.on_bi.bi_db_destroy = accesslog_db_destroy;
+	accesslog.on_bi.bi_db_open = accesslog_db_open;
 
 	accesslog.on_bi.bi_op_add = accesslog_op_mod;
 	accesslog.on_bi.bi_op_bind = accesslog_op_bind;
