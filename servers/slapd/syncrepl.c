@@ -756,7 +756,7 @@ do_syncrep2(
 						si->si_logstate = SYNCLOG_FALLBACK;
 					}
 					rc = err;
-					break;
+					goto done;
 				}
 				if ( rctrls ) {
 					rctrlp = *rctrls;
