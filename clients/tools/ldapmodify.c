@@ -1178,10 +1178,11 @@ static int process_response(
 
 	msgtype = ldap_msgtype( res );
 	if ( msgtype != LDAP_RES_INTERMEDIATE ) {
-		int	err;
-		char	*text = NULL, *matched = NULL, **refs = NULL;
+		int		err;
+		char		*text = NULL, *matched = NULL, **refs = NULL;
+		LDAPControl	**ctrls = NULL;
 
-		rc = ldap_parse_result( ld, res, &err, &matched, &text, &refs, NULL, 1 );
+		rc = ldap_parse_result( ld, res, &err, &matched, &text, &refs, &ctrls, 1 );
 		if ( rc == LDAP_SUCCESS ) {
 			rc = err;
 		}
@@ -1200,6 +1201,10 @@ static int process_response(
 		}
 		if ( text ) {
 			ber_memvfree( (void **)refs );
+		}
+		if ( ctrls != NULL ) {
+			tool_print_ctrls( ctrls, 0 );
+			ldap_controls_free( ctrls );
 		}
 		return rc;
 	}

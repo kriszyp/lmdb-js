@@ -89,6 +89,9 @@ void tool_perror LDAP_P((
 	const char *matched,
 	const char *info,
 	char **refs ));
+void tool_print_ctrls LDAP_P(( LDAPControl **ctrls, int ldif ));
+int tool_write_ldif LDAP_P(( int type, char *name, char *value, ber_len_t vallen ));
+
 
 LDAP_END_DECL
 

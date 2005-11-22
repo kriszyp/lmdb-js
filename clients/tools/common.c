@@ -42,6 +42,8 @@
 
 #include <ldap.h>
 
+#include "ldif.h"
+#include "lutil.h"
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
 #include "ldap_pvt.h"
@@ -1299,5 +1301,81 @@ tool_check_abandon( LDAP *ld, int msgid )
 	}
 
 	return 0;
+}
+
+void tool_print_ctrls(
+	LDAPControl	**ctrls,
+	int		ldif )
+{
+	int	i;
+	char	*ptr;
+
+	for ( i = 0; ctrls[i] != NULL; i++ ) {
+		/* control: OID criticality base64value */
+		struct berval *b64 = NULL;
+		ber_len_t len;
+		char *str;
+
+		len = ldif ? 2 : 0;
+		len += strlen( ctrls[i]->ldctl_oid );
+
+		/* add enough for space after OID and the critical value itself */
+		len += ctrls[i]->ldctl_iscritical
+			? sizeof("true") : sizeof("false");
+
+		/* convert to base64 */
+		if( ctrls[i]->ldctl_value.bv_len ) {
+			b64 = ber_memalloc( sizeof(struct berval) );
+			
+			b64->bv_len = LUTIL_BASE64_ENCODE_LEN(
+				ctrls[i]->ldctl_value.bv_len ) + 1;
+			b64->bv_val = ber_memalloc( b64->bv_len + 1 );
+
+			b64->bv_len = lutil_b64_ntop(
+				(unsigned char *) ctrls[i]->ldctl_value.bv_val,
+				ctrls[i]->ldctl_value.bv_len,
+				b64->bv_val, b64->bv_len );
+		}
+
+		if ( b64 ) {
+			len += 1 + b64->bv_len;
+		}
+
+		ptr = str = malloc( len + 1 );
+		if ( ldif ) {
+			ptr = lutil_strcopy( ptr, ": " );
+		}
+		ptr = lutil_strcopy( ptr, ctrls[i]->ldctl_oid );
+		ptr = lutil_strcopy( ptr, ctrls[i]->ldctl_iscritical
+			? " true" : " false" );
+
+		if( b64 ) {
+			ptr = lutil_strcopy( ptr, " " );
+			ptr = lutil_strcopy( ptr, b64->bv_val );
+		}
+
+		if ( ldif < 2 ) {
+			tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+				"control", str, len );
+		}
+
+		free( str );
+		ber_bvfree( b64 );
+	}
+}
+
+int
+tool_write_ldif( int type, char *name, char *value, ber_len_t vallen )
+{
+	char	*ldif;
+
+	if (( ldif = ldif_put( type, name, value, vallen )) == NULL ) {
+		return( -1 );
+	}
+
+	fputs( ldif, stdout );
+	ber_memfree( ldif );
+
+	return( 0 );
 }
 

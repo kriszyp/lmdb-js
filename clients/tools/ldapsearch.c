@@ -178,15 +178,6 @@ static int print_result(
 	LDAPMessage *result,
 	int search );
 
-static void print_ctrls(
-	LDAPControl **ctrls );
-
-static int write_ldif LDAP_P((
-	int type,
-	char *name,
-	char *value,
-	ber_len_t vallen ));
-
 static int dosearch LDAP_P((
 	LDAP	*ld,
 	char	*base,
@@ -1305,9 +1296,9 @@ print_entry(
 
 	if ( ldif < 2 ) {
 		ufn = ldap_dn2ufn( bv.bv_val );
-		write_ldif( LDIF_PUT_COMMENT, NULL, ufn, ufn ? strlen( ufn ) : 0 );
+		tool_write_ldif( LDIF_PUT_COMMENT, NULL, ufn, ufn ? strlen( ufn ) : 0 );
 	}
-	write_ldif( LDIF_PUT_VALUE, "dn", bv.bv_val, bv.bv_len );
+	tool_write_ldif( LDIF_PUT_VALUE, "dn", bv.bv_val, bv.bv_len );
 
 	rc = ldap_get_entry_controls( ld, entry, &ctrls );
 	if( rc != LDAP_SUCCESS ) {
@@ -1317,7 +1308,7 @@ print_entry(
 	}
 
 	if( ctrls ) {
-		print_ctrls( ctrls );
+		tool_print_ctrls( ctrls, ldif );
 		ldap_controls_free( ctrls );
 	}
 
@@ -1325,7 +1316,7 @@ print_entry(
 		if( ufn == NULL ) {
 			ufn = ldap_dn2ufn( bv.bv_val );
 		}
-		write_ldif( LDIF_PUT_VALUE, "ufn", ufn, ufn ? strlen( ufn ) : 0 );
+		tool_write_ldif( LDIF_PUT_VALUE, "ufn", ufn, ufn ? strlen( ufn ) : 0 );
 	}
 
 	if( ufn != NULL ) ldap_memfree( ufn );
@@ -1339,7 +1330,7 @@ print_entry(
 		if (bv.bv_val == NULL) break;
 
 		if ( attrsonly ) {
-			write_ldif( LDIF_PUT_NOVALUE, bv.bv_val, NULL, 0 );
+			tool_write_ldif( LDIF_PUT_NOVALUE, bv.bv_val, NULL, 0 );
 
 		} else if ( bvals ) {
 			for ( i = 0; bvals[i].bv_val != NULL; i++ ) {
@@ -1379,10 +1370,10 @@ print_entry(
 						&tmpfname[strlen(tmpdir) + sizeof(LDAP_DIRSEP) - 1] );
 
 					urlize( url );
-					write_ldif( LDIF_PUT_URL, bv.bv_val, url, strlen( url ));
+					tool_write_ldif( LDIF_PUT_URL, bv.bv_val, url, strlen( url ));
 
 				} else {
-					write_ldif( LDIF_PUT_VALUE, bv.bv_val,
+					tool_write_ldif( LDIF_PUT_VALUE, bv.bv_val,
 						bvals[ i ].bv_val, bvals[ i ].bv_len );
 				}
 			}
@@ -1417,14 +1408,14 @@ static void print_reference(
 	if( refs ) {
 		int i;
 		for( i=0; refs[i] != NULL; i++ ) {
-			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 				"ref", refs[i], strlen(refs[i]) );
 		}
 		ber_memvfree( (void **) refs );
 	}
 
 	if( ctrls ) {
-		print_ctrls( ctrls );
+		tool_print_ctrls( ctrls, ldif );
 		ldap_controls_free( ctrls );
 	}
 }
@@ -1450,14 +1441,14 @@ static void print_extended(
 	}
 
 	if ( ldif < 2 ) {
-		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			"extended", retoid, retoid ? strlen(retoid) : 0 );
 	}
 	ber_memfree( retoid );
 
 	if(retdata) {
 		if ( ldif < 2 ) {
-			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
+			tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
 				"data", retdata->bv_val, retdata->bv_len );
 		}
 		ber_bvfree( retdata );
@@ -1488,7 +1479,7 @@ static void print_partial(
 	}
 
 	if ( ldif < 2 ) {
-		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			"partial", retoid, retoid ? strlen(retoid) : 0 );
 	}
 
@@ -1496,7 +1487,7 @@ static void print_partial(
 
 	if( retdata ) {
 		if ( ldif < 2 ) {
-			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
+			tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
 				"data", retdata->bv_val, retdata->bv_len );
 		}
 
@@ -1504,7 +1495,7 @@ static void print_partial(
 	}
 
 	if( ctrls ) {
-		print_ctrls( ctrls );
+		tool_print_ctrls( ctrls, ldif );
 		ldap_controls_free( ctrls );
 	}
 }
@@ -1548,7 +1539,7 @@ static int print_result(
 	if( matcheddn ) {
 		if( *matcheddn ) {
 		if( !ldif ) {
-			write_ldif( LDIF_PUT_VALUE,
+			tool_write_ldif( LDIF_PUT_VALUE,
 				"matchedDN", matcheddn, strlen(matcheddn) );
 		} else {
 			fprintf( stderr, _("Matched DN: %s\n"), matcheddn );
@@ -1561,7 +1552,7 @@ static int print_result(
 	if( text ) {
 		if( *text ) {
 		if( !ldif ) {
-			write_ldif( LDIF_PUT_TEXT, "text",
+			tool_write_ldif( LDIF_PUT_TEXT, "text",
 				text, strlen(text) );
 		} else {
 			fprintf( stderr, _("Additional information: %s\n"), text );
@@ -1575,7 +1566,7 @@ static int print_result(
 		int i;
 		for( i=0; refs[i] != NULL; i++ ) {
 			if( !ldif ) {
-				write_ldif( LDIF_PUT_VALUE, "ref", refs[i], strlen(refs[i]) );
+				tool_write_ldif( LDIF_PUT_VALUE, "ref", refs[i], strlen(refs[i]) );
 			} else {
 				fprintf( stderr, _("Referral: %s\n"), refs[i] );
 			}
@@ -1585,88 +1576,12 @@ static int print_result(
 	}
 
 	if( ctrls ) {
-		print_ctrls( ctrls );
+		tool_print_ctrls( ctrls, ldif );
 		ldap_controls_free( ctrls );
 	}
 
 	return err;
 }
-
-static void print_ctrls(
-	LDAPControl **ctrls )
-{
-	int i;
-	for(i=0; ctrls[i] != NULL; i++ ) {
-		/* control: OID criticality base64value */
-		struct berval *b64 = NULL;
-		ber_len_t len;
-		char *str;
-
-		len = ldif ? 2 : 0;
-		len += strlen( ctrls[i]->ldctl_oid );
-
-		/* add enough for space after OID and the critical value itself */
-		len += ctrls[i]->ldctl_iscritical
-			? sizeof("true") : sizeof("false");
-
-		/* convert to base64 */
-		if( ctrls[i]->ldctl_value.bv_len ) {
-			b64 = ber_memalloc( sizeof(struct berval) );
-			
-			b64->bv_len = LUTIL_BASE64_ENCODE_LEN(
-				ctrls[i]->ldctl_value.bv_len ) + 1;
-			b64->bv_val = ber_memalloc( b64->bv_len + 1 );
-
-			b64->bv_len = lutil_b64_ntop(
-				(unsigned char *) ctrls[i]->ldctl_value.bv_val,
-				ctrls[i]->ldctl_value.bv_len,
-				b64->bv_val, b64->bv_len );
-		}
-
-		if( b64 ) {
-			len += 1 + b64->bv_len;
-		}
-
-		str = malloc( len + 1 );
-		if ( ldif ) {
-			strcpy( str, ": " );
-		} else {
-			str[0] = '\0';
-		}
-		strcat( str, ctrls[i]->ldctl_oid );
-		strcat( str, ctrls[i]->ldctl_iscritical
-			? " true" : " false" );
-
-		if( b64 ) {
-			strcat(str, " ");
-			strcat(str, b64->bv_val );
-		}
-
-		if ( ldif < 2 ) {
-			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-				"control", str, len );
-		}
-
-		free( str );
-		ber_bvfree( b64 );
-	}
-}
-
-static int
-write_ldif( int type, char *name, char *value, ber_len_t vallen )
-{
-	char	*ldif;
-
-	if (( ldif = ldif_put( type, name, value, vallen )) == NULL ) {
-		return( -1 );
-	}
-
-	fputs( ldif, stdout );
-	ber_memfree( ldif );
-
-	return( 0 );
-}
-
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 static int 
