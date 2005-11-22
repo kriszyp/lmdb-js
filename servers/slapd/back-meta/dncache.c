@@ -94,7 +94,6 @@ meta_dncache_get_target(
 {
 	metadncacheentry_t	tmp_entry,
 				*entry;
-	time_t			curr_time;
 	int			target = META_TARGET_NONE;
 
 	assert( cache != NULL );
@@ -116,13 +115,7 @@ meta_dncache_get_target(
 			target = entry->target;
 
 		} else {
-
-			/*
-			 * Need mutex?
-			 */	
-			curr_time = time( NULL );
-
-			if ( entry->lastupdated+cache->ttl > curr_time ) {
+			if ( entry->lastupdated+cache->ttl > slap_get_time() ) {
 				target = entry->target;
 			}
 		}
@@ -158,11 +151,7 @@ meta_dncache_update_entry(
 	 * else, cache is used with ttl
 	 */
 	if ( cache->ttl > 0 ) {
-
-		/*
-		 * Need mutex?
-		 */
-		curr_time = time( NULL );
+		curr_time = slap_get_time();
 	}
 
 	tmp_entry.dn = *ndn;
@@ -178,18 +167,23 @@ meta_dncache_update_entry(
 	} else {
 		entry = ch_malloc( sizeof( metadncacheentry_t ) + ndn->bv_len + 1 );
 		if ( entry == NULL ) {
-			ldap_pvt_thread_mutex_unlock( &cache->mutex );
-			return -1;
+			err = -1;
+			goto error_return;
 		}
 
+		entry->dn.bv_len = ndn->bv_len;
 		entry->dn.bv_val = (char *)&entry[ 1 ];
-		AC_MEMCPY( entry->dn.bv_val, ndn->bv_val, ndn->bv_len + 1 );
+		AC_MEMCPY( entry->dn.bv_val, ndn->bv_val, ndn->bv_len );
+		entry->dn.bv_val[ ndn->bv_len ] = '\0';
+
 		entry->target = target;
 		entry->lastupdated = curr_time;
 
 		err = avl_insert( &cache->tree, ( caddr_t )entry,
 				meta_dncache_cmp, meta_dncache_dup );
 	}
+
+error_return:;
 	ldap_pvt_thread_mutex_unlock( &cache->mutex );
 
 	return err;

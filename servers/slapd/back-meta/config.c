@@ -334,7 +334,15 @@ meta_back_db_config(
 		} else if ( strcasecmp( argv[ 1 ], "disabled" ) == 0 ) {
 			mi->mi_cache.ttl = META_DNCACHE_DISABLED;
 		} else {
-			mi->mi_cache.ttl = atol( argv[ 1 ] );
+			char		*next;
+
+			mi->mi_cache.ttl = strtol( argv[ 1 ], &next, 10 );
+			if ( next == argv[ 1 ] || next[ 0 ] != '\0' ) {
+				fprintf( stderr,
+	"%s: line %d: unable to parse ttl \"%s\" in \"dncache-ttl <ttl>\" line\n",
+					fname, lineno, argv[ 1 ] );
+				return 1;
+			}
 		}
 
 	/* network timeout when connecting to ldap servers */
