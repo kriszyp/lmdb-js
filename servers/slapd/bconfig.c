@@ -2822,8 +2822,12 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 
 	cfb->cb_db.be_suffix = be->be_suffix;
 	cfb->cb_db.be_nsuffix = be->be_nsuffix;
-	cfb->cb_db.be_rootdn = be->be_rootdn;
-	cfb->cb_db.be_rootndn = be->be_rootndn;
+
+	/* The suffix is always "cn=config". The underlying DB's rootdn
+	 * is always the same as the suffix.
+	 */
+	cfb->cb_db.be_rootdn = be->be_suffix[0];
+	cfb->cb_db.be_rootndn = be->be_nsuffix[0];
 
 	ber_str2bv( dir, 0, 1, &cfdir );
 
@@ -2859,8 +2863,8 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		op->ors_filterstr = filterstr;
 		op->ors_scope = LDAP_SCOPE_SUBTREE;
 
-		op->o_dn = be->be_rootdn;
-		op->o_ndn = be->be_rootndn;
+		op->o_dn = c.be->be_rootdn;
+		op->o_ndn = c.be->be_rootndn;
 
 		op->o_req_dn = be->be_suffix[0];
 		op->o_req_ndn = be->be_nsuffix[0];
@@ -3621,17 +3625,23 @@ config_back_add( Operation *op, SlapReply *rs )
 	} else if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		struct berval dn, ndn;
+
 		op->o_bd = &cfb->cb_db;
-		/* FIXME: there must be a better way. */
-		if ( ber_bvcmp( &op->o_bd->be_rootndn, &be->be_rootndn )) {
-			op->o_bd->be_rootdn = be->be_rootdn;
-			op->o_bd->be_rootndn= be->be_rootndn;
-		}
+
+		/* Save current rootdn; use the underlying DB's rootdn */
+		dn = op->o_dn;
+		ndn = op->o_ndn;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+
 		sc.sc_next = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_add( op, rs );
 		op->o_bd = be;
 		op->o_callback = sc.sc_next;
+		op->o_dn = dn;
+		op->o_ndn = ndn;
 	}
 	if ( renumber ) {
 	}
@@ -3950,16 +3960,22 @@ config_back_modify( Operation *op, SlapReply *rs )
 	} else if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		struct berval dn, ndn;
+
 		op->o_bd = &cfb->cb_db;
-		if ( ber_bvcmp( &op->o_bd->be_rootndn, &be->be_rootndn )) {
-			op->o_bd->be_rootdn = be->be_rootdn;
-			op->o_bd->be_rootndn= be->be_rootndn;
-		}
+
+		dn = op->o_dn;
+		ndn = op->o_ndn;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+
 		sc.sc_next = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_modify( op, rs );
 		op->o_bd = be;
 		op->o_callback = sc.sc_next;
+		op->o_dn = dn;
+		op->o_ndn = ndn;
 	}
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
@@ -4275,12 +4291,11 @@ config_back_db_open( BackendDB *be )
 		op = (Operation *) &opbuf;
 		connection_fake_init( &conn, op, thrctx );
 
-		op->o_dn = be->be_rootdn;
-		op->o_ndn = be->be_rootndn;
-
 		op->o_tag = LDAP_REQ_ADD;
 		op->o_callback = &cb;
 		op->o_bd = &cfb->cb_db;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
 	} else {
 		op = NULL;
 	}
