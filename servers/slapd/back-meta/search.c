@@ -607,10 +607,10 @@ really_bad:;
 
 						ber_str2bv( candidates[ i ].sr_matched,
 							0, 0, &match );
+						candidates[ i ].sr_matched = NULL;
 
 						dc.ctx = "matchedDN";
 						dc.target = &mi->mi_targets[ i ];
-
 						if ( !ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
 							if ( mmatch.bv_val == match.bv_val ) {
 								candidates[ i ].sr_matched = ch_strdup( mmatch.bv_val );
@@ -771,10 +771,23 @@ really_bad:;
 		/* we use the first one */
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			if ( candidates[ i ].sr_tag == META_CANDIDATE
-					&& candidates[ i ].sr_matched )
+					&& candidates[ i ].sr_matched != NULL )
 			{
 				struct berval	bv, pbv;
 				int		rc;
+
+				/* if we got success, and this target
+				 * returned noSuchObject, and its suffix
+				 * is a superior of the searchBase,
+				 * ignore the matchedDN */
+				if ( sres == LDAP_SUCCESS
+					&& candidates[ i ].sr_err == LDAP_NO_SUCH_OBJECT
+					&& op->o_req_ndn.bv_len > mi->mi_targets[ i ].mt_nsuffix.bv_len )
+				{
+					free( (char *)candidates[ i ].sr_matched );
+					candidates[ i ].sr_matched = NULL;
+					continue;
+				}
 
 				ber_str2bv( candidates[ i ].sr_matched, 0, 0, &bv );
 				rc = dnPretty( NULL, &bv, &pbv, op->o_tmpmemctx );
