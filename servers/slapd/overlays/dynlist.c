@@ -592,6 +592,11 @@ dynlist_response( Operation *op, SlapReply *rs )
 		/* NOTE: we waste a few cycles running the dynamic list
 		 * also when the result is FALSE, which occurs if the
 		 * dynamic entry itself contains the AVA attribute  */
+		/* FIXME: this approach is less than optimal; a dedicated
+		 * compare op should be implemented, that fetches the
+		 * entry, checks if it has the appropriate objectClass
+		 * and, in case, runs a compare thru all the URIs,
+		 * stopping at the first positive occurrence; see ITS#3756 */
 		case LDAP_COMPARE_FALSE:
 		case LDAP_NO_SUCH_ATTRIBUTE:
 			return dynlist_compare( op, rs );
