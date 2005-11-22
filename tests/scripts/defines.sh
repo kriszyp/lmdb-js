@@ -14,13 +14,14 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 MONITORDB=${AC_monitor-no}
-ACCESSLOG=${AC_accesslog-accesslogno}
 BACKLDAP=${AC_ldap-ldapno}
 BACKMETA=${AC_meta-metano}
 BACKRELAY=${AC_relay-relayno}
 BACKSQL=${AC_sql-sqlno}
 RDBMS=${SLAPD_USE_SQL-rdbmsno}
 RDBMSWRITE=${SLAPD_USE_SQLWRITE-no}
+ACCESSLOG=${AC_accesslog-accesslogno}
+DYNLIST=${AC_dynlist-dynlistno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
@@ -102,6 +103,7 @@ METACONF2=$DATADIR/slapd-meta2.conf
 GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
 VALSORTCONF=$DATADIR/slapd-valsort.conf
+DYNLISTCONF=$DATADIR/slapd-dynlist.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -289,6 +291,7 @@ METACONCURRENCYOUT=$DATADIR/metaconcurrency.out
 MANAGEOUT=$DATADIR/manage.out
 SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 ACIOUT=$DATADIR/aci.out
+DYNLISTOUT=$DATADIR/dynlist.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH
