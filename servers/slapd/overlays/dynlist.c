@@ -588,7 +588,12 @@ dynlist_response( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_REQ_COMPARE:
-		if ( rs->sr_err == LDAP_NO_SUCH_ATTRIBUTE ) {
+		switch ( rs->sr_err ) {
+		/* NOTE: we waste a few cycles running the dynamic list
+		 * also when the result is FALSE, which occurs if the
+		 * dynamic entry itself contains the AVA attribute  */
+		case LDAP_COMPARE_FALSE:
+		case LDAP_NO_SUCH_ATTRIBUTE:
 			return dynlist_compare( op, rs );
 		}
 		break;
