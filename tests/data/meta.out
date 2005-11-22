@@ -429,6 +429,27 @@ telephoneNumber: +1 313 555 5331
 
 # refldap://localhost:9016/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
 
+# searching base="ou=Meta,o=Example,c=US"...
+dn: cn=Dan Aykroyd,ou=Meta,o=Example,c=US
+objectClass: inetOrgPerson
+cn: Dan Aykroyd
+sn: Aykroyd
+userPassword:: ZWx3b29k
+description: Elwood Blues
+
+dn: cn=John Belushi,ou=Meta,o=Example,c=US
+objectClass: inetOrgPerson
+cn: John Belushi
+sn: Belushi
+userPassword:: amFjaw==
+description: Joliet Jack Blues
+
+dn: ou=Meta,o=Example,c=US
+objectClass: organizationalUnit
+ou: Meta
+
+# refldap://localhost:9016/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+
 # searching base="o=Example,c=US"...
 dn: cn=Added Group,ou=Groups,o=Example,c=US
 objectClass: groupOfNames
