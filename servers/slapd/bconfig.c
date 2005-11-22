@@ -2882,7 +2882,9 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
 
-	cfb->cb_use_ldif = 1;
+	/* ITS#4194 - only use if it's present, or we're converting. */
+	if ( !readit || rc == LDAP_SUCCESS )
+		cfb->cb_use_ldif = 1;
 
 	return rc;
 }
@@ -2950,9 +2952,16 @@ read_config(const char *fname, const char *dir) {
 		/* if fname is defaulted, try reading .d */
 		rc = config_setup_ldif( be, cfdir, !fname );
 
-		/* It's OK if the base object doesn't exist yet */
-		if ( rc && rc != LDAP_NO_SUCH_OBJECT )
-			return 1;
+		if ( rc ) {
+			/* It may be OK if the base object doesn't exist yet. */
+			if ( rc != LDAP_NO_SUCH_OBJECT )
+				return 1;
+			/* ITS#4194: But if dir was specified and no fname,
+			 * then we were supposed to read the dir.
+			 */
+			if ( dir && !fname )
+				return 1;
+		}
 
 		/* If we read the config from back-ldif, nothing to do here */
 		if ( cfb->cb_got_ldif ) {
