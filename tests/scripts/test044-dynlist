@@ -191,8 +191,10 @@ wait $KILLPIDS
 echo "Reconfiguring slapd..."
 echo "dynlist-member-ad	member" >> $CONF1
 
+echo "==========================================================" >> $LOG1
+
 echo "Starting slapd on TCP/IP port $PORT1..."
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
