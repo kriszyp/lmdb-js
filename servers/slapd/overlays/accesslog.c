@@ -1222,7 +1222,7 @@ accesslog_db_open(
 	int rc;
 	void *thrctx;
 
-	if ( slapMode & SLAP_TOOL_READMAIN )
+	if ( slapMode & SLAP_TOOL_MODE )
 		return 0;
 
 	thrctx = ldap_pvt_thread_pool_context();
