@@ -1121,13 +1121,16 @@ proxy_cache_response(
 			}
 		}
 
-		if (rs->sr_attrs != op->ors_attrs ) {
+		if ( rs->sr_attrs != op->ors_attrs ) {
 			op->o_tmpfree( rs->sr_attrs, op->o_tmpmemctx );
 		}
-		rs->sr_attrs = si->query.save_attrs;
-		op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
-		op->ors_attrs = si->query.save_attrs;
-		si->query.save_attrs = NULL;
+
+		if ( si->query.save_attrs != NULL ) {
+			rs->sr_attrs = si->query.save_attrs;
+			op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
+			op->ors_attrs = si->query.save_attrs;
+			si->query.save_attrs = NULL;
+		}
 
 	} else if ( rs->sr_type == REP_RESULT ) {
 		if ( si->count && cache_entries( op, rs, &uuid ) == 0 ) {
