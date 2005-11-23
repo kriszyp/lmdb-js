@@ -51,7 +51,7 @@
 int getpeereid( int s, uid_t *euid, gid_t *egid )
 {
 #ifdef LDAP_PF_LOCAL
-#if defined ( HAVE_GETPEERUCRED )
+#if defined( HAVE_GETPEERUCRED )
 	ucred_t *uc = NULL;
 	if( getpeerucred( s, &uc ) == 0 )  {
 		*euid = ucred_geteuid( uc );
