@@ -890,9 +890,9 @@ static ConfigOCs chainocs[] = {
 		"SUP olcOverlayConfig "
 		"MAY ( "
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-			"olcChainingBehavior "
+			"olcChainingBehavior $ "
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-			"$ olcCacheURIs "
+			"olcCacheURIs "
 			") )",
 		Cft_Overlay, chaincfg, NULL, chain_cfadd },
 	{ "( OLcfgOvOc:3.2 "
