@@ -93,6 +93,23 @@ at response, it would cache entries that may be later "massaged"
 by other databases and thus returned \fIafter\fP massaging the first
 time, and \fIbefore\fP massaging when cached.
 
+.TP
+There are some constraints:
+
+all values must be positive;
+
+.B <entry_limit>
+must be less than or equal to
+.BR <max_entries> ;
+
+.B <numattrsets>
+attribute sets SHOULD be defined by using the directive
+.BR proxyattrset ;
+
+all attribute sets SHOULD be referenced by (at least) one
+.B proxytemplate
+directive; 
+
 .LP
 The following adds a template with filter string \fB((&sn=)(givenName=))\fP 
 and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 
