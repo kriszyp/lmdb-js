@@ -82,6 +82,9 @@ bdb_db_init( BackendDB *be )
 }
 
 static int
+bdb_db_close( BackendDB *be );
+
+static int
 bdb_db_open( BackendDB *be )
 {
 	int rc, i;
@@ -180,7 +183,7 @@ bdb_db_open( BackendDB *be )
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_open: db_env_create failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-		return rc;
+		goto fail;
 	}
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
@@ -198,7 +201,7 @@ bdb_db_open( BackendDB *be )
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
-			return rc;
+			goto fail;
 		}
 	}
 
@@ -248,7 +251,8 @@ bdb_db_open( BackendDB *be )
 				Debug( LDAP_DEBUG_ANY,
 					"bdb_db_open: Database cannot be recovered. "
 					"Restore from backup!\n", 0, 0, 0);
-				return -1;
+				rc = -1;
+				goto fail;
 			}
 			/* We need to recover, and we had TXN support before:
 			 * Close this env, open a new one with recovery flags.
@@ -261,7 +265,7 @@ bdb_db_open( BackendDB *be )
 					Debug( LDAP_DEBUG_ANY,
 						"bdb_db_open: db_env_create failed: %s (%d)\n",
 						db_strerror(rc), rc, 0 );
-					return rc;
+					goto fail;
 				}
 				bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv,
 					be->be_suffix[0].bv_val );
@@ -272,7 +276,7 @@ bdb_db_open( BackendDB *be )
 					Debug( LDAP_DEBUG_ANY,
 						"bdb_db_open: recovery failed: %s (%d)\n",
 						db_strerror(rc), rc, 0 );
-					return rc;
+					goto fail;
 				}
 				do_recover = 0;
 			}
@@ -285,7 +289,7 @@ bdb_db_open( BackendDB *be )
 					Debug( LDAP_DEBUG_ANY,
 						"bdb_db_open: db_env_create failed: %s (%d)\n",
 						db_strerror(rc), rc, 0 );
-					return rc;
+					goto fail;
 				}
 				bdb->bi_dbenv->remove( bdb->bi_dbenv, dbhome, 0 );
 				bdb->bi_dbenv = NULL;
@@ -297,7 +301,8 @@ bdb_db_open( BackendDB *be )
 				Debug( LDAP_DEBUG_ANY,
 					"bdb_db_open: Database cannot be recovered. "
 					"Restore from backup!\n", 0, 0, 0);
-				return -1;
+				rc = -1;
+				goto fail;
 			}
 			/* Prev environment had no TXN support, close it */
 			if ( !flags_ok ) {
@@ -321,7 +326,7 @@ bdb_db_open( BackendDB *be )
 				Debug( LDAP_DEBUG_ANY,
 					"bdb_db_open: db_env_create failed: %s (%d)\n",
 					db_strerror(rc), rc, 0 );
-				return rc;
+				goto fail;
 			}
 
 			bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
@@ -338,7 +343,7 @@ bdb_db_open( BackendDB *be )
 					Debug( LDAP_DEBUG_ANY,
 						"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
 						db_strerror(rc), rc, 0 );
-					return rc;
+					goto fail;
 				}
 			}
 		}
@@ -375,7 +380,7 @@ bdb_db_open( BackendDB *be )
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_db_open: dbenv_open failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
-			return rc;
+			goto fail;
 		}
 	}
 
@@ -383,7 +388,8 @@ bdb_db_open( BackendDB *be )
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_open: alock_recover failed\n",
 			0, 0, 0 );
-		return -1;
+		rc = -1;
+		goto fail;
 	}
 
 #ifdef SLAP_ZONE_ALLOC
@@ -422,7 +428,7 @@ bdb_db_open( BackendDB *be )
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_db_open: db_create(%s) failed: %s (%d)\n",
 				bdb->bi_dbenv_home, db_strerror(rc), rc );
-			return rc;
+			goto fail;
 		}
 
 		if( i == BDB_ID2ENTRY ) {
@@ -483,7 +489,8 @@ bdb_db_open( BackendDB *be )
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_db_open: db_open(%s) failed: %s (%d)\n",
 				buf, db_strerror(rc), rc );
-			return rc;
+			db->bdi_db->close( db->bdi_db, 0 );
+			goto fail;
 		}
 
 		flags &= ~(DB_CREATE | DB_RDONLY);
@@ -500,7 +507,7 @@ bdb_db_open( BackendDB *be )
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_open: last_id(%s) failed: %s (%d)\n",
 			bdb->bi_dbenv_home, db_strerror(rc), rc );
-		return rc;
+		goto fail;
 	}
 
 	if ( !( slapMode & SLAP_TOOL_QUICK )) {
@@ -510,6 +517,10 @@ bdb_db_open( BackendDB *be )
 	bdb->bi_flags |= BDB_IS_OPEN;
 
 	return 0;
+
+fail:
+	bdb_db_close( be );
+	return rc;
 }
 
 static int
@@ -519,10 +530,6 @@ bdb_db_close( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
-
-	/* backend_shutdown closes everything, even if not all were opened */
-	if ( !( bdb->bi_flags & BDB_IS_OPEN ))
-		return 0;
 
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
@@ -543,7 +550,6 @@ bdb_db_close( BackendDB *be )
 	bdb_cache_release_all (&bdb->bi_cache);
 
 	if ( bdb->bi_idl_cache_max_size ) {
-		ldap_pvt_thread_rdwr_wlock ( &bdb->bi_idl_tree_rwlock );
 		avl_free( bdb->bi_idl_tree, NULL );
 		bdb->bi_idl_tree = NULL;
 		entry = bdb->bi_idl_lru_head;
@@ -556,7 +562,6 @@ bdb_db_close( BackendDB *be )
 			entry = next_entry;
 		}
 		bdb->bi_idl_lru_head = bdb->bi_idl_lru_tail = NULL;
-		ldap_pvt_thread_rdwr_wunlock ( &bdb->bi_idl_tree_rwlock );
 	}
 
 	if ( !( slapMode & SLAP_TOOL_QUICK ) && bdb->bi_dbenv ) {
