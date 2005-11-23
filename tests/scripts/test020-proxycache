@@ -292,8 +292,10 @@ fi
 
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SLAVEOUT > $SEARCHFLT
+echo "Filtering original ldif..."
+. $LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $PROXYCACHEOUT > $CMPOUT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed"
