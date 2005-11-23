@@ -78,6 +78,9 @@ typedef struct query_template_s {
  */
 
 struct attr_set {
+	unsigned	flags;
+#define	PC_CONFIGURED	(0x1)
+#define	PC_REFERENCED	(0x2)
 	AttributeName*	attrs; 		/* specifies the set */
 	int 		count;		/* number of attributes */
 	int*		ID_array;	/* array of indices of supersets of 'attrs' */
@@ -1888,7 +1891,8 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
-		if ( c->argv[2] && strcmp( c->argv[2], "*" ) ) {
+		qm->attr_sets[num].flags |= PC_CONFIGURED;
+		if ( c->argc > 2 && strcmp( c->argv[2], "*" ) ) {
 			qm->attr_sets[num].count = c->argc - 2;
 			qm->attr_sets[num].attrs = (AttributeName*)ch_malloc(
 						(c->argc-1) * sizeof( AttributeName ));
@@ -1961,6 +1965,7 @@ pc_cf_gen( ConfigArgs *c )
 		Debug( LDAP_DEBUG_TRACE, "  query template: %s\n",
 				temp->querystr.bv_val, 0, 0 );
 		temp->attr_set_index = i;
+		qm->attr_sets[i].flags |= PC_REFERENCED;
 		Debug( LDAP_DEBUG_TRACE, "  attributes: \n", 0, 0, 0 );
 		if ( ( attrarray = qm->attr_sets[i].attrs ) != NULL ) {
 			for ( i=0; attrarray[i].an_name.bv_val; i++ )
@@ -2059,7 +2064,36 @@ proxy_cache_open(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager	*cm = on->on_bi.bi_private;
-	int		rc = 0;
+	query_manager*  qm = cm->qm;
+	int		i, ncf = 0, rf = 0, nrf = 0, rc = 0;
+
+	/* check attr sets */
+	for ( i = 0; i < cm->numattrsets; i++) {
+		if ( !( qm->attr_sets[i].flags & PC_CONFIGURED ) ) {
+			if ( qm->attr_sets[i].flags & PC_REFERENCED ) {
+				Debug( LDAP_DEBUG_ANY, "pcache: attr set #%d not configured but referenced.\n", i, 0, 0 );
+				rf++;
+
+			} else {
+				Debug( LDAP_DEBUG_ANY, "pcache: warning, attr set #%d not configured.\n", i, 0, 0 );
+			}
+			ncf++;
+
+		} else if ( !( qm->attr_sets[i].flags & PC_REFERENCED ) ) {
+			Debug( LDAP_DEBUG_ANY, "pcache: attr set #%d configured but not referenced.\n", i, 0, 0 );
+			nrf++;
+		}
+	}
+
+	if ( ncf || rf || nrf ) {
+		Debug( LDAP_DEBUG_ANY, "pcache: warning, %d attr sets configured but not referenced.\n", nrf, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "pcache: warning, %d attr sets not configured.\n", ncf, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "pcache: %d attr sets not configured but referenced.\n", rf, 0, 0 );
+
+		if ( rf > 0 ) {
+			return 1;
+		}
+	}
 
 	/* need to inherit something from the original database... */
 	cm->db.be_def_limit = be->be_def_limit;
