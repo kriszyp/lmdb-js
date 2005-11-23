@@ -418,7 +418,7 @@ int main( int argc, char **argv )
 				slap_debug |= level;
 			}
 #else
-			if ( atoi( optarg ) != 0 )
+			if ( lutil_atoi( &level, optarg ) != 0 || level != 0 )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
@@ -467,7 +467,10 @@ int main( int argc, char **argv )
 		}
 
 		case 's':	/* set syslog level */
-			ldap_syslog = atoi( optarg );
+			if ( lutil_atoi( &ldap_syslog, optarg ) != 0 ) {
+				fprintf( stderr, "unable to parse syslog level \"%s\"", optarg );
+				goto destroy;
+			}
 			break;
 
 #ifdef LOG_LOCAL4
