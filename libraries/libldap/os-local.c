@@ -156,8 +156,8 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 
 #if !defined(HAVE_GETPEEREID) && \
 	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
-	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTS) || \
-				  defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
+	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
+		defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
 #define DO_SENDMSG
 static const char abandonPDU[] = {LDAP_TAG_MESSAGE, 6,
 	LDAP_TAG_MSGID, 1, 0, LDAP_REQ_ABANDON, 1, 0};
