@@ -101,6 +101,7 @@ int   referrals = 0;
 int   protocol = -1;
 int   verbose = 0;
 int   version = 0;
+int   ldif = 0;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 int chaining = 0;
@@ -1304,15 +1305,15 @@ tool_check_abandon( LDAP *ld, int msgid )
 }
 
 void tool_print_ctrls(
-	LDAPControl	**ctrls,
-	int		ldif )
+	LDAP		*ld,
+	LDAPControl	**ctrls )
 {
 	int	i;
 	char	*ptr;
 
 	for ( i = 0; ctrls[i] != NULL; i++ ) {
 		/* control: OID criticality base64value */
-		struct berval *b64 = NULL;
+		struct berval b64 = BER_BVNULL;
 		ber_len_t len;
 		char *str;
 
@@ -1324,21 +1325,19 @@ void tool_print_ctrls(
 			? sizeof("true") : sizeof("false");
 
 		/* convert to base64 */
-		if( ctrls[i]->ldctl_value.bv_len ) {
-			b64 = ber_memalloc( sizeof(struct berval) );
-			
-			b64->bv_len = LUTIL_BASE64_ENCODE_LEN(
+		if ( ctrls[i]->ldctl_value.bv_len ) {
+			b64.bv_len = LUTIL_BASE64_ENCODE_LEN(
 				ctrls[i]->ldctl_value.bv_len ) + 1;
-			b64->bv_val = ber_memalloc( b64->bv_len + 1 );
+			b64.bv_val = ber_memalloc( b64.bv_len + 1 );
 
-			b64->bv_len = lutil_b64_ntop(
+			b64.bv_len = lutil_b64_ntop(
 				(unsigned char *) ctrls[i]->ldctl_value.bv_val,
 				ctrls[i]->ldctl_value.bv_len,
-				b64->bv_val, b64->bv_len );
+				b64.bv_val, b64.bv_len );
 		}
 
-		if ( b64 ) {
-			len += 1 + b64->bv_len;
+		if ( b64.bv_len ) {
+			len += 1 + b64.bv_len;
 		}
 
 		ptr = str = malloc( len + 1 );
@@ -1349,9 +1348,9 @@ void tool_print_ctrls(
 		ptr = lutil_strcopy( ptr, ctrls[i]->ldctl_iscritical
 			? " true" : " false" );
 
-		if( b64 ) {
+		if ( b64.bv_len ) {
 			ptr = lutil_strcopy( ptr, " " );
-			ptr = lutil_strcopy( ptr, b64->bv_val );
+			ptr = lutil_strcopy( ptr, b64.bv_val );
 		}
 
 		if ( ldif < 2 ) {
@@ -1360,7 +1359,135 @@ void tool_print_ctrls(
 		}
 
 		free( str );
-		ber_bvfree( b64 );
+		if ( b64.bv_len ) {
+			ber_memfree( b64.bv_val );
+		}
+
+		/* known controls */
+		if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PRE_READ ) == 0
+			|| strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_POST_READ ) == 0 )
+		{
+			BerElement	*ber;
+			struct berval	bv;
+			struct berval	what;
+
+			if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PRE_READ ) == 0 ) {
+				BER_BVSTR( &what, "preread" );
+
+			} else {
+				BER_BVSTR( &what, "postread" );
+			}
+
+			tool_write_ldif( LDIF_PUT_COMMENT, "==> ", what.bv_val, what.bv_len );
+			ber = ber_init( &ctrls[i]->ldctl_value );
+			if ( ber == NULL ) {
+				/* ... */
+			} else if ( ber_scanf( ber, "{m{" /*}}*/, &bv ) == LBER_ERROR ) {
+				/* ... */
+			} else {
+				tool_write_ldif( LDIF_PUT_VALUE, "dn", bv.bv_val, bv.bv_len );
+
+				while ( ber_scanf( ber, "{m" /*}*/, &bv ) != LBER_ERROR ) {
+					int		i;
+					BerVarray	vals = NULL;
+
+					if ( ber_scanf( ber, "[W]", &vals ) == LBER_ERROR || vals == NULL ) {
+						/* error? */
+						continue;
+					}
+				
+					for ( i = 0; vals[ i ].bv_val != NULL; i++ ) {
+						tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+							bv.bv_val, vals[ i ].bv_val, vals[ i ].bv_len );
+					}
+
+					ber_bvarray_free( vals );
+				}
+			}
+
+			if ( ber != NULL ) {
+				ber_free( ber, 1 );
+			}
+
+			tool_write_ldif( LDIF_PUT_COMMENT, "<== ", what.bv_val, what.bv_len );
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+		} else if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PAGEDRESULTS ) == 0 ) {
+			BerElement	*ber;
+			struct berval	cookie;
+			int		size;
+			
+			ber = ber_init( &ctrls[i]->ldctl_value );
+			if ( ber_scanf( ber, "{im}", &size, &cookie ) == LBER_ERROR ) {
+				/* ... */
+			} else {
+				char	buf[ BUFSIZ ], *ptr = buf;
+
+				if ( size > 0 ) {
+					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+						"estimate=%d", size );
+				}
+
+				if ( cookie.bv_len > 0 ) {
+					struct berval	bv;
+
+					bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
+						cookie.bv_len ) + 1;
+					bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+					bv.bv_len = lutil_b64_ntop(
+						(unsigned char *) cookie.bv_val,
+						cookie.bv_len,
+						bv.bv_val, bv.bv_len );
+
+					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+						"%scookie=%s", ptr == buf ? "" : " ",
+						bv.bv_val );
+
+					ber_memfree( bv.bv_val );
+				}
+
+				tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+					"pagedresults", buf, ptr - buf );
+			}
+
+			if ( ber != NULL ) {
+				ber_free( ber, 1 );
+			}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+		} else if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PASSWORDPOLICYRESPONSE ) == 0 ) {
+			int expire = 0, grace = 0, rc;
+			LDAPPasswordPolicyError	pperr;
+
+			rc = ldap_parse_passwordpolicy_control( ld, ctrls[ i ],
+				&expire, &grace, &pperr );
+			if ( rc == LDAP_SUCCESS ) {
+				char	buf[ BUFSIZ ], *ptr = buf;
+
+				if ( expire != -1 ) {
+					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+						"expire=%d", expire );
+				}
+
+				if ( grace != -1 ) {
+					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+						"%sgrace=%d", ptr == buf ? "" : " ", grace );
+				}
+
+				if ( pperr != PP_noError ) {
+					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+						"%serror=%s", ptr == buf ? "" : " ",
+						ldap_passwordpolicy_err2txt( pperr ) );
+				}
+
+				tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+					"ppolicy", buf, ptr - buf );
+			}
+		}
+#endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
+
 	}
 }
 

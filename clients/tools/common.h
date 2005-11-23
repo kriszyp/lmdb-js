@@ -63,6 +63,8 @@ extern int   protocol;
 extern int   verbose;
 extern int   version;
 
+extern int   ldif;
+
 /* Defined in common.c, set in main() */
 extern char *prog;
 extern const char __Version[];
@@ -89,7 +91,7 @@ void tool_perror LDAP_P((
 	const char *matched,
 	const char *info,
 	char **refs ));
-void tool_print_ctrls LDAP_P(( LDAPControl **ctrls, int ldif ));
+void tool_print_ctrls LDAP_P(( LDAP *ld, LDAPControl **ctrls ));
 int tool_write_ldif LDAP_P(( int type, char *name, char *value, ber_len_t vallen ));
 
 

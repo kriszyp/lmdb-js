@@ -195,7 +195,7 @@ static char *tmpdir = NULL;
 static char *urlpre = NULL;
 static char	*base = NULL;
 static char	*sortattr = NULL;
-static int  includeufn, vals2tmp = 0, ldif = 0;
+static int  includeufn, vals2tmp = 0;
 
 static int subentries = 0, valuesReturnFilter = 0;
 static char	*vrFilter = NULL;
@@ -1308,7 +1308,7 @@ print_entry(
 	}
 
 	if( ctrls ) {
-		tool_print_ctrls( ctrls, ldif );
+		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
 	}
 
@@ -1415,7 +1415,7 @@ static void print_reference(
 	}
 
 	if( ctrls ) {
-		tool_print_ctrls( ctrls, ldif );
+		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
 	}
 }
@@ -1495,7 +1495,7 @@ static void print_partial(
 	}
 
 	if( ctrls ) {
-		tool_print_ctrls( ctrls, ldif );
+		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
 	}
 }
@@ -1576,7 +1576,7 @@ static int print_result(
 	}
 
 	if( ctrls ) {
-		tool_print_ctrls( ctrls, ldif );
+		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
 	}
 

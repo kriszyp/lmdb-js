@@ -1203,7 +1203,7 @@ static int process_response(
 			ber_memvfree( (void **)refs );
 		}
 		if ( ctrls != NULL ) {
-			tool_print_ctrls( ctrls, 0 );
+			tool_print_ctrls( ld, ctrls );
 			ldap_controls_free( ctrls );
 		}
 		return rc;
