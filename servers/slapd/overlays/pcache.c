@@ -1851,6 +1851,11 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
+		if ( cm->num_entries_limit >= cm->max_entries ) {
+			snprintf( c->msg, sizeof( c->msg ), "entry limit (arg #4) must be less than max entries %d (arg #2)", cm->max_entries );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
 
 		cm->cc_period = strtol( c->argv[5], &next, 10 );
 		if ( next == c->argv[5] || next[ 0 ] != '\0' ) {
