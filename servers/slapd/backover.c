@@ -137,6 +137,9 @@ over_db_config(
 	ca.fname = fname;
 	ca.lineno = lineno;
 	ca.be = be;
+	snprintf( ca.log, sizeof( ca.log ), "%s: line %d",
+			ca.fname, ca.lineno );
+
 	for (; on; on=on->on_next) {
 		rc = SLAP_CONF_UNKNOWN;
 		if (on->on_bi.bi_cf_ocs) {
