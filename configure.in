@@ -2585,21 +2585,26 @@ AC_REPLACE_FUNCS(getopt getpeereid)
 if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
 fi
+
 if test "$ac_cv_func_getpeereid" != yes; then
-	AC_CHECK_MEMBERS([struct msghdr.msg_accrightslen],,,
-		[$ac_includes_default
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif])
-	if test "$ac_cv_member_struct_msghdr_msg_accrightslen" != yes; then
-		AC_CHECK_MEMBERS([struct msghdr.msg_control],,,
+	AC_CHECK_FUNCS( getpeerucred )
+	if test "$ac_cv_func_getpeerucred" != yes ; then
+		AC_CHECK_MEMBERS([struct msghdr.msg_accrightslen],,,
 			[$ac_includes_default
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif])
+		if test "$ac_cv_member_struct_msghdr_msg_accrightslen" != yes; then
+			AC_CHECK_MEMBERS([struct msghdr.msg_control],,,
+				[$ac_includes_default
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif])
+		fi
 	fi
 	LIBSRCS="$LIBSRCS getpeereid.c"
 fi
+
 if test "$ac_cv_func_snprintf" != yes ||
    test "$ac_cv_func_vsnprintf" != yes; then
 	if test "$ac_cv_func_snprintf" != yes; then

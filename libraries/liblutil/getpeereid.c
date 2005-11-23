@@ -24,8 +24,12 @@
 #include <ac/socket.h>
 #include <ac/errno.h>
 
-#if HAVE_SYS_UCRED_H
-#if HAVE_GRP_H
+#ifdef HAVE_GETPEERUCRED
+#include <ucred.h>
+#endif
+
+#ifdef HAVE_SYS_UCRED_H
+#ifdef HAVE_GRP_H
 #include <grp.h>	/* for NGROUPS on Tru64 5.1 */
 #endif
 #include <sys/ucred.h>
@@ -47,7 +51,15 @@
 int getpeereid( int s, uid_t *euid, gid_t *egid )
 {
 #ifdef LDAP_PF_LOCAL
-#if defined( SO_PEERCRED )
+#if defined ( HAVE_GETPEERUCRED )
+	ucred_t *uc = NULL;
+	if( getpeerucred( s, &uc ) == 0 )  {
+		*euid = ucred_geteuid( uc );
+		*egid = ucred_getegid( uc );
+		ucred_free( uc );
+	}
+
+#elif defined( SO_PEERCRED )
 	struct ucred peercred;
 	socklen_t peercredlen = sizeof peercred;
 
