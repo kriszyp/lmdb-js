@@ -35,7 +35,8 @@
 #include <sys/ucred.h>
 #endif
 
-#if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
+#if !defined(HAVE_GETPEERUCRED) && \
+	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
 	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
 		defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
 #define DO_SENDMSG
