@@ -32,8 +32,8 @@
 #endif
 
 #if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
-	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTS) || \
-				  defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
+	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
+		defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
 #define DO_SENDMSG
 #ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
