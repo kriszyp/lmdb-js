@@ -1718,13 +1718,13 @@ pc_cf_gen( ConfigArgs *c )
 	AttributeName* 	attrarray;
 	const char* 	text=NULL;
 	int i, num, rc = 0;
-	char *ptr;
+	char *ptr, *next;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		struct berval bv;
 		switch( c->type ) {
 		case PC_MAIN:
-			bv.bv_len = sprintf( c->msg, "%s %d %d %d %d",
+			bv.bv_len = snprintf( c->msg, sizeof( c->msg ), "%s %d %d %d %d",
 				cm->db.bd_info->bi_type, cm->max_entries, cm->numattrsets,
 				cm->num_entries_limit, cm->cc_period );
 			bv.bv_val = c->msg;
@@ -1734,7 +1734,7 @@ pc_cf_gen( ConfigArgs *c )
 			for (i=0; i<cm->numattrsets; i++) {
 				if ( !qm->attr_sets[i].count ) continue;
 
-				bv.bv_len = sprintf( c->msg, "%d", i );
+				bv.bv_len = snprintf( c->msg, sizeof( c->msg ), "%d", i );
 
 				/* count the attr length */
 				for ( attr_name = qm->attr_sets[i].attrs;
@@ -1755,7 +1755,7 @@ pc_cf_gen( ConfigArgs *c )
 			break;
 		case PC_TEMP:
 			for (i=0; i<cm->numtemplates; i++) {
-				bv.bv_len = sprintf( c->msg, " %d %ld",
+				bv.bv_len = snprintf( c->msg, sizeof( c->msg ), " %d %ld",
 					qm->templates[i].attr_set_index,
 					qm->templates[i].ttl );
 				bv.bv_len += qm->templates[i].querystr.bv_len + 2;
@@ -1793,35 +1793,99 @@ pc_cf_gen( ConfigArgs *c )
 
 	switch( c->type ) {
 	case PC_MAIN:
-		cm->numattrsets = atoi( c->argv[3] );
-		if ( cm->numattrsets > MAX_ATTR_SETS ) {
-			sprintf( c->msg, "numattrsets must be <= %d", MAX_ATTR_SETS );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+		if ( cm->numattrsets > 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "\"proxycache\" directive already provided" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		if ( !backend_db_init( c->argv[1], &cm->db )) {
-			sprintf( c->msg, "unknown backend type" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
-			return( 1 );
-		}
-		cm->max_entries = atoi( c->argv[2] );
 
-		cm->num_entries_limit = atoi( c->argv[4] );
-		cm->cc_period = atoi( c->argv[5] );
-		Debug( LDAP_DEBUG_TRACE,
-				"Total # of attribute sets to be cached = %d\n",
-				cm->numattrsets, 0, 0 );
-		qm->attr_sets = ( struct attr_set * )ch_malloc( cm->numattrsets *
-			    			sizeof( struct attr_set ));
-		for ( i = 0; i < cm->numattrsets; i++ ) {
-			qm->attr_sets[i].attrs = NULL;
+		cm->numattrsets = strtol( c->argv[3], &next, 10 );
+		if ( next == c->argv[3] || next[0] != '\0' ) {
+			snprintf( c->msg, sizeof( c->msg ), "unable to parse num attrsets=\"%s\" (arg #3)",
+				c->argv[3] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
 		}
+		if ( cm->numattrsets <= 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "numattrsets (arg #3) must be positive" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		if ( cm->numattrsets > MAX_ATTR_SETS ) {
+			snprintf( c->msg, sizeof( c->msg ), "numattrsets (arg #3) must be <= %d", MAX_ATTR_SETS );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		if ( !backend_db_init( c->argv[1], &cm->db )) {
+			snprintf( c->msg, sizeof( c->msg ), "unknown backend type (arg #1)" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		cm->max_entries = strtol( c->argv[2], &next, 10 );
+		if ( next == c->argv[2] || next[ 0 ] != '\0' ) {
+			snprintf( c->msg, sizeof( c->msg ), "unable to parse max entries=\"%s\" (arg #2)",
+				c->argv[2] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		if ( cm->max_entries <= 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "max entries (arg #2) must be positive.\n" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		cm->num_entries_limit = strtol( c->argv[4], &next, 10 );
+		if ( next == c->argv[4] || next[ 0 ] != '\0' ) {
+			snprintf( c->msg, sizeof( c->msg ), "unable to parse entry limit=\"%s\" (arg #4)",
+				c->argv[4] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		if ( cm->num_entries_limit <= 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "entry limit (arg #4) must be positive" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		cm->cc_period = strtol( c->argv[5], &next, 10 );
+		if ( next == c->argv[5] || next[ 0 ] != '\0' ) {
+			snprintf( c->msg, sizeof( c->msg ), "unable to parse period=\"%s\" (arg #5)",
+				c->argv[5] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		if ( cm->cc_period <= 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "period (arg #5) must be positive" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		Debug( LDAP_DEBUG_TRACE,
+				"Total # of attribute sets to be cached = %d.\n",
+				cm->numattrsets, 0, 0 );
+		qm->attr_sets = ( struct attr_set * )ch_calloc( cm->numattrsets,
+			    			sizeof( struct attr_set ) );
 		break;
 	case PC_ATTR:
-		num = atoi( c->argv[1] );
-		if (num >= cm->numattrsets) {
-			sprintf( c->msg, "attrset index out of bounds" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+		if ( cm->numattrsets == 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "\"proxycache\" directive not provided yet" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		num = strtol( c->argv[1], &next, 10 );
+		if ( next == c->argv[1] || next[ 0 ] != '\0' ) {
+			snprintf( c->msg, sizeof( c->msg ), "unable to parse attrset #=\"%s\"",
+				c->argv[1] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		if ( num < 0 || num >= cm->numattrsets ) {
+			snprintf( c->msg, sizeof( c->msg ), "attrset index %d out of bounds (must be %s%d)",
+				num, cm->numattrsets > 1 ? "0->" : "", cm->numattrsets - 1 );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
 		if ( c->argv[2] && strcmp( c->argv[2], "*" ) ) {
@@ -1833,9 +1897,10 @@ pc_cf_gen( ConfigArgs *c )
 				ber_str2bv( c->argv[i], 0, 1, &attr_name->an_name);
 				attr_name->an_desc = NULL;
 				if ( slap_bv2ad( &attr_name->an_name,
-						&attr_name->an_desc, &text )) {
+						&attr_name->an_desc, &text ) )
+				{
 					strcpy( c->msg, text );
-					Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 					ch_free( qm->attr_sets[num].attrs );
 					qm->attr_sets[num].attrs = NULL;
 					qm->attr_sets[num].count = 0;
@@ -1849,9 +1914,23 @@ pc_cf_gen( ConfigArgs *c )
 		}
 		break;
 	case PC_TEMP:
-		if (( i = atoi( c->argv[2] )) >= cm->numattrsets ) {
-			sprintf( c->msg, "template index invalid" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+		if ( cm->numattrsets == 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "\"proxycache\" directive not provided yet" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		i = strtol( c->argv[2], &next, 10 );
+		if ( next == c->argv[2] || next[ 0 ] != '\0' ) {
+			snprintf( c->msg, sizeof( c->msg ), "unable to parse template #=\"%s\"",
+				c->argv[2] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		if ( i < 0 || i >= cm->numattrsets ) {
+			snprintf( c->msg, sizeof( c->msg ), "template index %d invalid (%s%d)",
+				i, cm->numattrsets > 1 ? "0->" : "", cm->numattrsets - 1 );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
 		num = cm->numtemplates;
@@ -1862,7 +1941,19 @@ pc_cf_gen( ConfigArgs *c )
 		temp = qm->templates + num;
 		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
 		temp->query = temp->query_last = NULL;
-		temp->ttl = atoi( c->argv[3] );
+		temp->ttl = strtol( c->argv[3], &next, 10 );
+		if ( next == c->argv[3] || next[ 0 ] != '\0' ) {
+			snprintf( c->msg, sizeof( c->msg ), "unable to parse template ttl=\"%s\"",
+				c->argv[3] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		if ( temp->ttl <= 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "template ttl must be positive" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
 		temp->no_of_queries = 0;
 
 		ber_str2bv( c->argv[1], 0, 1, &temp->querystr );
@@ -1888,8 +1979,8 @@ pc_cf_gen( ConfigArgs *c )
 			cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
 
 		} else {
-			sprintf( c->msg, "unknown specifier" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			snprintf( c->msg, sizeof( c->msg ), "unknown specifier" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
 		break;
@@ -2062,7 +2153,9 @@ proxy_cache_destroy(
 	BER_BVZERO( &cm->db.be_rootpw );
 	/* FIXME: there might be more... */
 
-	backend_destroy_one( &cm->db, 0 );
+	if ( cm->db.be_private != NULL ) {
+		backend_destroy_one( &cm->db, 0 );
+	}
 
 	ldap_pvt_thread_mutex_destroy( &qm->lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &cm->cache_mutex );
