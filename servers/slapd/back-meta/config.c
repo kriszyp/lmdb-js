@@ -346,6 +346,8 @@ meta_back_db_config(
 
 	/* network timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "network-timeout" ) == 0 ) {
+		unsigned long	t;
+
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing network timeout in \"network-timeout <seconds>\" line\n",
@@ -353,18 +355,15 @@ meta_back_db_config(
 			return 1;
 		}
 
-		if ( lutil_atoi( &mi->mi_network_timeout, argv[ 1 ] ) ) {
+		if ( lutil_parse_time( argv[ 1 ], &t ) ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unable to parse timeout \"%s\" in \"network-timeout <seconds>\" line\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 
-		} else if ( mi->mi_network_timeout < 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: ilegal negative timeout in \"network-timeout <seconds>\" line\n",
-				fname, lineno, argv[ 1 ] );
-			return 1;
 		}
+
+		mi->mi_network_timeout = (int)t;
 
 	/* name to use for meta_back_group */
 	} else if ( strcasecmp( argv[ 0 ], "acl-authcDN" ) == 0
