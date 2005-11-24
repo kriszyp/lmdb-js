@@ -612,12 +612,11 @@ dynlist_response( Operation *op, SlapReply *rs )
 
 static int
 dynlist_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dynlist_info	*dli = (dynlist_info *)on->on_bi.bi_private;
@@ -678,8 +677,7 @@ dynlist_db_config(
 
 static int
 dynlist_db_init(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	dynlist_info	*dli;
@@ -694,8 +692,7 @@ dynlist_db_init(
 
 static int
 dynlist_db_open(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	dynlist_info	*dli = (dynlist_info *)on->on_bi.bi_private;
@@ -729,8 +726,7 @@ dynlist_db_open(
 
 static int
 dynlist_db_destroy(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	int		rc = 0;
@@ -749,6 +745,9 @@ dynlist_db_destroy(
 
 static slap_overinst dynlist = { { NULL } };
 
+#if SLAPD_OVER_DYNLIST == SLAPD_MOD_DYNAMIC
+static
+#endif /* SLAPD_OVER_DYNLIST == SLAPD_MOD_DYNAMIC */
 int
 dynlist_init(void)
 {
