@@ -68,7 +68,7 @@ typedef struct query_template_s {
 	CachedQuery* 	query_last;     /* oldest query cached for the template */
 
 	int 		no_of_queries;  /* Total number of queries in the template */
-	long 		ttl;		/* TTL for the queries of this template */
+	time_t		ttl;		/* TTL for the queries of this template */
         ldap_pvt_thread_rdwr_t t_rwlock; /* Rd/wr lock for accessing queries in the template */
 } QueryTemplate;
 
@@ -127,7 +127,7 @@ typedef struct cache_manager_s {
 #define PCACHE_RESPONSE_CB_HEAD	0
 #define PCACHE_RESPONSE_CB_TAIL	1
 
-	int     cc_period;		/* interval between successive consistency checks (sec) */
+	time_t	cc_period;		/* interval between successive consistency checks (sec) */
 	int	cc_paused;
 	void	*cc_arg;
 
@@ -1732,7 +1732,7 @@ pc_cf_gen( ConfigArgs *c )
 		struct berval bv;
 		switch( c->type ) {
 		case PC_MAIN:
-			bv.bv_len = snprintf( c->msg, sizeof( c->msg ), "%s %d %d %d %d",
+			bv.bv_len = snprintf( c->msg, sizeof( c->msg ), "%s %d %d %d %ld",
 				cm->db.bd_info->bi_type, cm->max_entries, cm->numattrsets,
 				cm->num_entries_limit, cm->cc_period );
 			bv.bv_val = c->msg;
@@ -1865,7 +1865,7 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		cm->cc_period = t;
+		cm->cc_period = (time_t)t;
 		Debug( LDAP_DEBUG_TRACE,
 				"Total # of attribute sets to be cached = %d.\n",
 				cm->numattrsets, 0, 0 );
@@ -1950,7 +1950,7 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		temp->ttl = (long)t;
+		temp->ttl = (time_t)t;
 
 		temp->no_of_queries = 0;
 
