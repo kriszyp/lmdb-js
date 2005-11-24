@@ -286,6 +286,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 				rs->sr_entry = entry;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;
+				rs->sr_flags = 0;
 				send_search_entry( op, rs );
 				rs->sr_entry = NULL;
 				rs->sr_operational_attrs = NULL;

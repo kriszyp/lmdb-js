@@ -2328,9 +2328,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;
 			rs->sr_entry = e;
-			if ( e == &user_entry ) {
-				rs->sr_flags = REP_ENTRY_MODIFIABLE;
-			}
+			rs->sr_flags = ( e == &user_entry ) ? REP_ENTRY_MODIFIABLE : 0;
 			/* FIXME: need the whole entry (ITS#3480) */
 			sres = send_search_entry( op, rs );
 			rs->sr_entry = NULL;

@@ -3028,6 +3028,7 @@ config_send( Operation *op, SlapReply *rs, CfEntryInfo *ce, int depth )
 	{
 		rs->sr_attrs = op->ors_attrs;
 		rs->sr_entry = ce->ce_entry;
+		rs->sr_flags = 0;
 		rc = send_search_entry( op, rs );
 	}
 	if ( op->ors_scope == LDAP_SCOPE_SUBTREE ) {
