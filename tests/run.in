@@ -35,7 +35,7 @@ AC_sql=sql@BUILD_SQL@
 
 # overlays
 AC_accesslog=accesslog@BUILD_ACCESSLOG@
-AC_dynlist=dynlist@BUILD_ACCESSLOG@
+AC_dynlist=dynlist@BUILD_DYNLIST@
 AC_pcache=pcache@BUILD_PROXYCACHE@
 AC_ppolicy=ppolicy@BUILD_PPOLICY@
 AC_refint=refint@BUILD_REFINT@
