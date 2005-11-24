@@ -191,20 +191,49 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		int j;
 		iarg = 0; larg = 0; barg = 0;
 		switch(arg_type & ARGS_NUMERIC) {
-			case ARG_INT:		iarg = strtol(c->argv[1], NULL, 0); break;
-			case ARG_LONG:		larg = strtol(c->argv[1], NULL, 0);	break;
-			case ARG_BER_LEN_T:	barg = (ber_len_t)atol(c->argv[1]);	break;
+			case ARG_INT:
+				if ( lutil_atoi( &iarg, c->argv[1] ) != 0 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"<%s> unable to parse \"%s\" as int",
+						c->argv[0], c->argv[1] );
+					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+						c->log, c->msg, 0);
+					return(ARG_BAD_CONF);
+				}
+				break;
+			case ARG_LONG:
+				if ( lutil_atol( &larg, c->argv[1] ) != 0 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"<%s> unable to parse \"%s\" as long",
+						c->argv[0], c->argv[1] );
+					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+						c->log, c->msg, 0);
+					return(ARG_BAD_CONF);
+				}
+				break;
+			case ARG_BER_LEN_T: {
+				unsigned long	l;
+				if ( lutil_atoul( &l, c->argv[1] ) != 0 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"<%s> unable to parse \"%s\" as ber_len_t",
+						c->argv[0], c->argv[1] );
+					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+						c->log, c->msg, 0);
+					return(ARG_BAD_CONF);
+				}
+				barg = (ber_len_t)l;
+				} break;
 			case ARG_ON_OFF:
-				if(c->argc == 1) {
+				if (c->argc == 1) {
 					iarg = 1;
-				} else if(!strcasecmp(c->argv[1], "on") ||
+				} else if ( !strcasecmp(c->argv[1], "on") ||
 					!strcasecmp(c->argv[1], "true") ||
-					!strcasecmp(c->argv[1], "yes"))
+					!strcasecmp(c->argv[1], "yes") )
 				{
 					iarg = 1;
-				} else if(!strcasecmp(c->argv[1], "off") ||
+				} else if ( !strcasecmp(c->argv[1], "off") ||
 					!strcasecmp(c->argv[1], "false") ||
-					!strcasecmp(c->argv[1], "no"))
+					!strcasecmp(c->argv[1], "no") )
 				{
 					iarg = 0;
 				} else {
@@ -1018,9 +1047,11 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 
 	for (tab = tab0; !BER_BVISNULL(&tab->key); tab++ ) {
 		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len )) {
-			char **cptr, *next;
+			char **cptr;
 			int *iptr, j;
 			unsigned *uptr;
+			long *lptr;
+			unsigned long *ulptr;
 			struct berval *bptr;
 			const char *val = word + tab->key.bv_len;
 
@@ -1051,19 +1082,25 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 			case 'i':
 				iptr = (int *)((char *)dst + tab->off);
 
-				*iptr = strtol( val, &next, 0 );
-				if ( next == val || next[ 0 ] != '\0' ) {
-					rc = 1;
-				}
+				rc = lutil_atoix( iptr, val, 0 );
 				break;
 
 			case 'u':
 				uptr = (unsigned *)((char *)dst + tab->off);
 
-				*uptr = strtoul( val, &next, 0 );
-				if ( next == val || next[ 0 ] != '\0' ) {
-					rc = 1;
-				}
+				rc = lutil_atoux( uptr, val, 0 );
+				break;
+
+			case 'I':
+				lptr = (long *)((char *)dst + tab->off);
+
+				rc = lutil_atolx( lptr, val, 0 );
+				break;
+
+			case 'U':
+				ulptr = (unsigned long *)((char *)dst + tab->off);
+
+				rc = lutil_atoulx( ulptr, val, 0 );
 				break;
 			}
 
@@ -1091,6 +1128,8 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 		char **cptr;
 		int *iptr, i;
 		unsigned *uptr;
+		long *lptr;
+		unsigned long *ulptr;
 		struct berval *bptr;
 
 		cptr = (char **)((char *)src + tab->off);
@@ -1136,6 +1175,23 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 			ptr = lutil_strcopy( ptr, tab->key.bv_val );
 			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%u", *uptr );
 			break;
+
+		case 'I':
+			lptr = (long *)((char *)src + tab->off);
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, tab->key.bv_val );
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%ld", *lptr );
+			break;
+
+		case 'U':
+			ulptr = (unsigned long *)((char *)src + tab->off);
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, tab->key.bv_val );
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%lu", *ulptr );
+			break;
+
+		default:
+			assert( 0 );
 		}
 	}
 	tmp.bv_val = buf;

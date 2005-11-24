@@ -406,10 +406,8 @@ int main( int argc, char **argv )
 				slap_debug |= level;
 			} else {
 				int	level;
-				char	*next = NULL;
 
-				level = strtol( optarg, &next, 0 );
-				if ( next == NULL || next[ 0 ] != '\0' ) {
+				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 					fprintf( stderr,
 						"unrecognized log level "
 						"\"%s\"\n", optarg );

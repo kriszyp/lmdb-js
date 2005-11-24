@@ -700,7 +700,7 @@ ordered_value_add(
 
 		k = -1;
 		if ( vals[i].bv_val[0] == '{' ) {
-			k = strtol( vals[i].bv_val+1, &next, 0 );
+			k = strtol( vals[i].bv_val + 1, &next, 0 );
 			if ( next == vals[i].bv_val + 1 ||
 				next[ 0 ] != '}' ||
 				next - vals[i].bv_val > vals[i].bv_len )

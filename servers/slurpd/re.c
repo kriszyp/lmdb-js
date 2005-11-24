@@ -49,6 +49,7 @@
 
 #include "slurp.h"
 #include "globals.h"
+#include "lutil.h"
 
 /* Forward references */
 static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));
@@ -187,17 +188,30 @@ Re_parse(
 	    re->re_changetype = getchangetype( value );
 	    state |= GOT_CHANGETYPE;
 	    break;
-	case T_TIME:
+	case T_TIME: {
+	    unsigned long	t;
+
 	    if (( p = strchr( value, '.' )) != NULL ) {
 		/* there was a sequence number */
 		*p++ = '\0';
 	    }
-	    re->re_timestamp = atol( value );
-	    if ( p != NULL && isdigit( (unsigned char) *p )) {
-		re->re_seq = atoi( p );
+	    if ( lutil_atoul( &t, value ) != 0 ) {
+	        Debug( LDAP_DEBUG_ANY,
+		        "Error: Re_parse: unable to parse timestamp \"%s\"\n",
+		        value, 0, 0 );
+	        return -1;
+	    }
+	    re->re_timestamp = (time_t)t;
+	    if ( p != NULL && isdigit( (unsigned char) *p )
+		&& lutil_atoi( &re->re_seq, p ) != 0 )
+	    {
+	        Debug( LDAP_DEBUG_ANY,
+		        "Error: Re_parse: unable to parse sequence number \"%s\"\n",
+		        p, 0, 0 );
+	        return -1;
 	    }
 	    state |= GOT_TIME;
-	    break;
+	    } break;
 	case T_DN:
 	    re->re_dn = ch_malloc( len + 1 );
 		AC_MEMCPY( re->re_dn, value, len );
@@ -325,8 +339,8 @@ get_repl_hosts(
 	if (( p = strchr( value, ':' )) != NULL ) {
 	    *p = '\0';
 	    p++;
-	    if ( *p != '\0' ) {
-		port = atoi( p );
+	    if ( *p != '\0' && lutil_atoi( &port, p ) != 0 ) {
+		return( NULL );
 	    }
 	}
 

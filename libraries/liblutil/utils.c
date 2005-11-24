@@ -331,7 +331,7 @@ lutil_memrchr(const void *b, int c, size_t n)
 }
 
 int
-lutil_atoi( int *v, const char *s )
+lutil_atoix( int *v, const char *s, int x )
 {
 	char		*next;
 	long		i;
@@ -339,7 +339,7 @@ lutil_atoi( int *v, const char *s )
 	assert( s != NULL );
 	assert( v != NULL );
 
-	i = strtol( s, &next, 10 );
+	i = strtol( s, &next, x );
 	if ( next == s || next[ 0 ] != '\0' ) {
 		return -1;
 	}
@@ -354,7 +354,7 @@ lutil_atoi( int *v, const char *s )
 }
 
 int
-lutil_atou( unsigned *v, const char *s )
+lutil_atoux( unsigned *v, const char *s, int x )
 {
 	char		*next;
 	unsigned long	u;
@@ -362,7 +362,7 @@ lutil_atou( unsigned *v, const char *s )
 	assert( s != NULL );
 	assert( v != NULL );
 
-	u = strtoul( s, &next, 10 );
+	u = strtoul( s, &next, x );
 	if ( next == s || next[ 0 ] != '\0' ) {
 		return -1;
 	}
@@ -377,7 +377,7 @@ lutil_atou( unsigned *v, const char *s )
 }
 
 int
-lutil_atol( long *v, const char *s )
+lutil_atolx( long *v, const char *s, int x )
 {
 	char		*next;
 	long		l;
@@ -385,7 +385,7 @@ lutil_atol( long *v, const char *s )
 	assert( s != NULL );
 	assert( v != NULL );
 
-	l = strtol( s, &next, 10 );
+	l = strtol( s, &next, x );
 	if ( next == s || next[ 0 ] != '\0' ) {
 		return -1;
 	}
@@ -396,7 +396,7 @@ lutil_atol( long *v, const char *s )
 }
 
 int
-lutil_atoul( unsigned long *v, const char *s )
+lutil_atoulx( unsigned long *v, const char *s, int x )
 {
 	char		*next;
 	unsigned long	ul;
@@ -404,7 +404,7 @@ lutil_atoul( unsigned long *v, const char *s )
 	assert( s != NULL );
 	assert( v != NULL );
 
-	ul = strtoul( s, &next, 10 );
+	ul = strtoul( s, &next, x );
 	if ( next == s || next[ 0 ] != '\0' ) {
 		return -1;
 	}

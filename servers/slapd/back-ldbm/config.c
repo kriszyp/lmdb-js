@@ -23,6 +23,7 @@
 
 #include "slap.h"
 #include "back-ldbm.h"
+#include "lutil.h"
 
 int
 ldbm_back_db_config(
@@ -62,7 +63,12 @@ ldbm_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		li->li_mode = strtol( argv[1], NULL, 0 );
+		if ( lutil_atoix( &li->li_mode, argv[1], 0 ) != 0 ) {
+			fprintf( stderr,
+			"%s: line %d: unable to parse mode=\"%s\" in \"mode <mode>\" line\n",
+			    fname, lineno, argv[1] );
+			return( 1 );
+		}
 
 	/* attribute to index */
 	} else if ( strcasecmp( argv[0], "index" ) == 0 ) {
@@ -91,7 +97,12 @@ ldbm_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		li->li_cache.c_maxsize = atoi( argv[1] );
+		if ( lutil_atoi( &li->li_cache.c_maxsize, argv[1] ) != 0 ) {
+			fprintf( stderr,
+		"%s: line %d: unable to parse cachesize \"%s\"\n",
+			    fname, lineno, argv[1] );
+			return( 1 );
+		}
 
 	/* size of each dbcache in bytes */
 	} else if ( strcasecmp( argv[0], "dbcachesize" ) == 0 ) {
@@ -101,7 +112,12 @@ ldbm_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		li->li_dbcachesize = atoi( argv[1] );
+		if ( lutil_atoi( &li->li_dbcachesize, argv[1] ) ) {
+			fprintf( stderr,
+		"%s: line %d: unable to parse dbcachesize \"%s\"\n",
+			    fname, lineno, argv[1] );
+			return( 1 );
+		}
 
 	/* no locking (not safe) */
 	} else if ( strcasecmp( argv[0], "dbnolocking" ) == 0 ) {
@@ -124,9 +140,7 @@ ldbm_back_db_config(
 			return 1;
 		}
 
-		i = atoi( argv[1] );
-
-		if( i < 0 ) {
+		if ( lutil_atoi( &i, argv[1] ) != 0 || i < 0 ) {
 			Debug( LDAP_DEBUG_ANY,
     "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
 			    fname, lineno, i );
@@ -136,8 +150,7 @@ ldbm_back_db_config(
 		li->li_dbsyncfreq = i;
 
 		if ( argc > 2 ) {
-			i = atoi( argv[2] );
-			if ( i < 0 ) {
+			if ( lutil_atoi( &i, argv[2] ) != 0 || i < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
 				    fname, lineno, i );
@@ -147,8 +160,7 @@ ldbm_back_db_config(
 		}
 
 		if ( argc > 3 ) {
-			i = atoi( argv[3] );
-			if ( i <= 0 ) {
+			if ( lutil_atoi( &i, argv[3] ) != 0 || i <= 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
 				    fname, lineno, i );

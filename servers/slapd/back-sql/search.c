@@ -28,6 +28,7 @@
 #include "ac/string.h"
 #include "ac/ctype.h"
 
+#include "lutil.h"
 #include "slap.h"
 #include "proto-sql.h"
 
@@ -1828,21 +1829,23 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		}
 
 		if ( bi->sql_baseObject && dn_match( &ndn, &bi->sql_baseObject->e_nname ) ) {
-			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
-			continue;
+			goto cleanup;
 		}
 
-		c_id = (backsql_entryID *)ch_calloc( 1, 
-				sizeof( backsql_entryID ) );
+		c_id = (backsql_entryID *)op->o_tmpcalloc( 1, 
+				sizeof( backsql_entryID ), op->o_tmpmemctx );
 #ifdef BACKSQL_ARBITRARY_KEY
 		ber_str2bv_x( row.cols[ 0 ], 0, 1, &c_id->eid_id,
 				op->o_tmpmemctx );
 		ber_str2bv_x( row.cols[ 1 ], 0, 1, &c_id->eid_keyval,
 				op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-		c_id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
-		c_id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
+		if ( lutil_atoulx( &c_id->eid_id, row.cols[ 0 ], 0 ) != 0 ) {
+			goto cleanup;
+		}
+		if ( lutil_atoulx( &c_id->eid_keyval, row.cols[ 1 ], 0 ) != 0 ) {
+			goto cleanup;
+		}
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 		c_id->eid_oc_id = bsi->bsi_oc->bom_id;
 
@@ -1869,6 +1872,18 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		bsi->bsi_n_candidates--;
 		if ( bsi->bsi_n_candidates == -1 ) {
 			break;
+		}
+		continue;
+
+cleanup:;
+		if ( !BER_BVISNULL( &pdn ) ) {
+			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
+		}
+		if ( !BER_BVISNULL( &ndn ) ) {
+			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+		}
+		if ( c_id != NULL ) {
+			ch_free( c_id );
 		}
 	}
 	backsql_FreeRow_x( &row, bsi->bsi_op->o_tmpmemctx );

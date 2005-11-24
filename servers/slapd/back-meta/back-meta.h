@@ -236,8 +236,8 @@ typedef struct metadncache_t {
 	Avlnode			*tree;
 
 #define META_DNCACHE_DISABLED   (0)
-#define META_DNCACHE_FOREVER    (-1)
-	long int		ttl;  /* seconds; 0: no cache, -1: no expiry */
+#define META_DNCACHE_FOREVER    ((time_t)(-1))
+	time_t			ttl;  /* seconds; 0: no cache, -1: no expiry */
 } metadncache_t;
 
 typedef struct metacandidates_t {

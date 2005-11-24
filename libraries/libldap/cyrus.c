@@ -1026,11 +1026,11 @@ int ldap_pvt_sasl_secprops(
 			if ( strncasecmp( props[i], sprops[j].key.bv_val,
 				sprops[j].key.bv_len )) continue;
 			if ( sprops[j].ival ) {
-				int v;
+				unsigned v;
 				char *next = NULL;
 				if ( !isdigit( props[i][sprops[j].key.bv_len] )) continue;
 				v = strtoul( &props[i][sprops[j].key.bv_len], &next, 10 );
-				if ( next == NULL || next[ 0 ] != '\0' ) continue;
+				if ( next == &props[i][sprops[j].key.bv_len] || next[0] != '\0' ) continue;
 				switch( sprops[j].ival ) {
 				case GOT_MINSSF:
 					min_ssf = v; got_min_ssf++; break;

@@ -34,7 +34,7 @@
 #include <lber.h>
 #include <ldap.h>
 #include "../libldap/ldap-int.h"
-
+#include <lutil.h>
 #include <avl.h>
 
 #include <rewrite.h>

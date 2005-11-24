@@ -276,16 +276,11 @@ slap_tool_init(
 					exit( EXIT_FAILURE );
 				}
 
-			} else {
-				char	*next = NULL;
-
-				level = strtol( optarg, &next, 0 );
-				if ( next == NULL || next[ 0 ] != '\0' ) {
-					fprintf( stderr,
-						"unrecognized log level "
-						"\"%s\"\n", optarg );
-					exit( EXIT_FAILURE );
-				}
+			} else if ( lutil_atoi( &level, optarg ) != 0 ) {
+				fprintf( stderr,
+					"unrecognized log level "
+					"\"%s\"\n", optarg );
+				exit( EXIT_FAILURE );
 			}
 
 			if ( level ) {

@@ -1525,20 +1525,11 @@ config_sizelimit(ConfigArgs *c) {
 			if(!strcasecmp(c->argv[i], "unlimited")) {
 				lim->lms_s_soft = -1;
 			} else {
-				lim->lms_s_soft = strtol(c->argv[i], &next, 0);
-				if(next == c->argv[i]) {
+				if ( lutil_atoix( &lim->lms_s_soft, c->argv[i], 0 ) != 0 ) {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse limit", c->argv[0]);
 					Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 						c->log, c->msg, c->argv[i]);
 					return(1);
-				} else if(next[0] != '\0') {
-					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"trailing chars \"%s\" in \"sizelimit <limit>\" line"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-						c->log, next, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
-					return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_s_hard = 0;
@@ -1582,20 +1573,11 @@ config_timelimit(ConfigArgs *c) {
 			if(!strcasecmp(c->argv[i], "unlimited")) {
 				lim->lms_t_soft = -1;
 			} else {
-				lim->lms_t_soft = strtol(c->argv[i], &next, 0);
-				if(next == c->argv[i]) {
+				if ( lutil_atoix( &lim->lms_t_soft, c->argv[i], 0 ) != 0 ) {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse limit", c->argv[0]);
 					Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 						c->log, c->msg, c->argv[i]);
 					return(1);
-				} else if(next[0] != '\0') {
-					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"trailing chars \"%s\" in \"timelimit <limit>\" line"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-						c->log, next, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
-					return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_t_hard = 0;
@@ -2186,8 +2168,7 @@ config_loglevel(ConfigArgs *c) {
 		int	level;
 
 		if ( isdigit( c->argv[i][0] ) || c->argv[i][0] == '-' ) {
-			level = strtol( c->argv[i], &next, 10 );
-			if ( next == NULL || next[0] != '\0' ) {
+			if( lutil_atoi( &level, c->argv[i] ) != 0 ) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse level", c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->msg, c->argv[i]);
@@ -2308,8 +2289,7 @@ config_security(ConfigArgs *c) {
 			return(1);
 		}
 
-		*tgt = strtol(src, &next, 10);
-		if(next == NULL || next[0] != '\0' ) {
+		if ( lutil_atou( tgt, src ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse factor", c->argv[0] );
 			Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 				c->log, c->msg, c->argv[i]);
@@ -2718,8 +2698,13 @@ config_tls_config(ConfigArgs *c) {
 		return ldap_pvt_tls_set_option( NULL, flag, &i );
 	}
 	ch_free( c->value_string );
-	if(isdigit((unsigned char)c->argv[1][0])) {
-		i = atoi(c->argv[1]);
+	if ( isdigit( (unsigned char)c->argv[1][0] ) ) {
+		if ( lutil_atoi( &i, c->argv[1] ) != 0 ) {
+			Debug(LDAP_DEBUG_ANY, "%s: "
+				"unable to parse %s \"%s\"\n",
+				c->log, c->argv[0], c->argv[1] );
+			return 1;
+		}
 		return(ldap_pvt_tls_set_option(NULL, flag, &i));
 	} else {
 		return(ldap_int_tls_config(NULL, flag, c->argv[1]));
@@ -3202,7 +3187,9 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		if ( ptr2-ptr1 == 1)
 			return LDAP_NAMING_VIOLATION;
 		gotindex = 1;
-		index = atoi(ptr1+1);
+		if ( lutil_atoi( &index, ptr1 + 1 ) != 0 ) {
+			return LDAP_NAMING_VIOLATION;
+		}
 		if ( index < 0 ) {
 			/* Special case, we allow -1 for the frontendDB */
 			if ( index != -1 || ce_type != Cft_Database ||
@@ -3750,9 +3737,13 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				}
 				for ( i=0; !BER_BVISNULL( &ml->sml_values[i] ); i++ ) {
 					if ( ml->sml_values[i].bv_val[0] == '{' &&
-						navals >= 0 ) {
-						int j = strtol( ml->sml_values[i].bv_val+1, NULL, 0 );
-						if ( j < navals ) {
+						navals >= 0 )
+					{
+						char	*next, *val = ml->sml_values[i].bv_val + 1;
+						int	j;
+
+						j = strtol( val, &next, 0 );
+						if ( next == val || next[ 0 ] != '}' || j < navals ) {
 							rc = LDAP_OTHER;
 							snprintf(ca->msg, sizeof(ca->msg), "cannot insert %s",
 								ml->sml_desc->ad_cname.bv_val );
@@ -3870,10 +3861,17 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 					ca->line = ml->sml_values[i].bv_val;
 					ca->valx = -1;
 					if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_ORDERED &&
-						ca->line[0] == '{' ) {
-						ptr = strchr( ca->line, '}' );
+						ca->line[0] == '{' )
+					{
+						ptr = strchr( ca->line + 1, '}' );
 						if ( ptr ) {
-							ca->valx = strtol( ca->line+1, NULL, 0 );
+							char	*next;
+
+							ca->valx = strtol( ca->line + 1, &next, 0 );
+							if ( next == ca->line + 1 || next[ 0 ] != '}' ) {
+								rc = LDAP_OTHER;
+								goto out;
+							}
 							ca->line = ptr+1;
 						}
 					}

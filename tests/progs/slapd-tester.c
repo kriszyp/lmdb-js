@@ -33,6 +33,7 @@
 
 
 #include "ldap_defaults.h"
+#include "lutil.h"
 
 
 #define SEARCHCMD		"slapd-search"
@@ -159,7 +160,9 @@ main( int argc, char **argv )
 			break;
 
 		case 'j':		/* the number of parallel clients */
-			maxkids = atoi( optarg );
+			if ( lutil_atoi( &maxkids, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
 			break;
 
 		case 'l':		/* the number of loops per client */

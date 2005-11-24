@@ -36,6 +36,7 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 const struct berval slap_dummy_bv = BER_BVNULL;
 
@@ -1397,8 +1398,8 @@ str2result(
 		}
 
 		if ( strncasecmp( s, "code", STRLENOF( "code" ) ) == 0 ) {
-			if ( c != NULL ) {
-				*code = atoi( c );
+			if ( c != NULL && lutil_atoi( code, c ) != 0 ) {
+				goto bailout;
 			}
 		} else if ( strncasecmp( s, "matched", STRLENOF( "matched" ) ) == 0 ) {
 			if ( c != NULL ) {
@@ -1409,6 +1410,7 @@ str2result(
 				*info = c;
 			}
 		} else {
+bailout:;
 			Debug( LDAP_DEBUG_ANY, "str2result (%s) unknown\n",
 			    s, 0, 0 );
 

@@ -193,8 +193,7 @@ slurpd_read_config(
 				return( 1 );
 			}
 
-			c = atoi( cargv[1] );
-			if( c < 1 ) {
+			if ( lutil_atoi( &c, cargv[1] ) != 0 || c < 1 ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: invalid interval "
 					"(%d) in \"replicationinterval <seconds>\" line\n",
 					fname, lineno, c );
@@ -456,7 +455,11 @@ parse_replica_line(
 	    if (( hp = strchr( val, ':' )) != NULL ) {
 		*hp = '\0';
 		hp++;
-		ri->ri_port = atoi( hp );
+		if ( lutil_atoi( &ri->ri_port, hp ) != 0 ) {
+		    fprintf( stderr, "unable to parse port \"%s\", line %d\n",
+			    hp, lineno );
+		    return -1;
+		}
 	    }
 	    if ( ri->ri_port <= 0 ) {
 		ri->ri_port = LDAP_PORT;

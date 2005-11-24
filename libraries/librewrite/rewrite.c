@@ -30,6 +30,7 @@
 #include <stdio.h>
 
 #include <rewrite.h>
+#include <lutil.h>
 #include <ldap.h>
 
 int ldap_debug;
@@ -127,7 +128,6 @@ main( int argc, char *argv[] )
 	FILE	*fin = NULL;
 	char	*rewriteContext = REWRITE_DEFAULT_CONTEXT;
 	int	debug = 0;
-	char	*next;
 
 	while ( 1 ) {
 		int opt = getopt( argc, argv, "d:f:hr:" );
@@ -138,8 +138,7 @@ main( int argc, char *argv[] )
 
 		switch ( opt ) {
 		case 'd':
-			debug = strtol( optarg, &next, 10 );
-			if ( next == NULL || next[0] != '\0' ) {
+			if ( lutil_atoi( &debug, optarg ) != 0 ) {
 				fprintf( stderr, "illegal log level '%s'\n",
 						optarg );
 				exit( EXIT_FAILURE );

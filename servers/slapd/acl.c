@@ -1603,12 +1603,9 @@ slap_acl_mask(
 
 						port = strrchr( ip.bv_val, ':' );
 						if ( port ) {
-							char	*next;
-							
 							ip.bv_len = port - ip.bv_val;
 							++port;
-							port_number = strtol( port, &next, 10 );
-							if ( next[0] != '\0' )
+							if ( lutil_atoi( &port_number, port ) != 0 )
 								continue;
 						}
 						

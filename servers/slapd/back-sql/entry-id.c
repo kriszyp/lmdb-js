@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include "ac/string.h"
 
+#include "lutil.h"
 #include "slap.h"
 #include "proto-sql.h"
 
@@ -250,43 +251,52 @@ backsql_dn2id(
 		if ( id != NULL ) {
 			struct berval	dn;
 
+			id->eid_next = NULL;
+
 #ifdef BACKSQL_ARBITRARY_KEY
 			ber_str2bv_x( row.cols[ 0 ], 0, 1, &id->eid_id,
 					op->o_tmpmemctx );
 			ber_str2bv_x( row.cols[ 1 ], 0, 1, &id->eid_keyval,
 					op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-			id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
-			id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
+			if ( lutil_atoulx( &id->eid_id, row.cols[ 0 ], 0 ) != 0 ) {
+				res = LDAP_OTHER;
+				goto done;
+			}
+			if ( lutil_atoulx( &id->eid_keyval, row.cols[ 1 ], 0 ) != 0 ) {
+				res = LDAP_OTHER;
+				goto done;
+			}
 #endif /* ! BACKSQL_ARBITRARY_KEY */
-			id->eid_oc_id = strtol( row.cols[ 2 ], NULL, 0 );
+			if ( lutil_atoulx( &id->eid_oc_id, row.cols[ 2 ], 0 ) != 0 ) {
+				res = LDAP_OTHER;
+				goto done;
+			}
 
 			ber_str2bv( row.cols[ 3 ], 0, 0, &dn );
 
 			if ( backsql_api_odbc2dn( op, rs, &dn ) ) {
 				res = LDAP_OTHER;
+				goto done;
+			}
+			
+			res = dnPrettyNormal( NULL, &dn,
+					&id->eid_dn, &id->eid_ndn,
+					op->o_tmpmemctx );
+			if ( res != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_dn2id(\"%s\"): "
+					"dnPrettyNormal failed (%d: %s)\n",
+					realndn.bv_val, res,
+					ldap_err2string( res ) );
 
-			} else {
-				res = dnPrettyNormal( NULL, &dn,
-						&id->eid_dn, &id->eid_ndn,
-						op->o_tmpmemctx );
-				if ( res != LDAP_SUCCESS ) {
-					Debug( LDAP_DEBUG_TRACE,
-						"   backsql_dn2id(\"%s\"): "
-						"dnPrettyNormal failed (%d: %s)\n",
-						realndn.bv_val, res,
-						ldap_err2string( res ) );
-
-					/* cleanup... */
-					(void)backsql_free_entryID( op, id, 0 );
-				}
-
-				if ( dn.bv_val != row.cols[ 3 ] ) {
-					free( dn.bv_val );
-				}
+				/* cleanup... */
+				(void)backsql_free_entryID( op, id, 0 );
 			}
 
-			id->eid_next = NULL;
+			if ( dn.bv_val != row.cols[ 3 ] ) {
+				free( dn.bv_val );
+			}
 		}
 
 	} else {
@@ -408,11 +418,28 @@ backsql_count_children(
 		char *end;
 
 		*nchildren = strtol( row.cols[ 0 ], &end, 0 );
-		if ( end[ 0 ] != '\0' && end[0] != '.' ) {
-			/* FIXME: braindead RDBMSes return
-			 * a fractional number from COUNT!
-			 */
+		if ( end == row.cols[ 0 ] ) {
 			res = LDAP_OTHER;
+
+		} else {
+			switch ( end[ 0 ] ) {
+			case '\0':
+				break;
+
+			case '.': {
+				unsigned long	ul;
+
+				/* FIXME: braindead RDBMSes return
+				 * a fractional number from COUNT!
+				 */
+				if ( lutil_atoul( &ul, end + 1 ) != 0 || ul != 0 ) {
+					res = LDAP_OTHER;
+				}
+				} break;
+
+			default:
+				res = LDAP_OTHER;
+			}
 		}
 
 	} else {

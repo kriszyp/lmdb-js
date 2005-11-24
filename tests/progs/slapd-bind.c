@@ -90,7 +90,9 @@ main( int argc, char **argv )
 			break;
 
 			case 'p':		/* the servers port */
-				port = atoi( optarg );
+				if ( lutil_atoi( &port, optarg ) != 0 ) {
+					usage( argv[0] );
+				}
 				break;
 
 			case 'D':
@@ -102,7 +104,9 @@ main( int argc, char **argv )
 				break;
 
 			case 'l':		/* the number of loops */
-				loops = atoi( optarg );
+				if ( lutil_atoi( &loops, optarg ) != 0 ) {
+					usage( argv[0] );
+				}
 				break;
 
 			case 'f':

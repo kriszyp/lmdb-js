@@ -2195,8 +2195,31 @@ sp_cf_gen(ConfigArgs *c)
 	}
 	switch ( c->type ) {
 	case SP_CHKPT:
-		si->si_chkops = atoi( c->argv[1] );
-		si->si_chktime = atoi( c->argv[2] ) * 60;
+		if ( lutil_atoi( &si->si_chkops, c->argv[1] ) != 0 ) {
+			sprintf( c->msg, "%s unable to parse checkpoint ops # \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( si->si_chkops <= 0 ) {
+			sprintf( c->msg, "%s invalid checkpoint ops # \"%d\"",
+				c->argv[0], si->si_chkops );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( lutil_atoi( &si->si_chktime, c->argv[2] ) != 0 ) {
+			sprintf( c->msg, "%s unable to parse checkpoint time \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( si->si_chktime <= 0 ) {
+			sprintf( c->msg, "%s invalid checkpoint time \"%d\"",
+				c->argv[0], si->si_chkops );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		si->si_chktime *= 60;
 		break;
 	case SP_SESSL: {
 		sessionlog *sl;

@@ -778,8 +778,7 @@ parse_acl(
 				{
 					char	*next;
 
-					level = strtol( style_level, &next, 10 );
-					if ( next[0] != '\0' ) {
+					if ( lutil_atoi( &level, style_level ) != 0 ) {
 						Debug( LDAP_DEBUG_ANY,
 							"%s: line %d: unable to parse level "
 							"in \"level{n}\"\n",
@@ -1385,7 +1384,7 @@ parse_acl(
 								char	*end = NULL;
 
 								b->a_peername_port = strtol( port, &end, 10 );
-								if ( end[0] != '}' ) {
+								if ( end == port || end[0] != '}' ) {
 									/* illegal port */
 									Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 										"illegal peername port specification "
@@ -1700,8 +1699,7 @@ parse_acl(
 						return acl_usage();
 					}
 
-					b->a_authz.sai_ssf = strtol( right, &next, 10 );
-					if ( next == NULL || next[0] != '\0' ) {
+					if ( lutil_atou( &b->a_authz.sai_ssf, right ) != 0 ) {
 						Debug( LDAP_DEBUG_ANY,
 							"%s: line %d: unable to parse ssf value (%s).\n",
 							fname, lineno, right );
@@ -1739,8 +1737,7 @@ parse_acl(
 						return acl_usage();
 					}
 
-					b->a_authz.sai_transport_ssf = strtol( right, &next, 10 );
-					if ( next == NULL || next[0] != '\0' ) {
+					if ( lutil_atou( &b->a_authz.sai_transport_ssf, right ) != 0 ) {
 						Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 							"unable to parse transport_ssf value (%s).\n",
 							fname, lineno, right );
@@ -1778,8 +1775,7 @@ parse_acl(
 						return acl_usage();
 					}
 
-					b->a_authz.sai_tls_ssf = strtol( right, &next, 10 );
-					if ( next == NULL || next[0] != '\0' ) {
+					if ( lutil_atou( &b->a_authz.sai_tls_ssf, right ) != 0 ) {
 						Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 							"unable to parse tls_ssf value (%s).\n",
 							fname, lineno, right );
@@ -1817,8 +1813,7 @@ parse_acl(
 						return acl_usage();
 					}
 
-					b->a_authz.sai_sasl_ssf = strtol( right, &next, 10 );
-					if ( next == NULL || next[0] != '\0' ) {
+					if ( lutil_atou( &b->a_authz.sai_sasl_ssf, right ) != 0 ) {
 						Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 							"unable to parse sasl_ssf value (%s).\n",
 							fname, lineno, right );

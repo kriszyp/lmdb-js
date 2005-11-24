@@ -34,6 +34,7 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 /*
  * Set real and effective user id and group id, and group access list
@@ -49,9 +50,17 @@ slap_init_user( char *user, char *group )
 
     if ( user ) {
 	struct passwd *pwd;
-	if ( isdigit( (unsigned char) *user )) {
+	if ( isdigit( (unsigned char) *user ) ) {
+	    unsigned u;
+
 	    got_uid = 1;
-	    uid = atoi( user );
+	    if ( lutil_atou( &u, user ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "Unble to parse user %s\n",
+		       user, 0, 0 );
+
+		exit( EXIT_FAILURE );
+	    }
+	    uid = (uid_t)u;
 #ifdef HAVE_GETPWUID
 	    pwd = getpwuid( uid );
 	    goto did_getpw;
@@ -86,7 +95,15 @@ slap_init_user( char *user, char *group )
     if ( group ) {
 	struct group *grp;
 	if ( isdigit( (unsigned char) *group )) {
-	    gid = atoi( group );
+	    unsigned g;
+
+	    if ( lutil_atou( &g, group ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "Unble to parse group %s\n",
+		       group, 0, 0 );
+
+		exit( EXIT_FAILURE );
+	    }
+	    gid = (uid_t)g;
 #ifdef HAVE_GETGRGID
 	    grp = getgrgid( gid );
 	    goto did_group;

@@ -1090,12 +1090,10 @@ done_url:;
 
 		for ( i = 1; i < c->argc; i++ ) {
 			if ( isdigit( c->argv[ i ][ 0 ] ) ) {
-				char		*next;
 				int		j;
 				unsigned	u;
 
-				u = strtoul( c->argv[ i ], &next, 0 );
-				if ( next == c->argv[ i ] || next[ 0 ] != '\0' ) {
+				if ( lutil_atoux( &u, c->argv[ i ], 0 ) != 0 ) {
 					return 1;
 				}
 

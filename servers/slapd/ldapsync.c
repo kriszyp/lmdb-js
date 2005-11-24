@@ -112,7 +112,6 @@ slap_parse_sync_cookie(
 		|| rid_ptr > &cookie->octet_str.bv_val[ cookie->octet_str.bv_len - STRLENOF( "rid=" ) ] )
 	{
 		return -1;
-
 	}
 
 	cookie->rid = strtoul( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );

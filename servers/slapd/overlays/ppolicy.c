@@ -357,30 +357,40 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	pp->ad = slap_schema.si_ad_userPassword;
 #endif
 
-	if ((a = attr_find( pe->e_attrs, ad_pwdMinAge )))
-		pp->pwdMinAge = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdMaxAge )))
-		pp->pwdMaxAge = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdInHistory )))
-		pp->pwdInHistory = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdCheckQuality )))
-		pp->pwdCheckQuality = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdMinLength )))
-		pp->pwdMinLength = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdMaxFailure )))
-		pp->pwdMaxFailure = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdGraceAuthNLimit )))
-		pp->pwdGraceAuthNLimit = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdExpireWarning )))
-		pp->pwdExpireWarning = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdFailureCountInterval )))
-		pp->pwdFailureCountInterval = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdLockoutDuration )))
-		pp->pwdLockoutDuration = atoi(a->a_vals[0].bv_val );
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMinAge ) )
+			&& lutil_atoi( &pp->pwdMinAge, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxAge ) )
+			&& lutil_atoi( &pp->pwdMaxAge, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdInHistory ) )
+			&& lutil_atoi( &pp->pwdInHistory, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdCheckQuality ) )
+			&& lutil_atoi( &pp->pwdCheckQuality, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMinLength ) )
+			&& lutil_atoi( &pp->pwdMinLength, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdMaxFailure ) )
+			&& lutil_atoi( &pp->pwdMaxFailure, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdGraceAuthNLimit ) )
+			&& lutil_atoi( &pp->pwdGraceAuthNLimit, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdExpireWarning ) )
+			&& lutil_atoi( &pp->pwdExpireWarning, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdFailureCountInterval ) )
+			&& lutil_atoi( &pp->pwdFailureCountInterval, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdLockoutDuration ) )
+			&& lutil_atoi( &pp->pwdLockoutDuration, a->a_vals[0].bv_val ) != 0 )
+		goto defaultpol;
 
-	if ((a = attr_find( pe->e_attrs, ad_pwdCheckModule ))) {
-		strncpy(pp->pwdCheckModule, a->a_vals[0].bv_val,
-			sizeof(pp->pwdCheckModule));
+	if ( ( a = attr_find( pe->e_attrs, ad_pwdCheckModule ) ) ) {
+		strncpy( pp->pwdCheckModule, a->a_vals[0].bv_val,
+			sizeof(pp->pwdCheckModule) );
 		pp->pwdCheckModule[sizeof(pp->pwdCheckModule)-1] = '\0';
 	}
 
