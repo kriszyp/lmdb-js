@@ -3182,13 +3182,15 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	dnRdn( &e->e_name, &rdn );
 	ptr1 = ber_bvchr( &e->e_name, '{' );
 	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
+		char	*next;
 		ptr2 = strchr( ptr1, '}' );
 		if (!ptr2 || ptr2 - e->e_name.bv_val > rdn.bv_len)
 			return LDAP_NAMING_VIOLATION;
 		if ( ptr2-ptr1 == 1)
 			return LDAP_NAMING_VIOLATION;
 		gotindex = 1;
-		if ( lutil_atoi( &index, ptr1 + 1 ) != 0 ) {
+		index = strtol( ptr1 + 1, &next, 10 );
+		if ( next == ptr1 + 1 || next[ 0 ] != '}' ) {
 			return LDAP_NAMING_VIOLATION;
 		}
 		if ( index < 0 ) {
