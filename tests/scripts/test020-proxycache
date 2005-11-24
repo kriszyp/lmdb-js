@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-CACHETTL=60
+CACHETTL="1m"
 CACHE_ENTRY_LIMIT=10
 
 . $SRCDIR/scripts/defines.sh

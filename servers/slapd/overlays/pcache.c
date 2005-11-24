@@ -1717,15 +1717,16 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 static int
 pc_cf_gen( ConfigArgs *c )
 {
-	slap_overinst *on = (slap_overinst *)c->bi;
+	slap_overinst	*on = (slap_overinst *)c->bi;
 	cache_manager* 	cm = on->on_bi.bi_private;
 	query_manager*  qm = cm->qm;
 	QueryTemplate* 	temp;
 	AttributeName*  attr_name;
 	AttributeName* 	attrarray;
 	const char* 	text=NULL;
-	int i, num, rc = 0;
-	char *ptr, *next;
+	int		i, num, rc = 0;
+	char		*ptr;
+	unsigned long	t;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		struct berval bv;
@@ -1806,8 +1807,7 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		cm->numattrsets = strtol( c->argv[3], &next, 10 );
-		if ( next == c->argv[3] || next[0] != '\0' ) {
+		if ( lutil_atoi( &cm->numattrsets, c->argv[3] ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse num attrsets=\"%s\" (arg #3)",
 				c->argv[3] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
@@ -1830,8 +1830,7 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		cm->max_entries = strtol( c->argv[2], &next, 10 );
-		if ( next == c->argv[2] || next[ 0 ] != '\0' ) {
+		if ( lutil_atoi( &cm->max_entries, c->argv[2] ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse max entries=\"%s\" (arg #2)",
 				c->argv[2] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
@@ -1843,8 +1842,7 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		cm->num_entries_limit = strtol( c->argv[4], &next, 10 );
-		if ( next == c->argv[4] || next[ 0 ] != '\0' ) {
+		if ( lutil_atoi( &cm->num_entries_limit, c->argv[4] ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse entry limit=\"%s\" (arg #4)",
 				c->argv[4] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
@@ -1861,19 +1859,13 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		cm->cc_period = strtol( c->argv[5], &next, 10 );
-		if ( next == c->argv[5] || next[ 0 ] != '\0' ) {
+		if ( lutil_parse_time( c->argv[5], &t ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse period=\"%s\" (arg #5)",
 				c->argv[5] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		if ( cm->cc_period <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "period (arg #5) must be positive" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-			return( 1 );
-		}
-
+		cm->cc_period = t;
 		Debug( LDAP_DEBUG_TRACE,
 				"Total # of attribute sets to be cached = %d.\n",
 				cm->numattrsets, 0, 0 );
@@ -1886,8 +1878,7 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		num = strtol( c->argv[1], &next, 10 );
-		if ( next == c->argv[1] || next[ 0 ] != '\0' ) {
+		if ( lutil_atoi( &num, c->argv[1] ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse attrset #=\"%s\"",
 				c->argv[1] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
@@ -1932,8 +1923,7 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		i = strtol( c->argv[2], &next, 10 );
-		if ( next == c->argv[2] || next[ 0 ] != '\0' ) {
+		if ( lutil_atoi( &i, c->argv[2] ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse template #=\"%s\"",
 				c->argv[2] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
@@ -1954,18 +1944,13 @@ pc_cf_gen( ConfigArgs *c )
 		temp = qm->templates + num;
 		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
 		temp->query = temp->query_last = NULL;
-		temp->ttl = strtol( c->argv[3], &next, 10 );
-		if ( next == c->argv[3] || next[ 0 ] != '\0' ) {
+		if ( lutil_parse_time( c->argv[3], &t ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse template ttl=\"%s\"",
 				c->argv[3] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
 		}
-		if ( temp->ttl <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "template ttl must be positive" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-			return( 1 );
-		}
+		temp->ttl = (long)t;
 
 		temp->no_of_queries = 0;
 
