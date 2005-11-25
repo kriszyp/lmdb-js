@@ -283,6 +283,13 @@ fe_op_search( Operation *op, SlapReply *rs )
 			rs->sr_err = test_filter( op, entry, op->ors_filter );
 
 			if( rs->sr_err == LDAP_COMPARE_TRUE ) {
+				/* note: we set no limits because either
+				 * no limit is specified, or at least 1
+				 * is specified, and we're going to return
+				 * at most one entry */			
+				op->ors_slimit = SLAP_NO_LIMIT;
+				op->ors_tlimit = SLAP_NO_LIMIT;
+
 				rs->sr_entry = entry;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;
