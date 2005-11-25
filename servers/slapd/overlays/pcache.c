@@ -1086,7 +1086,7 @@ cache_entries(
 }
 
 static int
-proxy_cache_response(
+pcache_response(
 	Operation	*op,
 	SlapReply	*rs )
 {
@@ -1218,7 +1218,7 @@ add_filter_attrs(
  * performing the pagedResults search only within the client
  * and the proxy.  This requires pcache to understand pagedResults. */
 static int
-proxy_cache_chk_controls(
+pcache_chk_controls(
 	Operation	*op,
 	SlapReply	*rs )
 {
@@ -1249,7 +1249,7 @@ proxy_cache_chk_controls(
 }
 
 static int
-proxy_cache_search(
+pcache_op_search(
 	Operation	*op,
 	SlapReply	*rs )
 {
@@ -1377,7 +1377,7 @@ proxy_cache_search(
 		add_filter_attrs(op, &op->ors_attrs, query.attrs, filter_attrs);
 
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
-		cb->sc_response = proxy_cache_response;
+		cb->sc_response = pcache_response;
 		cb->sc_cleanup = NULL;
 		cb->sc_private = (cb+1);
 		si = cb->sc_private;
@@ -1988,7 +1988,7 @@ pc_cf_gen( ConfigArgs *c )
 }
 
 static int
-proxy_cache_config(
+pcache_db_config(
 	BackendDB	*be,
 	const char	*fname,
 	int		lineno,
@@ -2007,7 +2007,7 @@ proxy_cache_config(
 }
 
 static int
-proxy_cache_init(
+pcache_db_init(
 	BackendDB *be
 )
 {
@@ -2052,7 +2052,7 @@ proxy_cache_init(
 }
 
 static int
-proxy_cache_open(
+pcache_db_open(
 	BackendDB *be
 )
 {
@@ -2109,7 +2109,7 @@ proxy_cache_open(
 		if ( BER_BVISNULL( &cm->db.be_rootndn )
 				|| BER_BVISEMPTY( &cm->db.be_rootndn ) )
 		{
-			Debug( LDAP_DEBUG_ANY, "proxy_cache_open(): "
+			Debug( LDAP_DEBUG_ANY, "pcache_db_open(): "
 				"underlying database of type \"%s\"\n"
 				"    serving naming context \"%s\"\n"
 				"    has no \"rootdn\", required by \"proxycache\".\n",
@@ -2123,7 +2123,7 @@ proxy_cache_open(
 }
 
 static int
-proxy_cache_close(
+pcache_db_close(
 	BackendDB *be
 )
 {
@@ -2165,7 +2165,7 @@ proxy_cache_close(
 }
 
 static int
-proxy_cache_destroy(
+pcache_db_destroy(
 	BackendDB *be
 )
 {
@@ -2194,9 +2194,9 @@ proxy_cache_destroy(
 	return 0;
 }
 
-static slap_overinst proxy_cache;
+static slap_overinst pcache;
 
-int pcache_init()
+int pcache_initialize()
 {
 	LDAPAttributeType *at;
 	int code;
@@ -2206,7 +2206,7 @@ int pcache_init()
 		LDAP_SCHEMA_ALLOW_ALL );
 	if ( !at ) {
 		Debug( LDAP_DEBUG_ANY,
-			"pcache_init: ldap_str2attributetype failed %s %s\n",
+			"pcache_initialize: ldap_str2attributetype failed %s %s\n",
 			ldap_scherr2str(code), err, 0 );
 		return code;
 	}
@@ -2217,32 +2217,33 @@ int pcache_init()
 	ldap_memfree( at );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY,
-			"pcache_init: at_add failed %s %s\n",
+			"pcache_initialize: at_add failed %s %s\n",
 			scherr2str(code), err, 0 );
 		return code;
 	}
 
-	proxy_cache.on_bi.bi_type = "pcache";
-	proxy_cache.on_bi.bi_db_init = proxy_cache_init;
-	proxy_cache.on_bi.bi_db_config = proxy_cache_config;
-	proxy_cache.on_bi.bi_db_open = proxy_cache_open;
-	proxy_cache.on_bi.bi_db_close = proxy_cache_close;
-	proxy_cache.on_bi.bi_db_destroy = proxy_cache_destroy;
-	proxy_cache.on_bi.bi_op_search = proxy_cache_search;
+	pcache.on_bi.bi_type = "pcache";
+	pcache.on_bi.bi_db_init = pcache_db_init;
+	pcache.on_bi.bi_db_config = pcache_db_config;
+	pcache.on_bi.bi_db_open = pcache_db_open;
+	pcache.on_bi.bi_db_close = pcache_db_close;
+	pcache.on_bi.bi_db_destroy = pcache_db_destroy;
 
-	proxy_cache.on_bi.bi_chk_controls = proxy_cache_chk_controls;
+	pcache.on_bi.bi_op_search = pcache_op_search;
 
-	proxy_cache.on_bi.bi_cf_ocs = pcocs;
+	pcache.on_bi.bi_chk_controls = pcache_chk_controls;
+
+	pcache.on_bi.bi_cf_ocs = pcocs;
 
 	code = config_register_schema( pccfg, pcocs );
 	if ( code ) return code;
 
-	return overlay_register( &proxy_cache );
+	return overlay_register( &pcache );
 }
 
 #if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_DYNAMIC
 int init_module(int argc, char *argv[]) {
-	return pcache_init();
+	return pcache_initialize();
 }
 #endif
 

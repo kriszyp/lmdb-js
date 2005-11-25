@@ -146,7 +146,7 @@ static slap_overinst dyngroup;
  * initialized and registered by some other function inside slapd.
  */
 
-int dyngroup_init() {
+int dyngroup_initialize() {
 	dyngroup.on_bi.bi_type = "dyngroup";
 	dyngroup.on_bi.bi_db_config = dyngroup_config;
 	dyngroup.on_bi.bi_db_close = dyngroup_close;
@@ -156,8 +156,10 @@ int dyngroup_init() {
 }
 
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_DYNAMIC
-int init_module(int argc, char *argv[]) {
-	return dyngroup_init();
+int
+init_module( int argc, char *argv[] )
+{
+	return dyngroup_initialize();
 }
 #endif
 

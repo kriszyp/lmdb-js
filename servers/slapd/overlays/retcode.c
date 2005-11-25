@@ -1066,7 +1066,7 @@ retcode_db_destroy( BackendDB *be )
 static
 #endif /* SLAPD_OVER_RETCODE == SLAPD_MOD_DYNAMIC */
 int
-retcode_init( void )
+retcode_initialize( void )
 {
 	int		i, code;
 	const char	*err;
@@ -1243,7 +1243,7 @@ retcode_init( void )
 int
 init_module( int argc, char *argv[] )
 {
-	return retcode_init();
+	return retcode_initialize();
 }
 #endif /* SLAPD_OVER_RETCODE == SLAPD_MOD_DYNAMIC */
 

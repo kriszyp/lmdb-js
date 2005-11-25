@@ -1277,8 +1277,8 @@ accesslog_db_open(
 	ldap_pvt_thread_pool_context_reset( thrctx );
 	return rc;
 }
-	
-int accesslog_init()
+
+int accesslog_initialize()
 {
 	int i, rc;
 
@@ -1364,8 +1364,10 @@ int accesslog_init()
 }
 
 #if SLAPD_OVER_ACCESSLOG == SLAPD_MOD_DYNAMIC
-int init_module( int argc, char *argv[]) {
-	return accesslog_init();
+int
+init_module( int argc, char *argv[] )
+{
+	return accesslog_initialize();
 }
 #endif
 

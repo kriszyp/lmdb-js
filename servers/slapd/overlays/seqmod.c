@@ -178,7 +178,7 @@ seqmod_db_close(
 static slap_overinst 		seqmod;
 
 int
-seqmod_init()
+seqmod_initialize()
 {
 	seqmod.on_bi.bi_type = "seqmod";
 	seqmod.on_bi.bi_db_open = seqmod_db_open;
@@ -195,7 +195,7 @@ seqmod_init()
 int
 init_module( int argc, char *argv[] )
 {
-	return seqmod_init();
+	return seqmod_initialize();
 }
 #endif /* SLAPD_OVER_SEQMOD == SLAPD_MOD_DYNAMIC */
 

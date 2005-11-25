@@ -1504,7 +1504,7 @@ rwm_db_destroy(
 static slap_overinst rwm = { { NULL } };
 
 int
-rwm_init(void)
+rwm_initialize(void)
 {
 	memset( &rwm, 0, sizeof( slap_overinst ) );
 
@@ -1541,7 +1541,7 @@ rwm_init(void)
 int
 init_module( int argc, char *argv[] )
 {
-	return rwm_init();
+	return rwm_initialize();
 }
 #endif /* SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC */
 

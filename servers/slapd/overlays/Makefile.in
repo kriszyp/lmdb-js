@@ -29,6 +29,7 @@ SRCS = overlays.c \
 	unique.c \
 	valsort.c
 OBJS = overlays.o \
+	statover.o \
 	@SLAPD_STATIC_OVERLAYS@
 
 # Add here the objs that are needed by overlays, but do not make it
@@ -113,6 +114,8 @@ MKDEPFLAG = -l
 .c.lo:
 	$(LTCOMPILE_MOD) $<
 
+statover.o: statover.c $(srcdir)/../slap.h
+
 $(LIBRARY): $(OBJS) version.lo
 	$(AR) rs $@ $(OBJS)
 
@@ -123,4 +126,7 @@ depend-local:
 	SCR=''; for i in $$OBJ2; do SCR="$$SCR -e s/^$$i.lo:/$$i.o:/"; done; \
 	mv Makefile Makefile.bak; $(SED) $$SCR Makefile.bak > Makefile && \
 	$(RM) Makefile.bak; fi
+
+veryclean-local:
+	$(RM) statover.c
 

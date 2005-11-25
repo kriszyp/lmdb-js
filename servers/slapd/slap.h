@@ -3098,6 +3098,12 @@ struct zone_heap {
 		return 0; \
 	}
 
+typedef int (*OV_init)(void);
+typedef struct slap_oinit_t {
+	const char	*ov_type;
+	OV_init		ov_init;
+} OverlayInit;
+
 LDAP_END_DECL
 
 #include "proto-slap.h"

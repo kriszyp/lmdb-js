@@ -749,7 +749,7 @@ static slap_overinst dynlist = { { NULL } };
 static
 #endif /* SLAPD_OVER_DYNLIST == SLAPD_MOD_DYNAMIC */
 int
-dynlist_init(void)
+dynlist_initialize(void)
 {
 	dynlist.on_bi.bi_type = "dynlist";
 	dynlist.on_bi.bi_db_init = dynlist_db_init;
@@ -766,7 +766,7 @@ dynlist_init(void)
 int
 init_module( int argc, char *argv[] )
 {
-	return dynlist_init();
+	return dynlist_initialize();
 }
 #endif
 

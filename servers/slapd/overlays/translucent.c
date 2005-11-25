@@ -735,7 +735,7 @@ static int translucent_close(BackendDB *be) {
 **
 */
 
-int translucent_init() {
+int translucent_initialize() {
 
 	translucent.on_bi.bi_type	= "translucent";
 	translucent.on_bi.bi_db_init	= translucent_db_init;
@@ -755,7 +755,7 @@ int translucent_init() {
 
 #if SLAPD_OVER_TRANSLUCENT == SLAPD_MOD_DYNAMIC && defined(PIC)
 int init_module(int argc, char *argv[]) {
-	return translucent_init();
+	return translucent_initialize();
 }
 #endif
 

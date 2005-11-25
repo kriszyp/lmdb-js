@@ -573,7 +573,7 @@ static int unique_modrdn(
 ** it expects to be called automagically during dynamic module initialization
 */
 
-int unique_init() {
+int unique_initialize() {
 
 	/* statically declared just after the #includes at top */
 	unique.on_bi.bi_type = "unique";
@@ -591,7 +591,7 @@ int unique_init() {
 
 #if SLAPD_OVER_UNIQUE == SLAPD_MOD_DYNAMIC && defined(PIC)
 int init_module(int argc, char *argv[]) {
-	return unique_init();
+	return unique_initialize();
 }
 #endif
 

@@ -1942,7 +1942,7 @@ static char *extops[] = {
 
 static slap_overinst ppolicy;
 
-int ppolicy_init()
+int ppolicy_initialize()
 {
 	LDAPAttributeType *at;
 	const char *err;
@@ -2002,7 +2002,7 @@ int ppolicy_init()
 
 #if SLAPD_OVER_PPOLICY == SLAPD_MOD_DYNAMIC
 int init_module(int argc, char *argv[]) {
-	return ppolicy_init();
+	return ppolicy_initialize();
 }
 #endif
 

@@ -2539,7 +2539,7 @@ static int syncprov_parseCtrl (
 static slap_overinst 		syncprov;
 
 int
-syncprov_init()
+syncprov_initialize()
 {
 	int rc;
 
@@ -2584,7 +2584,7 @@ syncprov_init()
 int
 init_module( int argc, char *argv[] )
 {
-	return syncprov_init();
+	return syncprov_initialize();
 }
 #endif /* SLAPD_OVER_SYNCPROV == SLAPD_MOD_DYNAMIC */
 
