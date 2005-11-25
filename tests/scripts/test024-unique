@@ -75,7 +75,9 @@ cn: dave
 businessCategory: otest
 carLicense: TEST
 departmentNumber: 42
-displayName: Dave
+# NOTE: use special chars in attr value to be used
+# in internal searches ITS#4212
+displayName: Dave (ITS#4212)
 employeeNumber: 69
 employeeType: contractor
 givenName: Dave
