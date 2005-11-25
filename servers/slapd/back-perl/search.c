@@ -94,7 +94,7 @@ perl_back_search(
 						case SLAPD_SEND_SIZELIMIT:
 							rs->sr_entry = NULL;
 							rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-							goto done2;
+							goto done;
 						}
 					}
 
