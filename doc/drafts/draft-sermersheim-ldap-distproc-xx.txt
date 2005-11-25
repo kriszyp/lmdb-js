@@ -1,18 +1,19 @@
+
 Network Working Group                                     J. Sermersheim
 Internet-Draft                                               Novell, Inc
-Expires: April 24, 2005                                 October 24, 2004
+Expires: August 26, 2005                               February 22, 2005
 
 
 
                Distributed Procedures for LDAP Operations
-                 draft-sermersheim-ldap-distproc-01.txt
+                 draft-sermersheim-ldap-distproc-02.txt
 
 
 Status of this Memo
 
 
    This document is an Internet-Draft and is subject to all provisions
-   of section 3 of RFC 3667.  By submitting this Internet-Draft, each
+   of Section 3 of RFC 3667.  By submitting this Internet-Draft, each
    author represents that any applicable patent or other IPR claims of
    which he or she is aware have been or will be disclosed, and any of
    which he or she become aware will be disclosed, in accordance with
@@ -39,34 +40,35 @@ Status of this Memo
    http://www.ietf.org/shadow.html.
 
 
-   This Internet-Draft will expire on April 24, 2005.
+   This Internet-Draft will expire on August 26, 2005.
 
 
 Copyright Notice
 
 
-   Copyright (C) The Internet Society (2004).
+   Copyright (C) The Internet Society (2005).
 
 
 Abstract
 
 
    This document provides the data types and procedures used while
-   servicing Lightweight Directory Application Protocol (LDAP) user
+   servicing Lightweight Directory Access Protocol (LDAP) user
    operations in order to participate in a distributed directory.  In
    particular, it describes the way in which an LDAP user operation in a
    distributed directory environment finds its way to the proper DSA(s)
    for servicing.
 
 
+
+
+
+Sermersheim              Expires August 26, 2005                [Page 1]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
+
+
+
 Discussion Forum
-
-
-
-
-Sermersheim              Expires April 24, 2005                 [Page 1]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
-
 
 
    Technical discussion of this document will take place on the IETF
@@ -121,10 +123,8 @@ Table of Contents
 
 
 
-
-
-Sermersheim              Expires April 24, 2005                 [Page 2]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 2]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -185,8 +185,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                 [Page 3]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 3]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -244,8 +244,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                 [Page 4]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 4]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -309,8 +309,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                 [Page 5]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 5]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -373,8 +373,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                 [Page 6]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 6]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -436,8 +436,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                 [Page 7]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 7]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -504,8 +504,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                 [Page 8]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 8]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -574,8 +574,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                 [Page 9]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005                [Page 9]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -645,8 +645,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 10]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 10]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -714,8 +714,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 11]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 11]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -779,8 +779,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 12]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 12]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -837,8 +837,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 13]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 13]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -902,8 +902,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 14]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 14]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -970,8 +970,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 15]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 15]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1037,8 +1037,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 16]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 16]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1070,7 +1070,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
    Note that due to alias dereferencing, the search scope may expand to
    include entries outside of the scope originally specified in the
-   search operation.
+   search operation.  {TODO: note that an aliased object may be glue
+   which needs to result in any subr or xr above it to be found}
 
 
    Nssr Note: A DSE of type nssr is only considered to be found
@@ -1101,9 +1102,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-
-Sermersheim              Expires April 24, 2005                [Page 17]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 17]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1170,8 +1170,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 18]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 18]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1237,8 +1237,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 19]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 19]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1303,8 +1303,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 20]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 20]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1367,8 +1367,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 21]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 21]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1437,8 +1437,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 22]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 22]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1502,8 +1502,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 23]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 23]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1569,8 +1569,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 24]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 24]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1636,8 +1636,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 25]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 25]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1702,8 +1702,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 26]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 26]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1767,8 +1767,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 27]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 27]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1833,8 +1833,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 28]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 28]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1901,8 +1901,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 29]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 29]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -1963,8 +1963,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 30]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 30]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2028,8 +2028,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 31]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 31]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2087,8 +2087,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 32]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 32]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2104,7 +2104,7 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
    This document introduces the ability to return auxiliary data when
    returning referrals.  Measures should be taken to ensure proper
-   protection of this data.
+   protection of his data.
 
 
    Implementers must ensure that any specified time, size, and
@@ -2112,13 +2112,14 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
    introduced here.
 
 
-6  Normative References
+6.  Normative References
 
 
    [LDAP-SUBORD]
               Sermersheim, J., "Subordinate Subtree Search Scope for
-              LDAP", draft-sermersheim-ldap-subordinate-scope-xx (work
-              in progress), July 2004.
+              LDAP",
+              Internet-Draft draft-sermersheim-ldap-subordinate-scope,
+              July 2004.
 
 
    [RFC2079]  Smith, M., "Definition of an X.500 Attribute Type and an
@@ -2155,9 +2156,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-
-Sermersheim              Expires April 24, 2005                [Page 33]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 33]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2172,8 +2172,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
    [RFC3771]  Harrison, R. and K. Zeilenga, "The Lightweight Directory
-              Access Protocol (LDAP) Intermediate Response Message", RFC
-              3771, April 2004.
+              Access Protocol (LDAP) Intermediate Response Message",
+              RFC 3771, April 2004.
 
 
    [X500]     International Telephone and Telegraph Consultative
@@ -2211,7 +2211,7 @@ Author's Address
 
 
    Phone: +1 801 861-3088
-   EMail: jimse@novell.com
+   Email: jimse@novell.com
 
 
 
@@ -2222,8 +2222,8 @@ Author's Address
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 34]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 34]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2287,8 +2287,8 @@ A.2  LDAP Protocol Mechanism Registrations
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 35]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 35]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2348,8 +2348,8 @@ Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 36]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 36]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2411,8 +2411,8 @@ A.3  LDAP Descriptor Registrations
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 37]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 37]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2472,8 +2472,8 @@ A.4  LDAP Result Code Registrations
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 38]
-Internet-Draft    Distributed Procedures for LDAP OperationsOctober 2004
+Sermersheim              Expires August 26, 2005               [Page 38]
+Internet-Draft    Distributed Procedures for LDAP Operations  February 2005
 
 
 
@@ -2522,7 +2522,7 @@ Disclaimer of Validity
 Copyright Statement
 
 
-   Copyright (C) The Internet Society (2004).  This document is subject
+   Copyright (C) The Internet Society (2005).  This document is subject
    to the rights, licenses and restrictions contained in BCP 78, and
    except as set forth therein, the authors retain all their rights.
 
@@ -2538,4 +2538,4 @@ Acknowledgment
 
 
 
-Sermersheim              Expires April 24, 2005                [Page 39]
+Sermersheim              Expires August 26, 2005               [Page 39]

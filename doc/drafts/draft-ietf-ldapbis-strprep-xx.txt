@@ -3,14 +3,15 @@
 
 
 
+
 Internet-Draft                                      Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                9 February 2005
+Expires in six months                              30 September 2005
 
 
 
                 LDAP: Internationalized String Preparation
-                   <draft-ietf-ldapbis-strprep-05.txt>
+                   <draft-ietf-ldapbis-strprep-06.txt>
 
 
 
@@ -22,11 +23,10 @@ Status of this Memo
   mailing list <ietf-ldapbis@openldap.org>.  Please send editorial
   comments directly to the editor <Kurt@OpenLDAP.org>.
 
-  By submitting this Internet-Draft, I accept the provisions of Section
-  4 of RFC 3667.  By submitting this Internet-Draft, I certify that any
-  applicable patent or other IPR claims of which I am aware have been
-  disclosed, or will be disclosed, and any of which I become aware will
-  be disclosed, in accordance with RFC 3668.
+  By submitting this Internet-Draft, each author represents that any
+  applicable patent or other IPR claims of which he or she is aware have
+  been or will be disclosed, and any of which he or she becomes aware
+  will be disclosed, in accordance with Section 6 of BCP 79.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups. Note that other
@@ -54,9 +54,10 @@ Status of this Memo
 
 
 
+
 Zeilenga                        LDAPprep                        [Page 1]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
 Abstract
@@ -112,7 +113,7 @@ Conventions and Terms
 
 Zeilenga                        LDAPprep                        [Page 2]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   For instance, the caseIgnoreMatch matching rule may be used to compare
@@ -168,7 +169,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                        [Page 3]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   b) after applying the Unicode string preparation steps outlined in
@@ -224,7 +225,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                        [Page 4]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
       5) Check bidi
@@ -280,7 +281,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                        [Page 5]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   these code points: U+0020, 00A0, 1680, 2000-200A, 2028-2029, 202F,
@@ -336,7 +337,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                        [Page 6]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   characters insignificant to the matching rule.  This modification
@@ -392,7 +393,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                        [Page 7]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
 2.6.3. telephoneNumber Insignificant Character Handling
@@ -448,7 +449,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                        [Page 8]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
 6. References
@@ -490,7 +491,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
   [X.680]       International Telecommunication Union -
                 Telecommunication Standardization Sector, "Abstract
                 Syntax Notation One (ASN.1) - Specification of Basic
-                Notation", X.680(1997) (also ISO/IEC 8824-1:1998).
+                Notation", X.680(2002) (also ISO/IEC 8824-1:2002).
 
 
 6.2. Informative References
@@ -504,7 +505,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                        [Page 9]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   [X.501]       International Telecommunication Union -
@@ -560,7 +561,7 @@ Appendix B.  Substrings Matching
 
 Zeilenga                        LDAPprep                       [Page 10]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   In absence of substrings matching, the insignificant space handling
@@ -616,7 +617,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Zeilenga                        LDAPprep                       [Page 11]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   requirements.
@@ -672,7 +673,7 @@ Intellectual Property Rights
 
 Zeilenga                        LDAPprep                       [Page 12]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
+Internet-Draft        draft-ietf-ldapbis-strprep-06    30 September 2005
 
 
   Copies of IPR disclosures made to the IETF Secretariat and any
@@ -692,9 +693,11 @@ Internet-Draft        draft-ietf-ldapbis-strprep-05      9 February 2005
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2005).  This document is subject
-  to the rights, licenses and restrictions contained in BCP 78, and
-  except as set forth therein, the authors retain all their rights.
+  Copyright (C) The Internet Society (2005).
+
+  This document is subject to the rights, licenses and restrictions
+  contained in BCP 78, and except as set forth therein, the authors
+  retain all their rights.
 
   This document and the information contained herein are provided on an
   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE
@@ -724,8 +727,5 @@ Full Copyright
 
 
 
-
-
 Zeilenga                        LDAPprep                       [Page 13]
 
-

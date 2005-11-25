@@ -1,11 +1,11 @@
 
 
 INTERNET-DRAFT                                               Rob Weltman 
-Intended Category: Standards Track         Netscape Communications Corp. 
-                                                              April 2003 
+Intended Category: Standards Track                          Yahoo!, Inc. 
+                                                               June 2005 
     
                    LDAP Proxied Authorization Control 
-                   draft-weltman-ldapv3-proxy-12.txt 
+                   draft-weltman-ldapv3-proxy-13.txt 
  
  
 Status of this Memo 
@@ -13,20 +13,24 @@ Status of this Memo
    This document is an Internet-Draft and is in full conformance with 
    all provisions of Section 10 of RFC2026. 
     
-   Internet-Drafts are working documents of the Internet Task Force 
-   (IETF), its areas, and its working groups.  Note that other groups 
-   may also distribute working documents as Internet-Drafts. 
+   By submitting this Internet-Draft, each author represents that any 
+   applicable patent or other IPR claims of which he or she is aware 
+   have been or will be disclosed, and any of which he or she becomes 
+   aware will be disclosed, in accordance with Section 6 of BCP 79.  
     
+   Internet-Drafts are working documents of the Internet Engineering 
+   Task Force (IETF), its areas, and its working groups. Note that other 
+   groups may also distribute working documents as Internet-Drafts.  
    Internet-Drafts are draft documents valid for a maximum of six months 
    and may be updated, replaced, or obsoleted by other documents at any 
-   time.  It is inappropriate to use Internet Drafts as reference 
+   time. It is inappropriate to use Internet-Drafts as reference 
    material or to cite them other than as "work in progress." 
     
    The list of current Internet-Drafts can be accessed at 
-   http://www.ietf.org/ietf/1id-abstracts.txt 
+   http://www.ietf.org/1id-abstracts.html 
     
    The list of Internet-Draft Shadow Directories can be accessed at 
-   http://www.ietf.org/shadow.html. 
+   http://www.ietf.org/shadow.html 
     
     
 Abstract 
@@ -50,16 +54,16 @@ Abstract
    identity distinct from the authentication identity, where the 
    authorization identity applies to the whole LDAP session. The Proxy 
    Authorization Control provides a mechanism for specifying an 
+  
+Expires December 2005                                         [Page 1] 
+
+PROXIED AUTHORIZATION CONTROL                                June 2005 
+ 
+ 
    authorization identity on a per operation basis, benefiting clients 
    that need to efficiently perform operations on behalf of multiple 
    users. 
     
-  
-Expires October 2003                                          [Page 1] 
-
-PROXIED AUTHORIZATION CONTROL                               April 2003 
- 
- 
    The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT", and "MAY" 
    used in this document  are  to be interpreted as described in 
    [KEYWORDS]. 
@@ -88,6 +92,13 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
    protects clients from submitting a request that is executed with an 
    unintended authorization identity. 
     
+   Clients MUST include the criticality flag and MUST set it to TRUE. 
+   Servers MUST reject any request containing a Proxy Authorization 
+   Control without a criticality flag or with the flag set to FALSE with 
+   a protocolError error.  These requirements protect clients from 
+   submitting a request that is executed with an unintended 
+   authorization identity. 
+    
    The controlValue SHALL be present and contain either an authzId 
    [AUTH] representing the authorization identity for the request or 
    empty if an anonymous association is to be used. 
@@ -102,6 +113,12 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
    [Note to the IESG/IANA/RFC Editor: the value TBD is to be replaced 
    with an IANA assigned LDAP Result Code (see RFC 3383 section 3.6] 
     
+  
+Expires December 2005                                         [Page 2] 
+
+PROXIED AUTHORIZATION CONTROL                                June 2005 
+ 
+ 
     
 4. Implementation Considerations 
     
@@ -113,12 +130,6 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
    requester does not have the right to assume the requested identity 
    for searching the entry, even if the entry is within the scope of a 
    search request under a base DN which does imply such rights. This 
-  
-Expires October 2003                                          [Page 2] 
-
-PROXIED AUTHORIZATION CONTROL                               April 2003 
- 
- 
    means that fewer results, or no results, may be returned compared to 
    the case where the proxy authorization identity issued the request 
    directly. An example of such a case may be a system with fine-grained 
@@ -155,7 +166,25 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
     
 7. Copyright 
     
-   Copyright (C) The Internet Society (date). All Rights Reserved. 
+   Copyright (C) The Internet Society (2005). 
+    
+   This document is subject to the rights, licenses and restrictions 
+   contained in BCP 78, and except as set forth therein, the authors 
+   retain all their rights. 
+    
+  
+Expires December 2005                                         [Page 3] 
+
+PROXIED AUTHORIZATION CONTROL                                June 2005 
+ 
+ 
+   This document and the information contained herein are provided on an 
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS 
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET 
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, 
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE 
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED 
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. 
     
    This document and translations of it may be copied and furnished to 
    others, and derivative works that comment on or otherwise explain it 
@@ -172,20 +201,7 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
    English. 
     
    The limited permissions granted above are perpetual and will not be 
-  
-Expires October 2003                                          [Page 3] 
-
-PROXIED AUTHORIZATION CONTROL                               April 2003 
- 
- 
    revoked by the Internet Society or its successors or assigns. 
-    
-   This document and the information contained herein is provided on an 
-   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING 
-   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING 
-   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION 
-   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF 
-   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. 
     
     
 8. Normative References 
@@ -215,6 +231,12 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
    [RFC 2252] M. Wahl, A. Coulbeck, T. Howes, S. Kille, "Lightweight 
         Directory Access Protocol (v3): Attribute Syntax Definitions", 
         RFC 2252, December 1997 
+  
+Expires December 2005                                         [Page 4] 
+
+PROXIED AUTHORIZATION CONTROL                                June 2005 
+ 
+ 
     
    [RFC 2829] M. Wahl, H. Alvestrand, J. Hodges, R. Morgan, 
         "Authentication Methods for LDAP", RFC 2829, May 2000 
@@ -226,27 +248,20 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
 9. Author's Address 
     
    Rob Weltman 
-   Netscape Communications Corp. 
-   360 W. Caribbean Drive 
+   Yahoo!, Inc 
+   701 First Avenue 
    Sunnyvale, CA 94089 
    USA 
-
-  
-Expires October 2003                                          [Page 4] 
-
-PROXIED AUTHORIZATION CONTROL                               April 2003 
- 
- 
-   +1 650 937-3194 
-   rweltman@netscape.com 
+   +1 408 349-5504 
+   robw@worldspot.com 
     
     
 10. Acknowledgements 
     
-   Mark Smith of Netscape Communications Corp., Mark Wahl of Sun 
-   Microsystems, Inc, Kurt Zeilenga of OpenLDAP Foundation, Jim 
-   Sermersheim of Novell, and Steven Legg of Adacel have contributed 
-   with reviews of this document. 
+   Mark Smith, formerly of Netscape Communications Corp., Mark Wahl, 
+   formerly of Sun Microsystems, Inc, Kurt Zeilenga of OpenLDAP 
+   Foundation, Jim Sermersheim of Novell, and Steven Legg of Adacel have 
+   contributed with reviews of this document. 
     
 
 
@@ -275,21 +290,6 @@ PROXIED AUTHORIZATION CONTROL                               April 2003
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   
-Expires October 2003                                          [Page 5] 
+Expires December 2005                                         [Page 5] 
 
