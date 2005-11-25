@@ -689,7 +689,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 * e_flags: array of a_flags
 	 */
 	char **e_flags = NULL;
-	
+
+	if ( op->ors_slimit >= 0 && rs->sr_nentries >= op->ors_slimit ) {
+		return SLAPD_SEND_SIZELIMIT;
+	}
+
 	rs->sr_type = REP_SEARCH;
 
 	/* eventually will loop through generated operational attribute types
@@ -1125,15 +1129,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->o_res_ber == NULL ) {
-		if ( --op->ors_slimit == -1 ) {
-			rc = SLAPD_SEND_SIZELIMIT;
-			ber_free_buf( ber );
-			/* putback, so dumb backends that don't 
-			 * check sizelimit won't at least return
-			 * more than expected... */
-			op->ors_slimit++;
-			goto error_return;
-		}
 		bytes = send_ldap_ber( op->o_conn, ber );
 		ber_free_buf( ber );
 
