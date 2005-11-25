@@ -2,6 +2,8 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.13 Engineering
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
+	Documentation
+		Updated ldif(5) to include change record description
 
 OpenLDAP 2.3.12 Release
 	Fixed libldap ldapi:// authdn construction
