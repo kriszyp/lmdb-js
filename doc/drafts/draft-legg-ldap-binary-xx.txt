@@ -1,21 +1,29 @@
 
 
+
+
+
+
 INTERNET-DRAFT                                                   S. Legg
-draft-legg-ldap-binary-01.txt                        Adacel Technologies
-Intended Category: Standards Track                          16 June 2004
-Updates: RFC 2251bis
+draft-legg-ldap-binary-03.txt                                    eB2Bcom
+Intended Category: Standards Track                           7 June 2005
+Updates: [SYNTAX]
 
 
              Lightweight Directory Access Protocol (LDAP):
                        The Binary Encoding Option
 
-    Copyright (C) The Internet Society (2004). All Rights Reserved.
+    Copyright (C) The Internet Society (2005). All Rights Reserved.
 
    Status of this Memo
 
+   By submitting this Internet-draft, each author represents that any
+   applicable patent or other IPR claims of which he or she is aware
+   have been or will be disclosed, and any of which he or she becomes
+   aware will be disclosed, in accordance with Section 6 of BCP 79.
 
-   This document is an Internet-Draft and is in full conformance with
-   all provisions of Section 10 of RFC2026.
+   By submitting this Internet-draft, I accept the provisions of Section
+   3 of BCP 78.
 
    Internet-Drafts are working documents of the Internet Engineering
    Task Force (IETF), its areas, and its working groups.  Note that
@@ -28,21 +36,17 @@ Updates: RFC 2251bis
    material or to cite them other than as "work in progress".
 
    The list of current Internet-Drafts can be accessed at
-   http://www.ietf.org/ietf/1id-abstracts.txt
+   http://www.ietf.org/1id-abstracts.html
 
    The list of Internet-Draft Shadow Directories can be accessed at
-   http://www.ietf.org/shadow.html.
+   http://www.ietf.org/shadow.html
 
-   This document is intended to be, after appropriate review and
-   revision, submitted to the RFC Editor as a Standard Track document.
-   Distribution of this document is unlimited.  Technical discussion of
-   this document should take place on the IETF LDAP Revision Working
-   Group (LDAPbis) mailing list <ietf-ldapbis@openldap.org>.  Please
-   send editorial comments directly to the editor
-   <steven.legg@adacel.com.au>.
+   Technical discussion of this document should take place on the IETF
+   LDAP Revision Working Group (LDAPbis) mailing list
+   <ietf-ldapbis@openldap.org>.  Please send editorial comments directly
+   to the editor <steven.legg@eb2bcom.com>.
 
-   This Internet-Draft expires on 16 December 2004.
-
+   This Internet-Draft expires on 7 December 2005.
 
 Abstract
 
@@ -51,9 +55,9 @@ Abstract
 
 
 
-Legg                    Expires 16 December 2004                [Page 1]
+Legg                     Expires 7 December 2005                [Page 1]
 
-INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
 
 
    definition specifies how attribute values conforming to the syntax
@@ -107,9 +111,9 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
 
 
 
-Legg                    Expires 16 December 2004                [Page 2]
+Legg                     Expires 7 December 2005                [Page 2]
 
-INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
 
 
 Table of Contents
@@ -124,9 +128,9 @@ Table of Contents
    8.  Security Considerations. . . . . . . . . . . . . . . . . . . .  6
    9.  IANA Considerations. . . . . . . . . . . . . . . . . . . . . .  6
    10. References . . . . . . . . . . . . . . . . . . . . . . . . . .  6
-       10.1.  Normative References. . . . . . . . . . . . . . . . . .  6
+       10.1.  Normative References. . . . . . . . . . . . . . . . . .  7
        10.2.  Informative References. . . . . . . . . . . . . . . . .  7
-   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . .  7
+   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . .  8
    Full Copyright Statement . . . . . . . . . . . . . . . . . . . . .  8
 
 1.  Introduction
@@ -143,10 +147,10 @@ Table of Contents
 
    This document defines an attribute option, the binary option, which
    can be used in an attribute description [MODELS] in an LDAP operation
-   to specify that the associated attribute values or assertion value
+   to specify that the associated attribute values or assertion values
    are, or are requested to be, encoded according to the Basic Encoding
-   Rules (BER) [BER] as used by X.500 [X500] directories, instead of the
-   usual LDAP-specific encoding.
+   Rules (BER) [BER] as used by X.500 [X.500] directories, instead of
+   the usual LDAP-specific encoding.
 
    The binary option was originally defined in RFC 2251 [RFC2251].  The
    LDAP technical specification [ROADMAP] has obsoleted the previously
@@ -163,9 +167,9 @@ Table of Contents
 
 
 
-Legg                    Expires 16 December 2004                [Page 3]
+Legg                     Expires 7 December 2005                [Page 3]
 
-INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
 
 
 2.  Conventions
@@ -182,48 +186,52 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
    options, the string representing the binary option is case
    insensitive.
 
+   Where the binary option is present in an attribute description the
+   associated attribute values or assertion values MUST be BER encoded
+   (otherwise the values are encoded according to the LDAP-specific
+   encoding [SYNTAX] for the attribute's syntax).  Note that it is
+   possible for a syntax to be defined such that its LDAP-specific
+   encoding is exactly the same as its BER encoding.
+
    In terms of the protocol [PROT], the binary option specifies that the
    contents octets of the associated AttributeValue or AssertionValue
    OCTET STRING are a complete BER encoding of the relevant value.
 
-   Where the binary option is present in an attribute description the
-   associated attribute values or assertion value MUST be BER encoded.
-   Note that it is possible for a syntax to be defined such that its
-   LDAP-specific encoding is exactly the same as its BER encoding.
-
    The binary option is not a tagging option [MODELS] so the presence of
    the binary option does not specify an attribute subtype.  An
    attribute description containing the binary option references exactly
-   the same attribute as the same attribute description without the
-   binary option.  The supertype/subtype relationships of attributes
-   with tagging options are not altered in any way by the presence or
-   absence of the binary option.
+   the same attribute as the attribute description without the binary
+   option.  The supertype/subtype relationships of attributes with
+   tagging options are not altered in any way by the presence or absence
+   of the binary option.
 
    An attribute description SHALL be treated as unrecognized if it
    contains the binary option and the syntax of the attribute does not
-   have an associated ASN.1 type [SYNTAX], or the BER encoding of that
-   type is not supported.
+   have an associated ASN.1 type [SYNTAX], or the BER encoding of values
+   of that type is not supported.
 
    The presence or absence of the binary option only affects the
    transfer of attribute and assertion values in protocol; servers store
-   any particular attribute value in a single format of their choosing.
+   any particular attribute value in a format of their choosing.
 
 4.  Syntaxes Requiring Binary Transfer
 
-   Certain syntaxes are required to be transferred in the BER encoded
-   form.  These syntaxes are said to have a binary transfer requirement.
-   The Certificate, Certificate List, Certificate Pair and Supported
+   The attribute values of certain attribute syntaxes are defined
+   without an LDAP-specific encoding and are required to be transferred
+   in the BER encoded form.  For the purposes of this document, these
+   syntaxes are said to have a binary transfer requirement.  The
+
+
+
+Legg                     Expires 7 December 2005                [Page 4]
+
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
+
+
+   Certificate, Certificate List, Certificate Pair and Supported
    Algorithm syntaxes [PKI] are examples of syntaxes with a binary
    transfer requirement.  These syntaxes also have an additional
    requirement that the exact BER encoding must be preserved.  Note that
-
-
-
-Legg                    Expires 16 December 2004                [Page 4]
-
-INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
-
-
    this is a property of the syntaxes themselves, and not a property of
    the binary option.
 
@@ -244,21 +252,22 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
    applies to all the subtypes of the attribute type in the attribute
    description (however, see Section 7).
 
-   Attributes of a syntax with the binary transfer requirement SHALL be
-   returned in the binary form, i.e., with the binary option in the
-   attribute description and the associated attribute values BER
-   encoded, regardless of whether the binary option was present in the
-   request (for the attribute or for one of its supertypes).
+   Attributes of a syntax with the binary transfer requirement, if
+   returned, SHALL be returned in the binary form, i.e., with the binary
+   option in the attribute description and the associated attribute
+   values BER encoded, regardless of whether the binary option was
+   present in the request (for the attribute or for one of its
+   supertypes).
 
-   Attributes of a syntax without the binary transfer requirement SHOULD
-   be returned in the form explicitly requested.  That is, if the
-   attribute description in the requested attributes list contains the
-   binary option then the corresponding attribute in the result SHOULD
-   be in the binary form.  If the attribute description in the request
-   does not contain the binary option then the corresponding attribute
-   in the result SHOULD NOT be in the binary form.  A server MAY omit an
-   attribute from the result if it does not support the requested
-   encoding.
+   Attributes of a syntax without the binary transfer requirement, if
+   returned, SHOULD be returned in the form explicitly requested.  That
+   is, if the attribute description in the requested attributes list
+   contains the binary option then the corresponding attribute in the
+   result SHOULD be in the binary form.  If the attribute description in
+   the request does not contain the binary option then the corresponding
+   attribute in the result SHOULD NOT be in the binary form.  A server
+   MAY omit an attribute from the result if it does not support the
+   requested encoding.
 
    Regardless of the encoding chosen, a particular attribute value is
    returned at most once.
@@ -267,18 +276,18 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
 
    If the list of attributes in a search request is empty, or contains
    the special attribute description string "*", then all user
+
+
+
+Legg                     Expires 7 December 2005                [Page 5]
+
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
+
+
    attributes are requested to be returned.
 
-   Attributes of a syntax with the binary transfer requirement SHALL be
-   returned in the binary form.
-
-
-
-
-Legg                    Expires 16 December 2004                [Page 5]
-
-INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
-
+   Attributes of a syntax with the binary transfer requirement, if
+   returned, SHALL be returned in the binary form.
 
    Attributes of a syntax without the binary transfer requirement and
    having a defined LDAP-specific encoding SHOULD NOT be returned in the
@@ -295,8 +304,8 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
    of one or more of its supertypes, or by the special attribute
    description string "*".  If the binary option is not present in all
    these attribute descriptions, nor absent in all these attribute
-   descriptions, then the server is free to choose whether to return the
-   attribute in the binary form.
+   descriptions, then the effect of the request with respect to binary
+   transfer is implementation defined.
 
 8.  Security Considerations
 
@@ -311,12 +320,12 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
    the LDAP attribute description option registry [BCP64] as indicated
    by the following template:
 
-      Subject: Request for
-        LDAP Attribute Description Option Registration
+      Subject:
+        Request for LDAP Attribute Description Option Registration
       Option Name: binary
       Family of Options: NO
       Person & email address to contact for further information:
-        Steven Legg <steven.legg@adacel.com.au>
+        Steven Legg <steven.legg@eb2bcom.com>
       Specification: RFC XXXX
       Author/Change Controller: IESG
       Comments: The existing registration for "binary"
@@ -324,17 +333,17 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
 
 10.  References
 
+
+
+Legg                     Expires 7 December 2005                [Page 6]
+
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
+
+
 10.1.  Normative References
 
    [KEYWORD]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119, March 1997.
-
-
-
-Legg                    Expires 16 December 2004                [Page 6]
-
-INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
-
 
    [BCP64]    Zeilenga, K., "Internet Assigned Numbers Authority (IANA)
               Considerations for the Lightweight Directory Access
@@ -343,25 +352,25 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
    [ROADMAP]  Zeilenga, K., "Lightweight Directory Access Protocol
               (LDAP): Technical Specification Road Map",
               draft-ietf-ldapbis-roadmap-xx.txt, a work in progress,
-              June 2004.
+              February 2005.
 
    [MODELS]   Zeilenga, K., "LDAP: Directory Information Models",
-              draft-ietf-ldapbis-models-xx.txt, a work in progress, June
-              2004.
+              draft-ietf-ldapbis-models-xx.txt, a work in progress,
+              February 2005.
 
    [PROT]     Sermersheim, J., "LDAP: The Protocol",
               draft-ietf-ldapbis-protocol-xx.txt, a work in progress,
-              May 2004.
+              February 2005.
 
    [SYNTAX]   Legg, S. and K. Dally, "Lightweight Directory Access
               Protocol (LDAP): Syntaxes and Matching Rules",
               draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress,
-              May 2004.
+              February 2005.
 
-   [PKI]      Chadwick, D. and S. Legg, "Internet X.509 Public Key
-              Infrastructure Additional LDAP Schema for PKIs and PMIs",
-              draft-pkix-ldap-schema-xx.txt, a work in progress, April
-              2002.
+   [PKI]      Zeilenga, Kurt D., "Lightweight Directory Access Protocol
+              (LDAP) schema definitions for X.509 Certificates",
+              draft-zeilenga-ldap-x509-xx.txt, a work in progress,
+              February 2005.
 
    [BER]      ITU-T Recommendation X.690 (07/02) | ISO/IEC 8825-1,
               Information Technology - ASN.1 encoding rules:
@@ -378,35 +387,38 @@ INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
               Protocol (v3): Technical Specification", RFC 3377,
               September 2002.
 
-   [X500]     ITU-T Recommendation X.500 (1993) | ISO/IEC 9594-1:1994,
+   [X.500]    ITU-T Recommendation X.500 (1993) | ISO/IEC 9594-1:1994,
+
+
+
+Legg                     Expires 7 December 2005                [Page 7]
+
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
+
+
               "Information Technology - Open Systems Interconnection -
               The Directory: Overview of concepts, models and services".
 
 Author's Address
 
-
-
-
-Legg                    Expires 16 December 2004                [Page 7]
-
-INTERNET-DRAFT      LDAP: The Binary Encoding Option       June 16, 2004
-
-
    Steven Legg
-   Adacel Technologies Ltd.
-   250 Bay Street
-   Brighton, Victoria 3186
+   eB2Bcom
+   Suite 3, Woodhouse Corporate Centre
+   935 Station Street
+   Box Hill North, Victoria 3129
    AUSTRALIA
 
-   Phone: +61 3 8530 7710
-     Fax: +61 3 8530 7888
-   Email: steven.legg@adacel.com.au
+   Phone: +61 3 9896 7830
+     Fax: +61 3 9896 7801
+   EMail: steven.legg@eb2bcom.com
 
 Full Copyright Statement
 
-   Copyright (C) The Internet Society (2004).  This document is subject
-   to the rights, licenses and restrictions contained in BCP 78, and
-   except as set forth therein, the authors retain all their rights.
+   Copyright (C) The Internet Society (2005).
+
+   This document is subject to the rights, licenses and restrictions
+   contained in BCP 78, and except as set forth therein, the authors
+   retain all their rights.
 
    This document and the information contained herein are provided on an
    "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
@@ -432,6 +444,14 @@ Intellectual Property
    attempt made to obtain a general license or permission for the use of
    such proprietary rights by implementers or users of this
    specification can be obtained from the IETF on-line IPR repository at
+
+
+
+Legg                     Expires 7 December 2005                [Page 8]
+
+INTERNET-DRAFT      LDAP: The Binary Encoding Option        June 7, 2005
+
+
    http://www.ietf.org/ipr.
 
    The IETF invites any interested party to bring to its attention any
@@ -443,6 +463,45 @@ Intellectual Property
 
 
 
-Legg                    Expires 16 December 2004                [Page 8]
-
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Legg                     Expires 7 December 2005                [Page 9]
+

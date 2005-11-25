@@ -1,28 +1,29 @@
 
+
 INTERNET-DRAFT                                      Editor: A. Sciberras
 Intended Category:  Standard Track                               eB2Bcom
-Updates:  RFC 2247, RFC 2798, RFC 2377                     April 4, 2005
+Updates:  RFC 2247, RFC 2798, RFC 2377                     July 11, 2005
 Obsoletes:  RFC 2256
 
-
                    LDAP: Schema for User Applications
-		  draft-ietf-ldapbis-user-schema-09.txt
+                 draft-ietf-ldapbis-user-schema-10.txt
 
-    Copyright (C) The Internet Society (2005).  All Rights Reserved.
+    Copyright (C) The Internet Society (2005). All Rights Reserved.
 
    Status of this Memo
 
-   This document is an Internet-Draft and is subject to all provisions
-   of Section 3 of RFC 3978.  By submitting this Internet-Draft, each
-   author represents that any applicable patent or other IPR claims of
-   which he or she is aware have been or will be disclosed, and any of
-   which he or she become aware will be disclosed, in accordance with
-   RFC 3979.
+   By submitting this Internet-Draft, each author represents that any
+   applicable patent or other IPR claims of which he or she is aware
+   have been or will be disclosed, and any of which he or she becomes
+   aware will be disclosed, in accordance with Section 6 of BCP 79.
+
+   By submitting this Internet-Draft, I accept the provisions of Section
+   3 of BCP 78.
 
    Internet-Drafts are working documents of the Internet Engineering
    Task Force (IETF), its areas, and its working groups.  Note that
-   other groups may also distribute working documents as Internet-
-   Drafts.
+   other groups may also distribute working documents as
+   Internet-Drafts.
 
    Internet-Drafts are draft documents valid for a maximum of six months
    and may be updated, replaced, or obsoleted by other documents at any
@@ -37,23 +38,22 @@ Obsoletes:  RFC 2256
 
    This document is intended to be, after appropriate review and
    revision, submitted to the RFC Editor as a Standard Track document.
-   Distribution of this memo is unlimited.  Technical discussion of this
-   document will take place on the IETF LDAP Revision Working Group
-   (LDAPbis) mailing list <ietf-ldapbis@openldap.org>.  Please send
-   editorial comments directly to the editor
+   Distribution of this document is unlimited.  Technical discussion of
+   this document should take place on the IETF LDAP Revision Working
+   Group (LDAPbis) mailing list <ietf-ldapbis@openldap.org>.  Please
+   send editorial comments directly to the editor
    <andrew.sciberras@eb2bcom.com>.
 
-   This Internet-Draft expires on 4 October 2005.
-
-Copyright Notice
-
-   Copyright (C) The Internet Society 2005.  All Rights Reserved.
+   This Internet-Draft expires on 11 January 2006.
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 1]
+
+
+
+Sciberras                Expires 11 January 2006                [Page 1]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 Abstract
@@ -107,9 +107,9 @@ Abstract
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 2]
+Sciberras                Expires 11 January 2006                [Page 2]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 Table of Contents
@@ -163,9 +163,9 @@ Table of Contents
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 3]
+Sciberras                Expires 11 January 2006                [Page 3]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
        2.37 'telexNumber'. . . . . . . . . . . . . . . . . . . . . .  19
@@ -206,7 +206,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
    9.  Intellectual Property Statement . . . . . . . . . . . . . . .  32
 
-   10. Disclaimer of Validity. . . . . . . . . . . . . . . . . . . .  32
+   10. Full Copyright Statement. . . . . . . . . . . . . . . . . . .  32
 
 
 
@@ -219,9 +219,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 4]
+Sciberras                Expires 11 January 2006                [Page 4]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 1.  Introduction
@@ -235,7 +235,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    administration of directory servers, nor does it include directory
    objects defined for specific uses in other documents.
 
-1.1 Relationship with other specifications
+1.1  Relationship with other specifications
 
    This document is an integral part of the LDAP technical specification
    [Roadmap] which obsoletes the previously defined LDAP technical
@@ -263,7 +263,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 1.2  Conventions
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-   "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
    document are to be interpreted as described in RFC 2119 [RFC2119].
 
 1.3  General Issues
@@ -275,9 +275,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 5]
+Sciberras                Expires 11 January 2006                [Page 5]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
    using the Augmented Backus-Naur Form (ABNF) [RFC2234] of
@@ -331,9 +331,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 6]
+Sciberras                Expires 11 January 2006                [Page 6]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
    Examples: "DE", "AU" and "FR".
@@ -387,9 +387,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 7]
+Sciberras                Expires 11 January 2006                [Page 7]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 2.5  'description'
@@ -443,9 +443,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 8]
+Sciberras                Expires 11 January 2006                [Page 8]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
    attribute types with a DN syntax can inherit.
@@ -499,9 +499,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                 [Page 9]
+Sciberras                Expires 11 January 2006                [Page 9]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
       ( 2.5.4.47 NAME 'enhancedSearchGuide'
@@ -510,8 +510,8 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    1.3.6.1.4.1.1466.115.121.1.21 refers to the Enhanced Guide syntax
    [Syntaxes].
 
-   Examples: "person#(sn$APPROX)#wholeSubtree"
-             "organizationalUnit#(ou$SUBSTR)#oneLevel"
+   Examples: "person#(sn$APPROX)#wholeSubtree" and
+             "organizationalUnit#(ou$SUBSTR)#oneLevel".
 
 2.10  'facsimileTelephoneNumber'
 
@@ -526,7 +526,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    1.3.6.1.4.1.1466.115.121.1.22 refers to the Facsimile Telephone
    Number syntax [Syntaxes].
 
-   Examples: "+61 3 9896 7801" and "+81 3 347 7418$fineResolution"
+   Examples: "+61 3 9896 7801" and "+81 3 347 7418$fineResolution".
 
 2.11  'generationQualifier'
 
@@ -550,14 +550,14 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
       ( 2.5.4.42 NAME 'givenName'
          SUP name )
 
-   Examples: "Andrew", "Charles" and "Joanne"
+   Examples: "Andrew", "Charles" and "Joanne".
 
 
 
 
-Sciberras                Expires 4 October 2005                [Page 10]
+Sciberras                Expires 11 January 2006               [Page 10]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 2.13  'houseIdentifier'
@@ -575,7 +575,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String syntax
    [Syntaxes].
 
-   Examples: "20" to represent a the house number 20.
+   Examples: "20" to represent the house number 20.
 
 2.14  'initials'
 
@@ -605,15 +605,15 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    1.3.6.1.4.1.1466.115.121.1.36 refers to the Numeric String syntax
    [Syntaxes].
 
-   Example: "0198 333 333"
+   Example: "0198 333 333".
 
 
 
 
 
-Sciberras                Expires 4 October 2005                [Page 11]
+Sciberras                Expires 11 January 2006               [Page 11]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 2.16  'l'
@@ -639,7 +639,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
          SUP distinguishedName )
 
    Examples: "cn=James Clarke,ou=Finance,o=Widget\, Inc." and
-             "cn=John Xerri,ou=Finance,o=Widget\, Inc" may
+             "cn=John Xerri,ou=Finance,o=Widget\, Inc." may
              be two members of the financial team (group) at Widget,
              Inc. In which case, both of these distinguished names would
              be present as individual values of the member attribute.
@@ -667,9 +667,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 12]
+Sciberras                Expires 11 January 2006               [Page 12]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 2.19  'o'
@@ -711,7 +711,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    Example: The mailing list object, whose DN is "cn=All Employees,
             ou=Mailing List,o=Widget\, Inc.", is owned by the Human
             Resources Director.
-            Therefore, the value of the owner attribute within the
+            Therefore, the value of the 'owner' attribute within the
             mailing list object, would be the DN of the director (role):
             "cn=Human Resources Director,ou=employee,o=Widget\, Inc.".
 
@@ -723,9 +723,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 13]
+Sciberras                Expires 11 January 2006               [Page 13]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
       ( 2.5.4.19 NAME 'physicalDeliveryOfficeName'
@@ -779,9 +779,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 14]
+Sciberras                Expires 11 January 2006               [Page 14]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
    at a box on premises of the Postal Service.  Each postal box
@@ -813,7 +813,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
    Example: If the mhs-delivery Delivery Method is preferred over
             telephone-delivery, which is preferred over all other
-            methods, the value would be: "mhs $ telephone"
+            methods, the value would be: "mhs $ telephone".
 
 2.27  'registeredAddress'
 
@@ -835,9 +835,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 15]
+Sciberras                Expires 11 January 2006               [Page 15]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 2.28  'roleOccupant'
@@ -872,14 +872,13 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
    1.3.6.1.4.1.1466.115.121.1.25 refers to the Guide syntax [Syntaxes].
 
-   Example: "person#sn$EQ"
+   Example: "person#sn$EQ".
 
 2.30  'seeAlso'
 
    The 'seeAlso' attribute type contains Distinguished Names of objects
    that are related to the subject object.  Each related object name is
    one value of this multi-valued attribute.
-
    (Source: X.520 [X.520])
 
       ( 2.5.4.34 NAME 'seeAlso'
@@ -888,15 +887,15 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    Example: The person object, "cn=James Brown,ou=employee,o=Widget\,
             Inc." is related to the role objects, "cn=Football Team
             Captain,ou=sponsored activities,o=Widget\, Inc." and
-
-
-
-Sciberras                Expires 4 October 2005                [Page 16]
-
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
-
-
             "cn=Chess Team,ou=sponsored activities,o=Widget\, Inc.".
+
+
+
+Sciberras                Expires 11 January 2006               [Page 16]
+
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
+
+
             Since the role objects are related to the person object, the
             'seeAlso' attribute will contain the distinguished name of
             each role object as separate values.
@@ -928,7 +927,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
       ( 2.5.4.4 NAME 'sn'
          SUP name )
 
-   Example: "Smith"
+   Example: "Smith".
 
 2.33  'st'
 
@@ -947,9 +946,10 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 17]
+
+Sciberras                Expires 11 January 2006               [Page 17]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 2.34  'street'
@@ -968,7 +968,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String syntax
    [Syntaxes].
 
-   Example: "15 Main St."
+   Example: "15 Main St.".
 
 2.35  'telephoneNumber'
 
@@ -1003,9 +1003,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 18]
+Sciberras                Expires 11 January 2006               [Page 18]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 2.37  'telexNumber'
@@ -1021,7 +1021,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    1.3.6.1.4.1.1466.115.121.1.52 refers to the Telex Number syntax
    [Syntaxes].
 
-   Example: "12345$023$ABCDE"
+   Example: "12345$023$ABCDE".
 
 2.38  'title'
 
@@ -1032,8 +1032,6 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
       ( 2.5.4.12 NAME 'title'
          SUP name )
-
-
    Examples: "Vice President", "Software Engineer" and "CEO".
 
 2.39  'uid'
@@ -1056,16 +1054,16 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 2.40  'uniqueMember'
 
    The 'uniqueMember' attribute type contains the Distinguished Names of
-
-
-
-Sciberras                Expires 4 October 2005                [Page 19]
-
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
-
-
    an object that is on a list or in a group, where the Relative
    Distinguished Names of the object include a value that distinguishes
+
+
+
+Sciberras                Expires 11 January 2006               [Page 19]
+
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
+
+
    between objects when a distinguished name has been reused.  Each
    distinguished name is one value of this multi-valued attribute.
    (Source: X.520 [X.520])
@@ -1089,7 +1087,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    string is one value of this multi-valued attribute.
 
    The application SHOULD prepare textual strings used as passwords by
-   transcoding them to Unicode, applying SASLprep [SASLprep], and
+   transcoding them to Unicode, applying SASLprep [RFC4013], and
    encoding as UTF-8.  The determination of whether a password is
    textual is a local client matter.
    (Source: X.509 [X.509])
@@ -1112,15 +1110,15 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    to use a different password generated by some automated system.
    During transitional periods, like the last and first day of the
    periods, it may be necessary to allow two passwords for the two
-
-
-
-Sciberras                Expires 4 October 2005                [Page 20]
-
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
-
-
    consecutive periods to be valid in the system.
+
+
+
+
+Sciberras                Expires 11 January 2006               [Page 20]
+
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
+
 
 2.42  'x121Address'
 
@@ -1171,9 +1169,11 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 21]
+
+
+Sciberras                Expires 11 January 2006               [Page 21]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 3.  Object Classes
@@ -1209,7 +1209,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
          MAY ( searchGuide $
                description ) )
 
-3.3 'dcObject'
+3.3  'dcObject'
 
    The 'dcObject' object class permits an entry to contains domain
    component information.  This object class is defined as auxiliary,
@@ -1227,9 +1227,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 22]
+Sciberras                Expires 11 January 2006               [Page 22]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 3.4  'device'
@@ -1283,9 +1283,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 23]
+Sciberras                Expires 11 January 2006               [Page 23]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
                cn )
@@ -1339,9 +1339,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 24]
+Sciberras                Expires 11 January 2006               [Page 24]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
       ( 2.5.6.7 NAME 'organizationalPerson'
@@ -1395,9 +1395,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 25]
+Sciberras                Expires 11 January 2006               [Page 25]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 3.12  'person'
@@ -1433,7 +1433,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
                street $ postOfficeBox $ postalCode $ postalAddress $
                physicalDeliveryOfficeName $ st $ l ) )
 
-3.14 'uidObject'
+3.14  'uidObject'
 
    The 'uidObject' object class permits an entry to contains user
    identification information.  This object class is defined as
@@ -1451,9 +1451,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 26]
+Sciberras                Expires 11 January 2006               [Page 26]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 4.  IANA Considerations
@@ -1471,8 +1471,6 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
       Specification: RFC XXXX [editor's note:  The RFC number will be
          the one assigned to this document.]
       Author/Change Controller: IESG
-
-
    Comments
    In the LDAP descriptors registry, the following descriptors (short
    names) should be updated to refer to RFC XXXX [editor's note:  This
@@ -1504,16 +1502,16 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
       GN                           A    RESERVED
       groupOfNames                 O    2.5.6.9
       groupOfUniqueNames           O    2.5.6.17
-
-
-
-Sciberras                Expires 4 October 2005                [Page 27]
-
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
-
-
       houseIdentifier              A    2.5.4.51
       initials                     A    2.5.4.43
+
+
+
+Sciberras                Expires 11 January 2006               [Page 27]
+
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
+
+
       internationalISDNNumber      A    2.5.4.25
       L                            A    2.5.4.7
       locality                     O    2.5.6.3
@@ -1560,24 +1558,24 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 5.  Security Considerations
 
    Attributes of directory entries are used to provide descriptive
-
-
-
-Sciberras                Expires 4 October 2005                [Page 28]
-
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
-
-
    information about the real-world objects they represent, which can be
    people, organizations or devices.  Most countries have privacy laws
+
+
+
+Sciberras                Expires 11 January 2006               [Page 28]
+
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
+
+
    regarding the publication of information about people.
 
    Transfer of cleartext passwords is strongly discouraged where the
    underlying transport service cannot guarantee confidentiality and may
    result in disclosure of the password to unauthorized parties.
 
-   Multiple attribute values for the 'userPassword' needs to be used
-   with care.  Especially reset/deletion of a password by an admin
+   Multiple attribute values for the 'userPassword' attribute need to be
+   used with care.  Especially reset/deletion of a password by an admin
    without knowing the old user password gets tricky or impossible if
    multiple values for different applications are present.
 
@@ -1585,12 +1583,13 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    value(s) with new value(s) should use modify/replaceValues (or
    modify/deleteAttribute+addAttribute).  Additionally, server
    implementations are encouraged to provide administrative controls
-   which, if enabled, restrict the 'userPassword' attributer to one
+   which, if enabled, restrict the 'userPassword' attribute to one
    value.
 
    Note that when used for authentication purposes [AuthMeth], the user
    need only prove knowledge of one of the values, not all of the
    values.
+
 
 6.  Acknowledgements
 
@@ -1610,7 +1609,7 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
    The 'uidObject' object class definition in this document supersedes
    the specification of the 'uidObject' in RFC 2377 by A. Grimstad, R.
-   Huber, S, Sataluri and M. Smith.
+   Huber, S. Sataluri and M. Smith.
 
    This document is based upon input of the IETF LDAPBIS working group.
    The author wishes to thank S. Legg and K. Zeilenga for their
@@ -1619,9 +1618,10 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 29]
+
+Sciberras                Expires 11 January 2006               [Page 29]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
 7.  References
@@ -1660,27 +1660,25 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
                  "Internationalizing Domain Names in Applications
                  (IDNA)", RFC 3490, March 2003
 
+   [RFC4013]     Zeilenga K., "SASLprep: Stringprep profile for User
+                 Names and Passwords", RFC 4013, February 2005.
+
    [Roadmap]     Zeilenga, K., "LDAP:  Technical Specification Road
                  Map", draft-ietf-ldapbis-roadmap-xx (a work in
                  progress)
-
-   [SASLprep]    Zeilenga K., "SASLprep: Stringprep profile for user
-                 names and passwords", draft-ietf-sasl-saslprep-xx (a
-                 work in progress)
 
    [Syntaxes]    S. Legg (editor), "LDAP: Syntaxes", draft-ietf-ldapbis-
                  syntaxes-xx (a work in progress)
 
    [X.121]       International numbering plan for public data networks,
-
-
-
-Sciberras                Expires 4 October 2005                [Page 30]
-
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
-
-
                  ITU-T Recommendation X.121, 1996
+
+
+
+Sciberras                Expires 11 January 2006               [Page 30]
+
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
+
 
    [X.509]       The Directory:  Authentication Framework, ITU-T
                  Recommendation X.509, 1993
@@ -1715,7 +1713,10 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    [RFC2798]     Smith, M., "Definition of the inetOrgPerson LDAP Object
                  Class", RFC 2798, April 2000
 
-   [X.500]       The Directory, ITU-T Recommendations X.501-X.525, 1993
+   [X.500]       ITU-T Recommendations X.5000 (1993) | ISO/IEC
+                 9594-1:1994, Information Technology - Open Systems
+                 Interconnection - The Directory: Overview of concepts,
+                 models and services.
 
 8.  Author's Address
 
@@ -1727,14 +1728,15 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    AUSTRALIA
 
    Phone:  +61 3 9896 7833
-   Email:  andrew.sciberras@eb2bcom.com
 
 
 
-Sciberras                Expires 4 October 2005                [Page 31]
+Sciberras                Expires 11 January 2006               [Page 31]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
+
+   Email:  andrew.sciberras@eb2bcom.com
 
 9.  Intellectual Property Statement
 
@@ -1760,7 +1762,13 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    this standard.  Please address the information to the IETF at
    ietf-ipr@ietf.org.
 
-10.  Disclaimer of Validity
+10.  Full Copyright Statement
+
+   Copyright (C) The Internet Society (2005).
+
+   This document is subject to the rights, licenses and restrictions
+   contained in BCP 78, and except as set forth therein, the authors
+   retain all their rights.
 
    This document and the information contained herein are provided on an
    "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
@@ -1770,10 +1778,6 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
    INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
    WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
-Copyright Statement Copyright (C) The Internet Society (2005).  This
-   document is subject to the rights, licenses and restrictions
-   contained in BCP 78, and except as set forth therein, the authors
-   retain all their rights.
 
 
 
@@ -1783,13 +1787,9 @@ Copyright Statement Copyright (C) The Internet Society (2005).  This
 
 
 
-
-
-
-
-Sciberras                Expires 4 October 2005                [Page 32]
+Sciberras                Expires 11 January 2006               [Page 32]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
                   Appendix A  Changes Made Since RFC 2256
@@ -1843,9 +1843,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 33]
+Sciberras                Expires 11 January 2006               [Page 33]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
       12. Numerous edititorial changes.
@@ -1899,9 +1899,9 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 34]
+Sciberras                Expires 11 January 2006               [Page 34]
 
-INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
+INTERNET-DRAFT     LDAP: Schema for User Applications      July 11, 2005
 
 
       30. Spelt out and referenced ABNF on first usage.
@@ -1955,6 +1955,5 @@ INTERNET-DRAFT     LDAP: Schema for User Applications      April 4, 2005
 
 
 
-Sciberras                Expires 4 October 2005                [Page 35]
+Sciberras                Expires 11 January 2006               [Page 35]
 
-

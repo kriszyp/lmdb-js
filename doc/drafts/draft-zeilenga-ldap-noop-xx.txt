@@ -3,14 +3,15 @@
 
 
 
+
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                               10 February 2005
+Expires in six months                                28 October 2005
 
 
 
                           The LDAP No-Op Control
-                    <draft-zeilenga-ldap-noop-06.txt>
+                    <draft-zeilenga-ldap-noop-07.txt>
 
 
 Status of this Memo
@@ -22,11 +23,10 @@ Status of this Memo
   Extensions mailing list <ldapext@ietf.org>.  Please send editorial
   comments directly to the author <Kurt@OpenLDAP.org>.
 
-  By submitting this Internet-Draft, I accept the provisions of Section
-  4 of RFC 3667.  By submitting this Internet-Draft, I certify that any
-  applicable patent or other IPR claims of which I am aware have been
-  disclosed, or will be disclosed, and any of which I become aware will
-  be disclosed, in accordance with RFC 3668.
+  By submitting this Internet-Draft, each author represents that any
+  applicable patent or other IPR claims of which he or she is aware have
+  been or will be disclosed, and any of which he or she becomes aware
+  will be disclosed, in accordance with Section 6 of BCP 79.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups. Note that other
@@ -54,9 +54,10 @@ Status of this Memo
 
 
 
+
 Zeilenga                   LDAP No-Op Control                   [Page 1]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
 
 
 Abstract
@@ -81,8 +82,8 @@ Abstract
   [Roadmap] No-Op control extension.  The presence of the No-Op control
   in an operation request message disables its normal effect upon the
   directory which operation would otherwise have.  Instead of updating
-  the directory and return the normal indication of success, the server
-  does not update the directory and indicates so by returning the
+  the directory and returning the normal indication of success, the
+  server does not update the directory and indicates so by returning the
   noOperation resultCode (introduced below).
 
   For example, when the No-Op control is present in a LDAP modify
@@ -112,7 +113,7 @@ Abstract
 
 Zeilenga                   LDAP No-Op Control                   [Page 2]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
 
 
 2.  No-Op Control
@@ -139,6 +140,8 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
   reason indicated by the result code.  A result code of noOperation
   (IANA-ASSIGNED-CODE) indicates that the server discovered no reason
   why the operation would fail if submitted without the No-Op control.
+  It is noted that there may be reasons why the operation may fail which
+  are only discoverable when submitting without the No-Op control.
 
   Servers SHOULD indicate their support for this control by providing
   IANA-ASSIGNED-OID as a value of the 'supportedControl' attribute type
@@ -161,15 +164,15 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
   [Roadmap].
 
 
-4.  IANA Considerations
-
 
 
 
 Zeilenga                   LDAP No-Op Control                   [Page 3]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
 
+
+4.  IANA Considerations
 
 4.1.  Object Identifier
 
@@ -218,13 +221,14 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
   Kurt D. Zeilenga
   OpenLDAP Foundation
 
-  Email: Kurt@OpenLDAP.org
-
 
 
 Zeilenga                   LDAP No-Op Control                   [Page 4]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
+
+
+  Email: Kurt@OpenLDAP.org
 
 
 6. References
@@ -272,17 +276,17 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
 Intellectual Property Rights
 
   The IETF takes no position regarding the validity or scope of any
-  Intellectual Property Rights or other rights that might be claimed to
-  pertain to the implementation or use of the technology described in
-  this document or the extent to which any license under such rights
 
 
 
 Zeilenga                   LDAP No-Op Control                   [Page 5]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
 
 
+  Intellectual Property Rights or other rights that might be claimed to
+  pertain to the implementation or use of the technology described in
+  this document or the extent to which any license under such rights
   might or might not be available; nor does it represent that it has
   made any independent effort to identify any such rights.  Information
   on the procedures with respect to rights in RFC documents can be found
@@ -305,9 +309,11 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-06      10 February 2005
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2005).  This document is subject
-  to the rights, licenses and restrictions contained in BCP 78, and
-  except as set forth therein, the authors retain all their rights.
+  Copyright (C) The Internet Society (2005).
+
+  This document is subject to the rights, licenses and restrictions
+  contained in BCP 78, and except as set forth therein, the authors
+  retain all their rights.
 
   This document and the information contained herein are provided on an
   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
@@ -329,12 +335,5 @@ Full Copyright
 
 
 
-
-
-
-
-
 Zeilenga                   LDAP No-Op Control                   [Page 6]
 
-
-

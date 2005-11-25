@@ -1,10 +1,16 @@
+
+
+
+
+
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Experimental                  OpenLDAP Foundation
-Expires in six months                                17 October 2004
+Expires in six months                               10 February 2005
+
 
 
                      LDAP Modify-Increment Extension
-                    <draft-zeilenga-ldap-incr-00.txt>
+                    <draft-zeilenga-ldap-incr-01.txt>
 
 
 Status of this Memo
@@ -32,28 +38,31 @@ Status of this Memo
   or to cite them other than as "work in progress."
 
   The list of current Internet-Drafts can be accessed at
-  <http://www.ietf.org/ietf/1id-abstracts.txt>.  The list of
-  Internet-Draft Shadow Directories can be accessed at
-  <http://www.ietf.org/shadow.html>.
+  http://www.ietf.org/1id-abstracts.html
 
-  Copyright (C) The Internet Society (2004).  All Rights Reserved.
+  The list of Internet-Draft Shadow Directories can be accessed at
+  http://www.ietf.org/shadow.html
+
+
+  Copyright (C) The Internet Society (2005).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
+
+
+
+
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 1]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-01.txt    10 February 2005
 
 
 Abstract
 
   This document describes an extension to the Lightweight Directory
   Access Protocol (LDAP) Modify operation to support an increment
-
-
-
-Zeilenga            LDAP Modify-Increment Extension             [Page 1]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
-
-
   capability.  This extension is useful in provisioning applications,
   especially when combined with the assertion control and/or the
   pre-read or post-read control extension.
@@ -61,7 +70,7 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
 
 1.  Background and Intended Use
 
-  The Lightwieght Directory Access Protocol [Roadmap] does not currently
+  The Lightweight Directory Access Protocol [Roadmap] does not currently
   provide an operation to increment values of an attribute.  A client
   must read the values of the attribute, then modify those values to
   increment them by the desired amount.  As the values may be updated by
@@ -72,8 +81,8 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
   This document extends the LDAP Modify Operation [Protocol] to support
   an increment values capability.  This feature is intended to be used
   with either the LDAP pre-read or post-read control extension
-  [READENTRY].  This feature may be used with the LDAP assertion control
-  [ASSERT] to provide test-and-increment functionality.
+  [ReadEntry].  This feature may also be used with the LDAP assertion
+  control [Assertion] to provide test-and-increment functionality.
 
   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
@@ -84,30 +93,33 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
 
   This document extends the LDAP Modify request to support a increment
   values capability.  Implementations of this extension SHALL support an
-  additional ModifyRequest operation enumeration value increment (3) as
-  described herein.  Implementations not supporting this extension will
-  treat this value as they would an unlisted value, e.g., as a protocol
-  error.
+  additional ModifyRequest operation enumeration value increment (IANA-
+  ASSIGNED-TYPE) as described herein.  Implementations not supporting
+  this extension will treat this value as they would an unlisted value,
+  e.g., as a protocol error.
 
-  The increment (3) operation value specifies that an increment values
-  modification is requested.   All existing values of the modification
-  attribute are to be incremented by the listed value.  The modification
-  attribute must be appropriate for request, e.g., must have INTEGER or
-  other incrementable values, and the modification must provide one and
-  only value.
-
-  Servers supporting this feature SHOULD publish the object identifier
-  (OID) OID-TBD as a value of the 'supportedFeatures' [RFC3674]
-  attribute in the root DSE.  Clients supporting this feature SHOULD NOT
-  use the feature unless they have knowledge the server supports it.
-
-
+  The increment (IANA-ASSIGNED-TYPE) operation value specifies that an
+  increment values modification is requested.   All existing values of
+  the modification attribute are to be incremented by the listed value.
+  The modification attribute must be appropriate for request, e.g., must
+  have INTEGER or other increment-able values, and the modification must
+  provide one and only value.   If the attribute is not appropriate for
+  the request, a constraintViolation or other appropriate error is to be
+  returned.  If multiple values are provided, a protocolError is to be
+  returned.
 
 
 
 Zeilenga            LDAP Modify-Increment Extension             [Page 2]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-01.txt    10 February 2005
+
+
+  Servers supporting this feature SHOULD publish the object identifier
+  (OID) IANA-ASSIGNED-OID as a value of the 'supportedFeatures'
+  [RFC3674] attribute in the root DSE.  Clients supporting this feature
+  SHOULD NOT use the feature unless they have knowledge the server
+  supports it.
 
 
   3. LDIF Support
@@ -144,11 +156,38 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
 
 5.  IANA Considerations
 
-  Registration of the LDAP Protocol Mechanism [BCP64bis] defined in
-  document is requested.
+  Registration of the following values [BCP64bis] is requested.
+
+
+5.1.  Object Identifier
+
+  It is requested that IANA assign an LDAP Object Identifier to identify
+  the LDAP Modify-Increment feature as defined in this document.
+
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 3]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-01.txt    10 February 2005
+
+
+      Subject: Request for LDAP Object Identifier Registration
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Specification: RFC XXXX
+      Author/Change Controller: Author
+      Comments:
+          Identifies the LDAP Modify-Increment feature
+
+
+
+5.2. LDAP Protocol Mechanism
+
+  It is requested that the following LDAP Protocol Mechanism be
+  registered.
 
       Subject: Request for LDAP Protocol Mechanism Registration
-      Object Identifier: OID-TBD
+      Object Identifier: IANA-ASSIGNED-OID
       Description: Modify-Increment
       Person & email address to contact for further information:
           Kurt Zeilenga <kurt@openldap.org>
@@ -158,12 +197,20 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
       Comments: none
 
 
+5.3. LDAP Protocol Mechanism
 
+  It is requested that IANA assign an LDAP ModifyRequest Operation Type
+  [BCP64bis] for use in this document.
 
-
-Zeilenga            LDAP Modify-Increment Extension             [Page 3]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
+      Subject: Request for LDAP Protocol Mechanism Registration
+      ModifyRequest Operation Name: increment
+      Description: Modify-Increment
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@openldap.org>
+      Usage: Feature
+      Specification: RFC XXXX
+      Author/Change Controller: Kurt Zeilenga <kurt@openldap.org>
+      Comments: none
 
 
 6.  Author's Address
@@ -173,7 +220,21 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
   <Kurt@OpenLDAP.org>
 
 
-7. Normative References
+
+
+Zeilenga            LDAP Modify-Increment Extension             [Page 4]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-01.txt    10 February 2005
+
+
+7. References
+
+  [[Note to the RFC Editor: please replace the citation tags used in
+  referencing Internet-Drafts with tags of the form RFCnnnn where
+  possible.]]
+
+
+7.1. Normative References
 
   [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
                 Requirement Levels", BCP 14 (also RFC 2119), March 1997.
@@ -195,16 +256,16 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
                 draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
 
 
-8. Informative References
+7.2. Informative References
 
   [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP",
                 draft-ietf-ldapbis-bcp64-xx.txt, a work in progress.
 
-  [READENTRY]   Zeilenga, K., "LDAP Read Entry Controls",
+  [ReadEntry]   Zeilenga, K., "LDAP Read Entry Controls",
                 draft-zeilenga-ldap-readentry-xx.txt, a work in
                 progress.
 
-  [ASSERT]      Zeilenga, K., "LDAP Assertion Control",
+  [Assertion]   Zeilenga, K., "LDAP Assertion Control",
                 draft-zeilenga-ldap-assert-xx.txt, a work in progress.
 
   [ASSIGN]      OpenLDAP Foundation, "OpenLDAP OID Delegations",
@@ -217,9 +278,9 @@ INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
 
 
 
-Zeilenga            LDAP Modify-Increment Extension             [Page 4]
+Zeilenga            LDAP Modify-Increment Extension             [Page 5]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-incr-00.txt     17 October 2004
+INTERNET-DRAFT       draft-zeilenga-ldap-incr-01.txt    10 February 2005
 
 
 Intellectual Property Rights
@@ -250,7 +311,7 @@ Intellectual Property Rights
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2004).  This document is subject
+  Copyright (C) The Internet Society (2005).  This document is subject
   to the rights, licenses and restrictions contained in BCP 78, and
   except as set forth therein, the authors retain all their rights.
 
@@ -273,6 +334,7 @@ Full Copyright
 
 
 
-Zeilenga            LDAP Modify-Increment Extension             [Page 5]
+Zeilenga            LDAP Modify-Increment Extension             [Page 6]
 
+
 
