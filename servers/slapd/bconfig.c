@@ -2554,11 +2554,25 @@ config_updatedn(ConfigArgs *c) {
 int
 config_shadow( ConfigArgs *c, int flag )
 {
-	if ( SLAP_MONITOR( c->be ) ) {
-		Debug( LDAP_DEBUG_ANY, "%s: monitor database cannot be shadow.\n", c->log, 0, 0 );
+	char	*notallowed = NULL;
+
+	if ( c->be == frontendDB ) {
+		notallowed = "frontend";
+
+	} else if ( SLAP_MONITOR(c->be) ) {
+		notallowed = "monitor";
+
+	} else if ( SLAP_CONFIG(c->be) ) {
+		notallowed = "config";
+	}
+
+	if ( notallowed != NULL ) {
+		Debug( LDAP_DEBUG_ANY, "%s: %s database cannot be shadow.\n", c->log, notallowed, 0 );
 		return 1;
 	}
+
 	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | flag);
+
 	return 0;
 }
 
