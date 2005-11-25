@@ -263,21 +263,35 @@ static int count_filter_len(
 	unique_attrs *up;
 	int i;
 
-	while(!is_at_operational(ad->ad_type)) {
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(ad == up->attr) break;
-			if(up) break;
+	while ( !is_at_operational( ad->ad_type ) ) {
+		if ( ud->ignore ) {
+			for ( up = ud->ignore; up; up = up->next ) {
+				if (ad == up->attr ) {
+					break;
+				}
+			}
+			if ( up ) {
+				break;
+			}
 		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(ad == up->attr) break;
-			if(!up) break;
+		if ( ud->attrs ) {
+			for ( up = ud->attrs; up; up = up->next ) {
+				if ( ad == up->attr ) {
+					break;
+				}
+			}
+			if ( !up ) {
+				break;
+			}
 		}
-		if(b && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			ks += b[i].bv_len + ad->ad_cname.bv_len + STRLENOF( "(=)" );
-		else if(ud->strict)
+		if ( b && b[0].bv_val ) {
+			for (i = 0; b[i].bv_val; i++ ) {
+				/* note: make room for filter escaping... */
+				ks += ( 3 * b[i].bv_len ) + ad->ad_cname.bv_len + STRLENOF( "(=)" );
+			}
+		} else if ( ud->strict ) {
 			ks += ad->ad_cname.bv_len + STRLENOF( "(=*)" );	/* (attr=*) */
+		}
 		break;
 	}
 	return ks;
@@ -293,21 +307,38 @@ static char *build_filter(
 	unique_attrs *up;
 	int i;
 
-	while(!is_at_operational(ad->ad_type)) {
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(ad == up->attr) break;
-			if(up) break;
+	while ( !is_at_operational( ad->ad_type ) ) {
+		if ( ud->ignore ) {
+			for ( up = ud->ignore; up; up = up->next ) {
+				if ( ad == up->attr ) {
+					break;
+				}
+			}
+			if ( up ) {
+				break;
+			}
 		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(ad == up->attr) break;
-			if(!up) break;
+		if ( ud->attrs ) {
+			for ( up = ud->attrs; up; up = up->next ) {
+				if ( ad == up->attr ) {
+					break;
+				}
+			}
+			if ( !up ) {
+				break;
+			}
 		}
-		if(b && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			kp += sprintf(kp, "(%s=%s)", ad->ad_cname.bv_val, b[i].bv_val);
-		else if(ud->strict)
-			kp += sprintf(kp, "(%s=*)", ad->ad_cname.bv_val);
+		if ( b && b[0].bv_val ) {
+			for ( i = 0; b[i].bv_val; i++ ) {
+				struct berval	bv;
+
+				ldap_bv2escaped_filter_value( &b[i], &bv );
+				kp += sprintf( kp, "(%s=%s)", ad->ad_cname.bv_val, bv.bv_val );
+				ldap_memfree( bv.bv_val );
+			}
+		} else if ( ud->strict ) {
+			kp += sprintf( kp, "(%s=*)", ad->ad_cname.bv_val );
+		}
 		break;
 	}
 	return kp;
