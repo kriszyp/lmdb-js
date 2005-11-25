@@ -990,7 +990,9 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 		bv.bv_len = sprintf( bv.bv_val, "%d", op->ors_tlimit );
 		attr_merge_one( e, ad_reqTimeLimit, &bv, NULL );
-		/* FIXME: slimit was zeroed by the backends */
+
+		bv.bv_len = sprintf( bv.bv_val, "%d", op->ors_slimit );
+		attr_merge_one( e, ad_reqSizeLimit, &bv, NULL );
 		break;
 
 	case LOG_EN_BIND:
