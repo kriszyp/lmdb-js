@@ -45,11 +45,6 @@ static int	get_ssa(
 	SubstringsAssertion **s,
 	const char **text );
 
-static int filter_escape_value_x(
-	struct berval *in,
-	struct berval *out,
-	void *ctx );
-
 static void simple_vrFilter2bv(
 	Operation *op,
 	ValuesReturnFilter *f,
@@ -780,42 +775,6 @@ filter2bv( Filter *f, struct berval *fstr )
 	op.o_tmpmfuncs = &ch_mfuncs;
 
 	filter2bv_x( &op, f, fstr );
-}
-
-static int
-filter_escape_value_x(
-	struct berval *in,
-	struct berval *out,
-	void *ctx )
-{
-	ber_len_t i;
-	assert( in != NULL );
-	assert( out != NULL );
-
-	i = in->bv_len * 3 + 1;
-	out->bv_val = ctx ? slap_sl_malloc( i, ctx ) : ch_malloc( i );
-	out->bv_len = 0;
-
-	for( i=0; i < in->bv_len ; i++ ) {
-		if( FILTER_ESCAPE(in->bv_val[i]) ) {
-			out->bv_val[out->bv_len++] = SLAP_ESCAPE_CHAR;
-			out->bv_val[out->bv_len++] = SLAP_ESCAPE_HI( in->bv_val[i] );
-			out->bv_val[out->bv_len++] = SLAP_ESCAPE_LO( in->bv_val[i] );
-		} else {
-			out->bv_val[out->bv_len++] = in->bv_val[i];
-		}
-	}
-
-	out->bv_val[out->bv_len] = '\0';
-	return LDAP_SUCCESS;
-}
-
-int
-filter_escape_value(
-	struct berval *in,
-	struct berval *out )
-{
-	return filter_escape_value_x( in, out, NULL );
 }
 
 static int

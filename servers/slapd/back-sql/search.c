@@ -1912,7 +1912,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_search(): "
 		"base=\"%s\", filter=\"%s\", scope=%d,", 
 		op->o_req_ndn.bv_val,
-		op->ors_filterstr.bv_val ? op->ors_filterstr.bv_val : "(no filter)",
+		op->ors_filterstr.bv_val,
 		op->ors_scope );
 	Debug( LDAP_DEBUG_TRACE, " deref=%d, attrsonly=%d, "
 		"attributes to load: %s\n",
