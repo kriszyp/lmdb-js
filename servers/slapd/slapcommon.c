@@ -276,7 +276,7 @@ slap_tool_init(
 					exit( EXIT_FAILURE );
 				}
 
-			} else if ( lutil_atoi( &level, optarg ) != 0 ) {
+			} else if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 				fprintf( stderr,
 					"unrecognized log level "
 					"\"%s\"\n", optarg );
