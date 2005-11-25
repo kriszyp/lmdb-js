@@ -2548,8 +2548,18 @@ config_updatedn(ConfigArgs *c) {
 	BER_BVZERO( &c->value_dn );
 	BER_BVZERO( &c->value_ndn );
 
-	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SLURP_SHADOW);
-	return(0);
+	return config_slurp_shadow( c );
+}
+
+int
+config_shadow( ConfigArgs *c, int flag )
+{
+	if ( SLAP_MONITOR( c->be ) ) {
+		Debug( LDAP_DEBUG_ANY, "%s: monitor database cannot be shadow.\n", c->log, 0, 0 );
+		return 1;
+	}
+	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | flag);
+	return 0;
 }
 
 static int

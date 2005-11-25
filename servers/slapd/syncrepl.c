@@ -3100,8 +3100,8 @@ add_syncrepl(
 	int	rc = 0;
 
 	if ( !( c->be->be_search && c->be->be_add && c->be->be_modify && c->be->be_delete ) ) {
-		Debug( LDAP_DEBUG_ANY, "database %s does not support operations "
-			"required for syncrepl\n", c->be->be_type, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: database %s does not support operations "
+			"required for syncrepl\n", c->log, c->be->be_type, 0 );
 		return 1;
 	}
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
@@ -3329,6 +3329,5 @@ syncrepl_config( ConfigArgs *c )
 	} else if ( add_syncrepl( c ) ) {
 		return(1);
 	}
-	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SYNC_SHADOW);
-	return(0);
+	return config_sync_shadow( c );
 }
