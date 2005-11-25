@@ -301,7 +301,8 @@ static char *build_filter(
 	unique_data *ud,
 	AttributeDescription *ad,
 	BerVarray b,
-	char *kp
+	char *kp,
+	void *ctx
 )
 {
 	unique_attrs *up;
@@ -332,9 +333,11 @@ static char *build_filter(
 			for ( i = 0; b[i].bv_val; i++ ) {
 				struct berval	bv;
 
-				ldap_bv2escaped_filter_value( &b[i], &bv );
+				ldap_bv2escaped_filter_value_x( &b[i], &bv, 1, ctx );
 				kp += sprintf( kp, "(%s=%s)", ad->ad_cname.bv_val, bv.bv_val );
-				ldap_memfree( bv.bv_val );
+				if ( bv.bv_val != b[i].bv_val ) {
+					ber_memfree_x( bv.bv_val, ctx );
+				}
 			}
 		} else if ( ud->strict ) {
 			kp += sprintf( kp, "(%s=*)", ad->ad_cname.bv_val );
@@ -440,7 +443,7 @@ static int unique_add(
 	kp = key + sprintf(key, "(|");
 
 	for(a = op->ora_e->e_attrs; a; a = a->a_next) {
-		kp = build_filter(ud, a->a_desc, a->a_vals, kp);
+		kp = build_filter(ud, a->a_desc, a->a_vals, kp, op->o_tmpmemctx);
 	}
 
 	sprintf(kp, ")");
@@ -492,7 +495,7 @@ static int unique_modify(
 
 	for(m = op->orm_modlist; m; m = m->sml_next) {
  		if ((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) continue;
- 		kp = build_filter(ud, m->sml_desc, m->sml_values, kp);
+ 		kp = build_filter(ud, m->sml_desc, m->sml_values, kp, op->o_tmpmemctx);
 	}
 
 	sprintf(kp, ")");
@@ -555,7 +558,7 @@ static int unique_modrdn(
 
 	for(i = 0; newrdn[i]; i++) {
 		bv[0] = newrdn[i]->la_value;
-		kp = build_filter(ud, newrdn[i]->la_private, bv, kp);
+		kp = build_filter(ud, newrdn[i]->la_private, bv, kp, op->o_tmpmemctx);
 	}
 
 	sprintf(kp, ")");

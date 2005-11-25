@@ -212,6 +212,13 @@ ldap_pvt_find_wildcard LDAP_P((	const char *s ));
 LDAP_F( ber_slen_t )
 ldap_pvt_filter_value_unescape LDAP_P(( char *filter ));
 
+LDAP_F( ber_len_t )
+ldap_bv2escaped_filter_value_len LDAP_P(( struct berval *in ));
+
+LDAP_F( int )
+ldap_bv2escaped_filter_value_x LDAP_P(( struct berval *in, struct berval *out,
+	int inplace, void *ctx ));
+
 /* string.c */
 LDAP_F( char * )
 ldap_pvt_str2upper LDAP_P(( char *str ));
