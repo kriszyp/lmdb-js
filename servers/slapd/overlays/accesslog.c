@@ -1235,7 +1235,9 @@ accesslog_db_open(
 
 	rc = be_entry_get_rw( op, li->li_db->be_nsuffix, NULL, NULL, 0, &e );
 
-	if ( !e ) {
+	if ( e ) {
+		be_entry_release_rw( op, e, 0 );
+	} else {
 		SlapReply rs = {REP_RESULT};
 		struct berval rdn, nrdn, attr;
 		char *ptr;
