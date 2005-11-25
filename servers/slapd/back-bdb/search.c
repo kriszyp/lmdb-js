@@ -874,20 +874,20 @@ fetch_entry_retry:
 
 			if (e) {
 				/* safe default */
-				int result = -1;
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_ctrls = NULL;
 				rs->sr_flags = 0;
 				rs->sr_err = LDAP_SUCCESS;
-				result = send_search_entry( op, rs );
+				rs->sr_err = send_search_entry( op, rs );
 
-				switch ( result ) {
-				case 0:		/* entry sent ok */
+				switch ( rs->sr_err ) {
+				case LDAP_SUCCESS:	/* entry sent ok */
 					break;
-				case 1:		/* entry not sent */
+				default:		/* entry not sent */
 					break;
-				default:
+				case LDAP_UNAVAILABLE:
+				case LDAP_SIZELIMIT_EXCEEDED:
 #ifdef SLAP_ZONE_ALLOC
 					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
@@ -895,16 +895,13 @@ fetch_entry_retry:
 						&bdb->bi_cache, e, &lock);
 					e = NULL;
 					rs->sr_entry = NULL;
-					switch ( result ) {
-					case SLAPD_SEND_SIZELIMIT:
-						rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+					if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
 						rs->sr_ref = rs->sr_v2ref;
 						send_ldap_result( op, rs );
 						rs->sr_err = LDAP_SUCCESS;
-						break;
-					case -1:	/* connection closed */
+
+					} else {
 						rs->sr_err = LDAP_OTHER;
-						break;
 					}
 					goto done;
 				}

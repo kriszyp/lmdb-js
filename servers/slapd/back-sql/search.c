@@ -2325,13 +2325,13 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_entry = e;
 			rs->sr_flags = ( e == &user_entry ) ? REP_ENTRY_MODIFIABLE : 0;
 			/* FIXME: need the whole entry (ITS#3480) */
-			sres = send_search_entry( op, rs );
+			rs->sr_err = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;
 			rs->sr_operational_attrs = NULL;
 
-			switch ( sres ) {
-			case -1:
+			switch ( rs->sr_err ) {
+			case LDAP_UNAVAILABLE:
 				/*
 				 * FIXME: send_search_entry failed;
 				 * better stop
@@ -2340,8 +2340,7 @@ backsql_search( Operation *op, SlapReply *rs )
 					"connection lost\n", 0, 0, 0 );
 				goto end_of_search;
 
-			case SLAPD_SEND_SIZELIMIT:
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+			case LDAP_SIZELIMIT_EXCEEDED:
 				goto send_results;
 			}
 		}

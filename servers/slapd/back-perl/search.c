@@ -89,11 +89,10 @@ perl_back_search(
 						rs->sr_entry = e;
 						rs->sr_attrs = op->ors_attrs;
 						rs->sr_flags = REP_ENTRY_MODIFIABLE;
-						rc = send_search_entry( op, rs );
-						switch ( rc ) {
-						case SLAPD_SEND_SIZELIMIT:
+						rs->sr_err = LDAP_SUCCESS;
+						rs->sr_err = send_search_entry( op, rs );
+						if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
 							rs->sr_entry = NULL;
-							rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 							goto done;
 						}
 					}

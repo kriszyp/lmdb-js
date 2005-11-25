@@ -114,8 +114,6 @@ retcode_send_onelevel( Operation *op, SlapReply *rs )
 	retcode_item_t	*rdi;
 	
 	for ( rdi = rd->rd_item; rdi != NULL; rdi = rdi->rdi_next ) {
-		int	rc;
-
 		if ( op->o_abandon ) {
 			return rs->sr_err = SLAPD_ABANDON;
 		}
@@ -135,20 +133,14 @@ retcode_send_onelevel( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_SUCCESS;
 			rs->sr_entry = &rdi->rdi_e;
 
-			rc = send_search_entry( op, rs );
+			rs->sr_err = send_search_entry( op, rs );
+			rs->sr_entry = NULL;
 
-			switch ( rc ) {
-			case 0:		/* entry sent ok */
-				break;
-			case 1:		/* entry not sent */
-				break;
-			case -1:	/* connection closed */
-				rs->sr_entry = NULL;
+			switch ( rs->sr_err ) {
+			case LDAP_UNAVAILABLE:	/* connection closed */
 				rs->sr_err = LDAP_OTHER;
-				goto done;
-			case SLAPD_SEND_SIZELIMIT:
-				rs->sr_entry = NULL;
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+				/* fallthru */
+			case LDAP_SIZELIMIT_EXCEEDED:
 				goto done;
 			}
 		}

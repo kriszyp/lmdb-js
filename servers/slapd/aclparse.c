@@ -325,7 +325,7 @@ parse_acl(
 	int		pos )
 {
 	int		i;
-	char		*left, *right, *style, *next;
+	char		*left, *right, *style;
 	struct berval	bv;
 	AccessControl	*a;
 	Access	*b;
@@ -776,8 +776,6 @@ parse_acl(
 
 				} else if ( strcasecmp( style, "level" ) == 0 )
 				{
-					char	*next;
-
 					if ( lutil_atoi( &level, style_level ) != 0 ) {
 						Debug( LDAP_DEBUG_ANY,
 							"%s: line %d: unable to parse level "

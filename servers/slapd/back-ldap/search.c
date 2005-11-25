@@ -286,7 +286,6 @@ retry:
 		} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 			Entry		ent = { 0 };
 			struct berval	bdn = BER_BVNULL;
-			int		abort = 0;
 
 			do_retry = 0;
 
@@ -297,7 +296,7 @@ retry:
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_flags = 0;
-				abort = send_search_entry( op, rs );
+				rc = rs->sr_err = send_search_entry( op, rs );
 				if ( !BER_BVISNULL( &ent.e_name ) ) {
 					assert( ent.e_name.bv_val != bdn.bv_val );
 					free( ent.e_name.bv_val );
@@ -310,11 +309,12 @@ retry:
 				entry_clean( &ent );
 			}
 			ldap_msgfree( res );
-			if ( abort ) {
-				if ( abort == SLAPD_SEND_SIZELIMIT ) {
-					rc = rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+			if ( rc != LDAP_SUCCESS ) {
+				if ( rc == LDAP_UNAVAILABLE ) {
+					rc = rs->sr_err = LDAP_OTHER;
+				} else {
+					ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
 				}
-				ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
 				goto finish;
 			}
 

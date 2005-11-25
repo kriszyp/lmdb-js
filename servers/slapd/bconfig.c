@@ -1489,7 +1489,6 @@ config_schema_dn(ConfigArgs *c) {
 static int
 config_sizelimit(ConfigArgs *c) {
 	int i, rc = 0;
-	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		char buf[8192];
@@ -1541,7 +1540,6 @@ config_sizelimit(ConfigArgs *c) {
 static int
 config_timelimit(ConfigArgs *c) {
 	int i, rc = 0;
-	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		char buf[8192];
@@ -2137,7 +2135,6 @@ static int config_syslog;
 static int
 config_loglevel(ConfigArgs *c) {
 	int i;
-	char *next;
 
 	if ( loglevel_ops == NULL ) {
 		loglevel_init();

@@ -234,7 +234,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int i;
 	long stoptime = 0;
-	glue_state gs = {0, 0, 0, NULL, 0, NULL};
+	glue_state gs = {0, 0, NULL, 0, NULL};
 	slap_callback cb = { NULL, glue_op_response, NULL, NULL };
 	int scope0, tlimit0;
 	struct berval dn, ndn, *pdn;

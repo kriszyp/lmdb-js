@@ -665,10 +665,11 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 /*
  * returns:
  *
- *  0			entry sent
- *  1			entry not sent (other)
- * -1			entry not sent (connection closed)
- * SLAPD_SEND_SIZELIMIT	entry not sent (caller must send sizelimitExceeded)
+ * LDAP_SUCCESS			entry sent
+ * LDAP_OTHER			entry not sent (other)
+ * LDAP_INSUFFICIENT_ACCESS	entry not sent (ACL)
+ * LDAP_UNAVAILABLE		entry not sent (connection closed)
+ * LDAP_SIZELIMIT_EXCEEDED	entry not sent (caller must send sizelimitExceeded)
  */
 
 int
@@ -677,7 +678,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *) &berbuf;
 	Attribute	*a;
-	int		i, j, rc=-1, bytes;
+	int		i, j, rc = LDAP_UNAVAILABLE, bytes;
 	char		*edn;
 	int		userattrs;
 	AccessControlState acl_state = ACL_STATE_INIT;
@@ -691,7 +692,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	char **e_flags = NULL;
 
 	if ( op->ors_slimit >= 0 && rs->sr_nentries >= op->ors_slimit ) {
-		return SLAPD_SEND_SIZELIMIT;
+		return LDAP_SIZELIMIT_EXCEEDED;
 	}
 
 	rs->sr_type = REP_SEARCH;
@@ -744,7 +745,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			"send_search_entry: conn %lu access to entry (%s) not allowed\n", 
 			op->o_connid, rs->sr_entry->e_name.bv_val, 0 );
 
-		rc = 1;
+		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto error_return;
 	}
 
@@ -790,6 +791,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encoding DN error" );
+		rc = rs->sr_err;
 		goto error_return;
 	}
 
@@ -837,6 +839,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"matched values filtering error" );
+				rc = rs->sr_err;
 				goto error_return;
 			}
 		}
@@ -886,6 +889,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"encoding description error");
+				rc = rs->sr_err;
 				goto error_return;
 			}
 			finish = 1;
@@ -919,6 +923,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 						if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 						send_ldap_error( op, rs, LDAP_OTHER,
 							"encoding description error");
+						rc = rs->sr_err;
 						goto error_return;
 					}
 				}
@@ -930,6 +935,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 					send_ldap_error( op, rs, LDAP_OTHER,
 						"encoding values error" );
+					rc = rs->sr_err;
 					goto error_return;
 				}
 			}
@@ -942,6 +948,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
+			rc = rs->sr_err;
 			goto error_return;
 		}
 	}
@@ -995,6 +1002,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"matched values filtering error" );
+				rc = rs->sr_err;
 				goto error_return;
 			}
 		}
@@ -1044,6 +1052,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER,
 				"encoding description error" );
+			rc = rs->sr_err;
 			goto error_return;
 		}
 
@@ -1072,6 +1081,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 					send_ldap_error( op, rs, LDAP_OTHER,
 						"encoding values error" );
+					rc = rs->sr_err;
 					goto error_return;
 				}
 			}
@@ -1084,6 +1094,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
+			rc = rs->sr_err;
 			goto error_return;
 		}
 	}
@@ -1118,7 +1129,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode entry end error" );
-		rc = 1;
+		rc = rs->sr_err;
 		goto error_return;
 	}
 
@@ -1137,7 +1148,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				"send_search_entry: conn %lu  ber write failed.\n", 
 				op->o_connid, 0, 0 );
 
-			rc = -1;
+			rc = LDAP_UNAVAILABLE;
 			goto error_return;
 		}
 		rs->sr_nentries++;
@@ -1155,7 +1166,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE,
 		"<= send_search_entry: conn %lu exit.\n", op->o_connid, 0, 0 );
 
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 error_return:;
 	if ( op->o_callback ) {

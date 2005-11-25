@@ -153,9 +153,6 @@ LDAP_BEGIN_DECL
 /* unknown config file directive */
 #define SLAP_CONF_UNKNOWN (-1026)
 
-/* pseudo error code indicating caller should send sizelimitExceeded */
-#define SLAPD_SEND_SIZELIMIT (-1027)
-
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
 #define ASCII_LOWER(c)	( (c) >= 'a' && (c) <= 'z' )
