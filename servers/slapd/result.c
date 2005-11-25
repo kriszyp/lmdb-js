@@ -662,6 +662,15 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 	}
 }
 
+/*
+ * returns:
+ *
+ *  0			entry sent
+ *  1			entry not sent (other)
+ * -1			entry not sent (connection closed)
+ * SLAPD_SEND_SIZELIMIT	entry not sent (caller must send sizelimitExceeded)
+ */
+
 int
 slap_send_search_entry( Operation *op, SlapReply *rs )
 {
@@ -1116,6 +1125,15 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->o_res_ber == NULL ) {
+		if ( --op->ors_slimit == -1 ) {
+			rc = SLAPD_SEND_SIZELIMIT;
+			ber_free_buf( ber );
+			/* putback, so dumb backends that don't 
+			 * check sizelimit won't at least return
+			 * more than expected... */
+			op->ors_slimit++;
+			goto error_return;
+		}
 		bytes = send_ldap_ber( op->o_conn, ber );
 		ber_free_buf( ber );
 

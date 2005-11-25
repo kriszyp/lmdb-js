@@ -84,10 +84,18 @@ perl_back_search(
 						send_entry = 1;
 
 					if (send_entry) {
+						int	rc;
+
 						rs->sr_entry = e;
 						rs->sr_attrs = op->ors_attrs;
 						rs->sr_flags = REP_ENTRY_MODIFIABLE;
-						send_search_entry( op, rs );
+						rc = send_search_entry( op, rs );
+						switch ( rc ) {
+						case SLAPD_SEND_SIZELIMIT:
+							rs->sr_entry = NULL;
+							rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+							goto done2;
+						}
 					}
 
 					entry_free( e );
@@ -106,8 +114,7 @@ perl_back_search(
 
 		rs->sr_err = POPi;
 
-
-
+done:;
 		PUTBACK; FREETMPS; LEAVE;
 	}
 

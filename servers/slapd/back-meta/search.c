@@ -451,28 +451,29 @@ really_bad:;
 					candidates[ i ].sr_type = REP_RESULT;
 				}
 
-				if ( --op->ors_slimit == -1 ) {
-					ldap_msgfree( res );
-					res = NULL;
+				is_ok++;
 
+				e = ldap_first_entry( msc->msc_ld, res );
+				savepriv = op->o_private;
+				op->o_private = (void *)i;
+				rc = meta_send_entry( op, rs, mc, i, e );
+				ldap_msgfree( res );
+				res = NULL;
+
+				switch ( rc ) {
+				case SLAPD_SEND_SIZELIMIT:
 					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 					savepriv = op->o_private;
 					op->o_private = (void *)i;
 					send_ldap_result( op, rs );
 					op->o_private = savepriv;
 					goto finish;
+
+				case -1:
+					rs->sr_err = LDAP_OTHER;
+					goto finish;
 				}
-
-				is_ok++;
-
-				e = ldap_first_entry( msc->msc_ld, res );
-				savepriv = op->o_private;
-				op->o_private = (void *)i;
-				meta_send_entry( op, rs, mc, i, e );
 				op->o_private = savepriv;
-
-				ldap_msgfree( res );
-				res = NULL;
 
 				gotit = 1;
 
@@ -1155,7 +1156,21 @@ next_attr:;
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;
 	rs->sr_flags = 0;
-	send_search_entry( op, rs );
+	switch ( send_search_entry( op, rs ) ) {
+	case 0:
+	case 1:
+		rc = LDAP_SUCCESS;
+		break;
+	case -1:
+		rc = LDAP_OTHER;
+		break;
+	case SLAPD_SEND_SIZELIMIT:
+		rc = LDAP_SIZELIMIT_EXCEEDED;
+		break;
+	default:
+		/* trap other values when added... */
+		assert( 0 );
+	}
 	rs->sr_entry = NULL;
 	rs->sr_attrs = NULL;
 	
@@ -1169,6 +1184,6 @@ next_attr:;
 	}
 	entry_clean( &ent );
 
-	return LDAP_SUCCESS;
+	return rc;
 }
 

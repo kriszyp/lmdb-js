@@ -430,27 +430,24 @@ searchit:
 			}
 
 			if ( scopeok ) {
-				/* check size limit */
-				if ( --op->ors_slimit == -1 ) {
-					cache_return_entry_r( &li->li_cache, e );
-					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-					rs->sr_entry = NULL;
-					send_ldap_result( op, rs );
-					rc = LDAP_SUCCESS;
-					goto done;
-				}
-
 				if (e) {
 					rs->sr_flags = 0;
 					result = send_search_entry( op, rs );
 
-					switch (result) {
+					switch ( result ) {
 					case 0:		/* entry sent ok */
 						break;
 					case 1:		/* entry not sent */
 						break;
 					case -1:	/* connection closed */
 						cache_return_entry_r( &li->li_cache, e );
+						rc = LDAP_SUCCESS;
+						goto done;
+					case SLAPD_SEND_SIZELIMIT:
+						cache_return_entry_r( &li->li_cache, e );
+						rc = rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+						rs->sr_entry = NULL;
+						send_ldap_result( op, rs );
 						rc = LDAP_SUCCESS;
 						goto done;
 					}

@@ -146,6 +146,10 @@ retcode_send_onelevel( Operation *op, SlapReply *rs )
 				rs->sr_entry = NULL;
 				rs->sr_err = LDAP_OTHER;
 				goto done;
+			case SLAPD_SEND_SIZELIMIT:
+				rs->sr_entry = NULL;
+				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+				goto done;
 			}
 		}
 		rs->sr_err = LDAP_SUCCESS;

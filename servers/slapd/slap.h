@@ -153,6 +153,9 @@ LDAP_BEGIN_DECL
 /* unknown config file directive */
 #define SLAP_CONF_UNKNOWN (-1026)
 
+/* pseudo error code indicating caller should send sizelimitExceeded */
+#define SLAPD_SEND_SIZELIMIT (-1027)
+
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
 #define ASCII_LOWER(c)	( (c) >= 'a' && (c) <= 'z' )
@@ -2252,8 +2255,8 @@ typedef struct slap_overinfo {
 } slap_overinfo;
 
 /* Should successive callbacks in a chain be processed? */
-#define	SLAP_CB_FREEME		0x4000
-#define	SLAP_CB_CONTINUE	0x8000
+#define	SLAP_CB_FREEME		0x04000
+#define	SLAP_CB_CONTINUE	0x08000
 
 /*
  * Paged Results state

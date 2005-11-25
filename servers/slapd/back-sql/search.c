@@ -2320,11 +2320,6 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE )
 		{
-			if ( --op->ors_slimit == -1 ) {
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-				goto send_results;
-			}
-
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;
 			rs->sr_entry = e;
@@ -2335,7 +2330,8 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_attrs = NULL;
 			rs->sr_operational_attrs = NULL;
 
-			if ( sres == -1 ) {
+			switch ( sres ) {
+			case -1:
 				/*
 				 * FIXME: send_search_entry failed;
 				 * better stop
@@ -2343,6 +2339,10 @@ backsql_search( Operation *op, SlapReply *rs )
 				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 					"connection lost\n", 0, 0, 0 );
 				goto end_of_search;
+
+			case SLAPD_SEND_SIZELIMIT:
+				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+				goto send_results;
 			}
 		}
 

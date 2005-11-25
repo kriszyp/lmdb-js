@@ -311,6 +311,9 @@ retry:
 			}
 			ldap_msgfree( res );
 			if ( abort ) {
+				if ( abort == SLAPD_SEND_SIZELIMIT ) {
+					rc = rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+				}
 				ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
 				goto finish;
 			}
