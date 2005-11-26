@@ -43,7 +43,7 @@ ldapsearch \- LDAP search tool
 [\c
 .BI \-b \ searchbase\fR]
 [\c
-.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR]
+.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR\||\|\fIchildren\fR]
 [\c
 .BI \-a \ never\fR\||\|\fIalways\fR\||\|\fIsearch\fR\||\|\fIfind\fR]
 [\c
@@ -183,14 +183,15 @@ Deprecated in favor of -H.
 Use \fIsearchbase\fP as the starting point for the search instead of
 the default.
 .TP
-.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub
+.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR\||\|\fIchildren
 Specify the scope of the search to be one of
 .IR base ,
 .IR one ,
+.IR sub ,
 or
-.I sub
-to specify a base object, one-level, or subtree search.  The default
-is
+.I children
+to specify a base object, one-level, subtree, or children search.
+The default is
 .IR sub .
 .TP
 .BI \-a \ never\fR\||\|\fIalways\fR\||\|\fIsearch\fR\||\|\fIfind
