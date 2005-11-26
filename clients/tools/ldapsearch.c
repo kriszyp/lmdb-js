@@ -794,7 +794,7 @@ getNextPage:
 			filtpattern );
 
 		if ( attrs == NULL ) {
-			fprintf( stderr, _("ALL") );
+			fprintf( stderr, _("All userApplication attributes") );
 		} else {
 			for ( i = 0; attrs[ i ] != NULL; ++i ) {
 				fprintf( stderr, "%s ", attrs[ i ] );
