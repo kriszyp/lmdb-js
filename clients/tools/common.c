@@ -1378,7 +1378,8 @@ void tool_print_ctrls(
 				BER_BVSTR( &what, "postread" );
 			}
 
-			tool_write_ldif( LDIF_PUT_COMMENT, "==> ", what.bv_val, what.bv_len );
+			tool_write_ldif( LDIF_PUT_COMMENT, "==> ",
+				what.bv_val, what.bv_len );
 			ber = ber_init( &ctrls[i]->ldctl_value );
 			if ( ber == NULL ) {
 				/* ... */
@@ -1391,13 +1392,16 @@ void tool_print_ctrls(
 					int		i;
 					BerVarray	vals = NULL;
 
-					if ( ber_scanf( ber, "[W]", &vals ) == LBER_ERROR || vals == NULL ) {
+					if ( ber_scanf( ber, "[W]", &vals ) == LBER_ERROR ||
+						vals == NULL )
+					{
 						/* error? */
 						continue;
 					}
 				
 					for ( i = 0; vals[ i ].bv_val != NULL; i++ ) {
-						tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+						tool_write_ldif(
+							ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 							bv.bv_val, vals[ i ].bv_val, vals[ i ].bv_len );
 					}
 
@@ -1409,10 +1413,12 @@ void tool_print_ctrls(
 				ber_free( ber, 1 );
 			}
 
-			tool_write_ldif( LDIF_PUT_COMMENT, "<== ", what.bv_val, what.bv_len );
+			tool_write_ldif( LDIF_PUT_COMMENT, "<== ",
+				what.bv_val, what.bv_len );
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-		} else if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PAGEDRESULTS ) == 0 ) {
+		} else if ( strcmp( ctrls[i]->ldctl_oid,
+			LDAP_CONTROL_PAGEDRESULTS ) == 0 )
+		{
 			BerElement	*ber;
 			struct berval	cookie;
 			int		size;
@@ -1454,10 +1460,11 @@ void tool_print_ctrls(
 			if ( ber != NULL ) {
 				ber_free( ber, 1 );
 			}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-		} else if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PASSWORDPOLICYRESPONSE ) == 0 ) {
+		} else if ( strcmp( ctrls[i]->ldctl_oid,
+			LDAP_CONTROL_PASSWORDPOLICYRESPONSE ) == 0 )
+		{
 			int expire = 0, grace = 0, rc;
 			LDAPPasswordPolicyError	pperr;
 
@@ -1485,9 +1492,8 @@ void tool_print_ctrls(
 				tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 					"ppolicy", buf, ptr - buf );
 			}
-		}
 #endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
-
+		}
 	}
 }
 

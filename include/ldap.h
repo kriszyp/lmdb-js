@@ -231,6 +231,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_MANAGEDIT			"1.3.6.1.4.1.4203.666.5.12"
 #define LDAP_CONTROL_SLURP				"1.3.6.1.4.1.4203.666.5.13"
 #define LDAP_CONTROL_VALSORT			"1.3.6.1.4.1.4203.666.5.14"
+#define LDAP_CONTROL_DONTUSECOPY		"1.3.6.1.4.1.4203.666.5.15"
 
 /* LDAP Sync -- draft-zeilenga-ldup-sync *//* submitted for publication */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"

@@ -82,6 +82,10 @@ usage( void )
 	fprintf( stderr, _("  b64value\tbase64 encoding of assertion value\n"));
 
 	fprintf( stderr, _("Compare options:\n"));
+#ifdef LDAP_CONTROL_DONTUSECOPY
+	fprintf( stderr, _("  -E [!]<ext>[=<extparam>] compare extensions (! indicates criticality)\n"));
+	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
+#endif
 	fprintf( stderr, _("  -z         Quiet mode,"
 		" don't print anything, use return values\n"));
 	tool_common_usage();
@@ -101,13 +105,17 @@ static int docompare LDAP_P((
 const char options[] = "z"
 	"Cd:D:e:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
 
+#ifdef LDAP_CONTROL_DONTUSECOPY
+int dontUseCopy = 0;
+#endif
+
 int
 handle_private_option( int i )
 {
+	char	*control, *cvalue;
+	int		crit;
+
 	switch ( i ) {
-#if 0
-		char	*control, *cvalue;
-		int		crit;
 	case 'E': /* compare extensions */
 		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
@@ -126,13 +134,38 @@ handle_private_option( int i )
 			optarg++;
 		}
 
-		control = strdup( optarg );
+		control = ber_strdup( optarg );
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-		fprintf( stderr, _("Invalid compare extension name: %s\n"), control );
-		usage();
+
+#ifdef LDAP_CONTROL_DONTUSECOPY
+		if ( strcasecmp( control, "dontUseCopy" ) == 0 ) {
+			if( dontUseCopy ) {
+				fprintf( stderr,
+					_("dontUseCopy control previously specified\n"));
+				exit( EXIT_FAILURE );
+			}
+			if( cvalue != NULL ) {
+				fprintf( stderr,
+					_("dontUseCopy: no control value expected\n") );
+				usage();
+			}
+			if( !crit ) {
+				fprintf( stderr,
+					_("dontUseCopy: critical flag required\n") );
+				usage();
+			}
+
+			dontUseCopy = 1 + crit;
+		} else
 #endif
+		{
+			fprintf( stderr,
+				_("Invalid compare extension name: %s\n"), control );
+			usage();
+		}
+		break;
 
 	case 'z':
 		quiet = 1;
@@ -205,8 +238,27 @@ main( int argc, char **argv )
 
 	tool_bind( ld );
 
-	if ( assertion || authzid || manageDSAit || noop ) {
-		tool_server_controls( ld, NULL, 0 );
+	if ( assertion || authzid || manageDSAit || noop 
+#ifdef LDAP_CONTROL_DONTUSECOPY
+		|| dontUseCopy
+#endif
+		)
+	{
+		int err;
+		int i = 0; 
+		LDAPControl c[1];
+
+#ifdef LDAP_CONTROL_DONTUSECOPY
+		if ( dontUseCopy ) {  
+			c[i].ldctl_oid = LDAP_CONTROL_DONTUSECOPY;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = dontUseCopy > 1;
+			i++;    
+		}
+#endif
+
+		tool_server_controls( ld, c, i );
 	}
 
 	if ( verbose ) {
