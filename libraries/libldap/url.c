@@ -275,13 +275,11 @@ static int str2scope( const char *p )
 	} else if ( strcasecmp( p, "subtree" ) == 0 ) {
 		return LDAP_SCOPE_SUBTREE;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 	} else if ( strcasecmp( p, "subordinate" ) == 0 ) {
 		return LDAP_SCOPE_SUBORDINATE;
 
 	} else if ( strcasecmp( p, "children" ) == 0 ) {
 		return LDAP_SCOPE_SUBORDINATE;
-#endif
 	}
 
 	return( -1 );
@@ -509,9 +507,7 @@ desc2str_len( LDAPURLDesc *u )
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
-#endif
 		switch ( u->lud_scope ) {
 		case LDAP_SCOPE_BASE:
 			len += STRLENOF( "base" );
@@ -525,12 +521,9 @@ desc2str_len( LDAPURLDesc *u )
 			len += STRLENOF( "sub" );
 			break;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
 			len += STRLENOF( "subordinate" );
 			break;
-
-#endif
 		}
 
 		if ( !sep ) {
@@ -597,9 +590,7 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
-#endif
 		gotscope = 1;
 		break;
 	}
@@ -690,13 +681,11 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 		len -= STRLENOF("sub");
 		break;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
 		strcpy( &s[sofar], "children" );
 		sofar += STRLENOF("children");
 		len -= STRLENOF("children");
 		break;
-#endif
 	}
 
 	assert( len >= 0 );
