@@ -467,7 +467,12 @@ process_ldif_rec( char *rbuf, int count )
 					replicaport = 0;
 				} else {
 					*p++ = '\0';
-					replicaport = atoi( p );
+					if ( lutil_atoi( &replicaport, p ) != 0 ) {
+						fprintf( stderr, _("%s: unable to parse replica port \"%s\" (line %d) entry: \"%s\"\n"),
+							prog, p, linenum, dn == NULL ? "" : dn );
+						rc = LDAP_PARAM_ERROR;
+						break;
+					}
 				}
 				if ( ldaphost != NULL &&
 					strcasecmp( val.bv_val, ldaphost ) == 0 &&
@@ -478,7 +483,8 @@ process_ldif_rec( char *rbuf, int count )
 	    		} else if ( count == 1 && linenum == 1 && 
 				strcasecmp( type, T_VERSION_STR ) == 0 )
 			{
-				if( val.bv_len == 0 || atoi(val.bv_val) != 1 ) {
+				int	v;
+				if( val.bv_len == 0 || lutil_atoi( &v, val.bv_val) != 0 || v != 1 ) {
 					fprintf( stderr,
 						_("%s: invalid version %s, line %d (ignored)\n"),
 						prog, val.bv_val, linenum );
