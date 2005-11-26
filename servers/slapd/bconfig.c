@@ -4294,7 +4294,7 @@ config_back_db_open( BackendDB *be )
 	struct berval rdn;
 	Entry *e, *parent;
 	CfEntryInfo *ce, *ceparent;
-	int i;
+	int i, unsupp = 0;
 	BackendInfo *bi;
 	ConfigArgs c;
 	Connection conn = {0};
@@ -4369,7 +4369,16 @@ config_back_db_open( BackendDB *be )
 	
 	c.line = 0;
 	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next) {
-		if (!bi->bi_cf_ocs) continue;
+		if (!bi->bi_cf_ocs) {
+			/* If it only supports the old config mech, complain. */
+			if ( bi->bi_config ) {
+				Debug( LDAP_DEBUG_ANY,
+					"WARNING: No dynamic config support for backend %s.\n",
+					bi->bi_type, 0, 0 );
+				unsupp++;
+			}
+			continue;
+		}
 		if (!bi->bi_private) continue;
 
 		rdn.bv_val = c.log;
@@ -4396,6 +4405,16 @@ config_back_db_open( BackendDB *be )
 		} else {
 			bi = be->bd_info;
 		}
+
+		/* If this backend supports the old config mechanism, but not
+		 * the new mech, complain.
+		 */
+		if ( !be->be_cf_ocs && bi->bi_db_config ) {
+			Debug( LDAP_DEBUG_ANY,
+				"WARNING: No dynamic config support for database %s.\n",
+				bi->bi_type, 0, 0 );
+			unsupp++;
+		}
 		rdn.bv_val = c.log;
 		rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
 			"%s=" SLAP_X_ORDERED_FMT "%s", cfAd_database->ad_cname.bv_val,
@@ -4417,6 +4436,12 @@ config_back_db_open( BackendDB *be )
 			int j;
 
 			for (j=0,on=oi->oi_list; on; j++,on=on->on_next) {
+				if ( on->on_bi.bi_db_config && !on->on_bi.bi_cf_ocs ) {
+					Debug( LDAP_DEBUG_ANY,
+						"WARNING: No dynamic config support for overlay %s.\n",
+						on->on_bi.bi_type, 0, 0 );
+					unsupp++;
+				}
 				rdn.bv_val = c.log;
 				rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
 					"%s=" SLAP_X_ORDERED_FMT "%s",
@@ -4435,6 +4460,11 @@ config_back_db_open( BackendDB *be )
 	}
 	if ( thrctx )
 		ldap_pvt_thread_pool_context_reset( thrctx );
+
+	if ( unsupp  && cfb->cb_use_ldif ) {
+		Debug( LDAP_DEBUG_ANY, "\nWARNING: The converted cn=config "
+			"directory is incomplete and may not work.\n\n", 0, 0, 0 );
+	}
 
 	return 0;
 }
