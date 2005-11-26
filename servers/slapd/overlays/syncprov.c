@@ -450,12 +450,10 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		case LDAP_SCOPE_SUBTREE:
 			fc->fscope = dnIsSuffix( fc->fdn, &fc->fss->s_base );
 			break;
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
 			fc->fscope = dnIsSuffix( fc->fdn, &fc->fss->s_base ) &&
 				!dn_match( fc->fdn, &fc->fss->s_base );
 			break;
-#endif
 		}
 	}
 

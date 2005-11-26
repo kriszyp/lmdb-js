@@ -222,9 +222,7 @@ meta_back_db_config(
 			break;
 
 		case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
-#endif /* LDAP_SCOPE_SUBORDINATE */
 			mi->mi_targets[ i ].mt_scope = ludp->lud_scope;
 			break;
 

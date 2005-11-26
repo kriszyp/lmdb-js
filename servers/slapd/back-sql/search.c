@@ -1436,9 +1436,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 					"ldap_entries.parent=?" );
 		break;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
-#endif /* LDAP_SCOPE_SUBORDINATE */
 	case LDAP_SCOPE_SUBTREE:
 		if ( BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ) {
 			int		i;
@@ -1679,9 +1677,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		}
 		break;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
-#endif /* LDAP_SCOPE_SUBORDINATE */
 	case LDAP_SCOPE_SUBTREE:
 	{
 		/* if short-cutting the search base,
@@ -1720,11 +1716,9 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 				tmp_base_ndn[ i ] = bsi->bsi_base_ndn->bv_val[ j ];
 			}
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 			if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
 				tmp_base_ndn[ i++ ] = ',';
 			}
-#endif /* LDAP_SCOPE_SUBORDINATE */
 
 			tmp_base_ndn[ i ] = '%';
 			tmp_base_ndn[ i + 1 ] = '\0';
@@ -1734,11 +1728,9 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 
 			tmp_base_ndn[ i++ ] = '%';
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 			if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
 				tmp_base_ndn[ i++ ] = ',';
 			}
-#endif /* LDAP_SCOPE_SUBORDINATE */
 
 			AC_MEMCPY( &tmp_base_ndn[ i ], bsi->bsi_base_ndn->bv_val,
 				bsi->bsi_base_ndn->bv_len + 1 );
@@ -1750,13 +1742,10 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			ldap_pvt_str2upper( tmp_base_ndn );
 		}
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 		if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
 			Debug( LDAP_DEBUG_TRACE, "(children)dn: \"%s\"\n",
 				tmp_base_ndn, 0, 0 );
-		} else 
-#endif /* LDAP_SCOPE_SUBORDINATE */
-		{
+		} else {
 			Debug( LDAP_DEBUG_TRACE, "(sub)dn: \"%s\"\n",
 				tmp_base_ndn, 0, 0 );
 		}
@@ -2157,15 +2146,12 @@ backsql_search( Operation *op, SlapReply *rs )
 			/* fall thru */
 		}
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
 			/* discard the baseObject entry */
 			if ( dn_match( &eid->eid_ndn, &op->o_req_ndn ) ) {
 				goto next_entry2;
 			}
-		/* FALLTHRU */
-#endif /* LDAP_SCOPE_SUBORDINATE */
-
+			/* FALLTHRU */
 		case LDAP_SCOPE_SUBTREE:
 			/* FIXME: this should never fail... */
 			if ( !dnIsSuffix( &eid->eid_ndn, &op->o_req_ndn ) ) {

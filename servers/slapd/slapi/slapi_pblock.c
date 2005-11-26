@@ -1022,9 +1022,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			case LDAP_SCOPE_BASE:
 			case LDAP_SCOPE_ONELEVEL:
 			case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_SCOPE_SUBORDINATE
 			case LDAP_SCOPE_SUBORDINATE:
-#endif
 				pb->pb_op->ors_scope = scope;
 				break;
 			default:

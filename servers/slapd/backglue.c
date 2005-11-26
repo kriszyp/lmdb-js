@@ -258,9 +258,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE: /* FIXME */
-#endif
 
 #if 0
 		if ( op->o_sync ) {

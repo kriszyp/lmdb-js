@@ -417,13 +417,11 @@ searchit:
 			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 			} else if ( !scopeok &&
 				op->ors_scope == LDAP_SCOPE_SUBORDINATE )
 			{
 				scopeok = !dn_match( &e->e_nname, &realbase )
 					&& dnIsSuffix( &e->e_nname, &realbase );
-#endif
 
 			} else {
 				scopeok = 1;
