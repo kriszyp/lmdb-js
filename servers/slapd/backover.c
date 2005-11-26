@@ -252,7 +252,7 @@ over_access_allowed(
 {
 	slap_overinfo *oi;
 	slap_overinst *on;
-	BackendInfo *bi = op->o_bd->bd_info;
+	BackendInfo *bi;
 	BackendDB *be = op->o_bd, db;
 	int rc = SLAP_CB_CONTINUE;
 
@@ -260,7 +260,13 @@ over_access_allowed(
 	 * when global overlays are used... */
 	assert( op->o_bd != NULL );
 
-	oi = op->o_bd->bd_info->bi_private;
+	bi = op->o_bd->bd_info;
+	/* Were we invoked on the frontend? */
+	if ( !bi->bi_access_allowed ) {
+		oi = frontendDB->bd_info->bi_private;
+	} else {
+		oi = op->o_bd->bd_info->bi_private;
+	}
 	on = oi->oi_list;
 
 	for ( ; on; on = on->on_next ) {
