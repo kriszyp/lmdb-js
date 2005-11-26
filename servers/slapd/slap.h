@@ -74,8 +74,8 @@ LDAP_BEGIN_DECL
 #define LDAP_DYNAMIC_OBJECTS
 #define LDAP_SYNC_TIMESTAMP
 #define LDAP_COLLECTIVE_ATTRIBUTES
-#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 #define SLAPD_CONF_UNKNOWN_BAILOUT
+#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 
 #define SLAP_ORDERED_PRETTYNORM
 #define SLAP_AUTHZ_SYNTAX
@@ -1005,9 +1005,7 @@ typedef struct slap_filter {
 #define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
 #define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
 #define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
-#ifdef LDAP_SCOPE_SUBORDINATE
 #define SLAPD_FILTER_DN_CHILDREN	((ber_tag_t) -4)
-#endif
 
 	union f_un_u {
 		/* precomputed result */
@@ -2290,25 +2288,26 @@ typedef struct slap_gacl {
 } GroupAssertion;
 
 struct slap_control_ids {
+	int sc_LDAPsync;
 	int sc_assert;
-	int sc_preRead;
-	int sc_postRead;
-	int sc_proxyAuthz;
+	int sc_domainScope;
+	int sc_dontUseCopy;
 	int sc_manageDIT;
 	int sc_manageDSAit;
 	int sc_modifyIncrement;
 	int sc_noOp;
 	int sc_pagedResults;
+	int sc_permissiveModify;
+	int sc_postRead;
+	int sc_preRead;
+	int sc_proxyAuthz;
+	int sc_searchOptions;
 #ifdef LDAP_DEVEL
 	int sc_sortedResults;
 #endif
-	int sc_valuesReturnFilter;
-	int sc_permissiveModify;
-	int sc_domainScope;
-	int sc_treeDelete;
-	int sc_searchOptions;
 	int sc_subentries;
-	int sc_LDAPsync;
+	int sc_treeDelete;
+	int sc_valuesReturnFilter;
 };
 
 /*
@@ -2456,6 +2455,9 @@ typedef struct slap_op {
 	char o_ctrlflag[SLAP_MAX_CIDS];	/* per-control flags */
 	void **o_controls;		/* per-control state */
 
+#define o_dontUseCopy			o_ctrlflag[slap_cids.sc_dontUseCopy]
+#define get_dontUseCopy(op)		_SCM((op)->o_dontUseCopy)
+
 #define o_managedit				o_ctrlflag[slap_cids.sc_manageDIT]
 #define get_manageDIT(op)		_SCM((op)->o_managedit)
 
@@ -2480,26 +2482,14 @@ typedef struct slap_op {
 #define	o_valuesreturnfilter	o_ctrlflag[slap_cids.sc_valuesReturnFilter]
 #define o_vrFilter	o_controls[slap_cids.sc_valuesReturnFilter]
 
-#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
 #define o_permissive_modify	o_ctrlflag[slap_cids.sc_permissiveModify]
 #define get_permissiveModify(op)		((int)(op)->o_permissive_modify)
-#else
-#define get_permissiveModify(op)		(0)
-#endif
 
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 #define o_domain_scope	o_ctrlflag[slap_cids.sc_domainScope]
 #define get_domainScope(op)				((int)(op)->o_domain_scope)
-#else
-#define get_domainScope(op)				(0)
-#endif
 
-#ifdef SLAP_CONTROL_X_TREE_DELETE
 #define	o_tree_delete	o_ctrlflag[slap_cids.sc_treeDelete]
 #define get_treeDelete(op)				((int)(op)->o_tree_delete)
-#else
-#define get_treeDelete(op)				(0)
-#endif
 
 #define o_preread	o_ctrlflag[slap_cids.sc_preRead]
 #define o_postread	o_ctrlflag[slap_cids.sc_postRead]
@@ -2669,10 +2659,7 @@ typedef struct slap_conn {
 	SEND_SEARCH_ENTRY *c_send_search_entry;
 	SEND_SEARCH_REFERENCE *c_send_search_reference;
 	SEND_LDAP_EXTENDED *c_send_ldap_extended;
-#ifdef LDAP_RES_INTERMEDIATE
 	SEND_LDAP_INTERMEDIATE *c_send_ldap_intermediate;
-#endif
-
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)

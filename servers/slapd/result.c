@@ -557,11 +557,8 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	assert( rs->sr_err != LDAP_PARTIAL_RESULTS );
 
 	if ( rs->sr_err == LDAP_REFERRAL ) {
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
-		if( op->o_domain_scope ) {
-			rs->sr_ref = NULL;
-		}
-#endif
+		if( op->o_domain_scope ) rs->sr_ref = NULL;
+
 		if( rs->sr_ref == NULL ) {
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		} else if ( op->o_protocol < LDAP_VERSION3 ) {
@@ -1271,7 +1268,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		goto rel;
 	}
 
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	if( op->o_domain_scope ) {
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: domainScope control in (%s)\n", 
@@ -1279,7 +1275,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		rc = 0;
 		goto rel;
 	}
-#endif
 
 	if( rs->sr_ref == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
