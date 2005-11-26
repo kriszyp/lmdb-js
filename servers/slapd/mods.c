@@ -402,11 +402,12 @@ modify_increment_values(
 		for( i = 0; !BER_BVISNULL( &a->a_nvals[i] ); i++ ) {
 			char *tmp;
 			long value;
+			size_t strln;
 			if ( lutil_atol( &value, a->a_nvals[i].bv_val ) != 0 ) {
 				*text = "modify/increment: invalid syntax of original value";
 				return LDAP_INVALID_SYNTAX;
 			}
-			size_t strln = snprintf( str, sizeof(str), "%ld", value+incr );
+			strln = snprintf( str, sizeof(str), "%ld", value+incr );
 
 			tmp = SLAP_REALLOC( a->a_nvals[i].bv_val, strln+1 );
 			if( tmp == NULL ) {
