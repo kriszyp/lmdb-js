@@ -377,11 +377,19 @@ static int smbk5pwd_exop_passwd(
 		if ( ret ) break;
 
 		a = attr_find( e->e_attrs, ad_krb5KeyVersionNumber );
+		kvno = 0;
 		if ( a ) {
-			kvno = atoi(a->a_vals[0].bv_val);
+			if ( lutil_atoi( &kvno, a->a_vals[0].bv_val ) != 0 ) {
+				Debug( LDAP_DEBUG_ANY, "%s smbk5pwd EXOP: "
+					"dn=\"%s\" unable to parse krb5KeyVersionNumber=\"%s\"\n",
+					op->o_log, e->e_name.bv_val, a->a_vals[0].bv_val );
+			}
+
 		} else {
 			/* shouldn't happen, this is a required attr */
-			kvno = 0;
+			Debug( LDAP_DEBUG_ANY, "%s smbk5pwd EXOP: "
+				"dn=\"%s\" missing krb5KeyVersionNumber\n",
+				op->o_log, e->e_name.bv_val, 0 );
 		}
 
 		ret = _kadm5_set_keys(kadm_context, &ent, qpw->rs_new.bv_val);
@@ -864,7 +872,7 @@ static int
 smbk5pwd_db_init(BackendDB *be)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	smbk5pwd_t *pi;
+	smbk5pwd_t	*pi;
 
 	pi = ch_calloc( 1, sizeof( smbk5pwd_t ) );
 	if ( pi == NULL ) {

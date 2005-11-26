@@ -273,6 +273,29 @@ lutil_LogStoppedEvent( char *svc );
 #define putc(c,fp)     do { char x=(c); __atoe_l(&x,1); putc(x,fp); } while(0)
 #endif
 
+LDAP_LUTIL_F (int)
+lutil_atoix( int *v, const char *s, int x );
+
+LDAP_LUTIL_F (int)
+lutil_atoux( unsigned *v, const char *s, int x );
+
+LDAP_LUTIL_F (int)
+lutil_atolx( long *v, const char *s, int x );
+
+LDAP_LUTIL_F (int)
+lutil_atoulx( unsigned long *v, const char *s, int x );
+
+#define lutil_atoi(v, s)	lutil_atoix((v), (s), 10)
+#define lutil_atou(v, s)	lutil_atoux((v), (s), 10)
+#define lutil_atol(v, s)	lutil_atolx((v), (s), 10)
+#define lutil_atoul(v, s)	lutil_atoulx((v), (s), 10)
+
+LDAP_LUTIL_F (int)
+lutil_parse_time( const char *in, unsigned long *tp );
+
+LDAP_LUTIL_F (int)
+lutil_unparse_time( char *buf, size_t buflen, unsigned long t );
+
 LDAP_END_DECL
 
 #endif /* _LUTIL_H */

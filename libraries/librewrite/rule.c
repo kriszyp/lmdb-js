@@ -233,7 +233,7 @@ rewrite_rule_compile(
 			}
 
 			d[ 0 ] = strtol( &p[ 2 ], &next, 0 );
-			if ( next == NULL || next == &p[ 2 ] || next[0] != '}' ) {
+			if ( next == &p[ 2 ] || next[0] != '}' ) {
 				/* XXX Need to free stuff */
 				return REWRITE_ERR;
 			}
@@ -275,7 +275,7 @@ rewrite_rule_compile(
 			}
 
 			max_passes = strtol( &p[ 2 ], &next, 0 );
-			if ( next == NULL || next == &p[ 2 ] || next[0] != '}' ) {
+			if ( next == &p[ 2 ] || next[0] != '}' ) {
 				/* XXX Need to free stuff */
 				return REWRITE_ERR;
 			}

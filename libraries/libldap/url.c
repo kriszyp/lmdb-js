@@ -883,7 +883,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		}
 
 		ludp->lud_port = strtol( q, &next, 10 );
-		if ( next == NULL || next[0] != '\0' ) {
+		if ( next == q || next[0] != '\0' ) {
 			LDAP_FREE( url );
 			ldap_free_urldesc( ludp );
 			return LDAP_URL_ERR_BADURL;
@@ -1338,7 +1338,7 @@ ldap_url_parsehosts(
 				*p++ = 0;
 				ldap_pvt_hex_unescape(p);
 				ludp->lud_port = strtol( p, &next, 10 );
-				if ( next == NULL || next[0] != '\0' ) {
+				if ( next == p || next[0] != '\0' ) {
 					return LDAP_PARAM_ERROR;
 				}
 			}

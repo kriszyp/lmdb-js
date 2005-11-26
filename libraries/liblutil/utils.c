@@ -329,3 +329,165 @@ lutil_memrchr(const void *b, int c, size_t n)
 
 	return NULL;
 }
+
+int
+lutil_atoix( int *v, const char *s, int x )
+{
+	char		*next;
+	long		i;
+
+	assert( s != NULL );
+	assert( v != NULL );
+
+	i = strtol( s, &next, x );
+	if ( next == s || next[ 0 ] != '\0' ) {
+		return -1;
+	}
+
+	if ( (long)(int)i != i ) {
+		return 1;
+	}
+
+	*v = (int)i;
+
+	return 0;
+}
+
+int
+lutil_atoux( unsigned *v, const char *s, int x )
+{
+	char		*next;
+	unsigned long	u;
+
+	assert( s != NULL );
+	assert( v != NULL );
+
+	u = strtoul( s, &next, x );
+	if ( next == s || next[ 0 ] != '\0' ) {
+		return -1;
+	}
+
+	if ( (unsigned long)(unsigned)u != u ) {
+		return 1;
+	}
+
+	*v = u;
+
+	return 0;
+}
+
+int
+lutil_atolx( long *v, const char *s, int x )
+{
+	char		*next;
+	long		l;
+
+	assert( s != NULL );
+	assert( v != NULL );
+
+	l = strtol( s, &next, x );
+	if ( next == s || next[ 0 ] != '\0' ) {
+		return -1;
+	}
+
+	*v = l;
+
+	return 0;
+}
+
+int
+lutil_atoulx( unsigned long *v, const char *s, int x )
+{
+	char		*next;
+	unsigned long	ul;
+
+	assert( s != NULL );
+	assert( v != NULL );
+
+	ul = strtoul( s, &next, x );
+	if ( next == s || next[ 0 ] != '\0' ) {
+		return -1;
+	}
+
+	*v = ul;
+
+	return 0;
+}
+
+static	char		time_unit[] = "dhms";
+
+int
+lutil_parse_time(
+	const char	*in,
+	unsigned long	*tp )
+{
+	unsigned long	t = 0;
+	char		*s,
+			*next;
+	int		sofar = -1,
+			scale[] = { 86400, 3600, 60, 1 };
+
+	*tp = 0;
+
+	for ( s = (char *)in; s[ 0 ] != '\0'; ) {
+		unsigned long	u;
+		char		*what;
+
+		u = strtoul( s, &next, 10 );
+		if ( next == s ) {
+			return -1;
+		}
+
+		if ( next[ 0 ] == '\0' ) {
+			/* assume seconds */
+			t += u;
+			break;
+		}
+
+		what = strchr( time_unit, next[ 0 ] );
+		if ( what == NULL ) {
+			return -1;
+		}
+
+		if ( what - time_unit <= sofar ) {
+			return -1;
+		}
+
+		sofar = what - time_unit;
+		t += u * scale[ sofar ];
+
+		s = &next[ 1 ];
+	}
+
+	*tp = t;
+	return 0;
+}
+
+int
+lutil_unparse_time(
+	char			*buf,
+	size_t			buflen,
+	unsigned long		t )
+{
+	int		len, i;
+	unsigned long	v[ 4 ];
+
+	v[ 0 ] = t/86400;
+	v[ 1 ] = (t%86400)/3600;
+	v[ 2 ] = (t%3600)/60;
+	v[ 3 ] = t%60;
+
+	for ( i = 0; i < 4; i++ ) {
+		if ( v[i] > 0 || i == 3 ) {
+			len = snprintf( buf, buflen, "%lu%c", v[ i ], time_unit[ i ] );
+			if ( len < 0 || (unsigned)len >= buflen ) {
+				return -1;
+			}
+			buflen -= len;
+			buf += len;
+		}
+	}
+
+	return 0;
+}
+

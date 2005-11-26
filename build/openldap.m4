@@ -233,6 +233,33 @@ OL_RESOLVER_TRY(ol_cv_resolver_bind,[-lbind])
 ])
 dnl
 dnl ====================================================================
+dnl International Components for Unicode (ICU)
+AC_DEFUN([OL_ICU],
+[ol_icu=no
+AC_CHECK_HEADERS( unicode/utypes.h )
+if test $ac_cv_header_unicode_utypes_h = yes ; then
+	dnl OL_ICULIBS="-licui18n -licuuc -licudata"
+	OL_ICULIBS="-licuuc -licudata"
+
+	AC_CACHE_CHECK([for ICU libraries], [ol_cv_lib_icu], [
+		ol_LIBS="$LIBS"
+		LIBS="$OL_ICULIBS $LIBS"
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <unicode/utypes.h>
+]], [[
+(void) u_errorName(0);
+]])],[ol_cv_lib_icu=yes],[ol_cv_lib_icu=no])
+		LIBS="$ol_LIBS"
+])
+
+	if test $ol_cv_lib_icu != no ; then
+		ol_icu="$OL_ICULIBS"
+		AC_DEFINE(HAVE_ICU,1,[define if you actually have ICU])
+	fi
+fi
+])
+dnl
+dnl ====================================================================
 dnl Berkeley DB macros
 dnl
 dnl --------------------------------------------------------------------
@@ -300,28 +327,203 @@ dnl --------------------------------------------------------------------
 dnl Try to locate appropriate library
 AC_DEFUN([OL_BERKELEY_DB_LINK],
 [ol_cv_lib_db=no
+
+dnl Determine major version
+AC_CACHE_CHECK([for Berkeley DB major version], [ol_cv_bdb_major],[
+	ol_cv_bdb_major=0
+	if test $ol_cv_bdb_major = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+#if DB_VERSION_MAJOR == 4
+__db_version
+#endif
+		], [ol_cv_bdb_major=4], [:])
+	fi
+	if test $ol_cv_bdb_major = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+#if DB_VERSION_MAJOR == 3
+__db_version
+#endif
+		], [ol_cv_bdb_major=3], [:])
+	fi
+	if test $ol_cv_bdb_major = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+#if DB_VERSION_MAJOR == 2
+__db_version
+#endif
+		], [ol_cv_bdb_major=2], [:])
+	fi
+	if test $ol_cv_bdb_major = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+#if DB_VERSION_MAJOR == 1
+__db_version
+#endif
+		], [ol_cv_bdb_major=1], [:])
+	fi
+
+	if test $ol_cv_bdb_major = 0 ; then
+		AC_MSG_ERROR([Unknown Berkeley DB major version])
+	fi
+])
+
+dnl Determine minor version
+AC_CACHE_CHECK([for Berkeley DB minor version], [ol_cv_bdb_minor],[
+	ol_cv_bdb_minor=0
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 9
+__db_version
+#endif
+		], [ol_cv_bdb_minor=9], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 8
+__db_version
+#endif
+		], [ol_cv_bdb_minor=8], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 7
+__db_version
+#endif
+		], [ol_cv_bdb_minor=7], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 6
+__db_version
+#endif
+		], [ol_cv_bdb_minor=6], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 5
+__db_version
+#endif
+		], [ol_cv_bdb_minor=5], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 4
+__db_version
+#endif
+		], [ol_cv_bdb_minor=4], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 3
+__db_version
+#endif
+		], [ol_cv_bdb_minor=3], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 2
+__db_version
+#endif
+		], [ol_cv_bdb_minor=2], [:])
+	fi
+	if test $ol_cv_bdb_minor = 0 ; then
+		AC_EGREP_CPP(__db_version, [
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+#if DB_VERSION_MINOR == 1
+__db_version
+#endif
+		], [ol_cv_bdb_minor=1], [:])
+	fi
+])
+
+if test $ol_cv_bdb_major = 4 ; then
+	if test $ol_cv_bdb_minor = 4 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db44,[-ldb44])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_44,[-ldb-44])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_4,[-ldb-4-4])
+	elif test $ol_cv_bdb_minor = 3 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db43,[-ldb43])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-43])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_3,[-ldb-4-3])
+	elif test $ol_cv_bdb_minor = 2 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db42,[-ldb42])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_42,[-ldb-42])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_2,[-ldb-4-2])
+	elif test $ol_cv_bdb_minor = 1 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db41,[-ldb41])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_41,[-ldb-41])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_1,[-ldb-4.1])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_1,[-ldb-4-1])
+	fi
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
+
+elif test $ol_cv_bdb_major = 3 ; then
+	OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_3,[-ldb-3])
+
+elif test $ol_cv_bdb_major = 2 ; then
+	OL_BERKELEY_DB_TRY(ol_cv_db_db2,[-ldb2])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_2,[-ldb-2])
+
+elif test $ol_cv_bdb_major = 1 ; then
+	OL_BERKELEY_DB_TRY(ol_cv_db_db1,[-ldb1])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_1,[-ldb-1])
+fi
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
-OL_BERKELEY_DB_TRY(ol_cv_db_db43,[-ldb43])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-43])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_4_3,[-ldb-4-3])
-OL_BERKELEY_DB_TRY(ol_cv_db_db42,[-ldb42])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_42,[-ldb-42])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_4_2,[-ldb-4-2])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
-OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
-OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
-OL_BERKELEY_DB_TRY(ol_cv_db_db41,[-ldb41])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_41,[-ldb-41])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_1,[-ldb-4.1])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_4_1,[-ldb-4-1])
-OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_3,[-ldb-3])
-OL_BERKELEY_DB_TRY(ol_cv_db_db2,[-ldb2])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_2,[-ldb-2])
-OL_BERKELEY_DB_TRY(ol_cv_db_db1,[-ldb1])
-OL_BERKELEY_DB_TRY(ol_cv_db_db_1,[-ldb-1])
 ])
 dnl
 dnl --------------------------------------------------------------------

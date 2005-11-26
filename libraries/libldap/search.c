@@ -365,53 +365,106 @@ ldap_search_s(
 	return( ldap_result2error( ld, *res, 0 ) );
 }
 
+static char escape[128] = {
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+
+	0, 0, 0, 0, 0, 0, 0, 0,
+	1, 1, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 1, 0, 0, 0,
+
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 1
+};
+#define	NEEDFLTESCAPE(c)	((c) & 0x80 || escape[ (unsigned)(c) ])
+
+/*
+ * compute the length of the escaped value;
+ * returns ((ber_len_t)(-1)) if no escaping is required.
+ */
+ber_len_t
+ldap_bv2escaped_filter_value_len( struct berval *in )
+{
+	ber_len_t	i, l;
+
+	assert( in != NULL );
+
+	if ( in->bv_len == 0 ) {
+		return 0;
+	}
+
+	/* assume we'll escape everything */
+	for( l = 0, i = 0; i < in->bv_len; l++, i++ ) {
+		char c = in->bv_val[ i ];
+		if ( NEEDFLTESCAPE( c ) ) {
+			l += 2;
+		}
+	}
+
+	return l;
+}
+
 int
 ldap_bv2escaped_filter_value( struct berval *in, struct berval *out )
 {
-	ber_len_t i;
-	static char escape[128] = {
-		1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1,
+	return ldap_bv2escaped_filter_value_x( in, out, 0, NULL );
+}
 
-		1, 1, 1, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
+int
+ldap_bv2escaped_filter_value_x( struct berval *in, struct berval *out, int inplace, void *ctx )
+{
+	ber_len_t	i, l;
 
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 1, 0, 0, 0,
+	assert( in != NULL );
+	assert( out != NULL );
 
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 1
-	};
+	BER_BVZERO( out );
 
-	out->bv_len = 0;
-	out->bv_val = NULL;
-
-	if( in->bv_len == 0 ) return 0;
+	if ( in->bv_len == 0 ) {
+		return 0;
+	}
 
 	/* assume we'll escape everything */
-	out->bv_val = LDAP_MALLOC( 3 * in->bv_len + 1 );
-	if( out->bv_val == NULL ) return -1;
+	l = ldap_bv2escaped_filter_value_len( in );
+	if ( l == in->bv_len ) {
+		if ( inplace ) {
+			*out = *in;
+		} else {
+			ber_dupbv( out, in );
+		}
+		return 0;
+	}
+	out->bv_val = LDAP_MALLOCX( l + 1, ctx );
+	if ( out->bv_val == NULL ) {
+		return -1;
+	}
 
-	for( i=0; i<in->bv_len; i++ ) {
+	for ( i = 0; i < in->bv_len; i++ ) {
 		char c = in->bv_val[ i ];
-		if (c & 0x80 || escape[ (unsigned)c ]) {
+		if ( NEEDFLTESCAPE( c ) ) {
+			assert( out->bv_len < l - 2 );
 			out->bv_val[out->bv_len++] = '\\';
 			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & (c>>4)];
 			out->bv_val[out->bv_len++] = "0123456789ABCDEF"[0x0f & c];
+
 		} else {
+			assert( out->bv_len < l );
 			out->bv_val[out->bv_len++] = c;
 		}
 	}
 
 	out->bv_val[out->bv_len] = '\0';
+
 	return 0;
 }
 
