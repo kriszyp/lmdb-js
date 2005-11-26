@@ -475,7 +475,7 @@ process_ldif_rec( char *rbuf, int count )
 				{
 					use_record = 1;
 				}
-	    	} else if ( count == 1 && linenum == 1 && 
+	    		} else if ( count == 1 && linenum == 1 && 
 				strcasecmp( type, T_VERSION_STR ) == 0 )
 			{
 				if( val.bv_len == 0 || atoi(val.bv_val) != 1 ) {
@@ -647,6 +647,12 @@ process_ldif_rec( char *rbuf, int count )
 				prog, linenum, dn );
 			rc = LDAP_PARAM_ERROR;
 		} else {
+			if ( new_entry && strcasecmp( type, T_DN_STR ) == 0 ) {
+				fprintf( stderr, _("%s: attributeDescription \"%s\":"
+					" (possible missing newline"
+						" after line %d of entry \"%s\"?)\n"),
+					prog, type, linenum - 1, dn );
+			}
 			addmodifyop( &pmods, modop, type, &val );
 		}
 
@@ -960,47 +966,51 @@ domodify(
 	}
 
 	if ( pmods == NULL ) {
-		fprintf( stderr,
-			_("%s: no attributes to change or add (entry=\"%s\")\n"),
-			prog, dn );
-		return( LDAP_PARAM_ERROR );
-	} 
+		/* implement "touch" (empty sequence)
+		 * modify operation (note that there
+		 * is no symmetry with the UNIX command,
+		 * since \"touch\" on a non-existent entry
+		 * will fail)*/
+		printf( "warning: no attributes to %sadd (entry=\"%s\")\n",
+			newentry ? "" : "change or ", dn );
 
-	for ( i = 0; pmods[ i ] != NULL; ++i ) {
-		op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
-		if( op == LDAP_MOD_ADD && ( pmods[i]->mod_bvalues == NULL )) {
-			fprintf( stderr,
-				_("%s: attribute \"%s\" has no values (entry=\"%s\")\n"),
-				prog, pmods[i]->mod_type, dn );
-			return LDAP_PARAM_ERROR;
-		}
-	}
-
-	if ( verbose ) {
+	} else {
 		for ( i = 0; pmods[ i ] != NULL; ++i ) {
 			op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
-			printf( "%s %s:\n",
-				op == LDAP_MOD_REPLACE ? _("replace") :
-					op == LDAP_MOD_ADD ?  _("add") :
-						op == LDAP_MOD_INCREMENT ?  _("increment") :
-							op == LDAP_MOD_DELETE ?  _("delete") :
-								_("unknown"),
-				pmods[ i ]->mod_type );
+			if( op == LDAP_MOD_ADD && ( pmods[i]->mod_bvalues == NULL )) {
+				fprintf( stderr,
+					_("%s: attribute \"%s\" has no values (entry=\"%s\")\n"),
+					prog, pmods[i]->mod_type, dn );
+				return LDAP_PARAM_ERROR;
+			}
+		}
 
-			if ( pmods[ i ]->mod_bvalues != NULL ) {
-				for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
-					bvp = pmods[ i ]->mod_bvalues[ j ];
-					notascii = 0;
-					for ( k = 0; (unsigned long) k < bvp->bv_len; ++k ) {
-						if ( !isascii( bvp->bv_val[ k ] )) {
-							notascii = 1;
-							break;
+		if ( verbose ) {
+			for ( i = 0; pmods[ i ] != NULL; ++i ) {
+				op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
+				printf( "%s %s:\n",
+					op == LDAP_MOD_REPLACE ? _("replace") :
+						op == LDAP_MOD_ADD ?  _("add") :
+							op == LDAP_MOD_INCREMENT ?  _("increment") :
+								op == LDAP_MOD_DELETE ?  _("delete") :
+									_("unknown"),
+					pmods[ i ]->mod_type );
+	
+				if ( pmods[ i ]->mod_bvalues != NULL ) {
+					for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
+						bvp = pmods[ i ]->mod_bvalues[ j ];
+						notascii = 0;
+						for ( k = 0; (unsigned long) k < bvp->bv_len; ++k ) {
+							if ( !isascii( bvp->bv_val[ k ] )) {
+								notascii = 1;
+								break;
+							}
 						}
-					}
-					if ( notascii ) {
-						printf( _("\tNOT ASCII (%ld bytes)\n"), bvp->bv_len );
-					} else {
-						printf( "\t%s\n", bvp->bv_val );
+						if ( notascii ) {
+							printf( _("\tNOT ASCII (%ld bytes)\n"), bvp->bv_len );
+						} else {
+							printf( "\t%s\n", bvp->bv_val );
+						}
 					}
 				}
 			}
