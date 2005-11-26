@@ -55,8 +55,6 @@ ldif_open_url(
 		}
 
 		/* we don't check for LDAP_DIRSEP since URLs should contain '/' */
-		/* skip over false root */
-		p++;
 
 		p = ber_strdup( p );
 		ldap_pvt_hex_unescape( p );
