@@ -46259,7 +46259,7 @@ if test "${STATIC_OVERLAYS}"; then
 	for o in ${STATIC_OVERLAYS}; do
 		oo=`echo "${o}" | sed -e 's/.o$//' -e 's/_x$//'`
 		cat >> $OVERLAYSC << ENDX
-extern BI_init ${oo}_initialize;
+extern OV_init ${oo}_initialize;
 ENDX
 	done
 fi
