@@ -136,19 +136,22 @@ ldap_add_ext(
 		return ld->ld_errno;
 	}
 
-	/* for each attribute in the entry... */
-	for ( i = 0; attrs[i] != NULL; i++ ) {
-		if ( ( attrs[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
-			rc = ber_printf( ber, "{s[V]N}", attrs[i]->mod_type,
-			    attrs[i]->mod_bvalues );
-		} else {
-			rc = ber_printf( ber, "{s[v]N}", attrs[i]->mod_type,
-			    attrs[i]->mod_values );
-		}
-		if ( rc == -1 ) {
-			ld->ld_errno = LDAP_ENCODING_ERROR;
-			ber_free( ber, 1 );
-			return ld->ld_errno;
+	/* allow attrs to be NULL ("touch"; should fail...) */
+	if ( attrs ) {
+		/* for each attribute in the entry... */
+		for ( i = 0; attrs[i] != NULL; i++ ) {
+			if ( ( attrs[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
+				rc = ber_printf( ber, "{s[V]N}", attrs[i]->mod_type,
+				    attrs[i]->mod_bvalues );
+			} else {
+				rc = ber_printf( ber, "{s[v]N}", attrs[i]->mod_type,
+				    attrs[i]->mod_values );
+			}
+			if ( rc == -1 ) {
+				ld->ld_errno = LDAP_ENCODING_ERROR;
+				ber_free( ber, 1 );
+				return ld->ld_errno;
+			}
 		}
 	}
 
