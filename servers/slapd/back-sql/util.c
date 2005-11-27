@@ -544,7 +544,9 @@ backsql_entryUUID_decode(
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 	)
 {
+#if 0
 	fprintf( stderr, "==> backsql_entryUUID_decode()\n" );
+#endif
 
 	*oc_id = ( entryUUID->bv_val[0] << 030 /* 24 */ )
 		+ ( entryUUID->bv_val[1] << 020 /* 16 */ )
@@ -560,8 +562,10 @@ backsql_entryUUID_decode(
 		+ entryUUID->bv_val[7];
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
+#if 0
 	fprintf( stderr, "<== backsql_entryUUID_decode(): oc=%lu id=%lu\n",
 			*oc_id, *keyval );
+#endif
 
 	return LDAP_SUCCESS;
 }

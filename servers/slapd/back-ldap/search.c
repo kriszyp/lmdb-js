@@ -49,7 +49,7 @@ ldap_back_munge_filter(
 	Operation	*op,
 	struct berval	*filter )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
 	char		*ptr;
 	int		gotit = 0;
@@ -75,7 +75,7 @@ ldap_back_munge_filter(
 
 		if ( strncmp( ptr, bv_true.bv_val, bv_true.bv_len ) == 0 ) {
 			oldbv = &bv_true;
-			if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
 				newbv = &bv_t;
 
 			} else {
@@ -85,7 +85,7 @@ ldap_back_munge_filter(
 		} else if ( strncmp( ptr, bv_false.bv_val, bv_false.bv_len ) == 0 )
 		{
 			oldbv = &bv_false;
-			if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
 				newbv = &bv_f;
 
 			} else {
@@ -141,7 +141,7 @@ ldap_back_search(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	struct ldapconn *lc;
+	ldapconn_t	*lc;
 	struct timeval	tv;
 	time_t		stoptime = (time_t)-1;
 	LDAPMessage	*res,
@@ -216,18 +216,24 @@ retry:
 			op->ors_slimit, &msgid );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-fail:;
 		switch ( rs->sr_err ) {
 		case LDAP_SERVER_DOWN:
 			if ( do_retry ) {
 				do_retry = 0;
-				if ( ldap_back_retry( lc, op, rs, LDAP_BACK_DONTSEND ) ) {
+				if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_DONTSEND ) ) {
 					goto retry;
 				}
 			}
-			rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_DONTSEND );
-			ldap_back_freeconn( op, lc );
-			lc = NULL;
+			if ( lc == NULL ) {
+				/* reset by ldap_back_retry ... */
+				rs->sr_err = slap_map_api2result( rs );
+
+			} else {
+				rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_DONTSEND );
+				ldap_back_freeconn( op, lc, 0 );
+				lc = NULL;
+			}
+				
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
@@ -280,7 +286,6 @@ fail:;
 		} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 			Entry		ent = { 0 };
 			struct berval	bdn = BER_BVNULL;
-			int		abort = 0;
 
 			do_retry = 0;
 
@@ -291,7 +296,7 @@ fail:;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_flags = 0;
-				abort = send_search_entry( op, rs );
+				rc = rs->sr_err = send_search_entry( op, rs );
 				if ( !BER_BVISNULL( &ent.e_name ) ) {
 					assert( ent.e_name.bv_val != bdn.bv_val );
 					free( ent.e_name.bv_val );
@@ -304,8 +309,12 @@ fail:;
 				entry_clean( &ent );
 			}
 			ldap_msgfree( res );
-			if ( abort ) {
-				ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+				if ( rc == LDAP_UNAVAILABLE ) {
+					rc = rs->sr_err = LDAP_OTHER;
+				} else {
+					ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+				}
 				goto finish;
 			}
 
@@ -396,13 +405,22 @@ fail:;
 			}
 
 			if ( match.bv_val != NULL ) {
+#ifndef LDAP_NULL_IS_NULL
 				if ( match.bv_val[ 0 ] == '\0' ) {
 					LDAP_FREE( match.bv_val );
 					BER_BVZERO( &match );
-				} else {
+				} else
+#endif /* LDAP_NULL_IS_NULL */
+				{
 					match.bv_len = strlen( match.bv_val );
 				}
 			}
+#ifndef LDAP_NULL_IS_NULL
+			if ( rs->sr_text != NULL && rs->sr_text[ 0 ] == '\0' ) {
+				LDAP_FREE( (char *)rs->sr_text );
+				rs->sr_text = NULL;
+			}
+#endif /* LDAP_NULL_IS_NULL */
 
 			/* cleanup */
 			if ( references ) {
@@ -417,12 +435,13 @@ fail:;
 	if ( rc == -1 ) {
 		if ( do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 				goto retry;
 			}
 		}
 		rs->sr_err = LDAP_SERVER_DOWN;
-		goto fail;
+		rs->sr_err = slap_map_api2result( rs );
+		goto finish;
 	}
 
 	/*
@@ -688,7 +707,7 @@ ldap_back_entry_get(
 		Entry			**ent
 )
 {
-	struct ldapconn *lc;
+	ldapconn_t	*lc;
 	int		rc = 1,
 			do_not_cache;
 	struct berval	bdn;
@@ -746,7 +765,7 @@ retry:
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
+			if ( ldap_back_retry( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 				goto retry;
 			}
 		}

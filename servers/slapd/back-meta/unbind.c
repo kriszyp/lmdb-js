@@ -50,10 +50,10 @@ meta_back_conn_destroy(
 	mc_curr.mc_conn = conn;
 	mc_curr.mc_local_ndn = conn->c_ndn;
 	
-	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
-	mc = avl_delete( &mi->mi_conntree, ( caddr_t )&mc_curr,
+	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+	mc = avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )&mc_curr,
 			meta_back_conn_cmp );
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 	if ( mc ) {
 		Debug( LDAP_DEBUG_TRACE,

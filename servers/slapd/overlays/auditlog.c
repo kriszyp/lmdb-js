@@ -215,7 +215,7 @@ auditlog_config(
 	return SLAP_CONF_UNKNOWN;
 }
 
-int auditlog_init() {
+int auditlog_initialize() {
 
 	auditlog.on_bi.bi_type = "auditlog";
 	auditlog.on_bi.bi_db_init = auditlog_db_init;
@@ -228,8 +228,10 @@ int auditlog_init() {
 }
 
 #if SLAPD_OVER_AUDITLOG == SLAPD_MOD_DYNAMIC && defined(PIC)
-int init_module( int argc, char *argv[]) {
-	return auditlog_init();
+int
+init_module( int argc, char *argv[] )
+{
+	return auditlog_initialize();
 }
 #endif
 

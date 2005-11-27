@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include "ac/string.h"
 
+#include "lutil.h"
 #include "slap.h"
 #include "proto-sql.h"
 
@@ -316,7 +317,6 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 	backsql_BindRowAsStrings( bas->bas_sth, &at_row );
 	for ( ; rc = SQLFetch( bas->bas_sth ), BACKSQL_SUCCESS( rc ); ) {
 		const char	*text = NULL;
-		char		*next = NULL;
 		struct berval	bv;
 		struct berbuf	bb = BB_NULL;
 
@@ -377,14 +377,10 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		if ( at_row.value_len[ 5 ] > 0 ) {
 			at_map->bam_delete_proc = ch_strdup( at_row.cols[ 5 ] );
 		}
-		at_map->bam_param_order = strtol( at_row.cols[ 6 ], 
-				&next, 0 );
-		if ( next == at_row.cols[ 6 ] || next[0] != '\0' ) {
+		if ( lutil_atoix( &at_map->bam_param_order, at_row.cols[ 6 ], 0 ) != 0 ) {
 			/* error */
 		}
-		at_map->bam_expect_return = strtol( at_row.cols[ 7 ],
-				&next, 0 );
-		if ( next == at_row.cols[ 7 ] || next[0] != '\0' ) {
+		if ( lutil_atoix( &at_map->bam_expect_return, at_row.cols[ 7 ], 0 ) != 0 ) {
 			/* error */
 		}
 		backsql_make_attr_query( bas->bas_bi, oc_map, at_map );
@@ -485,7 +481,12 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 		oc_map = (backsql_oc_map_rec *)ch_calloc( 1,
 				sizeof( backsql_oc_map_rec ) );
 
-		oc_map->bom_id = strtol( oc_row.cols[ 0 ], NULL, 0 );
+		if ( lutil_atoulx( &oc_map->bom_id, oc_row.cols[ 0 ], 0 ) != 0 ) {
+			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
+				"unable to parse id=\"%s\"\n", 
+				oc_row.cols[ 0 ], 0, 0 );
+			return LDAP_OTHER;
+		}
 
 		oc_map->bom_oc = oc_find( oc_row.cols[ 1 ] );
 		if ( oc_map->bom_oc == NULL ) {
@@ -508,8 +509,12 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 		}
 		oc_map->bom_delete_proc = ( oc_row.value_len[ colnum ] < 0 ) ? NULL 
 			: ch_strdup( oc_row.cols[ colnum ] );
-		oc_map->bom_expect_return = strtol( oc_row.cols[ colnum + 1 ], 
-				NULL, 0 );
+		if ( lutil_atoix( &oc_map->bom_expect_return, oc_row.cols[ colnum + 1 ], 0 ) != 0 ) {
+			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
+				"unable to parse expect_return=\"%s\" for objectClass \"%s\"\n", 
+				oc_row.cols[ colnum + 1 ], oc_row.cols[ 1 ], 0 );
+			return LDAP_OTHER;
+		}
 
 		colnum += 2;
 		if ( ( oc_row.ncols > colnum ) &&

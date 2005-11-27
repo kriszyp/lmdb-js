@@ -310,9 +310,10 @@ fe_access_allowed(
 	 */
 	be_orig = op->o_bd;
 
-	op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
 	if ( op->o_bd == NULL ) {
-		op->o_bd = frontendDB;
+		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		if ( op->o_bd == NULL )
+			op->o_bd = frontendDB;
 	}
 	rc = slap_access_allowed( op, e, desc, val, access, state, maskp );
 	op->o_bd = be_orig;
@@ -423,14 +424,10 @@ access_allowed_mask(
 				desc, val, access, state, &mask );
 
 	} else {
-		BackendDB	*be_orig = op->o_bd;
-
 		/* use default (but pass through frontend
 		 * for global ACL overlays) */
-		op->o_bd = frontendDB;
 		ret = frontendDB->bd_info->bi_access_allowed( op, e,
 				desc, val, access, state, &mask );
-		op->o_bd = be_orig;
 	}
 
 	if ( !ret ) {
@@ -1603,12 +1600,9 @@ slap_acl_mask(
 
 						port = strrchr( ip.bv_val, ':' );
 						if ( port ) {
-							char	*next;
-							
 							ip.bv_len = port - ip.bv_val;
 							++port;
-							port_number = strtol( port, &next, 10 );
-							if ( next[0] != '\0' )
+							if ( lutil_atoi( &port_number, port ) != 0 )
 								continue;
 						}
 						

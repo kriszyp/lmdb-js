@@ -45,6 +45,9 @@ static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #if 0 && defined(SLAPD_LDBM) 
 #include "../back-ldbm/back-ldbm.h"
 #endif /* defined(SLAPD_LDBM) */
+#if defined(SLAPD_META) 
+#include "../back-meta/back-meta.h"
+#endif /* defined(SLAPD_META) */
 
 /* for PATH_MAX on some systems (e.g. Solaris) */
 #ifdef HAVE_LIMITS_H
@@ -300,34 +303,19 @@ monitor_subsys_database_init(
 			}
 		}
 
+
+		if ( 0 ) {
+			assert( 0 );
+
 #if defined(SLAPD_BDB) || defined(SLAPD_HDB) 
-		if ( strcmp( bi->bi_type, "bdb" ) == 0
+		} else if ( strcmp( bi->bi_type, "bdb" ) == 0
 				|| strcmp( bi->bi_type, "hdb" ) == 0 )
 		{
 			struct berval	bv;
 			ber_len_t	pathlen = 0, len = 0;
 			char		path[ PATH_MAX ] = { '\0' };
-			char		*fname = NULL;
-
-			if ( strcmp( bi->bi_type, "bdb" ) == 0
-					|| strcmp( bi->bi_type, "hdb" ) == 0 )
-			{
-				struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-
-				fname = bdb->bi_dbenv_home;
-#if 0
-			} else if ( strcmp( bi->bi_type, "ldbm" ) == 0 ) {
-				struct ldbminfo *ldbm = (struct ldbminfo *) be->be_private;
-
-				/* FIXME: there's a conflict
-				 * between back-bdb.h and back.ldbm.h;
-				 * anyway, this code will be moved
-				 * to the backends as soon as the
-				 * issue with filtering on namingContexts
-				 * is fixed */
-				fname = ldbm->li_directory;
-#endif
-			}
+			struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+			char		*fname = bdb->bi_dbenv_home;
 
 			len = strlen( fname );
 			if ( fname[ 0 ] != '/' ) {
@@ -363,22 +351,54 @@ monitor_subsys_database_init(
 					&bv, NULL );
 
 			ch_free( bv.bv_val );
-		}
-#endif /* defined(SLAPD_LDAP) || defined(SLAPD_HDB) */
 
+#endif /* defined(SLAPD_BDB) || defined(SLAPD_HDB) */
 #if defined(SLAPD_LDAP) 
-		if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
-			struct ldapinfo		*li =
-				(struct ldapinfo *)be->be_private;
-			struct berval		bv;
+		} else if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
+			ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
+#if 0
+			attr_merge_normalize( e, slap_schema.si_ad_labeledURI,
+					li->li_bvuri, NULL );
+#else
+			char		**urls = ldap_str2charray( li->li_uri, " " );
+			int		u;
 
-			ber_str2bv( li->url, 0, 0, &bv );
+			for ( u = 0; urls[ u ] != NULL; u++ ) {
+				struct berval	bv;
 
-			attr_merge_normalize_one( e,
-					slap_schema.si_ad_labeledURI,
-					&bv, NULL );
-		}
+				ber_str2bv( urls[ u ], 0, 0, &bv );
+
+				attr_merge_normalize_one( e,
+						slap_schema.si_ad_labeledURI,
+						&bv, NULL );
+			}
+
+			ldap_charray_free( urls );
+#endif
+
 #endif /* defined(SLAPD_LDAP) */
+#if defined(SLAPD_META) 
+		} else if ( strcmp( bi->bi_type, "meta" ) == 0 ) {
+			metainfo_t	*mi = (metainfo_t *)be->be_private;
+			int		t;
+
+			for ( t = 0; t < mi->mi_ntargets; t++ ) {
+				char		**urls = ldap_str2charray( mi->mi_targets[ t ].mt_uri, " " );
+				int		u;
+
+				for ( u = 0; urls[ u ] != NULL; u++ ) {
+					struct berval	bv;
+
+					ber_str2bv( urls[ u ], 0, 0, &bv );
+
+					attr_merge_normalize_one( e,
+						slap_schema.si_ad_labeledURI,
+						&bv, NULL );
+				}
+				ldap_charray_free( urls );
+			}
+#endif /* defined(SLAPD_META) */
+		}
 
 		j = -1;
 		LDAP_STAILQ_FOREACH( bi2, &backendInfo, bi_next ) {

@@ -484,10 +484,23 @@ bdb_cf_gen(ConfigArgs *c)
 	}
 
 	switch( c->type ) {
-	case BDB_CHKPT:
+	case BDB_CHKPT: {
+		long	l;
 		bdb->bi_txn_cp = 1;
-		bdb->bi_txn_cp_kbyte = strtol( c->argv[1], NULL, 0 );
-		bdb->bi_txn_cp_min = strtol( c->argv[2], NULL, 0 );
+		if ( lutil_atolx( &l, c->argv[1], 0 ) != 0 ) {
+			fprintf( stderr, "%s: "
+				"invalid kbyte \"%s\" in \"checkpoint\".\n",
+				c->log, c->argv[1] );
+			return 1;
+		}
+		bdb->bi_txn_cp_kbyte = l;
+		if ( lutil_atolx( &l, c->argv[2], 0 ) != 0 ) {
+			fprintf( stderr, "%s: "
+				"invalid minutes \"%s\" in \"checkpoint\".\n",
+				c->log, c->argv[2] );
+			return 1;
+		}
+		bdb->bi_txn_cp_min = l;
 		/* If we're in server mode and time-based checkpointing is enabled,
 		 * submit a task to perform periodic checkpoints.
 		 */
@@ -507,7 +520,7 @@ bdb_cf_gen(ConfigArgs *c)
 					LDAP_XSTRING(bdb_checkpoint), c->be->be_suffix[0].bv_val );
 			}
 		}
-		break;
+		} break;
 
 	case BDB_CONFIG: {
 		char *ptr = c->line;

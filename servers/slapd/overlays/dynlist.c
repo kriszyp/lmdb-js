@@ -588,7 +588,17 @@ dynlist_response( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_REQ_COMPARE:
-		if ( rs->sr_err == LDAP_NO_SUCH_ATTRIBUTE ) {
+		switch ( rs->sr_err ) {
+		/* NOTE: we waste a few cycles running the dynamic list
+		 * also when the result is FALSE, which occurs if the
+		 * dynamic entry itself contains the AVA attribute  */
+		/* FIXME: this approach is less than optimal; a dedicated
+		 * compare op should be implemented, that fetches the
+		 * entry, checks if it has the appropriate objectClass
+		 * and, in case, runs a compare thru all the URIs,
+		 * stopping at the first positive occurrence; see ITS#3756 */
+		case LDAP_COMPARE_FALSE:
+		case LDAP_NO_SUCH_ATTRIBUTE:
 			return dynlist_compare( op, rs );
 		}
 		break;
@@ -602,12 +612,11 @@ dynlist_response( Operation *op, SlapReply *rs )
 
 static int
 dynlist_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dynlist_info	*dli = (dynlist_info *)on->on_bi.bi_private;
@@ -668,8 +677,7 @@ dynlist_db_config(
 
 static int
 dynlist_db_init(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	dynlist_info	*dli;
@@ -684,8 +692,7 @@ dynlist_db_init(
 
 static int
 dynlist_db_open(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	dynlist_info	*dli = (dynlist_info *)on->on_bi.bi_private;
@@ -719,8 +726,7 @@ dynlist_db_open(
 
 static int
 dynlist_db_destroy(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	int		rc = 0;
@@ -739,8 +745,11 @@ dynlist_db_destroy(
 
 static slap_overinst dynlist = { { NULL } };
 
+#if SLAPD_OVER_DYNLIST == SLAPD_MOD_DYNAMIC
+static
+#endif /* SLAPD_OVER_DYNLIST == SLAPD_MOD_DYNAMIC */
 int
-dynlist_init(void)
+dynlist_initialize(void)
 {
 	dynlist.on_bi.bi_type = "dynlist";
 	dynlist.on_bi.bi_db_init = dynlist_db_init;
@@ -757,7 +766,7 @@ dynlist_init(void)
 int
 init_module( int argc, char *argv[] )
 {
-	return dynlist_init();
+	return dynlist_initialize();
 }
 #endif
 

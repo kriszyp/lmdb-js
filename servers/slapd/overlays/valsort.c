@@ -531,7 +531,7 @@ valsort_parseCtrl(
 
 static slap_overinst valsort;
 
-int valsort_init()
+int valsort_initialize( void )
 {
 	int rc;
 
@@ -564,7 +564,7 @@ int valsort_init()
 
 #if SLAPD_OVER_VALSORT == SLAPD_MOD_DYNAMIC
 int init_module( int argc, char *argv[]) {
-	return valsort_init();
+	return valsort_initialize();
 }
 #endif
 

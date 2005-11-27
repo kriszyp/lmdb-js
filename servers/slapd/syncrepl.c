@@ -188,7 +188,7 @@ init_syncrepl(syncinfo_t *si)
 		}
 
 		if ( attrs == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
+			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0, 0, 0 );
 		}
 
 		/* Add Attributes */
@@ -500,7 +500,7 @@ do_syncrep1(
 #else /* HAVE_CYRUS_SASL */
 		/* Should never get here, we trapped this at config time */
 		assert(0);
-		fprintf( stderr, "not compiled with SASL support\n" );
+		Debug( LDAP_DEBUG_SYNC, "not compiled with SASL support\n", 0, 0, 0 );
 		rc = LDAP_OTHER;
 		goto done;
 #endif
@@ -756,7 +756,7 @@ do_syncrep2(
 						si->si_logstate = SYNCLOG_FALLBACK;
 					}
 					rc = err;
-					break;
+					goto done;
 				}
 				if ( rctrls ) {
 					rctrlp = *rctrls;
@@ -2683,10 +2683,8 @@ static struct {
 	{ BER_BVC("base"), LDAP_SCOPE_BASE },
 	{ BER_BVC("one"), LDAP_SCOPE_ONELEVEL },
 	{ BER_BVC("onelevel"), LDAP_SCOPE_ONELEVEL },	/* OpenLDAP extension */
-#ifdef LDAP_SCOPE_SUBORDINATE
 	{ BER_BVC("children"), LDAP_SCOPE_SUBORDINATE },
 	{ BER_BVC("subordinate"), LDAP_SCOPE_SUBORDINATE },
-#endif
 	{ BER_BVC("sub"), LDAP_SCOPE_SUBTREE },
 	{ BER_BVC("subtree"), LDAP_SCOPE_SUBTREE },	/* OpenLDAP extension */
 	{ BER_BVNULL, 0 }
@@ -2701,40 +2699,46 @@ static slap_verbmasks datamodes[] = {
 
 static int
 parse_syncrepl_line(
-	char		**cargv,
-	int		cargc,
-	syncinfo_t	*si
-)
+	ConfigArgs	*c,
+	syncinfo_t	*si )
 {
 	int	gots = 0;
 	int	i;
 	char	*val;
 
-	for ( i = 1; i < cargc; i++ ) {
-		if ( !strncasecmp( cargv[ i ], IDSTR "=",
+	for ( i = 1; i < c->argc; i++ ) {
+		if ( !strncasecmp( c->argv[ i ], IDSTR "=",
 					STRLENOF( IDSTR "=" ) ) )
 		{
 			int tmp;
 			/* '\0' string terminator accounts for '=' */
-			val = cargv[ i ] + STRLENOF( IDSTR "=" );
-			tmp= atoi( val );
+			val = c->argv[ i ] + STRLENOF( IDSTR "=" );
+			if ( lutil_atoi( &tmp, val ) != 0 ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"Error: parse_syncrepl_line: "
+					"unable to parse syncrepl id \"%s\"", val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return -1;
+			}
 			if ( tmp >= 1000 || tmp < 0 ) {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					 "syncrepl id %d is out of range [0..999]\n", tmp );
+				snprintf( c->msg, sizeof( c->msg ),
+					"Error: parse_syncrepl_line: "
+					"syncrepl id %d is out of range [0..999]", tmp );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
 			si->si_rid = tmp;
 			gots |= GOT_ID;
-		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], PROVIDERSTR "=",
 					STRLENOF( PROVIDERSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( PROVIDERSTR "=" );
+			val = c->argv[ i ] + STRLENOF( PROVIDERSTR "=" );
 			ber_str2bv( val, 0, 1, &si->si_bindconf.sb_uri );
 			gots |= GOT_PROVIDER;
-		} else if ( !strncasecmp( cargv[ i ], SCHEMASTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], SCHEMASTR "=",
 					STRLENOF( SCHEMASTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( SCHEMASTR "=" );
+			val = c->argv[ i ] + STRLENOF( SCHEMASTR "=" );
 			if ( !strncasecmp( val, "on", STRLENOF( "on" ) )) {
 				si->si_schemachecking = 1;
 			} else if ( !strncasecmp( val, "off", STRLENOF( "off" ) ) ) {
@@ -2742,59 +2746,63 @@ parse_syncrepl_line(
 			} else {
 				si->si_schemachecking = 1;
 			}
-		} else if ( !strncasecmp( cargv[ i ], FILTERSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], FILTERSTR "=",
 					STRLENOF( FILTERSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( FILTERSTR "=" );
+			val = c->argv[ i ] + STRLENOF( FILTERSTR "=" );
 			if ( si->si_filterstr.bv_val )
 				ch_free( si->si_filterstr.bv_val );
 			ber_str2bv( val, 0, 1, &si->si_filterstr );
-		} else if ( !strncasecmp( cargv[ i ], LOGFILTERSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], LOGFILTERSTR "=",
 					STRLENOF( LOGFILTERSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( LOGFILTERSTR "=" );
+			val = c->argv[ i ] + STRLENOF( LOGFILTERSTR "=" );
 			if ( si->si_logfilterstr.bv_val )
 				ch_free( si->si_logfilterstr.bv_val );
 			ber_str2bv( val, 0, 1, &si->si_logfilterstr );
-		} else if ( !strncasecmp( cargv[ i ], SEARCHBASESTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], SEARCHBASESTR "=",
 					STRLENOF( SEARCHBASESTR "=" ) ) )
 		{
 			struct berval	bv;
 			int		rc;
 
-			val = cargv[ i ] + STRLENOF( SEARCHBASESTR "=" );
+			val = c->argv[ i ] + STRLENOF( SEARCHBASESTR "=" );
 			if ( si->si_base.bv_val ) {
 				ch_free( si->si_base.bv_val );
 			}
 			ber_str2bv( val, 0, 0, &bv );
 			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL );
 			if ( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "Invalid base DN \"%s\": %d (%s)\n",
+				snprintf( c->msg, sizeof( c->msg ),
+					"Invalid base DN \"%s\": %d (%s)",
 					val, rc, ldap_err2string( rc ) );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
-		} else if ( !strncasecmp( cargv[ i ], LOGBASESTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], LOGBASESTR "=",
 					STRLENOF( LOGBASESTR "=" ) ) )
 		{
 			struct berval	bv;
 			int		rc;
 
-			val = cargv[ i ] + STRLENOF( LOGBASESTR "=" );
+			val = c->argv[ i ] + STRLENOF( LOGBASESTR "=" );
 			if ( si->si_logbase.bv_val ) {
 				ch_free( si->si_logbase.bv_val );
 			}
 			ber_str2bv( val, 0, 0, &bv );
 			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_logbase, NULL );
 			if ( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "Invalid logbase DN \"%s\": %d (%s)\n",
+				snprintf( c->msg, sizeof( c->msg ),
+					"Invalid logbase DN \"%s\": %d (%s)",
 					val, rc, ldap_err2string( rc ) );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
-		} else if ( !strncasecmp( cargv[ i ], SCOPESTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], SCOPESTR "=",
 					STRLENOF( SCOPESTR "=" ) ) )
 		{
 			int j;
-			val = cargv[ i ] + STRLENOF( SCOPESTR "=" );
+			val = c->argv[ i ] + STRLENOF( SCOPESTR "=" );
 			for ( j=0; !BER_BVISNULL(&scopes[j].key); j++ ) {
 				if (!strcasecmp( val, scopes[j].key.bv_val )) {
 					si->si_scope = scopes[j].val;
@@ -2802,18 +2810,20 @@ parse_syncrepl_line(
 				}
 			}
 			if ( BER_BVISNULL(&scopes[j].key) ) {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"unknown scope \"%s\"\n", val);
+				snprintf( c->msg, sizeof( c->msg ),
+					"Error: parse_syncrepl_line: "
+					"unknown scope \"%s\"", val);
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
-		} else if ( !strncasecmp( cargv[ i ], ATTRSONLYSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], ATTRSONLYSTR "=",
 					STRLENOF( ATTRSONLYSTR "=" ) ) )
 		{
 			si->si_attrsonly = 1;
-		} else if ( !strncasecmp( cargv[ i ], ATTRSSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], ATTRSSTR "=",
 					STRLENOF( ATTRSSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( ATTRSSTR "=" );
+			val = c->argv[ i ] + STRLENOF( ATTRSSTR "=" );
 			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") ) ) {
 				char *attr_fname;
 				attr_fname = ch_strdup( val + STRLENOF(":include:") );
@@ -2846,15 +2856,15 @@ parse_syncrepl_line(
 					return -1;
 				}
 			}
-		} else if ( !strncasecmp( cargv[ i ], EXATTRSSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], EXATTRSSTR "=",
 					STRLENOF( EXATTRSSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( EXATTRSSTR "=" );
+			val = c->argv[ i ] + STRLENOF( EXATTRSSTR "=" );
 			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
 				char *attr_fname;
 				attr_fname = ch_strdup( val + STRLENOF(":include:") );
 				si->si_exanlist = file2anlist(
-									si->si_exanlist, attr_fname, " ,\t" );
+					si->si_exanlist, attr_fname, " ,\t" );
 				if ( si->si_exanlist == NULL ) {
 					ch_free( attr_fname );
 					return -1;
@@ -2866,85 +2876,98 @@ parse_syncrepl_line(
 					return -1;
 				}
 			}
-		} else if ( !strncasecmp( cargv[ i ], TYPESTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], TYPESTR "=",
 					STRLENOF( TYPESTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( TYPESTR "=" );
+			val = c->argv[ i ] + STRLENOF( TYPESTR "=" );
 			if ( !strncasecmp( val, "refreshOnly",
-						STRLENOF("refreshOnly") ))
+						STRLENOF("refreshOnly") ) )
 			{
 				si->si_type = si->si_ctype = LDAP_SYNC_REFRESH_ONLY;
 			} else if ( !strncasecmp( val, "refreshAndPersist",
-						STRLENOF("refreshAndPersist") ))
+						STRLENOF("refreshAndPersist") ) )
 			{
 				si->si_type = si->si_ctype = LDAP_SYNC_REFRESH_AND_PERSIST;
 				si->si_interval = 60;
 			} else {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"unknown sync type \"%s\"\n", val);
+				snprintf( c->msg, sizeof( c->msg ),
+					"Error: parse_syncrepl_line: "
+					"unknown sync type \"%s\"", val);
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
-		} else if ( !strncasecmp( cargv[ i ], INTERVALSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], INTERVALSTR "=",
 					STRLENOF( INTERVALSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( INTERVALSTR "=" );
+			val = c->argv[ i ] + STRLENOF( INTERVALSTR "=" );
 			if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 				si->si_interval = 0;
-			} else {
-				char *hstr;
-				char *mstr;
-				char *dstr;
-				char *sstr;
-				int dd, hh, mm, ss;
-				dstr = val;
-				hstr = strchr( dstr, ':' );
-				if ( hstr == NULL ) {
-					fprintf( stderr, "Error: parse_syncrepl_line: "
-						"invalid interval \"%s\"\n", val );
+			} else if ( strchr( val, ':' ) != NULL ) {
+				char *next, *ptr = val;
+				unsigned dd, hh, mm, ss;
+				dd = strtoul( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"Error: parse_syncrepl_line: "
+						"invalid interval \"%s\", unable to parse days", val );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 					return -1;
 				}
-				*hstr++ = '\0';
-				mstr = strchr( hstr, ':' );
-				if ( mstr == NULL ) {
-					fprintf( stderr, "Error: parse_syncrepl_line: "
-						"invalid interval \"%s\"\n", val );
+				ptr = next + 1;
+				hh = strtoul( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || hh > 24 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"Error: parse_syncrepl_line: "
+						"invalid interval \"%s\", unable to parse hours", val );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 					return -1;
 				}
-				*mstr++ = '\0';
-				sstr = strchr( mstr, ':' );
-				if ( sstr == NULL ) {
-					fprintf( stderr, "Error: parse_syncrepl_line: "
-						"invalid interval \"%s\"\n", val );
+				ptr = next + 1;
+				mm = strtoul( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || mm > 60 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"Error: parse_syncrepl_line: "
+						"invalid interval \"%s\", unable to parse minutes", val );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 					return -1;
 				}
-				*sstr++ = '\0';
-
-				dd = atoi( dstr );
-				hh = atoi( hstr );
-				mm = atoi( mstr );
-				ss = atoi( sstr );
-				if (( hh > 24 ) || ( hh < 0 ) ||
-					( mm > 60 ) || ( mm < 0 ) ||
-					( ss > 60 ) || ( ss < 0 ) || ( dd < 0 )) {
-					fprintf( stderr, "Error: parse_syncrepl_line: "
-						"invalid interval \"%s\"\n", val );
+				ptr = next + 1;
+				ss = strtoul( ptr, &next, 10 );
+				if ( next == ptr || next[0] != '\0' || ss > 60 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"Error: parse_syncrepl_line: "
+						"invalid interval \"%s\", unable to parse seconds", val );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 					return -1;
 				}
 				si->si_interval = (( dd * 24 + hh ) * 60 + mm ) * 60 + ss;
+			} else {
+				unsigned long	t;
+
+				if ( lutil_parse_time( val, &t ) != 0 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"", val );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					return -1;
+				}
+				si->si_interval = (time_t)t;
 			}
 			if ( si->si_interval < 0 ) {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"invalid interval \"%ld\"\n",
+				snprintf( c->msg, sizeof( c->msg ),
+					"Error: parse_syncrepl_line: "
+					"invalid interval \"%ld\"",
 					(long) si->si_interval);
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
-		} else if ( !strncasecmp( cargv[ i ], RETRYSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], RETRYSTR "=",
 					STRLENOF( RETRYSTR "=" ) ) )
 		{
 			char **retry_list;
 			int j, k, n;
 
-			val = cargv[ i ] + STRLENOF( RETRYSTR "=" );
+			val = c->argv[ i ] + STRLENOF( RETRYSTR "=" );
 			retry_list = (char **) ch_calloc( 1, sizeof( char * ));
 			retry_list[0] = NULL;
 
@@ -2953,27 +2976,51 @@ parse_syncrepl_line(
 			for ( k = 0; retry_list && retry_list[k]; k++ ) ;
 			n = k / 2;
 			if ( k % 2 ) {
-				fprintf( stderr,
-						"Error: incomplete syncrepl retry list\n" );
+				snprintf( c->msg, sizeof( c->msg ),
+					"Error: incomplete syncrepl retry list" );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				for ( k = 0; retry_list && retry_list[k]; k++ ) {
 					ch_free( retry_list[k] );
 				}
 				ch_free( retry_list );
-				exit( EXIT_FAILURE );
+				return 1;
 			}
 			si->si_retryinterval = (time_t *) ch_calloc( n + 1, sizeof( time_t ));
 			si->si_retrynum = (int *) ch_calloc( n + 1, sizeof( int ));
 			si->si_retrynum_init = (int *) ch_calloc( n + 1, sizeof( int ));
 			for ( j = 0; j < n; j++ ) {
-				si->si_retryinterval[j] = atoi( retry_list[j*2] );
+				unsigned long	t;
+				if ( lutil_atoul( &t, retry_list[j*2] ) != 0 ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"Error: invalid retry interval \"%s\" (#%d)",
+						retry_list[j*2], j );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					/* do some cleanup */
+					return 1;
+				}
+				si->si_retryinterval[j] = (time_t)t;
 				if ( *retry_list[j*2+1] == '+' ) {
 					si->si_retrynum_init[j] = -1;
 					si->si_retrynum[j] = -1;
 					j++;
 					break;
 				} else {
-					si->si_retrynum_init[j] = atoi( retry_list[j*2+1] );
-					si->si_retrynum[j] = atoi( retry_list[j*2+1] );
+					if ( lutil_atoi( &si->si_retrynum_init[j], retry_list[j*2+1] ) != 0 ) {
+						snprintf( c->msg, sizeof( c->msg ),
+							"Error: invalid initial retry number \"%s\" (#%d)",
+							retry_list[j*2+1], j );
+						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+						/* do some cleanup */
+						return 1;
+					}
+					if ( lutil_atoi( &si->si_retrynum[j], retry_list[j*2+1] ) != 0 ) {
+						snprintf( c->msg, sizeof( c->msg ),
+							"Error: invalid retry number \"%s\" (#%d)",
+							retry_list[j*2+1], j );
+						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+						/* do some cleanup */
+						return 1;
+					}
 				}
 			}
 			si->si_retrynum_init[j] = -2;
@@ -2984,36 +3031,59 @@ parse_syncrepl_line(
 				ch_free( retry_list[k] );
 			}
 			ch_free( retry_list );
-		} else if ( !strncasecmp( cargv[ i ], MANAGEDSAITSTR "=",
+		} else if ( !strncasecmp( c->argv[ i ], MANAGEDSAITSTR "=",
 					STRLENOF( MANAGEDSAITSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( MANAGEDSAITSTR "=" );
-			si->si_manageDSAit = atoi( val );
-		} else if ( !strncasecmp( cargv[ i ], SLIMITSTR "=",
+			val = c->argv[ i ] + STRLENOF( MANAGEDSAITSTR "=" );
+			if ( lutil_atoi( &si->si_manageDSAit, val ) != 0
+				|| si->si_manageDSAit < 0 || si->si_manageDSAit > 1 )
+			{
+				snprintf( c->msg, sizeof( c->msg ),
+					"invalid manageDSAit value \"%s\".\n",
+					val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+		} else if ( !strncasecmp( c->argv[ i ], SLIMITSTR "=",
 					STRLENOF( SLIMITSTR "=") ) )
 		{
-			val = cargv[ i ] + STRLENOF( SLIMITSTR "=" );
-			si->si_slimit = atoi( val );
-		} else if ( !strncasecmp( cargv[ i ], TLIMITSTR "=",
+			val = c->argv[ i ] + STRLENOF( SLIMITSTR "=" );
+			if ( lutil_atoi( &si->si_slimit, val ) != 0 ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"invalid size limit value \"%s\".\n",
+					val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+		} else if ( !strncasecmp( c->argv[ i ], TLIMITSTR "=",
 					STRLENOF( TLIMITSTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( TLIMITSTR "=" );
-			si->si_tlimit = atoi( val );
-		} else if ( !strncasecmp( cargv[ i ], SYNCDATASTR "=",
+			val = c->argv[ i ] + STRLENOF( TLIMITSTR "=" );
+			if ( lutil_atoi( &si->si_tlimit, val ) != 0 ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"invalid time limit value \"%s\".\n",
+					val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+		} else if ( !strncasecmp( c->argv[ i ], SYNCDATASTR "=",
 					STRLENOF( SYNCDATASTR "=" ) ) )
 		{
-			val = cargv[ i ] + STRLENOF( SYNCDATASTR "=" );
+			val = c->argv[ i ] + STRLENOF( SYNCDATASTR "=" );
 			si->si_syncdata = verb_to_mask( val, datamodes );
-		} else if ( bindconf_parse( cargv[i], &si->si_bindconf )) {
-			fprintf( stderr, "Error: parse_syncrepl_line: "
-				"unknown keyword \"%s\"\n", cargv[ i ] );
+		} else if ( bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
+			snprintf( c->msg, sizeof( c->msg ),
+				"Error: parse_syncrepl_line: "
+				"unknown keyword \"%s\"\n", c->argv[ i ] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return -1;
 		}
 	}
 
 	if ( gots != GOT_ALL ) {
-		fprintf( stderr,
+		snprintf( c->msg, sizeof( c->msg ),
 			"Error: Malformed \"syncrepl\" line in slapd config file" );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 		return -1;
 	}
 
@@ -3022,17 +3092,14 @@ parse_syncrepl_line(
 
 static int
 add_syncrepl(
-	Backend *be,
-	char    **cargv,
-	int     cargc
-)
+	ConfigArgs *c )
 {
 	syncinfo_t *si;
 	int	rc = 0;
 
-	if ( !( be->be_search && be->be_add && be->be_modify && be->be_delete )) {
-		Debug( LDAP_DEBUG_ANY, "database %s does not support operations "
-			"required for syncrepl\n", be->be_type, 0, 0 );
+	if ( !( c->be->be_search && c->be->be_add && c->be->be_modify && c->be->be_delete ) ) {
+		Debug( LDAP_DEBUG_ANY, "%s: database %s does not support operations "
+			"required for syncrepl\n", c->log, c->be->be_type, 0 );
 		return 1;
 	}
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
@@ -3070,13 +3137,13 @@ add_syncrepl(
 	LDAP_LIST_INIT( &si->si_nonpresentlist );
 	ldap_pvt_thread_mutex_init( &si->si_mutex );
 
-	rc = parse_syncrepl_line( cargv, cargc, si );
+	rc = parse_syncrepl_line( c, si );
 
 	if ( rc == 0 ) {
-		si->si_be = be;
+		si->si_be = c->be;
 		init_syncrepl( si );
 		si->si_re = ldap_pvt_runqueue_insert( &slapd_rq, si->si_interval,
-			do_syncrepl, si, "do_syncrepl", be->be_suffix[0].bv_val );
+			do_syncrepl, si, "do_syncrepl", c->be->be_suffix[0].bv_val );
 		if ( !si->si_re )
 			rc = -1;
 	}
@@ -3090,9 +3157,9 @@ add_syncrepl(
 			BER_BVISNULL( &si->si_bindconf.sb_uri ) ?
 			"(null)" : si->si_bindconf.sb_uri.bv_val, 0, 0 );
 		if ( !si->si_schemachecking ) {
-			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
+			SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
-		be->be_syncinfo = si;
+		c->be->be_syncinfo = si;
 		return 0;
 	}
 }
@@ -3226,7 +3293,8 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 }
 
 int
-syncrepl_config(ConfigArgs *c) {
+syncrepl_config( ConfigArgs *c )
+{
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if ( c->be->be_syncinfo ) {
 			struct berval bv;
@@ -3241,24 +3309,23 @@ syncrepl_config(ConfigArgs *c) {
 		if ( c->be->be_syncinfo ) {
 			re = c->be->be_syncinfo->si_re;
 			if ( re ) {
-				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ))
+				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) )
 					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
 				ldap_pvt_runqueue_remove( &slapd_rq, re );
 			}
 			syncinfo_free( c->be->be_syncinfo );
 			c->be->be_syncinfo = NULL;
 		}
-		SLAP_DBFLAGS(c->be) &= ~(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SYNC_SHADOW);
+		SLAP_DBFLAGS( c->be ) &= ~(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SYNC_SHADOW);
 		return 0;
 	}
-	if(SLAP_SHADOW(c->be)) {
+	if ( SLAP_SHADOW( c->be ) ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"syncrepl: database already shadowed.\n",
 			c->log, 0, 0);
 		return(1);
-	} else if(add_syncrepl(c->be, c->argv, c->argc)) {
+	} else if ( add_syncrepl( c ) ) {
 		return(1);
 	}
-	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SYNC_SHADOW);
-	return(0);
+	return config_sync_shadow( c );
 }

@@ -450,12 +450,10 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		case LDAP_SCOPE_SUBTREE:
 			fc->fscope = dnIsSuffix( fc->fdn, &fc->fss->s_base );
 			break;
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
 			fc->fscope = dnIsSuffix( fc->fdn, &fc->fss->s_base ) &&
 				!dn_match( fc->fdn, &fc->fss->s_base );
 			break;
-#endif
 		}
 	}
 
@@ -510,7 +508,11 @@ findcsn_cb( Operation *op, SlapReply *rs )
 {
 	slap_callback *sc = op->o_callback;
 
-	if ( rs->sr_type == REP_SEARCH && rs->sr_err == LDAP_SUCCESS ) {
+	/* We just want to know that at least one exists, so it's OK if
+	 * we exceed the unchecked limit.
+	 */
+	if ( rs->sr_err == LDAP_ADMINLIMIT_EXCEEDED ||
+		(rs->sr_type == REP_SEARCH && rs->sr_err == LDAP_SUCCESS )) {
 		sc->sc_private = (void *)1;
 	}
 	return LDAP_SUCCESS;
@@ -583,10 +585,10 @@ syncprov_findcsn( Operation *op, find_csn_t mode )
 #else
 	AttributeAssertion eq = { NULL, BER_BVNULL };
 #endif
-	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
 	sync_control *srs = NULL;
-	int findcsn_retry = 1;
+	struct slap_limits_set fc_limits;
+	int i, rc = LDAP_SUCCESS, findcsn_retry = 1;
 
 	if ( mode != FIND_MAXCSN ) {
 		srs = op->o_controls[slap_cids.sc_LDAPsync];
@@ -637,6 +639,8 @@ again:
 		/* On retry, look for <= */
 		} else {
 			cf.f_choice = LDAP_FILTER_LE;
+			fop.ors_limit = &fc_limits;
+			fc_limits.lms_s_unchecked = 1;
 			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
 				cf.f_av_value.bv_val );
 		}
@@ -1244,7 +1248,9 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_req_ndn = op->o_bd->be_nsuffix[0];
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
+	SLAP_DBFLAGS( opm.o_bd ) |= SLAP_DBFLAG_NOLASTMOD;
 	opm.o_bd->be_modify( &opm, &rsm );
+	SLAP_DBFLAGS( opm.o_bd ) ^= SLAP_DBFLAG_NOLASTMOD;
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}
@@ -2187,8 +2193,31 @@ sp_cf_gen(ConfigArgs *c)
 	}
 	switch ( c->type ) {
 	case SP_CHKPT:
-		si->si_chkops = atoi( c->argv[1] );
-		si->si_chktime = atoi( c->argv[2] ) * 60;
+		if ( lutil_atoi( &si->si_chkops, c->argv[1] ) != 0 ) {
+			sprintf( c->msg, "%s unable to parse checkpoint ops # \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( si->si_chkops <= 0 ) {
+			sprintf( c->msg, "%s invalid checkpoint ops # \"%d\"",
+				c->argv[0], si->si_chkops );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( lutil_atoi( &si->si_chktime, c->argv[2] ) != 0 ) {
+			sprintf( c->msg, "%s unable to parse checkpoint time \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( si->si_chktime <= 0 ) {
+			sprintf( c->msg, "%s invalid checkpoint time \"%d\"",
+				c->argv[0], si->si_chkops );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		si->si_chktime *= 60;
 		break;
 	case SP_SESSL: {
 		sessionlog *sl;
@@ -2508,7 +2537,7 @@ static int syncprov_parseCtrl (
 static slap_overinst 		syncprov;
 
 int
-syncprov_init()
+syncprov_initialize()
 {
 	int rc;
 
@@ -2553,7 +2582,7 @@ syncprov_init()
 int
 init_module( int argc, char *argv[] )
 {
-	return syncprov_init();
+	return syncprov_initialize();
 }
 #endif /* SLAPD_OVER_SYNCPROV == SLAPD_MOD_DYNAMIC */
 

@@ -1366,7 +1366,9 @@ monitor_back_initialize(
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = monitor_back_db_init;
+#if 0
 	bi->bi_db_config = monitor_back_db_config;
+#endif
 	bi->bi_db_open = monitor_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = monitor_back_db_destroy;
@@ -1812,6 +1814,7 @@ monitor_back_config(
 	return SLAP_CONF_UNKNOWN;
 }
 
+#if 0
 int
 monitor_back_db_config(
 	Backend     *be,
@@ -1820,15 +1823,14 @@ monitor_back_db_config(
 	int         argc,
 	char        **argv )
 {
-#if 0
 	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
-#endif
 
 	/*
 	 * eventually, will hold database specific configuration parameters
 	 */
 	return SLAP_CONF_UNKNOWN;
 }
+#endif
 
 int
 monitor_back_db_destroy(

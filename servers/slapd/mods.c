@@ -28,6 +28,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 int
 modify_add_values(
@@ -386,7 +387,12 @@ modify_increment_values(
 	if ( !strcmp( a->a_desc->ad_type->sat_syntax_oid, SLAPD_INTEGER_SYNTAX )) {
 		int i;
 		char str[sizeof(long)*3 + 2]; /* overly long */
-		long incr = atol( mod->sm_values[0].bv_val );
+		long incr;
+
+		if ( lutil_atol( &incr, mod->sm_values[0].bv_val ) != 0 ) {
+			*text = "modify/increment: invalid syntax of increment";
+			return LDAP_INVALID_SYNTAX;
+		}
 
 		/* treat zero and errors as a no-op */
 		if( incr == 0 ) {
@@ -395,13 +401,18 @@ modify_increment_values(
 
 		for( i = 0; !BER_BVISNULL( &a->a_nvals[i] ); i++ ) {
 			char *tmp;
-			long value = atol( a->a_nvals[i].bv_val );
-			size_t strln = snprintf( str, sizeof(str), "%ld", value+incr );
+			long value;
+			size_t strln;
+			if ( lutil_atol( &value, a->a_nvals[i].bv_val ) != 0 ) {
+				*text = "modify/increment: invalid syntax of original value";
+				return LDAP_INVALID_SYNTAX;
+			}
+			strln = snprintf( str, sizeof(str), "%ld", value+incr );
 
 			tmp = SLAP_REALLOC( a->a_nvals[i].bv_val, strln+1 );
 			if( tmp == NULL ) {
 				*text = "modify/increment: reallocation error";
-				return LDAP_OTHER;;
+				return LDAP_OTHER;
 			}
 			a->a_nvals[i].bv_val = tmp;
 			a->a_nvals[i].bv_len = strln;

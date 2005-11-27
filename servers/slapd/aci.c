@@ -696,7 +696,7 @@ aci_init( void )
 		&rc, &text, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !at ) {
 		Debug( LDAP_DEBUG_ANY,
-			"%s AttributeType load failed: %s %s\n",
+			"aci_init: AttributeType \"%s\" parse failed: %s %s\n",
 			aci_at.name, ldap_scherr2str( rc ), text );
 		return rc;
 	}
@@ -704,9 +704,9 @@ aci_init( void )
 	rc = at_add( at, 0, &sat, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		ldap_attributetype_free( at );
-		fprintf( stderr, "iMUX_monitor_schema_init: "
-			"AttributeType load failed: %s %s\n",
-			scherr2str( rc ), text );
+		Debug( LDAP_DEBUG_ANY,
+			"aci_init: AttributeType \"%s\" load failed: %s %s\n",
+			aci_at.name, scherr2str( rc ), text );
 		return rc;
 	}
 	ldap_memfree( at );
@@ -715,7 +715,7 @@ aci_init( void )
 			aci_at.ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"unable to find AttributeDescription "
+			"aci_init: unable to find AttributeDescription "
 			"\"%s\": %d (%s)\n",
 			aci_at.name, rc, text );
 		return 1;

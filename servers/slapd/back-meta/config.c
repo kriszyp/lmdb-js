@@ -95,12 +95,7 @@ meta_back_db_config(
 {
 	metainfo_t	*mi = ( metainfo_t * )be->be_private;
 
-	if ( mi == NULL ) {
-		fprintf( stderr, 
-	"%s: line %d: meta backend info is null!\n",
-		    fname, lineno );
-		return 1;
-	}
+	assert( mi != NULL );
 
 	/* URI of server to query */
 	if ( strcasecmp( argv[ 0 ], "uri" ) == 0 ) {
@@ -115,27 +110,27 @@ meta_back_db_config(
 		
 		switch ( argc ) {
 		case 1:
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing URI "
 	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 
 		case 2:
 			break;
 
 		default:
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: too many args "
 	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
 		if ( be->be_nsuffix == NULL ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: the suffix must be defined before any target.\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
@@ -144,23 +139,23 @@ meta_back_db_config(
 		mi->mi_targets = ( metatarget_t * )ch_realloc( mi->mi_targets, 
 			sizeof( metatarget_t ) * mi->mi_ntargets );
 		if ( mi->mi_targets == NULL ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: out of memory while storing server name"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
 		if ( new_target( &mi->mi_targets[ i ] ) != 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unable to init server"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
 		mi->mi_targets[ i ].mt_nretries = mi->mi_nretries;
-		mi->mi_targets[ i ].mt_flags = mi->flags;
+		mi->mi_targets[ i ].mt_flags = mi->mi_flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
 
 		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
@@ -171,10 +166,10 @@ meta_back_db_config(
 		 * uri MUST be legal!
 		 */
 		if ( ldap_url_parselist_ext( &ludp, argv[ 1 ], "\t" ) != LDAP_SUCCESS ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unable to parse URI"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
@@ -182,10 +177,10 @@ meta_back_db_config(
 		 * uri MUST have the <dn> part!
 		 */
 		if ( ludp->lud_dn == NULL ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing <naming context> "
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 
 		} else if ( ludp->lud_dn[ 0 ] == '\0' ) {
@@ -198,10 +193,10 @@ meta_back_db_config(
 			}
 
 			if ( BER_BVISNULL( &be->be_nsuffix[ j ] ) ) {
-				fprintf( stderr,
+				Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: missing <naming context> "
 		" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-					fname, lineno );
+					fname, lineno, 0 );
 				return 1;
 			}
 		}
@@ -213,9 +208,9 @@ meta_back_db_config(
 		rc = dnPrettyNormal( NULL, &dn, &mi->mi_targets[ i ].mt_psuffix,
 			&mi->mi_targets[ i ].mt_nsuffix, NULL );
 		if( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: "
-					"target '%s' DN is invalid\n",
-					fname, lineno, argv[ 1 ] );
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+				"target \"%s\" DN is invalid\n",
+				fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
 
@@ -227,26 +222,24 @@ meta_back_db_config(
 			break;
 
 		case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
-#endif /* LDAP_SCOPE_SUBORDINATE */
 			mi->mi_targets[ i ].mt_scope = ludp->lud_scope;
 			break;
 
 		default:
-			fprintf( stderr, "%s: line %d: "
-					"invalid scope for target '%s'\n",
-					fname, lineno, argv[ 1 ] );
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+				"invalid scope for target \"%s\"\n",
+				fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
 
 		/* check all, to apply the scope check on the first one */
 		for ( tmpludp = ludp; tmpludp; tmpludp = tmpludp->lud_next ) {
 			if ( tmpludp->lud_dn != NULL && tmpludp->lud_dn[ 0 ] != '\0' ) {
-				fprintf( stderr, "%s: line %d: "
-						"multiple URIs must have "
-						"no DN part\n",
-					fname, lineno );
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"multiple URIs must have "
+					"no DN part\n",
+					fname, lineno, 0 );
 				return( 1 );
 
 			}
@@ -255,8 +248,8 @@ meta_back_db_config(
 		mi->mi_targets[ i ].mt_uri = ldap_url_list2urls( ludp );
 		ldap_free_urllist( ludp );
 		if ( mi->mi_targets[ i ].mt_uri == NULL) {
-			fprintf( stderr, "%s: line %d: no memory?\n",
-					fname, lineno );
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: no memory?\n",
+				fname, lineno, 0 );
 			return( 1 );
 		}
 		
@@ -265,10 +258,10 @@ meta_back_db_config(
 		 */
 #if 0 /* too strict a constraint */
 		if ( select_backend( &mi->mi_targets[ i ].suffix, 0, 0 ) != be ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: <naming context> of URI does not refer to current backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 #else
@@ -276,10 +269,10 @@ meta_back_db_config(
 		 * uri MUST be a branch of a suffix!
 		 */
 		if ( select_backend( &mi->mi_targets[ i ].mt_nsuffix, 0, 0 ) == NULL ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: <naming context> of URI does not resolve to a backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 #endif
@@ -290,62 +283,85 @@ meta_back_db_config(
 		
 		if ( argc == 1 ) {
  			if ( i < 0 ) {
-				fprintf( stderr,
+				Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"default-target\" alone need be"
        	" inside a \"uri\" directive\n",
-					fname, lineno );
+					fname, lineno, 0 );
 				return 1;
 			}
 			mi->mi_defaulttarget = i;
+
 		} else {
 			if ( strcasecmp( argv[ 1 ], "none" ) == 0 ) {
 				if ( i >= 0 ) {
-					fprintf( stderr,
+					Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"default-target none\""
        	" should go before uri definitions\n",
-						fname, lineno );
+						fname, lineno, 0 );
 				}
 				mi->mi_defaulttarget = META_DEFAULT_TARGET_NONE;
 
 			} else {
-				char	*next;
-				int	n = strtol( argv[ 1 ], &next, 10 );
-				if ( n < 0 || n >= i - 1 ) {
-					fprintf( stderr,
+				
+				if ( lutil_atoi( &mi->mi_defaulttarget, argv[ 1 ] ) != 0
+					|| mi->mi_defaulttarget < 0
+					|| mi->mi_defaulttarget >= i - 1 )
+				{
+					Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: illegal target number %d\n",
-						fname, lineno, n );
+						fname, lineno, mi->mi_defaulttarget );
 					return 1;
 				}
-				mi->mi_defaulttarget = n;
 			}
 		}
 		
 	/* ttl of dn cache */
 	} else if ( strcasecmp( argv[ 0 ], "dncache-ttl" ) == 0 ) {
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing ttl in \"dncache-ttl <ttl>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
 		if ( strcasecmp( argv[ 1 ], "forever" ) == 0 ) {
 			mi->mi_cache.ttl = META_DNCACHE_FOREVER;
+
 		} else if ( strcasecmp( argv[ 1 ], "disabled" ) == 0 ) {
 			mi->mi_cache.ttl = META_DNCACHE_DISABLED;
+
 		} else {
-			mi->mi_cache.ttl = atol( argv[ 1 ] );
+			unsigned long	t;
+
+			if ( lutil_parse_time( argv[ 1 ], &t ) != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse ttl \"%s\" in \"dncache-ttl <ttl>\" line\n",
+					fname, lineno, argv[ 1 ] );
+				return 1;
+			}
+			mi->mi_cache.ttl = (time_t)t;
 		}
 
 	/* network timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "network-timeout" ) == 0 ) {
+		unsigned long	t;
+
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing network timeout in \"network-timeout <seconds>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
-		mi->mi_network_timeout = atol(argv[ 1 ]);
+
+		if ( lutil_parse_time( argv[ 1 ], &t ) ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse timeout \"%s\" in \"network-timeout <seconds>\" line\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+
+		}
+
+		mi->mi_network_timeout = (int)t;
 
 	/* name to use for meta_back_group */
 	} else if ( strcasecmp( argv[ 0 ], "acl-authcDN" ) == 0
@@ -355,24 +371,24 @@ meta_back_db_config(
 		struct berval	dn;
 
 		if ( i < 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: need \"uri\" directive first\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing name in \"binddn <name>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
 		if ( strcasecmp( argv[ 0 ], "binddn" ) == 0 ) {
-			fprintf( stderr, "%s: line %d: "
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 				"\"binddn\" statement is deprecated; "
 				"use \"acl-authcDN\" instead\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			/* FIXME: some day we'll need to throw an error */
 		}
 
@@ -381,7 +397,7 @@ meta_back_db_config(
 		if ( dnNormalize( 0, NULL, NULL, &dn, &mi->mi_targets[ i ].mt_binddn,
 			NULL ) != LDAP_SUCCESS )
 		{
-			fprintf( stderr, "%s: line %d: "
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"bind DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return( 1 );
@@ -394,24 +410,24 @@ meta_back_db_config(
 		int 		i = mi->mi_ntargets - 1;
 
 		if ( i < 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: need \"uri\" directive first\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing password in \"bindpw <password>\" line\n",
-			    fname, lineno );
+			    fname, lineno, 0 );
 			return 1;
 		}
 
 		if ( strcasecmp( argv[ 0 ], "bindpw" ) == 0 ) {
-			fprintf( stderr, "%s: line %d: "
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 				"\"bindpw\" statement is deprecated; "
 				"use \"acl-passwd\" instead\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			/* FIXME: some day we'll need to throw an error */
 		}
 
@@ -420,30 +436,30 @@ meta_back_db_config(
 	/* save bind creds for referral rebinds? */
 	} else if ( strcasecmp( argv[ 0 ], "rebind-as-user" ) == 0 ) {
 		if ( argc > 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"rebind-as-user {NO|yes}\" takes 1 argument.\n",
-			    fname, lineno );
+			    fname, lineno, 0 );
 			return( 1 );
 		}
 
 		if ( argc == 1 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: deprecated use of \"rebind-as-user {FALSE|true}\" with no arguments.\n",
-			    fname, lineno );
-			mi->flags |= LDAP_BACK_F_SAVECRED;
+			    fname, lineno, 0 );
+			mi->mi_flags |= LDAP_BACK_F_SAVECRED;
 
 		} else {
 			switch ( check_true_false( argv[ 1 ] ) ) {
 			case 0:
-				mi->flags &= ~LDAP_BACK_F_SAVECRED;
+				mi->mi_flags &= ~LDAP_BACK_F_SAVECRED;
 				break;
 
 			case 1:
-				mi->flags |= LDAP_BACK_F_SAVECRED;
+				mi->mi_flags |= LDAP_BACK_F_SAVECRED;
 				break;
 
 			default:
-				fprintf( stderr,
+				Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"rebind-as-user {FALSE|true}\" unknown argument \"%s\".\n",
 				    fname, lineno, argv[ 1 ] );
 				return 1;
@@ -453,12 +469,12 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "chase-referrals" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_flags
-				: &mi->flags;
+				: &mi->mi_flags;
 
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"chase-referrals {TRUE|false}\" needs 1 argument.\n",
-					fname, lineno );
+				fname, lineno, 0 );
 			return( 1 );
 		}
 
@@ -473,21 +489,21 @@ meta_back_db_config(
 			break;
 
 		default:
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"chase-referrals {TRUE|false}\": unknown argument \"%s\".\n",
-					fname, lineno, argv[ 1 ] );
+				fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
 	
 	} else if ( strcasecmp( argv[ 0 ], "tls" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_flags
-				: &mi->flags;
+				: &mi->mi_flags;
 
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"tls <what>\" needs 1 argument.\n",
-					fname, lineno );
+				fname, lineno, 0 );
 			return( 1 );
 		}
 
@@ -510,21 +526,21 @@ meta_back_db_config(
 			*flagsp |= LDAP_BACK_F_PROPAGATE_TLS;
 
 		} else {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"tls <what>\": unknown argument \"%s\".\n",
-					fname, lineno, argv[ 1 ] );
+				fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
 
 	} else if ( strcasecmp( argv[ 0 ], "t-f-support" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_flags
-				: &mi->flags;
+				: &mi->mi_flags;
 
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"t-f-support {FALSE|true|discover}\" needs 1 argument.\n",
-					fname, lineno );
+				fname, lineno, 0 );
 			return( 1 );
 		}
 
@@ -542,7 +558,7 @@ meta_back_db_config(
 				*flagsp |= LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
 
 			} else {
-				fprintf( stderr,
+				Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unknown value \"%s\" for \"t-f-support {no|yes|discover}\".\n",
 					fname, lineno, argv[ 1 ] );
 				return 1;
@@ -553,20 +569,20 @@ meta_back_db_config(
 	/* onerr? */
 	} else if ( strcasecmp( argv[ 0 ], "onerr" ) == 0 ) {
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"onerr {CONTINUE|stop}\" takes 1 argument\n",
-			    fname, lineno );
+				fname, lineno, 0 );
 			return( 1 );
 		}
 
 		if ( strcasecmp( argv[ 1 ], "continue" ) == 0 ) {
-			mi->flags &= ~META_BACK_F_ONERR_STOP;
+			mi->mi_flags &= ~META_BACK_F_ONERR_STOP;
 
 		} else if ( strcasecmp( argv[ 1 ], "stop" ) == 0 ) {
-			mi->flags |= META_BACK_F_ONERR_STOP;
+			mi->mi_flags |= META_BACK_F_ONERR_STOP;
 
 		} else {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"onerr {CONTINUE|stop}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
@@ -575,44 +591,45 @@ meta_back_db_config(
 	/* bind-defer? */
 	} else if ( strcasecmp( argv[ 0 ], "pseudoroot-bind-defer" ) == 0 ) {
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\" takes 1 argument\n",
-			    fname, lineno );
+				fname, lineno, 0 );
 			return( 1 );
 		}
 
 		switch ( check_true_false( argv[ 1 ] ) ) {
 		case 0:
-			mi->flags &= ~META_BACK_F_DEFER_ROOTDN_BIND;
+			mi->mi_flags &= ~META_BACK_F_DEFER_ROOTDN_BIND;
 			break;
 
 		case 1:
-			mi->flags |= META_BACK_F_DEFER_ROOTDN_BIND;
+			mi->mi_flags |= META_BACK_F_DEFER_ROOTDN_BIND;
 			break;
 
 		default:
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
 
 	} else if ( strcasecmp( argv[ 0 ], "timeout" ) == 0 ) {
-		char	*sep, *next;
+		char	*sep;
 		time_t	*tv = mi->mi_ntargets ?
 				mi->mi_targets[ mi->mi_ntargets - 1 ].mt_timeout
 				: mi->mi_timeout;
 		int	c;
 
 		if ( argc < 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"timeout [{add|delete|modify|modrdn}=]<val> [...]\" takes at least 1 argument\n",
-			    fname, lineno );
+				fname, lineno, 0 );
 			return( 1 );
 		}
 
 		for ( c = 1; c < argc; c++ ) {
-			time_t	*t = NULL, val;
+			time_t		*t = NULL;
+			unsigned long	val;
 
 			sep = strchr( argv[ c ], '=' );
 			if ( sep != NULL ) {
@@ -627,9 +644,13 @@ meta_back_db_config(
 				} else if ( strncasecmp( argv[ c ], "modrdn", len ) == 0 ) {
 					t = &tv[ LDAP_BACK_OP_MODRDN ];
 				} else {
-					fprintf( stderr,
-		"%s: line %d: unknown operation \"%s\" for timeout #%d.\n",
-						fname, lineno, argv[ c ], c );
+					char	buf[ SLAP_TEXT_BUFLEN ];
+					snprintf( buf, sizeof( buf ),
+						"unknown operation \"%s\" for timeout #%d",
+						argv[ c ], c );
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: %s.\n",
+						fname, lineno, buf );
 					return 1;
 				}
 				sep++;
@@ -638,22 +659,21 @@ meta_back_db_config(
 				sep = argv[ c ];
 			}
 	
-			val = strtoul( sep, &next, 10 );
-			if ( next == sep || next[ 0 ] != '\0' ) {
-				fprintf( stderr,
+			if ( lutil_parse_time( sep, &val ) != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: unable to parse value \"%s\" for timeout.\n",
 					fname, lineno, sep );
 				return 1;
 			}
 		
 			if ( t ) {
-				*t = val;
+				*t = (time_t)val;
 	
 			} else {
 				int	i;
 	
 				for ( i = 0; i < LDAP_BACK_OP_LAST; i++ ) {
-					tv[ i ] = val;
+					tv[ i ] = (time_t)val;
 				}
 			}
 		}
@@ -664,16 +684,16 @@ meta_back_db_config(
 		struct berval	dn;
 
 		if ( i < 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: need \"uri\" directive first\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing name in \"pseudorootdn <name>\" line\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
@@ -682,7 +702,7 @@ meta_back_db_config(
 		if ( dnNormalize( 0, NULL, NULL, &dn,
 			&mi->mi_targets[ i ].mt_pseudorootdn, NULL ) != LDAP_SUCCESS )
 		{
-			fprintf( stderr, "%s: line %d: "
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"pseudoroot DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return( 1 );
@@ -693,16 +713,16 @@ meta_back_db_config(
 		int 		i = mi->mi_ntargets - 1;
 
 		if ( i < 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: need \"uri\" directive first\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing password in \"pseudorootpw <password>\" line\n",
-			    fname, lineno );
+			    fname, lineno, 0 );
 			return 1;
 		}
 		ber_str2bv( argv[ 1 ], 0L, 1, &mi->mi_targets[ i ].mt_pseudorootpw );
@@ -714,9 +734,9 @@ meta_back_db_config(
 		struct berval	dn, nvnc, pvnc, nrnc, prnc;
 
 		if ( i < 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: need \"uri\" directive first\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
@@ -732,15 +752,15 @@ meta_back_db_config(
 		 * current server
 		 */
 		if ( argc != 3 ) {
- 			fprintf( stderr,
+ 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: syntax is \"suffixMassage <suffix> <massaged suffix>\"\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
 		ber_str2bv( argv[ 1 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: "
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"suffix '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
@@ -748,10 +768,10 @@ meta_back_db_config(
 		
 		tmp_be = select_backend( &nvnc, 0, 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
-			fprintf( stderr, 
+			Debug( LDAP_DEBUG_ANY, 
 	"%s: line %d: suffix already in use by another backend in"
 	" \"suffixMassage <suffix> <massaged suffix>\"\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
 			return 1;						
@@ -759,9 +779,9 @@ meta_back_db_config(
 
 		ber_str2bv( argv[ 2 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: "
-					"massaged suffix '%s' is invalid\n",
-					fname, lineno, argv[ 2 ] );
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+				"massaged suffix '%s' is invalid\n",
+				fname, lineno, argv[ 2 ] );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
 			return 1;
@@ -770,10 +790,10 @@ meta_back_db_config(
 #if 0	
 		tmp_be = select_backend( &nrnc, 0, 0 );
 		if ( tmp_be != NULL ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: massaged suffix already in use by another backend in" 
 	" \"suffixMassage <suffix> <massaged suffix>\"\n",
-                                fname, lineno );
+                                fname, lineno, 0 );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
 			free( prnc.bv_val );
@@ -803,9 +823,9 @@ meta_back_db_config(
 		int 		i = mi->mi_ntargets - 1;
 
 		if ( i < 0 ) {
-			fprintf( stderr, "%s: line %d: \"rewrite\" "
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: \"rewrite\" "
 				"statement outside target definition.\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 		
@@ -817,9 +837,9 @@ meta_back_db_config(
 		int 		i = mi->mi_ntargets - 1;
 
 		if ( i < 0 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: need \"uri\" directive first\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
@@ -832,9 +852,9 @@ meta_back_db_config(
 		int		nretries = META_RETRY_UNDEFINED;
 
 		if ( argc != 2 ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: need value in \"nretries <value>\"\n",
-				fname, lineno );
+				fname, lineno, 0 );
 			return 1;
 		}
 
@@ -845,11 +865,8 @@ meta_back_db_config(
 			nretries = META_RETRY_NEVER;
 
 		} else {
-			char	*next;
-
-			nretries = strtol( argv[ 1 ], &next, 10 );
-			if ( next == argv[ 1 ] || next[ 0 ] != '\0' ) {
-				fprintf( stderr,
+			if ( lutil_atoi( &nretries, argv[ 1 ] ) != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unable to parse value \"%s\" in \"nretries <value>\"\n",
 					fname, lineno, argv[ 1 ] );
 				return 1;
@@ -885,9 +902,9 @@ ldap_back_map_config(
 	int			is_oc = 0;
 
 	if ( argc < 3 || argc > 4 ) {
-		fprintf( stderr,
+		Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
-			fname, lineno );
+			fname, lineno, 0 );
 		return 1;
 	}
 
@@ -899,10 +916,10 @@ ldap_back_map_config(
 		map = at_map;
 
 	} else {
-		fprintf( stderr, "%s: line %d: syntax is "
+		Debug( LDAP_DEBUG_ANY, "%s: line %d: syntax is "
 			"\"map {objectclass | attribute} [<local> | *] "
 			"{<foreign> | *}\"\n",
-			fname, lineno );
+			fname, lineno, 0 );
 		return 1;
 	}
 
@@ -926,17 +943,17 @@ ldap_back_map_config(
 			&& ( strcasecmp( src, "objectclass" ) == 0
 			|| strcasecmp( dst, "objectclass" ) == 0 ) )
 	{
-		fprintf( stderr,
+		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: objectclass attribute cannot be mapped\n",
-			fname, lineno );
+			fname, lineno, 0 );
 	}
 
 	mapping = (struct ldapmapping *)ch_calloc( 2,
 		sizeof(struct ldapmapping) );
 	if ( mapping == NULL ) {
-		fprintf( stderr,
+		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: out of memory\n",
-			fname, lineno );
+			fname, lineno, 0 );
 		return 1;
 	}
 	ber_str2bv( src, 0, 1, &mapping[ 0 ].src );
@@ -950,7 +967,7 @@ ldap_back_map_config(
 	if ( is_oc ) {
 		if ( src[ 0 ] != '\0' ) {
 			if ( oc_bvfind( &mapping[ 0 ].src ) == NULL ) {
-				fprintf( stderr,
+				Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: warning, source objectClass '%s' "
 	"should be defined in schema\n",
 					fname, lineno, src );
@@ -963,7 +980,7 @@ ldap_back_map_config(
 		}
 
 		if ( oc_bvfind( &mapping[ 0 ].dst ) == NULL ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: warning, destination objectClass '%s' "
 	"is not defined in schema\n",
 				fname, lineno, dst );
@@ -976,7 +993,7 @@ ldap_back_map_config(
 		if ( src[ 0 ] != '\0' ) {
 			rc = slap_bv2ad( &mapping[ 0 ].src, &ad, &text );
 			if ( rc != LDAP_SUCCESS ) {
-				fprintf( stderr,
+				Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: warning, source attributeType '%s' "
 	"should be defined in schema\n",
 					fname, lineno, src );
@@ -992,10 +1009,14 @@ ldap_back_map_config(
 				rc = slap_bv2undef_ad( &mapping[ 0 ].src,
 						&ad, &text, SLAP_AD_PROXIED );
 				if ( rc != LDAP_SUCCESS ) {
-					fprintf( stderr,
-	"%s: line %d: source attributeType '%s': %d (%s)\n",
-						fname, lineno, src,
-						rc, text ? text : "" );
+					char	buf[ SLAP_TEXT_BUFLEN ];
+
+					snprintf( buf, sizeof( buf ),
+						"source attributeType \"%s\": %d (%s)",
+						src, rc, text ? text : "" );
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: %s\n",
+						fname, lineno, buf );
 					goto error_return;
 				}
 			}
@@ -1005,7 +1026,7 @@ ldap_back_map_config(
 
 		rc = slap_bv2ad( &mapping[ 0 ].dst, &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
-			fprintf( stderr,
+			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: warning, destination attributeType '%s' "
 	"is not defined in schema\n",
 				fname, lineno, dst );
@@ -1018,10 +1039,14 @@ ldap_back_map_config(
 			rc = slap_bv2undef_ad( &mapping[ 0 ].dst,
 					&ad, &text, SLAP_AD_PROXIED );
 			if ( rc != LDAP_SUCCESS ) {
-				fprintf( stderr,
-	"%s: line %d: source attributeType '%s': %d (%s)\n",
-					fname, lineno, dst,
-					rc, text ? text : "" );
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				snprintf( buf, sizeof( buf ),
+					"source attributeType \"%s\": %d (%s)\n",
+					dst, rc, text ? text : "" );
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: %s\n",
+					fname, lineno, buf );
 				return 1;
 			}
 		}
@@ -1030,9 +1055,9 @@ ldap_back_map_config(
 	if ( (src[ 0 ] != '\0' && avl_find( map->map, (caddr_t)&mapping[ 0 ], mapping_cmp ) != NULL)
 			|| avl_find( map->remap, (caddr_t)&mapping[ 1 ], mapping_cmp ) != NULL)
 	{
-		fprintf( stderr,
+		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: duplicate mapping found" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-			fname, lineno );
+			fname, lineno, 0 );
 		goto error_return;
 	}
 

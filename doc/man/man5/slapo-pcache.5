@@ -93,6 +93,23 @@ at response, it would cache entries that may be later "massaged"
 by other databases and thus returned \fIafter\fP massaging the first
 time, and \fIbefore\fP massaging when cached.
 
+.TP
+There are some constraints:
+
+all values must be positive;
+
+.B <entry_limit>
+must be less than or equal to
+.BR <max_entries> ;
+
+.B <numattrsets>
+attribute sets SHOULD be defined by using the directive
+.BR proxyattrset ;
+
+all attribute sets SHOULD be referenced by (at least) one
+.B proxytemplate
+directive; 
+
 .LP
 The following adds a template with filter string \fB((&sn=)(givenName=))\fP 
 and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 
@@ -116,7 +133,52 @@ cachesize 100
 .RE
 .LP
 Any valid directives for the chosen database type may be used.
+.SH CAVEATS
+Caching data is prone to inconsistencies because updates on the remote server
+will not be reflected in the response of the cache at least (and at most)
+for the duration of the
+.B proxytemplate
+.BR TTL .
+
+Another potential (and subtle) inconsistency may occur when data is retrieved 
+with different identities and specific per-identity access control
+is enforced by the remote server.
+If data was retrieved with an identity that collected only partial results
+because of access rules enforcement on the remote server, other users
+with different access privileges on the remote server will get different
+results from the remote server and from the cache.
+If those users have higher access privileges on the remote server, they will 
+get from the cache only a subset of the results they would get directly 
+from the remote server; but if they have lower access privileges, they will 
+get from the cache a superset of the results they would get directly 
+from the remote server.
+Either occurrence may or may not be acceptable, based on the security policy
+of the cache and of the remote server.
+It is important to note that in this case the proxy is violating the security
+of the remote server by disclosing to an identity data that was collected 
+by another identity.
+For this reason, it is suggested that, when using
+.BR back-ldap ,
+proxy caching be used in conjunction with the 
+.I identity assertion
+feature of
+.BR slapd-ldap (5)
+(see the
+.B idassert-bind
+and the
+.B idassert-authz
+statements), so that remote server interrogation occurs with a vanilla identity 
+that has some relatively high
+.B search
+and
+.B read
+access privileges, and the "real" access control is delegated to the proxy's ACLs.
+Beware that since only the cached fraction of the real datum is available
+to the cache, it may not be possible to enforce the same access rules that
+are defined on the remote server.
+When security is a concern, cached proxy access must be carefully tailored.
 .SH FILES
+
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file

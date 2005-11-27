@@ -280,6 +280,7 @@ parse_at(
 
 	code = at_add(at,1,sat,&err);
 	if ( code ) {
+		ldap_attributetype_free( at );
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
 		return 1;

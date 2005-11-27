@@ -186,13 +186,13 @@ meta_back_freeconn(
 
 	assert( mc != NULL );
 
-	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 
 	if ( --mc->mc_refcnt == 0 ) {
 		meta_back_conn_free( mc );
 	}
 
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 }
 
 /*
@@ -444,13 +444,13 @@ meta_back_retry(
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
 retry_lock:;
-	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 
 	assert( mc->mc_refcnt > 0 );
 
 	if ( mc->mc_refcnt == 1 ) {
 		while ( ldap_pvt_thread_mutex_trylock( &mc->mc_mutex ) ) {
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			ldap_pvt_thread_yield();
 			goto retry_lock;
 		}
@@ -483,7 +483,7 @@ retry_lock:;
 		mc->mc_tainted = 1;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 	return rc == LDAP_SUCCESS ? 1 : 0;
 }
@@ -734,20 +734,20 @@ meta_back_getconn(
 	}
 
 	/* Searches for a metaconn in the avl tree */
-	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
-	mc = (metaconn_t *)avl_find( mi->mi_conntree, 
+	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+	mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
 		(caddr_t)&mc_curr, meta_back_conn_cmp );
 	if ( mc ) {
 		if ( mc->mc_tainted ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
 			rs->sr_text = "remote server unavailable";
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			return NULL;
 		}
 			
 		mc->mc_refcnt++;
 	}
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_ADD:
@@ -927,13 +927,13 @@ meta_back_getconn(
 			/* Retries searching for a metaconn in the avl tree
 			 * the reason is that the connection might have been
 			 * created by meta_back_get_candidate() */
-			ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
-			mc = (metaconn_t *)avl_find( mi->mi_conntree, 
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
 				(caddr_t)&mc_curr, meta_back_conn_cmp );
 			if ( mc != NULL ) {
 				mc->mc_refcnt++;
 			}
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 			/* Looks like we didn't get a bind. Open a new session... */
 			if ( mc == NULL ) {
@@ -1088,15 +1088,15 @@ done:;
 		/*
 		 * Inserts the newly created metaconn in the avl tree
 		 */
-		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
-		err = avl_insert( &mi->mi_conntree, ( caddr_t )mc,
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+		err = avl_insert( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
 			       	meta_back_conn_cmp, meta_back_conn_dup );
 
 #if PRINT_CONNTREE > 0
-		myprint( mi->mi_conntree );
+		myprint( mi->mi_conninfo.lai_tree );
 #endif /* PRINT_CONNTREE */
 		
-		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
@@ -1144,13 +1144,13 @@ meta_back_release_conn(
 
 	assert( mc != NULL );
 
-	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
 	if ( mc->mc_refcnt == 0 && mc->mc_tainted ) {
-		(void)avl_delete( &mi->mi_conntree, ( caddr_t )mc,
+		(void)avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
 				meta_back_conn_cmp );
 		meta_back_conn_free( mc );
 	}
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 }

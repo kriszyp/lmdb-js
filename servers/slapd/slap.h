@@ -74,8 +74,8 @@ LDAP_BEGIN_DECL
 #define LDAP_DYNAMIC_OBJECTS
 #define LDAP_SYNC_TIMESTAMP
 #define LDAP_COLLECTIVE_ATTRIBUTES
-#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 #define SLAPD_CONF_UNKNOWN_BAILOUT
+#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 
 #define SLAP_ORDERED_PRETTYNORM
 #define SLAP_AUTHZ_SYNTAX
@@ -1005,9 +1005,7 @@ typedef struct slap_filter {
 #define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
 #define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
 #define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
-#ifdef LDAP_SCOPE_SUBORDINATE
 #define SLAPD_FILTER_DN_CHILDREN	((ber_tag_t) -4)
-#endif
 
 	union f_un_u {
 		/* precomputed result */
@@ -1846,21 +1844,23 @@ struct slap_conn;
 struct slap_op;
 
 /* Backend function typedefs */
-typedef int (BI_init) LDAP_P((BackendInfo *bi));
+typedef int (BI_bi_func) LDAP_P((BackendInfo *bi));
+typedef BI_bi_func BI_init;
+typedef BI_bi_func BI_open;
+typedef BI_bi_func BI_close;
+typedef BI_bi_func BI_destroy;
 typedef int (BI_config) LDAP_P((BackendInfo *bi,
 	const char *fname, int lineno,
 	int argc, char **argv));
-typedef int (BI_open) LDAP_P((BackendInfo *bi));
-typedef int (BI_close) LDAP_P((BackendInfo *bi));
-typedef int (BI_destroy) LDAP_P((BackendInfo *bi));
 
-typedef int (BI_db_init) LDAP_P((Backend *bd));
+typedef int (BI_db_func) LDAP_P((Backend *bd));
+typedef BI_db_func BI_db_init;
+typedef BI_db_func BI_db_open;
+typedef BI_db_func BI_db_close;
+typedef BI_db_func BI_db_destroy;
 typedef int (BI_db_config) LDAP_P((Backend *bd,
 	const char *fname, int lineno,
 	int argc, char **argv));
-typedef int (BI_db_open) LDAP_P((Backend *bd));
-typedef int (BI_db_close) LDAP_P((Backend *bd));
-typedef int (BI_db_destroy) LDAP_P((Backend *bd));
 
 typedef struct req_bind_s {
 	int rb_method;
@@ -2001,22 +2001,20 @@ typedef struct slap_rep {
 #define	sr_rspdata sr_un.sru_extended.r_rspdata
 #define	sr_sasldata sr_un.sru_sasl.r_sasldata
 
-typedef int (BI_op_bind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_unbind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_search) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_compare) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_modify) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_modrdn) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_add) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_delete) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_abandon) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_cancel) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_extended) LDAP_P((
-	struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_chk_referrals) LDAP_P((
-	struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_chk_controls) LDAP_P((
-	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_func) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef BI_op_func BI_op_bind;
+typedef BI_op_func BI_op_unbind;
+typedef BI_op_func BI_op_search;
+typedef BI_op_func BI_op_compare;
+typedef BI_op_func BI_op_modify;
+typedef BI_op_func BI_op_modrdn;
+typedef BI_op_func BI_op_add;
+typedef BI_op_func BI_op_delete;
+typedef BI_op_func BI_op_abandon;
+typedef BI_op_func BI_op_cancel;
+typedef BI_op_func BI_op_extended;
+typedef BI_op_func BI_chk_referrals;
+typedef BI_op_func BI_chk_controls;
 typedef int (BI_entry_release_rw)
 	LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
@@ -2036,10 +2034,9 @@ typedef int (BI_acl_attribute) LDAP_P(( struct slap_op *op, Entry *target,
 	BerVarray *vals, slap_access_t access ));
 #endif /* SLAP_OVERLAY_ACCESS */
 
-typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
-	struct slap_conn *c ));
-typedef int (BI_connection_destroy) LDAP_P(( BackendDB *bd,
-	struct slap_conn *c ));
+typedef int (BI_conn_func) LDAP_P(( BackendDB *bd, struct slap_conn *c ));
+typedef BI_conn_func BI_connection_init;
+typedef BI_conn_func BI_connection_destroy;
 
 typedef int (BI_tool_entry_open) LDAP_P(( BackendDB *be, int mode ));
 typedef int (BI_tool_entry_close) LDAP_P(( BackendDB *be ));
@@ -2253,8 +2250,8 @@ typedef struct slap_overinfo {
 } slap_overinfo;
 
 /* Should successive callbacks in a chain be processed? */
-#define	SLAP_CB_FREEME		0x4000
-#define	SLAP_CB_CONTINUE	0x8000
+#define	SLAP_CB_FREEME		0x04000
+#define	SLAP_CB_CONTINUE	0x08000
 
 /*
  * Paged Results state
@@ -2291,25 +2288,26 @@ typedef struct slap_gacl {
 } GroupAssertion;
 
 struct slap_control_ids {
+	int sc_LDAPsync;
 	int sc_assert;
-	int sc_preRead;
-	int sc_postRead;
-	int sc_proxyAuthz;
+	int sc_domainScope;
+	int sc_dontUseCopy;
 	int sc_manageDIT;
 	int sc_manageDSAit;
 	int sc_modifyIncrement;
 	int sc_noOp;
 	int sc_pagedResults;
+	int sc_permissiveModify;
+	int sc_postRead;
+	int sc_preRead;
+	int sc_proxyAuthz;
+	int sc_searchOptions;
 #ifdef LDAP_DEVEL
 	int sc_sortedResults;
 #endif
-	int sc_valuesReturnFilter;
-	int sc_permissiveModify;
-	int sc_domainScope;
-	int sc_treeDelete;
-	int sc_searchOptions;
 	int sc_subentries;
-	int sc_LDAPsync;
+	int sc_treeDelete;
+	int sc_valuesReturnFilter;
 };
 
 /*
@@ -2457,6 +2455,9 @@ typedef struct slap_op {
 	char o_ctrlflag[SLAP_MAX_CIDS];	/* per-control flags */
 	void **o_controls;		/* per-control state */
 
+#define o_dontUseCopy			o_ctrlflag[slap_cids.sc_dontUseCopy]
+#define get_dontUseCopy(op)		_SCM((op)->o_dontUseCopy)
+
 #define o_managedit				o_ctrlflag[slap_cids.sc_manageDIT]
 #define get_manageDIT(op)		_SCM((op)->o_managedit)
 
@@ -2481,26 +2482,14 @@ typedef struct slap_op {
 #define	o_valuesreturnfilter	o_ctrlflag[slap_cids.sc_valuesReturnFilter]
 #define o_vrFilter	o_controls[slap_cids.sc_valuesReturnFilter]
 
-#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
 #define o_permissive_modify	o_ctrlflag[slap_cids.sc_permissiveModify]
 #define get_permissiveModify(op)		((int)(op)->o_permissive_modify)
-#else
-#define get_permissiveModify(op)		(0)
-#endif
 
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 #define o_domain_scope	o_ctrlflag[slap_cids.sc_domainScope]
 #define get_domainScope(op)				((int)(op)->o_domain_scope)
-#else
-#define get_domainScope(op)				(0)
-#endif
 
-#ifdef SLAP_CONTROL_X_TREE_DELETE
 #define	o_tree_delete	o_ctrlflag[slap_cids.sc_treeDelete]
 #define get_treeDelete(op)				((int)(op)->o_tree_delete)
-#else
-#define get_treeDelete(op)				(0)
-#endif
 
 #define o_preread	o_ctrlflag[slap_cids.sc_preRead]
 #define o_postread	o_ctrlflag[slap_cids.sc_postRead]
@@ -2670,10 +2659,7 @@ typedef struct slap_conn {
 	SEND_SEARCH_ENTRY *c_send_search_entry;
 	SEND_SEARCH_REFERENCE *c_send_search_reference;
 	SEND_LDAP_EXTENDED *c_send_ldap_extended;
-#ifdef LDAP_RES_INTERMEDIATE
 	SEND_LDAP_INTERMEDIATE *c_send_ldap_intermediate;
-#endif
-
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
@@ -3095,6 +3081,12 @@ struct zone_heap {
 		backend_add( &bi ); \
 		return 0; \
 	}
+
+typedef int (OV_init)(void);
+typedef struct slap_oinit_t {
+	const char	*ov_type;
+	OV_init		*ov_init;
+} OverlayInit;
 
 LDAP_END_DECL
 

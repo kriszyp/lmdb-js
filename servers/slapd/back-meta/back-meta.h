@@ -236,8 +236,8 @@ typedef struct metadncache_t {
 	Avlnode			*tree;
 
 #define META_DNCACHE_DISABLED   (0)
-#define META_DNCACHE_FOREVER    (-1)
-	long int		ttl;  /* seconds; 0: no cache, -1: no expiry */
+#define META_DNCACHE_FOREVER    ((time_t)(-1))
+	time_t			ttl;  /* seconds; 0: no cache, -1: no expiry */
 } metadncache_t;
 
 typedef struct metacandidates_t {
@@ -257,18 +257,18 @@ typedef struct metainfo_t {
 
 	metadncache_t		mi_cache;
 	
-	ldap_pvt_thread_mutex_t	mi_conn_mutex;
-	Avlnode			*mi_conntree;
+	ldap_avl_info_t		mi_conninfo;
 
-	unsigned		flags;
+	unsigned		mi_flags;
+#define	li_flags		mi_flags
 /* uses flags as defined in <back-ldap/back-ldap.h> */
 #define	META_BACK_F_ONERR_STOP		0x00010000U
 #define	META_BACK_F_DEFER_ROOTDN_BIND	0x00020000U
 
-#define	META_BACK_ONERR_STOP(mi)	( (mi)->flags & META_BACK_F_ONERR_STOP )
+#define	META_BACK_ONERR_STOP(mi)	( (mi)->mi_flags & META_BACK_F_ONERR_STOP )
 #define	META_BACK_ONERR_CONTINUE(mi)	( !META_BACK_ONERR_CONTINUE( (mi) ) )
 
-#define META_BACK_DEFER_ROOTDN_BIND(mi)	( (mi)->flags & META_BACK_F_DEFER_ROOTDN_BIND )
+#define META_BACK_DEFER_ROOTDN_BIND(mi)	( (mi)->mi_flags & META_BACK_F_DEFER_ROOTDN_BIND )
 
 	int			mi_version;
 	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];

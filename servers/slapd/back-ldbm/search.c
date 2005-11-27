@@ -417,40 +417,31 @@ searchit:
 			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 			} else if ( !scopeok &&
 				op->ors_scope == LDAP_SCOPE_SUBORDINATE )
 			{
 				scopeok = !dn_match( &e->e_nname, &realbase )
 					&& dnIsSuffix( &e->e_nname, &realbase );
-#endif
 
 			} else {
 				scopeok = 1;
 			}
 
 			if ( scopeok ) {
-				/* check size limit */
-				if ( --op->ors_slimit == -1 ) {
-					cache_return_entry_r( &li->li_cache, e );
-					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-					rs->sr_entry = NULL;
-					send_ldap_result( op, rs );
-					rc = LDAP_SUCCESS;
-					goto done;
-				}
-
 				if (e) {
 					rs->sr_flags = 0;
-					result = send_search_entry( op, rs );
+					rs->sr_err = send_search_entry( op, rs );
 
-					switch (result) {
-					case 0:		/* entry sent ok */
-						break;
-					case 1:		/* entry not sent */
-						break;
-					case -1:	/* connection closed */
+					switch ( rs->sr_err ) {
+					case LDAP_UNAVAILABLE:	/* connection closed */
 						cache_return_entry_r( &li->li_cache, e );
+						rc = LDAP_SUCCESS;
+						goto done;
+					case LDAP_SIZELIMIT_EXCEEDED:
+						cache_return_entry_r( &li->li_cache, e );
+						rc = rs->sr_err;
+						rs->sr_entry = NULL;
+						send_ldap_result( op, rs );
 						rc = LDAP_SUCCESS;
 						goto done;
 					}

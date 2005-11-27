@@ -93,7 +93,8 @@ int bdb_tool_entry_open(
 	}
 
 	/* Set up for threaded slapindex */
-	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK) {
+	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK
+		&& bdb->bi_nattrs ) {
 		if ( !bdb_tool_info ) {
 			int i;
 			ldap_pvt_thread_mutex_init( &bdb_tool_index_mutex );

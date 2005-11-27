@@ -133,16 +133,28 @@ parse_slapacl( void )
 		ber_str2bv( p, 0, 1, &sock_name );
 
 	} else if ( strncasecmp( optarg, "ssf", len ) == 0 ) {
-		ssf = atoi( p );
+		if ( lutil_atou( &ssf, p ) ) {
+			Debug( LDAP_DEBUG_ANY, "unable to parse ssf=\"%s\".\n", p, 0, 0 );
+			return -1;
+		}
 
 	} else if ( strncasecmp( optarg, "transport_ssf", len ) == 0 ) {
-		transport_ssf = atoi( p );
+		if ( lutil_atou( &transport_ssf, p ) ) {
+			Debug( LDAP_DEBUG_ANY, "unable to parse transport_ssf=\"%s\".\n", p, 0, 0 );
+			return -1;
+		}
 
 	} else if ( strncasecmp( optarg, "tls_ssf", len ) == 0 ) {
-		tls_ssf = atoi( p );
+		if ( lutil_atou( &tls_ssf, p ) ) {
+			Debug( LDAP_DEBUG_ANY, "unable to parse tls_ssf=\"%s\".\n", p, 0, 0 );
+			return -1;
+		}
 
 	} else if ( strncasecmp( optarg, "sasl_ssf", len ) == 0 ) {
-		sasl_ssf = atoi( p );
+		if ( lutil_atou( &sasl_ssf, p ) ) {
+			Debug( LDAP_DEBUG_ANY, "unable to parse sasl_ssf=\"%s\".\n", p, 0, 0 );
+			return -1;
+		}
 
 	} else if ( strncasecmp( optarg, "authzDN", len ) == 0 ) {
 		ber_str2bv( p, 0, 1, &authzDN );
@@ -264,16 +276,11 @@ slap_tool_init(
 					exit( EXIT_FAILURE );
 				}
 
-			} else {
-				char	*next = NULL;
-
-				level = strtol( optarg, &next, 0 );
-				if ( next == NULL || next[ 0 ] != '\0' ) {
-					fprintf( stderr,
-						"unrecognized log level "
-						"\"%s\"\n", optarg );
-					exit( EXIT_FAILURE );
-				}
+			} else if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
+				fprintf( stderr,
+					"unrecognized log level "
+					"\"%s\"\n", optarg );
+				exit( EXIT_FAILURE );
 			}
 
 			if ( level ) {
@@ -283,7 +290,7 @@ slap_tool_init(
 				ldap_debug = 0;
 			}
 #else
-			if ( atoi( optarg ) != 0 )
+			if ( lutil_atoi( &level, optarg ) != 0 || level != 0 )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
@@ -321,7 +328,9 @@ slap_tool_init(
 			break;
 
 		case 'n':	/* which config file db to index */
-			dbnum = atoi( optarg );
+			if ( lutil_atoi( &dbnum, optarg ) ) {
+				usage( tool, progname );
+			}
 			break;
 
 		case 'o':

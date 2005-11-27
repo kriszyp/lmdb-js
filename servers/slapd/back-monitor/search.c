@@ -113,7 +113,7 @@ monitor_send_children(
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			rs->sr_flags = 0;
-			send_search_entry( op, rs );
+			rc = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
 		}
 

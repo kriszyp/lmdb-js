@@ -1489,7 +1489,6 @@ config_schema_dn(ConfigArgs *c) {
 static int
 config_sizelimit(ConfigArgs *c) {
 	int i, rc = 0;
-	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		char buf[8192];
@@ -1525,20 +1524,11 @@ config_sizelimit(ConfigArgs *c) {
 			if(!strcasecmp(c->argv[i], "unlimited")) {
 				lim->lms_s_soft = -1;
 			} else {
-				lim->lms_s_soft = strtol(c->argv[i], &next, 0);
-				if(next == c->argv[i]) {
+				if ( lutil_atoix( &lim->lms_s_soft, c->argv[i], 0 ) != 0 ) {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse limit", c->argv[0]);
 					Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 						c->log, c->msg, c->argv[i]);
 					return(1);
-				} else if(next[0] != '\0') {
-					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"trailing chars \"%s\" in \"sizelimit <limit>\" line"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-						c->log, next, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
-					return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_s_hard = 0;
@@ -1550,7 +1540,6 @@ config_sizelimit(ConfigArgs *c) {
 static int
 config_timelimit(ConfigArgs *c) {
 	int i, rc = 0;
-	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		char buf[8192];
@@ -1582,20 +1571,11 @@ config_timelimit(ConfigArgs *c) {
 			if(!strcasecmp(c->argv[i], "unlimited")) {
 				lim->lms_t_soft = -1;
 			} else {
-				lim->lms_t_soft = strtol(c->argv[i], &next, 0);
-				if(next == c->argv[i]) {
+				if ( lutil_atoix( &lim->lms_t_soft, c->argv[i], 0 ) != 0 ) {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse limit", c->argv[0]);
 					Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 						c->log, c->msg, c->argv[i]);
 					return(1);
-				} else if(next[0] != '\0') {
-					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"trailing chars \"%s\" in \"timelimit <limit>\" line"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-						c->log, next, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
-					return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_t_hard = 0;
@@ -2155,7 +2135,6 @@ static int config_syslog;
 static int
 config_loglevel(ConfigArgs *c) {
 	int i;
-	char *next;
 
 	if ( loglevel_ops == NULL ) {
 		loglevel_init();
@@ -2186,8 +2165,7 @@ config_loglevel(ConfigArgs *c) {
 		int	level;
 
 		if ( isdigit( c->argv[i][0] ) || c->argv[i][0] == '-' ) {
-			level = strtol( c->argv[i], &next, 10 );
-			if ( next == NULL || next[0] != '\0' ) {
+			if( lutil_atoi( &level, c->argv[i] ) != 0 ) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse level", c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->msg, c->argv[i]);
@@ -2308,8 +2286,7 @@ config_security(ConfigArgs *c) {
 			return(1);
 		}
 
-		*tgt = strtol(src, &next, 10);
-		if(next == NULL || next[0] != '\0' ) {
+		if ( lutil_atou( tgt, src ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse factor", c->argv[0] );
 			Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 				c->log, c->msg, c->argv[i]);
@@ -2568,8 +2545,32 @@ config_updatedn(ConfigArgs *c) {
 	BER_BVZERO( &c->value_dn );
 	BER_BVZERO( &c->value_ndn );
 
-	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SLURP_SHADOW);
-	return(0);
+	return config_slurp_shadow( c );
+}
+
+int
+config_shadow( ConfigArgs *c, int flag )
+{
+	char	*notallowed = NULL;
+
+	if ( c->be == frontendDB ) {
+		notallowed = "frontend";
+
+	} else if ( SLAP_MONITOR(c->be) ) {
+		notallowed = "monitor";
+
+	} else if ( SLAP_CONFIG(c->be) ) {
+		notallowed = "config";
+	}
+
+	if ( notallowed != NULL ) {
+		Debug( LDAP_DEBUG_ANY, "%s: %s database cannot be shadow.\n", c->log, notallowed, 0 );
+		return 1;
+	}
+
+	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | flag);
+
+	return 0;
 }
 
 static int
@@ -2718,8 +2719,13 @@ config_tls_config(ConfigArgs *c) {
 		return ldap_pvt_tls_set_option( NULL, flag, &i );
 	}
 	ch_free( c->value_string );
-	if(isdigit((unsigned char)c->argv[1][0])) {
-		i = atoi(c->argv[1]);
+	if ( isdigit( (unsigned char)c->argv[1][0] ) ) {
+		if ( lutil_atoi( &i, c->argv[1] ) != 0 ) {
+			Debug(LDAP_DEBUG_ANY, "%s: "
+				"unable to parse %s \"%s\"\n",
+				c->log, c->argv[0], c->argv[1] );
+			return 1;
+		}
 		return(ldap_pvt_tls_set_option(NULL, flag, &i));
 	} else {
 		return(ldap_int_tls_config(NULL, flag, c->argv[1]));
@@ -2822,8 +2828,12 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 
 	cfb->cb_db.be_suffix = be->be_suffix;
 	cfb->cb_db.be_nsuffix = be->be_nsuffix;
-	cfb->cb_db.be_rootdn = be->be_rootdn;
-	cfb->cb_db.be_rootndn = be->be_rootndn;
+
+	/* The suffix is always "cn=config". The underlying DB's rootdn
+	 * is always the same as the suffix.
+	 */
+	cfb->cb_db.be_rootdn = be->be_suffix[0];
+	cfb->cb_db.be_rootndn = be->be_nsuffix[0];
 
 	ber_str2bv( dir, 0, 1, &cfdir );
 
@@ -2859,8 +2869,8 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		op->ors_filterstr = filterstr;
 		op->ors_scope = LDAP_SCOPE_SUBTREE;
 
-		op->o_dn = be->be_rootdn;
-		op->o_ndn = be->be_rootndn;
+		op->o_dn = c.be->be_rootdn;
+		op->o_ndn = c.be->be_rootndn;
 
 		op->o_req_dn = be->be_suffix[0];
 		op->o_req_ndn = be->be_nsuffix[0];
@@ -2882,7 +2892,9 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
 
-	cfb->cb_use_ldif = 1;
+	/* ITS#4194 - only use if it's present, or we're converting. */
+	if ( !readit || rc == LDAP_SUCCESS )
+		cfb->cb_use_ldif = 1;
 
 	return rc;
 }
@@ -2950,9 +2962,16 @@ read_config(const char *fname, const char *dir) {
 		/* if fname is defaulted, try reading .d */
 		rc = config_setup_ldif( be, cfdir, !fname );
 
-		/* It's OK if the base object doesn't exist yet */
-		if ( rc && rc != LDAP_NO_SUCH_OBJECT )
-			return 1;
+		if ( rc ) {
+			/* It may be OK if the base object doesn't exist yet. */
+			if ( rc != LDAP_NO_SUCH_OBJECT )
+				return 1;
+			/* ITS#4194: But if dir was specified and no fname,
+			 * then we were supposed to read the dir.
+			 */
+			if ( dir && !fname )
+				return 1;
+		}
 
 		/* If we read the config from back-ldif, nothing to do here */
 		if ( cfb->cb_got_ldif ) {
@@ -3030,6 +3049,7 @@ config_send( Operation *op, SlapReply *rs, CfEntryInfo *ce, int depth )
 	{
 		rs->sr_attrs = op->ors_attrs;
 		rs->sr_entry = ce->ce_entry;
+		rs->sr_flags = 0;
 		rc = send_search_entry( op, rs );
 	}
 	if ( op->ors_scope == LDAP_SCOPE_SUBTREE ) {
@@ -3183,13 +3203,17 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	dnRdn( &e->e_name, &rdn );
 	ptr1 = ber_bvchr( &e->e_name, '{' );
 	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
+		char	*next;
 		ptr2 = strchr( ptr1, '}' );
 		if (!ptr2 || ptr2 - e->e_name.bv_val > rdn.bv_len)
 			return LDAP_NAMING_VIOLATION;
 		if ( ptr2-ptr1 == 1)
 			return LDAP_NAMING_VIOLATION;
 		gotindex = 1;
-		index = atoi(ptr1+1);
+		index = strtol( ptr1 + 1, &next, 10 );
+		if ( next == ptr1 + 1 || next[ 0 ] != '}' ) {
+			return LDAP_NAMING_VIOLATION;
+		}
 		if ( index < 0 ) {
 			/* Special case, we allow -1 for the frontendDB */
 			if ( index != -1 || ce_type != Cft_Database ||
@@ -3612,17 +3636,23 @@ config_back_add( Operation *op, SlapReply *rs )
 	} else if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		struct berval dn, ndn;
+
 		op->o_bd = &cfb->cb_db;
-		/* FIXME: there must be a better way. */
-		if ( ber_bvcmp( &op->o_bd->be_rootndn, &be->be_rootndn )) {
-			op->o_bd->be_rootdn = be->be_rootdn;
-			op->o_bd->be_rootndn= be->be_rootndn;
-		}
+
+		/* Save current rootdn; use the underlying DB's rootdn */
+		dn = op->o_dn;
+		ndn = op->o_ndn;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+
 		sc.sc_next = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_add( op, rs );
 		op->o_bd = be;
 		op->o_callback = sc.sc_next;
+		op->o_dn = dn;
+		op->o_ndn = ndn;
 	}
 	if ( renumber ) {
 	}
@@ -3731,9 +3761,13 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				}
 				for ( i=0; !BER_BVISNULL( &ml->sml_values[i] ); i++ ) {
 					if ( ml->sml_values[i].bv_val[0] == '{' &&
-						navals >= 0 ) {
-						int j = strtol( ml->sml_values[i].bv_val+1, NULL, 0 );
-						if ( j < navals ) {
+						navals >= 0 )
+					{
+						char	*next, *val = ml->sml_values[i].bv_val + 1;
+						int	j;
+
+						j = strtol( val, &next, 0 );
+						if ( next == val || next[ 0 ] != '}' || j < navals ) {
 							rc = LDAP_OTHER;
 							snprintf(ca->msg, sizeof(ca->msg), "cannot insert %s",
 								ml->sml_desc->ad_cname.bv_val );
@@ -3851,10 +3885,17 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 					ca->line = ml->sml_values[i].bv_val;
 					ca->valx = -1;
 					if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_ORDERED &&
-						ca->line[0] == '{' ) {
-						ptr = strchr( ca->line, '}' );
+						ca->line[0] == '{' )
+					{
+						ptr = strchr( ca->line + 1, '}' );
 						if ( ptr ) {
-							ca->valx = strtol( ca->line+1, NULL, 0 );
+							char	*next;
+
+							ca->valx = strtol( ca->line + 1, &next, 0 );
+							if ( next == ca->line + 1 || next[ 0 ] != '}' ) {
+								rc = LDAP_OTHER;
+								goto out;
+							}
 							ca->line = ptr+1;
 						}
 					}
@@ -3941,16 +3982,22 @@ config_back_modify( Operation *op, SlapReply *rs )
 	} else if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		struct berval dn, ndn;
+
 		op->o_bd = &cfb->cb_db;
-		if ( ber_bvcmp( &op->o_bd->be_rootndn, &be->be_rootndn )) {
-			op->o_bd->be_rootdn = be->be_rootdn;
-			op->o_bd->be_rootndn= be->be_rootndn;
-		}
+
+		dn = op->o_dn;
+		ndn = op->o_ndn;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+
 		sc.sc_next = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_modify( op, rs );
 		op->o_bd = be;
 		op->o_callback = sc.sc_next;
+		op->o_dn = dn;
+		op->o_ndn = ndn;
 	}
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
@@ -4247,7 +4294,7 @@ config_back_db_open( BackendDB *be )
 	struct berval rdn;
 	Entry *e, *parent;
 	CfEntryInfo *ce, *ceparent;
-	int i;
+	int i, unsupp = 0;
 	BackendInfo *bi;
 	ConfigArgs c;
 	Connection conn = {0};
@@ -4266,12 +4313,11 @@ config_back_db_open( BackendDB *be )
 		op = (Operation *) &opbuf;
 		connection_fake_init( &conn, op, thrctx );
 
-		op->o_dn = be->be_rootdn;
-		op->o_ndn = be->be_rootndn;
-
 		op->o_tag = LDAP_REQ_ADD;
 		op->o_callback = &cb;
 		op->o_bd = &cfb->cb_db;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
 	} else {
 		op = NULL;
 	}
@@ -4323,7 +4369,16 @@ config_back_db_open( BackendDB *be )
 	
 	c.line = 0;
 	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next) {
-		if (!bi->bi_cf_ocs) continue;
+		if (!bi->bi_cf_ocs) {
+			/* If it only supports the old config mech, complain. */
+			if ( bi->bi_config ) {
+				Debug( LDAP_DEBUG_ANY,
+					"WARNING: No dynamic config support for backend %s.\n",
+					bi->bi_type, 0, 0 );
+				unsupp++;
+			}
+			continue;
+		}
 		if (!bi->bi_private) continue;
 
 		rdn.bv_val = c.log;
@@ -4350,6 +4405,16 @@ config_back_db_open( BackendDB *be )
 		} else {
 			bi = be->bd_info;
 		}
+
+		/* If this backend supports the old config mechanism, but not
+		 * the new mech, complain.
+		 */
+		if ( !be->be_cf_ocs && bi->bi_db_config ) {
+			Debug( LDAP_DEBUG_ANY,
+				"WARNING: No dynamic config support for database %s.\n",
+				bi->bi_type, 0, 0 );
+			unsupp++;
+		}
 		rdn.bv_val = c.log;
 		rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
 			"%s=" SLAP_X_ORDERED_FMT "%s", cfAd_database->ad_cname.bv_val,
@@ -4371,6 +4436,12 @@ config_back_db_open( BackendDB *be )
 			int j;
 
 			for (j=0,on=oi->oi_list; on; j++,on=on->on_next) {
+				if ( on->on_bi.bi_db_config && !on->on_bi.bi_cf_ocs ) {
+					Debug( LDAP_DEBUG_ANY,
+						"WARNING: No dynamic config support for overlay %s.\n",
+						on->on_bi.bi_type, 0, 0 );
+					unsupp++;
+				}
 				rdn.bv_val = c.log;
 				rdn.bv_len = snprintf(rdn.bv_val, sizeof( c.log ),
 					"%s=" SLAP_X_ORDERED_FMT "%s",
@@ -4389,6 +4460,11 @@ config_back_db_open( BackendDB *be )
 	}
 	if ( thrctx )
 		ldap_pvt_thread_pool_context_reset( thrctx );
+
+	if ( unsupp  && cfb->cb_use_ldif ) {
+		Debug( LDAP_DEBUG_ANY, "\nWARNING: The converted cn=config "
+			"directory is incomplete and may not work.\n\n", 0, 0, 0 );
+	}
 
 	return 0;
 }

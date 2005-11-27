@@ -858,21 +858,6 @@ fetch_entry_retry:
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
-			if ( --op->ors_slimit == -1 ) {
-#ifdef SLAP_ZONE_ALLOC
-				slap_zn_runlock(bdb->bi_cache.c_zctx, e);
-#endif
-				bdb_cache_return_entry_r( bdb->bi_dbenv,
-						&bdb->bi_cache, e, &lock );
-				e = NULL;
-				rs->sr_entry = NULL;
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-				rs->sr_ref = rs->sr_v2ref;
-				send_ldap_result( op, rs );
-				rs->sr_err = LDAP_SUCCESS;
-				goto done;
-			}
-
 			if ( get_pagedresults(op) > SLAP_CONTROL_IGNORED ) {
 				if ( rs->sr_nentries >= ((PagedResultsState *)op->o_pagedresults_state)->ps_size ) {
 #ifdef SLAP_ZONE_ALLOC
@@ -889,20 +874,20 @@ fetch_entry_retry:
 
 			if (e) {
 				/* safe default */
-				int result = -1;
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_ctrls = NULL;
 				rs->sr_flags = 0;
 				rs->sr_err = LDAP_SUCCESS;
-				result = send_search_entry( op, rs );
+				rs->sr_err = send_search_entry( op, rs );
 
-				switch (result) {
-				case 0:		/* entry sent ok */
+				switch ( rs->sr_err ) {
+				case LDAP_SUCCESS:	/* entry sent ok */
 					break;
-				case 1:		/* entry not sent */
+				default:		/* entry not sent */
 					break;
-				case -1:	/* connection closed */
+				case LDAP_UNAVAILABLE:
+				case LDAP_SIZELIMIT_EXCEEDED:
 #ifdef SLAP_ZONE_ALLOC
 					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
@@ -910,7 +895,14 @@ fetch_entry_retry:
 						&bdb->bi_cache, e, &lock);
 					e = NULL;
 					rs->sr_entry = NULL;
-					rs->sr_err = LDAP_OTHER;
+					if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
+						rs->sr_ref = rs->sr_v2ref;
+						send_ldap_result( op, rs );
+						rs->sr_err = LDAP_SUCCESS;
+
+					} else {
+						rs->sr_err = LDAP_OTHER;
+					}
 					goto done;
 				}
 			}

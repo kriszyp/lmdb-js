@@ -28,6 +28,7 @@
 
 #define LDAP_DEPRECATED 1
 #include <ldap.h>
+#include <lutil.h>
 
 #define LOOPS	100
 #define RETRIES 0
@@ -87,7 +88,9 @@ main( int argc, char **argv )
 			break;
 
 		case 'p':		/* the servers port */
-			port = atoi( optarg );
+			if ( lutil_atoi( &port, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
 			break;
 
 		case 'D':		/* the servers manager */
@@ -107,15 +110,21 @@ main( int argc, char **argv )
 			break;
 
 		case 'l':		/* the number of loops */
-			loops = atoi( optarg );
+			if ( lutil_atoi( &loops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
 			break;
 
 		case 'r':		/* number of retries */
-			retries = atoi( optarg );
+			if ( lutil_atoi( &retries, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
 			break;
 
 		case 't':		/* delay in seconds */
-			delay = atoi( optarg );
+			if ( lutil_atoi( &delay, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
 			break;
 
 		default:

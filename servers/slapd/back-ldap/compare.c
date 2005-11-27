@@ -36,7 +36,7 @@ ldap_back_compare(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	struct ldapconn	*lc;
+	ldapconn_t	*lc;
 	ber_int_t	msgid;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
@@ -63,7 +63,7 @@ retry:
 	rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_SENDRESULT );
 	if ( rc == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}

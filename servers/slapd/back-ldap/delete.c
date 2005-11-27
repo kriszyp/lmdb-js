@@ -36,9 +36,9 @@ ldap_back_delete(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	struct ldapconn	*lc;
+	ldapconn_t	*lc;
 	ber_int_t	msgid;
 	LDAPControl	**ctrls = NULL;
 	int		do_retry = 1;
@@ -62,10 +62,10 @@ retry:
 	rs->sr_err = ldap_delete_ext( lc->lc_ld, op->o_req_ndn.bv_val,
 			ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
-		li->timeout[ LDAP_BACK_OP_DELETE], LDAP_BACK_SENDRESULT );
+		li->li_timeout[ LDAP_BACK_OP_DELETE], LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}

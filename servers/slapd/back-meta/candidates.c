@@ -70,13 +70,11 @@ meta_back_is_candidate(
 		default:
 			return META_CANDIDATE;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
 			if ( ndn->bv_len > nsuffix->bv_len ) {
 				return META_CANDIDATE;
 			}
 			break;
-#endif /* LDAP_SCOPE_SUBORDINATE */
 
 		/* nearly useless; not allowed by config */
 		case LDAP_SCOPE_ONELEVEL:

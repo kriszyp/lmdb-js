@@ -1207,6 +1207,7 @@ slap_schema_load( void )
 
 			code = at_add( at, 0, NULL, &err );
 			if ( code ) {
+				ldap_attributetype_free( at );
 				fprintf( stderr, "slap_schema_load: AttributeType "
 					"\"%s\": %s: \"%s\"\n",
 					 ad_map[i].ssam_name, scherr2str(code), err );

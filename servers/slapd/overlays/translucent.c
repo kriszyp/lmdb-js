@@ -29,6 +29,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 /* config block */
 
@@ -620,7 +621,11 @@ static int translucent_config(
 			ov->config->debug = 0xFFFF;
 			rc = 0;
 		} else if(argc == 2) {
-			ov->config->debug = atoi(argv[1]);
+			if ( lutil_atoi( &ov->config->debug, argv[1]) != 0 ) {
+				fprintf(stderr, "%s: line %d: unable to parse debug \"%s\"\n",
+					fname, lineno, argv[1]);
+				return 1;
+			}
 			rc = 0;
 		} else {
 			fprintf(stderr, "%s: line %d: too many arguments (%d) to debug\n",
@@ -730,7 +735,7 @@ static int translucent_close(BackendDB *be) {
 **
 */
 
-int translucent_init() {
+int translucent_initialize() {
 
 	translucent.on_bi.bi_type	= "translucent";
 	translucent.on_bi.bi_db_init	= translucent_db_init;
@@ -750,7 +755,7 @@ int translucent_init() {
 
 #if SLAPD_OVER_TRANSLUCENT == SLAPD_MOD_DYNAMIC && defined(PIC)
 int init_module(int argc, char *argv[]) {
-	return translucent_init();
+	return translucent_initialize();
 }
 #endif
 

@@ -29,6 +29,7 @@ static SLAP_CTRL_PARSE_FN parsePreRead;
 static SLAP_CTRL_PARSE_FN parsePostRead;
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 #ifdef LDAP_DEVEL
+static SLAP_CTRL_PARSE_FN parseDontUseCopy;
 static SLAP_CTRL_PARSE_FN parseManageDIT;
 #endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
@@ -125,41 +126,37 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
 		parseSortedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
  		(int)offsetof(struct slap_control_ids, sc_domainScope),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
 		parseDomainScope, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
-#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
 	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
  		(int)offsetof(struct slap_control_ids, sc_permissiveModify),
-		SLAP_CTRL_MODIFY, NULL,
+		SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE, NULL,
 		parsePermissiveModify, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
 #ifdef SLAP_CONTROL_X_TREE_DELETE
 	{ LDAP_CONTROL_X_TREE_DELETE,
  		(int)offsetof(struct slap_control_ids, sc_treeDelete),
-		SLAP_CTRL_HIDE|SLAP_CTRL_DELETE, NULL,
+		SLAP_CTRL_DELETE|SLAP_CTRL_HIDE, NULL,
 		parseTreeDelete, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
-#ifdef LDAP_CONTROL_X_SEARCH_OPTIONS
 	{ LDAP_CONTROL_X_SEARCH_OPTIONS,
  		(int)offsetof(struct slap_control_ids, sc_searchOptions),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
 		parseSearchOptions, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
-#ifdef LDAP_CONTROL_SUBENTRIES
 	{ LDAP_CONTROL_SUBENTRIES,
  		(int)offsetof(struct slap_control_ids, sc_subentries),
 		SLAP_CTRL_SEARCH, NULL,
 		parseSubentries, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
 	{ LDAP_CONTROL_NOOP,
  		(int)offsetof(struct slap_control_ids, sc_noOp),
-		SLAP_CTRL_HIDE|SLAP_CTRL_ACCESS, NULL,
+		SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_DEVEL
+	{ LDAP_CONTROL_DONTUSECOPY,
+ 		(int)offsetof(struct slap_control_ids, sc_dontUseCopy),
+		SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE, NULL,
+		parseDontUseCopy, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_MANAGEDIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDIT),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE, NULL,
@@ -706,7 +703,8 @@ slap_remove_control(
 	switch ( op->o_ctrlflag[ ctrl ] ) {
 	case SLAP_CONTROL_NONCRITICAL:
 		for ( i = 0, j = -1; op->o_ctrls[ i ] != NULL; i++ ) {
-			if ( strcmp( op->o_ctrls[ i ]->ldctl_oid, slap_known_controls[ ctrl - 1 ] ) == 0 )
+			if ( strcmp( op->o_ctrls[ i ]->ldctl_oid,
+				slap_known_controls[ ctrl - 1 ] ) == 0 )
 			{
 				j = i;
 			}
@@ -763,6 +761,30 @@ slap_remove_control(
 }
 
 #ifdef LDAP_DEVEL
+static int parseDontUseCopy (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	if ( op->o_dontUseCopy != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "dontUseCopy control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len ) {
+		rs->sr_text = "dontUseCopy control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_iscritical != SLAP_CONTROL_CRITICAL ) {
+		rs->sr_text = "dontUseCopy criticality of FALSE not allowed";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_dontUseCopy = SLAP_CONTROL_CRITICAL;
+	return LDAP_SUCCESS;
+}
+
 static int parseManageDIT (
 	Operation *op,
 	SlapReply *rs,
@@ -1042,8 +1064,8 @@ static int parseAssert (
 		return LDAP_OTHER;
 	}
 	
-	rs->sr_err = get_filter( op, ber, (Filter **)&(op->o_assertion), &rs->sr_text);
-
+	rs->sr_err = get_filter( op, ber, (Filter **)&(op->o_assertion),
+		&rs->sr_text);
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
@@ -1214,7 +1236,8 @@ static int parseValuesReturnFilter (
 		return LDAP_OTHER;
 	}
 	
-	rs->sr_err = get_vrFilter( op, ber, (ValuesReturnFilter **)&(op->o_vrFilter), &rs->sr_text);
+	rs->sr_err = get_vrFilter( op, ber,
+		(ValuesReturnFilter **)&(op->o_vrFilter), &rs->sr_text);
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
@@ -1244,7 +1267,6 @@ static int parseValuesReturnFilter (
 	return LDAP_SUCCESS;
 }
 
-#ifdef LDAP_CONTROL_SUBENTRIES
 static int parseSubentries (
 	Operation *op,
 	SlapReply *rs,
@@ -1274,9 +1296,7 @@ static int parseSubentries (
 
 	return LDAP_SUCCESS;
 }
-#endif
 
-#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
 static int parsePermissiveModify (
 	Operation *op,
 	SlapReply *rs,
@@ -1298,9 +1318,7 @@ static int parsePermissiveModify (
 
 	return LDAP_SUCCESS;
 }
-#endif
 
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 static int parseDomainScope (
 	Operation *op,
 	SlapReply *rs,
@@ -1322,7 +1340,6 @@ static int parseDomainScope (
 
 	return LDAP_SUCCESS;
 }
-#endif
 
 #ifdef SLAP_CONTROL_X_TREE_DELETE
 static int parseTreeDelete (
@@ -1348,7 +1365,6 @@ static int parseTreeDelete (
 }
 #endif
 
-#ifdef LDAP_CONTROL_X_SEARCH_OPTIONS
 static int parseSearchOptions (
 	Operation *op,
 	SlapReply *rs,
@@ -1399,5 +1415,4 @@ static int parseSearchOptions (
 
 	return LDAP_SUCCESS;
 }
-#endif
 

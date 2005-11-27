@@ -659,7 +659,7 @@ done:
 ** it expects to be called automagically during dynamic module initialization
 */
 
-int refint_init() {
+int refint_initialize() {
 
 	/* statically declared just after the #includes at top */
 	refint.on_bi.bi_type = "refint";
@@ -674,7 +674,7 @@ int refint_init() {
 
 #if SLAPD_OVER_REFINT == SLAPD_MOD_DYNAMIC && defined(PIC)
 int init_module(int argc, char *argv[]) {
-	return refint_init();
+	return refint_initialize();
 }
 #endif
 

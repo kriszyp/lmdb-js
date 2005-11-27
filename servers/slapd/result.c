@@ -36,6 +36,7 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 const struct berval slap_dummy_bv = BER_BVNULL;
 
@@ -556,11 +557,8 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	assert( rs->sr_err != LDAP_PARTIAL_RESULTS );
 
 	if ( rs->sr_err == LDAP_REFERRAL ) {
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
-		if( op->o_domain_scope ) {
-			rs->sr_ref = NULL;
-		}
-#endif
+		if( op->o_domain_scope ) rs->sr_ref = NULL;
+
 		if( rs->sr_ref == NULL ) {
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		} else if ( op->o_protocol < LDAP_VERSION3 ) {
@@ -661,13 +659,23 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 	}
 }
 
+/*
+ * returns:
+ *
+ * LDAP_SUCCESS			entry sent
+ * LDAP_OTHER			entry not sent (other)
+ * LDAP_INSUFFICIENT_ACCESS	entry not sent (ACL)
+ * LDAP_UNAVAILABLE		entry not sent (connection closed)
+ * LDAP_SIZELIMIT_EXCEEDED	entry not sent (caller must send sizelimitExceeded)
+ */
+
 int
 slap_send_search_entry( Operation *op, SlapReply *rs )
 {
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *) &berbuf;
 	Attribute	*a;
-	int		i, j, rc=-1, bytes;
+	int		i, j, rc = LDAP_UNAVAILABLE, bytes;
 	char		*edn;
 	int		userattrs;
 	AccessControlState acl_state = ACL_STATE_INIT;
@@ -679,7 +687,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 * e_flags: array of a_flags
 	 */
 	char **e_flags = NULL;
-	
+
+	if ( op->ors_slimit >= 0 && rs->sr_nentries >= op->ors_slimit ) {
+		return LDAP_SIZELIMIT_EXCEEDED;
+	}
+
 	rs->sr_type = REP_SEARCH;
 
 	/* eventually will loop through generated operational attribute types
@@ -730,7 +742,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			"send_search_entry: conn %lu access to entry (%s) not allowed\n", 
 			op->o_connid, rs->sr_entry->e_name.bv_val, 0 );
 
-		rc = 1;
+		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto error_return;
 	}
 
@@ -776,6 +788,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encoding DN error" );
+		rc = rs->sr_err;
 		goto error_return;
 	}
 
@@ -823,6 +836,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"matched values filtering error" );
+				rc = rs->sr_err;
 				goto error_return;
 			}
 		}
@@ -872,6 +886,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"encoding description error");
+				rc = rs->sr_err;
 				goto error_return;
 			}
 			finish = 1;
@@ -905,6 +920,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 						if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 						send_ldap_error( op, rs, LDAP_OTHER,
 							"encoding description error");
+						rc = rs->sr_err;
 						goto error_return;
 					}
 				}
@@ -916,6 +932,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 					send_ldap_error( op, rs, LDAP_OTHER,
 						"encoding values error" );
+					rc = rs->sr_err;
 					goto error_return;
 				}
 			}
@@ -928,6 +945,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
+			rc = rs->sr_err;
 			goto error_return;
 		}
 	}
@@ -981,6 +999,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 				send_ldap_error( op, rs, LDAP_OTHER,
 					"matched values filtering error" );
+				rc = rs->sr_err;
 				goto error_return;
 			}
 		}
@@ -1030,6 +1049,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER,
 				"encoding description error" );
+			rc = rs->sr_err;
 			goto error_return;
 		}
 
@@ -1058,6 +1078,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 					send_ldap_error( op, rs, LDAP_OTHER,
 						"encoding values error" );
+					rc = rs->sr_err;
 					goto error_return;
 				}
 			}
@@ -1070,6 +1091,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
+			rc = rs->sr_err;
 			goto error_return;
 		}
 	}
@@ -1104,7 +1126,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode entry end error" );
-		rc = 1;
+		rc = rs->sr_err;
 		goto error_return;
 	}
 
@@ -1123,7 +1145,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				"send_search_entry: conn %lu  ber write failed.\n", 
 				op->o_connid, 0, 0 );
 
-			rc = -1;
+			rc = LDAP_UNAVAILABLE;
 			goto error_return;
 		}
 		rs->sr_nentries++;
@@ -1141,7 +1163,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE,
 		"<= send_search_entry: conn %lu exit.\n", op->o_connid, 0, 0 );
 
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 error_return:;
 	if ( op->o_callback ) {
@@ -1246,7 +1268,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		goto rel;
 	}
 
-#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	if( op->o_domain_scope ) {
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: domainScope control in (%s)\n", 
@@ -1254,7 +1275,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		rc = 0;
 		goto rel;
 	}
-#endif
 
 	if( rs->sr_ref == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -1397,8 +1417,8 @@ str2result(
 		}
 
 		if ( strncasecmp( s, "code", STRLENOF( "code" ) ) == 0 ) {
-			if ( c != NULL ) {
-				*code = atoi( c );
+			if ( c != NULL && lutil_atoi( code, c ) != 0 ) {
+				goto bailout;
 			}
 		} else if ( strncasecmp( s, "matched", STRLENOF( "matched" ) ) == 0 ) {
 			if ( c != NULL ) {
@@ -1409,6 +1429,7 @@ str2result(
 				*info = c;
 			}
 		} else {
+bailout:;
 			Debug( LDAP_DEBUG_ANY, "str2result (%s) unknown\n",
 			    s, 0, 0 );
 

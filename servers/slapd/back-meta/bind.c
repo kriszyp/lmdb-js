@@ -206,22 +206,22 @@ meta_back_bind( Operation *op, SlapReply *rs )
 
 			/* wait for all other ops to release the connection */
 retry_lock:;
-			ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			if ( mc->mc_refcnt > 1 ) {
-				ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 				ldap_pvt_thread_yield();
 				goto retry_lock;
 			}
 
 			assert( mc->mc_refcnt == 1 );
-			mc = avl_delete( &mi->mi_conntree, (caddr_t)mc,
+			mc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conn_cmp );
 			assert( mc != NULL );
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
-			lerr = avl_insert( &mi->mi_conntree, (caddr_t)mc,
+			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conn_cmp, meta_back_conn_dup );
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			if ( lerr == -1 ) {
 				for ( i = 0; i < mi->mi_ntargets; ++i ) {
 					if ( mc->mc_conns[ i ].msc_ld != NULL ) {
@@ -548,7 +548,7 @@ retry:;
 				 * to avoid circular loops; mc_mutex is set
 				 * by the caller */
 				if ( dolock ) {
-					ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 				}
 
 				if ( mc->mc_refcnt == 1 ) {
@@ -571,7 +571,7 @@ retry:;
 				}
 
 				if ( dolock ) {
-					ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 				}
 
 				if ( rc == LDAP_SUCCESS ) {

@@ -32,9 +32,7 @@ ldbm_back_initialize(
 {
 	static char *controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
-#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
 		LDAP_CONTROL_X_PERMISSIVE_MODIFY,
-#endif
 		NULL
 	};
 

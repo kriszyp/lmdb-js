@@ -995,7 +995,7 @@ lastmod_db_destroy(
 static slap_overinst 		lastmod;
 
 int
-lastmod_init()
+lastmod_initialize()
 {
 	lastmod.on_bi.bi_type = "lastmod";
 	lastmod.on_bi.bi_db_init = lastmod_db_init;
@@ -1020,7 +1020,7 @@ lastmod_init()
 int
 init_module( int argc, char *argv[] )
 {
-	return lastmod_init();
+	return lastmod_initialize();
 }
 #endif /* SLAPD_OVER_LASTMOD == SLAPD_MOD_DYNAMIC */
 

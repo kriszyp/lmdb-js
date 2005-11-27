@@ -137,6 +137,9 @@ over_db_config(
 	ca.fname = fname;
 	ca.lineno = lineno;
 	ca.be = be;
+	snprintf( ca.log, sizeof( ca.log ), "%s: line %d",
+			ca.fname, ca.lineno );
+
 	for (; on; on=on->on_next) {
 		rc = SLAP_CONF_UNKNOWN;
 		if (on->on_bi.bi_cf_ocs) {
@@ -249,7 +252,7 @@ over_access_allowed(
 {
 	slap_overinfo *oi;
 	slap_overinst *on;
-	BackendInfo *bi = op->o_bd->bd_info;
+	BackendInfo *bi;
 	BackendDB *be = op->o_bd, db;
 	int rc = SLAP_CB_CONTINUE;
 
@@ -257,7 +260,13 @@ over_access_allowed(
 	 * when global overlays are used... */
 	assert( op->o_bd != NULL );
 
-	oi = op->o_bd->bd_info->bi_private;
+	bi = op->o_bd->bd_info;
+	/* Were we invoked on the frontend? */
+	if ( !bi->bi_access_allowed ) {
+		oi = frontendDB->bd_info->bi_private;
+	} else {
+		oi = op->o_bd->bd_info->bi_private;
+	}
 	on = oi->oi_list;
 
 	for ( ; on; on = on->on_next ) {
@@ -795,7 +804,6 @@ overlay_is_inst( BackendDB *be, const char *over_type )
 int
 overlay_register_control( BackendDB *be, const char *oid )
 {
-	int		rc = 0;
 	int		gotit = 0;
 	int		cid;
 
@@ -818,12 +826,12 @@ overlay_register_control( BackendDB *be, const char *oid )
 
 	}
 	
-	if ( rc == 0 && !gotit ) {
+	if ( !gotit ) {
 		be->be_ctrls[ cid ] = 1;
 		be->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 	}
 
-	return rc;
+	return 0;
 }
 
 void

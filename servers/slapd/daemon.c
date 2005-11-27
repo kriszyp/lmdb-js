@@ -1729,9 +1729,13 @@ slapd_daemon_task(
 			ber_socket_t active;
 
 			if( slapd_gentle_shutdown == 1 ) {
+				BackendDB *be;
 				Debug( LDAP_DEBUG_ANY, "slapd gentle shutdown\n", 0, 0, 0 );
 				close_listeners( 1 );
 				frontendDB->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
+				LDAP_STAILQ_FOREACH(be, &backendDB, be_next) {
+					be->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
+				}
 				slapd_gentle_shutdown = 2;
 			}
 
@@ -1739,7 +1743,7 @@ slapd_daemon_task(
 			active = slap_daemon.sd_nactives;
 			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 			if( active == 0 ) {
-				slapd_shutdown = 2;
+				slapd_shutdown = 1;
 				break;
 			}
 		}

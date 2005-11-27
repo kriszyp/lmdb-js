@@ -28,6 +28,7 @@
 #include "ac/string.h"
 #include "ac/ctype.h"
 
+#include "lutil.h"
 #include "slap.h"
 #include "proto-sql.h"
 
@@ -1435,9 +1436,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 					"ldap_entries.parent=?" );
 		break;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
-#endif /* LDAP_SCOPE_SUBORDINATE */
 	case LDAP_SCOPE_SUBTREE:
 		if ( BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ) {
 			int		i;
@@ -1678,9 +1677,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		}
 		break;
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
-#endif /* LDAP_SCOPE_SUBORDINATE */
 	case LDAP_SCOPE_SUBTREE:
 	{
 		/* if short-cutting the search base,
@@ -1719,11 +1716,9 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 				tmp_base_ndn[ i ] = bsi->bsi_base_ndn->bv_val[ j ];
 			}
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 			if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
 				tmp_base_ndn[ i++ ] = ',';
 			}
-#endif /* LDAP_SCOPE_SUBORDINATE */
 
 			tmp_base_ndn[ i ] = '%';
 			tmp_base_ndn[ i + 1 ] = '\0';
@@ -1733,11 +1728,9 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 
 			tmp_base_ndn[ i++ ] = '%';
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 			if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
 				tmp_base_ndn[ i++ ] = ',';
 			}
-#endif /* LDAP_SCOPE_SUBORDINATE */
 
 			AC_MEMCPY( &tmp_base_ndn[ i ], bsi->bsi_base_ndn->bv_val,
 				bsi->bsi_base_ndn->bv_len + 1 );
@@ -1749,13 +1742,10 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			ldap_pvt_str2upper( tmp_base_ndn );
 		}
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 		if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
 			Debug( LDAP_DEBUG_TRACE, "(children)dn: \"%s\"\n",
 				tmp_base_ndn, 0, 0 );
-		} else 
-#endif /* LDAP_SCOPE_SUBORDINATE */
-		{
+		} else {
 			Debug( LDAP_DEBUG_TRACE, "(sub)dn: \"%s\"\n",
 				tmp_base_ndn, 0, 0 );
 		}
@@ -1828,21 +1818,23 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		}
 
 		if ( bi->sql_baseObject && dn_match( &ndn, &bi->sql_baseObject->e_nname ) ) {
-			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
-			continue;
+			goto cleanup;
 		}
 
-		c_id = (backsql_entryID *)ch_calloc( 1, 
-				sizeof( backsql_entryID ) );
+		c_id = (backsql_entryID *)op->o_tmpcalloc( 1, 
+				sizeof( backsql_entryID ), op->o_tmpmemctx );
 #ifdef BACKSQL_ARBITRARY_KEY
 		ber_str2bv_x( row.cols[ 0 ], 0, 1, &c_id->eid_id,
 				op->o_tmpmemctx );
 		ber_str2bv_x( row.cols[ 1 ], 0, 1, &c_id->eid_keyval,
 				op->o_tmpmemctx );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-		c_id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
-		c_id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
+		if ( lutil_atoulx( &c_id->eid_id, row.cols[ 0 ], 0 ) != 0 ) {
+			goto cleanup;
+		}
+		if ( lutil_atoulx( &c_id->eid_keyval, row.cols[ 1 ], 0 ) != 0 ) {
+			goto cleanup;
+		}
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 		c_id->eid_oc_id = bsi->bsi_oc->bom_id;
 
@@ -1869,6 +1861,18 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		bsi->bsi_n_candidates--;
 		if ( bsi->bsi_n_candidates == -1 ) {
 			break;
+		}
+		continue;
+
+cleanup:;
+		if ( !BER_BVISNULL( &pdn ) ) {
+			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
+		}
+		if ( !BER_BVISNULL( &ndn ) ) {
+			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+		}
+		if ( c_id != NULL ) {
+			ch_free( c_id );
 		}
 	}
 	backsql_FreeRow_x( &row, bsi->bsi_op->o_tmpmemctx );
@@ -1897,7 +1901,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_search(): "
 		"base=\"%s\", filter=\"%s\", scope=%d,", 
 		op->o_req_ndn.bv_val,
-		op->ors_filterstr.bv_val ? op->ors_filterstr.bv_val : "(no filter)",
+		op->ors_filterstr.bv_val,
 		op->ors_scope );
 	Debug( LDAP_DEBUG_TRACE, " deref=%d, attrsonly=%d, "
 		"attributes to load: %s\n",
@@ -2142,15 +2146,12 @@ backsql_search( Operation *op, SlapReply *rs )
 			/* fall thru */
 		}
 
-#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
 			/* discard the baseObject entry */
 			if ( dn_match( &eid->eid_ndn, &op->o_req_ndn ) ) {
 				goto next_entry2;
 			}
-		/* FALLTHRU */
-#endif /* LDAP_SCOPE_SUBORDINATE */
-
+			/* FALLTHRU */
 		case LDAP_SCOPE_SUBTREE:
 			/* FIXME: this should never fail... */
 			if ( !dnIsSuffix( &eid->eid_ndn, &op->o_req_ndn ) ) {
@@ -2305,24 +2306,18 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE )
 		{
-			if ( --op->ors_slimit == -1 ) {
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-				goto send_results;
-			}
-
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;
 			rs->sr_entry = e;
-			if ( e == &user_entry ) {
-				rs->sr_flags = REP_ENTRY_MODIFIABLE;
-			}
+			rs->sr_flags = ( e == &user_entry ) ? REP_ENTRY_MODIFIABLE : 0;
 			/* FIXME: need the whole entry (ITS#3480) */
-			sres = send_search_entry( op, rs );
+			rs->sr_err = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;
 			rs->sr_operational_attrs = NULL;
 
-			if ( sres == -1 ) {
+			switch ( rs->sr_err ) {
+			case LDAP_UNAVAILABLE:
 				/*
 				 * FIXME: send_search_entry failed;
 				 * better stop
@@ -2330,6 +2325,9 @@ backsql_search( Operation *op, SlapReply *rs )
 				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 					"connection lost\n", 0, 0, 0 );
 				goto end_of_search;
+
+			case LDAP_SIZELIMIT_EXCEEDED:
+				goto send_results;
 			}
 		}
 

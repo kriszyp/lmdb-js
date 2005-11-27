@@ -650,14 +650,9 @@ limits_parse_one(
 					limit->lms_t_soft = -1;
 
 				} else {
-					char	*next = NULL;
-					int	soft = strtol( arg, &next, 10 );
+					int	soft;
 
-					if ( next == arg || next[ 0 ] != '\0' ) {
-						return( 1 );
-					}
-
-					if ( soft < -1 ) {
+					if ( lutil_atoi( &soft, arg ) != 0 || soft < -1 ) {
 						return( 1 );
 					}
 
@@ -677,14 +672,9 @@ limits_parse_one(
 					limit->lms_t_hard = -1;
 
 				} else {
-					char	*next = NULL;
-					int	hard = strtol( arg, &next, 10 );
+					int	hard;
 
-					if ( next == arg || next[ 0 ] != '\0' ) {
-						return( 1 );
-					}
-
-					if ( hard < -1 ) {
+					if ( lutil_atoi( &hard, arg ) != 0 || hard < -1 ) {
 						return( 1 );
 					}
 
@@ -709,10 +699,9 @@ limits_parse_one(
 				limit->lms_t_soft = -1;
 
 			} else {
-				char	*next = NULL;
-
-				limit->lms_t_soft = strtol( arg, &next, 10 );
-				if ( next == arg || limit->lms_t_soft < -1 ) {
+				if ( lutil_atoi( &limit->lms_t_soft, arg ) != 0 
+					|| limit->lms_t_soft < -1 )
+				{
 					return( 1 );
 				}
 			}
@@ -733,14 +722,9 @@ limits_parse_one(
 					limit->lms_s_soft = -1;
 
 				} else {
-					char	*next = NULL;
-					int	soft = strtol( arg, &next, 10 );
+					int	soft;
 
-					if ( next == arg || next[ 0 ] != '\0' ) {
-						return( 1 );
-					}
-
-					if ( soft < -1 ) {
+					if ( lutil_atoi( &soft, arg ) != 0 || soft < -1 ) {
 						return( 1 );
 					}
 
@@ -760,14 +744,9 @@ limits_parse_one(
 					limit->lms_s_hard = -1;
 
 				} else {
-					char	*next = NULL;
-					int	hard = strtol( arg, &next, 10 );
+					int	hard;
 
-					if ( next == arg || next[ 0 ] != '\0' ) {
-						return( 1 );
-					}
-
-					if ( hard < -1 ) {
+					if ( lutil_atoi( &hard, arg ) != 0 || hard < -1 ) {
 						return( 1 );
 					}
 
@@ -791,14 +770,9 @@ limits_parse_one(
 					limit->lms_s_unchecked = 0;
 
 				} else {
-					char	*next = NULL;
-					int	unchecked = strtol( arg, &next, 10 );
+					int	unchecked;
 
-					if ( next == arg || next[ 0 ] != '\0' ) {
-						return( 1 );
-					}
-
-					if ( unchecked < -1 ) {
+					if ( lutil_atoi( &unchecked, arg ) != 0 || unchecked < -1 ) {
 						return( 1 );
 					}
 
@@ -818,14 +792,9 @@ limits_parse_one(
 					limit->lms_s_pr = -1;
 
 				} else {
-					char	*next = NULL;
-					int	pr = strtol( arg, &next, 10 );
+					int	pr;
 
-					if ( next == arg || next[ 0 ] != '\0' ) {
-						return( 1 );
-					}
-
-					if ( pr < -1 ) {
+					if ( lutil_atoi( &pr, arg ) != 0 || pr < -1 ) {
 						return( 1 );
 					}
 
@@ -849,15 +818,9 @@ limits_parse_one(
 					limit->lms_s_pr_total = 0;
 
 				} else {
-					char	*next = NULL;
 					int	total;
 
-					total = strtol( arg, &next, 10 );
-					if ( next == arg || next[ 0 ] != '\0' ) {
-						return( 1 );
-					}
-
-					if ( total < -1 ) {
+					if ( lutil_atoi( &total, arg ) != 0 || total < -1 ) {
 						return( 1 );
 					}
 
@@ -882,10 +845,9 @@ limits_parse_one(
 				limit->lms_s_soft = -1;
 
 			} else {
-				char	*next = NULL;
-
-				limit->lms_s_soft = strtol( arg, &next, 10 );
-				if ( next == arg || limit->lms_s_soft < -1 ) {
+				if ( lutil_atoi( &limit->lms_s_soft, arg ) != 0
+					|| limit->lms_s_soft < -1 )
+				{
 					return( 1 );
 				}
 			}

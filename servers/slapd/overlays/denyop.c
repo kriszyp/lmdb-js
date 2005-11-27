@@ -224,7 +224,7 @@ denyop_destroy(
 static slap_overinst denyop;
 
 int
-denyop_init( void )
+denyop_initialize( void )
 {
 	memset( &denyop, 0, sizeof( slap_overinst ) );
 	denyop.on_bi.bi_type = "denyop";
@@ -251,7 +251,7 @@ denyop_init( void )
 int
 init_module( int argc, char *argv[] )
 {
-	return denyop_init();
+	return denyop_initialize();
 }
 #endif /* SLAPD_OVER_DENYOP == SLAPD_MOD_DYNAMIC */
 

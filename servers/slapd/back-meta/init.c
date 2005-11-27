@@ -77,11 +77,10 @@ meta_back_db_init(
 {
 	metainfo_t	*mi;
 
-	mi = ch_malloc( sizeof( metainfo_t ) );
+	mi = ch_calloc( 1, sizeof( metainfo_t ) );
 	if ( mi == NULL ) {
  		return -1;
  	}
-	memset( mi, 0, sizeof( metainfo_t ) );
 
 	/*
 	 * At present the default is no default target;
@@ -89,7 +88,7 @@ meta_back_db_init(
 	 */
 	mi->mi_defaulttarget = META_DEFAULT_TARGET_NONE;
 
-	ldap_pvt_thread_mutex_init( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_init( &mi->mi_conninfo.lai_mutex );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache.mutex );
 
 	/* safe default */
@@ -222,10 +221,10 @@ meta_back_db_destroy(
 		/*
 		 * Destroy the connection tree
 		 */
-		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 
-		if ( mi->mi_conntree ) {
-			avl_free( mi->mi_conntree, meta_back_conn_free );
+		if ( mi->mi_conninfo.lai_tree ) {
+			avl_free( mi->mi_conninfo.lai_tree, meta_back_conn_free );
 		}
 
 		/*
@@ -248,8 +247,8 @@ meta_back_db_destroy(
 		ldap_pvt_thread_mutex_unlock( &mi->mi_cache.mutex );
 		ldap_pvt_thread_mutex_destroy( &mi->mi_cache.mutex );
 
-		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
-		ldap_pvt_thread_mutex_destroy( &mi->mi_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+		ldap_pvt_thread_mutex_destroy( &mi->mi_conninfo.lai_mutex );
 
 		if ( mi->mi_candidates != NULL ) {
 			ber_memfree_x( mi->mi_candidates, NULL );

@@ -153,7 +153,7 @@ static int collect_config(
 
 static slap_overinst collect;
 
-int collect_init() {
+int collect_initialize() {
 	collect.on_bi.bi_type = "collect";
 	collect.on_bi.bi_db_config = collect_config;
 	collect.on_response = collect_response;
@@ -163,7 +163,7 @@ int collect_init() {
 
 #if SLAPD_OVER_COLLECT == SLAPD_MOD_DYNAMIC
 int init_module(int argc, char *argv[]) {
-	return collect_init();
+	return collect_initialize();
 }
 #endif
 

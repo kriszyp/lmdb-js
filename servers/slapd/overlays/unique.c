@@ -263,21 +263,35 @@ static int count_filter_len(
 	unique_attrs *up;
 	int i;
 
-	while(!is_at_operational(ad->ad_type)) {
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(ad == up->attr) break;
-			if(up) break;
+	while ( !is_at_operational( ad->ad_type ) ) {
+		if ( ud->ignore ) {
+			for ( up = ud->ignore; up; up = up->next ) {
+				if (ad == up->attr ) {
+					break;
+				}
+			}
+			if ( up ) {
+				break;
+			}
 		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(ad == up->attr) break;
-			if(!up) break;
+		if ( ud->attrs ) {
+			for ( up = ud->attrs; up; up = up->next ) {
+				if ( ad == up->attr ) {
+					break;
+				}
+			}
+			if ( !up ) {
+				break;
+			}
 		}
-		if(b && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			ks += b[i].bv_len + ad->ad_cname.bv_len + STRLENOF( "(=)" );
-		else if(ud->strict)
+		if ( b && b[0].bv_val ) {
+			for (i = 0; b[i].bv_val; i++ ) {
+				/* note: make room for filter escaping... */
+				ks += ( 3 * b[i].bv_len ) + ad->ad_cname.bv_len + STRLENOF( "(=)" );
+			}
+		} else if ( ud->strict ) {
 			ks += ad->ad_cname.bv_len + STRLENOF( "(=*)" );	/* (attr=*) */
+		}
 		break;
 	}
 	return ks;
@@ -287,27 +301,47 @@ static char *build_filter(
 	unique_data *ud,
 	AttributeDescription *ad,
 	BerVarray b,
-	char *kp
+	char *kp,
+	void *ctx
 )
 {
 	unique_attrs *up;
 	int i;
 
-	while(!is_at_operational(ad->ad_type)) {
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(ad == up->attr) break;
-			if(up) break;
+	while ( !is_at_operational( ad->ad_type ) ) {
+		if ( ud->ignore ) {
+			for ( up = ud->ignore; up; up = up->next ) {
+				if ( ad == up->attr ) {
+					break;
+				}
+			}
+			if ( up ) {
+				break;
+			}
 		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(ad == up->attr) break;
-			if(!up) break;
+		if ( ud->attrs ) {
+			for ( up = ud->attrs; up; up = up->next ) {
+				if ( ad == up->attr ) {
+					break;
+				}
+			}
+			if ( !up ) {
+				break;
+			}
 		}
-		if(b && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			kp += sprintf(kp, "(%s=%s)", ad->ad_cname.bv_val, b[i].bv_val);
-		else if(ud->strict)
-			kp += sprintf(kp, "(%s=*)", ad->ad_cname.bv_val);
+		if ( b && b[0].bv_val ) {
+			for ( i = 0; b[i].bv_val; i++ ) {
+				struct berval	bv;
+
+				ldap_bv2escaped_filter_value_x( &b[i], &bv, 1, ctx );
+				kp += sprintf( kp, "(%s=%s)", ad->ad_cname.bv_val, bv.bv_val );
+				if ( bv.bv_val != b[i].bv_val ) {
+					ber_memfree_x( bv.bv_val, ctx );
+				}
+			}
+		} else if ( ud->strict ) {
+			kp += sprintf( kp, "(%s=*)", ad->ad_cname.bv_val );
+		}
 		break;
 	}
 	return kp;
@@ -409,7 +443,7 @@ static int unique_add(
 	kp = key + sprintf(key, "(|");
 
 	for(a = op->ora_e->e_attrs; a; a = a->a_next) {
-		kp = build_filter(ud, a->a_desc, a->a_vals, kp);
+		kp = build_filter(ud, a->a_desc, a->a_vals, kp, op->o_tmpmemctx);
 	}
 
 	sprintf(kp, ")");
@@ -461,7 +495,7 @@ static int unique_modify(
 
 	for(m = op->orm_modlist; m; m = m->sml_next) {
  		if ((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) continue;
- 		kp = build_filter(ud, m->sml_desc, m->sml_values, kp);
+ 		kp = build_filter(ud, m->sml_desc, m->sml_values, kp, op->o_tmpmemctx);
 	}
 
 	sprintf(kp, ")");
@@ -524,7 +558,7 @@ static int unique_modrdn(
 
 	for(i = 0; newrdn[i]; i++) {
 		bv[0] = newrdn[i]->la_value;
-		kp = build_filter(ud, newrdn[i]->la_private, bv, kp);
+		kp = build_filter(ud, newrdn[i]->la_private, bv, kp, op->o_tmpmemctx);
 	}
 
 	sprintf(kp, ")");
@@ -539,7 +573,7 @@ static int unique_modrdn(
 ** it expects to be called automagically during dynamic module initialization
 */
 
-int unique_init() {
+int unique_initialize() {
 
 	/* statically declared just after the #includes at top */
 	unique.on_bi.bi_type = "unique";
@@ -557,7 +591,7 @@ int unique_init() {
 
 #if SLAPD_OVER_UNIQUE == SLAPD_MOD_DYNAMIC && defined(PIC)
 int init_module(int argc, char *argv[]) {
-	return unique_init();
+	return unique_initialize();
 }
 #endif
 

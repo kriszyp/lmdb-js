@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-CACHETTL=60
+CACHETTL="1m"
 CACHE_ENTRY_LIMIT=10
 
 . $SRCDIR/scripts/defines.sh
@@ -114,10 +114,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+cat /dev/null > $SLAVEOUT
+
 echo "Making queries on the proxy cache..." 
 echo "Query 1: filter:(sn=Jon) attrs: all" 
+echo "# Query 1: filter:(sn=Jon) attrs: all" >> $SLAVEOUT
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'sn=Jon' > $SLAVEOUT 2>&1
+	'sn=Jon' >> $SLAVEOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -126,6 +129,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid"  
+echo "# Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'(|(cn=*Jon*)(sn=Jon*))' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -136,6 +140,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 3: filter:(sn=Smith*) attrs:cn sn title uid"  
+echo "# Query 3: filter:(sn=Smith*) attrs:cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'sn=Smith*' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -146,6 +151,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 4: filter:(sn=Doe*) attrs:cn sn title uid"  
+echo "# Query 4: filter:(sn=Doe*) attrs:cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'sn=Doe' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -156,6 +162,7 @@ if test $RC != 0 ; then
 fi
  
 echo "Query 5: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid"  
+echo "# Query 5: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'uid=bjorn' mail postaladdress telephonenumber cn uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -166,6 +173,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 6: filter:(mail=*@mail.alumni.example.com) cn sn title uid"  
+echo "# Query 6: filter:(mail=*@mail.alumni.example.com) cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'mail=*@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -176,6 +184,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 7: filter:(mail=*) cn sn title uid"  
+echo "# Query 7: filter:(mail=*) cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'mail=*' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -209,6 +218,7 @@ else
 fi
 
 echo "Query 8: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid"  
+echo "# Query 8: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'(|(cn=*Jones)(sn=Jones))' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -219,6 +229,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 9: filter:(sn=Smith) attrs:cn sn title uid"  
+echo "# Query 9: filter:(sn=Smith) attrs:cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'sn=Smith' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -229,6 +240,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 10: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid"  
+echo "# Query 10: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'uid=bjorn' mail postaladdress telephonenumber cn uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -239,6 +251,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Query 11: filter:(mail=jaj@mail.alumni.example.com) cn sn title uid"  
+echo "# Query 11: filter:(mail=jaj@mail.alumni.example.com) cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'mail=jaj@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
@@ -279,8 +292,10 @@ fi
 
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SLAVEOUT > $SEARCHFLT
+echo "Filtering original ldif..."
+. $LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $PROXYCACHEOUT > $CMPOUT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed"

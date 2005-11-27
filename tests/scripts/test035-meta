@@ -161,6 +161,33 @@ case $RC in
 	;;
 esac
 
+# ITS#4195: spurious matchedDN when the search scopes the main target,
+# and the searchBase is not present, so that target returns noSuchObject
+BASEDN="ou=Meta,o=Example,c=US"
+echo "Searching base=\"$BASEDN\"..."
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" >> $SEARCHOUT 2>&1
+RC=$?
+#if test $RC != 0 ; then
+#	echo "Search failed ($RC)!"
+#	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+#	exit $RC
+#fi
+case $RC in 
+	0)
+	;;
+	51)
+		echo "### Hit LDAP_BUSY problem; you may want to re-run the test"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 0
+	;;
+	*)
+		echo "Search failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	;;
+esac
+
 #
 # Do some modifications
 #

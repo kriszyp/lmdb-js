@@ -13,7 +13,7 @@ overlay to
 .BR slapd (8)
 allows automatic referral chasing.
 Any time a referral is returned (except for bind operations),
-it is chased by using an instance of the ldap backend.
+it chased by using an instance of the ldap backend.
 If operations are performed with an identity (i.e. after a bind),
 that identity can be asserted while chasing the referrals 
 by means of the \fIidentity assertion\fP feature of back-ldap
@@ -21,52 +21,104 @@ by means of the \fIidentity assertion\fP feature of back-ldap
 .BR slapd-ldap (5)
 for details), which is essentially based on the
 .B proxyAuthz
-control (see \fIdraft-weltman-ldapv3-proxy\fP for details).
+control (see \fIdraft-weltman-ldapv3-proxy\fP for details.)
+Referral chasing can be controlled by the client by issuing the 
+\fBchaining\fP control
+(see \fIdraft-sermersheim-ldap-chaining\fP for details.)
 
 .LP 
 The config directives that are specific to the
 .B chain
-overlay can be prefixed by
+overlay are prefixed by
 .BR chain\- ,
 to avoid potential conflicts with directives specific to the underlying 
 database or to other stacked overlays.
 
 .LP
-There are no chain overlay specific directives; however, directives 
-related to the \fIldap\fP database that is implicitly instantiated 
-by the overlay may assume a special meaning when used in conjunction
-with this overlay.  They are described in
-.BR slapd-ldap (5).
+There are very few chain overlay specific directives; however, directives 
+related to the instances of the \fIldap\fP backend that may be implicitly 
+instantiated by the overlay may assume a special meaning when used 
+in conjunction with this overlay.  They are described in
+.BR slapd-ldap (5),
+and they also need be prefixed by
+.BR chain\- .
 .TP
 .B overlay chain
 This directive adds the chain overlay to the current backend.
 The chain overlay may be used with any backend, but it is mainly 
 intended for use with local storage backends that may return referrals.
-It is useless in conjunction with the \fIldap\fP and \fImeta\fP backends
-because they already exploit the libldap specific referral chase feature.
+It is useless in conjunction with the \fIslapd-ldap\fP and \fIslapd-meta\fP
+backends because they already exploit the libldap specific referral chase 
+feature.
+[Note: this may change in the future, as the \fBldap\fP(5) and 
+\fBmeta\fP(5) backends might no longer chase referrals on their own.]
+.TP
+.B chain-chaining [resolve=<r>] [continuation=<c>] [critical]
+This directive enables the \fIchaining\fP control
+(see \fIdraft-sermersheim-ldap-chaining\fP for details)
+with the desired resolve and continuation behaviors and criticality.
+The \fBresolve\fP parameter refers to the behavior while discovering
+a resource, namely when accessing the object indicated by the request DN;
+the \fBcontinuation\fP parameter refers to the behavior while handling
+intermediate responses, which is mostly significant for the search 
+operation, but may affect extended operations that return intermediate
+responses.
+The values \fBr\fP and \fBc\fP can be any of
+.BR chainingPreferred ,
+.BR chainingRequired ,
+.BR referralsPreferred ,
+.BR referralsRequired .
+If the \fBcritical\fP flag affects the control criticality if provided.
+[This control is experimental and its support may change in the future.]
+.TP
+.B chain-cache-uris {FALSE|true}
+This directive instructs the \fIchain\fP overlay to cache
+connections to URIs parsed out of referrals that are not predefined,
+to be reused for later chaining.
 .TP
 .B chain-uri <ldapuri>
-This directive instructs the underlying ldap database about which
-URI to contact to chase referrals.
-If not present, the referral itself is parsed, and the protocol/host/port
-portions are used to establish a connection.
-
+This directive instantiates a new underlying \fIldap\fP database
+and instructs it about which URI to contact to chase referrals.
+As opposed to what stated in \fBslapd-ldap\fP(5), only one URI
+can appear after this directive; all subsequent \fBslapd-ldap\fP(5)
+directives prefixed by \fBchain-\fP refer to this specific instance
+of a remote server.
 .LP
+
 Directives for configuring the underlying ldap database may also 
-be required, as shown here:
+be required, as shown in this example:
 .LP
 .RS
 .nf
-chain-idassert-method	"simple"
-chain-idassert-authcDN	"cn=Auth,dc=example,dc=com"
-chain-idassert-passwd	"secret"
-chain-idassert-mode	"self"
+overlay                 chain
+chain-rebind-as-user    FALSE
+
+chain-uri               "ldap://ldap1.example.com"
+chain-rebind-as-user    TRUE
+chain-idassert-bind     bindmethod="simple"
+                        binddn="cn=Auth,dc=example,dc=com"
+                        credentials="secret"
+                        mode="self"
+
+chain-uri               "ldap://ldap2.example.com"
+chain-idassert-bind     bindmethod="simple"
+                        binddn="cn=Auth,dc=example,dc=com"
+                        credentials="secret"
+                        mode="none"
+
 .fi
 .RE
 .LP
 Any valid directives for the ldap database may be used; see
 .BR slapd-ldap (5)
 for details.
+Multiple occurrences of the \fBchain-uri\fP directive may appear,
+to define multiple "trusted" URIs where operations with 
+\fIidentity assertion\fP are chained.
+All URIs not listed in the configuration are chained anonymously.
+All \fBslapd-ldap\fP(5) directives appearing before the first 
+occurrence of \fBchain-uri\fP are inherited by all URIs,
+unless specifically overridden inside each URI configuration.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
@@ -76,4 +128,4 @@ default slapd configuration file
 .BR slapd\-ldap (5),
 .BR slapd (8).
 .SH AUTHOR
-Originally implemented by Howard Chu.
+Originally implemented by Howard Chu; extended by Pierangelo Masarati.
