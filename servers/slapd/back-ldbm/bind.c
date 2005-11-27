@@ -72,7 +72,7 @@ ldbm_back_bind(
 	}
 
 	/* check for deleted */
-#ifdef LDBM_SUBENTRIES
+
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
 		Debug( LDAP_DEBUG_TRACE,
@@ -80,7 +80,6 @@ ldbm_back_bind(
 		rc = LDAP_INVALID_CREDENTIALS;
 		goto return_results;
 	}
-#endif
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */

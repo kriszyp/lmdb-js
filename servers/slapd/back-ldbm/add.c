@@ -49,9 +49,7 @@ ldbm_back_add(
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	slap_callback cb = { NULL };
-#ifdef LDBM_SUBENTRIES
 	int subentry;
-#endif
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
@@ -74,9 +72,7 @@ ldbm_back_add(
 	}
 	rs->sr_text = NULL;
 
-#ifdef LDBM_SUBENTRIES
 	subentry = is_entry_subentry( op->oq_add.rs_e );
-#endif
 
 	if ( !access_allowed( op, op->oq_add.rs_e,
 				entry, NULL, ACL_WADD, NULL ) )
@@ -162,7 +158,6 @@ ldbm_back_add(
 			return LDAP_INSUFFICIENT_ACCESS;
 		}
 
-#ifdef LDBM_SUBENTRIES
 		if ( is_entry_subentry( p )) {
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
 				0, 0, 0 );
@@ -170,7 +165,6 @@ ldbm_back_add(
 			rs->sr_text = "parent is a subentry";
 			goto return_results;
 		}
-#endif
 
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
@@ -211,12 +205,10 @@ ldbm_back_add(
 			return rs->sr_err;
 		}
 
-#ifdef LDBM_SUBENTRIES
 		if ( subentry ) {
 			/* FIXME: */
 			/* parent must be an administrative point of the required kind */
 		}
-#endif
 
 	} else {
 		assert( pdn.bv_val == NULL || *pdn.bv_val == '\0' );

@@ -40,9 +40,7 @@ ldbm_back_initialize(
 
 	bi->bi_flags |= 
 		SLAP_BFLAG_INCREMENT |
-#ifdef LDBM_SUBENTRIES
 		SLAP_BFLAG_SUBENTRIES |
-#endif
 		SLAP_BFLAG_ALIASES |
 		SLAP_BFLAG_REFERRALS;
 

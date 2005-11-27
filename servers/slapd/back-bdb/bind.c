@@ -104,7 +104,6 @@ dn2entry_retry:
 	ber_dupbv( &op->oq_bind.rb_edn, &e->e_name );
 
 	/* check for deleted */
-#ifdef BDB_SUBENTRIES
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
 		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
@@ -112,7 +111,6 @@ dn2entry_retry:
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
-#endif
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */

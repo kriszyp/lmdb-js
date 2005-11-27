@@ -272,7 +272,6 @@ searchit:
 
 		rs->sr_entry = e;
 
-#ifdef LDBM_SUBENTRIES
 		if ( is_entry_subentry( e ) ) {
 			if( op->ors_scope != LDAP_SCOPE_BASE ) {
 				if(!get_subentries_visibility( op )) {
@@ -289,7 +288,6 @@ searchit:
 			/* only subentries are visible */
 			goto loop_continue;
 		}
-#endif
 
 		if ( op->ors_deref & LDAP_DEREF_SEARCHING &&
 			is_entry_alias( e ) )
@@ -517,10 +515,8 @@ search_candidates(
     AttributeAssertion aa_ref, aa_alias;
 	struct berval bv_ref = { sizeof("referral")-1, "referral" };
 	struct berval bv_alias = { sizeof("alias")-1, "alias" };
-#ifdef LDBM_SUBENTRIES
 	Filter  sf;
 	AttributeAssertion aa_subentry;
-#endif
 
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" s=%d d=%d\n",
@@ -560,7 +556,6 @@ search_candidates(
 	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
 
-#ifdef LDBM_SUBENTRIES
 	if ( get_subentries_visibility( op )) {
 		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
 		sf.f_choice = LDAP_FILTER_EQUALITY;
@@ -570,7 +565,6 @@ search_candidates(
 		sf.f_next = fand.f_next;
 		fand.f_next = &sf;
 	}
-#endif
 
 	candidates = filter_candidates( op, &f );
 	return( candidates );

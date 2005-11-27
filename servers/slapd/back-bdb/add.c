@@ -34,9 +34,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {0};
-#ifdef BDB_SUBENTRIES
 	int subentry;
-#endif
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 
@@ -65,9 +63,7 @@ bdb_add(Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-#ifdef BDB_SUBENTRIES
 	subentry = is_entry_subentry( op->oq_add.rs_e );
-#endif
 
 	/*
 	 * acquire an ID outside of the operation transaction
@@ -196,7 +192,6 @@ retry:	/* transaction retry */
 			goto return_results;;
 		}
 
-#ifdef BDB_SUBENTRIES
 		if ( is_entry_subentry( p ) ) {
 			/* parent is a subentry, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
@@ -206,7 +201,6 @@ retry:	/* transaction retry */
 			rs->sr_text = "parent is a subentry";
 			goto return_results;;
 		}
-#endif
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
@@ -233,12 +227,10 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 
-#ifdef BDB_SUBENTRIES
 		if ( subentry ) {
 			/* FIXME: */
 			/* parent must be an administrative point of the required kind */
 		}
-#endif
 
 		/* free parent and reader lock */
 		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );

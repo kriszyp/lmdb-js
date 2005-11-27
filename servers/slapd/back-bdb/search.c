@@ -726,28 +726,24 @@ fetch_entry_retry:
 
 		rs->sr_entry = e;
 
-#ifdef BDB_SUBENTRIES
-		{
-			if ( is_entry_subentry( e ) ) {
-				if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
-					if(!get_subentries_visibility( op )) {
-						/* only subentries are visible */
-						goto loop_continue;
-					}
-
-				} else if ( get_subentries( op ) &&
-					!get_subentries_visibility( op ))
-				{
+		if ( is_entry_subentry( e ) ) {
+			if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
+				if(!get_subentries_visibility( op )) {
 					/* only subentries are visible */
 					goto loop_continue;
 				}
 
-			} else if ( get_subentries_visibility( op )) {
+			} else if ( get_subentries( op ) &&
+				!get_subentries_visibility( op ))
+			{
 				/* only subentries are visible */
 				goto loop_continue;
 			}
+
+		} else if ( get_subentries_visibility( op )) {
+			/* only subentries are visible */
+			goto loop_continue;
 		}
-#endif /* BDB_SUBENTRIES */
 
 		/* Does this candidate actually satisfy the search scope?
 		 *
@@ -1051,13 +1047,11 @@ static int search_candidates(
 #else
 	AttributeAssertion aa_ref = { NULL, BER_BVNULL };
 #endif
-#ifdef BDB_SUBENTRIES
 	Filter	sf;
 #ifdef LDAP_COMP_MATCH
 	AttributeAssertion aa_subentry = { NULL, BER_BVNULL, NULL };
 #else
 	AttributeAssertion aa_subentry = { NULL, BER_BVNULL };
-#endif
 #endif
 
 	/*
@@ -1104,7 +1098,6 @@ static int search_candidates(
 	/* Filter depth increased again, adding dummy clause */
 	depth++;
 
-#ifdef BDB_SUBENTRIES
 	if( get_subentries_visibility( op ) ) {
 		struct berval bv_subentry = BER_BVC( "subentry" );
 		sf.f_choice = LDAP_FILTER_EQUALITY;
@@ -1114,7 +1107,6 @@ static int search_candidates(
 		sf.f_next = nf.f_next;
 		nf.f_next = &sf;
 	}
-#endif
 
 	/* Allocate IDL stack, plus 1 more for former tmp */
 	if ( depth+1 > bdb->bi_search_stack_depth ) {
