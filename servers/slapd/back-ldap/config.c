@@ -1196,49 +1196,57 @@ ldap_back_exop_whoami(
 	if( rs->sr_err != LDAP_SUCCESS ) return rs->sr_err;
 
 	/* if auth'd by back-ldap and request is proxied, forward it */
-	if ( op->o_conn->c_authz_backend && !strcmp(op->o_conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &op->o_conn->c_ndn)) {
+	if ( op->o_conn->c_authz_backend
+		&& !strcmp( op->o_conn->c_authz_backend->be_type, "ldap" )
+		&& !dn_match( &op->o_ndn, &op->o_conn->c_ndn ) )
+	{
 		ldapconn_t	*lc;
-
 		LDAPControl c, *ctrls[2] = {NULL, NULL};
 		LDAPMessage *res;
 		Operation op2 = *op;
 		ber_int_t msgid;
 		int doretry = 1;
+		char *ptr;
 
 		ctrls[0] = &c;
 		op2.o_ndn = op->o_conn->c_ndn;
 		lc = ldap_back_getconn(&op2, rs, LDAP_BACK_SENDERR);
-		if (!lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR )) {
+		if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			return -1;
 		}
 		c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 		c.ldctl_iscritical = 1;
-		c.ldctl_value.bv_val = ch_malloc(op->o_ndn.bv_len+4);
+		c.ldctl_value.bv_val = op->o_tmpalloc(
+			op->o_ndn.bv_len + STRLENOF( "dn:" ) + 1,
+			op->o_tmpmemctx );
 		c.ldctl_value.bv_len = op->o_ndn.bv_len + 3;
-		strcpy(c.ldctl_value.bv_val, "dn:");
-		strcpy(c.ldctl_value.bv_val+3, op->o_ndn.bv_val);
+		ptr = c.ldctl_value.bv_val;
+		ptr = lutil_strcopy( ptr, "dn:" );
+		ptr = lutil_strncopy( ptr, op->o_ndn.bv_val, op->o_ndn.bv_len );
+		ptr[ 0 ] = '\0';
 
 retry:
-		rs->sr_err = ldap_whoami(lc->lc_ld, ctrls, NULL, &msgid);
-		if (rs->sr_err == LDAP_SUCCESS) {
-			if (ldap_result(lc->lc_ld, msgid, 1, NULL, &res) == -1) {
-				ldap_get_option(lc->lc_ld, LDAP_OPT_ERROR_NUMBER,
-					&rs->sr_err);
+		rs->sr_err = ldap_whoami( lc->lc_ld, ctrls, NULL, &msgid );
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			if ( ldap_result( lc->lc_ld, msgid, 1, NULL, &res ) == -1 ) {
+				ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER,
+					&rs->sr_err );
 				if ( rs->sr_err == LDAP_SERVER_DOWN && doretry ) {
 					doretry = 0;
-					if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) )
+					if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 						goto retry;
+					}
 				}
-				ldap_back_freeconn( op, lc, 1 );
-				lc = NULL;
 
 			} else {
-				rs->sr_err = ldap_parse_whoami(lc->lc_ld, res, &bv);
+				/* NOTE: are we sure "bv" will be malloc'ed
+				 * with the appropriate memory? */
+				rs->sr_err = ldap_parse_whoami( lc->lc_ld, res, &bv );
 				ldap_msgfree(res);
 			}
 		}
-		ch_free(c.ldctl_value.bv_val);
-		if (rs->sr_err != LDAP_SUCCESS) {
+		op->o_tmpfree( c.ldctl_value.bv_val, op->o_tmpmemctx );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_err = slap_map_api2result( rs );
 		}
 
@@ -1247,15 +1255,16 @@ retry:
 		}
 
 	} else {
-	/* else just do the same as before */
-		bv = (struct berval *) ch_malloc( sizeof(struct berval) );
+		/* else just do the same as before */
+		bv = (struct berval *) ch_malloc( sizeof( struct berval ) );
 		if ( !BER_BVISEMPTY( &op->o_dn ) ) {
-			bv->bv_len = op->o_dn.bv_len + STRLENOF("dn:");
+			bv->bv_len = op->o_dn.bv_len + STRLENOF( "dn:" );
 			bv->bv_val = ch_malloc( bv->bv_len + 1 );
-			AC_MEMCPY( bv->bv_val, "dn:", STRLENOF("dn:") );
-			AC_MEMCPY( &bv->bv_val[STRLENOF("dn:")], op->o_dn.bv_val,
+			AC_MEMCPY( bv->bv_val, "dn:", STRLENOF( "dn:" ) );
+			AC_MEMCPY( &bv->bv_val[ STRLENOF( "dn:" ) ], op->o_dn.bv_val,
 				op->o_dn.bv_len );
-			bv->bv_val[bv->bv_len] = '\0';
+			bv->bv_val[ bv->bv_len ] = '\0';
+
 		} else {
 			bv->bv_len = 0;
 			bv->bv_val = NULL;
