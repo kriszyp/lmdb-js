@@ -297,10 +297,10 @@ typedef struct ldapcontrol {
 /* LDAP Persistent Search Control *//* not implemented in slapd(8) */
 #define LDAP_CONTROL_PERSIST_REQUEST				"2.16.840.1.113730.3.4.3"
 #define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE	"2.16.840.1.113730.3.4.7"
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_ADD		0x1
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_DELETE	0x2
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_MODIFY	0x4
-#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_RENAME	0x8
+#define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_ADD		0x1
+#define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_DELETE	0x2
+#define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_MODIFY	0x4
+#define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_RENAME	0x8
 
 /* LDAP VLV *//* not implemented in slapd(8) */
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
@@ -343,6 +343,25 @@ typedef struct ldapcontrol {
 /* LDAP Grouping Types *//* a work in progress */
 #ifdef LDAP_DEVEL
 #define LDAP_GROUP_TRANSACTION		 "1.3.6.1.4.1.4203.666.10.4"
+#endif
+
+/* LDAP Distributed Procedures <draft-sermersheim-ldap-distproc> */
+/* a work in progress */
+#ifdef LDAP_DEVEL
+/* FIXME: allocate an OID arc under OpenLDAP experimental arc */
+#define LDAP_X_DISTPROC_BASE		"1.3.6.1.4.1.4203.666.999999"
+#define LDAP_EXOP_X_CHAINEDREQUEST	LDAP_X_DISTPROC_BASE ".1"
+#define LDAP_FEATURE_X_CANCHAINOPS	LDAP_X_DISTPROC_BASE ".2"
+#define LDAP_CONTROL_X_RETURNCONTREF	LDAP_X_DISTPROC_BASE ".3"
+#define LDAP_URLEXT_X_LOCALREFOID	LDAP_X_DISTPROC_BASE ".4"
+#define LDAP_URLEXT_X_REFTYPEOID	LDAP_X_DISTPROC_BASE ".5"
+#define LDAP_URLEXT_X_SEARCHEDSUBTREEOID \
+					LDAP_X_DISTPROC_BASE ".6"
+#define LDAP_URLEXT_X_FAILEDNAMEOID	LDAP_X_DISTPROC_BASE ".7"
+#define LDAP_URLEXT_X_LOCALREF		"x-localReference"
+#define LDAP_URLEXT_X_REFTYPE		"x-referenceType"
+#define LDAP_URLEXT_X_SEARCHEDSUBTREE	"x-searchedSubtree"
+#define LDAP_URLEXT_X_FAILEDNAME	"x-failedName"
 #endif
 
 /* LDAP Features */
@@ -596,9 +615,13 @@ typedef struct ldapcontrol {
  * see <draft-sermersheim-ldap-chaining> ) */
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 #define	LDAP_X_NO_REFERRALS_FOUND		0x4110
-#define LDAP_X_CANNOT_CHAIN				0x4111
+#define LDAP_X_CANNOT_CHAIN			0x4111
 #endif
 
+/* for Distributed Procedures (see <draft-sermersheim-ldap-distproc>) */
+#ifdef LDAP_X_DISTPROC_BASE
+#define LDAP_X_INVALIDREFERENCE			0x4112
+#endif
 
 /* API Error Codes
  *

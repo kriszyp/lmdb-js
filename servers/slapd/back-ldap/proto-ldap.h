@@ -74,7 +74,10 @@ ldap_back_proxy_authz_ctrl_free(
 		Operation	*op,
 		LDAPControl	***pctrls );
 
-extern int chain_init( void );
+extern int chain_initialize( void );
+#ifdef LDAP_DEVEL
+extern int distproc_initialize( void );
+#endif
 
 extern LDAP_REBIND_PROC		*ldap_back_rebind_f;
 

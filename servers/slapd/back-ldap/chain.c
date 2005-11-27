@@ -1762,7 +1762,7 @@ ldap_chain_parse_ctrl(
 static slap_overinst ldapchain;
 
 int
-chain_init( void )
+chain_initialize( void )
 {
 	int	rc;
 

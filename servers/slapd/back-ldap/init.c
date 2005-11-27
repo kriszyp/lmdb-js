@@ -74,6 +74,12 @@ ldap_back_initialize( BackendInfo *bi )
 		return -1;
 	}
 
+#ifdef LDAP_DEVEL
+	if ( distproc_initialize() ) {
+		return -1;
+	}
+#endif
+
 	return ldap_back_init_cf( bi );
 }
 
