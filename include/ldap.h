@@ -349,7 +349,7 @@ typedef struct ldapcontrol {
 /* a work in progress */
 #ifdef LDAP_DEVEL
 /* FIXME: allocate an OID arc under OpenLDAP experimental arc */
-#define LDAP_X_DISTPROC_BASE		"1.3.6.1.4.1.4203.666.999999"
+#define LDAP_X_DISTPROC_BASE		"1.3.6.1.4.1.4203.666.11.6"
 #define LDAP_EXOP_X_CHAINEDREQUEST	LDAP_X_DISTPROC_BASE ".1"
 #define LDAP_FEATURE_X_CANCHAINOPS	LDAP_X_DISTPROC_BASE ".2"
 #define LDAP_CONTROL_X_RETURNCONTREF	LDAP_X_DISTPROC_BASE ".3"
