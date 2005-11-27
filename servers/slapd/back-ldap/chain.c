@@ -78,7 +78,7 @@ typedef struct ldap_chain_t {
 	 * the tree?  Should be all configurable.
 	 */
 
-	/* "common" configuration info (all occurring before an "uri") */
+	/* "common" configuration info (anything occurring before an "uri") */
 	ldapinfo_t		*lc_common_li;
 
 	/* current configuration info */
@@ -875,9 +875,9 @@ static ConfigTable chaincfg[] = {
 			"DESC 'Chaining behavior control parameters (draft-sermersheim-ldap-chaining)' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-	{ "chain-cache-uris", "TRUE/FALSE",
+	{ "chain-cache-uri", "TRUE/FALSE",
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|CH_CACHE_URI, chain_cf_gen,
-		"( OLcfgOvAt:3.2 NAME 'olcCacheURIs' "
+		"( OLcfgOvAt:3.2 NAME 'olcCacheURI' "
 			"DESC 'Enables caching of URIs not present in configuration' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
@@ -892,7 +892,7 @@ static ConfigOCs chainocs[] = {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			"olcChainingBehavior $ "
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-			"olcCacheURIs "
+			"olcCacheURI "
 			") )",
 		Cft_Overlay, chaincfg, NULL, chain_cfadd },
 	{ "( OLcfgOvOc:3.2 "
@@ -1316,11 +1316,44 @@ ldap_chain_db_config(
 		BackendInfo	*bd_info = be->bd_info;
 		void		*be_private = be->be_private;
 		ConfigOCs	*be_cf_ocs = be->be_cf_ocs;
-		int		is_uri = 0;
+		static char	*allowed_argv[] = {
+			/* special: put URI here, so in the meanwhile
+			 * it detects whether a new URI is being provided */
+			"uri",
+			"nretries",
+			"timeout",
+			/* flags */
+			"tls",
+			/* FIXME: maybe rebind-as-user should be allowed
+			 * only within known URIs... */
+			"rebind-as-user",
+			"chase-referrals",
+			"t-f-support",
+			"proxy-whoami",
+			NULL
+		};
+		int		which_argv = -1;
 
 		argv[ 0 ] += STRLENOF( "chain-" );
 
-		if ( strcasecmp( argv[ 0 ], "uri" ) == 0 ) {
+		for ( which_argv = 0; allowed_argv[ which_argv ]; which_argv++ ) {
+			if ( strcasecmp( argv[ 0 ], allowed_argv[ which_argv ] ) == 0 ) {
+				break;
+			}
+		}
+
+		if ( allowed_argv[ which_argv ] == NULL ) {
+			which_argv = -1;
+
+			if ( lc->lc_cfg_li == lc->lc_common_li ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"\"%s\" only allowed within a URI directive.\n.",
+					fname, lineno, argv[ 0 ] );
+				return 1;
+			}
+		}
+
+		if ( which_argv == 0 ) {
 			rc = ldap_chain_db_init_one( be );
 			if ( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
@@ -1329,7 +1362,6 @@ ldap_chain_db_config(
 				return 1;
 			}
 			lc->lc_cfg_li = be->be_private;
-			is_uri = 1;
 		}
 
 		/* TODO: add checks on what other slapd-ldap(5) args
@@ -1350,7 +1382,7 @@ ldap_chain_db_config(
 		be->be_private = be_private;
 		be->bd_info = bd_info;
 
-		if ( is_uri ) {
+		if ( which_argv == 0 ) {
 private_destroy:;
 			if ( rc != 0 ) {
 				BackendDB		db = *be;
