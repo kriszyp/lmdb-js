@@ -1557,7 +1557,7 @@ monitor_back_db_open(
 		"description: This subtree contains monitoring/managing objects.\n"
 		"description: This object contains information about this server.\n"
 		"description: Most of the information is held in operational"
-		" attributeTypes, which must be explicitly requested.\n"
+		" attributes, which must be explicitly requested.\n"
 		"creatorsName: %s\n"
 		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
