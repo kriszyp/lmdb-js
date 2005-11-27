@@ -813,6 +813,8 @@ destroy:
 
 	extops_kill();
 
+	supported_feature_destroy();
+
 stop:
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)

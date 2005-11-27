@@ -1362,6 +1362,9 @@ LDAP_SLAPD_F (int) slap_discover_feature LDAP_P((
 	const char	*attr,
 	const char	*val ));
 
+LDAP_SLAPD_F (int) supported_feature_load LDAP_P(( struct berval *f ));
+LDAP_SLAPD_F (int) supported_feature_destroy LDAP_P(( void ));
+
 /*
  * sasl.c
  */

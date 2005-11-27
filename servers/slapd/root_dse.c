@@ -28,20 +28,88 @@
 #include "slapi/slapi.h"
 #endif
 
-static struct berval supportedFeatures[] = {
+static struct berval	builtin_supportedFeatures[] = {
 	BER_BVC(LDAP_FEATURE_MODIFY_INCREMENT),		/* Modify/increment */
-	BER_BVC(LDAP_FEATURE_ALL_OP_ATTRS),			/* All Op Attrs (+) */
+	BER_BVC(LDAP_FEATURE_ALL_OP_ATTRS),		/* All Op Attrs (+) */
 	BER_BVC(LDAP_FEATURE_OBJECTCLASS_ATTRS),	/* OCs in Attrs List (@class) */
 	BER_BVC(LDAP_FEATURE_ABSOLUTE_FILTERS),		/* (&) and (|) search filters */
-	BER_BVC(LDAP_FEATURE_LANGUAGE_TAG_OPTIONS), /* Language Tag Options */
-	BER_BVC(LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS),/* Language Range Options */
+	BER_BVC(LDAP_FEATURE_LANGUAGE_TAG_OPTIONS),	/* Language Tag Options */
+	BER_BVC(LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS),	/* Language Range Options */
 #ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
 	BER_BVC(LDAP_FEATURE_SUBORDINATE_SCOPE),	/* "children" search scope */
 #endif
-	{0,NULL}
+	BER_BVNULL
 };
+static struct berval	*supportedFeatures;
 
 static Entry	*usr_attr = NULL;
+
+static int
+supported_feature_init( void )
+{
+	int		i;
+
+	if ( supportedFeatures != NULL ) {
+		return 0;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &builtin_supportedFeatures[ i ] ); i++ )
+		;
+
+	supportedFeatures = ch_calloc( sizeof( struct berval ), i + 1 );
+	if ( supportedFeatures == NULL ) {
+		return -1;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &builtin_supportedFeatures[ i ] ); i++ ) {
+		ber_dupbv( &supportedFeatures[ i ], &builtin_supportedFeatures[ i ] );
+	}
+	BER_BVZERO( &supportedFeatures[ i ] );
+
+	return 0;
+}
+
+int
+supported_feature_destroy( void )
+{
+	int		i;
+
+	if ( supportedFeatures == NULL ) {
+		return 0;
+	}
+	
+	for ( i = 0; !BER_BVISNULL( &supportedFeatures[ i ] ); i++ ) {
+		ch_free( supportedFeatures[ i ].bv_val );
+	}
+
+	ch_free( supportedFeatures );
+	supportedFeatures = NULL;
+
+	return 0;
+}
+
+int
+supported_feature_load( struct berval *f )
+{
+	struct berval	*tmp;
+	int		i;
+
+	supported_feature_init();
+
+	for ( i = 0; !BER_BVISNULL( &supportedFeatures[ i ] ); i++ )
+		;
+
+	tmp = ch_realloc( supportedFeatures, sizeof( struct berval ) * ( i + 2 ) );
+	if ( tmp == NULL ) {
+		return -1;
+	}
+	supportedFeatures = tmp;
+
+	ber_dupbv( &supportedFeatures[ i ], f );
+	BER_BVZERO( &supportedFeatures[ i + 1 ] );
+
+	return 0;
+}
 
 int
 root_dse_info(
@@ -173,6 +241,10 @@ root_dse_info(
 #endif /* LDAP_SLAPI */
 
 	/* supportedFeatures */
+	if ( supportedFeatures == NULL ) {
+		supported_feature_init();
+	}
+
 	if( attr_merge( e, ad_supportedFeatures, supportedFeatures, NULL ) ) {
 		return LDAP_OTHER;
 	}
