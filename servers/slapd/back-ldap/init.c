@@ -70,7 +70,7 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
 
-	if ( chain_init() ) {
+	if ( chain_initialize() ) {
 		return -1;
 	}
 
