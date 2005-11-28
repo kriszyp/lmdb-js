@@ -1280,8 +1280,10 @@ accesslog_db_open(
 			Attribute *a;
 
 			a = attr_find( e_ctx->e_attrs, slap_schema.si_ad_contextCSN );
-			if ( a )
+			if ( a ) {
+				attr_merge( e, slap_schema.si_ad_entryCSN, a->a_vals, NULL );
 				attr_merge( e, a->a_desc, a->a_vals, NULL );
+			}
 			be_entry_release_rw( op, e_ctx, 0 );
 		}
 		op->o_bd->bd_info = (BackendInfo *)on;
