@@ -2184,6 +2184,7 @@ struct slap_backend_info {
 
 	unsigned int bi_nDB;	/* number of databases of this type */
 	struct ConfigOCs *bi_cf_ocs;
+	char	**bi_obsolete_names;
 	void	*bi_private;	/* anything the backend type needs */
 	LDAP_STAILQ_ENTRY(slap_backend_info) bi_next ;
 };

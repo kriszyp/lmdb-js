@@ -2196,6 +2196,11 @@ pcache_db_destroy(
 
 static slap_overinst pcache;
 
+static char *obsolete_names[] = {
+	"proxycache",
+	NULL
+};
+
 int pcache_initialize()
 {
 	LDAPAttributeType *at;
@@ -2223,6 +2228,7 @@ int pcache_initialize()
 	}
 
 	pcache.on_bi.bi_type = "pcache";
+	pcache.on_bi.bi_obsolete_names = obsolete_names;
 	pcache.on_bi.bi_db_init = pcache_db_init;
 	pcache.on_bi.bi_db_config = pcache_db_config;
 	pcache.on_bi.bi_db_open = pcache_db_open;

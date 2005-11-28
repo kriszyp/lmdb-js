@@ -754,10 +754,27 @@ overlay_find( const char *over_type )
 
 	for ( ; on; on = on->on_next ) {
 		if ( strcmp( on->on_bi.bi_type, over_type ) == 0 ) {
-			break;
+			goto foundit;
 		}
+
+		if ( on->on_bi.bi_obsolete_names != NULL ) {
+			int	i;
+
+			for ( i = 0; on->on_bi.bi_obsolete_names[ i ] != NULL; i++ ) {
+				if ( strcmp( on->on_bi.bi_obsolete_names[ i ], over_type ) == 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"overlay_find(\"%s\"): "
+						"obsolete name for \"%s\".\n",
+						on->on_bi.bi_obsolete_names[ i ],
+						on->on_bi.bi_type, 0 );
+					goto foundit;
+				}
+			}
+		}
+
 	}
 
+foundit:;
 	return on;
 }
 
