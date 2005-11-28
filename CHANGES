@@ -2,6 +2,30 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.13 Engineering
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
+	Fixed libldap ldap_bv2escaped_filter_value issue (ITS#4212)
+	Fixed liblutil URL value-specs issue (ITS#4221)
+	Fixed slapd sizelimit disclose issue (ITS#4213)
+	Fixed slapd gentlehup write restrict issue (ITS#3717)
+	Fixed slapd gentlehup abnormal issue (ITS#4217)
+	Fixed slapd cn=config OID/name polution issue (ITS#4185)
+	Fixed slapd cn=config rootdn issue (ITS#4192)
+	Fixed slapd cn=config slaptest -F without -f issue (ITS#4194)
+	Fixed slapd cn=config ACL issue (ITS#4218)
+	Fixed slapd-hdb slapadd -q issue (ITS#4210)
+	Fixed slapd-hdb missing results issue (ITS#4186)
+	Fixed slapd-ldap potential double free issue (ITS#4189)
+	Fixed slapd-meta matched DN issue (ITS#4195)
+	Fixed slapd-meta DN cache issue (ITS#4196)
+	Fixed slapd-monitor shadow issue (ITS#4214)
+	Fixed slapo-accesslog delta-syncrepl issue (ITS#4198)
+	Fixed slapo-accesslog cleanup issue (ITS#4209)
+	Fixed slapo-chain resource leak issue (ITS#4140)
+	Fixed slapo-pcache attrset check issue (ITS#4199)
+	Fixed slapd-bdb readonly dirty alock issue (ITS#4201)
+	Fixed slapd-pcache multiple attributes issues (ITS#4203,4204)
+	Fixed slaptest -F -f success with unsupported issue (ITS#4220)
+	Build environment
+		Improved Berkeley DB detection (ITS#3809)
 	Documentation
 		Updated ldif(5) to include change record description
 
