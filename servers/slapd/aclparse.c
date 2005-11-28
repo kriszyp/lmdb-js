@@ -1939,7 +1939,7 @@ parse_acl(
 
 	} else {
 #ifdef LDAP_DEBUG
-		if ( ldap_debug & LDAP_DEBUG_ACL ) {
+		if ( slap_debug & LDAP_DEBUG_ACL ) {
 			print_acl( be, a );
 		}
 #endif

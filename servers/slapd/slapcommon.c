@@ -195,7 +195,7 @@ slap_tool_init(
 #ifdef LDAP_DEBUG
 	/* tools default to "none", so that at least LDAP_DEBUG_ANY 
 	 * messages show up; use -d 0 to reset */
-	ldap_debug = LDAP_DEBUG_NONE;
+	slap_debug = LDAP_DEBUG_NONE;
 #endif
 
 #ifdef CSRIMALLOC
@@ -263,38 +263,60 @@ slap_tool_init(
 			break;
 
 		case 'd':	/* turn on debugging */
-			{
 #ifdef LDAP_DEBUG
-			int	level;
-
 			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
 			{
-				if ( str2loglevel( optarg, &level ) ) {
+				int	level, i, goterr = 0;
+				char	**levels;
+
+				levels = ldap_str2charray( optarg, "," );
+
+				for ( i = 0; levels[ i ] != NULL; i++ ) {
+					if ( str2loglevel( levels[ i ], &level ) ) {
+						fprintf( stderr,
+							"unrecognized log level "
+							"\"%s\"\n", levels[ i ] );
+						goterr = 1;
+
+					} else {
+						if ( level ) {
+							slap_debug |= level;
+						} else {
+							/* allow to reset log level */
+							slap_debug = 0;
+						}
+					}
+				}
+
+				ldap_charray_free( levels );
+
+				if ( goterr ) {
+					usage( tool, progname );
+				}
+
+			} else {
+				int	level;
+
+				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 					fprintf( stderr,
 						"unrecognized log level "
 						"\"%s\"\n", optarg );
-					exit( EXIT_FAILURE );
+					usage( tool, progname );
 				}
 
-			} else if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
-				fprintf( stderr,
-					"unrecognized log level "
-					"\"%s\"\n", optarg );
-				exit( EXIT_FAILURE );
-			}
-
-			if ( level ) {
-				ldap_debug |= level;
-			} else {
-				/* allow to reset log level */
-				ldap_debug = 0;
+				if ( level ) {
+					slap_debug |= level;
+				} else {
+					/* allow to reset log level */
+					slap_debug = 0;
+				}
 			}
 #else
 			if ( lutil_atoi( &level, optarg ) != 0 || level != 0 )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
-			} break;
+			break;
 
 		case 'D':
 			ber_str2bv( optarg, 0, 1, &authcDN );

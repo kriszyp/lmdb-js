@@ -394,16 +394,29 @@ int main( int argc, char **argv )
 #ifdef LDAP_DEBUG
 			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
 			{
-				int	level;
+				int	level, i, goterr = 0;
+				char	**levels;
 
-				if ( str2loglevel( optarg, &level ) ) {
-					fprintf( stderr,
-						"unrecognized log level "
-						"\"%s\"\n", optarg );
+				levels = ldap_str2charray( optarg, "," );
+
+				for ( i = 0; levels[ i ] != NULL; i++ ) {
+					if ( str2loglevel( levels[ i ], &level ) ) {
+						fprintf( stderr,
+							"unrecognized log level "
+							"\"%s\"\n", levels[ i ] );
+						goterr = 1;
+
+					} else {
+						slap_debug |= level;
+					}
+				}
+
+				ldap_charray_free( levels );
+
+				if ( goterr ) {
 					goto destroy;
 				}
 
-				slap_debug |= level;
 			} else {
 				int	level;
 

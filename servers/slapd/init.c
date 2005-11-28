@@ -94,7 +94,7 @@ slap_init( int mode, const char *name )
 
 	if ( slapMode != SLAP_UNDEFINED_MODE ) {
 		/* Make sure we write something to stderr */
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		 "%s init: init called twice (old=%d, new=%d)\n",
 		 name, slapMode, mode );
@@ -106,7 +106,7 @@ slap_init( int mode, const char *name )
 
 #ifdef SLAPD_MODULES
 	if ( module_init() != 0 ) {
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: module_init failed\n",
 			name, 0, 0 );
@@ -115,7 +115,7 @@ slap_init( int mode, const char *name )
 #endif
 
 	if ( slap_schema_init( ) != 0 ) {
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: slap_schema_init failed\n",
 		    name, 0, 0 );
@@ -176,7 +176,7 @@ slap_init( int mode, const char *name )
 		break;
 
 	default:
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 			"%s init: undefined mode (%d).\n", name, mode, 0 );
 
@@ -185,7 +185,7 @@ slap_init( int mode, const char *name )
 	}
 
 	if ( slap_controls_init( ) != 0 ) {
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: slap_controls_init failed\n",
 		    name, 0, 0 );
@@ -203,7 +203,7 @@ slap_init( int mode, const char *name )
 #endif
 
 	if ( frontend_init() ) {
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: frontend_init failed\n",
 		    name, 0, 0 );
@@ -211,7 +211,7 @@ slap_init( int mode, const char *name )
 	}
 
 	if ( overlay_init() ) {
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: overlay_init failed\n",
 		    name, 0, 0 );
@@ -219,7 +219,7 @@ slap_init( int mode, const char *name )
 	}
 
 	if ( glue_sub_init() ) {
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: glue/subordinate init failed\n",
 		    name, 0, 0 );
@@ -228,7 +228,7 @@ slap_init( int mode, const char *name )
 	}
 
 	if ( acl_init() ) {
-		ldap_debug |= 1;
+		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,
 		    "%s: acl_init failed\n",
 		    name, 0, 0 );
