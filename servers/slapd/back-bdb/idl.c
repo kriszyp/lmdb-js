@@ -325,17 +325,17 @@ bdb_idl_cache_put(
 	bdb_idl_cache_entry_t idl_tmp;
 	bdb_idl_cache_entry_t *ee;
 
+	if ( rc == DB_NOTFOUND || BDB_IDL_IS_ZERO( ids ))
+		return;
+
 	DBT2bv( key, &idl_tmp.kstr );
 
 	ee = (bdb_idl_cache_entry_t *) ch_malloc(
 		sizeof( bdb_idl_cache_entry_t ) );
 	ee->db = db;
-	if ( rc == DB_NOTFOUND || BDB_IDL_IS_ZERO( ids )) {
-		ee->idl = NULL;
-	} else {
-		ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );
-		BDB_IDL_CPY( ee->idl, ids );
-	}
+	ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );
+	BDB_IDL_CPY( ee->idl, ids );
+
 	ee->idl_lru_prev = NULL;
 	ee->idl_lru_next = NULL;
 	ber_dupbv( &ee->kstr, &idl_tmp.kstr );

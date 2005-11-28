@@ -1006,7 +1006,7 @@ synced:
 
 	if ( !BDB_IDL_IS_RANGE( cx->tmp ) && cx->tmp[0] > 3 )
 		bdb_idl_sort( cx->tmp, cx->buf );
-	if ( cx->bdb->bi_idl_cache_max_size ) {
+	if ( cx->bdb->bi_idl_cache_max_size && !BDB_IDL_IS_ZERO( cx->tmp )) {
 		char *ptr = ((char *)&cx->id)-1;
 		cx->key.data = ptr;
 		cx->key.size = sizeof(ID)+1;
