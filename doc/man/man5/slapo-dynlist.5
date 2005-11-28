@@ -57,10 +57,19 @@ occurs for that specific URI.  This statement is required.
 The name of the attributeDescription that will list the DN of the entries
 resulting from the internal search.  This statement is optional and, if
 present, changes the behavior of the overlay into that of a dynamic group.
-The <attrs> portion of the URI is ignored, and the DNs of all the entries 
+The <attrs> portion of the URI must be absent, and the DNs of all the entries 
 resulting from the expansion of the URI are listed as values of this 
 attribute.
-
+Compares to
+.B dynlist-member-ad
+attributes of entries with 
+.B dynlist-oc
+objectClass apply as if the DN of the entries resulting from the expansion 
+of the URI were present in the 
+.B dynlist-oc 
+entry as values of the
+.B dynlist-member-ad
+attributeType.
 .LP
 The dynlist overlay may be used with any backend, but it is mainly 
 intended for use with local storage backends.

@@ -503,6 +503,24 @@ dynlist_compare( Operation *op, SlapReply *rs )
 	int		rc;
 	dynlist_sc_t	dlc = { 0 };
 
+	if (  op->oq_compare.rs_ava->aa_desc == dli->dli_member_ad ) {
+		/* This compare is for one of the attributes we're
+		 * interested in. We'll use slapd's existing dyngroup
+		 * evaluator to get the answer we want.
+		 */
+		int cache = op->o_do_not_cache;
+				
+		op->o_do_not_cache = 1;
+			rs->sr_err = backend_group( op, NULL, &op->o_req_ndn,
+			&op->oq_compare.rs_ava->aa_value, dli->dli_oc, dli->dli_ad );
+		op->o_do_not_cache = cache;
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			rs->sr_err = LDAP_COMPARE_TRUE;
+		}
+
+		return SLAP_CB_CONTINUE;
+	}
+
 	dlc.dlc_dli = dli;
 	cb.sc_private = &dlc;
 	cb.sc_response = dynlist_sc_save_entry;

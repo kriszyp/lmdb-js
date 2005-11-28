@@ -288,7 +288,7 @@ CMPDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN"
 echo "Testing list compare..."
 echo "# Testing list compare..." >> $SEARCHOUT
 $LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
-	"cn=Dynamic List,$LISTDN" "member:$CMPDN" \
+	"cn=Dynamic List of Members,$LISTDN" "member:$CMPDN" \
 	>> $SEARCHOUT 2>&1
 RC=$?
 case $RC in
