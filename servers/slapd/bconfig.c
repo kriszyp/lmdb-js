@@ -198,9 +198,9 @@ static OidRec OidMacros[] = {
  * Backend/Database registry
  *
  * OLcfg{Bk|Db}{Oc|At}:0		-> common
- * OLcfg{Bk|Db}{Oc|At}:1		-> bdb
- * OLcfg{Bk|Db}{Oc|At}:2		-> ldif
- * OLcfg{Bk|Db}{Oc|At}:3		-> ldap?
+ * OLcfg{Bk|Db}{Oc|At}:1		-> back-bdb(/back-hdb)
+ * OLcfg{Bk|Db}{Oc|At}:2		-> back-ldif
+ * OLcfg{Bk|Db}{Oc|At}:3		-> back-ldap
  */
 
 /*
@@ -211,7 +211,8 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:3			-> chain
  * OLcfgOv{Oc|At}:4			-> accesslog
  * OLcfgOv{Oc|At}:5			-> valsort
- * OLcfgOv{Oc|At}:6			-> smbk5pwd (use a separate arc for contrib?)
+ * (FIXME: separate arc for contribware?)
+ * OLcfgOv{Oc|At}:6			-> smbk5pwd
  */
 
 /* alphabetical ordering */
