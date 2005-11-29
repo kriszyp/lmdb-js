@@ -19,7 +19,5 @@ set_lg_regionmax 262144
 set_lg_bsize 2097152
 #set_lg_dir logs
 
-# When using (and only when using) slapadd(8) or slapindex(8),
-# the following flags may be useful:
-#set_flags DB_TXN_NOSYNC
-#set_flags DB_TXN_NOT_DURABLE
+# Note: special DB_CONFIG flags are no longer needed for "quick"
+# slapadd(8) or slapindex(8) access (see their -q option). 
