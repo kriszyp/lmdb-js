@@ -777,7 +777,31 @@ dynlist_db_config(
 
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
-			/* go to last */;
+		{
+			if ( (*dlip)->dli_oc == oc ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
+					"objectClass \"%s\" already mapped.\n",
+					fname, lineno, oc->soc_cname.bv_val );
+				return 1;
+			}
+
+			if ( (*dlip)->dli_ad == ad ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
+					"URL attributeDescription \"%s\" already mapped.\n",
+					fname, lineno, ad->ad_cname.bv_val );
+				return 1;
+			}
+
+			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
+					"member attributeDescription \"%s\" already mapped.\n",
+					fname, lineno, member_ad->ad_cname.bv_val );
+				return 1;
+			}
+		}
 
 		*dlip = (dynlist_info_t *)ch_calloc( 1, sizeof( dynlist_info_t ) );
 		(*dlip)->dli_oc = oc;
@@ -845,7 +869,31 @@ dynlist_db_config(
 
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
-			/* go to last */;
+		{
+			if ( (*dlip)->dli_oc == oc ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
+					"objectClass \"%s\" already mapped.\n",
+					fname, lineno, oc->soc_cname.bv_val );
+				return 1;
+			}
+
+			if ( (*dlip)->dli_ad == ad ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
+					"URL attributeDescription \"%s\" already mapped.\n",
+					fname, lineno, ad->ad_cname.bv_val );
+				return 1;
+			}
+
+			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
+					"member attributeDescription \"%s\" already mapped.\n",
+					fname, lineno, member_ad->ad_cname.bv_val );
+				return 1;
+			}
+		}
 
 		*dlip = (dynlist_info_t *)ch_calloc( 1, sizeof( dynlist_info_t ) );
 		(*dlip)->dli_oc = oc;
@@ -1056,6 +1104,40 @@ dl_cfgen( ConfigArgs *c )
 			}
 		}
 
+		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+			*dlip; dlip = &(*dlip)->dli_next )
+		{
+			if ( (*dlip)->dli_oc == oc ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
+					"objectClass \"%s\" already mapped.\n",
+					oc->soc_cname.bv_val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+				return 1;
+			}
+
+			if ( (*dlip)->dli_ad == ad ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
+					"URL attributeDescription \"%s\" already mapped.\n",
+					ad->ad_cname.bv_val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+				return 1;
+			}
+
+			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
+					"member attributeDescription \"%s\" already mapped.\n",
+					member_ad->ad_cname.bv_val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+				return 1;
+			}
+		}
+
 		if ( c->valx > 0 ) {
 			int	i;
 
@@ -1151,7 +1233,37 @@ dl_cfgen( ConfigArgs *c )
 
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
-				/* goto last */;
+		{
+			if ( (*dlip)->dli_oc == oc ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
+					"objectClass \"%s\" already mapped.\n",
+					oc->soc_cname.bv_val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+				return 1;
+			}
+
+			if ( (*dlip)->dli_ad == ad ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
+					"URL attributeDescription \"%s\" already mapped.\n",
+					ad->ad_cname.bv_val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+				return 1;
+			}
+
+			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
+					"member attributeDescription \"%s\" already mapped.\n",
+					member_ad->ad_cname.bv_val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+				return 1;
+			}
+		}
 
 		*dlip = (dynlist_info_t *)ch_calloc( 1, sizeof( dynlist_info_t ) );
 
@@ -1249,10 +1361,12 @@ dynlist_db_destroy(
 }
 
 static slap_overinst	dynlist = { { NULL } };
+#ifdef TAKEOVER_DYNGROUP
 static char		*obsolete_names[] = {
 	"dyngroup",
 	NULL
 };
+#endif
 
 #if SLAPD_OVER_DYNLIST == SLAPD_MOD_DYNAMIC
 static
