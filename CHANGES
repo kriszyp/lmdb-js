@@ -11,6 +11,7 @@ OpenLDAP 2.3.13 Engineering
 	Fixed slapd cn=config rootdn issue (ITS#4192)
 	Fixed slapd cn=config slaptest -F without -f issue (ITS#4194)
 	Fixed slapd cn=config ACL issue (ITS#4218)
+	Fixed slapd-bdb negative results IDL cache issue (ITS#4223)
 	Fixed slapd-hdb slapadd -q issue (ITS#4210)
 	Fixed slapd-hdb missing results issue (ITS#4186)
 	Fixed slapd-ldap potential double free issue (ITS#4189)
