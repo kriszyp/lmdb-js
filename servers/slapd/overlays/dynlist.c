@@ -511,11 +511,23 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		int cache = op->o_do_not_cache;
 				
 		op->o_do_not_cache = 1;
-			rs->sr_err = backend_group( op, NULL, &op->o_req_ndn,
+		rs->sr_err = backend_group( op, NULL, &op->o_req_ndn,
 			&op->oq_compare.rs_ava->aa_value, dli->dli_oc, dli->dli_ad );
 		op->o_do_not_cache = cache;
-		if ( rs->sr_err == LDAP_SUCCESS ) {
+		switch ( rs->sr_err ) {
+		case LDAP_SUCCESS:
 			rs->sr_err = LDAP_COMPARE_TRUE;
+			break;
+
+		case LDAP_NO_SUCH_OBJECT:
+			/* NOTE: backend_group() returns noSuchObject
+			 * if op_ndn does not exist; however, since
+			 * dynamic list expansion means that the
+			 * member attribute is virtually present, the
+			 * non-existence of the asserted value implies
+			 * the assertion is FALSE rather than
+			 * UNDEFINED */
+			rs->sr_err = LDAP_COMPARE_FALSE;
 		}
 
 		return SLAP_CB_CONTINUE;
