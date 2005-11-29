@@ -1066,8 +1066,10 @@ inequality_candidates(
 		bdb_idl_union( ids, tmp );
 
 		if( op->ors_limit && op->ors_limit->lms_s_unchecked != -1 &&
-			BDB_IDL_N( ids ) >= (unsigned) op->ors_limit->lms_s_unchecked )
+			BDB_IDL_N( ids ) >= (unsigned) op->ors_limit->lms_s_unchecked ) {
+			cursor->c_close( cursor );
 			break;
+		}
 	}
 	ber_bvarray_free_x( keys, op->o_tmpmemctx );
 
