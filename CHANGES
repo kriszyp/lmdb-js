@@ -7,7 +7,7 @@ OpenLDAP 2.3.13 Engineering
 	Fixed slapd sizelimit disclose issue (ITS#4213)
 	Fixed slapd gentlehup write restrict issue (ITS#3717)
 	Fixed slapd gentlehup abnormal issue (ITS#4217)
-	Fixed slapd cn=config OID/name polution issue (ITS#4185)
+	Fixed slapd cn=config OID/name pollution issue (ITS#4185)
 	Fixed slapd cn=config rootdn issue (ITS#4192)
 	Fixed slapd cn=config slaptest -F without -f issue (ITS#4194)
 	Fixed slapd cn=config ACL issue (ITS#4218)
@@ -23,7 +23,7 @@ OpenLDAP 2.3.13 Engineering
 	Fixed slapo-chain resource leak issue (ITS#4140)
 	Fixed slapo-pcache attrset check issue (ITS#4199)
 	Fixed slapd-bdb readonly dirty alock issue (ITS#4201)
-	Fixed slapd-pcache multiple attributes issues (ITS#4203,4204)
+	Fixed slapd-pcache non-requested attributes issues (ITS#4203,4204)
 	Fixed slaptest -F -f success with unsupported issue (ITS#4220)
 	Build environment
 		Improved Berkeley DB detection (ITS#3809)
@@ -60,7 +60,7 @@ OpenLDAP 2.3.12 Release
 	Fixed slapd-meta per-target retry (ITS#4150)
 	Fixed slapd-meta size/time limit handling (ITS#4145)
 	Fixed slapd-sql size limit count (ITS#4181)
-	Fixed slapo-ppolicy pwdFailureTIme after bind success issue (ITS#4134)
+	Fixed slapo-ppolicy pwdFailureTime after bind success issue (ITS#4134)
 	Fixed slapo-ppolicy add passord_hash quality config dependency
 	Fixed slapo-syncprov LDAP response types (ITS#4183)
 	Added slapd delta syncrepl support
