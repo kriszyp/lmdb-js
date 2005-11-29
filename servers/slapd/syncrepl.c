@@ -349,7 +349,7 @@ ldap_sync_search(
 		filter = si->si_logfilterstr.bv_val;
 		attrs = lattrs;
 		attrsonly = 0;
-		scope = LDAP_SCOPE_ONELEVEL;
+		scope = LDAP_SCOPE_SUBTREE;
 	} else {
 		rhint = 1;
 		base = si->si_base.bv_val;
