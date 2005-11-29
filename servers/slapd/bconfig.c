@@ -40,8 +40,6 @@
 static struct berval config_rdn = BER_BVC("cn=config");
 static struct berval schema_rdn = BER_BVC("cn=schema");
 
-#define	SLAP_X_ORDERED_FMT	"{%d}"
-
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
 	struct modpath_s *mp_next;
@@ -186,10 +184,11 @@ static OidRec OidMacros[] = {
 	{ "OLcfgDbOc", "OLcfgOc:2" },
 	{ "OLcfgOvOc", "OLcfgOc:3" },
 	{ "OMsyn", "1.3.6.1.4.1.1466.115.121.1" },
-	{ "OMsInteger", "OMsyn:27" },
 	{ "OMsBoolean", "OMsyn:7" },
 	{ "OMsDN", "OMsyn:12" },
 	{ "OMsDirectoryString", "OMsyn:15" },
+	{ "OMsInteger", "OMsyn:27" },
+	{ "OMsOID", "OMsyn:38" },
 	{ "OMsOctetString", "OMsyn:40" },
 	{ NULL, NULL }
 };
@@ -213,6 +212,8 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:5			-> valsort
  * (FIXME: separate arc for contribware?)
  * OLcfgOv{Oc|At}:6			-> smbk5pwd
+ * OLcfgOv{Oc|At}:7			-> distproc
+ * OLcfgOv{Oc|At}:8			-> dynlist
  */
 
 /* alphabetical ordering */
@@ -1175,7 +1176,7 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_ACL:
-			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx) ) {
+			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx ) ) {
 				return 1;
 			}
 			break;

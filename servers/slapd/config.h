@@ -181,4 +181,6 @@ int config_shadow( ConfigArgs *c, int flag );
 #define	config_check_userland(last) \
 	assert( ( ( (last) - 1 ) & ARGS_USERLAND ) == ( (last) - 1 ) );
 
+#define	SLAP_X_ORDERED_FMT	"{%d}"
+
 #endif /* CONFIG_H */

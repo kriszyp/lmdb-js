@@ -31,8 +31,10 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Running slapindex to index slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $DYNLISTCONF > $CONF1
+echo "dynlist-attrset	groupOfURLs memberURL" >> $CONF1
+
+echo "Running slapindex to index slapd database..."
 $SLAPINDEX -f $CONF1
 RC=$?
 if test $RC != 0 ; then
@@ -151,12 +153,71 @@ case $RC in
 0)
 	echo "ldapcompare returned success ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit -1
 	;;
 *)
 	echo "ldapcompare failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
+	;;
+esac
+echo "" >> $SEARCHOUT
+
+echo "Testing list compare (should return FALSE)..."
+echo "# Testing list compare (should return FALSE)..." >> $SEARCHOUT
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+	"cn=Dynamic List,$LISTDN" "cn:FALSE" \
+	>> $SEARCHOUT 2>&1
+RC=$?
+case $RC in
+5)
+	echo "ldapcompare returned FALSE ($RC)"
+	;;
+6)
+	echo "ldapcompare returned TRUE ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+0)
+	echo "ldapcompare returned success ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapcompare failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+echo "" >> $SEARCHOUT
+
+echo "Testing list compare (should return UNDEFINED)..."
+echo "# Testing list compare (should return UNDEFINED)..." >> $SEARCHOUT
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+	"cn=Dynamic List,$LISTDN" "dc:UNDEFINED" \
+	>> $SEARCHOUT 2>&1
+RC=$?
+case $RC in
+5)
+	echo "ldapcompare returned FALSE ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+6)
+	echo "ldapcompare returned TRUE ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+16|32)
+	echo "ldapcompare returned UNDEFINED ($RC)"
+	;;
+0)
+	echo "ldapcompare returned success ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapcompare failed ($RC)"
 	;;
 esac
 echo "" >> $SEARCHOUT
@@ -179,7 +240,7 @@ case $RC in
 0)
 	echo "ldapcompare returned success ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit -1
 	;;
 *)
 	echo "ldapcompare failed ($RC)!"
@@ -194,7 +255,8 @@ kill -HUP $KILLPIDS
 wait $KILLPIDS
 
 echo "Reconfiguring slapd..."
-echo "dynlist-member-ad	member" >> $CONF1
+. $CONFFILTER $BACKEND $MONITORDB < $DYNLISTCONF > $CONF1
+echo "dynlist-attrset	groupOfURLs memberURL member" >> $CONF1
 
 echo "==========================================================" >> $LOG1
 
@@ -303,7 +365,35 @@ case $RC in
 0)
 	echo "ldapcompare returned success ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapcompare failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
+	;;
+esac
+echo "" >> $SEARCHOUT
+
+echo "Testing list compare (should return FALSE)..."
+echo "# Testing list compare (should return FALSE)..." >> $SEARCHOUT
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+	"cn=Dynamic List of Members,$LISTDN" "member:cn=Foo Bar" \
+	>> $SEARCHOUT 2>&1
+RC=$?
+case $RC in
+5)
+	echo "ldapcompare returned FALSE ($RC)"
+	;;
+6)
+	echo "ldapcompare returned TRUE ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+0)
+	echo "ldapcompare returned success ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
 	;;
 *)
 	echo "ldapcompare failed ($RC)!"
@@ -331,7 +421,7 @@ case $RC in
 0)
 	echo "ldapcompare returned success ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit -1
 	;;
 *)
 	echo "ldapcompare failed ($RC)!"

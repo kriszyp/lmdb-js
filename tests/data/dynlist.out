@@ -61,6 +61,13 @@ memberURL: ldap:///ou=People,dc=example,dc=com?cn,mail?sub?(objectClass=person
 # Testing list compare...
 TRUE
 
+# Testing list compare (should return FALSE)...
+FALSE
+
+# Testing list compare (should return UNDEFINED)...
+Compare Result: No such attribute (16)
+UNDEFINED
+
 # Testing list compare with manageDSAit...
 FALSE
 
@@ -113,6 +120,9 @@ memberURL: ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)
 
 # Testing list compare...
 TRUE
+
+# Testing list compare (should return FALSE)...
+FALSE
 
 # Testing list compare with manageDSAit...
 FALSE

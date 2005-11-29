@@ -1350,7 +1350,7 @@ loopit:
 		} else {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
-		if (e != target ) {
+		if ( e != target ) {
 			be_entry_release_r( op, e );
 		}
 	} else {
