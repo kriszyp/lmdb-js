@@ -716,6 +716,69 @@ overlay_register(
 	slap_overinst *on
 )
 {
+	slap_overinst	*tmp;
+
+	/* FIXME: check for duplicates? */
+	for ( tmp = overlays; tmp != NULL; tmp = tmp->on_next ) {
+		if ( strcmp( on->on_bi.bi_type, tmp->on_bi.bi_type ) == 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"overlay_register(\"%s\"): "
+				"name already in use.\n",
+				on->on_bi.bi_type, 0, 0 );
+			return -1;
+		}
+
+		if ( on->on_bi.bi_obsolete_names != NULL ) {
+			int	i;
+
+			for ( i = 0; on->on_bi.bi_obsolete_names[ i ] != NULL; i++ ) {
+				if ( strcmp( on->on_bi.bi_obsolete_names[ i ], tmp->on_bi.bi_type ) == 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"overlay_register(\"%s\"): "
+						"obsolete name \"%s\" already in use "
+						"by overlay \"%s\".\n",
+						on->on_bi.bi_type,
+						on->on_bi.bi_obsolete_names[ i ],
+						tmp->on_bi.bi_type );
+					return -1;
+				}
+			}
+		}
+
+		if ( tmp->on_bi.bi_obsolete_names != NULL ) {
+			int	i;
+
+			for ( i = 0; tmp->on_bi.bi_obsolete_names[ i ] != NULL; i++ ) {
+				int	j;
+
+				if ( strcmp( on->on_bi.bi_type, tmp->on_bi.bi_obsolete_names[ i ] ) == 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"overlay_register(\"%s\"): "
+						"name already in use "
+						"as obsolete by overlay \"%s\".\n",
+						on->on_bi.bi_type,
+						tmp->on_bi.bi_obsolete_names[ i ], 0 );
+					return -1;
+				}
+
+				if ( on->on_bi.bi_obsolete_names != NULL ) {
+					for ( j = 0; on->on_bi.bi_obsolete_names[ j ] != NULL; j++ ) {
+						if ( strcmp( on->on_bi.bi_obsolete_names[ j ], tmp->on_bi.bi_obsolete_names[ i ] ) == 0 ) {
+							Debug( LDAP_DEBUG_ANY,
+								"overlay_register(\"%s\"): "
+								"obsolete name \"%s\" already in use "
+								"as obsolete by overlay \"%s\".\n",
+								on->on_bi.bi_type,
+								on->on_bi.bi_obsolete_names[ j ],
+								tmp->on_bi.bi_type );
+							return -1;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	on->on_next = overlays;
 	overlays = on;
 	return 0;
@@ -723,8 +786,8 @@ overlay_register(
 
 /*
  * iterator on registered overlays; overlay_next( NULL ) returns the first
- * overlay; * subsequent calls with the previously returned value allow to 
- * iterate * over the entire list; returns NULL when no more overlays are 
+ * overlay; subsequent calls with the previously returned value allow to 
+ * iterate over the entire list; returns NULL when no more overlays are 
  * registered.
  */
 
@@ -771,7 +834,6 @@ overlay_find( const char *over_type )
 				}
 			}
 		}
-
 	}
 
 foundit:;

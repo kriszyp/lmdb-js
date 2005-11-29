@@ -24,6 +24,8 @@
 
 #if LDAP_VENDOR_VERSION_MINOR != X && LDAP_VENDOR_VERSION_MINOR < 3
 #define OL_2_2_COMPAT
+#elif defined(LDAP_DEVEL) && SLAPD_OVER_DYNGROUP != SLAPD_MOD_STATIC
+#define TAKEOVER_DYNGROUP
 #endif
 
 #include <stdio.h>
@@ -867,6 +869,7 @@ dynlist_db_config(
 enum {
 	DL_ATTRSET = 1,
 	DL_ATTRPAIR,
+	DL_ATTRPAIR_COMPAT,
 	DL_LAST
 };
 
@@ -884,6 +887,11 @@ static ConfigTable dlcfg[] = {
 	{ "dynlist-attrpair", "member-ad> <URL-ad",
 		3, 3, 0, ARG_MAGIC|DL_ATTRPAIR, dl_cfgen,
 			NULL, NULL, NULL },
+#ifdef TAKEOVER_DYNGROUP
+	{ "attrpair", "member-ad> <URL-ad",
+		3, 3, 0, ARG_MAGIC|DL_ATTRPAIR_COMPAT, dl_cfgen,
+			NULL, NULL, NULL },
+#endif
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -932,6 +940,7 @@ dl_cfgen( ConfigArgs *c )
 			}
 			break;
 
+		case DL_ATTRPAIR_COMPAT:
 		case DL_ATTRPAIR:
 			rc = 1;
 			break;
@@ -979,6 +988,7 @@ dl_cfgen( ConfigArgs *c )
 			}
 			break;
 
+		case DL_ATTRPAIR_COMPAT:
 		case DL_ATTRPAIR:
 			rc = 1;
 			break;
@@ -1081,6 +1091,13 @@ dl_cfgen( ConfigArgs *c )
 		rc = dynlist_build_def_filter( *dlip );
 
 		} break;
+
+	case DL_ATTRPAIR_COMPAT:
+		snprintf( c->msg, sizeof( c->msg ),
+			"warning: \"attrpair\" only supported for limited "
+			"backward compatibility with overlay \"dyngroup\"" );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+		/* fallthru */
 
 	case DL_ATTRPAIR: {
 		dynlist_info_t		**dlip;
@@ -1231,7 +1248,11 @@ dynlist_db_destroy(
 	return 0;
 }
 
-static slap_overinst dynlist = { { NULL } };
+static slap_overinst	dynlist = { { NULL } };
+static char		*obsolete_names[] = {
+	"dyngroup",
+	NULL
+};
 
 #if SLAPD_OVER_DYNLIST == SLAPD_MOD_DYNAMIC
 static
@@ -1244,6 +1265,12 @@ dynlist_initialize(void)
 #endif
 
 	dynlist.on_bi.bi_type = "dynlist";
+
+#ifdef TAKEOVER_DYNGROUP
+	/* makes dynlist incompatible with dyngroup */
+	dynlist.on_bi.bi_obsolete_names = obsolete_names;
+#endif
+
 #ifdef OL_2_2_COMPAT
 	dynlist.on_bi.bi_db_config = dynlist_db_config;
 #else
