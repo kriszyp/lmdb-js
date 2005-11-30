@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.13 Engineering
+OpenLDAP 2.3.13 Release
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
 	Fixed libldap ldap_bv2escaped_filter_value issue (ITS#4212)
 	Fixed liblutil URL value-specs issue (ITS#4221)
@@ -29,6 +29,7 @@ OpenLDAP 2.3.13 Engineering
 	Fixed slaptest -F -f success with unsupported issue (ITS#4220)
 	Build environment
 		Improved Berkeley DB detection (ITS#3809)
+		Updated DB_CONFIG example (ITS#4229)
 	Documentation
 		Updated ldif(5) to include change record description
 
