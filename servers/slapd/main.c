@@ -729,20 +729,6 @@ unhandled_option:;
 	mal_leaktrace(1);
 #endif
 
-	/*
-	 * FIXME: moved here from slapd_daemon_task()
-	 * because back-monitor db_open() needs it
-	 */
-	time( &starttime );
-
-	if ( slap_startup( NULL ) != 0 ) {
-		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
-		goto shutdown;
-	}
-
-	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
-
 	if ( slapd_pid_file != NULL ) {
 		FILE *fp = fopen( slapd_pid_file, "w" );
 
@@ -758,7 +744,7 @@ unhandled_option:;
 			slapd_pid_file = NULL;
 
 			rc = 1;
-			goto shutdown;
+			goto destroy;
 		}
 
 		fprintf( fp, "%d\n", (int) getpid() );
@@ -780,7 +766,7 @@ unhandled_option:;
 			slapd_args_file = NULL;
 
 			rc = 1;
-			goto shutdown;
+			goto destroy;
 		}
 
 		for ( i = 0; i < g_argc; i++ ) {
@@ -789,6 +775,20 @@ unhandled_option:;
 		fprintf( fp, "\n" );
 		fclose( fp );
 	}
+
+	/*
+	 * FIXME: moved here from slapd_daemon_task()
+	 * because back-monitor db_open() needs it
+	 */
+	time( &starttime );
+
+	if ( slap_startup( NULL ) != 0 ) {
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
+		goto shutdown;
+	}
+
+	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
