@@ -389,22 +389,27 @@ int main( int argc, char **argv )
 			LDAP_STAILQ_INSERT_TAIL( &slap_sync_cookie, scp, sc_next );
 			break;
 
-		case 'd':	/* set debug level and 'do not detach' flag */
+		case 'd': {	/* set debug level and 'do not detach' flag */
+			int	level = 0;
+
 			no_detach = 1;
 #ifdef LDAP_DEBUG
 			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
 			{
-				int	level, i, goterr = 0;
+				int	i, goterr = 0;
 				char	**levels;
 
 				levels = ldap_str2charray( optarg, "," );
 
 				for ( i = 0; levels[ i ] != NULL; i++ ) {
+					level = 0;
+
 					if ( str2loglevel( levels[ i ], &level ) ) {
 						fprintf( stderr,
 							"unrecognized log level "
 							"\"%s\"\n", levels[ i ] );
 						goterr = 1;
+						/* but keep parsing... */
 
 					} else {
 						slap_debug |= level;
@@ -418,8 +423,6 @@ int main( int argc, char **argv )
 				}
 
 			} else {
-				int	level;
-
 				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 					fprintf( stderr,
 						"unrecognized log level "
@@ -433,7 +436,7 @@ int main( int argc, char **argv )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
-			break;
+			} break;
 
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );

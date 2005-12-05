@@ -262,25 +262,31 @@ slap_tool_init(
 			continuemode++;
 			break;
 
-		case 'd':	/* turn on debugging */
+		case 'd': {	/* turn on debugging */
+			int	level = 0;
+
 #ifdef LDAP_DEBUG
 			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
 			{
-				int	level, i, goterr = 0;
+				int	i, goterr = 0;
 				char	**levels;
 
 				levels = ldap_str2charray( optarg, "," );
 
 				for ( i = 0; levels[ i ] != NULL; i++ ) {
+					level = 0;
+
 					if ( str2loglevel( levels[ i ], &level ) ) {
 						fprintf( stderr,
 							"unrecognized log level "
 							"\"%s\"\n", levels[ i ] );
 						goterr = 1;
+						/* but keep parsing... */
 
 					} else {
-						if ( level ) {
+						if ( level != 0 ) {
 							slap_debug |= level;
+
 						} else {
 							/* allow to reset log level */
 							slap_debug = 0;
@@ -295,8 +301,6 @@ slap_tool_init(
 				}
 
 			} else {
-				int	level;
-
 				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 					fprintf( stderr,
 						"unrecognized log level "
@@ -304,8 +308,9 @@ slap_tool_init(
 					usage( tool, progname );
 				}
 
-				if ( level ) {
+				if ( level != 0 ) {
 					slap_debug |= level;
+
 				} else {
 					/* allow to reset log level */
 					slap_debug = 0;
@@ -316,7 +321,7 @@ slap_tool_init(
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
-			break;
+			} break;
 
 		case 'D':
 			ber_str2bv( optarg, 0, 1, &authcDN );
