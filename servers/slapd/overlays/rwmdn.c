@@ -202,6 +202,10 @@ rwm_dn_massage(
 		BER_BVZERO( &mdn );
 	}
 
+	if ( dn->bv_val == dmy ) {
+		BER_BVZERO( dn );
+	}
+
 	return rc;
 }
 
