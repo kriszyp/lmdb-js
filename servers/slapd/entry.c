@@ -282,7 +282,7 @@ str2entry2( char *s, int checkvals )
 			 	 * validate value per syntax
 			 	 */
 #ifdef SLAP_ORDERED_PRETTYNORM
-				rc = ordered_value_validate( ad, &vals[i] );
+				rc = ordered_value_validate( ad, &vals[i], LDAP_MOD_ADD );
 #else /* ! SLAP_ORDERED_PRETTYNORM */
 				rc = validate( ad->ad_type->sat_syntax, &vals[i] );
 #endif /* ! SLAP_ORDERED_PRETTYNORM */
