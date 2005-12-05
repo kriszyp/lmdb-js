@@ -186,10 +186,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		lerr = meta_back_single_bind( &op2, rs, mc, i, massage );
 
 		if ( lerr != LDAP_SUCCESS ) {
-			rs->sr_err = lerr;
+			rc = rs->sr_err = lerr;
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
-
-			rc = rs->sr_err;
 			break;
 		}
 	}
