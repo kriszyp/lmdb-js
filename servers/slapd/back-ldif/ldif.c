@@ -965,7 +965,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
 	struct berval new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
-	struct berval p_dn, bv = BER_BVNULL;
+	struct berval p_dn;
 	Entry * entry = NULL;
 	LDAPRDN new_rdn = NULL;
 	LDAPRDN old_rdn = NULL;
