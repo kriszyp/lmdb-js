@@ -556,10 +556,17 @@ done:;
 	}
 	if ( mod != NULL ) {
 		Modifications *tmp;
-		for (; mod; mod = tmp ) {
+		for (; mod; mod=tmp ) {
 			tmp = mod->sml_next;
+			/* slap_modrdn2mods does things one way,
+			 * slap_mods_opattrs does it differently
+			 */
+			if ( mod->sml_op != SLAP_MOD_SOFTADD &&
+				mod->sml_op != LDAP_MOD_DELETE ) break;
+			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
 			free( mod );
 		}
+		slap_mods_free( mod, 1 );
 	}
 
 	if ( !BER_BVISNULL( &e_id.eid_ndn ) ) {
@@ -580,6 +587,11 @@ done:;
 
 	if ( !BER_BVISNULL( &n.e_nname ) ) {
 		backsql_entry_clean( op, &n );
+	}
+
+	if ( rs->sr_ref ) {
+		ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modrdn()\n", 0, 0, 0 );

@@ -1517,16 +1517,16 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		BER_BVZERO( query );
 	}
  
-	free( bsi->bsi_sel.bb_val.bv_val );
+	bsi->bsi_op->o_tmpfree( bsi->bsi_sel.bb_val.bv_val, bsi->bsi_op->o_tmpmemctx );
 	BER_BVZERO( &bsi->bsi_sel.bb_val );
 	bsi->bsi_sel.bb_len = 0;
-	free( bsi->bsi_from.bb_val.bv_val );
+	bsi->bsi_op->o_tmpfree( bsi->bsi_from.bb_val.bv_val, bsi->bsi_op->o_tmpmemctx );
 	BER_BVZERO( &bsi->bsi_from.bb_val );
 	bsi->bsi_from.bb_len = 0;
-	free( bsi->bsi_join_where.bb_val.bv_val );
+	bsi->bsi_op->o_tmpfree( bsi->bsi_join_where.bb_val.bv_val, bsi->bsi_op->o_tmpmemctx );
 	BER_BVZERO( &bsi->bsi_join_where.bb_val );
 	bsi->bsi_join_where.bb_len = 0;
-	free( bsi->bsi_flt_where.bb_val.bv_val );
+	bsi->bsi_op->o_tmpfree( bsi->bsi_flt_where.bb_val.bv_val, bsi->bsi_op->o_tmpmemctx );
 	BER_BVZERO( &bsi->bsi_flt_where.bb_val );
 	bsi->bsi_flt_where.bb_len = 0;
 	
@@ -1620,7 +1620,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			query.bv_val, 0, 0 );
 
 	rc = backsql_Prepare( bsi->bsi_dbh, &sth, query.bv_val, 0 );
-	free( query.bv_val );
+	bsi->bsi_op->o_tmpfree( query.bv_val, bsi->bsi_op->o_tmpmemctx );
 	BER_BVZERO( &query );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
@@ -1970,7 +1970,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	default:
 #ifdef SLAP_ACL_HONOR_DISCLOSE
 		if ( !BER_BVISNULL( &base_entry.e_nname )
-				&& ! access_allowed( op, &base_entry,
+				&& !access_allowed( op, &base_entry,
 					slap_schema.si_ad_entry, NULL,
 					ACL_DISCLOSE, NULL ) )
 		{
@@ -1989,6 +1989,10 @@ backsql_search( Operation *op, SlapReply *rs )
 		if ( rs->sr_ref ) {
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
+		}
+
+		if ( !BER_BVISNULL( &base_entry.e_nname ) ) {
+			entry_clean( &base_entry );
 		}
 
 		goto done;

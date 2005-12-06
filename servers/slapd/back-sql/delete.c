@@ -480,6 +480,11 @@ done:;
 		backsql_entry_clean( op, &p );
 	}
 
+	if ( rs->sr_ref ) {
+		ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
+	}
+
 	return rs->sr_err;
 }
 
