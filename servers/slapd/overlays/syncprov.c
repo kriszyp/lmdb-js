@@ -2419,6 +2419,9 @@ syncprov_db_destroy(
 	syncprov_info_t	*si = (syncprov_info_t *)on->on_bi.bi_private;
 
 	if ( si ) {
+		if ( si->si_logs ) {
+			ch_free( si->si_logs );
+		}
 		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_ops_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_csn_mutex );

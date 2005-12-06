@@ -695,6 +695,7 @@ do_syncrep2(
 				if ( BER_BVISEMPTY( &syncUUID ) ) {
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: "
 						"got empty syncUUID\n", 0, 0, 0 );
+					ldap_controls_free( rctrls );
 					rc = -1;
 					goto done;
 				}
