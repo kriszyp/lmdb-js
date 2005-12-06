@@ -301,7 +301,7 @@ ldap_back_start_tls(
 retry:;
 			rc = ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res );
 			if ( rc < 0 ) {
-				rc = LDAP_OTHER;
+				rc = LDAP_UNAVAILABLE;
 
 			} else if ( rc == 0 ) {
 				if ( retries != LDAP_BACK_RETRY_NEVER ) {
@@ -312,7 +312,7 @@ retry:;
 					LDAP_BACK_TV_SET( &tv );
 					goto retry;
 				}
-				rc = LDAP_OTHER;
+				rc = LDAP_UNAVAILABLE;
 
 			} else if ( rc == LDAP_RES_EXTENDED ) {
 				struct berval	*data = NULL;
