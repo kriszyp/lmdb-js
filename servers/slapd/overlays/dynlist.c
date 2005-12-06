@@ -530,6 +530,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 				 * the assertion is FALSE rather than
 				 * UNDEFINED */
 				rs->sr_err = LDAP_COMPARE_FALSE;
+				break;
 			}
 
 			return SLAP_CB_CONTINUE;
@@ -778,6 +779,8 @@ dynlist_db_config(
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
+			/* The check on objectClass may be relaxed */
+#if 0
 			if ( (*dlip)->dli_oc == oc ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
@@ -785,6 +788,7 @@ dynlist_db_config(
 					fname, lineno, oc->soc_cname.bv_val );
 				return 1;
 			}
+#endif
 
 			if ( (*dlip)->dli_ad == ad ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
@@ -870,6 +874,8 @@ dynlist_db_config(
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
+#if 0
+			/* The check on objectClass may be relaxed */
 			if ( (*dlip)->dli_oc == oc ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
@@ -877,6 +883,7 @@ dynlist_db_config(
 					fname, lineno, oc->soc_cname.bv_val );
 				return 1;
 			}
+#endif
 
 			if ( (*dlip)->dli_ad == ad ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
@@ -1107,6 +1114,8 @@ dl_cfgen( ConfigArgs *c )
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
+			/* The check on objectClass may be relaxed */
+#if 0
 			if ( (*dlip)->dli_oc == oc ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
@@ -1116,6 +1125,7 @@ dl_cfgen( ConfigArgs *c )
 					c->log, c->msg, 0 );
 				return 1;
 			}
+#endif
 
 			if ( (*dlip)->dli_ad == ad ) {
 				snprintf( c->msg, sizeof( c->msg ),
@@ -1234,6 +1244,8 @@ dl_cfgen( ConfigArgs *c )
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
+			/* The check on objectClass may be relaxed */
+#if 0
 			if ( (*dlip)->dli_oc == oc ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
@@ -1243,6 +1255,7 @@ dl_cfgen( ConfigArgs *c )
 					c->log, c->msg, 0 );
 				return 1;
 			}
+#endif
 
 			if ( (*dlip)->dli_ad == ad ) {
 				snprintf( c->msg, sizeof( c->msg ),
