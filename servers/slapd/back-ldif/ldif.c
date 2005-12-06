@@ -960,7 +960,9 @@ static int move_entry(Entry * entry, struct berval * ndn,
 	return res;
 }
 
-static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
+static int
+ldif_back_modrdn(Operation *op, SlapReply *rs)
+{
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
 	struct berval new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
 	struct berval p_dn, bv = BER_BVNULL;
@@ -970,62 +972,78 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	Modifications * mods = NULL;
 	int res;
 
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
-	ldap_pvt_thread_mutex_lock(&entry2str_mutex);
-	entry = (Entry *) get_entry(op, &ni->li_base_path);
+	ldap_pvt_thread_mutex_lock( &ni->li_mutex );
+	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
+	entry = (Entry *) get_entry( op, &ni->li_base_path );
 
 	/* build the mods to the entry */
-	if(entry != NULL) {
-		if(ldap_bv2rdn(&op->oq_modrdn.rs_newrdn, &new_rdn,
-			(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP)) {
+	if ( entry != NULL ) {
+		if ( ldap_bv2rdn( &op->oq_modrdn.rs_newrdn, &new_rdn,
+			(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP ) )
+		{
 			rs->sr_err = LDAP_INVALID_DN_SYNTAX;
-		}
-		else if(op->oq_modrdn.rs_deleteoldrdn &&
+		} else if ( op->oq_modrdn.rs_deleteoldrdn &&
 			ldap_bv2rdn(&op->o_req_dn, &old_rdn, (char **)&rs->sr_text,
-			LDAP_DN_FORMAT_LDAP)) {
+			LDAP_DN_FORMAT_LDAP ) )
+		{
 			rs->sr_err = LDAP_OTHER;
-		}
-		else { /* got both rdns successfully, ready to build mods */
-			if(slap_modrdn2mods(op, rs, entry, old_rdn, new_rdn, &mods)
-				!= LDAP_SUCCESS) {
+		} else {
+			/* got both rdns successfully, ready to build mods */
+			if ( slap_modrdn2mods( op, rs, entry, old_rdn, new_rdn, &mods )
+				!= LDAP_SUCCESS )
+			{
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			}
-			else { /* built mods successfully */
+			} else {
+				/* built mods successfully */
 
 				/* build new dn, and new ndn for the entry */
-				if(op->oq_modrdn.rs_newSup != NULL) /* new superior */
+				if ( op->oq_modrdn.rs_newSup != NULL ) {
+					/* new superior */
 					p_dn = *op->oq_modrdn.rs_newSup;
-				else
+				} else {
 					p_dn = slap_empty_bv;
-				dnParent(&entry->e_name, &p_dn);
-				build_new_dn(&new_dn, &p_dn, &op->oq_modrdn.rs_newrdn, NULL); 
-				dnNormalize( 0, NULL, NULL, &new_dn, &bv, op->o_tmpmemctx );
-				ber_dupbv( &new_ndn, &bv );
+				}
+				dnParent( &entry->e_name, &p_dn );
+				build_new_dn( &new_dn, &p_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
+				dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn, NULL );
+				ber_memfree_x( entry->e_name.bv_val, NULL );
+				ber_memfree_x( entry->e_nname.bv_val, NULL );
 				entry->e_name = new_dn;
 				entry->e_nname = new_ndn;
 
 				/* perform the modifications */
-				res = apply_modify_to_entry(entry, mods, op, rs);
-				if(res == LDAP_SUCCESS) {
-					rs->sr_err = move_entry(entry, &op->o_req_ndn,
+				res = apply_modify_to_entry( entry, mods, op, rs );
+				slap_modrdn2mods_free( mods );
+				if ( res == LDAP_SUCCESS ) {
+					rs->sr_err = move_entry( entry, &op->o_req_ndn,
 								&new_ndn,
 								&op->o_bd->be_nsuffix[0],
-								&ni->li_base_path);
-				}
-				else
+								&ni->li_base_path );
+				} else {
 					rs->sr_err = res;
+				}
 			}
 		}
-	}
-	else /* entry was null */
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-	if(entry != NULL)
-		entry_free(entry);
+		if ( new_rdn != NULL ) {
+			ldap_rdnfree( new_rdn );
+		}
+
+		if ( old_rdn != NULL ) {
+			ldap_rdnfree( old_rdn );
+		}
+	} else {
+		/* entry was null */
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+	}
+
+	if ( entry != NULL ) {
+		entry_free( entry );
+	}
 	rs->sr_text = "";
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
-	ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
-	send_ldap_result(op, rs);
+	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
+	send_ldap_result( op, rs );
 	return 0;
 }
 
