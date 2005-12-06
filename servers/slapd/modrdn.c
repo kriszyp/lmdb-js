@@ -519,3 +519,30 @@ done:
 
 	return rs->sr_err;
 }
+
+void
+slap_modrdn2mods_free( Modifications *mod )
+{
+	Modifications *tmp;
+
+	for ( ; mod; mod = tmp ) {
+		tmp = mod->sml_next;
+		/* slap_modrdn2mods does things one way,
+		 * slap_mods_opattrs does it differently
+		 */
+		if ( mod->sml_op != SLAP_MOD_SOFTADD &&
+			mod->sml_op != LDAP_MOD_DELETE )
+		{
+			break;
+		}
+
+		if ( mod->sml_nvalues ) {
+			free( mod->sml_nvalues[0].bv_val );
+		}
+
+		free( mod );
+	}
+
+	slap_mods_free( mod, 1 );
+}
+

@@ -1016,13 +1016,15 @@ LDAP_SLAPD_F (int) filter_matched_values(
 /*
  * modrdn.c
  */
-LDAP_SLAPD_F (int) slap_modrdn2mods(
+LDAP_SLAPD_F (int) slap_modrdn2mods LDAP_P((
 	Operation	*op,
 	SlapReply	*rs,
 	Entry		*e,
 	LDAPRDN		oldrdn,
 	LDAPRDN		newrdn,
-	Modifications	**pmod );
+	Modifications	**pmod ));
+
+LDAP_SLAPD_F (void) slap_modrdn2mods_free LDAP_P(( Modifications *mod ));
 
 /*
  * modify.c
