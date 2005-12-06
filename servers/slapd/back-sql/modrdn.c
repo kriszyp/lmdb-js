@@ -520,8 +520,6 @@ done:;
 	}
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
-	send_ldap_result( op, rs );
-
 	/*
 	 * Commit only if all operations succeed
 	 */
@@ -534,6 +532,8 @@ done:;
 
 		SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 	}
+
+	send_ldap_result( op, rs );
 
 	if ( !BER_BVISNULL( &realnew_dn ) && realnew_dn.bv_val != new_dn.bv_val ) {
 		ch_free( realnew_dn.bv_val );
@@ -551,22 +551,13 @@ done:;
 	if ( new_rdn != NULL ) {
 		ldap_rdnfree( new_rdn );
 	}
+
 	if ( old_rdn != NULL ) {
 		ldap_rdnfree( old_rdn );
 	}
+
 	if ( mod != NULL ) {
-		Modifications *tmp;
-		for (; mod; mod=tmp ) {
-			tmp = mod->sml_next;
-			/* slap_modrdn2mods does things one way,
-			 * slap_mods_opattrs does it differently
-			 */
-			if ( mod->sml_op != SLAP_MOD_SOFTADD &&
-				mod->sml_op != LDAP_MOD_DELETE ) break;
-			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
-			free( mod );
-		}
-		slap_mods_free( mod, 1 );
+		slap_modrdn2mods_free( mod );
 	}
 
 	if ( !BER_BVISNULL( &e_id.eid_ndn ) ) {
