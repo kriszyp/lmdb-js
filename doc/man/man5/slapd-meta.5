@@ -154,6 +154,18 @@ because they are legal in the <naming context>, and we don't want to use
 URL-encoded <naming context>s), and the additional URIs must have
 no <naming context> part.  This causes the underlying library
 to contact the first server of the list that responds.
+For example, if \fIl1.foo.com\fP and \fIl2.foo.com\fP are shadows
+of the same server, the directive
+.LP
+.nf
+suffix "\fBdc=foo,dc=com\fP"
+uri    "ldap://l1.foo.com/\fBdc=foo,dc=com\fP	ldap://l2.foo.com/"
+.fi
+
+.RE
+.RS
+causes \fIl2.foo.com\fP to be contacted whenever \fIl1.foo.com\fP
+does not respond.
 .RE
 
 .TP
@@ -227,6 +239,11 @@ the protocol does not provide any means to rollback the operation,
 so the client will not know if the operation eventually succeeded or not.
 If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
+
+.TP
+.B idle-timeout <time>
+This directive causes a cached connection to be dropped an recreated
+after it has been idle for the specified time.
 
 .TP
 .B pseudorootdn "<substitute DN in case of rootdn bind>"

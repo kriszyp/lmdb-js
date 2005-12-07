@@ -93,21 +93,19 @@ internally used by the proxy to collect info related to access control.
 The identity defined by this directive, according to the properties
 associated to the authentication method, is supposed to have read access 
 on the target server to attributes used on the proxy for ACL checking.
-The
-.B secprops
-field is currently ignored.
 There is no risk of giving away such values; they are only used to
 check permissions.
 The default is to use
-.BR simple ,
-with empty binddn and credentials,
+.BR simple 
+bind, with empty \fIbinddn\fP and \fIcredentials\fP,
 which means that the related operations will be performed anonymously.
 
 .B This identity is by no means implicitly used by the proxy 
 .B when the client connects anonymously.
-See the
+The
 .B idassert-bind
-feature instead.
+feature, instead, in some cases can be crafted to implement that behavior,
+which is \fIintrinsically unsafe and should be used with extreme care\fP.
 This directive obsoletes
 .BR acl-authcDN ,
 and
@@ -333,6 +331,11 @@ need for timeouts.
 Note: if the timelimit is exceeded, the operation is abandoned;
 the protocol does not provide any means to rollback the operation,
 so the client will not know if the operation eventually succeeded or not.
+
+.TP
+.B idle-timeout <time>
+This directive causes a cached connection to be dropped an recreated
+after it has been idle for the specified time.
 
 .SH BACKWARD COMPATIBILITY
 The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
