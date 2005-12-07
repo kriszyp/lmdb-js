@@ -792,7 +792,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				}
 			}
 
-		} else if ( c->be ) {
+		} else if ( c->be && c->be != frontendDB ) {
 			rc = SLAP_CONF_UNKNOWN;
 			if ( c->be->be_cf_ocs ) {
 				ct = config_find_keyword( c->be->be_cf_ocs->co_table, c );
