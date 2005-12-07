@@ -1069,6 +1069,13 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_THREADS:
+			if ( c->value_int > 2 * SLAP_MAX_WORKER_THREADS ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"warning, threads=%d larger than twice the default (2*%d=%d); YMMV",
+					c->value_int, SLAP_MAX_WORKER_THREADS, 2 * SLAP_MAX_WORKER_THREADS );
+				Debug(LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+			}
 			if ( slapMode & SLAP_SERVER_MODE )
 				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
 			connection_pool_max = c->value_int;	/* save for reference */
