@@ -1800,6 +1800,9 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			return SLAP_CB_CONTINUE;
 		}
 		a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryCSN );
+		if ( a == NULL && rs->sr_operational_attrs != NULL ) {
+			a = attr_find( rs->sr_operational_attrs, slap_schema.si_ad_entryCSN );
+		}
 		if ( a ) {
 			/* Make sure entry is less than the snaphot'd contextCSN */
 			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 )
@@ -2320,12 +2323,14 @@ syncprov_db_open(
 			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
 		be_entry_release_rw( op, e, 0 );
-		op->o_bd->bd_info = (BackendInfo *)on;
-		op->o_req_dn = be->be_suffix[0];
-		op->o_req_ndn = be->be_nsuffix[0];
-		op->ors_scope = LDAP_SCOPE_SUBTREE;
-		ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
-		ldap_pvt_thread_join( tid, NULL );
+		if ( !BER_BVISEMPTY( &si->si_ctxcsn ) ) {
+			op->o_bd->bd_info = (BackendInfo *)on;
+			op->o_req_dn = be->be_suffix[0];
+			op->o_req_ndn = be->be_nsuffix[0];
+			op->ors_scope = LDAP_SCOPE_SUBTREE;
+			ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
+			ldap_pvt_thread_join( tid, NULL );
+		}
 	} else if ( SLAP_SYNC_SHADOW( op->o_bd )) {
 		/* If we're also a consumer, and we didn't find the context entry,
 		 * then don't generate anything, wait for our provider to send it
