@@ -247,22 +247,24 @@ int main( int argc, char **argv )
 	char *sandbox = NULL;
 #endif
 #ifdef LOG_LOCAL4
-    int	    syslogUser = DEFAULT_SYSLOG_USER;
+	int syslogUser = DEFAULT_SYSLOG_USER;
 #endif
 	
 	int g_argc = argc;
 	char **g_argv = argv;
 
-	char		*configfile = NULL;
-	char		*configdir = NULL;
-	char	    *serverName;
-	int	    serverMode = SLAP_SERVER_MODE;
+	char *configfile = NULL;
+	char *configdir = NULL;
+	char *serverName;
+	int serverMode = SLAP_SERVER_MODE;
 
 	struct sync_cookie *scp = NULL;
 	struct sync_cookie *scp_entry = NULL;
 
-	char	*serverNamePrefix = "";
+	char *serverNamePrefix = "";
 	size_t	l;
+
+	int slapd_pid_file_unlink = 0, slapd_args_file_unlink = 0;
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -749,9 +751,9 @@ unhandled_option:;
 			rc = 1;
 			goto destroy;
 		}
-
 		fprintf( fp, "%d\n", (int) getpid() );
 		fclose( fp );
+		slapd_pid_file_unlink = 1;
 	}
 
 	if ( slapd_args_file != NULL ) {
@@ -777,6 +779,7 @@ unhandled_option:;
 		}
 		fprintf( fp, "\n" );
 		fclose( fp );
+		slapd_args_file_unlink = 1;
 	}
 
 	/*
@@ -859,10 +862,10 @@ stop:
 	ldap_pvt_tls_destroy();
 #endif
 
-	if ( slapd_pid_file != NULL ) {
+	if ( slapd_pid_file_unlink ) {
 		unlink( slapd_pid_file );
 	}
-	if ( slapd_args_file != NULL ) {
+	if ( slapd_args_file_unlink ) {
 		unlink( slapd_args_file );
 	}
 
