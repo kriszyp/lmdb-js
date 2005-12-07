@@ -581,9 +581,22 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		}
 
 	} else {
-		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %p fetched (refcnt=%u)\n",
-			(void *)lc, refcnt, 0 );
+		if ( li->li_idle_timeout != 0 && op->o_time > lc->lc_time + li->li_idle_timeout ) {
+			/* in case of failure, it frees/taints lc and sets it to NULL */
+			if ( ldap_back_retry( &lc, op, rs, sendok ) ) {
+				lc = NULL;
+			}
+		}
+
+		if ( lc ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"=>ldap_back_getconn: conn %p fetched (refcnt=%u)\n",
+				(void *)lc, refcnt, 0 );
+		}
+	}
+
+	if ( li->li_idle_timeout && lc ) {
+		lc->lc_time = op->o_time;
 	}
 
 done:;
@@ -925,6 +938,9 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 	int		rc = 0;
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
+	assert( lcp != NULL );
+	assert( *lcp != NULL );
+
 	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
 	if ( (*lcp)->lc_refcnt == 1 ) {
@@ -940,7 +956,11 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 
 		/* lc here must be the regular lc, reset and ready for init */
 		rc = ldap_back_prepare_conn( lcp, op, rs, sendok );
-		if ( rc == LDAP_SUCCESS ) {
+		if ( rc != LDAP_SUCCESS ) {
+			rc = 0;
+			*lcp = NULL;
+
+		} else {
 			rc = ldap_back_dobind_int( *lcp, op, rs, sendok, 0, 0 );
 			if ( rc == 0 ) {
 				*lcp = NULL;

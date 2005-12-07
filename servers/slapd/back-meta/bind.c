@@ -147,7 +147,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			 */
 			Debug( LDAP_DEBUG_ANY,
 				"### %s meta_back_bind: more than one"
-				" candidate is trying to bind...\n",
+				" candidate selected...\n",
 				op->o_log_prefix, 0, 0 );
 		}
 
@@ -334,6 +334,7 @@ rebind:;
 		struct timeval	tv;
 		int		rc;
 		int		nretries = mt->mt_nretries;
+		char		buf[ SLAP_TEXT_BUFLEN ];
 
 		LDAP_BACK_TV_SET( &tv );
 
@@ -345,11 +346,12 @@ retry:;
 		tv.tv_usec = META_BIND_TIMEOUT;
 		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
-			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_single_bind: "
+			snprintf( buf, sizeof( buf ),
 				"ldap_result=0 nretries=%d%s\n",
-				op->o_log_prefix, nretries,
-				rebinding ? " rebinding" : "" );
+				nretries, rebinding ? " rebinding" : "" );
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_single_bind[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
 
 			if ( nretries != META_RETRY_NEVER ) {
 				ldap_pvt_thread_yield();
@@ -381,10 +383,12 @@ retry:;
 				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
 			}
 
+			snprintf( buf, sizeof( buf ),
+				"err=%d nretries=%d",
+				rs->sr_err, nretries );
 			Debug( LDAP_DEBUG_ANY,
-				"### %s meta_back_single_bind: "
-				"err=%d nretries=%d\n",
-				op->o_log_prefix, rs->sr_err, nretries );
+				"### %s meta_back_single_bind[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
 
 			rc = slap_map_api2result( rs );
 			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
@@ -487,6 +491,7 @@ rebind:;
 	if ( rc == LDAP_SUCCESS ) {
 		LDAPMessage	*res;
 		struct timeval	tv;
+		char		buf[ SLAP_TEXT_BUFLEN ];
 
 		LDAP_BACK_TV_SET( &tv );
 
@@ -498,11 +503,12 @@ retry:;
 		tv.tv_usec = META_BIND_TIMEOUT;
 		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
+			snprintf( buf, sizeof( buf ),
+				"ldap_result=0 nretries=%d%s",
+				nretries, rebinding ? " rebinding" : "" );
 			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_single_dobind: "
-				"ldap_result=0 nretries=%d%s\n",
-				op->o_log_prefix, nretries,
-				rebinding ? " rebinding" : "" );
+				"%s meta_back_single_dobind[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
 
 			if ( nretries != META_RETRY_NEVER ) {
 				ldap_pvt_thread_yield();
@@ -535,10 +541,12 @@ retry:;
 				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
 			}
 
+			snprintf( buf, sizeof( buf ),
+				"err=%d nretries=%d",
+				rs->sr_err, nretries );
 			Debug( LDAP_DEBUG_ANY,
-				"### %s meta_back_single_dobind: "
-				"err=%d nretries=%d\n",
-				op->o_log_prefix, rs->sr_err, nretries );
+				"### %s meta_back_single_dobind[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
 
 			rc = slap_map_api2result( rs );
 			if ( rc == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
@@ -558,9 +566,8 @@ retry:;
 				        /* mc here must be the regular mc,
 					 * reset and ready for init */
 				        rc = meta_back_init_one_conn( op, rs,
-						mt, mc, msc,
+						mt, mc, candidate,
 						LDAP_BACK_CONN_ISPRIV( mc ),
-						candidate == mc->mc_authz_target,
 						LDAP_BACK_DONTSEND );
 
 				} else {

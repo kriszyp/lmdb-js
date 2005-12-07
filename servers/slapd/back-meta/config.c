@@ -35,7 +35,7 @@
 #include "back-meta.h"
 
 static int
-new_target( 
+meta_back_new_target( 
 	metatarget_t	*mt )
 {
         struct ldapmapping	*mapping;
@@ -146,7 +146,7 @@ meta_back_db_config(
 			return 1;
 		}
 
-		if ( new_target( &mi->mi_targets[ i ] ) != 0 ) {
+		if ( meta_back_new_target( &mi->mi_targets[ i ] ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unable to init server"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -157,6 +157,8 @@ meta_back_db_config(
 		mi->mi_targets[ i ].mt_nretries = mi->mi_nretries;
 		mi->mi_targets[ i ].mt_flags = mi->mi_flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
+		mi->mi_targets[ i ].mt_idle_timeout = mi->mi_idle_timeout;
+		mi->mi_targets[ i ].mt_network_timeout = mi->mi_network_timeout;
 
 		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
 			mi->mi_targets[ i ].mt_timeout[ c ] = mi->mi_timeout[ c ];
@@ -344,7 +346,11 @@ meta_back_db_config(
 
 	/* network timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "network-timeout" ) == 0 ) {
+		int 		i = mi->mi_ntargets - 1;
 		unsigned long	t;
+		time_t		*tp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_network_timeout
+				: &mi->mi_network_timeout;
 
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -361,7 +367,40 @@ meta_back_db_config(
 
 		}
 
-		mi->mi_network_timeout = (int)t;
+		*tp = (time_t)t;
+
+	/* idle timeout when connecting to ldap servers */
+	} else if ( strcasecmp( argv[ 0 ], "idle-timeout" ) == 0 ) {
+		int 		i = mi->mi_ntargets - 1;
+		unsigned long	t;
+		time_t		*tp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_idle_timeout
+				: &mi->mi_idle_timeout;
+
+		switch ( argc ) {
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: missing timeout value in \"idle-timeout <seconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		case 2:
+			break;
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: extra cruft after timeout value in \"idle-timeout <seconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( lutil_parse_time( argv[ 1 ], &t ) ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse timeout \"%s\" in \"idle-timeout <seconds>\" line\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+
+		}
+
+		*tp = (time_t)t;
 
 	/* name to use for meta_back_group */
 	} else if ( strcasecmp( argv[ 0 ], "acl-authcDN" ) == 0
