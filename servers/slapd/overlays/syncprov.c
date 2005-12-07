@@ -2323,14 +2323,16 @@ syncprov_db_open(
 			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
 		be_entry_release_rw( op, e, 0 );
-		if ( !BER_BVISEMPTY( &si->si_ctxcsn ) ) {
-			op->o_bd->bd_info = (BackendInfo *)on;
-			op->o_req_dn = be->be_suffix[0];
-			op->o_req_ndn = be->be_nsuffix[0];
-			op->ors_scope = LDAP_SCOPE_SUBTREE;
-			ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
-			ldap_pvt_thread_join( tid, NULL );
+		if ( BER_BVISEMPTY( &si->si_ctxcsn ) ) {
+			si->si_ctxcsn.bv_len = sizeof( si->si_ctxcsnbuf );
+			slap_get_csn( op, &si->si_ctxcsn, 0 );
 		}
+		op->o_bd->bd_info = (BackendInfo *)on;
+		op->o_req_dn = be->be_suffix[0];
+		op->o_req_ndn = be->be_nsuffix[0];
+		op->ors_scope = LDAP_SCOPE_SUBTREE;
+		ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
+		ldap_pvt_thread_join( tid, NULL );
 	} else if ( SLAP_SYNC_SHADOW( op->o_bd )) {
 		/* If we're also a consumer, and we didn't find the context entry,
 		 * then don't generate anything, wait for our provider to send it
