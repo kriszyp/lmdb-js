@@ -438,12 +438,6 @@ hdb_cache_find_parent(
 			addlru = 0;
 
 		}
-		if ( addlru ) {
-			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
-			LRU_ADD( &bdb->bi_cache, ein );
-			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
-		}
-		addlru = 1;
 
 		/* If this is the first time, save this node
 		 * to be returned later.
@@ -464,6 +458,13 @@ hdb_cache_find_parent(
 		if ( ei2 && ( ei2->bei_kids || !ei2->bei_id ))
 				bdb->bi_cache.c_leaves++;
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+
+		if ( addlru ) {
+			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
+			LRU_ADD( &bdb->bi_cache, ein );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
+		}
+		addlru = 1;
 
 		/* Got the parent, link in and we're done. */
 		if ( ei2 ) {
