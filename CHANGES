@@ -23,6 +23,7 @@ OpenLDAP 2.3.13 Release
 	Fixed slapo-accesslog delta-syncrepl issue (ITS#4198)
 	Fixed slapo-accesslog cleanup issue (ITS#4209)
 	Fixed slapo-chain resource leak issue (ITS#4140)
+	Fixed slapo-chain identity assertion issue (ITS#4256)
 	Fixed slapo-pcache attrset check issue (ITS#4199)
 	Fixed slapd-bdb readonly dirty alock issue (ITS#4201)
 	Fixed slapd-pcache non-requested attributes issues (ITS#4203,4204)
