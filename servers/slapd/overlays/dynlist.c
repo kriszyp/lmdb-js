@@ -376,6 +376,8 @@ dynlist_send_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		o.ors_scope = lud->lud_scope;
 
 		if ( dli->dli_member_ad != NULL ) {
+			/* if ( lud->lud_attrs != NULL ),
+			 * the URL should be ignored */
 			o.ors_attrs = slap_anlist_no_attrs;
 
 		} else if ( lud->lud_attrs == NULL ) {
