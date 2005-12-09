@@ -483,11 +483,11 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-	/* id2entry index */
-	rc = bdb_id2entry_add( be, tid, e );
+	if ( !bdb->bi_linear_index )
+		rc = bdb_tool_index_add( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
-				"id2entry_add failed: %s (%d)",
+				"index_entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
@@ -495,11 +495,11 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-	if ( !bdb->bi_linear_index )
-		rc = bdb_tool_index_add( &op, tid, e );
+	/* id2entry index */
+	rc = bdb_id2entry_add( be, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
-				"index_entry_add failed: %s (%d)",
+				"id2entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
@@ -681,33 +681,6 @@ ID bdb_tool_entry_modify(
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 				"id2entry_add failed: %s (%d)",
-				db_strerror(rc), rc );
-		Debug( LDAP_DEBUG_ANY,
-			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
-			text->bv_val, 0, 0 );
-		goto done;
-	}
-
-#if 0
-	/* FIXME: this is bogus, we don't have the old values to delete
-	 * from the index because the given entry has already been modified.
-	 */
-	rc = bdb_index_entry_del( &op, tid, e );
-	if( rc != 0 ) {
-		snprintf( text->bv_val, text->bv_len,
-				"index_entry_del failed: %s (%d)",
-				db_strerror(rc), rc );
-		Debug( LDAP_DEBUG_ANY,
-			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
-			text->bv_val, 0, 0 );
-		goto done;
-	}
-#endif
-
-	rc = bdb_index_entry_add( &op, tid, e );
-	if( rc != 0 ) {
-		snprintf( text->bv_val, text->bv_len,
-				"index_entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",

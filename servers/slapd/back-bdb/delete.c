@@ -369,26 +369,10 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	/* delete from id2entry */
-	rs->sr_err = bdb_id2entry_delete( op->o_bd, lt2, e );
-	if ( rs->sr_err != 0 ) {
-		Debug(LDAP_DEBUG_TRACE,
-			"<=- " LDAP_XSTRING(bdb_delete) ": id2entry failed: "
-			"%s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
-		switch( rs->sr_err ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		}
-		rs->sr_text = "entry delete failed";
-		rs->sr_err = LDAP_OTHER;
-		goto return_results;
-	}
-
 	/* delete indices for old attributes */
 	rs->sr_err = bdb_index_entry_del( op, lt2, e );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug(LDAP_DEBUG_TRACE,
 			"<=- " LDAP_XSTRING(bdb_delete) ": index failed: "
 			"%s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
 		switch( rs->sr_err ) {
@@ -397,6 +381,41 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 		rs->sr_text = "entry index delete failed";
+		rs->sr_err = LDAP_OTHER;
+		goto return_results;
+	}
+
+	/* fixup delete CSN */
+	if ( !SLAP_SHADOW( op->o_bd )) {
+		struct berval vals[2];
+		vals[0] = op->o_csn;
+		BER_BVZERO( vals+1 );
+		rs->sr_err = bdb_index_values( op, lt2, slap_schema.si_ad_entryCSN,
+			vals, 0, SLAP_INDEX_ADD_OP );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+			switch( rs->sr_err ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			}
+			rs->sr_text = "entryCSN index update failed";
+			rs->sr_err = LDAP_OTHER;
+			goto return_results;
+		}
+	}
+
+	/* delete from id2entry */
+	rs->sr_err = bdb_id2entry_delete( op->o_bd, lt2, e );
+	if ( rs->sr_err != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<=- " LDAP_XSTRING(bdb_delete) ": id2entry failed: "
+			"%s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+		switch( rs->sr_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+		rs->sr_text = "entry delete failed";
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
 	}

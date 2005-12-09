@@ -123,6 +123,7 @@ typedef struct bdb_entry_info {
 typedef struct bdb_cache {
 	int             c_maxsize;
 	int             c_cursize;
+	int		c_minfree;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
 	EntryInfo	c_dntree;
@@ -131,7 +132,8 @@ typedef struct bdb_cache {
 	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
 	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
 	ldap_pvt_thread_rdwr_t c_rwlock;
-	ldap_pvt_thread_mutex_t lru_mutex;
+	ldap_pvt_thread_mutex_t lru_head_mutex;
+	ldap_pvt_thread_mutex_t lru_tail_mutex;
 	u_int32_t	c_locker;	/* used by lru cleaner */
 #ifdef SLAP_ZONE_ALLOC
 	void *c_zctx;
@@ -175,6 +177,7 @@ struct bdb_info {
 	u_int32_t	bi_txn_cp_kbyte;
 	void		*bi_txn_cp_task;
 	void		*bi_index_task;
+ 	void		*bi_cache_task;
 
 	int			bi_lock_detect;
 	long		bi_shm_key;

@@ -312,6 +312,23 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	/* attribute indexes */
+	rs->sr_err = bdb_index_entry_add( op, lt2, op->oq_add.rs_e );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": index_entry_add failed\n",
+			0, 0, 0 );
+		switch( rs->sr_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rs->sr_err = LDAP_OTHER;
+		}
+		rs->sr_text = "index generation failed";
+		goto return_results;
+	}
+
 	/* id2entry index */
 	rs->sr_err = bdb_id2entry_add( op->o_bd, lt2, op->oq_add.rs_e );
 	if ( rs->sr_err != 0 ) {
@@ -329,22 +346,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	/* attribute indexes */
-	rs->sr_err = bdb_index_entry_add( op, lt2, op->oq_add.rs_e );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": index_entry_add failed\n",
-			0, 0, 0 );
-		switch( rs->sr_err ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		default:
-			rs->sr_err = LDAP_OTHER;
-		}
-		rs->sr_text = "index generation failed";
-		goto return_results;
-	}
 	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "txn_commit(2) failed";

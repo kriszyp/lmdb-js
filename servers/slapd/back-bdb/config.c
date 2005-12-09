@@ -55,6 +55,11 @@ static ConfigTable bdbcfg[] = {
 			"DESC 'Directory for database content' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "cachefree", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
+		(void *)offsetof(struct bdb_info, bi_cache.c_minfree),
+		"( OLcfgDbAt:1.11 NAME 'olcDbCacheFree' "
+			"DESC 'Number of extra entries to free when max is reached' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "cachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_maxsize),
 		"( OLcfgDbAt:1.1 NAME 'olcDbCacheSize' "
@@ -134,7 +139,8 @@ static ConfigOCs bdbocs[] = {
 		"MAY ( olcDbCacheSize $ olcDbCheckpoint $ olcDbConfig $ "
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
-		"olcDbMode $ olcDbSearchStack $ olcDbShmKey ) )",
+		"olcDbMode $ olcDbSearchStack $ olcDbShmKey $ "
+		" olcDbCacheFree ) )",
 		 	Cft_Database, bdbcfg },
 	{ NULL, 0, NULL }
 };
