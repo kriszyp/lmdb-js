@@ -885,7 +885,7 @@ slap_acl_get(
 	
 				if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) {
 					if (value_match( &match, desc,
-						/* desc->ad_type->sat_equality */ a->acl_attrval_mr, 0,
+						a->acl_attrval_mr, 0,
 						val, &a->acl_attrval, &text ) != LDAP_SUCCESS ||
 							match )
 						continue;
@@ -925,7 +925,7 @@ slap_acl_get(
 							continue;
 					}
 	
-					if ( strcmp( a->acl_attrval.bv_val, val->bv_val + vdnlen - patlen ))
+					if ( strcmp( a->acl_attrval.bv_val, val->bv_val + vdnlen - patlen ) )
 						continue;
 				}
 			}
