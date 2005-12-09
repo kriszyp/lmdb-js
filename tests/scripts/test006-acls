@@ -80,7 +80,7 @@ echo "# ... and should return all attributes if we're bound as anyone
 $LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT1 \
 	-D "$BABSDN" -w bjensen "(objectclass=*)" >> $SEARCHOUT 2>&1
 
-# ITS#4253
+# ITS#4253, ITS#4255
 echo "# Checking exact/regex attrval clause" >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 \
 	-D "$BABSDN" -w bjensen \
