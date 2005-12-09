@@ -20,6 +20,19 @@ mail: jaj@mail.alumni.example.com
 facsimileTelephoneNumber: +1 313 555 4332
 telephoneNumber: +1 313 555 0895
 
+# Checking exact/regex attrval clause
+dn: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
+cn: Mark A Elliot
+
+dn: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
+cn: Mark Elliot
+
+dn: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
+cn: John Doe
+
+dn: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
+cn: Jonathon Doe
+
 # Using ldapsearch to retrieve all the entries...
 dn: ou=Add & Delete,dc=example,dc=com
 objectClass: organizationalUnit
@@ -316,8 +329,6 @@ telephoneNumber: +1 313 555 7334
 
 dn: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: John Doe
-cn: Jonathon Doe
 sn: Doe
 uid: johnd
 postalAddress: ITD $ 535 W. William $ Anytown, MI 48109

@@ -78,7 +78,23 @@ echo "# ... and should return all attributes if we're bound as anyone
 # under Example." \
 >> $SEARCHOUT
 $LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT1 \
-	-D "$BABSDN" -w bjensen "(objectclass=*)"  >> $SEARCHOUT 2>&1
+	-D "$BABSDN" -w bjensen "(objectclass=*)" >> $SEARCHOUT 2>&1
+
+# ITS#4253
+echo "# Checking exact/regex attrval clause" >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 \
+	-D "$BABSDN" -w bjensen \
+	-b "$MELLIOTDN" -s base "(objectclass=*)" cn >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 \
+	-D "$BJORNSDN" -w bjorn \
+	-b "$MELLIOTDN" -s base "(objectclass=*)" cn >> $SEARCHOUT 2>&1
+
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 \
+	-D "$BABSDN" -w bjensen \
+	-b "$JOHNDDN" -s base "(objectclass=*)" cn >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 \
+	-D "$BJORNSDN" -w bjorn \
+	-b "$JOHNDDN" -s base "(objectclass=*)" cn >> $SEARCHOUT 2>&1
 
 #
 # Check group access. Try to modify Babs' entry. Two attempts:

@@ -205,6 +205,8 @@ PASSWD=secret
 BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
+JOHNDDN="cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com"
+MELLIOTDN="cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com"
 REFINTDN="cn=Manager,o=refint"
 RETCODEDN="ou=RetCodes,$BASEDN"
 UNIQUEDN="cn=Manager,o=unique"
