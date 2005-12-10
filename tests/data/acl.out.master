@@ -33,6 +33,16 @@ cn: John Doe
 dn: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
 cn: Jonathon Doe
 
+dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc
+ =com
+cn: Bjorn Jensen
+cn: Biiff Jensen
+
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
+ dc=com
+cn: Barbara Jensen
+cn: Babs Jensen
+
 # Using ldapsearch to retrieve all the entries...
 dn: ou=Add & Delete,dc=example,dc=com
 objectClass: organizationalUnit
@@ -113,8 +123,6 @@ telephoneNumber: +1 313 555 9022
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc
  =com
 objectClass: OpenLDAPperson
-cn: Bjorn Jensen
-cn: Biiff Jensen
 sn: Jensen
 uid: bjorn
 seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com

@@ -96,6 +96,13 @@ $LDAPSEARCH -h $LOCALHOST -p $PORT1 \
 	-D "$BJORNSDN" -w bjorn \
 	-b "$JOHNDDN" -s base "(objectclass=*)" cn >> $SEARCHOUT 2>&1
 
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 \
+	-D "$BABSDN" -w bjensen \
+	-b "$BJORNSDN" -s base "(objectclass=*)" cn >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 \
+	-D "$BJORNSDN" -w bjorn \
+	-b "$BABSDN" -s base "(objectclass=*)" cn >> $SEARCHOUT 2>&1
+
 #
 # Check group access. Try to modify Babs' entry. Two attempts:
 # 1) bound as "James A Jones 1" - should fail
