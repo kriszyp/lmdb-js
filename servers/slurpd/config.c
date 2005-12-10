@@ -89,8 +89,10 @@ slurpd_read_config(
 #define	GOT_REPLOG_MASK		(0xF)
 #define	GOT_REPLOG(i)		((i) & GOT_REPLOG_MASK)
 #define	GOT_REPLOG_SET(i,v)	((i) = ((i) & ~GOT_REPLOG_MASK) | ((v) & GOT_REPLOG_MASK))
+
 #define GOT_REPLOG_PID		(0x10)
 #define GOT_REPLOG_ARGS		(0x20)
+#define GOT_REPLOG_INTERVAL	(0x40)
 	int	got_replog =	GOT_REPLOG_NO;
 
 	/*
@@ -271,7 +273,22 @@ slurpd_read_config(
 				return( 1 );
 			}
 
-			sglob->no_work_interval = c;
+			switch ( GOT_REPLOG(got_replog) ) {
+			case GOT_REPLOG_YES:
+				Debug( LDAP_DEBUG_CONFIG, "%s: line %d: "
+					"got replog specific replicationinterval \"%s\".\n",
+					fname, lineno, cargv[1] );
+			case GOT_REPLOG_NO:
+				sglob->no_work_interval = c;
+				got_replog |= GOT_REPLOG_INTERVAL;
+				break;
+
+			default:
+				Debug( LDAP_DEBUG_CONFIG, "%s: line %d: "
+					"replicationinterval \"%s\" not mine.\n",
+					fname, lineno, cargv[1] );
+				break;
+			}
 		}
 	}
 

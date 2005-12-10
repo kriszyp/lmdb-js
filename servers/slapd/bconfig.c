@@ -69,12 +69,6 @@ typedef struct {
 	int		cb_use_ldif;
 } CfBackInfo;
 
-/* These do nothing in slapd, they're kept only to make them
- * editable here.
- */
-static char *replica_pidFile, *replica_argsFile;
-static int replicationInterval;
-
 static char	*passwd_salt;
 static char	*logfileName;
 #ifdef SLAP_AUTH_REWRITE
@@ -149,6 +143,9 @@ enum {
 	CFG_DIT,
 	CFG_ATTR,
 	CFG_ATOPT,
+	CFG_REPLICA_ARGSFILE,
+	CFG_REPLICA_PIDFILE,
+	CFG_REPLICATIONINTERVAL,
 	CFG_REPLOG,
 	CFG_ROOTDSE,
 	CFG_LOGFILE,
@@ -411,14 +408,14 @@ static ConfigTable config_back_cf_table[] = {
 	{ "replica", "host or uri", 2, 0, 0, ARG_DB|ARG_MAGIC,
 		&config_replica, "( OLcfgDbAt:0.7 NAME 'olcReplica' "
 			"SUP labeledURI X-ORDERED 'VALUES' )", NULL, NULL },
-	{ "replica-argsfile", NULL, 0, 0, 0, ARG_STRING,
-		&replica_argsFile, "( OLcfgGlAt:43 NAME 'olcReplicaArgsFile' "
+	{ "replica-argsfile", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLICA_ARGSFILE,
+		&config_generic, "( OLcfgGlAt:43 NAME 'olcReplicaArgsFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "replica-pidfile", NULL, 0, 0, 0, ARG_STRING,
-		&replica_pidFile, "( OLcfgGlAt:44 NAME 'olcReplicaPidFile' "
+	{ "replica-pidfile", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLICA_PIDFILE,
+		&config_generic, "( OLcfgGlAt:44 NAME 'olcReplicaPidFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "replicationInterval", NULL, 0, 0, 0, ARG_INT,
-		&replicationInterval, "( OLcfgGlAt:45 NAME 'olcReplicationInterval' "
+	{ "replicationInterval", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|ARG_INT|CFG_REPLICATIONINTERVAL,
+		&config_generic, "( OLcfgGlAt:45 NAME 'olcReplicationInterval' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "replogfile", "filename", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLOG,
 		&config_generic, "( OLcfgGlAt:46 NAME 'olcReplogFile' "
@@ -637,7 +634,6 @@ static ConfigOCs cf_ocs[] = {
 		 "olcLogLevel $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
-		 "olcReplicaPidFile $ olcReplicaArgsFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
 		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
@@ -669,6 +665,7 @@ static ConfigOCs cf_ocs[] = {
 		"MUST olcDatabase "
 		"MAY ( olcSuffix $ olcSubordinate $ olcAccess $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
+		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
 		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef ) )",
@@ -854,6 +851,21 @@ config_generic(ConfigArgs *c) {
 			rc = (!i);
 			break;
 		}
+		case CFG_REPLICA_ARGSFILE:
+			if ( c->be->be_replica_argsfile )
+				c->value_string = ch_strdup( c->be->be_replica_argsfile );
+			break;
+		case CFG_REPLICA_PIDFILE:
+			if ( c->be->be_replica_pidfile )
+				c->value_string = ch_strdup( c->be->be_replica_pidfile );
+			break;
+		case CFG_REPLICATIONINTERVAL:
+			if ( c->be->be_replicationinterval > 0 ) {
+				c->value_int = c->be->be_replicationinterval;
+			} else {
+				rc = 1;
+			}
+			break;
 		case CFG_REPLOG:
 			if ( c->be->be_replogfile )
 				c->value_string = ch_strdup( c->be->be_replogfile );
@@ -978,6 +990,20 @@ config_generic(ConfigArgs *c) {
 		case CFG_SALT:
 			ch_free( passwd_salt );
 			passwd_salt = NULL;
+			break;
+
+		case CFG_REPLICA_ARGSFILE:
+			ch_free( c->be->be_replica_argsfile );
+			c->be->be_replica_argsfile = NULL;
+			break;
+
+		case CFG_REPLICA_PIDFILE:
+			ch_free( c->be->be_replica_pidfile );
+			c->be->be_replica_pidfile = NULL;
+			break;
+
+		case CFG_REPLICATIONINTERVAL:
+			c->be->be_replicationinterval = 0;
 			break;
 
 		case CFG_REPLOG:
@@ -1188,13 +1214,80 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 
+		case CFG_REPLICA_ARGSFILE:
+			if(SLAP_MONITOR(c->be)) {
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"\"replica-argsfile\" should not be used "
+					"inside monitor database\n",
+					c->log, 0, 0);
+				/* FIXME: should this be an error? */
+				return(0);
+			}
+
+			if ( c->be->be_replica_argsfile != NULL ) {
+				/* FIXME: error? */
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"\"replica-argsfile\" already provided; "
+					"replacing \"%s\" with \"%s\".\n",
+					c->log, c->be->be_replica_argsfile, c->value_string );
+				ch_free( c->be->be_replica_argsfile );
+			}
+
+			c->be->be_replica_argsfile = c->value_string;
+			break;
+
+		case CFG_REPLICA_PIDFILE:
+			if(SLAP_MONITOR(c->be)) {
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"\"replica-pidfile\" should not be used "
+					"inside monitor database\n",
+					c->log, 0, 0);
+				/* FIXME: should this be an error? */
+				return(0);
+			}
+
+			if ( c->be->be_replica_pidfile != NULL ) {
+				/* FIXME: error? */
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"\"replica-pidfile\" already provided; "
+					"replacing \"%s\" with \"%s\".\n",
+					c->log, c->be->be_replica_pidfile, c->value_string );
+				ch_free( c->be->be_replica_pidfile );
+			}
+
+			c->be->be_replica_pidfile = c->value_string;
+			break;
+
+		case CFG_REPLICATIONINTERVAL:
+			if(SLAP_MONITOR(c->be)) {
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"\"replicationinterval\" should not be used "
+					"inside monitor database\n",
+					c->log, 0, 0);
+				/* FIXME: should this be an error? */
+				return(0);
+			}
+
+			c->be->be_replicationinterval = c->value_int;
+			break;
+
 		case CFG_REPLOG:
 			if(SLAP_MONITOR(c->be)) {
 				Debug(LDAP_DEBUG_ANY, "%s: "
 					"\"replogfile\" should not be used "
 					"inside monitor database\n",
 					c->log, 0, 0);
-				return(0);	/* FIXME: should this be an error? */
+				/* FIXME: should this be an error? */
+				return(0);
+			}
+
+			if ( c->be->be_replogfile != NULL ) {
+				/* FIXME: error? */
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"\"replogfile\" already provided; "
+					"replacing \"%s\" with \"%s\".\n",
+					c->log, c->be->be_replogfile, c->value_string );
+				ch_free( c->be->be_replogfile );
 			}
 
 			c->be->be_replogfile = c->value_string;

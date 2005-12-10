@@ -1826,6 +1826,9 @@ struct slap_backend_db {
 	/* Replica Information */
 	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
 	char	*be_replogfile;	/* replication log file (in master)	   */
+	char	*be_replica_argsfile; /* per-replog replica args file */
+	char	*be_replica_pidfile; /* per-replog replica pid file */
+	int	be_replicationinterval; /* per-replog replicationinterval */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
 	struct		be_pcl	*be_pending_csn_list;
