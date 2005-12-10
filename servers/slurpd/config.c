@@ -79,113 +79,183 @@ slurpd_read_config(
     char	*fname
 )
 {
-    FILE	*fp;
-    char	*line;
+	FILE	*fp;
+	char	*line;
+
+#define GOT_REPLOG_NO		(0)
+#define GOT_REPLOG_ONE		(1)
+#define GOT_REPLOG_YES		(2)	
+#define GOT_REPLOG_DONE		(3)
+#define	GOT_REPLOG_MASK		(0xF)
+#define	GOT_REPLOG(i)		((i) & GOT_REPLOG_MASK)
+#define	GOT_REPLOG_SET(i,v)	((i) = ((i) & ~GOT_REPLOG_MASK) | ((v) & GOT_REPLOG_MASK))
+#define GOT_REPLOG_PID		(0x10)
+#define GOT_REPLOG_ARGS		(0x20)
+	int	got_replog =	GOT_REPLOG_NO;
+
+	/*
+	 * replica-pidfile and replica-argsfile can appear before any replog;
+	 * in this case they're global (legacy behavior); otherwise, since
+	 * each replog needs a slurpd, they can appear after a replogfile line;
+	 * in that case, the replog specific values are used.
+	 */
 
 	if ( cargv == NULL ) {
-	cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
-	cargv_size = ARGS_STEP + 1;
+		cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
+		cargv_size = ARGS_STEP + 1;
 	}
 
-    Debug( LDAP_DEBUG_CONFIG, "Config: opening config file \"%s\"\n",
-	    fname, 0, 0 );
+	Debug( LDAP_DEBUG_CONFIG, "Config: opening config file \"%s\"\n",
+		fname, 0, 0 );
 
-    if ( (fp = fopen( fname, "r" )) == NULL ) {
-	perror( fname );
-	exit( EXIT_FAILURE );
-    }
-
-    lineno = 0;
-    while ( (line = slurpd_getline( fp )) != NULL ) {
-	/* skip comments and blank lines */
-	if ( line[0] == '#' || line[0] == '\0' ) {
-	    continue;
+	if ( (fp = fopen( fname, "r" )) == NULL ) {
+		perror( fname );
+		exit( EXIT_FAILURE );
 	}
 
-	Debug( LDAP_DEBUG_CONFIG, "Config: (%s)\n", line, 0, 0 );
-
-	parse_line( line );
-
-	if ( cargc < 1 ) {
-	    fprintf( stderr, "line %d: bad config line (ignored)\n", lineno );
-	    continue;
-	}
-
-	/* replication log file to which changes are appended */
-	if ( strcasecmp( cargv[0], "replogfile" ) == 0 ) {
-	    /* 
-	     * if slapd_replogfile has a value, the -r option was given,
-	     * so use that value.  If slapd_replogfile has length == 0,
-	     * then we should use the value in the config file we're reading.
-	     */
-	    if ( sglob->slapd_replogfile[ 0 ] == '\0' ) {
-		if ( cargc < 2 ) {
-		    fprintf( stderr,
-			"line %d: missing filename in \"replogfile ",
-			lineno );
-		    fprintf( stderr, "<filename>\" line\n" );
-		    exit( EXIT_FAILURE );
-		} else if ( cargc > 2 && *cargv[2] != '#' ) {
-		    fprintf( stderr,
-			"line %d: extra cruft at the end of \"replogfile %s\"",
-			lineno, cargv[1] );
-		    fprintf( stderr, "line (ignored)\n" );
+	lineno = 0;
+	while ( (line = slurpd_getline( fp )) != NULL ) {
+		/* skip comments and blank lines */
+		if ( line[0] == '#' || line[0] == '\0' ) {
+			continue;
 		}
-		LUTIL_SLASHPATH( cargv[1] );
-		strcpy( sglob->slapd_replogfile, cargv[1] );
-	    }
-	} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
-	    add_replica( cargv, cargc );
+
+		Debug( LDAP_DEBUG_CONFIG, "Config: (%s)\n", line, 0, 0 );
+
+		parse_line( line );
+
+		if ( cargc < 1 ) {
+			fprintf( stderr, "line %d: bad config line (ignored)\n", lineno );
+			continue;
+		}
+
+		/* replication log file to which changes are appended */
+		if ( strcasecmp( cargv[0], "replogfile" ) == 0 ) {
+			/* 
+			 * if slapd_replogfile has a value, the -r option was given,
+			 * so use that value.  If slapd_replogfile has length == 0,
+			 * then we should use the value in the config file we're reading.
+			 */
+			if ( cargc < 2 ) {
+				fprintf( stderr,
+					"line %d: missing filename in \"replogfile ",
+					lineno );
+				fprintf( stderr, "<filename>\" line\n" );
+				exit( EXIT_FAILURE );
+
+			} else if ( cargc > 2 && *cargv[2] != '#' ) {
+				fprintf( stderr,
+					"line %d: extra cruft at the end of \"replogfile %s\"",
+					lineno, cargv[1] );
+				fprintf( stderr, "line (ignored)\n" );
+			}
+
+			LUTIL_SLASHPATH( cargv[1] );
+			if ( sglob->slapd_replogfile[0] == '\0' ) {
+				strcpy( sglob->slapd_replogfile, cargv[1] );
+				GOT_REPLOG_SET(got_replog, GOT_REPLOG_YES);
+
+			} else {
+				if ( strcmp( sglob->slapd_replogfile, cargv[1] ) == 0 ) {
+					GOT_REPLOG_SET(got_replog, GOT_REPLOG_YES);
+
+				} else if ( GOT_REPLOG(got_replog) == GOT_REPLOG_YES ) {
+					GOT_REPLOG_SET(got_replog, GOT_REPLOG_DONE);
+
+				} else {
+					GOT_REPLOG_SET(got_replog, GOT_REPLOG_ONE);
+				}
+			}
+
+		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
+			add_replica( cargv, cargc );
 	    
-	    /* include another config file */
-	} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {
-	    char *savefname;
-	    int savelineno;
+		/* include another config file */
+		} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {
+			char *savefname;
+			int savelineno;
 
-            if ( cargc < 2 ) {
-                Debug( LDAP_DEBUG_ANY,
-        "%s: line %d: missing filename in \"include <filename>\" line\n",
-                        fname, lineno, 0 );
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: missing filename in \"include <filename>\" line\n",
+					fname, lineno, 0 );
 		
-                return( 1 );
-            }
-	    LUTIL_SLASHPATH( cargv[1] );
-	    savefname = strdup( cargv[1] );
-	    savelineno = lineno;
+				return( 1 );
+			}
+			LUTIL_SLASHPATH( cargv[1] );
+			savefname = strdup( cargv[1] );
+			savelineno = lineno;
 	    
-	    if ( slurpd_read_config( savefname ) != 0 ) {
-	        return( 1 );
-	    }
+			if ( slurpd_read_config( savefname ) != 0 ) {
+				return( 1 );
+			}
 		
-	    free( savefname );
-	    lineno = savelineno - 1;
+			free( savefname );
+			lineno = savelineno - 1;
 
-	} else if ( strcasecmp( cargv[0], "replica-pidfile" ) == 0 ) {
-		if ( cargc < 2 ) {
-			Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing file name in \"replica-pidfile <file>\" line\n",
-				fname, lineno, 0 );
+		} else if ( strcasecmp( cargv[0], "replica-pidfile" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: missing file name in \"replica-pidfile <file>\" line\n",
+					fname, lineno, 0 );
 
-			return( 1 );
-		}
+				return( 1 );
+			}
 
-		LUTIL_SLASHPATH( cargv[1] );
-		slurpd_pid_file = ch_strdup( cargv[1] );
+			switch ( GOT_REPLOG(got_replog) ) {
+			case GOT_REPLOG_YES:
+				Debug( LDAP_DEBUG_CONFIG, "%s: line %d: "
+					"got replog specific replica-pidfile \"%s\".\n",
+					fname, lineno, cargv[1] );
+			case GOT_REPLOG_NO:
+				LUTIL_SLASHPATH( cargv[1] );
+				if ( slurpd_pid_file != NULL ) {
+					ch_free( slurpd_pid_file );
+				}
+				slurpd_pid_file = ch_strdup( cargv[1] );
+				got_replog |= GOT_REPLOG_PID;
+				break;
 
-	} else if ( strcasecmp( cargv[0], "replica-argsfile" ) == 0 ) {
-		if ( cargc < 2 ) {
-			Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing file name in \"argsfile <file>\" line\n",
-			    fname, lineno, 0 );
+			default:
+				Debug( LDAP_DEBUG_CONFIG, "%s: line %d: "
+					"replica-pidfile \"%s\" not mine.\n",
+					fname, lineno, cargv[1] );
+				break;
+			}
 
-			return( 1 );
-		}
+		} else if ( strcasecmp( cargv[0], "replica-argsfile" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: missing file name in \"argsfile <file>\" line\n",
+					fname, lineno, 0 );
 
-		LUTIL_SLASHPATH( cargv[1] );
-		slurpd_args_file = ch_strdup( cargv[1] );
+				return( 1 );
+			}
+
+			switch ( GOT_REPLOG(got_replog) ) {
+			case GOT_REPLOG_YES:
+				Debug( LDAP_DEBUG_CONFIG, "%s: line %d: "
+					"got replog specific replica-argsfile \"%s\".\n",
+					fname, lineno, cargv[1] );
+			case GOT_REPLOG_NO:
+				LUTIL_SLASHPATH( cargv[1] );
+				if ( slurpd_args_file != NULL ) {
+					ch_free( slurpd_args_file );
+				}
+				slurpd_args_file = ch_strdup( cargv[1] );
+				got_replog |= GOT_REPLOG_ARGS;
+				break;
+
+			default:
+				Debug( LDAP_DEBUG_CONFIG, "%s: line %d: "
+					"replica-argsfile \"%s\" not mine.\n",
+					fname, lineno, cargv[1] );
+				break;
+			}
 
 		} else if ( strcasecmp( cargv[0], "replicationinterval" ) == 0 ) {
 			int c;
+
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: missing interval in "
 					"\"replicationinterval <seconds>\" line\n",
@@ -203,12 +273,13 @@ slurpd_read_config(
 
 			sglob->no_work_interval = c;
 		}
-    }
-    fclose( fp );
-    Debug( LDAP_DEBUG_CONFIG,
-	    "Config: ** configuration file successfully read and parsed\n",
-	    0, 0, 0 );
-    return 0;
+	}
+
+	fclose( fp );
+	Debug( LDAP_DEBUG_CONFIG,
+		"Config: ** configuration file successfully read and parsed\n",
+		0, 0, 0 );
+	return 0;
 }
 
 
