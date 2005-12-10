@@ -109,7 +109,7 @@ doargs(
 		return( -1 );
 	    }
 #ifdef LDAP_DEBUG
-	    if ( lutil_atoi( &level, optarg ) != 0 ) {
+	    if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 		fprintf( stderr, "unable to parse debug flag \"%s\".\n", optarg );
 		usage( g->myname );
 		return( -1 );
