@@ -1442,3 +1442,29 @@ member: cn=Another Added Group,ou=Groups,o=Example,c=US
 
 # refldap://localhost:9016/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
 
+# Checking server-enforced size limit...
+Size limit exceeded (4)
+dn: ou=Alumni Association,ou=People,o=Example,c=US
+
+dn: cn=Dan Aykroyd,ou=Meta,o=Example,c=US
+
+dn: o=Example,c=US
+
+dn: ou=Groups,o=Example,c=US
+
+dn: cn=John Belushi,ou=Meta,o=Example,c=US
+
+dn: ou=Meta,o=Example,c=US
+
+dn: ou=People,o=Example,c=US
+
+dn: ou=Same as above,ou=Meta,o=Example,c=US
+
+# refldap://localhost:9016/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+
+# Checking client-requested size limit...
+Size limit exceeded (4)
+dn: o=Example,c=US
+
+dn: ou=Meta,o=Example,c=US
+

@@ -471,6 +471,50 @@ case $RC in
 	;;
 esac
 
+echo "Checking server-enforced size limit..."
+echo "# Checking server-enforced size limit..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
+	-D "cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN" -w bjorn \
+	-b "$BASEDN" "(objectClass=*)" 1.1 \
+	>> $SEARCHOUT 2>&1
+RC=$?
+case $RC in 
+	0)
+		echo "Search should have failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit -1
+	;;
+	4)
+	;;
+	*)
+		echo "Search failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	;;
+esac
+
+echo "Checking client-requested size limit..."
+echo "# Checking client-requested size limit..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
+	-D "cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN" -w bjorn \
+	-b "$BASEDN" -z 2 "(objectClass=*)" 1.1 \
+	>> $SEARCHOUT 2>&1
+RC=$?
+case $RC in 
+	0)
+		echo "Search should have failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit -1
+	;;
+	4)
+	;;
+	*)
+		echo "Search failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	;;
+esac
+
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif used to create database..."

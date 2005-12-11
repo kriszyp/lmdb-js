@@ -453,7 +453,7 @@ really_bad:;
 				ldap_msgfree( res );
 				res = NULL;
 
-				switch ( rc ) {
+				switch ( rs->sr_err ) {
 				case LDAP_SIZELIMIT_EXCEEDED:
 					savepriv = op->o_private;
 					op->o_private = (void *)i;
