@@ -1,4 +1,5 @@
 OpenLDAP 2.3 Change Log
+	Fixed slapd-meta sizelimit disclose issue (ITS#4213)
 
 OpenLDAP 2.3.13 Release
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
