@@ -476,7 +476,7 @@ echo "# Checking server-enforced size limit..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
 	-D "cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN" -w bjorn \
 	-b "$BASEDN" "(objectClass=*)" 1.1 \
-	>> $SEARCHOUT 2>&1
+	>> $TESTOUT 2>&1
 RC=$?
 case $RC in 
 	0)
@@ -498,7 +498,7 @@ echo "# Checking client-requested size limit..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
 	-D "cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN" -w bjorn \
 	-b "$BASEDN" -z 2 "(objectClass=*)" 1.1 \
-	>> $SEARCHOUT 2>&1
+	>> $TESTOUT 2>&1
 RC=$?
 case $RC in 
 	0)
