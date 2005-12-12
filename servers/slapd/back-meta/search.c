@@ -566,13 +566,22 @@ really_bad:;
 					candidates[ i ].sr_type = REP_RESULT;
 				}
 
+				/* NOTE: ignores response controls
+				 * (and intermediate response controls
+				 * as well, except for those with search
+				 * references); this may not be correct,
+				 * but if they're not ignored then
+				 * back-meta would need to merge them
+				 * consistently (think of pagedResults...)
+				 */
 				if ( ldap_parse_result( msc->msc_ld,
 							res,
 							&candidates[ i ].sr_err,
 							(char **)&candidates[ i ].sr_matched,
 							NULL /* (char **)&candidates[ i ].sr_text */ ,
 							&references,
-							&candidates[ i ].sr_ctrls, 1 ) != LDAP_SUCCESS )
+							NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
+							1 ) != LDAP_SUCCESS )
 				{
 					res = NULL;
 					ldap_get_option( msc->msc_ld,
