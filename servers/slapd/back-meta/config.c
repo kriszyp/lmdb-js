@@ -157,9 +157,9 @@ meta_back_db_config(
 		mi->mi_targets[ i ].mt_nretries = mi->mi_nretries;
 		mi->mi_targets[ i ].mt_flags = mi->mi_flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
-		mi->mi_targets[ i ].mt_idle_timeout = mi->mi_idle_timeout;
 		mi->mi_targets[ i ].mt_network_timeout = mi->mi_network_timeout;
-
+		mi->mi_targets[ i ].mt_idle_timeout = mi->mi_idle_timeout;
+		mi->mi_targets[ i ].mt_bind_timeout = mi->mi_bind_timeout;
 		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
 			mi->mi_targets[ i ].mt_timeout[ c ] = mi->mi_timeout[ c ];
 		}
@@ -401,6 +401,40 @@ meta_back_db_config(
 		}
 
 		*tp = (time_t)t;
+
+	/* bind timeout when connecting to ldap servers */
+	} else if ( strcasecmp( argv[ 0 ], "bind-timeout" ) == 0 ) {
+		int 		i = mi->mi_ntargets - 1;
+		unsigned long	t;
+		struct timeval	*tp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_bind_timeout
+				: &mi->mi_bind_timeout;
+
+		switch ( argc ) {
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: missing timeout value in \"bind-timeout <microseconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		case 2:
+			break;
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: extra cruft after timeout value in \"bind-timeout <microseconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( lutil_atoul( &t, argv[ 1 ] ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse timeout \"%s\" in \"bind-timeout <microseconds>\" line\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+
+		}
+
+		tp->tv_sec = t/1000000;
+		tp->tv_usec = t%1000000;
 
 	/* name to use for meta_back_group */
 	} else if ( strcasecmp( argv[ 0 ], "acl-authcDN" ) == 0

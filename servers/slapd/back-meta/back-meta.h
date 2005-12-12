@@ -82,9 +82,6 @@ typedef struct dncookie {
 #endif
 } dncookie;
 
-/* TODO: allow to define it on a per-target basis */
-#define META_BIND_TIMEOUT	10000
-
 int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
 	struct berval *res);
 
@@ -232,6 +229,8 @@ typedef struct metatarget_t {
 	int			mt_version;
 	time_t			mt_network_timeout;
 	time_t			mt_idle_timeout;
+	struct timeval		mt_bind_timeout;
+#define META_BIND_TIMEOUT	10000
 	time_t			mt_timeout[ LDAP_BACK_OP_LAST ];
 } metatarget_t;
 
@@ -276,6 +275,7 @@ typedef struct metainfo_t {
 	int			mi_version;
 	time_t			mi_network_timeout;
 	time_t			mi_idle_timeout;
+	struct timeval		mi_bind_timeout;
 	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];
 } metainfo_t;
 

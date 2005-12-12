@@ -342,8 +342,7 @@ rebind:;
 		 * handle response!!!
 		 */
 retry:;
-		tv.tv_sec = 0;
-		tv.tv_usec = META_BIND_TIMEOUT;
+		tv = mt->mt_bind_timeout;
 		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
 			snprintf( buf, sizeof( buf ),
@@ -499,8 +498,7 @@ rebind:;
 		 * handle response!!!
 		 */
 retry:;
-		tv.tv_sec = 0;
-		tv.tv_usec = META_BIND_TIMEOUT;
+		tv = mt->mt_bind_timeout;
 		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
 			snprintf( buf, sizeof( buf ),
