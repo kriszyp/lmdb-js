@@ -68,7 +68,7 @@ ldap_int_put_controls(
 	LDAPControl *const *c;
 
 	assert( ld != NULL );
-	assert( LDAP_VALID(ld) );
+	assert( LDAP_VALID( ld ) );
 	assert( ber != NULL );
 
 	if( ctrls == NULL ) {
@@ -470,7 +470,7 @@ int ldap_int_client_controls( LDAP *ld, LDAPControl **ctrls )
 	LDAPControl *const *c;
 
 	assert( ld != NULL );
-	assert( LDAP_VALID(ld) );
+	assert( LDAP_VALID( ld ) );
 
 	if( ctrls == NULL ) {
 		/* use default server controls */
