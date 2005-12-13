@@ -17,7 +17,11 @@ the LDAP URI-valued occurrences of a specific attribute are
 expanded into the corresponding entries, and the values
 of the attributes listed in the URI are added to the original
 entry.
-No recursion is currently allowed, to avoid potential infinite loops.
+No recursion is allowed, to avoid potential infinite loops.
+The resulting entry must comply with the LDAP data model, so constraints
+are enforced.
+For example, if a \fISINGLE-VALUE\fP attribute is listed,
+only the first value results in the final entry.
 
 .SH CONFIGURATION
 The config directives that are specific to the
