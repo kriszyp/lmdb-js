@@ -185,7 +185,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			}
 
 			lrc = ldap_result( msc->msc_ld, msgid[ i ],
-					0, &tv, &res );
+					LDAP_MSG_ALL, &tv, &res );
 
 			if ( lrc == 0 ) {
 				assert( res == NULL );

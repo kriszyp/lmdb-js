@@ -1003,7 +1003,7 @@ tool_bind( LDAP *ld )
 			}
 		}
 
-		if ( ldap_result( ld, msgid, 1, NULL, &result ) == -1 ) {
+		if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 ) {
 			tool_perror( "ldap_result", -1, NULL, NULL, NULL, NULL );
 			exit( EXIT_FAILURE );
 		}

@@ -343,7 +343,7 @@ rebind:;
 		 */
 retry:;
 		tv = mt->mt_bind_timeout;
-		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
+		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
 		case 0:
 			snprintf( buf, sizeof( buf ),
 				"ldap_result=0 nretries=%d%s\n",
@@ -499,7 +499,7 @@ rebind:;
 		 */
 retry:;
 		tv = mt->mt_bind_timeout;
-		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
+		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
 		case 0:
 			snprintf( buf, sizeof( buf ),
 				"ldap_result=0 nretries=%d%s",

@@ -1163,9 +1163,9 @@ static int process_response(
 
 		rc = ldap_result( ld, msgid,
 #ifdef LDAP_GROUP_TRANSACTION
-			txn ? 0 : 1,
+			txn ? LDAP_MSG_ONE : LDAP_MSG_ALL,
 #else
-			1,
+			LDAP_MSG_ALL,
 #endif
 			&tv, &res );
 		if ( tool_check_abandon( ld, msgid ) ) {

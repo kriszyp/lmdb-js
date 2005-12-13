@@ -181,6 +181,7 @@ retry:;
 	rc = ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE );
 	if ( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_bind" );
+		ldap_unbind_ext( ld, NULL, NULL );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -205,6 +206,7 @@ retry:;
 				filter, attrs, 0, &res );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_search" );
+			ldap_unbind_ext( ld, NULL, NULL );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				do_retry--;
 				goto retry;
@@ -219,5 +221,5 @@ retry:;
 
 	fprintf( stderr, " PID=%ld - Search done (%d).\n", (long) pid, rc );
 
-	ldap_unbind( ld );
+	ldap_unbind_ext( ld, NULL, NULL );
 }

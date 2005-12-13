@@ -186,7 +186,7 @@ retry:;
 
 		rs->sr_err = LDAP_OTHER;
 		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
-			msgid, LDAP_MSG_ONE, tvp, &res );
+			msgid, LDAP_MSG_ALL, tvp, &res );
 		switch ( rc ) {
 		case -1:
 			send_ldap_result( op, rs );

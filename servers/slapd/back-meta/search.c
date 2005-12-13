@@ -389,7 +389,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 			 */
 get_result:;
 			rc = ldap_result( msc->msc_ld, candidates[ i ].sr_msgid,
-					0, &tv, &res );
+					LDAP_MSG_ONE, &tv, &res );
 
 			if ( rc == 0 ) {
 				/* FIXME: res should not need to be freed */

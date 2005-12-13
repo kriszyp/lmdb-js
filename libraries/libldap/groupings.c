@@ -82,9 +82,9 @@ int ldap_grouping_create_s(
 	struct berval **retgrpcookiep,
 	struct berval **retgrpdatap )
 {
-    int     rc;
-    int     msgid;
-    LDAPMessage *res;
+	int     rc;
+	int     msgid;
+	LDAPMessage *res;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_grouping_create_s\n", 0, 0, 0 );
 
@@ -92,14 +92,14 @@ int ldap_grouping_create_s(
 	assert( LDAP_VALID( ld ) );
 	assert( grpoid != NULL || *grpoid == '\0' );
 
-    rc = ldap_grouping_create( ld, grpoid, grpdata,
+	rc = ldap_grouping_create( ld, grpoid, grpdata,
 		sctrls, cctrls, &msgid );
-    if ( rc != LDAP_SUCCESS ) {
-        return rc;
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
  
-    if ( ldap_result( ld, msgid, 1, (struct timeval *) NULL, &res ) == -1 ) {
-        return ld->ld_errno;
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 ) {
+		return ld->ld_errno;
 	}
 
 	if ( retgrpcookiep != NULL ) *retgrpcookiep = NULL;
@@ -116,7 +116,7 @@ int ldap_grouping_create_s(
 		return rc;
 	}
 
-    return( ldap_result2error( ld, res, 1 ) );
+	return( ldap_result2error( ld, res, 1 ) );
 }
 
 int ldap_grouping_end(

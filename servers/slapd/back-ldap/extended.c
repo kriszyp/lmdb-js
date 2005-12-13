@@ -122,7 +122,7 @@ retry:
 		op->o_ctrls, NULL, &msgid );
 
 	if ( rc == LDAP_SUCCESS ) {
-		if ( ldap_result( lc->lc_ld, msgid, 1, NULL, &res ) == -1 ) {
+		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, NULL, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 			ldap_back_freeconn( op, lc, 0 );
 			lc = NULL;
