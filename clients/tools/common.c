@@ -946,7 +946,7 @@ tool_bind( LDAP *ld )
 				fprintf( stderr,
 					"Could not set LDAP_OPT_X_SASL_SECPROPS: %s\n",
 					sasl_secprops );
-				exit( LDAP_OPERATIONS_ERROR );
+				exit( LDAP_LOCAL_ERROR );
 			}
 		}
 
@@ -988,7 +988,7 @@ tool_bind( LDAP *ld )
 			msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
 			if ( msgid == -1 ) {
 				tool_perror( "ldap_bind", -1, NULL, NULL, NULL, NULL );
-				exit( LDAP_OPERATIONS_ERROR );
+				exit( LDAP_LOCAL_ERROR );
 			}
 		} else
 #endif
@@ -1005,14 +1005,14 @@ tool_bind( LDAP *ld )
 
 		if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 ) {
 			tool_perror( "ldap_result", -1, NULL, NULL, NULL, NULL );
-			exit( LDAP_OPERATIONS_ERROR );
+			exit( LDAP_LOCAL_ERROR );
 		}
 
 		rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
 			&ctrls, 1 );
 		if ( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_bind parse result", rc, NULL, NULL, NULL, NULL );
-			exit( LDAP_OPERATIONS_ERROR );
+			exit( LDAP_LOCAL_ERROR );
 		}
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
