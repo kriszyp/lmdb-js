@@ -464,25 +464,51 @@ bdb_cf_gen(ConfigArgs *c)
 		case BDB_NOSYNC:
 			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC, 0 );
 			break;
-		case BDB_INDEX: {
-			AttributeDescription *ad = NULL;
-			struct berval bv, def = BER_BVC("default");
-			char *ptr;
-			const char *text;
-			for (ptr = c->line; !isspace( *ptr ); ptr++);
-			bv.bv_val = c->line;
-			bv.bv_len = ptr - bv.bv_val;
-			if ( bvmatch( &bv, &def )) {
-				bdb->bi_defaultmask = 0;
+		case BDB_INDEX:
+			if ( c->valx == -1 ) {
+				/* delete all (FIXME) */
+
 			} else {
-				slap_bv2ad( &bv, &ad, &text );
-				if ( ad ) {
-					AttrInfo *ai = bdb_attr_mask( bdb, ad );
-					ai->ai_indexmask |= BDB_INDEX_DELETING;
-					bdb->bi_flags |= BDB_DEL_INDEX;
-					c->cleanup = bdb_cf_cleanup;
+				struct berval bv, def = BER_BVC("default");
+				char *ptr;
+
+				for (ptr = c->line; !isspace( *ptr ); ptr++);
+
+				bv.bv_val = c->line;
+				bv.bv_len = ptr - bv.bv_val;
+				if ( bvmatch( &bv, &def )) {
+					bdb->bi_defaultmask = 0;
+
+				} else {
+					int i;
+					char **attrs;
+					char sep;
+
+					sep = bv.bv_val[ bv.bv_len ];
+					bv.bv_val[ bv.bv_len ] = '\0';
+					attrs = ldap_str2charray( bv.bv_val, "," );
+
+					for ( i = 0; attrs[ i ]; i++ ) {
+						AttributeDescription *ad = NULL;
+						const char *text;
+						AttrInfo *ai;
+
+						slap_str2ad( attrs[ i ], &ad, &text );
+						/* if we got here... */
+						assert( ad != NULL );
+
+						ai = bdb_attr_mask( bdb, ad );
+						/* if we got here... */
+						assert( ai != NULL );
+
+						ai->ai_indexmask |= BDB_INDEX_DELETING;
+						bdb->bi_flags |= BDB_DEL_INDEX;
+						c->cleanup = bdb_cf_cleanup;
+					}
+
+					bv.bv_val[ bv.bv_len ] = sep;
+					ldap_charray_free( attrs );
 				}
-			}
 			}
 			break;
 		}
