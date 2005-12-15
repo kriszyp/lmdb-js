@@ -1947,7 +1947,7 @@ config_restrict(ConfigArgs *c) {
 		{ BER_BVC("modrdn"),		0 },
 		{ BER_BVC("delete"),		SLAP_RESTRICT_OP_DELETE },
 		{ BER_BVC("search"),		SLAP_RESTRICT_OP_SEARCH },
-		{ BER_BVC("compare"),	SLAP_RESTRICT_OP_COMPARE },
+		{ BER_BVC("compare"),		SLAP_RESTRICT_OP_COMPARE },
 		{ BER_BVC("read"),		SLAP_RESTRICT_OP_READS },
 		{ BER_BVC("write"),		SLAP_RESTRICT_OP_WRITES },
 		{ BER_BVC("extended"),	SLAP_RESTRICT_OP_EXTENDED },
@@ -1955,6 +1955,7 @@ config_restrict(ConfigArgs *c) {
 		{ BER_BVC("extended=" LDAP_EXOP_MODIFY_PASSWD ),	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
 		{ BER_BVC("extended=" LDAP_EXOP_X_WHO_AM_I ),		SLAP_RESTRICT_EXOP_WHOAMI },
 		{ BER_BVC("extended=" LDAP_EXOP_X_CANCEL ),		SLAP_RESTRICT_EXOP_CANCEL },
+		{ BER_BVC("all"),		SLAP_RESTRICT_OP_ALL },
 		{ BER_BVNULL,	0 }
 	};
 
