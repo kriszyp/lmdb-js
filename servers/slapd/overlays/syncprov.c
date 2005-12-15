@@ -2550,7 +2550,7 @@ syncprov_initialize()
 	int rc;
 
 	rc = register_supported_control( LDAP_CONTROL_SYNC,
-		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_SEARCH, NULL,
 		syncprov_parseCtrl, &slap_cids.sc_LDAPsync );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
