@@ -43,8 +43,10 @@ processed, and not its glued subordinates (if any).
 .TP
 .B \-q
 enable quick (fewer integrity checks) mode. Performs no consistency checks
-when writing the database. Improves indexing time, but if any errors or
-interruptions occur the database will most likely be unusable.
+when writing the database. Improves indexing time,
+.B however
+the database will most likely be unusable if any errors or
+interruptions occur.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
