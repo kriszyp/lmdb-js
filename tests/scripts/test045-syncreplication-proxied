@@ -36,6 +36,11 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
+if test $MONITORDB = no; then 
+	echo "Monitor backend not available, test skipped"
+	exit 0
+fi 
+
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 #
@@ -63,7 +68,7 @@ sleep 1
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
-		'objectclass=*' > /dev/null 2>&1
+		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -89,7 +94,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slave slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $SLAVECONF > $CONF2
+. $CONFFILTER $BACKEND $MONITORDB < $RSLAVECONF > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
@@ -103,7 +108,7 @@ sleep 1
 echo "Using ldapsearch to check that slave slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
-		'objectclass=*' > /dev/null 2>&1
+		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -133,7 +138,7 @@ sleep 1
 echo "Using ldapsearch to check that proxy slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
-		'objectclass=*' > /dev/null 2>&1
+		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -164,7 +169,7 @@ sleep 15
 # first check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'(objectClass=*)' > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -175,7 +180,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -215,7 +220,7 @@ sleep 1
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
-		'objectclass=*' > /dev/null 2>&1
+		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -323,7 +328,7 @@ sleep 15
 # second check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'(objectClass=*)' > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -334,7 +339,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -373,8 +378,15 @@ dn: cn=James T. Kirk, ou=Retired, ou=People, dc=example,dc=com
 changetype: add
 objectclass: OpenLDAPperson
 sn: Kirk
-uid: jkirk
+uid: jtk
 cn: James T. Kirk
+
+dn: cn=Tiberius J. Hooker, ou=Retired, ou=People, dc=example,dc=com
+changetype: add
+objectclass: OpenLDAPperson
+sn: Hooker
+uid: tjh
+cn: Tiberius J. Hooker
 
 EOMODS
 
@@ -394,7 +406,7 @@ sleep 25
 # third check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'(objectClass=*)' > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -405,7 +417,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -454,7 +466,7 @@ fi
 # fourth check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'(objectClass=*)' > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -465,7 +477,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -518,7 +530,7 @@ sleep 25
 # fifth check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'(objectClass=*)' > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -529,7 +541,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -556,7 +568,7 @@ fi
 #
 # Modifications known to fail
 #
-
+echo "(DEVEL) Performing modifications that are known to fail..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 # First, back out previous change
@@ -565,7 +577,7 @@ changetype: modify
 delete: drink
 drink: Mad Dog 20/20
 
-# From now on, place modifications that are known to fail
+# From now on, perform modifications that are known to fail
 dn: cn=All Staff,ou=Groups,dc=example,dc=com
 changetype: modify
 delete: description
@@ -585,7 +597,7 @@ sleep 15
 # sixth check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'(objectClass=*)' > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -596,7 +608,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then

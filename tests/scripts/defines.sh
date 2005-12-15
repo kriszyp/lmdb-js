@@ -104,6 +104,7 @@ GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
 VALSORTCONF=$DATADIR/slapd-valsort.conf
 DYNLISTCONF=$DATADIR/slapd-dynlist.conf
+RSLAVECONF=$DATADIR/slapd-repl-slave-remote.conf
 PLSRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist-ldap.conf
 
 CONF1=$TESTDIR/slapd.1.conf
