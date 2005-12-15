@@ -2279,8 +2279,8 @@ syncprov_db_open(
 	slap_overinst   *on = (slap_overinst *) be->bd_info;
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 
-	Connection conn;
-	OperationBuffer opbuf;
+	Connection conn = { 0 };
+	OperationBuffer opbuf = { 0 };
 	char ctxcsnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	Operation *op = (Operation *) &opbuf;
 	Entry *e;
