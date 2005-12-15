@@ -179,7 +179,7 @@ sleep $SLEEP
 # first check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' > $MASTEROUT 2>&1
+	'(objectClass=*)' > "${MASTEROUT}.1" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -190,7 +190,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(objectClass=*)' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > "${SLAVEOUT}.1" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -200,9 +200,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+. $LDIFFILTER < "${MASTEROUT}.1" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+. $LDIFFILTER < "${SLAVEOUT}.1" > $SLAVEFLT
 
 echo "1 - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -341,7 +341,7 @@ sleep $SLEEP
 # second check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' > $MASTEROUT 2>&1
+	'(objectClass=*)' > "${MASTEROUT}.2" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -352,7 +352,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(objectClass=*)' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > "${SLAVEOUT}.2" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -362,9 +362,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+. $LDIFFILTER < "${MASTEROUT}.2" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+. $LDIFFILTER < "${SLAVEOUT}.2" > $SLAVEFLT
 
 echo "2 - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -421,7 +421,7 @@ sleep $SLEEP
 # third check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' > $MASTEROUT 2>&1
+	'(objectClass=*)' > "${MASTEROUT}.3" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -432,7 +432,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(objectClass=*)' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > "${SLAVEOUT}.3" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -442,9 +442,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+. $LDIFFILTER < "${MASTEROUT}.3" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+. $LDIFFILTER < "${SLAVEOUT}.3" > $SLAVEFLT
 
 echo "3 - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -482,7 +482,7 @@ fi
 # fourth check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' > $MASTEROUT 2>&1
+	'(objectClass=*)' > "${MASTEROUT}.4" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -493,7 +493,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(objectClass=*)' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > "${SLAVEOUT}.4" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -503,9 +503,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+. $LDIFFILTER < "${MASTEROUT}.4" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+. $LDIFFILTER < "${SLAVEOUT}.4" > $SLAVEFLT
 
 echo "4 - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -548,7 +548,7 @@ sleep $SLEEP
 # fifth check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' > $MASTEROUT 2>&1
+	'(objectClass=*)' > "${MASTEROUT}.5" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -559,7 +559,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(objectClass=*)' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > "${SLAVEOUT}.5" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -569,9 +569,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+. $LDIFFILTER < "${MASTEROUT}.5" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+. $LDIFFILTER < "${SLAVEOUT}.5" > $SLAVEFLT
 
 echo "5 - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
@@ -616,7 +616,7 @@ sleep $SLEEP
 # sixth check
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' > $MASTEROUT 2>&1
+	'(objectClass=*)' > "${MASTEROUT}.6" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -627,7 +627,7 @@ fi
 
 #echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(objectClass=*)' > $SLAVEOUT 2>&1
+	'(objectClass=*)' > "${SLAVEOUT}.6" 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -637,9 +637,9 @@ if test $RC != 0 ; then
 fi
 
 #echo "Filtering master results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+. $LDIFFILTER < "${MASTEROUT}.6" > $MASTERFLT
 #echo "Filtering slave results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+. $LDIFFILTER < "${SLAVEOUT}.6" > $SLAVEFLT
 
 echo "6 - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
