@@ -1660,12 +1660,12 @@ syncrepl_entry(
 	ava.aa_value = *syncUUID;
 	op->ors_filter = &f;
 
-	op->ors_filterstr.bv_len = STRLENOF( "(entryUUID=)" ) + syncUUID->bv_len;
+	op->ors_filterstr.bv_len = STRLENOF( "(entryUUID=)" ) + syncUUID_strrep.bv_len;
 	op->ors_filterstr.bv_val = (char *) slap_sl_malloc(
 		op->ors_filterstr.bv_len + 1, op->o_tmpmemctx ); 
 	AC_MEMCPY( op->ors_filterstr.bv_val, "(entryUUID=", STRLENOF( "(entryUUID=" ) );
 	AC_MEMCPY( &op->ors_filterstr.bv_val[STRLENOF( "(entryUUID=" )],
-		syncUUID->bv_val, syncUUID->bv_len );
+		syncUUID_strrep.bv_val, syncUUID_strrep.bv_len );
 	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len - 1] = ')';
 	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len] = '\0';
 
