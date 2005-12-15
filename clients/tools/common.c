@@ -946,7 +946,7 @@ tool_bind( LDAP *ld )
 				fprintf( stderr,
 					"Could not set LDAP_OPT_X_SASL_SECPROPS: %s\n",
 					sasl_secprops );
-				exit( EXIT_FAILURE );
+				exit( LDAP_OPERATIONS_ERROR );
 			}
 		}
 
@@ -965,12 +965,12 @@ tool_bind( LDAP *ld )
 		if( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_sasl_interactive_bind_s",
 				rc, NULL, NULL, NULL, NULL );
-			exit( EXIT_FAILURE );
+			exit( rc );
 		}
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
-		exit( EXIT_FAILURE );
+		exit( rc );
 #endif
 	} else {
 		int msgid, err, rc;
@@ -988,7 +988,7 @@ tool_bind( LDAP *ld )
 			msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
 			if ( msgid == -1 ) {
 				tool_perror( "ldap_bind", -1, NULL, NULL, NULL, NULL );
-				exit( EXIT_FAILURE );
+				exit( LDAP_OPERATIONS_ERROR );
 			}
 		} else
 #endif
@@ -999,20 +999,20 @@ tool_bind( LDAP *ld )
 			if ( msgid == -1 ) {
 				tool_perror( "ldap_sasl_bind(SIMPLE)", rc,
 					NULL, NULL, NULL, NULL );
-				exit( EXIT_FAILURE );
+				exit( rc );
 			}
 		}
 
 		if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 ) {
 			tool_perror( "ldap_result", -1, NULL, NULL, NULL, NULL );
-			exit( EXIT_FAILURE );
+			exit( LDAP_OPERATIONS_ERROR );
 		}
 
 		rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
 			&ctrls, 1 );
 		if ( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_bind parse result", rc, NULL, NULL, NULL, NULL );
-			exit( EXIT_FAILURE );
+			exit( LDAP_OPERATIONS_ERROR );
 		}
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
@@ -1062,7 +1062,7 @@ tool_bind( LDAP *ld )
 			if( info ) ber_memfree( info );
 			if( refs ) ber_memvfree( (void **)refs );
 
-			if ( err != LDAP_SUCCESS ) exit( EXIT_FAILURE );
+			if ( err != LDAP_SUCCESS ) exit( err );
 		}
 	}
 }
