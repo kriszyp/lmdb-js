@@ -336,7 +336,7 @@ retry:;
 						rc = ldap_install_tls( ld );
 
 					} else if ( rc == LDAP_REFERRAL ) {
-						rc = LDAP_OTHER;
+						rc = LDAP_UNWILLING_TO_PERFORM;
 						*text = "unwilling to chase referral returned by Start TLS exop";
 					}
 
@@ -415,6 +415,10 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	/* Set LDAP version. This will always succeed: If the client
 	 * bound with a particular version, then so can we.
 	 */
+	if ( vers == 0 ) {
+		/* assume it's an internal op; set to LDAPv3 */
+		vers = LDAP_VERSION3;
+	}
 	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
 
 	/* automatically chase referrals ("[dont-]chase-referrals" statement) */
