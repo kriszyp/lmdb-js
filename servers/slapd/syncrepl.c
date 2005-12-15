@@ -44,6 +44,11 @@ struct nonpresent_entry {
 #define	SYNCLOG_LOGGING		0	/* doing a log-based update */
 #define	SYNCLOG_FALLBACK	1	/* doing a full refresh */
 
+#define RETRYNUM_FOREVER	(-1)	/* retry forever */
+#define RETRYNUM_TAIL		(-2)	/* end of retrynum array */
+#define RETRYNUM_VALID(n)	((n) >= RETRYNUM_FOREVER)	/* valid retrynum */
+#define RETRYNUM_FINITE(n)	((n) > RETRYNUM_FOREVER)	/* not forever */
+
 typedef struct syncinfo_s {
 	struct slap_backend_db *si_be;
 	struct re_s			*si_re;
@@ -1126,20 +1131,20 @@ reload:
 		rtask->interval.tv_sec = si->si_interval;
 		ldap_pvt_runqueue_resched( &slapd_rq, rtask, defer );
 		if ( si->si_retrynum ) {
-			for ( i = 0; si->si_retrynum_init[i] != -2; i++ ) {
+			for ( i = 0; si->si_retrynum_init[i] != RETRYNUM_TAIL; i++ ) {
 				si->si_retrynum[i] = si->si_retrynum_init[i];
 			}
-			si->si_retrynum[i] = -2;
+			si->si_retrynum[i] = RETRYNUM_TAIL;
 		}
 	} else {
 		for ( i = 0; si->si_retrynum && si->si_retrynum[i] <= 0; i++ ) {
-			if ( si->si_retrynum[i] == -1  || si->si_retrynum[i] == -2 )
+			if ( si->si_retrynum[i] == RETRYNUM_FOREVER || si->si_retrynum[i] == RETRYNUM_TAIL )
 				break;
 		}
 
-		if ( !si->si_retrynum || si->si_retrynum[i] == -2 ) {
+		if ( !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
 			ldap_pvt_runqueue_remove( &slapd_rq, rtask );
-		} else if ( si->si_retrynum[i] >= -1 ) {
+		} else if ( RETRYNUM_VALID( si->si_retrynum[i] ) ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;
 			rtask->interval.tv_sec = si->si_retryinterval[i];
@@ -3001,8 +3006,8 @@ parse_syncrepl_line(
 				}
 				si->si_retryinterval[j] = (time_t)t;
 				if ( *retry_list[j*2+1] == '+' ) {
-					si->si_retrynum_init[j] = -1;
-					si->si_retrynum[j] = -1;
+					si->si_retrynum_init[j] = RETRYNUM_FOREVER;
+					si->si_retrynum[j] = RETRYNUM_FOREVER;
 					j++;
 					break;
 				} else {
@@ -3024,8 +3029,8 @@ parse_syncrepl_line(
 					}
 				}
 			}
-			si->si_retrynum_init[j] = -2;
-			si->si_retrynum[j] = -2;
+			si->si_retrynum_init[j] = RETRYNUM_TAIL;
+			si->si_retrynum[j] = RETRYNUM_TAIL;
 			si->si_retryinterval[j] = 0;
 			
 			for ( k = 0; retry_list && retry_list[k]; k++ ) {
@@ -3264,7 +3269,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 			if ( space ) *ptr++ = ' ';
 			space = 1;
 			ptr += sprintf( ptr, "%ld ", (long) si->si_retryinterval[i] );
-			if ( si->si_retrynum_init[i] == -1 )
+			if ( si->si_retrynum_init[i] == RETRYNUM_FOREVER )
 				*ptr++ = '+';
 			else
 				ptr += sprintf( ptr, "%d", si->si_retrynum_init[i] );
