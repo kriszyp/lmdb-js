@@ -42,18 +42,6 @@ KILLPIDS="$PID"
 
 sleep 1
 
-echo "Using ldapsearch to check that slapd 1 is running..."
-for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
-		'(objectclass=*)' > /dev/null 2>&1
-	RC=$?
-	if test $RC = 0 ; then
-		break
-	fi
-	echo "Waiting 5 seconds for slapd to start..."
-	sleep 5
-done
-
 echo "Starting slapd 2 on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $GLUESYNCCONF2 > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
@@ -65,6 +53,18 @@ fi
 KILLPIDS="$KILLPIDS $PID"
 
 sleep 1
+
+echo "Using ldapsearch to check that slapd 1 is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+		'(objectclass=*)' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
 
 echo "Using ldapsearch to check that slapd 2 is running..."
 for i in 0 1 2 3 4 5; do
@@ -78,8 +78,9 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
-echo "Waiting 15 seconds for shadow subtrees to sync..."
-sleep 15
+SLEEP=15
+echo "Waiting $SLEEP seconds for shadow subtrees to sync..."
+sleep $SLEEP
 
 for P in $PORT1 $PORT2 ; do
 	echo "Using ldapsearch to read all the entries from port $P..."
