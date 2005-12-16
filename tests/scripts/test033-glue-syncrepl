@@ -15,20 +15,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR1C
-
-echo "Running slapadd to build glued slapd databases..."
-. $CONFFILTER $BACKEND $MONITORDB < $GLUECONF > $CONF1
-$SLAPADD -d $LVL -f $CONF1 -l $LDIFORDERED > $SLAPADDLOG1 2>&1
-RC=$?
-if test $RC != 0 ; then
-	echo "slapadd failed ($RC)!"
-	exit $RC
-fi
-
-mv $DBDIR1B $DBDIR2B
-mkdir $DBDIR2A $DBDIR1B
-cp -pr $DBDIR1C $DBDIR2C
+mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR1C $DBDIR2A $DBDIR2B $DBDIR2C
 
 echo "Starting slapd 1 on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $GLUESYNCCONF1 > $CONF1
@@ -39,18 +26,6 @@ if test $WAIT != 0 ; then
     read foo
 fi
 KILLPIDS="$PID"
-
-sleep 1
-
-echo "Starting slapd 2 on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $GLUESYNCCONF2 > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
-PID=$!
-if test $WAIT != 0 ; then
-    echo PID $PID
-    read foo
-fi
-KILLPIDS="$KILLPIDS $PID"
 
 sleep 1
 
@@ -66,6 +41,18 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+echo "Starting slapd 2 on TCP/IP port $PORT2..."
+. $CONFFILTER $BACKEND $MONITORDB < $GLUESYNCCONF2 > $CONF2
+$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+KILLPIDS="$KILLPIDS $PID"
+
+sleep 1
+
 echo "Using ldapsearch to check that slapd 2 is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
@@ -77,6 +64,90 @@ for i in 0 1 2 3 4 5; do
 	echo "Waiting 5 seconds for slapd to start..."
 	sleep 5
 done
+
+SUBTREE1="ou=Information Technology Division,ou=People,dc=example,dc=com"
+SUBTREE2="ou=Groups,dc=example,dc=com"
+
+for M in 1 2 ; do
+	P=`expr 9010 + $M`
+	echo "Using ldapadd to populate the common root on port $P..."
+	$LDAPADD -D "cn=Manager $M,$BASEDN" -w $PASSWD -h $LOCALHOST -p $P \
+		-f $LDIFORDERED \
+		-c -e\!assert="(&(!(entryDN:dnSubtreeMatch:=${SUBTREE1}))(!(entryDN:dnSubtreeMatch:=${SUBTREE2})))" \
+		> /dev/null 2>&1
+	RC=$?
+	case $RC in
+	0)
+		echo "ldapadd should have failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit -1
+		;;
+	10|32|68)
+		# FIXME: we should rather get ASSERT, and ignore it;
+		# see <http://www.openldap.org/lists/openldap-software/200512/msg00250.html>
+		# for details.
+		# Fine by now if we get noSuchObject, alreadyExists
+		# or referrals
+		;;
+	*)
+		echo "ldapadd should have failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+		;;
+	esac
+done
+
+echo "Using ldapadd to populate subtree=\"${SUBTREE1}\" on port $PORT1..."
+$LDAPADD -D "cn=Manager 1,$BASEDN" -w $PASSWD -h $LOCALHOST -p $PORT1 \
+	-f $LDIFORDERED \
+	-c -e\!assert="(entryDN:dnSubtreeMatch:=${SUBTREE1})" \
+	> /dev/null 2>&1
+RC=$?
+case $RC in
+0)
+	echo "ldapadd should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+10|32|68)
+	# FIXME: we should rather get ASSERT, and ignore it;
+	# see <http://www.openldap.org/lists/openldap-software/200512/msg00250.html>
+	# for details.
+	# Fine by now if we get noSuchObject, alreadyExists
+	# or referrals
+	;;
+*)
+	echo "ldapadd should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+echo "Using ldapadd to populate subtree=\"${SUBTREE2}\" on port $PORT2..."
+$LDAPADD -D "cn=Manager 2,$BASEDN" -w $PASSWD -h $LOCALHOST -p $PORT2 \
+	-f $LDIFORDERED \
+	-c -e\!assert="(entryDN:dnSubtreeMatch:=${SUBTREE2})" \
+	> /dev/null 2>&1
+RC=$?
+case $RC in
+0)
+	echo "ldapadd should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+10|32|68)
+	# FIXME: we should rather get ASSERT, and ignore it;
+	# see <http://www.openldap.org/lists/openldap-software/200512/msg00250.html>
+	# for details.
+	# Fine by now if we get noSuchObject, alreadyExists
+	# or referrals
+	;;
+*)
+	echo "ldapadd should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 SLEEP=15
 echo "Waiting $SLEEP seconds for shadow subtrees to sync..."
