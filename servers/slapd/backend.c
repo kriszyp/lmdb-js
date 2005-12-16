@@ -1232,6 +1232,7 @@ fe_acl_group(
 	AttributeDescription *group_at )
 {
 	Entry *e;
+	void *o_priv = op->o_private, *e_priv = NULL;
 	Attribute *a;
 	int rc;
 	GroupAssertion *g;
@@ -1259,7 +1260,10 @@ fe_acl_group(
 		e = target;
 		rc = 0;
 	} else {
+		op->o_private = NULL;
 		rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
+		e_priv = op->o_private;
+		op->o_private = o_priv;
 	}
 	if ( e ) {
 		a = attr_find( e->e_attrs, group_at );
@@ -1275,13 +1279,17 @@ fe_acl_group(
 				struct berval bv, nbase;
 				Filter *filter;
 				Entry *user;
+				void *user_priv = NULL;
 				Backend *b2 = op->o_bd;
 
 				if ( target && dn_match( &target->e_nname, op_ndn ) ) {
 					user = target;
 				} else {
 					op->o_bd = select_backend( op_ndn, 0, 0 );
+					op->o_private = NULL;
 					rc = be_entry_get_rw(op, op_ndn, NULL, NULL, 0, &user );
+					user_priv = op->o_private;
+					op->o_private = o_priv;
 				}
 				
 				if ( rc == 0 ) {
@@ -1347,7 +1355,9 @@ loopit:
 						if ( rc == 0 ) break;
 					}
 					if ( user != target ) {
+						op->o_private = user_priv;
 						be_entry_release_r( op, user );
+						op->o_private = o_priv;
 					}
 				}
 				op->o_bd = b2;
@@ -1363,7 +1373,9 @@ loopit:
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
 		if ( e != target ) {
+			op->o_private = e_priv;
 			be_entry_release_r( op, e );
+			op->o_private = o_priv;
 		}
 	} else {
 		rc = LDAP_NO_SUCH_OBJECT;
@@ -1426,6 +1438,7 @@ fe_acl_attribute(
 	slap_access_t access )
 {
 	Entry			*e = NULL;
+	void			*o_priv = op->o_private, *e_priv = NULL;
 	Attribute		*a = NULL;
 	int			freeattr = 0, i, j, rc = LDAP_SUCCESS;
 	AccessControlState	acl_state = ACL_STATE_INIT;
@@ -1437,7 +1450,10 @@ fe_acl_attribute(
 		e = target;
 
 	} else {
+		op->o_private = NULL;
 		rc = be_entry_get_rw( op, edn, NULL, entry_at, 0, &e );
+		e_priv = op->o_private;
+		op->o_private = o_priv;
 	} 
 
 	if ( e ) {
@@ -1513,7 +1529,9 @@ fe_acl_attribute(
 			}
 		}
 freeit:		if ( e != target ) {
+			op->o_private = e_priv;
 			be_entry_release_r( op, e );
+			op->o_private = o_priv;
 		}
 		if ( freeattr ) {
 			attr_free( a );
@@ -1561,6 +1579,7 @@ backend_access(
 	slap_mask_t		*mask )
 {
 	Entry		*e = NULL;
+	void		*o_priv = op->o_private, *e_priv = NULL;
 	int		rc = LDAP_INSUFFICIENT_ACCESS;
 	Backend		*be = op->o_bd;
 
@@ -1576,7 +1595,10 @@ backend_access(
 		e = target;
 
 	} else {
+		op->o_private = NULL;
 		rc = be_entry_get_rw( op, edn, NULL, entry_at, 0, &e );
+		e_priv = op->o_private;
+		op->o_private = o_priv;
 	} 
 
 	if ( e ) {
@@ -1640,7 +1662,9 @@ backend_access(
 			}
 		}
 freeit:		if ( e != target ) {
+			op->o_private = e_priv;
 			be_entry_release_r( op, e );
+			op->o_private = o_priv;
 		}
 		if ( freeattr ) {
 			attr_free( a );
