@@ -46,12 +46,26 @@ slapdn( int argc, char **argv )
 	argc -= optind;
 
 	for ( ; argc--; argv++ ) {
-		struct berval	dn, pdn, ndn;
+		struct berval	dn,
+				pdn = BER_BVNULL,
+				ndn = BER_BVNULL;
 
 		ber_str2bv( argv[ 0 ], 0, 0, &dn );
 
-		rc = dnPrettyNormal( NULL, &dn,
-					&pdn, &ndn, NULL );
+		switch ( dn_mode ) {
+		case SLAP_TOOL_LDAPDN_PRETTY:
+			rc = dnPretty( NULL, &dn, &pdn, NULL );
+			break;
+
+		case SLAP_TOOL_LDAPDN_NORMAL:
+			rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+			break;
+
+		default:
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
+			break;
+		}
+
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "DN: <%s> check failed %d (%s)\n",
 					dn.bv_val, rc,
