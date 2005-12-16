@@ -150,7 +150,8 @@ static int spew_file(int fd, char * spew, int len) {
 	while(len > 0) {
 		writeres = write(fd, spew, len);
 		if(writeres == -1) {
-			perror("could not spew write");
+			Debug( LDAP_DEBUG_ANY, "could not spew write: %s\n",
+				strerror( errno ), 0, 0 );
 			return -1;
 		}
 		else {
@@ -256,7 +257,8 @@ static Entry * get_entry(Operation *op, struct berval *base_path) {
 	fd = open(path.bv_val, O_RDONLY);
 	/* error opening file (mebbe should log error) */
 	if(fd == -1) {
-		perror("failed to open file");
+		Debug(LDAP_DEBUG_ANY, "failed to open file \"%s\": %s\n",
+			path.bv_val, strerror(errno), 0 );
 	}
 
 	if(path.bv_val != NULL)
@@ -296,7 +298,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 
 	fd = open( path->bv_val, O_RDONLY );
 	if ( fd < 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 			"=> ldif_enum_tree: failed to open %s\n",
 			path->bv_val, 0, 0 );
 		return LDAP_NO_SUCH_OBJECT;
@@ -378,7 +380,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				/* it shouldn't be treated as an error
 				 * only if the directory doesn't exist */
 				rc = LDAP_BUSY;
-				Debug( LDAP_DEBUG_TRACE,
+				Debug( LDAP_DEBUG_ANY,
 					"=> ldif_enum_tree: failed to opendir %s (%d)\n",
 					path->bv_val, errno, 0 );
 			}
@@ -840,11 +842,15 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	if(entry != NULL) {
 		rs->sr_err = apply_modify_to_entry(entry, modlst, op, rs);
 		if(rs->sr_err == LDAP_SUCCESS) {
+			int save_errno;
 			ldap_pvt_thread_mutex_lock(&entry2str_mutex);
 			spew_res = spew_entry(entry, &path);
+			save_errno = errno;
 			ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
 			if(spew_res == -1) {
-				perror("could not output entry");
+				Debug( LDAP_DEBUG_ANY,
+					"%s ldif_back_modify: could not output entry \"%s\": %s\n",
+					op->o_log_prefix, entry->e_name.bv_val, strerror( save_errno ) );
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			}
 		}
@@ -1208,7 +1214,7 @@ ldif_back_db_open(
 {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
 	if( BER_BVISEMPTY(&ni->li_base_path)) {/* missing base path */
-		fprintf(stderr, "missing base path for back-ldif\n");
+		Debug( LDAP_DEBUG_ANY, "missing base path for back-ldif\n", 0, 0, 0);
 		return 1;
 	}
 	return 0;
