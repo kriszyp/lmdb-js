@@ -1820,10 +1820,11 @@ config_suffix(ConfigArgs *c)
 			int i = c->valx;
 			ch_free( c->be->be_suffix[i].bv_val );
 			ch_free( c->be->be_nsuffix[i].bv_val );
-			for (; c->be->be_suffix[i].bv_val; i++) {
+			do {
 				c->be->be_suffix[i] = c->be->be_suffix[i+1];
 				c->be->be_nsuffix[i] = c->be->be_nsuffix[i+1];
-			}
+				i++;
+			} while ( !BER_BVISNULL( &c->be->be_suffix[i] ) );
 		}
 		return 0;
 	}

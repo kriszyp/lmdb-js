@@ -237,20 +237,20 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				{
 					iarg = 0;
 				} else {
-					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value, ignored",
+					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value",
 						c->argv[0] );
-					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+					Debug(LDAP_DEBUG_ANY, "%s: %s\n",
 						c->log, c->msg, 0 );
-					return(0);
+					return(ARG_BAD_CONF);
 				}
 				break;
 		}
 		j = (arg_type & ARG_NONZERO) ? 1 : 0;
 		if(iarg < j && larg < j && barg < j ) {
 			larg = larg ? larg : (barg ? barg : iarg);
-			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value, ignored",
+			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value",
 				c->argv[0] );
-			Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
 				c->log, c->msg, 0 );
 			return(ARG_BAD_CONF);
 		}
@@ -805,20 +805,29 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				rc = (*c->be->be_config)(c->be, c->fname, c->lineno,
 					c->argc, c->argv);
 			}
-			if ( rc ) {
-				switch(rc) {
-				case SLAP_CONF_UNKNOWN:
-					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"unknown directive <%s> inside backend database "
-						"definition" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-						c->log, *c->argv, 0);
+			if ( rc == SLAP_CONF_UNKNOWN && SLAP_ISGLOBALOVERLAY( frontendDB ) ) {
+				/* global overlays may need 
+				 * definitions inside other databases...
+				 */
+				rc = (*frontendDB->be_config)(frontendDB, c->fname, (int)c->lineno, c->argc, c->argv);
+			}
+
+			switch ( rc ) {
+			case 0:
+				break;
+
+			case SLAP_CONF_UNKNOWN:
+				Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
+					"unknown directive <%s> inside backend database "
+					"definition" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+					c->log, *c->argv, 0);
 #ifndef SLAPD_CONF_UNKNOWN_BAILOUT
-					continue;
+				break;
 #endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
-				default:
-					rc = 1;
-					goto done;
-				}
+				
+			default:
+				rc = 1;
+				goto done;
 			}
 
 		} else if ( frontendDB->be_config ) {
@@ -831,8 +840,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, *c->argv, 0);
 #ifndef SLAPD_CONF_UNKNOWN_BAILOUT
-					continue;
+					break;
 #endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
+
 				default:
 					rc = 1;
 					goto done;

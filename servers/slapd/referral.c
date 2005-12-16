@@ -153,6 +153,7 @@ int validate_global_referral( const char *url )
 
 	case LDAP_URL_ERR_BADSCHEME:
 		/* not LDAP hence valid */
+		Debug( LDAP_DEBUG_CONFIG, "referral \"%s\": not LDAP.\n", url, 0, 0 );
 		return 0;
 
 	default:

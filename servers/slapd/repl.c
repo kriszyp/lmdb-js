@@ -166,7 +166,7 @@ replog( Operation *op )
 /* undef NO_LOG_WHEN_NO_REPLICAS */
 #ifdef NO_LOG_WHEN_NO_REPLICAS
 	int     count = 0;
-#endif
+#endif /* NO_LOG_WHEN_NO_REPLICAS */
 	int	subsets = 0;
 	long	now = slap_get_time();
 	char	*replogfile;
@@ -212,7 +212,7 @@ replog( Operation *op )
 		fprintf( fp, "replica: %s\n", op->o_bd->be_replica[i]->ri_host );
 #ifdef NO_LOG_WHEN_NO_REPLICAS
 		++count;
-#endif
+#endif /* NO_LOG_WHEN_NO_REPLICAS */
 	}
 
 #ifdef NO_LOG_WHEN_NO_REPLICAS
@@ -224,7 +224,7 @@ replog( Operation *op )
 
 		return;
 	}
-#endif
+#endif /* NO_LOG_WHEN_NO_REPLICAS */
 
 	replog1( NULL, op, fp, now );
 

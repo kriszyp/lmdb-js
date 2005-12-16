@@ -214,13 +214,11 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	Modifications	*tmp;
 #endif
 	int		manageDSAit;
-	Modifications	*modlist = op->orm_modlist;
-	int		increment = op->orm_increment;
-	BackendDB *op_be;
+	BackendDB	*op_be;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 	
-	if( BER_BVISEMPTY( &op->o_req_ndn ) ) {
+	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -238,7 +236,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
 
-	for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
+	for ( tmp = op->orm_modlist; tmp != NULL; tmp = tmp->sml_next ) {
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
 			tmp->sml_op == LDAP_MOD_ADD ? "add" :
 				(tmp->sml_op == LDAP_MOD_INCREMENT ? "increment" :
@@ -267,7 +265,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		Statslog( LDAP_DEBUG_STATS, "%s MOD dn=\"%s\"\n",
 			op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
-		for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
+		for ( tmp = op->orm_modlist; tmp != NULL; tmp = tmp->sml_next ) {
 			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
 				Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
 				    op->o_log_prefix, abuf, 0, 0, 0 );
@@ -306,15 +304,20 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
-		if (!rs->sr_ref) rs->sr_ref = default_referral;
+		if ( !rs->sr_ref ) {
+			rs->sr_ref = default_referral;
+		}
 
-		if (rs->sr_ref != NULL ) {
+		if ( rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
 			op->o_bd = frontendDB;
 			send_ldap_result( op, rs );
 			op->o_bd = NULL;
 
-			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
+			if ( rs->sr_ref != default_referral ) {
+				ber_bvarray_free( rs->sr_ref );
+			}
+
 		} else {
 			op->o_bd = frontendDB;
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -331,17 +334,17 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	}
 
 	/* check restrictions */
-	if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
+	if ( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto cleanup;
 	}
 
 	/* check for referrals */
-	if( backend_check_referrals( op, rs ) != LDAP_SUCCESS ) {
+	if ( backend_check_referrals( op, rs ) != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_obsolete_check( op, modlist,
+	rs->sr_err = slap_mods_obsolete_check( op, op->orm_modlist,
 		&rs->sr_text, textbuf, textlen );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
@@ -349,7 +352,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	}
 
 	/* check for modify/increment support */
-	if( increment && !SLAP_INCREMENT( op->o_bd ) ) {
+	if ( op->orm_increment && !SLAP_INCREMENT( op->o_bd ) ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"modify/increment not supported in context" );
 	}
@@ -369,7 +372,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		 */
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#endif
+#endif /* ! SLAPD_MULTIMASTER */
 		{
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
@@ -377,7 +380,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			op->o_bd = op_be;
 
 			if ( !update ) {
-				rs->sr_err = slap_mods_no_user_mod_check( op, modlist,
+				rs->sr_err = slap_mods_no_user_mod_check( op, op->orm_modlist,
 					&rs->sr_text, textbuf, textlen );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
@@ -385,10 +388,9 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				}
 			}
 
-			op->orm_modlist = modlist;
 #ifdef SLAPD_MULTIMASTER
 			if ( !repl_user )
-#endif
+#endif /* SLAPD_MULTIMASTER */
 			{
 				/* but multimaster slapd logs only the ones 
 				 * not from a replicator user */
@@ -421,7 +423,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 					"shadow context; no update referral" );
 			}
-#endif
+#endif /* ! SLAPD_MULTIMASTER */
 		}
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -478,7 +480,9 @@ slap_mods_no_user_mod_check(
 	size_t textlen )
 {
 	for ( ; ml != NULL; ml = ml->sml_next ) {
-		if ( !is_at_no_user_mod( ml->sml_desc->ad_type ) ) continue;
+		if ( !is_at_no_user_mod( ml->sml_desc->ad_type ) ) {
+			continue;
+		}
 
 		if ( get_manageDIT( op ) ) {
 			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {

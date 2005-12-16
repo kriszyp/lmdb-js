@@ -890,7 +890,7 @@ overlay_register_control( BackendDB *be, const char *oid )
 		return -1;
 	}
 
-	if ( SLAP_DBFLAGS( be ) & SLAP_DBFLAG_GLOBAL_OVERLAY ) {
+	if ( SLAP_ISGLOBALOVERLAY( be ) ) {
 		BackendDB *bd;
 		
 		/* add to all backends... */

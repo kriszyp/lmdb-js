@@ -161,7 +161,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 		int repl_user = be_isupdate( op );
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#endif
+#endif /* ! SLAPD_MULTIMASTER */
 		{
 			struct berval	org_req_dn = BER_BVNULL;
 			struct berval	org_req_ndn = BER_BVNULL;
@@ -174,7 +174,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 
 #ifdef SLAPD_MULTIMASTER
 			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
-#endif
+#endif /* SLAPD_MULTIMASTER */
 			{
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
@@ -234,7 +234,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 					LDAP_UNWILLING_TO_PERFORM,
 					"shadow context; no update referral" );
 			}
-#endif
+#endif /* ! SLAPD_MULTIMASTER */
 		}
 
 	} else {

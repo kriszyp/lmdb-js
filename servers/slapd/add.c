@@ -214,10 +214,9 @@ int
 fe_op_add( Operation *op, SlapReply *rs )
 {
 	int		manageDSAit;
-	Modifications	*modlist = op->ora_modlist;
-	Modifications	**modtail = &modlist;
+	Modifications	**modtail = &op->ora_modlist;
 	int		rc = 0;
-	BackendDB *op_be;
+	BackendDB	*op_be;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 
@@ -268,7 +267,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = slap_mods_obsolete_check( op, modlist,
+	rs->sr_err = slap_mods_obsolete_check( op, op->ora_modlist,
 		&rs->sr_text, textbuf, textlen );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -287,7 +286,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 		int repl_user = be_isupdate( op );
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#endif
+#endif /* ! SLAPD_MULTIMASTER */
 		{
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
@@ -295,7 +294,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 			op->o_bd = op_be;
 
 			if ( !update ) {
-				rs->sr_err = slap_mods_no_user_mod_check( op, modlist,
+				rs->sr_err = slap_mods_no_user_mod_check( op, op->ora_modlist,
 					&rs->sr_text, textbuf, textlen );
 
 				if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -306,7 +305,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 
 			if ( !repl_user ) {
 				/* go to the last mod */
-				for ( modtail = &modlist;
+				for ( modtail = &op->ora_modlist;
 						*modtail != NULL;
 						modtail = &(*modtail)->sml_next )
 				{
@@ -317,7 +316,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 
 				/* check for duplicate values */
 				rs->sr_err = slap_mods_no_repl_user_mod_check( op,
-					modlist, &rs->sr_text, textbuf, textlen );
+					op->ora_modlist, &rs->sr_text, textbuf, textlen );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
 					goto done;
@@ -333,7 +332,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 
 #ifdef SLAPD_MULTIMASTER
 			if ( !repl_user )
-#endif
+#endif /* SLAPD_MULTIMASTER */
 			{
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
