@@ -465,7 +465,7 @@ dn2entry_retry:
 #endif
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, op->oq_search.rs_scope );
-			rs->sr_err = LDAP_REFERRAL;
+			rs->sr_err = rs->sr_ref != NULL ? LDAP_REFERRAL : LDAP_NO_SUCH_OBJECT;
 		}
 
 		send_ldap_result( op, rs );
