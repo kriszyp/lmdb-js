@@ -189,6 +189,7 @@ bdb_online_index( void *ctx, void *arg )
 	ID id, nid;
 	EntryInfo *ei;
 	int rc, getnext = 1;
+	int i;
 
 	connection_fake_init( &conn, op, ctx );
 
@@ -268,6 +269,14 @@ bdb_online_index( void *ctx, void *arg )
 		}
 		id++;
 		getnext = 1;
+	}
+
+	for ( i = 0; i < bdb->bi_nattrs; i++ ) {
+		if ( bdb->bi_attrs[ i ]->ai_indexmask & BDB_INDEX_DELETING ) {
+			continue;
+		}
+		bdb->bi_attrs[ i ]->ai_indexmask = bdb->bi_attrs[ i ]->ai_newmask;
+		bdb->bi_attrs[ i ]->ai_newmask = 0;
 	}
 
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
