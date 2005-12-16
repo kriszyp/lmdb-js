@@ -176,7 +176,7 @@ SLEEP=15
 echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
 sleep $SLEEP
 
-# first check
+CHECK=1
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(objectClass=*)' > "${MASTEROUT}.1" 2>&1
@@ -204,7 +204,7 @@ fi
 #echo "Filtering slave results..."
 . $LDIFFILTER < "${SLAVEOUT}.1" > $SLAVEFLT
 
-echo "1 - Comparing retrieved entries from master and slave..."
+echo "$CHECK - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
 if test $? != 0 ; then
@@ -338,7 +338,7 @@ SLEEP=15
 echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
 sleep $SLEEP
 
-# second check
+CHECK=`expr $CHECK + 1`
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(objectClass=*)' > "${MASTEROUT}.2" 2>&1
@@ -366,7 +366,7 @@ fi
 #echo "Filtering slave results..."
 . $LDIFFILTER < "${SLAVEOUT}.2" > $SLAVEFLT
 
-echo "2 - Comparing retrieved entries from master and slave..."
+echo "$CHECK - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
 if test $? != 0 ; then
@@ -418,7 +418,7 @@ SLEEP=25
 echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
 sleep $SLEEP
 
-# third check
+CHECK=`expr $CHECK + 1`
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(objectClass=*)' > "${MASTEROUT}.3" 2>&1
@@ -446,7 +446,7 @@ fi
 #echo "Filtering slave results..."
 . $LDIFFILTER < "${SLAVEOUT}.3" > $SLAVEFLT
 
-echo "3 - Comparing retrieved entries from master and slave..."
+echo "$CHECK - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
 if test $? != 0 ; then
@@ -477,43 +477,43 @@ EOMODS
 	SLEEP=15
 	echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
 	sleep $SLEEP
-fi
 
-# fourth check
-#echo "Using ldapsearch to read all the entries from the master..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectClass=*)' > "${MASTEROUT}.4" 2>&1
-RC=$?
+	CHECK=`expr $CHECK + 1`
+	#echo "Using ldapsearch to read all the entries from the master..."
+	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+		'(objectClass=*)' > "${MASTEROUT}.4" 2>&1
+	RC=$?
 
-if test $RC != 0 ; then
-	echo "ldapsearch failed at master ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+	if test $RC != 0 ; then
+		echo "ldapsearch failed at master ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 
-#echo "Using ldapsearch to read all the entries from the slave..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	#echo "Using ldapsearch to read all the entries from the slave..."
+	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'(objectClass=*)' > "${SLAVEOUT}.4" 2>&1
-RC=$?
+	RC=$?
 
-if test $RC != 0 ; then
-	echo "ldapsearch failed at slave ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+	if test $RC != 0 ; then
+		echo "ldapsearch failed at slave ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 
-#echo "Filtering master results..."
-. $LDIFFILTER < "${MASTEROUT}.4" > $MASTERFLT
-#echo "Filtering slave results..."
-. $LDIFFILTER < "${SLAVEOUT}.4" > $SLAVEFLT
+	#echo "Filtering master results..."
+	. $LDIFFILTER < "${MASTEROUT}.4" > $MASTERFLT
+	#echo "Filtering slave results..."
+	. $LDIFFILTER < "${SLAVEOUT}.4" > $SLAVEFLT
 
-echo "4 - Comparing retrieved entries from master and slave..."
-$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
+	echo "$CHECK - Comparing retrieved entries from master and slave..."
+	$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
-if test $? != 0 ; then
-	echo "test failed - master and slave databases differ"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit 1
+	if test $? != 0 ; then
+		echo "test failed - master and slave databases differ"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 1
+	fi
 fi
 
 SLEEP=10
@@ -545,7 +545,7 @@ SLEEP=25
 echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
 sleep $SLEEP
 
-# fifth check
+CHECK=`expr $CHECK + 1`
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(objectClass=*)' > "${MASTEROUT}.5" 2>&1
@@ -573,14 +573,56 @@ fi
 #echo "Filtering slave results..."
 . $LDIFFILTER < "${SLAVEOUT}.5" > $SLAVEFLT
 
-echo "5 - Comparing retrieved entries from master and slave..."
+echo "$CHECK - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
 if test $? != 0 ; then
-	echo "test failed - master and slave databases differ (ignored by now)"
+	echo "	test failed - master and slave databases differ (ignored by now)"
 	#echo "test failed - master and slave databases differ"
 	#test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	#exit 1
+
+	SLEEP=10
+	echo "	Stopping proxy to see if it auto-recovers; sleep for $SLEEP seconds..."
+	kill -HUP $PROXYPID
+	sleep $SLEEP
+
+	echo "	Restarting proxy..."
+	echo "======================= RESTART =======================" >> $LOG3
+	$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING >> $LOG3 2>&1 &
+	PROXYPID=$!
+	if test $WAIT != 0 ; then
+		echo PROXYPID $PROXYPID
+		read foo
+	fi
+	KILLPIDS="$MASTERPID $SLAVEPID $PROXYPID"
+
+	SLEEP=15
+	echo "	Waiting $SLEEP seconds for syncrepl to receive changes..."
+	sleep $SLEEP
+
+	#echo "Using ldapsearch to read all the entries from the slave..."
+	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+		'(objectClass=*)' > "${SLAVEOUT}.5.1" 2>&1
+	RC=$?
+
+	if test $RC != 0 ; then
+		echo "	ldapsearch failed at slave ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	#echo "Filtering slave results..."
+	. $LDIFFILTER < "${SLAVEOUT}.5.1" > $SLAVEFLT
+
+	echo "	${CHECK}.1 - Comparing retrieved entries from master and slave..."
+	$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
+
+	if test $? != 0 ; then
+		echo "	test failed - master and slave databases differ"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 1
+	fi
 fi
 
 #
@@ -613,7 +655,7 @@ SLEEP=15
 echo "Waiting $SLEEP seconds for syncrepl to receive changes..."
 sleep $SLEEP
 
-# sixth check
+CHECK=`expr $CHECK + 1`
 #echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(objectClass=*)' > "${MASTEROUT}.6" 2>&1
@@ -641,7 +683,7 @@ fi
 #echo "Filtering slave results..."
 . $LDIFFILTER < "${SLAVEOUT}.6" > $SLAVEFLT
 
-echo "6 - Comparing retrieved entries from master and slave..."
+echo "$CHECK - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
 if test $? != 0 ; then
