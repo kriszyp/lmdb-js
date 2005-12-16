@@ -12,6 +12,11 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
+if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
+	echo "Test does not support $BACKEND"
+	exit 0
+fi
+
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -90,7 +95,7 @@ for M in 1 2 ; do
 		# or referrals
 		;;
 	*)
-		echo "ldapadd should have failed ($RC)!"
+		echo "ldapadd failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 		;;
@@ -117,7 +122,7 @@ case $RC in
 	# or referrals
 	;;
 *)
-	echo "ldapadd should have failed ($RC)!"
+	echo "ldapadd failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 	;;
@@ -143,7 +148,7 @@ case $RC in
 	# or referrals
 	;;
 *)
-	echo "ldapadd should have failed ($RC)!"
+	echo "ldapadd failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 	;;
