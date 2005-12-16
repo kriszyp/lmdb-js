@@ -51,11 +51,13 @@ AC_WITH_SASL=@WITH_SASL@
 AC_WITH_TLS=@WITH_TLS@
 AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 AC_ACI_ENABLED=aci@WITH_ACI_ENABLED@
+AC_THREADS=threads@BUILD_THREAD@
 
-export AC_bdb AC_hdb AC_ldap AC_ldbm AC_meta AC_monitor AC_relay AC_sql 
-export AC_accesslog AC_dynlist AC_pcache AC_ppolicy AC_refint AC_retcode
-export AC_rwm AC_unique AC_syncprov AC_translucent AC_valsort
-export AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED
+export AC_bdb AC_hdb AC_ldap AC_ldbm AC_meta AC_monitor AC_relay AC_sql \
+	AC_accesslog AC_dynlist AC_pcache AC_ppolicy AC_refint AC_retcode \
+	AC_rwm AC_unique AC_syncprov AC_translucent AC_valsort \
+	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \
+	AC_THREADS
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"

@@ -27,14 +27,15 @@ PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
 RETCODE=${AC_retcode-retcodeno}
 RWM=${AC_rwm-rwmno}
+SYNCPROV=${AC_syncprov-syncprovno}
 TRANSLUCENT=${AC_translucent-translucentno}
 UNIQUE=${AC_unique-uniqueno}
-SYNCPROV=${AC_syncprov-syncprovno}
+VALSORT=${AC_valsort-valsortno}
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}
 ACI=${AC_ACI_ENABLED-acino}
-VALSORT=${AC_valsort-valsortno}
+THREADS=${AC_THREADS-threadsno}
 
 PROGDIR=./progs
 DATADIR=${USER_DATADIR-./testdata}
