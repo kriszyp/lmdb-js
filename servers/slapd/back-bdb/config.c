@@ -466,7 +466,14 @@ bdb_cf_gen(ConfigArgs *c)
 			break;
 		case BDB_INDEX:
 			if ( c->valx == -1 ) {
+				int i;
+
 				/* delete all (FIXME) */
+				for ( i = 0; i < bdb->bi_nattrs; i++ ) {
+					bdb->bi_attrs[i]->ai_indexmask |= BDB_INDEX_DELETING;
+				}
+				bdb->bi_flags |= BDB_DEL_INDEX;
+				c->cleanup = bdb_cf_cleanup;
 
 			} else {
 				struct berval bv, def = BER_BVC("default");
