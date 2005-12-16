@@ -102,7 +102,8 @@ static char *proxy_authz_extops[] = {
 static struct slap_control control_defs[] = {
 	{  LDAP_CONTROL_ASSERT,
  		(int)offsetof(struct slap_control_ids, sc_assert),
-		SLAP_CTRL_ACCESS, NULL,
+		SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME|
+			SLAP_CTRL_COMPARE|SLAP_CTRL_SEARCH, NULL,
 		parseAssert, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PRE_READ,
  		(int)offsetof(struct slap_control_ids, sc_preRead),
