@@ -299,11 +299,11 @@ retry:
 				rc = rs->sr_err = send_search_entry( op, rs );
 				if ( !BER_BVISNULL( &ent.e_name ) ) {
 					assert( ent.e_name.bv_val != bdn.bv_val );
-					free( ent.e_name.bv_val );
+					op->o_tmpfree( ent.e_name.bv_val, op->o_tmpmemctx );
 					BER_BVZERO( &ent.e_name );
 				}
 				if ( !BER_BVISNULL( &ent.e_nname ) ) {
-					free( ent.e_nname.bv_val );
+					op->o_tmpfree( ent.e_nname.bv_val, op->o_tmpmemctx );
 					BER_BVZERO( &ent.e_nname );
 				}
 				entry_clean( &ent );
