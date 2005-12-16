@@ -300,18 +300,27 @@ ldap_build_search_req(
 
 #ifdef LDAP_DEBUG
 	if ( ldap_debug & LDAP_DEBUG_ARGS ) {
-		if ( attrs == NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "ldap_build_search_req ATTRS: *\n", 0, 0, 0 );
-			
-		} else {
+		char	buf[ BUFSIZ ] = { ' ', '*', '\0' };
+
+		if ( attrs != NULL ) {
+			char	*ptr;
 			int	i;
 
-			Debug( LDAP_DEBUG_ARGS, "ldap_build_search_req ATTRS:\n", 0, 0, 0 );
-
-			for ( i = 0; attrs[ i ]; i++ ) {
-				Debug( LDAP_DEBUG_ARGS, "    %s\n", attrs[ i ], 0, 0 );
+			for ( ptr = buf, i = 0;
+				attrs[ i ] != NULL && ptr < &buf[ sizeof( buf ) ];
+				i++ )
+			{
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					" %s", attrs[ i ] );
 			}
+
+			if ( ptr >= &buf[ sizeof( buf ) ] ) {
+				AC_MEMCPY( &buf[ sizeof( buf ) - STRLENOF( "...(truncated)" ) - 1 ],
+					"...(truncated)", STRLENOF( "...(truncated)" ) + 1 );
+			} 
 		}
+
+		Debug( LDAP_DEBUG_ARGS, "ldap_build_search_req ATTRS:%s\n", buf, 0, 0 );
 	}
 #endif /* LDAP_DEBUG */
 
