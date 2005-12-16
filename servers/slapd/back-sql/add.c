@@ -1141,15 +1141,6 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if ( get_assert( op ) &&
-		( test_filter( op, op->oq_add.rs_e, get_assertion( op ) )
-			!= LDAP_COMPARE_TRUE ) )
-	{
-		rs->sr_err = LDAP_ASSERTION_FAILED;
-		e = op->ora_e;
-		goto done;
-	}
-
 	/*
 	 * create_proc is executed; if expect_return is set, then
 	 * an output parameter is bound, which should contain 
