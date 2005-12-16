@@ -174,6 +174,8 @@ parse_slapacl( void )
  *	argc, argv	command line arguments
  */
 
+static int need_shutdown;
+
 void
 slap_tool_init(
 	const char* progname,
@@ -663,6 +665,8 @@ startup:;
 
 	/* slapdn doesn't specify a backend to startup */
 	if ( !dryrun && tool != SLAPDN && slap_startup( be ) ) {
+		need_shutdown = 1;
+
 		switch ( tool ) {
 		case SLAPTEST:
 			fprintf( stderr, "slap_startup failed "
@@ -682,7 +686,9 @@ startup:;
 void slap_tool_destroy( void )
 {
 	if ( !dryrun ) {
-		slap_shutdown( be );
+		if ( need_shutdown ) {
+			slap_shutdown( be );
+		}
 		slap_destroy();
 	}
 #ifdef SLAPD_MODULES
