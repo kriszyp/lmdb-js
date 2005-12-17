@@ -48,12 +48,11 @@ backsql_PrintErrors( SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth, int rc )
 	Debug( LDAP_DEBUG_TRACE, "Return code: %d\n", rc, 0, 0 );
 
 	for ( ; rc = SQLError( henv, hdbc, sth, state, &iSqlCode, msg,
-			SQL_MAX_MESSAGE_LENGTH - 1, &len ), BACKSQL_SUCCESS( rc ); ) {
+		SQL_MAX_MESSAGE_LENGTH - 1, &len ), BACKSQL_SUCCESS( rc ); )
+	{
 		Debug( LDAP_DEBUG_TRACE,
-				"   Native error code: %d\n"
-				"   SQL engine state:  %s\n"
-				"   Message:           %s\n", 
-				(int)iSqlCode, state, msg );
+			"   nativeErrCode=%d SQLengineState=%s msg=\"%s\"\n",
+			(int)iSqlCode, state, msg );
 	}
 }
 
