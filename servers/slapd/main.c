@@ -483,7 +483,7 @@ int main( int argc, char **argv )
 		}
 
 		case 's':	/* set syslog level */
-			if ( lutil_atoi( &ldap_syslog, optarg ) != 0 ) {
+			if ( lutil_atoi( &ldap_syslog_level, optarg ) != 0 ) {
 				fprintf( stderr, "unable to parse syslog level \"%s\"", optarg );
 				goto destroy;
 			}
