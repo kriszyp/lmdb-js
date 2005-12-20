@@ -302,12 +302,12 @@ underlying libldap, with rebinding eventually performed if the
 
 .TP
 .B tls {[try-]start|[try-]propagate}
-execute the start TLS extended operation when the connection is initialized;
+execute the StartTLS extended operation when the connection is initialized;
 only works if the URI directive protocol scheme is not \fBldaps://\fP.
-\fBpropagate\fP issues the Start TLS exop only if the original
+\fBpropagate\fP issues the StartTLS operation only if the original
 connection did.
 The \fBtry-\fP prefix instructs the proxy to continue operations
-if start TLS failed; its use is highly deprecated.
+if the StartTLS operation failed; its use is highly deprecated.
 
 .TP
 .B t-f-support {NO|yes|discover}

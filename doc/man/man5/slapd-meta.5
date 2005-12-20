@@ -308,12 +308,12 @@ overridden by any per-target directive.
 
 .TP
 .B tls {[try-]start|[try-]propagate}
-execute the start TLS extended operation when the connection is initialized;
+execute the StartTLS extended operation when the connection is initialized;
 only works if the URI directive protocol scheme is not \fBldaps://\fP.
-\fBpropagate\fP issues the Start TLS exop only if the original
+\fBpropagate\fP issues the StartTLS operation only if the original
 connection did.
 The \fBtry-\fP prefix instructs the proxy to continue operations
-if start TLS failed; its use is highly deprecated.
+if the StartTLS operation failed; its use is highly deprecated.
 If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
@@ -662,7 +662,7 @@ modifyAttrDN         modify AVA
 modrDN               modrdn
 newSuperiorDN        modrdn
 deleteDN             delete
-exopPasswdDN         passwd exop DN if proxy
+exopPasswdDN         password modify extended operation DN if proxy
 .fi
 .RE
 .LP

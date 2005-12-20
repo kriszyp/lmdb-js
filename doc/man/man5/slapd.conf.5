@@ -411,10 +411,10 @@ disables acceptance of anonymous bind requests.
 .B bind_simple
 disables simple (bind) authentication.
 .B tls_2_anon
-disables Start TLS from forcing session to anonymous status (see also
-.BR tls_authc ).
+disables forcing session to anonymous status (see also
+.BR tls_authc ) upon StartTLS operation receipt.
 .B tls_authc
-disables StartTLS if authenticated (see also
+dissallow the StartTLS operation if authenticated (see also
 .BR tls_2_anon ).
 .HP
 .hy 0
