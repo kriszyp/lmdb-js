@@ -2822,8 +2822,8 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
-		} else if ( !strncasecmp( c->argv[ i ], ATTRSONLYSTR "=",
-					STRLENOF( ATTRSONLYSTR "=" ) ) )
+		} else if ( !strncasecmp( c->argv[ i ], ATTRSONLYSTR,
+					STRLENOF( ATTRSONLYSTR ) ) )
 		{
 			si->si_attrsonly = 1;
 		} else if ( !strncasecmp( c->argv[ i ], ATTRSSTR "=",
@@ -3218,7 +3218,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		}
 	}
 	if ( si->si_attrsonly ) {
-		ptr = lutil_strcopy( ptr, " " ATTRSONLYSTR "=yes" );
+		ptr = lutil_strcopy( ptr, " " ATTRSONLYSTR );
 	}
 	if ( si->si_anfile ) {
 		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=:include:" );
