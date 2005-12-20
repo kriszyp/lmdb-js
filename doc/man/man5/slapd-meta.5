@@ -90,21 +90,15 @@ This directive can also be used when processing targets to mark a
 specific target as default.
 
 .TP
-.B dncache-ttl {forever|disabled|<ttl>}
+.B dncache-ttl {DISABLED|forever|<ttl>}
 This directive sets the time-to-live of the DN cache.
 This caches the target that holds a given DN to speed up target
 selection in case multiple targets would result from an uncached
 search; forever means cache never expires; disabled means no DN
-caching; otherwise a valid ( > 0 ) ttl in seconds is required.
-
-.TP
-.B nretries {forever|never|<nretries>}
-This directive defines how many times a bind should be retried
-in case of temporary failure in contacting a target.  If defined
-before any target specification, it applies to all targets (by default,
-.BR never );
-the global value can be overridden by redefinitions inside each target
-specification.
+caching; otherwise a valid ( > 0 ) ttl is required, in the format
+illustrated for the 
+.B idle-timeout
+directive.
 
 .TP
 .B onerr {CONTINUE|stop}
@@ -115,6 +109,13 @@ trying to return as much data as possible.
 If this statement is set to \fBstop\fP, the search is terminated as soon 
 as an error is returned by one target, and the error is immediately 
 propagated to the client.
+
+.TP
+.B pseudoroot-bind-defer {NO|yes}
+This directive, when set to 
+.BR yes ,
+causes the authentication to the remote servers with the pseudo-root
+identity to be deferred until actually needed by subsequent operations.
 
 .TP
 .B rebind-as-user {NO|yes}
@@ -154,15 +155,19 @@ because they are legal in the <naming context>, and we don't want to use
 URL-encoded <naming context>s), and the additional URIs must have
 no <naming context> part.  This causes the underlying library
 to contact the first server of the list that responds.
-.RE
+For example, if \fIl1.foo.com\fP and \fIl2.foo.com\fP are shadows
+of the same server, the directive
+.LP
+.nf
+suffix "\fBdc=foo,dc=com\fP"
+uri    "ldap://l1.foo.com/\fBdc=foo,dc=com\fP	ldap://l2.foo.com/"
+.fi
 
-.TP
-.B default-target [<target>]
-The "default-target" directive can also be used during target specification.
-With no arguments it marks the current target as the default.
-The optional number marks target <target> as the default one, starting
-from 1.
-Target <target> must be defined.
+.RE
+.RS
+causes \fIl2.foo.com\fP to be contacted whenever \fIl1.foo.com\fP
+does not respond.
+.RE
 
 .TP
 .B acl-authcDN "<administrative DN for access control purposes>"
@@ -182,6 +187,20 @@ acl-authcDN
 above.
 
 .TP
+.B bind-timeout <microseconds>
+This directive defines the timeout, in microseconds, used when polling
+for response after an asynchronous bind connection.  The initial call
+to ldap_result(3) is performed with a trade-off timeout of 100000 us;
+if that results in a timeout exceeded, subsequent calls use the value
+provided with
+.BR bind-timeout .
+The default value is used also for subsequent calls if
+.B bind-timeout
+is not specified.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
 .B chase-referrals {YES|no}
 enable/disable automatic referral chasing, which is delegated to the
 underlying libldap, with rebinding eventually performed if the
@@ -190,43 +209,41 @@ If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
 .TP
-.B tls {[try-]start|[try-]propagate}
-execute the start TLS extended operation when the connection is initialized;
-only works if the URI directive protocol scheme is not \fBldaps://\fP.
-\fBpropagate\fP issues the Start TLS exop only if the original
-connection did.
-The \fBtry-\fP prefix instructs the proxy to continue operations
-if start TLS failed; its use is highly deprecated.
+.B default-target [<target>]
+The "default-target" directive can also be used during target specification.
+With no arguments it marks the current target as the default.
+The optional number marks target <target> as the default one, starting
+from 1.
+Target <target> must be defined.
+
+.TP
+.B idle-timeout <time>
+This directive causes a cached connection to be dropped an recreated
+after it has been idle for the specified time.
+The value can be specified as
+
+[<d>d][<h>h][<m>m][<s>[s]]
+
+where <d>, <h>, <m> and <s> are respectively treated as days, hours, 
+minutes and seconds.
 If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
 .TP
-.B t-f-support {NO|yes|discover}
-enable if the remote server supports absolute filters
-(see \fIdraft-zeilenga-ldap-t-f\fP for details).
-If set to
-.BR discover ,
-support is detected by reading the remote server's root DSE.
-If set before any target specification, it affects all targets, unless
-overridden by any per-target directive.
+.B map "{attribute|objectclass} [<local name>|*] {<foreign name>|*}"
+This maps object classes and attributes as in the LDAP backend.
+See
+.BR slapd-ldap (5).
 
 .TP
-.B timeout [{add|delete|modify|modrdn}=]<val> [...]
-This directive allows to set per-database, per-target and per-operation
-timeouts.
-If no operation is specified, it affects all.
-Currently, only write operations are addressed, because searches
-can already be limited by means of the
-.B limits
-directive (see 
-.BR slapd.conf (5)
-for details), and other operations are not supposed to incur into the
-need for timeouts.
-Note: if the timelimit is exceeded, the operation is abandoned;
-the protocol does not provide any means to rollback the operation,
-so the client will not know if the operation eventually succeeded or not.
-If set before any target specification, it affects all targets, unless
-overridden by any per-target directive.
+.B nretries {forever|never|<nretries>}
+This directive defines how many times a bind should be retried
+in case of temporary failure in contacting a target.  If defined
+before any target specification, it applies to all targets (by default,
+.BR 3
+times);
+the global value can be overridden by redefinitions inside each target
+specification.
 
 .TP
 .B pseudorootdn "<substitute DN in case of rootdn bind>"
@@ -245,13 +262,6 @@ Note: cleartext credentials must be supplied here; as a consequence,
 using the pseudorootdn/pseudorootpw directives is inherently unsafe.
 
 .TP
-.B pseudoroot-bind-defer {NO|yes}
-This directive, when set to 
-.BR yes ,
-causes the authentication to the remote servers with the pseudo-root
-identity to be deferred until actually needed by subsequent operations.
-
-.TP
 .B rewrite* ...
 The rewrite options are described in the "REWRITING" section.
 
@@ -267,18 +277,46 @@ when simple suffix massage is required, it has been preserved.
 It wraps the basic rewriting instructions that perform suffix
 massaging.  See the "REWRITING" section for a detailed list 
 of the rewrite rules it implies.
-.LP
-Note: this also fixes a flaw in suffix massaging, which operated
-on (case insensitive) DNs instead of normalized DNs,
-so "dc=foo, dc=com" would not match "dc=foo,dc=com".
-.LP
-See the "REWRITING" section.
 
 .TP
-.B map "{attribute|objectclass} [<local name>|*] {<foreign name>|*}"
-This maps object classes and attributes as in the LDAP backend.
-See
-.BR slapd-ldap (5).
+.B t-f-support {NO|yes|discover}
+enable if the remote server supports absolute filters
+(see \fIdraft-zeilenga-ldap-t-f\fP for details).
+If set to
+.BR discover ,
+support is detected by reading the remote server's root DSE.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
+.B timeout [{add|delete|modify|modrdn}=]<seconds> [...]
+This directive allows to set per-database, per-target and per-operation
+timeouts.
+If no operation is specified, it affects all.
+Currently, only write operations are addressed, because searches
+can already be limited by means of the
+.B limits
+directive (see 
+.BR slapd.conf (5)
+for details), and other operations are not supposed to incur into the
+need for timeouts.
+Note: if the timelimit is exceeded, the operation is abandoned;
+the protocol does not provide any means to rollback the operation,
+so the client will not know if the operation eventually succeeded or not.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
+.B tls {[try-]start|[try-]propagate}
+execute the StartTLS extended operation when the connection is initialized;
+only works if the URI directive protocol scheme is not \fBldaps://\fP.
+\fBpropagate\fP issues the StartTLS operation only if the original
+connection did.
+The \fBtry-\fP prefix instructs the proxy to continue operations
+if the StartTLS operation failed; its use is highly deprecated.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
 .SH SCENARIOS
 A powerful (and in some sense dangerous) rewrite engine has been added
 to both the LDAP and Meta backends.
@@ -624,7 +662,7 @@ modifyAttrDN         modify AVA
 modrDN               modrdn
 newSuperiorDN        modrdn
 deleteDN             delete
-exopPasswdDN         passwd exop DN if proxy
+exopPasswdDN         password modify extended operation DN if proxy
 .fi
 .RE
 .LP

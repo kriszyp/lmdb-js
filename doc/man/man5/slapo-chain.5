@@ -71,10 +71,13 @@ The values \fBr\fP and \fBc\fP can be any of
 If the \fBcritical\fP flag affects the control criticality if provided.
 [This control is experimental and its support may change in the future.]
 .TP
-.B chain-cache-uris {FALSE|true}
+.B chain-cache-uri {FALSE|true}
 This directive instructs the \fIchain\fP overlay to cache
 connections to URIs parsed out of referrals that are not predefined,
 to be reused for later chaining.
+These URIs inherit the properties configured for the underlying 
+\fBslapd-ldap\fP(5) before any occurrence of the \fBchain-uri\fP
+directive; in detail, they are essentially chained anonymously.
 .TP
 .B chain-uri <ldapuri>
 This directive instantiates a new underlying \fIldap\fP database

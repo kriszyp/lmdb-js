@@ -140,6 +140,11 @@ for the duration of the
 .B proxytemplate
 .BR TTL .
 
+The remote server should expose the
+.B objectClass 
+attribute because the underlying database that actually caches the entries 
+may need it for optimal local processing of the queries.
+
 Another potential (and subtle) inconsistency may occur when data is retrieved 
 with different identities and specific per-identity access control
 is enforced by the remote server.
