@@ -664,9 +664,13 @@ send search requests to the provider slapd according to the search
 specification. The search specification includes {{EX:searchbase}},
 {{EX:scope}}, {{EX:filter}}, {{EX:attrs}}, {{EX:attrsonly}},
 {{EX:sizelimit}}, and {{EX:timelimit}} parameters as in the normal
-search specification. The syncrepl search specification has
-the same value syntax and the same default values as in the
-{{ldapsearch}}(1) client search tool.
+search specification. The {{EX:searchbase}} parameter has no
+default value and must always be specified. The {{EX:scope}} defaults
+to {{EX:sub}}, the {{EX:filter}} defaults to {{EX:(objectclass=*)}},
+{{EX:attrs}} defaults to {{EX:"*,+"}} to replicate all user and operational
+attributes, and {{EX:attrsonly}} is unset by default. Both {{EX:sizelimit}}
+and {{EX:timelimit}} default to 0 (meaning unlimited), and only integers
+may be specified.
 
 The LDAP Content Synchronization protocol has two operation
 types: {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
