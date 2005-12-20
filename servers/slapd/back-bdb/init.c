@@ -565,13 +565,14 @@ bdb_db_close( BackendDB *be )
 		bdb->bi_idl_lru_head = bdb->bi_idl_lru_tail = NULL;
 	}
 
-	if ( !( slapMode & SLAP_TOOL_QUICK ) && bdb->bi_dbenv ) {
-		XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
-		bdb->bi_cache.c_locker = 0;
-	}
-
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
+		/* Free cache locker if we enabled locking */
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
+			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+			bdb->bi_cache.c_locker = 0;
+		}
+
 		/* force a checkpoint, but not if we were ReadOnly,
 		 * and not in Quick mode since there are no transactions there.
 		 */
