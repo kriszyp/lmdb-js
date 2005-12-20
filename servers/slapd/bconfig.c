@@ -2401,10 +2401,14 @@ config_security(ConfigArgs *c) {
 }
 
 char *
-anlist_unparse( AttributeName *an, char *ptr ) {
+anlist_unparse( AttributeName *an, char *ptr, ber_len_t buflen ) {
 	int comma = 0;
+	char *start = ptr;
 
 	for (; !BER_BVISNULL( &an->an_name ); an++) {
+		/* if buflen == 0, assume the buffer size has been 
+		 * already checked otherwise */
+		if ( buflen > 0 && buflen - ( ptr - start ) < comma + an->an_name.bv_len ) return NULL;
 		if ( comma ) *ptr++ = ',';
 		ptr = lutil_strcopy( ptr, an->an_name.bv_val );
 		comma = 1;
@@ -2468,7 +2472,7 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 		ptr = lutil_strcopy( ptr, " attrs" );
 		if ( ri->ri_exclude ) *ptr++ = '!';
 		*ptr++ = '=';
-		ptr = anlist_unparse( ri->ri_attrs, ptr );
+		ptr = anlist_unparse( ri->ri_attrs, ptr, 0 );
 	}
 }
 

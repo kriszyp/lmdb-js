@@ -3187,7 +3187,9 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	char buf[BUFSIZ*2], *ptr;
 	int i;
 
-	/* FIXME: we're not checking for buf[] overflow! */
+#define WHATSLEFT	( sizeof( buf ) - ( ptr - buf ) )
+
+	BER_BVZERO( bv );
 
 	/* temporarily inhibit bindconf from printing URI */
 	uri = si->si_bindconf.sb_uri;
@@ -3196,68 +3198,91 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	si->si_bindconf.sb_uri = uri;
 
 	ptr = buf;
-	ptr += snprintf( ptr, sizeof( buf ), IDSTR "=%03ld " PROVIDERSTR "=%s",
+	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03ld " PROVIDERSTR "=%s",
 		si->si_rid, si->si_bindconf.sb_uri.bv_val );
+	if ( ptr - buf >= sizeof( buf ) ) return;
 	if ( !BER_BVISNULL( &bc )) {
+		if ( WHATSLEFT <= bc.bv_len ) {
+			free( bc.bv_val );
+			return;
+		}
 		ptr = lutil_strcopy( ptr, bc.bv_val );
 		free( bc.bv_val );
 	}
 	if ( !BER_BVISEMPTY( &si->si_filterstr )) {
+		if ( WHATSLEFT <= STRLENOF( " " FILTERSTR "=\"" "\"" ) + si->si_filterstr.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " FILTERSTR "=\"" );
 		ptr = lutil_strcopy( ptr, si->si_filterstr.bv_val );
 		*ptr++ = '"';
 	}
 	if ( !BER_BVISNULL( &si->si_base )) {
+		if ( WHATSLEFT <= STRLENOF( " " SEARCHBASESTR "=\"" "\"" ) + si->si_base.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " SEARCHBASESTR "=\"" );
 		ptr = lutil_strcopy( ptr, si->si_base.bv_val );
 		*ptr++ = '"';
 	}
 	if ( !BER_BVISEMPTY( &si->si_logfilterstr )) {
+		if ( WHATSLEFT <= STRLENOF( " " LOGFILTERSTR "=\"" "\"" ) + si->si_logfilterstr.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " LOGFILTERSTR "=\"" );
 		ptr = lutil_strcopy( ptr, si->si_logfilterstr.bv_val );
 		*ptr++ = '"';
 	}
 	if ( !BER_BVISNULL( &si->si_logbase )) {
+		if ( WHATSLEFT <= STRLENOF( " " LOGBASESTR "=\"" "\"" ) + si->si_logbase.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " LOGBASESTR "=\"" );
 		ptr = lutil_strcopy( ptr, si->si_logbase.bv_val );
 		*ptr++ = '"';
 	}
 	for (i=0; !BER_BVISNULL(&scopes[i].key);i++) {
 		if ( si->si_scope == scopes[i].val ) {
+			if ( WHATSLEFT <= STRLENOF( " " SCOPESTR "=" ) + scopes[i].key.bv_len ) return;
 			ptr = lutil_strcopy( ptr, " " SCOPESTR "=" );
 			ptr = lutil_strcopy( ptr, scopes[i].key.bv_val );
 			break;
 		}
 	}
 	if ( si->si_attrsonly ) {
+		if ( WHATSLEFT <= STRLENOF( " " ATTRSONLYSTR "=\"" "\"" ) ) return;
 		ptr = lutil_strcopy( ptr, " " ATTRSONLYSTR );
 	}
 	if ( si->si_anfile ) {
-		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=:include:" );
+		if ( WHATSLEFT <= STRLENOF( " " ATTRSSTR "=\":include:" "\"" ) + strlen( si->si_anfile ) ) return;
+		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=:include:\"" );
 		ptr = lutil_strcopy( ptr, si->si_anfile );
+		*ptr++ = '"';
 	} else if ( si->si_allattrs || si->si_allopattrs ||
-		( si->si_anlist && !BER_BVISNULL(&si->si_anlist[0].an_name) )) {
+		( si->si_anlist && !BER_BVISNULL(&si->si_anlist[0].an_name) ))
+	{
 		char *old;
+
+		if ( WHATSLEFT <= STRLENOF( " " ATTRSONLYSTR "=\"" "\"" ) ) return;
 		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=\"" );
 		old = ptr;
-		ptr = anlist_unparse( si->si_anlist, ptr );
+		/* FIXME: add check for overflow */
+		ptr = anlist_unparse( si->si_anlist, ptr, WHATSLEFT );
 		if ( si->si_allattrs ) {
+			if ( WHATSLEFT <= STRLENOF( ",*\"" ) ) return;
 			if ( old != ptr ) *ptr++ = ',';
 			*ptr++ = '*';
 		}
 		if ( si->si_allopattrs ) {
+			if ( WHATSLEFT <= STRLENOF( ",+\"" ) ) return;
 			if ( old != ptr ) *ptr++ = ',';
 			*ptr++ = '+';
 		}
 		*ptr++ = '"';
 	}
 	if ( si->si_exanlist && !BER_BVISNULL(&si->si_exanlist[0].an_name) ) {
+		if ( WHATSLEFT <= STRLENOF( " " EXATTRSSTR "=" ) ) return;
 		ptr = lutil_strcopy( ptr, " " EXATTRSSTR "=" );
-		ptr = anlist_unparse( si->si_exanlist, ptr );
+		/* FIXME: add check for overflow */
+		ptr = anlist_unparse( si->si_exanlist, ptr, WHATSLEFT );
 	}
+	if ( WHATSLEFT <= STRLENOF( " " SCHEMASTR "=" ) + STRLENOF( "off" ) ) return;
 	ptr = lutil_strcopy( ptr, " " SCHEMASTR "=" );
 	ptr = lutil_strcopy( ptr, si->si_schemachecking ? "on" : "off" );
 	
+	if ( WHATSLEFT <= STRLENOF( " " TYPESTR "=" ) + STRLENOF( "refreshAndPersist" ) ) return;
 	ptr = lutil_strcopy( ptr, " " TYPESTR "=" );
 	ptr = lutil_strcopy( ptr, si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ?
 		"refreshAndPersist" : "refreshOnly" );
@@ -3273,34 +3298,40 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		hh = dd % 24;
 		dd /= 24;
 		ptr = lutil_strcopy( ptr, " " INTERVALSTR "=" );
-		ptr += sprintf( ptr, "%02d:%02d:%02d:%02d", dd, hh, mm, ss );
+		ptr += snprintf( ptr, WHATSLEFT, "%02d:%02d:%02d:%02d", dd, hh, mm, ss );
+		if ( ptr - buf >= sizeof( buf ) ) return;
 	} else if ( si->si_retryinterval ) {
 		int space=0;
+		if ( WHATSLEFT <= STRLENOF( " " RETRYSTR "=\"" "\"" ) ) return;
 		ptr = lutil_strcopy( ptr, " " RETRYSTR "=\"" );
 		for (i=0; si->si_retryinterval[i]; i++) {
 			if ( space ) *ptr++ = ' ';
 			space = 1;
-			ptr += sprintf( ptr, "%ld ", (long) si->si_retryinterval[i] );
+			ptr += snprintf( ptr, WHATSLEFT, "%ld ", (long) si->si_retryinterval[i] );
 			if ( si->si_retrynum_init[i] == RETRYNUM_FOREVER )
 				*ptr++ = '+';
 			else
-				ptr += sprintf( ptr, "%d", si->si_retrynum_init[i] );
+				ptr += snprintf( ptr, WHATSLEFT, "%d", si->si_retrynum_init[i] );
 		}
+		if ( WHATSLEFT <= STRLENOF( "\"" ) ) return;
 		*ptr++ = '"';
 	}
 
 	if ( si->si_slimit ) {
+		if ( WHATSLEFT <= STRLENOF( " " SLIMITSTR "=" ) ) return;
 		ptr = lutil_strcopy( ptr, " " SLIMITSTR "=" );
-		ptr += sprintf( ptr, "%d", si->si_slimit );
+		ptr += snprintf( ptr, WHATSLEFT, "%d", si->si_slimit );
 	}
 
 	if ( si->si_tlimit ) {
+		if ( WHATSLEFT <= STRLENOF( " " TLIMITSTR "=" ) ) return;
 		ptr = lutil_strcopy( ptr, " " TLIMITSTR "=" );
-		ptr += sprintf( ptr, "%d", si->si_tlimit );
+		ptr += snprintf( ptr, WHATSLEFT, "%d", si->si_tlimit );
 	}
 
 	if ( si->si_syncdata ) {
 		if ( enum_to_verb( datamodes, si->si_syncdata, &bc ) >= 0 ) {
+			if ( WHATSLEFT <= STRLENOF( " " SYNCDATASTR "=" ) + bc.bv_len ) return;
 			ptr = lutil_strcopy( ptr, " " SYNCDATASTR "=" );
 			ptr = lutil_strcopy( ptr, bc.bv_val );
 		}
