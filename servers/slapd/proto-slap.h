@@ -992,10 +992,10 @@ LDAP_SLAPD_F (int) limits_parse_one LDAP_P(( const char *arg,
 	struct slap_limits_set *limit ));
 LDAP_SLAPD_F (int) limits_check LDAP_P((
 	Operation *op, SlapReply *rs ));
-LDAP_SLAPD_F (void) limits_unparse_one LDAP_P(( 
-	struct slap_limits_set *limit, int which, struct berval *bv ));
-LDAP_SLAPD_F (void) limits_unparse LDAP_P(( 
-	struct slap_limits *limit, struct berval *bv ));
+LDAP_SLAPD_F (int) limits_unparse_one LDAP_P(( 
+	struct slap_limits_set *limit, int which, struct berval *bv, ber_len_t buflen ));
+LDAP_SLAPD_F (int) limits_unparse LDAP_P(( 
+	struct slap_limits *limit, struct berval *bv, ber_len_t buflen ));
 LDAP_SLAPD_F (void) limits_destroy LDAP_P(( struct slap_limits **lm ));
 
 /*

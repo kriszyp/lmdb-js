@@ -741,7 +741,8 @@ config_generic(ConfigArgs *c) {
 						break;
 					}
 					bv.bv_val = buf + bv.bv_len;
-					limits_unparse( c->be->be_limits[i], &bv );
+					limits_unparse( c->be->be_limits[i], &bv,
+							sizeof( buf ) - ( bv.bv_val - buf ) );
 					bv.bv_len += bv.bv_val - buf;
 					bv.bv_val = buf;
 					value_add_one( &c->rvalue_vals, &bv );
@@ -1597,7 +1598,7 @@ config_sizelimit(ConfigArgs *c) {
 		struct berval bv;
 		bv.bv_val = buf;
 		bv.bv_len = 0;
-		limits_unparse_one( lim, SLAP_LIMIT_SIZE, &bv );
+		limits_unparse_one( lim, SLAP_LIMIT_SIZE, &bv, sizeof( buf ) );
 		if ( !BER_BVISEMPTY( &bv ))
 			value_add_one( &c->rvalue_vals, &bv );
 		else
@@ -1648,7 +1649,7 @@ config_timelimit(ConfigArgs *c) {
 		struct berval bv;
 		bv.bv_val = buf;
 		bv.bv_len = 0;
-		limits_unparse_one( lim, SLAP_LIMIT_TIME, &bv );
+		limits_unparse_one( lim, SLAP_LIMIT_TIME, &bv, sizeof( buf ) );
 		if ( !BER_BVISEMPTY( &bv ))
 			value_add_one( &c->rvalue_vals, &bv );
 		else
