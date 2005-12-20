@@ -1,6 +1,9 @@
 OpenLDAP 2.3 Change Log
+
+OpenLDAP 2.3.14 Engineering
 	Fixed slapd sc_prev update after free bug (ITS#4237)
 	Fixed slapd-meta sizelimit disclose issue (ITS#4213)
+	Fixed slapo-rwm static DN free bug (ITS#4248)
 	Fixed slapd assertion control restrictions
 
 OpenLDAP 2.3.13 Release
