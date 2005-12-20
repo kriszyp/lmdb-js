@@ -82,9 +82,6 @@ typedef struct dncookie {
 #endif
 } dncookie;
 
-/* TODO: allow to define it on a per-target basis */
-#define META_BIND_TIMEOUT	10000
-
 int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
 	struct berval *res);
 
@@ -177,6 +174,8 @@ typedef struct metasingleconn_t {
 #define META_ANONYMOUS		2
 #endif
 
+	time_t			msc_time;
+
 	struct metainfo_t	*msc_info;
 } metasingleconn_t;
 
@@ -228,6 +227,10 @@ typedef struct metatarget_t {
 
 	unsigned		mt_flags;
 	int			mt_version;
+	time_t			mt_network_timeout;
+	time_t			mt_idle_timeout;
+	struct timeval		mt_bind_timeout;
+#define META_BIND_TIMEOUT	10000
 	time_t			mt_timeout[ LDAP_BACK_OP_LAST ];
 } metatarget_t;
 
@@ -248,7 +251,6 @@ typedef struct metacandidates_t {
 typedef struct metainfo_t {
 	int			mi_ntargets;
 	int			mi_defaulttarget;
-	int			mi_network_timeout;
 #define META_DEFAULT_TARGET_NONE	(-1)
 	int			mi_nretries;
 
@@ -271,6 +273,9 @@ typedef struct metainfo_t {
 #define META_BACK_DEFER_ROOTDN_BIND(mi)	( (mi)->mi_flags & META_BACK_F_DEFER_ROOTDN_BIND )
 
 	int			mi_version;
+	time_t			mi_network_timeout;
+	time_t			mi_idle_timeout;
+	struct timeval		mi_bind_timeout;
 	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];
 } metainfo_t;
 
@@ -313,9 +318,8 @@ meta_back_init_one_conn(
 	SlapReply		*rs,
 	metatarget_t		*mt, 
 	metaconn_t		*mc,
-	metasingleconn_t	*msc,
+	int			candidate,
 	int			ispriv,
-	int			isauthz,
 	ldap_back_send_t	sendok );
 
 extern int

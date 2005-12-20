@@ -258,7 +258,7 @@ retry:
 	 * but this is necessary for version matching, and for ACL processing.
 	 */
 
-	for ( rc = 0; rc != -1; rc = ldap_result( lc->lc_ld, msgid, 0, &tv, &res ) )
+	for ( rc = 0; rc != -1; rc = ldap_result( lc->lc_ld, msgid, LDAP_MSG_ONE, &tv, &res ) )
 	{
 		/* check for abandon */
 		if ( op->o_abandon ) {
@@ -299,11 +299,11 @@ retry:
 				rc = rs->sr_err = send_search_entry( op, rs );
 				if ( !BER_BVISNULL( &ent.e_name ) ) {
 					assert( ent.e_name.bv_val != bdn.bv_val );
-					free( ent.e_name.bv_val );
+					op->o_tmpfree( ent.e_name.bv_val, op->o_tmpmemctx );
 					BER_BVZERO( &ent.e_name );
 				}
 				if ( !BER_BVISNULL( &ent.e_nname ) ) {
-					free( ent.e_nname.bv_val );
+					op->o_tmpfree( ent.e_nname.bv_val, op->o_tmpmemctx );
 					BER_BVZERO( &ent.e_nname );
 				}
 				entry_clean( &ent );

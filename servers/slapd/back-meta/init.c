@@ -87,6 +87,8 @@ meta_back_db_init(
 	 * this may change
 	 */
 	mi->mi_defaulttarget = META_DEFAULT_TARGET_NONE;
+	mi->mi_bind_timeout.tv_sec = 0;
+	mi->mi_bind_timeout.tv_usec = META_BIND_TIMEOUT;
 
 	ldap_pvt_thread_mutex_init( &mi->mi_conninfo.lai_mutex );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache.mutex );

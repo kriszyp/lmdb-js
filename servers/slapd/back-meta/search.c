@@ -389,7 +389,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 			 */
 get_result:;
 			rc = ldap_result( msc->msc_ld, candidates[ i ].sr_msgid,
-					0, &tv, &res );
+					LDAP_MSG_ONE, &tv, &res );
 
 			if ( rc == 0 ) {
 				/* FIXME: res should not need to be freed */
@@ -453,7 +453,7 @@ really_bad:;
 				ldap_msgfree( res );
 				res = NULL;
 
-				switch ( rc ) {
+				switch ( rs->sr_err ) {
 				case LDAP_SIZELIMIT_EXCEEDED:
 					savepriv = op->o_private;
 					op->o_private = (void *)i;
@@ -566,13 +566,22 @@ really_bad:;
 					candidates[ i ].sr_type = REP_RESULT;
 				}
 
+				/* NOTE: ignores response controls
+				 * (and intermediate response controls
+				 * as well, except for those with search
+				 * references); this may not be correct,
+				 * but if they're not ignored then
+				 * back-meta would need to merge them
+				 * consistently (think of pagedResults...)
+				 */
 				if ( ldap_parse_result( msc->msc_ld,
 							res,
 							&candidates[ i ].sr_err,
 							(char **)&candidates[ i ].sr_matched,
 							NULL /* (char **)&candidates[ i ].sr_text */ ,
 							&references,
-							&candidates[ i ].sr_ctrls, 1 ) != LDAP_SUCCESS )
+							NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
+							1 ) != LDAP_SUCCESS )
 				{
 					res = NULL;
 					ldap_get_option( msc->msc_ld,

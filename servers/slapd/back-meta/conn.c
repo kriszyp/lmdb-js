@@ -206,20 +206,34 @@ meta_back_init_one_conn(
 	SlapReply		*rs,
 	metatarget_t		*mt, 
 	metaconn_t		*mc,
-	metasingleconn_t	*msc,
+	int			candidate,
 	int			ispriv,
-	int			isauthz,
 	ldap_back_send_t	sendok )
 {
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	int		vers;
-	dncookie	dc;
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	int			vers;
+	dncookie		dc;
+	int			isauthz = ( candidate == mc->mc_authz_target );
 
 	/*
 	 * Already init'ed
 	 */
 	if ( msc->msc_ld != NULL ) {
-		return rs->sr_err = LDAP_SUCCESS;
+		if ( mt->mt_idle_timeout == 0 ) {
+			return rs->sr_err = LDAP_SUCCESS;
+		}
+
+		if ( op->o_time > msc->msc_time + mt->mt_idle_timeout ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"%s meta_back_init_one_conn[%d]: idle timeout.\n",
+				op->o_log_prefix, candidate, 0 );
+			if ( meta_back_retry( op, rs, mc, candidate, sendok ) ) {
+				return rs->sr_err;
+			}
+		}
+
+		msc->msc_time = op->o_time;
 	}
        
 	/*
@@ -344,11 +358,11 @@ retry:;
 	/*
 	 * Set the network timeout if set
 	 */
-	if ( mi->mi_network_timeout != 0 ) {
+	if ( mt->mt_network_timeout != 0 ) {
 		struct timeval	network_timeout;
 
 		network_timeout.tv_usec = 0;
-		network_timeout.tv_sec = mi->mi_network_timeout;
+		network_timeout.tv_sec = mt->mt_network_timeout;
 
 		ldap_set_option( msc->msc_ld, LDAP_OPT_NETWORK_TIMEOUT,
 				(void *)&network_timeout );
@@ -414,6 +428,10 @@ error_return:;
 		 */
 		( void )rewrite_session_init( mt->mt_rwmap.rwm_rw, op->o_conn );
 
+		if ( mt->mt_idle_timeout ) {
+			msc->msc_time = op->o_time;
+		}
+
 	} else {
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
@@ -449,17 +467,22 @@ retry_lock:;
 	assert( mc->mc_refcnt > 0 );
 
 	if ( mc->mc_refcnt == 1 ) {
+		char	buf[ SLAP_TEXT_BUFLEN ];
+
 		while ( ldap_pvt_thread_mutex_trylock( &mc->mc_mutex ) ) {
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			ldap_pvt_thread_yield();
 			goto retry_lock;
 		}
 
-		Debug( LDAP_DEBUG_ANY,
-			"%s meta_back_retry: retrying URI=\"%s\" DN=\"%s\"\n",
-			op->o_log_prefix, mt->mt_uri,
+		snprintf( buf, sizeof( buf ),
+			"retrying URI=\"%s\" DN=\"%s\"",
+			mt->mt_uri,
 			BER_BVISNULL( &msc->msc_bound_ndn ) ?
 				"" : msc->msc_bound_ndn.bv_val );
+		Debug( LDAP_DEBUG_ANY,
+			"%s meta_back_retry[%d]: %s.\n",
+			op->o_log_prefix, candidate, buf );
 
 		meta_clear_one_candidate( msc );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
@@ -467,9 +490,8 @@ retry_lock:;
 		( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
 
 		/* mc here must be the regular mc, reset and ready for init */
-		rc = meta_back_init_one_conn( op, rs, mt, mc, msc,
-			LDAP_BACK_CONN_ISPRIV( mc ),
-			candidate == mc->mc_authz_target, sendok );
+		rc = meta_back_init_one_conn( op, rs, mt, mc, candidate,
+			LDAP_BACK_CONN_ISPRIV( mc ), sendok );
 
 		if ( rc == LDAP_SUCCESS ) {
         		rc = meta_back_single_dobind( op, rs, mc, candidate,
@@ -804,16 +826,14 @@ meta_back_getconn(
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			metatarget_t		*mt = &mi->mi_targets[ i ];
-			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
 			/*
 			 * The target is activated; if needed, it is
 			 * also init'd
 			 */
 			candidates[ i ].sr_err = meta_back_init_one_conn( op,
-				rs, mt, mc, msc,
-				LDAP_BACK_CONN_ISPRIV( &mc_curr ),
-				i == mc->mc_authz_target, sendok );
+				rs, mt, mc, i,
+				LDAP_BACK_CONN_ISPRIV( &mc_curr ), sendok );
 			if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
 				candidates[ i ].sr_tag = META_CANDIDATE;
 				ncandidates++;
@@ -920,7 +940,7 @@ meta_back_getconn(
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-	"==>meta_back_getconn: got target %d for ndn=\"%s\" from cache\n",
+	"==>meta_back_getconn: got target=%d for ndn=\"%s\" from cache\n",
 				i, op->o_req_ndn.bv_val, 0 );
 
 		if ( mc == NULL ) {
@@ -957,9 +977,8 @@ meta_back_getconn(
 		 * also init'd. In case of error, meta_back_init_one_conn
 		 * sends the appropriate result.
 		 */
-		err = meta_back_init_one_conn( op, rs, mt, mc, msc,
-			LDAP_BACK_CONN_ISPRIV( &mc_curr ),
-			i == mc->mc_authz_target, sendok );
+		err = meta_back_init_one_conn( op, rs, mt, mc, i,
+			LDAP_BACK_CONN_ISPRIV( &mc_curr ), sendok );
 		if ( err != LDAP_SUCCESS ) {
 			/*
 			 * FIXME: in case one target cannot
@@ -1014,16 +1033,15 @@ meta_back_getconn(
 				 * also init'd
 				 */
 				int lerr = meta_back_init_one_conn( op, rs,
-						mt, mc, msc,
+						mt, mc, i,
 						LDAP_BACK_CONN_ISPRIV( &mc_curr ),
-						i == mc->mc_authz_target,
 						sendok );
 				if ( lerr == LDAP_SUCCESS ) {
 					candidates[ i ].sr_tag = META_CANDIDATE;
 					candidates[ i ].sr_err = LDAP_SUCCESS;
 					ncandidates++;
 
-					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_init_one_conn(%d)\n",
+					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d]\n",
 						op->o_log_prefix, i, 0 );
 
 				} else {
@@ -1040,7 +1058,7 @@ meta_back_getconn(
 					candidates[ i ].sr_err = lerr;
 					err = lerr;
 
-					Debug( LDAP_DEBUG_ANY, "%s: meta_back_init_one_conn(%d) failed: %d\n",
+					Debug( LDAP_DEBUG_ANY, "%s: meta_back_getconn[%d] failed: %d\n",
 						op->o_log_prefix, i, lerr );
 
 					continue;

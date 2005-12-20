@@ -11,6 +11,7 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapd-bdb/hdb cn=config olcDbIndex modify/replace (ITS#4262)
 	Fixed slapd-bdb/hdb lockup issue (ITS#4184)
 	Fixed slapo-rwm static DN free bug (ITS#4248)
+	Fixed slapd-ldap/meta (ITS#4115)
 	Updated slapo-dynlist (ITS#3756,4224)
 	Build environment
 		Updated test033-glue-syncrepl (ITS#4264)
