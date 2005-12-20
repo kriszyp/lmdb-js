@@ -298,6 +298,23 @@ ldap_build_search_req(
 		return( NULL );
 	}
 
+#ifdef LDAP_DEBUG
+	if ( ldap_debug & LDAP_DEBUG_ARGS ) {
+		if ( attrs == NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "ldap_build_search_req ATTRS: *\n", 0, 0, 0 );
+			
+		} else {
+			int	i;
+
+			Debug( LDAP_DEBUG_ARGS, "ldap_build_search_req ATTRS:\n", 0, 0, 0 );
+
+			for ( i = 0; attrs[ i ]; i++ ) {
+				Debug( LDAP_DEBUG_ARGS, "    %s\n", attrs[ i ], 0, 0 );
+			}
+		}
+	}
+#endif /* LDAP_DEBUG */
+
 	if ( ber_printf( ber, /*{*/ "{v}N}", attrs ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );

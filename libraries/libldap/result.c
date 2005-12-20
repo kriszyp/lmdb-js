@@ -78,6 +78,8 @@ static ber_tag_t build_result_ber LDAP_P(( LDAP *ld, BerElement **bp, LDAPReques
 static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
 static LDAPMessage * chkResponseList LDAP_P(( LDAP *ld, int msgid, int all));
 
+#define LDAP_MSG_X_KEEP_LOOKING		(-2)
+
 
 /*
  * ldap_result - wait for an ldap result response to a message from the
@@ -255,8 +257,8 @@ wait4msg(
 		start_time = time( NULL );
 	}
 		    
-	rc = -2;
-	while ( rc == -2 ) {
+	rc = LDAP_MSG_X_KEEP_LOOKING;
+	while ( rc == LDAP_MSG_X_KEEP_LOOKING ) {
 #ifdef LDAP_DEBUG
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
 			Debug( LDAP_DEBUG_TRACE, "wait4msg continue ld %p msgid %d all %d\n",
@@ -315,9 +317,9 @@ wait4msg(
 				}
 
 				if ( rc == -1 ) {
-					rc = -2;	/* select interrupted: loop */
+					rc = LDAP_MSG_X_KEEP_LOOKING;	/* select interrupted: loop */
 				} else {
-					rc = -2;
+					rc = LDAP_MSG_X_KEEP_LOOKING;
 #ifdef LDAP_R_COMPILE
 					ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
@@ -332,7 +334,7 @@ wait4msg(
 					ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 					ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
 #endif
-					for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
+					for ( lc = ld->ld_conns; rc == LDAP_MSG_X_KEEP_LOOKING && lc != NULL;
 						lc = nextlc )
 					{
 						nextlc = lc->lconn_next;
@@ -357,7 +359,7 @@ wait4msg(
 			}
 		}
 
-		if ( rc == -2 && tvp != NULL ) {
+		if ( rc == LDAP_MSG_X_KEEP_LOOKING && tvp != NULL ) {
 			tmp_time = time( NULL );
 			tv0.tv_sec -= ( tmp_time - start_time );
 			if ( tv0.tv_sec <= 0 ) {
@@ -459,10 +461,10 @@ nextresp3:
 				"ber_get_next failed.\n", 0, 0, 0 );
 #endif		   
 #ifdef EWOULDBLOCK			
-			if (errno==EWOULDBLOCK) return -2;
+			if (errno==EWOULDBLOCK) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 #ifdef EAGAIN
-			if (errno == EAGAIN) return -2;
+			if (errno == EAGAIN) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 			ld->ld_errno = LDAP_SERVER_DOWN;
 			return -1;
@@ -487,7 +489,7 @@ retry_ber:
 		if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
 			goto retry;
 		}
-		return( -2 );	/* continue looking */
+		return( LDAP_MSG_X_KEEP_LOOKING );	/* continue looking */
 	}
 
 	lr = ldap_find_request_by_msgid( ld, id );
@@ -517,7 +519,7 @@ nextresp2:
 	id = lr->lr_origid;
 	refer_cnt = 0;
 	hadref = simple_request = 0;
-	rc = -2;	/* default is to keep looking (no response found) */
+	rc = LDAP_MSG_X_KEEP_LOOKING;	/* default is to keep looking (no response found) */
 	lr->lr_res_msgtype = tag;
 
 	/*
@@ -989,7 +991,7 @@ exit:
 	if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
 		goto retry;
 	}
-	return( -2 );	/* continue looking */
+	return( LDAP_MSG_X_KEEP_LOOKING );	/* continue looking */
 }
 
 

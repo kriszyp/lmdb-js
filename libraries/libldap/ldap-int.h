@@ -151,6 +151,7 @@ struct ldapoptions {
 #define LDAP_UNINITIALIZED	0x0
 #define LDAP_INITIALIZED	0x1
 #define LDAP_VALID_SESSION	0x2
+#define LDAP_TRASHED_SESSION	0xFF
 	int   ldo_debug;
 #ifdef LDAP_CONNECTIONLESS
 #define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
@@ -347,7 +348,9 @@ struct ldap {
 	LDAPConn	*ld_conns;	/* list of server connections */
 	void		*ld_selectinfo;	/* platform specifics for select */
 };
-#define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
+#define LDAP_VALID(ld)		( (ld)->ld_valid == LDAP_VALID_SESSION )
+#define LDAP_TRASHED(ld)	( (ld)->ld_valid == LDAP_TRASHED_SESSION )
+#define LDAP_TRASH(ld)		( (ld)->ld_valid = LDAP_TRASHED_SESSION )
 
 #ifdef LDAP_R_COMPILE
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;

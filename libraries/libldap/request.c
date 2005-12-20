@@ -662,7 +662,8 @@ ldap_dump_requests_and_responses( LDAP *ld )
 		( lr->lr_status == LDAP_REQST_CHASINGREFS ) ? "ChasingRefs" :
 		( lr->lr_status == LDAP_REQST_NOTCONNECTED ) ? "NotConnected" :
 		( lr->lr_status == LDAP_REQST_WRITING) ? "Writing" :
-		( lr->lr_status == LDAP_REQST_COMPLETED ? "Request Completed" : "Invalid Status"));
+		( lr->lr_status == LDAP_REQST_COMPLETED ? "RequestCompleted"
+			: "InvalidStatus"));
 	    fprintf( stderr, "   outstanding referrals %d, parent count %d\n",
 		    lr->lr_outrefcnt, lr->lr_parentcnt );
 	}
