@@ -247,22 +247,24 @@ int main( int argc, char **argv )
 	char *sandbox = NULL;
 #endif
 #ifdef LOG_LOCAL4
-    int	    syslogUser = DEFAULT_SYSLOG_USER;
+	int syslogUser = DEFAULT_SYSLOG_USER;
 #endif
 	
 	int g_argc = argc;
 	char **g_argv = argv;
 
-	char		*configfile = NULL;
-	char		*configdir = NULL;
-	char	    *serverName;
-	int	    serverMode = SLAP_SERVER_MODE;
+	char *configfile = NULL;
+	char *configdir = NULL;
+	char *serverName;
+	int serverMode = SLAP_SERVER_MODE;
 
 	struct sync_cookie *scp = NULL;
 	struct sync_cookie *scp_entry = NULL;
 
-	char	*serverNamePrefix = "";
+	char *serverNamePrefix = "";
 	size_t	l;
+
+	int slapd_pid_file_unlink = 0, slapd_args_file_unlink = 0;
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -389,24 +391,40 @@ int main( int argc, char **argv )
 			LDAP_STAILQ_INSERT_TAIL( &slap_sync_cookie, scp, sc_next );
 			break;
 
-		case 'd':	/* set debug level and 'do not detach' flag */
+		case 'd': {	/* set debug level and 'do not detach' flag */
+			int	level = 0;
+
 			no_detach = 1;
 #ifdef LDAP_DEBUG
 			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
 			{
-				int	level;
+				int	i, goterr = 0;
+				char	**levels;
 
-				if ( str2loglevel( optarg, &level ) ) {
-					fprintf( stderr,
-						"unrecognized log level "
-						"\"%s\"\n", optarg );
+				levels = ldap_str2charray( optarg, "," );
+
+				for ( i = 0; levels[ i ] != NULL; i++ ) {
+					level = 0;
+
+					if ( str2loglevel( levels[ i ], &level ) ) {
+						fprintf( stderr,
+							"unrecognized log level "
+							"\"%s\"\n", levels[ i ] );
+						goterr = 1;
+						/* but keep parsing... */
+
+					} else {
+						slap_debug |= level;
+					}
+				}
+
+				ldap_charray_free( levels );
+
+				if ( goterr ) {
 					goto destroy;
 				}
 
-				slap_debug |= level;
 			} else {
-				int	level;
-
 				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 					fprintf( stderr,
 						"unrecognized log level "
@@ -420,7 +438,7 @@ int main( int argc, char **argv )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
-			break;
+			} break;
 
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );
@@ -716,20 +734,6 @@ unhandled_option:;
 	mal_leaktrace(1);
 #endif
 
-	/*
-	 * FIXME: moved here from slapd_daemon_task()
-	 * because back-monitor db_open() needs it
-	 */
-	time( &starttime );
-
-	if ( slap_startup( NULL ) != 0 ) {
-		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
-		goto shutdown;
-	}
-
-	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
-
 	if ( slapd_pid_file != NULL ) {
 		FILE *fp = fopen( slapd_pid_file, "w" );
 
@@ -745,11 +749,11 @@ unhandled_option:;
 			slapd_pid_file = NULL;
 
 			rc = 1;
-			goto shutdown;
+			goto destroy;
 		}
-
 		fprintf( fp, "%d\n", (int) getpid() );
 		fclose( fp );
+		slapd_pid_file_unlink = 1;
 	}
 
 	if ( slapd_args_file != NULL ) {
@@ -767,7 +771,7 @@ unhandled_option:;
 			slapd_args_file = NULL;
 
 			rc = 1;
-			goto shutdown;
+			goto destroy;
 		}
 
 		for ( i = 0; i < g_argc; i++ ) {
@@ -775,7 +779,22 @@ unhandled_option:;
 		}
 		fprintf( fp, "\n" );
 		fclose( fp );
+		slapd_args_file_unlink = 1;
 	}
+
+	/*
+	 * FIXME: moved here from slapd_daemon_task()
+	 * because back-monitor db_open() needs it
+	 */
+	time( &starttime );
+
+	if ( slap_startup( NULL ) != 0 ) {
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
+		goto shutdown;
+	}
+
+	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
@@ -841,10 +860,10 @@ stop:
 	ldap_pvt_tls_destroy();
 #endif
 
-	if ( slapd_pid_file != NULL ) {
+	if ( slapd_pid_file_unlink ) {
 		unlink( slapd_pid_file );
 	}
-	if ( slapd_args_file != NULL ) {
+	if ( slapd_args_file_unlink ) {
 		unlink( slapd_args_file );
 	}
 
