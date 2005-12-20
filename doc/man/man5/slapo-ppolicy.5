@@ -39,9 +39,11 @@ and no default is given, then no policies will be enforced.
 .TP
 .B ppolicy_hash_cleartext
 Specify that cleartext passwords present in Add and Modify requests should
-be hashed before being stored in the database. This violates the X.500
+be hashed before being stored in the database. This violates the X.500/LDAP
 information model, but may be needed to compensate for LDAP clients that
-don't use the Password Modify exop to manage passwords.
+don't use the Password Modify extended operation to manage passwords.  It
+is recommended that when this option is used that compare, search, and
+read access be denied to all directory users. 
 .TP
 .B ppolicy_use_lockout
 A client will always receive an LDAP
