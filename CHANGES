@@ -2,17 +2,17 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.14 Engineering
 	Fixed slapd assertion control restrictions
-	Fixed slapd ACL exact attrval clause needs normalization (ITS#4255)
+	Fixed slapd ACL exact attrval clause normalization (ITS#4255)
 	Fixed slapd sc_prev update after free bug (ITS#4237)
-	Fixed slapd issues (ITS#4243,4251)
-	Fixed slapd cn=config (ITS#4249)
+	Fixed slapd issues (ITS#4245,4251)
+	Added slapd warning for excessive threads number (ITS#4249)
 	Fixed slapd-bdb/hdb mode argument parsing (ITS#4257)
 	Fixed slapd-bdb/hdb cn=config reindexing (ITS#4260)
 	Fixed slapd-bdb/hdb cn=config olcDbIndex modify/replace (ITS#4262)
 	Fixed slapd-bdb/hdb lockup issue (ITS#4184)
 	Fixed slapo-rwm static DN free bug (ITS#4248)
-	Fixed slapd-ldap/meta (ITS#4115)
-	Fixed slapd-ldap (ITS#4272)
+	Added slapd-ldap/meta idle-timeout support (ITS#4115)
+	Fixed slapd-ldap anonymous identity assertion (ITS#4272)
 	Updated slapo-dynlist (ITS#3756,4224)
 	Build environment
 		Updated test033-glue-syncrepl (ITS#4264)
