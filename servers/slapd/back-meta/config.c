@@ -346,7 +346,6 @@ meta_back_db_config(
 
 	/* network timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "network-timeout" ) == 0 ) {
-		int 		i = mi->mi_ntargets - 1;
 		unsigned long	t;
 		time_t		*tp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_network_timeout
@@ -371,7 +370,6 @@ meta_back_db_config(
 
 	/* idle timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "idle-timeout" ) == 0 ) {
-		int 		i = mi->mi_ntargets - 1;
 		unsigned long	t;
 		time_t		*tp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_idle_timeout
@@ -404,7 +402,6 @@ meta_back_db_config(
 
 	/* bind timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "bind-timeout" ) == 0 ) {
-		int 		i = mi->mi_ntargets - 1;
 		unsigned long	t;
 		struct timeval	*tp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_bind_timeout
