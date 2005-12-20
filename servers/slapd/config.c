@@ -192,7 +192,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		iarg = 0; larg = 0; barg = 0;
 		switch(arg_type & ARGS_NUMERIC) {
 			case ARG_INT:
-				if ( lutil_atoi( &iarg, c->argv[1] ) != 0 ) {
+				if ( lutil_atoix( &iarg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as int",
 						c->argv[0], c->argv[1] );
@@ -202,7 +202,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				}
 				break;
 			case ARG_LONG:
-				if ( lutil_atol( &larg, c->argv[1] ) != 0 ) {
+				if ( lutil_atolx( &larg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as long",
 						c->argv[0], c->argv[1] );
@@ -213,7 +213,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				break;
 			case ARG_BER_LEN_T: {
 				unsigned long	l;
-				if ( lutil_atoul( &l, c->argv[1] ) != 0 ) {
+				if ( lutil_atoulx( &l, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as ber_len_t",
 						c->argv[0], c->argv[1] );

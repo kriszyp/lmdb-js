@@ -1,10 +1,11 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.14 Engineering
-	Fixed slapd sc_prev update after free bug (ITS#4237)
-	Fixed slapo-rwm static DN free bug (ITS#4248)
 	Fixed slapd assertion control restrictions
 	Fixed slapd ACL exact attrval clause needs normalization (ITS#4255)
+	Fixed slapd sc_prev update after free bug (ITS#4237)
+	Fixed slapd-bdb/hdb mode argument parsing (ITS#425h)
+	Fixed slapo-rwm static DN free bug (ITS#4248)
 
 OpenLDAP 2.3.13 Release
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
