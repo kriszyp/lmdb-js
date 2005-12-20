@@ -594,11 +594,13 @@ bdb_db_close( BackendDB *be )
 		}
 	}
 
-	rc = alock_close( &bdb->bi_alock_info );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_close: alock_close failed\n", 0, 0, 0 );
-		return -1;
+	if ( bdb->bi_alock_info.al_slot > 0 ) {
+		rc = alock_close( &bdb->bi_alock_info );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_close: alock_close failed\n", 0, 0, 0 );
+			return -1;
+		}
 	}
 
 	return 0;
