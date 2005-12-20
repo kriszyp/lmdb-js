@@ -3187,6 +3187,8 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	char buf[BUFSIZ*2], *ptr;
 	int i;
 
+	/* FIXME: we're not checking for buf[] overflow! */
+
 	/* temporarily inhibit bindconf from printing URI */
 	uri = si->si_bindconf.sb_uri;
 	BER_BVZERO( &si->si_bindconf.sb_uri );
