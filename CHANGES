@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
+	Fixed slapd sc_prev update after free bug (ITS#4237)
 	Fixed slapd-meta sizelimit disclose issue (ITS#4213)
+	Fixed slapd assertion control restrictions
 
 OpenLDAP 2.3.13 Release
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
