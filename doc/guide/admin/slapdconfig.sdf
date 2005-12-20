@@ -473,8 +473,8 @@ default value and must always be specified. The {{EX:scope}} defaults
 to {{EX:sub}}, the {{EX:filter}} defaults to {{EX:(objectclass=*)}},
 {{EX:attrs}} defaults to {{EX:"*,+"}} to replicate all user and operational
 attributes, and {{EX:attrsonly}} is unset by default. Both {{EX:sizelimit}}
-and {{EX:timelimit}} default to 0 (meaning unlimited), and only integers
-may be specified.
+and {{EX:timelimit}} default to "unlimited", and only integers
+or "unlimited" may be specified.
 
 The LDAP Content Synchronization protocol has two operation
 types: {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
