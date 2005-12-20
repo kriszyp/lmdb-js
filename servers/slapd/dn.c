@@ -386,7 +386,9 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 		} else { /* normalization */
 			validf = ad->ad_type->sat_syntax->ssyn_validate;
 			mr = ad->ad_type->sat_equality;
-			if( mr ) normf = mr->smr_normalize;
+			if( mr && (!( mr->smr_usage & SLAP_MR_MUTATION_NORMALIZER ))) {
+				normf = mr->smr_normalize;
+			}
 		}
 
 		if ( validf ) {
@@ -516,7 +518,9 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 			} else { /* normalization */
 				validf = ad->ad_type->sat_syntax->ssyn_validate;
 				mr = ad->ad_type->sat_equality;
-				if( mr ) normf = mr->smr_normalize;
+				if( mr && (!( mr->smr_usage & SLAP_MR_MUTATION_NORMALIZER ))) {
+					normf = mr->smr_normalize;
+				}
 			}
 
 			if ( validf ) {

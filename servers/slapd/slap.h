@@ -511,6 +511,8 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_HIDE			0x8000U
 #endif
 
+#define SLAP_MR_MUTATION_NORMALIZER 0x4000U
+
 #define SLAP_MR_TYPE_MASK		0x0F00U
 #define SLAP_MR_SUBTYPE_MASK	0x00F0U
 #define SLAP_MR_USAGE			0x000FU

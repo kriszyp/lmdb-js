@@ -24,6 +24,7 @@ member: OU=Sales\; Data\+Algorithms,DC=example,DC=net
 member: CN=Before\0dAfter,DC=example,DC=net
 member: CN=\23John Smith\20,DC=example,DC=net
 member: CN=Lu\C4\8Di\C4\87
+member: testUUID=597ae2f6-16a6-1027-98f4-d28b5365dc14,DC=Example
 # DN forms already defined as "member" in a different string representation
 seeAlso: CN=John Smith\2C III,DC=example,DC=net
 seeAlso: OU=Sales\3B Data\2BAlgorithms,DC=example,DC=net
@@ -46,6 +47,7 @@ description: CN=Before\0dAfter,DC=example,DC=net
 description: CN=\23John Smith\20,DC=example,DC=net
 description: CN=\#John Smith\ ,DC=example,DC=net
 description: CN=Lu\C4\8Di\C4\87
+description: testUUID=597ae2f6-16a6-1027-98f4-d28b5365dc14,DC=Example
 
 dn: cn=Should Succeed,ou=LDAPv3,dc=example,dc=com
 objectClass: groupOfNames

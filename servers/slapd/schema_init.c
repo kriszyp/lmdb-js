@@ -2187,7 +2187,7 @@ UUIDValidate(
 	return LDAP_SUCCESS;
 }
 
-static int
+int
 UUIDNormalize(
 	slap_mask_t usage,
 	Syntax *syntax,
@@ -3873,14 +3873,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.3.6.1.1.16.2 NAME 'UUIDMatch' "
 		"SYNTAX 1.3.6.1.1.16.1 )",
-		SLAP_MR_EQUALITY, NULL,
+		SLAP_MR_EQUALITY | SLAP_MR_MUTATION_NORMALIZER, NULL,
 		NULL, UUIDNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL},
 
 	{"( 1.3.6.1.1.16.3 NAME 'UUIDOrderingMatch' "
 		"SYNTAX 1.3.6.1.1.16.1 )",
-		SLAP_MR_ORDERING, NULL,
+		SLAP_MR_ORDERING | SLAP_MR_MUTATION_NORMALIZER, NULL,
 		NULL, UUIDNormalize, octetStringOrderingMatch,
 		octetStringIndexer, octetStringFilter,
 		"UUIDMatch"},

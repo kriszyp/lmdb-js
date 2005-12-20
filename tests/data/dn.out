@@ -21,6 +21,7 @@ member: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
 member:: Y249QmVmb3JlDUFmdGVyLGRjPWV4YW1wbGUsZGM9bmV0
 member: cn=\23John Smith\20,dc=example,dc=net
 member:: Y249THXEjWnEhw==
+member: testUUID=597ae2f6-16a6-1027-98f4-d28b5365dc14,dc=Example
 seeAlso: cn=John Smith\2C III,dc=example,dc=net
 seeAlso: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
 seeAlso: cn=\23John Smith\20,dc=example,dc=net
@@ -40,6 +41,7 @@ description: CN=Before\0dAfter,DC=example,DC=net
 description: CN=\23John Smith\20,DC=example,DC=net
 description: CN=\#John Smith\ ,DC=example,DC=net
 description: CN=Lu\C4\8Di\C4\87
+description: testUUID=597ae2f6-16a6-1027-98f4-d28b5365dc14,DC=Example
 
 dn: cn=Unescaped Equals,ou=LDAPv3,dc=example,dc=com
 objectClass: groupOfNames
@@ -120,6 +122,7 @@ member: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
 member:: Y249QmVmb3JlDUFmdGVyLGRjPWV4YW1wbGUsZGM9bmV0
 member: cn=\23John Smith\20,dc=example,dc=net
 member:: Y249THXEjWnEhw==
+member: testUUID=597ae2f6-16a6-1027-98f4-d28b5365dc14,dc=Example
 seeAlso: cn=John Smith\2C III,dc=example,dc=net
 seeAlso: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
 seeAlso: cn=\23John Smith\20,dc=example,dc=net
@@ -139,6 +142,7 @@ description: CN=Before\0dAfter,DC=example,DC=net
 description: CN=\23John Smith\20,DC=example,DC=net
 description: CN=\#John Smith\ ,DC=example,DC=net
 description: CN=Lu\C4\8Di\C4\87
+description: testUUID=597ae2f6-16a6-1027-98f4-d28b5365dc14,dc=Example
 
 dn: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
 objectClass: groupOfUniqueNames
