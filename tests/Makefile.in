@@ -63,6 +63,12 @@ sql-yes sql-mod:	FORCE
 	@echo "Initiating LDAP tests for SQL..."
 	@$(RUN) -b sql sql-all
 
+regressions:	FORCE
+	@echo "Testing (available) ITS regressions"
+	@$(RUN) its-all
+
+its: regressions
+
 clean-local:	FORCE
 	-$(RM) -r testrun *leak *gmon *core
 
