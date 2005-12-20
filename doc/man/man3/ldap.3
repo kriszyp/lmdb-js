@@ -39,16 +39,21 @@ created using
 and set the protocol version to 3 by calling
 .BR ldap_set_option (3).
 The underlying session is established first operation is
-issued.  This would generally be a Start TLS or Bind operation.
+issued.  This would generally be a Start TLS or Bind operation,
+or a Search operation to read attributes of the Root DSE.
 A Start TLS operation is performed by calling
 .BR ldap_start_tls_s (3).
 A LDAP bind operation is performed by calling
 .BR ldap_sasl_bind (3)
-or one of its friends.  Subsequently, other operations are performed
+or one of its friends.
+A Search operation is performed by calling ldap_search_ext_s(3)
+or one of its friends.
+
+Subsequently, additional operations are performed
 by calling one of the synchronous or asynchronous routines (e.g.,
-.BR ldap_search_ext_s (3)
+.BR ldap_compare_ext_s (3)
 or
-.BR ldap_search_ext (3)
+.BR ldap_compare_ext (3)
 followed by
 .BR ldap_result (3)).
 Results returned from these routines are interpreted by calling the
