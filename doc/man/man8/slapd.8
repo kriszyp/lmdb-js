@@ -86,6 +86,10 @@ will not fork or disassociate from the invoking terminal.  Some general
 operation and status messages are printed for any value of \fIdebug\-level\fP.
 \fIdebug\-level\fP is taken as a bit string, with each bit corresponding to a
 different kind of debugging information.  See <ldap.h> for details.
+Comma-separated arrays of friendly names can be specified to select
+debugging output of the corresponding debugging information.
+All the names recognized by the \fIloglevel\fP directive 
+described in \fBslapd.conf\fP(5) are supported.
 Remember that if you turn on packet logging, packets containing bind passwords
 will be output, so if you redirect the log to a logfile, that file should
 be read-protected.
@@ -96,16 +100,11 @@ This option tells
 at what level debugging statements should be logged to the
 .BR syslog (8)
 facility.
-The value can be any of
-"EMERG",
-"ALERT",
-"CRIT",
-"ERR",
-"WARNING",
-"NOTICE",
-"INFO" or
-"DEBUG",
-defaulting to "DEBUG".
+The value "syslog\-level" can be set to any value or combination
+allowed by the "-d" switch.
+Slapd logs all messages selected by "syslog\-level" 
+at the syslog(3) severity level "DEBUG",
+on the unit specified with "-l".
 .TP
 .BI \-n " service\-name"
 Specifies the service name for logging and other purposes.  Defaults
@@ -128,6 +127,7 @@ However, this option is only permitted on systems that support
 local users with the 
 .BR syslog (8)
 facility.
+Logging to syslog(8) occurs at the "DEBUG" severity level.
 .TP
 .BI \-f " slapd\-config\-file"
 Specifies the slapd configuration file. The default is

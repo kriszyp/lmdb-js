@@ -185,6 +185,91 @@ struct option_helper {
 	{ BER_BVNULL, 0, NULL, NULL }
 };
 
+/* (yet) unused */
+#if 0
+static int
+parse_syslog_level( const char *arg )
+{
+	if ( !isdigit( arg[ 0 ] ) ) {
+		slap_verbmasks	str2syslog_level[] = {
+			{ BER_BVC( "EMERG" ),	LOG_EMERG },
+			{ BER_BVC( "ALERT" ),	LOG_ALERT },
+			{ BER_BVC( "CRIT" ),	LOG_CRIT },
+			{ BER_BVC( "ERR" ),	LOG_ERR },
+			{ BER_BVC( "WARNING" ),	LOG_WARNING },
+			{ BER_BVC( "NOTICE" ),	LOG_NOTICE },
+			{ BER_BVC( "INFO" ),	LOG_INFO },
+			{ BER_BVC( "DEBUG" ),	LOG_DEBUG },
+			{ BER_BVNULL, 0 }
+		};
+		int i = verb_to_mask( arg, str2syslog_level );
+		if ( BER_BVISNULL( &str2syslog_level[ i ].word ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"unknown syslog level \"%s\".\n",
+				arg, 0, 0 );
+			return 1;
+		}
+		
+		ldap_syslog_level = str2syslog_level[ i ].mask;
+
+	} else if ( lutil_atoi( &ldap_syslog_level, arg ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"unable to parse syslog level \"%s\".\n",
+			arg, 0, 0 );
+		return 1;
+	}
+
+	return 0;
+}
+#endif
+
+int
+parse_debug_level( const char *arg, int *levelp )
+{
+	int	level;
+
+	if ( arg != NULL && arg[ 0 ] != '-' && !isdigit( arg[ 0 ] ) )
+	{
+		int	i, goterr = 0;
+		char	**levels;
+
+		levels = ldap_str2charray( arg, "," );
+
+		for ( i = 0; levels[ i ] != NULL; i++ ) {
+			level = 0;
+
+			if ( str2loglevel( levels[ i ], &level ) ) {
+				fprintf( stderr,
+					"unrecognized log level "
+					"\"%s\"\n", levels[ i ] );
+				goterr = 1;
+				/* but keep parsing... */
+
+			} else {
+				*levelp |= level;
+			}
+		}
+
+		ldap_charray_free( levels );
+
+		if ( goterr ) {
+			return 1;
+		}
+
+	} else {
+		if ( lutil_atoix( &level, arg, 0 ) != 0 ) {
+			fprintf( stderr,
+				"unrecognized log level "
+				"\"%s\"\n", arg );
+			return 1;
+		}
+
+		*levelp |= level;
+	}
+
+	return 0;
+}
+
 static void
 usage( char *name )
 {
@@ -395,46 +480,13 @@ int main( int argc, char **argv )
 			int	level = 0;
 
 			no_detach = 1;
-#ifdef LDAP_DEBUG
-			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
-			{
-				int	i, goterr = 0;
-				char	**levels;
-
-				levels = ldap_str2charray( optarg, "," );
-
-				for ( i = 0; levels[ i ] != NULL; i++ ) {
-					level = 0;
-
-					if ( str2loglevel( levels[ i ], &level ) ) {
-						fprintf( stderr,
-							"unrecognized log level "
-							"\"%s\"\n", levels[ i ] );
-						goterr = 1;
-						/* but keep parsing... */
-
-					} else {
-						slap_debug |= level;
-					}
-				}
-
-				ldap_charray_free( levels );
-
-				if ( goterr ) {
-					goto destroy;
-				}
-
-			} else {
-				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
-					fprintf( stderr,
-						"unrecognized log level "
-						"\"%s\"\n", optarg );
-					goto destroy;
-				}
-				slap_debug |= level;
+			if ( parse_debug_level( optarg, &level ) ) {
+				goto destroy;
 			}
+#ifdef LDAP_DEBUG
+			slap_debug |= level;
 #else
-			if ( lutil_atoi( &level, optarg ) != 0 || level != 0 )
+			if ( level != 0 )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
@@ -483,32 +535,7 @@ int main( int argc, char **argv )
 		}
 
 		case 's':	/* set syslog level */
-			if ( !isdigit( optarg[ 0 ] ) ) {
-				slap_verbmasks	str2syslog_level[] = {
-					{ BER_BVC( "EMERG" ),	LOG_EMERG },
-					{ BER_BVC( "ALERT" ),	LOG_ALERT },
-					{ BER_BVC( "CRIT" ),	LOG_CRIT },
-					{ BER_BVC( "ERR" ),	LOG_ERR },
-					{ BER_BVC( "WARNING" ),	LOG_WARNING },
-					{ BER_BVC( "NOTICE" ),	LOG_NOTICE },
-					{ BER_BVC( "INFO" ),	LOG_INFO },
-					{ BER_BVC( "DEBUG" ),	LOG_DEBUG },
-					{ BER_BVNULL, 0 }
-				};
-				int i = verb_to_mask( optarg, str2syslog_level );
-				if ( BER_BVISNULL( &str2syslog_level[ i ].word ) ) {
-					Debug( LDAP_DEBUG_ANY,
-						"unknown syslog level \"%s\".\n",
-						optarg, 0, 0 );
-					goto destroy;
-				}
-		
-				ldap_syslog_level = str2syslog_level[ i ].mask;
-
-			} else if ( lutil_atoi( &ldap_syslog_level, optarg ) != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"unable to parse syslog level \"%s\".\n",
-					optarg, 0, 0 );
+			if ( parse_debug_level( optarg, &ldap_syslog ) ) {
 				goto destroy;
 			}
 			break;
