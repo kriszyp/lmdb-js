@@ -1546,11 +1546,13 @@ according to the search specification. The search specification includes
 .B searchbase, scope, filter, attrs, attrsonly, sizelimit,
 and
 .B timelimit
-parameters as in the normal search specification.
-The search specification for the LDAP Content Synchronization operation
-has the same value syntax and the same default values as in the
-.BR ldapsearch (1)
-client search tool.
+parameters as in the normal search specification. 
+The \fBscope\fP defaults to \fBsub\fP, the \fBfilter\fP defaults to
+\fB(objectclass=*)\fP, and there is no default \fBsearchbase\fP. The
+\fBattrs\fP list defaults to \fB"*,+"\fP to return all user and operational
+attributes, and \fBattrsonly\fP is unset by default.
+The \fBsizelimit\fP and \fBtimelimit\fP only
+accept integers and both default to 0 (meaning unlimited).
 The LDAP Content Synchronization protocol has two operation types.
 In the
 .B refreshOnly
