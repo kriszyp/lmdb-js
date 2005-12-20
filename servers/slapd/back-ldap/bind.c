@@ -1032,7 +1032,22 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs )
 
 	default:
 		/* NOTE: rootdn can always idassert */
-		if ( li->li_idassert_authz && !be_isroot( op ) ) {
+		if ( BER_BVISNULL( &ndn ) && li->li_idassert_authz == NULL ) {
+			if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+				rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
+				send_ldap_result( op, rs );
+				LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
+
+			} else {
+				rs->sr_err = LDAP_SUCCESS;
+				binddn = slap_empty_bv;
+				bindcred = slap_empty_bv;
+				break;
+			}
+
+			goto done;
+
+		} else if ( li->li_idassert_authz && !be_isroot( op ) ) {
 			struct berval authcDN;
 
 			if ( BER_BVISNULL( &ndn ) ) {
