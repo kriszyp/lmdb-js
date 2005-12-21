@@ -40,8 +40,6 @@
 static struct berval config_rdn = BER_BVC("cn=config");
 static struct berval schema_rdn = BER_BVC("cn=schema");
 
-#define	SLAP_X_ORDERED_FMT	"{%d}"
-
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
 	struct modpath_s *mp_next;
