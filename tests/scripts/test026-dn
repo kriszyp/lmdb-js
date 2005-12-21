@@ -51,8 +51,11 @@ echo "Loading database..."
 $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD -c -f $LDIFDN > \
 	$TESTOUT 2>&1
 
+cat /dev/null > $SEARCHOUT
+
 echo "Searching database..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+echo "# Searching database..." >> $SEARCHOUT
+$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -61,9 +64,11 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Searching database for DN..."
+DN="OU=Sales+CN=J. Smith,DC=example,DC=net"
+echo "Searching database for DN=\"$DN\"..."
+echo "# Searching database for DN=\"$DN\"..." >> $SEARCHOUT
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	"(member=OU=Sales+CN=J. Smith,DC=example,DC=net)" >> $SEARCHOUT 2>&1
+	"(member=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -72,9 +77,12 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Searching database for uniqueMember..."
+DN="testUUID=597ae2f6-16a6-1027-98f4-ABCDEFabcdef,DC=Example"
+echo "Searching database for entryUUID-named DN=\"$DN\"..."
+echo "# Searching database for entryUUID-named DN=\"$DN\"..." >> $SEARCHOUT
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	"(uniqueMember=dc=example,dc=com)" >> $SEARCHOUT 2>&1
+	"(member=$DN)" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -83,9 +91,11 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Searching database for uniqueMember..."
+DN="dc=example,dc=com"
+echo "Searching database for nameAndOptionalUID=\"$DN\"..."
+echo "# Searching database for nameAndOptionalUID=\"$DN\"..." >> $SEARCHOUT
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	"(uniqueMember=dc=example,dc=com#'001000'B)" >> $SEARCHOUT 2>&1
+	"(uniqueMember=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -94,9 +104,11 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Searching database for uniqueMember (approx) ..."
+DN="dc=example,dc=com#'001000'B"
+echo "Searching database for nameAndOptionalUID=\"$DN\"..."
+echo "# Searching database for nameAndOptionalUID=\"$DN\"..." >> $SEARCHOUT
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	"(uniqueMember~=dc=example,dc=com)" >> $SEARCHOUT 2>&1
+	"(uniqueMember=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -105,9 +117,24 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Searching database for uniqueMember (approx) ..."
+DN="dc=example,dc=com"
+echo "Searching database for uniqueMember~=\"$DN\" (approx) ..."
+echo "# Searching database for uniqueMember~=\"$DN\" (approx) ..." >> $SEARCHOUT
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	"(uniqueMember~=dc=example,dc=com#'001000'B)" >> $SEARCHOUT 2>&1
+	"(uniqueMember~=)" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+DN="dc=example,dc=com#'001000'B"
+echo "Searching database for uniqueMember~=\"$DN\" (approx) ..."
+echo "# Searching database for uniqueMember~=\"$DN\" (approx) ..." >> $SEARCHOUT
+$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"(uniqueMember~=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
