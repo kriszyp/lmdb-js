@@ -291,7 +291,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 		int repl_user = be_isupdate( op );
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#endif
+#endif /* ! SLAPD_MULTIMASTER */
 		{
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
@@ -299,7 +299,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 
 #ifdef SLAPD_MULTIMASTER
 			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
-#endif
+#endif /* SLAPD_MULTIMASTER */
 			{
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
@@ -363,7 +363,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 				send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 					"shadow context; no update referral" );
 			}
-#endif
+#endif /* ! SLAPD_MULTIMASTER */
 		}
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -519,3 +519,30 @@ done:
 
 	return rs->sr_err;
 }
+
+void
+slap_modrdn2mods_free( Modifications *mod )
+{
+	Modifications *tmp;
+
+	for ( ; mod; mod = tmp ) {
+		tmp = mod->sml_next;
+		/* slap_modrdn2mods does things one way,
+		 * slap_mods_opattrs does it differently
+		 */
+		if ( mod->sml_op != SLAP_MOD_SOFTADD &&
+			mod->sml_op != LDAP_MOD_DELETE )
+		{
+			break;
+		}
+
+		if ( mod->sml_nvalues ) {
+			free( mod->sml_nvalues[0].bv_val );
+		}
+
+		free( mod );
+	}
+
+	slap_mods_free( mod, 1 );
+}
+

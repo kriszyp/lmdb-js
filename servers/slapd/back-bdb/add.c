@@ -34,9 +34,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {0};
-#ifdef BDB_SUBENTRIES
 	int subentry;
-#endif
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 
@@ -65,9 +63,7 @@ bdb_add(Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-#ifdef BDB_SUBENTRIES
 	subentry = is_entry_subentry( op->oq_add.rs_e );
-#endif
 
 	/*
 	 * acquire an ID outside of the operation transaction
@@ -196,7 +192,6 @@ retry:	/* transaction retry */
 			goto return_results;;
 		}
 
-#ifdef BDB_SUBENTRIES
 		if ( is_entry_subentry( p ) ) {
 			/* parent is a subentry, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
@@ -206,7 +201,6 @@ retry:	/* transaction retry */
 			rs->sr_text = "parent is a subentry";
 			goto return_results;;
 		}
-#endif
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
@@ -233,12 +227,10 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 
-#ifdef BDB_SUBENTRIES
 		if ( subentry ) {
 			/* FIXME: */
 			/* parent must be an administrative point of the required kind */
 		}
-#endif
 
 		/* free parent and reader lock */
 		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
@@ -259,14 +251,6 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			goto return_results;
 		}
-	}
-
-	if ( get_assert( op ) &&
-		( test_filter( op, op->oq_add.rs_e, get_assertion( op ))
-			!= LDAP_COMPARE_TRUE ))
-	{
-		rs->sr_err = LDAP_ASSERTION_FAILED;
-		goto return_results;
 	}
 
 	rs->sr_err = access_allowed( op, op->oq_add.rs_e,
@@ -320,6 +304,23 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	/* attribute indexes */
+	rs->sr_err = bdb_index_entry_add( op, lt2, op->oq_add.rs_e );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": index_entry_add failed\n",
+			0, 0, 0 );
+		switch( rs->sr_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rs->sr_err = LDAP_OTHER;
+		}
+		rs->sr_text = "index generation failed";
+		goto return_results;
+	}
+
 	/* id2entry index */
 	rs->sr_err = bdb_id2entry_add( op->o_bd, lt2, op->oq_add.rs_e );
 	if ( rs->sr_err != 0 ) {
@@ -337,22 +338,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	/* attribute indexes */
-	rs->sr_err = bdb_index_entry_add( op, lt2, op->oq_add.rs_e );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": index_entry_add failed\n",
-			0, 0, 0 );
-		switch( rs->sr_err ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		default:
-			rs->sr_err = LDAP_OTHER;
-		}
-		rs->sr_text = "index generation failed";
-		goto return_results;
-	}
 	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "txn_commit(2) failed";

@@ -91,7 +91,9 @@ int bdb_modify_internal(
 
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
-			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: add\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"bdb_modify_internal: add %s\n",
+				mod->sm_desc->ad_cname.bv_val, 0, 0);
 			err = modify_add_values( e, mod, get_permissiveModify(op),
 				text, textbuf, textlen );
 			if( err != LDAP_SUCCESS ) {
@@ -106,7 +108,9 @@ int bdb_modify_internal(
 				break;
 			}
 
-			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: delete\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"bdb_modify_internal: delete %s\n",
+				mod->sm_desc->ad_cname.bv_val, 0, 0);
 			err = modify_delete_values( e, mod, get_permissiveModify(op),
 				text, textbuf, textlen );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
@@ -117,7 +121,9 @@ int bdb_modify_internal(
 			break;
 
 		case LDAP_MOD_REPLACE:
-			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: replace\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"bdb_modify_internal: replace %s\n",
+				mod->sm_desc->ad_cname.bv_val, 0, 0);
 			err = modify_replace_values( e, mod, get_permissiveModify(op),
 				text, textbuf, textlen );
 			if( err != LDAP_SUCCESS ) {
@@ -128,7 +134,8 @@ int bdb_modify_internal(
 
 		case LDAP_MOD_INCREMENT:
 			Debug(LDAP_DEBUG_ARGS,
-				"bdb_modify_internal: increment\n", 0, 0, 0);
+				"bdb_modify_internal: increment %s\n",
+				mod->sm_desc->ad_cname.bv_val, 0, 0);
 			err = modify_increment_values( e, mod, get_permissiveModify(op),
 				text, textbuf, textlen );
 			if( err != LDAP_SUCCESS ) {
@@ -139,7 +146,9 @@ int bdb_modify_internal(
 			break;
 
 		case SLAP_MOD_SOFTADD:
-			Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: softadd\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"bdb_modify_internal: softadd %s\n",
+				mod->sm_desc->ad_cname.bv_val, 0, 0);
  			/* Avoid problems in index_add_mods()
  			 * We need to add index if necessary.
  			 */
