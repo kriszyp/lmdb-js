@@ -3011,7 +3011,9 @@ parse_syncrepl_line(
 					j++;
 					break;
 				} else {
-					if ( lutil_atoi( &si->si_retrynum_init[j], retry_list[j*2+1] ) != 0 ) {
+					if ( lutil_atoi( &si->si_retrynum_init[j], retry_list[j*2+1] ) != 0
+							|| si->si_retrynum_init[j] <= 0 )
+					{
 						snprintf( c->msg, sizeof( c->msg ),
 							"Error: invalid initial retry number \"%s\" (#%d)",
 							retry_list[j*2+1], j );
@@ -3019,7 +3021,9 @@ parse_syncrepl_line(
 						/* do some cleanup */
 						return 1;
 					}
-					if ( lutil_atoi( &si->si_retrynum[j], retry_list[j*2+1] ) != 0 ) {
+					if ( lutil_atoi( &si->si_retrynum[j], retry_list[j*2+1] ) != 0
+							|| si->si_retrynum[j] <= 0 )
+					{
 						snprintf( c->msg, sizeof( c->msg ),
 							"Error: invalid retry number \"%s\" (#%d)",
 							retry_list[j*2+1], j );
@@ -3054,7 +3058,10 @@ parse_syncrepl_line(
 					STRLENOF( SLIMITSTR "=") ) )
 		{
 			val = c->argv[ i ] + STRLENOF( SLIMITSTR "=" );
-			if ( lutil_atoi( &si->si_slimit, val ) != 0 ) {
+			if ( strcasecmp( val, "unlimited" ) == 0 ) {
+				si->si_slimit = 0;
+
+			} else if ( lutil_atoi( &si->si_slimit, val ) != 0 || val < 0 ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"invalid size limit value \"%s\".\n",
 					val );
@@ -3065,7 +3072,10 @@ parse_syncrepl_line(
 					STRLENOF( TLIMITSTR "=" ) ) )
 		{
 			val = c->argv[ i ] + STRLENOF( TLIMITSTR "=" );
-			if ( lutil_atoi( &si->si_tlimit, val ) != 0 ) {
+			if ( strcasecmp( val, "unlimited" ) == 0 ) {
+				si->si_tlimit = 0;
+
+			} else if ( lutil_atoi( &si->si_tlimit, val ) != 0 || val < 0 ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"invalid time limit value \"%s\".\n",
 					val );
@@ -3176,6 +3186,8 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	struct berval bc, uri;
 	char buf[BUFSIZ*2], *ptr;
 	int i;
+
+	/* FIXME: we're not checking for buf[] overflow! */
 
 	/* temporarily inhibit bindconf from printing URI */
 	uri = si->si_bindconf.sb_uri;
