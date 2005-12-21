@@ -21,11 +21,12 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapd-ldap anonymous identity assertion (ITS#4272)
 	Added slapd-ldap/meta idle-timeout support (ITS#4115)
 	Fixed slapd-meta bind-timeout handling (ITS#xxxx)
+	Fixed slapo-dynlist/dyngroup nonexistant object return code (ITS#4224)
+	Updated slapo-dynlist (ITS#3756,3781)
 	Fixed slapo-rwm static DN free bug (ITS#4248)
 	Fixed slapo-syncprov unpublished control (ITS#4238)
 	Fixed slapo-syncprov message id issue
 	Fixed slapo-unique extraneous searches (ITS#4267)
-	Updated slapo-dynlist (ITS#3756,3781,4224)
 	Build environment
 		Fixed thread dependency of test028 (ITS#4141)
 		Updated test033-glue-syncrepl (ITS#4264)
