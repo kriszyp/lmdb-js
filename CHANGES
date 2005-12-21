@@ -23,12 +23,14 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapo-syncprov unpublished control (ITS#4238)
 	Fixed slapo-syncprov message id issue
 	Fixed slapo-unique extraneous searches (ITS#4267)
-	Updated slapo-dynlist (ITS#3756,3781,4197,4224)
+	Updated slapo-dynlist (ITS#3756,3781,4224)
 	Build environment
 		Fixed thread dependency of test028 (ITS#4141)
 		Updated test033-glue-syncrepl (ITS#4264)
 	Documentation
 		Updated slapd.conf(5) and Admin Guide (ITS#4146,4266)
+		Updated slapo-dynlist(5) (ITS#4197)
+		Updated slapo-pcache(5) (ITS#4232)
 
 OpenLDAP 2.3.13 Release
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
