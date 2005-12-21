@@ -968,9 +968,8 @@ tool_bind( LDAP *ld )
 			exit( rc );
 		}
 #else
-		fprintf( stderr, "%s: not compiled with SASL support\n",
-			prog );
-		exit( rc );
+		fprintf( stderr, "%s: not compiled with SASL support\n", prog );
+		exit( LDAP_NOT_SUPPORTED );
 #endif
 	} else {
 		int msgid, err, rc;
