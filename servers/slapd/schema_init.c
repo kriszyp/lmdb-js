@@ -2188,6 +2188,56 @@ UUIDValidate(
 }
 
 static int
+UUIDPretty(
+	Syntax *syntax,
+	struct berval *in,
+	struct berval *out,
+	void *ctx )
+{
+	int i;
+	int rc=LDAP_INVALID_SYNTAX;
+
+	assert( in != NULL );
+	assert( out != NULL );
+
+	if( in->bv_len != 36 ) return LDAP_INVALID_SYNTAX;
+
+	out->bv_len = 36;
+	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
+
+	for( i=0; i<36; i++ ) {
+		switch(i) {
+			case 8:
+			case 13:
+			case 18:
+			case 23:
+				if( in->bv_val[i] != '-' ) {
+					goto handle_error;
+				}
+				out->bv_val[i] = '-';
+				break;
+
+			default:
+				if( !ASCII_HEX( in->bv_val[i]) ) {
+					goto handle_error;
+				}
+				out->bv_val[i] = TOLOWER( in->bv_val[i] );
+		}
+	}
+
+	rc = LDAP_SUCCESS;
+	out->bv_val[ out->bv_len ] = '\0';
+
+	if( 0 ) {
+handle_error:
+		slap_sl_free( out->bv_val, ctx );
+		out->bv_val = NULL;
+	}
+
+	return rc;
+}
+
+int
 UUIDNormalize(
 	slap_mask_t usage,
 	Syntax *syntax,
@@ -3448,7 +3498,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 #endif
 
 	{"( 1.3.6.1.1.16.1 DESC 'UUID' )",
-		0, UUIDValidate, NULL},
+		0, UUIDValidate, UUIDPretty},
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.1 DESC 'CSN' )",
 		SLAP_SYNTAX_HIDE, csnValidate, NULL},
@@ -3873,14 +3923,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.3.6.1.1.16.2 NAME 'UUIDMatch' "
 		"SYNTAX 1.3.6.1.1.16.1 )",
-		SLAP_MR_EQUALITY, NULL,
+		SLAP_MR_EQUALITY | SLAP_MR_MUTATION_NORMALIZER, NULL,
 		NULL, UUIDNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL},
 
 	{"( 1.3.6.1.1.16.3 NAME 'UUIDOrderingMatch' "
 		"SYNTAX 1.3.6.1.1.16.1 )",
-		SLAP_MR_ORDERING, NULL,
+		SLAP_MR_ORDERING | SLAP_MR_MUTATION_NORMALIZER, NULL,
 		NULL, UUIDNormalize, octetStringOrderingMatch,
 		octetStringIndexer, octetStringFilter,
 		"UUIDMatch"},
