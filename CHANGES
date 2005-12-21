@@ -21,6 +21,7 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapd-ldap anonymous identity assertion (ITS#4272)
 	Fixed slapo-rwm static DN free bug (ITS#4248)
 	Fixed slapo-syncprov unpublished control (ITS#4238)
+	Fixed slapo-syncprov message id issue
 	Fixed slapo-unique extraneous searches (ITS#4267)
 	Updated slapo-dynlist (ITS#3756,4224)
 	Build environment

@@ -1647,7 +1647,7 @@ struct syncinfo_s;
 #define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
-#define	SLAP_SYNC_UPDATE_MSGID	2
+#define	SLAP_SYNC_UPDATE_MSGID	1
 
 struct sync_cookie {
 	struct berval ctxcsn;
