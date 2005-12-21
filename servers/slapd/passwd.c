@@ -256,6 +256,7 @@ old_good:
 	ml->sml_values[i].bv_val = NULL;
 	ml->sml_nvalues = NULL;
 	ml->sml_desc = slap_schema.si_ad_userPassword;
+	ml->sml_type = ml->sml_desc->ad_cname;
 	ml->sml_op = LDAP_MOD_REPLACE;
 	ml->sml_flags = 0;
 	ml->sml_next = qpw->rs_mods;
