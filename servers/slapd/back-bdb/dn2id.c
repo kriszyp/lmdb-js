@@ -178,7 +178,7 @@ bdb_dn2id_delete(
 #endif
 	{
 		buf[0] = DN_SUBTREE_PREFIX;
-		rc = db->del( db, txn, &key, 0 );
+		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",

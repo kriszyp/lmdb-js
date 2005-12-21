@@ -226,7 +226,7 @@ int bdb_idl_insert( ID *ids, ID id )
 
 static int bdb_idl_delete( ID *ids, ID id )
 {
-	unsigned x = bdb_idl_search( ids, id );
+	unsigned x;
 
 #if IDL_DEBUG > 1
 	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x, 0 );
@@ -235,6 +235,23 @@ static int bdb_idl_delete( ID *ids, ID id )
 	idl_check( ids );
 #endif
 
+	if (BDB_IDL_IS_RANGE( ids )) {
+		/* If deleting a range boundary, adjust */
+		if ( ids[1] == id )
+			ids[1]++;
+		else if ( ids[2] == id )
+			ids[2]--;
+		/* deleting from inside a range is a no-op */
+
+		/* If the range has collapsed, re-adjust */
+		if ( ids[1] > ids[2] )
+			ids[0] = 0;
+		else if ( ids[1] == ids[2] )
+			ids[1] = 1;
+		return 0;
+	}
+
+	x = bdb_idl_search( ids, id );
 	assert( x > 0 );
 
 	if( x <= 0 ) {

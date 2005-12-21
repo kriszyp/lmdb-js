@@ -1800,6 +1800,9 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			return SLAP_CB_CONTINUE;
 		}
 		a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryCSN );
+		if ( a == NULL && rs->sr_operational_attrs != NULL ) {
+			a = attr_find( rs->sr_operational_attrs, slap_schema.si_ad_entryCSN );
+		}
 		if ( a ) {
 			/* Make sure entry is less than the snaphot'd contextCSN */
 			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 )
@@ -2276,8 +2279,8 @@ syncprov_db_open(
 	slap_overinst   *on = (slap_overinst *) be->bd_info;
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 
-	Connection conn;
-	OperationBuffer opbuf;
+	Connection conn = { 0 };
+	OperationBuffer opbuf = { 0 };
 	char ctxcsnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	Operation *op = (Operation *) &opbuf;
 	Entry *e;
@@ -2320,12 +2323,14 @@ syncprov_db_open(
 			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
 		be_entry_release_rw( op, e, 0 );
-		op->o_bd->bd_info = (BackendInfo *)on;
-		op->o_req_dn = be->be_suffix[0];
-		op->o_req_ndn = be->be_nsuffix[0];
-		op->ors_scope = LDAP_SCOPE_SUBTREE;
-		ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
-		ldap_pvt_thread_join( tid, NULL );
+		if ( !BER_BVISEMPTY( &si->si_ctxcsn ) ) {
+			op->o_bd->bd_info = (BackendInfo *)on;
+			op->o_req_dn = be->be_suffix[0];
+			op->o_req_ndn = be->be_nsuffix[0];
+			op->ors_scope = LDAP_SCOPE_SUBTREE;
+			ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
+			ldap_pvt_thread_join( tid, NULL );
+		}
 	} else if ( SLAP_SYNC_SHADOW( op->o_bd )) {
 		/* If we're also a consumer, and we didn't find the context entry,
 		 * then don't generate anything, wait for our provider to send it
@@ -2419,6 +2424,9 @@ syncprov_db_destroy(
 	syncprov_info_t	*si = (syncprov_info_t *)on->on_bi.bi_private;
 
 	if ( si ) {
+		if ( si->si_logs ) {
+			ch_free( si->si_logs );
+		}
 		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_ops_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_csn_mutex );
@@ -2542,7 +2550,7 @@ syncprov_initialize()
 	int rc;
 
 	rc = register_supported_control( LDAP_CONTROL_SYNC,
-		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_SEARCH, NULL,
 		syncprov_parseCtrl, &slap_cids.sc_LDAPsync );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,

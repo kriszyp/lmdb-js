@@ -504,6 +504,9 @@ alock_close ( alock_info_t * info )
 	alock_slot_t slot_data;
 	int res;
 
+	if ( !info->al_slot )
+		return ALOCK_CLEAN;
+
 	(void) memset ((void *) &slot_data, 0, sizeof(alock_slot_t));
 
 	res = alock_grab_lock (info->al_fd, 0);

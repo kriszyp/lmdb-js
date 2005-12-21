@@ -384,7 +384,7 @@ static int unique_search(
 	nop->o_bd = on->on_info->oi_origdb;
 	rc = nop->o_bd->be_search(nop, &nrs);
 	filter_free_x(nop, nop->ors_filter);
-	ch_free( key );
+	op->o_tmpfree( key, op->o_tmpmemctx );
 
 	if(rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT) {
 		op->o_bd->bd_info = (BackendInfo *) on->on_info;
@@ -404,6 +404,8 @@ static int unique_search(
 	return(SLAP_CB_CONTINUE);
 }
 
+#define ALLOC_EXTRA	16	/* extra slop */
+
 static int unique_add(
 	Operation *op,
 	SlapReply *rs
@@ -415,7 +417,7 @@ static int unique_add(
 
 	Attribute *a;
 	char *key, *kp;
-	int ks = 16;
+	int ks = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_add <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
@@ -438,7 +440,11 @@ static int unique_add(
 		ks = count_filter_len(ud, a->a_desc, a->a_vals, ks);
 	}
 
-	key = ch_malloc(ks);
+	if ( !ks )
+		return SLAP_CB_CONTINUE;
+
+	ks += ALLOC_EXTRA;
+	key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
 	kp = key + sprintf(key, "(|");
 
@@ -465,7 +471,7 @@ static int unique_modify(
 
 	Modifications *m;
 	char *key, *kp;
-	int ks = 16;		/* a handful of extra bytes */
+	int ks = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modify <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
@@ -489,7 +495,11 @@ static int unique_modify(
 		ks = count_filter_len(ud, m->sml_desc, m->sml_values, ks);
 	}
 
-	key = ch_malloc(ks);
+	if ( !ks )
+		return SLAP_CB_CONTINUE;
+
+	ks += ALLOC_EXTRA;
+	key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
 	kp = key + sprintf(key, "(|");
 
@@ -516,7 +526,7 @@ static int unique_modrdn(
 	Operation nop = *op;
 
 	char *key, *kp;
-	int i, ks = 16;			/* a handful of extra bytes */
+	int i, ks = 0;
 	LDAPRDN	newrdn;
 	struct berval bv[2];
 
@@ -553,7 +563,11 @@ static int unique_modrdn(
 		ks = count_filter_len(ud, newrdn[i]->la_private, bv, ks);
 	}
 
-	key = ch_malloc(ks);
+	if ( !ks )
+		return SLAP_CB_CONTINUE;
+
+	ks += ALLOC_EXTRA;
+	key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 	kp = key + sprintf(key, "(|");
 
 	for(i = 0; newrdn[i]; i++) {
