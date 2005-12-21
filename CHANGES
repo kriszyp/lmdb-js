@@ -4,7 +4,17 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapd assertion control restrictions
 	Fixed slapd ACL exact attrval clause normalization (ITS#4255)
 	Fixed slapd sc_prev update after free bug (ITS#4237)
-	Fixed slapd issues (ITS#4245,4251)
+	(ITS#4245)
+	Fixed slapd-glue (ITS#4084,4133)
+	Fixed slapd-bdb/hdb filterindex (ITS#4226)
+	Fixed slapo-syncprov (ITS#4238)
+	Fixed slapd main (ITS#4241)
+	Fixed slapd-hdb idl (ITS#4250)
+	Fixed slapd-hdb cache (ITS#4254)
+	Fixed slapd-bdb/hdb alock (ITS#4259)
+	Fixed slapd-bdb dn2id (ITS#4263)
+	Fixed slapd-bdb (ITS#4264)
+	Fixed slapo-unique (ITS#4267)
 	Added slapd warning for excessive threads number (ITS#4249)
 	Fixed slapd-bdb/hdb mode argument parsing (ITS#4257)
 	Fixed slapd-bdb/hdb cn=config reindexing (ITS#4260)
@@ -15,7 +25,10 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapd-ldap anonymous identity assertion (ITS#4272)
 	Updated slapo-dynlist (ITS#3756,4224)
 	Build environment
+		Fixed tests (ITS#4141)
 		Updated test033-glue-syncrepl (ITS#4264)
+	Documentation
+		Updated slapd.conf(5) and Admin Guide (ITS#4146,4266)
 
 OpenLDAP 2.3.13 Release
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
