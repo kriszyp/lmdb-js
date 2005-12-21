@@ -34,6 +34,7 @@ OpenLDAP 2.3.14 Engineering
 		Updated slapd.conf(5) and Admin Guide (ITS#4146,4266)
 		Updated slapo-dynlist(5) (ITS#4197)
 		Updated slapo-pcache(5) (ITS#4232)
+		Updated slapindex(8) (ITS#4242)
 
 OpenLDAP 2.3.13 Release
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
