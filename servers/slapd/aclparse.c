@@ -475,7 +475,8 @@ parse_acl(
 					}
 
 				} else if ( strncasecmp( left, "val", 3 ) == 0 ) {
-					char	*mr;
+					struct berval	bv;
+					char		*mr;
 					
 					if ( !BER_BVISEMPTY( &a->acl_attrval ) ) {
 						Debug( LDAP_DEBUG_ANY,
@@ -491,7 +492,7 @@ parse_acl(
 						return acl_usage();
 					}
 
-					ber_str2bv( right, 0, 1, &a->acl_attrval );
+					ber_str2bv( right, 0, 0, &bv );
 					a->acl_attrval_style = ACL_STYLE_BASE;
 
 					mr = strchr( left, '/' );
@@ -525,7 +526,7 @@ parse_acl(
 					
 					if ( style != NULL ) {
 						if ( strcasecmp( style, "regex" ) == 0 ) {
-							int e = regcomp( &a->acl_attrval_re, a->acl_attrval.bv_val,
+							int e = regcomp( &a->acl_attrval_re, bv.bv_val,
 								REG_EXTENDED | REG_ICASE | REG_NOSUB );
 							if ( e ) {
 								char	err[SLAP_TEXT_BUFLEN],
@@ -553,8 +554,6 @@ parse_acl(
 							} else if ( a->acl_attrs[0].an_desc->ad_type->
 								sat_syntax == slap_schema.si_syn_distinguishedName )
 							{
-								struct berval	bv;
-
 								if ( !strcasecmp( style, "baseObject" ) ||
 									!strcasecmp( style, "base" ) )
 								{
@@ -576,8 +575,10 @@ parse_acl(
 
 									snprintf( buf, sizeof( buf ),
 										"unknown val.<style> \"%s\" "
-										"for attributeType \"%s\" with DN syntax; "
-										"using \"base\""
+										"for attributeType \"%s\" with DN syntax"
+#ifndef SLAPD_CONF_UNKNOWN_BAILOUT
+										"; using \"base\""
+#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 										SLAPD_CONF_UNKNOWN_IGNORED ".",
 										style,
 										a->acl_attrs[0].an_desc->ad_cname.bv_val );
@@ -591,7 +592,6 @@ parse_acl(
 									a->acl_attrval_style = ACL_STYLE_BASE;
 								}
 
-								bv = a->acl_attrval;
 								rc = dnNormalize( 0, NULL, NULL, &bv, &a->acl_attrval, NULL );
 								if ( rc != LDAP_SUCCESS ) {
 									char	buf[ SLAP_TEXT_BUFLEN ];
@@ -607,7 +607,6 @@ parse_acl(
 										fname, lineno, buf );
 									return acl_usage();
 								}
-								ber_memfree( bv.bv_val );
 
 							} else {
 								char	buf[ SLAP_TEXT_BUFLEN ];
@@ -616,7 +615,10 @@ parse_acl(
 
 								snprintf( buf, sizeof( buf ),
 									"unknown val.<style> \"%s\" "
-									"for attributeType \"%s\"; using \"exact\""
+									"for attributeType \"%s\""
+#ifndef SLAPD_CONF_UNKNOWN_BAILOUT
+									"; using \"exact\""
+#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 									SLAPD_CONF_UNKNOWN_IGNORED ".",
 									style, a->acl_attrs[0].an_desc->ad_cname.bv_val );
 								Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, 
@@ -631,15 +633,40 @@ parse_acl(
 					}
 
 					/* Check for appropriate matching rule */
-					if ( a->acl_attrval_style != ACL_STYLE_REGEX ) {
+					if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
+						ber_dupbv( &a->acl_attrval, &bv );
+
+					} else if ( BER_BVISNULL( &a->acl_attrval ) ) {
+						int		rc;
+						const char	*text;
+
 						if ( a->acl_attrval_mr == NULL ) {
 							a->acl_attrval_mr = a->acl_attrs[ 0 ].an_desc->ad_type->sat_equality;
 						}
 
 						if ( a->acl_attrval_mr == NULL ) {
 							Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-								"attr \"%s\" must have an EQUALITY matching rule.\n",
+								"attr \"%s\" does not have an EQUALITY matching rule.\n",
 								fname, lineno, a->acl_attrs[ 0 ].an_name.bv_val );
+							return acl_usage();
+						}
+
+						rc = asserted_value_validate_normalize(
+							a->acl_attrs[ 0 ].an_desc,
+							a->acl_attrval_mr,
+							SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+							&bv,
+							&a->acl_attrval,
+							&text,
+							NULL );
+						if ( rc != LDAP_SUCCESS ) {
+							char	buf[ SLAP_TEXT_BUFLEN ];
+
+							snprintf( buf, sizeof( buf ), "%s: line %d: "
+								" attr \"%s\" normalization failed (%d: %s)",
+								a->acl_attrs[ 0 ].an_name.bv_val, rc, text );
+							Debug( LDAP_DEBUG_ANY, "%s: line %d: %s.\n",
+								fname, lineno, buf );
 							return acl_usage();
 						}
 					}
