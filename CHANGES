@@ -25,7 +25,7 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapo-unique extraneous searches (ITS#4267)
 	Updated slapo-dynlist (ITS#3756,4224)
 	Build environment
-		Fixed tests (ITS#4141)
+		Fixed thread dependency of test028 (ITS#4141)
 		Updated test033-glue-syncrepl (ITS#4264)
 	Documentation
 		Updated slapd.conf(5) and Admin Guide (ITS#4146,4266)
