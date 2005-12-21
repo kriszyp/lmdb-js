@@ -342,7 +342,6 @@ rebind:;
 		 * handle response!!!
 		 */
 retry:;
-		tv = mt->mt_bind_timeout;
 		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
 		case 0:
 			snprintf( buf, sizeof( buf ),
@@ -357,7 +356,7 @@ retry:;
 				if ( nretries > 0 ) {
 					nretries--;
 				}
-				LDAP_BACK_TV_SET( &tv );
+				tv = mt->mt_bind_timeout;
 				goto retry;
 			}
 			rs->sr_err = LDAP_BUSY;
@@ -498,7 +497,6 @@ rebind:;
 		 * handle response!!!
 		 */
 retry:;
-		tv = mt->mt_bind_timeout;
 		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
 		case 0:
 			snprintf( buf, sizeof( buf ),
@@ -513,7 +511,7 @@ retry:;
 				if ( nretries > 0 ) {
 					nretries--;
 				}
-				LDAP_BACK_TV_SET( &tv );
+				tv = mt->mt_bind_timeout;
 				goto retry;
 			}
 
