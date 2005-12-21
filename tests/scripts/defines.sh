@@ -14,26 +14,28 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 MONITORDB=${AC_monitor-no}
-ACCESSLOG=${AC_accesslog-accesslogno}
 BACKLDAP=${AC_ldap-ldapno}
 BACKMETA=${AC_meta-metano}
 BACKRELAY=${AC_relay-relayno}
 BACKSQL=${AC_sql-sqlno}
 RDBMS=${SLAPD_USE_SQL-rdbmsno}
 RDBMSWRITE=${SLAPD_USE_SQLWRITE-no}
+ACCESSLOG=${AC_accesslog-accesslogno}
+DYNLIST=${AC_dynlist-dynlistno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
 RETCODE=${AC_retcode-retcodeno}
 RWM=${AC_rwm-rwmno}
+SYNCPROV=${AC_syncprov-syncprovno}
 TRANSLUCENT=${AC_translucent-translucentno}
 UNIQUE=${AC_unique-uniqueno}
-SYNCPROV=${AC_syncprov-syncprovno}
+VALSORT=${AC_valsort-valsortno}
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}
 ACI=${AC_ACI_ENABLED-acino}
-VALSORT=${AC_valsort-valsortno}
+THREADS=${AC_THREADS-threadsno}
 
 PROGDIR=./progs
 DATADIR=${USER_DATADIR-./testdata}
@@ -102,6 +104,9 @@ METACONF2=$DATADIR/slapd-meta2.conf
 GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
 VALSORTCONF=$DATADIR/slapd-valsort.conf
+DYNLISTCONF=$DATADIR/slapd-dynlist.conf
+RSLAVECONF=$DATADIR/slapd-repl-slave-remote.conf
+PLSRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist-ldap.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -203,6 +208,8 @@ PASSWD=secret
 BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
+JOHNDDN="cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com"
+MELLIOTDN="cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com"
 REFINTDN="cn=Manager,o=refint"
 RETCODEDN="ou=RetCodes,$BASEDN"
 UNIQUEDN="cn=Manager,o=unique"
@@ -289,6 +296,7 @@ METACONCURRENCYOUT=$DATADIR/metaconcurrency.out
 MANAGEOUT=$DATADIR/manage.out
 SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 ACIOUT=$DATADIR/aci.out
+DYNLISTOUT=$DATADIR/dynlist.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

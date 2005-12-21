@@ -1933,6 +1933,9 @@ if test $ol_link_threads = no ; then
 	AC_DEFINE(NO_THREADS,1,
 		[define if you have (or want) no threads])
 	LTHREAD_LIBS=""
+	BUILD_THREAD=no
+else
+	BUILD_THREAD=yes
 fi
 
 if test $ol_link_threads != no ; then
@@ -3058,6 +3061,7 @@ AC_SUBST(WITH_SASL)
 AC_SUBST(WITH_TLS)
 AC_SUBST(WITH_MODULES_ENABLED)
 AC_SUBST(WITH_ACI_ENABLED)
+AC_SUBST(BUILD_THREAD)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
 AC_SUBST(BUILD_SLAPD)

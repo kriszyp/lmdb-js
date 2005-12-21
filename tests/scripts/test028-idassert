@@ -16,7 +16,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-echo "### This test requires the ldap backend."
+echo "### This test requires the LDAP backend and the rwm overlay."
 echo "### If available, and explicitly requested, it can use SASL bind;"
 echo "### note that SASL must be properly set up, and the requested"
 echo "### mechanism must be available.  Define SLAPD_USE_SASL={yes|<mech>},"
@@ -27,8 +27,13 @@ if test $BACKLDAP = "ldapno" ; then
 	exit 0
 fi 
 
-if test $RWM = rwmno ; then 
+if test $RWM = "rwmno" ; then 
 	echo "Rewrite/remap overlay not available, test skipped"
+	exit 0
+fi 
+
+if test $THREADS = "threadsno" ; then
+	echo "Need threads support, test skipped"
 	exit 0
 fi 
 
