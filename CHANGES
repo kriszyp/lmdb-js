@@ -23,7 +23,7 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapo-syncprov unpublished control (ITS#4238)
 	Fixed slapo-syncprov message id issue
 	Fixed slapo-unique extraneous searches (ITS#4267)
-	Updated slapo-dynlist (ITS#3756,4224)
+	Updated slapo-dynlist (ITS#3756,3781,4224)
 	Build environment
 		Fixed thread dependency of test028 (ITS#4141)
 		Updated test033-glue-syncrepl (ITS#4264)
