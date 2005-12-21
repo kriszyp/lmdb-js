@@ -6,6 +6,7 @@ OpenLDAP 2.3.14 Engineering
 	Fixed slapd sc_prev update after free bug (ITS#4237)
 	Fixed slapd pid file creation (ITS#4241)
 	Fixed slapd DEBUG dependency (ITS#4245)
+	Fixed slapd modify/delete by ordered index issue
 	Fixed slapd-glue (ITS#4084,4133)
 	Fixed slapd-hdb idl Delete bug (ITS#4250)
 	Fixed slapd-hdb cache deadlock (ITS#4254)

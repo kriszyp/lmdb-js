@@ -665,7 +665,7 @@ int slap_mods_check(
 				} else {
 #ifdef SLAP_ORDERED_PRETTYNORM
 					rc = ordered_value_validate( ad,
-						&ml->sml_values[nvals] );
+						&ml->sml_values[nvals], ml->sml_op );
 #else /* ! SLAP_ORDERED_PRETTYNORM */
 					rc = validate( ad->ad_type->sat_syntax,
 						&ml->sml_values[nvals] );

@@ -1632,7 +1632,8 @@ LDAP_SLAPD_F (int) ordered_value_add LDAP_P((
 
 LDAP_SLAPD_F (int) ordered_value_validate LDAP_P((
 	AttributeDescription *ad,
-	struct berval *in ));
+	struct berval *in,
+	int mop ));
 
 LDAP_SLAPD_F (int) ordered_value_pretty LDAP_P((
 	AttributeDescription *ad,

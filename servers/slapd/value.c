@@ -409,12 +409,13 @@ ordered_value_sort( Attribute *a, int do_renumber )
 /*
  * wrapper for validate function
  * uses the validate function of the syntax after removing
- * the index, if allowed an present
+ * the index, if allowed and present
  */
 int
 ordered_value_validate(
 	AttributeDescription *ad,
-	struct berval *in )
+	struct berval *in,
+	int mop )
 {
 	struct berval	bv = *in;
 
@@ -435,6 +436,9 @@ ordered_value_validate(
 			bv.bv_len -= ptr - bv.bv_val;
 			bv.bv_val = ptr;
 			in = &bv;
+			/* If deleting by index, just succeed */
+			if ( mop == LDAP_MOD_DELETE && BER_BVISEMPTY( &bv ))
+				return LDAP_SUCCESS;
 		}
 	}
 
@@ -544,6 +548,11 @@ ordered_value_normalize(
 			bv.bv_len -= idx.bv_len;
 			bv.bv_val = ptr;
 
+			/* validator will already prevent this for Adds */
+			if ( BER_BVISEMPTY( &bv )) {
+				ber_dupbv_x( normalized, &idx, ctx );
+				return LDAP_SUCCESS;
+			}
 			val = &bv;
 		}
 	}
