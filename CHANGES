@@ -2,25 +2,26 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.14 Engineering
 	Fixed slapd assertion control restrictions
-	Fixed slapd ACL exact attrval clause normalization (ITS#4255)
 	Fixed slapd sc_prev update after free bug (ITS#4237)
 	Fixed slapd pid file creation (ITS#4241)
 	Fixed slapd DEBUG dependency (ITS#4245)
-	Fixed slapd modify/delete by ordered index issue
+	Added slapd warning for excessive threads number (ITS#4249)
 	Fixed slapd passwd incomplete mod structure issue (ITS#4278)
+	Fixed slapd ACL exact attrval clause normalization (ITS#4255)
+	Fixed slapd modify/delete by ordered index issue
 	Fixed slapd-glue issues (ITS#4084,4133)
 	Fixed slapd-hdb idl Delete bug (ITS#4250)
 	Fixed slapd-hdb cache deadlock (ITS#4254)
 	Fixed slapd-bdb/hdb alock_close bug (ITS#4259)
 	Fixed slapd-bdb dn2id IDL cache bug (ITS#4263)
-	Added slapd warning for excessive threads number (ITS#4249)
 	Fixed slapd-bdb/hdb mode argument parsing (ITS#4257)
 	Fixed slapd-bdb/hdb cn=config reindexing (ITS#4260)
 	Fixed slapd-bdb/hdb cn=config olcDbIndex modify/replace (ITS#4262)
 	Fixed slapd-bdb/hdb lockup issue (ITS#4184)
 	Fixed slapd-ldap anonymous identity assertion (ITS#4272)
 	Added slapd-ldap/meta idle-timeout support (ITS#4115)
-	Fixed slapd-meta bind-timeout handling (ITS#xxxx)
+	Fixed slapd-meta bind-timeout handling
+	Fixed slapd-sql plug leak
 	Fixed slapo-dynlist/dyngroup nonexistant object return code (ITS#4224)
 	Updated slapo-dynlist (ITS#3756,3781)
 	Fixed slapo-rwm static DN free bug (ITS#4248)
