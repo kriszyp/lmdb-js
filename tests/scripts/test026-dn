@@ -118,8 +118,8 @@ if test $RC != 0 ; then
 fi
 
 DN="dc=example,dc=com"
-echo "Searching database for uniqueMember~=\"$DN\" (approx) ..."
-echo "# Searching database for uniqueMember~=\"$DN\" (approx) ..." >> $SEARCHOUT
+echo "Searching database for uniqueMember~=\"$DN\" (approx)..."
+echo "# Searching database for uniqueMember~=\"$DN\" (approx)..." >> $SEARCHOUT
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(uniqueMember~=)" >> $SEARCHOUT 2>&1
 
@@ -131,8 +131,8 @@ if test $RC != 0 ; then
 fi
 
 DN="dc=example,dc=com#'001000'B"
-echo "Searching database for uniqueMember~=\"$DN\" (approx) ..."
-echo "# Searching database for uniqueMember~=\"$DN\" (approx) ..." >> $SEARCHOUT
+echo "Searching database for uniqueMember~=\"$DN\" (approx)..."
+echo "# Searching database for uniqueMember~=\"$DN\" (approx)..." >> $SEARCHOUT
 $LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"(uniqueMember~=$DN)" >> $SEARCHOUT 2>&1
 
@@ -145,12 +145,12 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-LDIFOUT=$DNOUT
-
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original data..."
+. $LDIFFILTER < $DNOUT > $LDIFFLT
 echo "Comparing ldapsearch results against original..."
-$CMP $SEARCHFLT $LDIFOUT > $CMPOUT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - DN write operations did not complete correctly"
