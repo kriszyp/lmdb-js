@@ -262,7 +262,6 @@ authzFrom: dn.regex:^cn=Dorothy.*dc=example,dc=com$
 authzFrom: dn.children:ou=Alumni Association,ou=People,dc=example
  ,dc=com
 authzFrom: dn.subtree:ou=Groups,dc=example,dc=com
-authzFrom: ldap:///dc=example,dc=com??sub?uid=fail
 authzTo: dn.exact:cn=Barbara Jensen,ou=Information Technology Division,ou=Peop
  le,dc=example,dc=com
 authzTo: u:melliot
@@ -271,10 +270,8 @@ authzTo: group/groupOfUniqueNames/uniqueMember:cn=ITD Staff,ou=Groups,dc=examp
  le,dc=com
 authzTo: dn.onelevel:ou=Information Technology Division,ou=People,dc=example,dc=com
 authzTo: dn.regex:^cn=Dorothy.*dc=example,dc=com$
-authzTo: dn.children:ou=Alumni Association,ou=People,dc=example,d
- c=com
+authzTo: dn.children:ou=Alumni Association,ou=People,dc=example,dc=com
 authzTo: dn.subtree:ou=Groups,dc=example,dc=com
-authzTo: ldap:///dc=example,dc=com??sub?uid=fail
 
 dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
