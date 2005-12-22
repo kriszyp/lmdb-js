@@ -98,43 +98,16 @@ const char Versionstr[] =
 	OPENLDAP_PACKAGE " " OPENLDAP_VERSION " Standalone LDAP Server (slapd)";
 #endif
 
-#ifdef LOG_LOCAL4
-#define DEFAULT_SYSLOG_USER  LOG_LOCAL4
-
-typedef struct _str2intDispatch {
-	char	*stringVal;
-	int	 abbr;
-	int	 intVal;
-} STRDISP, *STRDISP_P;
-
-/* table to compute syslog-options to integer */
-static STRDISP	syslog_types[] = {
-	{ "LOCAL0", sizeof("LOCAL0"), LOG_LOCAL0 },
-	{ "LOCAL1", sizeof("LOCAL1"), LOG_LOCAL1 },
-	{ "LOCAL2", sizeof("LOCAL2"), LOG_LOCAL2 },
-	{ "LOCAL3", sizeof("LOCAL3"), LOG_LOCAL3 },
-	{ "LOCAL4", sizeof("LOCAL4"), LOG_LOCAL4 },
-	{ "LOCAL5", sizeof("LOCAL5"), LOG_LOCAL5 },
-	{ "LOCAL6", sizeof("LOCAL6"), LOG_LOCAL6 },
-	{ "LOCAL7", sizeof("LOCAL7"), LOG_LOCAL7 },
-#ifdef LOG_USER
-	{ "USER", sizeof("USER"), LOG_USER },
-#endif
-#ifdef LOG_DAEMON
-	{ "DAEMON", sizeof("DAEMON"), LOG_DAEMON },
-#endif
-	{ NULL, 0, 0 }
-};
-
-static int cnvt_str2int( char *, STRDISP_P, int );
-#endif	/* LOG_LOCAL4 */
-
 #define CHECK_NONE	0x00
 #define CHECK_CONFIG	0x01
 static int check = CHECK_NONE;
 static int version = 0;
 
 void *slap_tls_ctx;
+
+#ifdef LOG_LOCAL4
+#define DEFAULT_SYSLOG_USER	LOG_LOCAL4
+#endif /* LOG_LOCAL4 */
 
 static int
 slapd_opt_slp( const char *val, void *arg )
@@ -185,43 +158,39 @@ struct option_helper {
 	{ BER_BVNULL, 0, NULL, NULL }
 };
 
-/* (yet) unused */
-#if 0
+#ifdef LOG_LOCAL4
 static int
-parse_syslog_level( const char *arg )
+parse_syslog_user( const char *arg, int *syslogUser )
 {
-	if ( !isdigit( arg[ 0 ] ) ) {
-		slap_verbmasks	str2syslog_level[] = {
-			{ BER_BVC( "EMERG" ),	LOG_EMERG },
-			{ BER_BVC( "ALERT" ),	LOG_ALERT },
-			{ BER_BVC( "CRIT" ),	LOG_CRIT },
-			{ BER_BVC( "ERR" ),	LOG_ERR },
-			{ BER_BVC( "WARNING" ),	LOG_WARNING },
-			{ BER_BVC( "NOTICE" ),	LOG_NOTICE },
-			{ BER_BVC( "INFO" ),	LOG_INFO },
-			{ BER_BVC( "DEBUG" ),	LOG_DEBUG },
-			{ BER_BVNULL, 0 }
-		};
-		int i = verb_to_mask( arg, str2syslog_level );
-		if ( BER_BVISNULL( &str2syslog_level[ i ].word ) ) {
-			Debug( LDAP_DEBUG_ANY,
-				"unknown syslog level \"%s\".\n",
-				arg, 0, 0 );
-			return 1;
-		}
-		
-		ldap_syslog_level = str2syslog_level[ i ].mask;
+	static slap_verbmasks syslogUsers[] = {
+		{ BER_BVC( "LOCAL0" ), LOG_LOCAL0 },
+		{ BER_BVC( "LOCAL1" ), LOG_LOCAL1 },
+		{ BER_BVC( "LOCAL2" ), LOG_LOCAL2 },
+		{ BER_BVC( "LOCAL3" ), LOG_LOCAL3 },
+		{ BER_BVC( "LOCAL4" ), LOG_LOCAL4 },
+		{ BER_BVC( "LOCAL5" ), LOG_LOCAL5 },
+		{ BER_BVC( "LOCAL6" ), LOG_LOCAL6 },
+		{ BER_BVC( "LOCAL7" ), LOG_LOCAL7 },
+#ifdef LOG_USER
+		{ BER_BVC( "USER" ), LOG_USER },
+#endif /* LOG_USER */
+#ifdef LOG_DAEMON
+		{ BER_BVC( "DAEMON" ), LOG_DAEMON },
+#endif /* LOG_DAEMON */
+		{ BER_BVNULL, 0 }
+	};
+	int i = verb_to_mask( optarg, syslogUsers );
 
-	} else if ( lutil_atoi( &ldap_syslog_level, arg ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"unable to parse syslog level \"%s\".\n",
-			arg, 0, 0 );
+	if ( BER_BVISNULL( &syslogUsers[ i ].word ) ) {
+		Debug( LDAP_DEBUG_ANY, "unrecognized syslog user \"%s\".\n", optarg, 0, 0 );
 		return 1;
 	}
 
+	*syslogUser = syslogUsers[ i ].mask;
+
 	return 0;
 }
-#endif
+#endif /* LOG_LOCAL4 */
 
 int
 parse_debug_level( const char *arg, int *levelp )
@@ -264,7 +233,12 @@ parse_debug_level( const char *arg, int *levelp )
 			return 1;
 		}
 
-		*levelp |= level;
+		if ( level == 0 ) {
+			*levelp = 0;
+
+		} else {
+			*levelp |= level;
+		}
 	}
 
 	return 0;
@@ -542,8 +516,9 @@ int main( int argc, char **argv )
 
 #ifdef LOG_LOCAL4
 		case 'l':	/* set syslog local user */
-			syslogUser = cnvt_str2int( optarg,
-				syslog_types, DEFAULT_SYSLOG_USER );
+			if ( parse_syslog_user( optarg, &syslogUser ) ) {
+				goto destroy;
+			}
 			break;
 #endif
 
@@ -966,31 +941,3 @@ wait4child( int sig )
 
 #endif /* LDAP_SIGCHLD */
 
-
-#ifdef LOG_LOCAL4
-
-/*
- *  Convert a string to an integer by means of a dispatcher table
- *  if the string is not in the table return the default
- */
-
-static int
-cnvt_str2int( char *stringVal, STRDISP_P dispatcher, int defaultVal )
-{
-    int	       retVal = defaultVal;
-    STRDISP_P  disp;
-
-    for (disp = dispatcher; disp->stringVal; disp++) {
-
-	if (!strncasecmp (stringVal, disp->stringVal, disp->abbr)) {
-
-	    retVal = disp->intVal;
-	    break;
-
-	}
-    }
-
-    return (retVal);
-}
-
-#endif	/* LOG_LOCAL4 */

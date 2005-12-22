@@ -64,8 +64,10 @@ LDAP_BEGIN_DECL
 #define LDAP_DEBUG_STATS2	0x0200
 #define LDAP_DEBUG_SHELL	0x0400
 #define LDAP_DEBUG_PARSE	0x0800
-#define LDAP_DEBUG_CACHE    0x1000
-#define LDAP_DEBUG_INDEX    0x2000
+#if 0 /* no longer used (nor supported) */
+#define LDAP_DEBUG_CACHE	0x1000
+#define LDAP_DEBUG_INDEX	0x2000
+#endif
 #define LDAP_DEBUG_SYNC		0x4000
 
 #define LDAP_DEBUG_NONE		0x8000
