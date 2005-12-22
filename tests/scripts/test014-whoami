@@ -227,11 +227,20 @@ $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
 	-e \!authzid="$AUTHZID"
 
 RC=$?
-if test $RC != 1 ; then
+case $RC in 
+1)
+	;;
+0)
+	echo "ldapwhoami should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
-fi
+	;;
+esac
 
 BINDDN="cn=Must Fail,dc=example,dc=com"
 BINDPW=fail
@@ -241,11 +250,20 @@ $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
 	-e \!authzid="$AUTHZID"
 
 RC=$?
-if test $RC != 1 ; then
+case $RC in 
+1)
+	;;
+0)
+	echo "ldapwhoami should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
-fi
+	;;
+esac
 
 # authzTo: bjorn => someone else
 echo "Testing authzTo..."
@@ -370,11 +388,20 @@ $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
 	-e \!authzid="$AUTHZID"
 
 RC=$?
-if test $RC != 1 ; then
+case $RC in 
+1)
+	;;
+0)
+	echo "ldapwhoami should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
-fi
+	;;
+esac
 
 BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
 BINDPW=bjorn
@@ -384,11 +411,20 @@ $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
 	-e \!authzid="$AUTHZID"
 
 RC=$?
-if test $RC != 1 ; then
+case $RC in 
+1)
+	;;
+0)
+	echo "ldapwhoami should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
-fi
+	;;
+esac
 
 BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
 BINDPW=bjorn
