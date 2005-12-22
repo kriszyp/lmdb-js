@@ -37,6 +37,14 @@ rules; see
 .BR slapd.conf (5)
 for details.
 
+.LP
+Note: When looping back to the same instance of \fBslapd\fP(8), 
+each connection requires a new thread; as a consequence, \fBslapd\fP(8)
+must be compiled with thread support, and the \fBthreads\fP parameter 
+may need some tuning; in those cases, one may consider using 
+\fBslapd-relay\fP(5) instead, which performs the relayed operation 
+internally and thus reusues the same connection.
+
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -46,6 +54,7 @@ subsequent "backend" or "database" lines.
 Other database options are described in the
 .BR slapd.conf (5)
 manual page.
+
 .LP
 Note: In early versions of back-ldap it was recommended to always set
 .LP
@@ -340,7 +349,8 @@ after it has been idle for the specified time.
 .SH BACKWARD COMPATIBILITY
 The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
 as a side-effect, some of the traditional directives have been
-deprecated and should be no longer used.
+deprecated and should be no longer used, as they might disappear
+in future releases.
 
 .TP
 .B server <hostname[:port]>
@@ -360,52 +370,63 @@ check permissions.
 See the
 .B idassert-*
 feature instead.
-This directive is obsoleted by
-.BR acl-bind ,
-and may dismissed in the future.
+This directive is obsoleted by the
+.B binddn
+arg of
+.B acl-bind
+when \fIbindmethod\fP=\fBsimple\fP, and will be dismissed in the future.
 
 .TP
 .B acl-passwd <password>
-Password used with the
-.B 
-acl-authcDN
-above.
-This directive is obsoleted by
-.BR acl-bind ,
-and may be dismissed in the future.
+Password used with the above
+.B acl-authcDN
+directive.
+This directive is obsoleted by the
+.B binddn
+arg of
+.B acl-bind
+when \fIbindmethod\fP=\fBsimple\fP, and will be dismissed in the future.
 
 .TP
 .B idassert-authcDN "<administrative DN for proxyAuthz purposes>"
 DN which is used to propagate the client's identity to the target
 by means of the proxyAuthz control when the client does not
 belong to the DIT fragment that is being proxied by back-ldap.
-This directive is obsoleted by
-.BR idassert-bind ,
-and may be dismissed in the future.
+This directive is obsoleted by the
+.B binddn
+arg of
+.BR idassert-bind
+when \fIbindmethod\fP=\fBsimple\fP, and will be dismissed in the future.
 
 .TP
 .B idassert-passwd <password>
 Password used with the
 .B idassert-authcDN
 above.
-This directive is obsoleted by
-.BR idassert-bind ,
-and may be dismissed in the future.
+This directive is obsoleted by the
+.B crendentials
+of
+.B idassert-bind
+when \fIbindmethod\fP=\fBsimple\fP, and will be dismissed in the future.
 
 .TP
 .B idassert-mode <mode> [<flags>]
 defines what type of
 .I identity assertion
 is used.
-This directive is obsoleted by
+This directive is obsoleted by the
+.B mode
+arg of 
 .BR idassert-bind ,
-and may be dismissed in the future.
+and will be dismissed in the future.
 
 .TP
 .B idassert-method <method> [<saslargs>]
-This directive is obsoleted by
+This directive is obsoleted by the
+.B bindmethod
+arg of
 .BR idassert-bind ,
-and may be dismissed in the future.
+and will be dismissed in the future.
 
 .TP
 .B suffixmassage, map, rewrite*
