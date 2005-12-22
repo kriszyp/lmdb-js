@@ -12,3 +12,7 @@ otherwise, if the issue appears whatever backend is used, the test should
 be parametric, so that it is run with the backend selected at run-time
 via the "-b" switch of the "run" script.
 
+Regression tests are prepared on a voluntary basis, so don't expect all 
+bugs to have a test any soon.  When the issue reporter provides a simple,
+yet complete means to reproduce the bug she's reporting, this may speed up 
+the process.  In case, only put neutral data in bug exploitation reports.

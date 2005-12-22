@@ -64,6 +64,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo ""
+echo "	This test applies a round of updates __after__ grabbing a lock"
+echo "	that, before the fix, was not correctly released; in case "
+echo "	of failure, the second round of updates will deadlock."
+echo "	This issue was fixed in OpenLDAP 2.3.14."
+echo ""
+
 for S in 1 2 ; do
 	FILE="${ITSDIR}/mods.ldif"
 	echo "${S}) Applying `basename ${FILE}`..."
