@@ -44,7 +44,7 @@ each connection requires a new thread; as a consequence, \fBslapd\fP(8)
 must be compiled with thread support, and the \fBthreads\fP parameter 
 may need some tuning; in those cases, unless the multiple target feature
 is required, one may consider using \fBslapd-relay\fP(5) instead, 
-which performs the relayed operation internally and thus reusues 
+which performs the relayed operation internally and thus reuses 
 the same connection.
 
 .SH EXAMPLES
