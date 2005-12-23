@@ -9,6 +9,7 @@ OpenLDAP 2.3.14 Release
 	Fixed slapd passwd incomplete mod structure issue (ITS#4278)
 	Fixed slapd ACL exact attrval clause normalization (ITS#4255)
 	Fixed slapd modify/delete by ordered index issue
+	Fixed slapd strerror NULL bug (ITS#4285)
 	Fixed slapd-glue issues (ITS#4084,4133)
 	Fixed slapd-hdb idl Delete bug (ITS#4250)
 	Fixed slapd-hdb cache deadlock (ITS#4254)
