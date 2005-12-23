@@ -106,14 +106,14 @@ void * memrchr(const void *b, int c, size_t len);
 #if defined( HAVE_NONPOSIX_STRERROR_R )
 #	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)))
 #elif defined( HAVE_STRERROR_R )
-#	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)) ? (b) : NULL)
+#	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)) ? (b) : "")
 #elif defined( HAVE_SYS_ERRLIST )
 #	define AC_STRERROR_R(e,b,l)		((e) > -1 && (e) < sys_nerr \
-										? sys_errlist[(e)] : NULL )
+										? sys_errlist[(e)] : "" )
 #elif defined( HAVE_STRERROR )
 #	define AC_STRERROR_R(e,b,l)		(strerror(e))
 #else
-#	define AC_STRERROR_R(e,b,l)		(NULL)
+#	define AC_STRERROR_R(e,b,l)		("")
 #endif
 
 #endif /* _AC_STRING_H */
