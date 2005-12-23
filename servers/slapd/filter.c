@@ -569,7 +569,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			f->f_av_desc->ad_cname.bv_val,
-			tmp.bv_val );
+			tmp.bv_len ? tmp.bv_val : "(null)");
 
 		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
@@ -583,7 +583,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			f->f_av_desc->ad_cname.bv_val,
-			tmp.bv_val );
+			tmp.bv_len ? tmp.bv_val : "(null)");
 
 		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
@@ -597,7 +597,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			f->f_av_desc->ad_cname.bv_val,
-			tmp.bv_val );
+			tmp.bv_len ? tmp.bv_val : "(null)");
 
 		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
@@ -611,7 +611,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			f->f_av_desc->ad_cname.bv_val,
-			tmp.bv_val );
+			tmp.bv_len ? tmp.bv_val : "(null)");
 		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
 
@@ -634,7 +634,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 			snprintf( &fstr->bv_val[len-2], tmp.bv_len+3,
 				/* "(attr=" */ "%s*)",
-				tmp.bv_val );
+				tmp.bv_len ? tmp.bv_val : "(null)");
 
 			ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		}
@@ -651,7 +651,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 				snprintf( &fstr->bv_val[len-1], tmp.bv_len+3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
-					tmp.bv_val );
+					tmp.bv_len ? tmp.bv_val : "(null)");
 				ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 			}
 		}
@@ -667,7 +667,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 			snprintf( &fstr->bv_val[len-1], tmp.bv_len+3,
 				/* "(attr=[init*][any*]" */ "%s)",
-				tmp.bv_val );
+				tmp.bv_len ? tmp.bv_val : "(null)");
 
 			ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		}
@@ -732,7 +732,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 				f->f_mr_dnattrs ? ":dn" : "",
 				f->f_mr_rule_text.bv_len ? ":" : "",
 				f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
-				tmp.bv_val );
+				tmp.bv_len ? tmp.bv_val : "(null)");
 			ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		} break;
 
