@@ -9,7 +9,7 @@ ldapwhoami       * DE**HI*   *O QR  UVWXYZ   def*h**  *n*p*    vwxy
 
 
 * reserved
-	BFGJNgijmoq01235789
+	BFGJgijmoq01235789
 
 * General flags:
 	-C Chase Referrals
@@ -24,6 +24,7 @@ ldapwhoami       * DE**HI*   *O QR  UVWXYZ   def*h**  *n*p*    vwxy
 	-d debug
 	-h host
 	-n no-op
+	-N no (SASLprep) normalization of simple bind password
 	-p port
 	-v verbose
 	-V version

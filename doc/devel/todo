@@ -59,7 +59,7 @@ Add tests to test suite
 Add jail(2) support
 Recode linked-list structs to use <ldap_queue.h> macros
 Convert utfconv.txt into man page(s).
-Update any manual page
+Update manual pages as needed.
 
 
 For additional TODO items, see:
