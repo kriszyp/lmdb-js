@@ -52,7 +52,7 @@ Add BSD kqueue(2) support to slapd(8)
 Add DSML capabilities to command line tools
 Add LDIFv2 (XML) support to command line tools
 Implement authPassword (RFC 3112)
-Implement SASLprep
+Implement SASLprep (RFC 4013) for LDAP (draft-ietf-ldapbis-*)
 Implement additional matching rules (RFC 3698)
 Add dumpasn1 logging support
 Add tests to test suite
