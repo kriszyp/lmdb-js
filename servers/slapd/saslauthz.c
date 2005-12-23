@@ -2055,7 +2055,8 @@ int slap_sasl_authorized( Operation *op,
 
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_authorized: can %s become %s?\n",
-		authcDN->bv_val, authzDN->bv_val, 0 );
+		authcDN->bv_len ? authcDN->bv_val : "(null)",
+		authzDN->bv_len ? authzDN->bv_val : "(null)",  0 );
 
 	/* If person is authorizing to self, succeed */
 	if ( dn_match( authcDN, authzDN ) ) {
