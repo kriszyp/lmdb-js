@@ -215,7 +215,7 @@ static struct slap_daemon {
 # define SLAP_EVENT_IS_READ(i)	SLAP_CHK_EVENT((i), EPOLLIN)
 # define SLAP_EVENT_IS_WRITE(i)	SLAP_CHK_EVENT((i), EPOLLOUT)
 # define SLAP_EVENT_IS_LISTENER(i)	SLAP_EV_LISTENER(revents[(i)].data.ptr)
-# define SLAP_EVENT_LISTENER(i)	(revents[(i)].data.ptr)
+# define SLAP_EVENT_LISTENER(i)	((Listener *)(revents[(i)].data.ptr))
 
 # define SLAP_EVENT_FD(i)	SLAP_EV_PTRFD(revents[(i)].data.ptr)
 
