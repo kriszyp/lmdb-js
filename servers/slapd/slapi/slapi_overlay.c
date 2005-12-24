@@ -478,7 +478,7 @@ slapi_over_unmerge_controls( Operation *op, SlapReply *rs )
 
 	slapi_pblock_get( pb, SLAPI_X_OLD_RESCONTROLS, (void **)&rs_ctrls );
 
-	if ( rs->sr_ctrls == NULL || rs->sr_ctrls == rs_ctrls ) {
+	if ( rs_ctrls == NULL || rs->sr_ctrls == rs_ctrls ) {
 		/* no copying done */
 		return LDAP_SUCCESS;
 	}
