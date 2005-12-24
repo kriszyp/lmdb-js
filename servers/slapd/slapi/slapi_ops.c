@@ -253,7 +253,7 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 	conn->c_conn_state  = 0x01;	/* SLAP_C_ACTIVE */
 	conn->c_struct_state = 0x02;	/* SLAP_C_USED */
 
-	conn->c_ssf = conn->c_transport_ssf = 0;
+	conn->c_ssf = conn->c_transport_ssf = local_ssf;
 	conn->c_tls_ssf = 0;
 
 	backend_connection_init( conn );
