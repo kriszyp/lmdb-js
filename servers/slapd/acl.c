@@ -2282,6 +2282,7 @@ acl_check_modlist(
 
 		switch ( mlist->sml_op ) {
 		case LDAP_MOD_REPLACE:
+		case LDAP_MOD_INCREMENT:
 			/*
 			 * We must check both permission to delete the whole
 			 * attribute and permission to add the specific attributes.
