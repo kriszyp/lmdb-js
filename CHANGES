@@ -5,7 +5,7 @@ OpenLDAP 2.3.15 Engineering
 OpenLDAP 2.3.14 Release
 	Fixed slapd assertion control restrictions
 	Fixed slapd sc_prev update after free bug (ITS#4237)
-	Fixed slapd pid file creation (ITS#4241)
+	Fixed slapd pid file creation (ITS#4241,4251)
 	Fixed slapd DEBUG dependency (ITS#4245)
 	Added slapd warning for excessive threads number (ITS#4249)
 	Fixed slapd passwd incomplete mod structure issue (ITS#4278)
