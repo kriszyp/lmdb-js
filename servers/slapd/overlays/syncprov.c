@@ -1804,7 +1804,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			a = attr_find( rs->sr_operational_attrs, slap_schema.si_ad_entryCSN );
 		}
 		if ( a ) {
-			/* Make sure entry is less than the snaphot'd contextCSN */
+			/* Make sure entry is less than the snapshot'd contextCSN */
 			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 )
 				return LDAP_SUCCESS;
 

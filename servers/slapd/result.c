@@ -704,7 +704,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	/* NOTE: moved before overlays callback circling because
 	 * they may modify entry and other stuff in rs */
 	/* check for special all operational attributes ("+") type */
-	/* FIXME: maybe we could se this flag at the operation level;
+	/* FIXME: maybe we could set this flag at the operation level;
 	 * however, in principle the caller of send_search_entry() may
 	 * change the attribute list at each call */
 	rs->sr_attr_flags = slap_attr_flags( rs->sr_attrs );
