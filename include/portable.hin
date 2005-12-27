@@ -891,6 +891,9 @@
 /* define if you have (or want) no threads */
 #undef NO_THREADS
 
+/* define to use the original debug style */
+#undef OLD_DEBUG
+
 /* Package */
 #undef OPENLDAP_PACKAGE
 

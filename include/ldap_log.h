@@ -23,8 +23,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifndef _LDAP_LOG_H
-#define _LDAP_LOG_H
+#ifndef LDAP_LOG_H
+#define LDAP_LOG_H
 
 #include <stdio.h>
 #include <ldap_cdefs.h>
@@ -39,19 +39,71 @@ LDAP_BEGIN_DECL
  * debugging levels begin with LDAP_LEVEL_ENTRY
  *
  */
-#define LDAP_LEVEL_EMERG       0
-#define LDAP_LEVEL_ALERT       1
-#define LDAP_LEVEL_CRIT        2
-#define LDAP_LEVEL_ERR         3
-#define LDAP_LEVEL_WARNING     4
-#define LDAP_LEVEL_NOTICE      5
-#define LDAP_LEVEL_INFO        6
-#define LDAP_LEVEL_ENTRY       7  /* log function entry points */
-#define LDAP_LEVEL_ARGS        8  /* log function call parameters */
-#define LDAP_LEVEL_RESULTS     9  /* Log function results */
-#define LDAP_LEVEL_DETAIL1    10  /* log level 1 function operational details */
-#define LDAP_LEVEL_DETAIL2    11  /* Log level 2 function operational details */
 
+/*
+ * The "OLD_DEBUG" means that all logging occurs at LOG_DEBUG
+ */
+
+#ifdef OLD_DEBUG
+/* original behavior: all logging occurs at the same severity level */
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
+#define LDAP_LEVEL_EMERG	ldap_syslog_level
+#define LDAP_LEVEL_ALERT	ldap_syslog_level
+#define LDAP_LEVEL_CRIT		ldap_syslog_level
+#define LDAP_LEVEL_ERR		ldap_syslog_level
+#define LDAP_LEVEL_WARNING	ldap_syslog_level
+#define LDAP_LEVEL_NOTICE	ldap_syslog_level
+#define LDAP_LEVEL_INFO		ldap_syslog_level
+#define LDAP_LEVEL_DEBUG	ldap_syslog_level
+#else /* !LDAP_DEBUG || !LDAP_SYSLOG */
+#define LDAP_LEVEL_EMERG	(7)
+#define LDAP_LEVEL_ALERT	(7)
+#define LDAP_LEVEL_CRIT		(7)
+#define LDAP_LEVEL_ERR		(7)
+#define LDAP_LEVEL_WARNING	(7)
+#define LDAP_LEVEL_NOTICE	(7)
+#define LDAP_LEVEL_INFO		(7)
+#define LDAP_LEVEL_DEBUG	(7)
+#endif /* !LDAP_DEBUG || !LDAP_SYSLOG */
+
+#else /* ! OLD_DEBUG */
+/* map syslog onto LDAP severity levels */
+#ifdef LOG_DEBUG
+#define LDAP_LEVEL_EMERG	LOG_EMERG
+#define LDAP_LEVEL_ALERT	LOG_ALERT
+#define LDAP_LEVEL_CRIT		LOG_CRIT
+#define LDAP_LEVEL_ERR		LOG_ERR
+#define LDAP_LEVEL_WARNING	LOG_WARNING
+#define LDAP_LEVEL_NOTICE	LOG_NOTICE
+#define LDAP_LEVEL_INFO		LOG_INFO
+#define LDAP_LEVEL_DEBUG	LOG_DEBUG
+#else /* ! LOG_DEBUG */
+#define LDAP_LEVEL_EMERG	(0)
+#define LDAP_LEVEL_ALERT	(1)
+#define LDAP_LEVEL_CRIT		(2)
+#define LDAP_LEVEL_ERR		(3)
+#define LDAP_LEVEL_WARNING	(4)
+#define LDAP_LEVEL_NOTICE	(5)
+#define LDAP_LEVEL_INFO		(6)
+#define LDAP_LEVEL_DEBUG	(7)
+#endif /* ! LOG_DEBUG */
+#endif /* ! OLD_DEBUG */
+#if 0
+/* in case we need to reuse the unused bits of severity */
+#define	LDAP_LEVEL_MASK(s)	((s) & 0x7)
+#else
+#define	LDAP_LEVEL_MASK(s)	(s)
+#endif
+
+/* (yet) unused */
+#define LDAP_LEVEL_ENTRY	(0x08)	/* log function entry points */
+#define LDAP_LEVEL_ARGS		(0x10)	/* log function call parameters */
+#define LDAP_LEVEL_RESULTS	(0x20)	/* Log function results */
+#define LDAP_LEVEL_DETAIL1	(0x40)	/* log level 1 function operational details */
+#define LDAP_LEVEL_DETAIL2	(0x80)	/* Log level 2 function operational details */
+/* end of (yet) unused */
+
+/* original subsystem selection mechanism */
 #define LDAP_DEBUG_TRACE	0x0001
 #define LDAP_DEBUG_PACKETS	0x0002
 #define LDAP_DEBUG_ARGS		0x0004
@@ -79,48 +131,103 @@ LDAP_BEGIN_DECL
      * This is a bogus extern declaration for the compiler. No need to ensure
      * a 'proper' dllimport.
      */
-#   ifndef ldap_debug
-     extern int	ldap_debug;
-#   endif /* !ldap_debug */
+#ifndef ldap_debug
+extern int	ldap_debug;
+#endif /* !ldap_debug */
 
-#   ifdef LDAP_SYSLOG
-    extern int	ldap_syslog;
-    extern int	ldap_syslog_level;
+#ifdef LDAP_SYSLOG
+extern int	ldap_syslog;
+extern int	ldap_syslog_level;
 
-#	ifdef HAVE_EBCDIC
-#	define syslog	eb_syslog
-	extern void eb_syslog(int pri, const char *fmt, ...);
-#	endif
+#ifdef HAVE_EBCDIC
+#define syslog	eb_syslog
+extern void eb_syslog(int pri, const char *fmt, ...);
+#endif /* HAVE_EBCDIC */
 
-#   endif /* LDAP_SYSLOG */
+#endif /* LDAP_SYSLOG */
 
 /* this doesn't below as part of ldap.h */
-#   ifdef LDAP_SYSLOG
-#   define Debug( level, fmt, arg1, arg2, arg3 )	\
+#ifdef LDAP_SYSLOG
+#define Log1( level, severity, fmt, arg1 )	\
+	do { \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt), (arg1) ); \
+		if ( ldap_syslog & (level) ) \
+			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (arg1) ); \
+	} while ( 0 )
+#define Log2( level, severity, fmt, arg1, arg2 ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2) ); \
+		if ( ldap_syslog & (level) ) \
+			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (arg1), (arg2) ); \
+	} while ( 0 )
+#define Log3( level, severity, fmt, arg1, arg2, arg3 ) \
 	do { \
 		if ( ldap_debug & (level) ) \
 			lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) ); \
 		if ( ldap_syslog & (level) ) \
-			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
+			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (arg1), (arg2), (arg3) ); \
 	} while ( 0 )
+#define Log4( level, severity, fmt, arg1, arg2, arg3, arg4 ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3), (arg4) ); \
+		if ( ldap_syslog & (level) ) \
+			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (arg1), (arg2), (arg3), (arg4) ); \
+	} while ( 0 )
+#define Log5( level, severity, fmt, arg1, arg2, arg3, arg4, arg5 ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3), (arg4), (arg5) ); \
+		if ( ldap_syslog & (level) ) \
+			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (arg1), (arg2), (arg3), (arg4), (arg5) ); \
+	} while ( 0 )
+#define Debug( level, fmt, arg1, arg2, arg3 )	\
+	Log3( (level), ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) )
+#define LogTest(level) ( ( ldap_debug | ldap_syslog ) & (level) )
 
-#   else
-#       define Debug( level, fmt, arg1, arg2, arg3 ) \
+#else /* ! LDAP_SYSLOG */
+#define Log1( level, severity, fmt, arg1 ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+	    		lutil_debug( ldap_debug, (level), (fmt), (arg1) ); \
+	} while ( 0 )
+#define Log2( level, severity, fmt, arg1, arg2 ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+	    		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2) ); \
+	} while ( 0 )
+#define Log3( level, severity, fmt, arg1, arg2, arg3 ) \
 	do { \
 		if ( ldap_debug & (level) ) \
 	    		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) ); \
 	} while ( 0 )
-#   endif
-
-#else /* LDAP_DEBUG */
-#   define Debug( level, fmt, arg1, arg2, arg3 )
-
-#endif /* LDAP_DEBUG */
-
-#ifndef LDAP_LOG
-#define LDAP_LOG(a, b, fmt, arg1, arg2, arg3)
-#define LDAP_LOGS_TEST(a, b) 0
-#endif
+#define Log4( level, severity, fmt, arg1, arg2, arg3, arg4 ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+	    		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3), (arg4) ); \
+	} while ( 0 )
+#define Log5( level, severity, fmt, arg1, arg2, arg3, arg4, arg5 ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+	    		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3), (arg4), (arg5) ); \
+	} while ( 0 )
+#define Debug( level, fmt, arg1, arg2, arg3 ) \
+		Log3( (level), (fmt), (arg1), (arg2), (arg3) )
+#define LogTest(level) ( ldap_debug & (level) )
+#endif /* ! LDAP_SYSLOG */
+#else /* ! LDAP_DEBUG */
+/* TODO: in case LDAP_DEBUG is undefined, make sure logs with appropriate
+ * severity gets thru anyway */
+#define Log1( level, severity, fmt, arg1 )
+#define Log2( level, severity, fmt, arg1, arg2 )
+#define Log3( level, severity, fmt, arg1, arg2, arg3 )
+#define Log4( level, severity, fmt, arg1, arg2, arg3, arg4 )
+#define Log5( level, severity, fmt, arg1, arg2, arg3, arg4, arg5 )
+#define Debug( level, fmt, arg1, arg2, arg3 )
+#define LogTest(level) ( 0 )
+#endif /* ! LDAP_DEBUG */
 
 LDAP_LUTIL_F(int) lutil_debug_file LDAP_P(( FILE *file ));
 
@@ -130,4 +237,4 @@ LDAP_LUTIL_F(void) lutil_debug LDAP_P((
 
 LDAP_END_DECL
 
-#endif /* _LDAP_LOG_H */
+#endif /* LDAP_LOG_H */

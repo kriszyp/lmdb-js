@@ -182,7 +182,9 @@ parse_syslog_user( const char *arg, int *syslogUser )
 	int i = verb_to_mask( optarg, syslogUsers );
 
 	if ( BER_BVISNULL( &syslogUsers[ i ].word ) ) {
-		Debug( LDAP_DEBUG_ANY, "unrecognized syslog user \"%s\".\n", optarg, 0, 0 );
+		Debug( LDAP_DEBUG_ANY,
+			"unrecognized syslog user \"%s\".\n",
+			optarg, 0, 0 );
 		return 1;
 	}
 
@@ -191,6 +193,33 @@ parse_syslog_user( const char *arg, int *syslogUser )
 	return 0;
 }
 #endif /* LOG_LOCAL4 */
+
+static int
+parse_syslog_level( const char *arg, int *levelp )
+{
+	static slap_verbmasks	str2syslog_level[] = {
+		{ BER_BVC( "EMERG" ),	LOG_EMERG },
+		{ BER_BVC( "ALERT" ),	LOG_ALERT },
+		{ BER_BVC( "CRIT" ),	LOG_CRIT },
+		{ BER_BVC( "ERR" ),	LOG_ERR },
+		{ BER_BVC( "WARNING" ),	LOG_WARNING },
+		{ BER_BVC( "NOTICE" ),	LOG_NOTICE },
+		{ BER_BVC( "INFO" ),	LOG_INFO },
+		{ BER_BVC( "DEBUG" ),	LOG_DEBUG },
+		{ BER_BVNULL, 0 }
+	};
+	int i = verb_to_mask( arg, str2syslog_level );
+	if ( BER_BVISNULL( &str2syslog_level[ i ].word ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"unknown syslog level \"%s\".\n",
+			arg, 0, 0 );
+		return 1;
+	}
+	
+	*levelp = str2syslog_level[ i ].mask;
+
+	return 0;
+}
 
 int
 parse_debug_level( const char *arg, int *levelp )
@@ -400,11 +429,14 @@ int main( int argc, char **argv )
 #ifdef HAVE_CHROOT
 				"r:"
 #endif
+#ifdef LDAP_SYSLOG
+				"S:"
+#endif
 #ifdef LOG_LOCAL4
-			     "l:"
+				"l:"
 #endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
-			     "u:g:"
+				"u:g:"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -513,6 +545,14 @@ int main( int argc, char **argv )
 				goto destroy;
 			}
 			break;
+
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
+		case 'S':
+			if ( parse_syslog_level( optarg, &ldap_syslog_level ) ) {
+				goto destroy;
+			}
+			break;
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 #ifdef LOG_LOCAL4
 		case 'l':	/* set syslog local user */

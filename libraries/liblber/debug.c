@@ -34,23 +34,6 @@
 
 static FILE *log_file = NULL;
 
-#ifdef LDAP_SYSLOG
-static int use_syslog = 0;
-
-static int debug2syslog(int l) {
-	switch (l) {
-	case LDAP_LEVEL_EMERG: return LOG_EMERG;
-	case LDAP_LEVEL_ALERT: return LOG_ALERT;
-	case LDAP_LEVEL_CRIT: return LOG_CRIT;
-	case LDAP_LEVEL_ERR: return LOG_ERR;
-	case LDAP_LEVEL_WARNING: return LOG_WARNING;
-	case LDAP_LEVEL_NOTICE: return LOG_NOTICE;
-	case LDAP_LEVEL_INFO: return LOG_INFO;
-	}
-	return LOG_DEBUG;
-}
-#endif
-
 int lutil_debug_file( FILE *file )
 {
 	log_file = file;

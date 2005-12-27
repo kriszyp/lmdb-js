@@ -222,7 +222,8 @@ AC_SUBST(ldap_subdir)dnl
 
 dnl ----------------------------------------------------------------
 dnl General "enable" options
-OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes)dnl
+dnl set default to traditional to enable the original debug style
+OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes, [no yes traditional])dnl
 OL_ARG_ENABLE(dynamic,[  --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
@@ -2640,6 +2641,10 @@ if test "$ol_enable_slapi" != no ; then
 fi
 
 if test "$ol_enable_debug" != no ; then
+	if test "$ol_enable_debug" = traditional; then
+		AC_DEFINE(OLD_DEBUG,1,
+			[define to use the original debug style])
+	fi
 	AC_DEFINE(LDAP_DEBUG,1,
 		[define this to add debugging code])
 fi
