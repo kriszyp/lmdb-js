@@ -148,6 +148,13 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 
 /* this doesn't below as part of ldap.h */
 #ifdef LDAP_SYSLOG
+#define Log0( level, severity, fmt )	\
+	do { \
+		if ( ldap_debug & (level) ) \
+			lutil_debug( ldap_debug, (level), (fmt) ); \
+		if ( ldap_syslog & (level) ) \
+			syslog( LDAP_LEVEL_MASK((severity)), (fmt) ); \
+	} while ( 0 )
 #define Log1( level, severity, fmt, arg1 )	\
 	do { \
 		if ( ldap_debug & (level) ) \
@@ -188,6 +195,11 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 #define LogTest(level) ( ( ldap_debug | ldap_syslog ) & (level) )
 
 #else /* ! LDAP_SYSLOG */
+#define Log0( level, severity, fmt ) \
+	do { \
+		if ( ldap_debug & (level) ) \
+	    		lutil_debug( ldap_debug, (level), (fmt) ); \
+	} while ( 0 )
 #define Log1( level, severity, fmt, arg1 ) \
 	do { \
 		if ( ldap_debug & (level) ) \
@@ -220,6 +232,7 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 #else /* ! LDAP_DEBUG */
 /* TODO: in case LDAP_DEBUG is undefined, make sure logs with appropriate
  * severity gets thru anyway */
+#define Log0( level, severity, fmt )
 #define Log1( level, severity, fmt, arg1 )
 #define Log2( level, severity, fmt, arg1, arg2 )
 #define Log3( level, severity, fmt, arg1, arg2, arg3 )
