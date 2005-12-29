@@ -83,6 +83,7 @@ OpenLDAP 2.3.12 Release
 	Fixed ldapmodrdn empty line handling (ITS#4101)
 	Fixed client tools additional info printing (ITS#4147)
 	Updated slapd ldaps:// not configured fix (ITS#4082,4083)
+	Fixed slapd connection crashes (ITS#4108)
 	Fixed slapd illegal S option bug (ITS#4119)
 	Fixed slapd cn=monitor log level mod issue (ITS#4091)
 	Fixed slapd cn=config bad access issue (ITS#4111)
