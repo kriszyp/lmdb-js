@@ -193,7 +193,7 @@ LDAP_BEGIN_DECL
 #define ATTR_CHAR(c)	( DESC_CHAR((c)) || OID_SEPARATOR(c) )
 
 #define AD_LEADCHAR(c)	( ATTR_LEADCHAR(c) )
-#define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' || (c) == '=' || (c) == '*' )
+#define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
 #define SLAP_NUMERIC(c) ( ASCII_DIGIT(c) || ASCII_SPACE(c) )
 
