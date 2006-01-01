@@ -1386,7 +1386,10 @@ syncrepl_message_to_op(
 		op->orr_newrdn = prdn;
 		op->orr_nnewrdn = nrdn;
 		op->orr_deleteoldrdn = deleteOldRdn;
+		if ( slap_modrdn2mods( op, &rs ))
+			goto done;
 		rc = op->o_bd->be_modrdn( op, &rs );
+		slap_mods_free( op->orr_modlist, 1 );
 		break;
 	case LDAP_REQ_DELETE:
 		rc = op->o_bd->be_delete( op, &rs );

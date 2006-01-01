@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2005 The OpenLDAP Foundation.
+ * Copyright 2002-2006 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -615,14 +615,22 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_MODIFY_MODS: {
 		LDAPMod **mods = NULL;
+		Modifications *ml;
 
 		pblock_get_default( pb, param, (void **)&mods );
 		if ( mods == NULL && pb->pb_intop == 0 ) {
-			if ( pb->pb_op->o_tag != LDAP_REQ_MODIFY ) {
+			switch ( pb->pb_op->o_tag ) {
+			case LDAP_REQ_MODIFY:
+				ml = pb->pb_op->orm_modlist;
+				break;
+			case LDAP_REQ_MODRDN:
+				ml = pb->pb_op->orr_modlist;
+				break;
+			defaulat:
 				rc = PBLOCK_ERROR;
 				break;
 			}
-			mods = slapi_int_modifications2ldapmods( pb->pb_op->orm_modlist );
+			mods = slapi_int_modifications2ldapmods( ml );
 			pblock_set_default( pb, param, (void *)mods );
 		}
 		*((LDAPMod ***)value) = mods;
@@ -951,6 +959,8 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			mlp = &pb->pb_op->orm_modlist;
 		} else if ( pb->pb_op->o_tag == LDAP_REQ_ADD ) {
 			mlp = &pb->pb_op->ora_modlist;
+		} else if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN ) {
+			mlp = &pb->pb_op->orr_modlist;
 		} else {
 			break;
 		}

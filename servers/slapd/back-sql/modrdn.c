@@ -51,7 +51,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 				n = { 0 },
 				*e = NULL;
 	int			manageDSAit = get_manageDSAit( op );
-	Modifications		*mod = NULL;
 	struct berval		*newSuperior = op->oq_modrdn.rs_newSup;
 	char			*next;
  
@@ -430,14 +429,10 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		}
 	}
 
-	rs->sr_err = slap_modrdn2mods( op, rs, &r, old_rdn, new_rdn, &mod );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		e = &r;
-		goto done;
-	}
+	assert( op->orr_modlist != NULL );
 
 	oc = backsql_id2oc( bi, e_id.eid_oc_id );
-	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, mod );
+	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, op->orr_modlist );
 	slap_graduate_commit_csn( op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		e = &r;
@@ -554,10 +549,6 @@ done:;
 
 	if ( old_rdn != NULL ) {
 		ldap_rdnfree( old_rdn );
-	}
-
-	if ( mod != NULL ) {
-		slap_modrdn2mods_free( mod );
 	}
 
 	if ( !BER_BVISNULL( &e_id.eid_ndn ) ) {

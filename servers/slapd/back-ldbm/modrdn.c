@@ -58,7 +58,6 @@ ldbm_back_modrdn(
 	struct berval	*np_ndn = NULL; /* newSuperior ndn */
 	struct berval	*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
 	/* Used to interface with ldbm_modify_internal() */
-	Modifications	*mod = NULL;		/* Used to delete old/add new rdn */
 	int		manageDSAit = get_manageDSAit( op );
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -66,6 +65,9 @@ ldbm_back_modrdn(
 		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "NULL",
 		( op->oq_modrdn.rs_newSup && op->oq_modrdn.rs_newSup->bv_len )
 			? op->oq_modrdn.rs_newSup->bv_val : "NULL", 0 );
+
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -371,10 +373,7 @@ ldbm_back_modrdn(
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
 	       0, 0, 0 );
 	
-	if ( slap_modrdn2mods( op, rs, e, old_rdn, new_rdn, &mod ) != LDAP_SUCCESS ) {
-		send_ldap_result( op, rs );
-		goto return_results;
-	}
+	assert( op->orr_modlist != NULL );
 
 	/* check for abandon */
 	if ( op->o_abandon ) {
@@ -396,7 +395,7 @@ ldbm_back_modrdn(
 	 */
 
 	/* modify memory copy of entry */
-	rs->sr_err = ldbm_modify_internal( op, &mod[0], e,
+	rs->sr_err = ldbm_modify_internal( op, op->orr_modlist, e,
 		&rs->sr_text, textbuf, textlen );
 	switch ( rs->sr_err ) {
 	case LDAP_SUCCESS:
@@ -470,9 +469,6 @@ return_results:
 	}
 	if ( old_rdn != NULL ) {
 		ldap_rdnfree( old_rdn );
-	}
-	if ( mod != NULL ) {
-		slap_modrdn2mods_free( mod );
 	}
 
 	/* LDAP v3 Support */

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2005 The OpenLDAP Foundation.
+ * Copyright 2000-2006 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,9 +46,6 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	struct berval	*np_ndn = NULL;			/* newSuperior ndn */
 	struct berval	*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
 
-	/* Used to interface with bdb_modify_internal() */
-	Modifications	*mod = NULL;		/* Used to delete old rdn */
-
 	int		manageDSAit = get_manageDSAit( op );
 
 	u_int32_t	locker = 0;
@@ -71,6 +68,9 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "==>" LDAP_XSTRING(bdb_modrdn) "(%s,%s,%s)\n",
 		op->o_req_dn.bv_val,op->oq_modrdn.rs_newrdn.bv_val,
 		op->oq_modrdn.rs_newSup ? op->oq_modrdn.rs_newSup->bv_val : "NULL" );
+
+	if ( !SLAP_SHADOW( op->o_bd ))
+		slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -563,13 +563,7 @@ retry:	/* transaction retry */
 		}
 	}
 
-	/* prepare modlist of modifications from old/new rdn */
-	if (!mod) {
-		rs->sr_err = slap_modrdn2mods( op, rs, e, old_rdn, new_rdn, &mod );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			goto return_results;
-		}
-	}
+	assert( op->orr_modlist != NULL );
 
 	if( op->o_preread ) {
 		if( preread_ctrl == NULL ) {
@@ -642,7 +636,7 @@ retry:	/* transaction retry */
 	dummy.e_attrs = e->e_attrs;
 
 	/* modify entry */
-	rs->sr_err = bdb_modify_internal( op, lt2, &mod[0], &dummy,
+	rs->sr_err = bdb_modify_internal( op, lt2, op->orr_modlist, &dummy,
 		&rs->sr_text, textbuf, textlen );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug(LDAP_DEBUG_TRACE,
@@ -799,10 +793,6 @@ done:
 
 	if ( old_rdn != NULL ) {
 		ldap_rdnfree_x( old_rdn, op->o_tmpmemctx );
-	}
-
-	if( mod != NULL ) {
-		slap_modrdn2mods_free( mod );
 	}
 
 	/* LDAP v3 Support */

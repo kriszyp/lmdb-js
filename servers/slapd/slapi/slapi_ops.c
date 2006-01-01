@@ -342,6 +342,7 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 			op->o_tmpfree( op->orr_nnewSup->bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
 		}
+		slap_mods_free( op->orr_modlist, 1 );
 		break;
 	case LDAP_REQ_ADD:
 		slap_mods_free( op->ora_modlist, 0 );
@@ -863,6 +864,7 @@ slapi_rename_internal_set_pb( Slapi_PBlock *pb,
 	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID,    (void *)uniqueid );
 	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY,    (void *)plugin_identity );
 	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,      (void *)&operation_flags );
+	slap_modrdn2mods( pb->pb_op, pb->pb_rs );
 	slapi_int_set_operation_dn( pb );
 }
 

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2005 The OpenLDAP Foundation.
+ * Copyright 1998-2006 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -174,6 +174,13 @@ do_modrdn(
 	/* FIXME: temporary? */
 	op->orr_deleteoldrdn = deloldrdn;
 
+	/* prepare modlist of modifications from old/new RDN */
+	rs->sr_err = slap_modrdn2mods( op, rs );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto cleanup;
+	}
+
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_modrdn( op, rs );
 
@@ -183,6 +190,9 @@ cleanup:
 
 	op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );	
 	op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );	
+
+	if ( op->orr_modlist != NULL )
+		slap_mods_free( op->orr_modlist, 1 );
 
 	if ( !BER_BVISNULL( &pnewSuperior ) ) 
 		op->o_tmpfree( pnewSuperior.bv_val, op->o_tmpmemctx );
@@ -198,7 +208,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	Backend		*newSuperior_be = NULL;
 	int		manageDSAit;
 	struct berval	pdn = BER_BVNULL;
-	BackendDB *op_be;
+	BackendDB	*op_be;
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
@@ -377,20 +387,36 @@ cleanup:;
 int
 slap_modrdn2mods(
 	Operation	*op,
-	SlapReply	*rs,
-	Entry		*e,
-	LDAPRDN		old_rdn,
-	LDAPRDN		new_rdn,
-	Modifications	**pmod )
+	SlapReply	*rs )
 {
-	Modifications	*mod = NULL;
 	int		a_cnt, d_cnt;
-	int repl_user;
+	LDAPRDN		old_rdn = NULL;
+	LDAPRDN		new_rdn = NULL;
 
-	assert( new_rdn != NULL );
-	assert( !op->orr_deleteoldrdn || old_rdn != NULL );
+	assert( !BER_BVISEMPTY( &op->oq_modrdn.rs_newrdn ) );
+	assert( !op->orr_deleteoldrdn || !BER_BVISEMPTY( &op->o_req_dn ) );
 
-	repl_user = be_isupdate( op );
+	if ( ldap_bv2rdn_x( &op->oq_modrdn.rs_newrdn, &new_rdn,
+		(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(slap_modrdn2mods) ": can't figure out "
+			"type(s)/value(s) of newrdn\n", 0, 0, 0 );
+		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
+		rs->sr_text = "unknown type(s) used in RDN";
+		goto done;
+	}
+
+	if ( op->oq_modrdn.rs_deleteoldrdn ) {
+		if ( ldap_bv2rdn_x( &op->o_req_dn, &old_rdn,
+			(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) ) {
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(slap_modrdn2mods) ": can't figure out "
+				"type(s)/value(s) of oldrdn\n", 0, 0, 0 );
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "cannot parse RDN from old DN";
+			goto done;
+		}
+	}
 
 	/* Add new attribute values to the entry */
 	for ( a_cnt = 0; new_rdn[a_cnt]; a_cnt++ ) {
@@ -401,33 +427,20 @@ slap_modrdn2mods(
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"slap_modrdn2modlist: %s: %s (new)\n",
+				"slap_modrdn2mods: %s: %s (new)\n",
 				rs->sr_text, 
 				new_rdn[ a_cnt ]->la_attr.bv_val, 0 );
 			goto done;		
 		}
 
-		/* ACL check of newly added attrs */
-		if ( op->o_bd && !access_allowed( op, e, desc,
-			&new_rdn[a_cnt]->la_value, ACL_WADD, NULL ) ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"slap_modrdn2modlist: access to attr \"%s\" "
-				"(new) not allowed\n", 
-				new_rdn[ a_cnt ]->la_attr.bv_val, 0, 0 );
-			rs->sr_text = "access to naming attributes (new) not allowed";
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-			goto done;
-		}
-
 		/* Apply modification */
-		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
-			+ 4 * sizeof( struct berval ) );
+		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
 		mod_tmp->sml_desc = desc;
-		mod_tmp->sml_values = ( BerVarray )( mod_tmp + 1 );
-		mod_tmp->sml_values[0] = new_rdn[a_cnt]->la_value;
+		mod_tmp->sml_values = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
+		ber_dupbv( &mod_tmp->sml_values[0], &new_rdn[a_cnt]->la_value );
 		mod_tmp->sml_values[1].bv_val = NULL;
 		if( desc->ad_type->sat_equality->smr_normalize) {
-			mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
+			mod_tmp->sml_nvalues = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
 			(void) (*desc->ad_type->sat_equality->smr_normalize)(
 				SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 				desc->ad_type->sat_syntax,
@@ -440,8 +453,8 @@ slap_modrdn2mods(
 		}
 		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
 		mod_tmp->sml_flags = SLAP_MOD_INTERNAL;
-		mod_tmp->sml_next = mod;
-		mod = mod_tmp;
+		mod_tmp->sml_next = op->orr_modlist;
+		op->orr_modlist = mod_tmp;
 	}
 
 	/* Remove old rdn value if required */
@@ -453,96 +466,64 @@ slap_modrdn2mods(
 			rs->sr_err = slap_bv2ad( &old_rdn[d_cnt]->la_attr, &desc, &rs->sr_text );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
-					"slap_modrdn2modlist: %s: %s (old)\n",
+					"slap_modrdn2mods: %s: %s (old)\n",
 					rs->sr_text, 
 					old_rdn[d_cnt]->la_attr.bv_val, 
 					0 );
 				goto done;		
 			}
 
-			/* ACL check of old rdn attrs removal */
-			if ( op->o_bd && !access_allowed( op, e, desc,
-				&old_rdn[d_cnt]->la_value, ACL_WDEL, 
-				NULL ) ) {
-				Debug( LDAP_DEBUG_TRACE,
-					"slap_modrdn2modlist: access "
-					"to attr \"%s\" (old) not allowed\n", 
-					old_rdn[ d_cnt ]->la_attr.bv_val,
-					0, 0 );
-				rs->sr_text = "access to naming attributes (old) not allowed";
-				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-				goto done;
-			}
-
 			/* Apply modification */
-			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
-				+ 4 * sizeof ( struct berval ) );
+			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
 			mod_tmp->sml_desc = desc;
-			mod_tmp->sml_values = ( BerVarray )(mod_tmp+1);
-			mod_tmp->sml_values[0] = old_rdn[d_cnt]->la_value;
+			mod_tmp->sml_values = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod_tmp->sml_values[0], &old_rdn[d_cnt]->la_value );
 			mod_tmp->sml_values[1].bv_val = NULL;
 			if( desc->ad_type->sat_equality->smr_normalize) {
-				mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
+				mod_tmp->sml_nvalues = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
 				(void) (*desc->ad_type->sat_equality->smr_normalize)(
 					SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 					desc->ad_type->sat_syntax,
 					desc->ad_type->sat_equality,
 					&mod_tmp->sml_values[0],
-					&mod_tmp->sml_nvalues[0], op->o_tmpmemctx );
+					&mod_tmp->sml_nvalues[0], NULL );
 				mod_tmp->sml_nvalues[1].bv_val = NULL;
 			} else {
 				mod_tmp->sml_nvalues = NULL;
 			}
 			mod_tmp->sml_op = LDAP_MOD_DELETE;
 			mod_tmp->sml_flags = SLAP_MOD_INTERNAL;
-			mod_tmp->sml_next = mod;
-			mod = mod_tmp;
+			mod_tmp->sml_next = op->orr_modlist;
+			op->orr_modlist = mod_tmp;
 		}
 	}
 	
 done:
 
+#if 0
+	/* should be done by backend */
 	if ( rs->sr_err == LDAP_SUCCESS && !repl_user ) {
-		slap_mods_opattrs( op, &mod, 1 );
+		slap_mods_opattrs( op, &op->orr_modlist, 1 );
 	}
+#endif
 
 	/* LDAP v2 supporting correct attribute handling. */
-	if ( rs->sr_err != LDAP_SUCCESS && mod != NULL ) {
+	if ( rs->sr_err != LDAP_SUCCESS && op->orr_modlist != NULL ) {
 		Modifications *tmp;
-		for ( ; mod; mod = tmp ) {
-			tmp = mod->sml_next;
-			ch_free( mod );
+
+		for ( ; op->orr_modlist != NULL; op->orr_modlist = tmp ) {
+			tmp = op->orr_modlist->sml_next;
+			ch_free( op->orr_modlist );
 		}
 	}
 
-	*pmod = mod;
+	if ( new_rdn != NULL ) {
+		ldap_rdnfree_x( new_rdn, op->o_tmpmemctx );
+	}
+	if ( old_rdn != NULL ) {
+		ldap_rdnfree_x( old_rdn, op->o_tmpmemctx );
+	}
 
 	return rs->sr_err;
-}
-
-void
-slap_modrdn2mods_free( Modifications *mod )
-{
-	Modifications *tmp;
-
-	for ( ; mod; mod = tmp ) {
-		tmp = mod->sml_next;
-		/* slap_modrdn2mods does things one way,
-		 * slap_mods_opattrs does it differently
-		 */
-		if ( mod->sml_op != SLAP_MOD_SOFTADD &&
-			mod->sml_op != LDAP_MOD_DELETE )
-		{
-			break;
-		}
-
-		if ( mod->sml_nvalues ) {
-			free( mod->sml_nvalues[0].bv_val );
-		}
-
-		free( mod );
-	}
-
-	slap_mods_free( mod, 1 );
 }
 

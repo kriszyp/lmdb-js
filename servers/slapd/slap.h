@@ -193,7 +193,7 @@ LDAP_BEGIN_DECL
 #define ATTR_CHAR(c)	( DESC_CHAR((c)) || OID_SEPARATOR(c) )
 
 #define AD_LEADCHAR(c)	( ATTR_LEADCHAR(c) )
-#define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
+#define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' || (c) == '=' || (c) == '*' )
 
 #define SLAP_NUMERIC(c) ( ASCII_DIGIT(c) || ASCII_SPACE(c) )
 
@@ -1909,6 +1909,7 @@ typedef struct req_modrdn_s {
 	struct berval *rs_newSup;
 	struct berval *rs_nnewSup;
 	int rs_deleteoldrdn;
+	Modifications *rs_modlist;
 } req_modrdn_s;
 
 typedef struct req_add_s {
@@ -2421,6 +2422,7 @@ typedef struct slap_op {
 #define orr_newSup oq_modrdn.rs_newSup
 #define orr_nnewSup oq_modrdn.rs_nnewSup
 #define orr_deleteoldrdn oq_modrdn.rs_deleteoldrdn
+#define orr_modlist oq_modrdn.rs_modlist
 
 #define orc_ava oq_compare.rs_ava
 #define ora_e oq_add.rs_e
