@@ -1,6 +1,9 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.15 Engineering
+	Fixed slapd strerror logging bug (ITS#4292)
+	Fixed slapd-ldap password modify exop password return (ITS#4294)
+	Fixed slapd ACL add/delete fraction issue (ITS#4295)
 
 OpenLDAP 2.3.14 Release
 	Fixed slapd assertion control restrictions
