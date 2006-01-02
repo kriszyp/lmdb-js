@@ -54,8 +54,9 @@ int passwd_extop(
 	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
 	int i, nhash;
 	char **hashes;
-	int	rc;
+	int rc;
 	BackendDB *op_be;
+	int freenewpw = 0;
 
 	cb2.sc_next = &cb;
 
@@ -183,6 +184,7 @@ int passwd_extop(
 		slap_passwd_generate( &qpw->rs_new );
 		if ( qpw->rs_new.bv_len ) {
 			rsp = slap_passwd_return( &qpw->rs_new );
+			freenewpw = 1;
 		}
 	}
 	if ( qpw->rs_new.bv_len == 0 ) {
@@ -197,8 +199,13 @@ int passwd_extop(
 	if ( op->o_bd->be_extended ) {
 		rs->sr_err = op->o_bd->be_extended( op, rs );
 		if ( rs->sr_err != LDAP_UNWILLING_TO_PERFORM &&
-			rs->sr_err != SLAP_CB_CONTINUE ) {
+			rs->sr_err != SLAP_CB_CONTINUE )
+		{
 			rc = rs->sr_err;
+			if ( rsp ) {
+				rs->sr_rspdata = rsp;
+				rsp = NULL;
+			}
 			goto error_return;
 		}
 	}
@@ -279,19 +286,22 @@ old_good:
 			rs->sr_rspdata = rsp;
 		} else if ( rsp ) {
 			ber_bvfree( rsp );
+			rsp = NULL;
 		}
 		op->o_tag = LDAP_REQ_EXTENDED;
 		op->o_callback = sc;
-	}
-	slap_mods_free( qpw->rs_mods, 1 );
-	if ( rsp ) {
-		free( qpw->rs_new.bv_val );
 	}
 
 	rc = rs->sr_err;
 	op->oq_extended = qext;
 
 error_return:;
+	if ( qpw->rs_mods ) {
+		slap_mods_free( qpw->rs_mods, 1 );
+	}
+	if ( freenewpw ) {
+		free( qpw->rs_new.bv_val );
+	}
 	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
 		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &op->o_req_dn );
