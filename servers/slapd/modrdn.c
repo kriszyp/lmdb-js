@@ -453,7 +453,7 @@ slap_modrdn2mods(
 			mod_tmp->sml_nvalues = NULL;
 		}
 		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
-		mod_tmp->sml_flags = SLAP_MOD_INTERNAL;
+		mod_tmp->sml_flags = 0;
 		mod_tmp->sml_next = op->orr_modlist;
 		op->orr_modlist = mod_tmp;
 	}
@@ -494,7 +494,7 @@ slap_modrdn2mods(
 				mod_tmp->sml_nvalues = NULL;
 			}
 			mod_tmp->sml_op = LDAP_MOD_DELETE;
-			mod_tmp->sml_flags = SLAP_MOD_INTERNAL;
+			mod_tmp->sml_flags = 0;
 			mod_tmp->sml_next = op->orr_modlist;
 			op->orr_modlist = mod_tmp;
 		}
