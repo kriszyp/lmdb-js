@@ -47,8 +47,6 @@ ldbm_back_modrdn(
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	/* LDAP v2 supporting correct attribute handling. */
-	LDAPRDN		new_rdn = NULL;
-	LDAPRDN		old_rdn = NULL;
 	int 		rc_id = 0;
 	ID              id = NOID;
 	char		textbuf[SLAP_TEXT_BUFLEN];
@@ -335,41 +333,6 @@ ldbm_back_modrdn(
 	    "ldbm_back_modrdn: new ndn=%s does not exist\n",
 	    new_ndn.bv_val, 0, 0 );
 
-	/* Get attribute type and attribute value of our new rdn, we will
-	 * need to add that to our new entry
-	 */
-	if ( ldap_bv2rdn( &op->oq_modrdn.rs_newrdn, &new_rdn, (char **)&rs->sr_text,
-		LDAP_DN_FORMAT_LDAP ) )
-	{
-		Debug( LDAP_DEBUG_TRACE,
-			"ldbm_back_modrdn: can't figure out "
-			"type(s)/values(s) of newrdn\n", 
-			0, 0, 0 );
-		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX,
-				    "unknown type(s) used in RDN" );
-		goto return_results;		
-	}
-
-	Debug( LDAP_DEBUG_TRACE,
-		"ldbm_back_modrdn: new_rdn_type=\"%s\", "
-		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ]->la_attr.bv_val,
-		new_rdn[ 0 ]->la_value.bv_val, 0 );
-
-	if ( op->oq_modrdn.rs_deleteoldrdn ) {
-		if ( ldap_bv2rdn( &op->o_req_dn, &old_rdn, (char **)&rs->sr_text,
-			LDAP_DN_FORMAT_LDAP ) )
-		{
-			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_back_modrdn: can't figure out "
-				"the old_rdn type(s)/value(s)\n", 
-				0, 0, 0 );
-			send_ldap_error( op, rs, LDAP_OTHER,
-				    "cannot parse RDN from old DN" );
-			goto return_results;		
-		}
-	}
-
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
 	       0, 0, 0 );
 	
@@ -462,14 +425,6 @@ return_results:
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
 	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
 	if( old_ndn.bv_val != NULL ) free( old_ndn.bv_val );
-
-	/* LDAP v2 supporting correct attribute handling. */
-	if ( new_rdn != NULL ) {
-		ldap_rdnfree( new_rdn );
-	}
-	if ( old_rdn != NULL ) {
-		ldap_rdnfree( old_rdn );
-	}
 
 	/* LDAP v3 Support */
 	if( np != NULL ) {
