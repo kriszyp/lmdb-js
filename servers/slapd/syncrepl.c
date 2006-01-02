@@ -1386,6 +1386,7 @@ syncrepl_message_to_op(
 		op->orr_newrdn = prdn;
 		op->orr_nnewrdn = nrdn;
 		op->orr_deleteoldrdn = deleteOldRdn;
+		op->orr_modlist = NULL;
 		if ( slap_modrdn2mods( op, &rs ))
 			goto done;
 		rc = op->o_bd->be_modrdn( op, &rs );
@@ -1842,6 +1843,7 @@ retry_add:;
 				op->orr_nnewSup = &nnewp;
 			}
 			op->orr_deleteoldrdn = 0;
+			op->orr_modlist = NULL;
 			rc = be->be_modrdn( op, &rs_modify );
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s (%d)\n", 
