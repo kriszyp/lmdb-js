@@ -106,14 +106,14 @@ void * memrchr(const void *b, int c, size_t len);
 #if defined( HAVE_NONPOSIX_STRERROR_R )
 #	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)))
 #elif defined( HAVE_STRERROR_R )
-#	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)) ? (b) : "")
+#	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)) == 0 ? (b) : "Unknown error")
 #elif defined( HAVE_SYS_ERRLIST )
 #	define AC_STRERROR_R(e,b,l)		((e) > -1 && (e) < sys_nerr \
-										? sys_errlist[(e)] : "" )
+							? sys_errlist[(e)] : "Unknown error" )
 #elif defined( HAVE_STRERROR )
-#	define AC_STRERROR_R(e,b,l)		(strerror(e))
+#	define AC_STRERROR_R(e,b,l)		(strerror(e))	/* NOTE: may be NULL */
 #else
-#	define AC_STRERROR_R(e,b,l)		("")
+#	define AC_STRERROR_R(e,b,l)		("Unknown error")
 #endif
 
 #endif /* _AC_STRING_H */
