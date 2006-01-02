@@ -114,9 +114,22 @@ dn: $BABSDN
 changetype: modify
 replace: drink
 drink: wine
-
 EOMODS5
-
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS6
@@ -124,8 +137,17 @@ dn: $BABSDN
 changetype: modify
 add: homephone
 homephone: +1 313 555 5444
-
 EOMODS6
+RC=$?
+case $RC in
+0)
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 #
 # Try to add a "member" attribute to the "ITD Staff" group.  It should
@@ -139,8 +161,22 @@ dn: cn=ITD Staff, ou=Groups, dc=example, dc=com
 changetype: modify
 add: uniquemember
 uniquemember: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
-
 EOMODS1
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS2
@@ -151,6 +187,16 @@ changetype: modify
 add: uniquemember
 uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com
 EOMODS2
+RC=$?
+case $RC in
+0)
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 #
 # Try to modify the "ITD Staff" group.  Two attempts are made:
@@ -163,8 +209,22 @@ $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 dn: cn=ITD Staff, ou=Groups, dc=example, dc=com
 changetype: modify
 delete: description
-
 EOMODS3
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS4
@@ -180,6 +240,16 @@ add: ou
 ou: Groups
 # comment
 EOMODS4
+RC=$?
+case $RC in
+0)
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 #
 # Try to modify the "ITD Staff" group.  Two attempts are made:
@@ -195,6 +265,16 @@ add: description
 description: added by jaj (should succeed)
 -
 EOMODS5
+RC=$?
+case $RC in
+0)
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
 	$TESTOUT 2>&1 << EOMODS6
@@ -204,6 +284,21 @@ add: description
 description: added by bjensen (should fail)
 -
 EOMODS6
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
 	$TESTOUT 2>&1 << EOMODS7
@@ -212,6 +307,12 @@ changetype: add
 objectClass: organizationalUnit
 ou: Add & Delete
 EOMODS7
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 $LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
 	$TESTOUT 2>&1 << EOMODS8
@@ -221,6 +322,21 @@ objectClass: inetOrgPerson
 cn: Added by Babs (must fail)
 sn: None
 EOMODS8
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS9
@@ -250,12 +366,37 @@ description: this attribute value will be deleted by Babs (must succeed)
 description: Bjorn will try to delete this attribute value (should fail)
 -
 EOMODS9
+RC=$?
+case $RC in
+0)
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS10
 dn: cn=Added by Bjorn (will be deleted),ou=Add & Delete,dc=example,dc=com
 changetype: delete
 EOMODS10
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS11
@@ -264,6 +405,21 @@ changetype: modrdn
 newrdn: cn=Added by Bjorn (renamed by Bjorn)
 deleteoldrdn: 1
 EOMODS11
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
 	$TESTOUT 2>&1 << EOMODS12
@@ -272,6 +428,21 @@ changetype: modrdn
 newrdn: cn=Added by Bjorn (renamed by Babs)
 deleteoldrdn: 1
 EOMODS12
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS13
@@ -280,6 +451,16 @@ changetype: modrdn
 newrdn: cn=Added by Bjorn (renamed by Jaj)
 deleteoldrdn: 1
 EOMODS13
+RC=$?
+case $RC in
+0)
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS14
@@ -289,6 +470,21 @@ delete: description
 description: Bjorn will try to delete this attribute value (should fail)
 -
 EOMODS14
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 $LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
 	$TESTOUT 2>&1 << EOMODS15
@@ -301,6 +497,16 @@ delete: description
 description: this attribute value will be deleted by Babs (must succeed)
 -
 EOMODS15
+RC=$?
+case $RC in
+0)
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
 
 echo "Using ldapsearch to retrieve all the entries..."
 echo "# Using ldapsearch to retrieve all the entries..." >> $SEARCHOUT
