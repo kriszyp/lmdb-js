@@ -44,6 +44,70 @@ static struct berval	*supportedFeatures;
 
 static Entry	*usr_attr = NULL;
 
+/*
+ * allow modules to register functions that muck with the root DSE entry
+ */
+
+typedef struct entry_info_t {
+	SLAP_ENTRY_INFO_FN	func;
+	void			*arg;
+	struct entry_info_t	*next;
+} entry_info_t;
+
+static entry_info_t *extra_info;
+
+int
+entry_info_register( SLAP_ENTRY_INFO_FN func, void *arg )
+{
+	entry_info_t	*ei = ch_calloc( 1, sizeof( entry_info_t ) );
+
+	ei->func = func;
+	ei->arg = arg;
+
+	ei->next = extra_info;
+	extra_info = ei;
+
+	return 0;
+}
+
+int
+entry_info_unregister( SLAP_ENTRY_INFO_FN func, void *arg )
+{
+	entry_info_t	**eip;
+
+	for ( eip = &extra_info; *eip != NULL; eip = &(*eip)->next ) {
+		if ( (*eip)->func == func && (*eip)->arg == arg ) {
+			entry_info_t	*ei = *eip;
+
+			*eip = ei->next;
+
+			ch_free( ei );
+
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
+void
+entry_info_destroy( void )
+{
+	entry_info_t	**eip;
+
+	for ( eip = &extra_info; *eip != NULL;  ) {
+		entry_info_t	*ei = *eip;
+
+		eip = &(*eip)->next;
+
+		ch_free( ei );
+	}
+}
+
+/*
+ * Allow modules to register supported features
+ */
+
 static int
 supported_feature_init( void )
 {
@@ -169,6 +233,7 @@ root_dse_info(
 
 	e->e_private = NULL;
 
+	/* FIXME: is this really needed? */
 	BER_BVSTR( &val, "top" );
 	if( attr_merge_one( e, ad_objectClass, &val, NULL ) ) {
 		return LDAP_OTHER;
@@ -293,6 +358,14 @@ root_dse_info(
 			{
 				return LDAP_OTHER;
 			}
+		}
+	}
+
+	if ( extra_info ) {
+		entry_info_t	*ei = extra_info;
+
+		for ( ; ei; ei = ei->next ) {
+			ei->func( ei->arg, e );
 		}
 	}
 

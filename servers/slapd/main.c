@@ -899,6 +899,7 @@ destroy:
 	extops_kill();
 
 	supported_feature_destroy();
+	entry_info_destroy();
 
 stop:
 #ifdef HAVE_NT_EVENT_LOG

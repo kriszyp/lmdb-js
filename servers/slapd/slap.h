@@ -2858,6 +2858,8 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 	SlapReply *rs,
 	LDAPControl *ctrl ));
 
+typedef int (*SLAP_ENTRY_INFO_FN) LDAP_P(( void *arg, Entry *e ));
+
 #define SLAP_SLAB_SIZE	(1024*1024)
 #define SLAP_SLAB_STACK 1
 #define SLAP_SLAB_SOBLOCK 64
