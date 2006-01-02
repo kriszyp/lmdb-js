@@ -1215,7 +1215,7 @@ typedef enum slap_access_e {
 	ACL_COMPARE,
 	ACL_SEARCH,
 	ACL_READ,
-	ACL_WRITE,
+	ACL_WRITE_,
 	ACL_MANAGE,
 
 	/* always leave at end of levels but not greater than ACL_LEVEL_MASK */
@@ -1230,8 +1230,10 @@ typedef enum slap_access_e {
 	ACL_QUALIFIER_MASK = 0x0f00,
 
 	/* write granularity */
-	ACL_WADD = ACL_WRITE|ACL_QUALIFIER1,
-	ACL_WDEL = ACL_WRITE|ACL_QUALIFIER2
+	ACL_WADD = ACL_WRITE_|ACL_QUALIFIER1,
+	ACL_WDEL = ACL_WRITE_|ACL_QUALIFIER2,
+
+	ACL_WRITE = ACL_WADD|ACL_WDEL
 } slap_access_t;
 
 typedef enum slap_control_e {
