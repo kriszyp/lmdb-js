@@ -44,8 +44,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 				*new_pdn = NULL, *new_npdn = NULL,
 				new_dn = BER_BVNULL, new_ndn = BER_BVNULL,
 				realnew_dn = BER_BVNULL;
-	LDAPRDN			new_rdn = NULL;
-	LDAPRDN			old_rdn = NULL;
 	Entry			r = { 0 },
 				p = { 0 },
 				n = { 0 },
@@ -394,41 +392,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	}
 	SQLFreeStmt( sth, SQL_DROP );
 
-	/*
-	 * Get attribute type and attribute value of our new rdn,
-	 * we will need to add that to our new entry
-	 */
-	if ( ldap_bv2rdn( &op->oq_modrdn.rs_newrdn, &new_rdn, &next, 
-				LDAP_DN_FORMAT_LDAP ) )
-	{
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_modrdn: can't figure out "
-			"type(s)/values(s) of new_rdn\n", 
-			0, 0, 0 );
-		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
-		e = &r;
-		goto done;
-	}
-
-	Debug( LDAP_DEBUG_TRACE, "backsql_modrdn: "
-		"new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ]->la_attr.bv_val,
-		new_rdn[ 0 ]->la_value.bv_val, 0 );
-
-	if ( op->oq_modrdn.rs_deleteoldrdn ) {
-		if ( ldap_bv2rdn( &op->o_req_dn, &old_rdn, &next,
-					LDAP_DN_FORMAT_LDAP ) )
-		{
-			Debug( LDAP_DEBUG_TRACE,
-				"   backsql_modrdn: can't figure out "
-				"the old_rdn type(s)/value(s)\n", 
-				0, 0, 0 );
-			rs->sr_err = LDAP_OTHER;
-			e = NULL;
-			goto done;
-		}
-	}
-
 	assert( op->orr_modlist != NULL );
 
 	oc = backsql_id2oc( bi, e_id.eid_oc_id );
@@ -542,15 +505,6 @@ done:;
 		slap_sl_free( new_ndn.bv_val, op->o_tmpmemctx );
 	}
 	
-	/* LDAP v2 supporting correct attribute handling. */
-	if ( new_rdn != NULL ) {
-		ldap_rdnfree( new_rdn );
-	}
-
-	if ( old_rdn != NULL ) {
-		ldap_rdnfree( old_rdn );
-	}
-
 	if ( !BER_BVISNULL( &e_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( op, &e_id, 0 );
 	}
