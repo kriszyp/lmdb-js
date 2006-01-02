@@ -718,6 +718,11 @@ The ( absolute ) name of a file that will hold the
 .B slurpd
 server's command line options
 if started without the debugging command line option.
+If it appears after a
+.B replogfile
+directive, the args file is specific to the 
+.BR slurpd (8)
+instance that handles that replication log.
 .TP
 .B replica-pidfile
 The ( absolute ) name of a file that will hold the 
@@ -725,6 +730,11 @@ The ( absolute ) name of a file that will hold the
 server's process ID ( see
 .BR getpid (2)
 ) if started without the debugging command line option.
+If it appears after a
+.B replogfile
+directive, the pid file is specific to the 
+.BR slurpd (8)
+instance that handles that replication log.
 .TP
 .B replicationinterval
 The number of seconds 
