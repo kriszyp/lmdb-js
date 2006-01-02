@@ -380,6 +380,10 @@ main( int argc, char *argv[] )
 		}
 
 		ber_free( ber, 1 );
+
+	} else if ( newpw.bv_val == NULL ) {
+		tool_perror( "ldap_parse_extended_result", LDAP_DECODING_ERROR,
+			" new password expected", NULL, NULL, NULL );
 	}
 
 	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
