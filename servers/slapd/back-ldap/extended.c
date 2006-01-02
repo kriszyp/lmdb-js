@@ -153,12 +153,20 @@ retry:
 				rs->sr_text = NULL;
 			}
 #endif /* LDAP_NULL_IS_NULL */
+
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					struct berval	newpw;
-					
+
+					/* this never happens because 
+					 * the frontend	is generating 
+					 * the new password, so when
+					 * the passwd exop is proxied,
+					 * it never delegates password
+					 * generation to the remote server
+					 */
 					rc = ldap_parse_passwd( lc->lc_ld, res,
-							&newpw);
+							&newpw );
 					if ( rc == LDAP_SUCCESS &&
 							!BER_BVISNULL( &newpw ) )
 					{
