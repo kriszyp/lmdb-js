@@ -171,8 +171,8 @@ do_modrdn(
 		}
 	}
 
-	/* FIXME: temporary? */
 	op->orr_deleteoldrdn = deloldrdn;
+	op->orr_modlist = NULL;
 
 	/* prepare modlist of modifications from old/new RDN */
 	rs->sr_err = slap_modrdn2mods( op, rs );
