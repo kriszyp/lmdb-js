@@ -72,7 +72,8 @@ all references, all extended partial responses, and the final search
 result have been received.
 .LP
 Upon success, the type of the result received is returned and the
-\fIresult\fP parameter will contain the result of the operation.  This
+\fIresult\fP parameter will contain the result of the operation;
+otherwise, the \fIresult\fP parameter is undefined.  This
 result should be passed to the LDAP parsing routines,
 .BR ldap_first_message (3)
 and friends, for interpretation.
