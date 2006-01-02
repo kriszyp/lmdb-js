@@ -471,6 +471,7 @@ lutil_unparse_time(
 {
 	int		len, i;
 	unsigned long	v[ 4 ];
+	char		*ptr = buf;
 
 	v[ 0 ] = t/86400;
 	v[ 1 ] = (t%86400)/3600;
@@ -478,13 +479,13 @@ lutil_unparse_time(
 	v[ 3 ] = t%60;
 
 	for ( i = 0; i < 4; i++ ) {
-		if ( v[i] > 0 || i == 3 ) {
-			len = snprintf( buf, buflen, "%lu%c", v[ i ], time_unit[ i ] );
+		if ( v[i] > 0 || ( i == 3 && ptr == buf ) ) {
+			len = snprintf( ptr, buflen, "%lu%c", v[ i ], time_unit[ i ] );
 			if ( len < 0 || (unsigned)len >= buflen ) {
 				return -1;
 			}
 			buflen -= len;
-			buf += len;
+			ptr += len;
 		}
 	}
 
