@@ -399,7 +399,7 @@ slap_modrdn2mods(
 	if ( ldap_bv2rdn_x( &op->oq_modrdn.rs_newrdn, &new_rdn,
 		(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(slap_modrdn2mods) ": can't figure out "
+			"slap_modrdn2mods: can't figure out "
 			"type(s)/value(s) of newrdn\n", 0, 0, 0 );
 		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
 		rs->sr_text = "unknown type(s) used in RDN";
@@ -410,7 +410,7 @@ slap_modrdn2mods(
 		if ( ldap_bv2rdn_x( &op->o_req_dn, &old_rdn,
 			(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) ) {
 			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(slap_modrdn2mods) ": can't figure out "
+				"slap_modrdn2mods: can't figure out "
 				"type(s)/value(s) of oldrdn\n", 0, 0, 0 );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "cannot parse RDN from old DN";
