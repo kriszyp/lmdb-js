@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2005 The OpenLDAP Foundation.
+ * Copyright 1998-2006 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,7 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_RESULTS_TOO_LARGE,		N_("Results too large")},
 	{LDAP_AFFECTS_MULTIPLE_DSAS,	N_("Operation affects multiple DSAs")},
 
-	{LDAP_OTHER, 					N_("Internal (implementation specific) error")},
+	{LDAP_OTHER, 					N_("Other (e.g., implementation specific) error")},
 
 	{LDAP_CANCELLED,				N_("Cancelled")},
 	{LDAP_NO_SUCH_OPERATION,		N_("No Operation to Cancel")},
