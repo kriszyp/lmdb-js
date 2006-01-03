@@ -1844,7 +1844,12 @@ retry_add:;
 			}
 			op->orr_deleteoldrdn = 0;
 			op->orr_modlist = NULL;
+			if ( slap_modrdn2mods( op, &rs_modify )) {
+				ret = 1;
+				goto done;
+			}
 			rc = be->be_modrdn( op, &rs_modify );
+			slap_mods_free( op->orr_modlist, 1 );
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s (%d)\n", 
 					"be_modrdn", rc, 0 );
