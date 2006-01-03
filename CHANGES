@@ -4,6 +4,8 @@ OpenLDAP 2.3.15 Engineering
 	Fixed slapd strerror logging bug (ITS#4292)
 	Fixed slapd-ldap password modify exop password return (ITS#4294)
 	Fixed slapd ACL add/delete fraction issue (ITS#4295)
+	Build environment
+		Disable test030-relay when threads are unavailable (ITS#4297)
 
 OpenLDAP 2.3.14 Release
 	Fixed slapd assertion control restrictions
