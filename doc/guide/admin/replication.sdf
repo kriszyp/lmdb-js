@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2003, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Replication with slurpd
 
@@ -57,8 +57,9 @@ slapd via LDAP.
 returns a success code to the slurpd process. 
 
 
-Note: {{ldapmodify}}(1) and other tools distributed as part of
-OpenLDAP Software do not support automatic referral chasing.
+Note: {{ldapmodify}}(1) and other clients distributed as part of
+OpenLDAP Software do not support automatic referral chasing
+(for security reasons).
 
 
 
