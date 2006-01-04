@@ -339,7 +339,7 @@ replog1(
 				 */
 				if ( ( !is_in && !ri->ri_exclude )
 					|| ( ( is_in && ri->ri_exclude )
-						&& ( !ocs || a->a_desc != slap_schema.si_ad_objectClass ) ) )
+						&& ( !ocs || ml->sml_desc != slap_schema.si_ad_objectClass ) ) )
 				{
 					continue;
 				}
