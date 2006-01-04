@@ -951,6 +951,8 @@ static int
 acl_mask_dn(
 	Operation		*op,
 	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
 	AccessControl		*a,
 	int			nmatch,
 	regmatch_t		*matches,
@@ -976,6 +978,27 @@ acl_mask_dn(
 	} else if ( b->a_style == ACL_STYLE_USERS ) {
 		if ( BER_BVISEMPTY( opndn ) ) {
 			return 1;
+		}
+
+		if ( b->a_self ) {
+			const char *dummy;
+			int rc, match = 0;
+
+			/* must have DN syntax */
+			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) return 1;
+
+			/* check if the target is an attribute. */
+			if ( val == NULL ) return 1;
+
+			/* target is attribute, check if the attribute value
+			 * is the op dn.
+			 */
+			rc = value_match( &match, desc,
+				desc->ad_type->sat_equality, 0,
+				val, opndn, &dummy );
+			/* on match error or no match, fail the ACL clause */
+			if ( rc != LDAP_SUCCESS || match != 0 )
+				return 1;
 		}
 
 	} else if ( b->a_style == ACL_STYLE_SELF ) {
@@ -1411,7 +1434,7 @@ slap_acl_mask(
 			 * is maintaned in a_dn_pat.
 			 */
 
-			if ( acl_mask_dn( op, e, a, nmatch, matches,
+			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
 				&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
@@ -1442,7 +1465,7 @@ slap_acl_mask(
 				ndn = op->o_ndn;
 			}
 
-			if ( acl_mask_dn( op, e, a, nmatch, matches,
+			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
 				&b->a_realdn, &ndn ) )
 			{
 				continue;
