@@ -287,6 +287,114 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 }
 
 static int
+slap_response_loop(
+	Operation *op,
+	SlapReply *rs )
+{
+	int rc;
+
+#ifdef NEW_CB
+	slap_callback	*sc = op->o_callback, **sc_prev;
+
+	rc = SLAP_CB_CONTINUE;
+	for ( sc_prev = &sc; *sc_prev; ) {
+		slap_callback **sc_next = &(*sc_prev)->sc_next;
+
+		op->o_callback = *sc_prev;
+		if ( op->o_callback->sc_response ) {
+			rc = op->o_callback->sc_response( op, rs );
+			if ( op->o_callback == NULL ) {
+				/* the callback has been removed; repair the list */
+				*sc_prev = *sc_next;
+
+			} else if ( op->o_callback != *sc_prev ) {
+				/* a new callback has been inserted; repair the list */
+				*sc_next = op->o_callback;
+				sc_next = &op->o_callback;
+			}
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+		sc_prev = sc_next;
+	}
+
+	op->o_callback = sc;
+#else /* ! NEW_CB */
+	slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
+
+	rc = SLAP_CB_CONTINUE;
+	for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+		sc_next = op->o_callback->sc_next;
+		if ( op->o_callback->sc_response ) {
+			slap_callback *sc2 = op->o_callback;
+			rc = op->o_callback->sc_response( op, rs );
+			if ( op->o_callback != sc2 ) {
+				*sc_prev = op->o_callback;
+			}
+			if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
+			if ( op->o_callback != sc2 ) continue;
+		}
+		sc_prev = &op->o_callback->sc_next;
+	}
+
+	op->o_callback = sc;
+#endif /* ! NEW_CB */
+
+	return rc;
+}
+
+static int
+slap_cleanup_loop(
+	Operation *op,
+	SlapReply *rs )
+{
+#ifdef NEW_CB
+	slap_callback	*sc = op->o_callback, **sc_prev;
+
+	for ( sc_prev = &sc; *sc_prev; ) {
+		slap_callback **sc_next = &(*sc_prev)->sc_next;
+
+		op->o_callback = *sc_prev;
+		if ( op->o_callback->sc_cleanup ) {
+			(void)op->o_callback->sc_cleanup( op, rs );
+			if ( op->o_callback == NULL ) {
+				/* the callback has been removed; repair the list */
+				*sc_prev = *sc_next;
+
+			} else if ( op->o_callback != *sc_prev ) {
+				/* a new callback has been inserted; repair the list */
+				*sc_next = op->o_callback;
+				sc_next = &op->o_callback;
+			}
+			/* don't care about the result; do all cleanup */
+		}
+		sc_prev = sc_next;
+	}
+
+	op->o_callback = sc;
+#else /* ! NEW_CB */
+	slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
+
+	for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+		sc_next = op->o_callback->sc_next;
+		if ( op->o_callback->sc_cleanup ) {
+			slap_callback *sc2 = op->o_callback;
+			(void)op->o_callback->sc_cleanup( op, rs );
+			if ( op->o_callback != sc2 ) {
+				*sc_prev = op->o_callback;
+			}
+			if ( !op->o_callback ) break;
+			if ( op->o_callback != sc2 ) continue;
+		}
+		sc_prev = &op->o_callback->sc_next;
+	}
+
+	op->o_callback = sc;
+#endif /* ! NEW_CB */
+
+	return LDAP_SUCCESS;
+}
+
+static int
 send_ldap_response(
 	Operation *op,
 	SlapReply *rs )
@@ -302,25 +410,10 @@ send_ldap_response(
 	}
 
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-		rc = SLAP_CB_CONTINUE;
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
-			sc_next = op->o_callback->sc_next;
-			if ( op->o_callback->sc_response ) {
-				slap_callback *sc2 = op->o_callback;
-				rc = op->o_callback->sc_response( op, rs );
-				if ( op->o_callback != sc2 ) {
-					*sc_prev = op->o_callback;
-				}
-				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
-				if ( op->o_callback != sc2 ) continue;
-			}
-			sc_prev = &op->o_callback->sc_next;
+		rc = slap_response_loop( op, rs );
+		if ( rc != SLAP_CB_CONTINUE ) {
+			goto clean2;
 		}
-
-		op->o_callback = sc;
-		if ( rc != SLAP_CB_CONTINUE ) goto clean2;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -458,24 +551,8 @@ cleanup:;
 
 clean2:;
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
-			sc_next = op->o_callback->sc_next;
-			if ( op->o_callback->sc_cleanup ) {
-				slap_callback *sc2 = op->o_callback;
-				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( op->o_callback != sc2 ) {
-					*sc_prev = op->o_callback;
-				}
-				if ( !op->o_callback ) break;
-				if ( op->o_callback != sc2 ) continue;
-			}
-			sc_prev = &op->o_callback->sc_next;
-		}
-		op->o_callback = sc;
+		(void)slap_cleanup_loop( op, rs );
 	}
-
 
 	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
 		free( (char *)rs->sr_matched );
@@ -715,26 +792,10 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-		rc = SLAP_CB_CONTINUE;
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next )
-		{
-			sc_next = op->o_callback->sc_next;
-			if ( op->o_callback->sc_response ) {
-				slap_callback *sc2 = op->o_callback;
-				rc = op->o_callback->sc_response( op, rs );
-				if ( op->o_callback != sc2 ) {
-					*sc_prev = op->o_callback;
-				}
-				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
-				if ( op->o_callback != sc2 ) continue;
-			}
-			sc_prev = &op->o_callback->sc_next;
+		rc = slap_response_loop( op, rs );
+		if ( rc != SLAP_CB_CONTINUE ) {
+			goto error_return;
 		}
-
-		op->o_callback = sc;
-		if ( rc != SLAP_CB_CONTINUE ) goto error_return;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: conn %lu dn=\"%s\"%s\n",
@@ -1173,22 +1234,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 error_return:;
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
-			sc_next = op->o_callback->sc_next;
-			if ( op->o_callback->sc_cleanup ) {
-				slap_callback *sc2 = op->o_callback;
-				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( op->o_callback != sc2 ) {
-					*sc_prev = op->o_callback;
-				}
-				if ( !op->o_callback ) break;
-				if ( op->o_callback != sc2 ) continue;
-			}
-			sc_prev = &op->o_callback->sc_next;
-		}
-		op->o_callback = sc;
+		(void)slap_cleanup_loop( op, rs );
 	}
 
 	if ( e_flags ) {
@@ -1232,25 +1278,10 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCHREF;
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-		rc = SLAP_CB_CONTINUE;
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
-			sc_next = op->o_callback->sc_next;
-			if ( op->o_callback->sc_response ) {
-				slap_callback *sc2 = op->o_callback;
-				rc = op->o_callback->sc_response( op, rs );
-				if ( op->o_callback != sc2 ) {
-					*sc_prev = op->o_callback;
-				}
-				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
-				if ( op->o_callback != sc2 ) continue;
-			}
-			sc_prev = &op->o_callback->sc_next;
+		rc = slap_response_loop( op, rs );
+		if ( rc != SLAP_CB_CONTINUE ) {
+			goto rel;
 		}
-
-		op->o_callback = sc;
-		if ( rc != SLAP_CB_CONTINUE ) goto rel;
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -1376,22 +1407,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 rel:
 	if ( op->o_callback ) {
-		slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
-			sc_next = op->o_callback->sc_next;
-			if ( op->o_callback->sc_cleanup ) {
-				slap_callback *sc2 = op->o_callback;
-				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( op->o_callback != sc2 ) {
-					*sc_prev = op->o_callback;
-				}
-				if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
-				if ( op->o_callback != sc2 ) continue;
-			}
-			sc_prev = &op->o_callback->sc_next;
-		}
-		op->o_callback = sc;
+		(void)slap_cleanup_loop( op, rs );
 	}
 
 	return rc;
