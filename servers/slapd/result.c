@@ -294,27 +294,30 @@ slap_response_loop(
 	int rc;
 
 #ifdef NEW_CB
-	slap_callback	*sc = op->o_callback, **sc_prev;
+	slap_callback	*sc = op->o_callback, **scp;
 
 	rc = SLAP_CB_CONTINUE;
-	for ( sc_prev = &sc; *sc_prev; ) {
-		slap_callback **sc_next = &(*sc_prev)->sc_next;
+	for ( scp = &sc; *scp; ) {
+		slap_callback *sc_next = (*scp)->sc_next, **sc_nextp = &(*scp)->sc_next;
 
-		op->o_callback = *sc_prev;
+		op->o_callback = *scp;
 		if ( op->o_callback->sc_response ) {
 			rc = op->o_callback->sc_response( op, rs );
 			if ( op->o_callback == NULL ) {
-				/* the callback has been removed; repair the list */
-				*sc_prev = *sc_next;
+				/* the callback has been removed;
+				 * repair the list */
+				*scp = sc_next;
+				sc_nextp = scp;
 
-			} else if ( op->o_callback != *sc_prev ) {
-				/* a new callback has been inserted; repair the list */
-				*sc_next = op->o_callback;
-				sc_next = &op->o_callback;
+			} else if ( op->o_callback != *scp ) {
+				/* a new callback has been inserted
+				 * after the existing one; repair the list */
+				*sc_nextp = op->o_callback;
+				sc_nextp = &op->o_callback;
 			}
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
-		sc_prev = sc_next;
+		scp = sc_nextp;
 	}
 
 	op->o_callback = sc;
@@ -348,26 +351,29 @@ slap_cleanup_loop(
 	SlapReply *rs )
 {
 #ifdef NEW_CB
-	slap_callback	*sc = op->o_callback, **sc_prev;
+	slap_callback	*sc = op->o_callback, **scp;
 
-	for ( sc_prev = &sc; *sc_prev; ) {
-		slap_callback **sc_next = &(*sc_prev)->sc_next;
+	for ( scp = &sc; *scp; ) {
+		slap_callback *sc_next = (*scp)->sc_next, **sc_nextp = &(*scp)->sc_next;
 
-		op->o_callback = *sc_prev;
+		op->o_callback = *scp;
 		if ( op->o_callback->sc_cleanup ) {
 			(void)op->o_callback->sc_cleanup( op, rs );
 			if ( op->o_callback == NULL ) {
-				/* the callback has been removed; repair the list */
-				*sc_prev = *sc_next;
+				/* the callback has been removed;
+				 * repair the list */
+				*scp = sc_next;
+				sc_nextp = scp;
 
-			} else if ( op->o_callback != *sc_prev ) {
-				/* a new callback has been inserted; repair the list */
-				*sc_next = op->o_callback;
-				sc_next = &op->o_callback;
+			} else if ( op->o_callback != *scp ) {
+				/* a new callback has been inserted
+				 * after the existing one; repair the list */
+				*sc_nextp = op->o_callback;
+				sc_nextp = &op->o_callback;
 			}
 			/* don't care about the result; do all cleanup */
 		}
-		sc_prev = sc_next;
+		scp = sc_nextp;
 	}
 
 	op->o_callback = sc;
