@@ -272,7 +272,9 @@ bdb_online_index( void *ctx, void *arg )
 	}
 
 	for ( i = 0; i < bdb->bi_nattrs; i++ ) {
-		if ( bdb->bi_attrs[ i ]->ai_indexmask & BDB_INDEX_DELETING ) {
+		if ( bdb->bi_attrs[ i ]->ai_indexmask & BDB_INDEX_DELETING
+			|| bdb->bi_attrs[ i ]->ai_newmask == 0 )
+		{
 			continue;
 		}
 		bdb->bi_attrs[ i ]->ai_indexmask = bdb->bi_attrs[ i ]->ai_newmask;
