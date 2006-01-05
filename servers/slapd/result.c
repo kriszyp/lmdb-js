@@ -286,8 +286,30 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 	return rc;
 }
 
+/*
+ * slap_response_play()
+ *
+ * plays the callback list; rationale: a callback can
+ *   - remove itself from the list, by setting op->o_callback = NULL;
+ *     malloc()'ed callbacks should free themselves from inside the
+ *     sc_response() function.
+ *   - replace itself with another (list of) callback(s), by setting
+ *     op->o_callback = a new (list of) callback(s); in this case, it
+ *     is the callback's responsibility to to append existing subsequent
+ *     callbacks to the end of the list that is passed to the sc_response()
+ *     function.
+ *   - modify the list of subsequent callbacks by modifying the value
+ *     of the sc_next field from inside the sc_response() function; this
+ *     case does not require any handling from inside slap_response_play()
+ *
+ * To stop execution of the playlist, the sc_response() function must return
+ * a value different from SLAP_SC_CONTINUE.
+ *
+ * The same applies to slap_cleanup_play(); only, there is no means to stop
+ * execution of the playlist, since all cleanup functions must be called.
+ */
 static int
-slap_response_loop(
+slap_response_play(
 	Operation *op,
 	SlapReply *rs )
 {
@@ -311,9 +333,9 @@ slap_response_loop(
 
 			} else if ( op->o_callback != *scp ) {
 				/* a new callback has been inserted
-				 * after the existing one; repair the list */
-				*sc_nextp = op->o_callback;
-				sc_nextp = &op->o_callback;
+				 * in place of the existing one; repair the list */
+				*scp = op->o_callback;
+				sc_nextp = scp;
 			}
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
@@ -346,7 +368,7 @@ slap_response_loop(
 }
 
 static int
-slap_cleanup_loop(
+slap_cleanup_play(
 	Operation *op,
 	SlapReply *rs )
 {
@@ -368,8 +390,10 @@ slap_cleanup_loop(
 			} else if ( op->o_callback != *scp ) {
 				/* a new callback has been inserted
 				 * after the existing one; repair the list */
-				*sc_nextp = op->o_callback;
-				sc_nextp = &op->o_callback;
+				/* a new callback has been inserted
+				 * in place of the existing one; repair the list */
+				*scp = op->o_callback;
+				sc_nextp = scp;
 			}
 			/* don't care about the result; do all cleanup */
 		}
@@ -416,7 +440,7 @@ send_ldap_response(
 	}
 
 	if ( op->o_callback ) {
-		rc = slap_response_loop( op, rs );
+		rc = slap_response_play( op, rs );
 		if ( rc != SLAP_CB_CONTINUE ) {
 			goto clean2;
 		}
@@ -557,7 +581,7 @@ cleanup:;
 
 clean2:;
 	if ( op->o_callback ) {
-		(void)slap_cleanup_loop( op, rs );
+		(void)slap_cleanup_play( op, rs );
 	}
 
 	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
@@ -798,7 +822,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->o_callback ) {
-		rc = slap_response_loop( op, rs );
+		rc = slap_response_play( op, rs );
 		if ( rc != SLAP_CB_CONTINUE ) {
 			goto error_return;
 		}
@@ -1240,7 +1264,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 error_return:;
 	if ( op->o_callback ) {
-		(void)slap_cleanup_loop( op, rs );
+		(void)slap_cleanup_play( op, rs );
 	}
 
 	if ( e_flags ) {
@@ -1284,7 +1308,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCHREF;
 	if ( op->o_callback ) {
-		rc = slap_response_loop( op, rs );
+		rc = slap_response_play( op, rs );
 		if ( rc != SLAP_CB_CONTINUE ) {
 			goto rel;
 		}
@@ -1413,7 +1437,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 rel:
 	if ( op->o_callback ) {
-		(void)slap_cleanup_loop( op, rs );
+		(void)slap_cleanup_play( op, rs );
 	}
 
 	return rc;
