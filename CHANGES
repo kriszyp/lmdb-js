@@ -6,10 +6,12 @@ OpenLDAP 2.3.16 Engineering
 	Flapd slapd cn=config bad ACL syntax modfy crash (ITS#4306)
 	Fixed slapd ACL/suffix configuration issue (ITS#4307)
 	Fixed slapd-bdb/hdb cache issue (ITS#4308)
+	Fixed slapd-bdb/hdb/ldbm suffix add with default referral issue (ITS#4310)
 	Build environment
 		Replace sched_yield(2) on Linux with select(2) (ITS#3950)
 	Documentation
 		Added slapd-bdb(5) cachefree description
+		Updated misc. manual pages
 
 OpenLDAP 2.3.15 Release
 	Fixed slapd strerror logging bug (ITS#4292)

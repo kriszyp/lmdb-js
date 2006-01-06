@@ -63,7 +63,7 @@ ldbm_back_referrals(
 
 			cache_return_entry_r( &li->li_cache, matched );
 
-		} else if ( default_referral != NULL ) {
+		} else if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) && default_referral != NULL ) {
 			rc = rs->sr_err = LDAP_OTHER;
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
