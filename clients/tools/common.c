@@ -1511,3 +1511,34 @@ tool_write_ldif( int type, char *name, char *value, ber_len_t vallen )
 	return( 0 );
 }
 
+int
+tool_is_oid( const char *s )
+{
+	int		first = 1;
+
+	if ( !isdigit( s[ 0 ] ) ) {
+		return 0;
+	}
+
+	for ( ; s[ 0 ]; s++ ) {
+		if ( s[ 0 ] == '.' ) {
+			if ( s[ 1 ] == '\0' ) {
+				return 0;
+			}
+			first = 1;
+			continue;
+		}
+
+		if ( !isdigit( s[ 0 ] ) ) {
+			return 0;
+		}
+
+		if ( first == 1 && s[ 0 ] == '0' && s[ 1 ] != '.' ) {
+			return 0;
+		}
+		first = 0;
+	}
+
+	return 1;
+}
+

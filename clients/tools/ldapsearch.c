@@ -237,37 +237,6 @@ ctrl_add( void )
 	return 0;
 }
 
-static int
-is_oid( const char *s )
-{
-	int		first = 1;
-
-	if ( !isdigit( s[ 0 ] ) ) {
-		return 0;
-	}
-
-	for ( ; s[ 0 ]; s++ ) {
-		if ( s[ 0 ] == '.' ) {
-			if ( s[ 1 ] == '\0' ) {
-				return 0;
-			}
-			first = 1;
-			continue;
-		}
-
-		if ( !isdigit( s[ 0 ] ) ) {
-			return 0;
-		}
-
-		if ( first == 1 && s[ 0 ] == '0' && s[ 1 ] != '.' ) {
-			return 0;
-		}
-		first = 0;
-	}
-
-	return 1;
-}
-
 static int parse_page_control(
 	LDAP *ld,
 	LDAPMessage *result,
@@ -498,7 +467,7 @@ handle_private_option( int i )
 			}
 			if ( crit ) ldapsync *= -1;
 
-		} else if ( is_oid( control ) ) {
+		} else if ( tool_is_oid( control ) ) {
 			if ( ctrl_add() ) {
 				exit( EXIT_FAILURE );
 			}
