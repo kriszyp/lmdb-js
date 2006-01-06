@@ -20,8 +20,10 @@
 
 #include <ac/errno.h>
 
-#if defined( HAVE_YIELDING_SELECT )
+#if REPLACE_SCHED_YIELD
+#ifndef HAVE_NANOSLEEP
 #include <ac/socket.h>
+#endif
 #include <ac/time.h>
 #endif
 
@@ -212,9 +214,14 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 int 
 ldap_pvt_thread_yield( void )
 {
-#if HAVE_YIELDING_SELECT
+#ifdef REPLACE_SCHED_YIELD
+#ifdef HAVE_NANOSLEEP
+	struct timespec t = { 0, 0 };
+	nanosleep(&t, NULL);
+#else
 	struct timeval tv = {0,0};
 	select( 0, NULL, NULL, NULL, &tv );
+#endif
 	return 0;
 #elif HAVE_THR_YIELD
 	return thr_yield();
