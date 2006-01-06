@@ -42,6 +42,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_sql}#//"				\
 		-e "s/^#${RDBMS}#//"			\
 	-e "s/^#${AC_accesslog}#//"			\
+	-e "s/^#${AC_dds}#//"				\
 	-e "s/^#${AC_dynlist}#//"			\
 	-e "s/^#${AC_pcache}#//"			\
 	-e "s/^#${AC_ppolicy}#//"			\

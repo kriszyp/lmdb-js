@@ -14,9 +14,11 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c \
-		ldappasswd.c ldapwhoami.c ldapcompare.c common.c
+		ldappasswd.c ldapwhoami.c ldapcompare.c \
+		ldapexop.c common.c
 OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o \
-		ldappasswd.o ldapwhoami.o ldapcompare.o common.o
+		ldappasswd.o ldapwhoami.o ldapcompare.o \
+		ldapexop.o common.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
@@ -27,10 +29,10 @@ XLIBS =  $(LDAP_L)
 XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c \
-	ldpversion.c ldwversion.c ldcversion.c
+	ldpversion.c ldwversion.c ldcversion.c ldeversion.c
 
 PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn \
-	ldappasswd ldapwhoami ldapcompare
+	ldappasswd ldapwhoami ldapcompare ldapexop
 
 
 ldapsearch:	ldsversion.o
@@ -53,6 +55,9 @@ ldapwhoami:	ldwversion.o
 
 ldapcompare: ldcversion.o
 	$(LTLINK) -o $@ ldapcompare.o common.o ldcversion.o $(LIBS)
+
+ldapexop: ldeversion.o
+	$(LTLINK) -o $@ ldapexop.o common.o ldeversion.o $(LIBS)
 
 ldsversion.c: Makefile
 	@-$(RM) $@
@@ -95,6 +100,12 @@ ldcversion.c: Makefile
 	$(MKVERSION) $(MKVOPTS) ldapcompare > $@
 
 ldcversion.o: ldapcompare.o common.o $(XLIBS)
+
+ldeversion.c: Makefile
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapexop > $@
+
+ldeversion.o: ldapexop.o common.o $(XLIBS)
 
 install-local:	FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)

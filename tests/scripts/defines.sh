@@ -21,6 +21,7 @@ BACKSQL=${AC_sql-sqlno}
 RDBMS=${SLAPD_USE_SQL-rdbmsno}
 RDBMSWRITE=${SLAPD_USE_SQLWRITE-no}
 ACCESSLOG=${AC_accesslog-accesslogno}
+DDS=${AC_dds-ddsno}
 DYNLIST=${AC_dynlist-dynlistno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
@@ -107,6 +108,7 @@ VALSORTCONF=$DATADIR/slapd-valsort.conf
 DYNLISTCONF=$DATADIR/slapd-dynlist.conf
 RSLAVECONF=$DATADIR/slapd-repl-slave-remote.conf
 PLSRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist-ldap.conf
+DDSCONF=$DATADIR/slapd-dds.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -149,6 +151,7 @@ LDAPADD="$CLIENTDIR/ldapmodify -a $TOOLPROTO $TOOLARGS"
 LDAPMODRDN="$CLIENTDIR/ldapmodrdn $TOOLPROTO $TOOLARGS"
 LDAPWHOAMI="$CLIENTDIR/ldapwhoami $TOOLARGS"
 LDAPCOMPARE="$CLIENTDIR/ldapcompare $TOOLARGS"
+LDAPEXOP="$CLIENTDIR/ldapexop $TOOLARGS"
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=${SLAPD_DEBUG-261}
 LOCALHOST=localhost
@@ -297,6 +300,7 @@ MANAGEOUT=$DATADIR/manage.out
 SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 ACIOUT=$DATADIR/aci.out
 DYNLISTOUT=$DATADIR/dynlist.out
+DDSOUT=$DATADIR/dds.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

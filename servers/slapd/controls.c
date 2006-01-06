@@ -97,10 +97,12 @@ static int num_known_controls = 1;
 static char *proxy_authz_extops[] = {
 	LDAP_EXOP_MODIFY_PASSWD,
 	LDAP_EXOP_X_WHO_AM_I,
+	LDAP_EXOP_REFRESH,
 	NULL
 };
 
 static char *manageDSAit_extops[] = {
+	LDAP_EXOP_REFRESH,
 	NULL
 };
 

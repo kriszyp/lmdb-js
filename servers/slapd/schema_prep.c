@@ -894,7 +894,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2589: entry time-to-live' "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE "
 			"NO-USER-MODIFICATION USAGE dSAOperation )",
-		dynamicAttribute, 0,
+		dynamicAttribute, SLAP_AT_MANAGEABLE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryTtl) },

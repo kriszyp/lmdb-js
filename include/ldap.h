@@ -323,6 +323,11 @@ typedef struct ldapcontrol {
 #define LDAP_EXOP_CANCEL		"1.3.6.1.1.8"				/* RFC 3909 */
 #define LDAP_EXOP_X_CANCEL		LDAP_EXOP_CANCEL
 
+#define	LDAP_EXOP_REFRESH		"1.3.6.1.4.1.1466.101.119.1"	/* RFC 2589 */
+#define	LDAP_TAG_EXOP_REFRESH_REQ_DN	((ber_tag_t) 0x80U)
+#define	LDAP_TAG_EXOP_REFRESH_REQ_TTL	((ber_tag_t) 0x81U)
+#define	LDAP_TAG_EXOP_REFRESH_RES_TTL	((ber_tag_t) 0x80U)
+
 /* various works in progress */
 #define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
@@ -2136,6 +2141,35 @@ ldap_parse_passwordpolicy_control LDAP_P((
 LDAP_F( const char * )
 ldap_passwordpolicy_err2txt LDAP_P(( LDAPPasswordPolicyError ));
 #endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
+
+/*
+ * LDAP Dynamic Directory Services Refresh RFC2589
+ *	in dds.c
+ */
+#define LDAP_API_FEATURE_REFRESH 1000
+
+LDAP_F( int )
+ldap_parse_refresh LDAP_P((
+	LDAP *ld,
+	LDAPMessage *res,
+	int *newttl ));
+
+LDAP_F( int )
+ldap_refresh LDAP_P(( LDAP *ld,
+	struct berval	*dn,
+	int ttl,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_refresh_s LDAP_P((
+	LDAP *ld,
+	struct berval	*dn,
+	int ttl,
+	int *newttl,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
 
 LDAP_END_DECL
 #endif /* _LDAP_H */
