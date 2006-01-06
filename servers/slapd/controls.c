@@ -65,7 +65,8 @@ struct slap_control {
 	slap_mask_t sc_mask;
 
 	/* Extended operations supported by control */
-	char **sc_extendedops;
+	char **sc_extendedops;		/* input */
+	BerVarray sc_extendedopsbv;	/* run-time use */
 
 	/* Control parsing callback */
 	SLAP_CTRL_PARSE_FN *sc_parse;
@@ -99,77 +100,97 @@ static char *proxy_authz_extops[] = {
 	NULL
 };
 
+static char *manageDSAit_extops[] = {
+	NULL
+};
+
 static struct slap_control control_defs[] = {
 	{  LDAP_CONTROL_ASSERT,
  		(int)offsetof(struct slap_control_ids, sc_assert),
 		SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME|
-			SLAP_CTRL_COMPARE|SLAP_CTRL_SEARCH, NULL,
+			SLAP_CTRL_COMPARE|SLAP_CTRL_SEARCH,
+		NULL, NULL,
 		parseAssert, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PRE_READ,
  		(int)offsetof(struct slap_control_ids, sc_preRead),
-		SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME, NULL,
+		SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME,
+		NULL, NULL,
 		parsePreRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_POST_READ,
  		(int)offsetof(struct slap_control_ids, sc_postRead),
-		SLAP_CTRL_ADD|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME, NULL,
+		SLAP_CTRL_ADD|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME,
+		NULL, NULL,
 		parsePostRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		(int)offsetof(struct slap_control_ids, sc_valuesReturnFilter),
- 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
+ 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH,
+		NULL, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PAGEDRESULTS,
  		(int)offsetof(struct slap_control_ids, sc_pagedResults),
-		SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_SEARCH,
+		NULL, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_DEVEL
 	{ LDAP_CONTROL_SORTREQUEST,
  		(int)offsetof(struct slap_control_ids, sc_sortedResults),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parseSortedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
  		(int)offsetof(struct slap_control_ids, sc_domainScope),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parseDomainScope, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
  		(int)offsetof(struct slap_control_ids, sc_permissiveModify),
-		SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parsePermissiveModify, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef SLAP_CONTROL_X_TREE_DELETE
 	{ LDAP_CONTROL_X_TREE_DELETE,
  		(int)offsetof(struct slap_control_ids, sc_treeDelete),
-		SLAP_CTRL_DELETE|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_DELETE|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parseTreeDelete, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_X_SEARCH_OPTIONS,
  		(int)offsetof(struct slap_control_ids, sc_searchOptions),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parseSearchOptions, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_SUBENTRIES,
  		(int)offsetof(struct slap_control_ids, sc_subentries),
-		SLAP_CTRL_SEARCH, NULL,
+		SLAP_CTRL_SEARCH,
+		NULL, NULL,
 		parseSubentries, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_NOOP,
  		(int)offsetof(struct slap_control_ids, sc_noOp),
-		SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_DEVEL
 	{ LDAP_CONTROL_DONTUSECOPY,
  		(int)offsetof(struct slap_control_ids, sc_dontUseCopy),
-		SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parseDontUseCopy, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_MANAGEDIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDIT),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE,
+		NULL, NULL,
 		parseManageDIT, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDSAit),
-		SLAP_CTRL_ACCESS, NULL,
+		SLAP_CTRL_ACCESS,
+		manageDSAit_extops, NULL,
 		parseManageDSAit, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PROXY_AUTHZ,
  		(int)offsetof(struct slap_control_ids, sc_proxyAuthz),
-		SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS, proxy_authz_extops,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS,
+		proxy_authz_extops, NULL,
 		parseProxyAuthz, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ NULL, 0, 0, NULL, 0, LDAP_SLIST_ENTRY_INITIALIZER(next) }
 };
@@ -215,14 +236,24 @@ register_supported_control(const char *controloid,
 	sc->sc_oid = ch_strdup( controloid );
 	sc->sc_mask = controlmask;
 	if ( controlexops != NULL ) {
-		sc->sc_extendedops = ldap_charray_dup( controlexops );
-		if ( sc->sc_extendedops == NULL ) {
+		int i;
+
+		for ( i = 0; controlexops[ i ]; i++ );
+
+		sc->sc_extendedopsbv = ber_memcalloc( i + 1, sizeof( struct berval ) );
+		if ( sc->sc_extendedopsbv == NULL ) {
 			ch_free( sc );
 			return LDAP_NO_MEMORY;
 		}
+
+		for ( i = 0; controlexops[ i ]; i++ ) {
+			ber_str2bv( controlexops[ i ], 0, 1, &sc->sc_extendedopsbv[ i ] );
+		}
+
 	} else {
-		sc->sc_extendedops = NULL;
+		sc->sc_extendedopsbv = NULL;
 	}
+	sc->sc_extendedops = NULL;
 	sc->sc_parse = controlparsefn;
 
 	if ( controlcid ) *controlcid = num_known_controls;
@@ -271,8 +302,8 @@ controls_destroy( void )
 		LDAP_SLIST_REMOVE_HEAD(&controls_list, sc_next);
 
 		ch_free( sc->sc_oid );
-		if ( sc->sc_extendedops != NULL ) {
-			ldap_charray_free( sc->sc_extendedops );
+		if ( sc->sc_extendedopsbv != NULL ) {
+			ber_bvarray_free( sc->sc_extendedopsbv );
 		}
 		ch_free( sc );
 	}
@@ -473,11 +504,11 @@ int slap_parse_ctrl(
 		case LDAP_REQ_EXTENDED:
 			tagmask=~0L;
 			assert( op->ore_reqoid.bv_val != NULL );
-			if( sc->sc_extendedops != NULL ) {
+			if( sc->sc_extendedopsbv != NULL ) {
 				int i;
-				for( i=0; sc->sc_extendedops[i] != NULL; i++ ) {
-					if( strcmp( op->ore_reqoid.bv_val,
-						sc->sc_extendedops[i] ) == 0 )
+				for( i=0; !BER_BVISNULL( &sc->sc_extendedopsbv[i] ); i++ ) {
+					if( bvmatch( &op->ore_reqoid,
+						&sc->sc_extendedopsbv[i] ) )
 					{
 						tagmask=0L;
 						break;
