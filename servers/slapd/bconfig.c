@@ -3701,6 +3701,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	ca->bi = ce->ce_bi;
 	ca->private = ce->ce_private;
 	ca->ca_entry = e;
+	ca->fname = "slapd";
 	strcpy( ca->log, "back-config" );
 
 	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {

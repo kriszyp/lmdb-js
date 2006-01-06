@@ -547,6 +547,7 @@ monitor_subsys_conn_create(
 		char			*next = NULL;
 		static struct berval	nconn_bv = BER_BVC( "cn=connection " );
 
+		rc = LDAP_NO_SUCH_OBJECT;
 	       
 		/* create exactly the required entry;
 		 * the normalized DN must start with "cn=connection ",

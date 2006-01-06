@@ -1,8 +1,14 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.16 Engineering
+	Fixed slapd-bdb reindexing via cn=config not noticed issue (ITS#4260)
+	Fixed slapd-monitor connection search crash (ITS#4300)
+	Flapd slapd cn=config bad ACL syntax modfy crash (ITS#4306)
+	Fixed slapd ACL/suffix configuration issue (ITS#4307)
 	Build environment
 		Replace sched_yield(2) on Linux with select(2) (ITS#3950)
+	Documentation
+		Added slapd-bdb(5) cachefree description
 
 OpenLDAP 2.3.15 Release
 	Fixed slapd strerror logging bug (ITS#4292)

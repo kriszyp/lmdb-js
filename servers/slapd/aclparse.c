@@ -1983,44 +1983,49 @@ parse_acl(
 		}
 
 		if ( be != NULL ) {
-			if ( !BER_BVISNULL( &be->be_nsuffix[ 1 ] ) ) {
+			if ( be->be_nsuffix == NULL ) {
+				Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
+					"scope checking needs suffix before ACLs.\n",
+					fname, lineno, 0 );
+				/* go ahead, since checking is not authoritative */
+			} else if ( !BER_BVISNULL( &be->be_nsuffix[ 1 ] ) ) {
 				Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
 					"scope checking only applies to single-valued "
 					"suffix databases\n",
 					fname, lineno, 0 );
 				/* go ahead, since checking is not authoritative */
-			}
+			} else {
+				switch ( check_scope( be, a ) ) {
+				case ACL_SCOPE_UNKNOWN:
+					Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
+						"cannot assess the validity of the ACL scope within "
+						"backend naming context\n",
+						fname, lineno, 0 );
+					break;
 
-			switch ( check_scope( be, a ) ) {
-			case ACL_SCOPE_UNKNOWN:
-				Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
-					"cannot assess the validity of the ACL scope within "
-					"backend naming context\n",
-					fname, lineno, 0 );
-				break;
+				case ACL_SCOPE_WARN:
+					Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
+						"ACL could be out of scope within backend naming context\n",
+						fname, lineno, 0 );
+					break;
 
-			case ACL_SCOPE_WARN:
-				Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
-					"ACL could be out of scope within backend naming context\n",
-					fname, lineno, 0 );
-				break;
+				case ACL_SCOPE_PARTIAL:
+					Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
+						"ACL appears to be partially out of scope within "
+						"backend naming context\n",
+						fname, lineno, 0 );
+					break;
+	
+				case ACL_SCOPE_ERR:
+					Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
+						"ACL appears to be out of scope within "
+						"backend naming context\n",
+						fname, lineno, 0 );
+					break;
 
-			case ACL_SCOPE_PARTIAL:
-				Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
-					"ACL appears to be partially out of scope within "
-					"backend naming context\n",
-					fname, lineno, 0 );
-				break;
-
-			case ACL_SCOPE_ERR:
-				Debug( LDAP_DEBUG_ACL, "%s: line %d: warning: "
-					"ACL appears to be out of scope within "
-					"backend naming context\n",
-					fname, lineno, 0 );
-				break;
-
-			default:
-				break;
+				default:
+					break;
+				}
 			}
 			acl_append( &be->be_acl, a, pos );
 
