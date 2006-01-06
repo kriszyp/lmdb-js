@@ -20,7 +20,7 @@
 
 #include <ac/errno.h>
 
-#if REPLACE_SCHED_YIELD
+#ifdef REPLACE_SCHED_YIELD
 #ifndef HAVE_NANOSLEEP
 #include <ac/socket.h>
 #endif

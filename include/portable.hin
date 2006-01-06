@@ -912,8 +912,8 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* define to replace sched_yeild(2) */
-#undef REPLACE_SCHED_YEILD
+/* define to replace sched_yield(2) */
+#undef REPLACE_SCHED_YIELD
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
