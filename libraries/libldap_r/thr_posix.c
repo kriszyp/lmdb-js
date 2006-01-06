@@ -20,6 +20,11 @@
 
 #include <ac/errno.h>
 
+#if defined( HAVE_YIELDING_SELECT )
+#include <ac/socket.h>
+#include <ac/time.h>
+#endif
+
 #include "ldap_pvt_thread.h" /* Get the thread interface */
 #define LDAP_THREAD_IMPLEMENTATION
 #define LDAP_THREAD_RDWR_IMPLEMENTATION
@@ -207,7 +212,11 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 int 
 ldap_pvt_thread_yield( void )
 {
-#if HAVE_THR_YIELD
+#if HAVE_YIELDING_SELECT
+	struct timeval tv = {0,0};
+	select( 0, NULL, NULL, NULL, &tv );
+	return 0;
+#elif HAVE_THR_YIELD
 	return thr_yield();
 
 #elif HAVE_PTHREADS == 10
