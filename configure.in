@@ -432,7 +432,10 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_rlookups = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rlookups argument])
 	fi
-	if test $ol_enable_aci = yes ; then
+	if test $ol_enable_dynacl = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-dynacl argument])
+	fi
+	if test $ol_enable_aci != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
 	fi
 	if test $ol_enable_ldbm_api != auto ; then
