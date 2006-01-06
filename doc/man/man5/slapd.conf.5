@@ -626,7 +626,7 @@ the path is colon-separated but this depends on the operating system.
 .hy 0
 .B objectclass "(\ <oid>\
  [NAME\ <name>]\
- [DESC\ <description]\
+ [DESC\ <description>]\
  [OBSOLETE]\
  [SUP\ <oids>]\
  [{ ABSTRACT | STRUCTURAL | AUXILIARY }]\
@@ -740,6 +740,11 @@ instance that handles that replication log.
 The number of seconds 
 .B slurpd 
 waits before checking the replogfile for changes.
+If it appears after a
+.B replogfile
+directive, the replication interval is specific to the 
+.BR slurpd (8)
+instance that handles that replication log.
 .TP
 .B require <conditions>
 Specify a set of conditions (separated by white space) to
@@ -1740,7 +1745,7 @@ Its use requires the
 overlay (see
 .BR slapo-rwm (5)
 for details) to rewrite the naming context of the request.
-It is is primarily intended to implement virtual views on databases
+It is primarily intended to implement virtual views on databases
 that actually store data.
 .TP
 .B shell
