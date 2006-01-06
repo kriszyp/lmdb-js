@@ -990,7 +990,7 @@
 /* define for In-Directory Access Logging overlay */
 #undef SLAPD_OVER_ACCESSLOG
 
-/* define for Dynamic Group overlay */
+/* define for Deny Operation overlay */
 #undef SLAPD_OVER_DENYOP
 
 /* define for Dynamic Group overlay */
