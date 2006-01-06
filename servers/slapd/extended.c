@@ -254,11 +254,31 @@ load_extop(
 	slap_mask_t ext_flags,
 	SLAP_EXTOP_MAIN_FN *ext_main )
 {
-	struct extop_list *ext;
+	struct berval		oidm = BER_BVNULL;
+	struct extop_list	*ext;
 
-	if( ext_oid == NULL || ext_oid->bv_val == NULL ||
-		ext_oid->bv_val[0] == '\0' || ext_oid->bv_len == 0 ) return -1; 
-	if(!ext_main) return -1; 
+	if ( !ext_main ) {
+		return -1; 
+	}
+
+	if ( ext_oid == NULL || BER_BVISNULL( ext_oid ) || BER_BVISEMPTY( ext_oid ) ) {
+		return -1; 
+	}
+
+	if ( numericoidValidate( NULL, (struct berval *)ext_oid ) != LDAP_SUCCESS ) {
+		oidm.bv_val = oidm_find( ext_oid->bv_val );
+		if ( ext_oid == NULL ) {
+			return -1;
+		}
+		oidm.bv_len = strlen( oidm.bv_val );
+		ext_oid = &oidm;
+	}
+
+	for ( ext = supp_ext_list; ext; ext = ext->next ) {
+		if ( bvmatch( ext_oid, &ext->oid ) ) {
+			return -1;
+		}
+	}
 
 	ext = ch_calloc(1, sizeof(struct extop_list) + ext_oid->bv_len + 1);
 	if (ext == NULL)
