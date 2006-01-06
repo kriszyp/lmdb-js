@@ -1457,6 +1457,19 @@ fe_acl_attribute(
 	} 
 
 	if ( e ) {
+		if ( entry_at == slap_schema.si_ad_entry || entry_at == slap_schema.si_ad_children ) {
+			assert( vals == NULL );
+
+			rc = LDAP_SUCCESS;
+			if ( op->o_conn && access > ACL_NONE &&
+				access_allowed( op, e, entry_at, NULL,
+						access, &acl_state ) == 0 )
+			{
+				rc = LDAP_INSUFFICIENT_ACCESS;
+			}
+			goto freeit;
+		}
+
 		a = attr_find( e->e_attrs, entry_at );
 		if ( a == NULL ) {
 			SlapReply	rs = { 0 };
