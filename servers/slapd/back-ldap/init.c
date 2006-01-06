@@ -41,6 +41,16 @@ ldap_back_open( BackendInfo	*bi )
 int
 ldap_back_initialize( BackendInfo *bi )
 {
+	bi->bi_flags =
+#ifdef LDAP_DYNAMIC_OBJECTS
+		/* this is set because all the support a proxy has to provide
+		 * is the capability to forward the refresh exop, and to
+		 * pass thru entries that contain the dynamicObject class
+		 * and the entryTtl attribute */
+		SLAP_BFLAG_DYNAMIC |
+#endif /* LDAP_DYNAMIC_OBJECTS */
+		0;
+
 	bi->bi_open = ldap_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = 0;
