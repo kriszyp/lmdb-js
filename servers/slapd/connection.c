@@ -1998,7 +1998,6 @@ connection_init_log_prefix( Operation *op )
 static int connection_bind_cb( Operation *op, SlapReply *rs )
 {
 	slap_callback *cb = op->o_callback;
-	op->o_callback = cb->sc_next;
 
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	op->o_conn->c_conn_state = SLAP_C_ACTIVE;
@@ -2052,7 +2051,7 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
-	ch_free( cb );
+	ch_free( op->o_callback );
 	op->o_callback = NULL;
 
 	return SLAP_CB_CONTINUE;
