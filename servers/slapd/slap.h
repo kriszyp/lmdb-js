@@ -1432,16 +1432,6 @@ typedef struct slap_access {
 
 #ifdef SLAP_DYNACL
 	slap_dynacl_t		*a_dynacl;
-#else /* ! SLAP_DYNACL */
-#ifdef SLAPD_ACI_ENABLED
-	/* NOTE: ACIs have been moved under the "dynacl" interface,
-	 * which is currently built only when LDAP_DEVEL is defined.
-	 *
-	 * In any case, SLAPD_ACI_ENABLED, set by --enable-aci,
-	 * is required to enable ACI support.
-	 */
-	AttributeDescription	*a_aci_at;
-#endif /* SLAPD_ACI_ENABLED */
 #endif /* SLAP_DYNACL */
 
 	/* ACL Groups */
@@ -1497,14 +1487,6 @@ typedef struct slap_acl_state {
 } AccessControlState;
 #define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, \
 	{ { 0, 0 } }, 0, NULL, 0, 0, NULL }
-
-#ifdef SLAPD_ACI_ENABLED
-typedef enum slap_aci_scope_t {
-	SLAP_ACI_SCOPE_ENTRY		= 0x1,
-	SLAP_ACI_SCOPE_CHILDREN		= 0x2,
-	SLAP_ACI_SCOPE_SUBTREE		= ( SLAP_ACI_SCOPE_ENTRY | SLAP_ACI_SCOPE_CHILDREN )
-} slap_aci_scope_t;
-#endif /* SLAPD_ACI_ENABLED */
 
 /*
  * Backend-info

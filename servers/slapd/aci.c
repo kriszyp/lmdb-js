@@ -49,6 +49,12 @@
 /* change this to "OpenLDAPset" */
 #define SLAPD_ACI_SET_ATTR		"template"
 
+typedef enum slap_aci_scope_t {
+	SLAP_ACI_SCOPE_ENTRY		= 0x1,
+	SLAP_ACI_SCOPE_CHILDREN		= 0x2,
+	SLAP_ACI_SCOPE_SUBTREE		= ( SLAP_ACI_SCOPE_ENTRY | SLAP_ACI_SCOPE_CHILDREN )
+} slap_aci_scope_t;
+
 enum {
 	ACI_BV_ENTRY,
 	ACI_BV_CHILDREN,
