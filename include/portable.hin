@@ -1050,6 +1050,9 @@
 /* define to support SQL backend */
 #undef SLAPD_SQL
 
+/* define to support run-time loadable ACL */
+#undef SLAP_DYNACL
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
