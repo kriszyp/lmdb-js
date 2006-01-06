@@ -1747,8 +1747,15 @@ syncrepl_entry(
 	case LDAP_SYNC_MODIFY:
 		{
 			Attribute *a = attr_find( entry->e_attrs, slap_schema.si_ad_entryCSN );
-			if ( a )
+			if ( a ) {
+				/* FIXME: op->o_csn is assumed to be
+				 * on the thread's slab; this needs
+				 * to be cleared ASAP.
+				 * What happens if already present?
+				 */
+				assert( BER_BVISNULL( &op->o_csn ) );
 				op->o_csn = a->a_vals[0];
+			}
 		}
 retry_add:;
 		if ( BER_BVISNULL( &dni.dn )) {
@@ -1844,7 +1851,7 @@ retry_add:;
 			}
 			op->orr_deleteoldrdn = 0;
 			op->orr_modlist = NULL;
-			if ( slap_modrdn2mods( op, &rs_modify )) {
+			if ( slap_modrdn2mods( op, &rs_modify ) ) {
 				ret = 1;
 				goto done;
 			}
@@ -1961,7 +1968,7 @@ retry_add:;
 		goto done;
 	}
 
-done :
+done:
 	if ( !BER_BVISNULL( &syncUUID_strrep ) ) {
 		slap_sl_free( syncUUID_strrep.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &syncUUID_strrep );
@@ -2129,6 +2136,9 @@ syncrepl_del_nonpresent(
 		}
 
 		slap_graduate_commit_csn( op );
+
+		op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_csn );
 	}
 
 	return;
@@ -2301,8 +2311,7 @@ syncrepl_updateCookie(
 	mod.sml_type = mod.sml_desc->ad_cname;
 	mod.sml_values = vals;
 	vals[0] = si->si_syncCookie.ctxcsn;
-	vals[1].bv_val = NULL;
-	vals[1].bv_len = 0;
+	BER_BVZERO( &vals[1] );
 
 	slap_queue_csn( op, &si->si_syncCookie.ctxcsn );
 
@@ -2329,6 +2338,9 @@ syncrepl_updateCookie(
 	}
 
 	slap_graduate_commit_csn( op );
+
+	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
+	BER_BVZERO( &op->o_csn );
 
 	return;
 }
@@ -2573,6 +2585,14 @@ avl_ber_bvfree( void *v_bv )
 void
 syncinfo_free( syncinfo_t *sie )
 {
+	/* re-fetch it, in case it was already removed */
+	sie->si_re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, sie );
+	if ( sie->si_re ) {
+		if ( ldap_pvt_runqueue_isrunning( &slapd_rq, sie->si_re ) )
+			ldap_pvt_runqueue_stoptask( &slapd_rq, sie->si_re );
+		ldap_pvt_runqueue_remove( &slapd_rq, sie->si_re );
+	}
+
  	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
 
 	bindconf_free( &sie->si_bindconf );
@@ -3071,7 +3091,7 @@ parse_syncrepl_line(
 			if ( strcasecmp( val, "unlimited" ) == 0 ) {
 				si->si_slimit = 0;
 
-			} else if ( lutil_atoi( &si->si_slimit, val ) != 0 || val < 0 ) {
+			} else if ( lutil_atoi( &si->si_slimit, val ) != 0 || si->si_slimit < 0 ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"invalid size limit value \"%s\".\n",
 					val );
@@ -3085,7 +3105,7 @@ parse_syncrepl_line(
 			if ( strcasecmp( val, "unlimited" ) == 0 ) {
 				si->si_tlimit = 0;
 
-			} else if ( lutil_atoi( &si->si_tlimit, val ) != 0 || val < 0 ) {
+			} else if ( lutil_atoi( &si->si_tlimit, val ) != 0 || si->si_tlimit < 0 ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"invalid time limit value \"%s\".\n",
 					val );
@@ -3366,12 +3386,6 @@ syncrepl_config( ConfigArgs *c )
 		struct re_s *re;
 
 		if ( c->be->be_syncinfo ) {
-			re = c->be->be_syncinfo->si_re;
-			if ( re ) {
-				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) )
-					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
-				ldap_pvt_runqueue_remove( &slapd_rq, re );
-			}
 			syncinfo_free( c->be->be_syncinfo );
 			c->be->be_syncinfo = NULL;
 		}
