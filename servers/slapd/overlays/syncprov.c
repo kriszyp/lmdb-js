@@ -949,12 +949,14 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		so->s_flags |= PS_FIND_BASE;
 	}
 	if ( so->s_flags & PS_IS_DETACHED ) {
+		int wake=0;
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		if ( !so->s_qtask ) {
 			so->s_qtask = ldap_pvt_runqueue_insert( &slapd_rq, RUNQ_INTERVAL,
 				syncprov_qtask, so, "syncprov_qtask",
 				so->s_op->o_conn->c_peer_name.bv_val );
 			++so->s_inuse;
+			wake = 1;
 		} else {
 			if (!ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask ) &&
 				!so->s_qtask->next_sched.tv_sec ) {
@@ -962,9 +964,12 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 				ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 0 );
 				so->s_qtask->interval.tv_sec = RUNQ_INTERVAL;
 				++so->s_inuse;
+				wake = 1;
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+		if ( wake )
+			slap_wake_listener();
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	return LDAP_SUCCESS;
