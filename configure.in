@@ -2906,7 +2906,7 @@ if test "$ol_enable_denyop" != no ; then
 		MFLAG=SLAPD_MOD_STATIC
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS denyop.o"
 	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_DENYOP,$MFLAG,[define for Dynamic Group overlay])
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_DENYOP,$MFLAG,[define for Deny Operation overlay])
 fi
 
 if test "$ol_enable_dyngroup" != no ; then
