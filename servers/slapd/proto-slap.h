@@ -875,10 +875,13 @@ typedef int (SLAP_EXTOP_MAIN_FN) LDAP_P(( Operation *op, SlapReply *rs ));
 typedef int (SLAP_EXTOP_GETOID_FN) LDAP_P((
 	int index, struct berval *oid, int blen ));
 
-LDAP_SLAPD_F (int) load_extop LDAP_P((
+LDAP_SLAPD_F (int) load_extop2 LDAP_P((
 	const struct berval *ext_oid,
 	slap_mask_t flags,
-	SLAP_EXTOP_MAIN_FN *ext_main ));
+	SLAP_EXTOP_MAIN_FN *ext_main,
+	unsigned tmpflags ));
+#define load_extop(ext_oid, flags, ext_main) \
+	load_extop2((ext_oid), (flags), (ext_main), 0)
 
 LDAP_SLAPD_F (int) extops_init LDAP_P(( void ));
 

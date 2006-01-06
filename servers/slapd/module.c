@@ -298,6 +298,8 @@ load_extop_module (
 		return(-1);
 	}
 
+	/* FIXME: this is broken, and no longer needed, 
+	 * as a module can call load_extop() itself... */
 	rc = load_extop( &oid, ext_main );
 	return rc;
 }

@@ -249,13 +249,15 @@ done:;
 }
 
 int
-load_extop(
+load_extop2(
 	const struct berval *ext_oid,
 	slap_mask_t ext_flags,
-	SLAP_EXTOP_MAIN_FN *ext_main )
+	SLAP_EXTOP_MAIN_FN *ext_main,
+	unsigned flags )
 {
 	struct berval		oidm = BER_BVNULL;
 	struct extop_list	*ext;
+	int			insertme = 0;
 
 	if ( !ext_main ) {
 		return -1; 
@@ -276,25 +278,34 @@ load_extop(
 
 	for ( ext = supp_ext_list; ext; ext = ext->next ) {
 		if ( bvmatch( ext_oid, &ext->oid ) ) {
+			if ( flags == 1 ) {
+				break;
+			}
 			return -1;
 		}
 	}
 
-	ext = ch_calloc(1, sizeof(struct extop_list) + ext_oid->bv_len + 1);
-	if (ext == NULL)
-		return(-1);
+	if ( flags == 0 || ext == NULL ) {
+		ext = ch_calloc( 1, sizeof(struct extop_list) + ext_oid->bv_len + 1 );
+		if ( ext == NULL ) {
+			return(-1);
+		}
+
+		ext->oid.bv_val = (char *)(ext + 1);
+		AC_MEMCPY( ext->oid.bv_val, ext_oid->bv_val, ext_oid->bv_len );
+		ext->oid.bv_len = ext_oid->bv_len;
+		ext->oid.bv_val[ext->oid.bv_len] = '\0';
+
+		insertme = 1;
+	}
 
 	ext->flags = ext_flags;
-
-	ext->oid.bv_val = (char *)(ext + 1);
-	AC_MEMCPY( ext->oid.bv_val, ext_oid->bv_val, ext_oid->bv_len );
-	ext->oid.bv_len = ext_oid->bv_len;
-	ext->oid.bv_val[ext->oid.bv_len] = '\0';
-
 	ext->ext_main = ext_main;
-	ext->next = supp_ext_list;
 
-	supp_ext_list = ext;
+	if ( insertme ) {
+		ext->next = supp_ext_list;
+		supp_ext_list = ext;
+	}
 
 	return(0);
 }
@@ -304,10 +315,10 @@ extops_init (void)
 {
 	int i;
 
-	for (i = 0; builtin_extops[i].oid != NULL; i++) {
-		load_extop((struct berval *)builtin_extops[i].oid,
+	for ( i = 0; builtin_extops[i].oid != NULL; i++ ) {
+		load_extop( (struct berval *)builtin_extops[i].oid,
 			builtin_extops[i].flags,
-			builtin_extops[i].ext_main);
+			builtin_extops[i].ext_main );
 	}
 	return(0);
 }
