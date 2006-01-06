@@ -5,6 +5,7 @@ OpenLDAP 2.3.16 Engineering
 	Fixed slapd-monitor connection search crash (ITS#4300)
 	Flapd slapd cn=config bad ACL syntax modfy crash (ITS#4306)
 	Fixed slapd ACL/suffix configuration issue (ITS#4307)
+	Fixed slapd-bdb/hdb cache issue (ITS#4308)
 	Build environment
 		Replace sched_yield(2) on Linux with select(2) (ITS#3950)
 	Documentation

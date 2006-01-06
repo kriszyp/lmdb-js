@@ -643,11 +643,16 @@ bdb_cache_lru_add(
 			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 			if ( bdb->bi_cache_task ) {
 				if ( !ldap_pvt_runqueue_isrunning( &slapd_rq,
-					bdb->bi_cache_task ))
+					bdb->bi_cache_task )) {
+					/* We want it to start right now */
+					bdb->bi_cache_task->interval.tv_sec = 0;
 					ldap_pvt_runqueue_resched( &slapd_rq, bdb->bi_cache_task,
 						0 );
+					/* But don't try to reschedule it while it's running */
+					bdb->bi_cache_task->interval.tv_sec = 3600;
+				}
 			} else {
-				bdb->bi_cache_task = ldap_pvt_runqueue_insert( &slapd_rq, 0,
+				bdb->bi_cache_task = ldap_pvt_runqueue_insert( &slapd_rq, 3600,
 					bdb_cache_lru_purge, bdb, "bdb_cache_lru_purge",
 					bdb->bi_dbenv_home );
 			}

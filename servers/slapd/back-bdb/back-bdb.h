@@ -150,6 +150,9 @@ struct bdb_db_info {
 	DB			*bdi_db;
 };
 
+/* From ldap_rq.h */
+struct re_s;
+
 struct bdb_info {
 	DB_ENV		*bi_dbenv;
 
@@ -175,9 +178,9 @@ struct bdb_info {
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;
-	void		*bi_txn_cp_task;
-	void		*bi_index_task;
- 	void		*bi_cache_task;
+	struct re_s		*bi_txn_cp_task;
+	struct re_s		*bi_index_task;
+ 	struct re_s		*bi_cache_task;
 
 	int			bi_lock_detect;
 	long		bi_shm_key;
