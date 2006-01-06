@@ -388,8 +388,10 @@ retry:	/* transaction retry */
 	/* fixup delete CSN */
 	if ( !SLAP_SHADOW( op->o_bd )) {
 		struct berval vals[2];
+
+		assert( !BER_BVISNULL( &op->o_csn ) );
 		vals[0] = op->o_csn;
-		BER_BVZERO( vals+1 );
+		BER_BVZERO( &vals[1] );
 		rs->sr_err = bdb_index_values( op, lt2, slap_schema.si_ad_entryCSN,
 			vals, 0, SLAP_INDEX_ADD_OP );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
