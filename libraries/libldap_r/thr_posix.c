@@ -20,6 +20,13 @@
 
 #include <ac/errno.h>
 
+#ifdef REPLACE_BROKEN_YIELD
+#ifndef HAVE_NANOSLEEP
+#include <ac/socket.h>
+#endif
+#include <ac/time.h>
+#endif
+
 #include "ldap_pvt_thread.h" /* Get the thread interface */
 #define LDAP_THREAD_IMPLEMENTATION
 #define LDAP_THREAD_RDWR_IMPLEMENTATION
@@ -207,7 +214,16 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 int 
 ldap_pvt_thread_yield( void )
 {
-#if HAVE_THR_YIELD
+#ifdef REPLACE_BROKEN_YIELD
+#ifdef HAVE_NANOSLEEP
+	struct timespec t = { 0, 0 };
+	nanosleep(&t, NULL);
+#else
+	struct timeval tv = {0,0};
+	select( 0, NULL, NULL, NULL, &tv );
+#endif
+	return 0;
+#elif HAVE_THR_YIELD
 	return thr_yield();
 
 #elif HAVE_PTHREADS == 10

@@ -1585,6 +1585,18 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 				AC_MSG_ERROR([pthread_create is not usable, check environment settings])
 			fi
 
+			ol_replace_broken_yield=no
+			case "$target" in
+			*-*-linux*) 
+				ol_replace_broken_yield=yes
+			;;
+			esac
+
+			if test $ol_replace_broken_yield = yes ; then
+				AC_DEFINE([REPLACE_BROKEN_YIELD],1,
+					[define if sched_yield yields the entire process])
+			fi
+
 			dnl Check if select causes an yield
 			if test $ol_with_yielding_select = auto ; then
 				AC_CACHE_CHECK([if select yields when using pthreads],
@@ -2564,7 +2576,6 @@ AC_CHECK_FUNCS(		\
 	strtoll			\
 	strspn			\
 	sysconf			\
-	usleep			\
 	waitpid			\
 	wait4			\
 	write			\

@@ -1,6 +1,8 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.16 Engineering
+	Build environment
+		Replace sched_yield(2) on Linux with select(2) (ITS#3950)
 
 OpenLDAP 2.3.15 Release
 	Fixed slapd strerror logging bug (ITS#4292)

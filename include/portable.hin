@@ -777,9 +777,6 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to 1 if you have the `usleep' function. */
-#undef HAVE_USLEEP
-
 /* Define to 1 if you have the <utime.h> header file. */
 #undef HAVE_UTIME_H
 
@@ -902,6 +899,9 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* define if sched_yield yields the entire process */
+#undef REPLACE_BROKEN_YIELD
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
