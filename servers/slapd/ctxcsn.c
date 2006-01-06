@@ -166,7 +166,7 @@ slap_queue_csn(
 	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	ber_dupbv( &pending->ce_csn, csn );
-	ber_dupbv_x( &op->o_csn, &pending->ce_csn, op->o_tmpmemctx );
+	ber_bvreplace_x( &op->o_csn, &pending->ce_csn, op->o_tmpmemctx );
 	pending->ce_connid = op->o_connid;
 	pending->ce_opid = op->o_opid;
 	pending->ce_state = SLAP_CSN_PENDING;
