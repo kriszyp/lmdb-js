@@ -270,7 +270,7 @@ if test $RC != 0 ; then
 fi
 
 SLEEP=10
-echo "Waiting $SLEEP seconds to force an expiration conflict..."
+echo "Waiting $SLEEP seconds to force a subordinate/superior expiration conflict..."
 sleep $SLEEP
 
 echo "Re-vitalizing the initial dynamic entry..."
