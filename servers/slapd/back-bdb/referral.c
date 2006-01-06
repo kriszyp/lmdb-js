@@ -101,7 +101,7 @@ dn2entry_retry:
 
 			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 			e = NULL;
-		} else if ( !be_issuffix( op->o_bd, &op->o_req_ndn) && default_referral != NULL ) {
+		} else if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) && default_referral != NULL ) {
 			rc = LDAP_OTHER;
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
