@@ -1587,6 +1587,18 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 				AC_MSG_ERROR([pthread_create is not usable, check environment settings])
 			fi
 
+			ol_replace_sched_yeild=no
+			case "$target" in
+			*-*-linux*) 
+				ol_replace_sched_yeild=yes
+			;;
+			esac
+
+			if test $ol_replace_sched_yeild = yes ; then
+				AC_DEFINE([REPLACE_SCHED_YEILD],1,
+					[define to replace sched_yeild(2)])
+			fi
+
 			dnl Check if select causes an yield
 			if test $ol_with_yielding_select = auto ; then
 				AC_CACHE_CHECK([if select yields when using pthreads],
