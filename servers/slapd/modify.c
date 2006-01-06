@@ -835,11 +835,11 @@ void slap_mods_opattrs(
 			csn = op->o_csn;
 		}
 		ptr = ber_bvchr( &csn, '#' );
-		if ( ptr && ptr < &csn.bv_val[csn.bv_len] ) {
+		if ( ptr ) {
 			timestamp.bv_len = ptr - csn.bv_val;
-			if ( timestamp.bv_len >= sizeof( timebuf ))
+			if ( timestamp.bv_len >= sizeof( timebuf ))	/* ?!? */
 				timestamp.bv_len = sizeof( timebuf ) - 1;
-			strncpy( timebuf, csn.bv_val, timestamp.bv_len );
+			AC_MEMCPY( timebuf, csn.bv_val, timestamp.bv_len );
 			timebuf[timestamp.bv_len] = '\0';
 		} else {
 			time_t now = slap_get_time();
