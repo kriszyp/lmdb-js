@@ -1871,8 +1871,7 @@ dds_initialize()
 			char			*desc;
 			AttributeDescription	**ad;
 		}		s_at[] = {
-#warning "FIXME: register OID!!!"
-			{ "entryExpireTimestamp", "( 1.3.6.1.4.1.4203.666.999999.0 "
+			{ "entryExpireTimestamp", "( 1.3.6.1.4.1.4203.666.1.57 "
 				"NAME ( 'entryExpireTimestamp' ) "
 				"DESC 'RFC2589 extension: expire time of a dynamic object, "
 					"computed as modifyTimestamp + entryTtl' "
