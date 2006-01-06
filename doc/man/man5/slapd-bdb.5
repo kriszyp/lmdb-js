@@ -46,6 +46,11 @@ Specify the size in entries of the in-memory entry cache maintained
 by the \fBbdb\fP or \fBhdb\fP backend database instance.
 The default is 1000 entries.
 .TP
+.BI cachefree \ <integer>
+Specify the number of entries to free from the entry cache when the
+cache reaches the \fBcachesize\fP limit.
+The default is 1 entry.
+.TP
 .BI checkpoint \ <kbyte>\ <min>
 Specify the frequency for checkpointing the database transaction log.
 A checkpoint operation flushes the database buffers to disk and writes
