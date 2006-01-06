@@ -1273,7 +1273,7 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 		se->se_next = NULL;
 		se->se_tag = op->o_tag;
 
-		se->se_uuid.bv_val = (char *)(se+1);
+		se->se_uuid.bv_val = (char *)(&se[1]);
 		AC_MEMCPY( se->se_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
 		se->se_uuid.bv_len = opc->suuid.bv_len;
 
@@ -2425,6 +2425,14 @@ syncprov_db_destroy(
 
 	if ( si ) {
 		if ( si->si_logs ) {
+			slog_entry *se = si->si_logs->sl_head;
+
+			while ( se ) {
+				slog_entry *se_next = se->se_next;
+				ch_free( se );
+				se = se_next;
+			}
+				
 			ch_free( si->si_logs );
 		}
 		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
