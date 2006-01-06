@@ -20,7 +20,7 @@
 
 #include <ac/errno.h>
 
-#ifdef REPLACE_SCHED_YIELD
+#ifdef REPLACE_BROKEN_YIELD
 #ifndef HAVE_NANOSLEEP
 #include <ac/socket.h>
 #endif
@@ -214,7 +214,7 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 int 
 ldap_pvt_thread_yield( void )
 {
-#ifdef REPLACE_SCHED_YIELD
+#ifdef REPLACE_BROKEN_YIELD
 #ifdef HAVE_NANOSLEEP
 	struct timespec t = { 0, 0 };
 	nanosleep(&t, NULL);
