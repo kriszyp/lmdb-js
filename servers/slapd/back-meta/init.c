@@ -40,6 +40,20 @@ int
 meta_back_initialize(
 	BackendInfo	*bi )
 {
+	bi->bi_flags =
+#if 0
+	/* this is not (yet) set essentially because back-meta does not
+	 * directly support extended operations... */
+#ifdef LDAP_DYNAMIC_OBJECTS
+		/* this is set because all the support a proxy has to provide
+		 * is the capability to forward the refresh exop, and to
+		 * pass thru entries that contain the dynamicObject class
+		 * and the entryTtl attribute */
+		SLAP_BFLAG_DYNAMIC |
+#endif /* LDAP_DYNAMIC_OBJECTS */
+#endif
+		0;
+
 	bi->bi_open = meta_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = 0;
