@@ -644,14 +644,12 @@ bdb_cache_lru_add(
 			if ( bdb->bi_cache_task ) {
 				if ( !ldap_pvt_runqueue_isrunning( &slapd_rq,
 					bdb->bi_cache_task )) {
-					struct re_s *task = bdb->bi_cache_task;
-
 					/* We want it to start right now */
-					task->interval.tv_sec = 0;
+					bdb->bi_cache_task->interval.tv_sec = 0;
 					ldap_pvt_runqueue_resched( &slapd_rq, bdb->bi_cache_task,
 						0 );
 					/* But don't try to reschedule it while it's running */
-					task->interval.tv_sec = 3600;
+					bdb->bi_cache_task->interval.tv_sec = 3600;
 				}
 			} else {
 				bdb->bi_cache_task = ldap_pvt_runqueue_insert( &slapd_rq, 3600,
