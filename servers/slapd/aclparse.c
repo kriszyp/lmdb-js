@@ -2461,6 +2461,14 @@ acl_free( AccessControl *a )
 			free( an->an_name.bv_val );
 		}
 		free( a->acl_attrs );
+
+		if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
+			regfree( &a->acl_attrval_re );
+		}
+
+		if ( !BER_BVISNULL( &a->acl_attrval ) ) {
+			ber_memfree( a->acl_attrval.bv_val );
+		}
 	}
 	for ( ; a->acl_access; a->acl_access = n ) {
 		n = a->acl_access->a_next;
