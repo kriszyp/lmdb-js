@@ -1326,7 +1326,7 @@ default, readonly is off.
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
-.B [attr[!]=<attr list>]
+.B [attrs[!]=<attr list>]
 .RS
 Specify a replication site for this database.  Refer to the "OpenLDAP 
 Administrator's Guide" for detailed information on setting up a replicated
@@ -1370,7 +1370,7 @@ will use Kerberos, a kerberos instance should be given in
 An
 .B attr list
 can be given after the 
-.B attr
+.B attrs
 keyword to allow the selective replication of the listed attributes only;
 if the optional 
 .B !
@@ -1860,7 +1860,7 @@ pidfile   LOCALSTATEDIR/slapd.pid
 # option ";x-hidden" can be searched for/compared,
 # but are not shown.  See \fBslapd.access\fP(5).
 attributeoptions x-hidden lang-
-access to attr=name;x-hidden by * =cs
+access to attrs=name;x-hidden by * =cs
 
 # Protect passwords.  See \fBslapd.access\fP(5).
 access    to attrs=userPassword  by * auth

@@ -67,7 +67,6 @@ LDAP_BEGIN_DECL
 
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 #define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
-#define SLAP_DYNACL
 #define SLAP_OVERLAY_ACCESS
 #define LDAP_COMP_MATCH
 #define LDAP_DYNAMIC_OBJECTS
@@ -210,13 +209,6 @@ LDAP_BEGIN_DECL
 #define SLAPD_GROUP_CLASS		"groupOfNames"
 #define SLAPD_ROLE_ATTR			"roleOccupant"
 #define SLAPD_ROLE_CLASS		"organizationalRole"
-
-#ifdef SLAPD_ACI_ENABLED
-#define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
-#endif /* SLAPD_ACI_ENABLED */
-
-/* change this to "OpenLDAPset" */
-#define SLAPD_ACI_SET_ATTR		"template"
 
 #define SLAPD_TOP_OID			"2.5.6.0"
 
@@ -1480,12 +1472,15 @@ typedef struct slap_acl {
 	struct slap_acl	*acl_next;
 } AccessControl;
 
+typedef enum {
+	ACL_STATE_NOT_RECORDED			= 0x0,
+	ACL_STATE_RECORDED_VD			= 0x1,
+	ACL_STATE_RECORDED_NV			= 0x2,
+	ACL_STATE_RECORDED			= ( ACL_STATE_RECORDED_VD | ACL_STATE_RECORDED_NV )
+} slap_acl_state_t;
+
 typedef struct slap_acl_state {
-	unsigned as_recorded;
-#define ACL_STATE_NOT_RECORDED			0x0
-#define ACL_STATE_RECORDED_VD			0x1
-#define ACL_STATE_RECORDED_NV			0x2
-#define ACL_STATE_RECORDED				0x3
+	slap_acl_state_t as_recorded;
 
 	/* Access state */
 	AccessControl *as_vd_acl;

@@ -40,7 +40,14 @@
 #include "lber_pvt.h"
 #include "lutil.h"
 
-#define ACI_BUF_SIZE 	1024	/* use most appropriate size */
+/* use most appropriate size */
+#define ACI_BUF_SIZE 			1024
+
+/* move to "stable" when no longer experimental */
+#define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
+
+/* change this to "OpenLDAPset" */
+#define SLAPD_ACI_SET_ATTR		"template"
 
 enum {
 	ACI_BV_ENTRY,
@@ -111,10 +118,7 @@ static const struct berval	aci_bv[] = {
 	BER_BVNULL
 };
 
-#ifdef SLAP_DYNACL
-static
-#endif /* SLAP_DYNACL */
-AttributeDescription *slap_ad_aci;
+static AttributeDescription	*slap_ad_aci;
 
 static int
 OpenLDAPaciValidate(
@@ -390,7 +394,7 @@ done:
 	return rc;
 }
 
-int
+static int
 aci_mask(
 	Operation		*op,
 	Entry			*e,
@@ -640,7 +644,7 @@ aci_mask(
 	return 0;
 }
 
-int
+static int
 aci_init( void )
 {
 	/* OpenLDAP eXperimental Syntax */
@@ -727,7 +731,6 @@ aci_init( void )
 	return rc;
 }
 
-#ifdef SLAP_DYNACL
 static int
 dynacl_aci_parse(
 	const char *fname,
@@ -970,7 +973,6 @@ dynacl_aci_init( void )
 	return rc;
 }
 
-#endif /* SLAP_DYNACL */
 
 /* ACI syntax validation */
 
@@ -1694,7 +1696,7 @@ OpenLDAPaciNormalize(
 int
 init_module( int argc, char *argv[] )
 {
-	return slap_dynacl_register();
+	return dynacl_aci_init();
 }
 #endif /* SLAPD_ACI_ENABLED == SLAPD_MOD_DYNAMIC */
 

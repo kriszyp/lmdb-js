@@ -263,7 +263,8 @@ dnl SLAPD OPTIONS
 AC_ARG_ENABLE(xxslapdoptions,[
 SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
-OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no)dnl
+OL_ARG_ENABLE(dynacl,[    --enable-dynacl	  enable run-time loadable ACL support (experimental)], no)dnl
+OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no, [no yes mod])dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
 OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
@@ -463,6 +464,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_modules=no
 	ol_enable_multimaster=no
 	ol_enable_rlookups=no
+	ol_enable_dynacl=no
 	ol_enable_aci=no
 	ol_enable_wrappers=no
 
@@ -2697,10 +2699,24 @@ if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
 fi
 if test "$ol_enable_aci" != no ; then
-	AC_DEFINE(SLAPD_ACI_ENABLED,1,[define to support per-object ACIs])
-	WITH_ACI_ENABLED=yes
+	if test $ol_enable_dynacl = no ; then
+		ol_enable_dynacl=yes
+		AC_MSG_WARN([ACIs need dynacl])
+	fi
+	if test "$ol_enable_aci" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		dnl remove this after moving servers/slapd/aci.c in contrib/slapd-modules/acl
+		AC_MSG_ERROR([ACI build as dynamic module not supported (yet)])
+	else 
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	WITH_ACI_ENABLED=$ol_enable_aci
+	AC_DEFINE_UNQUOTED(SLAPD_ACI_ENABLED,$MFLAG,[define to support per-object ACIs])
 else
 	WITH_ACI_ENABLED=no
+fi
+if test "$ol_enable_dynacl" != no ; then
+	AC_DEFINE(SLAP_DYNACL,1,[define to support run-time loadable ACL])
 fi
 
 if test "$ol_link_modules" != no ; then

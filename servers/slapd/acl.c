@@ -373,17 +373,15 @@ access_allowed_mask(
 
 	if ( state ) {
 		if ( state->as_vd_ad == desc ) {
-			if ( state->as_recorded ) {
-				if ( ( state->as_recorded & ACL_STATE_RECORDED_NV ) &&
-					val == NULL )
-				{
-					return state->as_result;
+			if ( ( state->as_recorded & ACL_STATE_RECORDED_NV ) &&
+				val == NULL )
+			{
+				return state->as_result;
 
-				} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
-					val != NULL && state->as_vd_acl == NULL )
-				{
-					return state->as_result;
-				}
+			} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
+				val != NULL && state->as_vd_acl == NULL )
+			{
+				return state->as_result;
 			}
 			st_same_attr = 1;
 		} else {
@@ -520,24 +518,22 @@ access_allowed_mask(
 
 	if ( state ) {
 		if ( state->as_vd_ad == desc ) {
-			if ( state->as_recorded ) {
-				if ( ( state->as_recorded & ACL_STATE_RECORDED_NV ) &&
-					val == NULL )
-				{
-					return state->as_result;
+			if ( ( state->as_recorded & ACL_STATE_RECORDED_NV ) &&
+				val == NULL )
+			{
+				return state->as_result;
 
-				} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
-					val != NULL && state->as_vd_acl == NULL )
-				{
-					return state->as_result;
-				}
+			} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
+				val != NULL && state->as_vd_acl == NULL )
+			{
+				return state->as_result;
 			}
 			st_same_attr = 1;
 		} else {
 			*state = state_init;
 		}
 
-		state->as_vd_ad=desc;
+		state->as_vd_ad = desc;
 	}
 
 	Debug( LDAP_DEBUG_ACL,
@@ -740,7 +736,7 @@ done:
 	return ret;
 }
 
-#endif /* SLAP_OVERLAY_ACCESS */
+#endif /* !SLAP_OVERLAY_ACCESS */
 
 /*
  * slap_acl_get - return the acl applicable to entry e, attribute
@@ -2008,169 +2004,7 @@ slap_acl_mask(
 			}
 
 		} else
-#else /* !SLAP_DYNACL */
-
-		/* NOTE: this entire block can be eliminated when SLAP_DYNACL
-		 * moves outside of LDAP_DEVEL */
-#ifdef SLAPD_ACI_ENABLED
-		if ( b->a_aci_at != NULL ) {
-			Attribute	*at;
-			slap_access_t	grant, deny, tgrant, tdeny;
-			struct berval	parent_ndn;
-			BerVarray	bvals = NULL;
-			int		ret, stop;
-#ifdef LDAP_DEBUG
-			char		accessmaskbuf1[ACCESSMASK_MAXLEN];
-#endif /* DEBUG */
-
-			Debug( LDAP_DEBUG_ACL, "    <= check a_aci_at: %s\n",
-				b->a_aci_at->ad_cname.bv_val, 0, 0 );
-
-			/* this case works different from the others above.
-			 * since aci's themselves give permissions, we need
-			 * to first check b->a_access_mask, the ACL's access level.
-			 */
-
-			if ( BER_BVISEMPTY( &e->e_nname ) ) {
-				/* no ACIs in the root DSE */
-				continue;
-			}
-
-			/* first check if the right being requested
-			 * is allowed by the ACL clause.
-			 */
-			if ( ! ACL_GRANT( b->a_access_mask, *mask ) ) {
-				continue;
-			}
-			/* start out with nothing granted, nothing denied */
-			ACL_INIT(tgrant);
-			ACL_INIT(tdeny);
-
-			/* get the aci attribute */
-			at = attr_find( e->e_attrs, b->a_aci_at );
-			if ( at != NULL ) {
-#if 0
-				/* FIXME: this breaks acl caching;
-				 * see also ACL_RECORD_VALUE_STATE below */
-				ACL_RECORD_VALUE_STATE;
-#endif
-				/* the aci is an multi-valued attribute.  The
-				* rights are determined by OR'ing the individual
-				* rights given by the acis.
-				*/
-				for ( i = 0; !BER_BVISNULL( &at->a_nvals[i] ); i++ ) {
-					if ( aci_mask( op,
-						e, desc, val,
-						&at->a_nvals[i],
-						nmatch, matches,
-						&grant, &deny, SLAP_ACI_SCOPE_ENTRY ) != 0 )
-					{
-						tgrant |= grant;
-						tdeny |= deny;
-					}
-				}
-				Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n",
-					  accessmask2str(tgrant, accessmaskbuf, 1), 
-					  accessmask2str(tdeny, accessmaskbuf1, 1), 0);
-
-			}
-			/* If the entry level aci didn't contain anything valid for the 
-			 * current operation, climb up the tree and evaluate the
-			 * acis with scope set to subtree
-			 */
-			if ( (tgrant == ACL_PRIV_NONE) && (tdeny == ACL_PRIV_NONE) ) {
-				dnParent( &e->e_nname, &parent_ndn );
-				while ( !BER_BVISEMPTY( &parent_ndn ) ) {
-					Debug(LDAP_DEBUG_ACL, "checking ACI of %s\n", parent_ndn.bv_val, 0, 0);
-					ret = backend_attribute(op, NULL, &parent_ndn, b->a_aci_at, &bvals, ACL_AUTH);
-					switch(ret){
-					case LDAP_SUCCESS :
-						stop = 0;
-						if (!bvals){
-							break;
-						}
-
-						for ( i = 0; !BER_BVISNULL( &bvals[i] ); i++ ) {
-#if 0
-							/* FIXME: this breaks acl caching;
-							 * see also ACL_RECORD_VALUE_STATE above */
-							ACL_RECORD_VALUE_STATE;
-#endif
-							if ( aci_mask( op, e, desc, val, &bvals[i],
-									nmatch, matches,
-									&grant, &deny, SLAP_ACI_SCOPE_CHILDREN ) != 0 )
-							{
-								tgrant |= grant;
-								tdeny |= deny;
-								/* evaluation stops as soon as either a "deny" or a 
-								 * "grant" directive matches.
-								 */
-								if( (tgrant != ACL_PRIV_NONE) || (tdeny != ACL_PRIV_NONE) ){
-									stop = 1;
-								}
-							}
-							Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n", 
-								accessmask2str(tgrant, accessmaskbuf, 1),
-								accessmask2str(tdeny, accessmaskbuf1, 1), 0);
-						}
-						break;
-
-					case LDAP_NO_SUCH_ATTRIBUTE:
-						/* just go on if the aci-Attribute is not present in
-						 * the current entry 
-						 */
-						Debug(LDAP_DEBUG_ACL, "no such attribute\n", 0, 0, 0);
-						stop = 0;
-						break;
-
-					case LDAP_NO_SUCH_OBJECT:
-						/* We have reached the base object */
-						Debug(LDAP_DEBUG_ACL, "no such object\n", 0, 0, 0);
-						stop = 1;
-						break;
-
-					default:
-						stop = 1;
-						break;
-					}
-					if (stop){
-						break;
-					}
-					dnParent( &parent_ndn, &parent_ndn );
-				}
-			}
-
-
-			/* remove anything that the ACL clause does not allow */
-			tgrant &= b->a_access_mask & ACL_PRIV_MASK;
-			tdeny &= ACL_PRIV_MASK;
-
-			/* see if we have anything to contribute */
-			if( ACL_IS_INVALID(tgrant) && ACL_IS_INVALID(tdeny) ) { 
-				continue;
-			}
-
-			/* this could be improved by changing slap_acl_mask so that it can deal with
-			 * by clauses that return grant/deny pairs.  Right now, it does either
-			 * additive or subtractive rights, but not both at the same time.  So,
-			 * we need to combine the grant/deny pair into a single rights mask in
-			 * a smart way:	 if either grant or deny is "empty", then we use the
-			 * opposite as is, otherwise we remove any denied rights from the grant
-			 * rights mask and construct an additive mask.
-			 */
-			if (ACL_IS_INVALID(tdeny)) {
-				modmask = tgrant | ACL_PRIV_ADDITIVE;
-
-			} else if (ACL_IS_INVALID(tgrant)) {
-				modmask = tdeny | ACL_PRIV_SUBSTRACTIVE;
-
-			} else {
-				modmask = (tgrant & ~tdeny) | ACL_PRIV_ADDITIVE;
-			}
-
-		} else
-#endif /* SLAPD_ACI_ENABLED */
-#endif /* !SLAP_DYNACL */
+#endif /* SLAP_DYNACL */
 		{
 			modmask = b->a_access_mask;
 		}
@@ -2781,13 +2615,12 @@ slap_dynacl_get( const char *name )
  * statically built-in dynamic ACL initialization
  */
 static int (*acl_init_func[])( void ) = {
-#ifdef SLAPD_ACI_ENABLED
 #ifdef SLAP_DYNACL
+	/* TODO: remove when ACI will only be dynamic */
+#if SLAPD_ACI_ENABLED == SLAPD_MOD_STATIC
 	dynacl_aci_init,
-#else /* !SLAP_DYNACL */
-	aci_init,
-#endif /* !SLAP_DYNACL */
 #endif /* SLAPD_ACI_ENABLED */
+#endif /* SLAP_DYNACL */
 
 	NULL
 };

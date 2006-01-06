@@ -254,8 +254,7 @@ It can have the forms
 	tls_ssf=<n>
 	sasl_ssf=<n>
 
-	aci[=<attrname>]
-	dynacl/name[/<options>][.<dynstyle>][=<pattern>]
+	dynacl/<name>[/<options>][.<dynstyle>][=<pattern>]
 .fi
 .LP
 with
@@ -270,6 +269,7 @@ with
 	<domainstyle>={exact|regex|sub(tree)}
 	<setstyle>={exact|regex}
 	<modifier>={expand}
+	<name>=aci		<pattern>=<attrname>]
 .fi
 .LP
 They may be specified in combination.
@@ -620,19 +620,6 @@ The statement
 is undocumented yet.
 .LP
 The statement
-.B aci[=<attrname>]
-means that the access control is determined by the values in the
-.B attrname
-of the entry itself.
-The optional
-.B <attrname>
-indicates what attributeType holds the ACI information in the entry.
-By default, the 
-.B OpenLDAPaci
-operational attribute is used.
-ACIs are experimental; they must be enabled at compile time.
-.LP
-The statement
 .B dynacl/<name>[/<options>][.<dynstyle>][=<pattern>]
 means that access checking is delegated to the admin-defined method
 indicated by
@@ -647,12 +634,19 @@ and
 .B <pattern>
 are optional, and are directly passed to the registered parsing routine.
 Dynacl is experimental; it must be enabled at compile time.
-If dynacl and ACIs are both enabled, ACIs are cast into the dynacl scheme,
-where 
-.B <name>=aci
-and, optionally,
-.BR <patten>=<attrname> .
-However, the original ACI syntax is preserved for backward compatibility.
+.LP
+The statement
+.B dynacl/aci[=<attrname>]
+means that the access control is determined by the values in the
+.B attrname
+of the entry itself.
+The optional
+.B <attrname>
+indicates what attributeType holds the ACI information in the entry.
+By default, the 
+.B OpenLDAPaci
+operational attribute is used.
+ACIs are experimental; they must be enabled at compile time.
 .LP
 The statements
 .BR ssf=<n> ,

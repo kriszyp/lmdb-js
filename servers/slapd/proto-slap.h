@@ -34,24 +34,11 @@ LDAP_BEGIN_DECL
 /*
  * aci.c
  */
-#ifdef SLAPD_ACI_ENABLED
-LDAP_SLAPD_F (int) aci_mask LDAP_P((
-	Operation *op, Entry *e,
-	AttributeDescription *desc,
-	struct berval *val,
-	struct berval *aci,
-	int nmatch,
-	regmatch_t *matches,
-	slap_access_t *grant,
-	slap_access_t *deny,
-	slap_aci_scope_t scope));
 #ifdef SLAP_DYNACL
+#ifdef SLAPD_ACI_ENABLED
 LDAP_SLAPD_F (int) dynacl_aci_init LDAP_P(( void ));
-#else /* !SLAP_DYNACL */
-LDAP_SLAPD_F (int) aci_init LDAP_P(( void ));
-LDAP_SLAPD_V (AttributeDescription *) slap_ad_aci;
-#endif /* !SLAP_DYNACL */
 #endif /* SLAPD_ACI_ENABLED */
+#endif /* SLAP_DYNACL */
 
 /*
  * acl.c

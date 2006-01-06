@@ -1622,11 +1622,18 @@ parse_acl(
 				{
 					char		*name = NULL,
 							*opts = NULL;
-					
+
+#if 1 /* tolerate legacy "aci" <who> */
 					if ( strcasecmp( left, "aci" ) == 0 ) {
+						Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+							"undocumented deprecated \"aci\" directive "
+							"is superseded by \"dynacl/aci\".\n",
+							fname, lineno, 0 );
 						name = "aci";
 						
-					} else if ( strncasecmp( left, "dynacl/", STRLENOF( "dynacl/" ) ) == 0 ) {
+					} else
+#endif /* tolerate legacy "aci" <who> */
+					if ( strncasecmp( left, "dynacl/", STRLENOF( "dynacl/" ) ) == 0 ) {
 						name = &left[ STRLENOF( "dynacl/" ) ];
 						opts = strchr( name, '/' );
 						if ( opts ) {
@@ -1646,61 +1653,7 @@ parse_acl(
 						continue;
 					}
 				}
-#else /* ! SLAP_DYNACL */
-
-#ifdef SLAPD_ACI_ENABLED
-				if ( strcasecmp( left, "aci" ) == 0 ) {
-					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-							"inappropriate style \"%s\" in by clause.\n",
-						    fname, lineno, style );
-						return acl_usage();
-					}
-
-					if( b->a_aci_at != NULL ) {
-						Debug( LDAP_DEBUG_ANY,
-							"%s: line %d: ACI attribute already specified.\n",
-							fname, lineno, 0 );
-						return acl_usage();
-					}
-
-					if ( right != NULL && *right != '\0' ) {
-						rc = slap_str2ad( right, &b->a_aci_at, &text );
-
-						if( rc != LDAP_SUCCESS ) {
-							char	buf[ SLAP_TEXT_BUFLEN ];
-
-							snprintf( buf, sizeof( buf ),
-								"aci \"%s\": %s.",
-								right, text );
-							Debug( LDAP_DEBUG_ANY,
-								"%s: line %d: %s\n",
-								fname, lineno, buf );
-							return acl_usage();
-						}
-
-					} else {
-						b->a_aci_at = slap_ad_aci;
-					}
-
-					if( !is_at_syntax( b->a_aci_at->ad_type,
-						SLAPD_ACI_SYNTAX) )
-					{
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
-						snprintf( buf, sizeof( buf ),
-							"ACI \"%s\": inappropriate syntax: %s.",
-							right,
-							b->a_aci_at->ad_type->sat_syntax_oid );
-						Debug( LDAP_DEBUG_ANY, "%s: line %d: %s\n",
-							fname, lineno, buf );
-						return acl_usage();
-					}
-
-					continue;
-				}
-#endif /* SLAPD_ACI_ENABLED */
-#endif /* ! SLAP_DYNACL */
+#endif /* SLAP_DYNACL */
 
 				if ( strcasecmp( left, "ssf" ) == 0 ) {
 					if ( sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE ) {
@@ -2282,11 +2235,7 @@ acl_usage( void )
 			"\t[domain[.<domainstyle>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAP_DYNACL
 			"\t[dynacl/<name>[/<options>][.<dynstyle>][=<pattern>]]\n"
-#else /* ! SLAP_DYNACL */
-#ifdef SLAPD_ACI_ENABLED
-			"\t[aci[=<attrname>]]\n"
-#endif /* SLAPD_ACI_ENABLED */
-#endif /* ! SLAP_DYNACL */
+#endif /* SLAP_DYNACL */
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
 		"<style> ::= exact | regex | base(Object)\n"
 		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
@@ -2731,13 +2680,6 @@ access2text( Access *b, char *ptr )
 			}
 		}
 	}
-#else /* ! SLAP_DYNACL */
-#ifdef SLAPD_ACI_ENABLED
-	if ( b->a_aci_at != NULL ) {
-		ptr = lutil_strcopy( ptr, " aci=" );
-		ptr = lutil_strcopy( ptr, b->a_aci_at->ad_cname.bv_val );
-	}
-#endif
 #endif /* SLAP_DYNACL */
 
 	/* Security Strength Factors */
