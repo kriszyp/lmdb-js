@@ -3061,7 +3061,7 @@ parse_syncrepl_line(
 			if ( strcasecmp( val, "unlimited" ) == 0 ) {
 				si->si_slimit = 0;
 
-			} else if ( lutil_atoi( &si->si_slimit, val ) != 0 || val < 0 ) {
+			} else if ( lutil_atoi( &si->si_slimit, val ) != 0 || si->si_slimit < 0 ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"invalid size limit value \"%s\".\n",
 					val );
@@ -3075,7 +3075,7 @@ parse_syncrepl_line(
 			if ( strcasecmp( val, "unlimited" ) == 0 ) {
 				si->si_tlimit = 0;
 
-			} else if ( lutil_atoi( &si->si_tlimit, val ) != 0 || val < 0 ) {
+			} else if ( lutil_atoi( &si->si_tlimit, val ) != 0 || si->si_tlimit < 0 ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"invalid time limit value \"%s\".\n",
 					val );

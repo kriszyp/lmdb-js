@@ -3,10 +3,11 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.16 Engineering
 	Fixed slapd-bdb reindexing via cn=config not noticed issue (ITS#4260)
 	Fixed slapd-monitor connection search crash (ITS#4300)
-	Flapd slapd cn=config bad ACL syntax modfy crash (ITS#4306)
+	Flapd slapd cn=config bad ACL syntax modify crash (ITS#4306)
 	Fixed slapd ACL/suffix configuration issue (ITS#4307)
 	Fixed slapd-bdb/hdb cache issue (ITS#4308)
 	Fixed slapd-bdb/hdb/ldbm suffix add with default referral issue (ITS#4310)
+	Fixed syncrepl time/size limit parsing
 	Build environment
 		Replace sched_yield(2) on Linux with select(2) (ITS#3950)
 	Documentation
