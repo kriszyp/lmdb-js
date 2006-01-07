@@ -1873,8 +1873,8 @@ dds_initialize()
 		}		s_at[] = {
 			{ "entryExpireTimestamp", "( 1.3.6.1.4.1.4203.666.1.57 "
 				"NAME ( 'entryExpireTimestamp' ) "
-				"DESC 'RFC2589 extension: expire time of a dynamic object, "
-					"computed as modifyTimestamp + entryTtl' "
+				"DESC 'RFC2589 OpenLDAP extension: expire time of a dynamic object, "
+					"computed as now + entryTtl' "
 				"EQUALITY generalizedTimeMatch "
 				"ORDERING generalizedTimeOrderingMatch "
 				"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
