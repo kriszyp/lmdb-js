@@ -1552,7 +1552,12 @@ parse_page_control(
 		fprintf( stderr, "%s (%d)\n", ldap_err2string(err), err );
 	}
 
-	if( ctrl ) {
+	if ( ctrl ) {
+		/* There might be others, e.g. ppolicy... */
+		ctrlp = ldap_find_control( LDAP_CONTROL_PAGEDRESULTS, ctrl );
+	}
+
+	if ( ctrlp ) {
 		/* Parse the control value
 		 * searchResult ::= SEQUENCE {
 		 *		size	INTEGER (0..maxInt),
