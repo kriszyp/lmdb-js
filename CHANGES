@@ -7,7 +7,9 @@ OpenLDAP 2.3.16 Engineering
 	Fixed slapd ACL/suffix configuration issue (ITS#4307)
 	Fixed slapd-bdb/hdb cache issue (ITS#4308)
 	Fixed slapd-bdb/hdb/ldbm suffix add with default referral issue (ITS#4310)
-	Fixed syncrepl time/size limit parsing
+	Fixed slapd-ldbm compare cache release issue (ITS#4313)
+	Fixed slapd syncrepl time/size limit parsing
+	Fixed ldapsearch response control handling issue
 	Build environment
 		Replace sched_yield(2) on Linux with select(2) (ITS#3950)
 	Documentation
