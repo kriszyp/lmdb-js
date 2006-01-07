@@ -61,7 +61,7 @@ ldbm_back_compare(
 		free( (char *)rs->sr_matched );
 		rs->sr_ref = NULL;
 		rs->sr_matched = NULL;
-		return( 1 );
+		return rs->sr_err;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
@@ -79,7 +79,6 @@ ldbm_back_compare(
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
 		rs->sr_matched = NULL;
-		rs->sr_err = 1;
 		goto return_results;
 	}
 
@@ -88,7 +87,6 @@ ldbm_back_compare(
 	{
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			NULL );
-		rs->sr_err = 1;
 		goto return_results;
 	}
 
@@ -111,15 +109,20 @@ ldbm_back_compare(
 		}
 	}
 
-	send_ldap_result( op, rs );
-
-	if( rs->sr_err != LDAP_NO_SUCH_ATTRIBUTE ) {
-		rs->sr_err = 0;
-	}
-
-
 return_results:;
 	cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-	return( rs->sr_err );
+
+	switch ( rs->sr_err ) {
+	case LDAP_NO_SUCH_ATTRIBUTE:
+	case LDAP_COMPARE_FALSE:
+	case LDAP_COMPARE_TRUE:
+		send_ldap_result( op, rs );
+		if ( rs->sr_err != LDAP_NO_SUCH_ATTRIBUTE ) {
+			rs->sr_err = LDAP_SUCCESS;
+		}
+		break;
+	}
+
+	return rs->sr_err;
 }
