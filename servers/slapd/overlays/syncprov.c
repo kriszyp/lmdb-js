@@ -821,7 +821,7 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 	syncres *sr;
 	Entry *e;
 	opcookie opc;
-	int rc;
+	int rc = 0;
 
 	opc.son = on;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -897,7 +897,7 @@ syncprov_qtask( void *ctx, void *arg )
 	op->o_private = NULL;
 	op->o_callback = NULL;
 
-	syncprov_qplay( op, on, so );
+	(void)syncprov_qplay( op, on, so );
 
 	/* decrement use count... */
 	syncprov_free_syncop( so );
