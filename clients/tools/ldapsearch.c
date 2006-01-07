@@ -1568,7 +1568,7 @@ parse_page_control(
 	rc = ldap_parse_result( ld, result,
 		&err, NULL, NULL, NULL, &ctrl, 0 );
 
-	if( rc != LDAP_SUCCESS ) {
+	if ( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_result", rc, NULL, NULL, NULL, NULL );
 		exit( EXIT_FAILURE );
 	}
@@ -1577,7 +1577,12 @@ parse_page_control(
 		fprintf( stderr, "%s (%d)\n", ldap_err2string(err), err );
 	}
 
-	if( ctrl ) {
+	if ( ctrl ) {
+		/* There might be others, e.g. ppolicy... */
+		ctrlp = ldap_find_control( LDAP_CONTROL_PAGEDRESULTS, ctrl );
+	}
+
+	if ( ctrlp ) {
 		/* Parse the control value
 		 * searchResult ::= SEQUENCE {
 		 *		size	INTEGER (0..maxInt),
