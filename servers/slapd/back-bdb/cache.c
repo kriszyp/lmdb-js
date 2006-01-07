@@ -619,6 +619,8 @@ bdb_cache_lru_purge(void *ctx, void *arg)
 		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 1 );
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	}
+
+	return NULL;
 }
 
 /* caller must have lru_head_mutex locked. mutex
