@@ -315,7 +315,7 @@ slap_response_play(
 {
 	int rc;
 
-#ifdef NEW_CB
+#ifdef LDAP_DEVEL
 	slap_callback	*sc = op->o_callback, **scp;
 
 	rc = SLAP_CB_CONTINUE;
@@ -343,7 +343,7 @@ slap_response_play(
 	}
 
 	op->o_callback = sc;
-#else /* ! NEW_CB */
+#else /* ! LDAP_DEVEL */
 	slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
 
 	rc = SLAP_CB_CONTINUE;
@@ -362,7 +362,7 @@ slap_response_play(
 	}
 
 	op->o_callback = sc;
-#endif /* ! NEW_CB */
+#endif /* ! LDAP_DEVEL */
 
 	return rc;
 }
@@ -372,7 +372,7 @@ slap_cleanup_play(
 	Operation *op,
 	SlapReply *rs )
 {
-#ifdef NEW_CB
+#ifdef LDAP_DEVEL
 	slap_callback	*sc = op->o_callback, **scp;
 
 	for ( scp = &sc; *scp; ) {
@@ -401,7 +401,7 @@ slap_cleanup_play(
 	}
 
 	op->o_callback = sc;
-#else /* ! NEW_CB */
+#else /* ! LDAP_DEVEL */
 	slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
 
 	for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
@@ -419,7 +419,7 @@ slap_cleanup_play(
 	}
 
 	op->o_callback = sc;
-#endif /* ! NEW_CB */
+#endif /* ! LDAP_DEVEL */
 
 	return LDAP_SUCCESS;
 }
