@@ -63,7 +63,7 @@ usage( int tool, const char *progname )
 
 	case SLAPADD:
 		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]\n"
-			"\t[-l ldiffile] [-q] [-u] [-w]\n";
+			"\t[-l ldiffile] [-q] [-u] [-s] [-w]\n";
 		break;
 
 	case SLAPAUTH:
@@ -211,7 +211,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:F:gl:n:qtuvw";
+		options = "b:cd:f:F:gl:n:qstuvw";
 		break;
 
 	case SLAPCAT:
@@ -344,7 +344,10 @@ slap_tool_init(
 			break;
 
 		case 's':	/* dump subtree */
-			subtree = strdup( optarg );
+			if ( tool == SLAPADD )
+				mode |= SLAP_TOOL_NO_SCHEMA_CHECK;
+			else if ( tool == SLAPCAT )
+				subtree = strdup( optarg );
 			break;
 
 		case 't':	/* turn on truncate */

@@ -193,16 +193,18 @@ slapadd( int argc, char **argv )
 			/* check schema */
 			op->o_bd = be;
 
-			rc = entry_schema_check( op, e, NULL, manage,
-				&text, textbuf, textlen );
+			if ( (slapMode & SLAP_TOOL_NO_SCHEMA_CHECK) == 0) {
+				rc = entry_schema_check( op, e, NULL, manage,
+					&text, textbuf, textlen );
 
-			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
-					progname, e->e_dn, lineno, rc, text );
-				rc = EXIT_FAILURE;
-				entry_free( e );
-				if( continuemode ) continue;
-				break;
+				if( rc != LDAP_SUCCESS ) {
+					fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
+						progname, e->e_dn, lineno, rc, text );
+					rc = EXIT_FAILURE;
+					entry_free( e );
+					if( continuemode ) continue;
+					break;
+				}
 			}
 		}
 
