@@ -1940,7 +1940,7 @@ ldap_turn_s LDAP_P(( LDAP *ld,
  * LDAP Paged Results
  *	in pagectrl.c
  */
-#define LDAP_API_FEATURE_PAGED_RESULTS 1000
+#define LDAP_API_FEATURE_PAGED_RESULTS 2000
 
 LDAP_F( int )
 ldap_create_page_control_value LDAP_P((
