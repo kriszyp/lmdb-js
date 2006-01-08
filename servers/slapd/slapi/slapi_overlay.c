@@ -278,7 +278,8 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, int prc )
 				op->o_log_prefix,
 				BER_BVISNULL( &op->o_conn->c_dn )
 					? "<empty>" : op->o_conn->c_dn.bv_val,
-				op->orb_tmp_mech.bv_val, 0, 0 );
+				BER_BVISNULL( &op->orb_tmp_mech )
+					? "<empty>" : op->orb_tmp_mech.bv_val, 0, 0 );
 
 			return -1;
 		}
@@ -880,7 +881,8 @@ int slapi_over_config( BackendDB *be )
 		ldap_pvt_thread_mutex_init( &slapi_time_mutex );
 		ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex );
 
-		slapi_log_file = slapi_ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
+		if ( slapi_log_file == NULL )
+			slapi_log_file = slapi_ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
 
 		rc = slapi_int_init_object_extensions();
 		if ( rc != 0 )
