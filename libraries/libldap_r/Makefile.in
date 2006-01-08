@@ -25,7 +25,7 @@ XXSRCS    = apitest.c test.c \
 	sasl.c sbind.c kbind.c unbind.c cancel.c \
 	filter.c free.c sort.c passwd.c whoami.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
-	request.c os-ip.c url.c sortctrl.c vlvctrl.c \
+	request.c os-ip.c url.c pagectrl.c sortctrl.c vlvctrl.c \
 	init.c options.c print.c string.c util-int.c schema.c \
 	charray.c tls.c os-local.c dnssrv.c utf-8.c utf-8-conv.c \
 	turn.c groupings.c txn.c ppolicy.c dds.c
@@ -41,7 +41,7 @@ OBJS	= threads.lo rdwr.lo tpool.lo  rq.lo \
 	sasl.lo sbind.lo kbind.lo unbind.lo cancel.lo \
 	filter.lo free.lo sort.lo passwd.lo whoami.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
-	request.lo os-ip.lo url.lo sortctrl.lo vlvctrl.lo \
+	request.lo os-ip.lo url.lo pagectrl.o sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
 	charray.lo tls.lo os-local.lo dnssrv.lo utf-8.lo utf-8-conv.lo \
 	turn.lo groupings.lo txn.lo ppolicy.lo dds.lo

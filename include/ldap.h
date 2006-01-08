@@ -1937,6 +1937,41 @@ ldap_turn_s LDAP_P(( LDAP *ld,
 	LDAPControl **cctrl ));
 
 /*
+ * LDAP Paged Results
+ *	in pagectrl.c
+ */
+#define LDAP_API_FEATURE_PAGED_RESULTS 1000
+
+LDAP_F( int )
+ldap_create_page_control_value LDAP_P((
+	LDAP             *ld,
+	unsigned long    pagesize,
+	struct berval    *cookie,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_page_control LDAP_P((
+	LDAP             *ld,
+	unsigned long    pagesize,
+	struct berval    *cookie,
+	int		iscritical,
+	LDAPControl      **ctrlp ));
+
+LDAP_F( int )
+ldap_parse_page_control LDAP_P((
+	LDAP           *ld,
+	LDAPControl    **ctrls,
+	unsigned long  *count,
+	struct berval  **cookie ));
+
+LDAP_F( int )
+ldap_parse_pageresponse_control LDAP_P((
+	LDAP           *ld,
+	LDAPControl    *ctrl,
+	unsigned long  *count,
+	struct berval  *cookie ));
+
+/*
  * LDAP Server Side Sort
  *	in sortctrl.c
  */
@@ -1959,6 +1994,12 @@ ldap_free_sort_keylist LDAP_P((
 	LDAPSortKey **sortkeylist ));
 
 LDAP_F( int )
+ldap_create_sort_control_value LDAP_P((
+	LDAP *ld,
+	LDAPSortKey **keyList,
+	struct berval *value ));
+
+LDAP_F( int )
 ldap_create_sort_control LDAP_P((
 	LDAP *ld,
 	LDAPSortKey **keyList,
@@ -1966,9 +2007,9 @@ ldap_create_sort_control LDAP_P((
 	LDAPControl **ctrlp ));
 
 LDAP_F( int )
-ldap_parse_sortresult_control LDAP_P((
+ldap_parse_sortresponse_control LDAP_P((
 	LDAP           *ld,
-	LDAPControl    **ctrlp,
+	LDAPControl    *ctrl,
 	unsigned long  *result,
 	char           **attribute ));
 
@@ -1990,6 +2031,12 @@ typedef struct ldapvlvinfo {
     struct berval *	ldvlv_context;
     void *			ldvlv_extradata;
 } LDAPVLVInfo;
+
+LDAP_F( int )
+ldap_create_vlv_control_value LDAP_P((
+	LDAP *ld,
+	LDAPVLVInfo *ldvlistp,
+	struct berval *value));
 
 LDAP_F( int )
 ldap_create_vlv_control LDAP_P((

@@ -57,6 +57,127 @@
 				   are used to construct the value of the control
 				   that is created.
    
+   value     (OUT) A struct berval that contains the value to be assigned to the ldctl_value member
+				   of an LDAPControl structure that contains the 
+				   VirtualListViewRequest control.
+				   The bv_val member of the berval structure
+				   SHOULD be freed when it is no longer in use by
+				   calling ldap_memfree().
+					  
+   
+   Ber encoding
+   
+   VirtualListViewRequest ::= SEQUENCE {
+		beforeCount  INTEGER (0 .. maxInt),
+		afterCount   INTEGER (0 .. maxInt),
+		CHOICE {
+				byoffset [0] SEQUENCE, {
+				offset        INTEGER (0 .. maxInt),
+				contentCount  INTEGER (0 .. maxInt) }
+				[1] greaterThanOrEqual assertionValue }
+		contextID     OCTET STRING OPTIONAL }
+	  
+   
+   Note:  The first time the VLV control is created, the ldvlv_context
+		  field of the LDAPVLVInfo structure should be set to NULL.
+		  The context obtained from calling ldap_parse_vlv_control()
+		  should be used as the context in the next ldap_create_vlv_control
+		  call.
+
+ ---*/
+
+int
+ldap_create_vlv_control_value(
+	LDAP *ld,
+	LDAPVLVInfo *vlvinfop,
+	struct berval *value )
+{
+	ber_tag_t tag;
+	BerElement *ber;
+
+	if ( ld == NULL || vlvinfop == NULL || value == NULL ) {
+		ld->ld_errno = LDAP_PARAM_ERROR;
+		return ld->ld_errno;
+	}
+
+	assert( LDAP_VALID( ld ) );
+
+	value->bv_val = NULL;
+	value->bv_len = 0;
+
+	ber = ldap_alloc_ber_with_options( ld );
+	if ( ber == NULL ) {
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return ld->ld_errno;
+	}
+
+	tag = ber_printf( ber, "{ii" /*}*/,
+		vlvinfop->ldvlv_before_count,
+		vlvinfop->ldvlv_after_count );
+	if ( tag == LBER_ERROR ) {
+		goto error_return;
+	}
+
+	if ( vlvinfop->ldvlv_attrvalue == NULL ) {
+		tag = ber_printf( ber, "t{iiN}",
+			LDAP_VLVBYINDEX_IDENTIFIER,
+			vlvinfop->ldvlv_offset,
+			vlvinfop->ldvlv_count );
+		if ( tag == LBER_ERROR ) {
+			goto error_return;
+		}
+
+	} else {
+		tag = ber_printf( ber, "tO",
+			LDAP_VLVBYVALUE_IDENTIFIER,
+			vlvinfop->ldvlv_attrvalue );
+		if ( tag == LBER_ERROR ) {
+			goto error_return;
+		}
+	}
+
+	if ( vlvinfop->ldvlv_context ) {
+		tag = ber_printf( ber, "tO",
+			LDAP_VLVCONTEXT_IDENTIFIER,
+			vlvinfop->ldvlv_context );
+		if ( tag == LBER_ERROR ) {
+			goto error_return;
+		}
+	}
+
+	tag = ber_printf( ber, /*{*/ "N}" ); 
+	if ( tag == LBER_ERROR ) {
+		goto error_return;
+	}
+
+	if ( ber_flatten2( ber, value, 1 ) == -1 ) {
+		ld->ld_errno = LDAP_NO_MEMORY;
+	}
+
+	if ( 0 ) {
+error_return:;
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+	}
+
+	if ( ber != NULL ) {
+		ber_free( ber, 1 );
+	}
+
+	return ld->ld_errno;
+}
+
+/*---
+   ldap_create_vlv_control
+   
+   Create and encode the Virtual List View control.
+
+   ld        (IN)  An LDAP session handle, as obtained from a call to
+				   ldap_init().
+   
+   vlvinfop  (IN)  The address of an LDAPVLVInfo structure whose contents 
+				   are used to construct the value of the control
+				   that is created.
+   
    ctrlp     (OUT) A result parameter that will be assigned the address
 				   of an LDAPControl structure that contains the 
 				   VirtualListViewRequest control created by this function.
@@ -87,62 +208,30 @@
  ---*/
 
 int
-ldap_create_vlv_control( LDAP *ld,
-						 LDAPVLVInfo *vlvinfop,
-						 LDAPControl **ctrlp )
+ldap_create_vlv_control(
+	LDAP *ld,
+	LDAPVLVInfo *vlvinfop,
+	LDAPControl **ctrlp )
 {
-	ber_tag_t tag;
-	BerElement *ber;
+	struct berval	value;
 
-	assert( ld != NULL );
-	assert( LDAP_VALID( ld ) );
-	assert( vlvinfop != NULL );
-	assert( ctrlp != NULL );
-
-	if ((ber = ldap_alloc_ber_with_options(ld)) == NULL) {
-		ld->ld_errno = LDAP_NO_MEMORY;
-		return(LDAP_NO_MEMORY);
+	if ( ctrlp == NULL ) {
+		ld->ld_errno = LDAP_PARAM_ERROR;
+		return ld->ld_errno;
 	}
 
-	tag = ber_printf(ber, "{ii" /*}*/,
-		vlvinfop->ldvlv_before_count,
-		vlvinfop->ldvlv_after_count);
-	if( tag == LBER_ERROR ) goto exit;
-
-	if (vlvinfop->ldvlv_attrvalue == NULL) {
-		tag = ber_printf(ber, "t{iiN}",
-			LDAP_VLVBYINDEX_IDENTIFIER,
-			vlvinfop->ldvlv_offset,
-			vlvinfop->ldvlv_count);
-		if( tag == LBER_ERROR ) goto exit;
-
-	} else {
-		tag = ber_printf(ber, "tO",
-			LDAP_VLVBYVALUE_IDENTIFIER,
-			vlvinfop->ldvlv_attrvalue);
-		if( tag == LBER_ERROR ) goto exit;
+	ld->ld_errno = ldap_create_vlv_control_value( ld, vlvinfop, &value );
+	if ( ld->ld_errno == LDAP_SUCCESS ) {
+		ld->ld_errno = ldap_create_control( LDAP_CONTROL_VLVREQUEST,
+			NULL, 1, ctrlp );
+		if ( ld->ld_errno == LDAP_SUCCESS ) {
+			(*ctrlp)->ldctl_value = value;
+		} else {
+			LDAP_FREE( value.bv_val );
+		}
 	}
 
-	if (vlvinfop->ldvlv_context) {
-		tag = ber_printf(ber, "tO",
-			LDAP_VLVCONTEXT_IDENTIFIER,
-			vlvinfop->ldvlv_context);
-		if( tag == LBER_ERROR ) goto exit;
-	}
-
-	tag = ber_printf(ber, /*{*/ "N}"); 
-	if( tag == LBER_ERROR ) goto exit;
-
-	ld->ld_errno = ldap_create_control(	LDAP_CONTROL_VLVREQUEST,
-		ber, 1, ctrlp);
-
-	ber_free(ber, 1);
-	return(ld->ld_errno);
-
-exit:
-	ber_free(ber, 1);
-	ld->ld_errno = LDAP_ENCODING_ERROR;
-	return(ld->ld_errno);
+	return ld->ld_errno;
 }
 
 
@@ -210,8 +299,6 @@ ldap_parse_vlvresponse_control(
 	int            *errcodep )
 {
 	BerElement  *ber;
-	LDAPControl *pControl;
-	int i;
 	unsigned long pos, count, err;
 	ber_tag_t tag, berTag;
 	ber_len_t berLen;
