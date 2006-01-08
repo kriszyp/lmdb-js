@@ -627,7 +627,7 @@ main( int argc, char **argv )
 	FILE		*fp = NULL;
 	int			rc, i, first;
 	LDAP		*ld = NULL;
-	BerElement	*seber = NULL, *vrber = NULL, *prber = NULL;
+	BerElement	*seber = NULL, *vrber = NULL;
 
 	BerElement      *syncber = NULL;
 	struct berval   *syncbvalp = NULL;
@@ -851,14 +851,10 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			if (( prber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+			if ( ldap_create_page_control_value( ld, pageSize, &pr_cookie, &c[i].ldctl_value ) ) {
 				return EXIT_FAILURE;
 			}
 
-			ber_printf( prber, "{iO}", pageSize, &pr_cookie );
-			if ( ber_flatten2( prber, &c[i].ldctl_value, 0 ) == -1 ) {
-				return EXIT_FAILURE;
-			}
 			if ( pr_cookie.bv_val != NULL ) {
 				ber_memfree( pr_cookie.bv_val );
 				pr_cookie.bv_val = NULL;
@@ -878,7 +874,6 @@ getNextPage:
 
 		ber_free( seber, 1 );
 		ber_free( vrber, 1 );
-		ber_free( prber, 1 );
 	}
 	
 	if ( verbose ) {

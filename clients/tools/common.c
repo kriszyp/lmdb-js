@@ -1406,24 +1406,23 @@ print_postread( LDAP *ld, LDAPControl *ctrl )
 static int
 print_paged_results( LDAP *ld, LDAPControl *ctrl )
 {
-	BerElement	*ber;
-	ber_int_t	estimate;
-	
-	ber = ber_init( &ctrl->ldctl_value );
+	unsigned long estimate;
+
 	/* note: pr_cookie is being malloced; it's freed
 	 * the next time the control is sent, but the last
 	 * time it's not; we don't care too much, because
 	 * the last time an empty value is returned... */
-	if ( ber_scanf( ber, "{io}", &estimate, &pr_cookie ) == LBER_ERROR ) {
+	if ( ldap_parse_pageresponse_control( ld, ctrl, &estimate, &pr_cookie ) != LDAP_SUCCESS ) {
 		/* error? */
 		return 1;
 
 	} else {
+		/* FIXME: check buffer overflow */
 		char	buf[ BUFSIZ ], *ptr = buf;
 
 		if ( estimate > 0 ) {
 			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-				"estimate=%d", estimate );
+				"estimate=%lu", estimate );
 		}
 
 		if ( pr_cookie.bv_len > 0 ) {
@@ -1453,10 +1452,6 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			"pagedresults", buf, ptr - buf );
-	}
-
-	if ( ber != NULL ) {
-		ber_free( ber, 1 );
 	}
 
 	return 0;
