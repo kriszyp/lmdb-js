@@ -86,7 +86,7 @@ ldap_create_passwordpolicy_control( LDAP *ld,
 
    ld           (IN)   An LDAP session handle.
    
-   ctrls        (IN)   The address of an
+   ctrl         (IN)   The address of an
 					   LDAPControl structure, typically obtained 
 					   by a call to ldap_find_control().
 
