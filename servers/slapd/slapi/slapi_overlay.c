@@ -881,7 +881,8 @@ int slapi_over_config( BackendDB *be )
 		ldap_pvt_thread_mutex_init( &slapi_time_mutex );
 		ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex );
 
-		slapi_log_file = slapi_ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
+		if ( slapi_log_file == NULL )
+			slapi_log_file = slapi_ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
 
 		rc = slapi_int_init_object_extensions();
 		if ( rc != 0 )
