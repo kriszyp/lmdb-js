@@ -54,7 +54,10 @@ disable subordinate gluing.  Only the specified database will be
 processed, and not its glued subordinates (if any).
 .TP
 .B -s
-disable schema checking.
+disable schema checking.  This option is intended to be used when loading
+databases containing special objects, such as fractional objects on a
+partial replica.  Loading normal objects which do not conform to
+schema may result in unexpected and ill behavior.
 .TP
 .B \-u
 enable dry-run (don't write to backend) mode.
