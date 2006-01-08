@@ -2717,7 +2717,6 @@ LDAPMod **slapi_int_modifications2ldapmods( Modifications *modlist )
 			modp->mod_type = slapi_ch_strdup( ml->sml_desc->ad_cname.bv_val );
 		} else {
 			modp->mod_type = slapi_ch_strdup( ml->sml_type.bv_val );
-			BER_BVZERO( &ml->sml_type );
 		}
 
 		if ( ml->sml_values != NULL ) {
@@ -3100,7 +3099,7 @@ int slapi_int_access_allowed( Operation *op,
 		break;
         }
 
-	rc = slapi_int_get_plugins( op->o_bd, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
+	rc = slapi_int_get_plugins( frontendDB, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* nothing to do; allowed access */
 		return 1;
