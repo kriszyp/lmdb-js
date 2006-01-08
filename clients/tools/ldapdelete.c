@@ -140,7 +140,7 @@ main( int argc, char **argv )
 
     fp = NULL;
 
-	tool_init();
+	tool_init( TOOL_DELETE );
     prog = lutil_progname( "ldapdelete", argc, argv );
 
 	tool_args( argc, argv );
@@ -215,10 +215,10 @@ static int dodelete(
 
 	if ( verbose ) {
 		printf( _("%sdeleting entry \"%s\"\n"),
-			(not ? "!" : ""), dn );
+			(dont ? "!" : ""), dn );
 	}
 
-	if ( not ) {
+	if ( dont ) {
 		return LDAP_SUCCESS;
 	}
 

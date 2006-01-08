@@ -154,7 +154,7 @@ main(int argc, char **argv)
     LDAP		*ld;
 	int		rc, retval, havedn;
 
-    tool_init();
+    tool_init( TOOL_MODRDN );
     prog = lutil_progname( "ldapmodrdn", argc, argv );
 
 	tool_args( argc, argv );
@@ -253,7 +253,7 @@ static int domodrdn(
 		}
 	}
 
-	if( not ) return LDAP_SUCCESS;
+	if( dont ) return LDAP_SUCCESS;
 
 	rc = ldap_rename( ld, dn, rdn, newSuperior, remove,
 		NULL, NULL, &id );

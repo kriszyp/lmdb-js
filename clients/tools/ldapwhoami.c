@@ -119,7 +119,7 @@ main( int argc, char *argv[] )
 	int		id, code;
 	LDAPMessage	*res;
 
-	tool_init();
+	tool_init( TOOL_WHOAMI );
 	prog = lutil_progname( "ldapwhoami", argc, argv );
 
 	/* LDAPv3 only */
@@ -149,7 +149,7 @@ main( int argc, char *argv[] )
 
 	tool_bind( ld );
 
-	if ( not ) {
+	if ( dont ) {
 		rc = LDAP_SUCCESS;
 		goto skip;
 	}

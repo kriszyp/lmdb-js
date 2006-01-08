@@ -187,7 +187,7 @@ main( int argc, char **argv )
 	LDAP	*ld = NULL;
 	struct berval bvalue = { 0, NULL };
 
-	tool_init();
+	tool_init( TOOL_COMPARE );
 	prog = lutil_progname( "ldapcompare", argc, argv );
 
 	tool_args( argc, argv );
@@ -291,7 +291,7 @@ static int docompare(
 	char		*text;
 	char		**refs;
 
-	if ( not ) {
+	if ( dont ) {
 		return LDAP_SUCCESS;
 	}
 

@@ -178,7 +178,7 @@ main( int argc, char *argv[] )
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
 
-    tool_init();
+    tool_init( TOOL_PASSWD );
 	prog = lutil_progname( "ldappasswd", argc, argv );
 
 	/* LDAPv3 only */
@@ -305,7 +305,7 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if ( not ) {
+	if ( dont ) {
 		rc = LDAP_SUCCESS;
 		goto done;
 	}

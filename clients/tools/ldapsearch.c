@@ -203,12 +203,11 @@ static int ldapsync = 0;
 static struct berval sync_cookie = { 0, NULL };
 static int sync_slimit = -1;
 
+/* cookie and morePagedResults moved to common.c */
 static int pagedResults = 0;
 static int pagePrompt = 1;
 static ber_int_t pageSize = 0;
 static ber_int_t entriesLeft = 0;
-static ber_int_t morePagedResults = 1;
-static struct berval page_cookie = { 0, NULL };
 static int npagedresponses;
 static int npagedentries;
 static int npagedreferences;
@@ -236,11 +235,6 @@ ctrl_add( void )
 
 	return 0;
 }
-
-static int parse_page_control(
-	LDAP *ld,
-	LDAPMessage *result,
-	struct berval *cookie );
 
 static void
 urlize(char *url)
@@ -638,7 +632,7 @@ main( int argc, char **argv )
 	BerElement      *syncber = NULL;
 	struct berval   *syncbvalp = NULL;
 
-	tool_init();
+	tool_init( TOOL_SEARCH );
 
 	npagedresponses = npagedentries = npagedreferences =
 		npagedextended = npagedpartial = 0;
@@ -861,13 +855,14 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			ber_printf( prber, "{iO}", pageSize, &page_cookie );
+			ber_printf( prber, "{iO}", pageSize, &pr_cookie );
 			if ( ber_flatten2( prber, &c[i].ldctl_value, 0 ) == -1 ) {
 				return EXIT_FAILURE;
 			}
-			if ( page_cookie.bv_val != NULL ) {
-				ber_memfree( page_cookie.bv_val );
-				page_cookie.bv_val = NULL;
+			if ( pr_cookie.bv_val != NULL ) {
+				ber_memfree( pr_cookie.bv_val );
+				pr_cookie.bv_val = NULL;
+				pr_cookie.bv_len = 0;
 			}
 			
 			c[i].ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
@@ -976,7 +971,7 @@ getNextPage:
 		}
 	}
 
-	if (( rc == LDAP_SUCCESS ) && pageSize && morePagedResults ) {
+	if (( rc == LDAP_SUCCESS ) && pageSize && pr_morePagedResults ) {
 		char	buf[6];
 		int	i, moreEntries, tmpSize;
 
@@ -1078,7 +1073,7 @@ static int dosearch(
 		filter = value;
 	}
 
-	if ( not ) {
+	if ( dont ) {
 		return LDAP_SUCCESS;
 	}
 
@@ -1150,17 +1145,10 @@ static int dosearch(
 				break;
 
 			case LDAP_RES_SEARCH_RESULT:
+				/* pagedResults stuff is dealt with
+				 * in tool_print_ctrls(), called by
+				 * print_results(). */
 				rc = print_result( ld, msg, 1 );
-				if ( pageSize != 0 ) {
-					if ( rc == LDAP_SUCCESS ) {
-						rc = parse_page_control( ld, msg, &page_cookie );
-					} else {
-						morePagedResults = 0;
-					}
-				} else {
-					morePagedResults = 0;
-				}
-
 				if ( ldapsync == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 					break;
 				}
@@ -1217,7 +1205,7 @@ done:
 		npagedextended += nextended;
 		npagedpartial += npartial;
 		npagedreferences += nreferences;
-		if ( ( morePagedResults == 0 ) && ( ldif < 2 ) ) {
+		if ( ( pr_morePagedResults == 0 ) && ( ldif < 2 ) ) {
 			printf( _("\n# numResponses: %d\n"), npagedresponses );
 			if( npagedentries ) {
 				printf( _("# numEntries: %d\n"), npagedentries );
@@ -1544,6 +1532,8 @@ static int print_result(
 		ber_memvfree( (void **) refs );
 	}
 
+	pr_morePagedResults = 0;
+
 	if( ctrls ) {
 		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
@@ -1552,75 +1542,3 @@ static int print_result(
 	return err;
 }
 
-static int 
-parse_page_control(
-	LDAP *ld,
-	LDAPMessage *result,
-	struct berval *cookie )
-{
-	int rc;
-	int err;
-	LDAPControl **ctrl = NULL;
-	LDAPControl *ctrlp = NULL;
-	BerElement *ber;
-	ber_tag_t tag;
-
-	rc = ldap_parse_result( ld, result,
-		&err, NULL, NULL, NULL, &ctrl, 0 );
-
-	if ( rc != LDAP_SUCCESS ) {
-		tool_perror( "ldap_parse_result", rc, NULL, NULL, NULL, NULL );
-		exit( EXIT_FAILURE );
-	}
-
-	if ( err != LDAP_SUCCESS ) {
-		fprintf( stderr, "%s (%d)\n", ldap_err2string(err), err );
-	}
-
-	if ( ctrl ) {
-		/* There might be others, e.g. ppolicy... */
-		ctrlp = ldap_find_control( LDAP_CONTROL_PAGEDRESULTS, ctrl );
-	}
-
-	if ( ctrlp ) {
-		/* Parse the control value
-		 * searchResult ::= SEQUENCE {
-		 *		size	INTEGER (0..maxInt),
-		 *				-- result set size estimate from server - unused
-		 *		cookie	OCTET STRING
-		 * }
-		 */
-		ctrlp = *ctrl;
-		ber = ber_init( &ctrlp->ldctl_value );
-		if ( ber == NULL ) {
-			fprintf( stderr, _("Internal error.\n") );
-			return EXIT_FAILURE;
-		}
-
-		tag = ber_scanf( ber, "{io}", &entriesLeft, cookie );
-		(void) ber_free( ber, 1 );
-
-		if( tag == LBER_ERROR ) {
-			fprintf( stderr,
-				_("Paged results response control could not be decoded.\n") );
-			return EXIT_FAILURE;
-		}
-
-		if( entriesLeft < 0 ) {
-			fprintf( stderr,
-				_("Invalid entries estimate in paged results response.\n") );
-			return EXIT_FAILURE;
-		}
-
-		if ( cookie->bv_len == 0 ) {
-			morePagedResults = 0;
-		}
-
-		ldap_controls_free( ctrl );
-
-	} else {
-		morePagedResults = 0;
-	}
-
-	return err;
-}

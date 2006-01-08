@@ -251,11 +251,12 @@ main( int argc, char **argv )
 	int		rc, retval;
 	int count, len;
 
-	tool_init();
 	prog = lutil_progname( "ldapmodify", argc, argv );
 
 	/* strncmp instead of strcmp since NT binaries carry .exe extension */
 	ldapadd = ( strncasecmp( prog, "ldapadd", sizeof("ldapadd")-1 ) == 0 );
+
+	tool_init( ldapadd ? TOOL_ADD : TOOL_MODIFY );
 
 	tool_args( argc, argv );
 
@@ -281,9 +282,9 @@ main( int argc, char **argv )
 
 	if ( debug ) ldif_debug = debug;
 
-	ld = tool_conn_setup( not, 0 );
+	ld = tool_conn_setup( dont, 0 );
 
-	if ( !not ) {
+	if ( !dont ) {
 		if ( pw_file || want_bindpw ) {
 			if ( pw_file ) {
 				rc = lutil_get_filed_password( pw_file, &passwd );
@@ -405,7 +406,7 @@ main( int argc, char **argv )
 	}
 #endif
 
-	if ( !not ) {
+	if ( !dont ) {
 		tool_unbind( ld );
 	}
 
@@ -1024,12 +1025,12 @@ domodify(
 	}
 
 	if ( newentry ) {
-		printf( "%sadding new entry \"%s\"\n", not ? "!" : "", dn );
+		printf( "%sadding new entry \"%s\"\n", dont ? "!" : "", dn );
 	} else {
-		printf( "%smodifying entry \"%s\"\n", not ? "!" : "", dn );
+		printf( "%smodifying entry \"%s\"\n", dont ? "!" : "", dn );
 	}
 
-	if ( !not ) {
+	if ( !dont ) {
 		int	msgid;
 		if ( newentry ) {
 			rc = ldap_add_ext( ld, dn, pmods, pctrls, NULL, &msgid );
@@ -1067,8 +1068,8 @@ dodelete(
 	int	rc;
 	int msgid;
 
-	printf( _("%sdeleting entry \"%s\"\n"), not ? "!" : "", dn );
-	if ( !not ) {
+	printf( _("%sdeleting entry \"%s\"\n"), dont ? "!" : "", dn );
+	if ( !dont ) {
 		rc = ldap_delete_ext( ld, dn, pctrls, NULL, &msgid );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, _("%s: delete failed: %s\n"), prog, dn );
@@ -1101,12 +1102,12 @@ dorename(
 	int	rc;
 	int msgid;
 
-	printf( _("%smodifying rdn of entry \"%s\"\n"), not ? "!" : "", dn );
+	printf( _("%smodifying rdn of entry \"%s\"\n"), dont ? "!" : "", dn );
 	if ( verbose ) {
 		printf( _("\tnew RDN: \"%s\" (%skeep existing values)\n"),
 			newrdn, deleteoldrdn ? _("do not ") : "" );
 	}
-	if ( !not ) {
+	if ( !dont ) {
 		rc = ldap_rename( ld, dn, newrdn, newsup, deleteoldrdn,
 			pctrls, NULL, &msgid );
 		if ( rc != LDAP_SUCCESS ) {

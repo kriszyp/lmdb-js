@@ -74,7 +74,7 @@ main( int argc, char *argv[] )
 	int		id, code;
 	LDAPMessage	*res;
 
-	tool_init();
+	tool_init( TOOL_EXOP );
 	prog = lutil_progname( "ldapexop", argc, argv );
 
 	/* LDAPv3 only */

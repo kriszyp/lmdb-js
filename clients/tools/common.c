@@ -29,6 +29,7 @@
 #include <ac/stdlib.h>
 #include <ac/signal.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
 
@@ -63,54 +64,88 @@ ldap_bind LDAP_P((	/* deprecated */
 #endif
 #endif
 
-int   authmethod = -1;
-char *binddn = NULL;
-int   contoper = 0;
-int   debug = 0;
-char *infile = NULL;
-char *ldapuri = NULL;
-char *ldaphost = NULL;
-int   ldapport = 0;
+/* input-related vars */
+
+/* misc. parameters */
+tool_type_t	tool_type;
+int		contoper = 0;
+int		debug = 0;
+char		*infile = NULL;
+int		dont = 0;
+int		referrals = 0;
+int		verbose = 0;
+int		ldif = 0;
+char		*prog = NULL;
+
+/* connection */
+char		*ldapuri = NULL;
+char		*ldaphost = NULL;
+int  		ldapport = 0;
+int		use_tls = 0;
+int		protocol = -1;
+int		version = 0;
+
+/* authc/authz */
+int		authmethod = -1;
+char		*binddn = NULL;
+int		want_bindpw = 0;
+struct berval	passwd = { 0, NULL };
+char		*pw_file = NULL;
 #ifdef HAVE_CYRUS_SASL
-unsigned sasl_flags = LDAP_SASL_AUTOMATIC;
-char	*sasl_realm = NULL;
-char	*sasl_authc_id = NULL;
-char	*sasl_authz_id = NULL;
-char	*sasl_mech = NULL;
-char	*sasl_secprops = NULL;
+unsigned	sasl_flags = LDAP_SASL_AUTOMATIC;
+char		*sasl_realm = NULL;
+char		*sasl_authc_id = NULL;
+char		*sasl_authz_id = NULL;
+char		*sasl_mech = NULL;
+char		*sasl_secprops = NULL;
 #endif
-int   use_tls = 0;
 
-int	  assertctl;
-char *assertion = NULL;
-char *authzid = NULL;
-int   manageDIT = 0;
-int   manageDSAit = 0;
-int   noop = 0;
-int   ppolicy = 0;
-int   preread = 0;
-char *preread_attrs = NULL;
-int   postread = 0;
-char *postread_attrs = NULL;
-
-int   not = 0;
-int   want_bindpw = 0;
-struct berval passwd = { 0, NULL };
-char *pw_file = NULL;
-int   referrals = 0;
-int   protocol = -1;
-int   verbose = 0;
-int   version = 0;
-int   ldif = 0;
-
+/* controls */
+int		assertctl;
+char		*assertion = NULL;
+char		*authzid = NULL;
+int		manageDIT = 0;
+int		manageDSAit = 0;
+int		noop = 0;
+int		ppolicy = 0;
+int		preread = 0;
+static char	*preread_attrs = NULL;
+int		postread = 0;
+static char	*postread_attrs = NULL;
+ber_int_t	pr_morePagedResults = 1;
+struct berval	pr_cookie = { 0, NULL };
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-int chaining = 0;
-static int chainingResolve = -1;
-static int chainingContinuation = -1;
+int		chaining = 0;
+static int	chainingResolve = -1;
+static int	chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
-static int gotintr;
-static int abcan;
+typedef int (*print_ctrl_fn)( LDAP *ld, LDAPControl *ctrl );
+
+static int print_preread( LDAP *ld, LDAPControl *ctrl );
+static int print_postread( LDAP *ld, LDAPControl *ctrl );
+static int print_paged_results( LDAP *ld, LDAPControl *ctrl );
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+static int print_ppolicy( LDAP *ld, LDAPControl *ctrl );
+#endif
+
+static struct tool_ctrls_t {
+	const char	*oid;
+	unsigned	mask;
+	print_ctrl_fn	func;
+} tool_ctrl_response[] = {
+	{ LDAP_CONTROL_PRE_READ,			TOOL_ALL,	print_preread },
+	{ LDAP_CONTROL_POST_READ,			TOOL_ALL,	print_postread },
+	{ LDAP_CONTROL_PAGEDRESULTS,			TOOL_SEARCH,	print_paged_results },
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+	{ LDAP_CONTROL_PASSWORDPOLICYRESPONSE,		TOOL_ALL,	print_ppolicy },
+#endif
+	{ NULL,						0,		NULL }
+};
+
+/* "features" */
+static int	gotintr;
+static int	abcan;
 
 RETSIGTYPE
 do_sig( int sig )
@@ -118,12 +153,10 @@ do_sig( int sig )
 	gotintr = abcan;
 }
 
-/* Set in main() */
-char *prog = NULL;
-
 void
-tool_init( void )
+tool_init( tool_type_t type )
 {
+	tool_type = type;
 	ldap_pvt_setlocale(LC_MESSAGES, "");
 	ldap_pvt_bindtextdomain(OPENLDAP_PACKAGE, LDAP_LOCALEDIR);
 	ldap_pvt_textdomain(OPENLDAP_PACKAGE);
@@ -513,7 +546,7 @@ tool_args( int argc, char **argv )
 			manageDSAit++;
 			break;
 		case 'n':	/* print operations, don't actually do them */
-			not++;
+			dont++;
 			break;
 		case 'O':
 #ifdef HAVE_CYRUS_SASL
@@ -828,7 +861,7 @@ tool_args( int argc, char **argv )
 
 
 LDAP *
-tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
+tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 {
 	LDAP *ld = NULL;
 
@@ -855,7 +888,7 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 		SIGNAL( SIGINT, do_sig );
 	}
 
-	if ( !not ) {
+	if ( !dont ) {
 		int rc;
 
 		if( ( ldaphost != NULL || ldapport ) && ( ldapuri == NULL ) ) {
@@ -1303,6 +1336,168 @@ tool_check_abandon( LDAP *ld, int msgid )
 	return 0;
 }
 
+static int
+print_prepostread( LDAP *ld, LDAPControl *ctrl, struct berval *what)
+{
+	BerElement	*ber;
+	struct berval	bv;
+
+	tool_write_ldif( LDIF_PUT_COMMENT, "==> ",
+		what->bv_val, what->bv_len );
+	ber = ber_init( &ctrl->ldctl_value );
+	if ( ber == NULL ) {
+		/* error? */
+		return 1;
+
+	} else if ( ber_scanf( ber, "{m{" /*}}*/, &bv ) == LBER_ERROR ) {
+		/* error? */
+		return 1;
+
+	} else {
+		tool_write_ldif( LDIF_PUT_VALUE, "dn", bv.bv_val, bv.bv_len );
+
+		while ( ber_scanf( ber, "{m" /*}*/, &bv ) != LBER_ERROR ) {
+			int		i;
+			BerVarray	vals = NULL;
+
+			if ( ber_scanf( ber, "[W]", &vals ) == LBER_ERROR ||
+				vals == NULL )
+			{
+				/* error? */
+				return 1;
+			}
+		
+			for ( i = 0; vals[ i ].bv_val != NULL; i++ ) {
+				tool_write_ldif(
+					ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+					bv.bv_val, vals[ i ].bv_val, vals[ i ].bv_len );
+			}
+
+			ber_bvarray_free( vals );
+		}
+	}
+
+	if ( ber != NULL ) {
+		ber_free( ber, 1 );
+	}
+
+	tool_write_ldif( LDIF_PUT_COMMENT, "<== ",
+		what->bv_val, what->bv_len );
+
+	return 0;
+}
+
+static int
+print_preread( LDAP *ld, LDAPControl *ctrl )
+{
+	static struct berval what = BER_BVC( "preread" );
+
+	return print_prepostread( ld, ctrl, &what );
+}
+
+static int
+print_postread( LDAP *ld, LDAPControl *ctrl )
+{
+	static struct berval what = BER_BVC( "postread" );
+
+	return print_prepostread( ld, ctrl, &what );
+}
+
+static int
+print_paged_results( LDAP *ld, LDAPControl *ctrl )
+{
+	BerElement	*ber;
+	ber_int_t	estimate;
+	
+	ber = ber_init( &ctrl->ldctl_value );
+	/* note: pr_cookie is being malloced; it's freed
+	 * the next time the control is sent, but the last
+	 * time it's not; we don't care too much, because
+	 * the last time an empty value is returned... */
+	if ( ber_scanf( ber, "{io}", &estimate, &pr_cookie ) == LBER_ERROR ) {
+		/* error? */
+		return 1;
+
+	} else {
+		char	buf[ BUFSIZ ], *ptr = buf;
+
+		if ( estimate > 0 ) {
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+				"estimate=%d", estimate );
+		}
+
+		if ( pr_cookie.bv_len > 0 ) {
+			struct berval	bv;
+
+			bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
+				pr_cookie.bv_len ) + 1;
+			bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+			bv.bv_len = lutil_b64_ntop(
+				(unsigned char *) pr_cookie.bv_val,
+				pr_cookie.bv_len,
+				bv.bv_val, bv.bv_len );
+
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+				"%scookie=%s", ptr == buf ? "" : " ",
+				bv.bv_val );
+
+			ber_memfree( bv.bv_val );
+
+			pr_morePagedResults = 1;
+
+		} else {
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+				"%scookie=", ptr == buf ? "" : " " );
+		}
+
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			"pagedresults", buf, ptr - buf );
+	}
+
+	if ( ber != NULL ) {
+		ber_free( ber, 1 );
+	}
+
+	return 0;
+}
+
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+static int
+print_ppolicy( LDAP *ld, LDAPControl *ctrl )
+{
+	int expire = 0, grace = 0, rc;
+	LDAPPasswordPolicyError	pperr;
+
+	rc = ldap_parse_passwordpolicy_control( ld, ctrl,
+		&expire, &grace, &pperr );
+	if ( rc == LDAP_SUCCESS ) {
+		char	buf[ BUFSIZ ], *ptr = buf;
+
+		if ( expire != -1 ) {
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+				"expire=%d", expire );
+		}
+
+		if ( grace != -1 ) {
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+				"%sgrace=%d", ptr == buf ? "" : " ", grace );
+		}
+
+		if ( pperr != PP_noError ) {
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+				"%serror=%s", ptr == buf ? "" : " ",
+				ldap_passwordpolicy_err2txt( pperr ) );
+		}
+
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			"ppolicy", buf, ptr - buf );
+	}
+
+	return rc;
+}
+#endif
+
 void tool_print_ctrls(
 	LDAP		*ld,
 	LDAPControl	**ctrls )
@@ -1315,6 +1510,7 @@ void tool_print_ctrls(
 		struct berval b64 = BER_BVNULL;
 		ber_len_t len;
 		char *str;
+		int j;
 
 		len = ldif ? 2 : 0;
 		len += strlen( ctrls[i]->ldctl_oid );
@@ -1363,135 +1559,18 @@ void tool_print_ctrls(
 		}
 
 		/* known controls */
-		if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PRE_READ ) == 0
-			|| strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_POST_READ ) == 0 )
-		{
-			BerElement	*ber;
-			struct berval	bv;
-			struct berval	what;
-
-			if ( strcmp( ctrls[i]->ldctl_oid, LDAP_CONTROL_PRE_READ ) == 0 ) {
-				BER_BVSTR( &what, "preread" );
-
-			} else {
-				BER_BVSTR( &what, "postread" );
-			}
-
-			tool_write_ldif( LDIF_PUT_COMMENT, "==> ",
-				what.bv_val, what.bv_len );
-			ber = ber_init( &ctrls[i]->ldctl_value );
-			if ( ber == NULL ) {
-				/* ... */
-			} else if ( ber_scanf( ber, "{m{" /*}}*/, &bv ) == LBER_ERROR ) {
-				/* ... */
-			} else {
-				tool_write_ldif( LDIF_PUT_VALUE, "dn", bv.bv_val, bv.bv_len );
-
-				while ( ber_scanf( ber, "{m" /*}*/, &bv ) != LBER_ERROR ) {
-					int		i;
-					BerVarray	vals = NULL;
-
-					if ( ber_scanf( ber, "[W]", &vals ) == LBER_ERROR ||
-						vals == NULL )
-					{
-						/* error? */
-						continue;
-					}
-				
-					for ( i = 0; vals[ i ].bv_val != NULL; i++ ) {
-						tool_write_ldif(
-							ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-							bv.bv_val, vals[ i ].bv_val, vals[ i ].bv_len );
-					}
-
-					ber_bvarray_free( vals );
+		for ( j = 0; tool_ctrl_response[j].oid != NULL; j++ ) {
+			if ( strcmp( tool_ctrl_response[j].oid, ctrls[i]->ldctl_oid ) == 0 ) {
+				if ( !tool_ctrl_response[j].mask & tool_type ) {
+					/* this control should not appear
+					 * with this tool; warning? */
 				}
+				break;
 			}
+		}
 
-			if ( ber != NULL ) {
-				ber_free( ber, 1 );
-			}
-
-			tool_write_ldif( LDIF_PUT_COMMENT, "<== ",
-				what.bv_val, what.bv_len );
-
-		} else if ( strcmp( ctrls[i]->ldctl_oid,
-			LDAP_CONTROL_PAGEDRESULTS ) == 0 )
-		{
-			BerElement	*ber;
-			struct berval	cookie;
-			int		size;
-			
-			ber = ber_init( &ctrls[i]->ldctl_value );
-			if ( ber_scanf( ber, "{im}", &size, &cookie ) == LBER_ERROR ) {
-				/* ... */
-			} else {
-				char	buf[ BUFSIZ ], *ptr = buf;
-
-				if ( size > 0 ) {
-					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-						"estimate=%d", size );
-				}
-
-				if ( cookie.bv_len > 0 ) {
-					struct berval	bv;
-
-					bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
-						cookie.bv_len ) + 1;
-					bv.bv_val = ber_memalloc( bv.bv_len + 1 );
-
-					bv.bv_len = lutil_b64_ntop(
-						(unsigned char *) cookie.bv_val,
-						cookie.bv_len,
-						bv.bv_val, bv.bv_len );
-
-					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-						"%scookie=%s", ptr == buf ? "" : " ",
-						bv.bv_val );
-
-					ber_memfree( bv.bv_val );
-				}
-
-				tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-					"pagedresults", buf, ptr - buf );
-			}
-
-			if ( ber != NULL ) {
-				ber_free( ber, 1 );
-			}
-
-#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-		} else if ( strcmp( ctrls[i]->ldctl_oid,
-			LDAP_CONTROL_PASSWORDPOLICYRESPONSE ) == 0 )
-		{
-			int expire = 0, grace = 0, rc;
-			LDAPPasswordPolicyError	pperr;
-
-			rc = ldap_parse_passwordpolicy_control( ld, ctrls[ i ],
-				&expire, &grace, &pperr );
-			if ( rc == LDAP_SUCCESS ) {
-				char	buf[ BUFSIZ ], *ptr = buf;
-
-				if ( expire != -1 ) {
-					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-						"expire=%d", expire );
-				}
-
-				if ( grace != -1 ) {
-					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-						"%sgrace=%d", ptr == buf ? "" : " ", grace );
-				}
-
-				if ( pperr != PP_noError ) {
-					ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-						"%serror=%s", ptr == buf ? "" : " ",
-						ldap_passwordpolicy_err2txt( pperr ) );
-				}
-
-				tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-					"ppolicy", buf, ptr - buf );
-			}
-#endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
+		if ( tool_ctrl_response[j].oid != NULL && tool_ctrl_response[j].func ) {
+			(void)tool_ctrl_response[j].func( ld, ctrls[i] );
 		}
 	}
 }
