@@ -147,15 +147,13 @@ exit:
 
 
 /*---
-   ldap_parse_vlv_control
+   ldap_parse_vlvresponse_control
    
    Decode the Virtual List View control return information.
 
    ld           (IN)   An LDAP session handle.
    
-   ctrls        (IN)   The address of a NULL-terminated array of 
-					   LDAPControl structures, typically obtained 
-					   by a call to ldap_parse_result().
+   ctrl         (IN)   The address of the LDAPControl structure.
    
    target_posp	(OUT)  This result parameter is filled in with the list
 					   index of the target entry.  If this parameter is
@@ -203,9 +201,9 @@ exit:
 ---*/
 
 int
-ldap_parse_vlv_control(
+ldap_parse_vlvresponse_control(
 	LDAP           *ld,
-	LDAPControl    **ctrls,
+	LDAPControl    *ctrl,
 	unsigned long  *target_posp,
 	unsigned long  *list_countp,
 	struct berval  **contextp,
@@ -225,25 +223,19 @@ ldap_parse_vlv_control(
 		*contextp = NULL;	 /* Make sure we return a NULL if error occurs. */
 	}
 
-	if (ctrls == NULL) {
+	if (ctrl == NULL) {
+		ld->ld_errno = LDAP_PARAM_ERROR;
+		return(ld->ld_errno);
+	}
+
+	if (strcmp(LDAP_CONTROL_VLVRESPONSE, ctrl->ldctl_oid) != 0) {
+		/* Not VLV Response control */
 		ld->ld_errno = LDAP_CONTROL_NOT_FOUND;
 		return(ld->ld_errno);
 	}
 
-	/* Search the list of control responses for a VLV control. */
-	for (i=0; ctrls[i]; i++) {
-		pControl = ctrls[i];
-		if (!strcmp(LDAP_CONTROL_VLVRESPONSE, pControl->ldctl_oid))
-			goto foundVLVControl;
-	}
-
-	/* No sort control was found. */
-	ld->ld_errno = LDAP_CONTROL_NOT_FOUND;
-	return(ld->ld_errno);
-
-foundVLVControl:
 	/* Create a BerElement from the berval returned in the control. */
-	ber = ber_init(&pControl->ldctl_value);
+	ber = ber_init(&ctrl->ldctl_value);
 
 	if (ber == NULL) {
 		ld->ld_errno = LDAP_NO_MEMORY;

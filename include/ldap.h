@@ -1940,7 +1940,7 @@ ldap_turn_s LDAP_P(( LDAP *ld,
  * LDAP Server Side Sort
  *	in sortctrl.c
  */
-#define LDAP_API_FEATURE_SERVER_SIDE_SORT 1000
+#define LDAP_API_FEATURE_SERVER_SIDE_SORT 2000
 
 /* structure for a sort-key */
 typedef struct ldapsortkey {
@@ -1962,11 +1962,11 @@ LDAP_F( int )
 ldap_create_sort_control LDAP_P((
 	LDAP *ld,
 	LDAPSortKey **keyList,
-	int ctl_iscritical,
+	int iscritical,
 	LDAPControl **ctrlp ));
 
 LDAP_F( int )
-ldap_parse_sort_control LDAP_P((
+ldap_parse_sortresult_control LDAP_P((
 	LDAP           *ld,
 	LDAPControl    **ctrlp,
 	unsigned long  *result,
@@ -1977,7 +1977,7 @@ ldap_parse_sort_control LDAP_P((
  * LDAP Virtual List View
  *	in vlvctrl.c
  */
-#define LDAP_API_FEATURE_VIRTUAL_LIST_VIEW 1000
+#define LDAP_API_FEATURE_VIRTUAL_LIST_VIEW 2000
 
 /* structure for virtual list */
 typedef struct ldapvlvinfo {
@@ -1998,9 +1998,9 @@ ldap_create_vlv_control LDAP_P((
 	LDAPControl **ctrlp ));
 
 LDAP_F( int )
-ldap_parse_vlv_control LDAP_P((
+ldap_parse_vlvresponse_control LDAP_P((
 	LDAP          *ld,
-	LDAPControl   **ctrls,
+	LDAPControl   *ctrls,
 	unsigned long *target_posp,
 	unsigned long *list_countp,
 	struct berval **contextp,

@@ -356,16 +356,14 @@ exit:
 
 
 /* ---------------------------------------------------------------------------
-   ldap_parse_sort_control
+   ldap_parse_sortedresult_control
    
    Decode the server-side sort control return information.
 
    ld          (IN) An LDAP session handle, as obtained from a call to
 					ldap_init().
 
-   ctrls       (IN) The address of a NULL-terminated array of LDAPControl
-					structures, typically obtained by a call to
-					ldap_parse_result().
+   ctrl        (IN) The address of the LDAP Control Structure.
 				  
    returnCode (OUT) This result parameter is filled in with the sort control
 					result code.  This parameter MUST not be NULL.
@@ -405,9 +403,9 @@ exit:
    ---------------------------------------------------------------------------*/
 
 int
-ldap_parse_sort_control(
+ldap_parse_sortedresult_control(
 	LDAP           *ld,
-	LDAPControl    **ctrls,
+	LDAPControl    *ctrl,
 	unsigned long  *returnCode,
 	char           **attribute )
 {
@@ -422,8 +420,8 @@ ldap_parse_sort_control(
 		return(ld->ld_errno);
 	}
 
-	if (ctrls == NULL) {
-		ld->ld_errno =  LDAP_CONTROL_NOT_FOUND;
+	if (ctrl == NULL) {
+		ld->ld_errno =  LDAP_PARAM_ERROR;
 		return(ld->ld_errno);
 	}
 
@@ -431,20 +429,14 @@ ldap_parse_sort_control(
 		*attribute = NULL;
 	}
 
-	/* Search the list of control responses for a sort control. */
-	for (i=0; ctrls[i]; i++) {
-		pControl = ctrls[i];
-		if (!strcmp(LDAP_CONTROL_SORTRESPONSE, pControl->ldctl_oid))
-			goto foundSortControl;
+	if ( strcmp(LDAP_CONTROL_SORTRESPONSE, ctrl->ldctl_oid) != 0 ) {
+		/* Not sort result control */
+		ld->ld_errno = LDAP_CONTROL_NOT_FOUND;
+		return(ld->ld_errno);
 	}
 
-	/* No sort control was found. */
-	ld->ld_errno = LDAP_CONTROL_NOT_FOUND;
-	return(ld->ld_errno);
-
-foundSortControl:
 	/* Create a BerElement from the berval returned in the control. */
-	ber = ber_init(&pControl->ldctl_value);
+	ber = ber_init(&ctrl->ldctl_value);
 
 	if (ber == NULL) {
 		ld->ld_errno = LDAP_NO_MEMORY;
