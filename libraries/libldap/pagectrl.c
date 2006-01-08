@@ -85,7 +85,7 @@ ldap_create_page_control_value(
 	ber_tag_t	tag;
 	struct berval	null_cookie = { 0, NULL };
 
-	if ( ld == NULL || value == NULL ) {
+	if ( ld == NULL || value == NULL || pagesize > LDAP_MAXINT ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;
 	}
@@ -105,7 +105,7 @@ ldap_create_page_control_value(
 		return ld->ld_errno;
 	}
 
-	tag = ber_printf( ber, "{iO}", pagesize, cookie );
+	tag = ber_printf( ber, "{iO}", (ber_int_t)pagesize, cookie );
 	if ( tag == LBER_ERROR ) {
 		goto error_return;
 	}
