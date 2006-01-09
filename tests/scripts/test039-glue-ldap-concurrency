@@ -28,6 +28,10 @@ if test $RWM = rwmno ; then
 	exit 0
 fi 
 
+if test x$TESTLOOPS = x ; then
+	TESTLOOPS=50
+fi
+
 rm -rf $TESTDIR
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
@@ -163,7 +167,7 @@ done
 
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT3 \
-	-D "cn=Manager,$METABASEDN" -w $PASSWD -l 50 -r 20 -F
+	-D "cn=Manager,$METABASEDN" -w $PASSWD -l $TESTLOOPS -r 20 -F
 RC=$?
 
 if test $RC != 0 ; then
