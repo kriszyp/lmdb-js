@@ -91,7 +91,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	/* we need meta_back_getconn() not send result even on error,
 	 * because we want to intercept the error and make it
 	 * invalidCredentials */
-	mc = meta_back_getconn( op, rs, NULL, LDAP_BACK_BIND_SERR );
+	mc = meta_back_getconn( op, rs, NULL, LDAP_BACK_BIND_DONTSEND );
 	if ( !mc ) {
 		char	buf[ SLAP_TEXT_BUFLEN ];
 
