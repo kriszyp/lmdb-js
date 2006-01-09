@@ -12,23 +12,8 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* Portions Copyright (C) 1999, 2000 Novell, Inc. All Rights Reserved.
- *
- * THIS WORK IS SUBJECT TO U.S. AND INTERNATIONAL COPYRIGHT LAWS AND
- * TREATIES. USE, MODIFICATION, AND REDISTRIBUTION OF THIS WORK IS SUBJECT
- * TO VERSION 2.0.1 OF THE OPENLDAP PUBLIC LICENSE, A COPY OF WHICH IS
- * AVAILABLE AT HTTP://WWW.OPENLDAP.ORG/LICENSE.HTML OR IN THE FILE "LICENSE"
- * IN THE TOP-LEVEL DIRECTORY OF THE DISTRIBUTION. ANY USE OR EXPLOITATION
- * OF THIS WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP
- * PUBLIC LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT
- * THE PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY.
- */
-/* Note: A verbatim copy of version 2.0.1 of the OpenLDAP Public License 
- * can be found in the file "build/LICENSE-2.0.1" in this distribution
- * of OpenLDAP Software.
- */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
+/* Portions Copyright (C) The Internet Society (1999)
+ * ASN.1 fragments are from RFC 2696; see RFC for full legal notices.
  */
 
 #include "portable.h"
@@ -45,22 +30,14 @@
 
     Create and encode the value of the paged results control (RFC 2696).
 
-    ld          (IN) An LDAP session handle, as obtained from a call to
-                     ldap_init().
-
-    pagesize    (IN) The number of entries to return per page.
-
+    ld          (IN) An LDAP session handle
+    pagesize    (IN) Page size requested
     cookie      (IN) Opaque structure used by the server to track its
-                     location in the search results. Pass in NULL on the
+                     location in the search results.  NULL on the
                      first call.
-
-    value      (OUT) the pointer to a struct berval; it is filled by this function
-                     with the value that must be assigned to the ldctl_value member
-                     of the LDAPControl structure.  The bv_val member of the berval
-                     structure SHOULD be freed by calling ldap_memfree() when done.
+    value      (OUT) Control value, SHOULD be freed by calling
+					 ldap_memfree() when done.
  
-    Ber encoding
-
     pagedResultsControl ::= SEQUENCE {
             controlType     1.2.840.113556.1.4.319,
             criticality     BOOLEAN DEFAULT FALSE,
@@ -76,8 +53,8 @@
 
 int
 ldap_create_page_control_value(
-	LDAP		*ld,
-	unsigned long	pagesize,
+	LDAP *ld,
+	ber_int_t pagesize,
 	struct berval	*cookie,
 	struct berval	*value )
 {
@@ -85,7 +62,9 @@ ldap_create_page_control_value(
 	ber_tag_t	tag;
 	struct berval	null_cookie = { 0, NULL };
 
-	if ( ld == NULL || value == NULL || pagesize > LDAP_MAXINT ) {
+	if ( ld == NULL || value == NULL ||
+		pagesize < 1 || pagesize > LDAP_MAXINT )
+	{
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;
 	}
@@ -105,20 +84,17 @@ ldap_create_page_control_value(
 		return ld->ld_errno;
 	}
 
-	tag = ber_printf( ber, "{iO}", (ber_int_t)pagesize, cookie );
+	tag = ber_printf( ber, "{iO}", pagesize, cookie );
 	if ( tag == LBER_ERROR ) {
-		goto error_return;
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		goto done;
 	}
 
 	if ( ber_flatten2( ber, value, 1 ) == -1 ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 	}
 
-	if ( 0 ) {
-error_return:;
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-	}
-
+done:;
 	if ( ber != NULL ) {
 		ber_free( ber, 1 );
 	}
@@ -132,24 +108,17 @@ error_return:;
 
     Create and encode a page control.
 
-    ld          (IN) An LDAP session handle, as obtained from a call to
-                     ldap_init().
-
-    pagesize    (IN) The number of entries to return per page.
-
+    ld          (IN) An LDAP session handle
+    pagesize    (IN) Page size requested
     cookie      (IN) Opaque structure used by the server to track its
-                     location in the search results. Pass in NULL on the
+                     location in the search results.  NULL on the
                      first call.
-
-    iscritical  (IN) 0 - The control is not critical to the operation.
-                     non-zero - The control is critical to the operation.
-
-    ctrlp      (OUT) Returns a pointer to the LDAPControl created. This
-                     control SHOULD be freed by calling ldap_control_free()
-                     when done.
+    value      (OUT) Control value, SHOULD be freed by calling
+					 ldap_memfree() when done.
+    iscritical  (IN) Criticality
+    ctrlp      (OUT) LDAP control, SHOULD be freed by calling
+					 ldap_control_free() when done.
  
-    Ber encoding
-
     pagedResultsControl ::= SEQUENCE {
             controlType     1.2.840.113556.1.4.319,
             criticality     BOOLEAN DEFAULT FALSE,
@@ -166,7 +135,7 @@ error_return:;
 int
 ldap_create_page_control(
 	LDAP		*ld,
-	unsigned long	pagesize,
+	ber_int_t	pagesize,
 	struct berval	*cookie,
 	int		iscritical,
 	LDAPControl	**ctrlp )
@@ -178,7 +147,8 @@ ldap_create_page_control(
 		return ld->ld_errno;
 	}
 
-	ld->ld_errno = ldap_create_page_control_value( ld, pagesize, cookie, &value );
+	ld->ld_errno = ldap_create_page_control_value( ld,
+		pagesize, cookie, &value );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
 		ld->ld_errno = ldap_create_control( LDAP_CONTROL_PAGEDRESULTS,
 			NULL, iscritical, ctrlp );
@@ -198,28 +168,20 @@ ldap_create_page_control(
 
     Decode a page control.
 
-    ld          (IN) An LDAP session handle, as obtained from a call to
-                     ldap_init().
-
-    ctrls       (IN) The address of a NULL-terminated array of
-                     LDAPControl structures, typically obtained by a
-                     call to ldap_parse_result(). The array SHOULD include
-                     a page control.
-
-    count      (OUT) The number of entries returned in the page.
-
-    cookie     (OUT) Opaque structure used by the server to track its
-                     location in the search results. Use ldap_memfree() to
+    ld          (IN) An LDAP session handle
+    ctrl        (IN) The page response control
+    count      (OUT) The number of entries in the page.
+    cookie     (OUT) Opaque cookie.  Use ldap_memfree() to
                      free the bv_val member of this structure.
 
    ---------------------------------------------------------------------------*/
 
 int
 ldap_parse_pageresponse_control(
-	LDAP		*ld,
-	LDAPControl	*ctrl,
-	unsigned long	*countp,
-	struct berval	*cookie )
+	LDAP *ld,
+	LDAPControl *ctrl,
+	ber_int_t *countp,
+	struct berval *cookie )
 {
 	BerElement *ber;
 	ber_tag_t tag;
@@ -260,19 +222,11 @@ ldap_parse_pageresponse_control(
 
     Decode a page control.
 
-    ld          (IN) An LDAP session handle, as obtained from a call to
-                     ldap_init().
-
-    ctrls       (IN) The address of a NULL-terminated array of
-                     LDAPControl structures, typically obtained by a
-                     call to ldap_parse_result(). The array SHOULD include
-                     a page control.
-
-    count      (OUT) The number of entries returned in the page.
-
-    cookie     (OUT) Opaque structure used by the server to track its
-                     location in the search results. Use ber_bvfree() to
-                     free it.
+    ld          (IN) An LDAP session handle
+    ctrls       (IN) Response controls
+    count      (OUT) The number of entries in the page.
+    cookie     (OUT) Opaque cookie.  Use ldap_memfree() to
+                     free the bv_val member of this structure.
 
    ---------------------------------------------------------------------------*/
 
@@ -280,11 +234,11 @@ int
 ldap_parse_page_control(
 	LDAP		*ld,
 	LDAPControl	**ctrls,
-	unsigned long	*countp,
+	ber_int_t *countp,
 	struct berval	**cookiep )
 {
+	LDAPControl *c;
 	struct berval	cookie;
-	int		i;
 
 	if ( cookiep == NULL ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
@@ -296,20 +250,14 @@ ldap_parse_page_control(
 		return ld->ld_errno;
 	}
 
-	/* Search the list of control responses for a page control. */
-	for ( i = 0; ctrls[i]; i++ ) {
-		if ( strcmp( LDAP_CONTROL_PAGEDRESULTS, ctrls[ i ]->ldctl_oid ) == 0 ) {
-			break;
-		}
-	}
-
-	/* No page control was found. */
-	if ( ctrls[ i ] == NULL ) {
+	c = ldap_find_control( LDAP_CONTROL_PAGEDRESULTS, ctrls );
+	if ( c == NULL ) {
+		/* No page control was found. */
 		ld->ld_errno = LDAP_CONTROL_NOT_FOUND;
 		return ld->ld_errno;
 	}
 
-	ld->ld_errno = ldap_parse_pageresponse_control( ld, ctrls[ i ], countp, &cookie );
+	ld->ld_errno = ldap_parse_pageresponse_control( ld, c, countp, &cookie );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
 		*cookiep = LDAP_MALLOC( sizeof( struct berval * ) );
 		if ( *cookiep == NULL ) {

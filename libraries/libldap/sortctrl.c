@@ -479,10 +479,10 @@ ldap_create_sort_control(
 
 int
 ldap_parse_sortresponse_control(
-	LDAP           *ld,
-	LDAPControl    *ctrl,
-	unsigned long  *returnCode,
-	char           **attribute )
+	LDAP *ld,
+	LDAPControl *ctrl,
+	ber_int_t *returnCode,
+	char **attribute )
 {
 	BerElement *ber;
 	ber_tag_t tag, berTag;

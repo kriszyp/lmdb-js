@@ -50,8 +50,7 @@
    
    Create and encode the Virtual List View control.
 
-   ld        (IN)  An LDAP session handle, as obtained from a call to
-				   ldap_init().
+   ld        (IN)  An LDAP session handle.
    
    vlvinfop  (IN)  The address of an LDAPVLVInfo structure whose contents 
 				   are used to construct the value of the control
@@ -171,8 +170,7 @@ error_return:;
    
    Create and encode the Virtual List View control.
 
-   ld        (IN)  An LDAP session handle, as obtained from a call to
-				   ldap_init().
+   ld        (IN)  An LDAP session handle.
    
    vlvinfop  (IN)  The address of an LDAPVLVInfo structure whose contents 
 				   are used to construct the value of the control
@@ -291,15 +289,15 @@ ldap_create_vlv_control(
 
 int
 ldap_parse_vlvresponse_control(
-	LDAP           *ld,
-	LDAPControl    *ctrl,
-	unsigned long  *target_posp,
-	unsigned long  *list_countp,
+	LDAP *ld,
+	LDAPControl *ctrl,
+	ber_int_t *target_posp,
+	ber_int_t *list_countp,
 	struct berval  **contextp,
-	int            *errcodep )
+	ber_int_t *errcodep )
 {
 	BerElement  *ber;
-	unsigned long pos, count, err;
+	ber_int_t long pos, count, err;
 	ber_tag_t tag, berTag;
 	ber_len_t berLen;
 
@@ -356,15 +354,9 @@ ldap_parse_vlvresponse_control(
 	ber_free(ber, 1);
 
 	/* Return data to the caller for items that were requested. */
-	if (target_posp) {
-		*target_posp = pos;
-	}
-	if (list_countp) {
-		*list_countp = count;
-	}
-	if (errcodep) {
-		*errcodep = err;
-	}
+	if (target_posp) *target_posp = pos;
+	if (list_countp) *list_countp = count;
+	if (errcodep) *errcodep = err;
 
 	ld->ld_errno = LDAP_SUCCESS;
 	return(ld->ld_errno);

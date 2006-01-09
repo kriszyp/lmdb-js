@@ -334,22 +334,6 @@ typedef struct ldapcontrol {
 
 #define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"
 
-/* LDAP Grouping of Related Operations *//* a work in progress */
-#ifdef LDAP_DEVEL
-#define LDAP_X_GROUPING_BASE		"1.3.6.1.4.1.4203.666.10.3"
-#define LDAP_EXOP_GROUPING_CREATE	LDAP_X_GROUPING_BASE ".1"
-#define LDAP_EXOP_GROUPING_END		LDAP_X_GROUPING_BASE ".2"
-#define LDAP_NOTICE_GROUPING_END	LDAP_X_GROUPING_BASE ".3"
-#define LDAP_EXOP_GROUPING_ACTION	LDAP_X_GROUPING_BASE ".4"
-#define LDAP_NOTICE_GROUPING_INFO	LDAP_X_GROUPING_BASE ".5"
-#define LDAP_CONTROL_GROUPING		LDAP_X_GROUPING_BASE ".6"
-#endif
-
-/* LDAP Grouping Types *//* a work in progress */
-#ifdef LDAP_DEVEL
-#define LDAP_GROUP_TRANSACTION		 "1.3.6.1.4.1.4203.666.10.4"
-#endif
-
 /* LDAP Distributed Procedures <draft-sermersheim-ldap-distproc> */
 /* a work in progress */
 #ifdef LDAP_DEVEL
@@ -859,111 +843,6 @@ ldap_parse_intermediate LDAP_P((
 	LDAPControl		***serverctrls,
 	int				freeit ));
 
-/*
- * in groupings.c:
- */
-#ifdef LDAP_EXOP_GROUPING_CREATE
-
-LDAP_F( int )
-ldap_grouping_create LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*grpoid,
-	struct berval	*grpdata,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls,
-	int				*msgidp ));
-
-LDAP_F( int )
-ldap_grouping_create_s LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*grpoid,
-	struct berval	*grpdata,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls,
-	struct berval	**retgrpcookiep,
-	struct berval	**retgrpdatap ));
-
-LDAP_F( int )
-ldap_parse_grouping_create_result LDAP_P((
-	LDAP			*ld,
-	LDAPMessage		*res,
-	struct berval	**retgrpcookiep,
-	struct berval	**retgrpdatap,
-	LDAPControl		***serverctrls,
-	int				freeit ));
-
-LDAP_F( int )
-ldap_grouping_end LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*grpoid,
-	struct berval	*grpdata,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls,
-	int				*msgidp ));
-
-LDAP_F( int )
-ldap_grouping_end_s LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*grpoid,
-	struct berval	*grpdata,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls,
-	struct berval	**retgrpdatap ));
-
-LDAP_F( int )
-ldap_parse_grouping_end_result LDAP_P((
-	LDAP			*ld,
-	LDAPMessage		*res,
-	struct berval	**retgrpdatap,
-	LDAPControl		***serverctrls,
-	int				freeit ));
-
-LDAP_F( int )
-ldap_grouping_action_operation LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*grpoid,
-	struct berval	*grpdata,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls,
-	int				*msgidp ));
-
-LDAP_F( int )
-ldap_grouping_action_operation_s LDAP_P((
-	LDAP			*ld,
-	LDAP_CONST char	*grpoid,
-	struct berval	*grpdata,
-	LDAPControl		**serverctrls,
-	LDAPControl		**clientctrls,
-	struct berval	**retgrpcookiep,
-	struct berval	**retgrpdatap ));
-
-LDAP_F( int )
-ldap_parse_grouping_action_result LDAP_P((
-	LDAP			*ld,
-	LDAPMessage		*res,
-	struct berval	**retgrpcookiep,
-	struct berval	**retgrpdatap,
-	LDAPControl		***serverctrls,
-	int				freeit ));
-
-LDAP_F( int )
-ldap_parse_grouping_end_notice LDAP_P((
-	LDAP			*ld,
-	LDAPMessage		*res,
-	struct berval	**retdatap,
-	struct berval	**retgrpcookiep,
-	struct berval	**retgrpdatap,
-	int				freeit ));
-
-LDAP_F( int )
-ldap_parse_grouping_info_notice LDAP_P((
-	LDAP			*ld,
-	LDAPMessage		*res,
-	struct berval	**retdatap,
-	struct berval	**retgrpcookiep,
-	struct berval	**retgrpdatap,
-	int				freeit ));
-#endif
 
 /*
  * in abandon.c:
@@ -981,7 +860,6 @@ ldap_abandon LDAP_P((	/* deprecated */
 	LDAP *ld,
 	int msgid ));
 #endif
-
 
 /*
  * in add.c:
@@ -1944,32 +1822,32 @@ ldap_turn_s LDAP_P(( LDAP *ld,
 
 LDAP_F( int )
 ldap_create_page_control_value LDAP_P((
-	LDAP             *ld,
-	unsigned long    pagesize,
-	struct berval    *cookie,
-	struct berval	*value ));
+	LDAP *ld,
+	ber_int_t pagesize,
+	struct berval *cookie,
+	struct berval *value ));
 
 LDAP_F( int )
 ldap_create_page_control LDAP_P((
-	LDAP             *ld,
-	unsigned long    pagesize,
-	struct berval    *cookie,
-	int		iscritical,
-	LDAPControl      **ctrlp ));
+	LDAP *ld,
+	ber_int_t pagesize,
+	struct berval *cookie,
+	int iscritical,
+	LDAPControl **ctrlp ));
 
 LDAP_F( int )
 ldap_parse_page_control LDAP_P((
-	LDAP           *ld,
-	LDAPControl    **ctrls,
-	unsigned long  *count,
-	struct berval  **cookie ));
+	LDAP *ld,
+	LDAPControl **ctrls,
+	ber_int_t *count,
+	struct berval **cookie ));
 
 LDAP_F( int )
 ldap_parse_pageresponse_control LDAP_P((
-	LDAP           *ld,
-	LDAPControl    *ctrl,
-	unsigned long  *count,
-	struct berval  *cookie ));
+	LDAP *ld,
+	LDAPControl *ctrl,
+	ber_int_t *count,
+	struct berval *cookie ));
 
 /*
  * LDAP Server Side Sort
@@ -1979,15 +1857,15 @@ ldap_parse_pageresponse_control LDAP_P((
 
 /* structure for a sort-key */
 typedef struct ldapsortkey {
-	char *  attributeType;
-	char *  orderingRule;
-	int     reverseOrder;
+	char *attributeType;
+	char *orderingRule;
+	int reverseOrder;
 } LDAPSortKey;
 
 LDAP_F( int )
 ldap_create_sort_keylist LDAP_P((
 	LDAPSortKey ***sortKeyList,
-	char        *keyString ));
+	char *keyString ));
 
 LDAP_F( void )
 ldap_free_sort_keylist LDAP_P((
@@ -2008,11 +1886,10 @@ ldap_create_sort_control LDAP_P((
 
 LDAP_F( int )
 ldap_parse_sortresponse_control LDAP_P((
-	LDAP           *ld,
-	LDAPControl    *ctrl,
-	unsigned long  *result,
-	char           **attribute ));
-
+	LDAP *ld,
+	LDAPControl *ctrl,
+	ber_int_t *result,
+	char **attribute ));
 
 /*
  * LDAP Virtual List View
@@ -2022,11 +1899,11 @@ ldap_parse_sortresponse_control LDAP_P((
 
 /* structure for virtual list */
 typedef struct ldapvlvinfo {
-	int             ldvlv_version;
-    unsigned long   ldvlv_before_count;
-    unsigned long   ldvlv_after_count;
-    unsigned long   ldvlv_offset;
-    unsigned long   ldvlv_count;
+	ber_int_t ldvlv_version;
+    ber_int_t ldvlv_before_count;
+    ber_int_t ldvlv_after_count;
+    ber_int_t ldvlv_offset;
+    ber_int_t ldvlv_count;
     struct berval *	ldvlv_attrvalue;
     struct berval *	ldvlv_context;
     void *			ldvlv_extradata;
@@ -2048,53 +1925,10 @@ LDAP_F( int )
 ldap_parse_vlvresponse_control LDAP_P((
 	LDAP          *ld,
 	LDAPControl   *ctrls,
-	unsigned long *target_posp,
-	unsigned long *list_countp,
+	ber_int_t *target_posp,
+	ber_int_t *list_countp,
 	struct berval **contextp,
 	int           *errcodep ));
-
-/*
- * LDAP Transactions
- *	in txn.c
- */
-#ifdef LDAP_GROUP_TRANSACTION
-LDAP_F( int )
-ldap_parse_txn_create LDAP_P((
-	LDAP *ld,
-	LDAPMessage *res,
-	struct berval **cookie ));
-
-LDAP_F( int )
-ldap_txn_create LDAP_P((
-	LDAP *ld,
-	LDAPControl		**sctrls,
-	LDAPControl		**cctrls,
-	int				*msgidp ));
-
-LDAP_F( int )
-ldap_txn_create_s LDAP_P((
-	LDAP *ld,
-	struct berval **cookie,
-	LDAPControl **sctrls,
-	LDAPControl **cctrls ));
-
-LDAP_F( int )
-ldap_txn_end LDAP_P((
-	LDAP *ld,
-	struct berval *cookie,
-	int commit,
-	LDAPControl		**sctrls,
-	LDAPControl		**cctrls,
-	int				*msgidp ));
-
-LDAP_F( int )
-ldap_txn_end_s LDAP_P((
-	LDAP *ld,
-	struct berval *cookie,
-	int commit,
-	LDAPControl **sctrls,
-	LDAPControl **cctrls ));
-#endif
 
 /*
  * LDAP Who Am I?
