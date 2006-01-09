@@ -1424,7 +1424,7 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 
 		if ( estimate > 0 ) {
 			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-				"estimate=%lu", estimate );
+				"estimate=%d", estimate );
 		}
 
 		if ( pr_cookie.bv_len > 0 ) {
