@@ -90,7 +90,7 @@ struct query_manager_s;
 /* prototypes for functions for 1) query containment
  * 2) query addition, 3) cache replacement
  */
-typedef int 	(QCfunc)(struct query_manager_s*, Query*, int );
+typedef int 	(QCfunc)(Operation *op, struct query_manager_s*, Query*, int );
 typedef void  	(AddQueryfunc)(struct query_manager_s*, Query*, int, struct berval*);
 typedef void	(CRfunc)(struct query_manager_s*, struct berval * );
 
@@ -296,69 +296,59 @@ remove_query (query_manager* qm, CachedQuery* qc)
 	qc->lru_up = qc->lru_down = NULL;
 }
 
-static void
-invert_string( struct berval *bv )
-{
-	int i;
-	char c;
-
-	for (i=0; i<bv->bv_len/2; i++) {
-		c = bv->bv_val[i];
-		bv->bv_val[i] = bv->bv_val[bv->bv_len-i-1];
-		bv->bv_val[bv->bv_len-i-1] = c;
-	}
-}
-
 /* find and remove string2 from string1
  * from start if position = 1,
  * from end if position = 3,
  * from anywhere if position = 2
+ * string1 is overwritten if position = 2.
  */
 
 static int
 find_and_remove(struct berval* ber1, struct berval* ber2, int position)
 {
-	char* temp;
-	int len;
 	int ret=0;
 
-	char* arg1, *arg2;
-	char* string1=ber1->bv_val;
-	char* string2=ber2->bv_val;
-
-	if (string2 == NULL)
+	if ( !ber2->bv_val )
 		return 1;
-	if (string1 == NULL)
+	if ( !ber1->bv_val )
 		return 0;
 
-	if (position == 3) {
-		invert_string(ber1);
-		invert_string(ber2);
-	}
-
-	arg1 = string1;
-	arg2 = string2;
-
-	temp = strstr(arg1, arg2);
-
-	len = ber2->bv_len;
-
-	if ( temp && (position == 2 || temp == arg1) ) {
-		string1 = temp+len;
-		strcpy( arg1, string1 );
-		ber1->bv_len -= len;
-		ret = 1;
-	}
-	if ( position == 3 ) {
-		invert_string(ber1);
-		invert_string(ber2);
+	switch( position ) {
+	case 1:
+		if ( ber1->bv_len >= ber2->bv_len && !memcmp( ber1->bv_val,
+			ber2->bv_val, ber2->bv_len )) {
+			ret = 1;
+			ber1->bv_val += ber2->bv_len;
+			ber1->bv_len -= ber2->bv_len;
+		}
+		break;
+	case 2: {
+		char *temp;
+		ber1->bv_val[ber1->bv_len] = '\0';
+		temp = strstr( ber1->bv_val, ber2->bv_val );
+		if ( temp ) {
+			strcpy( temp, temp+ber2->bv_len );
+			ber1->bv_len -= ber2->bv_len;
+			ret = 1;
+		}
+		break;
+		}
+	case 3:
+		if ( ber1->bv_len >= ber2->bv_len &&
+			!memcmp( ber1->bv_val+ber1->bv_len-ber2->bv_len, ber2->bv_val,
+				ber2->bv_len )) {
+			ret = 1;
+			ber1->bv_len -= ber2->bv_len;
+		}
+		break;
 	}
 	return ret;
 }
 
 
 static struct berval*
-merge_init_final(struct berval* init, struct berval* any, struct berval* final)
+merge_init_final(Operation *op, struct berval* init, struct berval* any,
+	struct berval* final)
 {
 	struct berval* merged, *temp;
 	int i, any_count, count;
@@ -373,25 +363,30 @@ merge_init_final(struct berval* init, struct berval* any, struct berval* final)
 	if (final->bv_val)
 		count++;
 
-	merged = (struct berval*)(ch_malloc((count+1)*sizeof(struct berval)));
+	merged = (struct berval*)op->o_tmpalloc( (count+1)*sizeof(struct berval),
+		op->o_tmpmemctx );
 	temp = merged;
 
 	if (init->bv_val) {
-		*temp++ = *init;
+		ber_dupbv_x( temp, init, op->o_tmpmemctx );
+		temp++;
 	}
 
 	for (i=0; i<any_count; i++) {
-		*temp++ = *any++;
+		ber_dupbv_x( temp, any, op->o_tmpmemctx );
+		temp++; any++;
 	}
 
 	if (final->bv_val){
-		*temp++ = *final;
+		ber_dupbv_x( temp, final, op->o_tmpmemctx );
+		temp++;
 	}
-	temp->bv_val = NULL;
-	temp->bv_len = 0;
+	BER_BVZERO( temp );
 	return merged;
 }
 
+/* Each element in stored must be found in incoming. Incoming is overwritten.
+ */
 static int
 strings_containment(struct berval* stored, struct berval* incoming)
 {
@@ -418,39 +413,21 @@ strings_containment(struct berval* stored, struct berval* incoming)
 }
 
 static int
-substr_containment_substr(Filter* stored, Filter* incoming)
+substr_containment_substr(Operation *op, Filter* stored, Filter* incoming)
 {
 	int i;
 	int rc = 0;
-	int any_count = 0;
 
 	struct berval init_incoming;
 	struct berval final_incoming;
-	struct berval *any_incoming = NULL;
 	struct berval *remaining_incoming = NULL;
 
 	if ((!(incoming->f_sub_initial.bv_val) && (stored->f_sub_initial.bv_val))
 	   || (!(incoming->f_sub_final.bv_val) && (stored->f_sub_final.bv_val)))
 		return 0;
 
-
-	ber_dupbv(&init_incoming, &(incoming->f_sub_initial));
-	ber_dupbv(&final_incoming, &(incoming->f_sub_final));
-
-	if (incoming->f_sub_any) {
-		for ( any_count=0; incoming->f_sub_any[any_count].bv_val != NULL;
-				any_count++ )
-			;
-
-		any_incoming = (struct berval*)ch_malloc((any_count+1) *
-						sizeof(struct berval));
-
-		for (i=0; i<any_count; i++) {
-			ber_dupbv(&(any_incoming[i]), &(incoming->f_sub_any[i]));
-		}
-		any_incoming[any_count].bv_val = NULL;
-		any_incoming[any_count].bv_len = 0;
-	}
+	init_incoming = incoming->f_sub_initial;
+	final_incoming =  incoming->f_sub_final;
 
 	if (find_and_remove(&init_incoming,
 			&(stored->f_sub_initial), 1) && find_and_remove(&final_incoming,
@@ -460,40 +437,36 @@ substr_containment_substr(Filter* stored, Filter* incoming)
 			rc = 1;
 			goto final;
 		}
-		remaining_incoming = merge_init_final(&init_incoming,
-						any_incoming, &final_incoming);
+		remaining_incoming = merge_init_final(op, &init_incoming,
+						incoming->f_sub_any, &final_incoming);
 		rc = strings_containment(stored->f_sub_any, remaining_incoming);
+		ber_bvarray_free_x( remaining_incoming, op->o_tmpmemctx );
 	}
 final:
-	free(init_incoming.bv_val);
-	free(final_incoming.bv_val);
-	if (any_incoming) ber_bvarray_free( any_incoming );
-	free(remaining_incoming);
-
 	return rc;
 }
 
 static int
-substr_containment_equality(Filter* stored, Filter* incoming)
+substr_containment_equality(Operation *op, Filter* stored, Filter* incoming)
 {
 	struct berval incoming_val[2];
 	int rc = 0;
 
-	ber_dupbv(incoming_val, &(incoming->f_av_value));
-	incoming_val[1].bv_val = NULL;
-	incoming_val[1].bv_len = 0;
+	incoming_val[1] = incoming->f_av_value;
 
-	if (find_and_remove(incoming_val,
-			&(stored->f_sub_initial), 1) && find_and_remove(incoming_val,
+	if (find_and_remove(incoming_val+1,
+			&(stored->f_sub_initial), 1) && find_and_remove(incoming_val+1,
 			&(stored->f_sub_final), 3)) {
 		if (stored->f_sub_any == NULL){
 			rc = 1;
 			goto final;
 		}
+		ber_dupbv_x( incoming_val, incoming_val+1, op->o_tmpmemctx );
+		BER_BVZERO( incoming_val+1 );
 		rc = strings_containment(stored->f_sub_any, incoming_val);
+		op->o_tmpfree( incoming_val[0].bv_val, op->o_tmpmemctx );
 	}
 final:
-	free(incoming_val[0].bv_val);
 	return rc;
 }
 
@@ -501,7 +474,7 @@ final:
  * the cached queries in template template_index
  */
 static int
-query_containment(query_manager *qm,
+query_containment(Operation *op, query_manager *qm,
 		  Query *query,
 		  int template_index)
 {
@@ -567,13 +540,13 @@ query_containment(query_manager *qm,
 						/* check if the equality query can be
 						* answered with cached substring query */
 						if ((fi->f_choice == LDAP_FILTER_EQUALITY)
-							&& substr_containment_equality(
+							&& substr_containment_equality( op,
 							fs, fi))
 							res=1;
 						/* check if the substring query can be
 						* answered with cached substring query */
 						if ((fi->f_choice ==LDAP_FILTER_SUBSTRINGS
-							) && substr_containment_substr(
+							) && substr_containment_substr( op,
 							fs, fi))
 							res= 1;
 						fs=fs->f_next;
@@ -1276,7 +1249,7 @@ pcache_op_search(
 			template_id = i;
 			Debug( LDAP_DEBUG_NONE, "Entering QC, querystr = %s\n",
 			 		op->ors_filterstr.bv_val, 0, 0 );
-			answerable = (*(qm->qcfunc))(qm, &query, i);
+			answerable = (*(qm->qcfunc))(op, qm, &query, i);
 
 			if (answerable)
 				break;
