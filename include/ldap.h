@@ -1835,12 +1835,14 @@ ldap_create_page_control LDAP_P((
 	int iscritical,
 	LDAPControl **ctrlp ));
 
+#if LDAP_DEPRECATED
 LDAP_F( int )
 ldap_parse_page_control LDAP_P((
 	LDAP *ld,
 	LDAPControl **ctrls,
 	ber_int_t *count,
 	struct berval **cookie ));
+#endif
 
 LDAP_F( int )
 ldap_parse_pageresponse_control LDAP_P((
