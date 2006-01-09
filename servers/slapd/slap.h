@@ -2657,75 +2657,10 @@ typedef struct slap_conn {
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
-#define Statslog1( level, severity, fmt, connid, opid, arg1 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1) );\
-		if ( ldap_syslog & (level) ) \
-			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (connid), (opid), \
-				(arg1) ); \
-	} while (0)
-#define Statslog2( level, severity, fmt, connid, opid, arg1, arg2 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2) );\
-		if ( ldap_syslog & (level) ) \
-			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (connid), (opid), \
-				(arg1), (arg2) ); \
-	} while (0)
-#define Statslog3( level, severity, fmt, connid, opid, arg1, arg2, arg3 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
-		if ( ldap_syslog & (level) ) \
-			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (connid), (opid), \
-				(arg1), (arg2), (arg3) ); \
-	} while (0)
-#define Statslog4( level, severity, fmt, connid, opid, arg1, arg2, arg3, arg4 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3), (arg4) );\
-		if ( ldap_syslog & (level) ) \
-			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (connid), (opid), \
-				(arg1), (arg2), (arg3), (arg4) ); \
-	} while (0)
-#define Statslog5( level, severity, fmt, connid, opid, arg1, arg2, arg3, arg4, arg5 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3), (arg4), (arg5) );\
-		if ( ldap_syslog & (level) ) \
-			syslog( LDAP_LEVEL_MASK((severity)), (fmt), (connid), (opid), \
-				(arg1), (arg2), (arg3), (arg4), (arg5) ); \
-	} while (0)
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
-	Statslog3( (level), ldap_syslog_level, (fmt), (connid), (opid), (arg1), (arg2), (arg3) )
+	Log5( (level), ldap_syslog_level, (fmt), (connid), (opid), (arg1), (arg2), (arg3) )
 #define StatslogTest( level ) ((ldap_debug | ldap_syslog) & (level))
 #elif defined(LDAP_DEBUG)
-#define Statslog1( level, severity, fmt, connid, opid, arg1 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1) );\
-	} while (0)
-#define Statslog2( level, severity, fmt, connid, opid, arg1, arg2 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2) );\
-	} while (0)
-#define Statslog3( level, severity, fmt, connid, opid, arg1, arg2, arg3 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
-	} while (0)
-#define Statslog4( level, severity, fmt, connid, opid, arg1, arg2, arg3, arg4 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3), (arg4) );\
-	} while (0)
-#define Statslog5( level, severity, fmt, connid, opid, arg1, arg2, arg3, arg4, arg5 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3), (arg4), (arg5) );\
-	} while (0)
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	do { \
 		if ( ldap_debug & (level) ) \
@@ -2733,12 +2668,6 @@ typedef struct slap_conn {
 	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
 #else
-#define Statslog1( level, severity, fmt, connid, opid, arg1 )
-#define Statslog2( level, severity, fmt, connid, opid, arg1, arg2 )
-#define Statslog3( level, severity, fmt, connid, opid, arg1, arg2, arg3 )
-#define Statslog4( level, severity, fmt, connid, opid, arg1, arg2, arg3, arg4 )
-#define Statslog5( level, severity, fmt, connid, opid, arg1, arg2, arg3, arg4, arg5 )
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #define StatslogTest( level ) (0)
 #endif
 
