@@ -125,8 +125,8 @@ int
 ldap_parse_passwordpolicy_control(
 	LDAP           *ld,
 	LDAPControl    *ctrl,
-	int            *expirep,
-	int            *gracep,
+	ber_int_t      *expirep,
+	ber_int_t      *gracep,
 	LDAPPasswordPolicyError *errorp )
 {
 	BerElement  *ber;

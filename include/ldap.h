@@ -2017,8 +2017,8 @@ LDAP_F( int )
 ldap_parse_passwordpolicy_control LDAP_P((
         LDAP *ld,
         LDAPControl *ctrl,
-        int *expirep,
-        int *gracep,
+        ber_int_t *expirep,
+        ber_int_t *gracep,
         LDAPPasswordPolicyError *errorp ));
 
 LDAP_F( const char * )
@@ -2035,12 +2035,12 @@ LDAP_F( int )
 ldap_parse_refresh LDAP_P((
 	LDAP *ld,
 	LDAPMessage *res,
-	int *newttl ));
+	ber_int_t *newttl ));
 
 LDAP_F( int )
 ldap_refresh LDAP_P(( LDAP *ld,
 	struct berval	*dn,
-	int ttl,
+	ber_int_t ttl,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls,
 	int				*msgidp ));
@@ -2049,8 +2049,8 @@ LDAP_F( int )
 ldap_refresh_s LDAP_P((
 	LDAP *ld,
 	struct berval	*dn,
-	int ttl,
-	int *newttl,
+	ber_int_t ttl,
+	ber_int_t *newttl,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
 

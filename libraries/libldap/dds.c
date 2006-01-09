@@ -27,7 +27,7 @@
 #include "ldap-int.h"
 
 int
-ldap_parse_refresh( LDAP *ld, LDAPMessage *res, int *newttl )
+ldap_parse_refresh( LDAP *ld, LDAPMessage *res, ber_int_t *newttl )
 {
 	int		rc;
 	struct berval	*retdata = NULL;
@@ -83,7 +83,7 @@ int
 ldap_refresh(
 	LDAP		*ld,
 	struct berval	*dn,
-	int		ttl,
+	ber_int_t		ttl,
 	LDAPControl	**sctrls,
 	LDAPControl	**cctrls,
 	int		*msgidp )
@@ -129,8 +129,8 @@ int
 ldap_refresh_s(
 	LDAP		*ld,
 	struct berval	*dn,
-	int		ttl,
-	int		*newttl,
+	ber_int_t		ttl,
+	ber_int_t		*newttl,
 	LDAPControl	**sctrls,
 	LDAPControl	**cctrls )
 {
@@ -139,13 +139,10 @@ ldap_refresh_s(
 	LDAPMessage	*res;
 
 	rc = ldap_refresh( ld, dn, ttl, sctrls, cctrls, &msgid );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
-
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *)NULL, &res ) == -1 ) {
-		return ld->ld_errno;
-	}
+	if ( rc != LDAP_SUCCESS ) return rc;
+	
+	rc = ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *)NULL, &res );
+	if( rc == -1 ) return ld->ld_errno;
 
 	rc = ldap_parse_refresh( ld, res, newttl );
 	if( rc != LDAP_SUCCESS ) {
@@ -153,6 +150,6 @@ ldap_refresh_s(
 		return rc;
 	}
 
-	return( ldap_result2error( ld, res, 1 ) );
+	return ldap_result2error( ld, res, 1 );
 }
 

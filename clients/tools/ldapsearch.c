@@ -851,7 +851,9 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			if ( ldap_create_page_control_value( ld, pageSize, &pr_cookie, &c[i].ldctl_value ) ) {
+			if ( ldap_create_page_control_value( ld,
+				pageSize, &pr_cookie, &c[i].ldctl_value ) )
+			{
 				return EXIT_FAILURE;
 			}
 

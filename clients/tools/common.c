@@ -1406,13 +1406,15 @@ print_postread( LDAP *ld, LDAPControl *ctrl )
 static int
 print_paged_results( LDAP *ld, LDAPControl *ctrl )
 {
-	unsigned long estimate;
+	ber_int_t estimate;
 
 	/* note: pr_cookie is being malloced; it's freed
 	 * the next time the control is sent, but the last
 	 * time it's not; we don't care too much, because
 	 * the last time an empty value is returned... */
-	if ( ldap_parse_pageresponse_control( ld, ctrl, &estimate, &pr_cookie ) != LDAP_SUCCESS ) {
+	if ( ldap_parse_pageresponse_control( ld, ctrl, &estimate, &pr_cookie )
+		!= LDAP_SUCCESS )
+	{
 		/* error? */
 		return 1;
 
