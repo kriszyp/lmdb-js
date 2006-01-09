@@ -1109,6 +1109,9 @@ pcache_response(
 				}
 				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 			}
+		} else {
+			free( si->query.attrs );
+			filter_free( si->query.filter );
 		}
 
 		/* free self */
