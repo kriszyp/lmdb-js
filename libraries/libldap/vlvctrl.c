@@ -297,7 +297,7 @@ ldap_parse_vlvresponse_control(
 	ber_int_t *errcodep )
 {
 	BerElement  *ber;
-	ber_int_t long pos, count, err;
+	ber_int_t pos, count, err;
 	ber_tag_t tag, berTag;
 	ber_len_t berLen;
 
