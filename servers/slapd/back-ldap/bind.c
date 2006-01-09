@@ -665,8 +665,11 @@ ldap_back_dobind_int(
 		return rc;
 	}
 
-	while ( lc->lc_refcnt > 1 )
+	while ( lc->lc_refcnt > 1 ) {
 		ldap_pvt_thread_yield();
+		if (( rc = LDAP_BACK_CONN_ISBOUND( lc )))
+			return rc;
+	}
 
 	/*
 	 * FIXME: we need to let clients use proxyAuthz
