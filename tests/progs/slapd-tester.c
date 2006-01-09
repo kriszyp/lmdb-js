@@ -41,6 +41,7 @@
 #define ADDCMD			"slapd-addel"
 #define MODRDNCMD		"slapd-modrdn"
 #define MODIFYCMD		"slapd-modify"
+#define BINDCMD			"slapd-bind"
 #define MAXARGS      		100
 #define MAXREQS			5000
 #define LOOPS			"100"
@@ -51,6 +52,7 @@
 #define TADDFILE		"do_add."
 #define TMODRDNFILE		"do_modrdn.0"
 #define TMODIFYFILE		"do_modify.0"
+#define TBINDFILE		"do_bind.0"
 
 static char *get_file_name( char *dirname, char *filename );
 static int  get_search_filters( char *filename, char *filters[], char *bases[] );
@@ -102,40 +104,53 @@ main( int argc, char **argv )
 	char		*loops = LOOPS;
 	char		*retries = RETRIES;
 	char		*delay = "0";
-	DIR			*datadir;
+	DIR		*datadir;
 	struct dirent	*file;
+	int		friendly = 0;
+	/* search */
 	char		*sfile = NULL;
 	char		*sreqs[MAXREQS];
 	char		*sbase[MAXREQS];
-	int         snum = 0;
+	int		snum = 0;
+	char		*sargs[MAXARGS];
+	int		sanum;
+	char		scmd[MAXPATHLEN];
+	/* read */
 	char		*rfile = NULL;
 	char		*rreqs[MAXREQS];
-	int         rnum = 0;
+	int		rnum = 0;
+	char		*rargs[MAXARGS];
+	int		ranum;
+	char		rcmd[MAXPATHLEN];
+	/* addel */
 	char		*afiles[MAXREQS];
-	int         anum = 0;
+	int		anum = 0;
+	char		*aargs[MAXARGS];
+	int		aanum;
+	char		acmd[MAXPATHLEN];
+	/* modrdn */
 	char		*mfile = NULL;
 	char		*mreqs[MAXREQS];
 	int		mnum = 0;
-	char		*sargs[MAXARGS];
-	int			sanum;
-	char		scmd[MAXPATHLEN];
-	char		*rargs[MAXARGS];
-	int			ranum;
-	char		rcmd[MAXPATHLEN];
-	char		*aargs[MAXARGS];
-	int			aanum;
-	char		acmd[MAXPATHLEN];
 	char		*margs[MAXARGS];
 	int		manum;
 	char		mcmd[MAXPATHLEN];
-	char		*modargs[MAXARGS];
-	int		modanum;
-	char		modcmd[MAXPATHLEN];
+	/* modify */
 	char		*modfile = NULL;
 	char		*modreqs[MAXREQS];
 	char		*moddn[MAXREQS];
 	int		modnum = 0;
-	int		friendly = 0;
+	char		*modargs[MAXARGS];
+	int		modanum;
+	char		modcmd[MAXPATHLEN];
+	/* bind */
+	char		*bfile = NULL;
+	char		*breqs[MAXREQS];
+	char		*bcreds[MAXREQS];
+	int		bnum = 0;
+	char		*bargs[MAXARGS];
+	int		banum;
+	char		bcmd[MAXPATHLEN];
 
 	while ( (i = getopt( argc, argv, "D:d:FH:h:j:l:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
@@ -230,6 +245,9 @@ main( int argc, char **argv )
 			&& ( anum < MAXREQS )) {
 			afiles[anum++] = get_file_name( dirname, file->d_name );
 			continue;
+		} else if ( !strcasecmp( file->d_name, TBINDFILE )) {
+			bfile = get_file_name( dirname, file->d_name );
+			continue;
 		}
 	}
 
@@ -249,9 +267,15 @@ main( int argc, char **argv )
 	if ( mfile ) {
 		mnum = get_read_entries( mfile, mreqs );
 	}
+
 	/* look for modify requests */
 	if ( modfile ) {
 		modnum = get_search_filters( modfile, modreqs, moddn );
+	}
+
+	/* look for bind requests */
+	if ( bfile ) {
+		bnum = get_search_filters( bfile, bcreds, breqs );
 	}
 
 	/*
@@ -418,8 +442,41 @@ main( int argc, char **argv )
 	aargs[aanum++] = NULL;		/* will hold the add data file */
 	aargs[aanum++] = NULL;
 
-	for ( j = 0; j < MAXREQS; j++ ) {
+	/*
+	 * generate the bind clients
+	 */
 
+	banum = 0;
+	snprintf( bcmd, sizeof bcmd, "%s" LDAP_DIRSEP BINDCMD,
+		progdir );
+	bargs[banum++] = bcmd;
+	if ( uri ) {
+		bargs[banum++] = "-H";
+		bargs[banum++] = uri;
+	} else {
+		bargs[banum++] = "-h";
+		bargs[banum++] = host;
+		bargs[banum++] = "-p";
+		bargs[banum++] = port;
+	}
+	bargs[banum++] = "-l";
+	bargs[banum++] = loops;
+#if 0
+	bargs[banum++] = "-r";
+	bargs[banum++] = retries;
+	bargs[banum++] = "-t";
+	bargs[banum++] = delay;
+#endif
+	if ( friendly ) {
+		bargs[banum++] = "-F";
+	}
+	bargs[banum++] = "-D";
+	bargs[banum++] = NULL;
+	bargs[banum++] = "-w";
+	bargs[banum++] = NULL;
+	bargs[banum++] = NULL;
+
+	for ( j = 0; j < MAXREQS; j++ ) {
 		if ( j < snum ) {
 
 			sargs[sanum - 2] = sreqs[j];
@@ -453,6 +510,14 @@ main( int argc, char **argv )
 
 			aargs[aanum - 2] = afiles[j];
 			fork_child( acmd, aargs );
+
+		}
+
+		if ( j < bnum ) {
+
+			bargs[banum - 4] = breqs[j];
+			bargs[banum - 2] = bcreds[j];
+			fork_child( bcmd, bargs );
 
 		}
 

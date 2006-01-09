@@ -32,19 +32,30 @@
 #include <ac/wait.h>
 #include <ac/time.h>
 
-#define LDAP_DEPRECATED 1
 #include <ldap.h>
 #include <lutil.h>
 
 #define LOOPS	100
 
-static int
-do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop,
-	int force );
+static void
+do_error( LDAP *ld, const char *func )
+{
+	int err;
+	const char *text = "Success";
+
+	ldap_get_option( ld, LDAP_OPT_RESULT_CODE, (void *)&err );
+	if ( err != LDAP_SUCCESS ) {
+		ldap_get_option( ld, LDAP_OPT_ERROR_STRING, (void *)&text );
+	}
+
+	fprintf( stderr, "%s: (%d) %s\n", func, err, text == NULL ? "" : text );
+}
 
 static int
-do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
-	int force );
+do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force );
+
+static int
+do_base( char *uri, char *base, struct berval *pass, int maxloop, int force );
 
 /* This program can be invoked two ways: if -D is used to specify a Bind DN,
  * that DN will be used repeatedly for all of the Binds. If instead -b is used
@@ -67,11 +78,12 @@ int
 main( int argc, char **argv )
 {
 	int		i;
-	char		*uri = NULL;
+	char		*uri = NULL,
+			uribuf[ BUFSIZ ];
 	char		*host = "localhost";
 	char		*dn = NULL;
 	char		*base = NULL;
-	char		*pass = NULL;
+	struct berval	pass = { 0, NULL };
 	int		port = -1;
 	int		loops = LOOPS;
 	int		force = 0;
@@ -84,10 +96,11 @@ main( int argc, char **argv )
 
 			case 'H':		/* the server uri */
 				uri = strdup( optarg );
-			break;
+				break;
+
 			case 'h':		/* the servers host */
 				host = strdup( optarg );
-			break;
+				break;
 
 			case 'p':		/* the servers port */
 				if ( lutil_atoi( &port, optarg ) != 0 ) {
@@ -100,7 +113,8 @@ main( int argc, char **argv )
 				break;
 
 			case 'w':
-				pass = strdup( optarg );
+				pass.bv_val = strdup( optarg );
+				pass.bv_len = strlen( optarg );
 				break;
 
 			case 'l':		/* the number of loops */
@@ -123,20 +137,26 @@ main( int argc, char **argv )
 		}
 	}
 
-	if ( port == -1 && uri == NULL )
+	if ( port == -1 && uri == NULL ) {
 		usage( argv[0] );
+	}
 
-	if ( base )
-		do_base( uri, host, port, base, pass, ( 20 * loops ), force );
-	else
-		do_bind( uri, host, port, dn, pass, ( 20 * loops ), force );
+	if ( uri == NULL ) {
+		snprintf( uribuf, sizeof( uribuf ), "ldap://%s:%d", host, port );
+		uri = uribuf;
+	}
+
+	if ( base ) {
+		do_base( uri, base, &pass, ( 20 * loops ), force );
+	} else {
+		do_bind( uri, dn, &pass, ( 20 * loops ), force );
+	}
 	exit( EXIT_SUCCESS );
 }
 
 
 static int
-do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop,
-	int force )
+do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force )
 {
 	LDAP	*ld = NULL;
 	int  	i, rc = -1;
@@ -147,13 +167,9 @@ do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop,
 			 (long) pid, maxloop, dn );
 
 	for ( i = 0; i < maxloop; i++ ) {
-		if ( uri ) {
-			ldap_initialize( &ld, uri );
-		} else {
-			ld = ldap_init( host, port );
-		}
+		ldap_initialize( &ld, uri );
 		if ( ld == NULL ) {
-			perror( "ldap_init" );
+			perror( "ldap_initialize" );
 			rc = -1;
 			break;
 		}
@@ -164,11 +180,11 @@ do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop,
 				&version ); 
 		}
 
-		rc = ldap_bind_s( ld, dn, pass, LDAP_AUTH_SIMPLE );
+		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_bind" );
+			do_error( ld, "ldap_bind" );
 		}
-		ldap_unbind( ld );
+		ldap_unbind_ext( ld, NULL, NULL );
 		if ( rc != LDAP_SUCCESS && !force ) {
 			break;
 		}
@@ -182,8 +198,7 @@ do_bind( char *uri, char *host, int port, char *dn, char *pass, int maxloop,
 
 
 static int
-do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
-	int force )
+do_base( char *uri, char *base, struct berval *pass, int maxloop, int force )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0;
@@ -199,36 +214,29 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 #else
 	struct timeval beg, end;
 #endif
+	int version = LDAP_VERSION3;
 
 	srand(pid);
 
-	if ( uri ) {
-		ldap_initialize( &ld, uri );
-	} else {
-		ld = ldap_init( host, port );
-	}
+	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		perror( "ldap_init" );
+		perror( "ldap_initialize" );
 		exit( EXIT_FAILURE );
 	}
 
-	{
-		int version = LDAP_VERSION3;
-		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-			&version ); 
-	}
+	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
-	rc = ldap_bind_s( ld, NULL, NULL, LDAP_AUTH_SIMPLE );
+	rc = ldap_sasl_bind_s( ld, NULL, LDAP_SASL_SIMPLE, NULL, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
+		do_error( ld, "ldap_bind" );
 		exit( EXIT_FAILURE );
 	}
 
 	rc = ldap_search_ext( ld, base, LDAP_SCOPE_ONE,
 			filter, attrs, 0, NULL, NULL, 0, 0, &msgid );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_search_ex" );
+		do_error( ld, "ldap_search_ext" );
 		exit( EXIT_FAILURE );
 	}
 
@@ -262,7 +270,7 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 		ldap_msgfree( res );
 		if ( done ) break;
 	}
-	ldap_unbind( ld );
+	ldap_unbind_ext( ld, NULL, NULL );
 
 #ifdef _WIN32
 	beg = GetTickCount();
@@ -282,7 +290,7 @@ do_base( char *uri, char *host, int port, char *base, char *pass, int maxloop,
 		ptr = lutil_strcopy(dn, rdns[j]);
 		*ptr++ = ',';
 		strcpy(ptr, base);
-		if ( do_bind( uri, host, port, dn, pass, 1, force ) && !force )
+		if ( do_bind( uri, dn, pass, 1, force ) && !force )
 			break;
 	}
 #ifdef _WIN32
