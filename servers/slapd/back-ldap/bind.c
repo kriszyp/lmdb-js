@@ -1405,8 +1405,9 @@ ldap_back_proxy_authz_ctrl(
 			/* just count ctrls */ ;
 	}
 
-	ctrls = ch_malloc( sizeof( LDAPControl * ) * (i + 2) );
-	ctrls[ 0 ] = ch_malloc( sizeof( LDAPControl ) );
+	ctrls = op->o_tmpalloc( sizeof( LDAPControl * ) * (i + 2) + sizeof( LDAPControl ),
+			op->o_tmpmemctx );
+	ctrls[ 0 ] = (LDAPControl *)&ctrls[ i + 2 ];
 	
 	ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 	ctrls[ 0 ]->ldctl_iscritical = 1;
@@ -1415,13 +1416,14 @@ ldap_back_proxy_authz_ctrl(
 	/* already in u:ID or dn:DN form */
 	case LDAP_BACK_IDASSERT_OTHERID:
 	case LDAP_BACK_IDASSERT_OTHERDN:
-		ber_dupbv( &ctrls[ 0 ]->ldctl_value, &assertedID );
+		ber_dupbv_x( &ctrls[ 0 ]->ldctl_value, &assertedID, op->o_tmpmemctx );
 		break;
 
 	/* needs the dn: prefix */
 	default:
 		ctrls[ 0 ]->ldctl_value.bv_len = assertedID.bv_len + STRLENOF( "dn:" );
-		ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
+		ctrls[ 0 ]->ldctl_value.bv_val = op->o_tmpalloc( ctrls[ 0 ]->ldctl_value.bv_len + 1,
+				op->o_tmpmemctx );
 		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
 		AC_MEMCPY( &ctrls[ 0 ]->ldctl_value.bv_val[ STRLENOF( "dn:" ) ],
 				assertedID.bv_val, assertedID.bv_len + 1 );
@@ -1457,11 +1459,10 @@ ldap_back_proxy_authz_ctrl_free( Operation *op, LDAPControl ***pctrls )
 		assert( ctrls[ 0 ] != NULL );
 
 		if ( !BER_BVISNULL( &ctrls[ 0 ]->ldctl_value ) ) {
-			free( ctrls[ 0 ]->ldctl_value.bv_val );
+			op->o_tmpfree( ctrls[ 0 ]->ldctl_value.bv_val, op->o_tmpmemctx );
 		}
 
-		free( ctrls[ 0 ] );
-		free( ctrls );
+		op->o_tmpfree( ctrls, op->o_tmpmemctx );
 	} 
 
 	*pctrls = NULL;
