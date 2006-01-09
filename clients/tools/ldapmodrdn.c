@@ -198,9 +198,7 @@ main(int argc, char **argv)
 
 	tool_bind( ld );
 
-	if ( assertion || authzid || manageDSAit || noop ) {
-		tool_server_controls( ld, NULL, 0 );
-	}
+	tool_server_controls( ld, NULL, 0 );
 
     retval = rc = 0;
     if (havedn)

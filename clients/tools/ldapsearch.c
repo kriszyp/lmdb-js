@@ -625,12 +625,13 @@ main( int argc, char **argv )
 {
 	char		*filtpattern, **attrs = NULL, line[BUFSIZ];
 	FILE		*fp = NULL;
-	int			rc, i, first;
+	int		rc, i, first;
 	LDAP		*ld = NULL;
 	BerElement	*seber = NULL, *vrber = NULL;
 
 	BerElement      *syncber = NULL;
 	struct berval   *syncbvalp = NULL;
+	int		err;
 
 	tool_init( TOOL_SEARCH );
 
@@ -724,20 +725,18 @@ main( int argc, char **argv )
 	tool_bind( ld );
 
 getNextPage:
-	if ( nctrls > 0 || assertion || authzid || manageDSAit || noop
+	save_nctrls = nctrls;
+	i = nctrls;
+	if ( nctrls > 0
 #ifdef LDAP_CONTROL_DONTUSECOPY
 		|| dontUseCopy
 #endif
-		|| domainScope || pagedResults
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-		|| chaining
-#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+		|| domainScope
+		|| pagedResults
 		|| ldapsync
-		|| subentries || valuesReturnFilter )
+		|| subentries
+		|| valuesReturnFilter )
 	{
-		int err;
-		int i = nctrls;
-		save_nctrls = nctrls;
 
 #ifdef LDAP_CONTROL_DONTUSECOPY
 		if ( dontUseCopy ) {
@@ -867,17 +866,17 @@ getNextPage:
 			c[i].ldctl_iscritical = pagedResults > 1;
 			i++;
 		}
-
-		tool_server_controls( ld, c, i );
-
-		/* step back to the original number of controls, so that 
-		 * those set while parsing args are preserved */
-		nctrls = save_nctrls;
-
-		ber_free( seber, 1 );
-		ber_free( vrber, 1 );
 	}
-	
+
+	tool_server_controls( ld, c, i );
+
+	ber_free( seber, 1 );
+	ber_free( vrber, 1 );
+
+	/* step back to the original number of controls, so that 
+	 * those set while parsing args are preserved */
+	nctrls = save_nctrls;
+
 	if ( verbose ) {
 		fprintf( stderr, _("filter%s: %s\nrequesting: "),
 			infile != NULL ? _(" pattern") : "",

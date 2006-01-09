@@ -242,14 +242,17 @@ int
 main( int argc, char **argv )
 {
 #ifdef LDAP_GROUP_TRANSACTION
-	BerElement *txnber;
-	struct berval txnCookie = { 0, NULL };
+	BerElement	*txnber;
+	struct berval	txnCookie = { 0, NULL };
 #endif
 	char		*rbuf, *start, *rejbuf = NULL;
 	FILE		*fp, *rejfp;
 	char		*matched_msg, *error_msg;
 	int		rc, retval;
-	int count, len;
+	int		count, len;
+	int		i = 0;
+	LDAPControl	c[1];
+
 
 	prog = lutil_progname( "ldapmodify", argc, argv );
 
@@ -311,15 +314,12 @@ main( int argc, char **argv )
 	}
 #endif
 
-	if ( assertion || authzid || manageDIT || manageDSAit || noop
+	if ( 0
 #ifdef LDAP_GROUP_TRANSACTION
 		|| txn
 #endif
-		|| preread || postread )
+		)
 	{
-		int i = 0;
-		LDAPControl c[1];
-
 #ifdef LDAP_GROUP_TRANSACTION
 		if( txn ) {
 			int err;
@@ -341,9 +341,9 @@ main( int argc, char **argv )
 			i++;
 		}
 #endif
-
-		tool_server_controls( ld, c, i );
 	}
+
+	tool_server_controls( ld, c, i );
 
 	rc = 0;
 	count = 0;

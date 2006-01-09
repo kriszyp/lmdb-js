@@ -181,11 +181,14 @@ handle_private_option( int i )
 int
 main( int argc, char **argv )
 {
-	char	*compdn = NULL, *attrs = NULL;
-	char	*sep;
+	char		*compdn = NULL, *attrs = NULL;
+	char		*sep;
 	int		rc;
-	LDAP	*ld = NULL;
-	struct berval bvalue = { 0, NULL };
+	LDAP		*ld = NULL;
+	struct berval	bvalue = { 0, NULL };
+	int		i = 0; 
+	LDAPControl	c[1];
+
 
 	tool_init( TOOL_COMPARE );
 	prog = lutil_progname( "ldapcompare", argc, argv );
@@ -238,16 +241,12 @@ main( int argc, char **argv )
 
 	tool_bind( ld );
 
-	if ( assertion || authzid || manageDSAit || noop 
+	if ( 0
 #ifdef LDAP_CONTROL_DONTUSECOPY
 		|| dontUseCopy
 #endif
 		)
 	{
-		int err;
-		int i = 0; 
-		LDAPControl c[1];
-
 #ifdef LDAP_CONTROL_DONTUSECOPY
 		if ( dontUseCopy ) {  
 			c[i].ldctl_oid = LDAP_CONTROL_DONTUSECOPY;
@@ -257,9 +256,9 @@ main( int argc, char **argv )
 			i++;    
 		}
 #endif
-
-		tool_server_controls( ld, c, i );
 	}
+
+	tool_server_controls( ld, c, i );
 
 	if ( verbose ) {
 		fprintf( stderr, _("DN:%s, attr:%s, value:%s\n"),

@@ -116,14 +116,7 @@ main( int argc, char *argv[] )
 			usage();
 		}
 
-		if ( assertion || manageDSAit || noop ) {
-			fprintf( stderr, _("controls incompatible with WhoAmI exop\n\n") );
-			usage();
-		}
-
-		if ( authzid ) {
-			tool_server_controls( ld, NULL, 0 );
-		}
+		tool_server_controls( ld, NULL, 0 );
 
 		rc = ldap_whoami( ld, NULL, NULL, &id ); 
 		if ( rc != LDAP_SUCCESS ) {
@@ -156,7 +149,9 @@ main( int argc, char *argv[] )
 		}
 
 	} else if ( strcasecmp( argv[ 0 ], "passwd" ) == 0 ) {
-		/* do we need this? */
+		fprintf( stderr, "use ldappasswd(1) instead.\n\n", argv[ 0 ] );
+		usage();
+		/* TODO? */
 
 	} else if ( strcasecmp( argv[ 0 ], "refresh" ) == 0 ) {
 		int		ttl = 3600;
@@ -178,9 +173,7 @@ main( int argc, char *argv[] )
 			usage();
 		}
 		
-		if ( assertion || manageDSAit || noop || authzid ) {
-			tool_server_controls( ld, NULL, 0 );
-		}
+		tool_server_controls( ld, NULL, 0 );
 
 		rc = ldap_refresh( ld, &dn, ttl, NULL, NULL, &id ); 
 		if ( rc != LDAP_SUCCESS ) {
@@ -190,6 +183,9 @@ main( int argc, char *argv[] )
 		}
 
 	} else if ( tool_is_oid( argv[ 0 ] ) ) {
+		/* TODO */
+		fprintf( stderr, "exop \"%s\" not implemented yet.\n\n", argv[ 0 ] );
+		usage();
 		
 	} else {
 		fprintf( stderr, "unknown exop \"%s\"\n\n", argv[ 0 ] );
@@ -258,6 +254,7 @@ main( int argc, char *argv[] )
 		assert( 0 );
 
 	} else if ( strcasecmp( argv[ 0 ], "passwd" ) == 0 ) {
+		/* TODO */
 
 	} else if ( strcasecmp( argv[ 0 ], "refresh" ) == 0 ) {
 		int	newttl;
