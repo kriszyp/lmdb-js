@@ -30,7 +30,6 @@ cn: Jennifer Smith
 cn: Jen Smith
 sn: Smith
 uid: jen
-title: Telemarketer, UM Alumni Association
 
 # Query 4: filter:(sn=Doe*) attrs:cn sn title uid
 dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example
