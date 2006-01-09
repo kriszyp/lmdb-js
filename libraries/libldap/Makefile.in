@@ -34,7 +34,7 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	sasl.lo sbind.lo kbind.lo unbind.lo cancel.lo \
 	filter.lo free.lo sort.lo passwd.lo whoami.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
-	request.lo os-ip.lo url.lo pagectrl.o sortctrl.lo vlvctrl.lo \
+	request.lo os-ip.lo url.lo pagectrl.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
 	charray.lo tls.lo os-local.lo dnssrv.lo utf-8.lo utf-8-conv.lo \
 	turn.lo ppolicy.lo dds.lo
