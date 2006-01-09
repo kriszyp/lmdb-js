@@ -864,11 +864,11 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_HEADER_TIOCGWINSZ
 
-AC_CHECK_HEADERS(		\
+AC_CHECK_HEADERS(	\
 	arpa/inet.h		\
-	arpa/nameser.h		\
+	arpa/nameser.h	\
 	assert.h		\
-	bits/types.h		\
+	bits/types.h	\
 	conio.h			\
 	crypt.h			\
 	direct.h		\
@@ -881,7 +881,6 @@ AC_CHECK_HEADERS(		\
 	libutil.h		\
 	limits.h		\
 	locale.h		\
-	netinet/tcp.h		\
 	malloc.h		\
 	memory.h		\
 	psap.h			\
@@ -898,11 +897,11 @@ AC_CHECK_HEADERS(		\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
-	sys/resource.h		\
-	sys/select.h		\
-	sys/socket.h		\
+	sys/resource.h	\
+	sys/select.h	\
+	sys/socket.h	\
 	sys/stat.h		\
-	sys/syslog.h		\
+	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
 	sys/uio.h		\
@@ -915,11 +914,16 @@ AC_CHECK_HEADERS(		\
 )
 
 AC_CHECK_HEADERS( resolv.h, [], [],
-[$ac_includes_default]
+[$ac_includes_default
 #include <netinet/in.h>
-)
+])
 
-AC_CHECK_HEADERS(sys/ucred.h, [], [],
+AC_CHECK_HEADERS( netinet/tcp.h, [], [],
+[$ac_includes_default
+#include <netinet/in.h>
+])
+
+AC_CHECK_HEADERS( sys/ucred.h, [], [],
 [$ac_includes_default
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
