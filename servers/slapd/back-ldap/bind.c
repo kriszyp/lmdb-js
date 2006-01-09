@@ -56,7 +56,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	int rc = 0;
 	ber_int_t msgid;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_BIND_SERR );
 	if ( !lc ) {
 		return rs->sr_err;
 	}
@@ -489,21 +489,35 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		}
 	}
 
-	/* Searches for a ldapconn in the avl tree */
-	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+	/* Explicit Bind requests always get their own conn */
+	if ( sendok & LDAP_BACK_BINDING ) {
+		lc = NULL;
+	} else {
+		/* Searches for a ldapconn in the avl tree */
+retry_lock:
+		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
-	lc = (ldapconn_t *)avl_find( li->li_conninfo.lai_tree, 
-			(caddr_t)&lc_curr, ldap_back_conn_cmp );
-	if ( lc != NULL ) {
-		refcnt = ++lc->lc_refcnt;
+		lc = (ldapconn_t *)avl_find( li->li_conninfo.lai_tree, 
+				(caddr_t)&lc_curr, ldap_back_conn_cmp );
+		if ( lc != NULL ) {
+			refcnt = ++lc->lc_refcnt;
+			/* Don't reuse connections while they're still binding */
+			if ( LDAP_BACK_CONN_BINDING( lc )) {
+				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+				ldap_pvt_thread_yield();
+				goto retry_lock;
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}
-	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if ( lc == NULL ) {
 		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 			return NULL;
 		}
+		if ( sendok & LDAP_BACK_BINDING )
+			LDAP_BACK_CONN_BINDING_SET( lc );
 
 		lc->lc_conn = lc_curr.lc_conn;
 		ber_dupbv( &lc->lc_local_ndn, &lc_curr.lc_local_ndn );
@@ -618,6 +632,7 @@ ldap_back_release_conn(
 	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	assert( lc->lc_refcnt > 0 );
 	lc->lc_refcnt--;
+	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 }
 
@@ -649,6 +664,9 @@ ldap_back_dobind_int(
 	if ( rc ) {
 		return rc;
 	}
+
+	while ( lc->lc_refcnt > 1 )
+		ldap_pvt_thread_yield();
 
 	/*
 	 * FIXME: we need to let clients use proxyAuthz
