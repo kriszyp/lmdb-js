@@ -73,17 +73,16 @@ typedef struct query_template_s {
 } QueryTemplate;
 
 /*
- * Represents a set of projected attributes and any
- * supersets among all specified sets of attributes.
+ * Represents a set of projected attributes.
  */
 
 struct attr_set {
 	unsigned	flags;
 #define	PC_CONFIGURED	(0x1)
 #define	PC_REFERENCED	(0x2)
+#define	PC_GOT_OC		(0x4)
 	AttributeName*	attrs; 		/* specifies the set */
 	int 		count;		/* number of attributes */
-	int*		ID_array;	/* array of indices of supersets of 'attrs' */
 };
 
 struct query_manager_s;
@@ -639,12 +638,7 @@ free_query (CachedQuery* qc)
 	free(qc->q_uuid.bv_val);
 	filter_free(q->filter);
 	free (q->base.bv_val);
-	if ( q->attrs ) {
-		for (i=0; q->attrs[i].an_name.bv_val; i++) {
-			free(q->attrs[i].an_name.bv_val);
-		}
-		free(q->attrs);
-	}
+	free(q->attrs);
 	free(qc);
 }
 
@@ -886,12 +880,6 @@ get_attr_set(
 );
 
 static int
-attrscmp(
-	AttributeName* attrs_in,
-	AttributeName* attrs
-);
-
-static int
 is_temp_answerable(
 	int attr_set,
 	struct berval* tempstr,
@@ -901,15 +889,7 @@ is_temp_answerable(
 	QueryTemplate *qt = qm->templates + template_id;
 
 	if (attr_set != qt->attr_set_index) {
-		int* id_array = qm->attr_sets[attr_set].ID_array;
-
-		while (*id_array != -1) {
-			if (*id_array == qt->attr_set_index)
-				break;
-			id_array++;
-		}
-		if (*id_array == -1)
-			return 0;
+		return 0;
 	}
 	return (qt->querystr.bv_len == tempstr->bv_len &&
 		strcasecmp(qt->querystr.bv_val, tempstr->bv_val) == 0);
@@ -917,10 +897,12 @@ is_temp_answerable(
 
 static int
 filter2template(
+	Operation		*op,
 	Filter			*f,
 	struct			berval *fstr,
 	AttributeName**		filter_attrs,
-	int*			filter_cnt )
+	int*			filter_cnt,
+	int*			filter_got_oc )
 {
 	AttributeDescription *ad;
 
@@ -971,7 +953,8 @@ filter2template(
 		fstr->bv_len += sizeof("(%") - 1;
 
 		for ( f = f->f_list; f != NULL; f = f->f_next ) {
-			rc = filter2template( f, fstr, filter_attrs, filter_cnt );
+			rc = filter2template( op, f, fstr, filter_attrs, filter_cnt,
+				filter_got_oc );
 			if ( rc ) break;
 		}
 		sprintf( fstr->bv_val+fstr->bv_len, ")" );
@@ -986,8 +969,8 @@ filter2template(
 		return -1;
 	}
 
-	*filter_attrs = (AttributeName *)ch_realloc(*filter_attrs,
-				(*filter_cnt + 2)*sizeof(AttributeName));
+	*filter_attrs = (AttributeName *)op->o_tmprealloc(*filter_attrs,
+				(*filter_cnt + 2)*sizeof(AttributeName), op->o_tmpmemctx);
 
 	(*filter_attrs)[*filter_cnt].an_desc = ad;
 	(*filter_attrs)[*filter_cnt].an_name = ad->ad_cname;
@@ -995,6 +978,8 @@ filter2template(
 	(*filter_attrs)[*filter_cnt].an_oc_exclude = 0;
 	BER_BVZERO( &(*filter_attrs)[*filter_cnt+1].an_name );
 	(*filter_cnt)++;
+	if ( ad == slap_schema.si_ad_objectClass )
+		*filter_got_oc = 1;
 	return 0;
 }
 
@@ -1120,14 +1105,8 @@ pcache_response(
 				si->tail = NULL;
 			}
 		}
-
-		if ( rs->sr_attrs != op->ors_attrs ) {
-			op->o_tmpfree( rs->sr_attrs, op->o_tmpmemctx );
-		}
-
 		if ( si->query.save_attrs != NULL ) {
 			rs->sr_attrs = si->query.save_attrs;
-			op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
 			op->ors_attrs = si->query.save_attrs;
 			si->query.save_attrs = NULL;
 		}
@@ -1158,42 +1137,36 @@ static void
 add_filter_attrs(
 	Operation *op,
 	AttributeName** new_attrs,
-	AttributeName* attrs,
-	AttributeName* filter_attrs )
+	struct attr_set *attrs,
+	AttributeName* filter_attrs,
+	int fattr_cnt,
+	int fattr_got_oc)
 {
 	int alluser = 0;
 	int allop = 0;
-	int i;
+	int i, j;
 	int count;
+	int addoc = 0;
 
 	/* duplicate attrs */
-        if (attrs == NULL) {
-		count = 1;
-	} else {
-		for (count=0; attrs[count].an_name.bv_val; count++)
-			;
-	}
-	*new_attrs = (AttributeName*)(op->o_tmpalloc((count+1)*
-		sizeof(AttributeName), op->o_tmpmemctx));
-	if (attrs == NULL) {
-		BER_BVSTR( &(*new_attrs)[0].an_name, "*" );
-		(*new_attrs)[0].an_desc = NULL;
-		(*new_attrs)[0].an_oc = NULL;
-		(*new_attrs)[0].an_oc_exclude = 0;
-		BER_BVZERO( &(*new_attrs)[1].an_name );
-		alluser = 1;
-		allop = 0;
-	} else {
-		for (i=0; i<count; i++) {
-			(*new_attrs)[i].an_name = attrs[i].an_name;
-			(*new_attrs)[i].an_desc = attrs[i].an_desc;
-		}
-		BER_BVZERO( &(*new_attrs)[count].an_name );
-		alluser = an_find(*new_attrs, &AllUser);
-		allop = an_find(*new_attrs, &AllOper);
+	count = attrs->count + fattr_cnt;
+	if ( !fattr_got_oc && !(attrs->flags & PC_GOT_OC)) {
+		addoc = 1;
+		count++;
 	}
 
-	for ( i=0; filter_attrs[i].an_name.bv_val; i++ ) {
+	*new_attrs = (AttributeName*)ch_malloc((count+1)*
+		sizeof(AttributeName));
+	for (i=0; i<attrs->count; i++) {
+		(*new_attrs)[i].an_name = attrs->attrs[i].an_name;
+		(*new_attrs)[i].an_desc = attrs->attrs[i].an_desc;
+	}
+	BER_BVZERO( &(*new_attrs)[i].an_name );
+	alluser = an_find(*new_attrs, &AllUser);
+	allop = an_find(*new_attrs, &AllOper);
+
+	j = i;
+	for ( i=0; i<fattr_cnt; i++ ) {
 		if ( an_find(*new_attrs, &filter_attrs[i].an_name ))
 			continue;
 		if ( is_at_operational(filter_attrs[i].an_desc->ad_type) ) {
@@ -1201,15 +1174,20 @@ add_filter_attrs(
 				continue;
 		} else if (alluser)
 			continue;
-		*new_attrs = (AttributeName*)(op->o_tmprealloc(*new_attrs,
-					(count+2)*sizeof(AttributeName), op->o_tmpmemctx));
-		(*new_attrs)[count].an_name = filter_attrs[i].an_name;
-		(*new_attrs)[count].an_desc = filter_attrs[i].an_desc;
-		(*new_attrs)[count].an_oc = NULL;
-		(*new_attrs)[count].an_oc_exclude = 0;
-		count++;
-		BER_BVZERO( &(*new_attrs)[count].an_name );
+		(*new_attrs)[j].an_name = filter_attrs[i].an_name;
+		(*new_attrs)[j].an_desc = filter_attrs[i].an_desc;
+		(*new_attrs)[j].an_oc = NULL;
+		(*new_attrs)[j].an_oc_exclude = 0;
+		j++;
 	}
+	if ( addoc ) {
+		(*new_attrs)[j].an_name = slap_schema.si_ad_objectClass->ad_cname;
+		(*new_attrs)[j].an_desc = slap_schema.si_ad_objectClass;
+		(*new_attrs)[j].an_oc = NULL;
+		(*new_attrs)[j].an_oc_exclude = 0;
+		j++;
+	}
+	BER_BVZERO( &(*new_attrs)[j].an_name );
 }
 
 /* NOTE: this is a quick workaround to let pcache minimally interact
@@ -1270,13 +1248,15 @@ pcache_op_search(
 	int 		answerable = 0;
 	int 		cacheable = 0;
 	int		fattr_cnt=0;
+	int		fattr_got_oc = 0;
 	int		oc_attr_absent = 1;
 
 	struct berval tempstr;
 
 	tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1, op->o_tmpmemctx );
 	tempstr.bv_len = 0;
-	if (filter2template(op->ors_filter, &tempstr, &filter_attrs, &fattr_cnt)) {
+	if ( filter2template( op, op->ors_filter, &tempstr, &filter_attrs,
+		&fattr_cnt, &fattr_got_oc )) {
 		op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
 		return SLAP_CB_CONTINUE;
 	}
@@ -1326,7 +1306,7 @@ pcache_op_search(
 		slap_callback	*save_cb = op->o_callback;
 
 		Debug( LDAP_DEBUG_ANY, "QUERY ANSWERABLE\n", 0, 0, 0 );
-		free(filter_attrs);
+		op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
 		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock);
 		op->o_bd = &cm->db;
 		op->o_callback = NULL;
@@ -1350,31 +1330,10 @@ pcache_op_search(
 
 		Debug( LDAP_DEBUG_ANY, "QUERY CACHEABLE\n", 0, 0, 0 );
 		query.filter = str2filter(op->ors_filterstr.bv_val);
-		if (op->ors_attrs) {
-			for ( count = 0; !BER_BVISNULL( &op->ors_attrs[ count ].an_name ); count++ ) {
-				if ( op->ors_attrs[count].an_desc == slap_schema.si_ad_objectClass ) {
-					oc_attr_absent = 0;
-				}
-			}
-			query.attrs = (AttributeName *)ch_malloc( ( count + 1 + oc_attr_absent )
-									*sizeof(AttributeName) );
-			for ( count = 0; !BER_BVISNULL( &op->ors_attrs[ count ].an_name ); count++ ) {
-				ber_dupbv( &query.attrs[count].an_name, &op->ors_attrs[count].an_name );
-				query.attrs[count].an_desc = op->ors_attrs[count].an_desc;
-				query.attrs[count].an_oc = op->ors_attrs[count].an_oc;
-				query.attrs[count].an_oc_exclude = op->ors_attrs[count].an_oc_exclude;
-			}
-			if ( oc_attr_absent ) {
-				query.attrs[ count ].an_desc = slap_schema.si_ad_objectClass;
-				ber_dupbv( &query.attrs[count].an_name,
-					&slap_schema.si_ad_objectClass->ad_cname );
-				query.attrs[ count ].an_oc = NULL;
-				query.attrs[ count ].an_oc_exclude = 0;
-				count++;
-			}
-			BER_BVZERO( &query.attrs[ count ].an_name );
-		}
-		add_filter_attrs(op, &op->ors_attrs, query.attrs, filter_attrs);
+		add_filter_attrs(op, &query.attrs, &qm->attr_sets[attr_set],
+			filter_attrs, fattr_cnt, fattr_got_oc);
+
+		op->ors_attrs = query.attrs;
 
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
 		cb->sc_response = pcache_response;
@@ -1410,39 +1369,9 @@ pcache_op_search(
 					0, 0, 0);
 	}
 
-	free(filter_attrs);
+	op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
 
 	return SLAP_CB_CONTINUE;
-}
-
-static int
-attrscmp(
-	AttributeName* attrs_in,
-	AttributeName* attrs)
-{
-	int i, count1, count2;
-	if ( attrs_in == NULL ) {
-		return (attrs ? 0 : 1);
-	}
-	if ( attrs == NULL )
-		return 0;
-
-	for ( count1=0;
-	      attrs_in && attrs_in[count1].an_name.bv_val != NULL;
-	      count1++ )
-		;
-	for ( count2=0;
-	      attrs && attrs[count2].an_name.bv_val != NULL;
-	      count2++)
-		;
-	if ( count1 != count2 )
-		return 0;
-
-	for ( i=0; i<count1; i++ ) {
-		if ( !an_find(attrs, &attrs_in[i].an_name ))
-			return 0;
-	}
-	return 1;
 }
 
 static int
@@ -1452,11 +1381,35 @@ get_attr_set(
 	int num )
 {
 	int i;
-	for (i=0; i<num; i++) {
-		if (attrscmp(attrs, qm->attr_sets[i].attrs))
-			return i;
+	int count = 0;
+
+	if ( attrs ) {
+		for ( ; attrs[count].an_name.bv_val; count++ );
 	}
-	return -1;
+
+	for (i=0; i<num; i++) {
+		AttributeName *a2;
+		int found = 1;
+
+		if ( count > qm->attr_sets[i].count )
+			continue;
+		if ( !count ) {
+			if ( !qm->attr_sets[i].count )
+				break;
+			continue;
+		}
+		for ( a2 = attrs; a2->an_name.bv_val; a2++ ) {
+			if ( !an_find( qm->attr_sets[i].attrs, &a2->an_name )) {
+				found = 0;
+				break;
+			}
+		}
+		if ( found )
+			break;
+	}
+	if ( i == num )
+		i = -1;
+	return i;
 }
 
 static void*
@@ -1538,93 +1491,6 @@ consistency_check(
 
 
 #define MAX_ATTR_SETS 500
-
-/*
- * compares two sets of attributes (indices i and j)
- * returns 0: if neither set is contained in the other set
- *         1: if set i is contained in set j
- *         2: if set j is contained in set i
- *         3: the sets are equivalent
- */
-
-static int
-compare_sets(struct attr_set* set, int i, int j)
-{
-	int k,l,numI,numJ;
-	int common=0;
-	int result=0;
-
-	if (( set[i].attrs == NULL ) && ( set[j].attrs == NULL ))
-		return 3;
-
-	if ( set[i].attrs == NULL )
-		return 2;
-
-	if ( set[j].attrs == NULL )
-		return 1;
-
-	numI = set[i].count;
-	numJ = set[j].count;
-
-	for ( l=0; l < numI; l++ ) {
-		for ( k = 0; k < numJ; k++ ) {
-			if ( strcmp( set[i].attrs[l].an_name.bv_val,
-				     set[j].attrs[k].an_name.bv_val ) == 0 )
-				common++;
-		}
-	}
-
-	if ( common == numI )
-		result = 1;
-
-	if ( common == numJ )
-		result += 2;
-
-	return result;
-}
-
-static void
-find_supersets ( struct attr_set* attr_sets, int numsets )
-{
-	int num[MAX_ATTR_SETS];
-	int i, j, res;
-	int* id_array;
-	for ( i = 0; i < MAX_ATTR_SETS; i++ )
-		num[i] = 0;
-
-	for ( i = 0; i < numsets; i++ ) {
-		attr_sets[i].ID_array = (int*) ch_malloc( sizeof( int ) );
-		attr_sets[i].ID_array[0] = -1;
-    	}
-
-	for ( i = 0; i < numsets; i++ ) {
-		for ( j=i+1; j < numsets; j++ ) {
-			res = compare_sets( attr_sets, i, j );
-			switch ( res ) {
-			case 0:
-				break;
-			case 3:
-			case 1:
-				id_array = attr_sets[i].ID_array;
-				attr_sets[i].ID_array = (int *) ch_realloc( id_array,
-							( num[i] + 2 ) * sizeof( int ));
-				attr_sets[i].ID_array[num[i]] = j;
-				attr_sets[i].ID_array[num[i]+1] = -1;
-				num[i]++;
-				if (res == 1)
-					break;
-			case 2:
-				id_array = attr_sets[j].ID_array;
-				attr_sets[j].ID_array = (int *) ch_realloc( id_array,
-						( num[j] + 2 ) * sizeof( int ));
-				attr_sets[j].ID_array[num[j]] = i;
-				attr_sets[j].ID_array[num[j]+1] = -1;
-				num[j]++;
-				break;
-			}
-		}
-	}
-}
 
 enum {
 	PC_MAIN = 1,
@@ -1898,9 +1764,8 @@ pc_cf_gen( ConfigArgs *c )
 						(c->argc-1) * sizeof( AttributeName ));
 			attr_name = qm->attr_sets[num].attrs;
 			for ( i = 2; i < c->argc; i++ ) {
-				ber_str2bv( c->argv[i], 0, 1, &attr_name->an_name);
 				attr_name->an_desc = NULL;
-				if ( slap_bv2ad( &attr_name->an_name,
+				if ( slap_str2ad( c->argv[i], 
 						&attr_name->an_desc, &text ) )
 				{
 					strcpy( c->msg, text );
@@ -1910,8 +1775,11 @@ pc_cf_gen( ConfigArgs *c )
 					qm->attr_sets[num].count = 0;
 					return 1;
 				}
+				attr_name->an_name = attr_name->an_desc->ad_cname;
 				attr_name->an_oc = NULL;
 				attr_name->an_oc_exclude = 0;
+				if ( attr_name->an_desc == slap_schema.si_ad_objectClass )
+					qm->attr_sets[num].flags |= PC_GOT_OC;
 				attr_name++;
 				BER_BVZERO( &attr_name->an_name );
 			}
@@ -1937,8 +1805,6 @@ pc_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		num = cm->numtemplates;
-		if ( num == 0 )
-			find_supersets( qm->attr_sets, cm->numattrsets );
 		qm->templates = ( QueryTemplate* )ch_realloc( qm->templates,
 				( num + 2 ) * sizeof( QueryTemplate ));
 		temp = qm->templates + num;
@@ -2152,10 +2018,6 @@ pcache_db_close(
 	qm->templates = NULL;
 
 	for ( i=0; i<cm->numattrsets; i++ ) {
-		free( qm->attr_sets[i].ID_array );
-		for ( j=0; j<qm->attr_sets[i].count; j++ ) {
-			free( qm->attr_sets[i].attrs[j].an_name.bv_val );
-		}
 		free( qm->attr_sets[i].attrs );
 	}
 	free( qm->attr_sets );
