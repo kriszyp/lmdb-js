@@ -880,22 +880,6 @@ get_attr_set(
 );
 
 static int
-is_temp_answerable(
-	int attr_set,
-	struct berval* tempstr,
-	query_manager* qm,
-	int template_id )
-{
-	QueryTemplate *qt = qm->templates + template_id;
-
-	if (attr_set != qt->attr_set_index) {
-		return 0;
-	}
-	return (qt->querystr.bv_len == tempstr->bv_len &&
-		strcasecmp(qt->querystr.bv_val, tempstr->bv_val) == 0);
-}
-
-static int
 filter2template(
 	Operation		*op,
 	Filter			*f,
@@ -1278,14 +1262,15 @@ pcache_op_search(
 
 	/* check for query containment */
 	if (attr_set > -1) {
-		for (i=0; i<cm->numtemplates; i++) {
+		QueryTemplate *qt = qm->templates;
+		for (i=0; i<cm->numtemplates; i++, qt++) {
 			/* find if template i can potentially answer tempstr */
-			if (!is_temp_answerable(attr_set, &tempstr, qm, i))
+			if ( qt->attr_set_index != attr_set ||
+				qt->querystr.bv_len != tempstr.bv_len ||
+				strcasecmp( qt->querystr.bv_val, tempstr.bv_val ))
 				continue;
-			if (attr_set == qm->templates[i].attr_set_index) {
-				cacheable = 1;
-				template_id = i;
-			}
+			cacheable = 1;
+			template_id = i;
 			Debug( LDAP_DEBUG_NONE, "Entering QC, querystr = %s\n",
 			 		op->ors_filterstr.bv_val, 0, 0 );
 			answerable = (*(qm->qcfunc))(qm, &query, i);
