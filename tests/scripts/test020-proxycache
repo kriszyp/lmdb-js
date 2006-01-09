@@ -139,10 +139,10 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 3: filter:(sn=Smith*) attrs:cn sn title uid"  
-echo "# Query 3: filter:(sn=Smith*) attrs:cn sn title uid" >> $SLAVEOUT
+echo "Query 3: filter:(sn=Smith*) attrs:cn sn uid"  
+echo "# Query 3: filter:(sn=Smith*) attrs:cn sn uid" >> $SLAVEOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'sn=Smith*' cn sn title uid >> $SLAVEOUT 2>&1
+	'sn=Smith*' cn sn uid >> $SLAVEOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
