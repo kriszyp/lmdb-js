@@ -468,7 +468,7 @@ ldapconn_t *
 ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
-	ldapconn_t	*lc,
+	ldapconn_t	*lc = NULL,
 			lc_curr = { 0 };
 	int		refcnt = 1;
 
@@ -490,9 +490,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 	}
 
 	/* Explicit Bind requests always get their own conn */
-	if ( sendok & LDAP_BACK_BINDING ) {
-		lc = NULL;
-	} else {
+	if ( !( sendok & LDAP_BACK_BINDING ) ) {
 		/* Searches for a ldapconn in the avl tree */
 retry_lock:
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
@@ -500,13 +498,13 @@ retry_lock:
 		lc = (ldapconn_t *)avl_find( li->li_conninfo.lai_tree, 
 				(caddr_t)&lc_curr, ldap_back_conn_cmp );
 		if ( lc != NULL ) {
-			refcnt = ++lc->lc_refcnt;
 			/* Don't reuse connections while they're still binding */
-			if ( LDAP_BACK_CONN_BINDING( lc )) {
+			if ( LDAP_BACK_CONN_BINDING( lc ) ) {
 				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 				ldap_pvt_thread_yield();
 				goto retry_lock;
 			}
+			refcnt = ++lc->lc_refcnt;
 		}
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}
@@ -516,9 +514,9 @@ retry_lock:
 		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 			return NULL;
 		}
-		if ( sendok & LDAP_BACK_BINDING )
+		if ( sendok & LDAP_BACK_BINDING ) {
 			LDAP_BACK_CONN_BINDING_SET( lc );
-
+		}
 		lc->lc_conn = lc_curr.lc_conn;
 		ber_dupbv( &lc->lc_local_ndn, &lc_curr.lc_local_ndn );
 

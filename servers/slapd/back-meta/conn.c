@@ -755,21 +755,31 @@ meta_back_getconn(
 		}
 	}
 
-	/* Searches for a metaconn in the avl tree */
-	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-	mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
-		(caddr_t)&mc_curr, meta_back_conn_cmp );
-	if ( mc ) {
-		if ( mc->mc_tainted ) {
-			rs->sr_err = LDAP_UNAVAILABLE;
-			rs->sr_text = "remote server unavailable";
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-			return NULL;
-		}
+	/* Explicit Bind requests always get their own conn */
+	if ( !( sendok & LDAP_BACK_BINDING ) ) {
+		/* Searches for a metaconn in the avl tree */
+retry_lock:
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+		mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
+			(caddr_t)&mc_curr, meta_back_conn_cmp );
+		if ( mc ) {
+			if ( mc->mc_tainted ) {
+				rs->sr_err = LDAP_UNAVAILABLE;
+				rs->sr_text = "remote server unavailable";
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+				return NULL;
+			}
 			
-		mc->mc_refcnt++;
+			/* Don't reuse connections while they're still binding */
+			if ( LDAP_BACK_CONN_BINDING( mc ) ) {
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+				ldap_pvt_thread_yield();
+				goto retry_lock;
+			}
+			mc->mc_refcnt++;
+		}
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 	}
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_ADD:
@@ -822,6 +832,9 @@ meta_back_getconn(
 			mc->mc_conn = mc_curr.mc_conn;
 			ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
 			new_conn = 1;
+			if ( sendok & LDAP_BACK_BINDING ) {
+				LDAP_BACK_CONN_BINDING_SET( mc );
+			}
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
@@ -947,13 +960,15 @@ meta_back_getconn(
 			/* Retries searching for a metaconn in the avl tree
 			 * the reason is that the connection might have been
 			 * created by meta_back_get_candidate() */
-			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-			mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
-				(caddr_t)&mc_curr, meta_back_conn_cmp );
-			if ( mc != NULL ) {
-				mc->mc_refcnt++;
+			if ( !( sendok & LDAP_BACK_BINDING ) ) {
+				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+				mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
+					(caddr_t)&mc_curr, meta_back_conn_cmp );
+				if ( mc != NULL ) {
+					mc->mc_refcnt++;
+				}
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			}
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 			/* Looks like we didn't get a bind. Open a new session... */
 			if ( mc == NULL ) {
@@ -961,6 +976,9 @@ meta_back_getconn(
 				mc->mc_conn = mc_curr.mc_conn;
 				ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
 				new_conn = 1;
+				if ( sendok & LDAP_BACK_BINDING ) {
+					LDAP_BACK_CONN_BINDING_SET( mc );
+				}
 			}
 		}
 
@@ -1015,6 +1033,9 @@ meta_back_getconn(
 			mc->mc_conn = mc_curr.mc_conn;
 			ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
 			new_conn = 1;
+			if ( sendok & LDAP_BACK_BINDING ) {
+				LDAP_BACK_CONN_BINDING_SET( mc );
+			}
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
@@ -1165,6 +1186,7 @@ meta_back_release_conn(
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
+	LDAP_BACK_CONN_BINDING_CLEAR( mc );
 	if ( mc->mc_refcnt == 0 && mc->mc_tainted ) {
 		(void)avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
 				meta_back_conn_cmp );
