@@ -104,6 +104,11 @@ char		*sasl_secprops = NULL;
 int		assertctl;
 char		*assertion = NULL;
 char		*authzid = NULL;
+/* support deprecated early version of proxyAuthz */
+#define LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ	"2.16.840.1.113730.3.4.12"
+#ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
+char		*proxydn = NULL;
+#endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 int		manageDIT = 0;
 int		manageDSAit = 0;
 int		noop = 0;
@@ -184,6 +189,9 @@ N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
 N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
+/* do not advertize support for proxyDN
+N_("             [!]proxydn=<dn>        (an RFC 2253 DN)\n")
+*/
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 N_("             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]\n")
 N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
@@ -331,6 +339,12 @@ tool_args( int argc, char **argv )
 					fprintf( stderr, "authzid control previously specified\n");
 					exit( EXIT_FAILURE );
 				}
+#ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
+				if( proxydn != NULL ) {
+					fprintf( stderr, "authzid control incompatible with proxydn\n");
+					exit( EXIT_FAILURE );
+				}
+#endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 				if( cvalue == NULL ) {
 					fprintf( stderr, "authzid: control value expected\n" );
 					usage();
@@ -342,6 +356,29 @@ tool_args( int argc, char **argv )
 
 				assert( authzid == NULL );
 				authzid = cvalue;
+
+#ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
+			} else if ( strcasecmp( control, "proxydn" ) == 0 ) {
+				if( proxydn != NULL ) {
+					fprintf( stderr, "proxydn control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+				if( authzid != NULL ) {
+					fprintf( stderr, "proxydn control incompatible with authzid\n");
+					exit( EXIT_FAILURE );
+				}
+				if( cvalue == NULL ) {
+					fprintf( stderr, "proxydn: control value expected\n" );
+					usage();
+				}
+				if( !crit ) {
+					fprintf( stderr, "proxydn: must be marked critical\n" );
+					usage();
+				}
+
+				assert( proxydn == NULL );
+				proxydn = cvalue;
+#endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 
 			} else if ( strcasecmp( control, "manageDIT" ) == 0 ) {
 				if( manageDIT ) {
@@ -826,6 +863,9 @@ tool_args( int argc, char **argv )
 
 	if( protocol == LDAP_VERSION2 ) {
 		if( assertctl || authzid || manageDIT || manageDSAit ||
+#ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
+			proxydn ||
+#endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			chaining ||
 #endif
@@ -1121,6 +1161,9 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 	if ( ! ( assertctl
 		|| authzid
+#ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
+		|| proxydn
+#endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 		|| manageDIT
 		|| manageDSAit
 		|| noop
@@ -1170,13 +1213,37 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	}
 
 	if ( authzid ) {
-		c[i].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 		c[i].ldctl_value.bv_val = authzid;
 		c[i].ldctl_value.bv_len = strlen( authzid );
+		c[i].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 		c[i].ldctl_iscritical = 1;
 		ctrls[i] = &c[i];
 		i++;
 	}
+
+#ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
+	/* NOTE: doesn't need an extra count because it's incompatible
+	 * with authzid */
+	if ( proxydn ) {
+		BerElementBuffer berbuf;
+		BerElement *ber = (BerElement *)&berbuf;
+		
+		ber_init2( ber, NULL, LBER_USE_DER );
+
+		if ( ber_printf( ber, "s", proxydn ) == LBER_ERROR ) {
+			exit( EXIT_FAILURE );
+		}
+
+		if ( ber_flatten2( ber, &c[i].ldctl_value, 0 ) == -1 ) {
+			exit( EXIT_FAILURE );
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
+		c[i].ldctl_iscritical = 1;
+		ctrls[i] = &c[i];
+		i++;
+	}
+#endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 
 	if ( manageDIT ) {
 		c[i].ldctl_oid = LDAP_CONTROL_MANAGEDIT;
