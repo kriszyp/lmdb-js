@@ -6,6 +6,7 @@ OpenLDAP 2.3.17 Engineering
 	Fixed slapd-ldap idassert anon2anon issue (ITS#4321)
 	Fixed slapd-monitor thread issue (ITS#4318)
 	Build environment
+		Updated Linux sched_yield(2) workaround to use nanosleep(2) (ITS#3950)
 		Fixed configure report-to URL
 
 OpenLDAP 2.3.16 Release
