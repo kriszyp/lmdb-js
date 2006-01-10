@@ -844,6 +844,11 @@ static int parseProxyAuthz (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISEMPTY( &op->o_ndn ) ) {
+		rs->sr_text = "anonymous proxyAuthz not allowed";
+		return LDAP_PROXY_AUTHZ_FAILURE;
+	}
+
 	op->o_proxy_authz = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
@@ -860,10 +865,14 @@ static int parseProxyAuthz (
 			op->o_connid, 0, 0 );
 
 		/* anonymous */
-		op->o_ndn.bv_val[ 0 ] = '\0';
+		if ( !BER_BVISNULL( &op->o_ndn ) ) {
+			op->o_ndn.bv_val[ 0 ] = '\0';
+		}
 		op->o_ndn.bv_len = 0;
 
-		op->o_dn.bv_val[ 0 ] = '\0';
+		if ( !BER_BVISNULL( &op->o_dn ) ) {
+			op->o_dn.bv_val[ 0 ] = '\0';
+		}
 		op->o_dn.bv_len = 0;
 
 		return LDAP_SUCCESS;
