@@ -100,8 +100,11 @@ when DN is empty).
 .B bind_anon_dn
 allows unauthenticated (anonymous) bind when DN is not empty.
 .B update_anon
-allow unauthenticated (anonymous) update operations to be processed
+allows unauthenticated (anonymous) update operations to be processed
 (subject to access controls and other administrative limits).
+.B proxy_authz_anon
+allows unauthenticated (anonymous) proxy authorization control to be processed
+(subject to access controls, authorization and other administrative limits).
 .TP
 .B argsfile <filename>
 The ( absolute ) name of a file that will hold the 

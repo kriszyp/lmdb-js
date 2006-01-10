@@ -1771,11 +1771,12 @@ struct slap_backend_db {
 	| SLAP_RESTRICT_OP_BIND \
 	| SLAP_RESTRICT_OP_EXTENDED )
 
-#define SLAP_ALLOW_BIND_V2			0x0001U	/* LDAPv2 bind */
+#define SLAP_ALLOW_BIND_V2		0x0001U	/* LDAPv2 bind */
 #define SLAP_ALLOW_BIND_ANON_CRED	0x0002U /* cred should be empty */
 #define SLAP_ALLOW_BIND_ANON_DN		0x0004U /* dn should be empty */
 
 #define SLAP_ALLOW_UPDATE_ANON		0x0008U /* allow anonymous updates */
+#define SLAP_ALLOW_PROXY_AUTHZ_ANON	0x0010U /* allow anonymous proxyAuthz */
 
 #define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */

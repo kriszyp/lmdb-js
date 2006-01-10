@@ -1996,6 +1996,7 @@ config_allows(ConfigArgs *c) {
 		{ BER_BVC("bind_anon_cred"),	SLAP_ALLOW_BIND_ANON_CRED },
 		{ BER_BVC("bind_anon_dn"),	SLAP_ALLOW_BIND_ANON_DN },
 		{ BER_BVC("update_anon"),	SLAP_ALLOW_UPDATE_ANON },
+		{ BER_BVC("proxy_authz_anon"),	SLAP_ALLOW_PROXY_AUTHZ_ANON },
 		{ BER_BVNULL,	0 }
 	};
 	if (c->op == SLAP_CONFIG_EMIT) {

@@ -877,6 +877,13 @@ static int parseProxyAuthz (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( !( global_allows & SLAP_ALLOW_PROXY_AUTHZ_ANON )
+		&& BER_BVISEMPTY( &op->o_ndn ) )
+	{
+		rs->sr_text = "anonymous proxyAuthz not allowed";
+		return LDAP_PROXY_AUTHZ_FAILURE;
+	}
+
 	op->o_proxy_authz = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
