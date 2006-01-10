@@ -220,20 +220,7 @@ typedef struct ldapcontrol {
 /*	non-standard track controls */
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"   /* RFC 2696 */
 
-/* Password policy Controls *//* work in progress */
-/* ITS#3458: released; disabled by default */
-#define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
-#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
-
-/* various works in progress */
-#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
-#define LDAP_CONTROL_NO_SUBORDINATES	"1.3.6.1.4.1.4203.666.5.11"
-#define LDAP_CONTROL_MANAGEDIT			"1.3.6.1.4.1.4203.666.5.12"
-#define LDAP_CONTROL_SLURP				"1.3.6.1.4.1.4203.666.5.13"
-#define LDAP_CONTROL_VALSORT			"1.3.6.1.4.1.4203.666.5.14"
-#define LDAP_CONTROL_DONTUSECOPY		"1.3.6.1.4.1.4203.666.5.15"
-
-/* LDAP Sync -- draft-zeilenga-ldup-sync *//* submitted for publication */
+/* LDAP Sync -- draft-zeilenga-ldup-sync *//* RFC TBD */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"
 #define LDAP_CONTROL_SYNC		LDAP_SYNC_OID ".1"
 #define LDAP_CONTROL_SYNC_STATE	LDAP_SYNC_OID ".2"
@@ -262,6 +249,21 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_ADD					1
 #define LDAP_SYNC_MODIFY				2
 #define LDAP_SYNC_DELETE				3
+
+
+/* Password policy Controls *//* work in progress */
+/* ITS#3458: released; disabled by default */
+#define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
+#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
+
+/* various works in progress */
+#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
+#define LDAP_CONTROL_NO_SUBORDINATES	"1.3.6.1.4.1.4203.666.5.11"
+#define LDAP_CONTROL_MANAGEDIT			"1.3.6.1.4.1.4203.666.5.12"
+#define LDAP_CONTROL_SLURP				"1.3.6.1.4.1.4203.666.5.13"
+#define LDAP_CONTROL_VALSORT			"1.3.6.1.4.1.4203.666.5.14"
+#define LDAP_CONTROL_DONTUSECOPY		"1.3.6.1.4.1.4203.666.5.15"
+
 
 /* LDAP Chaining Behavior Control *//* work in progress */
 /* <draft-sermersheim-ldap-chaining>;
