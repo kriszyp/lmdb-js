@@ -56,7 +56,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	int rc = 0;
 	ber_int_t msgid;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_BIND_SERR );
 	if ( !lc ) {
 		return rs->sr_err;
 	}
@@ -468,7 +468,7 @@ ldapconn_t *
 ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
-	ldapconn_t	*lc,
+	ldapconn_t	*lc = NULL,
 			lc_curr = { 0 };
 	int		refcnt = 1;
 
@@ -489,22 +489,34 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		}
 	}
 
-	/* Searches for a ldapconn in the avl tree */
-	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+	/* Explicit Bind requests always get their own conn */
+	if ( !( sendok & LDAP_BACK_BINDING ) ) {
+		/* Searches for a ldapconn in the avl tree */
+retry_lock:
+		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
-	lc = (ldapconn_t *)avl_find( li->li_conninfo.lai_tree, 
-			(caddr_t)&lc_curr, ldap_back_conn_cmp );
-	if ( lc != NULL ) {
-		refcnt = ++lc->lc_refcnt;
+		lc = (ldapconn_t *)avl_find( li->li_conninfo.lai_tree, 
+				(caddr_t)&lc_curr, ldap_back_conn_cmp );
+		if ( lc != NULL ) {
+			/* Don't reuse connections while they're still binding */
+			if ( LDAP_BACK_CONN_BINDING( lc ) ) {
+				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+				ldap_pvt_thread_yield();
+				goto retry_lock;
+			}
+			refcnt = ++lc->lc_refcnt;
+		}
+		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}
-	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if ( lc == NULL ) {
 		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 			return NULL;
 		}
-
+		if ( sendok & LDAP_BACK_BINDING ) {
+			LDAP_BACK_CONN_BINDING_SET( lc );
+		}
 		lc->lc_conn = lc_curr.lc_conn;
 		ber_dupbv( &lc->lc_local_ndn, &lc_curr.lc_local_ndn );
 
@@ -618,6 +630,7 @@ ldap_back_release_conn(
 	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	assert( lc->lc_refcnt > 0 );
 	lc->lc_refcnt--;
+	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 }
 
@@ -648,6 +661,12 @@ ldap_back_dobind_int(
 
 	if ( rc ) {
 		return rc;
+	}
+
+	while ( lc->lc_refcnt > 1 ) {
+		ldap_pvt_thread_yield();
+		if (( rc = LDAP_BACK_CONN_ISBOUND( lc )))
+			return rc;
 	}
 
 	/*
@@ -1386,8 +1405,9 @@ ldap_back_proxy_authz_ctrl(
 			/* just count ctrls */ ;
 	}
 
-	ctrls = ch_malloc( sizeof( LDAPControl * ) * (i + 2) );
-	ctrls[ 0 ] = ch_malloc( sizeof( LDAPControl ) );
+	ctrls = op->o_tmpalloc( sizeof( LDAPControl * ) * (i + 2) + sizeof( LDAPControl ),
+			op->o_tmpmemctx );
+	ctrls[ 0 ] = (LDAPControl *)&ctrls[ i + 2 ];
 	
 	ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 	ctrls[ 0 ]->ldctl_iscritical = 1;
@@ -1396,13 +1416,14 @@ ldap_back_proxy_authz_ctrl(
 	/* already in u:ID or dn:DN form */
 	case LDAP_BACK_IDASSERT_OTHERID:
 	case LDAP_BACK_IDASSERT_OTHERDN:
-		ber_dupbv( &ctrls[ 0 ]->ldctl_value, &assertedID );
+		ber_dupbv_x( &ctrls[ 0 ]->ldctl_value, &assertedID, op->o_tmpmemctx );
 		break;
 
 	/* needs the dn: prefix */
 	default:
 		ctrls[ 0 ]->ldctl_value.bv_len = assertedID.bv_len + STRLENOF( "dn:" );
-		ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
+		ctrls[ 0 ]->ldctl_value.bv_val = op->o_tmpalloc( ctrls[ 0 ]->ldctl_value.bv_len + 1,
+				op->o_tmpmemctx );
 		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
 		AC_MEMCPY( &ctrls[ 0 ]->ldctl_value.bv_val[ STRLENOF( "dn:" ) ],
 				assertedID.bv_val, assertedID.bv_len + 1 );
@@ -1438,11 +1459,10 @@ ldap_back_proxy_authz_ctrl_free( Operation *op, LDAPControl ***pctrls )
 		assert( ctrls[ 0 ] != NULL );
 
 		if ( !BER_BVISNULL( &ctrls[ 0 ]->ldctl_value ) ) {
-			free( ctrls[ 0 ]->ldctl_value.bv_val );
+			op->o_tmpfree( ctrls[ 0 ]->ldctl_value.bv_val, op->o_tmpmemctx );
 		}
 
-		free( ctrls[ 0 ] );
-		free( ctrls );
+		op->o_tmpfree( ctrls, op->o_tmpmemctx );
 	} 
 
 	*pctrls = NULL;

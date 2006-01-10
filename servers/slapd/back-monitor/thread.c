@@ -271,9 +271,9 @@ monitor_subsys_thread_update(
 		break;
 
 	case 2:
-		for ( i = 0; !BER_BVISNULL( a->a_vals + i ); i++) {
+		for ( i = 0; !BER_BVISNULL( &a->a_vals[ i ] ); i++ ) {
 			ch_free( a->a_vals[i].bv_val );
-			BER_BVZERO( a->a_vals + i );
+			BER_BVZERO( &a->a_vals[ i ] );
 		}
 		bv.bv_val = buf;
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
@@ -283,6 +283,12 @@ monitor_subsys_thread_update(
 			value_add_one( &a->a_vals, &bv );
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+		/* don't leave 'round attributes with no values */
+		if ( BER_BVISNULL( &a->a_vals[ 0 ] ) ) {
+			BER_BVSTR( &bv, "()" );
+			value_add_one( &a->a_vals, &bv );
+		}
 		break;
 	}
 
