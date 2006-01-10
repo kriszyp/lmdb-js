@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.18 Engineering
+
 OpenLDAP 2.3.17 Release
 	Fixed slapd anonymous proxy authorization issue (ITS#4320)
 	Fixed slapd-ldap/meta session reuse issue (ITS#4315)
