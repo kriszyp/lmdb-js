@@ -1604,6 +1604,7 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			ol_replace_broken_yield=no
 			case "$target" in
 			*-*-linux*) 
+				AC_CHECK_FUNCS(nanosleep)
 				ol_replace_broken_yield=yes
 			;;
 			esac

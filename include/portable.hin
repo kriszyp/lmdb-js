@@ -415,6 +415,9 @@
 /* define this if you have mkversion */
 #undef HAVE_MKVERSION
 
+/* Define to 1 if you have the `nanosleep' function. */
+#undef HAVE_NANOSLEEP
+
 /* define if NDBM is available */
 #undef HAVE_NDBM
 
