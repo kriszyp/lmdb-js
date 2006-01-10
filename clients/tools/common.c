@@ -189,9 +189,12 @@ N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
 N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
-/* do not advertize support for proxyDN
+#ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
+#if 0
+                 /* non-advertized support for proxyDN */
 N_("             [!]proxydn=<dn>        (an RFC 2253 DN)\n")
-*/
+#endif
+#endif
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 N_("             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]\n")
 N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
