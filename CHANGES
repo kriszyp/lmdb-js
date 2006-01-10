@@ -1,9 +1,9 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.17 Engineering
+OpenLDAP 2.3.17 Release
 	Fixed slapd anonymous proxy authorization issue (ITS#4320)
 	Fixed slapd-ldap/meta session reuse issue (ITS#4315)
-	Fixed slapd-ldap idassert anon2anon issue (ITS#4321)
+	Fixed slapd-ldap idassert anon-to-anon issue (ITS#4321)
 	Fixed slapd-monitor thread issue (ITS#4318)
 	Build environment
 		Updated Linux sched_yield(2) workaround to use nanosleep(2) (ITS#3950)
