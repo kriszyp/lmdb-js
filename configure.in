@@ -27,6 +27,7 @@ AC_COPYRIGHT([[Copyright 1998-2006 The OpenLDAP Foundation. All rights reserved.
 Restrictions apply, see COPYRIGHT and LICENSE files.]])
 AC_REVISION([$OpenLDAP$])
 AC_INIT([OpenLDAP],,[http://www.openldap.org/its/])
+m4_define([AC_PACKAGE_BUGREPORT],[<http://www.openldap.org/its/>])
 AC_CONFIG_SRCDIR(build/version.sh)dnl
 dnl ----------------------------------------------------------------
 dnl OpenLDAP Autoconf Macros

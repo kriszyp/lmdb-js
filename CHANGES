@@ -3,6 +3,8 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.17 Engineering
 	Fixed slapd-ldap/meta session reuse issue (ITS#3415)
 	Fixed slapd-monitor thread issue (ITS#3418)
+	Build environment
+		Fixed configure report-to URL
 
 OpenLDAP 2.3.16 Release
 	Fixed slapd-bdb reindexing via cn=config not noticed issue (ITS#4260)
