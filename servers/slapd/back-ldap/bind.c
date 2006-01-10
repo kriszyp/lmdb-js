@@ -1366,8 +1366,14 @@ ldap_back_proxy_authz_ctrl(
 	}
 
 	switch ( mode ) {
-	case LDAP_BACK_IDASSERT_LEGACY:
 	case LDAP_BACK_IDASSERT_SELF:
+		if ( BER_BVISNULL( &ndn ) ) {
+			goto done;
+		}
+		assertedID = ndn;
+		break;
+
+	case LDAP_BACK_IDASSERT_LEGACY:
 		/* original behavior:
 		 * assert the client's identity */
 		if ( BER_BVISNULL( &ndn ) ) {
