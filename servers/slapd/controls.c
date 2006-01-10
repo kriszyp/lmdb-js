@@ -893,10 +893,16 @@ static int parseProxyAuthz (
 			op->o_connid, 0, 0 );
 
 		/* anonymous */
-		op->o_ndn.bv_val[ 0 ] = '\0';
+		/* FIXME: do we let anonymous authz as anonymous?
+		 * should we disallow authz at all for anonymous? */
+		if ( !BER_BVISNULL( &op->o_ndn ) ) {
+			op->o_ndn.bv_val[ 0 ] = '\0';
+		}
 		op->o_ndn.bv_len = 0;
 
-		op->o_dn.bv_val[ 0 ] = '\0';
+		if ( !BER_BVISNULL( &op->o_dn ) ) {
+			op->o_dn.bv_val[ 0 ] = '\0';
+		}
 		op->o_dn.bv_len = 0;
 
 		return LDAP_SUCCESS;
