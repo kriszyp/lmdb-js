@@ -627,22 +627,24 @@ startup:;
 	}
 
 	/* slapdn doesn't specify a backend to startup */
-	if ( !dryrun && tool != SLAPDN && slap_startup( be ) ) {
+	if ( !dryrun && tool != SLAPDN ) {
 		need_shutdown = 1;
 
-		switch ( tool ) {
-		case SLAPTEST:
-			fprintf( stderr, "slap_startup failed "
-					"(test would succeed using "
-					"the -u switch)\n" );
-			break;
+		if ( slap_startup( be ) ) {
+			switch ( tool ) {
+			case SLAPTEST:
+				fprintf( stderr, "slap_startup failed "
+						"(test would succeed using "
+						"the -u switch)\n" );
+				break;
 
-		default:
-			fprintf( stderr, "slap_startup failed\n" );
-			break;
+			default:
+				fprintf( stderr, "slap_startup failed\n" );
+				break;
+			}
+
+			exit( EXIT_FAILURE );
 		}
-		
-		exit( EXIT_FAILURE );
 	}
 }
 
