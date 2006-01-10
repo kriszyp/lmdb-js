@@ -900,8 +900,6 @@ static int parseProxyAuthz (
 			op->o_connid, 0, 0 );
 
 		/* anonymous */
-		/* FIXME: do we let anonymous authz as anonymous?
-		 * should we disallow authz at all for anonymous? */
 		if ( !BER_BVISNULL( &op->o_ndn ) ) {
 			op->o_ndn.bv_val[ 0 ] = '\0';
 		}
