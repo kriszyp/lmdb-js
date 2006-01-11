@@ -630,8 +630,6 @@ do_syncrep2(
 	int	rc, err, i;
 	ber_len_t	len;
 
-	int rc_efree = 1;
-
 	struct berval	*psub;
 	Modifications	*modlist = NULL;
 
@@ -715,19 +713,19 @@ do_syncrep2(
 						slap_parse_sync_cookie( &syncCookie, NULL );
 					}
 				}
+				rc = 0;
 				if ( si->si_syncdata && si->si_logstate == SYNCLOG_LOGGING ) {
-					entry = NULL;
 					modlist = NULL;
-					if ( syncrepl_message_to_op( si, op, msg ) == LDAP_SUCCESS &&
+					if (( rc = syncrepl_message_to_op( si, op, msg )) == LDAP_SUCCESS &&
 						!BER_BVISNULL( &syncCookie.ctxcsn ) ) {
 						syncrepl_updateCookie( si, op, psub, &syncCookie );
 					}
-				} else if ( syncrepl_message_to_entry( si, op, msg,
-					&modlist, &entry, syncstate ) == LDAP_SUCCESS ) {
-					rc_efree = syncrepl_entry( si, op, entry, &modlist,
-						syncstate, &syncUUID, &syncCookie_req, &syncCookie.ctxcsn );
-					if ( !BER_BVISNULL( &syncCookie.ctxcsn ) )
-					{
+				} else if (( rc = syncrepl_message_to_entry( si, op, msg,
+					&modlist, &entry, syncstate )) == LDAP_SUCCESS ) {
+					if (( rc = syncrepl_entry( si, op, entry, &modlist,
+						syncstate, &syncUUID, &syncCookie_req,
+						&syncCookie.ctxcsn )) == LDAP_SUCCESS &&
+						!BER_BVISNULL( &syncCookie.ctxcsn ) ) {
 						syncrepl_updateCookie( si, op, psub, &syncCookie );
 					}
 				}
@@ -735,10 +733,8 @@ do_syncrep2(
 				if ( modlist ) {
 					slap_mods_free( modlist, 1 );
 				}
-				if ( rc_efree && entry ) {
-					entry_free( entry );
-				}
-				entry = NULL;
+				if ( rc )
+					goto done;
 				break;
 
 			case LDAP_RES_SEARCH_REFERENCE:
@@ -1472,7 +1468,6 @@ syncrepl_message_to_entry(
 	}
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
-	*entry = e;
 	e->e_name = op->o_req_dn;
 	e->e_nname = op->o_req_ndn;
 
@@ -1548,9 +1543,10 @@ done:
 	if ( rc != LDAP_SUCCESS ) {
 		if ( e ) {
 			entry_free( e );
-			*entry = e = NULL;
+			e = NULL;
 		}
 	}
+	*entry = e;
 
 	return rc;
 }
@@ -1613,7 +1609,6 @@ syncrepl_entry(
 	AttributeAssertion ava = { NULL, BER_BVNULL };
 #endif
 	int rc = LDAP_SUCCESS;
-	int ret = LDAP_SUCCESS;
 
 	struct berval pdn = BER_BVNULL;
 	dninfo dni = {0};
@@ -1772,15 +1767,15 @@ retry_add:;
 			switch ( rs_add.sr_err ) {
 			case LDAP_SUCCESS:
 				be_entry_release_w( op, entry );
-				ret = 0;
+				entry = NULL;
 				break;
 
 			case LDAP_REFERRAL:
 			/* we assume that LDAP_NO_SUCH_OBJECT is returned 
 			 * only if the suffix entry is not present */
 			case LDAP_NO_SUCH_OBJECT:
-				syncrepl_add_glue( op, entry );
-				ret = 0;
+				rc = syncrepl_add_glue( op, entry );
+				entry = NULL;
 				break;
 
 			/* if an entry was added via syncrepl_add_glue(),
@@ -1816,7 +1811,8 @@ retry_add:;
 					cb2.sc_response = dn_callback;
 					cb2.sc_private = &dni;
 
-					be->be_search( &op2, &rs2 );
+					rc = be->be_search( &op2, &rs2 );
+					if ( rc ) goto done;
 
 					retry = 0;
 					goto retry_add;
@@ -1827,7 +1823,6 @@ retry_add:;
 				Debug( LDAP_DEBUG_ANY,
 					"syncrepl_entry : be_add failed (%d)\n",
 					rs_add.sr_err, 0, 0 );
-				ret = 1;
 				break;
 			}
 			goto done;
@@ -1851,8 +1846,7 @@ retry_add:;
 			}
 			op->orr_deleteoldrdn = 0;
 			op->orr_modlist = NULL;
-			if ( slap_modrdn2mods( op, &rs_modify ) ) {
-				ret = 1;
+			if (( rc = slap_modrdn2mods( op, &rs_modify ))) {
 				goto done;
 			}
 			rc = be->be_modrdn( op, &rs_modify );
@@ -1864,7 +1858,6 @@ retry_add:;
 				op->o_req_dn = entry->e_name;
 				op->o_req_ndn = entry->e_nname;
 			} else {
-				ret = 1;
 				goto done;
 			}
 		}
@@ -1930,7 +1923,6 @@ retry_add:;
 					rs_modify.sr_err, 0, 0 );
 			}
 		}
-		ret = 1;
 		goto done;
 	case LDAP_SYNC_DELETE :
 		if ( !BER_BVISNULL( &dni.dn )) {
@@ -1958,13 +1950,11 @@ retry_add:;
 				}
 			}
 		}
-		ret = 0;
 		goto done;
 
 	default :
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_entry : unknown syncstate\n", 0, 0, 0 );
-		ret = 1;
 		goto done;
 	}
 
@@ -1982,8 +1972,10 @@ done:
 	if ( !BER_BVISNULL( &dni.dn ) ) {
 		op->o_tmpfree( dni.dn.bv_val, op->o_tmpmemctx );
 	}
+	if ( entry )
+		entry_free( entry );
 	BER_BVZERO( &op->o_csn );
-	return ret;
+	return rc;
 }
 
 static struct berval gcbva[] = {
@@ -2144,7 +2136,7 @@ syncrepl_del_nonpresent(
 	return;
 }
 
-void
+int
 syncrepl_add_glue(
 	Operation* op,
 	Entry *e )
@@ -2254,6 +2246,10 @@ syncrepl_add_glue(
 		} else {
 		/* incl. ALREADY EXIST */
 			entry_free( glue );
+			if ( rs_add.sr_err != LDAP_ALREADY_EXISTS ) {
+				entry_free( e );
+				return rc;
+			}
 		}
 
 		/* Move to next child */
@@ -2284,7 +2280,7 @@ syncrepl_add_glue(
 		entry_free( e );
 	}
 
-	return;
+	return rc;
 }
 
 static void
