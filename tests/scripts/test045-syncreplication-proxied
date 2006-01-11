@@ -531,6 +531,10 @@ drink: Mad Dog 20/20
 
 EOMODS
 
+SLEEP=10
+echo "Waiting $SLEEP seconds for syncrepl to retry..."
+sleep $SLEEP
+
 echo "Restarting consumer..."
 echo "======================= RESTART =======================" >> $LOG2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
