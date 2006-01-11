@@ -102,7 +102,7 @@ static int syncrepl_entry(
 					Modifications**,int, struct berval*,
 					struct sync_cookie *,
 					struct berval * );
-static void syncrepl_updateCookie(
+static int syncrepl_updateCookie(
 					syncinfo_t *, Operation *, struct berval *,
 					struct sync_cookie * );
 static struct berval * slap_uuidstr_from_normalized(
@@ -718,7 +718,7 @@ do_syncrep2(
 					modlist = NULL;
 					if (( rc = syncrepl_message_to_op( si, op, msg )) == LDAP_SUCCESS &&
 						!BER_BVISNULL( &syncCookie.ctxcsn ) ) {
-						syncrepl_updateCookie( si, op, psub, &syncCookie );
+						rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
 					}
 				} else if (( rc = syncrepl_message_to_entry( si, op, msg,
 					&modlist, &entry, syncstate )) == LDAP_SUCCESS ) {
@@ -726,7 +726,7 @@ do_syncrep2(
 						syncstate, &syncUUID, &syncCookie_req,
 						&syncCookie.ctxcsn )) == LDAP_SUCCESS &&
 						!BER_BVISNULL( &syncCookie.ctxcsn ) ) {
-						syncrepl_updateCookie( si, op, psub, &syncCookie );
+						rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
 					}
 				}
 				ldap_controls_free( rctrls );
@@ -796,7 +796,7 @@ do_syncrep2(
 				if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
 					match < 0 && err == LDAP_SUCCESS )
 				{
-					syncrepl_updateCookie( si, op, psub, &syncCookie );
+					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
 				}
 				if ( rctrls ) {
 					ldap_controls_free( rctrls );
@@ -939,7 +939,7 @@ do_syncrep2(
 					if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
 						match < 0 )
 					{
-						syncrepl_updateCookie( si, op, psub, &syncCookie);
+						rc = syncrepl_updateCookie( si, op, psub, &syncCookie);
 					}
 
 					if ( si->si_refreshPresent == 1 ) {
@@ -2283,7 +2283,7 @@ syncrepl_add_glue(
 	return rc;
 }
 
-static void
+static int
 syncrepl_updateCookie(
 	syncinfo_t *si,
 	Operation *op,
@@ -2299,17 +2299,14 @@ syncrepl_updateCookie(
 	slap_callback cb = { NULL };
 	SlapReply	rs_modify = {REP_RESULT};
 
-	slap_sync_cookie_free( &si->si_syncCookie, 0 );
-	slap_dup_sync_cookie( &si->si_syncCookie, syncCookie );
-
 	mod.sml_op = LDAP_MOD_REPLACE;
 	mod.sml_desc = slap_schema.si_ad_contextCSN;
 	mod.sml_type = mod.sml_desc->ad_cname;
 	mod.sml_values = vals;
-	vals[0] = si->si_syncCookie.ctxcsn;
+	vals[0] = syncCookie.ctxcsn;
 	BER_BVZERO( &vals[1] );
 
-	slap_queue_csn( op, &si->si_syncCookie.ctxcsn );
+	slap_queue_csn( op, syncCookie.ctxcsn );
 
 	op->o_tag = LDAP_REQ_MODIFY;
 
@@ -2328,7 +2325,10 @@ syncrepl_updateCookie(
 	rc = be->be_modify( op, &rs_modify );
 	op->o_msgid = 0;
 
-	if ( rs_modify.sr_err != LDAP_SUCCESS ) {
+	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
+		slap_sync_cookie_free( &si->si_syncCookie, 0 );
+		slap_dup_sync_cookie( &si->si_syncCookie, syncCookie );
+	} else {
 		Debug( LDAP_DEBUG_ANY,
 			"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
 	}
@@ -2338,7 +2338,7 @@ syncrepl_updateCookie(
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
 
-	return;
+	return rc;
 }
 
 static int
