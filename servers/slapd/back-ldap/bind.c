@@ -42,7 +42,7 @@ static LDAP_REBIND_PROC	ldap_back_default_rebind;
 LDAP_REBIND_PROC	*ldap_back_rebind_f = ldap_back_default_rebind;
 
 static int
-ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs );
+ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 
 static int
 ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
@@ -80,7 +80,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 		 * bind with the configured identity assertion */
 		/* NOTE: use with care */
 		if ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
-			ldap_back_proxy_authz_bind( lc, op, rs );
+			ldap_back_proxy_authz_bind( lc, op, rs, LDAP_BACK_SENDERR );
 			if ( !LDAP_BACK_CONN_ISBOUND( lc ) ) {
 				rc = 1;
 				goto done;
@@ -711,7 +711,7 @@ ldap_back_dobind_int(
 			( BER_BVISNULL( &lc->lc_bound_ndn ) ||
 			  ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
-		(void)ldap_back_proxy_authz_bind( lc, op, rs );
+		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok );
 		goto done;
 	}
 
@@ -1013,7 +1013,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 }
 
 static int
-ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs )
+ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 	struct berval	binddn = slap_empty_bv;
@@ -1070,7 +1070,9 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs )
 		if ( BER_BVISNULL( &ndn ) && li->li_idassert_authz == NULL ) {
 			if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
 				rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
-				send_ldap_result( op, rs );
+				if ( sendok & LDAP_BACK_SENDERR ) {
+					send_ldap_result( op, rs );
+				}
 				LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 
 			} else {
@@ -1095,7 +1097,9 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs )
 					&authcDN, &authcDN );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
-					send_ldap_result( op, rs );
+					if ( sendok & LDAP_BACK_SENDERR ) {
+						send_ldap_result( op, rs );
+					}
 					LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 
 				} else {
@@ -1160,7 +1164,10 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs )
 				(void *)li->li_idassert_secprops );
 
 			if ( rs->sr_err != LDAP_OPT_SUCCESS ) {
-				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_OTHER;
+				if ( sendok & LDAP_BACK_SENDERR ) {
+					send_ldap_result( op, rs );
+				}
 				LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 				goto done;
 			}
@@ -1181,7 +1188,9 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs )
 		rs->sr_err = slap_map_api2result( rs );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
-			send_ldap_result( op, rs );
+			if ( sendok & LDAP_BACK_SENDERR ) {
+				send_ldap_result( op, rs );
+			}
 
 		} else {
 			LDAP_BACK_CONN_ISBOUND_SET( lc );
@@ -1211,11 +1220,13 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs )
 		/* unsupported! */
 		LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 		rs->sr_err = LDAP_AUTH_METHOD_NOT_SUPPORTED;
-		send_ldap_result( op, rs );
+		if ( sendok & LDAP_BACK_SENDERR ) {
+			send_ldap_result( op, rs );
+		}
 		goto done;
 	}
 
-	rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_SENDERR );
+	rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 	}

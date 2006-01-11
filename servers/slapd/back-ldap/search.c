@@ -153,7 +153,7 @@ ldap_back_search(
 	int		i;
 	char		**attrs = NULL;
 	int		freetext = 0;
-	int		do_retry = 1;
+	int		do_retry = 1, dont_retry = 0;
 	LDAPControl	**ctrls = NULL;
 	/* FIXME: shouldn't this be null? */
 	const char	*save_matched = rs->sr_matched;
@@ -282,8 +282,15 @@ retry:
 				rc = rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 				goto finish;
 			}
+			continue;
 
-		} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+		} else {
+			/* don't retry any more */
+			dont_retry = 1;
+		}
+
+
+		if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 			Entry		ent = { 0 };
 			struct berval	bdn = BER_BVNULL;
 
@@ -432,10 +439,10 @@ retry:
 		}
 	}
 
-	if ( rc == -1 ) {
+ 	if ( rc == -1 && dont_retry == 0 ) {
 		if ( do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_DONTSEND ) ) {
 				goto retry;
 			}
 		}
