@@ -38,7 +38,7 @@ for CMD in $SRCDIR/scripts/test*; do
 		exit $RC
 	fi
 
-	echo ">>>>> waiting $SLEEPTIME seconds for things to exit"
-	sleep $SLEEPTIME
+#	echo ">>>>> waiting $SLEEPTIME seconds for things to exit"
+#	sleep $SLEEPTIME
 	echo ""
 done

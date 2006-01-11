@@ -160,4 +160,7 @@ fi
 #####
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0

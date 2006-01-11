@@ -203,7 +203,7 @@ fi
 
 echo "Shutting down local slapd..."
 kill -HUP $LOCALPID
-sleep 5
+wait $LOCALPID
 
 echo "Configuring local slapd without translucent_no_glue..."
 . $CONFFILTER $BACKEND $MONITORDB < $TRANSLUCENTLOCALCONF | \
@@ -626,7 +626,7 @@ fi
 
 echo "Shutting down local slapd..."
 kill -HUP $LOCALPID
-sleep 5
+wait $LOCALPID
 
 echo "Configuring local slapd with translucent_strict..."
 echo translucent_strict >> $CONF2
@@ -723,4 +723,7 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0

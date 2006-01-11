@@ -75,7 +75,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-test $KILLSERVERS != no && kill -HUP $KILLPIDS
+kill -HUP $KILLPIDS
 wait
 
 LDIFOUT=$EMPTYDNOUT1
@@ -169,4 +169,7 @@ fi
 #####
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0

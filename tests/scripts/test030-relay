@@ -103,5 +103,7 @@ for RELAY in $RELAYS ; do
 done
 
 echo ">>>>> Test succeeded"
-exit 0
 
+test $KILLSERVERS != no && wait
+
+exit 0

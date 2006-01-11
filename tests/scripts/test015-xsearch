@@ -235,4 +235,7 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0

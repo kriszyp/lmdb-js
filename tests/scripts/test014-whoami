@@ -457,6 +457,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0
 
 ## Note to developers: when SLAPD_DEBUG=-1 the command

@@ -183,4 +183,7 @@ $LDAPSEARCH -h $LOCALHOST -p $PORT1 \
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0

@@ -197,8 +197,8 @@ echo "Stopping the slave..."
 kill -HUP $SLAVEPID
 KILLPIDS="$PID $SLURPPID"
 
-echo "Waiting 5 seconds for slave slapd to die..."
-sleep 5
+echo "Waiting for slave slapd to die..."
+wait $SLAVEPID
 
 echo "Applying more changes to the master slapd..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
@@ -223,8 +223,8 @@ echo "Stopping slurpd..."
 kill -HUP $SLURPPID
 KILLPIDS="$PID"
 
-echo "Waiting 5 seconds for slurpd to die..."
-sleep 5
+echo "Waiting for slurpd to die..."
+wait $SLURPPID
 
 echo "Applying more changes to the master slapd..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
@@ -342,4 +342,7 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0
