@@ -41,14 +41,6 @@ static LDAP_REBIND_PROC	meta_back_default_rebind;
  */
 LDAP_REBIND_PROC	*meta_back_rebind_f = meta_back_default_rebind;
 
-static int
-meta_back_single_bind(
-	Operation		*op,
-	SlapReply		*rs,
-	metaconn_t		*mc,
-	int			candidate,
-	int			massage );
-
 int
 meta_back_bind( Operation *op, SlapReply *rs )
 {
@@ -272,7 +264,7 @@ retry_lock:;
  *
  * attempts to perform a bind with creds
  */
-static int
+int
 meta_back_single_bind(
 	Operation		*op,
 	SlapReply		*rs,
@@ -648,7 +640,7 @@ meta_back_dobind(
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t		*mt = &mi->mi_targets[ i ];
 		metasingleconn_t	*msc = &mc->mc_conns[ i ];
-		int			rc;
+		int			rc, do_retry = 1;
 		char			*rootdn = NULL;
 
 		/*
@@ -668,6 +660,7 @@ meta_back_dobind(
 			continue;
 		}
 
+retry:;
 		if ( isroot && !BER_BVISNULL( &mi->mi_targets[ i ].mt_pseudorootdn ) )
 		{
 			Operation	op2 = *op;
@@ -689,6 +682,13 @@ meta_back_dobind(
 
 		if ( rc != LDAP_SUCCESS ) {
 			char		buf[ SLAP_TEXT_BUFLEN ];
+
+			if ( rc == LDAP_UNAVAILABLE && do_retry ) {
+				do_retry = 0;
+				if ( meta_back_retry_lock( op, rs, mc, i, LDAP_BACK_DONTSEND, 0 ) ) {
+					goto retry;
+				}
+			}
 
 			snprintf( buf, sizeof( buf ),
 				"meta_back_dobind[%d]: (%s) err=%d.",

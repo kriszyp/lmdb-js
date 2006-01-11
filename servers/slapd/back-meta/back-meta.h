@@ -301,12 +301,15 @@ meta_back_release_conn(
 	metaconn_t		*mc );
 
 extern int
-meta_back_retry(
+meta_back_retry_lock(
 	Operation		*op,
 	SlapReply		*rs,
 	metaconn_t		*mc,
 	int			candidate,
-	ldap_back_send_t	sendok );
+	ldap_back_send_t	sendok,
+	int			dolock );
+#define meta_back_retry(op, rs, mc, candidate, sendok) \
+	meta_back_retry_lock((op), (rs), (mc), (candidate), (sendok), 1)
 
 extern void
 meta_back_conn_free(
@@ -323,13 +326,21 @@ meta_back_init_one_conn(
 	ldap_back_send_t	sendok );
 
 extern int
+meta_back_single_bind(
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	int			candidate,
+	int			massage );
+
+extern int
 meta_back_dobind(
 	Operation		*op,
 	SlapReply		*rs,
 	metaconn_t		*mc,
 	ldap_back_send_t	sendok );
 
-int
+extern int
 meta_back_single_dobind(
 	Operation		*op,
 	SlapReply		*rs,
