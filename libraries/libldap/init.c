@@ -81,9 +81,9 @@ static const struct ol_attribute {
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
 
 #ifdef HAVE_CYRUS_SASL
-	{1, ATTR_STRING,	"SASL_MECH",		NULL,
+	{0, ATTR_STRING,	"SASL_MECH",		NULL,
 		offsetof(struct ldapoptions, ldo_def_sasl_mech)},
-	{1, ATTR_STRING,	"SASL_REALM",		NULL,
+	{0, ATTR_STRING,	"SASL_REALM",		NULL,
 		offsetof(struct ldapoptions, ldo_def_sasl_realm)},
 	{1, ATTR_STRING,	"SASL_AUTHCID",		NULL,
 		offsetof(struct ldapoptions, ldo_def_sasl_authcid)},
