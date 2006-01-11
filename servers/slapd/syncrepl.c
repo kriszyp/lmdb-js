@@ -1839,7 +1839,7 @@ retry_add:;
 
 			dnParent( &dni.ndn, &noldp );
 			dnParent( &entry->e_nname, &nnewp );
-			if ( !dn_match( &noldp, &newp )) {
+			if ( !dn_match( &noldp, &nnewp )) {
 				dnParent( &entry->e_name, &newp );
 				op->orr_newSup = &newp;
 				op->orr_nnewSup = &nnewp;
