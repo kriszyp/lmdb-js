@@ -2303,10 +2303,10 @@ syncrepl_updateCookie(
 	mod.sml_desc = slap_schema.si_ad_contextCSN;
 	mod.sml_type = mod.sml_desc->ad_cname;
 	mod.sml_values = vals;
-	vals[0] = syncCookie.ctxcsn;
+	vals[0] = syncCookie->ctxcsn;
 	BER_BVZERO( &vals[1] );
 
-	slap_queue_csn( op, syncCookie.ctxcsn );
+	slap_queue_csn( op, &syncCookie->ctxcsn );
 
 	op->o_tag = LDAP_REQ_MODIFY;
 
