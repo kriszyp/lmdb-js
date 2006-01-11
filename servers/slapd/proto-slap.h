@@ -558,12 +558,15 @@ LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 	Operation *op,
 	SlapReply *rs,
 	int senderrors ));
-LDAP_SLAPD_F (int) register_supported_control LDAP_P((
+LDAP_SLAPD_F (int) register_supported_control2 LDAP_P((
 	const char *controloid,
 	slap_mask_t controlmask,
 	char **controlexops,
 	SLAP_CTRL_PARSE_FN *controlparsefn,
+	unsigned flags,
 	int *controlcid ));
+#define register_supported_control(oid, mask, exops, fn, cid) \
+	register_supported_control2((oid), (mask), (exops), (fn), 0, (cid))
 LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
 LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
 LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));
