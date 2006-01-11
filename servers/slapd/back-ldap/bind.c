@@ -620,18 +620,23 @@ done:;
 }
 
 void
-ldap_back_release_conn(
+ldap_back_release_conn_lock(
 	Operation		*op,
 	SlapReply		*rs,
-	ldapconn_t		*lc )
+	ldapconn_t		*lc,
+	int			dolock )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+	}
 	assert( lc->lc_refcnt > 0 );
 	lc->lc_refcnt--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
-	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+	}
 }
 
 /*
@@ -665,9 +670,19 @@ ldap_back_dobind_int(
 
 	while ( lc->lc_refcnt > 1 ) {
 		ldap_pvt_thread_yield();
-		if (( rc = LDAP_BACK_CONN_ISBOUND( lc )))
+		rc = LDAP_BACK_CONN_ISBOUND( lc );
+		if ( rc ) {
 			return rc;
+		}
 	}
+
+ 	if ( dolock ) {
+ 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+ 	}
+ 	LDAP_BACK_CONN_BINDING_SET( lc );
+ 	if ( dolock ) {
+ 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+ 	}
 
 	/*
 	 * FIXME: we need to let clients use proxyAuthz
@@ -785,13 +800,14 @@ retry:;
 	rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
-
-	} else {
-		ldap_back_release_conn( op, rs, lc );
 	}
 
 done:;
+	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
+	if ( !rc ) {
+		ldap_back_release_conn_lock( op, rs, lc, dolock );
+	}
 
 	return rc;
 }
