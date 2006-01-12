@@ -16,37 +16,41 @@
 PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel slapd-modrdn \
 		slapd-modify slapd-bind
 
-SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c \
+SRCS     = slapd-common.c \
+		slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c \
 		slapd-modrdn.c slapd-modify.c slapd-bind.c
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
-XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+XXLIBS	 = $(SECURITY_LIBS) $(LUTIL_LIBS)
+
+OBJS     = slapd-common.o
 
 # build-tools: FORCE
 # $(MAKE) $(MFLAGS) load-tools
 
 # load-tools: $(PROGRAMS)
 
-slapd-tester: slapd-tester.o $(XLIBS)
-	$(LTLINK) -o $@ slapd-tester.o $(LIBS)
+slapd-tester: slapd-tester.o $(OBJS) $(XLIBS)
+	$(LTLINK) -o $@ slapd-tester.o $(OBJS) $(LIBS)
 
-slapd-search: slapd-search.o $(XLIBS)
-	$(LTLINK) -o $@ slapd-search.o $(LIBS)
+slapd-search: slapd-search.o $(OBJS) $(XLIBS)
+	$(LTLINK) -o $@ slapd-search.o $(OBJS) $(LIBS)
 
-slapd-read: slapd-read.o $(XLIBS)
-	$(LTLINK) -o $@ slapd-read.o $(LIBS)
+slapd-read: slapd-read.o $(OBJS) $(XLIBS)
+	$(LTLINK) -o $@ slapd-read.o $(OBJS) $(LIBS)
 
-slapd-addel: slapd-addel.o $(XLIBS)
-	$(LTLINK) -o $@ slapd-addel.o $(LIBS)
+slapd-addel: slapd-addel.o $(OBJS) $(XLIBS)
+	$(LTLINK) -o $@ slapd-addel.o $(OBJS) $(LIBS)
 
-slapd-modrdn: slapd-modrdn.o $(XLIBS)
-	$(LTLINK) -o $@ slapd-modrdn.o $(LIBS)
+slapd-modrdn: slapd-modrdn.o $(OBJS) $(XLIBS)
+	$(LTLINK) -o $@ slapd-modrdn.o $(OBJS) $(LIBS)
 
-slapd-modify: slapd-modify.o $(XLIBS)
-	$(LTLINK) -o $@ slapd-modify.o $(LIBS)
+slapd-modify: slapd-modify.o $(OBJS) $(XLIBS)
+	$(LTLINK) -o $@ slapd-modify.o $(OBJS) $(LIBS)
 
-slapd-bind: slapd-bind.o $(XLIBS)
-	$(LTLINK) -o $@ slapd-bind.o $(LIBS)
+slapd-bind: slapd-bind.o $(OBJS) $(XLIBS)
+	$(LTLINK) -o $@ slapd-bind.o $(OBJS) $(LIBS)
+

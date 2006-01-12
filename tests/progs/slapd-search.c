@@ -30,15 +30,16 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
-#define LDAP_DEPRECATED 1
 #include <ldap.h>
 #include <lutil.h>
+
+#include "slapd-common.h"
 
 #define LOOPS	100
 #define RETRIES	0
 
 static void
-do_search( char *uri, char *host, int port, char *manager, char *passwd,
+do_search( char *uri, char *manager, struct berval *passwd,
 		char *sbase, char *filter, int maxloop, int maxretries, int delay );
 
 static void
@@ -66,12 +67,14 @@ main( int argc, char **argv )
 	char		*host = "localhost";
 	int		port = -1;
 	char		*manager = NULL;
-	char		*passwd = NULL;
+	struct berval	passwd = { 0, NULL };
 	char		*sbase = NULL;
 	char		*filter  = NULL;
 	int		loops = LOOPS;
 	int		retries = RETRIES;
 	int		delay = 0;
+
+	tester_init( "slapd-search" );
 
 	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:p:w:r:t:" )) != EOF ) {
 		switch( i ) {
@@ -94,7 +97,8 @@ main( int argc, char **argv )
 			break;
 
 		case 'w':		/* the server managers password */
-			passwd = strdup( optarg );
+			passwd.bv_val = strdup( optarg );
+			passwd.bv_len = strlen( optarg );
 			break;
 
 		case 'b':		/* file with search base */
@@ -140,14 +144,16 @@ main( int argc, char **argv )
 
 	}
 
-	do_search( uri, host, port, manager, passwd, sbase, filter,
+	uri = tester_uri( uri, host, port );
+
+	do_search( uri, manager, &passwd, sbase, filter,
 			( 10 * loops ), retries, delay );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
-do_search( char *uri, char *host, int port, char *manager, char *passwd,
+do_search( char *uri, char *manager, struct berval *passwd,
 		char *sbase, char *filter, int maxloop, int maxretries, int delay )
 {
 	LDAP	*ld = NULL;
@@ -155,32 +161,25 @@ do_search( char *uri, char *host, int port, char *manager, char *passwd,
 	char	*attrs[] = { "cn", "sn", NULL };
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
+	int	version = LDAP_VERSION3;
 
 retry:;
-	if ( uri ) {
-		ldap_initialize( &ld, uri );
-	} else {
-		ld = ldap_init( host, port );
-	}
+	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		perror( "ldap_init" );
+		tester_perror( "ldap_initialize" );
 		exit( EXIT_FAILURE );
 	}
 
-	{
-		int version = LDAP_VERSION3;
-		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-			&version ); 
-	}
+	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
 				(long) pid, maxloop, sbase, filter );
 	}
 
-	rc = ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE );
+	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s" );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -202,10 +201,10 @@ retry:;
 	for ( ; i < maxloop; i++ ) {
 		LDAPMessage *res;
 
-		rc = ldap_search_s( ld, sbase, LDAP_SCOPE_SUBTREE,
-				filter, attrs, 0, &res );
+		rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,
+				filter, attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_search" );
+			tester_ldap_error( ld, "ldap_search_ext_s" );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				ldap_unbind_ext( ld, NULL, NULL );
 				do_retry--;

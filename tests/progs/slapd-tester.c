@@ -35,6 +35,8 @@
 #include "ldap_defaults.h"
 #include "lutil.h"
 
+#include "ldap.h"
+#include "slapd-common.h"
 
 #define SEARCHCMD		"slapd-search"
 #define READCMD			"slapd-read"
@@ -151,6 +153,8 @@ main( int argc, char **argv )
 	char		*bargs[MAXARGS];
 	int		banum;
 	char		bcmd[MAXPATHLEN];
+
+	tester_init( "slapd-tester" );
 
 	while ( (i = getopt( argc, argv, "D:d:FH:h:j:l:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
@@ -616,14 +620,12 @@ fork_child( char *prog, char **args )
 		args = arg2; }
 #endif
 		execvp( prog, args );
-		fprintf( stderr, "%s: ", prog );
-		perror( "execv" );
+		tester_perror( "execvp" );
 		exit( EXIT_FAILURE );
 		break;
 
 	case -1:	/* trouble */
-		fprintf( stderr, "Could not fork to run %s\n", prog );
-		perror( "fork" );
+		tester_perror( "fork" );
 		break;
 
 	default:	/* parent */
@@ -693,8 +695,7 @@ fork_child( char *prog, char **args )
 	rc = _spawnvp( _P_NOWAIT, prog, args );
 
 	if ( rc == -1 ) {
-		fprintf( stderr, "%s: ", prog );
-		perror("spawnvp");
+		tester_perror( "_spawnvp" );
 	} else {
 		children[nkids++] = (HANDLE)rc;
 	}

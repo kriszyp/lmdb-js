@@ -30,15 +30,16 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
-#define LDAP_DEPRECATED 1
 #include <ldap.h>
 #include <lutil.h>
+
+#include "slapd-common.h"
 
 #define LOOPS	100
 #define RETRIES	0
 
 static void
-do_read( char *uri, char *host, int port, char *entry, int maxloop,
+do_read( char *uri, char *entry, int maxloop,
 		int maxretries, int delay );
 
 static void
@@ -66,6 +67,8 @@ main( int argc, char **argv )
 	int		loops = LOOPS;
 	int		retries = RETRIES;
 	int		delay = 0;
+
+	tester_init( "slapd-read" );
 
 	while ( (i = getopt( argc, argv, "H:h:p:e:l:r:t:" )) != EOF ) {
 		switch( i ) {
@@ -120,13 +123,15 @@ main( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
-	do_read( uri, host, port, entry, ( 20 * loops ), retries, delay );
+	uri = tester_uri( uri, host, port );
+
+	do_read( uri, entry, ( 20 * loops ), retries, delay );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
-do_read( char *uri, char *host, int port, char *entry, int maxloop,
+do_read( char *uri, char *entry, int maxloop,
 		int maxretries, int delay )
 {
 	LDAP	*ld = NULL;
@@ -134,32 +139,26 @@ do_read( char *uri, char *host, int port, char *entry, int maxloop,
 	char	*attrs[] = { "1.1", NULL };
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
+	int	version = LDAP_VERSION3;
+	struct berval	passwd = { 0, "" };
 	
 retry:;
-	if ( uri ) {
-		ldap_initialize( &ld, uri );
-	} else {
-		ld = ldap_init( host, port );
-	}
+	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		perror( "ldap_init" );
+		tester_perror( "ldap_initialize" );
 		exit( EXIT_FAILURE );
 	}
 
-	{
-		int version = LDAP_VERSION3;
-		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-			&version ); 
-	}
+	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Read(%d): entry=\"%s\".\n",
 			(long) pid, maxloop, entry );
 	}
 
-	rc = ldap_bind_s( ld, NULL, NULL, LDAP_AUTH_SIMPLE );
+	rc = ldap_sasl_bind_s( ld, NULL, LDAP_SASL_SIMPLE, &passwd, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s" );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -180,10 +179,10 @@ retry:;
 	for ( ; i < maxloop; i++ ) {
 		LDAPMessage *res;
 
-		rc = ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
-				NULL, attrs, 1, &res );
+		rc = ldap_search_ext_s( ld, entry, LDAP_SCOPE_BASE,
+				NULL, attrs, 1, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_read" );
+			tester_ldap_error( ld, "ldap_search_ext_s" );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				do_retry--;
 				goto retry;
@@ -198,6 +197,6 @@ retry:;
 
 	fprintf( stderr, " PID=%ld - Read done (%d).\n", (long) pid, rc );
 
-	ldap_unbind( ld );
+	ldap_unbind_ext( ld, NULL, NULL );
 }
 

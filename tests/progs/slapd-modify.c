@@ -26,15 +26,16 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
-#define LDAP_DEPRECATED 1
 #include <ldap.h>
 #include <lutil.h>
+
+#include "slapd-common.h"
 
 #define LOOPS	100
 #define RETRIES 0
 
 static void
-do_modify( char *uri, char *host, int port, char *manager, char *passwd,
+do_modify( char *uri, char *manager, struct berval *passwd,
 		char *entry, char *attr, char *value, int maxloop,
 		int maxretries, int delay, int friendly );
 
@@ -64,7 +65,7 @@ main( int argc, char **argv )
 	char		*host = "localhost";
 	int		port = -1;
 	char		*manager = NULL;
-	char		*passwd = NULL;
+	struct berval	passwd = { 0, NULL };
 	char		*entry = NULL;
 	char		*ava = NULL;
 	char		*value = NULL;
@@ -72,6 +73,8 @@ main( int argc, char **argv )
 	int		retries = RETRIES;
 	int		delay = 0;
 	int		friendly = 0;
+
+	tester_init( "slapd-modify" );
 
 	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:a:l:r:t:" )) != EOF ) {
 		switch( i ) {
@@ -98,7 +101,8 @@ main( int argc, char **argv )
 			break;
 
 		case 'w':		/* the server managers password */
-			passwd = strdup( optarg );
+			passwd.bv_val = strdup( optarg );
+			passwd.bv_len = strlen( optarg );
 			break;
 
 		case 'e':		/* entry to modify */
@@ -158,15 +162,17 @@ main( int argc, char **argv )
 	while ( *value && isspace( (unsigned char) *value ))
 		value++;
 
-	do_modify( uri, host, port, manager, passwd, entry, ava, value,
+	uri = tester_uri( uri, host, port );
+
+	do_modify( uri, manager, &passwd, entry, ava, value,
 			loops, retries, delay, friendly );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
-do_modify( char *uri, char *host, int port, char *manager,
-	char *passwd, char *entry, char* attr, char* value,
+do_modify( char *uri, char *manager,
+	struct berval *passwd, char *entry, char* attr, char* value,
 	int maxloop, int maxretries, int delay, int friendly )
 {
 	LDAP	*ld = NULL;
@@ -189,13 +195,9 @@ do_modify( char *uri, char *host, int port, char *manager,
 	mods[1] = NULL;
 
 retry:;
-	if ( uri ) {
-		ldap_initialize( &ld, uri );
-	} else {
-		ld = ldap_init( host, port );
-	}
+	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		perror( "ldap_init" );
+		tester_perror( "ldap_initialize" );
 		exit( EXIT_FAILURE );
 	}
 
@@ -210,9 +212,9 @@ retry:;
 			(long) pid, maxloop, entry );
 	}
 
-	rc = ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE );
+	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s" );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -232,9 +234,9 @@ retry:;
 
 	for ( ; i < maxloop; i++ ) {
 		mod.mod_op = LDAP_MOD_ADD;
-		rc = ldap_modify_s( ld, entry, mods );
+		rc = ldap_modify_ext_s( ld, entry, mods, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_modify" );
+			tester_ldap_error( ld, "ldap_modify_ext_s" );
 			switch ( rc ) {
 			case LDAP_TYPE_OR_VALUE_EXISTS:
 				/* NOTE: this likely means
@@ -259,9 +261,9 @@ retry:;
 		}
 		
 		mod.mod_op = LDAP_MOD_DELETE;
-		rc = ldap_modify_s( ld, entry, mods );
+		rc = ldap_modify_ext_s( ld, entry, mods, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_modify" );
+			tester_ldap_error( ld, "ldap_modify_ext_s" );
 			switch ( rc ) {
 			case LDAP_NO_SUCH_ATTRIBUTE:
 				/* NOTE: this likely means
@@ -290,7 +292,7 @@ retry:;
 done:;
 	fprintf( stderr, " PID=%ld - Modify done (%d).\n", (long) pid, rc );
 
-	ldap_unbind( ld );
+	ldap_unbind_ext( ld, NULL, NULL );
 }
 
 

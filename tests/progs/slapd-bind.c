@@ -35,21 +35,9 @@
 #include <ldap.h>
 #include <lutil.h>
 
+#include "slapd-common.h"
+
 #define LOOPS	100
-
-static void
-do_error( LDAP *ld, const char *func )
-{
-	int err;
-	const char *text = "Success";
-
-	ldap_get_option( ld, LDAP_OPT_RESULT_CODE, (void *)&err );
-	if ( err != LDAP_SUCCESS ) {
-		ldap_get_option( ld, LDAP_OPT_ERROR_STRING, (void *)&text );
-	}
-
-	fprintf( stderr, "%s: (%d) %s\n", func, err, text == NULL ? "" : text );
-}
 
 static int
 do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force );
@@ -78,8 +66,7 @@ int
 main( int argc, char **argv )
 {
 	int		i;
-	char		*uri = NULL,
-			uribuf[ BUFSIZ ];
+	char		*uri = NULL;
 	char		*host = "localhost";
 	char		*dn = NULL;
 	char		*base = NULL;
@@ -87,6 +74,8 @@ main( int argc, char **argv )
 	int		port = -1;
 	int		loops = LOOPS;
 	int		force = 0;
+
+	tester_init( "slapd-bind" );
 
 	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:f:F" )) != EOF ) {
 		switch( i ) {
@@ -141,10 +130,7 @@ main( int argc, char **argv )
 		usage( argv[0] );
 	}
 
-	if ( uri == NULL ) {
-		snprintf( uribuf, sizeof( uribuf ), "ldap://%s:%d", host, port );
-		uri = uribuf;
-	}
+	uri = tester_uri( uri, host, port );
 
 	if ( base ) {
 		do_base( uri, base, &pass, ( 20 * loops ), force );
@@ -169,7 +155,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force )
 	for ( i = 0; i < maxloop; i++ ) {
 		ldap_initialize( &ld, uri );
 		if ( ld == NULL ) {
-			perror( "ldap_initialize" );
+			tester_perror( "ldap_initialize" );
 			rc = -1;
 			break;
 		}
@@ -182,7 +168,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force )
 
 		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			do_error( ld, "ldap_bind" );
+			tester_ldap_error( ld, "ldap_sasl_bind_s" );
 		}
 		ldap_unbind_ext( ld, NULL, NULL );
 		if ( rc != LDAP_SUCCESS && !force ) {
@@ -220,7 +206,7 @@ do_base( char *uri, char *base, struct berval *pass, int maxloop, int force )
 
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		perror( "ldap_initialize" );
+		tester_perror( "ldap_initialize" );
 		exit( EXIT_FAILURE );
 	}
 
@@ -229,14 +215,14 @@ do_base( char *uri, char *base, struct berval *pass, int maxloop, int force )
 
 	rc = ldap_sasl_bind_s( ld, NULL, LDAP_SASL_SIMPLE, NULL, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		do_error( ld, "ldap_bind" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s" );
 		exit( EXIT_FAILURE );
 	}
 
 	rc = ldap_search_ext( ld, base, LDAP_SCOPE_ONE,
 			filter, attrs, 0, NULL, NULL, 0, 0, &msgid );
 	if ( rc != LDAP_SUCCESS ) {
-		do_error( ld, "ldap_search_ext" );
+		tester_ldap_error( ld, "ldap_search_ext" );
 		exit( EXIT_FAILURE );
 	}
 
