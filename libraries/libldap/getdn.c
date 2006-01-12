@@ -708,7 +708,7 @@ ldap_bv2dn_x( struct berval *bvin, LDAPDN *dn, unsigned flags, void *ctx )
 	str = bv->bv_val;
 	end = str + bv->bv_len;
 
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2dn(%s,%u)\n", str, flags, 0 );
+	Debug( LDAP_DEBUG_ARGS, "=> ldap_bv2dn(%s,%u)\n", str, flags, 0 );
 
 	*dn = NULL;
 
@@ -890,8 +890,8 @@ return_result:;
 		LDAP_FREEX( tmpDN, ctx );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_bv2dn(%s)=%d %s\n", str, rc,
-			ldap_err2string( rc ) );
+	Debug( LDAP_DEBUG_ARGS, "<= ldap_bv2dn(%s)=%d %s\n", str, rc,
+			rc ? ldap_err2string( rc ) : "" );
 	*dn = newDN;
 	
 	return( rc );
@@ -3001,7 +3001,7 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
 
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_dn2bv(%u)\n", flags, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "=> ldap_dn2bv(%u)\n", flags, 0, 0 );
 
 	/* 
 	 * a null dn means an empty dn string 
@@ -3310,8 +3310,8 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 		return LDAP_PARAM_ERROR;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s)=%d %s\n",
-		bv->bv_val, rc, ldap_err2string( rc ) );
+	Debug( LDAP_DEBUG_ARGS, "<= ldap_dn2bv(%s)=%d %s\n",
+		bv->bv_val, rc, rc ? ldap_err2string( rc ) : "" );
 
 return_results:;
 	return( rc );
