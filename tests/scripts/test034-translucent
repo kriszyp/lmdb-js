@@ -720,6 +720,27 @@ if test $RC != 19 ; then
 	exit 1
 fi
 
+echo "Testing invalid Bind request..."
+$LDAPWHOAMI -D "$TRANSLUCENTDN" -H $URI2 -w Wrong"$TRANSLUCENTPASSWD" > \
+	$TESTOUT 2>&1
+RC=$?
+if test $RC != 49 ; then
+	echo "ldapwhoami failed ($RC), expected INVALID CREDENTIALS!"
+	grep "$FAILURE" $TESTOUT
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+$LDAPWHOAMI -D "$TRANSLUCENTDN" -H $URI2 -w "$TRANSLUCENTPASSWD" > \
+	$TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC), expected SUCCESS!"
+	grep "$FAILURE" $TESTOUT
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
