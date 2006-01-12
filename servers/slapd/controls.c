@@ -194,7 +194,7 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS,
 		proxy_authz_extops, NULL,
 		parseProxyAuthz, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-	{ NULL, 0, 0, NULL, 0, LDAP_SLIST_ENTRY_INITIALIZER(next) }
+	{ NULL, 0, 0, NULL, 0, NULL, LDAP_SLIST_ENTRY_INITIALIZER(next) }
 };
 
 static struct slap_control *
@@ -286,7 +286,8 @@ register_supported_control2(const char *controloid,
 
 	} else {
 		if ( sc->sc_extendedopsbv ) {
-			ber_bvarray_free( sc->sc_extendedops );
+			ber_bvarray_free( sc->sc_extendedopsbv );
+			sc->sc_extendedopsbv = NULL;
 			sc->sc_extendedops = NULL;
 		}
 	}
