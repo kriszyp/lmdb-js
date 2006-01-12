@@ -93,26 +93,10 @@ monitor_subsys_sent_init(
 		struct berval		nrdn, bv;
 		Entry			*e;
 
-		snprintf( buf, sizeof( buf ),
-				"dn: %s,%s\n"
-				"objectClass: %s\n"
-				"structuralObjectClass: %s\n"
-				"cn: %s\n"
-				"creatorsName: %s\n"
-				"modifiersName: %s\n"
-				"createTimestamp: %s\n"
-				"modifyTimestamp: %s\n",
-				monitor_sent[ i ].rdn.bv_val,
-				ms->mss_dn.bv_val,
-				mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-				mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-				&monitor_sent[ i ].rdn.bv_val[ STRLENOF( "cn=" ) ],
-				mi->mi_creatorsName.bv_val,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_startTime.bv_val,
-				mi->mi_startTime.bv_val );
-
-		e = str2entry( buf );
+		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn,
+			&monitor_sent[i].rdn, mi->mi_oc_monitorCounterObject,
+			mi, NULL, NULL );
+			
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_sent_init: "
@@ -127,7 +111,7 @@ monitor_subsys_sent_init(
 		ber_dupbv( &monitor_sent[ i ].nrdn, &nrdn );
 	
 		BER_BVSTR( &bv, "0" );
-		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
+		attr_merge_normalize_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 		mp = monitor_entrypriv_create();
 		if ( mp == NULL ) {

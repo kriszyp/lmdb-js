@@ -47,6 +47,7 @@ monitor_subsys_time_init(
 	Entry		*e, **ep, *e_time;
 	monitor_entry_t	*mp;
 	char		buf[ BACKMONITOR_BUFSIZE ];
+	struct berval bv;
 
 	assert( be != NULL );
 
@@ -67,27 +68,9 @@ monitor_subsys_time_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	snprintf( buf, sizeof( buf ),
-			"dn: cn=Start,%s\n"
-			"objectClass: %s\n"
-			"structuralObjectClass: %s\n"
-			"cn: Start\n"
-			"%s: %s\n"
-			"creatorsName: %s\n"
-			"modifiersName: %s\n"
-			"createTimestamp: %s\n"
-			"modifyTimestamp: %s\n", 
-			ms->mss_dn.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_ad_monitorTimestamp->ad_cname.bv_val,
-			mi->mi_startTime.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_startTime.bv_val,
-			mi->mi_startTime.bv_val );
-
-	e = str2entry( buf );
+	BER_BVSTR( &bv, "cn=Start" );
+	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+		mi->mi_oc_monitoredObject, mi, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
@@ -95,6 +78,8 @@ monitor_subsys_time_init(
 			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
+	attr_merge_normalize_one( e, mi->mi_ad_monitorTimestamp,
+		&mi->mi_startTime, NULL );
 	
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
@@ -119,27 +104,9 @@ monitor_subsys_time_init(
 	/*
 	 * Current
 	 */
-	snprintf( buf, sizeof( buf ),
-			"dn: cn=Current,%s\n"
-			"objectClass: %s\n"
-			"structuralObjectClass: %s\n"
-			"cn: Current\n"
-			"%s: %s\n"
-			"creatorsName: %s\n"
-			"modifiersName: %s\n"
-			"createTimestamp: %s\n"
-			"modifyTimestamp: %s\n",
-			ms->mss_dn.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_ad_monitorTimestamp->ad_cname.bv_val,
-			mi->mi_startTime.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_startTime.bv_val,
-			mi->mi_startTime.bv_val );
-
-	e = str2entry( buf );
+	BER_BVSTR( &bv, "cn=Current" );
+	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+		mi->mi_oc_monitoredObject, mi, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
@@ -147,6 +114,8 @@ monitor_subsys_time_init(
 			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
+	attr_merge_normalize_one( e, mi->mi_ad_monitorTimestamp,
+		&mi->mi_startTime, NULL );
 
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {

@@ -1496,16 +1496,21 @@ monitor_back_db_open(
 {
 	monitor_info_t 		*mi = (monitor_info_t *)be->be_private;
 	struct monitor_subsys_t	**ms;
-	Entry 			*e, **ep;
+	Entry 			*e, **ep, *root;
 	monitor_entry_t		*mp;
 	int			i;
-	char 			buf[ BACKMONITOR_BUFSIZE ];
-	struct berval		bv;
+	struct berval		bv, rdn = BER_BVC(SLAPD_MONITOR_DN);
 	struct tm		*tms;
 #ifdef HAVE_GMTIME_R
 	struct tm		tm_buf;
 #endif
 	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	struct berval	desc[] = {
+		BER_BVC("This subtree contains monitoring/managing objects."),
+		BER_BVC("This object contains information about this server."),
+		BER_BVC("Most of the information is held in operational"
+		" attributes, which must be explicitly requested."),
+		BER_BVNULL };
 
 	assert( be_monitor != NULL );
 	if ( be != be_monitor ) {
@@ -1542,41 +1547,26 @@ monitor_back_db_open(
 
 	if ( BER_BVISEMPTY( &be->be_rootdn ) ) {
 		BER_BVSTR( &mi->mi_creatorsName, SLAPD_ANONYMOUS );
+		BER_BVSTR( &mi->mi_ncreatorsName, SLAPD_ANONYMOUS );
 	} else {
 		mi->mi_creatorsName = be->be_rootdn;
+		mi->mi_ncreatorsName = be->be_rootndn;
 	}
 
 	/*
 	 * creates the "cn=Monitor" entry 
 	 */
-	snprintf( buf, sizeof( buf ), 
-		"dn: %s\n"
-		"objectClass: %s\n"
-		"structuralObjectClass: %s\n"
-		"cn: Monitor\n"
-		"description: This subtree contains monitoring/managing objects.\n"
-		"description: This object contains information about this server.\n"
-		"description: Most of the information is held in operational"
-		" attributes, which must be explicitly requested.\n"
-		"creatorsName: %s\n"
-		"modifiersName: %s\n"
-		"createTimestamp: %s\n"
-		"modifyTimestamp: %s\n",
-		SLAPD_MONITOR_DN,
-		mi->mi_oc_monitorServer->soc_cname.bv_val,
-		mi->mi_oc_monitorServer->soc_cname.bv_val,
-		mi->mi_creatorsName.bv_val,
-		mi->mi_creatorsName.bv_val,
-		mi->mi_startTime.bv_val,
-		mi->mi_startTime.bv_val );
+	e = monitor_entry_stub( NULL, NULL, &rdn, mi->mi_oc_monitorServer, mi,
+		NULL, NULL );
 
-	e = str2entry( buf );
 	if ( e == NULL) {
 		Debug( LDAP_DEBUG_ANY,
 			"unable to create \"%s\" entry\n",
 			SLAPD_MONITOR_DN, 0, 0 );
 		return( -1 );
 	}
+
+	attr_merge_normalize( e, slap_schema.si_ad_description, desc, NULL );
 
 	bv.bv_val = strchr( (char *) Versionstr, '$' );
 	if ( bv.bv_val != NULL ) {
@@ -1623,6 +1613,7 @@ monitor_back_db_open(
 			SLAPD_MONITOR_DN, 0, 0 );
 		return -1;
 	}
+	root = e;
 
 	/*	
 	 * Create all the subsystem specific entries
@@ -1645,46 +1636,18 @@ monitor_back_db_open(
 			return( -1 );
 		}
 
-		dn.bv_len += sizeof( SLAPD_MONITOR_DN ); /* 1 for the , */
-		dn.bv_val = ch_malloc( dn.bv_len + 1 );
-		strcpy( dn.bv_val , monitor_subsys[ i ]->mss_rdn.bv_val );
-		strcat( dn.bv_val, "," SLAPD_MONITOR_DN );
-		rc = dnPrettyNormal( NULL, &dn, &monitor_subsys[ i ]->mss_dn,
-			&monitor_subsys[ i ]->mss_ndn, NULL );
-		free( dn.bv_val );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"monitor DN \"%s\" is invalid\n", 
-				dn.bv_val, 0, 0 );
-			return( -1 );
-		}
+		e = monitor_entry_stub( &root->e_name, &root->e_nname,
+			&monitor_subsys[ i ]->mss_rdn, mi->mi_oc_monitorContainer, mi,
+			NULL, NULL );
 
-		snprintf( buf, sizeof( buf ),
-				"dn: %s\n"
-				"objectClass: %s\n"
-				"structuralObjectClass: %s\n"
-				"cn: %s\n"
-				"creatorsName: %s\n"
-				"modifiersName: %s\n"
-				"createTimestamp: %s\n"
-				"modifyTimestamp: %s\n",
-				monitor_subsys[ i ]->mss_dn.bv_val,
-				mi->mi_oc_monitorContainer->soc_cname.bv_val,
-				mi->mi_oc_monitorContainer->soc_cname.bv_val,
-				monitor_subsys[ i ]->mss_name,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_startTime.bv_val,
-				mi->mi_startTime.bv_val );
-		
-		e = str2entry( buf );
-		
 		if ( e == NULL) {
 			Debug( LDAP_DEBUG_ANY,
 				"unable to create \"%s\" entry\n", 
 				monitor_subsys[ i ]->mss_dn.bv_val, 0, 0 );
 			return( -1 );
 		}
+		monitor_subsys[i]->mss_dn = e->e_name;
+		monitor_subsys[i]->mss_ndn = e->e_nname;
 
 		if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_desc[ 0 ] ) ) {
 			attr_merge_normalize( e, slap_schema.si_ad_description,
@@ -1859,14 +1822,6 @@ monitor_back_db_destroy(
 
 			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_rdn ) ) {
 				ch_free( monitor_subsys[ i ]->mss_rdn.bv_val );
-			}
-
-			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_dn ) ) {
-				ch_free( monitor_subsys[ i ]->mss_dn.bv_val );
-			}
-
-			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_ndn ) ) {
-				ch_free( monitor_subsys[ i ]->mss_ndn.bv_val );
 			}
 		}
 

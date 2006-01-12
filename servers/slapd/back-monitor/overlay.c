@@ -75,32 +75,10 @@ monitor_subsys_overlay_init(
 		Entry		*e;
 		BackendDB	*be;
 
-		snprintf( buf, sizeof( buf ),
-				"dn: cn=Overlay %d,%s\n"
-				"objectClass: %s\n"
-				"structuralObjectClass: %s\n"
-				"cn: Overlay %d\n"
-				"%s: %s\n"
-				"%s: %s\n"
-				"creatorsName: %s\n"
-				"modifiersName: %s\n"
-				"createTimestamp: %s\n"
-				"modifyTimestamp: %s\n",
-				i,
-				ms->mss_dn.bv_val,
-				mi->mi_oc_monitoredObject->soc_cname.bv_val,
-				mi->mi_oc_monitoredObject->soc_cname.bv_val,
-				i,
-				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-					on->on_bi.bi_type,
-				mi->mi_ad_monitorRuntimeConfig->ad_cname.bv_val,
-					on->on_bi.bi_cf_ocs ? "TRUE" : "FALSE",
-				mi->mi_creatorsName.bv_val,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_startTime.bv_val,
-				mi->mi_startTime.bv_val );
-		
-		e = str2entry( buf );
+		bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Overlay %d", i );
+		bv.bv_val = buf;
+		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+			mi->mi_oc_monitoredObject, mi, NULL, NULL );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_overlay_init: "
@@ -108,8 +86,12 @@ monitor_subsys_overlay_init(
 				i, ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
-		
 		ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
+		attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+		attr_merge_normalize_one( e, mi->mi_ad_monitorRuntimeConfig,
+			on->on_bi.bi_cf_ocs ? (struct berval *)&slap_true_bv :
+				(struct berval *)&slap_false_bv, NULL );
+		
 		attr_merge_normalize_one( e_overlay, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
 

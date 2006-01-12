@@ -165,3 +165,54 @@ monitor_entrypriv_create( void )
 
 	return mp;
 }
+
+Entry *
+monitor_entry_stub(
+	struct berval *pdn,
+	struct berval *pndn,
+	struct berval *rdn,
+	ObjectClass *oc,
+	monitor_info_t	*mi,
+	struct berval *create,
+	struct berval *modify
+)
+{
+	AttributeDescription *nad = NULL;
+	Entry *e;
+	struct berval nat;
+	char *ptr;
+	const char *text;
+	int rc;
+
+	nat = *rdn;
+	ptr = strchr( nat.bv_val, '=' );
+	nat.bv_len = ptr - nat.bv_val;
+	rc = slap_bv2ad( &nat, &nad, &text );
+	if ( rc )
+		return NULL;
+
+	e = ch_calloc( 1, sizeof( Entry ));
+	if ( e ) {
+		struct berval nrdn;
+
+		rdnNormalize( 0, NULL, NULL, rdn, &nrdn, NULL );
+		build_new_dn( &e->e_name, pdn, rdn, NULL );
+		build_new_dn( &e->e_nname, pndn, &nrdn, NULL );
+		nat.bv_val = ptr + 1;
+		nat.bv_len = rdn->bv_len - ( nat.bv_val - rdn->bv_val );
+		attr_merge_normalize_one( e, slap_schema.si_ad_objectClass,
+			&oc->soc_cname, NULL );
+		attr_merge_normalize_one( e, slap_schema.si_ad_structuralObjectClass,
+			&oc->soc_cname, NULL );
+		attr_merge_normalize_one( e, nad, &nat, NULL );
+		attr_merge_one( e, slap_schema.si_ad_creatorsName, &mi->mi_creatorsName,
+			&mi->mi_ncreatorsName );
+		attr_merge_one( e, slap_schema.si_ad_modifiersName, &mi->mi_creatorsName,
+			&mi->mi_ncreatorsName );
+		attr_merge_normalize_one( e, slap_schema.si_ad_createTimestamp,
+			create ? create : &mi->mi_startTime, NULL );
+		attr_merge_normalize_one( e, slap_schema.si_ad_modifyTimestamp,
+			modify ? modify : &mi->mi_startTime, NULL );
+	}
+	return e;
+}

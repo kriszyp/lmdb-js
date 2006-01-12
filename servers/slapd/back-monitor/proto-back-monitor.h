@@ -116,6 +116,16 @@ extern monitor_entry_t *
 monitor_entrypriv_create LDAP_P((
 	void ));
 
+extern Entry *
+monitor_entry_stub LDAP_P((
+	struct berval	*pdn,
+	struct berval	*pndn,
+	struct berval	*rdn,
+	ObjectClass		*oc,
+	monitor_info_t	*mi,
+	struct berval	*create,
+	struct berval	*modify));
+
 /*
  * init
  */

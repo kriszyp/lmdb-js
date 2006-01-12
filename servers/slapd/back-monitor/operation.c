@@ -97,34 +97,14 @@ monitor_subsys_ops_init(
 	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 		struct berval	rdn;
 		Entry		*e;
+		struct berval bv;
 
 		/*
 		 * Initiated ops
 		 */
-		snprintf( buf, sizeof( buf ),
-				"dn: %s,%s\n"
-				"objectClass: %s\n"
-				"structuralObjectClass: %s\n"
-				"cn: %s\n"
-				"%s: 0\n"
-				"%s: 0\n"
-				"creatorsName: %s\n"
-				"modifiersName: %s\n"
-				"createTimestamp: %s\n"
-				"modifyTimestamp: %s\n",
-				monitor_op[ i ].rdn.bv_val,
-				ms->mss_dn.bv_val,
-				mi->mi_oc_monitorOperation->soc_cname.bv_val,
-				mi->mi_oc_monitorOperation->soc_cname.bv_val,
-				&monitor_op[ i ].rdn.bv_val[ STRLENOF( "cn=" ) ],
-				mi->mi_ad_monitorOpInitiated->ad_cname.bv_val,
-				mi->mi_ad_monitorOpCompleted->ad_cname.bv_val,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_startTime.bv_val,
-				mi->mi_startTime.bv_val );
+		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &monitor_op[i].rdn,
+			mi->mi_oc_monitorOperation, mi, NULL, NULL );
 
-		e = str2entry( buf );
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_ops_init: "
@@ -133,7 +113,11 @@ monitor_subsys_ops_init(
 				ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
-	
+
+		BER_BVSTR( &bv, "0" );
+		attr_merge_one( e, mi->mi_ad_monitorOpInitiated, &bv, NULL );
+		attr_merge_one( e, mi->mi_ad_monitorOpCompleted, &bv, NULL );
+
 		/* steal normalized RDN */
 		dnRdn( &e->e_nname, &rdn );
 		ber_dupbv( &monitor_op[ i ].nrdn, &rdn );

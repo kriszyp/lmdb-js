@@ -186,6 +186,7 @@ monitor_subsys_database_init(
 		slap_overinfo	*oi = NULL;
 		BackendInfo	*bi, *bi2;
 		Entry		*e;
+		struct berval bv;
 
 		i++;
 
@@ -201,32 +202,12 @@ monitor_subsys_database_init(
 			continue;
 		}
 
-		snprintf( buf, sizeof( buf ),
-				"dn: cn=Database %d,%s\n"
-				"objectClass: %s\n"
-				"structuralObjectClass: %s\n"
-				"cn: Database %d\n"
-				"%s: %s\n"
-				"%s: %s\n"
-				"creatorsName: %s\n"
-				"modifiersName: %s\n"
-				"createTimestamp: %s\n"
-				"modifyTimestamp: %s\n",
-				i,
-					ms->mss_dn.bv_val,
-				mi->mi_oc_monitoredObject->soc_cname.bv_val,
-				mi->mi_oc_monitoredObject->soc_cname.bv_val,
-				i,
-				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-					bi->bi_type,
-				mi->mi_ad_monitorIsShadow->ad_cname.bv_val,
-					SLAP_SHADOW( be ) ? slap_true_bv.bv_val : slap_false_bv.bv_val,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_creatorsName.bv_val,
-				mi->mi_startTime.bv_val,
-				mi->mi_startTime.bv_val );
-		
-		e = str2entry( buf );
+		bv.bv_len = snprintf( buf, sizeof( buf ),
+				"cn=Database %d", i );
+		bv.bv_val = buf;
+		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+			mi->mi_oc_monitoredObject, mi, NULL, NULL );
+
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
@@ -234,7 +215,13 @@ monitor_subsys_database_init(
 				i, ms->mss_dn.bv_val, 0 );
 			return( -1 );
 		}
-		
+
+		ber_str2bv( bi->bi_type, 0, 0, &bv );
+		attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+		attr_merge_one( e, mi->mi_ad_monitorIsShadow,
+			SLAP_SHADOW( be ) ? (struct berval *)&slap_true_bv :
+				(struct berval *)&slap_false_bv, NULL );
+
 		if ( SLAP_MONITOR( be ) ) {
 			attr_merge( e, slap_schema.si_ad_monitorContext,
 					be->be_suffix, be->be_nsuffix );
@@ -465,33 +452,12 @@ monitor_subsys_database_init(
 				}
 				assert( on2 != NULL );
 
-				snprintf( buf, sizeof( buf ),
-						"dn: cn=Overlay %d,cn=Database %d,%s\n"
-						"objectClass: %s\n"
-						"structuralObjectClass: %s\n"
-						"cn: Overlay %d\n"
-						"%s: %s\n"
-						"seeAlso: cn=Overlay %d,%s\n"
-						"creatorsName: %s\n"
-						"modifiersName: %s\n"
-						"createTimestamp: %s\n"
-						"modifyTimestamp: %s\n",
-						o,
-						i,
-						ms->mss_dn.bv_val,
-						mi->mi_oc_monitoredObject->soc_cname.bv_val,
-						mi->mi_oc_monitoredObject->soc_cname.bv_val,
-						o,
-						mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-						on->on_bi.bi_type,
-						j,
-						ms_overlay->mss_dn.bv_val,
-						mi->mi_creatorsName.bv_val,
-						mi->mi_creatorsName.bv_val,
-						mi->mi_startTime.bv_val,
-						mi->mi_startTime.bv_val );
-				
-				e_overlay = str2entry( buf );
+				bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Overlay %d", o );
+				bv.bv_val = buf;
+
+				e_overlay = monitor_entry_stub( &e->e_name, &e->e_nname, &bv,
+					mi->mi_oc_monitoredObject, mi, NULL, NULL );
+
 				if ( e_overlay == NULL ) {
 					Debug( LDAP_DEBUG_ANY,
 						"monitor_subsys_database_init: "
@@ -500,6 +466,14 @@ monitor_subsys_database_init(
 						o, i, ms->mss_dn.bv_val );
 					return( -1 );
 				}
+				ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
+				attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+
+				bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Overlay %d,%s",
+					j, ms_overlay->mss_dn.bv_val );
+				bv.bv_val = buf;
+				attr_merge_normalize_one( e, slap_schema.si_ad_seeAlso,
+					&bv, NULL );
 
 				mp_overlay = monitor_entrypriv_create();
 				if ( mp_overlay == NULL ) {

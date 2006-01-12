@@ -83,6 +83,7 @@ typedef struct monitor_info_t {
 	 */
 	struct berval		mi_startTime;		/* don't free it! */
 	struct berval		mi_creatorsName;	/* don't free it! */
+	struct berval		mi_ncreatorsName;	/* don't free it! */
 
 	/*
 	 * Specific schema entities

@@ -48,6 +48,7 @@ monitor_subsys_thread_init(
 	monitor_entry_t	*mp;
 	Entry		*e, **ep, *e_thread;
 	static char	buf[ BACKMONITOR_BUFSIZE ];
+	struct berval bv;
 
 	ms->mss_update = monitor_subsys_thread_update;
 
@@ -68,27 +69,9 @@ monitor_subsys_thread_init(
 	/*
 	 * Max
 	 */
-	snprintf( buf, sizeof( buf ),
-			"dn: cn=Max,%s\n"
-			"objectClass: %s\n"
-			"structuralObjectClass: %s\n"
-			"cn: Max\n"
-			"%s: %d\n"
-			"creatorsName: %s\n"
-			"modifiersName: %s\n"
-			"createTimestamp: %s\n"
-			"modifyTimestamp: %s\n", 
-			ms->mss_dn.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-			connection_pool_max,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_startTime.bv_val,
-			mi->mi_startTime.bv_val );
-
-	e = str2entry( buf );
+	BER_BVSTR( &bv, "cn=Max" );
+	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+		mi->mi_oc_monitoredObject, mi, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_thread_init: "
@@ -96,6 +79,9 @@ monitor_subsys_thread_init(
 			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", connection_pool_max );
+	bv.bv_val = buf;
+	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
 	
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
@@ -120,26 +106,9 @@ monitor_subsys_thread_init(
 	/*
 	 * Backload
 	 */
-	snprintf( buf, sizeof( buf ),
-			"dn: cn=Backload,%s\n"
-			"objectClass: %s\n"
-			"structuralObjectClass: %s\n"
-			"cn: Backload\n"
-			"%s: 0\n"
-			"creatorsName: %s\n"
-			"modifiersName: %s\n"
-			"createTimestamp: %s\n"
-			"modifyTimestamp: %s\n",
-			ms->mss_dn.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_startTime.bv_val,
-			mi->mi_startTime.bv_val );
-
-	e = str2entry( buf );
+	BER_BVSTR( &bv, "cn=Backload" );
+	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+		mi->mi_oc_monitoredObject, mi, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_thread_init: "
@@ -147,6 +116,8 @@ monitor_subsys_thread_init(
 			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
+	BER_BVSTR( &bv, "0" );
+	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
 
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
@@ -171,26 +142,9 @@ monitor_subsys_thread_init(
 	/*
 	 * Runqueue runners
 	 */
-	snprintf( buf, sizeof( buf ),
-			"dn: cn=Runqueue,%s\n"
-			"objectClass: %s\n"
-			"structuralObjectClass: %s\n"
-			"cn: Runqueue\n"
-			"%s: 0\n"
-			"creatorsName: %s\n"
-			"modifiersName: %s\n"
-			"createTimestamp: %s\n"
-			"modifyTimestamp: %s\n",
-			ms->mss_dn.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_oc_monitoredObject->soc_cname.bv_val,
-			mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_creatorsName.bv_val,
-			mi->mi_startTime.bv_val,
-			mi->mi_startTime.bv_val );
-
-	e = str2entry( buf );
+	BER_BVSTR( &bv, "cn=Runqueue" );
+	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+		mi->mi_oc_monitoredObject, mi, NULL, NULL );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_thread_init: "
@@ -198,6 +152,8 @@ monitor_subsys_thread_init(
 			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
+	BER_BVSTR( &bv, "0" );
+	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
 
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
