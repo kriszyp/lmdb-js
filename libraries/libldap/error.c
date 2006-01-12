@@ -65,7 +65,6 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_IS_LEAF, 					N_("Entry is a leaf")},
 	{LDAP_ALIAS_DEREF_PROBLEM,	 	N_("Alias dereferencing problem")},
 
-	{LDAP_PROXY_AUTHZ_FAILURE,		N_("Proxy Authorization Failure")},
 	{LDAP_INAPPROPRIATE_AUTH, 		N_("Inappropriate authentication")},
 	{LDAP_INVALID_CREDENTIALS, 		N_("Invalid credentials")},
 	{LDAP_INSUFFICIENT_ACCESS, 		N_("Insufficient access")},
@@ -92,6 +91,9 @@ static struct ldaperror ldap_builtin_errlist[] = {
 
 	{LDAP_ASSERTION_FAILED,			N_("Assertion Failed")},
 	{LDAP_X_ASSERTION_FAILED,		N_("Assertion Failed (X)")},
+
+	{LDAP_PROXIED_AUTHORIZATION_DENIED, N_("Proxied Authorization Denied")},
+	{LDAP_X_PROXY_AUTHZ_FAILURE,		N_("Proxy Authorization Failure (X)")},
 
 	{LDAP_SYNC_REFRESH_REQUIRED,	N_("Content Sync Refresh Required")},
 	{LDAP_X_SYNC_REFRESH_REQUIRED,	N_("Content Sync Refresh Required (X)")},

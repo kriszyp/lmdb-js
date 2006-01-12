@@ -544,7 +544,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_SECURITY_ERROR(n)	LDAP_RANGE((n),0x2F,0x32) /* 47-50 */
 
-#define LDAP_PROXY_AUTHZ_FAILURE	0x2F /* LDAPv3 proxy authorization */
+#define LDAP_X_PROXY_AUTHZ_FAILURE	0x2F /* LDAPv3 proxy authorization */
 #define LDAP_INAPPROPRIATE_AUTH		0x30
 #define LDAP_INVALID_CREDENTIALS	0x31
 #define LDAP_INSUFFICIENT_ACCESS	0x32
@@ -585,6 +585,8 @@ typedef struct ldapcontrol {
 /* Assertion control (122) */ 
 #define LDAP_ASSERTION_FAILED		0x7A
 
+/* Proxied Authorization Denied (123) */ 
+#define LDAP_PROXIED_AUTHORIZATION_DENIED		0x7B
 
 /* Experimental result codes */
 #define LDAP_E_ERROR(n)	LDAP_RANGE((n),0x1000,0x3FFF)

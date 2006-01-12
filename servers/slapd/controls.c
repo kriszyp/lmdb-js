@@ -921,8 +921,8 @@ static int parseProxyAuthz (
 	if ( !( global_allows & SLAP_ALLOW_PROXY_AUTHZ_ANON )
 		&& BER_BVISEMPTY( &op->o_ndn ) )
 	{
-		rs->sr_text = "anonymous proxyAuthz not allowed";
-		return LDAP_PROXY_AUTHZ_FAILURE;
+		rs->sr_text = "anonymous proxied authorization not allowed";
+		return LDAP_PROXIED_AUTHORIZATION_DENIED;
 	}
 
 	op->o_proxy_authz = ctrl->ldctl_iscritical
@@ -963,7 +963,7 @@ static int parseProxyAuthz (
 			ch_free( dn.bv_val );
 		}
 		rs->sr_text = "authzId mapping failed";
-		return LDAP_PROXY_AUTHZ_FAILURE;
+		return LDAP_PROXIED_AUTHORIZATION_DENIED;
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -976,7 +976,7 @@ static int parseProxyAuthz (
 	if ( rc ) {
 		ch_free( dn.bv_val );
 		rs->sr_text = "not authorized to assume identity";
-		return LDAP_PROXY_AUTHZ_FAILURE;
+		return LDAP_PROXIED_AUTHORIZATION_DENIED;
 	}
 
 	ch_free( op->o_ndn.bv_val );
