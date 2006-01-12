@@ -584,6 +584,27 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 }
 
 /*
+** translucent_connection_destroy()
+**	pass disconnect notification to captive backend;
+**
+*/
+
+static int translucent_connection_destroy(BackendDB *be, Connection *conn) {
+	slap_overinst *on = (slap_overinst *) be->bd_info;
+	overlay_stack *ov = on->on_bi.bi_private;
+	void *private = be->be_private;
+	int rc = 0;
+
+	Debug(LDAP_DEBUG_TRACE, "translucent_connection_destroy\n", 0, 0, 0);
+
+	be->be_private = ov->private;
+	rc = ov->info->bi_connection_destroy(be, conn);
+	be->be_private = private;
+
+	return(rc);
+}
+
+/*
 ** translucent_db_config()
 **	pass config directives to captive backend;
 **	parse unrecognized directives ourselves;
@@ -788,6 +809,7 @@ int translucent_initialize() {
 	translucent.on_bi.bi_op_delete	= translucent_delete;
 	translucent.on_bi.bi_op_search	= translucent_search;
 	translucent.on_bi.bi_op_compare	= translucent_compare;
+	translucent.on_bi.bi_connection_destroy = translucent_connection_destroy;
 
 	return(overlay_register(&translucent));
 }
