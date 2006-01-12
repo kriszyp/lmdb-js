@@ -581,11 +581,12 @@ echo "$CHECK - Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
 if test $? != 0 ; then
-	echo "	test failed - master and slave databases differ (ignored by now)"
-	#echo "test failed - master and slave databases differ"
-	#test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	#exit 1
+	#echo "	test failed - master and slave databases differ (ignored by now)"
+	echo "test failed - master and slave databases differ"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
 
+	# keep alive - in case we need it again
 	echo "	Stopping proxy to see if it auto-recovers..."
 	kill -HUP $PROXYPID
 	wait $PROXYPID
