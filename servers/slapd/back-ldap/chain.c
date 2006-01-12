@@ -748,7 +748,16 @@ cleanup:;
 			}
 			
 		} else {
-			rc = ldap_chain_op( op, rs, lback->bi_op_search, ref );
+			/* we might get here before any database actually 
+			 * performed a search; in those cases, we need
+			 * to check limits, to make sure safe defaults
+			 * are in place */
+			if ( op->ors_limit != NULL || limits_check( op, rs ) == 0 ) {
+				rc = ldap_chain_op( op, rs, lback->bi_op_search, ref );
+
+			} else {
+				rc = SLAP_CB_CONTINUE;
+			}
 		}
 	    	break;
 
