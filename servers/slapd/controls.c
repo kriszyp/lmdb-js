@@ -286,6 +286,15 @@ register_supported_control2(const char *controloid,
 
 	} else {
 		if ( sc->sc_extendedopsbv ) {
+			/* FIXME: in principle, we should rather merge
+			 * existing extops with those supported by the
+			 * new control handling implementation.
+			 * In fact, whether a control is compatible with
+			 * an extop should not be a matter of implementation.
+			 * We likely also need a means for a newly
+			 * registered extop to declare that it is
+			 * comptible with an already registered control.
+			 */
 			ber_bvarray_free( sc->sc_extendedopsbv );
 			sc->sc_extendedopsbv = NULL;
 			sc->sc_extendedops = NULL;
