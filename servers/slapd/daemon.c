@@ -1843,7 +1843,7 @@ slapd_daemon_task(
 				}
 
 				if( err != EINTR ) {
-					Debug( LDAP_DEBUG_CONNS,
+					Debug( LDAP_DEBUG_ANY,
 						"daemon: select failed (%d): %s\n",
 						err, sock_errstr(err), 0 );
 					slapd_shutdown = 2;
