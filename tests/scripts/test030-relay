@@ -89,8 +89,8 @@ for RELAY in $RELAYS ; do
 		if test $first = 1 ; then
 			first=0
 		else
-			echo ">>>>> waiting 10 seconds for things to exit"
-			sleep 10
+			echo ">>>>> waiting for things to exit"
+			test $KILLSERVERS != no && wait
 			echo ""
 	
 			rm -rf $TESTDIR
