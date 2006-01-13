@@ -9,11 +9,9 @@
 .SH DESCRIPTION
 The \fBbdb\fP backend to
 .BR slapd (8)
-is the recommended backend for a normal 
+is the recommended primary backend for a normal 
 .B slapd 
 database.
-However, it takes more care than with the LDBM backend to configure
-it properly.
 It uses the Sleepycat Berkeley DB (BDB) package to store data.
 It makes extensive use of indexing and caching to speed data access.
 .LP

@@ -823,7 +823,7 @@ identity, control is passed straight to the subsequent rules.
 .SH OPERATION REQUIREMENTS
 Operations require different privileges on different portions of entries.
 The following summary applies to primary database backends such as
-the LDBM, BDB, and HDB backends.   Requirements for other backends may
+the BDB and HDB backends.   Requirements for other backends may
 (and often do) differ.
 .LP
 The
@@ -946,9 +946,8 @@ so it is fully honored by all backends; for all other operations
 and for the discovery phase of the search operation,
 full ACL semantics is only supported by the primary backends, i.e.
 .BR back-bdb (5),
-.BR back-hdb (5),
 and
-.BR back-ldbm (5).
+.BR back-hdb (5).
 
 Some other backend, like
 .BR back-sql (5),
