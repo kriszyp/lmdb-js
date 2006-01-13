@@ -3,8 +3,10 @@ a specific setup and a complete test.  Each regression test must be
 contained in a test directory whose name is "its<number>", where <number>
 is the ITS number, and it must be entirely executed by a script, contained
 in that directory and with the same name of the directory.  It can exploit
-all the halpers provided for common tests, but it should simultaneously be
-as self contained and as general as possible.
+all the helpers provided for common tests (variables in scripts/defines.sh,
+data files in data/, ...), but it should simultaneously be as self contained
+and as general as possible.  Warning: occasionally, data files and
+shell variables may change, so limit their use to real needs.
 
 For example, if an issue only appears with a certain database type, the
 test itself should only run when invoked for that database type; 
