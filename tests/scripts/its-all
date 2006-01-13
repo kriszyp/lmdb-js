@@ -16,7 +16,6 @@
 SHTOOL="$SRCDIR/../build/shtool"
 TB=`$SHTOOL echo -e "%B"`
 TN=`$SHTOOL echo -e "%b"`
-SLEEPTIME=10
 
 echo "#######################################################################"
 echo "###                                                                 ###"
@@ -46,6 +45,5 @@ for CMD in $SRCDIR/data/regressions/its*/its*; do
 	fi
 
 	echo ">>>>> waiting $SLEEPTIME seconds for things to exit"
-	sleep $SLEEPTIME
 	echo ""
 done

@@ -22,7 +22,7 @@ cn: User 1
 sn: User 1
 uid: user1
 uidNumber: 500
-userPassword: {crypt}675B8Gwn6RJyY
+userPassword: abc
 homeDirectory: /home/user1
 gidNumber: 10
 gecos: User 1
@@ -47,7 +47,7 @@ homeDirectory: /home/user3
 loginShell: /bin/false
 gecos: Slave
 gidNumber: 100
-userPassword: {crypt}675B8Gwn6RJyY
+userPassword: abc
 cn: Slave
 sn: Slave
 
@@ -62,7 +62,7 @@ gecos: User 2
 loginShell: /bin/false
 homeDirectory: /home/user2
 gidNumber: 100
-userPassword: {crypt}675B8Gwn6RJyY
+userPassword: abc
 
 dn: ou=Special,dc=example,dc=com
 objectClass: organizationalUnit
@@ -78,6 +78,6 @@ uidNumber: 6319
 homeDirectory: /home/special1
 gecos: Special1
 loginShell: /bin/false
-userPassword: {crypt}675B8Gwn6RJyY
+userPassword: abc
 gidNumber: 100
 

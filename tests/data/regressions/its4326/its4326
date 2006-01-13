@@ -64,21 +64,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Running slapadd to create glue entry..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF2
-#$SLAPADD -f $CONF2 << EODATA
-#dn: dc=example,dc=com
-#objectClass: domain
-#dc: example
-#EODATA
-#RC=$?
-#if test $RC != 0 ; then
-#	echo "slapadd failed ($RC)!"
-#	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-#	exit $RC
-#fi
-
 echo "Starting proxy slapd on TCP/IP port $PORT2..."
+. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then
@@ -128,7 +115,7 @@ if test $RC != 0 ; then
 fi
 
 SLEEP=2
-echo "Stopping the provider and sleeping $SLEEP seconds..."
+echo "Stopping the server and sleeping $SLEEP seconds..."
 kill -HUP "$SERVERPID"
 wait $SERVERPID
 sleep $SLEEP

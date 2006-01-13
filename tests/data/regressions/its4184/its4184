@@ -88,4 +88,7 @@ done
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
+
+test $KILLSERVERS != no && wait
+
 exit 0
