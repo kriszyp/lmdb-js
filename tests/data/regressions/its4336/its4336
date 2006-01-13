@@ -100,6 +100,12 @@ if test $RC != 0 ; then
 fi
 
 echo "Searching the chain..."
+echo "
+	Search an entry that causes a successful result to be returned
+	with a 2 second delay; since size/time limits were erroneously
+	set to 0/0, which internally means 0 instead of unlimited, the
+	underlying back-ldap search timed out.
+"
 $LDAPSEARCH -b "cn=success w/ delay,ou=RetCodes,$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'(objectClass=*)' > /dev/null 2>&1
 RC=$?
