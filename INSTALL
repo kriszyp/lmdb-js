@@ -74,7 +74,7 @@ Making and Installing the OpenLDAP Distribution
 6.   Test the standalone system:
 
      This step requires the standalone LDAP server, slapd(8), with
-     BDB, HDB, and/or LDBM support.
+     BDB or HDB support.
 
         % make test
 
