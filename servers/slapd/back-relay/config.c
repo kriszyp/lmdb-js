@@ -43,21 +43,55 @@ relay_back_db_config(
 	}
 
 	/* real naming context */
-	if ( strcasecmp( argv[0], "relay" ) == 0 ) {
+	if ( strcasecmp( argv[ 0 ], "relay" ) == 0 ) {
 		struct berval	dn, ndn, pdn;
 		int		rc;
 		BackendDB	*bd;
 
-		if ( argc < 2 ) {
+		switch ( argc ) {
+		case 3:
+			if ( strcmp( argv[ 2 ], "massage" ) != 0 ) {
+				Log3( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+					"%s: line %d: "
+					"unknown arg[#2]=\"%s\" "
+					"in \"relay <dn> [massage]\" line\n",
+					fname, lineno, argv[ 2 ] );
+				return 1;
+			}
+
+			if ( be->be_nsuffix == NULL ) {
+				Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+					"%s: line %d: "
+					"\"relay\" directive "
+					"must appear after \"suffix\".\n",
+					fname, lineno );
+				return 1;
+			}
+
+			if ( !BER_BVISNULL( &be->be_nsuffix[ 1 ] ) ) {
+				Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+					"%s: line %d: "
+					"relayng of multiple suffix "
+					"database not supported.\n",
+					fname, lineno );
+				return 1;
+			}
+			/* fallthru */
+
+		case 2:
+			break;
+
+		case 1:
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: line %d: missing relay suffix "
 				"in \"relay <dn> [massage]\" line.\n",
 				fname, lineno );
 			return 1;
 
-		} else if ( argc > 3 ) {
+		default:
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: line %d: extra cruft in \"relay <dn> [massage]\" line.\n",
+				"%s: line %d: extra cruft "
+				"in \"relay <dn> [massage]\" line.\n",
 				fname, lineno );
 			return 1;
 		}
@@ -90,38 +124,32 @@ relay_back_db_config(
 				"of relay dn \"%s\" "
 				"in \"relay <dn> [massage]\" line\n",
 				fname, lineno, argv[ 1 ] );
-			return 1;
+			rc = 1;
+			goto relay_done;
 
-		} else if ( bd == be ) {
+		} else if ( bd->be_private == be->be_private ) {
 			Log3( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: line %d: "
 				"relay dn \"%s\" would call self "
 				"in \"relay <dn> [massage]\" line\n",
 				fname, lineno, pdn.bv_val );
-			return 1;
+			rc = 1;
+			goto relay_done;
 		}
 
 		ri->ri_realsuffix = ndn;
 
-		if ( overlay_config( be, "rwm" ) ) {
-			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: line %d: unable to install "
-				"rwm overlay "
-				"in \"relay <dn> [massage]\" line\n",
-				fname, lineno );
-			return 1;
-		}
-
 		if ( argc == 3 ) {
 			char	*cargv[ 4 ];
 
-			if ( strcmp( argv[2], "massage" ) != 0 ) {
-				Log3( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-					"%s: line %d: "
-					"unknown directive \"%s\" "
+			if ( overlay_config( be, "rwm" ) ) {
+				Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+					"%s: line %d: unable to install "
+					"rwm overlay "
 					"in \"relay <dn> [massage]\" line\n",
-					fname, lineno, argv[ 2 ] );
-				return 1;
+					fname, lineno );
+				rc = 1;
+				goto relay_done;
 			}
 
 			cargv[ 0 ] = "rwm-suffixmassage";
@@ -129,18 +157,16 @@ relay_back_db_config(
 			cargv[ 2 ] = pdn.bv_val;
 			cargv[ 3 ] = NULL;
 
-			if ( be->be_config( be, fname, lineno, 3, cargv ) ) {
-				return 1;
-			}
+			rc = be->be_config( be, fname, lineno, 3, cargv );
 		}
 
+relay_done:;
 		ch_free( pdn.bv_val );
 
-	/* anything else */
-	} else {
-		return SLAP_CONF_UNKNOWN;
+		return rc;
 	}
 
-	return 0;
+	/* anything else */
+	return SLAP_CONF_UNKNOWN;
 }
 
