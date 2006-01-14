@@ -952,15 +952,33 @@ overlay_config( BackendDB *be, const char *ov )
 	 * overlay info structure
 	 */
 	if ( !overlay_is_over( be ) ) {
+		int	isglobal = 0;
+
+		/* NOTE: the first time a global overlay is configured,
+		 * frontendDB gets this flag; it is used later by overlays
+		 * to determine if they're stacked on top of the frontendDB */
+		if ( be->bd_info == frontendDB->bd_info || SLAP_ISGLOBALOVERLAY( be ) ) {
+			isglobal = 1;
+			if ( on->on_bi.bi_flags & SLAPO_BFLAG_DBONLY ) {
+				Debug( LDAP_DEBUG_ANY, "overlay_config(): "
+					"overlay \"%s\" cannot be global.\n",
+					ov, 0, 0 );
+				return 1;
+			}
+
+		} else if ( on->on_bi.bi_flags & SLAPO_BFLAG_GLOBONLY ) {
+			Debug( LDAP_DEBUG_ANY, "overlay_config(): "
+				"overlay \"%s\" can only be global.\n",
+				ov, 0, 0 );
+			return 1;
+		}
+
 		oi = ch_malloc( sizeof( slap_overinfo ) );
 		oi->oi_orig = be->bd_info;
 		oi->oi_bi = *be->bd_info;
 		oi->oi_origdb = be;
 
-		/* NOTE: the first time a global overlay is configured,
-		 * frontendDB gets this flag; it is used later by overlays
-		 * to determine if they're stacked on top of the frontendDB */
-		if ( oi->oi_orig == frontendDB->bd_info ) {
+		if ( isglobal ) {
 			SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLOBAL_OVERLAY;
 		}
 
@@ -1015,8 +1033,11 @@ overlay_config( BackendDB *be, const char *ov )
 	} else {
 		if ( overlay_is_inst( be, ov ) ) {
 			Debug( LDAP_DEBUG_ANY, "overlay_config(): "
-					"warning, overlay \"%s\" "
-					"already in list\n", ov, 0, 0 );
+				"overlay \"%s\" already in list\n",
+				ov, 0, 0 );
+			if ( SLAPO_SINGLE( be ) ) {
+				return 1;
+			}
 		}
 
 		oi = be->bd_info->bi_private;

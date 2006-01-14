@@ -1509,6 +1509,9 @@ rwm_initialize(void)
 	memset( &rwm, 0, sizeof( slap_overinst ) );
 
 	rwm.on_bi.bi_type = "rwm";
+	rwm.on_bi.bi_flags =
+		SLAPO_BFLAG_SINGLE |
+		0;
 
 	rwm.on_bi.bi_db_init = rwm_db_init;
 	rwm.on_bi.bi_db_config = rwm_db_config;

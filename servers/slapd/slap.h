@@ -2160,6 +2160,12 @@ struct slap_backend_info {
 #define SLAP_BFLAG_SUBENTRIES		0x4000U
 #define SLAP_BFLAG_DYNAMIC			0x8000U
 
+/* overlay specific */
+#define	SLAPO_BFLAG_SINGLE		0x01000000U
+#define	SLAPO_BFLAG_DBONLY		0x02000000U
+#define	SLAPO_BFLAG_GLOBONLY		0x04000000U
+#define	SLAPO_BFLAG_MASK		0xFF000000U
+
 #define SLAP_BFLAGS(be)		((be)->bd_info->bi_flags)
 #define SLAP_MONITOR(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_MONITOR)
 #define SLAP_CONFIG(be)		(SLAP_BFLAGS(be) & SLAP_BFLAG_CONFIG)
@@ -2171,6 +2177,11 @@ struct slap_backend_info {
 #define SLAP_DYNAMIC(be)	((SLAP_BFLAGS(be) & SLAP_BFLAG_DYNAMIC) || (SLAP_DBFLAGS(be) & SLAP_DBFLAG_DYNAMIC))
 #define SLAP_NOLASTMODCMD(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_NOLASTMODCMD)
 #define SLAP_LASTMODCMD(be)	(!SLAP_NOLASTMODCMD(be))
+
+/* overlay specific */
+#define SLAPO_SINGLE(be)	(SLAP_BFLAGS(be) & SLAPO_BFLAG_SINGLE)
+#define SLAPO_DBONLY(be)	(SLAP_BFLAGS(be) & SLAPO_BFLAG_DBONLY)
+#define SLAPO_GLOBONLY(be)	(SLAP_BFLAGS(be) & SLAPO_BFLAG_GLOBONLY)
 
 	char	**bi_controls;		/* supported controls */
 	char	bi_ctrls[SLAP_MAX_CIDS + 1];
