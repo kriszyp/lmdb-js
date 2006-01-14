@@ -389,16 +389,18 @@ dds_op_add( Operation *op, SlapReply *rs )
 		char		ttlbuf[] = "31557600";
 		char		tsbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		struct berval	bv;
-	
-		ldap_pvt_thread_mutex_lock( &di->di_mutex );
-		rs->sr_err = ( di->di_max_dynamicObjects && 
-			di->di_num_dynamicObjects >= di->di_max_dynamicObjects );
-		ldap_pvt_thread_mutex_unlock( &di->di_mutex );
-		if ( rs->sr_err ) {
-			op->o_bd->bd_info = (BackendInfo *)on->on_info;
-			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"too many dynamicObjects in context" );
-			return rs->sr_err;
+
+		if ( !be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
+			ldap_pvt_thread_mutex_lock( &di->di_mutex );
+			rs->sr_err = ( di->di_max_dynamicObjects && 
+				di->di_num_dynamicObjects >= di->di_max_dynamicObjects );
+			ldap_pvt_thread_mutex_unlock( &di->di_mutex );
+			if ( rs->sr_err ) {
+				op->o_bd->bd_info = (BackendInfo *)on->on_info;
+				send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+					"too many dynamicObjects in context" );
+				return rs->sr_err;
+			}
 		}
 
 		ttl = DDS_DEFAULT_TTL( di );
