@@ -214,7 +214,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	Modifications	*tmp;
 #endif
 	int		manageDSAit;
-	BackendDB	*op_be;
+	BackendDB	*op_be, *bd = op->o_bd;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 	
@@ -302,6 +302,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	 */
 	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 );
 	if ( op->o_bd == NULL ) {
+		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		if ( !rs->sr_ref ) {
@@ -310,19 +311,15 @@ fe_op_modify( Operation *op, SlapReply *rs )
 
 		if ( rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
-			op->o_bd = frontendDB;
 			send_ldap_result( op, rs );
-			op->o_bd = NULL;
 
 			if ( rs->sr_ref != default_referral ) {
 				ber_bvarray_free( rs->sr_ref );
 			}
 
 		} else {
-			op->o_bd = frontendDB;
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 				"no global superior knowledge" );
-			op->o_bd = NULL;
 		}
 		goto cleanup;
 	}
@@ -431,6 +428,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	}
 
 cleanup:;
+	op->o_bd = bd;
 	return rs->sr_err;
 }
 

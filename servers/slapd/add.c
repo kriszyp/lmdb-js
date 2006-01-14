@@ -216,7 +216,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	int		manageDSAit;
 	Modifications	**modtail = &op->ora_modlist;
 	int		rc = 0;
-	BackendDB	*op_be;
+	BackendDB	*op_be, *bd = op->o_bd;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 
@@ -229,23 +229,20 @@ fe_op_add( Operation *op, SlapReply *rs )
 	 */
 	op->o_bd = select_backend( &op->ora_e->e_nname, manageDSAit, 1 );
 	if ( op->o_bd == NULL ) {
+		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->ora_e->e_name, LDAP_SCOPE_DEFAULT );
 		if ( !rs->sr_ref ) rs->sr_ref = default_referral;
 		if ( rs->sr_ref ) {
 			rs->sr_err = LDAP_REFERRAL;
-			op->o_bd = frontendDB;
 			send_ldap_result( op, rs );
-			op->o_bd = NULL;
 
 			if ( rs->sr_ref != default_referral ) {
 				ber_bvarray_free( rs->sr_ref );
 			}
 		} else {
-			op->o_bd = frontendDB;
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 				"no global superior knowledge" );
-			op->o_bd = NULL;
 		}
 		goto done;
 	}
@@ -372,12 +369,13 @@ fe_op_add( Operation *op, SlapReply *rs )
 #endif /* SLAPD_MULTIMASTER */
 		}
 	} else {
-	    Debug( LDAP_DEBUG_ARGS, "	 do_add: no backend support\n", 0, 0, 0 );
-	    send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+		Debug( LDAP_DEBUG_ARGS, "do_add: no backend support\n", 0, 0, 0 );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
 	}
 
 done:;
+	op->o_bd = bd;
 	return rc;
 }
 
