@@ -230,7 +230,7 @@ typedef struct metatarget_t {
 	time_t			mt_network_timeout;
 	time_t			mt_idle_timeout;
 	struct timeval		mt_bind_timeout;
-#define META_BIND_TIMEOUT	10000
+#define META_BIND_TIMEOUT	LDAP_BACK_RESULT_UTIMEOUT
 	time_t			mt_timeout[ LDAP_BACK_OP_LAST ];
 } metatarget_t;
 

@@ -337,7 +337,7 @@ retry:;
 		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
 		case 0:
 			snprintf( buf, sizeof( buf ),
-				"ldap_result=0 nretries=%d%s\n",
+				"ldap_result=0 nretries=%d%s",
 				nretries, rebinding ? " rebinding" : "" );
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_single_bind[%d]: %s.\n",
@@ -351,6 +351,7 @@ retry:;
 				tv = mt->mt_bind_timeout;
 				goto retry;
 			}
+
 			rs->sr_err = LDAP_BUSY;
 			if ( rebinding ) {
 				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
@@ -367,7 +368,7 @@ retry:;
 
 		case -1:
 			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
-					&rs->sr_err );
+				&rs->sr_err );
 
 			if ( rebinding ) {
 				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
@@ -522,8 +523,8 @@ retry:;
 			/* fallthru */
 
 		case -1:
-			ldap_get_option( msc->msc_ld,
-					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
+				&rs->sr_err );
 
 			if ( rebinding ) {
 				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
