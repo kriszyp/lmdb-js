@@ -340,7 +340,6 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 	/* check restrictions */
 	if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
-		op->o_bd = bd;
 		send_ldap_result( op, rs );
 		goto return_results;
 	}
@@ -358,7 +357,6 @@ fe_op_search( Operation *op, SlapReply *rs )
 		/* else limits_check() sends error */
 
 	} else {
-		op->o_bd = bd;
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
 	}
