@@ -104,6 +104,25 @@ relay_back_db_config(
 			return 1;
 		}
 
+		/* The man page says that the "relay" directive
+		 * automatically instantiates slapo-rwm; I don't
+		 * like this very much any more, I'd prefer to
+		 * have automatic instantiation only when "massage"
+		 * is specified, so one has better control on
+		 * where the overlay gets instantiated, but this
+		 * would break compatibility.  One can still control
+		 * where the overlay is instantiated by moving
+		 * around the "relay" directive, although this could
+		 * make slapd.conf a bit confusing. */
+		if ( overlay_config( be, "rwm" ) ) {
+			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+				"%s: line %d: unable to install "
+				"rwm overlay "
+				"in \"relay <dn> [massage]\" line\n",
+				fname, lineno );
+			return 1;
+		}
+
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
 		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
@@ -141,16 +160,6 @@ relay_back_db_config(
 
 		if ( argc == 3 ) {
 			char	*cargv[ 4 ];
-
-			if ( overlay_config( be, "rwm" ) ) {
-				Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-					"%s: line %d: unable to install "
-					"rwm overlay "
-					"in \"relay <dn> [massage]\" line\n",
-					fname, lineno );
-				rc = 1;
-				goto relay_done;
-			}
 
 			cargv[ 0 ] = "rwm-suffixmassage";
 			cargv[ 1 ] = be->be_suffix[0].bv_val;
