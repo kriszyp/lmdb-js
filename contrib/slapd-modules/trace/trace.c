@@ -31,10 +31,8 @@
 #include "lutil.h"
 
 static int
-trace_op2str( Operation *op, char **op_strp, char **op_oidp )
+trace_op2str( Operation *op, char **op_strp )
 {
-	*op_oidp = "";
-
 	switch ( op->o_tag ) {
 	case LDAP_REQ_BIND:
 		*op_strp = "BIND";
@@ -74,7 +72,6 @@ trace_op2str( Operation *op, char **op_strp, char **op_oidp )
 
 	case LDAP_REQ_EXTENDED:
 		*op_strp = "EXTENDED";
-		*op_oidp = op->ore_reqoid.bv_val;
 		break;
 
 	default:
@@ -88,14 +85,25 @@ static int
 trace_op_func( Operation *op, SlapReply *rs )
 {
 	char	*op_str = NULL;
-	char	*op_oid = "";
 
-	(void)trace_op2str( op, &op_str, &op_oid );
+	(void)trace_op2str( op, &op_str );
 
-	Log4( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
-		"%s trace op=%s oid=%s dn=\"%s\"\n",
-		op->o_log_prefix, op_str, op_oid,
-		BER_BVISNULL( &op->o_req_ndn ) ? "(null)" : op->o_req_ndn.bv_val );
+	switch ( op->o_tag ) {
+	case LDAP_REQ_EXTENDED:
+		Log3( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
+			"%s trace op=EXTENDED dn=\"%s\" reqoid=%s\n",
+			op->o_log_prefix, 
+			BER_BVISNULL( &op->o_req_ndn ) ? "(null)" : op->o_req_ndn.bv_val,
+			BER_BVISNULL( &op->ore_reqoid ) ? "" : op->ore_reqoid.bv_val );
+		break;
+
+	default:
+		Log3( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
+			"%s trace op=%s dn=\"%s\"\n",
+			op->o_log_prefix, op_str,
+			BER_BVISNULL( &op->o_req_ndn ) ? "(null)" : op->o_req_ndn.bv_val );
+		break;
+	}
 
 	return SLAP_CB_CONTINUE;
 }
@@ -104,16 +112,55 @@ static int
 trace_response( Operation *op, SlapReply *rs )
 {
 	char	*op_str = NULL;
-	char	*op_oid = "";
 
-	(void)trace_op2str( op, &op_str, &op_oid );
+	(void)trace_op2str( op, &op_str );
 
-	Log5( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
-		"%s trace op=%s RESPONSE oid=%s dn=\"%s\" err=%d\n",
-		op->o_log_prefix, op_str, op_oid,
-		BER_BVISNULL( &op->o_req_ndn ) ? "(null)" : op->o_req_ndn.bv_val,
-		rs->sr_err );
+	switch ( op->o_tag ) {
+	case LDAP_REQ_EXTENDED:
+		Log5( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
+			"%s trace op=EXTENDED RESPONSE dn=\"%s\" reqoid=%s rspoid=%s err=%d\n",
+			op->o_log_prefix,
+			BER_BVISNULL( &op->o_req_ndn ) ? "(null)" : op->o_req_ndn.bv_val,
+			BER_BVISNULL( &op->ore_reqoid ) ? "" : op->ore_reqoid.bv_val,
+			rs->sr_rspoid == NULL ? "" : rs->sr_rspoid,
+			rs->sr_err );
+		break;
 
+	case LDAP_REQ_SEARCH:
+		switch ( rs->sr_type ) {
+		case REP_SEARCH:
+			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
+				"%s trace op=SEARCH ENTRY dn=\"%s\"\n",
+				op->o_log_prefix,
+				rs->sr_entry->e_name.bv_val );
+			goto done;
+
+		case REP_SEARCHREF:
+			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
+				"%s trace op=SEARCH REFERENCE ref=\"%s\"\n",
+				op->o_log_prefix,
+				rs->sr_ref[ 0 ].bv_val );
+			goto done;
+
+		case REP_RESULT:
+			break;
+
+		default:
+			assert( 0 );
+		}
+		/* fallthru */
+
+	default:
+		Log4( LDAP_DEBUG_ANY, LDAP_LEVEL_INFO,
+			"%s trace op=%s RESPONSE dn=\"%s\" err=%d\n",
+			op->o_log_prefix,
+			op_str,
+			BER_BVISNULL( &op->o_req_ndn ) ? "(null)" : op->o_req_ndn.bv_val,
+			rs->sr_err );
+		break;
+	}
+
+done:;
 	return SLAP_CB_CONTINUE;
 }
 
