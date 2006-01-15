@@ -56,7 +56,6 @@ retry:
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
-		ldap_pvt_thread_yield();
 		goto retry;
 
 	case 0:

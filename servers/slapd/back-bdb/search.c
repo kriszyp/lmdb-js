@@ -921,8 +921,6 @@ loop_continue:
 			e = NULL;
 			rs->sr_entry = NULL;
 		}
-		
-		ldap_pvt_thread_yield();
 	}
 
 nochange:
