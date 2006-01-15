@@ -82,11 +82,19 @@ static ber_socket_t wake_sds[2];
 static int emfile;
 
 static volatile int waking;
+#ifdef NO_THREADS
 #define WAKE_LISTENER(w)	do { \
 	if ((w) && ++waking < 5) { \
 		tcp_write( wake_sds[1], "0", 1 ); \
 	} \
 } while(0)
+#else
+#define WAKE_LISTENER(w)	do { \
+	if (w) { \
+		tcp_write( wake_sds[1], "0", 1 ); \
+	} \
+} while(0)
+#endif
 
 volatile sig_atomic_t slapd_shutdown = 0;
 volatile sig_atomic_t slapd_gentle_shutdown = 0;
