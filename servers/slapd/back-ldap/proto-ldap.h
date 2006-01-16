@@ -49,7 +49,8 @@ extern BI_entry_get_rw		ldap_back_entry_get;
 
 int ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock );
 ldapconn_t *ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok );
-void ldap_back_release_conn( Operation *op, SlapReply *rs, ldapconn_t *lc );
+void ldap_back_release_conn_lock( Operation *op, SlapReply *rs, ldapconn_t *lc, int dolock );
+#define ldap_back_release_conn(op, rs, lc) ldap_back_release_conn_lock((op), (rs), (lc), 1)
 int ldap_back_dobind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_map_result( SlapReply *rs );

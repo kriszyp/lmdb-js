@@ -444,17 +444,18 @@ error_return:;
 }
 
 /*
- * meta_back_retry
+ * meta_back_retry_lock
  * 
  * Retries one connection
  */
 int
-meta_back_retry(
+meta_back_retry_lock(
 	Operation		*op,
 	SlapReply		*rs,
 	metaconn_t		*mc,
 	int			candidate,
-	ldap_back_send_t	sendok )
+	ldap_back_send_t	sendok,
+	int			dolock )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metatarget_t		*mt = &mi->mi_targets[ candidate ];
@@ -469,7 +470,7 @@ retry_lock:;
 	if ( mc->mc_refcnt == 1 ) {
 		char	buf[ SLAP_TEXT_BUFLEN ];
 
-		while ( ldap_pvt_thread_mutex_trylock( &mc->mc_mutex ) ) {
+		while ( dolock && ldap_pvt_thread_mutex_trylock( &mc->mc_mutex ) ) {
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			ldap_pvt_thread_yield();
 			goto retry_lock;
@@ -494,11 +495,27 @@ retry_lock:;
 			LDAP_BACK_CONN_ISPRIV( mc ), sendok );
 
 		if ( rc == LDAP_SUCCESS ) {
-        		rc = meta_back_single_dobind( op, rs, mc, candidate,
+			if ( be_isroot( op ) && !BER_BVISNULL( &mi->mi_targets[ candidate ].mt_pseudorootdn ) )
+			{
+				Operation	op2 = *op;
+
+				op2.o_tag = LDAP_REQ_BIND;
+				op2.o_req_dn = mi->mi_targets[ candidate ].mt_pseudorootdn;
+				op2.o_req_ndn = mi->mi_targets[ candidate ].mt_pseudorootdn;
+				op2.orb_cred = mi->mi_targets[ candidate ].mt_pseudorootpw;
+				op2.orb_method = LDAP_AUTH_SIMPLE;
+
+				rc = meta_back_single_bind( &op2, rs, mc, candidate, 0 );
+
+			} else {
+				rc = meta_back_single_dobind( op, rs, mc, candidate,
 					sendok, mt->mt_nretries, 0 );
+			}
         	}
 
-		ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
+		if ( dolock ) {
+			ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
+		}
 	}
 
 	if ( rc != LDAP_SUCCESS ) {

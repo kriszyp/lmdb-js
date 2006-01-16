@@ -28,11 +28,6 @@ if test $BACKLDAP = "ldapno" ; then
 	exit 0
 fi 
 
-if test "x$LVL" = "x0" ; then
-	echo "test020 needs a minimal log level; setting to LDAP_DEBUG_NONE..."
-	LVL=2048
-fi
-
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 # Test proxy caching:
@@ -86,7 +81,7 @@ fi
 
 echo "Starting proxy cache on TCP/IP port $PORT2..."
 . $CONFFILTER < $PROXYCACHECONF > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL -d trace > $LOG2 2>&1 &
 CACHEPID=$!
 if test $WAIT != 0 ; then
 	echo CACHEPID $CACHEPID
