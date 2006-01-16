@@ -99,7 +99,6 @@ retry:	/* transaction retry */
 			rs->sr_err = SLAPD_ABANDON;
 			goto return_results;
 		}
-		ldap_pvt_thread_yield();
 		bdb_trans_backoff( ++num_retries );
 	}
 
@@ -425,7 +424,6 @@ return_results:
 	}
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
-		ldap_pvt_thread_yield();
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
 	}

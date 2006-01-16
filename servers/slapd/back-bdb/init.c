@@ -161,7 +161,7 @@ bdb_db_open( BackendDB *be )
 			*ptr++ = LDAP_DIRSEP[0];
 			strcpy( ptr, "__db.001" );
 			if( stat( path, &stat2 ) == 0 ) {
-				if( stat2.st_mtime <= stat1.st_mtime ) {
+				if( stat2.st_mtime < stat1.st_mtime ) {
 					Debug( LDAP_DEBUG_ANY,
 						"bdb_db_open: DB_CONFIG for suffix %s has changed.\n"
 						"Performing database recovery to activate new settings.\n",
@@ -366,8 +366,16 @@ bdb_db_open( BackendDB *be )
 		if ( !( slapMode & SLAP_TOOL_QUICK ))
 			flags |= BDB_TXN_FLAGS;
 
-		if ( do_recover )
-			flags |= DB_RECOVER;
+		if ( do_recover ) {
+			if ( slapMode & SLAP_TOOL_READONLY ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_open: Recovery skipped in read-only mode. "
+					"Run manual recovery if errors are encountered.\n",
+					0, 0, 0 );
+			} else {
+				flags |= DB_RECOVER;
+			}
+		}
 
 		/* If a key was set, use shared memory for the BDB environment */
 		if ( bdb->bi_shm_key ) {
