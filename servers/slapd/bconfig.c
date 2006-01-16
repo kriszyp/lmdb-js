@@ -3626,9 +3626,19 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	 * These entries can have auto-assigned indexes (appended to the end)
 	 * but only the other types support auto-renumbering of siblings.
 	 */
-	rc = check_name_index( last, colst[0]->co_type, e, rs, renum );
-	if ( rc )
-		goto done;
+	{
+		int renumber = renum ? *renum : 0;
+		rc = check_name_index( last, colst[0]->co_type, e, rs, renum );
+		if ( rc ) {
+			goto done;
+		}
+		if ( renum && *renum && renumber == -1 ) {
+			snprintf( ca->msg, sizeof( ca->msg ),
+				"operation requires sibling renumbering" );
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+	}
 
 	init_config_argv( ca );
 
@@ -3746,6 +3756,8 @@ config_back_add( Operation *op, SlapReply *rs )
 	 * 4) store entry in underlying database
 	 * 5) perform any necessary renumbering
 	 */
+	/* NOTE: by now we do not accept adds that require renumbering */
+	renumber = -1;
 	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rs->sr_text = ca.msg;
@@ -3769,10 +3781,6 @@ config_back_add( Operation *op, SlapReply *rs )
 		op->o_callback = sc.sc_next;
 		op->o_dn = dn;
 		op->o_ndn = ndn;
-	}
-	if ( renumber ) {
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-		rs->sr_text = "renaming not implemented yet within naming context";
 	}
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
