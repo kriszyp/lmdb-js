@@ -3771,6 +3771,8 @@ config_back_add( Operation *op, SlapReply *rs )
 		op->o_ndn = ndn;
 	}
 	if ( renumber ) {
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "renaming not implemented yet within naming context";
 	}
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
@@ -4152,6 +4154,9 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		goto out;
 	}
 	ldap_pvt_thread_pool_pause( &connection_pool );
+
+	rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+	rs->sr_text = "renaming not implemented yet within naming context";
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
 out:
