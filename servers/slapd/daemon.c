@@ -82,11 +82,19 @@ static ber_socket_t wake_sds[2];
 static int emfile;
 
 static volatile int waking;
+#ifdef NO_THREADS
 #define WAKE_LISTENER(w)	do { \
 	if ((w) && ++waking < 5) { \
 		tcp_write( wake_sds[1], "0", 1 ); \
 	} \
 } while(0)
+#else
+#define WAKE_LISTENER(w)	do { \
+	if (w) { \
+		tcp_write( wake_sds[1], "0", 1 ); \
+	} \
+} while(0)
+#endif
 
 volatile sig_atomic_t slapd_shutdown = 0;
 volatile sig_atomic_t slapd_gentle_shutdown = 0;
@@ -1860,7 +1868,7 @@ slapd_daemon_task(
 				}
 
 				if( err != EINTR ) {
-					Debug( LDAP_DEBUG_CONNS,
+					Debug( LDAP_DEBUG_ANY,
 						"daemon: select failed (%d): %s\n",
 						err, sock_errstr(err), 0 );
 					slapd_shutdown = 2;
@@ -1997,13 +2005,15 @@ slapd_daemon_task(
 			 * and that the stream is now inactive.
 			 * connection_write() must validate the stream is still
 			 * active.
+			 *
+			 * ITS#4338: if the stream is invalid, there is no need to
+			 * close it here. It has already been closed in connection.c.
 			 */
 			if ( connection_write( wd ) < 0 ) {
 				if ( SLAP_EVENT_IS_READ( wd )) {
 					SLAP_EVENT_CLR_READ( (unsigned) wd );
 					nrfds--;
 				}
-				slapd_close( wd );
 			}
 #endif
 		}
@@ -2031,9 +2041,7 @@ slapd_daemon_task(
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			connection_read_activate( rd );
 #else
-			if ( connection_read( rd ) < 0 ) {
-				slapd_close( rd );
-			}
+			connection_read( rd );
 #endif
 		}
 #else	/* !SLAP_EVENTS_ARE_INDEXED */
@@ -2123,7 +2131,6 @@ slapd_daemon_task(
 					 * active.
 					 */
 					if ( connection_write( fd ) < 0 ) {
-						slapd_close( fd );
 						continue;
 					}
 #endif
@@ -2142,7 +2149,7 @@ slapd_daemon_task(
 					 * connection_read() must valid the stream is still
 					 * active.
 					 */
-					if ( connection_read( fd ) < 0 ) slapd_close( fd );
+					connection_read( fd );
 #endif
 				}
 			}
