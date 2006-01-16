@@ -4100,7 +4100,9 @@ config_build_attrs( Entry *e, AttributeType **at, AttributeDescription *ad,
 		for (i=0;ct[i].name;i++) {
 			if (ct[i].ad == (*at)->sat_ad) {
 				rc = config_get_vals(&ct[i], c);
-				if (rc == LDAP_SUCCESS) {
+				/* NOTE: tolerate that config_get_vals()
+				 * returns success with no values */
+				if (rc == LDAP_SUCCESS && c->rvalue_vals != NULL ) {
 					if ( c->rvalue_nvals )
 						attr_merge(e, ct[i].ad, c->rvalue_vals,
 							c->rvalue_nvals);
