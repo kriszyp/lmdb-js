@@ -3761,7 +3761,10 @@ config_back_add( Operation *op, SlapReply *rs )
 	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rs->sr_text = ca.msg;
-	} else if ( cfb->cb_use_ldif ) {
+		goto out2;
+	}
+
+	if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
 		struct berval dn, ndn;
@@ -3783,9 +3786,14 @@ config_back_add( Operation *op, SlapReply *rs )
 		op->o_ndn = ndn;
 	}
 
+	if ( renumber ) {
+		/* TODO */
+	}
+
+out2:;
 	ldap_pvt_thread_pool_resume( &connection_pool );
 
-out:
+out:;
 	send_ldap_result( op, rs );
 	return rs->sr_err;
 }
@@ -4826,6 +4834,9 @@ config_back_initialize( BackendInfo *bi )
 		NULL
 	};
 
+	/* Make sure we don't exceed the bits reserved for userland */
+	config_check_userland( CFG_LAST );
+
 	bi->bi_controls = controls;
 
 	bi->bi_open = 0;
@@ -4866,9 +4877,6 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_next = config_tool_entry_next;
 	bi->bi_tool_entry_get = config_tool_entry_get;
 	bi->bi_tool_entry_put = config_tool_entry_put;
-
-	/* Make sure we don't exceed the bits reserved for userland */
-	assert( ( ( CFG_LAST - 1 ) & ARGS_USERLAND ) == ( CFG_LAST - 1 ) );
 
 	argv[3] = NULL;
 	for (i=0; OidMacros[i].name; i++ ) {
