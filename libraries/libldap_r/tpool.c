@@ -379,14 +379,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		: LDAP_INT_THREAD_POOL_STOPPING;
 
 	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
-	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-
-	do {
-		ldap_pvt_thread_yield();
-		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-		waiting = pool->ltp_open_count;
-		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-	} while (waiting > 0);
+	ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 
 	while ((ctx = LDAP_STAILQ_FIRST(&pool->ltp_pending_list)) != NULL)
 	{
@@ -461,6 +454,9 @@ ldap_int_thread_pool_wrapper (
 			 * should be like this:
 			 *   if (pool->ltp_open_count > 1 && pool->ltp_starting == 0)
 			 *       check timer, leave thread (break;)
+			 *
+			 * Just use pthread_cond_timedwait if we want to
+			 * check idle time.
 			 */
 
 			if (pool->ltp_state == LDAP_INT_THREAD_POOL_RUNNING
@@ -492,15 +488,6 @@ ldap_int_thread_pool_wrapper (
 			}
 			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 		}
-		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-
-		ldap_pvt_thread_yield();
-
-		/* if we use an idle timer, here's
-		 * a good place to update it
-		 */
-
-		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 	}
 
 	for ( i=0; i<MAXKEYS && ltc_key[i].ltk_key; i++ ) {
@@ -514,6 +501,11 @@ ldap_int_thread_pool_wrapper (
 	thread_keys[keyslot].id = tid_zero;
 
 	pool->ltp_open_count--;
+
+	/* let pool_destroy know we're all done */
+	if (pool->ltp_open_count < 1)
+		ldap_pvt_thread_cond_signal(&pool->ltp_cond);
+
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 	ldap_pvt_thread_exit(NULL);

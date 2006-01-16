@@ -169,7 +169,7 @@ get_modlist(
 {
 	static char	buf[256];
 	int		num;
-	LDAPMod		tmp;
+	LDAPMod		tmp = { 0 };
 	LDAPMod		**result;
 	struct berval	**bvals;
 

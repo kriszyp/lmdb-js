@@ -1,6 +1,12 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.18 Engineering
+	Fixed slapd wake_listener
+	Removed slapd-bdb/hdb extraneous yields (ITS#3950)
+	Build Environment
+		Removed problematic Linux sched_yield(2) workarounds (ITS#3950)
+	Documentation
+		Updated release documents
 
 OpenLDAP 2.3.17 Release
 	Fixed slapd anonymous proxy authorization issue (ITS#4320)

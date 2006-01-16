@@ -1587,12 +1587,12 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			fi
 
 			ol_replace_broken_yield=no
-			case "$target" in
-			*-*-linux*) 
-				AC_CHECK_FUNCS(nanosleep)
-				ol_replace_broken_yield=yes
-			;;
-			esac
+dnl			case "$target" in
+dnl			*-*-linux*) 
+dnl				AC_CHECK_FUNCS(nanosleep)
+dnl				ol_replace_broken_yield=yes
+dnl			;;
+dnl			esac
 
 			if test $ol_replace_broken_yield = yes ; then
 				AC_DEFINE([REPLACE_BROKEN_YIELD],1,
