@@ -2,7 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.18 Release
 	Fixed slapd syncrepl variable used before set bug (ITS#4331)
-	Updated slapd-meta retry capabiltiies (ITS#4328)
+	Updated slapd-meta retry capabilities (ITS#4328)
 	Fixed slapo-pcache attrsets issues (ITS#4316)
 	Fixed slapd-ldap idassert resource leak (ITS#4326)
 	Fixed slapd-meta nretries issue (ITS#4059)
