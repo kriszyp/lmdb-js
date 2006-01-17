@@ -785,6 +785,9 @@ config_generic(ConfigArgs *c) {
 				rc = 1;
 			}
 			break;
+		case CFG_ATOPT:
+			ad_unparse_options( &c->rvalue_vals );
+			break;
 		case CFG_OC: {
 			ConfigFile *cf = c->private;
 			if ( !cf )

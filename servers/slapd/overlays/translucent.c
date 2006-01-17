@@ -63,20 +63,20 @@ static struct berval glue[] = { BER_BVC("top"), BER_BVC("glue"), BER_BVNULL };
 void glue_parent(Operation *op) {
 	Operation nop = *op;
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	struct berval dn = { 0, NULL };
+	struct berval ndn = BER_BVNULL;
 	Attribute *a;
 	Entry *e;
 	struct berval	pdn;
 
 	dnParent( &op->o_req_ndn, &pdn );
-	ber_dupbv( &dn, &pdn );
+	ber_dupbv_x( &ndn, &pdn, op->o_tmpmemctx );
 
-	Debug(LDAP_DEBUG_TRACE, "=> glue_parent: fabricating glue for <%s>\n", dn.bv_val, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "=> glue_parent: fabricating glue for <%s>\n", ndn.bv_val, 0, 0);
 
 	e = ch_calloc(1, sizeof(Entry));
 	e->e_id = NOID;
-	ber_dupbv(&e->e_name, &dn);
-	ber_dupbv(&e->e_nname, &dn);
+	ber_dupbv(&e->e_name, &ndn);
+	ber_dupbv(&e->e_nname, &ndn);
 
 	a = ch_calloc(1, sizeof(Attribute));
 	a->a_desc = slap_schema.si_ad_objectClass;
@@ -97,12 +97,15 @@ void glue_parent(Operation *op) {
 	a->a_next = e->e_attrs;
 	e->e_attrs = a;
 
-	nop.o_req_dn = dn;
-	nop.o_req_ndn = dn;
+	nop.o_req_dn = ndn;
+	nop.o_req_ndn = ndn;
 	nop.ora_e = e;
 	nop.o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
 
 	syncrepl_add_glue(&nop, e);
+
+	op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+
 	return;
 }
 
@@ -129,9 +132,9 @@ BerVarray dup_bervarray(BerVarray b) {
 */
 void free_attr_chain(Attribute *a) {
 	Attribute *ax;
-	for(ax = NULL; a; a = a->a_next) {
-		if(ax) ch_free(ax);
-		ax = a;
+	for(; a; a = ax) {
+		ax = a->a_next;
+		ch_free(a);
 	}
 	return;
 }
@@ -226,11 +229,11 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	overlay_stack *ov = on->on_bi.bi_private;
 	void *private = op->o_bd->be_private;
-	Entry ne, *e, *re = NULL;
+	Entry ne, *e = NULL, *re = NULL;
 	Attribute *a, *ax;
 	Modifications *m, *mm;
 	int del, rc, erc = 0;
-	slap_callback cb = { 0 }, *save_cb;
+	slap_callback cb = { 0 };
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_modify: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
@@ -248,7 +251,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	op->o_bd->be_private = private;
 
 	/* if(ov->config->no_add && (!re || rc != LDAP_SUCCESS)) */
-	if(!re || rc != LDAP_SUCCESS) {
+	if(rc != LDAP_SUCCESS || re == NULL ) {
 		send_ldap_error(op, rs, LDAP_NO_SUCH_OBJECT,
 			"attempt to modify nonexistent local record");
 		return(rs->sr_err);
@@ -321,6 +324,15 @@ release:
 		}
 	}
 
+	/* don't leak remote entry copy */
+	if(re) {
+		op->o_bd->be_private = ov->private;
+		if(ov->info->bi_entry_release_rw)
+			ov->info->bi_entry_release_rw(op, re, 0);
+		else
+			entry_free(re);
+		op->o_bd->be_private = private;
+	}
 /*
 ** foreach Modification:
 **	if MOD_ADD or MOD_REPLACE, add Attribute;
@@ -387,13 +399,11 @@ release:
 	op->o_bd->bd_info = (BackendInfo *) on;
 	glue_parent(&nop);
 
-	save_cb = op->o_callback;
 	cb.sc_response = translucent_tag_cb;
 	cb.sc_private = (void *)LDAP_REQ_MODIFY;
 	cb.sc_next = nop.o_callback;
 	nop.o_callback = &cb;
 	rc = on->on_info->oi_orig->bi_op_add(&nop, &nrs);
-	nop.o_callback = save_cb;
 	free_attr_chain(a);
 
 	return(rc);
@@ -574,13 +584,34 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 }
 
 /*
-** translucent_config()
+** translucent_connection_destroy()
+**	pass disconnect notification to captive backend;
+**
+*/
+
+static int translucent_connection_destroy(BackendDB *be, Connection *conn) {
+	slap_overinst *on = (slap_overinst *) be->bd_info;
+	overlay_stack *ov = on->on_bi.bi_private;
+	void *private = be->be_private;
+	int rc = 0;
+
+	Debug(LDAP_DEBUG_TRACE, "translucent_connection_destroy\n", 0, 0, 0);
+
+	be->be_private = ov->private;
+	rc = ov->info->bi_connection_destroy(be, conn);
+	be->be_private = private;
+
+	return(rc);
+}
+
+/*
+** translucent_db_config()
 **	pass config directives to captive backend;
 **	parse unrecognized directives ourselves;
 **
 */
 
-static int translucent_config(
+static int translucent_db_config(
 	BackendDB	*be,
 	const char	*fname,
 	int		lineno,
@@ -679,12 +710,12 @@ static int translucent_db_init(BackendDB *be) {
 }
 
 /*
-** translucent_open()
+** translucent_db_open()
 **	if the captive backend has an open() method, call it;
 **
 */
 
-static int translucent_open(BackendDB *be) {
+static int translucent_db_open(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	overlay_stack *ov = on->on_bi.bi_private;
 	void *private = be->be_private;
@@ -709,28 +740,56 @@ static int translucent_open(BackendDB *be) {
 }
 
 /*
-** translucent_close()
+** translucent_db_close()
 **	if the captive backend has a close() method, call it;
 **	free any config data;
 **
 */
 
-static int translucent_close(BackendDB *be) {
+static int translucent_db_close(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	overlay_stack *ov = on->on_bi.bi_private;
-	void *private = be->be_private;
-	int rc;
+	int rc = 0;
 
-	be->be_private = ov->private;
-	rc = (ov->info && ov->info->bi_db_close) ? ov->info->bi_db_close(be) : 0;
-	be->be_private = private;
-	if(ov->config) ch_free(ov->config);
-	ch_free(ov);
+	if ( ov ) {
+		void *private = be->be_private;
+
+		be->be_private = ov->private;
+		rc = (ov->info && ov->info->bi_db_close) ? ov->info->bi_db_close(be) : 0;
+		be->be_private = private;
+		if(ov->config) ch_free(ov->config);
+		ov->config = NULL;
+	}
+
 	return(rc);
 }
 
 /*
-** translucent_init()
+** translucent_db_destroy()
+**	if the captive backend has a db_destroy() method, call it
+**
+*/
+
+static int translucent_db_destroy(BackendDB *be) {
+	slap_overinst *on = (slap_overinst *) be->bd_info;
+	overlay_stack *ov = on->on_bi.bi_private;
+	int rc = 0;
+
+	if ( ov ) {
+		void *private = be->be_private;
+
+		be->be_private = ov->private;
+		rc = (ov->info && ov->info->bi_db_destroy) ? ov->info->bi_db_destroy(be) : 0;
+		be->be_private = private;
+		ch_free(ov);
+		on->on_bi.bi_private = NULL;
+	}
+
+	return(rc);
+}
+
+/*
+** translucent_initialize()
 **	initialize the slap_overinst with our entry points;
 **
 */
@@ -739,9 +798,10 @@ int translucent_initialize() {
 
 	translucent.on_bi.bi_type	= "translucent";
 	translucent.on_bi.bi_db_init	= translucent_db_init;
-	translucent.on_bi.bi_db_config	= translucent_config;
-	translucent.on_bi.bi_db_open	= translucent_open;
-	translucent.on_bi.bi_db_close	= translucent_close;
+	translucent.on_bi.bi_db_config	= translucent_db_config;
+	translucent.on_bi.bi_db_open	= translucent_db_open;
+	translucent.on_bi.bi_db_close	= translucent_db_close;
+	translucent.on_bi.bi_db_destroy	= translucent_db_destroy;
 	translucent.on_bi.bi_op_bind	= translucent_bind;
 	translucent.on_bi.bi_op_add	= translucent_add;
 	translucent.on_bi.bi_op_modify	= translucent_modify;
@@ -749,6 +809,7 @@ int translucent_initialize() {
 	translucent.on_bi.bi_op_delete	= translucent_delete;
 	translucent.on_bi.bi_op_search	= translucent_search;
 	translucent.on_bi.bi_op_compare	= translucent_compare;
+	translucent.on_bi.bi_connection_destroy = translucent_connection_destroy;
 
 	return(overlay_register(&translucent));
 }

@@ -185,6 +185,7 @@ LDAP_SLAPD_F (AttributeName *) file2anlist LDAP_P((
 LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));
 LDAP_SLAPD_F (int) ad_define_option LDAP_P(( const char *name,
 	const char *fname, int lineno ));
+LDAP_SLAPD_F (void) ad_unparse_options LDAP_P(( BerVarray *res ));
 
 LDAP_SLAPD_F (MatchingRule *) ad_mr(
 	AttributeDescription *ad,

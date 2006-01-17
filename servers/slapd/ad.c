@@ -1177,6 +1177,13 @@ ad_define_option( const char *name, const char *fname, int lineno )
 	return 0;
 }
 
+void ad_unparse_options( BerVarray *res ){
+	int i;
+    for ( i=0; i < option_count; i++ ) {
+    	ber_bvarray_add( res, ber_bvdup( &(options[i].name) ));
+    }
+}
+
 /* Find the definition of the option name or prefix matching the arguments */
 static Attr_option *
 ad_find_option_definition( const char *opt, int optlen )
