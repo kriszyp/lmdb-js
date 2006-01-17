@@ -19,9 +19,7 @@ REQUIRED SOFTWARE
         POSIX REGEX software (required)
 
     SLAPD:
-        BDB and HDB backends require Sleepycat Berkeley DB 4.2
-        LDBM backend requires a compatible database manager
-            [Berkeley DB, GDBM, etc.]
+        BDB and HDB backends require Sleepycat Berkeley DB 4.2 or later
 
     SLURPD:
         LTHREAD compatible thread package
