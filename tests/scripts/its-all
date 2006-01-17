@@ -44,6 +44,6 @@ for CMD in $SRCDIR/data/regressions/its*/its*; do
 		exit $RC
 	fi
 
-	echo ">>>>> waiting $SLEEPTIME seconds for things to exit"
+	echo ">>>>> waiting for things to exit"
 	echo ""
 done
