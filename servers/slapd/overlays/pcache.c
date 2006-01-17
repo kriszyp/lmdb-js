@@ -1457,7 +1457,8 @@ enum {
 	PC_MAIN = 1,
 	PC_ATTR,
 	PC_TEMP,
-	PC_RESP
+	PC_RESP,
+	PC_QUERIES
 };
 
 static ConfigDriver pc_cf_gen;
@@ -1486,6 +1487,12 @@ static ConfigTable pccfg[] = {
 		"( OLcfgOvAt:2.4 NAME 'olcProxyResponseCB' "
 			"DESC 'Response callback position in overlay stack' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "proxyCacheQueries", "queries",
+		2, 2, 0, ARG_INT|ARG_MAGIC|PC_QUERIES, pc_cf_gen,
+		"( OLcfgOvAt:2.5 NAME 'olcProxyCacheQueries' "
+			"DESC 'Maximum number of queries to cache' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -1495,7 +1502,7 @@ static ConfigOCs pcocs[] = {
 		"DESC 'ProxyCache configuration' "
 		"SUP olcOverlayConfig "
 		"MUST ( olcProxyCache $ olcProxyAttrset $ olcProxyTemplate ) "
-		"MAY olcProxyResponseCB )", Cft_Overlay, pccfg, NULL, pc_cfadd },
+		"MAY ( olcProxyResponseCB $ olcProxyCacheQueries ) )", Cft_Overlay, pccfg, NULL, pc_cfadd },
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
 		"DESC 'Cache database configuration' "
@@ -1612,6 +1619,9 @@ pc_cf_gen( ConfigArgs *c )
 				BER_BVSTR( &bv, "tail" );
 			}
 			value_add_one( &c->rvalue_vals, &bv );
+			break;
+		case PC_QUERIES:
+			c->value_int = cm->max_queries;
 			break;
 		}
 		return rc;
@@ -1809,6 +1819,14 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
+		break;
+	case PC_QUERIES:
+		if ( c->value_int <= 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "max queries must be positive" );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		cm->max_queries = c->value_int;
 		break;
 	}
 	return rc;
