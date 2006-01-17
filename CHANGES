@@ -8,7 +8,7 @@ OpenLDAP 2.3.18 Release
 	Fixed slapd-meta nretries issue (ITS#4059)
 	Fixed slapd wake_listener loses wakes (ITS#4343)
 	Fixed slapd connection manager issue (ITS#4338)
-	Fixed slapd hanlding of old style configuration directives (ITS#4341)
+	Fixed slapd handling of old style configuration directives (ITS#4341)
 	Removed slapd-bdb/hdb extraneous yields (ITS#3950)
 	Build Environment
 		Removed problematic Linux sched_yield(2) workarounds (ITS#3950)
