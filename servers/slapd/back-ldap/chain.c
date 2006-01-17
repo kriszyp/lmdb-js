@@ -748,7 +748,16 @@ cleanup:;
 			}
 			
 		} else {
-			rc = ldap_chain_op( op, rs, lback->bi_op_search, ref );
+			/* we might get here before any database actually 
+			 * performed a search; in those cases, we need
+			 * to check limits, to make sure safe defaults
+			 * are in place */
+			if ( op->ors_limit != NULL || limits_check( op, rs ) == 0 ) {
+				rc = ldap_chain_op( op, rs, lback->bi_op_search, ref );
+
+			} else {
+				rc = SLAP_CB_CONTINUE;
+			}
 		}
 	    	break;
 
@@ -1491,6 +1500,9 @@ static int
 ldap_chain_db_open(
 	BackendDB	*be )
 {
+	slap_overinst	*on = (slap_overinst *) be->bd_info;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	int	rc = 0;
 
@@ -1499,6 +1511,13 @@ ldap_chain_db_open(
 		return rc;
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+	if ( lc->lc_common_li == NULL ) {
+		void	*be_private = be->be_private;
+		ldap_chain_db_init_common( be );
+		lc->lc_common_li = lc->lc_cfg_li = (ldapinfo_t *)be->be_private;
+		be->be_private = be_private;
+	}
 
 	return ldap_chain_db_func( be, db_open );
 }

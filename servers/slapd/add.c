@@ -217,7 +217,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	Modifications	*modlist = op->ora_modlist;
 	Modifications	**modtail = &modlist;
 	int		rc = 0;
-	BackendDB *op_be;
+	BackendDB *op_be, *bd = op->o_bd;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 
@@ -230,14 +230,13 @@ fe_op_add( Operation *op, SlapReply *rs )
 	 */
 	op->o_bd = select_backend( &op->ora_e->e_nname, manageDSAit, 1 );
 	if ( op->o_bd == NULL ) {
+		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->ora_e->e_name, LDAP_SCOPE_DEFAULT );
 		if ( !rs->sr_ref ) rs->sr_ref = default_referral;
 		if ( rs->sr_ref ) {
 			rs->sr_err = LDAP_REFERRAL;
-			op->o_bd = frontendDB;
 			send_ldap_result( op, rs );
-			op->o_bd = NULL;
 
 			if ( rs->sr_ref != default_referral ) {
 				ber_bvarray_free( rs->sr_ref );
@@ -379,6 +378,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	}
 
 done:;
+	op->o_bd = bd;
 	return rc;
 }
 

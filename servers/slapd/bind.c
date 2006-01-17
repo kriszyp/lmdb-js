@@ -223,6 +223,7 @@ int
 fe_op_bind( Operation *op, SlapReply *rs )
 {
 	struct berval	mech = op->orb_tmp_mech;
+	BackendDB	*bd = op->o_bd;
 
 	/* check for inappropriate controls */
 	if( get_manageDSAit( op ) == SLAP_CONTROL_CRITICAL ) {
@@ -387,9 +388,8 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		/* don't return referral for bind requests */
 		/* noSuchObject is not allowed to be returned by bind */
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		op->o_bd = frontendDB;
+		op->o_bd = bd;
 		send_ldap_result( op, rs );
-		op->o_bd = NULL;
 		goto cleanup;
 	}
 
@@ -452,6 +452,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	}
 
 cleanup:;
+	op->o_bd = bd;
 	return rs->sr_err;
 }
 

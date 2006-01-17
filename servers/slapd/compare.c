@@ -138,6 +138,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	Entry *entry = NULL;
 	int manageDSAit;
 	AttributeAssertion ava = *op->orc_ava;
+	BackendDB	*bd = op->o_bd;
 
 	if( strcasecmp( op->o_req_ndn.bv_val, LDAP_ROOT_DSE ) == 0 ) {
 		Debug( LDAP_DEBUG_ARGS,
@@ -214,9 +215,8 @@ fe_op_compare( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_REFERRAL;
 		if (!rs->sr_ref) rs->sr_ref = default_referral;
-		op->o_bd = frontendDB;
+		op->o_bd = bd;
 		send_ldap_result( op, rs );
-		op->o_bd = NULL;
 
 		if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		rs->sr_err = 0;
@@ -369,6 +369,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	}
 
 cleanup:;
+	op->o_bd = bd;
 	return rs->sr_err;
 }
 

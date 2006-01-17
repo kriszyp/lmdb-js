@@ -241,6 +241,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 {
 	int			manageDSAit;
 	int			be_manageDSAit;
+	BackendDB                *bd = op->o_bd;
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -328,9 +329,8 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 		if (!rs->sr_ref) rs->sr_ref = default_referral;
 		rs->sr_err = LDAP_REFERRAL;
-		op->o_bd = frontendDB;
+		op->o_bd = bd;
 		send_ldap_result( op, rs );
-		op->o_bd = NULL;
 
 		if (rs->sr_ref != default_referral)
 		ber_bvarray_free( rs->sr_ref );
@@ -362,6 +362,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 	}
 
 return_results:;
+	op->o_bd = bd;
 	return rs->sr_err;
 }
 
