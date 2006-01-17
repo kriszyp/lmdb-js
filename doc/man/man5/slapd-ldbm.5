@@ -9,11 +9,12 @@ ETCDIR/slapd.conf
 .SH DESCRIPTION
 The LDBM backend to
 .BR slapd (8)
-is the database backend which is easiest to configure.
-However, it does not offer the data durability features of the BDB
-backend.
-It uses Berkeley DB or GDBM to store data.
-It makes extensive use of indexing and caching to speed data access.
+is an easy\-to\-configure but obsolete database backend.  It does not
+offer the data durability features of the BDB and HDB backends and
+hence is considered deprecated in favor of these robust backends.
+LDBM uses lightweight non\-transactional data interfaces, such as those
+provided by GDBM or Berkeley DB, to store data.  It makes extensive
+use of indexing and caching to speed data access.
 .SH CONFIGURATION
 These
 .B slapd.conf

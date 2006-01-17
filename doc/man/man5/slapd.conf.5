@@ -1665,10 +1665,10 @@ They are documented in the
 manual pages.
 .TP
 .B bdb
-This is the recommended backend for a normal slapd database.
-However, it takes more care than with the LDBM backend to configure
-it properly.
-It uses the Sleepycat Berkeley DB (BDB) package to store data.
+This is the recommended primary backend for a normal slapd database.
+It takes care to configure it properly.
+It uses the transactional database interface of the Sleepycat Berkeley
+DB (BDB) package to store data.
 .TP
 .B config
 This backend is used to manage the configuration of slapd run-time.
@@ -1687,10 +1687,11 @@ This backend acts as a proxy to forward incoming requests to another
 LDAP server.
 .TP
 .B ldbm
-This is the database backend which is easiest to configure.
-However, it does not offer the data durability features of the BDB
-backend.
-It uses Berkeley DB or GDBM to store data.
+This is an easy-to-configure but obsolete database backend. It
+does not offer the data durability features of the BDB and HDB
+backends and hence is deprecated in favor of these robust backends.
+LDBM uses lightweight non-transactional DB interfaces,
+such as those providing by GDBM or Berkeley DB, to store data.
 .TP
 .B ldif
 This database uses the filesystem to build the tree structure
