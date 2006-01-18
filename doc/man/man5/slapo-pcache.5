@@ -68,6 +68,10 @@ returned is less than <entry_limit>. Consistency check is performed every
 proxycache \fBbdb 10000 1 50 100\fP
 .RE
 .TP
+.B proxycachequeries <queries>
+Specify the maximum number of queries to cache. The default is 10000.
+
+.TP
 .B proxyattrset <index> <attrs...>
 Used to associate a set of attributes <attrs..> with an <index>. Each attribute
 set is associated with an integer from 0 to <numattrsets>-1. These indices are
