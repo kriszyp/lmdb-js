@@ -74,9 +74,12 @@ set is associated with an integer from 0 to <numattrsets>-1. These indices are
 used by the \fBproxytemplate\fP directive to define cacheable templates. 
 
 .TP
-.B proxytemplate <template_string> <attrset_index> <ttl> 
+.B proxytemplate <template_string> <attrset_index> <ttl> [<negttl>]
 Specifies a cacheable template and "time to live" (in sec) <ttl> of queries 
-belonging to the template. 
+belonging to the template. An optional <negttl> can be used to specify
+that negative results (i.e., queries that returned zero entries)
+should also be cached for the specified number of seconds. Negative
+results are not cached by default.
 
 .TP
 .B response-callback { head | tail }
