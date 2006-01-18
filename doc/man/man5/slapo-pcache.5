@@ -139,7 +139,10 @@ cachesize 100
 .fi
 .RE
 .LP
-Any valid directives for the chosen database type may be used.
+Any valid directives for the chosen database type may be used. Indexing
+should be used as appropriate for the queries being handled. In addition,
+an equality index on the \fBqueryid\fP attribute should be configured, to
+assist in the removal of expired query data.
 .SH CAVEATS
 Caching data is prone to inconsistencies because updates on the remote server
 will not be reflected in the response of the cache at least (and at most)
