@@ -382,7 +382,9 @@ ldap_pvt_tls_init_def_ctx( int is_server )
 			tls_opt_require_cert == LDAP_OPT_X_TLS_ALLOW ?
 			tls_verify_ok : tls_verify_cb );
 		SSL_CTX_set_tmp_rsa_callback( tls_def_ctx, tls_tmp_rsa_cb );
-		SSL_CTX_set_tmp_dh_callback( tls_def_ctx, tls_tmp_dh_cb );
+		if ( tls_opt_dhfile ) {
+			SSL_CTX_set_tmp_dh_callback( tls_def_ctx, tls_tmp_dh_cb );
+		}
 #ifdef HAVE_OPENSSL_CRL
 		if ( tls_opt_crlcheck ) {
 			X509_STORE *x509_s = SSL_CTX_get_cert_store( tls_def_ctx );
