@@ -262,32 +262,53 @@ slap_tool_init(
 			continuemode++;
 			break;
 
-		case 'd':	/* turn on debugging */
-			{
-#ifdef LDAP_DEBUG
-			int	level;
+		case 'd': {	/* turn on debugging */
+			int	level = 0;
 
+#ifdef LDAP_DEBUG
 			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
 			{
-				if ( str2loglevel( optarg, &level ) ) {
+				int	i, goterr = 0;
+				char	**levels;
+
+				levels = ldap_str2charray( optarg, "," );
+
+				for ( i = 0; levels[ i ] != NULL; i++ ) {
+					level = 0;
+
+					if ( str2loglevel( levels[ i ], &level ) ) {
+						fprintf( stderr,
+							"unrecognized log level "
+							"\"%s\"\n", levels[ i ] );
+						goterr = 1;
+						/* but keep parsing... */
+
+					} else {
+						if ( level != 0 ) {
+							slap_debug |= level;
+
+						} else {
+							/* allow to reset log level */
+							slap_debug = 0;
+						}
+					}
+				}
+
+			} else {
+				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
 					fprintf( stderr,
 						"unrecognized log level "
 						"\"%s\"\n", optarg );
 					exit( EXIT_FAILURE );
 				}
 
-			} else if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
-				fprintf( stderr,
-					"unrecognized log level "
-					"\"%s\"\n", optarg );
-				exit( EXIT_FAILURE );
-			}
+				if ( level != 0 ) {
+					slap_debug |= level;
 
-			if ( level ) {
-				ldap_debug |= level;
-			} else {
-				/* allow to reset log level */
-				ldap_debug = 0;
+				} else {
+					/* allow to reset log level */
+					slap_debug = 0;
+				}
 			}
 #else
 			if ( lutil_atoi( &level, optarg ) != 0 || level != 0 )

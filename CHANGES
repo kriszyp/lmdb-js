@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.19 Engineering
+	Fixed slaptools when --disable-debug (ITS#4351)
 
 OpenLDAP 2.3.18 Release
 	Fixed slapd syncrepl variable used before set bug (ITS#4331)
