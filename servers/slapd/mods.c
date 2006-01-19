@@ -377,11 +377,19 @@ modify_increment_values(
 
 	a = attr_find( e->e_attrs, mod->sm_desc );
 	if( a == NULL ) {
-		*text = textbuf;
-		snprintf( textbuf, textlen,
-			"modify/increment: %s: no such attribute",
-			mod->sm_desc->ad_cname.bv_val );
-		return LDAP_NO_SUCH_ATTRIBUTE;
+		if ( permissive ) {
+			Modification modReplace = *mod;
+
+			modReplace.sm_op = LDAP_MOD_REPLACE;
+
+			return modify_add_values(e, &modReplace, permissive, text, textbuf, textlen);
+		} else {
+			*text = textbuf;
+			snprintf( textbuf, textlen,
+				"modify/increment: %s: no such attribute",
+				mod->sm_desc->ad_cname.bv_val );
+			return LDAP_NO_SUCH_ATTRIBUTE;
+		}
 	}
 
 	if ( !strcmp( a->a_desc->ad_type->sat_syntax_oid, SLAPD_INTEGER_SYNTAX )) {
