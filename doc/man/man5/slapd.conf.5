@@ -963,7 +963,11 @@ it is of critical importance that it is protected carefully.
 This directive specifies the file that contains parameters for Diffie-Hellman
 ephemeral key exchange.  This is required in order to use a DSA certificate on
 the server. If multiple sets of parameters are present in the file, all of
-them will be processed.
+them will be processed.  Note that setting this option may also enable
+Anonymous Diffie-Hellman key exchanges in certain non-default cipher suites.
+You should append "!ADH" to your cipher suites if you have changed them
+from the default, otherwise no certificate exchanges or verification will
+be done.
 .TP
 .B TLSRandFile <filename>
 Specifies the file to obtain random bits from when /dev/[u]random
