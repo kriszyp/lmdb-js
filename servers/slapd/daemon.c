@@ -1840,21 +1840,17 @@ slapd_daemon_task(
 		case -1: {	/* failure - try again */
 				int err = sock_errno();
 
-				if( err == EBADF
-#ifdef WSAENOTSOCK
-					/* you'd think this would be EBADF */
-					|| err == WSAENOTSOCK
-#endif
-				) {
-					if (++ebadf < SLAPD_EBADF_LIMIT)
-						continue;
-				}
-
 				if( err != EINTR ) {
-					Debug( LDAP_DEBUG_ANY,
-						"daemon: select failed (%d): %s\n",
-						err, sock_errstr(err), 0 );
-					slapd_shutdown = 2;
+					ebadf++;
+
+					/* Don't log unless we got it twice in a row */
+					if ( !( ebadf & 1 )) {
+						Debug( LDAP_DEBUG_ANY,
+							"daemon: select failed count %d err (%d): %s\n",
+							ebadf, err, sock_errstr(err) );
+					}
+					if ( ebadf >= SLAPD_EBADF_LIMIT )
+						slapd_shutdown = 2;
 				}
 			}
 			continue;
