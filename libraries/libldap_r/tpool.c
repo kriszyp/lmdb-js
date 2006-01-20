@@ -378,8 +378,10 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		? LDAP_INT_THREAD_POOL_FINISHING
 		: LDAP_INT_THREAD_POOL_STOPPING;
 
-	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
-	ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+	if ( pool->ltp_open_count ) {
+		ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
+		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+	}
 
 	while ((ctx = LDAP_STAILQ_FIRST(&pool->ltp_pending_list)) != NULL)
 	{

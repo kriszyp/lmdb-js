@@ -1,7 +1,11 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.19 Engineering
-	Fixed slaptools when --disable-debug (ITS#4351)
+	Fixed libldap disable DH key exchange with DH params (ITS#4354)
+	Fixed libldap_r pool destroy hang (ITS#4349)
+	Build environment
+		Fixed slaptools when --disable-debug (ITS#4351)
+		Fixed slapd(8) solaris select(2) issue (ITS#4357)
 
 OpenLDAP 2.3.18 Release
 	Fixed slapd syncrepl variable used before set bug (ITS#4331)
