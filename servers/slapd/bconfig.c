@@ -247,7 +247,7 @@ static ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgGlAt:5 NAME 'olcAttributeOptions' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "attribute",	"attribute", 2, 0, 9,
+	{ "attribute",	"attribute", 2, 0, STRLENOF( "attribute" ),
 		ARG_PAREN|ARG_MAGIC|CFG_ATTR|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:4 NAME 'olcAttributeTypes' "
 			"DESC 'OpenLDAP attributeTypes' "
