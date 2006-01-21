@@ -154,6 +154,8 @@ main( int argc, char **argv )
 	int		banum;
 	char		bcmd[MAXPATHLEN];
 
+	char		*friendlyOpt = NULL;
+
 	tester_init( "slapd-tester" );
 
 	while ( (i = getopt( argc, argv, "D:d:FH:h:j:l:P:p:r:t:w:" )) != EOF ) {
@@ -282,6 +284,23 @@ main( int argc, char **argv )
 		bnum = get_search_filters( bfile, bcreds, breqs );
 	}
 
+	/* setup friendly option */
+
+	switch ( friendly ) {
+	case 0:
+		break;
+
+	case 1:
+		friendlyOpt = "-F";
+		break;
+
+	default:
+		/* NOTE: right now we don't need it more than twice */
+	case 2:
+		friendlyOpt = "-FF";
+		break;
+	}
+
 	/*
 	 * generate the search clients
 	 */
@@ -370,7 +389,7 @@ main( int argc, char **argv )
 	margs[manum++] = "-t";
 	margs[manum++] = delay;
 	if ( friendly ) {
-		margs[manum++] = "-F";
+		margs[manum++] = friendlyOpt;
 	}
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
@@ -404,7 +423,7 @@ main( int argc, char **argv )
 	modargs[modanum++] = "-t";
 	modargs[modanum++] = delay;
 	if ( friendly ) {
-		modargs[modanum++] = "-F";
+		modargs[modanum++] = friendlyOpt;
 	}
 	modargs[modanum++] = "-e";
 	modargs[modanum++] = NULL;		/* will hold the modify entry */
@@ -440,7 +459,7 @@ main( int argc, char **argv )
 	aargs[aanum++] = "-t";
 	aargs[aanum++] = delay;
 	if ( friendly ) {
-		aargs[aanum++] = "-F";
+		aargs[aanum++] = friendlyOpt;
 	}
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
@@ -472,7 +491,7 @@ main( int argc, char **argv )
 	bargs[banum++] = delay;
 #endif
 	if ( friendly ) {
-		bargs[banum++] = "-F";
+		bargs[banum++] = friendlyOpt;
 	}
 	bargs[banum++] = "-D";
 	bargs[banum++] = NULL;

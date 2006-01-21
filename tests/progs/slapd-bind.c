@@ -117,7 +117,7 @@ main( int argc, char **argv )
 				break;
 
 			case 'F':
-				force = 1;
+				force++;
 				break;
 
 			default:
@@ -145,7 +145,7 @@ static int
 do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force )
 {
 	LDAP	*ld = NULL;
-	int  	i, rc = -1;
+	int  	i, first = 1, rc = -1;
 	pid_t	pid = getpid();
 
 	if ( maxloop > 1 )
@@ -167,7 +167,21 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force )
 		}
 
 		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );
-		if ( rc != LDAP_SUCCESS ) {
+		switch ( rc ) {
+		case LDAP_SUCCESS:
+			break;
+
+		case LDAP_INVALID_CREDENTIALS:
+			/* don't log: it's intended */
+			if ( force >= 2 ) {
+				if ( !first ) {
+					break;
+				}
+				first = 0;
+			}
+			/* fallthru */
+
+		default:
 			tester_ldap_error( ld, "ldap_sasl_bind_s" );
 		}
 		ldap_unbind_ext( ld, NULL, NULL );
