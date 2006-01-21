@@ -467,12 +467,12 @@ monitor_subsys_database_init(
 					return( -1 );
 				}
 				ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
-				attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+				attr_merge_one( e_overlay, mi->mi_ad_monitoredInfo, &bv, NULL );
 
 				bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Overlay %d,%s",
 					j, ms_overlay->mss_dn.bv_val );
 				bv.bv_val = buf;
-				attr_merge_normalize_one( e, slap_schema.si_ad_seeAlso,
+				attr_merge_normalize_one( e_overlay, slap_schema.si_ad_seeAlso,
 					&bv, NULL );
 
 				mp_overlay = monitor_entrypriv_create();
