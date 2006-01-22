@@ -59,6 +59,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_dbenv_mode = SLAPD_DEFAULT_DB_MODE;
 
 	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
+	bdb->bi_cache.c_minfree = 1;
 
 	bdb->bi_lock_detect = DB_LOCK_DEFAULT;
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
