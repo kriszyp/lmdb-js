@@ -1434,6 +1434,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 			mf.f_av_value = uuids[i];
 			cb.sc_private = NULL;
 			fop.ors_slimit = 1;
+			frs.sr_nentries = 0;
 			rc = fop.o_bd->be_search( &fop, &frs );
 
 			/* If entry was not found, add to delete list */
