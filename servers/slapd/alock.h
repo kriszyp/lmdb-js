@@ -38,6 +38,11 @@
 #define ALOCK_UNIQUE	(2)
 #define ALOCK_DIRTY		(3)
 
+#define ALOCK_SMASK		3
+
+/* lock/state where recovery is not available */
+#define	ALOCK_NOSAVE	4
+
 /* constants */
 #define ALOCK_SLOT_SIZE		(1024)
 #define ALOCK_SLOT_IATTRS	(4)

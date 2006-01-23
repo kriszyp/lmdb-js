@@ -731,8 +731,10 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 		m->sml_type = ad_pwdFailureTime->ad_cname;
 		m->sml_desc = ad_pwdFailureTime;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 
 		ber_dupbv( &m->sml_values[0], &timestamp );
+		ber_dupbv( &m->sml_nvalues[0], &timestamp );
 		m->sml_next = mod;
 		mod = m;
 
@@ -778,7 +780,9 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			m->sml_type = ad_pwdAccountLockedTime->ad_cname;
 			m->sml_desc = ad_pwdAccountLockedTime;
 			m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+			m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 			ber_dupbv( &m->sml_values[0], &timestamp );
+			ber_dupbv( &m->sml_nvalues[0], &timestamp );
 			m->sml_next = mod;
 			mod = m;
 		}
@@ -880,7 +884,9 @@ grace:
 		m->sml_type = ad_pwdGraceUseTime->ad_cname;
 		m->sml_desc = ad_pwdGraceUseTime;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
+		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 		ber_dupbv( &m->sml_values[0], &timestamp );
+		ber_dupbv( &m->sml_nvalues[0], &timestamp );
 		m->sml_next = mod;
 		mod = m;
 
@@ -1155,7 +1161,7 @@ ppolicy_add(
 			timestamp.bv_len = sizeof(timebuf);
 			slap_timestamp( &now, &timestamp );
 
-			attr_merge_one( op->ora_e, ad_pwdChangedTime, &timestamp, NULL );
+			attr_merge_one( op->ora_e, ad_pwdChangedTime, &timestamp, &timestamp );
 		}
 	}
 	return SLAP_CB_CONTINUE;
@@ -1568,7 +1574,9 @@ do_modify:
 		if (pwmop != LDAP_MOD_DELETE) {
 			mods->sml_op = LDAP_MOD_REPLACE;
 			mods->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			mods->sml_nvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mods->sml_values[0], &timestamp );
+			ber_dupbv( &mods->sml_nvalues[0], &timestamp );
 			mods->sml_values[1].bv_len = 0;
 			mods->sml_values[1].bv_val = NULL;
 			assert( mods->sml_values[0].bv_val != NULL );

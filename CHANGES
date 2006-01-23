@@ -3,6 +3,10 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.19 Engineering
 	Fixed libldap disable DH key exchange with DH params (ITS#4354)
 	Fixed libldap_r pool destroy hang (ITS#4349)
+	Fixed slapd-hdb livelock issue (ITS#4360)
+	Fixed slapd-bdb/hdb auto-recovery issue (ITS#4361)
+	Fixed slapd-bdb/hdb BDB 4.4 compatibility issues (ITS#4362)
+	Fixed slapo-ppolicy modify issue (ITS#4355)
 	Build environment
 		Fixed slaptools when --disable-debug (ITS#4351)
 		Fixed slapd(8) solaris select(2) issue (ITS#4357)
