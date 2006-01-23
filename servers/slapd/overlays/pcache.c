@@ -1308,7 +1308,7 @@ pcache_op_search(
 		struct search_info	*si;
 
 		Debug( LDAP_DEBUG_TRACE, "QUERY CACHEABLE\n", 0, 0, 0 );
-		query.filter = str2filter(op->ors_filterstr.bv_val);
+		query.filter = filter_dup(op->ors_filter, NULL);
 		add_filter_attrs(op, &query.attrs, &qm->attr_sets[attr_set],
 			filter_attrs, fattr_cnt, fattr_got_oc);
 

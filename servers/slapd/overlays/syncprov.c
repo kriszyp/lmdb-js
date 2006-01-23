@@ -1761,7 +1761,7 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->ors_filterstr.bv_val = ptr;
 	strcpy( ptr, so->s_filterstr.bv_val );
 	op2->ors_filterstr.bv_len = so->s_filterstr.bv_len;
-	op2->ors_filter = str2filter( ptr );
+	op2->ors_filter = filter_dup( op->ors_filter, NULL );
 	so->s_op = op2;
 
 	/* Copy any cached group ACLs individually */
