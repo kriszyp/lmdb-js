@@ -574,21 +574,15 @@ parse_acl(
 									/* FIXME: should be an error */
 
 									snprintf( buf, sizeof( buf ),
-										"unknown val.<style> \"%s\" "
-										"for attributeType \"%s\" with DN syntax"
-#ifndef SLAPD_CONF_UNKNOWN_BAILOUT
-										"; using \"base\""
-#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
-										SLAPD_CONF_UNKNOWN_IGNORED ".",
+										"unknown val.<style> \"%s\" for attributeType \"%s\" "
+											"with DN syntax.",
 										style,
 										a->acl_attrs[0].an_desc->ad_cname.bv_val );
 
 									Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, 
 										"%s: line %d: %s\n",
 										fname, lineno, buf );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 									return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 									a->acl_attrval_style = ACL_STYLE_BASE;
 								}
 
@@ -614,19 +608,12 @@ parse_acl(
 								/* FIXME: should be an error */
 
 								snprintf( buf, sizeof( buf ),
-									"unknown val.<style> \"%s\" "
-									"for attributeType \"%s\""
-#ifndef SLAPD_CONF_UNKNOWN_BAILOUT
-									"; using \"exact\""
-#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
-									SLAPD_CONF_UNKNOWN_IGNORED ".",
+									"unknown val.<style> \"%s\" for attributeType \"%s\".",
 									style, a->acl_attrs[0].an_desc->ad_cname.bv_val );
 								Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, 
 									"%s: line %d: %s\n",
 									fname, lineno, buf );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 								return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 								a->acl_attrval_style = ACL_STYLE_BASE;
 							}
 						}
@@ -827,12 +814,9 @@ parse_acl(
 #ifndef LDAP_PF_LOCAL
 					Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL,
 						"%s: line %d: "
-						"\"path\" style modifier is useless without local"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+						"\"path\" style modifier is useless without local.\n",
 						fname, lineno, 0 );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 					return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 #endif /* LDAP_PF_LOCAL */
 
 				} else {
@@ -848,13 +832,9 @@ parse_acl(
 					switch ( sty ) {
 					case ACL_STYLE_REGEX:
 						Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-							"\"regex\" style implies "
-							"\"expand\" modifier" 
-							SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+							"\"regex\" style implies \"expand\" modifier.\n",
 							fname, lineno, 0 );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 						return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 
 					case ACL_STYLE_EXPAND:
@@ -871,15 +851,10 @@ parse_acl(
 				if ( ( sty == ACL_STYLE_EXPAND || expand )
 						&& a->acl_dn_style != ACL_STYLE_REGEX )
 				{
-					Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, "%s: line %d: "
-						"\"expand\" style or modifier used "
-						"in conjunction with "
-						"a non-regex <what> clause"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+					Debug( LDAP_DEBUG_CONFIG | LDAP_DEBUG_ACL, "%s: line %d: \"expand\" style "
+						"or modifier used in conjunction with a non-regex <what> clause.\n",
 						fname, lineno, 0 );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 						return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 
 				if ( strncasecmp( left, "real", STRLENOF( "real" ) ) == 0 ) {
@@ -1021,9 +996,9 @@ parse_acl(
 						int	gotit = 0;
 
 						for ( exp = strchr( bdn->a_pat.bv_val, '$' );
-								exp && (ber_len_t)(exp - bdn->a_pat.bv_val)
-									< bdn->a_pat.bv_len;
-								exp = strchr( exp, '$' ) )
+							exp && (ber_len_t)(exp - bdn->a_pat.bv_val)
+								< bdn->a_pat.bv_len;
+							exp = strchr( exp, '$' ) )
 						{
 							if ( isdigit( exp[ 1 ] ) ) {
 								gotit = 1;
@@ -1035,14 +1010,10 @@ parse_acl(
 							bdn->a_expand = expand;
 
 						} else {
-							Debug( LDAP_DEBUG_ANY,
-								"%s: line %d: \"expand\" used "
-								"with no expansions in \"pattern\""
-								SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+							Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+								"\"expand\" used with no expansions in \"pattern\".\n",
 								fname, lineno, 0 );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 							return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						} 
 					}
 					if ( sty == ACL_STYLE_SELF ) {
@@ -1909,13 +1880,9 @@ parse_acl(
 	/* if we have no real access clause, complain and do nothing */
 	if ( a == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-			"warning: no access clause(s) "
-			"specified in access line"
-			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			"warning: no access clause(s) specified in access line.\n",
 			fname, lineno, 0 );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 		return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 
 	} else {
 #ifdef LDAP_DEBUG
@@ -1926,13 +1893,9 @@ parse_acl(
 	
 		if ( a->acl_access == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"warning: no by clause(s) "
-				"specified in access line"
-				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+				"warning: no by clause(s) specified in access line.\n",
 				fname, lineno, 0 );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 			return acl_usage();
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 		}
 
 		if ( be != NULL ) {

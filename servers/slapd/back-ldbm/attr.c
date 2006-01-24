@@ -200,8 +200,8 @@ attr_index_config(
 		                 ainfo_cmp, avl_dup_error );
 
 		if( rc ) {
-			fprintf( stderr, "%s: line %d: duplicate index definition "
-				"for attr \"%s\"" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			fprintf( stderr,
+				"%s: line %d: duplicate index definition for attr \"%s\".\n",
 			    fname, lineno, attrs[i] );
 
 			return LDAP_PARAM_ERROR;

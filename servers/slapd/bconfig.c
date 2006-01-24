@@ -1450,13 +1450,10 @@ config_generic(ConfigArgs *c) {
 
 
 		default:
-			Debug( SLAPD_DEBUG_CONFIG_ERROR,
-				"%s: unknown CFG_TYPE %d"
-				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			Debug( LDAP_DEBUG_ANY,
+				"%s: unknown CFG_TYPE %d.\n",
 				c->log, c->type, 0 );
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 			return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 
 	}
 	return(0);
@@ -1701,12 +1698,10 @@ config_overlay(ConfigArgs *c) {
 	}
 	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1])) {
 		/* log error */
-		Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: (optional) %s overlay \"%s\" configuration failed"
-			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+		Debug( LDAP_DEBUG_ANY,
+			"%s: (optional) %s overlay \"%s\" configuration failed.\n",
 			c->log, c->be == frontendDB ? "global " : "", &c->argv[1][1]);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 		return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 	} else if(overlay_config(c->be, c->argv[1])) {
 		return(1);
 	}
@@ -1848,13 +1843,9 @@ config_suffix(ConfigArgs *c)
 	ndn = c->value_ndn;
 	tbe = select_backend(&ndn, 0, 0);
 	if(tbe == c->be) {
-		Debug( SLAPD_DEBUG_CONFIG_ERROR,
-			"%s: suffix already served by this backend!"
-			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+		Debug( LDAP_DEBUG_ANY, "%s: suffix already served by this backend!.\n",
 			c->log, 0, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 		return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 		free(pdn.bv_val);
 		free(ndn.bv_val);
 	} else if(tbe) {
@@ -2576,22 +2567,16 @@ config_replica(ConfigArgs *c) {
 			} else if(!strncasecmp(c->argv[i], "suffix=", STRLENOF( "suffix="))) {
 				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
 					case 1:
-						Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"suffix \"%s\" in \"replica\" line is not valid for backend"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-						c->log, c->argv[i] + STRLENOF("suffix="), 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						Debug( LDAP_DEBUG_ANY, "%s: "
+							"suffix \"%s\" in \"replica\" line is not valid for backend.\n",
+							c->log, c->argv[i] + STRLENOF("suffix="), 0);
 						return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 					case 2:
-						Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"unable to normalize suffix in \"replica\" line"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-						c->log, 0, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						Debug( LDAP_DEBUG_ANY, "%s: "
+							"unable to normalize suffix in \"replica\" line.\n",
+							c->log, 0, 0);
 						return 1;
-#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 				}
 

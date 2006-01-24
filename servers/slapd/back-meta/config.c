@@ -1126,7 +1126,7 @@ ldap_back_map_config(
 			|| avl_find( map->remap, (caddr_t)&mapping[ 1 ], mapping_cmp ) != NULL)
 	{
 		Debug( LDAP_DEBUG_ANY,
-			"%s: line %d: duplicate mapping found" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			"%s: line %d: duplicate mapping found.\n",
 			fname, lineno, 0 );
 		goto error_return;
 	}

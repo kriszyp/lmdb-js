@@ -735,15 +735,10 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 		}
 
 		if ( c->argc < 1 ) {
-			Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: bad config line" 
-				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			Debug( LDAP_DEBUG_ANY, "%s: bad config line.\n",
 				c->log, 0, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 			rc = 1;
 			goto done;
-#else /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
-			continue;
-#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 		}
 
 		c->op = SLAP_CONFIG_ADD;
@@ -780,13 +775,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"unknown directive <%s> inside backend info definition"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+					Debug( LDAP_DEBUG_ANY, "%s: unknown directive "
+						"<%s> inside backend info definition.\n",
 						c->log, *c->argv, 0);
-#ifndef SLAPD_CONF_UNKNOWN_BAILOUT
-					continue;
-#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 				default:
 					rc = 1;
 					goto done;
@@ -805,11 +796,13 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				rc = (*c->be->be_config)(c->be, c->fname, c->lineno,
 					c->argc, c->argv);
 			}
-			if ( rc == SLAP_CONF_UNKNOWN && SLAP_ISGLOBALOVERLAY( frontendDB ) ) {
+			if ( rc == SLAP_CONF_UNKNOWN && SLAP_ISGLOBALOVERLAY( frontendDB ) )
+			{
 				/* global overlays may need 
 				 * definitions inside other databases...
 				 */
-				rc = (*frontendDB->be_config)(frontendDB, c->fname, (int)c->lineno, c->argc, c->argv);
+				rc = (*frontendDB->be_config)( frontendDB,
+					c->fname, (int)c->lineno, c->argc, c->argv );
 			}
 
 			switch ( rc ) {
@@ -817,13 +810,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 				break;
 
 			case SLAP_CONF_UNKNOWN:
-				Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-					"unknown directive <%s> inside backend database "
-					"definition" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+				Debug( LDAP_DEBUG_ANY, "%s: unknown directive "
+					"<%s> inside backend database definition.\n",
 					c->log, *c->argv, 0);
-#ifndef SLAPD_CONF_UNKNOWN_BAILOUT
-				break;
-#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 				
 			default:
 				rc = 1;
@@ -831,17 +820,14 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 			}
 
 		} else if ( frontendDB->be_config ) {
-			rc = (*frontendDB->be_config)(frontendDB, c->fname, (int)c->lineno, c->argc, c->argv);
+			rc = (*frontendDB->be_config)( frontendDB,
+				c->fname, (int)c->lineno, c->argc, c->argv);
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-						"unknown directive <%s> inside global database definition"
-						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+					Debug( LDAP_DEBUG_ANY, "%s: unknown directive "
+						"<%s> inside global database definition.\n",
 						c->log, *c->argv, 0);
-#ifndef SLAPD_CONF_UNKNOWN_BAILOUT
-					break;
-#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 
 				default:
 					rc = 1;
@@ -850,16 +836,11 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 			}
 			
 		} else {
-			Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
-				"unknown directive <%s> outside backend info and database definitions"
-				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			Debug( LDAP_DEBUG_ANY, "%s: unknown directive "
+				"<%s> outside backend info and database definitions.\n",
 				c->log, *c->argv, 0);
-#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 			rc = 1;
 			goto done;
-#else /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
-			continue;
-#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 		}
 	}
 
@@ -878,9 +859,9 @@ done:
 int
 verb_to_mask(const char *word, slap_verbmasks *v) {
 	int i;
-	for(i = 0; !BER_BVISNULL(&v[i].word); i++)
-		if(!strcasecmp(word, v[i].word.bv_val))
-			break;
+	for(i = 0; !BER_BVISNULL(&v[i].word); i++) {
+		if(!strcasecmp(word, v[i].word.bv_val)) break;
+	}
 	return(i);
 }
 
@@ -924,8 +905,7 @@ slap_verbmasks_init( slap_verbmasks **vp, slap_verbmasks *v )
 
 	assert( *vp == NULL );
 
-	for ( i = 0; !BER_BVISNULL( &v[ i ].word ); i++ )
-		;
+	for ( i = 0; !BER_BVISNULL( &v[ i ].word ); i++ ) /* EMPTY */;
 
 	*vp = ch_calloc( i + 1, sizeof( slap_verbmasks ) );
 

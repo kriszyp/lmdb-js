@@ -217,7 +217,7 @@ rwm_map_config(
 			|| avl_find( map->remap, (caddr_t)&mapping[1], rwm_mapping_cmp ) != NULL)
 	{
 		fprintf( stderr,
-			"%s: line %d: duplicate mapping found" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			"%s: line %d: duplicate mapping found.\n",
 			fname, lineno );
 		/* FIXME: free stuff */
 		goto error_return;
