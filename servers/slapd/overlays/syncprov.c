@@ -1429,6 +1429,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 			mf.f_av_value = uuids[i];
 			cb.sc_private = NULL;
 			fop.ors_slimit = 1;
+			frs.sr_nentries = 0;
 			rc = fop.o_bd->be_search( &fop, &frs );
 
 			/* If entry was not found, add to delete list */
@@ -1756,7 +1757,7 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->ors_filterstr.bv_val = ptr;
 	strcpy( ptr, so->s_filterstr.bv_val );
 	op2->ors_filterstr.bv_len = so->s_filterstr.bv_len;
-	op2->ors_filter = str2filter( ptr );
+	op2->ors_filter = filter_dup( op->ors_filter, NULL );
 	so->s_op = op2;
 
 	/* Copy any cached group ACLs individually */

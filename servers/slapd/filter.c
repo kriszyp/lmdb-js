@@ -777,6 +777,81 @@ filter2bv( Filter *f, struct berval *fstr )
 	filter2bv_x( &op, f, fstr );
 }
 
+Filter *
+filter_dup( Filter *f, void *memctx )
+{
+	BerMemoryFunctions *mf = &slap_sl_mfuncs;
+	Filter *n;
+
+	if ( !f )
+		return NULL;
+
+	n = mf->bmf_malloc( sizeof(Filter), memctx );
+	n->f_choice = f->f_choice;
+	n->f_next = NULL;
+
+	switch( f->f_choice ) {
+	case SLAPD_FILTER_COMPUTED:
+		n->f_result = f->f_result;
+		break;
+	case LDAP_FILTER_PRESENT:
+		n->f_desc = f->f_desc;
+		break;
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_APPROX:
+		/* Should this be ava_dup() ? */
+		n->f_ava = mf->bmf_calloc( 1, sizeof(AttributeAssertion), memctx );
+		*n->f_ava = *f->f_ava;
+		ber_dupbv_x( &n->f_av_value, &f->f_av_value, memctx );
+		break;
+	case LDAP_FILTER_SUBSTRINGS:
+		n->f_sub = mf->bmf_calloc( 1, sizeof(SubstringsAssertion), memctx );
+		n->f_sub_desc = f->f_sub_desc;
+		if ( !BER_BVISNULL( &f->f_sub_initial ))
+			ber_dupbv_x( &n->f_sub_initial, &f->f_sub_initial, memctx );
+		if ( f->f_sub_any ) {
+			int i;
+			for ( i = 0; !BER_BVISNULL( &f->f_sub_any[i] ); i++ );
+			n->f_sub_any = mf->bmf_malloc(( i+1 )*sizeof( struct berval ),
+				memctx );
+			for ( i = 0; !BER_BVISNULL( &f->f_sub_any[i] ); i++ ) {
+				ber_dupbv_x( &n->f_sub_any[i], &f->f_sub_any[i], memctx );
+			}
+			BER_BVZERO( &n->f_sub_any[i] );
+		}
+		if ( !BER_BVISNULL( &f->f_sub_final ))
+			ber_dupbv_x( &n->f_sub_final, &f->f_sub_final, memctx );
+		break;
+	case LDAP_FILTER_EXT: {
+		/* Should this be mra_dup() ? */
+		ber_len_t length;
+		length = sizeof(MatchingRuleAssertion);
+		if ( !BER_BVISNULL( &f->f_mr_rule_text ))
+			length += f->f_mr_rule_text.bv_len + 1;
+		n->f_mra = mf->bmf_calloc( 1, length, memctx );
+		*n->f_mra = *f->f_mra;
+		ber_dupbv_x( &n->f_mr_value, &f->f_mr_value, memctx );
+		if ( !BER_BVISNULL( &f->f_mr_rule_text )) {
+			n->f_mr_rule_text.bv_val = (char *)(n->f_mra+1);
+			AC_MEMCPY(n->f_mr_rule_text.bv_val,
+				f->f_mr_rule_text.bv_val, f->f_mr_rule_text.bv_len );
+		}
+		} break;
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT: {
+		Filter **p;
+		for ( p = &n->f_list, f = f->f_list; f; f = f->f_next ) {
+			*p = filter_dup( f, memctx );
+			p = &(*p)->f_next;
+		}
+		} break;
+	}
+	return n;
+}
+
 static int
 get_simple_vrFilter(
 	Operation *op,
