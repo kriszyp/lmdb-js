@@ -16,7 +16,7 @@ Current contributions:
 		Contributed by NeoSoft
 
 	slapd-modules
-		Native modules
+		Native-API modules
 
 	slapd-tools
 		Tools to use with slapd
