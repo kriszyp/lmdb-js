@@ -1121,6 +1121,12 @@ int slapd_daemon_init( const char *urls )
 
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
 		urls ? urls : "<null>", 0, 0 );
+
+	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
+#ifdef HAVE_TCPD
+	ldap_pvt_thread_mutex_init( &slap_daemon.tcpd_mutex );
+#endif
+
 	if( (rc = sockinit()) != 0 ) return rc;
 
 #ifdef HAVE_SYSCONF
@@ -1190,11 +1196,6 @@ int slapd_daemon_init( const char *urls )
 #endif
 
 	ldap_charray_free( u );
-	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
-
-#ifdef HAVE_TCPD
-	ldap_pvt_thread_mutex_init( &slap_daemon.tcpd_mutex );
-#endif
 
 	return !i;
 }
