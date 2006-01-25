@@ -382,6 +382,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
 		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 	}
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 	while ((ctx = LDAP_STAILQ_FIRST(&pool->ltp_pending_list)) != NULL)
 	{
