@@ -219,6 +219,14 @@ bdb_db_open( BackendDB *be )
 		goto fail;
 	}
 
+#ifdef HAVE_EBCDIC
+	strcpy( path, bdb->bi_dbenv_home );
+	__atoe( path );
+	dbhome = path;
+#else
+	dbhome = bdb->bi_dbenv_home;
+#endif
+
 	/* If existing environment is clean but doesn't support
 	 * currently requested modes, remove it.
 	 */
@@ -260,14 +268,6 @@ bdb_db_open( BackendDB *be )
 	}
 
 #define	BDB_TXN_FLAGS	(DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN)
-
-#ifdef HAVE_EBCDIC
-	strcpy( path, bdb->bi_dbenv_home );
-	__atoe( path );
-	dbhome = path;
-#else
-	dbhome = bdb->bi_dbenv_home;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_db_open: dbenv_open(%s)\n",
