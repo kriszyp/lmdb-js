@@ -10,8 +10,8 @@ OpenLDAP 2.3.19 Release
 	Fixed slapd-bdb/hdb auto-recovery issue (ITS#4361,ITS#4373)
 	Fixed slapd-bdb/hdb BDB 4.4 compatibility issues (ITS#4362)
 	Fixed slapo-ppolicy modify issue (ITS#4355)
-	Fixed slapo-syncprov/pache filter dup issue (ITS#4364)
-	Fixed slapo-syncprov playlog netries reset issue (ITS#4365)
+	Fixed slapo-syncprov/pcache filter dup issue (ITS#4364)
+	Fixed slapo-syncprov playlog nentries reset issue (ITS#4365)
 	Build environment
 		Fixed slaptools when --disable-debug (ITS#4351)
 		Fixed slapd(8) solaris select(2) issue (ITS#4357)
