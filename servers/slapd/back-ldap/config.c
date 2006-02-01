@@ -61,6 +61,7 @@ enum {
 	LDAP_BACK_CFG_WHOAMI,
 	LDAP_BACK_CFG_TIMEOUT,
 	LDAP_BACK_CFG_IDLE_TIMEOUT,
+	LDAP_BACK_CFG_CONN_TTL,
 	LDAP_BACK_CFG_REWRITE,
 
 	LDAP_BACK_CFG_LAST
@@ -220,6 +221,14 @@ static ConfigTable ldapcfg[] = {
 		ldap_back_cf_gen, "( OLcfgDbAt:3.15 "
 			"NAME 'olcDbIdleTimeout' "
 			"DESC 'connection idle timeout' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ "conn-ttl", "ttl", 2, 0, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_CONN_TTL,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.16 "
+			"NAME 'olcDbConnTtl' "
+			"DESC 'connection ttl' "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -558,6 +567,18 @@ ldap_back_cf_gen( ConfigArgs *c )
 			value_add_one( &c->rvalue_vals, &bv );
 			} break;
 
+		case LDAP_BACK_CFG_CONN_TTL: {
+			char	buf[ SLAP_TEXT_BUFLEN ];
+
+			if ( li->li_conn_ttl == 0 ) {
+				return 1;
+			}
+
+			lutil_unparse_time( buf, sizeof( buf ), li->li_conn_ttl );
+			ber_str2bv( buf, 0, 0, &bv );
+			value_add_one( &c->rvalue_vals, &bv );
+			} break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -637,6 +658,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_IDLE_TIMEOUT:
 			li->li_idle_timeout = 0;
+			break;
+
+		case LDAP_BACK_CFG_CONN_TTL:
+			li->li_conn_ttl = 0;
 			break;
 
 		default:
@@ -1160,6 +1185,19 @@ done_url:;
 			return 1;
 		}
 		li->li_idle_timeout = (time_t)t;
+		} break;
+
+	case LDAP_BACK_CFG_CONN_TTL: {
+		unsigned long	t;
+
+		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
+			snprintf( c->msg, sizeof( c->msg),
+				"unable to parse conn ttl\"%s\"",
+				c->argv[ 1 ] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return 1;
+		}
+		li->li_conn_ttl = (time_t)t;
 		} break;
 
 	case LDAP_BACK_CFG_REWRITE:

@@ -174,6 +174,7 @@ typedef struct metasingleconn_t {
 #define META_ANONYMOUS		2
 #endif
 
+	time_t			msc_create_time;
 	time_t			msc_time;
 
 	struct metainfo_t	*msc_info;
@@ -228,6 +229,7 @@ typedef struct metatarget_t {
 	unsigned		mt_flags;
 	int			mt_version;
 	time_t			mt_network_timeout;
+	time_t			mt_conn_ttl;
 	time_t			mt_idle_timeout;
 	struct timeval		mt_bind_timeout;
 #define META_BIND_TIMEOUT	LDAP_BACK_RESULT_UTIMEOUT
@@ -274,6 +276,7 @@ typedef struct metainfo_t {
 
 	int			mi_version;
 	time_t			mi_network_timeout;
+	time_t			mi_conn_ttl;
 	time_t			mi_idle_timeout;
 	struct timeval		mi_bind_timeout;
 	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];

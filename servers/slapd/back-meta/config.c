@@ -158,6 +158,7 @@ meta_back_db_config(
 		mi->mi_targets[ i ].mt_flags = mi->mi_flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
 		mi->mi_targets[ i ].mt_network_timeout = mi->mi_network_timeout;
+		mi->mi_targets[ i ].mt_conn_ttl = mi->mi_conn_ttl;
 		mi->mi_targets[ i ].mt_idle_timeout = mi->mi_idle_timeout;
 		mi->mi_targets[ i ].mt_bind_timeout = mi->mi_bind_timeout;
 		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
@@ -393,6 +394,38 @@ meta_back_db_config(
 		if ( lutil_parse_time( argv[ 1 ], &t ) ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unable to parse timeout \"%s\" in \"idle-timeout <seconds>\" line\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+
+		}
+
+		*tp = (time_t)t;
+
+	/* conn ttl */
+	} else if ( strcasecmp( argv[ 0 ], "conn-ttl" ) == 0 ) {
+		unsigned long	t;
+		time_t		*tp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_conn_ttl
+				: &mi->mi_conn_ttl;
+
+		switch ( argc ) {
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: missing ttl value in \"conn-ttl <seconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		case 2:
+			break;
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: extra cruft after ttl value in \"conn-ttl <seconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( lutil_parse_time( argv[ 1 ], &t ) ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse ttl \"%s\" in \"conn-ttl <seconds>\" line\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 

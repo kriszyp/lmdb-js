@@ -220,20 +220,28 @@ meta_back_init_one_conn(
 	 * Already init'ed
 	 */
 	if ( msc->msc_ld != NULL ) {
-		if ( mt->mt_idle_timeout == 0 ) {
-			return rs->sr_err = LDAP_SUCCESS;
-		}
+		int	doreturn = 1;
 
-		if ( op->o_time > msc->msc_time + mt->mt_idle_timeout ) {
+		if ( ( mt->mt_idle_timeout != 0 && op->o_time > msc->msc_time + mt->mt_idle_timeout )
+			|| ( mt->mt_conn_ttl != 0 && op->o_time > msc->msc_create_time + mt->mt_conn_ttl ) )
+		{
 			Debug( LDAP_DEBUG_TRACE,
-				"%s meta_back_init_one_conn[%d]: idle timeout.\n",
+				"%s meta_back_init_one_conn[%d]: idle timeout/ttl.\n",
 				op->o_log_prefix, candidate, 0 );
 			if ( meta_back_retry( op, rs, mc, candidate, sendok ) ) {
 				return rs->sr_err;
 			}
+
+			doreturn = 0;
 		}
 
-		msc->msc_time = op->o_time;
+		if ( mt->mt_idle_timeout != 0 ) {
+			msc->msc_time = op->o_time;
+		}
+
+		if ( doreturn ) {
+			return rs->sr_err = LDAP_SUCCESS;
+		}
 	}
        
 	/*
@@ -430,6 +438,10 @@ error_return:;
 
 		if ( mt->mt_idle_timeout ) {
 			msc->msc_time = op->o_time;
+		}
+
+		if ( mt->mt_conn_ttl ) {
+			msc->msc_create_time = op->o_time;
 		}
 
 	} else {

@@ -111,6 +111,11 @@ illustrated for the
 directive.
 
 .TP
+.B conn-ttl <time>
+This directive causes a cached connection to be dropped an recreated
+after a given ttl, regardless of being idle or not.
+
+.TP
 .B onerr {CONTINUE|stop}
 This directive allows to select the behavior in case an error is returned
 by one target during a search.

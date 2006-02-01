@@ -459,6 +459,11 @@ error_return:;
 			send_ldap_result( op, rs );
 			rs->sr_text = NULL;
 		}
+
+	} else {
+		if ( li->li_conn_ttl > 0 ) {
+			(*lcp)->lc_create_time = op->o_time;
+		}
 	}
 
 	return rs->sr_err;
@@ -597,9 +602,11 @@ retry_lock:
 		}
 
 	} else {
-		if ( li->li_idle_timeout != 0 && op->o_time > lc->lc_time + li->li_idle_timeout ) {
+		if ( ( li->li_idle_timeout != 0 && op->o_time > lc->lc_time + li->li_idle_timeout )
+			|| ( li->li_conn_ttl != 0 && op->o_time > lc->lc_create_time + li->li_conn_ttl ) )
+		{
 			/* in case of failure, it frees/taints lc and sets it to NULL */
-			if ( ldap_back_retry( &lc, op, rs, sendok ) ) {
+			if ( !ldap_back_retry( &lc, op, rs, sendok ) ) {
 				lc = NULL;
 			}
 		}
