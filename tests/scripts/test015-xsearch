@@ -156,6 +156,13 @@ echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	"$FILTER" >> $SEARCHOUT 2>&1
 
+# ITS#4380: don't crash when a matchingRule without pretty/validate is used
+FILTER="(:dn:caseIgnoreSubstringsMatch:=Information Technology Division)"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
