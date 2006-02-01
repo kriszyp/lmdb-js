@@ -3,7 +3,7 @@
 .\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_sasl_bind, ldap_sasl_bind_s, ldap_sasl_interactive_bind_s, ldap_parse_sasl_bind_result, ldap_unbind, ldap_unbind_s \- LDAP bind routines
+ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_sasl_bind, ldap_sasl_bind_s, ldap_sasl_interactive_bind_s, ldap_parse_sasl_bind_result, ldap_unbind, ldap_unbind_s, ldap_unbind_ext, ldap_unbind_ext_s, ldap_set_rebind_proc \- LDAP bind routines
 .SH LIBRARY
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
@@ -58,6 +58,18 @@ OpenLDAP LDAP (libldap, -lldap)
 .\" .ft
 .\" LDAP *ld;
 .\" int (*rebindproc)();
+.LP
+.BI "int ldap_unbind_ext(LDAP *" ld ", LDAPControl *" sctrls "[],"
+.RS
+.BI LDAPControl *" cctrls "[]);"
+.RE
+.LP
+.BI "int ldap_unbind_ext_s(LDAP *" ld ", LDAPControl *" sctrls "[],"
+.RS
+.BI LDAPControl *" cctrls "[]);"
+.RE
+.LP
+.BI "int ldap_set_rebind_proc (LDAP *" ld ", LDAP_REBIND_PROC *" ldap_proc ", void *" params);"
 .SH DESCRIPTION
 .LP
 These routines provide various interfaces to the LDAP bind operation.
@@ -79,7 +91,6 @@ Both synchronous and asynchronous versions of each variant of the bind
 call are provided.  All routines
 take \fIld\fP as their first parameter, as returned from
 .BR ldap_init (3).
-.LP
 .SH SIMPLE AUTHENTICATION
 The simplest form of the bind call is
 .BR ldap_simple_bind_s() .
@@ -110,6 +121,41 @@ returns the message id of the request it initiates.
 returns an LDAP error indication.
 .SH SASL AUTHENTICATION
 Description still under construction...
+.SH REBINDING
+.LP
+The
+.B ldap_set_rebind_proc
+function() sets the process to use for binding when an operation returns a
+referral. This function is used when an application needs to bind to another server
+in order to follow a referral or search continuation reference.
+.LP
+The function takes \fIld\fP, the \fIrebind\fP function, and the \fIparams\fP,
+the arbitrary data like state information which the client might need to properly rebind.
+The LDAP_OPT_REFERRALS option in the \fIld\fP must be set to ON for the libraries
+to use the rebind function. Use the
+.BR ldap_set_option
+function to set the value.
+.LP
+The rebind function has the following syntax.
+.B int rebind_function (LDAP *ld, const char *url,int request,ber_int_t   msgid);
+.LP
+The \fIld\fP parameter must be used by the application when binding to the
+referred server if the application wants the libraries to follow the referral.
+.LP
+The \fIurl\fP parameter points to the URL referral string received from the LDAP server.
+The LDAP application can use the 
+.BR ldap_url_parse()
+.LP
+The \fIrequest\fP parameter specifies the request operation that generated the referral. 
+function to parse the string into its components.
+.LP
+The \fImsgid\fP parameter specifies the message ID of the request generating the referral.
+.LP
+The LDAP libraries set all the parameters when they call the rebind function. The application
+should not attempt to free either the ld or the url structures in the rebind function.
+.LP
+The application must supply to the rebind function the required authentication information such as,
+user name, password, and certificates. The rebind function must use a synchronous bind method.
 .SH UNBINDING
 The
 .B ldap_unbind()
@@ -154,16 +200,32 @@ both of these calls are synchronous in nature.
 .\" If anything but LDAP_SUCCESS is returned by the first call to
 .\" the rebindproc, then referral processing is stopped and that error code
 .\" is returned for the original LDAP operation.
+.LP
+The
+.B ldap_unbind_ext()
+and
+.B ldap_unbind_ext_s()
+allows the operations to sepicify  controls.
 .SH ERRORS
 Asynchronous routines will return -1 in case of error, setting the
 \fIld_errno\fP parameter of the \fIld\fP structure.  Synchronous
 routines return whatever \fIld_errno\fP is set to.  See
 .BR ldap_error (3)
 for more information.
+.SH NOTES
+If an anonymous bind is sufficient for the application,the rebind process
+need not be provided. The LDAP libraries with the LDAP_OPT_REFERRALS option
+set to ON (default value) will automatically follow referrals using an anonymous bind.
+.LP
+If the application needs stronger authentication than an anonymous bind,
+you need to provide a rebind process for that authentication method.
+The bind method must be synchronous.
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_error (3),
 .BR ldap_open (3),
+.BR ldap_set_option (3),
+.BR ldap_url_parse (3)
 .B RFC 2222
 (http://www.ietf.org),
 .B Cyrus SASL
