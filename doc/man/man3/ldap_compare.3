@@ -3,7 +3,7 @@
 .\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_compare, ldap_compare_s \- Perform an LDAP compare operation
+ldap_compare, ldap_compare_s, ldap_compare_ext, ldap_compare_ext_s \- Perform an LDAP compare operation.
 .SH LIBRARY
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
@@ -22,6 +22,23 @@ int ldap_compare(ld, dn, attr, value)
 .ft
 LDAP *ld;
 char *dn, *attr, *value;
+.LP
+.ft B
+int ldap_compare_ext(ld, dn, attr, bvalue, serverctrls, clientctrls, msgidp)
+.ft
+LDAP *ld;
+char *dn, *attr;
+const struct berval *bvalue;
+LDAPControl **serverctrls, **clientctrls;
+int *msgidp;
+.LP
+.ft B
+int ldap_compare_ext_s(ld, dn, attr, bvalue, serverctrls, clientctrls)
+.ft
+LDAP *ld;
+char *dn, *attr;
+const struct berval *bvalue;
+LDAPControl **serverctrls, **clientctrls;
 .SH DESCRIPTION
 The
 .B ldap_compare_s()
@@ -40,6 +57,20 @@ asynchronously.  It takes the same parameters as
 but returns the message id of the request it initiated.  The result of
 the compare can be obtained by a subsequent call to
 .BR ldap_result (3).
+.LP
+The
+.B ldap_compare_ext()
+routine  allows  server  and client controls to be 
+specified to extend the compare request. This routine is asynchronous like 
+ldap_compare(),  but its return value is an LDAP error code. It stores the 
+message id of the request in the integer pointed to by msgidp.
+.LP
+The
+.B ldap_compare_ext_s()
+routine is the synchronous version of
+.BR ldap_compare_ext().
+It also returns an LDAP error code indicating success 
+or failure of the operation.
 .SH ERRORS
 .B ldap_compare_s()
 returns an LDAP error code which can be interpreted
@@ -48,6 +79,12 @@ by calling one of
 and friends.  ldap_compare() returns
 -1 if something went wrong initiating the request.  It returns the
 non-negative message id of the request if things went ok.
+.LP
+.B ldap_compare_ext_s()
+and
+.B ldap_compare_ext()
+return some Non-zero value other than 0x05 or 0x06 in case of failure.
+0x05 corresponds to LDAP_COMPARE_FALSE and 0x06 corresponds to LDAP_COMPARE_TRUE.
 .SH BUGS
 There is no way to compare binary values, but there should be.
 .SH SEE ALSO
