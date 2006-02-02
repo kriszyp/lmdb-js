@@ -1004,7 +1004,9 @@ LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
  * main.c
  */
 LDAP_SLAPD_F (int)
-parse_debug_level LDAP_P(( const char *arg, int *levelp ));
+parse_debug_level LDAP_P(( const char *arg, int *levelp, char ***unknowns ));
+LDAP_SLAPD_F (int)
+parse_debug_unknowns LDAP_P(( char **unknowns, int *levelp ));
 
 /*
  * matchedValues.c

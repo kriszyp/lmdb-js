@@ -222,13 +222,31 @@ parse_syslog_level( const char *arg, int *levelp )
 }
 
 int
-parse_debug_level( const char *arg, int *levelp )
+parse_debug_unknowns( char **unknowns, int *levelp )
+{
+	int i, level, rc = 0;
+
+	for ( i = 0; unknowns[ i ] != NULL; i++ ) {
+		level = 0;
+		if ( str2loglevel( unknowns[ i ], &level )) {
+			fprintf( stderr,
+				"unrecognized log level \"%s\"\n", unknowns[ i ] );
+			rc = 1;
+		} else {
+			*levelp |= level;
+		}
+	}
+	return rc;
+}
+
+int
+parse_debug_level( const char *arg, int *levelp, char ***unknowns )
 {
 	int	level;
 
 	if ( arg != NULL && arg[ 0 ] != '-' && !isdigit( arg[ 0 ] ) )
 	{
-		int	i, goterr = 0;
+		int	i;
 		char	**levels;
 
 		levels = ldap_str2charray( arg, "," );
@@ -237,22 +255,17 @@ parse_debug_level( const char *arg, int *levelp )
 			level = 0;
 
 			if ( str2loglevel( levels[ i ], &level ) ) {
+				/* remember this for later */
+				ldap_charray_add( unknowns, levels[ i ] );
 				fprintf( stderr,
-					"unrecognized log level "
-					"\"%s\"\n", levels[ i ] );
-				goterr = 1;
-				/* but keep parsing... */
-
+					"unrecognized log level \"%s\" (deferred)\n",
+					levels[ i ] );
 			} else {
 				*levelp |= level;
 			}
 		}
 
 		ldap_charray_free( levels );
-
-		if ( goterr ) {
-			return 1;
-		}
 
 	} else {
 		if ( lutil_atoix( &level, arg, 0 ) != 0 ) {
@@ -348,6 +361,9 @@ int main( int argc, char **argv )
 
 	struct sync_cookie *scp = NULL;
 	struct sync_cookie *scp_entry = NULL;
+
+	char **debug_unknowns = NULL;
+	char **syslog_unknowns = NULL;
 
 	char *serverNamePrefix = "";
 	size_t	l;
@@ -486,7 +502,7 @@ int main( int argc, char **argv )
 			int	level = 0;
 
 			no_detach = 1;
-			if ( parse_debug_level( optarg, &level ) ) {
+			if ( parse_debug_level( optarg, &level, &debug_unknowns ) ) {
 				goto destroy;
 			}
 #ifdef LDAP_DEBUG
@@ -541,7 +557,7 @@ int main( int argc, char **argv )
 		}
 
 		case 's':	/* set syslog level */
-			if ( parse_debug_level( optarg, &ldap_syslog ) ) {
+			if ( parse_debug_level( optarg, &ldap_syslog, &syslog_unknowns ) ) {
 				goto destroy;
 			}
 			break;
@@ -705,6 +721,21 @@ unhandled_option:;
 		}
 
 		goto destroy;
+	}
+
+	if ( debug_unknowns ) {
+		rc = parse_debug_unknowns( debug_unknowns, &slap_debug );
+		ldap_charray_free( debug_unknowns );
+		debug_unknowns = NULL;
+		if ( rc )
+			goto destroy;
+	}
+	if ( syslog_unknowns ) {
+		rc = parse_debug_unknowns( syslog_unknowns, &ldap_syslog );
+		ldap_charray_free( syslog_unknowns );
+		syslog_unknowns = NULL;
+		if ( rc )
+			goto destroy;
 	}
 
 	if ( check & CHECK_CONFIG ) {

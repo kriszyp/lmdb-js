@@ -189,6 +189,7 @@ slap_tool_init(
 	char *filterstr = NULL;
 	char *subtree = NULL;
 	char *ldiffile	= NULL;
+	char **debug_unknowns = NULL;
 	int rc, i, dbnum;
 	int mode = SLAP_TOOL_MODE;
 	int truncatemode = 0;
@@ -267,7 +268,7 @@ slap_tool_init(
 		case 'd': {	/* turn on debugging */
 			int	level = 0;
 
-			if ( parse_debug_level( optarg, &level ) ) {
+			if ( parse_debug_level( optarg, &level, &debug_unknowns ) ) {
 				usage( tool, progname );
 			}
 #ifdef LDAP_DEBUG
@@ -452,6 +453,14 @@ slap_tool_init(
 		fprintf( stderr, "%s: bad configuration %s!\n",
 			progname, confdir ? "directory" : "file" );
 		exit( EXIT_FAILURE );
+	}
+
+	if ( debug_unknowns ) {
+		rc = parse_debug_unknowns( debug_unknowns, &slap_debug );
+		ldap_charray_free( debug_unknowns );
+		debug_unknowns = NULL;
+		if ( rc )
+			exit( EXIT_FAILURE );
 	}
 
 	at_oc_cache = 1;
