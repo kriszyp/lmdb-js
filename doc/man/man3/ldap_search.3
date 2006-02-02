@@ -3,7 +3,7 @@
 .\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_search, ldap_search_s, ldap_search_st \- Perform an LDAP search operation
+ldap_search, ldap_search_s, ldap_search_st, ldap_search_ext, ldap_search_ext_s \- Perform an LDAP search operation
 .SH LIBRARY
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
@@ -41,6 +41,35 @@ char *filter, *attrs[]
 int attrsonly;
 struct timeval *timeout;
 LDAPMessage **res;
+.LP
+.ft B
+int ldap_search_ext(ld, base, scope, filter, attrs, attrsonly, serverctrls,
+.ft
+clientctrls, timeout, sizelimit, msgidp)
+.ft
+LDAP *ld;
+char *base;
+int scope;
+char *filter, *attrs[]
+int attrsonly;
+LDAPControl **serverctrls, **clientctrls; 
+struct timeval *timeout;
+int sizelimit, *msgidp;
+.LP
+.ft B
+int ldap_search_ext_s(ld, base, scope, filter, attrs, attrsonly, serverctrls,
+.ft
+clientctrls, timeout, sizelimit, res)
+.ft
+LDAP *ld;
+char *base;
+int scope;
+char *filter, *attrs[]
+int attrsonly;
+LDAPControl **serverctrls, **clientctrls; 
+struct timeval *timeout;
+int sizelimit;
+LDAPMessage **res;
 .SH DESCRIPTION
 These routines are used to perform LDAP search operations.
 .B ldap_search_s()
@@ -59,6 +88,7 @@ LDAP_SCOPE_ONELEVEL, to search the object's immediate children,
 or LDAP_SCOPE_SUBTREE, to search the object and all its descendants.
 .LP
 \fIFilter\fP is a string
+
 representation of the filter to apply in the search.  Simple filters
 can be specified as \fI(attributetype=attributevalue)\fP.  More complex
 filters are specified using a prefix notation according to the following
@@ -99,8 +129,24 @@ To request no attributes, the type "1.1" (LDAP_NO_ATTRS)
 should be listed by itself.
 .LP
 \fIAttrsonly\fP should be set to 1 if
-only attribute types are wanted.  It should be set to 0 if both
+only attribute types are wanted. It should be set to 0 if both
 attributes types and attribute values are wanted.
+.LP
+.B ldap_search_ext()
+routine allows server and client controls to be specified to extend
+the search request. This routine is asynchronous like
+.BR ldap_search() ,
+but its return value is an LDAP error code. It stores the message id
+of the request in the integer pointed to
+by
+.IR msgidp .
+.LP
+The
+.B ldap_search_ext_s()
+routine is the synchronous version of
+.BR ldap_search_ext().
+It also returns an LDAP error code indicating success or failure
+of the operation.
 .SH ERRORS
 .B ldap_search_s()
 and
@@ -111,15 +157,28 @@ See
 for details.
 .B ldap_search()
 returns -1 in case of trouble.
+.LP
+.B ldap_search_s(),
+.B ldap_search_ext_s
+and
+.B ldap_search_st()
+will return the LDAP error code resulting from the search operation.
+See
+.BR  ldap_error (3)
+for  details.
+.B ldap_search()
+and
+.B ldap_search_ext
+returns -1 in case of trouble.
 .SH NOTES
 Note that both read
 and list functionality are subsumed by these routines,
 by using a filter like "(objectclass=*)" and a scope of LDAP_SCOPE_BASE (to
 emulate read) or LDAP_SCOPE_ONELEVEL (to emulate list).
 .LP
-These routines may dynamically allocate memory.  The caller is
+These routines may dynamically allocate memory. The caller is
 responsible for freeing such memory using supplied deallocation
-routines.  Return values are contained in <ldap.h>.
+routines. Return values are contained in <ldap.h>.
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_result (3),
