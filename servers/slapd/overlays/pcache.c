@@ -1068,7 +1068,8 @@ pcache_response(
 	} else if ( rs->sr_type == REP_RESULT ) {
 		QueryTemplate* templ = (qm->templates)+si->template_id;
 		if (( si->count && cache_entries( op, rs, &uuid ) == 0 ) ||
-			( !si->count && templ->negttl && rs->sr_err == LDAP_SUCCESS )) {
+			( templ->negttl && !si->count && !si->over &&
+				rs->sr_err == LDAP_SUCCESS )) {
 			qm->addfunc(qm, &si->query, si->template_id,
 				si->count ? &uuid : NULL);
 
