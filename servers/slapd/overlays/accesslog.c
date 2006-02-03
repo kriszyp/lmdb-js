@@ -1132,7 +1132,6 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 		op2.o_callback = &nullsc;
 		op2.o_controls = cids;
 		memset(cids, 0, sizeof( cids ));
-		memset(op2.o_ctrlflag, 0, sizeof( op2.o_ctrlflag ));
 
 		op2.o_bd->be_add( &op2, &rs2 );
 		entry_free( e );
@@ -1171,7 +1170,6 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	op2.o_callback = &nullsc;
 	op2.o_controls = cids;
 	memset(cids, 0, sizeof( cids ));
-	memset(op2.o_ctrlflag, 0, sizeof( op2.o_ctrlflag ));
 
 	op2.o_bd->be_add( &op2, &rs2 );
 	entry_free( e );
