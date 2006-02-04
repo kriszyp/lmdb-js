@@ -119,3 +119,9 @@ tester_perror( const char *fname )
 			AC_STRERROR_R( save_errno, buf, sizeof( buf ) ) );
 }
 
+void
+tester_error( const char *msg )
+{
+	fprintf( stderr, "%s: %s\n", progname, msg );
+}
+

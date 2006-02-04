@@ -22,6 +22,7 @@
 
 extern void tester_init( const char *pname );
 extern char * tester_uri( char *uri, char *host, int port );
+extern void tester_error( const char *msg );
 extern void tester_perror( const char *fname );
 extern void tester_ldap_error( LDAP *ld, const char *fname );
 
