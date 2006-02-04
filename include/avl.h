@@ -59,6 +59,8 @@ struct avlnode {
 #define EH 	0
 #define RH 	1
 
+#define avl_bf2str(bf)	((bf) == -1 ? "LH" : (bf) == 0 ? "EH" : (bf) == 1 ? "RH" : "(unknown)" )
+
 /* thread bits */
 #define	AVL_THREAD	0
 #define	AVL_CHILD	1
