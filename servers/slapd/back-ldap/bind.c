@@ -35,7 +35,11 @@
 
 #include <lutil_ldap.h>
 
+#ifndef PRINT_CONNTREE
 #define PRINT_CONNTREE 0
+#endif /* !PRINT_CONNTREE */
+
+#define LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ	"2.16.840.1.113730.3.4.12"
 
 static LDAP_REBIND_PROC	ldap_back_default_rebind;
 
@@ -204,8 +208,9 @@ ravl_print( Avlnode *root, int depth )
 	}
 
 	lc = root->avl_data;
-	printf( "lc(%lx) local(%s) conn(%lx) %d\n",
-			lc, lc->lc_local_ndn.bv_val, lc->lc_conn, root->avl_bf );
+	printf( "lc(%lx) local(%s) conn(%lx) %s\n",
+		lc, lc->lc_local_ndn.bv_val, lc->lc_conn,
+		avl_bf2str( root->avl_bf) );
 	
 	ravl_print( root->avl_left, depth+1 );
 }
