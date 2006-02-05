@@ -410,8 +410,7 @@ retry:	/* transaction retry */
 
 return_results:
 	send_ldap_result( op, rs );
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );

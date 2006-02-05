@@ -67,8 +67,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 		op->o_req_dn.bv_val,op->oq_modrdn.rs_newrdn.bv_val,
 		op->oq_modrdn.rs_newSup ? op->oq_modrdn.rs_newSup->bv_val : "NULL" );
 
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, &op->orr_modlist, 1 );
+	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -744,6 +743,8 @@ return_results:
 	}
 
 done:
+	slap_graduate_commit_csn( op );
+
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
 	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
 

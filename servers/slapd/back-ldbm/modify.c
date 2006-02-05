@@ -241,8 +241,7 @@ ldbm_back_modify(
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, &op->orm_modlist, 1 );
+	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -300,8 +299,7 @@ return_results:;
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 	send_ldap_result( op, rs );
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 
 	rs->sr_text = NULL;
 	return rs->sr_err;

@@ -654,12 +654,22 @@ int slap_add_opattrs(
 	if ( SLAP_LASTMOD( op->o_bd ) ) {
 		char *ptr;
 		timestamp.bv_val = timebuf;
+		int gotcsn = 0;
+
+		a = attr_find( op->ora_e->e_attrs, slap_schema.si_ad_entryCSN );
+		if ( a ) {
+			gotcsn = 1;
+			csn = a->a_vals[0];
+		}
 		if ( BER_BVISEMPTY( &op->o_csn )) {
-			if ( SLAP_SHADOW( op->o_bd ))
-				manage_ctxcsn = 0;
-			csn.bv_val = csnbuf;
-			csn.bv_len = sizeof(csnbuf);
-			slap_get_csn( op, &csn, manage_ctxcsn );
+			if ( !gotcsn ) {
+				csn.bv_val = csnbuf;
+				csn.bv_len = sizeof(csnbuf);
+				slap_get_csn( op, &csn, manage_ctxcsn );
+			} else {
+				if ( manage_ctxcsn )
+					slap_queue_csn( op, &csn );
+			}
 		} else {
 			csn = op->o_csn;
 		}
@@ -712,9 +722,7 @@ int slap_add_opattrs(
 				slap_schema.si_ad_createTimestamp, &timestamp, NULL );
 		}
 
-		a = attr_find( op->ora_e->e_attrs,
-			slap_schema.si_ad_entryCSN );
-		if ( !a ) {
+		if ( !gotcsn ) {
 			attr_merge_one( op->ora_e,
 				slap_schema.si_ad_entryCSN, &csn, NULL );
 		}

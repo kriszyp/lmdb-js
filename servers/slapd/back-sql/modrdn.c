@@ -394,6 +394,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	assert( op->orr_modlist != NULL );
 
+	slap_mods_opattrs( op, &op->orr_modlist, 1 );
+
 	oc = backsql_id2oc( bi, e_id.eid_oc_id );
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, op->orr_modlist );
 	slap_graduate_commit_csn( op );
@@ -492,6 +494,7 @@ done:;
 	}
 
 	send_ldap_result( op, rs );
+	slap_graduate_commit_csn( op );
 
 	if ( !BER_BVISNULL( &realnew_dn ) && realnew_dn.bv_val != new_dn.bv_val ) {
 		ch_free( realnew_dn.bv_val );

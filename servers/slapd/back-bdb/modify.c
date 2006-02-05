@@ -298,8 +298,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 
 	ctrls[num_ctrls] = NULL;
 
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, &op->orm_modlist, 1 );
+	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -590,8 +589,6 @@ return_results:
 		attrs_free( dummy.e_attrs );
 	}
 	send_ldap_result( op, rs );
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_graduate_commit_csn( op );
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		TXN_CHECKPOINT( bdb->bi_dbenv,
@@ -599,6 +596,8 @@ return_results:
 	}
 
 done:
+	slap_graduate_commit_csn( op );
+
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
 	}

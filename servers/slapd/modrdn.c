@@ -500,13 +500,6 @@ slap_modrdn2mods(
 	
 done:
 
-#if 0
-	/* should be done by backend */
-	if ( rs->sr_err == LDAP_SUCCESS && !repl_user ) {
-		slap_mods_opattrs( op, &op->orr_modlist, 1 );
-	}
-#endif
-
 	/* LDAP v2 supporting correct attribute handling. */
 	if ( rs->sr_err != LDAP_SUCCESS && op->orr_modlist != NULL ) {
 		Modifications *tmp;

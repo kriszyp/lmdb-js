@@ -64,8 +64,7 @@ ldbm_back_modrdn(
 		( op->oq_modrdn.rs_newSup && op->oq_modrdn.rs_newSup->bv_len )
 			? op->oq_modrdn.rs_newSup->bv_val : "NULL", 0 );
 
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, &op->orr_modlist, 1 );
+	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -422,6 +421,7 @@ ldbm_back_modrdn(
 	cache_entry_commit( e );
 
 return_results:
+	slap_graduate_commit_csn( op );
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
 	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
 	if( old_ndn.bv_val != NULL ) free( old_ndn.bv_val );

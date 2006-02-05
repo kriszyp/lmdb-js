@@ -191,6 +191,7 @@ done:;
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	send_ldap_result( op, rs );
+	slap_graduate_commit_csn( op );
 
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
