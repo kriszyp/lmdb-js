@@ -271,8 +271,6 @@ OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
 OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
-dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
-ol_enable_multimaster=${ol_enable_multimaster-no}
 OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and rwm overlay], auto)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
 OL_ARG_ENABLE(slapi,[    --enable-slapi        enable SLAPI support (experimental)], no)dnl
@@ -424,9 +422,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_modules = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
 	fi
-	if test $ol_enable_multimaster = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-multimaster argument])
-	fi
 	if test $ol_enable_wrappers = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-wrappers argument])
 	fi
@@ -469,7 +464,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_backends=
 	ol_enable_overlays=
 	ol_enable_modules=no
-	ol_enable_multimaster=no
 	ol_enable_rlookups=no
 	ol_enable_dynacl=no
 	ol_enable_aci=no
@@ -2704,9 +2698,6 @@ if test "$ol_enable_crypt" != no ; then
 fi
 if test "$ol_link_spasswd" != no ; then
 	AC_DEFINE(SLAPD_SPASSWD,1,[define to support SASL passwords])
-fi
-if test "$ol_enable_multimaster" != no ; then
-	AC_DEFINE(SLAPD_MULTIMASTER,1,[define to support multimaster replication])
 fi
 if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
