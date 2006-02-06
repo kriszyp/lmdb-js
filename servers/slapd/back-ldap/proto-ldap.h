@@ -59,8 +59,9 @@ int ldap_back_op_result( ldapconn_t *lc, Operation *op, SlapReply *rs,
 
 int ldap_back_init_cf( BackendInfo *bi );
 
+extern int ldap_back_conndn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_cmp( const void *c1, const void *c2);
-extern int ldap_back_conn_dup( void *c1, void *c2 );
+extern int ldap_back_conndn_dup( void *c1, void *c2 );
 extern void ldap_back_conn_free( void *c );
 
 extern int

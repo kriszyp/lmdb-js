@@ -122,12 +122,12 @@ retry_lock:;
 
 		assert( lc->lc_refcnt == 1 );
 		lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-				ldap_back_conn_cmp );
+				ldap_back_conndn_cmp );
 		assert( lc != NULL );
 
 		ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
 		lerr = avl_insert( &li->li_conninfo.lai_tree, (caddr_t)lc,
-			ldap_back_conn_cmp, ldap_back_conn_dup );
+			ldap_back_conndn_cmp, ldap_back_conndn_dup );
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		if ( lerr == -1 ) {
 			/* we can do this because lc_refcnt == 1 */
@@ -144,23 +144,42 @@ retry_lock:;
 }
 
 /*
- * ldap_back_conn_cmp
+ * ldap_back_conndn_cmp
  *
- * compares two ldapconn_t based on the value of the conn pointer;
- * used by avl stuff
+ * compares two ldapconn_t based on the value of the conn pointer
+ * and of the local DN; used by avl stuff for insert, lookup
+ * and direct delete
  */
 int
-ldap_back_conn_cmp( const void *c1, const void *c2 )
+ldap_back_conndn_cmp( const void *c1, const void *c2 )
 {
 	const ldapconn_t	*lc1 = (const ldapconn_t *)c1;
 	const ldapconn_t	*lc2 = (const ldapconn_t *)c2;
 	int rc;
 
 	/* If local DNs don't match, it is definitely not a match */
-	rc = ber_bvcmp( &lc1->lc_local_ndn, &lc2->lc_local_ndn );
-	if ( rc ) {
-		return rc;
+	/* For shared sessions, conn is NULL. Only explicitly
+	 * bound sessions will have non-NULL conn.
+	 */
+	rc = SLAP_PTRCMP( lc1->lc_conn, lc2->lc_conn );
+	if ( rc == 0 ) {
+		rc = ber_bvcmp( &lc1->lc_local_ndn, &lc2->lc_local_ndn );
 	}
+
+	return rc;
+}
+
+/*
+ * ldap_back_conn_cmp
+ *
+ * compares two ldapconn_t based on the value of the conn pointer;
+ * used by avl stuff for delete of all conns with the same connid
+ */
+int
+ldap_back_conn_cmp( const void *c1, const void *c2 )
+{
+	const ldapconn_t	*lc1 = (const ldapconn_t *)c1;
+	const ldapconn_t	*lc2 = (const ldapconn_t *)c2;
 
 	/* For shared sessions, conn is NULL. Only explicitly
 	 * bound sessions will have non-NULL conn.
@@ -169,20 +188,20 @@ ldap_back_conn_cmp( const void *c1, const void *c2 )
 }
 
 /*
- * ldap_back_conn_dup
+ * ldap_back_conndn_dup
  *
  * returns -1 in case a duplicate ldapconn_t has been inserted;
  * used by avl stuff
  */
 int
-ldap_back_conn_dup( void *c1, void *c2 )
+ldap_back_conndn_dup( void *c1, void *c2 )
 {
 	ldapconn_t	*lc1 = (ldapconn_t *)c1;
 	ldapconn_t	*lc2 = (ldapconn_t *)c2;
 
 	/* Cannot have more than one shared session with same DN */
-	if ( dn_match( &lc1->lc_local_ndn, &lc2->lc_local_ndn ) &&
-       			lc1->lc_conn == lc2->lc_conn )
+	if ( lc1->lc_conn == lc2->lc_conn &&
+		dn_match( &lc1->lc_local_ndn, &lc2->lc_local_ndn ) )
 	{
 		return -1;
 	}
@@ -204,12 +223,12 @@ ravl_print( Avlnode *root, int depth )
 	ravl_print( root->avl_right, depth+1 );
 	
 	for ( i = 0; i < depth; i++ ) {
-		printf( "   " );
+		fprintf( stderr, "-" );
 	}
 
 	lc = root->avl_data;
-	printf( "lc(%lx) local(%s) conn(%lx) %s\n",
-		lc, lc->lc_local_ndn.bv_val, lc->lc_conn,
+	fprintf( stderr, "lc=%p local=\"%s\" conn=%p %s\n",
+		(void *)lc, lc->lc_local_ndn.bv_val, (void *)lc->lc_conn,
 		avl_bf2str( root->avl_bf) );
 	
 	ravl_print( root->avl_left, depth+1 );
@@ -218,16 +237,16 @@ ravl_print( Avlnode *root, int depth )
 static void
 myprint( Avlnode *root )
 {
-	printf( "********\n" );
+	fprintf( stderr, "========>\n" );
 	
 	if ( root == 0 ) {
-		printf( "\tNULL\n" );
+		fprintf( stderr, "\tNULL\n" );
 
 	} else {
 		ravl_print( root, 0 );
 	}
 	
-	printf( "********\n" );
+	fprintf( stderr, "<========\n" );
 }
 #endif /* PRINT_CONNTREE */
 
@@ -243,7 +262,7 @@ ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
 	assert( lc->lc_refcnt > 0 );
 	if ( --lc->lc_refcnt == 0 ) {
 		lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-				ldap_back_conn_cmp );
+				ldap_back_conndn_cmp );
 		assert( lc != NULL );
 
 		ldap_back_conn_free( (void *)lc );
@@ -506,7 +525,7 @@ retry_lock:
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
 		lc = (ldapconn_t *)avl_find( li->li_conninfo.lai_tree, 
-				(caddr_t)&lc_curr, ldap_back_conn_cmp );
+				(caddr_t)&lc_curr, ldap_back_conndn_cmp );
 		if ( lc != NULL ) {
 			/* Don't reuse connections while they're still binding */
 			if ( LDAP_BACK_CONN_BINDING( lc ) ) {
@@ -562,7 +581,7 @@ retry_lock:
 			lc_curr.lc_conn = LDAP_BACK_PCONN;
 			ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 			tmplc = (ldapconn_t *)avl_find( li->li_conninfo.lai_tree, 
-					(caddr_t)&lc_curr, ldap_back_conn_cmp );
+					(caddr_t)&lc_curr, ldap_back_conndn_cmp );
 			if ( tmplc != NULL ) {
 				refcnt = ++tmplc->lc_refcnt;
 				ldap_back_conn_free( lc );
@@ -583,7 +602,7 @@ retry_lock:
 
 		assert( lc->lc_refcnt == 1 );
 		rs->sr_err = avl_insert( &li->li_conninfo.lai_tree, (caddr_t)lc,
-			ldap_back_conn_cmp, ldap_back_conn_dup );
+			ldap_back_conndn_cmp, ldap_back_conndn_dup );
 
 #if PRINT_CONNTREE > 0
 		myprint( li->li_conninfo.lai_tree );
