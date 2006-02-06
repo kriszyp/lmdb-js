@@ -1313,6 +1313,14 @@ switch.
 Specifies the maximum number of aliases to dereference when trying to
 resolve an entry, used to avoid infinite alias loops. The default is 1.
 .TP
+.B multimaster on | off
+This option puts a replica database into "multimaster" mode.  Update
+operations will be accepted from any user, not just the updatedn.  The
+database must already be configured as a slurpd or syncrepl consumer
+before this keyword may be set.  This mode must be used with extreme
+care, as it does not offer any consistency guarantees.
+By default, multimaster is off.
+.TP
 .B overlay <overlay-name>
 Add the specified overlay to this database. An overlay is a piece of
 code that intercepts database operations in order to extend or change
