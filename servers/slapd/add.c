@@ -645,9 +645,9 @@ int slap_add_opattrs(
 
 	if ( SLAP_LASTMOD( op->o_bd ) ) {
 		char *ptr;
-		timestamp.bv_val = timebuf;
 		int gotcsn = 0;
 
+		timestamp.bv_val = timebuf;
 		a = attr_find( op->ora_e->e_attrs, slap_schema.si_ad_entryCSN );
 		if ( a ) {
 			gotcsn = 1;
