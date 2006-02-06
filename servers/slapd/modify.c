@@ -367,9 +367,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		/* Multimaster slapd does not have to check for replicator dn
 		 * because it accepts each modify request
 		 */
-#ifndef SLAPD_MULTIMASTER
-		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#endif /* ! SLAPD_MULTIMASTER */
+		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
 		{
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
@@ -385,9 +383,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				}
 			}
 
-#ifdef SLAPD_MULTIMASTER
 			if ( !repl_user )
-#endif /* SLAPD_MULTIMASTER */
 			{
 				/* but multimaster slapd logs only the ones 
 				 * not from a replicator user */
@@ -396,7 +392,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			}
 			op->o_bd->be_modify( op, rs );
 
-#ifndef SLAPD_MULTIMASTER
 		/* send a referral */
 		} else {
 			BerVarray defref = op->o_bd->be_update_refs
@@ -420,7 +415,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 					"shadow context; no update referral" );
 			}
-#endif /* ! SLAPD_MULTIMASTER */
 		}
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,

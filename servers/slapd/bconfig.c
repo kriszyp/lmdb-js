@@ -159,6 +159,7 @@ enum {
 	CFG_SSTR_IF_MAX,
 	CFG_SSTR_IF_MIN,
 	CFG_TTHREADS,
+	CFG_MULTIMASTER,
 
 	CFG_LAST
 };
@@ -363,6 +364,9 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:31 NAME 'olcModulePath' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "multimaster", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_MULTIMASTER,
+		&config_generic, "( OLcfgDbAt:0.16 NAME 'olcMultiMaster' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:32 NAME 'olcObjectClasses' "
 		"DESC 'OpenLDAP object classes' "
@@ -669,7 +673,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
-		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef ) )",
+		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef $ olcMultiMaster ) )",
 		 	Cft_Database, NULL, cfAddDatabase },
 	{ "( OLcfgGlOc:5 "
 		"NAME 'olcOverlayConfig' "
@@ -893,6 +897,9 @@ config_generic(ConfigArgs *c) {
 		case CFG_LASTMOD:
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
 			break;
+		case CFG_MULTIMASTER:
+			c->value_int = (SLAP_SINGLE_SHADOW(c->be) == 0);
+			break;
 		case CFG_SSTR_IF_MAX:
 			c->value_int = index_substr_if_maxlen;
 			break;
@@ -979,6 +986,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
 		case CFG_LASTMOD:
+		case CFG_MULTIMASTER:
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
 		case CFG_SSTR_IF_MIN:
@@ -1332,6 +1340,20 @@ config_generic(ConfigArgs *c) {
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_NOLASTMOD;
 			else
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_NOLASTMOD;
+			break;
+
+		case CFG_MULTIMASTER:
+			if(!SLAP_SHADOW(c->be)) {
+				snprintf( c->msg, sizeof( c->msg ), "<%s> database is not a shadow",
+					c->argv[0] );
+				Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+					c->log, c->msg, 0 );
+				return(1);
+			}
+			if(c->value_int)
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_SINGLE_SHADOW;
+			else
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
 			break;
 
 		case CFG_SSTR_IF_MAX:
@@ -2669,7 +2691,7 @@ config_shadow( ConfigArgs *c, int flag )
 		return 1;
 	}
 
-	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | flag);
+	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SINGLE_SHADOW | flag);
 
 	return 0;
 }

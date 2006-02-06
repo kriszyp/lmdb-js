@@ -153,9 +153,8 @@ int passwd_extop(
 		goto error_return;
 	}
 
-#ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
-	if(!( !SLAP_SHADOW( op->o_bd ) || be_isupdate( op ))) {
+	if(!( !SLAP_SINGLE_SHADOW( op->o_bd ) || be_isupdate( op ))) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = op->o_bd->be_update_refs
 			? op->o_bd->be_update_refs : default_referral; 
@@ -177,7 +176,6 @@ int passwd_extop(
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto error_return;
 	}
-#endif /* !SLAPD_MULTIMASTER */
 
 	/* generate a new password if none was provided */
 	if ( qpw->rs_new.bv_len == 0 ) {

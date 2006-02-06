@@ -155,9 +155,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 	if ( op->o_bd->be_delete ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op );
-#ifndef SLAPD_MULTIMASTER
-		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#endif /* ! SLAPD_MULTIMASTER */
+		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
 		{
 			struct berval	org_req_dn = BER_BVNULL;
 			struct berval	org_req_ndn = BER_BVNULL;
@@ -168,9 +166,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 
 			op->o_bd = op_be;
 
-#ifdef SLAPD_MULTIMASTER
 			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
-#endif /* SLAPD_MULTIMASTER */
 			{
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
@@ -211,7 +207,6 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			op->o_req_ndn = org_req_ndn;
 			op->o_delete_glue_parent = 0;
 
-#ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = op->o_bd->be_update_refs
 				? op->o_bd->be_update_refs : default_referral;
@@ -230,7 +225,6 @@ fe_op_delete( Operation *op, SlapReply *rs )
 					LDAP_UNWILLING_TO_PERFORM,
 					"shadow context; no update referral" );
 			}
-#endif /* ! SLAPD_MULTIMASTER */
 		}
 
 	} else {

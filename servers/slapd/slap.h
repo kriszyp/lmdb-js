@@ -1704,6 +1704,7 @@ struct slap_backend_db {
 #define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0200U	/* this db struct is a global overlay */
 #define SLAP_DBFLAG_DYNAMIC		0x0400U /* this db allows dynamicObjects */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
+#define SLAP_DBFLAG_SINGLE_SHADOW	0x4000U	/* a single-master shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
 #define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */
 	slap_mask_t	be_flags;
@@ -1725,6 +1726,8 @@ struct slap_backend_db {
 #define SLAP_SHADOW(be)				(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SHADOW)
 #define SLAP_SYNC_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SYNC_SHADOW)
 #define SLAP_SLURP_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SLURP_SHADOW)
+#define SLAP_SINGLE_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SINGLE_SHADOW)
+#define SLAP_MULTIMASTER(be)			(!SLAP_SINGLE_SHADOW(be))
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U

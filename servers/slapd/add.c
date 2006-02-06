@@ -281,9 +281,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	if ( op->o_bd->be_add ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op );
-#ifndef SLAPD_MULTIMASTER
-		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#endif /* ! SLAPD_MULTIMASTER */
+		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
 		{
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
@@ -325,15 +323,11 @@ fe_op_add( Operation *op, SlapReply *rs )
 					send_ldap_result( op, rs );
 					goto done;
 				}
-			}
 
-#ifdef SLAPD_MULTIMASTER
-			if ( !repl_user )
-#endif /* SLAPD_MULTIMASTER */
-			{
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
 			}
+
 			rc = op->o_bd->be_add( op, rs );
 			if ( rc == LDAP_SUCCESS ) {
 				/* NOTE: be_entry_release_w() is
@@ -343,7 +337,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 				op->o_private = op->o_bd;
 			}
 
-#ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
 
@@ -366,7 +359,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 					LDAP_UNWILLING_TO_PERFORM,
 					"shadow context; no update referral" );
 			}
-#endif /* SLAPD_MULTIMASTER */
 		}
 	} else {
 		Debug( LDAP_DEBUG_ARGS, "do_add: no backend support\n", 0, 0, 0 );
