@@ -43,7 +43,7 @@ static int
 do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int noinit, LDAP **ldp );
 
 static int
-do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int force, int noinit );
+do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int force, int noinit, int delay );
 
 /* This program can be invoked two ways: if -D is used to specify a Bind DN,
  * that DN will be used repeatedly for all of the Binds. If instead -b is used
@@ -55,7 +55,7 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p port (-D <dn>|-b <baseDN> [-f <searchfilter>]) -w <passwd> [-l <loops>] [-F] [-I]\n",
+	fprintf( stderr, "usage: %s [-h <host>] -p port (-D <dn>|-b <baseDN> [-f <searchfilter>]) -w <passwd> [-l <loops>] [-F] [-I] [-t delay]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -75,10 +75,11 @@ main( int argc, char **argv )
 	int		loops = LOOPS;
 	int		force = 0;
 	int		noinit = 0;
+	int		delay = 0;
 
 	tester_init( "slapd-bind" );
 
-	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:f:FI" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:f:FIt:" )) != EOF ) {
 		switch( i ) {
 			case 'b':		/* base DN of a tree of user DNs */
 				ber_str2bv( optarg, 0, 0, &base );
@@ -126,6 +127,13 @@ main( int argc, char **argv )
 				noinit++;
 				break;
 
+			case 't':
+				/* sleep between binds */
+				if ( lutil_atoi( &delay, optarg ) != 0 ) {
+					usage( argv[0] );
+				}
+				break;
+
 			default:
 				usage( argv[0] );
 				break;
@@ -139,7 +147,7 @@ main( int argc, char **argv )
 	uri = tester_uri( uri, host, port );
 
 	if ( base.bv_val != NULL ) {
-		do_base( uri, &base, &pass, ( 20 * loops ), force, noinit );
+		do_base( uri, &base, &pass, ( 20 * loops ), force, noinit, delay );
 	} else {
 		do_bind( uri, dn, &pass, ( 20 * loops ), force, noinit, NULL );
 	}
@@ -201,13 +209,13 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int n
 	}
 
 	if ( maxloop > 1 ) {
-		fprintf( stderr, " PID=%ld - Bind done.\n", (long) pid );
+		fprintf( stderr, " PID=%ld - Bind done (%d).\n", (long) pid, rc );
 	}
 
 	if ( ldp ) {
 		*ldp = ld;
 
-	} else {
+	} else if (ld != NULL ) {
 		ldap_unbind_ext( ld, NULL, NULL );
 	}
 
@@ -216,7 +224,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int n
 
 
 static int
-do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int force, int noinit )
+do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int force, int noinit, int delay )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0;
@@ -288,8 +296,6 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 		ldap_msgfree( res );
 		if ( done ) break;
 	}
-	ldap_unbind_ext( ld, NULL, NULL );
-	ld = NULL;
 
 #ifdef _WIN32
 	beg = GetTickCount();
@@ -323,6 +329,15 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 		if ( do_bind( uri, dn, pass, 1, force, noinit, &ld ) && !force ) {
 			break;
 		}
+
+		if ( delay ) {
+			sleep( delay );
+		}
+	}
+
+	if ( ld != NULL ) {
+		ldap_unbind_ext( ld, NULL, NULL );
+		ld = NULL;
 	}
 
 #ifdef _WIN32
