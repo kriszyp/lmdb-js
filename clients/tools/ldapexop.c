@@ -31,12 +31,12 @@
 #include <ac/unistd.h>
 
 #include <ldap.h>
+#include "ldif.h"
 #include "lutil.h"
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
 
 #include "common.h"
-
 
 void
 usage( void )
@@ -183,10 +183,12 @@ main( int argc, char *argv[] )
 		}
 
 	} else if ( tool_is_oid( argv[ 0 ] ) ) {
-		/* TODO */
-		fprintf( stderr, "exop \"%s\" not implemented yet.\n\n", argv[ 0 ] );
-		usage();
-		
+		rc = ldap_extended_operation( ld, argv[ 0 ], NULL, NULL, NULL, &id );
+		if ( rc != LDAP_SUCCESS ) {
+			tool_perror( "ldap_extended_operation", rc, NULL, NULL, NULL, NULL );
+			rc = EXIT_FAILURE;
+			goto skip;
+		}
 	} else {
 		fprintf( stderr, "unknown exop \"%s\"\n\n", argv[ 0 ] );
 		usage();
@@ -270,7 +272,35 @@ main( int argc, char *argv[] )
 		printf( "newttl=%d\n", newttl );
 
 	} else if ( tool_is_oid( argv[ 0 ] ) ) {
-		/* ... */
+		char		*retoid = NULL;
+		struct berval	*retdata = NULL;
+
+		if( ldif < 2 ) {
+			printf(_("# extended operation response\n"));
+		}
+
+		rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+		if ( rc != LDAP_SUCCESS ) {
+			tool_perror( "ldap_parse_extended_result", rc, NULL, NULL, NULL, NULL );
+			rc = EXIT_FAILURE;
+			goto skip;
+		}
+
+		if ( ldif < 2 ) {
+			tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+				"oid", retoid, retoid ? strlen(retoid) : 0 );
+		}
+
+		ber_memfree( retoid );
+
+		if( retdata ) {
+			if ( ldif < 2 ) {
+				tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
+					"data", retdata->bv_val, retdata->bv_len );
+			}
+
+			ber_bvfree( retdata );
+		}
 	}
 
 	if( verbose || ( code != LDAP_SUCCESS ) || matcheddn || text || refs ) {
