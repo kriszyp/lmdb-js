@@ -1036,9 +1036,8 @@ dds_op_extended( Operation *op, SlapReply *rs )
 			ttl = di->di_min_ttl;
 		}
 
-#ifndef SLAPD_MULTIMASTER
 		/* This does not apply to multi-master case */
-		if ( !( !SLAP_SHADOW( op->o_bd ) || be_isupdate( op ) ) ) {
+		if ( !( !SLAP_SINGLE_SHADOW( op->o_bd ) || be_isupdate( op ) ) ) {
 			/* we SHOULD return a referral in this case */
 			BerVarray defref = op->o_bd->be_update_refs
 				? op->o_bd->be_update_refs : default_referral; 
@@ -1060,7 +1059,6 @@ dds_op_extended( Operation *op, SlapReply *rs )
 
 			return rs->sr_err;
 		}
-#endif /* !SLAPD_MULTIMASTER */
 
 		assert( !BER_BVISNULL( &op->o_req_ndn ) );
 
@@ -1706,14 +1704,12 @@ dds_db_open(
 		goto done;
 	}
 
-#ifndef SLAPD_MULTIMASTER
-	if ( SLAP_SHADOW( be ) ) {
+	if ( SLAP_SINGLE_SHADOW( be ) ) {
 		Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 			"DDS incompatible with shadow database \"%s\".\n",
 			be->be_suffix[ 0 ].bv_val );
 		return 1;
 	}
-#endif /* ! SLAPD_MULTIMASTER */
 
 	if ( di->di_max_ttl == 0 ) {
 		di->di_max_ttl = DDS_RF2589_DEFAULT_TTL;
