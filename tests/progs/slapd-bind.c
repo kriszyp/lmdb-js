@@ -215,7 +215,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int n
 	if ( ldp ) {
 		*ldp = ld;
 
-	} else if (ld != NULL ) {
+	} else if ( ld != NULL ) {
 		ldap_unbind_ext( ld, NULL, NULL );
 	}
 
@@ -309,7 +309,7 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 	}
 
 	/* Ok, got list of RDNs, now start binding to each */
-	for (i=0; i<maxloop; i++) {
+	for ( i = 0; i < maxloop; i++ ) {
 		char dn[BUFSIZ], *ptr;
 		int j, k;
 
@@ -358,5 +358,13 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 	fprintf( stderr, "Done %d Binds in %ld.%06ld seconds.\n", i,
 		(long) end.tv_sec, (long) end.tv_usec );
 #endif
+
+	if ( rdns ) {
+		for ( i = 0; i < nrdns; i++ ) {
+			free( rdns[i].bv_val );
+		}
+		free( rdns );
+	}
+
 	return 0;
 }
