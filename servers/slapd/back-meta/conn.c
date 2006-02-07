@@ -947,7 +947,7 @@ retry_lock:
 				i = meta_back_get_candidate( op, rs, &pndn );
 			}
 	
-			if ( rs->sr_err != LDAP_SUCCESS ) {
+			if ( i < 0 || rs->sr_err != LDAP_SUCCESS ) {
 				if ( mc != NULL ) {
 					meta_back_release_conn( op, mc );
 				}
