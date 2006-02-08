@@ -2094,6 +2094,9 @@ syncrepl_del_nonpresent(
 			op->o_req_dn = *np_prev->npe_name;
 			op->o_req_ndn = *np_prev->npe_nname;
 			rc = op->o_bd->be_delete( op, &rs_delete );
+			Debug( LDAP_DEBUG_SYNC,
+				"syncrepl_del_nonpresent: be_delete %s (%d)\n", 
+				op->o_req_dn.bv_val, rc, 0 );
 
 			if ( rs_delete.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF ) {
 				Modifications mod1, mod2;
