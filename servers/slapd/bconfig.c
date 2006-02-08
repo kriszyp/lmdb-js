@@ -159,7 +159,7 @@ enum {
 	CFG_SSTR_IF_MAX,
 	CFG_SSTR_IF_MIN,
 	CFG_TTHREADS,
-	CFG_MULTIMASTER,
+	CFG_MIRRORMODE,
 
 	CFG_LAST
 };
@@ -348,6 +348,9 @@ static ConfigTable config_back_cf_table[] = {
 	{ "maxDerefDepth", "depth", 2, 2, 0, ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH,
 		&config_generic, "( OLcfgDbAt:0.6 NAME 'olcMaxDerefDepth' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "mirrormode", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_MIRRORMODE,
+		&config_generic, "( OLcfgDbAt:0.16 NAME 'olcMirrorMode' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "moduleload",	"file", 2, 0, 0,
 #ifdef SLAPD_MODULES
 		ARG_MAGIC|CFG_MODLOAD, &config_generic,
@@ -364,9 +367,6 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:31 NAME 'olcModulePath' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "multimaster", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_MULTIMASTER,
-		&config_generic, "( OLcfgDbAt:0.16 NAME 'olcMultiMaster' "
-			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:32 NAME 'olcObjectClasses' "
 		"DESC 'OpenLDAP object classes' "
@@ -897,7 +897,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_LASTMOD:
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
 			break;
-		case CFG_MULTIMASTER:
+		case CFG_MIRRORMODE:
 			c->value_int = (SLAP_SINGLE_SHADOW(c->be) == 0);
 			break;
 		case CFG_SSTR_IF_MAX:
@@ -986,7 +986,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
 		case CFG_LASTMOD:
-		case CFG_MULTIMASTER:
+		case CFG_MIRRORMODE:
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
 		case CFG_SSTR_IF_MIN:
@@ -1342,7 +1342,7 @@ config_generic(ConfigArgs *c) {
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_NOLASTMOD;
 			break;
 
-		case CFG_MULTIMASTER:
+		case CFG_MIRRORMODE:
 			if(!SLAP_SHADOW(c->be)) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> database is not a shadow",
 					c->argv[0] );
