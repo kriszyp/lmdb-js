@@ -42,7 +42,7 @@ void
 usage( void )
 {
 	fprintf( stderr, _("Issue LDAP extended operations\n\n"));
-	fprintf( stderr, _("usage: %s [options]\n"), prog);
+	fprintf( stderr, _("usage: %s [options] [oid [data]]\n"), prog);
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
@@ -183,7 +183,19 @@ main( int argc, char *argv[] )
 		}
 
 	} else if ( tool_is_oid( argv[ 0 ] ) ) {
-		rc = ldap_extended_operation( ld, argv[ 0 ], NULL, NULL, NULL, &id );
+		struct berval reqdata;
+		struct berval *reqdatap;
+
+		if ( argc > 2 ) {
+			usage();
+		} else if ( argc == 2 ) {
+			reqdata.bv_val = argv[ 1 ];
+			reqdata.bv_len = strlen( argv[ 1 ] );
+			reqdatap = &reqdata;
+		} else
+			reqdatap = NULL;
+
+		rc = ldap_extended_operation( ld, argv[ 0 ], reqdatap, NULL, NULL, &id );
 		if ( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_extended_operation", rc, NULL, NULL, NULL, NULL );
 			rc = EXIT_FAILURE;
@@ -286,14 +298,14 @@ main( int argc, char *argv[] )
 			goto skip;
 		}
 
-		if ( ldif < 2 ) {
+		if ( ldif < 2 && retoid != NULL ) {
 			tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-				"oid", retoid, retoid ? strlen(retoid) : 0 );
+				"oid", retoid, strlen(retoid) );
 		}
 
 		ber_memfree( retoid );
 
-		if( retdata ) {
+		if( retdata != NULL ) {
 			if ( ldif < 2 ) {
 				tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
 					"data", retdata->bv_val, retdata->bv_len );
