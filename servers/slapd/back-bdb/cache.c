@@ -659,6 +659,7 @@ bdb_cache_lru_add(
 					bdb->bi_dbenv_home );
 			}
 			ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+			slap_wake_listener();
 		}
 	}
 }
