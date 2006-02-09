@@ -266,11 +266,21 @@ LDAP_END_DECL
  * Multiple precision stuff
  * 
  * May use OpenSSL's BIGNUM if built with TLS,
- * or GNU's multiple precision library.
+ * or GNU's multiple precision library. But if
+ * long long is available, that's big enough
+ * and much more efficient.
  *
  * If none is available, unsigned long data is used.
  */
-#ifdef HAVE_BIGNUM
+#if !defined(HAVE_LONG_LONG)
+#if defined(HAVE_BIGNUM)
+#define USE_BIGNUM
+#elif defined(HAVE_GMP)
+#define	USE_GMP
+#endif
+#endif
+
+#ifdef USE_BIGNUM
 /*
  * Use OpenSSL's BIGNUM
  */
@@ -304,7 +314,7 @@ typedef	BIGNUM*		ldap_pvt_mp_t;
 #define ldap_pvt_mp_clear(mp) \
 	do { BN_free((mp)); (mp) = 0; } while (0)
 
-#elif defined(HAVE_GMP)
+#elif defined(USE_GMP)
 /*
  * Use GNU's multiple precision library
  */
@@ -330,7 +340,7 @@ typedef mpz_t		ldap_pvt_mp_t;
 #define ldap_pvt_mp_clear(mp) \
 	mpz_clear((mp))
 
-#else /* ! HAVE_BIGNUM && ! HAVE_GMP */
+#else /* ! USE_BIGNUM && ! USE_GMP */
 /*
  * Use unsigned long
  */
@@ -358,7 +368,7 @@ typedef	unsigned long		ldap_pvt_mp_t;
 #define ldap_pvt_mp_clear(mp) \
 	(mp) = 0
 
-#endif /* ! HAVE_BIGNUM && ! HAVE_GMP */
+#endif /* ! USE_BIGNUM && ! USE_GMP */
 
 #include "ldap_pvt_uc.h"
 

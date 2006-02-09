@@ -1821,7 +1821,7 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 
 /* NOTE: this macro assumes that bv has been allocated
  * by ber_* malloc functions or is { 0L, NULL } */
-#if defined(HAVE_BIGNUM)
+#if defined(USE_BIGNUM)
 #define UI2BVX(bv,ui,ctx) \
 	do { \
 		char		*val; \
@@ -1840,7 +1840,7 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 			BER_BVZERO( (bv) ); \
 		} \
 	} while ( 0 )
-#elif defined(HAVE_GMP)
+#elif defined(USE_GMP)
 /* NOTE: according to the documentation, the result 
  * of mpz_sizeinbase() can exceed the length of the
  * string representation of the number by 1
