@@ -42,7 +42,7 @@ void
 usage( void )
 {
 	fprintf( stderr, _("Issue LDAP extended operations\n\n"));
-	fprintf( stderr, _("usage: %s [options] [oid [data]]\n"), prog);
+	fprintf( stderr, _("usage: %s [options] [oid[:data]]\n"), prog);
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
@@ -185,15 +185,23 @@ main( int argc, char *argv[] )
 	} else if ( tool_is_oid( argv[ 0 ] ) ) {
 		struct berval reqdata;
 		struct berval *reqdatap;
+		char *p;
 
-		if ( argc > 2 ) {
+		if ( argc > 1 ) {
 			usage();
-		} else if ( argc == 2 ) {
-			reqdata.bv_val = argv[ 1 ];
-			reqdata.bv_len = strlen( argv[ 1 ] );
+		}
+
+		p = strchr( argv[ 0 ], ':' );
+		if ( p != NULL ) {
+			*p++ = '\0';
+
+			reqdata.bv_val = p;
+			reqdata.bv_len = strlen( reqdata.bv_val );
 			reqdatap = &reqdata;
 		} else
 			reqdatap = NULL;
+
+		tool_server_controls( ld, NULL, 0 );
 
 		rc = ldap_extended_operation( ld, argv[ 0 ], reqdatap, NULL, NULL, &id );
 		if ( rc != LDAP_SUCCESS ) {
