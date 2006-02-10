@@ -1062,10 +1062,13 @@
 /* define to use OpenSSL BIGNUM for MP */
 #undef USE_MP_BIGNUM
 
+/* define to use GMP for MP */
+#undef USE_MP_GMP
+
 /* define to use 'long' for MP */
 #undef USE_MP_LONG
 
-/* define to use GMP for MP */
+/* define to use 'long long' for MP */
 #undef USE_MP_LONG_LONG
 
 /* Define to 1 if your processor stores words with the most significant byte
