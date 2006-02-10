@@ -1821,8 +1821,8 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 
 /* NOTE: this macro assumes that bv has been allocated
  * by ber_* malloc functions or is { 0L, NULL } */
-#if defined(USE_BIGNUM)
-#define UI2BVX(bv,ui,ctx) \
+#ifdef USE_MP_BIGNUM
+# define UI2BVX(bv,ui,ctx) \
 	do { \
 		char		*val; \
 		ber_len_t	len; \
@@ -1840,12 +1840,13 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 			BER_BVZERO( (bv) ); \
 		} \
 	} while ( 0 )
-#elif defined(USE_GMP)
+
+#elif defined( USE_MP_GMP )
 /* NOTE: according to the documentation, the result 
  * of mpz_sizeinbase() can exceed the length of the
  * string representation of the number by 1
  */
-#define UI2BVX(bv,ui,ctx) \
+# define UI2BVX(bv,ui,ctx) \
 	do { \
 		ber_len_t	len = mpz_sizeinbase( (ui), 10 ); \
 		if ( len > (bv)->bv_len ) { \
@@ -1857,13 +1858,19 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 		} \
 		(bv)->bv_len = len; \
 	} while ( 0 )
-#else /* ! HAVE_BIGNUM && ! HAVE_GMP */
-#ifdef HAVE_LONG_LONG
-#define UI2BV_FORMAT	"%llu"
-#else /* ! HAVE_LONG_LONG */
-#define UI2BV_FORMAT	"%lu"
-#endif /* ! HAVE_LONG_LONG */
-#define UI2BVX(bv,ui,ctx) \
+
+#else
+# if USE_MP_LONG_LONG
+#  define UI2BV_FORMAT	"%llu"
+# elif USE_MP_LONG_LONG
+#  define UI2BV_FORMAT	"%lu"
+# elif HAVE_LONG_LONG
+#  define UI2BV_FORMAT	"%llu"
+# else
+#  define UI2BV_FORMAT	"%lu"
+# endif
+
+# define UI2BVX(bv,ui,ctx) \
 	do { \
 		char		buf[] = "+9223372036854775807L"; \
 		ber_len_t	len; \
@@ -1874,7 +1881,7 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 		(bv)->bv_len = len; \
 		AC_MEMCPY( (bv)->bv_val, buf, len + 1 ); \
 	} while ( 0 )
-#endif /* ! HAVE_GMP */
+#endif
 
 #define UI2BV(bv,ui)	UI2BVX(bv,ui,NULL)
 
