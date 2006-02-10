@@ -293,13 +293,13 @@ pblock_get_param_class( int param )
 static void
 pblock_lock( Slapi_PBlock *pb )
 {
-	ldap_pvt_thread_mutex_lock(&pb->pb_mutex);
+	ldap_pvt_thread_mutex_lock( &pb->pb_mutex );
 }
 
 static void
 pblock_unlock( Slapi_PBlock *pb )
 {
-	ldap_pvt_thread_mutex_unlock(&pb->pb_mutex);
+	ldap_pvt_thread_mutex_unlock( &pb->pb_mutex );
 }
 
 static int 
