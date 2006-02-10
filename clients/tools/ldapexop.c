@@ -182,36 +182,37 @@ main( int argc, char *argv[] )
 			goto skip;
 		}
 
-	} else if ( tool_is_oid( argv[ 0 ] ) ) {
-		struct berval reqdata;
-		struct berval *reqdatap;
+	} else {
 		char *p;
 
-		if ( argc > 1 ) {
+		if ( argc != 1 ) {
 			usage();
 		}
 
 		p = strchr( argv[ 0 ], ':' );
-		if ( p != NULL ) {
+		if ( p != NULL )
 			*p++ = '\0';
 
-			reqdata.bv_val = p;
-			reqdata.bv_len = strlen( reqdata.bv_val );
-			reqdatap = &reqdata;
-		} else
-			reqdatap = NULL;
+		if ( tool_is_oid( argv[ 0 ] ) ) {
+			struct berval reqdata;
 
-		tool_server_controls( ld, NULL, 0 );
+			if ( p ) {
+				reqdata.bv_val = p;
+				reqdata.bv_len = strlen( reqdata.bv_val );
+			}
 
-		rc = ldap_extended_operation( ld, argv[ 0 ], reqdatap, NULL, NULL, &id );
-		if ( rc != LDAP_SUCCESS ) {
-			tool_perror( "ldap_extended_operation", rc, NULL, NULL, NULL, NULL );
-			rc = EXIT_FAILURE;
-			goto skip;
+			tool_server_controls( ld, NULL, 0 );
+
+			rc = ldap_extended_operation( ld, argv[ 0 ], p ? &reqdata : NULL, NULL, NULL, &id );
+			if ( rc != LDAP_SUCCESS ) {
+				tool_perror( "ldap_extended_operation", rc, NULL, NULL, NULL, NULL );
+				rc = EXIT_FAILURE;
+				goto skip;
+			}
+		} else {
+			fprintf( stderr, "unknown exop \"%s\"\n\n", argv[ 0 ] );
+			usage();
 		}
-	} else {
-		fprintf( stderr, "unknown exop \"%s\"\n\n", argv[ 0 ] );
-		usage();
 	}
 
 	for ( ; ; ) {
