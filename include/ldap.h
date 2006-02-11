@@ -205,7 +205,7 @@ typedef struct ldapcontrol {
 /* LDAP Controls */
 /*	standard track controls */
 #define LDAP_CONTROL_MANAGEDSAIT	"2.16.840.1.113730.3.4.2"  /* RFC 3296 */
-#define LDAP_CONTROL_PROXY_AUTHZ	"2.16.840.1.113730.3.4.18" /* RFC TBD  */
+#define LDAP_CONTROL_PROXY_AUTHZ	"2.16.840.1.113730.3.4.18" /* RFC 4370 */
 #define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"  /* RFC 3672 */
 
 #define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"/* RFC 3876 */
