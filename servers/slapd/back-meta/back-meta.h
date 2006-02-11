@@ -371,7 +371,12 @@ meta_back_conn_cmp(
 	const void		*c2 );
 
 extern int
-meta_back_conn_dup(
+meta_back_dnconn_cmp(
+	const void		*c1,
+	const void		*c2 );
+
+extern int
+meta_back_dnconn_dup(
 	void			*c1,
 	void			*c2 );
 

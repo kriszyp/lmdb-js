@@ -40,6 +40,33 @@
 #define PRINT_CONNTREE 0
 
 /*
+ * meta_back_dnconn_cmp
+ *
+ * compares two struct metaconn based on the value of the conn pointer
+ * and of the local DN; used by avl stuff
+ */
+int
+meta_back_dnconn_cmp(
+	const void *c1,
+	const void *c2 )
+{
+	metaconn_t	*mc1 = ( metaconn_t * )c1;
+        metaconn_t	*mc2 = ( metaconn_t * )c2;
+	int		rc;
+	
+	/* If local DNs don't match, it is definitely not a match */
+	/* For shared sessions, conn is NULL. Only explicitly
+	 * bound sessions will have non-NULL conn.
+	 */
+	rc = SLAP_PTRCMP( mc1->mc_conn, mc2->mc_conn );
+	if ( rc == 0 ) {
+		rc = ber_bvcmp( &mc1->mc_local_ndn, &mc2->mc_local_ndn );
+	}
+
+	return rc;
+}
+
+/*
  * meta_back_conn_cmp
  *
  * compares two struct metaconn based on the value of the conn pointer;
@@ -52,14 +79,7 @@ meta_back_conn_cmp(
 {
 	metaconn_t	*mc1 = ( metaconn_t * )c1;
         metaconn_t	*mc2 = ( metaconn_t * )c2;
-	int		rc;
 	
-	/* If local DNs don't match, it is definitely not a match */
-	rc = ber_bvcmp( &mc1->mc_local_ndn, &mc2->mc_local_ndn );
-	if ( rc ) {
-		return rc;
-	}
-
 	/* For shared sessions, conn is NULL. Only explicitly
 	 * bound sessions will have non-NULL conn.
 	 */
@@ -67,13 +87,13 @@ meta_back_conn_cmp(
 }
 
 /*
- * meta_back_conn_dup
+ * meta_back_dnconn_dup
  *
  * returns -1 in case a duplicate struct metaconn has been inserted;
  * used by avl stuff
  */
 int
-meta_back_conn_dup(
+meta_back_dnconn_dup(
 	void *c1,
 	void *c2 )
 {
@@ -81,8 +101,8 @@ meta_back_conn_dup(
 	metaconn_t	*mc2 = ( metaconn_t * )c2;
 
 	/* Cannot have more than one shared session with same DN */
-	if ( dn_match( &mc1->mc_local_ndn, &mc2->mc_local_ndn ) &&
-       			mc1->mc_conn == mc2->mc_conn )
+	if ( mc1->mc_conn == mc2->mc_conn &&
+		dn_match( &mc1->mc_local_ndn, &mc2->mc_local_ndn ) )
 	{
 		return -1;
 	}
@@ -790,7 +810,7 @@ meta_back_getconn(
 retry_lock:
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
-			(caddr_t)&mc_curr, meta_back_conn_cmp );
+			(caddr_t)&mc_curr, meta_back_dnconn_cmp );
 		if ( mc ) {
 			if ( mc->mc_tainted ) {
 				rs->sr_err = LDAP_UNAVAILABLE;
@@ -992,7 +1012,7 @@ retry_lock:
 			if ( !( sendok & LDAP_BACK_BINDING ) ) {
 				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 				mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
-					(caddr_t)&mc_curr, meta_back_conn_cmp );
+					(caddr_t)&mc_curr, meta_back_dnconn_cmp );
 				if ( mc != NULL ) {
 					mc->mc_refcnt++;
 				}
@@ -1158,7 +1178,7 @@ done:;
 		 */
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		err = avl_insert( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
-			       	meta_back_conn_cmp, meta_back_conn_dup );
+			       	meta_back_dnconn_cmp, meta_back_dnconn_dup );
 
 #if PRINT_CONNTREE > 0
 		myprint( mi->mi_conninfo.lai_tree );
@@ -1218,7 +1238,7 @@ meta_back_release_conn(
 	LDAP_BACK_CONN_BINDING_CLEAR( mc );
 	if ( mc->mc_refcnt == 0 && mc->mc_tainted ) {
 		(void)avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
-				meta_back_conn_cmp );
+				meta_back_dnconn_cmp );
 		meta_back_conn_free( mc );
 	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
