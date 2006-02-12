@@ -49,6 +49,8 @@ rfc3876.txt Returning Matched Values with LDAP (PS)
 rfc3909.txt LDAP Cancel Operation (PS)
 rfc3928.txt LDAP Client Update Protocol (PS)
 rfc4013.txt SASLprep (PS)
+rfc4370.txt LDAP Proxied Authorization Control (PS)
+rfc4373.txt LBURP (I)
 
 Legend:
 STD	Standard
