@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.20 Engineering
+	Added libldap SASL workaround for broken LDAP servers
 
 OpenLDAP 2.3.19 Release
 	Fixed libldap disable DH key exchange with DH params (ITS#4354)
