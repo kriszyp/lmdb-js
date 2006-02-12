@@ -13,15 +13,15 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* Copyright 2004 IBM Corporation
+/* Portions Copyright 2004 IBM Corporation
  * All rights reserved.
- * Redisribution and use in source and binary forms, with or without
- * modification, are permitted only as  authorizd by the OpenLDAP
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
  * Public License.
  */
 /* ACKNOWLEDGEMENTS
- * This work originally developed by Jong-Hyuk Choi
- * 2004/12/09   jongchoi@OpenLDAP.org
+ * This work originally developed by Jong-Hyuk Choi for inclusion in
+ * OpenLDAP Software.
  */
 
 #include "portable.h"
