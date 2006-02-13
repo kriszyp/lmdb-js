@@ -1497,6 +1497,8 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 	c.argc = argc;
 	c.argv = argv;
 	c.valx = -1;
+	c.line = line;
+	c.op = SLAP_CONFIG_ADD;
 	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
 
 	rc = SLAP_CONF_UNKNOWN;

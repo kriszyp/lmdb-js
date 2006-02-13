@@ -272,7 +272,7 @@ attributetype ( 2.5.4.40 NAME 'crossCertificatePair'
 	DESC 'RFC2256: X.509 cross certificate pair, use ;binary'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.10 )
 
-# 2.5.4.41 is defined above as it's used for subtyping
+# system schema
 #attributetype ( 2.5.4.41 NAME 'name'
 #	EQUALITY caseIgnoreMatch
 #	SUBSTR caseIgnoreSubstringsMatch
@@ -311,7 +311,7 @@ attributetype ( 2.5.4.48 NAME 'protocolInformation'
 	EQUALITY protocolInformationMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )
 
-# 2.5.4.49 is defined above as it's used for subtyping
+# system schema
 #attributetype ( 2.5.4.49 NAME 'distinguishedName'
 #	EQUALITY distinguishedNameMatch
 #	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )

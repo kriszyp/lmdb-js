@@ -642,6 +642,7 @@ bdb_cache_lru_add(
 			rtask.arg = bdb;
 			bdb_cache_lru_purge( NULL, &rtask );
 		} else {
+			int wake = 0;
 			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 			if ( bdb->bi_cache_task ) {
 				if ( !ldap_pvt_runqueue_isrunning( &slapd_rq,
@@ -652,13 +653,18 @@ bdb_cache_lru_add(
 						0 );
 					/* But don't try to reschedule it while it's running */
 					bdb->bi_cache_task->interval.tv_sec = 3600;
+					wake = 1;
 				}
 			} else {
 				bdb->bi_cache_task = ldap_pvt_runqueue_insert( &slapd_rq, 3600,
 					bdb_cache_lru_purge, bdb, "bdb_cache_lru_purge",
 					bdb->bi_dbenv_home );
+				wake = 1;
 			}
 			ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+			/* Don't bother waking if the purge task is already running */
+			if ( wake )
+				slap_wake_listener();
 		}
 	}
 }

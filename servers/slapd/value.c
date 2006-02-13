@@ -153,8 +153,12 @@ int asserted_value_validate_normalize(
 		rc = (mr->smr_syntax->ssyn_pretty)( mr->smr_syntax, in, &pval, ctx );
 		in = &pval;
 
-	} else {
+	} else if ( mr->smr_syntax->ssyn_validate ) {
 		rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+
+	} else {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
 	if( rc != LDAP_SUCCESS ) {

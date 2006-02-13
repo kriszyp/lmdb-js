@@ -1112,7 +1112,7 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	if ( op->o_conn->c_authz_backend == on->on_info->oi_origdb ) {
 		log_info *li = on->on_bi.bi_private;
-		Operation op2;
+		Operation op2 = {0};
 		void *cids[SLAP_MAX_CIDS];
 		SlapReply rs2 = {REP_RESULT};
 		Entry *e;
@@ -1132,7 +1132,6 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 		op2.o_callback = &nullsc;
 		op2.o_controls = cids;
 		memset(cids, 0, sizeof( cids ));
-		memset(op2.o_ctrlflag, 0, sizeof( op2.o_ctrlflag ));
 
 		op2.o_bd->be_add( &op2, &rs2 );
 		entry_free( e );
@@ -1145,7 +1144,7 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
-	Operation op2;
+	Operation op2 = {0};
 	void *cids[SLAP_MAX_CIDS];
 	SlapReply rs2 = {REP_RESULT};
 	Entry *e;
@@ -1171,7 +1170,6 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	op2.o_callback = &nullsc;
 	op2.o_controls = cids;
 	memset(cids, 0, sizeof( cids ));
-	memset(op2.o_ctrlflag, 0, sizeof( op2.o_ctrlflag ));
 
 	op2.o_bd->be_add( &op2, &rs2 );
 	entry_free( e );
