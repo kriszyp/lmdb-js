@@ -821,7 +821,7 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 	syncres *sr;
 	Entry *e;
 	opcookie opc;
-	int rc;
+	int rc = 0;
 
 	opc.son = on;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -897,7 +897,7 @@ syncprov_qtask( void *ctx, void *arg )
 	op->o_private = NULL;
 	op->o_callback = NULL;
 
-	syncprov_qplay( op, on, so );
+	(void)syncprov_qplay( op, on, so );
 
 	/* decrement use count... */
 	syncprov_free_syncop( so );
@@ -949,12 +949,14 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		so->s_flags |= PS_FIND_BASE;
 	}
 	if ( so->s_flags & PS_IS_DETACHED ) {
+		int wake=0;
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		if ( !so->s_qtask ) {
 			so->s_qtask = ldap_pvt_runqueue_insert( &slapd_rq, RUNQ_INTERVAL,
 				syncprov_qtask, so, "syncprov_qtask",
 				so->s_op->o_conn->c_peer_name.bv_val );
 			++so->s_inuse;
+			wake = 1;
 		} else {
 			if (!ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask ) &&
 				!so->s_qtask->next_sched.tv_sec ) {
@@ -962,9 +964,12 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 				ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 0 );
 				so->s_qtask->interval.tv_sec = RUNQ_INTERVAL;
 				++so->s_inuse;
+				wake = 1;
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+		if ( wake )
+			slap_wake_listener();
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	return LDAP_SUCCESS;
@@ -1273,7 +1278,7 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 		se->se_next = NULL;
 		se->se_tag = op->o_tag;
 
-		se->se_uuid.bv_val = (char *)(se+1);
+		se->se_uuid.bv_val = (char *)(&se[1]);
 		AC_MEMCPY( se->se_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
 		se->se_uuid.bv_len = opc->suuid.bv_len;
 
@@ -1805,7 +1810,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			a = attr_find( rs->sr_operational_attrs, slap_schema.si_ad_entryCSN );
 		}
 		if ( a ) {
-			/* Make sure entry is less than the snaphot'd contextCSN */
+			/* Make sure entry is less than the snapshot'd contextCSN */
 			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 )
 				return LDAP_SUCCESS;
 
@@ -2426,6 +2431,14 @@ syncprov_db_destroy(
 
 	if ( si ) {
 		if ( si->si_logs ) {
+			slog_entry *se = si->si_logs->sl_head;
+
+			while ( se ) {
+				slog_entry *se_next = se->se_next;
+				ch_free( se );
+				se = se_next;
+			}
+				
 			ch_free( si->si_logs );
 		}
 		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
