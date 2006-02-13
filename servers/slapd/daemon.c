@@ -223,7 +223,7 @@ static struct slap_daemon {
 # define SLAP_EVENT_IS_READ(i)	SLAP_CHK_EVENT((i), EPOLLIN)
 # define SLAP_EVENT_IS_WRITE(i)	SLAP_CHK_EVENT((i), EPOLLOUT)
 # define SLAP_EVENT_IS_LISTENER(i)	SLAP_EV_LISTENER(revents[(i)].data.ptr)
-# define SLAP_EVENT_LISTENER(i)	(revents[(i)].data.ptr)
+# define SLAP_EVENT_LISTENER(i)	((Listener *)(revents[(i)].data.ptr))
 
 # define SLAP_EVENT_FD(i)	SLAP_EV_PTRFD(revents[(i)].data.ptr)
 
@@ -1106,21 +1106,6 @@ static int slap_open_listener(
 		return -1;
 	}
 
-#ifdef LDAP_CONNECTIONLESS
-	if( l.sl_is_udp ) {
-		long id = connection_init( l.sl_sd, &l, "", "", CONN_IS_UDP,
-			(slap_ssf_t) 0, NULL );
-
-		if( id < 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"slap_open_listener: connectionless init failed on %s (%d)\n",
-				url, l.sl_sd, 0 );
-			return -1;
-		}
-		l.sl_is_udp++;
-	}
-#endif
-
 	Debug( LDAP_DEBUG_TRACE, "daemon: listener initialized %s\n",
 		l.sl_url.bv_val, 0, 0 );
 	return 0;
@@ -1621,10 +1606,8 @@ slapd_daemon_task(
 		 * listening port. The listen() and accept() calls
 		 * are unnecessary.
 		 */
-		if ( slap_listeners[l]->sl_is_udp ) {
-			slapd_add( slap_listeners[l]->sl_sd, 1, slap_listeners[l] );
+		if ( slap_listeners[l]->sl_is_udp )
 			continue;
-		}
 #endif
 
 		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN_BACKLOG ) == -1 ) {
@@ -2201,11 +2184,41 @@ slapd_daemon_task(
 }
 
 
+#ifdef LDAP_CONNECTIONLESS
+static int connectionless_init(void)
+{
+	int l;
+
+	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
+		Listener *lr = slap_listeners[l];
+		long id;
+
+		if( !lr->sl_is_udp ) {
+			continue;
+		}
+
+		id = connection_init( lr->sl_sd, lr, "", "", CONN_IS_UDP, (slap_ssf_t) 0, NULL );
+
+		if( id < 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"connectionless_init: failed on %s (%d)\n", lr->sl_url, lr->sl_sd, 0 );
+			return -1;
+		}
+		lr->sl_is_udp++;
+	}
+
+	return 0;
+}
+#endif /* LDAP_CONNECTIONLESS */
+
 int slapd_daemon( void )
 {
 	int rc;
 
 	connections_init();
+#ifdef LDAP_CONNECTIONLESS
+	connectionless_init();
+#endif
 
 #define SLAPD_LISTENER_THREAD 1
 #if defined( SLAPD_LISTENER_THREAD )
