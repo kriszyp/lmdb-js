@@ -861,9 +861,6 @@ ldap_int_sasl_bind(
 		}
 
 		if( ssf && *ssf ) {
-			if( flags != LDAP_SASL_QUIET ) {
-				fprintf( stderr, "SASL installing layers\n" );
-			}
 			if ( ld->ld_defconn->lconn_sasl_sockctx ) {
 				oldctx = ld->ld_defconn->lconn_sasl_sockctx;
 				sasl_dispose( &oldctx );
@@ -871,6 +868,10 @@ ldap_int_sasl_bind(
 			}
 			ldap_pvt_sasl_install( ld->ld_defconn->lconn_sb, ctx );
 			ld->ld_defconn->lconn_sasl_sockctx = ctx;
+
+			if( flags != LDAP_SASL_QUIET ) {
+				fprintf( stderr, "SASL data security layer installed.\n" );
+			}
 		}
 	}
 	ld->ld_defconn->lconn_sasl_authctx = ctx;
