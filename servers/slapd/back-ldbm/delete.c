@@ -46,7 +46,7 @@ ldbm_back_delete(
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	/* allocate CSN */
-	if ( !SLAP_SHADOW( op->o_bd )) {
+	if ( BER_BVISEMPTY( &op->o_csn )) {
 		struct berval csn;
 		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 
@@ -217,8 +217,7 @@ return_results:;
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 	send_ldap_result( op, rs );
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 
 	return rc;
 }

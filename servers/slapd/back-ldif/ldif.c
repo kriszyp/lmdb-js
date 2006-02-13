@@ -817,8 +817,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 
 send_res:
 	send_ldap_result(op, rs);
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 	return 0;
 }
 
@@ -829,8 +828,7 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	Entry * entry = NULL;
 	int spew_res;
 
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_mods_opattrs( op, &op->orm_modlist, 1 );
+	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
 	dn2path(&op->o_req_ndn, &op->o_bd->be_nsuffix[0], &ni->li_base_path,
@@ -860,8 +858,7 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	rs->sr_text = NULL;
 	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
 	send_ldap_result(op, rs);
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 	return 0;
 }
 
@@ -870,7 +867,7 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 	struct berval path = BER_BVNULL;
 	int res = 0;
 
-	if ( !SLAP_SHADOW( op->o_bd )) {
+	if ( BER_BVISEMPTY( &op->o_csn )) {
 		struct berval csn;
 		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 
@@ -903,8 +900,7 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 	SLAP_FREE(path.bv_val);
 	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
 	send_ldap_result(op, rs);
-	if ( !SLAP_SHADOW( op->o_bd ))
-		slap_graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 	return 0;
 }
 
@@ -970,6 +966,8 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	Modifications * mods = NULL;
 	int res;
 
+	slap_mods_opattrs( op, &op->orm_modlist, 1 );
+
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
 	ldap_pvt_thread_mutex_lock(&entry2str_mutex);
 	entry = (Entry *) get_entry(op, &ni->li_base_path);
@@ -1026,6 +1024,7 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
 	ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
 	send_ldap_result(op, rs);
+	slap_graduate_commit_csn( op );
 	return 0;
 }
 

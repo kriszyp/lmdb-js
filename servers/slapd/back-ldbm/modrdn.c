@@ -460,6 +460,7 @@ ldbm_back_modrdn(
 	cache_entry_commit( e );
 
 return_results:
+	slap_graduate_commit_csn( op );
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
 	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
 	if( old_ndn.bv_val != NULL ) free( old_ndn.bv_val );

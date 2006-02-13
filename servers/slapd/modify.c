@@ -805,7 +805,8 @@ void slap_timestamp( time_t *tm, struct berval *bv )
 #endif
 }
 
-/* modify only calls this for non-replicas. modrdn always calls.
+/* Called for all modify and modrdn ops. If the current op was replicated
+ * from elsewhere, all of the attrs should already be present.
  */
 void slap_mods_opattrs(
 	Operation *op,
@@ -817,14 +818,34 @@ void slap_mods_opattrs(
 	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	Modifications *mod, **modtail, *modlast;
+	int gotcsn = 0, gotmname = 0, gotmtime = 0;
 
 	if ( SLAP_LASTMOD( op->o_bd ) ) {
 		char *ptr;
 		timestamp.bv_val = timebuf;
+		for ( modtail = modsp; *modtail; modtail = &(*modtail)->sml_next ) {
+			if ( (*modtail)->sml_op != LDAP_MOD_ADD &&
+				(*modtail)->sml_op != LDAP_MOD_REPLACE ) continue;
+			if ( (*modtail)->sml_desc == slap_schema.si_ad_entryCSN ) {
+				csn = (*modtail)->sml_values[0];
+				gotcsn = 1;
+			} else
+			if ( (*modtail)->sml_desc == slap_schema.si_ad_modifiersName ) {
+				gotmname = 1;
+			} else
+			if ( (*modtail)->sml_desc == slap_schema.si_ad_modifyTimestamp ) {
+				gotmtime = 1;
+			}
+		}
 		if ( BER_BVISEMPTY( &op->o_csn )) {
-			csn.bv_val = csnbuf;
-			csn.bv_len = sizeof( csnbuf );
-			slap_get_csn( op, &csn, manage_ctxcsn );
+			if ( !gotcsn ) {
+				csn.bv_val = csnbuf;
+				csn.bv_len = sizeof( csnbuf );
+				slap_get_csn( op, &csn, manage_ctxcsn );
+			} else {
+				if ( manage_ctxcsn )
+					slap_queue_csn( op, &csn );
+			}
 		} else {
 			csn = op->o_csn;
 		}
@@ -851,33 +872,24 @@ void slap_mods_opattrs(
 			nname = op->o_ndn;
 		}
 
-		for ( modtail = modsp; *modtail; modtail = &(*modtail)->sml_next )
-			;
-
-		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-		mod->sml_op = LDAP_MOD_REPLACE;
-		mod->sml_flags = SLAP_MOD_INTERNAL;
-		mod->sml_next = NULL;
-		BER_BVZERO( &mod->sml_type );
-		mod->sml_desc = slap_schema.si_ad_entryCSN;
-		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-		ber_dupbv( &mod->sml_values[0], &csn );
-		BER_BVZERO( &mod->sml_values[1] );
-		assert( !BER_BVISNULL( &mod->sml_values[0] ) );
-		mod->sml_nvalues = NULL;
-		*modtail = mod;
-		modlast = mod;
-		modtail = &mod->sml_next;
-	
-		if ( get_manageDIT( op ) ) {
-			for ( mod = *modsp; mod != modlast; mod = mod->sml_next ) {
-				if ( mod->sml_desc == slap_schema.si_ad_modifiersName ) {
-					break;
-				}
-			}
+		if ( !gotcsn ) {
+			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mod->sml_op = LDAP_MOD_REPLACE;
+			mod->sml_flags = SLAP_MOD_INTERNAL;
+			mod->sml_next = NULL;
+			BER_BVZERO( &mod->sml_type );
+			mod->sml_desc = slap_schema.si_ad_entryCSN;
+			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod->sml_values[0], &csn );
+			BER_BVZERO( &mod->sml_values[1] );
+			assert( !BER_BVISNULL( &mod->sml_values[0] ) );
+			mod->sml_nvalues = NULL;
+			*modtail = mod;
+			modlast = mod;
+			modtail = &mod->sml_next;
 		}
 
-		if ( mod->sml_desc != slap_schema.si_ad_modifiersName ) {
+		if ( !gotmname ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = LDAP_MOD_REPLACE;
 			mod->sml_flags = SLAP_MOD_INTERNAL;
@@ -897,15 +909,7 @@ void slap_mods_opattrs(
 			modtail = &mod->sml_next;
 		}
 
-		if ( get_manageDIT( op ) ) {
-			for ( mod = *modsp; mod != modlast; mod = mod->sml_next ) {
-				if ( mod->sml_desc == slap_schema.si_ad_modifyTimestamp ) {
-					break;
-				}
-			}
-		}
-
-		if ( mod->sml_desc != slap_schema.si_ad_modifyTimestamp ) {
+		if ( !gotmtime ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = LDAP_MOD_REPLACE;
 			mod->sml_flags = SLAP_MOD_INTERNAL;

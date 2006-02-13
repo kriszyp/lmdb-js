@@ -520,8 +520,6 @@ done:;
 	}
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
-	send_ldap_result( op, rs );
-
 	/*
 	 * Commit only if all operations succeed
 	 */
@@ -534,6 +532,9 @@ done:;
 
 		SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 	}
+
+	send_ldap_result( op, rs );
+	slap_graduate_commit_csn( op );
 
 	if ( !BER_BVISNULL( &realnew_dn ) && realnew_dn.bv_val != new_dn.bv_val ) {
 		ch_free( realnew_dn.bv_val );

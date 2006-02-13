@@ -1515,6 +1515,7 @@ done:;
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	send_ldap_result( op, rs );
+	slap_graduate_commit_csn( op );
 
 	if ( !BER_BVISNULL( &realdn )
 			&& realdn.bv_val != op->ora_e->e_name.bv_val )

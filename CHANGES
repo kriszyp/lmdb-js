@@ -4,6 +4,7 @@ OpenLDAP 2.3.20 Engineering
 	Added libldap SASL workaround for broken LDAP servers (ITS#4391)
 	Fixed slapd config_generic_wrapper missing parameter bug (ITS#4376)
 	Fixed slapd extensible filter value normalization bug (ITS#4380)
+	Fixed slapd context CSN not updating issue (ITS#4384)
 	Fixed slapd non-read/write epoll event handling (ITS#4395)
 	Fixed slapd syncrepl de-normalize UUID issue
 	Added slapd syncrepl log messages (ITS#4369)
