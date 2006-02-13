@@ -82,7 +82,7 @@ object class.  The definition of that class is as follows:
     MUST ( pwdAttribute )
     MAY (
         pwdMinAge $ pwdMaxAge $ pwdInHistory $
-        pwdCheckSyntax $ pwdMinLength $
+        pwdCheckQuality $ pwdMinLength $
         pwdExpireWarning $ pwdGraceAuthnLimit $
         pwdLockout $ pwdLockoutDuration $
         pwdMaxFailure $ pwdFailureCountInterval $
@@ -218,7 +218,7 @@ error refusing the password.
 .P
 When syntax checking is enabled
 (see also the
-.B pwdCheckSyntax
+.B pwdCheckQuality
 attribute), this attribute contains the minimum
 number of characters that will be accepted in a password. If this
 attribute is not present, minimum password length is not
@@ -226,12 +226,12 @@ enforced. If the server is unable to check the length of the password,
 whether due to a client-side hashed password or some other reason,
 the server will, depending on the
 value of
-.BR pwdCheckSyntax ,
+.BR pwdCheckQuality ,
 either accept the password
 without checking it (if
-.B pwdCheckSyntax
+.B pwdCheckQuality
 is zero (0) or one (1)) or refuse it (if
-.B pwdCheckSyntax
+.B pwdCheckQuality
 is two (2)).
 .LP
 .RS 4
