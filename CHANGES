@@ -5,6 +5,8 @@ OpenLDAP 2.3.20 Engineering
 	Fixed slapd config_generic_wrapper missing parameter bug (ITS#4376)
 	Fixed slapd extensible filter value normalization bug (ITS#4380)
 	Fixed slapd non-read/write epoll event handling (ITS#4395)
+	Fixed slapd syncrepl de-normalize UUID issue
+	Added slapd syncrepl log messages (ITS#4369)
 	Fixed slapd-bdb/hdb wake listener on runqueue submit (ITS#4385)
 	Fixed slapo-auditlog crash (ITS#4394)
 	Fixed slapo-accesslog unbind crash (ITS#4386)

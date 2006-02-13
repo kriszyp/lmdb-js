@@ -2030,8 +2030,12 @@ syncrepl_del_nonpresent(
 
 		for (i=0; uuids[i].bv_val; i++) {
 			op->ors_slimit = 1;
+			slap_uuidstr_from_normalized( &uf.f_av_value, &uuids[i],
+				op->o_tmpmemctx );
+			filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 			uf.f_av_value = uuids[i];
 			rc = be->be_search( op, &rs_search );
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 		}
 		si->si_refreshDelete ^= NP_DELETE_ONE;
 	} else {
@@ -2069,6 +2073,9 @@ syncrepl_del_nonpresent(
 			op->o_req_dn = *np_prev->npe_name;
 			op->o_req_ndn = *np_prev->npe_nname;
 			rc = op->o_bd->be_delete( op, &rs_delete );
+			Debug( LDAP_DEBUG_SYNC,
+				"syncrepl_del_nonpresent: be_delete %s (%d)\n", 
+				op->o_req_dn.bv_val, rc, 0 );
 
 			if ( rs_delete.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF ) {
 				Modifications mod1, mod2;
