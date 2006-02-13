@@ -2,9 +2,13 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.20 Engineering
 	Added libldap SASL workaround for broken LDAP servers (ITS#4391)
+	Fixed slapd non-read/write epoll event handling (ITS#4395)
 	Fixed slapo-auditlog crash (ITS#4394)
 	Fixed slapd-bdb/hdb wake listener on runqueue submit (ITS#4385)
 	Fixed slurpd reject error formating (ITS#4382)
+	Build Environment
+		Fixed <netinet/tcp.h> detection on AIX (ITS#4312)
+		Fixed liblunicode cross compiling problem (ITS#4363)
 
 OpenLDAP 2.3.19 Release
 	Fixed libldap disable DH key exchange with DH params (ITS#4354)
