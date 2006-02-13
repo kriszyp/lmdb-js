@@ -1363,11 +1363,17 @@ syncrepl_message_to_op(
 					text, 0, 0 );
 			} else {
 				rc = op->o_bd->be_add( op, &rs );
+				Debug( LDAP_DEBUG_SYNC,
+					"syncrepl_message_to_op: be_add %s (%d)\n", 
+					op->o_req_dn.bv_val, rc, 0 );
 			}
 			be_entry_release_w( op, op->ora_e );
 		} else {
 			op->orm_modlist = modlist;
 			rc = op->o_bd->be_modify( op, &rs );
+			Debug( LDAP_DEBUG_SYNC,
+				"syncrepl_message_to_op: be_modify %s (%d)\n", 
+				op->o_req_dn.bv_val, rc, 0 );
 		}
 		break;
 	case LDAP_REQ_MODRDN:
@@ -1387,9 +1393,15 @@ syncrepl_message_to_op(
 		op->orr_nnewrdn = nrdn;
 		op->orr_deleteoldrdn = deleteOldRdn;
 		rc = op->o_bd->be_modrdn( op, &rs );
+		Debug( LDAP_DEBUG_SYNC,
+			"syncrepl_message_to_op: be_modrdn %s (%d)\n", 
+			op->o_req_dn.bv_val, rc, 0 );
 		break;
 	case LDAP_REQ_DELETE:
 		rc = op->o_bd->be_delete( op, &rs );
+		Debug( LDAP_DEBUG_SYNC,
+			"syncrepl_message_to_op: be_delete %s (%d)\n", 
+			op->o_req_dn.bv_val, rc, 0 );
 		break;
 	}
 done:
