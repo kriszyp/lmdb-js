@@ -465,7 +465,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar OPENLDAP_LIBRELEASE OPENLDAP_LIBVERSION OPENLDAP_RELEASE_DATE top_builddir ldap_subdir CC AR CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE EGREP LN_S ECHO ac_ct_AR RANLIB ac_ct_RANLIB DLLTOOL ac_ct_DLLTOOL AS ac_ct_AS OBJDUMP ac_ct_OBJDUMP CPP LIBTOOL PERLBIN OL_MKDEP OL_MKDEP_FLAGS LTSTATIC LIBOBJS LIBSRCS PLAT WITH_SASL WITH_TLS WITH_MODULES_ENABLED WITH_ACI_ENABLED BUILD_THREAD BUILD_LIBS_DYNAMIC BUILD_SLAPD BUILD_SLAPI SLAPD_SLAPI_DEPEND BUILD_BDB BUILD_DNSSRV BUILD_HDB BUILD_LDAP BUILD_LDBM BUILD_META BUILD_MONITOR BUILD_NULL BUILD_PASSWD BUILD_RELAY BUILD_PERL BUILD_SHELL BUILD_SQL BUILD_ACCESSLOG BUILD_DDS BUILD_DENYOP BUILD_DYNGROUP BUILD_DYNLIST BUILD_LASTMOD BUILD_PPOLICY BUILD_PROXYCACHE BUILD_REFINT BUILD_RETCODE BUILD_RWM BUILD_SYNCPROV BUILD_TRANSLUCENT BUILD_UNIQUE BUILD_VALSORT BUILD_SLURPD LDAP_LIBS SLAPD_LIBS SLURPD_LIBS LDBM_LIBS LTHREAD_LIBS LUTIL_LIBS WRAP_LIBS SLAPD_MODULES_CPPFLAGS SLAPD_MODULES_LDFLAGS SLAPD_NO_STATIC SLAPD_STATIC_BACKENDS SLAPD_DYNAMIC_BACKENDS SLAPD_STATIC_OVERLAYS SLAPD_DYNAMIC_OVERLAYS PERL_CPPFLAGS SLAPD_PERL_LDFLAGS MOD_PERL_LDFLAGS KRB4_LIBS KRB5_LIBS SASL_LIBS TLS_LIBS MODULES_LIBS SLAPI_LIBS LIBSLAPI LIBSLAPITOOLS AUTH_LIBS ICU_LIBS SLAPD_SLP_LIBS SLAPD_GMP_LIBS SLAPD_SQL_LDFLAGS SLAPD_SQL_LIBS SLAPD_SQL_INCLUDES LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar OPENLDAP_LIBRELEASE OPENLDAP_LIBVERSION OPENLDAP_RELEASE_DATE top_builddir ldap_subdir CC AR CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE EGREP LN_S ECHO ac_ct_AR RANLIB ac_ct_RANLIB DLLTOOL ac_ct_DLLTOOL AS ac_ct_AS OBJDUMP ac_ct_OBJDUMP CPP LIBTOOL PERLBIN OL_MKDEP OL_MKDEP_FLAGS LTSTATIC LIBOBJS LIBSRCS PLAT WITH_SASL WITH_TLS WITH_MODULES_ENABLED WITH_ACI_ENABLED BUILD_THREAD BUILD_LIBS_DYNAMIC BUILD_SLAPD BUILD_SLAPI SLAPD_SLAPI_DEPEND BUILD_BDB BUILD_DNSSRV BUILD_HDB BUILD_LDAP BUILD_LDBM BUILD_META BUILD_MONITOR BUILD_NULL BUILD_PASSWD BUILD_RELAY BUILD_PERL BUILD_SHELL BUILD_SQL BUILD_ACCESSLOG BUILD_DDS BUILD_DENYOP BUILD_DYNGROUP BUILD_DYNLIST BUILD_LASTMOD BUILD_PPOLICY BUILD_PROXYCACHE BUILD_REFINT BUILD_RETCODE BUILD_RWM BUILD_SEQMOD BUILD_SYNCPROV BUILD_TRANSLUCENT BUILD_UNIQUE BUILD_VALSORT BUILD_SLURPD LDAP_LIBS SLAPD_LIBS SLURPD_LIBS LDBM_LIBS LTHREAD_LIBS LUTIL_LIBS WRAP_LIBS SLAPD_MODULES_CPPFLAGS SLAPD_MODULES_LDFLAGS SLAPD_NO_STATIC SLAPD_STATIC_BACKENDS SLAPD_DYNAMIC_BACKENDS SLAPD_STATIC_OVERLAYS SLAPD_DYNAMIC_OVERLAYS PERL_CPPFLAGS SLAPD_PERL_LDFLAGS MOD_PERL_LDFLAGS KRB4_LIBS KRB5_LIBS SASL_LIBS TLS_LIBS MODULES_LIBS SLAPI_LIBS LIBSLAPI LIBSLAPITOOLS AUTH_LIBS ICU_LIBS SLAPD_SLP_LIBS SLAPD_GMP_LIBS SLAPD_SQL_LDFLAGS SLAPD_SQL_LIBS SLAPD_SQL_INCLUDES LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1059,6 +1059,7 @@ SLAPD Overlay Options:
     --enable-refint	  Referential Integrity overlay no|yes|mod [no]
     --enable-retcode	  Return Code testing overlay no|yes|mod [no]
     --enable-rwm       	  Rewrite/Remap overlay no|yes|mod [no]
+    --enable-seqmod	  Sequential Modify overlay no|yes|mod [yes]
     --enable-syncprov	  Syncrepl Provider overlay no|yes|mod [yes]
     --enable-translucent  Translucent Proxy overlay no|yes|mod [no]
     --enable-unique       Attribute Uniqueness overlay no|yes|mod [no]
@@ -3175,6 +3176,7 @@ Overlays="accesslog \
 	refint \
 	retcode \
 	rwm \
+	seqmod \
 	syncprov \
 	translucent \
 	unique \
@@ -3470,6 +3472,30 @@ else
   	ol_enable_rwm=${ol_enable_overlays:-no}
 fi;
 # end --enable-rwm
+
+# OpenLDAP --enable-seqmod
+
+	# Check whether --enable-seqmod or --disable-seqmod was given.
+if test "${enable_seqmod+set}" = set; then
+  enableval="$enable_seqmod"
+
+	ol_arg=invalid
+	for ol_val in no yes mod ; do
+		if test "$enableval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		{ { echo "$as_me:$LINENO: error: bad value $enableval for --enable-seqmod" >&5
+echo "$as_me: error: bad value $enableval for --enable-seqmod" >&2;}
+   { (exit 1); exit 1; }; }
+	fi
+	ol_enable_seqmod="$ol_arg"
+
+else
+  	ol_enable_seqmod=${ol_enable_overlays:-yes}
+fi;
+# end --enable-seqmod
 
 # OpenLDAP --enable-syncprov
 
@@ -3907,6 +3933,7 @@ BUILD_PROXYCACHE=no
 BUILD_REFINT=no
 BUILD_RETCODE=no
 BUILD_RWM=no
+BUILD_SEQMOD=no
 BUILD_SYNCPROV=no
 BUILD_TRANSLUCENT=no
 BUILD_UNIQUE=no
@@ -45061,6 +45088,22 @@ _ACEOF
 
 fi
 
+if test "$ol_enable_seqmod" != no ; then
+	BUILD_SEQMOD=$ol_enable_seqmod
+	if test "$ol_enable_seqmod" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS seqmod.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS seqmod.o"
+	fi
+
+cat >>confdefs.h <<_ACEOF
+#define SLAPD_OVER_SEQMOD $MFLAG
+_ACEOF
+
+fi
+
 if test "$ol_enable_syncprov" != no ; then
 	BUILD_SYNCPROV=$ol_enable_syncprov
 	if test "$ol_enable_syncprov" = mod ; then
@@ -46000,6 +46043,7 @@ s,@BUILD_PROXYCACHE@,$BUILD_PROXYCACHE,;t t
 s,@BUILD_REFINT@,$BUILD_REFINT,;t t
 s,@BUILD_RETCODE@,$BUILD_RETCODE,;t t
 s,@BUILD_RWM@,$BUILD_RWM,;t t
+s,@BUILD_SEQMOD@,$BUILD_SEQMOD,;t t
 s,@BUILD_SYNCPROV@,$BUILD_SYNCPROV,;t t
 s,@BUILD_TRANSLUCENT@,$BUILD_TRANSLUCENT,;t t
 s,@BUILD_UNIQUE@,$BUILD_UNIQUE,;t t

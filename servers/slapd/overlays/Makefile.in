@@ -25,6 +25,7 @@ SRCS = overlays.c \
 	refint.c \
 	retcode.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c \
+	seqmod.c \
 	syncprov.c \
 	translucent.c \
 	unique.c \
@@ -92,6 +93,9 @@ rwm_x.o: rwm.o rwmconf.o rwmdn.o rwmmap.o
 	
 rwm.la : rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
+
+seqmod.la : seqmod.lo
+	$(LTLINK_MOD) -module -o $@ seqmod.lo version.lo $(LINK_LIBS)
 
 syncprov.la : syncprov.lo
 	$(LTLINK_MOD) -module -o $@ syncprov.lo version.lo $(LINK_LIBS)

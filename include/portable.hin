@@ -1011,6 +1011,9 @@
 /* define for Rewrite/Remap overlay */
 #undef SLAPD_OVER_RWM
 
+/* define for Sequential Modify overlay */
+#undef SLAPD_OVER_SEQMOD
+
 /* define for Syncrepl Provider overlay */
 #undef SLAPD_OVER_SYNCPROV
 
