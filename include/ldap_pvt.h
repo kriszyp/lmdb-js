@@ -266,30 +266,25 @@ LDAP_END_DECL
  * Multiple precision stuff
  * 
  * May use OpenSSL's BIGNUM if built with TLS,
- * or GNU's multiple precision library.
+ * or GNU's multiple precision library. But if
+ * long long is available, that's big enough
+ * and much more efficient.
  *
  * If none is available, unsigned long data is used.
  */
-#ifdef HAVE_BIGNUM
+
+#if USE_MP_BIGNUM
 /*
  * Use OpenSSL's BIGNUM
  */
-#if defined(HAVE_OPENSSL_CRYPTO_H)
 #include <openssl/crypto.h>
-#elif HAVE_CRYPTO_H
-#include <crypto.h>
-#endif /* HAVE_OPENSSL_CRYPTO_H || HAVE_CRYPTO_H */
-#ifdef HAVE_OPENSSL_BN_H
 #include <openssl/bn.h>
-#elif HAVE_BN_H
-#include <bn.h>
-#endif /* HAVE_OPENSSL_BN_H || HAVE_BN_H */
 
-typedef	BIGNUM*		ldap_pvt_mp_t;
+typedef	BIGNUM* ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(NULL)
 
 #define	ldap_pvt_mp_init(mp) \
-	(mp) = BN_new()
+	do { (mp) = BN_new(); } while (0)
 
 /* FIXME: we rely on mpr being initialized */
 #define	ldap_pvt_mp_init_set(mpr,mpv) \
@@ -304,13 +299,11 @@ typedef	BIGNUM*		ldap_pvt_mp_t;
 #define ldap_pvt_mp_clear(mp) \
 	do { BN_free((mp)); (mp) = 0; } while (0)
 
-#elif defined(HAVE_GMP)
+#elif USE_MP_GMP
 /*
  * Use GNU's multiple precision library
  */
-#ifdef HAVE_GMP_H
 #include <gmp.h>
-#endif
 
 typedef mpz_t		ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	{ 0 }
@@ -330,36 +323,42 @@ typedef mpz_t		ldap_pvt_mp_t;
 #define ldap_pvt_mp_clear(mp) \
 	mpz_clear((mp))
 
-#else /* ! HAVE_BIGNUM && ! HAVE_GMP */
+#else
 /*
- * Use unsigned long
+ * Use unsigned long long
  */
 
-#ifdef HAVE_LONG_LONG
+#if USE_MP_LONG_LONG
 typedef	unsigned long long	ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0LL)
-#else /* !HAVE_LONG_LONG */
+#elif USE_MP_LONG
 typedef	unsigned long		ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0L)
-#endif /* !HAVE_LONG_LONG */
+#elif HAVE_LONG_LONG
+typedef	unsigned long long	ldap_pvt_mp_t;
+#define	LDAP_PVT_MP_INIT	(0LL)
+#else
+typedef	unsigned long		ldap_pvt_mp_t;
+#define	LDAP_PVT_MP_INIT	(0L)
+#endif
 
 #define ldap_pvt_mp_init(mp) \
-	(mp) = 0
+	do { (mp) = 0; } while (0)
 
 #define	ldap_pvt_mp_init_set(mpr,mpv) \
-	(mpr) = (mpv)
+	do { (mpr) = (mpv); } while (0)
 
 #define	ldap_pvt_mp_add(mpr,mpv) \
-	(mpr) += (mpv)
+	do { (mpr) += (mpv); } while (0)
 
 #define	ldap_pvt_mp_add_ulong(mp,v) \
-	(mp) += (v)
+	do { (mp) += (v); } while (0)
 
 #define ldap_pvt_mp_clear(mp) \
-	(mp) = 0
+	do { (mp) = 0; } while (0)
 
-#endif /* ! HAVE_BIGNUM && ! HAVE_GMP */
+#endif /* MP */
 
 #include "ldap_pvt_uc.h"
 
-#endif
+#endif /* _LDAP_PVT_H */

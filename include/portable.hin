@@ -102,14 +102,8 @@
 /* define if Berkeley DB has DB_THREAD support */
 #undef HAVE_BERKELEY_DB_THREAD
 
-/* define if you have OpenSSL's BIGNUM */
-#undef HAVE_BIGNUM
-
 /* Define to 1 if you have the <bits/types.h> header file. */
 #undef HAVE_BITS_TYPES_H
-
-/* Define to 1 if you have the <bn.h> header file. */
-#undef HAVE_BN_H
 
 /* Define to 1 if you have the `chroot' function. */
 #undef HAVE_CHROOT
@@ -122,9 +116,6 @@
 
 /* define if crypt(3) is available */
 #undef HAVE_CRYPT
-
-/* Define to 1 if you have the <crypto.h> header file. */
-#undef HAVE_CRYPTO_H
 
 /* Define to 1 if you have the <crypt.h> header file. */
 #undef HAVE_CRYPT_H
@@ -253,9 +244,6 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
-/* define if you have -lgmp */
-#undef HAVE_GMP
-
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
@@ -324,6 +312,9 @@
 
 /* Define to 1 if you have the `gen' library (-lgen). */
 #undef HAVE_LIBGEN
+
+/* Define to 1 if you have the `gmp' library (-lgmp). */
+#undef HAVE_LIBGMP
 
 /* Define to 1 if you have the `inet' library (-linet). */
 #undef HAVE_LIBINET
@@ -921,6 +912,9 @@
 /* The size of a `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
+/* The size of a `long long', as computed by sizeof. */
+#undef SIZEOF_LONG_LONG
+
 /* The size of a `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
@@ -1049,6 +1043,18 @@
 
 /* set to urandom device */
 #undef URANDOM_DEVICE
+
+/* define to use OpenSSL BIGNUM for MP */
+#undef USE_MP_BIGNUM
+
+/* define to use GMP for MP */
+#undef USE_MP_GMP
+
+/* define to use 'long' for MP */
+#undef USE_MP_LONG
+
+/* define to use 'long long' for MP */
+#undef USE_MP_LONG_LONG
 
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */

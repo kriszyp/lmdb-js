@@ -13,8 +13,9 @@ OpenLDAP 2.3.20 Engineering
 	Fixed slapo-syncprov update latency issue (ITS#4385)
 	Fixed slurpd reject error formating (ITS#4382)
 	Build Environment
-		Fixed <netinet/tcp.h> detection on AIX (ITS#4312)
 		Fixed liblunicode cross compiling problem (ITS#4363)
+		Updated <netinet/tcp.h> detection for AIX (ITS#4312)
+		Updated multi-precision library detection
 
 OpenLDAP 2.3.19 Release
 	Fixed libldap disable DH key exchange with DH params (ITS#4354)
