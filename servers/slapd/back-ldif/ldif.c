@@ -966,8 +966,6 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	Modifications * mods = NULL;
 	int res;
 
-	slap_mods_opattrs( op, &op->orm_modlist, 1 );
-
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
 	ldap_pvt_thread_mutex_lock(&entry2str_mutex);
 	entry = (Entry *) get_entry(op, &ni->li_base_path);
