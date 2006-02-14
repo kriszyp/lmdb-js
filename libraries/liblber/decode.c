@@ -479,7 +479,6 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 	return tag;
 }
 
-#ifdef LDAP_NULL_IS_NULL
 ber_tag_t
 ber_get_stringbv_null( BerElement *ber, struct berval *bv, int alloc )
 {
@@ -528,7 +527,6 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int alloc )
 
 	return tag;
 }
-#endif /* LDAP_NULL_IS_NULL */
 
 ber_tag_t
 ber_get_stringa( BerElement *ber, char **buf )
@@ -544,7 +542,6 @@ ber_get_stringa( BerElement *ber, char **buf )
 	return tag;
 }
 
-#ifdef LDAP_NULL_IS_NULL
 ber_tag_t
 ber_get_stringa_null( BerElement *ber, char **buf )
 {
@@ -558,7 +555,6 @@ ber_get_stringa_null( BerElement *ber, char **buf )
 
 	return tag;
 }
-#endif /* LDAP_NULL_IS_NULL */
 
 ber_tag_t
 ber_get_stringal( BerElement *ber, struct berval **bv )
@@ -759,13 +755,11 @@ ber_scanf ( BerElement *ber,
 			rc = ber_get_stringa( ber, ss );
 			break;
 
-#ifdef LDAP_NULL_IS_NULL
 		case 'A':	/* octet string - allocate storage as needed,
 				 * but return NULL if len == 0 */
 			ss = va_arg( ap, char ** );
 			rc = ber_get_stringa_null( ber, ss );
 			break;
-#endif /* LDAP_NULL_IS_NULL */
 
 		case 'b':	/* boolean */
 			i = va_arg( ap, ber_int_t * );
@@ -920,9 +914,7 @@ ber_scanf ( BerElement *ber,
 			} break;
 
 		case 'a':	/* octet string - allocate storage as needed */
-#ifdef LDAP_NULL_IS_NULL
 		case 'A':
-#endif /* LDAP_NULL_IS_NULL */
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
 				LBER_FREE( *ss );

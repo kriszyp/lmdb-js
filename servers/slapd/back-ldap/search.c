@@ -412,22 +412,10 @@ retry:
 			}
 
 			if ( match.bv_val != NULL ) {
-#ifndef LDAP_NULL_IS_NULL
-				if ( match.bv_val[ 0 ] == '\0' ) {
-					LDAP_FREE( match.bv_val );
-					BER_BVZERO( &match );
-				} else
-#endif /* LDAP_NULL_IS_NULL */
 				{
 					match.bv_len = strlen( match.bv_val );
 				}
 			}
-#ifndef LDAP_NULL_IS_NULL
-			if ( rs->sr_text != NULL && rs->sr_text[ 0 ] == '\0' ) {
-				LDAP_FREE( (char *)rs->sr_text );
-				rs->sr_text = NULL;
-			}
-#endif /* LDAP_NULL_IS_NULL */
 
 			/* cleanup */
 			if ( references ) {

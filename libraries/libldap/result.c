@@ -568,23 +568,11 @@ nextresp2:
 			ber_len_t	len;
 			char		*lr_res_error = NULL;
 
-#ifdef LDAP_NULL_IS_NULL
 			if ( ber_scanf( &tmpber, "{eAA",/*}*/ &lderr,
 				    &lr->lr_res_matched, &lr_res_error )
 				    != LBER_ERROR )
-#else /* ! LDAP_NULL_IS_NULL */
-			if ( ber_scanf( &tmpber, "{eaa",/*}*/ &lderr,
-				    &lr->lr_res_matched, &lr_res_error )
-				    != LBER_ERROR )
-#endif /* ! LDAP_NULL_IS_NULL */
 			{
 				if ( lr_res_error != NULL ) {
-#ifndef LDAP_NULL_IS_NULL
-					if ( lr_res_error[ 0 ] == '\0' ) {
-						LDAP_FREE( lr_res_error );
-						lr_res_error = NULL;
-					} else
-#endif /* ! LDAP_NULL_IS_NULL */
 					{
 						if ( lr->lr_res_error != NULL ) {
 							(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
@@ -667,22 +655,11 @@ nextresp2:
 				 */
 				if ( tag == LDAP_RES_SEARCH_RESULT )
 					refer_cnt = 0;
-#ifdef LDAP_NULL_IS_NULL
 			} else if ( ber_scanf( &tmpber, "{eAA}", &lderr,
 				&lr->lr_res_matched, &lr_res_error )
 				!= LBER_ERROR )
-#else /* ! LDAP_NULL_IS_NULL */
-			} else if ( ber_scanf( &tmpber, "{eaa}", &lderr,
-				&lr->lr_res_matched, &lr_res_error )
-				!= LBER_ERROR )
-#endif /* ! LDAP_NULL_IS_NULL */
 			{
 				if ( lr_res_error != NULL ) {
-#ifndef LDAP_NULL_IS_NULL
-					if ( lr_res_error[ 0 ] == '\0' ) {
-						LDAP_FREE( lr_res_error );
-					} else
-#endif /* ! LDAP_NULL_IS_NULL */
 					{
 						if ( lr->lr_res_error != NULL ) {
 							(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
