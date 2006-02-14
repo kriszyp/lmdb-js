@@ -34,9 +34,6 @@
 
 #include "slap.h"
 #include "lber_pvt.h"
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif
 
 #include "ldap_rq.h"
 
@@ -253,9 +250,6 @@ int slap_startup( Backend *be )
 int slap_shutdown( Backend *be )
 {
 	int rc;
-#ifdef LDAP_SLAPI
-	Slapi_PBlock *pb;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE,
 		"%s shutdown: initiated\n",
