@@ -841,6 +841,36 @@ done:
 }
 
 static int
+slapi_over_db_open( BackendDB *be )
+{
+	Slapi_PBlock		*pb;
+	int			rc;
+
+	pb = slapi_pblock_new();
+
+	rc = slapi_int_call_plugins( be, SLAPI_PLUGIN_START_FN, pb );
+
+	slapi_pblock_destroy( pb );
+
+	return rc;
+}
+
+static int
+slapi_over_db_close( BackendDB *be )
+{
+	Slapi_PBlock		*pb;
+	int			rc;
+
+	pb = slapi_pblock_new();
+
+	rc = slapi_int_call_plugins( be, SLAPI_PLUGIN_CLOSE_FN, pb );
+
+	slapi_pblock_destroy( pb );
+
+	return rc;
+}
+
+static int
 slapi_over_init()
 {
 	memset( &slapi, 0, sizeof(slapi) );
@@ -857,6 +887,9 @@ slapi_over_init()
 	slapi.on_bi.bi_op_delete	= slapi_op_func;
 	slapi.on_bi.bi_op_abandon	= slapi_op_func;
 	slapi.on_bi.bi_op_cancel	= slapi_op_func;
+
+	slapi.on_bi.bi_db_open		= slapi_over_db_open;
+	slapi.on_bi.bi_db_close		= slapi_over_db_close;
 
 	slapi.on_bi.bi_extended		= slapi_over_extended;
 	slapi.on_bi.bi_access_allowed	= slapi_over_access_allowed;

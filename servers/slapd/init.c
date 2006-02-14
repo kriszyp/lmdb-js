@@ -247,20 +247,7 @@ int slap_startup( Backend *be )
 		slap_name, 0, 0 );
 
 
-	rc = backend_startup( be );
-
-#ifdef LDAP_SLAPI
-	if( rc == 0 ) {
-		Slapi_PBlock *pb = slapi_pblock_new();
-
-		if ( slapi_int_call_plugins( frontendDB, SLAPI_PLUGIN_START_FN, pb ) < 0 ) {
-			rc = -1;
-		}
-		slapi_pblock_destroy( pb );
-	}
-#endif /* LDAP_SLAPI */
-
-	return rc;
+	return backend_startup( be );
 }
 
 int slap_shutdown( Backend *be )
@@ -275,15 +262,7 @@ int slap_shutdown( Backend *be )
 		slap_name, 0, 0 );
 
 	/* let backends do whatever cleanup they need to do */
-	rc = backend_shutdown( be ); 
-
-#ifdef LDAP_SLAPI
-	pb = slapi_pblock_new();
-	(void) slapi_int_call_plugins( frontendDB, SLAPI_PLUGIN_CLOSE_FN, pb );
-	slapi_pblock_destroy( pb );
-#endif /* LDAP_SLAPI */
-
-	return rc;
+	return backend_shutdown( be ); 
 }
 
 int slap_destroy(void)
