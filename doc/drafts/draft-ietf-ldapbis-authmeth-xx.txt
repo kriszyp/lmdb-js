@@ -1,7 +1,7 @@
 
 INTERNET-DRAFT                                      Editor: R. Harrison
-draft-ietf-ldapbis-authmeth-18.txt                         Novell, Inc.
-Obsoletes: 2251, 2829, 2830                              November, 2005
+draft-ietf-ldapbis-authmeth-19.txt                         Novell, Inc.
+Obsoletes: 2251, 2829, 2830                               February 2006
 Intended Category: Standards Track
 
 
@@ -52,34 +52,38 @@ Abstract
 
 
 
-Harrison                  Expires March 2006                  [Page 1]
+Harrison                 Expires August 2006                 [Page 1]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    This document details establishment of Transport Layer Security
    (TLS) using the StartTLS operation.
 
    This document details the simple Bind authentication method
    including anonymous, unauthenticated, and name/password mechanisms
-   and the Secure Authentication and Security Layer (SASL) Bind
+   and the Simple Authentication and Security Layer (SASL) Bind
    authentication method including the EXTERNAL mechanism.
 
    This document discusses various authentication and authorization
    states through which a session to an LDAP server may pass and the
    actions that trigger these state changes.
 
+   This document, together with other documents in the LDAP Technical
+   Specification (see section 1 of [Roadmap]), obsoletes RFC 2251, RFC
+   2829 and RFC 2830.
+
 Table of Contents
 
    1. Introduction.....................................................3
    1.1. Relationship to Other Documents................................5
    1.2. Conventions....................................................6
-   2. Implementation Requirements......................................6
+   2. Implementation Requirements......................................7
    3. StartTLS Operation...............................................7
    3.1. TLS Establishment Procedures...................................7
-   3.1.1. StartTLS Request Sequencing..................................7
+   3.1.1. StartTLS Request Sequencing..................................8
    3.1.2. Client Certificate...........................................8
    3.1.3. Server Identity Check........................................8
-   3.1.3.1. Comparison of DNS Names....................................9
+   3.1.3.1. Comparison of DNS Names...................................10
    3.1.3.2. Comparison of IP Addresses................................10
    3.1.3.3. Comparison of other subjectName types.....................10
    3.1.4. Discovery of Resultant Security Level.......................10
@@ -103,70 +107,70 @@ Table of Contents
    5.2.1.7. Support for Multiple Authentications......................18
    5.2.1.8. SASL Authorization Identities.............................18
    5.2.2. SASL Semantics Within LDAP..................................19
+
+Harrison                 Expires August 2006                 [Page 2]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    5.2.3. SASL EXTERNAL Authentication Mechanism......................19
    5.2.3.1. Implicit Assertion........................................19
    5.2.3.2. Explicit Assertion........................................20
    6. Security Considerations.........................................20
-
-Harrison                  Expires March 2006                  [Page 2]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
    6.1. General LDAP Security Considerations..........................20
-   6.2. StartTLS Security Considerations..............................20
+   6.2. StartTLS Security Considerations..............................21
    6.3. Bind Operation Security Considerations........................21
    6.3.1. Unauthenticated Mechanism Security Considerations...........21
-   6.3.2. Name/Password Mechanism Security Considerations.............21
+   6.3.2. Name/Password Mechanism Security Considerations.............22
    6.3.3. Password-related Security Considerations....................22
    6.3.4. Hashed Password Security Considerations.....................23
-   6.4. Related Security Considerations...............................23
-   7. IANA Considerations.............................................23
-   8. Acknowledgments.................................................23
-   9. Normative References............................................23
+   6.4.SASL Security Considerations...................................23
+   6.5. Related Security Considerations...............................23
+   7. IANA Considerations.............................................24
+   8. Acknowledgments.................................................24
+   9. Normative References............................................24
    10. Informative References.........................................25
-   Author's Address...................................................25
-   Appendix A. Authentication and Authorization Concepts..............25
+   Author's Address...................................................26
+   Appendix A. Authentication and Authorization Concepts..............26
    A.1. Access Control Policy.........................................26
    A.2. Access Control Factors........................................26
-   A.3. Authentication, Credentials, Identity.........................26
-   A.4. Authorization Identity........................................26
+   A.3. Authentication, Credentials, Identity.........................27
+   A.4. Authorization Identity........................................27
    Appendix B. Summary of Changes.....................................27
-   B.1. Changes Made to RFC 2251......................................27
-   B.1.1. Section 4.2.1 (Sequencing of the Bind Request)..............27
+   B.1. Changes Made to RFC 2251......................................28
+   B.1.1. Section 4.2.1 (Sequencing of the Bind Request)..............28
    B.1.2. Section 4.2.2 (Authentication and Other Security Services)..28
    B.2. Changes Made to RFC 2829......................................28
-   B.2.1. Section 4 (Required security mechanisms)....................28
-   B.2.2. Section 5.1 (Anonymous authentication procedure)............28
-   B.2.3. Section 6 (Password-based authentication)...................28
-   B.2.4. Section 6.1 (Digest authentication).........................28
+   B.2.1. Section 4 (Required security mechanisms)....................29
+   B.2.2. Section 5.1 (Anonymous authentication procedure)............29
+   B.2.3. Section 6 (Password-based authentication)...................29
+   B.2.4. Section 6.1 (Digest authentication).........................29
    B.2.5. Section 6.2 ("simple" authentication choice with TLS).......29
    B.2.6. Section 6.3 (Other authentication choices with TLS).........29
-   B.2.7. Section 7.1 (Certificate-based authentication with TLS).....29
-   B.2.8. Section 8 (Other mechanisms)................................29
-   B.2.9. Section 9 (Authorization identity)..........................29
-   B.2.10. Section 10 (TLS Ciphersuites)..............................29
+   B.2.7. Section 7.1 (Certificate-based authentication with TLS).....30
+   B.2.8. Section 8 (Other mechanisms)................................30
+   B.2.9. Section 9 (Authorization identity)..........................30
+   B.2.10. Section 10 (TLS Ciphersuites)..............................30
    B.3. Changes Made to RFC 2830: ....................................30
    B.3.1. Section 3.6 (Server Identity Check).........................30
-   B.3.2. Section 3.7 (Refresh of Server Capabilities Information)....30
-   B.3.3. Section 5.2 (Effects of TLS on Authorization Identity)......30
-   B.3.4. Section 5.1.1 (TLS Closure Effects).........................30
-   Appendix C. Changes for draft-ldapbis-authmeth-18..................30
-   Intellectual Property Rights.......................................31
-   Full Copyright Statement...........................................32
+   B.3.2. Section 3.7 (Refresh of Server Capabilities Information)....31
+   B.3.3. Section 5.2 (Effects of TLS on Authorization Identity)......31
+   B.3.4. Section 5.1.1 (TLS Closure Effects).........................31
+   Appendix C. Changes for draft-ldapbis-authmeth-19..................31
+   Intellectual Property Rights.......................................32
+   Full Copyright Statement...........................................33
 
 
 1. Introduction
+
+
+Harrison                 Expires August 2006                 [Page 3]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    The Lightweight Directory Access Protocol (LDAP) [Roadmap] is a
    powerful protocol for accessing directories.  It offers means of
    searching, retrieving and manipulating directory content and ways to
    access a rich set of security functions.
-
-
-
-Harrison                  Expires March 2006                  [Page 3]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
    It is vital that these security functions be interoperable among all
    LDAP clients and servers on the Internet; therefore there has to be
@@ -209,24 +213,27 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    Threats (1), (4), (5) and (6) are due to hostile clients.  Threats
    (2), (3), (7) and (8) are due to hostile agents on the path between
-   client and server or hostile agents posing as a server, e.g. IP
+   client and server or hostile agents posing as a server, e.g., IP
    spoofing.
 
    LDAP offers the following security mechanisms:
 
+
+
+
+
+Harrison                 Expires August 2006                 [Page 4]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    (1) Authentication by means of the Bind operation.  The Bind
        operation provides a simple method which supports anonymous,
-       unauthenticated, and name/password mechanisms, and the Secure
+       unauthenticated, and name/password mechanisms, and the Simple
        Authentication and Security Layer (SASL) method which supports a
        wide variety of authentication mechanisms.
 
    (2) Mechanisms to support vendor-specific access control facilities
        (LDAP does not offer a standard access control facility).
-
-Harrison                  Expires March 2006                  [Page 4]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
 
    (3) Data integrity service by means of security layers in Transport
        Layer Security (TLS) or SASL mechanisms.
@@ -240,8 +247,8 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    (6) Server authentication by means of the TLS protocol or SASL
        mechanisms.
 
-   LDAP may also be protected by means outside the LDAP protocol, e.g.
-   with IP-level security [RFC2401].
+   LDAP may also be protected by means outside the LDAP protocol, e.g.,
+   with IP-level security [RFC4301].
 
    Experience has shown that simply allowing implementations to pick
    and choose the security mechanisms that will be implemented is not a
@@ -254,7 +261,7 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    It is desirable to allow clients to authenticate using a variety of
    mechanisms including mechanisms where identities are represented as
    distinguished names [X.501][Models] in string form [LDAPDN] or as
-   used in different systems (e.g. simple user names [RFC4013]).
+   used in different systems (e.g., simple user names [RFC4013]).
    Because some authentication mechanisms transmit credentials in plain
    text form, and/or do not provide data security services and/or are
    subject to passive attacks, it is necessary to ensure secure
@@ -271,6 +278,13 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    This document is an integral part of the LDAP Technical
    Specification [Roadmap].
 
+
+
+
+Harrison                 Expires August 2006                 [Page 5]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    This document, together with [Roadmap], [Protocol], and [Models],
    obsoletes RFC 2251 in its entirety. Sections 4.2.1 (portions), and
    4.2.2 of RFC 2251 are obsoleted by this document. Appendix  B.1
@@ -278,13 +292,6 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    This document obsoletes RFC 2829 in its entirety. Appendix B.2
    summarizes the substantive changes made to RFC 2829 by this document.
-
-
-
-
-Harrison                  Expires March 2006                  [Page 5]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
    Sections 2 and 4 of RFC 2830 are obsoleted by [Protocol].  The
    remainder of RFC 2830 is obsoleted by this document. Appendix B.3
@@ -332,18 +339,15 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    review Appendix A before reading the remainder of this document.
 
 
+
+Harrison                 Expires August 2006                 [Page 6]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
 2. Implementation Requirements
 
    LDAP server implementations MUST support the anonymous
    authentication mechanism of the simple Bind method (section 5.1.1).
-
-
-
-
-
-Harrison                  Expires March 2006                  [Page 6]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
    LDAP implementations that support any authentication mechanism other
    than the anonymous authentication mechanism of the simple Bind
@@ -371,7 +375,10 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    paragraph of this section.)
 
    Implementations supporting TLS MUST support the
-   TLS_DHE_DSS_WITH_3DES_EBE_CBC_SHA ciphersuite.
+   TLS_RSA_WITH_3DES_EDE_CBC_SHA ciphersuite and SHOULD support the
+   TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA ciphersuite.  Support for the
+   latter ciphersuite is recommended to encourage interoperability with
+   implementations conforming to earlier LDAP StartTLS specifications.
 
 
 3. StartTLS Operation
@@ -391,6 +398,11 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 3.1. TLS Establishment Procedures
 
+
+Harrison                 Expires August 2006                 [Page 7]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    This section describes the overall procedures clients and servers
    must follow for TLS establishment.  These procedures take into
    consideration various aspects of the TLS layer including discovery
@@ -399,11 +411,6 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 
 3.1.1. StartTLS Request Sequencing
-
-Harrison                  Expires March 2006                  [Page 7]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
 
    A client may send the StartTLS extended request at any time after
    establishing an LDAP session, except:
@@ -439,7 +446,7 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    If an LDAP server requests or demands that a client provide a user
    certificate during TLS negotiation and the client does not present a
-   suitable user certificate (e.g. one that can be validated), the
+   suitable user certificate (e.g., one that can be validated), the
    server may use a local security policy to determine whether to
    successfully complete TLS negotiation.  
 
@@ -451,19 +458,18 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 3.1.3. Server Identity Check
 
+Harrison                 Expires August 2006                 [Page 8]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
+
    In order to prevent man-in-the-middle attacks the client MUST verify
    the server's identity (as presented in the server's Certificate
    message).  In this section, the client's understanding of the
    server's identity (typically the identity used to establish the
    transport connection) is called the "reference identity".
 
-
-
-Harrison                  Expires March 2006                  [Page 8]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
-   The client determines the type (e.g. DNS name or IP address) of the
+   The client determines the type (e.g., DNS name or IP address) of the
    reference identity and performs a comparison between the reference
    identity and each subjectAltName value of the corresponding type
    until a match is produced.  Once a match is produced, the server's
@@ -476,10 +482,10 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    to performing a comparison. Mappings may be performed for all
    available subjectAltName types to which the reference identity can
    be mapped, however the reference identity should only be mapped to
-   types for which the mapping is either inherently secure (e.g.
+   types for which the mapping is either inherently secure (e.g.,
    extracting the DNS name from a URI to compare with a subjectAltName
    of type dNSName) or for which the mapping is performed in a secure
-   manner (e.g. using DNSSec, or using user- (or admin-) configured
+   manner (e.g., using DNSSec, or using user- (or admin-) configured
    host-to-address/address-to-host lookup tables).
 
    The server's identity may also be verified by comparing the
@@ -511,16 +517,12 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    making this determination.
 
 
-3.1.3.1. Comparison of DNS Names
-
-
-
-
-
-
-Harrison                  Expires March 2006                  [Page 9]
+Harrison                 Expires August 2006                 [Page 9]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
+
+
+3.1.3.1. Comparison of DNS Names
 
    If the reference identity is an internationalized domain name,
    conforming implementations MUST convert it to the ASCII Compatible
@@ -574,12 +576,9 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 
 
-
-
-
-Harrison                  Expires March 2006                 [Page 10]
+Harrison                 Expires August 2006                [Page 10]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    After a TLS layer is established in an LDAP session, both parties
    are to each independently decide whether or not to continue based on
@@ -636,16 +635,16 @@ Internet-Draft       LDAP Authentication Methods       September 2005
        ensure that the level of protection afforded by the ciphersuite
        is appropriate.
 
-Harrison                  Expires March 2006                 [Page 11]
+Harrison                 Expires August 2006                [Page 11]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
 
      - The ciphersuite's vulnerability (or lack thereof) to man-in-the-
        middle attacks.  Ciphersuites vulnerable to man-in-the-middle
        attacks SHOULD NOT be used to protect passwords or sensitive
        data, unless the network configuration is such that the danger
-       of a man-in-the-middle attack is tolerable.
+       of a man-in-the-middle attack is negligible.
 
      - After a TLS negotiation (either initial or subsequent) is
        completed, both protocol peers should independently verify that
@@ -660,9 +659,9 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    state is comprised of numerous factors such as what (if any)
    authorization state has been established, how it was established,
    and what security services are in place.  Some factors may be
-   determined and/or affected by protocol events (e.g. Bind, StartTLS,
+   determined and/or affected by protocol events (e.g., Bind, StartTLS,
    or TLS closure), and some factors may be determined by external
-   events (e.g. time of day or server load).
+   events (e.g., time of day or server load).
 
    While it is often convenient to view authorization state in
    simplistic terms (as we often do in this technical specification)
@@ -695,15 +694,15 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 
 
-Harrison                  Expires March 2006                 [Page 12]
+Harrison                 Expires August 2006                [Page 12]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    It is noted that other events both internal and external to LDAP may
    result in the authentication and authorization states being moved to
    an anonymous one.  For instance, the establishment, change or
    closure of data security services may result in a move to an
-   anonymous state, or the user's credential information (e.g.
+   anonymous state, or the user's credential information (e.g.,
    certificate) may have expired.  The former is an example of an event
    internal to LDAP whereas the latter is an example of an event
    external to LDAP.
@@ -723,7 +722,7 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    If the authorization identity is specified, the server MUST verify
    that the client's authentication identity is permitted to assume
-   (e.g. proxy for) the asserted authorization identity.  The server
+   (e.g., proxy for) the asserted authorization identity.  The server
    MUST reject the Bind operation with an invalidCredentials resultCode
    in the Bind response if the client is not so authorized.
 
@@ -754,9 +753,9 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 5.1.2. Unauthenticated Authentication Mechanism of Simple Bind
 
 
-Harrison                  Expires March 2006                 [Page 13]
+Harrison                 Expires August 2006                [Page 13]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    An LDAP client may use the unauthenticated authentication mechanism
    of the simple Bind method to establish an anonymous authorization
@@ -766,10 +765,10 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    length. 
 
    The distinguished name value provided by the client is intended to
-   be used for trace (e.g. logging) purposes only.  The value is not to
-   be authenticated or otherwise validated (including verification that
-   the DN refers to an existing directory object).  The value is not be
-   used (directly or indirectly) for authorization purposes.
+   be used for trace (e.g., logging) purposes only.  The value is not
+   to be authenticated or otherwise validated (including verification
+   that the DN refers to an existing directory object).  The value is
+   not to be used (directly or indirectly) for authorization purposes.
 
    Unauthenticated Bind operations can have significant security issues
    (see section 6.3.1).  In particular, users intending to perform
@@ -813,9 +812,9 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    and a password value of non-zero length.
 
 
-Harrison                  Expires March 2006                 [Page 14]
+Harrison                 Expires August 2006                [Page 14]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    The name/password authentication mechanism of the simple Bind method 
    is not suitable for authentication in environments without
@@ -826,7 +825,7 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    The sasl authentication method of the Bind Operation provides
    facilities for using any SASL mechanism including authentication
-   mechanisms and other services (e.g. data security services).
+   mechanisms and other services (e.g., data security services).
 
 
 5.2.1. SASL Protocol Profile
@@ -872,9 +871,9 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 
 
-Harrison                  Expires March 2006                 [Page 15]
+Harrison                 Expires August 2006                [Page 15]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    In general, a SASL authentication protocol exchange consists of a
    series of server challenges and client responses, the contents of
@@ -931,9 +930,9 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    requires protocol specifications to detail how an empty field is
    distinguished from an absent field.
 
-Harrison                  Expires March 2006                 [Page 16]
+Harrison                 Expires August 2006                [Page 16]
 
-Internet-Draft       LDAP Authentication Methods       September 2005
+Internet-Draft       LDAP Authentication Methods        February 2006
 
 
    Zero-length initial response data is distinguished from no initial
@@ -975,7 +974,10 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    attribute, if any, list the mechanisms the server supports in the
    current LDAP session state.  LDAP servers SHOULD allow all clients--
    even those with an anonymous authorization--to retrieve the
-   'supportedSASLMechanisms' attribute of the root DSE.
+   'supportedSASLMechanisms' attribute of the root DSE both before and
+   after the SASL authentication exchange.  The purpose of the latter
+   is to allow the client to detect possible downgrade attacks (see
+   section 6.4 and [SASL] section 6.1.2).
 
    Because SASL mechanisms provide critical security functions, clients
    and servers should be configurable to specify what mechanisms are
@@ -986,22 +988,21 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 5.2.1.6. Rules for Using SASL Layers
 
+
+Harrison                 Expires August 2006                [Page 17]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    Upon installing a SASL layer, the client SHOULD discard or refresh
    all information about the server it obtained prior to the initiation
    of the SASL negotiation and not obtained through secure mechanisms. 
 
-Harrison                  Expires March 2006                 [Page 17]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
-
    If a lower level security layer (such as TLS) is installed, any SASL
    layer SHALL be layered on top of such security layers regardless of
    the order of their negotiation.  In all other respects, the SASL
-   layer and other security layers act independently, e.g. if both a
-   TLS layer and a SASL layer are in effect then removing the SASL
-   layer does not affect the continuing service of the TLS layer and
-   vice versa.
+   layer and other security layers act independently, e.g., if both a
+   TLS layer and a SASL layer are in effect then removing the TLS layer
+   does not affect the continuing service of the SASL layer.
 
 
 5.2.1.7. Support for Multiple Authentications
@@ -1038,6 +1039,19 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    requirement that the asserted distinguishedName value be that of an
    entry in the directory.
 
+
+
+
+
+
+
+
+
+
+Harrison                 Expires August 2006                [Page 18]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    The uAuthzId choice allows clients to assert an authorization
    identity that is not in distinguished name form.  The format of
    userid is defined only as a sequence of UTF-8 [RFC3629] encoded
@@ -1048,11 +1062,6 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    uAuthzID values, each uAuthzID value MUST be prepared as a "query"
    string using [RFC4013] and then the two values are compared octet-
    wise.
-
-Harrison                  Expires March 2006                 [Page 18]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
 
    The above grammar is extensible.  The authzId production may be
    extended to support additional forms of identities.  Each form is
@@ -1079,13 +1088,12 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    A client can use the SASL EXTERNAL [SASL] mechanism to request the
    LDAP server to authenticate and establish a resulting authorization
    identity using security credentials exchanged by a lower security
-   layer (such as by TLS authentication or IP-level security
-   [RFC2401]).  If the client's authentication credentials have not
-   been established at a lower security layer, the SASL EXTERNAL Bind
-   MUST fail with a resultCode of inappropriateAuthentication.
-   Although this situation has the effect of leaving the LDAP session
-   in an anonymous state (section 4), the state of any installed
-   security layer is unaffected.
+   layer (such as by TLS authentication).  If the client's
+   authentication credentials have not been established at a lower
+   security layer, the SASL EXTERNAL Bind MUST fail with a resultCode
+   of inappropriateAuthentication.  Although this situation has the
+   effect of leaving the LDAP session in an anonymous state (section
+   4), the state of any installed security layer is unaffected.
 
    A client may either request that its authorization identity be
    automatically derived from its authentication credentials exchanged
@@ -1096,21 +1104,23 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 5.2.3.1. Implicit Assertion
 
+
+
+
+Harrison                 Expires August 2006                [Page 19]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    An implicit authorization identity assertion is performed by
    invoking a Bind request of the SASL form using the EXTERNAL
    mechanism name that does not include the optional credentials field
    (found within the SaslCredentials sequence in the BindRequest).  The
    server will derive the client's authorization identity from the
-   authentication identity supplied by a security layer (e.g. a public
+   authentication identity supplied by a security layer (e.g., a public
    key certificate used during TLS layer installation) according to
    local policy.  The underlying mechanics of how this is accomplished
    are implementation specific.
 
-
-
-Harrison                  Expires March 2006                 [Page 19]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
 5.2.3.2. Explicit Assertion
 
@@ -1134,7 +1144,7 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    LDAP itself provides no security or protection from accessing or
    updating the directory by other means than through the LDAP
-   protocol, e.g. from inspection of server database files by database
+   protocol, e.g., from inspection of server database files by database
    administrators. 
 
    Sensitive data may be carried in almost any LDAP message and its
@@ -1143,7 +1153,7 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    protect sensitive data from disclosure to unauthorized entities.
 
    A session on which the client has not established data integrity and
-   privacy services (e.g via StartTLS, IPSec or a suitable SASL
+   privacy services (e.g., via StartTLS, IPsec or a suitable SASL
    mechanism) is subject to man-in-the-middle attacks to view and
    modify information in transit.  Client and server implementers
    SHOULD take measures to protect sensitive data in the LDAP session
@@ -1153,6 +1163,12 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    confidentialityRequired indicates that the server requires
    establishment of (stronger) data confidentiality protection in order
    to perform the requested operation.
+
+
+
+Harrison                 Expires August 2006                [Page 20]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    Access control should always be applied when reading sensitive
    information or updating directory information.  
@@ -1165,11 +1181,6 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 
 6.2. StartTLS Security Considerations
-
-
-Harrison                  Expires March 2006                 [Page 20]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
    All security gained via use of the StartTLS operation is gained by
    the use of TLS itself.  The StartTLS operation, on its own, does not
@@ -1185,10 +1196,17 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    protected session.  For example, the security level of the TLS layer
    might have been negotiated down to plaintext. 
 
-   Clients SHOULD by default either warn the user when the security
-   level achieved does not provide an acceptable level of data
-   confidentiality and/or data integrity protection, or be configured
-   to refuse to proceed without an acceptable level of security.
+   Clients MUST either warn the user when the security level achieved
+   does not provide an acceptable level of data confidentiality and/or
+   data integrity protection, or be configurable to refuse to proceed
+   without an acceptable level of security.
+
+   As stated in section 3.1.2, a server may use a local security policy
+   to determine whether to successfully complete TLS negotiation.
+   Information in the user's certificate that is originated or verified
+   by the certification authority should be used by the policy
+   administrator when configuring the identification and authorization
+   policy.
 
    Server implementers SHOULD allow server administrators to elect
    whether and when data confidentiality and integrity are required, as
@@ -1207,6 +1225,11 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 6.3.1. Unauthenticated Mechanism Security Considerations
 
+Harrison                 Expires August 2006                [Page 21]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
+
    Operational experience shows that clients can (and frequently do)
    misuse the unauthenticated authentication mechanism of the simple
    Bind method (see section 5.1.2).  For example, a client program
@@ -1224,11 +1247,6 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 
 6.3.2. Name/Password Mechanism Security Considerations
-
-
-Harrison                  Expires March 2006                 [Page 21]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
    The name/password authentication mechanism of the simple Bind method
    discloses the password to the server, which is an inherent security
@@ -1265,6 +1283,11 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
         A TLS layer has been successfully installed.
 
+
+Harrison                 Expires August 2006                [Page 22]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
       OR
 
         Some other data confidentiality mechanism that protects the
@@ -1284,27 +1307,45 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    in the clear.
 
 
-
-Harrison                  Expires March 2006                 [Page 22]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
 6.3.4. Hashed Password Security Considerations
 
-   Some authentication mechanisms (e.g. DIGEST-MD5) transmit a hash of
+   Some authentication mechanisms (e.g., DIGEST-MD5) transmit a hash of
    the password value that may be vulnerable to offline dictionary
    attacks.  Implementers should take care to protect such hashed
    password values during transmission using TLS or other
    confidentiality mechanisms.
 
 
-6.4. Related Security Considerations
+6.4.SASL Security Considerations
+
+   Until data integrity service is installed on an LDAP session, an
+   attacker can modify the transmitted values of the
+   'supportedSASLMechanisms' attribute response and thus downgrade the
+   list of available SASL mechanisms to include only the least secure
+   mechanism.  To detect this type of attack, the client may retrieve
+   the SASL mechanisms the server makes available both before and after
+   data integrity service is installed on an LDAP session.  If the
+   client finds that the integrity-protected list (the list obtained
+   after data integrity service was installed) contains a stronger
+   mechanism than those in the previously obtained list, the client
+   should assume the previously obtained list was modified by an
+   attacker.  In this circumstance it is recommended that the client
+   close the underlying transport connection and then reconnect to
+   reestablish the session.
+
+
+6.5. Related Security Considerations
 
    Additional security considerations relating to the various
    authentication methods and mechanisms discussed in this document
    apply and can be found in [SASL], [RFC4013], [StringPrep] and
    [RFC3629].
 
+
+
+Harrison                 Expires August 2006                [Page 23]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
 7. IANA Considerations
 
@@ -1344,11 +1385,6 @@ Internet-Draft       LDAP Authentication Methods       September 2005
                 Information Models", draft-ietf-ldapbis-models-xx.txt,
                 a work in progress.
 
-Harrison                  Expires March 2006                 [Page 23]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
-
    [Protocol]   Sermersheim, J., "LDAP: The Protocol", draft-ietf-
                 ldapbis-protocol-xx.txt, a work in progress.
 
@@ -1365,6 +1401,11 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    [RFC2460]    Deering, S., R. Hinden, "Internet Protocol, Version 6
                 (IPv6)", RFC 2460, December 1998.
+
+Harrison                 Expires August 2006                [Page 24]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
 
    [RFC3490]    Falstrom, P., P. Hoffman, and A. Costello,
                 "Internationalizing Domain Names In Applications
@@ -1397,16 +1438,6 @@ Internet-Draft       LDAP Authentication Methods       September 2005
                 1.1", draft-ietf-tls-rfc2246-bis-xx.txt, a work in
                 progress.
 
-
-
-
-
-
-
-Harrison                  Expires March 2006                 [Page 24]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
    [Unicode]    The Unicode Consortium, "The Unicode Standard, Version
                 3.2.0" is defined by "The Unicode Standard, Version
                 3.0" (Reading, MA, Addison-Wesley, 2000. ISBN 0-201-
@@ -1429,6 +1460,11 @@ Internet-Draft       LDAP Authentication Methods       September 2005
                 Authentication as a SASL Mechanism", draft-ietf-sasl-
                 rfc2831bis-xx.txt, a work in progress. 
 
+
+Harrison                 Expires August 2006                [Page 25]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    [PLAIN]      Zeilenga, K.,"Plain SASL Mechanism", draft-zeilenga-
                 sasl-plain-xx.txt, a work in progress.
 
@@ -1438,8 +1474,8 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    [RFC2829]    Wahl, M. et al, "Authentication Methods for LDAP", RFC
                 2829, May 2000.
 
-   [RFC2401]    Kent, S. and R. Atkinson, "Security Architecture for
-                the Internet Protocol", RFC 2401, November 1998.
+   [RFC4301]    Kent, S. and K. Seo, "Security Architecture for the
+                Internet Protocol", RFC 4301, December 2005.
 
 Author's Address
 
@@ -1462,11 +1498,6 @@ Appendix A. Authentication and Authorization Concepts
    approaches are utilized in client authentication and authorization.
 
 
-Harrison                  Expires March 2006                 [Page 25]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
-
 A.1. Access Control Policy
 
    An access control policy is a set of rules defining the protection
@@ -1486,7 +1517,12 @@ A.2. Access Control Factors
    the type of operation being requested, time of day, etc..  Some
    factors may be specific to the request itself, others may be
    associated with the transport connection via which the request is
-   transmitted, others (e.g. time of day) may be "environmental".
+   transmitted, others (e.g., time of day) may be "environmental".
+
+
+Harrison                 Expires August 2006                [Page 26]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    Access control policies are expressed in terms of access control
    factors.  For example, "a request having ACFs i,j,k can perform
@@ -1496,12 +1532,12 @@ A.2. Access Control Factors
 A.3. Authentication, Credentials, Identity
 
    Authentication credentials are the evidence supplied by one party to
-   another, asserting the identity of the supplying party (e.g. a user)
-   who is attempting to establish a new authorization state with the
-   other party (typically a server).  Authentication is the process of
-   generating, transmitting, and verifying these credentials and thus
-   the identity they assert.  An authentication identity is the name
-   presented in a credential.
+   another, asserting the identity of the supplying party (e.g., a
+   user) who is attempting to establish a new authorization state with
+   the other party (typically a server).  Authentication is the process
+   of generating, transmitting, and verifying these credentials and
+   thus the identity they assert.  An authentication identity is the
+   name presented in a credential.
 
    There are many forms of authentication credentials. The form used
    depends upon the particular authentication mechanism negotiated by
@@ -1518,13 +1554,6 @@ A.4. Authorization Identity
    operations be performed.  Access control policies are often
    expressed in terms of authorization identities; for example, "entity
    X can perform operation Y on resource Z."
-
-
-
-
-Harrison                  Expires March 2006                 [Page 26]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
    The authorization identity of an LDAP session is often semantically
    the same as the authentication identity presented by the client, but
@@ -1545,6 +1574,14 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 Appendix B. Summary of Changes
 
    This appendix is non-normative.
+
+
+
+
+
+Harrison                 Expires August 2006                [Page 27]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
    This appendix summarizes substantive changes made to RFC 2251, RFC
    2829 and RFC 2830.  In addition to the specific changes detailed
@@ -1578,13 +1615,6 @@ B.1. Changes Made to RFC 2251
 
 B.1.1. Section 4.2.1 (Sequencing of the Bind Request)
 
-
-
-
-Harrison                  Expires March 2006                 [Page 27]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
      - Paragraph 1: Removed the sentence, "If at any stage the client
        wishes to abort the bind process it MAY unbind and then drop the
        underlying connection."  The Unbind operation still permits this
@@ -1607,6 +1637,11 @@ B.1.2. Section 4.2.2 (Authentication and Other Security Services)
 
 
 B.2. Changes Made to RFC 2829
+
+Harrison                 Expires August 2006                [Page 28]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
 
    This section summarizes the substantive changes made to RFC 2829. 
 
@@ -1636,14 +1671,6 @@ B.2.3. Section 6 (Password-based authentication)
 
 B.2.4. Section 6.1 (Digest authentication)
 
-
-
-
-
-Harrison                  Expires March 2006                 [Page 28]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
      - As the SASL-DIGEST-MD5 mechanism is no longer mandatory to
        implement, this section is now historical and was not included
        in this document. RFC 2829 section 6.1 continues to document the
@@ -1668,6 +1695,11 @@ B.2.5. Section 6.2 ("simple" authentication choice with TLS)
 
 
 B.2.6. Section 6.3 (Other authentication choices with TLS)
+
+
+Harrison                 Expires August 2006                [Page 29]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
      - See section B.2.5.
 
@@ -1697,12 +1729,6 @@ B.2.9. Section 9 (Authorization identity)
 
 B.2.10. Section 10 (TLS Ciphersuites)
 
-
-
-Harrison                  Expires March 2006                 [Page 29]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
-
      - TLS Ciphersuite recommendations are no longer included in this
        specification.  Implementations must still support the
        TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA ciphersuite.
@@ -1722,6 +1748,17 @@ B.3. Changes Made to RFC 2830:
 
 
 B.3.1. Section 3.6 (Server Identity Check)
+
+
+
+
+
+
+
+
+Harrison                 Expires August 2006                [Page 30]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
      - Substantially updated the server identity check algorithm to
        ensure that it is complete and robust.  In particular, the use
@@ -1755,12 +1792,7 @@ B.3.4. Section 5.1.1 (TLS Closure Effects)
        authorization states to anonymous upon TLS closure.
 
 
-Appendix C. Changes for draft-ldapbis-authmeth-18
-
-
-Harrison                  Expires March 2006                 [Page 30]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
+Appendix C. Changes for draft-ldapbis-authmeth-19
 
    [[Note to RFC Editor: Please remove this appendix upon publication
    of this Internet-Draft as an RFC.]]
@@ -1772,54 +1804,55 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
    General
 
-     - Resolved all known outstanding issues and comments for -17 draft.
-     - Edits for clarity and consistency.
+     - This draft has addressed all issues raised for the -18 version.
 
-   Section 1.1
-     - Added paragraph detailing which RFCs are obsoleted by this
-       document.
+     - Several minor edits for clarity and to remove typos based on
+       feedback from WG, IETF and IESG reviews.
+
+   Abstract
+     - Added statement regarding RFCs obsoleted by this document.
 
    Section 2
-     - Deleted a sentence at the end of paragraph 2 that is redundant
-       with the first sentence of paragraph 3.
 
-   Section 3.1.3.1
-     - Restored a wildcard matching example that was inadvertently
-       deleted by extensive edits to this section in -16 draft.
 
-   Section 5.1.2
-     - Substantially edited this section to clarify the proper (and
-       improper) use of the distinguished name in the unauthenticated
-       authentication mechanism.
-     - Clarified client and server behavior to protect against security
-       risks associated with the unauthenticated authentication
-       mechanism.
+Harrison                 Expires August 2006                [Page 31]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
 
-   Section 5.2.1.2
-     - Moved last sentence of this section into a new section 5.2.1.3
-       detailing optional fields used by LDAP.
+     - Changed mandatory-to-implement TLS ciphersuite from
+       TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA to
+       TLS_RSA_WITH_3DES_EDE_CBC_SHA based on IESG recommendation and
+       WG consensus.
 
-   Section 5.2.2
-     - Removed the third paragraph because it provided an example that
-       was misleading in that it implied that one could accurately
-       match data prepared for use with SASL mechanisms using LDAP
-       matching semantics.
+   Section 5.2.1.5
+     - Clarified that 'supportedSASLMechanisms' should be retrievable
+       by all clients both before and after SASL negotiation to allow
+       detection of mechanism downgrade attacks.
 
-   Appendix B
+   Section 5.2.1.6
+     - Changed wording to reflect the fact that SASL layers cannot be
+       uninstalled from the session.
 
-     - Added a list of substantive changes to RFC 2251.
+   Section 5.2.3
+     - Removed reference to IPsec as a source of authorization identity.
+
+   Section 6.2
+     - When TLS layer does not provide an acceptable level of security
+       client MUST warn the user or refuse to proceed. (This was
+       changed from SHOULD based on IESG recommendation and WG
+       consensus.)
+
+     - Added a security consideration regarding the proper usage of
+       information found in the client certificate.
+
+   Section 6.4
+     - Added a new section on SASL security considerations that
+       discusses SASL mechanism downgrade attacks.
+
+   Section 10
+     - Replaced references to RFC 2401 with RFC 4301.
 
 Intellectual Property Rights
-
-
-
-
-
-
-
-Harrison                  Expires March 2006                 [Page 31]
-
-Internet-Draft       LDAP Authentication Methods       September 2005
 
    The IETF takes no position regarding the validity or scope of any
    Intellectual Property Rights or other rights that might be claimed
@@ -1837,6 +1870,14 @@ Internet-Draft       LDAP Authentication Methods       September 2005
    specification can be obtained from the IETF on-line IPR repository
    at http://www.ietf.org/ipr.
 
+
+
+
+
+Harrison                 Expires August 2006                [Page 32]
+
+Internet-Draft       LDAP Authentication Methods        February 2006
+
    The IETF invites any interested party to bring to its attention any
    copyrights, patents or patent applications, or other proprietary
    rights that may cover technology that may be required to implement
@@ -1845,7 +1886,7 @@ Internet-Draft       LDAP Authentication Methods       September 2005
 
 Full Copyright Statement
 
-   Copyright (C) The Internet Society (2005).
+   Copyright (C) The Internet Society (2006).
 
    This document is subject to the rights, licenses and restrictions
    contained in BCP 78, and except as set forth therein, the authors
@@ -1876,5 +1917,21 @@ Full Copyright Statement
 
 
 
-Harrison                  Expires March 2006                 [Page 32]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Harrison                 Expires August 2006                [Page 33]
 
