@@ -117,6 +117,12 @@ static struct slap_control control_defs[] = {
  		(int)offsetof(struct slap_control_ids, sc_valuesReturnFilter),
  		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#ifdef LDAP_CONTROL_X_VALUESRETURNFILTER
+ 	{ LDAP_CONTROL_X_VALUESRETURNFILTER,
+ 		(int)offsetof(struct slap_control_ids, sc_valuesReturnFilter),
+ 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
+		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
 	{ LDAP_CONTROL_PAGEDRESULTS,
  		(int)offsetof(struct slap_control_ids, sc_pagedResults),
 		SLAP_CTRL_SEARCH, NULL,
