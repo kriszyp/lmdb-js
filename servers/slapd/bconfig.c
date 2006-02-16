@@ -4436,13 +4436,14 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->value_dn.bv_len = snprintf(c->value_dn.bv_val, sizeof( c->log ), "cn=module" SLAP_X_ORDERED_FMT, i);
 		if ( c->value_dn.bv_len >= sizeof( c->log ) ) {
 			/* FIXME: how can indicate error? */
-			return;
+			return -1;
 		}
 		c->private = mp;
 		if ( ! config_build_entry( op, rs, ceparent, c, &c->value_dn, &CFOC_MODULE, NULL )) {
 			return -1;
 		}
 	}
+        return 0;
 }
 #endif
 
