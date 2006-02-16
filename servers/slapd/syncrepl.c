@@ -2582,6 +2582,16 @@ avl_ber_bvfree( void *v_bv )
 void
 syncinfo_free( syncinfo_t *sie )
 {
+ 	if ( sie->si_ld ) {
+ 		if ( sie->si_conn_setup ) {
+ 			ber_socket_t s;
+ 			ldap_get_option( sie->si_ld, LDAP_OPT_DESC, &s );
+ 			connection_client_stop( s );
+ 			sie->si_conn_setup = 0;
+ 		}
+ 		ldap_unbind_ext( sie->si_ld, NULL, NULL );
+ 	}
+
  	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
 
 	bindconf_free( &sie->si_bindconf );
@@ -2636,9 +2646,6 @@ syncinfo_free( syncinfo_t *sie )
 	slap_sync_cookie_free( &sie->si_syncCookie, 0 );
 	if ( sie->si_presentlist ) {
 	    avl_free( sie->si_presentlist, avl_ber_bvfree );
-	}
-	if ( sie->si_ld ) {
-		ldap_unbind_ext( sie->si_ld, NULL, NULL );
 	}
 	while ( !LDAP_LIST_EMPTY( &sie->si_nonpresentlist )) {
 		struct nonpresent_entry* npe;

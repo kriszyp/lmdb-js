@@ -8,6 +8,7 @@ OpenLDAP 2.3.20 Engineering
 	Fixed slapd context CSN not updating issue (ITS#4384)
 	Fixed slapd non-read/write epoll event handling (ITS#4395)
 	Fixed slapd syncrepl de-normalize UUID issue
+	Fixed slapd syncrepl dynamic reconfig issue (ITS#4401)
 	Added slapd syncrepl log messages (ITS#4369)
 	Added slapd permissive modify/increment support
 	Fixed slapd connectionless LDAP support
