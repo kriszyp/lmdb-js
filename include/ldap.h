@@ -209,7 +209,6 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"  /* RFC 3672 */
 
 #define LDAP_CONTROL_VALUESRETURNFILTER "1.2.826.0.1.3344810.2.3"/* RFC 3876 */
-#define LDAP_CONTROL_X_VALUESRETURNFILTER "1.2.826.0.1.334810.2.3"/* bad OID */
 
 #define LDAP_CONTROL_ASSERT				"1.3.6.1.1.12"			/* RFC TBD */
 #define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"		/* RFC TBD */
@@ -332,16 +331,17 @@ typedef struct ldapcontrol {
 #define	LDAP_TAG_EXOP_REFRESH_REQ_TTL	((ber_tag_t) 0x81U)
 #define	LDAP_TAG_EXOP_REFRESH_RES_TTL	((ber_tag_t) 0x80U)
 
-/* various works in progress */
 #define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
 
+/* various works in progress */
+#ifdef LDAP_DEVEL
 #define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"
+#endif
 
 /* LDAP Distributed Procedures <draft-sermersheim-ldap-distproc> */
 /* a work in progress */
 #ifdef LDAP_DEVEL
-/* FIXME: allocate an OID arc under OpenLDAP experimental arc */
 #define LDAP_X_DISTPROC_BASE		"1.3.6.1.4.1.4203.666.11.6"
 #define LDAP_EXOP_X_CHAINEDREQUEST	LDAP_X_DISTPROC_BASE ".1"
 #define LDAP_FEATURE_X_CANCHAINOPS	LDAP_X_DISTPROC_BASE ".2"

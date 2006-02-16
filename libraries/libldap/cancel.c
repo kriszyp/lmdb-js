@@ -13,8 +13,8 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS:
- * This program was orignally developed by Kurt D. Zeilenga for inclusion in
- * OpenLDAP Software.
+ * This program was orignally developed by Kurt D. Zeilenga for inclusion
+ * in OpenLDAP Software.
  */
 
 /*
@@ -48,8 +48,8 @@ ldap_cancel(
 	cancelidber = ber_alloc_t( LBER_USE_DER );
 	ber_printf( cancelidber, "{i}", cancelid );
 	ber_flatten( cancelidber, &cancelidvalp );
-	rc = ldap_extended_operation( ld, LDAP_EXOP_X_CANCEL,
-			cancelidvalp, sctrls, cctrls, msgidp );
+	rc = ldap_extended_operation( ld, LDAP_EXOP_CANCEL,
+		cancelidvalp, sctrls, cctrls, msgidp );
 	ber_free( cancelidber, 1 );
 	return rc;
 }
@@ -68,8 +68,8 @@ ldap_cancel_s(
 	cancelidber = ber_alloc_t( LBER_USE_DER );
 	ber_printf( cancelidber, "{i}", cancelid );
 	ber_flatten( cancelidber, &cancelidvalp );
-	rc = ldap_extended_operation_s( ld, LDAP_EXOP_X_CANCEL,
-			cancelidvalp, sctrls, cctrls, NULL, NULL );
+	rc = ldap_extended_operation_s( ld, LDAP_EXOP_CANCEL,
+		cancelidvalp, sctrls, cctrls, NULL, NULL );
 	ber_free( cancelidber, 1 );
 	return rc;
 }

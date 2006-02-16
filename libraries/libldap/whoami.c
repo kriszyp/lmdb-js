@@ -68,7 +68,7 @@ ldap_whoami( LDAP *ld,
 	assert( LDAP_VALID( ld ) );
 	assert( msgidp != NULL );
 
-	rc = ldap_extended_operation( ld, LDAP_EXOP_X_WHO_AM_I,
+	rc = ldap_extended_operation( ld, LDAP_EXOP_WHO_AM_I,
 		NULL, sctrls, cctrls, msgidp );
 
 	return rc;

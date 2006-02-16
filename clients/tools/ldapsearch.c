@@ -1178,8 +1178,8 @@ static int dosearch(
 				msgidber = ber_alloc_t(LBER_USE_DER);
 				ber_printf(msgidber, "{i}", msgid);
 				ber_flatten(msgidber, &msgidvalp);
-				ldap_extended_operation(ld, LDAP_EXOP_X_CANCEL,
-						msgidvalp, NULL, NULL, &cancel_msgid);
+				ldap_extended_operation(ld, LDAP_EXOP_CANCEL,
+					msgidvalp, NULL, NULL, &cancel_msgid);
 				nresponses_psearch = -1;
 			}
 		}
