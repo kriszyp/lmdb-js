@@ -411,7 +411,8 @@ main( int argc, char *argv[] )
 
 done:
 	/* disconnect from server */
-	tool_unbind( ld ); 
+	if ( ld )
+		tool_unbind( ld ); 
 	tool_destroy();
 	return rc;
 }
