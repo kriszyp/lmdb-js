@@ -1301,6 +1301,9 @@ pcache_op_search(
 	}
 	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex);
 
+	if (op->ors_attrsonly)
+		cacheable = 0;
+
 	if (cacheable) {
 		slap_callback		*cb;
 		struct search_info	*si;
