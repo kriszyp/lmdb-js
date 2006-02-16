@@ -4138,6 +4138,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ObjectClass *oc;
 	CfEntryInfo *ceprev = NULL;
 
+	Debug( LDAP_DEBUG_TRACE, "config_build_entry: \"%s\"\n", rdn->bv_val, 0, 0);
 	e->e_private = ce;
 	ce->ce_entry = e;
 	ce->ce_parent = parent;
@@ -4197,6 +4198,10 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	if ( op ) {
 		op->ora_e = e;
 		op->o_bd->be_add( op, rs );
+		if ( ( rs->sr_err != LDAP_SUCCESS ) 
+				&& (rs->sr_err != LDAP_ALREADY_EXISTS) ) {
+			return NULL;
+		}
 	}
 	if ( ceprev ) {
 		ceprev->ce_sibs = ce;
@@ -4207,7 +4212,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	return e;
 }
 
-static void
+static int
 config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 	Operation *op, SlapReply *rs )
 {
@@ -4231,7 +4236,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->value_dn.bv_len = snprintf(c->value_dn.bv_val, sizeof( c->log ), "cn=" SLAP_X_ORDERED_FMT, c->depth);
 		if ( c->value_dn.bv_len >= sizeof( c->log ) ) {
 			/* FIXME: how can indicate error? */
-			return;
+			return -1;
 		}
 		strncpy( c->value_dn.bv_val + c->value_dn.bv_len, bv.bv_val,
 			bv.bv_len );
@@ -4241,14 +4246,17 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->private = cf;
 		e = config_build_entry( op, rs, ceparent, c, &c->value_dn,
 			&CFOC_SCHEMA, NULL );
-		if ( e && cf->c_kids ) {
+		if ( !e ) {
+			return -1;
+		} else if ( e && cf->c_kids ) {
 			c->private = cf->c_kids;
 			config_build_schema_inc( c, e->e_private, op, rs );
 		}
 	}
+	return 0;
 }
 
-static void
+static int
 config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 	Operation *op, SlapReply *rs )
 {
@@ -4261,21 +4269,24 @@ config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->value_dn.bv_len = snprintf(c->value_dn.bv_val, sizeof( c->log ), "cn=include" SLAP_X_ORDERED_FMT, i);
 		if ( c->value_dn.bv_len >= sizeof( c->log ) ) {
 			/* FIXME: how can indicate error? */
-			return;
+			return -1;
 		}
 		c->private = cf;
 		e = config_build_entry( op, rs, ceparent, c, &c->value_dn,
 			&CFOC_INCLUDE, NULL );
-		if ( e && cf->c_kids ) {
+		if ( ! e ) {
+			return -1;
+		} else if ( e && cf->c_kids ) {
 			c->private = cf->c_kids;
 			config_build_includes( c, e->e_private, op, rs );
 		}
 	}
+	return 0;
 }
 
 #ifdef SLAPD_MODULES
 
-static void
+static int
 config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 	Operation *op, SlapReply *rs )
 {
@@ -4289,12 +4300,14 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->value_dn.bv_len = snprintf(c->value_dn.bv_val, sizeof( c->log ), "cn=module" SLAP_X_ORDERED_FMT, i);
 		if ( c->value_dn.bv_len >= sizeof( c->log ) ) {
 			/* FIXME: how can indicate error? */
-			return;
+			return -1;
 		}
 		c->private = mp;
-		config_build_entry( op, rs, ceparent, c, &c->value_dn,
-			&CFOC_MODULE, NULL );
+		if ( ! config_build_entry( op, rs, ceparent, c, &c->value_dn, &CFOC_MODULE, NULL )) {
+			return -1;
+		}
 	}
+        return 0;
 }
 #endif
 
@@ -4315,6 +4328,7 @@ config_back_db_open( BackendDB *be )
 	SlapReply rs = {REP_RESULT};
 	void *thrctx = NULL;
 
+	Debug( LDAP_DEBUG_TRACE, "config_back_db_open\n", 0, 0, 0);
 	/* If we read the config from back-ldif, nothing to do here */
 	if ( cfb->cb_got_ldif )
 		return 0;
@@ -4338,6 +4352,9 @@ config_back_db_open( BackendDB *be )
 	c.private = cfb->cb_config;
 	c.be = frontendDB;
 	e = config_build_entry( op, &rs, NULL, &c, &rdn, &CFOC_GLOBAL, NULL );
+	if ( !e ) {
+		return -1;
+	}
 	ce = e->e_private;
 	cfb->cb_root = ce;
 
@@ -4348,13 +4365,17 @@ config_back_db_open( BackendDB *be )
 	if ( cfb->cb_config->c_kids ) {
 		c.depth = 0;
 		c.private = cfb->cb_config->c_kids;
-		config_build_includes( &c, ceparent, op, &rs );
+		if ( config_build_includes( &c, ceparent, op, &rs ) ) {
+			return -1;
+		}
 	}
 
 #ifdef SLAPD_MODULES
 	/* Create Module nodes... */
 	if ( modpaths.mp_loads ) {
-		config_build_modules( &c, ceparent, op, &rs );
+		if ( config_build_modules( &c, ceparent, op, &rs ) ){
+			return -1;
+		}
 	}
 #endif
 
@@ -4365,13 +4386,18 @@ config_back_db_open( BackendDB *be )
 	rdn = schema_rdn;
 	c.private = NULL;
 	e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_SCHEMA, NULL );
+	if ( !e ) {
+		return -1;
+	}
 	ce = e->e_private;
 
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
 		c.depth = 0;
 		c.private = cfb->cb_config->c_kids;
-		config_build_schema_inc( &c, ce, op, &rs );
+		if (config_build_schema_inc( &c, ce, op, &rs )) {
+			return -1;
+		}
 	}
 
 	/* Create backend nodes. Skip if they don't provide a cf_table.
@@ -4401,6 +4427,9 @@ config_back_db_open( BackendDB *be )
 		c.bi = bi;
 		e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_BACKEND,
 			bi->bi_cf_ocs );
+		if ( !e ) {
+			return -1;
+		}
 	}
 
 	/* Create database nodes... */
@@ -4437,6 +4466,9 @@ config_back_db_open( BackendDB *be )
 		c.bi = bi;
 		e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_DATABASE,
 			be->be_cf_ocs );
+		if ( !e ) {
+			return -1;
+		}
 		ce = e->e_private;
 		if ( be->be_cf_ocs && be->be_cf_ocs->co_cfadd )
 			be->be_cf_ocs->co_cfadd( op, &rs, e, &c );
@@ -4464,6 +4496,9 @@ config_back_db_open( BackendDB *be )
 				c.bi = &on->on_bi;
 				oe = config_build_entry( op, &rs, ce, &c, &rdn,
 					&CFOC_OVERLAY, c.bi->bi_cf_ocs );
+				if ( !oe ) {
+					return -1;
+				}
 				if ( c.bi->bi_cf_ocs && c.bi->bi_cf_ocs->co_cfadd )
 					c.bi->bi_cf_ocs->co_cfadd( op, &rs, oe, &c );
 			}
