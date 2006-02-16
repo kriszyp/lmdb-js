@@ -23,6 +23,12 @@ resets, acceptable password content, and even grace logins.
 Different groups of users may be associated with different password
 policies, and there is no limit to the number of password policies
 that may be created.
+.P
+Note that some of the policies do not take effect when the operation
+is performed with the
+.B rootdn
+identity; all the operations, when performed with any other identity,
+may be subjected to constraints, like access control.
 
 .SH CONFIGURATION
 These 
@@ -39,9 +45,11 @@ and no default is given, then no policies will be enforced.
 .TP
 .B ppolicy_hash_cleartext
 Specify that cleartext passwords present in Add and Modify requests should
-be hashed before being stored in the database. This violates the X.500
+be hashed before being stored in the database. This violates the X.500/LDAP
 information model, but may be needed to compensate for LDAP clients that
-don't use the Password Modify exop to manage passwords.
+don't use the Password Modify extended operation to manage passwords.  It
+is recommended that when this option is used that compare, search, and
+read access be denied to all directory users. 
 .TP
 .B ppolicy_use_lockout
 A client will always receive an LDAP
@@ -74,7 +82,7 @@ object class.  The definition of that class is as follows:
     MUST ( pwdAttribute )
     MAY (
         pwdMinAge $ pwdMaxAge $ pwdInHistory $
-        pwdCheckSyntax $ pwdMinLength $
+        pwdCheckQuality $ pwdMinLength $
         pwdExpireWarning $ pwdGraceAuthnLimit $
         pwdLockout $ pwdLockoutDuration $
         pwdMaxFailure $ pwdFailureCountInterval $
@@ -124,7 +132,7 @@ Note: in this implementation, the only
 value accepted for
 .B pwdAttribute
 is
-.RI " userPassword ".
+.IR " userPassword ".
 .LP
 .RS 4
 (  1.3.6.1.4.1.42.2.27.8.1.1
@@ -173,6 +181,9 @@ attribute is not present, or if its value is
 zero (0), used passwords will not be stored in
 .B pwdHistory
 and thus any previously-used password may be reused.
+No history checking occurs if the password is being modified by the
+.BR rootdn ,
+although the password is saved in the history.
 .LP
 .RS 4
 (  1.3.6.1.4.1.42.2.27.8.1.4
@@ -207,7 +218,7 @@ error refusing the password.
 .P
 When syntax checking is enabled
 (see also the
-.B pwdCheckSyntax
+.B pwdCheckQuality
 attribute), this attribute contains the minimum
 number of characters that will be accepted in a password. If this
 attribute is not present, minimum password length is not
@@ -215,12 +226,12 @@ enforced. If the server is unable to check the length of the password,
 whether due to a client-side hashed password or some other reason,
 the server will, depending on the
 value of
-.BR pwdCheckSyntax ,
+.BR pwdCheckQuality ,
 either accept the password
 without checking it (if
-.B pwdCheckSyntax
+.B pwdCheckQuality
 is zero (0) or one (1)) or refuse it (if
-.B pwdCheckSyntax
+.B pwdCheckQuality
 is two (2)).
 .LP
 .RS 4
@@ -654,8 +665,7 @@ field is in GMT format.
 .B pwdGraceUseTime
 This attribute contains the list of timestamps of logins made after
 the user password in the DN has expired.  These post-expiration
-logins are known as
-.RI " "grace logins" ."
+logins are known as "\fIgrace logins\fP".
 If too many
 .I grace logins
 have been used (please refer to the
