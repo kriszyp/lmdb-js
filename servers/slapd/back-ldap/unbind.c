@@ -46,13 +46,10 @@ ldap_back_conn_destroy(
 		conn->c_connid, 0, 0 );
 
 	lc_curr.lc_conn = conn;
-	lc_curr.lc_local_ndn = conn->c_ndn;
 	
 	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
-	lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)&lc_curr, ldap_back_conn_cmp );
-	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
-
-	if ( lc ) {
+	while ( ( lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)&lc_curr, ldap_back_conn_cmp ) ) != NULL )
+	{
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_conn_destroy: destroying conn %ld (refcnt=%u)\n",
 			LDAP_BACK_PCONN_ID( lc->lc_conn ), lc->lc_refcnt, 0 );
@@ -66,8 +63,7 @@ ldap_back_conn_destroy(
 		 */
 		ldap_back_conn_free( lc );
 	}
-
-	/* no response to unbind */
+	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
 	return 0;
 }

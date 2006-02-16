@@ -205,12 +205,12 @@ retry_lock:;
 
 			assert( mc->mc_refcnt == 1 );
 			mc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
-				meta_back_conn_cmp );
+				meta_back_dnconn_cmp );
 			assert( mc != NULL );
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
-				meta_back_conn_cmp, meta_back_conn_dup );
+				meta_back_dnconn_cmp, meta_back_dnconn_dup );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			if ( lerr == -1 ) {
 				for ( i = 0; i < mi->mi_ntargets; ++i ) {

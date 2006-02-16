@@ -346,6 +346,11 @@ so the client will not know if the operation eventually succeeded or not.
 This directive causes a cached connection to be dropped an recreated
 after it has been idle for the specified time.
 
+.TP
+.B conn-ttl <time>
+This directive causes a cached connection to be dropped an recreated
+after a given ttl, regardless of being idle or not.
+
 .SH BACKWARD COMPATIBILITY
 The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
 as a side-effect, some of the traditional directives have been

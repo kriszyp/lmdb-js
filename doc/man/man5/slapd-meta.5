@@ -111,6 +111,11 @@ illustrated for the
 directive.
 
 .TP
+.B conn-ttl <time>
+This directive causes a cached connection to be dropped an recreated
+after a given ttl, regardless of being idle or not.
+
+.TP
 .B onerr {CONTINUE|stop}
 This directive allows to select the behavior in case an error is returned
 by one target during a search.
@@ -178,6 +183,15 @@ uri    "ldap://l1.foo.com/\fBdc=foo,dc=com\fP	ldap://l2.foo.com/"
 causes \fIl2.foo.com\fP to be contacted whenever \fIl1.foo.com\fP
 does not respond.
 .RE
+
+.TP
+.B subtree-exclude "<DN>"
+This directive instructs back-meta to ignore the current target
+for operations whose requestDN is subordinate to
+.BR DN .
+There may be multiple occurrences of the
+.B subtree-exclude
+directive for each of the targets.
 
 .TP
 .B acl-authcDN "<administrative DN for access control purposes>"

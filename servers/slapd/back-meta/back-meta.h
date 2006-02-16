@@ -174,6 +174,7 @@ typedef struct metasingleconn_t {
 #define META_ANONYMOUS		2
 #endif
 
+	time_t			msc_create_time;
 	time_t			msc_time;
 
 	struct metainfo_t	*msc_info;
@@ -206,6 +207,7 @@ typedef struct metaconn_t {
 
 typedef struct metatarget_t {
 	char			*mt_uri;
+	BerVarray		mt_subtree_exclude;
 	int			mt_scope;
 
 	struct berval		mt_psuffix;		/* pretty suffix */
@@ -228,6 +230,7 @@ typedef struct metatarget_t {
 	unsigned		mt_flags;
 	int			mt_version;
 	time_t			mt_network_timeout;
+	time_t			mt_conn_ttl;
 	time_t			mt_idle_timeout;
 	struct timeval		mt_bind_timeout;
 #define META_BIND_TIMEOUT	LDAP_BACK_RESULT_UTIMEOUT
@@ -274,6 +277,7 @@ typedef struct metainfo_t {
 
 	int			mi_version;
 	time_t			mi_network_timeout;
+	time_t			mi_conn_ttl;
 	time_t			mi_idle_timeout;
 	struct timeval		mi_bind_timeout;
 	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];
@@ -368,7 +372,12 @@ meta_back_conn_cmp(
 	const void		*c2 );
 
 extern int
-meta_back_conn_dup(
+meta_back_dnconn_cmp(
+	const void		*c1,
+	const void		*c2 );
+
+extern int
+meta_back_dnconn_dup(
 	void			*c1,
 	void			*c2 );
 
@@ -379,6 +388,7 @@ extern int
 meta_back_is_candidate(
 	struct berval		*nsuffix,
 	int			suffixscope,
+	BerVarray		subtree_exclude,
 	struct berval		*ndn,
 	int			scope );
 

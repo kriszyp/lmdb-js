@@ -158,6 +158,7 @@ meta_back_db_config(
 		mi->mi_targets[ i ].mt_flags = mi->mi_flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
 		mi->mi_targets[ i ].mt_network_timeout = mi->mi_network_timeout;
+		mi->mi_targets[ i ].mt_conn_ttl = mi->mi_conn_ttl;
 		mi->mi_targets[ i ].mt_idle_timeout = mi->mi_idle_timeout;
 		mi->mi_targets[ i ].mt_bind_timeout = mi->mi_bind_timeout;
 		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
@@ -279,6 +280,82 @@ meta_back_db_config(
 		}
 #endif
 
+	/* subtree-exclude */
+	} else if ( strcasecmp( argv[ 0 ], "subtree-exclude" ) == 0 ) {
+		int 		i = mi->mi_ntargets - 1;
+		struct berval	dn, ndn;
+
+		if ( i < 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: need \"uri\" directive first\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		
+		switch ( argc ) {
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: missing DN in \"subtree-exclude <DN>\" line\n",
+			    fname, lineno, 0 );
+			return 1;
+
+		case 2:
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: too many args in \"subtree-exclude <DN>\" line\n",
+			    fname, lineno, 0 );
+			return 1;
+		}
+
+		ber_str2bv( argv[ 1 ], 0, 0, &dn );
+		if ( dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL )
+			!= LDAP_SUCCESS )
+		{
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"subtree-exclude DN=\"%s\" is invalid\n",
+					fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+
+		if ( !dnIsSuffix( &ndn, &mi->mi_targets[ i ].mt_nsuffix ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"subtree-exclude DN=\"%s\" "
+					"must be subtree of target\n",
+					fname, lineno, argv[ 1 ] );
+			ber_memfree( ndn.bv_val );
+			return( 1 );
+		}
+
+		if ( mi->mi_targets[ i ].mt_subtree_exclude != NULL ) {
+			int		j;
+
+			for ( j = 0; !BER_BVISNULL( &mi->mi_targets[ i ].mt_subtree_exclude[ j ] ); j++ )
+			{
+				if ( dnIsSuffix( &mi->mi_targets[ i ].mt_subtree_exclude[ j ], &ndn ) ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+							"subtree-exclude DN=\"%s\" "
+							"is suffix of another subtree-exclude\n",
+							fname, lineno, argv[ 1 ] );
+					/* reject, because it might be superior
+					 * to more than one subtree-exclude */
+					ber_memfree( ndn.bv_val );
+					return( 1 );
+
+				} else if ( dnIsSuffix( &ndn, &mi->mi_targets[ i ].mt_subtree_exclude[ j ] ) ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+							"another subtree-exclude is suffix of "
+							"subtree-exclude DN=\"%s\"\n",
+							fname, lineno, argv[ 1 ] );
+					ber_memfree( ndn.bv_val );
+					return( 0 );
+				}
+			}
+		}
+
+		ber_bvarray_add( &mi->mi_targets[ i ].mt_subtree_exclude, &ndn );
+
 	/* default target directive */
 	} else if ( strcasecmp( argv[ 0 ], "default-target" ) == 0 ) {
 		int 		i = mi->mi_ntargets - 1;
@@ -346,7 +423,6 @@ meta_back_db_config(
 
 	/* network timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "network-timeout" ) == 0 ) {
-		int 		i = mi->mi_ntargets - 1;
 		unsigned long	t;
 		time_t		*tp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_network_timeout
@@ -371,7 +447,6 @@ meta_back_db_config(
 
 	/* idle timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "idle-timeout" ) == 0 ) {
-		int 		i = mi->mi_ntargets - 1;
 		unsigned long	t;
 		time_t		*tp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_idle_timeout
@@ -402,9 +477,40 @@ meta_back_db_config(
 
 		*tp = (time_t)t;
 
+	/* conn ttl */
+	} else if ( strcasecmp( argv[ 0 ], "conn-ttl" ) == 0 ) {
+		unsigned long	t;
+		time_t		*tp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_conn_ttl
+				: &mi->mi_conn_ttl;
+
+		switch ( argc ) {
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: missing ttl value in \"conn-ttl <seconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		case 2:
+			break;
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: extra cruft after ttl value in \"conn-ttl <seconds>\" line\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( lutil_parse_time( argv[ 1 ], &t ) ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse ttl \"%s\" in \"conn-ttl <seconds>\" line\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+
+		}
+
+		*tp = (time_t)t;
+
 	/* bind timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "bind-timeout" ) == 0 ) {
-		int 		i = mi->mi_ntargets - 1;
 		unsigned long	t;
 		struct timeval	*tp = mi->mi_ntargets ?
 				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_bind_timeout
@@ -465,8 +571,7 @@ meta_back_db_config(
 			/* FIXME: some day we'll need to throw an error */
 		}
 
-		dn.bv_val = argv[ 1 ];
-		dn.bv_len = strlen( argv[ 1 ] );
+		ber_str2bv( argv[ 1 ], 0, 0, &dn );
 		if ( dnNormalize( 0, NULL, NULL, &dn, &mi->mi_targets[ i ].mt_binddn,
 			NULL ) != LDAP_SUCCESS )
 		{
@@ -1129,7 +1234,7 @@ ldap_back_map_config(
 			|| avl_find( map->remap, (caddr_t)&mapping[ 1 ], mapping_cmp ) != NULL)
 	{
 		Debug( LDAP_DEBUG_ANY,
-			"%s: line %d: duplicate mapping found" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+			"%s: line %d: duplicate mapping found.\n",
 			fname, lineno, 0 );
 		goto error_return;
 	}
