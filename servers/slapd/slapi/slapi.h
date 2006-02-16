@@ -45,7 +45,6 @@ LDAP_BEGIN_DECL
 #define SLAPI_OVERLAY_NAME			"slapi"
 
 #define SLAPI_OPERATION_PBLOCK(_op)		((_op)->o_callback->sc_private)
-#define SLAPI_CONNECTION_PBLOCK(_conn)		((_conn)->c_pb);
 #define SLAPI_BACKEND_PBLOCK(_be)		((_be)->be_pb)
 
 #define SLAPI_OPERATION_EXTENSIONS(_op)		((_op)->o_hdr->oh_extensions)

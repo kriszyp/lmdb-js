@@ -2638,7 +2638,6 @@ typedef struct slap_conn {
 	long	c_n_read;		/* num of read calls */
 	long	c_n_write;		/* num of write calls */
 
-	void    *c_pb;                  /* Netscape plugin */
 	void	*c_extensions;		/* Netscape plugin */
 
 	/*
