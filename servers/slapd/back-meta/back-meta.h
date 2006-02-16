@@ -207,6 +207,7 @@ typedef struct metaconn_t {
 
 typedef struct metatarget_t {
 	char			*mt_uri;
+	BerVarray		mt_subtree_exclude;
 	int			mt_scope;
 
 	struct berval		mt_psuffix;		/* pretty suffix */
@@ -387,6 +388,7 @@ extern int
 meta_back_is_candidate(
 	struct berval		*nsuffix,
 	int			suffixscope,
+	BerVarray		subtree_exclude,
 	struct berval		*ndn,
 	int			scope );
 

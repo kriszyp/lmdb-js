@@ -185,6 +185,15 @@ does not respond.
 .RE
 
 .TP
+.B subtree-exclude "<DN>"
+This directive instructs back-meta to ignore the current target
+for operations whose requestDN is subordinate to
+.BR DN .
+There may be multiple occurrences of the
+.B subtree-exclude
+directive for each of the targets.
+
+.TP
 .B acl-authcDN "<administrative DN for access control purposes>"
 DN which is used to query the target server for acl checking,
 as in the LDAP backend; it is supposed to have read access 

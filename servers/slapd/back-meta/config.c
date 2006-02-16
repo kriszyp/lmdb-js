@@ -280,6 +280,81 @@ meta_back_db_config(
 		}
 #endif
 
+	/* subtree-exclude */
+	} else if ( strcasecmp( argv[ 0 ], "subtree-exclude" ) == 0 ) {
+		int 		i = mi->mi_ntargets - 1;
+		struct berval	dn, ndn;
+
+		if ( i < 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: need \"uri\" directive first\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		
+		switch ( argc ) {
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: missing DN in \"subtree-exclude <DN>\" line\n",
+			    fname, lineno, 0 );
+			return 1;
+
+		case 2:
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: too many args in \"subtree-exclude <DN>\" line\n",
+			    fname, lineno, 0 );
+			return 1;
+		}
+
+		ber_str2bv( argv[ 1 ], 0, 0, &dn );
+		if ( dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL )
+			!= LDAP_SUCCESS )
+		{
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"subtree-exclude DN=\"%s\" is invalid\n",
+					fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+
+		if ( !dnIsSuffix( &ndn, &mi->mi_targets[ i ].mt_nsuffix ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"subtree-exclude DN=\"%s\" "
+					"must be subtree of target\n",
+					fname, lineno, argv[ 1 ] );
+			ber_memfree( ndn.bv_val );
+			return( 1 );
+		}
+
+		if ( mi->mi_targets[ i ].mt_subtree_exclude != NULL ) {
+			int		j;
+
+			for ( j = 0; !BER_BVISNULL( &mi->mi_targets[ i ].mt_subtree_exclude[ j ] ); j++ )
+			{
+				if ( dnIsSuffix( &mi->mi_targets[ i ].mt_subtree_exclude[ j ], &ndn ) ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+							"subtree-exclude DN=\"%s\" "
+							"is suffix of another subtree-exclude\n",
+							fname, lineno, argv[ 1 ] );
+					ber_memfree( mi->mi_targets[ i ].mt_subtree_exclude[ j ].bv_val );
+					mi->mi_targets[ i ].mt_subtree_exclude[ j ] = ndn;
+					return( 0 );
+
+				} else if ( dnIsSuffix( &ndn, &mi->mi_targets[ i ].mt_subtree_exclude[ j ] ) ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+							"another subtree-exclude is suffix of "
+							"subtree-exclude DN=\"%s\"\n",
+							fname, lineno, argv[ 1 ] );
+					ber_memfree( ndn.bv_val );
+					return( 0 );
+				}
+			}
+		}
+
+		ber_bvarray_add( &mi->mi_targets[ i ].mt_subtree_exclude, &ndn );
+
 	/* default target directive */
 	} else if ( strcasecmp( argv[ 0 ], "default-target" ) == 0 ) {
 		int 		i = mi->mi_ntargets - 1;
@@ -495,8 +570,7 @@ meta_back_db_config(
 			/* FIXME: some day we'll need to throw an error */
 		}
 
-		dn.bv_val = argv[ 1 ];
-		dn.bv_len = strlen( argv[ 1 ] );
+		ber_str2bv( argv[ 1 ], 0, 0, &dn );
 		if ( dnNormalize( 0, NULL, NULL, &dn, &mi->mi_targets[ i ].mt_binddn,
 			NULL ) != LDAP_SUCCESS )
 		{

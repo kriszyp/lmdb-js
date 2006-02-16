@@ -650,6 +650,7 @@ meta_back_get_candidate(
 			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
 				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ].mt_nsuffix,
 						mi->mi_targets[ mi->mi_defaulttarget ].mt_scope,
+						mi->mi_targets[ mi->mi_defaulttarget ].mt_subtree_exclude,
 						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
 			{
 				candidate = mi->mi_defaulttarget;
@@ -1094,6 +1095,7 @@ retry_lock:
 			if ( i == cached 
 				|| meta_back_is_candidate( &mt->mt_nsuffix,
 						mt->mt_scope,
+						mt->mt_subtree_exclude,
 						&op->o_req_ndn,
 						LDAP_SCOPE_SUBTREE ) )
 			{
