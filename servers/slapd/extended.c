@@ -66,7 +66,7 @@ static struct {
 	slap_mask_t flags;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
-	{ &slap_EXOP_CANCEL, SLAP_EXOP_HIDE, cancel_extop },
+	{ &slap_EXOP_CANCEL, 0, cancel_extop },
 	{ &slap_EXOP_WHOAMI, 0, whoami_extop },
 	{ &slap_EXOP_MODIFY_PASSWD, SLAP_EXOP_WRITES, passwd_extop },
 	{ NULL, 0, NULL }
