@@ -1099,7 +1099,7 @@ done_url:;
 						snprintf( c->msg, sizeof( c->msg ),
 							"\"idassert-bind <args>\": "
 							"unknown flag \"%s\"",
-							c->fname, c->lineno, flags[ j ] );
+							flags[ j ] );
 						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 						return 1;
 					}
