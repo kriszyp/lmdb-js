@@ -338,9 +338,10 @@ meta_back_db_config(
 							"subtree-exclude DN=\"%s\" "
 							"is suffix of another subtree-exclude\n",
 							fname, lineno, argv[ 1 ] );
-					ber_memfree( mi->mi_targets[ i ].mt_subtree_exclude[ j ].bv_val );
-					mi->mi_targets[ i ].mt_subtree_exclude[ j ] = ndn;
-					return( 0 );
+					/* reject, because it might be superior
+					 * to more than one subtree-exclude */
+					ber_memfree( ndn.bv_val );
+					return( 1 );
 
 				} else if ( dnIsSuffix( &ndn, &mi->mi_targets[ i ].mt_subtree_exclude[ j ] ) ) {
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
