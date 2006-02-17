@@ -221,8 +221,8 @@ attempt to modify data.
 
 H3: Copy the master slapd's database to the slave
 
-Copy the master's database(s) to the slave. For an {{TERM:BDB}} and
-{{TERM:LDBM}} databases, you must copy all database files located
+Copy the master's database(s) to the slave. For {{TERM:BDB}} and
+{{TERM:HDB}} databases, you must copy all database files located
 in the database {{EX:directory}} specified in {{slapd.conf}}(5).
 In general, you should copy each file found in the database {{EX:
 directory}} unless you know it is not used by {{slapd}}(8).

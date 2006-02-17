@@ -191,9 +191,7 @@ in the replication context.
 The syncrepl engine, which is a consumer-side replication engine,
 can work with any backends. The LDAP Sync provider can be configured
 as an overlay on any backend, but works best with the {{back-bdb}}
-or {{back-hdb}} backend. The provider can not support refreshAndPersist
-mode on {{back-ldbm}} due to limits in that backend's locking
-architecture.
+or {{back-hdb}} backend.
 
 The LDAP Sync provider maintains a {{EX:contextCSN}} for each
 database as the current synchronization state indicator of the

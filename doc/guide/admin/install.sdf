@@ -128,11 +128,6 @@ are several versions available.  Generally, the most recent release
 (with published patches) is recommended.  This package is required
 if you wish to use the {{TERM:BDB}} or {{TERM:HDB}} database backends.
 
-OpenLDAP's {{slapd}}(8) LDBM backend supports a variety of data
-base managers including {{PRD:Berkeley DB}} and {{PRD:GDBM}}.
-{{PRD:GDBM}} is available from {{ORG:FSF}}'s download site {{URL:
-ftp://ftp.gnu.org/pub/gnu/gdbm/}}.
-
 
 H3: Threads
 

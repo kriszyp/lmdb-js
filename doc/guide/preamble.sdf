@@ -177,7 +177,6 @@ Kerberos|Kerberos Authentication Service
 LBER|Lightweight BER
 LDAP|Lightweight Directory Access Protocol
 LDIF|LDAP Data Interchange Format
-LDBM|LDAP Database Manager
 MIB|Management Information Base
 OID|Object Identifier
 OSI|Open Systems Interconnect

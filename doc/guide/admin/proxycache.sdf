@@ -63,15 +63,15 @@ H3: Setting cache parameters
 
 > proxyCache <DB> <maxentries> <nattrsets> <entrylimit> <period>
 
-This directive enables proxy caching and sets general cache parameters.
-The <DB> parameter specifies which underlying database is to be
-used to hold cached entries.  It should be set to {{EX:bdb}},
-{{EX:hdb}}, or {{EX:ldbm}}.  The <maxentries> parameter specifies
-the total number of entries which may be held in the cache.  The
+This directive enables proxy caching and sets general cache
+parameters.  The <DB> parameter specifies which underlying database
+is to be used to hold cached entries.  It should be set to
+{{EX:bdb}} or {{EX:hdb}}.  The <maxentries> parameter specifies the
+total number of entries which may be held in the cache.  The
 <nattrsets> parameter specifies the total number of attribute sets
-(as specified by the {{EX:proxyAttrSet}} directive) that may be defined.
-The <entrylimit> parameter specifies the maximum number of entries
-in a cachable query.  The <period> specifies the consistency
+(as specified by the {{EX:proxyAttrSet}} directive) that may be
+defined.  The <entrylimit> parameter specifies the maximum number of
+entries in a cachable query.  The <period> specifies the consistency
 check period (in seconds).  In each period, queries with expired
 TTLs are removed.
 

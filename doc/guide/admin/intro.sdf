@@ -250,12 +250,11 @@ tags.
 {{B:Choice of database backends}}: {{slapd}} comes with a variety
 of different database backends you can choose from. They include
 {{TERM:BDB}}, a high-performance transactional database backend;
-{{TERM:HDB}}, a hierarchical high-performance transactional backend;
-{{TERM:LDBM}}, a lightweight DBM based backend; {{SHELL}}, a backend
-interface to arbitrary shell scripts; and PASSWD, a simple backend
-interface to the {{passwd}}(5) file.  The BDB and HDB backends
-utilize {{ORG:Sleepycat}} {{PRD:Berkeley DB}}.  The LDBM utilizes
-either {{PRD:Berkeley DB}} or {{PRD:GDBM}}.
+{{TERM:HDB}}, a hierarchical high-performance transactional
+backend; {{SHELL}}, a backend interface to arbitrary shell scripts;
+and PASSWD, a simple backend interface to the {{passwd}}(5) file.
+The BDB and HDB backends utilize {{ORG:Sleepycat}} {{PRD:Berkeley
+DB}}.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to
 serve multiple databases at the same time. This means that a single

@@ -80,7 +80,7 @@ if you have not done so already.
 + Test the standalone system
 
 .This step requires the standalone LDAP server, {{slapd}}(8),
-with {{HDB}}, {{BDB}}, and/or {{LDBM}} support.
+with {{HDB}} and/or {{BDB}} support.
 
 E:	% make test
 
