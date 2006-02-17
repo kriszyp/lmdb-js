@@ -15,6 +15,9 @@ OpenLDAP 2.3.20 Engineering
 	Fixed slapd connectionless LDAP support
 	Fixed slapd cn=config error on create failure issue (ITS#4407)
 	Fixed slapd-bdb/hdb wake listener on runqueue submit (ITS#4385)
+	Fixed slapd-ldap/meta resources leaks on multiple binds (ITS#4387)
+	Fixed slapd-ldap/meta assert on connection shutdown (ITS#4390)
+	Added slapd-meta subtree-exclude feature
 	Fixed slapo-syncprov update latency issue (ITS#4385)
 	Fixed slapo-auditlog crash (ITS#4394)
 	Fixed slapo-accesslog unbind crash (ITS#4386)
