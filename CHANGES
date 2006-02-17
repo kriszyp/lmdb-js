@@ -11,14 +11,18 @@ OpenLDAP 2.3.20 Engineering
 	Fixed slapd syncrepl dynamic reconfig issue (ITS#4401)
 	Added slapd syncrepl log messages (ITS#4369)
 	Added slapd permissive modify/increment support
+	Added slapd dynamically registered debug level support
 	Fixed slapd connectionless LDAP support
 	Fixed slapd cn=config error on create failure issue (ITS#4407)
 	Fixed slapd-bdb/hdb wake listener on runqueue submit (ITS#4385)
+	Fixed slapo-syncprov update latency issue (ITS#4385)
 	Fixed slapo-auditlog crash (ITS#4394)
 	Fixed slapo-accesslog unbind crash (ITS#4386)
-	Fixed slapo-syncprov update latency issue (ITS#4385)
 	Fixed slurpd reject error formating (ITS#4382)
 	Fixed ldappasswd unbind issue (ITS#4403)
+	Fixed slapo-pcache assert on attrsonly search (ITS#4406)
+	Added slapo-pcache max_queries enhancement (ITS#4225)
+	Added slapo-pcache negative caching enhancement
 	Build Environment
 		Fixed liblunicode cross compiling problem (ITS#4363)
 		Updated <netinet/tcp.h> detection for AIX (ITS#4312)
