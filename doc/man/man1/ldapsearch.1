@@ -13,7 +13,11 @@ ldapsearch \- LDAP search tool
 [\c
 .BR \-v ]
 [\c
-.BR \-t ]
+.BR \-t[t] ]
+[\c
+.BI \-T \ path\fR]
+[\c
+.BI \-F \ prefix\fR]
 [\c
 .BR \-A ]
 [\c
@@ -21,9 +25,13 @@ ldapsearch \- LDAP search tool
 [\c
 .BR \-M[M] ]
 [\c
+.BI \-S \ attribute\fR]
+[\c
 .BI \-d \ debuglevel\fR]
 [\c
 .BI \-f \ file\fR]
+[\c
+.BR \-x ]
 [\c
 .BI \-D \ binddn\fR]
 [\c
@@ -39,13 +47,17 @@ ldapsearch \- LDAP search tool
 [\c
 .BI \-p \ ldapport\fR]
 [\c
-.BI \-P \ 2\fR\||\|\fI3\fR]
-[\c
 .BI \-b \ searchbase\fR]
 [\c
 .BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR\||\|\fIchildren\fR]
 [\c
 .BI \-a \ never\fR\||\|\fIalways\fR\||\|\fIsearch\fR\||\|\fIfind\fR]
+[\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
+.BR \-e \ [!]ext[=extparam]]
+[\c
+.BR \-E \ [!]ext[=extparam]]
 [\c
 .BI \-l \ timelimit\fR]
 [\c
@@ -60,8 +72,6 @@ ldapsearch \- LDAP search tool
 .BI \-U \ authcid\fR]
 [\c
 .BI \-R \ realm\fR]
-[\c
-.BR \-x ]
 [\c
 .BI \-X \ authzid\fR]
 [\c
@@ -102,10 +112,19 @@ in the output.
 .B \-v
 Run in verbose mode, with many diagnostics written to standard output.
 .TP
-.B \-t
-Write retrieved non-printable values to a set of temporary files.  This
-is useful for dealing with values containing non-character data such as
-jpegPhoto or audio.
+.B \-t[t]
+A single -t writes retrieved non-printable values to a set of temporary
+files.  This is useful for dealing with values containing non-character
+data such as jpegPhoto or audio. A second -t writes all retrieved values to
+files.
+.TP
+.BI \-T \ path
+Write temporary files to directory specified by \fIpath\fP (default:
+/var/tmp/)
+.TP
+.BI \-F \ prefix
+URL prefix for temporary files.  Default is file://\fIpath\fP/ where
+\fIpath\fP is /var/tmp/ or specified with -T.
 .TP
 .B \-A
 Retrieve attributes only (no values).  This is useful when you just want to
@@ -210,6 +229,35 @@ base object for the search.  The default is to never dereference aliases.
 .TP
 .BI \-P \ 2\fR\||\|\fI3
 Specify the LDAP protocol version to use.
+.TP
+.B \-e \fI[!]ext[=extparam]\fP
+.TP
+.B \-E \fI[!]ext[=extparam]\fP
+
+Specify general extensions with -e and search extensions with -E.
+\'!\' indicates criticality.
+
+General extensions:
+.nf
+  [!]assert=<filter>   (an RFC 2254 Filter)
+  [!]authzid=<authzid> ("dn:<dn>" or "u:<user>")
+  [!]manageDSAit
+  [!]noop
+  ppolicy
+  [!]postread[=<attrs>]        (a comma-separated attribute list)
+  [!]preread[=<attrs>] (a comma-separated attribute list)
+  abandon, cancel (SIGINT sends abandon/cancel; not really controls)
+.fi
+
+Search extensions:
+.nf
+  [!]domainScope                               (domain scope)
+  [!]mv=<filter>                               (matched values filter)
+  [!]pr=<size>[/prompt|noprompt]       (paged results/prompt)
+  [!]subentries[=true|false]           (subentries)
+  [!]sync=ro[/<cookie>]                        (LDAP Sync refreshOnly)
+          rp[/<cookie>][/<slimit>]     (LDAP Sync refreshAndPersist)
+.fi
 .TP
 .BI \-l \ timelimit
 wait at most \fItimelimit\fP seconds for a search to complete.
