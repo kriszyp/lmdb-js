@@ -81,7 +81,7 @@ fi
 
 echo "Starting proxy cache on TCP/IP port $PORT2..."
 . $CONFFILTER < $PROXYCACHECONF > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL -d trace > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL -d cache > $LOG2 2>&1 &
 CACHEPID=$!
 if test $WAIT != 0 ; then
 	echo CACHEPID $CACHEPID
