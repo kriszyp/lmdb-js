@@ -174,6 +174,8 @@ parse_slapacl( void )
  *	argc, argv	command line arguments
  */
 
+static int need_shutdown;
+
 void
 slap_tool_init(
 	const char* progname,
@@ -187,6 +189,7 @@ slap_tool_init(
 	char *filterstr = NULL;
 	char *subtree = NULL;
 	char *ldiffile	= NULL;
+	char **debug_unknowns = NULL;
 	int rc, i, dbnum;
 	int mode = SLAP_TOOL_MODE;
 	int truncatemode = 0;
@@ -195,7 +198,7 @@ slap_tool_init(
 #ifdef LDAP_DEBUG
 	/* tools default to "none", so that at least LDAP_DEBUG_ANY 
 	 * messages show up; use -d 0 to reset */
-	ldap_debug = LDAP_DEBUG_NONE;
+	slap_debug = LDAP_DEBUG_NONE;
 #endif
 
 #ifdef CSRIMALLOC
@@ -265,53 +268,19 @@ slap_tool_init(
 		case 'd': {	/* turn on debugging */
 			int	level = 0;
 
+			if ( parse_debug_level( optarg, &level, &debug_unknowns ) ) {
+				usage( tool, progname );
+			}
 #ifdef LDAP_DEBUG
-			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
-			{
-				int	i, goterr = 0;
-				char	**levels;
-
-				levels = ldap_str2charray( optarg, "," );
-
-				for ( i = 0; levels[ i ] != NULL; i++ ) {
-					level = 0;
-
-					if ( str2loglevel( levels[ i ], &level ) ) {
-						fprintf( stderr,
-							"unrecognized log level "
-							"\"%s\"\n", levels[ i ] );
-						goterr = 1;
-						/* but keep parsing... */
-
-					} else {
-						if ( level != 0 ) {
-							slap_debug |= level;
-
-						} else {
-							/* allow to reset log level */
-							slap_debug = 0;
-						}
-					}
-				}
+			if ( level == 0 ) {
+				/* allow to reset log level */
+				slap_debug = 0;
 
 			} else {
-				if ( lutil_atoix( &level, optarg, 0 ) != 0 ) {
-					fprintf( stderr,
-						"unrecognized log level "
-						"\"%s\"\n", optarg );
-					exit( EXIT_FAILURE );
-				}
-
-				if ( level != 0 ) {
-					slap_debug |= level;
-
-				} else {
-					/* allow to reset log level */
-					slap_debug = 0;
-				}
+				slap_debug |= level;
 			}
 #else
-			if ( lutil_atoi( &level, optarg ) != 0 || level != 0 )
+			if ( level != 0 )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",
 				       stderr );
 #endif
@@ -484,6 +453,14 @@ slap_tool_init(
 		fprintf( stderr, "%s: bad configuration %s!\n",
 			progname, confdir ? "directory" : "file" );
 		exit( EXIT_FAILURE );
+	}
+
+	if ( debug_unknowns ) {
+		rc = parse_debug_unknowns( debug_unknowns, &slap_debug );
+		ldap_charray_free( debug_unknowns );
+		debug_unknowns = NULL;
+		if ( rc )
+			exit( EXIT_FAILURE );
 	}
 
 	at_oc_cache = 1;
@@ -659,27 +636,33 @@ startup:;
 	}
 
 	/* slapdn doesn't specify a backend to startup */
-	if ( !dryrun && tool != SLAPDN && slap_startup( be ) ) {
-		switch ( tool ) {
-		case SLAPTEST:
-			fprintf( stderr, "slap_startup failed "
-					"(test would succeed using "
-					"the -u switch)\n" );
-			break;
+	if ( !dryrun && tool != SLAPDN ) {
+		need_shutdown = 1;
 
-		default:
-			fprintf( stderr, "slap_startup failed\n" );
-			break;
+		if ( slap_startup( be ) ) {
+			switch ( tool ) {
+			case SLAPTEST:
+				fprintf( stderr, "slap_startup failed "
+						"(test would succeed using "
+						"the -u switch)\n" );
+				break;
+
+			default:
+				fprintf( stderr, "slap_startup failed\n" );
+				break;
+			}
+
+			exit( EXIT_FAILURE );
 		}
-		
-		exit( EXIT_FAILURE );
 	}
 }
 
 void slap_tool_destroy( void )
 {
 	if ( !dryrun ) {
-		slap_shutdown( be );
+		if ( need_shutdown ) {
+			slap_shutdown( be );
+		}
 		slap_destroy();
 	}
 #ifdef SLAPD_MODULES
