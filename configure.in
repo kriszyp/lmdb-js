@@ -1324,8 +1324,12 @@ fi
 dnl ----------------------------------------------------------------
 dnl TLS/SSL
 	
+if test $ol_with_tls = yes ; then
+	ol_with_tls=auto
+fi
+
 ol_link_tls=no
-if test $ol_with_tls != no ; then
+if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 	AC_CHECK_HEADERS(openssl/ssl.h)
 
 	if test $ac_cv_header_openssl_ssl_h = yes ; then
@@ -1342,7 +1346,7 @@ if test $ol_with_tls != no ; then
 		fi
 
 		if test $have_openssl = yes ; then
-			ol_with_tls=found
+			ol_with_tls=openssl
 			ol_link_tls=yes
 
 			AC_DEFINE(HAVE_OPENSSL, 1, 
@@ -1356,31 +1360,27 @@ if test $ol_with_tls != no ; then
 			else
 				TLS_LIBS="-lssl -lcrypto"
 			fi
-		fi
-		OL_SSL_COMPAT
-		if test $ol_cv_ssl_crl_compat = no ; then
-			ol_link_ssl=no
-                else 
-			AC_DEFINE(HAVE_OPENSSL_CRL, 1, 
-				[define if you have OpenSSL with CRL checking capability])
+
+			OL_SSL_COMPAT
+			if test $ol_cv_ssl_crl_compat = yes ; then
+				AC_DEFINE(HAVE_OPENSSL_CRL, 1, 
+					[define if you have OpenSSL with CRL checking capability])
+			fi
 		fi
 	fi
-
-else
-	AC_MSG_WARN([TLS data protection not supported!])
 fi
 
 WITH_TLS=no
 if test $ol_link_tls = yes ; then
 	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
 	WITH_TLS=yes
-
 elif test $ol_with_tls = auto ; then
 	AC_MSG_WARN([Could not locate TLS/SSL package])
 	AC_MSG_WARN([TLS data protection not supported!])
-
 elif test $ol_with_tls != no ; then
 	AC_MSG_ERROR([Could not locate TLS/SSL package])
+else
+	AC_MSG_WARN([TLS data protection not supported!])
 fi
 
 dnl ----------------------------------------------------------------
