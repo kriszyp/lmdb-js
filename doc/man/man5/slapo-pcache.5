@@ -117,38 +117,6 @@ all attribute sets SHOULD be referenced by (at least) one
 .B proxytemplate
 directive; 
 
-.TP
-.B response-callback { head | tail }
-Specifies whether the response callback should be placed at the
-.B tail
-(the default) or at the 
-.B head
-(actually, wherever the stacking sequence would make it appear) 
-of the callback list.  This affects how the overlay interacts with other
-overlays, since the proxycache overlay should be executed as early 
-as possible (and thus configured as late as possible), to get 
-a chance to return the cached results; however, if executed early
-at response, it would cache entries that may be later "massaged"
-by other databases and thus returned \fIafter\fP massaging the first
-time, and \fIbefore\fP massaging when cached.
-
-.TP
-There are some constraints:
-
-all values must be positive;
-
-.B <entry_limit>
-must be less than or equal to
-.BR <max_entries> ;
-
-.B <numattrsets>
-attribute sets SHOULD be defined by using the directive
-.BR proxyattrset ;
-
-all attribute sets SHOULD be referenced by (at least) one
-.B proxytemplate
-directive; 
-
 .LP
 The following adds a template with filter string \fB(&(sn=)(givenName=))\fP 
 and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 
