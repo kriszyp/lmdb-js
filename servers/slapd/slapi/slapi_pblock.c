@@ -71,6 +71,7 @@ pblock_get_param_class( int param )
 	case SLAPI_X_CONN_SSF:
 	case SLAPI_RESULT_CODE:
 	case SLAPI_LOG_OPERATION:
+	case SLAPI_IS_INTERNAL_OPERATION:
 		return PBLOCK_CLASS_INTEGER;
 		break;
 
@@ -79,6 +80,7 @@ pblock_get_param_class( int param )
 	case SLAPI_OPINITIATED_TIME:
 	case SLAPI_ABANDON_MSGID:
 	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
+	case SLAPI_OPERATION_MSGID:
 		return PBLOCK_CLASS_LONG_INTEGER;
 		break;
 
@@ -465,6 +467,10 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((ber_tag_t *)value) = pb->pb_op->o_tag;
 		break;
+	case SLAPI_OPERATION_MSGID:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((long *)value) = pb->pb_op->o_msgid;
+		break;
 	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((ber_tag_t *)value) = pb->pb_op->o_delete_glue_parent;
@@ -548,6 +554,9 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 							 0
 #endif
 							 );
+		break;
+	case SLAPI_IS_INTERNAL_OPERATION:
+		*((int *)value) = pb->pb_intop;
 		break;
 	case SLAPI_X_CONN_IS_UDP:
 		PBLOCK_ASSERT_CONN( pb );
@@ -849,6 +858,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_OPERATION_TYPE:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_tag = *((ber_tag_t *)value);
+		break;
+	case SLAPI_OPERATION_MSGID:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_op->o_msgid = *((long *)value);
 		break;
 	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1221,6 +1234,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_IS_REPLICATED_OPERATION:
 	case SLAPI_CONN_AUTHTYPE:
 	case SLAPI_CONN_AUTHMETHOD:
+	case SLAPI_IS_INTERNAL_OPERATION:
 	case SLAPI_X_CONN_IS_UDP:
 	case SLAPI_CONN_CLIENTIP:
 	case SLAPI_X_CONN_CLIENTPATH:
