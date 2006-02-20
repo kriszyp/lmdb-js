@@ -648,6 +648,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_PLUGIN_BE_POST_DELETE_FN		553
 
 #define SLAPI_OPERATION_TYPE			590
+#define SLAPI_OPERATION_MSGID			591
 
 #define SLAPI_PLUGIN_MR_FILTER_CREATE_FN	600
 #define SLAPI_PLUGIN_MR_INDEXER_CREATE_FN	601
@@ -703,6 +704,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_OPERATION_ID                      742
 #define SLAPI_CONN_CERT                         743
 #define SLAPI_CONN_AUTHMETHOD                   746
+#define SLAPI_IS_INTERNAL_OPERATION 		748
 
 #define SLAPI_RESULT_CODE                       881
 #define SLAPI_RESULT_TEXT                       882
