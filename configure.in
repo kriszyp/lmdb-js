@@ -2429,7 +2429,7 @@ AC_DEFINE(LBER_TAG_T,long,[define to large integer type])
 dnl ----------------------------------------------------------------
 dnl Check for multiple precision support
 if test $ol_with_mp = longlong || test $ol_with_mp = auto ; then
-	if test $ac_cv_sizeof_long_long > 4 ; then
+	if test $ac_cv_sizeof_long_long -gt 4 ; then
 		ol_with_mp=longlong
 		AC_DEFINE(USE_MP_LONG_LONG,1,[define to use 'long long' for MP])
 	elif test $ol_with_mp = longlong ; then
@@ -2437,7 +2437,7 @@ if test $ol_with_mp = longlong || test $ol_with_mp = auto ; then
 	fi
 fi
 if test $ol_with_mp = long || test $ol_with_mp = auto ; then
-	if test $ac_cv_sizeof_long > 4 ; then
+	if test $ac_cv_sizeof_long -gt 4 ; then
 		ol_with_mp=long
 		AC_DEFINE(USE_MP_LONG,1,[define to use 'long' for MP])
 	elif test $ol_with_mp = long ; then
