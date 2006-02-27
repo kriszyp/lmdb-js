@@ -167,6 +167,10 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
+
+# This usually propagates immediately
+sleep 1
+
 $LDAPSEARCH -H $URI2 -b "$BABSDN" > $TESTOUT 2>&1
 RC=$?
 if test $RC = 0 ; then
