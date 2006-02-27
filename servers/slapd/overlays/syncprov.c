@@ -1784,6 +1784,9 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	LDAP_STAILQ_INSERT_TAIL( &op->o_conn->c_ops, op2, o_next );
 	so->s_flags |= PS_IS_DETACHED;
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+
+	/* Prevent anyone else from trying to send a result for this op */
+	op->o_abandon = 1;
 }
 
 static int
