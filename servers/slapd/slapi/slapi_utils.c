@@ -2532,6 +2532,9 @@ int slapi_valueset_count( const Slapi_ValueSet *vs )
 
 	vp = *vs;
 
+	if ( vp == NULL )
+		return 0;
+
 	for ( i = 0; vp[i].bv_val != NULL; i++ )
 		;
 
