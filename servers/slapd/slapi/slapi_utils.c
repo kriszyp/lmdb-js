@@ -2460,9 +2460,9 @@ void slapi_valueset_free(Slapi_ValueSet *vs)
 		BerVarray vp = *vs;
 
 		ber_bvarray_free( vp );
-		slapi_ch_free( (void **)&vp );
+		vp = NULL;
 
-		*vs = NULL;
+		slapi_ch_free( (void **)&vp );
 	}
 }
 
