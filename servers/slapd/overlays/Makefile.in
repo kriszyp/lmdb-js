@@ -15,6 +15,7 @@
 
 SRCS = overlays.c \
 	accesslog.c \
+	auditlog.c \
 	dds.c \
 	denyop.c \
 	dyngroup.c \
@@ -60,6 +61,9 @@ dynamic: $(PROGRAMS)
 
 accesslog.la : accesslog.lo
 	$(LTLINK_MOD) -module -o $@ accesslog.lo version.lo $(LINK_LIBS)
+
+auditlog.la : auditlog.lo
+	$(LTLINK_MOD) -module -o $@ auditlog.lo version.lo $(LINK_LIBS)
 
 dds.la : dds.lo
 	$(LTLINK_MOD) -module -o $@ dds.lo version.lo $(LINK_LIBS)
