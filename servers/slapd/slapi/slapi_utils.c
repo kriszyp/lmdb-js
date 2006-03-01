@@ -1041,14 +1041,7 @@ slapi_ch_array_free( char **arrayp )
 struct berval *
 slapi_ch_bvdup(const struct berval *v)
 {
-	struct berval *bv;
-
-	bv = (struct berval *) slapi_ch_malloc( sizeof(struct berval) );
-	bv->bv_len = v->bv_len;
-	bv->bv_val = slapi_ch_malloc( bv->bv_len );
-	AC_MEMCPY( bv->bv_val, v->bv_val, bv->bv_len );
-
-	return bv;
+	return ber_dupbv(NULL, (struct berval *)v);
 }
 
 struct berval **
