@@ -196,6 +196,9 @@ target_free(
 	if ( mt->mt_uri ) {
 		free( mt->mt_uri );
 	}
+	if ( mt->mt_subtree_exclude ) {
+		ber_bvarray_free( mt->mt_subtree_exclude );
+	}
 	if ( !BER_BVISNULL( &mt->mt_psuffix ) ) {
 		free( mt->mt_psuffix.bv_val );
 	}
