@@ -141,6 +141,7 @@ ldap_create_page_control(
 	LDAPControl	**ctrlp )
 {
 	struct berval	value;
+	BerElement	*ber;
 
 	if ( ctrlp == NULL ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
@@ -150,13 +151,19 @@ ldap_create_page_control(
 	ld->ld_errno = ldap_create_page_control_value( ld,
 		pagesize, cookie, &value );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
+		if ((ber = ldap_alloc_ber_with_options(ld)) == NULL) {
+			ld->ld_errno = LDAP_NO_MEMORY;
+			return LDAP_NO_MEMORY;
+		}
+
 		ld->ld_errno = ldap_create_control( LDAP_CONTROL_PAGEDRESULTS,
-			NULL, iscritical, ctrlp );
+			ber, iscritical, ctrlp );
 		if ( ld->ld_errno == LDAP_SUCCESS ) {
 			(*ctrlp)->ldctl_value = value;
 		} else {
 			LDAP_FREE( value.bv_val );
 		}
+		ber_free(ber, 1);
 	}
 
 	return ld->ld_errno;
