@@ -192,6 +192,8 @@ done
 for f in $TESTDIR/$DATADIR/do_bind.* ; do
 	echo "cn=Foo,ou=Meta,$METABASEDN" >> $f
 	echo "bar" >> $f
+	echo "" >> $f
+	echo "" >> $f
 done
 
 echo "Using tester for concurrent server access..."

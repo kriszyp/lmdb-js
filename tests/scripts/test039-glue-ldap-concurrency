@@ -32,6 +32,10 @@ if test x$TESTLOOPS = x ; then
 	TESTLOOPS=50
 fi
 
+if test x$TESTOLOOPS = x ; then
+	TESTOLOOPS=1
+fi
+
 rm -rf $TESTDIR
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
@@ -169,11 +173,14 @@ done
 for f in $TESTDIR/$DATADIR/do_bind.* ; do
 	echo "cn=Foo,ou=Meta,$METABASEDN" >> $f
 	echo "bar" >> $f
+	echo "" >> $f
+	echo "" >> $f
 done
 
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT3 \
-	-D "cn=Manager,$METABASEDN" -w $PASSWD -l $TESTLOOPS -r 20 -FF
+	-D "cn=Manager,$METABASEDN" -w $PASSWD \
+	-l $TESTLOOPS -L $TESTOLOOPS -r 20 -FF
 RC=$?
 
 if test $RC != 0 ; then
