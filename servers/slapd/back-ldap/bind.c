@@ -91,6 +91,8 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 			}
 		}
 
+		assert( lc->lc_binding == 1 );
+		lc->lc_binding = 0;
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 		ber_dupbv( &lc->lc_bound_ndn, &op->o_req_ndn );
 
@@ -465,6 +467,7 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	}
 	(*lcp)->lc_ld = ld;
 	(*lcp)->lc_refcnt = 1;
+	(*lcp)->lc_binding = 1;
 #ifdef HAVE_TLS
 	if ( is_tls ) {
 		LDAP_BACK_CONN_ISTLS_SET( *lcp );
@@ -499,7 +502,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 	ldapconn_t	*lc = NULL,
 			lc_curr = { 0 };
-	int		refcnt = 1;
+	int		refcnt = 1, binding = 1;
 
 	/* Internal searches are privileged and shared. So is root. */
 	if ( op->o_do_not_cache || be_isroot( op ) ) {
@@ -534,6 +537,7 @@ retry_lock:
 				goto retry_lock;
 			}
 			refcnt = ++lc->lc_refcnt;
+			binding = ++lc->lc_binding;
 		}
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}
@@ -584,6 +588,7 @@ retry_lock:
 					(caddr_t)&lc_curr, ldap_back_conndn_cmp );
 			if ( tmplc != NULL ) {
 				refcnt = ++tmplc->lc_refcnt;
+				binding = ++tmplc->lc_binding;
 				ldap_back_conn_free( lc );
 				lc = tmplc;
 			}
@@ -601,6 +606,7 @@ retry_lock:
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
 		assert( lc->lc_refcnt == 1 );
+		assert( lc->lc_binding == 1 );
 		rs->sr_err = avl_insert( &li->li_conninfo.lai_tree, (caddr_t)lc,
 			ldap_back_conndn_cmp, ldap_back_conndn_dup );
 
@@ -611,8 +617,8 @@ retry_lock:
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %p inserted (refcnt=%u)\n",
-			(void *)lc, refcnt, 0 );
+			"=>ldap_back_getconn: conn %p inserted refcnt=%u binding=%u\n",
+			(void *)lc, refcnt, binding );
 	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( rs->sr_err != 0 ) {
@@ -637,8 +643,8 @@ retry_lock:
 
 		if ( lc ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"=>ldap_back_getconn: conn %p fetched (refcnt=%u)\n",
-				(void *)lc, refcnt, 0 );
+				"=>ldap_back_getconn: conn %p fetched refcnt=%u binding=%u\n",
+				(void *)lc, refcnt, binding );
 		}
 	}
 
@@ -690,15 +696,57 @@ ldap_back_dobind_int(
 {	
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	int		rc = LDAP_BACK_CONN_ISBOUND( lc );
+	int		rc, binding = 0;
 	ber_int_t	msgid;
 
 	assert( retries >= 0 );
 
-	if ( rc ) {
-		return rc;
+retry_lock:;
+ 	if ( dolock ) {
+ 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+ 	}
+
+ 	if ( binding == 0 ) {
+		/* check if already bound */
+		rc = LDAP_BACK_CONN_ISBOUND( lc );
+		if ( rc ) {
+			lc->lc_binding--;
+ 			if ( dolock ) {
+ 				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+ 			}
+			return rc;
+		}
+
+		if ( LDAP_BACK_CONN_BINDING( lc ) ) {
+			/* if someone else is about to bind it, give up and retry */
+ 			if ( dolock ) {
+ 				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+ 			}
+			ldap_pvt_thread_yield();
+			goto retry_lock;
+
+		} else {
+			/* otherwise this thread will bind it */
+ 			LDAP_BACK_CONN_BINDING_SET( lc );
+			binding = 1;
+		}
 	}
 
+	/* wait for pending operations to finish */
+	/* FIXME: may become a bottleneck! */
+	if ( lc->lc_refcnt != lc->lc_binding ) {
+ 		if ( dolock ) {
+ 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+ 		}
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+	}
+
+ 	if ( dolock ) {
+ 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+ 	}
+
+#if 0
 	while ( lc->lc_refcnt > 1 ) {
 		ldap_pvt_thread_yield();
 		rc = LDAP_BACK_CONN_ISBOUND( lc );
@@ -714,6 +762,7 @@ ldap_back_dobind_int(
  	if ( dolock ) {
  		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
  	}
+#endif
 
 	/*
 	 * FIXME: we need to let clients use proxyAuthz
@@ -822,6 +871,7 @@ retry:;
 			}
 		}
 
+		lc->lc_binding--;
 		ldap_back_freeconn( op, lc, dolock );
 		rs->sr_err = slap_map_api2result( rs );
 
@@ -834,6 +884,7 @@ retry:;
 	}
 
 done:;
+	lc->lc_binding--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
 	if ( !rc ) {

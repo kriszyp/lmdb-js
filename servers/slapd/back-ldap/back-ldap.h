@@ -82,6 +82,7 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_CONN_BINDING_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_BINDING)
 
 	unsigned		lc_refcnt;
+	unsigned		lc_binding;
 	unsigned		lc_flags;
 	time_t			lc_create_time;
 	time_t			lc_time;
