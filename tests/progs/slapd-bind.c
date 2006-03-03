@@ -55,8 +55,17 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p port (-D <dn>|-b <baseDN> [-f <searchfilter>]) -w <passwd> [-l <loops>] [-F] [-I] [-t delay]\n",
-			name );
+	fprintf( stderr, "usage: %s "
+		"[-h <host>] "
+		"-p port "
+		"(-D <dn>|-b <baseDN> [-f <searchfilter>]) "
+		"-w <passwd> "
+		"[-l <loops>] "
+		"[-L <outerloops>] "
+		"[-F] "
+		"[-I] "
+		"[-t delay]\n",
+		name );
 	exit( EXIT_FAILURE );
 }
 
@@ -73,13 +82,14 @@ main( int argc, char **argv )
 	struct berval	pass = { 0, NULL };
 	int		port = -1;
 	int		loops = LOOPS;
+	int		outerloops = 1;
 	int		force = 0;
 	int		noinit = 0;
 	int		delay = 0;
 
 	tester_init( "slapd-bind" );
 
-	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:f:FIt:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:L:f:FIt:" )) != EOF ) {
 		switch( i ) {
 			case 'b':		/* base DN of a tree of user DNs */
 				ber_str2bv( optarg, 0, 0, &base );
@@ -110,6 +120,12 @@ main( int argc, char **argv )
 
 			case 'l':		/* the number of loops */
 				if ( lutil_atoi( &loops, optarg ) != 0 ) {
+					usage( argv[0] );
+				}
+				break;
+
+			case 'L':		/* the number of outerloops */
+				if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
 					usage( argv[0] );
 				}
 				break;
@@ -146,11 +162,14 @@ main( int argc, char **argv )
 
 	uri = tester_uri( uri, host, port );
 
-	if ( base.bv_val != NULL ) {
-		do_base( uri, &base, &pass, ( 20 * loops ), force, noinit, delay );
-	} else {
-		do_bind( uri, dn, &pass, ( 20 * loops ), force, noinit, NULL );
+	for ( i = 0; i < outerloops; i++ ) {
+		if ( base.bv_val != NULL ) {
+			do_base( uri, &base, &pass, loops, force, noinit, delay );
+		} else {
+			do_bind( uri, dn, &pass, loops, force, noinit, NULL );
+		}
 	}
+
 	exit( EXIT_SUCCESS );
 }
 

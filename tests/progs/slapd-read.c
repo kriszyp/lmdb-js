@@ -50,9 +50,10 @@ usage( char *name )
 		"-H <uri> | ([-h <host>] -p <port>) "
 		"-e <entry> "
 		"[-l <loops>] "
+		"[-L <outerloops>] "
 		"[-r <maxretries>] "
 		"[-t <delay>]\n",
-			name );
+		name );
 	exit( EXIT_FAILURE );
 }
 
@@ -65,12 +66,13 @@ main( int argc, char **argv )
 	int		port = -1;
 	char		*entry = NULL;
 	int		loops = LOOPS;
+	int		outerloops = 1;
 	int		retries = RETRIES;
 	int		delay = 0;
 
 	tester_init( "slapd-read" );
 
-	while ( (i = getopt( argc, argv, "H:h:p:e:l:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:e:l:L:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -92,6 +94,12 @@ main( int argc, char **argv )
 
 		case 'l':		/* the number of loops */
 			if ( lutil_atoi( &loops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
+		case 'L':		/* the number of outerloops */
+			if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
 				usage( argv[0] );
 			}
 			break;
@@ -125,7 +133,10 @@ main( int argc, char **argv )
 
 	uri = tester_uri( uri, host, port );
 
-	do_read( uri, entry, ( 20 * loops ), retries, delay );
+	for ( i = 0; i < outerloops; i++ ) {
+		do_read( uri, entry, loops, retries, delay );
+	}
+
 	exit( EXIT_SUCCESS );
 }
 

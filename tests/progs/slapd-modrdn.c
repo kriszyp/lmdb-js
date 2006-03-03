@@ -53,6 +53,7 @@ usage( char *name )
 		"-w <passwd> "
 		"-e <entry> "
 		"[-l <loops>] "
+		"[-L <outerloops>] "
 		"[-r <maxretries>] "
 		"[-t <delay>] "
 		"[-F]\n",
@@ -71,13 +72,14 @@ main( int argc, char **argv )
 	struct berval	passwd = { 0, NULL };
 	char		*entry = NULL;
 	int		loops = LOOPS;
+	int		outerloops = 1;
 	int		retries = RETRIES;
 	int		delay = 0;
 	int		friendly = 0;
 
 	tester_init( "slapd-modrdn" );
 
-	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:l:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:l:L:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'F':
 			friendly++;
@@ -116,6 +118,12 @@ main( int argc, char **argv )
 			}
 			break;
 
+		case 'L':		/* the number of outerloops */
+			if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
 		case 'r':		/* the number of retries */
 			if ( lutil_atoi( &retries, optarg ) != 0 ) {
 				usage( argv[0] );
@@ -147,8 +155,11 @@ main( int argc, char **argv )
 
 	uri = tester_uri( uri, host, port );
 
-	do_modrdn( uri, manager, &passwd, entry,
-			loops, retries, delay, friendly );
+	for ( i = 0; i < outerloops; i++ ) {
+		do_modrdn( uri, manager, &passwd, entry,
+				loops, retries, delay, friendly );
+	}
+
 	exit( EXIT_SUCCESS );
 }
 

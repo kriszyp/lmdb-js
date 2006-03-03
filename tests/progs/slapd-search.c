@@ -40,7 +40,8 @@
 
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
-		char *sbase, char *filter, int maxloop, int maxretries, int delay );
+	char *sbase, char *filter, int innerloop,
+	int maxretries, int delay );
 
 static void
 usage( char *name )
@@ -53,6 +54,7 @@ usage( char *name )
 		"-b <searchbase> "
 		"-f <searchfilter> "
 		"[-l <loops>] "
+		"[-L <outerloops>] "
 		"[-r <maxretries>] "
 		"[-t <delay>]\n",
 			name );
@@ -71,12 +73,13 @@ main( int argc, char **argv )
 	char		*sbase = NULL;
 	char		*filter  = NULL;
 	int		loops = LOOPS;
+	int		outerloops = 1;
 	int		retries = RETRIES;
 	int		delay = 0;
 
 	tester_init( "slapd-search" );
 
-	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:p:w:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:L:p:w:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -115,6 +118,12 @@ main( int argc, char **argv )
 			}
 			break;
 
+		case 'L':		/* number of loops */
+			if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
 		case 'r':		/* number of retries */
 			if ( lutil_atoi( &retries, optarg ) != 0 ) {
 				usage( argv[0] );
@@ -146,15 +155,18 @@ main( int argc, char **argv )
 
 	uri = tester_uri( uri, host, port );
 
-	do_search( uri, manager, &passwd, sbase, filter,
-			( 10 * loops ), retries, delay );
+	for ( i = 0; i < outerloops; i++ ) {
+		do_search( uri, manager, &passwd, sbase, filter,
+				loops, retries, delay );
+	}
+
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
-		char *sbase, char *filter, int maxloop, int maxretries, int delay )
+		char *sbase, char *filter, int innerloop, int maxretries, int delay )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -174,7 +186,7 @@ retry:;
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
-				(long) pid, maxloop, sbase, filter );
+				(long) pid, innerloop, sbase, filter );
 	}
 
 	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
@@ -198,7 +210,7 @@ retry:;
 		exit( EXIT_FAILURE );
 	}
 
-	for ( ; i < maxloop; i++ ) {
+	for ( ; i < innerloop; i++ ) {
 		LDAPMessage *res;
 
 		rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,

@@ -50,6 +50,7 @@ usage( char *name )
 		"-w <passwd> "
 		"-e <entry> "
 		"[-l <loops>] "
+		"[-L <outerloops>] "
 		"[-r <maxretries>] "
 		"[-t <delay>] "
 		"[-F]\n",
@@ -70,13 +71,14 @@ main( int argc, char **argv )
 	char		*ava = NULL;
 	char		*value = NULL;
 	int		loops = LOOPS;
+	int		outerloops = 1;
 	int		retries = RETRIES;
 	int		delay = 0;
 	int		friendly = 0;
 
 	tester_init( "slapd-modify" );
 
-	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:a:l:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:a:l:L:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'F':
 			friendly++;
@@ -115,6 +117,12 @@ main( int argc, char **argv )
 
 		case 'l':		/* the number of loops */
 			if ( lutil_atoi( &loops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
+		case 'L':		/* the number of outerloops */
+			if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
 				usage( argv[0] );
 			}
 			break;
@@ -164,8 +172,11 @@ main( int argc, char **argv )
 
 	uri = tester_uri( uri, host, port );
 
-	do_modify( uri, manager, &passwd, entry, ava, value,
-			loops, retries, delay, friendly );
+	for ( i = 0; i < outerloops; i++ ) {
+		do_modify( uri, manager, &passwd, entry, ava, value,
+				loops, retries, delay, friendly );
+	}
+
 	exit( EXIT_SUCCESS );
 }
 

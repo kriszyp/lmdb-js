@@ -46,7 +46,8 @@
 #define BINDCMD			"slapd-bind"
 #define MAXARGS      		100
 #define MAXREQS			5000
-#define LOOPS			"100"
+#define LOOPS			100
+#define OUTERLOOPS		"1"
 #define RETRIES			"0"
 
 #define TSEARCHFILE		"do_search.0"
@@ -84,6 +85,7 @@ usage( char *name )
 		"-d <datadir> "
 		"[-j <maxchild>] "
 		"[-l <loops>] "
+		"[-L <outerloops>] "
 		"-P <progdir> "
 		"[-r <maxretries>] "
 		"[-t <delay>] "
@@ -103,7 +105,8 @@ main( int argc, char **argv )
 	char		*passwd = NULL;
 	char		*dirname = NULL;
 	char		*progdir = NULL;
-	char		*loops = LOOPS;
+	int		loops = LOOPS;
+	char		*outerloops = OUTERLOOPS;
 	char		*retries = RETRIES;
 	char		*delay = "0";
 	DIR		*datadir;
@@ -117,6 +120,7 @@ main( int argc, char **argv )
 	char		*sargs[MAXARGS];
 	int		sanum;
 	char		scmd[MAXPATHLEN];
+	char		sloops[] = "18446744073709551615UL";
 	/* read */
 	char		*rfile = NULL;
 	char		*rreqs[MAXREQS];
@@ -124,12 +128,14 @@ main( int argc, char **argv )
 	char		*rargs[MAXARGS];
 	int		ranum;
 	char		rcmd[MAXPATHLEN];
+	char		rloops[] = "18446744073709551615UL";
 	/* addel */
 	char		*afiles[MAXREQS];
 	int		anum = 0;
 	char		*aargs[MAXARGS];
 	int		aanum;
 	char		acmd[MAXPATHLEN];
+	char		aloops[] = "18446744073709551615UL";
 	/* modrdn */
 	char		*mfile = NULL;
 	char		*mreqs[MAXREQS];
@@ -137,6 +143,7 @@ main( int argc, char **argv )
 	char		*margs[MAXARGS];
 	int		manum;
 	char		mcmd[MAXPATHLEN];
+	char		mloops[] = "18446744073709551615UL";
 	/* modify */
 	char		*modfile = NULL;
 	char		*modreqs[MAXREQS];
@@ -145,6 +152,7 @@ main( int argc, char **argv )
 	char		*modargs[MAXARGS];
 	int		modanum;
 	char		modcmd[MAXPATHLEN];
+	char		modloops[] = "18446744073709551615UL";
 	/* bind */
 	char		*bfile = NULL;
 	char		*breqs[MAXREQS];
@@ -153,12 +161,13 @@ main( int argc, char **argv )
 	char		*bargs[MAXARGS];
 	int		banum;
 	char		bcmd[MAXPATHLEN];
+	char		bloops[] = "18446744073709551615UL";
 
 	char		*friendlyOpt = NULL;
 
 	tester_init( "slapd-tester" );
 
-	while ( (i = getopt( argc, argv, "D:d:FH:h:j:l:P:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "D:d:FH:h:j:l:L:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
 		case 'D':		/* slapd manager */
 			manager = ArgDup( optarg );
@@ -187,7 +196,13 @@ main( int argc, char **argv )
 			break;
 
 		case 'l':		/* the number of loops per client */
-			loops = strdup( optarg );
+			if ( lutil_atoi( &loops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
+		case 'L':		/* the number of outerloops per client */
+			outerloops = strdup( optarg );
 			break;
 
 		case 'P':		/* prog directory */
@@ -301,6 +316,13 @@ main( int argc, char **argv )
 		break;
 	}
 
+	snprintf( sloops, sizeof( sloops ), "%d", 10 * loops );
+	snprintf( rloops, sizeof( rloops ), "%d", 20 * loops );
+	snprintf( aloops, sizeof( aloops ), "%d", loops );
+	snprintf( mloops, sizeof( mloops ), "%d", loops );
+	snprintf( modloops, sizeof( modloops ), "%d", loops );
+	snprintf( bloops, sizeof( bloops ), "%d", 20 * loops );
+
 	/*
 	 * generate the search clients
 	 */
@@ -323,7 +345,9 @@ main( int argc, char **argv )
 	sargs[sanum++] = "-w";
 	sargs[sanum++] = passwd;
 	sargs[sanum++] = "-l";
-	sargs[sanum++] = loops;
+	sargs[sanum++] = sloops;
+	sargs[sanum++] = "-L";
+	sargs[sanum++] = outerloops;
 	sargs[sanum++] = "-r";
 	sargs[sanum++] = retries;
 	sargs[sanum++] = "-t";
@@ -352,7 +376,9 @@ main( int argc, char **argv )
 		rargs[ranum++] = port;
 	}
 	rargs[ranum++] = "-l";
-	rargs[ranum++] = loops;
+	rargs[ranum++] = rloops;
+	rargs[ranum++] = "-L";
+	rargs[ranum++] = outerloops;
 	rargs[ranum++] = "-r";
 	rargs[ranum++] = retries;
 	rargs[ranum++] = "-t";
@@ -383,7 +409,9 @@ main( int argc, char **argv )
 	margs[manum++] = "-w";
 	margs[manum++] = passwd;
 	margs[manum++] = "-l";
-	margs[manum++] = loops;
+	margs[manum++] = mloops;
+	margs[manum++] = "-L";
+	margs[manum++] = outerloops;
 	margs[manum++] = "-r";
 	margs[manum++] = retries;
 	margs[manum++] = "-t";
@@ -417,7 +445,9 @@ main( int argc, char **argv )
 	modargs[modanum++] = "-w";
 	modargs[modanum++] = passwd;
 	modargs[modanum++] = "-l";
-	modargs[modanum++] = loops;
+	modargs[modanum++] = modloops;
+	modargs[modanum++] = "-L";
+	modargs[modanum++] = outerloops;
 	modargs[modanum++] = "-r";
 	modargs[modanum++] = retries;
 	modargs[modanum++] = "-t";
@@ -453,7 +483,9 @@ main( int argc, char **argv )
 	aargs[aanum++] = "-w";
 	aargs[aanum++] = passwd;
 	aargs[aanum++] = "-l";
-	aargs[aanum++] = loops;
+	aargs[aanum++] = aloops;
+	aargs[aanum++] = "-L";
+	aargs[aanum++] = outerloops;
 	aargs[aanum++] = "-r";
 	aargs[aanum++] = retries;
 	aargs[aanum++] = "-t";
@@ -483,7 +515,9 @@ main( int argc, char **argv )
 		bargs[banum++] = port;
 	}
 	bargs[banum++] = "-l";
-	bargs[banum++] = loops;
+	bargs[banum++] = bloops;
+	bargs[banum++] = "-L";
+	bargs[banum++] = outerloops;
 #if 0
 	bargs[banum++] = "-r";
 	bargs[banum++] = retries;
