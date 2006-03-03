@@ -3,7 +3,7 @@
 .\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_init, ldap_open \- Initialize the LDAP library and open a connection to an LDAP server
+ldap_init, ldap_initialize, ldap_open \- Initialize the LDAP library and open a connection to an LDAP server
 .SH LIBRARY
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
@@ -22,6 +22,12 @@ LDAP *ldap_init(host, port)
 .ft
 char *host;
 int port;
+.LP
+.ft B
+int ldap_initialize(ldp, uri)
+.ft
+LDAP **ldp;
+char *uri;
 .SH DESCRIPTION
 .LP
 .B ldap_open()
@@ -29,8 +35,10 @@ opens a connection to an LDAP server and allocates an LDAP
 structure which is used to identify
 the connection and to maintain per-connection information.
 .B ldap_init()
+allocates an LDAP structure but does not open an initial connection.
+.B ldap_initialize()
 allocates an LDAP structure but does not open an initial connection.  One
-of these two routines must be called before any operations are attempted.
+of these three routines must be called before any operations are attempted.
 .LP
 .B ldap_open()
 takes \fIhost\fP, the hostname on which the LDAP server is
@@ -44,38 +52,17 @@ parameter to
 Upon successfully making a connection to an
 LDAP server,
 .B ldap_open()
-returns a pointer to an LDAP structure (defined below), which
-should be passed to subsequent calls to
+returns a pointer to an opaque LDAP structure, which should be passed
+to subsequent calls to
 .BR ldap_bind() ,
 .BR ldap_search() ,
 etc. Certain fields in the LDAP structure can be set to indicate size limit,
-time limit, and how aliases are handled during operations.  See <ldap.h>
-for more details.
-.LP
-.nf
-.ft tt
-	typedef struct ldap {
-		/* ... other stuff you should not mess with ... */
-		char		ld_lberoptions;
-		int		ld_deref;
-	#define LDAP_DEREF_NEVER	0
-	#define LDAP_DEREF_SEARCHING	1
-	#define LDAP_DEREF_FINDING	2
-	#define LDAP_DEREF_ALWAYS	3
-		int		ld_timelimit;
-		int		ld_sizelimit;
-	#define LDAP_NO_LIMIT		0
-		int		ld_errno;
-		char		*ld_error;
-		char		*ld_matched;
-		int		ld_refhoplimit;
-		unsigned long	ld_options;
-	#define LDAP_OPT_REFERRALS      0x00000002 /* set by default */
-	#define LDAP_OPT_RESTART	0x00000004
-		/* ... other stuff you should not mess with ... */
-	} LDAP;
-.ft
-.fi
+time limit, and how aliases are handled during operations; read and write access 
+to those fields must occur by calling
+.BR ldap_get_option (3) 
+and
+.BR ldap_set_option (3)
+respectively, whenever possible.
 .LP
 .B
 ldap_init()
@@ -83,37 +70,39 @@ acts just like
 .BR ldap_open() ,
 but does not open a connection
 to the LDAP server.  The actual connection open will occur when the
-first operation is attempted.  At this time,
+first operation is attempted.
+.LP
+.B ldap_initialize()
+acts like
+.BR ldap_init() ,
+but it returns an integer indicating either success or the failure reason,
+and it allows to specify details for the connection in the schema portion
+of the URI.
+.LP
+At this time,
+.B ldap_open()
+and 
 .B ldap_init()
-is preferred.  
-.B ldap_open() will be depreciated in a later release.
+are deprecated in favor of
+.BR ldap_initialize() ,
+essentially because the latter allows to specify a schema in the URI
+and it explicitly returns an error code.
 .SH ERRORS
-If an error occurs, these routines will return NULL and errno should be
-set appropriately.
-.SH OPTIONS
-Options that affect a particular LDAP instance may be set by modifying
-the \fIld_options\fP field in the LDAP structure.  This field is set
-to \fILDAP_OPT_REFERRALS\fP in
-.B ldap_open() and
-.B ldap_init(),
-which causes the library to automatically follow referrals
-to other servers that may be returned in response to an LDAP operation.
-.LP
-The other supported option is \fILDAP_OPT_RESTART\fP, which if set will
-cause the LDAP library to restart the
-.BR select (2)
-system call when it is interrupted by the system (i.e., errno is set to
-EINTR).  This option is not supported on the Macintosh and under MS-DOS.
-.LP
-An option can be turned off by clearing the appropriate bit in the
-\fIld_options\fP field.
-.SH NOTES
-There are other elements in the LDAP structure that you should not
-change. You should not make any assumptions about the order of elements
-in the LDAP structure.
+If an error occurs,
+.B ldap_open()
+and
+.B ldap_init()
+will return NULL and errno should be set appropriately.
+.B ldap_initialize()
+will directly return the LDAP code associated to the error (or
+.I LDAP_SUCCESS
+in case of success);
+errno should be set as well whenever appropriate.
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_bind (3),
+.BR ldap_get_option (3),
+.BR ldap_set_option (3),
 .BR errno (3)
 .SH ACKNOWLEDGEMENTS
 .B OpenLDAP
