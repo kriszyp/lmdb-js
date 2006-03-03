@@ -2101,7 +2101,8 @@ IA5StringNormalize(
 	void *ctx )
 {
 	char *p, *q;
-	int casefold = !SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
+	int casefold = !SLAP_MR_ASSOCIATED( mr,
+		slap_schema.si_mr_caseExactIA5Match );
 
 	assert( !BER_BVISEMPTY( val ) );
 
@@ -2437,94 +2438,522 @@ serialNumberAndIssuerValidate(
 	int rc;
 	ber_len_t n;
 	struct berval sn, i;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerValidate: <%s>\n",
+		in->bv_val, 0, 0 );
+
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	i.bv_val = ber_bvchr( in, '$' );
-	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
+	if( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+		/* Parse old format */
+		i.bv_val = ber_bvchr( in, '$' );
+		if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
-	sn.bv_val = in->bv_val;
-	sn.bv_len = i.bv_val - in->bv_val;
+		sn.bv_val = in->bv_val;
+		sn.bv_len = i.bv_val - in->bv_val;
 
-	i.bv_val++;
-	i.bv_len = in->bv_len - (sn.bv_len + 1);
+		i.bv_val++;
+		i.bv_len = in->bv_len - (sn.bv_len + 1);
 
-	/* validate serial number (strict for now) */
-	for( n=0; n < sn.bv_len; n++ ) {
-		if( !ASCII_DIGIT(sn.bv_val[n]) ) return LDAP_INVALID_SYNTAX;
+		/* eat leading zeros */
+		for( n=0; n < (sn.bv_len-1); n++ ) {
+			if( sn.bv_val[n] != '0' ) break;
+		}
+		sn.bv_val += n;
+		sn.bv_len -= n;
+
+		for( n=0; n < sn.bv_len; n++ ) {
+			if( !ASCII_DIGIT(sn.bv_val[n]) ) return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		/* Parse GSER format */ 
+		int havesn=0,haveissuer=0;
+		struct berval x = *in;
+		x.bv_val++;
+		x.bv_len-=2;
+
+		/* eat leading spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		if ( x.bv_len < STRLENOF("serialNumber 0,issuer \"\"")) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* should be at issuer or serialNumber NamedValue */
+		if( strncasecmp( x.bv_val, "issuer", STRLENOF("issuer")) == 0 ) {
+			/* parse issuer */
+			x.bv_val += STRLENOF("issuer");
+			x.bv_len -= STRLENOF("issuer");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			i.bv_val = x.bv_val;
+			i.bv_len = 0;
+
+			for( ; i.bv_len < x.bv_len; ) {
+				if ( i.bv_val[i.bv_len] != '"' ) {
+					i.bv_len++;
+					continue;
+				}
+				if ( i.bv_val[i.bv_len+1] == '"' ) {
+					/* double dquote */
+					i.bv_len+=2;
+					continue;
+				}
+				break;
+			}
+			x.bv_val += i.bv_len+1;
+			x.bv_len -= i.bv_len+1;
+
+			if ( x.bv_len < STRLENOF(",serialNumber 0")) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			haveissuer++;
+
+		} else if( strncasecmp( x.bv_val, "serialNumber",
+			STRLENOF("serialNumber")) == 0 )
+		{
+			/* parse serialNumber */
+			int neg=0;
+			x.bv_val += STRLENOF("serialNumber");
+			x.bv_len -= STRLENOF("serialNumber");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			sn.bv_val = x.bv_val;
+			sn.bv_len = 0;
+
+			if( sn.bv_val[0] == '-' ) {
+				neg++;
+				sn.bv_len++;
+			}
+
+			for( ; sn.bv_len < x.bv_len; sn.bv_len++ ) {
+				if ( !ASCII_DIGIT( sn.bv_val[sn.bv_len] )) break;
+			}
+
+			if (!( sn.bv_len > neg )) return LDAP_INVALID_SYNTAX;
+			if (( sn.bv_len > 1+neg ) && ( sn.bv_val[neg] == '0' )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			x.bv_val += sn.bv_len; x.bv_len -= sn.bv_len;
+
+			if ( x.bv_len < STRLENOF( ",issuer \"\"" )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			havesn++;
+
+		} else return LDAP_INVALID_SYNTAX;
+
+		if( x.bv_val[0] != ',' ) return LDAP_INVALID_SYNTAX;
+		x.bv_val++; x.bv_len--;
+
+		/* eat spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		/* should be at remaining NamedValue */
+		if( !haveissuer && (strncasecmp( x.bv_val, "issuer",
+			STRLENOF("issuer" )) == 0 ))
+		{
+			/* parse issuer */
+			x.bv_val += STRLENOF("issuer");
+			x.bv_len -= STRLENOF("issuer");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				 /* empty */;
+			}
+			
+			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			i.bv_val = x.bv_val;
+			i.bv_len = 0;
+
+			for( ; i.bv_len < x.bv_len; ) {
+				if ( i.bv_val[i.bv_len] != '"' ) {
+					i.bv_len++;
+					continue;
+				}
+				if ( i.bv_val[i.bv_len+1] == '"' ) {
+					/* double dquote */
+					i.bv_len+=2;
+					continue;
+				}
+				break;
+			}
+			x.bv_val += i.bv_len+1;
+			x.bv_len -= i.bv_len+1;
+
+		} else if( !havesn && (strncasecmp( x.bv_val, "serialNumber",
+			STRLENOF("serialNumber")) == 0 ))
+		{
+			/* parse serialNumber */
+			int neg=0;
+			x.bv_val += STRLENOF("serialNumber");
+			x.bv_len -= STRLENOF("serialNumber");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len ; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			sn.bv_val = x.bv_val;
+			sn.bv_len = 0;
+
+			if( sn.bv_val[0] == '-' ) {
+				neg++;
+				sn.bv_len++;
+			}
+
+			for( ; sn.bv_len < x.bv_len; sn.bv_len++ ) {
+				if ( !ASCII_DIGIT( sn.bv_val[sn.bv_len] )) break;
+			}
+
+			if (!( sn.bv_len > neg )) return LDAP_INVALID_SYNTAX;
+			if (( sn.bv_len > 1+neg ) && ( sn.bv_val[neg] == '0' )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			x.bv_val += sn.bv_len;
+			x.bv_len -= sn.bv_len;
+
+		} else return LDAP_INVALID_SYNTAX;
+
+		/* eat trailing spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		/* should have no characters left... */
+		if( x.bv_len ) return LDAP_INVALID_SYNTAX;
 	}
 
-	/* validate DN */
+	/* validate DN -- doesn't handle double dquote */ 
 	rc = dnValidate( NULL, &i );
 	if( rc ) return LDAP_INVALID_SYNTAX;
 
+	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerValidate: OKAY\n",
+		in->bv_val, 0, 0 );
 	return LDAP_SUCCESS;
 }
 
 int
 serialNumberAndIssuerPretty(
 	Syntax *syntax,
-	struct berval *val,
+	struct berval *in,
 	struct berval *out,
 	void *ctx )
 {
 	int rc;
 	ber_len_t n;
-	struct berval sn, i, newi;
+	struct berval sn, i, ni;
 
-	assert( val != NULL );
+	assert( in != NULL );
 	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerPretty: <%s>\n",
-		val->bv_val, 0, 0 );
+		in->bv_val, 0, 0 );
 
-	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
+	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	i.bv_val = ber_bvchr( val, '$' );
-	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
+	if( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+		/* Parse old format */
+		i.bv_val = ber_bvchr( in, '$' );
+		if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
-	sn.bv_val = val->bv_val;
-	sn.bv_len = i.bv_val - val->bv_val;
+		sn.bv_val = in->bv_val;
+		sn.bv_len = i.bv_val - in->bv_val;
 
-	i.bv_val++;
-	i.bv_len = val->bv_len - (sn.bv_len + 1);
+		i.bv_val++;
+		i.bv_len = in->bv_len - (sn.bv_len + 1);
 
-	/* eat leading zeros */
-	for( n=0; n < (sn.bv_len-1); n++ ) {
-		if( sn.bv_val[n] != '0' ) break;
+		/* eat leading zeros */
+		for( n=0; n < (sn.bv_len-1); n++ ) {
+			if( sn.bv_val[n] != '0' ) break;
+		}
+		sn.bv_val += n;
+		sn.bv_len -= n;
+
+		for( n=0; n < sn.bv_len; n++ ) {
+			if( !ASCII_DIGIT(sn.bv_val[n]) ) return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		/* Parse GSER format */ 
+		int havesn=0,haveissuer=0;
+		struct berval x = *in;
+		x.bv_val++;
+		x.bv_len-=2;
+
+		/* eat leading spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		if ( x.bv_len < STRLENOF("serialNumber 0,issuer \"\"")) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* should be at issuer or serialNumber NamedValue */
+		if( strncasecmp( x.bv_val, "issuer", STRLENOF("issuer")) == 0 ) {
+			/* parse issuer */
+			x.bv_val += STRLENOF("issuer");
+			x.bv_len -= STRLENOF("issuer");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			i.bv_val = x.bv_val;
+			i.bv_len = 0;
+
+			for( ; i.bv_len < x.bv_len; ) {
+				if ( i.bv_val[i.bv_len] != '"' ) {
+					i.bv_len++;
+					continue;
+				}
+				if ( i.bv_val[i.bv_len+1] == '"' ) {
+					/* double dquote */
+					i.bv_len+=2;
+					continue;
+				}
+				break;
+			}
+			x.bv_val += i.bv_len+1;
+			x.bv_len -= i.bv_len+1;
+
+			if ( x.bv_len < STRLENOF(",serialNumber 0")) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			haveissuer++;
+
+		} else if( strncasecmp( x.bv_val, "serialNumber",
+			STRLENOF("serialNumber")) == 0 )
+		{
+			/* parse serialNumber */
+			int neg=0;
+			x.bv_val += STRLENOF("serialNumber");
+			x.bv_len -= STRLENOF("serialNumber");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			sn.bv_val = x.bv_val;
+			sn.bv_len = 0;
+
+			if( sn.bv_val[0] == '-' ) {
+				neg++;
+				sn.bv_len++;
+			}
+
+			for( ; sn.bv_len < x.bv_len; sn.bv_len++ ) {
+				if ( !ASCII_DIGIT( sn.bv_val[sn.bv_len] )) break;
+			}
+
+			if (!( sn.bv_len > neg )) return LDAP_INVALID_SYNTAX;
+			if (( sn.bv_len > 1+neg ) && ( sn.bv_val[neg] == '0' )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			x.bv_val += sn.bv_len; x.bv_len -= sn.bv_len;
+
+			if ( x.bv_len < STRLENOF( ",issuer \"\"" )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			havesn++;
+
+		} else return LDAP_INVALID_SYNTAX;
+
+		if( x.bv_val[0] != ',' ) return LDAP_INVALID_SYNTAX;
+		x.bv_val++; x.bv_len--;
+
+		/* eat spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		/* should be at remaining NamedValue */
+		if( !haveissuer && (strncasecmp( x.bv_val, "issuer",
+			STRLENOF("issuer" )) == 0 ))
+		{
+			/* parse issuer */
+			x.bv_val += STRLENOF("issuer");
+			x.bv_len -= STRLENOF("issuer");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				 /* empty */;
+			}
+			
+			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			i.bv_val = x.bv_val;
+			i.bv_len = 0;
+
+			for( ; i.bv_len < x.bv_len; ) {
+				if ( i.bv_val[i.bv_len] != '"' ) {
+					i.bv_len++;
+					continue;
+				}
+				if ( i.bv_val[i.bv_len+1] == '"' ) {
+					/* double dquote */
+					i.bv_len+=2;
+					continue;
+				}
+				break;
+			}
+			x.bv_val += i.bv_len+1;
+			x.bv_len -= i.bv_len+1;
+
+		} else if( !havesn && (strncasecmp( x.bv_val, "serialNumber",
+			STRLENOF("serialNumber")) == 0 ))
+		{
+			/* parse serialNumber */
+			int neg=0;
+			x.bv_val += STRLENOF("serialNumber");
+			x.bv_len -= STRLENOF("serialNumber");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len ; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			sn.bv_val = x.bv_val;
+			sn.bv_len = 0;
+
+			if( sn.bv_val[0] == '-' ) {
+				neg++;
+				sn.bv_len++;
+			}
+
+			for( ; sn.bv_len < x.bv_len; sn.bv_len++ ) {
+				if ( !ASCII_DIGIT( sn.bv_val[sn.bv_len] )) break;
+			}
+
+			if (!( sn.bv_len > neg )) return LDAP_INVALID_SYNTAX;
+			if (( sn.bv_len > 1+neg ) && ( sn.bv_val[neg] == '0' )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			x.bv_val += sn.bv_len;
+			x.bv_len -= sn.bv_len;
+
+		} else return LDAP_INVALID_SYNTAX;
+
+		/* eat trailing spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		/* should have no characters left... */
+		if( x.bv_len ) return LDAP_INVALID_SYNTAX;
+
+		ber_dupbv_x( &ni, &i, ctx );
+		i = ni;
+
+		/* need to handle double dquotes here */
 	}
-	sn.bv_val += n;
-	sn.bv_len -= n;
 
-	for( n=0; n < sn.bv_len; n++ ) {
-		if( !ASCII_DIGIT(sn.bv_val[n]) ) return LDAP_INVALID_SYNTAX;
+	rc = dnPretty( syntax, &i, &ni, ctx );
+
+	if( in->bv_val[0] == '{' && in->bv_val[in->bv_len-1] == '}' ) {
+		slap_sl_free( i.bv_val, ctx );
 	}
 
-	/* pretty DN */
-	rc = dnPretty( syntax, &i, &newi, ctx );
 	if( rc ) return LDAP_INVALID_SYNTAX;
 
 	/* make room from sn + "$" */
-	out->bv_len = sn.bv_len + newi.bv_len + 1;
-	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
+	out->bv_len = STRLENOF("{ serialNumber , issuer \"\" }")
+		+ sn.bv_len + ni.bv_len;
+	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
 
 	if( out->bv_val == NULL ) {
 		out->bv_len = 0;
-		slap_sl_free( newi.bv_val, ctx );
+		slap_sl_free( ni.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
-	/* push issuer over */
-	AC_MEMCPY( &out->bv_val[sn.bv_len+1], out->bv_val, newi.bv_len );
-	/* insert sn and "$" */
-	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
-	out->bv_val[sn.bv_len] = '$';
-	/* terminate */
-	out->bv_val[out->bv_len] = '\0';
+	n = 0;
+	AC_MEMCPY( &out->bv_val[n], "{ serialNumber ",
+		STRLENOF("{ serialNumber "));
+	n = STRLENOF("{ serialNumber ");
+
+	AC_MEMCPY( &out->bv_val[n], sn.bv_val, sn.bv_len );
+	n += sn.bv_len;
+
+	AC_MEMCPY( &out->bv_val[n], ", issuer \"", STRLENOF(", issuer \""));
+	n += STRLENOF(", issuer \"");
+
+	AC_MEMCPY( &out->bv_val[n], ni.bv_val, ni.bv_len );
+	n += ni.bv_len;
+
+	AC_MEMCPY( &out->bv_val[n], "\" }", STRLENOF("\" }"));
+	n += STRLENOF("\" }");
+
+	out->bv_val[n] = '\0';
+
+	assert( n == out->bv_len );
 
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerPretty: <%s>\n",
 		out->bv_val, 0, 0 );
 
-	return LDAP_SUCCESS;
+	slap_sl_free( ni.bv_val, ctx );
+
+	return LDAP_SUCCESS; 
 }
 
 /*
@@ -2538,70 +2967,287 @@ serialNumberAndIssuerNormalize(
 	slap_mask_t usage,
 	Syntax *syntax,
 	MatchingRule *mr,
-	struct berval *val,
+	struct berval *in,
 	struct berval *out,
 	void *ctx )
 {
 	int rc;
 	ber_len_t n;
-	struct berval sn, i, newi;
+	struct berval sn, i, ni;
 
-	assert( val != NULL );
+	assert( in != NULL );
 	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerNormalize: <%s>\n",
-		val->bv_val, 0, 0 );
+		in->bv_val, 0, 0 );
 
-	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
+	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	i.bv_val = ber_bvchr( val, '$' );
-	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
+	if( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+		/* Parse old format */
+		i.bv_val = ber_bvchr( in, '$' );
+		if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
-	sn.bv_val = val->bv_val;
-	sn.bv_len = i.bv_val - val->bv_val;
+		sn.bv_val = in->bv_val;
+		sn.bv_len = i.bv_val - in->bv_val;
 
-	i.bv_val++;
-	i.bv_len = val->bv_len - (sn.bv_len + 1);
+		i.bv_val++;
+		i.bv_len = in->bv_len - (sn.bv_len + 1);
 
-	/* eat leading zeros */
-	for( n=0; n < (sn.bv_len-1); n++ ) {
-		if( sn.bv_val[n] != '0' ) break;
-	}
-	sn.bv_val += n;
-	sn.bv_len -= n;
+		/* eat leading zeros */
+		for( n=0; n < (sn.bv_len-1); n++ ) {
+			if( sn.bv_val[n] != '0' ) break;
+		}
+		sn.bv_val += n;
+		sn.bv_len -= n;
 
-	for( n=0; n < sn.bv_len; n++ ) {
-		if( !ASCII_DIGIT(sn.bv_val[n]) ) {
+		for( n=0; n < sn.bv_len; n++ ) {
+			if( !ASCII_DIGIT(sn.bv_val[n]) ) return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		/* Parse GSER format */ 
+		int havesn=0,haveissuer=0;
+		struct berval x = *in;
+		x.bv_val++;
+		x.bv_len-=2;
+
+		/* eat leading spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		if ( x.bv_len < STRLENOF("serialNumber 0,issuer \"\"")) {
 			return LDAP_INVALID_SYNTAX;
 		}
+
+		/* should be at issuer or serialNumber NamedValue */
+		if( strncasecmp( x.bv_val, "issuer", STRLENOF("issuer")) == 0 ) {
+			/* parse issuer */
+			x.bv_val += STRLENOF("issuer");
+			x.bv_len -= STRLENOF("issuer");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			i.bv_val = x.bv_val;
+			i.bv_len = 0;
+
+			for( ; i.bv_len < x.bv_len; ) {
+				if ( i.bv_val[i.bv_len] != '"' ) {
+					i.bv_len++;
+					continue;
+				}
+				if ( i.bv_val[i.bv_len+1] == '"' ) {
+					/* double dquote */
+					i.bv_len+=2;
+					continue;
+				}
+				break;
+			}
+			x.bv_val += i.bv_len+1;
+			x.bv_len -= i.bv_len+1;
+
+			if ( x.bv_len < STRLENOF(",serialNumber 0")) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			haveissuer++;
+
+		} else if( strncasecmp( x.bv_val, "serialNumber",
+			STRLENOF("serialNumber")) == 0 )
+		{
+			/* parse serialNumber */
+			int neg=0;
+			x.bv_val += STRLENOF("serialNumber");
+			x.bv_len -= STRLENOF("serialNumber");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			sn.bv_val = x.bv_val;
+			sn.bv_len = 0;
+
+			if( sn.bv_val[0] == '-' ) {
+				neg++;
+				sn.bv_len++;
+			}
+
+			for( ; sn.bv_len < x.bv_len; sn.bv_len++ ) {
+				if ( !ASCII_DIGIT( sn.bv_val[sn.bv_len] )) break;
+			}
+
+			if (!( sn.bv_len > neg )) return LDAP_INVALID_SYNTAX;
+			if (( sn.bv_len > 1+neg ) && ( sn.bv_val[neg] == '0' )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			x.bv_val += sn.bv_len; x.bv_len -= sn.bv_len;
+
+			if ( x.bv_len < STRLENOF( ",issuer \"\"" )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			havesn++;
+
+		} else return LDAP_INVALID_SYNTAX;
+
+		if( x.bv_val[0] != ',' ) return LDAP_INVALID_SYNTAX;
+		x.bv_val++; x.bv_len--;
+
+		/* eat spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		/* should be at remaining NamedValue */
+		if( !haveissuer && (strncasecmp( x.bv_val, "issuer",
+			STRLENOF("issuer" )) == 0 ))
+		{
+			/* parse issuer */
+			x.bv_val += STRLENOF("issuer");
+			x.bv_len -= STRLENOF("issuer");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+				 /* empty */;
+			}
+			
+			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			i.bv_val = x.bv_val;
+			i.bv_len = 0;
+
+			for( ; i.bv_len < x.bv_len; ) {
+				if ( i.bv_val[i.bv_len] != '"' ) {
+					i.bv_len++;
+					continue;
+				}
+				if ( i.bv_val[i.bv_len+1] == '"' ) {
+					/* double dquote */
+					i.bv_len+=2;
+					continue;
+				}
+				break;
+			}
+			x.bv_val += i.bv_len+1;
+			x.bv_len -= i.bv_len+1;
+
+		} else if( !havesn && (strncasecmp( x.bv_val, "serialNumber",
+			STRLENOF("serialNumber")) == 0 ))
+		{
+			/* parse serialNumber */
+			int neg=0;
+			x.bv_val += STRLENOF("serialNumber");
+			x.bv_len -= STRLENOF("serialNumber");
+
+			if( x.bv_val[0] != ' ' ) return LDAP_INVALID_SYNTAX;
+			x.bv_val++; x.bv_len--;
+
+			/* eat leading spaces */
+			for( ; (x.bv_val[0] == ' ') && x.bv_len ; x.bv_val++, x.bv_len--) {
+				/* empty */;
+			}
+			
+			sn.bv_val = x.bv_val;
+			sn.bv_len = 0;
+
+			if( sn.bv_val[0] == '-' ) {
+				neg++;
+				sn.bv_len++;
+			}
+
+			for( ; sn.bv_len < x.bv_len; sn.bv_len++ ) {
+				if ( !ASCII_DIGIT( sn.bv_val[sn.bv_len] )) break;
+			}
+
+			if (!( sn.bv_len > neg )) return LDAP_INVALID_SYNTAX;
+			if (( sn.bv_len > 1+neg ) && ( sn.bv_val[neg] == '0' )) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			x.bv_val += sn.bv_len;
+			x.bv_len -= sn.bv_len;
+
+		} else return LDAP_INVALID_SYNTAX;
+
+		/* eat trailing spaces */
+		for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
+			/* empty */;
+		}
+
+		/* should have no characters left... */
+		if( x.bv_len ) return LDAP_INVALID_SYNTAX;
+
+		ber_dupbv_x( &ni, &i, ctx );
+		i = ni;
+
+		/* need to handle double dquotes here */
 	}
 
-	/* pretty DN */
-	rc = dnNormalize( usage, syntax, mr, &i, &newi, ctx );
+	rc = dnNormalize( usage, syntax, mr, &i, &ni, ctx );
+
+	if( in->bv_val[0] == '{' && in->bv_val[in->bv_len-1] == '}' ) {
+		slap_sl_free( i.bv_val, ctx );
+	}
+
 	if( rc ) return LDAP_INVALID_SYNTAX;
 
 	/* make room from sn + "$" */
-	out->bv_len = sn.bv_len + newi.bv_len + 1;
-	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
+	out->bv_len = STRLENOF( "{ serialNumber , issuer \"\" }" )
+		+ sn.bv_len + ni.bv_len;
+	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
 
 	if( out->bv_val == NULL ) {
 		out->bv_len = 0;
-		slap_sl_free( newi.bv_val, ctx );
+		slap_sl_free( ni.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
-	/* push issuer over */
-	AC_MEMCPY( &out->bv_val[sn.bv_len+1], out->bv_val, newi.bv_len );
-	/* insert sn and "$" */
-	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
-	out->bv_val[sn.bv_len] = '$';
-	/* terminate */
-	out->bv_val[out->bv_len] = '\0';
+	n = 0;
+	AC_MEMCPY( &out->bv_val[n], "{ serialNumber ",
+		STRLENOF( "{ serialNumber " ));
+	n = STRLENOF( "{ serialNumber " );
+
+	AC_MEMCPY( &out->bv_val[n], sn.bv_val, sn.bv_len );
+	n += sn.bv_len;
+
+	AC_MEMCPY( &out->bv_val[n], ", issuer \"", STRLENOF( ", issuer \"" ));
+	n += STRLENOF( ", issuer \"" );
+
+	AC_MEMCPY( &out->bv_val[n], ni.bv_val, ni.bv_len );
+	n += ni.bv_len;
+
+	AC_MEMCPY( &out->bv_val[n], "\" }", STRLENOF( "\" }" ));
+	n += STRLENOF( "\" }" );
+
+	out->bv_val[n] = '\0';
+
+	assert( n == out->bv_len );
 
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerNormalize: <%s>\n",
 		out->bv_val, 0, 0 );
 
-	return rc;
+	slap_sl_free( ni.bv_val, ctx );
+
+	return LDAP_SUCCESS;
 }
 
 #ifdef HAVE_TLS
@@ -2646,18 +3292,33 @@ certificateExactNormalize(
 	rc = dnX509normalize( name, &issuer_dn );
 	if( rc != LDAP_SUCCESS ) goto done;
 
-	normalized->bv_len = seriallen + issuer_dn.bv_len + 1;
+	normalized->bv_len = STRLENOF( "{ serialNumber , issuer \"\" }" )
+		+ seriallen + issuer_dn.bv_len;
 	normalized->bv_val = ch_malloc(normalized->bv_len+1);
+
 	p = (unsigned char *)normalized->bv_val;
+
+	AC_MEMCPY(p, "{ serialNumber ", STRLENOF( "{ serialNumber " ));
+	p += STRLENOF( "{ serialNumber " );
+
 	AC_MEMCPY(p, serial, seriallen);
 	p += seriallen;
-	*p++ = '$';
+
+	AC_MEMCPY(p, ", issuer \"", STRLENOF( ", issuer \"" ));
+	p += STRLENOF( ", issuer \"" );
+
 	AC_MEMCPY(p, issuer_dn.bv_val, issuer_dn.bv_len);
 	p += issuer_dn.bv_len;
+
+	AC_MEMCPY(p, "\" }", STRLENOF( "\" }" ));
+	p += STRLENOF( "\" }" );
+
 	*p = '\0';
 
 	Debug( LDAP_DEBUG_TRACE, "certificateExactNormalize: %s\n",
 		normalized->bv_val, NULL, NULL );
+
+	rc = LDAP_SUCCESS;
 
 done:
 	if (xcert) X509_free(xcert);
@@ -2918,7 +3579,7 @@ generalizedTimeNormalize(
 		return rc;
 	}
 
-	len = sizeof("YYYYmmddHHMMSSZ")-1 + fraction.bv_len;
+	len = STRLENOF("YYYYmmddHHMMSSZ") + fraction.bv_len;
 	normalized->bv_val = slap_sl_malloc( len + 1, ctx );
 	if ( BER_BVISNULL( normalized ) ) {
 		return LBER_ERROR_MEMORY;
@@ -2928,9 +3589,9 @@ generalizedTimeNormalize(
 		parts[0], parts[1], parts[2] + 1, parts[3] + 1,
 		parts[4], parts[5], parts[6] );
 	if ( !BER_BVISEMPTY( &fraction ) ) {
-		memcpy( normalized->bv_val + sizeof("YYYYmmddHHMMSSZ")-2,
+		memcpy( normalized->bv_val + STRLENOF("YYYYmmddHHMMSSZ")-1,
 			fraction.bv_val, fraction.bv_len );
-		normalized->bv_val[sizeof("YYYYmmddHHMMSSZ")-2] = '.';
+		normalized->bv_val[STRLENOF("YYYYmmddHHMMSSZ")-1] = '.';
 	}
 	strcpy( normalized->bv_val + len-1, "Z" );
 	normalized->bv_len = len;
@@ -3861,12 +4522,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.35 NAME 'certificateMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-#ifdef HAVE_TLS
-		NULL, NULL, octetStringMatch,
-		octetStringIndexer, octetStringFilter,
-#else
 		NULL, NULL, NULL, NULL, NULL,
-#endif
 		NULL },
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
