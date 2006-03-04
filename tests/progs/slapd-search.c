@@ -40,7 +40,12 @@
 
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, int innerloop,
+	char *sbase, char *filter, LDAP **ldp,
+	int innerloop, int maxretries, int delay );
+
+static void
+do_random( char *uri, char *manager, struct berval *passwd,
+	char *sbase, char *filter, char *attr, int innerloop,
 	int maxretries, int delay );
 
 static void
@@ -53,6 +58,7 @@ usage( char *name )
 		"-w <passwd> "
 		"-b <searchbase> "
 		"-f <searchfilter> "
+		"[-a <attr>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -72,6 +78,7 @@ main( int argc, char **argv )
 	struct berval	passwd = { 0, NULL };
 	char		*sbase = NULL;
 	char		*filter  = NULL;
+	char		*attr = NULL;
 	int		loops = LOOPS;
 	int		outerloops = 1;
 	int		retries = RETRIES;
@@ -79,7 +86,7 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-search" );
 
-	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:L:p:w:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "a:b:D:f:H:h:l:L:p:w:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -102,6 +109,10 @@ main( int argc, char **argv )
 		case 'w':		/* the server managers password */
 			passwd.bv_val = strdup( optarg );
 			passwd.bv_len = strlen( optarg );
+			break;
+
+		case 'a':
+			attr = strdup( optarg );
 			break;
 
 		case 'b':		/* file with search base */
@@ -156,8 +167,14 @@ main( int argc, char **argv )
 	uri = tester_uri( uri, host, port );
 
 	for ( i = 0; i < outerloops; i++ ) {
-		do_search( uri, manager, &passwd, sbase, filter,
-				loops, retries, delay );
+		if ( attr != NULL ) {
+			do_random( uri, manager, &passwd, sbase, filter, attr,
+					loops, retries, delay );
+
+		} else {
+			do_search( uri, manager, &passwd, sbase, filter, NULL,
+					loops, retries, delay );
+		}
 	}
 
 	exit( EXIT_SUCCESS );
@@ -165,17 +182,23 @@ main( int argc, char **argv )
 
 
 static void
-do_search( char *uri, char *manager, struct berval *passwd,
-		char *sbase, char *filter, int innerloop, int maxretries, int delay )
+do_random( char *uri, char *manager, struct berval *passwd,
+	char *sbase, char *filter, char *attr,
+	int innerloop, int maxretries, int delay )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
-	char	*attrs[] = { "cn", "sn", NULL };
+	char	*attrs[ 2 ];
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
+	int	nvalues = 0;
+	char	**values = NULL;
+	LDAPMessage *res = NULL;
 
-retry:;
+	attrs[ 0 ] = attr;
+	attrs[ 1 ] = NULL;
+
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
 		tester_perror( "ldap_initialize" );
@@ -185,8 +208,8 @@ retry:;
 	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
 
 	if ( do_retry == maxretries ) {
-		fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
-				(long) pid, innerloop, sbase, filter );
+		fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\" attr=\"%s\".\n",
+				(long) pid, innerloop, sbase, filter, attr );
 	}
 
 	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
@@ -195,19 +218,104 @@ retry:;
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
-			if ( do_retry > 0 ) {
-				ldap_unbind_ext( ld, NULL, NULL );
-				do_retry--;
-				if ( delay != 0 ) {
-				    sleep( delay );
-				}
-				goto retry;
-			}
 		/* fallthru */
 		default:
 			break;
 		}
 		exit( EXIT_FAILURE );
+	}
+
+	rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,
+		filter, attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		tester_ldap_error( ld, "ldap_search_ext_s" );
+
+	} else {
+		LDAPMessage *e;
+		for ( e = ldap_first_entry( ld, res ); e != NULL; e = ldap_next_entry( ld, e ) )
+		{
+			struct berval **v = ldap_get_values_len( ld, e, attr );
+
+			if ( v != NULL ) {
+				int n = ldap_count_values_len( v );
+				int j;
+
+				values = realloc( values, ( nvalues + n + 1 )*sizeof( char * ) );
+				for ( j = 0; j < n; j++ ) {
+					values[ nvalues + j ] = strdup( v[ j ]->bv_val );
+				}
+				values[ nvalues + j ] = NULL;
+				nvalues += n;
+				ldap_value_free_len( v );
+			}
+		}
+
+		ldap_msgfree( res );
+
+		for ( i = 0; i < innerloop; i++ ) {
+			char	buf[ BUFSIZ ];
+
+			snprintf( buf, sizeof( buf ), "(%s=%s)", attr, values[ rand() % nvalues ] );
+
+			do_search( uri, manager, passwd, sbase, buf, &ld,
+					1, maxretries, delay );
+		}
+	}
+		
+
+	fprintf( stderr, " PID=%ld - Search done (%d).\n", (long) pid, rc );
+
+	if ( ld != NULL ) {
+		ldap_unbind_ext( ld, NULL, NULL );
+	}
+}
+static void
+do_search( char *uri, char *manager, struct berval *passwd,
+		char *sbase, char *filter, LDAP **ldp,
+		int innerloop, int maxretries, int delay )
+{
+	LDAP	*ld = ldp ? *ldp : NULL;
+	int  	i = 0, do_retry = maxretries;
+	char	*attrs[] = { "cn", "sn", NULL };
+	pid_t	pid = getpid();
+	int     rc = LDAP_SUCCESS;
+	int	version = LDAP_VERSION3;
+
+retry:;
+	if ( ld == NULL ) {
+		ldap_initialize( &ld, uri );
+		if ( ld == NULL ) {
+			tester_perror( "ldap_initialize" );
+			exit( EXIT_FAILURE );
+		}
+
+		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
+
+		if ( do_retry == maxretries ) {
+			fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
+					(long) pid, innerloop, sbase, filter );
+		}
+
+		rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			tester_ldap_error( ld, "ldap_sasl_bind_s" );
+			switch ( rc ) {
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+				if ( do_retry > 0 ) {
+					ldap_unbind_ext( ld, NULL, NULL );
+					do_retry--;
+					if ( delay != 0 ) {
+					    sleep( delay );
+					}
+					goto retry;
+				}
+			/* fallthru */
+			default:
+				break;
+			}
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	for ( ; i < innerloop; i++ ) {
@@ -230,7 +338,15 @@ retry:;
 		ldap_msgfree( res );
 	}
 
-	fprintf( stderr, " PID=%ld - Search done (%d).\n", (long) pid, rc );
 
-	ldap_unbind_ext( ld, NULL, NULL );
+	if ( ldp != NULL ) {
+		*ldp = ld;
+
+	} else {
+		fprintf( stderr, " PID=%ld - Search done (%d).\n", (long) pid, rc );
+
+		if ( ld != NULL ) {
+			ldap_unbind_ext( ld, NULL, NULL );
+		}
+	}
 }
