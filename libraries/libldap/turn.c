@@ -42,6 +42,7 @@ ldap_turn(
 	LDAPControl **cctrls,
 	int *msgidp )
 {
+#ifdef LDAP_EXOP_X_TURN
 	BerElement *turnvalber = NULL;
 	struct berval *turnvalp = NULL;
 	int rc;
@@ -58,6 +59,9 @@ ldap_turn(
 			turnvalp, sctrls, cctrls, msgidp );
 	ber_free( turnvalber, 1 );
 	return rc;
+#else
+	return LDAP_CONTROL_NOT_FOUND;
+#endif
 }
 
 int
@@ -68,6 +72,7 @@ ldap_turn_s(
 	LDAPControl **sctrls,
 	LDAPControl **cctrls )
 {
+#ifdef LDAP_EXOP_X_TURN
 	BerElement *turnvalber = NULL;
 	struct berval *turnvalp = NULL;
 	int rc;
@@ -84,5 +89,8 @@ ldap_turn_s(
 			turnvalp, sctrls, cctrls, NULL, NULL );
 	ber_free( turnvalber, 1 );
 	return rc;
+#else
+	return LDAP_CONTROL_NOT_FOUND;
+#endif
 }
 
