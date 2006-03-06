@@ -376,7 +376,7 @@ main( int argc, char **argv )
 	}
 
 #ifdef LDAP_X_TXN
-	if( txn ) {
+	if( retval == 0 && txn ) {
 		rc = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, NULL );
 		if ( rc != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not unset controls for ldap_txn_end\n");
@@ -386,8 +386,7 @@ main( int argc, char **argv )
 		rc = ldap_txn_end_s( ld, !txnabort, txn_id, NULL, NULL, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			tool_perror( "ldap_txn_end_s", rc, NULL, NULL, NULL, NULL );
-			if( txn > 1 ) return EXIT_FAILURE;
-			txn = 0;
+			retval = rc;
 		}
 	}
 #endif
