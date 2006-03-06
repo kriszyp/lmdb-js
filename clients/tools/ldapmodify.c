@@ -212,6 +212,7 @@ handle_private_option( int i )
 				control );
 			usage();
 		}
+		break;
 
 	case 'a':	/* add */
 		ldapadd = 1;
