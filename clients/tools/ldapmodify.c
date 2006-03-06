@@ -1139,21 +1139,17 @@ static int process_response(
 	const char *dn )
 {
 	LDAPMessage	*res;
-	int		rc = LDAP_OTHER,
-			msgtype;
+	int		rc = LDAP_OTHER;
 	struct timeval	tv = { 0, 0 };
+	int		err;
+	char		*text = NULL, *matched = NULL, **refs = NULL;
+	LDAPControl	**ctrls = NULL;
 
 	for ( ; ; ) {
 		tv.tv_sec = 0;
 		tv.tv_usec = 100000;
 
-		rc = ldap_result( ld, msgid,
-#ifdef LDAP_GROUP_TRANSACTION
-			txn ? LDAP_MSG_ONE : LDAP_MSG_ALL,
-#else
-			LDAP_MSG_ALL,
-#endif
-			&tv, &res );
+		rc = ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res );
 		if ( tool_check_abandon( ld, msgid ) ) {
 			return LDAP_CANCELLED;
 		}
@@ -1168,47 +1164,27 @@ static int process_response(
 		}
 	}
 
-	msgtype = ldap_msgtype( res );
-	if ( msgtype != LDAP_RES_INTERMEDIATE ) {
-		int		err;
-		char		*text = NULL, *matched = NULL, **refs = NULL;
-		LDAPControl	**ctrls = NULL;
+	rc = ldap_parse_result( ld, res, &err, &matched, &text, &refs, &ctrls, 1 );
+	if ( rc == LDAP_SUCCESS ) rc = err;
 
-		rc = ldap_parse_result( ld, res, &err, &matched, &text, &refs, &ctrls, 1 );
-		if ( rc == LDAP_SUCCESS ) {
-			rc = err;
-		}
-		if ( rc != LDAP_SUCCESS ) {
-			tool_perror( res2str( op ), rc, NULL, matched, text, refs );
-		} else if ( msgtype != op ) {
-			fprintf( stderr, "%s: msgtype: expected %d got %d\n",
-				res2str( op ), op, msgtype );
-			rc = LDAP_OTHER;
-		}
-		if ( text ) {
-			ldap_memfree( text );
-		}
-		if ( matched ) {
-			ldap_memfree( matched );
-		}
-		if ( text ) {
-			ber_memvfree( (void **)refs );
-		}
-		if ( ctrls != NULL ) {
-			tool_print_ctrls( ld, ctrls );
-			ldap_controls_free( ctrls );
-		}
-		return rc;
+	if ( rc != LDAP_SUCCESS ) {
+		tool_perror( res2str( op ), rc, NULL, matched, text, refs );
+	} else if ( msgtype != op ) {
+		fprintf( stderr, "%s: msgtype: expected %d got %d\n",
+			res2str( op ), op, msgtype );
+		rc = LDAP_OTHER;
 	}
 
-#ifdef LDAP_GROUP_TRANSACTION
-	/* assume (successful) transaction intermediate response */
-	return LDAP_SUCCESS;
+	if ( text ) ldap_memfree( text );
+	if ( matched ) ldap_memfree( matched );
+	if ( text ) ber_memvfree( (void **)refs );
 
-#else
-	/* intermediate response? */
-	return LDAP_DECODING_ERROR;
-#endif
+	if ( ctrls != NULL ) {
+		tool_print_ctrls( ld, ctrls );
+		ldap_controls_free( ctrls );
+	}
+
+	return rc;
 }
 
 static char *
