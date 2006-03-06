@@ -997,15 +997,15 @@ void
 tool_bind( LDAP *ld )
 {
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+	LDAPControl *sctrls[2];
 	if ( ppolicy ) {
-		LDAPControl *ctrls[2], c;
+		LDAPControl c;
 		c.ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
 		c.ldctl_value.bv_val = NULL;
 		c.ldctl_value.bv_len = 0;
 		c.ldctl_iscritical = 0;
-		ctrls[0] = &c;
-		ctrls[1] = NULL;
-		ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
+		sctrls[0] = &c;
+		sctrls[1] = NULL;
 	}
 #endif
 
@@ -1033,9 +1033,13 @@ tool_bind( LDAP *ld )
 			passwd.bv_val,
 			sasl_authz_id );
 
-		rc = ldap_sasl_interactive_bind_s( ld, binddn,
-			sasl_mech, NULL, NULL,
-			sasl_flags, lutil_sasl_interact, defaults );
+		rc = ldap_sasl_interactive_bind_s( ld, binddn, sasl_mech,
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+			sctrls,
+#else
+			NULL,
+#endif
+			NULL, sasl_flags, lutil_sasl_interact, defaults );
 
 		lutil_sasl_freedefs( defaults );
 		if( rc != LDAP_SUCCESS ) {
@@ -1069,8 +1073,13 @@ tool_bind( LDAP *ld )
 #endif
 		{
 			/* simple bind */
-			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE,
-				&passwd, NULL, NULL, &msgid );
+			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE, &passwd,
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+				sctrls,
+#else
+				NULL,
+#endif
+				NULL, &msgid );
 			if ( msgid == -1 ) {
 				tool_perror( "ldap_sasl_bind(SIMPLE)", rc,
 					NULL, NULL, NULL, NULL );

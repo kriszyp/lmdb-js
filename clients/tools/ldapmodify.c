@@ -377,6 +377,11 @@ main( int argc, char **argv )
 
 #ifdef LDAP_X_TXN
 	if( txn ) {
+		rc = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, NULL );
+		if ( rc != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not unset controls for ldap_txn_end\n");
+		}
+
 		/* create transaction */
 		rc = ldap_txn_end_s( ld, !txnabort, txn_id, NULL, NULL, NULL );
 		if( rc != LDAP_SUCCESS ) {
