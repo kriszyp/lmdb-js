@@ -357,6 +357,14 @@ typedef struct ldapcontrol {
 #define LDAP_URLEXT_X_FAILEDNAME	"x-failedName"
 #endif
 
+#ifdef LDAP_DEVEL
+#define LDAP_X_TXN						"1.3.6.1.4.1.4203.666.11.7" /* temp */
+#define LDAP_EXOP_X_TXN_START			LDAP_X_TXN ".1"
+#define LDAP_CONTROL_X_TXN_SPEC			LDAP_X_TXN ".2"
+#define LDAP_EXOP_X_TXN_END				LDAP_X_TXN ".3"
+#define LDAP_EXOP_X_TXN_ABORTED_NOTICE	LDAP_X_TXN ".4"
+#endif
+
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OP_ATTRS	"1.3.6.1.4.1.4203.1.5.1"	/* RFC 3673 */
 #define LDAP_FEATURE_OBJECTCLASS_ATTRS \
@@ -2059,6 +2067,39 @@ ldap_refresh_s LDAP_P((
 	ber_int_t *newttl,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
+
+/*
+ * LDAP Transactions
+ */
+#ifdef LDAP_X_TXN
+LDAP_F( int )
+ldap_txn_start LDAP_P(( LDAP *ld,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_txn_start_s LDAP_P(( LDAP *ld,
+	LDAPControl **sctrl,
+	LDAPControl **cctrl,
+	struct berval **rettxnid ));
+
+LDAP_F( int )
+ldap_txn_end LDAP_P(( LDAP *ld,
+	int	commit,
+	struct berval	*txnid,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_txn_end_s LDAP_P(( LDAP *ld,
+	int	commit,
+	struct berval *txnid,
+	LDAPControl **sctrl,
+	LDAPControl **cctrl,
+	int *retidp ));
+#endif
 
 LDAP_END_DECL
 #endif /* _LDAP_H */

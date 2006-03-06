@@ -122,9 +122,10 @@ static int process_response(
 	const char *dn );
 static char *read_one_record LDAP_P(( FILE *fp ));
 
-#ifdef LDAP_GROUP_TRANSACTION
+#ifdef LDAP_X_TXN
 static int txn = 0;
 static int txnabort = 0;
+struct berval *txn_id = NULL;
 #endif
 
 void
@@ -140,9 +141,9 @@ usage( void )
 		(ldapadd ? _("default") : _("default is to replace")));
 	fprintf( stderr, _("  -E [!]ext=extparam	modify extensions"
 		" (! indicate s criticality)\n"));
-#ifdef LDAP_GROUP_TRANSACTION
+#ifdef LDAP_X_TXN
  	fprintf( stderr,
-		_("             [!]txn                      (transaction)\n"));
+		_("             [!]txn=<commit|abort>         (transaction)\n"));
 #endif
 	fprintf( stderr, _("  -F         force all changes records to be used\n"));
 	fprintf( stderr, _("  -S file    write skipped modifications to `file'\n"));
@@ -185,7 +186,7 @@ handle_private_option( int i )
 			*cvalue++ = '\0';
 		}
 
-#ifdef LDAP_GROUP_TRANSACTION
+#ifdef LDAP_X_TXN
 		if( strcasecmp( control, "txn" ) == 0 ) {
 			/* Transaction */
 			if( txn ) {
@@ -241,10 +242,6 @@ handle_private_option( int i )
 int
 main( int argc, char **argv )
 {
-#ifdef LDAP_GROUP_TRANSACTION
-	BerElement	*txnber;
-	struct berval	txnCookie = { 0, NULL };
-#endif
 	char		*rbuf, *start, *rejbuf = NULL;
 	FILE		*fp, *rejfp;
 	char		*matched_msg, *error_msg;
@@ -252,7 +249,6 @@ main( int argc, char **argv )
 	int		count, len;
 	int		i = 0;
 	LDAPControl	c[1];
-
 
 	prog = lutil_progname( "ldapmodify", argc, argv );
 
@@ -300,43 +296,28 @@ main( int argc, char **argv )
 		tool_bind( ld );
 	}
 
-#ifdef LDAP_GROUP_TRANSACTION
+#ifdef LDAP_X_TXN
 	if( txn ) {
-		struct berval *txnCookiep = &txnCookie;
-
-		/* create transaction */
-		rc = ldap_txn_create_s( ld, &txnCookiep, NULL, NULL );
+		/* start transaction */
+		rc = ldap_txn_start_s( ld, NULL, NULL, &txn_id );
 		if( rc != LDAP_SUCCESS ) {
-			tool_perror( "ldap_txn_create_s", rc, NULL, NULL, NULL, NULL );
-			if( txn > 2 ) return EXIT_FAILURE;
+			tool_perror( "ldap_txn_start_s", rc, NULL, NULL, NULL, NULL );
+			if( txn > 1 ) return EXIT_FAILURE;
 			txn = 0;
 		}
 	}
 #endif
 
 	if ( 0
-#ifdef LDAP_GROUP_TRANSACTION
+#ifdef LDAP_X_TXN
 		|| txn
 #endif
 		)
 	{
-#ifdef LDAP_GROUP_TRANSACTION
+#ifdef LDAP_X_TXN
 		if( txn ) {
-			int err;
-			txnber = ber_alloc_t( LBER_USE_DER );
-			if( txnber == NULL ) return EXIT_FAILURE;
-
-			err = ber_printf( txnber, "{o}", &txnCookie );
-			if( err == -1 ) {
-				ber_free( txnber, 1 );
-				fprintf( stderr, _("txn grouping control encoding error!\n") );
-				return EXIT_FAILURE;
-			}
-
-			err = ber_flatten2( txnber, &c[i].ldctl_value, 0 );
-			if( err == -1 ) return EXIT_FAILURE;
-
-			c[i].ldctl_oid = LDAP_CONTROL_GROUPING;
+			c[i].ldctl_oid = LDAP_CONTROL_X_TXN_SPEC;
+			c[i].ldctl_value = *txn_id;
 			c[i].ldctl_iscritical = 1;
 			i++;
 		}
@@ -394,13 +375,13 @@ main( int argc, char **argv )
 		free( rbuf );
 	}
 
-#ifdef LDAP_GROUP_TRANSACTION
+#ifdef LDAP_X_TXN
 	if( txn ) {
 		/* create transaction */
-		rc = ldap_txn_end_s( ld, &txnCookie, !txnabort, NULL, NULL );
+		rc = ldap_txn_end_s( ld, !txnabort, txn_id, NULL, NULL, NULL );
 		if( rc != LDAP_SUCCESS ) {
-			tool_perror( "ldap_txn_create_s", rc, NULL, NULL, NULL, NULL );
-			if( txn > 2 ) return EXIT_FAILURE;
+			tool_perror( "ldap_txn_end_s", rc, NULL, NULL, NULL, NULL );
+			if( txn > 1 ) return EXIT_FAILURE;
 			txn = 0;
 		}
 	}
