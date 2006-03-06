@@ -1139,7 +1139,7 @@ static int process_response(
 	const char *dn )
 {
 	LDAPMessage	*res;
-	int		rc = LDAP_OTHER;
+	int		rc = LDAP_OTHER, msgtype;
 	struct timeval	tv = { 0, 0 };
 	int		err;
 	char		*text = NULL, *matched = NULL, **refs = NULL;
@@ -1163,6 +1163,8 @@ static int process_response(
 			break;
 		}
 	}
+
+	msgtype = ldap_msgtype( res );
 
 	rc = ldap_parse_result( ld, res, &err, &matched, &text, &refs, &ctrls, 1 );
 	if ( rc == LDAP_SUCCESS ) rc = err;
