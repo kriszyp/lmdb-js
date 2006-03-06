@@ -6,12 +6,12 @@
 
 INTERNET-DRAFT                                   Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                            17 July 2005
+Expires in six months                            5 March 2006
 
 
 
                      The LDAP Don't Use Copy Control
-                 <draft-zeilenga-ldap-dontusecopy-01.txt>
+                 <draft-zeilenga-ldap-dontusecopy-02.txt>
 
 
 Status of this Memo
@@ -44,7 +44,7 @@ Status of this Memo
   http://www.ietf.org/shadow.html
 
 
-  Copyright (C) The Internet Society (2005).  All Rights Reserved.
+  Copyright (C) The Internet Society (2006).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -57,7 +57,7 @@ Status of this Memo
 
 Zeilenga               LDAP Don't Use Copy Control              [Page 1]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-01       17 July 2005
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
 
 
 Abstract
@@ -96,8 +96,7 @@ Abstract
 
   The Don't Use Copy control is an LDAP Control [Protocol] whose
   controlType is IANA-ASSIGNED-OID and controlValue is absent.  The
-  criticality may be TRUE or FALSE.  There is no corresponding response
-  control.
+  criticality MUST be TRUE.  There is no corresponding response control.
 
   The control is appropriate for both LDAP interrogation operations,
   including Compare and Search operations [Protocol].  It is
@@ -108,15 +107,15 @@ Abstract
   operation MUST NOT be performed on copied information.  That is, the
   requested operation MUST be performed on original information.
 
+  If original information for the target or base object of the operation
 
 
 
 Zeilenga               LDAP Don't Use Copy Control              [Page 2]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-01       17 July 2005
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
 
 
-  If original information for the target or base object of the operation
   is not available (either locally or through chaining), the server MUST
   either return a referral directing the client to a server believed to
   be better able to service the request or return an appropriate result
@@ -164,15 +163,15 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-01       17 July 2005
       Person & email address to contact for further information:
           Kurt Zeilenga <kurt@openldap.org>
       Usage: Control
+      Specification: RFC XXXX
 
 
 
 Zeilenga               LDAP Don't Use Copy Control              [Page 3]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-01       17 July 2005
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
 
 
-      Specification: RFC XXXX
       Author/Change Controller: IESG
       Comments: none
 
@@ -223,9 +222,10 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-01       17 July 2005
 
 
 
+
 Zeilenga               LDAP Don't Use Copy Control              [Page 4]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-01       17 July 2005
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
 
 
 Intellectual Property Rights
@@ -256,7 +256,7 @@ Intellectual Property Rights
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2005).
+  Copyright (C) The Internet Society (2006).
 
   This document is subject to the rights, licenses and restrictions
   contained in BCP 78, and except as set forth therein, the authors

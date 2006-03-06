@@ -5,179 +5,258 @@
 
 
 INTERNET-DRAFT                                         Kurt D. Zeilenga
-Intended Category: Experimental                     OpenLDAP Foundation
-Expires in six months                                        3 May 2003
+Intended Category: Standard Track                   OpenLDAP Foundation
+Expires in six months                                      5 March 2006
 
 
                             LDAP Transactions
-                     <draft-zeilenga-ldap-txn-06.txt>
+                     <draft-zeilenga-ldap-txn-07.txt>
 
 
 Status of Memo
 
-  This document is an Internet-Draft and is in full conformance with all
-  provisions of Section 10 of RFC2026.
-
   This document is intended to be, after appropriate review and
-  revision, submitted to the RFC Editor as an Experimental document.
-  Distribution of this memo is unlimited.  Technical discussion of this
-  document will take place on the IETF LDAP Extension Working Group
-  mailing list <ldapext@ietf.org>.  Please send editorial comments
-  directly to the author <Kurt@OpenLDAP.org>.
+  revision, submitted to the IESG for consideration as a Proposed
+  Standard.  Distribution of this memo is unlimited.  Technical
+  discussion of this document will take place on the IETF LDAP
+  Extensions mailing list <ldapext@ietf.org>.  Please send editorial
+  comments directly to the author <Kurt@OpenLDAP.org>.
+
+  By submitting this Internet-Draft, each author represents that any
+  applicable patent or other IPR claims of which he or she is aware have
+  been or will be disclosed, and any of which he or she becomes aware
+  will be disclosed, in accordance with Section 6 of BCP 79.
 
   Internet-Drafts are working documents of the Internet Engineering Task
-  Force (IETF), its areas, and its working groups.  Note that other
+  Force (IETF), its areas, and its working groups. Note that other
   groups may also distribute working documents as Internet-Drafts.
+
   Internet-Drafts are draft documents valid for a maximum of six months
   and may be updated, replaced, or obsoleted by other documents at any
-  time.  It is inappropriate to use Internet-Drafts as reference
-  material or to cite them other than as ``work in progress.''
+  time. It is inappropriate to use Internet-Drafts as reference material
+  or to cite them other than as "work in progress."
 
   The list of current Internet-Drafts can be accessed at
-  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
-  Internet-Draft Shadow Directories can be accessed at
-  <http://www.ietf.org/shadow.html>.
+  http://www.ietf.org/1id-abstracts.html
 
-  Copyright 2003, The Internet Society.  All Rights Reserved.
+  The list of Internet-Draft Shadow Directories can be accessed at
+  http://www.ietf.org/shadow.html
 
-  Please see the Copyright section near the end of this document for
-  more information.
+
+  Copyright (C) The Internet Society (2006).  All Rights Reserved.
+
+  Please see the Full Copyright section near the end of this document
+  for more information.
 
 
 Abstract
 
-  Lightweight Directory Access Protocol (LDAP) update operations acting
-  upon entries have atomic, consistency, isolation, durability (ACID)
-  properties.  However, it is often desirable to update two or more
-  entries as one unit of interaction, a transaction.  Transactions are
-  necessary to support a number of applications including resource
-  provisioning and information replication.  This document defines an
+  Lightweight Directory Access Protocol (LDAP) update operations, such
 
 
 
 Zeilenga                    LDAP Transactions                   [Page 1]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
 
 
-  LDAP extension to support transactions.
-
-
-Conventions
-
-  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
-  document are to be interpreted as described in BCP 14 [RFC2119].
-
-  Protocol elements are described using ASN.1 [X.680].  The term
-  "BER-encoded" means the element is to be encoded using the Basic
-  Encoding Rules [X.690] under the restrictions detailed in Section 5.1
-  of [RFC2251].
+  as Add, Delete, and Modify operations, have atomic, consistency,
+  isolation, durability (ACID) properties.  Each of these update
+  operations act upon an entry.  However, It is often desirable to
+  update two or more entries in a single unit of interaction, a
+  transaction.  Transactions are necessary to support a number of
+  applications including resource provisioning and information
+  replication.  This document defines an LDAP extension to support
+  transactions.
 
 
 1. Overview
 
   This document extends the Lightweight Directory Access Protocol (LDAP)
-  [RFC3377] to allow clients to group a number of related update
-  operations [RFC2251] and have them preformed as one unit of
+  [Roadmap] to allow clients to group a number of related update
+  operations [Protocol] and have them preformed as one unit of
   interaction, a transaction.  As with distinct update operations, each
   transaction has atomic, consistency, isolation, and durability
   ([ACID]) properties.
 
-  This extension uses the grouping mechanism provided by [GROUP] to
-  relate operations of the transaction.  The createGrouping operation is
-  used to obtain a group cookie which is used to identify operations
-  which are apart of the transaction.  The group cookie can be viewed as
-  a transaction identifier.  The endGrouping operation is used to settle
-  (commit or abort) the transaction.
+  This extension consists of two extended operations, one control, and
+  one unsolicited notification message.  The Start Transaction operation
+  is used to obtain a transaction identifier.  This identifier is then
+  attached to multiple update operations to indicate that they belong to
+  transaction using the Transaction Specification control.  The End
+  Transaction is used to settle (commit or abort) the transaction.  The
+  Aborted Tranaction Notice is used notify the client the server is no
+  longer willing or able to process an outstanding transaction.
 
 
-2. Specification of a Transaction
+1.1. Conventions and Terminology
 
-  Servers implementing this specification SHOULD publish the
-  transactionGroupingType as a value of the 'supportedGroupingTypes'
-  attribute contained within the Root DSE.
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in BCP 14 [RFC2119].
 
-      transactionGroupingType ::= IANA-ASSIGNED-OID
+  Protocol elements are described using ASN.1 [X.680] with implicit
+  tags.  The term "BER-encoded" means the element is to be encoded using
+  the Basic Encoding Rules [X.690] under the restrictions detailed in
+  Section 5.2 of [Protocol].
 
-  A client wishing to preform a transaction issues a
-  createGroupingRequest with a createGroupType of
-  transactionGroupingType and no createGroupValue.  A server which is
-  willing and able to support transactions returns a
-  createGroupingResponse with a success result code, a
-  createGroupCookie, and no createGroupValue.  Otherwise the server
-  returns a non-success result code, no createGroupCookie, and no
-  createGroupValue.
+  DSA stands for "Directory System Agent" (a server).  DSE stands for
+  "DSA-specific entry".
+
+
+2.  Elements of an LDAP Transaction
+
+2.1.  Start Transaction Request and Response
+
 
 
 
 Zeilenga                    LDAP Transactions                   [Page 2]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
 
 
-  The client then issues may issue one or more update (add, delete,
-  modify, rename) requests, each with a GroupingControl indicating they
-  are to processed as part of the transaction grouping.  If the server
-  is willing and able to attempt to process operation as part of the
-  transaction, the server returns success.  As further processing of the
-  operation is be deferred until settlement, the operation is considered
-  still outstanding and its messageID cannot to be reused until after
-  settlement.  If the server is unwilling or unable to attempt to
-  process the operation as part of the transaction, the server returns a
-  non-successful result code.
+  A Start Transaction Request is an LDAPMessage of CHOICE extendedReq
+  where the requestName is IANA-ASSIGNED-OID.1 and the requestValue is
+  absent.
 
-  If the server becomes unwilling or unable to continue the
-  specification of a transaction, the server return the canceled
-  resultCode for each deferred operation and then issue a endGroupNotice
-  with a non-success resultCode.  Any future use of cookie by the client
-  will result in a response containing a non-success result code.  Upon
-  receipt of a endGroupingNotice, the client is to discontinue all use
-  of the grouping cookie as the transaction is null and void.
-
-  A client requests settling of transaction by issuing an
-  endGroupingRequest where the groupingCookie is the group cookie
-  identify the transaction.  The absence of any endGroupingValue
-  indicates a commit request.  The presence of an empty endGroupValue
-  indicates an abort request.  The endGroupValue MUST be empty if
-  provided.
-
-  If the commit response indicates failure, the server may return an
-  endGroupingValue with the endGroupingResponse.  If so, it contains the
-  BER-encoding of a MessageID [RFC2251] of the update operation
-  associated with the failure.
+  A Start Transaction Response is an LDAPMessage of CHOICE extendedRes
+  sent in response to a Start Transaction Request.  Its responesName is
+  absent.  When the resultCode is success, responseValue is present and
+  contains a transaction identifier.  Otherwise, the responseValue is
+  absent.
 
 
-3. Settling of the Transaction
+2.2.  Transaction Specification Control
 
-  Upon receipt of a request to abort the transaction, the server is to
-  abort the transaction and then return an endGroupingResponse
-  indicating success.
+  A Transaction Specification Control is an LDAPControl where the
+  controlType is IANA-ASSIGNED-OID.2, the criticality is TRUE, and the
+  controlValue is a transaction identifer.  The control is appropriate
+  for update requests including Add, Delete, Modify, and ModifyDN
+  requests [Protocol].
 
-  Upon receipt of a request to commit the transaction, the server
-  processes the group of update operations as one atomic, isolated
-  action with each update request being processed in turn.  Either all
-  of the requested updates SHALL be successfully applied or none of the
-  requested SHALL be applied.  If all are applied, the server returns an
-  endGroupingResponse indicating success.  Otherwise, the server returns
-  an endGroupingResponse indicating the nature of the failure.  If the
-  failure is associated with a particular update operation, the message
-  ID is returned an attached endGroupingValue.  If the failure was not
-  associated with any particular update operation, no endGroupingValue
+2.3.  End Transactions Request and Response
+
+  An End Transaction Request is an LDAPMessage of CHOICE extendedReq
+  where the requestName is IANA-ASSIGNED-OID.3 and the requestValue is
+  present and contains a BER-encoded settlementValue.
+
+       settlementValue ::= SEQUENCE {
+            commit         BOOLEAN DEFAULT TRUE,
+            identifier     OCTET STRING }
+
+  A commit value of TRUE indicates a request to commit the transaction
+  identified by the identifier.  A commit value of FALSE indicates a
+  request to abort the identified transaction.
+
+  An End Transaction Response is an LDAPMessage sent in response to a
+  End Transaction Request.  Its response name is absent.  The
+  responseValue when present contains a BER-encoded MessageID.
+
+
+2.5. Aborted Transaction Notice
+
+  The Aborted Transaction Notice is an Unsolicited Notification message
+  where the responseName is IANA-ASSIGNED-OID.4 and responseValue is
+  present and contains a transaction identifier.
+
+
+3. An LDAP Transaction
+
+3.1. Extension Discovery
 
 
 
 Zeilenga                    LDAP Transactions                   [Page 3]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
 
 
-  is to be provided.
+  To allow clients to discover support for this extension, servers
+  implementing this specification SHOULD publish IANA-ASSIGNED-OID.1 and
+  IANA-ASSIGNED-OID.3 as values of the 'supportedExtension' attribute
+  [Models] within the Root DSE, and publish the IANA-ASSIGNED-OID.2 as a
+  value of the 'supportedControl' attribute [Models] of the Root DSE.
 
-  There is no requirement that a server serialize transactions.  That
-  is, a server MAY process multiple transactions commit requests (from
-  one or more clients) acting upon different sets of entries
-  concurrently.  A server MUST avoid deadlock.
+  A server MAY choose to advertise this extension only when the client
+  is authorized to use it.
+
+
+3.2. Starting an Transactions
+
+  A client wishing to preform a sequence of directory updates as an
+  transaction issues a Start Transaction Request.  A server which is
+  willing and able to support transactions responds to this request with
+  a Start Transaction Response providing a transaction identifier and
+  with a resultCode of success.  Otherwise, the server responds with a
+  Start Transaction Response wth a result code other than success
+  indicating the nature of the failure.
+
+  The transaction identifier provided upon successful start of a
+  transaction is used in subseqent protocol messages to identify this
+  transaction.
+
+
+3.3. Specification of a Transaction
+
+  The client then may issue may issue one or more update (add, delete,
+  modify, modifyDN) requests, each with a Transaction Specification
+  control containing the transaction identifier indicating the updates
+  are to processed as part of the transaction.  Each of these update
+  request MUST have a different MessageId value.  If the server is
+  unwilling or unable to attempt to process the requested update
+  operation as part of the transaction, the server immediately returns
+  the approrpiate response to the request with a resultCode indicating
+  the nature of the failure.  Otherwise, the server immediately returns
+  success and the defers further processing of the operation is then
+  deferred until settlement.
+
+  If the server becomes unwilling or unable to continue the
+  specification of a transaction, the server issues an Aborted
+  Transaction Notice with a non-success resultCode indicating the nature
+  of the failure.  All operations that were to be processed as part of
+  the transaction are implicitly abandoned.  Upon receipt of an Aborted
+  Transaction Notice, the client is to discontinue all use of the
+  transaction identifier as the transaction is null and void.  Any
+  future use of identifier by the client will result in a response
+  containing a non-success resultCode.
+
+
+
+Zeilenga                    LDAP Transactions                   [Page 4]
+
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
+
+
+3.4. Transaction Settlement
+
+  A client requests settlement of transaction by issuing an End
+  Transaction request for the transaction indicating whether it desires
+  the transaction to be committed or aborted.
+
+  Upon receipt of a request to abort the transaction, the server is to
+  abort the identified transaction (abandoning all operations which are
+  part of the transaction) and indicate that it has done so by returning
+  an End Transaction response with a resultCode of success.
+
+  Upon receipt of a request to commit the transaction, the server
+  processes all update operations of the transaction as one atomic,
+  isolated action with each requested update being processed in turn.
+  Either all of the requested updates are to be successfully applied or
+  none of the requested are to be applied.  The server returns an End
+  Transaction Response with a resultCode of success and no responseValue
+  to indicate all the requested updates were applied.  Otherwise, the
+  server returns an End Transaction with an non-success resultCode
+  indicating the nature of the failure.  If the failure is associated
+  with a particular update request, a responseValue containing its
+  MessageID is returned.  If the failure was not associated with any
+  particular update request, no responseValue is returned.
+
+  There is no requirement that a server serialize transactions, or
+  updates requested outside of a transaction.  That is, a server MAY
+  process multiple commit requests (from one or more clients) acting
+  upon different sets of entries concurrently.   A server MUST avoid
+  deadlock.
 
 
 4. Distributed Directory Considerations
@@ -185,23 +264,30 @@ INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
   The LDAP/X.500 models provide for distributed directory operations
   including server-side chaining and client-side chasing of operations.
 
-  This document does not disallow servers from chaining operations which
+  This document does not preclude servers from chaining operations which
   are part of a transaction.  However, if a server does allow such
-  chaining, it MUST ensure that transaction semantics detailed above are
-  provided.
+  chaining, it MUST ensure that transaction semantics are provided.
 
   This mechanism defined by this document does not support client-side
   chasing.  Grouping cookies used to identify the transaction are
   specific to a particular client/server session.
 
-  The LDAP/X.500 models provide for a single-master/multiple-slave
+  The LDAP/X.500 models provide for a single-master/multiple-shadow
   replication architecture.  This document states no requirement that
   changes made to the directory based upon processing a transaction be
   replicated as one atomic action.  That is, the client SHOULD NOT
-  assume tight data consistency nor fast data convergence at slave
-  servers unless they have prior knowledge that such is provided.
-  Though this mechanism could be used to support replication, such use
-  is not described in this document.
+
+
+
+Zeilenga                    LDAP Transactions                   [Page 5]
+
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
+
+
+  assume tight data consistency nor fast data convergence at shadow
+  servers unless they have prior knowledge that such service is
+  provided.  Though this mechanism could be used to support replication,
+  use in replication is not described in this document.
 
   The LDAP/X.500 models do not currently support a multi-master
   replication architecture and, hence, not considered by this
@@ -210,55 +296,60 @@ INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
 
 5. Security Considerations
 
-  Transactions mechanisms and related grouping operations may be the
-  target of denial of service attacks.  Implementors should provide
-  safeguards to ensure these mechanisms are not abused.
+  Transactions mechanisms may be the target of denial of service
+  attacks.  Implementors should provide safeguards to ensure these
+  mechanisms are not abused.
+
+  General security considerations [Roadmap], especially associated with
+  update operations [Protocol], apply to this extension.
 
 
 6. IANA Considerations
 
-  In accordance with [RFC3383], it is requested that Internet Assigned
+  In accordance with [BCP64bis], it is requested that Internet Assigned
   Numbers Authority (IANA) make the following assignments.
-
-
-
-
-Zeilenga                    LDAP Transactions                   [Page 4]
-
-INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
 
 
 6.1.  Object Identifier
 
-  An LDAP Object Identifier to identify the grouping type defined in
-  this document is requested.
-
-  The following registration template is suggested:
+  Assignment of an LDAP Object Identifier to identify the protocol
+  elements specified in this document this document is requested.
 
       Subject: Request for LDAP Object Identifier Registration
       Person & email address to contact for further information:
           Kurt Zeilenga <kurt@OpenLDAP.org>
-      Specification: RFCXXXX
+      Specification: RFC XXXX
       Author/Change Controller: IESG
-      Comments:
-          Identifies the LDAP Transactions Grouping Type
+      Comments: Identifies protocol elements for LDAP Transactions
 
 
 6.2.  LDAP Protocol Mechanism
 
-  Registration of the protocol mechanisms defined in this document is
+  Registration of the protocol mechanisms specified in this document is
   requested.
 
-  Subject: Request for LDAP Protocol Mechansism Registration
-
-  Object Identifier: IANA-ASSIGNED-OID
-  Description: LDAP Transaction Grouping Type
+  Subject: Request for LDAP Protocol Mechanism Registration
+  Object Identifier: see table
+  Description: see table
   Person & email address to contact for further information:
+
+
+
+Zeilenga                    LDAP Transactions                   [Page 6]
+
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
+
+
        Kurt Zeilenga <kurt@openldap.org>
-  Usage: Grouping
-  Specification: RFCxxxx
+  Specification: RFC XXXX
   Author/Change Controller: IESG
-  Comments: none
+  Comments:
+
+  Object Identifier   Type  Description
+  ------------------- ----  -----------------------------------------
+  IANA-ASSIGNED-OID.1 E     Start Transaction Extended Request
+  IANA-ASSIGNED-OID.2 C     Transaction Specification Control
+  IANA-ASSIGNED-OID.3 E     End Transaction Extended Request
 
 
 7. Acknowledgments
@@ -269,84 +360,120 @@ INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
 
 8. Author's Address
 
-      Kurt D. Zeilenga
-      OpenLDAP Foundation
-      <Kurt@OpenLDAP.org>
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+
+  Email: Kurt@OpenLDAP.org
 
 
-9. Normative References
+9. References
+
+  [[Note to the RFC Editor: please replace the citation tags used in
+  referencing Internet-Drafts with tags of the form RFCnnnn where
+  possible.]]
+
+
+9.1. Normative References
+
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+
+  [Roadmap]     Zeilenga, K. (editor), "LDAP: Technical Specification
+                Road Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in
+                progress.
+
+  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
+                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+
+  [Models]      Zeilenga, K. (editor), "LDAP: Directory Information
+                Models", draft-ietf-ldapbis-models-xx.txt, a work in
+                progress.
 
 
 
-
-Zeilenga                    LDAP Transactions                   [Page 5]
+Zeilenga                    LDAP Transactions                   [Page 7]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
 
 
-  [RFC2119] S. Bradner, "Key Words for use in RFCs to Indicate
-            Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+  [X.680]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "Abstract
+                Syntax Notation One (ASN.1) - Specification of Basic
+                Notation", X.680(2002) (also ISO/IEC 8824-1:2002).
 
-  [RFC2251] M. Wahl, S. Kille, T. Howes, "Lightweight Directory Access
-            Protocol (v3)", RFC 2251, December 1997.
-
-  [RFC3377] J. Hodges, R. Morgan, "Lightweight Directory Access
-            Protocol (v3): Technical Specification", RFC 3377, September 2002.
-
-  [GROUP]   K. Zeilenga, "LDAP: Grouping of Related Operations",
-            draft-zeilenga-ldap-grouping-xx.txt, a work in progress.
-
-  [X.680]   ITU-T, "Abstract Syntax Notation One (ASN.1) - Specification
-            of Basic Notation", X.680, 1994.
-
-  [X.690]   ITU-T, "Specification of ASN.1 encoding rules:  Basic,
-            Canonical, and Distinguished Encoding Rules", X.690, 1994.
+  [X.690]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "Specification
+                of ASN.1 encoding rules: Basic Encoding Rules (BER),
+                Canonical Encoding Rules (CER), and Distinguished
+                Encoding Rules (DER)", X.690(2002) (also ISO/IEC
+                8825-1:2002).
 
 
-10. Informative References
+9.2. Informative References
 
-  [ACID]    Section 4 of ISO/IEC 10026-1:1992.
+  [ACID]        Section 4 of ISO/IEC 10026-1:1992.
 
-  [RFC3383] K. Zeilenga, "IANA Considerations for LDAP", BCP 64 (also
-            RFC 3383), September 2002.
+  [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP",
+                draft-ietf-ldapbis-bcp64-xx.txt, a work in progress.
 
-  [X.500]   ITU-T, "The Directory: Overview of Concepts, Models, and
-            Services", X.500, 1993.
+  [X.500]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Overview of concepts, models and services,"
+                X.500(1993) (also ISO/IEC 9594-1:1994).
 
-  [X.501]   ITU-T, "The Directory: Models", X.501, 1993.
-
-
-Copyright 2003, The Internet Society.  All Rights Reserved.
-
-  This document and translations of it may be copied and furnished
-  to others, and derivative works that comment on or otherwise explain
-  it or assist in its implementation may be prepared, copied, published
-  and distributed, in whole or in part, without restriction of any
-  kind, provided that the above copyright notice and this paragraph
-  are included on all such copies and derivative works.  However,
-  this document itself may not be modified in any way, such as by
-  removing the copyright notice or references to the Internet Society
-  or other Internet organizations, except as needed for the  purpose
-  of developing Internet standards in which case the procedures for
-  copyrights defined in the Internet Standards process must be followed,
-  or as required to translate it into languages other than English.
-
-  The limited permissions granted above are perpetual and will not
+  [X.501]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Models," X.501(1993) (also ISO/IEC 9594-2:1994).
 
 
 
-Zeilenga                    LDAP Transactions                   [Page 6]
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  Intellectual Property Rights or other rights that might be claimed to
+  pertain to the implementation or use of the technology described in
+  this document or the extent to which any license under such rights
+  might or might not be available; nor does it represent that it has
+  made any independent effort to identify any such rights.  Information
+  on the procedures with respect to rights in RFC documents can be found
+  in BCP 78 and BCP 79.
+
+  Copies of IPR disclosures made to the IETF Secretariat and any
+  assurances of licenses to be made available, or the result of an
+  attempt made to obtain a general license or permission for the use of
+  such proprietary rights by implementers or users of this specification
+  can be obtained from the IETF on-line IPR repository at
+  http://www.ietf.org/ipr.
+
+
+
+Zeilenga                    LDAP Transactions                   [Page 8]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
+INTERNET-DRAFT         draft-zeilenga-ldap-txn-07           5 March 2006
 
 
-  be revoked by the Internet Society or its successors or assigns.
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights that may cover technology that may be required to implement
+  this standard.  Please address the information to the IETF at
+  ietf-ipr@ietf.org.
 
-  This document and the information contained herein is provided on
-  an "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE
-  INTERNET ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS
-  OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE
-  OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2006).
+
+  This document is subject to the rights, licenses and restrictions
+  contained in BCP 78, and except as set forth therein, the authors
+  retain all their rights.
+
+  This document and the information contained herein are provided on an
+  "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
@@ -376,20 +503,5 @@ INTERNET-DRAFT         draft-zeilenga-ldap-txn-06             3 May 2003
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Zeilenga                    LDAP Transactions                   [Page 7]
+Zeilenga                    LDAP Transactions                   [Page 9]
 

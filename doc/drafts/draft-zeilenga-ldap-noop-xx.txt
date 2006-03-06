@@ -6,12 +6,12 @@
 
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                28 October 2005
+Expires in six months                                   5 March 2006
 
 
 
                           The LDAP No-Op Control
-                    <draft-zeilenga-ldap-noop-07.txt>
+                    <draft-zeilenga-ldap-noop-08.txt>
 
 
 Status of this Memo
@@ -44,7 +44,7 @@ Status of this Memo
   http://www.ietf.org/shadow.html
 
 
-  Copyright (C) The Internet Society (2005).  All Rights Reserved.
+  Copyright (C) The Internet Society (2006).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -57,7 +57,7 @@ Status of this Memo
 
 Zeilenga                   LDAP No-Op Control                   [Page 1]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 
 Abstract
@@ -113,7 +113,7 @@ Abstract
 
 Zeilenga                   LDAP No-Op Control                   [Page 2]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 
 2.  No-Op Control
@@ -169,7 +169,7 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
 
 Zeilenga                   LDAP No-Op Control                   [Page 3]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 
 4.  IANA Considerations
@@ -225,7 +225,7 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
 
 Zeilenga                   LDAP No-Op Control                   [Page 4]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 
   Email: Kurt@OpenLDAP.org
@@ -281,7 +281,7 @@ Intellectual Property Rights
 
 Zeilenga                   LDAP No-Op Control                   [Page 5]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 
   Intellectual Property Rights or other rights that might be claimed to
@@ -309,7 +309,7 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-07       28 October 2005
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2005).
+  Copyright (C) The Internet Society (2006).
 
   This document is subject to the rights, licenses and restrictions
   contained in BCP 78, and except as set forth therein, the authors
