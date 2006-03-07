@@ -898,7 +898,10 @@ config_generic(ConfigArgs *c) {
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
 			break;
 		case CFG_MIRRORMODE:
-			c->value_int = (SLAP_SHADOW(c->be) && (SLAP_SINGLE_SHADOW(c->be) == 0));
+			if ( SLAP_SHADOW(c->be))
+				c->value_int = (SLAP_SINGLE_SHADOW(c->be) == 0);
+			else
+				rc = 1;
 			break;
 		case CFG_SSTR_IF_MAX:
 			c->value_int = index_substr_if_maxlen;
