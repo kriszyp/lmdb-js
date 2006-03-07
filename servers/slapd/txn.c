@@ -62,6 +62,7 @@ int txn_start_extop(
 		goto done;
 	}
 
+	assert( op->o_conn->c_txn_backend == NULL );
 	++op->o_conn->c_txn;
 
 	bv = (struct berval *) ch_malloc( sizeof (struct berval) );
@@ -180,6 +181,7 @@ int txn_end_extop(
 	}
 
 	op->o_conn->c_txn = 0;
+	op->o_conn->c_txn_backend = NULL;
 
 done:
 	/* release connection lock */

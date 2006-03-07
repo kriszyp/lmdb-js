@@ -2635,7 +2635,9 @@ typedef struct slap_conn {
 	struct slap_op	*c_sasl_bindop;	/* set to current op if it's a bind */
 
 #ifdef LDAP_X_TXN
-	int		c_txn;	/* in transaction */
+	int c_txn;	/* true if transaction started */
+	Backend *c_txn_backend;
+	LDAP_STAILQ_HEAD(c_to, slap_op) c_txn_ops; /* list of operations in txn */
 #endif
 
 	PagedResultsState c_pagedresults_state; /* paged result state */

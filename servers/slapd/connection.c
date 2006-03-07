@@ -619,6 +619,12 @@ long connection_init(
 		LDAP_STAILQ_INIT(&c->c_ops);
 		LDAP_STAILQ_INIT(&c->c_pending_ops);
 
+#ifdef LDAP_X_TXN
+		c->c_txn = 0;
+		c->c_txn_backend = NULL;
+		LDAP_STAILQ_INIT(&c->c_txn_ops);
+#endif
+
 		BER_BVZERO( &c->c_sasl_bind_mech );
 		c->c_sasl_done = 0;
 		c->c_sasl_authctx = NULL;
@@ -660,6 +666,11 @@ long connection_init(
 	assert( BER_BVISNULL( &c->c_peer_name ) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
+#ifdef LDAP_X_TXN
+	assert( c->c_txn == 0 );
+	assert( c->c_txn_backend == NULL );
+	assert( LDAP_STAILQ_EMPTY(&c->c_txn_ops) );
+#endif
 	assert( BER_BVISNULL( &c->c_sasl_bind_mech ) );
 	assert( c->c_sasl_done == 0 );
 	assert( c->c_sasl_authctx == NULL );

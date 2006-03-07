@@ -305,10 +305,8 @@ bdb_db_open( BackendDB *be )
 #ifdef SLAP_ZONE_ALLOC
 	if ( bdb->bi_cache.c_maxsize ) {
 		bdb->bi_cache.c_zctx = slap_zn_mem_create(
-								SLAP_ZONE_INITSIZE,
-								SLAP_ZONE_MAXSIZE,
-								SLAP_ZONE_DELTA,
-								SLAP_ZONE_SIZE);
+			SLAP_ZONE_INITSIZE, SLAP_ZONE_MAXSIZE,
+			SLAP_ZONE_DELTA, SLAP_ZONE_SIZE);
 	}
 #endif
 
@@ -555,6 +553,9 @@ bdb_back_initialize(
 		LDAP_CONTROL_PAGEDRESULTS,
 		LDAP_CONTROL_SUBENTRIES,
 		LDAP_CONTROL_X_PERMISSIVE_MODIFY,
+#ifdef LDAP_X_TXN
+		LDAP_CONTROL_X_TXN_SPEC,
+#endif
 		NULL
 	};
 
