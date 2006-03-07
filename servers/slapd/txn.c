@@ -35,15 +35,16 @@ const struct berval slap_EXOP_TXN_END = BER_BVC(LDAP_EXOP_X_TXN_END);
 int txn_start_extop(
 	Operation *op, SlapReply *rs )
 {
+	int rc;
 	struct berval *bv;
+
+	Statslog( LDAP_DEBUG_STATS, "%s TXN START\n",
+		op->o_log_prefix, 0, 0, 0, 0 );
 
 	if( op->ore_reqdata != NULL ) {
 		rs->sr_text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;
 	}
-
-	Statslog( LDAP_DEBUG_STATS, "%s TXN START\n",
-		op->o_log_prefix, 0, 0, 0, 0 );
 
 	op->o_bd = op->o_conn->c_authz_backend;
 	if( backend_check_restrictions( op, rs,
@@ -52,12 +53,28 @@ int txn_start_extop(
 		return rs->sr_err;
 	}
 
+	/* acquire connection lock */
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+
+	if( op->o_conn->c_txn ) {
+		rs->sr_text = "Too many transactions";
+		rc = LDAP_BUSY;
+		goto done;
+	}
+
+	++op->o_conn->c_txn;
+
 	bv = (struct berval *) ch_malloc( sizeof (struct berval) );
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
 
 	rs->sr_rspdata = bv;
-	return LDAP_SUCCESS;
+	rc = LDAP_SUCCESS;
+
+done:
+	/* release connection lock */
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+	return rc;
 }
 
 int txn_spec_ctrl(
@@ -88,13 +105,25 @@ int txn_spec_ctrl(
 int txn_end_extop(
 	Operation *op, SlapReply *rs )
 {
+	int rc;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t commit=1;
+	struct berval txnid;
+
+	Statslog( LDAP_DEBUG_STATS, "%s TXN END\n",
+		op->o_log_prefix, 0, 0, 0, 0 );
+
 	if( op->ore_reqdata == NULL ) {
 		rs->sr_text = "request data expected";
 		return LDAP_PROTOCOL_ERROR;
 	}
-
-	Statslog( LDAP_DEBUG_STATS, "%s TXN END\n",
-		op->o_log_prefix, 0, 0, 0, 0 );
+	if( op->ore_reqdata->bv_len == 0 ) {
+		rs->sr_text = "empty request data";
+		return LDAP_PROTOCOL_ERROR;
+	}
 
 	op->o_bd = op->o_conn->c_authz_backend;
 	if( backend_check_restrictions( op, rs,
@@ -103,8 +132,60 @@ int txn_end_extop(
 		return rs->sr_err;
 	}
 
-	rs->sr_text = "not yet implemented";
-	return LDAP_UNWILLING_TO_PERFORM;
+	ber_init2( ber, op->ore_reqdata, 0 );
+
+	tag = ber_scanf( ber, "{" /*}*/ );
+	if( tag == LBER_ERROR ) {
+		rs->sr_text = "request data decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	tag = ber_peek_tag( ber, &len );
+	assert( tag == LBER_BOOLEAN );
+	if( tag == LBER_BOOLEAN ) {
+		tag = ber_scanf( ber, "b", &commit );
+		if( tag == LBER_ERROR ) {
+			rs->sr_text = "request data decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+	}
+
+	tag = ber_scanf( ber, /*{*/ "m}", &txnid );
+	if( tag == LBER_ERROR ) {
+		rs->sr_text = "request data decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if( txnid.bv_len ) {
+		rs->sr_text = "invalid transaction identifier";
+		return LDAP_X_TXN_ID_INVALID;
+	}
+
+	/* acquire connection lock */
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+
+	if( op->o_conn->c_txn == 0 ) {
+		rs->sr_text = "invalid transaction identifier";
+		rc = LDAP_X_TXN_ID_INVALID;
+		goto done;
+	}
+
+	if( commit ) {
+		rs->sr_text = "not yet implemented";
+		rc = LDAP_UNWILLING_TO_PERFORM;
+
+	} else {
+		rs->sr_text = "transaction aborted";
+		rc = LDAP_SUCCESS;;
+	}
+
+	op->o_conn->c_txn = 0;
+
+done:
+	/* release connection lock */
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+
+	return rc;
 }
 
 #endif /* LDAP_X_TXN */

@@ -74,7 +74,13 @@ ldap_txn_end(
 	assert( txnid != NULL );
 
 	txnber = ber_alloc_t( LBER_USE_DER );
-	ber_printf( txnber, "{io}", commit, txnid );
+
+	if( commit ) {
+		ber_printf( txnber, "{o}", txnid );
+	} else {
+		ber_printf( txnber, "{bo}", commit, txnid );
+	}
+
 	ber_flatten( txnber, &txnval );
 
 	rc = ldap_extended_operation( ld, LDAP_EXOP_X_TXN_END,
@@ -93,30 +99,23 @@ ldap_txn_end_s(
 	LDAPControl **cctrls,
 	int *retidp )
 {
-	int rc, msgid;
-	struct berval *retdata = NULL;
-	LDAPMessage *res;
+	int rc;
+	BerElement *txnber = NULL;
+	struct berval *txnval = NULL;
 
-	rc = ldap_txn_end( ld, commit, txnid, sctrls, cctrls, &msgid );
-	if( rc != LDAP_SUCCESS ) return rc;
+	txnber = ber_alloc_t( LBER_USE_DER );
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res )
-		== -1 )
-	{
-		return ld->ld_errno;
+	if( commit ) {
+		ber_printf( txnber, "{o}", txnid );
+	} else {
+		ber_printf( txnber, "{bo}", commit, txnid );
 	}
 
-	rc = ldap_parse_extended_result( ld, res, NULL, &retdata, 0 );
-	if( rc != LDAP_SUCCESS ) {
-		ldap_msgfree( res );
-		return rc;
-	}
+	ber_flatten( txnber, &txnval );
 
-	/* don't bother parsing the retdata (yet) */
-	if( retidp != NULL ) {
-		*retidp = 0;
-	}
+	rc = ldap_extended_operation_s( ld, LDAP_EXOP_X_TXN_END,
+		txnval, sctrls, cctrls, NULL, NULL );
 
-	return ldap_result2error( ld, res, 1 );
+	return rc;
 }
 #endif

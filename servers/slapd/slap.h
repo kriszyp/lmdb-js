@@ -2634,6 +2634,10 @@ typedef struct slap_conn {
 	void	*c_sasl_extra;		/* SASL session extra stuff */
 	struct slap_op	*c_sasl_bindop;	/* set to current op if it's a bind */
 
+#ifdef LDAP_X_TXN
+	int		c_txn;	/* in transaction */
+#endif
+
 	PagedResultsState c_pagedresults_state; /* paged result state */
 
 	long	c_n_ops_received;	/* num of ops received (next op_id) */
