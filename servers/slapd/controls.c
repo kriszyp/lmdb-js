@@ -492,9 +492,11 @@ slap_global_control( Operation *op, const char *oid, int *cid )
 		return LDAP_COMPARE_TRUE;
 	}
 
+#if 0
 	Debug( LDAP_DEBUG_TRACE,
 		"slap_global_control: unavailable control: %s\n",      
 		oid, 0, 0 );
+#endif
 
 	return LDAP_COMPARE_FALSE;
 }

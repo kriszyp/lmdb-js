@@ -818,10 +818,14 @@ backend_check_controls(
 				/* unrecognized control */ 
 				if ( (*ctrls)->ldctl_iscritical ) {
 					/* should not be reachable */ 
-					Debug( LDAP_DEBUG_ANY,
-						"backend_check_controls: unrecognized control: %s\n",
+					Debug( LDAP_DEBUG_ANY, "backend_check_controls: "
+						"unrecognized critical control: %s\n",
 						(*ctrls)->ldctl_oid, 0, 0 );
 					assert( 0 );
+				} else {
+					Debug( LDAP_DEBUG_TRACE, "backend_check_controls: "
+						"unrecognized non-critical control: %s\n",
+						(*ctrls)->ldctl_oid, 0, 0 );
 				}
 				break;
 

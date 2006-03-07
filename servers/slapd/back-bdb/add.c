@@ -47,6 +47,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	Debug(LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(bdb_add) ": %s\n",
 		op->oq_add.rs_e->e_name.bv_val, 0, 0);
 
+#ifdef LDAP_X_TXN
 	if( op->o_txnSpec ) {
 		/* acquire connection lock */
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
@@ -76,6 +77,7 @@ txnReturn:
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+#endif
 
 	ctrls[num_ctrls] = 0;
 

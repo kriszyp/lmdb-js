@@ -65,6 +65,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 		op->o_req_dn.bv_val,op->oq_modrdn.rs_newrdn.bv_val,
 		op->oq_modrdn.rs_newSup ? op->oq_modrdn.rs_newSup->bv_val : "NULL" );
 
+#ifdef LDAP_X_TXN
 	if( op->o_txnSpec ) {
 		/* acquire connection lock */
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
@@ -94,6 +95,7 @@ txnReturn:
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+#endif
 
 	ctrls[num_ctrls] = NULL;
 
