@@ -76,9 +76,9 @@ ldap_txn_end(
 	txnber = ber_alloc_t( LBER_USE_DER );
 
 	if( commit ) {
-		ber_printf( txnber, "{o}", txnid );
+		ber_printf( txnber, "{ON}", txnid );
 	} else {
-		ber_printf( txnber, "{bo}", commit, txnid );
+		ber_printf( txnber, "{bON}", commit, txnid );
 	}
 
 	ber_flatten( txnber, &txnval );
@@ -106,9 +106,9 @@ ldap_txn_end_s(
 	txnber = ber_alloc_t( LBER_USE_DER );
 
 	if( commit ) {
-		ber_printf( txnber, "{o}", txnid );
+		ber_printf( txnber, "{ON}", txnid );
 	} else {
-		ber_printf( txnber, "{bo}", commit, txnid );
+		ber_printf( txnber, "{bON}", commit, txnid );
 	}
 
 	ber_flatten( txnber, &txnval );
