@@ -151,7 +151,6 @@ int txn_end_extop(
 	}
 
 	tag = ber_peek_tag( ber, &len );
-	assert( tag == LBER_BOOLEAN );
 	if( tag == LBER_BOOLEAN ) {
 		tag = ber_scanf( ber, "b", &commit );
 		if( tag == LBER_ERROR ) {
