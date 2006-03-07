@@ -171,7 +171,6 @@ do_modify(
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
-
 		goto cleanup;
 	}
 
@@ -270,7 +269,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
 				    op->o_log_prefix, abuf, 0, 0, 0 );
 
-	    			len = 0;
+				len = 0;
 				ptr = abuf;
 
 				if( 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
@@ -364,13 +363,13 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		/* do the update here */
 		int repl_user = be_isupdate( op );
 
-		/* Multimaster slapd does not have to check for replicator dn
+		/*
+		 * Multimaster slapd does not have to check for replicator dn
 		 * because it accepts each modify request
 		 */
-		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
-		{
-			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
-			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
+		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user ) {
+			int update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
 
@@ -383,8 +382,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				}
 			}
 
-			if ( !repl_user )
-			{
+			if ( !repl_user ) {
 				/* but multimaster slapd logs only the ones 
 				 * not from a replicator user */
 				cb.sc_next = op->o_callback;
@@ -392,8 +390,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			}
 			op->o_bd->be_modify( op, rs );
 
-		/* send a referral */
-		} else {
+		} else { /* send a referral */
 			BerVarray defref = op->o_bd->be_update_refs
 				? op->o_bd->be_update_refs : default_referral;
 			if ( defref != NULL ) {
@@ -416,6 +413,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 					"shadow context; no update referral" );
 			}
 		}
+
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 		    "operation not supported within namingContext" );
