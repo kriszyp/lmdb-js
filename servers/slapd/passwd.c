@@ -33,6 +33,8 @@
 #include <lutil.h>
 #include <lutil_sha1.h>
 
+const struct berval slap_EXOP_MODIFY_PASSWD = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
+
 static const char *defhash[] = {
 #ifdef LUTIL_SHA1_BYTES
 	"{SSHA}",

@@ -17,11 +17,14 @@
 
 #include <stdio.h>
 #include <ac/socket.h>
+#include <ac/string.h>
 
 #include "slap.h"
+#include "lber_pvt.h"
+
+const struct berval slap_EXOP_START_TLS = BER_BVC(LDAP_EXOP_START_TLS);
 
 #ifdef HAVE_TLS
-
 int
 starttls_extop ( Operation *op, SlapReply *rs )
 {

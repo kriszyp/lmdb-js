@@ -41,7 +41,6 @@
 
 #define UNSUPPORTED_EXOP "unsupported extended operation"
 
-
 static struct extop_list {
 	struct extop_list *next;
 	struct berval oid;
@@ -56,16 +55,15 @@ static SLAP_EXTOP_MAIN_FN whoami_extop;
  * just a way to get built-in extops onto the extop list without
  * having a separate init routine for each built-in extop.
  */
-const struct berval slap_EXOP_CANCEL = BER_BVC(LDAP_EXOP_CANCEL);
-const struct berval slap_EXOP_WHOAMI = BER_BVC(LDAP_EXOP_WHO_AM_I);
-const struct berval slap_EXOP_MODIFY_PASSWD = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
-const struct berval slap_EXOP_START_TLS = BER_BVC(LDAP_EXOP_START_TLS);
-
 static struct {
 	const struct berval *oid;
 	slap_mask_t flags;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
+#ifdef LDAP_X_TXN
+	{ &slap_EXOP_TXN_START, 0, txn_start_extop },
+	{ &slap_EXOP_TXN_END, 0, txn_end_extop },
+#endif
 	{ &slap_EXOP_CANCEL, 0, cancel_extop },
 	{ &slap_EXOP_WHOAMI, 0, whoami_extop },
 	{ &slap_EXOP_MODIFY_PASSWD, SLAP_EXOP_WRITES, passwd_extop },
@@ -349,6 +347,8 @@ find_extop( struct extop_list *list, struct berval *oid )
 }
 
 
+const struct berval slap_EXOP_WHOAMI = BER_BVC(LDAP_EXOP_WHO_AM_I);
+
 static int
 whoami_extop (
 	Operation *op,
@@ -367,7 +367,8 @@ whoami_extop (
 
 	op->o_bd = op->o_conn->c_authz_backend;
 	if( backend_check_restrictions( op, rs,
-		(struct berval *)&slap_EXOP_WHOAMI ) != LDAP_SUCCESS ) {
+		(struct berval *)&slap_EXOP_WHOAMI ) != LDAP_SUCCESS )
+	{
 		return rs->sr_err;
 	}
 

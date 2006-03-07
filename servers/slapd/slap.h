@@ -2303,6 +2303,9 @@ struct slap_control_ids {
 #endif
 	int sc_subentries;
 	int sc_treeDelete;
+#ifdef LDAP_X_TXN
+	int sc_txnSpec;
+#endif
 	int sc_valuesReturnFilter;
 };
 
@@ -2500,6 +2503,10 @@ typedef struct slap_op {
 
 #ifdef LDAP_DEVEL
 #define o_sortedresults		o_ctrlflag[slap_cids.sc_sortedResults]
+#endif
+
+#ifdef LDAP_X_TXN
+#define o_txnSpec		o_ctrlflag[slap_cids.sc_txnSpec]
 #endif
 
 #define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]

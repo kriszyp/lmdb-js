@@ -28,6 +28,8 @@
 #include <lber_pvt.h>
 #include <lutil.h>
 
+const struct berval slap_EXOP_CANCEL = BER_BVC(LDAP_EXOP_CANCEL);
+
 int cancel_extop( Operation *op, SlapReply *rs )
 {
 	Operation *o;

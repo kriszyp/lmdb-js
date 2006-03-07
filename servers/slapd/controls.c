@@ -184,6 +184,13 @@ static struct slap_control control_defs[] = {
 		NULL, NULL,
 		parseManageDIT, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
+#ifdef LDAP_X_TXN
+	{ LDAP_CONTROL_X_TXN_SPEC,
+ 		(int)offsetof(struct slap_control_ids, sc_txnSpec),
+		SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE,
+		NULL, NULL,
+		txn_spec_ctrl, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDSAit),
 		SLAP_CTRL_ACCESS,

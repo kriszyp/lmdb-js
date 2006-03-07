@@ -626,6 +626,8 @@ typedef struct ldapcontrol {
 #define LDAP_X_INVALIDREFERENCE			0x4112
 #endif
 
+#define LDAP_X_TXN_ID_INVALID		0x4120
+
 /* API Error Codes
  *
  * Based on draft-ietf-ldap-c-api-xx
