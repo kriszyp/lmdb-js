@@ -99,6 +99,15 @@ int txn_spec_ctrl(
 		return LDAP_X_TXN_ID_INVALID;
 	}
 
+	if ( op->o_preread ) { /* temporary limitation */
+		rs->sr_text = "cannot perform pre-read in transaction";
+		return LDAP_UNWILLING_TO_PERFORM;
+	} 
+	if ( op->o_postread ) { /* temporary limitation */
+		rs->sr_text = "cannot perform post-read in transaction";
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
+
 	op->o_txnSpec = SLAP_CONTROL_CRITICAL;
 	return LDAP_SUCCESS;
 }

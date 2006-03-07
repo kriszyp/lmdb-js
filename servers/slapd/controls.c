@@ -1208,6 +1208,11 @@ static int parsePreRead (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( op->o_txnSpec ) { /* temporary limitation */
+		rs->sr_text = "cannot perform pre-read in transaction";
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
+
 	ber = ber_init( &(ctrl->ldctl_value) );
 	if (ber == NULL) {
 		rs->sr_text = "preread control: internal error";
@@ -1264,6 +1269,11 @@ static int parsePostRead (
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
 		rs->sr_text = "postread control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( op->o_txnSpec ) { /* temporary limitation */
+		rs->sr_text = "cannot perform post-read in transaction";
+		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
 	ber = ber_init( &(ctrl->ldctl_value) );
