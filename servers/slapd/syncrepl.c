@@ -2742,6 +2742,7 @@ static struct {
 	{ BER_BVC("one"), LDAP_SCOPE_ONELEVEL },
 	{ BER_BVC("onelevel"), LDAP_SCOPE_ONELEVEL },	/* OpenLDAP extension */
 	{ BER_BVC("children"), LDAP_SCOPE_SUBORDINATE },
+	{ BER_BVC("subord"), LDAP_SCOPE_SUBORDINATE },
 	{ BER_BVC("subordinate"), LDAP_SCOPE_SUBORDINATE },
 	{ BER_BVC("sub"), LDAP_SCOPE_SUBTREE },
 	{ BER_BVC("subtree"), LDAP_SCOPE_SUBTREE },	/* OpenLDAP extension */
