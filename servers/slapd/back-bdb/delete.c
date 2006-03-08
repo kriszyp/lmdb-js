@@ -52,6 +52,10 @@ bdb_delete( Operation *op, SlapReply *rs )
 	int	parent_is_glue = 0;
 	int parent_is_leaf = 0;
 
+#ifdef LDAP_X_TXN
+	int settle = 0;
+#endif
+
 	Debug( LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(bdb_delete) ": %s\n",
 		op->o_req_dn.bv_val, 0, 0 );
 
@@ -59,11 +63,15 @@ bdb_delete( Operation *op, SlapReply *rs )
 	if( op->o_txnSpec ) {
 		/* acquire connection lock */
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-		if( op->o_conn->c_txn == 0 ) {
+		if( op->o_conn->c_txn == CONN_TXN_INACTIVE ) {
 			rs->sr_text = "invalid transaction identifier";
 			rs->sr_err = LDAP_X_TXN_ID_INVALID;
 			goto txnReturn;
+		} else if( op->o_conn->c_txn == CONN_TXN_SETTLE ) {
+			settle=1;
+			goto txnReturn;
 		}
+
 		if( op->o_conn->c_txn_backend == NULL ) {
 			op->o_conn->c_txn_backend = op->o_bd;
 
@@ -82,8 +90,10 @@ txnReturn:
 		/* release connection lock */
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
-		send_ldap_result( op, rs );
-		return rs->sr_err;
+		if( !settle ) {
+			send_ldap_result( op, rs );
+			return rs->sr_err;
+		}
 	}
 #endif
 

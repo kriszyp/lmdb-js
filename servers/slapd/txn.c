@@ -56,14 +56,14 @@ int txn_start_extop(
 	/* acquire connection lock */
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
-	if( op->o_conn->c_txn ) {
+	if( op->o_conn->c_txn != CONN_TXN_INACTIVE ) {
 		rs->sr_text = "Too many transactions";
 		rc = LDAP_BUSY;
 		goto done;
 	}
 
 	assert( op->o_conn->c_txn_backend == NULL );
-	++op->o_conn->c_txn;
+	op->o_conn->c_txn = CONN_TXN_SPECIFY;
 
 	bv = (struct berval *) ch_malloc( sizeof (struct berval) );
 	bv->bv_len = 0;
@@ -173,13 +173,24 @@ int txn_end_extop(
 	/* acquire connection lock */
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
-	if( op->o_conn->c_txn == 0 ) {
+	if( op->o_conn->c_txn != CONN_TXN_SPECIFY ) {
 		rs->sr_text = "invalid transaction identifier";
 		rc = LDAP_X_TXN_ID_INVALID;
 		goto done;
 	}
+	op->o_conn->c_txn = CONN_TXN_SETTLE;
 
 	if( commit ) {
+		if ( op->o_abandon ) {
+		}
+
+		if( LDAP_STAILQ_EMPTY(&op->o_conn->c_txn_ops) ) {
+			/* no updates to commit */
+			rs->sr_text = "no updates to commit";
+			rc = LDAP_OPERATIONS_ERROR;
+			goto settled;
+		}
+
 		rs->sr_text = "not yet implemented";
 		rc = LDAP_UNWILLING_TO_PERFORM;
 
@@ -188,7 +199,13 @@ int txn_end_extop(
 		rc = LDAP_SUCCESS;;
 	}
 
-	op->o_conn->c_txn = 0;
+drain:
+	/* drain txn ops list */
+
+settled:
+	assert( LDAP_STAILQ_EMPTY(&op->o_conn->c_txn_ops) );
+	assert( op->o_conn->c_txn == CONN_TXN_SETTLE );
+	op->o_conn->c_txn = CONN_TXN_INACTIVE;
 	op->o_conn->c_txn_backend = NULL;
 
 done:

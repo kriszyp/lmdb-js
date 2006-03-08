@@ -620,7 +620,7 @@ long connection_init(
 		LDAP_STAILQ_INIT(&c->c_pending_ops);
 
 #ifdef LDAP_X_TXN
-		c->c_txn = 0;
+		c->c_txn = CONN_TXN_INACTIVE;
 		c->c_txn_backend = NULL;
 		LDAP_STAILQ_INIT(&c->c_txn_ops);
 #endif
@@ -667,7 +667,7 @@ long connection_init(
 	assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
 #ifdef LDAP_X_TXN
-	assert( c->c_txn == 0 );
+	assert( c->c_txn == CONN_TXN_INACTIVE );
 	assert( c->c_txn_backend == NULL );
 	assert( LDAP_STAILQ_EMPTY(&c->c_txn_ops) );
 #endif
@@ -830,6 +830,12 @@ connection_destroy( Connection *c )
 	assert( c->c_struct_state != SLAP_C_UNUSED );
 	assert( c->c_conn_state != SLAP_C_INVALID );
 	assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
+	assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
+#ifdef LDAP_X_TXN
+	assert( c->c_txn == CONN_TXN_INACTIVE );
+	assert( c->c_txn_backend == NULL );
+	assert( LDAP_STAILQ_EMPTY(&c->c_txn_ops) );
+#endif
 	assert( c->c_writewaiter == 0);
 
 	/* only for stats (print -1 as "%lu" may give unexpected results ;) */
@@ -928,6 +934,7 @@ static void connection_abandon( Connection *c )
 	op.o_conn = c;
 	op.o_connid = c->c_connid;
 	op.o_tag = LDAP_REQ_ABANDON;
+
 	for ( o = LDAP_STAILQ_FIRST( &c->c_ops ); o; o=next ) {
 		next = LDAP_STAILQ_NEXT( o, o_next );
 		op.orn_msgid = o->o_msgid;
@@ -935,6 +942,19 @@ static void connection_abandon( Connection *c )
 		op.o_bd = frontendDB;
 		frontendDB->be_abandon( &op, &rs );
 	}
+
+#ifdef LDAP_X_TXN
+	/* remove operations in pending transaction */
+	while ( (o = LDAP_STAILQ_FIRST( &c->c_txn_ops )) != NULL) {
+		LDAP_STAILQ_REMOVE_HEAD( &c->c_txn_ops, o_next );
+		LDAP_STAILQ_NEXT(o, o_next) = NULL;
+		slap_op_free( o );
+	}
+
+	/* clear transaction */
+	c->c_txn_backend = NULL;
+	c->c_txn = CONN_TXN_INACTIVE;
+#endif
 
 	/* remove pending operations */
 	while ( (o = LDAP_STAILQ_FIRST( &c->c_pending_ops )) != NULL) {
@@ -978,6 +998,7 @@ void connection_closing( Connection *c, const char *why )
 			ldap_pvt_thread_yield();
 			ldap_pvt_thread_mutex_lock( &c->c_mutex );
 		}
+
 	} else if( why == NULL && c->c_close_reason == conn_lost_str ) {
 		/* Client closed connection after doing Unbind. */
 		c->c_close_reason = NULL;

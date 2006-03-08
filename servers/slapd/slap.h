@@ -2449,7 +2449,6 @@ typedef struct slap_op {
 #define SLAP_CONTROL_DATA2	0x40
 #define SLAP_CONTROL_DATA3	0x80
 
-
 #define _SCM(x)	((x) & SLAP_CONTROL_MASK)
 
 	char o_ctrlflag[SLAP_MAX_CIDS];	/* per-control flags */
@@ -2521,9 +2520,9 @@ typedef struct slap_op {
 
 	void	*o_private;	/* anything the backend needs */
 
-	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
-
+	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list */
 } Operation;
+
 #define	OPERATION_BUFFER_SIZE	( sizeof(Operation) + sizeof(Opheader) + \
 	SLAP_MAX_CIDS*sizeof(void *) )
 
@@ -2635,7 +2634,11 @@ typedef struct slap_conn {
 	struct slap_op	*c_sasl_bindop;	/* set to current op if it's a bind */
 
 #ifdef LDAP_X_TXN
-	int c_txn;	/* true if transaction started */
+#define CONN_TXN_INACTIVE 0
+#define CONN_TXN_SPECIFY 1
+#define CONN_TXN_SETTLE -1
+	int c_txn;
+
 	Backend *c_txn_backend;
 	LDAP_STAILQ_HEAD(c_to, slap_op) c_txn_ops; /* list of operations in txn */
 #endif
