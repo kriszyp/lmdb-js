@@ -4146,11 +4146,23 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
 		0, bootParameterValidate, NULL},
 
-	/* From PKIX *//* This OID is not published yet. */
-	{"( 1.2.826.0.1.3344810.7.1 DESC 'Certificate Serial Number and Issuer' )",
+	/* draft-zeilenga-ldap-x509 */
+	{"( 1.3.6.1.1.15.1 DESC 'Certificate Exact Assertion' )",
 		SLAP_SYNTAX_HIDE,
 		serialNumberAndIssuerValidate,
 		serialNumberAndIssuerPretty},
+	{"( 1.3.6.1.1.15.2 DESC 'Certificate Assertion' )",
+		SLAP_SYNTAX_HIDE, NULL, NULL},
+	{"( 1.3.6.1.1.15.3 DESC 'Certificate Pair Exact Assertion' )",
+		SLAP_SYNTAX_HIDE, NULL, NULL},
+	{"( 1.3.6.1.1.15.4 DESC 'Certificate Pair Assertion' )",
+		SLAP_SYNTAX_HIDE, NULL, NULL},
+	{"( 1.3.6.1.1.15.5 DESC 'Certificate List Exact Assertion' )",
+		SLAP_SYNTAX_HIDE, NULL, NULL},
+	{"( 1.3.6.1.1.15.6 DESC 'Certificate List Assertion' )",
+		SLAP_SYNTAX_HIDE, NULL, NULL},
+	{"( 1.3.6.1.1.15.7 DESC 'Algorithm Identifier' )",
+		SLAP_SYNTAX_HIDE, NULL, NULL},
 
 #ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
@@ -4216,17 +4228,18 @@ char *objectIdentifierFirstComponentMatchSyntaxes[] = {
  * 2.5.13.31*	directoryStringFirstComponentMatch
  * 2.5.13.32*	wordMatch
  * 2.5.13.33*	keywordMatch
- * 2.5.13.36	certificatePairExactMatch
- * 2.5.13.37	certificatePairMatch
- * 2.5.13.38	certificateListExactMatch
- * 2.5.13.39	certificateListMatch
- * 2.5.13.40	algorithmIdentifierMatch
+ * 2.5.13.36+	certificatePairExactMatch
+ * 2.5.13.37+	certificatePairMatch
+ * 2.5.13.38+	certificateListExactMatch
+ * 2.5.13.39+	certificateListMatch
+ * 2.5.13.40+	algorithmIdentifierMatch
  * 2.5.13.41*	storedPrefixMatch
  * 2.5.13.42	attributeCertificateMatch
  * 2.5.13.43	readerAndKeyIDMatch
  * 2.5.13.44	attributeIntegrityMatch
  *
  * (*) described in RFC 3698 (LDAP: Additional Matching Rules)
+ * (+) described in draft-zeilenga-ldap-x509
  */
 static slap_mrule_defs_rec mrule_defs[] = {
 	/*
@@ -4509,7 +4522,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL },
 
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
-		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
+		"SYNTAX 1.3.6.1.1.15.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
 #ifdef HAVE_TLS
 		NULL, certificateExactNormalize, octetStringMatch,
@@ -4520,7 +4533,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL },
 
 	{"( 2.5.13.35 NAME 'certificateMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )",
+		"SYNTAX 1.3.6.1.1.15.2 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		NULL },
