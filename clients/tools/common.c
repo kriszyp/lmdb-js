@@ -996,18 +996,27 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 void
 tool_bind( LDAP *ld )
 {
+	LDAPControl	**sctrlsp = NULL;
+	LDAPControl	*sctrls[2];
+	int		nsctrls = 0;
+
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-	LDAPControl *sctrls[2] = { NULL };
 	if ( ppolicy ) {
 		LDAPControl c;
 		c.ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
 		c.ldctl_value.bv_val = NULL;
 		c.ldctl_value.bv_len = 0;
 		c.ldctl_iscritical = 0;
-		sctrls[0] = &c;
-		sctrls[1] = NULL;
+		sctrls[nsctrls] = &c;
+		sctrls[++nsctrls] = NULL;
 	}
 #endif
+
+	if ( nsctrls ) {
+		sctrlsp = sctrls;
+	}
+
+	assert( nsctrls < sizeof(sctrls)/sizeof(sctrls[0]) );
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
@@ -1034,11 +1043,7 @@ tool_bind( LDAP *ld )
 			sasl_authz_id );
 
 		rc = ldap_sasl_interactive_bind_s( ld, binddn, sasl_mech,
-#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-			sctrls,
-#else
-			NULL,
-#endif
+			sctrlsp,
 			NULL, sasl_flags, lutil_sasl_interact, defaults );
 
 		lutil_sasl_freedefs( defaults );
@@ -1074,11 +1079,7 @@ tool_bind( LDAP *ld )
 		{
 			/* simple bind */
 			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE, &passwd,
-#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-				sctrls,
-#else
-				NULL,
-#endif
+				sctrlsp,
 				NULL, &msgid );
 			if ( msgid == -1 ) {
 				tool_perror( "ldap_sasl_bind(SIMPLE)", rc,
