@@ -997,7 +997,7 @@ void
 tool_bind( LDAP *ld )
 {
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-	LDAPControl *sctrls[2];
+	LDAPControl *sctrls[2] = { NULL };
 	if ( ppolicy ) {
 		LDAPControl c;
 		c.ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
