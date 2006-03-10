@@ -1210,10 +1210,12 @@ static int parsePreRead (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+#ifdef LDAP_X_TXN
 	if ( op->o_txnSpec ) { /* temporary limitation */
 		rs->sr_text = "cannot perform pre-read in transaction";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
+#endif
 
 	ber = ber_init( &(ctrl->ldctl_value) );
 	if (ber == NULL) {
@@ -1273,10 +1275,12 @@ static int parsePostRead (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+#ifdef LDAP_X_TXN
 	if ( op->o_txnSpec ) { /* temporary limitation */
 		rs->sr_text = "cannot perform post-read in transaction";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
+#endif
 
 	ber = ber_init( &(ctrl->ldctl_value) );
 	if (ber == NULL) {
