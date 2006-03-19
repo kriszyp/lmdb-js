@@ -198,6 +198,7 @@ monitor_entry_stub(
 		rdnNormalize( 0, NULL, NULL, rdn, &nrdn, NULL );
 		build_new_dn( &e->e_name, pdn, rdn, NULL );
 		build_new_dn( &e->e_nname, pndn, &nrdn, NULL );
+		ber_memfree( nrdn.bv_val );
 		nat.bv_val = ptr + 1;
 		nat.bv_len = rdn->bv_len - ( nat.bv_val - rdn->bv_val );
 		attr_merge_normalize_one( e, slap_schema.si_ad_objectClass,
