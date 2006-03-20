@@ -417,6 +417,12 @@ ldap_int_destroy_global_options(void)
 		ldap_int_hostname = NULL;
 	}
 #endif
+#ifdef HAVE_CYRUS_SASL
+	if ( gopts->ldo_def_sasl_authcid ) {
+		LDAP_FREE( gopts->ldo_def_sasl_authcid );
+		gopts->ldo_def_sasl_authcid = NULL;
+	}
+#endif
 }
 
 /* 
@@ -567,7 +573,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 		if( user == NULL ) user = getenv("LOGNAME");
 
 		if( user != NULL ) {
-			gopts->ldo_def_sasl_authcid = user;
+			gopts->ldo_def_sasl_authcid = LDAP_STRDUP( user );
 		}
     }
 #endif
