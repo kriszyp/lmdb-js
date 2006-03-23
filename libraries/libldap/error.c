@@ -281,10 +281,19 @@ ldap_parse_result(
 #endif
 	/* Find the result, last msg in chain... */
 	lm = r->lm_chain_tail;
-	if ((lm->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
-		(lm->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-		(lm->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
-		lm = NULL;	
+	/* FIXME: either this is not possible (assert?)
+	 * or it should be handled */
+	if ( lm != NULL ) {
+		switch ( lm->lm_msgtype ) {
+		case LDAP_RES_SEARCH_ENTRY:
+		case LDAP_RES_SEARCH_REFERENCE:
+		case LDAP_RES_INTERMEDIATE:
+			lm = NULL;
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	if( lm == NULL ) {
