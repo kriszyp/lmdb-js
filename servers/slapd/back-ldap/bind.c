@@ -447,7 +447,7 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	}
 	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
 
-	/* automatically chase referrals ("chase-referrals [{yes|no}" statement) */
+	/* automatically chase referrals ("chase-referrals [{yes|no}]" statement) */
 	ldap_set_option( ld, LDAP_OPT_REFERRALS,
 		LDAP_BACK_CHASE_REFERRALS( li ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
