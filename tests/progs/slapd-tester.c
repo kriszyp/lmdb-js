@@ -352,6 +352,9 @@ main( int argc, char **argv )
 	sargs[sanum++] = retries;
 	sargs[sanum++] = "-t";
 	sargs[sanum++] = delay;
+	if ( friendly ) {
+		sargs[sanum++] = friendlyOpt;
+	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
@@ -383,6 +386,9 @@ main( int argc, char **argv )
 	rargs[ranum++] = retries;
 	rargs[ranum++] = "-t";
 	rargs[ranum++] = delay;
+	if ( friendly ) {
+		rargs[ranum++] = friendlyOpt;
+	}
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
 	rargs[ranum++] = NULL;

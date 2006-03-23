@@ -40,7 +40,7 @@
 
 static void
 do_read( char *uri, char *entry, int maxloop,
-		int maxretries, int delay );
+		int maxretries, int delay, int force );
 
 static void
 usage( char *name )
@@ -49,6 +49,7 @@ usage( char *name )
 		"usage: %s "
 		"-H <uri> | ([-h <host>] -p <port>) "
 		"-e <entry> "
+		"[-F] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -69,10 +70,11 @@ main( int argc, char **argv )
 	int		outerloops = 1;
 	int		retries = RETRIES;
 	int		delay = 0;
+	int		force = 0;
 
 	tester_init( "slapd-read" );
 
-	while ( (i = getopt( argc, argv, "H:h:p:e:l:L:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:e:Fl:L:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -90,6 +92,10 @@ main( int argc, char **argv )
 
 		case 'e':		/* DN to search for */
 			entry = strdup( optarg );
+			break;
+
+		case 'F':
+			force++;
 			break;
 
 		case 'l':		/* the number of loops */
@@ -134,7 +140,7 @@ main( int argc, char **argv )
 	uri = tester_uri( uri, host, port );
 
 	for ( i = 0; i < outerloops; i++ ) {
-		do_read( uri, entry, loops, retries, delay );
+		do_read( uri, entry, loops, retries, delay, force );
 	}
 
 	exit( EXIT_SUCCESS );
@@ -143,7 +149,7 @@ main( int argc, char **argv )
 
 static void
 do_read( char *uri, char *entry, int maxloop,
-		int maxretries, int delay )
+		int maxretries, int delay, int force )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -152,6 +158,7 @@ do_read( char *uri, char *entry, int maxloop,
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 	struct berval	passwd = { 0, "" };
+	int	first = 1;
 	
 retry:;
 	ldap_initialize( &ld, uri );
@@ -188,24 +195,43 @@ retry:;
 	}
 
 	for ( ; i < maxloop; i++ ) {
-		LDAPMessage *res;
+		LDAPMessage *res = NULL;
 
 		rc = ldap_search_ext_s( ld, entry, LDAP_SCOPE_BASE,
 				NULL, attrs, 1, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
-		if ( rc != LDAP_SUCCESS ) {
+		switch ( rc ) {
+		case LDAP_REFERRAL:
+			/* don't log: it's intended */
+			if ( force >= 2 ) {
+				if ( !first ) {
+					break;
+				}
+				first = 0;
+			}
+			tester_ldap_error( ld, "ldap_search_ext_s" );
+			/* fallthru */
+
+		case LDAP_SUCCESS:
+			break;
+
+		default:
 			tester_ldap_error( ld, "ldap_search_ext_s" );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				do_retry--;
 				goto retry;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
-
+			if ( rc != LDAP_NO_SUCH_OBJECT ) {
+				goto done;
+			}
+			break;
 		}
 
-		ldap_msgfree( res );
+		if ( res != NULL ) {
+			ldap_msgfree( res );
+		}
 	}
 
+done:;
 	fprintf( stderr, " PID=%ld - Read done (%d).\n", (long) pid, rc );
 
 	ldap_unbind_ext( ld, NULL, NULL );

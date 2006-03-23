@@ -41,12 +41,12 @@
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
 	char *sbase, char *filter, LDAP **ldp,
-	int innerloop, int maxretries, int delay );
+	int innerloop, int maxretries, int delay, int force );
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
 	char *sbase, char *filter, char *attr, int innerloop,
-	int maxretries, int delay );
+	int maxretries, int delay, int force );
 
 static void
 usage( char *name )
@@ -59,6 +59,7 @@ usage( char *name )
 		"-b <searchbase> "
 		"-f <searchfilter> "
 		"[-a <attr>] "
+		"[-F] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -83,10 +84,11 @@ main( int argc, char **argv )
 	int		outerloops = 1;
 	int		retries = RETRIES;
 	int		delay = 0;
+	int		force = 0;
 
 	tester_init( "slapd-search" );
 
-	while ( (i = getopt( argc, argv, "a:b:D:f:H:h:l:L:p:w:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "a:b:D:f:FH:h:l:L:p:w:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
@@ -121,6 +123,10 @@ main( int argc, char **argv )
 
 		case 'f':		/* the search request */
 			filter = strdup( optarg );
+			break;
+
+		case 'F':
+			force++;
 			break;
 
 		case 'l':		/* number of loops */
@@ -169,11 +175,11 @@ main( int argc, char **argv )
 	for ( i = 0; i < outerloops; i++ ) {
 		if ( attr != NULL ) {
 			do_random( uri, manager, &passwd, sbase, filter, attr,
-					loops, retries, delay );
+					loops, retries, delay, force );
 
 		} else {
 			do_search( uri, manager, &passwd, sbase, filter, NULL,
-					loops, retries, delay );
+					loops, retries, delay, force );
 		}
 	}
 
@@ -184,7 +190,7 @@ main( int argc, char **argv )
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
 	char *sbase, char *filter, char *attr,
-	int innerloop, int maxretries, int delay )
+	int innerloop, int maxretries, int delay, int force )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -258,7 +264,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 			snprintf( buf, sizeof( buf ), "(%s=%s)", attr, values[ rand() % nvalues ] );
 
 			do_search( uri, manager, passwd, sbase, buf, &ld,
-					1, maxretries, delay );
+					1, maxretries, delay, force );
 		}
 	}
 		
@@ -272,7 +278,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
 		char *sbase, char *filter, LDAP **ldp,
-		int innerloop, int maxretries, int delay )
+		int innerloop, int maxretries, int delay, int force )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -280,6 +286,7 @@ do_search( char *uri, char *manager, struct berval *passwd,
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
+	int	first = 1;
 
 retry:;
 	if ( ld == NULL ) {
@@ -319,26 +326,45 @@ retry:;
 	}
 
 	for ( ; i < innerloop; i++ ) {
-		LDAPMessage *res;
+		LDAPMessage *res = NULL;
 
 		rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,
-				filter, attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
-		if ( rc != LDAP_SUCCESS ) {
+				filter, attrs, 0, NULL, NULL,
+				NULL, LDAP_NO_LIMIT, &res );
+		if ( res != NULL ) {
+			ldap_msgfree( res );
+		}
+
+		switch ( rc ) {
+		case LDAP_REFERRAL:
+			/* don't log: it's intended */
+			if ( force >= 2 ) {
+				if ( !first ) {
+					break;
+				}
+				first = 0;
+			}
+			tester_ldap_error( ld, "ldap_search_ext_s" );
+			/* fallthru */
+
+		case LDAP_SUCCESS:
+			break;
+
+		default:
 			tester_ldap_error( ld, "ldap_search_ext_s" );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				ldap_unbind_ext( ld, NULL, NULL );
 				do_retry--;
 				goto retry;
 			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
-			continue;
-
+			if ( rc != LDAP_NO_SUCH_OBJECT ) {
+				goto done;
+			}
+			break;
 		}
-
-		ldap_msgfree( res );
 	}
 
-
+done:;
 	if ( ldp != NULL ) {
 		*ldp = ld;
 
