@@ -229,9 +229,9 @@ ravl_print( Avlnode *root, int depth )
 	}
 
 	lc = root->avl_data;
-	fprintf( stderr, "lc=%p local=\"%s\" conn=%p %s\n",
+	fprintf( stderr, "lc=%p local=\"%s\" conn=%p %s refcnt=%d\n",
 		(void *)lc, lc->lc_local_ndn.bv_val, (void *)lc->lc_conn,
-		avl_bf2str( root->avl_bf) );
+		avl_bf2str( root->avl_bf ), lc->lc_refcnt );
 	
 	ravl_print( root->avl_left, depth+1 );
 }
@@ -447,10 +447,9 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	}
 	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
 
-	/* automatically chase referrals ("[dont-]chase-referrals" statement) */
-	if ( LDAP_BACK_CHASE_REFERRALS( li ) ) {
-		ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
-	}
+	/* automatically chase referrals ("chase-referrals [{yes|no}" statement) */
+	ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		LDAP_BACK_CHASE_REFERRALS( li ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 #ifdef HAVE_TLS
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,

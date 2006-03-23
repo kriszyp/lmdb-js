@@ -279,10 +279,9 @@ meta_back_init_one_conn(
 	vers = op->o_conn->c_protocol;
 	ldap_set_option( msc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
 
-	/* automatically chase referrals ("chase-referrals"/"dont-chase-referrals" statement) */
-	if ( LDAP_BACK_CHASE_REFERRALS( mi ) ) {
-		ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
-	}
+	/* automatically chase referrals ("chase-referrals [{yes|no}]" statement) */
+	ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS,
+		LDAP_BACK_CHASE_REFERRALS( mi ) ?  LDAP_OPT_ON : LDAP_OPT_OFF );
 
 #ifdef HAVE_TLS
 	/* start TLS ("tls [try-]{start|propagate}" statement) */
