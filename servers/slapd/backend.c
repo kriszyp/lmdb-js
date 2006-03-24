@@ -1709,15 +1709,17 @@ fe_aux_operational(
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
-		ad_inlist( slap_schema.si_ad_entryDN, rs->sr_attrs ) ) )
+	if ( !( rs->sr_flags & REP_NO_ENTRYDN )
+		&& ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
+		ad_inlist( slap_schema.si_ad_entryDN, rs->sr_attrs ) ) ) )
 	{
 		*ap = slap_operational_entryDN( rs->sr_entry );
 		ap = &(*ap)->a_next;
 	}
 
-	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
-		ad_inlist( slap_schema.si_ad_subschemaSubentry, rs->sr_attrs ) ) )
+	if ( !( rs->sr_flags & REP_NO_SUBSCHEMA)
+		&& ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
+		ad_inlist( slap_schema.si_ad_subschemaSubentry, rs->sr_attrs ) ) ) )
 	{
 		*ap = slap_operational_subschemaSubentry( op->o_bd );
 		ap = &(*ap)->a_next;

@@ -314,6 +314,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		struct berval	bv = BER_BVNULL;
 		rc = 0;
 
+		if ( li == NULL ) {
+			return 1;
+		}
+
 		switch( c->type ) {
 		case LDAP_BACK_CFG_URI:
 			if ( li->li_uri != NULL ) {
