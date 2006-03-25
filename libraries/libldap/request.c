@@ -422,6 +422,9 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 				ldap_free_urldesc( srvfunc );
 			}
 		} else {
+			int		msgid, rc;
+			struct berval	passwd = BER_BVNULL;
+
 			savedefconn = ld->ld_defconn;
 			++lc->lconn_refcnt;	/* avoid premature free */
 			ld->ld_defconn = lc;
@@ -431,8 +434,42 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 			ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
-			if ( ldap_bind_s( ld, "", "", LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
+			rc = ldap_sasl_bind( ld, "", LDAP_SASL_SIMPLE, &passwd,
+				NULL, NULL, &msgid );
+			if ( rc != LDAP_SUCCESS ) {
 				err = -1;
+
+			} else {
+				for ( err = 1; err > 0; ) {
+					struct timeval	tv = { 0, 100000 };
+					LDAPMessage	*res = NULL;
+
+					switch ( ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
+					case -1:
+						err = -1;
+						break;
+
+					case 0:
+#ifdef LDAP_R_COMPILE
+						ldap_pvt_thread_yield();
+#endif
+						break;
+
+					case LDAP_RES_BIND:
+						rc = ldap_parse_result( ld, res, &err, NULL, NULL, NULL, NULL, 1 );
+						if ( rc != LDAP_SUCCESS ) {
+							err = -1;
+
+						} else if ( err != LDAP_SUCCESS ) {
+							err = -1;
+						}
+						/* else err == LDAP_SUCCESS == 0 */
+						break;
+
+					default:
+						assert( 0 );
+					}
+				}
 			}
 #ifdef LDAP_R_COMPILE
 			ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
@@ -876,7 +913,13 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 					if ( len == lp->lr_dn.bv_len ) {
 						if ( len && strncmp( srv->lud_dn, lp->lr_dn.bv_val,
 							len ))
+						{
+							/* FIXME: if different DNs are requested
+							 * for the same connection, this causes
+							 * an endless loop, because lp is never
+							 * changed */
 							continue;
+						}
 						looped = 1;
 						break;
 					}
