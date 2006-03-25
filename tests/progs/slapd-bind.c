@@ -40,10 +40,12 @@
 #define LOOPS	100
 
 static int
-do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int noinit, LDAP **ldp );
+do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
+	int force, int chaserefs, int noinit, LDAP **ldp );
 
 static int
-do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int force, int noinit, int delay );
+do_base( char *uri, struct berval *base, struct berval *pass, int maxloop,
+	int force, int chaserefs, int noinit, int delay );
 
 /* This program can be invoked two ways: if -D is used to specify a Bind DN,
  * that DN will be used repeatedly for all of the Binds. If instead -b is used
@@ -63,6 +65,7 @@ usage( char *name )
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-F] "
+		"[-C] "
 		"[-I] "
 		"[-t delay]\n",
 		name );
@@ -84,6 +87,7 @@ main( int argc, char **argv )
 	int		loops = LOOPS;
 	int		outerloops = 1;
 	int		force = 0;
+	int		chaserefs = 0;
 	int		noinit = 0;
 	int		delay = 0;
 
@@ -91,68 +95,72 @@ main( int argc, char **argv )
 
 	while ( (i = getopt( argc, argv, "b:H:h:p:D:w:l:L:f:FIt:" )) != EOF ) {
 		switch( i ) {
-			case 'b':		/* base DN of a tree of user DNs */
-				ber_str2bv( optarg, 0, 0, &base );
-				break;
+		case 'b':		/* base DN of a tree of user DNs */
+			ber_str2bv( optarg, 0, 0, &base );
+			break;
 
-			case 'H':		/* the server uri */
-				uri = strdup( optarg );
-				break;
+		case 'C':
+			chaserefs++;
+			break;
 
-			case 'h':		/* the servers host */
-				host = strdup( optarg );
-				break;
+		case 'H':		/* the server uri */
+			uri = strdup( optarg );
+			break;
 
-			case 'p':		/* the servers port */
-				if ( lutil_atoi( &port, optarg ) != 0 ) {
-					usage( argv[0] );
-				}
-				break;
+		case 'h':		/* the servers host */
+			host = strdup( optarg );
+			break;
 
-			case 'D':
-				dn = strdup( optarg );
-				break;
-
-			case 'w':
-				pass.bv_val = strdup( optarg );
-				pass.bv_len = strlen( optarg );
-				break;
-
-			case 'l':		/* the number of loops */
-				if ( lutil_atoi( &loops, optarg ) != 0 ) {
-					usage( argv[0] );
-				}
-				break;
-
-			case 'L':		/* the number of outerloops */
-				if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
-					usage( argv[0] );
-				}
-				break;
-
-			case 'f':
-				filter = optarg;
-				break;
-
-			case 'F':
-				force++;
-				break;
-
-			case 'I':
-				/* reuse connection */
-				noinit++;
-				break;
-
-			case 't':
-				/* sleep between binds */
-				if ( lutil_atoi( &delay, optarg ) != 0 ) {
-					usage( argv[0] );
-				}
-				break;
-
-			default:
+		case 'p':		/* the servers port */
+			if ( lutil_atoi( &port, optarg ) != 0 ) {
 				usage( argv[0] );
-				break;
+			}
+			break;
+
+		case 'D':
+			dn = strdup( optarg );
+			break;
+
+		case 'w':
+			pass.bv_val = strdup( optarg );
+			pass.bv_len = strlen( optarg );
+			break;
+
+		case 'l':		/* the number of loops */
+			if ( lutil_atoi( &loops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
+		case 'L':		/* the number of outerloops */
+			if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
+		case 'f':
+			filter = optarg;
+			break;
+
+		case 'F':
+			force++;
+			break;
+
+		case 'I':
+			/* reuse connection */
+			noinit++;
+			break;
+
+		case 't':
+			/* sleep between binds */
+			if ( lutil_atoi( &delay, optarg ) != 0 ) {
+				usage( argv[0] );
+			}
+			break;
+
+		default:
+			usage( argv[0] );
+			break;
 		}
 	}
 
@@ -164,9 +172,11 @@ main( int argc, char **argv )
 
 	for ( i = 0; i < outerloops; i++ ) {
 		if ( base.bv_val != NULL ) {
-			do_base( uri, &base, &pass, loops, force, noinit, delay );
+			do_base( uri, &base, &pass, loops,
+				force, chaserefs, noinit, delay );
 		} else {
-			do_bind( uri, dn, &pass, loops, force, noinit, NULL );
+			do_bind( uri, dn, &pass, loops,
+				force, chaserefs, noinit, NULL );
 		}
 	}
 
@@ -175,7 +185,8 @@ main( int argc, char **argv )
 
 
 static int
-do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int noinit, LDAP **ldp )
+do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
+	int force, int chaserefs, int noinit, LDAP **ldp )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	int  	i, first = 1, rc = -1;
@@ -198,7 +209,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int n
 			(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
 				&version ); 
 			(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
-				LDAP_OPT_OFF );
+				chaserefs ? LDAP_OPT_ON: LDAP_OPT_OFF );
 		}
 
 		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );
@@ -245,7 +256,8 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int n
 
 
 static int
-do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int force, int noinit, int delay )
+do_base( char *uri, struct berval *base, struct berval *pass, int maxloop,
+	int force, int chaserefs, int noinit, int delay )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0;
@@ -273,7 +285,8 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 	}
 
 	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
-	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		chaserefs ? LDAP_OPT_ON: LDAP_OPT_OFF );
 
 	rc = ldap_sasl_bind_s( ld, NULL, LDAP_SASL_SIMPLE, &pw, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
@@ -347,7 +360,9 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop, int f
 		
 		ptr = lutil_strcopy(dn, rdns[j].bv_val);
 		strcpy(ptr, base->bv_val);
-		if ( do_bind( uri, dn, pass, 1, force, noinit, &ld ) && !force ) {
+		if ( do_bind( uri, dn, pass, 1, force, chaserefs, noinit, &ld )
+			&& !force )
+		{
 			break;
 		}
 

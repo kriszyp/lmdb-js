@@ -44,7 +44,7 @@ get_add_entry( char *filename, LDAPMod ***mods );
 static void
 do_addel( char *uri, char *manager, struct berval *passwd,
 	char *dn, LDAPMod **attrs, int maxloop, int maxretries, int delay,
-	int friendly );
+	int friendly, int chaserefs );
 
 static void
 usage( char *name )
@@ -59,7 +59,8 @@ usage( char *name )
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
 		"[-t <delay>] "
-		"[-F]\n",
+		"[-F] "
+		"[-C]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -80,12 +81,17 @@ main( int argc, char **argv )
 	int		retries = RETRIES;
 	int		delay = 0;
 	int		friendly = 0;
+	int		chaserefs = 0;
 	LDAPMod		**attrs = NULL;
 
 	tester_init( "slapd-modify" );
 
-	while ( (i = getopt( argc, argv, "FH:h:p:D:w:f:l:L:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "CFH:h:p:D:w:f:l:L:r:t:" )) != EOF ) {
 		switch( i ) {
+		case 'C':
+			chaserefs++;
+			break;
+
 		case 'F':
 			friendly++;
 			break;
@@ -172,7 +178,7 @@ main( int argc, char **argv )
 
 	for ( i = 0; i < outerloops; i++ ) {
 		do_addel( uri, manager, &passwd, entry, attrs,
-				loops, retries, delay, friendly );
+				loops, retries, delay, friendly, chaserefs );
 	}
 
 	exit( EXIT_SUCCESS );
@@ -303,8 +309,8 @@ do_addel(
 	int maxloop,
 	int maxretries,
 	int delay,
-	int friendly
-)
+	int friendly,
+	int chaserefs )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -320,7 +326,8 @@ retry:;
 	}
 
 	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
-	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		chaserefs ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Add/Delete(%d): entry=\"%s\".\n",

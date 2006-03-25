@@ -41,12 +41,12 @@
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
 	char *sbase, char *filter, LDAP **ldp,
-	int innerloop, int maxretries, int delay, int force );
+	int innerloop, int maxretries, int delay, int force, int chaserefs );
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
 	char *sbase, char *filter, char *attr, int innerloop,
-	int maxretries, int delay, int force );
+	int maxretries, int delay, int force, int chaserefs );
 
 static void
 usage( char *name )
@@ -60,6 +60,7 @@ usage( char *name )
 		"-f <searchfilter> "
 		"[-a <attr>] "
 		"[-F] "
+		"[-C] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -85,11 +86,16 @@ main( int argc, char **argv )
 	int		retries = RETRIES;
 	int		delay = 0;
 	int		force = 0;
+	int		chaserefs = 0;
 
 	tester_init( "slapd-search" );
 
-	while ( (i = getopt( argc, argv, "a:b:D:f:FH:h:l:L:p:w:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "a:b:CD:f:FH:h:l:L:p:w:r:t:" )) != EOF ) {
 		switch( i ) {
+		case 'C':
+			chaserefs++;
+			break;
+
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
 			break;
@@ -175,11 +181,11 @@ main( int argc, char **argv )
 	for ( i = 0; i < outerloops; i++ ) {
 		if ( attr != NULL ) {
 			do_random( uri, manager, &passwd, sbase, filter, attr,
-					loops, retries, delay, force );
+				loops, retries, delay, force, chaserefs );
 
 		} else {
 			do_search( uri, manager, &passwd, sbase, filter, NULL,
-					loops, retries, delay, force );
+				loops, retries, delay, force, chaserefs );
 		}
 	}
 
@@ -190,7 +196,7 @@ main( int argc, char **argv )
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
 	char *sbase, char *filter, char *attr,
-	int innerloop, int maxretries, int delay, int force )
+	int innerloop, int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -212,7 +218,8 @@ do_random( char *uri, char *manager, struct berval *passwd,
 	}
 
 	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
-	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		chaserefs ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\" attr=\"%s\".\n",
@@ -269,7 +276,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 			snprintf( buf, sizeof( buf ), "(%s=%s)", attr, values[ rand() % nvalues ] );
 
 			do_search( uri, manager, passwd, sbase, buf, &ld,
-					1, maxretries, delay, force );
+					1, maxretries, delay, force, chaserefs );
 		}
 	}
 		
@@ -283,7 +290,8 @@ do_random( char *uri, char *manager, struct berval *passwd,
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
 		char *sbase, char *filter, LDAP **ldp,
-		int innerloop, int maxretries, int delay, int force )
+		int innerloop, int maxretries, int delay,
+		int force, int chaserefs )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -302,7 +310,8 @@ retry:;
 		}
 
 		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
-		(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+		(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
+			chaserefs ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 		if ( do_retry == maxretries ) {
 			fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",

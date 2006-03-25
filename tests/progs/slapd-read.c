@@ -40,7 +40,7 @@
 
 static void
 do_read( char *uri, char *entry, int maxloop,
-		int maxretries, int delay, int force );
+		int maxretries, int delay, int force, int chaserefs );
 
 static void
 usage( char *name )
@@ -50,6 +50,7 @@ usage( char *name )
 		"-H <uri> | ([-h <host>] -p <port>) "
 		"-e <entry> "
 		"[-F] "
+		"[-C] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -71,11 +72,16 @@ main( int argc, char **argv )
 	int		retries = RETRIES;
 	int		delay = 0;
 	int		force = 0;
+	int		chaserefs = 0;
 
 	tester_init( "slapd-read" );
 
-	while ( (i = getopt( argc, argv, "H:h:p:e:Fl:L:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "CH:h:p:e:Fl:L:r:t:" )) != EOF ) {
 		switch( i ) {
+		case 'C':
+			chaserefs++;
+			break;
+
 		case 'H':		/* the server uri */
 			uri = strdup( optarg );
 			break;
@@ -140,7 +146,7 @@ main( int argc, char **argv )
 	uri = tester_uri( uri, host, port );
 
 	for ( i = 0; i < outerloops; i++ ) {
-		do_read( uri, entry, loops, retries, delay, force );
+		do_read( uri, entry, loops, retries, delay, force, chaserefs );
 	}
 
 	exit( EXIT_SUCCESS );
@@ -149,7 +155,7 @@ main( int argc, char **argv )
 
 static void
 do_read( char *uri, char *entry, int maxloop,
-		int maxretries, int delay, int force )
+		int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -168,7 +174,8 @@ retry:;
 	}
 
 	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
-	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		chaserefs ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Read(%d): entry=\"%s\".\n",

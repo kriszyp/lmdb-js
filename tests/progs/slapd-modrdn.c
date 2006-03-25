@@ -41,7 +41,7 @@
 static void
 do_modrdn( char *uri, char *manager, struct berval *passwd,
 		char *entry, int maxloop, int maxretries, int delay,
-		int friendly );
+		int friendly, int chaserefs );
 
 static void
 usage( char *name )
@@ -56,7 +56,8 @@ usage( char *name )
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
 		"[-t <delay>] "
-		"[-F]\n",
+		"[-F] "
+		"[-C]\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -76,11 +77,16 @@ main( int argc, char **argv )
 	int		retries = RETRIES;
 	int		delay = 0;
 	int		friendly = 0;
+	int		chaserefs = 0;
 
 	tester_init( "slapd-modrdn" );
 
-	while ( (i = getopt( argc, argv, "FH:h:p:D:w:e:l:L:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "CFH:h:p:D:w:e:l:L:r:t:" )) != EOF ) {
 		switch( i ) {
+		case 'C':
+			chaserefs++;
+			break;
+
 		case 'F':
 			friendly++;
 			break;
@@ -157,7 +163,7 @@ main( int argc, char **argv )
 
 	for ( i = 0; i < outerloops; i++ ) {
 		do_modrdn( uri, manager, &passwd, entry,
-				loops, retries, delay, friendly );
+			loops, retries, delay, friendly, chaserefs );
 	}
 
 	exit( EXIT_SUCCESS );
@@ -166,8 +172,8 @@ main( int argc, char **argv )
 
 static void
 do_modrdn( char *uri, char *manager,
-	struct berval *passwd, char *entry, int maxloop, int maxretries, int delay,
-	int friendly )
+	struct berval *passwd, char *entry, int maxloop, int maxretries,
+	int delay, int friendly, int chaserefs )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
@@ -205,7 +211,8 @@ retry:;
 	}
 
 	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
-	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		chaserefs ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Modrdn(%d): entry=\"%s\".\n",

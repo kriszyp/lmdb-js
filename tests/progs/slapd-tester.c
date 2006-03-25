@@ -89,7 +89,8 @@ usage( char *name )
 		"-P <progdir> "
 		"[-r <maxretries>] "
 		"[-t <delay>] "
-		"[-F]\n",
+		"[-F] "
+		"[-C]\n",
 		name );
 	exit( EXIT_FAILURE );
 }
@@ -112,6 +113,7 @@ main( int argc, char **argv )
 	DIR		*datadir;
 	struct dirent	*file;
 	int		friendly = 0;
+	int		chaserefs = 0;
 	/* search */
 	char		*sfile = NULL;
 	char		*sreqs[MAXREQS];
@@ -168,8 +170,12 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-tester" );
 
-	while ( (i = getopt( argc, argv, "D:d:FH:h:j:l:L:P:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "CD:d:FH:h:j:l:L:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
+		case 'C':
+			chaserefs++;
+			break;
+
 		case 'D':		/* slapd manager */
 			manager = ArgDup( optarg );
 			break;
@@ -356,6 +362,9 @@ main( int argc, char **argv )
 	if ( friendly ) {
 		sargs[sanum++] = friendlyOpt;
 	}
+	if ( chaserefs ) {
+		sargs[sanum++] = "-C";
+	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
@@ -394,6 +403,9 @@ main( int argc, char **argv )
 	if ( friendly ) {
 		rargs[ranum++] = friendlyOpt;
 	}
+	if ( chaserefs ) {
+		rargs[ranum++] = "-C";
+	}
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
 	rargs[ranum++] = NULL;
@@ -430,6 +442,9 @@ main( int argc, char **argv )
 	if ( friendly ) {
 		margs[manum++] = friendlyOpt;
 	}
+	if ( chaserefs ) {
+		margs[manum++] = "-C";
+	}
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
 	margs[manum++] = NULL;
@@ -465,6 +480,9 @@ main( int argc, char **argv )
 	modargs[modanum++] = delay;
 	if ( friendly ) {
 		modargs[modanum++] = friendlyOpt;
+	}
+	if ( chaserefs ) {
+		modargs[modanum++] = "-C";
 	}
 	modargs[modanum++] = "-e";
 	modargs[modanum++] = NULL;		/* will hold the modify entry */
@@ -504,6 +522,9 @@ main( int argc, char **argv )
 	if ( friendly ) {
 		aargs[aanum++] = friendlyOpt;
 	}
+	if ( chaserefs ) {
+		aargs[aanum++] = "-C";
+	}
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
 	aargs[aanum++] = NULL;
@@ -537,6 +558,9 @@ main( int argc, char **argv )
 #endif
 	if ( friendly ) {
 		bargs[banum++] = friendlyOpt;
+	}
+	if ( chaserefs ) {
+		bargs[banum++] = "-C";
 	}
 	bargs[banum++] = "-D";
 	bargs[banum++] = NULL;
