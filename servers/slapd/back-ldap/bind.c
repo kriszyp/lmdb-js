@@ -113,7 +113,7 @@ done:;
 		|| ( LDAP_BACK_CONN_ISBOUND( lc )
 			&& !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) )
 	{
-		int		lerr = 0;
+		int		lerr = -1;
 
 		/* wait for all other ops to release the connection */
 retry_lock:;
