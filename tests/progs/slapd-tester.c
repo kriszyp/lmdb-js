@@ -58,7 +58,7 @@
 #define TBINDFILE		"do_bind.0"
 
 static char *get_file_name( char *dirname, char *filename );
-static int  get_search_filters( char *filename, char *filters[], char *bases[] );
+static int  get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[] );
 static int  get_read_entries( char *filename, char *entries[] );
 static void fork_child( char *prog, char **args );
 static void	wait4kids( int nkidval );
@@ -115,6 +115,7 @@ main( int argc, char **argv )
 	/* search */
 	char		*sfile = NULL;
 	char		*sreqs[MAXREQS];
+	char		*sattrs[MAXREQS];
 	char		*sbase[MAXREQS];
 	int		snum = 0;
 	char		*sargs[MAXARGS];
@@ -276,7 +277,7 @@ main( int argc, char **argv )
 
 	/* look for search requests */
 	if ( sfile ) {
-		snum = get_search_filters( sfile, sreqs, sbase );
+		snum = get_search_filters( sfile, sreqs, sattrs, sbase );
 	}
 
 	/* look for read requests */
@@ -291,12 +292,12 @@ main( int argc, char **argv )
 
 	/* look for modify requests */
 	if ( modfile ) {
-		modnum = get_search_filters( modfile, modreqs, moddn );
+		modnum = get_search_filters( modfile, modreqs, NULL, moddn );
 	}
 
 	/* look for bind requests */
 	if ( bfile ) {
-		bnum = get_search_filters( bfile, bcreds, breqs );
+		bnum = get_search_filters( bfile, bcreds, NULL, breqs );
 	}
 
 	/* setup friendly option */
@@ -359,7 +360,11 @@ main( int argc, char **argv )
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
 	sargs[sanum++] = NULL;		/* will hold the search request */
+
 	sargs[sanum++] = NULL;
+	sargs[sanum] = NULL;		/* might hold the "attr" request */
+
+	sargs[sanum + 1] = NULL;
 
 	/*
 	 * generate the read clients
@@ -544,6 +549,13 @@ main( int argc, char **argv )
 
 			sargs[sanum - 2] = sreqs[j];
 			sargs[sanum - 4] = sbase[j];
+			if ( sattrs[j] != NULL ) {
+				sargs[sanum - 1] = "-a";
+				sargs[sanum] = sattrs[j];
+
+			} else {
+				sargs[sanum - 1] = NULL;
+			}
 			fork_child( scmd, sargs );
 
 		}
@@ -603,7 +615,7 @@ get_file_name( char *dirname, char *filename )
 
 
 static int
-get_search_filters( char *filename, char *filters[], char *bases[] )
+get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[] )
 {
 	FILE    *fp;
 	int     filter = 0;
@@ -621,7 +633,23 @@ get_search_filters( char *filename, char *filters[], char *bases[] )
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
 
-			filters[filter++] = ArgDup( line );
+			filters[filter] = ArgDup( line );
+			if ( attrs ) {
+				if ( filters[filter][0] == '+') {
+					char	*sep = strchr( filters[filter], ':' );
+
+					if ( sep != NULL ) {
+						attrs[ filter ] = &filters[ filter ][ 1 ];
+						sep[ 0 ] = '\0';
+						/* NOTE: don't free this! */
+						filters[ filter ] = &sep[ 1 ];
+					}
+
+				} else {
+					attrs[ filter] = NULL;
+				}
+			}
+			filter++;
 
 		}
 		fclose( fp );

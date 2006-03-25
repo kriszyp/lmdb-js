@@ -212,6 +212,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 	}
 
 	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
+	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\" attr=\"%s\".\n",
@@ -258,6 +259,10 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 		ldap_msgfree( res );
 
+		if ( do_retry == maxretries ) {
+			fprintf( stderr, "PID=%ld - got %d values.\n", (long) pid, nvalues );
+		}
+
 		for ( i = 0; i < innerloop; i++ ) {
 			char	buf[ BUFSIZ ];
 
@@ -297,6 +302,7 @@ retry:;
 		}
 
 		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
+		(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 		if ( do_retry == maxretries ) {
 			fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",

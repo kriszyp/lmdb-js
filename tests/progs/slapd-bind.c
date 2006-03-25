@@ -197,6 +197,8 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop, int force, int n
 
 			(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
 				&version ); 
+			(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
+				LDAP_OPT_OFF );
 		}
 
 		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );

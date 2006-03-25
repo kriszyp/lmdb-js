@@ -194,6 +194,7 @@ do_modify( char *uri, char *manager,
 	struct ldapmod mod;
 	struct ldapmod *mods[2];
 	char *values[2];
+	int version = LDAP_VERSION3;
 
 	pid = getpid();
 	
@@ -212,11 +213,8 @@ retry:;
 		exit( EXIT_FAILURE );
 	}
 
-	{
-		int version = LDAP_VERSION3;
-		(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-			&version ); 
-	}
+	(void) ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ); 
+	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 	if ( do_retry == maxretries ) {
 		fprintf( stderr, "PID=%ld - Modify(%d): entry=\"%s\".\n",
