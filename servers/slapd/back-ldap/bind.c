@@ -91,8 +91,6 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 			}
 		}
 
-		assert( lc->lc_binding == 1 );
-		lc->lc_binding = 0;
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 		ber_dupbv( &lc->lc_bound_ndn, &op->o_req_ndn );
 
@@ -107,11 +105,15 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	}
 done:;
 
+	assert( lc->lc_binding == 1 );
+	lc->lc_binding = 0;
+
 	/* must re-insert if local DN changed as result of bind */
-	if ( LDAP_BACK_CONN_ISBOUND( lc )
-		&& !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) )
+	if ( !LDAP_BACK_CONN_ISBOUND( lc )
+		|| ( LDAP_BACK_CONN_ISBOUND( lc )
+			&& !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) )
 	{
-		int		lerr;
+		int		lerr = 0;
 
 		/* wait for all other ops to release the connection */
 retry_lock:;
@@ -127,9 +129,12 @@ retry_lock:;
 				ldap_back_conndn_cmp );
 		assert( lc != NULL );
 
-		ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
-		lerr = avl_insert( &li->li_conninfo.lai_tree, (caddr_t)lc,
-			ldap_back_conndn_cmp, ldap_back_conndn_dup );
+		if ( LDAP_BACK_CONN_ISBOUND( lc ) ) {
+			ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
+			lerr = avl_insert( &li->li_conninfo.lai_tree, (caddr_t)lc,
+				ldap_back_conndn_cmp, ldap_back_conndn_dup );
+		}
+
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		if ( lerr == -1 ) {
 			/* we can do this because lc_refcnt == 1 */
