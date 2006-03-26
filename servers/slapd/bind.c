@@ -222,7 +222,6 @@ cleanup:
 int
 fe_op_bind( Operation *op, SlapReply *rs )
 {
-	struct berval	mech = op->orb_tmp_mech;
 	BackendDB	*bd = op->o_bd;
 
 	/* check for inappropriate controls */
@@ -246,7 +245,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			goto cleanup;
 		}
 
-		if( BER_BVISNULL( &mech ) || BER_BVISEMPTY( &mech ) ) {
+		if( BER_BVISNULL( &op->orb_tmp_mech ) || BER_BVISEMPTY( &op->orb_tmp_mech ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
 				0, 0, 0 );
@@ -256,19 +255,19 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		}
 
 		/* check restrictions */
-		if( backend_check_restrictions( op, rs, &mech ) != LDAP_SUCCESS ) {
+		if( backend_check_restrictions( op, rs, &op->orb_tmp_mech ) != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
 			goto cleanup;
 		}
 
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		if ( op->o_conn->c_sasl_bind_in_progress ) {
-			if( !bvmatch( &op->o_conn->c_sasl_bind_mech, &mech ) ) {
+			if( !bvmatch( &op->o_conn->c_sasl_bind_mech, &op->orb_tmp_mech ) ) {
 				/* mechanism changed between bind steps */
 				slap_sasl_reset(op->o_conn);
 			}
 		} else {
-			ber_dupbv(&op->o_conn->c_sasl_bind_mech, &mech);
+			ber_dupbv(&op->o_conn->c_sasl_bind_mech, &op->orb_tmp_mech);
 		}
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
@@ -291,7 +290,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
-		BER_BVSTR( &mech, "SIMPLE" );
+		BER_BVSTR( &op->orb_tmp_mech, "SIMPLE" );
 		/* accept "anonymous" binds */
 		if ( BER_BVISEMPTY( &op->orb_cred ) || BER_BVISEMPTY( &op->o_req_ndn ) ) {
 			rs->sr_err = LDAP_SUCCESS;
@@ -316,7 +315,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				rs->sr_text = "anonymous bind disallowed";
 
 			} else {
-				backend_check_restrictions( op, rs, &mech );
+				backend_check_restrictions( op, rs, &op->orb_tmp_mech );
 			}
 
 			/*
@@ -354,7 +353,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_protocol, 0, 0 );
 			goto cleanup;
 		}
-		BER_BVSTR( &mech, "KRBV4" );
+		BER_BVSTR( &op->orb_tmp_mech, "KRBV4" );
 
 	} else if ( op->orb_method == LDAP_AUTH_KRBV42 ) {
 		rs->sr_err = LDAP_AUTH_METHOD_NOT_SUPPORTED;
@@ -405,41 +404,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		rs->sr_err = (op->o_bd->be_bind)( op, rs );
 
 		if ( rs->sr_err == 0 ) {
-			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-
-			if( op->o_conn->c_authz_backend == NULL ) {
-				op->o_conn->c_authz_backend = op->o_bd;
-			}
-
-			/* be_bind returns regular/global edn */
-			if( !BER_BVISEMPTY( &op->orb_edn ) ) {
-				op->o_conn->c_dn = op->orb_edn;
-			} else {
-				ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
-			}
-
-			ber_dupbv( &op->o_conn->c_ndn, &op->o_req_ndn );
-
-			if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
-				ber_len_t max = sockbuf_max_incoming_auth;
-				ber_sockbuf_ctrl( op->o_conn->c_sb,
-					LBER_SB_OPT_SET_MAX_INCOMING, &max );
-			}
-
-			/* log authorization identity */
-			Statslog( LDAP_DEBUG_STATS,
-				"%s BIND dn=\"%s\" mech=%s ssf=0\n",
-				op->o_log_prefix,
-				op->o_conn->c_dn.bv_val, mech.bv_val, 0, 0 );
-
-			Debug( LDAP_DEBUG_TRACE,
-				"do_bind: v%d bind: \"%s\" to \"%s\"\n",
-				op->o_protocol, op->o_req_dn.bv_val, op->o_conn->c_dn.bv_val );
-
-			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-
-			/* send this here to avoid a race condition */
-			send_ldap_result( op, rs );
+			(void)fe_op_bind_success( op, rs );
 
 		} else if ( !BER_BVISNULL( &op->orb_edn ) ) {
 			free( op->orb_edn.bv_val );
@@ -456,3 +421,44 @@ cleanup:;
 	return rs->sr_err;
 }
 
+int
+fe_op_bind_success( Operation *op, SlapReply *rs )
+{
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+
+	if( op->o_conn->c_authz_backend == NULL ) {
+		op->o_conn->c_authz_backend = op->o_bd;
+	}
+
+	/* be_bind returns regular/global edn */
+	if( !BER_BVISEMPTY( &op->orb_edn ) ) {
+		op->o_conn->c_dn = op->orb_edn;
+	} else {
+		ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
+	}
+
+	ber_dupbv( &op->o_conn->c_ndn, &op->o_req_ndn );
+
+	if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
+		ber_len_t max = sockbuf_max_incoming_auth;
+		ber_sockbuf_ctrl( op->o_conn->c_sb,
+			LBER_SB_OPT_SET_MAX_INCOMING, &max );
+	}
+
+	/* log authorization identity */
+	Statslog( LDAP_DEBUG_STATS,
+		"%s BIND dn=\"%s\" mech=%s ssf=0\n",
+		op->o_log_prefix,
+		op->o_conn->c_dn.bv_val, op->orb_tmp_mech.bv_val, 0, 0 );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"do_bind: v%d bind: \"%s\" to \"%s\"\n",
+		op->o_protocol, op->o_req_dn.bv_val, op->o_conn->c_dn.bv_val );
+
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+
+	/* send this here to avoid a race condition */
+	send_ldap_result( op, rs );
+
+	return LDAP_SUCCESS;
+}
