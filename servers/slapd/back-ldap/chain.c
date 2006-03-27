@@ -340,7 +340,7 @@ static int
 ldap_chain_op(
 	Operation	*op,
 	SlapReply	*rs,
-	int		( *op_f )( Operation *op, SlapReply *rs ), 
+	BI_op_func	*op_f,
 	BerVarray	ref )
 {
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
@@ -446,7 +446,7 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 			}
 		}
 
-		rc = ( *op_f )( op, rs );
+		rc = op_f( op, rs );
 
 cleanup:;
 		ldap_memfree( li.li_uri );
@@ -751,7 +751,7 @@ cleanup:;
 		/* FIXME: ldap_back_extended() by design 
 		 * doesn't send result; frontend is expected
 		 * to send it... */
-		/* FIXME: what aboit chaining? */
+		/* FIXME: what about chaining? */
 		if ( rc != SLAPD_ABANDON ) {
 			send_ldap_extended( op, rs );
 			rc = LDAP_SUCCESS;
@@ -771,9 +771,11 @@ cleanup:;
 	case LDAP_SUCCESS:
 	case LDAP_REFERRAL:
 		/* slapd-ldap sent response */
-		if ( !op->o_abandon ) {
+		if ( !op->o_abandon && sc2.sc_private != LDAP_CH_RES ) {
 			/* FIXME: should we send response? */
-			Debug( LDAP_DEBUG_ANY, "%s: ldap_chain_response: overlay should have sent result.\n",
+			Debug( LDAP_DEBUG_ANY,
+				"%s: ldap_chain_response: "
+				"overlay should have sent result.\n",
 				op->o_log_prefix, 0, 0 );
 		}
 		break;
