@@ -59,7 +59,7 @@
 
 static char *get_file_name( char *dirname, char *filename );
 static int  get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[] );
-static int  get_read_entries( char *filename, char *entries[] );
+static int  get_read_entries( char *filename, char *entries[], char *filters[] );
 static void fork_child( char *prog, char **args );
 static void	wait4kids( int nkidval );
 
@@ -114,6 +114,7 @@ main( int argc, char **argv )
 	struct dirent	*file;
 	int		friendly = 0;
 	int		chaserefs = 0;
+	int		noattrs = 0;
 	/* search */
 	char		*sfile = NULL;
 	char		*sreqs[MAXREQS];
@@ -129,6 +130,7 @@ main( int argc, char **argv )
 	char		*rreqs[MAXREQS];
 	int		rnum = 0;
 	char		*rargs[MAXARGS];
+	char		*rflts[MAXREQS];
 	int		ranum;
 	char		rcmd[MAXPATHLEN];
 	char		rloops[] = "18446744073709551615UL";
@@ -170,8 +172,12 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-tester" );
 
-	while ( (i = getopt( argc, argv, "CD:d:FH:h:j:l:L:P:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "ACD:d:FH:h:j:l:L:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
+		case 'A':
+			noattrs++;
+			break;
+
 		case 'C':
 			chaserefs++;
 			break;
@@ -288,12 +294,12 @@ main( int argc, char **argv )
 
 	/* look for read requests */
 	if ( rfile ) {
-		rnum = get_read_entries( rfile, rreqs );
+		rnum = get_read_entries( rfile, rreqs, rflts );
 	}
 
 	/* look for modrdn requests */
 	if ( mfile ) {
-		mnum = get_read_entries( mfile, mreqs );
+		mnum = get_read_entries( mfile, mreqs, NULL );
 	}
 
 	/* look for modify requests */
@@ -365,6 +371,9 @@ main( int argc, char **argv )
 	if ( chaserefs ) {
 		sargs[sanum++] = "-C";
 	}
+	if ( noattrs ) {
+		sargs[sanum++] = "-A";
+	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
@@ -392,6 +401,10 @@ main( int argc, char **argv )
 		rargs[ranum++] = "-p";
 		rargs[ranum++] = port;
 	}
+	rargs[ranum++] = "-D";
+	rargs[ranum++] = manager;
+	rargs[ranum++] = "-w";
+	rargs[ranum++] = passwd;
 	rargs[ranum++] = "-l";
 	rargs[ranum++] = rloops;
 	rargs[ranum++] = "-L";
@@ -406,9 +419,16 @@ main( int argc, char **argv )
 	if ( chaserefs ) {
 		rargs[ranum++] = "-C";
 	}
+	if ( noattrs ) {
+		rargs[ranum++] = "-A";
+	}
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
+
 	rargs[ranum++] = NULL;
+	rargs[ranum] = NULL;		/* might hold the filter arg */
+
+	rargs[ranum + 1] = NULL;
 
 	/*
 	 * generate the modrdn clients
@@ -569,57 +589,64 @@ main( int argc, char **argv )
 	bargs[banum++] = NULL;
 
 	for ( j = 0; j < MAXREQS; j++ ) {
-		if ( j < snum ) {
+		if ( snum ) {
+			int	jj = j % snum;
 
-			sargs[sanum - 2] = sreqs[j];
-			sargs[sanum - 4] = sbase[j];
-			if ( sattrs[j] != NULL ) {
+			sargs[sanum - 2] = sreqs[jj];
+			sargs[sanum - 4] = sbase[jj];
+			if ( sattrs[jj] != NULL ) {
 				sargs[sanum - 1] = "-a";
-				sargs[sanum] = sattrs[j];
+				sargs[sanum] = sattrs[jj];
 
 			} else {
 				sargs[sanum - 1] = NULL;
 			}
 			fork_child( scmd, sargs );
-
 		}
 
-		if ( j < rnum ) {
+		if ( rnum ) {
+			int	jj = j % rnum;
 
-			rargs[ranum - 2] = rreqs[j];
+			rargs[ranum - 2] = rreqs[jj];
+			if ( rflts[jj] != NULL ) {
+				rargs[ranum - 1] = "-f";
+				rargs[ranum] = rflts[jj];
+
+			} else {
+				rargs[ranum - 1] = NULL;
+			}
 			fork_child( rcmd, rargs );
-
 		}
 
-		if ( j < mnum ) {
+		if ( mnum ) {
+			int	jj = j % mnum;
 
-			margs[manum - 2] = mreqs[j];
+			margs[manum - 2] = mreqs[jj];
 			fork_child( mcmd, margs );
-
 		}
-		if ( j < modnum ) {
 
-			modargs[modanum - 4] = moddn[j];
-			modargs[modanum - 2] = modreqs[j];
+		if ( modnum ) {
+			int	jj = j % modnum;
+
+			modargs[modanum - 4] = moddn[jj];
+			modargs[modanum - 2] = modreqs[jj];
 			fork_child( modcmd, modargs );
-
 		}
 
-		if ( j < anum ) {
+		if ( anum ) {
+			int	jj = j % anum;
 
-			aargs[aanum - 2] = afiles[j];
+			aargs[aanum - 2] = afiles[jj];
 			fork_child( acmd, aargs );
-
 		}
 
-		if ( j < bnum ) {
+		if ( bnum ) {
+			int	jj = j % bnum;
 
-			bargs[banum - 4] = breqs[j];
-			bargs[banum - 2] = bcreds[j];
+			bargs[banum - 4] = breqs[jj];
+			bargs[banum - 2] = bcreds[jj];
 			fork_child( bcmd, bargs );
-
 		}
-
 	}
 
 	wait4kids( -1 );
@@ -684,7 +711,7 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 
 
 static int
-get_read_entries( char *filename, char *entries[] )
+get_read_entries( char *filename, char *entries[], char *filters[] )
 {
 	FILE    *fp;
 	int     entry = 0;
@@ -697,7 +724,32 @@ get_read_entries( char *filename, char *entries[] )
 
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
-			entries[entry++] = ArgDup( line );
+			if ( filters != NULL && line[0] == '+' ) {
+				LDAPURLDesc	*lud;
+
+				if ( ldap_url_parse( &line[1], &lud ) != LDAP_URL_SUCCESS ) {
+					return -1;
+				}
+
+				if ( lud->lud_dn == NULL || lud->lud_dn[ 0 ] == '\0' ) {
+					return -1;
+				}
+
+				entries[entry] = ArgDup( lud->lud_dn );
+
+				if ( lud->lud_filter ) {
+					filters[entry] = ArgDup( lud->lud_filter );
+
+				} else {
+					filters[entry] = ArgDup( "(objectClass=*)" );
+				}
+
+
+			} else {
+				entries[entry] = ArgDup( line );
+			}
+
+			entry++;
 
 		}
 		fclose( fp );
