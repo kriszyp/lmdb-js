@@ -588,8 +588,10 @@ main( int argc, char **argv )
 	bargs[banum++] = NULL;
 	bargs[banum++] = NULL;
 
+#define	DOREQ(n,j) ((n) && ((maxkids > (n)) ? ((j) < maxkids ) : ((j) < (n))))
+
 	for ( j = 0; j < MAXREQS; j++ ) {
-		if ( snum ) {
+		if ( DOREQ( snum, j ) ) {
 			int	jj = j % snum;
 
 			sargs[sanum - 2] = sreqs[jj];
@@ -604,7 +606,7 @@ main( int argc, char **argv )
 			fork_child( scmd, sargs );
 		}
 
-		if ( rnum ) {
+		if ( DOREQ( rnum, j ) ) {
 			int	jj = j % rnum;
 
 			rargs[ranum - 2] = rreqs[jj];
@@ -618,14 +620,14 @@ main( int argc, char **argv )
 			fork_child( rcmd, rargs );
 		}
 
-		if ( mnum ) {
+		if ( DOREQ( mnum, j ) ) {
 			int	jj = j % mnum;
 
 			margs[manum - 2] = mreqs[jj];
 			fork_child( mcmd, margs );
 		}
 
-		if ( modnum ) {
+		if ( DOREQ( modnum, j ) ) {
 			int	jj = j % modnum;
 
 			modargs[modanum - 4] = moddn[jj];
@@ -633,14 +635,14 @@ main( int argc, char **argv )
 			fork_child( modcmd, modargs );
 		}
 
-		if ( anum ) {
+		if ( DOREQ( anum, j ) ) {
 			int	jj = j % anum;
 
 			aargs[aanum - 2] = afiles[jj];
 			fork_child( acmd, aargs );
 		}
 
-		if ( bnum ) {
+		if ( DOREQ( bnum, j ) ) {
 			int	jj = j % bnum;
 
 			bargs[banum - 4] = breqs[jj];
