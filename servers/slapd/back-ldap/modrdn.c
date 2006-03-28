@@ -66,7 +66,7 @@ ldap_back_modrdn(
 	}
 
 retry:
-	rs->sr_err = ldap_rename( lc->lc_ld, op->o_req_ndn.bv_val,
+	rs->sr_err = ldap_rename( lc->lc_ld, op->o_req_dn.bv_val,
 			op->orr_newrdn.bv_val, newSup,
 			op->orr_deleteoldrdn, ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
