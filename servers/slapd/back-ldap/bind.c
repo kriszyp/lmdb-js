@@ -1433,9 +1433,9 @@ ldap_back_proxy_authz_ctrl(
 			{
 				/* ndn is not authorized
 				 * to use idassert */
-				return rc;
+				rs->sr_err = rc;
 			}
-			return rs->sr_err;
+			goto done;
 		}
 	}
 
