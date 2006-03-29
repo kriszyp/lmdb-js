@@ -177,6 +177,35 @@ ldap_back_conndn_cmp( const void *c1, const void *c2 )
 }
 
 /*
+ * ldap_back_conndnlc_cmp
+ *
+ * compares two ldapconn_t based on the value of the conn pointer,
+ * the local DN and the lc pointer; used by avl stuff for insert, lookup
+ * and direct delete
+ */
+static int
+ldap_back_conndnlc_cmp( const void *c1, const void *c2 )
+{
+	const ldapconn_t	*lc1 = (const ldapconn_t *)c1;
+	const ldapconn_t	*lc2 = (const ldapconn_t *)c2;
+	int rc;
+
+	/* If local DNs don't match, it is definitely not a match */
+	/* For shared sessions, conn is NULL. Only explicitly
+	 * bound sessions will have non-NULL conn.
+	 */
+	rc = SLAP_PTRCMP( lc1->lc_conn, lc2->lc_conn );
+	if ( rc == 0 ) {
+		rc = ber_bvcmp( &lc1->lc_local_ndn, &lc2->lc_local_ndn );
+		if ( rc == 0 ) {
+			rc = SLAP_PTRCMP( lc1, lc2 );
+		}
+	}
+
+	return rc;
+}
+
+/*
  * ldap_back_conn_cmp
  *
  * compares two ldapconn_t based on the value of the conn pointer;
@@ -636,20 +665,30 @@ retry_lock:
 		}
 
 	} else {
+		char	buf[ SLAP_TEXT_BUFLEN ];
+		int	expiring = 0;
+
 		if ( ( li->li_idle_timeout != 0 && op->o_time > lc->lc_time + li->li_idle_timeout )
 			|| ( li->li_conn_ttl != 0 && op->o_time > lc->lc_create_time + li->li_conn_ttl ) )
 		{
-			/* in case of failure, it frees/taints lc and sets it to NULL */
-			if ( !ldap_back_retry( &lc, op, rs, sendok ) ) {
-				lc = NULL;
-			}
+			expiring = 1;
+
+			/* let it be used, but taint/delete it so that 
+			 * no-one else can look it up any further */
+			ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+			(void *)avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+					ldap_back_conndnlc_cmp );
+			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		}
 
-		if ( lc ) {
+		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+			snprintf( buf, sizeof( buf ),
+				"conn %p fetched refcnt=%u binding=%u%s",
+				(void *)lc, refcnt, binding, expiring ? " expiring" : "" );
 			Debug( LDAP_DEBUG_TRACE,
-				"=>ldap_back_getconn: conn %p fetched refcnt=%u binding=%u\n",
-				(void *)lc, refcnt, binding );
+				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
 		}
+	
 	}
 
 	if ( li->li_idle_timeout && lc ) {
@@ -1080,6 +1119,20 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			if ( rc == 0 ) {
 				*lcp = NULL;
 			}
+		}
+
+	} else {
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_back_retry: conn %p refcnt=%u unable to retry.\n",
+			(void *)(*lcp), (*lcp)->lc_refcnt, 0 );
+
+		ldap_back_release_conn_lock( op, rs, *lcp, 0 );
+		*lcp = NULL;
+
+		if ( sendok ) {
+			rs->sr_err = LDAP_UNAVAILABLE;
+			rs->sr_text = "unable to retry";
+			send_ldap_result( op, rs );
 		}
 	}
 
