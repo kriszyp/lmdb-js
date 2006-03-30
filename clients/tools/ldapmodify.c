@@ -1027,7 +1027,8 @@ domodify(
 		if ( rc != LDAP_SUCCESS ) {
 			/* print error message about failed update including DN */
 			fprintf( stderr, _("%s: update failed: %s\n"), prog, dn );
-			tool_perror( newentry ? "ldap_add" : "ldap_modify", rc, NULL, NULL, NULL, NULL );
+			tool_perror( newentry ? "ldap_add" : "ldap_modify",
+				rc, NULL, NULL, NULL, NULL );
 			goto done;
 		} else if ( verbose ) {
 			printf( _("modify complete\n") );
@@ -1098,10 +1099,10 @@ dorename(
 			pctrls, NULL, &msgid );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, _("%s: rename failed: %s\n"), prog, dn );
-			tool_perror( "ldap_modrdn", rc, NULL, NULL, NULL, NULL );
+			tool_perror( "ldap_rename", rc, NULL, NULL, NULL, NULL );
 			goto done;
 		} else {
-			printf( _("modrdn completed\n") );
+			printf( _("rename completed\n") );
 		}
 
 		rc = process_response( ld, msgid, LDAP_RES_RENAME, dn );
@@ -1125,7 +1126,7 @@ res2str( int res ) {
 	case LDAP_RES_MODIFY:
 		return "ldap_modify";
 	case LDAP_RES_MODRDN:
-		return "ldap_modrdn";
+		return "ldap_rename";
 	default:
 		assert( 0 );
 	}
@@ -1170,6 +1171,11 @@ static int process_response(
 	rc = ldap_parse_result( ld, res, &err, &matched, &text, &refs, &ctrls, 1 );
 	if ( rc == LDAP_SUCCESS ) rc = err;
 
+#ifdef LDAP_X_TXN
+	if ( rc == LDAP_X_TXN_SPECIFY_OKAY ) {
+		rc = LDAP_SUCCESS;
+	} else
+#endif
 	if ( rc != LDAP_SUCCESS ) {
 		tool_perror( res2str( op ), rc, NULL, matched, text, refs );
 	} else if ( msgtype != op ) {

@@ -106,6 +106,10 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
 	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
 
+#ifdef LDAP_X_TXN
+	{LDAP_X_TXN_SPECIFY_OKAY,		N_("TXN specify okay")},
+	{LDAP_X_TXN_ID_INVALID,			N_("TXN ID is invalid")},
+#endif
 
 	/* API ResultCodes */
 	{LDAP_SERVER_DOWN,				N_("Can't contact LDAP server")},
