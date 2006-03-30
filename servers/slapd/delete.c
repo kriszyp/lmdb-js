@@ -90,6 +90,13 @@ do_delete(
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_delete( op, rs );
 
+#ifdef LDAP_X_TXN
+	if( rs->sr_err == LDAP_X_TXN_SPECIFY_OKAY ) {
+		/* skip cleanup */
+		return rs->sr_err;
+	}
+#endif
+
 cleanup:;
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
@@ -155,8 +162,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 	if ( op->o_bd->be_delete ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op );
-		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
-		{
+		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user ) {
 			struct berval	org_req_dn = BER_BVNULL;
 			struct berval	org_req_ndn = BER_BVNULL;
 			struct berval	org_dn = BER_BVNULL;
@@ -166,8 +172,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 
 			op->o_bd = op_be;
 
-			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
-			{
+			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user ) {
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
 			}

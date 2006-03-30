@@ -132,8 +132,7 @@ slap_op_alloc(
     BerElement		*ber,
     ber_int_t	msgid,
     ber_tag_t	tag,
-    ber_int_t	id
-)
+    ber_int_t	id )
 {
 	Operation	*op;
 

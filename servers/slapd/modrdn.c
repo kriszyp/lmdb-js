@@ -184,6 +184,12 @@ do_modrdn(
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_modrdn( op, rs );
 
+#ifdef LDAP_X_TXN
+	if( rs->sr_err == LDAP_X_TXN_SPECIFY_OKAY ) {
+		/* skip cleanup */
+	}
+#endif
+
 cleanup:
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
@@ -194,10 +200,12 @@ cleanup:
 	if ( op->orr_modlist != NULL )
 		slap_mods_free( op->orr_modlist, 1 );
 
-	if ( !BER_BVISNULL( &pnewSuperior ) ) 
+	if ( !BER_BVISNULL( &pnewSuperior ) ) {
 		op->o_tmpfree( pnewSuperior.bv_val, op->o_tmpmemctx );
-	if ( !BER_BVISNULL( &nnewSuperior ) )
+	}
+	if ( !BER_BVISNULL( &nnewSuperior ) ) {
 		op->o_tmpfree( nnewSuperior.bv_val, op->o_tmpmemctx );
+	}
 
 	return rs->sr_err;
 }

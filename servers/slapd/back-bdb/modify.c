@@ -325,7 +325,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 		/* insert operation into transaction */
 
 		rs->sr_text = "transaction specified";
-		rs->sr_err = LDAP_SUCCESS;
+		rs->sr_err = LDAP_X_TXN_SPECIFY_OKAY;
 
 txnReturn:
 		/* release connection lock */

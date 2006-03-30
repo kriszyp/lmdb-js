@@ -180,6 +180,13 @@ do_add( Operation *op, SlapReply *rs )
 
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
+
+#ifdef LDAP_X_TXN
+	if ( rc == LDAP_X_TXN_SPECIFY_OKAY ) {
+		/* skip cleanup */
+		return rc;
+	} else
+#endif
 	if ( rc == 0 ) {
 		if ( op->ora_e != NULL && op->o_private != NULL ) {
 			BackendDB	*bd = op->o_bd;
@@ -281,8 +288,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	if ( op->o_bd->be_add ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op );
-		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
-		{
+		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user ) {
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 

@@ -1268,6 +1268,20 @@ connection_operation( void *ctx, void *arg_v )
 		goto operations_error;
 	}
 
+#ifdef LDAP_X_TXN
+	if (( conn->c_txn == CONN_TXN_SPECIFY ) && (
+		( tag == LDAP_REQ_ADD ) ||
+		( tag == LDAP_REQ_DELETE ) ||
+		( tag == LDAP_REQ_MODIFY ) ||
+		( tag == LDAP_REQ_MODRDN )))
+	{
+		/* Disable SLAB allocator for all update operations
+			issued inside of a transaction */
+		op->o_tmpmemctx = NULL;
+		op->o_tmpmfuncs = &ch_mfuncs;
+	} else
+#endif
+	{
 	/* We can use Thread-Local storage for most mallocs. We can
 	 * also use TL for ber parsing, but not on Add or Modify.
 	 */
@@ -1286,6 +1300,7 @@ connection_operation( void *ctx, void *arg_v )
 		 * ber_scanf may invoke.
 		 */
 		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx );
+	}
 	}
 
 	switch ( tag ) {
