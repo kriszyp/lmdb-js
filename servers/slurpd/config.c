@@ -182,6 +182,7 @@ slurpd_read_config(
 					"%s: line %d: missing filename in \"include <filename>\" line\n",
 					fname, lineno, 0 );
 		
+				fclose( fp );
 				return( 1 );
 			}
 			LUTIL_SLASHPATH( cargv[1] );
@@ -189,6 +190,7 @@ slurpd_read_config(
 			savelineno = lineno;
 	    
 			if ( slurpd_read_config( savefname ) != 0 ) {
+				fclose( fp );
 				return( 1 );
 			}
 		
@@ -201,6 +203,7 @@ slurpd_read_config(
 					"%s: line %d: missing file name in \"replica-pidfile <file>\" line\n",
 					fname, lineno, 0 );
 
+				fclose( fp );
 				return( 1 );
 			}
 
@@ -231,6 +234,7 @@ slurpd_read_config(
 					"%s: line %d: missing file name in \"argsfile <file>\" line\n",
 					fname, lineno, 0 );
 
+				fclose( fp );
 				return( 1 );
 			}
 
@@ -262,6 +266,7 @@ slurpd_read_config(
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: missing interval in "
 					"\"replicationinterval <seconds>\" line\n",
 					fname, lineno, 0 );
+				fclose( fp );
 				return( 1 );
 			}
 
@@ -270,6 +275,7 @@ slurpd_read_config(
 					"(%d) in \"replicationinterval <seconds>\" line\n",
 					fname, lineno, c );
 
+				fclose( fp );
 				return( 1 );
 			}
 
@@ -571,6 +577,7 @@ parse_replica_line(
 			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
 			fprintf( stderr, "file, missing uri hostname, line %d\n",
 				lineno );
+			ldap_free_urldesc( ludp );				
 			return -1;
 		}
 		ri->ri_hostname = strdup ( ludp->lud_host );

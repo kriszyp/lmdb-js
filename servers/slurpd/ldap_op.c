@@ -669,7 +669,7 @@ do_bind(
 )
 {
     int		ldrc;
-    int		do_tls = ri->ri_tls;
+    int		do_tls;
 
     *lderr = 0;
 
@@ -677,6 +677,8 @@ do_bind(
 	Debug( LDAP_DEBUG_ANY, "Error: do_bind: null ri ptr\n", 0, 0, 0 );
 	return( BIND_ERR_BADRI );
     }
+
+    do_tls = ri->ri_tls;
 
 retry:
     if ( ri->ri_ldp != NULL ) {
