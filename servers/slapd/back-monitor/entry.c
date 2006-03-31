@@ -163,6 +163,8 @@ monitor_entrypriv_create( void )
 	mp->mp_flags = MONITOR_F_NONE;
 	mp->mp_cb = NULL;
 
+	ldap_pvt_thread_mutex_init( &mp->mp_mutex );
+
 	return mp;
 }
 
