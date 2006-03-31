@@ -130,7 +130,11 @@ ldap_x_utf8s_to_wcs ( wchar_t *wcstr, const char *utf8str, size_t count )
 
 
 	/* If input ptr is NULL, treat it as empty string. */
-	if (utf8str == NULL) utf8str = "";
+	if (utf8str == NULL) {
+		if ( wcstr )
+			*wcstr = 0;
+		return 0;
+	}
 
 	/* Examine next UTF-8 character.  If output buffer is NULL, ignore count */
 	while ( *utf8str && (wcstr==NULL || wclen<count) ) {
