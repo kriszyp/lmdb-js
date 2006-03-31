@@ -1,5 +1,5 @@
 /*
- * Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2006, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -49,10 +49,21 @@ void LDAPAsynConnection::init(const string& hostname, int port){
     DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
             "   hostname:" << hostname << endl
             << "   port:" << port << endl);
-    std::ostringstream urlstream;
-    urlstream << "ldap://" + hostname << ":" << port;
-    std::string url = urlstream.str();
-    ldap_initialize(&cur_session, url.c_str());
+
+    char* ldapuri;
+    LDAPURLDesc url;
+    memset( &url, 0, sizeof(url));
+
+    url.lud_scheme = "ldap";
+    url.lud_host = strdup(hostname.c_str());
+    url.lud_port = port;
+    url.lud_scope = LDAP_SCOPE_DEFAULT;
+
+    ldapuri = ldap_url_desc2str( &url );
+    int ret = ldap_initialize(&cur_session, ldapuri);
+    if ( ret != LDAP_SUCCESS ) {
+        throw LDAPException( ret );
+    }
     m_host=hostname;
     m_port=port;
     int opt=3;

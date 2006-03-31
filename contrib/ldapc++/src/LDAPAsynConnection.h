@@ -71,7 +71,7 @@ class LDAPAsynConnection{
          *      this connection
          */
         LDAPAsynConnection(const std::string& hostname=std::string("localhost"),
-                int port=389, LDAPConstraints *cons=new LDAPConstraints() );
+                int port=0, LDAPConstraints *cons=new LDAPConstraints() );
 
         //* Destructor
         virtual ~LDAPAsynConnection();
