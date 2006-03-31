@@ -626,7 +626,10 @@ typedef struct ldapcontrol {
 #define LDAP_X_INVALIDREFERENCE			0x4112
 #endif
 
-#define LDAP_X_TXN_ID_INVALID		0x4120
+#ifdef LDAP_X_TXN
+#define LDAP_X_TXN_SPECIFY_OKAY		0x4120
+#define LDAP_X_TXN_ID_INVALID		0x4121
+#endif
 
 /* API Error Codes
  *
