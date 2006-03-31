@@ -765,12 +765,12 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		}
 #else
 		rc = hdb_cache_find_parent(op, tid, locker, id, eip );
-		if ( rc == 0 && *eip ) islocked = 1;
+		if ( rc == 0 ) islocked = 1;
 #endif
 	}
 
 	/* Ok, we found the info, do we have the entry? */
-	if ( *eip && rc == 0 ) {
+	if ( rc == 0 ) {
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
 		} else {
