@@ -1414,16 +1414,20 @@ add_extension(LDAPSchemaExtensionItem ***extensions,
 	if ( !*extensions ) {
 		*extensions =
 		  LDAP_CALLOC(2, sizeof(LDAPSchemaExtensionItem *));
-		if ( !*extensions )
-		  return 1;
+		if ( !*extensions ) {
+			LDAP_FREE( ext );
+			return 1;
+		}
 		n = 0;
 	} else {
 		for ( n=0; (*extensions)[n] != NULL; n++ )
 	  		;
 		tmp = LDAP_REALLOC(*extensions,
 				   (n+2)*sizeof(LDAPSchemaExtensionItem *));
-		if ( !tmp )
+		if ( !tmp ) {
+			LDAP_FREE( ext );
 			return 1;
+		}
 		*extensions = tmp;
 	}
 	(*extensions)[n] = ext;

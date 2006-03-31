@@ -1309,12 +1309,18 @@ ldap_url_parsehosts(
 					specs[i] = ludp->lud_host;
 					ludp->lud_host = p;
 					p = strchr( ludp->lud_host, ']' );
-					if ( p == NULL )
+					if ( p == NULL ) {
+						LDAP_FREE(ludp);
+						ldap_charray_free(specs);
 						return LDAP_PARAM_ERROR;
+					}
 					*p++ = '\0';
 					if ( *p != ':' ) {
-						if ( *p != '\0' )
+						if ( *p != '\0' ) {
+							LDAP_FREE(ludp);
+							ldap_charray_free(specs);
 							return LDAP_PARAM_ERROR;
+						}
 						p = NULL;
 					}
 				} else {
@@ -1328,6 +1334,8 @@ ldap_url_parsehosts(
 				ldap_pvt_hex_unescape(p);
 				ludp->lud_port = strtol( p, &next, 10 );
 				if ( next == p || next[0] != '\0' ) {
+					LDAP_FREE(ludp);
+					ldap_charray_free(specs);
 					return LDAP_PARAM_ERROR;
 				}
 			}

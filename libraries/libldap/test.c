@@ -205,6 +205,10 @@ get_modlist(
 				    6 ) == 0 ) {
 					if ( file_read( tmp.mod_values[i] + 6,
 					    bvals[i] ) < 0 ) {
+						free( bvals );
+						for ( i = 0; i<num; i++ )
+							free( result[ i ] );
+						free( result );
 						return( NULL );
 					}
 				} else {

@@ -1024,7 +1024,7 @@ int ldap_pvt_sasl_secprops(
 	sasl_security_properties_t *secprops )
 {
 	int i, j, l;
-	char **props = ldap_str2charray( in, "," );
+	char **props;
 	unsigned sflags = 0;
 	int got_sflags = 0;
 	sasl_ssf_t max_ssf = 0;
@@ -1034,7 +1034,11 @@ int ldap_pvt_sasl_secprops(
 	unsigned maxbufsize = 0;
 	int got_maxbufsize = 0;
 
-	if( props == NULL || secprops == NULL ) {
+	if( secprops == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
+	props = ldap_str2charray( in, "," );
+	if( props == NULL ) {
 		return LDAP_PARAM_ERROR;
 	}
 
