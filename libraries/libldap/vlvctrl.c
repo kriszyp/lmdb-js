@@ -95,8 +95,9 @@ ldap_create_vlv_control_value(
 	BerElement *ber;
 
 	if ( ld == NULL || vlvinfop == NULL || value == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return ld->ld_errno;
+		if ( ld )
+			ld->ld_errno = LDAP_PARAM_ERROR;
+		return LDAP_PARAM_ERROR;
 	}
 
 	assert( LDAP_VALID( ld ) );

@@ -297,8 +297,9 @@ ldap_create_sort_control_value(
 	ber_tag_t	tag;
 
 	if ( ld == NULL || keyList == NULL || value == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return ld->ld_errno;
+		if ( ld )
+			ld->ld_errno = LDAP_PARAM_ERROR;
+		return LDAP_PARAM_ERROR;
 	}
 
 	assert( LDAP_VALID( ld ) );
@@ -496,8 +497,7 @@ ldap_parse_sortresponse_control(
 	ber_len_t berLen;
 
 	if (ld == NULL) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return(ld->ld_errno);
+		return LDAP_PARAM_ERROR;
 	}
 
 	if (ctrl == NULL) {

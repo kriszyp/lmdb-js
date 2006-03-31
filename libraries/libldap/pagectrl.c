@@ -65,8 +65,9 @@ ldap_create_page_control_value(
 	if ( ld == NULL || value == NULL ||
 		pagesize < 1 || pagesize > LDAP_MAXINT )
 	{
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return ld->ld_errno;
+		if ( ld )
+			ld->ld_errno = LDAP_PARAM_ERROR;
+		return LDAP_PARAM_ERROR;
 	}
 
 	assert( LDAP_VALID( ld ) );
@@ -195,8 +196,9 @@ ldap_parse_pageresponse_control(
 	ber_int_t count;
 
 	if ( ld == NULL || ctrl == NULL || cookie == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return ld->ld_errno;
+		if ( ld )
+			ld->ld_errno = LDAP_PARAM_ERROR;
+		return LDAP_PARAM_ERROR;
 	}
 
 	/* Create a BerElement from the berval returned in the control. */
