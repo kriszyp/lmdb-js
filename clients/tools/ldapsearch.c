@@ -1070,6 +1070,9 @@ static int dosearch(
 	}
 
 	if ( dont ) {
+		if ( filtpatt != NULL ) {
+			free( filter );
+		}
 		return LDAP_SUCCESS;
 	}
 
