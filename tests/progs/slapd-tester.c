@@ -730,11 +730,14 @@ get_read_entries( char *filename, char *entries[], char *filters[] )
 				LDAPURLDesc	*lud;
 
 				if ( ldap_url_parse( &line[1], &lud ) != LDAP_URL_SUCCESS ) {
-					return -1;
+					entry = -1;
+					break;
 				}
 
 				if ( lud->lud_dn == NULL || lud->lud_dn[ 0 ] == '\0' ) {
-					return -1;
+					ldap_free_urldesc( lud );
+					entry = -1;
+					break;
 				}
 
 				entries[entry] = ArgDup( lud->lud_dn );
@@ -745,7 +748,7 @@ get_read_entries( char *filename, char *entries[], char *filters[] )
 				} else {
 					filters[entry] = ArgDup( "(objectClass=*)" );
 				}
-
+				ldap_free_urldesc( lud );
 
 			} else {
 				entries[entry] = ArgDup( line );
