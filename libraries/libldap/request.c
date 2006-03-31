@@ -93,7 +93,6 @@ ldap_send_initial_request(
 	BerElement *ber,
 	ber_int_t msgid)
 {
-	LDAPURLDesc	*servers;
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
@@ -112,14 +111,6 @@ ldap_send_initial_request(
 			0, 0, 0 );
 	}
 
-	{
-		/*
-		 * use of DNS is turned off or this is an X.500 DN...
-		 * use our default connection
-		 */
-		servers = NULL;
-	}	
-
 #ifdef LDAP_CONNECTIONLESS
 	if (LDAP_IS_UDP(ld)) {
 		if (msgtype == LDAP_REQ_BIND) {
@@ -136,12 +127,10 @@ ldap_send_initial_request(
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 	rc = ldap_send_server_request( ld, ber, msgid, NULL,
-		servers, NULL, NULL );
+		NULL, NULL, NULL );
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
-	if (servers)
-		ldap_free_urllist(servers);
 	return(rc);
 }
 
