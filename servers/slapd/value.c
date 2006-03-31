@@ -236,7 +236,7 @@ int value_find_ex(
 	{
 		rc = (mr->smr_normalize)(
 			flags & (SLAP_MR_TYPE_MASK|SLAP_MR_SUBTYPE_MASK|SLAP_MR_VALUE_OF_SYNTAX),
-			ad ? ad->ad_type->sat_syntax : NULL,
+			ad->ad_type->sat_syntax,
 			mr, val, &nval, ctx );
 
 		if( rc != LDAP_SUCCESS ) {

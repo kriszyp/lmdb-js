@@ -437,8 +437,6 @@ static Connection* connection_get( ber_socket_t s )
 	assert( MCA_conn_check( s ) );
 	c = MCA_GET_CONNECTION(s);
 
-	assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
-
 #else
 	c = NULL;
 	{
@@ -474,6 +472,8 @@ static Connection* connection_get( ber_socket_t s )
 
 	if( c != NULL ) {
 		ber_socket_t	sd;
+
+		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
 		ldap_pvt_thread_mutex_lock( &c->c_mutex );
 

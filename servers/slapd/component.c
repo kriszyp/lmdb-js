@@ -179,7 +179,7 @@ dup_comp_ref ( Operation* op, ComponentReference* cr )
 		ci_curr = ci_curr->ci_next, ci_temp = &(*ci_temp)->ci_next )
 	{
 		*ci_temp = op->o_tmpalloc( sizeof( ComponentId ), op->o_tmpmemctx );
-		if ( !ci_temp ) return NULL;
+		if ( !*ci_temp ) return NULL;
 		**ci_temp = *ci_curr;
 	}
 

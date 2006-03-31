@@ -258,9 +258,8 @@ int bdb_entry_release(
 #endif
 		}
 		/* free entry and reader or writer lock */
-		if ( op ) {
-			boi = (struct bdb_op_info *)op->o_private;
-		}
+		boi = (struct bdb_op_info *)op->o_private;
+
 		/* lock is freed with txn */
 		if ( !boi || boi->boi_txn ) {
 			bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
