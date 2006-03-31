@@ -488,7 +488,7 @@ init_config_attrs(ConfigTable *ct) {
 			}
 		}
 		code = slap_str2ad( at->at_names[0], &ct[i].ad, &err );
-		if ( freeit ) {
+		if ( freeit || code ) {
 			ldap_attributetype_free( at );
 		} else {
 			ldap_memfree( at );
@@ -523,10 +523,14 @@ init_config_ocs( ConfigOCs *ocs ) {
 		if ( code && code != SLAP_SCHERR_CLASS_DUP ) {
 			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
 				ocs[i].co_def, scherr2str(code), err );
+			ldap_objectclass_free(oc);
 			return code;
 		}
 		ocs[i].co_oc = oc_find(oc->oc_names[0]);
-		ldap_memfree(oc);
+		if ( code )
+			ldap_objectclass_free(oc);
+		else
+			ldap_memfree(oc);
 	}
 	return 0;
 }

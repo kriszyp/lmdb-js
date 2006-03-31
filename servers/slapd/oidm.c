@@ -100,13 +100,14 @@ parse_oidm(
 	OidMacro **rom)
 {
 	char *oid;
-	OidMacro *om;
+	OidMacro *om = NULL;
 	struct berval bv;
 
 	if (argc != 3) {
 		fprintf( stderr, "%s: line %d: too many arguments\n",
 			fname, lineno );
 usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
+		if (om) SLAP_FREE( om );
 		return 1;
 	}
 
@@ -116,6 +117,7 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 			"%s: line %d: "
 			"ObjectIdentifier \"%s\" previously defined \"%s\"",
 			fname, lineno, argv[1], oid );
+		SLAP_FREE( oid );
 		return 1;
 	}
 

@@ -1285,6 +1285,7 @@ monitor_back_initialize(
 		}
 
 		if ( at->at_oid == NULL ) {
+			ldap_attributetype_free(at);
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"null OID for attributeType \"%s\"\n",
 				mat[ i ].name, 0, 0 );
@@ -1293,6 +1294,7 @@ monitor_back_initialize(
 
 		code = at_add(at, 0, NULL, &err);
 		if ( code ) {
+			ldap_attributetype_free(at);
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"%s in attributeType \"%s\"\n",
 				scherr2str(code), mat[ i ].name, 0 );
@@ -1328,6 +1330,7 @@ monitor_back_initialize(
 		}
 
 		if ( oc->oc_oid == NULL ) {
+			ldap_objectclass_free(oc);
 			Debug( LDAP_DEBUG_ANY,
 				"objectclass \"%s\" has no OID\n" ,
 				moc[ i ].name, 0, 0 );
@@ -1336,12 +1339,12 @@ monitor_back_initialize(
 
 		code = oc_add(oc, 0, NULL, &err);
 		if ( code ) {
+			ldap_objectclass_free(oc);
 			Debug( LDAP_DEBUG_ANY,
 				"objectclass \"%s\": %s \"%s\"\n" ,
 				moc[ i ].name, scherr2str(code), err );
 			return -1;
 		}
-
 		ldap_memfree(oc);
 
 		Oc = oc_find( moc[ i ].name );

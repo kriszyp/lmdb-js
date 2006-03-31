@@ -1202,6 +1202,7 @@ slap_schema_load( void )
 				fprintf( stderr, "slap_schema_load: "
 					"AttributeType \"%s\": no OID\n",
 					ad_map[i].ssam_name );
+				ldap_attributetype_free( at );
 				return LDAP_OTHER;
 			}
 
@@ -1317,18 +1318,20 @@ slap_schema_load( void )
 				fprintf( stderr, "slap_schema_load: ObjectClass "
 					"\"%s\": no OID\n",
 					oc_map[i].ssom_name );
+				ldap_objectclass_free( oc );
 				return LDAP_OTHER;
 			}
 
 			code = oc_add(oc,0,NULL,&err);
 			if ( code ) {
+				ldap_objectclass_free( oc );
 				fprintf( stderr, "slap_schema_load: ObjectClass "
 					"\"%s\": %s: \"%s\"\n",
 				 	oc_map[i].ssom_name, scherr2str(code), err);
 				return code;
 			}
-
 			ldap_memfree(oc);
+
 		}
 		{
 			ObjectClass ** ocp = (ObjectClass **)

@@ -169,6 +169,7 @@ mr_add(
 		for( i=0; def->mrd_compat_syntaxes[i]; i++ ) {
 			compat_syn[i] = syn_find( def->mrd_compat_syntaxes[i] );
 			if( compat_syn[i] == NULL ) {
+				ch_free( compat_syn );
 				return SLAP_SCHERR_SYN_NOT_FOUND;
 			}
 		}
@@ -198,10 +199,12 @@ mr_add(
 			smr->smr_syntax = syn;
 		} else {
 			*err = smr->smr_syntax_oid;
+			ch_free( smr );
 			return SLAP_SCHERR_SYN_NOT_FOUND;
 		}
 	} else {
 		*err = "";
+		ch_free( smr );
 		return SLAP_SCHERR_MR_INCOMPLETE;
 	}
 	code = mr_insert(smr,err);

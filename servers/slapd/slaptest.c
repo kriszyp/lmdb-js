@@ -69,6 +69,7 @@ test_file( const char *fname, const char *ftype )
 
 				return -1;
 			}
+			fclose( fp );
 			unlink( fname );
 			break;
 		}

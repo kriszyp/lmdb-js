@@ -4080,6 +4080,11 @@ out:
 	}
 	ch_free( ca->argv );
 	if ( colst ) ch_free( colst );
+	while( dels ) {
+		deltail = dels->next;
+		ch_free( dels );
+		dels = deltail;
+	}
 
 	return rc;
 }
