@@ -620,25 +620,19 @@ main( int argc, char **argv )
 			fork_child( rcmd, rargs );
 		}
 
-		if ( DOREQ( mnum, j ) ) {
-			int	jj = j % mnum;
-
-			margs[manum - 2] = mreqs[jj];
+		if ( j < mnum ) {
+			margs[manum - 2] = mreqs[j];
 			fork_child( mcmd, margs );
 		}
 
-		if ( DOREQ( modnum, j ) ) {
-			int	jj = j % modnum;
-
-			modargs[modanum - 4] = moddn[jj];
-			modargs[modanum - 2] = modreqs[jj];
+		if ( j < modnum ) {
+			modargs[modanum - 4] = moddn[j];
+			modargs[modanum - 2] = modreqs[j];
 			fork_child( modcmd, modargs );
 		}
 
-		if ( DOREQ( anum, j ) ) {
-			int	jj = j % anum;
-
-			aargs[aanum - 2] = afiles[jj];
+		if ( j < anum ) {
+			aargs[aanum - 2] = afiles[j];
 			fork_child( acmd, aargs );
 		}
 
