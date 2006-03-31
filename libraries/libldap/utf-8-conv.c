@@ -129,8 +129,8 @@ ldap_x_utf8s_to_wcs ( wchar_t *wcstr, const char *utf8str, size_t count )
 	wchar_t ch;
 
 
-	/* If input ptr is NULL, treat it as empty string. */
-	if (utf8str == NULL) {
+	/* If input ptr is NULL or empty... */
+	if (utf8str == NULL || !*utf8str) {
 		if ( wcstr )
 			*wcstr = 0;
 		return 0;
