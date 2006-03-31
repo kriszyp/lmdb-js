@@ -1302,9 +1302,6 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 			sl->sl_mincsn.bv_len = se->se_csn.bv_len;
 			ch_free( se );
 			sl->sl_num--;
-			if ( !sl->sl_head ) {
-				sl->sl_tail = NULL;
-			}
 		}
 		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
 	}

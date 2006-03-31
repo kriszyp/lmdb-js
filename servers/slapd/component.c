@@ -594,16 +594,8 @@ get_component_reference(
 		return rc;
 	}
 
-	if ( rc == LDAP_SUCCESS ) {	
-		*cr = ca_comp_ref;
-		**cr = *ca_comp_ref;	
-
-	} else if ( op ) {
-		 op->o_tmpfree( ca_comp_ref , op->o_tmpmemctx );
-
-	} else {
-		 free( ca_comp_ref ) ;
-	}
+	*cr = ca_comp_ref;
+	**cr = *ca_comp_ref;	
 
 	(*cr)->cr_string.bv_val = start;
 	(*cr)->cr_string.bv_len = end - start + 1;

@@ -422,6 +422,9 @@ slap_sl_free(void *ptr, void *ctx)
 	unsigned long diff;
 	int i, inserted = 0;
 
+	if (!ptr)
+		return;
+
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
 	} else if (sh->sh_stack && (char *)ptr + p[-1] == sh->sh_last) {

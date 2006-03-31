@@ -860,7 +860,7 @@ monitor_back_register_entry_attrs(
 
 done:;
 		if ( rc ) {
-			if ( *atp ) {
+			if ( atp && *atp ) {
 				attrs_free( *atp );
 				*atp = NULL;
 			}

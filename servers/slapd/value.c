@@ -75,7 +75,7 @@ value_add(
 	}
 
 	v2 = &(*vals)[n];
-	for ( ; !BER_BVISNULL( addvals ); v2++, addvals++ ) {
+	for ( n = 0 ; n < nn; v2++, addvals++ ) {
 		ber_dupbv( v2, addvals );
 		if ( BER_BVISNULL( v2 ) ) break;
 	}
@@ -718,6 +718,8 @@ ordered_value_add(
 				next[ 0 ] != '}' ||
 				next - vals[i].bv_val > vals[i].bv_len )
 			{
+				ch_free( nnew );
+				ch_free( new );
 				return -1;
 			}
 			if ( k > anum ) k = -1;
