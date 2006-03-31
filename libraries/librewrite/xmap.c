@@ -214,7 +214,8 @@ rewrite_xmap_parse(
 	
 	/* Unhandled map */
 	}
-	
+
+	free( map );
 	return NULL;
 }
 
