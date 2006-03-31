@@ -457,6 +457,11 @@ at_add(
 	char		*cname = NULL;
 	char		*oidm = NULL;
 
+	if ( !at->at_oid ) {
+		*err = "";
+		return SLAP_SCHERR_ATTR_INCOMPLETE;
+	}
+
 	if ( !OID_LEADCHAR( at->at_oid[0] )) {
 		char	*oid;
 
@@ -501,13 +506,9 @@ at_add(
 
 		cname = at->at_names[0];
 
-	} else if ( at->at_oid ) {
+	} else {
 		cname = at->at_oid;
 
-	} else {
-		*err = "";
-		code = SLAP_SCHERR_ATTR_INCOMPLETE;
-		goto error_return;
 	}
 
 	*err = cname;
