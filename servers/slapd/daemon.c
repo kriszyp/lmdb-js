@@ -1157,6 +1157,8 @@ int slapd_daemon_init( const char *urls )
 	if( u == NULL || u[0] == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no urls (%s) provided.\n",
 			urls, 0, 0 );
+		if ( u )
+			ldap_charray_free( u );
 		return -1;
 	}
 

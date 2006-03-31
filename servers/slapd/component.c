@@ -580,6 +580,11 @@ get_component_reference(
 			cr_list = &(*cr_list)->ci_next;
 
 		} else if ( rc == LDAP_COMPREF_UNDEFINED ) {
+			if ( op ) {
+				op->o_tmpfree( ca_comp_ref , op->o_tmpmemctx );
+			} else {
+				free( ca_comp_ref );
+			}
 			return rc;
 		}
 	}

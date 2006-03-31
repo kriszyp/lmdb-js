@@ -1319,7 +1319,7 @@ build_new_dn( struct berval * new_dn,
 	char *ptr;
 
 	if ( parent_dn == NULL || parent_dn->bv_len == 0 ) {
-		ber_dupbv( new_dn, newrdn );
+		ber_dupbv_x( new_dn, newrdn, memctx );
 		return;
 	}
 
