@@ -434,7 +434,7 @@ send_ldap_response(
 	int		rc = LDAP_SUCCESS;
 	long	bytes;
 
-	if ( rs->sr_err == SLAPD_ABANDON ) {
+	if ( rs->sr_err == SLAPD_ABANDON || op->o_abandon ) {
 		rc = SLAPD_ABANDON;
 		goto clean2;
 	}
@@ -643,7 +643,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	rs->sr_type = REP_RESULT;
 
 	/* Propagate Abandons so that cleanup callbacks can be processed */
-	if ( rs->sr_err == SLAPD_ABANDON )
+	if ( rs->sr_err == SLAPD_ABANDON || op->o_abandon )
 		goto abandon;
 
 	assert( !LDAP_API_ERROR( rs->sr_err ) );
