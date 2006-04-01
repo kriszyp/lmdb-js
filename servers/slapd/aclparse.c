@@ -994,7 +994,7 @@ parse_acl(
 								< bdn->a_pat.bv_len;
 							exp = strchr( exp, '$' ) )
 						{
-							if ( isdigit( exp[ 1 ] ) ) {
+							if ( isdigit( (unsigned char) exp[ 1 ] ) ) {
 								gotit = 1;
 								break;
 							}

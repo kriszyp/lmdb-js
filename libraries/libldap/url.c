@@ -346,7 +346,7 @@ hex_escape_len( const char *s, unsigned list )
 			
 		/* RFC 2396: unreserved alphanum */
 		default:
-			if ( !isalnum( s[0] ) ) {
+			if ( !isalnum( (unsigned char) s[0] ) ) {
 				len += 3;
 			} else {
 				len++;
@@ -411,7 +411,7 @@ hex_escape( char *buf, int len, const char *s, unsigned list )
 			
 		/* RFC 2396: unreserved alphanum */
 		default:
-			if ( !isalnum( s[i] ) ) {
+			if ( !isalnum( (unsigned char) s[i] ) ) {
 				escape = 1;
 			}
 			break;

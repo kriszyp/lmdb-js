@@ -552,7 +552,7 @@ strtok_quote_ldif( char **line )
 	if ( !ptr || !*ptr )
 		return NULL;
 
-	while( isspace( *ptr )) ptr++;
+	while( isspace( (unsigned char) *ptr )) ptr++;
 
 	if ( *ptr == '"' ) {
 		inquote = 1;
@@ -563,7 +563,7 @@ strtok_quote_ldif( char **line )
 
 	for (;*ptr;ptr++) {
 		if ( *ptr == '"' ) {
-			if ( inquote && ( !ptr[1] || isspace(ptr[1]))) {
+			if ( inquote && ( !ptr[1] || isspace((unsigned char) ptr[1]))) {
 				*ptr++ = '\0';
 				break;
 			}
@@ -573,7 +573,7 @@ strtok_quote_ldif( char **line )
 		}
 		if ( inquote )
 			continue;
-		if ( isspace( *ptr )) {
+		if ( isspace( (unsigned char) *ptr )) {
 			*ptr++ = '\0';
 			break;
 		}
@@ -587,7 +587,7 @@ strtok_quote_ldif( char **line )
 	if ( !*ptr ) {
 		*line = NULL;
 	} else {
-		while ( isspace( *ptr )) ptr++;
+		while ( isspace( (unsigned char) *ptr )) ptr++;
 		*line = ptr;
 	}
 	return beg;

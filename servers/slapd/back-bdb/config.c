@@ -490,7 +490,7 @@ bdb_cf_gen(ConfigArgs *c)
 				struct berval bv, def = BER_BVC("default");
 				char *ptr;
 
-				for (ptr = c->line; !isspace( *ptr ); ptr++);
+				for (ptr = c->line; !isspace( (unsigned char) *ptr ); ptr++);
 
 				bv.bv_val = c->line;
 				bv.bv_len = ptr - bv.bv_val;
@@ -578,8 +578,8 @@ bdb_cf_gen(ConfigArgs *c)
 
 		if ( c->op == SLAP_CONFIG_ADD ) {
 			ptr += STRLENOF("dbconfig");
-			while (!isspace(*ptr)) ptr++;
-			while (isspace(*ptr)) ptr++;
+			while (!isspace((unsigned char)*ptr)) ptr++;
+			while (isspace((unsigned char)*ptr)) ptr++;
 		}
 
 		if ( bdb->bi_flags & BDB_IS_OPEN ) {

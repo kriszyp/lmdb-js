@@ -1051,7 +1051,8 @@ int ldap_pvt_sasl_secprops(
 			if ( sprops[j].ival ) {
 				unsigned v;
 				char *next = NULL;
-				if ( !isdigit( props[i][sprops[j].key.bv_len] )) continue;
+				if ( !isdigit( (unsigned char)props[i][sprops[j].key.bv_len] ))
+					continue;
 				v = strtoul( &props[i][sprops[j].key.bv_len], &next, 10 );
 				if ( next == &props[i][sprops[j].key.bv_len] || next[0] != '\0' ) continue;
 				switch( sprops[j].ival ) {

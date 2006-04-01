@@ -244,7 +244,7 @@ parse_debug_level( const char *arg, int *levelp, char ***unknowns )
 {
 	int	level;
 
-	if ( arg != NULL && arg[ 0 ] != '-' && !isdigit( arg[ 0 ] ) )
+	if ( arg && arg[ 0 ] != '-' && !isdigit( (unsigned char) arg[ 0 ] ) )
 	{
 		int	i;
 		char	**levels;

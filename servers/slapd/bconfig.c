@@ -851,7 +851,7 @@ config_generic(ConfigArgs *c) {
 				AC_MEMCPY( abv.bv_val, ibuf, abv.bv_len );
 				/* Turn TAB / EOL into plain space */
 				for (src=bv.bv_val,dst=abv.bv_val+abv.bv_len; *src; src++) {
-					if (isspace(*src)) *dst++ = ' ';
+					if (isspace((unsigned char)*src)) *dst++ = ' ';
 					else *dst++ = *src;
 				}
 				*dst = '\0';
@@ -1416,8 +1416,8 @@ config_generic(ConfigArgs *c) {
 				char *ptr;
 				if ( c->op == SLAP_CONFIG_ADD ) {
 					ptr = c->line + STRLENOF("moduleload");
-					while (!isspace(*ptr)) ptr++;
-					while (isspace(*ptr)) ptr++;
+					while (!isspace((unsigned char) *ptr)) ptr++;
+					while (isspace((unsigned char) *ptr)) ptr++;
 				} else {
 					ptr = c->line;
 				}
@@ -2305,7 +2305,7 @@ config_loglevel(ConfigArgs *c) {
 	for( i=1; i < c->argc; i++ ) {
 		int	level;
 
-		if ( isdigit( c->argv[i][0] ) || c->argv[i][0] == '-' ) {
+		if ( isdigit((unsigned char)c->argv[i][0]) || c->argv[i][0] == '-' ) {
 			if( lutil_atoi( &level, c->argv[i] ) != 0 ) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse level", c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",

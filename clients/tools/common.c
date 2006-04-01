@@ -1687,7 +1687,7 @@ tool_is_oid( const char *s )
 {
 	int		first = 1;
 
-	if ( !isdigit( s[ 0 ] ) ) {
+	if ( !isdigit( (unsigned char) s[ 0 ] ) ) {
 		return 0;
 	}
 
@@ -1700,7 +1700,7 @@ tool_is_oid( const char *s )
 			continue;
 		}
 
-		if ( !isdigit( s[ 0 ] ) ) {
+		if ( !isdigit( (unsigned char) s[ 0 ] ) ) {
 			return 0;
 		}
 

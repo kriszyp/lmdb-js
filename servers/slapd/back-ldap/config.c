@@ -353,7 +353,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 			bindconf_unparse( &li->li_acl, &bv );
 
-			for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
+			for ( i = 0; isspace( (unsigned char) bv.bv_val[ i ] ); i++ )
 				/* count spaces */ ;
 
 			if ( i ) {
@@ -488,7 +488,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				bv.bv_len = ptr - bv.bv_val;
 
 			} else {
-				for ( i = 0; isspace( bc.bv_val[ i ] ); i++ )
+				for ( i = 0; isspace( (unsigned char) bc.bv_val[ i ] ); i++ )
 					/* count spaces */ ;
 
 				if ( i ) {
@@ -547,7 +547,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				return 1;
 			}
 
-			for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
+			for ( i = 0; isspace( (unsigned char) bv.bv_val[ i ] ); i++ )
 				/* count spaces */ ;
 
 			if ( i ) {
@@ -1157,7 +1157,7 @@ done_url:;
 
 	case LDAP_BACK_CFG_TIMEOUT:
 		for ( i = 1; i < c->argc; i++ ) {
-			if ( isdigit( c->argv[ i ][ 0 ] ) ) {
+			if ( isdigit( (unsigned char) c->argv[ i ][ 0 ] ) ) {
 				int		j;
 				unsigned	u;
 
