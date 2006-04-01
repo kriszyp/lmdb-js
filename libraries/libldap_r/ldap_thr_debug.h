@@ -18,7 +18,7 @@
 
 /*
  * libldap_r .c files should include this file after ldap_pvt_thread.h,
- * with the appropriate LDAP_THREAD*_IMPLEMENTATION macro defined.
+ * with the appropriate LDAP_THREAD*_IMPLEMENTATION macro(s) defined.
  */
 
 #ifndef _LDAP_PVT_THREAD_H
@@ -28,19 +28,35 @@
 /*
  * Support for thr_debug.c:
  *
- * thr_debug.c defines the ldap_pvt_*() as wrappers around
- * ldap_int_*(), and ldap_debug_*() around ldap_int_*().
+ * thr_debug.c defines ldap_pvt_thread_* as wrappers around the real
+ * ldap_pvt_thread_* implementation, which this file renames to
+ * ldap_int_thread_*.
  *
- * Renames ldap_pvt_thread_* names to ldap_int_thread_*, and a few
- * ldap_int_*() names to ldap_debug_*().  Includes "ldap_pvt_thread.h"
- * to declare these renamed functions, and undefines the macros
- * afterwards when included from thr_debug.c.  So,
+ * Implementation:
  *
- * libldap_r/<not thr_debug.c> define ldap_int_* instead of ldap_pvt_*.
+ * This file re#defines selected ldap_pvt_thread_* names to
+ * ldap_int_thread_*, which will be used from wrappers in thr_debug.c.
+ * Two ldap_int_*() calls are redirected to call ldap_debug_*(): These
+ * are wrappers around the originals, whose definitions are not renamed.
+ * This file then #includes ldap_pvt_thread.h to declare the renamed
+ * functions/types.  If #included from thr_debug.c it finally #undefines
+ * the macros again.
+ *
+ * include/ldap_pvt_thread.h declares the typedefs ldap_pvt_thread*_t as
+ * either wrapper types ldap_debug_thread*_t or their usual definitions
+ * ldap_int_thread*_t, depending on the LDAP_THREAD_DEBUG_WRAP option.
+ * When defining the underlying implementation, this file then redirects
+ * the type names back to the original ldap_int_thread*_t types.
+ * include/ldap_<int,pvt>_thread.h also do some thr_debug magic.
+ *
+ * So,
+ * libldap_r/<not thr_debug.c> thus define ldap_int_thread_*() instead
+ * of ldap_pvt_thread_*().
+ * thr_debug.c defines the ldap_pvt_*() and ldap_debug_*() functions.
  * In thread.c, ldap_pvt_thread_<initialize/destroy>() will call
- * ldap_debug_*() instead of ldap_int_*().
- * In tpool.c, ldap_int_thread_pool_shutdown() has thr_debug support
- * which treats ldap_pvt_thread_pool_destroy() the same way.
+ * ldap_debug_thread_*() instead of ldap_int_thread_*().
+ * In tpool.c, ldap_int_thread_pool_shutdown() has explicit thr_debug.c
+ * support which treats ldap_pvt_thread_pool_destroy() the same way.
  */
 
 #ifndef LDAP_THREAD_IMPLEMENTATION		/* for first part of threads.c */
