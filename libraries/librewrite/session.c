@@ -324,6 +324,9 @@ rewrite_session_clean( void *v_session )
 static void
 rewrite_session_free( void *v_session )
 {
+	struct rewrite_session	*session = (struct rewrite_session *)v_session;
+
+	ldap_pvt_thread_mutex_lock( &session->ls_mutex );
 	rewrite_session_clean( v_session );
 	free( v_session );
 }
