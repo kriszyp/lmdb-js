@@ -229,7 +229,7 @@ int value_find_ex(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	assert(SLAP_IS_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH( flags ));
+	assert( SLAP_IS_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH( flags ) != 0 );
 
 	if( !SLAP_IS_MR_ASSERTED_VALUE_NORMALIZED_MATCH( flags ) &&
 		mr->smr_normalize )

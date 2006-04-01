@@ -1010,7 +1010,7 @@ uniqueMemberNormalize(
 	struct berval out;
 	int rc;
 
-	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ));
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
 	ber_dupbv_x( &out, val, ctx );
 	if ( BER_BVISEMPTY( &out ) ) {
@@ -1423,7 +1423,7 @@ UTF8StringNormalize(
 	int flags;
 	int i, wasspace;
 
-	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ));
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ) != 0 );
 
 	if( BER_BVISNULL( val ) ) {
 		/* assume we're dealing with a syntax (e.g., UTF8String)
@@ -1854,7 +1854,7 @@ telephoneNumberNormalize(
 {
 	char *p, *q;
 
-	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ));
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
 	/* validator should have refused an empty string */
 	assert( !BER_BVISEMPTY( val ) );
@@ -2106,7 +2106,7 @@ IA5StringNormalize(
 
 	assert( !BER_BVISEMPTY( val ) );
 
-	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ));
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ) != 0 );
 
 	p = val->bv_val;
 
@@ -3275,7 +3275,7 @@ certificateExactNormalize(
 		return serialNumberAndIssuerNormalize(0,NULL,NULL,val,normalized,ctx);
 	}
 
-	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) );
+	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
 
 	p = (unsigned char *)val->bv_val;
 	xcert = d2i_X509( NULL, &p, val->bv_len);

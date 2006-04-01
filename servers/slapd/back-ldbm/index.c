@@ -164,7 +164,7 @@ static int indexer(
 	AttributeDescription *ad = NULL;
 	struct berval *keys;
 
-	assert( mask );
+	assert( mask != 0 );
 
 	rc = slap_bv2ad( atname, &ad, &text );
 
