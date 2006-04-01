@@ -2042,6 +2042,13 @@ connection_init_log_prefix( Operation *op )
 	}
 }
 
+static int connection_bind_cleanup_cb( Operation *op, SlapReply *rs )
+{
+	op->o_conn->c_sasl_bindop = NULL;
+
+	return SLAP_CB_CONTINUE;
+}
+
 static int connection_bind_cb( Operation *op, SlapReply *rs )
 {
 	slap_callback *cb = op->o_callback;
@@ -2111,6 +2118,7 @@ static void connection_op_queue( Operation *op )
 	if (tag == LDAP_REQ_BIND) {
 		slap_callback *sc = ch_calloc( 1, sizeof( slap_callback ));
 		sc->sc_response = connection_bind_cb;
+		sc->sc_response = connection_bind_cleanup_cb;
 		sc->sc_next = op->o_callback;
 		op->o_callback = sc;
 		op->o_conn->c_conn_state = SLAP_C_BINDING;
