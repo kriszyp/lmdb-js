@@ -144,7 +144,7 @@ neoXldap.o: neoXldap.c ldaptclerr.h
 
 ldaptclerr.h: ldaperr.tcl
 	tcl ldaperr.tcl $(LDAP_INCDIR)/ldap.h > ldaptclerr.h
-	
+
 
 clean:
 	-rm -f ldaptclsh ldapwish
