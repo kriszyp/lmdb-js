@@ -255,6 +255,7 @@ typedef union {
 typedef struct {
 	ldap_int_thread_mutex_t	wrapped;
 	ldap_debug_usage_info_t	usage;
+	ldap_int_thread_t	owner;
 } ldap_debug_thread_mutex_t;
 
 typedef struct {
@@ -266,6 +267,11 @@ typedef struct {
 	ldap_int_thread_rdwr_t	wrapped;
 	ldap_debug_usage_info_t	usage;
 } ldap_debug_thread_rdwr_t;
+
+#define	LDAP_INT_THREAD_ASSERT_MUTEX_OWNER(mutex) \
+	assert( ldap_debug_thread_mutex_owner( mutex ) )
+LDAP_F(int) ldap_debug_thread_mutex_owner LDAP_P((
+	ldap_debug_thread_mutex_t * ));
 
 LDAP_END_DECL
 

@@ -125,6 +125,12 @@ ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 LDAP_F( ldap_pvt_thread_t )
 ldap_pvt_thread_self LDAP_P(( void ));
 
+#ifdef	LDAP_INT_THREAD_ASSERT_MUTEX_OWNER
+#define	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER LDAP_INT_THREAD_ASSERT_MUTEX_OWNER
+#else
+#define	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER(mutex) ((void) 0)
+#endif
+
 LDAP_F( int )
 ldap_pvt_thread_rdwr_init LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 

@@ -271,6 +271,11 @@ exit_thread_message( const ldap_pvt_thread_t thread )
 #ifndef LDAP_THREAD_DEBUG_WRAP
 
 #define	WRAPPED(ptr)			(ptr)
+#define	SET_OWNER(ptr)			((void) 0)
+#define	RESET_OWNER(ptr)		((void) 0)
+#define	ASSERT_OWNER(ptr)		((void) 0)
+#define	ASSERT_NO_OWNER(ptr)	((void) 0)
+
 #define alloc_usage(ptr, msg)	((void) 0)
 #define check_usage(ptr, msg)	((void) 0)
 #define free_usage(ptr, msg)	((void) 0)
@@ -284,7 +289,28 @@ exit_thread_message( const ldap_pvt_thread_t thread )
 
 #else /* LDAP_THREAD_DEBUG_WRAP */
 
+/* Specialize this if initializer is not appropriate. */
+/* The ASSERT_NO_OWNER() definition may also need an override. */
+#ifndef LDAP_DEBUG_THREAD_NONE
+#define	LDAP_DEBUG_THREAD_NONE { -1 } /* "no thread" ldap_int_thread_t value */
+#endif
+
+static const ldap_int_thread_t ldap_debug_thread_none = LDAP_DEBUG_THREAD_NONE;
+
+int
+ldap_debug_thread_mutex_owner( ldap_pvt_thread_mutex_t *mutex )
+{
+	return ldap_pvt_thread_equal( mutex->owner, ldap_pvt_thread_self() );
+}
+
 #define	WRAPPED(ptr)			(&(ptr)->wrapped)
+#define	SET_OWNER(ptr)			((ptr)->owner = ldap_pvt_thread_self())
+#define RESET_OWNER(ptr)		((ptr)->owner = ldap_debug_thread_none)
+#define ASSERT_OWNER			LDAP_INT_THREAD_ASSERT_MUTEX_OWNER
+#ifndef ASSERT_NO_OWNER
+#define ASSERT_NO_OWNER(ptr) \
+	assert( ldap_int_thread_equal( (ptr)->owner, ldap_debug_thread_none ) )
+#endif
 
 #define INITED_VALUE		0x12345678UL
 #define INITED_BYTE_VALUE	0xd5
@@ -705,7 +731,11 @@ ldap_pvt_thread_cond_wait(
 	check_usage( &cond->usage, "ldap_pvt_thread_cond_wait:cond" );
 	check_usage( &mutex->usage, "ldap_pvt_thread_cond_wait:mutex" );
 	adjust_count( Idx_locked_mutex, -1 );
+	ASSERT_OWNER( mutex );
+	RESET_OWNER( mutex ); /* Breaks if this thread did not own the mutex */
 	rc = ldap_int_thread_cond_wait( WRAPPED( cond ), WRAPPED( mutex ) );
+	ASSERT_NO_OWNER( mutex );
+	SET_OWNER( mutex );
 	adjust_count( Idx_locked_mutex, +1 );
 	ERROR_IF( rc, "ldap_pvt_thread_cond_wait" );
 	return rc;
@@ -721,6 +751,7 @@ ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 		ERROR( rc, "ldap_pvt_thread_mutex_init" );
 		free_usage( &mutex->usage, "ldap_pvt_thread_mutex_init" );
 	} else {
+		RESET_OWNER( mutex );
 		adjust_count( Idx_mutex, +1 );
 	}
 	return rc;
@@ -731,11 +762,14 @@ ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
 	int rc;
 	check_usage( &mutex->usage, "ldap_pvt_thread_mutex_destroy" );
+	ASSERT_NO_OWNER( mutex );
 	rc = ldap_int_thread_mutex_destroy( WRAPPED( mutex ) );
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_mutex_destroy" );
+		/* mutex->owner may now be scrambled, sorry */
 	} else {
 		free_usage( &mutex->usage, "ldap_pvt_thread_mutex_destroy" );
+		RESET_OWNER( mutex );
 		adjust_count( Idx_mutex, -1 );
 	}
 	return rc;
@@ -750,6 +784,8 @@ ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 	if( rc ) {
 		ERROR_IF( rc, "ldap_pvt_thread_mutex_lock" );
 	} else {
+		ASSERT_NO_OWNER( mutex );
+		SET_OWNER( mutex );
 		adjust_count( Idx_locked_mutex, +1 );
 	}
 	return rc;
@@ -761,8 +797,11 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 	int rc;
 	check_usage( &mutex->usage, "ldap_pvt_thread_mutex_trylock" );
 	rc = ldap_int_thread_mutex_trylock( WRAPPED( mutex ) );
-	if( rc == 0 )
+	if( rc == 0 ) {
+		ASSERT_NO_OWNER( mutex );
+		SET_OWNER( mutex );
 		adjust_count( Idx_locked_mutex, +1 );
+	}
 	return rc;
 }
 
@@ -771,6 +810,8 @@ ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	int rc;
 	check_usage( &mutex->usage, "ldap_pvt_thread_mutex_unlock" );
+	ASSERT_OWNER( mutex );
+	RESET_OWNER( mutex ); /* Breaks if this thread did not own the mutex */
 	rc = ldap_int_thread_mutex_unlock( WRAPPED( mutex ) );
 	if( rc ) {
 		ERROR_IF( rc, "ldap_pvt_thread_mutex_unlock" );
