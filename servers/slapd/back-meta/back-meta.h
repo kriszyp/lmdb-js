@@ -174,17 +174,15 @@ typedef struct metasingleconn_t {
 #define META_ANONYMOUS		2
 #endif
 
-	time_t			msc_create_time;
-	time_t			msc_time;
-
 	struct metainfo_t	*msc_info;
 } metasingleconn_t;
 
 typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;
-	ldap_pvt_thread_mutex_t	mc_mutex;
 	unsigned		mc_refcnt;
-	int			mc_tainted;
+
+	time_t			mc_create_time;
+	time_t			mc_time;
 	
 	struct berval          	mc_local_ndn;
 	/* NOTE: msc_mscflags is used to recycle the #define
@@ -230,8 +228,6 @@ typedef struct metatarget_t {
 	unsigned		mt_flags;
 	int			mt_version;
 	time_t			mt_network_timeout;
-	time_t			mt_conn_ttl;
-	time_t			mt_idle_timeout;
 	struct timeval		mt_bind_timeout;
 #define META_BIND_TIMEOUT	LDAP_BACK_RESULT_UTIMEOUT
 	time_t			mt_timeout[ LDAP_BACK_OP_LAST ];
@@ -300,20 +296,19 @@ meta_back_getconn(
 	ldap_back_send_t	sendok );
 
 extern void
-meta_back_release_conn(
+meta_back_release_conn_lock(
        	Operation 		*op,
-	metaconn_t		*mc );
+	metaconn_t		*mc,
+	int			dolock );
+#define meta_back_release_conn(op, mc)	meta_back_release_conn_lock( (op), (mc), 1 )
 
 extern int
-meta_back_retry_lock(
+meta_back_retry(
 	Operation		*op,
 	SlapReply		*rs,
-	metaconn_t		*mc,
+	metaconn_t		**mcp,
 	int			candidate,
-	ldap_back_send_t	sendok,
-	int			dolock );
-#define meta_back_retry(op, rs, mc, candidate, sendok) \
-	meta_back_retry_lock((op), (rs), (mc), (candidate), (sendok), 1)
+	ldap_back_send_t	sendok );
 
 extern void
 meta_back_conn_free(
@@ -372,12 +367,12 @@ meta_back_conn_cmp(
 	const void		*c2 );
 
 extern int
-meta_back_dnconn_cmp(
+meta_back_conndn_cmp(
 	const void		*c1,
 	const void		*c2 );
 
 extern int
-meta_back_dnconn_dup(
+meta_back_conndn_dup(
 	void			*c1,
 	void			*c2 );
 

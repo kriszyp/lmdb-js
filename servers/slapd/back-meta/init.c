@@ -164,7 +164,6 @@ meta_back_conn_free(
 		(void)meta_clear_one_candidate( &mc->mc_conns[ i ] );
 	}
 
-	ldap_pvt_thread_mutex_destroy( &mc->mc_mutex );
 	free( mc );
 }
 

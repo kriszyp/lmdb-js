@@ -68,9 +68,10 @@ retry:;
 			mdn.bv_val, op->o_ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
+		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
+		goto cleanup;
 
 	} else if ( rs->sr_err == LDAP_SUCCESS ) {
 		struct timeval	tv, *tvp = NULL;
@@ -128,7 +129,9 @@ cleanup:;
 	}
 	
 done:;
-	meta_back_release_conn( op, mc );
+	if ( mc ) {
+		meta_back_release_conn( op, mc );
+	}
 
 	return rs->sr_err;
 }

@@ -192,6 +192,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		}
 
 		if ( !dn_match( &op->o_req_ndn, &mc->mc_local_ndn ) ) {
+			metaconn_t	*tmpmc;
 			int		lerr;
 
 			/* wait for all other ops to release the connection */
@@ -204,13 +205,13 @@ retry_lock:;
 			}
 
 			assert( mc->mc_refcnt == 1 );
-			mc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
-				meta_back_dnconn_cmp );
-			assert( mc != NULL );
+			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
+				meta_back_conndn_cmp );
+			assert( tmpmc == mc );
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
-				meta_back_dnconn_cmp, meta_back_dnconn_dup );
+				meta_back_conndn_cmp, meta_back_conndn_dup );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			if ( lerr == -1 ) {
 				for ( i = 0; i < mi->mi_ntargets; ++i ) {
@@ -383,7 +384,7 @@ retry:;
 
 			rc = slap_map_api2result( rs );
 			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
-				rc = meta_back_retry( op, rs, mc, candidate, LDAP_BACK_DONTSEND );
+				rc = meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_DONTSEND );
 				if ( rc ) {
 					if ( nretries > 0 ) {
 						nretries--;
@@ -391,6 +392,7 @@ retry:;
 					ldap_pvt_thread_yield();
 					goto rebind;
 				}
+				goto return_results;
 			}
 			break;
 
@@ -539,9 +541,6 @@ retry:;
 
 			rc = slap_map_api2result( rs );
 			if ( rc == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
-				/* NOTE: we do not use meta_back_retry() here
-				 * to avoid circular loops; mc_mutex is set
-				 * by the caller */
 				if ( dolock ) {
 					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 				}
@@ -628,8 +627,6 @@ meta_back_dobind(
 		LDAP_BACK_PCONN_ID( mc->mc_conn ),
 		isroot ? " (isroot)" : "" );
 
-	ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
-
 	/*
 	 * all the targets are bound as pseudoroot
 	 */
@@ -686,9 +683,10 @@ retry:;
 
 			if ( rc == LDAP_UNAVAILABLE && do_retry ) {
 				do_retry = 0;
-				if ( meta_back_retry_lock( op, rs, mc, i, LDAP_BACK_DONTSEND, 0 ) ) {
+				if ( meta_back_retry( op, rs, &mc, i, sendok ) ) {
 					goto retry;
 				}
+				return 0;
 			}
 
 			snprintf( buf, sizeof( buf ),
@@ -729,8 +727,6 @@ retry:;
 	}
 
 done:;
-        ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
-
 	Debug( LDAP_DEBUG_TRACE,
 		"%s meta_back_dobind: conn=%ld bound=%d\n",
 		op->o_log_prefix, LDAP_BACK_PCONN_ID( mc->mc_conn ), bound );

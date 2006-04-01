@@ -416,7 +416,7 @@ really_bad:;
 				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
 					candidates[ i ].sr_type = REP_RESULT;
 
-					if ( meta_back_retry( op, rs, mc, i, LDAP_BACK_DONTSEND ) ) {
+					if ( meta_back_retry( op, rs, &mc, i, LDAP_BACK_DONTSEND ) ) {
 						switch ( meta_back_search_start( op, rs, &dc, msc, i, candidates ) )
 						{
 						case META_SEARCH_CANDIDATE:
@@ -427,6 +427,12 @@ really_bad:;
 							goto finish;
 						}
 					}
+
+					savepriv = op->o_private;
+					op->o_private = (void *)i;
+					send_ldap_result( op, rs );
+					op->o_private = savepriv;
+					goto finish;
 				}
 
 				/*
@@ -888,7 +894,9 @@ finish:;
 		}
 	}
 
-	meta_back_release_conn( op, mc );
+	if ( mc ) {
+		meta_back_release_conn( op, mc );
+	}
 
 	return rs->sr_err;
 }
