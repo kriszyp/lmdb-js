@@ -353,7 +353,7 @@ conn_create(
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", c->c_connid );
 	attr_merge_one( e, mi->mi_ad_monitorConnectionNumber, &bv, NULL );
 
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%ld", c->c_protocol );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%ld", (long) c->c_protocol );
 	attr_merge_one( e, mi->mi_ad_monitorConnectionProtocol, &bv, NULL );
 
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%ld", c->c_n_ops_received );
