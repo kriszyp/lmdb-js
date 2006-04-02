@@ -1902,10 +1902,12 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		/* syncprov_findbase expects to be called as a callback... */
 		sc.sc_private = &opc;
 		opc.son = on;
+		ldap_pvt_thread_mutex_init( &so.s_mutex );
 		cb = op->o_callback;
 		op->o_callback = &sc;
 		rs->sr_err = syncprov_findbase( op, &fc );
 		op->o_callback = cb;
+		ldap_pvt_thread_mutex_destroy( &so.s_mutex );
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
