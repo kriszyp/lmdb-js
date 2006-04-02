@@ -583,6 +583,7 @@ ldap_distproc_db_init(
 		return 1;
 	}
 	memset( lc, 0, sizeof( ldap_distproc_t ) );
+	ldap_pvt_thread_mutex_init( &lc->lc_lai.lai_mutex );
 
 	on->on_bi.bi_private = (void *)lc;
 
@@ -781,6 +782,7 @@ ldap_distproc_db_destroy(
 
 	if ( lc ) {
 		avl_free( lc->lc_lai.lai_tree, NULL );
+		ldap_pvt_thread_mutex_destroy( &lc->lc_lai.lai_mutex );
 		ch_free( lc );
 	}
 
