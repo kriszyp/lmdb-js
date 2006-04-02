@@ -340,7 +340,7 @@ parse_acl(
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"only one to clause allowed in access line\n",
 				    fname, lineno, 0 );
-				return acl_usage();
+				goto fail;
 			}
 			a = (AccessControl *) ch_calloc( 1, sizeof(AccessControl) );
 			for ( ++i; i < argc; i++ ) {
@@ -756,7 +756,7 @@ parse_acl(
 									"%s: line %d: empty level "
 									"in \"level{n}\"\n",
 									fname, lineno, 0 );
-								return acl_usage();
+								goto fail;
 							}
 							p[0] = '\0';
 						}
