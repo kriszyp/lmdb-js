@@ -177,6 +177,7 @@ auditlog_db_close(
 
 	free( ad->ad_logfile );
 	ad->ad_logfile = NULL;
+	return 0;
 }
 
 static int
@@ -189,6 +190,7 @@ auditlog_db_destroy(
 
 	ldap_pvt_thread_mutex_destroy( &ad->ad_mutex );
 	free( ad );
+	return 0;
 }
 
 static int
