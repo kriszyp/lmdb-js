@@ -236,8 +236,6 @@ slap_init( int mode, const char *name )
 
 int slap_startup( Backend *be )
 {
-	int rc;
-
 	Debug( LDAP_DEBUG_TRACE,
 		"%s startup: initiated.\n",
 		slap_name, 0, 0 );
@@ -248,8 +246,6 @@ int slap_startup( Backend *be )
 
 int slap_shutdown( Backend *be )
 {
-	int rc;
-
 	Debug( LDAP_DEBUG_TRACE,
 		"%s shutdown: initiated\n",
 		slap_name, 0, 0 );

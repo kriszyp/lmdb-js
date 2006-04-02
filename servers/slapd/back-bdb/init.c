@@ -95,7 +95,7 @@ bdb_db_open( BackendDB *be )
 	u_int32_t flags;
 	char path[MAXPATHLEN];
 	char *dbhome;
-	int do_recover = 0, do_alock_recover = 0, open_env = 1;
+	int do_recover = 0, do_alock_recover = 0;
 	int alockt, quick = 0;
 
 	if ( be->be_suffix == NULL ) {

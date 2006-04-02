@@ -2051,8 +2051,6 @@ static int connection_bind_cleanup_cb( Operation *op, SlapReply *rs )
 
 static int connection_bind_cb( Operation *op, SlapReply *rs )
 {
-	slap_callback *cb = op->o_callback;
-
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	op->o_conn->c_conn_state = SLAP_C_ACTIVE;
 	op->o_conn->c_sasl_bind_in_progress =

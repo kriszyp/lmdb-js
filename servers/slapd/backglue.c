@@ -766,7 +766,7 @@ glue_db_close(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 
-	on->on_info->oi_bi.bi_db_close = NULL;
+	on->on_info->oi_bi.bi_db_close = 0;
 	return 0;
 }
 

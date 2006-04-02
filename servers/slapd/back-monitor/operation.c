@@ -65,7 +65,6 @@ monitor_subsys_ops_init(
 	
 	Entry		*e_op, **ep;
 	monitor_entry_t	*mp;
-	char		buf[ BACKMONITOR_BUFSIZE ];
 	int 		i;
 	struct berval	bv_zero = BER_BVC( "0" );
 

@@ -52,7 +52,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 	Attribute *a;
 	Modifications *m;
 	struct berval *b;
-	char *what, *subop, *suffix, *who = NULL;
+	char *what, *suffix, *who = NULL;
 	long stamp = slap_get_time();
 	int i;
 
@@ -111,7 +111,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 	switch(op->o_tag) {
 	  case LDAP_REQ_ADD:
 		for(a = op->ora_e->e_attrs; a; a = a->a_next)
-		    if(b = a->a_vals)
+		  if((b = a->a_vals) != NULL)
 			for(i = 0; b[i].bv_val; i++)
 				fprint_ldif(f, a->a_desc->ad_cname.bv_val, b[i].bv_val, b[i].bv_len);
 		break;
@@ -128,7 +128,8 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 					continue;
 			}
 			fprintf(f, "%s: %s\n", what, m->sml_desc->ad_cname.bv_val);
-			if(b = m->sml_values) for(i = 0; b[i].bv_val; i++)
+			if((b = m->sml_values) != NULL)
+			  for(i = 0; b[i].bv_val; i++)
 				fprint_ldif(f, m->sml_desc->ad_cname.bv_val, b[i].bv_val, b[i].bv_len);
 			fprintf(f, "-\n");
 		}

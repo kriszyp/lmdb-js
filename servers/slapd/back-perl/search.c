@@ -84,8 +84,6 @@ perl_back_search(
 						send_entry = 1;
 
 					if (send_entry) {
-						int	rc;
-
 						rs->sr_entry = e;
 						rs->sr_attrs = op->ors_attrs;
 						rs->sr_flags = REP_ENTRY_MODIFIABLE;

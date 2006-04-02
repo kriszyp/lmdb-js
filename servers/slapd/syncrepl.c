@@ -3406,8 +3406,6 @@ syncrepl_config( ConfigArgs *c )
 		}
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		struct re_s *re;
-
 		if ( c->be->be_syncinfo ) {
 			syncinfo_free( c->be->be_syncinfo );
 			c->be->be_syncinfo = NULL;

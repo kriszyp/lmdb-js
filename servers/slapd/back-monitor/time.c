@@ -46,7 +46,6 @@ monitor_subsys_time_init(
 	
 	Entry		*e, **ep, *e_time;
 	monitor_entry_t	*mp;
-	char		buf[ BACKMONITOR_BUFSIZE ];
 	struct berval bv;
 
 	assert( be != NULL );

@@ -54,7 +54,6 @@ monitor_subsys_conn_init(
 	monitor_info_t	*mi;
 	Entry		*e, **ep, *e_conn;
 	monitor_entry_t	*mp;
-	char		buf[ BACKMONITOR_BUFSIZE ];
 	struct berval	bv;
 
 	assert( be != NULL );

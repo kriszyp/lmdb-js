@@ -86,7 +86,6 @@ monitor_subsys_rww_init(
 	ep = &mp->mp_children;
 
 	for ( i = 0; i < MONITOR_RWW_LAST; i++ ) {
-		char			buf[ BACKMONITOR_BUFSIZE ];
 		struct berval		nrdn, bv;
 		Entry			*e;
 		
