@@ -99,7 +99,7 @@ destroy_action(
 	return 0;
 }
 
-static int
+static void
 destroy_actions(
 	struct rewrite_action *paction
 )
