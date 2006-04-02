@@ -1074,6 +1074,7 @@ int ldap_pvt_sasl_secprops(
 			break;
 		}
 		if ( BER_BVISNULL( &sprops[j].key )) {
+			ldap_charray_free( props );
 			return LDAP_NOT_SUPPORTED;
 		}
 	}
