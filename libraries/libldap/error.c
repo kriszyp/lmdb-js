@@ -104,6 +104,10 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
 	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
 
+#ifdef LDAP_X_TXN
+	{LDAP_X_TXN_SPECIFY_OKAY,		N_("TXN specify okay")},
+	{LDAP_X_TXN_ID_INVALID,			N_("TXN ID is invalid")},
+#endif
 
 	/* API ResultCodes */
 	{LDAP_SERVER_DOWN,				N_("Can't contact LDAP server")},
@@ -279,10 +283,19 @@ ldap_parse_result(
 #endif
 	/* Find the result, last msg in chain... */
 	lm = r->lm_chain_tail;
-	if ((lm->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
-		(lm->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-		(lm->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
-		lm = NULL;	
+	/* FIXME: either this is not possible (assert?)
+	 * or it should be handled */
+	if ( lm != NULL ) {
+		switch ( lm->lm_msgtype ) {
+		case LDAP_RES_SEARCH_ENTRY:
+		case LDAP_RES_SEARCH_REFERENCE:
+		case LDAP_RES_INTERMEDIATE:
+			lm = NULL;
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	if( lm == NULL ) {

@@ -401,6 +401,7 @@ int UTF8bvnormcmp(
 		l1 = ulen;
 		ucs = malloc( l2 * sizeof(*ucs) );
 		if ( ucs == NULL ) {
+			free( ucsout1 );
 			return l1 > l2 ? 1 : -1; /* what to do??? */
 		}
 	} else {

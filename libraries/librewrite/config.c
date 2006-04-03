@@ -431,6 +431,7 @@ rewrite_parse_builtin_map(
 	 * Error
 	 */	
 	} else {
+		free( map );
 		Debug( LDAP_DEBUG_ANY, "[%s:%d] unknown map type\n%s",
 				fname, lineno, "" );
 		return -1;

@@ -78,6 +78,8 @@ ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rwlock )
 
 	rw = (struct ldap_int_thread_rdwr_s *) LDAP_CALLOC( 1,
 		sizeof( struct ldap_int_thread_rdwr_s ) );
+	if ( !rw )
+		return LDAP_NO_MEMORY;
 
 	/* we should check return results */
 	ldap_pvt_thread_mutex_init( &rw->ltrw_mutex );

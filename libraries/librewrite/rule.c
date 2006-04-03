@@ -99,11 +99,20 @@ destroy_action(
 	return 0;
 }
 
+static void
+destroy_actions(
+	struct rewrite_action *paction
+)
+{
+	struct rewrite_action *next;
+
+	for (; paction; paction = next) {
+		next = paction->la_next;
+		destroy_action( &paction );
+	}
+}
+
 /*
- * In case of error it returns NULL and does not free all the memory
- * it allocated; as this is a once only phase, and an error at this stage
- * would require the server to stop, there is no need to be paranoid
- * about memory allocation
  */
 int
 rewrite_rule_compile(
@@ -186,8 +195,7 @@ rewrite_rule_compile(
 			 */
 			action = calloc( sizeof( struct rewrite_action ), 1 );
 			if ( action == NULL ) {
-				/* cleanup ... */
-				return REWRITE_ERR;
+				goto fail;
 			}
 
 			action->la_type = REWRITE_ACTION_STOP;
@@ -199,8 +207,7 @@ rewrite_rule_compile(
 			 */
 			action = calloc( sizeof( struct rewrite_action ), 1 );
 			if ( action == NULL ) {
-				/* cleanup ... */
-				return REWRITE_ERR;
+				goto fail;
 			}
 			
 			mode &= ~REWRITE_RECURSE;
@@ -222,26 +229,24 @@ rewrite_rule_compile(
 			int *d;
 			
 			if ( p[ 1 ] != '{' ) {
-				/* XXX Need to free stuff */
-				return REWRITE_ERR;
+				goto fail;
 			}
 
 			d = malloc( sizeof( int ) );
 			if ( d == NULL ) {
-				/* XXX Need to free stuff */
-				return REWRITE_ERR;
+				goto fail;
 			}
 
 			d[ 0 ] = strtol( &p[ 2 ], &next, 0 );
 			if ( next == &p[ 2 ] || next[0] != '}' ) {
-				/* XXX Need to free stuff */
-				return REWRITE_ERR;
+				free( d );
+				goto fail;
 			}
 
 			action = calloc( sizeof( struct rewrite_action ), 1 );
 			if ( action == NULL ) {
-				/* cleanup ... */       
-				return REWRITE_ERR;
+				free( d );
+				goto fail;
 			}
 			switch ( p[ 0 ] ) {
 			case REWRITE_FLAG_GOTO:
@@ -270,14 +275,12 @@ rewrite_rule_compile(
 			char *next = NULL;
 			
 			if ( p[ 1 ] != '{' ) {
-				/* XXX Need to free stuff */
-				return REWRITE_ERR;
+				goto fail;
 			}
 
 			max_passes = strtol( &p[ 2 ], &next, 0 );
 			if ( next == &p[ 2 ] || next[0] != '}' ) {
-				/* XXX Need to free stuff */
-				return REWRITE_ERR;
+				goto fail;
 			}
 
 			if ( max_passes < 1 ) {
@@ -296,8 +299,7 @@ rewrite_rule_compile(
 			 */
 			action = calloc( sizeof( struct rewrite_action ), 1 );
 			if ( action == NULL ) {
-				/* cleanup ... */
-				return REWRITE_ERR;
+				goto fail;
 			}
 			
 			action->la_type = REWRITE_ACTION_IGNORE_ERR;
@@ -327,23 +329,15 @@ rewrite_rule_compile(
 	 */
 	rule = calloc( sizeof( struct rewrite_rule ), 1 );
 	if ( rule == NULL ) {
-		/* charray_free( res ); */
-		/*
-		 * XXX need to free the value subst stuff!
-		 */
-		return REWRITE_ERR;
+		goto fail;
 	}
 	
 	/*
 	 * REGEX compilation (luckily I don't need to take care of this ...)
 	 */
 	if ( regcomp( &rule->lr_regex, ( char * )pattern, flags ) != 0 ) {
-		/* charray_free( res ); */
-		/*
-		 *XXX need to free the value subst stuff!
-		 */
 		free( rule );
-		return REWRITE_ERR;
+		goto fail;
 	}
 	
 	/*
@@ -372,6 +366,11 @@ rewrite_rule_compile(
 	append_rule( context, rule );
 
 	return REWRITE_SUCCESS;
+
+fail:
+	destroy_actions( first_action );
+	free( subst );
+	return REWRITE_ERR;
 }
 
 /*
@@ -462,7 +461,6 @@ rewrite_rule_destroy(
 		)
 {
 	struct rewrite_rule *rule;
-	struct rewrite_action *action;
 
 	assert( prule != NULL );
 	assert( *prule != NULL );
@@ -490,12 +488,7 @@ rewrite_rule_destroy(
 
 	regfree( &rule->lr_regex );
 
-	for ( action = rule->lr_action; action; ) {
-		struct rewrite_action *curraction = action;
-
-		action = action->la_next;
-		destroy_action( &curraction );
-	}
+	destroy_actions( rule->lr_action );
 
 	free( rule );
 	*prule = NULL;

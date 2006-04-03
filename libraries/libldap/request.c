@@ -93,7 +93,6 @@ ldap_send_initial_request(
 	BerElement *ber,
 	ber_int_t msgid)
 {
-	LDAPURLDesc	*servers;
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
@@ -112,14 +111,6 @@ ldap_send_initial_request(
 			0, 0, 0 );
 	}
 
-	{
-		/*
-		 * use of DNS is turned off or this is an X.500 DN...
-		 * use our default connection
-		 */
-		servers = NULL;
-	}	
-
 #ifdef LDAP_CONNECTIONLESS
 	if (LDAP_IS_UDP(ld)) {
 		if (msgtype == LDAP_REQ_BIND) {
@@ -136,12 +127,10 @@ ldap_send_initial_request(
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 	rc = ldap_send_server_request( ld, ber, msgid, NULL,
-		servers, NULL, NULL );
+		NULL, NULL, NULL );
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
-	if (servers)
-		ldap_free_urllist(servers);
 	return(rc);
 }
 
@@ -422,6 +411,9 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 				ldap_free_urldesc( srvfunc );
 			}
 		} else {
+			int		msgid, rc;
+			struct berval	passwd = BER_BVNULL;
+
 			savedefconn = ld->ld_defconn;
 			++lc->lconn_refcnt;	/* avoid premature free */
 			ld->ld_defconn = lc;
@@ -431,8 +423,42 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 			ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
-			if ( ldap_bind_s( ld, "", "", LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
+			rc = ldap_sasl_bind( ld, "", LDAP_SASL_SIMPLE, &passwd,
+				NULL, NULL, &msgid );
+			if ( rc != LDAP_SUCCESS ) {
 				err = -1;
+
+			} else {
+				for ( err = 1; err > 0; ) {
+					struct timeval	tv = { 0, 100000 };
+					LDAPMessage	*res = NULL;
+
+					switch ( ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
+					case -1:
+						err = -1;
+						break;
+
+					case 0:
+#ifdef LDAP_R_COMPILE
+						ldap_pvt_thread_yield();
+#endif
+						break;
+
+					case LDAP_RES_BIND:
+						rc = ldap_parse_result( ld, res, &err, NULL, NULL, NULL, NULL, 1 );
+						if ( rc != LDAP_SUCCESS ) {
+							err = -1;
+
+						} else if ( err != LDAP_SUCCESS ) {
+							err = -1;
+						}
+						/* else err == LDAP_SUCCESS == 0 */
+						break;
+
+					default:
+						assert( 0 );
+					}
+				}
 			}
 #ifdef LDAP_R_COMPILE
 			ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
@@ -871,20 +897,21 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			LDAPRequest *lp;
 			int looped = 0;
 			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
-			for (lp = origreq; lp; ) {
+			for ( lp = origreq; lp; ) {
 				if ( lp->lr_conn == lc ) {
-					if ( len == lp->lr_dn.bv_len ) {
-						if ( len && strncmp( srv->lud_dn, lp->lr_dn.bv_val,
-							len ))
-							continue;
+					if ( len == lp->lr_dn.bv_len
+						&& len
+						&& strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) == 0 )
+					{
 						looped = 1;
 						break;
 					}
 				}
-				if ( lp == origreq )
+				if ( lp == origreq ) {
 					lp = lp->lr_child;
-				else
+				} else {
 					lp = lr->lr_refnext;
+				}
 			}
 			if ( looped ) {
 				ldap_free_urllist( srv );
@@ -894,7 +921,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				continue;
 			}
 
-			if( lc->lconn_rebind_inprogress) {
+			if ( lc->lconn_rebind_inprogress ) {
 				/* We are already chasing a referral or search reference and a
 				 * bind on that connection is in progress.  We must queue
 				 * referrals on that connection, so we don't get a request

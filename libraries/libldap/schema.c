@@ -1414,16 +1414,20 @@ add_extension(LDAPSchemaExtensionItem ***extensions,
 	if ( !*extensions ) {
 		*extensions =
 		  LDAP_CALLOC(2, sizeof(LDAPSchemaExtensionItem *));
-		if ( !*extensions )
-		  return 1;
+		if ( !*extensions ) {
+			LDAP_FREE( ext );
+			return 1;
+		}
 		n = 0;
 	} else {
 		for ( n=0; (*extensions)[n] != NULL; n++ )
 	  		;
 		tmp = LDAP_REALLOC(*extensions,
 				   (n+2)*sizeof(LDAPSchemaExtensionItem *));
-		if ( !tmp )
+		if ( !tmp ) {
+			LDAP_FREE( ext );
 			return 1;
+		}
 		*extensions = tmp;
 	}
 	(*extensions)[n] = ext;
@@ -3231,6 +3235,21 @@ ldap_str2nameform( LDAP_CONST char * s,
 				seen_obsolete = 1;
 				nf->nf_obsolete = LDAP_SCHEMA_YES;
 				parse_whsp(&ss);
+			} else if ( !strcasecmp(sval,"OC") ) {
+				LDAP_FREE(sval);
+				if ( seen_class ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return(NULL);
+				}
+				seen_class = 1;
+				nf->nf_objectclass = parse_woid(&ss,code);
+				if ( !nf->nf_objectclass ) {
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return NULL;
+				}
 			} else if ( !strcasecmp(sval,"MUST") ) {
 				LDAP_FREE(sval);
 				if ( seen_must ) {

@@ -452,58 +452,6 @@ ldap_set_option(
 			}
 		} return LDAP_OPT_SUCCESS;
 
-	/* Only accessed from inside this function by ldap_set_rebind_proc() */
-	case LDAP_OPT_REBIND_PROC: {
-			lo->ldo_rebind_proc = (LDAP_REBIND_PROC *)invalue;		
-		} return LDAP_OPT_SUCCESS;
-	case LDAP_OPT_REBIND_PARAMS: {
-			lo->ldo_rebind_params = (void *)invalue;		
-		} return LDAP_OPT_SUCCESS;
-
-	/* Only accessed from inside this function by ldap_set_nextref_proc() */
-	case LDAP_OPT_NEXTREF_PROC: {
-			lo->ldo_nextref_proc = (LDAP_NEXTREF_PROC *)invalue;		
-		} return LDAP_OPT_SUCCESS;
-	case LDAP_OPT_NEXTREF_PARAMS: {
-			lo->ldo_nextref_params = (void *)invalue;		
-		} return LDAP_OPT_SUCCESS;
-	}
-
-	if(invalue == NULL) {
-		/* no place to set from */
-		return LDAP_OPT_ERROR;
-	}
-
-	/* options which cannot withstand invalue == NULL */
-
-	switch(option) {
-	case LDAP_OPT_API_INFO:
-	case LDAP_OPT_DESC:
-		/* READ ONLY */
-		break;
-
-	case LDAP_OPT_DEREF:
-		lo->ldo_deref = * (const int *) invalue;
-		return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_SIZELIMIT:
-		lo->ldo_sizelimit = * (const int *) invalue;
-		return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_TIMELIMIT:
-		lo->ldo_timelimit = * (const int *) invalue;
-		return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_PROTOCOL_VERSION: {
-			int vers = * (const int *) invalue;
-			if (vers < LDAP_VERSION_MIN || vers > LDAP_VERSION_MAX) {
-				/* not supported */
-				break;
-			}
-			lo->ldo_version = vers;
-		} return LDAP_OPT_SUCCESS;
-
-
 	case LDAP_OPT_HOST_NAME: {
 			const char *host = (const char *) invalue;
 			LDAPURLDesc *ludlist = NULL;
@@ -593,6 +541,57 @@ ldap_set_option(
 			}
 			return rc;
 		}
+
+	/* Only accessed from inside this function by ldap_set_rebind_proc() */
+	case LDAP_OPT_REBIND_PROC: {
+			lo->ldo_rebind_proc = (LDAP_REBIND_PROC *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+	case LDAP_OPT_REBIND_PARAMS: {
+			lo->ldo_rebind_params = (void *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+
+	/* Only accessed from inside this function by ldap_set_nextref_proc() */
+	case LDAP_OPT_NEXTREF_PROC: {
+			lo->ldo_nextref_proc = (LDAP_NEXTREF_PROC *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+	case LDAP_OPT_NEXTREF_PARAMS: {
+			lo->ldo_nextref_params = (void *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+	}
+
+	if(invalue == NULL) {
+		/* no place to set from */
+		return LDAP_OPT_ERROR;
+	}
+
+	/* options which cannot withstand invalue == NULL */
+
+	switch(option) {
+	case LDAP_OPT_API_INFO:
+	case LDAP_OPT_DESC:
+		/* READ ONLY */
+		break;
+
+	case LDAP_OPT_DEREF:
+		lo->ldo_deref = * (const int *) invalue;
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_SIZELIMIT:
+		lo->ldo_sizelimit = * (const int *) invalue;
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_TIMELIMIT:
+		lo->ldo_timelimit = * (const int *) invalue;
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_PROTOCOL_VERSION: {
+			int vers = * (const int *) invalue;
+			if (vers < LDAP_VERSION_MIN || vers > LDAP_VERSION_MAX) {
+				/* not supported */
+				break;
+			}
+			lo->ldo_version = vers;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_NUMBER: {
 			int err = * (const int *) invalue;

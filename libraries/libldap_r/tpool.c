@@ -353,7 +353,6 @@ int
 ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 {
 	struct ldap_int_thread_pool_s *pool, *pptr;
-	long waiting;
 	ldap_int_thread_ctx_t *ctx;
 
 	if (tpool == NULL)

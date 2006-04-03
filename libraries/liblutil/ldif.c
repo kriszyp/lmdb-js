@@ -734,7 +734,7 @@ int ldif_is_not_printable(
 		ber_len_t i;
 
 		for ( i = 0; val[i]; i++ ) {
-			if ( !isascii( val[i] ) || !isprint( val[i] ) ) {
+			if ( !isascii( val[i] ) || !isprint( (unsigned char) val[i] ) ) {
 				return 1;
 			}
 		}
@@ -858,7 +858,7 @@ ldif_read_record(
 						}
 
 						ptr = line + STRLENOF("include:");
-						while (isspace(*ptr)) ptr++;
+						while (isspace((unsigned char) *ptr)) ptr++;
 						fp2 = ldif_open_url( ptr );
 						if ( fp2 ) {
 							LDIFFP *lnew = ber_memalloc( sizeof( LDIFFP ));
