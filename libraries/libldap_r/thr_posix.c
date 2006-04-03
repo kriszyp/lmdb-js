@@ -224,7 +224,8 @@ ldap_pvt_thread_yield( void )
 #endif
 	return 0;
 #elif HAVE_THR_YIELD
-	return thr_yield();
+	thr_yield();
+	return 0;
 
 #elif HAVE_PTHREADS == 10
 	return sched_yield();
