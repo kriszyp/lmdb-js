@@ -580,16 +580,16 @@ really_bad:;
 				 * back-meta would need to merge them
 				 * consistently (think of pagedResults...)
 				 */
-				if ( ldap_parse_result( msc->msc_ld,
+				rs->sr_err = ldap_parse_result( msc->msc_ld,
 							res,
 							&candidates[ i ].sr_err,
 							(char **)&candidates[ i ].sr_matched,
 							NULL /* (char **)&candidates[ i ].sr_text */ ,
 							&references,
 							NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
-							1 ) != LDAP_SUCCESS )
-				{
-					res = NULL;
+							1 );
+				res = NULL;
+				if ( rs->sr_err != LDAP_SUCCESS ) {
 					ldap_get_option( msc->msc_ld,
 							LDAP_OPT_ERROR_NUMBER,
 							&rs->sr_err );
@@ -597,10 +597,6 @@ really_bad:;
 					candidates[ i ].sr_type = REP_RESULT;
 					goto really_bad;
 				}
-
-				rs->sr_err = candidates[ i ].sr_err;
-				sres = slap_map_api2result( rs );
-				res = NULL;
 
 				/* massage matchedDN if need be */
 				if ( candidates[ i ].sr_matched != NULL ) {
@@ -691,6 +687,24 @@ really_bad:;
 				case LDAP_SUCCESS:
 				case LDAP_REFERRAL:
 					is_ok++;
+					break;
+
+				case LDAP_SIZELIMIT_EXCEEDED:
+					/* if a target returned sizelimitExceeded
+					 * and the entry count is equal to the
+					 * proxy's limit, the target would have
+					 * returned more, and the error must be
+					 * propagated to the client; otherwise,
+					 * the target enforced a limit lower
+					 * than what requested by the proxy;
+					 * ignore it */
+					if ( rs->sr_nentries == op->ors_slimit ) {
+						savepriv = op->o_private;
+						op->o_private = (void *)i;
+						send_ldap_result( op, rs );
+						op->o_private = savepriv;
+						goto finish;
+					}
 					break;
 
 				default:
