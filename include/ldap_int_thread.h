@@ -271,7 +271,7 @@ typedef struct {
 #ifndef NDEBUG
 #define	LDAP_INT_THREAD_ASSERT_MUTEX_OWNER(mutex) \
 	ldap_debug_thread_assert_mutex_owner( \
-		_FILE__, __LINE__, "owns(" #mutex ")", mutex )
+		__FILE__, __LINE__, "owns(" #mutex ")", mutex )
 LDAP_F(void) ldap_debug_thread_assert_mutex_owner LDAP_P((
 	LDAP_CONST char *file,
 	int line,
