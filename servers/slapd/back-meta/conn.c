@@ -520,8 +520,9 @@ meta_back_retry(
 			rc = meta_back_single_dobind( op, rs, mcp, candidate,
 				sendok, mt->mt_nretries, 0 );
         	}
+	}
 
-	} else {
+	if ( rc != LDAP_SUCCESS ) {
 		meta_back_release_conn_lock( op, mc, 1, 0 );
 		*mcp = NULL;
 
