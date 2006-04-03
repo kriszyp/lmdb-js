@@ -528,7 +528,7 @@ meta_back_retry(
 
 		if ( sendok ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
-			rs->sr_text = "unable to retry";
+			rs->sr_text = NULL;
 			send_ldap_result( op, rs );
 		}
 	}
