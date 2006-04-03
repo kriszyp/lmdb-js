@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.21 Engineering
+	Removed lint
 	Build Environment
 		Fixed multi-precision sizeof detection
 
