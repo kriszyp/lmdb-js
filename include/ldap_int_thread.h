@@ -268,10 +268,16 @@ typedef struct {
 	ldap_debug_usage_info_t	usage;
 } ldap_debug_thread_rdwr_t;
 
+#ifndef NDEBUG
 #define	LDAP_INT_THREAD_ASSERT_MUTEX_OWNER(mutex) \
-	assert( ldap_debug_thread_mutex_owner( mutex ) )
-LDAP_F(int) ldap_debug_thread_mutex_owner LDAP_P((
-	ldap_debug_thread_mutex_t * ));
+	ldap_debug_thread_assert_mutex_owner( \
+		_FILE__, __LINE__, "owns(" #mutex ")", mutex )
+LDAP_F(void) ldap_debug_thread_assert_mutex_owner LDAP_P((
+	LDAP_CONST char *file,
+	int line,
+	LDAP_CONST char *msg,
+	ldap_debug_thread_mutex_t *mutex ));
+#endif /* NDEBUG */
 
 LDAP_END_DECL
 
