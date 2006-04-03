@@ -897,26 +897,21 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			LDAPRequest *lp;
 			int looped = 0;
 			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
-			for (lp = origreq; lp; ) {
+			for ( lp = origreq; lp; ) {
 				if ( lp->lr_conn == lc ) {
-					if ( len == lp->lr_dn.bv_len ) {
-						if ( len && strncmp( srv->lud_dn, lp->lr_dn.bv_val,
-							len ))
-						{
-							/* FIXME: if different DNs are requested
-							 * for the same connection, this causes
-							 * an endless loop, because lp is never
-							 * changed */
-							continue;
-						}
+					if ( len == lp->lr_dn.bv_len
+						&& len
+						&& strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) == 0 )
+					{
 						looped = 1;
 						break;
 					}
 				}
-				if ( lp == origreq )
+				if ( lp == origreq ) {
 					lp = lp->lr_child;
-				else
+				} else {
 					lp = lr->lr_refnext;
+				}
 			}
 			if ( looped ) {
 				ldap_free_urllist( srv );
@@ -926,7 +921,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				continue;
 			}
 
-			if( lc->lconn_rebind_inprogress) {
+			if ( lc->lconn_rebind_inprogress ) {
 				/* We are already chasing a referral or search reference and a
 				 * bind on that connection is in progress.  We must queue
 				 * referrals on that connection, so we don't get a request
