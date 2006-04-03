@@ -604,29 +604,26 @@ really_bad:;
 
 				/* massage matchedDN if need be */
 				if ( candidates[ i ].sr_matched != NULL ) {
-					{
-						struct berval	match, mmatch;
+					struct berval	match, mmatch;
 
-						ber_str2bv( candidates[ i ].sr_matched,
-							0, 0, &match );
-						candidates[ i ].sr_matched = NULL;
+					ber_str2bv( candidates[ i ].sr_matched,
+						0, 0, &match );
+					candidates[ i ].sr_matched = NULL;
 
-						dc.ctx = "matchedDN";
-						dc.target = &mi->mi_targets[ i ];
-						if ( !ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
-							if ( mmatch.bv_val == match.bv_val ) {
-								candidates[ i ].sr_matched = ch_strdup( mmatch.bv_val );
+					dc.ctx = "matchedDN";
+					dc.target = &mi->mi_targets[ i ];
+					if ( !ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
+						if ( mmatch.bv_val == match.bv_val ) {
+							candidates[ i ].sr_matched = ch_strdup( mmatch.bv_val );
 
-							} else {
-								candidates[ i ].sr_matched = mmatch.bv_val;
-							}
+						} else {
+							candidates[ i ].sr_matched = mmatch.bv_val;
+						}
 
-							candidate_match++;
-						} 
-						ldap_memfree( match.bv_val );
-					}
+						candidate_match++;
+					} 
+					ldap_memfree( match.bv_val );
 				}
-
 
 				/* add references to array */
 				if ( references ) {
@@ -662,13 +659,21 @@ really_bad:;
 				rs->sr_err = candidates[ i ].sr_err;
 				sres = slap_map_api2result( rs );
 
-				snprintf( buf, sizeof( buf ),
-					"%s meta_back_search[%ld] "
-					"match=\"%s\" err=%ld\n",
-					op->o_log_prefix, i,
-					candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
-					(long) candidates[ i ].sr_err );
-				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
+				if ( LogTest( LDAP_DEBUG_TRACE | LDAP_DEBUG_ANY ) ) {
+					snprintf( buf, sizeof( buf ),
+						"%s meta_back_search[%ld] "
+						"match=\"%s\" err=%ld",
+						op->o_log_prefix, i,
+						candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
+						(long) candidates[ i ].sr_err );
+					if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
+						Debug( LDAP_DEBUG_TRACE, "%s.\n", buf, 0, 0 );
+
+					} else {
+						Debug( LDAP_DEBUG_ANY, "%s (%s).\n",
+							buf, ldap_err2string( candidates[ i ].sr_err ), 0 );
+					}
+				}
 
 				switch ( sres ) {
 				case LDAP_NO_SUCH_OBJECT:
@@ -1151,6 +1156,7 @@ next_attr:;
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;
 	rs->sr_flags = 0;
+	rs->sr_err = LDAP_SUCCESS;
 	rc = send_search_entry( op, rs );
 	switch ( rc ) {
 	case LDAP_UNAVAILABLE:

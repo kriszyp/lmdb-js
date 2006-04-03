@@ -299,8 +299,9 @@ extern void
 meta_back_release_conn_lock(
        	Operation 		*op,
 	metaconn_t		*mc,
+	int			dofree,
 	int			dolock );
-#define meta_back_release_conn(op, mc)	meta_back_release_conn_lock( (op), (mc), 1 )
+#define meta_back_release_conn(op, mc)	meta_back_release_conn_lock( (op), (mc), 0, 1 )
 
 extern int
 meta_back_retry(
@@ -343,7 +344,7 @@ extern int
 meta_back_single_dobind(
 	Operation		*op,
 	SlapReply		*rs,
-	metaconn_t		*msc,
+	metaconn_t		**mcp,
 	int			candidate,
 	ldap_back_send_t	sendok,
 	int			retries,
@@ -400,6 +401,11 @@ meta_clear_unused_candidates(
 extern int
 meta_clear_one_candidate(
 	metasingleconn_t	*mc );
+
+extern int
+meta_clear_candidates(
+	Operation		*op,
+	metaconn_t		*mc );
 
 /*
  * Dn cache stuff (experimental)

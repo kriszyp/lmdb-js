@@ -517,26 +517,12 @@ meta_back_retry(
 			LDAP_BACK_CONN_ISPRIV( mc ), sendok );
 
 		if ( rc == LDAP_SUCCESS ) {
-			if ( be_isroot( op ) && !BER_BVISNULL( &mi->mi_targets[ candidate ].mt_pseudorootdn ) )
-			{
-				Operation	op2 = *op;
-
-				op2.o_tag = LDAP_REQ_BIND;
-				op2.o_req_dn = mi->mi_targets[ candidate ].mt_pseudorootdn;
-				op2.o_req_ndn = mi->mi_targets[ candidate ].mt_pseudorootdn;
-				op2.orb_cred = mi->mi_targets[ candidate ].mt_pseudorootpw;
-				op2.orb_method = LDAP_AUTH_SIMPLE;
-
-				rc = meta_back_single_bind( &op2, rs, mc, candidate, 0 );
-
-			} else {
-				rc = meta_back_single_dobind( op, rs, mc, candidate,
-					sendok, mt->mt_nretries, 0 );
-			}
+			rc = meta_back_single_dobind( op, rs, mcp, candidate,
+				sendok, mt->mt_nretries, 0 );
         	}
 
 	} else {
-		meta_back_release_conn_lock( op, mc, 0 );
+		meta_back_release_conn_lock( op, mc, 1, 0 );
 		*mcp = NULL;
 
 		if ( sendok ) {
@@ -1246,6 +1232,7 @@ void
 meta_back_release_conn_lock(
        	Operation 		*op,
 	metaconn_t		*mc,
+	int			dofree,
 	int			dolock )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
@@ -1258,7 +1245,8 @@ meta_back_release_conn_lock(
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
 	LDAP_BACK_CONN_BINDING_CLEAR( mc );
-	if ( ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
+	if ( dofree
+		|| ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
 		|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld expired.\n",
@@ -1266,6 +1254,7 @@ meta_back_release_conn_lock(
 		(void)avl_delete( &mi->mi_conninfo.lai_tree,
 			( caddr_t )mc, meta_back_conndnmc_cmp );
 		if ( mc->mc_refcnt == 0 ) {
+			meta_clear_candidates( op, mc );
 			meta_back_conn_free( mc );
 		}
 	}
