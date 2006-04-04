@@ -107,7 +107,7 @@ ldbm_back_compare(
 	}
 
 return_results:;
-	cache_return_entry_r( &li->li_cache, e );
+	if ( e ) cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 	send_ldap_result( op, rs );

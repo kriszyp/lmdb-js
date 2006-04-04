@@ -112,6 +112,7 @@ idl_allids( Backend *be )
 	idl = idl_alloc( 0 );
 	ID_BLOCK_NMAX(idl) = ID_BLOCK_ALLIDS_VALUE;
 	if ( next_id_get( be, &id ) ) {
+		idl_free( idl );
 		return NULL;
 	}
 	ID_BLOCK_NIDS(idl) = id;
