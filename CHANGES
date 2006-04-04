@@ -2,6 +2,10 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.21 Engineering
 	Removed lint
+	Fixed libldap referral chasing issue (ITS#4448)
+	Fixed libldap invalid free bug (ITS#4436)
+	Fixed libldap mutex leak (ITS#4441)
+	Fixed libldap_r thr_yield(2) return handling (ITS#4469)
 	Fixed slapd-ldbm crash on modify bug (ITS#4464)
 	Build Environment
 		Fixed multi-precision sizeof detection (ITS#4416)
