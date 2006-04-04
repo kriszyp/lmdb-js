@@ -58,7 +58,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 
 	if ( rs->sr_err != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
 
-	if ( !op->o_bd || !ad->ad_logfile ) return SLAP_CB_CONTINUE;
+	if ( !ad->ad_logfile ) return SLAP_CB_CONTINUE;
 
 /*
 ** add or modify: use modifiersName if present

@@ -565,13 +565,13 @@ query_containment(Operation *op, query_manager *qm,
 						fi=fi->f_next;
 						break;
 					case LDAP_FILTER_GE:
-						if (ret >= 0)
+						if (mrule && ret >= 0)
 							res = 1;
 						fs=fs->f_next;
 						fi=fi->f_next;
 						break;
 					case LDAP_FILTER_LE:
-						if (ret <= 0)
+						if (mrule && ret <= 0)
 							res = 1;
 						fs=fs->f_next;
 						fi=fi->f_next;

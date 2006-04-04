@@ -690,6 +690,7 @@ static int translucent_db_init(BackendDB *be) {
 	ov->info = backend_info("ldap");
 
 	if(!ov->info) {
+		ch_free( ov );
 		Debug(LDAP_DEBUG_ANY, "translucent: backend_info failed!\n", 0, 0, 0);
 		return(1);
 	}
