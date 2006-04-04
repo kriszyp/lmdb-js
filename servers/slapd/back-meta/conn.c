@@ -488,9 +488,10 @@ meta_back_retry(
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metatarget_t		*mt = &mi->mi_targets[ candidate ];
-	int			rc = LDAP_UNAVAILABLE;
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	int			rc = LDAP_UNAVAILABLE,
+				binding = LDAP_BACK_CONN_BINDING( msc );
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 
@@ -515,6 +516,9 @@ meta_back_retry(
 		/* mc here must be the regular mc, reset and ready for init */
 		rc = meta_back_init_one_conn( op, rs, mt, mc, candidate,
 			LDAP_BACK_CONN_ISPRIV( mc ), sendok );
+		if ( binding ) {
+			LDAP_BACK_CONN_BINDING_SET( msc );
+		}
 
 		if ( rc == LDAP_SUCCESS ) {
 			rc = meta_back_single_dobind( op, rs, mcp, candidate,
@@ -524,6 +528,9 @@ meta_back_retry(
 
 	if ( rc != LDAP_SUCCESS ) {
 		if ( *mcp != NULL ) {
+			if ( binding ) {
+				LDAP_BACK_CONN_BINDING_CLEAR( msc );
+			}
 			meta_back_release_conn_lock( op, mc, 1, 0 );
 			*mcp = NULL;
 		}
