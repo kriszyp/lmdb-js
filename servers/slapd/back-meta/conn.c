@@ -213,7 +213,7 @@ metaconn_alloc(
 		mc->mc_conns[ i ].msc_ld = NULL;
 		BER_BVZERO( &mc->mc_conns[ i ].msc_bound_ndn );
 		BER_BVZERO( &mc->mc_conns[ i ].msc_cred );
-		LDAP_BACK_CONN_ISBOUND_CLEAR( &mc->mc_conns[ i ] );
+		mc->mc_conns[ i ].msc_mscflags = 0;
 		mc->mc_conns[ i ].msc_info = mi;
 	}
 
@@ -270,6 +270,8 @@ meta_back_init_one_conn(
 	if ( msc->msc_ld != NULL ) {
 		return rs->sr_err = LDAP_SUCCESS;
 	}
+
+	msc->msc_mscflags = 0;
        
 	/*
 	 * Attempts to initialize the connection to the target ds
@@ -453,8 +455,6 @@ retry:;
 
 	assert( !BER_BVISNULL( &msc->msc_bound_ndn ) );
 
-	LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
-
 error_return:;
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		/*
@@ -523,8 +523,10 @@ meta_back_retry(
 	}
 
 	if ( rc != LDAP_SUCCESS ) {
-		meta_back_release_conn_lock( op, mc, 1, 0 );
-		*mcp = NULL;
+		if ( *mcp != NULL ) {
+			meta_back_release_conn_lock( op, mc, 1, 0 );
+			*mcp = NULL;
+		}
 
 		if ( sendok ) {
 			rs->sr_err = LDAP_UNAVAILABLE;

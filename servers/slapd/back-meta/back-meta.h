@@ -167,12 +167,6 @@ typedef struct metasingleconn_t {
 	/* NOTE: lc_lcflags is redefined to msc_mscflags to reuse the macros
 	 * defined for back-ldap */
 #define	lc_lcflags		msc_mscflags
-#if 0
-	int             	msc_bound;
-#define META_UNBOUND		0
-#define META_BOUND		1
-#define META_ANONYMOUS		2
-#endif
 
 	struct metainfo_t	*msc_info;
 } metasingleconn_t;

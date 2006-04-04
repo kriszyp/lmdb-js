@@ -679,10 +679,23 @@ meta_back_dobind(
 		/*
 		 * If the target is already bound it is skipped
 		 */
+
+retry_binding:;
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		if ( LDAP_BACK_CONN_ISBOUND( msc ) || LDAP_BACK_CONN_ISANON( msc ) ) {
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			++bound;
 			continue;
-		}
+
+		} else if ( LDAP_BACK_CONN_BINDING( msc ) ) {
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+			ldap_pvt_thread_yield();
+			goto retry_binding;
+
+		} else {
+			LDAP_BACK_CONN_BINDING_SET( msc );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+		} 
 
 retry:;
 		rc = meta_back_single_dobind( op, rs, &mc, i,
@@ -739,11 +752,14 @@ retry:;
 			op->o_log_prefix, i,
 			rootdn ? rootdn : "anonymous" );
 
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+		LDAP_BACK_CONN_BINDING_CLEAR( msc );
 		if ( rootdn ) {
 			LDAP_BACK_CONN_ISBOUND_SET( msc );
 		} else {
 			LDAP_BACK_CONN_ISANON_SET( msc );
 		}
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 		++bound;
 	}
 
