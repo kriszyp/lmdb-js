@@ -103,7 +103,12 @@ forkandexec(
 	if ( (*rfp = fdopen( c2p[0], "r" )) == NULL || (*wfp = fdopen( p2c[1],
 	    "w" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "fdopen failed\n", 0, 0, 0 );
-		close( c2p[0] );
+		if ( *rfp ) {
+			fclose( *rfp );
+			*rfp = NULL;
+		} else {
+			close( c2p[0] );
+		}
 		close( p2c[1] );
 
 		return( -1 );
