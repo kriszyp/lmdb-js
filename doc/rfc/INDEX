@@ -51,6 +51,7 @@ rfc3928.txt LDAP Client Update Protocol (PS)
 rfc4013.txt SASLprep (PS)
 rfc4370.txt LDAP Proxied Authorization Control (PS)
 rfc4373.txt LBURP (I)
+rfc4404.txt LDAP Schema for UDDI (I)
 
 Legend:
 STD	Standard
