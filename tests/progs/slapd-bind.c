@@ -347,7 +347,7 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop,
 		char dn[BUFSIZ], *ptr;
 		int j, k;
 
-		for ( k = 0; k < nrdns; k++) {
+		for ( j = 0, k = 0; k < nrdns; k++) {
 			j = rand() % nrdns;
 			if ( base->bv_len + rdns[j].bv_len < sizeof( dn ) ) {
 				break;
