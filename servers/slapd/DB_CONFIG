@@ -7,6 +7,8 @@
 #
 # Hints can also be found in the OpenLDAP Software FAQ
 #	<http://www.openldap.org/faq/index.cgi?file=2>
+# in particular:
+#   <http://www.openldap.org/faq/index.cgi?file=1075>
 
 # one 0.25 GB cache
 set_cachesize 0 268435456 1
