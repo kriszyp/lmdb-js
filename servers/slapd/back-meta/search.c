@@ -701,7 +701,9 @@ really_bad:;
 					 * the target enforced a limit lower
 					 * than what requested by the proxy;
 					 * ignore it */
-					if ( rs->sr_nentries == op->ors_slimit ) {
+					if ( rs->sr_nentries == op->ors_slimit
+						|| META_BACK_ONERR_STOP( mi ) )
+					{
 						savepriv = op->o_private;
 						op->o_private = (void *)i;
 						send_ldap_result( op, rs );
