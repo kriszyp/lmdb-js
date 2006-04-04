@@ -212,7 +212,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 	int	version = LDAP_VERSION3;
 	int	nvalues = 0;
 	char	**values = NULL;
-	LDAPMessage *res = NULL;
+	LDAPMessage *res = NULL, *e = NULL;
 
 	attrs[ 0 ] = attr;
 	attrs[ 1 ] = NULL;
@@ -247,11 +247,14 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 	rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,
 		filter, attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
-	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_search_ext_s" );
+	switch ( rc ) {
+	case LDAP_SIZELIMIT_EXCEEDED:
+	case LDAP_TIMELIMIT_EXCEEDED:
+	case LDAP_SUCCESS:
+		if ( ldap_count_entries( ld, res ) == 0 ) {
+			break;
+		}
 
-	} else {
-		LDAPMessage *e;
 		for ( e = ldap_first_entry( ld, res ); e != NULL; e = ldap_next_entry( ld, e ) )
 		{
 			struct berval **v = ldap_get_values_len( ld, e, attr );
@@ -284,8 +287,11 @@ do_random( char *uri, char *manager, struct berval *passwd,
 			do_search( uri, manager, passwd, sbase, buf, &ld, noattrs,
 					1, maxretries, delay, force, chaserefs );
 		}
+
+	default:
+		tester_ldap_error( ld, "ldap_search_ext_s" );
+		break;
 	}
-		
 
 	fprintf( stderr, " PID=%ld - Search done (%d).\n", (long) pid, rc );
 
