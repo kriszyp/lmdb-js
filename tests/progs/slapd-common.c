@@ -73,7 +73,9 @@ tester_ldap_error( LDAP *ld, const char *fname )
 
 	ldap_get_option( ld, LDAP_OPT_MATCHED_DN, (void *)&text );
 	if ( text != NULL ) {
-		fprintf( stderr, "\tmatched: %s\n", text );
+		if ( text[ 0 ] != '\0' ) {
+			fprintf( stderr, "\tmatched: %s\n", text );
+		}
 		ldap_memfree( text );
 		text = NULL;
 	}
