@@ -72,7 +72,7 @@ attr_index_config(
     int			argc,
     char		**argv )
 {
-	int rc;
+	int rc = LDAP_SUCCESS;
 	int	i;
 	slap_mask_t mask;
 	char **attrs;
@@ -94,7 +94,8 @@ attr_index_config(
 			fprintf( stderr, "%s: line %d: "
 				"no indexes specified: %s\n",
 				fname, lineno, argv[1] );
-			return LDAP_PARAM_ERROR;
+			rc = LDAP_PARAM_ERROR;
+			goto fail;
 		}
 	}
 
@@ -112,7 +113,8 @@ attr_index_config(
 				fprintf( stderr, "%s: line %d: "
 					"index type \"%s\" undefined\n",
 					fname, lineno, indexes[i] );
-				return LDAP_PARAM_ERROR;
+				rc = LDAP_PARAM_ERROR;
+				goto fail;
 			}
 
 			mask |= index;
@@ -123,7 +125,8 @@ attr_index_config(
 		fprintf( stderr, "%s: line %d: "
 			"no indexes selected\n",
 			fname, lineno );
-		return LDAP_PARAM_ERROR;
+		rc = LDAP_PARAM_ERROR;
+		goto fail;
 	}
 
 	for ( i = 0; attrs[i] != NULL; i++ ) {
@@ -136,8 +139,6 @@ attr_index_config(
 			continue;
 		}
 
-		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
-
 		ad = NULL;
 		rc = slap_str2ad( attrs[i], &ad, &text );
 
@@ -145,14 +146,15 @@ attr_index_config(
 			fprintf( stderr, "%s: line %d: "
 				"index attribute \"%s\" undefined\n",
 				fname, lineno, attrs[i] );
-			return rc;
+			goto fail;
 		}
 
 		if( slap_ad_is_binary( ad ) ) {
 			fprintf( stderr, "%s: line %d: "
 				"index of attribute \"%s\" disallowed\n",
 				fname, lineno, attrs[i] );
-			return LDAP_UNWILLING_TO_PERFORM;
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto fail;
 		}
 
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) && !(
@@ -163,7 +165,8 @@ attr_index_config(
 			fprintf( stderr, "%s: line %d: "
 				"approx index of attribute \"%s\" disallowed\n",
 				fname, lineno, attrs[i] );
-			return LDAP_INAPPROPRIATE_MATCHING;
+			rc = LDAP_INAPPROPRIATE_MATCHING;
+			goto fail;
 		}
 
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) && !(
@@ -174,7 +177,8 @@ attr_index_config(
 			fprintf( stderr, "%s: line %d: "
 				"equality index of attribute \"%s\" disallowed\n",
 				fname, lineno, attrs[i] );
-			return LDAP_INAPPROPRIATE_MATCHING;
+			rc = LDAP_INAPPROPRIATE_MATCHING;
+			goto fail;
 		}
 
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_SUBSTR ) && !(
@@ -185,12 +189,15 @@ attr_index_config(
 			fprintf( stderr, "%s: line %d: "
 				"substr index of attribute \"%s\" disallowed\n",
 				fname, lineno, attrs[i] );
-			return LDAP_INAPPROPRIATE_MATCHING;
+
+			rc = LDAP_INAPPROPRIATE_MATCHING;
+			goto fail;
 		}
 
 		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04lx\n",
 			ad->ad_cname.bv_val, mask, 0 ); 
 
+		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
 
 		a->ai_desc = ad;
 
@@ -203,15 +210,18 @@ attr_index_config(
 			fprintf( stderr,
 				"%s: line %d: duplicate index definition for attr \"%s\".\n",
 			    fname, lineno, attrs[i] );
-
-			return LDAP_PARAM_ERROR;
+			ch_free( a );
+			goto fail;
 		}
 	}
 
-	ldap_charray_free( attrs );
-	if ( indexes != NULL ) ldap_charray_free( indexes );
+	rc = LDAP_SUCCESS;
 
-	return LDAP_SUCCESS;
+fail:
+	if ( indexes != NULL ) ldap_charray_free( indexes );
+	ldap_charray_free( attrs );
+
+	return rc;
 }
 
 void
