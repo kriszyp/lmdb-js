@@ -2,10 +2,11 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.21 Engineering
 	Removed lint
+	Fixed slapd-ldbm crash on modify bug (ITS#4464)
 	Build Environment
-		Updated libtool to version 1.5.22
+		Fixed multi-precision sizeof detection (ITS#4416)
+		Updated libtool to version 1.5.22 (ITS#4471)
 		Updated shtool to version 2.0.5
-		Fixed multi-precision sizeof detection
 
 OpenLDAP 2.3.20 Release
 	Added libldap SASL workaround for broken LDAP servers (ITS#4391)
