@@ -1105,6 +1105,7 @@ done_url:;
 							"unknown flag \"%s\"",
 							flags[ j ] );
 						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+						ldap_charray_free( flags );
 						return 1;
 					}
 				}
