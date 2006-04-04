@@ -474,7 +474,10 @@ really_bad:;
 				}
 				op->o_private = savepriv;
 
+				/* don't wait any longer... */
 				gotit = 1;
+				tv.tv_sec = 0;
+				tv.tv_usec = 0;
 
 #if 0
 				/*
@@ -753,13 +756,11 @@ really_bad:;
 			}
 		}
 
+		/* if no entry was found during this loop,
+		 * set a minimal timeout */
 		if ( gotit == 0 ) {
 			LDAP_BACK_TV_SET( &tv );
                         ldap_pvt_thread_yield();
-
-		} else {
-			tv.tv_sec = 0;
-			tv.tv_usec = 0;
 		}
 	}
 
