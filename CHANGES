@@ -3,6 +3,8 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.21 Engineering
 	Removed lint
 	Build Environment
+		Updated libtool to version 1.5.22
+		Updated shtool to version 2.0.5
 		Fixed multi-precision sizeof detection
 
 OpenLDAP 2.3.20 Release
