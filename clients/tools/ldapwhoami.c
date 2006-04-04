@@ -116,7 +116,7 @@ main( int argc, char *argv[] )
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
 	char		*retoid = NULL;
 	struct berval	*retdata = NULL;
-	int		id, code;
+	int		id, code=0;
 	LDAPMessage	*res;
 
 	tool_init();

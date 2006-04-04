@@ -1111,10 +1111,10 @@ dorename(
 			pctrls, NULL, &msgid );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, _("%s: rename failed: %s\n"), prog, dn );
-			ldap_perror( ld, "ldap_modrdn" );
+			ldap_perror( ld, "ldap_rename" );
 			goto done;
 		} else {
-			printf( _("modrdn completed\n") );
+			printf( _("rename completed\n") );
 		}
 
 		rc = process_response( ld, msgid, "ldap_rename", dn );
