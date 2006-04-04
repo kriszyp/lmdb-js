@@ -788,6 +788,7 @@ retcode_db_config(
 						} else {
 							fprintf( stderr, "retcode: unknown op \"%s\"\n",
 								ops[ j ] );
+							ldap_charray_free( ops );
 							return 1;
 						}
 					}

@@ -767,6 +767,7 @@ lastmod_db_init(
 				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
 					"null OID for attributeType '%s'\n",
 					mat[i].name, 0, 0 );
+				ldap_attributetype_free( at );
 				return -1;
 			}
 	
@@ -775,6 +776,7 @@ lastmod_db_init(
 				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
 					"%s in attributeType '%s'\n",
 					scherr2str(code), mat[i].name, 0 );
+				ldap_attributetype_free( at );
 				return -1;
 			}
 			ldap_memfree(at);
@@ -810,6 +812,7 @@ lastmod_db_init(
 				Debug( LDAP_DEBUG_ANY,
 					"objectClass '%s' has no OID\n" ,
 					moc[i].name, 0, 0 );
+				ldap_objectclass_free( oc );
 				return -1;
 			}
 
@@ -818,6 +821,7 @@ lastmod_db_init(
 				Debug( LDAP_DEBUG_ANY,
 					"objectClass '%s': %s \"%s\"\n" ,
 					moc[i].name, scherr2str(code), err );
+				ldap_objectclass_free( oc );
 				return -1;
 			}
 	
