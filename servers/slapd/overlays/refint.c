@@ -468,8 +468,8 @@ refint_response(
 
 	for(ip = id->attrs, ac = 0; ip; ip = ip->next, ac++);
 	if(!ac) {
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "refint_response called without any attributes";
+		Debug( LDAP_DEBUG_TRACE,
+			"refint_response called without any attributes\n", 0, 0, 0 );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -483,13 +483,15 @@ refint_response(
 
 	if(nop.o_bd) {
 		if (!nop.o_bd->be_search || !nop.o_bd->be_modify) {
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			rs->sr_text = "backend missing search and/or modify";
+			Debug( LDAP_DEBUG_TRACE,
+				"refint_response: backend missing search and/or modify\n",
+				0, 0, 0 );
 			return SLAP_CB_CONTINUE;
 		}
 	} else {
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "no known backend? this shouldn't be happening!";
+		Debug( LDAP_DEBUG_TRACE,
+			"refint_response: no backend for our baseDN %s??\n",
+			id->dn.bv_val, 0, 0 );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -580,15 +582,17 @@ refint_response(
 	dd.nnewdn.bv_val = NULL;
 
 	if(rc != LDAP_SUCCESS) {
-		rs->sr_err = nrs.sr_err;
-		rs->sr_text = "refint_response search failed";
+		Debug( LDAP_DEBUG_TRACE,
+			"refint_response: search failed: %d\n",
+			rc, 0, 0 );
 		goto done;
 	}
 
 	/* safety? paranoid just in case */
 	if(!cb.sc_private) {
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "whoa! refint_response callback wiped out sc_private?!";
+		Debug( LDAP_DEBUG_TRACE,
+			"refint_response: callback wiped out sc_private?!\n",
+			0, 0, 0 );
 		goto done;
 	}
 
@@ -625,8 +629,9 @@ refint_response(
 		nop.o_req_ndn	= dp->dn;
 		nop.o_bd = select_backend(&dp->dn, 0, 1);
 		if(!nop.o_bd) {
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "this should never happen either!";
+			Debug( LDAP_DEBUG_TRACE,
+				"refint_response: no backend for DN %s!\n",
+				dp->dn.bv_val, 0, 0 );
 			goto done;
 		}
 		nrs.sr_type	= REP_RESULT;
@@ -637,8 +642,9 @@ refint_response(
 		nop.o_ndn = nop.o_bd->be_rootndn;
 		if(rs->sr_err != LDAP_SUCCESS) goto done;
 		if((rc = nop.o_bd->be_modify(&nop, &nrs)) != LDAP_SUCCESS) {
-			rs->sr_err = nrs.sr_err;
-			rs->sr_text = "dependent modify failed";
+			Debug( LDAP_DEBUG_TRACE,
+				"refint_response: dependent modify failed: %d\n",
+				nrs.sr_err, 0, 0 );
 			goto done;
 		}
 	}
