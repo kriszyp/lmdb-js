@@ -247,9 +247,25 @@ LDAP_BEGIN_DECL
 #define LDAP_UINTPTR_T	unsigned long
 #endif
 
-typedef union {
-	unsigned char			*ptr;
-	LDAP_UINTPTR_T			num;
+typedef enum {
+	ldap_debug_magic =	-(int) (((unsigned)-1)/19)
+} ldap_debug_magic_t;
+
+typedef enum {
+	/* Could fill in "locked" etc here later */
+	ldap_debug_state_inited = (int) (((unsigned)-1)/11),
+	ldap_debug_state_destroyed
+} ldap_debug_state_t;
+
+typedef struct {
+	/* Enclosed in magic numbers in the hope of catching overwrites */
+	ldap_debug_magic_t	magic;	/* bit pattern to recognize usages  */
+	LDAP_UINTPTR_T		self;	/* ~(LDAP_UINTPTR_T)&(this struct) */
+	union ldap_debug_mem_u {	/* Dummy memory reference */
+		unsigned char	*ptr;
+		LDAP_UINTPTR_T	num;
+	} mem;
+	ldap_debug_state_t	state;	/* doubles as another magic number */
 } ldap_debug_usage_info_t;
 
 typedef struct {

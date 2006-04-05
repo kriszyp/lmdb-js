@@ -15,18 +15,26 @@
  */
 
 /*
- * This package provides three types of thread operation debugging:
+ * This package provides several types of thread operation debugging:
  *
- * - Print error messages and abort() when thread operations fail:
- *   Operations on threads, mutexes, condition variables, rdwr locks.
- *   Some thread pool operations are also checked, but not those for
- *   which failure can happen in normal slapd operation.
+ * - Check the results of operations on threads, mutexes, condition
+ *   variables and read/write locks.  Also check some thread pool
+ *   operations, but not those for which failure can happen in normal
+ *   slapd operation.
  *
- * - Wrap those types except threads and pools in structs that
- *   contain a state variable or a pointer to dummy allocated memory,
- *   and check that on all operations.  The dummy memory variant lets
- *   malloc debuggers see some incorrect use as memory leaks, access
- *   to freed memory, etc.
+ * - Wrap those types except threads and pools in structs with state
+ *   information, and check that on all operations:
+ *
+ *   + Check that the resources are initialized and are only used at
+ *     their original address (i.e. not realloced or copied).
+ *
+ *   + Check the owner (thread ID) on mutex operations.
+ *
+ *   + Optionally allocate a reference to a byte of dummy memory.
+ *     This lets malloc debuggers see some incorrect use as memory
+ *     leaks, access to freed memory, etc.
+ *
+ * - Print an error message and by default abort() upon errors.
  *
  * - Print a count of leaked thread resources after cleanup.
  *
@@ -38,6 +46,8 @@
  *   LDAP_UINTPTR_T=integer type to hold pointers, preferably unsigned.
  *      Used by dummy memory option "scramble". Default = unsigned long.
  *
+ *   LDAP_DEBUG_THREAD_NONE = initializer for a "no thread" thread ID.
+ *
  *   In addition, you may need to set up an implementation-specific way
  *      to enable whatever error checking your thread library provides.
  *      Currently only implemented for Posix threads (pthreads), where
@@ -45,24 +55,39 @@
  *      is PTHREAD_MUTEX_ERRORCHECK, or PTHREAD_MUTEX_ERRORCHECK_NP for
  *      Linux threads.  See pthread_mutexattr_settype(3).
  *
- * Run-time configuration:  Environment variable LDAP_THREAD_DEBUG.
+ * Run-time configuration:
  *
+ *  Setup of memory debugging tools:
+ *   Tools that report uninitialized memory accesses should disable
+ *   such warnings about the function debug_already_initialized().
+ *   Alternatively, include "noreinit" (below) in $LDAP_THREAD_DEBUG.
+ *
+ *  Environment variable $LDAP_THREAD_DEBUG:
  *   The variable may contain a comma- or space-separated option list.
  *   Options:
- *      off      - Disable this package.
- *   Error checking:
+ *      off      - Disable this package.  (It still slows things down).
+ *      tracethreads - Report create/join/exit/kill of threads.
  *      noabort  - Do not abort() on errors.
  *      noerror  - Do not report errors.  Implies noabort.
  *      nocount  - Do not report counts of unreleased resources.
- *   State variable/dummy memory, unless type wrapping is disabled:
- *      noalloc  - Default.  Use a state variable, not dummy memory.
- *      dupinit  - Implies noalloc.  Check if resources that have
- *                 not been destroyed are reinitialized.  Tools that
- *                 report uninitialized memory access should disable
- *                 such warnings about debug_already_initialized().
- *      alloc    - Allocate dummy memory and store pointers as-is.
- *                 Malloc debuggers might not notice unreleased
- *                 resources in global variables as memory leaks.
+ *      nosync   - Disable tests that use synchronizaion and thus
+ *                 clearly affect thread scheduling:
+ *                 Implies nocount, and cancels threadID if that is set.
+ *                 Note that if you turn on tracethreads or malloc
+ *                 debugging, these also use library calls which may
+ *                 affect thread scheduling (fprintf and malloc).
+ *   The following options do not apply if type wrapping is disabled:
+ *      nomem    - Do not check memory operations.
+ *                 Implies noreinit,noalloc.
+ *      noreinit - Do not catch reinitialization of existing resources.
+ *                 (That test accesses uninitialized memory).
+ *      threadID - Trace thread IDs.  Currently mostly useless.
+ *     Malloc debugging -- allocate dummy memory for initialized
+ *     resources, so malloc debuggers will report them as memory leaks:
+ *      noalloc  - Default.  Do not allocate dummy memory.
+ *      alloc    - Store a pointer to dummy memory.   However, leak
+ *                 detectors might not catch unreleased resources in
+ *                 global variables.
  *      scramble - Store bitwise complement of dummy memory pointer.
  *                 That never escapes memory leak detectors -
  *                 but detection while the program is running will
@@ -71,8 +96,6 @@
  *      adjptr   - Point to end of dummy memory.
  *                 Purify reports these as "potential leaks" (PLK).
  *                 I have not checked other malloc debuggers.
- *   Tracing:
- *      tracethreads - Report create/join/exit/kill of threads.
  */
 
 #include "portable.h"
@@ -91,18 +114,41 @@
 #define LDAP_THREAD_POOL_IMPLEMENTATION
 #include "ldap_thr_debug.h"  /* Get the underlying implementation */
 
+#ifndef LDAP_THREAD_DEBUG_WRAP
+#undef	LDAP_THREAD_DEBUG_THREAD_ID
+#elif !defined LDAP_THREAD_DEBUG_THREAD_ID
+#define	LDAP_THREAD_DEBUG_THREAD_ID 1
+#endif
+
+/* Use native malloc - the OpenLDAP wrappers may defeat malloc debuggers */
+#undef malloc
+#undef calloc
+#undef realloc
+#undef free
+
 
 /* Options from environment variable $LDAP_THREAD_DEBUG */
 enum { Count_no = 0, Count_yes, Count_reported, Count_reported_more };
-static int nodebug, noabort, noerror, count = Count_yes, options_done;
+static int count = Count_yes;
 #ifdef LDAP_THREAD_DEBUG_WRAP
 enum { Wrap_noalloc, Wrap_alloc, Wrap_scramble, Wrap_adjptr };
-static int dupinit, wraptype = Wrap_noalloc, wrap_offset, unwrap_offset;
+static int wraptype = Wrap_noalloc, wrap_offset, unwrap_offset;
+static int nomem, noreinit;
 #endif
-static int tracethreads;
+#if LDAP_THREAD_DEBUG_THREAD_ID +0
+static int threadID;
+#else
+enum { threadID = 0 };
+#endif
+static int nodebug, noabort, noerror, nosync, tracethreads;
+static int options_done;
 
+
+/* ldap_pvt_thread_initialize() called, ldap_pvt_thread_destroy() not called */
 static int threading_enabled;
 
+
+/* Resource counts */
 enum {
 	Idx_unexited_thread, Idx_unjoined_thread, Idx_locked_mutex,
 	Idx_mutex, Idx_cond, Idx_rdwr, Idx_tpool, Idx_max
@@ -115,52 +161,72 @@ static const char *const resource_names[] = {
 static ldap_int_thread_mutex_t resource_mutexes[Idx_max];
 
 
-/*
- * Making ldap_pvt_thread_t a wrapper around ldap_int_thread_t would
- * slow down ldap_pvt_thread_self(), so keep a list of threads instead.
- */
-typedef struct ldap_debug_thread_s {
-	ldap_pvt_thread_t			wrapped;
-	ldap_debug_usage_info_t		usage;
-	int							detached;
-	int							freeme, idx;
-} ldap_debug_thread_t;
-
-static ldap_debug_thread_t		**thread_info;
-static unsigned int				thread_info_size, thread_info_used;
-static ldap_int_thread_mutex_t	thread_info_mutex;
+/* Hide pointers from malloc debuggers. */
+#define SCRAMBLE(ptr) (~(LDAP_UINTPTR_T) (ptr))
+#define UNSCRAMBLE_usagep(num) ((ldap_debug_usage_info_t *) ~(num))
+#define UNSCRAMBLE_dummyp(num) ((unsigned char *) ~(num))
 
 
 #define WARN(var, msg)   (warn (__FILE__, __LINE__, (msg), #var, (var)))
 #define WARN_IF(rc, msg) {if (rc) warn (__FILE__, __LINE__, (msg), #rc, (rc));}
-#define ERROR(var, msg) \
-	{if (!noerror) error(__FILE__, __LINE__, (msg), #var, (var));}
-#define ERROR_IF(rc, msg) \
-	{if (!noerror && (rc)) error(__FILE__, __LINE__, (msg), #rc, (rc));}
+
+#define ERROR(var, msg) { \
+	if (!noerror) { \
+		errmsg(__FILE__, __LINE__, (msg), #var, (var)); \
+		if( !noabort ) abort(); \
+	} \
+}
+
+#define ERROR_IF(rc, msg) { \
+	if (!noerror) { \
+		int rc_ = (rc); \
+		if (rc_) { \
+			errmsg(__FILE__, __LINE__, (msg), #rc, rc_); \
+			if( !noabort ) abort(); \
+		} \
+	} \
+}
+
+#ifdef LDAP_THREAD_DEBUG_WRAP
+#define MEMERROR_IF(rc, msg, mem_act) { \
+	if (!noerror) { \
+		int rc_ = (rc); \
+		if (rc_) { \
+			errmsg(__FILE__, __LINE__, (msg), #rc, rc_); \
+			if( wraptype != Wrap_noalloc ) { mem_act; } \
+			if( !noabort ) abort(); \
+		} \
+	} \
+}
+#endif /* LDAP_THREAD_DEBUG_WRAP */
 
 #if 0
 static void
 warn( const char *file, int line, const char *msg, const char *var, int val )
 {
-	fprintf( stderr, "%s:%d: %s warning: %s is %d\n",
+	fprintf( stderr,
+		(strpbrk( var, "!=" )
+		 ? "%s:%d: %s warning: %s\n"
+		 : "%s:%d: %s warning: %s is %d\n"),
 		file, line, msg, var, val );
 }
 #endif
 
 static void
-error( const char *file, int line, const char *msg, const char *var, int val )
+errmsg( const char *file, int line, const char *msg, const char *var, int val )
 {
-	fprintf( stderr, "%s:%d: %s error: %s is %d\n",
+	fprintf( stderr,
+		(strpbrk( var, "!=" )
+		 ? "%s:%d: %s error: %s\n"
+		 : "%s:%d: %s error: %s is %d\n"),
 		file, line, msg, var, val );
-	if( !noabort )
-		abort();
 }
 
 static void
 count_resource_leaks( void )
 {
 	int i, j;
-	char errbuf[200], *delim = "Leaked";
+	char errbuf[200];
 	if( count == Count_yes ) {
 		count = Count_reported;
 #if 0 /* Could break if there are still threads after atexit */
@@ -168,15 +234,12 @@ count_resource_leaks( void )
 			j |= ldap_int_thread_mutex_destroy( &resource_mutexes[i] );
 		WARN_IF( j, "ldap_debug_thread_destroy:mutexes" );
 #endif
-		for( i = j = 0; i < Idx_max; i++ ) {
-			if( resource_counts[i] ) {
-				j += sprintf( errbuf + j, "%s %d %s",
-					delim, resource_counts[i], resource_names[i] );
-				delim = ",";
-			}
-		}
+		for( i = j = 0; i < Idx_max; i++ )
+			if( resource_counts[i] )
+				j += sprintf( errbuf + j, ", %d %s",
+					resource_counts[i], resource_names[i] );
 		if( j )
-			fprintf( stderr, "%s:%d: %s.\n", __FILE__, __LINE__, errbuf );
+			fprintf( stderr, "== thr_debug: Leaked%s. ==\n", errbuf + 1 );
 	}
 }
 
@@ -191,9 +254,14 @@ get_options( void )
 		{ "noabort",    &noabort,  1 },
 		{ "noerror",    &noerror,  1 },
 		{ "nocount",    &count,    Count_no },
+		{ "nosync",     &nosync,   1 },
+#if LDAP_THREAD_DEBUG_THREAD_ID +0
+		{ "threadID",   &threadID, 1 },
+#endif
 #ifdef LDAP_THREAD_DEBUG_WRAP
+		{ "nomem",      &nomem,    1 },
+		{ "noreinit",   &noreinit, 1 },
 		{ "noalloc",    &wraptype, Wrap_noalloc },
-		{ "dupinit",    &dupinit,  1 },
 		{ "alloc",      &wraptype, Wrap_alloc },
 		{ "adjptr",     &wraptype, Wrap_adjptr },
 		{ "scramble",	&wraptype, Wrap_scramble },
@@ -211,7 +279,8 @@ get_options( void )
 					if( oi->name && oi->name[optlen] == '\0' ) {
 						*oi->var = oi->val;
 					} else {
-						fprintf( stderr, "Unknown $%s option '%.*s'\n",
+						fprintf( stderr,
+							"== thr_debug: Unknown $%s option '%.*s' ==\n",
 							"LDAP_THREAD_DEBUG", (int) optlen, s );
 					}
 					break;
@@ -221,28 +290,307 @@ get_options( void )
 		}
 	}
 	if( nodebug ) {
-		noabort = noerror = 1;
-		tracethreads = dupinit = 0;
-		count = Count_no;
+		tracethreads = 0;
+		nosync = noerror = 1;
 	}
+	if( nosync )
+		count = Count_no;
+	if( noerror )
+		noabort = 1;
+#if LDAP_THREAD_DEBUG_THREAD_ID +0
+	if( nosync )
+		threadID = 0;
+#endif
 #ifdef LDAP_THREAD_DEBUG_WRAP
-	if( nodebug || dupinit ) {
-		wraptype = Wrap_noalloc;
-	} else if( wraptype == Wrap_scramble ) {
-		const unsigned char *dummy = (const unsigned char *)&option_info;
-		if( sizeof(LDAP_UINTPTR_T) < sizeof(void *)
-			|| (unsigned char *)~~(LDAP_UINTPTR_T) dummy != dummy
-			|| (unsigned char *)~~(LDAP_UINTPTR_T) (unsigned char *)0 )
+	if( noerror )
+		nomem = 1;
+	if( !nomem ) {
+		static const ldap_debug_usage_info_t usage;
+		if( sizeof(LDAP_UINTPTR_T) < sizeof(unsigned char *)
+			|| sizeof(LDAP_UINTPTR_T) < sizeof(ldap_debug_usage_info_t *)
+			|| UNSCRAMBLE_usagep( SCRAMBLE( &usage ) ) != &usage
+			|| UNSCRAMBLE_dummyp( SCRAMBLE( (unsigned char *) 0 ) ) )
 		{
-			fprintf( stderr, "Misconfigured for $%s %s.  Using %s.\n",
-				"LDAP_THREAD_DEBUG", "scramble", "adjptr" );
-			wraptype = Wrap_adjptr;
+			fputs( "== thr_debug: Memory checks unsupported, "
+				"adding nomem to $LDAP_THREAD_DEBUG ==\n", stderr );
+			nomem = 1;
 		}
+	}
+	if( nomem ) {
+		noreinit = 1;
+		wraptype = Wrap_noalloc;
 	}
 	unwrap_offset = -(wrap_offset = (wraptype == Wrap_adjptr));
 #endif
 	options_done = 1;
 }
+
+
+#ifndef LDAP_THREAD_DEBUG_WRAP
+
+#define	WRAPPED(ptr)			(ptr)
+#define	GET_OWNER(ptr)			0
+#define	SET_OWNER(ptr, thread)	((void) 0)
+#define	RESET_OWNER(ptr)		((void) 0)
+#define	ASSERT_OWNER(ptr, msg)	((void) 0)
+#define	ASSERT_NO_OWNER(ptr, msg) ((void) 0)
+
+#define init_usage(ptr, msg)	((void) 0)
+#define check_usage(ptr, msg)	((void) 0)
+#define destroy_usage(ptr)		((void) 0)
+
+#else /* LDAP_THREAD_DEBUG_WRAP */
+
+/* Specialize this if the initializer is not appropriate. */
+/* The ASSERT_NO_OWNER() definition may also need an override. */
+#ifndef LDAP_DEBUG_THREAD_NONE
+#define	LDAP_DEBUG_THREAD_NONE { -1 } /* "no thread" ldap_int_thread_t value */
+#endif
+
+static const ldap_int_thread_t ldap_debug_thread_none = LDAP_DEBUG_THREAD_NONE;
+
+#define THREAD_MUTEX_OWNER(mutex) \
+	ldap_int_thread_equal( (mutex)->owner, ldap_int_thread_self() )
+
+void
+ldap_debug_thread_assert_mutex_owner(
+	const char *file,
+	int line,
+	const char *msg,
+	ldap_pvt_thread_mutex_t *mutex )
+{
+	if( !(noerror || THREAD_MUTEX_OWNER( mutex )) ) {
+		errmsg( file, line, msg, "ASSERT_MUTEX_OWNER", 0 );
+		if( !noabort ) abort();
+	}
+}
+
+#define	WRAPPED(ptr)			(&(ptr)->wrapped)
+#define	GET_OWNER(ptr)			((ptr)->owner)
+#define	SET_OWNER(ptr, thread)	((ptr)->owner = (thread))
+#define	RESET_OWNER(ptr)		((ptr)->owner = ldap_debug_thread_none)
+#define	ASSERT_OWNER(ptr, msg)	ERROR_IF( !THREAD_MUTEX_OWNER( ptr ), msg )
+#ifndef	ASSERT_NO_OWNER
+#define	ASSERT_NO_OWNER(ptr, msg) ERROR_IF( \
+	!ldap_int_thread_equal( (ptr)->owner, ldap_debug_thread_none ), msg )
+#endif
+
+/* Try to provoke memory access error (for malloc debuggers) */
+#define PEEK(mem) {if (-*(volatile const unsigned char *)(mem)) debug_noop();}
+
+static void debug_noop( void );
+static int debug_already_initialized( const ldap_debug_usage_info_t *usage );
+
+/* Names used to give clearer error messages */
+#define IS_COPY_OR_MOVED(usage) ((usage)->self != SCRAMBLE( usage ))
+enum { Is_destroyed = 1 };
+
+#define DUMMY_ADDR(usage) \
+	(wraptype == Wrap_scramble \
+	 ? UNSCRAMBLE_dummyp( (usage)->mem.num ) \
+	 : (usage)->mem.ptr + unwrap_offset)
+
+/* Mark resource as initialized */
+static void
+init_usage( ldap_debug_usage_info_t *usage, const char *msg )
+{
+	if( !options_done )
+		get_options();
+	if( !nomem ) {
+		if( !noreinit ) {
+			MEMERROR_IF( debug_already_initialized( usage ), msg, {
+				/* Provoke malloc debuggers */
+				unsigned char *dummy = DUMMY_ADDR( usage );
+				PEEK( dummy );
+				free( dummy );
+				free( dummy );
+			} );
+		}
+		usage->self = SCRAMBLE( usage );
+		if( wraptype != Wrap_noalloc ) {
+			unsigned char *dummy = malloc( 1 );
+			assert( dummy != NULL );
+			if( wraptype == Wrap_scramble ) {
+				usage->mem.num = SCRAMBLE( dummy );
+				assert( UNSCRAMBLE_dummyp( usage->mem.num ) == dummy );
+			} else {
+				usage->mem.ptr = dummy + wrap_offset;
+			}
+		}
+	}
+	usage->magic = ldap_debug_magic;
+	usage->state = ldap_debug_state_inited;
+}
+
+/* Check that resource is initialized and not copied/realloced */
+static void
+check_usage( const ldap_debug_usage_info_t *usage, const char *msg )
+{
+	if( usage->magic != ldap_debug_magic ) {
+		ERROR( usage->magic, msg );
+		return;
+	}
+	switch( usage->state ) {
+	case ldap_debug_state_destroyed:
+		MEMERROR_IF( Is_destroyed, msg, {
+			PEEK( DUMMY_ADDR( usage ) );
+		} );
+		break;
+	default:
+		ERROR( usage->state, msg );
+		break;
+	case ldap_debug_state_inited:
+		if( !nomem ) {
+			MEMERROR_IF( IS_COPY_OR_MOVED( usage ), msg, {
+				PEEK( DUMMY_ADDR( usage ) );
+				PEEK( UNSCRAMBLE_usagep( usage->self ) );
+			} );
+		}
+		break;
+	}
+}
+
+/* Mark resource as destroyed. */
+/* Does not check for errors, call check_usage()/init_usage() first. */
+static void
+destroy_usage( ldap_debug_usage_info_t *usage )
+{
+	if( usage->state == ldap_debug_state_inited ) {
+		if( wraptype != Wrap_noalloc ) {
+			free( DUMMY_ADDR( usage ) );
+			/* Do not reset the DUMMY_ADDR, leave it for malloc debuggers
+			 * in case the resource is used after it is freed. */
+		}
+		usage->state = ldap_debug_state_destroyed;
+	}
+}
+
+/* Define these after they are used, so they are hopefully not inlined */
+
+static void
+debug_noop( void )
+{
+}
+
+/* Return true if the resource is initialized and not copied/realloced. */
+/* Valid programs access uninitialized memory here unless "noreinit".   */
+static int
+debug_already_initialized( const ldap_debug_usage_info_t *usage )
+{
+	return (usage->state == ldap_debug_state_inited &&
+	        !IS_COPY_OR_MOVED( usage ) &&
+	        usage->magic == ldap_debug_magic);
+}
+
+#endif /* LDAP_THREAD_DEBUG_WRAP */
+
+
+#if !(LDAP_THREAD_DEBUG_THREAD_ID +0)
+
+typedef int ldap_debug_thread_t;
+#define init_thread_info()	{}
+#define with_thread_info_lock(statements) { statements; }
+#define thread_info_detached(t)	0
+#define add_thread_info(msg, thr, det)	((void) 0)
+#define remove_thread_info(tinfo, msg)	((void) 0)
+#define get_thread_info(thread, msg)	NULL
+
+#else /* LDAP_THREAD_DEBUG_THREAD_ID */
+
+/*
+ * Thread ID tracking.  Currently acieves little.
+ * Should be either expanded or deleted.
+ */
+
+/*
+ * Array of threads.  Used instead of making ldap_pvt_thread_t a wrapper
+ * around ldap_int_thread_t, which would slow down ldap_pvt_thread_self().
+ */
+typedef struct {
+	ldap_pvt_thread_t           wrapped;
+	ldap_debug_usage_info_t     usage;
+	int                         detached;
+	int                         idx;
+} ldap_debug_thread_t;
+
+static ldap_debug_thread_t      **thread_info;
+static unsigned int             thread_info_size, thread_info_used;
+static ldap_int_thread_mutex_t  thread_info_mutex;
+
+#define init_thread_info() { \
+	if( threadID ) { \
+		int mutex_init_rc = ldap_int_thread_mutex_init( &thread_info_mutex ); \
+		assert( mutex_init_rc == 0 ); \
+	} \
+}
+
+#define with_thread_info_lock(statements) { \
+	int rc_wtl_ = ldap_int_thread_mutex_lock( &thread_info_mutex ); \
+	assert( rc_wtl_ == 0 ); \
+	{ statements; } \
+	rc_wtl_ = ldap_int_thread_mutex_unlock( &thread_info_mutex ); \
+	assert( rc_wtl_ == 0 ); \
+}
+
+#define thread_info_detached(t) ((t)->detached)
+
+static void
+add_thread_info(
+	const char *msg,
+	const ldap_pvt_thread_t *thread,
+	int detached )
+{
+	ldap_debug_thread_t *t;
+	if( thread_info_used >= thread_info_size ) {
+		unsigned int more = thread_info_size + 8;
+		unsigned int new_size = thread_info_size + more;
+		t = calloc( more, sizeof(ldap_debug_thread_t) );
+		assert( t != NULL );
+		thread_info = realloc( thread_info, new_size * sizeof(*thread_info) );
+		assert( thread_info != NULL );
+		while( thread_info_size < new_size ) {
+			t->idx = thread_info_size;
+			thread_info[thread_info_size++] = t++;
+		}
+	}
+	t = thread_info[thread_info_used];
+	init_usage( &t->usage, msg );
+	t->wrapped = *thread;
+	t->detached = detached;
+	thread_info_used++;
+}
+
+static void
+remove_thread_info( ldap_debug_thread_t *t, const char *msg )
+{
+		ldap_debug_thread_t *last;
+		int idx;
+		check_usage( &t->usage, msg );
+		destroy_usage( &t->usage );
+		idx = t->idx;
+		assert( thread_info[idx] == t );
+		last = thread_info[--thread_info_used];
+		assert( last->idx == thread_info_used );
+		(thread_info[idx]              = last)->idx = idx;
+		(thread_info[thread_info_used] = t   )->idx = thread_info_used;
+}
+
+ldap_debug_thread_t *
+get_thread_info( ldap_pvt_thread_t *thread, const char *msg )
+{
+	unsigned int i;
+	ldap_debug_thread_t *t;
+	for( i = 0; i < thread_info_used; i++ ) {
+		if( ldap_pvt_thread_equal( *thread, thread_info[i]->wrapped ) )
+			break;
+	}
+	ERROR_IF( i == thread_info_used, msg );
+	t = thread_info[i];
+	check_usage( &t->usage, msg );
+	return t;
+}
+
+#endif /* LDAP_THREAD_DEBUG_THREAD_ID */
 
 
 static char *
@@ -257,225 +605,8 @@ thread_name( char *buf, int bufsize, ldap_pvt_thread_t thread )
 	return buf;
 }
 
-static void
-exit_thread_message( const ldap_pvt_thread_t thread )
-{
-	if( tracethreads ) {
-		char buf[40];
-		fprintf( stderr, "== Exiting thread %s ==\n",
-			thread_name( buf, sizeof(buf), thread ) );
-	}
-}
 
-
-#ifndef LDAP_THREAD_DEBUG_WRAP
-
-#define	WRAPPED(ptr)			(ptr)
-#define	SET_OWNER(ptr)			((void) 0)
-#define	RESET_OWNER(ptr)		((void) 0)
-#define	ASSERT_OWNER(ptr, msg)	((void) 0)
-#define	ASSERT_NO_OWNER(ptr, msg) ((void) 0)
-
-#define alloc_usage(ptr, msg)	((void) 0)
-#define check_usage(ptr, msg)	((void) 0)
-#define free_usage(ptr, msg)	((void) 0)
-
-#define with_threads_lock(statement)	{ statement; }
-#define get_new_thread_info(msg)		NULL
-#define update_thread_info(ti, th, det)	{}
-#define remove_thread_info(ti, msg)		((void)0)
-#define get_thread_info(thread, msg)	NULL
-#define exiting_thread(msg)	exit_thread_message(ldap_pvt_thread_self())
-
-#else /* LDAP_THREAD_DEBUG_WRAP */
-
-/* Specialize this if initializer is not appropriate. */
-/* The ASSERT_NO_OWNER() definition may also need an override. */
-#ifndef LDAP_DEBUG_THREAD_NONE
-#define	LDAP_DEBUG_THREAD_NONE { -1 } /* "no thread" ldap_int_thread_t value */
-#endif
-
-static const ldap_int_thread_t ldap_debug_thread_none = LDAP_DEBUG_THREAD_NONE;
-
-#define THREAD_MUTEX_OWNER(mutex) \
-	ldap_pvt_thread_equal( (mutex)->owner, ldap_pvt_thread_self() )
-
-void
-ldap_debug_thread_assert_mutex_owner(
-	const char *file,
-	int line,
-	const char *msg,
-	ldap_pvt_thread_mutex_t *mutex )
-{
-	if( !(noerror || THREAD_MUTEX_OWNER( mutex )) )
-		error( file, line, "ASSERT_MUTEX_OWNER", msg, 0 );
-}
-
-#define	WRAPPED(ptr)			(&(ptr)->wrapped)
-#define	SET_OWNER(ptr)			((ptr)->owner = ldap_pvt_thread_self())
-#define RESET_OWNER(ptr)		((ptr)->owner = ldap_debug_thread_none)
-#define ASSERT_OWNER(ptr, msg)	ERROR_IF( !THREAD_MUTEX_OWNER( ptr ), msg )
-#ifndef ASSERT_NO_OWNER
-#define ASSERT_NO_OWNER(ptr, msg) ERROR_IF( \
-	!ldap_int_thread_equal( (ptr)->owner, ldap_debug_thread_none ), msg )
-#endif
-
-#define INITED_VALUE		0x12345678UL
-#define INITED_BYTE_VALUE	0xd5
-
-static int
-debug_already_initialized( const LDAP_UINTPTR_T *num )
-{
-	/* Valid programs will access uninitialized memory if dupinit */
-	return dupinit && *num == INITED_VALUE;
-}
-
-static void
-alloc_usage( ldap_debug_usage_info_t *usage, const char *msg )
-{
-	if( !options_done )
-		get_options();
-	if( wraptype == Wrap_noalloc ) {
-		ERROR_IF( debug_already_initialized( &usage->num ), msg );
-		usage->num = INITED_VALUE;
-	} else {
-		unsigned char *dummy = malloc( 1 );
-		assert( dummy != NULL );
-		*dummy = INITED_BYTE_VALUE;
-		if( wraptype == Wrap_scramble ) {
-			usage->num = ~(LDAP_UINTPTR_T) dummy;
-			assert( (unsigned char *)~usage->num == dummy );
-		} else {
-			usage->ptr = dummy + wrap_offset;
-		}
-	}
-}
-
-static void
-check_usage( ldap_debug_usage_info_t *usage, const char *msg )
-{
-	if( wraptype == Wrap_noalloc ) {
-		ERROR_IF( usage->num != INITED_VALUE, msg );
-	} else if( wraptype == Wrap_scramble ) {
-		ERROR_IF( !usage->num, msg );
-		ERROR_IF( *(unsigned char *)~usage->num != INITED_BYTE_VALUE, msg );
-	} else {
-		ERROR_IF( !usage->ptr, msg );
-		ERROR_IF( usage->ptr[unwrap_offset] != INITED_BYTE_VALUE, msg );
-	}
-}
-
-static void
-free_usage( ldap_debug_usage_info_t *usage, const char *msg )
-{
-	if( wraptype == Wrap_noalloc ) {
-		usage->num = ~(LDAP_UINTPTR_T)INITED_VALUE;
-	} else {
-		unsigned char *dummy = (wraptype == Wrap_scramble
-		                        ? (unsigned char *)~usage->num
-		                        : usage->ptr + unwrap_offset);
-		*(volatile unsigned char *)dummy = (unsigned char)-1;
-		free( dummy );
-	}
-}
-
-#define with_threads_lock(statement) { \
-	if( !nodebug ) { \
-		int rc_wtl_ = ldap_int_thread_mutex_lock( &thread_info_mutex ); \
-		assert( rc_wtl_ == 0 ); \
-	} \
-    statement; \
-	if( !nodebug ) { \
-		int rc_wtl_ = ldap_int_thread_mutex_unlock( &thread_info_mutex ); \
-		assert( rc_wtl_ == 0 ); \
-	} \
-}
-
-static ldap_debug_thread_t *
-get_new_thread_info( const char *msg )
-{
-	if( nodebug )
-		return NULL;
-	if( thread_info_used >= thread_info_size ) {
-		unsigned int more = thread_info_size + 1; /* debug value. increase. */
-		unsigned int new_size = thread_info_size + more;
-		ldap_debug_thread_t *t = calloc( more, sizeof(ldap_debug_thread_t) );
-		assert( t != NULL );
-		t->freeme = 1;
-		thread_info = realloc( thread_info, new_size * sizeof(*thread_info) );
-		assert( thread_info != NULL );
-		while( thread_info_size < new_size ) {
-			t->idx = thread_info_size;
-			thread_info[thread_info_size++] = t++;
-		}
-	}
-	alloc_usage( &thread_info[thread_info_used]->usage, msg );
-	return thread_info[thread_info_used++];
-}
-
-static void
-update_thread_info(
-	ldap_debug_thread_t *t,
-	const ldap_pvt_thread_t *thread,
-	int detached )
-{
-	if( !nodebug ) {
-		t->wrapped = *thread;
-		t->detached = detached;
-	}
-}
-
-static void
-remove_thread_info( ldap_debug_thread_t *t, const char *msg )
-{
-	if( !nodebug ) {
-		ldap_debug_thread_t *last;
-		int idx;
-		free_usage( &t->usage, msg );
-		idx = t->idx;
-		assert( thread_info[idx] == t );
-		last = thread_info[--thread_info_used];
-		assert( last->idx == thread_info_used );
-		(thread_info[idx]              = last)->idx = idx;
-		(thread_info[thread_info_used] = t   )->idx = thread_info_used;
-	}
-}
-
-ldap_debug_thread_t *
-get_thread_info( ldap_pvt_thread_t *thread, const char *msg )
-{
-	unsigned int i;
-	ldap_debug_thread_t *t;
-	if( nodebug )
-		return NULL;
-	for( i = 0; i < thread_info_used; i++ ) {
-		if( ldap_pvt_thread_equal( *thread, thread_info[i]->wrapped ) )
-			break;
-	}
-	ERROR_IF( i == thread_info_used, msg );
-	t = thread_info[i];
-	check_usage( &t->usage, msg );
-	return t;
-}
-
-static void
-exiting_thread( const char *msg )
-{
-	if( !nodebug ) {
-		ldap_pvt_thread_t thread;
-		thread = ldap_pvt_thread_self();
-		exit_thread_message( thread );
-		with_threads_lock({
-			ldap_debug_thread_t *t = get_thread_info( &thread, msg );
-			if( t->detached )
-				remove_thread_info( t, msg );
-		});
-	}
-}
-
-#endif /* LDAP_THREAD_DEBUG_WRAP */
-
-
+/* Add <adjust> (+/-1) to resource count <which> unless "nocount". */
 static void
 adjust_count( int which, int adjust )
 {
@@ -490,7 +621,7 @@ adjust_count( int which, int adjust )
 		rc = ldap_int_thread_mutex_unlock( &resource_mutexes[which] );
 		assert( rc == 0 );
 	case Count_reported:
-		fputs( "...more ldap_debug_thread activity after exit...\n", stderr );
+		fputs( "== thr_debug: More thread activity after exit ==\n", stderr );
 		count = Count_reported_more;
 		/* FALL THROUGH */
 	case Count_reported_more:
@@ -518,8 +649,7 @@ ldap_debug_thread_initialize( void )
 		ERROR( rc, "ldap_debug_thread_initialize:threads" );
 		threading_enabled = 0;
 	} else {
-		rc2 = ldap_int_thread_mutex_init( &thread_info_mutex );
-		assert( rc2 == 0 );
+		init_thread_info();
 		if( count != Count_no ) {
 			for( i = rc2 = 0; i < Idx_max; i++ )
 				rc2 |= ldap_int_thread_mutex_init( &resource_mutexes[i] );
@@ -585,26 +715,28 @@ ldap_pvt_thread_create(
 	void *arg )
 {
 	int rc;
-	ERROR_IF( !threading_enabled, "ldap_pvt_thread_create" );
 	if( !options_done )
 		get_options();
-	with_threads_lock({
-		ldap_debug_thread_t *t;
-		t = get_new_thread_info( "ldap_pvt_thread_create" );
+	ERROR_IF( !threading_enabled, "ldap_pvt_thread_create" );
+	if( threadID ) {
+		with_thread_info_lock({
+			rc = ldap_int_thread_create( thread, detach, start_routine, arg );
+			if( rc == 0 )
+				add_thread_info( "ldap_pvt_thread_create", thread, detach );
+		});
+	} else {
 		rc = ldap_int_thread_create( thread, detach, start_routine, arg );
-		if( rc ) {
-			ERROR( rc, "ldap_pvt_thread_create" );
-			remove_thread_info( t, "ldap_pvt_thread_init" );
-		} else {
-			update_thread_info( t, thread, detach );
-		}
-	});
-	if( rc == 0 ) {
+	}
+	if( rc ) {
+		ERROR( rc, "ldap_pvt_thread_create" );
+	} else {
 		if( tracethreads ) {
-			char buf[40];
-			fprintf( stderr, "== Created thread %s%s ==\n",
+			char buf[40], buf2[40];
+			fprintf( stderr,
+				"== thr_debug: Created thread %s%s from thread %s ==\n",
 				thread_name( buf, sizeof(buf), *thread ),
-				detach ? " (detached)" : "" );
+				detach ? " (detached)" : "",
+				thread_name( buf2, sizeof(buf2), ldap_pvt_thread_self() ) );
 		}
 		adjust_count( Idx_unexited_thread, +1 );
 		if( !detach )
@@ -616,9 +748,23 @@ ldap_pvt_thread_create(
 void
 ldap_pvt_thread_exit( void *retval )
 {
+	ldap_pvt_thread_t thread;
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_exit" );
+	thread = ldap_pvt_thread_self();
+	if( tracethreads ) {
+		char buf[40];
+		fprintf( stderr, "== thr_debug: Exiting thread %s ==\n",
+			thread_name( buf, sizeof(buf), thread ) );
+	}
+	if( threadID ) {
+		with_thread_info_lock({
+			ldap_debug_thread_t *t = get_thread_info(
+				&thread, "ldap_pvt_thread_exit" );
+			if( thread_info_detached( t ) )
+				remove_thread_info( t, "ldap_pvt_thread_exit" );
+		});
+	}
 	adjust_count( Idx_unexited_thread, -1 );
-	exiting_thread( "ldap_pvt_thread_exit" );
 	ldap_int_thread_exit( retval );
 }
 
@@ -626,21 +772,26 @@ int
 ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	int rc;
-	ldap_debug_thread_t *t;
+	ldap_debug_thread_t *t = NULL;
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_join" );
 	if( tracethreads ) {
-		char buf[40];
-		fprintf( stderr, "== Joining thread %s ==\n",
-			thread_name( buf, sizeof(buf), thread ) );
+		char buf[40], buf2[40];
+		fprintf( stderr, "== thr_debug: Joining thread %s in thread %s ==\n",
+			thread_name( buf, sizeof(buf), thread ),
+			thread_name( buf2, sizeof(buf2), ldap_pvt_thread_self() ) );
 	}
-	with_threads_lock(
-		t = get_thread_info( &thread, "ldap_pvt_thread_join" ) );
+	if( threadID )
+		with_thread_info_lock( {
+			t = get_thread_info( &thread, "ldap_pvt_thread_join" );
+			ERROR_IF( thread_info_detached( t ), "ldap_pvt_thread_join" );
+		} );
 	rc = ldap_int_thread_join( thread, thread_return );
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_join" );
 	} else {
-		with_threads_lock(
-			remove_thread_info( t, "ldap_pvt_thread_join" ) );
+		if( threadID )
+			with_thread_info_lock(
+				remove_thread_info( t, "ldap_pvt_thread_join" ) );
 		adjust_count( Idx_unjoined_thread, -1 );
 	}
 	return rc;
@@ -652,9 +803,11 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 	int rc;
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_kill" );
 	if( tracethreads ) {
-		char buf[40];
-		fprintf( stderr, "== Killing thread %s (sig %i) ==\n",
-			thread_name( buf, sizeof(buf), thread ), signo );
+		char buf[40], buf2[40];
+		fprintf( stderr,
+			"== thr_debug: Killing thread %s (sig %i) from thread %s ==\n",
+			thread_name( buf, sizeof(buf), thread ), signo,
+			thread_name( buf2, sizeof(buf2), ldap_pvt_thread_self() ) );
 	}
 	rc = ldap_int_thread_kill( thread, signo );
 	ERROR_IF( rc, "ldap_pvt_thread_kill" );
@@ -684,11 +837,11 @@ int
 ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	int rc;
-	alloc_usage( &cond->usage, "ldap_pvt_thread_cond_init" );
+	init_usage( &cond->usage, "ldap_pvt_thread_cond_init" );
 	rc = ldap_int_thread_cond_init( WRAPPED( cond ) );
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_cond_init" );
-		free_usage( &cond->usage, "ldap_pvt_thread_cond_init" );
+		destroy_usage( &cond->usage );
 	} else {
 		adjust_count( Idx_cond, +1 );
 	}
@@ -704,7 +857,7 @@ ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_cond_destroy" );
 	} else {
-		free_usage( &cond->usage, "ldap_pvt_thread_cond_destroy" );
+		destroy_usage( &cond->usage );
 		adjust_count( Idx_cond, -1 );
 	}
 	return rc;
@@ -736,14 +889,16 @@ ldap_pvt_thread_cond_wait(
 	ldap_pvt_thread_mutex_t *mutex )
 {
 	int rc;
+	ldap_int_thread_t owner;
 	check_usage( &cond->usage, "ldap_pvt_thread_cond_wait:cond" );
 	check_usage( &mutex->usage, "ldap_pvt_thread_cond_wait:mutex" );
 	adjust_count( Idx_locked_mutex, -1 );
+	owner = GET_OWNER( mutex );
 	ASSERT_OWNER( mutex, "ldap_pvt_thread_cond_wait" );
-	RESET_OWNER( mutex ); /* Breaks if this thread did not own the mutex */
+	RESET_OWNER( mutex );
 	rc = ldap_int_thread_cond_wait( WRAPPED( cond ), WRAPPED( mutex ) );
 	ASSERT_NO_OWNER( mutex, "ldap_pvt_thread_cond_wait" );
-	SET_OWNER( mutex );
+	SET_OWNER( mutex, rc ? owner : ldap_int_thread_self() );
 	adjust_count( Idx_locked_mutex, +1 );
 	ERROR_IF( rc, "ldap_pvt_thread_cond_wait" );
 	return rc;
@@ -753,11 +908,11 @@ int
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	int rc;
-	alloc_usage( &mutex->usage, "ldap_pvt_thread_mutex_init" );
+	init_usage( &mutex->usage, "ldap_pvt_thread_mutex_init" );
 	rc = ldap_int_thread_mutex_init( WRAPPED( mutex ) );
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_mutex_init" );
-		free_usage( &mutex->usage, "ldap_pvt_thread_mutex_init" );
+		destroy_usage( &mutex->usage );
 	} else {
 		RESET_OWNER( mutex );
 		adjust_count( Idx_mutex, +1 );
@@ -774,9 +929,8 @@ ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 	rc = ldap_int_thread_mutex_destroy( WRAPPED( mutex ) );
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_mutex_destroy" );
-		/* mutex->owner may now be scrambled, sorry */
 	} else {
-		free_usage( &mutex->usage, "ldap_pvt_thread_mutex_destroy" );
+		destroy_usage( &mutex->usage );
 		RESET_OWNER( mutex );
 		adjust_count( Idx_mutex, -1 );
 	}
@@ -793,7 +947,7 @@ ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 		ERROR_IF( rc, "ldap_pvt_thread_mutex_lock" );
 	} else {
 		ASSERT_NO_OWNER( mutex, "ldap_pvt_thread_mutex_lock" );
-		SET_OWNER( mutex );
+		SET_OWNER( mutex, ldap_int_thread_self() );
 		adjust_count( Idx_locked_mutex, +1 );
 	}
 	return rc;
@@ -807,7 +961,7 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 	rc = ldap_int_thread_mutex_trylock( WRAPPED( mutex ) );
 	if( rc == 0 ) {
 		ASSERT_NO_OWNER( mutex, "ldap_pvt_thread_mutex_trylock" );
-		SET_OWNER( mutex );
+		SET_OWNER( mutex, ldap_int_thread_self() );
 		adjust_count( Idx_locked_mutex, +1 );
 	}
 	return rc;
@@ -836,11 +990,11 @@ int
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rwlock )
 {
 	int rc;
-	alloc_usage( &rwlock->usage, "ldap_pvt_thread_rdwr_init" );
+	init_usage( &rwlock->usage, "ldap_pvt_thread_rdwr_init" );
 	rc = ldap_int_thread_rdwr_init( WRAPPED( rwlock ) );
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_rdwr_init" );
-		free_usage( &rwlock->usage, "ldap_pvt_thread_rdwr_init" );
+		destroy_usage( &rwlock->usage );
 	} else {
 		adjust_count( Idx_rdwr, +1 );
 	}
@@ -856,7 +1010,7 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rwlock )
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_rdwr_destroy" );
 	} else {
-		free_usage( &rwlock->usage, "ldap_pvt_thread_rdwr_destroy" );
+		destroy_usage( &rwlock->usage );
 		adjust_count( Idx_rdwr, -1 );
 	}
 	return rc;
@@ -916,7 +1070,7 @@ ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rwlock )
 	return rc;
 }
 
-#ifdef LDAP_RDWR_DEBUG
+#if defined(LDAP_RDWR_DEBUG) && !defined(LDAP_THREAD_HAVE_RDWR)
 
 int
 ldap_pvt_thread_rdwr_readers( ldap_pvt_thread_rdwr_t *rwlock )
@@ -939,7 +1093,7 @@ ldap_pvt_thread_rdwr_active( ldap_pvt_thread_rdwr_t *rwlock )
 	return ldap_int_thread_rdwr_active( WRAPPED( rwlock ) );
 }
 
-#endif /* LDAP_RDWR_DEBUG */
+#endif /* LDAP_RDWR_DEBUG && !LDAP_THREAD_HAVE_RDWR */
 
 
 /* Some wrappers for LDAP_THREAD_POOL_IMPLEMENTATION: */
@@ -952,6 +1106,8 @@ ldap_pvt_thread_pool_init(
 	int max_pending )
 {
 	int rc;
+	if( !options_done )
+		get_options();
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_init" );
 	rc = ldap_int_thread_pool_init( tpool, max_threads, max_pending );
 	if( rc ) {
