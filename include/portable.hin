@@ -972,6 +972,9 @@
 /* define for In-Directory Access Logging overlay */
 #undef SLAPD_OVER_ACCESSLOG
 
+/* define for Audit Logging overlay */
+#undef SLAPD_OVER_AUDITLOG
+
 /* define for Deny Operation overlay */
 #undef SLAPD_OVER_DENYOP
 

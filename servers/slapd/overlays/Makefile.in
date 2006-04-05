@@ -15,6 +15,7 @@
 
 SRCS = overlays.c \
 	accesslog.c \
+	auditlog.c \
 	denyop.c \
 	dyngroup.c \
 	dynlist.c \
@@ -59,6 +60,9 @@ dynamic: $(PROGRAMS)
 accesslog.la : accesslog.lo
 	$(LTLINK_MOD) -module -o $@ accesslog.lo version.lo $(LINK_LIBS)
 
+auditlog.la : auditlog.lo
+	$(LTLINK_MOD) -module -o $@ auditlog.lo version.lo $(LINK_LIBS)
+
 denyop.la : denyop.lo
 	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
 
@@ -85,7 +89,7 @@ retcode.la : retcode.lo
 
 rwm_x.o: rwm.o rwmconf.o rwmdn.o rwmmap.o
 	$(LD) -r -o $@ rwm.o rwmconf.o rwmdn.o rwmmap.o
-	
+
 rwm.la : rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
 

@@ -338,6 +338,7 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend],
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 Overlays="accesslog \
+	auditlog \
 	denyop \
 	dyngroup \
 	dynlist \
@@ -358,6 +359,8 @@ SLAPD Overlay Options:])
 OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays],
 	--, [no yes mod])dnl
 OL_ARG_ENABLE(accesslog,[    --enable-accesslog	  In-Directory Access Logging overlay],
+	no, [no yes mod], ol_enable_overlays)
+OL_ARG_ENABLE(auditlog,[    --enable-auditlog	  Audit Logging overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay],
 	no, [no yes mod], ol_enable_overlays)
@@ -612,6 +615,7 @@ BUILD_SHELL=no
 BUILD_SQL=no
 
 BUILD_ACCESSLOG=no
+BUILD_AUDITLOG=no
 BUILD_DENYOP=no
 BUILD_DYNGROUP=no
 BUILD_DYNLIST=no
@@ -2835,6 +2839,18 @@ if test "$ol_enable_accesslog" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_ACCESSLOG,$MFLAG,[define for In-Directory Access Logging overlay])
 fi
 
+if test "$ol_enable_auditlog" != no ; then
+	BUILD_AUDITLOG=$ol_enable_auditlog
+	if test "$ol_enable_auditlog" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS auditlog.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS auditlog.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_AUDITLOG,$MFLAG,[define for Audit Logging overlay])
+fi
+
 if test "$ol_enable_denyop" != no ; then
 	BUILD_DENYOP=$ol_enable_denyop
 	if test "$ol_enable_denyop" = mod ; then
@@ -3052,6 +3068,7 @@ dnl backends
   AC_SUBST(BUILD_SQL)
 dnl overlays
   AC_SUBST(BUILD_ACCESSLOG)
+  AC_SUBST(BUILD_AUDITLOG)
   AC_SUBST(BUILD_DENYOP)
   AC_SUBST(BUILD_DYNGROUP)
   AC_SUBST(BUILD_DYNLIST)
