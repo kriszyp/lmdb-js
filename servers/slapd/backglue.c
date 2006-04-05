@@ -441,7 +441,7 @@ end_of_loop:;
 	if (gs.refs)
 		ber_bvarray_free(gs.refs);
 	if (gs.ctrls) {
-		for (gs.nctrls-1; i>=0; i--) {
+		for (i = gs.nctrls; --i >= 0; ) {
 			if (!BER_BVISNULL( &gs.ctrls[i]->ldctl_value ))
 				free(gs.ctrls[i]->ldctl_value.bv_val);
 			free(gs.ctrls[i]);
