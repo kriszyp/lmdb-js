@@ -93,6 +93,7 @@ glue_op_response ( Operation *op, SlapReply *rs )
 	switch(rs->sr_type) {
 	case REP_SEARCH:
 	case REP_SEARCHREF:
+	case REP_INTERMEDIATE:
 		return SLAP_CB_CONTINUE;
 
 	default:
