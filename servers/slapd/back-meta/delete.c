@@ -41,6 +41,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	dncookie	dc;
 	int		msgid;
 	int		do_retry = 1;
+	int		maperr = 1;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
@@ -84,21 +85,20 @@ retry:;
 		}
 
 		rs->sr_err = LDAP_OTHER;
+		maperr = 0;
 		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
 			msgid, LDAP_MSG_ALL, tvp, &res );
 		switch ( rc ) {
 		case -1:
 			rs->sr_err = LDAP_OTHER;
-			send_ldap_result( op, rs );
-			goto cleanup;
+			break;
 
 		case 0:
 			ldap_abandon_ext( mc->mc_conns[ candidate ].msc_ld,
 				msgid, NULL, NULL );
 			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
 				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
-			send_ldap_result( op, rs );
-			goto cleanup;
+			break;
 
 		case LDAP_RES_DELETE:
 			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
@@ -106,6 +106,7 @@ retry:;
 			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
 			}
+			maperr = 1;
 			break;
 
 		default:
@@ -114,7 +115,12 @@ retry:;
 		}
 	}
 
-	rs->sr_err = meta_back_op_result( mc, op, rs, candidate );
+	if ( maperr ) {
+		rs->sr_err = meta_back_op_result( mc, op, rs, candidate );
+
+	} else {
+		send_ldap_result( op, rs );
+	}
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
