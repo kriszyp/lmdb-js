@@ -56,7 +56,7 @@ ldap_back_compare(
 	}
 
 retry:
-	rs->sr_err = ldap_compare_ext( lc->lc_ld, op->o_req_ndn.bv_val,
+	rs->sr_err = ldap_compare_ext( lc->lc_ld, op->o_req_dn.bv_val,
 			op->orc_ava->aa_desc->ad_cname.bv_val,
 			&op->orc_ava->aa_value, 
 			ctrls, NULL, &msgid );

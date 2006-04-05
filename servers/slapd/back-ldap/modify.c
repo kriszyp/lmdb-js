@@ -107,7 +107,7 @@ ldap_back_modify(
 	}
 
 retry:
-	rs->sr_err = ldap_modify_ext( lc->lc_ld, op->o_req_ndn.bv_val, modv,
+	rs->sr_err = ldap_modify_ext( lc->lc_ld, op->o_req_dn.bv_val, modv,
 			ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
 		li->li_timeout[ LDAP_BACK_OP_MODIFY], LDAP_BACK_SENDRESULT );

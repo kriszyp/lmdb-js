@@ -59,7 +59,7 @@ ldap_back_delete(
 	}
 
 retry:
-	rs->sr_err = ldap_delete_ext( lc->lc_ld, op->o_req_ndn.bv_val,
+	rs->sr_err = ldap_delete_ext( lc->lc_ld, op->o_req_dn.bv_val,
 			ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
 		li->li_timeout[ LDAP_BACK_OP_DELETE], LDAP_BACK_SENDRESULT );
