@@ -398,7 +398,7 @@ replog1(
 								fprintf( fp, "%s: %s\n", did, type );
 								first = 0;
 							}
-							vals[0] = a->a_nvals[i];
+							vals[0] = ml->sml_values[i];
 							print_vals( fp, &ml->sml_desc->ad_cname, vals );
 							ocs = 2;
 						}

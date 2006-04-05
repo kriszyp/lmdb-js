@@ -664,6 +664,7 @@ parse_acl(
 
 							snprintf( buf, sizeof( buf ), "%s: line %d: "
 								" attr \"%s\" normalization failed (%d: %s)",
+								fname, lineno,
 								a->acl_attrs[ 0 ].an_name.bv_val, rc, text );
 							Debug( LDAP_DEBUG_ANY, "%s: line %d: %s.\n",
 								fname, lineno, buf );
