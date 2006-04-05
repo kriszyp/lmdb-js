@@ -180,7 +180,6 @@ struct bdb_info {
 	u_int32_t	bi_txn_cp_kbyte;
 	struct re_s		*bi_txn_cp_task;
 	struct re_s		*bi_index_task;
- 	struct re_s		*bi_cache_task;
 
 	int			bi_lock_detect;
 	long		bi_shm_key;
