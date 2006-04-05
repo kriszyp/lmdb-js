@@ -154,6 +154,11 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	int rc;
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
+
+	/* If we're on the master backend, let overlay framework handle it */
+	if ( op->o_bd == b0 )
+		return SLAP_CB_CONTINUE;
+
 	b0->bd_info = on->on_info->oi_orig;
 
 	switch(op->o_tag) {
@@ -184,6 +189,9 @@ glue_chk_referrals ( Operation *op, SlapReply *rs )
 	int rc;
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
+	if ( op->o_bd == b0 )
+		return SLAP_CB_CONTINUE;
+
 	b0->bd_info = on->on_info->oi_orig;
 
 	if ( op->o_bd->bd_info->bi_chk_referrals )
@@ -205,6 +213,9 @@ glue_chk_controls ( Operation *op, SlapReply *rs )
 	int rc = SLAP_CB_CONTINUE;
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
+	if ( op->o_bd == b0 )
+		return SLAP_CB_CONTINUE;
+
 	b0->bd_info = on->on_info->oi_orig;
 
 	/* if the subordinate database has overlays, the bi_chk_controls()
@@ -223,6 +234,27 @@ glue_chk_controls ( Operation *op, SlapReply *rs )
 	op->o_bd = b0;
 	op->o_bd->bd_info = bi0;
 	return rc;
+}
+
+static int
+glue_sub_search( Operation *op, SlapReply *rs, BackendDB *b0,
+	slap_overinst *on )
+{
+	/* Process any overlays on the master backend */
+	if ( op->o_bd == b0 && on->on_next ) {
+		BackendInfo *bi = op->o_bd->bd_info;
+		int rc;
+		for ( on=on->on_next; on; on=on->on_next ) {
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_op_search( op, rs );
+			if ( rc != SLAP_CB_CONTINUE )
+				break;
+		}
+		op->o_bd->bd_info = bi;
+		if ( rc != SLAP_CB_CONTINUE )
+			return rc;
+	}
+	return op->o_bd->be_search( op, rs );
 }
 
 static int
@@ -251,6 +283,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 
 	switch (op->ors_scope) {
 	case LDAP_SCOPE_BASE:
+		if ( op->o_bd == b0 )
+			return SLAP_CB_CONTINUE;
+
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		if (op->o_bd && op->o_bd->be_search) {
 			rs->sr_err = op->o_bd->be_search( op, rs );
@@ -260,19 +295,6 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
 	case LDAP_SCOPE_SUBORDINATE: /* FIXME */
-
-#if 0
-		if ( op->o_sync ) {
-			if (op->o_bd && op->o_bd->be_search) {
-				rs->sr_err = op->o_bd->be_search( op, rs );
-			} else {
-				send_ldap_error(op, rs, LDAP_UNWILLING_TO_PERFORM,
-						"No search target found");
-			}
-			return rs->sr_err;
-		}
-#endif
-
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;
 		scope0 = op->ors_scope;
@@ -329,14 +351,14 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dn_match(&op->o_bd->be_nsuffix[0], &ndn))
 			{
-				rs->sr_err = op->o_bd->be_search( op, rs );
+				rs->sr_err = glue_sub_search( op, rs, b0, on );
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dnIsSuffix(&op->o_bd->be_nsuffix[0], &ndn))
 			{
 				op->o_req_dn = op->o_bd->be_suffix[0];
 				op->o_req_ndn = op->o_bd->be_nsuffix[0];
-				rs->sr_err = op->o_bd->be_search( op, rs );
+				rs->sr_err = glue_sub_search( op, rs, b0, on );
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 					gs.err = LDAP_SUCCESS;
 				}
@@ -344,7 +366,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				op->o_req_ndn = ndn;
 
 			} else if (dnIsSuffix(&ndn, &op->o_bd->be_nsuffix[0])) {
-				rs->sr_err = op->o_bd->be_search( op, rs );
+				rs->sr_err = glue_sub_search( op, rs, b0, on );
 			}
 
 			switch ( gs.err ) {
