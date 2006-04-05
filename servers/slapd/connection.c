@@ -1043,7 +1043,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 
 	assert( connections != NULL );
 	assert( index != NULL );
-	assert( *index >= 0 && *index < MCA_ARRAY_SIZE );
+	assert( *index >= 0 && *index <= dtblsize );
 
 	if( c != NULL ) ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
