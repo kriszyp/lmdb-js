@@ -504,8 +504,13 @@ static ConfigTable config_back_cf_table[] = {
 	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
 		&syncrepl_config, "( OLcfgDbAt:0.11 NAME 'olcSyncrepl' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_THREADS,
-		&config_generic, "( OLcfgGlAt:66 NAME 'olcThreads' "
+	{ "threads", "count", 2, 2, 0,
+#ifdef NO_THREADS
+		ARG_IGNORED, NULL,
+#else
+		ARG_INT|ARG_MAGIC|CFG_THREADS, &config_generic,
+#endif
+		"( OLcfgGlAt:66 NAME 'olcThreads' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "timelimit", "limit", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_timelimit, "( OLcfgGlAt:67 NAME 'olcTimeLimit' "
@@ -1068,7 +1073,15 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_THREADS:
-			if ( c->value_int > 2 * SLAP_MAX_WORKER_THREADS ) {
+			if ( c->value_int < 2 ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"threads=%d smaller than minimum value 2",
+					c->value_int );
+				Debug(LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->msg, 0 );
+				return 1;
+
+			} else if ( c->value_int > 2 * SLAP_MAX_WORKER_THREADS ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"warning, threads=%d larger than twice the default (2*%d=%d); YMMV",
 					c->value_int, SLAP_MAX_WORKER_THREADS, 2 * SLAP_MAX_WORKER_THREADS );

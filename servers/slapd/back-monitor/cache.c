@@ -89,7 +89,6 @@ monitor_cache_add(
 	assert( e != NULL );
 
 	mp = ( monitor_entry_t *)e->e_private;
-	ldap_pvt_thread_mutex_init( &mp->mp_mutex );
 
 	mc = ( monitor_cache_t * )ch_malloc( sizeof( monitor_cache_t ) );
 	mc->mc_ndn = e->e_nname;

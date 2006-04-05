@@ -158,8 +158,6 @@ meta_back_db_config(
 		mi->mi_targets[ i ].mt_flags = mi->mi_flags;
 		mi->mi_targets[ i ].mt_version = mi->mi_version;
 		mi->mi_targets[ i ].mt_network_timeout = mi->mi_network_timeout;
-		mi->mi_targets[ i ].mt_conn_ttl = mi->mi_conn_ttl;
-		mi->mi_targets[ i ].mt_idle_timeout = mi->mi_idle_timeout;
 		mi->mi_targets[ i ].mt_bind_timeout = mi->mi_bind_timeout;
 		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
 			mi->mi_targets[ i ].mt_timeout[ c ] = mi->mi_timeout[ c ];
@@ -448,9 +446,6 @@ meta_back_db_config(
 	/* idle timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "idle-timeout" ) == 0 ) {
 		unsigned long	t;
-		time_t		*tp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_idle_timeout
-				: &mi->mi_idle_timeout;
 
 		switch ( argc ) {
 		case 1:
@@ -475,14 +470,11 @@ meta_back_db_config(
 
 		}
 
-		*tp = (time_t)t;
+		mi->mi_idle_timeout = (time_t)t;
 
 	/* conn ttl */
 	} else if ( strcasecmp( argv[ 0 ], "conn-ttl" ) == 0 ) {
 		unsigned long	t;
-		time_t		*tp = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_conn_ttl
-				: &mi->mi_conn_ttl;
 
 		switch ( argc ) {
 		case 1:
@@ -507,7 +499,7 @@ meta_back_db_config(
 
 		}
 
-		*tp = (time_t)t;
+		mi->mi_conn_ttl = (time_t)t;
 
 	/* bind timeout when connecting to ldap servers */
 	} else if ( strcasecmp( argv[ 0 ], "bind-timeout" ) == 0 ) {
