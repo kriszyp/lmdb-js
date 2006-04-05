@@ -78,11 +78,13 @@ glue_back_select (
 
 
 typedef struct glue_state {
+	char *matched;
+	BerVarray refs;
+	LDAPControl **ctrls;
 	int err;
 	int matchlen;
-	char *matched;
 	int nrefs;
-	BerVarray refs;
+	int nctrls;
 } glue_state;
 
 static int
@@ -138,6 +140,30 @@ glue_op_response ( Operation *op, SlapReply *rs )
 			new[j].bv_val = NULL;
 			gs->nrefs = j;
 			gs->refs = new;
+		}
+		if (rs->sr_ctrls) {
+			int i, j, k;
+			LDAPControl **newctrls;
+
+			for (i=0; rs->sr_ctrls[i]; i++);
+
+			j = gs->nctrls;
+			if (!j) {
+				newctrls = ch_malloc((i+1)*sizeof(LDAPControl *));
+			} else {
+				newctrls = ch_realloc(gs->ctrls,
+					(j+i+1)*sizeof(LDAPControl *));
+			}
+			for (k=0; k<i; j++,k++) {
+				newctrls[j] = ch_malloc(sizeof(LDAPControl));
+				*newctrls[j] = *rs->sr_ctrls[k];
+				if ( !BER_BVISNULL( &rs->sr_ctrls[k]->ldctl_value ))
+					ber_dupbv( &newctrls[j]->ldctl_value,
+						&rs->sr_ctrls[k]->ldctl_value );
+			}
+			newctrls[j] = NULL;
+			gs->nctrls = j;
+			gs->ctrls = newctrls;
 		}
 	}
 	return 0;
@@ -267,7 +293,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int i;
 	long stoptime = 0;
-	glue_state gs = {0, 0, NULL, 0, NULL};
+	glue_state gs = {NULL, NULL, NULL, 0, 0, 0, 0};
 	slap_callback cb = { NULL, glue_op_response, NULL, NULL };
 	int scope0, tlimit0;
 	struct berval dn, ndn, *pdn;
@@ -403,6 +429,7 @@ end_of_loop:;
 		rs->sr_err = gs.err;
 		rs->sr_matched = gs.matched;
 		rs->sr_ref = gs.refs;
+		rs->sr_ctrls = gs.ctrls;
 
 		send_ldap_result( op, rs );
 	}
@@ -413,6 +440,14 @@ end_of_loop:;
 		free (gs.matched);
 	if (gs.refs)
 		ber_bvarray_free(gs.refs);
+	if (gs.ctrls) {
+		for (gs.nctrls-1; i>=0; i--) {
+			if (!BER_BVISNULL( &gs.ctrls[i]->ldctl_value ))
+				free(gs.ctrls[i]->ldctl_value.bv_val);
+			free(gs.ctrls[i]);
+		}
+		free(gs.ctrls);
+	}
 	return rs->sr_err;
 }
 
