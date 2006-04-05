@@ -416,7 +416,7 @@ really_bad:;
 				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
 					candidates[ i ].sr_type = REP_RESULT;
 
-					if ( meta_back_retry( op, rs, mc, i, LDAP_BACK_DONTSEND ) ) {
+					if ( meta_back_retry( op, rs, &mc, i, LDAP_BACK_DONTSEND ) ) {
 						switch ( meta_back_search_start( op, rs, &dc, msc, i, candidates ) )
 						{
 						case META_SEARCH_CANDIDATE:
@@ -427,6 +427,12 @@ really_bad:;
 							goto finish;
 						}
 					}
+
+					savepriv = op->o_private;
+					op->o_private = (void *)i;
+					send_ldap_result( op, rs );
+					op->o_private = savepriv;
+					goto finish;
 				}
 
 				/*
@@ -468,7 +474,10 @@ really_bad:;
 				}
 				op->o_private = savepriv;
 
+				/* don't wait any longer... */
 				gotit = 1;
+				tv.tv_sec = 0;
+				tv.tv_usec = 0;
 
 #if 0
 				/*
@@ -574,16 +583,16 @@ really_bad:;
 				 * back-meta would need to merge them
 				 * consistently (think of pagedResults...)
 				 */
-				if ( ldap_parse_result( msc->msc_ld,
+				rs->sr_err = ldap_parse_result( msc->msc_ld,
 							res,
 							&candidates[ i ].sr_err,
 							(char **)&candidates[ i ].sr_matched,
 							NULL /* (char **)&candidates[ i ].sr_text */ ,
 							&references,
 							NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
-							1 ) != LDAP_SUCCESS )
-				{
-					res = NULL;
+							1 );
+				res = NULL;
+				if ( rs->sr_err != LDAP_SUCCESS ) {
 					ldap_get_option( msc->msc_ld,
 							LDAP_OPT_ERROR_NUMBER,
 							&rs->sr_err );
@@ -591,10 +600,6 @@ really_bad:;
 					candidates[ i ].sr_type = REP_RESULT;
 					goto really_bad;
 				}
-
-				rs->sr_err = candidates[ i ].sr_err;
-				sres = slap_map_api2result( rs );
-				res = NULL;
 
 				/* massage matchedDN if need be */
 				if ( candidates[ i ].sr_matched != NULL ) {
@@ -671,13 +676,21 @@ really_bad:;
 				rs->sr_err = candidates[ i ].sr_err;
 				sres = slap_map_api2result( rs );
 
-				snprintf( buf, sizeof( buf ),
-					"%s meta_back_search[%ld] "
-					"match=\"%s\" err=%ld\n",
-					op->o_log_prefix, i,
-					candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
-					(long) candidates[ i ].sr_err );
-				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
+				if ( StatslogTest( LDAP_DEBUG_TRACE | LDAP_DEBUG_ANY ) ) {
+					snprintf( buf, sizeof( buf ),
+						"%s meta_back_search[%ld] "
+						"match=\"%s\" err=%ld",
+						op->o_log_prefix, i,
+						candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
+						(long) candidates[ i ].sr_err );
+					if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
+						Debug( LDAP_DEBUG_TRACE, "%s.\n", buf, 0, 0 );
+
+					} else {
+						Debug( LDAP_DEBUG_ANY, "%s (%s).\n",
+							buf, ldap_err2string( candidates[ i ].sr_err ), 0 );
+					}
+				}
 
 				switch ( sres ) {
 				case LDAP_NO_SUCH_OBJECT:
@@ -695,6 +708,26 @@ really_bad:;
 				case LDAP_SUCCESS:
 				case LDAP_REFERRAL:
 					is_ok++;
+					break;
+
+				case LDAP_SIZELIMIT_EXCEEDED:
+					/* if a target returned sizelimitExceeded
+					 * and the entry count is equal to the
+					 * proxy's limit, the target would have
+					 * returned more, and the error must be
+					 * propagated to the client; otherwise,
+					 * the target enforced a limit lower
+					 * than what requested by the proxy;
+					 * ignore it */
+					if ( rs->sr_nentries == op->ors_slimit
+						|| META_BACK_ONERR_STOP( mi ) )
+					{
+						savepriv = op->o_private;
+						op->o_private = (void *)i;
+						send_ldap_result( op, rs );
+						op->o_private = savepriv;
+						goto finish;
+					}
 					break;
 
 				default:
@@ -743,13 +776,11 @@ really_bad:;
 			}
 		}
 
+		/* if no entry was found during this loop,
+		 * set a minimal timeout */
 		if ( gotit == 0 ) {
 			LDAP_BACK_TV_SET( &tv );
                         ldap_pvt_thread_yield();
-
-		} else {
-			tv.tv_sec = 0;
-			tv.tv_usec = 0;
 		}
 	}
 
@@ -903,7 +934,9 @@ finish:;
 		}
 	}
 
-	meta_back_release_conn( op, mc );
+	if ( mc ) {
+		meta_back_release_conn( op, mc );
+	}
 
 	return rs->sr_err;
 }
@@ -1158,6 +1191,7 @@ next_attr:;
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;
 	rs->sr_flags = 0;
+	rs->sr_err = LDAP_SUCCESS;
 	rc = send_search_entry( op, rs );
 	switch ( rc ) {
 	case LDAP_UNAVAILABLE:

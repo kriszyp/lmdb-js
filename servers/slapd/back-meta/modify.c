@@ -37,6 +37,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t	*mc;
 	int		rc = 0;
+	int		maperr = 1;
 	LDAPMod		**modv = NULL;
 	LDAPMod		*mods = NULL;
 	Modifications	*ml;
@@ -64,7 +65,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	dc.ctx = "modifyDN";
 
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
-		rc = -1;
+		maperr = 0;
 		goto cleanup;
 	}
 
@@ -74,13 +75,13 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	mods = ch_malloc( sizeof( LDAPMod )*i );
 	if ( mods == NULL ) {
 		rs->sr_err = LDAP_NO_MEMORY;
-		rc = -1;
+		maperr = 0;
 		goto cleanup;
 	}
 	modv = ( LDAPMod ** )ch_malloc( ( i + 1 )*sizeof( LDAPMod * ) );
 	if ( modv == NULL ) {
 		rs->sr_err = LDAP_NO_MEMORY;
-		rc = -1;
+		maperr = 0;
 		goto cleanup;
 	}
 
@@ -178,9 +179,10 @@ retry:;
 			modv, op->o_ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
+		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
+		goto done;
 
 	} else if ( rs->sr_err == LDAP_SUCCESS ) {
 		struct timeval	tv, *tvp = NULL;
@@ -197,7 +199,7 @@ retry:;
 			msgid, LDAP_MSG_ALL, tvp, &res );
 		switch ( rc ) {
 		case -1:
-			rc = -1;
+			maperr = 0;
 			break;
 
 		case 0:
@@ -205,7 +207,7 @@ retry:;
 				msgid, NULL, NULL );
 			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
 				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
-			rc = -1;
+			maperr = 0;
 			break;
 
 		case LDAP_RES_MODIFY:
@@ -214,17 +216,25 @@ retry:;
 			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
 			}
-			rc = 0;
+			maperr = 1;
 			break;
 
 		default:
-			rc = -1;
+			maperr = 0;
 			ldap_msgfree( res );
 			break;
 		}
 	}
 
 cleanup:;
+	if ( maperr ) {
+		rc = meta_back_op_result( mc, op, rs, candidate );
+
+	} else {
+		send_ldap_result( op, rs );
+	}
+
+done:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 		BER_BVZERO( &mdn );
@@ -237,16 +247,10 @@ cleanup:;
 	free( mods );
 	free( modv );
 
-	if ( rc != -1 ) {
-		rc = meta_back_op_result( mc, op, rs, candidate );
-
-	} else {
-		send_ldap_result( op, rs );
-		rc = 0;
+	if ( mc ) {
+		meta_back_release_conn( op, mc );
 	}
 
-	meta_back_release_conn( op, mc );
-
-	return rc;
+	return rs->sr_err;
 }
 
