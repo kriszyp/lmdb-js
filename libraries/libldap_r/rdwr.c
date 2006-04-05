@@ -64,6 +64,7 @@ struct ldap_int_thread_rdwr_s {
 #ifdef LDAP_RDWR_DEBUG
 	/* keep track of who has these locks */
 #define	MAX_READERS	32
+	int ltrw_more_readers; /* Set if ltrw_readers[] is incomplete */
 	ldap_pvt_thread_t ltrw_readers[MAX_READERS];
 	ldap_pvt_thread_t ltrw_writer;
 #endif
@@ -173,7 +174,10 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rwlock )
 	}
 
 #ifdef LDAP_RDWR_DEBUG
-	rw->ltrw_readers[rw->ltrw_r_active] = ldap_pvt_thread_self();
+	if( rw->ltrw_r_active < MAX_READERS )
+		rw->ltrw_readers[rw->ltrw_r_active] = ldap_pvt_thread_self();
+	else
+		rw->ltrw_more_readers = 1;
 #endif
 	rw->ltrw_r_active++;
 
@@ -209,7 +213,10 @@ int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rwlock )
 	}
 
 #ifdef LDAP_RDWR_DEBUG
-	rw->ltrw_readers[rw->ltrw_r_active] = ldap_pvt_thread_self();
+	if( rw->ltrw_r_active < MAX_READERS )
+		rw->ltrw_readers[rw->ltrw_r_active] = ldap_pvt_thread_self();
+	else
+		rw->ltrw_more_readers = 1;
 #endif
 	rw->ltrw_r_active++;
 
@@ -233,23 +240,25 @@ int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rwlock )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
+	rw->ltrw_r_active--;
 #ifdef LDAP_RDWR_DEBUG
 	/* Remove us from the list of readers */
-	{ int i, j;
-	ldap_pvt_thread_t self = ldap_pvt_thread_self();
-
-	for (i=0; i<rw->ltrw_r_active;i++)
 	{
-		if (rw->ltrw_readers[i] == self) {
-			for (j=i; j<rw->ltrw_r_active-1; j++)
-				rw->ltrw_readers[j] = rw->ltrw_readers[j+1];
-			rw->ltrw_readers[j] = 0;
-			break;
+		ldap_pvt_thread_t self = ldap_pvt_thread_self();
+		int i, j;
+		for( i = j = rw->ltrw_r_active; i >= 0; i--) {
+			if (rw->ltrw_readers[i] == self) {
+				rw->ltrw_readers[i] = rw->ltrw_readers[j];
+				rw->ltrw_readers[j] = 0;
+				break;
+			}
 		}
-	}
+		if( !rw->ltrw_more_readers )
+			assert( i >= 0 );
+		else if( j == 0 )
+			rw->ltrw_more_readers = 0;
 	}
 #endif
-	rw->ltrw_r_active--;
 
 	assert( rw->ltrw_w_active >= 0 ); 
 	assert( rw->ltrw_w_wait >= 0 ); 
@@ -372,6 +381,7 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rwlock )
 	}
 
 #ifdef LDAP_RDWR_DEBUG
+	assert( rw->ltrw_writer == ldap_pvt_thread_self() );
 	rw->ltrw_writer = 0;
 #endif
 	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
