@@ -1302,9 +1302,6 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 			sl->sl_mincsn.bv_len = se->se_csn.bv_len;
 			ch_free( se );
 			sl->sl_num--;
-			if ( !sl->sl_head ) {
-				sl->sl_tail = NULL;
-			}
 		}
 		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
 	}
@@ -1784,6 +1781,9 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	LDAP_STAILQ_INSERT_TAIL( &op->o_conn->c_ops, op2, o_next );
 	so->s_flags |= PS_IS_DETACHED;
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+
+	/* Prevent anyone else from trying to send a result for this op */
+	op->o_abandon = 1;
 }
 
 static int
@@ -1902,10 +1902,12 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		/* syncprov_findbase expects to be called as a callback... */
 		sc.sc_private = &opc;
 		opc.son = on;
+		ldap_pvt_thread_mutex_init( &so.s_mutex );
 		cb = op->o_callback;
 		op->o_callback = &sc;
 		rs->sr_err = syncprov_findbase( op, &fc );
 		op->o_callback = cb;
+		ldap_pvt_thread_mutex_destroy( &so.s_mutex );
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
