@@ -73,6 +73,12 @@ response code.
 .B retcode\-indir
 Enables exploitation of in-directory stored errAbsObject.
 May result in a lot of unnecessary overhead.
+.TP
+.B retcode\-sleep [-]<n>
+Defines a sleep time in seconds that is spent before actually handling
+any operation.
+If negative, a random time between 0 and the absolute value of the argument
+is used.
 
 .SH SCHEMA
 The
