@@ -681,7 +681,7 @@ retry_lock:
 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		}
 
-		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+		{
 			snprintf( buf, sizeof( buf ),
 				"conn %p fetched refcnt=%u binding=%u%s",
 				(void *)lc, refcnt, binding, expiring ? " expiring" : "" );
