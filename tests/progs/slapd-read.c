@@ -245,9 +245,11 @@ do_random( char *uri, char *manager, struct berval *passwd,
 	case LDAP_SUCCESS:
 		nvalues = ldap_count_entries( ld, res );
 		if ( nvalues == 0 ) {
+			if ( rc ) {
+				tester_ldap_error( ld, "ldap_search_ext_s" );
+			}
 			break;
 		}
-
 
 		values = malloc( ( nvalues + 1 ) * sizeof( char * ) );
 		for ( i = 0, e = ldap_first_entry( ld, res ); e != NULL; i++, e = ldap_next_entry( ld, e ) )

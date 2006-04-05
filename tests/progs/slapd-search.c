@@ -252,6 +252,9 @@ do_random( char *uri, char *manager, struct berval *passwd,
 	case LDAP_TIMELIMIT_EXCEEDED:
 	case LDAP_SUCCESS:
 		if ( ldap_count_entries( ld, res ) == 0 ) {
+			if ( rc ) {
+				tester_ldap_error( ld, "ldap_search_ext_s" );
+			}
 			break;
 		}
 
