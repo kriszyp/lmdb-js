@@ -6,7 +6,7 @@ OpenLDAP 2.3.21 Engineering
 	Fixed libldap invalid free bug (ITS#4436)
 	Fixed libldap mutex leak (ITS#4441)
 	Fixed libldap_r thr_yield(2) return handling (ITS#4469)
-	Fixed slapd syncprov/glue interaction issue (ITS#4323)
+	Fixed slapd syncprov/glue interaction issue (ITS#4323, ITS#4417)
 	Fixed slapd operational attrs in presence of global overlays (ITS#4431)
 	Fixed slapd connection cleanup (ITS#4465)
 	Fixed slapd-ldbm crash on modify bug (ITS#4464)
