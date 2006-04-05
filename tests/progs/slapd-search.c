@@ -287,6 +287,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 			do_search( uri, manager, passwd, sbase, buf, &ld, noattrs,
 					1, maxretries, delay, force, chaserefs );
 		}
+		break;
 
 	default:
 		tester_ldap_error( ld, "ldap_search_ext_s" );
