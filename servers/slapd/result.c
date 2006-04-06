@@ -99,7 +99,7 @@ static char *v2ref( BerVarray ref, const char *text )
 	len += sizeof("Referral:");
 
 	for( i=0; ref[i].bv_val != NULL; i++ ) {
-		v2 = SLAP_REALLOC( v2, len + ref[i].bv_len + 1 );
+		v2 = ch_realloc( v2, len + ref[i].bv_len + 1 );
 		if( v2 == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "v2ref: SLAP_MALLOC failed", 0, 0, 0 );
 			return NULL;
