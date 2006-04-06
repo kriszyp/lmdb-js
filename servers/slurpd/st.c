@@ -246,10 +246,10 @@ St_read(
 	}
 	if ( found ) {
 	    char tbuf[ 255 ];
-	    sprintf( tbuf, "%s:%s (timestamp %s.%s)", hostname, port,
-		    timestamp, seq );
+	    sprintf( tbuf, "%s.%s", timestamp, seq );
 	    Debug( LDAP_DEBUG_ARGS,
-		    "Retrieved state information for %s\n", tbuf, 0, 0 );
+		    "Retrieved state information for %s:%s (timestamp %s)\n",
+			hostname, port, tbuf );
 	} else {
 	    Debug(  LDAP_DEBUG_ANY,
 		    "Warning: saved state for %s:%s, not a known replica\n",
