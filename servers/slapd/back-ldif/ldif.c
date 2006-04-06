@@ -354,11 +354,11 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 		} else {
 		/* Queueing up for tool mode */
 			if(ck->entries == NULL) {
-				ck->entries = (Entry **) SLAP_MALLOC(sizeof(Entry *) * ENTRY_BUFF_INCREMENT);
+				ck->entries = (Entry **) ch_malloc(sizeof(Entry *) * ENTRY_BUFF_INCREMENT);
 				ck->elen = ENTRY_BUFF_INCREMENT;
 			}
 			if(ck->eind >= ck->elen) { /* grow entries if necessary */	
-				ck->entries = (Entry **) SLAP_REALLOC(ck->entries, sizeof(Entry *) * (ck->elen) * 2);
+				ck->entries = (Entry **) ch_realloc(ck->entries, sizeof(Entry *) * (ck->elen) * 2);
 				ck->elen *= 2;
 			}
 
