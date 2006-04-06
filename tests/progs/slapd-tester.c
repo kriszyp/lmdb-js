@@ -557,6 +557,7 @@ main( int argc, char **argv )
 	snprintf( bcmd, sizeof bcmd, "%s" LDAP_DIRSEP BINDCMD,
 		progdir );
 	bargs[banum++] = bcmd;
+	bargs[banum++] = "-I";	/* don't init on each bind */
 	if ( uri ) {
 		bargs[banum++] = "-H";
 		bargs[banum++] = uri;
