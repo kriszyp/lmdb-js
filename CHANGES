@@ -9,6 +9,7 @@ OpenLDAP 2.3.21 Engineering
 	Fixed slapd syncprov/glue interaction issue (ITS#4323, ITS#4417)
 	Fixed slapd operational attrs in presence of global overlays (ITS#4431)
 	Fixed slapd "threads" config value checking (ITS#4433)
+	Fixed slapd connection index bound check (ITS#4449)
 	Fixed slapd connection cleanup (ITS#4465)
 	Fixed slapd-ldbm crash on modify bug (ITS#4464)
 	Fixed slapd-ldap potential bind deadlock (ITS#4409)
