@@ -83,11 +83,7 @@ static char *v2ref( BerVarray ref, const char *text )
 		}
 	}
 
-	v2 = SLAP_MALLOC( len+i+sizeof("Referral:") );
-	if( v2 == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "v2ref: SLAP_MALLOC failed", 0, 0, 0 );
-		return NULL;
-	}
+	v2 = ch_malloc( len+i+sizeof("Referral:") );
 
 	if( text != NULL ) {
 		strcpy(v2, text);
@@ -100,10 +96,6 @@ static char *v2ref( BerVarray ref, const char *text )
 
 	for( i=0; ref[i].bv_val != NULL; i++ ) {
 		v2 = ch_realloc( v2, len + ref[i].bv_len + 1 );
-		if( v2 == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "v2ref: SLAP_MALLOC failed", 0, 0, 0 );
-			return NULL;
-		}
 		v2[len-1] = '\n';
 		AC_MEMCPY(&v2[len], ref[i].bv_val, ref[i].bv_len );
 		len += ref[i].bv_len;
