@@ -128,7 +128,11 @@ slap_sl_mem_create(
 				(void *)sh, slap_sl_mem_destroy);
 #endif
 		} else if ( size > (char *)sh->sh_end - (char *)sh->sh_base ) {
-			sh->sh_base = ch_realloc(sh->sh_base, size);
+			void	*newptr;
+
+			newptr = ch_realloc( sh->sh_base, size );
+			if ( newptr == NULL ) return NULL;
+			sh->sh_base = newptr;
 		}
 		sh->sh_last = sh->sh_base;
 		sh->sh_end = (char *) sh->sh_base + size;
@@ -185,7 +189,11 @@ slap_sl_mem_create(
 			}
 
 			if (size > (char *)sh->sh_end - (char *)sh->sh_base) {
-				sh->sh_base = realloc(sh->sh_base, size);
+				void	*newptr;
+
+				newptr = realloc( sh->sh_base, size );
+				if ( newptr == NULL ) return NULL;
+				sh->sh_base = newptr;
 			}
 		}
 		sh->sh_end = (char *)sh->sh_base + size;
@@ -249,7 +257,7 @@ slap_sl_malloc(
 	int pad = 2*sizeof(int)-1, pad_shift;
 	int order = -1, order_start = -1;
 	struct slab_object *so_new, *so_left, *so_right;
-	ber_len_t *ptr, *new;
+	ber_len_t *ptr, *newptr;
 	unsigned long diff;
 	int i, j;
 
@@ -267,10 +275,10 @@ slap_sl_malloc(
 				(long)size, 0, 0);
 			return ch_malloc(size);
 		}
-		new = sh->sh_last;
-		*new++ = size - sizeof(ber_len_t);
+		newptr = sh->sh_last;
+		*newptr++ = size - sizeof(ber_len_t);
 		sh->sh_last = (char *) sh->sh_last + size;
-		return( (void *)new );
+		return( (void *)newptr );
 	} else {
 		size_shift = size - 1;
 		do {
@@ -338,13 +346,13 @@ slap_sl_malloc(
 void *
 slap_sl_calloc( ber_len_t n, ber_len_t size, void *ctx )
 {
-	void *new;
+	void *newptr;
 
-	new = slap_sl_malloc( n*size, ctx );
-	if ( new ) {
-		memset( new, 0, n*size );
+	newptr = slap_sl_malloc( n*size, ctx );
+	if ( newptr ) {
+		memset( newptr, 0, n*size );
 	}
-	return new;
+	return newptr;
 }
 
 void *
@@ -352,7 +360,7 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 {
 	struct slab_heap *sh = ctx;
 	int pad = 2*sizeof(int) -1;
-	ber_len_t *p = (ber_len_t *)ptr, *new;
+	ber_len_t *p = (ber_len_t *)ptr, *newptr;
 
 	if (ptr == NULL)
 		return slap_sl_malloc(size, ctx);
@@ -360,9 +368,9 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 	/* Not our memory? */
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		/* duplicate of realloc behavior, oh well */
-		new = ber_memrealloc_x(ptr, size, NULL);
-		if (new) {
-			return new;
+		newptr = ber_memrealloc_x(ptr, size, NULL);
+		if (newptr) {
+			return newptr;
 		}
 		Debug(LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
 				(long) size, 0, 0);
@@ -382,31 +390,32 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 
 		/* Never shrink blocks */
 		if (size <= p[-1]) {
-			new = p;
+			newptr = p;
 	
 		/* If reallocing the last block, we can grow it */
 		} else if ((char *)ptr + p[-1] == sh->sh_last &&
 			(char *)ptr + size < (char *)sh->sh_end ) {
-			new = p;
+			newptr = p;
 			sh->sh_last = (char *)sh->sh_last + size - p[-1];
 			p[-1] = size;
 	
 		/* Nowhere to grow, need to alloc and copy */
 		} else {
-			new = slap_sl_malloc(size, ctx);
-			AC_MEMCPY(new, ptr, p[-1]);
-		}
-		return new;
-	} else {
-		void *newptr;
-		newptr = slap_sl_malloc(size, ctx);
-		if (size < p[-1]) {
-			AC_MEMCPY(newptr, ptr, size);
-		} else {
+			newptr = slap_sl_malloc(size, ctx);
 			AC_MEMCPY(newptr, ptr, p[-1]);
 		}
-		slap_sl_free(ptr, ctx);
 		return newptr;
+	} else {
+		void *newptr2;
+
+		newptr2 = slap_sl_malloc(size, ctx);
+		if (size < p[-1]) {
+			AC_MEMCPY(newptr2, ptr, size);
+		} else {
+			AC_MEMCPY(newptr2, ptr, p[-1]);
+		}
+		slap_sl_free(ptr, ctx);
+		return newptr2;
 	}
 }
 
