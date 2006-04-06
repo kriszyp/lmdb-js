@@ -422,6 +422,9 @@ really_bad:;
 						case META_SEARCH_CANDIDATE:
 							goto get_result;
 
+						case META_SEARCH_NOT_CANDIDATE:
+							assert( 0 );
+
 						default:
 							rc = rs->sr_err = LDAP_OTHER;
 							goto finish;
