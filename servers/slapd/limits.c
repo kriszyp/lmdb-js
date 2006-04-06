@@ -1287,6 +1287,9 @@ limits_check( Operation *op, SlapReply *rs )
 						return -1;
 					}
 					op->ors_slimit = slimit;
+
+				} else if ( slimit == 0 ) {
+					op->ors_slimit = 0;
 				}
 
 			} else {
