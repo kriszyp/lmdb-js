@@ -647,12 +647,11 @@ LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 	LDAP_GCCATTR((const));
 
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-LDAP_SLAPD_F (int) connection_write_activate LDAP_P((ber_socket_t s));
 LDAP_SLAPD_F (int) connection_read_activate LDAP_P((ber_socket_t s));
 #else
-LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
 LDAP_SLAPD_F (int) connection_read LDAP_P((ber_socket_t s));
 #endif
+LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
 
 LDAP_SLAPD_F (unsigned long) connections_nextid(void);
 

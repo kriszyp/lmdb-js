@@ -1979,9 +1979,6 @@ slapd_daemon_task(
 				"daemon: write active on %d\n",
 				wd, 0, 0 );
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-			connection_write_activate( wd );
-#else
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
@@ -1997,7 +1994,6 @@ slapd_daemon_task(
 					nrfds--;
 				}
 			}
-#endif
 		}
 
 		for ( i = 0; nrfds > 0; i++ ) {
@@ -2105,9 +2101,6 @@ slapd_daemon_task(
 
 					waswrite = 1;
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-					connection_write_activate( fd );
-#else
 					/*
 					 * NOTE: it is possible that the connection was closed
 					 * and that the stream is now inactive.
@@ -2117,7 +2110,6 @@ slapd_daemon_task(
 					if ( connection_write( fd ) < 0 ) {
 						continue;
 					}
-#endif
 				}
 				/* If event is a read or an error */
 				if( SLAP_EVENT_IS_READ( i ) || !waswrite ) {

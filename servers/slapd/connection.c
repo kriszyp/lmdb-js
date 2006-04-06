@@ -2172,43 +2172,14 @@ static int connection_op_activate( Operation *op )
 	return rc;
 }
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-static int connection_write( ber_socket_t s );
-static void *connection_write_thread( void *ctx, void *arg )
-{
-	return (void *)(long)connection_write((long)arg);
-}
-
-int connection_write_activate( ber_socket_t s )
-{
-	int rc;
-
-	/*
-	 * suspend reading on this file descriptor until a connection processing
-	 * thread write data on it. Otherwise the listener thread will repeatedly
-	 * submit the same event on it to the pool.
-	 */
-	slapd_clr_write( s, 0);
-
-	rc = ldap_pvt_thread_pool_submit( &connection_pool,
-		connection_write_thread, (void *)(long)s );
-
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"connection_write_activate(%d): submit failed (%d)\n",
-			(int) s, rc, 0 );
-	}
-	return rc;
-}
-
-static
-#endif
 int connection_write(ber_socket_t s)
 {
 	Connection *c;
 	Operation *op;
 
 	assert( connections != NULL );
+
+	slapd_clr_write( s, 0 );
 
 	ldap_pvt_thread_mutex_lock( MCA_GET_CONN_MUTEX( s ) );
 
@@ -2221,9 +2192,6 @@ int connection_write(ber_socket_t s)
 		return -1;
 	}
 
-#ifndef SLAP_LIGHTWEIGHT_DISPATCHER
-	slapd_clr_write( s, 0);
-#endif
 	c->c_n_write++;
 
 	Debug( LDAP_DEBUG_TRACE,
