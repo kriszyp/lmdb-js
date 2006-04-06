@@ -420,7 +420,7 @@ get_supported_controls(char ***ctrloidsp,
 	}
 	masks = (slap_mask_t *)SLAP_MALLOC( (n + 1) * sizeof(slap_mask_t) );
 	if  ( masks == NULL ) {
-		ch_free( oids );
+		SLAP_FREE( oids );
 		return LDAP_NO_MEMORY;
 	}
 

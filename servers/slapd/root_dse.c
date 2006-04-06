@@ -214,7 +214,6 @@ root_dse_info(
 		= slap_schema.si_ad_ref;
 
 	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
-
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"root_dse_info: SLAP_CALLOC failed", 0, 0, 0 );
