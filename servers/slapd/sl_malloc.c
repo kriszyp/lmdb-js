@@ -261,6 +261,10 @@ slap_sl_malloc(
 	unsigned long diff;
 	int i, j;
 
+#ifdef SLAP_NO_SL_MALLOC
+	return ber_malloc_x( size, NULL );
+#endif
+
 	/* ber_set_option calls us like this */
 	if (!ctx) return ber_memalloc_x(size, NULL);
 
@@ -365,6 +369,10 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 	if (ptr == NULL)
 		return slap_sl_malloc(size, ctx);
 
+#ifdef SLAP_NO_SL_MALLOC
+	return ber_memrealloc_x( ptr, size, NULL );
+#endif
+
 	/* Not our memory? */
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		/* duplicate of realloc behavior, oh well */
@@ -433,6 +441,11 @@ slap_sl_free(void *ptr, void *ctx)
 
 	if (!ptr)
 		return;
+
+#ifdef SLAP_NO_SL_MALLOC
+	ber_memfree_x( ptr, NULL );
+	return;
+#endif
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
