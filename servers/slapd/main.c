@@ -104,6 +104,7 @@ static int check = CHECK_NONE;
 static int version = 0;
 
 void *slap_tls_ctx;
+LDAP *slap_tls_ld;
 
 #ifdef LOG_LOCAL4
 #define DEFAULT_SYSLOG_USER	LOG_LOCAL4
@@ -706,6 +707,14 @@ unhandled_option:;
 	lutil_passwd_init();
 	slap_op_init();
 
+#ifdef HAVE_TLS
+	rc = ldap_create( &slap_tls_ld );
+	if ( rc ) {
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+		goto destroy;
+	}
+#endif
+
 	rc = slap_init( serverMode, serverName );
 	if ( rc ) {
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
@@ -776,19 +785,13 @@ unhandled_option:;
 	}
 
 	{
-		void *def_ctx = NULL;
-
-		/* Save existing default ctx, if any */
-		ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &def_ctx );
+		int opt = 1;
 
 		/* Force new ctx to be created */
-		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, NULL );
-
-		rc = ldap_pvt_tls_init_def_ctx( 1 );
+		rc = ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
 		if( rc == 0 ) {
-			ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
-			/* Restore previous ctx */
-			ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, def_ctx );
+			/* The ctx's refcount is bumped up here */
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
 			load_extop( &slap_EXOP_START_TLS, 0, starttls_extop );
 		} else if ( rc != LDAP_NOT_SUPPORTED ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -957,6 +960,11 @@ stop:
 	lutil_passwd_destroy();
 
 #ifdef HAVE_TLS
+	/* Setting it to itself decreases refcount, allowing it to be freed
+	 * when the LD is freed.
+	 */
+	ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, slap_tls_ctx );
+	ldap_ld_free( slap_tls_ld, 0, NULL, NULL );
 	ldap_pvt_tls_destroy();
 #endif
 

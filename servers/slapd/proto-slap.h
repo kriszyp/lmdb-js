@@ -944,6 +944,7 @@ LDAP_SLAPD_V( const struct berval ) slap_true_bv;
 LDAP_SLAPD_V( const struct berval ) slap_false_bv;
 LDAP_SLAPD_V( struct slap_sync_cookie_s ) slap_sync_cookie;
 LDAP_SLAPD_V( void * ) slap_tls_ctx;
+LDAP_SLAPD_V( LDAP * ) slap_tls_ld;
 
 /*
  * index.c

@@ -2796,8 +2796,9 @@ config_include(ConfigArgs *c) {
 static int
 config_tls_option(ConfigArgs *c) {
 	int flag;
+	LDAP *ld = slap_tls_ld;
 	switch(c->type) {
-	case CFG_TLS_RAND:	flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
+	case CFG_TLS_RAND:	flag = LDAP_OPT_X_TLS_RANDOM_FILE;	ld = NULL; break;
 	case CFG_TLS_CIPHER:	flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
 	case CFG_TLS_CERT_FILE:	flag = LDAP_OPT_X_TLS_CERTFILE;		break;	
 	case CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
@@ -2810,12 +2811,12 @@ config_tls_option(ConfigArgs *c) {
 		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
-		return ldap_pvt_tls_get_option( NULL, flag, &c->value_string );
+		return ldap_pvt_tls_get_option( ld, flag, &c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		return ldap_pvt_tls_set_option( NULL, flag, NULL );
+		return ldap_pvt_tls_set_option( ld, flag, NULL );
 	}
 	ch_free(c->value_string);
-	return(ldap_pvt_tls_set_option(NULL, flag, c->argv[1]));
+	return(ldap_pvt_tls_set_option(ld, flag, c->argv[1]));
 }
 
 /* FIXME: this ought to be provided by libldap */
@@ -2845,7 +2846,7 @@ config_tls_config(ConfigArgs *c) {
 		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
-		ldap_pvt_tls_get_option( NULL, flag, &c->value_int );
+		ldap_pvt_tls_get_option( slap_tls_ld, flag, &c->value_int );
 		for (i=0; !BER_BVISNULL(&keys[i].word); i++) {
 			if (keys[i].mask == c->value_int) {
 				c->value_string = ch_strdup( keys[i].word.bv_val );
@@ -2855,7 +2856,7 @@ config_tls_config(ConfigArgs *c) {
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		int i = 0;
-		return ldap_pvt_tls_set_option( NULL, flag, &i );
+		return ldap_pvt_tls_set_option( slap_tls_ld, flag, &i );
 	}
 	ch_free( c->value_string );
 	if ( isdigit( (unsigned char)c->argv[1][0] ) ) {
@@ -2865,9 +2866,9 @@ config_tls_config(ConfigArgs *c) {
 				c->log, c->argv[0], c->argv[1] );
 			return 1;
 		}
-		return(ldap_pvt_tls_set_option(NULL, flag, &i));
+		return(ldap_pvt_tls_set_option(slap_tls_ld, flag, &i));
 	} else {
-		return(ldap_int_tls_config(NULL, flag, c->argv[1]));
+		return(ldap_int_tls_config(slap_tls_ld, flag, c->argv[1]));
 	}
 }
 #endif
