@@ -6,7 +6,6 @@ OpenLDAP 2.3.21 Release
 	Fixed libldap invalid free bug (ITS#4436)
 	Fixed libldap mutex leak (ITS#4441)
 	Fixed libldap_r thr_yield(2) return handling (ITS#4469)
-	Fixed liblunicode build (ITS#4435)
 	Fixed slapd syncprov/glue interaction issue (ITS#4323, ITS#4417)
 	Fixed slapd operational attrs in presence of global overlays (ITS#4431)
 	Fixed slapd "threads" config value checking (ITS#4433)
@@ -25,6 +24,7 @@ OpenLDAP 2.3.21 Release
 	Build Environment
 		Added slapo-auditlog build support (ITS#4372)
 		Fixed multi-precision sizeof detection (ITS#4416)
+		Fixed liblunicode build (ITS#4435)
 		Updated libtool to version 1.5.22 (ITS#4471)
 		Updated shtool to version 2.0.5
 
