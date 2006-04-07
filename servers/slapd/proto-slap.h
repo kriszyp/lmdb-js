@@ -606,6 +606,8 @@ LDAP_SLAPD_F (int) bindconf_parse LDAP_P((
 	const char *word,  slap_bindconf *bc ));
 LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
 	slap_bindconf *bc, struct berval *bv ));
+LDAP_SLAPD_F (int) bindconf_tls_set LDAP_P((
+	slap_bindconf *bc, LDAP *ld ));
 LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));

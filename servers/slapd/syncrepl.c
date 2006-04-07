@@ -83,6 +83,9 @@ typedef struct syncinfo_s {
 	int					si_syncdata;
 	int					si_logstate;
 	int					si_conn_setup;
+#ifdef HAVE_TLS
+	int					si_check_tls;
+#endif
 	Avlnode				*si_presentlist;
 	LDAP				*si_ld;
 	LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
@@ -434,6 +437,21 @@ do_syncrep1(
 
 	op->o_protocol = LDAP_VERSION3;
 	ldap_set_option( si->si_ld, LDAP_OPT_PROTOCOL_VERSION, &op->o_protocol );
+
+#ifdef HAVE_TLS
+	if ( si->si_check_tls ) {
+		si->si_check_tls = 0;
+		rc = bindconf_tls_set( &si->si_bindconf, si->si_ld );
+	} else if ( si->si_bindconf.sb_tls_ctx ) {
+		rc = ldap_set_option( si->si_ld, LDAP_OPT_X_TLS_CTX,
+			si->si_bindconf.sb_tls_ctx );
+	}
+	if ( rc ) {
+		Debug( LDAP_DEBUG_ANY,
+			"do_syncrep1: TLS context initialization failed\n", 0, 0, 0 );
+		return rc;
+	}
+#endif
 
 	/* Bind to master */
 
@@ -3201,6 +3219,10 @@ add_syncrepl(
 	si->si_tlimit = 0;
 	si->si_slimit = 0;
 	si->si_conn_setup = 0;
+
+#ifdef HAVE_TLS
+	si->si_check_tls = 1;
+#endif
 
 	si->si_presentlist = NULL;
 	LDAP_LIST_INIT( &si->si_nonpresentlist );

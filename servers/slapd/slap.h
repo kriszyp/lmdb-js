@@ -1521,6 +1521,7 @@ typedef struct slap_bindconf {
 	struct berval sb_authcId;
 	struct berval sb_authzId;
 #ifdef HAVE_TLS
+	void *sb_tls_ctx;
 	char *sb_tls_cert;
 	char *sb_tls_key;
 	char *sb_tls_cacert;

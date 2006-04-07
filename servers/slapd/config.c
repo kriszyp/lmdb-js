@@ -45,6 +45,10 @@
 #include "lutil.h"
 #include "config.h"
 
+#ifdef HAVE_TLS
+#include <openssl/ssl.h>
+#endif
+
 #define ARGS_STEP	512
 
 /*
@@ -1255,6 +1259,10 @@ void bindconf_free( slap_bindconf *bc ) {
 		BER_BVZERO( &bc->sb_authzId );
 	}
 #ifdef HAVE_TLS
+	if ( bc->sb_tls_ctx ) {
+		SSL_CTX_free( bc->sb_tls_ctx );
+		bc->sb_tls_ctx = NULL;
+	}
 	if ( bc->sb_tls_cert ) {
 		ch_free( bc->sb_tls_cert );
 		bc->sb_tls_cert = NULL;
@@ -1288,6 +1296,72 @@ void bindconf_free( slap_bindconf *bc ) {
 #endif
 }
 
+static struct {
+	const char *key;
+	size_t offset;
+	int opt;
+} bindtlsopts[] = {
+	{ "tls_cert", offsetof(slap_bindconf, sb_tls_cert), LDAP_OPT_X_TLS_CERTFILE },
+	{ "tls_key", offsetof(slap_bindconf, sb_tls_key), LDAP_OPT_X_TLS_KEYFILE },
+	{ "tls_cacert", offsetof(slap_bindconf, sb_tls_cacert), LDAP_OPT_X_TLS_CACERTFILE },
+	{ "tls_cacertdir", offsetof(slap_bindconf, sb_tls_cacertdir), LDAP_OPT_X_TLS_CACERTDIR },
+	{ "tls_cipher_suite", offsetof(slap_bindconf, sb_tls_cipher_suite), LDAP_OPT_X_TLS_CIPHER_SUITE },
+	{0, 0}
+};
+
+int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
+{
+	int i, rc, newctx = 0, res = 0;
+	char *ptr = (char *)bc, **word;
+
+	for (i=0; bindtlsopts[i].opt; i++) {
+		word = (char **)(ptr + bindtlsopts[i].offset);
+		if ( *word ) {
+			rc = ldap_set_option( ld, bindtlsopts[i].opt, *word );
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bindconf_tls_set: failed to set %s to %s\n",
+						bindtlsopts[i].key, *word, 0 );
+				res = -1;
+			} else
+				newctx = 1;
+		}
+	}
+	if ( bc->sb_tls_reqcert ) {
+		rc = ldap_int_tls_config( ld, LDAP_OPT_X_TLS_REQUIRE_CERT,
+			bc->sb_tls_reqcert );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bindconf_tls_set: failed to set tls_reqcert to %s\n",
+					bc->sb_tls_reqcert, 0, 0 );
+			res = -1;
+		} else
+			newctx = 1;
+	}
+#ifdef HAVE_OPENSSL_CRL
+	if ( bc->sb_tls_crlcheck ) {
+		rc = ldap_int_tls_config( ld, LDAP_OPT_X_TLS_REQUIRE_CERT,
+			bc->sb_tls_crlcheck );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bindconf_tls_set: failed to set tls_crlcheck to %s\n",
+					bc->sb_tls_crlcheck, 0, 0 );
+			res = -1;
+		} else
+			newctx = 1;
+	}
+#endif
+	if ( newctx ) {
+		int opt = 0;
+		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
+		if ( rc )
+			res = rc;
+		else
+			ldap_get_option( ld, LDAP_OPT_X_TLS_CTX, &bc->sb_tls_ctx );
+	}
+	
+	return res;
+}
 
 /* -------------------------------------- */
 
