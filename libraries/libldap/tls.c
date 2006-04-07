@@ -111,8 +111,10 @@ static void tls_init_threads( void )
 void
 ldap_int_tls_destroy( struct ldapoptions *lo )
 {
-	SSL_CTX_free( lo->ldo_tls_ctx );
-	lo->ldo_tls_ctx = NULL;
+	if ( lo->ldo_tls_ctx ) {
+		SSL_CTX_free( lo->ldo_tls_ctx );
+		lo->ldo_tls_ctx = NULL;
+	}
 
 	if ( lo->ldo_tls_certfile ) {
 		LDAP_FREE( lo->ldo_tls_certfile );
@@ -146,6 +148,10 @@ ldap_int_tls_destroy( struct ldapoptions *lo )
 void
 ldap_pvt_tls_destroy( void )
 {
+	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
+
+	ldap_int_tls_destroy( lo );
+
 	EVP_cleanup();
 	ERR_remove_state(0);
 	ERR_free_strings();
