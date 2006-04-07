@@ -485,6 +485,14 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	ldap_set_option( ld, LDAP_OPT_REFERRALS,
 		LDAP_BACK_CHASE_REFERRALS( li ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
+	if ( li->li_network_timeout > 0 ) {
+		struct timeval		tv;
+
+		tv.tv_sec = li->li_network_timeout;
+		tv.tv_usec = 0;
+		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, (const void *)&tv );
+	}
+
 #ifdef HAVE_TLS
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,
 			li->li_uri, li->li_flags, li->li_nretries, &rs->sr_text );
