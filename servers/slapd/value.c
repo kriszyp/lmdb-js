@@ -105,7 +105,7 @@ value_add_one(
 		for ( n = 0; !BER_BVISNULL( &(*vals)[n] ); n++ ) {
 			;	/* Empty */
 		}
-		*vals = (BerVarray) SLAP_REALLOC( (char *) *vals,
+		*vals = (BerVarray) ch_realloc( (char *) *vals,
 		    (n + 2) * sizeof(struct berval) );
 		if( *vals == NULL ) {
 			Debug(LDAP_DEBUG_TRACE,
