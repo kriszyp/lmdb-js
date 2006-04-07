@@ -1034,6 +1034,17 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
 	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, NULL },
 	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
+#ifdef HAVE_TLS
+	{ BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
+	{ BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
+	{ BER_BVC("tls_cacert="), offsetof(slap_bindconf, sb_tls_cacert), 's', 1, NULL },
+	{ BER_BVC("tls_cacertdir="), offsetof(slap_bindconf, sb_tls_cacertdir), 's', 1, NULL },
+	{ BER_BVC("tls_reqcert="), offsetof(slap_bindconf, sb_tls_reqcert), 's', 1, NULL },
+	{ BER_BVC("tls_cipher_suite="), offsetof(slap_bindconf, sb_tls_cipher_suite), 's', 1, NULL },
+#ifdef HAVE_OPENSSL_CRL
+	{ BER_BVC("tls_crlcheck="), offsetof(slap_bindconf, sb_tls_crlcheck), 's', 1, NULL },
+#endif
+#endif
 	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
@@ -1243,6 +1254,38 @@ void bindconf_free( slap_bindconf *bc ) {
 		ch_free( bc->sb_authzId.bv_val );
 		BER_BVZERO( &bc->sb_authzId );
 	}
+#ifdef HAVE_TLS
+	if ( bc->sb_tls_cert ) {
+		ch_free( bc->sb_tls_cert );
+		bc->sb_tls_cert = NULL;
+	}
+	if ( bc->sb_tls_key ) {
+		ch_free( bc->sb_tls_key );
+		bc->sb_tls_key = NULL;
+	}
+	if ( bc->sb_tls_cacert ) {
+		ch_free( bc->sb_tls_cacert );
+		bc->sb_tls_cacert = NULL;
+	}
+	if ( bc->sb_tls_cacertdir ) {
+		ch_free( bc->sb_tls_cacertdir );
+		bc->sb_tls_cacertdir = NULL;
+	}
+	if ( bc->sb_tls_reqcert ) {
+		ch_free( bc->sb_tls_reqcert );
+		bc->sb_tls_reqcert = NULL;
+	}
+	if ( bc->sb_tls_cipher_suite ) {
+		ch_free( bc->sb_tls_cipher_suite );
+		bc->sb_tls_cipher_suite = NULL;
+	}
+#ifdef HAVE_OPENSSL_CRL
+	if ( bc->sb_tls_crlcheck ) {
+		ch_free( bc->sb_tls_crlcheck );
+		bc->sb_tls_crlcheck = NULL;
+	}
+#endif
+#endif
 }
 
 

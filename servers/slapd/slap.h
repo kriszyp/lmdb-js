@@ -1520,6 +1520,17 @@ typedef struct slap_bindconf {
 	struct berval sb_realm;
 	struct berval sb_authcId;
 	struct berval sb_authzId;
+#ifdef HAVE_TLS
+	char *sb_tls_cert;
+	char *sb_tls_key;
+	char *sb_tls_cacert;
+	char *sb_tls_cacertdir;
+	char *sb_tls_reqcert;
+	char *sb_tls_cipher_suite;
+#ifdef HAVE_OPENSSL_CRL
+	char *sb_tls_crlcheck;
+#endif
+#endif
 } slap_bindconf;
 
 struct slap_replica_info {
