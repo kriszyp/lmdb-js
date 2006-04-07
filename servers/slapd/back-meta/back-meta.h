@@ -293,9 +293,8 @@ extern void
 meta_back_release_conn_lock(
        	Operation 		*op,
 	metaconn_t		*mc,
-	int			dofree,
 	int			dolock );
-#define meta_back_release_conn(op, mc)	meta_back_release_conn_lock( (op), (mc), 0, 1 )
+#define meta_back_release_conn(op, mc)	meta_back_release_conn_lock( (op), (mc), 1 )
 
 extern int
 meta_back_retry(

@@ -616,7 +616,8 @@ done:;
 	rs->sr_err = rc;
 	if ( rc != LDAP_SUCCESS && META_BACK_ONERR_STOP( mi ) ) {
 	        LDAP_BACK_CONN_BINDING_CLEAR( msc );
-		meta_back_release_conn_lock( op, mc, 1, dolock );
+	        LDAP_BACK_CONN_TAINTED_SET( mc );
+		meta_back_release_conn_lock( op, mc, dolock );
 		*mcp = NULL;
 
 		if ( sendok & LDAP_BACK_SENDERR ) {

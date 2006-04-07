@@ -654,12 +654,26 @@ retry_lock:
 			(void *)lc, refcnt, binding );
 	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
-		if ( rs->sr_err != 0 ) {
+		switch ( rs->sr_err ) {
+		case 0:
+			break;
+
+		case -1:
+			if ( !( sendok & LDAP_BACK_BINDING ) ) {
+				/* duplicate: free and try to get the newly created one */
+				goto retry_lock;
+			}
+			/* taint connection, so that it'll be freed when released */
+			LDAP_BACK_CONN_TAINTED_SET( lc );
+			break;
+
+		default:
 			ldap_back_conn_free( lc );
 			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "proxy bind collision";
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
-				send_ldap_error( op, rs, LDAP_OTHER,
-					"internal server error" );
+				send_ldap_result( op, rs );
+				rs->sr_text = NULL;
 			}
 			return NULL;
 		}
@@ -679,6 +693,7 @@ retry_lock:
 			(void *)avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
 					ldap_back_conndnlc_cmp );
 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+			LDAP_BACK_CONN_TAINTED_SET( lc );
 		}
 
 		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
@@ -688,7 +703,6 @@ retry_lock:
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
 		}
-	
 	}
 
 	if ( li->li_idle_timeout && lc ) {
@@ -712,8 +726,10 @@ ldap_back_release_conn_lock(
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	}
 	assert( lc->lc_refcnt > 0 );
-	lc->lc_refcnt--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
+	if ( --lc->lc_refcnt == 0 && LDAP_BACK_CONN_TAINTED( lc ) ) {
+		ldap_back_freeconn( op, rs, 0 );
+	}
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}

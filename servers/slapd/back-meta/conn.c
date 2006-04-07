@@ -531,7 +531,8 @@ meta_back_retry(
 			if ( binding ) {
 				LDAP_BACK_CONN_BINDING_CLEAR( msc );
 			}
-			meta_back_release_conn_lock( op, mc, 1, 0 );
+			LDAP_BACK_CONN_TAINTED_SET( mc );
+			meta_back_release_conn_lock( op, mc, 0 );
 			*mcp = NULL;
 		}
 
@@ -810,6 +811,7 @@ retry_lock:
 				/* don't let anyone else use this expired connection */
 				(void)avl_delete( &mi->mi_conninfo.lai_tree,
 					(caddr_t)mc, meta_back_conndnmc_cmp );
+				LDAP_BACK_CONN_TAINTED_SET( mc );
 
 				Debug( LDAP_DEBUG_TRACE, "%s meta_back_getconn: mc=%p conn=%ld expired.\n",
 					op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc->mc_conn ) );
@@ -1183,7 +1185,6 @@ done:;
 	}
 
 	if ( new_conn ) {
-		
 		if ( mi->mi_conn_ttl ) {
 			mc->mc_create_time = op->o_time;
 		}
@@ -1203,19 +1204,29 @@ done:;
 
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
-		 *
-		 * FIXME: what if the same client issues more than one
-		 * asynchronous operations?
 		 */
-		if ( err != 0 ) {
+		switch ( err ) {
+		case 0:
+			break;
+
+		case -1:
+			if ( !( sendok & LDAP_BACK_BINDING ) ) {
+				/* duplicate: free and try to get the newly created one */
+				goto retry_lock;
+			}
+			LDAP_BACK_CONN_TAINTED_SET( mc );
+			break;
+
+		default:
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
 				op->o_log_prefix, ncandidates,
 				LDAP_BACK_PCONN_ID( mc->mc_conn ) );
 		
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "Internal server error";
 			meta_back_freeconn( op, mc );
+
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "proxy bind collision";
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				send_ldap_result( op, rs );
 				rs->sr_text = NULL;
@@ -1242,7 +1253,6 @@ void
 meta_back_release_conn_lock(
        	Operation 		*op,
 	metaconn_t		*mc,
-	int			dofree,
 	int			dolock )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
@@ -1255,10 +1265,7 @@ meta_back_release_conn_lock(
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
 	LDAP_BACK_CONN_BINDING_CLEAR( mc );
-	if ( dofree
-		|| ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
-		|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout ) )
-	{
+	if ( LDAP_BACK_CONN_TAINTED( mc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld expired.\n",
 			op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc->mc_conn ) );
 		(void)avl_delete( &mi->mi_conninfo.lai_tree,
