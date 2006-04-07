@@ -473,8 +473,7 @@ bdb_idl_cache_del_id(
 			IDL_LRU_DELETE( bdb, cache_entry );
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 			free( cache_entry->kstr.bv_val );
-			if ( cache_entry->idl )
-				free( cache_entry->idl );
+			free( cache_entry->idl );
 			free( cache_entry );
 		}
 	}
