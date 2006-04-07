@@ -1245,6 +1245,10 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		break;
 	case LDAP_OPT_X_TLS_CTX:
 		*(void **)arg = lo->ldo_tls_ctx;
+		if ( lo->ldo_tls_ctx ) {
+			SSL_CTX *ctx = lo->ldo_tls_ctx;
+			CRYPTO_add( &ctx->references, 1, CRYPTO_LOCK_SSL_CTX );
+		}
 		break;
 	case LDAP_OPT_X_TLS_CACERTFILE:
 		*(char **)arg = lo->ldo_tls_cacertfile ?
