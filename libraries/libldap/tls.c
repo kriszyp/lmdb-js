@@ -1347,6 +1347,8 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		return -1;
 
 	case LDAP_OPT_X_TLS_CTX:
+		if ( lo->ldo_tls_ctx )
+			SSL_CTX_free( lo->ldo_tls_ctx );
 		lo->ldo_tls_ctx = arg;
 		return 0;
 	case LDAP_OPT_X_TLS_CONNECT_CB:
@@ -1413,6 +1415,8 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 
 	case LDAP_OPT_X_TLS_NEWCTX:
 		if ( !arg ) return -1;
+		if ( lo->ldo_tls_ctx )
+			SSL_CTX_free( lo->ldo_tls_ctx );
 		lo->ldo_tls_ctx = NULL;
 		return ldap_int_tls_init_ctx( lo, *(int *)arg );
 	default:
