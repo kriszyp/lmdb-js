@@ -179,6 +179,10 @@ ldap_ld_free(
 	}
 #endif
 
+#ifdef HAVE_TLS
+	ldap_int_tls_destroy( &ld->ld_options );
+#endif
+
 	if ( ld->ld_options.ldo_sctrls != NULL ) {
 		ldap_controls_free( ld->ld_options.ldo_sctrls );
 		ld->ld_options.ldo_sctrls = NULL;

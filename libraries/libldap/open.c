@@ -136,6 +136,15 @@ ldap_create( LDAP **ldp )
 		? LDAP_STRDUP( gopts->ldo_def_sasl_authzid ) : NULL;
 #endif
 
+#ifdef HAVE_TLS
+	/* We inherit the SSL_CTX, don't need the names/paths. Leave them
+	 * empty to allow new SSL_CTX's to be created from scratch.
+	 */
+	memset( &ld->ld_options.ldo_tls_info, 0,
+		sizeof( ld->ld_options.ldo_tls_info ));
+
+#endif
+
 	if ( gopts->ldo_tm_api &&
 		ldap_int_timeval_dup( &ld->ld_options.ldo_tm_api, gopts->ldo_tm_api ))
 		goto nomem;

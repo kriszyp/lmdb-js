@@ -48,16 +48,6 @@
 #endif
 
 static int  tls_opt_trace = 1;
-static char *tls_opt_certfile = NULL;
-static char *tls_opt_keyfile = NULL;
-static char *tls_opt_dhfile = NULL;
-static char *tls_opt_cacertfile = NULL;
-static char *tls_opt_cacertdir = NULL;
-static int  tls_opt_require_cert = LDAP_OPT_X_TLS_DEMAND;
-#ifdef HAVE_OPENSSL_CRL
-static int  tls_opt_crlcheck = LDAP_OPT_X_TLS_CRL_NONE;
-#endif
-static char *tls_opt_ciphersuite = NULL;
 static char *tls_opt_randfile = NULL;
 
 #define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
@@ -72,8 +62,6 @@ static RSA * tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length );
 static STACK_OF(X509_NAME) * get_ca_list( char * bundle, char * dir );
 
 static DH * tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length );
-
-static SSL_CTX *tls_def_ctx = NULL;
 
 typedef struct dhplist {
 	struct dhplist *next;
@@ -120,43 +108,48 @@ static void tls_init_threads( void )
 }
 #endif /* LDAP_R_COMPILE */
 
+void
+ldap_int_tls_destroy( struct ldapoptions *lo )
+{
+	SSL_CTX_free( lo->ldo_tls_ctx );
+	lo->ldo_tls_ctx = NULL;
+
+	if ( lo->ldo_tls_certfile ) {
+		LDAP_FREE( lo->ldo_tls_certfile );
+		lo->ldo_tls_certfile = NULL;
+	}
+	if ( lo->ldo_tls_keyfile ) {
+		LDAP_FREE( lo->ldo_tls_keyfile );
+		lo->ldo_tls_keyfile = NULL;
+	}
+	if ( lo->ldo_tls_dhfile ) {
+		LDAP_FREE( lo->ldo_tls_dhfile );
+		lo->ldo_tls_dhfile = NULL;
+	}
+	if ( lo->ldo_tls_cacertfile ) {
+		LDAP_FREE( lo->ldo_tls_cacertfile );
+		lo->ldo_tls_cacertfile = NULL;
+	}
+	if ( lo->ldo_tls_cacertdir ) {
+		LDAP_FREE( lo->ldo_tls_cacertdir );
+		lo->ldo_tls_cacertdir = NULL;
+	}
+	if ( lo->ldo_tls_ciphersuite ) {
+		LDAP_FREE( lo->ldo_tls_ciphersuite );
+		lo->ldo_tls_ciphersuite = NULL;
+	}
+}
+
 /*
  * Tear down the TLS subsystem. Should only be called once.
  */
 void
 ldap_pvt_tls_destroy( void )
 {
-	SSL_CTX_free(tls_def_ctx);
-	tls_def_ctx = NULL;
-
 	EVP_cleanup();
 	ERR_remove_state(0);
 	ERR_free_strings();
 
-	if ( tls_opt_certfile ) {
-		LDAP_FREE( tls_opt_certfile );
-		tls_opt_certfile = NULL;
-	}
-	if ( tls_opt_keyfile ) {
-		LDAP_FREE( tls_opt_keyfile );
-		tls_opt_keyfile = NULL;
-	}
-	if ( tls_opt_dhfile ) {
-		LDAP_FREE( tls_opt_dhfile );
-		tls_opt_dhfile = NULL;
-	}
-	if ( tls_opt_cacertfile ) {
-		LDAP_FREE( tls_opt_cacertfile );
-		tls_opt_cacertfile = NULL;
-	}
-	if ( tls_opt_cacertdir ) {
-		LDAP_FREE( tls_opt_cacertdir );
-		tls_opt_cacertdir = NULL;
-	}
-	if ( tls_opt_ciphersuite ) {
-		LDAP_FREE( tls_opt_ciphersuite );
-		tls_opt_ciphersuite = NULL;
-	}
 	if ( tls_opt_randfile ) {
 		LDAP_FREE( tls_opt_randfile );
 		tls_opt_randfile = NULL;
@@ -197,29 +190,25 @@ ldap_pvt_tls_init( void )
 }
 
 /*
- * initialize the default context
+ * initialize a new TLS context
  */
-int
-ldap_pvt_tls_init_def_ctx( int is_server )
+static int
+ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 {
 	STACK_OF(X509_NAME) *calist;
-	int rc = 0;
-	char *ciphersuite = tls_opt_ciphersuite;
-	char *cacertfile = tls_opt_cacertfile;
-	char *cacertdir = tls_opt_cacertdir;
-	char *certfile = tls_opt_certfile;
-	char *keyfile = tls_opt_keyfile;
-	char *dhfile = tls_opt_dhfile;
+	int i, rc = 0;
+	char *ciphersuite = lo->ldo_tls_ciphersuite;
+	char *cacertfile = lo->ldo_tls_cacertfile;
+	char *cacertdir = lo->ldo_tls_cacertdir;
+	char *certfile = lo->ldo_tls_certfile;
+	char *keyfile = lo->ldo_tls_keyfile;
+	char *dhfile = lo->ldo_tls_dhfile;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
-#endif
+	if ( lo->ldo_tls_ctx )
+		return 0;
 
 	if ( is_server && !certfile && !keyfile && !cacertfile && !cacertdir ) {
 		/* minimum configuration not provided */
-#ifdef LDAP_R_COMPILE
-		ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
-#endif
 		return LDAP_NOT_SUPPORTED;
 	}
 
@@ -250,157 +239,150 @@ ldap_pvt_tls_init_def_ctx( int is_server )
 		__atoe( dhfile );
 	}
 #endif
-	if ( tls_def_ctx == NULL ) {
-		int i;
-		tls_def_ctx = SSL_CTX_new( SSLv23_method() );
-		if ( tls_def_ctx == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-			   "TLS: could not allocate default ctx (%lu).\n",
-				ERR_peek_error(),0,0);
-			rc = -1;
-			goto error_exit;
-		}
+	lo->ldo_tls_ctx = SSL_CTX_new( SSLv23_method() );
+	if ( lo->ldo_tls_ctx == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		   "TLS: could not allocate default ctx (%lu).\n",
+			ERR_peek_error(),0,0);
+		rc = -1;
+		goto error_exit;
+	}
 
-		SSL_CTX_set_session_id_context( tls_def_ctx,
+	if ( is_server ) {
+		SSL_CTX_set_session_id_context( lo->ldo_tls_ctx,
 			(const unsigned char *) "OpenLDAP", sizeof("OpenLDAP")-1 );
+	}
 
-		if ( tls_opt_ciphersuite &&
-			!SSL_CTX_set_cipher_list( tls_def_ctx, ciphersuite ) )
+	if ( lo->ldo_tls_ciphersuite &&
+		!SSL_CTX_set_cipher_list( lo->ldo_tls_ctx, ciphersuite ) )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			   "TLS: could not set cipher list %s.\n",
+			   lo->ldo_tls_ciphersuite, 0, 0 );
+		tls_report_error();
+		rc = -1;
+		goto error_exit;
+	}
+
+	if (lo->ldo_tls_cacertfile != NULL || lo->ldo_tls_cacertdir != NULL) {
+		if ( !SSL_CTX_load_verify_locations( lo->ldo_tls_ctx,
+				cacertfile, cacertdir ) ||
+			!SSL_CTX_set_default_verify_paths( lo->ldo_tls_ctx ) )
 		{
-			Debug( LDAP_DEBUG_ANY,
-				   "TLS: could not set cipher list %s.\n",
-				   tls_opt_ciphersuite, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "TLS: "
+				"could not load verify locations (file:`%s',dir:`%s').\n",
+				lo->ldo_tls_cacertfile ? lo->ldo_tls_cacertfile : "",
+				lo->ldo_tls_cacertdir ? lo->ldo_tls_cacertdir : "",
+				0 );
 			tls_report_error();
 			rc = -1;
 			goto error_exit;
 		}
 
-		if (tls_opt_cacertfile != NULL || tls_opt_cacertdir != NULL) {
-			if ( !SSL_CTX_load_verify_locations( tls_def_ctx,
-					cacertfile, cacertdir ) ||
-				!SSL_CTX_set_default_verify_paths( tls_def_ctx ) )
-			{
-				Debug( LDAP_DEBUG_ANY, "TLS: "
-					"could not load verify locations (file:`%s',dir:`%s').\n",
-					tls_opt_cacertfile ? tls_opt_cacertfile : "",
-					tls_opt_cacertdir ? tls_opt_cacertdir : "",
-					0 );
-				tls_report_error();
-				rc = -1;
-				goto error_exit;
-			}
-
+		if ( is_server ) {
+			/* List of CA names to send to a client */
 			calist = get_ca_list( cacertfile, cacertdir );
 			if ( !calist ) {
 				Debug( LDAP_DEBUG_ANY, "TLS: "
 					"could not load client CA list (file:`%s',dir:`%s').\n",
-					tls_opt_cacertfile ? tls_opt_cacertfile : "",
-					tls_opt_cacertdir ? tls_opt_cacertdir : "",
+					lo->ldo_tls_cacertfile ? lo->ldo_tls_cacertfile : "",
+					lo->ldo_tls_cacertdir ? lo->ldo_tls_cacertdir : "",
 					0 );
 				tls_report_error();
 				rc = -1;
 				goto error_exit;
 			}
 
-			SSL_CTX_set_client_CA_list( tls_def_ctx, calist );
+			SSL_CTX_set_client_CA_list( lo->ldo_tls_ctx, calist );
 		}
-
-		if ( tls_opt_keyfile &&
-			!SSL_CTX_use_PrivateKey_file( tls_def_ctx,
-				keyfile, SSL_FILETYPE_PEM ) )
-		{
-			Debug( LDAP_DEBUG_ANY,
-				"TLS: could not use key file `%s'.\n",
-				tls_opt_keyfile,0,0);
-			tls_report_error();
-			rc = -1;
-			goto error_exit;
-		}
-
-		if ( tls_opt_certfile &&
-			!SSL_CTX_use_certificate_file( tls_def_ctx,
-				certfile, SSL_FILETYPE_PEM ) )
-		{
-			Debug( LDAP_DEBUG_ANY,
-				"TLS: could not use certificate `%s'.\n",
-				tls_opt_certfile,0,0);
-			tls_report_error();
-			rc = -1;
-			goto error_exit;
-		}
-
-		if ( ( tls_opt_certfile || tls_opt_keyfile ) &&
-			!SSL_CTX_check_private_key( tls_def_ctx ) )
-		{
-			Debug( LDAP_DEBUG_ANY,
-				"TLS: private key mismatch.\n",
-				0,0,0);
-			tls_report_error();
-			rc = -1;
-			goto error_exit;
-		}
-
-		if ( tls_opt_dhfile ) {
-			DH *dh = NULL;
-			BIO *bio;
-			dhplist *p;
-
-			if (( bio=BIO_new_file( dhfile,"r" )) == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-					"TLS: could not use DH parameters file `%s'.\n",
-					tls_opt_dhfile,0,0);
-				tls_report_error();
-				rc = -1;
-				goto error_exit;
-			}
-			while (( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
-				p = LDAP_MALLOC( sizeof(dhplist) );
-				if ( p != NULL ) {
-					p->keylength = DH_size( dh ) * 8;
-					p->param = dh;
-					p->next = dhparams;
-					dhparams = p;
-				}
-			}
-			BIO_free( bio );
-		}
-
-		if ( tls_opt_trace ) {
-			SSL_CTX_set_info_callback( tls_def_ctx, tls_info_cb );
-		}
-
-		i = SSL_VERIFY_NONE;
-		if ( tls_opt_require_cert ) {
-			i = SSL_VERIFY_PEER;
-			if ( tls_opt_require_cert == LDAP_OPT_X_TLS_DEMAND ||
-				 tls_opt_require_cert == LDAP_OPT_X_TLS_HARD ) {
-				i |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-			}
-		}
-
-		SSL_CTX_set_verify( tls_def_ctx, i,
-			tls_opt_require_cert == LDAP_OPT_X_TLS_ALLOW ?
-			tls_verify_ok : tls_verify_cb );
-		SSL_CTX_set_tmp_rsa_callback( tls_def_ctx, tls_tmp_rsa_cb );
-		if ( tls_opt_dhfile ) {
-			SSL_CTX_set_tmp_dh_callback( tls_def_ctx, tls_tmp_dh_cb );
-		}
-#ifdef HAVE_OPENSSL_CRL
-		if ( tls_opt_crlcheck ) {
-			X509_STORE *x509_s = SSL_CTX_get_cert_store( tls_def_ctx );
-			if ( tls_opt_crlcheck == LDAP_OPT_X_TLS_CRL_PEER ) {
-				X509_STORE_set_flags( x509_s, X509_V_FLAG_CRL_CHECK );
-			} else if ( tls_opt_crlcheck == LDAP_OPT_X_TLS_CRL_ALL ) {
-				X509_STORE_set_flags( x509_s, 
-						X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL  );
-			}
-		}
-#endif
 	}
+
+	if ( lo->ldo_tls_certfile &&
+		!SSL_CTX_use_certificate_file( lo->ldo_tls_ctx,
+			certfile, SSL_FILETYPE_PEM ) )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: could not use certificate `%s'.\n",
+			lo->ldo_tls_certfile,0,0);
+		tls_report_error();
+		rc = -1;
+		goto error_exit;
+	}
+
+	/* Key validity is checked automatically if cert has already been set */
+	if ( lo->ldo_tls_keyfile &&
+		!SSL_CTX_use_PrivateKey_file( lo->ldo_tls_ctx,
+			keyfile, SSL_FILETYPE_PEM ) )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: could not use key file `%s'.\n",
+			lo->ldo_tls_keyfile,0,0);
+		tls_report_error();
+		rc = -1;
+		goto error_exit;
+	}
+
+	if ( lo->ldo_tls_dhfile ) {
+		DH *dh = NULL;
+		BIO *bio;
+		dhplist *p;
+
+		if (( bio=BIO_new_file( dhfile,"r" )) == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"TLS: could not use DH parameters file `%s'.\n",
+				lo->ldo_tls_dhfile,0,0);
+			tls_report_error();
+			rc = -1;
+			goto error_exit;
+		}
+		while (( dh=PEM_read_bio_DHparams( bio, NULL, NULL, NULL ))) {
+			p = LDAP_MALLOC( sizeof(dhplist) );
+			if ( p != NULL ) {
+				p->keylength = DH_size( dh ) * 8;
+				p->param = dh;
+				p->next = dhparams;
+				dhparams = p;
+			}
+		}
+		BIO_free( bio );
+	}
+
+	if ( tls_opt_trace ) {
+		SSL_CTX_set_info_callback( (SSL_CTX *)lo->ldo_tls_ctx, tls_info_cb );
+	}
+
+	i = SSL_VERIFY_NONE;
+	if ( lo->ldo_tls_require_cert ) {
+		i = SSL_VERIFY_PEER;
+		if ( lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_DEMAND ||
+			 lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_HARD ) {
+			i |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+		}
+	}
+
+	SSL_CTX_set_verify( lo->ldo_tls_ctx, i,
+		lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_ALLOW ?
+		tls_verify_ok : tls_verify_cb );
+	SSL_CTX_set_tmp_rsa_callback( lo->ldo_tls_ctx, tls_tmp_rsa_cb );
+	if ( lo->ldo_tls_dhfile ) {
+		SSL_CTX_set_tmp_dh_callback( lo->ldo_tls_ctx, tls_tmp_dh_cb );
+	}
+#ifdef HAVE_OPENSSL_CRL
+	if ( lo->ldo_tls_crlcheck ) {
+		X509_STORE *x509_s = SSL_CTX_get_cert_store( lo->ldo_tls_ctx );
+		if ( lo->ldo_tls_crlcheck == LDAP_OPT_X_TLS_CRL_PEER ) {
+			X509_STORE_set_flags( x509_s, X509_V_FLAG_CRL_CHECK );
+		} else if ( lo->ldo_tls_crlcheck == LDAP_OPT_X_TLS_CRL_ALL ) {
+			X509_STORE_set_flags( x509_s, 
+					X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL  );
+		}
+	}
+#endif
+
 error_exit:
-	if ( rc == -1 && tls_def_ctx != NULL ) {
-		SSL_CTX_free( tls_def_ctx );
-		tls_def_ctx = NULL;
+	if ( rc == -1 && lo->ldo_tls_ctx != NULL ) {
+		SSL_CTX_free( lo->ldo_tls_ctx );
+		lo->ldo_tls_ctx = NULL;
 	}
 #ifdef HAVE_EBCDIC
 	LDAP_FREE( ciphersuite );
@@ -410,10 +392,24 @@ error_exit:
 	LDAP_FREE( keyfile );
 	LDAP_FREE( dhfile );
 #endif
+	return rc;
+}
+
+/*
+ * initialize the default context
+ */
+int
+ldap_pvt_tls_init_def_ctx( int is_server )
+{
+	struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
+	int rc;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
+#endif
+	rc = ldap_int_tls_init_ctx( lo, is_server );
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
 #endif
-	return rc;
 }
 
 static STACK_OF(X509_NAME) *
@@ -451,8 +447,9 @@ alloc_handle( void *ctx_arg, int is_server )
 	if ( ctx_arg ) {
 		ctx = (SSL_CTX *) ctx_arg;
 	} else {
+		struct ldapoptions *lo = LDAP_INT_GLOBAL_OPT();   
 		if ( ldap_pvt_tls_init_def_ctx( is_server ) < 0 ) return NULL;
-		ctx = tls_def_ctx;
+		ctx = lo->ldo_tls_ctx;
 	}
 
 	ssl = SSL_new( ctx );
@@ -766,10 +763,9 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 
 	} else {
 		struct ldapoptions *lo;
-		void *ctx;
+		SSL_CTX *ctx;
 
-		lo = &ld->ld_options;
-		ctx = lo->ldo_tls_ctx;
+		ctx = ld->ld_options.ldo_tls_ctx;
 
 		ssl = alloc_handle( ctx, 0 );
 
@@ -782,14 +778,17 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 		ber_sockbuf_add_io( sb, &sb_tls_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 
-		if( ctx == NULL ) {
-			ctx = tls_def_ctx;
-			lo->ldo_tls_ctx = ctx;
-		}
-		if ( lo->ldo_tls_connect_cb )
-			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 		lo = LDAP_INT_GLOBAL_OPT();   
-		if ( lo && lo->ldo_tls_connect_cb )
+		if( ctx == NULL ) {
+			ctx = lo->ldo_tls_ctx;
+			ld->ld_options.ldo_tls_ctx = ctx;
+			CRYPTO_add( &ctx->references, 1, CRYPTO_LOCK_SSL_CTX );
+		}
+		if ( ld->ld_options.ldo_tls_connect_cb )
+			ld->ld_options.ldo_tls_connect_cb( ld, ssl, ctx,
+			ld->ld_options.ldo_tls_connect_arg );
+		if ( lo && lo->ldo_tls_connect_cb && lo->ldo_tls_connect_cb !=
+			ld->ld_options.ldo_tls_connect_cb )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 	}
 
@@ -1245,38 +1244,34 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		*(int *)arg = lo->ldo_tls_mode;
 		break;
 	case LDAP_OPT_X_TLS_CTX:
-		if ( ld == NULL ) {
-			*(void **)arg = (void *) tls_def_ctx;
-		} else {
-			*(void **)arg = lo->ldo_tls_ctx;
-		}
+		*(void **)arg = lo->ldo_tls_ctx;
 		break;
 	case LDAP_OPT_X_TLS_CACERTFILE:
-		*(char **)arg = tls_opt_cacertfile ?
-			LDAP_STRDUP( tls_opt_cacertfile ) : NULL;
+		*(char **)arg = lo->ldo_tls_cacertfile ?
+			LDAP_STRDUP( lo->ldo_tls_cacertfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CACERTDIR:
-		*(char **)arg = tls_opt_cacertdir ?
-			LDAP_STRDUP( tls_opt_cacertdir ) : NULL;
+		*(char **)arg = lo->ldo_tls_cacertdir ?
+			LDAP_STRDUP( lo->ldo_tls_cacertdir ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CERTFILE:
-		*(char **)arg = tls_opt_certfile ?
-			LDAP_STRDUP( tls_opt_certfile ) : NULL;
+		*(char **)arg = lo->ldo_tls_certfile ?
+			LDAP_STRDUP( lo->ldo_tls_certfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_KEYFILE:
-		*(char **)arg = tls_opt_keyfile ?
-			LDAP_STRDUP( tls_opt_keyfile ) : NULL;
+		*(char **)arg = lo->ldo_tls_keyfile ?
+			LDAP_STRDUP( lo->ldo_tls_keyfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_DHFILE:
-		*(char **)arg = tls_opt_dhfile ?
-			LDAP_STRDUP( tls_opt_dhfile ) : NULL;
+		*(char **)arg = lo->ldo_tls_dhfile ?
+			LDAP_STRDUP( lo->ldo_tls_dhfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
-		*(int *)arg = tls_opt_require_cert;
+		*(int *)arg = lo->ldo_tls_require_cert;
 		break;
 #ifdef HAVE_OPENSSL_CRL
 	case LDAP_OPT_X_TLS_CRLCHECK:
-		*(int *)arg = tls_opt_crlcheck;
+		*(int *)arg = lo->ldo_tls_crlcheck;
 		break;
 #endif
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
@@ -1331,6 +1326,8 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 
 	switch( option ) {
 	case LDAP_OPT_X_TLS:
+		if ( !arg ) return -1;
+
 		switch( *(int *) arg ) {
 		case LDAP_OPT_X_TLS_NEVER:
 		case LDAP_OPT_X_TLS_DEMAND:
@@ -1346,12 +1343,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		return -1;
 
 	case LDAP_OPT_X_TLS_CTX:
-		if ( ld == NULL ) {
-			tls_def_ctx = (SSL_CTX *) arg;
-
-		} else {
-			lo->ldo_tls_ctx = arg;
-		}
+		lo->ldo_tls_ctx = arg;
 		return 0;
 	case LDAP_OPT_X_TLS_CONNECT_CB:
 		lo->ldo_tls_connect_cb = (LDAP_TLS_CONNECT_CB *)arg;
@@ -1359,63 +1351,66 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_CONNECT_ARG:
 		lo->ldo_tls_connect_arg = arg;
 		return 0;
-	}
-
-	if ( ld != NULL ) {
-		return -1;
-	}
-
-	switch( option ) {
 	case LDAP_OPT_X_TLS_CACERTFILE:
-		if ( tls_opt_cacertfile ) LDAP_FREE( tls_opt_cacertfile );
-		tls_opt_cacertfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
-		break;
+		if ( lo->ldo_tls_cacertfile ) LDAP_FREE( lo->ldo_tls_cacertfile );
+		lo->ldo_tls_cacertfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
 	case LDAP_OPT_X_TLS_CACERTDIR:
-		if ( tls_opt_cacertdir ) LDAP_FREE( tls_opt_cacertdir );
-		tls_opt_cacertdir = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
-		break;
+		if ( lo->ldo_tls_cacertdir ) LDAP_FREE( lo->ldo_tls_cacertdir );
+		lo->ldo_tls_cacertdir = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
 	case LDAP_OPT_X_TLS_CERTFILE:
-		if ( tls_opt_certfile ) LDAP_FREE( tls_opt_certfile );
-		tls_opt_certfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
-		break;
+		if ( lo->ldo_tls_certfile ) LDAP_FREE( lo->ldo_tls_certfile );
+		lo->ldo_tls_certfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
 	case LDAP_OPT_X_TLS_KEYFILE:
-		if ( tls_opt_keyfile ) LDAP_FREE( tls_opt_keyfile );
-		tls_opt_keyfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
-		break;
+		if ( lo->ldo_tls_keyfile ) LDAP_FREE( lo->ldo_tls_keyfile );
+		lo->ldo_tls_keyfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
 	case LDAP_OPT_X_TLS_DHFILE:
-		if ( tls_opt_dhfile ) LDAP_FREE( tls_opt_dhfile );
-		tls_opt_dhfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
-		break;
+		if ( lo->ldo_tls_dhfile ) LDAP_FREE( lo->ldo_tls_dhfile );
+		lo->ldo_tls_dhfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
+		if ( !arg ) return -1;
 		switch( *(int *) arg ) {
 		case LDAP_OPT_X_TLS_NEVER:
 		case LDAP_OPT_X_TLS_DEMAND:
 		case LDAP_OPT_X_TLS_ALLOW:
 		case LDAP_OPT_X_TLS_TRY:
 		case LDAP_OPT_X_TLS_HARD:
-			tls_opt_require_cert = * (int *) arg;
+			lo->ldo_tls_require_cert = * (int *) arg;
 			return 0;
 		}
 		return -1;
 #ifdef HAVE_OPENSSL_CRL
 	case LDAP_OPT_X_TLS_CRLCHECK:
+		if ( !arg ) return -1;
 		switch( *(int *) arg ) {
 		case LDAP_OPT_X_TLS_CRL_NONE:
 		case LDAP_OPT_X_TLS_CRL_PEER:
 		case LDAP_OPT_X_TLS_CRL_ALL:
-			tls_opt_crlcheck = * (int *) arg;
+			lo->ldo_tls_crlcheck = * (int *) arg;
 			return 0;
 		}
 		return -1;
 #endif
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
-		if ( tls_opt_ciphersuite ) LDAP_FREE( tls_opt_ciphersuite );
-		tls_opt_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
-		break;
+		if ( lo->ldo_tls_ciphersuite ) LDAP_FREE( lo->ldo_tls_ciphersuite );
+		lo->ldo_tls_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
+
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
+		if ( ld != NULL )
+			return -1;
 		if (tls_opt_randfile ) LDAP_FREE (tls_opt_randfile );
 		tls_opt_randfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
+
+	case LDAP_OPT_X_TLS_NEWCTX:
+		if ( !arg ) return -1;
+		lo->ldo_tls_ctx = NULL;
+		return ldap_int_tls_init_ctx( lo, *(int *)arg );
 	default:
 		return -1;
 	}
@@ -1456,7 +1451,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	/* 
 	 * compare host with name(s) in certificate
 	 */
-	if (tls_opt_require_cert != LDAP_OPT_X_TLS_NEVER) {
+	if (ld->ld_options.ldo_tls_require_cert != LDAP_OPT_X_TLS_NEVER) {
 		ld->ld_errno = ldap_pvt_tls_check_hostname( ld, ssl, host );
 		if (ld->ld_errno != LDAP_SUCCESS) {
 			return ld->ld_errno;

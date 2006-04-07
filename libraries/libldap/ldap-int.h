@@ -142,6 +142,17 @@ struct ldapmsg {
 	time_t	lm_time;	/* used to maintain cache */
 };
 
+#ifdef HAVE_TLS
+struct ldaptls {
+	char		*lt_certfile;
+	char		*lt_keyfile;
+	char		*lt_dhfile;
+	char		*lt_cacertfile;
+	char		*lt_cacertdir;
+	char		*lt_ciphersuite;
+};
+#endif
+
 /*
  * structure representing get/set'able options
  * which have global defaults.
@@ -172,9 +183,20 @@ struct ldapoptions {
 #ifdef HAVE_TLS
    	/* tls context */
    	void		*ldo_tls_ctx;
-   	int			ldo_tls_mode;
 	LDAP_TLS_CONNECT_CB	*ldo_tls_connect_cb;
 	void*			ldo_tls_connect_arg;
+	struct ldaptls ldo_tls_info;
+#define ldo_tls_certfile	ldo_tls_info.lt_certfile
+#define ldo_tls_keyfile	ldo_tls_info.lt_keyfile
+#define ldo_tls_dhfile	ldo_tls_info.lt_dhfile
+#define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
+#define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
+#define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
+   	int			ldo_tls_mode;
+   	int			ldo_tls_require_cert;
+#ifdef HAVE_OPENSSL_CRL
+   	int			ldo_tls_crlcheck;
+#endif
 #endif
 
 	LDAPURLDesc *ldo_defludp;
@@ -633,6 +655,8 @@ LDAP_F (int) ldap_int_tls_config LDAP_P(( LDAP *ld,
 
 LDAP_F (int) ldap_int_tls_start LDAP_P(( LDAP *ld,
 	LDAPConn *conn, LDAPURLDesc *srv ));
+
+LDAP_F (void) ldap_int_tls_destroy LDAP_P(( struct ldapoptions *lo ));
 
 /*
  *	in getvalues.c
