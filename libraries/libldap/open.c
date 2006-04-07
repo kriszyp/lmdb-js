@@ -137,12 +137,12 @@ ldap_create( LDAP **ldp )
 #endif
 
 #ifdef HAVE_TLS
-	/* We inherit the SSL_CTX, don't need the names/paths. Leave them
-	 * empty to allow new SSL_CTX's to be created from scratch.
+	/* We explicitly inherit the SSL_CTX, don't need the names/paths. Leave
+	 * them empty to allow new SSL_CTX's to be created from scratch.
 	 */
 	memset( &ld->ld_options.ldo_tls_info, 0,
 		sizeof( ld->ld_options.ldo_tls_info ));
-
+	ld->ld_options.ldo_tls_ctx = NULL;
 #endif
 
 	if ( gopts->ldo_tm_api &&
