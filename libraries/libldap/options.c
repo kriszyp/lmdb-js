@@ -542,6 +542,59 @@ ldap_set_option(
 			return rc;
 		}
 
+	case LDAP_OPT_ERROR_STRING: {
+			const char *err = (const char *) invalue;
+
+			if(ld == NULL) {
+				/* need a struct ldap */
+				return LDAP_OPT_ERROR;
+			}
+
+			if( ld->ld_error ) {
+				LDAP_FREE(ld->ld_error);
+				ld->ld_error = NULL;
+			}
+
+			if ( err ) {
+				ld->ld_error = LDAP_STRDUP(err);
+			}
+		} return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_MATCHED_DN: {
+			const char *matched = (const char *) invalue;
+
+			if (ld == NULL) {
+				/* need a struct ldap */
+				return LDAP_OPT_ERROR;
+			}
+
+			if( ld->ld_matched ) {
+				LDAP_FREE(ld->ld_matched);
+				ld->ld_matched = NULL;
+			}
+
+			if ( matched ) {
+				ld->ld_matched = LDAP_STRDUP( matched );
+			}
+		} return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_REFERRAL_URLS: {
+			char *const *referrals = (char *const *) invalue;
+			
+			if(ld == NULL) {
+				/* need a struct ldap */
+				return LDAP_OPT_ERROR;
+			}
+
+			if( ld->ld_referrals ) {
+				LDAP_VFREE(ld->ld_referrals);
+			}
+
+			if ( referrals ) {
+				ld->ld_referrals = ldap_value_dup(referrals);
+			}
+		} return LDAP_OPT_SUCCESS;
+
 	/* Only accessed from inside this function by ldap_set_rebind_proc() */
 	case LDAP_OPT_REBIND_PROC: {
 			lo->ldo_rebind_proc = (LDAP_REBIND_PROC *)invalue;		
@@ -557,21 +610,42 @@ ldap_set_option(
 	case LDAP_OPT_NEXTREF_PARAMS: {
 			lo->ldo_nextref_params = (void *)invalue;		
 		} return LDAP_OPT_SUCCESS;
-	}
 
-	if(invalue == NULL) {
-		/* no place to set from */
+	/* read-only options */
+	case LDAP_OPT_API_INFO:
+	case LDAP_OPT_DESC:
+	case LDAP_OPT_API_FEATURE_INFO:
+		return LDAP_OPT_ERROR;
+
+	/* options which cannot withstand invalue == NULL */
+	case LDAP_OPT_DEREF:
+	case LDAP_OPT_SIZELIMIT:
+	case LDAP_OPT_TIMELIMIT:
+	case LDAP_OPT_PROTOCOL_VERSION:
+	case LDAP_OPT_ERROR_NUMBER:
+	case LDAP_OPT_DEBUG_LEVEL:
+		if(invalue == NULL) {
+			/* no place to set from */
+			return LDAP_OPT_ERROR;
+		}
+		break;
+
+	default:
+#ifdef HAVE_TLS
+		if ( ldap_pvt_tls_set_option( ld, option, (void *)invalue ) == 0 )
+			return LDAP_OPT_SUCCESS;
+#endif
+#ifdef HAVE_CYRUS_SASL
+		if ( ldap_int_sasl_set_option( ld, option, (void *)invalue ) == 0 )
+			return LDAP_OPT_SUCCESS;
+#endif
+		/* bad param */
 		return LDAP_OPT_ERROR;
 	}
 
 	/* options which cannot withstand invalue == NULL */
 
 	switch(option) {
-	case LDAP_OPT_API_INFO:
-	case LDAP_OPT_DESC:
-		/* READ ONLY */
-		break;
-
 	case LDAP_OPT_DEREF:
 		lo->ldo_deref = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
@@ -604,76 +678,9 @@ ldap_set_option(
 			ld->ld_errno = err;
 		} return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_ERROR_STRING: {
-			const char *err = (const char *) invalue;
-
-			if(ld == NULL) {
-				/* need a struct ldap */
-				break;
-			}
-
-			if( ld->ld_error ) {
-				LDAP_FREE(ld->ld_error);
-				ld->ld_error = NULL;
-			}
-
-			if ( err ) {
-				ld->ld_error = LDAP_STRDUP(err);
-			}
-		} return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_MATCHED_DN: {
-			const char *matched = (const char *) invalue;
-
-			if (ld == NULL) {
-				/* need a struct ldap */
-				break;
-			}
-
-			if( ld->ld_matched ) {
-				LDAP_FREE(ld->ld_matched);
-				ld->ld_matched = NULL;
-			}
-
-			if ( matched ) {
-				ld->ld_matched = LDAP_STRDUP( matched );
-			}
-		} return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_REFERRAL_URLS: {
-			char *const *referrals = (char *const *) invalue;
-			
-			if(ld == NULL) {
-				/* need a struct ldap */
-				break;
-			}
-
-			if( ld->ld_referrals ) {
-				LDAP_VFREE(ld->ld_referrals);
-			}
-
-			ld->ld_referrals = ldap_value_dup(referrals);
-		} return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_API_FEATURE_INFO:
-		/* read-only */
-		break;
-
 	case LDAP_OPT_DEBUG_LEVEL:
 		lo->ldo_debug = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
-
-	default:
-#ifdef HAVE_TLS
-		if ( ldap_pvt_tls_set_option( ld, option, (void *)invalue ) == 0 )
-			return LDAP_OPT_SUCCESS;
-#endif
-#ifdef HAVE_CYRUS_SASL
-		if ( ldap_int_sasl_set_option( ld, option, (void *)invalue ) == 0 )
-			return LDAP_OPT_SUCCESS;
-#endif
-		/* bad param */
-		break;
 	}
 	return LDAP_OPT_ERROR;
 }

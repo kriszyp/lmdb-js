@@ -1186,7 +1186,7 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 int
 ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 {
-	if ( ld == NULL )
+	if ( ld == NULL || arg == NULL )
 		return -1;
 
 	switch ( option ) {
