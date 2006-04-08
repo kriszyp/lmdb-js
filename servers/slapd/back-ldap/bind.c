@@ -1616,6 +1616,86 @@ ldap_back_proxy_authz_ctrl(
 		break;
 	}
 
+	/* Older versions of <draft-weltman-ldapv3-proxy> required
+	 * to encode the value of the authzID (and called it proxyDN);
+	 * this hack provides compatibility with those DSAs that
+	 * implement it this way */
+	if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+		struct berval		authzID = ctrls[ 0 ]->ldctl_value;
+		BerElementBuffer	berbuf;
+		BerElement		*ber = (BerElement *)&berbuf;
+		ber_tag_t		tag;
+
+		ber_init2( ber, 0, LBER_USE_DER );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+		tag = ber_printf( ber, "O", &authzID );
+		if ( tag == LBER_ERROR ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber;
+		}
+
+		if ( ber_flatten2( ber, &ctrls[ 0 ]->ldctl_value, 1 ) == -1 ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber;
+		}
+
+free_ber:;
+		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
+		ber_free_buf( ber );
+
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			op->o_tmpfree( ctrls, op->o_tmpmemctx );
+			ctrls = NULL;
+		}
+
+	} else if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+		struct berval		authzID = ctrls[ 0 ]->ldctl_value,
+					tmp;
+		BerElementBuffer	berbuf;
+		BerElement		*ber = (BerElement *)&berbuf;
+		ber_tag_t		tag;
+
+		if ( strncasecmp( authzID.bv_val, "dn:", STRLENOF( "dn:" ) ) != 0 ) {
+			op->o_tmpfree( ctrls[ 0 ]->ldctl_value.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( ctrls, op->o_tmpmemctx );
+			rs->sr_err = LDAP_PROTOCOL_ERROR;
+			goto done;
+		}
+
+		tmp = authzID;
+		tmp.bv_val += STRLENOF( "dn:" );
+		tmp.bv_len -= STRLENOF( "dn:" );
+
+		ber_init2( ber, 0, LBER_USE_DER );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+		/* apparently, Mozilla API encodes this
+		 * as "SEQUENCE { LDAPDN }" */
+		tag = ber_printf( ber, "{O}", &tmp );
+		if ( tag == LBER_ERROR ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber2;
+		}
+
+		if ( ber_flatten2( ber, &ctrls[ 0 ]->ldctl_value, 1 ) == -1 ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber2;
+		}
+
+free_ber2:;
+		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
+		ber_free_buf( ber );
+
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			op->o_tmpfree( ctrls, op->o_tmpmemctx );
+			ctrls = NULL;
+			goto done;
+		}
+
+		ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
+	}
+
 	if ( op->o_ctrls ) {
 		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
 			ctrls[ i + 1 ] = op->o_ctrls[ i ];

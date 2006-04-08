@@ -453,7 +453,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 					(void)lutil_strcopy( ptr, "authz=native" );
 				}
 
-				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override" );
+				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override,obsolete-encoding-workaround" );
 				/* flags */
 				if ( !BER_BVISEMPTY( &bv ) ) {
 					len += STRLENOF( " " );
@@ -477,6 +477,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 				if ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
 					ptr = lutil_strcopy( ptr, ",override" );
+				}
+
+				if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+					ptr = lutil_strcopy( ptr, ",obsolete-proxy-authz" );
+
+				} else if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+					ptr = lutil_strcopy( ptr, ",obsolete-encoding-workaround" );
 				}
 
 				bv.bv_len = ( ptr - bv.bv_val );
@@ -967,6 +974,28 @@ done_url:;
 				} else if ( strcasecmp( c->argv[ i ], "non-prescriptive" ) == 0 ) {
 					li->li_idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
 
+				} else if ( strcasecmp( c->argv[ i ], "obsolete-proxy-authz" ) == 0 ) {
+					if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+						Debug( LDAP_DEBUG_ANY,
+                                       	 		"%s: line %d: \"obsolete-proxy-authz\" flag "
+                                        		"in \"idassert-mode <args>\" "
+                                        		"incompatible with previously issued \"obsolete-encoding-workaround\" flag.\n",
+                                        		c->fname, c->lineno, 0 );
+                                		return 1;
+					}
+					li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
+
+				} else if ( strcasecmp( c->argv[ i ], "obsolete-encoding-workaround" ) == 0 ) {
+					if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+						Debug( LDAP_DEBUG_ANY,
+                                       	 		"%s: line %d: \"obsolete-encoding-workaround\" flag "
+                                        		"in \"idassert-mode <args>\" "
+                                        		"incompatible with previously issued \"obsolete-proxy-authz\" flag.\n",
+                                        		c->fname, c->lineno, 0 );
+                                		return 1;
+					}
+					li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
+
 				} else {
 					Debug( LDAP_DEBUG_ANY,
                                         	"%s: line %d: unknown flag #%d "
@@ -1124,6 +1153,28 @@ done_url:;
 
 					} else if ( strcasecmp( flags[ j ], "non-prescriptive" ) == 0 ) {
 						li->li_idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
+
+					} else if ( strcasecmp( flags[ j ], "obsolete-proxy-authz" ) == 0 ) {
+						if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+							Debug( LDAP_DEBUG_ANY,
+                                       		 		"%s: line %d: \"obsolete-proxy-authz\" flag "
+                                       		 		"in \"idassert-mode <args>\" "
+                                       		 		"incompatible with previously issued \"obsolete-encoding-workaround\" flag.\n",
+                                       	 			c->fname, c->lineno, 0 );
+                                			return 1;
+						}
+						li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
+
+					} else if ( strcasecmp( flags[ j ], "obsolete-encoding-workaround" ) == 0 ) {
+						if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+							Debug( LDAP_DEBUG_ANY,
+                                       	 			"%s: line %d: \"obsolete-encoding-workaround\" flag "
+                                        			"in \"idassert-mode <args>\" "
+                                        			"incompatible with previously issued \"obsolete-proxy-authz\" flag.\n",
+                                        			c->fname, c->lineno, 0 );
+                                			return 1;
+						}
+						li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
 
 					} else {
 						snprintf( c->msg, sizeof( c->msg ),
