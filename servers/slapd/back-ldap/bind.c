@@ -131,7 +131,7 @@ retry_lock:;
 		assert( lc->lc_refcnt == 1 );
 		tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
 				ldap_back_conndnlc_cmp );
-		assert( lc == tmplc );
+		assert( tmplc == NULL || lc == tmplc );
 
 		if ( LDAP_BACK_CONN_ISBOUND( lc ) ) {
 			ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
@@ -749,7 +749,8 @@ ldap_back_release_conn_lock(
 	}
 	assert( lc->lc_refcnt > 0 );
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
-	if ( --lc->lc_refcnt == 0 || LDAP_BACK_CONN_TAINTED( lc ) ) {
+	lc->lc_refcnt--;
+	if ( LDAP_BACK_CONN_TAINTED( lc ) ) {
 		ldap_back_freeconn( op, lc, 0 );
 	}
 	if ( dolock ) {
