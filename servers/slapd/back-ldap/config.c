@@ -698,7 +698,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_NETWORK_TIMEOUT:
-			li->li_network_timeout;
+			li->li_network_timeout = 0;
 			break;
 
 		default:
