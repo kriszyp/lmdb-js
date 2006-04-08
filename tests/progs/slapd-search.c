@@ -219,7 +219,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		tester_perror( "ldap_initialize" );
+		tester_perror( "ldap_initialize", NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -234,7 +234,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_sasl_bind_s" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -253,7 +253,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 	case LDAP_SUCCESS:
 		if ( ldap_count_entries( ld, res ) == 0 ) {
 			if ( rc ) {
-				tester_ldap_error( ld, "ldap_search_ext_s" );
+				tester_ldap_error( ld, "ldap_search_ext_s", NULL );
 			}
 			break;
 		}
@@ -293,7 +293,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 		break;
 
 	default:
-		tester_ldap_error( ld, "ldap_search_ext_s" );
+		tester_ldap_error( ld, "ldap_search_ext_s", NULL );
 		break;
 	}
 
@@ -317,12 +317,14 @@ do_search( char *uri, char *manager, struct berval *passwd,
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 	int	first = 1;
+	char	buf[ BUFSIZ ];
+
 
 retry:;
 	if ( ld == NULL ) {
 		ldap_initialize( &ld, uri );
 		if ( ld == NULL ) {
-			tester_perror( "ldap_initialize" );
+			tester_perror( "ldap_initialize", NULL );
 			exit( EXIT_FAILURE );
 		}
 
@@ -337,7 +339,9 @@ retry:;
 
 		rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_sasl_bind_s" );
+			snprintf( buf, sizeof( buf ),
+				"bindDN=\"%s\"", manager );
+			tester_ldap_error( ld, "ldap_sasl_bind_s", buf );
 			switch ( rc ) {
 			case LDAP_BUSY:
 			case LDAP_UNAVAILABLE:
@@ -376,14 +380,17 @@ retry:;
 				}
 				first = 0;
 			}
-			tester_ldap_error( ld, "ldap_search_ext_s" );
+			tester_ldap_error( ld, "ldap_search_ext_s", NULL );
 			/* fallthru */
 
 		case LDAP_SUCCESS:
 			break;
 
 		default:
-			tester_ldap_error( ld, "ldap_search_ext_s" );
+			snprintf( buf, sizeof( buf ),
+				"base=\"%s\" filter=\"%s\"\n",
+				sbase, filter );
+			tester_ldap_error( ld, "ldap_search_ext_s", buf );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				ldap_unbind_ext( ld, NULL, NULL );
 				do_retry--;

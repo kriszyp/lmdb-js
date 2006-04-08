@@ -201,7 +201,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 			int version = LDAP_VERSION3;
 			ldap_initialize( &ld, uri );
 			if ( ld == NULL ) {
-				tester_perror( "ldap_initialize" );
+				tester_perror( "ldap_initialize", NULL );
 				rc = -1;
 				break;
 			}
@@ -228,7 +228,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 			/* fallthru */
 
 		default:
-			tester_ldap_error( ld, "ldap_sasl_bind_s" );
+			tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		}
 
 		if ( !noinit ) {
@@ -280,7 +280,7 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop,
 
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		tester_perror( "ldap_initialize" );
+		tester_perror( "ldap_initialize", NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -290,14 +290,14 @@ do_base( char *uri, struct berval *base, struct berval *pass, int maxloop,
 
 	rc = ldap_sasl_bind_s( ld, NULL, LDAP_SASL_SIMPLE, &pw, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_sasl_bind_s" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		exit( EXIT_FAILURE );
 	}
 
 	rc = ldap_search_ext( ld, base->bv_val, LDAP_SCOPE_ONE,
 			filter, attrs, 0, NULL, NULL, 0, 0, &msgid );
 	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_search_ext" );
+		tester_ldap_error( ld, "ldap_search_ext", NULL );
 		exit( EXIT_FAILURE );
 	}
 

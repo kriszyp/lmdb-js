@@ -206,7 +206,7 @@ do_modrdn( char *uri, char *manager,
 retry:;
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		tester_perror( "ldap_initialize" );
+		tester_perror( "ldap_initialize", NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -221,7 +221,7 @@ retry:;
 
 	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_sasl_bind_s" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -242,7 +242,7 @@ retry:;
 	for ( ; i < maxloop; i++ ) {
 		rc = ldap_rename_s( ld, DNs[0], rdns[0], NULL, 0, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_rename_s" );
+			tester_ldap_error( ld, "ldap_rename_s", NULL );
 			switch ( rc ) {
 			case LDAP_NO_SUCH_OBJECT:
 				/* NOTE: this likely means
@@ -267,7 +267,7 @@ retry:;
 		}
 		rc = ldap_rename_s( ld, DNs[1], rdns[1], NULL, 1, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_rename_s" );
+			tester_ldap_error( ld, "ldap_rename_s", NULL );
 			switch ( rc ) {
 			case LDAP_NO_SUCH_OBJECT:
 				/* NOTE: this likely means

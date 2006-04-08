@@ -51,7 +51,7 @@ tester_uri( char *uri, char *host, int port )
 }
 
 void
-tester_ldap_error( LDAP *ld, const char *fname )
+tester_ldap_error( LDAP *ld, const char *fname, const char *msg )
 {
 	int		err;
 	char		*text = NULL;
@@ -62,9 +62,10 @@ tester_ldap_error( LDAP *ld, const char *fname )
 		ldap_get_option( ld, LDAP_OPT_ERROR_STRING, (void *)&text );
 	}
 
-	fprintf( stderr, "%s: %s: %s (%d) %s\n",
+	fprintf( stderr, "%s: %s: %s (%d) %s %s\n",
 		progname, fname, ldap_err2string( err ), err,
-		text == NULL ? "" : text );
+		text == NULL ? "" : text,
+		msg ? msg : "" );
 
 	if ( text ) {
 		ldap_memfree( text );
@@ -111,14 +112,15 @@ tester_ldap_error( LDAP *ld, const char *fname )
 }
 
 void
-tester_perror( const char *fname )
+tester_perror( const char *fname, const char *msg )
 {
 	int	save_errno = errno;
 	char	buf[ BUFSIZ ];
 
-	fprintf( stderr, "%s: %s: (%d) %s\n",
+	fprintf( stderr, "%s: %s: (%d) %s %s\n",
 			progname, fname, save_errno,
-			AC_STRERROR_R( save_errno, buf, sizeof( buf ) ) );
+			AC_STRERROR_R( save_errno, buf, sizeof( buf ) ),
+			msg ? msg : "" );
 }
 
 void
