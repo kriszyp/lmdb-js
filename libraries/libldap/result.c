@@ -140,16 +140,22 @@ chkResponseList(
 	int all)
 {
 	LDAPMessage	*lm, **lastlm, *nextlm;
-    /*
+
+	/*
 	 * Look through the list of responses we have received on
 	 * this association and see if the response we're interested in
 	 * is there.  If it is, return it.  If not, call wait4msg() to
 	 * wait until it arrives or timeout occurs.
 	 */
 
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
+#endif
+
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_chkResponseList ld %p msgid %d all %d\n",
 		(void *)ld, msgid, all );
+
 	lastlm = &ld->ld_responses;
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
@@ -237,6 +243,10 @@ wait4msg(
 
 	assert( ld != NULL );
 	assert( result != NULL );
+
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
+#endif
 
 #ifdef LDAP_DEBUG
 	if ( timeout == NULL ) {
@@ -416,6 +426,10 @@ try_read1msg(
 	assert( lcp != NULL );
 	assert( *lcp != NULL );
 	
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "read1msg: ld %p msgid %d all %d\n",
 		(void *)ld, msgid, all );
 
@@ -1159,12 +1173,20 @@ ldap_msgdelete( LDAP *ld, int msgid )
 
 
 /*
+ * ldap_abandoned
+ *
  * return 1 if message msgid is waiting to be abandoned, 0 otherwise
+ *
+ * expects ld_res_mutex to be locked
  */
 static int
 ldap_abandoned( LDAP *ld, ber_int_t msgid )
 {
 	int	i;
+
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
+#endif
 
 	if ( ld->ld_abandoned == NULL )
 		return( 0 );
@@ -1177,10 +1199,19 @@ ldap_abandoned( LDAP *ld, ber_int_t msgid )
 }
 
 
+/*
+ * ldap_mark_abandoned
+ *
+ * expects ld_res_mutex to be locked
+ */
 static int
 ldap_mark_abandoned( LDAP *ld, ber_int_t msgid )
 {
 	int	i;
+
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
+#endif
 
 	if ( ld->ld_abandoned == NULL )
 		return( -1 );

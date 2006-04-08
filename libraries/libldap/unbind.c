@@ -106,7 +106,7 @@ ldap_ld_free(
 		next = lm->lm_next;
 		ldap_msgfree( lm );
 	}
-
+    
 	if ( ld->ld_abandoned != NULL ) {
 		LDAP_FREE( ld->ld_abandoned );
 		ld->ld_abandoned = NULL;
