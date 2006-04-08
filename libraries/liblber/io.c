@@ -202,7 +202,8 @@ int
 ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 {
 	ber_len_t	towrite;
-	ber_slen_t	rc;	
+	ber_slen_t	rc;
+	int		retcode = 0;
 
 	assert( sb != NULL );
 	assert( ber != NULL );
@@ -231,16 +232,18 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 #else
 		rc = ber_int_sb_write( sb, ber->ber_rwptr, towrite );
 #endif
-		if (rc<=0) {
-			return -1;
+		if ( rc <= 0 ) {
+			retcode = -1;
+			goto done;
 		}
 		towrite -= rc;
 		ber->ber_rwptr += rc;
 	} 
 
+done:;
 	if ( freeit ) ber_free( ber, 1 );
 
-	return( 0 );
+	return retcode;
 }
 
 BerElement *
