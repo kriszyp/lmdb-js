@@ -263,7 +263,6 @@ ldap_send_unbind(
 	/* send the message */
 	if ( ber_flush( sb, ber, 1 ) == -1 ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;
-		ber_free( ber, 1 );
 	}
 
 	return( ld->ld_errno );
