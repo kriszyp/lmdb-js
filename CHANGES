@@ -1,7 +1,6 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.21 Release
-	Removed lint
 	Fixed libldap referral chasing issue (ITS#4448)
 	Fixed libldap invalid free bug (ITS#4436)
 	Fixed libldap mutex leak (ITS#4441)
@@ -23,6 +22,7 @@ OpenLDAP 2.3.21 Release
 	Fixed slapd-ldap pretty DN in proxied requests (ITS#4456)
 	Fixed slapd-ldbm crash on modify bug (ITS#4464)
 	Fixed slapd-meta write error mapping (ITS#4419)
+	Removed lint
 	Build Environment
 		Added slapo-auditlog build support (ITS#4372)
 		Fixed multi-precision sizeof detection (ITS#4416)
