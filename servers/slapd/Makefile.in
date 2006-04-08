@@ -103,7 +103,7 @@ SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 # we want to export EVERY global symbol that it knows about (NOT including
 # symbols that are imported from other DLLs). The set of symbols to
 # export INCLUDES symbols from all static libraries that slapd gets
-# linked with, e.g. avl, ldbm, lunicode, lutil, etc. This list
+# linked with, e.g. avl, lunicode, lutil, etc. This list
 # will also include liblber and libldap_r if they were built as static
 # libraries. ALSO included will be symbols from other STATIC libraries
 # outside the domain of the OpenLDAP source tree, e.g. regex, ltdl,
