@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.22 Engineering
+
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)
 	Fixed libldap invalid free bug (ITS#4436)
