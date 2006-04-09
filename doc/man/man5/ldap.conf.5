@@ -73,7 +73,7 @@ The base must be specified as a Distinguished Name in LDAP format.
 .B BINDDN <dn>
 Specifies the default bind DN to use when performing ldap operations.
 The bind DN must be specified as a Distinguished Name in LDAP format.
-This is a user\-only option.
+.B This is a user\-only option.
 .TP
 .B HOST <name[:port] ...>
 Specifies the name(s) of an LDAP server(s) to which the
@@ -137,19 +137,19 @@ there are more options you can specify.
 .TP
 .B SASL_MECH <mechanism>
 Specifies the SASL mechanism to use.
-This is a user\-only option.
+.B This is a user\-only option.
 .TP
 .B SASL_REALM <realm>
 Specifies the SASL realm.
-This is a user\-only option.
+.B This is a user\-only option.
 .TP
 .B SASL_AUTHCID <authcid>
 Specifies the authentication identity.
-This is a user\-only option.
+.B This is a user\-only option.
 .TP
 .B SASL_AUTHZID <authcid>
 Specifies the proxy authorization identity.
-This is a user\-only option.
+.B This is a user\-only option.
 .TP
 .B SASL_SECPROPS <properties>
 Specifies Cyrus SASL security properties. The 
@@ -221,15 +221,15 @@ is always used before
 .TP
 .B TLS_CERT <filename>
 Specifies the file that contains the client certificate.
-This is a user\-only option.
+.B This is a user\-only option.
 .TP
 .B TLS_KEY <filename>
 Specifies the file that contains the private key that matches the certificate
 stored in the
 .B TLS_CERT
 file. Currently, the private key must not be protected with a password, so
-it is of critical importance that the key file is protected carefully. This
-is a user\-only option.
+it is of critical importance that the key file is protected carefully.
+.B This is a user\-only option.
 .TP
 .B TLS_CIPHER_SUITE <cipher-suite-spec>
 Specifies acceptable cipher suite and preference order.
