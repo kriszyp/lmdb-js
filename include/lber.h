@@ -423,10 +423,20 @@ LBER_F( void )
 ber_free_buf LDAP_P(( BerElement *ber ));
 
 LBER_F( int )
-ber_flush LDAP_P((
+ber_flush2 LDAP_P((
 	Sockbuf *sb,
 	BerElement *ber,
 	int freeit ));
+#define LBER_FLUSH_FREE_NEVER		(0x0)	/* traditional behavior */
+#define LBER_FLUSH_FREE_ON_SUCCESS	(0x1)	/* traditional behavior */
+#define LBER_FLUSH_FREE_ON_ERROR	(0x2)
+#define LBER_FLUSH_FREE_ALWAYS		(LBER_FLUSH_FREE_ON_SUCCESS|LBER_FLUSH_FREE_ON_ERROR)
+
+LBER_F( int )
+ber_flush LDAP_P((
+	Sockbuf *sb,
+	BerElement *ber,
+	int freeit )); /* DEPRECATED */
 
 LBER_F( BerElement * )
 ber_alloc LDAP_P(( void )); /* DEPRECATED */
