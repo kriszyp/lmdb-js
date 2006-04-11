@@ -79,7 +79,6 @@ LDAP_BEGIN_DECL
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
 #endif
-#endif
 
 #if defined(LDAP_SLAPI) && !defined(SLAP_OVERLAY_ACCESS)
 #define SLAP_OVERLAY_ACCESS
