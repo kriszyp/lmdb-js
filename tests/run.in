@@ -27,7 +27,6 @@ export SRCDIR TOPSRCDIR LN_S EGREP_CMD
 AC_bdb=@BUILD_BDB@
 AC_hdb=@BUILD_HDB@
 AC_ldap=ldap@BUILD_LDAP@
-AC_ldbm=@BUILD_LDBM@
 AC_meta=meta@BUILD_META@
 AC_monitor=@BUILD_MONITOR@
 AC_relay=relay@BUILD_RELAY@
@@ -54,7 +53,7 @@ AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 AC_ACI_ENABLED=aci@WITH_ACI_ENABLED@
 AC_THREADS=threads@BUILD_THREAD@
 
-export AC_bdb AC_hdb AC_ldap AC_ldbm AC_meta AC_monitor AC_relay AC_sql \
+export AC_bdb AC_hdb AC_ldap AC_meta AC_monitor AC_relay AC_sql \
 	AC_accesslog AC_dynlist AC_pcache AC_ppolicy AC_refint AC_retcode \
 	AC_rwm AC_unique AC_syncprov AC_translucent AC_valsort \
 	AC_dds \
@@ -113,7 +112,7 @@ while test $# -gt 0 ; do
 done
 
 if test -z "$BACKEND" ; then
-	for b in bdb ldbm hdb ; do
+	for b in bdb hdb ; do
 		if eval "test \"\$AC_$b\" != no" ; then
 			BACKEND=$b
 			break

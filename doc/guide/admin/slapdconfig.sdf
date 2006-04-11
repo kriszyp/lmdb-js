@@ -238,7 +238,6 @@ bdb	Berkeley DB transactional backend
 dnssrv	DNS SRV backend
 hdb	Hierarchical variant of bdb backend
 ldap	Lightweight Directory Access Protocol (Proxy) backend
-ldbm	Lightweight DBM backend
 meta	Meta Directory backend
 monitor	Monitor backend
 passwd	Provides read-only access to {{passwd}}(5)
@@ -530,8 +529,8 @@ The {{EX:realm}} parameter specifies a realm which a certain
 mechanisms authenticate the identity within. The {{EX:secprops}}
 parameter specifies Cyrus SASL security properties.
 
-The syncrepl replication mechanism is supported by the
-three native backends: back-bdb, back-hdb, and back-ldbm.
+The syncrepl replication mechanism is supported by the two primary
+database backends: back-bdb and back-hdb.
 
 See the {{SECT:LDAP Sync Replication}} chapter of the admin guide
 for more information on how to use this directive.

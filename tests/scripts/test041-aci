@@ -14,7 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 case "$BACKEND" in
-bdb|hdb|ldbm)
+bdb|hdb)
 	;;
 *)
 	echo "Test does not support $BACKEND backend"

@@ -416,6 +416,7 @@ ldap_pvt_tls_init_def_ctx( int is_server )
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
 #endif
+	return rc;
 }
 
 static STACK_OF(X509_NAME) *

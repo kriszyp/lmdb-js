@@ -62,6 +62,7 @@ LDAP_BEGIN_DECL
 #define SLAP_MULTI_CONN_ARRAY
 #ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
 #define SLAP_SEM_LOAD_CONTROL
+#endif
 
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 #define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
@@ -77,7 +78,6 @@ LDAP_BEGIN_DECL
 
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
-#endif
 #endif
 
 #if defined(LDAP_SLAPI) && !defined(SLAP_OVERLAY_ACCESS)
@@ -1676,8 +1676,7 @@ struct slap_backend_db {
 
 /*
  * define to honor hasSubordinates operational attribute in search filters
- * (in previous use there was a flaw with back-bdb and back-ldbm; now it 
- * is fixed).
+ * (in previous use there was a flaw with back-bdb; now it is fixed).
  */
 #define		be_has_subordinates bd_info->bi_has_subordinates
 

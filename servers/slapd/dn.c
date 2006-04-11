@@ -1304,7 +1304,7 @@ rdn_validate( struct berval *rdn )
 
 /* build_new_dn:
  *
- * Used by ldbm/bdb2 back_modrdn to create the new dn of entries being
+ * Used by back-bdb back_modrdn to create the new dn of entries being
  * renamed.
  *
  * new_dn = parent (p_dn) + separator + rdn (newrdn) + null.
