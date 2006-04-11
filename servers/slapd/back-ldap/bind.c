@@ -51,6 +51,9 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 static int
 ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 
+static int
+ldap_back_conndnlc_cmp( const void *c1, const void *c2 );
+
 int
 ldap_back_bind( Operation *op, SlapReply *rs )
 {
@@ -114,6 +117,7 @@ done:;
 			&& !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) )
 	{
 		int		lerr = -1;
+		ldapconn_t	*tmplc;
 
 		/* wait for all other ops to release the connection */
 retry_lock:;
@@ -125,9 +129,9 @@ retry_lock:;
 		}
 
 		assert( lc->lc_refcnt == 1 );
-		lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-				ldap_back_conndn_cmp );
-		assert( lc != NULL );
+		tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+				ldap_back_conndnlc_cmp );
+		assert( tmplc == NULL || lc == tmplc );
 
 		if ( LDAP_BACK_CONN_ISBOUND( lc ) ) {
 			ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
@@ -136,8 +140,14 @@ retry_lock:;
 		}
 
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
-		if ( lerr == -1 ) {
-			/* we can do this because lc_refcnt == 1 */
+		switch ( lerr ) {
+		case 0:
+			break;
+
+		case -1:
+			/* duplicate; someone else successfully bound
+			 * on the same connection with the same identity;
+			 * we can do this because lc_refcnt == 1 */
 			ldap_back_conn_free( lc );
 			lc = NULL;
 		}
@@ -290,17 +300,17 @@ int
 ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+	ldapconn_t	*tmplc;
 
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	}
 
-	assert( lc->lc_refcnt > 0 );
-	if ( --lc->lc_refcnt == 0 ) {
-		lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-				ldap_back_conndn_cmp );
-		assert( lc != NULL );
-
+	assert( lc->lc_refcnt >= 0 );
+	tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+			ldap_back_conndnlc_cmp );
+	assert( LDAP_BACK_CONN_TAINTED( lc ) || tmplc == lc );
+	if ( lc->lc_refcnt == 0 ) {
 		ldap_back_conn_free( (void *)lc );
 	}
 
@@ -485,6 +495,14 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	ldap_set_option( ld, LDAP_OPT_REFERRALS,
 		LDAP_BACK_CHASE_REFERRALS( li ) ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
+	if ( li->li_network_timeout > 0 ) {
+		struct timeval		tv;
+
+		tv.tv_sec = li->li_network_timeout;
+		tv.tv_usec = 0;
+		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, (const void *)&tv );
+	}
+
 #ifdef HAVE_TLS
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,
 			li->li_uri, li->li_flags, li->li_nretries, &rs->sr_text );
@@ -654,12 +672,30 @@ retry_lock:
 			(void *)lc, refcnt, binding );
 	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
-		if ( rs->sr_err != 0 ) {
+		switch ( rs->sr_err ) {
+		case 0:
+			break;
+
+		case -1:
+			if ( !( sendok & LDAP_BACK_BINDING ) ) {
+				/* duplicate: free and try to get the newly created one */
+				goto retry_lock;
+			}
+			/* taint connection, so that it'll be freed when released */
+			ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+			(void *)avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+					ldap_back_conndnlc_cmp );
+			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+			LDAP_BACK_CONN_TAINTED_SET( lc );
+			break;
+
+		default:
 			ldap_back_conn_free( lc );
 			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "proxy bind collision";
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
-				send_ldap_error( op, rs, LDAP_OTHER,
-					"internal server error" );
+				send_ldap_result( op, rs );
+				rs->sr_text = NULL;
 			}
 			return NULL;
 		}
@@ -679,6 +715,7 @@ retry_lock:
 			(void *)avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
 					ldap_back_conndnlc_cmp );
 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+			LDAP_BACK_CONN_TAINTED_SET( lc );
 		}
 
 		{
@@ -712,8 +749,11 @@ ldap_back_release_conn_lock(
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	}
 	assert( lc->lc_refcnt > 0 );
-	lc->lc_refcnt--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
+	lc->lc_refcnt--;
+	if ( LDAP_BACK_CONN_TAINTED( lc ) ) {
+		ldap_back_freeconn( op, lc, 0 );
+	}
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}
@@ -902,19 +942,33 @@ retry:;
 
 				/* lc here must be the regular lc, reset and ready for init */
 				rs->sr_err = ldap_back_prepare_conn( &lc, op, rs, sendok );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					lc->lc_binding--;
+					lc->lc_refcnt = 0;
+				}
 			}
+
 			if ( dolock ) {
 				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 			}
+
 			if ( rs->sr_err == LDAP_SUCCESS ) {
 				if ( retries > 0 ) {
 					retries--;
 				}
 				goto retry;
 			}
+
+		} else {
+			if ( dolock ) {
+				ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+			}
+			lc->lc_binding--;
+			if ( dolock ) {
+				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+			}
 		}
 
-		lc->lc_binding--;
 		ldap_back_freeconn( op, lc, dolock );
 		rs->sr_err = slap_map_api2result( rs );
 

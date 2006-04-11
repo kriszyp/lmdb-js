@@ -132,8 +132,7 @@ retry:
 	if ( rc == LDAP_SUCCESS ) {
 		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, NULL, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
-			ldap_back_freeconn( op, lc, 0 );
-			lc = NULL;
+			rs->sr_err = rc;
 
 		} else {
 			/* sigh. parse twice, because parse_passwd
@@ -182,6 +181,7 @@ retry:
 			ldap_msgfree( res );
 		}
 	}
+
 	if ( rc != LDAP_SUCCESS ) {
 		rs->sr_err = slap_map_api2result( rs );
 		if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
@@ -200,6 +200,7 @@ retry:
 		free( (char *)rs->sr_matched );
 		rs->sr_matched = NULL;
 	}
+
 	if ( rs->sr_text ) {
 		free( (char *)rs->sr_text );
 		rs->sr_text = NULL;
@@ -239,8 +240,7 @@ retry:
 	if ( rc == LDAP_SUCCESS ) {
 		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, NULL, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
-			ldap_back_freeconn( op, lc, 0 );
-			lc = NULL;
+			rs->sr_err = rc;
 
 		} else {
 			/* sigh. parse twice, because parse_passwd
@@ -275,6 +275,7 @@ retry:
 			ldap_msgfree( res );
 		}
 	}
+
 	if ( rc != LDAP_SUCCESS ) {
 		rs->sr_err = slap_map_api2result( rs );
 		if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
@@ -293,6 +294,7 @@ retry:
 		free( (char *)rs->sr_matched );
 		rs->sr_matched = NULL;
 	}
+
 	if ( rs->sr_text ) {
 		free( (char *)rs->sr_text );
 		rs->sr_text = NULL;

@@ -224,14 +224,13 @@ retry:
 					goto retry;
 				}
 			}
+
 			if ( lc == NULL ) {
 				/* reset by ldap_back_retry ... */
 				rs->sr_err = slap_map_api2result( rs );
 
 			} else {
 				rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_DONTSEND );
-				ldap_back_freeconn( op, lc, 0 );
-				lc = NULL;
 			}
 				
 			goto finish;
