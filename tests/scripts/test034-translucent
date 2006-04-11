@@ -25,11 +25,6 @@ if test $TRANSLUCENT = translucentno ; then
 	exit 0
 fi 
 
-if test $BACKEND = ldbm ; then
-	echo "Translucent Proxy overlay not qualified for use with LDBM, test skipped"
-	exit 0
-fi
-
 if test $AC_ldap = ldapno ; then
 	echo "Translucent Proxy overlay requires back-ldap backend, test skipped"
 	exit 0
