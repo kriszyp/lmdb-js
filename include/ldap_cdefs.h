@@ -157,11 +157,6 @@
 #	define LDAP_AVL_V(type)		extern type
 #endif
 
-/* LDBM library */
-/* Not exported/imported any more */
-#	define LDAP_LDBM_F(type)	extern type
-#	define LDAP_LDBM_V(type)	extern type
-
 /* LDIF library */
 #if defined(_WIN32) && defined(SLAPD_IMPORT)
 #	define LDAP_LDIF_F(type)	extern __declspec(dllimport) type
