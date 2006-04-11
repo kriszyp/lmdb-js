@@ -783,12 +783,12 @@ fork_child( char *prog, char **args )
 		args = arg2; }
 #endif
 		execvp( prog, args );
-		tester_perror( "execvp" );
+		tester_perror( "execvp", NULL );
 		exit( EXIT_FAILURE );
 		break;
 
 	case -1:	/* trouble */
-		tester_perror( "fork" );
+		tester_perror( "fork", NULL );
 		break;
 
 	default:	/* parent */
@@ -858,7 +858,7 @@ fork_child( char *prog, char **args )
 	rc = _spawnvp( _P_NOWAIT, prog, args );
 
 	if ( rc == -1 ) {
-		tester_perror( "_spawnvp" );
+		tester_perror( "_spawnvp", NULL );
 	} else {
 		children[nkids++] = (HANDLE)rc;
 	}

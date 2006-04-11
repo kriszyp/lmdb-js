@@ -142,7 +142,7 @@ ldap_int_flush_request(
 {
 	LDAPConn *lc = lr->lr_conn;
 
-	if ( ber_flush( lc->lconn_sb, lr->lr_ber, 0 ) != 0 ) {
+	if ( ber_flush2( lc->lconn_sb, lr->lr_ber, LBER_FLUSH_FREE_NEVER ) != 0 ) {
 		if ( errno == EAGAIN ) {
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;
@@ -179,7 +179,7 @@ ldap_send_server_request(
 	LDAPreqinfo *bind )
 {
 	LDAPRequest	*lr;
-	int incparent, rc;
+	int		incparent, rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_server_request\n", 0, 0, 0 );
 
@@ -545,25 +545,12 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		force, unbind, 0 );
 
 	if ( force || --lc->lconn_refcnt <= 0 ) {
-		if ( lc->lconn_status == LDAP_CONNST_CONNECTED ) {
-			ldap_mark_select_clear( ld, lc->lconn_sb );
-			if ( unbind ) {
-				ldap_send_unbind( ld, lc->lconn_sb,
-						NULL, NULL );
-			}
-		}
-
-		if ( lc->lconn_ber != NULL ) {
-			ber_free( lc->lconn_ber, 1 );
-		}
-
-		ldap_int_sasl_close( ld, lc );
-
-		prevlc = NULL;
+		/* remove from connections list first */
 #ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+		ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
 #endif
-		for ( tmplc = ld->ld_conns;
+
+		for ( prevlc = NULL, tmplc = ld->ld_conns;
 			tmplc != NULL;
 			tmplc = tmplc->lconn_next )
 		{
@@ -578,8 +565,23 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			prevlc = tmplc;
 		}
 #ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
+
+		if ( lc->lconn_status == LDAP_CONNST_CONNECTED ) {
+			ldap_mark_select_clear( ld, lc->lconn_sb );
+			if ( unbind ) {
+				ldap_send_unbind( ld, lc->lconn_sb,
+						NULL, NULL );
+			}
+		}
+
+		if ( lc->lconn_ber != NULL ) {
+			ber_free( lc->lconn_ber, 1 );
+		}
+
+		ldap_int_sasl_close( ld, lc );
+
 		ldap_free_urllist( lc->lconn_server );
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		if ( lc->lconn_krbinstance != NULL ) {
@@ -601,9 +603,11 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 				lr = lr_next;
 			}
 		}
+
 		if ( lc->lconn_sb != ld->ld_sb ) {
 			ber_sockbuf_free( lc->lconn_sb );
 		}
+
 		if ( lc->lconn_rebind_queue != NULL) {
 			int i;
 			for( i = 0; lc->lconn_rebind_queue[i] != NULL; i++ ) {
@@ -611,10 +615,13 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			}
 			LDAP_FREE( lc->lconn_rebind_queue );
 		}
+
 		LDAP_FREE( lc );
+
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_free_connection: actually freed\n",
 			0, 0, 0 );
+
 	} else {
 		lc->lconn_lastused = time( NULL );
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: refcnt %d\n",
@@ -751,6 +758,9 @@ void
 ldap_free_request( LDAP *ld, LDAPRequest *lr )
 {
 	LDAPRequest     **ttmplr;
+#ifdef LDAP_R_COMPILE
+	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_req_mutex );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_free_request (origid %d, msgid %d)\n",
 		lr->lr_origid, lr->lr_msgid, 0 );
@@ -845,7 +855,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		Debug( LDAP_DEBUG_ANY,
 		    "more than %d referral hops (dropping)\n", ld->ld_refhoplimit, 0, 0 );
 		ld->ld_errno = LDAP_REFERRAL_LIMIT_EXCEEDED;
-	    rc = -1;
+		rc = -1;
 		goto done;
 	}
 
@@ -898,14 +908,13 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			int looped = 0;
 			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
 			for ( lp = origreq; lp; ) {
-				if ( lp->lr_conn == lc ) {
-					if ( len == lp->lr_dn.bv_len
-						&& len
-						&& strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) == 0 )
-					{
-						looped = 1;
-						break;
-					}
+				if ( lp->lr_conn == lc
+					&& len == lp->lr_dn.bv_len
+					&& len
+					&& strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) == 0 )
+				{
+					looped = 1;
+					break;
 				}
 				if ( lp == origreq ) {
 					lp = lp->lr_child;
@@ -1163,14 +1172,13 @@ ldap_chase_referrals( LDAP *ld,
 			int looped = 0;
 			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
 			for (lp = lr; lp; lp = lp->lr_parent ) {
-				if ( lp->lr_conn == lc ) {
-					if ( len == lp->lr_dn.bv_len ) {
-						if ( len && strncmp( srv->lud_dn, lp->lr_dn.bv_val,
-							len ))
-							continue;
-						looped = 1;
-						break;
-					}
+				if ( lp->lr_conn == lc
+					&& len == lp->lr_dn.bv_len
+					&& len
+					&& strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) == 0 )
+				{
+					looped = 1;
+					break;
 				}
 			}
 			if ( looped ) {

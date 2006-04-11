@@ -215,7 +215,7 @@ do_modify( char *uri, char *manager,
 retry:;
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		tester_perror( "ldap_initialize" );
+		tester_perror( "ldap_initialize", NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -230,7 +230,7 @@ retry:;
 
 	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_sasl_bind_s" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -252,7 +252,7 @@ retry:;
 		mod.mod_op = LDAP_MOD_ADD;
 		rc = ldap_modify_ext_s( ld, entry, mods, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_modify_ext_s" );
+			tester_ldap_error( ld, "ldap_modify_ext_s", NULL );
 			switch ( rc ) {
 			case LDAP_TYPE_OR_VALUE_EXISTS:
 				/* NOTE: this likely means
@@ -279,7 +279,7 @@ retry:;
 		mod.mod_op = LDAP_MOD_DELETE;
 		rc = ldap_modify_ext_s( ld, entry, mods, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_modify_ext_s" );
+			tester_ldap_error( ld, "ldap_modify_ext_s", NULL );
 			switch ( rc ) {
 			case LDAP_NO_SUCH_ATTRIBUTE:
 				/* NOTE: this likely means

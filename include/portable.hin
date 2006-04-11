@@ -129,9 +129,6 @@
 /* define if you have Cyrus SASL */
 #undef HAVE_CYRUS_SASL
 
-/* Define to 1 if you have the <db_185.h> header file. */
-#undef HAVE_DB_185_H
-
 /* Define to 1 if you have the <db.h> header file. */
 #undef HAVE_DB_H
 
@@ -189,12 +186,6 @@
 
 /* Define to 1 if you have the `gai_strerror' function. */
 #undef HAVE_GAI_STRERROR
-
-/* define if GNU DBM is available */
-#undef HAVE_GDBM
-
-/* Define to 1 if you have the <gdbm.h> header file. */
-#undef HAVE_GDBM_H
 
 /* Define to 1 if you have the `getaddrinfo' function. */
 #undef HAVE_GETADDRINFO
@@ -379,12 +370,6 @@
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
 
-/* define if MDBM is available */
-#undef HAVE_MDBM
-
-/* Define to 1 if you have the <mdbm.h> header file. */
-#undef HAVE_MDBM_H
-
 /* Define to 1 if you have the `memcpy' function. */
 #undef HAVE_MEMCPY
 
@@ -405,12 +390,6 @@
 
 /* define this if you have mkversion */
 #undef HAVE_MKVERSION
-
-/* define if NDBM is available */
-#undef HAVE_NDBM
-
-/* Define to 1 if you have the <ndbm.h> header file. */
-#undef HAVE_NDBM_H
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
@@ -867,12 +846,6 @@
 /* Patch */
 #undef LDAP_VENDOR_VERSION_PATCH
 
-/* define this to use DBBTREE w/ LDBM backend */
-#undef LDBM_USE_DBBTREE
-
-/* define this to use DBHASH w/ LDBM backend */
-#undef LDBM_USE_DBHASH
-
 /* define if memcmp is not 8-bit clean or is otherwise broken */
 #undef NEED_MEMCMP_REPLACEMENT
 
@@ -953,9 +926,6 @@
 
 /* define to support LDAP backend */
 #undef SLAPD_LDAP
-
-/* define to support LDBM backend */
-#undef SLAPD_LDBM
 
 /* define to support LAN Manager passwords */
 #undef SLAPD_LMHASH

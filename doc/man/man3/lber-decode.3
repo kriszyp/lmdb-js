@@ -104,6 +104,14 @@ returned in the parameter.  The caller should free the returned
 string using
 .BR ber_memfree ().
 .TP
+.B A
+Octet string.  A variant of "\fBa\fP".  A char ** should be supplied.
+Memory is allocated, filled with the contents of the octet string, 
+null-terminated, and returned in the parameter, unless a zero-length
+string would result; in that case, the arg is set to NULL.
+The caller should free the returned string using
+.BR ber_memfree ().
+.TP
 .B s
 Octet string.  A char * buffer should be supplied, followed by a pointer to a
 ber_len_t initialized to the size of the buffer.  Upon return, the

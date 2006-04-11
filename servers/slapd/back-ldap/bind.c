@@ -51,6 +51,9 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 static int
 ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 
+static int
+ldap_back_conndnlc_cmp( const void *c1, const void *c2 );
+
 int
 ldap_back_bind( Operation *op, SlapReply *rs )
 {
@@ -114,6 +117,7 @@ done:;
 			&& !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) )
 	{
 		int		lerr = -1;
+		ldapconn_t	*tmplc;
 
 		/* wait for all other ops to release the connection */
 retry_lock:;
@@ -125,9 +129,9 @@ retry_lock:;
 		}
 
 		assert( lc->lc_refcnt == 1 );
-		lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-				ldap_back_conndn_cmp );
-		assert( lc != NULL );
+		tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+				ldap_back_conndnlc_cmp );
+		assert( tmplc == NULL || lc == tmplc );
 
 		if ( LDAP_BACK_CONN_ISBOUND( lc ) ) {
 			ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
@@ -136,8 +140,14 @@ retry_lock:;
 		}
 
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
-		if ( lerr == -1 ) {
-			/* we can do this because lc_refcnt == 1 */
+		switch ( lerr ) {
+		case 0:
+			break;
+
+		case -1:
+			/* duplicate; someone else successfully bound
+			 * on the same connection with the same identity;
+			 * we can do this because lc_refcnt == 1 */
 			ldap_back_conn_free( lc );
 			lc = NULL;
 		}
@@ -290,17 +300,17 @@ int
 ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+	ldapconn_t	*tmplc;
 
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	}
 
-	assert( lc->lc_refcnt > 0 );
-	if ( --lc->lc_refcnt == 0 ) {
-		lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-				ldap_back_conndn_cmp );
-		assert( lc != NULL );
-
+	assert( lc->lc_refcnt >= 0 );
+	tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+			ldap_back_conndnlc_cmp );
+	assert( LDAP_BACK_CONN_TAINTED( lc ) || tmplc == lc );
+	if ( lc->lc_refcnt == 0 ) {
 		ldap_back_conn_free( (void *)lc );
 	}
 
@@ -672,6 +682,10 @@ retry_lock:
 				goto retry_lock;
 			}
 			/* taint connection, so that it'll be freed when released */
+			ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+			(void *)avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+					ldap_back_conndnlc_cmp );
+			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 			LDAP_BACK_CONN_TAINTED_SET( lc );
 			break;
 
@@ -735,8 +749,9 @@ ldap_back_release_conn_lock(
 	}
 	assert( lc->lc_refcnt > 0 );
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
-	if ( --lc->lc_refcnt == 0 && LDAP_BACK_CONN_TAINTED( lc ) ) {
-		ldap_back_freeconn( op, rs, 0 );
+	lc->lc_refcnt--;
+	if ( LDAP_BACK_CONN_TAINTED( lc ) ) {
+		ldap_back_freeconn( op, lc, 0 );
 	}
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
@@ -926,19 +941,33 @@ retry:;
 
 				/* lc here must be the regular lc, reset and ready for init */
 				rs->sr_err = ldap_back_prepare_conn( &lc, op, rs, sendok );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					lc->lc_binding--;
+					lc->lc_refcnt = 0;
+				}
 			}
+
 			if ( dolock ) {
 				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 			}
+
 			if ( rs->sr_err == LDAP_SUCCESS ) {
 				if ( retries > 0 ) {
 					retries--;
 				}
 				goto retry;
 			}
+
+		} else {
+			if ( dolock ) {
+				ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+			}
+			lc->lc_binding--;
+			if ( dolock ) {
+				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+			}
 		}
 
-		lc->lc_binding--;
 		ldap_back_freeconn( op, lc, dolock );
 		rs->sr_err = slap_map_api2result( rs );
 
@@ -1614,6 +1643,86 @@ ldap_back_proxy_authz_ctrl(
 		AC_MEMCPY( &ctrls[ 0 ]->ldctl_value.bv_val[ STRLENOF( "dn:" ) ],
 				assertedID.bv_val, assertedID.bv_len + 1 );
 		break;
+	}
+
+	/* Older versions of <draft-weltman-ldapv3-proxy> required
+	 * to encode the value of the authzID (and called it proxyDN);
+	 * this hack provides compatibility with those DSAs that
+	 * implement it this way */
+	if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+		struct berval		authzID = ctrls[ 0 ]->ldctl_value;
+		BerElementBuffer	berbuf;
+		BerElement		*ber = (BerElement *)&berbuf;
+		ber_tag_t		tag;
+
+		ber_init2( ber, 0, LBER_USE_DER );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+		tag = ber_printf( ber, "O", &authzID );
+		if ( tag == LBER_ERROR ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber;
+		}
+
+		if ( ber_flatten2( ber, &ctrls[ 0 ]->ldctl_value, 1 ) == -1 ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber;
+		}
+
+free_ber:;
+		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
+		ber_free_buf( ber );
+
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			op->o_tmpfree( ctrls, op->o_tmpmemctx );
+			ctrls = NULL;
+		}
+
+	} else if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+		struct berval		authzID = ctrls[ 0 ]->ldctl_value,
+					tmp;
+		BerElementBuffer	berbuf;
+		BerElement		*ber = (BerElement *)&berbuf;
+		ber_tag_t		tag;
+
+		if ( strncasecmp( authzID.bv_val, "dn:", STRLENOF( "dn:" ) ) != 0 ) {
+			op->o_tmpfree( ctrls[ 0 ]->ldctl_value.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( ctrls, op->o_tmpmemctx );
+			rs->sr_err = LDAP_PROTOCOL_ERROR;
+			goto done;
+		}
+
+		tmp = authzID;
+		tmp.bv_val += STRLENOF( "dn:" );
+		tmp.bv_len -= STRLENOF( "dn:" );
+
+		ber_init2( ber, 0, LBER_USE_DER );
+		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
+
+		/* apparently, Mozilla API encodes this
+		 * as "SEQUENCE { LDAPDN }" */
+		tag = ber_printf( ber, "{O}", &tmp );
+		if ( tag == LBER_ERROR ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber2;
+		}
+
+		if ( ber_flatten2( ber, &ctrls[ 0 ]->ldctl_value, 1 ) == -1 ) {
+			rs->sr_err = LDAP_OTHER;
+			goto free_ber2;
+		}
+
+free_ber2:;
+		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
+		ber_free_buf( ber );
+
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			op->o_tmpfree( ctrls, op->o_tmpmemctx );
+			ctrls = NULL;
+			goto done;
+		}
+
+		ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
 	}
 
 	if ( op->o_ctrls ) {

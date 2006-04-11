@@ -106,7 +106,7 @@ ldap_ld_free(
 		next = lm->lm_next;
 		ldap_msgfree( lm );
 	}
-
+    
 	if ( ld->ld_abandoned != NULL ) {
 		LDAP_FREE( ld->ld_abandoned );
 		ld->ld_abandoned = NULL;
@@ -261,9 +261,8 @@ ldap_send_unbind(
 
 	ld->ld_errno = LDAP_SUCCESS;
 	/* send the message */
-	if ( ber_flush( sb, ber, 1 ) == -1 ) {
+	if ( ber_flush2( sb, ber, LBER_FLUSH_FREE_ALWAYS ) == -1 ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;
-		ber_free( ber, 1 );
 	}
 
 	return( ld->ld_errno );

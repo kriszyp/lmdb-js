@@ -244,7 +244,7 @@ do_abandon(
 					sb = ld->ld_sb;
 				}
 
-				if ( ber_flush( sb, ber, 1 ) != 0 ) {
+				if ( ber_flush2( sb, ber, LBER_FLUSH_FREE_ALWAYS ) != 0 ) {
 					ld->ld_errno = LDAP_SERVER_DOWN;
 					err = -1;
 				} else {

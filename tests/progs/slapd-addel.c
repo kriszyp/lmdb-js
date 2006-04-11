@@ -208,19 +208,19 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
     if ( pmods == NULL || pmods[ i ] == NULL ) {
 		if (( pmods = (LDAPMod **)realloc( pmods, (i + 2) *
 			sizeof( LDAPMod * ))) == NULL ) {
-	    		tester_perror( "realloc" );
+	    		tester_perror( "realloc", NULL );
 	    		exit( EXIT_FAILURE );
 		}
 		*pmodsp = pmods;
 		pmods[ i + 1 ] = NULL;
 		if (( pmods[ i ] = (LDAPMod *)calloc( 1, sizeof( LDAPMod )))
 			== NULL ) {
-	    		tester_perror( "calloc" );
+	    		tester_perror( "calloc", NULL );
 	    		exit( EXIT_FAILURE );
 		}
 		pmods[ i ]->mod_op = modop;
 		if (( pmods[ i ]->mod_type = strdup( attr )) == NULL ) {
-	    	tester_perror( "strdup" );
+	    	tester_perror( "strdup", NULL );
 	    	exit( EXIT_FAILURE );
 		}
     }
@@ -235,20 +235,20 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 		if (( pmods[ i ]->mod_bvalues =
 			(struct berval **)ber_memrealloc( pmods[ i ]->mod_bvalues,
 			(j + 2) * sizeof( struct berval * ))) == NULL ) {
-	    		tester_perror( "ber_memrealloc" );
+	    		tester_perror( "ber_memrealloc", NULL );
 	    		exit( EXIT_FAILURE );
 		}
 		pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
 		if (( bvp = (struct berval *)ber_memalloc( sizeof( struct berval )))
 			== NULL ) {
-	    		tester_perror( "ber_memalloc" );
+	    		tester_perror( "ber_memalloc", NULL );
 	    		exit( EXIT_FAILURE );
 		}
 		pmods[ i ]->mod_bvalues[ j ] = bvp;
 
 	    bvp->bv_len = vlen;
 	    if (( bvp->bv_val = (char *)malloc( vlen + 1 )) == NULL ) {
-			tester_perror( "malloc" );
+			tester_perror( "malloc", NULL );
 			exit( EXIT_FAILURE );
 	    }
 	    AC_MEMCPY( bvp->bv_val, value, vlen );
@@ -321,7 +321,7 @@ do_addel(
 retry:;
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
-		tester_perror( "ldap_initialize" );
+		tester_perror( "ldap_initialize", NULL );
 		exit( EXIT_FAILURE );
 	}
 
@@ -336,7 +336,7 @@ retry:;
 
 	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_sasl_bind_s" );
+		tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		switch ( rc ) {
 		case LDAP_BUSY:
 		case LDAP_UNAVAILABLE:
@@ -359,7 +359,7 @@ retry:;
 		/* add the entry */
 		rc = ldap_add_ext_s( ld, entry, attrs, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_add_ext_s" );
+			tester_ldap_error( ld, "ldap_add_ext_s", NULL );
 			switch ( rc ) {
 			case LDAP_ALREADY_EXISTS:
 				/* NOTE: this likely means
@@ -392,7 +392,7 @@ retry:;
 		/* now delete the entry again */
 		rc = ldap_delete_ext_s( ld, entry, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_delete_ext_s" );
+			tester_ldap_error( ld, "ldap_delete_ext_s", NULL );
 			switch ( rc ) {
 			case LDAP_NO_SUCH_OBJECT:
 				/* NOTE: this likely means

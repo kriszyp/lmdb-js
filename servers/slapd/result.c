@@ -167,7 +167,7 @@ static long send_ldap_ber(
 			return 0;
 		}
 
-		if ( ber_flush( conn->c_sb, ber, 0 ) == 0 ) {
+		if ( ber_flush2( conn->c_sb, ber, LBER_FLUSH_FREE_NEVER ) == 0 ) {
 			break;
 		}
 
@@ -179,7 +179,7 @@ static long send_ldap_ber(
 		 * it's a hard error and return.
 		 */
 
-		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno=%d reason=\"%s\"\n",
+		Debug( LDAP_DEBUG_CONNS, "ber_flush2 failed errno=%d reason=\"%s\"\n",
 		    err, sock_errstr(err), 0 );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {

@@ -3,7 +3,7 @@
 .\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ber_alloc_t, ber_flush, ber_printf, ber_put_int, ber_put_enum, ber_put_ostring, ber_put_string, ber_put_null, ber_put_boolean, ber_put_bitstring, ber_start_seq, ber_start_set, ber_put_seq, ber_put_set \- LBER simplified Basic Encoding Rules library routines for encoding
+ber_alloc_t, ber_flush, ber_flush2, ber_printf, ber_put_int, ber_put_enum, ber_put_ostring, ber_put_string, ber_put_null, ber_put_boolean, ber_put_bitstring, ber_start_seq, ber_start_set, ber_put_seq, ber_put_set \- LBER simplified Basic Encoding Rules library routines for encoding
 .SH LIBRARY
 OpenLDAP LBER (liblber, -llber)
 .SH SYNOPSIS
@@ -12,6 +12,8 @@ OpenLDAP LBER (liblber, -llber)
 .BI "BerElement *ber_alloc_t(int " options ");"
 .LP
 .BI "int ber_flush(Sockbuf *" sb ", BerElement *" ber ", int " freeit ");"
+.LP
+.BI "int ber_flush2(Sockbuf *" sb ", BerElement *" ber ", int " freeit ");"
 .LP
 .BI "int ber_printf(BerElement *" ber ", const char *" fmt ", ...);"
 .LP
@@ -56,7 +58,7 @@ are
 to allocate a BER element for encoding,
 .BR ber_printf ()
 to do the actual encoding, and
-.BR ber_flush ()
+.BR ber_flush2 ()
 to actually write the element.  The other routines are provided for those
 applications that need more control than
 .BR ber_printf ()
@@ -70,7 +72,7 @@ routine is used to allocate a new BER element.  It
 should be called with an argument of LBER_USE_DER.
 .LP
 The
-.BR ber_flush ()
+.BR ber_flush2 ()
 routine is used to actually write the element to a socket
 (or file) descriptor, once it has been fully encoded (using
 .BR ber_printf ()
@@ -78,7 +80,21 @@ and friends).  See
 .BR lber-sockbuf (3)
 for more details on the Sockbuf implementation of the \fIsb\fP parameter.
 If the \fIfreeit\fP parameter is non-zero, the supplied \fIber\fP will
-be freed after its contents have been flushed.
+be freed.
+If \fILBER_FLUSH_FREE_ON_SUCCESS\fP is used, the \fIber\fP is only freed
+when successfully flushed, otherwise it is left intact;
+if \fILBER_FLUSH_FREE_ON_ERROR\fP is used, the \fIber\fP is only freed
+when an error occurs, otherwise it is left intact;
+if \fILBER_FLUSH_FREE_ALWAYS\fP is used, the \fIber\fP is freed anyway.
+This function differs from the original
+.BR ber_flush (3)
+function, whose behavior corresponds to that indicated
+for \fILBER_FLUSH_FREE_ON_SUCCESS\fP.
+Note that in the future, the behavior of
+.BR ber_flush (3)
+with \fIfreeit\fP non-zero might change into that of
+.BR ber_flush2 (3)
+with \fIfreeit\fP set to \fILBER_FLUSH_FREE_ALWAYS\fP.
 .LP
 The
 .BR ber_printf ()

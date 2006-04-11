@@ -171,8 +171,8 @@ main( int argc, char **argv )
 		return( EXIT_FAILURE );
 	}
 
-	if ( ber_flush( sb, ber, 1 ) == -1 ) {
-		perror( "ber_flush" );
+	if ( ber_flush2( sb, ber, LBER_FLUSH_FREE_ALWAYS ) == -1 ) {
+		perror( "ber_flush2" );
 		return( EXIT_FAILURE );
 	}
 

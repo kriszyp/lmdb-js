@@ -283,7 +283,6 @@ Backends="bdb \
 	dnssrv \
 	hdb \
 	ldap \
-	ldbm \
 	meta \
 	monitor \
 	null \
@@ -306,18 +305,6 @@ OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend],
 	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend],
-	no, [no yes mod], ol_enable_backends)dnl
-AC_ARG_WITH(ldbm_api,,[
-	AC_MSG_WARN([Please use --enable-ldbm-api instead of --with-ldbm-api])
-	enable_ldbm_api="$with_ldbm_api"])
-OL_ARG_ENABLE(ldbm_api,[      --enable-ldbm-api   use LDBM API],
-	auto, [auto berkeley bcompat mdbm gdbm])
-AC_ARG_WITH(ldbm_type,,[
-	AC_MSG_WARN([Please use --enable-ldbm-type instead of --with-ldbm-type])
-	enable_ldbm_type="$with_ldbm_type"])
-OL_ARG_ENABLE(ldbm_type,[      --enable-ldbm-type  use LDBM type],
-	auto, [auto btree hash])
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend],
@@ -440,12 +427,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_aci != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
 	fi
-	if test $ol_enable_ldbm_api != auto ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-ldbm-api argument])
-	fi
-	if test $ol_enable_ldbm_type != auto ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-ldbm-type argument])
-	fi
 	if test $ol_enable_slurpd = yes ; then
 		AC_MSG_ERROR([slurpd requires slapd])
 	fi
@@ -475,74 +456,30 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_aci=no
 	ol_enable_wrappers=no
 
-	ol_enable_ldbm_api=no
-	ol_enable_ldbm_type=no
-
 	ol_enable_slurpd=no
 
 	ol_enable_rewrite=no
 
-elif test $ol_enable_ldbm = no ; then
-	dnl SLAPD without LDBM
+elif test $ol_enable_modules != yes &&
+	test $ol_enable_bdb = no &&
+	test $ol_enable_dnssrv = no &&
+	test $ol_enable_hdb = no &&
+	test $ol_enable_ldap = no &&
+	test $ol_enable_meta = no &&
+	test $ol_enable_monitor = no &&
+	test $ol_enable_null = no &&
+	test $ol_enable_passwd = no &&
+	test $ol_enable_perl = no &&
+	test $ol_enable_relay = no &&
+	test $ol_enable_shell = no &&
+	test $ol_enable_sql = no ; then
+	dnl no slapd backend
 
-	if test $ol_enable_ldbm_api != auto ; then
-		AC_MSG_WARN([LDBM disabled, ignoring --enable-ldbm-api argument])
-	fi
-
-	if test $ol_enable_ldbm_type != auto ; then
-		AC_MSG_WARN([LDBM disabled, ignoring --enable-ldbm-type argument])
-	fi
-
-	if test $ol_enable_modules != yes &&
-	   test $ol_enable_bdb = no &&
-	   test $ol_enable_dnssrv = no &&
-	   test $ol_enable_hdb = no &&
-	   test $ol_enable_ldap = no &&
-	   test $ol_enable_meta = no &&
-	   test $ol_enable_monitor = no &&
-	   test $ol_enable_null = no &&
-	   test $ol_enable_passwd = no &&
-	   test $ol_enable_perl = no &&
-	   test $ol_enable_relay = no &&
-	   test $ol_enable_shell = no &&
-	   test $ol_enable_sql = no ; then
-
-		if test $ol_enable_slapd = yes ; then
-			AC_MSG_ERROR([slapd requires a backend])
-		else
-			AC_MSG_WARN([skipping slapd, no backend specified])
-			ol_enable_slapd=no
-		fi
-	fi
-
-	ol_enable_ldbm_api=no
-	ol_enable_ldbm_type=no
-
-	if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
-		ol_enable_ldbm_api=berkeley
-	fi
-
-else
-	dnl SLAPD with LDBM
-	if test $ol_enable_ldbm_api = gdbm &&
-	   test $ol_enable_ldbm_type = btree ; then
-		AC_MSG_ERROR([GDBM only supports LDBM type hash])
-	fi
-	if test $ol_enable_ldbm_api = mdbm &&
-	   test $ol_enable_ldbm_type = btree ; then
-		AC_MSG_ERROR([MDBM only supports LDBM type hash])
-	fi
-	if test $ol_enable_ldbm_api = ndbm &&
-	   test $ol_enable_ldbm_type = btree ; then
-		AC_MSG_ERROR([NDBM only supports LDBM type hash])
-	fi
-
-	if test $ol_enable_bdb/$ol_enable_hdb != no/no ; then
-		if test $ol_enable_ldbm_api = auto ; then
-			ol_enable_ldbm_api=berkeley
-		elif test $ol_enable_ldbm_api != berkeley ; then
-			AC_MSG_ERROR([LDBM API not compatible with BDB/HDB])
-		fi
+	if test $ol_enable_slapd = yes ; then
+		AC_MSG_ERROR([slapd requires a backend])
+	else
+		AC_MSG_WARN([skipping slapd, no backend specified])
+		ol_enable_slapd=no
 	fi
 fi
 
@@ -591,7 +528,7 @@ AC_MSG_RESULT(done)
 dnl ----------------------------------------------------------------
 dnl Initialize vars
 LDAP_LIBS=
-LDBM_LIBS=
+BDB_LIBS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
 
@@ -610,7 +547,6 @@ BUILD_BDB=no
 BUILD_DNSSRV=no
 BUILD_HDB=no
 BUILD_LDAP=no
-BUILD_LDBM=no
 BUILD_META=no
 BUILD_MONITOR=no
 BUILD_NULL=no
@@ -2001,103 +1937,33 @@ else
 fi
 
 dnl ----------------------------------------------------------------
-ol_link_ldbm=no 
-
-case $ol_enable_ldbm_api in auto | berkeley | bcompat)
-
-	if test $ol_enable_ldbm_api = bcompat; then \
-		OL_BERKELEY_COMPAT_DB
-	else
-		OL_BERKELEY_DB
-	fi
-
-	if test $ol_cv_berkeley_db != no ; then
-		AC_DEFINE(HAVE_BERKELEY_DB,1,
-			[define this if Berkeley DB is available])
-
-		ol_link_ldbm=berkeley
-		ol_enable_ldbm_api=berkeley
-
-		if test $ol_enable_ldbm_type = hash ; then
-			AC_DEFINE(LDBM_USE_DBHASH,1,
-				[define this to use DBHASH w/ LDBM backend])
-		else
-			AC_DEFINE(LDBM_USE_DBBTREE,1,
-				[define this to use DBBTREE w/ LDBM backend])
-		fi
-
-		dnl $ol_cv_lib_db should be yes or -ldb
-		dnl (it could be no, but that would be an error
-		if test $ol_cv_lib_db != yes ; then
-			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db"
-		fi
-	fi
-	;;
-esac
+ol_link_bdb=no 
 
 if test $ol_enable_bdb/$ol_enable_hdb != no/no; then
-	if test $ol_link_ldbm != berkeley ; then
+	OL_BERKELEY_DB
+
+	if test $ol_cv_berkeley_db = no ; then
 		AC_MSG_ERROR(BDB/HDB: BerkeleyDB not available)
-	else
-		OL_BDB_COMPAT
-
-		if test $ol_cv_bdb_compat != yes ; then
-			AC_MSG_ERROR([BDB/HDB: BerkeleyDB version incompatible])
-		fi
 	fi
-fi
 
-if test $ol_link_ldbm = no && test $ol_enable_ldbm_type = btree ; then
-	AC_MSG_WARN([Could not find LDBM with BTREE support])
-	ol_enable_ldbm_api=none
-fi
+	AC_DEFINE(HAVE_BERKELEY_DB,1,
+		[define this if Berkeley DB is available])
 
-if test $ol_enable_ldbm_api = auto || test $ol_enable_ldbm_api = mdbm ; then
-	OL_MDBM
-
-	if test $ol_cv_mdbm = yes ; then
-		ol_link_ldbm=mdbm
-		ol_enable_ldbm_api=mdbm
-		if test $ol_cv_lib_mdbm != yes ; then
-			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_mdbm"
-		fi
+	dnl $ol_cv_lib_db should be yes or -ldb
+	dnl (it could be no, but that would be an error
+	if test $ol_cv_lib_db != yes ; then
+		BDB_LIBS="$BDB_LIBS $ol_cv_lib_db"
 	fi
-fi
 
-if test $ol_enable_ldbm_api = auto || test $ol_enable_ldbm_api = gdbm ; then
-	OL_GDBM
+	OL_BDB_COMPAT
 
-	if test $ol_cv_gdbm = yes ; then
-		ol_link_ldbm=gdbm
-		ol_enable_ldbm_api=gdbm
-
-		if test $ol_cv_lib_gdbm != yes ; then
-			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_gdbm"
-		fi
+	if test $ol_cv_bdb_compat != yes ; then
+		AC_MSG_ERROR([BDB/HDB: BerkeleyDB version incompatible])
 	fi
-fi
 
-if test $ol_enable_ldbm_api = ndbm ; then
-	OL_NDBM
+	SLAPD_LIBS="$SLAPD_LIBS \$(BDB_LIBS)"
 
-	if test $ol_cv_ndbm = yes ; then
-		ol_link_ldbm=ndbm
-		ol_enable_ldbm_api=ndbm
-
-		if test $ol_cv_lib_ndbm != yes ; then
-			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_ndbm"
-		fi
-	fi
-fi
-
-if test $ol_link_ldbm = no && test $ol_enable_ldbm != no ; then
-	AC_MSG_ERROR([could not find suitable LDBM backend])
-fi
-
-if test $ol_enable_bdb = yes ||
-   test $ol_enable_hdb = yes ||
-   test $ol_enable_ldbm = yes ; then
-	SLAPD_LIBS="$SLAPD_LIBS \$(LDBM_LIBS)"
+	ol_link_bdb=yes 
 fi
 
 dnl ----------------------------------------------------------------
@@ -2743,19 +2609,6 @@ if test "$ol_enable_ldap" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_LDAP,$MFLAG,[define to support LDAP backend])
 fi
 
-if test "$ol_link_ldbm" != no && test $ol_enable_ldbm != no; then
-	BUILD_SLAPD=yes
-	BUILD_LDBM=$ol_enable_ldbm
-	if test "$ol_enable_ldbm" = mod ; then
-		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldbm"
-		MFLAG=SLAPD_MOD_DYNAMIC
-	else
-		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldbm"
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_LDBM,$MFLAG,[define to support LDBM backend])
-fi
-
 if test "$ol_enable_meta" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_META=$ol_enable_meta
@@ -3118,7 +2971,6 @@ dnl backends
   AC_SUBST(BUILD_DNSSRV)
   AC_SUBST(BUILD_HDB)
   AC_SUBST(BUILD_LDAP)
-  AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_MONITOR)
   AC_SUBST(BUILD_NULL)
@@ -3150,7 +3002,7 @@ AC_SUBST(BUILD_SLURPD)
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(SLAPD_LIBS)
 AC_SUBST(SLURPD_LIBS)
-AC_SUBST(LDBM_LIBS)
+AC_SUBST(BDB_LIBS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
 AC_SUBST(WRAP_LIBS)
@@ -3218,7 +3070,6 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk]
 [servers/slapd/back-hdb/Makefile:build/top.mk:servers/slapd/back-hdb/Makefile.in:build/mod.mk]
 [servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk]
-[servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk]
 [servers/slapd/back-ldif/Makefile:build/top.mk:servers/slapd/back-ldif/Makefile.in:build/mod.mk]
 [servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk]
 [servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk]
