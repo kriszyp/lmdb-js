@@ -42,9 +42,6 @@ static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #if defined(SLAPD_LDAP) 
 #include "../back-ldap/back-ldap.h"
 #endif /* defined(SLAPD_LDAP) */
-#if 0 && defined(SLAPD_LDBM) 
-#include "../back-ldbm/back-ldbm.h"
-#endif /* defined(SLAPD_LDBM) */
 #if defined(SLAPD_META) 
 #include "../back-meta/back-meta.h"
 #endif /* defined(SLAPD_META) */
