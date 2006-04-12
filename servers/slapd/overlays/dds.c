@@ -357,7 +357,6 @@ dds_op_add( Operation *op, SlapReply *rs )
 			slap_schema.si_oc_dynamicObject, NULL, 0, &e );
 		if ( rc == LDAP_SUCCESS && e != NULL ) {
 			if ( !is_dynamicObject ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 				/* return referral only if "disclose"
 				 * is granted on the object */
 				if ( ! access_allowed( op, e,
@@ -367,9 +366,7 @@ dds_op_add( Operation *op, SlapReply *rs )
 					rc = rs->sr_err = LDAP_NO_SUCH_OBJECT;
 					send_ldap_result( op, rs );
 
-				} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-				{
+				} else {
 					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					send_ldap_error( op, rs, rc, "no static subordinate entries allowed for dynamicObject" );
 				}
@@ -580,15 +577,12 @@ dds_op_modify( Operation *op, SlapReply *rs )
 					if ( BER_BVISEMPTY( &bv_entryTtl ) 
 						|| !bvmatch( &bv_entryTtl, &mod->sml_values[ 0 ] ) )
 					{
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 						rs->sr_err = backend_attribute( op, NULL, &op->o_req_ndn, 
 							slap_schema.si_ad_entry, NULL, ACL_DISCLOSE );
 						if ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) {
 							rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-						} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-						{
+						} else {
 							rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 						}
 						goto done;
@@ -609,15 +603,12 @@ dds_op_modify( Operation *op, SlapReply *rs )
 				assert( BER_BVISNULL( &mod->sml_values[ 1 ] ) );
 
 				if ( !BER_BVISEMPTY( &bv_entryTtl ) ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 					rs->sr_err = backend_attribute( op, NULL, &op->o_req_ndn, 
 						slap_schema.si_ad_entry, NULL, ACL_DISCLOSE );
 					if ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) {
 						rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-					} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-					{
+					} else {
 						rs->sr_text = "attribute 'entryTtl' cannot have multiple values";
 						rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					}
@@ -649,15 +640,12 @@ dds_op_modify( Operation *op, SlapReply *rs )
 
 			case LDAP_MOD_INCREMENT:
 				if ( BER_BVISEMPTY( &bv_entryTtl ) ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 					rs->sr_err = backend_attribute( op, NULL, &op->o_req_ndn, 
 						slap_schema.si_ad_entry, NULL, ACL_DISCLOSE );
 					if ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) {
 						rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-					} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-					{
+					} else {
 						rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 						rs->sr_text = "modify/increment: entryTtl: no such attribute";
 					}
@@ -678,7 +666,6 @@ dds_op_modify( Operation *op, SlapReply *rs )
 				}
 
 				if ( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 					rc = backend_attribute( op, NULL, &op->o_req_ndn, 
 						slap_schema.si_ad_entry, NULL, ACL_DISCLOSE );
 					if ( rc == LDAP_INSUFFICIENT_ACCESS ) {
@@ -686,7 +673,6 @@ dds_op_modify( Operation *op, SlapReply *rs )
 						rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
 					}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 					goto done;
 				}
 
@@ -761,7 +747,6 @@ done:;
 				rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
 			}
 
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 			if ( rc != LDAP_SUCCESS ) {
 				rc = backend_attribute( op, NULL, &op->o_req_ndn, 
 					slap_schema.si_ad_entry, NULL, ACL_DISCLOSE );
@@ -770,7 +755,6 @@ done:;
 					rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				}
 			}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		}
 	}
 
@@ -850,7 +834,6 @@ dds_op_rename( Operation *op, SlapReply *rs )
 			slap_schema.si_oc_dynamicObject, NULL, 0, &e );
 		if ( rc == LDAP_SUCCESS && e != NULL ) {
 			if ( !is_dynamicObject ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 				/* return referral only if "disclose"
 				 * is granted on the object */
 				if ( ! access_allowed( op, e,
@@ -860,9 +843,7 @@ dds_op_rename( Operation *op, SlapReply *rs )
 					rs->sr_err = LDAP_NO_SUCH_OBJECT;
 					send_ldap_result( op, rs );
 
-				} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-				{
+				} else {
 					send_ldap_error( op, rs, LDAP_CONSTRAINT_VIOLATION,
 						"static entry cannot have dynamicObject as newSuperior" );
 				}
@@ -1072,7 +1053,6 @@ dds_op_extended( Operation *op, SlapReply *rs )
 			rs->sr_err = be_entry_get_rw( op, &op->o_req_ndn,
 				NULL, NULL, 0, &e );
 			if ( rs->sr_err == LDAP_SUCCESS && e != NULL ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 				/* return referral only if "disclose"
 				 * is granted on the object */
 				if ( ! access_allowed( op, e,
@@ -1081,9 +1061,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 				{
 					rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-				} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-				{
+				} else {
 					rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
 					rs->sr_text = "refresh operation only applies to dynamic objects";
 				}

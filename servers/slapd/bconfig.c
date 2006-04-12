@@ -4928,9 +4928,7 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_chk_referrals = 0;
 
-#ifdef SLAP_OVERLAY_ACCESS
 	bi->bi_access_allowed = slap_access_always_allowed;
-#endif /* SLAP_OVERLAY_ACCESS */
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

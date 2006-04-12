@@ -319,9 +319,7 @@ bdb_search( Operation *op, SlapReply *rs )
 	Entry		*matched = NULL;
 	EntryInfo	*ei, ei_root = {0};
 	struct berval	realbase = BER_BVNULL;
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 	slap_mask_t	mask;
-#endif
 	int		manageDSAit;
 	int		tentries = 0;
 	ID		lastid = NOID;
@@ -424,7 +422,6 @@ dn2entry_retry:
 		if ( matched != NULL ) {
 			BerVarray erefs = NULL;
 
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 			/* return referral only if "disclose"
 			 * is granted on the object */
 			if ( ! access_allowed( op, matched,
@@ -433,9 +430,7 @@ dn2entry_retry:
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-			} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-			{
+			} else {
 				ber_dupbv( &matched_dn, &matched->e_name );
 
 				erefs = is_entry_referral( matched )
@@ -483,7 +478,6 @@ dn2entry_retry:
 		return rs->sr_err;
 	}
 
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 	/* NOTE: __NEW__ "search" access is required
 	 * on searchBase object */
 	if ( ! access_allowed_mask( op, e, slap_schema.si_ad_entry,
@@ -504,7 +498,6 @@ dn2entry_retry:
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	if ( !manageDSAit && e != &e_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */

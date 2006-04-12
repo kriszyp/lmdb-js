@@ -2453,11 +2453,6 @@ str2access( const char *str )
 		return ACL_NONE;
 
 	} else if ( strcasecmp( str, "disclose" ) == 0 ) {
-#ifndef SLAP_ACL_HONOR_DISCLOSE
-		Debug( LDAP_DEBUG_ACL, "str2access: warning, "
-			"\"disclose\" privilege disabled.\n",
-		0, 0, 0 );
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		return ACL_DISCLOSE;
 
 	} else if ( strcasecmp( str, "auth" ) == 0 ) {

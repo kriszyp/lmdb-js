@@ -202,7 +202,6 @@ int slap_parse_user( struct berval *id, struct berval *user,
 	return LDAP_SUCCESS;
 }
 
-#ifdef SLAP_AUTHZ_SYNTAX
 int
 authzValidate(
 	Syntax *syntax,
@@ -919,7 +918,6 @@ authzPretty(
 	return rc;
 }
 
-#endif /* SLAP_AUTHZ_SYNTAX */
 
 static int
 slap_parseURI(
@@ -936,9 +934,7 @@ slap_parseURI(
 	int		rc;
 	LDAPURLDesc	*ludp;
 
-#ifdef SLAP_ORDERED_PRETTYNORM
 	struct berval	idx;
-#endif /* SLAP_ORDERED_PRETTYNORM */
 
 	assert( uri != NULL && !BER_BVISNULL( uri ) );
 	BER_BVZERO( base );
@@ -952,7 +948,6 @@ slap_parseURI(
 
 	rc = LDAP_PROTOCOL_ERROR;
 
-#ifdef SLAP_ORDERED_PRETTYNORM
 	idx = *uri;
 	if ( idx.bv_val[ 0 ] == '{' ) {
 		char	*ptr;
@@ -965,7 +960,6 @@ slap_parseURI(
 		idx.bv_val = ptr;
 		uri = &idx;
 	}
-#endif /* SLAP_ORDERED_PRETTYNORM */
 
 	/*
 	 * dn[.<dnstyle>]:<dnpattern>
@@ -1677,13 +1671,7 @@ slap_sasl_match( Operation *opx, struct berval *rule,
 
 	/* NOTE: don't normalize rule if authz syntax is enabled */
 	rc = slap_parseURI( opx, rule, &base, &op.o_req_ndn,
-		&op.ors_scope, &op.ors_filter, &op.ors_filterstr, 
-#ifdef SLAP_AUTHZ_SYNTAX
-		0
-#else /* ! SLAP_AUTHZ_SYNTAX */
-		1
-#endif /* ! SLAP_AUTHZ_SYNTAX */
-		);
+		&op.ors_scope, &op.ors_filter, &op.ors_filterstr, 0 );
 
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 

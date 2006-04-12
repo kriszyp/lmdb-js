@@ -1249,9 +1249,7 @@ ldif_back_initialize(
 	bi->bi_entry_get_rw = ldif_back_entry_get;
 
 #if 0	/* NOTE: uncomment to completely disable access control */
-#ifdef SLAP_OVERLAY_ACCESS
 	bi->bi_access_allowed = slap_access_always_allowed;
-#endif /* SLAP_OVERLAY_ACCESS */
 #endif
 
 	bi->bi_tool_entry_open = ldif_tool_entry_open;

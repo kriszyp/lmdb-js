@@ -175,15 +175,12 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 			if ( !access_allowed_mask( op, matched,
 					slap_schema.si_ad_entry,
 					NULL, ACL_DISCLOSE, NULL, NULL ) )
 			{
 				/* do nothing */ ;
-			} else 
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-			{
+			} else {
 				rs->sr_matched = matched->e_dn;
 			}
 		}
@@ -204,12 +201,9 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	{
 		monitor_cache_release( mi, e );
 
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 		if ( !ACL_GRANT( mask, ACL_DISCLOSE ) ) {
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		} else 
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-		{
+		} else {
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		}
 

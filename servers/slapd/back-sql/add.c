@@ -1478,7 +1478,6 @@ done:;
 	 * in deleting that row.
 	 */
 
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 	if ( e != NULL ) {
 		int	disclose = 1;
 
@@ -1503,7 +1502,6 @@ done:;
 			}
 		}
 	}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );

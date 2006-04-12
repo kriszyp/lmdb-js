@@ -239,7 +239,6 @@ over_back_response ( Operation *op, SlapReply *rs )
 	return rc;
 }
 
-#ifdef SLAP_OVERLAY_ACCESS
 static int
 over_access_allowed(
 	Operation		*op,
@@ -450,7 +449,6 @@ over_acl_attribute(
 
 	return rc;
 }
-#endif /* SLAP_OVERLAY_ACCESS */
 
 /*
  * default return code in case of missing backend function
@@ -1018,12 +1016,10 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_chk_referrals = over_aux_chk_referrals;
 		bi->bi_chk_controls = over_aux_chk_controls;
 
-#ifdef SLAP_OVERLAY_ACCESS
 		/* these have specific arglists */
 		bi->bi_access_allowed = over_access_allowed;
 		bi->bi_acl_group = over_acl_group;
 		bi->bi_acl_attribute = over_acl_attribute;
-#endif /* SLAP_OVERLAY_ACCESS */
 		
 		bi->bi_connection_init = over_connection_init;
 		bi->bi_connection_destroy = over_connection_destroy;

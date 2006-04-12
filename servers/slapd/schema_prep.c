@@ -855,16 +855,9 @@ static struct slap_schema_ad_map {
 	{ "authzTo", "( 1.3.6.1.4.1.4203.666.1.8 "
 			"NAME ( 'authzTo' 'saslAuthzTo' ) "
 			"DESC 'proxy authorization targets' "
-#ifdef SLAP_AUTHZ_SYNTAX
 			"EQUALITY authzMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.2.7 "
-#else /* ! SLAP_AUTHZ_SYNTAX */
-			"EQUALITY caseExactMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
-#endif /* ! SLAP_AUTHZ_SYNTAX */
-#ifdef SLAP_ORDERED_PRETTYNORM
 			"X-ORDERED 'VALUES' "
-#endif /* SLAP_ORDERED_PRETTYNORM */
 			"USAGE distributedOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
@@ -873,16 +866,9 @@ static struct slap_schema_ad_map {
 	{ "authzFrom", "( 1.3.6.1.4.1.4203.666.1.9 "
 			"NAME ( 'authzFrom' 'saslAuthzFrom' ) "
 			"DESC 'proxy authorization sources' "
-#ifdef SLAP_AUTHZ_SYNTAX
 			"EQUALITY authzMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.2.7 "
-#else /* ! SLAP_AUTHZ_SYNTAX */
-			"EQUALITY caseExactMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
-#endif /* ! SLAP_AUTHZ_SYNTAX */
-#ifdef SLAP_ORDERED_PRETTYNORM
 			"X-ORDERED 'VALUES' "
-#endif /* SLAP_ORDERED_PRETTYNORM */
 			"USAGE distributedOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,

@@ -174,7 +174,6 @@ do_transact:;
 	SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 
 done:;
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 	if ( e != NULL ) {
 		if ( !access_allowed( op, e, slap_schema.si_ad_entry, NULL,
 					ACL_DISCLOSE, NULL ) )
@@ -188,7 +187,6 @@ done:;
 			}
 		}
 	}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );

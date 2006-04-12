@@ -1059,7 +1059,6 @@ done_url:;
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 		struct berval	bv;
-#ifdef SLAP_AUTHZ_SYNTAX
 		struct berval	in;
 		int		rc;
 
@@ -1072,9 +1071,6 @@ done_url:;
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
-#else /* !SLAP_AUTHZ_SYNTAX */
-		ber_str2bv( c->argv[ 1 ], 0, 1, &bv );
-#endif /* !SLAP_AUTHZ_SYNTAX */
 		ber_bvarray_add( &li->li_idassert_authz, &bv );
 		} break;
 

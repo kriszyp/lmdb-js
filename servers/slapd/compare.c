@@ -284,7 +284,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			}
 
 		} else {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 			/* return error only if "disclose"
 			 * is granted on the object */
 			if ( backend_access( op, NULL, &op->o_req_ndn,
@@ -293,7 +292,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		}
 
 		send_ldap_result( op, rs );
@@ -328,7 +326,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 				ava.aa_desc, &vals, ACL_COMPARE );
 		switch ( rs->sr_err ) {
 		default:
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 			/* return error only if "disclose"
 			 * is granted on the object */
 			if ( backend_access( op, NULL, &op->o_req_ndn,
@@ -338,7 +335,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 			break;
 
 		case LDAP_SUCCESS:
@@ -416,7 +412,6 @@ static int compare_entry(
 	}
 
 done:
-#ifdef LDAP_ACL_HONOR_DISCLOSE
 	if( rc != LDAP_COMPARE_TRUE && rc != LDAP_COMPARE_FALSE ) {
 		if ( ! access_allowed( op, e,
 			slap_schema.si_ad_entry, NULL, ACL_DISCLOSE, NULL ) )
@@ -424,7 +419,6 @@ done:
 			rc = LDAP_NO_SUCH_OBJECT;
 		}
 	}
-#endif
 
 	return rc;
 }
