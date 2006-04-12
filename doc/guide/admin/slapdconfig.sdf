@@ -705,8 +705,8 @@ access line is:
 >		[set=<setspec>]
 >		[aci=<attrname>]
 >	<access> ::= [self]{<level>|<priv>}
->	<level> ::= none | auth | compare | search | read | write
->	<priv> ::= {=|+|-}{w|r|s|c|x|0}+
+>	<level> ::= none | disclose | auth | compare | search | read | write | manage
+>	<priv> ::= {=|+|-}{m|w|r|s|c|x|d|0}+
 >	<control> ::= [stop | continue | break]
 
 where the <what> part selects the entries and/or attributes to which
@@ -839,25 +839,25 @@ As these can easily spoofed, the domain factor should not be avoided.
 
 H3: The access to grant
 
-
 The kind of <access> granted can be one of the following:
-
 
 !block table; colaligns="LRL"; coltags="EX,EX,N"; align=Center; \
 	title="Table 5.4: Access Levels"
-Level	Privileges	Description
-none	=0		no access
-auth	=x		needed to bind
-compare	=cx		needed to compare
-search	=scx		needed to apply search filters
-read	=rscx		needed to read search results
-write	=wrscx		needed to modify/rename
+Level		Privileges	Description
+none		=0			no access
+disclose	=d			needed for information disclosure on error
+auth		=dx			needed to authenticate (bind)
+compare		=cdx		needed to compare
+search		=scdx		needed to apply search filters
+read		=rscdx		needed to read search results
+write		=wrscdx		needed to modify/rename
+manage		=mwrscdx	needed to manage
 !endblock
 
-Each level implies all lower levels of access. So, for
-example, granting someone {{EX:write}} access to an entry also
-grants them {{EX:read}}, {{EX:search}}, {{EX:compare}}, and 
-{{EX:auth}} access.  However, one may use the privileges specifier
+Each level implies all lower levels of access. So, for example,
+granting someone {{EX:write}} access to an entry also grants them
+{{EX:read}}, {{EX:search}}, {{EX:compare}}, {{EX:auth}} and
+{{EX:disclose}} access.  However, one may use the privileges specifier
 to grant specific permissions.
 
 
