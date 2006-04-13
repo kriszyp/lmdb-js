@@ -1954,7 +1954,7 @@ init_module( int argc, char *argv[] )
 			do_not_load_schema = no;
 
 		} else {
-			Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"DDS unknown module arg[#%d]=\"%s\".\n",
 				i, argv[ i ] );
 			return 1;
