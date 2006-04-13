@@ -306,7 +306,6 @@ ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	}
 
-	assert( lc->lc_refcnt >= 0 );
 	tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
 			ldap_back_conndnlc_cmp );
 	assert( LDAP_BACK_CONN_TAINTED( lc ) || tmplc == lc );
