@@ -436,7 +436,8 @@ do_syncrep1(
 	}
 
 	op->o_protocol = LDAP_VERSION3;
-	ldap_set_option( si->si_ld, LDAP_OPT_PROTOCOL_VERSION, &op->o_protocol );
+	ldap_set_option( si->si_ld, LDAP_OPT_PROTOCOL_VERSION,
+		(const void *)&op->o_protocol );
 
 #ifdef HAVE_TLS
 	if ( si->si_check_tls ) {
