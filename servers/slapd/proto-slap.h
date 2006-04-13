@@ -416,6 +416,7 @@ LDAP_SLAPD_F (int) overlay_op_walk LDAP_P((
  * bconfig.c
  */
 LDAP_SLAPD_F (int) slap_loglevel_register LDAP_P (( slap_mask_t m, struct berval *s ));
+LDAP_SLAPD_F (int) slap_loglevel_get LDAP_P(( struct berval *s, int *l ));
 LDAP_SLAPD_F (int) str2loglevel LDAP_P(( const char *s, int *l ));
 LDAP_SLAPD_F (int) loglevel2bvarray LDAP_P(( int l, BerVarray *bva ));
 LDAP_SLAPD_F (const char *) loglevel2str LDAP_P(( int l ));
