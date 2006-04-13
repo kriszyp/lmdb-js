@@ -4681,6 +4681,8 @@ schema_destroy( void )
 	mru_destroy();
 	syn_destroy();
 
-	ldap_pvt_thread_mutex_destroy( &ad_undef_mutex );
-	ldap_pvt_thread_mutex_destroy( &oc_undef_mutex );
+	if( schema_init_done ) {
+		ldap_pvt_thread_mutex_destroy( &ad_undef_mutex );
+		ldap_pvt_thread_mutex_destroy( &oc_undef_mutex );
+	}
 }
