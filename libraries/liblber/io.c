@@ -247,7 +247,6 @@ ber_flush2( Sockbuf *sb, BerElement *ber, int freeit )
 		ber->ber_rwptr += rc;
 	} 
 
-done:;
 	if ( freeit & LBER_FLUSH_FREE_ON_SUCCESS ) ber_free( ber, 1 );
 
 	return 0;
