@@ -1062,7 +1062,7 @@ meta_back_db_config(
 			return 1;
 		}
 
-		if ( lutil_atou( version, argv[ 1 ] ) != 0 ) {
+		if ( lutil_atoi( version, argv[ 1 ] ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unable to parse version \"%s\" in \"protocol-version <version>\"\n",
 				fname, lineno, argv[ 1 ] );
