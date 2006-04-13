@@ -355,13 +355,15 @@ ldap_back_start_tls(
 		}
 
 		if ( protocol < LDAP_VERSION3 ) {
-			protocol = LDAP_VERSION3;
-			/* Set LDAP version */
-			ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-					(const void *)&protocol );
+			/* we should rather bail out... */
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			*text = "invalid protocol version";
 		}
 
-		rc = ldap_start_tls( ld, NULL, NULL, &msgid );
+		if ( rc == LDAP_SUCCESS ) {
+			rc = ldap_start_tls( ld, NULL, NULL, &msgid );
+		}
+
 		if ( rc == LDAP_SUCCESS ) {
 			LDAPMessage	*res = NULL;
 			struct timeval	tv;
@@ -469,7 +471,7 @@ static int
 ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
-	int		vers = op->o_protocol;
+	int		version;
 	LDAP		*ld = NULL;
 #ifdef HAVE_TLS
 	int		is_tls = op->o_conn->c_is_tls;
@@ -485,11 +487,17 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	/* Set LDAP version. This will always succeed: If the client
 	 * bound with a particular version, then so can we.
 	 */
-	if ( vers == 0 ) {
+	if ( li->li_version != 0 ) {
+		version = li->li_version;
+
+	} else if ( op->o_protocol != 0 ) {
+		version = op->o_protocol;
+
+	} else {
 		/* assume it's an internal op; set to LDAPv3 */
-		vers = LDAP_VERSION3;
+		version = LDAP_VERSION3;
 	}
-	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
+	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&version );
 
 	/* automatically chase referrals ("chase-referrals [{yes|no}]" statement) */
 	ldap_set_option( ld, LDAP_OPT_REFERRALS,
@@ -1205,6 +1213,21 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 	int		msgid;
 	int		rc;
 
+	/* don't proxyAuthz if protocol is not LDAPv3 */
+	switch ( li->li_version ) {
+	case LDAP_VERSION3:
+		break;
+
+	case 0:
+		if ( op->o_protocol == 0 || op->o_protocol == LDAP_VERSION3 ) {
+			break;
+		}
+		/* fall thru */
+
+	default:
+		goto done;
+	}
+
 	if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
 		ndn = op->o_conn->c_ndn;
 
@@ -1459,6 +1482,21 @@ ldap_back_proxy_authz_ctrl(
 	*pctrls = NULL;
 
 	rs->sr_err = LDAP_SUCCESS;
+
+	/* don't proxyAuthz if protocol is not LDAPv3 */
+	switch ( li->li_version ) {
+	case LDAP_VERSION3:
+		break;
+
+	case 0:
+		if ( op->o_protocol == 0 || op->o_protocol == LDAP_VERSION3 ) {
+			break;
+		}
+		/* fall thru */
+
+	default:
+		goto done;
+	}
 
 	/* FIXME: SASL/EXTERNAL over ldapi:// doesn't honor the authcID,
 	 * but if it is not set this test fails.  We need a different
