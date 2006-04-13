@@ -1296,6 +1296,7 @@ void bindconf_free( slap_bindconf *bc ) {
 #endif
 }
 
+#ifdef HAVE_TLS
 static struct {
 	const char *key;
 	size_t offset;
@@ -1362,6 +1363,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 	
 	return res;
 }
+#endif
 
 /* -------------------------------------- */
 
