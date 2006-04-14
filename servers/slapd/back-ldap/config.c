@@ -1150,7 +1150,7 @@ done_url:;
 			} else if ( strncasecmp( c->argv[ i ], "flags=", STRLENOF( "flags=" ) ) == 0 ) {
 				char	*argvi = c->argv[ i ] + STRLENOF( "flags=" );
 				char	**flags = ldap_str2charray( argvi, "," );
-				int	j;
+				int	j, err = 0;
 
 				if ( flags == NULL ) {
 					snprintf( c->msg, sizeof( c->msg ),
@@ -1162,6 +1162,7 @@ done_url:;
 				}
 
 				for ( j = 0; flags[ j ] != NULL; j++ ) {
+
 					if ( strcasecmp( flags[ j ], "override" ) == 0 ) {
 						li->li_idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
 
@@ -1178,9 +1179,12 @@ done_url:;
                                        		 		"in \"idassert-mode <args>\" "
                                        		 		"incompatible with previously issued \"obsolete-encoding-workaround\" flag.\n",
                                        	 			c->fname, c->lineno, 0 );
-                                			return 1;
+							err = 1;
+							break;
+
+						} else {
+							li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
 						}
-						li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
 
 					} else if ( strcasecmp( flags[ j ], "obsolete-encoding-workaround" ) == 0 ) {
 						if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
@@ -1189,9 +1193,12 @@ done_url:;
                                         			"in \"idassert-mode <args>\" "
                                         			"incompatible with previously issued \"obsolete-proxy-authz\" flag.\n",
                                         			c->fname, c->lineno, 0 );
-                                			return 1;
+							err = 1;
+							break;
+
+						} else {
+							li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
 						}
-						li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
 
 					} else {
 						snprintf( c->msg, sizeof( c->msg ),
@@ -1199,12 +1206,15 @@ done_url:;
 							"unknown flag \"%s\"",
 							flags[ j ] );
 						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-						ldap_charray_free( flags );
-						return 1;
+						err = 1;
+						break;
 					}
 				}
 
 				ldap_charray_free( flags );
+				if ( err ) {
+					return 1;
+				}
 
 			} else if ( bindconf_parse( c->argv[ i ], &li->li_idassert ) ) {
 				return 1;

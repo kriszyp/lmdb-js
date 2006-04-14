@@ -668,7 +668,6 @@ meta_back_dobind(
 		metatarget_t		*mt = &mi->mi_targets[ i ];
 		metasingleconn_t	*msc = &mc->mc_conns[ i ];
 		int			rc, do_retry = 1;
-		char			*rootdn = NULL;
 
 		/*
 		 * Not a candidate
@@ -735,7 +734,7 @@ retry:;
 
 			snprintf( buf, sizeof( buf ),
 				"meta_back_dobind[%d]: (%s) err=%d (%s).",
-				i, rootdn ? rootdn : "anonymous",
+				i, isroot ? op->o_bd->be_rootdn.bv_val : "anonymous",
 				rc, ldap_err2string( rc ) );
 			Debug( LDAP_DEBUG_ANY,
 				"%s %s\n",
@@ -762,11 +761,11 @@ retry:;
 			"%s meta_back_dobind[%d]: "
 			"(%s)\n",
 			op->o_log_prefix, i,
-			rootdn ? rootdn : "anonymous" );
+			isroot ? op->o_bd->be_rootdn.bv_val : "anonymous" );
 
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		LDAP_BACK_CONN_BINDING_CLEAR( msc );
-		if ( rootdn ) {
+		if ( isroot ) {
 			LDAP_BACK_CONN_ISBOUND_SET( msc );
 		} else {
 			LDAP_BACK_CONN_ISANON_SET( msc );

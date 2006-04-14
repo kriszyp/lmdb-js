@@ -1713,6 +1713,7 @@ free_ber:;
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			op->o_tmpfree( ctrls, op->o_tmpmemctx );
 			ctrls = NULL;
+			goto done;
 		}
 
 	} else if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
@@ -1725,6 +1726,7 @@ free_ber:;
 		if ( strncasecmp( authzID.bv_val, "dn:", STRLENOF( "dn:" ) ) != 0 ) {
 			op->o_tmpfree( ctrls[ 0 ]->ldctl_value.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( ctrls, op->o_tmpmemctx );
+			ctrls = NULL;
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
 		}
