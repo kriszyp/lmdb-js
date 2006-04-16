@@ -2693,6 +2693,7 @@ typedef struct slap_conn {
 	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
 #else
+#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) ((void) 0)
 #define StatslogTest( level ) (0)
 #endif
 
