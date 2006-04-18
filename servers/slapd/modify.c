@@ -656,21 +656,11 @@ int slap_mods_check(
 				struct berval pval;
 
 				if ( pretty ) {
-#ifdef SLAP_ORDERED_PRETTYNORM
 					rc = ordered_value_pretty( ad,
 						&ml->sml_values[nvals], &pval, ctx );
-#else /* ! SLAP_ORDERED_PRETTYNORM */
-					rc = pretty( ad->ad_type->sat_syntax,
-						&ml->sml_values[nvals], &pval, ctx );
-#endif /* ! SLAP_ORDERED_PRETTYNORM */
 				} else {
-#ifdef SLAP_ORDERED_PRETTYNORM
 					rc = ordered_value_validate( ad,
 						&ml->sml_values[nvals], ml->sml_op );
-#else /* ! SLAP_ORDERED_PRETTYNORM */
-					rc = validate( ad->ad_type->sat_syntax,
-						&ml->sml_values[nvals] );
-#endif /* ! SLAP_ORDERED_PRETTYNORM */
 				}
 
 				if( rc != 0 ) {
@@ -716,19 +706,11 @@ int slap_mods_check(
 					(nvals+1)*sizeof(struct berval), ctx );
 
 				for ( nvals = 0; !BER_BVISNULL( &ml->sml_values[nvals] ); nvals++ ) {
-#ifdef SLAP_ORDERED_PRETTYNORM
 					rc = ordered_value_normalize(
 						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 						ad,
 						ad->ad_type->sat_equality,
 						&ml->sml_values[nvals], &ml->sml_nvalues[nvals], ctx );
-#else /* ! SLAP_ORDERED_PRETTYNORM */
-					rc = ad->ad_type->sat_equality->smr_normalize(
-						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						ad->ad_type->sat_syntax,
-						ad->ad_type->sat_equality,
-						&ml->sml_values[nvals], &ml->sml_nvalues[nvals], ctx );
-#endif /* ! SLAP_ORDERED_PRETTYNORM */
 					if ( rc ) {
 						Debug( LDAP_DEBUG_ANY,
 							"<= str2entry NULL (ssyn_normalize %d)\n",

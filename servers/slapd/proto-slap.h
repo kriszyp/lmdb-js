@@ -50,7 +50,6 @@ LDAP_SLAPD_F (int) access_allowed_mask LDAP_P((
 	AccessControlState *state,
 	slap_mask_t *mask ));
 #define access_allowed(op,e,desc,val,access,state) access_allowed_mask(op,e,desc,val,access,state,NULL)
-#ifdef SLAP_OVERLAY_ACCESS
 LDAP_SLAPD_F (int) slap_access_allowed LDAP_P((
 	Operation		*op,
 	Entry			*e,
@@ -67,7 +66,6 @@ LDAP_SLAPD_F (int) slap_access_always_allowed LDAP_P((
 	slap_access_t		access,
 	AccessControlState	*state,
 	slap_mask_t		*maskp ));
-#endif /* SLAP_OVERLAY_ACCESS */
 
 LDAP_SLAPD_F (int) acl_check_modlist LDAP_P((
 	Operation *op, Entry *e, Modifications *ml ));
@@ -418,6 +416,7 @@ LDAP_SLAPD_F (int) overlay_op_walk LDAP_P((
  * bconfig.c
  */
 LDAP_SLAPD_F (int) slap_loglevel_register LDAP_P (( slap_mask_t m, struct berval *s ));
+LDAP_SLAPD_F (int) slap_loglevel_get LDAP_P(( struct berval *s, int *l ));
 LDAP_SLAPD_F (int) str2loglevel LDAP_P(( const char *s, int *l ));
 LDAP_SLAPD_F (int) loglevel2bvarray LDAP_P(( int l, BerVarray *bva ));
 LDAP_SLAPD_F (const char *) loglevel2str LDAP_P(( int l ));
@@ -1440,7 +1439,6 @@ LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P((
 	int argc, 
 	char **argv ));
 #endif /* SLAP_AUTH_REWRITE */
-#ifdef SLAP_AUTHZ_SYNTAX
 LDAP_SLAPD_F (int) authzValidate LDAP_P((
 	Syntax *syn, struct berval *in ));
 #if 0
@@ -1464,7 +1462,6 @@ LDAP_SLAPD_F (int) authzNormalize LDAP_P((
 	struct berval *val,
 	struct berval *normalized,
 	void *ctx ));
-#endif /* SLAP_AUTHZ_SYNTAX */
 
 /*
  * schema.c

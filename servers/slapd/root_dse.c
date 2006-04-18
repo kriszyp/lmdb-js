@@ -477,7 +477,8 @@ slap_discover_feature(
 		return rc;
 	}
 
-	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
+		(const void *)&version );
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}

@@ -232,13 +232,13 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 #else /* ! LDAP_DEBUG */
 /* TODO: in case LDAP_DEBUG is undefined, make sure logs with appropriate
  * severity gets thru anyway */
-#define Log0( level, severity, fmt )
-#define Log1( level, severity, fmt, arg1 )
-#define Log2( level, severity, fmt, arg1, arg2 )
-#define Log3( level, severity, fmt, arg1, arg2, arg3 )
-#define Log4( level, severity, fmt, arg1, arg2, arg3, arg4 )
-#define Log5( level, severity, fmt, arg1, arg2, arg3, arg4, arg5 )
-#define Debug( level, fmt, arg1, arg2, arg3 )
+#define Log0( level, severity, fmt ) ((void)0)
+#define Log1( level, severity, fmt, arg1 ) ((void)0)
+#define Log2( level, severity, fmt, arg1, arg2 ) ((void)0)
+#define Log3( level, severity, fmt, arg1, arg2, arg3 ) ((void)0)
+#define Log4( level, severity, fmt, arg1, arg2, arg3, arg4 ) ((void)0)
+#define Log5( level, severity, fmt, arg1, arg2, arg3, arg4, arg5 ) ((void)0)
+#define Debug( level, fmt, arg1, arg2, arg3 ) ((void)0)
 #define LogTest(level) ( 0 )
 #endif /* ! LDAP_DEBUG */
 

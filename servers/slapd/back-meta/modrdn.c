@@ -55,7 +55,6 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	dc.rs = rs;
 
 	if ( op->orr_newSup ) {
-		int	version = LDAP_VERSION3;
 
 		/*
 		 * NOTE: the newParent, if defined, must be on the 
@@ -76,11 +75,25 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		 * feature from back-ldap
 		 */
 
-		/* newSuperior needs LDAPv3; if we got here, we can safely
-		 * enforce it */
-		ldap_set_option( mc->mc_conns[ candidate ].msc_ld,
-				LDAP_OPT_PROTOCOL_VERSION, &version );
+		/* needs LDAPv3 */
+		switch ( mi->mi_targets[ candidate ].mt_version ) {
+		case LDAP_VERSION3:
+			break;
 
+		case 0:
+			if ( op->o_protocol == 0 || op->o_protocol == LDAP_VERSION3 ) {
+				break;
+			}
+			/* fall thru */
+
+		default:
+			/* op->o_protocol cannot be anything but LDAPv3,
+			 * otherwise wouldn't be here */
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			maperr = 0;
+			goto cleanup;
+		}
+		
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */

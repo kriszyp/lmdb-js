@@ -963,8 +963,10 @@ stop:
 	/* Setting it to itself decreases refcount, allowing it to be freed
 	 * when the LD is freed.
 	 */
-	ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, slap_tls_ctx );
-	ldap_ld_free( slap_tls_ld, 0, NULL, NULL );
+	if ( slap_tls_ld ) {
+		ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, slap_tls_ctx );
+		ldap_unbind( slap_tls_ld );
+	}
 	ldap_pvt_tls_destroy();
 #endif
 

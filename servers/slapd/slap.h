@@ -64,24 +64,17 @@ LDAP_BEGIN_DECL
 #define SLAP_SEM_LOAD_CONTROL
 #endif
 
-#define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
-#define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
-#define SLAP_OVERLAY_ACCESS
-#define LDAP_COMP_MATCH
-#define LDAP_DYNAMIC_OBJECTS
-#define LDAP_SYNC_TIMESTAMP
+#ifdef LDAP_DEVEL
 #define LDAP_COLLECTIVE_ATTRIBUTES
-#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
+#define LDAP_COMP_MATCH
+#define LDAP_SYNC_TIMESTAMP
+#endif
 
-#define SLAP_ORDERED_PRETTYNORM
-#define SLAP_AUTHZ_SYNTAX
+#define LDAP_DYNAMIC_OBJECTS
+#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
-#endif
-
-#if defined(LDAP_SLAPI) && !defined(SLAP_OVERLAY_ACCESS)
-#define SLAP_OVERLAY_ACCESS
 #endif
 
 /*
@@ -1979,8 +1972,13 @@ typedef struct slap_rep {
 #define REP_ENTRY_MODIFIABLE	0x0001U
 #define REP_ENTRY_MUSTBEFREED	0x0002U
 #define REP_ENTRY_MUSTRELEASE	0x0004U
+#define	REP_ENTRY_MASK		(REP_ENTRY_MODIFIABLE|REP_ENTRY_MUSTBEFREED|REP_ENTRY_MUSTRELEASE)
+
 #define REP_MATCHED_MUSTBEFREED	0x0010U
+#define	REP_MATCHED_MASK	(REP_MATCHED_MUSTBEFREED)
+
 #define REP_REF_MUSTBEFREED	0x0020U
+#define REP_REF_MASK		(REP_REF_MUSTBEFREED)
 
 #define	REP_NO_ENTRYDN		0x1000U
 #define	REP_NO_SUBSCHEMA	0x2000U
@@ -2019,7 +2017,6 @@ typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
 typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
 	Entry *e, int *hasSubs ));
-#ifdef SLAP_OVERLAY_ACCESS
 typedef int (BI_access_allowed) LDAP_P(( struct slap_op *op, Entry *e,
 	AttributeDescription *desc, struct berval *val, slap_access_t access,
 	AccessControlState *state, slap_mask_t *maskp ));
@@ -2029,7 +2026,6 @@ typedef int (BI_acl_group) LDAP_P(( struct slap_op *op, Entry *target,
 typedef int (BI_acl_attribute) LDAP_P(( struct slap_op *op, Entry *target,
 	struct berval *entry_ndn, AttributeDescription *entry_at,
 	BerVarray *vals, slap_access_t access ));
-#endif /* SLAP_OVERLAY_ACCESS */
 
 typedef int (BI_conn_func) LDAP_P(( BackendDB *bd, struct slap_conn *c ));
 typedef BI_conn_func BI_connection_init;
@@ -2128,11 +2124,9 @@ struct slap_backend_info {
 	BI_entry_release_rw	*bi_entry_release_rw;
 
 	BI_has_subordinates	*bi_has_subordinates;
-#ifdef SLAP_OVERLAY_ACCESS
 	BI_access_allowed	*bi_access_allowed;
 	BI_acl_group		*bi_acl_group;
 	BI_acl_attribute	*bi_acl_attribute;
-#endif /* SLAP_OVERLAY_ACCESS */
 
 	BI_connection_init	*bi_connection_init;
 	BI_connection_destroy	*bi_connection_destroy;
@@ -2699,6 +2693,7 @@ typedef struct slap_conn {
 	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
 #else
+#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) ((void) 0)
 #define StatslogTest( level ) (0)
 #endif
 

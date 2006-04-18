@@ -39,15 +39,12 @@ monitor_back_compare( struct slap_op *op, struct slap_rep *rs)
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 			if ( !access_allowed_mask( op, matched,
 					slap_schema.si_ad_entry,
 					NULL, ACL_DISCLOSE, NULL, NULL ) )
 			{
 				/* do nothing */ ;
-			} else 
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-			{
+			} else {
 				rs->sr_matched = matched->e_dn;
 			}
 		}
@@ -97,13 +94,11 @@ return_results:;
 		break;
 
 	default:
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 		if ( !access_allowed_mask( op, e, slap_schema.si_ad_entry,
 				NULL, ACL_DISCLOSE, NULL, NULL ) )
 		{
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		break;
 	}
 		

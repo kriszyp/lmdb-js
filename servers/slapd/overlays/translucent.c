@@ -208,7 +208,8 @@ static int translucent_delete(Operation *op, SlapReply *rs) {
 static int
 translucent_tag_cb( Operation *op, SlapReply *rs )
 {
-	op->o_tag = (ber_tag_t)op->o_callback->sc_private;
+	op->o_tag = LDAP_REQ_MODIFY;
+	op->orm_modlist = op->o_callback->sc_private;
 	rs->sr_tag = slap_req2res( op->o_tag );
 
 	return SLAP_CB_CONTINUE;
@@ -400,7 +401,7 @@ release:
 	glue_parent(&nop);
 
 	cb.sc_response = translucent_tag_cb;
-	cb.sc_private = (void *)LDAP_REQ_MODIFY;
+	cb.sc_private = op->orm_modlist;
 	cb.sc_next = nop.o_callback;
 	nop.o_callback = &cb;
 	rc = on->on_info->oi_orig->bi_op_add(&nop, &nrs);

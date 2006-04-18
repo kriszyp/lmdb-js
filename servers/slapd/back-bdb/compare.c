@@ -66,16 +66,13 @@ dn2entry_retry:
 	e = ei->bei_e;
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if ( e != NULL ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 			/* return referral only if "disclose" is granted on the object */
 			if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
 				NULL, ACL_DISCLOSE, NULL ) )
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-			} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-			{
+			} else {
 				rs->sr_matched = ch_strdup( e->e_dn );
 				rs->sr_ref = is_entry_referral( e )
 					? get_entry_referrals( op, e )
@@ -103,15 +100,12 @@ dn2entry_retry:
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 		/* return referral only if "disclose" is granted on the object */
 		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
 			NULL, ACL_DISCLOSE, NULL ) )
 		{
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-		{
+		} else {
 			/* entry is a referral, don't allow compare */
 			rs->sr_ref = get_entry_referrals( op, e );
 			rs->sr_err = LDAP_REFERRAL;
@@ -131,14 +125,11 @@ dn2entry_retry:
 	if ( get_assert( op ) &&
 		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
 	{
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
 			NULL, ACL_DISCLOSE, NULL ) )
 		{
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-		{
+		} else {
 			rs->sr_err = LDAP_ASSERTION_FAILED;
 		}
 		goto return_results;
@@ -147,16 +138,13 @@ dn2entry_retry:
 	if ( !access_allowed( op, e, op->oq_compare.rs_ava->aa_desc,
 		&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL ) )
 	{
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 		/* return error only if "disclose"
 		 * is granted on the object */
 		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
 					NULL, ACL_DISCLOSE, NULL ) )
 		{
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		} else
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
-		{
+		} else {
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		}
 		goto return_results;

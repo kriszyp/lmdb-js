@@ -27,6 +27,9 @@
 #include "rwm.h"
 
 static int
+rwm_db_destroy( BackendDB *be );
+
+static int
 rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
@@ -1150,12 +1153,11 @@ rwm_chk_referrals( Operation *op, SlapReply *rs )
 
 static int
 rwm_rw_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 #ifdef ENABLE_REWRITE
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
@@ -1175,12 +1177,11 @@ rwm_rw_config(
 
 static int
 rwm_suffixmassage_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -1269,12 +1270,11 @@ rwm_suffixmassage_config(
 
 static int
 rwm_m_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -1352,12 +1352,11 @@ rwm_response( Operation *op, SlapReply *rs )
 
 static int
 rwm_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -1425,8 +1424,7 @@ rwm_db_config(
 
 static int
 rwm_db_init(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldapmapping	*mapping = NULL;
@@ -1434,14 +1432,15 @@ rwm_db_init(
 #ifdef ENABLE_REWRITE
 	char			*rargv[ 3 ];
 #endif /* ENABLE_REWRITE */
+	int			rc = 0;
 
 	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
 
 #ifdef ENABLE_REWRITE
  	rwmap->rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	if ( rwmap->rwm_rw == NULL ) {
- 		ch_free( rwmap );
- 		return -1;
+ 		rc = -1;
+		goto error_return;
  	}
 
 	/* this rewriteContext by default must be null;
@@ -1460,18 +1459,23 @@ rwm_db_init(
 	if ( rwm_map_init( &rwmap->rwm_oc, &mapping ) != LDAP_SUCCESS ||
 			rwm_map_init( &rwmap->rwm_at, &mapping ) != LDAP_SUCCESS )
 	{
-		return 1;
+		rc = 1;
+		goto error_return;
 	}
 
+error_return:;
 	on->on_bi.bi_private = (void *)rwmap;
 
-	return 0;
+	if ( rc ) {
+		(void)rwm_db_destroy( be );
+	}
+
+	return rc;
 }
 
 static int
 rwm_db_destroy(
-	BackendDB *be
-)
+	BackendDB	*be )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	int		rc = 0;
@@ -1503,8 +1507,11 @@ rwm_db_destroy(
 
 static slap_overinst rwm = { { NULL } };
 
+#if SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC
+static
+#endif /* SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC */
 int
-rwm_initialize(void)
+rwm_initialize( void )
 {
 	memset( &rwm, 0, sizeof( slap_overinst ) );
 

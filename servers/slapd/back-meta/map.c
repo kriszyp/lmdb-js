@@ -297,6 +297,9 @@ ldap_back_int_filter_map_rewrite(
 			ber_bvnone = BER_BVC( "(?=none)" );
 	ber_len_t	len;
 
+	assert( fstr != NULL );
+	BER_BVZERO( fstr );
+
 	if ( f == NULL ) {
 		ber_dupbv( fstr, &ber_bvnone );
 		return LDAP_OTHER;

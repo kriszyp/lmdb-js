@@ -1050,6 +1050,38 @@ meta_back_db_config(
 			mi->mi_targets[ i ].mt_nretries = nretries;
 		}
 
+	} else if ( strcasecmp( argv[ 0 ], "protocol-version" ) == 0 ) {
+		int	*version = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_version
+				: &mi->mi_version;
+
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: need value in \"protocol-version <version>\"\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( lutil_atoi( version, argv[ 1 ] ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse version \"%s\" in \"protocol-version <version>\"\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
+		switch ( *version ) {
+		case 0:
+		case LDAP_VERSION2:
+		case LDAP_VERSION3:
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unsupported version \"%s\" in \"protocol-version <version>\"\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
 	/* anything else */
 	} else {
 		return SLAP_CONF_UNKNOWN;

@@ -665,8 +665,8 @@ field will have.
 Its component are defined as
 .LP
 .nf
-	<level> ::= none|disclose|auth|compare|search|read|write
-	<priv> ::= {=|+|-}{w|r|s|c|x|d|0}+
+	<level> ::= none|disclose|auth|compare|search|read|write|manage
+	<priv> ::= {=|+|-}{m|w|r|s|c|x|d|0}+
 .fi
 .LP
 The modifier
@@ -699,8 +699,8 @@ The possible levels are
 and
 .BR write .
 Each access level implies all the preceding ones, thus 
-.B write
-access will imply all accesses.
+.B manage
+grants all access including administrative access,
 .LP
 The
 .B none 
@@ -733,6 +733,8 @@ and
 .B -
 signs add/remove access privileges to the existing ones.
 The privileges are
+.B m
+for manage,
 .B w
 for write,
 .B r

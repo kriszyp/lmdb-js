@@ -63,6 +63,7 @@ enum {
 	LDAP_BACK_CFG_IDLE_TIMEOUT,
 	LDAP_BACK_CFG_CONN_TTL,
 	LDAP_BACK_CFG_NETWORK_TIMEOUT,
+	LDAP_BACK_CFG_VERSION,
 	LDAP_BACK_CFG_REWRITE,
 
 	LDAP_BACK_CFG_LAST
@@ -239,6 +240,14 @@ static ConfigTable ldapcfg[] = {
 			"NAME 'olcDbNetworkTimeout' "
 			"DESC 'connection network timeout' "
 			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ "protocol-version", "version", 2, 0, 0,
+		ARG_MAGIC|ARG_INT|LDAP_BACK_CFG_VERSION,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.18 "
+			"NAME 'olcDbProtocolVersion' "
+			"DESC 'protocol version' "
+			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
@@ -612,6 +621,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 			value_add_one( &c->rvalue_vals, &bv );
 			} break;
 
+		case LDAP_BACK_CFG_VERSION:
+			if ( li->li_version == 0 ) {
+				return 1;
+			}
+
+			c->value_int = li->li_version;
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -699,6 +716,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_NETWORK_TIMEOUT:
 			li->li_network_timeout = 0;
+			break;
+
+		case LDAP_BACK_CFG_VERSION:
+			li->li_version = 0;
 			break;
 
 		default:
@@ -1059,7 +1080,6 @@ done_url:;
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 		struct berval	bv;
-#ifdef SLAP_AUTHZ_SYNTAX
 		struct berval	in;
 		int		rc;
 
@@ -1072,9 +1092,6 @@ done_url:;
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
-#else /* !SLAP_AUTHZ_SYNTAX */
-		ber_str2bv( c->argv[ 1 ], 0, 1, &bv );
-#endif /* !SLAP_AUTHZ_SYNTAX */
 		ber_bvarray_add( &li->li_idassert_authz, &bv );
 		} break;
 
@@ -1133,7 +1150,7 @@ done_url:;
 			} else if ( strncasecmp( c->argv[ i ], "flags=", STRLENOF( "flags=" ) ) == 0 ) {
 				char	*argvi = c->argv[ i ] + STRLENOF( "flags=" );
 				char	**flags = ldap_str2charray( argvi, "," );
-				int	j;
+				int	j, err = 0;
 
 				if ( flags == NULL ) {
 					snprintf( c->msg, sizeof( c->msg ),
@@ -1145,6 +1162,7 @@ done_url:;
 				}
 
 				for ( j = 0; flags[ j ] != NULL; j++ ) {
+
 					if ( strcasecmp( flags[ j ], "override" ) == 0 ) {
 						li->li_idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
 
@@ -1161,9 +1179,12 @@ done_url:;
                                        		 		"in \"idassert-mode <args>\" "
                                        		 		"incompatible with previously issued \"obsolete-encoding-workaround\" flag.\n",
                                        	 			c->fname, c->lineno, 0 );
-                                			return 1;
+							err = 1;
+							break;
+
+						} else {
+							li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
 						}
-						li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
 
 					} else if ( strcasecmp( flags[ j ], "obsolete-encoding-workaround" ) == 0 ) {
 						if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
@@ -1172,9 +1193,12 @@ done_url:;
                                         			"in \"idassert-mode <args>\" "
                                         			"incompatible with previously issued \"obsolete-proxy-authz\" flag.\n",
                                         			c->fname, c->lineno, 0 );
-                                			return 1;
+							err = 1;
+							break;
+
+						} else {
+							li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
 						}
-						li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
 
 					} else {
 						snprintf( c->msg, sizeof( c->msg ),
@@ -1182,12 +1206,15 @@ done_url:;
 							"unknown flag \"%s\"",
 							flags[ j ] );
 						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-						ldap_charray_free( flags );
-						return 1;
+						err = 1;
+						break;
 					}
 				}
 
 				ldap_charray_free( flags );
+				if ( err ) {
+					return 1;
+				}
 
 			} else if ( bindconf_parse( c->argv[ i ], &li->li_idassert ) ) {
 				return 1;
@@ -1294,6 +1321,19 @@ done_url:;
 		}
 		li->li_network_timeout = (time_t)t;
 		} break;
+
+	case LDAP_BACK_CFG_VERSION:
+		switch ( c->value_int ) {
+		case 0:
+		case LDAP_VERSION2:
+		case LDAP_VERSION3:
+			li->li_version = c->value_int;
+			break;
+
+		default:
+			return 1;
+		}
+		break;
 
 	case LDAP_BACK_CFG_REWRITE:
 		snprintf( c->msg, sizeof( c->msg ),

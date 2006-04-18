@@ -1968,7 +1968,6 @@ backsql_search( Operation *op, SlapReply *rs )
 		/* fall thru */
 
 	default:
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 		if ( !BER_BVISNULL( &base_entry.e_nname )
 				&& !access_allowed( op, &base_entry,
 					slap_schema.si_ad_entry, NULL,
@@ -1982,7 +1981,6 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_matched = NULL;
 			rs->sr_text = NULL;
 		}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 		send_ldap_result( op, rs );
 
@@ -1997,7 +1995,6 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		goto done;
 	}
-#ifdef SLAP_ACL_HONOR_DISCLOSE
 	/* NOTE: __NEW__ "search" access is required
 	 * on searchBase object */
 	{
@@ -2028,7 +2025,6 @@ backsql_search( Operation *op, SlapReply *rs )
 			goto done;
 		}
 	}
-#endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	bsi.bsi_e = NULL;
 

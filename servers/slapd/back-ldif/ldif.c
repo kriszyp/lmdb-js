@@ -82,17 +82,23 @@ static ConfigOCs ldifocs[] = {
 };
 
 static void
-dn2path(struct berval * dn, struct berval * rootdn, struct berval * base_path,
+dn2path(struct berval * dn, struct berval * suffixdn, struct berval * base_path,
 	struct berval *res)
 {
 	char *ptr, *sep, *end;
+
+	assert( dn != NULL );
+	assert( !BER_BVISNULL( dn ) );
+	assert( suffixdn != NULL );
+	assert( !BER_BVISNULL( suffixdn ) );
+	assert( dnIsSuffix( dn, suffixdn ) );
 
 	res->bv_len = dn->bv_len + base_path->bv_len + 1 + STRLENOF( LDIF );
 	res->bv_val = ch_malloc( res->bv_len + 1 );
 	ptr = lutil_strcopy( res->bv_val, base_path->bv_val );
 	*ptr++ = LDAP_DIRSEP[0];
-	ptr = lutil_strcopy( ptr, rootdn->bv_val );
-	end = dn->bv_val + dn->bv_len - rootdn->bv_len - 1;
+	ptr = lutil_strcopy( ptr, suffixdn->bv_val );
+	end = dn->bv_val + dn->bv_len - suffixdn->bv_len - 1;
 	while ( end > dn->bv_val ) {
 		for (sep = end-1; sep >=dn->bv_val && !DN_SEPARATOR( *sep ); sep--);
 		*ptr++ = LDAP_DIRSEP[0];
@@ -926,15 +932,15 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 
 
 static int move_entry(Entry * entry, struct berval * ndn,
-			   struct berval * newndn, struct berval * rootdn,
+			   struct berval * newndn, struct berval * suffixdn,
 			   struct berval * base_path) {
 	int res;
 	int exists_res;
 	struct berval path;
 	struct berval newpath;
 
-	dn2path(ndn, rootdn, base_path, &path);
-	dn2path(newndn, rootdn, base_path, &newpath);
+	dn2path(ndn, suffixdn, base_path, &path);
+	dn2path(newndn, suffixdn, base_path, &newpath);
 
 	if((entry == NULL || path.bv_val == NULL) || newpath.bv_val == NULL) {
 		/* some object doesn't exist */
@@ -1045,12 +1051,23 @@ int ldif_back_entry_get(
 	Entry **ent )
 {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
+	struct berval op_dn = op->o_req_dn, op_ndn = op->o_req_ndn;
+
+	assert( ndn != NULL );
+	assert( !BER_BVISNULL( ndn ) );
 
 	ldap_pvt_thread_mutex_lock( &ni->li_mutex );
-
+	op->o_req_dn = *ndn;
+	op->o_req_ndn = *ndn;
 	*ent = (Entry *) get_entry( op, &ni->li_base_path );
-
+	op->o_req_dn = op_dn;
+	op->o_req_ndn = op_ndn;
 	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+
+	if ( *ent && oc && !is_entry_objectclass_or_sub( *ent, oc ) ) {
+		entry_free( *ent );
+		*ent = NULL;
+	}
 
 	return ( *ent == NULL ? 1 : 0 );
 }
@@ -1249,9 +1266,7 @@ ldif_back_initialize(
 	bi->bi_entry_get_rw = ldif_back_entry_get;
 
 #if 0	/* NOTE: uncomment to completely disable access control */
-#ifdef SLAP_OVERLAY_ACCESS
 	bi->bi_access_allowed = slap_access_always_allowed;
-#endif /* SLAP_OVERLAY_ACCESS */
 #endif
 
 	bi->bi_tool_entry_open = ldif_tool_entry_open;
