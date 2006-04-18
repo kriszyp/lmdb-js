@@ -6,8 +6,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.4
     development tools.
 
     This release contains the following major enhancements:
-
-        TBD
+        To be completed before BETA release
 
     This release includes the following major components:
 
@@ -18,7 +17,6 @@ A N N O U N C E M E N T -- OpenLDAP 2.4
         * LDIF tools - data conversion tools for use with slapd
         * LDAP tools - A collection of command line LDAP utilities
         * Admin Guide, Manual Pages - associated documentation
-        * SNACC - ASN.1 development tools for OpenLDAP
 
     In addition, there are some contributed components:
 
@@ -31,7 +29,7 @@ ACKNOWLEDGEMENTS
     OpenLDAP Software is developed by the OpenLDAP Project.  The
     Project consists of a team of volunteers whose use the
     Internet to coordinate their activities.  The Project is
-    managed by the OpenLDAP Foundation.
+    an organized activity of the OpenLDAP Foundation.
 
     OpenLDAP Software is derived from University of Michigan LDAP,
     release 3.3.
