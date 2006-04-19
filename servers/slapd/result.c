@@ -1466,9 +1466,43 @@ str2result(
 		}
 
 		if ( strncasecmp( s, "code", STRLENOF( "code" ) ) == 0 ) {
-			if ( c != NULL ) {
-				*code = atoi( c );
+			char	*next = NULL;
+			long	retcode;
+
+			if ( c == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) missing value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
 			}
+
+			while ( isspace( c[ 0 ] ) ) c++;
+			if ( c[ 0 ] == '\0' ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) missing or empty value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
+			}
+
+			retcode = strtol( c, &next, 10 );
+			if ( next == NULL || next == c ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) unable to parse value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
+			}
+
+			while ( isspace( next[ 0 ] ) ) next++;
+			if ( next[ 0 ] != '\0' ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) extra cruft after value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
+			}
+
+			/* FIXME: what if it's larger that max int? */
+			*code = (int)retcode;
+
 		} else if ( strncasecmp( s, "matched", STRLENOF( "matched" ) ) == 0 ) {
 			if ( c != NULL ) {
 				*matched = c;
