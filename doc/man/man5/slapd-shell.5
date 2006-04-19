@@ -121,7 +121,10 @@ want the backend to handle.
 Operations for which a command is not supplied will be refused with an
 "unwilling to perform" error.
 .LP
-The commands - except \fBunbind\fP - should output:
+The \fBsearch\fP command should output the entries in LDIF format,
+each entry followed by a blank line, and after these the RESULT below.
+.LP
+All commands except \fBunbind\fP should then output:
 .RS
 .nf
 RESULT
@@ -130,9 +133,7 @@ matched: <matched DN>
 info: <text>
 .fi
 .RE
-where only RESULT is mandatory.
-The \fBsearch\fP RESULT should be preceded by the entries in LDIF
-format, each entry followed by a blank line.
+where only the RESULT line is mandatory.
 Lines starting with `#' or `DEBUG:' are ignored.
 .SH ACCESS CONTROL
 The
