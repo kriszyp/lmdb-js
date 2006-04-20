@@ -687,7 +687,10 @@ be_slurp_update( Operation *op )
 int
 be_shadow_update( Operation *op )
 {
-	return ( SLAP_SYNC_SHADOW( op->o_bd ) ||
+	/* This assumes that all internal ops (connid == -1) on a syncrepl
+	 * database are syncrepl operations.
+	 */
+	return (( SLAP_SYNC_SHADOW( op->o_bd ) && op->o_connid == -1 ) ||
 		( SLAP_SHADOW( op->o_bd ) && be_isupdate_dn( op->o_bd, &op->o_ndn ) ) );
 }
 
