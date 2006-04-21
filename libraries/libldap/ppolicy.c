@@ -31,11 +31,12 @@
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 
-#define PPOLICY_WARNING 0xa0L
-#define PPOLICY_ERROR 0xa1L
+/* IMPLICIT TAGS, all context-specific */
+#define PPOLICY_WARNING 0xa0L	/* constructed + 0 */
+#define PPOLICY_ERROR 0xa1L		/* constructed + 1 */
 
-#define PPOLICY_EXPIRE 0xa0L
-#define PPOLICY_GRACE  0xa1L
+#define PPOLICY_EXPIRE 0x80L	/* primitive + 0 */
+#define PPOLICY_GRACE  0x81L	/* primitive + 1 */
 
 /*---
    ldap_create_passwordpolicy_control
