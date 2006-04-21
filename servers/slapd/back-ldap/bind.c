@@ -1652,6 +1652,11 @@ ldap_back_proxy_authz_ctrl(
 		assertedID = slap_empty_bv;
 	}
 
+	/* don't idassert the bound DN (ITS#4497) */
+	if ( dn_match( &assertedID, &lc->lc_bound_ndn ) ) {
+		goto done;
+	}
+
 	if ( op->o_ctrls ) {
 		for ( i = 0; op->o_ctrls[ i ]; i++ )
 			/* just count ctrls */ ;
