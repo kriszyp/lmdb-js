@@ -741,14 +741,17 @@ ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 
 	if ( lr->lr_ber != NULL ) {
 		ber_free( lr->lr_ber, 1 );
+		lr->lr_ber = NULL;
 	}
 
 	if ( lr->lr_res_error != NULL ) {
 		LDAP_FREE( lr->lr_res_error );
+		lr->lr_res_error = NULL;
 	}
 
 	if ( lr->lr_res_matched != NULL ) {
 		LDAP_FREE( lr->lr_res_matched );
+		lr->lr_res_matched = NULL;
 	}
 
 	LDAP_FREE( lr );
@@ -882,8 +885,11 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	{
 
 		/* Parse the referral URL */
-		if (( rc = ldap_url_parse_ext( refarray[i], &srv)) != LDAP_SUCCESS) {
-			ld->ld_errno = rc;
+		rc = ldap_url_parse_ext( refarray[i], &srv );
+		if ( rc != LDAP_URL_SUCCESS ) {
+			/* ldap_url_parse_ext() returns LDAP_URL_* errors
+			 * which do not map on API errors */
+			ld->ld_errno = LDAP_PARAM_ERROR;
 			rc = -1;
 			goto done;
 		}
@@ -1147,10 +1153,10 @@ ldap_chase_referrals( LDAP *ld,
 		}
 
 		rc = ldap_url_parse_ext( ref, &srv );
-
 		if ( rc != LDAP_URL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
-			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
+				"ignoring %s referral <%s>\n",
+				ref, rc == LDAP_URL_ERR_BADSCHEME ? "unknown" : "incorrect", 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
 			continue;
