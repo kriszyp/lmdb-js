@@ -458,28 +458,30 @@ retry:
 nextresp3:
 #endif
 	tag = ber_get_next( lc->lconn_sb, &len, ber );
-	if ( tag == LDAP_TAG_MESSAGE ) {
+	switch ( tag ) {
+	case LDAP_TAG_MESSAGE:
 		/*
 	 	 * We read a complete message.
 	 	 * The connection should no longer need this ber.
 	 	 */
 		lc->lconn_ber = NULL;
-	}
-	if ( tag != LDAP_TAG_MESSAGE ) {
-		if ( tag == LBER_DEFAULT) {
+		break;
+
+	case LBER_DEFAULT:
 #ifdef LDAP_DEBUG		   
-			Debug( LDAP_DEBUG_CONNS,
-				"ber_get_next failed.\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_CONNS,
+			"ber_get_next failed.\n", 0, 0, 0 );
 #endif		   
 #ifdef EWOULDBLOCK			
-			if (errno==EWOULDBLOCK) return LDAP_MSG_X_KEEP_LOOKING;
+		if ( errno == EWOULDBLOCK ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 #ifdef EAGAIN
-			if (errno == EAGAIN) return LDAP_MSG_X_KEEP_LOOKING;
+		if ( errno == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
-			ld->ld_errno = LDAP_SERVER_DOWN;
-			return -1;
-		}
+		ld->ld_errno = LDAP_SERVER_DOWN;
+		return -1;
+
+	default:
 		ld->ld_errno = LDAP_LOCAL_ERROR;
 		return -1;
 	}
@@ -793,7 +795,8 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 					ber_free( ber, 1 );
 					ber = NULL;
 					if ( build_result_ber( ld, &ber, lr )
-					    == LBER_ERROR ) {
+					    == LBER_ERROR )
+					{
 						rc = -1; /* fatal error */
 					}
 				}
