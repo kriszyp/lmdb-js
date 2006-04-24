@@ -1476,7 +1476,7 @@ str2result(
 				continue;
 			}
 
-			while ( isspace( c[ 0 ] ) ) c++;
+			while ( isspace( (unsigned char) c[ 0 ] ) ) c++;
 			if ( c[ 0 ] == '\0' ) {
 				Debug( LDAP_DEBUG_ANY, "str2result (%s) missing or empty value\n",
 				    s, 0, 0 );
@@ -1492,7 +1492,7 @@ str2result(
 				continue;
 			}
 
-			while ( isspace( next[ 0 ] ) ) next++;
+			while ( isspace( (unsigned char) next[ 0 ] ) ) next++;
 			if ( next[ 0 ] != '\0' ) {
 				Debug( LDAP_DEBUG_ANY, "str2result (%s) extra cruft after value\n",
 				    s, 0, 0 );
