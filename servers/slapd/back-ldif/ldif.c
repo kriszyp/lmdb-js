@@ -264,8 +264,8 @@ static Entry * get_entry(Operation *op, struct berval *base_path) {
 	dn2path(&op->o_req_ndn, op->o_bd->be_nsuffix, base_path, &path);
 	fd = open(path.bv_val, O_RDONLY);
 	/* error opening file (mebbe should log error) */
-	if(fd == -1) {
-		Debug(LDAP_DEBUG_ANY, "failed to open file \"%s\": %s\n",
+	if ( fd == -1 && ( errno != ENOENT || op->o_tag != LDAP_REQ_ADD ) ) {
+		Debug( LDAP_DEBUG_ANY, "failed to open file \"%s\": %s\n",
 			path.bv_val, strerror(errno), 0 );
 	}
 
@@ -1008,12 +1008,24 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 	if ( entry != NULL ) {
 		/* build new dn, and new ndn for the entry */
 		if ( op->oq_modrdn.rs_newSup != NULL ) {
+			struct berval	op_dn = op->o_req_dn,
+					op_ndn = op->o_req_ndn;
+			Entry		*np;
+
 			/* new superior */
 			p_dn = *op->oq_modrdn.rs_newSup;
+			op->o_req_dn = *op->oq_modrdn.rs_newSup;
+			op->o_req_ndn = *op->oq_modrdn.rs_nnewSup;
+			np = (Entry *)get_entry( op, &ni->li_base_path );
+			op->o_req_dn = op_dn;
+			op->o_req_ndn = op_ndn;
+			if ( np == NULL ) {
+				goto no_such_object;
+			}
+			entry_free( np );
 		} else {
-			p_dn = slap_empty_bv;
+			dnParent( &entry->e_name, &p_dn );
 		}
-		dnParent( &entry->e_name, &p_dn );
 		build_new_dn( &new_dn, &p_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
 		dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn, NULL );
 		ber_memfree_x( entry->e_name.bv_val, NULL );
@@ -1032,6 +1044,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 			rs->sr_err = res;
 		}
 	} else {
+no_such_object:;
 		/* entry was null */
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 	}
