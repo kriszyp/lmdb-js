@@ -401,7 +401,7 @@ log_age_parse(char *agestr)
 		return -1;
 	}
 
-	agestr += 3;
+	agestr = endptr + 1;
 	t2 = atoi( agestr );
 
 	/* if there's a delimiter, it can only be a colon */
