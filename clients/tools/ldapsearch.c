@@ -907,8 +907,9 @@ getNextPage:
 		
 		printf( "#\n" );
 		printf(_("# LDAPv%d\n"), protocol);
-		printf(_("# base <%s> with scope %s\n"),
-			realbase ? realbase : "(NULL)",
+		printf(_("# base <%s>%s with scope %s\n"),
+			realbase ? realbase : "",
+			( realbase == NULL || realbase != base ) ? " (default)" : "",
 			((scope == LDAP_SCOPE_BASE) ? "baseObject"
 				: ((scope == LDAP_SCOPE_ONELEVEL) ? "oneLevel"
 				: ((scope == LDAP_SCOPE_SUBORDINATE) ? "children"
