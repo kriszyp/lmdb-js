@@ -509,7 +509,8 @@ static int apply_modify_to_entry(Entry * entry,
 				SlapReply * rs)
 {
 	char textbuf[SLAP_TEXT_BUFLEN];
-	int rc = LDAP_UNWILLING_TO_PERFORM;
+	int rc = modlist ? LDAP_UNWILLING_TO_PERFORM : LDAP_SUCCESS;
+	int is_oc = 0;
 	Modification *mods = NULL;
 
 	if (!acl_check_modlist(op, entry, modlist)) {
@@ -519,6 +520,9 @@ static int apply_modify_to_entry(Entry * entry,
 	for (; modlist != NULL; modlist = modlist->sml_next) {
 		mods = &modlist->sml_mod;
 
+		if ( mods->sm_desc == slap_schema.si_ad_objectClass ) {
+			is_oc = 1;
+		}
 		switch (mods->sm_op) {
 		case LDAP_MOD_ADD:
 			rc = modify_add_values(entry, mods,
@@ -568,13 +572,14 @@ static int apply_modify_to_entry(Entry * entry,
 	}
 	
 	if(rc == LDAP_SUCCESS) {
-		if ( mods->sm_desc == slap_schema.si_ad_objectClass ) {
+		if ( is_oc ) {
 			entry->e_ocflags = 0;
 		}
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check(op, entry, NULL, 0,
+		rc = entry_schema_check( op, entry, NULL, 0,
 			  &rs->sr_text, textbuf, sizeof( textbuf ) );
 	}
+
 	return rc;
 }
 
