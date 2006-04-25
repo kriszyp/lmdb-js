@@ -230,6 +230,15 @@ ldap_get_option(
 		* (char **) outvalue = ldap_url_list2urls(lo->ldo_defludp);
 		return LDAP_OPT_SUCCESS;
 
+	case LDAP_OPT_DEFBASE:
+		if( lo->ldo_defbase == NULL ) {
+			* (char **) outvalue = NULL;
+		} else {
+			* (char **) outvalue = LDAP_STRDUP(lo->ldo_defbase);
+		}
+
+		return LDAP_OPT_SUCCESS;
+
 	case LDAP_OPT_ERROR_NUMBER:
 		if(ld == NULL) {
 			/* bad param */
@@ -509,7 +518,7 @@ ldap_set_option(
 				ludlist = ldap_url_duplist(
 					ldap_int_global_options.ldo_defludp);
 				if (ludlist == NULL)
-					rc = LDAP_NO_MEMORY;
+					rc = LDAP_URL_ERR_MEM;
 			}
 
 			switch (rc) {
@@ -534,13 +543,31 @@ ldap_set_option(
 				break;
 			}
 
-			if (rc == LDAP_OPT_SUCCESS) {
+			if (rc == LDAP_SUCCESS) {
 				if (lo->ldo_defludp != NULL)
 					ldap_free_urllist(lo->ldo_defludp);
 				lo->ldo_defludp = ludlist;
 			}
 			return rc;
 		}
+
+	case LDAP_OPT_DEFBASE: {
+			const char *newbase = (const char *) invalue;
+			char *defbase = NULL;
+
+			if ( newbase != NULL ) {
+				defbase = LDAP_STRDUP( newbase );
+				if ( defbase == NULL ) return LDAP_NO_MEMORY;
+
+			} else if ( ld != NULL ) {
+				defbase = LDAP_STRDUP( ldap_int_global_options.ldo_defbase );
+				if ( defbase == NULL ) return LDAP_NO_MEMORY;
+			}
+			
+			if ( lo->ldo_defbase != NULL )
+				LDAP_FREE( lo->ldo_defbase );
+			lo->ldo_defbase = defbase;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_STRING: {
 			const char *err = (const char *) invalue;

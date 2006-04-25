@@ -899,10 +899,16 @@ getNextPage:
 	}
 
 	if (ldif < 2 ) {
+		char	*realbase = base;
+
+		if ( realbase == NULL ) {
+			ldap_get_option( ld, LDAP_OPT_DEFBASE, (void **)&realbase );
+		}
+		
 		printf( "#\n" );
 		printf(_("# LDAPv%d\n"), protocol);
 		printf(_("# base <%s> with scope %s\n"),
-			base ? base : "",
+			realbase ? realbase : "(NULL)",
 			((scope == LDAP_SCOPE_BASE) ? "baseObject"
 				: ((scope == LDAP_SCOPE_ONELEVEL) ? "oneLevel"
 				: ((scope == LDAP_SCOPE_SUBORDINATE) ? "children"
@@ -943,6 +949,10 @@ getNextPage:
 		}
 
 		printf( _("\n#\n\n") );
+
+		if ( realbase && realbase != base ) {
+			ldap_memfree( realbase );
+		}
 	}
 
 	if ( infile == NULL ) {
