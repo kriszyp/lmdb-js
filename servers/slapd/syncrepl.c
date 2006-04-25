@@ -2983,8 +2983,11 @@ parse_syncrepl_line(
 			} else if ( strchr( val, ':' ) != NULL ) {
 				char *next, *ptr = val;
 				unsigned dd, hh, mm, ss;
+
+				/* NOTE: the test for ptr[ 0 ] == '-'
+				 * should go before the call to strtoul() */
 				dd = strtoul( ptr, &next, 10 );
-				if ( next == ptr || next[0] != ':' ) {
+				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse days", val );
@@ -2993,7 +2996,7 @@ parse_syncrepl_line(
 				}
 				ptr = next + 1;
 				hh = strtoul( ptr, &next, 10 );
-				if ( next == ptr || next[0] != ':' || hh > 24 ) {
+				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || hh > 24 ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse hours", val );
@@ -3002,7 +3005,7 @@ parse_syncrepl_line(
 				}
 				ptr = next + 1;
 				mm = strtoul( ptr, &next, 10 );
-				if ( next == ptr || next[0] != ':' || mm > 60 ) {
+				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || mm > 60 ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse minutes", val );
@@ -3011,7 +3014,7 @@ parse_syncrepl_line(
 				}
 				ptr = next + 1;
 				ss = strtoul( ptr, &next, 10 );
-				if ( next == ptr || next[0] != '\0' || ss > 60 ) {
+				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != '\0' || ss > 60 ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse seconds", val );
