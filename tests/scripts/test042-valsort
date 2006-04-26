@@ -85,8 +85,6 @@ if test $? != 0 ; then
 	exit 1
 fi
 
-echo ">>>>> Test succeeded"
-
 echo "Reconfiguring slapd to test valsort descending"
 
 $LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -w $PASSWD > \
@@ -132,8 +130,6 @@ if test $? != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
-
-echo ">>>>> Test succeeded"
 
 echo "Adding a valsort record with weighted ou..."
 
@@ -217,8 +213,8 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-echo ">>>>> Test succeeded"
-
 test $KILLSERVERS != no && wait
+
+echo ">>>>> Test succeeded"
 
 exit 0
