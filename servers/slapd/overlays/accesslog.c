@@ -396,12 +396,16 @@ log_age_parse(char *agestr)
 			return -1;
 		t1 *= 24;
 		gotdays = 1;
-	} else if ( *endptr != ':' ) {
-	/* No valid delimiter found, fail */
-		return -1;
+		agestr = endptr + 1;
+	} else {
+		if ( agestr[2] != ':' ) {
+			/* No valid delimiter found, fail */
+			return -1;
+		}
+		t1 *= 60;
+		agestr += 3;
 	}
 
-	agestr = endptr + 1;
 	t2 = atoi( agestr );
 
 	/* if there's a delimiter, it can only be a colon */
@@ -414,7 +418,6 @@ log_age_parse(char *agestr)
 	if ( gotdays && !agestr[2] )
 		return -1;
 
-	t1 *= 60;
 	t1 += t2;
 
 	if ( !agestr[2] )
@@ -449,7 +452,7 @@ log_age_unparse( int age, struct berval *agebv )
 	age /= 60;
 	mm = age % 60;
 	age /= 60;
-	hh = age % 60;
+	hh = age % 24;
 	age /= 24;
 	dd = age;
 
