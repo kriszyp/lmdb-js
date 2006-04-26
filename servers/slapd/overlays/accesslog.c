@@ -407,21 +407,18 @@ log_age_parse(char *agestr)
 	}
 
 	t2 = atoi( agestr );
-
-	/* if there's a delimiter, it can only be a colon */
-	if ( agestr[2] && agestr[2] != ':' )
-		return -1;
-
-	/* If we're at the end of the string, and we started with days,
-	 * fail because we expected to find minutes too.
-	 */
-	if ( gotdays && !agestr[2] )
-		return -1;
-
 	t1 += t2;
 
-	if ( !agestr[2] )
-		return t1 * 60;
+	if ( agestr[2] ) {
+		/* if there's a delimiter, it can only be a colon */
+		if ( agestr[2] != ':' )
+			return -1;
+	} else {
+		/* If we're at the end of the string, and we started with days,
+		 * fail because we expected to find minutes too.
+		 */
+		return gotdays ? -1 : t1 * 60;
+	}
 
 	agestr += 3;
 	t2 = atoi( agestr );
@@ -432,11 +429,11 @@ log_age_parse(char *agestr)
 	t1 *= 60;
 	t1 += t2;
 
-	t1 *= 60;
 	if ( agestr[2] ) {
 		agestr += 3;
 		if ( agestr[2] )
 			return -1;
+		t1 *= 60;
 		t1 += atoi( agestr );
 	}
 	return t1;
