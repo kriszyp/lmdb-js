@@ -103,7 +103,6 @@ refint_cf_gen(ConfigArgs *c)
 {
 	slap_overinst *on = (slap_overinst *)c->bi;
 	refint_data *dd = (refint_data *)on->on_bi.bi_private;
-	BackendDB *be = (BackendDB *)c->be;
 	refint_attrs *ip, *pip, **pipp = NULL;
 	AttributeDescription *ad;
 	const char *text;
