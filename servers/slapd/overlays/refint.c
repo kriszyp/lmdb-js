@@ -308,9 +308,7 @@ refint_close(
 	ch_free(id->nothing.bv_val);
 	ch_free(id->nnothing.bv_val);
 
-	on->on_bi.bi_private = NULL;	/* XXX */
-
-	ch_free(id);
+	memset( id, 0, sizeof(*id));
 
 	return(0);
 }
