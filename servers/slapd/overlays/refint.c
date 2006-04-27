@@ -38,6 +38,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "config.h"
 
 static slap_overinst refint;
 
@@ -66,9 +67,164 @@ typedef struct refint_data_s {
 	BerValue nnothing;			/* normalized nothingness */
 } refint_data;
 
+enum {
+	REFINT_ATTRS = 1,
+	REFINT_NOTHING
+};
+
+static ConfigDriver refint_cf_gen;
+
+static ConfigTable refintcfg[] = {
+	{ "refint_attributes", "attribute...", 2, 0, 0,
+	  ARG_MAGIC|REFINT_ATTRS, refint_cf_gen,
+	  "( OLcfgOvAt:11.1 NAME 'olcRefintAttribute' "
+	  "DESC 'Attributes for referential integrity' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "refint_nothing", "string", 2, 2, 0,
+	  ARG_DN|ARG_MAGIC|REFINT_NOTHING, refint_cf_gen,
+	  "( OLcfgOvAt:11.2 NAME 'olcRefintNothing' "
+	  "DESC 'Replacement DN to supply when needed' "
+	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs refintocs[] = {
+	{ "( OLcfgOvOc:11.1 "
+	  "NAME 'olcRefintConfig' "
+	  "DESC 'Referential integrity configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY ( olcRefintAttribute $ olcRefintNothing ) )",
+	  Cft_Overlay, refintcfg },
+	{ NULL, 0, NULL }
+};
+
+static int
+refint_cf_gen(ConfigArgs *c)
+{
+	slap_overinst *on = (slap_overinst *)c->bi;
+	refint_data *dd = (refint_data *)on->on_bi.bi_private;
+	BackendDB *be = (BackendDB *)c->be;
+	refint_attrs *ip, *pip, **pipp = NULL;
+	AttributeDescription *ad;
+	const char *text;
+	int rc = ARG_BAD_CONF;
+	int i;
+
+	switch ( c->op ) {
+	case SLAP_CONFIG_EMIT:
+		switch ( c->type ) {
+		case REFINT_ATTRS:
+			ip = dd->attrs;
+			while ( ip ) {
+				value_add_one( &c->rvalue_vals,
+					       &ip->attr->ad_cname );
+				ip = ip->next;
+			}
+			rc = 0;
+			break;
+		case REFINT_NOTHING:
+			if ( !BER_BVISEMPTY( &dd->nothing )) {
+				rc = value_add_one( &c->rvalue_vals,
+						    &dd->nothing );
+				if ( rc ) return rc;
+				rc = value_add_one( &c->rvalue_nvals,
+						    &dd->nnothing );
+				return rc;
+			}
+			rc = 0;
+			break;
+		default:
+			abort ();
+		}
+		break;
+	case LDAP_MOD_DELETE:
+		switch ( c->type ) {
+		case REFINT_ATTRS:
+			pipp = &dd->attrs;
+			if ( c->valx < 0 ) {
+				ip = *pipp;
+				*pipp = NULL;
+				while ( ip ) {
+					pip = ip;
+					ip = ip->next;
+					ch_free ( pip );
+				}
+			} else {
+				/* delete from linked list */
+				for ( i=0; i < c->valx; ++i ) {
+					pipp = &(*pipp)->next;
+				}
+				ip = *pipp;
+				*pipp = (*pipp)->next;
+
+				/* AttributeDescriptions are global so
+				 * shouldn't be freed here... */
+				ch_free ( ip );
+			}
+			rc = 0;
+			break;
+		case REFINT_NOTHING:
+			if ( dd->nothing.bv_val )
+				ber_memfree ( dd->nothing.bv_val );
+			if ( dd->nnothing.bv_val )
+				ber_memfree ( dd->nnothing.bv_val );
+			dd->nothing.bv_len = 0;
+			dd->nnothing.bv_len = 0;
+			rc = 0;
+			break;
+		default:
+			abort ();
+		}
+		break;
+	case SLAP_CONFIG_ADD:
+		/* fallthrough to LDAP_MOD_ADD */
+	case LDAP_MOD_ADD:
+		switch ( c->type ) {
+		case REFINT_ATTRS:
+			rc = 0;
+			for ( i=1; i < c->argc; ++i ) {
+				ad = NULL;
+				if ( slap_str2ad ( c->argv[i], &ad, &text )
+				     == LDAP_SUCCESS) {
+					ip = ch_malloc (
+						sizeof ( refint_attrs ) );
+					ip->attr = ad;
+					ip->next = dd->attrs;
+					dd->attrs = ip;
+				} else {
+					Debug ( LDAP_DEBUG_CONFIG,
+						"refint add: <%s>: %s\n",
+						c->argv[i], text, NULL );
+					strncpy ( c->msg,
+						  text,
+						  SLAP_TEXT_BUFLEN-1 );
+					c->msg[SLAP_TEXT_BUFLEN-1] = '\0';
+					rc = ARG_BAD_CONF;
+				}
+			}
+			break;
+		case REFINT_NOTHING:
+			if ( dd->nothing.bv_val )
+				ber_memfree ( dd->nothing.bv_val );
+			if ( dd->nnothing.bv_val )
+				ber_memfree ( dd->nnothing.bv_val );
+			dd->nothing = c->value_dn;
+			dd->nnothing = c->value_ndn;
+			rc = 0;
+			break;
+		default:
+			abort ();
+		}
+		break;
+	default:
+		abort ();
+	}
+
+	return rc;
+}
+
 /*
 ** allocate new refint_data;
-** initialize, copy basedn;
 ** store in on_bi.bi_private;
 **
 */
@@ -79,105 +235,29 @@ refint_db_init(
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
-	refint_data *id = ch_malloc(sizeof(refint_data));
+	refint_data *id = ch_calloc(1,sizeof(refint_data));
 
 	id->message = "_init";
-	id->attrs = NULL;
-	id->newdn.bv_val = NULL;
-	id->nothing.bv_val = NULL;
-	id->nnothing.bv_val = NULL;
-	ber_dupbv( &id->dn, &be->be_nsuffix[0] );
 	on->on_bi.bi_private = id;
 	return(0);
 }
 
-
-/*
-** if command = attributes:
-**	foreach argument:
-**		convert to attribute;
-**		add to configured attribute list;
-** elseif command = basedn:
-**	set our basedn to argument;
-**
-*/
-
 static int
-refint_config(
-	BackendDB	*be,
-	const char	*fname,
-	int		lineno,
-	int		argc,
-	char		**argv
+refint_db_destroy(
+	BackendDB	*be
 )
 {
-	slap_overinst *on	= (slap_overinst *) be->bd_info;
-	refint_data *id	= on->on_bi.bi_private;
-	refint_attrs *ip;
-	const char *text;
-	AttributeDescription *ad;
-	BerValue dn;
-	int i;
+	slap_overinst *on = (slap_overinst *)be->bd_info;
 
-	if(!strcasecmp(*argv, "refint_attributes")) {
-		for(i = 1; i < argc; i++) {
-			for(ip = id->attrs; ip; ip = ip->next)
-			    if(!strcmp(argv[i], ip->attr->ad_cname.bv_val)) {
-				Debug(LDAP_DEBUG_ANY,
-					"%s: line %d: duplicate attribute <s>, ignored\n",
-					fname, lineno, argv[i]);
-				continue;
-			}
-			ad = NULL;
-			if(slap_str2ad(argv[i], &ad, &text) != LDAP_SUCCESS) {
-				Debug(LDAP_DEBUG_ANY,
-					"%s: line %d: bad attribute <%s>, ignored\n",
-					fname, lineno, text);
-				continue;		/* XXX */
-			} else if(ad->ad_next) {
-				Debug(LDAP_DEBUG_ANY,
-					"%s: line %d: multiple attributes match <%s>, ignored\n",
-					fname, lineno, argv[i]);
-				continue;
-			}
-			ip = ch_malloc(sizeof(refint_attrs));
-			ip->attr = ad;
-			ip->next = id->attrs;
-			id->attrs = ip;
-			Debug(LDAP_DEBUG_ANY, "%s: line %d: new attribute <%s>\n",
-				fname, lineno, argv[i]);
-		}
-	} else if(!strcasecmp(*argv, "refint_base")) {
-		/* XXX only one basedn (yet) - need validate argument! */
-		if(id->dn.bv_val) ch_free(id->dn.bv_val);
-		ber_str2bv( argv[1], 0, 0, &dn );
-		Debug(LDAP_DEBUG_ANY, "%s: line %d: new baseDN <%s>\n",
-			fname, lineno, argv[1]);
-		if(dnNormalize(0, NULL, NULL, &dn, &id->dn, NULL)) {
-			Debug(LDAP_DEBUG_ANY, "%s: line %d: bad baseDN!\n", fname, lineno, 0);
-			return(1);
-		}
-	} else if(!strcasecmp(*argv, "refint_nothing")) {
-		if(id->nothing.bv_val) ch_free(id->nothing.bv_val);
-		if(id->nnothing.bv_val) ch_free(id->nnothing.bv_val);
-		ber_str2bv( argv[1], 0, 1, &id->nothing );
-		if(dnNormalize(0, NULL, NULL, &id->nothing, &id->nnothing, NULL)) {
-			Debug(LDAP_DEBUG_ANY, "%s: line %d: bad nothingDN!\n", fname, lineno, 0);
-			return(1);
-		}
-		Debug(LDAP_DEBUG_ANY, "%s: line %d: new nothingDN<%s>\n",
-			fname, lineno, argv[1]);
-	} else {
-		return(SLAP_CONF_UNKNOWN);
+	if ( on->on_bi.bi_private ) {
+		ch_free( on->on_bi.bi_private );
+		on->on_bi.bi_private = NULL;
 	}
-
-	id->message = "_config";
 	return(0);
 }
 
-
 /*
-** nothing really happens here;
+** initialize, copy basedn if not already set
 **
 */
 
@@ -189,6 +269,12 @@ refint_open(
 	slap_overinst *on	= (slap_overinst *)be->bd_info;
 	refint_data *id	= on->on_bi.bi_private;
 	id->message		= "_open";
+
+	if ( BER_BVISNULL( &id->dn )) {
+		if ( BER_BVISNULL( &be->be_nsuffix[0] ))
+			return -1;
+		ber_dupbv( &id->dn, &be->be_nsuffix[0] );
+	}
 	return(0);
 }
 
@@ -666,14 +752,19 @@ done:
 */
 
 int refint_initialize() {
+	int rc;
 
 	/* statically declared just after the #includes at top */
 	refint.on_bi.bi_type = "refint";
 	refint.on_bi.bi_db_init = refint_db_init;
-	refint.on_bi.bi_db_config = refint_config;
+	refint.on_bi.bi_db_destroy = refint_db_destroy;
 	refint.on_bi.bi_db_open = refint_open;
 	refint.on_bi.bi_db_close = refint_close;
 	refint.on_response = refint_response;
+
+	refint.on_bi.bi_cf_ocs = refintocs;
+	rc = config_register_schema ( refintcfg, refintocs );
+	if ( rc ) return rc;
 
 	return(overlay_register(&refint));
 }

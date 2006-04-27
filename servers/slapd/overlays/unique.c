@@ -253,19 +253,12 @@ static int unique_db_init(
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
-	unique_data *ud   = ch_malloc(sizeof(unique_data));
+	unique_data *ud   = ch_calloc(1,sizeof(unique_data));
 
 	/* Debug(LDAP_DEBUG_TRACE, "==> unique_init\n", 0, 0, 0); */
 
 	ud->message	= "_init";
-	ud->attrs	= NULL;
-	ud->ignore	= NULL;
-	ud->strict	= 0;
-
-	/* default to the base of our configured database */
-	ber_dupbv(&ud->dn, &be->be_nsuffix[0]);
 	on->on_bi.bi_private = ud;
-
 	return 0;
 }
 
@@ -298,6 +291,13 @@ unique_open(
 
 	Debug(LDAP_DEBUG_TRACE, "unique_open: overlay initialized\n", 0, 0, 0);
 
+	if ( BER_BVISNULL( &ud->dn )) {
+		if ( BER_BVISNULL( &be->be_nsuffix[0] ))
+			return -1;
+
+		/* default to the base of our configured database */
+		ber_dupbv(&ud->dn, &be->be_nsuffix[0]);
+	}
 	return(0);
 }
 
@@ -325,18 +325,15 @@ unique_close(
 		ij = ii->next;
 		ch_free(ii);
 	}
-	ud->attrs = NULL;
 
 	for(ii = ud->ignore; ii; ii = ij) {
 		ij = ii->next;
 		ch_free(ii);
 	}
-	ud->ignore = NULL;
 
 	ch_free(ud->dn.bv_val);
-	BER_BVZERO( &ud->dn );
 
-	ud->strict = 0;
+	memset( ud, 0, sizeof(*ud));
 
 	return(0);
 }
