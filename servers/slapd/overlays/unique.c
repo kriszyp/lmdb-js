@@ -29,6 +29,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "config.h"
 
 static slap_overinst unique;
 
@@ -49,6 +50,196 @@ typedef struct unique_counter_s {
 	struct berval *ndn;
 	int count;
 } unique_counter;
+
+enum {
+	UNIQUE_BASE = 1,
+	UNIQUE_IGNORE,
+	UNIQUE_ATTR,
+	UNIQUE_STRICT
+};
+
+static ConfigDriver unique_cf_gen;
+
+static ConfigTable uniquecfg[] = {
+	{ "unique_base", "basedn", 2, 2, 0, ARG_DN|ARG_MAGIC|UNIQUE_BASE,
+	  unique_cf_gen, "( OLcfgOvAt:10.1 NAME 'olcUniqueBase' "
+	  "DESC 'Subtree for uniqueness searches' "
+	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
+	{ "unique_ignore", "attribute...", 2, 0, 0, ARG_MAGIC|UNIQUE_IGNORE,
+	  unique_cf_gen, "( OLcfgOvAt:10.2 NAME 'olcUniqueIgnore' "
+	  "DESC 'Attributes for which uniqueness shall not be enforced' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "unique_attributes", "attribute...", 2, 0, 0, ARG_MAGIC|UNIQUE_ATTR,
+	  unique_cf_gen, "( OLcfgOvAt:10.3 NAME 'olcUniqueAttribute' "
+	  "DESC 'Attributes for which uniqueness shall be enforced' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "unique_strict", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET|UNIQUE_STRICT,
+	  (void *)offsetof(unique_data, strict),
+	  "( OLcfgOvAt:10.4 NAME 'olcUniqueStrict' "
+	  "DESC 'Enforce uniqueness of null values' "
+	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs uniqueocs[] = {
+	{ "( OLcfgOvOc:10.1 "
+	  "NAME 'olcUniqueConfig' "
+	  "DESC 'Attribute value uniqueness configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY ( olcUniqueBase $ olcUniqueIgnore $ "
+	  "olcUniqueAttribute $ olcUniqueStrict ) )",
+	  Cft_Overlay, uniquecfg },
+	{ NULL, 0, NULL }
+};
+
+static int
+unique_cf_gen( ConfigArgs *c )
+{
+	slap_overinst *on = (slap_overinst *)c->bi;
+	unique_data *ud = (unique_data *)on->on_bi.bi_private;
+	BackendDB *be = (BackendDB *)c->be;
+	unique_attrs *up, *pup, **pupp = NULL;
+	AttributeDescription *ad;
+	const char *text;
+	int rc = ARG_BAD_CONF;
+	int i;
+
+	switch ( c->op ) {
+	case SLAP_CONFIG_EMIT:
+		switch ( c->type ) {
+		case UNIQUE_BASE:
+			if ( !BER_BVISEMPTY( &ud->dn )) {
+				rc = value_add_one( &c->rvalue_vals, &ud->dn );
+				if ( rc ) return rc;
+				rc = value_add_one( &c->rvalue_nvals, &ud->dn );
+				return rc;
+			}
+			break;
+		case UNIQUE_IGNORE:
+			/* fallthrough to UNIQUE_ATTR */
+		case UNIQUE_ATTR:
+			if ( c->type == UNIQUE_IGNORE ) up = ud->ignore;
+			else up = ud->attrs;
+			while ( up ) {
+				value_add_one( &c->rvalue_vals,
+					       &up->attr->ad_cname );
+				up = up->next;
+			}
+			rc = 0;
+			break;
+		case UNIQUE_STRICT:
+			/* handled via ARG_OFFSET */
+			/* fallthrough to default */
+		default:
+			abort ();
+		}
+		break;
+	case LDAP_MOD_DELETE:
+		switch ( c->type ) {
+		case UNIQUE_BASE:
+			/* default to the base of our configured database */
+			if ( ud->dn.bv_val ) ber_memfree ( ud->dn.bv_val );
+			ber_dupbv( &ud->dn, &be->be_nsuffix[0] );
+			rc = 0;
+			break;
+		case UNIQUE_IGNORE:
+			/* fallthrough to UNIQUE_ATTR */
+		case UNIQUE_ATTR:
+			if ( c->type == UNIQUE_IGNORE ) pupp = &ud->ignore;
+			else pupp = &ud->attrs;
+
+			if ( c->valx < 0 ) {
+				up = *pupp;
+				*pupp = NULL;
+				while ( up ) {
+					pup = up;
+					up = up->next;
+					ch_free ( pup );
+				}
+
+			} else {
+
+				/* delete from linked list */
+				for ( i=0; i < c->valx; ++i ) {
+					pupp = &(*pupp)->next;
+				}
+				up = *pupp;
+				*pupp = (*pupp)->next;
+
+				/* AttributeDescriptions are global so
+				 * shouldn't be freed here... */
+				ch_free ( up );
+			}
+			rc = 0;
+			break;
+		case UNIQUE_STRICT:
+			/* handled via ARG_OFFSET */
+			/* fallthrough to default */
+		default:
+			abort ();
+		}
+		break;
+	case SLAP_CONFIG_ADD:
+		/* fallthrough to LDAP_MOD_ADD */
+	case LDAP_MOD_ADD:
+		switch ( c->type ) {
+		case UNIQUE_BASE:
+			if ( !dnIsSuffix ( &c->value_ndn,
+					   &be->be_nsuffix[0] ) ) {
+				sprintf ( c->msg, "dn is not a suffix of backend base" );
+				Debug ( LDAP_DEBUG_CONFIG, "unique add: %s\n",
+					c->msg, NULL, NULL );
+				rc = ARG_BAD_CONF;
+			}
+			if ( ud->dn.bv_val ) ber_memfree ( ud->dn.bv_val );
+			ud->dn = c->value_ndn;
+			rc = 0;
+			break;
+		case UNIQUE_IGNORE:
+			/* fallthrough to UNIQUE_ATTR */
+		case UNIQUE_ATTR:
+			rc = 0;
+			for ( i=1; i < c->argc; ++i ) {
+				ad = NULL;
+				if ( slap_str2ad ( c->argv[i], &ad, &text )
+				     == LDAP_SUCCESS) {
+
+					up = ch_malloc (
+						sizeof ( unique_attrs ) );
+					up->attr = ad;
+					if ( c->type == UNIQUE_IGNORE ) {
+						up->next = ud->ignore;
+						ud->ignore = up;
+					} else {
+						up->next = ud->attrs;
+						ud->attrs = up;
+					}
+				} else {
+					Debug ( LDAP_DEBUG_CONFIG,
+						"unique add: <%s>: %s\n",
+						c->argv[i], text, NULL );
+					strncpy ( c->msg,
+						  text,
+						  SLAP_TEXT_BUFLEN-1 );
+					c->msg[SLAP_TEXT_BUFLEN-1] = '\0';
+					rc = ARG_BAD_CONF;
+				}
+			}
+			break;
+		case UNIQUE_STRICT:
+			/* handled via ARG_OFFSET */
+			/* fallthrough to default */
+		default:
+			abort ();
+		}
+		break;
+	default:
+		abort ();
+	}
+
+	return rc;
+}
 
 /*
 ** allocate new unique_data;
@@ -78,86 +269,18 @@ static int unique_db_init(
 	return 0;
 }
 
-
-/*
-** if command = attributes:
-**	foreach argument:
-**		convert to attribute;
-**		add to configured attribute list;
-** elseif command = base:
-**	set our basedn to argument;
-** else complain about invalid directive;
-**
-*/
-
-static int unique_config(
-	BackendDB	*be,
-	const char	*fname,
-	int		lineno,
-	int		argc,
-	char		**argv
+static int unique_db_destroy(
+	BackendDB	*be
 )
 {
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	unique_data *ud	  = on->on_bi.bi_private;
-	unique_attrs *up;
-	const char *text;
-	AttributeDescription *ad;
-	int i;
+	slap_overinst *on = (slap_overinst *)be->bd_info;
 
-	ud->message = "_config";
-	Debug(LDAP_DEBUG_TRACE, "==> unique_config\n", 0, 0, 0);
-
-	if(!strcasecmp(*argv, "unique_attributes") ||
-	   !strcasecmp(*argv, "unique_ignore")) {
-		for(i = 1; i < argc; i++) {
-			for(up = ud->attrs; up; up = up->next)
-			    if(!strcmp(argv[i], up->attr->ad_cname.bv_val)) {
-				Debug(LDAP_DEBUG_ANY,
-					"%s: line %d: duplicate attribute <%s>, ignored\n",
-					fname, lineno, argv[i]);
-				continue;
-			}
-			ad = NULL;
-			if(slap_str2ad(argv[i], &ad, &text) != LDAP_SUCCESS) {
-				Debug(LDAP_DEBUG_ANY,
-					"%s: line %d: bad attribute <%s>, ignored\n",
-					fname, lineno, text);
-				continue;		/* XXX */
-			} else if(ad->ad_next) {
-				Debug(LDAP_DEBUG_ANY,
-					"%s: line %d: multiple attributes match <%s>, ignored\n",
-					fname, lineno, argv[i]);
-				continue;
-			}
-			up = ch_malloc(sizeof(unique_attrs));
-			up->attr = ad;
-			if(!strcasecmp(*argv, "unique_ignore")) {
-				up->next = ud->ignore;
-				ud->ignore = up;
-			} else {
-				up->next = ud->attrs;
-				ud->attrs = up;
-			}
-			Debug(LDAP_DEBUG_CONFIG, "%s: line %d: new attribute <%s>\n",
-				fname, lineno, argv[i]);
-		}
-	} else if(!strcasecmp(*argv, "unique_strict")) {
-		ud->strict = 1;
-	} else if(!strcasecmp(*argv, "unique_base")) {
-		struct berval bv;
-		ber_str2bv( argv[1], 0, 0, &bv );
-		ch_free(ud->dn.bv_val);
-		dnNormalize(0, NULL, NULL, &bv, &ud->dn, NULL);
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %d: new base dn <%s>\n",
-			fname, lineno, argv[1]);
-	} else {
-		return(SLAP_CONF_UNKNOWN);
+	if ( on->on_bi.bi_private ) {
+		ch_free( on->on_bi.bi_private );
+		on->on_bi.bi_private = NULL;
 	}
-
-	return(0);
+	return 0;
 }
-
 
 /*
 ** mostly, just print the init message;
@@ -183,9 +306,6 @@ unique_open(
 ** foreach configured attribute:
 **	free it;
 ** free our basedn;
-** (do not) free ud->message;
-** reset on_bi.bi_private;
-** free our config data;
 **
 */
 
@@ -205,17 +325,18 @@ unique_close(
 		ij = ii->next;
 		ch_free(ii);
 	}
+	ud->attrs = NULL;
 
 	for(ii = ud->ignore; ii; ii = ij) {
 		ij = ii->next;
 		ch_free(ii);
 	}
+	ud->ignore = NULL;
 
 	ch_free(ud->dn.bv_val);
+	BER_BVZERO( &ud->dn );
 
-	on->on_bi.bi_private = NULL;	/* XXX */
-
-	ch_free(ud);
+	ud->strict = 0;
 
 	return(0);
 }
@@ -588,17 +709,22 @@ static int unique_modrdn(
 */
 
 int unique_initialize() {
+	int rc;
 
 	/* statically declared just after the #includes at top */
 	unique.on_bi.bi_type = "unique";
 	unique.on_bi.bi_db_init = unique_db_init;
-	unique.on_bi.bi_db_config = unique_config;
+	unique.on_bi.bi_db_destroy = unique_db_destroy;
 	unique.on_bi.bi_db_open = unique_open;
 	unique.on_bi.bi_db_close = unique_close;
 	unique.on_bi.bi_op_add = unique_add;
 	unique.on_bi.bi_op_modify = unique_modify;
 	unique.on_bi.bi_op_modrdn = unique_modrdn;
 	unique.on_bi.bi_op_delete = NULL;
+
+	unique.on_bi.bi_cf_ocs = uniqueocs;
+	rc = config_register_schema( uniquecfg, uniqueocs );
+	if ( rc ) return rc;
 
 	return(overlay_register(&unique));
 }
