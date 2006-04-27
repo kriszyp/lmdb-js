@@ -49,7 +49,7 @@ abandon, bind, unbind
 all operations
 .RE
 .TP
-.B logoldfilter <filter>
+.B logold <filter>
 Specify a filter for matching against Deleted and Modified entries. If
 the entry matches the filter, the old contents of the entry will be
 logged along with the current request.
@@ -99,7 +99,7 @@ succeed or not. The default is FALSE.
 	overlay accesslog
 	logdb cn=log
 	logops writes reads
-	logfilter (objectclass=person)
+	logold (objectclass=person)
 .fi
 
 .SH SCHEMA

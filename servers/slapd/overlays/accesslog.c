@@ -57,7 +57,7 @@ typedef struct log_info {
 	int li_age;
 	int li_cycle;
 	struct re_s *li_task;
-	Filter *li_filter;
+	Filter *li_oldf;
 	Entry *li_old;
 	int li_success;
 	ldap_pvt_thread_mutex_t li_op_mutex;
@@ -71,7 +71,7 @@ enum {
 	LOG_OPS,
 	LOG_PURGE,
 	LOG_SUCCESS,
-	LOG_FILTER
+	LOG_OLD
 };
 
 static ConfigTable log_cfats[] = {
@@ -93,8 +93,8 @@ static ConfigTable log_cfats[] = {
 		log_cf_gen, "( OLcfgOvAt:4.4 NAME 'olcAccessLogSuccess' "
 			"DESC 'Log successful ops only' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
-	{ "logoldfilter", NULL, 2, 2, 0, ARG_MAGIC|LOG_FILTER,
-		log_cf_gen, "( OLcfgOvAt:4.5 NAME 'olcAccessLogOldFilter' "
+	{ "logold", "filter", 2, 2, 0, ARG_MAGIC|LOG_OLD,
+		log_cf_gen, "( OLcfgOvAt:4.5 NAME 'olcAccessLogOld' "
 			"DESC 'Log old values when modifying entries matching the filter' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ NULL }
@@ -107,7 +107,7 @@ static ConfigOCs log_cfocs[] = {
 		"SUP olcOverlayConfig "
 		"MUST olcAccessLogDB "
 		"MAY ( olcAccessLogOps $ olcAccessLogPurge $ olcAccessLogSuccess $ "
-			"olcAccessLogOldFilter ) )",
+			"olcAccessLogOld ) )",
 			Cft_Overlay, log_cfats },
 	{ NULL }
 };
@@ -613,9 +613,9 @@ log_cf_gen(ConfigArgs *c)
 			else
 				rc = 1;
 			break;
-		case LOG_FILTER:
-			if ( li->li_filter ) {
-				filter2bv( li->li_filter, &agebv );
+		case LOG_OLD:
+			if ( li->li_oldf ) {
+				filter2bv( li->li_oldf, &agebv );
 				value_add_one( &c->rvalue_vals, &agebv );
 			}
 			else
@@ -651,10 +651,10 @@ log_cf_gen(ConfigArgs *c)
 		case LOG_SUCCESS:
 			li->li_success = 0;
 			break;
-		case LOG_FILTER:
-			if ( li->li_filter ) {
-				filter_free( li->li_filter );
-				li->li_filter = NULL;
+		case LOG_OLD:
+			if ( li->li_oldf ) {
+				filter_free( li->li_oldf );
+				li->li_oldf = NULL;
 			}
 			break;
 		}
@@ -702,9 +702,9 @@ log_cf_gen(ConfigArgs *c)
 		case LOG_SUCCESS:
 			li->li_success = c->value_int;
 			break;
-		case LOG_FILTER:
-			li->li_filter = str2filter( c->argv[1] );
-			if ( !li->li_filter ) {
+		case LOG_OLD:
+			li->li_oldf = str2filter( c->argv[1] );
+			if ( !li->li_oldf ) {
 				sprintf( c->msg, "bad filter!" );
 				rc = 1;
 			}
@@ -1185,7 +1185,7 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 		 * overlays like refint to keep working.
 		 */
 		ldap_pvt_thread_mutex_lock( &li->li_op_mutex );
-		if ( li->li_filter && ( op->o_tag == LDAP_REQ_DELETE ||
+		if ( li->li_oldf && ( op->o_tag == LDAP_REQ_DELETE ||
 			op->o_tag == LDAP_REQ_MODIFY )) {
 			int rc;
 			Entry *e;
@@ -1193,7 +1193,7 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 			op->o_bd->bd_info = on->on_info->oi_orig;
 			rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 			if ( e ) {
-				if ( test_filter( op, e, li->li_filter ) == LDAP_COMPARE_TRUE )
+				if ( test_filter( op, e, li->li_oldf ) == LDAP_COMPARE_TRUE )
 					li->li_old = entry_dup( e );
 				be_entry_release_rw( op, e, 0 );
 			}
