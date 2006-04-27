@@ -38,7 +38,7 @@ null_back_bind( Operation *op, SlapReply *rs )
 {
 	struct null_info *ni = (struct null_info *) op->o_bd->be_private;
 
-	if ( ni->ni_bind_allowed ) {
+	if ( ni->ni_bind_allowed || be_isroot_pw( op ) ) {
 		/* front end will send result on success (0) */
 		return LDAP_SUCCESS;
 	}
