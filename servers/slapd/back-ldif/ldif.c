@@ -420,9 +420,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				if ( ptr ) {
 					itmp.bv_len = ptr - itmp.bv_val;
 					ber_dupbv( &bvl->num, &itmp );
-					/* FIXME: handle error? */
-					assert( itmp.bv_val[ 0 ] != '-' );
-					bvl->inum = strtoul( itmp.bv_val, NULL, 0 );
+					bvl->inum = strtol( itmp.bv_val, NULL, 0 );
 					itmp.bv_val[0] = '\0';
 					bvl->off = itmp.bv_val - bvl->bv.bv_val;
 				}
