@@ -1691,8 +1691,13 @@ syncrepl_entry(
 	f.f_choice = LDAP_FILTER_EQUALITY;
 	f.f_ava = &ava;
 	ava.aa_desc = slap_schema.si_ad_entryUUID;
-	(void)slap_uuidstr_from_normalized( &syncUUID_strrep, syncUUID, op->o_tmpmemctx );
 	ava.aa_value = *syncUUID;
+
+	(void)slap_uuidstr_from_normalized( &syncUUID_strrep, syncUUID, op->o_tmpmemctx );
+	if ( syncuuid_bv ) {
+		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: inserted UUID %s\n",
+			syncUUID_strrep.bv_val, 0, 0 );
+	}
 	op->ors_filter = &f;
 
 	op->ors_filterstr.bv_len = STRLENOF( "(entryUUID=)" ) + syncUUID_strrep.bv_len;
@@ -2497,10 +2502,14 @@ nonpresent_callback(
 		if ( !(si->si_refreshDelete & NP_DELETE_ONE )) {
 			a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
 
-			if ( a == NULL ) return 0;
+			if ( a )
+				present_uuid = avl_find( si->si_presentlist, &a->a_nvals[0],
+					syncuuid_cmp );
 
-			present_uuid = avl_find( si->si_presentlist, &a->a_nvals[0],
-				syncuuid_cmp );
+			Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: UUID %s, dn %s, %sfound\n",
+				a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val, present_uuid ? "" : "not " );
+
+			if ( a == NULL ) return 0;
 		}
 
 		if ( present_uuid == NULL ) {
