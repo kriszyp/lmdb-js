@@ -43,7 +43,7 @@ struct ldif_info {
 	struct berval li_base_path;
 	enumCookie li_tool_cookie;
 	ID li_tool_current;
-	ldap_pvt_thread_mutex_t  li_mutex;
+	ldap_pvt_thread_rdwr_t  li_rdwr;
 };
 
 #ifdef _WIN32
@@ -603,7 +603,7 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 	}
 
 	ni = (struct ldif_info *)op->o_bd->be_private;
-	ldap_pvt_thread_mutex_lock( &ni->li_mutex );
+	ldap_pvt_thread_rdwr_rlock( &ni->li_rdwr );
 	entry = (Entry *)get_entry( op, &ni->li_base_path );
 
 	/* no object is found for them */
@@ -626,7 +626,7 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 			entry = (Entry *)get_entry( op, &ni->li_base_path );
 		}
 
-		ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+		ldap_pvt_thread_rdwr_runlock( &ni->li_rdwr );
 
 		op->o_req_dn = odn;
 		op->o_req_ndn = ondn;
@@ -676,7 +676,7 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 		return rc;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+	ldap_pvt_thread_rdwr_runlock( &ni->li_rdwr );
 
 	if ( is_entry_referral( entry ) ) {
 		/* entry is a referral */
@@ -719,7 +719,7 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 	Entry * entry = NULL;
 
 	ni = (struct ldif_info *) op->o_bd->be_private;
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_rlock(&ni->li_rdwr);
 	entry = (Entry *) get_entry(op, &ni->li_base_path);
 
 	/* no object is found for them */
@@ -752,7 +752,7 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 	goto return_result;
 
  return_result:
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_runlock(&ni->li_rdwr);
 	if(return_val != 0)
 		send_ldap_result( op, rs );
 	if(entry != NULL)
@@ -767,9 +767,9 @@ static int ldif_back_search(Operation *op, SlapReply *rs)
 
 	ck.op = op;
 	ck.rs = rs;
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_rlock(&ni->li_rdwr);
 	rs->sr_err = enum_tree( &ck );
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_runlock(&ni->li_rdwr);
 	send_ldap_result(op, rs);
 
 	return rs->sr_err;
@@ -791,7 +791,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 		&rs->sr_text, textbuf, sizeof( textbuf ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
 				
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_wlock(&ni->li_rdwr);
 
 	dn2path(&dn, &op->o_bd->be_nsuffix[0], &ni->li_base_path, &leaf_path);
 
@@ -840,7 +840,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 		SLAP_FREE(leaf_path.bv_val);
 	}
 
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_wunlock(&ni->li_rdwr);
 
 send_res:
 	Debug( LDAP_DEBUG_TRACE, 
@@ -859,7 +859,7 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_wlock(&ni->li_rdwr);
 	dn2path(&op->o_req_ndn, &op->o_bd->be_nsuffix[0], &ni->li_base_path,
 		&path);
 	entry = (Entry *) get_entry(op, &ni->li_base_path);
@@ -889,7 +889,7 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	if(path.bv_val != NULL)
 		SLAP_FREE(path.bv_val);
 	rs->sr_text = NULL;
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_wunlock(&ni->li_rdwr);
 	send_ldap_result(op, rs);
 	slap_graduate_commit_csn( op );
 	return 0;
@@ -909,7 +909,7 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 		slap_get_csn( op, &csn, 1 );
 	}
 
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_wlock(&ni->li_rdwr);
 	dn2path(&op->o_req_ndn, &op->o_bd->be_nsuffix[0], &ni->li_base_path, &path);
 
 	path.bv_val[path.bv_len - STRLENOF(LDIF)] = '\0';
@@ -931,7 +931,7 @@ static int ldif_back_delete(Operation *op, SlapReply *rs) {
 		rs->sr_err = LDAP_SUCCESS;
 
 	SLAP_FREE(path.bv_val);
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_wunlock(&ni->li_rdwr);
 	send_ldap_result(op, rs);
 	slap_graduate_commit_csn( op );
 	return 0;
@@ -956,6 +956,7 @@ static int move_entry(Entry * entry, struct berval * ndn,
 	else { /* do the modrdn */
 		exists_res = open(newpath.bv_val, O_RDONLY);
 		if(exists_res == -1 && errno == ENOENT) {
+			ldap_pvt_thread_mutex_lock( &entry2str_mutex );
 			res = spew_entry(entry, &newpath);
 			if(res != -1) {
 				/* if this fails we should log something bad */
@@ -969,6 +970,7 @@ static int move_entry(Entry * entry, struct berval * ndn,
 					res = LDAP_UNWILLING_TO_PERFORM;
 				unlink(newpath.bv_val); /* in case file was created */
 			}
+			ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 		}
 		else if(exists_res) {
 			int close_res = close(exists_res);
@@ -1000,8 +1002,7 @@ ldif_back_modrdn(Operation *op, SlapReply *rs)
 
 	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
-	ldap_pvt_thread_mutex_lock( &ni->li_mutex );
-	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
+	ldap_pvt_thread_rdwr_wlock( &ni->li_rdwr );
 	entry = (Entry *) get_entry( op, &ni->li_base_path );
 
 	/* build the mods to the entry */
@@ -1053,8 +1054,7 @@ no_such_object:;
 		entry_free( entry );
 	}
 	rs->sr_text = "";
-	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
-	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
+	ldap_pvt_thread_rdwr_wunlock( &ni->li_rdwr );
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 	return 0;
@@ -1076,13 +1076,13 @@ int ldif_back_entry_get(
 	assert( ndn != NULL );
 	assert( !BER_BVISNULL( ndn ) );
 
-	ldap_pvt_thread_mutex_lock( &ni->li_mutex );
+	ldap_pvt_thread_rdwr_rlock( &ni->li_rdwr );
 	op->o_req_dn = *ndn;
 	op->o_req_ndn = *ndn;
 	*ent = (Entry *) get_entry( op, &ni->li_base_path );
 	op->o_req_dn = op_dn;
 	op->o_req_ndn = op_ndn;
-	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+	ldap_pvt_thread_rdwr_runlock( &ni->li_rdwr );
 
 	if ( *ent && oc && !is_entry_objectclass_or_sub( *ent, oc ) ) {
 		entry_free( *ent );
@@ -1208,7 +1208,7 @@ ldif_back_db_init( BackendDB *be )
 	ni = ch_calloc( 1, sizeof(struct ldif_info) );
 	be->be_private = ni;
 	be->be_cf_ocs = ldifocs;
-	ldap_pvt_thread_mutex_init(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_init(&ni->li_rdwr);
 	return 0;
 }
 
@@ -1220,7 +1220,7 @@ ldif_back_db_destroy(
 	struct ldif_info *ni = be->be_private;
 
 	ch_free(ni->li_base_path.bv_val);
-	ldap_pvt_thread_mutex_destroy(&ni->li_mutex);
+	ldap_pvt_thread_rdwr_destroy(&ni->li_rdwr);
 	free( be->be_private );
 	return 0;
 }
