@@ -837,7 +837,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	int i;
 	int logop;
 	slap_verbmasks *lo;
-	Entry *e, *old = NULL;
+	Entry *e = NULL, *old = NULL;
 	char timebuf[LDAP_LUTIL_GENTIME_BUFSIZE+8];
 	struct berval bv;
 	char *ptr;
@@ -1124,11 +1124,12 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	}
 
 	op2.o_bd->be_add( &op2, &rs2 );
-	entry_free( e );
 
 done:
+	if ( lo->mask & LOG_OP_WRITES )
+		ldap_pvt_thread_mutex_unlock( &li->li_log_mutex );
+	if ( e ) entry_free( e );
 	if ( old ) entry_free( old );
-	ldap_pvt_thread_mutex_unlock( &li->li_log_mutex );
 	return SLAP_CB_CONTINUE;
 }
 
