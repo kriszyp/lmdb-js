@@ -443,6 +443,9 @@ log_age_parse(char *agestr)
 			return -1;
 		t1 *= 60;
 		t1 += atoi( agestr );
+	} else if ( gotdays ) {
+		/* only got days+hh:mm */
+		t1 *= 60;
 	}
 	return t1;
 }
