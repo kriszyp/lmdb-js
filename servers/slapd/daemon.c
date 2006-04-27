@@ -339,9 +339,13 @@ static struct slap_daemon {
 static char** slapd_srvurls = NULL;
 static SLPHandle slapd_hslp = 0;
 int slapd_register_slp = 0;
+char *slapd_slp_attrs = NULL;
+
+static SLPError slapd_slp_cookie;
 
 void slapd_slp_init( const char* urls ) {
 	int i;
+	SLPError err;
 
 	slapd_srvurls = ldap_str2charray( urls, " " );
 
@@ -376,7 +380,12 @@ void slapd_slp_init( const char* urls ) {
 	}
 
 	/* open the SLP handle */
-	SLPOpen( "en", 0, &slapd_hslp );
+	err = SLPOpen( "en", 0, &slapd_hslp );
+
+	if (err != SLP_OK) {
+		Debug( LDAP_DEBUG_CONNS, "daemon: SLPOpen() failed with %ld\n",
+			(long)err, 0, 0 );
+	}
 }
 
 void slapd_slp_deinit() {
@@ -394,11 +403,13 @@ void slapd_slp_regreport(
 	SLPError errcode,
 	void* cookie )
 {
-	/* empty report */
+	/* return the error code in the cookie */
+	*(SLPError*)cookie = errcode; 
 }
 
 void slapd_slp_reg() {
 	int i;
+	SLPError err;
 
 	if( slapd_srvurls == NULL ) return;
 
@@ -408,28 +419,41 @@ void slapd_slp_reg() {
 		    strncmp( slapd_srvurls[i], LDAPS_SRVTYPE_PREFIX,
 				sizeof( LDAPS_SRVTYPE_PREFIX ) - 1 ) == 0 )
 		{
-			SLPReg( slapd_hslp,
+			err = SLPReg( slapd_hslp,
 				slapd_srvurls[i],
 				SLP_LIFETIME_MAXIMUM,
 				"ldap",
-				"",
-				1,
+					(slapd_slp_attrs) ? slapd_slp_attrs : "",
+					SLP_TRUE,
 				slapd_slp_regreport,
-				NULL );
+					&slapd_slp_cookie );
+
+			if (err != SLP_OK || slapd_slp_cookie != SLP_OK) {
+				Debug( LDAP_DEBUG_CONNS,
+					"daemon: SLPReg(%s) failed with %ld, cookie = %ld\n",
+					slapd_srvurls[i], (long)err, (long)slapd_slp_cookie );
+			}	
 		}
 	}
 }
 
 void slapd_slp_dereg() {
 	int i;
+	SLPError err;
 
 	if( slapd_srvurls == NULL ) return;
 
 	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
-		SLPDereg( slapd_hslp,
+		err = SLPDereg( slapd_hslp,
 			slapd_srvurls[i],
 			slapd_slp_regreport,
-			NULL );
+				&slapd_slp_cookie );
+		
+		if (err != SLP_OK || slapd_slp_cookie != SLP_OK) {
+			Debug( LDAP_DEBUG_CONNS,
+				"daemon: SLPDereg(%s) failed with %ld, cookie = %ld\n",
+				slapd_srvurls[i], (long)err, (long)slapd_slp_cookie );
+		}
 	}
 }
 #endif /* HAVE_SLP */

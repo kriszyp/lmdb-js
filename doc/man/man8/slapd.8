@@ -13,6 +13,7 @@ slapd \- Stand-alone LDAP Daemon
 .B [\-F slapd\-config\-directory]
 .B [\-h URLs]
 .B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
+.B [\-o option[=value]]
 .B [\-r directory]
 .B [\-u user] [\-g group]
 .B [\-c cookie]
@@ -236,6 +237,30 @@ must be provided in order for any other specified values to be used.
 is the commit sequence number received by a previous synchronization
 and represents the state of the consumer replica content which the
 syncrepl engine will synchronize to the current provider content.
+.TP
+.BI \-o " option[=value]"
+This option provides a generic means to specify options without the need to reserve
+a separate letter for them.
+
+It supports the following options:
+.RS
+.TP
+slp={\fBon\fP|\fBoff\fP|\fIslp\-attrs\fP}
+When SLP support is compiled into slapd, disable it (
+.B off
+), enable it by registering at SLP DAs without specific SLP attributes (
+.B on
+), or with specific SLP attributes
+.I slp\-attrs
+that must be an SLP attribute list definition according to the SLP standard.
+
+For example, "-o slp=(tree=production),(server-type=OpenLDAP),(server-version=2.3.20)"
+registers at SLP DAs with the three SLP attributes tree, server-type and server-version
+that have the values given above.
+This allows to specifically query the SLP DAs for LDAP servers holding the
+.I production
+tree in case multiple trees are availabe.
+.RE
 .SH EXAMPLES
 To start 
 .I slapd

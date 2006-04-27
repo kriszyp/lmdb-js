@@ -115,8 +115,9 @@ slapd_opt_slp( const char *val, void *arg )
 {
 #ifdef HAVE_SLP
 	/* NULL is default */
-	if ( val == NULL || strcasecmp( val, "on" ) == 0 ) {
+	if ( val == NULL || *val == '(' || strcasecmp( val, "on" ) == 0 ) {
 		slapd_register_slp = 1;
+		slapd_slp_attrs = (val != NULL && *val == '(') ? val : NULL;
 
 	} else if ( strcasecmp( val, "off" ) == 0 ) {
 		slapd_register_slp = 0;
@@ -155,7 +156,7 @@ struct option_helper {
 	void		*oh_arg;
 	const char	*oh_usage;
 } option_helpers[] = {
-	{ BER_BVC("slp"),	slapd_opt_slp,	NULL, "slp[={on|off}] enable/disable SLP" },
+	{ BER_BVC("slp"),	slapd_opt_slp,	NULL, "slp[={on|off|(attrs)}] enable/disable SLP using (attrs)" },
 	{ BER_BVNULL, 0, NULL, NULL }
 };
 
