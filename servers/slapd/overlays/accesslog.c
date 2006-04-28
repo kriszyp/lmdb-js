@@ -60,7 +60,7 @@ typedef struct log_info {
 	Filter *li_oldf;
 	Entry *li_old;
 	int li_success;
-	ldap_pvt_thread_mutex_t li_op_mutex;
+	ldap_pvt_thread_rmutex_t li_op_rmutex;
 	ldap_pvt_thread_mutex_t li_log_mutex;
 } log_info;
 
@@ -872,7 +872,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
 		old = li->li_old;
 		li->li_old = NULL;
-		ldap_pvt_thread_mutex_unlock( &li->li_op_mutex );
+		ldap_pvt_thread_rmutex_unlock( &li->li_op_rmutex );
 	}
 
 	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
@@ -1184,10 +1184,7 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	log_info *li = on->on_bi.bi_private;
 
 	if ( li->li_ops & LOG_OP_WRITES ) {
-		/* FIXME: this needs to be a recursive mutex to allow
-		 * overlays like refint to keep working.
-		 */
-		ldap_pvt_thread_mutex_lock( &li->li_op_mutex );
+		ldap_pvt_thread_rmutex_lock( &li->li_op_rmutex );
 		if ( li->li_oldf && ( op->o_tag == LDAP_REQ_DELETE ||
 			op->o_tag == LDAP_REQ_MODIFY )) {
 			int rc;
@@ -1291,7 +1288,7 @@ accesslog_db_init(
 	log_info *li = ch_calloc(1, sizeof(log_info));
 
 	on->on_bi.bi_private = li;
-	ldap_pvt_thread_mutex_init( &li->li_op_mutex );
+	ldap_pvt_thread_rmutex_init( &li->li_op_rmutex );
 	ldap_pvt_thread_mutex_init( &li->li_log_mutex );
 	return 0;
 }
@@ -1305,7 +1302,7 @@ accesslog_db_destroy(
 	log_info *li = on->on_bi.bi_private;
 
 	ldap_pvt_thread_mutex_destroy( &li->li_log_mutex );
-	ldap_pvt_thread_mutex_destroy( &li->li_op_mutex );
+	ldap_pvt_thread_rmutex_destroy( &li->li_op_rmutex );
 	free( li );
 	return LDAP_SUCCESS;
 }
