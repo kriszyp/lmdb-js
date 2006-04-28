@@ -51,6 +51,11 @@
 #define LOG_OP_ALL		(LOG_OP_READS|LOG_OP_WRITES|LOG_OP_SESSION| \
 	LOG_OP_EXTENDED|LOG_OP_UNKNOWN)
 
+typedef struct log_attr {
+	struct log_attr *next;
+	AttributeDescription *attr;
+} log_attr;
+
 typedef struct log_info {
 	BackendDB *li_db;
 	slap_mask_t li_ops;
@@ -59,6 +64,7 @@ typedef struct log_info {
 	struct re_s *li_task;
 	Filter *li_oldf;
 	Entry *li_old;
+	log_attr *li_oldattrs;
 	int li_success;
 	ldap_pvt_thread_rmutex_t li_op_rmutex;
 	ldap_pvt_thread_mutex_t li_log_mutex;
@@ -71,7 +77,8 @@ enum {
 	LOG_OPS,
 	LOG_PURGE,
 	LOG_SUCCESS,
-	LOG_OLD
+	LOG_OLD,
+	LOG_OLDATTR
 };
 
 static ConfigTable log_cfats[] = {
@@ -97,6 +104,10 @@ static ConfigTable log_cfats[] = {
 		log_cf_gen, "( OLcfgOvAt:4.5 NAME 'olcAccessLogOld' "
 			"DESC 'Log old values when modifying entries matching the filter' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "logoldattr", "attrs", 2, 0, 0, ARG_MAGIC|LOG_OLDATTR,
+		log_cf_gen, "( OLcfgOvAt:4.6 NAME 'olcAccessLogOldAttr' "
+			"DESC 'Log old values of these attributes even if unmodified' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL }
 };
 
@@ -107,7 +118,7 @@ static ConfigOCs log_cfocs[] = {
 		"SUP olcOverlayConfig "
 		"MUST olcAccessLogDB "
 		"MAY ( olcAccessLogOps $ olcAccessLogPurge $ olcAccessLogSuccess $ "
-			"olcAccessLogOld ) )",
+			"olcAccessLogOld $ olcAccessLogOldAttr ) )",
 			Cft_Overlay, log_cfats },
 	{ NULL }
 };
@@ -624,6 +635,16 @@ log_cf_gen(ConfigArgs *c)
 			else
 				rc = 1;
 			break;
+		case LOG_OLDATTR:
+			if ( li->li_oldattrs ) {
+				log_attr *la;
+
+				for ( la = li->li_oldattrs; la; la=la->next )
+					value_add_one( &c->rvalue_vals, &la->attr->ad_cname );
+			}
+			else
+				rc = 1;
+			break;
 		}
 		break;
 	case LDAP_MOD_DELETE:
@@ -658,6 +679,26 @@ log_cf_gen(ConfigArgs *c)
 			if ( li->li_oldf ) {
 				filter_free( li->li_oldf );
 				li->li_oldf = NULL;
+			}
+			break;
+		case LOG_OLDATTR:
+			if ( c->valx < 0 ) {
+				log_attr *la, *ln;
+
+				for ( la = li->li_oldattrs; la; la = ln ) {
+					ln = la->next;
+					ch_free( la );
+				}
+			} else {
+				log_attr *la, **lp;
+				int i;
+
+				for ( lp = &li->li_oldattrs, i=0; i < c->valx; i++ ) {
+					la = *lp;
+					lp = &la->next;
+				}
+				*lp = la->next;
+				ch_free( la );
 			}
 			break;
 		}
@@ -711,6 +752,27 @@ log_cf_gen(ConfigArgs *c)
 				sprintf( c->msg, "bad filter!" );
 				rc = 1;
 			}
+			break;
+		case LOG_OLDATTR: {
+			int i;
+			AttributeDescription *ad;
+			const char *text;
+
+			for ( i=1; i< c->argc; i++ ) {
+				ad = NULL;
+				if ( slap_str2ad( c->argv[i], &ad, &text ) == LDAP_SUCCESS ) {
+					log_attr *la = ch_malloc( sizeof( log_attr ));
+					la->attr = ad;
+					la->next = li->li_oldattrs;
+					li->li_oldattrs = la;
+				} else {
+					sprintf( c->msg, "%s: %s", c->argv[i], text );
+					rc = ARG_BAD_CONF;
+					break;
+				}
+			}
+			}
+			break;
 		}
 		break;
 	}
@@ -950,10 +1012,17 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		vals = ch_malloc( (i+1) * sizeof( struct berval ));
 		i = 0;
 
-		/* Zero flags on old entry */
+		/* init flags on old entry */
 		if ( old ) {
-			for ( a=old->e_attrs; a; a=a->a_next )
+			for ( a=old->e_attrs; a; a=a->a_next ) {
+				log_attr *la;
 				a->a_flags = 0;
+
+				/* look for attrs that are always logged */
+				for ( la=li->li_oldattrs; la; la=la->next )
+					if ( a->a_desc == la->attr )
+						a->a_flags = 1;
+			}
 		}
 
 		for ( m=op->orm_modlist; m; m=m->sml_next ) {
