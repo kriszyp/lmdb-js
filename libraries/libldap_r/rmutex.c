@@ -102,10 +102,10 @@ ldap_pvt_thread_rmutex_destroy( ldap_pvt_thread_rmutex_t *rmutex )
 	return 0;
 }
 
-int ldap_pvt_thread_rmutex_lock( ldap_pvt_thread_rmutex_t *rmutex )
+int ldap_pvt_thread_rmutex_lock( ldap_pvt_thread_rmutex_t *rmutex,
+	ldap_pvt_thread_t owner )
 {
 	struct ldap_int_thread_rmutex_s *rm;
-	ldap_pvt_thread_t tid;
 
 	assert( rmutex != NULL );
 	rm = *rmutex;
@@ -121,11 +121,9 @@ int ldap_pvt_thread_rmutex_lock( ldap_pvt_thread_rmutex_t *rmutex )
 	assert( rm->ltrm_depth >= 0 );
 	assert( rm->ltrm_waits >= 0 );
 
-	tid = ldap_pvt_thread_self();
-
 	if( rm->ltrm_depth > 0 ) {
 		/* already locked */
-		if ( !ldap_pvt_thread_equal( rm->ltrm_owner, tid )) {
+		if ( !ldap_pvt_thread_equal( rm->ltrm_owner, owner )) {
 			rm->ltrm_waits++;
 			do {
 				ldap_pvt_thread_cond_wait( &rm->ltrm_cond,
@@ -134,10 +132,10 @@ int ldap_pvt_thread_rmutex_lock( ldap_pvt_thread_rmutex_t *rmutex )
 
 			rm->ltrm_waits--;
 			assert( rm->ltrm_waits >= 0 );
-			rm->ltrm_owner = tid;
+			rm->ltrm_owner = owner;
 		}
 	} else {
-		rm->ltrm_owner = tid;
+		rm->ltrm_owner = owner;
 	}
 
 	rm->ltrm_depth++;
@@ -147,10 +145,10 @@ int ldap_pvt_thread_rmutex_lock( ldap_pvt_thread_rmutex_t *rmutex )
 	return 0;
 }
 
-int ldap_pvt_thread_rmutex_trylock( ldap_pvt_thread_rmutex_t *rmutex )
+int ldap_pvt_thread_rmutex_trylock( ldap_pvt_thread_rmutex_t *rmutex,
+	ldap_pvt_thread_t owner )
 {
 	struct ldap_int_thread_rmutex_s *rm;
-	ldap_pvt_thread_t tid;
 
 	assert( rmutex != NULL );
 	rm = *rmutex;
@@ -166,15 +164,13 @@ int ldap_pvt_thread_rmutex_trylock( ldap_pvt_thread_rmutex_t *rmutex )
 	assert( rm->ltrm_depth >= 0 );
 	assert( rm->ltrm_waits >= 0 );
 
-	tid = ldap_pvt_thread_self();
-
 	if( rm->ltrm_depth > 0 ) {
-		if ( !ldap_pvt_thread_equal( tid, rm->ltrm_owner )) {
+		if ( !ldap_pvt_thread_equal( owner, rm->ltrm_owner )) {
 			ldap_pvt_thread_mutex_unlock( &rm->ltrm_mutex );
 			return LDAP_PVT_THREAD_EBUSY;
 		}
 	} else {
-		rm->ltrm_owner = tid;
+		rm->ltrm_owner = owner;
 	}
 
 	rm->ltrm_depth++;
@@ -184,10 +180,10 @@ int ldap_pvt_thread_rmutex_trylock( ldap_pvt_thread_rmutex_t *rmutex )
 	return 0;
 }
 
-int ldap_pvt_thread_rmutex_unlock( ldap_pvt_thread_rmutex_t *rmutex )
+int ldap_pvt_thread_rmutex_unlock( ldap_pvt_thread_rmutex_t *rmutex,
+	ldap_pvt_thread_t owner )
 {
 	struct ldap_int_thread_rmutex_s *rm;
-	ldap_pvt_thread_t tid;
 
 	assert( rmutex != NULL );
 	rm = *rmutex;
@@ -200,9 +196,7 @@ int ldap_pvt_thread_rmutex_unlock( ldap_pvt_thread_rmutex_t *rmutex )
 
 	ldap_pvt_thread_mutex_lock( &rm->ltrm_mutex );
 
-	tid = ldap_pvt_thread_self();
-
-	if( !ldap_pvt_thread_equal( tid, rm->ltrm_owner )) {
+	if( !ldap_pvt_thread_equal( owner, rm->ltrm_owner )) {
 		ldap_pvt_thread_mutex_unlock( &rm->ltrm_mutex );
 		return LDAP_PVT_THREAD_EINVAL;
 	}

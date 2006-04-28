@@ -130,13 +130,16 @@ LDAP_F( int )
 ldap_pvt_thread_rmutex_destroy LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
 
 LDAP_F( int )
-ldap_pvt_thread_rmutex_lock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
+ldap_pvt_thread_rmutex_lock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex,
+	ldap_pvt_thread_t owner));
 
 LDAP_F( int )
-ldap_pvt_thread_rmutex_trylock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
+ldap_pvt_thread_rmutex_trylock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex,
+	ldap_pvt_thread_t owner));
 
 LDAP_F( int )
-ldap_pvt_thread_rmutex_unlock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
+ldap_pvt_thread_rmutex_unlock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex,
+	ldap_pvt_thread_t owner));
 
 LDAP_F( ldap_pvt_thread_t )
 ldap_pvt_thread_self LDAP_P(( void ));

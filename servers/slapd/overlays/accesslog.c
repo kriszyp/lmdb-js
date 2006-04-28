@@ -934,7 +934,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		ldap_pvt_thread_mutex_lock( &li->li_log_mutex );
 		old = li->li_old;
 		li->li_old = NULL;
-		ldap_pvt_thread_rmutex_unlock( &li->li_op_rmutex );
+		ldap_pvt_thread_rmutex_unlock( &li->li_op_rmutex, op->o_tid );
 	}
 
 	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
@@ -1253,7 +1253,7 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	log_info *li = on->on_bi.bi_private;
 
 	if ( li->li_ops & LOG_OP_WRITES ) {
-		ldap_pvt_thread_rmutex_lock( &li->li_op_rmutex );
+		ldap_pvt_thread_rmutex_lock( &li->li_op_rmutex, op->o_tid );
 		if ( li->li_oldf && ( op->o_tag == LDAP_REQ_DELETE ||
 			op->o_tag == LDAP_REQ_MODIFY )) {
 			int rc;

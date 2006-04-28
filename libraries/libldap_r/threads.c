@@ -39,6 +39,7 @@ int ldap_pvt_thread_initialize( void )
 	int rc;
 	static int init = 0;
 	ldap_pvt_thread_rmutex_t rm;
+	ldap_pvt_thread_t tid;
 
 	/* we only get one shot at this */
 	if( init++ ) return -1;
@@ -53,10 +54,11 @@ int ldap_pvt_thread_initialize( void )
 
 	/* kludge to pull symbol definitions in */
 	ldap_pvt_thread_rmutex_init( &rm );
-	ldap_pvt_thread_rmutex_lock( &rm );
-	ldap_pvt_thread_rmutex_trylock( &rm );
-	ldap_pvt_thread_rmutex_unlock( &rm );
-	ldap_pvt_thread_rmutex_unlock( &rm );
+	tid = ldap_pvt_thread_self();
+	ldap_pvt_thread_rmutex_lock( &rm, tid );
+	ldap_pvt_thread_rmutex_trylock( &rm, tid );
+	ldap_pvt_thread_rmutex_unlock( &rm, tid );
+	ldap_pvt_thread_rmutex_unlock( &rm, tid );
 	ldap_pvt_thread_rmutex_destroy( &rm );
 
 	return 0;
