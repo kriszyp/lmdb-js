@@ -51,8 +51,8 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 	FILE *f;
 	Attribute *a;
 	Modifications *m;
-	struct berval *b;
-	char *what, *suffix, *who = NULL;
+	struct berval *b, *who = NULL;
+	char *what, *suffix;
 	long stamp = slap_get_time();
 	int i;
 
@@ -71,7 +71,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 			what = "add";
 			for(a = op->ora_e->e_attrs; a; a = a->a_next)
 				if( a->a_desc == slap_schema.si_ad_modifiersName ) {
-					who = a->a_vals[0].bv_val;
+					who = &a->a_vals[0];
 					break;
 				}
 			break;
@@ -81,7 +81,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 				if( m->sml_desc == slap_schema.si_ad_modifiersName &&
 					( m->sml_op == LDAP_MOD_ADD ||
 					m->sml_op == LDAP_MOD_REPLACE )) {
-					who = m->sml_values[0].bv_val;
+					who = &m->sml_values[0];
 					break;
 				}
 			break;
@@ -96,7 +96,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 ** note: this means requestor's dn when modifiersName is null
 */
 	if ( !who )
-		who = op->o_dn.bv_val;
+		who = &op->o_dn;
 
 	ldap_pvt_thread_mutex_lock(&ad->ad_mutex);
 	if((f = fopen(ad->ad_logfile, "a")) == NULL) {
@@ -104,8 +104,14 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 		return SLAP_CB_CONTINUE;
 	}
 
-	fprintf(f, "# %s %ld %s%s%s\ndn: %s\nchangetype: %s\n",
-		what, stamp, suffix, who ? " " : "", who ? who : "",
+	fprintf(f, "# %s %ld %s%s%s\n",
+		what, stamp, suffix, who ? " " : "", who ? who->bv_val : "");
+
+	if ( !who || !dn_match( who, &op->o_conn->c_dn ))
+		fprintf(f, "# realdn: %s\n", op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val :
+			"<empty>" );
+
+	fprintf(f, "dn: %s\nchangetype: %s\n",
 		op->o_req_dn.bv_val, what);
 
 	switch(op->o_tag) {
