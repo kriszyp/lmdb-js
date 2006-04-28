@@ -54,6 +54,11 @@ Specify a filter for matching against Deleted and Modified entries. If
 the entry matches the filter, the old contents of the entry will be
 logged along with the current request.
 .TP
+.B logoldattr <attr> ...
+Specify a list of attributes whose old contents are always logged in
+a Modify request. Usually only the contents of attributes that were
+actually modified will be logged.
+.TP
 .B logpurge <age> <interval>
 Specify the maximum age for log entries to be retained in the database,
 and how often to scan the database for old entries. Both the
