@@ -33,6 +33,7 @@ typedef ldap_int_thread_mutex_t		ldap_pvt_thread_mutex_t;
 typedef ldap_int_thread_cond_t		ldap_pvt_thread_cond_t;
 typedef ldap_int_thread_rdwr_t		ldap_pvt_thread_rdwr_t;
 #endif
+typedef ldap_int_thread_rmutex_t	ldap_pvt_thread_rmutex_t;
 #endif /* !LDAP_PVT_THREAD_H_DONE */
 
 #if 0 && defined(LDAP_DEVEL)
@@ -121,6 +122,21 @@ ldap_pvt_thread_mutex_trylock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F( int )
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_rmutex_init LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_rmutex_destroy LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_rmutex_lock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_rmutex_trylock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
+
+LDAP_F( int )
+ldap_pvt_thread_rmutex_unlock LDAP_P(( ldap_pvt_thread_rmutex_t *rmutex ));
 
 LDAP_F( ldap_pvt_thread_t )
 ldap_pvt_thread_self LDAP_P(( void ));
