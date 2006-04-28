@@ -157,7 +157,7 @@ static int spew_file(int fd, char * spew, int len) {
 		writeres = write(fd, spew, len);
 		if(writeres == -1) {
 			Debug( LDAP_DEBUG_ANY, "could not spew write: %s\n",
-				strerror( errno ), 0, 0 );
+				STRERROR( errno ), 0, 0 );
 			return -1;
 		}
 		else {
@@ -182,7 +182,7 @@ static int spew_entry(Entry * e, struct berval * path) {
 		else
 			rs = LDAP_UNWILLING_TO_PERFORM;
 		Debug( LDAP_DEBUG_ANY, "could not open \"%s\": %s\n",
-			path->bv_val, strerror( errno ), 0 );
+			path->bv_val, STRERROR( errno ), 0 );
 	}
 	else {
 		struct berval rdn;
@@ -266,7 +266,7 @@ static Entry * get_entry(Operation *op, struct berval *base_path) {
 	/* error opening file (mebbe should log error) */
 	if ( fd == -1 && ( errno != ENOENT || op->o_tag != LDAP_REQ_ADD ) ) {
 		Debug( LDAP_DEBUG_ANY, "failed to open file \"%s\": %s\n",
-			path.bv_val, strerror(errno), 0 );
+			path.bv_val, STRERROR(errno), 0 );
 	}
 
 	if(path.bv_val != NULL)
@@ -308,7 +308,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 	if ( fd < 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"=> ldif_enum_tree: failed to open %s: %s\n",
-			path->bv_val, strerror(errno), 0 );
+			path->bv_val, STRERROR(errno), 0 );
 		return LDAP_NO_SUCH_OBJECT;
 	}
 
@@ -813,7 +813,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 					rs->sr_text = "Could not create parent folder";
 					Debug( LDAP_DEBUG_ANY, "could not create folder \"%s\": %s\n",
-						base.bv_val, strerror( errno ), 0 );
+						base.bv_val, STRERROR( errno ), 0 );
 				}
 			}
 			else
@@ -829,7 +829,7 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 			else if ( statres == -1 ) {
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				Debug( LDAP_DEBUG_ANY, "could not stat file \"%s\": %s\n",
-					leaf_path.bv_val, strerror( errno ), 0 );
+					leaf_path.bv_val, STRERROR( errno ), 0 );
 			}
 			else /* it already exists */
 				rs->sr_err = LDAP_ALREADY_EXISTS;
@@ -842,7 +842,8 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 
 send_res:
 	Debug( LDAP_DEBUG_TRACE, 
-			"ldif_back_add: err: %d text: %s\n", rs->sr_err, rs->sr_text, 0);
+			"ldif_back_add: err: %d text: %s\n", rs->sr_err, rs->sr_text ?
+				rs->sr_text : "", 0);
 	send_ldap_result(op, rs);
 	slap_graduate_commit_csn( op );
 	return 0;
@@ -873,7 +874,7 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 			if(spew_res == -1) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s ldif_back_modify: could not output entry \"%s\": %s\n",
-					op->o_log_prefix, entry->e_name.bv_val, strerror( save_errno ) );
+					op->o_log_prefix, entry->e_name.bv_val, STRERROR( save_errno ) );
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			}
 		}
