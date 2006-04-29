@@ -86,7 +86,7 @@ static ConfigFile *cfn;
 static Avlnode *CfOcTree;
 
 static int config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca,
-	SlapReply *rs, int *renumber );
+	SlapReply *rs, int *renumber, Operation *op );
 
 static ConfigDriver config_fname;
 static ConfigDriver config_cfdir;
@@ -2937,7 +2937,7 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 		setup_cookie *sc = op->o_callback->sc_private;
 
 		sc->cfb->cb_got_ldif = 1;
-		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL );
+		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL, NULL );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "config error processing %s: %s\n",
 				rs->sr_entry->e_name.bv_val, sc->ca->msg, 0 );
@@ -3559,7 +3559,8 @@ cfAddOverlay( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 
 /* Parse an LDAP entry into config directives */
 static int
-config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, int *renum )
+config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
+	int *renum, Operation *op )
 {
 	CfEntryInfo *ce, *last;
 	ConfigOCs **colst;
@@ -3583,6 +3584,15 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 		if ( rs )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		return LDAP_NO_SUCH_OBJECT;
+	}
+
+	if ( op ) {
+		/* No parent, must be root. This will never happen... */
+		if ( !last && !be_isroot( op ) && !be_shadow_update( op ))
+			return LDAP_NO_SUCH_OBJECT;
+		if ( !access_allowed( op, last->ce_entry, slap_schema.si_ad_children,
+			NULL, ACL_WADD, NULL ))
+			return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
@@ -3766,7 +3776,8 @@ config_back_add( Operation *op, SlapReply *rs )
 	int renumber;
 	ConfigArgs ca;
 
-	if ( !be_isroot( op ) ) {
+	if ( !access_allowed( op, op->ora_e, slap_schema.si_ad_entry,
+		NULL, ACL_WADD, NULL )) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto out;
 	}
@@ -3784,7 +3795,7 @@ config_back_add( Operation *op, SlapReply *rs )
 	 */
 	/* NOTE: by now we do not accept adds that require renumbering */
 	renumber = -1;
-	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber );
+	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber, op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rs->sr_text = ca.msg;
 		goto out2;
@@ -4103,11 +4114,6 @@ config_back_modify( Operation *op, SlapReply *rs )
 	char *ptr;
 	AttributeDescription *rad = NULL;
 
-	if ( !be_isroot( op ) ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto out;
-	}
-
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
@@ -4115,6 +4121,11 @@ config_back_modify( Operation *op, SlapReply *rs )
 		if ( last )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto out;
+	}
+
+	if ( !acl_check_modlist( op, ce->ce_entry, op->orm_modlist )) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto out;
 	}
 
@@ -4178,11 +4189,6 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
 
-	if ( !be_isroot( op ) ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto out;
-	}
-
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
@@ -4191,6 +4197,22 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		goto out;
+	}
+	if ( !access_allowed( op, ce->ce_entry, slap_schema.si_ad_entry,
+		NULL, ACL_WRITE, NULL )) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		goto out;
+	}
+	{ Entry *parent;
+		if ( ce->ce_parent )
+			parent = ce->ce_parent->ce_entry;
+		else
+			parent = (Entry *)&slap_entry_root;
+		if ( !access_allowed( op, parent, slap_schema.si_ad_children,
+			NULL, ACL_WRITE, NULL )) {
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			goto out;
+		}
 	}
 
 	/* We don't allow moving objects to new parents.
@@ -4216,11 +4238,7 @@ config_back_search( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
-
-	if ( !be_isroot( op ) ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto out;
-	}
+	slap_mask_t mask;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -4229,6 +4247,16 @@ config_back_search( Operation *op, SlapReply *rs )
 		if ( last )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto out;
+	}
+	if ( !access_allowed_mask( op, ce->ce_entry, slap_schema.si_ad_entry, NULL,
+		ACL_SEARCH, NULL, &mask ))
+	{
+		if ( !ACL_GRANT( mask, ACL_DISCLOSE )) {
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else {
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		}
 		goto out;
 	}
 	switch ( op->ors_scope ) {
@@ -4847,7 +4875,7 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 	ConfigArgs ca;
 
 	if ( bi && bi->bi_tool_entry_put &&
-		config_add_internal( cfb, e, &ca, NULL, NULL ) == 0 )
+		config_add_internal( cfb, e, &ca, NULL, NULL, NULL ) == 0 )
 		return bi->bi_tool_entry_put( &cfb->cb_db, e, text );
 	else
 		return NOID;
@@ -4930,7 +4958,7 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_chk_referrals = 0;
 
-	bi->bi_access_allowed = slap_access_always_allowed;
+	bi->bi_access_allowed = slap_access_allowed;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
