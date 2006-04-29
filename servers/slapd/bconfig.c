@@ -40,6 +40,8 @@
 static struct berval config_rdn = BER_BVC("cn=config");
 static struct berval schema_rdn = BER_BVC("cn=schema");
 
+extern int slap_DN_strict;	/* dn.c */
+
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
 	struct modpath_s *mp_next;
@@ -3010,6 +3012,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 
 	if ( readit ) {
 		void *thrctx = ldap_pvt_thread_pool_context();
+		int prev_DN_strict;
 
 		op = (Operation *) &opbuf;
 		connection_fake_init( &conn, op, thrctx );
@@ -3040,7 +3043,15 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		cb.sc_private = &sc;
 
 		op->o_bd = &cfb->cb_db;
+		
+		/* Allow unknown attrs in DNs */
+		prev_DN_strict = slap_DN_strict;
+		slap_DN_strict = 0;
+
 		rc = op->o_bd->be_search( op, &rs );
+
+		/* Restore normal DN validation */
+		slap_DN_strict = prev_DN_strict;
 
 		ldap_pvt_thread_pool_context_reset( thrctx );
 	}

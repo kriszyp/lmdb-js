@@ -53,6 +53,8 @@
 
 #define	AVA_PRIVATE( ava ) ( ( AttributeDescription * )(ava)->la_private )
 
+int slap_DN_strict = SLAP_AD_NOINSERT;
+
 static int
 LDAPRDN_validate( LDAPRDN rdn )
 {
@@ -75,7 +77,7 @@ LDAPRDN_validate( LDAPRDN rdn )
 			if ( rc != LDAP_SUCCESS ) {
 				rc = slap_bv2undef_ad( &ava->la_attr,
 					&ad, &text,
-					SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+					SLAP_AD_PROXIED|slap_DN_strict );
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
 				}
@@ -139,7 +141,7 @@ LDAPDN_validate( LDAPDN dn )
 				if ( rc != LDAP_SUCCESS ) {
 					rc = slap_bv2undef_ad( &ava->la_attr,
 						&ad, &text,
-						SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+						SLAP_AD_PROXIED|slap_DN_strict );
 					if ( rc != LDAP_SUCCESS ) {
 						return LDAP_INVALID_SYNTAX;
 					}
@@ -356,7 +358,7 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 			if ( rc != LDAP_SUCCESS ) {
 				rc = slap_bv2undef_ad( &ava->la_attr,
 					&ad, &text,
-					SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+					SLAP_AD_PROXIED|slap_DN_strict );
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
 				}
@@ -488,7 +490,7 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 				if ( rc != LDAP_SUCCESS ) {
 					rc = slap_bv2undef_ad( &ava->la_attr,
 						&ad, &text,
-						SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+						SLAP_AD_PROXIED|slap_DN_strict );
 					if ( rc != LDAP_SUCCESS ) {
 						return LDAP_INVALID_SYNTAX;
 					}
