@@ -326,6 +326,7 @@ dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 Overlays="accesslog \
 	auditlog \
+	constraint \
 	dds \
 	denyop \
 	dyngroup \
@@ -350,6 +351,8 @@ OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays],
 OL_ARG_ENABLE(accesslog,[    --enable-accesslog	  In-Directory Access Logging overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(auditlog,[    --enable-auditlog	  Audit Logging overlay],
+	no, [no yes mod], ol_enable_overlays)
+OL_ARG_ENABLE(constraint,[    --enable-constraint	  Attribute Constraint overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dds,[    --enable-dds  	  Dynamic Directory Services overlay],
 	no, [no yes mod], ol_enable_overlays)
@@ -558,6 +561,7 @@ BUILD_SQL=no
 
 BUILD_ACCESSLOG=no
 BUILD_AUDITLOG=no
+BUILD_CONSTRAINT=no
 BUILD_DDS=no
 BUILD_DENYOP=no
 BUILD_DYNGROUP=no
@@ -2741,6 +2745,18 @@ if test "$ol_enable_auditlog" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_AUDITLOG,$MFLAG,[define for Audit Logging overlay])
 fi
 
+if test "$ol_enable_constraint" != no ; then
+	BUILD_CONSTRAINT=$ol_enable_constraint
+	if test "$ol_enable_constraint" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS constraint.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS constraint.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_CONSTRAINT,$MFLAG,[define for Attribute Constraint overlay])
+fi
+
 if test "$ol_enable_dds" != no ; then
 	BUILD_DDS=$ol_enable_dds
 	if test "$ol_enable_dds" = mod ; then
@@ -2982,6 +2998,7 @@ dnl backends
 dnl overlays
   AC_SUBST(BUILD_ACCESSLOG)
   AC_SUBST(BUILD_AUDITLOG)
+  AC_SUBST(BUILD_CONSTRAINT)
   AC_SUBST(BUILD_DDS)
   AC_SUBST(BUILD_DENYOP)
   AC_SUBST(BUILD_DYNGROUP)
