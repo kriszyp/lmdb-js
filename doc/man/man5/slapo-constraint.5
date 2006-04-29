@@ -1,0 +1,57 @@
+.TH SLAPO-CONSTRAINT 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2005-2006 Hewlett-Packard Company
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+slapo-constraint \- Attribute Constraint Overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The constraint overlay is used to enforce a regular expression
+constraint on all values of specified attributes. Attributes can
+have multiple constraints placed upon them, and all must be satisfied
+when modifying an attribute value under constraint.
+.LP
+This overlay is intended to be used to force syntactic regularity upon
+certain string represented data which have well known canonical forms,
+like telephone numbers, post codes, FQDNs, etc.
+.SH CONFIGURATION
+This
+.B slapd.conf
+option applies to the constraint overlay.
+It should appear after the
+.B overlay
+directive.
+.TP
+.B constraint_attribute <attribute_name> <type> <value>
+Specifies the constraint which should apply to the attribute named as
+the first parameter.
+At the moment only one type of constraint is supported -
+.B
+regex.
+The parameter following the
+.B
+regex
+type is a Unix style regular expression (See
+.B
+regex(7))
+
+Any attempt to add or modify an attribute named as part of the
+constraint overlay specification which does not fit the regular
+expression constraint listed will fail with a
+LDAP_CONSTRAINT_VIOLATION error.
+.SH EXAMPLES
+.B
+constraint_attribute mail regex ^[:alnum:]+@mydomain.com$
+
+A specification like the above would reject any
+.B
+mail
+attribute which did not look like
+.B
+<alpha-numeric string>@mydomain.com
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5).
