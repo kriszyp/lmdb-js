@@ -255,4 +255,4 @@ ldap_pvt_thread_pool_context_reset LDAP_P(( void *key ));
 LDAP_END_DECL
 
 #define LDAP_PVT_THREAD_H_DONE
-#endif /* _LDAP_THREAD_H */
+#endif /* _LDAP_PVT_THREAD_H */
