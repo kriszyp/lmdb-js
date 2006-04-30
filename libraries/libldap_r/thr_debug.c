@@ -141,6 +141,7 @@ static int threadID;
 enum { threadID = 0 };
 #endif
 static int nodebug, noabort, noerror, nosync, tracethreads;
+static int wrap_threads;
 static int options_done;
 
 
@@ -322,6 +323,7 @@ get_options( void )
 	}
 	unwrap_offset = -(wrap_offset = (wraptype == Wrap_adjptr));
 #endif
+	wrap_threads = (tracethreads || threadID || count);
 	options_done = 1;
 }
 
@@ -708,6 +710,51 @@ ldap_pvt_thread_sleep( unsigned int interval )
 	return 0;
 }
 
+void
+thread_exiting( const char *how, const char *msg )
+{
+	ldap_pvt_thread_t thread;
+	ERROR_IF( !threading_enabled, msg );
+	thread = ldap_pvt_thread_self();
+	if( tracethreads ) {
+		char buf[40];
+		fprintf( stderr, "== thr_debug: %s thread %s ==\n",
+			how, thread_name( buf, sizeof(buf), thread ) );
+	}
+	if( threadID ) {
+		with_thread_info_lock({
+			ldap_debug_thread_t *t = get_thread_info(
+				&thread, msg );
+			if( thread_info_detached( t ) )
+				remove_thread_info( t, msg );
+		});
+	}
+	adjust_count( Idx_unexited_thread, -1 );
+}
+
+void
+ldap_pvt_thread_exit( void *retval )
+{
+	thread_exiting( "Exiting", "ldap_pvt_thread_exit" );
+	ldap_int_thread_exit( retval );
+}
+
+typedef struct {
+	void *(*start_routine)( void * );
+	void *arg;
+} ldap_debug_thread_call_t;
+
+static void *
+ldap_debug_thread_wrapper( void *arg )
+{
+	void *ret;
+	ldap_debug_thread_call_t call = *(ldap_debug_thread_call_t *)arg;
+	free( arg );
+	ret = call.start_routine( call.arg );
+	thread_exiting( "Returning from", "ldap_debug_thread_wrapper" );
+	return ret;
+}
+
 int
 ldap_pvt_thread_create(
 	ldap_pvt_thread_t *thread,
@@ -719,6 +766,15 @@ ldap_pvt_thread_create(
 	if( !options_done )
 		get_options();
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_create" );
+	if( wrap_threads ) {
+		ldap_debug_thread_call_t *call = malloc(
+			sizeof( ldap_debug_thread_call_t ) );
+		assert( call != NULL );
+		call->start_routine = start_routine;
+		call->arg = arg;
+		start_routine = ldap_debug_thread_wrapper;
+		arg = call;
+	}
 	if( threadID ) {
 		with_thread_info_lock({
 			rc = ldap_int_thread_create( thread, detach, start_routine, arg );
@@ -744,29 +800,6 @@ ldap_pvt_thread_create(
 			adjust_count( Idx_unjoined_thread, +1 );
 	}
 	return rc;
-}
-
-void
-ldap_pvt_thread_exit( void *retval )
-{
-	ldap_pvt_thread_t thread;
-	ERROR_IF( !threading_enabled, "ldap_pvt_thread_exit" );
-	thread = ldap_pvt_thread_self();
-	if( tracethreads ) {
-		char buf[40];
-		fprintf( stderr, "== thr_debug: Exiting thread %s ==\n",
-			thread_name( buf, sizeof(buf), thread ) );
-	}
-	if( threadID ) {
-		with_thread_info_lock({
-			ldap_debug_thread_t *t = get_thread_info(
-				&thread, "ldap_pvt_thread_exit" );
-			if( thread_info_detached( t ) )
-				remove_thread_info( t, "ldap_pvt_thread_exit" );
-		});
-	}
-	adjust_count( Idx_unexited_thread, -1 );
-	ldap_int_thread_exit( retval );
 }
 
 int
