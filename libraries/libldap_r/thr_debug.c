@@ -710,7 +710,7 @@ ldap_pvt_thread_sleep( unsigned int interval )
 	return 0;
 }
 
-void
+static void
 thread_exiting( const char *how, const char *msg )
 {
 	ldap_pvt_thread_t thread;
