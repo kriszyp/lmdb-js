@@ -83,10 +83,10 @@ LDAP server to use.  Multiple URIs can be set in in a single
 argument, resulting in the underlying library automatically 
 call the first server of the list that responds, e.g. 
 
-\fBuri "ldap://host/ ldap://backup-host"\fP
+\fBuri "ldap://host/ ldap://backup-host/"\fP
 
 The URI list is space- or comma-separated.
-This statement is mandatory.
+.\"This statement is mandatory.
 .\".TP
 .\".B server <hostport>
 .\"Obsolete option; same as `uri ldap://<hostport>/'.
@@ -120,6 +120,33 @@ This directive obsoletes
 and
 .BR acl-passwd .
 .RE
+
+.TP
+.B chase-referrals {YES|no}
+enable/disable automatic referral chasing, which is delegated to the
+underlying libldap, with rebinding eventually performed if the
+\fBrebind-as-user\fP directive is used.  The default is to chase referrals.
+
+.TP
+.B conn-ttl <time>
+This directive causes a cached connection to be dropped an recreated
+after a given ttl, regardless of being idle or not.
+
+.TP
+.B idassert-authzFrom <authz-regexp>
+if defined, selects what
+.I local
+identities are authorized to exploit the identity assertion feature.
+The string
+.B <authz-regexp>
+follows the rules defined for the
+.I authzFrom
+attribute.
+See 
+.BR slapd.conf (5),
+section related to
+.BR authz-policy ,
+for details on the syntax of this field.
 
 .HP
 .hy 0
@@ -273,23 +300,21 @@ and
 .RE
 
 .TP
-.B idassert-authzFrom <authz-regexp>
-if defined, selects what
-.I local
-identities are authorized to exploit the identity assertion feature.
-The string
-.B <authz-regexp>
-follows the rules defined for the
-.I authzFrom
-attribute.
-See 
-.BR slapd.conf (5),
-section related to
-.BR authz-policy ,
-for details on the syntax of this field.
+.B idle-timeout <time>
+This directive causes a cached connection to be dropped an recreated
+after it has been idle for the specified time.
 
 .TP
-.B proxy-whoami {NO|yes}
+.B protocol\-version {0,2,3}
+This directive indicates what protocol version must be used to contact
+the remote server.
+If set to 0 (the default), the proxy uses the same protocol version 
+used by the client, otherwise the requested protocol is used.
+The proxy returns \fIunwillingToPerform\fP if an operation that is 
+incompatible with the requested protocol is attempted.
+
+.TP
+.B proxy\-whoami {NO|yes}
 Turns on proxying of the WhoAmI extended operation. If this option is
 given, back-ldap will replace slapd's original WhoAmI routine with its
 own. On slapd sessions that were authenticated by back-ldap, the WhoAmI
@@ -302,21 +327,6 @@ in conjunction with Proxy Authorization.
 If this option is given, the client's bind credentials are remembered
 for rebinds when chasing referrals.  Useful when
 \fBchase-referrals\fP is set to \fByes\fP, useless otherwise.
-
-.TP
-.B chase-referrals {YES|no}
-enable/disable automatic referral chasing, which is delegated to the
-underlying libldap, with rebinding eventually performed if the
-\fBrebind-as-user\fP directive is used.  The default is to chase referrals.
-
-.TP
-.B tls {[try-]start|[try-]propagate}
-execute the StartTLS extended operation when the connection is initialized;
-only works if the URI directive protocol scheme is not \fBldaps://\fP.
-\fBpropagate\fP issues the StartTLS operation only if the original
-connection did.
-The \fBtry-\fP prefix instructs the proxy to continue operations
-if the StartTLS operation failed; its use is highly deprecated.
 
 .TP
 .B t-f-support {NO|yes|discover}
@@ -342,14 +352,13 @@ the protocol does not provide any means to rollback the operation,
 so the client will not know if the operation eventually succeeded or not.
 
 .TP
-.B idle-timeout <time>
-This directive causes a cached connection to be dropped an recreated
-after it has been idle for the specified time.
-
-.TP
-.B conn-ttl <time>
-This directive causes a cached connection to be dropped an recreated
-after a given ttl, regardless of being idle or not.
+.B tls {[try-]start|[try-]propagate}
+execute the StartTLS extended operation when the connection is initialized;
+only works if the URI directive protocol scheme is not \fBldaps://\fP.
+\fBpropagate\fP issues the StartTLS operation only if the original
+connection did.
+The \fBtry-\fP prefix instructs the proxy to continue operations
+if the StartTLS operation failed; its use is highly deprecated.
 
 .SH BACKWARD COMPATIBILITY
 The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
