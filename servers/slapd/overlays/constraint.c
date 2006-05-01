@@ -263,7 +263,11 @@ static slap_overinst constraint_ovl;
  * initialized and registered by some other function inside slapd.
  */
 
-int constraint_init() {
+#if SLAPD_OVER_CONSTRAINT == SLAPD_MOD_DYNAMIC
+static
+#endif
+int
+constraint_initialize( void ) {
     constraint_ovl.on_bi.bi_type = "constraint";
     constraint_ovl.on_bi.bi_db_config = constraint_config;
     constraint_ovl.on_bi.bi_db_close = constraint_close;
@@ -275,7 +279,7 @@ int constraint_init() {
 
 #if SLAPD_OVER_CONSTRAINT == SLAPD_MOD_DYNAMIC
 int init_module(int argc, char *argv[]) {
-    return constraint_init();
+    return constraint_initialize();
 }
 #endif
 
