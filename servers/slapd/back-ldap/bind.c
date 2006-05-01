@@ -1227,7 +1227,10 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 		goto done;
 	}
 
-	if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+	if ( op->o_tag == LDAP_REQ_BIND ) {
+		ndn = op->o_req_ndn;
+
+	} else if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
 		ndn = op->o_conn->c_ndn;
 
 	} else {
