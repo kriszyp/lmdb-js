@@ -1246,14 +1246,15 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_ACL:
 			/* Don't append to the global ACL if we're on a specific DB */
+			i = c->valx;
 			if ( c->be != frontendDB && frontendDB->be_acl && c->valx == -1 ) {
 				AccessControl *a;
-				c->valx = 0;
+				i = 0;
 				for ( a=c->be->be_acl; a && a != frontendDB->be_acl;
 					a = a->acl_next )
-					c->valx++;
+					i++;
 			}
-			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx ) ) {
+			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, i ) ) {
 				return 1;
 			}
 			break;
