@@ -1729,7 +1729,7 @@ slapd_daemon_task(
 		struct timeval		tv;
 		struct timeval		*tvp;
 
-		struct timeval		*cat;
+		struct timeval		cat;
 		time_t				tdelta = 1;
 		struct re_s*		rtask;
 		now = slap_get_time();
@@ -1810,7 +1810,7 @@ slapd_daemon_task(
 
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		rtask = ldap_pvt_runqueue_next_sched( &slapd_rq, &cat );
-		while ( cat && cat->tv_sec && cat->tv_sec <= now ) {
+		while ( rtask && cat.tv_sec && cat.tv_sec <= now ) {
 			if ( ldap_pvt_runqueue_isrunning( &slapd_rq, rtask )) {
 				ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 			} else {
@@ -1818,15 +1818,15 @@ slapd_daemon_task(
 				ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 				ldap_pvt_thread_pool_submit( &connection_pool,
-											rtask->routine, (void *) rtask );
+					rtask->routine, (void *) rtask );
 				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 			}
 			rtask = ldap_pvt_runqueue_next_sched( &slapd_rq, &cat );
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
-		if ( cat && cat->tv_sec ) {
-			time_t diff = difftime( cat->tv_sec, now );
+		if ( rtask && cat.tv_sec ) {
+			time_t diff = difftime( cat.tv_sec, now );
 			if ( diff == 0 ) diff = tdelta;
 			if ( tvp == NULL || diff < tv.tv_sec ) {
 				tv.tv_sec = diff;
