@@ -1233,6 +1233,7 @@ connection_operation( void *ctx, void *arg_v )
 	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 
 	op->o_threadctx = ctx;
+	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
 
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
@@ -2253,6 +2254,7 @@ connection_fake_init(
 	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx);
 	op->o_tmpmfuncs = &slap_sl_mfuncs;
 	op->o_threadctx = ctx;
+	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
 
 	op->o_conn = conn;
 	op->o_connid = op->o_conn->c_connid;
