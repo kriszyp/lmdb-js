@@ -252,6 +252,9 @@ ldap_pvt_thread_pool_context LDAP_P(( void ));
 LDAP_F( void )
 ldap_pvt_thread_pool_context_reset LDAP_P(( void *key ));
 
+LDAP_F( ldap_pvt_thread_t )
+ldap_pvt_thread_pool_tid LDAP_P(( void *ctx ));
+
 LDAP_END_DECL
 
 #define LDAP_PVT_THREAD_H_DONE

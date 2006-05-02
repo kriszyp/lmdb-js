@@ -50,11 +50,16 @@ typedef struct ldap_int_thread_key_s {
 #define	MAXKEYS	32
 #define	LDAP_MAXTHR	1024	/* must be a power of 2 */
 
+typedef struct ldap_int_thread_userctx_s {
+	ldap_pvt_thread_t ltu_id;
+	ldap_int_thread_key_t ltu_key[MAXKEYS];
+} ldap_int_thread_userctx_t;
+
 static ldap_pvt_thread_t tid_zero;
 
 static struct {
 	ldap_pvt_thread_t id;
-	ldap_int_thread_key_t *ctx;
+	ldap_int_thread_userctx_t *ctx;
 } thread_keys[LDAP_MAXTHR];
 	
 
@@ -95,12 +100,13 @@ static void *ldap_int_thread_pool_wrapper( void *pool );
 
 static ldap_pvt_thread_t ldap_int_main_tid;
 
-static ldap_int_thread_key_t ldap_int_main_thrctx[LDAP_MAXTHR];
+static ldap_int_thread_userctx_t ldap_int_main_thrctx;
 
 int
 ldap_int_thread_pool_startup ( void )
 {
 	ldap_int_main_tid = ldap_pvt_thread_self();
+	ldap_int_main_thrctx.ltu_id = ldap_int_main_tid;
 
 	return ldap_pvt_thread_mutex_init(&ldap_pvt_thread_pool_mutex);
 }
@@ -541,27 +547,26 @@ ldap_int_thread_pool_wrapper (
 {
 	struct ldap_int_thread_pool_s *pool = xpool;
 	ldap_int_thread_ctx_t *ctx;
-	ldap_int_thread_key_t ltc_key[MAXKEYS];
-	ldap_pvt_thread_t tid;
+	ldap_int_thread_userctx_t uctx;
 	int i, keyslot, hash;
 
 	if (pool == NULL)
 		return NULL;
 
 	for ( i=0; i<MAXKEYS; i++ ) {
-		ltc_key[i].ltk_key = NULL;
+		uctx.ltu_key[i].ltk_key = NULL;
 	}
 
-	tid = ldap_pvt_thread_self();
+	uctx.ltu_id = ldap_pvt_thread_self();
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
 	/* store pointer to our keys */
-	TID_HASH(tid, hash);
+	TID_HASH(uctx.ltu_id, hash);
 	for (i = hash & (LDAP_MAXTHR-1);
-				!ldap_pvt_thread_equal(thread_keys[i].id, tid);
+				!ldap_pvt_thread_equal(thread_keys[i].id, uctx.ltu_id);
 				i = (i+1) & (LDAP_MAXTHR-1));
-	thread_keys[i].ctx = ltc_key;
+	thread_keys[i].ctx = &uctx;
 	keyslot = i;
 
 	while (pool->ltp_state != LDAP_INT_THREAD_POOL_STOPPING) {
@@ -609,7 +614,7 @@ ldap_int_thread_pool_wrapper (
 		pool->ltp_active_count++;
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
-		ctx->ltc_start_routine(ltc_key, ctx->ltc_arg);
+		ctx->ltc_start_routine(&uctx, ctx->ltc_arg);
 
 #ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
 		ldap_lazy_sem_post( thread_pool_sem );
@@ -628,11 +633,11 @@ ldap_int_thread_pool_wrapper (
 		}
 	}
 
-	for ( i=0; i<MAXKEYS && ltc_key[i].ltk_key; i++ ) {
-		if (ltc_key[i].ltk_free)
-			ltc_key[i].ltk_free(
-				ltc_key[i].ltk_key,
-				ltc_key[i].ltk_data );
+	for ( i=0; i<MAXKEYS && uctx.ltu_key[i].ltk_key; i++ ) {
+		if (uctx.ltu_key[i].ltk_free)
+			uctx.ltu_key[i].ltk_free(
+				uctx.ltu_key[i].ltk_key,
+				uctx.ltu_key[i].ltk_data );
 	}
 
 	thread_keys[keyslot].ctx = NULL;
@@ -711,15 +716,15 @@ int ldap_pvt_thread_pool_getkey(
 	void **data,
 	ldap_pvt_thread_pool_keyfree_t **kfree )
 {
-	ldap_int_thread_key_t *ctx = xctx;
+	ldap_int_thread_userctx_t *ctx = xctx;
 	int i;
 
 	if ( !ctx || !data ) return EINVAL;
 
-	for ( i=0; i<MAXKEYS && ctx[i].ltk_key; i++ ) {
-		if ( ctx[i].ltk_key == key ) {
-			*data = ctx[i].ltk_data;
-			if ( kfree ) *kfree = ctx[i].ltk_free;
+	for ( i=0; i<MAXKEYS && ctx->ltu_key[i].ltk_key; i++ ) {
+		if ( ctx->ltu_key[i].ltk_key == key ) {
+			*data = ctx->ltu_key[i].ltk_data;
+			if ( kfree ) *kfree = ctx->ltu_key[i].ltk_free;
 			return 0;
 		}
 	}
@@ -732,16 +737,16 @@ int ldap_pvt_thread_pool_setkey(
 	void *data,
 	ldap_pvt_thread_pool_keyfree_t *kfree )
 {
-	ldap_int_thread_key_t *ctx = xctx;
+	ldap_int_thread_userctx_t *ctx = xctx;
 	int i;
 
 	if ( !ctx || !key ) return EINVAL;
 
 	for ( i=0; i<MAXKEYS; i++ ) {
-		if ( !ctx[i].ltk_key || ctx[i].ltk_key == key ) {
-			ctx[i].ltk_key = key;
-			ctx[i].ltk_data = data;
-			ctx[i].ltk_free = kfree;
+		if ( !ctx->ltu_key[i].ltk_key || ctx->ltu_key[i].ltk_key == key ) {
+			ctx->ltu_key[i].ltk_key = key;
+			ctx->ltu_key[i].ltk_data = data;
+			ctx->ltu_key[i].ltk_free = kfree;
 			return 0;
 		}
 	}
@@ -754,17 +759,18 @@ int ldap_pvt_thread_pool_setkey(
 void ldap_pvt_thread_pool_purgekey( void *key )
 {
 	int i, j;
-	ldap_int_thread_key_t *ctx;
+	ldap_int_thread_userctx_t *ctx;
 
 	for ( i=0; i<LDAP_MAXTHR; i++ ) {
 		if ( thread_keys[i].ctx ) {
 			ctx = thread_keys[i].ctx;
 			for ( j=0; j<MAXKEYS; j++ ) {
-				if ( ctx[j].ltk_key == key ) {
-					if (ctx[j].ltk_free)
-						ctx[j].ltk_free( ctx[j].ltk_key, ctx[j].ltk_data );
-					ctx[j].ltk_key = NULL;
-					ctx[j].ltk_free = NULL;
+				if ( ctx->ltu_key[j].ltk_key == key ) {
+					if (ctx->ltu_key[j].ltk_free)
+						ctx->ltu_key[j].ltk_free( ctx->ltu_key[j].ltk_key,
+						ctx->ltu_key[j].ltk_data );
+					ctx->ltu_key[j].ltk_key = NULL;
+					ctx->ltu_key[j].ltk_free = NULL;
 					break;
 				}
 			}
@@ -786,7 +792,7 @@ void *ldap_pvt_thread_pool_context( )
 
 	tid = ldap_pvt_thread_self();
 	if ( ldap_pvt_thread_equal( tid, ldap_int_main_tid ))
-		return ldap_int_main_thrctx;
+		return &ldap_int_main_thrctx;
 
 	TID_HASH( tid, hash );
 	for (i = hash & (LDAP_MAXTHR-1);
@@ -799,13 +805,21 @@ void *ldap_pvt_thread_pool_context( )
 
 void ldap_pvt_thread_pool_context_reset( void *vctx )
 {
-	ldap_int_thread_key_t *ctx = vctx;
+	ldap_int_thread_userctx_t *ctx = vctx;
 	int i;
 
-	for ( i=0; i<MAXKEYS && ctx[i].ltk_key; i++) {
-		if ( ctx[i].ltk_free )
-			ctx[i].ltk_free( ctx[i].ltk_key, ctx[i].ltk_data );
-		ctx[i].ltk_key = NULL;
+	for ( i=0; i<MAXKEYS && ctx->ltu_key[i].ltk_key; i++) {
+		if ( ctx->ltu_key[i].ltk_free )
+			ctx->ltu_key[i].ltk_free( ctx->ltu_key[i].ltk_key,
+			ctx->ltu_key[i].ltk_data );
+		ctx->ltu_key[i].ltk_key = NULL;
 	}
+}
+
+ldap_pvt_thread_t ldap_pvt_thread_pool_tid( void *vctx )
+{
+	ldap_int_thread_userctx_t *ctx = vctx;
+
+	return ctx->ltu_id;
 }
 #endif /* LDAP_THREAD_HAVE_TPOOL */
