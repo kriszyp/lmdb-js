@@ -1346,7 +1346,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	 * unlock the list mutex.
 	 */
 	for ( se=sl->sl_head; se; se=se->se_next ) {
-		if ( ber_bvcmp( &se->se_csn, oldcsn ) < 0 ) continue;
+		if ( ber_bvcmp( &se->se_csn, oldcsn ) <= 0 ) continue;
 		if ( ber_bvcmp( &se->se_csn, ctxcsn ) > 0 ) break;
 		if ( se->se_tag == LDAP_REQ_DELETE ) {
 			j = i;
