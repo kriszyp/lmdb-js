@@ -1520,10 +1520,10 @@ in order to work over all of the glued databases. E.g.
 .hy 0
 .B syncrepl rid=<replica ID>
 .B provider=ldap[s]://<hostname>[:port]
+.B searchbase=<base DN>
 .B [type=refreshOnly|refreshAndPersist]
 .B [interval=dd:hh:mm:ss]
 .B [retry=[<retry interval> <# of retries>]+]
-.B [searchbase=<base DN>]
 .B [filter=<filter str>]
 .B [scope=sub|one|base|subord]
 .B [attrs=<attr list>]
@@ -1531,7 +1531,6 @@ in order to work over all of the glued databases. E.g.
 .B [sizelimit=<limit>]
 .B [timelimit=<limit>]
 .B [schemachecking=on|off]
-.B [starttls=yes|critical]
 .B [bindmethod=simple|sasl]
 .B [binddn=<dn>]
 .B [saslmech=<mech>]
@@ -1540,6 +1539,14 @@ in order to work over all of the glued databases. E.g.
 .B [credentials=<passwd>]
 .B [realm=<realm>]
 .B [secprops=<properties>]
+.B [starttls=yes|critical]
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
 .B [logbase=<base DN>]
 .B [logfilter=<filter str>]
 .B [syncdata=default|accesslog|changelog]
@@ -1611,13 +1618,6 @@ The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
 .B schemachecking
 parameter. The default is off.
-The
-.B starttls
-parameter specifies use of the StartTLS extended operation
-to establish a TLS session before Binding to the provider. If the
-.B critical
-argument is supplied, the session will be aborted if the StartTLS request
-fails. Otherwise the syncrepl session continues without TLS.
 A
 .B bindmethod
 of 
@@ -1649,6 +1649,18 @@ keyword above) for a SASL bind can be set with the
 option. A non default SASL realm can be set with the
 .B realm 
 option.
+
+The
+.B starttls
+parameter specifies use of the StartTLS extended operation
+to establish a TLS session before Binding to the provider. If the
+.B critical
+argument is supplied, the session will be aborted if the StartTLS request
+fails. Otherwise the syncrepl session continues without TLS.  Note that the
+main slapd TLS settings are not used by the syncrepl engine;
+by default the TLS parameters from ETCDIR/ldap.conf will be used.
+TLS settings may be specified here, in which case the ldap.conf settings
+will be completely ignored.
 
 Rather than replicating whole entries, the consumer can query logs of
 data modifications. This mode of operation is referred to as \fIdelta
