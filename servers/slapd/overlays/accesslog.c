@@ -380,7 +380,7 @@ static struct {
 		"DESC 'ModRDN operation' "
 		"SUP auditWriteObject STRUCTURAL "
 		"MUST ( reqNewRDN $ reqDeleteOldRDN ) "
-		"MAY reqNewSuperior )", &log_ocs[LOG_EN_MODRDN] },
+		"MAY ( reqNewSuperior $ reqOld ) )", &log_ocs[LOG_EN_MODRDN] },
 	{ "( " LOG_SCHEMA_OC ".11 NAME 'auditSearch' "
 		"DESC 'Search operation' "
 		"SUP auditReadObject STRUCTURAL "
@@ -1098,6 +1098,40 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		break;
 
 	case LOG_EN_MODRDN:
+		if ( old ) {
+			/* count all the vals */
+			i = 0;
+			for ( a=old->e_attrs; a; a=a->a_next ) {
+				log_attr *la;
+
+				/* look for attrs that are always logged */
+				for ( la=li->li_oldattrs; la; la=la->next ) {
+					if ( a->a_desc == la->attr ) {
+						for (b=a->a_vals; !BER_BVISNULL( b ); b++) {
+							i++;
+						}
+					}
+				}
+			}
+			vals = ch_malloc( (i+1) * sizeof( struct berval ));
+			i = 0;
+			for ( a=old->e_attrs; a; a=a->a_next ) {
+				log_attr *la;
+				for ( la=li->li_oldattrs; la; la=la->next ) {
+					if ( a->a_desc == la->attr ) {
+						for (b=a->a_vals; !BER_BVISNULL( b ); b++,i++) {
+							accesslog_val2val( a->a_desc, b, 0, &vals[i] );
+						}
+					}
+				}
+			}
+			vals[i].bv_val = NULL;
+			vals[i].bv_len = 0;
+			a = attr_alloc( ad_reqOld );
+			a->a_vals = vals;
+			a->a_nvals = vals;
+			last_attr->a_next = a;
+		}
 		attr_merge_one( e, ad_reqNewRDN, &op->orr_newrdn, &op->orr_nnewrdn );
 		attr_merge_one( e, ad_reqDeleteOldRDN, op->orr_deleteoldrdn ?
 			(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv,
@@ -1255,7 +1289,8 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	if ( li->li_ops & LOG_OP_WRITES ) {
 		ldap_pvt_thread_rmutex_lock( &li->li_op_rmutex, op->o_tid );
 		if ( li->li_oldf && ( op->o_tag == LDAP_REQ_DELETE ||
-			op->o_tag == LDAP_REQ_MODIFY )) {
+			op->o_tag == LDAP_REQ_MODIFY ||
+			( op->o_tag == LDAP_REQ_MODRDN && li->li_oldattrs ))) {
 			int rc;
 			Entry *e;
 
