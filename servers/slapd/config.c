@@ -1011,12 +1011,14 @@ enum_to_verb(slap_verbmasks *v, slap_mask_t m, struct berval *bv) {
 	return -1;
 }
 
+#ifdef HAVE_TLS
 static slap_verbmasks tlskey[] = {
 	{ BER_BVC("no"),	SB_TLS_OFF },
 	{ BER_BVC("yes"),	SB_TLS_ON },
 	{ BER_BVC("critical"),	SB_TLS_CRITICAL },
 	{ BER_BVNULL, 0 }
 };
+#endif
 
 static slap_verbmasks methkey[] = {
 	{ BER_BVC("none"),	LDAP_AUTH_NONE },
@@ -1029,7 +1031,6 @@ static slap_verbmasks methkey[] = {
 
 static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
-	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
 	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
 	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
@@ -1039,6 +1040,7 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, NULL },
 	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
 #ifdef HAVE_TLS
+	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
 
 #define aux_TLS (bindkey+10)	/* beginning of TLS keywords */
 
