@@ -721,9 +721,12 @@ retry:;
 				if ( meta_back_retry( op, rs, &mc, i, sendok ) ) {
 					goto retry;
 				}
-				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-				LDAP_BACK_CONN_BINDING_CLEAR( msc );
-				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+
+				if ( mc != NULL ) {
+					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+					LDAP_BACK_CONN_BINDING_CLEAR( msc );
+					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+				}
 
 				return 0;
 			}
