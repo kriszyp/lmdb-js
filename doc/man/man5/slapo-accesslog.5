@@ -56,8 +56,9 @@ logged along with the current request.
 .TP
 .B logoldattr <attr> ...
 Specify a list of attributes whose old contents are always logged in
-a Modify request. Usually only the contents of attributes that were
-actually modified will be logged.
+Modify and ModRDN requests. Usually only the contents of attributes that were
+actually modified will be logged; by default no old attributes are logged
+for ModRDN requests.
 .TP
 .B logpurge <age> <interval>
 Specify the maximum age for log entries to be retained in the database,
@@ -114,7 +115,7 @@ overlay utilizes the "audit" schema described herein.
 This schema is specifically designed for
 .B accesslog
 auditing and is not intended to be used otherwise.  It is also
-noted that the schema describe here is
+noted that the schema described here is
 .I a work in
 .IR progress ,
 and hence subject to change without notice.
@@ -359,7 +360,7 @@ filter.
     DESC 'ModRDN operation'
     SUP auditWriteObject STRUCTURAL
     MUST ( reqNewRDN $ reqDeleteOldRDN )
-    MAY reqNewSuperior )
+    MAY ( reqNewSuperior $ reqOld ) )
 .RE
 .P
 The
@@ -378,6 +379,14 @@ The
 .B reqNewSuperior
 attribute carries the DN of the new parent entry if the request specified
 the new parent.
+The
+.B reqOld
+attribute is only populated if the entry being modified matches the
+configured
+.B logold
+filter and contains attributes in the
+.B logoldattr
+list.
 
 .LP
 .RS 4
