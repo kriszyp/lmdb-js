@@ -1039,6 +1039,9 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, NULL },
 	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
 #ifdef HAVE_TLS
+
+#define aux_TLS (bindkey+10)	/* beginning of TLS keywords */
+
 	{ BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
 	{ BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
 	{ BER_BVC("tls_cacert="), offsetof(slap_bindconf, sb_tls_cacert), 's', 1, NULL },
@@ -1055,7 +1058,7 @@ static slap_cf_aux_table bindkey[] = {
 int
 slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, LDAP_CONST char *tabmsg )
 {
-	int rc = 0;
+	int rc = SLAP_CONF_UNKNOWN;
 	slap_cf_aux_table *tab;
 
 	for (tab = tab0; !BER_BVISNULL(&tab->key); tab++ ) {
@@ -1072,11 +1075,13 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 			case 's':
 				cptr = (char **)((char *)dst + tab->off);
 				*cptr = ch_strdup( val );
+				rc = 0;
 				break;
 
 			case 'b':
 				bptr = (struct berval *)((char *)dst + tab->off);
 				ber_str2bv( val, 0, 1, bptr );
+				rc = 0;
 				break;
 
 			case 'd':
@@ -1216,6 +1221,13 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 int
 bindconf_parse( const char *word, slap_bindconf *bc )
 {
+#ifdef HAVE_TLS
+	/* Detect TLS config changes explicitly */
+	if ( slap_cf_aux_table_parse( word, bc, aux_TLS, "tls config" ) == 0 ) {
+		bc->sb_tls_do_init = 1;
+		return 0;
+	}
+#endif
 	return slap_cf_aux_table_parse( word, bc, bindkey, "bind config" );
 }
 
@@ -1315,6 +1327,8 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 	int i, rc, newctx = 0, res = 0;
 	char *ptr = (char *)bc, **word;
 
+	bc->sb_tls_do_init = 0;
+
 	for (i=0; bindtlsopts[i].opt; i++) {
 		word = (char **)(ptr + bindtlsopts[i].offset);
 		if ( *word ) {
@@ -1354,6 +1368,11 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 #endif
 	if ( newctx ) {
 		int opt = 0;
+
+		if ( bc->sb_tls_ctx ) {
+			SSL_CTX_free( bc->sb_tls_ctx );
+			bc->sb_tls_ctx = NULL;
+		}
 		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
 		if ( rc )
 			res = rc;
