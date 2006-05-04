@@ -35,6 +35,12 @@
 #include "ldap_log.h"
 #include "../../../libraries/libldap/ldap-int.h"
 
+/* IGNORE means that target does not (no longer) participate
+ * in the search;
+ * NOTREADY means the search on that target has not been initialized yet
+ */
+#define	META_MSGID_IGNORE	(-1)
+
 static int
 meta_send_entry(
 	Operation 	*op,
@@ -54,21 +60,24 @@ meta_back_search_start(
 	Operation		*op,
 	SlapReply		*rs,
 	dncookie		*dc,
-	metasingleconn_t	*msc,
+	metaconn_t		**mcp,
 	int			candidate,
-	SlapReply		*candidates
-)
+	SlapReply		*candidates )
 {
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	struct berval	realbase = op->o_req_dn;
-	int		realscope = op->ors_scope;
-	ber_len_t	suffixlen = 0;
-	struct berval	mbase = BER_BVNULL; 
-	struct berval	mfilter = BER_BVNULL;
-	char		**mapped_attrs = NULL;
-	int		rc;
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metaconn_t		*mc = *mcp;
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	struct berval		realbase = op->o_req_dn;
+	int			realscope = op->ors_scope;
+	ber_len_t		suffixlen = 0;
+	struct berval		mbase = BER_BVNULL; 
+	struct berval		mfilter = BER_BVNULL;
+	char			**mapped_attrs = NULL;
+	int			rc;
 	meta_search_candidate_t	retcode;
-	struct timeval	tv, *tvp = NULL;
+	struct timeval		tv, *tvp = NULL;
+	int			nretries = 1;
 
 	/* should we check return values? */
 	if ( op->ors_deref != -1 ) {
@@ -78,15 +87,16 @@ meta_back_search_start(
 
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		tv.tv_sec = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
+		tv.tv_usec = 0;
 		tvp = &tv;
 	}
 
-	dc->target = &mi->mi_targets[ candidate ];
+	dc->target = mt;
 
 	/*
 	 * modifies the base according to the scope, if required
 	 */
-	suffixlen = mi->mi_targets[ candidate ].mt_nsuffix.bv_len;
+	suffixlen = mt->mt_nsuffix.bv_len;
 	if ( suffixlen > op->o_req_ndn.bv_len ) {
 		switch ( op->ors_scope ) {
 		case LDAP_SCOPE_SUBTREE:
@@ -98,11 +108,9 @@ meta_back_search_start(
 			 * the requested searchBase already passed
 			 * thru the candidate analyzer...
 			 */
-			if ( dnIsSuffix( &mi->mi_targets[ candidate ].mt_nsuffix,
-					&op->o_req_ndn ) )
-			{
-				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
-				if ( mi->mi_targets[ candidate ].mt_scope == LDAP_SCOPE_SUBORDINATE ) {
+			if ( dnIsSuffix( &mt->mt_nsuffix, &op->o_req_ndn ) ) {
+				realbase = mt->mt_nsuffix;
+				if ( mt->mt_scope == LDAP_SCOPE_SUBORDINATE ) {
 					realscope = LDAP_SCOPE_SUBORDINATE;
 				}
 
@@ -117,19 +125,19 @@ meta_back_search_start(
 		case LDAP_SCOPE_SUBORDINATE:
 		case LDAP_SCOPE_ONELEVEL:
 		{
-			struct berval	rdn = mi->mi_targets[ candidate ].mt_nsuffix;
+			struct berval	rdn = mt->mt_nsuffix;
 			rdn.bv_len -= op->o_req_ndn.bv_len + STRLENOF( "," );
 			if ( dnIsOneLevelRDN( &rdn )
-					&& dnIsSuffix( &mi->mi_targets[ candidate ].mt_nsuffix, &op->o_req_ndn ) )
+					&& dnIsSuffix( &mt->mt_nsuffix, &op->o_req_ndn ) )
 			{
 				/*
 				 * if there is exactly one level,
 				 * make the target suffix the new
 				 * base, and make scope "base"
 				 */
-				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
+				realbase = mt->mt_nsuffix;
 				if ( op->ors_scope == LDAP_SCOPE_SUBORDINATE ) {
-					if ( mi->mi_targets[ candidate ].mt_scope == LDAP_SCOPE_SUBORDINATE ) {
+					if ( mt->mt_scope == LDAP_SCOPE_SUBORDINATE ) {
 						realscope = LDAP_SCOPE_SUBORDINATE;
 					} else {
 						realscope = LDAP_SCOPE_SUBTREE;
@@ -192,7 +200,7 @@ meta_back_search_start(
 	/*
 	 * Maps required attributes
 	 */
-	rc = ldap_back_map_attrs( &mi->mi_targets[ candidate ].mt_rwmap.rwm_at,
+	rc = ldap_back_map_attrs( &mt->mt_rwmap.rwm_at,
 			op->ors_attrs, BACKLDAP_MAP, &mapped_attrs );
 	if ( rc != LDAP_SUCCESS ) {
 		/*
@@ -205,16 +213,31 @@ meta_back_search_start(
 	/*
 	 * Starts the search
 	 */
+retry:;
 	rc = ldap_search_ext( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
 			op->o_ctrls, NULL, tvp, op->ors_slimit,
 			&candidates[ candidate ].sr_msgid ); 
-	if ( rc == LDAP_SUCCESS ) {
+	switch ( rc ) {
+	case LDAP_SUCCESS:
 		retcode = META_SEARCH_CANDIDATE;
+		break;
+	
+	case LDAP_SERVER_DOWN:
+		if ( nretries && meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
+			nretries = 0;
+			goto retry;
+		}
 
-	} else {
-		candidates[ candidate ].sr_msgid = -1;
+		if ( *mcp == NULL ) {
+			retcode = META_SEARCH_ERR;
+			break;
+		}
+		/* fall thru */
+
+	default:
+		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 		retcode = META_SEARCH_NOT_CANDIDATE;
 	}
 
@@ -268,9 +291,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * Inits searches
 	 */
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		metasingleconn_t	*msc = &mc->mc_conns[ i ];
-
-		candidates[ i ].sr_msgid = -1;
+		candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 		candidates[ i ].sr_matched = NULL;
 		candidates[ i ].sr_text = NULL;
 		candidates[ i ].sr_ref = NULL;
@@ -282,7 +303,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 			continue;
 		}
 
-		switch ( meta_back_search_start( op, rs, &dc, msc, i, candidates ) )
+		switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 		{
 		case META_SEARCH_NOT_CANDIDATE:
 			break;
@@ -371,7 +392,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
-			if ( candidates[ i ].sr_msgid == -1 ) {
+			if ( candidates[ i ].sr_msgid == META_MSGID_IGNORE ) {
 				continue;
 			}
 
@@ -417,7 +438,7 @@ really_bad:;
 					candidates[ i ].sr_type = REP_RESULT;
 
 					if ( meta_back_retry( op, rs, &mc, i, LDAP_BACK_DONTSEND ) ) {
-						switch ( meta_back_search_start( op, rs, &dc, msc, i, candidates ) )
+						switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 						{
 						case META_SEARCH_CANDIDATE:
 							goto get_result;
@@ -431,18 +452,20 @@ really_bad:;
 						}
 					}
 
-					savepriv = op->o_private;
-					op->o_private = (void *)i;
-					send_ldap_result( op, rs );
-					op->o_private = savepriv;
-					goto finish;
+					if ( META_BACK_ONERR_STOP( mi ) ) {
+						savepriv = op->o_private;
+						op->o_private = (void *)i;
+						send_ldap_result( op, rs );
+						op->o_private = savepriv;
+						goto finish;
+					}
 				}
 
 				/*
 				 * When no candidates are left,
 				 * the outer cycle finishes
 				 */
-				candidates[ i ].sr_msgid = -1;
+				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				--ncandidates;
 				rs->sr_err = candidates[ i ].sr_err = LDAP_OTHER;
 				rs->sr_text = "remote server unavailable";
@@ -733,7 +756,7 @@ really_bad:;
 				 * When no candidates are left,
 				 * the outer cycle finishes
 				 */
-				candidates[ i ].sr_msgid = -1;
+				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				--ncandidates;
 
 			} else {
@@ -747,11 +770,12 @@ really_bad:;
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
 				metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
-				if ( candidates[ i ].sr_msgid != -1 ) {
+				if ( candidates[ i ].sr_msgid != META_MSGID_IGNORE )
+				{
 					ldap_abandon_ext( msc->msc_ld,
 						candidates[ i ].sr_msgid,
 						NULL, NULL );
-					candidates[ i ].sr_msgid = -1;
+					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				}
 			}
 
@@ -764,7 +788,10 @@ really_bad:;
 		/* if no entry was found during this loop,
 		 * set a minimal timeout */
 		if ( gotit == 0 ) {
-			LDAP_BACK_TV_SET( &tv );
+			/* make the entire wait last
+			 * LDAP_BACK_RESULT_UTIMEOUT at worst */
+			tv.tv_sec = 0;
+			tv.tv_usec = LDAP_BACK_RESULT_UTIMEOUT/initial_candidates;
                         ldap_pvt_thread_yield();
 		}
 	}
