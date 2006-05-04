@@ -800,7 +800,11 @@ really_bad:;
 		/*
 		 * FIXME: need a better strategy to handle errors
 		 */
-		rc = meta_back_op_result( mc, op, rs, META_TARGET_NONE );
+		if ( mc ) {
+			rc = meta_back_op_result( mc, op, rs, META_TARGET_NONE );
+		} else {
+			rc = rs->sr_err;
+		}
 		goto finish;
 	}
 

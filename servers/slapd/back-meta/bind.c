@@ -840,6 +840,8 @@ meta_back_op_result(
 				*save_rmatch = NULL;
 	void			*rmatch_ctx = NULL;
 
+	assert( mc != NULL );
+
 	if ( candidate != META_TARGET_NONE ) {
 		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
