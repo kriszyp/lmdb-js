@@ -2631,6 +2631,10 @@ config_replica(ConfigArgs *c) {
 				/* dealt with separately; don't let it get to bindconf */
 				;
 
+			} else if(!strncasecmp(c->argv[i], "host=", STRLENOF("host="))) {
+				/* dealt with separately; don't let it get to bindconf */
+				;
+
 			} else if(!strncasecmp(c->argv[i], "suffix=", STRLENOF( "suffix="))) {
 				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
 					case 1:
