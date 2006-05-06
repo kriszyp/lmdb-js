@@ -470,11 +470,18 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 */
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+
+		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+			continue;
+		}
+
 		candidates[ i ].sr_matched = NULL;
 		candidates[ i ].sr_text = NULL;
 		candidates[ i ].sr_ref = NULL;
 		candidates[ i ].sr_ctrls = NULL;
+	}
 
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		if ( candidates[ i ].sr_tag != META_CANDIDATE
 			|| candidates[ i ].sr_err != LDAP_SUCCESS )
 		{
