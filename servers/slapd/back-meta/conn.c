@@ -402,7 +402,8 @@ retry:;
 		if ( rs->sr_err == LDAP_SERVER_DOWN
 				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( mi ) ) )
 		{
-			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
+			msc->msc_ld = NULL;
 			goto error_return;
 		}
 	}
@@ -456,7 +457,8 @@ retry:;
 			if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
 						&msc->msc_bound_ndn ) )
 			{
-				ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+				ldap_unbind_ext( msc->msc_ld, NULL, NULL );
+				msc->msc_ld = NULL;
 				goto error_return;
 			}
 			
