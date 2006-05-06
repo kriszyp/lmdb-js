@@ -82,9 +82,9 @@ meta_search_dobind_init(
 	int			rc;
 	int			nretries = 1;
 
-	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_search_dobind_init[%d]\n", op->o_log_prefix, candidate, 0 );
-
 	meta_search_candidate_t	retcode;
+
+	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_search_dobind_init[%d]\n", op->o_log_prefix, candidate, 0 );
 
 	/*
 	 * all the targets are already bound as pseudoroot
