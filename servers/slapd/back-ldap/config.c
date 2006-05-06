@@ -1323,16 +1323,16 @@ done_url:;
 		} break;
 
 	case LDAP_BACK_CFG_VERSION:
-		switch ( c->value_int ) {
-		case 0:
-		case LDAP_VERSION2:
-		case LDAP_VERSION3:
-			li->li_version = c->value_int;
-			break;
-
-		default:
+		if ( c->value_int != 0 && ( c->value_int < LDAP_VERSION_MIN || c->value_int > LDAP_VERSION_MAX ) ) {
+			snprintf( c->msg, sizeof( c->msg ),
+				"unsupported version \"%s\" "
+				"in \"protocol-version <version>\"",
+				c->argv[ 1 ] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
+
+		li->li_version = c->value_int;
 		break;
 
 	case LDAP_BACK_CFG_REWRITE:

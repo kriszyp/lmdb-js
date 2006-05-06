@@ -1069,13 +1069,7 @@ meta_back_db_config(
 			return 1;
 		}
 
-		switch ( *version ) {
-		case 0:
-		case LDAP_VERSION2:
-		case LDAP_VERSION3:
-			break;
-
-		default:
+		if ( *version != 0 && ( *version < LDAP_VERSION_MIN || *version > LDAP_VERSION_MAX ) ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: unsupported version \"%s\" in \"protocol-version <version>\"\n",
 				fname, lineno, argv[ 1 ] );
