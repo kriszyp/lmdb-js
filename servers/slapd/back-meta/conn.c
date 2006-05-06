@@ -531,21 +531,42 @@ meta_back_retry(
 		if ( rc == LDAP_SUCCESS ) {
 			rc = meta_back_single_dobind( op, rs, mcp, candidate,
 				sendok, mt->mt_nretries, 0 );
+
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_retry[%d]: "
+				"meta_back_single_dobind=%d\n",
+				op->o_log_prefix, candidate, rc );
+			if ( rc == LDAP_SUCCESS ) {
+				if ( be_isroot( op )  ) {
+					LDAP_BACK_CONN_ISBOUND_SET( msc );
+				} else {
+					LDAP_BACK_CONN_ISANON_SET( msc );
+				}
+			}
         	}
 	}
 
 	if ( rc != LDAP_SUCCESS ) {
+		SlapReply		*candidates = meta_back_candidates_get( op );
+
+		candidates[ candidate ].sr_err = rc;
+
 		if ( *mcp != NULL ) {
 			if ( binding ) {
 				LDAP_BACK_CONN_BINDING_CLEAR( msc );
 			}
 			LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_back_release_conn_lock( op, mc, 0 );
-			*mcp = NULL;
+			/* only release if mandatory; otherwise
+			 * let the caller do what's best before
+			 * releasing */
+			if ( META_BACK_ONERR_STOP( mi ) ) {
+				meta_back_release_conn_lock( op, mc, 0 );
+				*mcp = NULL;
+			}
 		}
 
 		if ( sendok ) {
-			rs->sr_err = LDAP_UNAVAILABLE;
+			rs->sr_err = rc;
 			rs->sr_text = NULL;
 			send_ldap_result( op, rs );
 		}

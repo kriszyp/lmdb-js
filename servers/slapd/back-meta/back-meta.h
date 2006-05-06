@@ -257,8 +257,8 @@ typedef struct metainfo_t {
 	unsigned		mi_flags;
 #define	li_flags		mi_flags
 /* uses flags as defined in <back-ldap/back-ldap.h> */
-#define	META_BACK_F_ONERR_STOP		0x00010000U
-#define	META_BACK_F_DEFER_ROOTDN_BIND	0x00020000U
+#define	META_BACK_F_ONERR_STOP		(0x00010000U)
+#define	META_BACK_F_DEFER_ROOTDN_BIND	(0x00020000U)
 
 #define	META_BACK_ONERR_STOP(mi)	( (mi)->mi_flags & META_BACK_F_ONERR_STOP )
 #define	META_BACK_ONERR_CONTINUE(mi)	( !META_BACK_ONERR_CONTINUE( (mi) ) )
