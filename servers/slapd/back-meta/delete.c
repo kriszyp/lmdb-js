@@ -53,7 +53,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	dc.target = &mi->mi_targets[ candidate ];
+	dc.target = mi->mi_targets[ candidate ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "deleteDN";
@@ -78,8 +78,8 @@ retry:;
 		LDAPMessage	*res = NULL;
 		int		rc;
 
-		if ( mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_DELETE ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_DELETE ];
+		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_DELETE ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_DELETE ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}

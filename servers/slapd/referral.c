@@ -140,7 +140,7 @@ int validate_global_referral( const char *url )
 	int rc;
 	LDAPURLDesc *lurl;
 
-	rc = ldap_url_parse_ext( url, &lurl );
+	rc = ldap_url_parse_ext( url, &lurl, LDAP_PVT_URL_PARSE_NONE );
 
 	switch( rc ) {
 	case LDAP_URL_SUCCESS:
@@ -219,7 +219,7 @@ BerVarray referral_rewrite(
 		char		*dn;
 		int		rc;
 		
-		rc = ldap_url_parse_ext( iv->bv_val, &url );
+		rc = ldap_url_parse_ext( iv->bv_val, &url, LDAP_PVT_URL_PARSE_NONE );
 		if ( rc == LDAP_URL_ERR_BADSCHEME ) {
 			ber_dupbv( jv++, iv );
 			continue;

@@ -67,7 +67,7 @@ meta_back_conn_destroy(
 	 * Cleanup rewrite session
 	 */
 	for ( i = 0; i < mi->mi_ntargets; ++i ) {
-		rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
+		rewrite_session_delete( mi->mi_targets[ i ]->mt_rwmap.rwm_rw, conn );
 	}
 
 	return 0;

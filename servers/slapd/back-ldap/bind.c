@@ -41,10 +41,6 @@
 
 #define LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ	"2.16.840.1.113730.3.4.12"
 
-static LDAP_REBIND_PROC	ldap_back_default_rebind;
-
-LDAP_REBIND_PROC	*ldap_back_rebind_f = ldap_back_default_rebind;
-
 static int
 ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 
@@ -103,7 +99,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 						lc->lc_cred.bv_len );
 			}
 			ber_bvreplace( &lc->lc_cred, &op->orb_cred );
-			ldap_set_rebind_proc( lc->lc_ld, ldap_back_rebind_f, lc );
+			ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
 		}
 	}
 done:;
@@ -478,9 +474,15 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 
 	assert( lcp != NULL );
 
+	ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 	rs->sr_err = ldap_initialize( &ld, li->li_uri );
+	ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto error_return;
+	}
+
+	if ( li->li_urllist_f ) {
+		ldap_set_urllist_proc( ld, li->li_urllist_f, li->li_urllist_p );
 	}
 
 	/* Set LDAP version. This will always succeed: If the client
@@ -511,8 +513,10 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	}
 
 #ifdef HAVE_TLS
+	ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,
 			li->li_uri, li->li_flags, li->li_nretries, &rs->sr_text );
+	ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		ldap_unbind_ext( ld, NULL, NULL );
 		goto error_return;
@@ -898,8 +902,8 @@ retry_lock:;
 
 			if ( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
-					"(%s,SECPROPS,\"%s\") failed!\n",
-					li->li_uri, li->li_acl_secprops, 0 );
+					"(SECPROPS,\"%s\") failed!\n",
+					li->li_acl_secprops, 0, 0 );
 				goto done;
 			}
 		}
@@ -1013,7 +1017,7 @@ ldap_back_dobind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t
  * This is a callback used for chasing referrals using the same
  * credentials as the original user on this session.
  */
-static int 
+int 
 ldap_back_default_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 	ber_int_t msgid, void *params )
 {
@@ -1040,6 +1044,41 @@ ldap_back_default_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 
 	return ldap_sasl_bind_s( ld, lc->lc_bound_ndn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->lc_cred, NULL, NULL, NULL );
+}
+
+/*
+ * ldap_back_default_urllist
+ */
+int 
+ldap_back_default_urllist(
+	LDAP		*ld,
+	LDAPURLDesc	**urllist,
+	LDAPURLDesc	**url,
+	void		*params )
+{
+	ldapinfo_t	*li = (ldapinfo_t *)params;
+	LDAPURLDesc	**urltail;
+
+	if ( urllist == url ) {
+		return LDAP_SUCCESS;
+	}
+
+	for ( urltail = &(*url)->lud_next; *urltail; urltail = &(*urltail)->lud_next )
+		/* count */ ;
+
+	*urltail = *urllist;
+	*urllist = *url;
+	*url = NULL;
+
+	ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
+	if ( li->li_uri ) {
+		ch_free( li->li_uri );
+	}
+
+	ldap_get_option( ld, LDAP_OPT_URI, (void *)&li->li_uri );
+	ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
+
+	return LDAP_SUCCESS;
 }
 
 int
@@ -1160,11 +1199,13 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
 	if ( (*lcp)->lc_refcnt == 1 ) {
+		ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 		Debug( LDAP_DEBUG_ANY,
 			"%s ldap_back_retry: retrying URI=\"%s\" DN=\"%s\"\n",
 			op->o_log_prefix, li->li_uri,
 			BER_BVISNULL( &(*lcp)->lc_bound_ndn ) ?
 				"" : (*lcp)->lc_bound_ndn.bv_val );
+		ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
 
 		ldap_unbind_ext( (*lcp)->lc_ld, NULL, NULL );
 		(*lcp)->lc_ld = NULL;

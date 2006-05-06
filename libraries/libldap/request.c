@@ -174,7 +174,7 @@ ldap_send_server_request(
 	BerElement *ber,
 	ber_int_t msgid,
 	LDAPRequest *parentreq,
-	LDAPURLDesc *srvlist,
+	LDAPURLDesc **srvlist,
 	LDAPConn *lc,
 	LDAPreqinfo *bind )
 {
@@ -190,7 +190,7 @@ ldap_send_server_request(
 		if ( srvlist == NULL ) {
 			lc = ld->ld_defconn;
 		} else {
-			lc = find_connection( ld, srvlist, 1 );
+			lc = find_connection( ld, *srvlist, 1 );
 			if ( lc == NULL ) {
 				if ( (bind != NULL) && (parentreq != NULL) ) {
 					/* Remember the bind in the parent */
@@ -300,11 +300,10 @@ ldap_send_server_request(
 }
 
 LDAPConn *
-ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
+ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	int connect, LDAPreqinfo *bind )
 {
 	LDAPConn	*lc;
-	LDAPURLDesc	*srv;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection %d %d %d\n",
 		use_ldsb, connect, (bind != NULL) );
@@ -332,9 +331,17 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	}
 
 	if ( connect ) {
-		for ( srv = srvlist; srv != NULL; srv = srv->lud_next ) {
-			if ( ldap_int_open_connection( ld, lc, srv, 0 ) != -1 )
+		LDAPURLDesc	**srvp, *srv = NULL;
+
+		for ( srvp = srvlist; *srvp != NULL; srvp = &(*srvp)->lud_next ) {
+			if ( ldap_int_open_connection( ld, lc, *srvp, 0 ) != -1 )
 			{
+				srv = *srvp;
+
+				if ( ld->ld_urllist_proc ) {
+					ld->ld_urllist_proc( ld, srvlist, srvp, ld->ld_urllist_params );
+				}
+
 				break;
 			}
 		}
@@ -361,11 +368,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
 
-	/*
-	 * XXX for now, we always do a synchronous bind.  This will have
-	 * to change in the long run...
-	 */
-	if ( bind != NULL) {
+	if ( bind != NULL ) {
 		int		err = 0;
 		LDAPConn	*savedefconn;
 
@@ -378,7 +381,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 		if ( ld->ld_rebind_proc != NULL) {
 			LDAPURLDesc	*srvfunc;
 
-			srvfunc = ldap_url_dup( srvlist );
+			srvfunc = ldap_url_dup( *srvlist );
 			if ( srvfunc == NULL ) {
 				ld->ld_errno = LDAP_NO_MEMORY;
 				err = -1;
@@ -885,7 +888,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	{
 
 		/* Parse the referral URL */
-		rc = ldap_url_parse_ext( refarray[i], &srv );
+		rc = ldap_url_parse_ext( refarray[i], &srv, LDAP_PVT_URL_PARSE_NOEMPTY_DN );
 		if ( rc != LDAP_URL_SUCCESS ) {
 			/* ldap_url_parse_ext() returns LDAP_URL_* errors
 			 * which do not map on API errors */
@@ -899,12 +902,6 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			ld->ld_errno = LDAP_NOT_SUPPORTED;
 			rc = -1;
 			goto done;
-		}
-
-		/* treat ldap://hostpart and ldap://hostpart/ the same */
-		if ( srv->lud_dn && srv->lud_dn[0] == '\0' ) {
-			LDAP_FREE( srv->lud_dn );
-			srv->lud_dn = NULL;
 		}
 
 		/* check connection for re-bind in progress */
@@ -1020,7 +1017,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 		rc = ldap_send_server_request( ld, ber, id,
-			origreq, srv, NULL, &rinfo );
+			origreq, &srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
@@ -1152,7 +1149,7 @@ ldap_chase_referrals( LDAP *ld,
 			*p++ = '\0';
 		}
 
-		rc = ldap_url_parse_ext( ref, &srv );
+		rc = ldap_url_parse_ext( ref, &srv, LDAP_PVT_URL_PARSE_NOEMPTY_DN );
 		if ( rc != LDAP_URL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"ignoring %s referral <%s>\n",
@@ -1160,11 +1157,6 @@ ldap_chase_referrals( LDAP *ld,
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
 			continue;
-		}
-
-		if ( srv->lud_dn != NULL && srv->lud_dn == '\0' ) {
-			LDAP_FREE( srv->lud_dn );
-			srv->lud_dn = NULL;
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -1212,7 +1204,7 @@ ldap_chase_referrals( LDAP *ld,
 		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 		rc = ldap_send_server_request( ld, ber, id,
-			lr, srv, NULL, &rinfo );
+			lr, &srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif

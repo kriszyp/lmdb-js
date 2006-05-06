@@ -784,6 +784,19 @@ ldap_set_nextref_proc LDAP_P((
 	LDAP_NEXTREF_PROC *nextref_proc,
 	void *params ));
 
+/* V3 URLLIST Function Callback Prototype */
+typedef int (LDAP_URLLIST_PROC) LDAP_P((
+	LDAP *ld, 
+	LDAPURLDesc **urllist,
+	LDAPURLDesc **url,
+	void *params ));
+
+LDAP_F( int )
+ldap_set_urllist_proc LDAP_P((
+	LDAP *ld,
+	LDAP_URLLIST_PROC *urllist_proc,
+	void *params ));
+
 /*
  * in controls.c:
  */

@@ -263,6 +263,9 @@ meta_back_init_one_conn(
 	int			version;
 	dncookie		dc;
 	int			isauthz = ( candidate == mc->mc_authz_target );
+#ifdef HAVE_TLS
+	int			is_ldaps = 0;
+#endif /* HAVE_TLS */
 
 	/*
 	 * Already init'ed
@@ -276,7 +279,12 @@ meta_back_init_one_conn(
 	/*
 	 * Attempts to initialize the connection to the target ds
 	 */
+	ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
 	rs->sr_err = ldap_initialize( &msc->msc_ld, mt->mt_uri );
+#ifdef HAVE_TLS
+	is_ldaps = ldap_is_ldaps_url( mt->mt_uri );
+#endif /* HAVE_TLS */
+	ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto error_return;
 	}
@@ -295,6 +303,7 @@ meta_back_init_one_conn(
 		version = LDAP_VERSION3;
 	}
 	ldap_set_option( msc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	ldap_set_urllist_proc( msc->msc_ld, mt->mt_urllist_f, mt->mt_urllist_p );
 
 	/* automatically chase referrals ("chase-referrals [{yes|no}]" statement) */
 	ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS,
@@ -303,7 +312,7 @@ meta_back_init_one_conn(
 #ifdef HAVE_TLS
 	/* start TLS ("tls [try-]{start|propagate}" statement) */
 	if ( ( LDAP_BACK_USE_TLS( mi ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( mi ) ) )
-			&& !ldap_is_ldaps_url( mt->mt_uri ) )
+			&& !is_ldaps )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
@@ -495,7 +504,7 @@ meta_back_retry(
 	ldap_back_send_t	sendok )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc = LDAP_UNAVAILABLE,
@@ -505,16 +514,21 @@ meta_back_retry(
 
 	assert( mc->mc_refcnt > 0 );
 	if ( mc->mc_refcnt == 1 ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
+		if ( LogTest( LDAP_DEBUG_ANY ) ) {
+			char	buf[ SLAP_TEXT_BUFLEN ];
 
-		snprintf( buf, sizeof( buf ),
-			"retrying URI=\"%s\" DN=\"%s\"",
-			mt->mt_uri,
-			BER_BVISNULL( &msc->msc_bound_ndn ) ?
-				"" : msc->msc_bound_ndn.bv_val );
-		Debug( LDAP_DEBUG_ANY,
-			"%s meta_back_retry[%d]: %s.\n",
-			op->o_log_prefix, candidate, buf );
+			ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
+			snprintf( buf, sizeof( buf ),
+				"retrying URI=\"%s\" DN=\"%s\"",
+				mt->mt_uri,
+				BER_BVISNULL( &msc->msc_bound_ndn ) ?
+					"" : msc->msc_bound_ndn.bv_val );
+			ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
+
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_retry[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
+		}
 
 		meta_clear_one_candidate( msc );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
@@ -666,9 +680,9 @@ meta_back_get_candidate(
 			 * and a default target is defined, and it is
 			 * a candidate, try using it (FIXME: YMMV) */
 			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
-				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ].mt_nsuffix,
-						mi->mi_targets[ mi->mi_defaulttarget ].mt_scope,
-						mi->mi_targets[ mi->mi_defaulttarget ].mt_subtree_exclude,
+				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ]->mt_nsuffix,
+						mi->mi_targets[ mi->mi_defaulttarget ]->mt_scope,
+						mi->mi_targets[ mi->mi_defaulttarget ]->mt_subtree_exclude,
 						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
 			{
 				candidate = mi->mi_defaulttarget;
@@ -915,7 +929,7 @@ retry_lock:
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			metatarget_t		*mt = &mi->mi_targets[ i ];
+			metatarget_t		*mt = mi->mi_targets[ i ];
 
 			/*
 			 * The target is activated; if needed, it is
@@ -1072,7 +1086,7 @@ retry_lock2:;
 		 */
 		( void )meta_clear_unused_candidates( op, i );
 
-		mt = &mi->mi_targets[ i ];
+		mt = mi->mi_targets[ i ];
 		msc = &mc->mc_conns[ i ];
 
 		/*
@@ -1124,7 +1138,7 @@ retry_lock2:;
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			metatarget_t		*mt = &mi->mi_targets[ i ];
+			metatarget_t		*mt = mi->mi_targets[ i ];
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
 			if ( i == cached 

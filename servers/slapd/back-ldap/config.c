@@ -747,7 +747,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		/* PARANOID: DN and more are not required nor allowed */
-		urlrc = ldap_url_parselist_ext( &lud, c->argv[ 1 ], ", \t" );
+		urlrc = ldap_url_parselist_ext( &lud, c->argv[ 1 ], ", \t", LDAP_PVT_URL_PARSE_NONE );
 		if ( urlrc != LDAP_URL_SUCCESS ) {
 			char	*why;
 

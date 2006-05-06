@@ -104,6 +104,9 @@ meta_back_db_init(
 	mi->mi_bind_timeout.tv_sec = 0;
 	mi->mi_bind_timeout.tv_usec = META_BIND_TIMEOUT;
 
+	mi->mi_rebind_f = meta_back_default_rebind;
+	mi->mi_urllist_f = meta_back_default_urllist;
+
 	ldap_pvt_thread_mutex_init( &mi->mi_conninfo.lai_mutex );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache.mutex );
 
@@ -125,15 +128,17 @@ meta_back_db_open(
 	int		i, rc;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		if ( mi->mi_targets[ i ].mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER )
+		metatarget_t	*mt = mi->mi_targets[ i ];
+
+		if ( mt->mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER )
 		{
-			mi->mi_targets[ i ].mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
-			rc = slap_discover_feature( mi->mi_targets[ i ].mt_uri,
-					mi->mi_targets[ i ].mt_version,
+			mt->mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+			rc = slap_discover_feature( mt->mt_uri,
+					mt->mt_version,
 					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 					LDAP_FEATURE_ABSOLUTE_FILTERS );
 			if ( rc == LDAP_COMPARE_TRUE ) {
-				mi->mi_targets[ i ].mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
+				mt->mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
 			}
 		}
 	}
@@ -194,6 +199,7 @@ target_free(
 {
 	if ( mt->mt_uri ) {
 		free( mt->mt_uri );
+		ldap_pvt_thread_mutex_destroy( &mt->mt_uri_mutex );
 	}
 	if ( mt->mt_subtree_exclude ) {
 		ber_bvarray_free( mt->mt_subtree_exclude );
@@ -223,6 +229,8 @@ target_free(
 	avl_free( mt->mt_rwmap.rwm_oc.map, mapping_free );
 	avl_free( mt->mt_rwmap.rwm_at.remap, mapping_dst_free );
 	avl_free( mt->mt_rwmap.rwm_at.map, mapping_free );
+
+	free( mt );
 }
 
 int
@@ -251,7 +259,7 @@ meta_back_db_destroy(
 		 */
 		if ( mi->mi_targets != NULL ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				target_free( &mi->mi_targets[ i ] );
+				target_free( mi->mi_targets[ i ] );
 			}
 
 			free( mi->mi_targets );

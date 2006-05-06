@@ -136,10 +136,12 @@ meta_back_select_unique_candidate(
 {
 	int	i, candidate = META_TARGET_NONE;
 
-	for ( i = 0; i < mi->mi_ntargets; ++i ) {
-		if ( meta_back_is_candidate( &mi->mi_targets[ i ].mt_nsuffix,
-				mi->mi_targets[ i ].mt_scope,
-				mi->mi_targets[ i ].mt_subtree_exclude,
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		metatarget_t	*mt = mi->mi_targets[ i ];
+
+		if ( meta_back_is_candidate( &mt->mt_nsuffix,
+				mt->mt_scope,
+				mt->mt_subtree_exclude,
 				ndn, LDAP_SCOPE_BASE ) )
 		{
 			if ( candidate == META_TARGET_NONE ) {

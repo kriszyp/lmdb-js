@@ -199,6 +199,14 @@ typedef struct metaconn_t {
 
 typedef struct metatarget_t {
 	char			*mt_uri;
+	ldap_pvt_thread_mutex_t	mt_uri_mutex;
+
+	/* TODO: we might want to enable different strategies
+	 * for different targets */
+	LDAP_REBIND_PROC	*mt_rebind_f;
+	LDAP_URLLIST_PROC	*mt_urllist_f;
+	void			*mt_urllist_p;
+
 	BerVarray		mt_subtree_exclude;
 	int			mt_scope;
 
@@ -247,8 +255,11 @@ typedef struct metainfo_t {
 #define META_DEFAULT_TARGET_NONE	(-1)
 	int			mi_nretries;
 
-	metatarget_t		*mi_targets;
+	metatarget_t		**mi_targets;
 	metacandidates_t	*mi_candidates;
+
+	LDAP_REBIND_PROC	*mi_rebind_f;
+	LDAP_URLLIST_PROC	*mi_urllist_f;
 
 	metadncache_t		mi_cache;
 	
@@ -434,7 +445,8 @@ meta_dncache_delete_entry(
 extern void
 meta_dncache_free( void *entry );
 
-extern LDAP_REBIND_PROC		*meta_back_rebind_f;
+extern LDAP_REBIND_PROC		meta_back_default_rebind;
+extern LDAP_URLLIST_PROC	meta_back_default_urllist;
 
 LDAP_END_DECL
 

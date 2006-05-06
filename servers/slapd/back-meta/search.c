@@ -73,7 +73,7 @@ meta_search_dobind_init(
 {
 	metaconn_t		*mc = *mcp;
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
 	char			*binddn = "";
@@ -232,7 +232,7 @@ meta_back_search_start(
 	SlapReply		*candidates )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	struct berval		realbase = op->o_req_dn;
@@ -904,7 +904,7 @@ really_bad:;
 					candidates[ i ].sr_matched = NULL;
 
 					dc.ctx = "matchedDN";
-					dc.target = &mi->mi_targets[ i ];
+					dc.target = mi->mi_targets[ i ];
 					if ( !ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
 						if ( mmatch.bv_val == match.bv_val ) {
 							candidates[ i ].sr_matched = ch_strdup( mmatch.bv_val );
@@ -1132,7 +1132,7 @@ really_bad:;
 				 * ignore the matchedDN */
 				if ( sres == LDAP_SUCCESS
 					&& candidates[ i ].sr_err == LDAP_NO_SUCH_OBJECT
-					&& op->o_req_ndn.bv_len > mi->mi_targets[ i ].mt_nsuffix.bv_len )
+					&& op->o_req_ndn.bv_len > mi->mi_targets[ i ]->mt_nsuffix.bv_len )
 				{
 					free( (char *)candidates[ i ].sr_matched );
 					candidates[ i ].sr_matched = NULL;
@@ -1283,7 +1283,7 @@ meta_send_entry(
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
-	dc.target = &mi->mi_targets[ target ];
+	dc.target = mi->mi_targets[ target ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "searchResult";
@@ -1327,7 +1327,7 @@ meta_send_entry(
 		slap_syntax_validate_func	*validate;
 		slap_syntax_transform_func	*pretty;
 
-		ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_at, 
+		ldap_back_map( &mi->mi_targets[ target ]->mt_rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
 		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
 			( void )ber_scanf( &ber, "x" /* [W] */ );
@@ -1402,7 +1402,7 @@ meta_send_entry(
 			struct berval 	*bv;
 
 			for ( bv = attr->a_vals; !BER_BVISNULL( bv ); bv++ ) {
-				ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_oc,
+				ldap_back_map( &mi->mi_targets[ target ]->mt_rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
 				if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0') {
 					free( bv->bv_val );

@@ -31,6 +31,9 @@
 #define LDAP_OPT_NEXTREF_PROC 0x4e815d
 #define LDAP_OPT_NEXTREF_PARAMS 0x4e815e
 
+#define LDAP_OPT_URLLIST_PROC 0x4e816d
+#define LDAP_OPT_URLLIST_PARAMS 0x4e816e
+
 static const LDAPAPIFeatureInfo features[] = {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP
 	{	/* OpenLDAP Extensions API Feature */
@@ -475,7 +478,9 @@ ldap_set_option(
 				 * must want global default returned
 				 * to initial condition.
 				 */
-				rc = ldap_url_parselist(&ludlist, "ldap://localhost/");
+				rc = ldap_url_parselist_ext(&ludlist, "ldap://localhost/", NULL,
+					LDAP_PVT_URL_PARSE_NOEMPTY_HOST
+					| LDAP_PVT_URL_PARSE_DEF_PORT );
 
 			} else {
 				/*
@@ -502,13 +507,17 @@ ldap_set_option(
 			int rc = LDAP_OPT_SUCCESS;
 
 			if(urls != NULL) {
-				rc = ldap_url_parselist(&ludlist, urls);
+				rc = ldap_url_parselist_ext(&ludlist, urls, NULL,
+					LDAP_PVT_URL_PARSE_NOEMPTY_HOST
+					| LDAP_PVT_URL_PARSE_DEF_PORT );
 			} else if(ld == NULL) {
 				/*
 				 * must want global default returned
 				 * to initial condition.
 				 */
-				rc = ldap_url_parselist(&ludlist, "ldap://localhost/");
+				rc = ldap_url_parselist_ext(&ludlist, "ldap://localhost/", NULL,
+					LDAP_PVT_URL_PARSE_NOEMPTY_HOST
+					| LDAP_PVT_URL_PARSE_DEF_PORT );
 
 			} else {
 				/*
@@ -638,6 +647,14 @@ ldap_set_option(
 			lo->ldo_nextref_params = (void *)invalue;		
 		} return LDAP_OPT_SUCCESS;
 
+	/* Only accessed from inside this function by ldap_set_urllist_proc() */
+	case LDAP_OPT_URLLIST_PROC: {
+			lo->ldo_urllist_proc = (LDAP_URLLIST_PROC *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+	case LDAP_OPT_URLLIST_PARAMS: {
+			lo->ldo_urllist_params = (void *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+
 	/* read-only options */
 	case LDAP_OPT_API_INFO:
 	case LDAP_OPT_DESC:
@@ -731,5 +748,16 @@ ldap_set_nextref_proc( LDAP *ld, LDAP_NEXTREF_PROC *proc, void *params )
 	if( rc != LDAP_OPT_SUCCESS ) return rc;
 
 	rc = ldap_set_option( ld, LDAP_OPT_NEXTREF_PARAMS, (void *)params );
+	return rc;
+}
+
+int
+ldap_set_urllist_proc( LDAP *ld, LDAP_URLLIST_PROC *proc, void *params )
+{
+	int rc;
+	rc = ldap_set_option( ld, LDAP_OPT_URLLIST_PROC, (void *)proc );
+	if( rc != LDAP_OPT_SUCCESS ) return rc;
+
+	rc = ldap_set_option( ld, LDAP_OPT_URLLIST_PARAMS, (void *)params );
 	return rc;
 }
