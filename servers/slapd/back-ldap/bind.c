@@ -734,11 +734,13 @@ retry_lock:
 		}
 	}
 
+#ifdef HAVE_TLS
+done:;
+#endif /* HAVE_TLS */
 	if ( li->li_idle_timeout && lc ) {
 		lc->lc_time = op->o_time;
 	}
 
-done:;
 	return lc;
 }
 
