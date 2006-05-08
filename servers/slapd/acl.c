@@ -1681,15 +1681,15 @@ slap_acl_mask(
 			}
 
 			/* start out with nothing granted, nothing denied */
-			ACL_INIT(tgrant);
-			ACL_INIT(tdeny);
+			ACL_INVALIDATE(tgrant);
+			ACL_INVALIDATE(tdeny);
 
 			for ( da = b->a_dynacl; da; da = da->da_next ) {
 				slap_access_t	grant,
 						deny;
 
-				ACL_INIT(grant);
-				ACL_INIT(deny);
+				ACL_INVALIDATE(grant);
+				ACL_INVALIDATE(deny);
 
 				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
 					da->da_name, 0, 0 );
