@@ -124,21 +124,21 @@ int slap_str2ad(
 }
 
 static char *strchrlen(
-	const char *p, 
+	const char *beg, 
 	const char *end,
 	const char ch, 
 	int *len )
 {
-	int i;
+	const char *p;
 
-	for( i=0; *p && p < end; i++,p++ ) {
+	for( p=beg; *p && p < end; p++ ) {
 		if( *p == ch ) {
-			*len = i;
+			*len = p - beg;
 			return (char *) p;
 		}
 	}
 
-	*len = i;
+	*len = p - beg;
 	return NULL;
 }
 
