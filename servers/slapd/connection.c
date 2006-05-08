@@ -260,10 +260,9 @@ int connections_destroy(void)
 				ldap_pvt_thread_mutex_destroy( &conn[j].c_write_mutex );
 				ldap_pvt_thread_cond_destroy( &conn[j].c_write_cv );
 #ifdef LDAP_SLAPI
-				/* FIX ME!! */
 				if ( slapi_plugins_used ) {
 					slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION,
-						&connections[i] );
+						&conn[j] );
 				}
 #endif
 			}
