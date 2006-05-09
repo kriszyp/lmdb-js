@@ -114,6 +114,10 @@ slap_parse_sync_cookie(
 		return -1;
 	}
 
+	if ( rid_ptr[ STRLENOF( "rid=" ) ] == '-' ) {
+		return -1;
+	}
+
 	cookie->rid = strtoul( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );
 	if ( next == &rid_ptr[ STRLENOF( "rid=" ) ] || ( next[ 0 ] != ',' && next[ 0 ] != '\0' ) ) {
 		return -1;

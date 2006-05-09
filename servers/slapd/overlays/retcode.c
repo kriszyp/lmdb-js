@@ -531,7 +531,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 
 	/* sleep time */
 	a = attr_find( e->e_attrs, ad_errSleepTime );
-	if ( a != NULL ) {
+	if ( a != NULL & a->a_nvals[ 0 ].bv_val[ 0 ] != '-' ) {
 		int	sleepTime;
 
 		sleepTime = strtoul( a->a_nvals[ 0 ].bv_val, &next, 0 );

@@ -362,6 +362,11 @@ lutil_atoux( unsigned *v, const char *s, int x )
 	assert( s != NULL );
 	assert( v != NULL );
 
+	/* strtoul() has an odd interface */
+	if ( s[ 0 ] == '-' ) {
+		return -1;
+	}
+
 	u = strtoul( s, &next, x );
 	if ( next == s || next[ 0 ] != '\0' ) {
 		return -1;
@@ -404,6 +409,11 @@ lutil_atoulx( unsigned long *v, const char *s, int x )
 	assert( s != NULL );
 	assert( v != NULL );
 
+	/* strtoul() has an odd interface */
+	if ( s[ 0 ] == '-' ) {
+		return -1;
+	}
+
 	ul = strtoul( s, &next, x );
 	if ( next == s || next[ 0 ] != '\0' ) {
 		return -1;
@@ -432,6 +442,11 @@ lutil_parse_time(
 	for ( s = (char *)in; s[ 0 ] != '\0'; ) {
 		unsigned long	u;
 		char		*what;
+
+		/* strtoul() has an odd interface */
+		if ( s[ 0 ] == '-' ) {
+			return -1;
+		}
 
 		u = strtoul( s, &next, 10 );
 		if ( next == s ) {

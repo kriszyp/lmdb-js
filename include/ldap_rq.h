@@ -63,7 +63,7 @@ ldap_pvt_runqueue_remove(
 LDAP_F( struct re_s* )
 ldap_pvt_runqueue_next_sched(
 	struct runqueue_s* rq,
-	struct timeval** next_run
+	struct timeval* next_run
 );
 
 LDAP_F( void )

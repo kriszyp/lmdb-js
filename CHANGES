@@ -2,6 +2,15 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.22 Engineering
 	Fixed slapd-ldap fd cleanup (ITS#4474)
+	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
+	Fixed slapd slap_send_ldap_result bug (ITS#4499)
+	Fixed slapd-ldif deadlock (ITS#4500)
+	Fixed liblutil strtoul(3) usage (ITS#4503)
+	Updated ldapsearch(1) BASE output (ITS#4504)
+	Fixed slapd cn=config (ITS#4512)
+	Fixed slapd thread pool init issue (ITS#4513)
+	Fixed slapd cn=config olcLimits (ITS#4515)
+	Fixed slapd runqueue use of freed memory (ITS#4517)
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)
