@@ -811,7 +811,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 						"host and port allowed "
 						"in \"uri <uri>\" statement "
 						"for uri #%d of \"%s\"",
-						i, c->value_string );
+						i, c->argv[ 1 ] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			}
 		}
