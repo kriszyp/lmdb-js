@@ -20,6 +20,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapo-translucent modifications
 	Fixed libldap_r thread debug missing break
 	Fixed libldap_r tpool cleanup
+	Fixed liblutil time resolution issue
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)

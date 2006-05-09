@@ -247,14 +247,17 @@ int lutil_parsetime( char *atm, struct lutil_tm *tm )
 		if (tm->tm_sec < 0 || tm->tm_sec > 61) break;
 
 		/* Fractions of seconds */
-		for (i = 0, fracs = 0; isdigit((unsigned char) *ptr); ) {
-			i*=10; i+= *ptr++ - '0';
-			fracs++;
-		}
-		tm->tm_usec = i;
-		if (i) {
-			for (i = fracs; i<6; i++)
-				tm->tm_usec *= 10;
+		if ( *ptr == '.' ) {
+			ptr++;
+			for (i = 0, fracs = 0; isdigit((unsigned char) *ptr); ) {
+				i*=10; i+= *ptr++ - '0';
+				fracs++;
+			}
+			tm->tm_usec = i;
+			if (i) {
+				for (i = fracs; i<6; i++)
+					tm->tm_usec *= 10;
+			}
 		}
 
 		/* Must be UTC */
