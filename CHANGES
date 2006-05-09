@@ -16,6 +16,8 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapd thread pool init issue (ITS#4513)
 	Added slapd syncrepl mandatory searchbase check
 	Fixed slapadd cn=config issue (ITS#4194)
+	Fixed slapd-ldap proxyAuthz of bound identity/override (ITS#4497)
+	Fixed slapd-ldap/meta protocol version propagation (ITS#4488)
 	Fixed slapd-ldap fd cleanup (ITS#4474)
 	Fixed slapd-ldif deadlock (ITS#4500)
 	Fixed slapo-accesslog log purging issue (ITS#4505)

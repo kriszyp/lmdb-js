@@ -306,7 +306,6 @@ ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	}
 
-	assert( lc->lc_refcnt >= 0 );
 	tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
 			ldap_back_conndnlc_cmp );
 	assert( LDAP_BACK_CONN_TAINTED( lc ) || tmplc == lc );
@@ -728,11 +727,13 @@ retry_lock:
 	
 	}
 
+#ifdef HAVE_TLS
+done:;
+#endif /* HAVE_TLS */
 	if ( li->li_idle_timeout && lc ) {
 		lc->lc_time = op->o_time;
 	}
 
-done:;
 	return lc;
 }
 
@@ -1484,7 +1485,10 @@ ldap_back_proxy_authz_ctrl(
 		goto done;
 	}
 
-	if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+	if ( op->o_tag == LDAP_REQ_BIND ) {
+		ndn = op->o_req_ndn;
+
+	} else if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
 		ndn = op->o_conn->c_ndn;
 
 	} else {
@@ -1624,6 +1628,11 @@ ldap_back_proxy_authz_ctrl(
 
 	if ( BER_BVISNULL( &assertedID ) ) {
 		assertedID = slap_empty_bv;
+	}
+
+	/* don't idassert the bound DN (ITS#4497) */
+	if ( dn_match( &assertedID, &lc->lc_bound_ndn ) ) {
+		goto done;
 	}
 
 	if ( op->o_ctrls ) {

@@ -260,7 +260,7 @@ meta_back_init_one_conn(
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
-	int			vers;
+	int			version;
 	dncookie		dc;
 	int			isauthz = ( candidate == mc->mc_authz_target );
 
@@ -285,8 +285,16 @@ meta_back_init_one_conn(
 	 * Set LDAP version. This will always succeed: If the client
 	 * bound with a particular version, then so can we.
 	 */
-	vers = op->o_conn->c_protocol;
-	ldap_set_option( msc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
+	if ( mt->mt_version != 0 ) {
+		version = mt->mt_version;
+
+	} else if ( op->o_conn->c_protocol != 0 ) {
+		version = op->o_conn->c_protocol;
+
+	} else {
+		version = LDAP_VERSION3;
+	}
+	ldap_set_option( msc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 
 	/* automatically chase referrals ("chase-referrals [{yes|no}]" statement) */
 	ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS,

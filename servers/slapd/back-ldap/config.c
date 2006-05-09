@@ -63,6 +63,7 @@ enum {
 	LDAP_BACK_CFG_IDLE_TIMEOUT,
 	LDAP_BACK_CFG_CONN_TTL,
 	LDAP_BACK_CFG_NETWORK_TIMEOUT,
+	LDAP_BACK_CFG_VERSION,
 	LDAP_BACK_CFG_REWRITE,
 
 	LDAP_BACK_CFG_LAST
@@ -239,6 +240,14 @@ static ConfigTable ldapcfg[] = {
 			"NAME 'olcDbNetworkTimeout' "
 			"DESC 'connection network timeout' "
 			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+	{ "protocol-version", "version", 2, 0, 0,
+		ARG_MAGIC|ARG_INT|LDAP_BACK_CFG_VERSION,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.18 "
+			"NAME 'olcDbProtocolVersion' "
+			"DESC 'protocol version' "
+			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
@@ -605,6 +614,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 			value_add_one( &c->rvalue_vals, &bv );
 			} break;
 
+		case LDAP_BACK_CFG_VERSION:
+			if ( li->li_version == 0 ) {
+				return 1;
+			}
+
+			c->value_int = li->li_version;
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -692,6 +709,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_NETWORK_TIMEOUT:
 			li->li_network_timeout = 0;
+			break;
+
+		case LDAP_BACK_CFG_VERSION:
+			li->li_version = 0;
 			break;
 
 		default:
@@ -1243,6 +1264,19 @@ done_url:;
 		}
 		li->li_network_timeout = (time_t)t;
 		} break;
+
+	case LDAP_BACK_CFG_VERSION:
+		switch ( c->value_int ) {
+		case 0:
+		case LDAP_VERSION2:
+		case LDAP_VERSION3:
+			li->li_version = c->value_int;
+			break;
+
+		default:
+			return 1;
+		}
+		break;
 
 	case LDAP_BACK_CFG_REWRITE:
 		snprintf( c->msg, sizeof( c->msg ),
