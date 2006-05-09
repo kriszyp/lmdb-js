@@ -126,6 +126,17 @@ as an error is returned by one target, and the error is immediately
 propagated to the client.
 
 .TP
+.B protocol\-version {0,2,3}
+This directive indicates what protocol version must be used to contact
+the remote server.
+If set to 0 (the default), the proxy uses the same protocol version 
+used by the client, otherwise the requested protocol is used.
+The proxy returns \fIunwillingToPerform\fP if an operation that is 
+incompatible with the requested protocol is attempted.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
 .B pseudoroot-bind-defer {NO|yes}
 This directive, when set to 
 .BR yes ,
@@ -183,15 +194,6 @@ uri    "ldap://l1.foo.com/\fBdc=foo,dc=com\fP	ldap://l2.foo.com/"
 causes \fIl2.foo.com\fP to be contacted whenever \fIl1.foo.com\fP
 does not respond.
 .RE
-
-.TP
-.B subtree-exclude "<DN>"
-This directive instructs back-meta to ignore the current target
-for operations whose requestDN is subordinate to
-.BR DN .
-There may be multiple occurrences of the
-.B subtree-exclude
-directive for each of the targets.
 
 .TP
 .B acl-authcDN "<administrative DN for access control purposes>"
@@ -288,6 +290,15 @@ using the pseudorootdn/pseudorootpw directives is inherently unsafe.
 .TP
 .B rewrite* ...
 The rewrite options are described in the "REWRITING" section.
+
+.TP
+.B subtree-exclude "<DN>"
+This directive instructs back-meta to ignore the current target
+for operations whose requestDN is subordinate to
+.BR DN .
+There may be multiple occurrences of the
+.B subtree-exclude
+directive for each of the targets.
 
 .TP
 .B suffixmassage "<virtual naming context>" "<real naming context>"
