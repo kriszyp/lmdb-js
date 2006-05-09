@@ -111,7 +111,6 @@ ldap_int_thread_pool_shutdown ( void )
 	struct ldap_int_thread_pool_s *pool;
 
 	while ((pool = LDAP_STAILQ_FIRST(&ldap_int_thread_pool_list)) != NULL) {
-		LDAP_STAILQ_REMOVE_HEAD(&ldap_int_thread_pool_list, ltp_next);
 		(ldap_pvt_thread_pool_destroy)(&pool, 0); /* ignore thr_debug macro */
 	}
 	ldap_pvt_thread_mutex_destroy(&ldap_pvt_thread_pool_mutex);
