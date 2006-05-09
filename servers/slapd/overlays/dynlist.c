@@ -475,9 +475,7 @@ cleanup:;
 			op->o_tmpfree( o.ors_filterstr.bv_val, op->o_tmpmemctx );
 			lud->lud_filter = NULL;
 		}
-		if ( lud ) {
-			ldap_free_urldesc( lud );
-		}
+		ldap_free_urldesc( lud );
 	}
 
 	rs->sr_entry = e;

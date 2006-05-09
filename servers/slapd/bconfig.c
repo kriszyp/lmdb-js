@@ -3619,8 +3619,8 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		/* No parent, must be root. This will never happen... */
 		if ( !last && !be_isroot( op ) && !be_shadow_update( op ))
 			return LDAP_NO_SUCH_OBJECT;
-		if ( !access_allowed( op, last->ce_entry, slap_schema.si_ad_children,
-			NULL, ACL_WADD, NULL ))
+		if ( last && !access_allowed( op, last->ce_entry,
+			slap_schema.si_ad_children, NULL, ACL_WADD, NULL ))
 			return LDAP_INSUFFICIENT_ACCESS;
 	}
 
