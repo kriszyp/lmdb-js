@@ -8,10 +8,13 @@ OpenLDAP 2.3.22 Engineering
 	Fixed liblutil strtoul(3) usage (ITS#4503)
 	Updated ldapsearch(1) BASE output (ITS#4504)
 	Fixed slapd cn=config (ITS#4512)
+	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapd thread pool init issue (ITS#4513)
 	Fixed slapd cn=config olcLimits (ITS#4515)
 	Fixed slapd cn=config ACL application fix
 	Fixed slapd runqueue use of freed memory (ITS#4517)
+	Fixed slapd dynacl tgrant/tdeny initialization
+	Fixed slapd backglue issue (ITS#4529)
 	Added slapd syncrepl mandatory searchbase check
 	Fixed slapo-accesslog bugs
 	Added slapo-accesslog oldReq feature

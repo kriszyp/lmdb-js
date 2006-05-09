@@ -3015,10 +3015,18 @@ read_config(const char *fname, const char *dir) {
 			if ( rc != LDAP_NO_SUCH_OBJECT )
 				return 1;
 			/* ITS#4194: But if dir was specified and no fname,
-			 * then we were supposed to read the dir.
+			 * then we were supposed to read the dir. Unless we're
+			 * trying to slapadd the dir...
 			 */
-			if ( dir && !fname )
-				return 1;
+			if ( dir && !fname ) {
+				if ( slapMode & (SLAP_SERVER_MODE|SLAP_TOOL_READMAIN|SLAP_TOOL_READONLY))
+					return 1;
+				/* Assume it's slapadd with a config dir, let it continue */
+				rc = 0;
+				cfb->cb_got_ldif = 1;
+				cfb->cb_use_ldif = 1;
+				goto done;
+			}
 		}
 
 		/* If we read the config from back-ldif, nothing to do here */
@@ -3037,25 +3045,6 @@ read_config(const char *fname, const char *dir) {
 
 	if ( rc == 0 )
 		ber_str2bv( cfname, 0, 1, &cfb->cb_config->c_file );
-
-	/* If we got this far and failed, it may be a serious problem. In server
-	 * mode, we should never come to this. However, it may be alright if we're
-	 * using slapadd to create the conf dir.
-	 */
-	while ( rc ) {
-		if ( slapMode & (SLAP_SERVER_MODE|SLAP_TOOL_READMAIN|SLAP_TOOL_READONLY))
-			break;
-		/* If a config file was explicitly given, fail */
-		if ( fname )
-			break;
-		
-		/* Seems to be slapadd with a config dir, let it continue */
-		if ( cfb->cb_use_ldif ) {
-			rc = 0;
-			cfb->cb_got_ldif = 1;
-		}
-		break;
-	}
 
 done:
 	if ( rc == 0 && BER_BVISNULL( &frontendDB->be_schemadn ) ) {
