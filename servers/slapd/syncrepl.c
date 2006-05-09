@@ -2704,9 +2704,10 @@ syncinfo_free( syncinfo_t *sie )
 /* mandatory */
 #define GOT_ID			0x0001
 #define GOT_PROVIDER		0x0002
+#define GOT_BASE		0x0004
 
 /* check */
-#define GOT_ALL			(GOT_ID|GOT_PROVIDER)
+#define GOT_ALL			(GOT_ID|GOT_PROVIDER|GOT_BASE)
 
 static struct {
 	struct berval key;
@@ -2811,6 +2812,7 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return -1;
 			}
+			gots |= GOT_BASE;
 		} else if ( !strncasecmp( c->argv[ i ], LOGBASESTR "=",
 					STRLENOF( LOGBASESTR "=" ) ) )
 		{
@@ -3127,7 +3129,10 @@ parse_syncrepl_line(
 
 	if ( gots != GOT_ALL ) {
 		snprintf( c->msg, sizeof( c->msg ),
-			"Error: Malformed \"syncrepl\" line in slapd config file" );
+			"Error: Malformed \"syncrepl\" line in slapd config file, missing%s%s%s",
+			gots & GOT_ID ? "" : " "IDSTR,
+			gots & GOT_PROVIDER ? "" : " "PROVIDERSTR,
+			gots & GOT_BASE ? "" : " "SEARCHBASESTR );
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 		return -1;
 	}

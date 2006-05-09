@@ -455,6 +455,7 @@ adjust_count( int which, int adjust )
 		resource_counts[which] += adjust;
 		rc = ldap_int_thread_mutex_unlock( &resource_mutexes[which] );
 		assert( rc == 0 );
+		break;
 	case Count_reported:
 		fputs( "...more ldap_debug_thread activity after exit...\n", stderr );
 		count = Count_reported_more;

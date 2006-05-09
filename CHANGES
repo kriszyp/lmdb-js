@@ -11,6 +11,14 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapd thread pool init issue (ITS#4513)
 	Fixed slapd cn=config olcLimits (ITS#4515)
 	Fixed slapd runqueue use of freed memory (ITS#4517)
+	Added slapd syncrepl mandatory searchbase check
+	Fixed slapo-accesslog bugs
+	Added slapo-accesslog oldReq feature
+	Fixed slapo ppolicy BER tags
+	Fixed slapo-auditlog missing return codes
+	Fixed slurpd potential overflow issue
+	Fixed slapo-translucent modifications
+	Fixed libldap_r thread debug missing break
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)
