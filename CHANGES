@@ -1,30 +1,30 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.22 Engineering
-	Fixed slapd-ldap fd cleanup (ITS#4474)
-	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
-	Fixed slapd slap_send_ldap_result bug (ITS#4499)
-	Fixed slapd-ldif deadlock (ITS#4500)
-	Fixed liblutil strtoul(3) usage (ITS#4503)
-	Updated ldapsearch(1) BASE output (ITS#4504)
-	Fixed slapd cn=config (ITS#4512)
-	Fixed slapadd cn=config issue (ITS#4194)
-	Fixed slapd thread pool init issue (ITS#4513)
-	Fixed slapd cn=config olcLimits (ITS#4515)
-	Fixed slapd cn=config ACL application fix
-	Fixed slapd runqueue use of freed memory (ITS#4517)
-	Fixed slapd dynacl tgrant/tdeny initialization
-	Fixed slapd backglue issue (ITS#4529)
-	Added slapd syncrepl mandatory searchbase check
-	Fixed slapo-accesslog bugs
-	Added slapo-accesslog oldReq feature
-	Fixed slapo ppolicy BER tags (ITS#4528)
-	Fixed slapo-auditlog missing return codes
-	Fixed slurpd potential overflow issue
-	Fixed slapo-translucent modifications (ITS#4527)
 	Fixed libldap_r thread debug missing break
 	Fixed libldap_r tpool cleanup
+	Fixed liblutil strtoul(3) usage (ITS#4503)
 	Fixed liblutil time resolution issue
+	Updated ldapsearch(1) BASE output (ITS#4504)
+	Fixed slapd backglue issue (ITS#4529)
+	Fixed slapd cn=config (ITS#4512)
+	Fixed slapd cn=config ACL application fix
+	Fixed slapd cn=config olcLimits (ITS#4515)
+	Fixed slapd dynacl tgrant/tdeny initialization
+	Fixed slapd runqueue use of freed memory (ITS#4517)
+	Fixed slapd slap_send_ldap_result bug (ITS#4499)
+	Fixed slapd thread pool init issue (ITS#4513)
+	Added slapd syncrepl mandatory searchbase check
+	Fixed slapadd cn=config issue (ITS#4194)
+	Fixed slapd-ldap fd cleanup (ITS#4474)
+	Fixed slapd-ldif deadlock (ITS#4500)
+	Fixed slapo ppolicy BER tags (ITS#4528)
+	Fixed slapo-accesslog bugs
+	Added slapo-accesslog oldReq feature
+	Fixed slapo-auditlog missing return codes
+	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
+	Fixed slapo-translucent modifications (ITS#4527)
+	Fixed slurpd potential overflow issue
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)
