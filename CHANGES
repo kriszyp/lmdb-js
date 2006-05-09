@@ -19,7 +19,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapd-ldap fd cleanup (ITS#4474)
 	Fixed slapd-ldif deadlock (ITS#4500)
 	Fixed slapo-accesslog log purging issue (ITS#4505)
-	Added slapo-accesslog oldReq feature
+	Added slapo-accesslog reqOld feature
 	Fixed slapo-auditlog missing return codes
 	Fixed slapo-ppolicy BER tags (ITS#4528)
 	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
