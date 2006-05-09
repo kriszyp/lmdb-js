@@ -18,7 +18,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapd-ldap fd cleanup (ITS#4474)
 	Fixed slapd-ldif deadlock (ITS#4500)
-	Fixed slapo-accesslog bugs
+	Fixed slapo-accesslog bugs (ITS#4505)
 	Added slapo-accesslog oldReq feature
 	Fixed slapo-auditlog missing return codes
 	Fixed slapo-ppolicy BER tags (ITS#4528)
