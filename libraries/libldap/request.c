@@ -1280,8 +1280,7 @@ re_encode_request( LDAP *ld,
 	ber_int_t	scope;
 	int		rc;
 	BerElement	tmpber, *ber;
-	struct berval		orig_dn;
-	char		*dn;
+	struct berval		dn;
 
 	Debug( LDAP_DEBUG_TRACE,
 	    "re_encode_request: new msgid %ld, new dn <%s>\n",
@@ -1306,15 +1305,15 @@ re_encode_request( LDAP *ld,
 	assert( tag != 0);
 	if ( tag == LDAP_REQ_BIND ) {
 		/* bind requests have a version number before the DN & other stuff */
-		rtag = ber_scanf( &tmpber, "{im" /*}*/, &ver, &orig_dn );
+		rtag = ber_scanf( &tmpber, "{im" /*}*/, &ver, &dn );
 
 	} else if ( tag == LDAP_REQ_DELETE ) {
 		/* delete requests don't have a DN wrapping sequence */
-		rtag = ber_scanf( &tmpber, "m", &orig_dn );
+		rtag = ber_scanf( &tmpber, "m", &dn );
 
 	} else if ( tag == LDAP_REQ_SEARCH ) {
 		/* search requests need to be re-scope-ed */
-		rtag = ber_scanf( &tmpber, "{me" /*"}"*/, &orig_dn, &scope );
+		rtag = ber_scanf( &tmpber, "{me" /*"}"*/, &dn, &scope );
 
 		if( srv->lud_scope != LDAP_SCOPE_DEFAULT ) {
 			/* use the scope provided in reference */
@@ -1341,7 +1340,7 @@ re_encode_request( LDAP *ld,
 		}
 
 	} else {
-		rtag = ber_scanf( &tmpber, "{m" /*}*/, &orig_dn );
+		rtag = ber_scanf( &tmpber, "{m" /*}*/, &dn );
 	}
 
 	if( rtag == LBER_ERROR ) {
@@ -1349,24 +1348,25 @@ re_encode_request( LDAP *ld,
 		return NULL;
 	}
 
+	/* restore character zero'd out by ber_scanf*/
+	dn.bv_val[dn.bv_len] = tmpber.ber_tag;
+
 	if (( ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return NULL;
 	}
 
-	if ( srv->lud_dn == NULL ) {
-		dn = orig_dn.bv_val;
-	} else {
-		dn = srv->lud_dn;
+	if ( srv->lud_dn ) {
+		ber_str2bv( srv->lud_dn, 0, 0, &dn );
 	}
 
 	if ( tag == LDAP_REQ_BIND ) {
-		rc = ber_printf( ber, "{it{is" /*}}*/, msgid, tag, ver, dn );
+		rc = ber_printf( ber, "{it{iO" /*}}*/, msgid, tag, ver, &dn );
 	} else if ( tag == LDAP_REQ_DELETE ) {
-		rc = ber_printf( ber, "{itsN}", msgid, tag, dn );
+		rc = ber_printf( ber, "{itON}", msgid, tag, &dn );
 	} else if ( tag == LDAP_REQ_SEARCH ) {
-		rc = ber_printf( ber, "{it{se" /*}}*/, msgid, tag, dn, scope );
+		rc = ber_printf( ber, "{it{Oe" /*}}*/, msgid, tag, &dn, scope );
 	} else {
-		rc = ber_printf( ber, "{it{s" /*}}*/, msgid, tag, dn );
+		rc = ber_printf( ber, "{it{O" /*}}*/, msgid, tag, &dn );
 	}
 
 	if ( rc == -1 ) {
