@@ -66,13 +66,57 @@ brackets <>.
 .SH THE ACCESS DIRECTIVE
 The structure of the access control directives is
 .TP
-.B access to <what> "[ by <who> <access> [ <control> ] ]+"
+.B access to <what> "[ by <who> [ <access> ] [ <control> ] ]+"
 Grant access (specified by 
 .BR <access> ) 
 to a set of entries and/or attributes (specified by 
 .BR <what> ) 
 by one or more requestors (specified by 
 .BR <who> ).
+
+.LP
+Lists of access directives are evaluated in the order they appear
+in \fIslapd.conf\fP.
+When a
+.B <what>
+clause matches the datum whose access is being evaluated, its
+.B <who>
+clause list is checked.
+When a
+.B <who>
+clause matches the accessor's properties, its
+.B <access>
+and
+.B <control>
+clauses are evaluated.
+Access control checking stops at the first match of the
+.B <what>
+and
+.B <who>
+clause, unless otherwise dictated by the
+.B <control>
+clause.
+Each
+.B <who>
+clause list is implicitly terminated by a
+.LP
+.nf
+	by * none stop
+.fi
+.LP
+clause that results in stopping the access control with no access 
+privileges granted.
+Each
+.B <what>
+clause list is implicitly terminated by a
+.LP
+.nf
+	access to *
+		by * none
+.fi
+.LP
+clause that results in granting no access privileges to an otherwise
+unspecified datum.
 .SH THE <WHAT> FIELD
 The field
 .BR <what>
@@ -657,7 +701,7 @@ and
 set the minimum required Security Strength Factor (ssf) needed
 to grant access.  The value should be positive integer.
 .SH THE <ACCESS> FIELD
-The field
+The optional field
 .B <access> ::= [[real]self]{<level>|<priv>}
 determines the access level or the specific access privileges the
 .B who 
@@ -750,6 +794,7 @@ for disclose.
 More than one of the above privileges can be added in one statement.
 .B 0
 indicates no privileges and is used only by itself (e.g., +0).
+.LP
 If no access is given, it defaults to 
 .BR +0 .
 .SH THE <CONTROL> FIELD

@@ -1784,6 +1784,7 @@ parse_acl(
 				/* out of arguments or plain stop */
 
 				ACL_PRIV_ASSIGN( b->a_access_mask, ACL_PRIV_ADDITIVE );
+				ACL_PRIV_SET( b->a_access_mask, ACL_PRIV_NONE);
 				b->a_type = ACL_STOP;
 
 				access_append( &a->acl_access, b );
@@ -1794,6 +1795,7 @@ parse_acl(
 				/* plain continue */
 
 				ACL_PRIV_ASSIGN( b->a_access_mask, ACL_PRIV_ADDITIVE );
+				ACL_PRIV_SET( b->a_access_mask, ACL_PRIV_NONE);
 				b->a_type = ACL_CONTINUE;
 
 				access_append( &a->acl_access, b );
@@ -1804,6 +1806,7 @@ parse_acl(
 				/* plain continue */
 
 				ACL_PRIV_ASSIGN(b->a_access_mask, ACL_PRIV_ADDITIVE);
+				ACL_PRIV_SET( b->a_access_mask, ACL_PRIV_NONE);
 				b->a_type = ACL_BREAK;
 
 				access_append( &a->acl_access, b );
@@ -1814,6 +1817,7 @@ parse_acl(
 				/* we've gone too far */
 				--i;
 				ACL_PRIV_ASSIGN( b->a_access_mask, ACL_PRIV_ADDITIVE );
+				ACL_PRIV_SET( b->a_access_mask, ACL_PRIV_NONE);
 				b->a_type = ACL_STOP;
 
 				access_append( &a->acl_access, b );
@@ -1821,16 +1825,19 @@ parse_acl(
 			}
 
 			/* get <access> */
-			if ( strncasecmp( left, "self", STRLENOF( "self" ) ) == 0 ) {
-				b->a_dn_self = 1;
-				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( &left[ STRLENOF( "self" ) ] ) );
+			{
+				char	*lleft = left;
 
-			} else if ( strncasecmp( left, "realself", STRLENOF( "realself" ) ) == 0 ) {
-				b->a_realdn_self = 1;
-				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( &left[ STRLENOF( "realself" ) ] ) );
+				if ( strncasecmp( left, "self", STRLENOF( "self" ) ) == 0 ) {
+					b->a_dn_self = 1;
+					lleft = &left[ STRLENOF( "self" ) ];
 
-			} else {
-				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( left ) );
+				} else if ( strncasecmp( left, "realself", STRLENOF( "realself" ) ) == 0 ) {
+					b->a_realdn_self = 1;
+					lleft = &left[ STRLENOF( "realself" ) ];
+				}
+
+				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( lleft ) );
 			}
 
 			if ( ACL_IS_INVALID( b->a_access_mask ) ) {
@@ -2131,7 +2138,10 @@ str2accessmask( const char *str )
 			} else if( TOLOWER((unsigned char) str[i]) == 'd' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_DISCLOSE);
 
-			} else if( str[i] != '0' ) {
+			} else if( str[i] == '0' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_NONE);
+
+			} else {
 				ACL_INVALIDATE(mask);
 				return mask;
 			}
