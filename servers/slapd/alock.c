@@ -229,7 +229,7 @@ alock_read_slot ( alock_info_t * info,
 	}
 	
 	if (alock_read_iattr (slotbuf) != ALOCK_MAGIC) {
-		return 1;
+		return -1;
 	}
 	slot_data->al_lock  = alock_read_iattr (slotbuf+8);
 	slot_data->al_stamp = alock_read_iattr (slotbuf+16);
@@ -262,7 +262,8 @@ alock_write_slot ( alock_info_t * info,
 	alock_write_iattr (slotbuf+16, slot_data->al_stamp);
 	alock_write_iattr (slotbuf+24, slot_data->al_pid);
 
-	strncpy ((char *)slotbuf+32, slot_data->al_appname, ALOCK_MAX_APPNAME-1);
+	if (slot_data->al_appname)
+		strncpy ((char *)slotbuf+32, slot_data->al_appname, ALOCK_MAX_APPNAME-1);
 	slotbuf[ALOCK_SLOT_SIZE-1] = '\0';
 
 	res = lseek (info->al_fd, 
