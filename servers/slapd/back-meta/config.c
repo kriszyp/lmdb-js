@@ -48,7 +48,8 @@ meta_back_new_target(
 
 	mt->mt_rwmap.rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	if ( mt->mt_rwmap.rwm_rw == NULL ) {
-                return -1;
+		ch_free( mt );
+		return -1;
 	}
 
 
