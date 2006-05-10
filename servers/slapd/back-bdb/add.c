@@ -459,7 +459,7 @@ return_results:
 	}
 	op->o_private = NULL;
 
-	if( postread_ctrl != NULL ) {
+	if( postread_ctrl != NULL && (*postread_ctrl) != NULL ) {
 		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
 		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
 	}

@@ -571,7 +571,7 @@ return_results:
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 
-	if( preread_ctrl != NULL ) {
+	if( preread_ctrl != NULL && (*preread_ctrl) != NULL ) {
 		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
 		slap_sl_free( *preread_ctrl, op->o_tmpmemctx );
 	}
