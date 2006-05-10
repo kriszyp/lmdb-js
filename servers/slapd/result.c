@@ -1476,6 +1476,7 @@ int slap_read_controls(
 	myop.o_bd = NULL;
 	myop.o_res_ber = ber;
 	myop.o_callback = NULL;
+	myop.ors_slimit = 1;
 
 	rc = slap_send_search_entry( &myop, rs );
 	if( rc ) return rc;

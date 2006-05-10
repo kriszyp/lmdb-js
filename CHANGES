@@ -14,6 +14,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapd runqueue use of freed memory (ITS#4517)
 	Fixed slapd slap_send_ldap_result bug (ITS#4499)
 	Fixed slapd thread pool init issue (ITS#4513)
+	Fixed slapd-bdb pre/post-read freeing (ITS#4532)
 	Added slapd syncrepl mandatory searchbase check
 	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapd-ldap proxyAuthz of bound identity/override (ITS#4497)
