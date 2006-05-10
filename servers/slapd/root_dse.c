@@ -235,15 +235,17 @@ root_dse_info(
 	/* FIXME: is this really needed? */
 	BER_BVSTR( &val, "top" );
 	if( attr_merge_one( e, ad_objectClass, &val, NULL ) ) {
+fail:
+		entry_free( e );
 		return LDAP_OTHER;
 	}
 
 	BER_BVSTR( &val, "OpenLDAProotDSE" );
 	if( attr_merge_one( e, ad_objectClass, &val, NULL ) ) {
-		return LDAP_OTHER;
+		goto fail;
 	}
 	if( attr_merge_one( e, ad_structuralObjectClass, &val, NULL ) ) {
-		return LDAP_OTHER;
+		goto fail;
 	}
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
@@ -257,7 +259,7 @@ root_dse_info(
 					&be->be_suffix[0],
 					&be->be_nsuffix[0] ) )
 			{
-				return LDAP_OTHER;
+				goto fail;
 			}
 			continue;
 		}
@@ -266,7 +268,7 @@ root_dse_info(
 					&be->be_suffix[0],
 					& be->be_nsuffix[0] ) )
 			{
-				return LDAP_OTHER;
+				goto fail;
 			}
 			continue;
 		}
@@ -278,7 +280,7 @@ root_dse_info(
 					&be->be_suffix[j],
 					&be->be_nsuffix[0] ) )
 			{
-				return LDAP_OTHER;
+				goto fail;
 			}
 		}
 	}
@@ -287,19 +289,19 @@ root_dse_info(
 
 	/* supportedControl */
 	if ( controls_root_dse_info( e ) != 0 ) {
-		return LDAP_OTHER;
+		goto fail;
 	}
 
 	/* supportedExtension */
 	if ( exop_root_dse_info( e ) != 0 ) {
-		return LDAP_OTHER;
+		goto fail;
 	}
 
 #ifdef LDAP_SLAPI
 	/* netscape supportedExtension */
 	for ( i = 0; (bv = slapi_int_get_supported_extop(i)) != NULL; i++ ) {
 		if( attr_merge_one( e, ad_supportedExtension, bv, NULL ) ) {
-			return LDAP_OTHER;
+			goto fail;
 		}
 	}
 #endif /* LDAP_SLAPI */
@@ -310,7 +312,7 @@ root_dse_info(
 	}
 
 	if( attr_merge( e, ad_supportedFeatures, supportedFeatures, NULL ) ) {
-		return LDAP_OTHER;
+		goto fail;
 	}
 
 	/* supportedLDAPVersion */
@@ -325,7 +327,7 @@ root_dse_info(
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
 		if( attr_merge_one( e, ad_supportedLDAPVersion, &val, NULL ) ) {
-			return LDAP_OTHER;
+			goto fail;
 		}
 	}
 
@@ -337,7 +339,8 @@ root_dse_info(
 			val.bv_val = supportedSASLMechanisms[i];
 			val.bv_len = strlen( val.bv_val );
 			if( attr_merge_one( e, ad_supportedSASLMechanisms, &val, NULL ) ) {
-				return LDAP_OTHER;
+				ldap_charray_free( supportedSASLMechanisms );
+				goto fail;
 			}
 		}
 		ldap_charray_free( supportedSASLMechanisms );
@@ -345,7 +348,7 @@ root_dse_info(
 
 	if ( default_referral != NULL ) {
 		if( attr_merge( e, ad_ref, default_referral, NULL /* FIXME */ ) ) {
-			return LDAP_OTHER;
+			goto fail;
 		}
 	}
 
@@ -355,7 +358,7 @@ root_dse_info(
 			if( attr_merge( e, a->a_desc, a->a_vals,
 				(a->a_nvals == a->a_vals) ? NULL : a->a_nvals ) )
 			{
-				return LDAP_OTHER;
+				goto fail;
 			}
 		}
 	}
