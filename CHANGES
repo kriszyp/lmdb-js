@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.22 Engineering
+	Fixed libldap ldap_sort_entries tail bug (ITS#4536)
 	Fixed libldap_r thread debug missing break
 	Fixed libldap_r tpool cleanup
 	Fixed liblutil strtoul(3) usage (ITS#4503)
@@ -17,6 +18,7 @@ OpenLDAP 2.3.22 Engineering
 	Added slapd syncrepl mandatory searchbase check
 	Fixed slapd-bdb pre/post-read freeing (ITS#4532)
 	Fixed slapd-bdb pre/post-read unavailable issue (ITS#4538)
+	Fixed slapd-hdb IDL sort issue (ITS#4531)
 	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapd-ldap proxyAuthz of bound identity/override (ITS#4497)
 	Fixed slapd-ldap/meta protocol version propagation (ITS#4488)
@@ -33,6 +35,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slurpd potential overflow issue
 	Build Environment
 		Fixed test020-proxycache disabled debug issue (ITS#4491)
+		Fixed OSF1 compilation problem (ITS#4537)
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)

@@ -158,7 +158,8 @@ ldap_sort_entries(
 		LDAP_VFREE( et[i].et_vals );
 	}
 	*ep = ohead;
-		
+	(*chain)->lm_chain_tail = otail ? otail : etail;
+
 	LDAP_FREE( (char *) et );
 
 	return( 0 );
