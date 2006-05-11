@@ -831,7 +831,8 @@ static int slap_get_listener_addresses(
 			sap[i]->sa_family = AF_INET;
 			((struct sockaddr_in *)sap[i])->sin_port = htons(port);
 			AC_MEMCPY( &((struct sockaddr_in *)sap[i])->sin_addr,
-				he ? he->h_addr_list[i] : &in, sizeof(struct in_addr) );
+				he ? (struct in_addr *)he->h_addr_list[i] : &in,
+				sizeof(struct in_addr) );
 		}
 		sap[i] = NULL;
 #endif
