@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.22 Engineering
+	Fixed libldap referral input destroy issue (ITS#4533)
 	Fixed libldap ldap_sort_entries tail bug (ITS#4536)
 	Fixed libldap_r thread debug missing break
 	Fixed libldap_r tpool cleanup
