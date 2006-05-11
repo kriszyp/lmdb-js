@@ -23,7 +23,7 @@ fi
 
 mkdir -p $TESTDIR $DBDIR1
 
-$SLAPPASSWD -g > $CONFIGPWF
+$SLAPPASSWD -g -n > $CONFIGPWF
 RC=$?
 if test $RC != 0 ; then
 	echo "slappasswd failed ($RC)!"
