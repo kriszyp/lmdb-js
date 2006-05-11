@@ -11,6 +11,7 @@ slappasswd \- OpenLDAP password utility
 .B [\-g|\-s secret|\-T file]
 .B [\-h hash]
 .B [\-c salt-format]
+.B [\-n]
 .B 
 .LP
 .SH DESCRIPTION
@@ -131,6 +132,10 @@ provides a two character salt and '$1$%.8s' tells some
 versions of crypt(3) to use an MD5 algorithm and provides
 8 random characters of salt.  The default is '%s', which
 provides 31 characters of salt.
+.TP
+.BI \-n
+Omit the trailing newline; useful to pipe the credentials
+into a command.
 .SH LIMITATIONS
 The practice storing hashed passwords in userPassword violates
 Standard Track (RFC 2256) schema specifications and may hinder

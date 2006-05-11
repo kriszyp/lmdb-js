@@ -48,6 +48,7 @@ usage(const char *s)
 		"  -c format\tcrypt(3) salt format\n"
 		"  -g\t\tgenerate random password\n"
 		"  -h hash\tpassword scheme\n"
+		"  -n\t\tomit trailing newline\n"
 		"  -s secret\tnew password\n"
 		"  -u\t\tgenerate RFC2307 values (default)\n"
 		"  -v\t\tincrease verbosity\n"
@@ -73,11 +74,12 @@ slappasswd( int argc, char *argv[] )
 	const char *progname = "slappasswd";
 
 	int		i;
+	char		*newline = "\n";
 	struct berval passwd = BER_BVNULL;
 	struct berval hash;
 
 	while( (i = getopt( argc, argv,
-		"c:d:gh:s:T:vu" )) != EOF )
+		"c:d:gh:ns:T:vu" )) != EOF )
 	{
 		switch (i) {
 		case 'c':	/* crypt salt format */
@@ -108,6 +110,10 @@ slappasswd( int argc, char *argv[] )
 			} else {
 				scheme = strdup( optarg );
 			}
+			break;
+
+		case 'n':
+			newline = "";
 			break;
 
 		case 's':	/* new password (secret) */
@@ -178,9 +184,8 @@ slappasswd( int argc, char *argv[] )
 		passwd.bv_val = newpw;
 		passwd.bv_len = strlen(passwd.bv_val);
 	} else {
-		/* Omit trailing newline so it may be directed to a pwfile */
-		printf( "%s", passwd.bv_val );
-		return EXIT_SUCCESS;
+		hash = passwd;
+		goto print_pw;
 	}
 
 	lutil_passwd_hash( &passwd, scheme, &hash, &text );
@@ -197,6 +202,7 @@ slappasswd( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 
-	printf( "%s\n" , hash.bv_val );
+print_pw:;
+	printf( "%s%s" , hash.bv_val, newline );
 	return EXIT_SUCCESS;
 }
