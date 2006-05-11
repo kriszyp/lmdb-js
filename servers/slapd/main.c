@@ -160,6 +160,7 @@ struct option_helper {
 	{ BER_BVNULL, 0, NULL, NULL }
 };
 
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
 #ifdef LOG_LOCAL4
 static int
 parse_syslog_user( const char *arg, int *syslogUser )
@@ -222,6 +223,7 @@ parse_syslog_level( const char *arg, int *levelp )
 
 	return 0;
 }
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 int
 parse_debug_unknowns( char **unknowns, int *levelp )
@@ -447,11 +449,11 @@ int main( int argc, char **argv )
 #ifdef HAVE_CHROOT
 				"r:"
 #endif
-#ifdef LDAP_SYSLOG
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
 				"S:"
-#endif
 #ifdef LOG_LOCAL4
 				"l:"
+#endif
 #endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 				"u:g:"
@@ -570,7 +572,6 @@ int main( int argc, char **argv )
 				goto destroy;
 			}
 			break;
-#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 #ifdef LOG_LOCAL4
 		case 'l':	/* set syslog local user */
@@ -579,6 +580,7 @@ int main( int argc, char **argv )
 			}
 			break;
 #endif
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 #ifdef HAVE_CHROOT
 		case 'r':
