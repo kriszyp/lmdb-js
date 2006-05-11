@@ -3124,6 +3124,7 @@ read_config(const char *fname, const char *dir) {
 		return 1;
 
 	cfb = be->be_private;
+	be->be_dfltaccess = ACL_NONE;
 
 	/* If no .conf, or a dir was specified, setup the dir */
 	if ( !fname || dir ) {
@@ -4528,6 +4529,10 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 }
 #endif
 
+static const char *defacl[] = {
+	NULL, "to", "*", "by", "*", "none", NULL
+};
+
 static int
 config_back_db_open( BackendDB *be )
 {
@@ -4546,6 +4551,14 @@ config_back_db_open( BackendDB *be )
 	void *thrctx = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "config_back_db_open\n", 0, 0, 0);
+
+	/* If we have no explicitly configured ACLs, don't just use
+	 * the global ACLs. Explicitly deny access to everything.
+	 */
+	if ( frontendDB->be_acl && be->be_acl == frontendDB->be_acl ) {
+		parse_acl(be, "config_back_db_open", 0, 6, (char **)defacl, 0 );
+	}
+
 	/* If we read the config from back-ldif, nothing to do here */
 	if ( cfb->cb_got_ldif )
 		return 0;
