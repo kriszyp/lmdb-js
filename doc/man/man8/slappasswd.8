@@ -8,7 +8,7 @@ slappasswd \- OpenLDAP password utility
 .B SBINDIR/slappasswd
 .B [\-v]
 .B [\-u]
-.B [\-s secret|\-T file]
+.B [\-g|\-s secret|\-T file]
 .B [\-h hash]
 .B [\-c salt-format]
 .B 
@@ -35,20 +35,46 @@ by default.  This option is provided for forward compatibility.
 .TP
 .BI \-s " secret"
 The secret to hash.
-If this and
+If this,
+.B \-g
+and
 .B \-T
 are absent, the user will be prompted for the secret to hash.
-.B \-s
+.BR \-s ,
+.B \-g
 and
 .B \-T
 and mutually exclusive flags.
 .TP
+.BI \-g
+Generate the secret.
+If this,
+.B \-s
+and
+.B \-T
+are absent, the user will be prompted for the secret to hash.
+.BR \-s ,
+.B \-g
+and
+.B \-T
+and mutually exclusive flags.
+If this is present,
+.I {CLEARTEXT}
+is used as scheme.
+.B \-g
+and
+.B \-h
+are mutually exclusive flags.
+.TP
 .BI \-T " file"
 Hash the contents of the file.
-If this and
+If this,
+.B \-g
+and
 .B \-s
 are absent, the user will be prompted for the secret to hash.
-.B \-s
+.BR \-s ,
+.B \-g
 and
 .B \-T
 and mutually exclusive flags.
@@ -87,6 +113,10 @@ uses the
 .B {CLEARTEXT}
 indicates that the new password should be added to userPassword as
 clear text.
+Unless
+.I {CLEARTEXT}
+is used, this flag is incompatible with
+.BR \-g .
 .TP
 .BI \-c " crypt-salt-format"
 Specify the format of the salt passed to

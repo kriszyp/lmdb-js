@@ -32,6 +32,7 @@
 #include <ac/unistd.h>
 
 #include <ldap.h>
+#include <lber_pvt.h>
 #include <lutil.h>
 #include <lutil_sha1.h>
 
@@ -44,9 +45,10 @@ usage(const char *s)
 {
 	fprintf(stderr,
 		"Usage: %s [options]\n"
+		"  -c format\tcrypt(3) salt format\n"
+		"  -g\n"
 		"  -h hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
-		"  -c format\tcrypt(3) salt format\n"
 		"  -u\t\tgenerate RFC2307 values (default)\n"
 		"  -v\t\tincrease verbosity\n"
 		"  -T file\tread file for new password\n"
@@ -58,11 +60,13 @@ usage(const char *s)
 int
 slappasswd( int argc, char *argv[] )
 {
+	char	*cleartext_scheme = "{CLEARTEXT}";
 #ifdef LUTIL_SHA1_BYTES
-	char	*scheme = "{SSHA}";
+	char	*default_scheme = "{SSHA}";
 #else
-	char	*scheme = "{SMD5}";
+	char	*default_scheme = "{SMD5}";
 #endif
+	char	*scheme = default_scheme;
 
 	char	*newpw = NULL;
 	char	*pwfile = NULL;
@@ -74,7 +78,7 @@ slappasswd( int argc, char *argv[] )
 	struct berval hash;
 
 	while( (i = getopt( argc, argv,
-		"c:d:h:s:T:vu" )) != EOF )
+		"c:d:gh:s:T:vu" )) != EOF )
 	{
 		switch (i) {
 		case 'c':	/* crypt salt format */
@@ -82,21 +86,75 @@ slappasswd( int argc, char *argv[] )
 			lutil_salt_format( optarg );
 			break;
 
+		case 'g':	/* new password (generate) */
+			if ( pwfile != NULL ) {
+				fprintf( stderr, "Option -s incompatible with -T\n" );
+				return EXIT_FAILURE;
+
+			} else if ( newpw != NULL ) {
+				fprintf( stderr, "New password already provided\n" );
+				return EXIT_FAILURE;
+
+			} else if ( scheme != default_scheme && strcmp( scheme, cleartext_scheme ) != 0 ) {
+				fprintf( stderr, "Option -g incompatible with scheme \"%s\"\n", scheme );
+				return EXIT_FAILURE;
+
+			} else {
+				struct berval	p = BER_BVNULL;
+
+				lutil_passwd_generate( &p, 8 );
+
+				newpw = p.bv_val;
+
+				scheme = cleartext_scheme;
+			}
+			break;
+
 		case 'h':	/* scheme */
-			scheme = strdup( optarg );
+			if ( scheme == cleartext_scheme ) {
+				if ( strcmp( optarg, cleartext_scheme ) != 0 ) {
+					fprintf( stderr, "Option -h incompatible with -g\n" );
+					return EXIT_FAILURE;
+				}
+				
+			} else if ( scheme != default_scheme ) {
+				fprintf( stderr, "Scheme already provided\n" );
+				return EXIT_FAILURE;
+
+			} else {
+				scheme = strdup( optarg );
+			}
 			break;
 
 		case 's':	/* new password (secret) */
-			{
+			if ( pwfile != NULL ) {
+				fprintf( stderr, "Option -s incompatible with -T\n" );
+				return EXIT_FAILURE;
+
+			} else if ( newpw != NULL ) {
+				fprintf( stderr, "New password already provided\n" );
+				return EXIT_FAILURE;
+
+			} else {
 				char* p;
 				newpw = strdup( optarg );
 
 				for( p = optarg; *p != '\0'; p++ ) {
 					*p = '\0';
 				}
-			} break;
+			}
+			break;
 
 		case 'T':	/* password file */
+			if ( pwfile != NULL ) {
+				fprintf( stderr, "Password file already provided\n" );
+				return EXIT_FAILURE;
+
+			} else if ( newpw != NULL ) {
+				fprintf( stderr, "Option -T incompatible with -s/-g\n" );
+				return EXIT_FAILURE;
+
+			}
 			pwfile = optarg;
 			break;
 
