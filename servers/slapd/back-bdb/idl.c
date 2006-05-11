@@ -1374,7 +1374,7 @@ int bdb_idl_append( ID *a, ID *b )
 	return 0;
 }
 
-#if 0
+#if 1
 
 /* Quicksort + Insertion sort for small arrays */
 
