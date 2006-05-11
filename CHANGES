@@ -4,7 +4,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed libldap_r thread debug missing break
 	Fixed libldap_r tpool cleanup
 	Fixed liblutil strtoul(3) usage (ITS#4503)
-	Fixed liblutil time resolution issue
+	Fixed liblutil time resolution issue (ITS#4514)
 	Updated ldapsearch(1) BASE output (ITS#4504)
 	Fixed slapd backglue issue (ITS#4529)
 	Fixed slapd cn=config (ITS#4512)
