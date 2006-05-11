@@ -134,6 +134,9 @@ CONFFILTER=$SRCDIR/scripts/conf.sh
 SLAPADD="../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
 SLAPCAT="../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
 SLAPINDEX="../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
+SLAPPASSWD="../servers/slapd/slapd -Tpasswd"
+
+CONFIGPWF=$TESTDIR/configpw
 
 unset DIFF_OPTIONS
 # NOTE: -u/-c is not that portable...

@@ -23,6 +23,14 @@ fi
 
 mkdir -p $TESTDIR $DBDIR1
 
+$SLAPPASSWD -g > $CONFIGPWF
+RC=$?
+if test $RC != 0 ; then
+	echo "slappasswd failed ($RC)!"
+	exit $RC
+fi
+read CONFIGPW < $CONFIGPWF
+
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $VALSORTCONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFVALSORT
@@ -87,7 +95,7 @@ fi
 
 echo "Reconfiguring slapd to test valsort descending"
 
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcOverlay={0}valsort,olcDatabase={1}$BACKEND,cn=config
