@@ -1320,12 +1320,14 @@ playlog_cb( Operation *op, SlapReply *rs )
 /* enter with sl->sl_mutex locked, release before returning */
 static void
 syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
-	struct berval *oldcsn, struct berval *ctxcsn )
+	sync_control *srs, struct berval *ctxcsn )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	slog_entry *se;
 	int i, j, ndel, num, nmods, mmods;
+	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	BerVarray uuids;
+	struct berval delcsn;
 
 	if ( !sl->sl_num ) {
 		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
@@ -1338,19 +1340,23 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 	uuids = op->o_tmpalloc( (num+1) * sizeof( struct berval ) +
 		num * UUID_LEN, op->o_tmpmemctx );
-
 	uuids[0].bv_val = (char *)(uuids + num + 1);
+
+	delcsn.bv_len = 0;
+	delcsn.bv_val = cbuf;
 
 	/* Make a copy of the relevant UUIDs. Put the Deletes up front
 	 * and everything else at the end. Do this first so we can
 	 * unlock the list mutex.
 	 */
 	for ( se=sl->sl_head; se; se=se->se_next ) {
-		if ( ber_bvcmp( &se->se_csn, oldcsn ) <= 0 ) continue;
+		if ( ber_bvcmp( &se->se_csn, &srs->sr_state.ctxcsn ) <= 0 ) continue;
 		if ( ber_bvcmp( &se->se_csn, ctxcsn ) > 0 ) break;
 		if ( se->se_tag == LDAP_REQ_DELETE ) {
 			j = i;
 			i++;
+			AC_MEMCPY( cbuf, se->se_csn.bv_val, se->se_csn.bv_len );
+			delcsn.bv_len = se->se_csn.bv_len;
 		} else {
 			nmods++;
 			j = num - nmods;
@@ -1442,9 +1448,14 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		fop.o_bd->bd_info = (BackendInfo *)on;
 	}
 	if ( ndel ) {
+		struct berval cookie;
+
+		slap_compose_sync_cookie( op, &cookie, &delcsn, srs->sr_state.rid );
 		uuids[ndel].bv_val = NULL;
-		syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL, 0, uuids, 1 );
+		syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, &cookie, 0, uuids, 1 );
+		op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 	}
+	op->o_tmpfree( uuids, op->o_tmpmemctx );
 }
 
 static int
@@ -1963,7 +1974,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			if ( ber_bvcmp( &srs->sr_state.ctxcsn, &sl->sl_mincsn ) >= 0 ) {
 				do_present = 0;
 				/* mutex is unlocked in playlog */
-				syncprov_playlog( op, rs, sl, &srs->sr_state.ctxcsn, &ctxcsn );
+				syncprov_playlog( op, rs, sl, srs, &ctxcsn );
 			} else {
 				ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
 			}

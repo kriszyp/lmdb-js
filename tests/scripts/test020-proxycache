@@ -123,6 +123,15 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# ITS#4491, if debug messages are unavailable, we can't verify the tests.
+grep "query template" $LOG2 > /dev/null
+RC=$?
+if test $RC != 0 ; then
+	echo "Debug messages unavailable, test aborted..."
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS && wait
+	exit 0
+fi
+
 echo "Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid"  
 echo "# Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid" >> $SLAVEOUT
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \

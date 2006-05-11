@@ -91,7 +91,7 @@ typedef struct syncinfo_s {
 
 static int syncuuid_cmp( const void *, const void * );
 static void avl_ber_bvfree( void * );
-static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray );
+static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray, struct berval * );
 static int syncrepl_message_to_op(
 					syncinfo_t *, Operation *, LDAPMessage * );
 static int syncrepl_message_to_entry(
@@ -813,7 +813,7 @@ do_syncrep2(
 					if ( refreshDeletes == 0 && match < 0 &&
 						err == LDAP_SUCCESS )
 					{
-						syncrepl_del_nonpresent( op, si, NULL );
+						syncrepl_del_nonpresent( op, si, NULL, NULL );
 					} else {
 						avl_free( si->si_presentlist, avl_ber_bvfree );
 						si->si_presentlist = NULL;
@@ -905,7 +905,8 @@ do_syncrep2(
 						ber_scanf( ber, "[W]", &syncUUIDs );
 						ber_scanf( ber, /*"{"*/ "}" );
 						if ( refreshDeletes ) {
-							syncrepl_del_nonpresent( op, si, syncUUIDs );
+							syncrepl_del_nonpresent( op, si, syncUUIDs,
+								&syncCookie.ctxcsn );
 							ber_bvarray_free_x( syncUUIDs, op->o_tmpmemctx );
 						} else {
 							for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
@@ -948,7 +949,7 @@ do_syncrep2(
 
 					if ( si->si_refreshPresent == 1 ) {
 						if ( match < 0 ) {
-							syncrepl_del_nonpresent( op, si, NULL );
+							syncrepl_del_nonpresent( op, si, NULL, NULL );
 						}
 					} 
 
@@ -1993,7 +1994,8 @@ static void
 syncrepl_del_nonpresent(
 	Operation *op,
 	syncinfo_t *si,
-	BerVarray uuids )
+	BerVarray uuids,
+	struct berval *cookiecsn )
 {
 	Backend* be = op->o_bd;
 	slap_callback	cb = { NULL };
@@ -2005,6 +2007,7 @@ syncrepl_del_nonpresent(
 	AttributeName	an[2];
 
 	struct berval pdn = BER_BVNULL;
+	struct berval csn;
 
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
@@ -2071,7 +2074,12 @@ syncrepl_del_nonpresent(
 
 	if ( !LDAP_LIST_EMPTY( &si->si_nonpresentlist ) ) {
 
-		slap_queue_csn( op, &si->si_syncCookie.ctxcsn );
+		if ( cookiecsn && !BER_BVISNULL( cookiecsn ))
+			csn = *cookiecsn;
+		else
+			csn = si->si_syncCookie.ctxcsn;
+
+		slap_queue_csn( op, &csn );
 
 		np_list = LDAP_LIST_FIRST( &si->si_nonpresentlist );
 		while ( np_list != NULL ) {

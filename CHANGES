@@ -14,8 +14,9 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapd runqueue use of freed memory (ITS#4517)
 	Fixed slapd slap_send_ldap_result bug (ITS#4499)
 	Fixed slapd thread pool init issue (ITS#4513)
-	Fixed slapd-bdb pre/post-read freeing (ITS#4532)
 	Added slapd syncrepl mandatory searchbase check
+	Fixed slapd-bdb pre/post-read freeing (ITS#4532)
+	Fixed slapd-bdb pre/post-read unavailable issue (ITS#4538)
 	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapd-ldap proxyAuthz of bound identity/override (ITS#4497)
 	Fixed slapd-ldap/meta protocol version propagation (ITS#4488)
@@ -24,10 +25,14 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapo-accesslog log purging issue (ITS#4505)
 	Added slapo-accesslog reqOld feature
 	Fixed slapo-auditlog missing return codes
-	Fixed slapo-ppolicy BER tags (ITS#4528)
+	Fixed slapo-ppolicy BER tags issue (ITS#4528)
+	Fixed slapo-refinit delete prohibit issue (ITS#4442)
 	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
+	Fixed slapo-syncprov/syncrepl sessionlog issue (ITS#4534)
 	Fixed slapo-translucent modifications (ITS#4527)
 	Fixed slurpd potential overflow issue
+	Build Environment
+		Fixed test020-proxycache disabled debug issue (ITS#4491)
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)
