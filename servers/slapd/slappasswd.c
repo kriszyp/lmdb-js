@@ -46,7 +46,7 @@ usage(const char *s)
 	fprintf(stderr,
 		"Usage: %s [options]\n"
 		"  -c format\tcrypt(3) salt format\n"
-		"  -g\n"
+		"  -g\t\tgenerate random password\n"
 		"  -h hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
 		"  -u\t\tgenerate RFC2307 values (default)\n"
@@ -60,7 +60,6 @@ usage(const char *s)
 int
 slappasswd( int argc, char *argv[] )
 {
-	char	*cleartext_scheme = "{CLEARTEXT}";
 #ifdef LUTIL_SHA1_BYTES
 	char	*default_scheme = "{SSHA}";
 #else
@@ -74,7 +73,7 @@ slappasswd( int argc, char *argv[] )
 	const char *progname = "slappasswd";
 
 	int		i;
-	struct berval passwd;
+	struct berval passwd = BER_BVNULL;
 	struct berval hash;
 
 	while( (i = getopt( argc, argv,
@@ -88,36 +87,21 @@ slappasswd( int argc, char *argv[] )
 
 		case 'g':	/* new password (generate) */
 			if ( pwfile != NULL ) {
-				fprintf( stderr, "Option -s incompatible with -T\n" );
+				fprintf( stderr, "Option -g incompatible with -T\n" );
 				return EXIT_FAILURE;
 
 			} else if ( newpw != NULL ) {
 				fprintf( stderr, "New password already provided\n" );
 				return EXIT_FAILURE;
 
-			} else if ( scheme != default_scheme && strcmp( scheme, cleartext_scheme ) != 0 ) {
-				fprintf( stderr, "Option -g incompatible with scheme \"%s\"\n", scheme );
+			} else if ( lutil_passwd_generate( &passwd, 8 )) {
+				fprintf( stderr, "Password generation failed\n" );
 				return EXIT_FAILURE;
-
-			} else {
-				struct berval	p = BER_BVNULL;
-
-				lutil_passwd_generate( &p, 8 );
-
-				newpw = p.bv_val;
-
-				scheme = cleartext_scheme;
 			}
 			break;
 
 		case 'h':	/* scheme */
-			if ( scheme == cleartext_scheme ) {
-				if ( strcmp( optarg, cleartext_scheme ) != 0 ) {
-					fprintf( stderr, "Option -h incompatible with -g\n" );
-					return EXIT_FAILURE;
-				}
-				
-			} else if ( scheme != default_scheme ) {
+			if ( scheme != default_scheme ) {
 				fprintf( stderr, "Scheme already provided\n" );
 				return EXIT_FAILURE;
 
@@ -178,7 +162,7 @@ slappasswd( int argc, char *argv[] )
 		if( lutil_get_filed_password( pwfile, &passwd )) {
 			return EXIT_FAILURE;
 		}
-	} else {
+	} else if ( BER_BVISEMPTY( &passwd )) {
 		if( newpw == NULL ) {
 			/* prompt for new password */
 			char *cknewpw;
@@ -193,6 +177,10 @@ slappasswd( int argc, char *argv[] )
 
 		passwd.bv_val = newpw;
 		passwd.bv_len = strlen(passwd.bv_val);
+	} else {
+		/* Omit trailing newline so it may be directed to a pwfile */
+		printf( "%s", passwd.bv_val );
+		return EXIT_SUCCESS;
 	}
 
 	lutil_passwd_hash( &passwd, scheme, &hash, &text );
