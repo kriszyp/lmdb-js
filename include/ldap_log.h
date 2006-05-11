@@ -226,7 +226,7 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 	    		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3), (arg4), (arg5) ); \
 	} while ( 0 )
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
-		Log3( (level), (fmt), (arg1), (arg2), (arg3) )
+		Log3( (level), 0, (fmt), (arg1), (arg2), (arg3) )
 #define LogTest(level) ( ldap_debug & (level) )
 #endif /* ! LDAP_SYSLOG */
 #else /* ! LDAP_DEBUG */
