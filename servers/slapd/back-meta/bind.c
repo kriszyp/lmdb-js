@@ -571,7 +571,9 @@ retry:;
 						mt, mc, candidate,
 						LDAP_BACK_CONN_ISPRIV( mc ),
 						LDAP_BACK_DONTSEND );
-				        LDAP_BACK_CONN_BINDING_SET( msc );
+					if ( rc == LDAP_SUCCESS ) {
+				        	LDAP_BACK_CONN_BINDING_SET( msc );
+					}
 
 				} else {
 					/* can't do anything about it */

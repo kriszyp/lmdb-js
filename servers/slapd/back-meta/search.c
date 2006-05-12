@@ -1229,6 +1229,16 @@ finish:;
 			continue;
 		}
 
+		if ( mc ) {
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] )
+				&& candidates[ i ].sr_msgid != META_MSGID_NEED_BIND )
+			{
+				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
+			}
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+		}
+
 		if ( candidates[ i ].sr_matched ) {
 			free( (char *)candidates[ i ].sr_matched );
 			candidates[ i ].sr_matched = NULL;
