@@ -255,12 +255,18 @@ ldap_get_kerberosv4_credentials(
 		return( NULL );
 	}
 
+	err = 0;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
 		/* not connected yet */
-		int rc = ldap_open_defconn( ld );
-
-		if( rc < 0 ) return NULL;
+		err = ldap_open_defconn( ld );
 	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+	if ( err < 0 ) return NULL;
 
 	krbinstance = ld->ld_defconn->lconn_krbinstance;
 
