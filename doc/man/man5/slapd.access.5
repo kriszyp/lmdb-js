@@ -124,7 +124,7 @@ specifies the entity the access control directive applies to.
 It can have the forms
 .LP
 .nf
-	[dn[.<dnstyle>]=]<dnpattern>
+	dn[.<dnstyle>]=<dnpattern>
 	filter=<ldapfilter>
 	attrs=<attrlist>[ val[/matchingRule][.<attrstyle>]=<attrval>]
 .fi
@@ -142,9 +142,6 @@ with
 The statement
 .B dn=<dnpattern>
 selects the entries based on their naming context.
-The 
-.B dn=
-part is optional.
 The
 .B <dnpattern>
 is a string representation of the entry's DN.
@@ -156,11 +153,7 @@ form is given.
 .LP
 The 
 .B <dnstyle> 
-is also optional; however, it is recommended to specify both the 
-.B dn=
-and the
-.B <dnstyle>
-to avoid ambiguities.
+is optional; however, it is recommended to specify it to avoid ambiguities.
 .B Base 
 (synonym of
 .BR baseObject ),
