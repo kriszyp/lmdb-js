@@ -37,22 +37,26 @@
 
 int ldap_open_defconn( LDAP *ld )
 {
+	int rc = 0;
+
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif /* LDAP_R_COMPILE */
-	ld->ld_defconn = ldap_new_connection( ld,
-		&ld->ld_options.ldo_defludp, 1, 1, NULL );
+	if ( ld->ld_defconn == NULL ) {
+		ld->ld_defconn = ldap_new_connection( ld,
+			&ld->ld_options.ldo_defludp, 1, 1, NULL );
+
+		if( ld->ld_defconn == NULL ) {
+			ld->ld_errno = LDAP_SERVER_DOWN;
+			rc = -1;
+		} else {
+			++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
+		}
+	}
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif /* LDAP_R_COMPILE */
-
-	if( ld->ld_defconn == NULL ) {
-		ld->ld_errno = LDAP_SERVER_DOWN;
-		return -1;
-	}
-
-	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
-	return 0;
+	return rc;
 }
 
 /*
