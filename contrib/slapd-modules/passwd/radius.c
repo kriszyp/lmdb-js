@@ -63,10 +63,8 @@ chk_radius(
 		return LUTIL_PASSWD_ERR;
 	}
 
-	if ( config_filename ) {
-		if ( rad_config( h, config_filename ) != 0 ) {
-			goto done;
-		}
+	if ( rad_config( h, config_filename ) != 0 ) {
+		goto done;
 	}
 
 	if ( rad_create_request( h, RAD_ACCESS_REQUEST ) ) {
