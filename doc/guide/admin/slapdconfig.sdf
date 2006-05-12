@@ -87,7 +87,7 @@ database definition.  Arguments that should be replaced
 by actual text are shown in brackets {{EX:<>}}.
 
 
-H4: access to <what> [ by <who> <accesslevel> <control> ]+
+H4: access to <what> [ by <who> [<accesslevel>] [<control>] ]+
 
 This directive grants access (specified by <accesslevel>) to a
 set of entries and/or attributes (specified by <what>) by one or
@@ -593,7 +593,7 @@ access configuration file directive. The general form of an
 access line is:
 
 >	<access directive> ::= access to <what>
->		[by <who> <access> <control>]+
+>		[by <who> [<access>] [<control>] ]+
 >	<what> ::= * |
 >		[dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>]
 >		[filter=<ldapfilter>] [attrs=<attrlist>]
