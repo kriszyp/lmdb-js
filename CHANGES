@@ -7,6 +7,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed libldap_r tpool cleanup
 	Fixed liblutil strtoul(3) usage (ITS#4503)
 	Fixed liblutil time resolution issue (ITS#4514)
+	Updated ldapdelete(1) to stdout bug (ITS#4453)
 	Updated ldapsearch(1) BASE output (ITS#4504)
 	Fixed slapd backglue issue (ITS#4529)
 	Fixed slapd cn=config (ITS#4512)
@@ -29,6 +30,7 @@ OpenLDAP 2.3.22 Engineering
 	Added slapo-accesslog reqOld feature
 	Fixed slapo-auditlog missing return codes
 	Fixed slapo-ppolicy BER tags issue (ITS#4528)
+	Fixed slapo-ppolicy rebind bug (ITS#4516)
 	Fixed slapo-refint delete prohibit issue (ITS#4442)
 	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
 	Fixed slapo-syncprov/syncrepl sessionlog issue (ITS#4534)
@@ -37,6 +39,8 @@ OpenLDAP 2.3.22 Engineering
 	Build Environment
 		Fixed test020-proxycache disabled debug issue (ITS#4491)
 		Fixed OSF1 compilation problem (ITS#4537)
+	Documentation
+		Fixed slapd(8) logging header reference (ITS#4509)
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)
