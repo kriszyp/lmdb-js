@@ -1523,12 +1523,27 @@ static int print_result(
 
 	if( text ) {
 		if( *text ) {
-		if( !ldif ) {
-			tool_write_ldif( LDIF_PUT_TEXT, "text",
-				text, strlen(text) );
-		} else {
-			fprintf( stderr, _("Additional information: %s\n"), text );
-		}
+			if( !ldif ) {
+				if ( err == LDAP_PARTIAL_RESULTS ) {
+					char	*line;
+
+					for ( line = text; line != NULL; ) {
+						char	*next = strchr( line, '\n' );
+
+						tool_write_ldif( LDIF_PUT_TEXT,
+							"text", line,
+							next ? next - line : strlen( line ) );
+
+						line = next ? next + 1 : NULL;
+					}
+
+				} else {
+					tool_write_ldif( LDIF_PUT_TEXT, "text",
+						text, strlen(text) );
+				}
+			} else {
+				fprintf( stderr, _("Additional information: %s\n"), text );
+			}
 		}
 
 		ber_memfree( text );
