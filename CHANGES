@@ -29,7 +29,7 @@ OpenLDAP 2.3.22 Engineering
 	Added slapo-accesslog reqOld feature
 	Fixed slapo-auditlog missing return codes
 	Fixed slapo-ppolicy BER tags issue (ITS#4528)
-	Fixed slapo-refinit delete prohibit issue (ITS#4442)
+	Fixed slapo-refint delete prohibit issue (ITS#4442)
 	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
 	Fixed slapo-syncprov/syncrepl sessionlog issue (ITS#4534)
 	Fixed slapo-translucent modifications (ITS#4527)
