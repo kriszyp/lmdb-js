@@ -58,6 +58,11 @@ else
 	echo "No guide"
 fi
 
+if test -e $RELNAME/libraries/liblunicode/ucdata/uctable.h ; then
+	echo "touching uctable.h..."
+	touch $RELNAME/libraries/liblunicode/ucdata/uctable.h
+fi
+
 if test ! -e $RELNAME/build/version.sh ; then
 	echo "No build version"
 	OL_STRING="something"
