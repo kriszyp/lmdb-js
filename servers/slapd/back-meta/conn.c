@@ -754,9 +754,11 @@ meta_back_candidates_get( Operation *op )
 	} else if ( mc->mc_ntargets < mi->mi_ntargets ) {
 		/* NOTE: in the future, may want to allow back-config
 		 * to add/remove targets from back-meta... */
-		mc->mc_ntargets = mi->mi_ntargets;
 		mc->mc_candidates = ch_realloc( mc->mc_candidates,
-				sizeof( SlapReply ) * mc->mc_ntargets );
+				sizeof( SlapReply ) * mi->mi_ntargets );
+		memset( &mc->mc_candidates[ mc->mc_ntargets ], 0,
+			sizeof( SlapReply ) * ( mi->mi_ntargets - mc->mc_ntargets ) );
+		mc->mc_ntargets = mi->mi_ntargets;
 	}
 
 	return mc->mc_candidates;
