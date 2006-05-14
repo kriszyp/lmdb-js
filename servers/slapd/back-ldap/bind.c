@@ -129,6 +129,29 @@ retry_lock:;
 				ldap_back_conndnlc_cmp );
 		assert( tmplc == NULL || lc == tmplc );
 
+		/* delete all cached connections with the current connection */
+		if ( LDAP_BACK_SINGLECONN( li ) ) {
+			while ( ( tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc, ldap_back_conn_cmp ) ) != NULL )
+			{
+				Debug( LDAP_DEBUG_TRACE,
+					"=>ldap_back_bind: destroying conn %ld (refcnt=%u)\n",
+					LDAP_BACK_PCONN_ID( lc->lc_conn ), lc->lc_refcnt, 0 );
+
+				if ( lc->lc_refcnt != 0 ) {
+					/* taint it */
+					LDAP_BACK_CONN_TAINTED_SET( tmplc );
+
+				} else {
+					/*
+					 * Needs a test because the handler may be corrupted,
+					 * and calling ldap_unbind on a corrupted header results
+					 * in a segmentation fault
+					 */
+					ldap_back_conn_free( tmplc );
+				}
+			}
+		}
+
 		if ( LDAP_BACK_CONN_ISBOUND( lc ) ) {
 			ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
 			lerr = avl_insert( &li->li_conninfo.lai_tree, (caddr_t)lc,
