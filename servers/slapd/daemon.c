@@ -2094,7 +2094,7 @@ slapd_daemon_task(
 #endif
 
 		for (i=0; i<ns; i++) {
-			int rc = 1, fd, waswrite = 0;
+			int rc = 1, fd;
 
 			if ( SLAP_EVENT_IS_LISTENER(i) ) {
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
@@ -2124,7 +2124,7 @@ slapd_daemon_task(
 						"daemon: write active on %d\n",
 						fd, 0, 0 );
 
-					waswrite = 1;
+					SLAP_EVENT_CLR_WRITE( i );
 
 					/*
 					 * NOTE: it is possible that the connection was closed
@@ -2136,12 +2136,13 @@ slapd_daemon_task(
 						continue;
 					}
 				}
-				/* If event is a read or an error */
-				if( SLAP_EVENT_IS_READ( i ) || !waswrite ) {
+				/* If event is a read */
+				if( SLAP_EVENT_IS_READ( i )) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: read active on %d\n",
 						fd, 0, 0 );
 
+					SLAP_EVENT_CLR_READ( i );
 #ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 					connection_read_activate( fd );
 #else
@@ -2153,6 +2154,9 @@ slapd_daemon_task(
 					 */
 					connection_read( fd );
 #endif
+				} else {
+					Debug( LDAP_DEBUG_CONNS,
+						"daemon: hangup on %d\n", fd, 0, 0 );
 				}
 			}
 		}
