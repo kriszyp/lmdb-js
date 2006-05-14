@@ -314,6 +314,10 @@ The proxy returns \fIunwillingToPerform\fP if an operation that is
 incompatible with the requested protocol is attempted.
 
 .TP
+.B single\-conn {NO|yes}
+Discards current cached connection when the client rebinds.
+
+.TP
 .B proxy\-whoami {NO|yes}
 Turns on proxying of the WhoAmI extended operation. If this option is
 given, back-ldap will replace slapd's original WhoAmI routine with its

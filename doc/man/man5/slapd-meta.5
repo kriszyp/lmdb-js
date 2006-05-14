@@ -148,6 +148,10 @@ identity to be deferred until actually needed by subsequent operations.
 If this option is given, the client's bind credentials are remembered
 for rebinds when chasing referrals.
 
+.TP
+.B single\-conn {NO|yes}
+Discards current cached connection when the client rebinds.
+
 .SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:
 
