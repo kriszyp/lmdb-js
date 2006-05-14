@@ -395,6 +395,7 @@ meta_back_search_start(
 	 * Starts the search
 	 */
 retry:;
+	assert( msc->msc_ld != NULL );
 	rc = ldap_search_ext( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
