@@ -801,6 +801,38 @@ meta_back_db_config(
 			return 1;
 		}
 
+	/* single-conn? */
+	} else if ( strcasecmp( argv[ 0 ], "single-conn" ) == 0 ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"single-conn {FALSE|true}\" takes 1 argument\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( mi->mi_ntargets > 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"single-conn\" must appear before target definitions\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 0:
+			mi->mi_flags &= ~LDAP_BACK_F_SINGLECONN;
+			break;
+
+		case 1:
+			mi->mi_flags |= LDAP_BACK_F_SINGLECONN;
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"single-conn {FALSE|true}\": invalid arg \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
 	} else if ( strcasecmp( argv[ 0 ], "timeout" ) == 0 ) {
 		char	*sep;
 		time_t	*tv = mi->mi_ntargets ?

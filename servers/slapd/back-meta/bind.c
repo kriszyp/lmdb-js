@@ -207,6 +207,29 @@ retry_lock:;
 				meta_back_conndn_cmp );
 			assert( tmpmc == mc );
 
+			/* delete all cached connections with the current connection */
+			if ( LDAP_BACK_SINGLECONN( mi ) ) {
+				while ( ( tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc, meta_back_conn_cmp ) ) != NULL )
+				{
+					Debug( LDAP_DEBUG_TRACE,
+						"=>meta_back_bind: destroying conn %ld (refcnt=%u)\n",
+						LDAP_BACK_PCONN_ID( mc->mc_conn ), mc->mc_refcnt, 0 );
+
+					if ( mc->mc_refcnt != 0 ) {
+						/* taint it */
+						LDAP_BACK_CONN_TAINTED_SET( tmpmc );
+
+					} else {
+						/*
+						 * Needs a test because the handler may be corrupted,
+						 * and calling ldap_unbind on a corrupted header results
+						 * in a segmentation fault
+						 */
+						meta_back_conn_free( tmpmc );
+					}
+				}
+			}
+
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );

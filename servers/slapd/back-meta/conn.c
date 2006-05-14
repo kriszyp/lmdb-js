@@ -37,7 +37,9 @@
 /*
  * Set PRINT_CONNTREE larger than 0 to dump the connection tree (debug only)
  */
+#ifndef PRINT_CONNTREE
 #define PRINT_CONNTREE 0
+#endif /* !PRINT_CONNTREE */
 
 /*
  * meta_back_conndn_cmp
@@ -148,7 +150,7 @@ static void
 ravl_print( Avlnode *root, int depth )
 {
 	int     	i;
-	metaconn_t	*mc = (metaconn_t *)root->avl_data;
+	metaconn_t	*mc;
 	
 	if ( root == 0 ) {
 		return;
@@ -157,30 +159,32 @@ ravl_print( Avlnode *root, int depth )
 	ravl_print( root->avl_right, depth + 1 );
 	
 	for ( i = 0; i < depth; i++ ) {
-		printf( "    " );
+		fprintf( stderr, "-" );
 	}
 
-	printf( "c(%d%s%s) %d\n",
-		LDAP_BACK_PCONN_ID( mc->mc_conn ),
-		BER_BVISNULL( &mc->mc_local_ndn ) ? "" : ": ",
-		BER_BVISNULL( &mc->mc_local_ndn ) ? "" : mc->mc_local_ndn.bv_val,
-		root->avl_bf );
+	mc = (metaconn_t *)root->avl_data;
+	fprintf( stderr, "mc=%p local=\"%s\" conn=%p %s refcnt=%d\n",
+		(void *)mc,
+		mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
+		(void *)mc->mc_conn,
+		avl_bf2str( root->avl_bf ), mc->mc_refcnt );
 	
 	ravl_print( root->avl_left, depth + 1 );
 }
 
 static void
-myprint( Avlnode *root )
+myprint( Avlnode *root, char *msg )
 {
-	printf( "********\n" );
+	fprintf( stderr, "========> %s\n", msg );
 	
 	if ( root == 0 ) {
-		printf( "\tNULL\n" );
+		fprintf( stderr, "\tNULL\n" );
+
 	} else {
 		ravl_print( root, 0 );
 	}
 	
-	printf( "********\n" );
+	fprintf( stderr, "<======== %s\n", msg );
 }
 #endif /* PRINT_CONNTREE */
 /*
@@ -1244,7 +1248,7 @@ done:;
 			       	meta_back_conndn_cmp, meta_back_conndn_dup );
 
 #if PRINT_CONNTREE > 0
-		myprint( mi->mi_conninfo.lai_tree );
+		myprint( mi->mi_conninfo.lai_tree, "meta_back_getconn" );
 #endif /* PRINT_CONNTREE */
 		
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
