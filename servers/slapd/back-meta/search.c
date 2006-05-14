@@ -93,8 +93,6 @@ meta_search_dobind_init(
 		return META_SEARCH_CANDIDATE;
 	}
 
-	assert( msc->msc_ld != NULL );
-
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	if ( LDAP_BACK_CONN_ISBOUND( msc ) || LDAP_BACK_CONN_ISANON( msc ) ) {
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
@@ -133,6 +131,8 @@ meta_search_dobind_init(
 	}
 
 retry:;
+	assert( msc->msc_ld != NULL );
+
 	rc = ldap_sasl_bind( msc->msc_ld, binddn, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 	switch ( rc ) {
@@ -192,7 +192,9 @@ meta_search_dobind_result(
 	meta_search_candidate_t	retcode = META_SEARCH_NOT_CANDIDATE;
 	int			rc;
 
-	 rc = ldap_parse_result( msc->msc_ld, res,
+	assert( msc->msc_ld != NULL );
+
+	rc = ldap_parse_result( msc->msc_ld, res,
 		&candidates[ candidate ].sr_err,
 		NULL, NULL, NULL, NULL, 1 );
 	if ( rc == LDAP_SUCCESS ) {
@@ -250,7 +252,8 @@ meta_back_search_start(
 
 	/* should we check return values? */
 	if ( op->ors_deref != -1 ) {
-		ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
+		assert( msc->msc_ld != NULL );
+		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
 				( void * )&op->ors_deref );
 	}
 
@@ -1229,11 +1232,9 @@ finish:;
 			continue;
 		}
 
-		if ( mc ) {
+		if ( mc && candidates[ i ].sr_msgid >= 0 ) {
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] )
-				&& candidates[ i ].sr_msgid != META_MSGID_NEED_BIND )
-			{
+			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
 				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
 			}
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );

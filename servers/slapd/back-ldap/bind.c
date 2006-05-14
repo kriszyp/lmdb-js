@@ -525,7 +525,7 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 
 	if ( *lcp == NULL ) {
 		*lcp = (ldapconn_t *)ch_calloc( 1, sizeof( ldapconn_t ) );
-		(*lcp)->lc_flags= li->li_flags;
+		(*lcp)->lc_flags = li->li_flags;
 	}
 	(*lcp)->lc_ld = ld;
 	(*lcp)->lc_refcnt = 1;
@@ -736,6 +736,7 @@ retry_lock:
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
 		}
+	
 	}
 
 #ifdef HAVE_TLS
@@ -981,6 +982,7 @@ retry:;
 			}
 		}
 
+		lc->lc_binding--;
 		ldap_back_freeconn( op, lc, dolock );
 		rs->sr_err = slap_map_api2result( rs );
 
