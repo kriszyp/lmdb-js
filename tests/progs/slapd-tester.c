@@ -162,6 +162,7 @@ main( int argc, char **argv )
 	char		*bfile = NULL;
 	char		*breqs[MAXREQS];
 	char		*bcreds[MAXREQS];
+	char		*battrs[MAXREQS];
 	int		bnum = 0;
 	char		*bargs[MAXARGS];
 	int		banum;
@@ -309,7 +310,7 @@ main( int argc, char **argv )
 
 	/* look for bind requests */
 	if ( bfile ) {
-		bnum = get_search_filters( bfile, bcreds, NULL, breqs );
+		bnum = get_search_filters( bfile, bcreds, battrs, breqs );
 	}
 
 	/* setup friendly option */
@@ -642,6 +643,13 @@ main( int argc, char **argv )
 
 			bargs[banum - 4] = breqs[jj];
 			bargs[banum - 2] = bcreds[jj];
+			if ( battrs[jj] != NULL ) {
+				bargs[banum - 1] = "-a";
+				bargs[banum] = battrs[jj];
+
+			} else {
+				sargs[sanum - 1] = NULL;
+			}
 			fork_child( bcmd, bargs );
 		}
 	}
