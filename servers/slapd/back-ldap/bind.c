@@ -41,6 +41,47 @@
 
 #define LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ	"2.16.840.1.113730.3.4.12"
 
+#if PRINT_CONNTREE > 0
+static void
+ravl_print( Avlnode *root, int depth )
+{
+	int		i;
+	ldapconn_t	*lc;
+	
+	if ( root == 0 ) {
+		return;
+	}
+	
+	ravl_print( root->avl_right, depth+1 );
+	
+	for ( i = 0; i < depth; i++ ) {
+		fprintf( stderr, "-" );
+	}
+
+	lc = root->avl_data;
+	fprintf( stderr, "lc=%p local=\"%s\" conn=%p %s refcnt=%d\n",
+		(void *)lc, lc->lc_local_ndn.bv_val, (void *)lc->lc_conn,
+		avl_bf2str( root->avl_bf ), lc->lc_refcnt );
+	
+	ravl_print( root->avl_left, depth+1 );
+}
+
+static void
+myprint( Avlnode *root, char *msg )
+{
+	fprintf( stderr, "========> %s\n", msg );
+	
+	if ( root == 0 ) {
+		fprintf( stderr, "\tNULL\n" );
+
+	} else {
+		ravl_print( root, 0 );
+	}
+	
+	fprintf( stderr, "<======== %s\n", msg );
+}
+#endif /* PRINT_CONNTREE */
+
 static int
 ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 
@@ -158,6 +199,10 @@ retry_lock:;
 				ldap_back_conndn_cmp, ldap_back_conndn_dup );
 		}
 
+#if PRINT_CONNTREE > 0
+		myprint( li->li_conninfo.lai_tree, "ldap_back_bind" );
+#endif /* PRINT_CONNTREE */
+	
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		switch ( lerr ) {
 		case 0:
@@ -273,47 +318,6 @@ ldap_back_conndn_dup( void *c1, void *c2 )
 		
 	return 0;
 }
-
-#if PRINT_CONNTREE > 0
-static void
-ravl_print( Avlnode *root, int depth )
-{
-	int		i;
-	ldapconn_t	*lc;
-	
-	if ( root == 0 ) {
-		return;
-	}
-	
-	ravl_print( root->avl_right, depth+1 );
-	
-	for ( i = 0; i < depth; i++ ) {
-		fprintf( stderr, "-" );
-	}
-
-	lc = root->avl_data;
-	fprintf( stderr, "lc=%p local=\"%s\" conn=%p %s refcnt=%d\n",
-		(void *)lc, lc->lc_local_ndn.bv_val, (void *)lc->lc_conn,
-		avl_bf2str( root->avl_bf ), lc->lc_refcnt );
-	
-	ravl_print( root->avl_left, depth+1 );
-}
-
-static void
-myprint( Avlnode *root )
-{
-	fprintf( stderr, "========>\n" );
-	
-	if ( root == 0 ) {
-		fprintf( stderr, "\tNULL\n" );
-
-	} else {
-		ravl_print( root, 0 );
-	}
-	
-	fprintf( stderr, "<========\n" );
-}
-#endif /* PRINT_CONNTREE */
 
 int
 ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
@@ -696,7 +700,7 @@ retry_lock:
 			ldap_back_conndn_cmp, ldap_back_conndn_dup );
 
 #if PRINT_CONNTREE > 0
-		myprint( li->li_conninfo.lai_tree );
+		myprint( li->li_conninfo.lai_tree, "ldap_back_getconn" );
 #endif /* PRINT_CONNTREE */
 	
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
