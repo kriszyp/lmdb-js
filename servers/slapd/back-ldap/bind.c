@@ -60,7 +60,9 @@ ravl_print( Avlnode *root, int depth )
 
 	lc = root->avl_data;
 	fprintf( stderr, "lc=%p local=\"%s\" conn=%p %s refcnt=%d\n",
-		(void *)lc, lc->lc_local_ndn.bv_val, (void *)lc->lc_conn,
+		(void *)lc,
+		lc->lc_local_ndn.bv_val ? lc->lc_local_ndn.bv_val : "",
+		(void *)lc->lc_conn,
 		avl_bf2str( root->avl_bf ), lc->lc_refcnt );
 	
 	ravl_print( root->avl_left, depth+1 );
