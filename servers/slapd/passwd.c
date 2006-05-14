@@ -520,8 +520,7 @@ void
 slap_passwd_generate( struct berval *pass )
 {
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_generate\n", 0, 0, 0 );
-	pass->bv_val = NULL;
-	pass->bv_len = 0;
+	BER_BVZERO( pass );
 
 	/*
 	 * generate passwords of only 8 characters as some getpass(3)
