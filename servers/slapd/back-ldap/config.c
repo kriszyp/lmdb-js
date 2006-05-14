@@ -251,7 +251,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "single-conn", "TREU/FALSE", 2, 0, 0,
+	{ "single-conn", "TRUE/FALSE", 2, 0, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_SINGLECONN,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.19 "
 			"NAME 'olcDbSingleConn' "
