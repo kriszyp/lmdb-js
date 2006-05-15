@@ -115,8 +115,9 @@ slapd_opt_slp( const char *val, void *arg )
 {
 #ifdef HAVE_SLP
 	/* NULL is default */
-	if ( val == NULL || strcasecmp( val, "on" ) == 0 ) {
+	if ( val == NULL || *val == '(' || strcasecmp( val, "on" ) == 0 ) {
 		slapd_register_slp = 1;
+		slapd_slp_attrs = (val != NULL && *val == '(') ? val : NULL;
 
 	} else if ( strcasecmp( val, "off" ) == 0 ) {
 		slapd_register_slp = 0;
@@ -155,10 +156,11 @@ struct option_helper {
 	void		*oh_arg;
 	const char	*oh_usage;
 } option_helpers[] = {
-	{ BER_BVC("slp"),	slapd_opt_slp,	NULL, "slp[={on|off}] enable/disable SLP" },
+	{ BER_BVC("slp"),	slapd_opt_slp,	NULL, "slp[={on|off|(attrs)}] enable/disable SLP using (attrs)" },
 	{ BER_BVNULL, 0, NULL, NULL }
 };
 
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
 #ifdef LOG_LOCAL4
 static int
 parse_syslog_user( const char *arg, int *syslogUser )
@@ -221,6 +223,7 @@ parse_syslog_level( const char *arg, int *levelp )
 
 	return 0;
 }
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 int
 parse_debug_unknowns( char **unknowns, int *levelp )
@@ -446,11 +449,11 @@ int main( int argc, char **argv )
 #ifdef HAVE_CHROOT
 				"r:"
 #endif
-#ifdef LDAP_SYSLOG
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
 				"S:"
-#endif
 #ifdef LOG_LOCAL4
 				"l:"
+#endif
 #endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 				"u:g:"
@@ -569,7 +572,6 @@ int main( int argc, char **argv )
 				goto destroy;
 			}
 			break;
-#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 #ifdef LOG_LOCAL4
 		case 'l':	/* set syslog local user */
@@ -578,6 +580,7 @@ int main( int argc, char **argv )
 			}
 			break;
 #endif
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 #ifdef HAVE_CHROOT
 		case 'r':

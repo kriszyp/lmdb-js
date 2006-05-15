@@ -64,6 +64,7 @@ enum {
 	LDAP_BACK_CFG_CONN_TTL,
 	LDAP_BACK_CFG_NETWORK_TIMEOUT,
 	LDAP_BACK_CFG_VERSION,
+	LDAP_BACK_CFG_SINGLECONN,
 	LDAP_BACK_CFG_REWRITE,
 
 	LDAP_BACK_CFG_LAST
@@ -250,6 +251,14 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "single-conn", "TRUE/FALSE", 2, 0, 0,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_SINGLECONN,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.19 "
+			"NAME 'olcDbSingleConn' "
+			"DESC 'cache a single connection per identity' "
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -284,6 +293,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbProxyWhoAmI "
 			"$ olcDbTimeout "
 			"$ olcDbIdleTimeout "
+			"$ olcDbSingleConn "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -629,6 +639,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 			c->value_int = li->li_version;
 			break;
 
+		case LDAP_BACK_CFG_SINGLECONN:
+			c->value_int = LDAP_BACK_SINGLECONN( li );
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -722,6 +736,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 			li->li_version = 0;
 			break;
 
+		case LDAP_BACK_CFG_SINGLECONN:
+			li->li_flags &= ~LDAP_BACK_F_SINGLECONN;
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -747,7 +765,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		}
 
 		/* PARANOID: DN and more are not required nor allowed */
-		urlrc = ldap_url_parselist_ext( &lud, c->argv[ 1 ], ", \t" );
+		urlrc = ldap_url_parselist_ext( &lud, c->argv[ 1 ], ", \t", LDAP_PVT_URL_PARSE_NONE );
 		if ( urlrc != LDAP_URL_SUCCESS ) {
 			char	*why;
 
@@ -811,7 +829,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 						"host and port allowed "
 						"in \"uri <uri>\" statement "
 						"for uri #%d of \"%s\"",
-						i, c->value_string );
+						i, c->argv[ 1 ] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			}
 		}
@@ -1323,15 +1341,24 @@ done_url:;
 		} break;
 
 	case LDAP_BACK_CFG_VERSION:
-		switch ( c->value_int ) {
-		case 0:
-		case LDAP_VERSION2:
-		case LDAP_VERSION3:
-			li->li_version = c->value_int;
-			break;
-
-		default:
+		if ( c->value_int != 0 && ( c->value_int < LDAP_VERSION_MIN || c->value_int > LDAP_VERSION_MAX ) ) {
+			snprintf( c->msg, sizeof( c->msg ),
+				"unsupported version \"%s\" "
+				"in \"protocol-version <version>\"",
+				c->argv[ 1 ] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
+		}
+
+		li->li_version = c->value_int;
+		break;
+
+	case LDAP_BACK_CFG_SINGLECONN:
+		if ( c->value_int ) {
+			li->li_flags |= LDAP_BACK_F_SINGLECONN;
+
+		} else {
+			li->li_flags &= ~LDAP_BACK_F_SINGLECONN;
 		}
 		break;
 

@@ -83,7 +83,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the compare dn, if needed
 		 */
-		dc.target = &mi->mi_targets[ i ];
+		dc.target = mi->mi_targets[ i ];
 
 		switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
@@ -98,7 +98,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * if attr is objectClass, try to remap the value
 		 */
 		if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-			ldap_back_map( &mi->mi_targets[ i ].mt_rwmap.rwm_oc,
+			ldap_back_map( &mi->mi_targets[ i ]->mt_rwmap.rwm_oc,
 					&op->orc_ava->aa_value,
 					&mapped_value, BACKLDAP_MAP );
 
@@ -109,7 +109,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * else try to remap the attribute
 		 */
 		} else {
-			ldap_back_map( &mi->mi_targets[ i ].mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ i ]->mt_rwmap.rwm_at,
 				&op->orc_ava->aa_desc->ad_cname,
 				&mapped_attr, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped_attr ) || mapped_attr.bv_val[0] == '\0' ) {

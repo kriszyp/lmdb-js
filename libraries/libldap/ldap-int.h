@@ -225,6 +225,8 @@ struct ldapoptions {
 	void *ldo_rebind_params;
 	LDAP_NEXTREF_PROC *ldo_nextref_proc;
 	void *ldo_nextref_params;
+	LDAP_URLLIST_PROC *ldo_urllist_proc;
+	void *ldo_urllist_params;
 
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
@@ -339,6 +341,8 @@ struct ldap {
 #define ld_rebind_params	ld_options.ldo_rebind_params
 #define ld_nextref_proc		ld_options.ldo_nextref_proc
 #define ld_nextref_params	ld_options.ldo_nextref_params
+#define ld_urllist_proc		ld_options.ldo_urllist_proc
+#define ld_urllist_params	ld_options.ldo_urllist_params
 
 #define ld_version		ld_options.ldo_version
 
@@ -525,8 +529,8 @@ LDAP_F (ber_int_t) ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
 LDAP_F (BerElement *) ldap_alloc_ber_with_options( LDAP *ld );
 LDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-LDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc *srvlist, LDAPConn *lc, LDAPreqinfo *bind );
-LDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb, int connect, LDAPreqinfo *bind );
+LDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc **srvlist, LDAPConn *lc, LDAPreqinfo *bind );
+LDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb, int connect, LDAPreqinfo *bind );
 LDAP_F (LDAPRequest *) ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
 LDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );
 LDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
@@ -589,23 +593,12 @@ LDAP_F (int) ldap_url_parselist LDAP_P((
 	LDAPURLDesc **ludlist,
 	const char *url ));
 
-LDAP_F (int) ldap_url_parselist_ext LDAP_P((
-	LDAPURLDesc **ludlist,
-	const char *url,
-	const char *sep	));
-
 LDAP_F (int) ldap_url_parsehosts LDAP_P((
 	LDAPURLDesc **ludlist,
 	const char *hosts,
 	int port ));
 
 LDAP_F (char *) ldap_url_list2hosts LDAP_P((
-	LDAPURLDesc *ludlist ));
-
-LDAP_F (char *) ldap_url_list2urls LDAP_P((
-	LDAPURLDesc *ludlist ));
-
-LDAP_F (void) ldap_free_urllist LDAP_P((
 	LDAPURLDesc *ludlist ));
 
 /*

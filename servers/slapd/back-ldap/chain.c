@@ -381,7 +381,7 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 	
 		/* parse reference and use 
 		 * proto://[host][:port]/ only */
-		rc = ldap_url_parse_ext( ref->bv_val, &srv );
+		rc = ldap_url_parse_ext( ref->bv_val, &srv, LDAP_PVT_URL_PARSE_NONE );
 		if ( rc != LDAP_URL_SUCCESS ) {
 			/* try next */
 			rc = LDAP_OTHER;
@@ -618,7 +618,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 				/* parse reference and use
 				 * proto://[host][:port]/ only */
-				rc = ldap_url_parse_ext( curr[0].bv_val, &srv );
+				rc = ldap_url_parse_ext( curr[0].bv_val, &srv, LDAP_PVT_URL_PARSE_NONE );
 				if ( rc != LDAP_URL_SUCCESS ) {
 					/* try next */
 					rs->sr_err = LDAP_OTHER;
@@ -1550,6 +1550,7 @@ ldap_chain_db_init_common(
 	BackendDB	*be )
 {
 	BackendInfo	*bi = be->bd_info;
+	ldapinfo_t	*li;
 	int		t;
 
 	be->bd_info = lback;
@@ -1558,6 +1559,9 @@ ldap_chain_db_init_common(
 	if ( t != 0 ) {
 		return t;
 	}
+	li = (ldapinfo_t *)be->be_private;
+	li->li_urllist_f = NULL;
+	li->li_urllist_p = NULL;
 	be->bd_info = bi;
 
 	return 0;
@@ -1590,6 +1594,8 @@ ldap_chain_db_init_one(
 		return t;
 	}
 	li = (ldapinfo_t *)be->be_private;
+	li->li_urllist_f = NULL;
+	li->li_urllist_p = NULL;
 
 	/* copy common data */
 	li->li_nretries = lc->lc_common_li->li_nretries;

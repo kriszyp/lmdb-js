@@ -124,20 +124,21 @@ int slap_str2ad(
 }
 
 static char *strchrlen(
-	const char *p, 
+	const char *beg, 
+	const char *end,
 	const char ch, 
 	int *len )
 {
-	int i;
+	const char *p;
 
-	for( i=0; p[i]; i++ ) {
-		if( p[i] == ch ) {
-			*len = i;
-			return (char *) &p[i];
+	for( p=beg; *p && p < end; p++ ) {
+		if( *p == ch ) {
+			*len = p - beg;
+			return (char *) p;
 		}
 	}
 
-	*len = i;
+	*len = p - beg;
 	return NULL;
 }
 
@@ -148,7 +149,7 @@ int slap_bv2ad(
 {
 	int rtn = LDAP_UNDEFINED_TYPE;
 	AttributeDescription desc, *d2;
-	char *name, *options;
+	char *name, *options, *optn;
 	char *opt, *next;
 	int ntags;
 	int tagslen;
@@ -201,11 +202,12 @@ int slap_bv2ad(
 	ntags = 0;
 	memset( tags, 0, sizeof( tags ));
 	tagslen = 0;
+	optn = bv->bv_val + bv->bv_len;
 
 	for( opt=options; opt != NULL; opt=next ) {
 		int optlen;
 		opt++; 
-		next = strchrlen( opt, ';', &optlen );
+		next = strchrlen( opt, optn, ';', &optlen );
 
 		if( optlen == 0 ) {
 			*text = "zero length option is invalid";
@@ -443,19 +445,21 @@ static int is_ad_subtags(
 	struct berval *subtagsbv, 
 	struct berval *suptagsbv )
 {
-	const char *suptags, *supp, *supdelimp;
-	const char *subtags, *subp, *subdelimp;
+	const char *suptags, *supp, *supdelimp, *supn;
+	const char *subtags, *subp, *subdelimp, *subn;
 	int  suplen, sublen;
 
 	subtags =subtagsbv->bv_val;
 	suptags =suptagsbv->bv_val;
+	subn = subtags + subtagsbv->bv_len;
+	supn = suptags + suptagsbv->bv_len;
 
 	for( supp=suptags ; supp; supp=supdelimp ) {
-		supdelimp = strchrlen( supp, ';', &suplen );
+		supdelimp = strchrlen( supp, supn, ';', &suplen );
 		if( supdelimp ) supdelimp++;
 
 		for( subp=subtags ; subp; subp=subdelimp ) {
-			subdelimp = strchrlen( subp, ';', &sublen );
+			subdelimp = strchrlen( subp, subn, ';', &sublen );
 			if( subdelimp ) subdelimp++;
 
 			if ( suplen > sublen

@@ -1161,6 +1161,7 @@ static int parseAssert (
 	
 	rs->sr_err = get_filter( op, ber, (Filter **)&(op->o_assertion),
 		&rs->sr_text);
+	(void) ber_free( ber, 1 );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
@@ -1223,26 +1224,28 @@ static int parsePreRead (
 		return LDAP_OTHER;
 	}
 
+	rs->sr_err = LDAP_SUCCESS;
+
 	siz = sizeof( AttributeName );
 	off = offsetof( AttributeName, an_name );
 	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
 		rs->sr_text = "preread control: decoding error";
-		return LDAP_PROTOCOL_ERROR;
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	for( i=0; i<siz; i++ ) {
-		int		rc = LDAP_SUCCESS;
 		const char	*dummy = NULL;
 
 		an[i].an_desc = NULL;
 		an[i].an_oc = NULL;
 		an[i].an_oc_exclude = 0;
-		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
-		if ( rc != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
+		rs->sr_err = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		if ( rs->sr_err != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
 			rs->sr_text = dummy
 				? dummy
 				: "postread control: unknown attributeType";
-			return rc;
+			goto done;
 		}
 	}
 
@@ -1252,8 +1255,9 @@ static int parsePreRead (
 
 	op->o_preread_attrs = an;
 
-	rs->sr_err = LDAP_SUCCESS;
-	return LDAP_SUCCESS;
+done:
+	(void) ber_free( ber, 1 );
+	return rs->sr_err;
 }
 
 static int parsePostRead (
@@ -1288,26 +1292,27 @@ static int parsePostRead (
 		return LDAP_OTHER;
 	}
 
+	rs->sr_err = LDAP_SUCCESS;
 	siz = sizeof( AttributeName );
 	off = offsetof( AttributeName, an_name );
 	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
 		rs->sr_text = "postread control: decoding error";
-		return LDAP_PROTOCOL_ERROR;
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	for( i=0; i<siz; i++ ) {
-		int		rc = LDAP_SUCCESS;
 		const char	*dummy = NULL;
 
 		an[i].an_desc = NULL;
 		an[i].an_oc = NULL;
 		an[i].an_oc_exclude = 0;
-		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
-		if ( rc != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
+		rs->sr_err = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		if ( rs->sr_err != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
 			rs->sr_text = dummy
 				? dummy
 				: "postread control: unknown attributeType";
-			return rc;
+			goto done;
 		}
 	}
 
@@ -1317,8 +1322,9 @@ static int parsePostRead (
 
 	op->o_postread_attrs = an;
 
-	rs->sr_err = LDAP_SUCCESS;
-	return LDAP_SUCCESS;
+done:
+	(void) ber_free( ber, 1 );
+	return rs->sr_err;
 }
 
 static int parseValuesReturnFilter (
@@ -1347,6 +1353,8 @@ static int parseValuesReturnFilter (
 	
 	rs->sr_err = get_vrFilter( op, ber,
 		(ValuesReturnFilter **)&(op->o_vrFilter), &rs->sr_text);
+
+	(void) ber_free( ber, 1 );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
@@ -1494,12 +1502,13 @@ static int parseSearchOptions (
 		return LDAP_OTHER;
 	}
 
-	if ( (tag = ber_scanf( ber, "{i}", &search_flags )) == LBER_ERROR ) {
+	tag = ber_scanf( ber, "{i}", &search_flags );
+	(void) ber_free( ber, 1 );
+
+	if ( tag == LBER_ERROR ) {
 		rs->sr_text = "searchOptions control decoding error";
 		return LDAP_PROTOCOL_ERROR;
 	}
-
-	(void) ber_free( ber, 1 );
 
 	if ( search_flags & LDAP_SEARCH_FLAG_DOMAIN_SCOPE ) {
 		if ( op->o_domain_scope != SLAP_CONTROL_NONE ) {

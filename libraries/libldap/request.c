@@ -93,19 +93,25 @@ ldap_send_initial_request(
 	BerElement *ber,
 	ber_int_t msgid)
 {
-	int rc;
+	int rc = 1;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
 		/* not connected yet */
-		int rc = ldap_open_defconn( ld );
+		rc = ldap_open_defconn( ld );
 
-		if( rc < 0 ) {
-			ber_free( ber, 1 );
-			return( -1 );
-		}
-
+	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+	if( rc < 0 ) {
+		ber_free( ber, 1 );
+		return( -1 );
+	} else if ( rc == 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_open_defconn: successful\n",
 			0, 0, 0 );
@@ -174,7 +180,7 @@ ldap_send_server_request(
 	BerElement *ber,
 	ber_int_t msgid,
 	LDAPRequest *parentreq,
-	LDAPURLDesc *srvlist,
+	LDAPURLDesc **srvlist,
 	LDAPConn *lc,
 	LDAPreqinfo *bind )
 {
@@ -190,7 +196,7 @@ ldap_send_server_request(
 		if ( srvlist == NULL ) {
 			lc = ld->ld_defconn;
 		} else {
-			lc = find_connection( ld, srvlist, 1 );
+			lc = find_connection( ld, *srvlist, 1 );
 			if ( lc == NULL ) {
 				if ( (bind != NULL) && (parentreq != NULL) ) {
 					/* Remember the bind in the parent */
@@ -300,11 +306,10 @@ ldap_send_server_request(
 }
 
 LDAPConn *
-ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
+ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	int connect, LDAPreqinfo *bind )
 {
 	LDAPConn	*lc;
-	LDAPURLDesc	*srv;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection %d %d %d\n",
 		use_ldsb, connect, (bind != NULL) );
@@ -332,9 +337,17 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	}
 
 	if ( connect ) {
-		for ( srv = srvlist; srv != NULL; srv = srv->lud_next ) {
-			if ( ldap_int_open_connection( ld, lc, srv, 0 ) != -1 )
+		LDAPURLDesc	**srvp, *srv = NULL;
+
+		for ( srvp = srvlist; *srvp != NULL; srvp = &(*srvp)->lud_next ) {
+			if ( ldap_int_open_connection( ld, lc, *srvp, 0 ) != -1 )
 			{
+				srv = *srvp;
+
+				if ( ld->ld_urllist_proc ) {
+					ld->ld_urllist_proc( ld, srvlist, srvp, ld->ld_urllist_params );
+				}
+
 				break;
 			}
 		}
@@ -361,11 +374,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
 
-	/*
-	 * XXX for now, we always do a synchronous bind.  This will have
-	 * to change in the long run...
-	 */
-	if ( bind != NULL) {
+	if ( bind != NULL ) {
 		int		err = 0;
 		LDAPConn	*savedefconn;
 
@@ -378,7 +387,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 		if ( ld->ld_rebind_proc != NULL) {
 			LDAPURLDesc	*srvfunc;
 
-			srvfunc = ldap_url_dup( srvlist );
+			srvfunc = ldap_url_dup( *srvlist );
 			if ( srvfunc == NULL ) {
 				ld->ld_errno = LDAP_NO_MEMORY;
 				err = -1;
@@ -741,14 +750,17 @@ ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 
 	if ( lr->lr_ber != NULL ) {
 		ber_free( lr->lr_ber, 1 );
+		lr->lr_ber = NULL;
 	}
 
 	if ( lr->lr_res_error != NULL ) {
 		LDAP_FREE( lr->lr_res_error );
+		lr->lr_res_error = NULL;
 	}
 
 	if ( lr->lr_res_matched != NULL ) {
 		LDAP_FREE( lr->lr_res_matched );
+		lr->lr_res_matched = NULL;
 	}
 
 	LDAP_FREE( lr );
@@ -882,8 +894,11 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	{
 
 		/* Parse the referral URL */
-		if (( rc = ldap_url_parse_ext( refarray[i], &srv)) != LDAP_SUCCESS) {
-			ld->ld_errno = rc;
+		rc = ldap_url_parse_ext( refarray[i], &srv, LDAP_PVT_URL_PARSE_NOEMPTY_DN );
+		if ( rc != LDAP_URL_SUCCESS ) {
+			/* ldap_url_parse_ext() returns LDAP_URL_* errors
+			 * which do not map on API errors */
+			ld->ld_errno = LDAP_PARAM_ERROR;
 			rc = -1;
 			goto done;
 		}
@@ -893,12 +908,6 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			ld->ld_errno = LDAP_NOT_SUPPORTED;
 			rc = -1;
 			goto done;
-		}
-
-		/* treat ldap://hostpart and ldap://hostpart/ the same */
-		if ( srv->lud_dn && srv->lud_dn[0] == '\0' ) {
-			LDAP_FREE( srv->lud_dn );
-			srv->lud_dn = NULL;
 		}
 
 		/* check connection for re-bind in progress */
@@ -1014,7 +1023,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 		rc = ldap_send_server_request( ld, ber, id,
-			origreq, srv, NULL, &rinfo );
+			origreq, &srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
@@ -1146,19 +1155,14 @@ ldap_chase_referrals( LDAP *ld,
 			*p++ = '\0';
 		}
 
-		rc = ldap_url_parse_ext( ref, &srv );
-
+		rc = ldap_url_parse_ext( ref, &srv, LDAP_PVT_URL_PARSE_NOEMPTY_DN );
 		if ( rc != LDAP_URL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
-			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
+				"ignoring %s referral <%s>\n",
+				ref, rc == LDAP_URL_ERR_BADSCHEME ? "unknown" : "incorrect", 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
 			continue;
-		}
-
-		if ( srv->lud_dn != NULL && srv->lud_dn == '\0' ) {
-			LDAP_FREE( srv->lud_dn );
-			srv->lud_dn = NULL;
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -1206,7 +1210,7 @@ ldap_chase_referrals( LDAP *ld,
 		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 		rc = ldap_send_server_request( ld, ber, id,
-			lr, srv, NULL, &rinfo );
+			lr, &srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
@@ -1282,8 +1286,7 @@ re_encode_request( LDAP *ld,
 	ber_int_t	scope;
 	int		rc;
 	BerElement	tmpber, *ber;
-	struct berval		orig_dn;
-	char		*dn;
+	struct berval		dn;
 
 	Debug( LDAP_DEBUG_TRACE,
 	    "re_encode_request: new msgid %ld, new dn <%s>\n",
@@ -1308,15 +1311,15 @@ re_encode_request( LDAP *ld,
 	assert( tag != 0);
 	if ( tag == LDAP_REQ_BIND ) {
 		/* bind requests have a version number before the DN & other stuff */
-		rtag = ber_scanf( &tmpber, "{im" /*}*/, &ver, &orig_dn );
+		rtag = ber_scanf( &tmpber, "{im" /*}*/, &ver, &dn );
 
 	} else if ( tag == LDAP_REQ_DELETE ) {
 		/* delete requests don't have a DN wrapping sequence */
-		rtag = ber_scanf( &tmpber, "m", &orig_dn );
+		rtag = ber_scanf( &tmpber, "m", &dn );
 
 	} else if ( tag == LDAP_REQ_SEARCH ) {
 		/* search requests need to be re-scope-ed */
-		rtag = ber_scanf( &tmpber, "{me" /*"}"*/, &orig_dn, &scope );
+		rtag = ber_scanf( &tmpber, "{me" /*"}"*/, &dn, &scope );
 
 		if( srv->lud_scope != LDAP_SCOPE_DEFAULT ) {
 			/* use the scope provided in reference */
@@ -1343,7 +1346,7 @@ re_encode_request( LDAP *ld,
 		}
 
 	} else {
-		rtag = ber_scanf( &tmpber, "{m" /*}*/, &orig_dn );
+		rtag = ber_scanf( &tmpber, "{m" /*}*/, &dn );
 	}
 
 	if( rtag == LBER_ERROR ) {
@@ -1351,24 +1354,25 @@ re_encode_request( LDAP *ld,
 		return NULL;
 	}
 
+	/* restore character zero'd out by ber_scanf*/
+	dn.bv_val[dn.bv_len] = tmpber.ber_tag;
+
 	if (( ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return NULL;
 	}
 
-	if ( srv->lud_dn == NULL ) {
-		dn = orig_dn.bv_val;
-	} else {
-		dn = srv->lud_dn;
+	if ( srv->lud_dn ) {
+		ber_str2bv( srv->lud_dn, 0, 0, &dn );
 	}
 
 	if ( tag == LDAP_REQ_BIND ) {
-		rc = ber_printf( ber, "{it{is" /*}}*/, msgid, tag, ver, dn );
+		rc = ber_printf( ber, "{it{iO" /*}}*/, msgid, tag, ver, &dn );
 	} else if ( tag == LDAP_REQ_DELETE ) {
-		rc = ber_printf( ber, "{itsN}", msgid, tag, dn );
+		rc = ber_printf( ber, "{itON}", msgid, tag, &dn );
 	} else if ( tag == LDAP_REQ_SEARCH ) {
-		rc = ber_printf( ber, "{it{se" /*}}*/, msgid, tag, dn, scope );
+		rc = ber_printf( ber, "{it{Oe" /*}}*/, msgid, tag, &dn, scope );
 	} else {
-		rc = ber_printf( ber, "{it{s" /*}}*/, msgid, tag, dn );
+		rc = ber_printf( ber, "{it{O" /*}}*/, msgid, tag, &dn );
 	}
 
 	if ( rc == -1 ) {

@@ -99,20 +99,16 @@ ldap_pvt_runqueue_remove(
 struct re_s*
 ldap_pvt_runqueue_next_sched(
 	struct runqueue_s* rq,
-	struct timeval** next_run
+	struct timeval* next_run
 )
 {
 	struct re_s* entry;
 
 	entry = LDAP_STAILQ_FIRST( &rq->task_list );
-	if ( entry == NULL ) {
-		*next_run = NULL;
-		return NULL;
-	} else if ( entry->next_sched.tv_sec == 0 ) {
-		*next_run = NULL;
+	if ( entry == NULL || entry->next_sched.tv_sec == 0 ) {
 		return NULL;
 	} else {
-		*next_run = &entry->next_sched;
+		*next_run = entry->next_sched;
 		return entry;
 	}
 }

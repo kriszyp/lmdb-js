@@ -762,10 +762,95 @@ error_return:;
 }
 
 static int
+rwm_exop_passwd( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	int			rc;
+
+	struct berval	id = BER_BVNULL,
+			pwold = BER_BVNULL,
+			pwnew = BER_BVNULL;
+
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( !SLAP_ISGLOBALOVERLAY( op->o_bd ) ) {
+		rs->sr_err = LDAP_OTHER;
+		return rs->sr_err;
+	}
+
+	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id,
+		&pwold, &pwnew, &rs->sr_text );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		return rs->sr_err;
+	}
+
+	if ( !BER_BVISNULL( &id ) ) {
+		rs->sr_err = dnPrettyNormal( NULL, &id, &op->o_req_dn,
+				&op->o_req_ndn, op->o_tmpmemctx );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			rs->sr_text = "Invalid DN";
+			return rs->sr_err;
+		}
+
+	} else {
+		ber_dupbv_x( &op->o_req_dn, &op->o_dn, op->o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_ndn, &op->o_ndn, op->o_tmpmemctx );
+	}
+
+#ifdef ENABLE_REWRITE
+	rc = rwm_op_dn_massage( op, rs, "extendedDN" );
+#else /* ! ENABLE_REWRITE */
+	rc = 1;
+	rc = rwm_op_dn_massage( op, rs, &rc );
+#endif /* ! ENABLE_REWRITE */
+	if ( rc != LDAP_SUCCESS ) {
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		send_ldap_error( op, rs, rc, "extendedDN massage error" );
+		return -1;
+	}
+
+	/* TODO: re-encode the request */
+
+	return SLAP_CB_CONTINUE;
+}
+
+static struct exop {
+	struct berval	oid;
+	BI_op_extended	*extended;
+} exop_table[] = {
+	{ BER_BVC(LDAP_EXOP_MODIFY_PASSWD),	rwm_exop_passwd },
+	{ BER_BVNULL, NULL }
+};
+
+static int
 rwm_extended( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
+
+	int	i;
+
+	for ( i = 0; exop_table[i].extended != NULL; i++ ) {
+		if ( bvmatch( &exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
+		{
+			rc = exop_table[i].extended( op, rs );
+			switch ( rc ) {
+			case LDAP_SUCCESS:
+				break;
+
+			case SLAP_CB_CONTINUE:
+			case SLAPD_ABANDON:
+				return rc;
+
+			default:
+				send_ldap_result( op, rs );
+				return rc;
+			}
+			break;
+		}
+	}
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "extendedDN" );

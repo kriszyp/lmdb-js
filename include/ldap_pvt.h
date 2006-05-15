@@ -41,10 +41,29 @@ ldap_pvt_url_scheme_port LDAP_P((
 
 struct ldap_url_desc; /* avoid pulling in <ldap.h> */
 
+#define LDAP_PVT_URL_PARSE_NONE			(0x00U)
+#define LDAP_PVT_URL_PARSE_NOEMPTY_HOST		(0x01U)
+#define LDAP_PVT_URL_PARSE_DEF_PORT		(0x02U)
+#define LDAP_PVT_URL_PARSE_NOEMPTY_DN		(0x04U)
+#define LDAP_PVT_URL_PARSE_NODEF_SCOPE		(0x08U)
+#define	LDAP_PVT_URL_PARSE_HISTORIC		(LDAP_PVT_URL_PARSE_NODEF_SCOPE | LDAP_PVT_URL_PARSE_NOEMPTY_HOST | LDAP_PVT_URL_PARSE_DEF_PORT)
 LDAP_F( int )
 ldap_url_parse_ext LDAP_P((
 	LDAP_CONST char *url,
-	struct ldap_url_desc **ludpp ));
+	struct ldap_url_desc **ludpp,
+	unsigned flags ));
+
+LDAP_F (int) ldap_url_parselist_ext LDAP_P((
+	struct ldap_url_desc **ludlist,
+	const char *url,
+	const char *sep,
+	unsigned flags ));
+
+LDAP_F (char *) ldap_url_list2urls LDAP_P((
+	struct ldap_url_desc *ludlist ));
+
+LDAP_F (void) ldap_free_urllist LDAP_P((
+	struct ldap_url_desc *ludlist ));
 
 LDAP_F( char * )
 ldap_pvt_ctime LDAP_P((

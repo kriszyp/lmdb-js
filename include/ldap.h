@@ -120,6 +120,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_URI				0x5006
 #define LDAP_OPT_REFERRAL_URLS      0x5007  /* Referral URLs */
 #define LDAP_OPT_SOCKBUF            0x5008  /* sockbuf */
+#define LDAP_OPT_DEFBASE		0x5009	/* searchbase */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
@@ -781,6 +782,19 @@ LDAP_F( int )
 ldap_set_nextref_proc LDAP_P((
 	LDAP *ld,
 	LDAP_NEXTREF_PROC *nextref_proc,
+	void *params ));
+
+/* V3 URLLIST Function Callback Prototype */
+typedef int (LDAP_URLLIST_PROC) LDAP_P((
+	LDAP *ld, 
+	LDAPURLDesc **urllist,
+	LDAPURLDesc **url,
+	void *params ));
+
+LDAP_F( int )
+ldap_set_urllist_proc LDAP_P((
+	LDAP *ld,
+	LDAP_URLLIST_PROC *urllist_proc,
 	void *params ));
 
 /*

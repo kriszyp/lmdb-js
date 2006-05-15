@@ -34,13 +34,6 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
-static LDAP_REBIND_PROC	meta_back_default_rebind;
-
-/*
- * a module could register a replacement for this function
- */
-LDAP_REBIND_PROC	*meta_back_rebind_f = meta_back_default_rebind;
-
 int
 meta_back_bind( Operation *op, SlapReply *rs )
 {
@@ -115,6 +108,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	 */
 	mc->mc_authz_target = META_BOUND_NONE;
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		metatarget_t	*mt = mi->mi_targets[ i ];
 		int		lerr;
 		Operation	op2 = *op;
 		int		massage = 1;
@@ -144,7 +138,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		}
 
 		if ( isroot ) {
-			if ( BER_BVISNULL( &mi->mi_targets[ i ].mt_pseudorootdn ) )
+			if ( BER_BVISNULL( &mt->mt_pseudorootdn ) )
 			{
 				metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
@@ -167,9 +161,9 @@ meta_back_bind( Operation *op, SlapReply *rs )
 				continue;
 			}
 
-			op2.o_req_dn = mi->mi_targets[ i ].mt_pseudorootdn;
-			op2.o_req_ndn = mi->mi_targets[ i ].mt_pseudorootdn;
-			op2.orb_cred = mi->mi_targets[ i ].mt_pseudorootpw;
+			op2.o_req_dn = mt->mt_pseudorootdn;
+			op2.o_req_ndn = mt->mt_pseudorootdn;
+			op2.orb_cred = mt->mt_pseudorootpw;
 			op2.orb_method = LDAP_AUTH_SIMPLE;
 
 			massage = 0;
@@ -213,7 +207,33 @@ retry_lock:;
 				meta_back_conndn_cmp );
 			assert( tmpmc == mc );
 
+			/* delete all cached connections with the current connection */
+			if ( LDAP_BACK_SINGLECONN( mi ) ) {
+				while ( ( tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc, meta_back_conn_cmp ) ) != NULL )
+				{
+					Debug( LDAP_DEBUG_TRACE,
+						"=>meta_back_bind: destroying conn %ld (refcnt=%u)\n",
+						LDAP_BACK_PCONN_ID( mc->mc_conn ), mc->mc_refcnt, 0 );
+
+					if ( mc->mc_refcnt != 0 ) {
+						/* taint it */
+						LDAP_BACK_CONN_TAINTED_SET( tmpmc );
+
+					} else {
+						/*
+						 * Needs a test because the handler may be corrupted,
+						 * and calling ldap_unbind on a corrupted header results
+						 * in a segmentation fault
+						 */
+						meta_back_conn_free( tmpmc );
+					}
+				}
+			}
+
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
+			if ( be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
+				mc->mc_conn = LDAP_BACK_PCONN_SET( op );
+			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
@@ -274,7 +294,7 @@ meta_back_single_bind(
 	int			massage )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	struct berval		mdn = BER_BVNULL;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			msgid,
@@ -418,7 +438,7 @@ retry:;
 
 	if ( LDAP_BACK_SAVECRED( mi ) ) {
 		ber_bvreplace( &msc->msc_cred, &op->orb_cred );
-		ldap_set_rebind_proc( msc->msc_ld, meta_back_rebind_f, msc );
+		ldap_set_rebind_proc( msc->msc_ld, mt->mt_rebind_f, msc );
 	}
 
 	if ( mi->mi_cache.ttl != META_DNCACHE_DISABLED
@@ -450,7 +470,7 @@ meta_back_single_dobind(
 	int			dolock )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc;
@@ -465,14 +485,14 @@ meta_back_single_dobind(
 	 * meta_back_single_dobind() calls meta_back_single_bind()
 	 * if required.
 	 */
-	if ( be_isroot( op ) && !BER_BVISNULL( &mi->mi_targets[ candidate ].mt_pseudorootdn ) )
+	if ( be_isroot( op ) && !BER_BVISNULL( &mt->mt_pseudorootdn ) )
 	{
 		Operation	op2 = *op;
 
 		op2.o_tag = LDAP_REQ_BIND;
-		op2.o_req_dn = mi->mi_targets[ candidate ].mt_pseudorootdn;
-		op2.o_req_ndn = mi->mi_targets[ candidate ].mt_pseudorootdn;
-		op2.orb_cred = mi->mi_targets[ candidate ].mt_pseudorootpw;
+		op2.o_req_dn = mt->mt_pseudorootdn;
+		op2.o_req_ndn = mt->mt_pseudorootdn;
+		op2.orb_cred = mt->mt_pseudorootpw;
 		op2.orb_method = LDAP_AUTH_SIMPLE;
 
 		rc = meta_back_single_bind( &op2, rs, *mcp, candidate, 0 );
@@ -577,7 +597,9 @@ retry:;
 						mt, mc, candidate,
 						LDAP_BACK_CONN_ISPRIV( mc ),
 						LDAP_BACK_DONTSEND );
-				        LDAP_BACK_CONN_BINDING_SET( msc );
+					if ( rc == LDAP_SUCCESS ) {
+				        	LDAP_BACK_CONN_BINDING_SET( msc );
+					}
 
 				} else {
 					/* can't do anything about it */
@@ -665,7 +687,7 @@ meta_back_dobind(
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		metatarget_t		*mt = &mi->mi_targets[ i ];
+		metatarget_t		*mt = mi->mi_targets[ i ];
 		metasingleconn_t	*msc = &mc->mc_conns[ i ];
 		int			rc, do_retry = 1;
 
@@ -721,9 +743,12 @@ retry:;
 				if ( meta_back_retry( op, rs, &mc, i, sendok ) ) {
 					goto retry;
 				}
-				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-				LDAP_BACK_CONN_BINDING_CLEAR( msc );
-				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+
+				if ( mc != NULL ) {
+					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+					LDAP_BACK_CONN_BINDING_CLEAR( msc );
+					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+				}
 
 				return 0;
 			}
@@ -802,7 +827,7 @@ send_err:;
  * This is a callback used for chasing referrals using the same
  * credentials as the original user on this session.
  */
-static int 
+int 
 meta_back_default_rebind(
 	LDAP			*ld,
 	LDAP_CONST char		*url,
@@ -815,6 +840,43 @@ meta_back_default_rebind(
 	return ldap_sasl_bind_s( ld, msc->msc_bound_ndn.bv_val,
 			LDAP_SASL_SIMPLE, &msc->msc_cred,
 			NULL, NULL, NULL );
+}
+
+/*
+ * meta_back_default_urllist
+ *
+ * This is a callback used for mucking with the urllist
+ */
+int 
+meta_back_default_urllist(
+	LDAP		*ld,
+	LDAPURLDesc	**urllist,
+	LDAPURLDesc	**url,
+	void		*params )
+{
+	metatarget_t	*mt = (metatarget_t *)params;
+	LDAPURLDesc	**urltail;
+
+	if ( urllist == url ) {
+		return LDAP_SUCCESS;
+	}
+
+	for ( urltail = &(*url)->lud_next; *urltail; urltail = &(*urltail)->lud_next )
+		/* count */ ;
+
+	*urltail = *urllist;
+	*urllist = *url;
+	*url = NULL;
+
+	ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
+	if ( mt->mt_uri ) {
+		ch_free( mt->mt_uri );
+	}
+
+	ldap_get_option( ld, LDAP_OPT_URI, (void *)&mt->mt_uri );
+	ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
+
+	return LDAP_SUCCESS;
 }
 
 /*
@@ -836,6 +898,8 @@ meta_back_op_result(
 	const char		*save_rmsg = NULL,
 				*save_rmatch = NULL;
 	void			*rmatch_ctx = NULL;
+
+	assert( mc != NULL );
 
 	if ( candidate != META_TARGET_NONE ) {
 		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];

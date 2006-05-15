@@ -227,6 +227,7 @@ LDAP_F(int) ldap_int_thread_pool_shutdown ( void );
 typedef struct ldap_int_thread_pool_s * ldap_int_thread_pool_t;
 #endif
 
+typedef struct ldap_int_thread_rmutex_s * ldap_int_thread_rmutex_t;
 LDAP_END_DECL
 
 

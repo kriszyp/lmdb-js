@@ -59,7 +59,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
-	dc.target = &mi->mi_targets[ candidate ];
+	dc.target = mi->mi_targets[ candidate ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "modifyDN";
@@ -102,7 +102,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 			mapped = ml->sml_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &mi->mi_targets[ candidate ].mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
 					&ml->sml_desc->ad_cname, &mapped,
 					BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
@@ -129,11 +129,11 @@ meta_back_modify( Operation *op, SlapReply *rs )
 				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); ) {
 					struct ldapmapping	*mapping;
 
-					ldap_back_mapping( &mi->mi_targets[ candidate ].mt_rwmap.rwm_oc,
+					ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
 							&ml->sml_values[ j ], &mapping, BACKLDAP_MAP );
 
 					if ( mapping == NULL ) {
-						if ( mi->mi_targets[ candidate ].mt_rwmap.rwm_oc.drop_missing ) {
+						if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
 							continue;
 						}
 						mods[ i ].mod_bvalues[ j ] = &ml->sml_values[ j ];
@@ -188,8 +188,8 @@ retry:;
 		struct timeval	tv, *tvp = NULL;
 		LDAPMessage	*res = NULL;
 
-		if ( mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODIFY ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODIFY ];
+		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODIFY ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODIFY ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}

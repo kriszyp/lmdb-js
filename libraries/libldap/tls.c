@@ -822,7 +822,8 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 #endif
 		}
 
-		Debug( LDAP_DEBUG_ANY,"TLS: can't connect.\n",0,0,0);
+		Debug( LDAP_DEBUG_ANY,"TLS: can't connect: %s.\n",
+			ld->ld_error ? ld->ld_error : "" ,0,0);
 
 		ber_sockbuf_remove_io( sb, &sb_tls_sbio,
 			LBER_SBIOD_LEVEL_TRANSPORT );

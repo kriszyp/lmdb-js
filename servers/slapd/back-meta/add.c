@@ -63,7 +63,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.target = &mi->mi_targets[ candidate ];
+	dc.target = mi->mi_targets[ candidate ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDN";
@@ -96,7 +96,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			mapped = a->a_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &mi->mi_targets[ candidate ].mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
 					&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
 				continue;
@@ -121,11 +121,11 @@ meta_back_add( Operation *op, SlapReply *rs )
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
 				struct ldapmapping	*mapping;
 
-				ldap_back_mapping( &mi->mi_targets[ candidate ].mt_rwmap.rwm_oc,
+				ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
 						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
 
 				if ( mapping == NULL ) {
-					if ( mi->mi_targets[ candidate ].mt_rwmap.rwm_oc.drop_missing ) {
+					if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
 						continue;
 					}
 					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
@@ -180,8 +180,8 @@ retry:;
 		LDAPMessage	*res = NULL;
 		int		rc;
 
-		if ( mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_ADD ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_ADD ];
+		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_ADD ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_ADD ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}

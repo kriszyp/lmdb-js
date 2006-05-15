@@ -261,8 +261,10 @@ static int dodelete(
 		return rc;
 	}
 
-	if( verbose || code != LDAP_SUCCESS ||
-		(matcheddn && *matcheddn) || (text && *text) || (refs && *refs) )
+	if( code != LDAP_SUCCESS ) {
+		tool_perror( "ldap_delete", code, NULL, matcheddn, text, refs );
+	} else if ( verbose && 
+		((matcheddn && *matcheddn) || (text && *text) || (refs && *refs) ))
 	{
 		printf( _("Delete Result: %s (%d)\n"),
 			ldap_err2string( code ), code );

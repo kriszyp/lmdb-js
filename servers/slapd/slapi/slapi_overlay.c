@@ -230,7 +230,7 @@ slapi_over_result( Operation *op, SlapReply *rs, int type )
 {
 	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
 
-	assert( rs->sr_type == REP_RESULT );
+	assert( rs->sr_type == REP_RESULT || rs->sr_type == REP_SASL || rs->sr_type == REP_EXTENDED );
 
 	slapi_over_call_plugins( pb, type );
 
@@ -499,6 +499,8 @@ slapi_over_response( Operation *op, SlapReply *rs )
 	if ( pb->pb_intop == 0 ) {
 		switch ( rs->sr_type ) {
 		case REP_RESULT:
+		case REP_SASL:
+		case REP_EXTENDED:
 			rc = slapi_over_result( op, rs, SLAPI_PLUGIN_PRE_RESULT_FN );
 			break;
 		case REP_SEARCH:
@@ -528,6 +530,8 @@ slapi_over_cleanup( Operation *op, SlapReply *rs )
 	if ( pb->pb_intop == 0 ) {
 		switch ( rs->sr_type ) {
 		case REP_RESULT:
+		case REP_SASL:
+		case REP_EXTENDED:
 			rc = slapi_over_result( op, rs, SLAPI_PLUGIN_POST_RESULT_FN );
 			break;
 		case REP_SEARCH:

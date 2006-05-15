@@ -40,6 +40,8 @@
 static struct berval config_rdn = BER_BVC("cn=config");
 static struct berval schema_rdn = BER_BVC("cn=schema");
 
+extern int slap_DN_strict;	/* dn.c */
+
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
 	struct modpath_s *mp_next;
@@ -86,7 +88,7 @@ static ConfigFile *cfn;
 static Avlnode *CfOcTree;
 
 static int config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca,
-	SlapReply *rs, int *renumber );
+	SlapReply *rs, int *renumber, Operation *op );
 
 static ConfigDriver config_fname;
 static ConfigDriver config_cfdir;
@@ -213,6 +215,11 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:7			-> distproc
  * OLcfgOv{Oc|At}:8			-> dynlist
  * OLcfgOv{Oc|At}:9			-> dds
+ * OLcfgOv{Oc|At}:10		-> unique
+ * OLcfgOv{Oc|At}:11		-> refint
+ * OLcfgOv{Oc|At}:12 		-> ppolicy
+ * OLcfgOv{Oc|At}:13		-> constraint
+ * OLcfgOv{Oc|At}:14		-> translucent
  */
 
 /* alphabetical ordering */
@@ -335,6 +342,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "limits", "limits", 2, 0, 0, ARG_DB|ARG_MAGIC|CFG_LIMITS,
 		&config_generic, "( OLcfgDbAt:0.5 NAME 'olcLimits' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "localSSF", "ssf", 2, 2, 0, ARG_INT,
 		&local_ssf, "( OLcfgGlAt:26 NAME 'olcLocalSSF' "
@@ -344,6 +352,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "loglevel", "level", 2, 0, 0, ARG_MAGIC,
 		&config_loglevel, "( OLcfgGlAt:28 NAME 'olcLogLevel' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "maxDerefDepth", "depth", 2, 2, 0, ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH,
 		&config_generic, "( OLcfgDbAt:0.6 NAME 'olcMaxDerefDepth' "
@@ -358,6 +367,7 @@ static ConfigTable config_back_cf_table[] = {
 		ARG_IGNORED, NULL,
 #endif
 		"( OLcfgGlAt:30 NAME 'olcModuleLoad' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "modulepath", "path", 2, 2, 0,
 #ifdef SLAPD_MODULES
@@ -375,6 +385,7 @@ static ConfigTable config_back_cf_table[] = {
 			NULL, NULL },
 	{ "objectidentifier", NULL,	0, 0, 0, ARG_MAGIC|CFG_OID,
 		&config_generic, "( OLcfgGlAt:33 NAME 'olcObjectIdentifier' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "overlay", "overlay", 2, 2, 0, ARG_MAGIC,
 		&config_overlay, "( OLcfgGlAt:34 NAME 'olcOverlay' "
@@ -384,6 +395,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "password-hash", "hash", 2, 2, 0, ARG_MAGIC,
 		&config_passwd_hash, "( OLcfgGlAt:36 NAME 'olcPasswordHash' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "pidfile", "file", 2, 2, 0, ARG_STRING,
 		&slapd_pid_file, "( OLcfgGlAt:37 NAME 'olcPidFile' "
@@ -395,6 +407,7 @@ static ConfigTable config_back_cf_table[] = {
 		ARG_IGNORED, NULL,
 #endif
 		"( OLcfgGlAt:38 NAME 'olcPlugin' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "pluginlog", "filename", 2, 2, 0,
 #ifdef LDAP_SLAPI
@@ -412,6 +425,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SUP labeledURI SINGLE-VALUE )", NULL, NULL },
 	{ "replica", "host or uri", 2, 0, 0, ARG_DB|ARG_MAGIC,
 		&config_replica, "( OLcfgDbAt:0.7 NAME 'olcReplica' "
+			"EQUALITY caseIgnoreMatch "
 			"SUP labeledURI X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "replica-argsfile", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLICA_ARGSFILE,
 		&config_generic, "( OLcfgGlAt:43 NAME 'olcReplicaArgsFile' "
@@ -427,9 +441,11 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "require", "features", 2, 0, 7, ARG_MAY_DB|ARG_MAGIC,
 		&config_requires, "( OLcfgGlAt:47 NAME 'olcRequires' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "restrict", "op_list", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_restrict, "( OLcfgGlAt:48 NAME 'olcRestrict' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "reverse-lookup", "on|off", 2, 2, 0,
 #ifdef SLAPD_RLOOKUPS
@@ -444,6 +460,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "rootDSE", "file", 2, 2, 0, ARG_MAGIC|CFG_ROOTDSE,
 		&config_generic, "( OLcfgGlAt:51 NAME 'olcRootDSE' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "rootpw", "password", 2, 2, 0, ARG_BERVAL|ARG_DB|ARG_MAGIC,
 		&config_rootpw, "( OLcfgDbAt:0.9 NAME 'olcRootPW' "
@@ -483,6 +500,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "security", "factors", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_security, "( OLcfgGlAt:59 NAME 'olcSecurity' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "sizelimit", "limit",	2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_sizelimit, "( OLcfgGlAt:60 NAME 'olcSizeLimit' "
@@ -503,9 +521,10 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "subordinate", "[advertise]", 1, 2, 0, ARG_DB|ARG_MAGIC,
 		&config_subordinate, "( OLcfgDbAt:0.15 NAME 'olcSubordinate' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_suffix, "( OLcfgDbAt:0.10 NAME 'olcSuffix' "
+			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN )", NULL, NULL },
 	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
 		&syncrepl_config, "( OLcfgDbAt:0.11 NAME 'olcSyncrepl' "
@@ -603,6 +622,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "updateref", "url", 2, 2, 0, ARG_DB|ARG_MAGIC,
 		&config_updateref, "( OLcfgDbAt:0.13 NAME 'olcUpdateRef' "
+			"EQUALITY caseIgnoreMatch "
 			"SUP labeledURI )", NULL, NULL },
 	{ NULL,	NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
@@ -1238,7 +1258,16 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_ACL:
-			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx ) ) {
+			/* Don't append to the global ACL if we're on a specific DB */
+			i = c->valx;
+			if ( c->be != frontendDB && frontendDB->be_acl && c->valx == -1 ) {
+				AccessControl *a;
+				i = 0;
+				for ( a=c->be->be_acl; a && a != frontendDB->be_acl;
+					a = a->acl_next )
+					i++;
+			}
+			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, i ) ) {
 				return 1;
 			}
 			break;
@@ -2602,6 +2631,10 @@ config_replica(ConfigArgs *c) {
 				/* dealt with separately; don't let it get to bindconf */
 				;
 
+			} else if(!strncasecmp(c->argv[i], "host=", STRLENOF("host="))) {
+				/* dealt with separately; don't let it get to bindconf */
+				;
+
 			} else if(!strncasecmp(c->argv[i], "suffix=", STRLENOF( "suffix="))) {
 				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
 					case 1:
@@ -2924,7 +2957,7 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 		setup_cookie *sc = op->o_callback->sc_private;
 
 		sc->cfb->cb_got_ldif = 1;
-		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL );
+		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL, NULL );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "config error processing %s: %s\n",
 				rs->sr_entry->e_name.bv_val, sc->ca->msg, 0 );
@@ -2997,6 +3030,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 
 	if ( readit ) {
 		void *thrctx = ldap_pvt_thread_pool_context();
+		int prev_DN_strict;
 
 		op = (Operation *) &opbuf;
 		connection_fake_init( &conn, op, thrctx );
@@ -3027,7 +3061,15 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		cb.sc_private = &sc;
 
 		op->o_bd = &cfb->cb_db;
+		
+		/* Allow unknown attrs in DNs */
+		prev_DN_strict = slap_DN_strict;
+		slap_DN_strict = 0;
+
 		rc = op->o_bd->be_search( op, &rs );
+
+		/* Restore normal DN validation */
+		slap_DN_strict = prev_DN_strict;
 
 		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
@@ -3082,6 +3124,7 @@ read_config(const char *fname, const char *dir) {
 		return 1;
 
 	cfb = be->be_private;
+	be->be_dfltaccess = ACL_NONE;
 
 	/* If no .conf, or a dir was specified, setup the dir */
 	if ( !fname || dir ) {
@@ -3107,10 +3150,18 @@ read_config(const char *fname, const char *dir) {
 			if ( rc != LDAP_NO_SUCH_OBJECT )
 				return 1;
 			/* ITS#4194: But if dir was specified and no fname,
-			 * then we were supposed to read the dir.
+			 * then we were supposed to read the dir. Unless we're
+			 * trying to slapadd the dir...
 			 */
-			if ( dir && !fname )
-				return 1;
+			if ( dir && !fname ) {
+				if ( slapMode & (SLAP_SERVER_MODE|SLAP_TOOL_READMAIN|SLAP_TOOL_READONLY))
+					return 1;
+				/* Assume it's slapadd with a config dir, let it continue */
+				rc = 0;
+				cfb->cb_got_ldif = 1;
+				cfb->cb_use_ldif = 1;
+				goto done;
+			}
 		}
 
 		/* If we read the config from back-ldif, nothing to do here */
@@ -3129,25 +3180,6 @@ read_config(const char *fname, const char *dir) {
 
 	if ( rc == 0 )
 		ber_str2bv( cfname, 0, 1, &cfb->cb_config->c_file );
-
-	/* If we got this far and failed, it may be a serious problem. In server
-	 * mode, we should never come to this. However, it may be alright if we're
-	 * using slapadd to create the conf dir.
-	 */
-	while ( rc ) {
-		if ( slapMode & (SLAP_SERVER_MODE|SLAP_TOOL_READMAIN|SLAP_TOOL_READONLY))
-			break;
-		/* If a config file was explicitly given, fail */
-		if ( fname )
-			break;
-		
-		/* Seems to be slapadd with a config dir, let it continue */
-		if ( cfb->cb_use_ldif ) {
-			rc = 0;
-			cfb->cb_got_ldif = 1;
-		}
-		break;
-	}
 
 done:
 	if ( rc == 0 && BER_BVISNULL( &frontendDB->be_schemadn ) ) {
@@ -3557,7 +3589,8 @@ cfAddOverlay( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 
 /* Parse an LDAP entry into config directives */
 static int
-config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, int *renum )
+config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
+	int *renum, Operation *op )
 {
 	CfEntryInfo *ce, *last;
 	ConfigOCs **colst;
@@ -3581,6 +3614,15 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 		if ( rs )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		return LDAP_NO_SUCH_OBJECT;
+	}
+
+	if ( op ) {
+		/* No parent, must be root. This will never happen... */
+		if ( !last && !be_isroot( op ) && !be_shadow_update( op ))
+			return LDAP_NO_SUCH_OBJECT;
+		if ( last && !access_allowed( op, last->ce_entry,
+			slap_schema.si_ad_children, NULL, ACL_WADD, NULL ))
+			return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
@@ -3764,7 +3806,8 @@ config_back_add( Operation *op, SlapReply *rs )
 	int renumber;
 	ConfigArgs ca;
 
-	if ( !be_isroot( op ) ) {
+	if ( !access_allowed( op, op->ora_e, slap_schema.si_ad_entry,
+		NULL, ACL_WADD, NULL )) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto out;
 	}
@@ -3782,7 +3825,7 @@ config_back_add( Operation *op, SlapReply *rs )
 	 */
 	/* NOTE: by now we do not accept adds that require renumbering */
 	renumber = -1;
-	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber );
+	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber, op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rs->sr_text = ca.msg;
 		goto out2;
@@ -4101,11 +4144,6 @@ config_back_modify( Operation *op, SlapReply *rs )
 	char *ptr;
 	AttributeDescription *rad = NULL;
 
-	if ( !be_isroot( op ) ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto out;
-	}
-
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
@@ -4113,6 +4151,11 @@ config_back_modify( Operation *op, SlapReply *rs )
 		if ( last )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto out;
+	}
+
+	if ( !acl_check_modlist( op, ce->ce_entry, op->orm_modlist )) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto out;
 	}
 
@@ -4176,11 +4219,6 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
 
-	if ( !be_isroot( op ) ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto out;
-	}
-
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
 	ce = config_find_base( cfb->cb_root, &op->o_req_ndn, &last );
@@ -4189,6 +4227,22 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		goto out;
+	}
+	if ( !access_allowed( op, ce->ce_entry, slap_schema.si_ad_entry,
+		NULL, ACL_WRITE, NULL )) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		goto out;
+	}
+	{ Entry *parent;
+		if ( ce->ce_parent )
+			parent = ce->ce_parent->ce_entry;
+		else
+			parent = (Entry *)&slap_entry_root;
+		if ( !access_allowed( op, parent, slap_schema.si_ad_children,
+			NULL, ACL_WRITE, NULL )) {
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			goto out;
+		}
 	}
 
 	/* We don't allow moving objects to new parents.
@@ -4214,11 +4268,7 @@ config_back_search( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
-
-	if ( !be_isroot( op ) ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		goto out;
-	}
+	slap_mask_t mask;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -4227,6 +4277,16 @@ config_back_search( Operation *op, SlapReply *rs )
 		if ( last )
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto out;
+	}
+	if ( !access_allowed_mask( op, ce->ce_entry, slap_schema.si_ad_entry, NULL,
+		ACL_SEARCH, NULL, &mask ))
+	{
+		if ( !ACL_GRANT( mask, ACL_DISCLOSE )) {
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else {
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		}
 		goto out;
 	}
 	switch ( op->ors_scope ) {
@@ -4469,6 +4529,10 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 }
 #endif
 
+static const char *defacl[] = {
+	NULL, "to", "*", "by", "*", "none", NULL
+};
+
 static int
 config_back_db_open( BackendDB *be )
 {
@@ -4487,6 +4551,14 @@ config_back_db_open( BackendDB *be )
 	void *thrctx = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "config_back_db_open\n", 0, 0, 0);
+
+	/* If we have no explicitly configured ACLs, don't just use
+	 * the global ACLs. Explicitly deny access to everything.
+	 */
+	if ( frontendDB->be_acl && be->be_acl == frontendDB->be_acl ) {
+		parse_acl(be, "config_back_db_open", 0, 6, (char **)defacl, 0 );
+	}
+
 	/* If we read the config from back-ldif, nothing to do here */
 	if ( cfb->cb_got_ldif )
 		return 0;
@@ -4845,7 +4917,7 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 	ConfigArgs ca;
 
 	if ( bi && bi->bi_tool_entry_put &&
-		config_add_internal( cfb, e, &ca, NULL, NULL ) == 0 )
+		config_add_internal( cfb, e, &ca, NULL, NULL, NULL ) == 0 )
 		return bi->bi_tool_entry_put( &cfb->cb_db, e, text );
 	else
 		return NOID;
@@ -4928,7 +5000,7 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_chk_referrals = 0;
 
-	bi->bi_access_allowed = slap_access_always_allowed;
+	bi->bi_access_allowed = slap_access_allowed;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

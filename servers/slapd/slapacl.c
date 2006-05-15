@@ -313,12 +313,26 @@ slapacl( int argc, char **argv )
 
 		accessstr = strchr( attr, '/' );
 		if ( accessstr != NULL ) {
+			int	invalid = 0;
+
 			accessstr[0] = '\0';
 			accessstr++;
 			access = str2access( accessstr );
-			if ( access == ACL_INVALID_ACCESS ) {
+			switch ( access ) {
+			case ACL_INVALID_ACCESS:
 				fprintf( stderr, "unknown access \"%s\" for attribute \"%s\"\n",
 						accessstr, attr );
+				invalid = 1;
+				break;
+
+			case ACL_NONE:
+				fprintf( stderr, "\"none\" not allowed for attribute \"%s\"\n",
+						attr );
+				invalid = 1;
+				break;
+			}
+
+			if ( invalid ) {
 				if ( continuemode ) {
 					continue;
 				}

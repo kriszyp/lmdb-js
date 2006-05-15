@@ -37,7 +37,9 @@
 /*
  * Set PRINT_CONNTREE larger than 0 to dump the connection tree (debug only)
  */
+#ifndef PRINT_CONNTREE
 #define PRINT_CONNTREE 0
+#endif /* !PRINT_CONNTREE */
 
 /*
  * meta_back_conndn_cmp
@@ -148,7 +150,7 @@ static void
 ravl_print( Avlnode *root, int depth )
 {
 	int     	i;
-	metaconn_t	*mc = (metaconn_t *)root->avl_data;
+	metaconn_t	*mc;
 	
 	if ( root == 0 ) {
 		return;
@@ -157,30 +159,32 @@ ravl_print( Avlnode *root, int depth )
 	ravl_print( root->avl_right, depth + 1 );
 	
 	for ( i = 0; i < depth; i++ ) {
-		printf( "    " );
+		fprintf( stderr, "-" );
 	}
 
-	printf( "c(%d%s%s) %d\n",
-		LDAP_BACK_PCONN_ID( mc->mc_conn ),
-		BER_BVISNULL( &mc->mc_local_ndn ) ? "" : ": ",
-		BER_BVISNULL( &mc->mc_local_ndn ) ? "" : mc->mc_local_ndn.bv_val,
-		root->avl_bf );
+	mc = (metaconn_t *)root->avl_data;
+	fprintf( stderr, "mc=%p local=\"%s\" conn=%p %s refcnt=%d\n",
+		(void *)mc,
+		mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
+		(void *)mc->mc_conn,
+		avl_bf2str( root->avl_bf ), mc->mc_refcnt );
 	
 	ravl_print( root->avl_left, depth + 1 );
 }
 
 static void
-myprint( Avlnode *root )
+myprint( Avlnode *root, char *msg )
 {
-	printf( "********\n" );
+	fprintf( stderr, "========> %s\n", msg );
 	
 	if ( root == 0 ) {
-		printf( "\tNULL\n" );
+		fprintf( stderr, "\tNULL\n" );
+
 	} else {
 		ravl_print( root, 0 );
 	}
 	
-	printf( "********\n" );
+	fprintf( stderr, "<======== %s\n", msg );
 }
 #endif /* PRINT_CONNTREE */
 /*
@@ -263,6 +267,9 @@ meta_back_init_one_conn(
 	int			version;
 	dncookie		dc;
 	int			isauthz = ( candidate == mc->mc_authz_target );
+#ifdef HAVE_TLS
+	int			is_ldaps = 0;
+#endif /* HAVE_TLS */
 
 	/*
 	 * Already init'ed
@@ -276,7 +283,12 @@ meta_back_init_one_conn(
 	/*
 	 * Attempts to initialize the connection to the target ds
 	 */
+	ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
 	rs->sr_err = ldap_initialize( &msc->msc_ld, mt->mt_uri );
+#ifdef HAVE_TLS
+	is_ldaps = ldap_is_ldaps_url( mt->mt_uri );
+#endif /* HAVE_TLS */
+	ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto error_return;
 	}
@@ -295,6 +307,7 @@ meta_back_init_one_conn(
 		version = LDAP_VERSION3;
 	}
 	ldap_set_option( msc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	ldap_set_urllist_proc( msc->msc_ld, mt->mt_urllist_f, mt->mt_urllist_p );
 
 	/* automatically chase referrals ("chase-referrals [{yes|no}]" statement) */
 	ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS,
@@ -303,7 +316,7 @@ meta_back_init_one_conn(
 #ifdef HAVE_TLS
 	/* start TLS ("tls [try-]{start|propagate}" statement) */
 	if ( ( LDAP_BACK_USE_TLS( mi ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( mi ) ) )
-			&& !ldap_is_ldaps_url( mt->mt_uri ) )
+			&& !is_ldaps )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
@@ -393,7 +406,8 @@ retry:;
 		if ( rs->sr_err == LDAP_SERVER_DOWN
 				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( mi ) ) )
 		{
-			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
+			msc->msc_ld = NULL;
 			goto error_return;
 		}
 	}
@@ -447,7 +461,8 @@ retry:;
 			if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
 						&msc->msc_bound_ndn ) )
 			{
-				ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+				ldap_unbind_ext( msc->msc_ld, NULL, NULL );
+				msc->msc_ld = NULL;
 				goto error_return;
 			}
 			
@@ -495,7 +510,7 @@ meta_back_retry(
 	ldap_back_send_t	sendok )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc = LDAP_UNAVAILABLE,
@@ -505,16 +520,21 @@ meta_back_retry(
 
 	assert( mc->mc_refcnt > 0 );
 	if ( mc->mc_refcnt == 1 ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
+		if ( LogTest( LDAP_DEBUG_ANY ) ) {
+			char	buf[ SLAP_TEXT_BUFLEN ];
 
-		snprintf( buf, sizeof( buf ),
-			"retrying URI=\"%s\" DN=\"%s\"",
-			mt->mt_uri,
-			BER_BVISNULL( &msc->msc_bound_ndn ) ?
-				"" : msc->msc_bound_ndn.bv_val );
-		Debug( LDAP_DEBUG_ANY,
-			"%s meta_back_retry[%d]: %s.\n",
-			op->o_log_prefix, candidate, buf );
+			ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
+			snprintf( buf, sizeof( buf ),
+				"retrying URI=\"%s\" DN=\"%s\"",
+				mt->mt_uri,
+				BER_BVISNULL( &msc->msc_bound_ndn ) ?
+					"" : msc->msc_bound_ndn.bv_val );
+			ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
+
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_retry[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
+		}
 
 		meta_clear_one_candidate( msc );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
@@ -531,21 +551,42 @@ meta_back_retry(
 		if ( rc == LDAP_SUCCESS ) {
 			rc = meta_back_single_dobind( op, rs, mcp, candidate,
 				sendok, mt->mt_nretries, 0 );
+
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_retry[%d]: "
+				"meta_back_single_dobind=%d\n",
+				op->o_log_prefix, candidate, rc );
+			if ( rc == LDAP_SUCCESS ) {
+				if ( be_isroot( op )  ) {
+					LDAP_BACK_CONN_ISBOUND_SET( msc );
+				} else {
+					LDAP_BACK_CONN_ISANON_SET( msc );
+				}
+			}
         	}
 	}
 
 	if ( rc != LDAP_SUCCESS ) {
+		SlapReply		*candidates = meta_back_candidates_get( op );
+
+		candidates[ candidate ].sr_err = rc;
+
 		if ( *mcp != NULL ) {
 			if ( binding ) {
 				LDAP_BACK_CONN_BINDING_CLEAR( msc );
 			}
 			LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_back_release_conn_lock( op, mc, 0 );
-			*mcp = NULL;
+			/* only release if mandatory; otherwise
+			 * let the caller do what's best before
+			 * releasing */
+			if ( META_BACK_ONERR_STOP( mi ) ) {
+				meta_back_release_conn_lock( op, mc, 0 );
+				*mcp = NULL;
+			}
 		}
 
 		if ( sendok ) {
-			rs->sr_err = LDAP_UNAVAILABLE;
+			rs->sr_err = rc;
 			rs->sr_text = NULL;
 			send_ldap_result( op, rs );
 		}
@@ -645,9 +686,9 @@ meta_back_get_candidate(
 			 * and a default target is defined, and it is
 			 * a candidate, try using it (FIXME: YMMV) */
 			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
-				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ].mt_nsuffix,
-						mi->mi_targets[ mi->mi_defaulttarget ].mt_scope,
-						mi->mi_targets[ mi->mi_defaulttarget ].mt_subtree_exclude,
+				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ]->mt_nsuffix,
+						mi->mi_targets[ mi->mi_defaulttarget ]->mt_scope,
+						mi->mi_targets[ mi->mi_defaulttarget ]->mt_subtree_exclude,
 						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
 			{
 				candidate = mi->mi_defaulttarget;
@@ -717,9 +758,11 @@ meta_back_candidates_get( Operation *op )
 	} else if ( mc->mc_ntargets < mi->mi_ntargets ) {
 		/* NOTE: in the future, may want to allow back-config
 		 * to add/remove targets from back-meta... */
-		mc->mc_ntargets = mi->mi_ntargets;
 		mc->mc_candidates = ch_realloc( mc->mc_candidates,
-				sizeof( SlapReply ) * mc->mc_ntargets );
+				sizeof( SlapReply ) * mi->mi_ntargets );
+		memset( &mc->mc_candidates[ mc->mc_ntargets ], 0,
+			sizeof( SlapReply ) * ( mi->mi_ntargets - mc->mc_ntargets ) );
+		mc->mc_ntargets = mi->mi_ntargets;
 	}
 
 	return mc->mc_candidates;
@@ -894,7 +937,7 @@ retry_lock:
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			metatarget_t		*mt = &mi->mi_targets[ i ];
+			metatarget_t		*mt = mi->mi_targets[ i ];
 
 			/*
 			 * The target is activated; if needed, it is
@@ -1051,7 +1094,7 @@ retry_lock2:;
 		 */
 		( void )meta_clear_unused_candidates( op, i );
 
-		mt = &mi->mi_targets[ i ];
+		mt = mi->mi_targets[ i ];
 		msc = &mc->mc_conns[ i ];
 
 		/*
@@ -1103,7 +1146,7 @@ retry_lock2:;
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			metatarget_t		*mt = &mi->mi_targets[ i ];
+			metatarget_t		*mt = mi->mi_targets[ i ];
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
 			if ( i == cached 
@@ -1205,7 +1248,7 @@ done:;
 			       	meta_back_conndn_cmp, meta_back_conndn_dup );
 
 #if PRINT_CONNTREE > 0
-		myprint( mi->mi_conninfo.lai_tree );
+		myprint( mi->mi_conninfo.lai_tree, "meta_back_getconn" );
 #endif /* PRINT_CONNTREE */
 		
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );

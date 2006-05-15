@@ -294,7 +294,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	BackendDB *b1 = NULL, *btmp;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int i;
-	long stoptime = 0;
+	long stoptime = 0, starttime;
 	glue_state gs = {NULL, NULL, NULL, 0, 0, 0, 0};
 	slap_callback cb = { NULL, glue_op_response, NULL, NULL };
 	int scope0, tlimit0;
@@ -304,6 +304,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 
 	cb.sc_next = op->o_callback;
 
+	starttime = op->o_time;
 	stoptime = slap_get_time () + op->ors_tlimit;
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
@@ -347,7 +348,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
 			if (tlimit0 != SLAP_NO_LIMIT) {
-				op->ors_tlimit = stoptime - slap_get_time ();
+				op->o_time = slap_get_time();
+				op->ors_tlimit = stoptime - op->o_time;
 				if (op->ors_tlimit <= 0) {
 					rs->sr_err = gs.err = LDAP_TIMELIMIT_EXCEEDED;
 					break;
@@ -419,6 +421,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 end_of_loop:;
 		op->ors_scope = scope0;
 		op->ors_tlimit = tlimit0;
+		op->o_time = starttime;
 		op->o_req_dn = dn;
 		op->o_req_ndn = ndn;
 

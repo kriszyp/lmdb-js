@@ -43,19 +43,19 @@ typedef enum {
 } ConfigType;
 
 #define ARGS_USERLAND	0x00000fff
-#define ARGS_TYPES	0x000ff000
-#define ARGS_POINTER	0x0003f000
-#define ARGS_NUMERIC	0x0000f000
+
+/* types are enumerated, not a bitmask */
+#define ARGS_TYPES	0x0000f000
 #define ARG_INT		0x00001000
 #define ARG_LONG	0x00002000
-#define ARG_BER_LEN_T	0x00004000
-#define ARG_ON_OFF	0x00008000
-#define ARG_STRING	0x00010000
-#define ARG_BERVAL	0x00020000
-#define ARG_DN		0x00040000
-#define ARG_IGNORED	0x00080000
+#define ARG_BER_LEN_T	0x00003000
+#define ARG_ON_OFF	0x00004000
+#define ARG_STRING	0x00005000
+#define ARG_BERVAL	0x00006000
+#define ARG_DN		0x00007000
 
-#define ARGS_SYNTAX	0xfff00000
+#define ARGS_SYNTAX	0xffff0000
+#define ARG_IGNORED	0x00080000
 #define ARG_PRE_BI	0x00100000
 #define ARG_PRE_DB	0x00200000
 #define ARG_DB		0x00400000	/* Only applies to DB */

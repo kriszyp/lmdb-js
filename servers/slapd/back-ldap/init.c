@@ -103,6 +103,11 @@ ldap_back_db_init( Backend *be )
  		return -1;
  	}
 
+	li->li_rebind_f = ldap_back_default_rebind;
+	li->li_urllist_f = ldap_back_default_urllist;
+	li->li_urllist_p = li;
+	ldap_pvt_thread_mutex_init( &li->li_uri_mutex );
+
 	BER_BVZERO( &li->li_acl_authcID );
 	BER_BVZERO( &li->li_acl_authcDN );
 	BER_BVZERO( &li->li_acl_passwd );
@@ -304,6 +309,7 @@ ldap_back_db_destroy(
 
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_conninfo.lai_mutex );
+		ldap_pvt_thread_mutex_destroy( &li->li_uri_mutex );
 	}
 
 	ch_free( be->be_private );

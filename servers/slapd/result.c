@@ -36,7 +36,6 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
-#include "lutil.h"
 
 const struct berval slap_dummy_bv = BER_BVNULL;
 
@@ -1467,9 +1466,43 @@ str2result(
 		}
 
 		if ( strncasecmp( s, "code", STRLENOF( "code" ) ) == 0 ) {
-			if ( c != NULL && lutil_atoi( code, c ) != 0 ) {
-				goto bailout;
+			char	*next = NULL;
+			long	retcode;
+
+			if ( c == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) missing value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
 			}
+
+			while ( isspace( (unsigned char) c[ 0 ] ) ) c++;
+			if ( c[ 0 ] == '\0' ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) missing or empty value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
+			}
+
+			retcode = strtol( c, &next, 10 );
+			if ( next == NULL || next == c ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) unable to parse value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
+			}
+
+			while ( isspace( (unsigned char) next[ 0 ] ) ) next++;
+			if ( next[ 0 ] != '\0' ) {
+				Debug( LDAP_DEBUG_ANY, "str2result (%s) extra cruft after value\n",
+				    s, 0, 0 );
+				rc = -1;
+				continue;
+			}
+
+			/* FIXME: what if it's larger that max int? */
+			*code = (int)retcode;
+
 		} else if ( strncasecmp( s, "matched", STRLENOF( "matched" ) ) == 0 ) {
 			if ( c != NULL ) {
 				*matched = c;
@@ -1479,7 +1512,6 @@ str2result(
 				*info = c;
 			}
 		} else {
-bailout:;
 			Debug( LDAP_DEBUG_ANY, "str2result (%s) unknown\n",
 			    s, 0, 0 );
 

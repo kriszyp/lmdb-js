@@ -35,10 +35,11 @@
 #include "ldap-int.h"
 #include "ldap_log.h"
 
+/* Caller should hold the req_mutex if simultaneous accesses are possible */
 int ldap_open_defconn( LDAP *ld )
 {
 	ld->ld_defconn = ldap_new_connection( ld,
-		ld->ld_options.ldo_defludp, 1, 1, NULL );
+		&ld->ld_options.ldo_defludp, 1, 1, NULL );
 
 	if( ld->ld_defconn == NULL ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;

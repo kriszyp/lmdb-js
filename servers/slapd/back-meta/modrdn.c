@@ -76,7 +76,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		 */
 
 		/* needs LDAPv3 */
-		switch ( mi->mi_targets[ candidate ].mt_version ) {
+		switch ( mi->mi_targets[ candidate ]->mt_version ) {
 		case LDAP_VERSION3:
 			break;
 
@@ -97,7 +97,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */
-		dc.target = &mi->mi_targets[ candidate ];
+		dc.target = mi->mi_targets[ candidate ];
 		dc.ctx = "newSuperiorDN";
 		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
 			rs->sr_err = LDAP_OTHER;
@@ -109,7 +109,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	dc.target = &mi->mi_targets[ candidate ];
+	dc.target = mi->mi_targets[ candidate ];
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rs->sr_err = LDAP_OTHER;
@@ -134,8 +134,8 @@ retry:;
 		LDAPMessage	*res = NULL;
 		int		rc;
 
-		if ( mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODRDN ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ LDAP_BACK_OP_MODRDN ];
+		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODRDN ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODRDN ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}

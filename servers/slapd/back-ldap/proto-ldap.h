@@ -81,7 +81,8 @@ extern int chain_initialize( void );
 extern int distproc_initialize( void );
 #endif
 
-extern LDAP_REBIND_PROC		*ldap_back_rebind_f;
+extern LDAP_REBIND_PROC		ldap_back_default_rebind;
+extern LDAP_URLLIST_PROC	ldap_back_default_urllist;
 
 LDAP_END_DECL
 

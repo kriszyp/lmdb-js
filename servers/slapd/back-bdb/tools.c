@@ -68,7 +68,8 @@ static int *bdb_tool_index_threads, bdb_tool_index_tcount;
 static void *bdb_tool_index_rec;
 static struct bdb_info *bdb_tool_info;
 static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
-static ldap_pvt_thread_cond_t bdb_tool_index_cond;
+static ldap_pvt_thread_cond_t bdb_tool_index_cond_main;
+static ldap_pvt_thread_cond_t bdb_tool_index_cond_work;
 
 static void * bdb_tool_index_task( void *ctx, void *ptr );
 
@@ -98,7 +99,8 @@ int bdb_tool_entry_open(
 		if ( !bdb_tool_info ) {
 			int i;
 			ldap_pvt_thread_mutex_init( &bdb_tool_index_mutex );
-			ldap_pvt_thread_cond_init( &bdb_tool_index_cond );
+			ldap_pvt_thread_cond_init( &bdb_tool_index_cond_main );
+			ldap_pvt_thread_cond_init( &bdb_tool_index_cond_work );
 			bdb_tool_index_threads = ch_malloc( slap_tool_thread_max * sizeof( int ));
 			bdb_tool_index_rec = ch_malloc( bdb->bi_nattrs * sizeof( IndexRec ));
 			bdb_tool_index_tcount = slap_tool_thread_max - 1;
@@ -122,7 +124,7 @@ int bdb_tool_entry_close(
 		slapd_shutdown = 1;
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
 		bdb_tool_index_tcount = slap_tool_thread_max - 1;
-		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond );
+		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond_work );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 	}
 
@@ -410,28 +412,32 @@ bdb_tool_index_add(
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
 		/* Wait for all threads to be ready */
 		while ( bdb_tool_index_tcount ) {
-			ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
-			ldap_pvt_thread_yield();
-			ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
+			ldap_pvt_thread_cond_wait( &bdb_tool_index_cond_main, 
+				&bdb_tool_index_mutex );
 		}
 		for ( i=1; i<slap_tool_thread_max; i++ )
 			bdb_tool_index_threads[i] = LDAP_BUSY;
 		bdb_tool_index_tcount = slap_tool_thread_max - 1;
-		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond );
+		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond_work );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 		rc = bdb_index_recrun( op, bdb, ir, e->e_id, 0 );
 		if ( rc )
 			return rc;
+		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
 		for ( i=1; i<slap_tool_thread_max; i++ ) {
 			if ( bdb_tool_index_threads[i] == LDAP_BUSY ) {
-				ldap_pvt_thread_yield();
+				ldap_pvt_thread_cond_wait( &bdb_tool_index_cond_main, 
+					&bdb_tool_index_mutex );
 				i--;
 				continue;
 			}
-			if ( bdb_tool_index_threads[i] )
-				return bdb_tool_index_threads[i];
+			if ( bdb_tool_index_threads[i] ) {
+				rc = bdb_tool_index_threads[i];
+				break;
+			}
 		}
-		return 0;
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
+		return rc;
 	} else {
 		return bdb_index_entry_add( op, txn, e );
 	}
@@ -1015,7 +1021,9 @@ bdb_tool_index_task( void *ctx, void *ptr )
 	while ( 1 ) {
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
 		bdb_tool_index_tcount--;
-		ldap_pvt_thread_cond_wait( &bdb_tool_index_cond,
+		if ( !bdb_tool_index_tcount )
+			ldap_pvt_thread_cond_signal( &bdb_tool_index_cond_main );
+		ldap_pvt_thread_cond_wait( &bdb_tool_index_cond_work,
 			&bdb_tool_index_mutex );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 		if ( slapd_shutdown )
