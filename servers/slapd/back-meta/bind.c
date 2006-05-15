@@ -231,6 +231,9 @@ retry_lock:;
 			}
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
+			if ( be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
+				mc->mc_conn = LDAP_BACK_PCONN_SET( op );
+			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );

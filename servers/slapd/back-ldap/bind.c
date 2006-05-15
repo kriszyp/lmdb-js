@@ -197,6 +197,9 @@ retry_lock:;
 
 		if ( LDAP_BACK_CONN_ISBOUND( lc ) ) {
 			ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
+			if ( be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
+				lc->lc_conn = LDAP_BACK_PCONN_SET( op );
+			}
 			lerr = avl_insert( &li->li_conninfo.lai_tree, (caddr_t)lc,
 				ldap_back_conndn_cmp, ldap_back_conndn_dup );
 		}
