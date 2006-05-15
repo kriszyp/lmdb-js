@@ -22,11 +22,12 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapd-bdb pre/post-read freeing (ITS#4532)
 	Fixed slapd-bdb pre/post-read unavailable issue (ITS#4538)
 	Fixed slapd-hdb IDL sort issue (ITS#4531)
-	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapd-ldap proxyAuthz of bound identity/override (ITS#4497)
 	Fixed slapd-ldap/meta protocol version propagation (ITS#4488)
 	Fixed slapd-ldap fd cleanup (ITS#4474)
 	Fixed slapd-ldif deadlock (ITS#4500)
+	Fixed slapd-shell (ITS#4495)
+	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapo-accesslog log purging issue (ITS#4505)
 	Added slapo-accesslog reqOld feature
 	Fixed slapo-auditlog missing return codes
@@ -35,6 +36,7 @@ OpenLDAP 2.3.22 Engineering
 	Fixed slapo-refint delete prohibit issue (ITS#4442)
 	Fixed slapo-syncprov MODs cause DELs (ITS#4423)
 	Fixed slapo-syncprov/syncrepl sessionlog issue (ITS#4534)
+	Added slapo-syncprov extra logging
 	Fixed slapo-translucent modifications (ITS#4527)
 	Fixed slurpd potential overflow issue
 	Build Environment

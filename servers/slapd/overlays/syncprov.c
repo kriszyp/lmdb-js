@@ -1822,13 +1822,23 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		}
 		if ( a ) {
 			/* Make sure entry is less than the snapshot'd contextCSN */
-			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 )
+			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 ) {
+				Debug( LDAP_DEBUG_SYNC, "Entry %s CSN %s greater than snapshot %s\n",
+					rs->sr_entry->e_name.bv_val,
+					a->a_nvals[0].bv_val,
+					ss->ss_ctxcsn.bv_val );
 				return LDAP_SUCCESS;
+			}
 
 			/* Don't send the ctx entry twice */
 			if ( !BER_BVISNULL( &srs->sr_state.ctxcsn ) &&
-				bvmatch( &a->a_nvals[0], &srs->sr_state.ctxcsn ) )
+				bvmatch( &a->a_nvals[0], &srs->sr_state.ctxcsn ) ) {
+				Debug( LDAP_DEBUG_SYNC, "Entry %s CSN %s matches ctx %s\n",
+					rs->sr_entry->e_name.bv_val,
+					a->a_nvals[0].bv_val,
+					srs->sr_state.ctxcsn.bv_val );
 				return LDAP_SUCCESS;
+			}
 		}
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 			op->o_tmpmemctx );
