@@ -20,6 +20,11 @@ fi
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test $SYNCPROV = syncprovno; then 
+	echo "Syncrepl provider overlay not available, test skipped"
+	exit 0
+fi 
+
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR1C $DBDIR2A $DBDIR2B
 
 echo "Running slapadd to build glued slapd databases..."

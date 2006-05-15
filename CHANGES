@@ -40,8 +40,9 @@ OpenLDAP 2.3.22 Release
 	Fixed slapo-translucent modifications (ITS#4527)
 	Fixed slurpd potential overflow issue
 	Build Environment
-		Fixed test020-proxycache disabled debug issue (ITS#4491)
 		Fixed OSF1 compilation problem (ITS#4537)
+		Fixed test020-proxycache disabled debug issue (ITS#4491)
+		Fixed test033-glue-syncrepl overlay detection (ITS#4544)
 	Documentation
 		Fixed slapd(8) logging header reference (ITS#4509)
 
