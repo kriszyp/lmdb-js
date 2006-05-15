@@ -35,6 +35,7 @@
 #include "ldap-int.h"
 #include "ldap_log.h"
 
+/* Caller should hold the req_mutex if simultaneous accesses are possible */
 int ldap_open_defconn( LDAP *ld )
 {
 	ld->ld_defconn = ldap_new_connection( ld,

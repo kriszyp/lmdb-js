@@ -93,19 +93,25 @@ ldap_send_initial_request(
 	BerElement *ber,
 	ber_int_t msgid)
 {
-	int rc;
+	int rc = 1;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
 		/* not connected yet */
-		int rc = ldap_open_defconn( ld );
+		rc = ldap_open_defconn( ld );
 
-		if( rc < 0 ) {
-			ber_free( ber, 1 );
-			return( -1 );
-		}
-
+	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+	if( rc < 0 ) {
+		ber_free( ber, 1 );
+		return( -1 );
+	} else if ( rc == 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_open_defconn: successful\n",
 			0, 0, 0 );
