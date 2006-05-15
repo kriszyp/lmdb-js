@@ -954,6 +954,9 @@
 /* define for Audit Logging overlay */
 #undef SLAPD_OVER_AUDITLOG
 
+/* define for Attribute Constraint overlay */
+#undef SLAPD_OVER_CONSTRAINT
+
 /* define for Dynamic Directory Services overlay */
 #undef SLAPD_OVER_DDS
 
