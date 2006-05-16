@@ -46,6 +46,7 @@ OpenLDAP 2.3.22 Release
 		Fixed test033-glue-syncrepl overlay detection (ITS#4544)
 	Documentation
 		Fixed slapd(8) logging header reference (ITS#4509)
+		Clarified slapd.conf(5) "disable bind_anon" feature
 
 OpenLDAP 2.3.21 Release
 	Fixed libldap referral chasing issue (ITS#4448)

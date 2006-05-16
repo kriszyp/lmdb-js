@@ -117,15 +117,18 @@ The LDAP "simple" method has three modes of operation:
 * unauthenticated, and
 * user/password authenticated.
 
-Anonymous access is obtained by providing no name and no password
-to the "simple" bind operation.  Unauthenticated access is obtained
-by providing a name but no password.  Authenticated access is obtain
-by providing a valid name and password.
+Anonymous access is requested by providing no name and no password
+to the "simple" bind operation.  Unauthenticated access is requested
+by providing a name but no password.  Authenticated access is
+requested by providing a valid name and password.
 
 An anonymous bind results in an {{anonymous}} authorization
 association.  Anonymous bind mechanism is enabled by default, but
 can be disabled by specifying "{{EX:disallow bind_anon}}" in
-{{slapd.conf}}(5).
+{{slapd.conf}}(5).  Note that disabling the anonymous bind mechanism
+does not prevent anonymous access to the directory.  To require
+authentication to access the directory, one should instead
+specify "{{EX:require authc}}".
 
 An unauthenticated bind also results in an {{anonymous}} authorization
 association.  Unauthenticated bind mechanism is disabled by default,

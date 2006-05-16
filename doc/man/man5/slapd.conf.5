@@ -407,7 +407,8 @@ Base scoped search requests with an empty base DN are not affected.
 Specify a set of features (separated by white space) to
 disallow (default none).
 .B bind_anon
-disables acceptance of anonymous bind requests.
+disables acceptance of anonymous bind requests.  Note that this setting
+does not prohibit anonymous directory access (See "require authc").
 .B bind_simple
 disables simple (bind) authentication.
 .B tls_2_anon
