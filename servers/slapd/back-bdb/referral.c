@@ -91,8 +91,11 @@ dn2entry_retry:
 				(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 
 			if( is_entry_referral( e ) ) {
+				BerVarray ref = get_entry_referrals( op, e );
 				rc = LDAP_OTHER;
-				rs->sr_ref = get_entry_referrals( op, e );
+				rs->sr_ref = referral_rewrite( ref, NULL,
+					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
+				ber_bvarray_free( ref );
 				if ( rs->sr_ref ) {
 					rs->sr_matched = ber_strdup_x(
 					e->e_name.bv_val, op->o_tmpmemctx );

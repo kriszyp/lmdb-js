@@ -19,8 +19,9 @@ OpenLDAP 2.3.22 Release
 	Fixed slapd slap_send_ldap_result bug (ITS#4499)
 	Fixed slapd thread pool init issue (ITS#4513)
 	Added slapd syncrepl mandatory searchbase check
-	Fixed slapd-bdb pre/post-read freeing (ITS#4532)
-	Fixed slapd-bdb pre/post-read unavailable issue (ITS#4538)
+	Fixed slapd-bdb/hdb pre/post-read freeing (ITS#4532)
+	Fixed slapd-bdb/hdb pre/post-read unavailable issue (ITS#4538)
+	Fixed slapd-bdb/hdb referral issue (ITS#4548)
 	Fixed slapd-hdb IDL sort issue (ITS#4531)
 	Fixed slapd-ldap proxyAuthz of bound identity/override (ITS#4497)
 	Fixed slapd-ldap/meta protocol version propagation (ITS#4488)
