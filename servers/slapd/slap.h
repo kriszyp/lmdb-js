@@ -59,7 +59,6 @@
 LDAP_BEGIN_DECL
 
 #define SLAP_LIGHTWEIGHT_DISPATCHER /* experimental slapd architecture */
-#define SLAP_MULTI_CONN_ARRAY
 #ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
 #define SLAP_SEM_LOAD_CONTROL
 #endif

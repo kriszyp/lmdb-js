@@ -129,10 +129,12 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 			ldap_back_proxy_authz_bind( lc, op, rs, LDAP_BACK_SENDERR );
 			if ( !LDAP_BACK_CONN_ISBOUND( lc ) ) {
 				rc = 1;
-				goto done;
 			}
+			goto done;
 		}
 
+		/* rebind is now done inside ldap_back_proxy_authz_bind()
+		 * in case of success */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 		ber_dupbv( &lc->lc_bound_ndn, &op->o_req_ndn );
 
@@ -655,15 +657,11 @@ retry_lock:
 		} else {
 			BER_BVZERO( &lc->lc_cred );
 			BER_BVZERO( &lc->lc_bound_ndn );
-#if 0
-			/* FIXME: if we set lc_bound_ndn = o_ndn
-			 * we end up with a bind with DN but no password! */
 			if ( !BER_BVISEMPTY( &op->o_ndn )
 				&& SLAP_IS_AUTHZ_BACKEND( op ) )
 			{
 				ber_dupbv( &lc->lc_bound_ndn, &op->o_ndn );
 			}
-#endif
 		}
 
 #ifdef HAVE_TLS
@@ -915,9 +913,9 @@ retry_lock:;
 	 * It allows to use SASL bind and yet proxyAuthz users
 	 */
 	if ( op->o_conn != NULL &&
-			!op->o_do_not_cache &&
-			( BER_BVISNULL( &lc->lc_bound_ndn ) ||
-			  ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
+		!op->o_do_not_cache &&
+		( BER_BVISNULL( &lc->lc_bound_ndn ) ||
+			( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok );
 		goto done;
@@ -970,7 +968,7 @@ retry_lock:;
 
 retry:;
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld,
-			lc->lc_bound_ndn.bv_val,
+			BER_BVISNULL( &lc->lc_cred ) ? "" : lc->lc_bound_ndn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->lc_cred,
 			NULL, NULL, &msgid );
 
@@ -1076,7 +1074,8 @@ ldap_back_default_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 
 	/* FIXME: add checks on the URL/identity? */
 
-	return ldap_sasl_bind_s( ld, lc->lc_bound_ndn.bv_val,
+	return ldap_sasl_bind_s( ld,
+			BER_BVISNULL( &lc->lc_cred ) ? "" : lc->lc_bound_ndn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->lc_cred, NULL, NULL, NULL );
 }
 
@@ -1491,13 +1490,14 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 
 	switch ( li->li_idassert_authmethod ) {
 	case LDAP_AUTH_NONE:
-		LDAP_BACK_CONN_ISBOUND_SET( lc );
-		goto done;
+		rc = LDAP_SUCCESS;
+		break;
 
 	case LDAP_AUTH_SIMPLE:
 		rs->sr_err = ldap_sasl_bind( lc->lc_ld,
 				binddn.bv_val, LDAP_SASL_SIMPLE,
 				&bindcred, NULL, NULL, &msgid );
+		rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
 		break;
 
 	default:
@@ -1510,9 +1510,21 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 		goto done;
 	}
 
-	rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
 	if ( rc == LDAP_SUCCESS ) {
+		/* set rebind stuff in case of successful proxyAuthz bind,
+		 * so that referral chasing is attempted using the right
+		 * identity */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
+		ber_dupbv( &lc->lc_bound_ndn, &binddn );
+
+		if ( LDAP_BACK_SAVECRED( li ) ) {
+			if ( !BER_BVISNULL( &lc->lc_cred ) ) {
+				memset( lc->lc_cred.bv_val, 0,
+						lc->lc_cred.bv_len );
+			}
+			ber_bvreplace( &lc->lc_cred, &bindcred );
+			ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
+		}
 	}
 done:;
 	return LDAP_BACK_CONN_ISBOUND( lc );
