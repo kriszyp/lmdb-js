@@ -97,11 +97,13 @@ slapi_over_compute_output(
 {
 	Attribute		**a;
 	AttributeDescription	*desc;
-	SlapReply		*rs = (SlapReply *)c->cac_private;
+	SlapReply		*rs;
 
 	if ( c == NULL || attribute == NULL || entry == NULL ) {
 		return 0;
 	}
+
+	rs = (SlapReply *)c->cac_private;
 
 	assert( rs->sr_entry == entry );
 
