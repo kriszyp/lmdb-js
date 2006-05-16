@@ -129,10 +129,12 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 			ldap_back_proxy_authz_bind( lc, op, rs, LDAP_BACK_SENDERR );
 			if ( !LDAP_BACK_CONN_ISBOUND( lc ) ) {
 				rc = 1;
-				goto done;
 			}
+			goto done;
 		}
 
+		/* rebind is now done inside ldap_back_proxy_authz_bind()
+		 * in case of success */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 		ber_dupbv( &lc->lc_bound_ndn, &op->o_req_ndn );
 
@@ -1512,7 +1514,20 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 
 	rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
 	if ( rc == LDAP_SUCCESS ) {
+		/* set rebind stuff in case of successful proxyAuthz bind,
+		 * so that referral chasing is attempted using the right
+		 * identity */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
+		ber_dupbv( &lc->lc_bound_ndn, &binddn );
+
+		if ( LDAP_BACK_SAVECRED( li ) ) {
+			if ( !BER_BVISNULL( &lc->lc_cred ) ) {
+				memset( lc->lc_cred.bv_val, 0,
+						lc->lc_cred.bv_len );
+			}
+			ber_bvreplace( &lc->lc_cred, &bindcred );
+			ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
+		}
 	}
 done:;
 	return LDAP_BACK_CONN_ISBOUND( lc );
