@@ -112,6 +112,7 @@ ldap_back_exop_passwd(
 	ber_int_t	msgid;
 	int		rc, isproxy;
 	int		do_retry = 1;
+	char *text = NULL;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
@@ -140,7 +141,7 @@ retry:
 			 */
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					(char **)&rs->sr_matched,
-					(char **)&rs->sr_text,
+					&text,
 					NULL, NULL, 0 );
 
 			if ( rc == LDAP_SUCCESS ) {
@@ -180,6 +181,7 @@ retry:
 				goto retry;
 			}
 		}
+		if ( text ) rs->sr_text = text;
 		send_ldap_extended( op, rs );
 		/* otherwise frontend resends result */
 		rc = rs->sr_err = SLAPD_ABANDON;
@@ -191,8 +193,8 @@ retry:
 		rs->sr_matched = NULL;
 	}
 
-	if ( rs->sr_text ) {
-		free( (char *)rs->sr_text );
+	if ( text ) {
+		free( text );
 		rs->sr_text = NULL;
 	}
 
@@ -213,6 +215,7 @@ ldap_back_exop_generic(
 	ber_int_t	msgid;
 	int		rc;
 	int		do_retry = 1;
+	char *text = NULL;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
@@ -238,7 +241,7 @@ retry:
 			 */
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					(char **)&rs->sr_matched,
-					(char **)&rs->sr_text,
+					text,
 					NULL, NULL, 0 );
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -264,6 +267,7 @@ retry:
 				goto retry;
 			}
 		}
+		if ( text ) rs->sr_text = text;
 		send_ldap_extended( op, rs );
 		/* otherwise frontend resends result */
 		rc = rs->sr_err = SLAPD_ABANDON;
@@ -275,8 +279,8 @@ retry:
 		rs->sr_matched = NULL;
 	}
 
-	if ( rs->sr_text ) {
-		free( (char *)rs->sr_text );
+	if ( text ) {
+		free( text );
 		rs->sr_text = NULL;
 	}
 

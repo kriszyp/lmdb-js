@@ -375,16 +375,19 @@ retry:
 			}
 
 		} else {
-			char		**references = NULL;
+			char		**references = NULL, *err = NULL;
 
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
-					&match.bv_val, (char **)&rs->sr_text,
+					&match.bv_val, &err,
 					&references, &rs->sr_ctrls, 1 );
-			freetext = 1;
 			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
 			}
 			rs->sr_err = slap_map_api2result( rs );
+			if ( err ) {
+				rs->sr_text = err;
+				freetext = 1;
+			}
 
 			if ( references && references[ 0 ] && references[ 0 ][ 0 ] ) {
 				int	cnt;
