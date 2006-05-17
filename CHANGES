@@ -1,7 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.23 Engineering
-	Fixed slapd-ldap improper free bug (ITS#4450)
+	Fixed slapd-ldap improper free bug (ITS#4550)
 
 OpenLDAP 2.3.22 Release
 	Fixed libldap referral input destroy issue (ITS#4533)
