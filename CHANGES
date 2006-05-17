@@ -30,7 +30,7 @@ OpenLDAP 2.3.22 Release
 	Fixed slapd-ldap/meta protocol version propagation (ITS#4488)
 	Fixed slapd-ldap fd cleanup (ITS#4474)
 	Fixed slapd-ldif deadlock (ITS#4500)
-	Fixed slapd-shell (ITS#4495)
+	Fixed slapd-shell lutil_atoi issue (ITS#4495)
 	Fixed slapadd cn=config issue (ITS#4194)
 	Fixed slapo-accesslog log purging issue (ITS#4505)
 	Added slapo-accesslog reqOld feature
