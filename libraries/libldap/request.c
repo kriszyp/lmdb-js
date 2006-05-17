@@ -1175,12 +1175,12 @@ ldap_chase_referrals( LDAP *ld,
 			LDAPRequest *lp;
 			int looped = 0;
 			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
-			for (lp = lr; lp; lp = lp->lr_parent ) {
+			for ( lp = lr; lp; lp = lp->lr_parent ) {
 				if ( lp->lr_conn == lc
-					&& len == lp->lr_dn.bv_len
-					&& len
-					&& strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) == 0 )
+					&& len == lp->lr_dn.bv_len )
 				{
+					if ( len && strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) )
+							continue;
 					looped = 1;
 					break;
 				}
