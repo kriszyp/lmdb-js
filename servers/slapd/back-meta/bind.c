@@ -636,13 +636,21 @@ retry:;
 
 done:;
 	rs->sr_err = rc;
-	if ( rc != LDAP_SUCCESS && META_BACK_ONERR_STOP( mi ) ) {
+	if ( rc != LDAP_SUCCESS ) {
+		if ( dolock ) {
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+		}
 	        LDAP_BACK_CONN_BINDING_CLEAR( msc );
-	        LDAP_BACK_CONN_TAINTED_SET( mc );
-		meta_back_release_conn_lock( op, mc, dolock );
-		*mcp = NULL;
+		if ( META_BACK_ONERR_STOP( mi ) ) {
+	        	LDAP_BACK_CONN_TAINTED_SET( mc );
+			meta_back_release_conn_lock( op, mc, dolock );
+			*mcp = NULL;
+		}
+		if ( dolock ) {
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+		}
 
-		if ( sendok & LDAP_BACK_SENDERR ) {
+		if ( META_BACK_ONERR_STOP( mi ) && ( sendok & LDAP_BACK_SENDERR ) ) {
 			send_ldap_result( op, rs );
 		}
 	}

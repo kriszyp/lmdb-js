@@ -624,7 +624,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_MODIFY_MODS: {
 		LDAPMod **mods = NULL;
-		Modifications *ml;
+		Modifications *ml = NULL;
 
 		pblock_get_default( pb, param, (void **)&mods );
 		if ( mods == NULL && pb->pb_intop == 0 ) {
@@ -635,12 +635,14 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 			case LDAP_REQ_MODRDN:
 				ml = pb->pb_op->orr_modlist;
 				break;
-			defaulat:
+			default:
 				rc = PBLOCK_ERROR;
 				break;
 			}
-			mods = slapi_int_modifications2ldapmods( ml );
-			pblock_set_default( pb, param, (void *)mods );
+			if ( rc != PBLOCK_ERROR ) {
+				mods = slapi_int_modifications2ldapmods( ml );
+				pblock_set_default( pb, param, (void *)mods );
+			}
 		}
 		*((LDAPMod ***)value) = mods;
 		break;
