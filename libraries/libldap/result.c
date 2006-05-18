@@ -278,7 +278,7 @@ wait4msg(
 		}
 #endif /* LDAP_DEBUG */
 
-        	if ( (*result = chkResponseList(ld, msgid, all)) != NULL ) {
+        	if ( ( *result = chkResponseList( ld, msgid, all ) ) != NULL ) {
 			rc = (*result)->lm_msgtype;
 
 		} else {
@@ -290,7 +290,8 @@ wait4msg(
 			for ( lc = ld->ld_conns; lc != NULL; lc = nextlc ) {
 				nextlc = lc->lconn_next;
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
-						LBER_SB_OPT_DATA_READY, NULL ) ) {
+						LBER_SB_OPT_DATA_READY, NULL ) )
+				{
 #ifdef LDAP_R_COMPILE
 					ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
 #endif
@@ -318,7 +319,7 @@ wait4msg(
 
 				if ( rc == 0 || ( rc == -1 && (
 					!LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
-						|| errno != EINTR )))
+						|| errno != EINTR ) ) )
 				{
 					ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 						LDAP_TIMEOUT);
@@ -348,7 +349,7 @@ wait4msg(
 					{
 						nextlc = lc->lconn_next;
 						if ( lc->lconn_status == LDAP_CONNST_CONNECTED &&
-							ldap_is_read_ready( ld, lc->lconn_sb ))
+							ldap_is_read_ready( ld, lc->lconn_sb ) )
 						{
 #ifdef LDAP_R_COMPILE
 							ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
@@ -437,7 +438,7 @@ try_read1msg(
 
 retry:
 	if ( lc->lconn_ber == NULL ) {
-		lc->lconn_ber = ldap_alloc_ber_with_options(ld);
+		lc->lconn_ber = ldap_alloc_ber_with_options( ld );
 
 		if( lc->lconn_ber == NULL ) {
 			return -1;
@@ -453,7 +454,7 @@ retry:
 	if ( LDAP_IS_UDP(ld) ) {
 		struct sockaddr from;
 		ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr) );
-		if (ld->ld_options.ldo_version == LDAP_VERSION2) isv2=1;
+		if (ld->ld_options.ldo_version == LDAP_VERSION2) isv2 = 1;
 	}
 nextresp3:
 #endif
@@ -509,7 +510,7 @@ retry_ber:
 	if ( lr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"no request for response on ld %p msgid %ld (tossing)\n",
-			(void *)ld, (long) id, 0 );
+			(void *)ld, (long)id, 0 );
 		goto retry_ber;
 	}
 #ifdef LDAP_CONNECTIONLESS
@@ -562,7 +563,7 @@ nextresp2:
 					if ( refer_cnt > 0 ) {
 						/* sucessfully chased reference */
 						/* If haven't got end search, set chasing referrals */
-						if( lr->lr_status != LDAP_REQST_COMPLETED) {
+						if ( lr->lr_status != LDAP_REQST_COMPLETED ) {
 							lr->lr_status = LDAP_REQST_CHASINGREFS;
 							Debug( LDAP_DEBUG_TRACE,
 								"read1msg:  search ref chased, "
@@ -620,7 +621,7 @@ nextresp2:
 							 * Note: refs arrary is freed by ldap_chase_v3referrals
 							 */
 							refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
-							    0, &lr->lr_res_error, &hadref );
+								0, &lr->lr_res_error, &hadref );
 							lr->lr_status = LDAP_REQST_COMPLETED;
 							Debug( LDAP_DEBUG_TRACE,
 								"read1msg: referral chased, mark request completed, ld %p msgid %d\n",
@@ -673,13 +674,11 @@ nextresp2:
 				!= LBER_ERROR )
 			{
 				if ( lr_res_error != NULL ) {
-					{
-						if ( lr->lr_res_error != NULL ) {
-							(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
-							LDAP_FREE( (char *)lr_res_error );
-						} else {
-							lr->lr_res_error = lr_res_error;
-						}
+					if ( lr->lr_res_error != NULL ) {
+						(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
+						LDAP_FREE( (char *)lr_res_error );
+					} else {
+						lr->lr_res_error = lr_res_error;
 					}
 					lr_res_error = NULL;
 				}
@@ -770,12 +769,12 @@ nextresp2:
 
 			/* Check if all requests are finished, lr is now parent */
 			tmplr = lr;
-			if (tmplr->lr_status == LDAP_REQST_COMPLETED) {
+			if ( tmplr->lr_status == LDAP_REQST_COMPLETED ) {
 				for ( tmplr=lr->lr_child;
 					tmplr != NULL;
 					tmplr=tmplr->lr_refnext)
 				{
-					if( tmplr->lr_status != LDAP_REQST_COMPLETED) break;
+					if ( tmplr->lr_status != LDAP_REQST_COMPLETED ) break;
 				}
 			}
 
