@@ -273,8 +273,18 @@ wait4msg(
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
 			Debug( LDAP_DEBUG_TRACE, "wait4msg continue ld %p msgid %d all %d\n",
 				(void *)ld, msgid, all );
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
+#endif
 			ldap_dump_connection( ld, ld->ld_conns, 1 );
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
+			ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 			ldap_dump_requests_and_responses( ld );
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 		}
 #endif /* LDAP_DEBUG */
 
