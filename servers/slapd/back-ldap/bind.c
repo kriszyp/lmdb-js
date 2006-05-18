@@ -1126,11 +1126,15 @@ ldap_back_op_result(
 	char		*match = NULL;
 	LDAPMessage	*res = NULL;
 	char		*text = NULL;
+	char		**refs = NULL;
+	LDAPControl	**ctrls = NULL;
 
 #define	ERR_OK(err) ((err) == LDAP_SUCCESS || (err) == LDAP_COMPARE_FALSE || (err) == LDAP_COMPARE_TRUE)
 
 	rs->sr_text = NULL;
 	rs->sr_matched = NULL;
+	rs->sr_ref = NULL;
+	rs->sr_ctrls = NULL;
 
 	/* if the error recorded in the reply corresponds
 	 * to a successful state, get the error from the
@@ -1176,10 +1180,25 @@ retry:;
 		 * LDAP_COMPARE_{TRUE|FALSE}) */
 		default:
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
-					&match, &text, NULL, NULL, 1 );
+					&match, &text, &refs, &ctrls, 1 );
 			rs->sr_text = text;
 			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
+			}
+			if ( refs != NULL ) {
+				int	i;
+
+				for ( i = 0; refs[ i ] != NULL; i++ )
+					/* count */ ;
+				rs->sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( i + 1 ),
+					op->o_tmpmemctx );
+				for ( i = 0; refs[ i ] != NULL; i++ ) {
+					ber_str2bv( refs[ i ], 0, 0, &rs->sr_ref[ i ] );
+				}
+				BER_BVZERO( &rs->sr_ref[ i ] );
+			}
+			if ( ctrls != NULL ) {
+				rs->sr_ctrls = ctrls;
 			}
 		}
 	}
@@ -1200,8 +1219,8 @@ retry:;
 		}
 	}
 	if ( op->o_conn &&
-			( ( sendok & LDAP_BACK_SENDOK ) 
-			  || ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
+		( ( sendok & LDAP_BACK_SENDOK ) 
+			|| ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
 	{
 		send_ldap_result( op, rs );
 	}
@@ -1216,6 +1235,17 @@ retry:;
 		ldap_memfree( text );
 	}
 	rs->sr_text = NULL;
+	if ( rs->sr_ref ) {
+		assert( refs != NULL );
+		ber_memvfree( (void **)refs );
+		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
+		rs->sr_ref = NULL;
+	}
+	if ( ctrls ) {
+		assert( rs->sr_ctrls != NULL );
+		ldap_controls_free( ctrls );
+		rs->sr_ctrls = NULL;
+	}
 	return( ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
 }
 

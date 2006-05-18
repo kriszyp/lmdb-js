@@ -344,7 +344,8 @@ retry:
 					/* NO OP */ ;
 
 				/* FIXME: there MUST be at least one */
-				rs->sr_ref = ch_malloc( ( cnt + 1 ) * sizeof( struct berval ) );
+				rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
+					op->o_tmpmemctx );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
 					ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
@@ -365,7 +366,7 @@ retry:
 			/* cleanup */
 			if ( references ) {
 				ber_memvfree( (void **)references );
-				ch_free( rs->sr_ref );
+				op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 				rs->sr_ref = NULL;
 			}
 
@@ -405,7 +406,8 @@ retry:
 				for ( cnt = 0; references[ cnt ]; cnt++ )
 					/* NO OP */ ;
 				
-				rs->sr_ref = ch_malloc( ( cnt + 1 ) * sizeof( struct berval ) );
+				rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
+					op->o_tmpmemctx );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
 					/* duplicating ...*/
@@ -495,7 +497,7 @@ finish:;
 	}
 
 	if ( rs->sr_ref ) {
-		ber_bvarray_free( rs->sr_ref );
+		ber_bvarray_free_x( rs->sr_ref, op->o_tmpmemctx );
 		rs->sr_ref = NULL;
 	}
 
