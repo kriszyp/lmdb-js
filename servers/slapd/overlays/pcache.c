@@ -39,8 +39,6 @@
 
 typedef struct Query_s {
 	Filter* 	filter; 	/* Search Filter */
-	AttributeName* 	attrs;		/* Projected attributes */
-	AttributeName*  save_attrs;	/* original attributes, saved for response */
 	struct berval 	base; 		/* Search Base */
 	int 		scope;		/* Search scope */
 } Query;
@@ -615,7 +613,6 @@ free_query (CachedQuery* qc)
 	free(qc->q_uuid.bv_val);
 	filter_free(q->filter);
 	free (q->base.bv_val);
-	free(q->attrs);
 	free(qc);
 }
 
@@ -646,7 +643,6 @@ static void add_query(
 	ber_dupbv(&new_query->base, &query->base);
 	new_query->scope = query->scope;
 	new_query->filter = query->filter;
-	new_query->attrs = query->attrs;
 
 	/* Adding a query    */
 	Debug( pcache_debug, "Lock AQ index = %p\n",
@@ -952,6 +948,7 @@ struct search_info {
 	slap_overinst *on;
 	Query query;
 	QueryTemplate *qtemp;
+	AttributeName*  save_attrs;	/* original attributes, saved for response */
 	int max;
 	int over;
 	int count;
@@ -1037,10 +1034,10 @@ pcache_response(
 	query_manager*		qm = cm->qm;
 	struct berval uuid;
 
-	if ( si->query.save_attrs != NULL ) {
-		rs->sr_attrs = si->query.save_attrs;
-		op->ors_attrs = si->query.save_attrs;
-		si->query.save_attrs = NULL;
+	if ( si->save_attrs != NULL ) {
+		rs->sr_attrs = si->save_attrs;
+		op->ors_attrs = si->save_attrs;
+		si->save_attrs = NULL;
 	}
 
 	if ( rs->sr_type == REP_SEARCH ) {
@@ -1094,7 +1091,6 @@ pcache_response(
 				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 			}
 		} else {
-			free( si->query.attrs );
 			filter_free( si->query.filter );
 		}
 
@@ -1233,14 +1229,11 @@ pcache_op_search(
 					tempstr.bv_val, 0, 0 );
 
 	/* FIXME: cannot cache/answer requests with pagedResults control */
-	
 
 	/* find attr set */
 	attr_set = get_attr_set(op->ors_attrs, qm, cm->numattrsets);
 
 	query.filter = op->ors_filter;
-	query.attrs = op->ors_attrs;
-	query.save_attrs = NULL;
 	query.base = op->o_req_ndn;
 	query.scope = op->ors_scope;
 
@@ -1263,9 +1256,6 @@ pcache_op_search(
 		}
 	}
 	op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
-
-	query.save_attrs = op->ors_attrs;
-	query.attrs = NULL;
 
 	if (answerable) {
 		/* Need to clear the callbacks of the original operation,
@@ -1307,10 +1297,13 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY CACHEABLE\n", 0, 0, 0 );
 		query.filter = filter_dup(op->ors_filter, NULL);
-		add_filter_attrs(op, &query.attrs, &qm->attr_sets[attr_set],
-			filter_attrs, fattr_cnt, fattr_got_oc);
-
-		op->ors_attrs = query.attrs;
+		ldap_pvt_thread_rdwr_wlock(qtemp->t_rwlock);
+		if ( !qtemp->t_attrs.count ) {
+			add_filter_attrs(op, &qtemp->t_attrs.attrs,
+				&qm->attr_sets[attr_set],
+				filter_attrs, fattr_cnt, fattr_got_oc);
+		}
+		ldap_pvt_thread_rdwr_wunlock(qtemp->t_rwlock);
 
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
 		cb->sc_response = pcache_response;
@@ -1325,6 +1318,9 @@ pcache_op_search(
 		si->count = 0;
 		si->head = NULL;
 		si->tail = NULL;
+		si->save_attrs = op->ors_attrs;
+
+		op->ors_attrs = qtemp->t_attrs.attrs;
 
 		if ( cm->response_cb == PCACHE_RESPONSE_CB_HEAD ) {
 			cb->sc_next = op->o_callback;
@@ -2011,7 +2007,7 @@ pcache_db_close(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
-	QueryTemplate *tm = qm->templates;
+	QueryTemplate *tm;
 	int i, rc = 0;
 
 	/* cleanup stuff inherited from the original database... */
@@ -2021,8 +2017,9 @@ pcache_db_close(
 	if ( cm->db.bd_info->bi_db_close ) {
 		rc = cm->db.bd_info->bi_db_close( &cm->db );
 	}
-	for ( ; tm; tm=tm->qmnext ) {
+	while ( tm = qm->templates ) {
 		CachedQuery *qc, *qn;
+		qm->templates = tm->qmnext;
 		for ( qc = tm->query; qc; qc = qn ) {
 			qn = qc->next;
 			free_query( qc );
@@ -2030,9 +2027,9 @@ pcache_db_close(
 		free( tm->querystr.bv_val );
 		ldap_pvt_thread_rdwr_destroy( tm->t_rwlock );
 		ch_free( tm->t_rwlock );
+		free( tm->t_attrs.attrs );
+		free( tm );
 	}
-	free( qm->templates );
-	qm->templates = NULL;
 
 	for ( i=0; i<cm->numattrsets; i++ ) {
 		free( qm->attr_sets[i].attrs );
