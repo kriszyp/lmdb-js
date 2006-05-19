@@ -919,6 +919,17 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 		if( connections[*index].c_struct_state == SLAP_C_USED ) {
 			assert( connections[*index].c_conn_state != SLAP_C_INVALID );
 			c = &connections[(*index)++];
+			if ( ldap_pvt_thread_mutex_trylock( &c->c_mutex )) {
+				/* avoid deadlock */
+				ldap_pvt_thread_mutex_unlock( &connections_mutex );
+				ldap_pvt_thread_mutex_lock( &c->c_mutex );
+				ldap_pvt_thread_mutex_lock( &connections_mutex );
+				if ( c->c_struct_state != SLAP_C_USED ) {
+					ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+					c = NULL;
+					continue;
+				}
+			}
 			break;
 		}
 
@@ -926,7 +937,6 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 		assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 	}
 
-	if( c != NULL ) ldap_pvt_thread_mutex_lock( &c->c_mutex );
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	return c;
 }
