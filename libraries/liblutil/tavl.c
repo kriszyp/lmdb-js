@@ -443,6 +443,26 @@ tavl_free( Avlnode *root, AVL_FREE dfree )
  * < 0 if arg1 is less than arg2 and > 0 if arg1 is greater than arg2.
  */
 
+/*
+ * tavl_find2 - returns Avlnode instead of data pointer.
+ * tavl_find3 - as above, but returns Avlnode even if no match is found.
+ *				also return the last comparison result in ret.
+ */
+Avlnode *
+tavl_find3( Avlnode *root, const void *data, AVL_CMP fcmp, int *ret )
+{
+	int	cmp, dir;
+	Avlnode *prev;
+
+	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
+		prev = root;
+		dir = cmp > 0;
+		root = avl_child( root, dir );
+	}
+	*ret = cmp;
+	return root ? root : prev;
+}
+
 Avlnode *
 tavl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 {

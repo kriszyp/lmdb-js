@@ -134,6 +134,9 @@ tavl_find LDAP_P((Avlnode *, const void*, AVL_CMP));
 LDAP_AVL_F( Avlnode* )
 tavl_find2 LDAP_P((Avlnode *, const void*, AVL_CMP));
 
+LDAP_AVL_F( Avlnode* )
+tavl_find3 LDAP_P((Avlnode *, const void*, AVL_CMP, int *ret));
+
 #define	TAVL_DIR_LEFT	0
 #define	TAVL_DIR_RIGHT	1
 
