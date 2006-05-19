@@ -90,7 +90,7 @@ typedef struct query_template_s {
 	Avlnode*		qbase;
 	CachedQuery* 	query;	        /* most recent query cached for the template */
 	CachedQuery* 	query_last;     /* oldest query cached for the template */
-	ldap_pvt_thread_rdwr_t *t_rwlock; /* Rd/wr lock for accessing queries in the template */
+	ldap_pvt_thread_rdwr_t t_rwlock; /* Rd/wr lock for accessing queries in the template */
 	struct berval	querystr;	/* Filter string corresponding to the QT */
 
 	int 		attr_set_index; /* determines the projected attributes */
@@ -688,7 +688,7 @@ query_containment(Operation *op, query_manager *qm,
 
 		first = filter_first( query->filter );
 
-		ldap_pvt_thread_rdwr_rlock(templa->t_rwlock);
+		ldap_pvt_thread_rdwr_rlock(&templa->t_rwlock);
 		for( ;; ) {
 			/* Find the base */
 			qbptr = avl_find( templa->qbase, &qbase, pcache_dn_cmp );
@@ -754,12 +754,13 @@ query_containment(Operation *op, query_manager *qm,
 			/* Up a level */
 			dnParent( &qbase.base, &pdn );
 			qbase.base = pdn;
+			depth++;
 		}
 
 		Debug( pcache_debug,
 			"Not answerable: Unlock QC index=%p\n",
 			templa, 0, 0 );
-		ldap_pvt_thread_rdwr_runlock(templa->t_rwlock);
+		ldap_pvt_thread_rdwr_runlock(&templa->t_rwlock);
 	}
 	return NULL;
 }
@@ -805,7 +806,7 @@ static void add_query(
 	/* Adding a query    */
 	Debug( pcache_debug, "Lock AQ index = %p\n",
 			templ, 0, 0 );
-	ldap_pvt_thread_rdwr_wlock(templ->t_rwlock);
+	ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
 	qbase = avl_find( templ->qbase, &qb, pcache_dn_cmp );
 	if ( !qbase ) {
 		qbase = ch_calloc( 1, sizeof(Qbase) + qb.base.bv_len + 1 );
@@ -831,7 +832,7 @@ static void add_query(
 
 	Debug( pcache_debug, "Unlock AQ index = %p \n",
 			templ, 0, 0 );
-	ldap_pvt_thread_rdwr_wunlock(templ->t_rwlock);
+	ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 
 	/* Adding on top of LRU list  */
 	ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
@@ -895,12 +896,12 @@ static void cache_replacement(query_manager* qm, struct berval *result)
 	bottom->q_uuid.bv_val = NULL;
 
 	Debug( pcache_debug, "Lock CR index = %p\n", temp, 0, 0 );
-	ldap_pvt_thread_rdwr_wlock(temp->t_rwlock);
+	ldap_pvt_thread_rdwr_wlock(&temp->t_rwlock);
 	remove_from_template(bottom, temp);
 	Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
 		temp, temp->no_of_queries, 0 );
 	Debug( pcache_debug, "Unlock CR index = %p\n", temp, 0, 0 );
-	ldap_pvt_thread_rdwr_wunlock(temp->t_rwlock);
+	ldap_pvt_thread_rdwr_wunlock(&temp->t_rwlock);
 	free_query(bottom);
 }
 
@@ -1444,7 +1445,7 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY ANSWERABLE\n", 0, 0, 0 );
 		op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
-		ldap_pvt_thread_rdwr_runlock(qtemp->t_rwlock);
+		ldap_pvt_thread_rdwr_runlock(&qtemp->t_rwlock);
 		if ( BER_BVISNULL( &answerable->q_uuid )) {
 			/* No entries cached, just an empty result set */
 			i = rs->sr_err = 0;
@@ -1476,13 +1477,13 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY CACHEABLE\n", 0, 0, 0 );
 		query.filter = filter_dup(op->ors_filter, NULL);
-		ldap_pvt_thread_rdwr_wlock(qtemp->t_rwlock);
+		ldap_pvt_thread_rdwr_wlock(&qtemp->t_rwlock);
 		if ( !qtemp->t_attrs.count ) {
 			add_filter_attrs(op, &qtemp->t_attrs.attrs,
 				&qm->attr_sets[attr_set],
 				filter_attrs, fattr_cnt, fattr_got_oc);
 		}
-		ldap_pvt_thread_rdwr_wunlock(qtemp->t_rwlock);
+		ldap_pvt_thread_rdwr_wunlock(&qtemp->t_rwlock);
 
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
 		cb->sc_response = pcache_response;
@@ -1598,13 +1599,13 @@ consistency_check(
 		while (query && (query->expiry_time < op->o_time)) {
 			Debug( pcache_debug, "Lock CR index = %d\n",
 					i, 0, 0 );
-			ldap_pvt_thread_rdwr_wlock(templ->t_rwlock);
+			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
 			remove_from_template(query, templ);
 			Debug( pcache_debug, "TEMPLATE %d QUERIES-- %d\n",
 					i, templ->no_of_queries, 0 );
 			Debug( pcache_debug, "Unlock CR index = %d\n",
 					i, 0, 0 );
-			ldap_pvt_thread_rdwr_wunlock(templ->t_rwlock);
+			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 			ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
 			remove_query(qm, query);
 			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
@@ -1978,8 +1979,7 @@ pc_cf_gen( ConfigArgs *c )
 		temp = ch_calloc( 1, sizeof( QueryTemplate ));
 		temp->qmnext = qm->templates;
 		qm->templates = temp;
-		temp->t_rwlock = ch_malloc( sizeof( ldap_pvt_thread_rdwr_t ) );
-		ldap_pvt_thread_rdwr_init( temp->t_rwlock );
+		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
 		temp->query = temp->query_last = NULL;
 		if ( lutil_parse_time( c->argv[3], &t ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse template ttl=\"%s\"",
@@ -2216,8 +2216,7 @@ pcache_db_close(
 		}
 		avl_free( tm->qbase, pcache_free_qbase );
 		free( tm->querystr.bv_val );
-		ldap_pvt_thread_rdwr_destroy( tm->t_rwlock );
-		ch_free( tm->t_rwlock );
+		ldap_pvt_thread_rdwr_destroy( &tm->t_rwlock );
 		free( tm->t_attrs.attrs );
 		free( tm );
 	}
