@@ -989,6 +989,9 @@ stop:
 	if ( urls )
 		ch_free( urls );
 
+	/* kludge, get symbols referenced */
+	tavl_free( NULL, NULL );
+
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );
 #endif
