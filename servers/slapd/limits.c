@@ -926,8 +926,6 @@ limits_unparse( struct slap_limits *lim, struct berval *bv, ber_len_t buflen )
 			break;
 		}
 	}
-	if ( WHATSLEFT <= STRLENOF( " " ) ) return -1;
-	*ptr++ = ' ';
 	bv->bv_len = ptr - bv->bv_val;
 	btmp.bv_val = ptr;
 	btmp.bv_len = 0;
