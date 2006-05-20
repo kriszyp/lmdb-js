@@ -1597,8 +1597,8 @@ consistency_check(
 		if ( query ) pause = 0;
 		op->o_time = slap_get_time();
 		while (query && (query->expiry_time < op->o_time)) {
-			Debug( pcache_debug, "Lock CR index = %d\n",
-					i, 0, 0 );
+			Debug( pcache_debug, "Lock CR index = %p\n",
+					templ, 0, 0 );
 			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
 			remove_from_template(query, templ);
 			Debug( pcache_debug, "TEMPLATE %d QUERIES-- %d\n",
