@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.24 Engineering
+	Re-fixed slapd-ldap improper free bug in exop (ITS#4550)
 
 OpenLDAP 2.3.23 Release
 	Fixed slapd-ldap improper free bug (ITS#4550)

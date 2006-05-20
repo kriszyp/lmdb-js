@@ -251,7 +251,7 @@ retry:
 			 */
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					(char **)&rs->sr_matched,
-					text,
+					&text,
 					NULL, NULL, 0 );
 #ifndef LDAP_NULL_IS_NULL
 			if ( rs->sr_matched && rs->sr_matched[ 0 ] == '\0' ) {
