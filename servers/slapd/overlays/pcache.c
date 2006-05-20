@@ -1580,7 +1580,7 @@ consistency_check(
 
 	SlapReply rs = {REP_RESULT};
 	CachedQuery* query, *query_prev;
-	int i, return_val, pause = 1;
+	int return_val, pause = 1;
 	QueryTemplate* templ;
 
 	op = (Operation *) &opbuf;
@@ -1601,10 +1601,10 @@ consistency_check(
 					templ, 0, 0 );
 			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
 			remove_from_template(query, templ);
-			Debug( pcache_debug, "TEMPLATE %d QUERIES-- %d\n",
-					i, templ->no_of_queries, 0 );
-			Debug( pcache_debug, "Unlock CR index = %d\n",
-					i, 0, 0 );
+			Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
+					templ, templ->no_of_queries, 0 );
+			Debug( pcache_debug, "Unlock CR index = %p\n",
+					templ, 0, 0 );
 			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 			ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
 			remove_query(qm, query);
