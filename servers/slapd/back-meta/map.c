@@ -516,7 +516,7 @@ ldap_back_int_filter_map_rewrite(
 		/* FIXME: treat UNDEFINED as FALSE */
 		case SLAPD_COMPARE_UNDEFINED:
 computed:;
-			if ( dc->target->mt_flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( META_BACK_TGT_T_F( dc->target ) ) {
 				tmp = &ber_bvtf_false;
 				break;
 			}
@@ -524,7 +524,7 @@ computed:;
 			break;
 
 		case LDAP_COMPARE_TRUE:
-			if ( dc->target->mt_flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( META_BACK_TGT_T_F( dc->target ) ) {
 				tmp = &ber_bvtf_true;
 				break;
 			}

@@ -65,6 +65,7 @@ enum {
 	LDAP_BACK_CFG_NETWORK_TIMEOUT,
 	LDAP_BACK_CFG_VERSION,
 	LDAP_BACK_CFG_SINGLECONN,
+	LDAP_BACK_CFG_CANCEL,
 	LDAP_BACK_CFG_REWRITE,
 
 	LDAP_BACK_CFG_LAST
@@ -259,6 +260,14 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "cancel", "ABANDON|ignore|exop", 2, 0, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_CANCEL,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.20 "
+			"NAME 'olcDbCancel' "
+			"DESC 'abandon/ignore/exop operations when appropriate' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -294,6 +303,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbTimeout "
 			"$ olcDbIdleTimeout "
 			"$ olcDbSingleConn "
+			"$ olcDbCancel "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -317,9 +327,17 @@ static slap_verbmasks tls_mode[] = {
 };
 
 static slap_verbmasks t_f_mode[] = {
-	{ BER_BVC( "yes" ),		LDAP_BACK_F_SUPPORT_T_F },
-	{ BER_BVC( "discover" ),	LDAP_BACK_F_SUPPORT_T_F_DISCOVER },
+	{ BER_BVC( "yes" ),		LDAP_BACK_F_T_F },
+	{ BER_BVC( "discover" ),	LDAP_BACK_F_T_F_DISCOVER },
 	{ BER_BVC( "no" ),		LDAP_BACK_F_NONE },
+	{ BER_BVNULL,			0 }
+};
+
+static slap_verbmasks cancel_mode[] = {
+	{ BER_BVC( "ignore" ),		LDAP_BACK_F_CANCEL_IGNORE },
+	{ BER_BVC( "exop" ),		LDAP_BACK_F_CANCEL_EXOP },
+	{ BER_BVC( "exop-discover" ),	LDAP_BACK_F_CANCEL_EXOP_DISCOVER },
+	{ BER_BVC( "abandon" ),		LDAP_BACK_F_CANCEL_ABANDON },
 	{ BER_BVNULL,			0 }
 };
 
@@ -548,7 +566,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_T_F:
-			enum_to_verb( t_f_mode, (li->li_flags & LDAP_BACK_F_SUPPORT_T_F_MASK), &bv );
+			enum_to_verb( t_f_mode, (li->li_flags & LDAP_BACK_F_T_F_MASK2), &bv );
 			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
@@ -643,6 +661,23 @@ ldap_back_cf_gen( ConfigArgs *c )
 			c->value_int = LDAP_BACK_SINGLECONN( li );
 			break;
 
+		case LDAP_BACK_CFG_CANCEL: {
+			slap_mask_t	mask = LDAP_BACK_F_CANCEL_MASK2;
+
+			if ( LDAP_BACK_CANCEL_DISCOVER( li ) ) {
+				mask &= ~LDAP_BACK_F_CANCEL_EXOP;
+			}
+			enum_to_verb( cancel_mode, (li->li_flags & mask), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
+				/* there's something wrong... */
+				assert( 0 );
+				rc = 1;
+
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			} break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -711,6 +746,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_CHASE:
 		case LDAP_BACK_CFG_T_F:
 		case LDAP_BACK_CFG_WHOAMI:
+		case LDAP_BACK_CFG_CANCEL:
 			rc = 1;
 			break;
 
@@ -1258,14 +1294,41 @@ done_url:;
 		}
 		break;
 
-	case LDAP_BACK_CFG_T_F:
+	case LDAP_BACK_CFG_T_F: {
+		slap_mask_t		mask;
+
 		i = verb_to_mask( c->argv[1], t_f_mode );
 		if ( BER_BVISNULL( &t_f_mode[i].word ) ) {
 			return 1;
 		}
-		li->li_flags &= ~LDAP_BACK_F_SUPPORT_T_F_MASK;
-		li->li_flags |= t_f_mode[i].mask;
-		break;
+
+		mask = t_f_mode[i].mask;
+
+		if ( LDAP_BACK_ISOPEN( li )
+			&& mask == LDAP_BACK_F_T_F_DISCOVER
+			&& !LDAP_BACK_T_F( li ) )
+		{
+			int		rc;
+
+			if ( li->li_uri == NULL ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"need URI to discover \"cancel\" support "
+					"in \"cancel exop-discover\"" );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+
+			rc = slap_discover_feature( li->li_uri, li->li_version,
+					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
+					LDAP_FEATURE_ABSOLUTE_FILTERS );
+			if ( rc == LDAP_COMPARE_TRUE ) {
+				mask |= LDAP_BACK_F_T_F;
+			}
+		}
+
+		li->li_flags &= ~LDAP_BACK_F_T_F_MASK2;
+		li->li_flags |= mask;
+		} break;
 
 	case LDAP_BACK_CFG_WHOAMI:
 		if ( c->argc == 1 || c->value_int ) {
@@ -1361,6 +1424,42 @@ done_url:;
 			li->li_flags &= ~LDAP_BACK_F_SINGLECONN;
 		}
 		break;
+
+	case LDAP_BACK_CFG_CANCEL: {
+		slap_mask_t		mask;
+
+		i = verb_to_mask( c->argv[1], cancel_mode );
+		if ( BER_BVISNULL( &cancel_mode[i].word ) ) {
+			return 1;
+		}
+
+		mask = cancel_mode[i].mask;
+
+		if ( LDAP_BACK_ISOPEN( li )
+			&& mask == LDAP_BACK_F_CANCEL_EXOP_DISCOVER
+			&& !LDAP_BACK_CANCEL( li ) )
+		{
+			int		rc;
+
+			if ( li->li_uri == NULL ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"need URI to discover \"cancel\" support "
+					"in \"cancel exop-discover\"" );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+
+			rc = slap_discover_feature( li->li_uri, li->li_version,
+					slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
+					LDAP_EXOP_CANCEL );
+			if ( rc == LDAP_COMPARE_TRUE ) {
+				mask |= LDAP_BACK_F_CANCEL_EXOP;
+			}
+		}
+
+		li->li_flags &= ~LDAP_BACK_F_CANCEL_MASK2;
+		li->li_flags |= mask;
+		} break;
 
 	case LDAP_BACK_CFG_REWRITE:
 		snprintf( c->msg, sizeof( c->msg ),

@@ -203,8 +203,7 @@ retry:;
 			break;
 
 		case 0:
-			ldap_abandon_ext( mc->mc_conns[ candidate ].msc_ld,
-				msgid, NULL, NULL );
+			(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
 			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
 				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
 			maperr = 0;

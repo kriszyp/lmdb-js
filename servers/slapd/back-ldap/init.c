@@ -200,18 +200,29 @@ ldap_back_db_open( BackendDB *be )
 	}
 #endif /* SLAPD_MONITOR */
 
-	if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+	if ( LDAP_BACK_T_F_DISCOVER( li ) && !LDAP_BACK_T_F( li ) ) {
 		int		rc;
-
-		li->li_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
 
 		rc = slap_discover_feature( li->li_uri, li->li_version,
 				slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 				LDAP_FEATURE_ABSOLUTE_FILTERS );
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			li->li_flags |= LDAP_BACK_F_SUPPORT_T_F;
+			li->li_flags |= LDAP_BACK_F_T_F;
 		}
 	}
+
+	if ( LDAP_BACK_CANCEL_DISCOVER( li ) && !LDAP_BACK_CANCEL( li ) ) {
+		int		rc;
+
+		rc = slap_discover_feature( li->li_uri, li->li_version,
+				slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
+				LDAP_EXOP_CANCEL );
+		if ( rc == LDAP_COMPARE_TRUE ) {
+			li->li_flags |= LDAP_BACK_F_CANCEL_EXOP;
+		}
+	}
+
+	li->li_flags |= LDAP_BACK_F_ISOPEN;
 
 	return 0;
 }

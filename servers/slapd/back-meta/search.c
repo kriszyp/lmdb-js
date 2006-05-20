@@ -1072,13 +1072,11 @@ really_bad:;
 		/* check for abandon */
 		if ( op->o_abandon || doabandon ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				metasingleconn_t	*msc = &mc->mc_conns[ i ];
-
 				if ( candidates[ i ].sr_msgid != META_MSGID_IGNORE )
 				{
-					ldap_abandon_ext( msc->msc_ld,
-						candidates[ i ].sr_msgid,
-						NULL, NULL );
+					(void)meta_back_cancel( mc, op, rs,
+						candidates[ i ].sr_msgid, i,
+						LDAP_BACK_DONTSEND );
 					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				}
 			}

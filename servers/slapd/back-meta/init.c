@@ -130,15 +130,23 @@ meta_back_db_open(
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
-		if ( mt->mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER )
-		{
-			mt->mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+		if ( META_BACK_TGT_T_F_DISCOVER( mt ) ) {
 			rc = slap_discover_feature( mt->mt_uri,
 					mt->mt_version,
 					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 					LDAP_FEATURE_ABSOLUTE_FILTERS );
 			if ( rc == LDAP_COMPARE_TRUE ) {
-				mt->mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
+				mt->mt_flags |= LDAP_BACK_F_T_F;
+			}
+		}
+
+		if ( META_BACK_TGT_CANCEL_DISCOVER( mt ) ) {
+			rc = slap_discover_feature( mt->mt_uri,
+					mt->mt_version,
+					slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
+					LDAP_EXOP_CANCEL );
+			if ( rc == LDAP_COMPARE_TRUE ) {
+				mt->mt_flags |= LDAP_BACK_F_CANCEL_EXOP;
 			}
 		}
 	}

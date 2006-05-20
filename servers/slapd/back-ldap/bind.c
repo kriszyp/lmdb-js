@@ -1115,6 +1115,35 @@ ldap_back_default_urllist(
 }
 
 int
+ldap_back_cancel(
+		ldapconn_t		*lc,
+		Operation		*op,
+		SlapReply		*rs,
+		ber_int_t		msgid,
+		ldap_back_send_t	sendok )
+{
+	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+
+	/* default behavior */
+	if ( LDAP_BACK_ABANDON( li ) ) {
+		return ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+	}
+
+	if ( LDAP_BACK_IGNORE( li ) ) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( LDAP_BACK_CANCEL( li ) ) {
+		/* FIXME: asynchronous? */
+		return ldap_cancel_s( lc->lc_ld, msgid, NULL, NULL );
+	}
+
+	assert( 0 );
+
+	return LDAP_OTHER;
+}
+
+int
 ldap_back_op_result(
 		ldapconn_t		*lc,
 		Operation		*op,
@@ -1157,7 +1186,7 @@ retry:;
 		switch ( rc ) {
 		case 0:
 			if ( timeout ) {
-				(void)ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+				(void)ldap_back_cancel( lc, op, rs, msgid, sendok );
 				rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
 					LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
 				rs->sr_text = "Operation timed out";

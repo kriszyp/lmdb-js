@@ -376,7 +376,7 @@ retry:;
 
 			rs->sr_err = LDAP_BUSY;
 			if ( rebinding ) {
-				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
 				break;
 			}
 
@@ -393,7 +393,7 @@ retry:;
 				&rs->sr_err );
 
 			if ( rebinding ) {
-				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
 			}
 
 			snprintf( buf, sizeof( buf ),
@@ -552,7 +552,7 @@ retry:;
 
 			rc = LDAP_BUSY;
 			if ( rebinding ) {
-				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
 				break;
 			}
 
@@ -569,7 +569,7 @@ retry:;
 				&rs->sr_err );
 
 			if ( rebinding ) {
-				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
 			}
 
 			snprintf( buf, sizeof( buf ),
@@ -886,6 +886,41 @@ meta_back_default_urllist(
 
 	return LDAP_SUCCESS;
 }
+
+int
+meta_back_cancel(
+	metaconn_t		*mc,
+	Operation		*op,
+	SlapReply		*rs,
+	ber_int_t		msgid,
+	int			candidate,
+	ldap_back_send_t	sendok )
+{
+	metainfo_t		*mi = (metainfo_t *)op->o_bd->be_private;
+
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+
+	/* default behavior */
+	if ( META_BACK_TGT_ABANDON( mt ) ) {
+		return ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+	}
+
+	if ( META_BACK_TGT_IGNORE( mt ) ) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( META_BACK_TGT_CANCEL( mt ) ) {
+		/* FIXME: asynchronous? */
+		return ldap_cancel_s( msc->msc_ld, msgid, NULL, NULL );
+	}
+
+	assert( 0 );
+
+	return LDAP_OTHER;
+}
+
+
 
 /*
  * FIXME: error return must be handled in a cleaner way ...

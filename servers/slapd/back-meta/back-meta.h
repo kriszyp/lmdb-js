@@ -228,6 +228,17 @@ typedef struct metatarget_t {
 	struct ldaprwmap	mt_rwmap;
 
 	unsigned		mt_flags;
+#define	META_BACK_TGT_ISSET(mt,f)		( ( (mt)->mt_flags & (f) ) == (f) )
+#define	META_BACK_TGT_ISMASK(mt,m,f)		( ( (mt)->mt_flags & (m) ) == (f) )
+
+#define	META_BACK_TGT_T_F(mt)			META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_T_F_MASK, LDAP_BACK_F_T_F )
+#define	META_BACK_TGT_T_F_DISCOVER(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_T_F_MASK2, LDAP_BACK_F_T_F_DISCOVER )
+
+#define	META_BACK_TGT_ABANDON(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_ABANDON )
+#define	META_BACK_TGT_IGNORE(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_IGNORE )
+#define	META_BACK_TGT_CANCEL(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
+#define	META_BACK_TGT_CANCEL_DISCOVER(mt)	META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
+
 	int			mt_version;
 	time_t			mt_network_timeout;
 	struct timeval		mt_bind_timeout;
@@ -353,6 +364,15 @@ meta_back_single_dobind(
 	ldap_back_send_t	sendok,
 	int			retries,
 	int			dolock );
+
+extern int
+meta_back_cancel(
+	metaconn_t		*mc,
+	Operation		*op,
+	SlapReply		*rs,
+	ber_int_t		msgid,
+	int			candidate,
+	ldap_back_send_t	sendok );
 
 extern int
 meta_back_op_result(

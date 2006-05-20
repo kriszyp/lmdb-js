@@ -56,6 +56,7 @@ int ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_s
 int ldap_back_map_result( SlapReply *rs );
 int ldap_back_op_result( ldapconn_t *lc, Operation *op, SlapReply *rs,
 	ber_int_t msgid, time_t timeout, ldap_back_send_t sendok );
+int ldap_back_cancel( ldapconn_t *lc, Operation *op, SlapReply *rs, ber_int_t msgid, ldap_back_send_t sendok );
 
 int ldap_back_init_cf( BackendInfo *bi );
 

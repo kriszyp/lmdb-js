@@ -75,7 +75,7 @@ ldap_back_munge_filter(
 
 		if ( strncmp( ptr, bv_true.bv_val, bv_true.bv_len ) == 0 ) {
 			oldbv = &bv_true;
-			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( LDAP_BACK_T_F( li ) ) {
 				newbv = &bv_t;
 
 			} else {
@@ -85,7 +85,7 @@ ldap_back_munge_filter(
 		} else if ( strncmp( ptr, bv_false.bv_val, bv_false.bv_len ) == 0 )
 		{
 			oldbv = &bv_false;
-			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( LDAP_BACK_T_F( li ) ) {
 				newbv = &bv_f;
 
 			} else {
@@ -264,7 +264,7 @@ retry:
 			if ( rc > 0 ) {
 				ldap_msgfree( res );
 			}
-			ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+			(void)ldap_back_cancel( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 			rc = SLAPD_ABANDON;
 			goto finish;
 		}
@@ -277,7 +277,7 @@ retry:
 			if ( op->ors_tlimit != SLAP_NO_LIMIT
 					&& slap_get_time() > stoptime )
 			{
-				ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+				(void)ldap_back_cancel( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 				rc = rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 				goto finish;
 			}
@@ -320,7 +320,7 @@ retry:
 				if ( rc == LDAP_UNAVAILABLE ) {
 					rc = rs->sr_err = LDAP_OTHER;
 				} else {
-					ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+					(void)ldap_back_cancel( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 				}
 				goto finish;
 			}

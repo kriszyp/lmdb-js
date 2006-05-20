@@ -734,16 +734,16 @@ meta_back_db_config(
 
 		switch ( check_true_false( argv[ 1 ] ) ) {
 		case 0:
-			*flagsp &= ~(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER);
+			*flagsp &= ~LDAP_BACK_F_T_F_MASK2;
 			break;
 
 		case 1:
-			*flagsp |= LDAP_BACK_F_SUPPORT_T_F;
+			*flagsp |= LDAP_BACK_F_T_F;
 			break;
 
 		default:
 			if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
-				*flagsp |= LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+				*flagsp |= LDAP_BACK_F_T_F_DISCOVER;
 
 			} else {
 				Debug( LDAP_DEBUG_ANY,
@@ -832,6 +832,41 @@ meta_back_db_config(
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
+
+	} else if ( strcasecmp( argv[ 0 ], "cancel" ) == 0 ) {
+		unsigned 	flag = 0;
+		unsigned	*flagsp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
+				: &mi->mi_flags;
+
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"cancel {abandon|ignore|exop}\" takes 1 argument\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[ 1 ], "abandon" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_ABANDON;
+
+		} else if ( strcasecmp( argv[ 1 ], "ignore" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_IGNORE;
+
+		} else if ( strcasecmp( argv[ 1 ], "exop" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_EXOP;
+
+		} else if ( strcasecmp( argv[ 1 ], "exop-discover" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_EXOP_DISCOVER;
+
+		} else {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"cancel {abandon|ignore|exop[-discover]}\": unknown mode \"%s\" \n",
+				fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+
+		*flagsp &= ~LDAP_BACK_F_CANCEL_MASK2;
+		*flagsp |= flag;
 
 	} else if ( strcasecmp( argv[ 0 ], "timeout" ) == 0 ) {
 		char	*sep;
