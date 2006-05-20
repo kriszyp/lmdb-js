@@ -982,7 +982,7 @@ void connection_done( Connection *c )
 /*
  * NOTE: keep in sync with enum in slapd.h
  */
-static int (*opfun[])( Operation *op, SlapReply *rs ) = {
+static BI_op_func *opfun[] = {
 	do_bind,
 	do_unbind,
 	do_add,
