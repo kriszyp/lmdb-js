@@ -555,7 +555,7 @@ find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
 	Filter* fi;
 	const char* text;
 	MatchingRule* mrule = NULL;
-	int res=0;
+	int res=0, eqpass= 0;
 	int ret, rc, dir;
 	Avlnode *ptr;
 	CachedQuery cq, *qc;
@@ -571,7 +571,7 @@ find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
 		dir = TAVL_DIR_LEFT;
 	} else {
 		ptr = tavl_find3( root, &cq, pcache_filter_cmp, &ret );
-		dir = (first->f_choice == LDAP_FILTER_LE) ? TAVL_DIR_LEFT :
+		dir = (first->f_choice == LDAP_FILTER_GE) ? TAVL_DIR_LEFT :
 			TAVL_DIR_RIGHT;
 	}
 
@@ -579,6 +579,30 @@ find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
 		qc = ptr->avl_data;
 		fi = inputf;
 		fs = qc->filter;
+
+		/* an incoming substr query can only be satisfied by a cached
+		 * substr query.
+		 */
+		if ( first->f_choice == LDAP_FILTER_SUBSTRINGS &&
+			qc->first->f_choice != LDAP_FILTER_SUBSTRINGS )
+			break;
+
+		/* an incoming eq query can be satisfied by a cached eq or substr
+		 * query
+		 */
+		if ( first->f_choice == LDAP_FILTER_EQUALITY ) {
+			if ( eqpass == 0 ) {
+				if ( qc->first->f_choice != LDAP_FILTER_EQUALITY ) {
+nextpass:			eqpass = 1;
+					ptr = tavl_end( root, 1 );
+					dir = TAVL_DIR_LEFT;
+					continue;
+				}
+			} else {
+				if ( qc->first->f_choice != LDAP_FILTER_SUBSTRINGS )
+					break;
+			}
+		}
 		do {
 			res=0;
 			switch (fs->f_choice) {
@@ -604,6 +628,8 @@ find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
 				if (rc != LDAP_SUCCESS) {
 					return NULL;
 				}
+				if ( fi==first && fi->f_choice==LDAP_FILTER_EQUALITY && ret )
+					goto nextpass;
 			}
 			switch (fs->f_choice) {
 			case LDAP_FILTER_OR:
