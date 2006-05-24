@@ -122,6 +122,36 @@ and
 .RE
 
 .TP
+.B cancel {ABANDON|ignore|exop[-discover]}
+Defines how to handle operation cancellation.
+By default,
+.B abandon
+is invoked, so the operation is abandoned immediately.
+If set to
+.BR ignore ,
+no action is taken and any further response is ignored; this may result
+in further response messages to be queued for that connection, so it is
+recommended that long lasting connections are timed out either by
+.I idle-timeout
+or
+.IR conn-ttl ,
+so that resources eventually get released.
+If set to
+.BR exop ,
+a
+.I cancel
+operation (RFC 3909) is issued, resulting in the cancellation 
+of the current operation; the
+.I cancel
+operation waits for remote server response, so its use 
+may not be recommended.
+If set to
+.BR exop-discover ,
+support of the
+.I cancel 
+extended operation is detected by reading the remote server's root DSE.
+
+.TP
 .B chase-referrals {YES|no}
 enable/disable automatic referral chasing, which is delegated to the
 underlying libldap, with rebinding eventually performed if the
