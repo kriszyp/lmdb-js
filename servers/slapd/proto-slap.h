@@ -1021,6 +1021,10 @@ LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
 LDAP_SLAPD_F (int)
 parse_debug_level LDAP_P(( const char *arg, int *levelp, char ***unknowns ));
 LDAP_SLAPD_F (int)
+parse_syslog_level LDAP_P(( const char *arg, int *levelp ));
+LDAP_SLAPD_F (int)
+parse_syslog_user LDAP_P(( const char *arg, int *syslogUser ));
+LDAP_SLAPD_F (int)
 parse_debug_unknowns LDAP_P(( char **unknowns, int *levelp ));
 
 /*

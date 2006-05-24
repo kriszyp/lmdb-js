@@ -47,18 +47,26 @@ static FILE *leakfile;
 
 static LDIFFP dummy;
 
+#ifdef LDAP_SYSLOG
+int start_syslog;
+static char **syslog_unknowns;
+#ifdef LOG_LOCAL4
+static int syslogUser = SLAP_DEFAULT_SYSLOG_USER;
+#endif /* LOG_LOCAL4 */
+#endif /* LDAP_SYSLOG */
+
 static void
 usage( int tool, const char *progname )
 {
 	char *options = NULL;
 	fprintf( stderr,
-		"usage: %s [-v] [-d debuglevel] [-f configfile] [-F configdir]",
+		"usage: %s [-v] [-d debuglevel] [-f configfile] [-F configdir] [-o <name>[=<value>]]",
 		progname );
 
 	switch( tool ) {
 	case SLAPACL:
 		options = "\n\t[-U authcID | -D authcDN] [-X authzID | -o authzDN=<DN>]"
-			"\n\t-b DN -o <var>[=<val>] [-u] [attr[/access][:value]] [...]\n";
+			"\n\t-b DN [-u] [attr[/access][:value]] [...]\n";
 		break;
 
 	case SLAPADD:
@@ -95,18 +103,16 @@ usage( int tool, const char *progname )
 }
 
 static int
-parse_slapacl( void )
+parse_slapopt( void )
 {
-	size_t	len;
+	size_t	len = 0;
 	char	*p;
 
 	p = strchr( optarg, '=' );
-	if ( p == NULL ) {
-		return -1;
+	if ( p != NULL ) {
+		len = p - optarg;
+		p++;
 	}
-
-	len = p - optarg;
-	p++;
 
 	if ( strncasecmp( optarg, "sockurl", len ) == 0 ) {
 		if ( !BER_BVISNULL( &listener_url ) ) {
@@ -159,6 +165,28 @@ parse_slapacl( void )
 	} else if ( strncasecmp( optarg, "authzDN", len ) == 0 ) {
 		ber_str2bv( p, 0, 1, &authzDN );
 
+#ifdef LDAP_SYSLOG
+	} else if ( strncasecmp( optarg, "syslog", len ) == 0 ) {
+		if ( parse_debug_level( p, &ldap_syslog, &syslog_unknowns ) ) {
+			return -1;
+		}
+		start_syslog = 1;
+
+	} else if ( strncasecmp( optarg, "syslog-level", len ) == 0 ) {
+		if ( parse_syslog_level( p, &ldap_syslog_level ) ) {
+			return -1;
+		}
+		start_syslog = 1;
+
+#ifdef LOG_LOCAL4
+	} else if ( strncasecmp( optarg, "syslog-user", len ) == 0 ) {
+		if ( parse_syslog_user( p, &syslogUser ) ) {
+			return -1;
+		}
+		start_syslog = 1;
+#endif /* LOG_LOCAL4 */
+#endif /* LDAP_SYSLOG */
+
 	} else {
 		return -1;
 	}
@@ -200,6 +228,7 @@ slap_tool_init(
 	 * messages show up; use -d 0 to reset */
 	slap_debug = LDAP_DEBUG_NONE;
 #endif
+	ldap_syslog = 0;
 
 #ifdef CSRIMALLOC
 	leakfilename = malloc( strlen( progname ) + STRLENOF( ".leak" ) + 1 );
@@ -212,31 +241,31 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:F:gl:n:qstuvw";
+		options = "b:cd:f:F:gl:n:o:qstuvw";
 		break;
 
 	case SLAPCAT:
-		options = "a:b:cd:f:F:gl:n:s:v";
+		options = "a:b:cd:f:F:gl:n:o:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPDN:
-		options = "d:f:F:NPv";
+		options = "d:f:F:No:Pv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPTEST:
-		options = "d:f:F:uv";
+		options = "d:f:F:o:uv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPAUTH:
-		options = "d:f:F:M:R:U:vX:";
+		options = "d:f:F:M:o:R:U:vX:";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPINDEX:
-		options = "b:cd:f:F:gn:qv";
+		options = "b:cd:f:F:gn:o:qv";
 		mode |= SLAP_TOOL_READMAIN;
 		break;
 
@@ -324,7 +353,7 @@ slap_tool_init(
 			break;
 
 		case 'o':
-			if ( parse_slapacl() ) {
+			if ( parse_slapopt() ) {
 				usage( tool, progname );
 			}
 			break;
@@ -382,6 +411,27 @@ slap_tool_init(
 		}
 	}
 
+#ifdef LDAP_SYSLOG
+	if ( start_syslog ) {
+		char *logName;
+#ifdef HAVE_EBCDIC
+		logName = ch_strdup( progname );
+		__atoe( logName );
+#else
+		logName = (char *)progname;
+#endif
+
+#ifdef LOG_LOCAL4
+		openlog( logName, OPENLOG_OPTIONS, syslogUser );
+#elif LOG_DEBUG
+		openlog( logName, OPENLOG_OPTIONS );
+#endif
+#ifdef HAVE_EBCDIC
+		free( logName );
+#endif
+	}
+#endif /* LDAP_SYSLOG */
+
 	switch ( tool ) {
 	case SLAPADD:
 	case SLAPCAT:
@@ -424,8 +474,6 @@ slap_tool_init(
 		break;
 	}
 
-	ldap_syslog = 0;
-
 	if ( ldiffile == NULL ) {
 		dummy.fp = tool == SLAPCAT ? stdout : stdin;
 		ldiffp = &dummy;
@@ -459,6 +507,14 @@ slap_tool_init(
 		rc = parse_debug_unknowns( debug_unknowns, &slap_debug );
 		ldap_charray_free( debug_unknowns );
 		debug_unknowns = NULL;
+		if ( rc )
+			exit( EXIT_FAILURE );
+	}
+
+	if ( syslog_unknowns ) {
+		rc = parse_debug_unknowns( syslog_unknowns, &ldap_syslog );
+		ldap_charray_free( syslog_unknowns );
+		syslog_unknowns = NULL;
 		if ( rc )
 			exit( EXIT_FAILURE );
 	}

@@ -6,15 +6,16 @@
 slapindex \- SLAPD index to LDIF utility
 .SH SYNOPSIS
 .B SBINDIR/slapindex
-.B [\-v]
-.B [\-c]
-.B [\-g]
-.B [\-q]
-.B [\-d level]
 .B [\-b suffix]
-.B [\-n dbnum]
+.B [\-c]
+.B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
+.B [\-g]
+.B [\-n dbnum]
+.B [\-o name[=value]
+.B [\-q]
+.B [\-v]
 .B 
 .LP
 .SH DESCRIPTION
@@ -31,27 +32,6 @@ Databases configured as
 of this one are also re-indexed, unless \fB-g\fP is specified.
 .SH OPTIONS
 .TP
-.B \-v
-enable verbose mode.
-.TP
-.B \-c
-enable continue (ignore errors) mode.
-.TP
-.B \-g
-disable subordinate gluing.  Only the specified database will be
-processed, and not its glued subordinates (if any).
-.TP
-.B \-q
-enable quick (fewer integrity checks) mode. Performs no consistency checks
-when writing the database. Improves indexing time,
-.B however
-the database will most likely be unusable if any errors or
-interruptions occur.
-.TP
-.BI \-d " level"
-enable debugging messages as defined by the specified
-.IR level .
-.TP
 .BI \-b " suffix" 
 Use the specified \fIsuffix\fR to determine which database to
 generate output for.  The \-b cannot be used in conjunction
@@ -59,13 +39,12 @@ with the
 .B \-n
 option.
 .TP
-.BI \-n " dbnum"
-Generate output for the \fIdbnum\fR\-th database listed in the
-configuration file.  The
-.B \-n
-cannot be used in conjunction with the
-.B \-b
-option.
+.B \-c
+enable continue (ignore errors) mode.
+.TP
+.BI \-d " level"
+enable debugging messages as defined by the specified
+.IR level .
 .TP
 .BI \-f " slapd.conf"
 specify an alternative
@@ -84,6 +63,42 @@ If neither option is specified, an attempt to read the
 default config directory will be made before trying to use the default
 config file. If a valid config directory exists then the
 default config file is ignored.
+.TP
+.B \-g
+disable subordinate gluing.  Only the specified database will be
+processed, and not its glued subordinates (if any).
+.TP
+.BI \-n " dbnum"
+Generate output for the \fIdbnum\fR\-th database listed in the
+configuration file.  The
+.B \-n
+cannot be used in conjunction with the
+.B \-b
+option.
+.TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible generic options/values are:
+.LP
+.nf
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
+.TP
+.B \-q
+enable quick (fewer integrity checks) mode. Performs no consistency checks
+when writing the database. Improves indexing time,
+.B however
+the database will most likely be unusable if any errors or
+interruptions occur.
+.TP
+.B \-v
+enable verbose mode.
 .SH LIMITATIONS
 Your
 .BR slapd (8)

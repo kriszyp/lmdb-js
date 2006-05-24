@@ -6,17 +6,18 @@
 slapcat \- SLAPD database to LDIF utility
 .SH SYNOPSIS
 .B SBINDIR/slapcat
-.B [\-v]
-.B [\-c]
-.B [\-g]
-.B [\-d level]
-.B [\-b suffix]
-.B [\-n dbnum]
 .B [\-a filter]
-.B [\-s subtree-dn]
+.B [\-b suffix]
+.B [\-c]
+.B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
+.B [\-g]
 .B [\-l ldif-file]
+.B [\-n dbnum]
+.B [\-o name[=value]
+.B [\-s subtree-dn]
+.B [\-v]
 .B 
 .LP
 .SH DESCRIPTION
@@ -48,35 +49,6 @@ into superior first order and removing no-user-modification
 operational attributes.
 .SH OPTIONS
 .TP
-.B \-v
-Enable verbose mode.
-.TP
-.B \-c
-Enable continue (ignore errors) mode.
-.TP
-.B \-g
-disable subordinate gluing.  Only the specified database will be
-processed, and not its glued subordinates (if any).
-.TP
-.BI \-d " level"
-Enable debugging messages as defined by the specified
-.IR level .
-.TP
-.BI \-b " suffix" 
-Use the specified \fIsuffix\fR to determine which database to
-generate output for.  The \-b cannot be used in conjunction
-with the
-.B \-n
-option.
-.TP
-.BI \-n " dbnum"
-Generate output for the \fIdbnum\fR\-th database listed in the
-configuration file.  The
-.B \-n
-cannot be used in conjunction with the
-.B \-b
-option.
-.TP
 .BI \-a " filter"
 Only dump entries matching the asserted filter.
 For example
@@ -87,13 +59,19 @@ slapcat -a \\
 will dump all but the "ou=People,dc=example,dc=com" subtree
 of the "dc=example,dc=com" database.
 .TP
-.BI \-s " subtree-dn"
-Only dump entries in the subtree specified by this DN.
-Implies `-b subtree-dn' if no
-.B \-b
-or
+.BI \-b " suffix" 
+Use the specified \fIsuffix\fR to determine which database to
+generate output for.  The \-b cannot be used in conjunction
+with the
 .B \-n
-option is given.
+option.
+.TP
+.B \-c
+Enable continue (ignore errors) mode.
+.TP
+.BI \-d " level"
+Enable debugging messages as defined by the specified
+.IR level .
 .TP
 .BI \-f " slapd.conf"
 Specify an alternative
@@ -113,8 +91,45 @@ default config directory will be made before trying to use the default
 config file. If a valid config directory exists then the
 default config file is ignored.
 .TP
+.B \-g
+disable subordinate gluing.  Only the specified database will be
+processed, and not its glued subordinates (if any).
+.TP
 .BI \-l " ldif-file"
 Write LDIF to specified file instead of standard output.
+.TP
+.BI \-n " dbnum"
+Generate output for the \fIdbnum\fR\-th database listed in the
+configuration file.  The
+.B \-n
+cannot be used in conjunction with the
+.B \-b
+option.
+.TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible generic options/values are:
+.LP
+.nf
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
+.TP
+.BI \-s " subtree-dn"
+Only dump entries in the subtree specified by this DN.
+Implies `-b subtree-dn' if no
+.B \-b
+or
+.B \-n
+option is given.
+.TP
+.B \-v
+Enable verbose mode.
 .SH LIMITATIONS
 In general, your
 .BR slapd (8)

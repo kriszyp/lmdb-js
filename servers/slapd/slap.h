@@ -2681,21 +2681,27 @@ typedef struct slap_conn {
 	SEND_LDAP_INTERMEDIATE *c_send_ldap_intermediate;
 } Connection;
 
-#if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
+#ifdef LDAP_DEBUG
+#ifdef LDAP_SYSLOG
+#ifdef LOG_LOCAL4
+#define SLAP_DEFAULT_SYSLOG_USER	LOG_LOCAL4
+#endif /* LOG_LOCAL4 */
+
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	Log5( (level), ldap_syslog_level, (fmt), (connid), (opid), (arg1), (arg2), (arg3) )
 #define StatslogTest( level ) ((ldap_debug | ldap_syslog) & (level))
-#elif defined(LDAP_DEBUG)
+#else /* !LDAP_SYSLOG */
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	do { \
 		if ( ldap_debug & (level) ) \
 			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
-#else
+#endif /* !LDAP_SYSLOG */
+#else /* !LDAP_DEBUG */
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) ((void) 0)
 #define StatslogTest( level ) (0)
-#endif
+#endif /* !LDAP_DEBUG */
 
 /*
  * listener; need to access it from monitor backend

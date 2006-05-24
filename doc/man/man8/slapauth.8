@@ -5,13 +5,14 @@
 slapauth \- Check a list of string-represented IDs for authc/authz.
 .SH SYNOPSIS
 .B SBINDIR/slapauth
-.B [\-v]
 .B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
 .B [\-M mech]
+.B [\-o name[=value]
 .B [\-R realm]
 .B [\-U authcID]
+.B [\-v]
 .B [\-X authzID]
 .B ID [...]
 .LP
@@ -32,9 +33,6 @@ directives, and then parses the
 list given on the command-line.
 .LP
 .SH OPTIONS
-.TP
-.B \-v
-enable verbose mode.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
@@ -61,6 +59,20 @@ default config file is ignored.
 .BI \-M " mech"
 specify a mechanism.
 .TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible generic options/values are:
+.LP
+.nf
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
+.TP
 .BI \-R " realm"
 specify a realm.
 .TP
@@ -86,6 +98,9 @@ If both
 and
 .I authzID
 are given via command line switch, the ID list cannot be present.
+.TP
+.B \-v
+enable verbose mode.
 .SH EXAMPLES
 The command
 .LP

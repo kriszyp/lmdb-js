@@ -6,18 +6,19 @@
 slapadd \- Add entries to a SLAPD database
 .SH SYNOPSIS
 .B SBINDIR/slapadd
-.B [\-v]
+.B [\-b suffix]
 .B [\-c]
 .B [\-g]
-.B [\-u]
-.B [\-q]
-.B [\-w]
 .B [\-d level]
-.B [\-b suffix]
-.B [\-n dbnum]
 .B [\-f slapd.conf]
 .B [\-F confdir]
 .B [\-l ldif-file]
+.B [\-n dbnum]
+.B [\-o name[=value]
+.B [\-q]
+.B [\-u]
+.B [\-v]
+.B [\-w]
 .SH DESCRIPTION
 .LP
 .B Slapadd
@@ -43,40 +44,6 @@ schema checks, and does not maintain operational
 attributes (such as createTimeStamp and modifiersName). 
 .SH OPTIONS
 .TP
-.B \-v
-enable verbose mode.
-.TP
-.B \-c
-enable continue (ignore errors) mode.
-.TP
-.B \-g
-disable subordinate gluing.  Only the specified database will be
-processed, and not its glued subordinates (if any).
-.TP
-.B -s
-disable schema checking.  This option is intended to be used when loading
-databases containing special objects, such as fractional objects on a
-partial replica.  Loading normal objects which do not conform to
-schema may result in unexpected and ill behavior.
-.TP
-.B \-u
-enable dry-run (don't write to backend) mode.
-.TP
-.B \-q
-enable quick (fewer integrity checks) mode.  Does fewer consistency checks
-on the input data, and no consistency checks when writing the database.
-Improves the load time but if any errors or interruptions occur the resulting
-database will be unusable.
-.TP
-.BI \-w
-write syncrepl context information.
-After all entries are added, the contextCSN
-will be updated with the greatest CSN in the database.
-.TP
-.BI \-d " level"
-enable debugging messages as defined by the specified
-.IR level .
-.TP
 .BI \-b " suffix" 
 Use the specified \fIsuffix\fR to determine which database to
 add entries to.  The \-b cannot be used in conjunction
@@ -84,13 +51,12 @@ with the
 .B \-n
 option.
 .TP
-.BI \-n " dbnum"
-Add entries to the \fIdbnum\fR\-th database listed in the
-configuration file.  The
-.B \-n
-cannot be used in conjunction with the
-.B \-b
-option.
+.B \-c
+enable continue (ignore errors) mode.
+.TP
+.BI \-d " level"
+enable debugging messages as defined by the specified
+.IR level .
 .TP
 .BI \-f " slapd.conf"
 specify an alternative
@@ -111,8 +77,57 @@ config file. If a valid config directory exists then the
 default config file is ignored. If dryrun mode is also specified,
 no conversion will occur.
 .TP
+.B \-g
+disable subordinate gluing.  Only the specified database will be
+processed, and not its glued subordinates (if any).
+.TP
 .BI \-l " ldif-file"
 Read LDIF from the specified file instead of standard input.
+.TP
+.BI \-n " dbnum"
+Add entries to the \fIdbnum\fR\-th database listed in the
+configuration file.  The
+.B \-n
+cannot be used in conjunction with the
+.B \-b
+option.
+.TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible generic options/values are:
+.LP
+.nf
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
+.TP
+.B \-q
+enable quick (fewer integrity checks) mode.  Does fewer consistency checks
+on the input data, and no consistency checks when writing the database.
+Improves the load time but if any errors or interruptions occur the resulting
+database will be unusable.
+.TP
+.B -s
+disable schema checking.  This option is intended to be used when loading
+databases containing special objects, such as fractional objects on a
+partial replica.  Loading normal objects which do not conform to
+schema may result in unexpected and ill behavior.
+.TP
+.B \-u
+enable dry-run (don't write to backend) mode.
+.TP
+.B \-v
+enable verbose mode.
+.TP
+.BI \-w
+write syncrepl context information.
+After all entries are added, the contextCSN
+will be updated with the greatest CSN in the database.
 .SH LIMITATIONS
 Your
 .BR slapd (8)

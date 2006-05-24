@@ -8,6 +8,7 @@ slaptest \- Check the suitability of the slapd.conf file.
 .B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
+.B [\-o name[=value]
 .B [\-u]
 .B [\-v]
 .LP
@@ -46,6 +47,20 @@ default config directory before trying to use the default
 config file. If a valid config directory exists then the
 default config file is ignored. If dryrun mode is also specified,
 no conversion will occur.
+.TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible generic options/values are:
+.LP
+.nf
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
 .TP
 .B \-u
 enable dryrun mode (i.e. don't fail if databases cannot be opened,
