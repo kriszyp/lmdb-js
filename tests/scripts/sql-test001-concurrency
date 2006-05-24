@@ -26,6 +26,16 @@ if test $RDBMS = "rdbmsno" ; then
 	exit 0
 fi
 
+if test "x$LOOPS" = "x" ; then
+	LOOPS=5
+fi
+
+if test "x$CHILDREN" = "x" ; then
+	CHILDREN="-j 4"
+else
+	CHILDREN="-j $CHILDREN"
+fi
+
 SQLDATADIR=$TESTDIR/sql-concurrency
 mkdir -p $TESTDIR $SQLDATADIR
 
@@ -74,7 +84,7 @@ echo "Filtering original ldif used to create database..."
 if test "${RDBMSWRITE}" != "yes"; then
 	echo "write test disabled for ${RDBMS}; set SLAPD_USE_SQLWRITE=yes to enable"
 	cp $SQLCONCURRENCYDIR/do_read* $SQLCONCURRENCYDIR/do_search* \
-		$SQLDATADIR
+		$SQLCONCURRENCYDIR/do_bind* $SQLDATADIR
 else
 	case ${RDBMS} in
 		# list here the RDBMSes whose mapping allows writes
@@ -84,14 +94,15 @@ else
 	*)
 		echo "write is not supported for ${RDBMS}; performing read-only concurrency test"
 		cp $SQLCONCURRENCYDIR/do_read* $SQLCONCURRENCYDIR/do_search* \
-			$SQLDATADIR
+			$SQLCONCURRENCYDIR/do_bind* $SQLDATADIR
 		;;
 	esac
 fi
 
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$SQLDATADIR" \
-	-h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 5 -j 4
+	-h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
+	-l $LOOPS $CHILDREN -FF
 RC=$?
 
 if test $RC != 0 ; then
