@@ -431,6 +431,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		}
 	}
 	if ( cf->arg_type & ARGS_TYPES) {
+		bv.bv_len = 0;
 		bv.bv_val = c->log;
 		switch(cf->arg_type & ARGS_TYPES) {
 		case ARG_INT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%d", c->value_int); break;
