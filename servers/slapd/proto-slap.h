@@ -727,7 +727,7 @@ LDAP_SLAPD_F (int) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_abrupt_shutdown;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
 LDAP_SLAPD_V (int) slapd_register_slp;
-LDAP_SLAPD_V (char *) slapd_slp_attrs;
+LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 LDAP_SLAPD_V (slap_ssf_t) local_ssf;
 LDAP_SLAPD_V (struct runqueue_s) slapd_rq;
 

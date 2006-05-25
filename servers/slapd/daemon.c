@@ -339,7 +339,7 @@ static struct slap_daemon {
 static char** slapd_srvurls = NULL;
 static SLPHandle slapd_hslp = 0;
 int slapd_register_slp = 0;
-char *slapd_slp_attrs = NULL;
+const char *slapd_slp_attrs = NULL;
 
 static SLPError slapd_slp_cookie;
 
