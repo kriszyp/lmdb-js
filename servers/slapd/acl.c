@@ -2228,7 +2228,7 @@ acl_match_set (
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
 		struct berval		setat;
-		BerVarray		bvals;
+		BerVarray		bvals = NULL;
 		const char		*text;
 		AttributeDescription	*desc = NULL;
 
