@@ -62,14 +62,14 @@ constraint_violation( constraint *c, struct berval *bv )
 }
 
 static char *
-print_message( const char *fmt, AttributeDescription *a )
+print_message( const char *msg, AttributeDescription *a )
 {
     char *ret;
     int sz;
     
-    sz = strlen(fmt) + a->ad_cname.bv_len + 1;
+    sz = strlen(msg) + a->ad_cname.bv_len + sizeof(" on ");
     ret = ch_malloc(sz);
-    snprintf( ret, sz, fmt, a->ad_cname.bv_val );
+    snprintf( ret, sz, "%s on %s", msg, a->ad_cname.bv_val );
     return ret;
 }
 
@@ -81,7 +81,7 @@ constraint_add( Operation *op, SlapReply *rs )
     constraint *c = on->on_bi.bi_private, *cp;
     BerVarray b = NULL;
     int i;
-    const char *rsv = "add breaks regular expression constraint on %s";
+    const char *rsv = "add breaks regular expression constraint";
     char *msg;
     
     if ((a = op->ora_e->e_attrs) == NULL) {
@@ -126,7 +126,7 @@ constraint_modify( Operation *op, SlapReply *rs )
     Modifications *m;
     BerVarray b = NULL;
     int i;
-    const char *rsv = "modify breaks regular expression constraint on %s";
+    const char *rsv = "modify breaks regular expression constraint";
     char *msg;
     
     if ((m = op->orm_modlist) == NULL) {
@@ -176,7 +176,6 @@ static int constraint_config(
 {
     slap_overinst *on = (slap_overinst *) be->bd_info;
     constraint ap = { NULL, NULL, NULL  }, *a2 = NULL;
-    regmatch_t rm[2];
     
     if ( strcasecmp( argv[0], "constraint_attribute" ) == 0 ) {
         const char *text;
@@ -200,19 +199,19 @@ static int constraint_config(
             
             ap.re = ch_malloc( sizeof(regex_t) );
             if ((err = regcomp( ap.re, argv[3], REG_EXTENDED )) != 0) {
-                const char *fmt = "%s: line %d: Illegal regular expression \"%s\": Error %s\n";
+                static const char fmt[] = "\"%s\": Error %s";
                 char errmsg[1024], *msg;
-                int i, l, msgsize;
+                int msgsize;
                 
                 msgsize = regerror( err, ap.re, errmsg, sizeof(errmsg) );
-                msgsize += strlen(fmt) + strlen(argv[3]) + strlen(fname);
-                for(l=lineno; l>0; l/=10, msgsize++);
-                msgsize++;
+                msgsize += STRLENOF(fmt) - STRLENOF("%s%s") + strlen(argv[3]);
 
                 msg = ch_malloc( msgsize + 1 );
-                snprintf( msg, msgsize, fmt, fname, lineno, argv[3], errmsg );
+                snprintf( msg, msgsize, fmt, argv[3], errmsg );
                 ch_free(ap.re);
-                Debug( LDAP_DEBUG_ANY, msg, 0, 0, 0);
+                Debug( LDAP_DEBUG_ANY,
+                    "%s: line %d: Illegal regular expression %s\n",
+                    fname, lineno, msg );
                 ch_free(msg);
                 ap.re = NULL;
                 return(1);
