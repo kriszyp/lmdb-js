@@ -284,6 +284,13 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 
 	ber_memfree( p );
 
+	/* Update child thread */
+	if ( q ) {
+		for ( ; q->avl_bits[nside] == AVL_CHILD && q->avl_link[nside];
+			q = q->avl_link[nside] ) ;
+		q->avl_link[nside] = r;
+	}
+	
 	if ( !depth ) {
 		*root = q;
 		return data;
@@ -295,12 +302,7 @@ tavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 	side = pdir[depth];
 	p->avl_link[side] = q;
 
-	/* Update child thread */
-	if ( q ) {
-		for ( ; q->avl_bits[nside] == AVL_CHILD && q->avl_link[nside];
-			q = q->avl_link[nside] ) ;
-		q->avl_link[nside] = r;
-	} else {
+	if ( !q ) {
 		p->avl_bits[side] = AVL_THREAD;
 		p->avl_link[side] = r;
 	}
