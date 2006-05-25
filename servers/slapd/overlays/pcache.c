@@ -564,7 +564,6 @@ find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
 {
 	Filter* fs;
 	Filter* fi;
-	const char* text;
 	MatchingRule* mrule = NULL;
 	int res=0, eqpass= 0;
 	int ret, rc, dir;
@@ -720,7 +719,7 @@ query_containment(Operation *op, query_manager *qm,
 		Filter *first;
 
 		Debug( pcache_debug, "Lock QC index = %p\n",
-				templa, 0, 0 );
+				(void *) templa, 0, 0 );
 		qbase.base = query->base;
 
 		first = filter_first( query->filter );
@@ -796,7 +795,7 @@ query_containment(Operation *op, query_manager *qm,
 
 		Debug( pcache_debug,
 			"Not answerable: Unlock QC index=%p\n",
-			templa, 0, 0 );
+			(void *) templa, 0, 0 );
 		ldap_pvt_thread_rdwr_runlock(&templa->t_rwlock);
 	}
 	return NULL;
@@ -844,7 +843,7 @@ static CachedQuery * add_query(
 
 	/* Adding a query    */
 	Debug( pcache_debug, "Lock AQ index = %p\n",
-			templ, 0, 0 );
+			(void *) templ, 0, 0 );
 	ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
 	qbase = avl_find( templ->qbase, &qb, pcache_dn_cmp );
 	if ( !qbase ) {
@@ -875,10 +874,10 @@ static CachedQuery * add_query(
 		filter_free( query->filter );
 	}
 	Debug( pcache_debug, "TEMPLATE %p QUERIES++ %d\n",
-			templ, templ->no_of_queries, 0 );
+			(void *) templ, templ->no_of_queries, 0 );
 
 	Debug( pcache_debug, "Unlock AQ index = %p \n",
-			templ, 0, 0 );
+			(void *) templ, 0, 0 );
 	ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 
 	/* Adding on top of LRU list  */
@@ -943,12 +942,12 @@ static void cache_replacement(query_manager* qm, struct berval *result)
 	*result = bottom->q_uuid;
 	bottom->q_uuid.bv_val = NULL;
 
-	Debug( pcache_debug, "Lock CR index = %p\n", temp, 0, 0 );
+	Debug( pcache_debug, "Lock CR index = %p\n", (void *) temp, 0, 0 );
 	ldap_pvt_thread_rdwr_wlock(&temp->t_rwlock);
 	remove_from_template(bottom, temp);
 	Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
-		temp, temp->no_of_queries, 0 );
-	Debug( pcache_debug, "Unlock CR index = %p\n", temp, 0, 0 );
+		(void *) temp, temp->no_of_queries, 0 );
+	Debug( pcache_debug, "Unlock CR index = %p\n", (void *) temp, 0, 0 );
 	ldap_pvt_thread_rdwr_wunlock(&temp->t_rwlock);
 	free_query(bottom);
 }
@@ -1260,7 +1259,6 @@ pcache_response(
 	slap_overinst *on = si->on;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager*		qm = cm->qm;
-	struct berval uuid;
 
 	if ( si->save_attrs != NULL ) {
 		rs->sr_attrs = si->save_attrs;
@@ -1658,15 +1656,15 @@ consistency_check(
 		while (query && (query->expiry_time < op->o_time)) {
 			int rem = 0;
 			Debug( pcache_debug, "Lock CR index = %p\n",
-					templ, 0, 0 );
+					(void *) templ, 0, 0 );
 			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
 			if ( query == templ->query_last ) {
 				rem = 1;
 				remove_from_template(query, templ);
 				Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
-						templ, templ->no_of_queries, 0 );
+						(void *) templ, templ->no_of_queries, 0 );
 				Debug( pcache_debug, "Unlock CR index = %p\n",
-						templ, 0, 0 );
+						(void *) templ, 0, 0 );
 			}
 			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 			if ( !rem ) {
@@ -2271,7 +2269,7 @@ pcache_db_close(
 	if ( cm->db.bd_info->bi_db_close ) {
 		rc = cm->db.bd_info->bi_db_close( &cm->db );
 	}
-	while ( tm = qm->templates ) {
+	while ( (tm = qm->templates) != NULL ) {
 		CachedQuery *qc, *qn;
 		qm->templates = tm->qmnext;
 		for ( qc = tm->query; qc; qc = qn ) {
