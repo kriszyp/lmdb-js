@@ -36,10 +36,8 @@ sql_back_initialize(
 	static char *controls[] = {
 		LDAP_CONTROL_ASSERT,
 		LDAP_CONTROL_MANAGEDSAIT,
-#if 0 /* needs improvements */
 		LDAP_CONTROL_NOOP,
-#endif
-#ifdef SLAP_CONTROL_X_TREE_DELETE
+#if 0 /* SLAP_CONTROL_X_TREE_DELETE */
 		SLAP_CONTROL_X_TREE_DELETE,
 #endif /* SLAP_CONTROL_X_TREE_DELETE */
 		NULL
