@@ -168,6 +168,7 @@ do_transact:;
 	 * Commit only if all operations succeed
 	 */
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+		assert( e == NULL );
 		CompletionType = SQL_COMMIT;
 	}
 
@@ -186,6 +187,10 @@ done:;
 				rs->sr_ref = NULL;
 			}
 		}
+	}
+
+	if ( op->o_noop && rs->sr_err == LDAP_SUCCESS ) {
+		rs->sr_err = LDAP_X_NO_OPERATION;
 	}
 
 	send_ldap_result( op, rs );
