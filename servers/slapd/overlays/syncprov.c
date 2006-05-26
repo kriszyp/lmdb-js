@@ -1055,6 +1055,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	int rc;
 	struct berval newdn;
 	int freefdn = 0;
+	BackendDB *b0 = op->o_bd, db;
 
 	fc.fdn = &op->o_req_ndn;
 	/* compute new DN */
@@ -1067,6 +1068,10 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		freefdn = 1;
 	}
 	if ( op->o_tag != LDAP_REQ_ADD ) {
+		if ( !SLAP_ISOVERLAY( op->o_bd )) {
+			db = *op->o_bd;
+			op->o_bd = &db;
+		}
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = be_entry_get_rw( op, fc.fdn, NULL, NULL, 0, &e );
 		/* If we're sending responses now, make a copy and unlock the DB */
@@ -1076,7 +1081,10 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			e = e2;
 		}
 		op->o_bd->bd_info = (BackendInfo *)on;
-		if ( rc ) return;
+		if ( rc ) {
+			op->o_bd = b0;
+			return;
+		}
 	} else {
 		e = op->ora_e;
 	}
@@ -1174,6 +1182,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	if ( freefdn ) {
 		op->o_tmpfree( fc.fdn->bv_val, op->o_tmpmemctx );
 	}
+	op->o_bd = b0;
 }
 
 static int
