@@ -691,13 +691,15 @@ ldap_dump_requests_and_responses( LDAP *ld )
 {
 	LDAPRequest	*lr;
 	LDAPMessage	*lm, *l;
+	int		i;
 
 	Debug( LDAP_DEBUG_TRACE, "** ld %p Outstanding Requests:\n",
 		(void *)ld, 0, 0 );
-	if ( ( lr = ld->ld_requests ) == NULL ) {
+	lr = ld->ld_requests;
+	if ( lr == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   Empty\n", 0, 0, 0 );
 	}
-	for ( ; lr != NULL; lr = lr->lr_next ) {
+	for ( i = 0; lr != NULL; lr = lr->lr_next, i++ ) {
 		Debug( LDAP_DEBUG_TRACE, " * msgid %d,  origid %d, status %s\n",
 			lr->lr_msgid, lr->lr_origid,
 			( lr->lr_status == LDAP_REQST_INPROGRESS ) ? "InProgress" :
@@ -709,11 +711,12 @@ ldap_dump_requests_and_responses( LDAP *ld )
 		Debug( LDAP_DEBUG_TRACE, "   outstanding referrals %d, parent count %d\n",
 			lr->lr_outrefcnt, lr->lr_parentcnt, 0 );
 	}
+	Debug( LDAP_DEBUG_TRACE, "  ld %p request count %d\n", (void *)ld, i, 0 );
 	Debug( LDAP_DEBUG_TRACE, "** ld %p Response Queue:\n", (void *)ld, 0, 0 );
 	if ( ( lm = ld->ld_responses ) == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   Empty\n", 0, 0, 0 );
 	}
-	for ( ; lm != NULL; lm = lm->lm_next ) {
+	for ( i = 0; lm != NULL; lm = lm->lm_next, i++ ) {
 		Debug( LDAP_DEBUG_TRACE, " * msgid %d,  type %lu\n",
 		    lm->lm_msgid, (unsigned long)lm->lm_msgtype, 0 );
 		if ( ( l = lm->lm_chain ) != NULL ) {
@@ -726,6 +729,7 @@ ldap_dump_requests_and_responses( LDAP *ld )
 			}
 		}
 	}
+	Debug( LDAP_DEBUG_TRACE, "  ld %p response count %d\n", (void *)ld, i, 0 );
 }
 #endif /* LDAP_DEBUG */
 
