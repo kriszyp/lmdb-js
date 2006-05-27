@@ -83,7 +83,9 @@ bdb_add(Operation *op, SlapReply *rs )
 retry:	/* transaction retry */
 		if( p ) {
 			/* free parent and reader lock */
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			if ( p != (Entry *)&slap_entry_root ) {
+				bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			}
 			p = NULL;
 		}
 		rs->sr_err = TXN_ABORT( ltid );
@@ -155,102 +157,89 @@ retry:	/* transaction retry */
 	}
 
 	p = ei->bei_e;
-	if ( p ) {
-		if ( !bvmatch( &pdn, &p->e_nname ) ) {
-			rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
-				op->o_tmpmemctx );
-			rs->sr_ref = is_entry_referral( p )
-				? get_entry_referrals( op, p )
-				: NULL;
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
-			p = NULL;
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": parent "
-				"does not exist\n", 0, 0, 0 );
+	if ( !p )
+		p = (Entry *)&slap_entry_root;
 
-			rs->sr_err = LDAP_REFERRAL;
-			rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
-			goto return_results;
-		}
-
-		rs->sr_err = access_allowed( op, p,
-			children, NULL, ACL_WADD, NULL );
-
-		if ( ! rs->sr_err ) {
-			switch( opinfo.boi_err ) {
-			case DB_LOCK_DEADLOCK:
-			case DB_LOCK_NOTGRANTED:
-				goto retry;
-			}
-
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": no write access to parent\n",
-				0, 0, 0 );
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-			rs->sr_text = "no write access to parent";
-			goto return_results;;
-		}
-
-		if ( is_entry_subentry( p ) ) {
-			/* parent is a subentry, don't allow add */
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": parent is subentry\n",
-				0, 0, 0 );
-			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
-			rs->sr_text = "parent is a subentry";
-			goto return_results;;
-		}
-		if ( is_entry_alias( p ) ) {
-			/* parent is an alias, don't allow add */
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": parent is alias\n",
-				0, 0, 0 );
-			rs->sr_err = LDAP_ALIAS_PROBLEM;
-			rs->sr_text = "parent is an alias";
-			goto return_results;;
-		}
-
-		if ( is_entry_referral( p ) ) {
-			/* parent is a referral, don't allow add */
-			rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
-				op->o_tmpmemctx );
-			rs->sr_ref = get_entry_referrals( op, p );
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
-			p = NULL;
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": parent is referral\n",
-				0, 0, 0 );
-
-			rs->sr_err = LDAP_REFERRAL;
-			rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
-			goto return_results;
-		}
-
-		if ( subentry ) {
-			/* FIXME: */
-			/* parent must be an administrative point of the required kind */
-		}
-
-		/* free parent and reader lock */
+	if ( !bvmatch( &pdn, &p->e_nname ) ) {
+		rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
+			op->o_tmpmemctx );
+		rs->sr_ref = is_entry_referral( p )
+			? get_entry_referrals( op, p )
+			: NULL;
 		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 		p = NULL;
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": parent "
+			"does not exist\n", 0, 0, 0 );
 
-	} else {
-		/*
-		 * no parent!
-		 *  if not attempting to add entry at suffix or with parent ""
-		 */
-		if ((( !be_isroot( op ) && !be_shadow_update(op) )
-			|| pdn.bv_len > 0 ) && !is_entry_glue( op->oq_add.rs_e ))
-		{
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": %s denied\n",
-				pdn.bv_len == 0 ? "suffix" : "entry at root",
-				0, 0 );
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-			goto return_results;
-		}
+		rs->sr_err = LDAP_REFERRAL;
+		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+		goto return_results;
 	}
+
+	rs->sr_err = access_allowed( op, p,
+		children, NULL, ACL_WADD, NULL );
+
+	if ( ! rs->sr_err ) {
+		switch( opinfo.boi_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": no write access to parent\n",
+			0, 0, 0 );
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		rs->sr_text = "no write access to parent";
+		goto return_results;;
+	}
+
+	if ( is_entry_subentry( p ) ) {
+		/* parent is a subentry, don't allow add */
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": parent is subentry\n",
+			0, 0, 0 );
+		rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
+		rs->sr_text = "parent is a subentry";
+		goto return_results;;
+	}
+	if ( is_entry_alias( p ) ) {
+		/* parent is an alias, don't allow add */
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": parent is alias\n",
+			0, 0, 0 );
+		rs->sr_err = LDAP_ALIAS_PROBLEM;
+		rs->sr_text = "parent is an alias";
+		goto return_results;;
+	}
+
+	if ( is_entry_referral( p ) ) {
+		/* parent is a referral, don't allow add */
+		rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
+			op->o_tmpmemctx );
+		rs->sr_ref = get_entry_referrals( op, p );
+		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+		p = NULL;
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": parent is referral\n",
+			0, 0, 0 );
+
+		rs->sr_err = LDAP_REFERRAL;
+		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+		goto return_results;
+	}
+
+	if ( subentry ) {
+		/* FIXME: */
+		/* parent must be an administrative point of the required kind */
+	}
+
+	/* free parent and reader lock */
+	if ( p != (Entry *)&slap_entry_root ) {
+		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+	}
+	p = NULL;
 
 	rs->sr_err = access_allowed( op, op->oq_add.rs_e,
 		entry, NULL, ACL_WADD, NULL );
