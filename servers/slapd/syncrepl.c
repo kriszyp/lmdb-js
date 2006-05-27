@@ -1350,6 +1350,7 @@ syncrepl_message_to_op(
 	}
 
 	op->o_callback = &cb;
+	slap_op_time( &op->o_time, &op->o_tincr );
 
 	switch( op->o_tag ) {
 	case LDAP_REQ_ADD:
@@ -1770,6 +1771,7 @@ syncrepl_entry(
 		}
 	}
 
+	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
@@ -1848,6 +1850,7 @@ retry_add:;
 					if ( rc ) goto done;
 
 					retry = 0;
+					slap_op_time( &op->o_time, &op->o_tincr );
 					goto retry_add;
 				}
 				/* FALLTHRU */
@@ -1893,6 +1896,8 @@ retry_add:;
 			} else {
 				goto done;
 			}
+			if ( dni.wasChanged )
+				slap_op_time( &op->o_time, &op->o_tincr );
 		}
 		if ( dni.wasChanged ) {
 			Modifications *mod, *modhead = NULL;
