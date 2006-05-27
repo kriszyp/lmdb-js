@@ -453,14 +453,19 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 				return 1;
 			}
 			break;
+		default:
+			bv.bv_val = NULL;
+			break;
 		}
 		if (bv.bv_val == c->log && bv.bv_len >= sizeof( c->log ) ) {
 			return 1;
 		}
-		if (( cf->arg_type & ARGS_TYPES ) == ARG_STRING )
+		if (( cf->arg_type & ARGS_TYPES ) == ARG_STRING ) {
 			ber_bvarray_add(&c->rvalue_vals, &bv);
-		else
+		} else if ( !BER_BVISNULL( &bv ) ) {
 			value_add_one(&c->rvalue_vals, &bv);
+		}
+		/* else: maybe c->rvalue_vals already set? */
 	}
 	return rc;
 }
