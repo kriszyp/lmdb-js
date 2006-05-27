@@ -600,6 +600,37 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 			lc_curr = { 0 };
 	int		refcnt = 1, binding = 1;
 
+	/* if the server is quarantined, and
+	 * - the current interval did not expire yet, or
+	 * - no more retries should occur,
+	 * don't return the connection */
+	if ( li->li_isquarantined ) {
+		slap_retry_info_t	*ri = &li->li_quarantine;
+		int			dont_retry = 1;
+
+		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+		if ( li->li_isquarantined == LDAP_BACK_FQ_YES ) {
+			dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
+				|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
+			if ( !dont_retry ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: ldap_back_getconn quarantine "
+					"retry block #%d try #%d.\n",
+					op->o_log_prefix, ri->ri_idx, ri->ri_count );
+				li->li_isquarantined = LDAP_BACK_FQ_RETRYING;
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+
+		if ( dont_retry ) {
+			rs->sr_err = LDAP_UNAVAILABLE;
+			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+				send_ldap_result( op, rs );
+			}
+			return NULL;
+		}
+	}
+
 	/* Internal searches are privileged and shared. So is root. */
 	if ( op->o_do_not_cache || be_isroot( op ) ) {
 		LDAP_BACK_CONN_ISPRIV_SET( &lc_curr );
@@ -632,6 +663,7 @@ retry_lock:
 				ldap_pvt_thread_yield();
 				goto retry_lock;
 			}
+
 			refcnt = ++lc->lc_refcnt;
 			binding = ++lc->lc_binding;
 		}
@@ -742,7 +774,6 @@ retry_lock:
 		}
 
 	} else {
-		char	buf[ SLAP_TEXT_BUFLEN ];
 		int	expiring = 0;
 
 		if ( ( li->li_idle_timeout != 0 && op->o_time > lc->lc_time + li->li_idle_timeout )
@@ -760,13 +791,14 @@ retry_lock:
 		}
 
 		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+			char	buf[ SLAP_TEXT_BUFLEN ];
+
 			snprintf( buf, sizeof( buf ),
 				"conn %p fetched refcnt=%u binding=%u%s",
 				(void *)lc, refcnt, binding, expiring ? " expiring" : "" );
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
 		}
-	
 	}
 
 #ifdef HAVE_TLS
@@ -797,6 +829,67 @@ ldap_back_release_conn_lock(
 	if ( LDAP_BACK_CONN_TAINTED( lc ) ) {
 		ldap_back_freeconn( op, lc, 0 );
 	}
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+	}
+}
+
+void
+ldap_back_quarantine(
+	Operation	*op,
+	SlapReply	*rs,
+	int		dolock )
+{
+	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+
+	slap_retry_info_t	*ri = &li->li_quarantine;
+
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+	}
+
+	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
+		switch ( li->li_isquarantined ) {
+		case LDAP_BACK_FQ_NO:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: ldap_back_quarantine enter.\n",
+				op->o_log_prefix, 0, 0 );
+
+			ri->ri_idx = 0;
+			ri->ri_count = 0;
+			break;
+
+		case LDAP_BACK_FQ_RETRYING:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: ldap_back_quarantine block #%d try #%d failed.\n",
+				op->o_log_prefix, ri->ri_idx, ri->ri_count );
+
+			++ri->ri_count;
+			if ( ri->ri_num[ ri->ri_idx ] != SLAP_RETRYNUM_FOREVER
+				&& ri->ri_count == ri->ri_num[ ri->ri_idx ] )
+			{
+				ri->ri_count = 0;
+				++ri->ri_idx;
+			}
+			break;
+
+		default:
+			break;
+		}
+
+		li->li_isquarantined = LDAP_BACK_FQ_YES;
+		ri->ri_last = slap_get_time();
+
+	} else if ( li->li_isquarantined != LDAP_BACK_FQ_NO ) {
+		Debug( LDAP_DEBUG_ANY,
+			"%s: ldap_back_quarantine exit.\n",
+			op->o_log_prefix, ri->ri_idx, ri->ri_count );
+
+		ri->ri_count = 0;
+		ri->ri_idx = 0;
+		li->li_isquarantined = LDAP_BACK_FQ_NO;
+	}
+
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}
@@ -929,7 +1022,7 @@ retry_lock:;
 
 		if ( li->li_acl_secprops != NULL ) {
 			rc = ldap_set_option( lc->lc_ld,
-				LDAP_OPT_X_SASL_SECPROPS, li->li_acl_secprops);
+				LDAP_OPT_X_SASL_SECPROPS, li->li_acl_secprops );
 
 			if ( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
@@ -1012,6 +1105,11 @@ retry:;
 			}
 		}
 
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			ldap_back_quarantine( op, rs, dolock );
+		}
+
+		/* FIXME: one binding-- too many? */
 		lc->lc_binding--;
 		ldap_back_freeconn( op, lc, dolock );
 		rs->sr_err = slap_map_api2result( rs );
@@ -1025,6 +1123,10 @@ retry:;
 	}
 
 done:;
+	if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs, dolock );
+	}
+
 	lc->lc_binding--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
@@ -1152,6 +1254,8 @@ ldap_back_op_result(
 		time_t			timeout,
 		ldap_back_send_t	sendok )
 {
+	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+
 	char		*match = NULL;
 	LDAPMessage	*res = NULL;
 	char		*text = NULL;
@@ -1247,6 +1351,9 @@ retry:;
 			rs->sr_matched = match;
 		}
 	}
+	if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs, 1 );
+	}
 	if ( op->o_conn &&
 		( ( sendok & LDAP_BACK_SENDOK ) 
 			|| ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
@@ -1307,11 +1414,15 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 		rc = ldap_back_prepare_conn( lcp, op, rs, sendok );
 		if ( rc != LDAP_SUCCESS ) {
 			rc = 0;
+			/* freeit, because lc_refcnt == 1 */
+			(void)ldap_back_conn_free( *lcp );
 			*lcp = NULL;
 
 		} else {
 			rc = ldap_back_dobind_int( *lcp, op, rs, sendok, 0, 0 );
-			if ( rc == 0 ) {
+			if ( rc == 0 && *lcp != NULL ) {
+				/* freeit, because lc_refcnt == 1 */
+				(void)ldap_back_conn_free( *lcp );
 				*lcp = NULL;
 			}
 		}

@@ -220,6 +220,10 @@ retry:;
 
 	} else {
 		send_ldap_result( op, rs );
+
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			meta_back_quarantine( op, rs, candidate, 1 );
+		}
 	}
 
 cleanup:;

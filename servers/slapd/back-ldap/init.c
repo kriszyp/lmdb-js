@@ -317,6 +317,9 @@ ldap_back_db_destroy(
                	if ( li->li_conninfo.lai_tree ) {
 			avl_free( li->li_conninfo.lai_tree, ldap_back_conn_free );
 		}
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			slap_retry_info_destroy( &li->li_quarantine );
+		}
 
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_conninfo.lai_mutex );

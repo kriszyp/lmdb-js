@@ -267,6 +267,12 @@ meta_back_db_destroy(
 		 */
 		if ( mi->mi_targets != NULL ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
+				if ( META_BACK_QUARANTINE( mi )
+					&& mi->mi_targets[ i ]->mt_quarantine.ri_num != mi->mi_quarantine.ri_num )
+				{
+					slap_retry_info_destroy( &mi->mi_targets[ i ]->mt_quarantine );
+				}
+
 				target_free( mi->mi_targets[ i ] );
 			}
 
@@ -286,6 +292,10 @@ meta_back_db_destroy(
 
 		if ( mi->mi_candidates != NULL ) {
 			ber_memfree_x( mi->mi_candidates, NULL );
+		}
+
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			slap_retry_info_destroy( &mi->mi_quarantine );
 		}
 	}
 

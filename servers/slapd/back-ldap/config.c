@@ -66,6 +66,7 @@ enum {
 	LDAP_BACK_CFG_VERSION,
 	LDAP_BACK_CFG_SINGLECONN,
 	LDAP_BACK_CFG_CANCEL,
+	LDAP_BACK_CFG_QUARANTINE,
 	LDAP_BACK_CFG_REWRITE,
 
 	LDAP_BACK_CFG_LAST
@@ -268,6 +269,14 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "quarantine", "retrylist", 2, 0, 0,
+		ARG_MAGIC|LDAP_BACK_CFG_QUARANTINE,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.21 "
+			"NAME 'olcDbQuarantine' "
+			"DESC 'Quarantine database if connection fails and retry according to rule' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -304,6 +313,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbIdleTimeout "
 			"$ olcDbSingleConn "
 			"$ olcDbCancel "
+			"$ olcDbQuarantine "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -349,16 +359,161 @@ static slap_cf_aux_table timeout_table[] = {
 	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
+int
+slap_retry_info_parse(
+	char			*in,
+	slap_retry_info_t 	*ri,
+	char			*buf,
+	ber_len_t		buflen )
+{
+	char			**retrylist = NULL;
+	int			rc = 0;
+	int			i;
+
+	slap_str2clist( &retrylist, in, " ;" );
+	if ( retrylist == NULL ) {
+		return 1;
+	}
+
+	for ( i = 0; retrylist[ i ] != NULL; i++ )
+		/* count */ ;
+
+	ri->ri_interval = ch_calloc( sizeof( time_t ), i + 1 );
+	ri->ri_num = ch_calloc( sizeof( int ), i + 1 );
+
+	for ( i = 0; retrylist[ i ] != NULL; i++ ) {
+		char	*sep = strchr( retrylist[ i ], ',' );
+
+		if ( sep == NULL ) {
+			snprintf( buf, buflen,
+				"missing comma in retry pattern #%d \"%s\"",
+				i, retrylist[ i ] );
+			rc = 1;
+			goto done;
+		}
+
+		*sep++ = '\0';
+
+		if ( lutil_atol( &ri->ri_interval[ i ], retrylist[ i ] ) ) {
+			snprintf( buf, buflen,
+				"unable to parse interval #%d \"%s\"",
+				i, retrylist[ i ] );
+			rc = 1;
+			goto done;
+		}
+
+		if ( strcmp( sep, "+" ) == 0 ) {
+			if ( retrylist[ i + 1 ] != NULL ) {
+				snprintf( buf, buflen,
+					"extra cruft after retry pattern "
+					"#%d \"%s,+\" with \"forever\" mark",
+					i, retrylist[ i ] );
+				rc = 1;
+				goto done;
+			}
+			ri->ri_num[ i ] = SLAP_RETRYNUM_FOREVER;
+			
+		} else if ( lutil_atoi( &ri->ri_num[ i ], sep ) ) {
+			snprintf( buf, buflen,
+				"unable to parse retry num #%d \"%s\"",
+				i, sep );
+			rc = 1;
+			goto done;
+		}
+	}
+
+	ri->ri_num[ i ] = SLAP_RETRYNUM_TAIL;
+
+	ri->ri_idx = 0;
+	ri->ri_count = 0;
+	ri->ri_last = (time_t)(-1);
+
+done:;
+	ldap_charray_free( retrylist );
+
+	if ( rc ) {
+		slap_retry_info_destroy( ri );
+	}
+
+	return rc;
+}
+
+int
+slap_retry_info_unparse(
+	slap_retry_info_t	*ri,
+	struct berval		*bvout )
+{
+	int		i;
+	char		buf[ BUFSIZ * 2 ],
+			*ptr = buf;
+	struct berval	bv = BER_BVNULL;
+
+	assert( ri != NULL );
+	assert( bvout != NULL );
+
+	BER_BVZERO( bvout );
+
+#define WHATSLEFT	( sizeof( buf ) - ( ptr - buf ) )
+
+	for ( i = 0; ri->ri_num[ i ] != SLAP_RETRYNUM_TAIL; i++ ) {
+		if ( i > 0 ) {
+			if ( WHATSLEFT <= 1 ) {
+				return 1;
+			}
+			*ptr++ = ';';
+		}
+
+		ptr += snprintf( ptr, WHATSLEFT, "%ld,", (long)ri->ri_interval[i] );
+		if ( WHATSLEFT <= 0 ) {
+			return 1;
+		}
+
+		if ( ri->ri_num[i] == SLAP_RETRYNUM_FOREVER ) {
+			if ( WHATSLEFT <= 1 ) {
+				return 1;
+			}
+			*ptr++ = '+';
+
+		} else {
+			ptr += snprintf( ptr, WHATSLEFT, "%d", ri->ri_num[i] );
+			if ( WHATSLEFT <= 0 ) {
+				return 1;
+			}
+		}
+	}
+
+	bv.bv_val = buf;
+	bv.bv_len = ptr - buf;
+
+	ber_dupbv( bvout, &bv );
+
+	return 0;
+}
+
+void
+slap_retry_info_destroy(
+	slap_retry_info_t	*ri )
+{
+	assert( ri != NULL );
+
+	assert( ri->ri_interval != NULL );
+	ch_free( ri->ri_interval );
+	ri->ri_interval = NULL;
+
+	assert( ri->ri_num != NULL );
+	ch_free( ri->ri_num );
+	ri->ri_num = NULL;
+}
+
 static int
 ldap_back_cf_gen( ConfigArgs *c )
 {
 	ldapinfo_t	*li = ( ldapinfo_t * )c->be->be_private;
-	int		rc;
+	int		rc = 0;
 	int		i;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
 		struct berval	bv = BER_BVNULL;
-		rc = 0;
 
 		if ( li == NULL ) {
 			return 1;
@@ -678,6 +833,18 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 			} break;
 
+		case LDAP_BACK_CFG_QUARANTINE:
+			if ( !LDAP_BACK_QUARANTINE( li ) ) {
+				rc = 1;
+				break;
+			}
+
+			rc = slap_retry_info_unparse( &li->li_quarantine, &bv );
+			if ( rc == 0 ) {
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+			break;
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -686,7 +853,6 @@ ldap_back_cf_gen( ConfigArgs *c )
 		return rc;
 
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		rc = 0;
 		switch( c->type ) {
 		case LDAP_BACK_CFG_URI:
 			if ( li->li_uri != NULL ) {
@@ -774,6 +940,15 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_SINGLECONN:
 			li->li_flags &= ~LDAP_BACK_F_SINGLECONN;
+			break;
+
+		case LDAP_BACK_CFG_QUARANTINE:
+			if ( !LDAP_BACK_QUARANTINE( li ) ) {
+				break;
+			}
+
+			slap_retry_info_destroy( &li->li_quarantine );
+			li->li_isquarantined = 0;
 			break;
 
 		default:
@@ -1461,6 +1636,23 @@ done_url:;
 		li->li_flags |= mask;
 		} break;
 
+	case LDAP_BACK_CFG_QUARANTINE:
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			snprintf( c->msg, sizeof( c->msg ),
+				"quarantine already defined" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return 1;
+		}
+		rc = slap_retry_info_parse( c->argv[1], &li->li_quarantine,
+			c->msg, sizeof( c->msg ) );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+		}
+		/* give it a chance to retry if the pattern gets reset
+		 * via back-config */
+		li->li_isquarantined = 0;
+		break;
+
 	case LDAP_BACK_CFG_REWRITE:
 		snprintf( c->msg, sizeof( c->msg ),
 			"rewrite/remap capabilities have been moved "
@@ -1476,7 +1668,7 @@ done_url:;
 		break;
 	}
 
-	return 0;
+	return rc;
 }
 
 int

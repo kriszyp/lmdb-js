@@ -122,13 +122,26 @@ typedef struct ldap_avl_info_t {
 	Avlnode				*lai_tree;
 } ldap_avl_info_t;
 
+typedef struct slap_retry_info_t {
+	time_t		*ri_interval;
+	int		*ri_num;
+	int		ri_idx;
+	int		ri_count;
+	time_t		ri_last;
+
+#define SLAP_RETRYNUM_FOREVER	(-1)		/* retry forever */
+#define SLAP_RETRYNUM_TAIL	(-2)		/* end of retrynum array */
+#define SLAP_RETRYNUM_VALID(n)	((n) >= SLAP_RETRYNUM_FOREVER)	/* valid retrynum */
+#define SLAP_RETRYNUM_FINITE(n)	((n) > SLAP_RETRYNUM_FOREVER)	/* not forever */
+} slap_retry_info_t;
+
 typedef struct ldapinfo_t {
 	/* li_uri: the string that goes into ldap_initialize()
 	 * TODO: use li_acl.sb_uri instead */
-	char		*li_uri;
+	char			*li_uri;
 	/* li_bvuri: an array of each single URI that is equivalent;
 	 * to be checked for the presence of a certain item */
-	BerVarray	li_bvuri;
+	BerVarray		li_bvuri;
 	ldap_pvt_thread_mutex_t	li_uri_mutex;
 
 	LDAP_REBIND_PROC	*li_rebind_f;
@@ -230,6 +243,15 @@ typedef struct ldapinfo_t {
 	int		li_version;
 
 	ldap_avl_info_t	li_conninfo;
+
+	slap_retry_info_t	li_quarantine;
+	/* NOTE: quarantine uses the connection mutex */
+	sig_atomic_t		li_isquarantined;
+#define	LDAP_BACK_FQ_NO		(0)
+#define	LDAP_BACK_FQ_YES	(1)
+#define	LDAP_BACK_FQ_RETRYING	(2)
+
+#define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
 
 	time_t		li_network_timeout;
 	time_t		li_conn_ttl;

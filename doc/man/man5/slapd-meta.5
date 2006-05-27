@@ -144,6 +144,24 @@ causes the authentication to the remote servers with the pseudo-root
 identity to be deferred until actually needed by subsequent operations.
 
 .TP
+.B quarantine <interval>,<num>[;<interval>,<num>[...]]
+Turns on quarantine of URIs that returned
+.IR LDAP_UNAVAILABLE ,
+so that an attempt to reconnect only occurs at given intervals instead
+of any time a client requests an operation.
+The pattern is: retry only after at least
+.I interval
+seconds elapsed since last attempt, for exactly
+.I num
+times; then use the next pattern.
+If
+.I num
+for the last pattern is "\fB+\fP", it retries forever; otherwise, 
+no more retries occur.
+This directive must appear before any target specification;
+it affects all targets with the same pattern.
+
+.TP
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
 for rebinds when chasing referrals.

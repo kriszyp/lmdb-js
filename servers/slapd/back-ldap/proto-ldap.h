@@ -77,6 +77,18 @@ ldap_back_proxy_authz_ctrl_free(
 		Operation	*op,
 		LDAPControl	***pctrls );
 
+extern void
+ldap_back_quarantine(
+	Operation	*op,
+	SlapReply	*rs,
+	int		dolock );
+
+extern void slap_retry_info_destroy( slap_retry_info_t *ri );
+extern int slap_retry_info_parse( char *in, slap_retry_info_t *ri,
+	char *buf, ber_len_t buflen );
+extern int slap_retry_info_unparse( slap_retry_info_t *ri, struct berval *bvout );
+
+
 extern int chain_initialize( void );
 #ifdef LDAP_DEVEL
 extern int distproc_initialize( void );

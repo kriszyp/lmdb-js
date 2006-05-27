@@ -171,6 +171,7 @@ meta_back_db_config(
 		mt->mt_urllist_p = mt;
 
 		mt->mt_nretries = mi->mi_nretries;
+		mt->mt_quarantine = mi->mi_quarantine;
 		mt->mt_flags = mi->mi_flags;
 		mt->mt_version = mi->mi_version;
 		mt->mt_network_timeout = mi->mi_network_timeout;
@@ -981,6 +982,49 @@ meta_back_db_config(
 			return 1;
 		}
 		ber_str2bv( argv[ 1 ], 0L, 1, &mi->mi_targets[ i ]->mt_pseudorootpw );
+
+	/* quarantine */
+	} else if ( strcasecmp( argv[ 0 ], "quarantine" ) == 0 ) {
+		char			buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
+		slap_retry_info_t	*ri = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine
+				: &mi->mi_quarantine;
+
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: quarantine already defined.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		switch ( argc ) {
+		case 2:
+			break;
+
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing arg in \"quarantine <pattern list>\".\n",
+				fname, lineno, 0 );
+			return 1;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: extra cruft after \"quarantine <pattern list>\".\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( ri != &mi->mi_quarantine ) {
+			ri->ri_interval = NULL;
+			ri->ri_num = NULL;
+		}
+
+		if ( slap_retry_info_parse( argv[ 1 ], ri, buf, sizeof( buf ) ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s line %d: %s.\n",
+				fname, lineno, buf );
+			return 1;
+		}
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {

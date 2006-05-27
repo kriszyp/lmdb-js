@@ -141,6 +141,8 @@ ldap_back_search(
 		Operation	*op,
 		SlapReply	*rs )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	struct timeval	tv;
 	time_t		stoptime = (time_t)-1;
@@ -464,6 +466,10 @@ retry:
 	}
 
 finish:;
+	if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs, 1 );
+	}
+
 	if ( rc != SLAPD_ABANDON ) {
 		send_ldap_result( op, rs );
 	}

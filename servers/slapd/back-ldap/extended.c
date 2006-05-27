@@ -106,6 +106,8 @@ ldap_back_exop_passwd(
 		Operation	*op,
 		SlapReply	*rs )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	req_pwdexop_s	*qpw = &op->oq_pwdexop;
 	LDAPMessage	*res;
@@ -181,10 +183,18 @@ retry:
 				goto retry;
 			}
 		}
+
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			ldap_back_quarantine( op, rs, 1 );
+		}
+
 		if ( text ) rs->sr_text = text;
 		send_ldap_extended( op, rs );
 		/* otherwise frontend resends result */
 		rc = rs->sr_err = SLAPD_ABANDON;
+
+	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs, 1 );
 	}
 
 	/* these have to be freed anyway... */
@@ -210,6 +220,8 @@ ldap_back_exop_generic(
 	Operation	*op,
 	SlapReply	*rs )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	LDAPMessage	*res;
 	ber_int_t	msgid;
@@ -267,10 +279,18 @@ retry:
 				goto retry;
 			}
 		}
+
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			ldap_back_quarantine( op, rs, 1 );
+		}
+
 		if ( text ) rs->sr_text = text;
 		send_ldap_extended( op, rs );
 		/* otherwise frontend resends result */
 		rc = rs->sr_err = SLAPD_ABANDON;
+
+	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs, 1 );
 	}
 
 	/* these have to be freed anyway... */

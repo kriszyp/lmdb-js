@@ -739,8 +739,7 @@ really_bad:;
 				 */
 				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				--ncandidates;
-				rs->sr_err = candidates[ i ].sr_err = LDAP_OTHER;
-				rs->sr_text = "remote server unavailable";
+				rs->sr_err = candidates[ i ].sr_err;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
@@ -1257,6 +1256,10 @@ finish:;
 		if ( candidates[ i ].sr_ctrls ) {
 			ldap_controls_free( candidates[ i ].sr_ctrls );
 			candidates[ i ].sr_ctrls = NULL;
+		}
+
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			meta_back_quarantine( op, &candidates[ i ], i, 1 );
 		}
 	}
 

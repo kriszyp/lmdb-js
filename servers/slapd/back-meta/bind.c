@@ -442,7 +442,7 @@ retry:;
 	}
 
 	if ( mi->mi_cache.ttl != META_DNCACHE_DISABLED
-			&& op->o_req_ndn.bv_len != 0 )
+			&& !BER_BVISEMPTY( &op->o_req_ndn ) )
 	{
 		( void )meta_dncache_update_entry( &mi->mi_cache,
 				&op->o_req_ndn, candidate );
@@ -451,6 +451,10 @@ retry:;
 return_results:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
+	}
+
+	if ( META_BACK_QUARANTINE( mi ) ) {
+		meta_back_quarantine( op, rs, candidate, 1 );
 	}
 
 	return rs->sr_err;
@@ -594,7 +598,7 @@ retry:;
 				        /* mc here must be the regular mc,
 					 * reset and ready for init */
 				        rc = meta_back_init_one_conn( op, rs,
-						mt, mc, candidate,
+						mc, candidate,
 						LDAP_BACK_CONN_ISPRIV( mc ),
 						LDAP_BACK_DONTSEND );
 					if ( rc == LDAP_SUCCESS ) {
@@ -653,6 +657,10 @@ done:;
 		if ( META_BACK_ONERR_STOP( mi ) && ( sendok & LDAP_BACK_SENDERR ) ) {
 			send_ldap_result( op, rs );
 		}
+	}
+
+	if ( META_BACK_QUARANTINE( mi ) ) {
+		meta_back_quarantine( op, rs, candidate, dolock );
 	}
 
 	return rc;
@@ -981,6 +989,10 @@ meta_back_op_result(
 					( rmatch ? rmatch : "" ) );
 		}
 
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			meta_back_quarantine( op, rs, candidate, 1 );
+		}
+
 	} else {
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
@@ -1050,6 +1062,10 @@ meta_back_op_result(
 				if ( match ) {
 					ldap_memfree( match );
 				}
+			}
+
+			if ( META_BACK_QUARANTINE( mi ) ) {
+				meta_back_quarantine( op, rs, i, 1 );
 			}
 		}
 	}

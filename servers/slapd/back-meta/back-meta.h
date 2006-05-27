@@ -227,6 +227,9 @@ typedef struct metatarget_t {
 
 	struct ldaprwmap	mt_rwmap;
 
+	sig_atomic_t		mt_isquarantined;
+	slap_retry_info_t	mt_quarantine;
+
 	unsigned		mt_flags;
 #define	META_BACK_TGT_ISSET(mt,f)		( ( (mt)->mt_flags & (f) ) == (f) )
 #define	META_BACK_TGT_ISMASK(mt,m,f)		( ( (mt)->mt_flags & (m) ) == (f) )
@@ -275,6 +278,11 @@ typedef struct metainfo_t {
 	metadncache_t		mi_cache;
 	
 	ldap_avl_info_t		mi_conninfo;
+
+	/* NOTE: quarantine uses the connection mutex */
+	slap_retry_info_t	mi_quarantine;
+
+#define	META_BACK_QUARANTINE(mi)	( (mi)->mi_quarantine.ri_num != NULL )
 
 	unsigned		mi_flags;
 #define	li_flags		mi_flags
@@ -334,11 +342,17 @@ extern int
 meta_back_init_one_conn(
 	Operation		*op,
 	SlapReply		*rs,
-	metatarget_t		*mt, 
 	metaconn_t		*mc,
 	int			candidate,
 	int			ispriv,
 	ldap_back_send_t	sendok );
+
+extern void
+meta_back_quarantine(
+	Operation		*op,
+	SlapReply		*rs,
+	int			candidate,
+	int			dolock );
 
 extern int
 meta_back_single_bind(
