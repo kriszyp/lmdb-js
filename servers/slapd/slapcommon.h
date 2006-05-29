@@ -39,6 +39,7 @@ typedef struct tool_vars {
 	int tv_continuemode;
 	int tv_nosubordinates;
 	int tv_dryrun;
+	int tv_jumpline;
 	Filter *tv_filter;
 	struct berval tv_sub_ndn;
 	struct LDIFFP	*tv_ldiffp;
@@ -64,6 +65,7 @@ extern tool_vars tool_globals;
 
 #define	be tool_globals.tv_be
 #define verbose tool_globals.tv_verbose
+#define jumpline tool_globals.tv_jumpline
 #define update_ctxcsn tool_globals.tv_update_ctxcsn
 #define continuemode tool_globals.tv_continuemode
 #define nosubordinates tool_globals.tv_nosubordinates

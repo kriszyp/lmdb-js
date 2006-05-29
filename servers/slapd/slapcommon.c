@@ -71,7 +71,7 @@ usage( int tool, const char *progname )
 
 	case SLAPADD:
 		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix]\n"
-			"\t[-l ldiffile] [-q] [-u] [-s] [-w]\n";
+			"\t[-l ldiffile] [-j linenumber] [-q] [-u] [-s] [-w]\n";
 		break;
 
 	case SLAPAUTH:
@@ -241,7 +241,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:F:gl:n:o:qstuvw";
+		options = "b:cd:f:F:gj:l:n:o:qstuvw";
 		break;
 
 	case SLAPCAT:
@@ -329,6 +329,12 @@ slap_tool_init(
 
 		case 'g':	/* disable subordinate glue */
 			use_glue = 0;
+			break;
+
+		case 'j':	/* jump to linenumber */
+			if ( lutil_atoi( &jumpline, optarg ) ) {
+				usage( tool, progname );
+			}
 			break;
 
 		case 'l':	/* LDIF file */

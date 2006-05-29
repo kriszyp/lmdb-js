@@ -62,7 +62,7 @@ slapadd( int argc, char **argv )
 	int match;
 	int ret;
 	int checkvals;
-	int lineno;
+	int lineno, nextline;
 	int lmax;
 	int rc = EXIT_SUCCESS;
 	int manage = 0;	
@@ -93,7 +93,7 @@ slapadd( int argc, char **argv )
 	checkvals = (slapMode & SLAP_TOOL_QUICK) ? 0 : 1;
 
 	lmax = 0;
-	lineno = 0;
+	nextline = 0;
 
 	if( !dryrun && be->be_entry_open( be, 1 ) != 0 ) {
 		fprintf( stderr, "%s: could not open database.\n",
@@ -106,7 +106,13 @@ slapadd( int argc, char **argv )
 		maxcsn.bv_len = 0;
 	}
 
-	while( ldif_read_record( ldiffp, &lineno, &buf, &lmax ) ) {
+	/* nextline is the line number of the end of the current entry */
+	for( lineno=1; ldif_read_record( ldiffp, &nextline, &buf, &lmax );
+		lineno=nextline+1 ) {
+
+		if ( lineno < jumpline )
+			continue;
+
 		Entry *e = str2entry2( buf, checkvals );
 
 		/*
