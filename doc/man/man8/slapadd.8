@@ -12,6 +12,7 @@ slapadd \- Add entries to a SLAPD database
 .B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
+.B [\-j lineno]
 .B [\-l ldif-file]
 .B [\-n dbnum]
 .B [\-o name[=value]
@@ -80,6 +81,11 @@ no conversion will occur.
 .B \-g
 disable subordinate gluing.  Only the specified database will be
 processed, and not its glued subordinates (if any).
+.TP
+.BI \-j " lineno"
+Jump to the specified line number in the LDIF file before processing
+any entries. This allows a load that was aborted due to errors in the
+input LDIF to be resumed after the errors are corrected.
 .TP
 .BI \-l " ldif-file"
 Read LDIF from the specified file instead of standard input.
