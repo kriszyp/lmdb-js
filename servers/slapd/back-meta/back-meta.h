@@ -263,6 +263,11 @@ typedef struct metacandidates_t {
 	SlapReply		*mc_candidates;
 } metacandidates_t;
 
+/*
+ * Hook to allow mucking with metainfo_t/metatarget_t when quarantine is over
+ */
+typedef int (*meta_back_quarantine_f)(struct metainfo_t *, int target, void *);
+
 typedef struct metainfo_t {
 	int			mi_ntargets;
 	int			mi_defaulttarget;
@@ -283,6 +288,8 @@ typedef struct metainfo_t {
 	slap_retry_info_t	mi_quarantine;
 
 #define	META_BACK_QUARANTINE(mi)	( (mi)->mi_quarantine.ri_num != NULL )
+	meta_back_quarantine_f	mi_quarantine_func;
+	meta_back_quarantine_f	mi_quarantine_arg;
 
 	unsigned		mi_flags;
 #define	li_flags		mi_flags

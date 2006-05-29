@@ -26,6 +26,8 @@
 
 LDAP_BEGIN_DECL
 
+struct ldapinfo_t;
+
 typedef struct ldapconn_t {
 	Connection		*lc_conn;
 #define	LDAP_BACK_PCONN		((void *)0x0)
@@ -134,6 +136,11 @@ typedef struct slap_retry_info_t {
 #define SLAP_RETRYNUM_VALID(n)	((n) >= SLAP_RETRYNUM_FOREVER)	/* valid retrynum */
 #define SLAP_RETRYNUM_FINITE(n)	((n) > SLAP_RETRYNUM_FOREVER)	/* not forever */
 } slap_retry_info_t;
+
+/*
+ * Hook to allow mucking with ldapinfo_t when quarantine is over
+ */
+typedef int (*ldap_back_quarantine_f)(struct ldapinfo_t *, void *);
 
 typedef struct ldapinfo_t {
 	/* li_uri: the string that goes into ldap_initialize()
@@ -252,6 +259,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_FQ_RETRYING	(2)
 
 #define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
+	ldap_back_quarantine_f	li_quarantine_func;
+	void			*li_quarantine_arg;
 
 	time_t		li_network_timeout;
 	time_t		li_conn_ttl;

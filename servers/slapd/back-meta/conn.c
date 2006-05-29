@@ -1429,6 +1429,11 @@ meta_back_quarantine(
 			"%s: meta_back_quarantine exit.\n",
 			op->o_log_prefix, ri->ri_idx, ri->ri_count );
 
+		if ( mi->mi_quarantine_func ) {
+			(void)mi->mi_quarantine_func( mi, candidate,
+				mi->mi_quarantine_arg );
+		}
+
 		ri->ri_count = 0;
 		ri->ri_idx = 0;
 		mt->mt_isquarantined = LDAP_BACK_FQ_NO;
