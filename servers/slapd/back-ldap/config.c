@@ -382,7 +382,8 @@ slap_retry_info_parse(
 	ri->ri_num = ch_calloc( sizeof( int ), i + 1 );
 
 	for ( i = 0; retrylist[ i ] != NULL; i++ ) {
-		char	*sep = strchr( retrylist[ i ], ',' );
+		unsigned long	t;
+		char		*sep = strchr( retrylist[ i ], ',' );
 
 		if ( sep == NULL ) {
 			snprintf( buf, buflen,
@@ -394,13 +395,14 @@ slap_retry_info_parse(
 
 		*sep++ = '\0';
 
-		if ( lutil_atol( &ri->ri_interval[ i ], retrylist[ i ] ) ) {
+		if ( lutil_parse_time( retrylist[ i ], &t ) ) {
 			snprintf( buf, buflen,
 				"unable to parse interval #%d \"%s\"",
 				i, retrylist[ i ] );
 			rc = 1;
 			goto done;
 		}
+		ri->ri_interval[ i ] = (time_t)t;
 
 		if ( strcmp( sep, "+" ) == 0 ) {
 			if ( retrylist[ i + 1 ] != NULL ) {
@@ -463,10 +465,15 @@ slap_retry_info_unparse(
 			*ptr++ = ';';
 		}
 
-		ptr += snprintf( ptr, WHATSLEFT, "%ld,", (long)ri->ri_interval[i] );
-		if ( WHATSLEFT <= 0 ) {
+		if ( lutil_unparse_time( ptr, WHATSLEFT, (long)ri->ri_interval[i] ) ) {
 			return 1;
 		}
+		ptr += strlen( ptr );
+
+		if ( WHATSLEFT <= 1 ) {
+			return 1;
+		}
+		*ptr++ = ',';
 
 		if ( ri->ri_num[i] == SLAP_RETRYNUM_FOREVER ) {
 			if ( WHATSLEFT <= 1 ) {
