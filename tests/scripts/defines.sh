@@ -110,6 +110,7 @@ VALSORTCONF=$DATADIR/slapd-valsort.conf
 DYNLISTCONF=$DATADIR/slapd-dynlist.conf
 RSLAVECONF=$DATADIR/slapd-repl-slave-remote.conf
 PLSRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist-ldap.conf
+PLSRMASTERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
 DDSCONF=$DATADIR/slapd-dds.conf
 
 CONF1=$TESTDIR/slapd.1.conf
