@@ -1885,7 +1885,17 @@ retry_add:;
 			if (( rc = slap_modrdn2mods( op, &rs_modify ))) {
 				goto done;
 			}
+
+			/* RDNs must be NUL-terminated for back-ldap */
+			noldp = op->orr_newrdn;
+			ber_dupbv_x( &op->orr_newrdn, &noldp, op->o_tmpmemctx );
+			noldp = op->orr_nnewrdn;
+			ber_dupbv_x( &op->orr_nnewrdn, &noldp, op->o_tmpmemctx );
+
 			rc = be->be_modrdn( op, &rs_modify );
+			op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );
+
 			slap_mods_free( op->orr_modlist, 1 );
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s (%d)\n", 
