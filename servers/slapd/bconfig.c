@@ -162,6 +162,7 @@ enum {
 	CFG_SSTR_IF_MIN,
 	CFG_TTHREADS,
 	CFG_MIRRORMODE,
+	CFG_HIDDEN,
 
 	CFG_LAST
 };
@@ -318,6 +319,9 @@ static ConfigTable config_back_cf_table[] = {
 		ARG_IGNORED, NULL,
 #endif
 		"( OLcfgGlAt:17 NAME 'olcGentleHUP' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "hidden", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_HIDDEN,
+		&config_generic, "( OLcfgDbAt:0.17 NAME 'olcHidden' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "idletimeout", "timeout", 2, 2, 0, ARG_INT,
 		&global_idletimeout, "( OLcfgGlAt:18 NAME 'olcIdleTimeout' "
@@ -693,7 +697,8 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcDatabase "
-		"MAY ( olcSuffix $ olcSubordinate $ olcAccess $ olcLastMod $ olcLimits $ "
+		"MAY ( olcHidden $ olcSuffix $ olcSubordinate $ olcAccess $ "
+		 "olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
@@ -805,6 +810,13 @@ config_generic(ConfigArgs *c) {
 #endif
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
+			break;
+		case CFG_HIDDEN:
+			if ( SLAP_DBHIDDEN( c->be )) {
+				c->value_int = 1;
+			} else {
+				rc = 1;
+			}
 			break;
 		case CFG_OID: {
 			ConfigFile *cf = c->private;
@@ -1055,6 +1067,10 @@ config_generic(ConfigArgs *c) {
 		case CFG_LOGFILE:
 			ch_free( logfileName );
 			logfileName = NULL;
+			break;
+
+		case CFG_HIDDEN:
+			c->be->be_flags &= ~SLAP_DBFLAG_HIDDEN;
 			break;
 
 		case CFG_ACL:
@@ -1399,6 +1415,13 @@ config_generic(ConfigArgs *c) {
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_SINGLE_SHADOW;
 			else
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
+			break;
+
+		case CFG_HIDDEN:
+			if (c->value_int)
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_HIDDEN;
+			else
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_HIDDEN;
 			break;
 
 		case CFG_SSTR_IF_MAX:
@@ -1908,7 +1931,10 @@ config_suffix(ConfigArgs *c)
 
 	pdn = c->value_dn;
 	ndn = c->value_ndn;
-	tbe = select_backend(&ndn, 0, 0);
+	if (SLAP_DBHIDDEN( c->be ))
+		tbe = NULL;
+	else
+		tbe = select_backend(&ndn, 0, 0);
 	if(tbe == c->be) {
 		Debug( LDAP_DEBUG_ANY, "%s: suffix already served by this backend!.\n",
 			c->log, 0, 0);
