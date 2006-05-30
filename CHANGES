@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.25 Engineering
+
 OpenLDAP 2.3.24 Release
 	Fixed slapd syncrepl timestamp bug (delta-sync/cascade) (ITS#4567)
 	Fixed slapd-bdb/hdb non-root users adding suffix/root entries (ITS#4552)
