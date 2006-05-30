@@ -1059,6 +1059,11 @@ retry_lock:;
 		} else {
 			LDAP_BACK_CONN_ISBOUND_SET( lc );
 		}
+
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			ldap_back_quarantine( op, rs, dolock );
+		}
+
 		goto done;
 	}
 #endif /* HAVE_CYRUS_SASL */
@@ -1109,14 +1114,14 @@ retry:;
 			}
 		}
 
-		if ( LDAP_BACK_QUARANTINE( li ) ) {
-			ldap_back_quarantine( op, rs, dolock );
-		}
-
 		/* FIXME: one binding-- too many? */
 		lc->lc_binding--;
 		ldap_back_freeconn( op, lc, dolock );
 		rs->sr_err = slap_map_api2result( rs );
+
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			ldap_back_quarantine( op, rs, dolock );
+		}
 
 		return 0;
 	}
@@ -1127,10 +1132,6 @@ retry:;
 	}
 
 done:;
-	if ( LDAP_BACK_QUARANTINE( li ) ) {
-		ldap_back_quarantine( op, rs, dolock );
-	}
-
 	lc->lc_binding--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
@@ -1664,8 +1665,9 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 
 	switch ( li->li_idassert_authmethod ) {
 	case LDAP_AUTH_NONE:
-		rc = LDAP_SUCCESS;
-		break;
+		BER_BVSTR( &binddn, "" );
+		BER_BVSTR( &bindcred, "" );
+		/* fallthru */
 
 	case LDAP_AUTH_SIMPLE:
 		rs->sr_err = ldap_sasl_bind( lc->lc_ld,
