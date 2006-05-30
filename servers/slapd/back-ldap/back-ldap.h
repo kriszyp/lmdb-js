@@ -140,7 +140,7 @@ typedef struct slap_retry_info_t {
 /*
  * Hook to allow mucking with ldapinfo_t when quarantine is over
  */
-typedef int (*ldap_back_quarantine_f)(struct ldapinfo_t *, void *);
+typedef int (*ldap_back_quarantine_f)( struct ldapinfo_t *, void * );
 
 typedef struct ldapinfo_t {
 	/* li_uri: the string that goes into ldap_initialize()

@@ -266,7 +266,7 @@ typedef struct metacandidates_t {
 /*
  * Hook to allow mucking with metainfo_t/metatarget_t when quarantine is over
  */
-typedef int (*meta_back_quarantine_f)(struct metainfo_t *, int target, void *);
+typedef int (*meta_back_quarantine_f)( struct metainfo_t *, int target, void * );
 
 typedef struct metainfo_t {
 	int			mi_ntargets;
@@ -289,7 +289,7 @@ typedef struct metainfo_t {
 
 #define	META_BACK_QUARANTINE(mi)	( (mi)->mi_quarantine.ri_num != NULL )
 	meta_back_quarantine_f	mi_quarantine_f;
-	meta_back_quarantine_f	mi_quarantine_p;
+	void			*mi_quarantine_p;
 
 	unsigned		mi_flags;
 #define	li_flags		mi_flags
