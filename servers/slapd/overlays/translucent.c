@@ -32,21 +32,12 @@
 #include "lutil.h"
 
 /* config block */
-
-typedef struct translucent_configuration {
-	int debug;
-	int strict;
-	int no_add;
-	int glue;
-} translucent_configuration;
-
-/* stack of captive backends */
-
-typedef struct overlay_stack {
+typedef struct translucent_info {
 	BackendInfo *info;			/* captive backend */
 	void *private;				/* local backend_private */
-	translucent_configuration *config;	/* our_private: configuration */
-} overlay_stack;
+	int strict;
+	int glue;
+} translucent_info;
 
 /* for translucent_init() */
 
@@ -142,14 +133,14 @@ void free_attr_chain(Attribute *a) {
 /*
 ** translucent_add()
 **	if not bound as root, send ACCESS error;
-**	if config.glue, glue_parent();
+**	if glue, glue_parent();
 **	return CONTINUE;
 **
 */
 
 static int translucent_add(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_add: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 	if(!be_isroot(op)) {
@@ -158,21 +149,21 @@ static int translucent_add(Operation *op, SlapReply *rs) {
 			"user modification of overlay database not permitted");
 		return(rs->sr_err);
 	}
-	if(!ov->config->glue) glue_parent(op);
+	if(!ov->glue) glue_parent(op);
 	return(SLAP_CB_CONTINUE);
 }
 
 /*
 ** translucent_modrdn()
 **	if not bound as root, send ACCESS error;
-**	if !config.glue, glue_parent();
+**	if !glue, glue_parent();
 **	else return CONTINUE;
 **
 */
 
 static int translucent_modrdn(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_modrdn: %s -> %s\n",
 		op->o_req_dn.bv_val, op->orr_newrdn.bv_val, 0);
 	if(!be_isroot(op)) {
@@ -181,7 +172,7 @@ static int translucent_modrdn(Operation *op, SlapReply *rs) {
 			"user modification of overlay database not permitted");
 		return(rs->sr_err);
 	}
-	if(!ov->config->glue) glue_parent(op);
+	if(!ov->glue) glue_parent(op);
 	return(SLAP_CB_CONTINUE);
 }
 
@@ -228,7 +219,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	Operation nop = *op;
 
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	void *private = op->o_bd->be_private;
 	Entry ne, *e = NULL, *re = NULL;
 	Attribute *a, *ax;
@@ -251,7 +242,6 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	rc = ov->info->bi_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &re);
 	op->o_bd->be_private = private;
 
-	/* if(ov->config->no_add && (!re || rc != LDAP_SUCCESS)) */
 	if(rc != LDAP_SUCCESS || re == NULL ) {
 		send_ldap_error(op, rs, LDAP_NO_SUCH_OBJECT,
 			"attempt to modify nonexistent local record");
@@ -287,7 +277,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 					erc = LDAP_NO_SUCH_ATTRIBUTE;
 					goto release;
 				}
-				if(ov->config->strict) {
+				if(ov->strict) {
 					erc = LDAP_CONSTRAINT_VIOLATION;
 					goto release;
 				}
@@ -338,7 +328,7 @@ release:
 ** foreach Modification:
 **	if MOD_ADD or MOD_REPLACE, add Attribute;
 ** if no Modifications were suitable:
-**	if config.strict, throw CONSTRAINT_VIOLATION;
+**	if strict, throw CONSTRAINT_VIOLATION;
 **	else, return early SUCCESS;
 ** fabricate Entry with new Attribute chain;
 ** glue_parent() for this Entry;
@@ -365,7 +355,7 @@ release:
 		ax = a;
 	}
 
-	if(del && ov->config->strict) {
+	if(del && ov->strict) {
 		free_attr_chain(a);
 		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
 			"attempt to delete attributes from local database");
@@ -373,7 +363,7 @@ release:
 	}
 
 	if(!ax) {
-		if(ov->config->strict) {
+		if(ov->strict) {
 			send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
 				"modification contained other than ADD or REPLACE");
 			return(rs->sr_err);
@@ -412,7 +402,7 @@ release:
 
 static int translucent_compare(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	void *private = op->o_bd->be_private;
 
 	AttributeAssertion *ava = op->orc_ava;
@@ -542,7 +532,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	slap_callback cb = { NULL, NULL, NULL, NULL };
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	void *private = op->o_bd->be_private;
 	int rc;
 
@@ -570,7 +560,7 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 
 static int translucent_bind(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	void *private = op->o_bd->be_private;
 	int rc = 0;
 
@@ -592,7 +582,7 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 
 static int translucent_connection_destroy(BackendDB *be, Connection *conn) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	void *private = be->be_private;
 	int rc = 0;
 
@@ -621,7 +611,7 @@ static int translucent_db_config(
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	void *private = be->be_private;
 	void *be_cf_ocs = be->be_cf_ocs;
 	int rc;
@@ -643,27 +633,9 @@ static int translucent_db_config(
 
 	rc = 0;
 	if(!strcasecmp(*argv, "translucent_strict")) {
-		ov->config->strict++;
-	} else if(!strcasecmp(*argv, "translucent_no_add")) {
-		ov->config->no_add++;
+		ov->strict++;
 	} else if(!strcasecmp(*argv, "translucent_no_glue")) {
-		ov->config->glue++;
-	} else if(!strcasecmp(*argv, "translucent_debug")) {
-		if(argc == 1) {
-			ov->config->debug = 0xFFFF;
-			rc = 0;
-		} else if(argc == 2) {
-			if ( lutil_atoi( &ov->config->debug, argv[1]) != 0 ) {
-				fprintf(stderr, "%s: line %d: unable to parse debug \"%s\"\n",
-					fname, lineno, argv[1]);
-				return 1;
-			}
-			rc = 0;
-		} else {
-			fprintf(stderr, "%s: line %d: too many arguments (%d) to debug\n",
-				fname, lineno, argc);
-			rc = 1;
-		}
+		ov->glue++;
 	} else {
 		fprintf(stderr, "%s: line %d: unknown keyword %s\n",
 			fname, lineno, *argv);
@@ -681,13 +653,12 @@ static int translucent_db_config(
 static int translucent_db_init(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	void *private = be->be_private;
-	overlay_stack *ov;
+	translucent_info *ov;
 	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_init\n", 0, 0, 0);
 
-	ov = ch_calloc(1, sizeof(overlay_stack));
-	ov->config = ch_calloc(1, sizeof(translucent_configuration));
+	ov = ch_calloc(1, sizeof(translucent_info));
 	ov->info = backend_info("ldap");
 
 	if(!ov->info) {
@@ -719,7 +690,7 @@ static int translucent_db_init(BackendDB *be) {
 
 static int translucent_db_open(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	void *private = be->be_private;
 	int rc;
 
@@ -750,7 +721,7 @@ static int translucent_db_open(BackendDB *be) {
 
 static int translucent_db_close(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	int rc = 0;
 
 	if ( ov ) {
@@ -759,8 +730,6 @@ static int translucent_db_close(BackendDB *be) {
 		be->be_private = ov->private;
 		rc = (ov->info && ov->info->bi_db_close) ? ov->info->bi_db_close(be) : 0;
 		be->be_private = private;
-		if(ov->config) ch_free(ov->config);
-		ov->config = NULL;
 	}
 
 	return(rc);
@@ -774,7 +743,7 @@ static int translucent_db_close(BackendDB *be) {
 
 static int translucent_db_destroy(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
-	overlay_stack *ov = on->on_bi.bi_private;
+	translucent_info *ov = on->on_bi.bi_private;
 	int rc = 0;
 
 	if ( ov ) {
