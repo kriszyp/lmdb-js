@@ -288,8 +288,8 @@ typedef struct metainfo_t {
 	slap_retry_info_t	mi_quarantine;
 
 #define	META_BACK_QUARANTINE(mi)	( (mi)->mi_quarantine.ri_num != NULL )
-	meta_back_quarantine_f	mi_quarantine_func;
-	meta_back_quarantine_f	mi_quarantine_arg;
+	meta_back_quarantine_f	mi_quarantine_f;
+	meta_back_quarantine_f	mi_quarantine_p;
 
 	unsigned		mi_flags;
 #define	li_flags		mi_flags

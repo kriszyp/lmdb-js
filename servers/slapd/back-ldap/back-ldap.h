@@ -259,8 +259,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_FQ_RETRYING	(2)
 
 #define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
-	ldap_back_quarantine_f	li_quarantine_func;
-	void			*li_quarantine_arg;
+	ldap_back_quarantine_f	li_quarantine_f;
+	void			*li_quarantine_p;
 
 	time_t		li_network_timeout;
 	time_t		li_conn_ttl;

@@ -885,9 +885,8 @@ ldap_back_quarantine(
 			"%s: ldap_back_quarantine exit.\n",
 			op->o_log_prefix, ri->ri_idx, ri->ri_count );
 
-		if ( li->li_quarantine_func ) {
-			(void)li->li_quarantine_func( li,
-				li->li_quarantine_arg );
+		if ( li->li_quarantine_f ) {
+			(void)li->li_quarantine_f( li, li->li_quarantine_p );
 		}
 
 		ri->ri_count = 0;

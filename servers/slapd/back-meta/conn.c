@@ -1429,9 +1429,9 @@ meta_back_quarantine(
 			"%s: meta_back_quarantine exit.\n",
 			op->o_log_prefix, ri->ri_idx, ri->ri_count );
 
-		if ( mi->mi_quarantine_func ) {
-			(void)mi->mi_quarantine_func( mi, candidate,
-				mi->mi_quarantine_arg );
+		if ( mi->mi_quarantine_f ) {
+			(void)mi->mi_quarantine_f( mi, candidate,
+				mi->mi_quarantine_p );
 		}
 
 		ri->ri_count = 0;
