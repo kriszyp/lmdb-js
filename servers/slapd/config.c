@@ -315,7 +315,8 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 		return(0);
 	}
 	if(arg_type & ARG_OFFSET) {
-		if (c->be)
+		if (c->be && (!overlay_is_over(c->be) || 
+			((slap_overinfo *)c->be->bd_info)->oi_orig == c->bi))
 			ptr = c->be->be_private;
 		else if (c->bi)
 			ptr = c->bi->bi_private;
@@ -406,7 +407,8 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		if ( rc ) return rc;
 	} else {
 		if ( cf->arg_type & ARG_OFFSET ) {
-			if ( c->be )
+			if (c->be && (!overlay_is_over(c->be) || 
+				((slap_overinfo *)c->be->bd_info)->oi_orig == c->bi))
 				ptr = c->be->be_private;
 			else if ( c->bi )
 				ptr = c->bi->bi_private;
