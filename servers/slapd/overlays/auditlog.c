@@ -29,12 +29,33 @@
 #include <ac/ctype.h>
 
 #include "slap.h"
+#include "config.h"
 #include "ldif.h"
 
 typedef struct auditlog_data {
 	ldap_pvt_thread_mutex_t ad_mutex;
 	char *ad_logfile;
 } auditlog_data;
+
+static ConfigTable auditlogcfg[] = {
+	{ "auditlog", "filename", 2, 2, 0,
+	  ARG_STRING|ARG_OFFSET,
+	  (void *)offsetof(auditlog_data, ad_logfile),
+	  "( OLcfgOvAt:15.1 NAME 'olcAuditlogFile' "
+	  "DESC 'Filename for auditlogging' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs auditlogocs[] = {
+	{ "( OLcfgOvOc:15.1 "
+	  "NAME 'olcAuditlogConfig' "
+	  "DESC 'Auditlog configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY ( olcAuditlogFile ) )",
+	  Cft_Overlay, auditlogcfg },
+	{ NULL, 0, NULL }
+};
 
 static int fprint_ldif(FILE *f, char *name, char *val, ber_len_t len) {
 	char *s;
@@ -227,13 +248,17 @@ auditlog_config(
 }
 
 int auditlog_initialize() {
+	int rc;
 
 	auditlog.on_bi.bi_type = "auditlog";
 	auditlog.on_bi.bi_db_init = auditlog_db_init;
-	auditlog.on_bi.bi_db_config = auditlog_config;
 	auditlog.on_bi.bi_db_close = auditlog_db_close;
 	auditlog.on_bi.bi_db_destroy = auditlog_db_destroy;
 	auditlog.on_response = auditlog_response;
+
+	auditlog.on_bi.bi_cf_ocs = auditlogocs;
+	rc = config_register_schema( auditlogcfg, auditlogocs );
+	if ( rc ) return rc;
 
 	return overlay_register(&auditlog);
 }

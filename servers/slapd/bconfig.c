@@ -221,6 +221,7 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:12 		-> ppolicy
  * OLcfgOv{Oc|At}:13		-> constraint
  * OLcfgOv{Oc|At}:14		-> translucent
+ * OLcfgOv{Oc|At}:15		-> auditlog
  */
 
 /* alphabetical ordering */
