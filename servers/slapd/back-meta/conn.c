@@ -719,9 +719,7 @@ meta_back_get_candidate(
 			 * and a default target is defined, and it is
 			 * a candidate, try using it (FIXME: YMMV) */
 			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
-				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ]->mt_nsuffix,
-						mi->mi_targets[ mi->mi_defaulttarget ]->mt_scope,
-						mi->mi_targets[ mi->mi_defaulttarget ]->mt_subtree_exclude,
+				&& meta_back_is_candidate( mi->mi_targets[ mi->mi_defaulttarget ],
 						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
 			{
 				candidate = mi->mi_defaulttarget;
@@ -1181,11 +1179,8 @@ retry_lock2:;
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
 			if ( i == cached 
-				|| meta_back_is_candidate( &mt->mt_nsuffix,
-						mt->mt_scope,
-						mt->mt_subtree_exclude,
-						&op->o_req_ndn,
-						LDAP_SCOPE_SUBTREE ) )
+				|| meta_back_is_candidate( mt, &op->o_req_ndn,
+					LDAP_SCOPE_SUBTREE ) )
 			{
 
 				/*

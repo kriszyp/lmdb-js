@@ -427,9 +427,7 @@ meta_back_conndn_dup(
  */
 extern int
 meta_back_is_candidate(
-	struct berval		*nsuffix,
-	int			suffixscope,
-	BerVarray		subtree_exclude,
+	metatarget_t		*mt,
 	struct berval		*ndn,
 	int			scope );
 

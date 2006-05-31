@@ -235,11 +235,9 @@ meta_back_search_start(
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
-	metaconn_t		*mc = *mcp;
-	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	metasingleconn_t	*msc = &(*mcp)->mc_conns[ candidate ];
 	struct berval		realbase = op->o_req_dn;
 	int			realscope = op->ors_scope;
-	ber_len_t		suffixlen = 0;
 	struct berval		mbase = BER_BVNULL; 
 	struct berval		mfilter = BER_BVNULL;
 	char			**mapped_attrs = NULL;
@@ -250,26 +248,10 @@ meta_back_search_start(
 
 	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_back_search_start[%d]\n", op->o_log_prefix, candidate, 0 );
 
-	/* should we check return values? */
-	if ( op->ors_deref != -1 ) {
-		assert( msc->msc_ld != NULL );
-		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
-				( void * )&op->ors_deref );
-	}
-
-	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
-		tv.tv_sec = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
-		tv.tv_usec = 0;
-		tvp = &tv;
-	}
-
-	dc->target = mt;
-
 	/*
 	 * modifies the base according to the scope, if required
 	 */
-	suffixlen = mt->mt_nsuffix.bv_len;
-	if ( suffixlen > op->o_req_ndn.bv_len ) {
+	if ( mt->mt_nsuffix.bv_len > op->o_req_ndn.bv_len ) {
 		switch ( op->ors_scope ) {
 		case LDAP_SCOPE_SUBTREE:
 			/*
@@ -341,6 +323,7 @@ meta_back_search_start(
 	/*
 	 * Rewrite the search base, if required
 	 */
+	dc->target = mt;
 	dc->ctx = "searchBase";
 	switch ( ldap_back_dn_massage( dc, &realbase, &mbase ) ) {
 	default:
@@ -389,6 +372,19 @@ meta_back_search_start(
 		 */
 		retcode = META_SEARCH_NOT_CANDIDATE;
 		goto done;
+	}
+
+	/* should we check return values? */
+	if ( op->ors_deref != -1 ) {
+		assert( msc->msc_ld != NULL );
+		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
+				( void * )&op->ors_deref );
+	}
+
+	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
+		tv.tv_sec = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
+		tv.tv_usec = 0;
+		tvp = &tv;
 	}
 
 	/*
