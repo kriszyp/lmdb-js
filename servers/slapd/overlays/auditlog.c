@@ -128,9 +128,9 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 	fprintf(f, "# %s %ld %s%s%s\n",
 		what, stamp, suffix, who ? " " : "", who ? who->bv_val : "");
 
-	if ( !who || !dn_match( who, &op->o_conn->c_dn ))
-		fprintf(f, "# realdn: %s\n", op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val :
-			"<empty>" );
+	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) &&
+		(!who || !dn_match( who, &op->o_conn->c_dn )))
+		fprintf(f, "# realdn: %s\n", op->o_conn->c_dn.bv_val );
 
 	fprintf(f, "dn: %s\nchangetype: %s\n",
 		op->o_req_dn.bv_val, what);
