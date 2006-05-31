@@ -246,6 +246,18 @@ meta_back_search_start(
 	struct timeval		tv, *tvp = NULL;
 	int			nretries = 1;
 
+	/* this should not happen; just in case... */
+	if ( msc->msc_ld == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"%s: meta_back_search_start candidate=%d ld=NULL%s.\n",
+			op->o_log_prefix, candidate,
+			META_BACK_ONERR_STOP( mi ) ? "" : " (ignored)" );
+		if ( META_BACK_ONERR_STOP( mi ) ) {
+			return META_SEARCH_ERR;
+		}
+		return META_SEARCH_NOT_CANDIDATE;
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_back_search_start[%d]\n", op->o_log_prefix, candidate, 0 );
 
 	/*
