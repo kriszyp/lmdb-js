@@ -109,11 +109,12 @@ slapadd( int argc, char **argv )
 	/* nextline is the line number of the end of the current entry */
 	for( lineno=1; ldif_read_record( ldiffp, &nextline, &buf, &lmax );
 		lineno=nextline+1 ) {
+		Entry *e;
 
 		if ( lineno < jumpline )
 			continue;
 
-		Entry *e = str2entry2( buf, checkvals );
+		e = str2entry2( buf, checkvals );
 
 		/*
 		 * Initialize text buffer
