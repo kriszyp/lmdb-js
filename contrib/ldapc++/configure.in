@@ -23,7 +23,7 @@ AC_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
 AC_ARG_ENABLE(debug,[  --enable-debug],[
 	CXXFLAGS="-g -O0 -Wall"
-    AC_DEFINE(WITH_DEBUG)
+    AC_DEFINE(WITH_DEBUG,[],[Define to 1 ot enable debug logging])
 	],[
 	CXXFLAGS="-O0"
     ]

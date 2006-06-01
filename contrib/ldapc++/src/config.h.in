@@ -1,6 +1,4 @@
 /* src/config.h.in.  Generated from configure.in by autoheader.  */
-#undef WITH_DEBUG
-
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
@@ -61,3 +59,6 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* Define to 1 ot enable debug logging */
+#undef WITH_DEBUG
