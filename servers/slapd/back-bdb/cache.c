@@ -146,7 +146,7 @@ bdb_cache_entry_db_unlock ( DB_ENV *env, DB_LOCK *lock )
 #else
 	int rc;
 
-	if ( !lock ) return 0;
+	if ( !lock || lock->mode == DB_LOCK_NG ) return 0;
 
 	rc = LOCK_PUT ( env, lock );
 	return rc;
