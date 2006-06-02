@@ -137,6 +137,7 @@ retry:;
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 	switch ( rc ) {
 	case LDAP_SUCCESS:
+		META_BINDING_SET( &candidates[ candidate ] );
 		return META_SEARCH_BINDING;
 
 	case LDAP_SERVER_DOWN:
@@ -220,6 +221,8 @@ meta_search_dobind_result(
 		retcode = META_SEARCH_CANDIDATE;
 	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+
+	META_BINDING_CLEAR( &candidates[ candidate ] );
 
 	return retcode;
 }
@@ -483,7 +486,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+		if ( !META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			continue;
 		}
 
@@ -494,7 +497,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		if ( candidates[ i ].sr_tag != META_CANDIDATE
+		if ( !META_IS_CANDIDATE( &candidates[ i ] )
 			|| candidates[ i ].sr_err != LDAP_SUCCESS )
 		{
 			continue;
@@ -530,7 +533,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		int	i;
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE ) {
+			if ( META_IS_CANDIDATE( &candidates[ i ] ) ) {
 				cnd[ i ] = '*';
 			} else {
 				cnd[ i ] = ' ';
@@ -561,7 +564,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		 * maybe we should pick the worst... */
 		rc = LDAP_NO_SUCH_OBJECT;
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE
+			if ( META_IS_CANDIDATE( &candidates[ i ] )
 				&& candidates[ i ].sr_err != LDAP_SUCCESS )
 			{
 				rc = candidates[ i ].sr_err;
@@ -1129,7 +1132,7 @@ really_bad:;
 
 		/* we use the first one */
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE
+			if ( META_IS_CANDIDATE( &candidates[ i ] )
 					&& candidates[ i ].sr_matched != NULL )
 			{
 				struct berval	bv, pbv;
@@ -1190,7 +1193,7 @@ really_bad:;
 		int	i;
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE ) {
+			if ( META_IS_CANDIDATE( &candidates[ i ] ) ) {
 				cnd[ i ] = '*';
 			} else {
 				cnd[ i ] = ' ';
@@ -1234,16 +1237,17 @@ finish:;
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+		if ( !META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			continue;
 		}
 
-		if ( mc && candidates[ i ].sr_msgid >= 0 ) {
+		if ( mc && META_IS_BINDING( &candidates[ i ] ) ) {
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
 				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
 			}
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+			META_BINDING_CLEAR( &candidates[ i ] );
 		}
 
 		if ( candidates[ i ].sr_matched ) {

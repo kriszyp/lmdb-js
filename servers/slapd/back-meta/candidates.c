@@ -168,7 +168,7 @@ meta_clear_unused_candidates(
 		if ( i == candidate ) {
 			continue;
 		}
-		candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+		META_CANDIDATE_RESET( &candidates[ i ] );
 	}
 
 	return 0;

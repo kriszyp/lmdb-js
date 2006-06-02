@@ -976,7 +976,7 @@ retry_lock:
 				rs, mc, i, LDAP_BACK_CONN_ISPRIV( &mc_curr ),
 				sendok );
 			if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
-				candidates[ i ].sr_tag = META_CANDIDATE;
+				META_CANDIDATE_SET( &candidates[ i ] );
 				ncandidates++;
 	
 			} else {
@@ -986,7 +986,7 @@ retry_lock:
 				 * be init'd, should the other ones
 				 * be tried?
 				 */
-				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+				META_CANDIDATE_RESET( &candidates[ i ] );
 				err = candidates[ i ].sr_err;
 				continue;
 			}
@@ -1032,7 +1032,7 @@ retry_lock:
 		int			j;
 
 		for ( j = 0; j < mi->mi_ntargets; j++ ) {
-			candidates[ j ].sr_tag = META_NOT_CANDIDATE;
+			META_CANDIDATE_RESET( &candidates[ j ] );
 		}
 
 		/*
@@ -1139,7 +1139,7 @@ retry_lock2:;
 			 * be init'd, should the other ones
 			 * be tried?
 			 */
-			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+			META_CANDIDATE_RESET( &candidates[ i ] );
  			if ( new_conn ) {
 				(void)meta_clear_one_candidate( msc );
 				meta_back_freeconn( op, mc );
@@ -1151,7 +1151,7 @@ retry_lock2:;
 		}
 
 		candidates[ i ].sr_err = LDAP_SUCCESS;
-		candidates[ i ].sr_tag = META_CANDIDATE;
+		META_CANDIDATE_SET( &candidates[ i ] );
 		ncandidates++;
 
 		if ( candidate ) {
@@ -1190,7 +1190,7 @@ retry_lock2:;
 				int lerr = meta_back_init_one_conn( op, rs, mc, i,
 					LDAP_BACK_CONN_ISPRIV( &mc_curr ), LDAP_BACK_DONTSEND );
 				if ( lerr == LDAP_SUCCESS ) {
-					candidates[ i ].sr_tag = META_CANDIDATE;
+					META_CANDIDATE_SET( &candidates[ i ] );
 					candidates[ i ].sr_err = LDAP_SUCCESS;
 					ncandidates++;
 
@@ -1237,7 +1237,7 @@ retry_lock2:;
 				if ( new_conn ) {
 					( void )meta_clear_one_candidate( msc );
 				}
-				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+				META_CANDIDATE_RESET( &candidates[ i ] );
 			}
 		}
 

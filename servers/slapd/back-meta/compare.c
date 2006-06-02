@@ -75,7 +75,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		struct berval		mapped_attr = op->orc_ava->aa_desc->ad_cname;
 		struct berval		mapped_value = op->orc_ava->aa_value;
 
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+		if ( ! META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			msgid[ i ] = -1;
 			continue;
 		}

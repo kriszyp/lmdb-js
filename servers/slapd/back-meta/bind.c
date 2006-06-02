@@ -116,7 +116,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		/*
 		 * Skip non-candidates
 		 */
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+		if ( !META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			continue;
 		}
 
@@ -177,7 +177,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			 * do not assume it's not candidate; rather
 			 * mark this as an error to be eventually
 			 * reported to client */
-			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+			META_CANDIDATE_CLEAR( &candidates[ i ] );
 			break;
 		}
 	}
@@ -710,7 +710,7 @@ meta_back_dobind(
 		/*
 		 * Not a candidate
 		 */
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+		if ( !META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			continue;
 		}
 

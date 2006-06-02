@@ -157,8 +157,21 @@ struct metainfo_t;
 
 typedef struct metasingleconn_t {
 	int			msc_candidate;
-#define	META_NOT_CANDIDATE	((ber_tag_t)0)
-#define	META_CANDIDATE		((ber_tag_t)1)
+#define	META_NOT_CANDIDATE	((ber_tag_t)0x0)
+#define	META_CANDIDATE		((ber_tag_t)0x1)
+#define	META_BINDING		((ber_tag_t)0x2)
+
+#define META_CND_ISSET(rs,f)		( ( (rs)->sr_tag & (f) ) == (f) )
+#define META_CND_SET(rs,f)		( (rs)->sr_tag |= (f) )
+#define META_CND_CLEAR(rs,f)		( (rs)->sr_tag &= ~(f) )
+
+#define META_CANDIDATE_RESET(rs)	( (rs)->sr_tag = 0 )
+#define META_IS_CANDIDATE(rs)		META_CND_ISSET( (rs), META_CANDIDATE )
+#define META_CANDIDATE_SET(rs)		META_CND_SET( (rs), META_CANDIDATE )
+#define META_CANDIDATE_CLEAR(rs)	META_CND_CLEAR( (rs), META_CANDIDATE )
+#define META_IS_BINDING(rs)		META_CND_ISSET( (rs), META_BINDING )
+#define META_BINDING_SET(rs)		META_CND_SET( (rs), META_BINDING )
+#define META_BINDING_CLEAR(rs)		META_CND_CLEAR( (rs), META_BINDING )
 	
 	LDAP            	*msc_ld;
 	struct berval          	msc_bound_ndn;
