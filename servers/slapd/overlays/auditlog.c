@@ -188,7 +188,7 @@ auditlog_db_init(
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
-	auditlog_data *ad = ch_malloc(sizeof(auditlog_data));
+	auditlog_data *ad = ch_calloc(1, sizeof(auditlog_data));
 
 	on->on_bi.bi_private = ad;
 	ldap_pvt_thread_mutex_init( &ad->ad_mutex );
