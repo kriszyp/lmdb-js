@@ -1700,6 +1700,7 @@ do_modify:
 			 */
 			sc->sc_response = ppolicy_mod_cb;
 			sc->sc_cleanup = ppolicy_mod_cb;
+			op->o_callback = sc;
 		}
 
 		/*
