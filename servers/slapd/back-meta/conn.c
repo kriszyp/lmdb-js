@@ -207,22 +207,16 @@ metaconn_alloc(
 	assert( ntargets > 0 );
 
 	/* malloc all in one */
-	mc = ( metaconn_t * )ch_malloc( sizeof( metaconn_t )
+	mc = ( metaconn_t * )ch_calloc( 1, sizeof( metaconn_t )
 			+ sizeof( metasingleconn_t ) * ntargets );
 	if ( mc == NULL ) {
 		return NULL;
 	}
 
 	for ( i = 0; i < ntargets; i++ ) {
-		mc->mc_conns[ i ].msc_ld = NULL;
-		BER_BVZERO( &mc->mc_conns[ i ].msc_bound_ndn );
-		BER_BVZERO( &mc->mc_conns[ i ].msc_cred );
-		mc->mc_conns[ i ].msc_mscflags = 0;
 		mc->mc_conns[ i ].msc_info = mi;
 	}
 
-	BER_BVZERO( &mc->mc_local_ndn );
-	mc->msc_mscflags = 0;
 	mc->mc_authz_target = META_BOUND_NONE;
 	mc->mc_refcnt = 1;
 
@@ -883,6 +877,7 @@ meta_back_getconn(
 	if ( !( sendok & LDAP_BACK_BINDING ) ) {
 		/* Searches for a metaconn in the avl tree */
 retry_lock:
+		new_conn = 0;
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
 			(caddr_t)&mc_curr, meta_back_conndn_cmp );
@@ -958,6 +953,7 @@ retry_lock:
 
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( mc == NULL ) {
+			assert( new_conn == 0 );
 			mc = metaconn_alloc( op );
 			mc->mc_conn = mc_curr.mc_conn;
 			ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
@@ -1108,6 +1104,7 @@ retry_lock2:;
 
 			/* Looks like we didn't get a bind. Open a new session... */
 			if ( mc == NULL ) {
+				assert( new_conn == 0 );
 				mc = metaconn_alloc( op );
 				mc->mc_conn = mc_curr.mc_conn;
 				ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
@@ -1165,6 +1162,7 @@ retry_lock2:;
 
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( mc == NULL ) {
+			assert( new_conn == 0 );
 			mc = metaconn_alloc( op );
 			mc->mc_conn = mc_curr.mc_conn;
 			ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );

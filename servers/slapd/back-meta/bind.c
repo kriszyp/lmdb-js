@@ -647,7 +647,7 @@ done:;
 	        LDAP_BACK_CONN_BINDING_CLEAR( msc );
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 	        	LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_back_release_conn_lock( op, mc, dolock );
+			meta_back_release_conn_lock( op, mc, 0 );
 			*mcp = NULL;
 		}
 		if ( dolock ) {
