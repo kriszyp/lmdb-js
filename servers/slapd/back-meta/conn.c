@@ -277,10 +277,17 @@ meta_back_init_one_conn(
 			dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
 				|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
 			if ( !dont_retry ) {
-				Debug( LDAP_DEBUG_ANY,
-					"%s: meta_back_init_one_conn quarantine "
-					"retry block #%d try #%d.\n",
-					op->o_log_prefix, ri->ri_idx, ri->ri_count );
+				if ( LogTest( LDAP_DEBUG_ANY ) ) {
+					char	buf[ SLAP_TEXT_BUFLEN ];
+
+					snprintf( buf, sizeof( buf ),
+						"meta_back_init_one_conn[%d]: quarantine "
+						"retry block #%d try #%d",
+						candidate, ri->ri_idx, ri->ri_count );
+					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
+						op->o_log_prefix, buf, 0 );
+				}
+
 				mt->mt_isquarantined = LDAP_BACK_FQ_RETRYING;
 			}
 		}
@@ -1392,7 +1399,7 @@ meta_back_quarantine(
 		switch ( mt->mt_isquarantined ) {
 		case LDAP_BACK_FQ_NO:
 			Debug( LDAP_DEBUG_ANY,
-				"%s: meta_back_quarantine[%d] enter.\n",
+				"%s meta_back_quarantine[%d]: enter.\n",
 				op->o_log_prefix, candidate, 0 );
 
 			ri->ri_idx = 0;
@@ -1404,9 +1411,9 @@ meta_back_quarantine(
 				char	buf[ SLAP_TEXT_BUFLEN ];
 
 				snprintf( buf, sizeof( buf ),
-					"meta_back_quarantine[%d] block #%d try #%d failed",
+					"meta_back_quarantine[%d]: block #%d try #%d failed",
 					candidate, ri->ri_idx, ri->ri_count );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+				Debug( LDAP_DEBUG_ANY, "%s %s.\n",
 					op->o_log_prefix, buf, 0 );
 			}
 
@@ -1428,7 +1435,7 @@ meta_back_quarantine(
 
 	} else if ( mt->mt_isquarantined == LDAP_BACK_FQ_RETRYING ) {
 		Debug( LDAP_DEBUG_ANY,
-			"%s: meta_back_quarantine[%d] exit.\n",
+			"%s meta_back_quarantine[%d]: exit.\n",
 			op->o_log_prefix, candidate, 0 );
 
 		if ( mi->mi_quarantine_f ) {
