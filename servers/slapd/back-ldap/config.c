@@ -955,6 +955,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 
 			slap_retry_info_destroy( &li->li_quarantine );
+			ldap_pvt_thread_mutex_destroy( &li->li_quarantine_mutex );
 			li->li_isquarantined = 0;
 			break;
 
@@ -1654,10 +1655,13 @@ done_url:;
 			c->msg, sizeof( c->msg ) );
 		if ( rc ) {
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+
+		} else {
+			ldap_pvt_thread_mutex_init( &li->li_quarantine_mutex );
+			/* give it a chance to retry if the pattern gets reset
+			 * via back-config */
+			li->li_isquarantined = 0;
 		}
-		/* give it a chance to retry if the pattern gets reset
-		 * via back-config */
-		li->li_isquarantined = 0;
 		break;
 
 	case LDAP_BACK_CFG_REWRITE:

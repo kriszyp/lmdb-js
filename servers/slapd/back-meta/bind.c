@@ -78,17 +78,19 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	 * invalidCredentials */
 	mc = meta_back_getconn( op, rs, NULL, LDAP_BACK_BIND_DONTSEND );
 	if ( !mc ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
+		if ( LogTest( LDAP_DEBUG_ANY ) ) {
+			char	buf[ SLAP_TEXT_BUFLEN ];
 
-		snprintf( buf, sizeof( buf ),
-			"meta_back_bind: no target "
-			"for dn \"%s\" (%d%s%s).",
-			op->o_req_dn.bv_val, rs->sr_err,
-			rs->sr_text ? ". " : "",
-			rs->sr_text ? rs->sr_text : "" );
-		Debug( LDAP_DEBUG_ANY,
-			"%s %s\n",
-			op->o_log_prefix, buf, 0 );
+			snprintf( buf, sizeof( buf ),
+				"meta_back_bind: no target "
+				"for dn \"%s\" (%d%s%s).",
+				op->o_req_dn.bv_val, rs->sr_err,
+				rs->sr_text ? ". " : "",
+				rs->sr_text ? rs->sr_text : "" );
+			Debug( LDAP_DEBUG_ANY,
+				"%s %s\n",
+				op->o_log_prefix, buf, 0 );
+		}
 
 		/* FIXME: there might be cases where we don't want
 		 * to map the error onto invalidCredentials */
@@ -453,8 +455,8 @@ return_results:;
 		free( mdn.bv_val );
 	}
 
-	if ( META_BACK_QUARANTINE( mi ) ) {
-		meta_back_quarantine( op, rs, candidate, 1 );
+	if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+		meta_back_quarantine( op, rs, candidate );
 	}
 
 	return rs->sr_err;
@@ -659,8 +661,8 @@ done:;
 		}
 	}
 
-	if ( META_BACK_QUARANTINE( mi ) ) {
-		meta_back_quarantine( op, rs, candidate, dolock );
+	if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+		meta_back_quarantine( op, rs, candidate );
 	}
 
 	return rc;
@@ -982,15 +984,14 @@ meta_back_op_result(
 			rerr = rs->sr_err = slap_map_api2result( rs );
 
 			Debug(LDAP_DEBUG_ANY,
-					"==> meta_back_op_result: target"
-					" <%d> sending msg \"%s\""
-					" (matched \"%s\")\n", 
+					"==> meta_back_op_result[%d] "
+					"text=\"%s\" matched=\"%s\"\n", 
 					candidate, ( rmsg ? rmsg : "" ),
 					( rmatch ? rmatch : "" ) );
 		}
 
-		if ( META_BACK_QUARANTINE( mi ) ) {
-			meta_back_quarantine( op, rs, candidate, 1 );
+		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ candidate ] ) ) {
+			meta_back_quarantine( op, rs, candidate );
 		}
 
 	} else {
@@ -1026,9 +1027,8 @@ meta_back_op_result(
 				rs->sr_err = slap_map_api2result( rs );
 	
 				Debug(LDAP_DEBUG_ANY,
-						"==> meta_back_op_result: target"
-						" <%d> sending msg \"%s\""
-						" (matched \"%s\")\n", 
+						"==> meta_back_op_result[%d] "
+						"text=\"%s\" matched=\"%s\"\n", 
 						i, ( msg ? msg : "" ),
 						( match ? match : "" ) );
 	
@@ -1064,8 +1064,8 @@ meta_back_op_result(
 				}
 			}
 
-			if ( META_BACK_QUARANTINE( mi ) ) {
-				meta_back_quarantine( op, rs, i, 1 );
+			if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ i ] ) ) {
+				meta_back_quarantine( op, rs, i );
 			}
 		}
 	}

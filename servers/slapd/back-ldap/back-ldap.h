@@ -251,14 +251,14 @@ typedef struct ldapinfo_t {
 
 	ldap_avl_info_t	li_conninfo;
 
-	slap_retry_info_t	li_quarantine;
-	/* NOTE: quarantine uses the connection mutex */
 	sig_atomic_t		li_isquarantined;
 #define	LDAP_BACK_FQ_NO		(0)
 #define	LDAP_BACK_FQ_YES	(1)
 #define	LDAP_BACK_FQ_RETRYING	(2)
 
+	slap_retry_info_t	li_quarantine;
 #define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
+	ldap_pvt_thread_mutex_t	li_quarantine_mutex;
 	ldap_back_quarantine_f	li_quarantine_f;
 	void			*li_quarantine_p;
 

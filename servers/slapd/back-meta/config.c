@@ -172,6 +172,9 @@ meta_back_db_config(
 
 		mt->mt_nretries = mi->mi_nretries;
 		mt->mt_quarantine = mi->mi_quarantine;
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			ldap_pvt_thread_mutex_init( &mt->mt_quarantine_mutex );
+		}
 		mt->mt_flags = mi->mi_flags;
 		mt->mt_version = mi->mi_version;
 		mt->mt_network_timeout = mi->mi_network_timeout;
@@ -990,7 +993,9 @@ meta_back_db_config(
 				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine
 				: &mi->mi_quarantine;
 
-		if ( META_BACK_QUARANTINE( mi ) ) {
+		if ( ( mi->mi_ntargets == 0 && META_BACK_QUARANTINE( mi ) )
+			|| ( mi->mi_ntargets > 0 && META_BACK_TGT_QUARANTINE( mi->mi_targets[ mi->mi_ntargets - 1 ] ) ) )
+		{
 			Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: quarantine already defined.\n",
 				fname, lineno, 0 );
@@ -1017,6 +1022,10 @@ meta_back_db_config(
 		if ( ri != &mi->mi_quarantine ) {
 			ri->ri_interval = NULL;
 			ri->ri_num = NULL;
+		}
+
+		if ( mi->mi_ntargets > 0 && !META_BACK_QUARANTINE( mi ) ) {
+			ldap_pvt_thread_mutex_init( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine_mutex );
 		}
 
 		if ( slap_retry_info_parse( argv[ 1 ], ri, buf, sizeof( buf ) ) ) {

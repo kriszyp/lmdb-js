@@ -80,8 +80,7 @@ ldap_back_proxy_authz_ctrl_free(
 extern void
 ldap_back_quarantine(
 	Operation	*op,
-	SlapReply	*rs,
-	int		dolock );
+	SlapReply	*rs );
 
 extern void slap_retry_info_destroy( slap_retry_info_t *ri );
 extern int slap_retry_info_parse( char *in, slap_retry_info_t *ri,

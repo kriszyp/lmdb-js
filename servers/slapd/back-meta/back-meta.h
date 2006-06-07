@@ -242,6 +242,8 @@ typedef struct metatarget_t {
 
 	sig_atomic_t		mt_isquarantined;
 	slap_retry_info_t	mt_quarantine;
+	ldap_pvt_thread_mutex_t	mt_quarantine_mutex;
+#define	META_BACK_TGT_QUARANTINE(mt)	( (mt)->mt_quarantine.ri_num != NULL )
 
 	unsigned		mt_flags;
 #define	META_BACK_TGT_ISSET(mt,f)		( ( (mt)->mt_flags & (f) ) == (f) )
@@ -371,8 +373,7 @@ extern void
 meta_back_quarantine(
 	Operation		*op,
 	SlapReply		*rs,
-	int			candidate,
-	int			dolock );
+	int			candidate );
 
 extern int
 meta_back_single_bind(

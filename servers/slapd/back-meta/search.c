@@ -1271,8 +1271,8 @@ finish:;
 			candidates[ i ].sr_ctrls = NULL;
 		}
 
-		if ( META_BACK_QUARANTINE( mi ) ) {
-			meta_back_quarantine( op, &candidates[ i ], i, 1 );
+		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ i ] ) ) {
+			meta_back_quarantine( op, &candidates[ i ], i );
 		}
 	}
 

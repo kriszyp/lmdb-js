@@ -608,7 +608,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		slap_retry_info_t	*ri = &li->li_quarantine;
 		int			dont_retry = 1;
 
-		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+		ldap_pvt_thread_mutex_lock( &li->li_quarantine_mutex );
 		if ( li->li_isquarantined == LDAP_BACK_FQ_YES ) {
 			dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
 				|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
@@ -620,7 +620,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 				li->li_isquarantined = LDAP_BACK_FQ_RETRYING;
 			}
 		}
-		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
+		ldap_pvt_thread_mutex_unlock( &li->li_quarantine_mutex );
 
 		if ( dont_retry ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
@@ -837,16 +837,13 @@ ldap_back_release_conn_lock(
 void
 ldap_back_quarantine(
 	Operation	*op,
-	SlapReply	*rs,
-	int		dolock )
+	SlapReply	*rs )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
 	slap_retry_info_t	*ri = &li->li_quarantine;
 
-	if ( dolock ) {
-		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
-	}
+	ldap_pvt_thread_mutex_lock( &li->li_quarantine_mutex );
 
 	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
 		switch ( li->li_isquarantined ) {
@@ -894,9 +891,7 @@ ldap_back_quarantine(
 		li->li_isquarantined = LDAP_BACK_FQ_NO;
 	}
 
-	if ( dolock ) {
-		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
-	}
+	ldap_pvt_thread_mutex_unlock( &li->li_quarantine_mutex );
 }
 
 /*
@@ -1061,7 +1056,7 @@ retry_lock:;
 		}
 
 		if ( LDAP_BACK_QUARANTINE( li ) ) {
-			ldap_back_quarantine( op, rs, dolock );
+			ldap_back_quarantine( op, rs );
 		}
 
 		goto done;
@@ -1120,7 +1115,7 @@ retry:;
 		rs->sr_err = slap_map_api2result( rs );
 
 		if ( LDAP_BACK_QUARANTINE( li ) ) {
-			ldap_back_quarantine( op, rs, dolock );
+			ldap_back_quarantine( op, rs );
 		}
 
 		return 0;
@@ -1357,7 +1352,7 @@ retry:;
 		}
 	}
 	if ( LDAP_BACK_QUARANTINE( li ) ) {
-		ldap_back_quarantine( op, rs, 1 );
+		ldap_back_quarantine( op, rs );
 	}
 	if ( op->o_conn &&
 		( ( sendok & LDAP_BACK_SENDOK ) 
@@ -1778,7 +1773,10 @@ ldap_back_proxy_authz_ctrl(
 		goto done;
 	}
 
-	if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+	if ( op->o_tag == LDAP_REQ_BIND ) {
+		ndn = op->o_req_ndn;
+
+	} else if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
 		ndn = op->o_conn->c_ndn;
 
 	} else {

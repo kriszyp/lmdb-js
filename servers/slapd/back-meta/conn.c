@@ -489,7 +489,7 @@ retry:;
 				goto error_return;
 			}
 			
-			/* copy the DN if needed */
+			/* copy the DN idf needed */
 			if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
 				ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
 			}
@@ -615,8 +615,8 @@ meta_back_retry(
 		}
 	}
 
-	if ( META_BACK_QUARANTINE( mi ) ) {
-		meta_back_quarantine( op, rs, candidate, 0 );
+	if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+		meta_back_quarantine( op, rs, candidate );
 	}
 
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
@@ -876,8 +876,7 @@ meta_back_getconn(
 	/* Explicit Bind requests always get their own conn */
 	if ( !( sendok & LDAP_BACK_BINDING ) ) {
 		/* Searches for a metaconn in the avl tree */
-retry_lock:
-		new_conn = 0;
+retry_lock:;
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
 			(caddr_t)&mc_curr, meta_back_conndn_cmp );
@@ -1209,8 +1208,14 @@ retry_lock2:;
 					candidates[ i ].sr_err = lerr;
 					err = lerr;
 
-					Debug( LDAP_DEBUG_ANY, "%s: meta_back_getconn[%d] failed: %d\n",
-						op->o_log_prefix, i, lerr );
+					if ( lerr == LDAP_UNAVAILABLE && mt->mt_isquarantined != LDAP_BACK_FQ_NO ) {
+						Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d] quarantined: %d\n",
+							op->o_log_prefix, i, lerr );
+
+					} else {
+						Debug( LDAP_DEBUG_ANY, "%s: meta_back_getconn[%d] failed: %d\n",
+							op->o_log_prefix, i, lerr );
+					}
 
 					if ( META_BACK_ONERR_STOP( mi ) ) {
 						if ( sendok & LDAP_BACK_SENDERR ) {
@@ -1299,8 +1304,9 @@ done:;
 			break;
 
 		case -1:
+			/* duplicate: free and try to get the newly created one */
 			if ( !( sendok & LDAP_BACK_BINDING ) ) {
-				/* duplicate: free and try to get the newly created one */
+				new_conn = 0;
 				goto retry_lock;
 			}
 			LDAP_BACK_CONN_TAINTED_SET( mc );
@@ -1373,33 +1379,36 @@ void
 meta_back_quarantine(
 	Operation	*op,
 	SlapReply	*rs,
-	int		candidate,
-	int		dolock )
+	int		candidate )
 {
 	metainfo_t		*mi = (metainfo_t *)op->o_bd->be_private;
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 
 	slap_retry_info_t	*ri = &mt->mt_quarantine;
 
-	if ( dolock ) {
-		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-	}
+	ldap_pvt_thread_mutex_lock( &mt->mt_quarantine_mutex );
 
 	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
 		switch ( mt->mt_isquarantined ) {
 		case LDAP_BACK_FQ_NO:
 			Debug( LDAP_DEBUG_ANY,
-				"%s: meta_back_quarantine enter.\n",
-				op->o_log_prefix, 0, 0 );
+				"%s: meta_back_quarantine[%d] enter.\n",
+				op->o_log_prefix, candidate, 0 );
 
 			ri->ri_idx = 0;
 			ri->ri_count = 0;
 			break;
 
 		case LDAP_BACK_FQ_RETRYING:
-			Debug( LDAP_DEBUG_ANY,
-				"%s: meta_back_quarantine block #%d try #%d failed.\n",
-				op->o_log_prefix, ri->ri_idx, ri->ri_count );
+			if ( LogTest( LDAP_DEBUG_ANY ) ) {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				snprintf( buf, sizeof( buf ),
+					"meta_back_quarantine[%d] block #%d try #%d failed",
+					candidate, ri->ri_idx, ri->ri_count );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+					op->o_log_prefix, buf, 0 );
+			}
 
 			++ri->ri_count;
 			if ( ri->ri_num[ ri->ri_idx ] != SLAP_RETRYNUM_FOREVER
@@ -1417,10 +1426,10 @@ meta_back_quarantine(
 		mt->mt_isquarantined = LDAP_BACK_FQ_YES;
 		ri->ri_last = slap_get_time();
 
-	} else if ( mt->mt_isquarantined != LDAP_BACK_FQ_NO ) {
+	} else if ( mt->mt_isquarantined == LDAP_BACK_FQ_RETRYING ) {
 		Debug( LDAP_DEBUG_ANY,
-			"%s: meta_back_quarantine exit.\n",
-			op->o_log_prefix, ri->ri_idx, ri->ri_count );
+			"%s: meta_back_quarantine[%d] exit.\n",
+			op->o_log_prefix, candidate, 0 );
 
 		if ( mi->mi_quarantine_f ) {
 			(void)mi->mi_quarantine_f( mi, candidate,
@@ -1432,8 +1441,6 @@ meta_back_quarantine(
 		mt->mt_isquarantined = LDAP_BACK_FQ_NO;
 	}
 
-	if ( dolock ) {
-		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-	}
+	ldap_pvt_thread_mutex_unlock( &mt->mt_quarantine_mutex );
 }
 

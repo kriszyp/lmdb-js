@@ -185,7 +185,7 @@ retry:
 		}
 
 		if ( LDAP_BACK_QUARANTINE( li ) ) {
-			ldap_back_quarantine( op, rs, 1 );
+			ldap_back_quarantine( op, rs );
 		}
 
 		if ( text ) rs->sr_text = text;
@@ -194,7 +194,7 @@ retry:
 		rc = rs->sr_err = SLAPD_ABANDON;
 
 	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
-		ldap_back_quarantine( op, rs, 1 );
+		ldap_back_quarantine( op, rs );
 	}
 
 	/* these have to be freed anyway... */
@@ -281,7 +281,7 @@ retry:
 		}
 
 		if ( LDAP_BACK_QUARANTINE( li ) ) {
-			ldap_back_quarantine( op, rs, 1 );
+			ldap_back_quarantine( op, rs );
 		}
 
 		if ( text ) rs->sr_text = text;
@@ -290,7 +290,7 @@ retry:
 		rc = rs->sr_err = SLAPD_ABANDON;
 
 	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
-		ldap_back_quarantine( op, rs, 1 );
+		ldap_back_quarantine( op, rs );
 	}
 
 	/* these have to be freed anyway... */

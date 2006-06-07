@@ -267,13 +267,18 @@ meta_back_db_destroy(
 		 */
 		if ( mi->mi_targets != NULL ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				if ( META_BACK_QUARANTINE( mi )
-					&& mi->mi_targets[ i ]->mt_quarantine.ri_num != mi->mi_quarantine.ri_num )
-				{
-					slap_retry_info_destroy( &mi->mi_targets[ i ]->mt_quarantine );
+				metatarget_t	*mt = mi->mi_targets[ i ];
+
+				if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+					if ( mt->mt_quarantine.ri_num != mi->mi_quarantine.ri_num )
+					{
+						slap_retry_info_destroy( &mt->mt_quarantine );
+					}
+
+					ldap_pvt_thread_mutex_destroy( &mt->mt_quarantine_mutex );
 				}
 
-				target_free( mi->mi_targets[ i ] );
+				target_free( mt );
 			}
 
 			free( mi->mi_targets );

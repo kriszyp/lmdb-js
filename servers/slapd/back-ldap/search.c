@@ -467,7 +467,7 @@ retry:
 
 finish:;
 	if ( LDAP_BACK_QUARANTINE( li ) ) {
-		ldap_back_quarantine( op, rs, 1 );
+		ldap_back_quarantine( op, rs );
 	}
 
 	if ( rc != SLAPD_ABANDON ) {
