@@ -668,6 +668,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 						assert( 0 );
 						break;
 					}
+					break;
 
 				default:
 					/* impossible */

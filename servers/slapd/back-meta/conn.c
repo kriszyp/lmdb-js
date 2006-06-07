@@ -495,7 +495,7 @@ retry:;
 				goto error_return;
 			}
 			
-			/* copy the DN idf needed */
+			/* copy the DN if needed */
 			if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
 				ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
 			}
