@@ -217,7 +217,7 @@ retry_lock:;
 						"=>meta_back_bind: destroying conn %ld (refcnt=%u)\n",
 						LDAP_BACK_PCONN_ID( mc->mc_conn ), mc->mc_refcnt, 0 );
 
-					if ( mc->mc_refcnt != 0 ) {
+					if ( tmpmc->mc_refcnt != 0 ) {
 						/* taint it */
 						LDAP_BACK_CONN_TAINTED_SET( tmpmc );
 

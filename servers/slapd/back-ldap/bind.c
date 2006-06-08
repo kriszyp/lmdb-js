@@ -182,7 +182,7 @@ retry_lock:;
 					"=>ldap_back_bind: destroying conn %ld (refcnt=%u)\n",
 					LDAP_BACK_PCONN_ID( lc->lc_conn ), lc->lc_refcnt, 0 );
 
-				if ( lc->lc_refcnt != 0 ) {
+				if ( tmplc->lc_refcnt != 0 ) {
 					/* taint it */
 					LDAP_BACK_CONN_TAINTED_SET( tmplc );
 
@@ -1432,6 +1432,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			"ldap_back_retry: conn %p refcnt=%u unable to retry.\n",
 			(void *)(*lcp), (*lcp)->lc_refcnt, 0 );
 
+		LDAP_BACK_CONN_TAINTED_SET( *lcp );
 		ldap_back_release_conn_lock( op, rs, *lcp, 0 );
 		*lcp = NULL;
 
