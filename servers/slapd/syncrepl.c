@@ -3222,8 +3222,14 @@ add_syncrepl(
 	int	rc = 0;
 
 	if ( !( c->be->be_search && c->be->be_add && c->be->be_modify && c->be->be_delete ) ) {
-		Debug( LDAP_DEBUG_ANY, "%s: database %s does not support operations "
-			"required for syncrepl\n", c->log, c->be->be_type, 0 );
+		snprintf( c->msg, sizeof(c->msg), "database %s does not support "
+			"operations required for syncrepl", c->be->be_type );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+		return 1;
+	}
+	if ( BER_BVISEMPTY( &c->be->be_rootdn )) {
+		strcpy( c->msg, "rootDN must be defined before syncrepl may be used" );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 		return 1;
 	}
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
