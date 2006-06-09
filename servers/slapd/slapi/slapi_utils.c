@@ -1382,11 +1382,7 @@ slapi_send_ldap_search_entry(
 			an[i].an_name.bv_val = attrs[i];
 			an[i].an_name.bv_len = strlen( attrs[i] );
 			an[i].an_desc = NULL;
-			rs.sr_err = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &text );
-			if ( rs.sr_err != LDAP_SUCCESS) {
-				slapi_ch_free( (void **)&an );
-				return -1;
-			}
+			(void) slap_bv2ad( &an[i].an_name, &an[i].an_desc, &text );
 		}
 		an[i].an_name.bv_len = 0;
 		an[i].an_name.bv_val = NULL;
