@@ -394,13 +394,13 @@ novals:;
 #endif
 
 	if ( ndns == 0 ) {
-		tester_error( "No RDNs" );
+		tester_error( "No DNs" );
 		return 1;
 	}
 
 	fprintf( stderr, "  PID=%ld - got %d values.\n", (long) pid, ndns );
 
-	/* Ok, got list of RDNs, now start binding to each */
+	/* Ok, got list of DNs, now start binding to each */
 	for ( i = 0; i < maxloop; i++ ) {
 		int j, k;
 		struct berval *cred = pass;
