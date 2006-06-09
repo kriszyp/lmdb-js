@@ -62,6 +62,7 @@ usage( char *name )
 		"[-A] "
 		"[-C] "
 		"[-F] "
+		"[-i <ignore>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -90,9 +91,12 @@ main( int argc, char **argv )
 	int		chaserefs = 0;
 	int		noattrs = 0;
 
-	tester_init( "slapd-search" );
+	tester_init( "slapd-search", TESTER_SEARCH );
 
-	while ( (i = getopt( argc, argv, "Aa:b:CD:f:FH:h:l:L:p:w:r:t:" )) != EOF ) {
+	/* by default, tolerate referrals and no such object */
+	tester_ignore_str2errlist( "REFERRAL,NO_SUCH_OBJECT" );
+
+	while ( (i = getopt( argc, argv, "Aa:b:CD:f:FH:h:i:l:L:p:w:r:t:" )) != EOF ) {
 		switch( i ) {
 		case 'A':
 			noattrs++;
@@ -108,6 +112,10 @@ main( int argc, char **argv )
 
 		case 'h':		/* the servers host */
 			host = strdup( optarg );
+			break;
+
+		case 'i':
+			tester_ignore_str2errlist( optarg );
 			break;
 
 		case 'p':		/* the servers port */
@@ -316,7 +324,6 @@ do_search( char *uri, char *manager, struct berval *passwd,
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
-	int	first = 1;
 	char	buf[ BUFSIZ ];
 
 
@@ -371,39 +378,32 @@ retry:;
 			ldap_msgfree( res );
 		}
 
-		switch ( rc ) {
-		case LDAP_REFERRAL:
-			/* don't log: it's intended */
-			if ( force >= 2 ) {
-				if ( !first ) {
-					break;
+		if ( rc ) {
+			unsigned first = tester_ignore_err( rc );
+			/* if ignore.. */
+			if ( first ) {
+				/* only log if first occurrence */
+				if ( force < 2 || first == 1 ) {
+					tester_ldap_error( ld, "ldap_search_ext_s", NULL );
 				}
-				first = 0;
+				continue;
 			}
-			tester_ldap_error( ld, "ldap_search_ext_s", NULL );
-			/* fallthru */
 
-		case LDAP_SUCCESS:
-			break;
-
-		default:
+			/* busy needs special handling */
 			snprintf( buf, sizeof( buf ),
 				"base=\"%s\" filter=\"%s\"\n",
 				sbase, filter );
 			tester_ldap_error( ld, "ldap_search_ext_s", buf );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				ldap_unbind_ext( ld, NULL, NULL );
+				ld = NULL;
 				do_retry--;
 				goto retry;
-			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) {
-				goto done;
 			}
 			break;
 		}
 	}
 
-done:;
 	if ( ldp != NULL ) {
 		*ldp = ld;
 

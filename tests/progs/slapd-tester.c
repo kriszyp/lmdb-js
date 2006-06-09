@@ -83,6 +83,7 @@ usage( char *name )
 		"-D <manager> "
 		"-w <passwd> "
 		"-d <datadir> "
+		"[-i <ignore>] "
 		"[-j <maxchild>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
@@ -115,6 +116,7 @@ main( int argc, char **argv )
 	int		friendly = 0;
 	int		chaserefs = 0;
 	int		noattrs = 0;
+	char		*ignore = NULL;
 	/* search */
 	char		*sfile = NULL;
 	char		*sreqs[MAXREQS];
@@ -171,9 +173,9 @@ main( int argc, char **argv )
 
 	char		*friendlyOpt = NULL;
 
-	tester_init( "slapd-tester" );
+	tester_init( "slapd-tester", TESTER_TESTER );
 
-	while ( (i = getopt( argc, argv, "ACD:d:FH:h:j:l:L:P:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "ACD:d:FH:h:i:j:l:L:P:p:r:t:w:" )) != EOF ) {
 		switch( i ) {
 		case 'A':
 			noattrs++;
@@ -201,6 +203,10 @@ main( int argc, char **argv )
 
 		case 'h':		/* slapd host */
 			host = strdup( optarg );
+			break;
+
+		case 'i':
+			ignore = optarg;
 			break;
 
 		case 'j':		/* the number of parallel clients */
@@ -375,6 +381,10 @@ main( int argc, char **argv )
 	if ( noattrs ) {
 		sargs[sanum++] = "-A";
 	}
+	if ( ignore ) {
+		sargs[sanum++] = "-i";
+		sargs[sanum++] = ignore;
+	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
@@ -423,6 +433,10 @@ main( int argc, char **argv )
 	if ( noattrs ) {
 		rargs[ranum++] = "-A";
 	}
+	if ( ignore ) {
+		rargs[ranum++] = "-i";
+		rargs[ranum++] = ignore;
+	}
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
 
@@ -466,6 +480,10 @@ main( int argc, char **argv )
 	if ( chaserefs ) {
 		margs[manum++] = "-C";
 	}
+	if ( ignore ) {
+		margs[manum++] = "-i";
+		margs[manum++] = ignore;
+	}
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
 	margs[manum++] = NULL;
@@ -504,6 +522,10 @@ main( int argc, char **argv )
 	}
 	if ( chaserefs ) {
 		modargs[modanum++] = "-C";
+	}
+	if ( ignore ) {
+		modargs[modanum++] = "-i";
+		modargs[modanum++] = ignore;
 	}
 	modargs[modanum++] = "-e";
 	modargs[modanum++] = NULL;		/* will hold the modify entry */
@@ -546,6 +568,10 @@ main( int argc, char **argv )
 	if ( chaserefs ) {
 		aargs[aanum++] = "-C";
 	}
+	if ( ignore ) {
+		aargs[aanum++] = "-i";
+		aargs[aanum++] = ignore;
+	}
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
 	aargs[aanum++] = NULL;
@@ -583,6 +609,10 @@ main( int argc, char **argv )
 	}
 	if ( chaserefs ) {
 		bargs[banum++] = "-C";
+	}
+	if ( ignore ) {
+		bargs[banum++] = "-i";
+		bargs[banum++] = ignore;
 	}
 	bargs[banum++] = "-D";
 	bargs[banum++] = NULL;
@@ -649,6 +679,7 @@ main( int argc, char **argv )
 				bargs[banum - 1] = "-a";
 				bargs[banum] = battrs[jj];
 			}
+
 			fork_child( bcmd, bargs );
 			bargs[banum - 5] = "-D";
 		}

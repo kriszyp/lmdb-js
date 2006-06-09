@@ -67,6 +67,7 @@ usage( char *name )
 		"[-F] "
 		"[-C] "
 		"[-I] "
+		"[-i <ignore>] "
 		"[-t delay]\n",
 		name );
 	exit( EXIT_FAILURE );
@@ -92,9 +93,12 @@ main( int argc, char **argv )
 	int		noinit = 0;
 	int		delay = 0;
 
-	tester_init( "slapd-bind" );
+	tester_init( "slapd-bind", TESTER_BIND );
 
-	while ( (i = getopt( argc, argv, "a:b:H:h:p:D:w:l:L:f:FIt:" )) != EOF ) {
+	/* by default, tolerate invalid credentials */
+	tester_ignore_str2errlist( "INVALID_CREDENTIALS" );
+
+	while ( (i = getopt( argc, argv, "a:b:H:h:i:p:D:w:l:L:f:FIt:" )) != EOF ) {
 		switch( i ) {
 		case 'a':
 			pwattr = optarg;
@@ -114,6 +118,10 @@ main( int argc, char **argv )
 
 		case 'h':		/* the servers host */
 			host = optarg;
+			break;
+
+		case 'i':
+			tester_ignore_str2errlist( optarg );
 			break;
 
 		case 'p':		/* the servers port */
@@ -193,7 +201,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 	int force, int chaserefs, int noinit, LDAP **ldp )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
-	int  	i, first = 1, rc = -1;
+	int  	i, rc = -1;
 	pid_t	pid = getpid();
 
 	if ( maxloop > 1 )
@@ -217,29 +225,28 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 		}
 
 		rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );
-		switch ( rc ) {
-		case LDAP_SUCCESS:
-			break;
+		if ( rc ) {
+			unsigned first = tester_ignore_err( rc );
 
-		case LDAP_INVALID_CREDENTIALS:
-			/* don't log: it's intended */
-			if ( force >= 2 ) {
-				if ( !first ) {
-					break;
+			/* if ignore.. */
+			if ( first ) {
+				/* only log if first occurrence */
+				if ( force < 2 || first == 1 ) {
+					tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 				}
-				first = 0;
+				rc = LDAP_SUCCESS;
+
+			} else {
+				tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 			}
-			/* fallthru */
-
-		default:
-			tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		}
-
+			
 		if ( !noinit ) {
 			ldap_unbind_ext( ld, NULL, NULL );
 			ld = NULL;
 		}
-		if ( rc != LDAP_SUCCESS && !force ) {
+
+		if ( rc != LDAP_SUCCESS ) {
 			break;
 		}
 	}

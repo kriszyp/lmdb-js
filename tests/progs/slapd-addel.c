@@ -55,6 +55,7 @@ usage( char *name )
 		"-D <manager> "
 		"-w <passwd> "
 		"-f <addfile> "
+		"[-i <ignore>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -84,7 +85,7 @@ main( int argc, char **argv )
 	int		chaserefs = 0;
 	LDAPMod		**attrs = NULL;
 
-	tester_init( "slapd-modify" );
+	tester_init( "slapd-addel", TESTER_ADDEL );
 
 	while ( (i = getopt( argc, argv, "CFH:h:p:D:w:f:l:L:r:t:" )) != EOF ) {
 		switch( i ) {
@@ -102,6 +103,10 @@ main( int argc, char **argv )
 
 		case 'h':		/* the servers host */
 			host = strdup( optarg );
+			break;
+
+		case 'i':
+			/* ignored (!) by now */
 			break;
 
 		case 'p':		/* the servers port */

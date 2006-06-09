@@ -20,10 +20,22 @@
 #ifndef SLAPD_COMMON_H
 #define SLAPD_COMMON_H
 
-extern void tester_init( const char *pname );
+typedef enum {
+	TESTER_TESTER,
+	TESTER_ADDEL,
+	TESTER_BIND,
+	TESTER_MODIFY,
+	TESTER_MODRDN,
+	TESTER_READ,
+	TESTER_SEARCH
+} tester_t;
+
+extern void tester_init( const char *pname, tester_t ptype );
 extern char * tester_uri( char *uri, char *host, int port );
 extern void tester_error( const char *msg );
 extern void tester_perror( const char *fname, const char *msg );
 extern void tester_ldap_error( LDAP *ld, const char *fname, const char *msg );
+extern int tester_ignore_str2errlist( const char *err );
+extern unsigned tester_ignore_err( int err );
 
 #endif /* SLAPD_COMMON_H */
