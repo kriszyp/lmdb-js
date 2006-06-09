@@ -643,14 +643,14 @@ main( int argc, char **argv )
 
 			bargs[banum - 4] = breqs[jj];
 			bargs[banum - 2] = bcreds[jj];
+			bargs[banum - 1] = NULL;
 			if ( battrs[jj] != NULL ) {
+				bargs[banum - 5] = "-b";
 				bargs[banum - 1] = "-a";
 				bargs[banum] = battrs[jj];
-
-			} else {
-				sargs[sanum - 1] = NULL;
 			}
 			fork_child( bcmd, bargs );
+			bargs[banum - 5] = "-D";
 		}
 	}
 

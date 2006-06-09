@@ -391,7 +391,7 @@ novals:;
 		return 1;
 	}
 
-	fprintf( stderr, "PID=%ld - got %d values.\n", (long) pid, ndns );
+	fprintf( stderr, "  PID=%ld - got %d values.\n", (long) pid, ndns );
 
 	/* Ok, got list of RDNs, now start binding to each */
 	for ( i = 0; i < maxloop; i++ ) {
@@ -425,8 +425,8 @@ novals:;
 	end = GetTickCount();
 	end -= beg;
 
-	fprintf( stderr, "Done %d Binds in %d.%03d seconds.\n", i,
-		end / 1000, end % 1000 );
+	fprintf( stderr, " PID=%ld - Bind done %d in %d.%03d seconds.\n",
+		(long) pid, i, end / 1000, end % 1000 );
 #else
 	gettimeofday( &end, NULL );
 	end.tv_usec -= beg.tv_usec;
@@ -436,8 +436,8 @@ novals:;
 	}
 	end.tv_sec -= beg.tv_sec;
 
-	fprintf( stderr, "Done %d Binds in %ld.%06ld seconds.\n", i,
-		(long) end.tv_sec, (long) end.tv_usec );
+	fprintf( stderr, " PID=%ld - Bind done %d in %ld.%06ld seconds.\n",
+		(long) pid, i, (long) end.tv_sec, (long) end.tv_usec );
 #endif
 
 	if ( dns ) {

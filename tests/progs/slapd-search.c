@@ -279,7 +279,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 		ldap_msgfree( res );
 
 		if ( do_retry == maxretries ) {
-			fprintf( stderr, "PID=%ld - got %d values.\n", (long) pid, nvalues );
+			fprintf( stderr, "  PID=%ld - got %d values.\n", (long) pid, nvalues );
 		}
 
 		for ( i = 0; i < innerloop; i++ ) {
