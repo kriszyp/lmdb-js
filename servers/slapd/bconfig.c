@@ -2641,6 +2641,7 @@ config_replica(ConfigArgs *c) {
 				STRLENOF("://") + 1;
 			if (ludp->lud_port != LDAP_PORT) {
 				if (ludp->lud_port < 1 || ludp->lud_port > 65535) {
+					ldap_free_urldesc(ludp);
 					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid port",
 						c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
