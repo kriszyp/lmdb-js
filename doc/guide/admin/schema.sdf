@@ -173,10 +173,10 @@ H3: Attribute Type Specification
 
 The {{attributetype}} directive is used to define a new attribute
 type.  The directive uses the same Attribute Type Description
-(as defined in {{REF:RFC2252}}) used by the attributeTypes
+(as defined in {{REF:RFC4512}}) used by the attributeTypes
 attribute found in the subschema subentry, e.g.:
 
-E:	attributetype <{{REF:RFC2252}} Attribute Type Description>
+E:	attributetype <{{REF:RFC4512}} Attribute Type Description>
 
 where Attribute Type Description is defined by the following
 {{TERM:BNF}}:
@@ -346,10 +346,10 @@ H3: Object Class Specification
 
 The {{objectclasses}} directive is used to define a new object
 class.  The directive uses the same Object Class Description
-(as defined in {{REF:RFC2252}}) used by the objectClasses
+(as defined in {{REF:RFC4512}}) used by the objectClasses
 attribute found in the subschema subentry, e.g.:
 
-E:	objectclass <{{REF:RFC2252}} Object Class Description>
+E:	objectclass <{{REF:RFC4512}} Object Class Description>
 
 where Object Class Description is defined by the following
 {{TERM:BNF}}:
@@ -403,7 +403,7 @@ and {{EX:givenName}} and allows {{EX:myPhoto}}.
 !if 0
 H2: Transferring Schema
 
-Since the {{slapd.conf}}(5) schema directives use {{REF:RFC2252}}
+Since the {{slapd.conf}}(5) schema directives use {{REF:RFC4512}}
 format values, you can extract schema elements published by
 any LDAPv3 server and easily construct directives for use with
 {{slapd}}(8).

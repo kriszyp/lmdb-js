@@ -5,7 +5,7 @@ H1: Using SASL
 
 OpenLDAP clients and servers are capable of authenticating via the
 {{TERM[expand]SASL}} ({{TERM:SASL}}) framework, which is detailed
-in {{REF:RFC2222}}.   This chapter describes how to make use of
+in {{REF:RFC4422}}.   This chapter describes how to make use of
 SASL in OpenLDAP.
 
 There are several industry standard authentication mechanisms that

@@ -90,7 +90,7 @@ library call.
 .B ldapsearch
 opens a connection to an LDAP server, binds, and performs a search
 using specified parameters.   The \fIfilter\fP should conform to
-the string representation for search filters as defined in RFC 2254.
+the string representation for search filters as defined in RFC 4515.
 If not provided, the default filter, (objectClass=*), is used.
 .LP
 If
@@ -239,7 +239,7 @@ Specify general extensions with -e and search extensions with -E.
 
 General extensions:
 .nf
-  [!]assert=<filter>   (an RFC 2254 Filter)
+  [!]assert=<filter>   (an RFC 4515 Filter)
   [!]authzid=<authzid> ("dn:<dn>" or "u:<user>")
   [!]manageDSAit
   [!]noop

@@ -133,8 +133,8 @@ a trailing `-') matches all options starting with that name, as well
 as the option with the range name sans the trailing `-'.
 That is, `x-foo-bar-' matches `x-foo-bar' and `x-foo-bar-baz'.
 
-RFC 2251 reserves options beginning with `x-' for private experiments.
-Other options should be registered with IANA, see RFC 3383 section 3.4.
+RFC 4520 reserves options beginning with `x-' for private experiments.
+Other options should be registered with IANA, see RFC 4520 section 3.5.
 OpenLDAP also has the `binary' option built in, but this is a transfer
 option, not a tagging option.
 .HP
@@ -153,8 +153,8 @@ option, not a tagging option.
  [NO\-USER\-MODIFICATION]\
  [USAGE\ <attributeUsage>]\ )"
 .RS
-Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
-The slapd parser extends the RFC 2252 definition by allowing string
+Specify an attribute type using the LDAPv3 syntax defined in RFC 4512.
+The slapd parser extends the RFC 4512 definition by allowing string
 forms as well as numeric OIDs to be used for the attribute OID and
 attribute syntax OID.
 (See the
@@ -432,8 +432,8 @@ disallows the StartTLS operation if authenticated (see also
  [MAY\ <oids>]\
  [NOT\ <oids>]\ )"
 .RS
-Specify an DIT Content Rule using the LDAPv3 syntax defined in RFC 2252.
-The slapd parser extends the RFC 2252 definition by allowing string
+Specify an DIT Content Rule using the LDAPv3 syntax defined in RFC 4512.
+The slapd parser extends the RFC 4512 definition by allowing string
 forms as well as numeric OIDs to be used for the attribute OID and
 attribute syntax OID.
 (See the
@@ -637,8 +637,8 @@ the path is colon-separated but this depends on the operating system.
  [{ ABSTRACT | STRUCTURAL | AUXILIARY }]\
  [MUST\ <oids>] [MAY\ <oids>] )"
 .RS
-Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
-The slapd parser extends the RFC 2252 definition by allowing string
+Specify an objectclass using the LDAPv3 syntax defined in RFC 4512.
+The slapd parser extends the RFC 4512 definition by allowing string
 forms as well as numeric OIDs to be used for the object class OID.
 (See the
 .B
