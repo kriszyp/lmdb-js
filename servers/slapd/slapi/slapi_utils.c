@@ -1363,7 +1363,7 @@ slapi_send_ldap_search_entry(
 	int		attrsonly )
 {
 	SlapReply		rs = { REP_SEARCH };
-	int			i = 0;
+	int			i = 0, j = 0;
 	AttributeName		*an = NULL;
 	const char		*text;
 	int			rc;
@@ -1379,13 +1379,15 @@ slapi_send_ldap_search_entry(
 	if ( i ) {
 		an = (AttributeName *) slapi_ch_malloc( (i+1) * sizeof(AttributeName) );
 		for ( i = 0; attrs[i] != NULL; i++ ) {
-			an[i].an_name.bv_val = attrs[i];
-			an[i].an_name.bv_len = strlen( attrs[i] );
-			an[i].an_desc = NULL;
-			(void) slap_bv2ad( &an[i].an_name, &an[i].an_desc, &text );
+			an[j].an_name.bv_val = attrs[i];
+			an[j].an_name.bv_len = strlen( attrs[i] );
+			an[j].an_desc = NULL;
+			if ( slap_bv2ad( &an[j].an_name, &an[j].an_desc, &text ) == LDAP_SUCCESS) {
+				j++;
+			}
 		}
-		an[i].an_name.bv_len = 0;
-		an[i].an_name.bv_val = NULL;
+		an[j].an_name.bv_len = 0;
+		an[j].an_name.bv_val = NULL;
 	}
 
 	rs.sr_err = LDAP_SUCCESS;
