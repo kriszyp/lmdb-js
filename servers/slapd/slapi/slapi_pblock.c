@@ -1098,7 +1098,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_SEARCH_ATTRS: {
 		AttributeName *an = NULL;
-		size_t i = 0;
+		size_t i = 0, j = 0;
 		char **attrs = (char **)value;
 
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1122,18 +1122,20 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 				;
 		}
 		if ( i ) {
-			an = (AttributeName *)pb->pb_op->o_tmpalloc( (i + 1) *
+			an = (AttributeName *)pb->pb_op->o_tmpcalloc( i + 1,
 				sizeof(AttributeName), pb->pb_op->o_tmpmemctx );
 			for ( i = 0; attrs[i] != NULL; i++ ) {
-				an[i].an_desc = NULL;
-				an[i].an_oc = NULL;
-				an[i].an_oc_exclude = 0;
-				an[i].an_name.bv_val = attrs[i];
-				an[i].an_name.bv_len = strlen( attrs[i] );
-				slap_bv2ad( &an[i].an_name, &an[i].an_desc, &pb->pb_rs->sr_text );
+				an[j].an_desc = NULL;
+				an[j].an_oc = NULL;
+				an[j].an_oc_exclude = 0;
+				an[j].an_name.bv_val = attrs[i];
+				an[j].an_name.bv_len = strlen( attrs[i] );
+				if ( slap_bv2ad( &an[j].an_name, &an[j].an_desc, &pb->pb_rs->sr_text ) == LDAP_SUCCESS ) {
+					j++;
+				}
 			}
-			an[i].an_name.bv_val = NULL;
-			an[i].an_name.bv_len = 0;
+			an[j].an_name.bv_val = NULL;
+			an[j].an_name.bv_len = 0;
 		}	
 		pb->pb_op->ors_attrs = an;
 		break;

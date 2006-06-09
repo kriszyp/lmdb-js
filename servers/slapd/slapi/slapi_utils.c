@@ -1377,7 +1377,7 @@ slapi_send_ldap_search_entry(
 	}
 
 	if ( i ) {
-		an = (AttributeName *) slapi_ch_malloc( (i+1) * sizeof(AttributeName) );
+		an = (AttributeName *) slapi_ch_calloc( i + 1, sizeof(AttributeName) );
 		for ( i = 0; attrs[i] != NULL; i++ ) {
 			an[j].an_name.bv_val = attrs[i];
 			an[j].an_name.bv_len = strlen( attrs[i] );
