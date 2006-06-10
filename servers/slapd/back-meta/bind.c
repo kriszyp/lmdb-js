@@ -908,7 +908,7 @@ meta_back_op_result(
 					snprintf( buf, sizeof( buf ),
 						"meta_back_op_result[%d] "
 						"err=%d text=\"%s\" matched=\"%s\"", 
-						candidate, rs->sr_err,
+						i, rs->sr_err,
 						( rmsg ? rmsg : "" ),
 						( rmatch ? rmatch : "" ) );
 					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
