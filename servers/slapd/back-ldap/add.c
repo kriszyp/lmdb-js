@@ -93,7 +93,7 @@ ldap_back_add(
 	attrs[ i ] = NULL;
 
 	ctrls = op->o_ctrls;
-	rs->sr_err = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	rs->sr_err = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn, op, rs, &ctrls );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto cleanup;

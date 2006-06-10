@@ -33,7 +33,7 @@
 #include "slap.h"
 #include "back-ldap.h"
 
-#include <lutil_ldap.h>
+#include "lutil_ldap.h"
 
 #ifndef PRINT_CONNTREE
 #define PRINT_CONNTREE 0
@@ -1478,6 +1478,11 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 		/* fall thru */
 
 	default:
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		if ( sendok & LDAP_BACK_SENDERR ) {
+			send_ldap_result( op, rs );
+		}
+		LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 		goto done;
 	}
 
@@ -1737,7 +1742,7 @@ done:;
  */
 int
 ldap_back_proxy_authz_ctrl(
-		ldapconn_t	*lc,
+		struct berval	*bound_ndn,
 		Operation	*op,
 		SlapReply	*rs,
 		LDAPControl	***pctrls )
@@ -1810,7 +1815,7 @@ ldap_back_proxy_authz_ctrl(
 			goto done;
 		}
 
-		if ( !BER_BVISNULL( &lc->lc_bound_ndn ) ) {
+		if ( !BER_BVISNULL( bound_ndn ) ) {
 			goto done;
 		}
 
@@ -1823,14 +1828,9 @@ ldap_back_proxy_authz_ctrl(
 		}
 
 	} else if ( li->li_idassert_authmethod == LDAP_AUTH_SASL ) {
-		if ( ( li->li_idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ )
-				/* && ( !BER_BVISNULL( &ndn )
-					|| LDAP_BACK_CONN_ISBOUND( lc ) ) */ )
+		if ( ( li->li_idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) )
 		{
 			/* already asserted in SASL via native authz */
-			/* NOTE: the test on lc->lc_bound is used to trap
-			 * native authorization of anonymous users,
-			 * since in that case ndn is NULL */
 			goto done;
 		}
 
@@ -1927,7 +1927,7 @@ ldap_back_proxy_authz_ctrl(
 	}
 
 	/* don't idassert the bound DN (ITS#4497) */
-	if ( dn_match( &assertedID, &lc->lc_bound_ndn ) ) {
+	if ( dn_match( &assertedID, bound_ndn ) ) {
 		goto done;
 	}
 

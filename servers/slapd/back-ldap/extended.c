@@ -56,7 +56,7 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, BI_op_extended exop )
 	}
 
 	oldctrls = op->o_ctrls;
-	if ( ldap_back_proxy_authz_ctrl( lc, op, rs, &op->o_ctrls ) ) {
+	if ( ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn, op, rs, &op->o_ctrls ) ) {
 		op->o_ctrls = oldctrls;
 		send_ldap_extended( op, rs );
 		rs->sr_text = NULL;

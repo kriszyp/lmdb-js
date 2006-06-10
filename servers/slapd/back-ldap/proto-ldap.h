@@ -67,7 +67,7 @@ extern void ldap_back_conn_free( void *c );
 
 extern int
 ldap_back_proxy_authz_ctrl(
-		ldapconn_t	*lc,
+		struct berval	*bound_ndn,
 		Operation	*op,
 		SlapReply	*rs,
 		LDAPControl	***pctrls );
