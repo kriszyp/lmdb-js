@@ -496,7 +496,7 @@ retry:;
 				goto error_return;
 			}
 			
-			/* copy the DN idf needed */
+			/* copy the DN if needed */
 			if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
 				ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
 			}
@@ -1396,8 +1396,14 @@ meta_back_quarantine(
 	ldap_pvt_thread_mutex_lock( &mt->mt_quarantine_mutex );
 
 	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
+		time_t	new_last = slap_get_time();
+
 		switch ( mt->mt_isquarantined ) {
 		case LDAP_BACK_FQ_NO:
+			if ( ri->ri_last == new_last ) {
+				goto done;
+			}
+
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_quarantine[%d]: enter.\n",
 				op->o_log_prefix, candidate, 0 );
@@ -1431,7 +1437,7 @@ meta_back_quarantine(
 		}
 
 		mt->mt_isquarantined = LDAP_BACK_FQ_YES;
-		ri->ri_last = slap_get_time();
+		ri->ri_last = new_last;
 
 	} else if ( mt->mt_isquarantined == LDAP_BACK_FQ_RETRYING ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -1448,6 +1454,7 @@ meta_back_quarantine(
 		mt->mt_isquarantined = LDAP_BACK_FQ_NO;
 	}
 
+done:;
 	ldap_pvt_thread_mutex_unlock( &mt->mt_quarantine_mutex );
 }
 

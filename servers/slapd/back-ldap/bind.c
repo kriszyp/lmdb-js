@@ -846,8 +846,14 @@ ldap_back_quarantine(
 	ldap_pvt_thread_mutex_lock( &li->li_quarantine_mutex );
 
 	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
+		time_t		new_last = slap_get_time();
+
 		switch ( li->li_isquarantined ) {
 		case LDAP_BACK_FQ_NO:
+			if ( ri->ri_last == new_last ) {
+				goto done;
+			}
+
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_back_quarantine enter.\n",
 				op->o_log_prefix, 0, 0 );
@@ -875,7 +881,7 @@ ldap_back_quarantine(
 		}
 
 		li->li_isquarantined = LDAP_BACK_FQ_YES;
-		ri->ri_last = slap_get_time();
+		ri->ri_last = new_last;
 
 	} else if ( li->li_isquarantined != LDAP_BACK_FQ_NO ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -891,6 +897,7 @@ ldap_back_quarantine(
 		li->li_isquarantined = LDAP_BACK_FQ_NO;
 	}
 
+done:;
 	ldap_pvt_thread_mutex_unlock( &li->li_quarantine_mutex );
 }
 
