@@ -590,14 +590,14 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_CONN_SERVERIP:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
+		if ( strncmp( pb->pb_conn->c_sock_name.bv_val, "IP=", 3 ) == 0 )
 			*((char **)value) = &pb->pb_conn->c_sock_name.bv_val[3];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_X_CONN_SERVERPATH:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
+		if ( strncmp( pb->pb_conn->c_sock_name.bv_val, "PATH=", 3 ) == 0 )
 			*((char **)value) = &pb->pb_conn->c_sock_name.bv_val[5];
 		else
 			*value = NULL;
