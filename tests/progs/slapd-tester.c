@@ -676,12 +676,14 @@ main( int argc, char **argv )
 			bargs[banum - 1] = NULL;
 			if ( battrs[jj] != NULL ) {
 				bargs[banum - 5] = "-b";
+				bargs[banum - 3] = "-f";
 				bargs[banum - 1] = "-a";
 				bargs[banum] = battrs[jj];
 			}
 
 			fork_child( bcmd, bargs );
 			bargs[banum - 5] = "-D";
+			bargs[banum - 3] = "-w";
 		}
 	}
 

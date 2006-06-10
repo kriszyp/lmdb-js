@@ -398,7 +398,8 @@ novals:;
 		return 1;
 	}
 
-	fprintf( stderr, "  PID=%ld - got %d values.\n", (long) pid, ndns );
+	fprintf( stderr, "  PID=%ld - Bind base=\"%s\" filter=\"%s\" got %d values.\n",
+		(long) pid, base->bv_val, filter, ndns );
 
 	/* Ok, got list of DNs, now start binding to each */
 	for ( i = 0; i < maxloop; i++ ) {
