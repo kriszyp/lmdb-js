@@ -348,7 +348,7 @@ retry:;
 		}
 	}
 
-	return slap_map_api2result( rs );
+	return rs->sr_err = slap_map_api2result( rs );
 }
 
 /*
