@@ -1698,7 +1698,7 @@ struct slap_backend_db {
 /* Database flags */
 #define SLAP_DBFLAG_NOLASTMOD		0x0001U
 #define SLAP_DBFLAG_NO_SCHEMA_CHECK	0x0002U
-#define	SLAP_DBFLAG_HIDDEN			0x0004U
+#define	SLAP_DBFLAG_HIDDEN		0x0004U
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
@@ -2444,6 +2444,8 @@ typedef struct slap_op {
 	char o_delete_glue_parent;
 	char o_no_schema_check;
 #define get_no_schema_check(op)			((op)->o_no_schema_check)
+	char o_no_subordinate_glue;
+#define get_no_subordinate_glue(op)		((op)->o_no_subordinate_glue)
 
 #define SLAP_CONTROL_NONE	0
 #define SLAP_CONTROL_IGNORED	1
