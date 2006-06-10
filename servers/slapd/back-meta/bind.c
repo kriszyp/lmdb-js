@@ -852,11 +852,18 @@ meta_back_op_result(
 
 			rerr = rs->sr_err = slap_map_api2result( rs );
 
-			Debug(LDAP_DEBUG_ANY,
-					"==> meta_back_op_result[%d] "
-					"text=\"%s\" matched=\"%s\"\n", 
-					candidate, ( rmsg ? rmsg : "" ),
+			if ( LogTest( LDAP_DEBUG_ANY ) ) {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				snprintf( buf, sizeof( buf ),
+					"meta_back_op_result[%d] "
+					"err=%d text=\"%s\" matched=\"%s\"", 
+					candidate, rs->sr_err,
+					( rmsg ? rmsg : "" ),
 					( rmatch ? rmatch : "" ) );
+				Debug( LDAP_DEBUG_ANY, "%s %s.\n",
+					op->o_log_prefix, buf, 0 );
+			}
 		}
 
 		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ candidate ] ) ) {
@@ -895,11 +902,18 @@ meta_back_op_result(
 
 				rs->sr_err = slap_map_api2result( rs );
 	
-				Debug(LDAP_DEBUG_ANY,
-						"==> meta_back_op_result[%d] "
-						"text=\"%s\" matched=\"%s\"\n", 
-						i, ( msg ? msg : "" ),
-						( match ? match : "" ) );
+				if ( LogTest( LDAP_DEBUG_ANY ) ) {
+					char	buf[ SLAP_TEXT_BUFLEN ];
+
+					snprintf( buf, sizeof( buf ),
+						"meta_back_op_result[%d] "
+						"err=%d text=\"%s\" matched=\"%s\"", 
+						candidate, rs->sr_err,
+						( rmsg ? rmsg : "" ),
+						( rmatch ? rmatch : "" ) );
+					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
+						op->o_log_prefix, buf, 0 );
+				}
 	
 				/*
 				 * FIXME: need to rewrite "match" (need rwinfo)
