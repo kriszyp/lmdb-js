@@ -282,6 +282,75 @@ retry_lock:;
 	return LDAP_SUCCESS;
 }
 
+static int
+meta_back_bind_op_result(
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	int			candidate,
+	int			msgid,
+	ldap_back_send_t	sendok )
+{
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	LDAPMessage		*res;
+	struct timeval		tv;
+	int			rc;
+	int			nretries = mt->mt_nretries;
+	char			buf[ SLAP_TEXT_BUFLEN ];
+
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		LDAP_BACK_TV_SET( &tv );
+
+		/*
+		 * handle response!!!
+		 */
+retry:;
+		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
+		case 0:
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_single_bind[%d]: ldap_result=0 nretries=%d.\n",
+				op->o_log_prefix, candidate, nretries );
+
+			if ( nretries != META_RETRY_NEVER ) {
+				ldap_pvt_thread_yield();
+				if ( nretries > 0 ) {
+					nretries--;
+				}
+				tv = mt->mt_bind_timeout;
+				goto retry;
+			}
+
+			rs->sr_err = LDAP_BUSY;
+			(void)meta_back_cancel( mc, op, rs, msgid, candidate, sendok );
+			break;
+
+		case -1:
+			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
+				&rs->sr_err );
+
+			snprintf( buf, sizeof( buf ),
+				"err=%d (%s) nretries=%d",
+				rs->sr_err, ldap_err2string( rs->sr_err ), nretries );
+			Debug( LDAP_DEBUG_ANY,
+				"### %s meta_back_single_bind[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
+			break;
+
+		default:
+			rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
+					NULL, NULL, NULL, NULL, 1 );
+			if ( rc != LDAP_SUCCESS ) {
+				rs->sr_err = rc;
+			}
+			break;
+		}
+	}
+
+	return slap_map_api2result( rs );
+}
+
 /*
  * meta_back_single_bind
  *
@@ -299,9 +368,7 @@ meta_back_single_bind(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	struct berval		mdn = BER_BVNULL;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
-	int			msgid,
-				rebinding = 0;
-
+	int			msgid;
 	
 	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
 		ch_free( msc->msc_bound_ndn.bv_val );
@@ -341,96 +408,11 @@ meta_back_single_bind(
 	 * and more in case of failure ... */
 	/* FIXME: should we check if at least some of the op->o_ctrls
 	 * can/should be passed? */
-rebind:;
 	rs->sr_err = ldap_sasl_bind( msc->msc_ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->orb_cred,
 			op->o_ctrls, NULL, &msgid );
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		LDAPMessage	*res;
-		struct timeval	tv;
-		int		rc;
-		int		nretries = mt->mt_nretries;
-		char		buf[ SLAP_TEXT_BUFLEN ];
-
-		LDAP_BACK_TV_SET( &tv );
-
-		/*
-		 * handle response!!!
-		 */
-retry:;
-		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
-		case 0:
-			snprintf( buf, sizeof( buf ),
-				"ldap_result=0 nretries=%d%s",
-				nretries, rebinding ? " rebinding" : "" );
-			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_single_bind[%d]: %s.\n",
-				op->o_log_prefix, candidate, buf );
-
-			if ( nretries != META_RETRY_NEVER ) {
-				ldap_pvt_thread_yield();
-				if ( nretries > 0 ) {
-					nretries--;
-				}
-				tv = mt->mt_bind_timeout;
-				goto retry;
-			}
-
-			rs->sr_err = LDAP_BUSY;
-			if ( rebinding ) {
-				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
-				break;
-			}
-
-			/* FIXME: some times the request times out
-			 * while the other party is not willing to
-			 * send a response any more.  Give it a second
-			 * chance with a freshly bound connection */
-			rebinding = 1;
-			nretries = mt->mt_nretries;
-			/* fallthru */
-
-		case -1:
-			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
-				&rs->sr_err );
-
-			if ( rebinding ) {
-				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
-			}
-
-			snprintf( buf, sizeof( buf ),
-				"err=%d (%s) nretries=%d",
-				rs->sr_err, ldap_err2string( rs->sr_err ), nretries );
-			Debug( LDAP_DEBUG_ANY,
-				"### %s meta_back_single_bind[%d]: %s.\n",
-				op->o_log_prefix, candidate, buf );
-
-			rc = slap_map_api2result( rs );
-			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
-				rc = meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_DONTSEND );
-				if ( rc ) {
-					if ( nretries > 0 ) {
-						nretries--;
-					}
-					ldap_pvt_thread_yield();
-					goto rebind;
-				}
-				goto return_results;
-			}
-			break;
-
-		default:
-			rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
-					NULL, NULL, NULL, NULL, 1 );
-			if ( rc != LDAP_SUCCESS ) {
-				rs->sr_err = rc;
-			}
-			break;
-		}
-	}
-
+	meta_back_bind_op_result( op, rs, mc, candidate, msgid, LDAP_BACK_DONTSEND );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		rs->sr_err = slap_map_api2result( rs );
 		goto return_results;
 	}
 
@@ -443,6 +425,7 @@ retry:;
 		ldap_set_rebind_proc( msc->msc_ld, mt->mt_rebind_f, msc );
 	}
 
+cache_refresh:;
 	if ( mi->mi_cache.ttl != META_DNCACHE_DISABLED
 			&& !BER_BVISEMPTY( &op->o_req_ndn ) )
 	{
@@ -481,9 +464,7 @@ meta_back_single_dobind(
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc;
 	static struct berval	cred = BER_BVC( "" );
-	int			msgid,
-				rebinding = 0,
-				save_nretries = nretries;
+	int			msgid;
 
 	assert( !LDAP_BACK_CONN_ISBOUND( msc ) );
 
@@ -524,121 +505,9 @@ meta_back_single_dobind(
 
 	/* FIXME: should we check if at least some of the op->o_ctrls
 	 * can/should be passed? */
-rebind:;
-	rc = ldap_sasl_bind( msc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
+	rs->sr_err = ldap_sasl_bind( msc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &msgid );
-	if ( rc == LDAP_SUCCESS ) {
-		LDAPMessage	*res;
-		struct timeval	tv;
-		char		buf[ SLAP_TEXT_BUFLEN ];
-
-		LDAP_BACK_TV_SET( &tv );
-
-		/*
-		 * handle response!!!
-		 */
-retry:;
-		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
-		case 0:
-			snprintf( buf, sizeof( buf ),
-				"ldap_result=0 nretries=%d%s",
-				nretries, rebinding ? " rebinding" : "" );
-			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_single_dobind[%d]: %s.\n",
-				op->o_log_prefix, candidate, buf );
-
-			if ( nretries != META_RETRY_NEVER ) {
-				ldap_pvt_thread_yield();
-				if ( nretries > 0 ) {
-					nretries--;
-				}
-				tv = mt->mt_bind_timeout;
-				goto retry;
-			}
-
-			rc = LDAP_BUSY;
-			if ( rebinding ) {
-				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
-				break;
-			}
-
-			/* FIXME: some times the request times out
-			 * while the other party is not willing to
-			 * send a response any more.  Give it a second
-			 * chance with a freshly bound connection */
-			rebinding = 1;
-			nretries = save_nretries;
-			/* fallthru */
-
-		case -1:
-			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
-				&rs->sr_err );
-
-			if ( rebinding ) {
-				(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
-			}
-
-			snprintf( buf, sizeof( buf ),
-				"err=%d (%s) nretries=%d",
-				rs->sr_err, ldap_err2string( rs->sr_err ), nretries );
-			Debug( LDAP_DEBUG_ANY,
-				"### %s meta_back_single_dobind[%d]: %s.\n",
-				op->o_log_prefix, candidate, buf );
-
-			rc = slap_map_api2result( rs );
-			if ( rc == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
-				if ( dolock ) {
-					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-				}
-
-				if ( mc->mc_refcnt == 1 ) {
-					meta_clear_one_candidate( msc );
-				        LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
-
-					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
-
-				        /* mc here must be the regular mc,
-					 * reset and ready for init */
-				        rc = meta_back_init_one_conn( op, rs,
-						mc, candidate,
-						LDAP_BACK_CONN_ISPRIV( mc ),
-						LDAP_BACK_DONTSEND );
-					if ( rc == LDAP_SUCCESS ) {
-				        	LDAP_BACK_CONN_BINDING_SET( msc );
-					}
-
-				} else {
-					/* can't do anything about it */
-					rc = LDAP_UNAVAILABLE;
-				}
-
-				if ( dolock ) {
-					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-				}
-
-				if ( rc == LDAP_SUCCESS ) {
-					ldap_pvt_thread_yield();
-					if ( nretries > 0 ) {
-						nretries--;
-					}
-					goto rebind;
-				}
-			}
-			break;
-
-		default:
-			rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
-					NULL, NULL, NULL, NULL, 1 );
-			if ( rc == LDAP_SUCCESS ) {
-				rc = slap_map_api2result( rs );
-			}
-			break;
-		}
-
-	} else {
-		rs->sr_err = rc;
-		rc = slap_map_api2result( rs );
-	}
+	rc = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
 
 done:;
 	rs->sr_err = rc;
