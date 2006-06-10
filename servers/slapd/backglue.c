@@ -65,7 +65,7 @@ glue_back_select (
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	int i;
 
-	for (i = 0; i<gi->gi_nodes; i++) {
+	for (i = gi->gi_nodes-1; i >= 0; i--) {
 		assert( gi->gi_n[i].gn_be->be_nsuffix != NULL );
 
 		if (dnIsSuffix(dn, &gi->gi_n[i].gn_be->be_nsuffix[0])) {
@@ -333,7 +333,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 		b1 = op->o_bd;
 
 		/*
-		 * Execute in reverse order, most general first 
+		 * Execute in reverse order, most specific first 
 		 */
 		for (i = gi->gi_nodes; i >= 0; i--) {
 			if ( i == gi->gi_nodes ) {
@@ -347,6 +347,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				continue;
 			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
+
 			if (tlimit0 != SLAP_NO_LIMIT) {
 				op->o_time = slap_get_time();
 				op->ors_tlimit = stoptime - op->o_time;
