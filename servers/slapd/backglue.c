@@ -347,6 +347,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				continue;
 			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
+			if (get_no_subordinate_glue(op) && btmp != b1)
+				continue;
 
 			if (tlimit0 != SLAP_NO_LIMIT) {
 				op->o_time = slap_get_time();
@@ -382,6 +384,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dn_match(&op->o_bd->be_nsuffix[0], &ndn))
 			{
+				op->ors_scope = LDAP_SCOPE_SUBTREE;
+				op->o_req_dn = dn;
+				op->o_req_ndn = ndn;
 				rs->sr_err = glue_sub_search( op, rs, b0, on );
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
@@ -397,6 +402,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				op->o_req_ndn = ndn;
 
 			} else if (dnIsSuffix(&ndn, &op->o_bd->be_nsuffix[0])) {
+				op->ors_scope = scope0;
+				op->o_req_dn = dn;
+				op->o_req_ndn = ndn;
 				rs->sr_err = glue_sub_search( op, rs, b0, on );
 			}
 
