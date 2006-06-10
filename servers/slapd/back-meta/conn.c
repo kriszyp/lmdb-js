@@ -223,24 +223,6 @@ metaconn_alloc(
 	return mc;
 }
 
-static void
-meta_back_freeconn(
-	Operation	*op,
-	metaconn_t	*mc )
-{
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-
-	assert( mc != NULL );
-
-	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-
-	if ( --mc->mc_refcnt == 0 ) {
-		meta_back_conn_free( mc );
-	}
-
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-}
-
 /*
  * meta_back_init_one_conn
  * 
@@ -996,7 +978,8 @@ retry_lock:;
 
 		if ( ncandidates == 0 ) {
 			if ( new_conn ) {
-				meta_back_freeconn( op, mc );
+				mc->mc_refcnt = 0;
+				meta_back_conn_free( mc );
 
 			} else {
 				meta_back_release_conn( op, mc );
@@ -1144,8 +1127,8 @@ retry_lock2:;
 			 */
 			META_CANDIDATE_RESET( &candidates[ i ] );
  			if ( new_conn ) {
-				(void)meta_clear_one_candidate( msc );
-				meta_back_freeconn( op, mc );
+				mc->mc_refcnt = 0;
+				meta_back_conn_free( mc );
 
 			} else {
 				meta_back_release_conn( op, mc );
@@ -1230,7 +1213,8 @@ retry_lock2:;
 							rs->sr_text = NULL;
 						}
 						if ( new_conn ) {
-							meta_back_freeconn( op, mc );
+							mc->mc_refcnt = 0;
+							meta_back_conn_free( mc );
 
 						} else {
 							meta_back_release_conn( op, mc );
@@ -1253,7 +1237,8 @@ retry_lock2:;
 
 		if ( ncandidates == 0 ) {
 			if ( new_conn ) {
-				meta_back_freeconn( op, mc );
+				mc->mc_refcnt = 0;
+				meta_back_conn_free( mc );
 
 			} else {
 				meta_back_release_conn( op, mc );
@@ -1324,8 +1309,9 @@ done:;
 				"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
 				op->o_log_prefix, ncandidates,
 				LDAP_BACK_PCONN_ID( mc->mc_conn ) );
-		
-			meta_back_freeconn( op, mc );
+	
+			mc->mc_refcnt = 0;	
+			meta_back_conn_free( mc );
 
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "proxy bind collision";
@@ -1368,12 +1354,11 @@ meta_back_release_conn_lock(
 	mc->mc_refcnt--;
 	LDAP_BACK_CONN_BINDING_CLEAR( mc );
 	if ( LDAP_BACK_CONN_TAINTED( mc ) ) {
-		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld expired.\n",
+		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld tainted.\n",
 			op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc->mc_conn ) );
 		(void)avl_delete( &mi->mi_conninfo.lai_tree,
 			( caddr_t )mc, meta_back_conndnmc_cmp );
 		if ( mc->mc_refcnt == 0 ) {
-			meta_clear_candidates( op, mc );
 			meta_back_conn_free( mc );
 		}
 	}

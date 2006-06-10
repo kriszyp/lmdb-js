@@ -154,27 +154,33 @@ meta_back_db_open(
 	return 0;
 }
 
+/*
+ * meta_back_conn_free()
+ *
+ * actually frees a connection; the reference count must be 0,
+ * and it must not (or no longer) be in the cache.
+ */
 void
 meta_back_conn_free( 
 	void 		*v_mc )
 {
 	metaconn_t		*mc = v_mc;
-	int			i, ntargets;
+	int			ntargets;
 
 	assert( mc != NULL );
 	assert( mc->mc_refcnt == 0 );
 
-	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
-		free( mc->mc_local_ndn.bv_val );
+	/* at least one must be present... */
+	assert( mc->mc_conns != NULL );
+	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
+	assert( ntargets > 0 );
+
+	for ( ; ntargets--; ) {
+		(void)meta_clear_one_candidate( &mc->mc_conns[ ntargets ] );
 	}
 
-	assert( mc->mc_conns != NULL );
-
-	/* at least one must be present... */
-	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
-
-	for ( i = 0; i < ntargets; i++ ) {
-		(void)meta_clear_one_candidate( &mc->mc_conns[ i ] );
+	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
+		free( mc->mc_local_ndn.bv_val );
 	}
 
 	free( mc );
