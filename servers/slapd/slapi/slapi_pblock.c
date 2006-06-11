@@ -493,6 +493,10 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 			rc = PBLOCK_ERROR;
 		}
 		break;
+	case SLAPI_X_OPERATION_NO_SUBORDINATE_GLUE:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((ber_tag_t *)value) = pb->pb_op->o_no_subordinate_glue;
+		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((LDAPControl ***)value) = pb->pb_op->o_ctrls;
@@ -872,6 +876,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_no_schema_check = *((int *)value);
+		break;
+	case SLAPI_X_OPERATION_NO_SUBORDINATE_GLUE:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_op->o_no_subordinate_glue = *((int *)value);
 		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
