@@ -1349,8 +1349,13 @@ slapi_send_ldap_result(
 	} else {
 		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
 			rs->sr_nentries = nentries;
+		if ( urls != NULL )
+			bvptr2obj( urls, &rs->sr_ref );
 
 		send_ldap_result( pb->pb_op, rs );
+
+		if ( urls != NULL )
+			slapi_ch_free( (void **)&rs->sr_ref );
 	}
 }
 
