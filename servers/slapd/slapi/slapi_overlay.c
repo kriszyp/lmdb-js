@@ -303,7 +303,8 @@ slapi_op_search_callback( Operation *op, SlapReply *rs, int prc )
 
 	rs->sr_err = LDAP_SUCCESS;
 
-	if ( slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb ) == 0 ) {
+	if ( pb->pb_intop == 0 && 
+	     slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb ) == 0 ) {
 		/*
 		 * The plugin can set the SLAPI_SEARCH_FILTER.
 		 * SLAPI_SEARCH_STRFILER is not normative.
