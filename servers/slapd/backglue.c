@@ -380,13 +380,12 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 					gs.err = LDAP_SUCCESS;
 				}
+				op->o_req_dn = dn;
+				op->o_req_ndn = ndn;
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dn_match(&op->o_bd->be_nsuffix[0], &ndn))
 			{
-				op->ors_scope = LDAP_SCOPE_SUBTREE;
-				op->o_req_dn = dn;
-				op->o_req_ndn = ndn;
 				rs->sr_err = glue_sub_search( op, rs, b0, on );
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
@@ -402,9 +401,6 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				op->o_req_ndn = ndn;
 
 			} else if (dnIsSuffix(&ndn, &op->o_bd->be_nsuffix[0])) {
-				op->ors_scope = scope0;
-				op->o_req_dn = dn;
-				op->o_req_ndn = ndn;
 				rs->sr_err = glue_sub_search( op, rs, b0, on );
 			}
 
