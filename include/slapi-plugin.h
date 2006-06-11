@@ -727,6 +727,20 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_X_GROUP_OPERATION_DN		1252 /* asserted value */
 #define SLAPI_X_GROUP_TARGET_ENTRY		1253 /* target entry */
 
+/* internal preoperation extensions */
+#define SLAPI_PLUGIN_INTERNAL_PRE_BIND_FN	1260
+#define SLAPI_PLUGIN_INTERNAL_PRE_UNBIND_FN	1261
+#define SLAPI_PLUGIN_INTERNAL_PRE_SEARCH_FN	1262
+#define SLAPI_PLUGIN_INTERNAL_PRE_COMPARE_FN	1263
+#define SLAPI_PLUGIN_INTERNAL_PRE_ABANDON_FN	1264
+
+/* internal postoperation extensions */
+#define SLAPI_PLUGIN_INTERNAL_POST_BIND_FN	1270
+#define SLAPI_PLUGIN_INTERNAL_POST_UNBIND_FN	1271
+#define SLAPI_PLUGIN_INTERNAL_POST_SEARCH_FN	1272
+#define SLAPI_PLUGIN_INTERNAL_POST_COMPARE_FN	1273
+#define SLAPI_PLUGIN_INTERNAL_POST_ABANDON_FN	1274
+
 /* config stuff */
 #define SLAPI_CONFIG_FILENAME			40
 #define SLAPI_CONFIG_LINENO			41
