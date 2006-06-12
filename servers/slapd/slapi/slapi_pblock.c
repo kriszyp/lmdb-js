@@ -483,7 +483,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((ber_tag_t *)value) = pb->pb_op->o_delete_glue_parent;
+		*((int *)value) = pb->pb_op->o_delete_glue_parent;
 		break;
 	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -505,7 +505,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_X_OPERATION_NO_SUBORDINATE_GLUE:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((ber_tag_t *)value) = pb->pb_op->o_no_subordinate_glue;
+		*((int *)value) = pb->pb_op->o_no_subordinate_glue;
 		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -586,6 +586,12 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_CONN_DN:
 		PBLOCK_ASSERT_CONN( pb );
+#if 0
+		/* This would be necessary to keep plugin compat after the fix in ITS#4158 */
+		if ( pb->pb_op->o_tag == LDAP_REQ_BIND && pb->pb_rs->sr_err == LDAP_SUCCESS )
+			*((char **)value) = pb->pb_op->orb_edn.bv_val;
+		else
+#endif
 		*((char **)value) = pb->pb_conn->c_dn.bv_val;
 		break;
 	case SLAPI_CONN_CLIENTIP:
