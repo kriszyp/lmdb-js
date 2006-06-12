@@ -81,13 +81,16 @@ If the \fBcritical\fP flag affects the control criticality if provided.
 .TP
 .B chain-max-depth <n>
 In case a referral is returned during referral chasing, further chasing
-occurs at most \fB<n>\fP levels.  Set to \fB0\fP to disable further 
-referral chasing.
+occurs at most \fB<n>\fP levels deep.  Set to \fB1\fP (the default) 
+to disable further referral chasing.
 .TP
 .B chain-return-error {FALSE|true}
 In case referral chasing fails, the real error is returned instead
 of the original referral.  In case multiple referral URIs are present,
-only the first error is returned.
+only the first error is returned.  This behavior may not be always
+appropriate nor desirable, since failures in referral chasing might be
+better resolved by the client (e.g. when caused by distributed 
+authentication issues).
 .TP
 .B chain-uri <ldapuri>
 This directive instantiates a new underlying \fIldap\fP database
