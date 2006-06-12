@@ -26,8 +26,8 @@
  * DN whenever the DN is changed or its entry is deleted, and making
  * the appropriate update.
  *
- * Updates are performed using the database rootdn, but the ModifiersName
- * is always set to refint_dn.
+ * Updates are performed using the database rootdn in a separate task
+ * to allow the original operation to complete immediately.
  */
 
 #ifdef SLAPD_OVER_REFINT
@@ -39,11 +39,9 @@
 
 #include "slap.h"
 #include "config.h"
+#include "ldap_rq.h"
 
 static slap_overinst refint;
-
-/* The DN to use in the ModifiersName for all refint updates */
-static BerValue refint_dn = BER_BVC("cn=Referential Integrity Overlay");
 
 typedef struct refint_attrs_s {
 	struct refint_attrs_s *next;
@@ -53,19 +51,34 @@ typedef struct refint_attrs_s {
 typedef struct dependents_s {
 	struct dependents_s *next;
 	BerValue dn;				/* target dn */
-	Modifications *mm;
+	BerValue ndn;
+	refint_attrs *attrs;
 } dependent_data;
+
+typedef struct refint_q {
+	struct refint_q *next;
+	struct refint_data_s *rdata;
+	dependent_data *attrs;		/* entries and attrs returned from callback */
+	BackendDB *db;
+	BerValue olddn;
+	BerValue oldndn;
+	BerValue newdn;
+	BerValue newndn;
+} refint_q;
 
 typedef struct refint_data_s {
 	const char *message;			/* breadcrumbs */
 	struct refint_attrs_s *attrs;	/* list of known attrs */
-	struct dependents_s *mods;		/* modifications returned from callback */
-	BerValue dn;				/* basedn in parent, searchdn in call */
-	BerValue newdn;				/* replacement value for modrdn callback */
-	BerValue nnewdn;			/* normalized replacement value */
+	BerValue dn;				/* basedn in parent, */
 	BerValue nothing;			/* the nothing value, if needed */
 	BerValue nnothing;			/* normalized nothingness */
+	struct re_s *qtask;
+	refint_q *qhead;
+	refint_q *qtail;
+	ldap_pvt_thread_mutex_t qmutex;
 } refint_data;
+
+#define	RUNQ_INTERVAL	36000	/* a long time */
 
 enum {
 	REFINT_ATTRS = 1,
@@ -238,6 +251,7 @@ refint_db_init(
 
 	id->message = "_init";
 	on->on_bi.bi_private = id;
+	ldap_pvt_thread_mutex_init( &id->qmutex );
 	return(0);
 }
 
@@ -249,8 +263,10 @@ refint_db_destroy(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 
 	if ( on->on_bi.bi_private ) {
-		ch_free( on->on_bi.bi_private );
+		refint_data *id = on->on_bi.bi_private;
 		on->on_bi.bi_private = NULL;
+		ldap_pvt_thread_mutex_destroy( &id->qmutex );
+		ch_free( id );
 	}
 	return(0);
 }
@@ -313,204 +329,282 @@ refint_close(
 }
 
 /*
-** delete callback
-** generates a list of Modification* from search results
+** search callback
+** generates a list of Attributes from search results
 */
 
 static int
-refint_delete_cb(
+refint_search_cb(
 	Operation *op,
 	SlapReply *rs
 )
 {
 	Attribute *a;
 	BerVarray b = NULL;
-	refint_data *dd = op->o_callback->sc_private;
-	refint_attrs *ia, *da = dd->attrs;
+	refint_q *rq = op->o_callback->sc_private;
+	refint_data *dd = rq->rdata;
+	refint_attrs *ia, *da = dd->attrs, *na;
 	dependent_data *ip;
-	Modifications *mp, *ma;
 	int i;
 
-	Debug(LDAP_DEBUG_TRACE, "refint_delete_cb <%s>\n",
+	Debug(LDAP_DEBUG_TRACE, "refint_search_cb <%s>\n",
 		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "NOTHING", 0, 0);
 
 	if (rs->sr_type != REP_SEARCH || !rs->sr_entry) return(0);
-	dd->message = "_delete_cb";
 
 	/*
 	** foreach configured attribute type:
 	**	if this attr exists in the search result,
 	**	and it has a value matching the target:
-	**		allocate a Modification;
-	**		allocate its array of 2 BerValues;
-	**		if only one value, and we have a configured Nothing:
-	**			allocate additional Modification
-	**			type = MOD_ADD
-	**			BerValues[] = { Nothing, NULL };
-	**			add to list
-	**		type = MOD_DELETE
-	**		BerValues[] = { our target dn, NULL };
-	**	add this mod to the list of mods;
+	**		allocate an attr;
+	**		if this is a delete and there's only one value:
+	**			allocate the same attr again;
 	**
 	*/
 
-	ip = ch_malloc(sizeof(dependent_data));
-	ip->dn.bv_val = NULL;
-	ip->next = NULL;
-	ip->mm = NULL;
-	ma = NULL;
+	ip = op->o_tmpalloc(sizeof(dependent_data), op->o_tmpmemctx );
+	ber_dupbv_x( &ip->dn, &rs->sr_entry->e_name, op->o_tmpmemctx );
+	ber_dupbv_x( &ip->ndn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
+	ip->next = rq->attrs;
+	rq->attrs = ip;
+	ip->attrs = NULL;
 	for(ia = da; ia; ia = ia->next) {
 	    if ( (a = attr_find(rs->sr_entry->e_attrs, ia->attr) ) )
 		for(i = 0, b = a->a_nvals; b[i].bv_val; i++)
-		    if(bvmatch(&dd->dn, &b[i])) {
-			if(!ip->dn.bv_val) ber_dupbv(&ip->dn, &rs->sr_entry->e_nname);
-			if(!b[1].bv_val && dd->nothing.bv_val) {
-				mp = ch_malloc(sizeof(Modifications));
-				mp->sml_desc = ia->attr;		/* XXX */
-				mp->sml_type = a->a_desc->ad_cname;
-				mp->sml_values  = ch_malloc(2 * sizeof(BerValue));
-				mp->sml_nvalues = ch_malloc(2 * sizeof(BerValue));
-				mp->sml_values[1].bv_len = mp->sml_nvalues[1].bv_len = 0;
-				mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
-
-				mp->sml_op = LDAP_MOD_ADD;
-				mp->sml_flags = 0;
-				ber_dupbv(&mp->sml_values[0],  &dd->nothing);
-				ber_dupbv(&mp->sml_nvalues[0], &dd->nnothing);
-				mp->sml_next = ma;
-				ma = mp;
+		    if(bvmatch(&rq->oldndn, &b[i])) {
+			na = op->o_tmpalloc(sizeof( refint_attrs ), op->o_tmpmemctx );
+			na->next = ip->attrs;
+			ip->attrs = na;
+			na->attr = ia->attr;
+			/* If this is a delete and there's only one value, and
+			 * we have a nothing DN configured, allocate the attr again.
+			 */
+			if(!b[1].bv_val && BER_BVISEMPTY( &rq->newdn ) &&
+				dd->nothing.bv_val) {
+				na = op->o_tmpalloc(sizeof( refint_attrs ), op->o_tmpmemctx );
+				na->next = ip->attrs;
+				ip->attrs = na;
+				na->attr = ia->attr;
 			}
-		 	/* this might violate the object class */
-			mp = ch_malloc(sizeof(Modifications));
-			mp->sml_desc = ia->attr;		/* XXX */
-			mp->sml_type = a->a_desc->ad_cname;
-			mp->sml_values  = ch_malloc(2 * sizeof(BerValue));
-			mp->sml_nvalues = ch_malloc(2 * sizeof(BerValue));
-			mp->sml_values[1].bv_len = mp->sml_nvalues[1].bv_len = 0;
-			mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
-			mp->sml_op = LDAP_MOD_DELETE;
-			mp->sml_flags = 0;
-			ber_dupbv(&mp->sml_values[0], &dd->dn);
-			ber_dupbv(&mp->sml_nvalues[0], &mp->sml_values[0]);
-			mp->sml_next = ma;
-			ma = mp;
-			Debug(LDAP_DEBUG_TRACE, "refint_delete_cb: %s: %s\n",
-				a->a_desc->ad_cname.bv_val, dd->dn.bv_val, 0);
+			Debug(LDAP_DEBUG_TRACE, "refint_search_cb: %s: %s\n",
+				a->a_desc->ad_cname.bv_val, rq->olddn.bv_val, 0);
 			break;
 	    }
 	}
-	ip->mm = ma;
-	ip->next = dd->mods;
-	dd->mods = ip;
-
 	return(0);
 }
 
-/*
-** null callback
-** does nothing
-*/
-
-static int
-refint_null_cb(
-	Operation *op,
-	SlapReply *rs
-)
+static void *
+refint_qtask( void *ctx, void *arg )
 {
-	((refint_data *)op->o_callback->sc_private)->message = "_null_cb";
-	return(LDAP_SUCCESS);
-}
+	struct re_s *rtask = arg;
+	refint_data *id = rtask->arg;
+	Connection conn = {0};
+	OperationBuffer opbuf;
+	Operation *op;
+	SlapReply rs = {REP_RESULT};
+	slap_callback cb = { NULL, NULL, NULL, NULL };
+	Filter ftop, *fptr;
+	refint_q *rq;
+	dependent_data *dp;
+	refint_attrs *ra, *ip;
+	int rc;
 
-/*
-** modrdn callback
-** generates a list of Modification* from search results
-*/
-
-static int
-refint_modrdn_cb(
-	Operation *op,
-	SlapReply *rs
-)
-{
-	Attribute *a;
-	BerVarray b = NULL;
-	refint_data *dd = op->o_callback->sc_private;
-	refint_attrs *ia, *da = dd->attrs;
-	dependent_data *ip = NULL;
-	Modifications *mp;
-	int i, fix;
-
-	Debug(LDAP_DEBUG_TRACE, "refint_modrdn_cb <%s>\n",
-		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "NOTHING", 0, 0);
-
-	if (rs->sr_type != REP_SEARCH || !rs->sr_entry) return(0);
-	dd->message = "_modrdn_cb";
+	op = (Operation *) &opbuf;
+	connection_fake_init( &conn, op, ctx );
 
 	/*
-	** foreach configured attribute type:
-	**   if this attr exists in the search result,
-	**   and it has a value matching the target:
-	**	allocate a pair of Modifications;
-	**	make it MOD_ADD the new value and MOD_DELETE the old;
-	**	allocate its array of BerValues;
-	**	foreach value in the search result:
-	**	   if it matches our target value, replace it;
-	**	   otherwise, copy from the search result;
-	**	terminate the array of BerValues;
-	**   add these mods to the list of mods;
+	** build a search filter for all configured attributes;
+	** populate our Operation;
+	** pass our data (attr list, dn) to backend via sc_private;
+	** call the backend search function;
+	** nb: (|(one=thing)) is valid, but do smart formatting anyway;
+	** nb: 16 is arbitrarily a dozen or so extra bytes;
 	**
 	*/
 
-	for(ia = da; ia; ia = ia->next) {
-	    if((a = attr_find(rs->sr_entry->e_attrs, ia->attr))) {
-		    for(fix = 0, i = 0, b = a->a_nvals; b[i].bv_val; i++)
-			if(bvmatch(&dd->dn, &b[i])) { fix++; break; }
-		    if(fix) {
-			if (!ip) {
-	    		    ip = ch_malloc(sizeof(dependent_data));
-	    		    ip->next = NULL;
-	    		    ip->mm = NULL;
-	    		    ber_dupbv(&ip->dn, &rs->sr_entry->e_nname);
-			}
-			mp = ch_malloc(sizeof(Modifications));
-			mp->sml_op = LDAP_MOD_ADD;
-			mp->sml_flags = 0;
-			mp->sml_desc = ia->attr;		/* XXX */
-			mp->sml_type = ia->attr->ad_cname;
-			mp->sml_values  = ch_malloc(2 * sizeof(BerValue));
-			mp->sml_nvalues = ch_malloc(2 * sizeof(BerValue));
-			ber_dupbv(&mp->sml_values[0], &dd->newdn);
-			ber_dupbv(&mp->sml_nvalues[0], &dd->nnewdn);
-			mp->sml_values[1].bv_len = mp->sml_nvalues[1].bv_len = 0;
-			mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
-			mp->sml_next = ip->mm;
-			ip->mm = mp;
-			mp = ch_malloc(sizeof(Modifications));
-			mp->sml_op = LDAP_MOD_DELETE;
-			mp->sml_flags = 0;
-			mp->sml_desc = ia->attr;		/* XXX */
-			mp->sml_type = ia->attr->ad_cname;
-			mp->sml_values  = ch_malloc(2 * sizeof(BerValue));
-			mp->sml_nvalues = ch_malloc(2 * sizeof(BerValue));
-			ber_dupbv(&mp->sml_values[0], &dd->dn);
-			ber_dupbv(&mp->sml_nvalues[0], &dd->dn);
-			mp->sml_values[1].bv_len = mp->sml_nvalues[1].bv_len = 0;
-			mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
-			mp->sml_next = ip->mm;
-			ip->mm = mp;
-			Debug(LDAP_DEBUG_TRACE, "refint_modrdn_cb: %s: %s\n",
-				a->a_desc->ad_cname.bv_val, dd->dn.bv_val, 0);
+	ftop.f_choice = LDAP_FILTER_OR;
+	ftop.f_next = NULL;
+	ftop.f_or = NULL;
+	op->ors_filter = &ftop;
+	for(ip = id->attrs; ip; ip = ip->next) {
+		fptr = op->o_tmpalloc( sizeof(Filter) + sizeof(AttributeAssertion),
+			op->o_tmpmemctx );
+		fptr->f_choice = LDAP_FILTER_EQUALITY;
+		fptr->f_ava = (AttributeAssertion *)(fptr+1);
+		fptr->f_ava->aa_desc = ip->attr;
+		fptr->f_next = ftop.f_or;
+		ftop.f_or = fptr;
+	}
+
+	for (;;) {
+		/* Dequeue an op */
+		ldap_pvt_thread_mutex_lock( &id->qmutex );
+		rq = id->qhead;
+		if ( rq ) {
+			id->qhead = rq->next;
+			if ( !id->qhead )
+				id->qtail = NULL;
 		}
-	    }
-	}
-	if (ip) {
-		ip->next = dd->mods;
-		dd->mods = ip;
+		ldap_pvt_thread_mutex_unlock( &id->qmutex );
+		if ( !rq )
+			break;
+
+		for (fptr = ftop.f_or; fptr; fptr=fptr->f_next )
+			fptr->f_av_value = rq->oldndn;
+
+		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+
+		/* callback gets the searched dn instead */
+		cb.sc_private	= rq;
+		cb.sc_response	= refint_search_cb;
+		op->o_callback	= &cb;
+		op->o_tag	= LDAP_REQ_SEARCH;
+		op->ors_scope	= LDAP_SCOPE_SUBTREE;
+		op->ors_deref	= LDAP_DEREF_NEVER;
+		op->ors_limit   = NULL;
+		op->ors_slimit	= SLAP_NO_LIMIT;
+		op->ors_tlimit	= SLAP_NO_LIMIT;
+
+		/* no attrs! */
+		op->ors_attrs = slap_anlist_no_attrs;
+
+		op->o_req_ndn = id->dn;
+		op->o_req_dn = id->dn;
+		op->o_bd = rq->db;
+
+		/* search */
+		rc = op->o_bd->be_search(op, &rs);
+
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+
+		if(rc != LDAP_SUCCESS) {
+			Debug( LDAP_DEBUG_TRACE,
+				"refint_response: search failed: %d\n",
+				rc, 0, 0 );
+			continue;
+		}
+
+		/* safety? paranoid just in case */
+		if(!cb.sc_private) {
+			Debug( LDAP_DEBUG_TRACE,
+				"refint_response: callback wiped out sc_private?!\n",
+				0, 0, 0 );
+			continue;
+		}
+
+		/* Set up the Modify requests */
+		cb.sc_response	= &slap_null_cb;
+		op->o_tag	= LDAP_REQ_MODIFY;
+
+		/*
+		** [our search callback builds a list of attrs]
+		** foreach attr:
+		**	make sure its dn has a backend;
+		**	build Modification* chain;
+		**	call the backend modify function;
+		**
+		*/
+
+		op->orm_modlist = NULL;
+
+		for(dp = rq->attrs; dp; dp = dp->next) {
+			Modifications *m, *first = NULL;
+
+			op->o_req_dn	= dp->dn;
+			op->o_req_ndn	= dp->ndn;
+			op->o_bd = select_backend(&dp->ndn, 0, 1);
+			if(!op->o_bd) {
+				Debug( LDAP_DEBUG_TRACE,
+					"refint_response: no backend for DN %s!\n",
+					dp->dn.bv_val, 0, 0 );
+				goto done;
+			}
+			rs.sr_type	= REP_RESULT;
+			for (ra = dp->attrs; ra; ra = dp->attrs) {
+				dp->attrs = ra->next;
+				if ( !BER_BVISEMPTY( &rq->newdn ) || ( ra->next &&
+					ra->attr == ra->next->attr )) {
+					m = op->o_tmpalloc( sizeof(Modifications) +
+						4*sizeof(BerValue), op->o_tmpmemctx );
+					m->sml_next = op->orm_modlist;
+					if ( !first )
+						first = m;
+					op->orm_modlist = m;
+					m->sml_op = LDAP_MOD_ADD;
+					m->sml_flags = 0;
+					m->sml_desc = ra->attr;
+					m->sml_type = ra->attr->ad_cname;
+					m->sml_values = (BerVarray)(m+1);
+					m->sml_nvalues = m->sml_values+2;
+					BER_BVZERO( &m->sml_values[1] );
+					BER_BVZERO( &m->sml_nvalues[1] );
+					if ( BER_BVISEMPTY( &rq->newdn )) {
+						op->o_tmpfree( ra, op->o_tmpmemctx );
+						ra = dp->attrs;
+						dp->attrs = ra->next;
+						m->sml_values[0] = id->nothing;
+						m->sml_nvalues[0] = id->nnothing;
+					} else {
+						m->sml_values[0] = rq->newdn;
+						m->sml_nvalues[0] = rq->newndn;
+					}
+				}
+				m = op->o_tmpalloc( sizeof(Modifications) + 4*sizeof(BerValue),
+					op->o_tmpmemctx );
+				m->sml_next = op->orm_modlist;
+				op->orm_modlist = m;
+				if ( !first )
+					first = m;
+				m->sml_op = LDAP_MOD_DELETE;
+				m->sml_flags = 0;
+				m->sml_desc = ra->attr;
+				m->sml_type = ra->attr->ad_cname;
+				m->sml_values = (BerVarray)(m+1);
+				m->sml_nvalues = m->sml_values+2;
+				m->sml_values[0] = rq->olddn;
+				m->sml_nvalues[0] = rq->oldndn;
+				BER_BVZERO( &m->sml_values[1] );
+				BER_BVZERO( &m->sml_nvalues[1] );
+				op->o_tmpfree( ra, op->o_tmpmemctx );
+			}
+
+			op->o_dn = op->o_bd->be_rootdn;
+			op->o_ndn = op->o_bd->be_rootndn;
+			if((rc = op->o_bd->be_modify(op, &rs)) != LDAP_SUCCESS) {
+				Debug( LDAP_DEBUG_TRACE,
+					"refint_response: dependent modify failed: %d\n",
+					rs.sr_err, 0, 0 );
+			}
+
+			while (( m = op->orm_modlist )) {
+				op->orm_modlist = m->sml_next;
+				op->o_tmpfree( m, op->o_tmpmemctx );
+				if ( m == first ) break;
+			}
+			slap_mods_free( op->orm_modlist, 1 );
+			op->o_tmpfree( dp->ndn.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( dp->dn.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( dp, op->o_tmpmemctx );
+		}
+done:
+		if ( !BER_BVISNULL( &rq->newndn )) {
+			ch_free( rq->newndn.bv_val );
+			ch_free( rq->newdn.bv_val );
+		}
+		ch_free( rq->oldndn.bv_val );
+		ch_free( rq->olddn.bv_val );
+		ch_free( rq );
 	}
 
-	return(0);
+	/* wait until we get explicitly scheduled again */
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, id->qtask );
+	ldap_pvt_runqueue_resched( &slapd_rq,id->qtask, 1 );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+	return NULL;
 }
-
 
 /*
 ** refint_response
@@ -523,19 +617,13 @@ refint_response(
 	SlapReply *rs
 )
 {
-	Operation nop = *op;
-	SlapReply nrs = { REP_RESULT };
-	slap_callback cb = { NULL, NULL, NULL, NULL };
-	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
-	slap_callback *cbo, *cbp;
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	refint_data *id = on->on_bi.bi_private;
-	refint_data dd = *id;
-	refint_attrs *ip;
-	dependent_data *dp;
 	BerValue pdn;
 	int rc, ac;
-	Filter ftop, *fptr;
+	refint_q *rq;
+	BackendDB *db;
+	refint_attrs *ip;
 
 	id->message = "_refint_response";
 
@@ -562,10 +650,10 @@ refint_response(
 	**
 	*/
 
-	nop.o_bd = select_backend(&id->dn, 0, 1);
+	db = select_backend(&id->dn, 0, 1);
 
-	if(nop.o_bd) {
-		if (!nop.o_bd->be_search || !nop.o_bd->be_modify) {
+	if(db) {
+		if (!db->be_search || !db->be_modify) {
 			Debug( LDAP_DEBUG_TRACE,
 				"refint_response: backend missing search and/or modify\n",
 				0, 0, 0 );
@@ -578,169 +666,57 @@ refint_response(
 		return SLAP_CB_CONTINUE;
 	}
 
-	cb2.sc_next = &cb;
+	rq = ch_calloc( 1, sizeof( refint_q ));
+	ber_dupbv( &rq->olddn, &op->o_req_dn );
+	ber_dupbv( &rq->oldndn, &op->o_req_ndn );
+	rq->db = db;
+	rq->rdata = id;
 
-	/*
-	** if delete: set delete callback;
-	** else modrdn: create a newdn, set modify callback;
-	**
-	*/
-
-	if(op->o_tag == LDAP_REQ_DELETE) {
-		cb.sc_response = &refint_delete_cb;
-		dd.newdn.bv_val = NULL;
-		dd.nnewdn.bv_val = NULL;
-	} else {
-		cb.sc_response = &refint_modrdn_cb;
+	if(op->o_tag == LDAP_REQ_MODRDN) {
 		if ( op->oq_modrdn.rs_newSup ) {
 			pdn = *op->oq_modrdn.rs_newSup;
 		} else {
 			dnParent( &op->o_req_dn, &pdn );
 		}
-		build_new_dn( &dd.newdn, &pdn, &op->orr_newrdn, NULL );
+		build_new_dn( &rq->newdn, &pdn, &op->orr_newrdn, NULL );
 		if ( op->oq_modrdn.rs_nnewSup ) {
 			pdn = *op->oq_modrdn.rs_nnewSup;
 		} else {
 			dnParent( &op->o_req_ndn, &pdn );
 		}
-		build_new_dn( &dd.nnewdn, &pdn, &op->orr_nnewrdn, NULL );
+		build_new_dn( &rq->newndn, &pdn, &op->orr_nnewrdn, NULL );
 	}
 
-	/*
-	** build a search filter for all configured attributes;
-	** populate our Operation;
-	** pass our data (attr list, dn) to backend via sc_private;
-	** call the backend search function;
-	** nb: (|(one=thing)) is valid, but do smart formatting anyway;
-	** nb: 16 is arbitrarily a dozen or so extra bytes;
-	**
-	*/
-
-	ftop.f_choice = LDAP_FILTER_OR;
-	ftop.f_next = NULL;
-	ftop.f_or = NULL;
-	nop.ors_filter = &ftop;
-	for(ip = id->attrs; ip; ip = ip->next) {
-		fptr = ch_malloc( sizeof(Filter) + sizeof(AttributeAssertion) );
-		fptr->f_choice = LDAP_FILTER_EQUALITY;
-		fptr->f_ava = (AttributeAssertion *)(fptr+1);
-		fptr->f_ava->aa_desc = ip->attr;
-		fptr->f_ava->aa_value = op->o_req_ndn;
-		fptr->f_next = ftop.f_or;
-		ftop.f_or = fptr;
+	ldap_pvt_thread_mutex_lock( &id->qmutex );
+	if ( id->qtail ) {
+		id->qtail->next = rq;
+	} else {
+		id->qhead = rq;
 	}
-	filter2bv( nop.ors_filter, &nop.ors_filterstr );
+	id->qtail = rq;
+	ldap_pvt_thread_mutex_unlock( &id->qmutex );
 
-	/* callback gets the searched dn instead */
-	dd.dn = op->o_req_ndn;
-	dd.message	= "_dependent_search";
-	dd.mods		= NULL;
-	cb.sc_private	= &dd;
-	nop.o_callback	= &cb;
-	nop.o_tag	= LDAP_REQ_SEARCH;
-	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
-	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_limit   = NULL;
-	nop.ors_slimit	= SLAP_NO_LIMIT;
-	nop.ors_tlimit	= SLAP_NO_LIMIT;
-
-	/* no attrs! */
-	nop.ors_attrs = slap_anlist_no_attrs;
-	nop.ors_attrsonly = 1;
-
-	nop.o_req_ndn = id->dn;
-	nop.o_req_dn = id->dn;
-
-	/* search */
-	rc = nop.o_bd->be_search(&nop, &nrs);
-
-	ch_free( nop.ors_filterstr.bv_val );
-	while ( (fptr = ftop.f_or) != NULL ) {
-		ftop.f_or = fptr->f_next;
-		ch_free( fptr );
-	}
-	ch_free(dd.nnewdn.bv_val);
-	ch_free(dd.newdn.bv_val);
-	dd.newdn.bv_val	= NULL;
-	dd.nnewdn.bv_val = NULL;
-
-	if(rc != LDAP_SUCCESS) {
-		Debug( LDAP_DEBUG_TRACE,
-			"refint_response: search failed: %d\n",
-			rc, 0, 0 );
-		goto done;
-	}
-
-	/* safety? paranoid just in case */
-	if(!cb.sc_private) {
-		Debug( LDAP_DEBUG_TRACE,
-			"refint_response: callback wiped out sc_private?!\n",
-			0, 0, 0 );
-		goto done;
-	}
-
-	/* presto! now it's a modify request with null callback */
-	cb.sc_response	= &refint_null_cb;
-	nop.o_tag	= LDAP_REQ_MODIFY;
-	dd.message	= "_dependent_modify";
-
-	/* See if the parent operation is going into the replog */
-	for (cbo=op->o_callback, cbp = cbo->sc_next; cbp; cbo=cbp,cbp=cbp->sc_next) {
-		if (cbp->sc_response == slap_replog_cb) {
-			/* Invoke replog now, arrange for our
-			 * dependent mods to also be logged
-			 */
-			cbo->sc_next = cbp->sc_next;
-			replog( op );
-			nop.o_callback = &cb2;
-			break;
+	ac = 0;
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	if ( !id->qtask ) {
+		id->qtask = ldap_pvt_runqueue_insert( &slapd_rq, RUNQ_INTERVAL,
+			refint_qtask, id, "refint_qtask",
+			op->o_bd->be_suffix[0].bv_val );
+		ac = 1;
+	} else {
+		if ( !ldap_pvt_runqueue_isrunning( &slapd_rq, id->qtask ) &&
+			!id->qtask->next_sched.tv_sec ) {
+			id->qtask->interval.tv_sec = 0;
+			ldap_pvt_runqueue_resched( &slapd_rq, id->qtask, 0 );
+			id->qtask->interval.tv_sec = RUNQ_INTERVAL;
+			ac = 1;
 		}
 	}
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	if ( ac )
+		slap_wake_listener();
 
-	/*
-	** [our search callback builds a list of mods]
-	** foreach mod:
-	**	make sure its dn has a backend;
-	**	connect Modification* chain to our op;
-	**	call the backend modify function;
-	**	pass any errors upstream;
-	**
-	*/
-
-	for(dp = dd.mods; dp; dp = dp->next) {
-		nop.o_req_dn	= dp->dn;
-		nop.o_req_ndn	= dp->dn;
-		nop.o_bd = select_backend(&dp->dn, 0, 1);
-		if(!nop.o_bd) {
-			Debug( LDAP_DEBUG_TRACE,
-				"refint_response: no backend for DN %s!\n",
-				dp->dn.bv_val, 0, 0 );
-			goto done;
-		}
-		nrs.sr_type	= REP_RESULT;
-		nop.orm_modlist = dp->mm;	/* callback did all the work */
-		nop.o_dn = refint_dn;
-		nop.o_ndn = refint_dn;
-		nop.o_dn = nop.o_bd->be_rootdn;
-		nop.o_ndn = nop.o_bd->be_rootndn;
-		if(rs->sr_err != LDAP_SUCCESS) goto done;
-		if((rc = nop.o_bd->be_modify(&nop, &nrs)) != LDAP_SUCCESS) {
-			Debug( LDAP_DEBUG_TRACE,
-				"refint_response: dependent modify failed: %d\n",
-				nrs.sr_err, 0, 0 );
-			goto done;
-		}
-	}
-
-done:
-	for(dp = dd.mods; dp; dp = dd.mods) {
-		dd.mods = dp->next;
-		ch_free(dp->dn.bv_val);
-		slap_mods_free(dp->mm, 1);
-	}
-	dd.mods = NULL;
-
-	return(SLAP_CB_CONTINUE);
+	return SLAP_CB_CONTINUE;
 }
 
 /*
