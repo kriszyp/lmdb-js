@@ -554,7 +554,8 @@ ldap_chain_search(
 			ondn = op->o_req_ndn;
 	slap_response	*save_response = op->o_callback->sc_response;
 
-	int		rc = LDAP_OTHER;
+	int		rc = LDAP_OTHER,
+			first_rc = -1;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	LDAPControl	**ctrls = NULL;
@@ -658,6 +659,9 @@ ldap_chain_search(
 		/* FIXME: should we also copy filter and scope?
 		 * according to RFC3296, no */
 		rc = lback->bi_op_search( op, rs );
+		if ( first_rc == -1 ) {
+			first_rc = rc;
+		}
 
 cleanup:;
 		ldap_memfree( li.li_uri );
@@ -692,7 +696,12 @@ cleanup:;
 
 	if ( rc != LDAP_SUCCESS ) {
 		/* couldn't chase any of the referrals */
-		rc = SLAP_CB_CONTINUE;
+		if ( first_rc != -1 ) {
+			rc = first_rc;
+
+		} else {
+			rc = SLAP_CB_CONTINUE;
+		}
 	}
 
 	return rc;
