@@ -336,9 +336,10 @@ static ConfigTable distproc_cfg[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "distproc-cache-uri", "TRUE/FALSE",
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|DP_CACHE_URI, distproc_cfgen,
-		"( OLcfgOvAt:3.2 NAME 'olcCacheURI' "
+		"( OLcfgOvAt:3.2 NAME 'olcChainCacheURI' "
 			"DESC 'Enables caching of URIs not present in configuration' "
-			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
@@ -349,7 +350,7 @@ static ConfigOCs distproc_ocs[] = {
 		"SUP olcOverlayConfig "
 		"MAY ( "
 			"olcChainingBehavior $ "
-			"olcCacheURI "
+			"olcChainCacheURI "
 			") )",
 		Cft_Overlay, distproc_cfg, NULL, distproc_cfadd },
 	{ "( OLcfgOvOc:7.2 "

@@ -53,6 +53,14 @@ feature.
 [Note: this may change in the future, as the \fBldap\fP(5) and 
 \fBmeta\fP(5) backends might no longer chase referrals on their own.]
 .TP
+.B chain-cache-uri {FALSE|true}
+This directive instructs the \fIchain\fP overlay to cache
+connections to URIs parsed out of referrals that are not predefined,
+to be reused for later chaining.
+These URIs inherit the properties configured for the underlying 
+\fBslapd-ldap\fP(5) before any occurrence of the \fBchain-uri\fP
+directive; in detail, they are essentially chained anonymously.
+.TP
 .B chain-chaining [resolve=<r>] [continuation=<c>] [critical]
 This directive enables the \fIchaining\fP control
 (see \fIdraft-sermersheim-ldap-chaining\fP for details)
@@ -71,13 +79,15 @@ The values \fBr\fP and \fBc\fP can be any of
 If the \fBcritical\fP flag affects the control criticality if provided.
 [This control is experimental and its support may change in the future.]
 .TP
-.B chain-cache-uri {FALSE|true}
-This directive instructs the \fIchain\fP overlay to cache
-connections to URIs parsed out of referrals that are not predefined,
-to be reused for later chaining.
-These URIs inherit the properties configured for the underlying 
-\fBslapd-ldap\fP(5) before any occurrence of the \fBchain-uri\fP
-directive; in detail, they are essentially chained anonymously.
+.B chain-max-depth <n>
+In case a referral is returned during referral chasing, further chasing
+occurs at most \fB<n>\fP levels.  Set to \fB0\fP to disable further 
+referral chasing.
+.TP
+.B chain-return-error {FALSE|true}
+In case referral chasing fails, the real error is returned instead
+of the original referral.  In case multiple referral URIs are present,
+only the first error is returned.
 .TP
 .B chain-uri <ldapuri>
 This directive instantiates a new underlying \fIldap\fP database

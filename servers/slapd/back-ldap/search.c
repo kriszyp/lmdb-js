@@ -419,9 +419,7 @@ retry:
 			}
 
 			if ( match.bv_val != NULL ) {
-				{
-					match.bv_len = strlen( match.bv_val );
-				}
+				match.bv_len = strlen( match.bv_val );
 			}
 
 			/* cleanup */
