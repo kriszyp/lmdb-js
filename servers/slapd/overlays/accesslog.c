@@ -605,6 +605,14 @@ log_cf_gen(ConfigArgs *c)
 	case SLAP_CONFIG_EMIT:
 		switch( c->type ) {
 		case LOG_DB:
+			if ( li->li_db == NULL ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"accesslog: \"logdb <suffix>\" must be specified" );
+				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+					c->log, c->msg, c->value_dn.bv_val );
+				rc = 1;
+				break;
+			}
 			value_add( &c->rvalue_vals, li->li_db->be_suffix );
 			value_add( &c->rvalue_nvals, li->li_db->be_nsuffix );
 			break;
@@ -690,7 +698,7 @@ log_cf_gen(ConfigArgs *c)
 					ch_free( la );
 				}
 			} else {
-				log_attr *la, **lp;
+				log_attr *la = NULL, **lp;
 				int i;
 
 				for ( lp = &li->li_oldattrs, i=0; i < c->valx; i++ ) {
@@ -708,7 +716,8 @@ log_cf_gen(ConfigArgs *c)
 		case LOG_DB:
 			li->li_db = select_backend( &c->value_ndn, 0, 0 );
 			if ( !li->li_db ) {
-				sprintf( c->msg, "<%s> no matching backend found for suffix",
+				snprintf( c->msg, sizeof( c->msg ),
+					"<%s> no matching backend found for suffix",
 					c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->msg, c->value_dn.bv_val );
@@ -1425,6 +1434,13 @@ accesslog_db_open(
 	Entry *e;
 	int rc;
 	void *thrctx;
+
+	if ( li->li_db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"accesslog: \"logdb <suffix>\" must be specified.\n",
+			0, 0, 0 );
+		return 1;
+	}
 
 	if ( slapMode & SLAP_TOOL_MODE )
 		return 0;
