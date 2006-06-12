@@ -52,13 +52,22 @@ AC_WITH_TLS=@WITH_TLS@
 AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 AC_ACI_ENABLED=aci@WITH_ACI_ENABLED@
 AC_THREADS=threads@BUILD_THREAD@
+AC_LIBS_DYNAMIC=lib@BUILD_LIBS_DYNAMIC@
+
+# sanitize
+if test "${AC_ldap}" = "ldapmod" -a "${AC_LIBS_DYNAMIC}" = "static" ; then
+	AC_ldap="ldapno"
+fi
+if test "${AC_meta}" = "metamod" -a "${AC_LIBS_DYNAMIC}" = "static" ; then
+	AC_meta="metano"
+fi
 
 export AC_bdb AC_hdb AC_ldap AC_meta AC_monitor AC_relay AC_sql \
 	AC_accesslog AC_dynlist AC_pcache AC_ppolicy AC_refint AC_retcode \
 	AC_rwm AC_unique AC_syncprov AC_translucent AC_valsort \
 	AC_dds \
 	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \
-	AC_THREADS
+	AC_THREADS AC_LIBS_DYNAMIC
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
