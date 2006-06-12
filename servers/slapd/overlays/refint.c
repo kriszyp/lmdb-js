@@ -506,10 +506,10 @@ refint_qtask( void *ctx, void *arg )
 		**
 		*/
 
-		op->orm_modlist = NULL;
-
 		for(dp = rq->attrs; dp; dp = dp->next) {
 			Modifications *m, *first = NULL;
+
+			op->orm_modlist = NULL;
 
 			op->o_req_dn	= dp->dn;
 			op->o_req_ndn	= dp->ndn;
