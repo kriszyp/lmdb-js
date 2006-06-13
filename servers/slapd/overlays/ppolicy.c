@@ -525,9 +525,11 @@ password_scheme( struct berval *cred, struct berval *sch )
 	if (cred->bv_val[e]) {
 		int rc;
 		rc = lutil_passwd_scheme( cred->bv_val );
-		if (rc && sch) {
-			sch->bv_val = cred->bv_val;
-			sch->bv_len = e;
+		if (rc) {
+			if (sch) {
+				sch->bv_val = cred->bv_val;
+				sch->bv_len = e;
+			}
 			return LDAP_SUCCESS;
 		}
 	}
