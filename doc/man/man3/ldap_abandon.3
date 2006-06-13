@@ -54,22 +54,12 @@ routine is deprecated in favor of the
 .B ldap_abandon_ext()
 routine. 
 .LP
-.so deprecated
-While deprecated,
-these interfaces generally remain in the library.  The macro
-LDAP_DEPRECATED can be defined to a non-zero value
-(e.g., -DLDAP_DEPRECATED=1) when compiling program designed to use
-deprecated interaces.  It is recommended that developers writing new
-programs, or updating old programs, avoid use of deprecated interfaces.
-Over time, it is expected that documentation (and, eventually, support) for
-deprecated interfaces to be eliminated.
+.so Deprecated
 
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_result (3),
 .BR ldap_error (3)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project
+
