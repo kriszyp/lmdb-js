@@ -700,6 +700,11 @@ acl_mask_dn(
 		/* check if the target is an attribute. */
 		if ( val == NULL ) return 1;
 
+		/* a DN must be present */
+		if ( BER_BVISEMPTY( opndn ) ) {
+			return 1;
+		}
+
 		/* target is attribute, check if the attribute value
 		 * is the op dn.
 		 */
