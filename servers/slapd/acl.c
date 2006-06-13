@@ -690,6 +690,27 @@ acl_mask_dn(
 	 * value is set in a_dn_style; however, the string
 	 * is maintaned in a_dn_pat.
 	 */
+	if ( b->a_self ) {
+		const char *dummy;
+		int rc, match = 0;
+
+		/* must have DN syntax */
+		if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) return 1;
+
+		/* check if the target is an attribute. */
+		if ( val == NULL ) return 1;
+
+		/* target is attribute, check if the attribute value
+		 * is the op dn.
+		 */
+		rc = value_match( &match, desc,
+			desc->ad_type->sat_equality, 0,
+			val, opndn, &dummy );
+		/* on match error or no match, fail the ACL clause */
+		if ( rc != LDAP_SUCCESS || match != 0 )
+			return 1;
+	}
+
 	if ( b->a_style == ACL_STYLE_ANONYMOUS ) {
 		if ( !BER_BVISEMPTY( opndn ) ) {
 			return 1;
@@ -698,27 +719,6 @@ acl_mask_dn(
 	} else if ( b->a_style == ACL_STYLE_USERS ) {
 		if ( BER_BVISEMPTY( opndn ) ) {
 			return 1;
-		}
-
-		if ( b->a_self ) {
-			const char *dummy;
-			int rc, match = 0;
-
-			/* must have DN syntax */
-			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) return 1;
-
-			/* check if the target is an attribute. */
-			if ( val == NULL ) return 1;
-
-			/* target is attribute, check if the attribute value
-			 * is the op dn.
-			 */
-			rc = value_match( &match, desc,
-				desc->ad_type->sat_equality, 0,
-				val, opndn, &dummy );
-			/* on match error or no match, fail the ACL clause */
-			if ( rc != LDAP_SUCCESS || match != 0 )
-				return 1;
 		}
 
 	} else if ( b->a_style == ACL_STYLE_SELF ) {
