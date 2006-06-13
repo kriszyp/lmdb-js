@@ -114,14 +114,8 @@ routines are used to sort the entries and values returned via
 the ldap search routines. 
 .SH DEPRECATED INTERFACES
 A number of interfaces are now considered deprecated.  For instance,
-ldap_add(3) is deprecated in favor of ldap_add_ext(3).  While deprecated,
-these interfaces generally remain in the library.  The macro
-LDAP_DEPRECATED can be defined to a non-zero value
-(e.g., -DLDAP_DEPRECATED=1) when compiling program designed to use
-deprecated interaces.  It is recommended that developers writing new
-programs, or updating old programs, avoid use of deprecated interfaces.
-Over time, it is expected that documentation (and, eventually, support) for
-deprecated interfaces to be eliminated.
+ldap_add(3) is deprecated in favor of ldap_add_ext(3).
+.so deprecated
 .SH BER LIBRARY
 Also included in the distribution is a set of lightweight Basic
 Encoding Rules routines.  These routines are used by the LDAP library
