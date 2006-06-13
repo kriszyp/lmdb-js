@@ -17,7 +17,7 @@ OpenLDAP LDAP (libldap, -lldap)
 .SH DESCRIPTION
 The
 .B ldap_abandon_ext()
-routine is used to send a abandon request for an LDAP
+routine is used to send a LDAP Abandon request for an
 operation in progress.  The \fImsgid\fP passed should be the
 message id of an outstanding LDAP operation, as returned by
 .BR ldap_search_ext (3),
@@ -41,8 +41,8 @@ and
 parameters, respectively.
 .SH ERRORS
 .B ldap_abandon_ext()
-directly returns an LDAP error code indicating success or failure of the
-operation.
+returns an LDAP error code indicating success or failure in sending
+the Abandon request.
 .LP
 See
 .BR ldap_error (3)
