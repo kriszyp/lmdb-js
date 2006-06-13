@@ -754,7 +754,9 @@ instance that handles that replication log.
 .B require <conditions>
 Specify a set of conditions (separated by white space) to
 require (default none).
-The directive may be specified globally and/or per-database.
+The directive may be specified globally and/or per-database;
+databases inherit global conditions, so per-database specifications
+are additive.
 .B bind
 requires bind operation prior to directory operations.
 .B LDAPv3
@@ -768,8 +770,9 @@ requires strong authentication prior to directory operations.
 The strong keyword allows protected "simple" authentication
 as well as SASL authentication.
 .B none
-may be used to require no conditions (useful for clearly globally
-set conditions within a particular database).
+may be used to require no conditions (useful to clear out globally
+set conditions within a particular database); it must occur first
+in the list of conditions.
 .TP
 .B reverse-lookup on | off
 Enable/disable client name unverified reverse lookup (default is 
