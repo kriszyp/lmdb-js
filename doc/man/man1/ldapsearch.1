@@ -84,7 +84,7 @@ ldapsearch \- LDAP search tool
 .SH DESCRIPTION
 .I ldapsearch
 is a shell-accessible interface to the
-.BR ldap_search (3)
+.BR ldap_search_ext (3)
 library call.
 .LP
 .B ldapsearch
@@ -443,11 +443,9 @@ a diagnostic message being written to standard error.
 .BR ldap.conf (5),
 .BR ldif (5),
 .BR ldap (3),
-.BR ldap_search (3)
+.BR ldap_search_ext (3),
+.BR ldap_sort (3)
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

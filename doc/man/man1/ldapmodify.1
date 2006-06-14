@@ -107,9 +107,11 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 .SH DESCRIPTION
 .B ldapmodify
 is a shell-accessible interface to the
-.BR ldap_modify (3)
+.BR ldap_add_ext (3),
+.BR ldap_modify_ext (3),
+.BR ldap_delete_ext (3)
 and
-.BR ldap_add (3)
+.BR ldap_rename (3).
 library calls.
 .B ldapadd
 is implemented as a hard link to the ldapmodify tool.  When invoked as
@@ -360,16 +362,13 @@ exit status and a diagnostic message being written to standard error.
 .BR ldapsearch (1),
 .BR ldap.conf (5),
 .BR ldap (3),
-.BR ldap_add (3),
-.BR ldap_delete (3),
-.BR ldap_modify (3),
-.BR ldap_modrdn (3),
+.BR ldap_add_ext (3),
+.BR ldap_delete_ext (3),
+.BR ldap_modify_ext (3),
+.BR ldap_modrdn_ext (3),
 .BR ldif (5),
 .BR slapd.replog (5)
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

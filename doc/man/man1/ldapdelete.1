@@ -59,7 +59,7 @@ ldapdelete \- LDAP delete entry tool
 .SH DESCRIPTION
 .I ldapdelete
 is a shell-accessible interface to the
-.BR ldap_delete (3)
+.BR ldap_delete_ext (3)
 library call.
 .LP
 .B ldapdelete
@@ -194,11 +194,8 @@ status and a diagnostic message being written to standard error.
 .BR ldapmodrdn (1),
 .BR ldapsearch (1),
 .BR ldap (3),
-.BR ldap_delete (3)
+.BR ldap_delete_ext (3)
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project
