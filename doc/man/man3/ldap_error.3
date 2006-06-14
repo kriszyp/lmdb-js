@@ -12,18 +12,20 @@ OpenLDAP LDAP (libldap, -lldap)
 #include <ldap.h>
 .LP
 .ft B
-char *ldap_err2string( int err );
-.LP
-.ft B
-void ldap_perror( LDAP *ld, const char *s )
-.LP
-.ft B
-int ldap_result2error( LDAP *ld, LDAPMessage *res, int freeit )
+char *ldap_err2string( int \fIerr\fB );
 .SH DESCRIPTION
-These routines provide interpretation of the various error codes
-returned by the LDAP protocol and LDAP library routines or associated
-with an LDAP session.  The error code associated with an LDAP session
-is accessible using
+The
+.B ldap_err2string()
+routine provides short description of the various codes returned by
+routines in this library.  The returned string is a pointer to a
+static area that should not be modified.
+
+These codes are either negative,
+indicating an API error code; positive, indicating an LDAP resultCode
+other than \'success' (0), or - zero, indicating both successful use
+of the API and the LDAP resultCode \'success' (0).
+
+The code associated with an LDAP session is accessible using
 .BR ldap_get_option (3)
 and
 .BR ldap_set_option (3)
@@ -31,38 +33,15 @@ with the
 .B LDAP_OPT_RESULT_CODE
 option (previously called
 .BR LDAP_OPT_ERROR_NUMBER ).
-.LP
-The
-.B ldap_result2error()
-routine takes \fIres\fP, a result as produced by
-.BR ldap_result (3)
-or
-.BR ldap_search_s (3),
-and returns
-the corresponding error code.  Possible error codes are listed
-below.  If the \fIfreeit\fP parameter is non zero it indicates that the
-\fIres\fP parameter should be freed by a call to
-.BR ldap_msgfree (3)
-after the error code has been extracted.  The
-.B ld_errno
-field in \fIld\fP is set and returned.
-.LP
-The returned value can be passed to
-.B ldap_err2string()
-to get a text description of the message.  The string
-returned from
-.B ldap_err2string()
-is a pointer to a static area that
-should not be modified.
-.LP
-The
-.B ldap_perror()
-routine can be called to print an indication of
-the error on standard error, similar to the way
-.BR perror (3)
-works.
-.SH ERRORS
-The possible values for an ldap error code are:
+
+.SH PROTOCOL RESULT CODES
+
+This section provides a partial list of protocol codes recognized
+by the library.  As LDAP is extensible, additional values may be
+returned.  A complete listing of \fIregistered\fP LDAP result codes
+can be obtained from the \fIInternet Assigned Numbers Authority\fP
+<http://www.iana.org>.
+
 .LP
 .TP 20
 .SM LDAP_SUCCESS
@@ -172,7 +151,17 @@ Object class modifications are not allowed.
 .TP
 .SM LDAP_OTHER
 An unknown error occurred.
-.TP
+
+.SH API ERROR CODES
+
+This section provides a complete list of API error codes recognized
+by the library.   Note that LDAP_SUCCESS indicates success of an
+API call in addition to representing the return of the LDAP
+\'success' resultCode.
+
+
+.LP
+.TP 20
 .SM LDAP_SERVER_DOWN
 The LDAP library can't contact the LDAP server.
 .TP
@@ -200,8 +189,35 @@ An ldap routine was called with a bad parameter.
 .TP
 .SM LDAP_NO_MEMORY
 An memory allocation (e.g., malloc(3) or other dynamic memory
-allocator) call failed in an ldap
-library routine.
+allocator) call failed in an ldap library routine.
+.TP
+.SM LDAP_USER_CANCELED
+Indicates the user cancelled the operation.
+.TP
+.SM LDAP_CONNECT_ERROR
+Indicates a connection problem.
+.TP
+.SM LDAP_NOT_SUPPORTED
+Indicates the routine was called in a manner not supported by the library.
+.TP
+.SM LDAP_CONTROL_NOT_FOUND
+Indicates the control provided is unknown to the client library.
+.TP
+.SM LDAP_NO_RESULTS_RETURNED
+Indicates no results returned.
+.TP
+.SM LDAP_MORE_RESULTS_TO_RETURN
+Indicates more results could be returned.
+.TP
+.SM LDAP_CLIENT_LOOP
+Indicates the library has detected a loop in its processing.
+.TP
+.SM LDAP_REFERRAL_LIMIT_EXCEEDED
+Indicates the referral limit has been exceeded.
+
+.SH DEPRECATED
+.so Deprecated
+
 .SH SEE ALSO
 .BR ldap (3),
 .BR perror (3)
