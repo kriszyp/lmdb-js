@@ -39,16 +39,23 @@ struct berval **\fIretdatap\fB );
 The
 .B ldap_extended_operation_s()
 routine is used to synchronously perform an LDAP extended operation.
-It takes \fIrequestoid\fP, which points to a dotted OID text string identifying
-the extended operation to perform. \fIrequestdata\fP is the data required for the
-operation, \fIseverctrls\fP is an array of LDAPControl structures to use with this
-extended operation,\fIclientctrls\fP is an array of LDAPControl structures that list
-the client controls to use with this extended operation .The input parameter
-\fIretoidp\fP points to a dotted-OID text string returned by the LDAP server.
-The memory used by the string should be freed with the ldap_memfree function.
-retdatap is an output parameter which points to a pointer to a berval structure
-that contains the returned data. If no data is returned, the server set this
-to NULL. The memory used by this structure should be freed with the ber_bvfree
+It takes \fIrequestoid\fP, which points to a dotted-decimal OID string
+identifying the extended operation to perform. \fIrequestdata\fP is the
+data required for the request, \fIsctrls\fP is an array of LDAPControl
+structures to use with this extended operation, \fIcctrls\fP is an array
+of LDAPControl structures that list the client controls to use with
+this extended operation.
+.LP
+The output parameter \fIretoidp\fP points to a dotted-decimal OID
+string returned by the LDAP server.  The memory used by the string
+should be freed with the
+.BR ldap_memfree (3)
+function.
+The output parameter \fIretdatap\fP points to a pointer to a berval
+structure that contains the returned data.  If no data is returned
+by the server, the pointer is set this to NULL.  The memory used by
+this structure should be freed with the
+.BR ber_bvfree (3)
 function.
 .LP
 The
@@ -60,7 +67,9 @@ the request it initiated in the integer pointed to be \fImsgidp\fP.
 The result of this operation can be obtained by calling
 .BR ldap_result(3).
 .SH SEE ALSO
-.BR ldap_result (3),
-.BR ldap_parse_extended_result (3)
+.BR ber_bvfree (3),
+.BR ldap_memfree (3),
+.BR ldap_parse_extended_result (3),
+.BR ldap_result (3)
 .SH ACKNOWLEDGEMENTS
 .so ../Project
