@@ -229,4 +229,5 @@ RFC4516|PS|Lightweight Directory Access Protocol (LDAP): Uniform Resource Locato
 RFC4517|PS|Lightweight Directory Access Protocol (LDAP): Syntaxes and Matching Rules|http://www.rfc-editor.org/rfc/rfc4517.txt
 RFC4518|PS|Lightweight Directory Access Protocol (LDAP): Internationalized String Preparation|http://www.rfc-editor.org/rfc/rfc4518.txt
 RFC4519|PS|Lightweight Directory Access Protocol (LDAP): Schema for User Applications|http://www.rfc-editor.org/rfc/rfc4519.txt
+RFC4520|BCP|IANA Considerations for LDAP|http://www.rfc-editor.org/rfc/rfc4520.txt
 !endblock

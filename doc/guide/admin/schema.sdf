@@ -96,9 +96,9 @@ OID		Assignment
 1.1.1		SNMP Elements
 1.1.2		LDAP Elements
 1.1.2.1		AttributeTypes
-1.1.2.1.1	myAttribute
+1.1.2.1.1	x-my-Attribute
 1.1.2.2		ObjectClasses
-1.1.2.2.1	myObjectClass
+1.1.2.2.1	x-my-ObjectClass
 !endblock
 
 You are, of course, free to design a hierarchy suitable to your
@@ -130,25 +130,27 @@ Alternatively, OID name space may be available from a national
 authority (e.g., {{ORG:ANSI}}, {{ORG:BSI}}).
 
 
-H3: Name Prefix
+H3: Naming Elements
 
 In addition to assigning a unique object identifier to each schema
 element, you should provide a least one textual name for each
-element.  The name should be both descriptive and not likely to
-clash with names of other schema elements.  In particular, any name
-you choose should not clash with present or future Standard Track
-names.
+element.  Names should be registered with the {{ORG:IANA}} or
+prefixed with "x-" to place in the "private use" name space.
 
-To reduce (but not eliminate) the potential for name clashes, the
-convention is to prefix names of non-Standard Track with a few
-letters to localize the changes to your organization.  The smaller
-the organization, the longer your prefix should be.
+The name should be both descriptive and not likely to clash with
+names of other schema elements.  In particular, any name you choose
+should not clash with present or future Standard Track names (this
+is assured if you registered names or use names begining with "x-").
 
-In the examples below, we have chosen a short prefix '{{EX:my}}'
-(to save space).  Such a short prefix would only be suitable for a
-very large, global organization.  In general, we recommend something
-like '{{EX:deFirm}}' (German company) or '{{EX:comExample}}' (elements
-associated with organization associated with {{EX:example.com}}).
+It is noted that you can obtain your own registered name
+prefix so as to avoid having to register your names individually.
+See {{REF:RFC4520}} for details.
+
+In the examples below, we have used a short prefix '{{EX:x-my-}}'.
+Such a short prefix would only be suitable for a very large, global
+organization.  In general, we recommend something like '{{EX:x-de-Firm-}}'
+(German company) or '{{EX:x-com-Example}}' (elements associated with
+organization associated with {{EX:example.com}}).
 
 
 H3: Local schema file
@@ -283,7 +285,7 @@ for usage by user applications.  Neither is obsolete nor collective.
 The following subsections provide a couple of examples.
 
 
-H4: myUniqueName
+H4: x-my-UniqueName
 
 Many organizations maintain a single unique name for each user.
 Though one could use {{EX:displayName}} ({{REF:RFC2798}}), this
@@ -292,7 +294,7 @@ organization.  We could just copy the definition of {{EX:displayName}}
 from {{F:inetorgperson.schema}} and replace the OID, name, and
 description, e.g:
 
->	attributetype ( 1.1.2.1.1 NAME 'myUniqueName'
+>	attributetype ( 1.1.2.1.1 NAME 'x-my-UniqueName'
 >		DESC 'unique name with my organization' 
 >		EQUALITY caseIgnoreMatch
 >		SUBSTR caseIgnoreSubstringsMatch
@@ -303,22 +305,22 @@ However, if we want this name to be included in
 {{EX:name}} assertions [e.g. {{EX:(name=*Jane*)}}], the attribute
 could alternatively be defined as a subtype of {{EX:name}}, e.g.:
 
->	attributetype ( 1.1.2.1.1 NAME 'myUniqueName'
+>	attributetype ( 1.1.2.1.1 NAME 'x-my-UniqueName'
 >		DESC 'unique name with my organization' 
 >		SUP name )
 
 
-H4: myPhoto
+H4: x-my-Photo
 
 Many organizations maintain a photo of each each user.  A
-{{EX:myPhoto}} attribute type could be defined to hold a photo.
+{{EX:x-my-Photo}} attribute type could be defined to hold a photo.
 Of course, one could use just use {{EX:jpegPhoto}} ({{REF:RFC2798}})
 (or a subtype) to hold the photo.  However, you can only do
 this if the photo is in {{JPEG File Interchange Format}}.
 Alternatively, an attribute type which uses the {{Octet String}}
 syntax can be defined, e.g.:
 
->	attributetype ( 1.1.2.1.2 NAME 'myPhoto'
+>	attributetype ( 1.1.2.1.2 NAME 'x-my-Photo'
 >		DESC 'a photo (application defined format)' 
 >		SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
 >		SINGLE-VALUE )
@@ -337,7 +339,7 @@ pointing to the photo.  You can model such an attribute after
 {{EX:labeledURI}} ({{REF:RFC2079}}) or simply create a subtype,
 e.g.:
 
->	attributetype ( 1.1.2.1.3 NAME 'myPhotoURI'
+>	attributetype ( 1.1.2.1.3 NAME 'x-my-PhotoURI'
 >		DESC 'URI and optional label referring to a photo' 
 >		SUP labeledURI )
 
@@ -371,18 +373,18 @@ OID in numeric form (e.g. {{EX:1.1.0}}), qdescrs is one or more
 names, and oids is one or more names and/or OIDs.
 
 
-H4: myPhotoObject
+H4: x-my-PhotoObject
 
 To define an {{auxiliary}} object class which allows
-myPhoto to be added to any existing entry.
+x-my-Photo to be added to any existing entry.
 
->	objectclass ( 1.1.2.2.1 NAME 'myPhotoObject'
->		DESC 'mixin myPhoto'
+>	objectclass ( 1.1.2.2.1 NAME 'x-my-PhotoObject'
+>		DESC 'mixin x-my-Photo'
 >		AUXILIARY
->		MAY myPhoto )
+>		MAY x-my-Photo )
 
 
-H4: myPerson
+H4: x-my-Person
 
 If your organization would like have a private {{structural}}
 object class to instantiate users, you can subclass one of
@@ -390,15 +392,15 @@ the existing person classes, such as {{EX:inetOrgPerson}}
 ({{REF:RFC2798}}), and add any additional attributes which
 you desire.
 
->	objectclass ( 1.1.2.2.2 NAME 'myPerson'
+>	objectclass ( 1.1.2.2.2 NAME 'x-my-Person'
 >		DESC 'my person'
 >		SUP inetOrgPerson
->		MUST ( myUniqueName $ givenName )
->		MAY myPhoto )
+>		MUST ( x-my-UniqueName $ givenName )
+>		MAY x-my-Photo )
 
 The object class inherits the required/allowed attribute
-types of {{EX:inetOrgPerson}} but requires {{EX:myUniqueName}}
-and {{EX:givenName}} and allows {{EX:myPhoto}}.
+types of {{EX:inetOrgPerson}} but requires {{EX:x-my-UniqueName}}
+and {{EX:givenName}} and allows {{EX:x-my-Photo}}.
 
 !if 0
 H2: Transferring Schema
@@ -430,12 +432,12 @@ This will return {{TERM:LDIF}} output containing many type/value
 pairs.  The following is an abbreviated example:
 
 >	dn: cn=Subschema
->	objectClasses: ( 1.1.2.2.2 NAME 'myPerson' DESC 'my person' SUP inet
->	 OrgPerson MUST ( myUniqueName $ givenName ) MAY myPhoto )
->	attributeTypes: ( 1.1.2.1.1 NAME 'myUniqueName' DESC 'unique name wi
->	 th my organization' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubst
->	 ringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
->	attributeTypes: ( 1.1.2.1.2 NAME 'myPhoto' DESC 'a photo (applicatio
+>	objectClasses: ( 1.1.2.2.2 NAME 'x-my-Person' DESC 'my person' SUP inet
+>	 OrgPerson MUST ( x-my-UniqueName $ givenName ) MAY x-my-Photo )
+>	attributeTypes: ( 1.1.2.1.1 NAME 'x-my-UniqueName' DESC 'unique name wi
+>	 th my organization' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubstrin
+>	 gsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
+>	attributeTypes: ( 1.1.2.1.2 NAME 'x-my-Photo' DESC 'a photo (applicatio
 >	 n defined format)' SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
 
 Capture the output of the search in a file and then edit the file:
@@ -451,20 +453,20 @@ Capture the output of the search in a file and then edit the file:
 For the three type/value pairs in our example, the edit should
 result in a file with contains of:
 
->	attributetype ( 1.1.2.1.1 NAME 'myUniqueName'
+>	attributetype ( 1.1.2.1.1 NAME 'x-my-UniqueName'
 >		DESC 'unique name with my organization' 
 >		EQUALITY caseIgnoreMatch
 >		SUBSTR caseIgnoreSubstringsMatch
 >		SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
 >		SINGLE-VALUE )
->	attributeType ( 1.1.2.1.2 NAME 'myPhoto'
+>	attributeType ( 1.1.2.1.2 NAME 'x-my-Photo'
 >		DESC 'a photo (application defined format)'
 >		SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
->	objectClass ( 1.1.2.2.2 NAME 'myPerson'
+>	objectClass ( 1.1.2.2.2 NAME 'x-my-Person'
 >		DESC 'my person'
 >		SUP inetOrgPerson
->		MUST ( myUniqueName $ givenName )
->		MAY myPhoto )
+>		MUST ( x-my-UniqueName $ givenName )
+>		MAY x-my-Photo )
 
 Save in an appropriately named file (e.g. {{F:local.schema}}).
 You may now include this file in your {{slapd.conf}}(5) file.
@@ -489,11 +491,11 @@ and their use in defining schema elements:
 >	objectIdentifier myLDAP	myOID:2
 >	objectIdentifier myAttributeType	myLDAP:1
 >	objectIdentifier myObjectClass	myLDAP:2
->	attributetype ( myAttributeType:3 NAME 'myPhotoURI'
+>	attributetype ( myAttributeType:3 NAME 'x-my-PhotoURI'
 >		DESC 'URI and optional label referring to a photo' 
 >		SUP labeledURI )
->	objectclass ( myObjectClass:1 NAME 'myPhotoObject'
->		DESC 'mixin myPhoto'
+>	objectclass ( myObjectClass:1 NAME 'x-my-PhotoObject'
+>		DESC 'mixin x-my-Photo'
 >		AUXILIARY
->		MAY myPhoto )
+>		MAY x-my-Photo )
 
