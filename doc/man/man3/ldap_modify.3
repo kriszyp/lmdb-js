@@ -12,30 +12,40 @@ OpenLDAP LDAP (libldap, -lldap)
 #include <ldap.h>
 .LP
 .ft B
-.nf
-int ldap_modify(ld, dn, mods)
-.ft
-LDAP *ld;
-char *dn;
-LDAPMod *mods[];
-.LP
+int ldap_modify_ext(
+.RS
 .ft B
-.nf
-int ldap_modify_s(ld, dn, mods)
-.ft
-LDAP *ld;
-char *dn;
-LDAPMod *mods[];
+LDAP *\fIld\fB,
+char *\fIdn\fB,
+LDAPMod *\fImods[]\fB,
+LDAPControl **\fIsctrls\fB,
+LDAPControl **\fIcctrls\fB,
+int **\fImsgidp\fB );
+.RE
 .LP
-.ft B
 .nf
-void ldap_mods_free( mods, freemods )
-.ft
-LDAPMod **mods;
-int freemods;
+.ft B
+int ldap_modify_ext_s(
+.RS
+.ft B
+LDAP *\fIld\fB,
+char *\fIdn\fB,
+LDAPMod *\fImods[]\fB,
+LDAPControl **\fIsctrls\fB,
+LDAPControl **\fIcctrls\fB );
+.RE
+.LP
+.nf
+.ft B
+void ldap_mods_free(
+.RS
+.ft B
+LDAPMod **\fImods\fB,
+int \fIfreemods\fB );
+.RE
 .SH DESCRIPTION
 The routine
-.B ldap_modify_s()
+.B ldap_modify_ext_s()
 is used to perform an LDAP modify operation.
 \fIdn\fP is the DN of the entry to modify, and \fImods\fP is a
 null-terminated array of modifications to make to the entry.  Each element
@@ -43,7 +53,6 @@ of the \fImods\fP array is a pointer to an LDAPMod structure, which is
 defined below.
 .LP
 .nf
-.ft B
 	typedef struct ldapmod {
 	    int mod_op;
 	    char *mod_type;
@@ -82,20 +91,24 @@ modifications, the attribute will have the listed values after the
 modification, having been created if necessary.  All modifications are
 performed in the order in which they are listed.
 .LP
-.B
-ldap_modify_s()
+.B ldap_modify_ext_s()
 returns the LDAP error code resulting from the
-modify operation.  This code can be interpreted by
-.BR ldap_perror (3)
-and friends.
+modify operation.
+.LP
+Both
+.B ldap_abandon_ext() 
+and
+.B ldap_abandon_ext() 
+allows server and client controls to be passed in
+via the sctrls and cctrls parameters, respectively.
 .LP
 The
-.B ldap_modify()
+.B ldap_modify_ext()
 operation works the same way as
-.BR ldap_modify_s() ,
-except that it is asynchronous, returning the message id of the
-request it initiates, or -1 on error.  The result of the operation
-can be obtained by calling
+.BR ldap_modify_ext_s() ,
+except that it is asynchronous. The integer that \fImsgidp\fP points
+to is set to the message id of the modify request.  The result of
+the operation can be obtained by calling
 .BR ldap_result (3).
 .LP
 .B ldap_mods_free()
@@ -103,20 +116,30 @@ can be used to free each element of a NULL-terminated
 array of mod structures.  If \fIfreemods\fP is non-zero, the
 \fImods\fP pointer itself is freed as well.
 .SH ERRORS
-.B ldap_modify_s()
+.B ldap_modify_ext_s()
+and
+.B ldap_modify_ext()
 returns an ldap error code, either LDAP_SUCCESS or
 an error if there was trouble.
+
+See
+.BR ldap_error (3)
+for details
+.SH DEPRECATED INTERFACES
+The
 .B ldap_modify()
-returns -1 in case
-of trouble, setting the
-.B ld_errno
-field of \fIld\fP.
+and
+.B ldap_modify_s()
+routines are deprecated in favor of the
+.B ldap_modify_ext()
+and
+.B ldap_modify_ext_s()
+routines, respectively.
+
+.so Deprecated
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_error (3),
-.BR ldap_add (3)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project
+

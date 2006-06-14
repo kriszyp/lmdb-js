@@ -8,10 +8,17 @@ ldap_abandon_ext \- Abandon an LDAP operation in progress
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
 .nf
-.B #include <ldap.h>
-.BI "int ldap_abandon_ext(LDAP *" ld ", int " msgid ","
+.B
+#include <ldap.h>
+.LP
+.ft B
+int ldap_abandon_ext(
 .RS
-.BI "LDAPControl *" sctrls "[], LDAPControl *" cctrls "[]);"
+.ft B
+LDAP *\fIld\fB,
+Bint \fImsgid\fB,
+LDAPControl **\fIsctrls\fB,
+LDAPControl **\fIcctrls\fB );
 .RE
 .fi
 .SH DESCRIPTION
