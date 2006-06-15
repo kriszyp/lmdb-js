@@ -37,17 +37,17 @@
  * can be found in the file "build/LICENSE-2.0.1" in this distribution
  * of OpenLDAP Software.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
+/* Portions Copyright (C) The Internet Society (2006)
+ * ASN.1 fragments are from RFC 4511; see RFC for full legal notices.
  */
 
 /*
- * LDAPv3 (RFC2251)
+ * LDAPv3 (RFC 4511)
  *	LDAPResult ::= SEQUENCE {
- *		resultCode		ENUMERATED { ... },
- *		matchedDN		LDAPDN,
- *		errorMessage	LDAPString,
- *		referral		Referral OPTIONAL
+ *		resultCode			ENUMERATED { ... },
+ *		matchedDN			LDAPDN,
+ *		diagnosticMessage	LDAPString,
+ *		referral			[3] Referral OPTIONAL
  *	}
  *	Referral ::= SEQUENCE OF LDAPURL	(one or more)
  *	LDAPURL ::= LDAPString				(limited to URL chars)
