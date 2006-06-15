@@ -515,7 +515,6 @@ slap_retry_info_destroy(
 static int
 slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
 {
-	ldapinfo_t	*li = ( ldapinfo_t * )c->be->be_private;
 	struct berval	bv;
 	struct berval	in;
 	int		rc;
@@ -529,7 +528,7 @@ slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 		return 1;
 	}
-	ber_bvarray_add( &li->li_idassert_authz, &bv );
+	ber_bvarray_add( &si->si_authz, &bv );
 
 	return 0;
 }
@@ -664,13 +663,14 @@ int
 slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si )
 {
 	ConfigArgs	c = { 0 };
-	char		*argv[ 2 ];
+	char		*argv[ 3 ];
 
 	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
 	c.argc = 2;
 	c.argv = argv;
-	argv[ 0 ] = arg;
-	argv[ 1 ] = NULL;
+	argv[ 0 ] = "idassert-authzFrom";
+	argv[ 1 ] = (char *)arg;
+	argv[ 2 ] = NULL;
 
 	return slap_idassert_authzfrom_parse( &c, si );
 }

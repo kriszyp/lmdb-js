@@ -492,7 +492,7 @@ retry:;
 			}
 
 		} else {
-			ber_dupbv( &msc->msc_bound_ndn, &slap_empty_bv );
+			ber_dupbv( &msc->msc_bound_ndn, (struct berval *)&slap_empty_bv );
 		}
 	}
 

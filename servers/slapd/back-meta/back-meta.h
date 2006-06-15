@@ -387,14 +387,6 @@ meta_back_quarantine(
 	int			candidate );
 
 extern int
-meta_back_single_bind(
-	Operation		*op,
-	SlapReply		*rs,
-	metaconn_t		*mc,
-	int			candidate,
-	int			massage );
-
-extern int
 meta_back_dobind(
 	Operation		*op,
 	SlapReply		*rs,

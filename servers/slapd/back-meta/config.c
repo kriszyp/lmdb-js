@@ -72,6 +72,13 @@ meta_back_new_target(
 
 	ldap_pvt_thread_mutex_init( &mt->mt_uri_mutex );
 
+	mt->mt_idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
+	mt->mt_idassert_authmethod = LDAP_AUTH_NONE;
+	mt->mt_idassert_tls = SB_TLS_DEFAULT;
+
+	/* by default, use proxyAuthz control on each operation */
+	mt->mt_idassert_flags = LDAP_BACK_AUTH_PRESCRIPTIVE;
+
 	*mtp = mt;
 
 	return 0;
@@ -942,7 +949,6 @@ meta_back_db_config(
 	/* name to use as pseudo-root dn */
 	} else if ( strcasecmp( argv[ 0 ], "pseudorootdn" ) == 0 ) {
 		int 		i = mi->mi_ntargets - 1;
-		struct berval	dn;
 
 		if ( i < 0 ) {
 			Debug( LDAP_DEBUG_ANY,

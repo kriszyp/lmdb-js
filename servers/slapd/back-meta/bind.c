@@ -44,6 +44,13 @@ meta_back_proxy_authz_bind(
 	SlapReply		*rs,
 	ldap_back_send_t	sendok );
 
+static int
+meta_back_single_bind(
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	int			candidate );
+
 int
 meta_back_bind( Operation *op, SlapReply *rs )
 {
@@ -122,8 +129,6 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t	*mt = mi->mi_targets[ i ];
 		int		lerr;
-		Operation	op2 = *op;
-		int		massage = 1;
 
 		/*
 		 * Skip non-candidates
@@ -174,20 +179,13 @@ meta_back_bind( Operation *op, SlapReply *rs )
 				continue;
 			}
 
-			/* FIXME: if sb_method == LDAP_AUTH_SASL things differ a bit */
-			if ( mt->mt_idassert_authmethod == LDAP_AUTH_SASL ) {
-				/* ### */
-			}
+			
+			(void)meta_back_proxy_authz_bind( mc, i, op, rs, LDAP_BACK_DONTSEND );
+			lerr = rs->sr_err;
 
-			op2.o_req_dn = mt->mt_idassert_authcDN;
-			op2.o_req_ndn = mt->mt_idassert_authcDN;
-			op2.orb_cred = mt->mt_idassert_passwd;
-			op2.orb_method = LDAP_AUTH_SIMPLE;
-
-			massage = 0;
+		} else {
+			lerr = meta_back_single_bind( op, rs, mc, i );
 		}
-		
-		lerr = meta_back_single_bind( &op2, rs, mc, i, massage );
 
 		if ( lerr != LDAP_SUCCESS ) {
 			rc = rs->sr_err = lerr;
@@ -373,19 +371,19 @@ retry:;
  *
  * attempts to perform a bind with creds
  */
-int
+static int
 meta_back_single_bind(
 	Operation		*op,
 	SlapReply		*rs,
 	metaconn_t		*mc,
-	int			candidate,
-	int			massage )
+	int			candidate )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	struct berval		mdn = BER_BVNULL;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			msgid;
+	dncookie		dc;
 	
 	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
 		ch_free( msc->msc_bound_ndn.bv_val );
@@ -402,22 +400,15 @@ meta_back_single_bind(
 	/*
 	 * Rewrite the bind dn if needed
 	 */
-	if ( massage ) {
-		dncookie		dc;
+	dc.target = mt;
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "bindDN";
 
-		dc.target = mt;
-		dc.conn = op->o_conn;
-		dc.rs = rs;
-		dc.ctx = "bindDN";
-
-		if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
-			rs->sr_text = "DN rewrite error";
-			rs->sr_err = LDAP_OTHER;
-			return rs->sr_err;
-		}
-
-	} else {
-		mdn = op->o_req_dn;
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		rs->sr_text = "DN rewrite error";
+		rs->sr_err = LDAP_OTHER;
+		return rs->sr_err;
 	}
 
 	/* FIXME: this fixes the bind problem right now; we need
