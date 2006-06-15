@@ -44,12 +44,10 @@ allows server and client controls to be passed in via the
 and
 .I cctrls
 parameters, respectively.
-.SH ERRORS
-.B ldap_abandon_ext()
-returns an LDAP error code indicating success or failure in sending
-the Abandon request.
 .LP
-See
+.B ldap_abandon_ext()
+returns a code indicating success or, in the case of failure, the
+nature of the failure.  See
 .BR ldap_error (3)
 for details.
 .SH DEPRECATED INTERFACES
