@@ -701,7 +701,7 @@ ber_bvreplace_x( struct berval *dst, LDAP_CONST struct berval *src, void *ctx )
 {
 	assert( dst != NULL );
 
-	if ( dst->bv_len < src->bv_len ) {
+	if ( dst->bv_len == 0 || dst->bv_len < src->bv_len ) {
 		dst->bv_val = ber_memrealloc_x( dst->bv_val, src->bv_len + 1, ctx );
 	}
 
