@@ -723,6 +723,14 @@ log_cf_gen(ConfigArgs *c)
 					c->log, c->msg, c->value_dn.bv_val );
 				rc = 1;
 			}
+			if ( BER_BVISEMPTY( &li->li_db->be_rootdn )) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"<%s> no rootDN was configured for suffix",
+					c->argv[0] );
+				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+					c->log, c->msg, c->value_dn.bv_val );
+				rc = 1;
+			}
 			ch_free( c->value_dn.bv_val );
 			ch_free( c->value_ndn.bv_val );
 			break;
