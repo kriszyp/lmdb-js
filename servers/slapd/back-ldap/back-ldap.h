@@ -44,17 +44,22 @@ typedef struct ldapconn_t {
 	struct berval 		lc_bound_ndn;
 	struct berval		lc_local_ndn;
 	unsigned		lc_lcflags;
-#define LDAP_BACK_CONN_ISSET(lc,f)	((lc)->lc_lcflags & (f))
-#define	LDAP_BACK_CONN_SET(lc,f)	((lc)->lc_lcflags |= (f))
-#define	LDAP_BACK_CONN_CLEAR(lc,f)	((lc)->lc_lcflags &= ~(f))
-#define	LDAP_BACK_CONN_CPY(lc,f,mlc) \
+#define LDAP_BACK_CONN_ISSET_F(fp,f)	(*(fp) & (f))
+#define	LDAP_BACK_CONN_SET_F(fp,f)	(*(fp) |= (f))
+#define	LDAP_BACK_CONN_CLEAR_F(fp,f)	(*(fp) &= ~(f))
+#define	LDAP_BACK_CONN_CPY_F(fp,f,mfp) \
 	do { \
-		if ( ((f) & (mlc)->lc_lcflags) == (f) ) { \
-			(lc)->lc_lcflags |= (f); \
+		if ( ((f) & *(mfp)) == (f) ) { \
+			*(fp) |= (f); \
 		} else { \
-			(lc)->lc_lcflags &= ~(f); \
+			*(fp) &= ~(f); \
 		} \
 	} while ( 0 )
+
+#define LDAP_BACK_CONN_ISSET(lc,f)	LDAP_BACK_CONN_ISSET_F(&(lc)->lc_lcflags, (f))
+#define	LDAP_BACK_CONN_SET(lc,f)	LDAP_BACK_CONN_SET_F(&(lc)->lc_lcflags, (f))
+#define	LDAP_BACK_CONN_CLEAR(lc,f)	LDAP_BACK_CONN_CLEAR_F(&(lc)->lc_lcflags, (f))
+#define	LDAP_BACK_CONN_CPY(lc,f,mlc)	LDAP_BACK_CONN_CPY_F(&(lc)->lc_lcflags, (f), &(mlc)->lc_lcflags)
 
 #define	LDAP_BACK_FCONN_ISBOUND	(0x00000001U)
 #define	LDAP_BACK_FCONN_ISANON	(0x00000002U)
@@ -97,18 +102,6 @@ typedef struct ldapconn_t {
 } ldapconn_t;
 
 /*
- * identity assertion modes
- */
-enum {
-	LDAP_BACK_IDASSERT_LEGACY = 1,
-	LDAP_BACK_IDASSERT_NOASSERT,
-	LDAP_BACK_IDASSERT_ANONYMOUS,
-	LDAP_BACK_IDASSERT_SELF,
-	LDAP_BACK_IDASSERT_OTHERDN,
-	LDAP_BACK_IDASSERT_OTHERID
-};
-
-/*
  * operation enumeration for timeouts
  */
 enum {
@@ -136,6 +129,47 @@ typedef struct slap_retry_info_t {
 #define SLAP_RETRYNUM_VALID(n)	((n) >= SLAP_RETRYNUM_FOREVER)	/* valid retrynum */
 #define SLAP_RETRYNUM_FINITE(n)	((n) > SLAP_RETRYNUM_FOREVER)	/* not forever */
 } slap_retry_info_t;
+
+/*
+ * identity assertion modes
+ */
+typedef enum {
+	LDAP_BACK_IDASSERT_LEGACY = 1,
+	LDAP_BACK_IDASSERT_NOASSERT,
+	LDAP_BACK_IDASSERT_ANONYMOUS,
+	LDAP_BACK_IDASSERT_SELF,
+	LDAP_BACK_IDASSERT_OTHERDN,
+	LDAP_BACK_IDASSERT_OTHERID
+} slap_idassert_mode_t;
+
+/* ID assert stuff */
+typedef struct slap_idassert_t {
+	slap_idassert_mode_t	si_mode;
+#define	li_idassert_mode	li_idassert.si_mode
+
+	slap_bindconf	si_bc;
+#define	li_idassert_authcID	li_idassert.si_bc.sb_authcId
+#define	li_idassert_authcDN	li_idassert.si_bc.sb_binddn
+#define	li_idassert_passwd	li_idassert.si_bc.sb_cred
+#define	li_idassert_authzID	li_idassert.si_bc.sb_authzId
+#define	li_idassert_authmethod	li_idassert.si_bc.sb_method
+#define	li_idassert_sasl_mech	li_idassert.si_bc.sb_saslmech
+#define	li_idassert_sasl_realm	li_idassert.si_bc.sb_realm
+#define	li_idassert_secprops	li_idassert.si_bc.sb_secprops
+#define	li_idassert_tls		li_idassert.si_bc.sb_tls
+
+	unsigned 	si_flags;
+#define LDAP_BACK_AUTH_NONE				0x00U
+#define	LDAP_BACK_AUTH_NATIVE_AUTHZ			0x01U
+#define	LDAP_BACK_AUTH_OVERRIDE				0x02U
+#define	LDAP_BACK_AUTH_PRESCRIPTIVE			0x04U
+#define	LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ		0x08U
+#define	LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND	0x10U
+#define	li_idassert_flags	li_idassert.si_flags
+
+	BerVarray	si_authz;
+#define	li_idassert_authz	li_idassert.si_authz
+} slap_idassert_t;
 
 /*
  * Hook to allow mucking with ldapinfo_t when quarantine is over
@@ -166,27 +200,7 @@ typedef struct ldapinfo_t {
 #define	li_acl_secprops	li_acl.sb_secprops
 
 	/* ID assert stuff */
-	int		li_idassert_mode;
-
-	slap_bindconf	li_idassert;
-#define	li_idassert_authcID	li_idassert.sb_authcId
-#define	li_idassert_authcDN	li_idassert.sb_binddn
-#define	li_idassert_passwd	li_idassert.sb_cred
-#define	li_idassert_authzID	li_idassert.sb_authzId
-#define	li_idassert_authmethod	li_idassert.sb_method
-#define	li_idassert_sasl_mech	li_idassert.sb_saslmech
-#define	li_idassert_sasl_realm	li_idassert.sb_realm
-#define	li_idassert_secprops	li_idassert.sb_secprops
-
-	unsigned 	li_idassert_flags;
-#define LDAP_BACK_AUTH_NONE				0x00U
-#define	LDAP_BACK_AUTH_NATIVE_AUTHZ			0x01U
-#define	LDAP_BACK_AUTH_OVERRIDE				0x02U
-#define	LDAP_BACK_AUTH_PRESCRIPTIVE			0x04U
-#define	LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ		0x08U
-#define	LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND	0x10U
-
-	BerVarray	li_idassert_authz;
+	slap_idassert_t	li_idassert;
 	/* end of ID assert stuff */
 
 	int		li_nretries;

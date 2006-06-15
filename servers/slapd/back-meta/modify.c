@@ -35,6 +35,7 @@ int
 meta_back_modify( Operation *op, SlapReply *rs )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t	*mt;
 	metaconn_t	*mc;
 	int		rc = 0;
 	int		maperr = 1;
@@ -48,6 +49,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	dncookie	dc;
 	int		msgid;
 	int		do_retry = 1;
+	LDAPControl	**ctrls = NULL;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
@@ -59,7 +61,8 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
-	dc.target = mi->mi_targets[ candidate ];
+	mt = mi->mi_targets[ candidate ];
+	dc.target = mt;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "modifyDN";
@@ -102,7 +105,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 			mapped = ml->sml_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mt->mt_rwmap.rwm_at,
 					&ml->sml_desc->ad_cname, &mapped,
 					BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
@@ -129,11 +132,11 @@ meta_back_modify( Operation *op, SlapReply *rs )
 				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); ) {
 					struct ldapmapping	*mapping;
 
-					ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
+					ldap_back_mapping( &mt->mt_rwmap.rwm_oc,
 							&ml->sml_values[ j ], &mapping, BACKLDAP_MAP );
 
 					if ( mapping == NULL ) {
-						if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
+						if ( mt->mt_rwmap.rwm_oc.drop_missing ) {
 							continue;
 						}
 						mods[ i ].mod_bvalues[ j ] = &ml->sml_values[ j ];
@@ -174,9 +177,17 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 	modv[ i ] = 0;
 
+	ctrls = op->o_ctrls;
+	rc = ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		maperr = 0;
+		goto cleanup;
+	}
+
 retry:;
 	rs->sr_err = ldap_modify_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			modv, op->o_ctrls, NULL, &msgid );
+			modv, ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
@@ -188,8 +199,8 @@ retry:;
 		struct timeval	tv, *tvp = NULL;
 		LDAPMessage	*res = NULL;
 
-		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODIFY ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODIFY ];
+		if ( mt->mt_timeout[ LDAP_BACK_OP_MODIFY ] != 0 ) {
+			tv.tv_sec = mt->mt_timeout[ LDAP_BACK_OP_MODIFY ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}
@@ -210,6 +221,7 @@ retry:;
 			break;
 
 		case LDAP_RES_MODIFY:
+			/* FIXME: matched? referrals? response controls? */
 			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
 				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
 			if ( rc != LDAP_SUCCESS ) {
@@ -226,13 +238,15 @@ retry:;
 	}
 
 cleanup:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	if ( maperr ) {
 		rc = meta_back_op_result( mc, op, rs, candidate );
 
 	} else {
 		send_ldap_result( op, rs );
 
-		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ candidate ] ) ) {
+		if ( META_BACK_TGT_QUARANTINE( mt ) ) {
 			meta_back_quarantine( op, rs, candidate );
 		}
 	}

@@ -76,11 +76,11 @@ meta_search_dobind_init(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
-	char			*binddn = "";
-	struct berval		cred = BER_BVC( "" );
+	struct berval		binddn = BER_BVC( "" ),
+				cred = BER_BVC( "" );
+	int			method;
 
 	int			rc;
-	int			nretries = 1;
 
 	meta_search_candidate_t	retcode;
 
@@ -108,42 +108,61 @@ meta_search_dobind_init(
 	LDAP_BACK_CONN_BINDING_SET( msc );
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
-	if ( be_isroot( op ) && !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
-		binddn = mt->mt_pseudorootdn.bv_val;
-		cred = mt->mt_pseudorootpw;
+	/* NOTE: this obsoletes pseudorootdn */
+	if ( op->o_conn != NULL &&
+		!op->o_do_not_cache &&
+		( BER_BVISNULL( &msc->msc_bound_ndn ) ||
+			BER_BVISEMPTY( &msc->msc_bound_ndn ) ||
+			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
+	{
+		rc = meta_back_proxy_authz_cred( mc, candidate, op, rs, LDAP_BACK_DONTSEND, &binddn, &cred, &method );
+		if ( rc != LDAP_SUCCESS ) {
+			goto down;
+		}
+
+		/* NOTE: we copy things here, even if bind didn't succeed yet,
+		 * because the connection is not shared until bind is over */
+		if ( !BER_BVISNULL( &binddn ) ) {
+			ber_bvreplace( &msc->msc_bound_ndn, &binddn );
+			if ( LDAP_BACK_SAVECRED( mi ) && !BER_BVISNULL( &cred ) ) {
+				ber_dupbv( &msc->msc_cred, &cred );
+			}
+		}
+
+		if ( LDAP_BACK_CONN_ISBOUND( msc ) ) {
+			/* idassert ws configured with SASL bind */
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			LDAP_BACK_CONN_BINDING_CLEAR( msc );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+			return META_SEARCH_CANDIDATE;
+		}
+
+		/* paranoid */
+		switch ( method ) {
+		case LDAP_AUTH_NONE:
+		case LDAP_AUTH_SIMPLE:
+			/* do a simple bind with binddn, cred */
+			break;
+
+		default:
+			assert( 0 );
+			break;
+		}
 	}
 
-	/*
-	 * Otherwise an anonymous bind is performed
-	 * (note: if the target was already bound, the anonymous
-	 * bind clears the previous bind).
-	 */
-	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
-		ber_memfree( msc->msc_bound_ndn.bv_val );
-		BER_BVZERO( &msc->msc_bound_ndn );
-	}
-		
-	if ( LDAP_BACK_SAVECRED( mi ) && !BER_BVISNULL( &msc->msc_cred ) ) {
-		/* destroy sensitive data */
-		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
-		ber_memfree( msc->msc_cred.bv_val );
-		BER_BVZERO( &msc->msc_cred );
-	}
-
-retry:;
 	assert( msc->msc_ld != NULL );
 
-	rc = ldap_sasl_bind( msc->msc_ld, binddn, LDAP_SASL_SIMPLE, &cred,
+	rc = ldap_sasl_bind( msc->msc_ld, binddn.bv_val, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 	switch ( rc ) {
 	case LDAP_SUCCESS:
 		META_BINDING_SET( &candidates[ candidate ] );
 		return META_SEARCH_BINDING;
 
+down:;
 	case LDAP_SERVER_DOWN:
-		if ( nretries && meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
-			nretries = 0;
-			goto retry;
+		if ( meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
+			return META_SEARCH_CANDIDATE;
 		}
 
 		if ( *mcp == NULL ) {
@@ -195,12 +214,14 @@ meta_search_dobind_result(
 
 	assert( msc->msc_ld != NULL );
 
+	/* FIXME: matched? referrals? response controls? */
 	rc = ldap_parse_result( msc->msc_ld, res,
 		&candidates[ candidate ].sr_err,
 		NULL, NULL, NULL, NULL, 1 );
-	if ( rc == LDAP_SUCCESS ) {
-		rc = slap_map_api2result( &candidates[ candidate ] );
+	if ( rc != LDAP_SUCCESS ) {
+		candidates[ candidate ].sr_err = rc;
 	}
+	rc = slap_map_api2result( &candidates[ candidate ] );
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	LDAP_BACK_CONN_BINDING_CLEAR( msc );
@@ -248,6 +269,7 @@ meta_back_search_start(
 	meta_search_candidate_t	retcode;
 	struct timeval		tv, *tvp = NULL;
 	int			nretries = 1;
+	LDAPControl		**ctrls = NULL;
 
 	/* this should not happen; just in case... */
 	if ( msc->msc_ld == NULL ) {
@@ -402,6 +424,15 @@ meta_back_search_start(
 		tvp = &tv;
 	}
 
+	ctrls = op->o_ctrls;
+	if ( ldap_back_proxy_authz_ctrl( &msc->msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
+	{
+		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
+		retcode = META_SEARCH_NOT_CANDIDATE;
+		goto done;
+	}
+
 	/*
 	 * Starts the search
 	 */
@@ -410,7 +441,7 @@ retry:;
 	rc = ldap_search_ext( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
-			op->o_ctrls, NULL, tvp, op->ors_slimit,
+			ctrls, NULL, tvp, op->ors_slimit,
 			&candidates[ candidate ].sr_msgid ); 
 	switch ( rc ) {
 	case LDAP_SUCCESS:
@@ -435,6 +466,8 @@ retry:;
 	}
 
 done:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	if ( mapped_attrs ) {
 		free( mapped_attrs );
 	}
@@ -892,6 +925,7 @@ really_bad:;
 				 * back-meta would need to merge them
 				 * consistently (think of pagedResults...)
 				 */
+				/* FIXME: response controls? */
 				rs->sr_err = ldap_parse_result( msc->msc_ld,
 							res,
 							&candidates[ i ].sr_err,

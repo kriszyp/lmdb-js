@@ -229,8 +229,19 @@ typedef struct metatarget_t {
 	struct berval		mt_binddn;
 	struct berval		mt_bindpw;
 
-	struct berval           mt_pseudorootdn;
-	struct berval           mt_pseudorootpw;
+	slap_idassert_t		mt_idassert;
+#define	mt_idassert_mode	mt_idassert.si_mode
+#define	mt_idassert_authcID	mt_idassert.si_bc.sb_authcId
+#define	mt_idassert_authcDN	mt_idassert.si_bc.sb_binddn
+#define	mt_idassert_passwd	mt_idassert.si_bc.sb_cred
+#define	mt_idassert_authzID	mt_idassert.si_bc.sb_authzId
+#define	mt_idassert_authmethod	mt_idassert.si_bc.sb_method
+#define	mt_idassert_sasl_mech	mt_idassert.si_bc.sb_saslmech
+#define	mt_idassert_sasl_realm	mt_idassert.si_bc.sb_realm
+#define	mt_idassert_secprops	mt_idassert.si_bc.sb_secprops
+#define	mt_idassert_tls		mt_idassert.si_bc.sb_tls
+#define	mt_idassert_flags	mt_idassert.si_flags
+#define	mt_idassert_authz	mt_idassert.si_authz
 
 	int			mt_nretries;
 #define META_RETRY_UNDEFINED	(-2)
@@ -399,6 +410,17 @@ meta_back_single_dobind(
 	ldap_back_send_t	sendok,
 	int			retries,
 	int			dolock );
+
+extern int
+meta_back_proxy_authz_cred(
+	metaconn_t		*mc,
+	int			candidate,
+	Operation		*op,
+	SlapReply		*rs,
+	ldap_back_send_t	sendok,
+	struct berval		*binddn,
+	struct berval		*bindcred,
+	int			*method );
 
 extern int
 meta_back_cancel(

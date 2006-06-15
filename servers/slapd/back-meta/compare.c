@@ -74,6 +74,8 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		struct berval		mdn = BER_BVNULL;
 		struct berval		mapped_attr = op->orc_ava->aa_desc->ad_cname;
 		struct berval		mapped_value = op->orc_ava->aa_value;
+		metatarget_t		*mt = mi->mi_targets[ i ];
+		LDAPControl		**ctrls = NULL;
 
 		if ( ! META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			msgid[ i ] = -1;
@@ -83,7 +85,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the compare dn, if needed
 		 */
-		dc.target = mi->mi_targets[ i ];
+		dc.target = mt;
 
 		switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
@@ -98,7 +100,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * if attr is objectClass, try to remap the value
 		 */
 		if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-			ldap_back_map( &mi->mi_targets[ i ]->mt_rwmap.rwm_oc,
+			ldap_back_map( &mt->mt_rwmap.rwm_oc,
 					&op->orc_ava->aa_value,
 					&mapped_value, BACKLDAP_MAP );
 
@@ -109,7 +111,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * else try to remap the attribute
 		 */
 		} else {
-			ldap_back_map( &mi->mi_targets[ i ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mt->mt_rwmap.rwm_at,
 				&op->orc_ava->aa_desc->ad_cname,
 				&mapped_attr, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped_attr ) || mapped_attr.bv_val[0] == '\0' ) {
@@ -132,6 +134,13 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			}
 		}
 		
+		ctrls = op->o_ctrls;
+		if ( ldap_back_proxy_authz_ctrl( &mc->mc_conns[ i ].msc_bound_ndn,
+			mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
+		{
+			continue;
+		}
+
 		/*
 		 * the compare op is spawned across the targets and the first
 		 * that returns determines the result; a constraint on unicity
@@ -139,7 +148,9 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 */
 		 rc = ldap_compare_ext( mc->mc_conns[ i ].msc_ld, mdn.bv_val,
 				mapped_attr.bv_val, &mapped_value,
-				op->o_ctrls, NULL, &msgid[ i ] );
+				ctrls, NULL, &msgid[ i ] );
+
+		(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 
 		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 			free( mdn.bv_val );
@@ -208,6 +219,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					goto finish;
 				}
 
+				/* FIXME: matched? referrals? response controls? */
 				rc = ldap_parse_result( msc->msc_ld, res,
 						&rs->sr_err,
 						NULL, NULL, NULL, NULL, 1 );

@@ -35,6 +35,7 @@ int
 meta_back_delete( Operation *op, SlapReply *rs )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t	*mt;
 	metaconn_t	*mc = NULL;
 	int		candidate = -1;
 	struct berval	mdn = BER_BVNULL;
@@ -42,6 +43,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	int		msgid;
 	int		do_retry = 1;
 	int		maperr = 1;
+	LDAPControl	**ctrls = NULL;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
@@ -53,7 +55,8 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	dc.target = mi->mi_targets[ candidate ];
+	mt = mi->mi_targets[ candidate ];
+	dc.target = mt;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "deleteDN";
@@ -63,9 +66,17 @@ meta_back_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	ctrls = op->o_ctrls;
+	if ( ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
+	{
+		maperr = 0;
+		goto sendres;
+	}
+
 retry:;
 	rs->sr_err = ldap_delete_ext( mc->mc_conns[ candidate ].msc_ld,
-			mdn.bv_val, op->o_ctrls, NULL, &msgid );
+			mdn.bv_val, ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
@@ -78,8 +89,8 @@ retry:;
 		LDAPMessage	*res = NULL;
 		int		rc;
 
-		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_DELETE ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_DELETE ];
+		if ( mt->mt_timeout[ LDAP_BACK_OP_DELETE ] != 0 ) {
+			tv.tv_sec = mt->mt_timeout[ LDAP_BACK_OP_DELETE ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}
@@ -100,6 +111,7 @@ retry:;
 			break;
 
 		case LDAP_RES_DELETE:
+			/* FIXME: matched? referrals? response controls? */
 			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
 				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
 			if ( rc != LDAP_SUCCESS ) {
@@ -114,13 +126,16 @@ retry:;
 		}
 	}
 
+sendres:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	if ( maperr ) {
 		rs->sr_err = meta_back_op_result( mc, op, rs, candidate );
 
 	} else {
 		send_ldap_result( op, rs );
 
-		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ candidate ] ) ) {
+		if ( META_BACK_TGT_QUARANTINE( mt ) ) {
 			meta_back_quarantine( op, rs, candidate );
 		}
 	}

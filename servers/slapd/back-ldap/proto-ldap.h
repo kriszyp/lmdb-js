@@ -68,6 +68,8 @@ extern void ldap_back_conn_free( void *c );
 extern int
 ldap_back_proxy_authz_ctrl(
 		struct berval	*bound_ndn,
+		int		version,
+		slap_idassert_t	*si,
 		Operation	*op,
 		SlapReply	*rs,
 		LDAPControl	***pctrls );
@@ -87,6 +89,8 @@ extern int slap_retry_info_parse( char *in, slap_retry_info_t *ri,
 	char *buf, ber_len_t buflen );
 extern int slap_retry_info_unparse( slap_retry_info_t *ri, struct berval *bvout );
 
+extern int slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
+extern int slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si );
 
 extern int chain_initialize( void );
 #ifdef LDAP_DEVEL

@@ -34,6 +34,16 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
+#include "lutil_ldap.h"
+
+static int
+meta_back_proxy_authz_bind(
+	metaconn_t		*mc,
+	int			candidate,
+	Operation		*op,
+	SlapReply		*rs,
+	ldap_back_send_t	sendok );
+
 int
 meta_back_bind( Operation *op, SlapReply *rs )
 {
@@ -140,7 +150,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		}
 
 		if ( isroot ) {
-			if ( BER_BVISNULL( &mt->mt_pseudorootdn ) )
+			if ( mt->mt_idassert_authmethod == LDAP_AUTH_NONE
+				|| BER_BVISNULL( &mt->mt_idassert_authcDN ) )
 			{
 				metasingleconn_t	*msc = &mc->mc_conns[ i ];
 
@@ -163,9 +174,14 @@ meta_back_bind( Operation *op, SlapReply *rs )
 				continue;
 			}
 
-			op2.o_req_dn = mt->mt_pseudorootdn;
-			op2.o_req_ndn = mt->mt_pseudorootdn;
-			op2.orb_cred = mt->mt_pseudorootpw;
+			/* FIXME: if sb_method == LDAP_AUTH_SASL things differ a bit */
+			if ( mt->mt_idassert_authmethod == LDAP_AUTH_SASL ) {
+				/* ### */
+			}
+
+			op2.o_req_dn = mt->mt_idassert_authcDN;
+			op2.o_req_ndn = mt->mt_idassert_authcDN;
+			op2.orb_cred = mt->mt_idassert_passwd;
 			op2.orb_method = LDAP_AUTH_SIMPLE;
 
 			massage = 0;
@@ -233,7 +249,7 @@ retry_lock:;
 			}
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
-			if ( be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
+			if ( isroot ) {
 				mc->mc_conn = LDAP_BACK_PCONN_SET( op );
 			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
@@ -310,7 +326,7 @@ retry:;
 		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
 		case 0:
 			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_single_bind[%d]: ldap_result=0 nretries=%d.\n",
+				"%s meta_back_bind_op_result[%d]: ldap_result=0 nretries=%d.\n",
 				op->o_log_prefix, candidate, nretries );
 
 			if ( nretries != META_RETRY_NEVER ) {
@@ -334,11 +350,12 @@ retry:;
 				"err=%d (%s) nretries=%d",
 				rs->sr_err, ldap_err2string( rs->sr_err ), nretries );
 			Debug( LDAP_DEBUG_ANY,
-				"### %s meta_back_single_bind[%d]: %s.\n",
+				"### %s meta_back_bind_op_result[%d]: %s.\n",
 				op->o_log_prefix, candidate, buf );
 			break;
 
 		default:
+			/* FIXME: matched? referrals? response controls? */
 			rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
 					NULL, NULL, NULL, NULL, 1 );
 			if ( rc != LDAP_SUCCESS ) {
@@ -416,7 +433,20 @@ meta_back_single_bind(
 		goto return_results;
 	}
 
-	ber_bvreplace( &msc->msc_bound_ndn, &op->o_req_dn );
+	/* If defined, proxyAuthz will be used also when
+	 * back-ldap is the authorizing backend; for this
+	 * purpose, a successful bind is followed by a
+	 * bind with the configured identity assertion */
+	/* NOTE: use with care */
+	if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
+		meta_back_proxy_authz_bind( mc, candidate, op, rs, LDAP_BACK_SENDERR );
+		if ( !LDAP_BACK_CONN_ISBOUND( msc ) ) {
+			goto return_results;
+		}
+		goto cache_refresh;
+	}
+
+	ber_bvreplace( &msc->msc_bound_ndn, &op->o_req_ndn );
 	LDAP_BACK_CONN_ISBOUND_SET( msc );
 	mc->mc_authz_target = candidate;
 
@@ -468,39 +498,16 @@ meta_back_single_dobind(
 
 	assert( !LDAP_BACK_CONN_ISBOUND( msc ) );
 
-	/*
-	 * meta_back_single_dobind() calls meta_back_single_bind()
-	 * if required.
-	 */
-	if ( be_isroot( op ) && !BER_BVISNULL( &mt->mt_pseudorootdn ) )
+	/* NOTE: this obsoletes pseudorootdn */
+	if ( op->o_conn != NULL &&
+		!op->o_do_not_cache &&
+		( BER_BVISNULL( &msc->msc_bound_ndn ) ||
+			BER_BVISEMPTY( &msc->msc_bound_ndn ) ||
+			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
-		Operation	op2 = *op;
-
-		op2.o_tag = LDAP_REQ_BIND;
-		op2.o_req_dn = mt->mt_pseudorootdn;
-		op2.o_req_ndn = mt->mt_pseudorootdn;
-		op2.orb_cred = mt->mt_pseudorootpw;
-		op2.orb_method = LDAP_AUTH_SIMPLE;
-
-		rc = meta_back_single_bind( &op2, rs, *mcp, candidate, 0 );
+		(void)meta_back_proxy_authz_bind( mc, candidate, op, rs, sendok );
+		rc = rs->sr_err;
 		goto done;
-	}
-
-	/*
-	 * Otherwise an anonymous bind is performed
-	 * (note: if the target was already bound, the anonymous
-	 * bind clears the previous bind).
-	 */
-	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
-		ber_memfree( msc->msc_bound_ndn.bv_val );
-		BER_BVZERO( &msc->msc_bound_ndn );
-	}
-		
-	if ( LDAP_BACK_SAVECRED( mi ) && !BER_BVISNULL( &msc->msc_cred ) ) {
-		/* destroy sensitive data */
-		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
-		ber_memfree( msc->msc_cred.bv_val );
-		BER_BVZERO( &msc->msc_cred );
 	}
 
 	/* FIXME: should we check if at least some of the op->o_ctrls
@@ -576,7 +583,7 @@ meta_back_dobind(
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t		*mt = mi->mi_targets[ i ];
 		metasingleconn_t	*msc = &mc->mc_conns[ i ];
-		int			rc, do_retry = 1;
+		int			rc;
 
 		/*
 		 * Not a candidate
@@ -593,7 +600,10 @@ meta_back_dobind(
 
 retry_binding:;
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-		if ( LDAP_BACK_CONN_ISBOUND( msc ) || LDAP_BACK_CONN_ISANON( msc ) ) {
+		if ( LDAP_BACK_CONN_ISBOUND( msc )
+			|| ( LDAP_BACK_CONN_ISANON( msc )
+				&& mt->mt_idassert_authmethod == LDAP_AUTH_NONE ) )
+		{
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			++bound;
 			continue;
@@ -608,7 +618,6 @@ retry_binding:;
 		LDAP_BACK_CONN_BINDING_SET( msc );
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
-retry:;
 		rc = meta_back_single_dobind( op, rs, &mc, i,
 			LDAP_BACK_DONTSEND, mt->mt_nretries, 1 );
 		/*
@@ -625,10 +634,11 @@ retry:;
 			}
 
 
-			if ( rc == LDAP_UNAVAILABLE && do_retry ) {
-				do_retry = 0;
+			if ( rc == LDAP_UNAVAILABLE ) {
+				/* FIXME: meta_back_retry() already calls
+				 * meta_back_single_dobind() */
 				if ( meta_back_retry( op, rs, &mc, i, sendok ) ) {
-					goto retry;
+					goto retry_ok;
 				}
 
 				if ( mc != NULL ) {
@@ -668,7 +678,8 @@ retry:;
 
 			continue;
 		} /* else */
-		
+
+retry_ok:;
 		Debug( LDAP_DEBUG_TRACE,
 			"%s meta_back_dobind[%d]: "
 			"(%s)\n",
@@ -983,3 +994,303 @@ meta_back_op_result(
 	return ( ( rerr == LDAP_SUCCESS ) ? 0 : -1 );
 }
 
+/*
+ * meta_back_proxy_authz_cred()
+ *
+ * prepares credentials & method for meta_back_proxy_authz_bind();
+ * or, if method is SASL, performs the SASL bind directly.
+ */
+int
+meta_back_proxy_authz_cred(
+	metaconn_t		*mc,
+	int			candidate,
+	Operation		*op,
+	SlapReply		*rs,
+	ldap_back_send_t	sendok,
+	struct berval		*binddn,
+	struct berval		*bindcred,
+	int			*method )
+{
+	metainfo_t		*mi = (metainfo_t *)op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	struct berval		ndn;
+	int			dobind = 0;
+
+	/* don't proxyAuthz if protocol is not LDAPv3 */
+	switch ( mt->mt_version ) {
+	case LDAP_VERSION3:
+		break;
+
+	case 0:
+		if ( op->o_protocol == 0 || op->o_protocol == LDAP_VERSION3 ) {
+			break;
+		}
+		/* fall thru */
+
+	default:
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		if ( sendok & LDAP_BACK_SENDERR ) {
+			send_ldap_result( op, rs );
+		}
+		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+		goto done;
+	}
+
+	if ( op->o_tag == LDAP_REQ_BIND ) {
+		ndn = op->o_req_ndn;
+
+	} else if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+		ndn = op->o_conn->c_ndn;
+
+	} else {
+		ndn = op->o_ndn;
+	}
+
+	/*
+	 * FIXME: we need to let clients use proxyAuthz
+	 * otherwise we cannot do symmetric pools of servers;
+	 * we have to live with the fact that a user can
+	 * authorize itself as any ID that is allowed
+	 * by the authzTo directive of the "proxyauthzdn".
+	 */
+	/*
+	 * NOTE: current Proxy Authorization specification
+	 * and implementation do not allow proxy authorization
+	 * control to be provided with Bind requests
+	 */
+	/*
+	 * if no bind took place yet, but the connection is bound
+	 * and the "proxyauthzdn" is set, then bind as 
+	 * "proxyauthzdn" and explicitly add the proxyAuthz 
+	 * control to every operation with the dn bound 
+	 * to the connection as control value.
+	 */
+
+	/* bind as proxyauthzdn only if no idassert mode
+	 * is requested, or if the client's identity
+	 * is authorized */
+	switch ( mt->mt_idassert_mode ) {
+	case LDAP_BACK_IDASSERT_LEGACY:
+		if ( !BER_BVISNULL( &ndn ) && !BER_BVISEMPTY( &ndn ) ) {
+			if ( !BER_BVISNULL( &mt->mt_idassert_authcDN ) && !BER_BVISEMPTY( &mt->mt_idassert_authcDN ) )
+			{
+				*binddn = mt->mt_idassert_authcDN;
+				*bindcred = mt->mt_idassert_passwd;
+				dobind = 1;
+			}
+		}
+		break;
+
+	default:
+		/* NOTE: rootdn can always idassert */
+		if ( BER_BVISNULL( &ndn ) && mt->mt_idassert_authz == NULL ) {
+			if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+				rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
+				if ( sendok & LDAP_BACK_SENDERR ) {
+					send_ldap_result( op, rs );
+				}
+				LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+
+			} else {
+				rs->sr_err = LDAP_SUCCESS;
+				*binddn = slap_empty_bv;
+				*bindcred = slap_empty_bv;
+				break;
+			}
+
+			goto done;
+
+		} else if ( mt->mt_idassert_authz && !be_isroot( op ) ) {
+			struct berval authcDN;
+
+			if ( BER_BVISNULL( &ndn ) ) {
+				authcDN = slap_empty_bv;
+
+			} else {
+				authcDN = ndn;
+			}	
+			rs->sr_err = slap_sasl_matches( op, mt->mt_idassert_authz,
+					&authcDN, &authcDN );
+			if ( rs->sr_err != LDAP_SUCCESS ) {
+				if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+					if ( sendok & LDAP_BACK_SENDERR ) {
+						send_ldap_result( op, rs );
+					}
+					LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+
+				} else {
+					rs->sr_err = LDAP_SUCCESS;
+					*binddn = slap_empty_bv;
+					*bindcred = slap_empty_bv;
+					break;
+				}
+
+				goto done;
+			}
+		}
+
+		*binddn = mt->mt_idassert_authcDN;
+		*bindcred = mt->mt_idassert_passwd;
+		dobind = 1;
+		break;
+	}
+
+	if ( dobind && mt->mt_idassert_authmethod == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+		void		*defaults = NULL;
+		struct berval	authzID = BER_BVNULL;
+		int		freeauthz = 0;
+
+		/* if SASL supports native authz, prepare for it */
+		if ( ( !op->o_do_not_cache || !op->o_is_auth_check ) &&
+				( mt->mt_idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) )
+		{
+			switch ( mt->mt_idassert_mode ) {
+			case LDAP_BACK_IDASSERT_OTHERID:
+			case LDAP_BACK_IDASSERT_OTHERDN:
+				authzID = mt->mt_idassert_authzID;
+				break;
+
+			case LDAP_BACK_IDASSERT_ANONYMOUS:
+				BER_BVSTR( &authzID, "dn:" );
+				break;
+
+			case LDAP_BACK_IDASSERT_SELF:
+				if ( BER_BVISNULL( &ndn ) ) {
+					/* connection is not authc'd, so don't idassert */
+					BER_BVSTR( &authzID, "dn:" );
+					break;
+				}
+				authzID.bv_len = STRLENOF( "dn:" ) + ndn.bv_len;
+				authzID.bv_val = slap_sl_malloc( authzID.bv_len + 1, op->o_tmpmemctx );
+				AC_MEMCPY( authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
+				AC_MEMCPY( authzID.bv_val + STRLENOF( "dn:" ),
+						ndn.bv_val, ndn.bv_len + 1 );
+				freeauthz = 1;
+				break;
+
+			default:
+				break;
+			}
+		}
+
+		if ( mt->mt_idassert_secprops != NULL ) {
+			rs->sr_err = ldap_set_option( msc->msc_ld,
+				LDAP_OPT_X_SASL_SECPROPS,
+				(void *)mt->mt_idassert_secprops );
+
+			if ( rs->sr_err != LDAP_OPT_SUCCESS ) {
+				rs->sr_err = LDAP_OTHER;
+				if ( sendok & LDAP_BACK_SENDERR ) {
+					send_ldap_result( op, rs );
+				}
+				LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+				goto done;
+			}
+		}
+
+		defaults = lutil_sasl_defaults( msc->msc_ld,
+				mt->mt_idassert_sasl_mech.bv_val,
+				mt->mt_idassert_sasl_realm.bv_val,
+				mt->mt_idassert_authcID.bv_val,
+				mt->mt_idassert_passwd.bv_val,
+				authzID.bv_val );
+
+		rs->sr_err = ldap_sasl_interactive_bind_s( msc->msc_ld, binddn->bv_val,
+				mt->mt_idassert_sasl_mech.bv_val, NULL, NULL,
+				LDAP_SASL_QUIET, lutil_sasl_interact,
+				defaults );
+
+		rs->sr_err = slap_map_api2result( rs );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+			if ( sendok & LDAP_BACK_SENDERR ) {
+				send_ldap_result( op, rs );
+			}
+
+		} else {
+			LDAP_BACK_CONN_ISBOUND_SET( msc );
+		}
+
+		lutil_sasl_freedefs( defaults );
+		if ( freeauthz ) {
+			slap_sl_free( authzID.bv_val, op->o_tmpmemctx );
+		}
+
+		goto done;
+#endif /* HAVE_CYRUS_SASL */
+	}
+
+	*method = mt->mt_idassert_authmethod;
+	switch ( mt->mt_idassert_authmethod ) {
+	case LDAP_AUTH_NONE:
+		BER_BVSTR( binddn, "" );
+		BER_BVSTR( bindcred, "" );
+		/* fallthru */
+
+	case LDAP_AUTH_SIMPLE:
+		break;
+
+	default:
+		/* unsupported! */
+		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+		rs->sr_err = LDAP_AUTH_METHOD_NOT_SUPPORTED;
+		if ( sendok & LDAP_BACK_SENDERR ) {
+			send_ldap_result( op, rs );
+		}
+		break;
+	}
+
+done:;
+	return rs->sr_err;
+}
+
+static int
+meta_back_proxy_authz_bind( metaconn_t *mc, int candidate, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
+{
+	metainfo_t		*mi = (metainfo_t *)op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	struct berval		binddn = BER_BVC( "" ),
+				cred = BER_BVC( "" );
+	int			method = LDAP_AUTH_NONE,
+				rc;
+
+	rc = meta_back_proxy_authz_cred( mc, candidate, op, rs, sendok, &binddn, &cred, &method );
+	if ( rc == LDAP_SUCCESS && !LDAP_BACK_CONN_ISBOUND( msc ) ) {
+		int	msgid;
+
+		switch ( method ) {
+		case LDAP_AUTH_NONE:
+		case LDAP_AUTH_SIMPLE:
+			rs->sr_err = ldap_sasl_bind( msc->msc_ld,
+					binddn.bv_val, LDAP_SASL_SIMPLE,
+					&cred, NULL, NULL, &msgid );
+			rc = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
+			if ( rc == LDAP_SUCCESS ) {
+				/* set rebind stuff in case of successful proxyAuthz bind,
+				 * so that referral chasing is attempted using the right
+				 * identity */
+				LDAP_BACK_CONN_ISBOUND_SET( msc );
+				ber_bvreplace( &msc->msc_bound_ndn, &binddn );
+
+				if ( LDAP_BACK_SAVECRED( mi ) ) {
+					if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+						memset( msc->msc_cred.bv_val, 0,
+							msc->msc_cred.bv_len );
+					}
+					ber_bvreplace( &msc->msc_cred, &cred );
+					ldap_set_rebind_proc( msc->msc_ld, mt->mt_rebind_f, msc );
+				}
+			}
+			break;
+
+		default:
+			assert( 0 );
+			break;
+		}
+	}
+
+	return LDAP_BACK_CONN_ISBOUND( msc );
+}

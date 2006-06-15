@@ -971,24 +971,6 @@ retry_lock:;
  		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
  	}
 
-#if 0
-	while ( lc->lc_refcnt > 1 ) {
-		ldap_pvt_thread_yield();
-		rc = LDAP_BACK_CONN_ISBOUND( lc );
-		if ( rc ) {
-			return rc;
-		}
-	}
-
- 	if ( dolock ) {
- 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
- 	}
- 	LDAP_BACK_CONN_BINDING_SET( lc );
- 	if ( dolock ) {
- 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
- 	}
-#endif
-
 	/*
 	 * FIXME: we need to let clients use proxyAuthz
 	 * otherwise we cannot do symmetric pools of servers;
@@ -1743,23 +1725,24 @@ done:;
 int
 ldap_back_proxy_authz_ctrl(
 		struct berval	*bound_ndn,
+		int		version,
+		slap_idassert_t	*si,
 		Operation	*op,
 		SlapReply	*rs,
 		LDAPControl	***pctrls )
 {
-	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
-	LDAPControl	**ctrls = NULL;
-	int		i = 0,
-			mode;
-	struct berval	assertedID,
-			ndn;
+	LDAPControl		**ctrls = NULL;
+	int			i = 0;
+	slap_idassert_mode_t	mode;
+	struct berval		assertedID,
+				ndn;
 
 	*pctrls = NULL;
 
 	rs->sr_err = LDAP_SUCCESS;
 
 	/* don't proxyAuthz if protocol is not LDAPv3 */
-	switch ( li->li_version ) {
+	switch ( version ) {
 	case LDAP_VERSION3:
 		break;
 
@@ -1776,8 +1759,8 @@ ldap_back_proxy_authz_ctrl(
 	/* FIXME: SASL/EXTERNAL over ldapi:// doesn't honor the authcID,
 	 * but if it is not set this test fails.  We need a different
 	 * means to detect if idassert is enabled */
-	if ( ( BER_BVISNULL( &li->li_idassert_authcID ) || BER_BVISEMPTY( &li->li_idassert_authcID ) )
-			&& ( BER_BVISNULL( &li->li_idassert_authcDN ) || BER_BVISEMPTY( &li->li_idassert_authcDN ) ) )
+	if ( ( BER_BVISNULL( &si->si_bc.sb_authcId ) || BER_BVISEMPTY( &si->si_bc.sb_authcId ) )
+			&& ( BER_BVISNULL( &si->si_bc.sb_binddn ) || BER_BVISEMPTY( &si->si_bc.sb_binddn ) ) )
 	{
 		goto done;
 	}
@@ -1796,7 +1779,7 @@ ldap_back_proxy_authz_ctrl(
 		ndn = op->o_ndn;
 	}
 
-	if ( li->li_idassert_mode == LDAP_BACK_IDASSERT_LEGACY ) {
+	if ( si->si_mode == LDAP_BACK_IDASSERT_LEGACY ) {
 		if ( op->o_proxy_authz ) {
 			/*
 			 * FIXME: we do not want to perform proxyAuthz
@@ -1823,18 +1806,18 @@ ldap_back_proxy_authz_ctrl(
 			goto done;
 		}
 
-		if ( BER_BVISNULL( &li->li_idassert_authcDN ) ) {
+		if ( BER_BVISNULL( &si->si_bc.sb_binddn ) ) {
 			goto done;
 		}
 
-	} else if ( li->li_idassert_authmethod == LDAP_AUTH_SASL ) {
-		if ( ( li->li_idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) )
+	} else if ( si->si_bc.sb_method == LDAP_AUTH_SASL ) {
+		if ( ( si->si_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) )
 		{
 			/* already asserted in SASL via native authz */
 			goto done;
 		}
 
-	} else if ( li->li_idassert_authz && !be_isroot( op ) ) {
+	} else if ( si->si_authz && !be_isroot( op ) ) {
 		int		rc;
 		struct berval authcDN;
 
@@ -1843,11 +1826,10 @@ ldap_back_proxy_authz_ctrl(
 		} else {
 			authcDN = ndn;
 		}
-		rc = slap_sasl_matches( op, li->li_idassert_authz,
+		rc = slap_sasl_matches( op, si->si_authz,
 				&authcDN, & authcDN );
 		if ( rc != LDAP_SUCCESS ) {
-			if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE )
-			{
+			if ( si->si_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
 				/* ndn is not authorized
 				 * to use idassert */
 				rs->sr_err = rc;
@@ -1882,7 +1864,7 @@ ldap_back_proxy_authz_ctrl(
 		mode = LDAP_BACK_IDASSERT_NOASSERT;
 
 	} else {
-		mode = li->li_idassert_mode;
+		mode = si->si_mode;
 	}
 
 	switch ( mode ) {
@@ -1915,7 +1897,7 @@ ldap_back_proxy_authz_ctrl(
 	case LDAP_BACK_IDASSERT_OTHERID:
 	case LDAP_BACK_IDASSERT_OTHERDN:
 		/* assert idassert DN */
-		assertedID = li->li_idassert_authzID;
+		assertedID = si->si_bc.sb_authzId;
 		break;
 
 	default:
@@ -1943,7 +1925,7 @@ ldap_back_proxy_authz_ctrl(
 	ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 	ctrls[ 0 ]->ldctl_iscritical = 1;
 
-	switch ( li->li_idassert_mode ) {
+	switch ( si->si_mode ) {
 	/* already in u:ID or dn:DN form */
 	case LDAP_BACK_IDASSERT_OTHERID:
 	case LDAP_BACK_IDASSERT_OTHERDN:
@@ -1965,7 +1947,7 @@ ldap_back_proxy_authz_ctrl(
 	 * to encode the value of the authzID (and called it proxyDN);
 	 * this hack provides compatibility with those DSAs that
 	 * implement it this way */
-	if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+	if ( si->si_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
 		struct berval		authzID = ctrls[ 0 ]->ldctl_value;
 		BerElementBuffer	berbuf;
 		BerElement		*ber = (BerElement *)&berbuf;
@@ -1995,7 +1977,7 @@ free_ber:;
 			goto done;
 		}
 
-	} else if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+	} else if ( si->si_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
 		struct berval		authzID = ctrls[ 0 ]->ldctl_value,
 					tmp;
 		BerElementBuffer	berbuf;

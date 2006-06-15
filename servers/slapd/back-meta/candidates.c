@@ -214,9 +214,7 @@ meta_clear_candidates( Operation *op, metaconn_t *mc )
 	int		c;
 
 	for ( c = 0; c < mi->mi_ntargets; c++ ) {
-		if ( mc->mc_conns[ c ].msc_ld != NULL ) {
-			meta_clear_one_candidate( &mc->mc_conns[ c ] );
-		}
+		meta_clear_one_candidate( &mc->mc_conns[ c ] );
 	}
 
 	return 0;

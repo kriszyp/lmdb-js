@@ -368,6 +368,7 @@ retry:;
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					int		err;
 
+					/* FIXME: matched? referrals? response controls? */
 					rs->sr_err = ldap_parse_result( msc->msc_ld, res,
 						&err, NULL, NULL, NULL, NULL, 1 );
 					res = NULL;
@@ -443,21 +444,28 @@ retry:;
 	 */
 
 	if ( ispriv ) {
-		if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
-			ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
-			if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
-				ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
+		if ( !BER_BVISNULL( &mt->mt_idassert_authcDN ) ) {
+			ber_bvreplace( &msc->msc_bound_ndn, &mt->mt_idassert_authcDN );
+			if ( !BER_BVISNULL( &mt->mt_idassert_passwd ) ) {
+				ber_bvreplace( &msc->msc_cred, &mt->mt_idassert_passwd );
 			}
 
 		} else {
-			ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
+			ber_bvreplace( &msc->msc_bound_ndn, &slap_empty_bv );
 		}
 
 		LDAP_BACK_CONN_ISPRIV_SET( msc );
 
 	} else {
-		BER_BVZERO( &msc->msc_cred );
-		BER_BVZERO( &msc->msc_bound_ndn );
+		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+			memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
+			ber_memfree_x( msc->msc_cred.bv_val, NULL );
+			BER_BVZERO( &msc->msc_cred );
+		}
+		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+			ber_memfree_x( msc->msc_bound_ndn.bv_val, NULL );
+			BER_BVZERO( &msc->msc_bound_ndn );
+		}
 		if ( !BER_BVISEMPTY( &op->o_ndn )
 			&& SLAP_IS_AUTHZ_BACKEND( op )
 			&& isauthz )
@@ -484,7 +492,7 @@ retry:;
 			}
 
 		} else {
-			ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
+			ber_dupbv( &msc->msc_bound_ndn, &slap_empty_bv );
 		}
 	}
 

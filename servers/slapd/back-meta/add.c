@@ -36,6 +36,7 @@ int
 meta_back_add( Operation *op, SlapReply *rs )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t	*mt;
 	metaconn_t	*mc;
 	int		i, candidate = -1;
 	int		isupdate;
@@ -45,6 +46,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	dncookie	dc;
 	int		msgid;
 	int		do_retry = 1;
+	LDAPControl	**ctrls = NULL;
 	int		maperr = 1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
@@ -63,7 +65,8 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.target = mi->mi_targets[ candidate ];
+	mt = mi->mi_targets[ candidate ];
+	dc.target = mt;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDN";
@@ -96,7 +99,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			mapped = a->a_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mt->mt_rwmap.rwm_at,
 					&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
 				continue;
@@ -121,11 +124,11 @@ meta_back_add( Operation *op, SlapReply *rs )
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
 				struct ldapmapping	*mapping;
 
-				ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
+				ldap_back_mapping( &mt->mt_rwmap.rwm_oc,
 						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
 
 				if ( mapping == NULL ) {
-					if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
+					if ( mt->mt_rwmap.rwm_oc.drop_missing ) {
 						continue;
 					}
 					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
@@ -165,9 +168,17 @@ meta_back_add( Operation *op, SlapReply *rs )
 	}
 	attrs[ i ] = NULL;
 
+	ctrls = op->o_ctrls;
+	if ( ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
+	{
+		maperr = 0;
+		goto sendres;
+	}
+
 retry:;
 	rs->sr_err = ldap_add_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			      attrs, op->o_ctrls, NULL, &msgid );
+			      attrs, ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
@@ -180,8 +191,8 @@ retry:;
 		LDAPMessage	*res = NULL;
 		int		rc;
 
-		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_ADD ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_ADD ];
+		if ( mt->mt_timeout[ LDAP_BACK_OP_ADD ] != 0 ) {
+			tv.tv_sec = mt->mt_timeout[ LDAP_BACK_OP_ADD ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}
@@ -201,6 +212,7 @@ retry:;
 			break;
 
 		case LDAP_RES_ADD:
+			/* FIXME: matched? referrals? response controls? */
 			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
 				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
 			if ( rc != LDAP_SUCCESS ) {
@@ -215,13 +227,16 @@ retry:;
 		}
 	}
 
+sendres:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	if ( maperr ) {
 		rs->sr_err = meta_back_op_result( mc, op, rs, candidate );
 
 	} else {
 		send_ldap_result( op, rs );
 
-		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ candidate ] ) ) {
+		if ( META_BACK_TGT_QUARANTINE( mt ) ) {
 			meta_back_quarantine( op, rs, candidate );
 		}
 	}

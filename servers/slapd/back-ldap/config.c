@@ -513,6 +513,181 @@ slap_retry_info_destroy(
 }
 
 static int
+slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
+{
+	ldapinfo_t	*li = ( ldapinfo_t * )c->be->be_private;
+	struct berval	bv;
+	struct berval	in;
+	int		rc;
+
+	ber_str2bv( c->argv[ 1 ], 0, 0, &in );
+	rc = authzNormalize( 0, NULL, NULL, &in, &bv, NULL );
+	if ( rc != LDAP_SUCCESS ) {
+		snprintf( c->msg, sizeof( c->msg ),
+			"\"idassert-authzFrom <authz>\": "
+			"invalid syntax" );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+		return 1;
+	}
+	ber_bvarray_add( &li->li_idassert_authz, &bv );
+
+	return 0;
+}
+
+static int
+slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
+{
+	int		i;
+
+	for ( i = 1; i < c->argc; i++ ) {
+		if ( strncasecmp( c->argv[ i ], "mode=", STRLENOF( "mode=" ) ) == 0 ) {
+			char	*argvi = c->argv[ i ] + STRLENOF( "mode=" );
+			int	j;
+
+			j = verb_to_mask( argvi, idassert_mode );
+			if ( BER_BVISNULL( &idassert_mode[ j ].word ) ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"idassert-bind <args>\": "
+					"unknown mode \"%s\"",
+					argvi );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+
+			si->si_mode = idassert_mode[ j ].mask;
+
+		} else if ( strncasecmp( c->argv[ i ], "authz=", STRLENOF( "authz=" ) ) == 0 ) {
+			char	*argvi = c->argv[ i ] + STRLENOF( "authz=" );
+
+			if ( strcasecmp( argvi, "native" ) == 0 ) {
+				if ( si->si_bc.sb_method != LDAP_AUTH_SASL ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"\"idassert-bind <args>\": "
+						"authz=\"native\" incompatible "
+						"with auth method" );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					return 1;
+				}
+				si->si_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
+
+			} else if ( strcasecmp( argvi, "proxyAuthz" ) == 0 ) {
+				si->si_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
+
+			} else {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"idassert-bind <args>\": "
+					"unknown authz \"%s\"",
+					argvi );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+
+		} else if ( strncasecmp( c->argv[ i ], "flags=", STRLENOF( "flags=" ) ) == 0 ) {
+			char	*argvi = c->argv[ i ] + STRLENOF( "flags=" );
+			char	**flags = ldap_str2charray( argvi, "," );
+			int	j, err = 0;
+
+			if ( flags == NULL ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"\"idassert-bind <args>\": "
+					"unable to parse flags \"%s\"",
+					argvi );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				return 1;
+			}
+
+			for ( j = 0; flags[ j ] != NULL; j++ ) {
+
+				if ( strcasecmp( flags[ j ], "override" ) == 0 ) {
+					si->si_flags |= LDAP_BACK_AUTH_OVERRIDE;
+
+				} else if ( strcasecmp( flags[ j ], "prescriptive" ) == 0 ) {
+					si->si_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
+
+				} else if ( strcasecmp( flags[ j ], "non-prescriptive" ) == 0 ) {
+					si->si_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
+
+				} else if ( strcasecmp( flags[ j ], "obsolete-proxy-authz" ) == 0 ) {
+					if ( si->si_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
+						Debug( LDAP_DEBUG_ANY,
+                                      		 		"%s: \"obsolete-proxy-authz\" flag "
+                                      		 		"in \"idassert-mode <args>\" "
+                                      		 		"incompatible with previously issued \"obsolete-encoding-workaround\" flag.\n",
+                                      	 			c->log, 0, 0 );
+						err = 1;
+						break;
+
+					} else {
+						si->si_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
+					}
+
+				} else if ( strcasecmp( flags[ j ], "obsolete-encoding-workaround" ) == 0 ) {
+					if ( si->si_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
+						Debug( LDAP_DEBUG_ANY,
+                                      	 			"%s: \"obsolete-encoding-workaround\" flag "
+                                       			"in \"idassert-mode <args>\" "
+                                       			"incompatible with previously issued \"obsolete-proxy-authz\" flag.\n",
+                                       			c->log, 0, 0 );
+						err = 1;
+						break;
+
+					} else {
+						si->si_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
+					}
+
+				} else {
+					snprintf( c->msg, sizeof( c->msg ),
+						"\"idassert-bind <args>\": "
+						"unknown flag \"%s\"",
+						flags[ j ] );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					err = 1;
+					break;
+				}
+			}
+
+			ldap_charray_free( flags );
+			if ( err ) {
+				return 1;
+			}
+
+		} else if ( bindconf_parse( c->argv[ i ], &si->si_bc ) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+/* NOTE: temporary, until back-meta is ported to back-config */
+int
+slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si )
+{
+	ConfigArgs	c = { 0 };
+	char		*argv[ 2 ];
+
+	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
+	c.argc = 2;
+	c.argv = argv;
+	argv[ 0 ] = arg;
+	argv[ 1 ] = NULL;
+
+	return slap_idassert_authzfrom_parse( &c, si );
+}
+
+int
+slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si )
+{
+	ConfigArgs	c = { 0 };
+
+	snprintf( c.log, sizeof( c.log ), "%s: line %d", fname, lineno );
+	c.argc = argc;
+	c.argv = argv;
+
+	return slap_idassert_parse( &c, si );
+}
+
+static int
 ldap_back_cf_gen( ConfigArgs *c )
 {
 	ldapinfo_t	*li = ( ldapinfo_t * )c->be->be_private;
@@ -689,7 +864,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				/* end-of-flags */
 			}
 
-			bindconf_unparse( &li->li_idassert, &bc );
+			bindconf_unparse( &li->li_idassert.si_bc, &bc );
 
 			if ( !BER_BVISNULL( &bv ) ) {
 				ber_len_t	len = bv.bv_len + bc.bv_len;
@@ -912,7 +1087,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_IDASSERT_BIND:
-			bindconf_free( &li->li_idassert );
+			bindconf_free( &li->li_idassert.si_bc );
 			break;
 
 		case LDAP_BACK_CFG_REBIND:
@@ -1315,22 +1490,9 @@ done_url:;
 		ber_str2bv( c->argv[ 1 ], 0, 1, &li->li_idassert_passwd );
 		break;
 
-	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
-		struct berval	bv;
-		struct berval	in;
-		int		rc;
-
-		ber_str2bv( c->argv[ 1 ], 0, 0, &in );
-		rc = authzNormalize( 0, NULL, NULL, &in, &bv, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			snprintf( c->msg, sizeof( c->msg ),
-				"\"idassert-authzFrom <authz>\": "
-				"invalid syntax" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-			return 1;
-		}
-		ber_bvarray_add( &li->li_idassert_authz, &bv );
-		} break;
+	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
+		rc = slap_idassert_authzfrom_parse( c, &li->li_idassert );
+		break;
 
 	case LDAP_BACK_CFG_IDASSERT_METHOD:
 		/* no longer supported */
@@ -1341,122 +1503,7 @@ done_url:;
 		return 1;
 
 	case LDAP_BACK_CFG_IDASSERT_BIND:
-		for ( i = 1; i < c->argc; i++ ) {
-			if ( strncasecmp( c->argv[ i ], "mode=", STRLENOF( "mode=" ) ) == 0 ) {
-				char	*argvi = c->argv[ i ] + STRLENOF( "mode=" );
-				int	j;
-
-				j = verb_to_mask( argvi, idassert_mode );
-				if ( BER_BVISNULL( &idassert_mode[ j ].word ) ) {
-					snprintf( c->msg, sizeof( c->msg ),
-						"\"idassert-bind <args>\": "
-						"unknown mode \"%s\"",
-						argvi );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-					return 1;
-				}
-
-				li->li_idassert_mode = idassert_mode[ j ].mask;
-
-			} else if ( strncasecmp( c->argv[ i ], "authz=", STRLENOF( "authz=" ) ) == 0 ) {
-				char	*argvi = c->argv[ i ] + STRLENOF( "authz=" );
-
-				if ( strcasecmp( argvi, "native" ) == 0 ) {
-					if ( li->li_idassert_authmethod != LDAP_AUTH_SASL ) {
-						snprintf( c->msg, sizeof( c->msg ),
-							"\"idassert-bind <args>\": "
-							"authz=\"native\" incompatible "
-							"with auth method" );
-						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-						return 1;
-					}
-					li->li_idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
-
-				} else if ( strcasecmp( argvi, "proxyAuthz" ) == 0 ) {
-					li->li_idassert_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
-
-				} else {
-					snprintf( c->msg, sizeof( c->msg ),
-						"\"idassert-bind <args>\": "
-						"unknown authz \"%s\"",
-						argvi );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-					return 1;
-				}
-
-			} else if ( strncasecmp( c->argv[ i ], "flags=", STRLENOF( "flags=" ) ) == 0 ) {
-				char	*argvi = c->argv[ i ] + STRLENOF( "flags=" );
-				char	**flags = ldap_str2charray( argvi, "," );
-				int	j, err = 0;
-
-				if ( flags == NULL ) {
-					snprintf( c->msg, sizeof( c->msg ),
-						"\"idassert-bind <args>\": "
-						"unable to parse flags \"%s\"",
-						argvi );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-					return 1;
-				}
-
-				for ( j = 0; flags[ j ] != NULL; j++ ) {
-
-					if ( strcasecmp( flags[ j ], "override" ) == 0 ) {
-						li->li_idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
-
-					} else if ( strcasecmp( flags[ j ], "prescriptive" ) == 0 ) {
-						li->li_idassert_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
-
-					} else if ( strcasecmp( flags[ j ], "non-prescriptive" ) == 0 ) {
-						li->li_idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
-
-					} else if ( strcasecmp( flags[ j ], "obsolete-proxy-authz" ) == 0 ) {
-						if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
-							Debug( LDAP_DEBUG_ANY,
-                                       		 		"%s: line %d: \"obsolete-proxy-authz\" flag "
-                                       		 		"in \"idassert-mode <args>\" "
-                                       		 		"incompatible with previously issued \"obsolete-encoding-workaround\" flag.\n",
-                                       	 			c->fname, c->lineno, 0 );
-							err = 1;
-							break;
-
-						} else {
-							li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ;
-						}
-
-					} else if ( strcasecmp( flags[ j ], "obsolete-encoding-workaround" ) == 0 ) {
-						if ( li->li_idassert_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
-							Debug( LDAP_DEBUG_ANY,
-                                       	 			"%s: line %d: \"obsolete-encoding-workaround\" flag "
-                                        			"in \"idassert-mode <args>\" "
-                                        			"incompatible with previously issued \"obsolete-proxy-authz\" flag.\n",
-                                        			c->fname, c->lineno, 0 );
-							err = 1;
-							break;
-
-						} else {
-							li->li_idassert_flags |= LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND;
-						}
-
-					} else {
-						snprintf( c->msg, sizeof( c->msg ),
-							"\"idassert-bind <args>\": "
-							"unknown flag \"%s\"",
-							flags[ j ] );
-						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-						err = 1;
-						break;
-					}
-				}
-
-				ldap_charray_free( flags );
-				if ( err ) {
-					return 1;
-				}
-
-			} else if ( bindconf_parse( c->argv[ i ], &li->li_idassert ) ) {
-				return 1;
-			}
-		}
+		rc = slap_idassert_parse( c, &li->li_idassert );
 		break;
 
 	case LDAP_BACK_CFG_REBIND:

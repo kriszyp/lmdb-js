@@ -36,6 +36,8 @@ ldap_back_compare(
 		Operation	*op,
 		SlapReply	*rs )
 {
+	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	ber_int_t	msgid;
 	int		do_retry = 1;
@@ -49,7 +51,8 @@ ldap_back_compare(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn, op, rs, &ctrls );
+	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto cleanup;

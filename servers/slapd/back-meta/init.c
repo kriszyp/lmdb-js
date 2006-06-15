@@ -230,11 +230,26 @@ target_free(
 	if ( !BER_BVISNULL( &mt->mt_bindpw ) ) {
 		free( mt->mt_bindpw.bv_val );
 	}
-	if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
-		free( mt->mt_pseudorootdn.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_idassert_authcID ) ) {
+		ch_free( mt->mt_idassert_authcID.bv_val );
 	}
-	if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
-		free( mt->mt_pseudorootpw.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_idassert_authcDN ) ) {
+		ch_free( mt->mt_idassert_authcDN.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_passwd ) ) {
+		ch_free( mt->mt_idassert_passwd.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_authzID ) ) {
+		ch_free( mt->mt_idassert_authzID.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_sasl_mech ) ) {
+		ch_free( mt->mt_idassert_sasl_mech.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_sasl_realm ) ) {
+		ch_free( mt->mt_idassert_sasl_realm.bv_val );
+	}
+	if ( mt->mt_idassert_authz != NULL ) {
+		ber_bvarray_free( mt->mt_idassert_authz );
 	}
 	if ( mt->mt_rwmap.rwm_rw ) {
 		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );

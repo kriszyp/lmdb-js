@@ -35,6 +35,7 @@ int
 meta_back_modrdn( Operation *op, SlapReply *rs )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t	*mt;
 	metaconn_t	*mc;
 	int		candidate = -1;
 	struct berval	mdn = BER_BVNULL,
@@ -43,6 +44,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	int		msgid;
 	int		do_retry = 1;
 	int		maperr = 1;
+	LDAPControl	**ctrls = NULL;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
@@ -51,6 +53,8 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 
 	assert( mc->mc_conns[ candidate ].msc_ld != NULL );
 
+	mt = mi->mi_targets[ candidate ];
+	dc.target = mt;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 
@@ -76,7 +80,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		 */
 
 		/* needs LDAPv3 */
-		switch ( mi->mi_targets[ candidate ]->mt_version ) {
+		switch ( mt->mt_version ) {
 		case LDAP_VERSION3:
 			break;
 
@@ -97,7 +101,6 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */
-		dc.target = mi->mi_targets[ candidate ];
 		dc.ctx = "newSuperiorDN";
 		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
 			rs->sr_err = LDAP_OTHER;
@@ -109,10 +112,17 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	dc.target = mi->mi_targets[ candidate ];
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rs->sr_err = LDAP_OTHER;
+		maperr = 0;
+		goto cleanup;
+	}
+
+	ctrls = op->o_ctrls;
+	if ( ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
+	{
 		maperr = 0;
 		goto cleanup;
 	}
@@ -121,7 +131,7 @@ retry:;
 	rs->sr_err = ldap_rename( mc->mc_conns[ candidate ].msc_ld,
 			mdn.bv_val, op->orr_newrdn.bv_val,
 			mnewSuperior.bv_val, op->orr_deleteoldrdn,
-			op->o_ctrls, NULL, &msgid );
+			ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
@@ -134,8 +144,8 @@ retry:;
 		LDAPMessage	*res = NULL;
 		int		rc;
 
-		if ( mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODRDN ] != 0 ) {
-			tv.tv_sec = mi->mi_targets[ candidate ]->mt_timeout[ LDAP_BACK_OP_MODRDN ];
+		if ( mt->mt_timeout[ LDAP_BACK_OP_MODRDN ] != 0 ) {
+			tv.tv_sec = mt->mt_timeout[ LDAP_BACK_OP_MODRDN ];
 			tv.tv_usec = 0;
 			tvp = &tv;
 		}
@@ -155,6 +165,7 @@ retry:;
 			break;
 
 		case LDAP_RES_RENAME:
+			/* FIXME: matched? referrals? response controls? */
 			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
 				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
 			if ( rc != LDAP_SUCCESS ) {
@@ -170,13 +181,15 @@ retry:;
 	}
 
 cleanup:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	if ( maperr ) {
 		meta_back_op_result( mc, op, rs, candidate );
 
 	} else {
 		send_ldap_result( op, rs );
 
-		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ candidate ] ) ) {
+		if ( META_BACK_TGT_QUARANTINE( mt ) ) {
 			meta_back_quarantine( op, rs, candidate );
 		}
 	}

@@ -781,10 +781,12 @@ meta_back_db_config(
 		}
 
 	/* bind-defer? */
-	} else if ( strcasecmp( argv[ 0 ], "pseudoroot-bind-defer" ) == 0 ) {
+	} else if ( strcasecmp( argv[ 0 ], "pseudoroot-bind-defer" ) == 0
+		|| strcasecmp( argv[ 0 ], "root-bind-defer" ) == 0 )
+	{
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\" takes 1 argument\n",
+	"%s: line %d: \"[pseudo]root-bind-defer {FALSE|true}\" takes 1 argument\n",
 				fname, lineno, 0 );
 			return( 1 );
 		}
@@ -800,7 +802,7 @@ meta_back_db_config(
 
 		default:
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\": invalid arg \"%s\".\n",
+	"%s: line %d: \"[pseudo]root-bind-defer {FALSE|true}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
@@ -956,15 +958,74 @@ meta_back_db_config(
 			return 1;
 		}
 
-		dn.bv_val = argv[ 1 ];
-		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize( 0, NULL, NULL, &dn,
-			&mi->mi_targets[ i ]->mt_pseudorootdn, NULL ) != LDAP_SUCCESS )
+		/*
+		 * exact replacement:
+		 *
+
+idassert-bind	bindmethod=simple
+		binddn=<pseudorootdn>
+		credentials=<pseudorootpw>
+		mode=none
+		flags=non-prescriptive
+idassert-authzFrom	"dn:<rootdn>"
+
+		 * so that only when authc'd as <rootdn> the proxying occurs
+		 * rebinding as the <pseudorootdn> without proxyAuthz.
+		 */
+
+		Debug( LDAP_DEBUG_ANY,
+			"%s: line %d: \"pseudorootdn\", \"pseudorootpw\" are no longer supported; "
+			"use \"idassert-bind\" and \"idassert-authzFrom\" instead.\n",
+			fname, lineno, 0 );
+
 		{
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"pseudoroot DN '%s' is invalid\n",
-					fname, lineno, argv[ 1 ] );
-			return( 1 );
+			char	binddn[ SLAP_TEXT_BUFLEN ];
+			char	*cargv[] = {
+				"idassert-bind",
+				"bindmethod=simple",
+				NULL,
+				"mode=none",
+				"flags=non-prescriptive",
+				NULL
+			};
+			int	cargc = 5;
+			int	rc;
+
+			if ( BER_BVISNULL( &be->be_rootndn ) ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: \"pseudorootpw\": \"rootdn\" must be defined first.\n",
+					fname, lineno, 0 );
+				return 1;
+			}
+
+			if ( snprintf( binddn, sizeof( binddn ), "binddn=%s", argv[ 1 ] ) >= sizeof( binddn ) ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: \"pseudorootdn\" too long.\n",
+					fname, lineno, 0 );
+				return 1;
+			}
+			cargv[ 2 ] = binddn;
+
+			rc = slap_idassert_parse_cf( fname, lineno, cargc, cargv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+			if ( rc == 0 ) {
+				struct berval	bv;
+
+				if ( mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz != NULL ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: \"idassert-authzFrom\" already defined (discarded).\n",
+						fname, lineno, 0 );
+					ber_bvarray_free( mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz );
+					mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz = NULL;
+				}
+
+				assert( !BER_BVISNULL( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authcDN ) );
+
+				bv.bv_len = STRLENOF( "dn:" ) + be->be_rootndn.bv_len;
+				bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+				AC_MEMCPY( bv.bv_val, "dn:", STRLENOF( "dn:" ) );
+				AC_MEMCPY( &bv.bv_val[ STRLENOF( "dn:" ) ], be->be_rootndn.bv_val, be->be_rootndn.bv_len + 1 );
+
+				ber_bvarray_add( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz, &bv );
+			}
+
+			return rc;
 		}
 
 	/* password to use as pseudo-root */
@@ -984,7 +1045,65 @@ meta_back_db_config(
 			    fname, lineno, 0 );
 			return 1;
 		}
-		ber_str2bv( argv[ 1 ], 0L, 1, &mi->mi_targets[ i ]->mt_pseudorootpw );
+
+		Debug( LDAP_DEBUG_ANY,
+			"%s: line %d: \"pseudorootdn\", \"pseudorootpw\" are no longer supported; "
+			"use \"idassert-bind\" and \"idassert-authzFrom\" instead.\n",
+			fname, lineno, 0 );
+
+		if ( BER_BVISNULL( &mi->mi_targets[ i ]->mt_idassert_authcDN ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: \"pseudorootpw\": \"pseudorootdn\" must be defined first.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( !BER_BVISNULL( &mi->mi_targets[ i ]->mt_idassert_passwd ) ) {
+			memset( mi->mi_targets[ i ]->mt_idassert_passwd.bv_val, 0,
+				mi->mi_targets[ i ]->mt_idassert_passwd.bv_len );
+			ber_memfree( mi->mi_targets[ i ]->mt_idassert_passwd.bv_val );
+		}
+		ber_str2bv( argv[ 1 ], 0, 1, &mi->mi_targets[ i ]->mt_idassert_passwd );
+
+	/* idassert-bind */
+	} else if ( strcasecmp( argv[ 0 ], "idassert-bind" ) == 0 ) {
+		if ( mi->mi_ntargets == 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: \"idassert-bind\" "
+				"must appear inside a target specification.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		return slap_idassert_parse_cf( fname, lineno, argc, argv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+
+	/* idassert-authzFrom */
+	} else if ( strcasecmp( argv[ 0 ], "idassert-authzFrom" ) == 0 ) {
+		if ( mi->mi_ntargets == 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: \"idassert-bind\" "
+				"must appear inside a target specification.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		switch ( argc ) {
+		case 2:
+			break;
+
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing <id> in \"idassert-authzFrom <id>\".\n",
+				fname, lineno, 0 );
+			return 1;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: extra cruft after <id> in \"idassert-authzFrom <id>\".\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		return slap_idassert_authzfrom_parse_cf( fname, lineno, argv[ 1 ], &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
 
 	/* quarantine */
 	} else if ( strcasecmp( argv[ 0 ], "quarantine" ) == 0 ) {

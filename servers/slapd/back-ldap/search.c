@@ -203,7 +203,8 @@ ldap_back_search(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn, op, rs, &ctrls );
+	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto finish;
 	}
@@ -708,9 +709,10 @@ ldap_back_entry_get(
 		ObjectClass		*oc,
 		AttributeDescription	*at,
 		int			rw,
-		Entry			**ent
-)
+		Entry			**ent )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	int		rc = 1,
 			do_not_cache;
@@ -760,7 +762,8 @@ ldap_back_entry_get(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn, op, &rs, &ctrls );
+	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, &rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
