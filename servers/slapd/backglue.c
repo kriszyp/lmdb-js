@@ -380,6 +380,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 					gs.err = LDAP_SUCCESS;
 				}
+				op->ors_scope = LDAP_SCOPE_ONELEVEL;
 				op->o_req_dn = dn;
 				op->o_req_ndn = ndn;
 
