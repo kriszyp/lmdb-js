@@ -7,84 +7,75 @@ ldap_add, ldap_add_s, ldap_add_ext, ldap_add_ext_s \- Perform an LDAP add operat
 .SH LIBRARY
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
+.ft B
+#include <ldap.h>
+.LP
+.ft B
 .nf
-.B #include <ldap.h>
-.sp
-.BI "int ldap_add(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[]);"
-.sp
-.BI "int ldap_add_s(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[]);"
-.sp
-.BI "int ldap_add_ext(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[],"
+int ldap_add_ext(
 .RS
-.BI "LDAPControl *" sctrls "[], LDAPControl *" cctrls "[], int *" msgidp ");"
+.ft B
+LDAP *\fIld,
+const char *\fIdn\fB,
+LDAPMod **\fIattrs\fB,
+LDAPControl **\fIsctrls\fB,
+LDAPControl **\fIcctrls\fB,
+int *\fImsgidp\fB );
 .RE
-.sp
-.BI "int ldap_add_ext_s(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[],"
+.LP
+.ft B
+.nf
+int ldap_add_ext_s(
 .RS
-.BI "LDAPControl *" sctrls "[], LDAPControl *" cctrls "[]);"
+LDAP *\fIld\fB,
+const char *\fIdn\fB,
+LDAPMod **\fIattrs\fB,
+LDAPControl *\fIsctrls\fB,
+LDAPControl *\fIcctrls\fB );
 .RE
 .fi
 .SH DESCRIPTION
 The
-.B ldap_add_s()
+.B ldap_add_ext_s()
 routine is used to perform an LDAP add operation.
 It takes \fIdn\fP, the DN of the entry to add, and \fIattrs\fP, a
 null-terminated array of the entry's attributes.  The LDAPMod structure
 is used to represent attributes, with the \fImod_type\fP and
 \fImod_values\fP fields being used as described under
-.BR ldap_modify (3),
+.BR ldap_modify_ext (3),
 and the \fIldap_op\fP field being used only if you need to specify
 the LDAP_MOD_BVALUES option. Otherwise, it should be set to zero.
 .LP
 Note that all entries except that
 specified by the last component in the given DN must already exist.
-.B ldap_add_s()
-returns an LDAP error code indicating success or failure
-of the operation.  See
+.B ldap_add_ext_s()
+returns an code indicating success or, in the case of failure,
+indicating the nature of failure of the operation.  See
 .BR ldap_error (3)
 for more details.
 .LP
 The
-.B ldap_add()
+.B ldap_add_ext()
 routine works just like
-.BR ldap_add_s() ,
+.BR ldap_add_ext_s() ,
 but it is asynchronous.  It returns the message id of the request it
 initiated.  The result of this operation can be obtained by calling
 .BR ldap_result (3).
-.LP
+.SH DEPRECATED INTERFACES
 The
-.B ldap_add_ext()
-routine allows server and client controls to be specified to extend
-the add request. This routine is asynchronous like
-.BR ldap_add() ,
-but its return value is an LDAP error code.  It stores the message id
-of the request in the integer pointed to
-by
-.IR msgidp .
-.LP
-The
-.B ldap_add_ext_s()
-routine is the synchronous version of
-.BR ldap_add_ext() .
-It also returns an LDAP error code indicating success or failure
-of the operation.
-.SH ERRORS
-.B ldap_add()
-returns -1 in case of error initiating the request, and
-will set the \fIld_errno\fP field in the \fIld\fP parameter
-to indicate the error.
-.B ldap_add_s()
-will return an LDAP error code
-directly (LDAP_SUCCESS if everything went ok, some error otherwise).
-.B ldap_add_ext()
+.BR ldap_add ()
 and
-.B ldap_add_ext_s()
-also directly return LDAP error codes.
+.BR ldap_add_s ()
+routines are deprecated in favor of the
+.BR ldap_add_ext ()
+and
+.BR ldap_add_ext_s ()
+routines, respectively.
+.LP
+.so Deprecated
 .SH SEE ALSO
 .BR ldap (3),
+.BR ldap_error (3),
 .BR ldap_modify (3)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

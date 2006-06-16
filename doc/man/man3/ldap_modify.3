@@ -91,16 +91,16 @@ modifications, the attribute will have the listed values after the
 modification, having been created if necessary.  All modifications are
 performed in the order in which they are listed.
 .LP
-.B ldap_modify_ext_s()
-returns the LDAP error code resulting from the
-modify operation.
+.B ldap_mods_free()
+can be used to free each element of a NULL-terminated
+array of mod structures.  If \fIfreemods\fP is non-zero, the
+\fImods\fP pointer itself is freed as well.
 .LP
-Both
-.B ldap_abandon_ext() 
-and
-.B ldap_abandon_ext() 
-allows server and client controls to be passed in
-via the sctrls and cctrls parameters, respectively.
+.B ldap_modify_ext_s()
+returns a code indicating success or, in the case of failure,
+indicating the nature of the failure.  See
+.BR ldap_error (3)
+for details
 .LP
 The
 .B ldap_modify_ext()
@@ -111,20 +111,12 @@ to is set to the message id of the modify request.  The result of
 the operation can be obtained by calling
 .BR ldap_result (3).
 .LP
-.B ldap_mods_free()
-can be used to free each element of a NULL-terminated
-array of mod structures.  If \fIfreemods\fP is non-zero, the
-\fImods\fP pointer itself is freed as well.
-.SH ERRORS
-.B ldap_modify_ext_s()
+Both
+.B ldap_modify_ext() 
 and
-.B ldap_modify_ext()
-returns an ldap error code, either LDAP_SUCCESS or
-an error if there was trouble.
-
-See
-.BR ldap_error (3)
-for details
+.B ldap_modify_ext_s() 
+allows server and client controls to be passed in
+via the sctrls and cctrls parameters, respectively.
 .SH DEPRECATED INTERFACES
 The
 .B ldap_modify()
@@ -135,7 +127,7 @@ routines are deprecated in favor of the
 and
 .B ldap_modify_ext_s()
 routines, respectively.
-
+.LP
 .so Deprecated
 .SH SEE ALSO
 .BR ldap (3),
