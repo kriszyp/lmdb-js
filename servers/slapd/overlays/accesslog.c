@@ -745,11 +745,11 @@ log_cf_gen(ConfigArgs *c)
 			break;
 		case LOG_PURGE:
 			li->li_age = log_age_parse( c->argv[1] );
-			if ( li->li_age == -1 ) {
+			if ( li->li_age < 1 ) {
 				rc = 1;
 			} else {
 				li->li_cycle = log_age_parse( c->argv[2] );
-				if ( li->li_cycle == -1 ) {
+				if ( li->li_cycle < 1 ) {
 					rc = 1;
 				} else if ( slapMode & SLAP_SERVER_MODE ) {
 					struct re_s *re = li->li_task;
