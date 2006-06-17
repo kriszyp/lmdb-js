@@ -1148,7 +1148,9 @@ really_bad:;
 		 * FIXME: need a better strategy to handle errors
 		 */
 		if ( mc ) {
-			rc = meta_back_op_result( mc, op, rs, META_TARGET_NONE );
+			rc = meta_back_op_result( mc, op, rs, META_TARGET_NONE,
+				-1, stoptime != -1 ? (stoptime - slap_get_time()) : 0,
+				LDAP_BACK_SENDERR );
 		} else {
 			rc = rs->sr_err;
 		}

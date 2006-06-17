@@ -47,7 +47,6 @@ meta_back_add( Operation *op, SlapReply *rs )
 	int		msgid;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
-	int		maperr = 1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
@@ -172,76 +171,25 @@ meta_back_add( Operation *op, SlapReply *rs )
 	if ( ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
 		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
 	{
-		maperr = 0;
-		goto sendres;
+		send_ldap_result( op, rs );
+		goto cleanup;
 	}
 
 retry:;
 	rs->sr_err = ldap_add_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			      attrs, ctrls, NULL, &msgid );
+	rs->sr_err = meta_back_op_result( mc, op, rs, candidate, msgid,
+		mt->mt_timeout[ LDAP_BACK_OP_ADD ], LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
-		goto cleanup;
-
-	} else if ( rs->sr_err == LDAP_SUCCESS ) {
-		struct timeval	tv, *tvp = NULL;
-		LDAPMessage	*res = NULL;
-		int		rc;
-
-		if ( mt->mt_timeout[ LDAP_BACK_OP_ADD ] != 0 ) {
-			tv.tv_sec = mt->mt_timeout[ LDAP_BACK_OP_ADD ];
-			tv.tv_usec = 0;
-			tvp = &tv;
-		}
-
-		rs->sr_err = LDAP_OTHER;
-		maperr = 0;
-		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
-			msgid, LDAP_MSG_ALL, tvp, &res );
-		switch ( rc ) {
-		case -1:
-			break;
-
-		case 0:
-			(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
-			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
-				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
-			break;
-
-		case LDAP_RES_ADD:
-			/* FIXME: matched? referrals? response controls? */
-			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
-				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
-			if ( rc != LDAP_SUCCESS ) {
-				rs->sr_err = rc;
-			}
-			maperr = 1;
-			break;
-
-		default:
-			ldap_msgfree( res );
-			break;
-		}
-	}
-
-sendres:;
-	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-
-	if ( maperr ) {
-		rs->sr_err = meta_back_op_result( mc, op, rs, candidate );
-
-	} else {
-		send_ldap_result( op, rs );
-
-		if ( META_BACK_TGT_QUARANTINE( mt ) ) {
-			meta_back_quarantine( op, rs, candidate );
-		}
 	}
 
 cleanup:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ]->mod_bvalues );
 		free( attrs[ i ] );

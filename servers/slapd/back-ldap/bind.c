@@ -1246,7 +1246,6 @@ ldap_back_op_result(
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
 	char		*match = NULL;
-	LDAPMessage	*res = NULL;
 	char		*text = NULL;
 	char		**refs = NULL;
 	LDAPControl	**ctrls = NULL;
@@ -1264,6 +1263,7 @@ ldap_back_op_result(
 	if ( ERR_OK( rs->sr_err ) ) {
 		int		rc;
 		struct timeval	tv;
+		LDAPMessage	*res = NULL;
 
 		if ( timeout ) {
 			tv.tv_sec = timeout;

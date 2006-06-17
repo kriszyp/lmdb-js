@@ -808,75 +808,135 @@ meta_back_cancel(
  */
 int
 meta_back_op_result(
-	metaconn_t	*mc,
-	Operation	*op,
-	SlapReply	*rs,
-	int		candidate )
+	metaconn_t		*mc,
+	Operation		*op,
+	SlapReply		*rs,
+	int			candidate,
+	ber_int_t		msgid,
+	time_t			timeout,
+	ldap_back_send_t	sendok )
 {
-	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 
-	int			i,
-				rerr = LDAP_SUCCESS;
-	char			*rmsg = NULL,
-				*rmatch = NULL;
-	const char		*save_rmsg = NULL,
-				*save_rmatch = NULL;
-	void			*rmatch_ctx = NULL;
+	const char	*save_text = rs->sr_text,
+			*save_matched = rs->sr_matched;
+	BerVarray	save_ref = rs->sr_ref;
+	LDAPControl	**save_ctrls = rs->sr_ctrls;
+	void		*matched_ctx = NULL;
+
+	char		*matched = NULL;
+	char		*text = NULL;
+	char		**refs = NULL;
+	LDAPControl	**ctrls = NULL;
 
 	assert( mc != NULL );
 
+	rs->sr_text = NULL;
+	rs->sr_matched = NULL;
+	rs->sr_ref = NULL;
+	rs->sr_ctrls = NULL;
+
 	if ( candidate != META_TARGET_NONE ) {
+		metatarget_t		*mt = mi->mi_targets[ candidate ];
 		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
-		rs->sr_err = LDAP_SUCCESS;
+#define	ERR_OK(err) ((err) == LDAP_SUCCESS || (err) == LDAP_COMPARE_FALSE || (err) == LDAP_COMPARE_TRUE)
 
-		ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			/*
-			 * better check the type of error. In some cases
-			 * (search ?) it might be better to return a
-			 * success if at least one of the targets gave
-			 * positive result ...
-			 */
-			ldap_get_option( msc->msc_ld,
-					LDAP_OPT_ERROR_STRING, &rmsg );
-			if ( rmsg != NULL && rmsg[ 0 ] == '\0' ) {
-				ldap_memfree( rmsg );
-				rmsg = NULL;
+		if ( ERR_OK( rs->sr_err ) ) {
+			int		rc;
+			struct timeval	tv;
+			LDAPMessage	*res = NULL;
+
+			if ( timeout ) {
+				tv.tv_sec = timeout;
+				tv.tv_usec = 0;
+
+			} else {
+				LDAP_BACK_TV_SET( &tv );
 			}
 
-			ldap_get_option( msc->msc_ld,
-					LDAP_OPT_MATCHED_DN, &rmatch );
-			if ( rmatch != NULL && rmatch[ 0 ] == '\0' ) {
-				ldap_memfree( rmatch );
-				rmatch = NULL;
+retry:;
+			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
+			switch ( rc ) {
+			case 0:
+				if ( timeout ) {
+					(void)meta_back_cancel( mc, op, rs, msgid, candidate, sendok );
+					rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
+					rs->sr_text = "Operation timed out";
+					break;
+				}
+
+				LDAP_BACK_TV_SET( &tv );
+				ldap_pvt_thread_yield();
+				goto retry;
+
+			case -1:
+				ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
+						&rs->sr_err );
+				break;
+
+
+			/* otherwise get the result; if it is not
+			 * LDAP_SUCCESS, record it in the reply
+			 * structure (this includes 
+			 * LDAP_COMPARE_{TRUE|FALSE}) */
+			default:
+				rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
+						&matched, &text, &refs, &ctrls, 1 );
+				res = NULL;
+				rs->sr_text = text;
+				if ( rc != LDAP_SUCCESS ) {
+					rs->sr_err = rc;
+				}
+				if ( refs != NULL ) {
+					int	i;
+	
+					for ( i = 0; refs[ i ] != NULL; i++ )
+						/* count */ ;
+					rs->sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( i + 1 ),
+						op->o_tmpmemctx );
+					for ( i = 0; refs[ i ] != NULL; i++ ) {
+						ber_str2bv( refs[ i ], 0, 0, &rs->sr_ref[ i ] );
+					}
+					BER_BVZERO( &rs->sr_ref[ i ] );
+				}
+				if ( ctrls != NULL ) {
+					rs->sr_ctrls = ctrls;
+				}
 			}
 
-			rerr = rs->sr_err = slap_map_api2result( rs );
+			assert( res == NULL );
+		}
 
-			if ( LogTest( LDAP_DEBUG_ANY ) ) {
-				char	buf[ SLAP_TEXT_BUFLEN ];
+		/* if the error in the reply structure is not
+		 * LDAP_SUCCESS, try to map it from client 
+		 * to server error */
+		if ( !ERR_OK( rs->sr_err ) ) {
+			rs->sr_err = slap_map_api2result( rs );
 
-				snprintf( buf, sizeof( buf ),
-					"meta_back_op_result[%d] "
-					"err=%d text=\"%s\" matched=\"%s\"", 
-					candidate, rs->sr_err,
-					( rmsg ? rmsg : "" ),
-					( rmatch ? rmatch : "" ) );
-				Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-					op->o_log_prefix, buf, 0 );
+			/* internal ops ( op->o_conn == NULL ) 
+			 * must not reply to client */
+			if ( op->o_conn && !op->o_do_not_cache && matched ) {
+
+				/* record the (massaged) matched
+				 * DN into the reply structure */
+				rs->sr_matched = matched;
 			}
 		}
 
-		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ candidate ] ) ) {
+		if ( META_BACK_TGT_QUARANTINE( mt ) ) {
 			meta_back_quarantine( op, rs, candidate );
 		}
 
 	} else {
+		int	i,
+			err = rs->sr_err;
+
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
-			char			*msg = NULL;
-			char			*match = NULL;
+			char			*xtext = NULL;
+			char			*xmatched = NULL;
 
 			rs->sr_err = LDAP_SUCCESS;
 
@@ -889,17 +949,17 @@ meta_back_op_result(
 				 * positive result ...
 				 */
 				ldap_get_option( msc->msc_ld,
-						LDAP_OPT_ERROR_STRING, &msg );
-				if ( msg != NULL && msg[ 0 ] == '\0' ) {
-					ldap_memfree( msg );
-					msg = NULL;
+						LDAP_OPT_ERROR_STRING, &xtext );
+				if ( xtext != NULL && xtext [ 0 ] == '\0' ) {
+					ldap_memfree( xtext );
+					xtext = NULL;
 				}
 
 				ldap_get_option( msc->msc_ld,
-						LDAP_OPT_MATCHED_DN, &match );
-				if ( match != NULL && match[ 0 ] == '\0' ) {
-					ldap_memfree( match );
-					match = NULL;
+						LDAP_OPT_MATCHED_DN, &xmatched );
+				if ( xmatched != NULL && xmatched[ 0 ] == '\0' ) {
+					ldap_memfree( xmatched );
+					xmatched = NULL;
 				}
 
 				rs->sr_err = slap_map_api2result( rs );
@@ -911,41 +971,41 @@ meta_back_op_result(
 						"meta_back_op_result[%d] "
 						"err=%d text=\"%s\" matched=\"%s\"", 
 						i, rs->sr_err,
-						( rmsg ? rmsg : "" ),
-						( rmatch ? rmatch : "" ) );
+						( xtext ? xtext : "" ),
+						( xmatched ? xmatched : "" ) );
 					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
 						op->o_log_prefix, buf, 0 );
 				}
-	
+
 				/*
 				 * FIXME: need to rewrite "match" (need rwinfo)
 				 */
 				switch ( rs->sr_err ) {
 				default:
-					rerr = rs->sr_err;
-					if ( msg != NULL ) {
-						if ( rmsg ) {
-							ldap_memfree( rmsg );
+					err = rs->sr_err;
+					if ( xtext != NULL ) {
+						if ( text ) {
+							ldap_memfree( text );
 						}
-						rmsg = msg;
-						msg = NULL;
+						text = xtext;
+						xtext = NULL;
 					}
-					if ( match != NULL ) {
-						if ( rmatch ) {
-							ldap_memfree( rmatch );
+					if ( xmatched != NULL ) {
+						if ( matched ) {
+							ldap_memfree( matched );
 						}
-						rmatch = match;
-						match = NULL;
+						matched = xmatched;
+						xmatched = NULL;
 					}
 					break;
 				}
 
-				if ( msg ) {
-					ldap_memfree( msg );
+				if ( xtext ) {
+					ldap_memfree( xtext );
 				}
 	
-				if ( match ) {
-					ldap_memfree( match );
+				if ( xmatched ) {
+					ldap_memfree( xmatched );
 				}
 			}
 
@@ -953,36 +1013,52 @@ meta_back_op_result(
 				meta_back_quarantine( op, rs, i );
 			}
 		}
+
+		if ( err != LDAP_SUCCESS ) {
+			rs->sr_err = err;
+		}
 	}
-	
-	rs->sr_err = rerr;
-	if ( rmsg != NULL ) {
-		save_rmsg = rs->sr_text;
-		rs->sr_text = rmsg;
-	}
-	if ( rmatch != NULL ) {
+
+	if ( matched != NULL ) {
 		struct berval	dn, pdn;
 
-		ber_str2bv( rmatch, 0, 0, &dn );
+		ber_str2bv( matched, 0, 0, &dn );
 		if ( dnPretty( NULL, &dn, &pdn, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
-			ldap_memfree( rmatch );
-			rmatch_ctx = op->o_tmpmemctx;
-			rmatch = pdn.bv_val;
+			ldap_memfree( matched );
+			matched_ctx = op->o_tmpmemctx;
+			matched = pdn.bv_val;
 		}
-		save_rmatch = rs->sr_matched;
-		rs->sr_matched = rmatch;
-	}
-	send_ldap_result( op, rs );
-	if ( rmsg != NULL ) {
-		ber_memfree( rmsg );
-		rs->sr_text = save_rmsg;
-	}
-	if ( rmatch != NULL ) {
-		ber_memfree_x( rmatch, rmatch_ctx );
-		rs->sr_matched = save_rmatch;
+		rs->sr_matched = matched;
 	}
 
-	return ( ( rerr == LDAP_SUCCESS ) ? 0 : -1 );
+	if ( op->o_conn &&
+		( ( sendok & LDAP_BACK_SENDOK ) 
+			|| ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
+	{
+		send_ldap_result( op, rs );
+	}
+	if ( matched ) {
+		op->o_tmpfree( (char *)rs->sr_matched, matched_ctx );
+	}
+	if ( text ) {
+		ldap_memfree( text );
+	}
+	if ( rs->sr_ref ) {
+		assert( refs != NULL );
+		ber_memvfree( (void **)refs );
+		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
+	}
+	if ( ctrls ) {
+		assert( rs->sr_ctrls != NULL );
+		ldap_controls_free( ctrls );
+	}
+
+	rs->sr_text = save_text;
+	rs->sr_matched = save_matched;
+	rs->sr_ref = save_ref;
+	rs->sr_ctrls = save_ctrls;
+
+	return( ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
 }
 
 /*

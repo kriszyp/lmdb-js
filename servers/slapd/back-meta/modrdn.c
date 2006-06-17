@@ -43,7 +43,6 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	dncookie	dc;
 	int		msgid;
 	int		do_retry = 1;
-	int		maperr = 1;
 	LDAPControl	**ctrls = NULL;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
@@ -94,7 +93,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 			/* op->o_protocol cannot be anything but LDAPv3,
 			 * otherwise wouldn't be here */
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			maperr = 0;
+			send_ldap_result( op, rs );
 			goto cleanup;
 		}
 		
@@ -104,7 +103,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		dc.ctx = "newSuperiorDN";
 		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
 			rs->sr_err = LDAP_OTHER;
-			maperr = 0;
+			send_ldap_result( op, rs );
 			goto cleanup;
 		}
 	}
@@ -115,7 +114,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rs->sr_err = LDAP_OTHER;
-		maperr = 0;
+		send_ldap_result( op, rs );
 		goto cleanup;
 	}
 
@@ -123,7 +122,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	if ( ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
 		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
 	{
-		maperr = 0;
+		send_ldap_result( op, rs );
 		goto cleanup;
 	}
 
@@ -132,69 +131,18 @@ retry:;
 			mdn.bv_val, op->orr_newrdn.bv_val,
 			mnewSuperior.bv_val, op->orr_deleteoldrdn,
 			ctrls, NULL, &msgid );
+	rs->sr_err = meta_back_op_result( mc, op, rs, candidate, msgid,
+		mt->mt_timeout[ LDAP_BACK_OP_MODRDN ], LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
-		}
-		goto done;
-
-	} else if ( rs->sr_err == LDAP_SUCCESS ) {
-		struct timeval	tv, *tvp = NULL;
-		LDAPMessage	*res = NULL;
-		int		rc;
-
-		if ( mt->mt_timeout[ LDAP_BACK_OP_MODRDN ] != 0 ) {
-			tv.tv_sec = mt->mt_timeout[ LDAP_BACK_OP_MODRDN ];
-			tv.tv_usec = 0;
-			tvp = &tv;
-		}
-
-		rs->sr_err = LDAP_OTHER;
-		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
-			msgid, LDAP_MSG_ALL, tvp, &res );
-		maperr = 0;
-		switch ( rc ) {
-		case -1:
-			break;
-
-		case 0:
-			(void)meta_back_cancel( mc, op, rs, msgid, candidate, LDAP_BACK_DONTSEND );
-			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
-				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
-			break;
-
-		case LDAP_RES_RENAME:
-			/* FIXME: matched? referrals? response controls? */
-			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
-				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
-			if ( rc != LDAP_SUCCESS ) {
-				rs->sr_err = rc;
-			}
-			maperr = 1;
-			break;
-
-		default:
-			ldap_msgfree( res );
-			break;
 		}
 	}
 
 cleanup:;
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 
-	if ( maperr ) {
-		meta_back_op_result( mc, op, rs, candidate );
-
-	} else {
-		send_ldap_result( op, rs );
-
-		if ( META_BACK_TGT_QUARANTINE( mt ) ) {
-			meta_back_quarantine( op, rs, candidate );
-		}
-	}
-
-done:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 		BER_BVZERO( &mdn );

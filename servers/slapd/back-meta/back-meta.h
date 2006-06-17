@@ -247,7 +247,7 @@ typedef struct metatarget_t {
 #define META_RETRY_UNDEFINED	(-2)
 #define META_RETRY_FOREVER	(-1)
 #define META_RETRY_NEVER	(0)
-#define META_RETRY_DEFAULT	(3)
+#define META_RETRY_DEFAULT	(10)
 
 	struct ldaprwmap	mt_rwmap;
 
@@ -428,7 +428,10 @@ meta_back_op_result(
 	metaconn_t		*mc,
 	Operation		*op,
 	SlapReply		*rs,
-	int			candidate );
+	int			candidate,
+	ber_int_t		msgid,
+	time_t			timeout,
+	ldap_back_send_t	sendok );
 
 extern int
 back_meta_LTX_init_module(
