@@ -620,6 +620,10 @@ log_cf_gen(ConfigArgs *c)
 			rc = mask_to_verbs( logops, li->li_ops, &c->rvalue_vals );
 			break;
 		case LOG_PURGE:
+			if ( !li->li_age ) {
+				rc = 1;
+				break;
+			}
 			agebv.bv_val = agebuf;
 			log_age_unparse( li->li_age, &agebv );
 			agebv.bv_val[agebv.bv_len] = ' ';
