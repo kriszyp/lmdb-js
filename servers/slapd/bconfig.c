@@ -4680,6 +4680,7 @@ config_back_db_open( BackendDB *be )
 		return -1;
 	}
 	ce = e->e_private;
+	ce->ce_private = cfb->cb_config;
 
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
