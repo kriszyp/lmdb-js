@@ -12,86 +12,68 @@ OpenLDAP LDAP (libldap, -lldap)
 #include <ldap.h>
 .LP
 .ft B
-int ldap_compare_s(ld, dn, attr, value)
-.ft
-LDAP *ld;
-char *dn, *attr, *value;
+int ldap_compare_ext(
+.RS
+.ft B
+LDAP *\fIld\fB,
+char *\fIdn\fB,
+char *\fIattr\fB,
+const struct berval *\fIbvalue\fB,
+LDAPControl **\fIserverctrls\fB,
+LDAPControl **\fIclientctrls\fB,
+int *\fImsgidp\fB );
+.RE
 .LP
 .ft B
-int ldap_compare(ld, dn, attr, value)
-.ft
-LDAP *ld;
-char *dn, *attr, *value;
-.LP
+int ldap_compare_ext_s(
+.RS
 .ft B
-int ldap_compare_ext(ld, dn, attr, bvalue, serverctrls, clientctrls, msgidp)
-.ft
-LDAP *ld;
-char *dn, *attr;
-const struct berval *bvalue;
-LDAPControl **serverctrls, **clientctrls;
-int *msgidp;
-.LP
-.ft B
-int ldap_compare_ext_s(ld, dn, attr, bvalue, serverctrls, clientctrls)
-.ft
-LDAP *ld;
-char *dn, *attr;
-const struct berval *bvalue;
-LDAPControl **serverctrls, **clientctrls;
+LDAP *\fIld\fB,
+char *\fIdn\fB,
+char *\fIattr\fB,
+const struct berval *\fIbvalue\fB,
+LDAPControl **\fIserverctrls\fB,
+LDAPControl **\fIclientctrls\fB );
+.RE
 .SH DESCRIPTION
 The
-.B ldap_compare_s()
-routine is used to perform an LDAP compare operation
-synchronously.  It takes \fIdn\fP, the DN of the entry upon which to perform
-the compare, and \fIattr\fP and \fIvalue\fP, the attribute type and value to
-compare to those found in the entry.  It returns an LDAP error code, which
+.B ldap_compare_ext_s()
+routine is used to perform an LDAP compare operation synchronously.
+It takes \fIdn\fP, the DN of the entry upon which to perform the
+compare, and \fIattr\fP and \fIvalue\fP, the attribute description and
+value to compare to those found in the entry.  It returns a code, which
 will be LDAP_COMPARE_TRUE if the entry contains the attribute value and
-LDAP_COMPARE_FALSE if it does not.  Otherwise, some error code is returned.
+LDAP_COMPARE_FALSE if it does not.  Otherwise, an error code is
+returned that indicates the nature of the problem.  See
+.BR ldap (3)
+for details.
 .LP
 The
-.B ldap_compare()
+.B ldap_compare_ext()
 routine is used to perform an LDAP compare operation
 asynchronously.  It takes the same parameters as
-.BR ldap_compare_s() ,
-but returns the message id of the request it initiated.  The result of
+.BR ldap_compare_ext_s() ,
+but provides the message id of the request it initiated in the
+integer pointed to \fImsgidp\fP.  The result of
 the compare can be obtained by a subsequent call to
 .BR ldap_result (3).
 .LP
-The
-.B ldap_compare_ext()
-routine  allows  server  and client controls to be 
-specified to extend the compare request. This routine is asynchronous like 
-ldap_compare(),  but its return value is an LDAP error code. It stores the 
-message id of the request in the integer pointed to by msgidp.
-.LP
-The
-.B ldap_compare_ext_s()
-routine is the synchronous version of
-.BR ldap_compare_ext().
-It also returns an LDAP error code indicating success 
-or failure of the operation.
-.SH ERRORS
-.B ldap_compare_s()
-returns an LDAP error code which can be interpreted
-by calling one of
-.BR ldap_perror (3)
-and friends.  ldap_compare() returns
--1 if something went wrong initiating the request.  It returns the
-non-negative message id of the request if things went ok.
-.LP
-.B ldap_compare_ext_s()
+Both routines allow server and client controls to be specified to
+extend the compare request.
+.SH DEPRECATED INTERFACES
+The routines
+.BR ldap_compare ()
 and
-.B ldap_compare_ext()
-return some Non-zero value other than 0x05 or 0x06 in case of failure.
-0x05 corresponds to LDAP_COMPARE_FALSE and 0x06 corresponds to LDAP_COMPARE_TRUE.
-.SH BUGS
-There is no way to compare binary values, but there should be.
+.BR ldap_compare_s ()
+are deprecated in favor of
+.BR ldap_compare_ext ()
+and
+.BR ldap_compare_ext_s (),
+respectively.
+.LP
+.so Deprecated
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_error (3)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project
