@@ -109,7 +109,7 @@ void
 usage( void )
 {
 	fprintf( stderr, _("usage: %s [options] [filter [attributes...]]\nwhere:\n"), prog);
-	fprintf( stderr, _("  filter\tRFC-2254 compliant LDAP search filter\n"));
+	fprintf( stderr, _("  filter\tRFC 4515 compliant LDAP search filter\n"));
 	fprintf( stderr, _("  attributes\twhitespace-separated list of attribute descriptions\n"));
 	fprintf( stderr, _("    which may include:\n"));
 	fprintf( stderr, _("      1.1   no attributes\n"));

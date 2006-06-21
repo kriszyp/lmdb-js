@@ -76,7 +76,7 @@ LDAP_BEGIN_DECL
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
 #define LDAP_ALL_OPERATIONAL_ATTRIBUTES	"+" /* RFC 3673 */
 
-/* RFC 2251:  maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) -- */
+/* RFC 4511:  maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) -- */
 #define LDAP_MAXINT (2147483647)
 
 /*
@@ -124,7 +124,7 @@ LDAP_BEGIN_DECL
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
-#define LDAP_OPT_X_TLS_CTX			0x6001	/* SSL CTX */
+#define LDAP_OPT_X_TLS_CTX			0x6001	/* OpenSSL CTX */
 #define LDAP_OPT_X_TLS_CACERTFILE	0x6002
 #define LDAP_OPT_X_TLS_CACERTDIR	0x6003
 #define LDAP_OPT_X_TLS_CERTFILE		0x6004
@@ -212,9 +212,9 @@ typedef struct ldapcontrol {
 
 #define LDAP_CONTROL_VALUESRETURNFILTER "1.2.826.0.1.3344810.2.3"/* RFC 3876 */
 
-#define LDAP_CONTROL_ASSERT				"1.3.6.1.1.12"			/* RFC TBD */
-#define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"		/* RFC TBD */
-#define LDAP_CONTROL_POST_READ			"1.3.6.1.1.13.2"		/* RFC TBD */
+#define LDAP_CONTROL_ASSERT				"1.3.6.1.1.12"			/* RFC 4528 */
+#define LDAP_CONTROL_PRE_READ			"1.3.6.1.1.13.1"		/* RFC 4527 */
+#define LDAP_CONTROL_POST_READ			"1.3.6.1.1.13.2"		/* RFC 4527 */
 
 /*  standard track - not implemented in slapd(8) */
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
@@ -223,7 +223,7 @@ typedef struct ldapcontrol {
 /*	non-standard track controls */
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"   /* RFC 2696 */
 
-/* LDAP Sync -- draft-zeilenga-ldup-sync *//* RFC TBD */
+/* LDAP Content Synchronization Operation -- RFC 4533 */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"
 #define LDAP_CONTROL_SYNC		LDAP_SYNC_OID ".1"
 #define LDAP_CONTROL_SYNC_STATE	LDAP_SYNC_OID ".2"
@@ -313,11 +313,11 @@ typedef struct ldapcontrol {
 
 
 /* LDAP Unsolicited Notifications */
-#define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
+#define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 4511 */
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
 
 /* LDAP Extended Operations */
-#define LDAP_EXOP_START_TLS		"1.3.6.1.4.1.1466.20037"	/* RFC 2830 */
+#define LDAP_EXOP_START_TLS		"1.3.6.1.4.1.1466.20037"	/* RFC 4511 */
 
 #define LDAP_EXOP_MODIFY_PASSWD	"1.3.6.1.4.1.4203.1.11.1"	/* RFC 3062 */
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_ID	((ber_tag_t) 0x80U)
@@ -325,7 +325,7 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
-#define LDAP_EXOP_CANCEL		"1.3.6.1.1.8"				/* RFC 3909 */
+#define LDAP_EXOP_CANCEL		"1.3.6.1.1.8"					/* RFC 3909 */
 #define LDAP_EXOP_X_CANCEL		LDAP_EXOP_CANCEL
 
 #define	LDAP_EXOP_REFRESH		"1.3.6.1.4.1.1466.101.119.1"	/* RFC 2589 */
@@ -333,12 +333,12 @@ typedef struct ldapcontrol {
 #define	LDAP_TAG_EXOP_REFRESH_REQ_TTL	((ber_tag_t) 0x81U)
 #define	LDAP_TAG_EXOP_REFRESH_RES_TTL	((ber_tag_t) 0x80U)
 
-#define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"
+#define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"		/* RFC 4532 */
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
 
 /* various works in progress */
 #ifdef LDAP_DEVEL
-#define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"
+#define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"		/* RFC 4531 */
 #endif
 
 /* LDAP Distributed Procedures <draft-sermersheim-ldap-distproc> */
@@ -2060,7 +2060,7 @@ ldap_passwordpolicy_err2txt LDAP_P(( LDAPPasswordPolicyError ));
 #endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
 
 /*
- * LDAP Dynamic Directory Services Refresh RFC2589
+ * LDAP Dynamic Directory Services Refresh -- RFC 2589
  *	in dds.c
  */
 #define LDAP_API_FEATURE_REFRESH 1000
