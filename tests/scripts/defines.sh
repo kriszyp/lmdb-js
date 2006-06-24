@@ -142,7 +142,7 @@ LOG6=$TESTDIR/slapd.6.log
 SLAPADDLOG1=$TESTDIR/slapadd.1.log
 SLURPLOG=$TESTDIR/slurp.log
 
-CONFIGPWF=$TESTDIR/configpw
+CONFIGPWF=./configpw
 
 # args
 TOOLARGS="-x $LDAP_TOOLARGS"

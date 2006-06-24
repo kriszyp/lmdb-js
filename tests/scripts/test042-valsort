@@ -23,14 +23,6 @@ fi
 
 mkdir -p $TESTDIR $DBDIR1
 
-$SLAPPASSWD -g -n > $CONFIGPWF
-RC=$?
-if test $RC != 0 ; then
-	echo "slappasswd failed ($RC)!"
-	exit $RC
-fi
-read CONFIGPW < $CONFIGPWF
-
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $VALSORTCONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFVALSORT
