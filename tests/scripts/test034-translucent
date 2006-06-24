@@ -15,7 +15,7 @@
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
-LVL=-1
+
 PERSONAL="(objectClass=inetOrgPerson)"
 NOWHERE="/dev/null"
 FAILURE="additional info:"
@@ -73,12 +73,11 @@ fi
 
 # configure frontside
 mkdir -p $DBDIR2
-mkdir -p testrun/conf2
 
 . $CONFFILTER $BACKEND $MONITORDB < $TRANSLUCENTLOCALCONF > $CONF2
 
 echo "Starting local slapd on TCP/IP port $PORT2..."
-$SLAPD -f $CONF2 -F testrun/conf2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -598,7 +597,7 @@ if test "$ATTR" != "preferredLanguage: ISO8859-1" ; then
 	exit 1
 fi
 
-echo "Dynamically configuring local slapd with translucent_no_glue and translucent_string..."
+echo "Dynamically configuring local slapd with translucent_no_glue and translucent_strict..."
 
 $LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF
 dn: olcOverlay={0}translucent,olcDatabase={2}bdb,cn=config
