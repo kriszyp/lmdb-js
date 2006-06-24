@@ -1340,15 +1340,24 @@ retry:;
 			rs->sr_matched = match;
 		}
 	}
-	if ( LDAP_BACK_QUARANTINE( li ) ) {
-		ldap_back_quarantine( op, rs );
-	}
-	if ( op->o_conn &&
-		( ( sendok & LDAP_BACK_SENDOK ) 
+
+	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
+		if ( !( sendok & LDAP_BACK_RETRYING ) ) {
+			if ( LDAP_BACK_QUARANTINE( li ) ) {
+				ldap_back_quarantine( op, rs );
+			}
+			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+				send_ldap_result( op, rs );
+			}
+		}
+
+	} else if ( op->o_conn &&
+		( ( ( sendok & LDAP_BACK_SENDOK ) && ERR_OK( rs->sr_err ) )
 			|| ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
 	{
 		send_ldap_result( op, rs );
 	}
+
 	if ( match ) {
 		if ( rs->sr_matched != match ) {
 			free( (char *)rs->sr_matched );
@@ -1356,21 +1365,25 @@ retry:;
 		rs->sr_matched = NULL;
 		ldap_memfree( match );
 	}
+
 	if ( text ) {
 		ldap_memfree( text );
 	}
 	rs->sr_text = NULL;
+
 	if ( rs->sr_ref ) {
 		assert( refs != NULL );
 		ber_memvfree( (void **)refs );
 		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 		rs->sr_ref = NULL;
 	}
+
 	if ( ctrls ) {
 		assert( rs->sr_ctrls != NULL );
 		ldap_controls_free( ctrls );
 		rs->sr_ctrls = NULL;
 	}
+
 	return( ERR_OK( rs->sr_err ) ? LDAP_SUCCESS : rs->sr_err );
 }
 

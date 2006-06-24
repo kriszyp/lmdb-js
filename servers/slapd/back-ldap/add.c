@@ -36,18 +36,18 @@ ldap_back_add(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t	*lc;
-	int		i = 0,
-			j = 0;
-	Attribute	*a;
-	LDAPMod		**attrs = NULL,
-			*attrs2 = NULL;
-	ber_int_t	msgid;
-	int		isupdate;
-	int		do_retry = 1;
-	LDAPControl	**ctrls = NULL;
+	ldapconn_t		*lc;
+	int			i = 0,
+				j = 0;
+	Attribute		*a;
+	LDAPMod			**attrs = NULL,
+				*attrs2 = NULL;
+	ber_int_t		msgid;
+	int			isupdate;
+	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
+	LDAPControl		**ctrls = NULL;
 
 	rs->sr_err = LDAP_SUCCESS;
 	
@@ -104,9 +104,10 @@ retry:
 	rs->sr_err = ldap_add_ext( lc->lc_ld, op->o_req_dn.bv_val, attrs,
 			ctrls, NULL, &msgid );
 	rs->sr_err = ldap_back_op_result( lc, op, rs, msgid,
-		li->li_timeout[ LDAP_BACK_OP_ADD ], LDAP_BACK_SENDRESULT );
-	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
-		do_retry = 0;
+		li->li_timeout[ LDAP_BACK_OP_ADD ],
+		( LDAP_BACK_SENDRESULT | retrying ) );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && retrying ) {
+		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
