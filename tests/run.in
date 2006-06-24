@@ -189,8 +189,8 @@ fi
 # disable LDAP initialization
 LDAPNOINIT=true; export LDAPNOINIT
 
-$SLAPPASSWD -g -n >configpw
-echo "rootpw `$SLAPPASSWD -T configpw`" >configpw.conf
+$SLAPPASSWD -g -n >$CONFIGPWF
+echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >configpw.conf
 
 echo "Running ${SCRIPT}..."
 $SCRIPT $*
