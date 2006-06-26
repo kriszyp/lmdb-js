@@ -726,8 +726,7 @@ log_cf_gen(ConfigArgs *c)
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->msg, c->value_dn.bv_val );
 				rc = 1;
-			}
-			if ( BER_BVISEMPTY( &li->li_db->be_rootdn )) {
+			} else if ( BER_BVISEMPTY( &li->li_db->be_rootdn )) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"<%s> no rootDN was configured for suffix",
 					c->argv[0] );
