@@ -689,12 +689,8 @@ acl_mask_dn(
 	AttributeDescription	*desc,
 	struct berval		*val,
 	AccessControl		*a,
-	Access			*b,
-	int			i,
 	int			nmatch,
 	regmatch_t		*matches,
-	int			count,
-	AccessControlState	*state,
 	slap_dn_access		*bdn,
 	struct berval		*opndn )
 {
@@ -709,33 +705,6 @@ acl_mask_dn(
 	 * value is set in a_dn_style; however, the string
 	 * is maintaned in a_dn_pat.
 	 */
-	if ( bdn->a_self ) {
-		const char *dummy;
-		int rc, match = 0;
-
-		ACL_RECORD_VALUE_STATE;
-
-		/* must have DN syntax */
-		if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) return 1;
-
-		/* check if the target is an attribute. */
-		if ( val == NULL ) return 1;
-
-		/* a DN must be present */
-		if ( BER_BVISEMPTY( opndn ) ) {
-			return 1;
-		}
-
-		/* target is attribute, check if the attribute value
-		 * is the op dn.
-		 */
-		rc = value_match( &match, desc,
-			desc->ad_type->sat_equality, 0,
-			val, opndn, &dummy );
-		/* on match error or no match, fail the ACL clause */
-		if ( rc != LDAP_SUCCESS || match != 0 )
-			return 1;
-	}
 
 	if ( bdn->a_style == ACL_STYLE_ANONYMOUS ) {
 		if ( !BER_BVISEMPTY( opndn ) ) {
@@ -1165,8 +1134,8 @@ slap_acl_mask(
 			 * is maintaned in a_dn_pat.
 			 */
 
-			if ( acl_mask_dn( op, e, desc, val, a, b, i, nmatch, matches,
-				count, state, &b->a_dn, &op->o_ndn ) )
+			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
+				&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
 			}
@@ -1196,8 +1165,8 @@ slap_acl_mask(
 				ndn = op->o_ndn;
 			}
 
-			if ( acl_mask_dn( op, e, desc, val, a, b, i, nmatch, matches,
-				count, state, &b->a_realdn, &ndn ) )
+			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
+				&b->a_realdn, &ndn ) )
 			{
 				continue;
 			}
@@ -1670,6 +1639,35 @@ slap_acl_mask(
 			if ( b->a_authz.sai_sasl_ssf >	op->o_sasl_ssf ) {
 				continue;
 			}
+		}
+
+		/* check for the "self" modifier in the <access> field */
+		if ( b->a_dn.a_self ) {
+			const char *dummy;
+			int rc, match = 0;
+
+			ACL_RECORD_VALUE_STATE;
+
+			/* must have DN syntax */
+			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) continue;
+
+			/* check if the target is an attribute. */
+			if ( val == NULL ) continue;
+
+			/* a DN must be present */
+			if ( BER_BVISEMPTY( &op->o_ndn ) ) {
+				continue;
+			}
+
+			/* target is attribute, check if the attribute value
+			 * is the op dn.
+			 */
+			rc = value_match( &match, desc,
+				desc->ad_type->sat_equality, 0,
+				val, &op->o_ndn, &dummy );
+			/* on match error or no match, fail the ACL clause */
+			if ( rc != LDAP_SUCCESS || match != 0 )
+				continue;
 		}
 
 #ifdef SLAP_DYNACL
