@@ -374,6 +374,8 @@ e.g.
 .RE
 The protocol portion of the URI must be strictly
 .BR ldap .
+Note that this search is subject to access controls.  Specifically,
+the authentication identity must have "auth" access in the subject.
 
 Multiple 
 .B authz-regexp 
