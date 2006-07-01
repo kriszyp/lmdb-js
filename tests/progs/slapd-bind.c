@@ -134,7 +134,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'w':
-			ber_str2bv( optarg, 0, 0, &pass );
+			ber_str2bv( optarg, 0, 1, &pass );
 			memset( optarg, '*', pass.bv_len );
 			break;
 
