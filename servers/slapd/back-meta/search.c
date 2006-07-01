@@ -76,8 +76,8 @@ meta_search_dobind_init(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
-	struct berval		binddn = BER_BVC( "" ),
-				cred = BER_BVC( "" );
+	struct berval		binddn = msc->msc_bound_ndn,
+				cred = msc->msc_cred;
 	int			method;
 
 	int			rc;
