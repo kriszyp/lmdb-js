@@ -172,10 +172,12 @@ main( int argc, char **argv )
 	char		bloops[] = "18446744073709551615UL";
 
 	char		*friendlyOpt = NULL;
+	int		pw_ask = 0;
+	char		*pw_file = NULL;
 
 	tester_init( "slapd-tester", TESTER_TESTER );
 
-	while ( (i = getopt( argc, argv, "ACD:d:FH:h:i:j:l:L:P:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "ACD:d:FH:h:i:j:l:L:P:p:r:t:w:Wy:" )) != EOF ) {
 		switch( i ) {
 		case 'A':
 			noattrs++;
@@ -243,6 +245,15 @@ main( int argc, char **argv )
 
 		case 'w':		/* the managers passwd */
 			passwd = ArgDup( optarg );
+			memset( optarg, '*', strlen( optarg ) );
+			break;
+
+		case 'W':
+			pw_ask++;
+			break;
+
+		case 'y':
+			pw_file = optarg;
 			break;
 
 		default:
@@ -260,11 +271,9 @@ main( int argc, char **argv )
 #endif
 	/* get the file list */
 	if ( ( datadir = opendir( dirname )) == NULL ) {
-
 		fprintf( stderr, "%s: couldn't open data directory \"%s\".\n",
 					argv[0], dirname );
 		exit( EXIT_FAILURE );
-
 	}
 
 	/*  look for search, read, modrdn, and add/delete files */
@@ -293,6 +302,19 @@ main( int argc, char **argv )
 	}
 
 	closedir( datadir );
+
+	if ( pw_ask ) {
+		passwd = getpassphrase( _("Enter LDAP Password: ") );
+
+	} else if ( pw_file ) {
+		struct berval	pw;
+
+		if ( lutil_get_filed_password( pw_file, &pw ) ) {
+			exit( EXIT_FAILURE );
+		}
+
+		passwd = pw.bv_val;
+	}
 
 	/* look for search requests */
 	if ( sfile ) {

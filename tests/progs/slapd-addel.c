@@ -122,6 +122,7 @@ main( int argc, char **argv )
 		case 'w':		/* the server managers password */
 			passwd.bv_val = strdup( optarg );
 			passwd.bv_len = strlen( optarg );
+			memset( optarg, '*', passwd.bv_len );
 			break;
 
 		case 'f':		/* file with entry search request */

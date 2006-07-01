@@ -135,6 +135,7 @@ main( int argc, char **argv )
 
 		case 'w':
 			ber_str2bv( optarg, 0, 0, &pass );
+			memset( optarg, '*', pass.bv_len );
 			break;
 
 		case 'l':		/* the number of loops */
