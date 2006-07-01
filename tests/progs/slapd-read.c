@@ -354,18 +354,22 @@ retry:;
 		}
 
 		if ( rc ) {
-			unsigned first = tester_ignore_err( rc );
+			unsigned	first = tester_ignore_err( rc );
+			char		buf[ BUFSIZ ];
+
+			snprintf( buf, sizeof( buf ), "ldap_search_ext_s(%s)", entry );
+
 			/* if ignore.. */
 			if ( first ) {
 				/* only log if first occurrence */
 				if ( force < 2 || first == 1 ) {
-					tester_ldap_error( ld, "ldap_search_ext_s", NULL );
+					tester_ldap_error( ld, buf, NULL );
 				}
 				continue;
 			}
 
 			/* busy needs special handling */
-			tester_ldap_error( ld, "ldap_search_ext_s", NULL );
+			tester_ldap_error( ld, buf, NULL );
 			if ( rc == LDAP_BUSY && do_retry > 0 ) {
 				ldap_unbind_ext( ld, NULL, NULL );
 				ld = NULL;

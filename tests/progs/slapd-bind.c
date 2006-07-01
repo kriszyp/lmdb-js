@@ -45,7 +45,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 	int force, int chaserefs, int noinit, LDAP **ldp );
 
 static int
-do_base( char *uri, struct berval *base, struct berval *pass, char *pwattr,
+do_base( char *uri, char *dn, struct berval *pass, char *base, char *filter, char *pwattr,
 	int maxloop, int force, int chaserefs, int noinit, int delay );
 
 /* This program can be invoked two ways: if -D is used to specify a Bind DN,
@@ -73,8 +73,6 @@ usage( char *name )
 	exit( EXIT_FAILURE );
 }
 
-static char *filter = "(objectClass=person)";
-
 int
 main( int argc, char **argv )
 {
@@ -82,7 +80,8 @@ main( int argc, char **argv )
 	char		*uri = NULL;
 	char		*host = "localhost";
 	char		*dn = NULL;
-	struct berval	base = { 0, NULL };
+	char		*base = NULL;
+	char		*filter = "(objectClass=person)";
 	struct berval	pass = { 0, NULL };
 	char		*pwattr = NULL;
 	int		port = -1;
@@ -105,7 +104,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'b':		/* base DN of a tree of user DNs */
-			ber_str2bv( optarg, 0, 0, &base );
+			base = optarg;
 			break;
 
 		case 'C':
@@ -183,8 +182,8 @@ main( int argc, char **argv )
 	uri = tester_uri( uri, host, port );
 
 	for ( i = 0; i < outerloops; i++ ) {
-		if ( base.bv_val != NULL ) {
-			do_base( uri, &base, &pass, pwattr, loops,
+		if ( base != NULL ) {
+			do_base( uri, dn, &pass, base, filter, pwattr, loops,
 				force, chaserefs, noinit, delay );
 		} else {
 			do_bind( uri, dn, &pass, loops,
@@ -267,7 +266,7 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 
 
 static int
-do_base( char *uri, struct berval *base, struct berval *pass, char *pwattr,
+do_base( char *uri, char *dn, struct berval *pass, char *base, char *filter, char *pwattr,
 	int maxloop, int force, int chaserefs, int noinit, int delay )
 {
 	LDAP	*ld = NULL;
@@ -286,7 +285,6 @@ do_base( char *uri, struct berval *base, struct berval *pass, char *pwattr,
 	struct timeval beg, end;
 #endif
 	int version = LDAP_VERSION3;
-	struct berval pw = { 0, NULL };
 	char *nullstr = "";
 
 	srand(pid);
@@ -301,19 +299,19 @@ do_base( char *uri, struct berval *base, struct berval *pass, char *pwattr,
 	(void) ldap_set_option( ld, LDAP_OPT_REFERRALS,
 		chaserefs ? LDAP_OPT_ON: LDAP_OPT_OFF );
 
-	rc = ldap_sasl_bind_s( ld, NULL, LDAP_SASL_SIMPLE, &pw, NULL, NULL, NULL );
+	rc = ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, pass, NULL, NULL, NULL );
 	if ( rc != LDAP_SUCCESS ) {
 		tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 		exit( EXIT_FAILURE );
 	}
 
 	fprintf( stderr, "PID=%ld - Bind(%d): base=\"%s\", filter=\"%s\" attr=\"%s\".\n",
-			(long) pid, maxloop, base->bv_val, filter, pwattr );
+			(long) pid, maxloop, base, filter, pwattr );
 
 	if ( pwattr != NULL ) {
 		attrs[ 0 ] = pwattr;
 	}
-	rc = ldap_search_ext( ld, base->bv_val, LDAP_SCOPE_SUBTREE,
+	rc = ldap_search_ext( ld, base, LDAP_SCOPE_SUBTREE,
 			filter, attrs, 0, NULL, NULL, 0, 0, &msgid );
 	if ( rc != LDAP_SUCCESS ) {
 		tester_ldap_error( ld, "ldap_search_ext", NULL );
@@ -340,13 +338,8 @@ do_base( char *uri, struct berval *base, struct berval *pass, char *pwattr,
 					creds = realloc( creds, (ndns + 1)*sizeof(struct berval) );
 					if ( values == NULL ) {
 novals:;
-						if ( pass != NULL ) {
-							ber_dupbv( &creds[ndns], pass );
-
-						} else {
-							creds[ndns].bv_len = 0;
-							creds[ndns].bv_val = nullstr;
-						}
+						creds[ndns].bv_len = 0;
+						creds[ndns].bv_val = nullstr;
 
 					} else {
 						static struct berval	cleartext = BER_BVC( "{CLEARTEXT} " );
@@ -399,21 +392,21 @@ novals:;
 	}
 
 	fprintf( stderr, "  PID=%ld - Bind base=\"%s\" filter=\"%s\" got %d values.\n",
-		(long) pid, base->bv_val, filter, ndns );
+		(long) pid, base, filter, ndns );
 
 	/* Ok, got list of DNs, now start binding to each */
 	for ( i = 0; i < maxloop; i++ ) {
 		int j, k;
-		struct berval *cred = pass;
+		struct berval cred = { 0, NULL };
 
 		for ( j = 0, k = 0; k < ndns; k++) {
 			j = rand() % ndns;
 		}
 
 		if ( creds && !BER_BVISEMPTY( &creds[j] ) ) {
-			cred = &creds[j];
+			cred = creds[j];
 		}
-		if ( do_bind( uri, dns[j], cred, 1, force, chaserefs, noinit, &ld )
+		if ( do_bind( uri, dns[j], &cred, 1, force, chaserefs, noinit, &ld )
 			&& !force )
 		{
 			break;

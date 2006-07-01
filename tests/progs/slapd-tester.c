@@ -671,19 +671,24 @@ main( int argc, char **argv )
 		if ( DOREQ( bnum, j ) ) {
 			int	jj = j % bnum;
 
-			bargs[banum - 4] = breqs[jj];
-			bargs[banum - 2] = bcreds[jj];
-			bargs[banum - 1] = NULL;
 			if ( battrs[jj] != NULL ) {
-				bargs[banum - 5] = "-b";
-				bargs[banum - 3] = "-f";
-				bargs[banum - 1] = "-a";
-				bargs[banum] = battrs[jj];
+				bargs[banum - 4] = manager ? manager : "";
+				bargs[banum - 2] = passwd ? passwd : "";
+
+				bargs[banum - 1] = "-b";
+				bargs[banum] = breqs[jj];
+				bargs[banum + 1] = "-f";
+				bargs[banum + 2] = bcreds[jj];
+				bargs[banum + 3] = "-a";
+				bargs[banum + 4] = battrs[jj];
+			} else {
+				bargs[banum - 4] = breqs[jj];
+				bargs[banum - 2] = bcreds[jj];
+				bargs[banum - 1] = NULL;
 			}
 
 			fork_child( bcmd, bargs );
-			bargs[banum - 5] = "-D";
-			bargs[banum - 3] = "-w";
+			bargs[banum - 1] = NULL;
 		}
 	}
 
