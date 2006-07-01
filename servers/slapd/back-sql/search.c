@@ -654,9 +654,35 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_process_filter()\n", 0, 0, 0 );
 	if ( f->f_choice == SLAPD_FILTER_COMPUTED ) {
+		struct berval	flt;
+		char		*msg = NULL;
+
+		switch ( f->f_result ) {
+		case LDAP_COMPARE_TRUE:
+			BER_BVSTR( &flt, "10=10" );
+			msg = "TRUE";
+			break;
+
+		case LDAP_COMPARE_FALSE:
+			BER_BVSTR( &flt, "11=0" );
+			msg = "FALSE";
+			break;
+
+		case SLAPD_COMPARE_UNDEFINED:
+			BER_BVSTR( &flt, "12=0" );
+			msg = "UNDEFINED";
+			break;
+
+		default:
+			rc = -1;
+			goto done;
+		}
+
 		Debug( LDAP_DEBUG_TRACE, "backsql_process_filter(): "
-			"invalid filter\n", 0, 0, 0 );
-		rc = -1;
+			"filter computed (%s)\n", msg, 0, 0 );
+		backsql_strfcat_x( &bsi->bsi_flt_where,
+				bsi->bsi_op->o_tmpmemctx, "b", &flt );
+		rc = 1;
 		goto done;
 	}
 
