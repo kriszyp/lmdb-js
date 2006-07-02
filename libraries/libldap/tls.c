@@ -1366,6 +1366,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		if ( lo->ldo_tls_ctx )
 			SSL_CTX_free( lo->ldo_tls_ctx );
 		lo->ldo_tls_ctx = arg;
+		CRYPTO_add( &((SSL_CTX *)arg)->references, 1, CRYPTO_LOCK_SSL_CTX );
 		return 0;
 	case LDAP_OPT_X_TLS_CONNECT_CB:
 		lo->ldo_tls_connect_cb = (LDAP_TLS_CONNECT_CB *)arg;
