@@ -36,7 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = main$(EXEEXT) readSchema$(EXEEXT)
+noinst_PROGRAMS = main$(EXEEXT) readSchema$(EXEEXT) urlTest$(EXEEXT)
 subdir = examples
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -53,6 +53,9 @@ main_DEPENDENCIES = ../src/libldapcpp.la
 am_readSchema_OBJECTS = readSchema.$(OBJEXT)
 readSchema_OBJECTS = $(am_readSchema_OBJECTS)
 readSchema_DEPENDENCIES = ../src/libldapcpp.la
+am_urlTest_OBJECTS = urlTest.$(OBJEXT)
+urlTest_OBJECTS = $(am_urlTest_OBJECTS)
+urlTest_DEPENDENCIES = ../src/libldapcpp.la
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -64,8 +67,9 @@ LTCXXCOMPILE = $(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) \
 CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(main_SOURCES) $(readSchema_SOURCES)
-DIST_SOURCES = $(main_SOURCES) $(readSchema_SOURCES)
+SOURCES = $(main_SOURCES) $(readSchema_SOURCES) $(urlTest_SOURCES)
+DIST_SOURCES = $(main_SOURCES) $(readSchema_SOURCES) \
+	$(urlTest_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -169,6 +173,8 @@ main_SOURCES = main.cpp
 main_LDADD = ../src/libldapcpp.la
 readSchema_SOURCES = readSchema.cpp
 readSchema_LDADD = ../src/libldapcpp.la
+urlTest_SOURCES = urlTest.cpp
+urlTest_LDADD = ../src/libldapcpp.la
 all: all-am
 
 .SUFFIXES:
@@ -215,6 +221,9 @@ main$(EXEEXT): $(main_OBJECTS) $(main_DEPENDENCIES)
 readSchema$(EXEEXT): $(readSchema_OBJECTS) $(readSchema_DEPENDENCIES) 
 	@rm -f readSchema$(EXEEXT)
 	$(CXXLINK) $(readSchema_LDFLAGS) $(readSchema_OBJECTS) $(readSchema_LDADD) $(LIBS)
+urlTest$(EXEEXT): $(urlTest_OBJECTS) $(urlTest_DEPENDENCIES) 
+	@rm -f urlTest$(EXEEXT)
+	$(CXXLINK) $(urlTest_LDFLAGS) $(urlTest_OBJECTS) $(urlTest_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -224,6 +233,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/readSchema.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/urlTest.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
