@@ -314,9 +314,7 @@ backsql_init_search(
 				}
 
 			} else {
-				rs->sr_ref = referral_rewrite( default_referral,
-						NULL, &op->o_req_dn, scope );
-				rc = rs->sr_err = LDAP_REFERRAL;
+				rs->sr_err = rc;
 			}
 		}
 	}
