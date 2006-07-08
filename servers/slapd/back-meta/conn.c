@@ -1192,6 +1192,13 @@ retry_lock2:;
 					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d]\n",
 						op->o_log_prefix, i, 0 );
 
+				} else if ( lerr == LDAP_UNAVAILABLE ) {
+					META_CANDIDATE_SET( &candidates[ i ] );
+					candidates[ i ].sr_err = LDAP_UNAVAILABLE;
+
+					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d] unavailable\n",
+						op->o_log_prefix, i, 0 );
+
 				} else {
 				
 					/*
