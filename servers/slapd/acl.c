@@ -1649,7 +1649,8 @@ slap_acl_mask(
 			ACL_RECORD_VALUE_STATE;
 
 			/* must have DN syntax */
-			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) continue;
+			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName &&
+				!is_at_syntax( desc->ad_type, SLAPD_NAMEUID_SYNTAX )) continue;
 
 			/* check if the target is an attribute. */
 			if ( val == NULL ) continue;
