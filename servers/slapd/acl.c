@@ -199,7 +199,9 @@ slap_access_allowed(
 	control = ACL_BREAK;
 
 	if ( st_same_attr ) {
+#if 0
 		assert( state->as_vd_acl != NULL );
+#endif
 
 		a = state->as_vd_acl;
 		count = state->as_vd_acl_count;
@@ -377,11 +379,14 @@ access_allowed_mask(
 			{
 				return state->as_result;
 
-			} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
+			}
+#if 0
+			else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
 				val != NULL && state->as_vd_acl == NULL )
 			{
 				return state->as_result;
 			}
+#endif
 			st_same_attr = 1;
 		} else {
 			*state = state_init;
@@ -509,7 +514,7 @@ slap_acl_get(
 
 	dnlen = e->e_nname.bv_len;
 
-	for ( ; a != NULL; a = a->acl_next ) {
+	for ( ; a != NULL; prev = a, a = a->acl_next ) {
 		(*count) ++;
 
 		if ( a->acl_dn_pat.bv_len || ( a->acl_dn_style != ACL_STYLE_REGEX )) {
@@ -580,10 +585,8 @@ slap_acl_get(
 
 			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
 				state->as_recorded |= ACL_STATE_RECORDED_VD;
-				state->as_vd_acl = a;
-				state->as_vd_acl_count = *count;
-				state->as_vd_access = a->acl_access;
-				state->as_vd_access_count = 1;
+				state->as_vd_acl = prev;
+				state->as_vd_acl_count = *count - 1;
 				ACL_INVALIDATE( state->as_vd_acl_mask );
 			}
 
@@ -666,21 +669,6 @@ slap_acl_get(
 	Debug( LDAP_DEBUG_ACL, "<= acl_get: done.\n", 0, 0, 0 );
 	return( NULL );
 }
-
-/*
- * Record value-dependent access control state
- */
-#define ACL_RECORD_VALUE_STATE do { \
-		if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
-			state->as_recorded |= ACL_STATE_RECORDED_VD; \
-			state->as_vd_acl = a; \
-			AC_MEMCPY( state->as_vd_acl_matches, matches, \
-				sizeof( state->as_vd_acl_matches )) ; \
-			state->as_vd_acl_count = count; \
-			state->as_vd_access = b; \
-			state->as_vd_access_count = i; \
-		} \
-	} while( 0 )
 
 static int
 acl_mask_dn(
@@ -1029,8 +1017,6 @@ acl_mask_dnattr(
 		if ( ! bdn->a_self )
 			return 1;
 
-		ACL_RECORD_VALUE_STATE;
-		
 		/* this is a self clause, check if the target is an
 		 * attribute.
 		 */
@@ -1102,16 +1088,8 @@ slap_acl_mask(
 		accessmask2str( *mask, accessmaskbuf, 1 ) );
 
 
-	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )
-		&& state->as_vd_acl == a )
-	{
-		b = state->as_vd_access;
-		i = state->as_vd_access_count;
-
-	} else {
-		b = a->acl_access;
-		i = 1;
-	}
+	b = a->acl_access;
+	i = 1;
 
 	for ( ; b != NULL; b = b->a_next, i++ ) {
 		slap_mask_t oldmask, modmask;
@@ -1645,8 +1623,6 @@ slap_acl_mask(
 		if ( b->a_dn.a_self ) {
 			const char *dummy;
 			int rc, match = 0;
-
-			ACL_RECORD_VALUE_STATE;
 
 			/* must have DN syntax */
 			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName &&

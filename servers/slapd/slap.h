@@ -1448,23 +1448,20 @@ typedef enum {
 } slap_acl_state_t;
 
 typedef struct slap_acl_state {
-	slap_acl_state_t as_recorded;
-
 	/* Access state */
-	AccessControl *as_vd_acl;
 	AccessControl *as_vi_acl;
+	AccessControl *as_vd_acl;
+	AttributeDescription *as_vd_ad;
+
 	slap_mask_t as_vd_acl_mask;
+
+	slap_acl_state_t as_recorded;
 	regmatch_t as_vd_acl_matches[MAXREMATCHES];
 	int as_vd_acl_count;
-
-	Access *as_vd_access;
-	int as_vd_access_count;
-
 	int as_result;
-	AttributeDescription *as_vd_ad;
 } AccessControlState;
-#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, \
-	{ { 0, 0 } }, 0, NULL, 0, 0, NULL }
+#define ACL_STATE_INIT { NULL, NULL, NULL, 0UL, \
+	ACL_STATE_NOT_RECORDED, { { 0, 0 } }, 0, 0 }
 
 /*
  * Backend-info
