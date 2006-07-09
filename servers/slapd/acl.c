@@ -134,7 +134,6 @@ slap_access_allowed(
 	slap_access_t			access_level;
 	const char			*attr;
 	regmatch_t			matches[MAXREMATCHES];
-	int				st_same_attr = 0;
 
 	assert( op != NULL );
 	assert( e != NULL );
@@ -198,26 +197,17 @@ slap_access_allowed(
 	ret = 0;
 	control = ACL_BREAK;
 
-	if ( st_same_attr ) {
-#if 0
-		assert( state->as_vd_acl != NULL );
-#endif
-
+	if ( state && state->as_vd_ad == desc ) {
 		a = state->as_vd_acl;
 		count = state->as_vd_acl_count;
-		if ( !ACL_IS_INVALID( state->as_vd_acl_mask ) ) {
-			mask = state->as_vd_acl_mask;
-			AC_MEMCPY( matches, state->as_vd_acl_matches, sizeof(matches) );
-			goto vd_access;
-		}
 
 	} else {
 		if ( state ) state->as_vi_acl = NULL;
 		a = NULL;
-		ACL_PRIV_ASSIGN( mask, *maskp );
 		count = 0;
-		memset( matches, '\0', sizeof( matches ) );
 	}
+	ACL_PRIV_ASSIGN( mask, *maskp );
+	memset( matches, '\0', sizeof( matches ) );
 
 	while ( ( a = slap_acl_get( a, &count, op, e, desc, val,
 		MAXREMATCHES, matches, state ) ) != NULL )
@@ -342,7 +332,6 @@ access_allowed_mask(
 	slap_mask_t			mask;
 	slap_access_t			access_level;
 	const char			*attr;
-	int				st_same_attr = 0;
 	static AccessControlState	state_init = ACL_STATE_INIT;
 
 	assert( e != NULL );
@@ -380,19 +369,9 @@ access_allowed_mask(
 				return state->as_result;
 
 			}
-#if 0
-			else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
-				val != NULL && state->as_vd_acl == NULL )
-			{
-				return state->as_result;
-			}
-#endif
-			st_same_attr = 1;
 		} else {
 			*state = state_init;
 		}
-
-		state->as_vd_ad = desc;
 	}
 
 	Debug( LDAP_DEBUG_ACL,
@@ -460,6 +439,7 @@ done:
 			state->as_result = ret;
 		}
 		state->as_recorded |= ACL_STATE_RECORDED;
+		state->as_vd_ad = desc;
 	}
 	if ( be_null ) op->o_bd = NULL;
 	if ( maskp ) ACL_PRIV_ASSIGN( *maskp, mask );
@@ -587,7 +567,6 @@ slap_acl_get(
 				state->as_recorded |= ACL_STATE_RECORDED_VD;
 				state->as_vd_acl = prev;
 				state->as_vd_acl_count = *count - 1;
-				ACL_INVALIDATE( state->as_vd_acl_mask );
 			}
 
 			if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {

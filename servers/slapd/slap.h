@@ -1453,15 +1453,13 @@ typedef struct slap_acl_state {
 	AccessControl *as_vd_acl;
 	AttributeDescription *as_vd_ad;
 
-	slap_mask_t as_vd_acl_mask;
 
 	slap_acl_state_t as_recorded;
-	regmatch_t as_vd_acl_matches[MAXREMATCHES];
 	int as_vd_acl_count;
 	int as_result;
 } AccessControlState;
-#define ACL_STATE_INIT { NULL, NULL, NULL, 0UL, \
-	ACL_STATE_NOT_RECORDED, { { 0, 0 } }, 0, 0 }
+#define ACL_STATE_INIT { NULL, NULL, NULL, \
+	ACL_STATE_NOT_RECORDED, 0, 0 }
 
 /*
  * Backend-info
