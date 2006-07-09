@@ -649,6 +649,17 @@ slap_acl_get(
 	return( NULL );
 }
 
+/*
+ * Record value-dependent access control state
+ */
+#define ACL_RECORD_VALUE_STATE do { \
+		if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
+			state->as_recorded |= ACL_STATE_RECORDED_VD; \
+			state->as_vd_acl = a; \
+			state->as_vd_acl_count = count; \
+		} \
+	} while( 0 )
+
 static int
 acl_mask_dn(
 	Operation		*op,
@@ -995,6 +1006,8 @@ acl_mask_dnattr(
 		/* no dnattr match, check if this is a self clause */
 		if ( ! bdn->a_self )
 			return 1;
+
+		ACL_RECORD_VALUE_STATE;
 
 		/* this is a self clause, check if the target is an
 		 * attribute.
@@ -1602,6 +1615,8 @@ slap_acl_mask(
 		if ( b->a_dn.a_self ) {
 			const char *dummy;
 			int rc, match = 0;
+
+			ACL_RECORD_VALUE_STATE;
 
 			/* must have DN syntax */
 			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName &&
