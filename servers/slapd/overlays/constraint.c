@@ -62,14 +62,14 @@ static ConfigDriver constraint_cf_gen;
 static ConfigTable constraintcfg[] = {
     { "constraint_attribute", "attribute regex <regular expression>",
       4, 4, 0, ARG_MAGIC | CONSTRAINT_ATTRIBUTE, constraint_cf_gen,
-      "( HPcfgOvAt:4.1 NAME 'olcConstraintAttribute' "
+      "( OLcfgOvAt:13.1 NAME 'olcConstraintAttribute' "
       "DESC 'regular expression constraint for attribute' "
       "SYNTAX OMsDirectoryString )", NULL, NULL },
     { NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
 static ConfigOCs constraintocs[] = {
-    { "( HPcfgOvOc:4.1 "
+    { "( OLcfgOvOc:13.1 "
       "NAME 'olcConstraintConfig' "
       "DESC 'Constraint overlay configuration' "
       "SUP olcOverlayConfig "
