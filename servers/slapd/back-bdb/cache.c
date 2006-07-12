@@ -556,7 +556,9 @@ bdb_cache_lru_add(
 		lockp = NULL;
 	}
 
-	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_tail_mutex );
+	/* Don't bother if we can't get the lock */
+	if ( ldap_pvt_thread_mutex_trylock( &bdb->bi_cache.lru_tail_mutex ) )
+		return;
 
 	/* Look for an unused entry to remove */
 	for (elru = bdb->bi_cache.c_lrutail; elru; elru = elprev ) {
@@ -568,7 +570,6 @@ bdb_cache_lru_add(
 		if ( bdb_cache_entry_db_lock( bdb->bi_dbenv,
 				bdb->bi_cache.c_locker, elru, 1, 1, lockp ) == 0 ) {
 
-			int stop = 0;
 
 			/* If this node is in the process of linking into the cache,
 			 * or this node is being deleted, skip it.
@@ -608,16 +609,12 @@ bdb_cache_lru_add(
 			}
 			bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 
-			if ( count == bdb->bi_cache.c_minfree ) {
+			if ( count >= bdb->bi_cache.c_minfree ) {
 				ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
-				bdb->bi_cache.c_cursize -= bdb->bi_cache.c_minfree;
-				if ( bdb->bi_cache.c_maxsize - bdb->bi_cache.c_cursize >=
-					bdb->bi_cache.c_minfree )
-					stop = 1;
-				count = 0;
+				bdb->bi_cache.c_cursize -= count;
 				ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+				break;
 			}
-			if (stop) break;
 		}
 	}
 
