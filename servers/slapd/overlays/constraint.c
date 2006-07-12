@@ -26,6 +26,7 @@
 #include <ac/regex.h>
 
 #include "slap.h"
+#include "config.h"
 
 /*
  * This overlay limits the values which can be placed into an
@@ -35,6 +36,8 @@
  * control the add and modify value mods of a modify)
  */
 
+#define REGEX_STR "regex"
+
 /*
  * Linked list of attribute constraints which we should enforce.
  * This is probably a sub optimal structure - some form of sorted
@@ -42,11 +45,186 @@
  * likely to be much bigger than 4 or 5. We stick with a list for
  * the moment.
  */
+
 typedef struct constraint {
     struct constraint *ap_next;
     AttributeDescription *ap;
     regex_t *re;
+    char *re_str; /* string representation of regex */
 } constraint;
+
+enum {
+    CONSTRAINT_ATTRIBUTE = 1
+};
+
+static ConfigDriver constraint_cf_gen;
+
+static ConfigTable constraintcfg[] = {
+    { "constraint_attribute", "attribute regex <regular expression>",
+      4, 4, 0, ARG_MAGIC | CONSTRAINT_ATTRIBUTE, constraint_cf_gen,
+      "( HPcfgOvAt:4.1 NAME 'olcConstraintAttribute' "
+      "DESC 'regular expression constraint for attribute' "
+      "SYNTAX OMsDirectoryString )", NULL, NULL },
+    { NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs constraintocs[] = {
+    { "( HPcfgOvOc:4.1 "
+      "NAME 'olcConstraintConfig' "
+      "DESC 'Constraint overlay configuration' "
+      "SUP olcOverlayConfig "
+      "MAY ( olcConstraintAttribute ) )",
+      Cft_Overlay, constraintcfg },
+    { NULL, 0, NULL }
+};
+
+static int
+constraint_cf_gen( ConfigArgs *c )
+{
+    slap_overinst *on = (slap_overinst *)(c->bi);
+    constraint *cn = on->on_bi.bi_private, *cp;
+    struct berval bv;
+    int i, rc = 0;
+    constraint ap = { NULL, NULL, NULL  }, *a2 = NULL;
+    regmatch_t rm[2];
+    const char *text = NULL;
+    
+    switch ( c->op ) {
+        case SLAP_CONFIG_EMIT:
+            switch (c->type) {
+                case CONSTRAINT_ATTRIBUTE:
+                    for (cp=cn; cp; cp=cp->ap_next) {
+                        int len;
+                        char *s;
+                        
+                        len = cp->ap->ad_cname.bv_len +
+                            strlen( REGEX_STR ) + strlen( cp->re_str) + 3;
+                        s = ch_malloc(len);
+                        if (!s) continue;
+                        snprintf(s, len, "%s %s %s", cp->ap->ad_cname.bv_val,
+                                 REGEX_STR, cp->re_str);
+                        bv.bv_val = s;
+                        bv.bv_len = strlen(s);
+                        rc = value_add_one( &c->rvalue_vals, &bv );
+                        if (rc) return rc;
+                        rc = value_add_one( &c->rvalue_nvals, &bv );
+                        if (rc) return rc;
+                        ch_free(s);
+                    }
+                    break;
+                default:
+                    abort();
+                    break;
+            }
+            break;
+        case LDAP_MOD_DELETE:
+            switch (c->type) {
+                case CONSTRAINT_ATTRIBUTE:
+                    if (!cn) break; /* nothing to do */
+                    
+                    if (c->valx < 0) {
+                            /* zap all constraints */
+                        while (cn) {
+                            cp = cn->ap_next;
+                            if (cn->re) {
+                                regfree(cn->re);
+                                ch_free(cn->re);
+                            }
+                            if (cn->re_str) ch_free(cn->re_str);
+                            ch_free(cn);
+                            cn = cp;
+                        }
+                        
+                        on->on_bi.bi_private = NULL;
+                    } else {
+                        constraint *cpp;
+                        
+                            /* zap constraint numbered 'valx' */
+                        for(i=0, cp = cn, cpp = NULL;
+                            (cp) && (i<c->valx);
+                            i++, cpp = cp, cp=cp->ap_next);
+
+                        if (cpp) {
+                                /* zap cp, and join cpp to cp->ap_next */
+                            cpp->ap_next = cp->ap_next;
+                            if (cp->re) {
+                                regfree(cp->re);
+                                ch_free(cp->re);
+                            }
+                            if (cp->re_str) ch_free(cp->re_str);
+                            ch_free(cp);
+                        } else {
+                                /* zap the list head */
+                            if (cn->re) {
+                                regfree(cn->re);
+                                ch_free(cn->re);
+                            }
+                            if (cn->re_str) ch_free(cn->re_str);
+                            ch_free(cn);
+                            on->on_bi.bi_private = cn->ap_next;
+                        }
+                    }
+                    
+                    break;
+                default:
+                    abort();
+                    break;
+            }
+            break;
+        case SLAP_CONFIG_ADD:
+        case LDAP_MOD_ADD:
+            switch (c->type) {
+                case CONSTRAINT_ATTRIBUTE:
+                    if ( slap_str2ad( c->argv[1], &ap.ap, &text ) ) {
+                        Debug( LDAP_DEBUG_CONFIG,
+                               "constraint_add: <%s>: attribute description unknown %s.\n",
+                               c->argv[1], text, 0 );
+                        return( ARG_BAD_CONF );
+                    }
+
+                    if ( strcasecmp( c->argv[2], "regex" ) == 0) {
+                        int err;
+            
+                        ap.re = ch_malloc( sizeof(regex_t) );
+                        if ((err = regcomp( ap.re,
+                                            c->argv[3], REG_EXTENDED )) != 0) {
+                            char errmsg[1024];
+                            
+                            regerror( err, ap.re, errmsg, sizeof(errmsg) );
+                            ch_free(ap.re);
+                            Debug( LDAP_DEBUG_CONFIG,
+                                   "%s: Illegal regular expression \"%s\": Error %s\n",
+                                   c->argv[1], c->argv[3], errmsg);
+                            ap.re = NULL;
+                            return( ARG_BAD_CONF );
+                        }
+                        ap.re_str = ch_strdup( c->argv[3] );
+                    } else {
+                        Debug( LDAP_DEBUG_CONFIG,
+                               "%s: Unknown constraint type: %s\n",
+                               c->argv[1], c->argv[2], 0 );
+                        return ( ARG_BAD_CONF );
+                    }
+                    
+
+                    a2 = ch_malloc( sizeof(constraint) );
+                    a2->ap_next = on->on_bi.bi_private;
+                    a2->ap = ap.ap;
+                    a2->re = ap.re;
+                    a2->re_str = ap.re_str;
+                    on->on_bi.bi_private = a2;
+                    break;
+                default:
+                    abort();
+                    break;
+            }
+            break;
+        default:
+            abort();
+    }
+
+    return rc;
+}
 
 static int
 constraint_violation( constraint *c, struct berval *bv )
@@ -62,14 +240,14 @@ constraint_violation( constraint *c, struct berval *bv )
 }
 
 static char *
-print_message( const char *msg, AttributeDescription *a )
+print_message( const char *fmt, AttributeDescription *a )
 {
     char *ret;
     int sz;
     
-    sz = strlen(msg) + a->ad_cname.bv_len + sizeof(" on ");
+    sz = strlen(fmt) + a->ad_cname.bv_len + 1;
     ret = ch_malloc(sz);
-    snprintf( ret, sz, "%s on %s", msg, a->ad_cname.bv_val );
+    snprintf( ret, sz, fmt, a->ad_cname.bv_val );
     return ret;
 }
 
@@ -81,7 +259,7 @@ constraint_add( Operation *op, SlapReply *rs )
     constraint *c = on->on_bi.bi_private, *cp;
     BerVarray b = NULL;
     int i;
-    const char *rsv = "add breaks regular expression constraint";
+    const char *rsv = "add breaks regular expression constraint on %s";
     char *msg;
     
     if ((a = op->ora_e->e_attrs) == NULL) {
@@ -126,7 +304,7 @@ constraint_modify( Operation *op, SlapReply *rs )
     Modifications *m;
     BerVarray b = NULL;
     int i;
-    const char *rsv = "modify breaks regular expression constraint";
+    const char *rsv = "modify breaks regular expression constraint on %s";
     char *msg;
     
     if ((m = op->orm_modlist) == NULL) {
@@ -166,74 +344,6 @@ constraint_modify( Operation *op, SlapReply *rs )
     return SLAP_CB_CONTINUE;
 }
 
-static int constraint_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-    )
-{
-    slap_overinst *on = (slap_overinst *) be->bd_info;
-    constraint ap = { NULL, NULL, NULL  }, *a2 = NULL;
-    
-    if ( strcasecmp( argv[0], "constraint_attribute" ) == 0 ) {
-        const char *text;
-                
-        if ( argc != 4 ) {
-            Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-                   "wrong number of parameters in"
-                   "\"constraint_attribute <attribute> <constraint> <constraint_value>\" line.\n",
-                   fname, lineno, 0 );
-            return( 1 );
-        }
-        if ( slap_str2ad( argv[1], &ap.ap, &text ) ) {
-            Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-                   "attribute description unknown \"constraint_attribute\" line: %s.\n",
-                   fname, lineno, text );
-            return( 1 );
-        }
-
-        if ( strcasecmp( argv[2], "regex" ) == 0) {
-            int err;
-            
-            ap.re = ch_malloc( sizeof(regex_t) );
-            if ((err = regcomp( ap.re, argv[3], REG_EXTENDED )) != 0) {
-                static const char fmt[] = "\"%s\": Error %s";
-                char errmsg[1024], *msg;
-                int msgsize;
-                
-                msgsize = regerror( err, ap.re, errmsg, sizeof(errmsg) );
-                msgsize += STRLENOF(fmt) - STRLENOF("%s%s") + strlen(argv[3]);
-
-                msg = ch_malloc( msgsize + 1 );
-                snprintf( msg, msgsize, fmt, argv[3], errmsg );
-                ch_free(ap.re);
-                Debug( LDAP_DEBUG_ANY,
-                    "%s: line %d: Illegal regular expression %s\n",
-                    fname, lineno, msg );
-                ch_free(msg);
-                ap.re = NULL;
-                return(1);
-            }
-        } else
-            Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-                   "Unknown constraint type: %s",
-                   fname, lineno, argv[2] );
-        
-
-        a2 = ch_malloc( sizeof(constraint) );
-        a2->ap_next = on->on_bi.bi_private;
-        a2->ap = ap.ap;
-        a2->re = ap.re;
-        on->on_bi.bi_private = a2;
-    } else {
-        return SLAP_CONF_UNKNOWN;
-    }
-    
-    return 0;
-}
-
 static int
 constraint_close(
     BackendDB *be
@@ -244,6 +354,7 @@ constraint_close(
 
     for ( ap = on->on_bi.bi_private; ap; ap = a2 ) {
         a2 = ap->ap_next;
+        if (ap->re_str) ch_free(ap->re_str);
         if (ap->re) {
             regfree( ap->re );
             ch_free( ap->re );
@@ -267,12 +378,19 @@ static
 #endif
 int
 constraint_initialize( void ) {
+    int rc;
+
     constraint_ovl.on_bi.bi_type = "constraint";
-    constraint_ovl.on_bi.bi_db_config = constraint_config;
     constraint_ovl.on_bi.bi_db_close = constraint_close;
     constraint_ovl.on_bi.bi_op_add = constraint_add;
     constraint_ovl.on_bi.bi_op_modify = constraint_modify;
 
+    constraint_ovl.on_bi.bi_private = NULL;
+    
+    constraint_ovl.on_bi.bi_cf_ocs = constraintocs;
+    rc = config_register_schema( constraintcfg, constraintocs );
+    if (rc) return rc;
+    
     return overlay_register( &constraint_ovl );
 }
 
