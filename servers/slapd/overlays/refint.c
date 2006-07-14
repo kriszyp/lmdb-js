@@ -472,6 +472,9 @@ refint_qtask( void *ctx, void *arg )
 		op->o_req_ndn = id->dn;
 		op->o_req_dn = id->dn;
 		op->o_bd = rq->db;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+		slap_op_time( &op->o_time, &op->o_tincr );
 
 		/* search */
 		rc = op->o_bd->be_search(op, &rs);
@@ -571,6 +574,7 @@ refint_qtask( void *ctx, void *arg )
 
 			op->o_dn = op->o_bd->be_rootdn;
 			op->o_ndn = op->o_bd->be_rootndn;
+			slap_op_time( &op->o_time, &op->o_tincr );
 			if((rc = op->o_bd->be_modify(op, &rs)) != LDAP_SUCCESS) {
 				Debug( LDAP_DEBUG_TRACE,
 					"refint_response: dependent modify failed: %d\n",
