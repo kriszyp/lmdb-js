@@ -43,6 +43,10 @@
 
 static slap_overinst refint;
 
+/* The DN to use in the ModifiersName for all refint updates */
+static BerValue refint_dn = BER_BVC("cn=Referential Integrity Overlay");
+static BerValue refint_ndn = BER_BVC("cn=referential integrity overlay");
+
 typedef struct refint_attrs_s {
 	struct refint_attrs_s *next;
 	AttributeDescription *attr;
@@ -526,6 +530,25 @@ refint_qtask( void *ctx, void *arg )
 			rs.sr_type	= REP_RESULT;
 			for (ra = dp->attrs; ra; ra = dp->attrs) {
 				dp->attrs = ra->next;
+				/* Set our ModifiersName */
+				if ( SLAP_LASTMOD( op->o_bd )) {
+					m = op->o_tmpalloc( sizeof(Modifications) +
+						4*sizeof(BerValue), op->o_tmpmemctx );
+					m->sml_next = op->orm_modlist;
+					if ( !first )
+						first = m;
+					op->orm_modlist = m;
+					m->sml_op = LDAP_MOD_REPLACE;
+					m->sml_flags = SLAP_MOD_INTERNAL;
+					m->sml_desc = slap_schema.si_ad_modifiersName;
+					m->sml_type = m->sml_desc->ad_cname;
+					m->sml_values = (BerVarray)(m+1);
+					m->sml_nvalues = m->sml_values+2;
+					BER_BVZERO( &m->sml_values[1] );
+					BER_BVZERO( &m->sml_nvalues[1] );
+					m->sml_values[0] = refint_dn;
+					m->sml_nvalues[0] = refint_ndn;
+				}
 				if ( !BER_BVISEMPTY( &rq->newdn ) || ( ra->next &&
 					ra->attr == ra->next->attr )) {
 					m = op->o_tmpalloc( sizeof(Modifications) +
