@@ -1016,6 +1016,10 @@ bdb_cache_modrdn(
 	avl_delete( &pei->bei_kids, (caddr_t) ei, bdb_rdn_cmp );
 	free( ei->bei_nrdn.bv_val );
 	ber_dupbv( &ei->bei_nrdn, nrdn );
+
+	if ( !pei->bei_kids )
+		pei->bei_state |= CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
+
 #ifdef BDB_HIER
 	free( ei->bei_rdn.bv_val );
 
@@ -1035,7 +1039,16 @@ bdb_cache_modrdn(
 		bdb_cache_entryinfo_unlock( pei );
 		bdb_cache_entryinfo_lock( ein );
 	}
+	/* parent now has kids */
+	if ( ein->bei_state & CACHE_ENTRY_NO_KIDS )
+		ein->bei_state ^= CACHE_ENTRY_NO_KIDS;
+
 #ifdef BDB_HIER
+	/* parent might now have grandkids */
+	if ( ein->bei_state & CACHE_ENTRY_NO_GRANDKIDS &&
+		!(ei->bei_state & (CACHE_ENTRY_NO_KIDS)))
+		ein->bei_state ^= CACHE_ENTRY_NO_GRANDKIDS;
+
 	{
 		/* Record the generation number of this change */
 		ldap_pvt_thread_mutex_lock( &bdb->bi_modrdns_mutex );
