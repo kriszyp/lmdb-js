@@ -1030,6 +1030,8 @@ bdb_cache_modrdn(
 		rdn.bv_len = ptr - rdn.bv_val;
 	}
 	ber_dupbv( &ei->bei_rdn, &rdn );
+	pei->bei_ckids--;
+	if ( pei->bei_dkids ) pei->bei_dkids--;
 #endif
 
 	if (!ein) {
@@ -1056,6 +1058,8 @@ bdb_cache_modrdn(
 		ei->bei_modrdns = bdb->bi_modrdns;
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_modrdns_mutex );
 	}
+	ein->bei_ckids++;
+	if ( ein->bei_dkids ) ein->bei_dkids++;
 #endif
 	avl_insert( &ein->bei_kids, ei, bdb_rdn_cmp, avl_dup_error );
 	bdb_cache_entryinfo_unlock( ein );
