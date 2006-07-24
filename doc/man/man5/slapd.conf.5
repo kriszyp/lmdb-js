@@ -1096,7 +1096,9 @@ Controls whether
 .B slapd
 will automatically maintain the 
 modifiersName, modifyTimestamp, creatorsName, and 
-createTimestamp attributes for entries.  By default, lastmod is on.
+createTimestamp attributes for entries. It also controls
+the entryCSN and entryUUID attributes, which are needed
+by the syncrepl provider. By default, lastmod is on.
 .TP
 .B limits <who> <limit> [<limit> [...]]
 Specify time and size limits based on who initiated an operation.
