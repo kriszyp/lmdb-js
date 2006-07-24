@@ -1366,6 +1366,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 			i++;
 			AC_MEMCPY( cbuf, se->se_csn.bv_val, se->se_csn.bv_len );
 			delcsn.bv_len = se->se_csn.bv_len;
+			delcsn.bv_val[delcsn.bv_len] = '\0';
 		} else {
 			nmods++;
 			j = num - nmods;
@@ -2325,6 +2326,12 @@ syncprov_db_open(
 	Attribute *a;
 	int rc;
 	void *thrctx = NULL;
+
+	if ( !SLAP_LASTMOD( be )) {
+		Debug( LDAP_DEBUG_ANY,
+			"syncprov_db_open: invalid config, lastmod must be enabled\n", 0, 0, 0 );
+		return -1;
+	}
 
 	if ( slapMode & SLAP_TOOL_MODE ) {
 		return 0;
