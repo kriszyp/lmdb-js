@@ -808,11 +808,6 @@ do_syncrep2(
 						&syncCookie_req.ctxcsn, &syncCookie.ctxcsn,
 						&text );
 				}
-				if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
-					match < 0 && err == LDAP_SUCCESS )
-				{
-					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
-				}
 				if ( rctrls ) {
 					ldap_controls_free( rctrls );
 				}
@@ -824,11 +819,16 @@ do_syncrep2(
 					if ( refreshDeletes == 0 && match < 0 &&
 						err == LDAP_SUCCESS )
 					{
-						syncrepl_del_nonpresent( op, si, NULL, NULL );
+						syncrepl_del_nonpresent( op, si, NULL, &syncCookie.ctxcsn );
 					} else {
 						avl_free( si->si_presentlist, avl_ber_bvfree );
 						si->si_presentlist = NULL;
 					}
+				}
+				if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
+					match < 0 && err == LDAP_SUCCESS )
+				{
+					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
 				}
 				if ( err == LDAP_SUCCESS
 					&& si->si_logstate == SYNCLOG_FALLBACK ) {
@@ -930,6 +930,7 @@ do_syncrep2(
 							}
 							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
+						slap_sync_cookie_free( &syncCookie, 0 );
 						break;
 					default:
 						Debug( LDAP_DEBUG_ANY,
