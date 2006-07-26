@@ -953,15 +953,14 @@ do_syncrep2(
 							&syncCookie.ctxcsn, &text );
 					}
 
-					if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
-						match < 0 )
-					{
-						rc = syncrepl_updateCookie( si, op, psub, &syncCookie);
-					}
+					if ( match < 0 ) {
+						if ( si->si_refreshPresent == 1 ) {
+							syncrepl_del_nonpresent( op, si, NULL, &syncCookie.ctxcsn );
+						}
 
-					if ( si->si_refreshPresent == 1 ) {
-						if ( match < 0 ) {
-							syncrepl_del_nonpresent( op, si, NULL, NULL );
+						if ( !BER_BVISNULL( &syncCookie.ctxcsn ))
+						{
+							rc = syncrepl_updateCookie( si, op, psub, &syncCookie);
 						}
 					} 
 
