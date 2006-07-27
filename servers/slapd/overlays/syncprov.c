@@ -1244,9 +1244,14 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	struct berval bv[2];
 	slap_callback cb = {0};
 
-	mod.sml_values = bv;
-	bv[1].bv_val = NULL;
-	bv[0] = si->si_ctxcsn;
+	/* If ctxcsn is empty, delete it */
+	if ( BER_BVISEMPTY( &si->si_ctxcsn )) {
+		mod.sml_values = NULL;
+	} else {
+		mod.sml_values = bv;
+		bv[1].bv_val = NULL;
+		bv[0] = si->si_ctxcsn;
+	}
 	mod.sml_nvalues = NULL;
 	mod.sml_desc = slap_schema.si_ad_contextCSN;
 	mod.sml_op = LDAP_MOD_REPLACE;
@@ -2376,15 +2381,16 @@ syncprov_db_open(
 			ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
 			ldap_pvt_thread_join( tid, NULL );
 		}
-	} else if ( SLAP_SYNC_SHADOW( op->o_bd )) {
-		/* If we're also a consumer, and we didn't find the context entry,
-		 * then don't generate anything, wait for our provider to send it
-		 * to us.
-		 */
-		goto out;
 	}
 
 	if ( BER_BVISEMPTY( &si->si_ctxcsn ) ) {
+		if ( SLAP_SYNC_SHADOW( op->o_bd )) {
+		/* If we're also a consumer, and we didn't get a contextCSN,
+		 * then don't generate anything, wait for our provider to send it
+		 * to us.
+		 */
+			goto out;
+		}
 		si->si_ctxcsn.bv_len = sizeof( si->si_ctxcsnbuf );
 		slap_get_csn( op, &si->si_ctxcsn, 0 );
 	}
