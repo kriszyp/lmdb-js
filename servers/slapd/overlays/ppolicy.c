@@ -435,9 +435,11 @@ password_scheme( struct berval *cred, struct berval *sch )
 	if (cred->bv_val[e]) {
 		int rc;
 		rc = lutil_passwd_scheme( cred->bv_val );
-		if (rc && sch) {
-			sch->bv_val = cred->bv_val;
-			sch->bv_len = e;
+		if (rc) {
+			if (sch) {
+				sch->bv_val = cred->bv_val;
+				sch->bv_len = e;
+			}
 			return LDAP_SUCCESS;
 		}
 	}
@@ -1187,6 +1189,19 @@ ppolicy_add(
 }
 
 static int
+ppolicy_mod_cb( Operation *op, SlapReply *rs )
+{
+	slap_callback *sc = op->o_callback;
+	op->o_callback = sc->sc_next;
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		ch_free( pwcons[op->o_conn->c_conn_idx].dn.bv_val );
+		BER_BVZERO( &pwcons[op->o_conn->c_conn_idx].dn );
+	}
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+	return SLAP_CB_CONTINUE;
+}
+
+static int
 ppolicy_modify( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
@@ -1583,7 +1598,23 @@ do_modify:
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		time_t now = slap_get_time();
-		
+
+		/* If the conn is restricted, set a callback to clear it
+		 * if the pwmod succeeds
+		 */
+		if (!BER_BVISEMPTY( &pwcons[op->o_conn->c_conn_idx].dn )) {
+			slap_callback *sc = op->o_tmpcalloc( 1, sizeof( slap_callback ),
+				op->o_tmpmemctx );
+			sc->sc_next = op->o_callback;
+			/* Must use sc_response to insure we reset on success, before
+			 * the client sees the response. Must use sc_cleanup to insure
+			 * that it gets cleaned up if sc_response is not called.
+			 */
+			sc->sc_response = ppolicy_mod_cb;
+			sc->sc_cleanup = ppolicy_mod_cb;
+			op->o_callback = sc;
+		}
+
 		/*
 		 * keep the necessary pwd.. operational attributes
 		 * up to date.

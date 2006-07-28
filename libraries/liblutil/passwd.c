@@ -309,7 +309,7 @@ lutil_passwd(
 	 * didn't recognize? Assume a scheme name is at least 1 character.
 	 */
 	if (( passwd->bv_val[0] == '{' ) &&
-		( strchr( passwd->bv_val, '}' ) > passwd->bv_val+1 ))
+		( ber_bvchr( passwd, '}' ) > passwd->bv_val+1 ))
 	{
 		return 1;
 	}

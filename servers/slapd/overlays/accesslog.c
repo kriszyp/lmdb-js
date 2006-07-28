@@ -601,6 +601,10 @@ log_cf_gen(ConfigArgs *c)
 			rc = mask_to_verbs( logops, li->li_ops, &c->rvalue_vals );
 			break;
 		case LOG_PURGE:
+			if ( !li->li_age ) {
+				rc = 1;
+				break;
+			}
 			agebv.bv_val = agebuf;
 			log_age_unparse( li->li_age, &agebv );
 			agebv.bv_val[agebv.bv_len] = ' ';
@@ -672,6 +676,13 @@ log_cf_gen(ConfigArgs *c)
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->msg, c->value_dn.bv_val );
 				rc = 1;
+			} else if ( BER_BVISEMPTY( &li->li_db->be_rootdn )) {
+				snprintf( c->msg, sizeof( c->msg ),
+						"<%s> no rootDN was configured for suffix",
+						c->argv[0] );
+				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+						c->log, c->msg, c->value_dn.bv_val );
+				rc = 1;
 			}
 			ch_free( c->value_dn.bv_val );
 			ch_free( c->value_ndn.bv_val );
@@ -683,11 +694,11 @@ log_cf_gen(ConfigArgs *c)
 			break;
 		case LOG_PURGE:
 			li->li_age = log_age_parse( c->argv[1] );
-			if ( li->li_age == -1 ) {
+			if ( li->li_age < 1 ) {
 				rc = 1;
 			} else {
 				li->li_cycle = log_age_parse( c->argv[2] );
-				if ( li->li_cycle == -1 ) {
+				if ( li->li_cycle < 1 ) {
 					rc = 1;
 				} else if ( slapMode & SLAP_SERVER_MODE ) {
 					struct re_s *re = li->li_task;

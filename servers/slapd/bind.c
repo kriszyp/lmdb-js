@@ -380,8 +380,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 	/*
 	 * We could be serving multiple database backends.  Select the
-	 * appropriate one, or send a referral to our "referral server"
-	 * if we don't hold it.
+	 * appropriate one.  If none, return invalid cred, not a referral.
 	 */
 
 	if ( (op->o_bd = select_backend( &op->o_req_ndn, 0, 0 )) == NULL ) {

@@ -56,8 +56,11 @@ bdb_dn2entry(
 				rc2 = bdb_cache_find_id( op, tid, ei->bei_id,
 					&ei, 1, locker, lock );
 				if ( rc2 ) rc = rc2;
-			} else if ( ei )
+			} else if ( ei ) {
 				bdb_cache_entryinfo_unlock( ei );
+				memset( lock, 0, sizeof( *lock ));
+				lock->mode = DB_LOCK_NG;
+			}
 		} else if ( ei ) {
 			bdb_cache_entryinfo_unlock( ei );
 		}

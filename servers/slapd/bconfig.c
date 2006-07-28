@@ -2458,6 +2458,8 @@ config_replica(ConfigArgs *c) {
 			nr = add_replica_info(c->be, replicauri, replicahost);
 			break;
 		} else if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
+			ber_len_t	len;
+
 			if ( replicauri ) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> replica host/URI already specified", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg, replicauri );
@@ -2476,11 +2478,28 @@ config_replica(ConfigArgs *c) {
 				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 				return(1);
 			}
+
+			len = strlen(ludp->lud_scheme) + strlen(ludp->lud_host) +
+				STRLENOF("://") + 1;
+			if (ludp->lud_port != LDAP_PORT) {
+				if (ludp->lud_port < 1 || ludp->lud_port > 65535) {
+					ldap_free_urldesc(ludp);
+					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid port",
+						c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+					return(1);
+				}
+				len += STRLENOF(":65535");
+			}
+			replicauri = ch_malloc( len );
+			replicahost = lutil_strcopy( replicauri, ludp->lud_scheme );
+			replicahost = lutil_strcopy( replicauri, "://" );
+			if (ludp->lud_port == LDAP_PORT) {
+				strcpy( replicahost, ludp->lud_host );
+			} else {
+				sprintf( replicahost, "%s:%d",ludp->lud_host,ludp->lud_port );
+			}
 			ldap_free_urldesc(ludp);
-			replicauri = c->argv[i] + STRLENOF("uri=");
-			replicauri = ch_strdup( replicauri );
-			replicahost = strchr( replicauri, '/' );
-			replicahost += 2;
 			nr = add_replica_info(c->be, replicauri, replicahost);
 			break;
 		}

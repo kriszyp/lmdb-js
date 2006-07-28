@@ -1,6 +1,21 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.25 Engineering
+	Patch to fix ITS4572
+	Patch to fix ITS4575
+	Patch to fix ITS4576
+	Patch to fix ITS4580
+	Patch to fix ITS4582
+	Patch to fix ITS4583
+	Patch to fix ITS4589
+	Patch to fix ITS4595
+	Patch to fix ITS4616
+	Patch to fix ITS4534/ITS4622
+	Fixes auditlog DB initialization
+	Fix for back-bdb and back-hdb cache job
+	liblber fix
+	Password length bug fix
+	Fixes return code bug
 
 OpenLDAP 2.3.24 Release
 	Fixed slapd syncrepl timestamp bug (delta-sync/cascade) (ITS#4567)

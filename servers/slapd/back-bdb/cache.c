@@ -146,7 +146,7 @@ bdb_cache_entry_db_unlock ( DB_ENV *env, DB_LOCK *lock )
 #else
 	int rc;
 
-	if ( !lock ) return 0;
+	if ( !lock || lock->mode == DB_LOCK_NG ) return 0;
 
 	rc = LOCK_PUT ( env, lock );
 	return rc;
@@ -556,7 +556,9 @@ bdb_cache_lru_add(
 		lockp = NULL;
 	}
 
-	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_tail_mutex );
+	/* Don't bother if we can't get the lock */
+	if ( ldap_pvt_thread_mutex_trylock( &bdb->bi_cache.lru_tail_mutex ) )
+		return;
 
 	/* Look for an unused entry to remove */
 	for (elru = bdb->bi_cache.c_lrutail; elru; elru = elprev ) {
@@ -568,7 +570,6 @@ bdb_cache_lru_add(
 		if ( bdb_cache_entry_db_lock( bdb->bi_dbenv,
 				bdb->bi_cache.c_locker, elru, 1, 1, lockp ) == 0 ) {
 
-			int stop = 0;
 
 			/* If this node is in the process of linking into the cache,
 			 * or this node is being deleted, skip it.
@@ -608,16 +609,12 @@ bdb_cache_lru_add(
 			}
 			bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 
-			if ( count == bdb->bi_cache.c_minfree ) {
+			if ( count >= bdb->bi_cache.c_minfree ) {
 				ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
-				bdb->bi_cache.c_cursize -= bdb->bi_cache.c_minfree;
-				if ( bdb->bi_cache.c_maxsize - bdb->bi_cache.c_cursize >=
-					bdb->bi_cache.c_minfree )
-					stop = 1;
-				count = 0;
+				bdb->bi_cache.c_cursize -= count;
 				ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+				break;
 			}
-			if (stop) break;
 		}
 	}
 
@@ -1019,6 +1016,10 @@ bdb_cache_modrdn(
 	avl_delete( &pei->bei_kids, (caddr_t) ei, bdb_rdn_cmp );
 	free( ei->bei_nrdn.bv_val );
 	ber_dupbv( &ei->bei_nrdn, nrdn );
+
+	if ( !pei->bei_kids )
+		pei->bei_state |= CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
+
 #ifdef BDB_HIER
 	free( ei->bei_rdn.bv_val );
 
@@ -1029,6 +1030,8 @@ bdb_cache_modrdn(
 		rdn.bv_len = ptr - rdn.bv_val;
 	}
 	ber_dupbv( &ei->bei_rdn, &rdn );
+	pei->bei_ckids--;
+	if ( pei->bei_dkids ) pei->bei_dkids--;
 #endif
 
 	if (!ein) {
@@ -1038,7 +1041,15 @@ bdb_cache_modrdn(
 		bdb_cache_entryinfo_unlock( pei );
 		bdb_cache_entryinfo_lock( ein );
 	}
+	/* parent now has kids */
+	if ( ein->bei_state & CACHE_ENTRY_NO_KIDS )
+		ein->bei_state ^= CACHE_ENTRY_NO_KIDS;
 #ifdef BDB_HIER
+	/* parent might now have grandkids */
+	if ( ein->bei_state & CACHE_ENTRY_NO_GRANDKIDS &&
+		!(ei->bei_state & (CACHE_ENTRY_NO_KIDS)))
+		ein->bei_state ^= CACHE_ENTRY_NO_GRANDKIDS;
+
 	{
 		/* Record the generation number of this change */
 		ldap_pvt_thread_mutex_lock( &bdb->bi_modrdns_mutex );
@@ -1046,6 +1057,8 @@ bdb_cache_modrdn(
 		ei->bei_modrdns = bdb->bi_modrdns;
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_modrdns_mutex );
 	}
+	ein->bei_ckids++;
+	if ( ein->bei_dkids ) ein->bei_dkids++;
 #endif
 	avl_insert( &ein->bei_kids, ei, bdb_rdn_cmp, avl_dup_error );
 	bdb_cache_entryinfo_unlock( ein );
