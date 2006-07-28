@@ -262,6 +262,13 @@ glue_chk_controls ( Operation *op, SlapReply *rs )
 	return rc;
 }
 
+/* ITS#4615 - overlays configured above the glue overlay should be
+ * invoked for the entire glued tree. Overlays configured below the
+ * glue overlay should only be invoked on the master backend.
+ * So, if we're searching on any subordinates, we need to force the
+ * current overlay chain to stop processing, without stopping the
+ * overall callback flow.
+ */
 static int
 glue_sub_search( Operation *op, SlapReply *rs, BackendDB *b0,
 	slap_overinst *on )
@@ -769,6 +776,13 @@ glue_db_init(
 	BackendInfo	*bi = oi->oi_orig;
 	glueinfo *gi;
 
+	if ( SLAP_GLUE_SUBORDINATE( be )) {
+		Debug( LDAP_DEBUG_ANY, "glue: backend %s is already subordinate, "
+			"cannot have glue overlay!\n",
+			be->be_suffix[0].bv_val, 0, 0 );
+		return LDAP_OTHER;
+	}
+
 	gi = ch_calloc( 1, sizeof(glueinfo));
 	on->on_bi.bi_private = gi;
 	dnParent( be->be_nsuffix, &gi->gi_pdn );
@@ -954,6 +968,12 @@ glue_sub_add( BackendDB *be, int advert, int online )
 	glue_Addrec *ga;
 	int rc = 0;
 
+	if ( overlay_is_inst( be, "glue" )) {
+		Debug( LDAP_DEBUG_ANY, "glue: backend %s already has glue overlay, "
+			"cannot be a subordinate!\n",
+			be->be_suffix[0].bv_val, 0, 0 );
+		return LDAP_OTHER;
+	}
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
 	if ( advert )
 		SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_ADVERTISE;

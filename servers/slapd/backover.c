@@ -958,7 +958,11 @@ overlay_config( BackendDB *be, const char *ov )
 		be->bd_info = (BackendInfo *)on2;
 		rc = on2->on_bi.bi_db_init( be );
 		be->bd_info = (BackendInfo *)oi;
-		if ( rc ) return rc;
+		if ( rc ) {
+			oi->oi_list = on2->on_next;
+			ch_free( on2 );
+			return rc;
+		}
 	}
 
 	return 0;
