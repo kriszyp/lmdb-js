@@ -903,9 +903,12 @@ AC_CHECK_HEADERS(	\
 	termios.h		\
 	unistd.h		\
 	utime.h			\
-	winsock.h		\
-	winsock2.h		\
 )
+
+dnl Only check Winsock on MinGW
+if test "$ac_cv_mingw32" = yes ; then
+	AC_CHECK_HEADERS( winsock.h winsock2.h )
+fi
 
 AC_CHECK_HEADERS( resolv.h, [], [],
 [$ac_includes_default
@@ -938,9 +941,7 @@ fi
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
 dnl autoconf would try to generate if one merely used AC_SEARCH_LIBS
-dnl
-dnl Skip Winsock tests on Cygwin
-if test "$ac_cv_cygwin" != yes && test "$ac_cv_header_winsock_h" = yes; then
+if test "$ac_cv_header_winsock_h" = yes; then
 AC_CACHE_CHECK([for winsock], [ol_cv_winsock],
 save_LIBS="$LIBS"
 for curlib in ws2_32 wsock32; do
@@ -2446,7 +2447,7 @@ fi
 if test $ol_with_mp = gmp || test $ol_with_mp = auto ; then
 	AC_CHECK_HEADERS(gmp.h)
 	AC_CHECK_LIB(gmp, __gmpz_add_ui)
-	if test $ac_cv_header_gmp_h = yes && test $ac_cv_lib_gmp = yes ; then
+	if test $ac_cv_header_gmp_h = yes && test $ac_cv_lib_gmp___gmpz_add_ui = yes ; then
 		AC_DEFINE(USE_MP_GMP,1,[define to use GMP for MP])
 		ol_with_mp=gmp
 	elif test $ol_with_mp = gmp ; then
