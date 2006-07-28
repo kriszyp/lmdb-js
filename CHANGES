@@ -6,7 +6,7 @@ OpenLDAP 2.3.25 Engineering
 	Fixed liblutil password length bug
 	Add slapd glue/subordinate conflict check (ITS#4614)
 	Fixed slapd syncrepl no rootdn bug (ITS#4582)
-	Fixed slapd syncrepl contextCSN issue (ITS4622)
+	Fixed slapd syncrepl contextCSN issue (ITS#4622)
 	Fixed slapd-bdb/hdb lock bug with virtual root (ITS#4572)
 	Fixed slapd-bdb/hdb modrdn new entry disappearing bug (ITS#4616)
 	Fixed slapd-bdb/hdb cache job issue
