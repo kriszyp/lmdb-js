@@ -1276,7 +1276,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 }
 
 static void
-syncprov_add_slog( Operation *op, struct berval *csn )
+syncprov_add_slog( Operation *op )
 {
 	opcookie *opc = op->o_callback->sc_private;
 	slap_overinst *on = opc->son;
@@ -1288,7 +1288,7 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 	{
 		/* Allocate a record. UUIDs are not NUL-terminated. */
 		se = ch_malloc( sizeof( slog_entry ) + opc->suuid.bv_len + 
-			csn->bv_len + 1 );
+			op->o_csn.bv_len + 1 );
 		se->se_next = NULL;
 		se->se_tag = op->o_tag;
 
@@ -1297,9 +1297,9 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 		se->se_uuid.bv_len = opc->suuid.bv_len;
 
 		se->se_csn.bv_val = se->se_uuid.bv_val + opc->suuid.bv_len;
-		AC_MEMCPY( se->se_csn.bv_val, csn->bv_val, csn->bv_len );
-		se->se_csn.bv_val[csn->bv_len] = '\0';
-		se->se_csn.bv_len = csn->bv_len;
+		AC_MEMCPY( se->se_csn.bv_val, op->o_csn.bv_val, op->o_csn.bv_len );
+		se->se_csn.bv_val[op->o_csn.bv_len] = '\0';
+		se->se_csn.bv_len = op->o_csn.bv_len;
 
 		ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
 		if ( sl->sl_head ) {
@@ -1483,13 +1483,13 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_err == LDAP_SUCCESS )
 	{
-		struct berval maxcsn = BER_BVNULL, curcsn = BER_BVNULL;
+		struct berval maxcsn = BER_BVNULL;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
 		ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
-		slap_get_commit_csn( op, &maxcsn, &curcsn );
+		slap_get_commit_csn( op, &maxcsn, NULL );
 		if ( !BER_BVISNULL( &maxcsn ) ) {
 			strcpy( cbuf, maxcsn.bv_val );
 			if ( ber_bvcmp( &maxcsn, &si->si_ctxcsn ) > 0 ) {
@@ -1550,7 +1550,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 		/* Add any log records */
 		if ( si->si_logs && op->o_tag != LDAP_REQ_ADD ) {
-			syncprov_add_slog( op, &curcsn );
+			syncprov_add_slog( op );
 		}
 
 	}
