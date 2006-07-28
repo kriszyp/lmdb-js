@@ -1,16 +1,17 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.25 Engineering
-	Patch to fix ITS4572
-	Patch to fix ITS4575
-	Patch to fix ITS4576
-	Patch to fix ITS4580
-	Patch to fix ITS4582
-	Patch to fix ITS4583
-	Patch to fix ITS4589
-	Patch to fix ITS4595
-	Patch to fix ITS4616
-	Patch to fix ITS4534/ITS4622
+	Fixed slapd-bdb lock bug with virtual root (ITS#4572)
+	Fixed slapo-ppolicy password hashing bug (ITS#4575)
+	Fixed slapo-ppolicy password modify pwdMustChange reset bug (ITS#4576)
+	Fixed sluprd ldaps:// default port bug (ITS#4580)
+	Fixed slapd syncrepl no rootdn bug (ITS#4582)
+	Add libldap_r TLS concurrency workaround (ITS#4583)
+	Fixed slapo-syncprov DEL propagation bug (ITS#4589)
+	Fixed slapo-accesslog cn=config purge bug (ITS#4595)
+	Fixed slapd-bdb/hdb modrdn new entry disappearing bug (ITS#4616)
+	Fixed slapo-syncprov need new CSN with delete syncID sets (ITS#4534)
+	Fixed slapd-syncrepl contextCSN issue (ITS4622)
 	Fixes auditlog DB initialization
 	Fix for back-bdb and back-hdb cache job
 	liblber fix
