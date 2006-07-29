@@ -1749,6 +1749,22 @@ syncrepl_entry(
 			ber_memfree( a->a_vals[0].bv_val );
 			ber_dupbv( &a->a_vals[0], &syncUUID_strrep );
 		}
+		/* Don't save the contextCSN on the inooming context entry,
+		 * we'll write it when syncrepl_updateCookie eventually
+		 * gets called. (ITS#4622)
+		 */
+		if ( syncstate == LDAP_SYNC_ADD && dn_match( &entry->e_nname,
+			&be->be_nsuffix[0] )) {
+			Attribute **ap;
+			for ( ap = &entry->e_attrs; *ap; ap=&(*ap)->a_next ) {
+				a = *ap;
+				if ( a->a_desc == slap_schema.si_ad_contextCSN ) {
+					*ap = a->a_next;
+					attr_free( a );
+					break;
+				}
+			}
+		}
 	}
 
 	slap_op_time( &op->o_time, &op->o_tincr );
