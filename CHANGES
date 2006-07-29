@@ -11,6 +11,7 @@ OpenLDAP 2.3.25 Engineering
 	Fixed slapd-bdb/hdb modrdn new entry disappearing bug (ITS#4616)
 	Fixed slapd-bdb/hdb cache job issue
 	Fixed slapo-syncprov need new CSN with delete syncID sets (ITS#4534)
+	Fixed slapo-syncprov startup when lastmod is off (ITS#4613)
 	Fixed slapo-accesslog cn=config purge bug (ITS#4595)
 	Fixes slapo-auditlog DB initialization
 	Fixed slapo-ppolicy password hashing bug (ITS#4575)
