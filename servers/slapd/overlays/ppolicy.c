@@ -1838,11 +1838,9 @@ ppolicy_parseCtrl(
 		rs->sr_text = "passwordPolicyRequest control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
-	if ( ctrl->ldctl_iscritical ) {
-		rs->sr_text = "passwordPolicyRequest control invalid criticality";
-		return LDAP_PROTOCOL_ERROR;
-	}
-	op->o_ctrlflag[ppolicy_cid] = SLAP_CONTROL_NONCRITICAL;
+	op->o_ctrlflag[ppolicy_cid] = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
