@@ -16,12 +16,15 @@ OpenLDAP 2.3.25 Release
 	Fixes slapo-auditlog DB initialization
 	Fixed slapo-ppolicy password hashing bug (ITS#4575)
 	Fixed slapo-ppolicy password modify pwdMustChange reset bug (ITS#4576)
+	Fixed slapo-ppolicy control can be critical (ITS#4596)
 	Fixed slapo-retcode logical and bug
 	Fixed slapo-syncprov DEL propagation bug (ITS#4589)
 	Fixed slurpd ldaps:// default port bug (ITS#4580)
 	Build environment
 		Fix configure winsock.h detection for Cygwin (ITS#4621)
 		Fix configure GMP detection (ITS#4608)
+	Documentation
+		Fixed ldapsearch(1) formatting (ITS#4619)
 
 OpenLDAP 2.3.24 Release
 	Fixed slapd syncrepl timestamp bug (delta-sync/cascade) (ITS#4567)
