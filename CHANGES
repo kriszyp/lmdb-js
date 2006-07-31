@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.25 Engineering
+OpenLDAP 2.3.25 Release
 	Fixed liblber ber_bvreplace_x argument checks
 	Add libldap_r TLS concurrency workaround (ITS#4583)
 	Fixed liblutil password length bug
