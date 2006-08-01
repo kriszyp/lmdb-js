@@ -947,6 +947,20 @@ slap_acl_get(
 	return( NULL );
 }
 
+/*
+ * Record value-dependent access control state
+ #define ACL_RECORD_VALUE_STATE do { \
+			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
+				state->as_recorded |= ACL_STATE_RECORDED_VD; \
+				state->as_vd_acl = a; \
+				AC_MEMCPY( state->as_vd_acl_matches, matches, \
+					sizeof( state->as_vd_acl_matches )) ; \
+				state->as_vd_acl_count = count; \
+				state->as_vd_access = b; \
+				state->as_vd_access_count = i; \
+			}\
+	} while( 0 )
+
 static int
 acl_mask_dn(
 	Operation		*op,
@@ -956,7 +970,7 @@ acl_mask_dn(
 	AccessControl		*a,
 	int			nmatch,
 	regmatch_t		*matches,
-	slap_dn_access		*b,
+	slap_dn_access		*bdn,
 	struct berval		*opndn )
 {
 	/*
@@ -968,40 +982,20 @@ acl_mask_dn(
 	 * NOTE: styles "anonymous", "users" and "self" 
 	 * have been moved to enum slap_style_t, whose 
 	 * value is set in a_dn_style; however, the string
-	 * is maintaned in a_dn_pat.
+	 * is maintained in a_dn_pat.
 	 */
-	if ( b->a_style == ACL_STYLE_ANONYMOUS ) {
+
+	if ( bdn->a_style == ACL_STYLE_ANONYMOUS ) {
 		if ( !BER_BVISEMPTY( opndn ) ) {
 			return 1;
 		}
 
-	} else if ( b->a_style == ACL_STYLE_USERS ) {
+	} else if ( bdn->a_style == ACL_STYLE_USERS ) {
 		if ( BER_BVISEMPTY( opndn ) ) {
 			return 1;
 		}
 
-		if ( b->a_self ) {
-			const char *dummy;
-			int rc, match = 0;
-
-			/* must have DN syntax */
-			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) return 1;
-
-			/* check if the target is an attribute. */
-			if ( val == NULL ) return 1;
-
-			/* target is attribute, check if the attribute value
-			 * is the op dn.
-			 */
-			rc = value_match( &match, desc,
-				desc->ad_type->sat_equality, 0,
-				val, opndn, &dummy );
-			/* on match error or no match, fail the ACL clause */
-			if ( rc != LDAP_SUCCESS || match != 0 )
-				return 1;
-		}
-
-	} else if ( b->a_style == ACL_STYLE_SELF ) {
+	} else if ( bdn->a_style == ACL_STYLE_SELF ) {
 		struct berval	ndn, selfndn;
 		int		level;
 
@@ -1009,7 +1003,7 @@ acl_mask_dn(
 			return 1;
 		}
 
-		level = b->a_self_level;
+		level = bdn->a_self_level;
 		if ( level < 0 ) {
 			selfndn = *opndn;
 			ndn = e->e_nname;
@@ -1032,8 +1026,8 @@ acl_mask_dn(
 			return 1;
 		}
 
-	} else if ( b->a_style == ACL_STYLE_REGEX ) {
-		if ( !ber_bvccmp( &b->a_pat, '*' ) ) {
+	} else if ( bdn->a_style == ACL_STYLE_REGEX ) {
+		if ( !ber_bvccmp( &bdn->a_pat, '*' ) ) {
 			int		tmp_nmatch;
 			regmatch_t	tmp_matches[2],
 					*tmp_matchesp = tmp_matches;
@@ -1075,7 +1069,7 @@ acl_mask_dn(
 				return 1;
 			}
 
-			if ( !regex_matches( &b->a_pat, opndn->bv_val,
+			if ( !regex_matches( &bdn->a_pat, opndn->bv_val,
 				e->e_ndn, tmp_nmatch, tmp_matchesp ) )
 			{
 				return 1;
@@ -1090,7 +1084,7 @@ acl_mask_dn(
 		if ( e->e_dn == NULL )
 			return 1;
 
-		if ( b->a_expand ) {
+		if ( bdn->a_expand ) {
 			struct berval	bv;
 			char		buf[ACL_BUF_SIZE];
 			
@@ -1138,7 +1132,7 @@ acl_mask_dn(
 				return 1;
 			}
 
-			if ( acl_string_expand( &bv, &b->a_pat, 
+			if ( acl_string_expand( &bv, &bdn->a_pat, 
 					e->e_nname.bv_val,
 					tmp_nmatch, tmp_matchesp ) )
 			{
@@ -1154,7 +1148,7 @@ acl_mask_dn(
 			}
 
 		} else {
-			pat = b->a_pat;
+			pat = bdn->a_pat;
 		}
 
 		patlen = pat.bv_len;
@@ -1164,13 +1158,13 @@ acl_mask_dn(
 
 		}
 
-		if ( b->a_style == ACL_STYLE_BASE ) {
+		if ( bdn->a_style == ACL_STYLE_BASE ) {
 			/* base dn -- entire object DN must match */
 			if ( odnlen != patlen ) {
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_ONE ) {
+		} else if ( bdn->a_style == ACL_STYLE_ONE ) {
 			ber_len_t	rdnlen = 0;
 
 			if ( odnlen <= patlen ) {
@@ -1186,12 +1180,12 @@ acl_mask_dn(
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_SUBTREE ) {
+		} else if ( bdn->a_style == ACL_STYLE_SUBTREE ) {
 			if ( odnlen > patlen && !DN_SEPARATOR( opndn->bv_val[odnlen - patlen - 1] ) ) {
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_CHILDREN ) {
+		} else if ( bdn->a_style == ACL_STYLE_CHILDREN ) {
 			if ( odnlen <= patlen ) {
 				goto dn_match_cleanup;
 			}
@@ -1200,8 +1194,8 @@ acl_mask_dn(
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_LEVEL ) {
-			int		level = b->a_level;
+		} else if ( bdn->a_style == ACL_STYLE_LEVEL ) {
+			int		level = bdn->a_level;
 			struct berval	ndn;
 
 			if ( odnlen <= patlen ) {
@@ -1232,7 +1226,7 @@ acl_mask_dn(
 		got_match = !strcmp( pat.bv_val, &opndn->bv_val[ odnlen - patlen ] );
 
 dn_match_cleanup:;
-		if ( pat.bv_val != b->a_pat.bv_val ) {
+		if ( pat.bv_val != bdn->a_pat.bv_val ) {
 			slap_sl_free( pat.bv_val, op->o_tmpmemctx );
 		}
 
@@ -1243,21 +1237,6 @@ dn_match_cleanup:;
 
 	return 0;
 }
-
-/*
- * Record value-dependent access control state
- */
-#define ACL_RECORD_VALUE_STATE do { \
-		if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
-			state->as_recorded |= ACL_STATE_RECORDED_VD; \
-			state->as_vd_acl = a; \
-			AC_MEMCPY( state->as_vd_acl_matches, matches, \
-				sizeof( state->as_vd_acl_matches )) ; \
-			state->as_vd_acl_count = count; \
-			state->as_vd_access = b; \
-			state->as_vd_access_count = i; \
-		} \
-	} while( 0 )
 
 static int
 acl_mask_dnattr(
@@ -1431,11 +1410,11 @@ slap_acl_mask(
 			 * NOTE: styles "anonymous", "users" and "self" 
 			 * have been moved to enum slap_style_t, whose 
 			 * value is set in a_dn_style; however, the string
-			 * is maintaned in a_dn_pat.
+			 * is maintained in a_dn_pat.
 			 */
 
 			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
-				&b->a_dn, &op->o_ndn ) )
+					&b->a_dn, &op->o_ndn ) )
 			{
 				continue;
 			}
@@ -1466,7 +1445,7 @@ slap_acl_mask(
 			}
 
 			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
-				&b->a_realdn, &ndn ) )
+					&b->a_realdn, &ndn ) )
 			{
 				continue;
 			}
@@ -1941,6 +1920,35 @@ slap_acl_mask(
 			}
 		}
 
+		/* check for the "self" modifier in the <access> field */
+		if ( b->a_dn.a_self ) {
+			const char *dummy;
+			int rc, match = 0;
+
+			ACL_RECORD_VALUE_STATE;
+
+			/* must have DN syntax */
+			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName &&
+					!is_at_syntax( desc->ad_type, SLAPD_NAMEUID_SYNTAX )) continue;
+
+			/* check if the target is an attribute. */
+			if ( val == NULL ) continue;
+
+			/* a DN must be present */
+			if ( BER_BVISEMPTY( &op->o_ndn ) ) {
+				continue;
+			}
+
+			/* target is attribute, check if the attribute value
+			 * is the op dn.
+			 */
+			rc = value_match( &match, desc,
+					desc->ad_type->sat_equality, 0,
+					val, &op->o_ndn, &dummy );
+			/* on match error or no match, fail the ACL clause */
+			if ( rc != LDAP_SUCCESS || match != 0 )
+				continue;
+		}
 #ifdef SLAP_DYNACL
 		if ( b->a_dynacl ) {
 			slap_dynacl_t	*da;
@@ -2670,7 +2678,7 @@ acl_match_set (
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
 		struct berval		setat;
-		BerVarray		bvals;
+		BerVarray		bvals=NULL;
 		const char		*text;
 		AttributeDescription	*desc = NULL;
 
