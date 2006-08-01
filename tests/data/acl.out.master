@@ -45,7 +45,6 @@ member: cn=Jane Doe,ou=Alumni Association,ou=People,dc=example,dc=com
 member: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc
  =com
 member: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
-member: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 member: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=exa
  mple,dc=com
 member: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
@@ -53,6 +52,7 @@ member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
 member: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
 member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=exampl
  e,dc=com
+member: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 owner: cn=Manager,dc=example,dc=com
 cn: All Staff
 description: Everyone in the sample data
