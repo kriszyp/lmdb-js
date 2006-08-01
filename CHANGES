@@ -27,6 +27,7 @@ OpenLDAP 2.3.25 Release
 		Updated test006-acls to test selfwrite access (ITS#4587)
 	Documentation
 		Fixed ldapsearch(1) formatting (ITS#4619)
+		Updated slapo-syncprov(5) to clarify differences between Sync Provider and syncrepl
 
 OpenLDAP 2.3.24 Release
 	Fixed slapd syncrepl timestamp bug (delta-sync/cascade) (ITS#4567)
