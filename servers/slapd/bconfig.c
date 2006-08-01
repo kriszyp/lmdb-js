@@ -1993,8 +1993,10 @@ config_disallows(ConfigArgs *c) {
 
 static int
 config_requires(ConfigArgs *c) {
-	slap_mask_t requires = 0;
-	int i;
+	slap_mask_t requires = frontendDB->be_requires;
+	int i, argc = c->argc;
+	char **argv = c->argv;
+
 	slap_verbmasks requires_ops[] = {
 		{ BER_BVC("bind"),		SLAP_REQUIRE_BIND },
 		{ BER_BVC("LDAPv3"),		SLAP_REQUIRE_LDAP_V3 },
@@ -2014,11 +2016,23 @@ config_requires(ConfigArgs *c) {
 		}
 		return 0;
 	}
-	i = verbs_to_mask(c->argc, c->argv, requires_ops, &requires);
+	/* "none" can only be first, to wipe out default/global values */
+	if ( strcasecmp( c->argv[ 1 ], "none" ) == 0 ) {
+		argv++;
+		argc--;
+		requires = 0;
+	}
+	i = verbs_to_mask(argc, argv, requires_ops, &requires);
 	if ( i ) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> unknown feature", c->argv[0] );
-		Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-			c->log, c->msg, c->argv[i]);
+		if (strcasecmp( c->argv[ i ], "none" ) == 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "<%s> \"none\" (#%d) must be listed first", c->argv[0], i - 1 );
+			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+				c->log, c->msg, 0);
+		} else {
+			snprintf( c->msg, sizeof( c->msg ), "<%s> unknown feature #%d", c->argv[0], i - 1 );
+			Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+				c->log, c->msg, c->argv[i]);
+		}
 		return(1);
 	}
 	c->be->be_requires = requires;
@@ -4438,6 +4452,7 @@ config_back_db_open( BackendDB *be )
 		return -1;
 	}
 	ce = e->e_private;
+	ce->ce_private = cfb->cb_config;
 
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
