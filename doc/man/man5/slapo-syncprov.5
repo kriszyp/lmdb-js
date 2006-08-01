@@ -3,12 +3,13 @@
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
-slapo-syncprov \- Syncrepl Provider overlay
+slapo-syncprov \- Sync Provider overlay
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
-The Syncrepl Provider overlay implements the provider-side support for
-syncrepl replication, including persistent search functionality. The overlay
+The Sync Provider overlay implements the provider-side support for the
+LDAP Content Synchronization (RFC4533) as well as syncrepl replication
+support.  The overlay
 can be used with any backend that maintains entryCSN and entryUUID
 attributes for its entries. It also creates a contextCSN attribute in
 the root entry of the database.
@@ -28,7 +29,7 @@ eq index on the entryCSN attribute when using this overlay.
 .SH CONFIGURATION
 These
 .B slapd.conf
-options apply to the Syncrepl Provider overlay.
+options apply to the Sync Provider overlay.
 They should appear after the
 .B overlay
 directive.
@@ -58,12 +59,12 @@ should only be set TRUE for a syncprov instance on top of a log database
 The default is FALSE.
 .TP
 .B syncprov-reloadhint TRUE | FALSE
-Specify that the overlay should honor the reloadHint flag in the Syncrepl
-Control. In OpenLDAP releases 2.3.11 and earlier the Syncrepl consumer did
+Specify that the overlay should honor the reloadHint flag in the Sync
+Control. In OpenLDAP releases 2.3.11 and earlier the syncrepl consumer did
 not properly set this flag, so the overlay must ignore it. This option
 should be set TRUE when working with newer releases that properly support
 this flag. It must be set TRUE when using the accesslog overlay for
-delta-based Syncrepl support.  The default is FALSE.
+delta-based syncrepl support.  The default is FALSE.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
