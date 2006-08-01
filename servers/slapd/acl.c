@@ -949,6 +949,7 @@ slap_acl_get(
 
 /*
  * Record value-dependent access control state
+*/
  #define ACL_RECORD_VALUE_STATE do { \
 			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
 				state->as_recorded |= ACL_STATE_RECORDED_VD; \
