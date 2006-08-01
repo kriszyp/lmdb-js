@@ -681,7 +681,7 @@ acl_mask_dn(
 	 * NOTE: styles "anonymous", "users" and "self" 
 	 * have been moved to enum slap_style_t, whose 
 	 * value is set in a_dn_style; however, the string
-	 * is maintaned in a_dn_pat.
+	 * is maintained in a_dn_pat.
 	 */
 
 	if ( bdn->a_style == ACL_STYLE_ANONYMOUS ) {
@@ -1101,7 +1101,7 @@ slap_acl_mask(
 			 * NOTE: styles "anonymous", "users" and "self" 
 			 * have been moved to enum slap_style_t, whose 
 			 * value is set in a_dn_style; however, the string
-			 * is maintaned in a_dn_pat.
+			 * is maintained in a_dn_pat.
 			 */
 
 			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
@@ -1125,7 +1125,7 @@ slap_acl_mask(
 			 * NOTE: styles "anonymous", "users" and "self" 
 			 * have been moved to enum slap_style_t, whose 
 			 * value is set in a_dn_style; however, the string
-			 * is maintaned in a_dn_pat.
+			 * is maintained in a_dn_pat.
 			 */
 
 			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) )
