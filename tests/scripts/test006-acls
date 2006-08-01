@@ -80,6 +80,136 @@ echo "# ... and should return all attributes if we're bound as anyone
 $LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT1 \
 	-D "$BABSDN" -w bjensen "(objectclass=*)"  >> $SEARCHOUT 2>&1
 
+# check selfwrite access (ITS#4587).  6 attempts are made:
+# 1) delete someone else (should fail)
+# 2) delete self (should succeed)
+# 3) add someone else (should fail)
+# 4) add someone else and self (should fail)
+# 5) add self and someone else (should fail)
+# 6) add self (should succeed)
+#
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+changetype: modify
+delete: member
+member: $BABSDN
+EOMODS
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+changetype: modify
+delete: member
+member: $JAJDN
+EOMODS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+ 	 
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+changetype: modify
+add: member
+member: cn=Foo,ou=Bar
+EOMODS
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+ 	 
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+changetype: modify
+add: member
+member: cn=Foo,ou=Bar
+member: $JAJDN
+EOMODS
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+ 	 
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+changetype: modify
+add: member
+member: $JAJDN
+member: cn=Foo,ou=Bar
+EOMODS
+RC=$?
+case $RC in
+50)
+	;;
+0)
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+	;;
+*)
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+ 	 
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+changetype: modify
+add: member
+member: $JAJDN
+EOMODS
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 #
 # Check group access. Try to modify Babs' entry. Two attempts:
 # 1) bound as "James A Jones 1" - should fail
