@@ -43,6 +43,7 @@
 #include "slapi/slapi.h"
 #endif
 #include "lutil.h"
+#include "lutil_ldap.h"
 #include "config.h"
 
 #ifdef HAVE_TLS
@@ -1396,6 +1397,154 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 	return res;
 }
 #endif
+
+/*
+ * connect to a client using the bindconf data
+ * note: should move "version" into bindconf...
+ */
+int
+slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
+{
+	LDAP		*ld = NULL;
+	int		rc;
+
+	/* Init connection to master */
+	rc = ldap_initialize( &ld, sb->sb_uri.bv_val );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"slap_client_connect: "
+			"ldap_initialize(%s) failed (%d)\n",
+			sb->sb_uri.bv_val, rc, 0 );
+		return rc;
+	}
+
+	if ( version != 0 ) {
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
+			(const void *)&version );
+	}
+
+#ifdef HAVE_TLS
+	if ( sb->sb_tls_do_init ) {
+		rc = bindconf_tls_set( sb, ld );
+
+	} else if ( sb->sb_tls_ctx ) {
+		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_CTX,
+			sb->sb_tls_ctx );
+	}
+
+	if ( rc ) {
+		Debug( LDAP_DEBUG_ANY,
+			"slap_client_connect: "
+			"TLS context initialization failed\n",
+			0, 0, 0 );
+		return rc;
+	}
+#endif
+
+	/* Bind */
+	if ( sb->sb_tls ) {
+		rc = ldap_start_tls_s( ld, NULL, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"slap_client_connect: "
+				"%s, ldap_start_tls failed (%d)\n",
+				sb->sb_tls == SB_TLS_CRITICAL ?
+					"Error" : "Warning",
+				rc, 0 );
+			if ( sb->sb_tls == SB_TLS_CRITICAL ) {
+				goto done;
+			}
+		}
+	}
+
+	if ( sb->sb_method == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+		void *defaults;
+
+		if ( sb->sb_secprops != NULL ) {
+			rc = ldap_set_option( ld,
+				LDAP_OPT_X_SASL_SECPROPS, sb->sb_secprops);
+
+			if( rc != LDAP_OPT_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"slap_client_connect: "
+					"error, ldap_set_option "
+					"(%s,SECPROPS,\"%s\") failed!\n",
+					sb->sb_uri.bv_val, sb->sb_secprops, 0 );
+				goto done;
+			}
+		}
+
+		defaults = lutil_sasl_defaults( ld,
+			sb->sb_saslmech.bv_val,
+			sb->sb_realm.bv_val,
+			sb->sb_authcId.bv_val,
+			sb->sb_cred.bv_val,
+			sb->sb_authzId.bv_val );
+
+		rc = ldap_sasl_interactive_bind_s( ld,
+				sb->sb_binddn.bv_val,
+				sb->sb_saslmech.bv_val,
+				NULL, NULL,
+				LDAP_SASL_QUIET,
+				lutil_sasl_interact,
+				defaults );
+
+		lutil_sasl_freedefs( defaults );
+
+		/* FIXME: different error behaviors according to
+		 *	1) return code
+		 *	2) on err policy : exit, retry, backoff ...
+		 */
+		if ( rc != LDAP_SUCCESS ) {
+			static struct berval bv_GSSAPI = BER_BVC( "GSSAPI" );
+
+			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
+				"ldap_sasl_interactive_bind_s failed (%d)\n",
+				rc, 0, 0 );
+
+			/* FIXME (see above comment) */
+			/* if Kerberos credentials cache is not active, retry */
+			if ( ber_bvcmp( &sb->sb_saslmech, &bv_GSSAPI ) == 0 &&
+				rc == LDAP_LOCAL_ERROR )
+			{
+				rc = LDAP_SERVER_DOWN;
+			}
+
+			goto done;
+		}
+#else /* HAVE_CYRUS_SASL */
+		/* Should never get here, we trapped this at config time */
+		assert(0);
+		Debug( LDAP_DEBUG_SYNC, "not compiled with SASL support\n", 0, 0, 0 );
+		rc = LDAP_OTHER;
+		goto done;
+#endif
+
+	} else if ( sb->sb_method == LDAP_AUTH_SIMPLE ) {
+		rc = ldap_sasl_bind_s( ld,
+			sb->sb_binddn.bv_val, LDAP_SASL_SIMPLE,
+			&sb->sb_cred, NULL, NULL, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
+				"ldap_sasl_bind_s failed (%d)\n", rc, 0, 0 );
+			goto done;
+		}
+	}
+
+done:;
+	if ( rc ) {
+		if ( ld ) {
+			ldap_unbind_ext( ld, NULL, NULL );
+			*ldp = NULL;
+		}
+
+	} else {
+		*ldp = ld;
+	}
+
+	return rc;
+}
 
 /* -------------------------------------- */
 
