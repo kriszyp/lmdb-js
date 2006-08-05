@@ -1,12 +1,14 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.26 Engineering
+
 OpenLDAP 2.3.25 Release
 	Fixed liblber ber_bvreplace_x argument checks
 	Add libldap_r TLS concurrency workaround (ITS#4583)
 	Fixed liblutil password length bug
 	Add slapd glue/subordinate conflict check (ITS#4614)
 	Fixed slapd acl selfwrite bug (ITS#4587)
-	Fixed slapd bconfig "require" inheritance and handling of "none" (ITS#4574)
+	Fixed slapd bconfig "require" and "none" handling (ITS#4574)
 	Fixed slapd bconfig segfault when ldapadding new schema entries
 	Fixed slapd syncrepl no rootdn bug (ITS#4582)
 	Fixed slapd syncrepl contextCSN issue (ITS#4622)
@@ -31,9 +33,9 @@ OpenLDAP 2.3.25 Release
 		Fixed ldapsearch(1) formatting (ITS#4619)
 		Updated slapd.conf(5) RFC references
 		Updated slapd.conf(5) lastmod discussion (ITS#4613)
-		Updated slapd.conf(5) "require" inheritance and handling of "none" (ITS#4574)
+		Updated slapd.conf(5) "require" and "none" handling (ITS#4574)
 		Added slapd.conf(5) access control note to authz-regexp discussion
-		Updated slapo-syncprov(5) to clarify differences between Sync Provider and syncrepl
+		Updated slapo-syncprov(5) to clarify SyncProv and syncrepl diffs
 
 OpenLDAP 2.3.24 Release
 	Fixed slapd syncrepl timestamp bug (delta-sync/cascade) (ITS#4567)
