@@ -1499,7 +1499,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 		if ( rc != LDAP_SUCCESS ) {
 			static struct berval bv_GSSAPI = BER_BVC( "GSSAPI" );
 
-			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
+			Debug( LDAP_DEBUG_ANY, "slap_client_connect: "
 				"ldap_sasl_interactive_bind_s failed (%d)\n",
 				rc, 0, 0 );
 
@@ -1526,7 +1526,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 			sb->sb_binddn.bv_val, LDAP_SASL_SIMPLE,
 			&sb->sb_cred, NULL, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
+			Debug( LDAP_DEBUG_ANY, "slap_client_connect: "
 				"ldap_sasl_bind_s failed (%d)\n", rc, 0, 0 );
 			goto done;
 		}
