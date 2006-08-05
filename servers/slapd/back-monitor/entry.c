@@ -42,11 +42,7 @@ monitor_entry_update(
 
 	mp = ( monitor_entry_t * )e->e_private;
 
-	if ( mp->mp_info && mp->mp_info->mss_update ) {
-		rc = mp->mp_info->mss_update( op, rs, e );
-	}
-
-	if ( rc == SLAP_CB_CONTINUE && mp->mp_cb ) {
+	if ( mp->mp_cb ) {
 		struct monitor_callback_t	*mc;
 
 		for ( mc = mp->mp_cb; mc; mc = mc->mc_next ) {
@@ -57,6 +53,10 @@ monitor_entry_update(
 				}
 			}
 		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE && mp->mp_info && mp->mp_info->mss_update ) {
+		rc = mp->mp_info->mss_update( op, rs, e );
 	}
 
 	if ( rc == SLAP_CB_CONTINUE ) {
@@ -115,11 +115,7 @@ monitor_entry_modify(
 
 	mp = ( monitor_entry_t * )e->e_private;
 
-	if ( mp->mp_info && mp->mp_info->mss_modify ) {
-		rc = mp->mp_info->mss_modify( op, rs, e );
-	}
-
-	if ( rc == SLAP_CB_CONTINUE && mp->mp_cb ) {
+	if ( mp->mp_cb ) {
 		struct monitor_callback_t	*mc;
 
 		for ( mc = mp->mp_cb; mc; mc = mc->mc_next ) {
@@ -130,6 +126,10 @@ monitor_entry_modify(
 				}
 			}
 		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE && mp->mp_info && mp->mp_info->mss_modify ) {
+		rc = mp->mp_info->mss_modify( op, rs, e );
 	}
 
 	if ( rc == SLAP_CB_CONTINUE ) {
