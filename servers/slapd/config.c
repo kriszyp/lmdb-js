@@ -1435,8 +1435,8 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			"slap_client_connect: "
-			"TLS context initialization failed\n",
-			0, 0, 0 );
+			"URI=%s TLS context initialization failed (%d)\n",
+			sb->sb_uri.bv_val, rc, 0 );
 		return rc;
 	}
 #endif
@@ -1446,11 +1446,12 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 		rc = ldap_start_tls_s( ld, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
-				"slap_client_connect: "
+				"slap_client_connect: URI=%s "
 				"%s, ldap_start_tls failed (%d)\n",
+				sb->sb_uri.bv_val,
 				sb->sb_tls == SB_TLS_CRITICAL ?
 					"Error" : "Warning",
-				rc, 0 );
+				rc );
 			if ( sb->sb_tls == SB_TLS_CRITICAL ) {
 				goto done;
 			}
@@ -1499,9 +1500,9 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 		if ( rc != LDAP_SUCCESS ) {
 			static struct berval bv_GSSAPI = BER_BVC( "GSSAPI" );
 
-			Debug( LDAP_DEBUG_ANY, "slap_client_connect: "
+			Debug( LDAP_DEBUG_ANY, "slap_client_connect: URI=%s "
 				"ldap_sasl_interactive_bind_s failed (%d)\n",
-				rc, 0, 0 );
+				sb->sb_uri.bv_val, rc, 0 );
 
 			/* FIXME (see above comment) */
 			/* if Kerberos credentials cache is not active, retry */
@@ -1527,7 +1528,9 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 			&sb->sb_cred, NULL, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "slap_client_connect: "
-				"ldap_sasl_bind_s failed (%d)\n", rc, 0, 0 );
+				"URI=%s DN=\"%s\" "
+				"ldap_sasl_bind_s failed (%d)\n",
+				sb->sb_uri.bv_val, sb->sb_binddn.bv_val, rc );
 			goto done;
 		}
 	}
