@@ -2507,7 +2507,7 @@ config_replica(ConfigArgs *c) {
 			}
 			replicauri = ch_malloc( len );
 			replicahost = lutil_strcopy( replicauri, ludp->lud_scheme );
-			replicahost = lutil_strcopy( replicauri, "://" );
+			replicahost = lutil_strcopy( replicahost, "://" );
 			if (ludp->lud_port == LDAP_PORT) {
 				strcpy( replicahost, ludp->lud_host );
 			} else {
