@@ -42,6 +42,7 @@ Implement DIT Structure Rules and Name Forms
 Implement LDAPprep
 Implement native support for simple SASL mechanisms
 	(e.g. EXTERNAL and PLAIN)
+Implement slapd(8) backend using FLAIM DB engine 
 Redesign slapd memory allocation fault handling
 Localize tools
 
