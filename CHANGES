@@ -4,6 +4,7 @@ OpenLDAP 2.3.26 Engineering
 	Fixed libldap dnssrv bug with "not present" positive statement (ITS#4610)
 	Fixed slapd incorrect rebuilding of replica URI (ITS#4633)
 	Fixed slapo-ppolicy handling of default policy (ITS#4634)
+	Fixed slapo-ppolicy logging verbosity when using default policy
 	Fixed back-monitor operations order via callbacks (ITS#4631)
 
 OpenLDAP 2.3.25 Release
