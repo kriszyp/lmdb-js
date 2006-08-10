@@ -1700,11 +1700,11 @@ ldap_unbind_ext_s LDAP_P((
 
 #if LDAP_DEPRECATED
 LDAP_F( int )
-ldap_unbind LDAP_P(( /* deprecated, use ldap_bind_ext */
+ldap_unbind LDAP_P(( /* deprecated, use ldap_unbind_ext */
 	LDAP *ld ));
 
 LDAP_F( int )
-ldap_unbind_s LDAP_P(( /* deprecated, use ldap_bind_ext_s */
+ldap_unbind_s LDAP_P(( /* deprecated, use ldap_unbind_ext_s */
 	LDAP *ld ));
 #endif
 
