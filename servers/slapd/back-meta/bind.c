@@ -862,7 +862,7 @@ retry:;
 				if ( timeout ) {
 					(void)meta_back_cancel( mc, op, rs, msgid, candidate, sendok );
 					rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
-						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
+						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
 					rs->sr_text = "Operation timed out";
 					break;
 				}
