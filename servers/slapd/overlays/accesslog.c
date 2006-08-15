@@ -504,6 +504,8 @@ log_old_lookup( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_type != REP_SEARCH) return 0;
 
+	if ( slapd_shutdown ) return 0;
+
 	if ( pd->used >= pd->slots ) {
 		pd->slots += PURGE_INCREMENT;
 		pd->dn = ch_realloc( pd->dn, pd->slots * sizeof( struct berval ));
