@@ -28,10 +28,6 @@
 #include "lutil.h"
 #include "back-monitor.h"
 
-#ifndef LDAP_DEVEL
-#define MONITOR_LEGACY_CONN
-#endif
-
 static int
 monitor_subsys_conn_update(
 	Operation		*op,

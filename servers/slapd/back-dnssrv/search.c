@@ -48,7 +48,6 @@ dnssrv_back_search(
 	rs->sr_ref = NULL;
 
 	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
-#ifdef LDAP_DEVEL
 		/* FIXME: need some means to determine whether the database
 		 * is a glue instance; if we got here with empty DN, then
 		 * we passed this same test in dnssrv_back_referrals() */
@@ -60,7 +59,6 @@ dnssrv_back_search(
 			rs->sr_err = LDAP_SUCCESS;
 		}
 		goto done;
-#endif /* LDAP_DEVEL */
 	}
 
 	manageDSAit = get_manageDSAit( op );

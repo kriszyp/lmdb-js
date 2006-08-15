@@ -387,14 +387,12 @@ access_allowed_mask(
 		op->o_bd = LDAP_STAILQ_FIRST( &backendDB );
 		be_null = 1;
 
-#ifdef LDAP_DEVEL
-		/*
-		 * FIXME: experimental; use first backend rules
-		 * iff there is no global_acl (ITS#3100) */
+		/* FIXME: experimental; use first backend rules
+		 * iff there is no global_acl (ITS#3100)
+		 */
 		if ( frontendDB->be_acl != NULL ) {
 			op->o_bd = frontendDB;
 		}
-#endif /* LDAP_DEVEL */
 	}
 	assert( op->o_bd != NULL );
 

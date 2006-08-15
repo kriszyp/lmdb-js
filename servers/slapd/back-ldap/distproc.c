@@ -22,14 +22,15 @@
 
 #include "portable.h"
 
-#ifdef LDAP_DEVEL
-
 #include <stdio.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
 
 #include "slap.h"
+
+#ifdef SLAP_DISTPROC
+
 #include "back-ldap.h"
 
 #include "config.h"
@@ -1007,4 +1008,4 @@ distproc_initialize( void )
 	return overlay_register( &distproc );
 }
 
-#endif /* LDAP_DEVEL */
+#endif /* SLAP_DISTPROC */

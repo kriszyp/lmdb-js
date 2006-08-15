@@ -39,8 +39,6 @@
 #include "slap.h"
 #include "lber_pvt.h"
 
-#define UNSUPPORTED_EXOP "unsupported extended operation"
-
 static struct extop_list {
 	struct extop_list *next;
 	struct berval oid;
@@ -261,11 +259,15 @@ load_extop2(
 		return -1; 
 	}
 
-	if ( ext_oid == NULL || BER_BVISNULL( ext_oid ) || BER_BVISEMPTY( ext_oid ) ) {
+	if ( ext_oid == NULL || BER_BVISNULL( ext_oid ) ||
+		BER_BVISEMPTY( ext_oid ) )
+	{
 		return -1; 
 	}
 
-	if ( numericoidValidate( NULL, (struct berval *)ext_oid ) != LDAP_SUCCESS ) {
+	if ( numericoidValidate( NULL, (struct berval *)ext_oid ) !=
+		LDAP_SUCCESS )
+	{
 		oidm.bv_val = oidm_find( ext_oid->bv_val );
 		if ( ext_oid == NULL ) {
 			return -1;

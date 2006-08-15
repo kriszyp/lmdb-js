@@ -84,7 +84,7 @@ ldap_back_initialize( BackendInfo *bi )
 		return -1;
 	}
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_DISTPROC
 	if ( distproc_initialize() ) {
 		return -1;
 	}

@@ -93,7 +93,7 @@ extern int slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, cons
 extern int slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si );
 
 extern int chain_initialize( void );
-#ifdef LDAP_DEVEL
+#ifdef SLAP_DISTPROC
 extern int distproc_initialize( void );
 #endif
 
