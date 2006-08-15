@@ -576,7 +576,8 @@ accesslog_purge( void *ctx, void *arg )
 		for (i=0; i<pd.used; i++) {
 			op->o_req_dn = pd.dn[i];
 			op->o_req_ndn = pd.ndn[i];
-			op->o_bd->be_delete( op, &rs );
+			if ( !slapd_shutdown )
+				op->o_bd->be_delete( op, &rs );
 			ch_free( pd.ndn[i].bv_val );
 			ch_free( pd.dn[i].bv_val );
 		}
