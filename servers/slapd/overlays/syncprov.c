@@ -65,6 +65,7 @@ typedef struct syncops {
 #define	PS_IS_DETACHED		0x02
 #define	PS_WROTE_BASE		0x04
 #define	PS_FIND_BASE		0x08
+#define	PS_FIX_FILTER		0x10
 
 	int		s_inuse;	/* reference count */
 	struct syncres *s_res;
@@ -1792,7 +1793,15 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->ors_filterstr.bv_val = ptr;
 	strcpy( ptr, so->s_filterstr.bv_val );
 	op2->ors_filterstr.bv_len = so->s_filterstr.bv_len;
-	op2->ors_filter = filter_dup( op->ors_filter, NULL );
+
+	/* Skip the AND/GE clause that we stuck on in front */
+	if ( so->s_flags & PS_FIX_FILTER ) {
+		op2->ors_filter = op->ors_filter->f_and->f_next;
+		so->s_flags ^= PS_FIX_FILTER;
+	} else {
+		op2->ors_filter = op->ors_filter;
+	}
+	op2->ors_filter = filter_dup( op2->ors_filter, NULL );
 	so->s_op = op2;
 
 	/* Copy any cached group ACLs individually */
@@ -2064,6 +2073,8 @@ shortcut:
 		fava->f_next = op->ors_filter;
 		op->ors_filter = fand;
 		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+		if ( sop )
+			sop->s_flags |= PS_FIX_FILTER;
 	}
 
 	/* Let our callback add needed info to returned entries */
