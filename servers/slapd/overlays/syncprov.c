@@ -1884,7 +1884,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 		} else {
 		/* It's RefreshAndPersist, transition to Persist phase */
-			syncprov_sendinfo( op, rs, ( ss->ss_present && rs->sr_nentries ) ?
+			syncprov_sendinfo( op, rs, ss->ss_present ?
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				&cookie, 1, NULL, 0 );
 			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
