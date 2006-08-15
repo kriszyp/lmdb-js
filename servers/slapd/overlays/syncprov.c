@@ -911,6 +911,33 @@ syncprov_qtask( void *ctx, void *arg )
 	return NULL;
 }
 
+/* Start the task to play back queued psearch responses */
+static void
+syncprov_qstart( syncops *so )
+{
+	int wake=0;
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	if ( !so->s_qtask ) {
+		so->s_qtask = ldap_pvt_runqueue_insert( &slapd_rq, RUNQ_INTERVAL,
+			syncprov_qtask, so, "syncprov_qtask",
+			so->s_op->o_conn->c_peer_name.bv_val );
+		++so->s_inuse;
+		wake = 1;
+	} else {
+		if (!ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask ) &&
+			!so->s_qtask->next_sched.tv_sec ) {
+			so->s_qtask->interval.tv_sec = 0;
+			ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 0 );
+			so->s_qtask->interval.tv_sec = RUNQ_INTERVAL;
+			++so->s_inuse;
+			wake = 1;
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	if ( wake )
+		slap_wake_listener();
+}
+
 /* Queue a persistent search response */
 static int
 syncprov_qresp( opcookie *opc, syncops *so, int mode )
@@ -949,27 +976,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		so->s_flags |= PS_FIND_BASE;
 	}
 	if ( so->s_flags & PS_IS_DETACHED ) {
-		int wake=0;
-		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-		if ( !so->s_qtask ) {
-			so->s_qtask = ldap_pvt_runqueue_insert( &slapd_rq, RUNQ_INTERVAL,
-				syncprov_qtask, so, "syncprov_qtask",
-				so->s_op->o_conn->c_peer_name.bv_val );
-			++so->s_inuse;
-			wake = 1;
-		} else {
-			if (!ldap_pvt_runqueue_isrunning( &slapd_rq, so->s_qtask ) &&
-				!so->s_qtask->next_sched.tv_sec ) {
-				so->s_qtask->interval.tv_sec = 0;
-				ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 0 );
-				so->s_qtask->interval.tv_sec = RUNQ_INTERVAL;
-				++so->s_inuse;
-				wake = 1;
-			}
-		}
-		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-		if ( wake )
-			slap_wake_listener();
+		syncprov_qstart( so );
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 	return LDAP_SUCCESS;
@@ -1889,6 +1896,10 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			ss->ss_so->s_flags ^= PS_IS_REFRESHING;
 
 			syncprov_detach_op( op, ss->ss_so, on );
+
+			/* If there are queued responses, fire them off */
+			if ( ss->ss_so->s_res )
+				syncprov_qstart( ss->ss_so );
 			ldap_pvt_thread_mutex_unlock( &ss->ss_so->s_mutex );
 
 			return LDAP_SUCCESS;
@@ -1996,7 +2007,10 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sl=si->si_logs;
 		if ( sl ) {
 			ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
-			if ( ber_bvcmp( &srs->sr_state.ctxcsn, &sl->sl_mincsn ) >= 0 ) {
+			/* Are there any log entries, and is the consumer state
+			 * present in the session log?
+			 */
+			if ( sl->sl_num > 0 && ber_bvcmp( &srs->sr_state.ctxcsn, &sl->sl_mincsn ) >= 0 ) {
 				do_present = 0;
 				/* mutex is unlocked in playlog */
 				syncprov_playlog( op, rs, sl, srs, &ctxcsn );
