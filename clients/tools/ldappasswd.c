@@ -265,7 +265,7 @@ main( int argc, char *argv[] )
 	}
 
 	if( user != NULL || oldpw.bv_val != NULL || newpw.bv_val != NULL ) {
-		/* build change password control */
+		/* build the password modify request data */
 		ber = ber_alloc_t( LBER_USE_DER );
 
 		if( ber == NULL ) {

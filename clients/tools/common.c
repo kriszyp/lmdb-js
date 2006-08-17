@@ -1079,8 +1079,7 @@ tool_bind( LDAP *ld )
 		{
 			/* simple bind */
 			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE, &passwd,
-				sctrlsp,
-				NULL, &msgid );
+				sctrlsp, NULL, &msgid );
 			if ( msgid == -1 ) {
 				tool_perror( "ldap_sasl_bind(SIMPLE)", rc,
 					NULL, NULL, NULL, NULL );
