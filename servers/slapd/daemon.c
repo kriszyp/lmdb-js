@@ -527,6 +527,8 @@ void slapd_remove(
 
 	SLAP_DEL_SOCK(s);
 
+	tcp_close(s);
+
 	/* If we ran out of file descriptors, we dropped a listener from
 	 * the select() loop. Now that we're removing a session from our
 	 * control, we can try to resume a dropped listener to use.

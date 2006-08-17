@@ -653,7 +653,7 @@ void connection2anonymous( Connection *c )
 static void
 connection_destroy( Connection *c )
 {
-	ber_socket_t	sd;
+	ber_socket_t	sd, inval = AC_SOCKET_INVALID;
 	unsigned long	connid;
 	const char		*close_reason;
 	Sockbuf			*sb;
@@ -733,6 +733,7 @@ connection_destroy( Connection *c )
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
 	slapd_sd_lock();
 
+	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &inval );
 	ber_sockbuf_free( sb );
 
 	/* c must be fully reset by this point; when we call slapd_remove
@@ -1218,6 +1219,7 @@ void connection_client_stop(
 	ber_socket_t s )
 {
 	Connection *c;
+	ber_socket_t inval = AC_SOCKET_INVALID;
 
 	/* get (locked) connection */
 	c = connection_get( s );
@@ -1229,6 +1231,7 @@ void connection_client_stop(
 	c->c_struct_state = SLAP_C_UNUSED;
 	c->c_close_reason = "?";			/* should never be needed */
 	slapd_sd_lock();
+	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &inval );
 	ber_sockbuf_free( c->c_sb );
 	slapd_remove( s, 0, 1, 1 );
 	c->c_sb = ber_sockbuf_alloc( );
