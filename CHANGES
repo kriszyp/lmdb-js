@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.26 Release
 	Fixed libldap dnssrv bug with "not present" positive statement (ITS#4610)
+	Fixed libldap dangling pointer issue (ITS#4405)
 	Fixed slapd incorrect rebuilding of replica URI (ITS#4633)
 	Fixed slapd-monitor operations order via callbacks (ITS#4631)
 	Fixed slapo-accesslog purge task during shutdown
