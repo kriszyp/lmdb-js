@@ -90,7 +90,7 @@ backsql_dn2id(
 {
 	backsql_info		*bi = op->o_bd->be_private;
 	SQLHSTMT		sth = SQL_NULL_HSTMT; 
-	BACKSQL_ROW_NTS		row;
+	BACKSQL_ROW_NTS		row = { 0 };
 	RETCODE 		rc;
 	int			res;
 	struct berval		realndn = BER_BVNULL;
@@ -648,6 +648,11 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 			"error preparing query: %s\n", at->bam_query, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
+#ifdef BACKSQL_COUNTQUERY
+		if ( append ) {
+			attr_free( attr );
+		}
+#endif /* BACKSQL_COUNTQUERY */
 		return 1;
 	}
 
@@ -656,6 +661,11 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 			"error binding key value parameter\n", 0, 0, 0 );
+#ifdef BACKSQL_COUNTQUERY
+		if ( append ) {
+			attr_free( attr );
+		}
+#endif /* BACKSQL_COUNTQUERY */
 		return 1;
 	}
 
@@ -678,6 +688,11 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 			at->bam_query, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
+#ifdef BACKSQL_COUNTQUERY
+		if ( append ) {
+			attr_free( attr );
+		}
+#endif /* BACKSQL_COUNTQUERY */
 		return 1;
 	}
 

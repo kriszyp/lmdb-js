@@ -48,12 +48,11 @@ backsql_PrintErrors( SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth, int rc )
 	Debug( LDAP_DEBUG_TRACE, "Return code: %d\n", rc, 0, 0 );
 
 	for ( ; rc = SQLError( henv, hdbc, sth, state, &iSqlCode, msg,
-			SQL_MAX_MESSAGE_LENGTH - 1, &len ), BACKSQL_SUCCESS( rc ); ) {
+		SQL_MAX_MESSAGE_LENGTH - 1, &len ), BACKSQL_SUCCESS( rc ); )
+	{
 		Debug( LDAP_DEBUG_TRACE,
-				"   Native error code: %d\n"
-				"   SQL engine state:  %s\n"
-				"   Message:           %s\n", 
-				(int)iSqlCode, state, msg );
+			"   nativeErrCode=%d SQLengineState=%s msg=\"%s\"\n",
+			(int)iSqlCode, state, msg );
 	}
 }
 
@@ -163,12 +162,26 @@ backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 
 		row->col_names = (BerVarray)ber_memcalloc_x( row->ncols + 1, 
 				sizeof( struct berval ), ctx );
+		if ( !row->col_names ) goto nomem3;
 		row->cols = (char **)ber_memcalloc_x( row->ncols + 1, 
 				sizeof( char * ), ctx );
+		if ( !row->cols ) goto nomem2;
 		row->col_prec = (UDWORD *)ber_memcalloc_x( row->ncols,
 				sizeof( UDWORD ), ctx );
+		if ( !row->col_prec ) goto nomem1;
 		row->value_len = (SQLINTEGER *)ber_memcalloc_x( row->ncols,
 				sizeof( SQLINTEGER ), ctx );
+		if ( !row->value_len ) {
+			ber_memfree_x( row->col_prec, ctx );
+			row->col_prec = NULL;
+nomem1:		ber_memfree_x( row->cols, ctx );
+			row->cols = NULL;
+nomem2:		ber_memfree_x( row->col_names, ctx );
+			row->col_names = NULL;
+nomem3:		Debug( LDAP_DEBUG_ANY, "backsql_BindRowAsStrings: "
+				"out of memory\n", 0, 0, 0 );
+			return LDAP_NO_MEMORY;
+		}
 		for ( i = 1; i <= row->ncols; i++ ) {
 			rc = SQLDescribeCol( sth, (SQLSMALLINT)i, &colname[ 0 ],
 					(SQLUINTEGER)( sizeof( colname ) - 1 ),

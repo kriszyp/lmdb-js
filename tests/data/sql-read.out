@@ -382,6 +382,15 @@ objectClass: dcObject
 o: Example
 dc: example
 
+# Testing undefined attribute in filter...
+# refldap://localhost:9012/dc=example,dc=com??sub
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
 # Testing objectClass inheritance in filter...
 dn: cn=Mitya Kovalev,dc=example,dc=com
 objectClass: inetOrgPerson

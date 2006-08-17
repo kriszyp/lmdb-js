@@ -319,6 +319,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		const char	*text = NULL;
 		struct berval	bv;
 		struct berbuf	bb = BB_NULL;
+		AttributeDescription *ad = NULL;
 
 		Debug( LDAP_DEBUG_TRACE, 
 			"attributeType:\n"
@@ -336,10 +337,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		/* TimesTen */
 		Debug( LDAP_DEBUG_TRACE, "\tsel_expr_u=\"%s\"\n",
 				at_row.cols[ 8 ], 0, 0 );
-		at_map = (backsql_at_map_rec *)ch_calloc( 1,
-				sizeof( backsql_at_map_rec ) );
-		rc = slap_str2ad( at_row.cols[ 0 ], 
-				&at_map->bam_ad, &text );
+		rc = slap_str2ad( at_row.cols[ 0 ], &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_attr_mapping(): "
 				"attribute \"%s\" for objectClass \"%s\" "
@@ -349,6 +347,9 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 			bas->bas_rc = LDAP_CONSTRAINT_VIOLATION;
 			return BACKSQL_AVL_STOP;
 		}
+		at_map = (backsql_at_map_rec *)ch_calloc( 1,
+				sizeof( backsql_at_map_rec ) );
+		at_map->bam_ad = ad;
 
 		ber_str2bv( at_row.cols[ 1 ], 0, 1, &at_map->bam_sel_expr );
 		if ( at_row.value_len[ 8 ] < 0 ) {

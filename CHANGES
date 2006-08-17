@@ -6,6 +6,7 @@ OpenLDAP 2.3.26 Release
 	Fixed slapd incorrect rebuilding of replica URI (ITS#4633)
 	Fixed slapd DN X.509 normalization crash (ITS#4644)
 	Fixed slapd-monitor operations order via callbacks (ITS#4631)
+	Fixed slapd-sql undefined filter handling (ITS#4604)
 	Fixed slapo-accesslog purge task during shutdown
 	Fixed slapo-ppolicy handling of default policy (ITS#4634)
 	Fixed slapo-ppolicy logging verbosity when using default policy
