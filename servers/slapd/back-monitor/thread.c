@@ -314,7 +314,7 @@ monitor_subsys_thread_update(
 		bv.bv_val = buf;
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		i = 0;
-		LDAP_STAILQ_FOREACH( re, &slapd_rq.task_list, rnext ) {
+		LDAP_STAILQ_FOREACH( re, &slapd_rq.task_list, tnext ) {
 			bv.bv_len = snprintf( buf, sizeof( buf ), "{%d}%s(%s)",
 				i, re->tname, re->tspec );
 			if ( bv.bv_len < sizeof( buf ) ) {
