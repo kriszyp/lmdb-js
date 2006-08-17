@@ -880,12 +880,19 @@ done:
 /* restrictops, allows, disallows, requires, loglevel */
 
 int
-verb_to_mask(const char *word, slap_verbmasks *v) {
+bverb_to_mask(struct berval *bword, slap_verbmasks *v) {
 	int i;
 	for(i = 0; !BER_BVISNULL(&v[i].word); i++) {
-		if(!strcasecmp(word, v[i].word.bv_val)) break;
+		if(!ber_bvstrcasecmp(bword, &v[i].word)) break;
 	}
 	return(i);
+}
+
+int
+verb_to_mask(const char *word, slap_verbmasks *v) {
+	struct berval	bword;
+	ber_str2bv( word, 0, 0, &bword );
+	return bverb_to_mask( &bword, v );
 }
 
 int

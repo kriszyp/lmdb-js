@@ -589,6 +589,8 @@ LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, const char *dir ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
 	char ***, char *, const char * ));
+LDAP_SLAPD_F (int) bverb_to_mask LDAP_P((
+	struct berval *bword,  slap_verbmasks *v ));
 LDAP_SLAPD_F (int) verb_to_mask LDAP_P((
 	const char *word,  slap_verbmasks *v ));
 LDAP_SLAPD_F (int) verbs_to_mask LDAP_P((
