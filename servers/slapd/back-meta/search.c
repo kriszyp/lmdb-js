@@ -1128,7 +1128,8 @@ really_bad:;
 
 			if ( op->o_abandon ) {
 				rc = SLAPD_ABANDON;
-				goto finish;
+				/* let send_ldap_result play cleanup handlers (ITS#4645) */
+				break;
 			}
 		}
 

@@ -469,7 +469,11 @@ finish:;
 		ldap_back_quarantine( op, rs );
 	}
 
-	if ( rc != SLAPD_ABANDON ) {
+#if 0
+	/* let send_ldap_result play cleanup handlers (ITS#4645) */
+	if ( rc != SLAPD_ABANDON )
+#endif
+	{
 		send_ldap_result( op, rs );
 	}
 
