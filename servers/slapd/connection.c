@@ -733,7 +733,7 @@ connection_destroy( Connection *c )
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
 	slapd_sd_lock();
 
-	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &inval );
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &inval );
 	ber_sockbuf_free( sb );
 
 	/* c must be fully reset by this point; when we call slapd_remove
