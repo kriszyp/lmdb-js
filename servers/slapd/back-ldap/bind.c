@@ -921,7 +921,9 @@ ldap_back_dobind_int(
 {	
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	int		rc, binding = 0;
+	int		rc,
+			isbound,
+			binding = 0;
 	ber_int_t	msgid;
 
 	assert( retries >= 0 );
@@ -933,8 +935,8 @@ retry_lock:;
 
  	if ( binding == 0 ) {
 		/* check if already bound */
-		rc = LDAP_BACK_CONN_ISBOUND( lc );
-		if ( rc ) {
+		rc = isbound = LDAP_BACK_CONN_ISBOUND( lc );
+		if ( isbound ) {
 			lc->lc_binding--;
  			if ( dolock ) {
  				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
@@ -995,8 +997,7 @@ retry_lock:;
 	 */
 	if ( op->o_conn != NULL &&
 		!op->o_do_not_cache &&
-		( BER_BVISNULL( &lc->lc_bound_ndn ) ||
-			( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
+		( !isbound || ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok );
 		goto done;
