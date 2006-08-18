@@ -175,6 +175,42 @@ monitor_subsys_thread_init(
 	*ep = e;
 	ep = &mp->mp_next;
 
+	/*
+	 * Tasklist
+	 */
+	BER_BVSTR( &bv, "cn=Tasklist" );
+	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+		mi->mi_oc_monitoredObject, mi, NULL, NULL );
+	if ( e == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to create entry \"%s,%s\"\n",
+			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+		return( -1 );
+	}
+	BER_BVSTR( &bv, "0" );
+	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
+	e->e_private = ( void * )mp;
+	mp->mp_info = ms;
+	mp->mp_flags = ms->mss_flags \
+		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+
+	if ( monitor_cache_add( mi, e ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to add entry \"%s\"\n",
+			e->e_name.bv_val, 0, 0 );
+		return( -1 );
+	}
+	
+	*ep = e;
+	ep = &mp->mp_next;
+
 	monitor_cache_release( mi, e_thread );
 
 	return( 0 );
@@ -189,23 +225,33 @@ monitor_subsys_thread_update(
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	Attribute		*a;
 	char 			buf[ BACKMONITOR_BUFSIZE ];
-	static struct berval	backload_bv = BER_BVC( "cn=backload" );
-	static struct berval	runqueue_bv = BER_BVC( "cn=runqueue" );
+	enum {
+		MT_UNKNOWN,
+		MT_BACKLOAD,
+		MT_RUNQUEUE,
+		MT_TASKLIST,
+		MT_MAX				/* unused */
+	};
+	static slap_verbmasks	mt[] = {
+		{ BER_BVC( "cn=backload" ),	MT_BACKLOAD	},
+		{ BER_BVC( "cn=runqueue" ),	MT_RUNQUEUE	},
+		{ BER_BVC( "cn=tasklist" ),	MT_TASKLIST	},
+		{ BER_BVC( "cn=max" ),		MT_UNKNOWN	},
+		{ BER_BVNULL,			MT_UNKNOWN	}
+	};
 	struct berval		rdn, bv;
 	ber_len_t		len;
-	int which = 0, i;
-	struct re_s *re;
+	int			which, i;
+	struct re_s		*re;
 
 	assert( mi != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
-	if ( dn_match( &rdn, &backload_bv ) ) {
-		which = 1;
 
-	} else if ( dn_match( &rdn, &runqueue_bv ) ) {
-		which = 2;
-
-	} else {
+	which = bverb_to_mask( &rdn, mt );
+	if ( BER_BVISNULL( &mt[ which ].word )
+		|| mt[ which ].mask == MT_UNKNOWN )
+	{
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -214,8 +260,8 @@ monitor_subsys_thread_update(
 		return rs->sr_err = LDAP_OTHER;
 	}
 
-	switch ( which ) {
-	case 1:
+	switch ( mt[ which ].mask ) {
+	case MT_BACKLOAD:
 		snprintf( buf, sizeof( buf ), "%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
 		len = strlen( buf );
@@ -226,25 +272,64 @@ monitor_subsys_thread_update(
 		AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 		break;
 
-	case 2:
+	case MT_RUNQUEUE:
 		for ( i = 0; !BER_BVISNULL( &a->a_vals[ i ] ); i++ ) {
-			ch_free( a->a_vals[i].bv_val );
+			ch_free( a->a_vals[ i ].bv_val );
 			BER_BVZERO( &a->a_vals[ i ] );
 		}
+		if ( a->a_nvals != a->a_vals ) {
+			ber_bvarray_free( a->a_nvals );
+		}
+		a->a_nvals = NULL;
 		bv.bv_val = buf;
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		i = 0;
 		LDAP_STAILQ_FOREACH( re, &slapd_rq.run_list, rnext ) {
-			bv.bv_len = snprintf( buf, sizeof( buf ), "%s(%s)",
-				re->tname, re->tspec );
-			value_add_one( &a->a_vals, &bv );
+			bv.bv_len = snprintf( buf, sizeof( buf ), "{%d}%s(%s)",
+				i, re->tname, re->tspec );
+			if ( bv.bv_len < sizeof( buf ) ) {
+				value_add_one( &a->a_vals, &bv );
+			}
+			i++;
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 		/* don't leave 'round attributes with no values */
 		if ( BER_BVISNULL( &a->a_vals[ 0 ] ) ) {
-			BER_BVSTR( &bv, "()" );
+			BER_BVSTR( &bv, "{0}()" );
 			value_add_one( &a->a_vals, &bv );
 		}
+		a->a_nvals = a->a_vals;
+		break;
+
+	case MT_TASKLIST:
+		for ( i = 0; !BER_BVISNULL( &a->a_vals[ i ] ); i++ ) {
+			ch_free( a->a_vals[ i ].bv_val );
+			BER_BVZERO( &a->a_vals[ i ] );
+		}
+		if ( a->a_nvals != a->a_vals ) {
+			ber_bvarray_free( a->a_nvals );
+		}
+		a->a_nvals = NULL;
+		bv.bv_val = buf;
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		i = 0;
+		LDAP_STAILQ_FOREACH( re, &slapd_rq.task_list, tnext ) {
+			bv.bv_len = snprintf( buf, sizeof( buf ), "{%d}%s(%s)",
+				i, re->tname, re->tspec );
+			if ( bv.bv_len < sizeof( buf ) ) {
+				value_add_one( &a->a_vals, &bv );
+			}
+			i++;
+		}
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+		/* don't leave 'round attributes with no values */
+		if ( BER_BVISNULL( &a->a_vals[ 0 ] ) ) {
+			BER_BVSTR( &bv, "{0}()" );
+			value_add_one( &a->a_vals, &bv );
+		}
+		a->a_nvals = a->a_vals;
 		break;
 	}
 

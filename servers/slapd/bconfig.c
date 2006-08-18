@@ -162,6 +162,7 @@ enum {
 	CFG_SSTR_IF_MIN,
 	CFG_TTHREADS,
 	CFG_MIRRORMODE,
+	CFG_HIDDEN,
 
 	CFG_LAST
 };
@@ -220,6 +221,7 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:12 		-> ppolicy
  * OLcfgOv{Oc|At}:13		-> constraint
  * OLcfgOv{Oc|At}:14		-> translucent
+ * OLcfgOv{Oc|At}:15		-> auditlog
  */
 
 /* alphabetical ordering */
@@ -318,6 +320,9 @@ static ConfigTable config_back_cf_table[] = {
 		ARG_IGNORED, NULL,
 #endif
 		"( OLcfgGlAt:17 NAME 'olcGentleHUP' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "hidden", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_HIDDEN,
+		&config_generic, "( OLcfgDbAt:0.17 NAME 'olcHidden' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "idletimeout", "timeout", 2, 2, 0, ARG_INT,
 		&global_idletimeout, "( OLcfgGlAt:18 NAME 'olcIdleTimeout' "
@@ -693,7 +698,8 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcDatabase "
-		"MAY ( olcSuffix $ olcSubordinate $ olcAccess $ olcLastMod $ olcLimits $ "
+		"MAY ( olcHidden $ olcSuffix $ olcSubordinate $ olcAccess $ "
+		 "olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
@@ -805,6 +811,13 @@ config_generic(ConfigArgs *c) {
 #endif
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
+			break;
+		case CFG_HIDDEN:
+			if ( SLAP_DBHIDDEN( c->be )) {
+				c->value_int = 1;
+			} else {
+				rc = 1;
+			}
 			break;
 		case CFG_OID: {
 			ConfigFile *cf = c->private;
@@ -1055,6 +1068,10 @@ config_generic(ConfigArgs *c) {
 		case CFG_LOGFILE:
 			ch_free( logfileName );
 			logfileName = NULL;
+			break;
+
+		case CFG_HIDDEN:
+			c->be->be_flags &= ~SLAP_DBFLAG_HIDDEN;
 			break;
 
 		case CFG_ACL:
@@ -1399,6 +1416,13 @@ config_generic(ConfigArgs *c) {
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_SINGLE_SHADOW;
 			else
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
+			break;
+
+		case CFG_HIDDEN:
+			if (c->value_int)
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_HIDDEN;
+			else
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_HIDDEN;
 			break;
 
 		case CFG_SSTR_IF_MAX:
@@ -1908,7 +1932,10 @@ config_suffix(ConfigArgs *c)
 
 	pdn = c->value_dn;
 	ndn = c->value_ndn;
-	tbe = select_backend(&ndn, 0, 0);
+	if (SLAP_DBHIDDEN( c->be ))
+		tbe = NULL;
+	else
+		tbe = select_backend(&ndn, 0, 0);
 	if(tbe == c->be) {
 		Debug( LDAP_DEBUG_ANY, "%s: suffix already served by this backend!.\n",
 			c->log, 0, 0);
@@ -2118,8 +2145,10 @@ config_disallows(ConfigArgs *c) {
 
 static int
 config_requires(ConfigArgs *c) {
-	slap_mask_t requires = 0;
-	int i;
+	slap_mask_t requires = frontendDB->be_requires;
+	int i, argc = c->argc;
+	char **argv = c->argv;
+
 	slap_verbmasks requires_ops[] = {
 		{ BER_BVC("bind"),		SLAP_REQUIRE_BIND },
 		{ BER_BVC("LDAPv3"),		SLAP_REQUIRE_LDAP_V3 },
@@ -2139,11 +2168,23 @@ config_requires(ConfigArgs *c) {
 		}
 		return 0;
 	}
-	i = verbs_to_mask(c->argc, c->argv, requires_ops, &requires);
+	/* "none" can only be first, to wipe out default/global values */
+	if ( strcasecmp( c->argv[ 1 ], "none" ) == 0 ) {
+		argv++;
+		argc--;
+		requires = 0;
+	}
+	i = verbs_to_mask(argc, argv, requires_ops, &requires);
 	if ( i ) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> unknown feature", c->argv[0] );
-		Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-			c->log, c->msg, c->argv[i]);
+		if (strcasecmp( c->argv[ i ], "none" ) == 0 ) {
+			snprintf( c->msg, sizeof( c->msg ), "<%s> \"none\" (#%d) must be listed first", c->argv[0], i - 1 );
+			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+				c->log, c->msg, 0);
+		} else {
+			snprintf( c->msg, sizeof( c->msg ), "<%s> unknown feature #%d", c->argv[0], i - 1 );
+			Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+				c->log, c->msg, c->argv[i]);
+		}
 		return(1);
 	}
 	c->be->be_requires = requires;
@@ -2589,6 +2630,8 @@ config_replica(ConfigArgs *c) {
 			nr = add_replica_info(c->be, replicauri, replicahost);
 			break;
 		} else if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
+			ber_len_t	len;
+
 			if ( replicauri ) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> replica host/URI already specified", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg, replicauri );
@@ -2607,11 +2650,28 @@ config_replica(ConfigArgs *c) {
 				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 				return(1);
 			}
+
+			len = strlen(ludp->lud_scheme) + strlen(ludp->lud_host) +
+				STRLENOF("://") + 1;
+			if (ludp->lud_port != LDAP_PORT) {
+				if (ludp->lud_port < 1 || ludp->lud_port > 65535) {
+					ldap_free_urldesc(ludp);
+					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid port",
+						c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+					return(1);
+				}
+				len += STRLENOF(":65535");
+			}
+			replicauri = ch_malloc( len );
+			replicahost = lutil_strcopy( replicauri, ludp->lud_scheme );
+			replicahost = lutil_strcopy( replicahost, "://" );
+			if (ludp->lud_port == LDAP_PORT) {
+				strcpy( replicahost, ludp->lud_host );
+			} else {
+				sprintf( replicahost, "%s:%d",ludp->lud_host,ludp->lud_port );
+			}
 			ldap_free_urldesc(ludp);
-			replicauri = c->argv[i] + STRLENOF("uri=");
-			replicauri = ch_strdup( replicauri );
-			replicahost = strchr( replicauri, '/' );
-			replicahost += 2;
 			nr = add_replica_info(c->be, replicauri, replicahost);
 			break;
 		}
@@ -4620,6 +4680,7 @@ config_back_db_open( BackendDB *be )
 		return -1;
 	}
 	ce = e->e_private;
+	ce->ce_private = cfb->cb_config;
 
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {

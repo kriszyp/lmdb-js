@@ -504,6 +504,8 @@ log_old_lookup( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_type != REP_SEARCH) return 0;
 
+	if ( slapd_shutdown ) return 0;
+
 	if ( pd->used >= pd->slots ) {
 		pd->slots += PURGE_INCREMENT;
 		pd->dn = ch_realloc( pd->dn, pd->slots * sizeof( struct berval ));
@@ -576,7 +578,8 @@ accesslog_purge( void *ctx, void *arg )
 		for (i=0; i<pd.used; i++) {
 			op->o_req_dn = pd.dn[i];
 			op->o_req_ndn = pd.ndn[i];
-			op->o_bd->be_delete( op, &rs );
+			if ( !slapd_shutdown )
+				op->o_bd->be_delete( op, &rs );
 			ch_free( pd.ndn[i].bv_val );
 			ch_free( pd.dn[i].bv_val );
 		}
@@ -605,6 +608,14 @@ log_cf_gen(ConfigArgs *c)
 	case SLAP_CONFIG_EMIT:
 		switch( c->type ) {
 		case LOG_DB:
+			if ( li->li_db == NULL ) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"accesslog: \"logdb <suffix>\" must be specified" );
+				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+					c->log, c->msg, c->value_dn.bv_val );
+				rc = 1;
+				break;
+			}
 			value_add( &c->rvalue_vals, li->li_db->be_suffix );
 			value_add( &c->rvalue_nvals, li->li_db->be_nsuffix );
 			break;
@@ -612,6 +623,10 @@ log_cf_gen(ConfigArgs *c)
 			rc = mask_to_verbs( logops, li->li_ops, &c->rvalue_vals );
 			break;
 		case LOG_PURGE:
+			if ( !li->li_age ) {
+				rc = 1;
+				break;
+			}
 			agebv.bv_val = agebuf;
 			log_age_unparse( li->li_age, &agebv );
 			agebv.bv_val[agebv.bv_len] = ' ';
@@ -690,7 +705,7 @@ log_cf_gen(ConfigArgs *c)
 					ch_free( la );
 				}
 			} else {
-				log_attr *la, **lp;
+				log_attr *la = NULL, **lp;
 				int i;
 
 				for ( lp = &li->li_oldattrs, i=0; i < c->valx; i++ ) {
@@ -708,7 +723,15 @@ log_cf_gen(ConfigArgs *c)
 		case LOG_DB:
 			li->li_db = select_backend( &c->value_ndn, 0, 0 );
 			if ( !li->li_db ) {
-				sprintf( c->msg, "<%s> no matching backend found for suffix",
+				snprintf( c->msg, sizeof( c->msg ),
+					"<%s> no matching backend found for suffix",
+					c->argv[0] );
+				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+					c->log, c->msg, c->value_dn.bv_val );
+				rc = 1;
+			} else if ( BER_BVISEMPTY( &li->li_db->be_rootdn )) {
+				snprintf( c->msg, sizeof( c->msg ),
+					"<%s> no rootDN was configured for suffix",
 					c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->msg, c->value_dn.bv_val );
@@ -724,11 +747,11 @@ log_cf_gen(ConfigArgs *c)
 			break;
 		case LOG_PURGE:
 			li->li_age = log_age_parse( c->argv[1] );
-			if ( li->li_age == -1 ) {
+			if ( li->li_age < 1 ) {
 				rc = 1;
 			} else {
 				li->li_cycle = log_age_parse( c->argv[2] );
-				if ( li->li_cycle == -1 ) {
+				if ( li->li_cycle < 1 ) {
 					rc = 1;
 				} else if ( slapMode & SLAP_SERVER_MODE ) {
 					struct re_s *re = li->li_task;
@@ -1425,6 +1448,13 @@ accesslog_db_open(
 	Entry *e;
 	int rc;
 	void *thrctx;
+
+	if ( li->li_db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"accesslog: \"logdb <suffix>\" must be specified.\n",
+			0, 0, 0 );
+		return 1;
+	}
 
 	if ( slapMode & SLAP_TOOL_MODE )
 		return 0;

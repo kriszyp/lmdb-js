@@ -106,10 +106,6 @@ static int version = 0;
 void *slap_tls_ctx;
 LDAP *slap_tls_ld;
 
-#ifdef LOG_LOCAL4
-#define DEFAULT_SYSLOG_USER	LOG_LOCAL4
-#endif /* LOG_LOCAL4 */
-
 static int
 slapd_opt_slp( const char *val, void *arg )
 {
@@ -162,7 +158,7 @@ struct option_helper {
 
 #if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
 #ifdef LOG_LOCAL4
-static int
+int
 parse_syslog_user( const char *arg, int *syslogUser )
 {
 	static slap_verbmasks syslogUsers[] = {
@@ -182,12 +178,12 @@ parse_syslog_user( const char *arg, int *syslogUser )
 #endif /* LOG_DAEMON */
 		{ BER_BVNULL, 0 }
 	};
-	int i = verb_to_mask( optarg, syslogUsers );
+	int i = verb_to_mask( arg, syslogUsers );
 
 	if ( BER_BVISNULL( &syslogUsers[ i ].word ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"unrecognized syslog user \"%s\".\n",
-			optarg, 0, 0 );
+			arg, 0, 0 );
 		return 1;
 	}
 
@@ -197,7 +193,7 @@ parse_syslog_user( const char *arg, int *syslogUser )
 }
 #endif /* LOG_LOCAL4 */
 
-static int
+int
 parse_syslog_level( const char *arg, int *levelp )
 {
 	static slap_verbmasks	str2syslog_level[] = {
@@ -352,7 +348,7 @@ int main( int argc, char **argv )
 	char *sandbox = NULL;
 #endif
 #ifdef LOG_LOCAL4
-	int syslogUser = DEFAULT_SYSLOG_USER;
+	int syslogUser = SLAP_DEFAULT_SYSLOG_USER;
 #endif
 	
 	int g_argc = argc;
@@ -963,11 +959,8 @@ stop:
 	lutil_passwd_destroy();
 
 #ifdef HAVE_TLS
-	/* Setting it to itself decreases refcount, allowing it to be freed
-	 * when the LD is freed.
-	 */
 	if ( slap_tls_ld ) {
-		ldap_pvt_tls_set_option( slap_tls_ld, LDAP_OPT_X_TLS_CTX, slap_tls_ctx );
+		SSL_CTX_free( slap_tls_ctx );
 		ldap_unbind( slap_tls_ld );
 	}
 	ldap_pvt_tls_destroy();
@@ -988,6 +981,9 @@ stop:
 		ch_free( configdir );
 	if ( urls )
 		ch_free( urls );
+
+	/* kludge, get symbols referenced */
+	tavl_free( NULL, NULL );
 
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );

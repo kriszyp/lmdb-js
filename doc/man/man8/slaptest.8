@@ -8,6 +8,7 @@ slaptest \- Check the suitability of the slapd.conf file.
 .B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
+.B [\-o name[=value]
 .B [\-u]
 .B [\-v]
 .LP
@@ -47,6 +48,20 @@ config file. If a valid config directory exists then the
 default config file is ignored. If dryrun mode is also specified,
 no conversion will occur.
 .TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible generic options/values are:
+.LP
+.nf
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
+.TP
 .B \-u
 enable dryrun mode (i.e. don't fail if databases cannot be opened,
 but config is fine).
@@ -70,7 +85,4 @@ give the command:
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

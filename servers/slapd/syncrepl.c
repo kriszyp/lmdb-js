@@ -423,118 +423,11 @@ do_syncrep1(
 
 	psub = &si->si_be->be_nsuffix[0];
 
-	/* Init connection to master */
-	rc = ldap_initialize( &si->si_ld, si->si_bindconf.sb_uri.bv_val );
+	rc = slap_client_connect( &si->si_ld, &si->si_bindconf, LDAP_VERSION3 );
 	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_syncrep1: ldap_initialize failed (%s)\n",
-			si->si_bindconf.sb_uri.bv_val, 0, 0 );
-		return rc;
-	}
-
-	op->o_protocol = LDAP_VERSION3;
-	ldap_set_option( si->si_ld, LDAP_OPT_PROTOCOL_VERSION,
-		(const void *)&op->o_protocol );
-
-#ifdef HAVE_TLS
-	if ( si->si_bindconf.sb_tls_do_init ) {
-		rc = bindconf_tls_set( &si->si_bindconf, si->si_ld );
-	} else if ( si->si_bindconf.sb_tls_ctx ) {
-		rc = ldap_set_option( si->si_ld, LDAP_OPT_X_TLS_CTX,
-			si->si_bindconf.sb_tls_ctx );
-	}
-	if ( rc ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_syncrep1: TLS context initialization failed\n", 0, 0, 0 );
-		return rc;
-	}
-#endif
-
-	/* Bind to master */
-
-	if ( si->si_bindconf.sb_tls ) {
-		rc = ldap_start_tls_s( si->si_ld, NULL, NULL );
-		if( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s: ldap_start_tls failed (%d)\n",
-				si->si_bindconf.sb_tls == SB_TLS_CRITICAL ? "Error" : "Warning",
-				rc, 0 );
-			if( si->si_bindconf.sb_tls == SB_TLS_CRITICAL ) goto done;
-		}
-	}
-
-	if ( si->si_bindconf.sb_method == LDAP_AUTH_SASL ) {
-#ifdef HAVE_CYRUS_SASL
-		void *defaults;
-
-		if ( si->si_bindconf.sb_secprops != NULL ) {
-			rc = ldap_set_option( si->si_ld,
-				LDAP_OPT_X_SASL_SECPROPS, si->si_bindconf.sb_secprops);
-
-			if( rc != LDAP_OPT_SUCCESS ) {
-				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
-					"(%s,SECPROPS,\"%s\") failed!\n",
-					si->si_bindconf.sb_uri.bv_val, si->si_bindconf.sb_secprops, 0 );
-				goto done;
-			}
-		}
-
-		defaults = lutil_sasl_defaults( si->si_ld,
-			si->si_bindconf.sb_saslmech.bv_val,
-			si->si_bindconf.sb_realm.bv_val,
-			si->si_bindconf.sb_authcId.bv_val,
-			si->si_bindconf.sb_cred.bv_val,
-			si->si_bindconf.sb_authzId.bv_val );
-
-		rc = ldap_sasl_interactive_bind_s( si->si_ld,
-				si->si_bindconf.sb_binddn.bv_val,
-				si->si_bindconf.sb_saslmech.bv_val,
-				NULL, NULL,
-				LDAP_SASL_QUIET,
-				lutil_sasl_interact,
-				defaults );
-
-		lutil_sasl_freedefs( defaults );
-
-		/* FIXME: different error behaviors according to
-		 *	1) return code
-		 *	2) on err policy : exit, retry, backoff ...
-		 */
-		if ( rc != LDAP_SUCCESS ) {
-			static struct berval bv_GSSAPI = BER_BVC( "GSSAPI" );
-
-			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
-				"ldap_sasl_interactive_bind_s failed (%d)\n",
-				rc, 0, 0 );
-
-			/* FIXME (see above comment) */
-			/* if Kerberos credentials cache is not active, retry */
-			if ( ber_bvcmp( &si->si_bindconf.sb_saslmech, &bv_GSSAPI ) == 0 &&
-				rc == LDAP_LOCAL_ERROR )
-			{
-				rc = LDAP_SERVER_DOWN;
-			}
-
-			goto done;
-		}
-#else /* HAVE_CYRUS_SASL */
-		/* Should never get here, we trapped this at config time */
-		assert(0);
-		Debug( LDAP_DEBUG_SYNC, "not compiled with SASL support\n", 0, 0, 0 );
-		rc = LDAP_OTHER;
 		goto done;
-#endif
-
-	} else if ( si->si_bindconf.sb_method == LDAP_AUTH_SIMPLE ) {
-		rc = ldap_sasl_bind_s( si->si_ld,
-			si->si_bindconf.sb_binddn.bv_val, LDAP_SASL_SIMPLE,
-			&si->si_bindconf.sb_cred, NULL, NULL, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
-				"ldap_sasl_bind_s failed (%d)\n", rc, 0, 0 );
-			goto done;
-		}
 	}
+	op->o_protocol = LDAP_VERSION3;
 
 	/* Set SSF to strongest of TLS, SASL SSFs */
 	op->o_sasl_ssf = 0;
@@ -808,11 +701,6 @@ do_syncrep2(
 						&syncCookie_req.ctxcsn, &syncCookie.ctxcsn,
 						&text );
 				}
-				if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
-					match < 0 && err == LDAP_SUCCESS )
-				{
-					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
-				}
 				if ( rctrls ) {
 					ldap_controls_free( rctrls );
 				}
@@ -824,11 +712,16 @@ do_syncrep2(
 					if ( refreshDeletes == 0 && match < 0 &&
 						err == LDAP_SUCCESS )
 					{
-						syncrepl_del_nonpresent( op, si, NULL, NULL );
+						syncrepl_del_nonpresent( op, si, NULL, &syncCookie.ctxcsn );
 					} else {
 						avl_free( si->si_presentlist, avl_ber_bvfree );
 						si->si_presentlist = NULL;
 					}
+				}
+				if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
+					match < 0 && err == LDAP_SUCCESS )
+				{
+					rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
 				}
 				if ( err == LDAP_SUCCESS
 					&& si->si_logstate == SYNCLOG_FALLBACK ) {
@@ -930,6 +823,7 @@ do_syncrep2(
 							}
 							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
+						slap_sync_cookie_free( &syncCookie, 0 );
 						break;
 					default:
 						Debug( LDAP_DEBUG_ANY,
@@ -952,15 +846,14 @@ do_syncrep2(
 							&syncCookie.ctxcsn, &text );
 					}
 
-					if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
-						match < 0 )
-					{
-						rc = syncrepl_updateCookie( si, op, psub, &syncCookie);
-					}
+					if ( match < 0 ) {
+						if ( si->si_refreshPresent == 1 ) {
+							syncrepl_del_nonpresent( op, si, NULL, &syncCookie.ctxcsn );
+						}
 
-					if ( si->si_refreshPresent == 1 ) {
-						if ( match < 0 ) {
-							syncrepl_del_nonpresent( op, si, NULL, NULL );
+						if ( !BER_BVISNULL( &syncCookie.ctxcsn ))
+						{
+							rc = syncrepl_updateCookie( si, op, psub, &syncCookie);
 						}
 					} 
 
@@ -1350,6 +1243,7 @@ syncrepl_message_to_op(
 	}
 
 	op->o_callback = &cb;
+	slap_op_time( &op->o_time, &op->o_tincr );
 
 	switch( op->o_tag ) {
 	case LDAP_REQ_ADD:
@@ -1768,8 +1662,25 @@ syncrepl_entry(
 			ber_memfree( a->a_vals[0].bv_val );
 			ber_dupbv( &a->a_vals[0], &syncUUID_strrep );
 		}
+		/* Don't save the contextCSN on the inooming context entry,
+		 * we'll write it when syncrepl_updateCookie eventually
+		 * gets called. (ITS#4622)
+		 */
+		if ( syncstate == LDAP_SYNC_ADD && dn_match( &entry->e_nname,
+			&be->be_nsuffix[0] )) {
+			Attribute **ap;
+			for ( ap = &entry->e_attrs; *ap; ap=&(*ap)->a_next ) {
+				a = *ap;
+				if ( a->a_desc == slap_schema.si_ad_contextCSN ) {
+					*ap = a->a_next;
+					attr_free( a );
+					break;
+				}
+			}
+		}
 	}
 
+	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
@@ -1848,6 +1759,7 @@ retry_add:;
 					if ( rc ) goto done;
 
 					retry = 0;
+					slap_op_time( &op->o_time, &op->o_tincr );
 					goto retry_add;
 				}
 				/* FALLTHRU */
@@ -1882,7 +1794,17 @@ retry_add:;
 			if (( rc = slap_modrdn2mods( op, &rs_modify ))) {
 				goto done;
 			}
+
+			/* RDNs must be NUL-terminated for back-ldap */
+			noldp = op->orr_newrdn;
+			ber_dupbv_x( &op->orr_newrdn, &noldp, op->o_tmpmemctx );
+			noldp = op->orr_nnewrdn;
+			ber_dupbv_x( &op->orr_nnewrdn, &noldp, op->o_tmpmemctx );
+
 			rc = be->be_modrdn( op, &rs_modify );
+			op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );
+
 			slap_mods_free( op->orr_modlist, 1 );
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s (%d)\n", 
@@ -1893,6 +1815,8 @@ retry_add:;
 			} else {
 				goto done;
 			}
+			if ( dni.wasChanged )
+				slap_op_time( &op->o_time, &op->o_tincr );
 		}
 		if ( dni.wasChanged ) {
 			Modifications *mod, *modhead = NULL;
@@ -3207,8 +3131,14 @@ add_syncrepl(
 	int	rc = 0;
 
 	if ( !( c->be->be_search && c->be->be_add && c->be->be_modify && c->be->be_delete ) ) {
-		Debug( LDAP_DEBUG_ANY, "%s: database %s does not support operations "
-			"required for syncrepl\n", c->log, c->be->be_type, 0 );
+		snprintf( c->msg, sizeof(c->msg), "database %s does not support "
+			"operations required for syncrepl", c->be->be_type );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+		return 1;
+	}
+	if ( BER_BVISEMPTY( &c->be->be_rootdn )) {
+		strcpy( c->msg, "rootDN must be defined before syncrepl may be used" );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
 		return 1;
 	}
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );

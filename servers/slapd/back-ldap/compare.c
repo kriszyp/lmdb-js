@@ -36,11 +36,13 @@ ldap_back_compare(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	ldapconn_t	*lc;
-	ber_int_t	msgid;
-	int		do_retry = 1;
-	LDAPControl	**ctrls = NULL;
-	int		rc = LDAP_SUCCESS;
+	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
+
+	ldapconn_t		*lc;
+	ber_int_t		msgid;
+	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
+	LDAPControl		**ctrls = NULL;
+	int			rc = LDAP_SUCCESS;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
@@ -49,7 +51,8 @@ ldap_back_compare(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto cleanup;
@@ -60,9 +63,10 @@ retry:
 			op->orc_ava->aa_desc->ad_cname.bv_val,
 			&op->orc_ava->aa_value, 
 			ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_SENDRESULT );
-	if ( rc == LDAP_UNAVAILABLE && do_retry ) {
-		do_retry = 0;
+	rc = ldap_back_op_result( lc, op, rs, msgid, 0,
+		( LDAP_BACK_SENDRESULT | retrying ) );
+	if ( rc == LDAP_UNAVAILABLE && retrying ) {
+		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}

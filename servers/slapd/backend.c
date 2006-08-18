@@ -592,7 +592,7 @@ select_backend(
 	Backend		*be, *b2 = NULL;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
-		if ( be->be_nsuffix == NULL ) {
+		if ( be->be_nsuffix == NULL || SLAP_DBHIDDEN( be )) {
 			continue;
 		}
 

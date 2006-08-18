@@ -31,6 +31,7 @@
 #include "slap.h"
 #include "lutil.h"
 #include "ldap_rq.h"
+#include "avl.h"
 
 #include "config.h"
 
@@ -39,17 +40,26 @@
 
 typedef struct Query_s {
 	Filter* 	filter; 	/* Search Filter */
-	AttributeName* 	attrs;		/* Projected attributes */
-	AttributeName*  save_attrs;	/* original attributes, saved for response */
 	struct berval 	base; 		/* Search Base */
 	int 		scope;		/* Search scope */
 } Query;
 
+struct query_template_s;
+
+typedef struct Qbase_s {
+	Avlnode *scopes[4];		/* threaded AVL trees of cached queries */
+	struct berval base;
+	int queries;
+} Qbase;
+
 /* struct representing a cached query */
 typedef struct cached_query_s {
-	Query 				query;		/* LDAP query */
+	Filter					*filter;
+	Filter					*first;
+	Qbase					*qbase;
+	int						scope;
 	struct berval			q_uuid;		/* query identifier */
-	int 				template_id;	/* template of the query */
+	struct query_template_s *qtemp;	/* template of the query */
 	time_t 				expiry_time;	/* time till the query is considered valid */
 	struct cached_query_s  		*next;  	/* next query in the template */
 	struct cached_query_s  		*prev;  	/* previous query in the template */
@@ -57,42 +67,47 @@ typedef struct cached_query_s {
 	struct cached_query_s           *lru_down;	/* next query in the LRU list */
 } CachedQuery;
 
-/* struct representing a query template
- * e.g. template string = &(cn=)(mail=)
- */
-typedef struct query_template_s {
-	struct berval	querystr;	/* Filter string corresponding to the QT */
-	int 		attr_set_index; /* determines the projected attributes */
-
-	CachedQuery* 	query;	        /* most recent query cached for the template */
-	CachedQuery* 	query_last;     /* oldest query cached for the template */
-
-	int 		no_of_queries;  /* Total number of queries in the template */
-	time_t		ttl;		/* TTL for the queries of this template */
-	time_t		negttl;		/* TTL for negative results */
-	ldap_pvt_thread_rdwr_t *t_rwlock; /* Rd/wr lock for accessing queries in the template */
-} QueryTemplate;
-
 /*
  * Represents a set of projected attributes.
  */
 
 struct attr_set {
+	struct query_template_s *templates;
+	AttributeName*	attrs; 		/* specifies the set */
 	unsigned	flags;
 #define	PC_CONFIGURED	(0x1)
 #define	PC_REFERENCED	(0x2)
 #define	PC_GOT_OC		(0x4)
-	AttributeName*	attrs; 		/* specifies the set */
 	int 		count;		/* number of attributes */
 };
+
+/* struct representing a query template
+ * e.g. template string = &(cn=)(mail=)
+ */
+typedef struct query_template_s {
+	struct query_template_s *qtnext;
+	struct query_template_s *qmnext;
+
+	Avlnode*		qbase;
+	CachedQuery* 	query;	        /* most recent query cached for the template */
+	CachedQuery* 	query_last;     /* oldest query cached for the template */
+	ldap_pvt_thread_rdwr_t t_rwlock; /* Rd/wr lock for accessing queries in the template */
+	struct berval	querystr;	/* Filter string corresponding to the QT */
+
+	int 		attr_set_index; /* determines the projected attributes */
+	int 		no_of_queries;  /* Total number of queries in the template */
+	time_t		ttl;		/* TTL for the queries of this template */
+	time_t		negttl;		/* TTL for negative results */
+	struct attr_set t_attrs;	/* filter attrs + attr_set */
+} QueryTemplate;
 
 struct query_manager_s;
 
 /* prototypes for functions for 1) query containment
  * 2) query addition, 3) cache replacement
  */
-typedef CachedQuery * 	(QCfunc)(Operation *op, struct query_manager_s*, Query*, int );
-typedef void  	(AddQueryfunc)(struct query_manager_s*, Query*, int, struct berval*);
+typedef CachedQuery * 	(QCfunc)(Operation *op, struct query_manager_s*, Query*, QueryTemplate*);
+typedef CachedQuery *	(AddQueryfunc)(Operation *op, struct query_manager_s*, Query*, QueryTemplate*, int positive);
 typedef void	(CRfunc)(struct query_manager_s*, struct berval * );
 
 /* LDAP query cache */
@@ -117,7 +132,6 @@ typedef struct cache_manager_s {
 	unsigned long	num_cached_queries; 		/* total number of cached queries */
 	unsigned long   max_queries;			/* upper bound on # of cached queries */
 	int 	numattrsets;			/* number of attribute sets */
-	int 	numtemplates;			/* number of cacheable templates */
 	int 	cur_entries;			/* current number of entries cached */
 	int 	max_entries;			/* max number of entries cached */
         int     num_entries_limit;		/* max # of entries in a cacheable query */
@@ -209,44 +223,110 @@ merge_entry(
 	return rc;
 }
 
-/* compare base and scope of incoming and cached queries */
-static int base_scope_compare(
-	struct berval* ndn_stored,
-	struct berval* ndn_incoming,
-	int scope_stored,
-	int scope_incoming	)
+/* Length-ordered sort on normalized DNs */
+static int pcache_dn_cmp( const void *v1, const void *v2 )
 {
-	struct berval pdn_incoming = BER_BVNULL;
+	const Qbase *q1 = v1, *q2 = v2;
 
-	if (scope_stored < scope_incoming)
-		return 0;
+	int rc = q1->base.bv_len - q2->base.bv_len;
+	if ( rc == 0 )
+		rc = strncmp( q1->base.bv_val, q2->base.bv_val, q1->base.bv_len );
+	return rc;
+}
 
-	if ( !dnIsSuffix(ndn_incoming, ndn_stored))
-		return 0;
+static int lex_bvcmp( struct berval *bv1, struct berval *bv2 )
+{
+	int len, dif;
+	dif = bv1->bv_len - bv2->bv_len;
+	len = bv1->bv_len;
+	if ( dif > 0 ) len -= dif;
+	len = memcmp( bv1->bv_val, bv2->bv_val, len );
+	if ( !len )
+		len = dif;
+	return len;
+}
 
-	switch(scope_stored) {
-	case LDAP_SCOPE_BASE:
-		return (ndn_incoming->bv_len == ndn_stored->bv_len);
+/* compare the first value in each filter */
+static int pcache_filter_cmp( const void *v1, const void *v2 )
+{
+	const CachedQuery *q1 = v1, *q2 =v2;
+	int rc, weight1, weight2;
 
-	case LDAP_SCOPE_ONELEVEL:
-		switch(scope_incoming){
-		case LDAP_SCOPE_BASE:
-			dnParent(ndn_incoming, &pdn_incoming);
-			return (pdn_incoming.bv_len == ndn_stored->bv_len);
-
-		case LDAP_SCOPE_ONELEVEL:
-			return (ndn_incoming->bv_len == ndn_stored->bv_len);
-
-		default:
-			return 0;
-		}
-	case LDAP_SCOPE_SUBTREE:
-		return 1;
+	switch( q1->first->f_choice ) {
+	case LDAP_FILTER_PRESENT:
+		weight1 = 0;
+		break;
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+		weight1 = 1;
 		break;
 	default:
-		return 0;
+		weight1 = 2;
+	}
+	switch( q2->first->f_choice ) {
+	case LDAP_FILTER_PRESENT:
+		weight2 = 0;
 		break;
-    }
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+		weight2 = 1;
+		break;
+	default:
+		weight2 = 2;
+	}
+	rc = weight1 - weight2;
+	if ( !rc ) {
+		switch( weight1 ) {
+		case 0:	return 0;
+		case 1:
+			rc = lex_bvcmp( &q1->first->f_av_value, &q2->first->f_av_value );
+			break;
+		case 2:
+			if ( q1->first->f_choice == LDAP_FILTER_SUBSTRINGS ) {
+				rc = 0;
+				if ( !BER_BVISNULL( &q1->first->f_sub_initial )) {
+					if ( !BER_BVISNULL( &q2->first->f_sub_initial )) {
+						rc = lex_bvcmp( &q1->first->f_sub_initial,
+							&q2->first->f_sub_initial );
+					} else {
+						rc = 1;
+					}
+				} else if ( !BER_BVISNULL( &q2->first->f_sub_initial )) {
+					rc = -1;
+				}
+				if ( rc ) break;
+				if ( q1->first->f_sub_any ) {
+					if ( q2->first->f_sub_any ) {
+						rc = lex_bvcmp( q1->first->f_sub_any,
+							q2->first->f_sub_any );
+					} else {
+						rc = 1;
+					}
+				} else if ( q2->first->f_sub_any ) {
+					rc = -1;
+				}
+				if ( rc ) break;
+				if ( !BER_BVISNULL( &q1->first->f_sub_final )) {
+					if ( !BER_BVISNULL( &q2->first->f_sub_final )) {
+						rc = lex_bvcmp( &q1->first->f_sub_final,
+							&q2->first->f_sub_final );
+					} else {
+						rc = 1;
+					}
+				} else if ( !BER_BVISNULL( &q2->first->f_sub_final )) {
+					rc = -1;
+				}
+			} else {
+				rc = lex_bvcmp( &q1->first->f_mr_value,
+					&q2->first->f_mr_value );
+			}
+			break;
+		}
+	}
+
+	return rc;
 }
 
 /* add query on top of LRU list */
@@ -254,7 +334,6 @@ static void
 add_query_on_top (query_manager* qm, CachedQuery* qc)
 {
 	CachedQuery* top = qm->lru_top;
-	Query* q = (Query*)qc;
 
 	qm->lru_top = qc;
 
@@ -266,7 +345,7 @@ add_query_on_top (query_manager* qm, CachedQuery* qc)
 	qc->lru_down = top;
 	qc->lru_up = NULL;
 	Debug( pcache_debug, "Base of added query = %s\n",
-			q->base.bv_val, 0, 0 );
+			qc->qbase->base.bv_val, 0, 0 );
 }
 
 /* remove_query from LRU list */
@@ -471,134 +550,253 @@ final:
 	return rc;
 }
 
+static Filter *
+filter_first( Filter *f )
+{
+	while ( f->f_choice == LDAP_FILTER_OR || f->f_choice == LDAP_FILTER_AND )
+		f = f->f_and;
+	return f;
+}
+
+
+static CachedQuery *
+find_filter( Operation *op, Avlnode *root, Filter *inputf, Filter *first )
+{
+	Filter* fs;
+	Filter* fi;
+	MatchingRule* mrule = NULL;
+	int res=0, eqpass= 0;
+	int ret, rc, dir;
+	Avlnode *ptr;
+	CachedQuery cq, *qc;
+
+	cq.filter = inputf;
+	cq.first = first;
+
+	/* substring matches sort to the end, and we just have to
+	 * walk the entire list.
+	 */
+	if ( first->f_choice == LDAP_FILTER_SUBSTRINGS ) {
+		ptr = tavl_end( root, 1 );
+		dir = TAVL_DIR_LEFT;
+	} else {
+		ptr = tavl_find3( root, &cq, pcache_filter_cmp, &ret );
+		dir = (first->f_choice == LDAP_FILTER_GE) ? TAVL_DIR_LEFT :
+			TAVL_DIR_RIGHT;
+	}
+
+	while (ptr) {
+		qc = ptr->avl_data;
+		fi = inputf;
+		fs = qc->filter;
+
+		/* an incoming substr query can only be satisfied by a cached
+		 * substr query.
+		 */
+		if ( first->f_choice == LDAP_FILTER_SUBSTRINGS &&
+			qc->first->f_choice != LDAP_FILTER_SUBSTRINGS )
+			break;
+
+		/* an incoming eq query can be satisfied by a cached eq or substr
+		 * query
+		 */
+		if ( first->f_choice == LDAP_FILTER_EQUALITY ) {
+			if ( eqpass == 0 ) {
+				if ( qc->first->f_choice != LDAP_FILTER_EQUALITY ) {
+nextpass:			eqpass = 1;
+					ptr = tavl_end( root, 1 );
+					dir = TAVL_DIR_LEFT;
+					continue;
+				}
+			} else {
+				if ( qc->first->f_choice != LDAP_FILTER_SUBSTRINGS )
+					break;
+			}
+		}
+		do {
+			res=0;
+			switch (fs->f_choice) {
+			case LDAP_FILTER_EQUALITY:
+				if (fi->f_choice == LDAP_FILTER_EQUALITY)
+					mrule = fs->f_ava->aa_desc->ad_type->sat_equality;
+				else
+					ret = 1;
+				break;
+			case LDAP_FILTER_GE:
+			case LDAP_FILTER_LE:
+				mrule = fs->f_ava->aa_desc->ad_type->sat_ordering;
+				break;
+			default:
+				mrule = NULL; 
+			}
+			if (mrule) {
+				const char *text;
+				rc = value_match(&ret, fs->f_ava->aa_desc, mrule,
+					SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+					&(fi->f_ava->aa_value),
+					&(fs->f_ava->aa_value), &text);
+				if (rc != LDAP_SUCCESS) {
+					return NULL;
+				}
+				if ( fi==first && fi->f_choice==LDAP_FILTER_EQUALITY && ret )
+					goto nextpass;
+			}
+			switch (fs->f_choice) {
+			case LDAP_FILTER_OR:
+			case LDAP_FILTER_AND:
+				fs = fs->f_and;
+				fi = fi->f_and;
+				res=1;
+				break;
+			case LDAP_FILTER_SUBSTRINGS:
+				/* check if the equality query can be
+				* answered with cached substring query */
+				if ((fi->f_choice == LDAP_FILTER_EQUALITY)
+					&& substr_containment_equality( op,
+					fs, fi))
+					res=1;
+				/* check if the substring query can be
+				* answered with cached substring query */
+				if ((fi->f_choice ==LDAP_FILTER_SUBSTRINGS
+					) && substr_containment_substr( op,
+					fs, fi))
+					res= 1;
+				fs=fs->f_next;
+				fi=fi->f_next;
+				break;
+			case LDAP_FILTER_PRESENT:
+				res=1;
+				fs=fs->f_next;
+				fi=fi->f_next;
+				break;
+			case LDAP_FILTER_EQUALITY:
+				if (ret == 0)
+					res = 1;
+				fs=fs->f_next;
+				fi=fi->f_next;
+				break;
+			case LDAP_FILTER_GE:
+				if (mrule && ret >= 0)
+					res = 1;
+				fs=fs->f_next;
+				fi=fi->f_next;
+				break;
+			case LDAP_FILTER_LE:
+				if (mrule && ret <= 0)
+					res = 1;
+				fs=fs->f_next;
+				fi=fi->f_next;
+				break;
+			case LDAP_FILTER_NOT:
+				res=0;
+				break;
+			default:
+				break;
+			}
+		} while((res) && (fi != NULL) && (fs != NULL));
+
+		if ( res )
+			return qc;
+		ptr = tavl_next( ptr, dir );
+	}
+	return NULL;
+}
+
 /* check whether query is contained in any of
- * the cached queries in template template_index
+ * the cached queries in template
  */
 static CachedQuery *
 query_containment(Operation *op, query_manager *qm,
 		  Query *query,
-		  int template_index)
+		  QueryTemplate *templa)
 {
-	QueryTemplate* templa= qm->templates;
 	CachedQuery* qc;
-	Query* q;
-	Filter* inputf = query->filter;
-	struct berval* base = &(query->base);
-	int scope = query->scope;
-	int res=0;
-	Filter* fs;
-	Filter* fi;
-	int ret, rc;
-	const char* text;
+	int depth = 0, tscope;
+	Qbase qbase, *qbptr = NULL;
+	struct berval pdn;
 
-	MatchingRule* mrule = NULL;
-	if (inputf != NULL) {
-		Debug( pcache_debug, "Lock QC index = %d\n",
-				template_index, 0, 0 );
-		ldap_pvt_thread_rdwr_rlock(templa[template_index].t_rwlock);
-		for(qc=templa[template_index].query; qc != NULL; qc= qc->next) {
-			q = (Query*)qc;
-			if(base_scope_compare(&(q->base), base, q->scope, scope)) {
-				fi = inputf;
-				fs = q->filter;
-				do {
-					res=0;
-					switch (fs->f_choice) {
-					case LDAP_FILTER_EQUALITY:
-						if (fi->f_choice == LDAP_FILTER_EQUALITY)
-							mrule = fs->f_ava->aa_desc->ad_type->sat_equality;
-						else
-							ret = 1;
+	if (query->filter != NULL) {
+		Filter *first;
+
+		Debug( pcache_debug, "Lock QC index = %p\n",
+				(void *) templa, 0, 0 );
+		qbase.base = query->base;
+
+		first = filter_first( query->filter );
+
+		ldap_pvt_thread_rdwr_rlock(&templa->t_rwlock);
+		for( ;; ) {
+			/* Find the base */
+			qbptr = avl_find( templa->qbase, &qbase, pcache_dn_cmp );
+			if ( qbptr ) {
+				tscope = query->scope;
+				/* Find a matching scope:
+				 * match at depth 0 OK
+				 * scope is BASE,
+				 *	one at depth 1 OK
+				 *  subord at depth > 0 OK
+				 *	subtree at any depth OK
+				 * scope is ONE,
+				 *  subtree or subord at any depth OK
+				 * scope is SUBORD,
+				 *  subtree or subord at any depth OK
+				 * scope is SUBTREE,
+				 *  subord at depth > 0 OK
+				 *  subtree at any depth OK
+				 */
+				for ( tscope = 0 ; tscope <= LDAP_SCOPE_CHILDREN; tscope++ ) {
+					switch ( query->scope ) {
+					case LDAP_SCOPE_BASE:
+						if ( tscope == LDAP_SCOPE_BASE && depth ) continue;
+						if ( tscope == LDAP_SCOPE_ONE && depth != 1) continue;
+						if ( tscope == LDAP_SCOPE_CHILDREN && !depth ) continue;
 						break;
-					case LDAP_FILTER_GE:
-					case LDAP_FILTER_LE:
-						mrule = fs->f_ava->aa_desc->ad_type->sat_ordering;
+					case LDAP_SCOPE_ONE:
+						if ( tscope == LDAP_SCOPE_BASE )
+							tscope = LDAP_SCOPE_ONE;
+						if ( tscope == LDAP_SCOPE_ONE && depth ) continue;
+						if ( !depth ) break;
+						if ( tscope < LDAP_SCOPE_SUBTREE )
+							tscope = LDAP_SCOPE_SUBTREE;
 						break;
-					default:
-						mrule = NULL; 
+					case LDAP_SCOPE_SUBTREE:
+						if ( tscope < LDAP_SCOPE_SUBTREE )
+							tscope = LDAP_SCOPE_SUBTREE;
+						if ( tscope == LDAP_SCOPE_CHILDREN && !depth ) continue;
+						break;
+					case LDAP_SCOPE_CHILDREN:
+						if ( tscope < LDAP_SCOPE_SUBTREE )
+							tscope = LDAP_SCOPE_SUBTREE;
+						break;
 					}
-					if (mrule) {
-						rc = value_match(&ret, fs->f_ava->aa_desc, mrule,
-						 	SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-							&(fi->f_ava->aa_value),
-							&(fs->f_ava->aa_value), &text);
-						if (rc != LDAP_SUCCESS) {
-							ldap_pvt_thread_rdwr_runlock(templa[template_index].t_rwlock);
-							Debug( pcache_debug,
-							"Unlock: Exiting QC index=%d\n",
-							template_index, 0, 0 );
-							return NULL;
+					if ( !qbptr->scopes[tscope] ) continue;
+
+					/* Find filter */
+					qc = find_filter( op, qbptr->scopes[tscope],
+							query->filter, first );
+					if ( qc ) {
+						ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
+						if (qm->lru_top != qc) {
+							remove_query(qm, qc);
+							add_query_on_top(qm, qc);
 						}
+						ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
+						return qc;
 					}
-					switch (fs->f_choice) {
-					case LDAP_FILTER_OR:
-					case LDAP_FILTER_AND:
-						fs = fs->f_and;
-						fi = fi->f_and;
-						res=1;
-						break;
-					case LDAP_FILTER_SUBSTRINGS:
-						/* check if the equality query can be
-						* answered with cached substring query */
-						if ((fi->f_choice == LDAP_FILTER_EQUALITY)
-							&& substr_containment_equality( op,
-							fs, fi))
-							res=1;
-						/* check if the substring query can be
-						* answered with cached substring query */
-						if ((fi->f_choice ==LDAP_FILTER_SUBSTRINGS
-							) && substr_containment_substr( op,
-							fs, fi))
-							res= 1;
-						fs=fs->f_next;
-						fi=fi->f_next;
-						break;
-					case LDAP_FILTER_PRESENT:
-						res=1;
-						fs=fs->f_next;
-						fi=fi->f_next;
-						break;
-					case LDAP_FILTER_EQUALITY:
-						if (ret == 0)
-							res = 1;
-						fs=fs->f_next;
-						fi=fi->f_next;
-						break;
-					case LDAP_FILTER_GE:
-						if (mrule && ret >= 0)
-							res = 1;
-						fs=fs->f_next;
-						fi=fi->f_next;
-						break;
-					case LDAP_FILTER_LE:
-						if (mrule && ret <= 0)
-							res = 1;
-						fs=fs->f_next;
-						fi=fi->f_next;
-						break;
-					case LDAP_FILTER_NOT:
-						res=0;
-						break;
-					default:
-						break;
-					}
-				} while((res) && (fi != NULL) && (fs != NULL));
-
-				if(res) {
-					ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
-					if (qm->lru_top != qc) {
-						remove_query(qm, qc);
-						add_query_on_top(qm, qc);
-					}
-					ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
-					return qc;
 				}
 			}
+			if ( be_issuffix( op->o_bd, &qbase.base ))
+				break;
+			/* Up a level */
+			dnParent( &qbase.base, &pdn );
+			qbase.base = pdn;
+			depth++;
 		}
+
 		Debug( pcache_debug,
-			"Not answerable: Unlock QC index=%d\n",
-			template_index, 0, 0 );
-		ldap_pvt_thread_rdwr_runlock(templa[template_index].t_rwlock);
+			"Not answerable: Unlock QC index=%p\n",
+			(void *) templa, 0, 0 );
+		ldap_pvt_thread_rdwr_runlock(&templa->t_rwlock);
 	}
 	return NULL;
 }
@@ -606,68 +804,89 @@ query_containment(Operation *op, query_manager *qm,
 static void
 free_query (CachedQuery* qc)
 {
-	Query* q = (Query*)qc;
-
 	free(qc->q_uuid.bv_val);
-	filter_free(q->filter);
-	free (q->base.bv_val);
-	free(q->attrs);
+	filter_free(qc->filter);
 	free(qc);
 }
 
 
 /* Add query to query cache */
-static void add_query(
+static CachedQuery * add_query(
+	Operation *op,
 	query_manager* qm,
 	Query* query,
-	int template_index,
-	struct berval* uuid)
+	QueryTemplate *templ,
+	int positive)
 {
 	CachedQuery* new_cached_query = (CachedQuery*) ch_malloc(sizeof(CachedQuery));
-	QueryTemplate* templ = (qm->templates)+template_index;
-	Query* new_query;
-	new_cached_query->template_id = template_index;
-	if ( uuid ) {
-		new_cached_query->q_uuid = *uuid;
+	Qbase *qbase, qb;
+	Filter *first;
+	int rc;
+
+	new_cached_query->qtemp = templ;
+	BER_BVZERO( &new_cached_query->q_uuid );
+	if ( positive ) {
 		new_cached_query->expiry_time = slap_get_time() + templ->ttl;
 	} else {
-		BER_BVZERO( &new_cached_query->q_uuid );
 		new_cached_query->expiry_time = slap_get_time() + templ->negttl;
 	}
 	new_cached_query->lru_up = NULL;
 	new_cached_query->lru_down = NULL;
 	Debug( pcache_debug, "Added query expires at %ld\n",
 			(long) new_cached_query->expiry_time, 0, 0 );
-	new_query = (Query*)new_cached_query;
 
-	ber_dupbv(&new_query->base, &query->base);
-	new_query->scope = query->scope;
-	new_query->filter = query->filter;
-	new_query->attrs = query->attrs;
+	new_cached_query->scope = query->scope;
+	new_cached_query->filter = query->filter;
+	new_cached_query->first = first = filter_first( query->filter );
+
+	qb.base = query->base;
 
 	/* Adding a query    */
-	Debug( pcache_debug, "Lock AQ index = %d\n",
-			template_index, 0, 0 );
-	ldap_pvt_thread_rdwr_wlock(templ->t_rwlock);
-	if (templ->query == NULL)
-		templ->query_last = new_cached_query;
-	else
-		templ->query->prev = new_cached_query;
+	Debug( pcache_debug, "Lock AQ index = %p\n",
+			(void *) templ, 0, 0 );
+	ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
+	qbase = avl_find( templ->qbase, &qb, pcache_dn_cmp );
+	if ( !qbase ) {
+		qbase = ch_calloc( 1, sizeof(Qbase) + qb.base.bv_len + 1 );
+		qbase->base.bv_len =qb.base.bv_len;
+		qbase->base.bv_val = (char *)(qbase+1);
+		memcpy( qbase->base.bv_val, qb.base.bv_val, qb.base.bv_len );
+		qbase->base.bv_val[qbase->base.bv_len] = '\0';
+		avl_insert( &templ->qbase, qbase, pcache_dn_cmp, avl_dup_error );
+	}
 	new_cached_query->next = templ->query;
 	new_cached_query->prev = NULL;
-	templ->query = new_cached_query;
-	templ->no_of_queries++;
-	Debug( pcache_debug, "TEMPLATE %d QUERIES++ %d\n",
-			template_index, templ->no_of_queries, 0 );
+	new_cached_query->qbase = qbase;
+	rc = tavl_insert( &qbase->scopes[query->scope], new_cached_query,
+		pcache_filter_cmp, avl_dup_error );
+	if ( rc == 0 ) {
+		qbase->queries++;
+		if (templ->query == NULL)
+			templ->query_last = new_cached_query;
+		else
+			templ->query->prev = new_cached_query;
+		templ->query = new_cached_query;
+		templ->no_of_queries++;
+	} else {
+		ch_free( new_cached_query );
+		new_cached_query = find_filter( op, qbase->scopes[query->scope],
+							query->filter, first );
+		filter_free( query->filter );
+	}
+	Debug( pcache_debug, "TEMPLATE %p QUERIES++ %d\n",
+			(void *) templ, templ->no_of_queries, 0 );
 
-	Debug( pcache_debug, "Unlock AQ index = %d \n",
-			template_index, 0, 0 );
-	ldap_pvt_thread_rdwr_wunlock(templ->t_rwlock);
+	Debug( pcache_debug, "Unlock AQ index = %p \n",
+			(void *) templ, 0, 0 );
+	ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
 
 	/* Adding on top of LRU list  */
-	ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
-	add_query_on_top(qm, new_cached_query);
-	ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
+	if ( rc == 0 ) {
+		ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
+		add_query_on_top(qm, new_cached_query);
+		ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
+	}
+	return rc == 0 ? new_cached_query : NULL;
 }
 
 static void
@@ -685,6 +904,13 @@ remove_from_template (CachedQuery* qc, QueryTemplate* template)
 		qc->next->prev = qc->prev;
 		qc->prev->next = qc->next;
 	}
+	tavl_delete( &qc->qbase->scopes[qc->scope], qc, pcache_filter_cmp );
+	qc->qbase->queries--;
+	if ( qc->qbase->queries == 0 ) {
+		avl_delete( &template->qbase, qc->qbase, pcache_dn_cmp );
+		ch_free( qc->qbase );
+		qc->qbase = NULL;
+	}
 
 	template->no_of_queries--;
 }
@@ -693,7 +919,7 @@ remove_from_template (CachedQuery* qc, QueryTemplate* template)
 static void cache_replacement(query_manager* qm, struct berval *result)
 {
 	CachedQuery* bottom;
-	int temp_id;
+	QueryTemplate *temp;
 
 	ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
 	bottom = qm->lru_bottom;
@@ -709,20 +935,20 @@ static void cache_replacement(query_manager* qm, struct berval *result)
 		return;
 	}
 
-	temp_id = bottom->template_id;
+	temp = bottom->qtemp;
 	remove_query(qm, bottom);
 	ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
 
 	*result = bottom->q_uuid;
 	bottom->q_uuid.bv_val = NULL;
 
-	Debug( pcache_debug, "Lock CR index = %d\n", temp_id, 0, 0 );
-	ldap_pvt_thread_rdwr_wlock(qm->templates[temp_id].t_rwlock);
-	remove_from_template(bottom, (qm->templates+temp_id));
-	Debug( pcache_debug, "TEMPLATE %d QUERIES-- %d\n",
-		temp_id, qm->templates[temp_id].no_of_queries, 0 );
-	Debug( pcache_debug, "Unlock CR index = %d\n", temp_id, 0, 0 );
-	ldap_pvt_thread_rdwr_wunlock(qm->templates[temp_id].t_rwlock);
+	Debug( pcache_debug, "Lock CR index = %p\n", (void *) temp, 0, 0 );
+	ldap_pvt_thread_rdwr_wlock(&temp->t_rwlock);
+	remove_from_template(bottom, temp);
+	Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
+		(void *) temp, temp->no_of_queries, 0 );
+	Debug( pcache_debug, "Unlock CR index = %p\n", (void *) temp, 0, 0 );
+	ldap_pvt_thread_rdwr_wunlock(&temp->t_rwlock);
 	free_query(bottom);
 }
 
@@ -948,7 +1174,8 @@ filter2template(
 struct search_info {
 	slap_overinst *on;
 	Query query;
-	int template_id;
+	QueryTemplate *qtemp;
+	AttributeName*  save_attrs;	/* original attributes, saved for response */
 	int max;
 	int over;
 	int count;
@@ -1032,12 +1259,11 @@ pcache_response(
 	slap_overinst *on = si->on;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager*		qm = cm->qm;
-	struct berval uuid;
 
-	if ( si->query.save_attrs != NULL ) {
-		rs->sr_attrs = si->query.save_attrs;
-		op->ors_attrs = si->query.save_attrs;
-		si->query.save_attrs = NULL;
+	if ( si->save_attrs != NULL ) {
+		rs->sr_attrs = si->save_attrs;
+		op->ors_attrs = si->save_attrs;
+		si->save_attrs = NULL;
 	}
 
 	if ( rs->sr_type == REP_SEARCH ) {
@@ -1066,32 +1292,42 @@ pcache_response(
 		}
 
 	} else if ( rs->sr_type == REP_RESULT ) {
-		QueryTemplate* templ = (qm->templates)+si->template_id;
-		if (( si->count && cache_entries( op, rs, &uuid ) == 0 ) ||
-			( templ->negttl && !si->count && !si->over &&
+		if ( si->count ||
+			( si->qtemp->negttl && !si->count && !si->over &&
 				rs->sr_err == LDAP_SUCCESS )) {
-			qm->addfunc(qm, &si->query, si->template_id,
-				si->count ? &uuid : NULL);
+			CachedQuery *qc = qm->addfunc(op, qm, &si->query, si->qtemp,
+				si->count);
 
-			ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
-			cm->num_cached_queries++;
-			Debug( pcache_debug, "STORED QUERIES = %lu\n",
-					cm->num_cached_queries, 0, 0 );
-			ldap_pvt_thread_mutex_unlock(&cm->cache_mutex);
+			if ( qc != NULL ) {
+				if ( si->count )
+					cache_entries( op, rs, &qc->q_uuid );
+				ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
+				cm->num_cached_queries++;
+				Debug( pcache_debug, "STORED QUERIES = %lu\n",
+						cm->num_cached_queries, 0, 0 );
+				ldap_pvt_thread_mutex_unlock(&cm->cache_mutex);
 
-			/* If the consistency checker suspended itself,
-			 * wake it back up
-			 */
-			if ( cm->cc_paused ) {
-				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+				/* If the consistency checker suspended itself,
+				 * wake it back up
+				 */
 				if ( cm->cc_paused ) {
-					cm->cc_paused = 0;
-					ldap_pvt_runqueue_resched( &slapd_rq, cm->cc_arg, 0 );
+					ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+					if ( cm->cc_paused ) {
+						cm->cc_paused = 0;
+						ldap_pvt_runqueue_resched( &slapd_rq, cm->cc_arg, 0 );
+					}
+					ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 				}
-				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+			} else if ( si->count ) {
+				/* duplicate query, free it */
+				Entry *e;
+				for (;si->head; si->head=e) {
+					e = si->head->e_private;
+					si->head->e_private = NULL;
+					entry_free(si->head);
+				}
 			}
 		} else {
-			free( si->query.attrs );
 			filter_free( si->query.filter );
 		}
 
@@ -1208,9 +1444,9 @@ pcache_op_search(
 	AttributeName	*filter_attrs = NULL;
 
 	Query		query;
+	QueryTemplate *qtemp = NULL;
 
 	int 		attr_set = -1;
-	int 		template_id = -1;
 	CachedQuery 	*answerable = NULL;
 	int 		cacheable = 0;
 	int		fattr_cnt=0;
@@ -1230,40 +1466,33 @@ pcache_op_search(
 					tempstr.bv_val, 0, 0 );
 
 	/* FIXME: cannot cache/answer requests with pagedResults control */
-	
 
 	/* find attr set */
 	attr_set = get_attr_set(op->ors_attrs, qm, cm->numattrsets);
 
 	query.filter = op->ors_filter;
-	query.attrs = op->ors_attrs;
-	query.save_attrs = NULL;
 	query.base = op->o_req_ndn;
 	query.scope = op->ors_scope;
 
 	/* check for query containment */
 	if (attr_set > -1) {
-		QueryTemplate *qt = qm->templates;
-		for (i=0; i<cm->numtemplates; i++, qt++) {
+		QueryTemplate *qt = qm->attr_sets[attr_set].templates;
+		for (; qt; qt = qt->qtnext ) {
 			/* find if template i can potentially answer tempstr */
-			if ( qt->attr_set_index != attr_set ||
-				qt->querystr.bv_len != tempstr.bv_len ||
+			if (qt->querystr.bv_len != tempstr.bv_len ||
 				strcasecmp( qt->querystr.bv_val, tempstr.bv_val ))
 				continue;
 			cacheable = 1;
-			template_id = i;
-			Debug( LDAP_DEBUG_NONE, "Entering QC, querystr = %s\n",
+			qtemp = qt;
+			Debug( pcache_debug, "Entering QC, querystr = %s\n",
 			 		op->ors_filterstr.bv_val, 0, 0 );
-			answerable = (*(qm->qcfunc))(op, qm, &query, i);
+			answerable = (*(qm->qcfunc))(op, qm, &query, qt);
 
 			if (answerable)
 				break;
 		}
 	}
 	op->o_tmpfree( tempstr.bv_val, op->o_tmpmemctx );
-
-	query.save_attrs = op->ors_attrs;
-	query.attrs = NULL;
 
 	if (answerable) {
 		/* Need to clear the callbacks of the original operation,
@@ -1273,7 +1502,6 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY ANSWERABLE\n", 0, 0, 0 );
 		op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
-		ldap_pvt_thread_rdwr_runlock(qm->templates[i].t_rwlock);
 		if ( BER_BVISNULL( &answerable->q_uuid )) {
 			/* No entries cached, just an empty result set */
 			i = rs->sr_err = 0;
@@ -1283,6 +1511,7 @@ pcache_op_search(
 			op->o_callback = NULL;
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
+		ldap_pvt_thread_rdwr_runlock(&qtemp->t_rwlock);
 		op->o_bd = save_bd;
 		op->o_callback = save_cb;
 		return i;
@@ -1305,10 +1534,13 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY CACHEABLE\n", 0, 0, 0 );
 		query.filter = filter_dup(op->ors_filter, NULL);
-		add_filter_attrs(op, &query.attrs, &qm->attr_sets[attr_set],
-			filter_attrs, fattr_cnt, fattr_got_oc);
-
-		op->ors_attrs = query.attrs;
+		ldap_pvt_thread_rdwr_wlock(&qtemp->t_rwlock);
+		if ( !qtemp->t_attrs.count ) {
+			add_filter_attrs(op, &qtemp->t_attrs.attrs,
+				&qm->attr_sets[attr_set],
+				filter_attrs, fattr_cnt, fattr_got_oc);
+		}
+		ldap_pvt_thread_rdwr_wunlock(&qtemp->t_rwlock);
 
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
 		cb->sc_response = pcache_response;
@@ -1317,12 +1549,15 @@ pcache_op_search(
 		si = cb->sc_private;
 		si->on = on;
 		si->query = query;
-		si->template_id = template_id;
+		si->qtemp = qtemp;
 		si->max = cm->num_entries_limit ;
 		si->over = 0;
 		si->count = 0;
 		si->head = NULL;
 		si->tail = NULL;
+		si->save_attrs = op->ors_attrs;
+
+		op->ors_attrs = qtemp->t_attrs.attrs;
 
 		if ( cm->response_cb == PCACHE_RESPONSE_CB_HEAD ) {
 			cb->sc_next = op->o_callback;
@@ -1401,8 +1636,8 @@ consistency_check(
 	Operation *op;
 
 	SlapReply rs = {REP_RESULT};
-	CachedQuery* query, *query_prev;
-	int i, return_val, pause = 1;
+	CachedQuery* query;
+	int return_val, pause = 1;
 	QueryTemplate* templ;
 
 	op = (Operation *) &opbuf;
@@ -1414,21 +1649,28 @@ consistency_check(
 
       	cm->cc_arg = arg;
 
-	for (i=0; qm->templates[i].querystr.bv_val; i++) {
-		templ = qm->templates + i;
+	for (templ = qm->templates; templ; templ=templ->qmnext) {
 		query = templ->query_last;
 		if ( query ) pause = 0;
 		op->o_time = slap_get_time();
 		while (query && (query->expiry_time < op->o_time)) {
-			Debug( pcache_debug, "Lock CR index = %d\n",
-					i, 0, 0 );
-			ldap_pvt_thread_rdwr_wlock(templ->t_rwlock);
-			remove_from_template(query, templ);
-			Debug( pcache_debug, "TEMPLATE %d QUERIES-- %d\n",
-					i, templ->no_of_queries, 0 );
-			Debug( pcache_debug, "Unlock CR index = %d\n",
-					i, 0, 0 );
-			ldap_pvt_thread_rdwr_wunlock(templ->t_rwlock);
+			int rem = 0;
+			Debug( pcache_debug, "Lock CR index = %p\n",
+					(void *) templ, 0, 0 );
+			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);
+			if ( query == templ->query_last ) {
+				rem = 1;
+				remove_from_template(query, templ);
+				Debug( pcache_debug, "TEMPLATE %p QUERIES-- %d\n",
+						(void *) templ, templ->no_of_queries, 0 );
+				Debug( pcache_debug, "Unlock CR index = %p\n",
+						(void *) templ, 0, 0 );
+			}
+			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);
+			if ( !rem ) {
+				query = templ->query_last;
+				continue;
+			}
 			ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
 			remove_query(qm, query);
 			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
@@ -1448,9 +1690,8 @@ consistency_check(
 				"STALE QUERY REMOVED, CACHE ="
 				"%d entries\n",
 				cm->cur_entries, 0, 0 );
-			query_prev = query;
-			query = query->prev;
-			free_query(query_prev);
+			free_query(query);
+			query = templ->query_last;
 		}
 	}
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
@@ -1611,23 +1852,23 @@ pc_cf_gen( ConfigArgs *c )
 				rc = 1;
 			break;
 		case PC_TEMP:
-			for (i=0; i<cm->numtemplates; i++) {
-				if ( qm->templates[i].negttl ) {
+			for (temp=qm->templates; temp; temp=temp->qmnext) {
+				if ( temp->negttl ) {
 					bv.bv_len = snprintf( c->msg, sizeof( c->msg ),
 						" %d %ld %ld",
-						qm->templates[i].attr_set_index,
-						qm->templates[i].ttl,
-						qm->templates[i].negttl );
+						temp->attr_set_index,
+						temp->ttl,
+						temp->negttl );
 				} else {
 					bv.bv_len = snprintf( c->msg, sizeof( c->msg ), " %d %ld",
-						qm->templates[i].attr_set_index,
-						qm->templates[i].ttl );
+						temp->attr_set_index,
+						temp->ttl );
 				}
-				bv.bv_len += qm->templates[i].querystr.bv_len + 2;
+				bv.bv_len += temp->querystr.bv_len + 2;
 				bv.bv_val = ch_malloc( bv.bv_len+1 );
 				ptr = bv.bv_val;
 				*ptr++ = '"';
-				ptr = lutil_strcopy( ptr, qm->templates[i].querystr.bv_val );
+				ptr = lutil_strcopy( ptr, temp->querystr.bv_val );
 				*ptr++ = '"';
 				strcpy( ptr, c->msg );
 				ber_bvarray_add( &c->rvalue_vals, &bv );
@@ -1792,18 +2033,17 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		if ( i < 0 || i >= cm->numattrsets ) {
+		if ( i < 0 || i >= cm->numattrsets || 
+			!(qm->attr_sets[i].flags & PC_CONFIGURED )) {
 			snprintf( c->msg, sizeof( c->msg ), "template index %d invalid (%s%d)",
 				i, cm->numattrsets > 1 ? "0->" : "", cm->numattrsets - 1 );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->msg, 0 );
 			return 1;
 		}
-		num = cm->numtemplates;
-		qm->templates = ( QueryTemplate* )ch_realloc( qm->templates,
-				( num + 2 ) * sizeof( QueryTemplate ));
-		temp = qm->templates + num;
-		temp->t_rwlock = ch_malloc( sizeof( ldap_pvt_thread_rdwr_t ) );
-		ldap_pvt_thread_rdwr_init( temp->t_rwlock );
+		temp = ch_calloc( 1, sizeof( QueryTemplate ));
+		temp->qmnext = qm->templates;
+		qm->templates = temp;
+		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
 		temp->query = temp->query_last = NULL;
 		if ( lutil_parse_time( c->argv[3], &t ) != 0 ) {
 			snprintf( c->msg, sizeof( c->msg ), "unable to parse template ttl=\"%s\"",
@@ -1833,15 +2073,14 @@ pc_cf_gen( ConfigArgs *c )
 				temp->querystr.bv_val, 0, 0 );
 		temp->attr_set_index = i;
 		qm->attr_sets[i].flags |= PC_REFERENCED;
+		temp->qtnext = qm->attr_sets[i].templates;
+		qm->attr_sets[i].templates = temp;
 		Debug( pcache_debug, "  attributes: \n", 0, 0, 0 );
 		if ( ( attrarray = qm->attr_sets[i].attrs ) != NULL ) {
 			for ( i=0; attrarray[i].an_name.bv_val; i++ )
 				Debug( pcache_debug, "\t%s\n",
 					attrarray[i].an_name.bv_val, 0, 0 );
 		}
-		temp++; 
-		temp->querystr.bv_val = NULL;
-		cm->numtemplates++;
 		break;
 	case PC_RESP:
 		if ( strcasecmp( c->argv[1], "head" ) == 0 ) {
@@ -1907,7 +2146,6 @@ pcache_db_init(
 	cm->db.be_pcl_mutexp = &cm->db.be_pcl_mutex;
 	cm->qm = qm;
 	cm->numattrsets = 0;
-	cm->numtemplates = 0; 
 	cm->num_entries_limit = 5;
 	cm->num_cached_queries = 0;
 	cm->max_entries = 0;
@@ -2002,6 +2240,17 @@ pcache_db_open(
 	return rc;
 }
 
+static void
+pcache_free_qbase( void *v )
+{
+	Qbase *qb = v;
+	int i;
+
+	for (i=0; i<3; i++)
+		tavl_free( qb->scopes[i], NULL );
+	ch_free( qb );
+}
+
 static int
 pcache_db_close(
 	BackendDB *be
@@ -2010,6 +2259,7 @@ pcache_db_close(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
+	QueryTemplate *tm;
 	int i, rc = 0;
 
 	/* cleanup stuff inherited from the original database... */
@@ -2019,18 +2269,19 @@ pcache_db_close(
 	if ( cm->db.bd_info->bi_db_close ) {
 		rc = cm->db.bd_info->bi_db_close( &cm->db );
 	}
-	for ( i=0; i<cm->numtemplates; i++ ) {
+	while ( (tm = qm->templates) != NULL ) {
 		CachedQuery *qc, *qn;
-		for ( qc = qm->templates[i].query; qc; qc = qn ) {
+		qm->templates = tm->qmnext;
+		for ( qc = tm->query; qc; qc = qn ) {
 			qn = qc->next;
 			free_query( qc );
 		}
-		free( qm->templates[i].querystr.bv_val );
-		ldap_pvt_thread_rdwr_destroy( qm->templates[i].t_rwlock );
-		ch_free( qm->templates[i].t_rwlock );
+		avl_free( tm->qbase, pcache_free_qbase );
+		free( tm->querystr.bv_val );
+		ldap_pvt_thread_rdwr_destroy( &tm->t_rwlock );
+		free( tm->t_attrs.attrs );
+		free( tm );
 	}
-	free( qm->templates );
-	qm->templates = NULL;
 
 	for ( i=0; i<cm->numattrsets; i++ ) {
 		free( qm->attr_sets[i].attrs );

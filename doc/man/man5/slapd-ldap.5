@@ -122,6 +122,36 @@ and
 .RE
 
 .TP
+.B cancel {ABANDON|ignore|exop[-discover]}
+Defines how to handle operation cancellation.
+By default,
+.B abandon
+is invoked, so the operation is abandoned immediately.
+If set to
+.BR ignore ,
+no action is taken and any further response is ignored; this may result
+in further response messages to be queued for that connection, so it is
+recommended that long lasting connections are timed out either by
+.I idle-timeout
+or
+.IR conn-ttl ,
+so that resources eventually get released.
+If set to
+.BR exop ,
+a
+.I cancel
+operation (RFC 3909) is issued, resulting in the cancellation 
+of the current operation; the
+.I cancel
+operation waits for remote server response, so its use 
+may not be recommended.
+If set to
+.BR exop-discover ,
+support of the
+.I cancel 
+extended operation is detected by reading the remote server's root DSE.
+
+.TP
 .B chase-referrals {YES|no}
 enable/disable automatic referral chasing, which is delegated to the
 underlying libldap, with rebinding eventually performed if the
@@ -314,10 +344,6 @@ The proxy returns \fIunwillingToPerform\fP if an operation that is
 incompatible with the requested protocol is attempted.
 
 .TP
-.B single\-conn {NO|yes}
-Discards current cached connection when the client rebinds.
-
-.TP
 .B proxy\-whoami {NO|yes}
 Turns on proxying of the WhoAmI extended operation. If this option is
 given, back-ldap will replace slapd's original WhoAmI routine with its
@@ -327,10 +353,32 @@ be handled by the local slapd, as before. This option is mainly useful
 in conjunction with Proxy Authorization.
 
 .TP
+.B quarantine <interval>,<num>[;<interval>,<num>[...]]
+Turns on quarantine of URIs that returned
+.IR LDAP_UNAVAILABLE ,
+so that an attempt to reconnect only occurs at given intervals instead
+of any time a client requests an operation.
+The pattern is: retry only after at least
+.I interval
+seconds elapsed since last attempt, for exactly
+.I num
+times; then use the next pattern.
+If
+.I num
+for the last pattern is "\fB+\fP", it retries forever; otherwise, 
+no more retries occur.
+The process can be restarted by resetting the \fIolcDbQuarantine\fP
+attribute of the database entry in the configuration backend.
+
+.TP
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
 for rebinds when chasing referrals.  Useful when
 \fBchase-referrals\fP is set to \fByes\fP, useless otherwise.
+
+.TP
+.B single\-conn {NO|yes}
+Discards current cached connection when the client rebinds.
 
 .TP
 .B t-f-support {NO|yes|discover}
@@ -369,12 +417,6 @@ The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
 as a side-effect, some of the traditional directives have been
 deprecated and should be no longer used, as they might disappear
 in future releases.
-
-.TP
-.B server <hostname[:port]>
-this directive is no longer supported.  Use the 
-.B uri
-directive as described above.
 
 .TP
 .B acl-authcDN "<administrative DN for access control purposes>"
@@ -445,6 +487,12 @@ This directive is obsoleted by the
 arg of
 .BR idassert-bind ,
 and will be dismissed in the future.
+
+.TP
+.B server <hostname[:port]>
+this directive is no longer supported.  Use the 
+.B uri
+directive as described above.
 
 .TP
 .B suffixmassage, map, rewrite*

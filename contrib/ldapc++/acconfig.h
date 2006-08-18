@@ -1,2 +1,0 @@
-#undef WITH_DEBUG
-

@@ -84,7 +84,7 @@ ldap_back_initialize( BackendInfo *bi )
 		return -1;
 	}
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_DISTPROC
 	if ( distproc_initialize() ) {
 		return -1;
 	}
@@ -126,7 +126,7 @@ ldap_back_db_init( Backend *be )
 
 	li->li_idassert_authmethod = LDAP_AUTH_NONE;
 	BER_BVZERO( &li->li_idassert_sasl_mech );
-	li->li_idassert.sb_tls = SB_TLS_DEFAULT;
+	li->li_idassert_tls = SB_TLS_DEFAULT;
 
 	/* by default, use proxyAuthz control on each operation */
 	li->li_idassert_flags = LDAP_BACK_AUTH_PRESCRIPTIVE;
@@ -200,18 +200,29 @@ ldap_back_db_open( BackendDB *be )
 	}
 #endif /* SLAPD_MONITOR */
 
-	if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+	if ( LDAP_BACK_T_F_DISCOVER( li ) && !LDAP_BACK_T_F( li ) ) {
 		int		rc;
-
-		li->li_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
 
 		rc = slap_discover_feature( li->li_uri, li->li_version,
 				slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 				LDAP_FEATURE_ABSOLUTE_FILTERS );
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			li->li_flags |= LDAP_BACK_F_SUPPORT_T_F;
+			li->li_flags |= LDAP_BACK_F_T_F;
 		}
 	}
+
+	if ( LDAP_BACK_CANCEL_DISCOVER( li ) && !LDAP_BACK_CANCEL( li ) ) {
+		int		rc;
+
+		rc = slap_discover_feature( li->li_uri, li->li_version,
+				slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
+				LDAP_EXOP_CANCEL );
+		if ( rc == LDAP_COMPARE_TRUE ) {
+			li->li_flags |= LDAP_BACK_F_CANCEL_EXOP;
+		}
+	}
+
+	li->li_flags |= LDAP_BACK_F_ISOPEN;
 
 	return 0;
 }
@@ -305,6 +316,10 @@ ldap_back_db_destroy(
 		}
                	if ( li->li_conninfo.lai_tree ) {
 			avl_free( li->li_conninfo.lai_tree, ldap_back_conn_free );
+		}
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			slap_retry_info_destroy( &li->li_quarantine );
+			ldap_pvt_thread_mutex_destroy( &li->li_quarantine_mutex );
 		}
 
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );

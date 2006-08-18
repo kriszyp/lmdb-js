@@ -303,7 +303,8 @@ slapi_op_search_callback( Operation *op, SlapReply *rs, int prc )
 
 	rs->sr_err = LDAP_SUCCESS;
 
-	if ( slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb ) == 0 ) {
+	if ( pb->pb_intop == 0 && 
+	     slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb ) == 0 ) {
 		/*
 		 * The plugin can set the SLAPI_SEARCH_FILTER.
 		 * SLAPI_SEARCH_STRFILER is not normative.
@@ -325,29 +326,29 @@ struct slapi_op_info {
 	{
 		SLAPI_PLUGIN_PRE_BIND_FN,
 		SLAPI_PLUGIN_POST_BIND_FN,
-		0,
-		0,
+		SLAPI_PLUGIN_INTERNAL_PRE_BIND_FN,
+		SLAPI_PLUGIN_INTERNAL_POST_BIND_FN,
 		slapi_op_bind_callback
 	},
 	{
 		SLAPI_PLUGIN_PRE_UNBIND_FN,
 		SLAPI_PLUGIN_POST_UNBIND_FN,
-		0,
-		0,
+		SLAPI_PLUGIN_INTERNAL_PRE_UNBIND_FN,
+		SLAPI_PLUGIN_INTERNAL_POST_UNBIND_FN,
 		NULL
 	},
 	{
 		SLAPI_PLUGIN_PRE_SEARCH_FN,
 		SLAPI_PLUGIN_POST_SEARCH_FN,
-		0,
-		0,
+		SLAPI_PLUGIN_INTERNAL_PRE_SEARCH_FN,
+		SLAPI_PLUGIN_INTERNAL_POST_SEARCH_FN,
 		slapi_op_search_callback
 	},
 	{
 		SLAPI_PLUGIN_PRE_COMPARE_FN,
 		SLAPI_PLUGIN_POST_COMPARE_FN,
-		0,
-		0,
+		SLAPI_PLUGIN_INTERNAL_PRE_COMPARE_FN,
+		SLAPI_PLUGIN_INTERNAL_POST_COMPARE_FN,
 		NULL
 	},
 	{
@@ -381,8 +382,8 @@ struct slapi_op_info {
 	{
 		SLAPI_PLUGIN_PRE_ABANDON_FN,
 		SLAPI_PLUGIN_POST_ABANDON_FN,
-		0,
-		0,
+		SLAPI_PLUGIN_INTERNAL_PRE_ABANDON_FN,
+		SLAPI_PLUGIN_INTERNAL_POST_ABANDON_FN,
 		NULL
 	},
 	{

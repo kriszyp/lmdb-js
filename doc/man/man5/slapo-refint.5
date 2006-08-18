@@ -18,12 +18,19 @@ or
 .B delete
 operation. For example, if the integrity attribute were configured as
 .BR manager ,
-deletion of the record "uid=robert,ou=people,o=openldap.org" would trigger a
+deletion of the record "uid=robert,ou=people,dc=example,dc=com" would trigger a
 search for all other records which have a
 .B manager
 attribute containing that DN. Entries matching that search would have their
 .B manager
 attribute removed.
+Or, renaming the same record into "uid=george,ou=people,dc=example,dc=com" 
+would trigger a search for all other records which have a
+.B manager
+attribute containing that DN.
+Entries matching that search would have their
+.B manager
+attribute deleted and replaced by the new DN.
 .SH CONFIGURATION
 These
 .B slapd.conf

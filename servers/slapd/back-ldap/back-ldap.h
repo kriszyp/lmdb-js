@@ -26,6 +26,8 @@
 
 LDAP_BEGIN_DECL
 
+struct ldapinfo_t;
+
 typedef struct ldapconn_t {
 	Connection		*lc_conn;
 #define	LDAP_BACK_PCONN		((void *)0x0)
@@ -42,17 +44,22 @@ typedef struct ldapconn_t {
 	struct berval 		lc_bound_ndn;
 	struct berval		lc_local_ndn;
 	unsigned		lc_lcflags;
-#define LDAP_BACK_CONN_ISSET(lc,f)	((lc)->lc_lcflags & (f))
-#define	LDAP_BACK_CONN_SET(lc,f)	((lc)->lc_lcflags |= (f))
-#define	LDAP_BACK_CONN_CLEAR(lc,f)	((lc)->lc_lcflags &= ~(f))
-#define	LDAP_BACK_CONN_CPY(lc,f,mlc) \
+#define LDAP_BACK_CONN_ISSET_F(fp,f)	(*(fp) & (f))
+#define	LDAP_BACK_CONN_SET_F(fp,f)	(*(fp) |= (f))
+#define	LDAP_BACK_CONN_CLEAR_F(fp,f)	(*(fp) &= ~(f))
+#define	LDAP_BACK_CONN_CPY_F(fp,f,mfp) \
 	do { \
-		if ( ((f) & (mlc)->lc_lcflags) == (f) ) { \
-			(lc)->lc_lcflags |= (f); \
+		if ( ((f) & *(mfp)) == (f) ) { \
+			*(fp) |= (f); \
 		} else { \
-			(lc)->lc_lcflags &= ~(f); \
+			*(fp) &= ~(f); \
 		} \
 	} while ( 0 )
+
+#define LDAP_BACK_CONN_ISSET(lc,f)	LDAP_BACK_CONN_ISSET_F(&(lc)->lc_lcflags, (f))
+#define	LDAP_BACK_CONN_SET(lc,f)	LDAP_BACK_CONN_SET_F(&(lc)->lc_lcflags, (f))
+#define	LDAP_BACK_CONN_CLEAR(lc,f)	LDAP_BACK_CONN_CLEAR_F(&(lc)->lc_lcflags, (f))
+#define	LDAP_BACK_CONN_CPY(lc,f,mlc)	LDAP_BACK_CONN_CPY_F(&(lc)->lc_lcflags, (f), &(mlc)->lc_lcflags)
 
 #define	LDAP_BACK_FCONN_ISBOUND	(0x00000001U)
 #define	LDAP_BACK_FCONN_ISANON	(0x00000002U)
@@ -95,18 +102,6 @@ typedef struct ldapconn_t {
 } ldapconn_t;
 
 /*
- * identity assertion modes
- */
-enum {
-	LDAP_BACK_IDASSERT_LEGACY = 1,
-	LDAP_BACK_IDASSERT_NOASSERT,
-	LDAP_BACK_IDASSERT_ANONYMOUS,
-	LDAP_BACK_IDASSERT_SELF,
-	LDAP_BACK_IDASSERT_OTHERDN,
-	LDAP_BACK_IDASSERT_OTHERID
-};
-
-/*
  * operation enumeration for timeouts
  */
 enum {
@@ -122,13 +117,72 @@ typedef struct ldap_avl_info_t {
 	Avlnode				*lai_tree;
 } ldap_avl_info_t;
 
+typedef struct slap_retry_info_t {
+	time_t		*ri_interval;
+	int		*ri_num;
+	int		ri_idx;
+	int		ri_count;
+	time_t		ri_last;
+
+#define SLAP_RETRYNUM_FOREVER	(-1)		/* retry forever */
+#define SLAP_RETRYNUM_TAIL	(-2)		/* end of retrynum array */
+#define SLAP_RETRYNUM_VALID(n)	((n) >= SLAP_RETRYNUM_FOREVER)	/* valid retrynum */
+#define SLAP_RETRYNUM_FINITE(n)	((n) > SLAP_RETRYNUM_FOREVER)	/* not forever */
+} slap_retry_info_t;
+
+/*
+ * identity assertion modes
+ */
+typedef enum {
+	LDAP_BACK_IDASSERT_LEGACY = 1,
+	LDAP_BACK_IDASSERT_NOASSERT,
+	LDAP_BACK_IDASSERT_ANONYMOUS,
+	LDAP_BACK_IDASSERT_SELF,
+	LDAP_BACK_IDASSERT_OTHERDN,
+	LDAP_BACK_IDASSERT_OTHERID
+} slap_idassert_mode_t;
+
+/* ID assert stuff */
+typedef struct slap_idassert_t {
+	slap_idassert_mode_t	si_mode;
+#define	li_idassert_mode	li_idassert.si_mode
+
+	slap_bindconf	si_bc;
+#define	li_idassert_authcID	li_idassert.si_bc.sb_authcId
+#define	li_idassert_authcDN	li_idassert.si_bc.sb_binddn
+#define	li_idassert_passwd	li_idassert.si_bc.sb_cred
+#define	li_idassert_authzID	li_idassert.si_bc.sb_authzId
+#define	li_idassert_authmethod	li_idassert.si_bc.sb_method
+#define	li_idassert_sasl_mech	li_idassert.si_bc.sb_saslmech
+#define	li_idassert_sasl_realm	li_idassert.si_bc.sb_realm
+#define	li_idassert_secprops	li_idassert.si_bc.sb_secprops
+#define	li_idassert_tls		li_idassert.si_bc.sb_tls
+
+	unsigned 	si_flags;
+#define LDAP_BACK_AUTH_NONE				0x00U
+#define	LDAP_BACK_AUTH_NATIVE_AUTHZ			0x01U
+#define	LDAP_BACK_AUTH_OVERRIDE				0x02U
+#define	LDAP_BACK_AUTH_PRESCRIPTIVE			0x04U
+#define	LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ		0x08U
+#define	LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND	0x10U
+#define	li_idassert_flags	li_idassert.si_flags
+
+	BerVarray	si_authz;
+#define	li_idassert_authz	li_idassert.si_authz
+} slap_idassert_t;
+
+/*
+ * Hook to allow mucking with ldapinfo_t when quarantine is over
+ */
+typedef int (*ldap_back_quarantine_f)( struct ldapinfo_t *, void * );
+
 typedef struct ldapinfo_t {
 	/* li_uri: the string that goes into ldap_initialize()
 	 * TODO: use li_acl.sb_uri instead */
-	char		*li_uri;
+	char			*li_uri;
 	/* li_bvuri: an array of each single URI that is equivalent;
 	 * to be checked for the presence of a certain item */
-	BerVarray	li_bvuri;
+	BerVarray		li_bvuri;
 	ldap_pvt_thread_mutex_t	li_uri_mutex;
 
 	LDAP_REBIND_PROC	*li_rebind_f;
@@ -146,27 +200,7 @@ typedef struct ldapinfo_t {
 #define	li_acl_secprops	li_acl.sb_secprops
 
 	/* ID assert stuff */
-	int		li_idassert_mode;
-
-	slap_bindconf	li_idassert;
-#define	li_idassert_authcID	li_idassert.sb_authcId
-#define	li_idassert_authcDN	li_idassert.sb_binddn
-#define	li_idassert_passwd	li_idassert.sb_cred
-#define	li_idassert_authzID	li_idassert.sb_authzId
-#define	li_idassert_authmethod	li_idassert.sb_method
-#define	li_idassert_sasl_mech	li_idassert.sb_saslmech
-#define	li_idassert_sasl_realm	li_idassert.sb_realm
-#define	li_idassert_secprops	li_idassert.sb_secprops
-
-	unsigned 	li_idassert_flags;
-#define LDAP_BACK_AUTH_NONE				0x00U
-#define	LDAP_BACK_AUTH_NATIVE_AUTHZ			0x01U
-#define	LDAP_BACK_AUTH_OVERRIDE				0x02U
-#define	LDAP_BACK_AUTH_PRESCRIPTIVE			0x04U
-#define	LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ		0x08U
-#define	LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND	0x10U
-
-	BerVarray	li_idassert_authz;
+	slap_idassert_t	li_idassert;
 	/* end of ID assert stuff */
 
 	int		li_nretries;
@@ -176,37 +210,71 @@ typedef struct ldapinfo_t {
 #define LDAP_BACK_RETRY_DEFAULT		(3)
 
 	unsigned	li_flags;
-#define LDAP_BACK_F_NONE		0x0000U
-#define LDAP_BACK_F_SAVECRED		0x0001U
-#define LDAP_BACK_F_USE_TLS		0x0002U
-#define LDAP_BACK_F_PROPAGATE_TLS	0x0004U
-#define LDAP_BACK_F_TLS_CRITICAL	0x0008U
+#define LDAP_BACK_F_NONE		(0x0000U)
+#define LDAP_BACK_F_SAVECRED		(0x0001U)
+#define LDAP_BACK_F_USE_TLS		(0x0002U)
+#define LDAP_BACK_F_PROPAGATE_TLS	(0x0004U)
+#define LDAP_BACK_F_TLS_CRITICAL	(0x0008U)
 #define LDAP_BACK_F_TLS_USE_MASK	(LDAP_BACK_F_USE_TLS|LDAP_BACK_F_TLS_CRITICAL)
 #define LDAP_BACK_F_TLS_PROPAGATE_MASK	(LDAP_BACK_F_PROPAGATE_TLS|LDAP_BACK_F_TLS_CRITICAL)
 #define LDAP_BACK_F_TLS_MASK		(LDAP_BACK_F_TLS_USE_MASK|LDAP_BACK_F_TLS_PROPAGATE_MASK)
-#define LDAP_BACK_F_CHASE_REFERRALS	0x0010U
-#define LDAP_BACK_F_PROXY_WHOAMI	0x0020U
+#define LDAP_BACK_F_CHASE_REFERRALS	(0x0010U)
+#define LDAP_BACK_F_PROXY_WHOAMI	(0x0020U)
 
-#define	LDAP_BACK_F_SUPPORT_T_F_DISCOVER	0x0040U
-#define	LDAP_BACK_F_SUPPORT_T_F		0x0080U
-#define	LDAP_BACK_F_SUPPORT_T_F_MASK	(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER)
+#define	LDAP_BACK_F_T_F			(0x0040U)
+#define	LDAP_BACK_F_T_F_DISCOVER	(0x0080U)
+#define	LDAP_BACK_F_T_F_MASK		(LDAP_BACK_F_T_F)
+#define	LDAP_BACK_F_T_F_MASK2		(LDAP_BACK_F_T_F_MASK|LDAP_BACK_F_T_F_DISCOVER)
 
-#define LDAP_BACK_F_MONITOR		0x0100U
-#define	LDAP_BACK_F_SINGLECONN		0x0200U
+#define LDAP_BACK_F_MONITOR		(0x0100U)
+#define	LDAP_BACK_F_SINGLECONN		(0x0200U)
+
+#define	LDAP_BACK_F_ISOPEN		(0x0400U)
+
+#define	LDAP_BACK_F_CANCEL_ABANDON	(0x0000U)
+#define	LDAP_BACK_F_CANCEL_IGNORE	(0x1000U)
+#define	LDAP_BACK_F_CANCEL_EXOP		(0x2000U)
+#define	LDAP_BACK_F_CANCEL_EXOP_DISCOVER	(0x4000U)
+#define	LDAP_BACK_F_CANCEL_MASK		(LDAP_BACK_F_CANCEL_IGNORE|LDAP_BACK_F_CANCEL_EXOP)
+#define	LDAP_BACK_F_CANCEL_MASK2	(LDAP_BACK_F_CANCEL_MASK|LDAP_BACK_F_CANCEL_EXOP_DISCOVER)
 
 #define	LDAP_BACK_ISSET(li,f)		( ( (li)->li_flags & (f) ) == (f) )
+#define	LDAP_BACK_ISMASK(li,m,f)	( ( (li)->li_flags & (m) ) == (f) )
+
 #define LDAP_BACK_SAVECRED(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_SAVECRED )
 #define LDAP_BACK_USE_TLS(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_USE_TLS )
 #define LDAP_BACK_PROPAGATE_TLS(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_PROPAGATE_TLS )
 #define LDAP_BACK_TLS_CRITICAL(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_TLS_CRITICAL )
 #define LDAP_BACK_CHASE_REFERRALS(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_CHASE_REFERRALS )
 #define LDAP_BACK_PROXY_WHOAMI(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_PROXY_WHOAMI )
+
+#define	LDAP_BACK_T_F(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_T_F_MASK, LDAP_BACK_F_T_F )
+#define	LDAP_BACK_T_F_DISCOVER(li)	LDAP_BACK_ISMASK( (li), LDAP_BACK_F_T_F_MASK2, LDAP_BACK_F_T_F_DISCOVER )
+
 #define LDAP_BACK_MONITOR(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_MONITOR )
 #define	LDAP_BACK_SINGLECONN(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_SINGLECONN )
+
+#define	LDAP_BACK_ISOPEN(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_ISOPEN )
+
+#define	LDAP_BACK_ABANDON(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_ABANDON )
+#define	LDAP_BACK_IGNORE(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_IGNORE )
+#define	LDAP_BACK_CANCEL(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
+#define	LDAP_BACK_CANCEL_DISCOVER(li)	LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
 
 	int		li_version;
 
 	ldap_avl_info_t	li_conninfo;
+
+	sig_atomic_t		li_isquarantined;
+#define	LDAP_BACK_FQ_NO		(0)
+#define	LDAP_BACK_FQ_YES	(1)
+#define	LDAP_BACK_FQ_RETRYING	(2)
+
+	slap_retry_info_t	li_quarantine;
+#define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
+	ldap_pvt_thread_mutex_t	li_quarantine_mutex;
+	ldap_back_quarantine_f	li_quarantine_f;
+	void			*li_quarantine_p;
 
 	time_t		li_network_timeout;
 	time_t		li_conn_ttl;
@@ -220,10 +288,17 @@ typedef enum ldap_back_send_t {
 	LDAP_BACK_SENDERR		= 0x02,
 	LDAP_BACK_SENDRESULT		= (LDAP_BACK_SENDOK|LDAP_BACK_SENDERR),
 	LDAP_BACK_BINDING		= 0x04,
+
 	LDAP_BACK_BIND_DONTSEND		= (LDAP_BACK_BINDING),
 	LDAP_BACK_BIND_SOK		= (LDAP_BACK_BINDING|LDAP_BACK_SENDOK),
 	LDAP_BACK_BIND_SERR		= (LDAP_BACK_BINDING|LDAP_BACK_SENDERR),
-	LDAP_BACK_BIND_SRES		= (LDAP_BACK_BINDING|LDAP_BACK_SENDRESULT)
+	LDAP_BACK_BIND_SRES		= (LDAP_BACK_BINDING|LDAP_BACK_SENDRESULT),
+
+	LDAP_BACK_RETRYING		= 0x08,
+	LDAP_BACK_RETRY_DONTSEND	= (LDAP_BACK_RETRYING),
+	LDAP_BACK_RETRY_SOK		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDOK),
+	LDAP_BACK_RETRY_SERR		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDERR),
+	LDAP_BACK_RETRY_SRES		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDRESULT)
 } ldap_back_send_t;
 
 /* define to use asynchronous StartTLS */

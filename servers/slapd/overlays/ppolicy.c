@@ -39,6 +39,7 @@
 #include <ac/time.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
+#include "config.h"
 
 #ifndef MODULE_NAME_SZ
 #define MODULE_NAME_SZ 256
@@ -202,6 +203,95 @@ static struct schema_info pwd_UsSchema[] = {
 
 static ldap_pvt_thread_mutex_t chk_syntax_mutex;
 
+enum {
+	PPOLICY_DEFAULT = 1,
+	PPOLICY_HASH_CLEARTEXT,
+	PPOLICY_USE_LOCKOUT
+};
+
+static ConfigDriver ppolicy_cf_default;
+
+static ConfigTable ppolicycfg[] = {
+	{ "ppolicy_default", "policyDN", 2, 2, 0,
+	  ARG_DN|ARG_MAGIC|PPOLICY_DEFAULT, ppolicy_cf_default,
+	  "( OLcfgOvAt:12.1 NAME 'olcPPolicyDefault' "
+	  "DESC 'DN of a pwdPolicy object for uncustomized objects' "
+	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
+	{ "ppolicy_hash_cleartext", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_HASH_CLEARTEXT,
+	  (void *)offsetof(pp_info,hash_passwords),
+	  "( OLcfgOvAt:12.2 NAME 'olcPPolicyHashCleartext' "
+	  "DESC 'Hash passwords on add or modify' "
+	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "ppolicy_use_lockout", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_USE_LOCKOUT,
+	  (void *)offsetof(pp_info,use_lockout),
+	  "( OLcfgOvAt:12.3 NAME 'olcPPolicyUseLockout' "
+	  "DESC 'Warn clients with AccountLocked' "
+	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs ppolicyocs[] = {
+	{ "( OLcfgOvOc:12.1 "
+	  "NAME 'olcPPolicyConfig' "
+	  "DESC 'Password Policy configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY ( olcPPolicyDefault $ olcPPolicyHashCleartext $ "
+	  "olcPPolicyUseLockout ) )",
+	  Cft_Overlay, ppolicycfg },
+	{ NULL, 0, NULL }
+};
+
+static int
+ppolicy_cf_default( ConfigArgs *c )
+{
+	slap_overinst *on = (slap_overinst *)c->bi;
+	pp_info *pi = (pp_info *)on->on_bi.bi_private;
+	BackendDB *be = (BackendDB *)c->be;
+	const char *text;
+	int rc = ARG_BAD_CONF;
+
+	assert ( c->type == PPOLICY_DEFAULT );
+	Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default\n", 0, 0, 0);
+
+	switch ( c->op ) {
+	case SLAP_CONFIG_EMIT:
+		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default emit\n", 0, 0, 0);
+		rc = 0;
+		if ( !BER_BVISEMPTY( &pi->def_policy )) {
+			rc = value_add_one( &c->rvalue_vals,
+					    &pi->def_policy );
+			if ( rc ) return rc;
+			rc = value_add_one( &c->rvalue_nvals,
+					    &pi->def_policy );
+		}
+		break;
+	case LDAP_MOD_DELETE:
+		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default delete\n", 0, 0, 0);
+		if ( pi->def_policy.bv_val ) {
+			ber_memfree ( pi->def_policy.bv_val );
+			pi->def_policy.bv_val = NULL;
+		}
+		pi->def_policy.bv_len = 0;
+		rc = 0;
+		break;
+	case SLAP_CONFIG_ADD:
+		/* fallthrough to LDAP_MOD_ADD */
+	case LDAP_MOD_ADD:
+		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default add\n", 0, 0, 0);
+		if ( pi->def_policy.bv_val )
+			ber_memfree ( pi->def_policy.bv_val );
+		pi->def_policy = c->value_ndn;
+		rc = 0;
+		break;
+	default:
+		abort ();
+	}
+
+	return rc;
+}
+
 static time_t
 parse_time( char *atm )
 {
@@ -326,6 +416,8 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 
 	memset( pp, 0, sizeof(PassPolicy) );
 
+	pp->ad = slap_schema.si_ad_userPassword;
+
 	/* Users can change their own password by default */
     	pp->pwdAllowUserChange = 1;
 
@@ -354,8 +446,6 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 #if 0	/* Only worry about userPassword for now */
 	if ((a = attr_find( pe->e_attrs, ad_pwdAttribute )))
 		slap_bv2ad( &a->a_vals[0], &pp->ad, &text );
-#else
-	pp->ad = slap_schema.si_ad_userPassword;
 #endif
 
 	if ( ( a = attr_find( pe->e_attrs, ad_pwdMinAge ) )
@@ -411,7 +501,7 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	return;
 
 defaultpol:
-	Debug( LDAP_DEBUG_ANY,
+	Debug( LDAP_DEBUG_TRACE,
 		"ppolicy_get: using default policy\n", 0, 0, 0 );
 	return;
 }
@@ -435,9 +525,11 @@ password_scheme( struct berval *cred, struct berval *sch )
 	if (cred->bv_val[e]) {
 		int rc;
 		rc = lutil_passwd_scheme( cred->bv_val );
-		if (rc && sch) {
-			sch->bv_val = cred->bv_val;
-			sch->bv_len = e;
+		if (rc) {
+			if (sch) {
+				sch->bv_val = cred->bv_val;
+				sch->bv_len = e;
+			}
 			return LDAP_SUCCESS;
 		}
 	}
@@ -1187,6 +1279,19 @@ ppolicy_add(
 }
 
 static int
+ppolicy_mod_cb( Operation *op, SlapReply *rs )
+{
+	slap_callback *sc = op->o_callback;
+	op->o_callback = sc->sc_next;
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		ch_free( pwcons[op->o_conn->c_conn_idx].dn.bv_val );
+		BER_BVZERO( &pwcons[op->o_conn->c_conn_idx].dn );
+	}
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+	return SLAP_CB_CONTINUE;
+}
+
+static int
 ppolicy_modify( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
@@ -1583,7 +1688,23 @@ do_modify:
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		time_t now = slap_get_time();
-		
+
+		/* If the conn is restricted, set a callback to clear it
+		 * if the pwmod succeeds
+		 */
+		if (!BER_BVISEMPTY( &pwcons[op->o_conn->c_conn_idx].dn )) {
+			slap_callback *sc = op->o_tmpcalloc( 1, sizeof( slap_callback ),
+				op->o_tmpmemctx );
+			sc->sc_next = op->o_callback;
+			/* Must use sc_response to insure we reset on success, before
+			 * the client sees the response. Must use sc_cleanup to insure
+			 * that it gets cleaned up if sc_response is not called.
+			 */
+			sc->sc_response = ppolicy_mod_cb;
+			sc->sc_cleanup = ppolicy_mod_cb;
+			op->o_callback = sc;
+		}
+
 		/*
 		 * keep the necessary pwd.. operational attributes
 		 * up to date.
@@ -1807,11 +1928,9 @@ ppolicy_parseCtrl(
 		rs->sr_text = "passwordPolicyRequest control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
-	if ( ctrl->ldctl_iscritical ) {
-		rs->sr_text = "passwordPolicyRequest control invalid criticality";
-		return LDAP_PROTOCOL_ERROR;
-	}
-	op->o_ctrlflag[ppolicy_cid] = SLAP_CONTROL_NONCRITICAL;
+	op->o_ctrlflag[ppolicy_cid] = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
@@ -1920,54 +2039,6 @@ ppolicy_close(
 	return 0;
 }
 
-static int
-ppolicy_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	pp_info *pi = on->on_bi.bi_private;
-	struct berval dn;
-	
-
-	if ( strcasecmp( argv[0], "ppolicy_default" ) == 0 ) {
-		if ( argc != 2 ) {
-			fprintf( stderr, "%s: line %d: invalid arguments in \"ppolicy_default"
-				" <policyDN>\n", fname, lineno );
-			return ( 1 );
-		}
-		ber_str2bv( argv[1], 0, 0, &dn );
-		if ( dnNormalize( 0, NULL, NULL, &dn, &pi->def_policy, NULL ) ) {
-			fprintf( stderr, "%s: line %d: policyDN is invalid\n",
-				fname, lineno );
-			return 1;
-		}
-		return 0;
-
-	} else if ( strcasecmp( argv[0], "ppolicy_use_lockout" ) == 0 ) {
-		if ( argc != 1 ) {
-			fprintf( stderr, "%s: line %d: ppolicy_use_lockout "
-				"takes no arguments\n", fname, lineno );
-			return ( 1 );
-		}
-		pi->use_lockout = 1;
-		return 0;
-	} else if ( strcasecmp( argv[0], "ppolicy_hash_cleartext" ) == 0 ) {
-		if ( argc != 1 ) {
-			fprintf( stderr, "%s: line %d: ppolicy_hash_cleartext "
-				"takes no arguments\n", fname, lineno );
-			return ( 1 );
-		}
-		pi->hash_passwords = 1;
-		return 0;
-	}
-	return SLAP_CONF_UNKNOWN;
-}
-
 static char *extops[] = {
 	LDAP_EXOP_MODIFY_PASSWD,
 	NULL
@@ -2019,7 +2090,6 @@ int ppolicy_initialize()
 	ppolicy.on_bi.bi_type = "ppolicy";
 	ppolicy.on_bi.bi_db_init = ppolicy_db_init;
 	ppolicy.on_bi.bi_db_open = ppolicy_db_open;
-	ppolicy.on_bi.bi_db_config = ppolicy_config;
 	ppolicy.on_bi.bi_db_close = ppolicy_close;
 
 	ppolicy.on_bi.bi_op_add = ppolicy_add;
@@ -2029,6 +2099,10 @@ int ppolicy_initialize()
 	ppolicy.on_bi.bi_op_modify = ppolicy_modify;
 	ppolicy.on_bi.bi_op_search = ppolicy_restrict;
 	ppolicy.on_bi.bi_connection_destroy = ppolicy_connection_destroy;
+
+	ppolicy.on_bi.bi_cf_ocs = ppolicyocs;
+	code = config_register_schema( ppolicycfg, ppolicyocs );
+	if ( code ) return code;
 
 	return overlay_register( &ppolicy );
 }

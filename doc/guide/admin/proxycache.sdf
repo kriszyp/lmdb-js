@@ -36,7 +36,7 @@ is stored in main memory.
 A template is a prototype for generating LDAP search requests.
 Templates are described by a prototype search filter and a list of
 attributes which are required in queries generated from the template.
-The representation for prototype filter is similar to RFC 2254,
+The representation for prototype filter is similar to {{REF:RFC4515}},
 except that the assertion values are missing. Examples of prototype
 filters are: (sn=),(&(sn=)(givenname=)) which are instantiated by
 search filters (sn=Doe) and (&(sn=Doe)(givenname=John)) respectively.

@@ -65,7 +65,7 @@ glue_back_select (
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	int i;
 
-	for (i = 0; i<gi->gi_nodes; i++) {
+	for (i = gi->gi_nodes-1; i >= 0; i--) {
 		assert( gi->gi_n[i].gn_be->be_nsuffix != NULL );
 
 		if (dnIsSuffix(dn, &gi->gi_n[i].gn_be->be_nsuffix[0])) {
@@ -262,6 +262,13 @@ glue_chk_controls ( Operation *op, SlapReply *rs )
 	return rc;
 }
 
+/* ITS#4615 - overlays configured above the glue overlay should be
+ * invoked for the entire glued tree. Overlays configured below the
+ * glue overlay should only be invoked on the master backend.
+ * So, if we're searching on any subordinates, we need to force the
+ * current overlay chain to stop processing, without stopping the
+ * overall callback flow.
+ */
 static int
 glue_sub_search( Operation *op, SlapReply *rs, BackendDB *b0,
 	slap_overinst *on )
@@ -333,7 +340,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 		b1 = op->o_bd;
 
 		/*
-		 * Execute in reverse order, most general first 
+		 * Execute in reverse order, most specific first 
 		 */
 		for (i = gi->gi_nodes; i >= 0; i--) {
 			if ( i == gi->gi_nodes ) {
@@ -347,6 +354,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				continue;
 			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
+			if (get_no_subordinate_glue(op) && btmp != b1)
+				continue;
+
 			if (tlimit0 != SLAP_NO_LIMIT) {
 				op->o_time = slap_get_time();
 				op->ors_tlimit = stoptime - op->o_time;
@@ -377,6 +387,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 					gs.err = LDAP_SUCCESS;
 				}
+				op->ors_scope = LDAP_SCOPE_ONELEVEL;
+				op->o_req_dn = dn;
+				op->o_req_ndn = ndn;
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dn_match(&op->o_bd->be_nsuffix[0], &ndn))
@@ -769,6 +782,13 @@ glue_db_init(
 	BackendInfo	*bi = oi->oi_orig;
 	glueinfo *gi;
 
+	if ( SLAP_GLUE_SUBORDINATE( be )) {
+		Debug( LDAP_DEBUG_ANY, "glue: backend %s is already subordinate, "
+			"cannot have glue overlay!\n",
+			be->be_suffix[0].bv_val, 0, 0 );
+		return LDAP_OTHER;
+	}
+
 	gi = ch_calloc( 1, sizeof(glueinfo));
 	on->on_bi.bi_private = gi;
 	dnParent( be->be_nsuffix, &gi->gi_pdn );
@@ -954,6 +974,12 @@ glue_sub_add( BackendDB *be, int advert, int online )
 	glue_Addrec *ga;
 	int rc = 0;
 
+	if ( overlay_is_inst( be, "glue" )) {
+		Debug( LDAP_DEBUG_ANY, "glue: backend %s already has glue overlay, "
+			"cannot be a subordinate!\n",
+			be->be_suffix[0].bv_val, 0, 0 );
+		return LDAP_OTHER;
+	}
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
 	if ( advert )
 		SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_ADVERTISE;

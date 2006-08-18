@@ -86,6 +86,7 @@ dn2path(struct berval * dn, struct berval * suffixdn, struct berval * base_path,
 	struct berval *res)
 {
 	char *ptr, *sep, *end;
+	struct berval bv;
 
 	assert( dn != NULL );
 	assert( !BER_BVISNULL( dn ) );
@@ -107,14 +108,19 @@ dn2path(struct berval * dn, struct berval * suffixdn, struct berval * base_path,
 	}
 	strcpy(ptr, LDIF);
 #if IX_FSL != IX_DNL
-	ptr = res->bv_val;
-	while( ptr=strchr(ptr, IX_DNL) ) {
+	bv = *res;
+	while ( ptr = ber_bvchr( &bv, IX_DNL ) ) {
 		*ptr++ = IX_FSL;
-		ptr = strchr(ptr, IX_DNR);
-		if ( ptr )
-			*ptr++ = IX_FSR;
-		else
+		assert( ( ptr - bv.bv_val ) <= bv.bv_len );
+		bv.bv_len -= ( ptr - bv.bv_val );
+		bv.bv_val = ptr;
+		ptr = ber_bvchr( &bv, IX_DNR );
+		if ( !ptr )
 			break;
+		*ptr++ = IX_FSR;
+		assert( ( ptr - bv.bv_val ) <= bv.bv_len );
+		bv.bv_len -= ( ptr - bv.bv_val );
+		bv.bv_val = ptr;
 	}
 #endif
 }
@@ -412,11 +418,13 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 			bvl = ch_malloc( sizeof(bvlist) );
 			ber_dupbv( &bvl->bv, &fname );
 			BER_BVZERO( &bvl->num );
-			itmp.bv_val = strchr( bvl->bv.bv_val, IX_FSL );
+			itmp.bv_val = ber_bvchr( &bvl->bv, IX_FSL );
 			if ( itmp.bv_val ) {
 				char *ptr;
 				itmp.bv_val++;
-				ptr = strchr( itmp.bv_val, IX_FSR );
+				itmp.bv_len = bvl->bv.bv_len
+					- ( itmp.bv_val - bvl->bv.bv_val );
+				ptr = ber_bvchr( &itmp, IX_FSR );
 				if ( ptr ) {
 					itmp.bv_len = ptr - itmp.bv_val;
 					ber_dupbv( &bvl->num, &itmp );

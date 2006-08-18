@@ -157,8 +157,21 @@ struct metainfo_t;
 
 typedef struct metasingleconn_t {
 	int			msc_candidate;
-#define	META_NOT_CANDIDATE	((ber_tag_t)0)
-#define	META_CANDIDATE		((ber_tag_t)1)
+#define	META_NOT_CANDIDATE	((ber_tag_t)0x0)
+#define	META_CANDIDATE		((ber_tag_t)0x1)
+#define	META_BINDING		((ber_tag_t)0x2)
+
+#define META_CND_ISSET(rs,f)		( ( (rs)->sr_tag & (f) ) == (f) )
+#define META_CND_SET(rs,f)		( (rs)->sr_tag |= (f) )
+#define META_CND_CLEAR(rs,f)		( (rs)->sr_tag &= ~(f) )
+
+#define META_CANDIDATE_RESET(rs)	( (rs)->sr_tag = 0 )
+#define META_IS_CANDIDATE(rs)		META_CND_ISSET( (rs), META_CANDIDATE )
+#define META_CANDIDATE_SET(rs)		META_CND_SET( (rs), META_CANDIDATE )
+#define META_CANDIDATE_CLEAR(rs)	META_CND_CLEAR( (rs), META_CANDIDATE )
+#define META_IS_BINDING(rs)		META_CND_ISSET( (rs), META_BINDING )
+#define META_BINDING_SET(rs)		META_CND_SET( (rs), META_BINDING )
+#define META_BINDING_CLEAR(rs)		META_CND_CLEAR( (rs), META_BINDING )
 	
 	LDAP            	*msc_ld;
 	struct berval          	msc_bound_ndn;
@@ -216,18 +229,45 @@ typedef struct metatarget_t {
 	struct berval		mt_binddn;
 	struct berval		mt_bindpw;
 
-	struct berval           mt_pseudorootdn;
-	struct berval           mt_pseudorootpw;
+	slap_idassert_t		mt_idassert;
+#define	mt_idassert_mode	mt_idassert.si_mode
+#define	mt_idassert_authcID	mt_idassert.si_bc.sb_authcId
+#define	mt_idassert_authcDN	mt_idassert.si_bc.sb_binddn
+#define	mt_idassert_passwd	mt_idassert.si_bc.sb_cred
+#define	mt_idassert_authzID	mt_idassert.si_bc.sb_authzId
+#define	mt_idassert_authmethod	mt_idassert.si_bc.sb_method
+#define	mt_idassert_sasl_mech	mt_idassert.si_bc.sb_saslmech
+#define	mt_idassert_sasl_realm	mt_idassert.si_bc.sb_realm
+#define	mt_idassert_secprops	mt_idassert.si_bc.sb_secprops
+#define	mt_idassert_tls		mt_idassert.si_bc.sb_tls
+#define	mt_idassert_flags	mt_idassert.si_flags
+#define	mt_idassert_authz	mt_idassert.si_authz
 
 	int			mt_nretries;
 #define META_RETRY_UNDEFINED	(-2)
 #define META_RETRY_FOREVER	(-1)
 #define META_RETRY_NEVER	(0)
-#define META_RETRY_DEFAULT	(3)
+#define META_RETRY_DEFAULT	(10)
 
 	struct ldaprwmap	mt_rwmap;
 
+	sig_atomic_t		mt_isquarantined;
+	slap_retry_info_t	mt_quarantine;
+	ldap_pvt_thread_mutex_t	mt_quarantine_mutex;
+#define	META_BACK_TGT_QUARANTINE(mt)	( (mt)->mt_quarantine.ri_num != NULL )
+
 	unsigned		mt_flags;
+#define	META_BACK_TGT_ISSET(mt,f)		( ( (mt)->mt_flags & (f) ) == (f) )
+#define	META_BACK_TGT_ISMASK(mt,m,f)		( ( (mt)->mt_flags & (m) ) == (f) )
+
+#define	META_BACK_TGT_T_F(mt)			META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_T_F_MASK, LDAP_BACK_F_T_F )
+#define	META_BACK_TGT_T_F_DISCOVER(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_T_F_MASK2, LDAP_BACK_F_T_F_DISCOVER )
+
+#define	META_BACK_TGT_ABANDON(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_ABANDON )
+#define	META_BACK_TGT_IGNORE(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_IGNORE )
+#define	META_BACK_TGT_CANCEL(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
+#define	META_BACK_TGT_CANCEL_DISCOVER(mt)	META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
+
 	int			mt_version;
 	time_t			mt_network_timeout;
 	struct timeval		mt_bind_timeout;
@@ -249,6 +289,11 @@ typedef struct metacandidates_t {
 	SlapReply		*mc_candidates;
 } metacandidates_t;
 
+/*
+ * Hook to allow mucking with metainfo_t/metatarget_t when quarantine is over
+ */
+typedef int (*meta_back_quarantine_f)( struct metainfo_t *, int target, void * );
+
 typedef struct metainfo_t {
 	int			mi_ntargets;
 	int			mi_defaulttarget;
@@ -264,6 +309,13 @@ typedef struct metainfo_t {
 	metadncache_t		mi_cache;
 	
 	ldap_avl_info_t		mi_conninfo;
+
+	/* NOTE: quarantine uses the connection mutex */
+	slap_retry_info_t	mi_quarantine;
+
+#define	META_BACK_QUARANTINE(mi)	( (mi)->mi_quarantine.ri_num != NULL )
+	meta_back_quarantine_f	mi_quarantine_f;
+	void			*mi_quarantine_p;
 
 	unsigned		mi_flags;
 #define	li_flags		mi_flags
@@ -323,19 +375,16 @@ extern int
 meta_back_init_one_conn(
 	Operation		*op,
 	SlapReply		*rs,
-	metatarget_t		*mt, 
 	metaconn_t		*mc,
 	int			candidate,
 	int			ispriv,
 	ldap_back_send_t	sendok );
 
-extern int
-meta_back_single_bind(
+extern void
+meta_back_quarantine(
 	Operation		*op,
 	SlapReply		*rs,
-	metaconn_t		*mc,
-	int			candidate,
-	int			massage );
+	int			candidate );
 
 extern int
 meta_back_dobind(
@@ -355,11 +404,34 @@ meta_back_single_dobind(
 	int			dolock );
 
 extern int
+meta_back_proxy_authz_cred(
+	metaconn_t		*mc,
+	int			candidate,
+	Operation		*op,
+	SlapReply		*rs,
+	ldap_back_send_t	sendok,
+	struct berval		*binddn,
+	struct berval		*bindcred,
+	int			*method );
+
+extern int
+meta_back_cancel(
+	metaconn_t		*mc,
+	Operation		*op,
+	SlapReply		*rs,
+	ber_int_t		msgid,
+	int			candidate,
+	ldap_back_send_t	sendok );
+
+extern int
 meta_back_op_result(
 	metaconn_t		*mc,
 	Operation		*op,
 	SlapReply		*rs,
-	int			candidate );
+	int			candidate,
+	ber_int_t		msgid,
+	time_t			timeout,
+	ldap_back_send_t	sendok );
 
 extern int
 back_meta_LTX_init_module(
@@ -386,9 +458,7 @@ meta_back_conndn_dup(
  */
 extern int
 meta_back_is_candidate(
-	struct berval		*nsuffix,
-	int			suffixscope,
-	BerVarray		subtree_exclude,
+	metatarget_t		*mt,
 	struct berval		*ndn,
 	int			scope );
 

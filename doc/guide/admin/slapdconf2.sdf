@@ -323,14 +323,14 @@ in underneath. Schema entries must have the {{EX:olcSchemaConfig}}
 objectClass.
 
 
-H4: olcAttributeTypes: <{{REF:RFC2252}} Attribute Type Description>
+H4: olcAttributeTypes: <{{REF:RFC4512}} Attribute Type Description>
 
 This directive defines an attribute type.
 Please see the {{SECT:Schema Specification}} chapter
 for information regarding how to use this directive.
 
 
-H4: olcObjectClasses: <{{REF:RFC2252}} Object Class Description>
+H4: olcObjectClasses: <{{REF:RFC4512}} Object Class Description>
 
 This directive defines an object class.
 Please see the {{SECT:Schema Specification}} chapter for
@@ -561,8 +561,9 @@ the rootdn (when the rootdn is set to a DN within the database).
 
 >	olcRootPW: secret
 
-It is also permissible to provide a hash of the password in RFC 2307
-form.  {{slappasswd}}(8) may be used to generate the password hash.
+It is also permissible to provide a hash of the password in
+{{REF:RFC2307}} form.  {{slappasswd}}(8) may be used to generate
+the password hash.
 
 \Example:
 
@@ -1063,7 +1064,7 @@ the target entry's {{normalized DN}}.   (The second form is not
 discussed further in this document.)  The third form is used to
 select entries which are within the requested scope of DN.  The
 <DN> is a string representation of the Distinguished Name, as
-described in {{REF:RFC2253}}.
+described in {{REF:RFC4514}}.
 
 The scope can be either {{EX:base}}, {{EX:one}}, {{EX:subtree}},
 or {{EX:children}}.  Where {{EX:base}} matches only the entry with
@@ -1093,7 +1094,7 @@ Entries may also be selected using a filter:
 >	to filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
-search filter, as described in {{REF:RFC2254}}.  For example:
+search filter, as described in {{REF:RFC4515}}.  For example:
 
 >	to filter=(objectClass=person)
 

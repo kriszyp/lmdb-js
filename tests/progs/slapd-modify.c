@@ -49,6 +49,7 @@ usage( char *name )
 		"-D <manager> "
 		"-w <passwd> "
 		"-e <entry> "
+		"[-i <ignore>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -78,9 +79,9 @@ main( int argc, char **argv )
 	int		friendly = 0;
 	int		chaserefs = 0;
 
-	tester_init( "slapd-modify" );
+	tester_init( "slapd-modify", TESTER_MODIFY );
 
-	while ( (i = getopt( argc, argv, "CFH:h:p:D:w:e:a:l:L:r:t:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "CFH:h:i:p:D:w:e:a:l:L:r:t:" )) != EOF ) {
 		switch ( i ) {
 		case 'C':
 			chaserefs++;
@@ -98,6 +99,10 @@ main( int argc, char **argv )
 			host = strdup( optarg );
 			break;
 
+		case 'i':
+			/* ignored (!) by now */
+			break;
+
 		case 'p':		/* the servers port */
 			if ( lutil_atoi( &port, optarg ) != 0 ) {
 				usage( argv[0] );
@@ -111,6 +116,7 @@ main( int argc, char **argv )
 		case 'w':		/* the server managers password */
 			passwd.bv_val = strdup( optarg );
 			passwd.bv_len = strlen( optarg );
+			memset( optarg, '*', passwd.bv_len );
 			break;
 
 		case 'e':		/* entry to modify */

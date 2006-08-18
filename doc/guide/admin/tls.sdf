@@ -7,6 +7,7 @@ OpenLDAP clients and servers are capable of using the
 {{TERM[expand]TLS}} ({{TERM:TLS}}) framework to provide
 integrity and confidentiality protections and to support
 LDAP authentication using the {{TERM:SASL}} EXTERNAL mechanism. 
+TLS is defined in {{REF:RFC4346}}.
 
 H2: TLS Certificates
 
@@ -23,7 +24,7 @@ The DN of a server certificate must use the CN attribute
 to name the server, and the {{EX:CN}} must carry the server's
 fully qualified domain name. Additional alias names and wildcards
 may be present in the {{EX:subjectAltName}} certificate extension.
-More details on server certificate names are in {{REF:RFC2830}}.
+More details on server certificate names are in {{REF:RFC4513}}.
 
 H3: Client Certificates
 

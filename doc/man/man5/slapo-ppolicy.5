@@ -623,7 +623,7 @@ time "#" syntaxOID "#" length "#" data
 
 time=
 .RS 4
-generalizedTimeString as specified in section 6.14 of [RFC2252]
+GeneralizedTime as specified in section 3.3.13 of [RFC4517]
 .RE
 
 .P
@@ -631,13 +631,13 @@ syntaxOID = numericoid
 .RS 4
 This is the string representation of the dotted-decimal OID that
 defines the syntax used to store the password.  numericoid is
-described in section 4.1 of [RFC2252].
+described in section 1.4 of [RFC4512].
 .RE
 
-length = numericstring
+length = NumericString
 .RS 4
-The number of octets in the data.  numericstring is described in
-section 4.1 of [RFC2252].
+The number of octets in the data.  NumericString is described in
+section 3.3.23 of [RFC4517].
 .RE
 
 data =

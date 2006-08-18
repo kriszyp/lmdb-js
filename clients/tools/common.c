@@ -187,12 +187,12 @@ N_("  -C         chase referrals (anonymously)\n"),
 N_("  -d level   set LDAP debugging level to `level'\n"),
 N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
-N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
+N_("             [!]assert=<filter>     (a RFC 4515 Filter string)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
 #ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
 #if 0
                  /* non-advertized support for proxyDN */
-N_("             [!]proxydn=<dn>        (an RFC 2253 DN)\n")
+N_("             [!]proxydn=<dn>        (a RFC 4514 DN string)\n")
 #endif
 #endif
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -1079,8 +1079,7 @@ tool_bind( LDAP *ld )
 		{
 			/* simple bind */
 			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE, &passwd,
-				sctrlsp,
-				NULL, &msgid );
+				sctrlsp, NULL, &msgid );
 			if ( msgid == -1 ) {
 				tool_perror( "ldap_sasl_bind(SIMPLE)", rc,
 					NULL, NULL, NULL, NULL );

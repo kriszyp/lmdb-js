@@ -83,6 +83,7 @@ usage( char *name )
 		"-D <manager> "
 		"-w <passwd> "
 		"-d <datadir> "
+		"[-i <ignore>] "
 		"[-j <maxchild>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
@@ -115,6 +116,7 @@ main( int argc, char **argv )
 	int		friendly = 0;
 	int		chaserefs = 0;
 	int		noattrs = 0;
+	char		*ignore = NULL;
 	/* search */
 	char		*sfile = NULL;
 	char		*sreqs[MAXREQS];
@@ -170,10 +172,12 @@ main( int argc, char **argv )
 	char		bloops[] = "18446744073709551615UL";
 
 	char		*friendlyOpt = NULL;
+	int		pw_ask = 0;
+	char		*pw_file = NULL;
 
-	tester_init( "slapd-tester" );
+	tester_init( "slapd-tester", TESTER_TESTER );
 
-	while ( (i = getopt( argc, argv, "ACD:d:FH:h:j:l:L:P:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "ACD:d:FH:h:i:j:l:L:P:p:r:t:w:Wy:" )) != EOF ) {
 		switch( i ) {
 		case 'A':
 			noattrs++;
@@ -201,6 +205,10 @@ main( int argc, char **argv )
 
 		case 'h':		/* slapd host */
 			host = strdup( optarg );
+			break;
+
+		case 'i':
+			ignore = optarg;
 			break;
 
 		case 'j':		/* the number of parallel clients */
@@ -237,6 +245,15 @@ main( int argc, char **argv )
 
 		case 'w':		/* the managers passwd */
 			passwd = ArgDup( optarg );
+			memset( optarg, '*', strlen( optarg ) );
+			break;
+
+		case 'W':
+			pw_ask++;
+			break;
+
+		case 'y':
+			pw_file = optarg;
 			break;
 
 		default:
@@ -254,11 +271,9 @@ main( int argc, char **argv )
 #endif
 	/* get the file list */
 	if ( ( datadir = opendir( dirname )) == NULL ) {
-
 		fprintf( stderr, "%s: couldn't open data directory \"%s\".\n",
 					argv[0], dirname );
 		exit( EXIT_FAILURE );
-
 	}
 
 	/*  look for search, read, modrdn, and add/delete files */
@@ -287,6 +302,19 @@ main( int argc, char **argv )
 	}
 
 	closedir( datadir );
+
+	if ( pw_ask ) {
+		passwd = getpassphrase( _("Enter LDAP Password: ") );
+
+	} else if ( pw_file ) {
+		struct berval	pw;
+
+		if ( lutil_get_filed_password( pw_file, &pw ) ) {
+			exit( EXIT_FAILURE );
+		}
+
+		passwd = pw.bv_val;
+	}
 
 	/* look for search requests */
 	if ( sfile ) {
@@ -375,6 +403,10 @@ main( int argc, char **argv )
 	if ( noattrs ) {
 		sargs[sanum++] = "-A";
 	}
+	if ( ignore ) {
+		sargs[sanum++] = "-i";
+		sargs[sanum++] = ignore;
+	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
@@ -423,6 +455,10 @@ main( int argc, char **argv )
 	if ( noattrs ) {
 		rargs[ranum++] = "-A";
 	}
+	if ( ignore ) {
+		rargs[ranum++] = "-i";
+		rargs[ranum++] = ignore;
+	}
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
 
@@ -466,6 +502,10 @@ main( int argc, char **argv )
 	if ( chaserefs ) {
 		margs[manum++] = "-C";
 	}
+	if ( ignore ) {
+		margs[manum++] = "-i";
+		margs[manum++] = ignore;
+	}
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
 	margs[manum++] = NULL;
@@ -504,6 +544,10 @@ main( int argc, char **argv )
 	}
 	if ( chaserefs ) {
 		modargs[modanum++] = "-C";
+	}
+	if ( ignore ) {
+		modargs[modanum++] = "-i";
+		modargs[modanum++] = ignore;
 	}
 	modargs[modanum++] = "-e";
 	modargs[modanum++] = NULL;		/* will hold the modify entry */
@@ -546,6 +590,10 @@ main( int argc, char **argv )
 	if ( chaserefs ) {
 		aargs[aanum++] = "-C";
 	}
+	if ( ignore ) {
+		aargs[aanum++] = "-i";
+		aargs[aanum++] = ignore;
+	}
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
 	aargs[aanum++] = NULL;
@@ -583,6 +631,10 @@ main( int argc, char **argv )
 	}
 	if ( chaserefs ) {
 		bargs[banum++] = "-C";
+	}
+	if ( ignore ) {
+		bargs[banum++] = "-i";
+		bargs[banum++] = ignore;
 	}
 	bargs[banum++] = "-D";
 	bargs[banum++] = NULL;
@@ -641,16 +693,24 @@ main( int argc, char **argv )
 		if ( DOREQ( bnum, j ) ) {
 			int	jj = j % bnum;
 
-			bargs[banum - 4] = breqs[jj];
-			bargs[banum - 2] = bcreds[jj];
 			if ( battrs[jj] != NULL ) {
-				bargs[banum - 1] = "-a";
-				bargs[banum] = battrs[jj];
+				bargs[banum - 4] = manager ? manager : "";
+				bargs[banum - 2] = passwd ? passwd : "";
 
+				bargs[banum - 1] = "-b";
+				bargs[banum] = breqs[jj];
+				bargs[banum + 1] = "-f";
+				bargs[banum + 2] = bcreds[jj];
+				bargs[banum + 3] = "-a";
+				bargs[banum + 4] = battrs[jj];
 			} else {
-				sargs[sanum - 1] = NULL;
+				bargs[banum - 4] = breqs[jj];
+				bargs[banum - 2] = bcreds[jj];
+				bargs[banum - 1] = NULL;
 			}
+
 			fork_child( bcmd, bargs );
+			bargs[banum - 1] = NULL;
 		}
 	}
 

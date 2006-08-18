@@ -42,6 +42,8 @@ static struct exop {
 static int
 ldap_back_extended_one( Operation *op, SlapReply *rs, BI_op_extended exop )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	LDAPControl	**oldctrls = NULL;
 	int		rc;
@@ -56,7 +58,9 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, BI_op_extended exop )
 	}
 
 	oldctrls = op->o_ctrls;
-	if ( ldap_back_proxy_authz_ctrl( lc, op, rs, &op->o_ctrls ) ) {
+	if ( ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, rs, &op->o_ctrls ) )
+	{
 		op->o_ctrls = oldctrls;
 		send_ldap_extended( op, rs );
 		rs->sr_text = NULL;
@@ -106,6 +110,8 @@ ldap_back_exop_passwd(
 		Operation	*op,
 		SlapReply	*rs )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	req_pwdexop_s	*qpw = &op->oq_pwdexop;
 	LDAPMessage	*res;
@@ -181,10 +187,18 @@ retry:
 				goto retry;
 			}
 		}
+
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			ldap_back_quarantine( op, rs );
+		}
+
 		if ( text ) rs->sr_text = text;
 		send_ldap_extended( op, rs );
 		/* otherwise frontend resends result */
 		rc = rs->sr_err = SLAPD_ABANDON;
+
+	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs );
 	}
 
 	/* these have to be freed anyway... */
@@ -210,6 +224,8 @@ ldap_back_exop_generic(
 	Operation	*op,
 	SlapReply	*rs )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	LDAPMessage	*res;
 	ber_int_t	msgid;
@@ -241,7 +257,7 @@ retry:
 			 */
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					(char **)&rs->sr_matched,
-					text,
+					&text,
 					NULL, NULL, 0 );
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -267,10 +283,18 @@ retry:
 				goto retry;
 			}
 		}
+
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			ldap_back_quarantine( op, rs );
+		}
+
 		if ( text ) rs->sr_text = text;
 		send_ldap_extended( op, rs );
 		/* otherwise frontend resends result */
 		rc = rs->sr_err = SLAPD_ABANDON;
+
+	} else if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs );
 	}
 
 	/* these have to be freed anyway... */

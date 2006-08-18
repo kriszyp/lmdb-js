@@ -58,10 +58,11 @@
 static int		sc_chainingBehavior;
 #endif /*  LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
-#define	LDAP_CH_NONE			((void *)(0))
-#define	LDAP_CH_RES			((void *)(1))
-#define LDAP_CH_ERR			((void *)(2))
-
+typedef enum {
+	LDAP_CH_NONE = 0,
+	LDAP_CH_RES,
+	LDAP_CH_ERR
+} ldap_chain_status_t;
 static BackendInfo	*lback;
 
 typedef struct ldap_chain_t {
@@ -87,13 +88,19 @@ typedef struct ldap_chain_t {
 	/* tree of configured[/generated?] "uri" info */
 	ldap_avl_info_t		lc_lai;
 
+	/* max depth in nested referrals chaining */
+	int			lc_max_depth;
+
 	unsigned		lc_flags;
 #define LDAP_CHAIN_F_NONE		(0x00U)
 #define	LDAP_CHAIN_F_CHAINING		(0x01U)
-#define	LDAP_CHAIN_F_CACHE_URI		(0x10U)
+#define	LDAP_CHAIN_F_CACHE_URI		(0x02U)
+#define	LDAP_CHAIN_F_RETURN_ERR		(0x04U)
 
-#define	LDAP_CHAIN_CHAINING( lc )	( ( (lc)->lc_flags & LDAP_CHAIN_F_CHAINING ) == LDAP_CHAIN_F_CHAINING )
-#define	LDAP_CHAIN_CACHE_URI( lc )	( ( (lc)->lc_flags & LDAP_CHAIN_F_CACHE_URI ) == LDAP_CHAIN_F_CACHE_URI )
+#define LDAP_CHAIN_ISSET(lc, f)		( ( (lc)->lc_flags & (f) ) == (f) )
+#define	LDAP_CHAIN_CHAINING( lc )	LDAP_CHAIN_ISSET( (lc), LDAP_CHAIN_F_CHAINING )
+#define	LDAP_CHAIN_CACHE_URI( lc )	LDAP_CHAIN_ISSET( (lc), LDAP_CHAIN_F_CACHE_URI )
+#define	LDAP_CHAIN_RETURN_ERR( lc )	LDAP_CHAIN_ISSET( (lc), LDAP_CHAIN_F_RETURN_ERR )
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	LDAPControl		lc_chaining_ctrl;
@@ -106,6 +113,28 @@ static int ldap_chain_db_init_one( BackendDB *be );
 #define	ldap_chain_db_open_one(be)	(lback)->bi_db_open( (be) )
 #define	ldap_chain_db_close_one(be)	(0)
 #define	ldap_chain_db_destroy_one(be)	(lback)->bi_db_destroy( (be) )
+
+typedef struct ldap_chain_cb_t {
+	ldap_chain_status_t	lb_status;
+	ldap_chain_t		*lb_lc;
+	BI_op_func		*lb_op_f;
+	int			lb_depth;
+} ldap_chain_cb_t;
+
+static int
+ldap_chain_op(
+	Operation	*op,
+	SlapReply	*rs,
+	BI_op_func	*op_f,
+	BerVarray	ref,
+	int		depth );
+
+static int
+ldap_chain_search(
+	Operation	*op,
+	SlapReply	*rs,
+	BerVarray	ref,
+	int		depth );
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static int
@@ -225,10 +254,12 @@ ldap_chain_uri_dup( void *c1, void *c2 )
 static int
 ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 {
+	ldap_chain_cb_t	*lb = (ldap_chain_cb_t *)op->o_callback->sc_private;
+
 	assert( op->o_tag == LDAP_REQ_SEARCH );
 
 	/* if in error, don't proceed any further */
-	if ( op->o_callback->sc_private == LDAP_CH_ERR ) {
+	if ( lb->lb_status == LDAP_CH_ERR ) {
 		return 0;
 	}
 
@@ -260,12 +291,15 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_type == REP_SEARCHREF ) {
 		/* if we get it here, it means the library was unable
 		 * to chase the referral... */
+		if ( lb->lb_depth < lb->lb_lc->lc_max_depth && rs->sr_ref != NULL ) {
+			rs->sr_err = ldap_chain_search( op, rs, rs->sr_ref, lb->lb_depth );
+		}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-		if ( get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
+		if ( rs->sr_err == LDAP_REFERRAL && get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
 			switch ( get_continuationBehavior( op ) ) {
 			case SLAP_CH_RESOLVE_CHAINING_REQUIRED:
-				op->o_callback->sc_private = LDAP_CH_ERR;
+				lb->lb_status = LDAP_CH_ERR;
 				return rs->sr_err = LDAP_X_CANNOT_CHAIN;
 
 			default:
@@ -276,8 +310,15 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 
 	} else if ( rs->sr_type == REP_RESULT ) {
+		if ( rs->sr_err == LDAP_REFERRAL
+			&& lb->lb_depth < lb->lb_lc->lc_max_depth
+			&& rs->sr_ref != NULL )
+		{
+			rs->sr_err = ldap_chain_op( op, rs, lb->lb_op_f, rs->sr_ref, lb->lb_depth );
+		}
+
 		/* back-ldap tried to send result */
-		op->o_callback->sc_private = LDAP_CH_RES;
+		lb->lb_status = LDAP_CH_RES;
 	}
 
 	return 0;
@@ -290,12 +331,15 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 static int
 ldap_chain_cb_response( Operation *op, SlapReply *rs )
 {
+	ldap_chain_cb_t	*lb = (ldap_chain_cb_t *)op->o_callback->sc_private;
+
 	/* if in error, don't proceed any further */
-	if ( op->o_callback->sc_private == LDAP_CH_ERR ) {
+	if ( lb->lb_status == LDAP_CH_ERR ) {
 		return 0;
 	}
 
 	if ( rs->sr_type == REP_RESULT ) {
+retry:;
 		switch ( rs->sr_err ) {
 		case LDAP_COMPARE_TRUE:
 		case LDAP_COMPARE_FALSE:
@@ -305,15 +349,20 @@ ldap_chain_cb_response( Operation *op, SlapReply *rs )
 			/* fallthru */
 
 		case LDAP_SUCCESS:
-			op->o_callback->sc_private = LDAP_CH_RES;
+			lb->lb_status = LDAP_CH_RES;
 			break;
 
 		case LDAP_REFERRAL:
+			if ( lb->lb_depth < lb->lb_lc->lc_max_depth && rs->sr_ref != NULL ) {
+				rs->sr_err = ldap_chain_op( op, rs, lb->lb_op_f, rs->sr_ref, lb->lb_depth );
+				goto retry;
+			}
+
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			if ( get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
 				switch ( get_continuationBehavior( op ) ) {
 				case SLAP_CH_RESOLVE_CHAINING_REQUIRED:
-					op->o_callback->sc_private = LDAP_CH_ERR;
+					lb->lb_status = LDAP_CH_ERR;
 					return rs->sr_err = LDAP_X_CANNOT_CHAIN;
 
 				default:
@@ -341,15 +390,18 @@ ldap_chain_op(
 	Operation	*op,
 	SlapReply	*rs,
 	BI_op_func	*op_f,
-	BerVarray	ref )
+	BerVarray	ref,
+	int		depth )
 {
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
+	ldap_chain_cb_t	*lb = (ldap_chain_cb_t *)op->o_callback->sc_private;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
 	ldapinfo_t	li = { 0 }, *lip = NULL;
 	struct berval	bvuri[ 2 ] = { { 0 } };
 
 	/* NOTE: returned if ref is empty... */
-	int		rc = LDAP_OTHER;
+	int		rc = LDAP_OTHER,
+			first_rc;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	LDAPControl	**ctrls = NULL;
@@ -358,6 +410,7 @@ ldap_chain_op(
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 	li.li_bvuri = bvuri;
+	first_rc = -1;
 	for ( ; !BER_BVISNULL( ref ); ref++ ) {
 		LDAPURLDesc	*srv;
 		char		*save_dn;
@@ -446,7 +499,15 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 			}
 		}
 
+		lb->lb_op_f = op_f;
+		lb->lb_depth = depth + 1;
+
 		rc = op_f( op, rs );
+
+		/* note the first error */
+		if ( first_rc == -1 ) {
+			first_rc = rc;
+		}
 
 cleanup:;
 		ldap_memfree( li.li_uri );
@@ -468,6 +529,181 @@ cleanup:;
 	(void)chaining_control_remove( op, &ctrls );
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+	if ( rc != LDAP_SUCCESS && first_rc > 0 ) {
+		rc = first_rc;
+	}
+
+	return rc;
+}
+
+static int
+ldap_chain_search(
+	Operation	*op,
+	SlapReply	*rs,
+	BerVarray	ref,
+	int		depth )
+
+{
+	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
+	ldap_chain_cb_t	*lb = (ldap_chain_cb_t *)op->o_callback->sc_private;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	ldapinfo_t	li = { 0 }, *lip = NULL;
+	struct berval	bvuri[ 2 ] = { { 0 } };
+
+	struct berval	odn = op->o_req_dn,
+			ondn = op->o_req_ndn;
+	slap_response	*save_response = op->o_callback->sc_response;
+
+	int		rc = LDAP_OTHER,
+			first_rc = -1;
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	LDAPControl	**ctrls = NULL;
+	
+	(void)chaining_control_add( lc, op, &ctrls );
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+	rs->sr_type = REP_SEARCH;
+
+	op->o_callback->sc_response = ldap_chain_cb_search_response;
+
+	/* if we parse the URI then by no means 
+	 * we can cache stuff or reuse connections, 
+	 * because in back-ldap there's no caching
+	 * based on the URI value, which is supposed
+	 * to be set once for all (correct?) */
+	li.li_bvuri = bvuri;
+	for ( ; !BER_BVISNULL( &ref[0] ); ref++ ) {
+		LDAPURLDesc	*srv;
+		char		*save_dn;
+		int		temporary = 0;
+
+		/* parse reference and use
+		 * proto://[host][:port]/ only */
+		rc = ldap_url_parse_ext( ref[0].bv_val, &srv, LDAP_PVT_URL_PARSE_NONE );
+		if ( rc != LDAP_URL_SUCCESS ) {
+			/* try next */
+			rs->sr_err = LDAP_OTHER;
+			continue;
+		}
+
+		/* remove DN essentially because later on 
+		 * ldap_initialize() will parse the URL 
+		 * as a comma-separated URL list */
+		save_dn = srv->lud_dn;
+		srv->lud_dn = "";
+		srv->lud_scope = LDAP_SCOPE_DEFAULT;
+		li.li_uri = ldap_url_desc2str( srv );
+		if ( li.li_uri != NULL ) {
+			ber_str2bv_x( save_dn, 0, 1, &op->o_req_dn,
+					op->o_tmpmemctx );
+			ber_dupbv_x( &op->o_req_ndn, &op->o_req_dn,
+					op->o_tmpmemctx );
+		}
+
+		srv->lud_dn = save_dn;
+		ldap_free_urldesc( srv );
+
+		if ( li.li_uri == NULL ) {
+			/* try next */
+			rs->sr_err = LDAP_OTHER;
+			continue;
+		}
+
+		ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
+
+		/* Searches for a ldapinfo in the avl tree */
+		ldap_pvt_thread_mutex_lock( &lc->lc_lai.lai_mutex );
+		lip = (ldapinfo_t *)avl_find( lc->lc_lai.lai_tree, 
+			(caddr_t)&li, ldap_chain_uri_cmp );
+		ldap_pvt_thread_mutex_unlock( &lc->lc_lai.lai_mutex );
+
+		if ( lip != NULL ) {
+			op->o_bd->be_private = (void *)lip;
+
+		} else {
+			/* if none is found, create a temporary... */
+			rc = ldap_chain_db_init_one( op->o_bd );
+			if ( rc != 0 ) {
+				goto cleanup;
+			}
+			lip = (ldapinfo_t *)op->o_bd->be_private;
+			lip->li_uri = li.li_uri;
+			lip->li_bvuri = bvuri;
+			rc = ldap_chain_db_open_one( op->o_bd );
+			if ( rc != 0 ) {
+				(void)ldap_chain_db_destroy_one( op->o_bd );
+				goto cleanup;
+			}
+
+			if ( LDAP_CHAIN_CACHE_URI( lc ) ) {
+				ldap_pvt_thread_mutex_lock( &lc->lc_lai.lai_mutex );
+				if ( avl_insert( &lc->lc_lai.lai_tree,
+					(caddr_t)lip, ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
+				{
+					/* someone just inserted another;
+					 * don't bother, use this and then
+					 * just free it */
+					temporary = 1;
+				}
+				ldap_pvt_thread_mutex_unlock( &lc->lc_lai.lai_mutex );
+
+			} else {
+				temporary = 1;
+			}
+		}
+
+		lb->lb_op_f = lback->bi_op_search;
+		lb->lb_depth = depth + 1;
+
+		/* FIXME: should we also copy filter and scope?
+		 * according to RFC3296, no */
+		rc = lback->bi_op_search( op, rs );
+		if ( first_rc == -1 ) {
+			first_rc = rc;
+		}
+
+cleanup:;
+		ldap_memfree( li.li_uri );
+		li.li_uri = NULL;
+
+		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+
+		if ( temporary ) {
+			lip->li_uri = NULL;
+			lip->li_bvuri = NULL;
+			(void)ldap_chain_db_close_one( op->o_bd );
+			(void)ldap_chain_db_destroy_one( op->o_bd );
+		}
+		
+		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
+			break;
+		}
+
+		rc = rs->sr_err;
+	}
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	(void)chaining_control_remove( op, &ctrls );
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+	op->o_req_dn = odn;
+	op->o_req_ndn = ondn;
+	op->o_callback->sc_response = save_response;
+	rs->sr_type = REP_SEARCHREF;
+	rs->sr_entry = NULL;
+
+	if ( rc != LDAP_SUCCESS ) {
+		/* couldn't chase any of the referrals */
+		if ( first_rc != -1 ) {
+			rc = first_rc;
+
+		} else {
+			rc = SLAP_CB_CONTINUE;
+		}
+	}
+
 	return rc;
 }
 
@@ -475,7 +711,9 @@ static int
 ldap_chain_response( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
 	void		*private = op->o_bd->be_private;
+	ldap_chain_cb_t	lb = { 0 };
 	slap_callback	*sc = op->o_callback,
 			sc2 = { 0 };
 	int		rc = 0;
@@ -536,6 +774,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	rs->sr_ref = NULL;
 
 	/* we need this to know if back-ldap returned any result */
+	lb.lb_lc = lc;
+	sc2.sc_private = &lb;
 	sc2.sc_response = ldap_chain_cb_response;
 	op->o_callback = &sc2;
 
@@ -556,30 +796,30 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		/* FIXME: can we really get a referral for binds? */
 		op->o_req_ndn = slap_empty_bv;
 		op->o_conn = NULL;
-		rc = ldap_chain_op( op, rs, lback->bi_op_bind, ref );
+		rc = ldap_chain_op( op, rs, lback->bi_op_bind, ref, 0 );
 		op->o_req_ndn = rndn;
 		op->o_conn = conn;
 		}
 		break;
 
 	case LDAP_REQ_ADD:
-		rc = ldap_chain_op( op, rs, lback->bi_op_add, ref );
+		rc = ldap_chain_op( op, rs, lback->bi_op_add, ref, 0 );
 		break;
 
 	case LDAP_REQ_DELETE:
-		rc = ldap_chain_op( op, rs, lback->bi_op_delete, ref );
+		rc = ldap_chain_op( op, rs, lback->bi_op_delete, ref, 0 );
 		break;
 
 	case LDAP_REQ_MODRDN:
-		rc = ldap_chain_op( op, rs, lback->bi_op_modrdn, ref );
+		rc = ldap_chain_op( op, rs, lback->bi_op_modrdn, ref, 0 );
 	    	break;
 
 	case LDAP_REQ_MODIFY:
-		rc = ldap_chain_op( op, rs, lback->bi_op_modify, ref );
+		rc = ldap_chain_op( op, rs, lback->bi_op_modify, ref, 0 );
 		break;
 
 	case LDAP_REQ_COMPARE:
-		rc = ldap_chain_op( op, rs, lback->bi_op_compare, ref );
+		rc = ldap_chain_op( op, rs, lback->bi_op_compare, ref, 0 );
 		if ( rs->sr_err == LDAP_COMPARE_TRUE || rs->sr_err == LDAP_COMPARE_FALSE ) {
 			rc = LDAP_SUCCESS;
 		}
@@ -587,150 +827,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	case LDAP_REQ_SEARCH:
 		if ( rs->sr_type == REP_SEARCHREF ) {
-			ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-			ldapinfo_t	li = { 0 }, *lip = NULL;
-			struct berval	bvuri[ 2 ] = { { 0 } };
-
-			struct berval	*curr = ref,
-					odn = op->o_req_dn,
-					ondn = op->o_req_ndn;
-
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-			LDAPControl	**ctrls = NULL;
-	
-			(void)chaining_control_add( lc, op, &ctrls );
-#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-
-			rs->sr_type = REP_SEARCH;
-
-			sc2.sc_response = ldap_chain_cb_search_response;
-
-			/* if we parse the URI then by no means 
-			 * we can cache stuff or reuse connections, 
-			 * because in back-ldap there's no caching
-			 * based on the URI value, which is supposed
-			 * to be set once for all (correct?) */
-			li.li_bvuri = bvuri;
-			for ( ; !BER_BVISNULL( &curr[0] ); curr++ ) {
-				LDAPURLDesc	*srv;
-				char		*save_dn;
-				int		temporary = 0;
-
-				/* parse reference and use
-				 * proto://[host][:port]/ only */
-				rc = ldap_url_parse_ext( curr[0].bv_val, &srv, LDAP_PVT_URL_PARSE_NONE );
-				if ( rc != LDAP_URL_SUCCESS ) {
-					/* try next */
-					rs->sr_err = LDAP_OTHER;
-					continue;
-				}
-
-				/* remove DN essentially because later on 
-				 * ldap_initialize() will parse the URL 
-				 * as a comma-separated URL list */
-				save_dn = srv->lud_dn;
-				srv->lud_dn = "";
-				srv->lud_scope = LDAP_SCOPE_DEFAULT;
-				li.li_uri = ldap_url_desc2str( srv );
-				if ( li.li_uri != NULL ) {
-					ber_str2bv_x( save_dn, 0, 1, &op->o_req_dn,
-							op->o_tmpmemctx );
-					ber_dupbv_x( &op->o_req_ndn, &op->o_req_dn,
-							op->o_tmpmemctx );
-				}
-
-				srv->lud_dn = save_dn;
-				ldap_free_urldesc( srv );
-
-				if ( li.li_uri == NULL ) {
-					/* try next */
-					rs->sr_err = LDAP_OTHER;
-					continue;
-				}
-
-				ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
-
-				/* Searches for a ldapinfo in the avl tree */
-				ldap_pvt_thread_mutex_lock( &lc->lc_lai.lai_mutex );
-				lip = (ldapinfo_t *)avl_find( lc->lc_lai.lai_tree, 
-					(caddr_t)&li, ldap_chain_uri_cmp );
-				ldap_pvt_thread_mutex_unlock( &lc->lc_lai.lai_mutex );
-
-				if ( lip != NULL ) {
-					op->o_bd->be_private = (void *)lip;
-
-				} else {
-					/* if none is found, create a temporary... */
-					rc = ldap_chain_db_init_one( op->o_bd );
-					if ( rc != 0 ) {
-						goto cleanup;
-					}
-					lip = (ldapinfo_t *)op->o_bd->be_private;
-					lip->li_uri = li.li_uri;
-					lip->li_bvuri = bvuri;
-					rc = ldap_chain_db_open_one( op->o_bd );
-					if ( rc != 0 ) {
-						(void)ldap_chain_db_destroy_one( op->o_bd );
-						goto cleanup;
-					}
-
-					if ( LDAP_CHAIN_CACHE_URI( lc ) ) {
-						ldap_pvt_thread_mutex_lock( &lc->lc_lai.lai_mutex );
-						if ( avl_insert( &lc->lc_lai.lai_tree,
-							(caddr_t)lip, ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
-						{
-							/* someone just inserted another;
-							 * don't bother, use this and then
-							 * just free it */
-							temporary = 1;
-						}
-						ldap_pvt_thread_mutex_unlock( &lc->lc_lai.lai_mutex );
-		
-					} else {
-						temporary = 1;
-					}
-				}
-
-				/* FIXME: should we also copy filter and scope?
-				 * according to RFC3296, no */
-				rc = lback->bi_op_search( op, rs );
-
-cleanup:;
-				ldap_memfree( li.li_uri );
-				li.li_uri = NULL;
-
-				op->o_tmpfree( op->o_req_dn.bv_val,
-						op->o_tmpmemctx );
-				op->o_tmpfree( op->o_req_ndn.bv_val,
-						op->o_tmpmemctx );
-
-				if ( temporary ) {
-					lip->li_uri = NULL;
-					lip->li_bvuri = NULL;
-					(void)ldap_chain_db_close_one( op->o_bd );
-					(void)ldap_chain_db_destroy_one( op->o_bd );
-				}
-		
-				if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
-					break;
-				}
-
-				rc = rs->sr_err;
-			}
-
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-			(void)chaining_control_remove( op, &ctrls );
-#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-
-			op->o_req_dn = odn;
-			op->o_req_ndn = ondn;
-			rs->sr_type = REP_SEARCHREF;
-			rs->sr_entry = NULL;
-
-			if ( rc != LDAP_SUCCESS ) {
-				/* couldn't chase any of the referrals */
-				rc = SLAP_CB_CONTINUE;
-			}
+			rc = ldap_chain_search( op, rs, ref, 0 );
 			
 		} else {
 			/* we might get here before any database actually 
@@ -738,7 +835,7 @@ cleanup:;
 			 * to check limits, to make sure safe defaults
 			 * are in place */
 			if ( op->ors_limit != NULL || limits_check( op, rs ) == 0 ) {
-				rc = ldap_chain_op( op, rs, lback->bi_op_search, ref );
+				rc = ldap_chain_op( op, rs, lback->bi_op_search, ref, 0 );
 
 			} else {
 				rc = SLAP_CB_CONTINUE;
@@ -747,7 +844,7 @@ cleanup:;
 	    	break;
 
 	case LDAP_REQ_EXTENDED:
-		rc = ldap_chain_op( op, rs, lback->bi_extended, ref );
+		rc = ldap_chain_op( op, rs, lback->bi_extended, ref, 0 );
 		/* FIXME: ldap_back_extended() by design 
 		 * doesn't send result; frontend is expected
 		 * to send it... */
@@ -756,7 +853,7 @@ cleanup:;
 			send_ldap_extended( op, rs );
 			rc = LDAP_SUCCESS;
 		}
-		sc2.sc_private = LDAP_CH_RES;
+		lb.lb_status = LDAP_CH_RES;
 		break;
 
 	default:
@@ -771,7 +868,7 @@ cleanup:;
 	case LDAP_SUCCESS:
 	case LDAP_REFERRAL:
 		/* slapd-ldap sent response */
-		if ( !op->o_abandon && sc2.sc_private != LDAP_CH_RES ) {
+		if ( !op->o_abandon && lb.lb_status != LDAP_CH_RES ) {
 			/* FIXME: should we send response? */
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_chain_response: "
@@ -782,7 +879,7 @@ cleanup:;
 
 	default:
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-		if ( sc2.sc_private == LDAP_CH_ERR && rs->sr_err == LDAP_X_CANNOT_CHAIN ) {
+		if ( lb.lb_status == LDAP_CH_ERR && rs->sr_err == LDAP_X_CANNOT_CHAIN ) {
 			goto cannot_chain;
 		}
 
@@ -796,18 +893,24 @@ cannot_chain:;
 
 		default:
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-			rc = SLAP_CB_CONTINUE;
-			rs->sr_err = sr_err;
-			rs->sr_type = sr_type;
-			rs->sr_matched = matched;
-			rs->sr_ref = ref;
+			if ( LDAP_CHAIN_RETURN_ERR( lc ) ) {
+				rs->sr_err = rc;
+				rs->sr_type = sr_type;
+
+			} else {
+				rc = SLAP_CB_CONTINUE;
+				rs->sr_err = sr_err;
+				rs->sr_type = sr_type;
+				rs->sr_matched = matched;
+				rs->sr_ref = ref;
+			}
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			break;
 		}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	}
 
-	if ( sc2.sc_private == LDAP_CH_NONE && rc != SLAPD_ABANDON ) {
+	if ( lb.lb_status == LDAP_CH_NONE && rc != SLAPD_ABANDON ) {
 		op->o_callback = NULL;
 		rc = rs->sr_err = slap_map_api2result( rs );
 		send_ldap_result( op, rs );
@@ -858,7 +961,9 @@ str2chain( const char *s )
 
 enum {
 	CH_CHAINING = 1,
-	CH_CACHE_URI = 2,
+	CH_CACHE_URI,
+	CH_MAX_DEPTH,
+	CH_RETURN_ERR,
 
 	CH_LAST
 };
@@ -877,8 +982,20 @@ static ConfigTable chaincfg[] = {
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	{ "chain-cache-uri", "TRUE/FALSE",
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|CH_CACHE_URI, chain_cf_gen,
-		"( OLcfgOvAt:3.2 NAME 'olcCacheURI' "
+		"( OLcfgOvAt:3.2 NAME 'olcChainCacheURI' "
 			"DESC 'Enables caching of URIs not present in configuration' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "chain-max-depth", "args",
+		2, 2, 0, ARG_MAGIC|ARG_INT|CH_MAX_DEPTH, chain_cf_gen,
+		"( OLcfgOvAt:3.3 NAME 'olcChainMaxReferralDepth' "
+			"DESC 'max referral depth' "
+			"SYNTAX OMsInteger "
+			"EQUALITY integerMatch "
+			"SINGLE-VALUE )", NULL, NULL },
+	{ "chain-return-error", "TRUE/FALSE",
+		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|CH_RETURN_ERR, chain_cf_gen,
+		"( OLcfgOvAt:3.4 NAME 'olcChainReturnError' "
+			"DESC 'Errors are returned instead of the original referral' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -892,7 +1009,9 @@ static ConfigOCs chainocs[] = {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			"olcChainingBehavior $ "
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-			"olcCacheURI "
+			"olcChainCacheURI $ "
+			"olcChainMaxReferralDepth $ "
+			"olcChainReturnError "
 			") )",
 		Cft_Overlay, chaincfg, NULL, chain_cfadd },
 	{ "( OLcfgOvOc:3.2 "
@@ -1110,6 +1229,14 @@ chain_cf_gen( ConfigArgs *c )
 			c->value_int = LDAP_CHAIN_CACHE_URI( lc );
 			break;
 
+		case CH_MAX_DEPTH:
+			c->value_int = lc->lc_max_depth;
+			break;
+
+		case CH_RETURN_ERR:
+			c->value_int = LDAP_CHAIN_RETURN_ERR( lc );
+			break;
+
 		default:
 			assert( 0 );
 			rc = 1;
@@ -1123,6 +1250,14 @@ chain_cf_gen( ConfigArgs *c )
 
 		case CH_CACHE_URI:
 			lc->lc_flags &= ~LDAP_CHAIN_F_CACHE_URI;
+			break;
+
+		case CH_MAX_DEPTH:
+			c->value_int = 0;
+			break;
+
+		case CH_RETURN_ERR:
+			lc->lc_flags &= ~LDAP_CHAIN_F_RETURN_ERR;
 			break;
 
 		default:
@@ -1257,6 +1392,26 @@ chain_cf_gen( ConfigArgs *c )
 		}
 		break;
 
+	case CH_MAX_DEPTH:
+		if ( c->value_int < 0 ) {
+			snprintf( c->msg, sizeof( c->msg ),
+				"<%s> invalid max referral depth %d",
+				c->argv[0], c->value_int );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+				c->log, c->msg, 0 );
+			rc = 1;
+			break;
+		}
+		lc->lc_max_depth = c->value_int;
+
+	case CH_RETURN_ERR:
+		if ( c->value_int ) {
+			lc->lc_flags |= LDAP_CHAIN_F_RETURN_ERR;
+		} else {
+			lc->lc_flags &= ~LDAP_CHAIN_F_RETURN_ERR;
+		}
+		break;
+
 	default:
 		assert( 0 );
 		return 1;
@@ -1284,6 +1439,7 @@ ldap_chain_db_init(
 		return 1;
 	}
 	memset( lc, 0, sizeof( ldap_chain_t ) );
+	lc->lc_max_depth = 1;
 	ldap_pvt_thread_mutex_init( &lc->lc_lai.lai_mutex );
 
 	on->on_bi.bi_private = (void *)lc;

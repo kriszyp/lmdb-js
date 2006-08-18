@@ -69,7 +69,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@PORT4@;${PORT4};"			\
 	-e "s;@PORT5@;${PORT5};"			\
 	-e "s;@PORT6@;${PORT6};"			\
-	-e "s/@CONFIGPW@/${CONFIGPW}/"		\
 	-e "s/@SASL_MECH@/${SASL_MECH}/"		\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"	\

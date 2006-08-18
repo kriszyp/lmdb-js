@@ -52,10 +52,11 @@ H2: What is LDAP?
 it is a lightweight protocol for accessing directory services,
 specifically {{TERM:X.500}}-based directory services.  LDAP runs
 over {{TERM:TCP}}/{{TERM:IP}} or other connection oriented transfer
-services.  The nitty-gritty details of LDAP are defined in
-{{REF:RFC2251}} "The Lightweight Directory Access Protocol (v3)"
-and other documents comprising the technical specification
-{{REF:RFC3377}}.  This section gives an overview of LDAP from a
+services.  LDAP is an {{ORG:IETF}} Standard Track protocol and is
+specified as detailed in "Lightweight Directory Access Protocol
+(LDAP) Technical Specification Road Map" {{REF:RFC4510}}.
+
+This section gives an overview of LDAP from a
 user's perspective.
 
 {{What kind of information can be stored in the directory?}} The
@@ -107,8 +108,8 @@ concatenating the names of its ancestor entries. For example, the
 entry for Barbara Jensen in the Internet naming example above has
 an RDN of {{EX:uid=babs}} and a DN of
 {{EX:uid=babs,ou=People,dc=example,dc=com}}. The full DN format
-is described in {{REF:RFC2253}}, "Lightweight Directory Access
-Protocol (v3):  UTF-8 String Representation of Distinguished Names."
+is described in {{REF:RFC4514}}, "LDAP: String Representation of
+Distinguished Names."
 
 {{How is the information accessed?}} LDAP defines operations for
 interrogating and updating the directory.  Operations are provided

@@ -134,7 +134,6 @@ slap_access_allowed(
 	slap_access_t			access_level;
 	const char			*attr;
 	regmatch_t			matches[MAXREMATCHES];
-	int				st_same_attr = 0;
 
 	assert( op != NULL );
 	assert( e != NULL );
@@ -198,24 +197,17 @@ slap_access_allowed(
 	ret = 0;
 	control = ACL_BREAK;
 
-	if ( st_same_attr ) {
-		assert( state->as_vd_acl != NULL );
-
+	if ( state && state->as_vd_ad == desc ) {
 		a = state->as_vd_acl;
 		count = state->as_vd_acl_count;
-		if ( !ACL_IS_INVALID( state->as_vd_acl_mask ) ) {
-			mask = state->as_vd_acl_mask;
-			AC_MEMCPY( matches, state->as_vd_acl_matches, sizeof(matches) );
-			goto vd_access;
-		}
 
 	} else {
 		if ( state ) state->as_vi_acl = NULL;
 		a = NULL;
-		ACL_PRIV_ASSIGN( mask, *maskp );
 		count = 0;
-		memset( matches, '\0', sizeof( matches ) );
 	}
+	ACL_PRIV_ASSIGN( mask, *maskp );
+	memset( matches, '\0', sizeof( matches ) );
 
 	while ( ( a = slap_acl_get( a, &count, op, e, desc, val,
 		MAXREMATCHES, matches, state ) ) != NULL )
@@ -340,7 +332,6 @@ access_allowed_mask(
 	slap_mask_t			mask;
 	slap_access_t			access_level;
 	const char			*attr;
-	int				st_same_attr = 0;
 	static AccessControlState	state_init = ACL_STATE_INIT;
 
 	assert( e != NULL );
@@ -377,17 +368,10 @@ access_allowed_mask(
 			{
 				return state->as_result;
 
-			} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
-				val != NULL && state->as_vd_acl == NULL )
-			{
-				return state->as_result;
 			}
-			st_same_attr = 1;
 		} else {
 			*state = state_init;
 		}
-
-		state->as_vd_ad = desc;
 	}
 
 	Debug( LDAP_DEBUG_ACL,
@@ -403,14 +387,12 @@ access_allowed_mask(
 		op->o_bd = LDAP_STAILQ_FIRST( &backendDB );
 		be_null = 1;
 
-#ifdef LDAP_DEVEL
-		/*
-		 * FIXME: experimental; use first backend rules
-		 * iff there is no global_acl (ITS#3100) */
+		/* FIXME: experimental; use first backend rules
+		 * iff there is no global_acl (ITS#3100)
+		 */
 		if ( frontendDB->be_acl != NULL ) {
 			op->o_bd = frontendDB;
 		}
-#endif /* LDAP_DEVEL */
 	}
 	assert( op->o_bd != NULL );
 
@@ -455,6 +437,7 @@ done:
 			state->as_result = ret;
 		}
 		state->as_recorded |= ACL_STATE_RECORDED;
+		state->as_vd_ad = desc;
 	}
 	if ( be_null ) op->o_bd = NULL;
 	if ( maskp ) ACL_PRIV_ASSIGN( *maskp, mask );
@@ -509,7 +492,7 @@ slap_acl_get(
 
 	dnlen = e->e_nname.bv_len;
 
-	for ( ; a != NULL; a = a->acl_next ) {
+	for ( ; a != NULL; prev = a, a = a->acl_next ) {
 		(*count) ++;
 
 		if ( a->acl_dn_pat.bv_len || ( a->acl_dn_style != ACL_STYLE_REGEX )) {
@@ -580,11 +563,8 @@ slap_acl_get(
 
 			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
 				state->as_recorded |= ACL_STATE_RECORDED_VD;
-				state->as_vd_acl = a;
-				state->as_vd_acl_count = *count;
-				state->as_vd_access = a->acl_access;
-				state->as_vd_access_count = 1;
-				ACL_INVALIDATE( state->as_vd_acl_mask );
+				state->as_vd_acl = prev;
+				state->as_vd_acl_count = *count - 1;
 			}
 
 			if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
@@ -667,6 +647,17 @@ slap_acl_get(
 	return( NULL );
 }
 
+/*
+ * Record value-dependent access control state
+ */
+#define ACL_RECORD_VALUE_STATE do { \
+		if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
+			state->as_recorded |= ACL_STATE_RECORDED_VD; \
+			state->as_vd_acl = a; \
+			state->as_vd_acl_count = count; \
+		} \
+	} while( 0 )
+
 static int
 acl_mask_dn(
 	Operation		*op,
@@ -676,7 +667,7 @@ acl_mask_dn(
 	AccessControl		*a,
 	int			nmatch,
 	regmatch_t		*matches,
-	slap_dn_access		*b,
+	slap_dn_access		*bdn,
 	struct berval		*opndn )
 {
 	/*
@@ -688,40 +679,20 @@ acl_mask_dn(
 	 * NOTE: styles "anonymous", "users" and "self" 
 	 * have been moved to enum slap_style_t, whose 
 	 * value is set in a_dn_style; however, the string
-	 * is maintaned in a_dn_pat.
+	 * is maintained in a_dn_pat.
 	 */
-	if ( b->a_style == ACL_STYLE_ANONYMOUS ) {
+
+	if ( bdn->a_style == ACL_STYLE_ANONYMOUS ) {
 		if ( !BER_BVISEMPTY( opndn ) ) {
 			return 1;
 		}
 
-	} else if ( b->a_style == ACL_STYLE_USERS ) {
+	} else if ( bdn->a_style == ACL_STYLE_USERS ) {
 		if ( BER_BVISEMPTY( opndn ) ) {
 			return 1;
 		}
 
-		if ( b->a_self ) {
-			const char *dummy;
-			int rc, match = 0;
-
-			/* must have DN syntax */
-			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) return 1;
-
-			/* check if the target is an attribute. */
-			if ( val == NULL ) return 1;
-
-			/* target is attribute, check if the attribute value
-			 * is the op dn.
-			 */
-			rc = value_match( &match, desc,
-				desc->ad_type->sat_equality, 0,
-				val, opndn, &dummy );
-			/* on match error or no match, fail the ACL clause */
-			if ( rc != LDAP_SUCCESS || match != 0 )
-				return 1;
-		}
-
-	} else if ( b->a_style == ACL_STYLE_SELF ) {
+	} else if ( bdn->a_style == ACL_STYLE_SELF ) {
 		struct berval	ndn, selfndn;
 		int		level;
 
@@ -729,7 +700,7 @@ acl_mask_dn(
 			return 1;
 		}
 
-		level = b->a_self_level;
+		level = bdn->a_self_level;
 		if ( level < 0 ) {
 			selfndn = *opndn;
 			ndn = e->e_nname;
@@ -752,8 +723,8 @@ acl_mask_dn(
 			return 1;
 		}
 
-	} else if ( b->a_style == ACL_STYLE_REGEX ) {
-		if ( !ber_bvccmp( &b->a_pat, '*' ) ) {
+	} else if ( bdn->a_style == ACL_STYLE_REGEX ) {
+		if ( !ber_bvccmp( &bdn->a_pat, '*' ) ) {
 			int		tmp_nmatch;
 			regmatch_t	tmp_matches[2],
 					*tmp_matchesp = tmp_matches;
@@ -795,7 +766,7 @@ acl_mask_dn(
 				return 1;
 			}
 
-			if ( !regex_matches( &b->a_pat, opndn->bv_val,
+			if ( !regex_matches( &bdn->a_pat, opndn->bv_val,
 				e->e_ndn, tmp_nmatch, tmp_matchesp ) )
 			{
 				return 1;
@@ -810,7 +781,7 @@ acl_mask_dn(
 		if ( e->e_dn == NULL )
 			return 1;
 
-		if ( b->a_expand ) {
+		if ( bdn->a_expand ) {
 			struct berval	bv;
 			char		buf[ACL_BUF_SIZE];
 			
@@ -858,7 +829,7 @@ acl_mask_dn(
 				return 1;
 			}
 
-			if ( acl_string_expand( &bv, &b->a_pat, 
+			if ( acl_string_expand( &bv, &bdn->a_pat, 
 					e->e_nname.bv_val,
 					tmp_nmatch, tmp_matchesp ) )
 			{
@@ -874,7 +845,7 @@ acl_mask_dn(
 			}
 
 		} else {
-			pat = b->a_pat;
+			pat = bdn->a_pat;
 		}
 
 		patlen = pat.bv_len;
@@ -884,13 +855,13 @@ acl_mask_dn(
 
 		}
 
-		if ( b->a_style == ACL_STYLE_BASE ) {
+		if ( bdn->a_style == ACL_STYLE_BASE ) {
 			/* base dn -- entire object DN must match */
 			if ( odnlen != patlen ) {
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_ONE ) {
+		} else if ( bdn->a_style == ACL_STYLE_ONE ) {
 			ber_len_t	rdnlen = 0;
 
 			if ( odnlen <= patlen ) {
@@ -906,12 +877,12 @@ acl_mask_dn(
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_SUBTREE ) {
+		} else if ( bdn->a_style == ACL_STYLE_SUBTREE ) {
 			if ( odnlen > patlen && !DN_SEPARATOR( opndn->bv_val[odnlen - patlen - 1] ) ) {
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_CHILDREN ) {
+		} else if ( bdn->a_style == ACL_STYLE_CHILDREN ) {
 			if ( odnlen <= patlen ) {
 				goto dn_match_cleanup;
 			}
@@ -920,8 +891,8 @@ acl_mask_dn(
 				goto dn_match_cleanup;
 			}
 
-		} else if ( b->a_style == ACL_STYLE_LEVEL ) {
-			int		level = b->a_level;
+		} else if ( bdn->a_style == ACL_STYLE_LEVEL ) {
+			int		level = bdn->a_level;
 			struct berval	ndn;
 
 			if ( odnlen <= patlen ) {
@@ -952,7 +923,7 @@ acl_mask_dn(
 		got_match = !strcmp( pat.bv_val, &opndn->bv_val[ odnlen - patlen ] );
 
 dn_match_cleanup:;
-		if ( pat.bv_val != b->a_pat.bv_val ) {
+		if ( pat.bv_val != bdn->a_pat.bv_val ) {
 			slap_sl_free( pat.bv_val, op->o_tmpmemctx );
 		}
 
@@ -963,21 +934,6 @@ dn_match_cleanup:;
 
 	return 0;
 }
-
-/*
- * Record value-dependent access control state
- */
-#define ACL_RECORD_VALUE_STATE do { \
-		if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
-			state->as_recorded |= ACL_STATE_RECORDED_VD; \
-			state->as_vd_acl = a; \
-			AC_MEMCPY( state->as_vd_acl_matches, matches, \
-				sizeof( state->as_vd_acl_matches )) ; \
-			state->as_vd_acl_count = count; \
-			state->as_vd_access = b; \
-			state->as_vd_access_count = i; \
-		} \
-	} while( 0 )
 
 static int
 acl_mask_dnattr(
@@ -1050,7 +1006,7 @@ acl_mask_dnattr(
 			return 1;
 
 		ACL_RECORD_VALUE_STATE;
-		
+
 		/* this is a self clause, check if the target is an
 		 * attribute.
 		 */
@@ -1122,16 +1078,8 @@ slap_acl_mask(
 		accessmask2str( *mask, accessmaskbuf, 1 ) );
 
 
-	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )
-		&& state->as_vd_acl == a )
-	{
-		b = state->as_vd_access;
-		i = state->as_vd_access_count;
-
-	} else {
-		b = a->acl_access;
-		i = 1;
-	}
+	b = a->acl_access;
+	i = 1;
 
 	for ( ; b != NULL; b = b->a_next, i++ ) {
 		slap_mask_t oldmask, modmask;
@@ -1151,7 +1099,7 @@ slap_acl_mask(
 			 * NOTE: styles "anonymous", "users" and "self" 
 			 * have been moved to enum slap_style_t, whose 
 			 * value is set in a_dn_style; however, the string
-			 * is maintaned in a_dn_pat.
+			 * is maintained in a_dn_pat.
 			 */
 
 			if ( acl_mask_dn( op, e, desc, val, a, nmatch, matches,
@@ -1175,7 +1123,7 @@ slap_acl_mask(
 			 * NOTE: styles "anonymous", "users" and "self" 
 			 * have been moved to enum slap_style_t, whose 
 			 * value is set in a_dn_style; however, the string
-			 * is maintaned in a_dn_pat.
+			 * is maintained in a_dn_pat.
 			 */
 
 			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) )
@@ -1659,6 +1607,36 @@ slap_acl_mask(
 			if ( b->a_authz.sai_sasl_ssf >	op->o_sasl_ssf ) {
 				continue;
 			}
+		}
+
+		/* check for the "self" modifier in the <access> field */
+		if ( b->a_dn.a_self ) {
+			const char *dummy;
+			int rc, match = 0;
+
+			ACL_RECORD_VALUE_STATE;
+
+			/* must have DN syntax */
+			if ( desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName &&
+				!is_at_syntax( desc->ad_type, SLAPD_NAMEUID_SYNTAX )) continue;
+
+			/* check if the target is an attribute. */
+			if ( val == NULL ) continue;
+
+			/* a DN must be present */
+			if ( BER_BVISEMPTY( &op->o_ndn ) ) {
+				continue;
+			}
+
+			/* target is attribute, check if the attribute value
+			 * is the op dn.
+			 */
+			rc = value_match( &match, desc,
+				desc->ad_type->sat_equality, 0,
+				val, &op->o_ndn, &dummy );
+			/* on match error or no match, fail the ACL clause */
+			if ( rc != LDAP_SUCCESS || match != 0 )
+				continue;
 		}
 
 #ifdef SLAP_DYNACL
@@ -2228,7 +2206,7 @@ acl_match_set (
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
 		struct berval		setat;
-		BerVarray		bvals;
+		BerVarray		bvals = NULL;
 		const char		*text;
 		AttributeDescription	*desc = NULL;
 

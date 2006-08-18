@@ -110,11 +110,11 @@ do_abandon(
 	ber_int_t origid,
 	ber_int_t msgid,
 	LDAPControl **sctrls,
-	LDAPControl **cctrls)
+	LDAPControl **cctrls )
 {
 	BerElement	*ber;
 	int		i, err, sendabandon;
-	ber_int_t *old_abandon;
+	ber_int_t	*old_abandon;
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
@@ -191,23 +191,24 @@ do_abandon(
 			i = ++(ld)->ld_msgid;
 #ifdef LDAP_CONNECTIONLESS
 			if ( LDAP_IS_UDP(ld) ) {
-			    err = ber_write( ber, ld->ld_options.ldo_peer,
-				sizeof(struct sockaddr), 0);
+				err = ber_write( ber, ld->ld_options.ldo_peer,
+					sizeof(struct sockaddr), 0);
 			}
 			if ( LDAP_IS_UDP(ld) && ld->ld_options.ldo_version ==
-				LDAP_VERSION2) {
-			    char *dn = ld->ld_options.ldo_cldapdn;
-			    if (!dn) dn = "";
-			    err = ber_printf( ber, "{isti",  /* '}' */
-				i, dn,
-				LDAP_REQ_ABANDON, msgid );
+				LDAP_VERSION2 )
+			{
+				char *dn = ld->ld_options.ldo_cldapdn;
+				if (!dn) dn = "";
+				err = ber_printf( ber, "{isti",  /* '}' */
+					i, dn,
+					LDAP_REQ_ABANDON, msgid );
 			} else
 #endif
 			{
-			    /* create a message to send */
-			    err = ber_printf( ber, "{iti",  /* '}' */
-				i,
-				LDAP_REQ_ABANDON, msgid );
+				/* create a message to send */
+				err = ber_printf( ber, "{iti",  /* '}' */
+					i,
+					LDAP_REQ_ABANDON, msgid );
 			}
 
 			if( err == -1 ) {

@@ -75,7 +75,7 @@ ldap_back_munge_filter(
 
 		if ( strncmp( ptr, bv_true.bv_val, bv_true.bv_len ) == 0 ) {
 			oldbv = &bv_true;
-			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( LDAP_BACK_T_F( li ) ) {
 				newbv = &bv_t;
 
 			} else {
@@ -85,7 +85,7 @@ ldap_back_munge_filter(
 		} else if ( strncmp( ptr, bv_false.bv_val, bv_false.bv_len ) == 0 )
 		{
 			oldbv = &bv_false;
-			if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F ) {
+			if ( LDAP_BACK_T_F( li ) ) {
 				newbv = &bv_f;
 
 			} else {
@@ -141,6 +141,8 @@ ldap_back_search(
 		Operation	*op,
 		SlapReply	*rs )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	struct timeval	tv;
 	time_t		stoptime = (time_t)-1;
@@ -201,7 +203,8 @@ ldap_back_search(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto finish;
 	}
@@ -264,7 +267,7 @@ retry:
 			if ( rc > 0 ) {
 				ldap_msgfree( res );
 			}
-			ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+			(void)ldap_back_cancel( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 			rc = SLAPD_ABANDON;
 			goto finish;
 		}
@@ -277,7 +280,7 @@ retry:
 			if ( op->ors_tlimit != SLAP_NO_LIMIT
 					&& slap_get_time() > stoptime )
 			{
-				ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+				(void)ldap_back_cancel( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 				rc = rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 				goto finish;
 			}
@@ -320,7 +323,7 @@ retry:
 				if ( rc == LDAP_UNAVAILABLE ) {
 					rc = rs->sr_err = LDAP_OTHER;
 				} else {
-					ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+					(void)ldap_back_cancel( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 				}
 				goto finish;
 			}
@@ -344,7 +347,8 @@ retry:
 					/* NO OP */ ;
 
 				/* FIXME: there MUST be at least one */
-				rs->sr_ref = ch_malloc( ( cnt + 1 ) * sizeof( struct berval ) );
+				rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
+					op->o_tmpmemctx );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
 					ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
@@ -365,7 +369,7 @@ retry:
 			/* cleanup */
 			if ( references ) {
 				ber_memvfree( (void **)references );
-				ch_free( rs->sr_ref );
+				op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 				rs->sr_ref = NULL;
 			}
 
@@ -405,7 +409,8 @@ retry:
 				for ( cnt = 0; references[ cnt ]; cnt++ )
 					/* NO OP */ ;
 				
-				rs->sr_ref = ch_malloc( ( cnt + 1 ) * sizeof( struct berval ) );
+				rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
+					op->o_tmpmemctx );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
 					/* duplicating ...*/
@@ -415,9 +420,7 @@ retry:
 			}
 
 			if ( match.bv_val != NULL ) {
-				{
-					match.bv_len = strlen( match.bv_val );
-				}
+				match.bv_len = strlen( match.bv_val );
 			}
 
 			/* cleanup */
@@ -462,7 +465,15 @@ retry:
 	}
 
 finish:;
-	if ( rc != SLAPD_ABANDON ) {
+	if ( LDAP_BACK_QUARANTINE( li ) ) {
+		ldap_back_quarantine( op, rs );
+	}
+
+#if 0
+	/* let send_ldap_result play cleanup handlers (ITS#4645) */
+	if ( rc != SLAPD_ABANDON )
+#endif
+	{
 		send_ldap_result( op, rs );
 	}
 
@@ -495,7 +506,7 @@ finish:;
 	}
 
 	if ( rs->sr_ref ) {
-		ber_bvarray_free( rs->sr_ref );
+		ber_bvarray_free_x( rs->sr_ref, op->o_tmpmemctx );
 		rs->sr_ref = NULL;
 	}
 
@@ -702,9 +713,10 @@ ldap_back_entry_get(
 		ObjectClass		*oc,
 		AttributeDescription	*at,
 		int			rw,
-		Entry			**ent
-)
+		Entry			**ent )
 {
+	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
+
 	ldapconn_t	*lc;
 	int		rc = 1,
 			do_not_cache;
@@ -754,7 +766,8 @@ ldap_back_entry_get(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( lc, op, &rs, &ctrls );
+	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, &rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}

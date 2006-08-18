@@ -90,7 +90,7 @@ backsql_dn2id(
 {
 	backsql_info		*bi = op->o_bd->be_private;
 	SQLHSTMT		sth = SQL_NULL_HSTMT; 
-	BACKSQL_ROW_NTS		row;
+	BACKSQL_ROW_NTS		row = { 0 };
 	RETCODE 		rc;
 	int			res;
 	struct berval		realndn = BER_BVNULL;

@@ -120,7 +120,7 @@ example=> <control-D>
 
 3.1.5) Run the test:
 [root@localhost]# cd $SOURCES/tests
-[root@localhost]# SLAPD_USE_SQL=pgsql ./run test031
+[root@localhost]# SLAPD_USE_SQL=pgsql ./run sql-test000
 
 3.2) MySQL
 
@@ -149,7 +149,7 @@ mysql> exit;
 
 3.2.5) Run the test:
 [root@localhost]# cd $SOURCES/tests
-[root@localhost]# SLAPD_USE_SQL=mysql ./run test031
+[root@localhost]# SLAPD_USE_SQL=mysql ./run sql-test000
 
 3.3) IBM db2
 [n.a.]
@@ -173,7 +173,7 @@ in auto-commit mode (-c)
 
 3.3.5) Run the test:
 [root@localhost]# cd $SOURCES/tests
-[root@localhost]# SLAPD_USE_SQL=ibmdb2 ./run test031
+[root@localhost]# SLAPD_USE_SQL=ibmdb2 ./run sql-test000
 
 4) Cleanup:
 The test is basically readonly; this can be performed by all RDBMSes 

@@ -71,6 +71,7 @@ LDAP_BEGIN_DECL
 
 #define LDAP_DYNAMIC_OBJECTS
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
+#define SLAP_DISTPROC
 
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
@@ -1448,23 +1449,18 @@ typedef enum {
 } slap_acl_state_t;
 
 typedef struct slap_acl_state {
-	slap_acl_state_t as_recorded;
-
 	/* Access state */
-	AccessControl *as_vd_acl;
 	AccessControl *as_vi_acl;
-	slap_mask_t as_vd_acl_mask;
-	regmatch_t as_vd_acl_matches[MAXREMATCHES];
-	int as_vd_acl_count;
-
-	Access *as_vd_access;
-	int as_vd_access_count;
-
-	int as_result;
+	AccessControl *as_vd_acl;
 	AttributeDescription *as_vd_ad;
+
+
+	slap_acl_state_t as_recorded;
+	int as_vd_acl_count;
+	int as_result;
 } AccessControlState;
-#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, \
-	{ { 0, 0 } }, 0, NULL, 0, 0, NULL }
+#define ACL_STATE_INIT { NULL, NULL, NULL, \
+	ACL_STATE_NOT_RECORDED, 0, 0 }
 
 /*
  * Backend-info
@@ -1698,6 +1694,7 @@ struct slap_backend_db {
 /* Database flags */
 #define SLAP_DBFLAG_NOLASTMOD		0x0001U
 #define SLAP_DBFLAG_NO_SCHEMA_CHECK	0x0002U
+#define	SLAP_DBFLAG_HIDDEN		0x0004U
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
@@ -1713,6 +1710,7 @@ struct slap_backend_db {
 #define SLAP_DBFLAGS(be)			((be)->be_flags)
 #define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
 #define SLAP_LASTMOD(be)			(!SLAP_NOLASTMOD(be))
+#define SLAP_DBHIDDEN(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_HIDDEN)
 #define SLAP_ISOVERLAY(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_OVERLAY)
 #define SLAP_ISGLOBALOVERLAY(be)		(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLOBAL_OVERLAY)
 #define SLAP_NO_SCHEMA_CHECK(be)	\
@@ -2442,6 +2440,8 @@ typedef struct slap_op {
 	char o_delete_glue_parent;
 	char o_no_schema_check;
 #define get_no_schema_check(op)			((op)->o_no_schema_check)
+	char o_no_subordinate_glue;
+#define get_no_subordinate_glue(op)		((op)->o_no_subordinate_glue)
 
 #define SLAP_CONTROL_NONE	0
 #define SLAP_CONTROL_IGNORED	1
@@ -2681,21 +2681,27 @@ typedef struct slap_conn {
 	SEND_LDAP_INTERMEDIATE *c_send_ldap_intermediate;
 } Connection;
 
-#if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
+#ifdef LDAP_DEBUG
+#ifdef LDAP_SYSLOG
+#ifdef LOG_LOCAL4
+#define SLAP_DEFAULT_SYSLOG_USER	LOG_LOCAL4
+#endif /* LOG_LOCAL4 */
+
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	Log5( (level), ldap_syslog_level, (fmt), (connid), (opid), (arg1), (arg2), (arg3) )
 #define StatslogTest( level ) ((ldap_debug | ldap_syslog) & (level))
-#elif defined(LDAP_DEBUG)
+#else /* !LDAP_SYSLOG */
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
 	do { \
 		if ( ldap_debug & (level) ) \
 			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
-#else
+#endif /* !LDAP_SYSLOG */
+#else /* !LDAP_DEBUG */
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) ((void) 0)
 #define StatslogTest( level ) (0)
-#endif
+#endif /* !LDAP_DEBUG */
 
 /*
  * listener; need to access it from monitor backend

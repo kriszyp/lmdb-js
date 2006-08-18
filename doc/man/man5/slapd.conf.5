@@ -133,8 +133,8 @@ a trailing `-') matches all options starting with that name, as well
 as the option with the range name sans the trailing `-'.
 That is, `x-foo-bar-' matches `x-foo-bar' and `x-foo-bar-baz'.
 
-RFC 2251 reserves options beginning with `x-' for private experiments.
-Other options should be registered with IANA, see RFC 3383 section 3.4.
+RFC 4520 reserves options beginning with `x-' for private experiments.
+Other options should be registered with IANA, see RFC 4520 section 3.5.
 OpenLDAP also has the `binary' option built in, but this is a transfer
 option, not a tagging option.
 .HP
@@ -153,8 +153,8 @@ option, not a tagging option.
  [NO\-USER\-MODIFICATION]\
  [USAGE\ <attributeUsage>]\ )"
 .RS
-Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
-The slapd parser extends the RFC 2252 definition by allowing string
+Specify an attribute type using the LDAPv3 syntax defined in RFC 4512.
+The slapd parser extends the RFC 4512 definition by allowing string
 forms as well as numeric OIDs to be used for the attribute OID and
 attribute syntax OID.
 (See the
@@ -374,6 +374,8 @@ e.g.
 .RE
 The protocol portion of the URI must be strictly
 .BR ldap .
+Note that this search is subject to access controls.  Specifically,
+the authentication identity must have "auth" access in the subject.
 
 Multiple 
 .B authz-regexp 
@@ -432,8 +434,8 @@ disallows the StartTLS operation if authenticated (see also
  [MAY\ <oids>]\
  [NOT\ <oids>]\ )"
 .RS
-Specify an DIT Content Rule using the LDAPv3 syntax defined in RFC 2252.
-The slapd parser extends the RFC 2252 definition by allowing string
+Specify an DIT Content Rule using the LDAPv3 syntax defined in RFC 4512.
+The slapd parser extends the RFC 4512 definition by allowing string
 forms as well as numeric OIDs to be used for the attribute OID and
 attribute syntax OID.
 (See the
@@ -637,8 +639,8 @@ the path is colon-separated but this depends on the operating system.
  [{ ABSTRACT | STRUCTURAL | AUXILIARY }]\
  [MUST\ <oids>] [MAY\ <oids>] )"
 .RS
-Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
-The slapd parser extends the RFC 2252 definition by allowing string
+Specify an objectclass using the LDAPv3 syntax defined in RFC 4512.
+The slapd parser extends the RFC 4512 definition by allowing string
 forms as well as numeric OIDs to be used for the object class OID.
 (See the
 .B
@@ -754,7 +756,9 @@ instance that handles that replication log.
 .B require <conditions>
 Specify a set of conditions (separated by white space) to
 require (default none).
-The directive may be specified globally and/or per-database.
+The directive may be specified globally and/or per-database;
+databases inherit global conditions, so per-database specifications
+are additive.
 .B bind
 requires bind operation prior to directory operations.
 .B LDAPv3
@@ -768,8 +772,9 @@ requires strong authentication prior to directory operations.
 The strong keyword allows protected "simple" authentication
 as well as SASL authentication.
 .B none
-may be used to require no conditions (useful for clearly globally
-set conditions within a particular database).
+may be used to require no conditions (useful to clear out globally
+set conditions within a particular database); it must occur first
+in the list of conditions.
 .TP
 .B reverse-lookup on | off
 Enable/disable client name unverified reverse lookup (default is 
@@ -1091,7 +1096,9 @@ Controls whether
 .B slapd
 will automatically maintain the 
 modifiersName, modifyTimestamp, creatorsName, and 
-createTimestamp attributes for entries.  By default, lastmod is on.
+createTimestamp attributes for entries. It also controls
+the entryCSN and entryUUID attributes, which are needed
+by the syncrepl provider. By default, lastmod is on.
 .TP
 .B limits <who> <limit> [<limit> [...]]
 Specify time and size limits based on who initiated an operation.

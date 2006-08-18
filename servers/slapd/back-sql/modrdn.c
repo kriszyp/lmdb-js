@@ -491,6 +491,10 @@ done:;
 		SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 	}
 
+	if ( op->o_noop && rs->sr_err == LDAP_SUCCESS ) {
+		rs->sr_err = LDAP_X_NO_OPERATION;
+	}
+
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 

@@ -5,11 +5,12 @@
 slapdn \- Check a list of string-represented DNs based on schema syntax.
 .SH SYNOPSIS
 .B SBINDIR/slapdn
-.B [\-v]
 .B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
 .B [\-N | \-P]
+.B [\-o name[=value]
+.B [\-v]
 .B DN [...]
 .LP
 .SH DESCRIPTION
@@ -28,9 +29,6 @@ parses the
 list given on the command-line.
 .LP
 .SH OPTIONS
-.TP
-.B \-v
-enable verbose mode.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
@@ -59,10 +57,27 @@ only output a normalized form of the DN, suitable to be used
 in a normalization tool; incompatible with
 .BR \-P .
 .TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible generic options/values are:
+.LP
+.nf
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
+.TP
 .BI \-P
 only output a prettified form of the DN, suitable to be used
 in a check and beautification tool; incompatible with
 .BR \-N .
+.TP
+.B \-v
+enable verbose mode.
 .SH EXAMPLES
 To check a
 .B DN
@@ -80,7 +95,4 @@ give the command:
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

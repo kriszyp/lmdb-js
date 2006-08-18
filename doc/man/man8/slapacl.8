@@ -5,13 +5,14 @@
 slapacl \- Check access to a list of attributes.
 .SH SYNOPSIS
 .B SBINDIR/slapacl
-.B [\-v]
+.B \-b DN
 .B [\-d level]
+.B [\-D authcDN | \-U authcID]
 .B [\-f slapd.conf]
 .B [\-F confdir]
-.B [\-D authcDN | \-U authcID]
-.B \-b DN
+.B [\-o name[=value]
 .B [\-u]
+.B [\-v]
 .B [\-X authzID | \-o authzDN=DN]
 .B [attr[/access][:value]] [...]
 .LP
@@ -35,12 +36,24 @@ pseudo-attribute is tested.
 .LP
 .SH OPTIONS
 .TP
-.B \-v
-enable verbose mode.
+.BI \-b " DN"
+specify the 
+.B DN 
+which access is requested to; the corresponding entry is fetched 
+from the database, and thus it must exist.
+The DN is also used to determine what rules apply; thus, it must be
+in the naming context of a configured database.  See also
+.BR \-u .
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
 .IR level .
+.TP
+.BI \-D " authcDN"
+specify a DN to be used as identity through the test session
+when selecting appropriate
+.B <by> 
+clauses in access lists.
 .TP
 .BI \-f " slapd.conf"
 specify an alternative
@@ -60,62 +73,42 @@ default config directory will be made before trying to use the default
 config file. If a valid config directory exists then the
 default config file is ignored.
 .TP
-.BI \-D " authcDN"
-specify a DN to be used as identity through the test session
-when selecting appropriate
-.B <by> 
-clauses in access lists.
-.TP
-.BI \-U " authcID"
-specify an ID to be mapped to a 
-.B DN 
-as by means of 
-.B authz-regexp
-or
-.B authz-rewrite
-rules (see 
-.BR slapd.conf (5)
-for details); mutually exclusive with
-.BR \-D .
-.TP
-.BI \-X " authzID"
-specify an authorization ID to be mapped to a
-.B DN
-as by means of
-.B authz-regexp
-or
-.B authz-rewrite
-rules (see
-.BR slapd.conf (5)
-for details); mutually exclusive with \fB\-o\fP \fIauthzDN=DN\fP.
-.TP
 .BI \-o " option[=value]"
 Specify an
 .BR option
 with a(n optional)
 .BR value .
-Possible options/values are:
+Possible generic options/values are:
 .LP
 .nf
-              sockurl
+              syslog=<subsystems>  (see `\-s' in slapd(8))
+              syslog-level=<level> (see `\-S' in slapd(8))
+              syslog-user=<user>   (see `\-l' in slapd(8))
+
+.fi
+.RS
+Possible options/values specific to
+.B slapacl
+are:
+.RE
+.nf
+
+              authzDN
               domain
               peername
-              sockname
-              ssf
-              transport_ssf
-              tls_ssf
               sasl_ssf
-              authzDN
+              sockname
+              sockurl
+              ssf
+              tls_ssf
+              transport_ssf
+
 .fi
-.TP
-.BI \-b " DN"
-specify the 
-.B DN 
-which access is requested to; the corresponding entry is fetched 
-from the database, and thus it must exist.
-The DN is also used to determine what rules apply; thus, it must be
-in the naming context of a configured database.  See also
-.BR \-u .
+.RS
+See the related fields in
+.BR slapd.access (5)
+for details.
+.RE
 .TP
 .BI \-u
 do not fetch the entry from the database.
@@ -131,6 +124,32 @@ option is still used to select what rules apply; thus, it must be
 in the naming context of a configured database.
 See also
 .BR \-b .
+.TP
+.BI \-U " authcID"
+specify an ID to be mapped to a 
+.B DN 
+as by means of 
+.B authz-regexp
+or
+.B authz-rewrite
+rules (see 
+.BR slapd.conf (5)
+for details); mutually exclusive with
+.BR \-D .
+.TP
+.B \-v
+enable verbose mode.
+.TP
+.BI \-X " authzID"
+specify an authorization ID to be mapped to a
+.B DN
+as by means of
+.B authz-regexp
+or
+.B authz-rewrite
+rules (see
+.BR slapd.conf (5)
+for details); mutually exclusive with \fB\-o\fP \fIauthzDN=DN\fP.
 .SH EXAMPLES
 The command
 .LP
@@ -159,7 +178,4 @@ level.
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

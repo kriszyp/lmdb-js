@@ -76,11 +76,11 @@ meta_search_dobind_init(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
-	char			*binddn = "";
-	struct berval		cred = BER_BVC( "" );
+	struct berval		binddn = msc->msc_bound_ndn,
+				cred = msc->msc_cred;
+	int			method;
 
 	int			rc;
-	int			nretries = 1;
 
 	meta_search_candidate_t	retcode;
 
@@ -108,41 +108,61 @@ meta_search_dobind_init(
 	LDAP_BACK_CONN_BINDING_SET( msc );
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
-	if ( be_isroot( op ) && !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
-		binddn = mt->mt_pseudorootdn.bv_val;
-		cred = mt->mt_pseudorootpw;
+	/* NOTE: this obsoletes pseudorootdn */
+	if ( op->o_conn != NULL &&
+		!op->o_do_not_cache &&
+		( BER_BVISNULL( &msc->msc_bound_ndn ) ||
+			BER_BVISEMPTY( &msc->msc_bound_ndn ) ||
+			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
+	{
+		rc = meta_back_proxy_authz_cred( mc, candidate, op, rs, LDAP_BACK_DONTSEND, &binddn, &cred, &method );
+		if ( rc != LDAP_SUCCESS ) {
+			goto down;
+		}
+
+		/* NOTE: we copy things here, even if bind didn't succeed yet,
+		 * because the connection is not shared until bind is over */
+		if ( !BER_BVISNULL( &binddn ) ) {
+			ber_bvreplace( &msc->msc_bound_ndn, &binddn );
+			if ( LDAP_BACK_SAVECRED( mi ) && !BER_BVISNULL( &cred ) ) {
+				ber_dupbv( &msc->msc_cred, &cred );
+			}
+		}
+
+		if ( LDAP_BACK_CONN_ISBOUND( msc ) ) {
+			/* idassert ws configured with SASL bind */
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			LDAP_BACK_CONN_BINDING_CLEAR( msc );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+			return META_SEARCH_CANDIDATE;
+		}
+
+		/* paranoid */
+		switch ( method ) {
+		case LDAP_AUTH_NONE:
+		case LDAP_AUTH_SIMPLE:
+			/* do a simple bind with binddn, cred */
+			break;
+
+		default:
+			assert( 0 );
+			break;
+		}
 	}
 
-	/*
-	 * Otherwise an anonymous bind is performed
-	 * (note: if the target was already bound, the anonymous
-	 * bind clears the previous bind).
-	 */
-	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
-		ber_memfree( msc->msc_bound_ndn.bv_val );
-		BER_BVZERO( &msc->msc_bound_ndn );
-	}
-		
-	if ( LDAP_BACK_SAVECRED( mi ) && !BER_BVISNULL( &msc->msc_cred ) ) {
-		/* destroy sensitive data */
-		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
-		ber_memfree( msc->msc_cred.bv_val );
-		BER_BVZERO( &msc->msc_cred );
-	}
-
-retry:;
 	assert( msc->msc_ld != NULL );
 
-	rc = ldap_sasl_bind( msc->msc_ld, binddn, LDAP_SASL_SIMPLE, &cred,
+	rc = ldap_sasl_bind( msc->msc_ld, binddn.bv_val, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 	switch ( rc ) {
 	case LDAP_SUCCESS:
+		META_BINDING_SET( &candidates[ candidate ] );
 		return META_SEARCH_BINDING;
 
+down:;
 	case LDAP_SERVER_DOWN:
-		if ( nretries && meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
-			nretries = 0;
-			goto retry;
+		if ( meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
+			return META_SEARCH_CANDIDATE;
 		}
 
 		if ( *mcp == NULL ) {
@@ -194,12 +214,14 @@ meta_search_dobind_result(
 
 	assert( msc->msc_ld != NULL );
 
+	/* FIXME: matched? referrals? response controls? */
 	rc = ldap_parse_result( msc->msc_ld, res,
 		&candidates[ candidate ].sr_err,
 		NULL, NULL, NULL, NULL, 1 );
-	if ( rc == LDAP_SUCCESS ) {
-		rc = slap_map_api2result( &candidates[ candidate ] );
+	if ( rc != LDAP_SUCCESS ) {
+		candidates[ candidate ].sr_err = rc;
 	}
+	rc = slap_map_api2result( &candidates[ candidate ] );
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	LDAP_BACK_CONN_BINDING_CLEAR( msc );
@@ -221,6 +243,8 @@ meta_search_dobind_result(
 	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
+	META_BINDING_CLEAR( &candidates[ candidate ] );
+
 	return retcode;
 }
 
@@ -235,11 +259,9 @@ meta_back_search_start(
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
-	metaconn_t		*mc = *mcp;
-	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	metasingleconn_t	*msc = &(*mcp)->mc_conns[ candidate ];
 	struct berval		realbase = op->o_req_dn;
 	int			realscope = op->ors_scope;
-	ber_len_t		suffixlen = 0;
 	struct berval		mbase = BER_BVNULL; 
 	struct berval		mfilter = BER_BVNULL;
 	char			**mapped_attrs = NULL;
@@ -247,29 +269,26 @@ meta_back_search_start(
 	meta_search_candidate_t	retcode;
 	struct timeval		tv, *tvp = NULL;
 	int			nretries = 1;
+	LDAPControl		**ctrls = NULL;
+
+	/* this should not happen; just in case... */
+	if ( msc->msc_ld == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"%s: meta_back_search_start candidate=%d ld=NULL%s.\n",
+			op->o_log_prefix, candidate,
+			META_BACK_ONERR_STOP( mi ) ? "" : " (ignored)" );
+		if ( META_BACK_ONERR_STOP( mi ) ) {
+			return META_SEARCH_ERR;
+		}
+		return META_SEARCH_NOT_CANDIDATE;
+	}
 
 	Debug( LDAP_DEBUG_TRACE, "%s >>> meta_back_search_start[%d]\n", op->o_log_prefix, candidate, 0 );
-
-	/* should we check return values? */
-	if ( op->ors_deref != -1 ) {
-		assert( msc->msc_ld != NULL );
-		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
-				( void * )&op->ors_deref );
-	}
-
-	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
-		tv.tv_sec = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
-		tv.tv_usec = 0;
-		tvp = &tv;
-	}
-
-	dc->target = mt;
 
 	/*
 	 * modifies the base according to the scope, if required
 	 */
-	suffixlen = mt->mt_nsuffix.bv_len;
-	if ( suffixlen > op->o_req_ndn.bv_len ) {
+	if ( mt->mt_nsuffix.bv_len > op->o_req_ndn.bv_len ) {
 		switch ( op->ors_scope ) {
 		case LDAP_SCOPE_SUBTREE:
 			/*
@@ -341,6 +360,7 @@ meta_back_search_start(
 	/*
 	 * Rewrite the search base, if required
 	 */
+	dc->target = mt;
 	dc->ctx = "searchBase";
 	switch ( ldap_back_dn_massage( dc, &realbase, &mbase ) ) {
 	default:
@@ -391,6 +411,28 @@ meta_back_search_start(
 		goto done;
 	}
 
+	/* should we check return values? */
+	if ( op->ors_deref != -1 ) {
+		assert( msc->msc_ld != NULL );
+		(void)ldap_set_option( msc->msc_ld, LDAP_OPT_DEREF,
+				( void * )&op->ors_deref );
+	}
+
+	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
+		tv.tv_sec = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
+		tv.tv_usec = 0;
+		tvp = &tv;
+	}
+
+	ctrls = op->o_ctrls;
+	if ( ldap_back_proxy_authz_ctrl( &msc->msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
+	{
+		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
+		retcode = META_SEARCH_NOT_CANDIDATE;
+		goto done;
+	}
+
 	/*
 	 * Starts the search
 	 */
@@ -399,7 +441,7 @@ retry:;
 	rc = ldap_search_ext( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
-			op->o_ctrls, NULL, tvp, op->ors_slimit,
+			ctrls, NULL, tvp, op->ors_slimit,
 			&candidates[ candidate ].sr_msgid ); 
 	switch ( rc ) {
 	case LDAP_SUCCESS:
@@ -424,6 +466,8 @@ retry:;
 	}
 
 done:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	if ( mapped_attrs ) {
 		free( mapped_attrs );
 	}
@@ -475,7 +519,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+		if ( !META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			continue;
 		}
 
@@ -486,7 +530,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		if ( candidates[ i ].sr_tag != META_CANDIDATE
+		if ( !META_IS_CANDIDATE( &candidates[ i ] )
 			|| candidates[ i ].sr_err != LDAP_SUCCESS )
 		{
 			continue;
@@ -522,7 +566,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		int	i;
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE ) {
+			if ( META_IS_CANDIDATE( &candidates[ i ] ) ) {
 				cnd[ i ] = '*';
 			} else {
 				cnd[ i ] = ' ';
@@ -553,7 +597,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		 * maybe we should pick the worst... */
 		rc = LDAP_NO_SUCH_OBJECT;
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE
+			if ( META_IS_CANDIDATE( &candidates[ i ] )
 				&& candidates[ i ].sr_err != LDAP_SUCCESS )
 			{
 				rc = candidates[ i ].sr_err;
@@ -657,6 +701,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 						assert( 0 );
 						break;
 					}
+					break;
 
 				default:
 					/* impossible */
@@ -739,8 +784,7 @@ really_bad:;
 				 */
 				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				--ncandidates;
-				rs->sr_err = candidates[ i ].sr_err = LDAP_OTHER;
-				rs->sr_text = "remote server unavailable";
+				rs->sr_err = candidates[ i ].sr_err;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
@@ -881,6 +925,7 @@ really_bad:;
 				 * back-meta would need to merge them
 				 * consistently (think of pagedResults...)
 				 */
+				/* FIXME: response controls? */
 				rs->sr_err = ldap_parse_result( msc->msc_ld,
 							res,
 							&candidates[ i ].sr_err,
@@ -1072,20 +1117,19 @@ really_bad:;
 		/* check for abandon */
 		if ( op->o_abandon || doabandon ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				metasingleconn_t	*msc = &mc->mc_conns[ i ];
-
 				if ( candidates[ i ].sr_msgid != META_MSGID_IGNORE )
 				{
-					ldap_abandon_ext( msc->msc_ld,
-						candidates[ i ].sr_msgid,
-						NULL, NULL );
+					(void)meta_back_cancel( mc, op, rs,
+						candidates[ i ].sr_msgid, i,
+						LDAP_BACK_DONTSEND );
 					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				}
 			}
 
 			if ( op->o_abandon ) {
 				rc = SLAPD_ABANDON;
-				goto finish;
+				/* let send_ldap_result play cleanup handlers (ITS#4645) */
+				break;
 			}
 		}
 
@@ -1105,7 +1149,9 @@ really_bad:;
 		 * FIXME: need a better strategy to handle errors
 		 */
 		if ( mc ) {
-			rc = meta_back_op_result( mc, op, rs, META_TARGET_NONE );
+			rc = meta_back_op_result( mc, op, rs, META_TARGET_NONE,
+				-1, stoptime != -1 ? (stoptime - slap_get_time()) : 0,
+				LDAP_BACK_SENDERR );
 		} else {
 			rc = rs->sr_err;
 		}
@@ -1124,7 +1170,7 @@ really_bad:;
 
 		/* we use the first one */
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE
+			if ( META_IS_CANDIDATE( &candidates[ i ] )
 					&& candidates[ i ].sr_matched != NULL )
 			{
 				struct berval	bv, pbv;
@@ -1185,7 +1231,7 @@ really_bad:;
 		int	i;
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ].sr_tag == META_CANDIDATE ) {
+			if ( META_IS_CANDIDATE( &candidates[ i ] ) ) {
 				cnd[ i ] = '*';
 			} else {
 				cnd[ i ] = ' ';
@@ -1229,16 +1275,17 @@ finish:;
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
+		if ( !META_IS_CANDIDATE( &candidates[ i ] ) ) {
 			continue;
 		}
 
-		if ( mc && candidates[ i ].sr_msgid >= 0 ) {
+		if ( mc && META_IS_BINDING( &candidates[ i ] ) ) {
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
 				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
 			}
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+			META_BINDING_CLEAR( &candidates[ i ] );
 		}
 
 		if ( candidates[ i ].sr_matched ) {
@@ -1259,6 +1306,10 @@ finish:;
 		if ( candidates[ i ].sr_ctrls ) {
 			ldap_controls_free( candidates[ i ].sr_ctrls );
 			candidates[ i ].sr_ctrls = NULL;
+		}
+
+		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ i ] ) ) {
+			meta_back_quarantine( op, &candidates[ i ], i );
 		}
 	}
 

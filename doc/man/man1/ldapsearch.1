@@ -84,17 +84,18 @@ ldapsearch \- LDAP search tool
 .SH DESCRIPTION
 .I ldapsearch
 is a shell-accessible interface to the
-.BR ldap_search (3)
+.BR ldap_search_ext (3)
 library call.
 .LP
 .B ldapsearch
 opens a connection to an LDAP server, binds, and performs a search
 using specified parameters.   The \fIfilter\fP should conform to
-the string representation for search filters as defined in RFC 2254.
+the string representation for search filters as defined in RFC 4515.
 If not provided, the default filter, (objectClass=*), is used.
 .LP
 If
-.B ldapsearch finds one or more entries, the attributes specified by
+.B ldapsearch
+finds one or more entries, the attributes specified by
 \fIattrs\fP are returned.  If * is listed, all user attributes are
 returned.  If + is listed, all operational attributes are returned.
 If no \fIattrs\fP are listed, all user attributes are returned.  If only
@@ -239,7 +240,7 @@ Specify general extensions with -e and search extensions with -E.
 
 General extensions:
 .nf
-  [!]assert=<filter>   (an RFC 2254 Filter)
+  [!]assert=<filter>   (an RFC 4515 Filter)
   [!]authzid=<authzid> ("dn:<dn>" or "u:<user>")
   [!]manageDSAit
   [!]noop
@@ -443,11 +444,9 @@ a diagnostic message being written to standard error.
 .BR ldap.conf (5),
 .BR ldif (5),
 .BR ldap (3),
-.BR ldap_search (3)
+.BR ldap_search_ext (3),
+.BR ldap_sort (3)
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

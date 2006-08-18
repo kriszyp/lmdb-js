@@ -55,6 +55,7 @@ usage( char *name )
 		"-D <manager> "
 		"-w <passwd> "
 		"-f <addfile> "
+		"[-i <ignore>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -84,7 +85,7 @@ main( int argc, char **argv )
 	int		chaserefs = 0;
 	LDAPMod		**attrs = NULL;
 
-	tester_init( "slapd-modify" );
+	tester_init( "slapd-addel", TESTER_ADDEL );
 
 	while ( (i = getopt( argc, argv, "CFH:h:p:D:w:f:l:L:r:t:" )) != EOF ) {
 		switch( i ) {
@@ -104,6 +105,10 @@ main( int argc, char **argv )
 			host = strdup( optarg );
 			break;
 
+		case 'i':
+			/* ignored (!) by now */
+			break;
+
 		case 'p':		/* the servers port */
 			if ( lutil_atoi( &port, optarg ) != 0 ) {
 				usage( argv[0] );
@@ -117,6 +122,7 @@ main( int argc, char **argv )
 		case 'w':		/* the server managers password */
 			passwd.bv_val = strdup( optarg );
 			passwd.bv_len = strlen( optarg );
+			memset( optarg, '*', passwd.bv_len );
 			break;
 
 		case 'f':		/* file with entry search request */

@@ -589,6 +589,8 @@ LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, const char *dir ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
 	char ***, char *, const char * ));
+LDAP_SLAPD_F (int) bverb_to_mask LDAP_P((
+	struct berval *bword,  slap_verbmasks *v ));
 LDAP_SLAPD_F (int) verb_to_mask LDAP_P((
 	const char *word,  slap_verbmasks *v ));
 LDAP_SLAPD_F (int) verbs_to_mask LDAP_P((
@@ -608,6 +610,7 @@ LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
 LDAP_SLAPD_F (int) bindconf_tls_set LDAP_P((
 	slap_bindconf *bc, LDAP *ld ));
 LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
+LDAP_SLAPD_F (int) slap_client_connect LDAP_P(( LDAP **ldp, slap_bindconf *sb, int version ));
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));
 LDAP_SLAPD_F (char *) anlist_unparse LDAP_P(( AttributeName *, char *, ber_len_t buflen ));
@@ -695,7 +698,7 @@ LDAP_SLAPD_F (ContentRule *) cr_bvfind LDAP_P((
 LDAP_SLAPD_V( const struct berval ) slap_ldapsync_bv;
 LDAP_SLAPD_V( const struct berval ) slap_ldapsync_cn_bv;
 LDAP_SLAPD_F (void) slap_get_commit_csn LDAP_P((
-	Operation *, struct berval *maxcsn, struct berval *curcsn ));
+	Operation *, struct berval *maxcsn ));
 LDAP_SLAPD_F (void) slap_rewind_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (void) slap_graduate_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (Entry *) slap_create_context_csn_entry LDAP_P(( Backend *, struct berval *));
@@ -727,7 +730,7 @@ LDAP_SLAPD_F (int) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_abrupt_shutdown;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
 LDAP_SLAPD_V (int) slapd_register_slp;
-LDAP_SLAPD_V (char *) slapd_slp_attrs;
+LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 LDAP_SLAPD_V (slap_ssf_t) local_ssf;
 LDAP_SLAPD_V (struct runqueue_s) slapd_rq;
 
@@ -1020,6 +1023,10 @@ LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
  */
 LDAP_SLAPD_F (int)
 parse_debug_level LDAP_P(( const char *arg, int *levelp, char ***unknowns ));
+LDAP_SLAPD_F (int)
+parse_syslog_level LDAP_P(( const char *arg, int *levelp ));
+LDAP_SLAPD_F (int)
+parse_syslog_user LDAP_P(( const char *arg, int *syslogUser ));
 LDAP_SLAPD_F (int)
 parse_debug_unknowns LDAP_P(( char **unknowns, int *levelp ));
 

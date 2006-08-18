@@ -61,6 +61,7 @@ usage( char *name )
 		"[-C] "
 		"[-F] "
 		"[-f filter] "
+		"[-i <ignore>] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
@@ -88,9 +89,12 @@ main( int argc, char **argv )
 	int		chaserefs = 0;
 	int		noattrs = 0;
 
-	tester_init( "slapd-read" );
+	tester_init( "slapd-read", TESTER_READ );
 
-	while ( (i = getopt( argc, argv, "ACD:H:h:p:e:Ff:l:L:r:t:w:" )) != EOF ) {
+	/* by default, tolerate referrals and no such object */
+	tester_ignore_str2errlist( "REFERRAL,NO_SUCH_OBJECT" );
+
+	while ( (i = getopt( argc, argv, "ACD:H:h:i:p:e:Ff:l:L:r:t:w:" )) != EOF ) {
 		switch( i ) {
 		case 'A':
 			noattrs++;
@@ -108,6 +112,10 @@ main( int argc, char **argv )
 			host = strdup( optarg );
 			break;
 
+		case 'i':
+			tester_ignore_str2errlist( optarg );
+			break;
+
 		case 'p':		/* the servers port */
 			if ( lutil_atoi( &port, optarg ) != 0 ) {
 				usage( argv[0] );
@@ -121,6 +129,7 @@ main( int argc, char **argv )
 		case 'w':		/* the server managers password */
 			passwd.bv_val = strdup( optarg );
 			passwd.bv_len = strlen( optarg );
+			memset( optarg, '*', passwd.bv_len );
 			break;
 
 		case 'e':		/* DN to search for */
@@ -261,7 +270,8 @@ do_random( char *uri, char *manager, struct berval *passwd,
 		ldap_msgfree( res );
 
 		if ( do_retry == maxretries ) {
-			fprintf( stderr, "PID=%ld - got %d values.\n", (long) pid, nvalues );
+			fprintf( stderr, "  PID=%ld - Read base=\"%s\" filter=\"%s\" got %d values.\n",
+				(long) pid, sbase, filter, nvalues );
 		}
 
 		for ( i = 0; i < innerloop; i++ ) {
@@ -294,7 +304,6 @@ do_read( char *uri, char *manager, struct berval *passwd, char *entry,
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
-	int	first = 1;
 
 retry:;
 	if ( ld == NULL ) {
@@ -341,39 +350,37 @@ retry:;
 		rc = ldap_search_ext_s( ld, entry, LDAP_SCOPE_BASE,
 				NULL, attrs, noattrs, NULL, NULL, NULL,
 				LDAP_NO_LIMIT, &res );
-		switch ( rc ) {
-		case LDAP_REFERRAL:
-			/* don't log: it's intended */
-			if ( force >= 2 ) {
-				if ( !first ) {
-					break;
-				}
-				first = 0;
-			}
-			tester_ldap_error( ld, "ldap_search_ext_s", NULL );
-			/* fallthru */
-
-		case LDAP_SUCCESS:
-			break;
-
-		default:
-			tester_ldap_error( ld, "ldap_search_ext_s", NULL );
-			if ( rc == LDAP_BUSY && do_retry > 0 ) {
-				do_retry--;
-				goto retry;
-			}
-			if ( rc != LDAP_NO_SUCH_OBJECT ) {
-				goto done;
-			}
-			break;
-		}
-
 		if ( res != NULL ) {
 			ldap_msgfree( res );
 		}
+
+		if ( rc ) {
+			unsigned	first = tester_ignore_err( rc );
+			char		buf[ BUFSIZ ];
+
+			snprintf( buf, sizeof( buf ), "ldap_search_ext_s(%s)", entry );
+
+			/* if ignore.. */
+			if ( first ) {
+				/* only log if first occurrence */
+				if ( force < 2 || first == 1 ) {
+					tester_ldap_error( ld, buf, NULL );
+				}
+				continue;
+			}
+
+			/* busy needs special handling */
+			tester_ldap_error( ld, buf, NULL );
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				ldap_unbind_ext( ld, NULL, NULL );
+				ld = NULL;
+				do_retry--;
+				goto retry;
+			}
+			break;
+		}
 	}
 
-done:;
 	if ( ldp != NULL ) {
 		*ldp = ld;
 

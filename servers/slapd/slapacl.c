@@ -330,6 +330,9 @@ slapacl( int argc, char **argv )
 						attr );
 				invalid = 1;
 				break;
+
+			default:
+				break;
 			}
 
 			if ( invalid ) {

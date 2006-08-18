@@ -12,7 +12,6 @@ OpenLDAP LDAP (libldap, -lldap)
 .nf
 .ft B
 #include <ldap.h>
-.ft
 .LP
 .ft B
 int ldap_is_ldap_url( const char *url )
@@ -37,7 +36,7 @@ typedef struct ldap_url_desc {
 ldap_free_urldesc( LDAPURLDesc *ludp )
 .SH DESCRIPTION
 These routines support the use of LDAP URLs (Uniform Resource Locators)
-as detailed in RFC 2255.  LDAP URLs look like this:
+as detailed in RFC 4516.  LDAP URLs look like this:
 .nf
 
   \fBldap://\fP\fIhostport\fP\fB/\fP\fIdn\fP[\fB?\fP\fIattrs\fP[\fB?\fP\fIscope\fP[\fB?\fP\fIfilter\fP[\fB?\fP\fIexts\fP]]]]
@@ -57,7 +56,7 @@ Example:
 .fi
 .LP
 URLs that are wrapped in angle-brackets and/or preceded by "URL:" are also
-tolerated.  Alternative schemes such as ldaps:// and ldapi:// may be
+tolerated.  Alternative LDAP schemes such as ldaps:// and ldapi:// may be
 parsed using the below routines as well.
 .LP
 .B ldap_is_ldap_url()
@@ -78,12 +77,9 @@ should be called to free an LDAP URL description that was obtained from
 a call to
 .B ldap_url_parse().
 .SH SEE ALSO
+.nf
 .BR ldap (3)
-.LP
-.B The LDAP URL Format, RFC 2255,
-Tim Howes and Mark Smith, December 1997.
+.BR "RFC 4516" " <http://www.rfc-editor.org/rfc/rfc4516.txt>"
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.fi
+.so ../Project

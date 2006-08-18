@@ -56,6 +56,7 @@ int ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_s
 int ldap_back_map_result( SlapReply *rs );
 int ldap_back_op_result( ldapconn_t *lc, Operation *op, SlapReply *rs,
 	ber_int_t msgid, time_t timeout, ldap_back_send_t sendok );
+int ldap_back_cancel( ldapconn_t *lc, Operation *op, SlapReply *rs, ber_int_t msgid, ldap_back_send_t sendok );
 
 int ldap_back_init_cf( BackendInfo *bi );
 
@@ -66,7 +67,9 @@ extern void ldap_back_conn_free( void *c );
 
 extern int
 ldap_back_proxy_authz_ctrl(
-		ldapconn_t	*lc,
+		struct berval	*bound_ndn,
+		int		version,
+		slap_idassert_t	*si,
 		Operation	*op,
 		SlapReply	*rs,
 		LDAPControl	***pctrls );
@@ -76,8 +79,21 @@ ldap_back_proxy_authz_ctrl_free(
 		Operation	*op,
 		LDAPControl	***pctrls );
 
+extern void
+ldap_back_quarantine(
+	Operation	*op,
+	SlapReply	*rs );
+
+extern void slap_retry_info_destroy( slap_retry_info_t *ri );
+extern int slap_retry_info_parse( char *in, slap_retry_info_t *ri,
+	char *buf, ber_len_t buflen );
+extern int slap_retry_info_unparse( slap_retry_info_t *ri, struct berval *bvout );
+
+extern int slap_idassert_authzfrom_parse_cf( const char *fname, int lineno, const char *arg, slap_idassert_t *si );
+extern int slap_idassert_parse_cf( const char *fname, int lineno, int argc, char *argv[], slap_idassert_t *si );
+
 extern int chain_initialize( void );
-#ifdef LDAP_DEVEL
+#ifdef SLAP_DISTPROC
 extern int distproc_initialize( void );
 #endif
 

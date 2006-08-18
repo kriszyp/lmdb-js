@@ -36,14 +36,14 @@ ldap_back_modrdn(
 		Operation	*op,
  		SlapReply	*rs )
 {
-	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t	*lc;
-	ber_int_t	msgid;
-	LDAPControl	**ctrls = NULL;
-	int		do_retry = 1;
-	int		rc = LDAP_SUCCESS;
-	char		*newSup = NULL;
+	ldapconn_t		*lc;
+	ber_int_t		msgid;
+	LDAPControl		**ctrls = NULL;
+	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
+	int			rc = LDAP_SUCCESS;
+	char			*newSup = NULL;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
@@ -74,7 +74,8 @@ ldap_back_modrdn(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		rc = -1;
@@ -86,9 +87,10 @@ retry:
 			op->orr_newrdn.bv_val, newSup,
 			op->orr_deleteoldrdn, ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
-		li->li_timeout[ LDAP_BACK_OP_MODRDN ], LDAP_BACK_SENDRESULT );
-	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
-		do_retry = 0;
+		li->li_timeout[ LDAP_BACK_OP_MODRDN ],
+		( LDAP_BACK_SENDRESULT | retrying ) );
+	if ( rs->sr_err == LDAP_SERVER_DOWN && retrying ) {
+		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}

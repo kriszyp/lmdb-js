@@ -339,7 +339,7 @@ static struct slap_daemon {
 static char** slapd_srvurls = NULL;
 static SLPHandle slapd_hslp = 0;
 int slapd_register_slp = 0;
-char *slapd_slp_attrs = NULL;
+const char *slapd_slp_attrs = NULL;
 
 static SLPError slapd_slp_cookie;
 
@@ -526,6 +526,8 @@ void slapd_remove(
 	if ( waswriter ) slap_daemon.sd_nwriters--;
 
 	SLAP_DEL_SOCK(s);
+
+	tcp_close(s);
 
 	/* If we ran out of file descriptors, we dropped a listener from
 	 * the select() loop. Now that we're removing a session from our

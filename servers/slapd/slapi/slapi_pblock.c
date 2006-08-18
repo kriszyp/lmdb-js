@@ -168,6 +168,16 @@ pblock_get_param_class( int param )
 	case SLAPI_X_PLUGIN_PRE_GROUP_FN:
 	case SLAPI_X_PLUGIN_POST_GROUP_FN:
 	case SLAPI_PLUGIN_AUDIT_FN:
+	case SLAPI_PLUGIN_INTERNAL_PRE_BIND_FN:
+	case SLAPI_PLUGIN_INTERNAL_PRE_UNBIND_FN:
+	case SLAPI_PLUGIN_INTERNAL_PRE_SEARCH_FN:
+	case SLAPI_PLUGIN_INTERNAL_PRE_COMPARE_FN:
+	case SLAPI_PLUGIN_INTERNAL_PRE_ABANDON_FN:
+	case SLAPI_PLUGIN_INTERNAL_POST_BIND_FN:
+	case SLAPI_PLUGIN_INTERNAL_POST_UNBIND_FN:
+	case SLAPI_PLUGIN_INTERNAL_POST_SEARCH_FN:
+	case SLAPI_PLUGIN_INTERNAL_POST_COMPARE_FN:
+	case SLAPI_PLUGIN_INTERNAL_POST_ABANDON_FN:
 		return PBLOCK_CLASS_FUNCTION_POINTER;
 		break;
 
@@ -473,7 +483,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((ber_tag_t *)value) = pb->pb_op->o_delete_glue_parent;
+		*((int *)value) = pb->pb_op->o_delete_glue_parent;
 		break;
 	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -492,6 +502,10 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		} else {
 			rc = PBLOCK_ERROR;
 		}
+		break;
+	case SLAPI_X_OPERATION_NO_SUBORDINATE_GLUE:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((int *)value) = pb->pb_op->o_no_subordinate_glue;
 		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -572,6 +586,12 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_CONN_DN:
 		PBLOCK_ASSERT_CONN( pb );
+#if 0
+		/* This would be necessary to keep plugin compat after the fix in ITS#4158 */
+		if ( pb->pb_op->o_tag == LDAP_REQ_BIND && pb->pb_rs->sr_err == LDAP_SUCCESS )
+			*((char **)value) = pb->pb_op->orb_edn.bv_val;
+		else
+#endif
 		*((char **)value) = pb->pb_conn->c_dn.bv_val;
 		break;
 	case SLAPI_CONN_CLIENTIP:
@@ -590,14 +610,14 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_CONN_SERVERIP:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
+		if ( strncmp( pb->pb_conn->c_sock_name.bv_val, "IP=", 3 ) == 0 )
 			*((char **)value) = &pb->pb_conn->c_sock_name.bv_val[3];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_X_CONN_SERVERPATH:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
+		if ( strncmp( pb->pb_conn->c_sock_name.bv_val, "PATH=", 3 ) == 0 )
 			*((char **)value) = &pb->pb_conn->c_sock_name.bv_val[5];
 		else
 			*value = NULL;
@@ -873,6 +893,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_no_schema_check = *((int *)value);
 		break;
+	case SLAPI_X_OPERATION_NO_SUBORDINATE_GLUE:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_op->o_no_subordinate_glue = *((int *)value);
+		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_ctrls = (LDAPControl **)value;
@@ -1098,7 +1122,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_SEARCH_ATTRS: {
 		AttributeName *an = NULL;
-		size_t i = 0;
+		size_t i = 0, j = 0;
 		char **attrs = (char **)value;
 
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1122,18 +1146,20 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 				;
 		}
 		if ( i ) {
-			an = (AttributeName *)pb->pb_op->o_tmpalloc( (i + 1) *
+			an = (AttributeName *)pb->pb_op->o_tmpcalloc( i + 1,
 				sizeof(AttributeName), pb->pb_op->o_tmpmemctx );
 			for ( i = 0; attrs[i] != NULL; i++ ) {
-				an[i].an_desc = NULL;
-				an[i].an_oc = NULL;
-				an[i].an_oc_exclude = 0;
-				an[i].an_name.bv_val = attrs[i];
-				an[i].an_name.bv_len = strlen( attrs[i] );
-				slap_bv2ad( &an[i].an_name, &an[i].an_desc, &pb->pb_rs->sr_text );
+				an[j].an_desc = NULL;
+				an[j].an_oc = NULL;
+				an[j].an_oc_exclude = 0;
+				an[j].an_name.bv_val = attrs[i];
+				an[j].an_name.bv_len = strlen( attrs[i] );
+				if ( slap_bv2ad( &an[j].an_name, &an[j].an_desc, &pb->pb_rs->sr_text ) == LDAP_SUCCESS ) {
+					j++;
+				}
 			}
-			an[i].an_name.bv_val = NULL;
-			an[i].an_name.bv_len = 0;
+			an[j].an_name.bv_val = NULL;
+			an[j].an_name.bv_len = 0;
 		}	
 		pb->pb_op->ors_attrs = an;
 		break;

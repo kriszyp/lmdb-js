@@ -130,15 +130,23 @@ meta_back_db_open(
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
-		if ( mt->mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER )
-		{
-			mt->mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+		if ( META_BACK_TGT_T_F_DISCOVER( mt ) ) {
 			rc = slap_discover_feature( mt->mt_uri,
 					mt->mt_version,
 					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 					LDAP_FEATURE_ABSOLUTE_FILTERS );
 			if ( rc == LDAP_COMPARE_TRUE ) {
-				mt->mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
+				mt->mt_flags |= LDAP_BACK_F_T_F;
+			}
+		}
+
+		if ( META_BACK_TGT_CANCEL_DISCOVER( mt ) ) {
+			rc = slap_discover_feature( mt->mt_uri,
+					mt->mt_version,
+					slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
+					LDAP_EXOP_CANCEL );
+			if ( rc == LDAP_COMPARE_TRUE ) {
+				mt->mt_flags |= LDAP_BACK_F_CANCEL_EXOP;
 			}
 		}
 	}
@@ -146,27 +154,33 @@ meta_back_db_open(
 	return 0;
 }
 
+/*
+ * meta_back_conn_free()
+ *
+ * actually frees a connection; the reference count must be 0,
+ * and it must not (or no longer) be in the cache.
+ */
 void
 meta_back_conn_free( 
 	void 		*v_mc )
 {
 	metaconn_t		*mc = v_mc;
-	int			i, ntargets;
+	int			ntargets;
 
 	assert( mc != NULL );
 	assert( mc->mc_refcnt == 0 );
 
-	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
-		free( mc->mc_local_ndn.bv_val );
+	/* at least one must be present... */
+	assert( mc->mc_conns != NULL );
+	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
+	assert( ntargets > 0 );
+
+	for ( ; ntargets--; ) {
+		(void)meta_clear_one_candidate( &mc->mc_conns[ ntargets ] );
 	}
 
-	assert( mc->mc_conns != NULL );
-
-	/* at least one must be present... */
-	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
-
-	for ( i = 0; i < ntargets; i++ ) {
-		(void)meta_clear_one_candidate( &mc->mc_conns[ i ] );
+	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
+		free( mc->mc_local_ndn.bv_val );
 	}
 
 	free( mc );
@@ -216,11 +230,26 @@ target_free(
 	if ( !BER_BVISNULL( &mt->mt_bindpw ) ) {
 		free( mt->mt_bindpw.bv_val );
 	}
-	if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
-		free( mt->mt_pseudorootdn.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_idassert_authcID ) ) {
+		ch_free( mt->mt_idassert_authcID.bv_val );
 	}
-	if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
-		free( mt->mt_pseudorootpw.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_idassert_authcDN ) ) {
+		ch_free( mt->mt_idassert_authcDN.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_passwd ) ) {
+		ch_free( mt->mt_idassert_passwd.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_authzID ) ) {
+		ch_free( mt->mt_idassert_authzID.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_sasl_mech ) ) {
+		ch_free( mt->mt_idassert_sasl_mech.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_sasl_realm ) ) {
+		ch_free( mt->mt_idassert_sasl_realm.bv_val );
+	}
+	if ( mt->mt_idassert_authz != NULL ) {
+		ber_bvarray_free( mt->mt_idassert_authz );
 	}
 	if ( mt->mt_rwmap.rwm_rw ) {
 		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
@@ -259,7 +288,18 @@ meta_back_db_destroy(
 		 */
 		if ( mi->mi_targets != NULL ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				target_free( mi->mi_targets[ i ] );
+				metatarget_t	*mt = mi->mi_targets[ i ];
+
+				if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+					if ( mt->mt_quarantine.ri_num != mi->mi_quarantine.ri_num )
+					{
+						slap_retry_info_destroy( &mt->mt_quarantine );
+					}
+
+					ldap_pvt_thread_mutex_destroy( &mt->mt_quarantine_mutex );
+				}
+
+				target_free( mt );
 			}
 
 			free( mi->mi_targets );
@@ -278,6 +318,10 @@ meta_back_db_destroy(
 
 		if ( mi->mi_candidates != NULL ) {
 			ber_memfree_x( mi->mi_candidates, NULL );
+		}
+
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			slap_retry_info_destroy( &mi->mi_quarantine );
 		}
 	}
 

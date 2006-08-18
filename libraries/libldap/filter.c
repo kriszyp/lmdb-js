@@ -16,8 +16,8 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997).
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
+/* Portions Copyright (C) The Internet Society (2006)
+ * ASN.1 fragments are from RFC 4511; see RFC for full legal notices.
  */
 
 #include "portable.h"
@@ -334,36 +334,36 @@ ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 	int	parens, balance, escape;
 
 	/*
-	 * A Filter looks like this:
-	 *      Filter ::= CHOICE {
-	 *              and             [0]     SET OF Filter,
-	 *              or              [1]     SET OF Filter,
-	 *              not             [2]     Filter,
-	 *              equalityMatch   [3]     AttributeValueAssertion,
-	 *              substrings      [4]     SubstringFilter,
-	 *              greaterOrEqual  [5]     AttributeValueAssertion,
-	 *              lessOrEqual     [6]     AttributeValueAssertion,
-	 *              present         [7]     AttributeType,
-	 *              approxMatch     [8]     AttributeValueAssertion,
-	 *		extensibleMatch [9]	MatchingRuleAssertion -- LDAPv3
-	 *      }
+	 * A Filter looks like this (RFC 4511 as extended by RFC 4526):
+	 *     Filter ::= CHOICE {
+	 *         and             [0]     SET SIZE (0..MAX) OF filter Filter,
+	 *         or              [1]     SET SIZE (0..MAX) OF filter Filter,
+	 *         not             [2]     Filter,
+	 *         equalityMatch   [3]     AttributeValueAssertion,
+	 *         substrings      [4]     SubstringFilter,
+	 *         greaterOrEqual  [5]     AttributeValueAssertion,
+	 *         lessOrEqual     [6]     AttributeValueAssertion,
+	 *         present         [7]     AttributeDescription,
+	 *         approxMatch     [8]     AttributeValueAssertion,
+	 *         extensibleMatch [9]     MatchingRuleAssertion,
+	 *         ... }
 	 *
-	 *      SubstringFilter ::= SEQUENCE {
-	 *              type               AttributeType,
-	 *              SEQUENCE OF CHOICE {
-	 *                      initial          [0] IA5String,
-	 *                      any              [1] IA5String,
-	 *                      final            [2] IA5String
-	 *              }
-	 *      }
+	 *     SubstringFilter ::= SEQUENCE {
+	 *         type         AttributeDescription,
+	 *         substrings   SEQUENCE SIZE (1..MAX) OF substring CHOICE {
+	 *             initial          [0] AssertionValue, -- only once
+	 *             any              [1] AssertionValue,
+	 *             final            [2] AssertionValue  -- only once
+	 *             }
+	 *         }
 	 *
-	 *	MatchingRuleAssertion ::= SEQUENCE {	-- LDAPv3
-	 *		matchingRule    [1] MatchingRuleId OPTIONAL,
-	 *		type            [2] AttributeDescription OPTIONAL,
-	 *		matchValue      [3] AssertionValue,
-	 *		dnAttributes    [4] BOOLEAN DEFAULT FALSE }
+	 *	   MatchingRuleAssertion ::= SEQUENCE {
+	 *         matchingRule    [1] MatchingRuleId OPTIONAL,
+	 *         type            [2] AttributeDescription OPTIONAL,
+	 *         matchValue      [3] AssertionValue,
+	 *         dnAttributes    [4] BOOLEAN DEFAULT FALSE }
 	 *
-	 * Note: tags in a choice are always explicit
+	 * Note: tags in a CHOICE are always explicit
 	 */
 
 	Debug( LDAP_DEBUG_TRACE, "put_filter: \"%s\"\n", str_in, 0, 0 );
@@ -586,7 +586,7 @@ put_simple_filter(
 		break;
 
 	case ':':
-		/* RFC2254 extensible filters are off the form:
+		/* RFC 4515 extensible filters are off the form:
 		 *		type [:dn] [:rule] := value
 		 * or	[:dn]:rule := value		
 		 */

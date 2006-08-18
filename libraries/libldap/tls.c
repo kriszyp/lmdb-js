@@ -93,6 +93,7 @@ static void tls_locking_cb( int mode, int type, const char *file, int line )
  */
 
 static ldap_pvt_thread_mutex_t tls_def_ctx_mutex;
+static ldap_pvt_thread_mutex_t tls_connect_mutex;
 
 static void tls_init_threads( void )
 {
@@ -105,6 +106,7 @@ static void tls_init_threads( void )
 	/* FIXME: the thread id should be added somehow... */
 
 	ldap_pvt_thread_mutex_init( &tls_def_ctx_mutex );
+	ldap_pvt_thread_mutex_init( &tls_connect_mutex );
 }
 #endif /* LDAP_R_COMPILE */
 
@@ -862,7 +864,13 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
 	}
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &tls_connect_mutex );
+#endif
 	err = SSL_accept( ssl );
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &tls_connect_mutex );
+#endif
 
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
@@ -1358,6 +1366,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		if ( lo->ldo_tls_ctx )
 			SSL_CTX_free( lo->ldo_tls_ctx );
 		lo->ldo_tls_ctx = arg;
+		CRYPTO_add( &((SSL_CTX *)arg)->references, 1, CRYPTO_LOCK_SSL_CTX );
 		return 0;
 	case LDAP_OPT_X_TLS_CONNECT_CB:
 		lo->ldo_tls_connect_cb = (LDAP_TLS_CONNECT_CB *)arg;

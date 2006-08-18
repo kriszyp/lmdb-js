@@ -326,6 +326,19 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# ITS#4604
+echo "Testing undefined attribute in filter..."
+echo "# Testing undefined attribute in filter..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(|(o=example)(foobar=x))" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Testing objectClass inheritance in filter..."
 echo "# Testing objectClass inheritance in filter..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \

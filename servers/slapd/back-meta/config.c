@@ -72,6 +72,13 @@ meta_back_new_target(
 
 	ldap_pvt_thread_mutex_init( &mt->mt_uri_mutex );
 
+	mt->mt_idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
+	mt->mt_idassert_authmethod = LDAP_AUTH_NONE;
+	mt->mt_idassert_tls = SB_TLS_DEFAULT;
+
+	/* by default, use proxyAuthz control on each operation */
+	mt->mt_idassert_flags = LDAP_BACK_AUTH_PRESCRIPTIVE;
+
 	*mtp = mt;
 
 	return 0;
@@ -171,6 +178,10 @@ meta_back_db_config(
 		mt->mt_urllist_p = mt;
 
 		mt->mt_nretries = mi->mi_nretries;
+		mt->mt_quarantine = mi->mi_quarantine;
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			ldap_pvt_thread_mutex_init( &mt->mt_quarantine_mutex );
+		}
 		mt->mt_flags = mi->mi_flags;
 		mt->mt_version = mi->mi_version;
 		mt->mt_network_timeout = mi->mi_network_timeout;
@@ -734,16 +745,16 @@ meta_back_db_config(
 
 		switch ( check_true_false( argv[ 1 ] ) ) {
 		case 0:
-			*flagsp &= ~(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER);
+			*flagsp &= ~LDAP_BACK_F_T_F_MASK2;
 			break;
 
 		case 1:
-			*flagsp |= LDAP_BACK_F_SUPPORT_T_F;
+			*flagsp |= LDAP_BACK_F_T_F;
 			break;
 
 		default:
 			if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
-				*flagsp |= LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+				*flagsp |= LDAP_BACK_F_T_F_DISCOVER;
 
 			} else {
 				Debug( LDAP_DEBUG_ANY,
@@ -777,10 +788,12 @@ meta_back_db_config(
 		}
 
 	/* bind-defer? */
-	} else if ( strcasecmp( argv[ 0 ], "pseudoroot-bind-defer" ) == 0 ) {
+	} else if ( strcasecmp( argv[ 0 ], "pseudoroot-bind-defer" ) == 0
+		|| strcasecmp( argv[ 0 ], "root-bind-defer" ) == 0 )
+	{
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\" takes 1 argument\n",
+	"%s: line %d: \"[pseudo]root-bind-defer {FALSE|true}\" takes 1 argument\n",
 				fname, lineno, 0 );
 			return( 1 );
 		}
@@ -796,7 +809,7 @@ meta_back_db_config(
 
 		default:
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"pseudoroot-bind-defer {FALSE|true}\": invalid arg \"%s\".\n",
+	"%s: line %d: \"[pseudo]root-bind-defer {FALSE|true}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
@@ -832,6 +845,41 @@ meta_back_db_config(
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
+
+	} else if ( strcasecmp( argv[ 0 ], "cancel" ) == 0 ) {
+		unsigned 	flag = 0;
+		unsigned	*flagsp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
+				: &mi->mi_flags;
+
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"cancel {abandon|ignore|exop}\" takes 1 argument\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[ 1 ], "abandon" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_ABANDON;
+
+		} else if ( strcasecmp( argv[ 1 ], "ignore" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_IGNORE;
+
+		} else if ( strcasecmp( argv[ 1 ], "exop" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_EXOP;
+
+		} else if ( strcasecmp( argv[ 1 ], "exop-discover" ) == 0 ) {
+			flag = LDAP_BACK_F_CANCEL_EXOP_DISCOVER;
+
+		} else {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"cancel {abandon|ignore|exop[-discover]}\": unknown mode \"%s\" \n",
+				fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+
+		*flagsp &= ~LDAP_BACK_F_CANCEL_MASK2;
+		*flagsp |= flag;
 
 	} else if ( strcasecmp( argv[ 0 ], "timeout" ) == 0 ) {
 		char	*sep;
@@ -901,7 +949,6 @@ meta_back_db_config(
 	/* name to use as pseudo-root dn */
 	} else if ( strcasecmp( argv[ 0 ], "pseudorootdn" ) == 0 ) {
 		int 		i = mi->mi_ntargets - 1;
-		struct berval	dn;
 
 		if ( i < 0 ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -917,15 +964,74 @@ meta_back_db_config(
 			return 1;
 		}
 
-		dn.bv_val = argv[ 1 ];
-		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize( 0, NULL, NULL, &dn,
-			&mi->mi_targets[ i ]->mt_pseudorootdn, NULL ) != LDAP_SUCCESS )
+		/*
+		 * exact replacement:
+		 *
+
+idassert-bind	bindmethod=simple
+		binddn=<pseudorootdn>
+		credentials=<pseudorootpw>
+		mode=none
+		flags=non-prescriptive
+idassert-authzFrom	"dn:<rootdn>"
+
+		 * so that only when authc'd as <rootdn> the proxying occurs
+		 * rebinding as the <pseudorootdn> without proxyAuthz.
+		 */
+
+		Debug( LDAP_DEBUG_ANY,
+			"%s: line %d: \"pseudorootdn\", \"pseudorootpw\" are no longer supported; "
+			"use \"idassert-bind\" and \"idassert-authzFrom\" instead.\n",
+			fname, lineno, 0 );
+
 		{
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"pseudoroot DN '%s' is invalid\n",
-					fname, lineno, argv[ 1 ] );
-			return( 1 );
+			char	binddn[ SLAP_TEXT_BUFLEN ];
+			char	*cargv[] = {
+				"idassert-bind",
+				"bindmethod=simple",
+				NULL,
+				"mode=none",
+				"flags=non-prescriptive",
+				NULL
+			};
+			int	cargc = 5;
+			int	rc;
+
+			if ( BER_BVISNULL( &be->be_rootndn ) ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: \"pseudorootpw\": \"rootdn\" must be defined first.\n",
+					fname, lineno, 0 );
+				return 1;
+			}
+
+			if ( snprintf( binddn, sizeof( binddn ), "binddn=%s", argv[ 1 ] ) >= sizeof( binddn ) ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: \"pseudorootdn\" too long.\n",
+					fname, lineno, 0 );
+				return 1;
+			}
+			cargv[ 2 ] = binddn;
+
+			rc = slap_idassert_parse_cf( fname, lineno, cargc, cargv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+			if ( rc == 0 ) {
+				struct berval	bv;
+
+				if ( mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz != NULL ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: \"idassert-authzFrom\" already defined (discarded).\n",
+						fname, lineno, 0 );
+					ber_bvarray_free( mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz );
+					mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz = NULL;
+				}
+
+				assert( !BER_BVISNULL( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authcDN ) );
+
+				bv.bv_len = STRLENOF( "dn:" ) + be->be_rootndn.bv_len;
+				bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+				AC_MEMCPY( bv.bv_val, "dn:", STRLENOF( "dn:" ) );
+				AC_MEMCPY( &bv.bv_val[ STRLENOF( "dn:" ) ], be->be_rootndn.bv_val, be->be_rootndn.bv_len + 1 );
+
+				ber_bvarray_add( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert_authz, &bv );
+			}
+
+			return rc;
 		}
 
 	/* password to use as pseudo-root */
@@ -945,7 +1051,114 @@ meta_back_db_config(
 			    fname, lineno, 0 );
 			return 1;
 		}
-		ber_str2bv( argv[ 1 ], 0L, 1, &mi->mi_targets[ i ]->mt_pseudorootpw );
+
+		Debug( LDAP_DEBUG_ANY,
+			"%s: line %d: \"pseudorootdn\", \"pseudorootpw\" are no longer supported; "
+			"use \"idassert-bind\" and \"idassert-authzFrom\" instead.\n",
+			fname, lineno, 0 );
+
+		if ( BER_BVISNULL( &mi->mi_targets[ i ]->mt_idassert_authcDN ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: \"pseudorootpw\": \"pseudorootdn\" must be defined first.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( !BER_BVISNULL( &mi->mi_targets[ i ]->mt_idassert_passwd ) ) {
+			memset( mi->mi_targets[ i ]->mt_idassert_passwd.bv_val, 0,
+				mi->mi_targets[ i ]->mt_idassert_passwd.bv_len );
+			ber_memfree( mi->mi_targets[ i ]->mt_idassert_passwd.bv_val );
+		}
+		ber_str2bv( argv[ 1 ], 0, 1, &mi->mi_targets[ i ]->mt_idassert_passwd );
+
+	/* idassert-bind */
+	} else if ( strcasecmp( argv[ 0 ], "idassert-bind" ) == 0 ) {
+		if ( mi->mi_ntargets == 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: \"idassert-bind\" "
+				"must appear inside a target specification.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		return slap_idassert_parse_cf( fname, lineno, argc, argv, &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+
+	/* idassert-authzFrom */
+	} else if ( strcasecmp( argv[ 0 ], "idassert-authzFrom" ) == 0 ) {
+		if ( mi->mi_ntargets == 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: \"idassert-bind\" "
+				"must appear inside a target specification.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		switch ( argc ) {
+		case 2:
+			break;
+
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing <id> in \"idassert-authzFrom <id>\".\n",
+				fname, lineno, 0 );
+			return 1;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: extra cruft after <id> in \"idassert-authzFrom <id>\".\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		return slap_idassert_authzfrom_parse_cf( fname, lineno, argv[ 1 ], &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_idassert );
+
+	/* quarantine */
+	} else if ( strcasecmp( argv[ 0 ], "quarantine" ) == 0 ) {
+		char			buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
+		slap_retry_info_t	*ri = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine
+				: &mi->mi_quarantine;
+
+		if ( ( mi->mi_ntargets == 0 && META_BACK_QUARANTINE( mi ) )
+			|| ( mi->mi_ntargets > 0 && META_BACK_TGT_QUARANTINE( mi->mi_targets[ mi->mi_ntargets - 1 ] ) ) )
+		{
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: quarantine already defined.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		switch ( argc ) {
+		case 2:
+			break;
+
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing arg in \"quarantine <pattern list>\".\n",
+				fname, lineno, 0 );
+			return 1;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: extra cruft after \"quarantine <pattern list>\".\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( ri != &mi->mi_quarantine ) {
+			ri->ri_interval = NULL;
+			ri->ri_num = NULL;
+		}
+
+		if ( mi->mi_ntargets > 0 && !META_BACK_QUARANTINE( mi ) ) {
+			ldap_pvt_thread_mutex_init( &mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_quarantine_mutex );
+		}
+
+		if ( slap_retry_info_parse( argv[ 1 ], ri, buf, sizeof( buf ) ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s line %d: %s.\n",
+				fname, lineno, buf );
+			return 1;
+		}
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {

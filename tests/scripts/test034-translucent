@@ -196,41 +196,19 @@ if test $RC != 32 ; then
 	exit 1
 fi
 
-echo "Shutting down local slapd..."
-kill -HUP $LOCALPID
-wait $LOCALPID
+echo "Dynamically configuring local slapd without translucent_no_glue..."
 
-echo "Configuring local slapd without translucent_no_glue..."
-. $CONFFILTER $BACKEND $MONITORDB < $TRANSLUCENTLOCALCONF | \
-	grep -v translucent_no_glue > $CONF2
-
-echo "Restarting local slapd on TCP/IP port $PORT2..."
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
-PID=$!
-if test $WAIT != 0 ; then
-    echo PID $PID
-    read foo
-fi
-LOCALPID="$PID"
-KILLPIDS="$REMOTEPID $PID"
-
-sleep 1
-
-for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
-		'objectclass=*' > /dev/null 2>&1
-	RC=$?
-	if test $RC = 0 ; then
-		break
-	fi
-	echo "Waiting 5 seconds for local slapd to start..."
-	sleep 5
-done
-
+$LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF
+dn: olcOverlay={0}translucent,olcDatabase={2}$BACKEND,cn=config
+changetype: modify
+replace: olcTranslucentNoGlue
+olcTranslucentNoGlue: FALSE
+EOF
+RC=$?
 if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+    echo "ldapmodify of dynamic config failed ($RC)"
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit 1
 fi
 
 echo "Testing add: valid local record..."
@@ -619,40 +597,22 @@ if test "$ATTR" != "preferredLanguage: ISO8859-1" ; then
 	exit 1
 fi
 
-echo "Shutting down local slapd..."
-kill -HUP $LOCALPID
-wait $LOCALPID
+echo "Dynamically configuring local slapd with translucent_no_glue and translucent_strict..."
 
-echo "Configuring local slapd with translucent_strict..."
-echo translucent_strict >> $CONF2
-
-echo "Restarting slapd on TCP/IP port $PORT2..."
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
-PID=$!
-if test $WAIT != 0 ; then
-    echo PID $PID
-    read foo
-fi
-LOCALPID="$PID"
-KILLPIDS="$REMOTEPID $PID"
-
-sleep 1
-
-for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
-		'objectclass=*' > /dev/null 2>&1
-	RC=$?
-	if test $RC = 0 ; then
-		break
-	fi
-	echo "Waiting 5 seconds for local slapd to start..."
-	sleep 5
-done
-
+$LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF
+dn: olcOverlay={0}translucent,olcDatabase={2}$BACKEND,cn=config
+changetype: modify
+replace: olcTranslucentNoGlue
+olcTranslucentNoGlue: TRUE
+-
+replace: olcTranslucentStrict
+olcTranslucentStrict: TRUE
+EOF
+RC=$?
 if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+    echo "ldapmodify of dynamic config failed ($RC)"
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit 1
 fi
 
 echo "Testing strict mode delete: nonexistent local attribute..."

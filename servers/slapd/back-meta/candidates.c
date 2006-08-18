@@ -59,40 +59,38 @@
  */
 int 
 meta_back_is_candidate(
-	struct berval	*nsuffix,
-	int		suffixscope,
-	BerVarray	subtree_exclude,
+	metatarget_t	*mt,
 	struct berval	*ndn,
 	int		scope )
 {
-	if ( dnIsSuffix( ndn, nsuffix ) ) {
-		if ( subtree_exclude ) {
+	if ( dnIsSuffix( ndn, &mt->mt_nsuffix ) ) {
+		if ( mt->mt_subtree_exclude ) {
 			int	i;
 
-			for ( i = 0; !BER_BVISNULL( &subtree_exclude[ i ] ); i++ ) {
-				if ( dnIsSuffix( ndn, &subtree_exclude[ i ] ) ) {
+			for ( i = 0; !BER_BVISNULL( &mt->mt_subtree_exclude[ i ] ); i++ ) {
+				if ( dnIsSuffix( ndn, &mt->mt_subtree_exclude[ i ] ) ) {
 					return META_NOT_CANDIDATE;
 				}
 			}
 		}
 
-		switch ( suffixscope ) {
+		switch ( mt->mt_scope ) {
 		case LDAP_SCOPE_SUBTREE:
 		default:
 			return META_CANDIDATE;
 
 		case LDAP_SCOPE_SUBORDINATE:
-			if ( ndn->bv_len > nsuffix->bv_len ) {
+			if ( ndn->bv_len > mt->mt_nsuffix.bv_len ) {
 				return META_CANDIDATE;
 			}
 			break;
 
 		/* nearly useless; not allowed by config */
 		case LDAP_SCOPE_ONELEVEL:
-			if ( ndn->bv_len > nsuffix->bv_len ) {
+			if ( ndn->bv_len > mt->mt_nsuffix.bv_len ) {
 				struct berval	rdn = *ndn;
 
-				rdn.bv_len -= nsuffix->bv_len
+				rdn.bv_len -= mt->mt_nsuffix.bv_len
 					+ STRLENOF( "," );
 				if ( dnIsOneLevelRDN( &rdn ) ) {
 					return META_CANDIDATE;
@@ -102,7 +100,7 @@ meta_back_is_candidate(
 
 		/* nearly useless; not allowed by config */
 		case LDAP_SCOPE_BASE:
-			if ( ndn->bv_len == nsuffix->bv_len ) {
+			if ( ndn->bv_len == mt->mt_nsuffix.bv_len ) {
 				return META_CANDIDATE;
 			}
 			break;
@@ -111,7 +109,7 @@ meta_back_is_candidate(
 		return META_NOT_CANDIDATE;
 	}
 
-	if ( scope == LDAP_SCOPE_SUBTREE && dnIsSuffix( nsuffix, ndn ) ) {
+	if ( scope == LDAP_SCOPE_SUBTREE && dnIsSuffix( &mt->mt_nsuffix, ndn ) ) {
 		/*
 		 * suffix longer than dn, but common part matches
 		 */
@@ -139,11 +137,7 @@ meta_back_select_unique_candidate(
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
-		if ( meta_back_is_candidate( &mt->mt_nsuffix,
-				mt->mt_scope,
-				mt->mt_subtree_exclude,
-				ndn, LDAP_SCOPE_BASE ) )
-		{
+		if ( meta_back_is_candidate( mt, ndn, LDAP_SCOPE_BASE ) ) {
 			if ( candidate == META_TARGET_NONE ) {
 				candidate = i;
 
@@ -174,7 +168,7 @@ meta_clear_unused_candidates(
 		if ( i == candidate ) {
 			continue;
 		}
-		candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+		META_CANDIDATE_RESET( &candidates[ i ] );
 	}
 
 	return 0;
@@ -220,9 +214,7 @@ meta_clear_candidates( Operation *op, metaconn_t *mc )
 	int		c;
 
 	for ( c = 0; c < mi->mi_ntargets; c++ ) {
-		if ( mc->mc_conns[ c ].msc_ld != NULL ) {
-			meta_clear_one_candidate( &mc->mc_conns[ c ] );
-		}
+		meta_clear_one_candidate( &mc->mc_conns[ c ] );
 	}
 
 	return 0;

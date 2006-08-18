@@ -70,7 +70,8 @@ ldap_alloc_ber_with_options( LDAP *ld )
 {
 	BerElement	*ber;
 
-    if (( ber = ber_alloc_t( ld->ld_lberoptions )) == NULL ) {
+	ber = ber_alloc_t( ld->ld_lberoptions );
+	if ( ber == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 	}
 
@@ -236,7 +237,7 @@ ldap_send_server_request(
 	}
 	if ( rc ) return rc;
 
-	lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ));
+	lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ) );
 	if ( lr == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		ldap_free_connection( ld, lc, 0, 0 );
@@ -516,7 +517,7 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 			if ( lsu_port == lcu_port
 				&& strcmp( lcu->lud_scheme, lsu->lud_scheme ) == 0
 				&& lcu->lud_host != NULL && *lcu->lud_host != '\0'
-			    && lsu->lud_host != NULL && *lsu->lud_host != '\0'
+				&& lsu->lud_host != NULL && *lsu->lud_host != '\0'
 				&& strcasecmp( lsu->lud_host, lcu->lud_host ) == 0 )
 			{
 				found = 1;
@@ -646,37 +647,38 @@ ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 	LDAPConn	*lc;
    	char		timebuf[32];
 
-	fprintf( stderr, "** ld %p Connection%s:\n", (void *)ld, all ? "s" : "" );
+	Debug( LDAP_DEBUG_TRACE, "** ld %p Connection%s:\n", (void *)ld, all ? "s" : "", 0 );
 	for ( lc = lconns; lc != NULL; lc = lc->lconn_next ) {
 		if ( lc->lconn_server != NULL ) {
-			fprintf( stderr, "* host: %s  port: %d%s\n",
-			    ( lc->lconn_server->lud_host == NULL ) ? "(null)"
-			    : lc->lconn_server->lud_host,
-			    lc->lconn_server->lud_port, ( lc->lconn_sb ==
-			    ld->ld_sb ) ? "  (default)" : "" );
+			Debug( LDAP_DEBUG_TRACE, "* host: %s  port: %d%s\n",
+				( lc->lconn_server->lud_host == NULL ) ? "(null)"
+				: lc->lconn_server->lud_host,
+				lc->lconn_server->lud_port, ( lc->lconn_sb ==
+				ld->ld_sb ) ? "  (default)" : "" );
 		}
-		fprintf( stderr, "  refcnt: %d  status: %s\n", lc->lconn_refcnt,
-		    ( lc->lconn_status == LDAP_CONNST_NEEDSOCKET ) ?
-		    "NeedSocket" : ( lc->lconn_status ==
-		    LDAP_CONNST_CONNECTING ) ? "Connecting" : "Connected" );
-		fprintf( stderr, "  last used: %s",
-		    ldap_pvt_ctime( &lc->lconn_lastused, timebuf ));
-		if( lc->lconn_rebind_inprogress ) {
-			fprintf( stderr, "  rebind in progress\n");
-			if( lc->lconn_rebind_queue != NULL) {
-				int i = 0;
-				for( ;lc->lconn_rebind_queue[i] != NULL; i++) {
-					int j = 0;
-					for( ;lc->lconn_rebind_queue[i][j] != 0; j++) {
-						fprintf( stderr, "    queue %d entry %d - %s\n",
-							i, j, lc->lconn_rebind_queue[i][j]);
+		Debug( LDAP_DEBUG_TRACE, "  refcnt: %d  status: %s\n", lc->lconn_refcnt,
+			( lc->lconn_status == LDAP_CONNST_NEEDSOCKET )
+			?  "NeedSocket" : ( lc->lconn_status == LDAP_CONNST_CONNECTING )
+			? "Connecting" : "Connected", 0 );
+		Debug( LDAP_DEBUG_TRACE, "  last used: %s%s\n",
+			ldap_pvt_ctime( &lc->lconn_lastused, timebuf ),
+			lc->lconn_rebind_inprogress ? "  rebind in progress" : "", 0 );
+		if ( lc->lconn_rebind_inprogress ) {
+			if ( lc->lconn_rebind_queue != NULL) {
+				int	i;
+
+				for ( i = 0; lc->lconn_rebind_queue[i] != NULL; i++ ) {
+					int	j;
+					for( j = 0; lc->lconn_rebind_queue[i][j] != 0; j++ ) {
+						Debug( LDAP_DEBUG_TRACE, "    queue %d entry %d - %s\n",
+							i, j, lc->lconn_rebind_queue[i][j] );
 					}
 				}
 			} else {
-				fprintf( stderr, "    queue is empty\n");
+				Debug( LDAP_DEBUG_TRACE, "    queue is empty\n", 0, 0, 0 );
 			}
 		}
-		fprintf(stderr, "\n");
+		Debug( LDAP_DEBUG_TRACE, "\n", 0, 0, 0 );
 		if ( !all ) {
 			break;
 		}
@@ -689,46 +691,45 @@ ldap_dump_requests_and_responses( LDAP *ld )
 {
 	LDAPRequest	*lr;
 	LDAPMessage	*lm, *l;
+	int		i;
 
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
-	fprintf( stderr, "** ld %p Outstanding Requests:\n", (void *)ld );
-	if (( lr = ld->ld_requests ) == NULL ) {
-		fprintf( stderr, "   Empty\n" );
+	Debug( LDAP_DEBUG_TRACE, "** ld %p Outstanding Requests:\n",
+		(void *)ld, 0, 0 );
+	lr = ld->ld_requests;
+	if ( lr == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "   Empty\n", 0, 0, 0 );
 	}
-	for ( ; lr != NULL; lr = lr->lr_next ) {
-	    fprintf( stderr, " * msgid %d,  origid %d, status %s\n",
-		lr->lr_msgid, lr->lr_origid,
-		( lr->lr_status == LDAP_REQST_INPROGRESS ) ? "InProgress" :
-		( lr->lr_status == LDAP_REQST_CHASINGREFS ) ? "ChasingRefs" :
-		( lr->lr_status == LDAP_REQST_NOTCONNECTED ) ? "NotConnected" :
-		( lr->lr_status == LDAP_REQST_WRITING ) ? "Writing" :
-		( lr->lr_status == LDAP_REQST_COMPLETED ) ? "RequestCompleted"
-			: "InvalidStatus");
-	    fprintf( stderr, "   outstanding referrals %d, parent count %d\n",
-		    lr->lr_outrefcnt, lr->lr_parentcnt );
+	for ( i = 0; lr != NULL; lr = lr->lr_next, i++ ) {
+		Debug( LDAP_DEBUG_TRACE, " * msgid %d,  origid %d, status %s\n",
+			lr->lr_msgid, lr->lr_origid,
+			( lr->lr_status == LDAP_REQST_INPROGRESS ) ? "InProgress" :
+			( lr->lr_status == LDAP_REQST_CHASINGREFS ) ? "ChasingRefs" :
+			( lr->lr_status == LDAP_REQST_NOTCONNECTED ) ? "NotConnected" :
+			( lr->lr_status == LDAP_REQST_WRITING ) ? "Writing" :
+			( lr->lr_status == LDAP_REQST_COMPLETED ) ? "RequestCompleted"
+				: "InvalidStatus" );
+		Debug( LDAP_DEBUG_TRACE, "   outstanding referrals %d, parent count %d\n",
+			lr->lr_outrefcnt, lr->lr_parentcnt, 0 );
 	}
-#ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
-	fprintf( stderr, "** ld %p Response Queue:\n", (void *)ld );
-	if (( lm = ld->ld_responses ) == NULL ) {
-		fprintf( stderr, "   Empty\n" );
+	Debug( LDAP_DEBUG_TRACE, "  ld %p request count %d\n", (void *)ld, i, 0 );
+	Debug( LDAP_DEBUG_TRACE, "** ld %p Response Queue:\n", (void *)ld, 0, 0 );
+	if ( ( lm = ld->ld_responses ) == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "   Empty\n", 0, 0, 0 );
 	}
-	for ( ; lm != NULL; lm = lm->lm_next ) {
-		fprintf( stderr, " * msgid %d,  type %lu\n",
-		    lm->lm_msgid, (unsigned long) lm->lm_msgtype );
-		if (( l = lm->lm_chain ) != NULL ) {
-			fprintf( stderr, "   chained responses:\n" );
+	for ( i = 0; lm != NULL; lm = lm->lm_next, i++ ) {
+		Debug( LDAP_DEBUG_TRACE, " * msgid %d,  type %lu\n",
+		    lm->lm_msgid, (unsigned long)lm->lm_msgtype, 0 );
+		if ( ( l = lm->lm_chain ) != NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "   chained responses:\n", 0, 0, 0 );
 			for ( ; l != NULL; l = l->lm_chain ) {
-				fprintf( stderr,
-				    "  * msgid %d,  type %lu\n",
-				    l->lm_msgid,
-				    (unsigned long) l->lm_msgtype );
+				Debug( LDAP_DEBUG_TRACE,
+					"  * msgid %d,  type %lu\n",
+					l->lm_msgid,
+					(unsigned long)l->lm_msgtype, 0 );
 			}
 		}
 	}
+	Debug( LDAP_DEBUG_TRACE, "  ld %p response count %d\n", (void *)ld, i, 0 );
 }
 #endif /* LDAP_DEBUG */
 
@@ -1175,12 +1176,12 @@ ldap_chase_referrals( LDAP *ld,
 			LDAPRequest *lp;
 			int looped = 0;
 			int len = srv->lud_dn ? strlen( srv->lud_dn ) : 0;
-			for (lp = lr; lp; lp = lp->lr_parent ) {
+			for ( lp = lr; lp; lp = lp->lr_parent ) {
 				if ( lp->lr_conn == lc
-					&& len == lp->lr_dn.bv_len
-					&& len
-					&& strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) == 0 )
+					&& len == lp->lr_dn.bv_len )
 				{
+					if ( len && strncmp( srv->lud_dn, lp->lr_dn.bv_val, len ) )
+							continue;
 					looped = 1;
 					break;
 				}
@@ -1413,7 +1414,7 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
-		if( lr->lr_status == LDAP_REQST_COMPLETED ) {
+		if ( lr->lr_status == LDAP_REQST_COMPLETED ) {
 			continue;	/* Skip completed requests */
 		}
 		if ( msgid == lr->lr_msgid ) {
