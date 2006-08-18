@@ -271,14 +271,12 @@ typedef struct ldapcontrol {
 /* LDAP Chaining Behavior Control *//* work in progress */
 /* <draft-sermersheim-ldap-chaining>;
  * see also LDAP_NO_REFERRALS_FOUND, LDAP_CANNOT_CHAIN */
-#ifdef LDAP_DEVEL
 #define LDAP_CONTROL_X_CHAINING_BEHAVIOR	"1.3.6.1.4.1.4203.666.11.3"
 
 #define	LDAP_CHAINING_PREFERRED				0
 #define	LDAP_CHAINING_REQUIRED				1
 #define LDAP_REFERRALS_PREFERRED			2
 #define LDAP_REFERRALS_REQUIRED				3
-#endif
 
 /* MS Active Directory controls (for compatibility) */
 #define LDAP_CONTROL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
@@ -337,13 +335,11 @@ typedef struct ldapcontrol {
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
 
 /* various works in progress */
-#ifdef LDAP_DEVEL
-#define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"		/* RFC 4531 */
-#endif
+#define LDAP_EXOP_TURN		"1.3.6.1.1.19"				/* RFC 4531 */
+#define LDAP_EXOP_X_TURN	LDAP_EXOP_TURN
 
 /* LDAP Distributed Procedures <draft-sermersheim-ldap-distproc> */
 /* a work in progress */
-#ifdef LDAP_DEVEL
 #define LDAP_X_DISTPROC_BASE		"1.3.6.1.4.1.4203.666.11.6"
 #define LDAP_EXOP_X_CHAINEDREQUEST	LDAP_X_DISTPROC_BASE ".1"
 #define LDAP_FEATURE_X_CANCHAINOPS	LDAP_X_DISTPROC_BASE ".2"
@@ -357,10 +353,9 @@ typedef struct ldapcontrol {
 #define LDAP_URLEXT_X_REFTYPE		"x-referenceType"
 #define LDAP_URLEXT_X_SEARCHEDSUBTREE	"x-searchedSubtree"
 #define LDAP_URLEXT_X_FAILEDNAME	"x-failedName"
-#endif
 
 #ifdef LDAP_DEVEL
-#define LDAP_X_TXN						"1.3.6.1.4.1.4203.666.11.7" /* temp */
+#define LDAP_X_TXN						"1.3.6.1.4.1.4203.666.11.7" /* tmp */
 #define LDAP_EXOP_X_TXN_START			LDAP_X_TXN ".1"
 #define LDAP_CONTROL_X_TXN_SPEC			LDAP_X_TXN ".2"
 #define LDAP_EXOP_X_TXN_END				LDAP_X_TXN ".3"
@@ -376,12 +371,10 @@ typedef struct ldapcontrol {
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"
 #define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.1.14"
 
-#ifdef LDAP_DEVEL
 /* LDAP Experimental (works in progress) Features */
 #define LDAP_FEATURE_SUBORDINATE_SCOPE \
 	"1.3.6.1.4.1.4203.666.8.1" /* "children" */
 #define LDAP_FEATURE_CHILDREN_SCOPE LDAP_FEATURE_SUBORDINATE_SCOPE
-#endif
 
 /*
  * specific LDAP instantiations of BER types we know about
