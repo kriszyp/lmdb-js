@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.27 Engineering
+	Fixed libldap dangling pointer issue (previous fix was broken) (ITS#4405)
 
 OpenLDAP 2.3.26 Release
 	Fixed libldap dnssrv bug with "not present" positive statement (ITS#4610)

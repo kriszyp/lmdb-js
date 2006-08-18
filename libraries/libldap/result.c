@@ -333,8 +333,7 @@ wait4msg(
 					ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
 #endif
 					for ( lc = ld->ld_conns;
-						rc == LDAP_MSG_X_KEEP_LOOKING && lc != NULL;
-						lc = lc->lconn_next )
+						rc == LDAP_MSG_X_KEEP_LOOKING && lc != NULL; )
 					{
 						if ( lc->lconn_status == LDAP_CONNST_CONNECTED &&
 							ldap_is_read_ready( ld, lc->lconn_sb ))
@@ -353,8 +352,14 @@ wait4msg(
 								 * sane; better restart
 								 * (ITS#4405) */
 								lc = ld->ld_conns;
+
+								/* don't get to next conn! */
+								break;
 							}
 						}
+
+						/* next conn */
+						lc = lc->lconn_next;
 					}
 #ifdef LDAP_R_COMPILE
 					ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
