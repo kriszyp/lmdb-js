@@ -137,32 +137,24 @@ constraint_cf_gen( ConfigArgs *c )
                         
                         on->on_bi.bi_private = NULL;
                     } else {
-                        constraint *cpp;
+                        constraint **cpp;
                         
                             /* zap constraint numbered 'valx' */
-                        for(i=0, cp = cn, cpp = NULL;
+                        for(i=0, cp = cn, cpp = &cn;
                             (cp) && (i<c->valx);
-                            i++, cpp = cp, cp=cp->ap_next);
+                            i++, cpp = &cp->ap_next, cp = *cpp);
 
-                        if (cpp) {
+                        if (cp) {
                                 /* zap cp, and join cpp to cp->ap_next */
-                            cpp->ap_next = cp->ap_next;
+                            *cpp = cp->ap_next;
                             if (cp->re) {
                                 regfree(cp->re);
                                 ch_free(cp->re);
                             }
                             if (cp->re_str) ch_free(cp->re_str);
                             ch_free(cp);
-                        } else {
-                                /* zap the list head */
-                            if (cn->re) {
-                                regfree(cn->re);
-                                ch_free(cn->re);
-                            }
-                            if (cn->re_str) ch_free(cn->re_str);
-                            ch_free(cn);
-                            on->on_bi.bi_private = cn->ap_next;
                         }
+                        on->on_bi.bi_private = cn;
                     }
                     
                     break;
