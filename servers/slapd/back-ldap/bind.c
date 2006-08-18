@@ -1418,14 +1418,16 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 		if ( rc != LDAP_SUCCESS ) {
 			rc = 0;
 			/* freeit, because lc_refcnt == 1 */
-			(void)ldap_back_conn_free( *lcp );
+			(*lcp)->lc_refcnt = 0;
+			(void)ldap_back_freeconn( op, *lcp, 0 );
 			*lcp = NULL;
 
 		} else {
 			rc = ldap_back_dobind_int( *lcp, op, rs, sendok, 0, 0 );
 			if ( rc == 0 && *lcp != NULL ) {
 				/* freeit, because lc_refcnt == 1 */
-				(void)ldap_back_conn_free( *lcp );
+				(*lcp)->lc_refcnt = 0;
+				(void)ldap_back_freeconn( op, *lcp, 0 );
 				*lcp = NULL;
 			}
 		}
