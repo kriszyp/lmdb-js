@@ -501,6 +501,7 @@ void slapd_sd_unlock()
  */
 void slapd_remove(
 	ber_socket_t s,
+	Sockbuf *sb,
 	int wasactive,
 	int wake,
 	int locked )
@@ -527,7 +528,7 @@ void slapd_remove(
 
 	SLAP_DEL_SOCK(s);
 
-	tcp_close(s);
+	ber_sockbuf_free(sb);
 
 	/* If we ran out of file descriptors, we dropped a listener from
 	 * the select() loop. Now that we're removing a session from our
