@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.28 Engineering
+
 OpenLDAP 2.3.27 Release
 	Fixed libldap dangling pointer issue (previous fix was broken) (ITS#4405)
 
