@@ -501,6 +501,7 @@ void slapd_sd_unlock()
  */
 void slapd_remove(
 	ber_socket_t s,
+	Sockbuf *sb,
 	int wasactive,
 	int wake,
 	int locked )
@@ -527,7 +528,8 @@ void slapd_remove(
 
 	SLAP_DEL_SOCK(s);
 
-	tcp_close(s);
+	if ( sb )
+		ber_sockbuf_free(sb);
 
 	/* If we ran out of file descriptors, we dropped a listener from
 	 * the select() loop. Now that we're removing a session from our
@@ -1264,7 +1266,7 @@ close_listeners(
 		Listener *lr = slap_listeners[l];
 
 		if ( lr->sl_sd != AC_SOCKET_INVALID ) {
-			if ( remove ) slapd_remove( lr->sl_sd, 0, 0, 0 );
+			if ( remove ) slapd_remove( lr->sl_sd, NULL, 0, 0, 0 );
 
 #ifdef LDAP_PF_LOCAL
 			if ( lr->sl_sa.sa_addr.sa_family == AF_LOCAL ) {

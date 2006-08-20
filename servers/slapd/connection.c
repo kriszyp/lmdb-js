@@ -653,7 +653,7 @@ void connection2anonymous( Connection *c )
 static void
 connection_destroy( Connection *c )
 {
-	ber_socket_t	sd, inval = AC_SOCKET_INVALID;
+	ber_socket_t	sd;
 	unsigned long	connid;
 	const char		*close_reason;
 	Sockbuf			*sb;
@@ -731,23 +731,17 @@ connection_destroy( Connection *c )
 	}
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
-	slapd_sd_lock();
-
-	ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &inval );
-	ber_sockbuf_free( sb );
 
 	/* c must be fully reset by this point; when we call slapd_remove
 	 * it may get immediately reused by a new connection.
 	 */
 	if ( sd != AC_SOCKET_INVALID ) {
-		slapd_remove( sd, 1, 0, 1 );
+		slapd_remove( sd, sb, 1, 0, 0 );
 
 		Statslog( LDAP_DEBUG_STATS, (close_reason
 									 ? "conn=%lu fd=%ld closed (%s)\n"
 									 : "conn=%lu fd=%ld closed\n"),
 			connid, (long) sd, close_reason, 0, 0 );
-	} else {
-		slapd_sd_unlock();
 	}
 }
 
@@ -1219,7 +1213,7 @@ void connection_client_stop(
 	ber_socket_t s )
 {
 	Connection *c;
-	ber_socket_t inval = AC_SOCKET_INVALID;
+	Sockbuf *sb;
 
 	/* get (locked) connection */
 	c = connection_get( s );
@@ -1230,15 +1224,13 @@ void connection_client_stop(
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
 	c->c_close_reason = "?";			/* should never be needed */
-	slapd_sd_lock();
-	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &inval );
-	ber_sockbuf_free( c->c_sb );
-	slapd_remove( s, 0, 1, 1 );
+	sb = c->c_sb;
 	c->c_sb = ber_sockbuf_alloc( );
 	{
 		ber_len_t max = sockbuf_max_incoming;
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
+	slapd_remove( s, sb, 0, 1, 0 );
 
 	connection_return( c );
 }

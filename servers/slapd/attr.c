@@ -208,7 +208,9 @@ attr_merge(
 		 * of nvals and the value of (*a)->a_nvals must be consistent
 		 */
 		assert( ( nvals == NULL && (*a)->a_nvals == (*a)->a_vals )
-				|| ( nvals != NULL && (*a)->a_nvals != (*a)->a_vals ) );
+				|| ( nvals != NULL && (
+					( (*a)->a_vals == NULL && (*a)->a_nvals == NULL )
+					|| ( (*a)->a_nvals != (*a)->a_vals ) ) ) );
 	}
 
 	rc = value_add( &(*a)->a_vals, vals );

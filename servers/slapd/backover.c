@@ -210,10 +210,13 @@ over_db_destroy(
 
 	rc = over_db_func( be, db_destroy );
 
-	for (next = on->on_next; on; on=next) {
-		next = on->on_next;
-		free( on );
+	if ( on ) {
+		for (next = on->on_next; on; on=next) {
+			next = on->on_next;
+			free( on );
+		}
 	}
+
 	free( oi );
 	return rc;
 }
