@@ -1428,6 +1428,8 @@ accesslog_db_destroy(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	log_info *li = on->on_bi.bi_private;
 
+	if ( li->li_oldf )
+		filter_free( li->li_oldf );
 	ldap_pvt_thread_mutex_destroy( &li->li_log_mutex );
 	ldap_pvt_thread_rmutex_destroy( &li->li_op_rmutex );
 	free( li );
