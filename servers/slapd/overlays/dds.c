@@ -694,7 +694,7 @@ done:;
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		int	rc;
 
-		/* FIXME: this could be allowed when manageDIT is used...
+		/* FIXME: this could be allowed when the Relax control is used...
 		 * in that case:
 		 *
 		 * TODO
@@ -713,7 +713,7 @@ done:;
 		rc = is_dynamicObject - was_dynamicObject;
 		if ( rc ) {
 #if 0 /* fix subordinate issues first */
-			if ( get_manageDIT( op ) ) {
+			if ( get_relax( op ) ) {
 				switch ( rc ) {
 				case -1:
 					/* need to delete entryTtl to have a consistent entry */
@@ -1077,7 +1077,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		}
 
 		/* we require manage privileges on the entryTtl,
-		 * and fake a manageDIT control */
+		 * and fake a Relax control */
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_bd = &db;
 		db.bd_info = (BackendInfo *)on->on_info;
@@ -1085,7 +1085,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		sc.sc_response = slap_replog_cb;
 		sc.sc_next = &sc2;
 		sc2.sc_response = slap_null_cb;
-		op2.o_managedit = SLAP_CONTROL_CRITICAL;
+		op2.o_relax = SLAP_CONTROL_CRITICAL;
 		op2.orm_modlist = &ttlmod;
 
 		ttlmod.sml_op = LDAP_MOD_REPLACE;

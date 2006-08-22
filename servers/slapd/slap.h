@@ -2295,7 +2295,6 @@ struct slap_control_ids {
 	int sc_assert;
 	int sc_domainScope;
 	int sc_dontUseCopy;
-	int sc_manageDIT;
 	int sc_manageDSAit;
 	int sc_modifyIncrement;
 	int sc_noOp;
@@ -2304,6 +2303,7 @@ struct slap_control_ids {
 	int sc_postRead;
 	int sc_preRead;
 	int sc_proxyAuthz;
+	int sc_relax;
 	int sc_searchOptions;
 #ifdef SLAP_SORTEDRESULTS
 	int sc_sortedResults;
@@ -2466,8 +2466,8 @@ typedef struct slap_op {
 #define o_dontUseCopy			o_ctrlflag[slap_cids.sc_dontUseCopy]
 #define get_dontUseCopy(op)		_SCM((op)->o_dontUseCopy)
 
-#define o_managedit				o_ctrlflag[slap_cids.sc_manageDIT]
-#define get_manageDIT(op)		_SCM((op)->o_managedit)
+#define o_relax				o_ctrlflag[slap_cids.sc_relax]
+#define get_relax(op)		_SCM((op)->o_relax)
 
 #define o_managedsait	o_ctrlflag[slap_cids.sc_manageDSAit]
 #define get_manageDSAit(op)				_SCM((op)->o_managedsait)
@@ -2775,7 +2775,7 @@ typedef struct slap_counters_t {
 #define SLAP_CTRL_HIDE				0x80000000U
 #endif
 
-#define SLAP_CTRL_REQUIRES_ROOT		0x40000000U /* for ManageDIT */
+#define SLAP_CTRL_REQUIRES_ROOT		0x40000000U /* for Relax */
 
 #define SLAP_CTRL_GLOBAL			0x00800000U
 #define SLAP_CTRL_GLOBAL_SEARCH		0x00010000U	/* for NOOP */

@@ -122,7 +122,7 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
 		"SINGLE-VALUE "
 #if 0
-		/* Not until MANAGEDIT control is released */
+		/* Not until Relax control is released */
 		"NO-USER-MODIFICATION "
 #endif
 		"USAGE directoryOperation )",
@@ -163,7 +163,7 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 		"SINGLE-VALUE "
 #if 0
-		/* Not until MANAGEDIT control is released */
+		/* Not until Relax control is released */
 		"NO-USER-MODIFICATION "
 #endif
 		"USAGE directoryOperation )",

@@ -867,10 +867,9 @@ backend_check_controls(
 		}
 	}
 
-	/* temporarily removed */
-#if 0
+#if 0 /* temporarily removed */
 	/* check should be generalized */
-	if( get_manageDIT(op) && !be_isroot(op)) {
+	if( get_relax(op) && !be_isroot(op)) {
 		rs->sr_text = "requires manager authorization";
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}

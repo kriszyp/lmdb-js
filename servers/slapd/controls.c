@@ -25,27 +25,24 @@
 #include "../../libraries/liblber/lber-int.h"
 
 static SLAP_CTRL_PARSE_FN parseAssert;
-static SLAP_CTRL_PARSE_FN parsePreRead;
-static SLAP_CTRL_PARSE_FN parsePostRead;
-static SLAP_CTRL_PARSE_FN parseProxyAuthz;
+static SLAP_CTRL_PARSE_FN parseDomainScope;
 static SLAP_CTRL_PARSE_FN parseDontUseCopy;
-#ifdef SLAP_RELAX
-static SLAP_CTRL_PARSE_FN parseManageDIT;
-#endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
+static SLAP_CTRL_PARSE_FN parsePermissiveModify;
+static SLAP_CTRL_PARSE_FN parsePreRead, parsePostRead;
+static SLAP_CTRL_PARSE_FN parseProxyAuthz;
+static SLAP_CTRL_PARSE_FN parseRelax;
+static SLAP_CTRL_PARSE_FN parseSearchOptions;
 #ifdef SLAP_SORTEDRESULTS
 static SLAP_CTRL_PARSE_FN parseSortedResults;
 #endif
-static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
-static SLAP_CTRL_PARSE_FN parsePermissiveModify;
-static SLAP_CTRL_PARSE_FN parseDomainScope;
+static SLAP_CTRL_PARSE_FN parseSubentries;
 #ifdef SLAP_CONTROL_X_TREE_DELETE
 static SLAP_CTRL_PARSE_FN parseTreeDelete;
 #endif
-static SLAP_CTRL_PARSE_FN parseSearchOptions;
-static SLAP_CTRL_PARSE_FN parseSubentries;
+static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
@@ -177,13 +174,11 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef SLAP_RELAX
 	{ LDAP_CONTROL_RELAX,
- 		(int)offsetof(struct slap_control_ids, sc_manageDIT),
+ 		(int)offsetof(struct slap_control_ids, sc_relax),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE,
 		NULL, NULL,
-		parseManageDIT, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
+		parseRelax, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_X_TXN
 	{ LDAP_CONTROL_X_TXN_SPEC,
  		(int)offsetof(struct slap_control_ids, sc_txnSpec),
@@ -868,13 +863,12 @@ static int parseDontUseCopy (
 	return LDAP_SUCCESS;
 }
 
-#ifdef SLAP_RELAX
-static int parseManageDIT (
+static int parseRelax (
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_managedit != SLAP_CONTROL_NONE ) {
+	if ( op->o_relax != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "relax control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -884,13 +878,12 @@ static int parseManageDIT (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	op->o_managedit = ctrl->ldctl_iscritical
+	op->o_relax = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
-#endif
 
 static int parseManageDSAit (
 	Operation *op,

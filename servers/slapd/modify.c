@@ -442,7 +442,7 @@ slap_mods_obsolete_check(
 	char *textbuf,
 	size_t textlen )
 {
-	if( get_manageDIT( op ) ) return LDAP_SUCCESS;
+	if( get_relax( op ) ) return LDAP_SUCCESS;
 
 	for ( ; ml != NULL; ml = ml->sml_next ) {
 		if ( is_at_obsolete( ml->sml_desc->ad_type ) &&
@@ -481,7 +481,7 @@ slap_mods_no_user_mod_check(
 			continue;
 		}
 
-		if ( get_manageDIT( op ) ) {
+		if ( get_relax( op ) ) {
 			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
 				ml->sml_flags |= SLAP_MOD_MANAGING;
 				continue;

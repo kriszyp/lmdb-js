@@ -92,7 +92,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	for ( i = 0, ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		int	j, is_oc = 0;
 
-		if ( !isupdate && !get_manageDIT( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
+		if ( !isupdate && !get_relax( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
 			continue;
 		}
