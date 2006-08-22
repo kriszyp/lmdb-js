@@ -150,14 +150,10 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> extra cruft after <%s>",
 			c->argv[0], Conf->what );
 
-#ifdef LDAP_DEVEL
 		ignored = "";
-#endif /* LDAP_DEVEL */
 		Debug(LDAP_DEBUG_CONFIG, "%s: %s%s.\n",
 				c->log, c->msg, ignored );
-#ifdef LDAP_DEVEL
 		return(ARG_BAD_CONF);
-#endif /* LDAP_DEVEL */
 	}
 	if((arg_syn & ARG_DB) && !c->be) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> only allowed within database declaration",

@@ -28,14 +28,16 @@ static SLAP_CTRL_PARSE_FN parseAssert;
 static SLAP_CTRL_PARSE_FN parsePreRead;
 static SLAP_CTRL_PARSE_FN parsePostRead;
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
-#ifdef LDAP_DEVEL
+#ifdef SLAP_DONTUSECOPY
 static SLAP_CTRL_PARSE_FN parseDontUseCopy;
+#endif
+#ifdef SLAP_RELAX
 static SLAP_CTRL_PARSE_FN parseManageDIT;
 #endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SORTEDRESULTS
 static SLAP_CTRL_PARSE_FN parseSortedResults;
 #endif
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
@@ -133,7 +135,7 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_SEARCH,
 		NULL, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SORTEDRESULTS
 	{ LDAP_CONTROL_SORTREQUEST,
  		(int)offsetof(struct slap_control_ids, sc_sortedResults),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE,
@@ -172,13 +174,15 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef LDAP_DEVEL
+#ifdef SLAP_DONTUSECOPY
 	{ LDAP_CONTROL_DONTUSECOPY,
  		(int)offsetof(struct slap_control_ids, sc_dontUseCopy),
 		SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		parseDontUseCopy, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-	{ LDAP_CONTROL_MANAGEDIT,
+#endif
+#ifdef SLAP_RELAX
+	{ LDAP_CONTROL_RELAX,
  		(int)offsetof(struct slap_control_ids, sc_manageDIT),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE,
 		NULL, NULL,
@@ -844,7 +848,7 @@ slap_remove_control(
 	return rs->sr_err;
 }
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_DONTUSECOPY
 static int parseDontUseCopy (
 	Operation *op,
 	SlapReply *rs,
@@ -868,19 +872,21 @@ static int parseDontUseCopy (
 	op->o_dontUseCopy = SLAP_CONTROL_CRITICAL;
 	return LDAP_SUCCESS;
 }
+#endif
 
+#ifdef SLAP_RELAX
 static int parseManageDIT (
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
 	if ( op->o_managedit != SLAP_CONTROL_NONE ) {
-		rs->sr_text = "manageDIT control specified multiple times";
+		rs->sr_text = "relax control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "manageDIT control value not empty";
+		rs->sr_text = "relax control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1107,7 +1113,7 @@ done:;
 	return rc;
 }
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SORTEDRESULTS
 static int parseSortedResults (
 	Operation *op,
 	SlapReply *rs,
