@@ -67,8 +67,12 @@ LDAP_BEGIN_DECL
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define LDAP_COMP_MATCH
 #define LDAP_SYNC_TIMESTAMP
+
+#define SLAP_DONTUSECOPY
+#define SLAP_SORTEDRESULTS
 #endif
 
+#define SLAP_RELAX
 #define LDAP_DYNAMIC_OBJECTS
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 #define SLAP_DISTPROC
@@ -2303,7 +2307,7 @@ struct slap_control_ids {
 	int sc_preRead;
 	int sc_proxyAuthz;
 	int sc_searchOptions;
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SORTEDRESULTS
 	int sc_sortedResults;
 #endif
 	int sc_subentries;
@@ -2507,7 +2511,7 @@ typedef struct slap_op {
 #define o_pagedresults_state	o_controls[slap_cids.sc_pagedResults]
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SORTEDRESULTS
 #define o_sortedresults		o_ctrlflag[slap_cids.sc_sortedResults]
 #endif
 

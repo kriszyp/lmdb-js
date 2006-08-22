@@ -247,7 +247,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 		if( rc == -1 ) return rc;
 	}
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_SORTED_RESULTS
 	/* this is a hack to avoid having to modify op->s_ctrls */
 	if( o->o_sortedresults ) {
 		BerElementBuffer berbuf;
@@ -306,7 +306,6 @@ slap_response_play(
 {
 	int rc;
 
-#ifdef LDAP_DEVEL
 	slap_callback	*sc = op->o_callback, **scp;
 
 	rc = SLAP_CB_CONTINUE;
@@ -334,27 +333,6 @@ slap_response_play(
 	}
 
 	op->o_callback = sc;
-#else /* ! LDAP_DEVEL */
-	slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-	rc = SLAP_CB_CONTINUE;
-	for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
-		sc_next = op->o_callback->sc_next;
-		if ( op->o_callback->sc_response ) {
-			slap_callback *sc2 = op->o_callback;
-			rc = op->o_callback->sc_response( op, rs );
-			if ( op->o_callback != sc2 ) {
-				*sc_prev = op->o_callback;
-			}
-			if ( rc != SLAP_CB_CONTINUE || !op->o_callback ) break;
-			if ( op->o_callback != sc2 ) continue;
-		}
-		sc_prev = &op->o_callback->sc_next;
-	}
-
-	op->o_callback = sc;
-#endif /* ! LDAP_DEVEL */
-
 	return rc;
 }
 
@@ -363,7 +341,6 @@ slap_cleanup_play(
 	Operation *op,
 	SlapReply *rs )
 {
-#ifdef LDAP_DEVEL
 	slap_callback	*sc = op->o_callback, **scp;
 
 	for ( scp = &sc; *scp; ) {
@@ -392,26 +369,6 @@ slap_cleanup_play(
 	}
 
 	op->o_callback = sc;
-#else /* ! LDAP_DEVEL */
-	slap_callback	*sc = op->o_callback, **sc_prev = &sc, *sc_next;
-
-	for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
-		sc_next = op->o_callback->sc_next;
-		if ( op->o_callback->sc_cleanup ) {
-			slap_callback *sc2 = op->o_callback;
-			(void)op->o_callback->sc_cleanup( op, rs );
-			if ( op->o_callback != sc2 ) {
-				*sc_prev = op->o_callback;
-			}
-			if ( !op->o_callback ) break;
-			if ( op->o_callback != sc2 ) continue;
-		}
-		sc_prev = &op->o_callback->sc_next;
-	}
-
-	op->o_callback = sc;
-#endif /* ! LDAP_DEVEL */
-
 	return LDAP_SUCCESS;
 }
 

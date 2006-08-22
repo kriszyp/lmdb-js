@@ -200,17 +200,17 @@ N_("             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]\n")
 N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
 N_("                     \"referralsPreferred\", \"referralsRequired\"\n")
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-#ifdef LDAP_DEVEL
-N_("             [!]manageDIT\n")
-#endif
 N_("             [!]manageDSAit\n")
 N_("             [!]noop\n")
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 N_("             ppolicy\n")
 #endif
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n")
-N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
-N_("             abandon, cancel (SIGINT sends abandon/cancel; not really controls)\n")
+N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n")
+#ifdef LDAP_DEVEL
+N_("             [!]relax\n")
+#endif
+N_("             abandon, cancel (SIGINT sends abandon/cancel; not really controls)\n"),
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
@@ -383,15 +383,17 @@ tool_args( int argc, char **argv )
 				proxydn = cvalue;
 #endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 
-			} else if ( strcasecmp( control, "manageDIT" ) == 0 ) {
+			} else if ( ( strcasecmp( control, "relax" ) == 0 ) ||
+				( strcasecmp( control, "manageDIT" ) == 0 ) )
+			{
 				if( manageDIT ) {
 					fprintf( stderr,
-						"manageDIT control previously specified\n");
+						"relax control previously specified\n");
 					exit( EXIT_FAILURE );
 				}
 				if( cvalue != NULL ) {
 					fprintf( stderr,
-						"manageDIT: no control value expected\n" );
+						"relax: no control value expected\n" );
 					usage();
 				}
 
