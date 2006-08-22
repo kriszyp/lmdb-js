@@ -177,7 +177,7 @@ static struct slap_control control_defs[] = {
 #ifdef SLAP_DONTUSECOPY
 	{ LDAP_CONTROL_DONTUSECOPY,
  		(int)offsetof(struct slap_control_ids, sc_dontUseCopy),
-		SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		parseDontUseCopy, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
@@ -864,7 +864,7 @@ static int parseDontUseCopy (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_iscritical != SLAP_CONTROL_CRITICAL ) {
+	if ( !ctrl->ldctl_iscritical ) {
 		rs->sr_text = "dontUseCopy criticality of FALSE not allowed";
 		return LDAP_PROTOCOL_ERROR;
 	}
