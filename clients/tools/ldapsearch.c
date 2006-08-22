@@ -122,10 +122,8 @@ usage( void )
 	fprintf( stderr, _("  -A         retrieve attribute names only (no values)\n"));
 	fprintf( stderr, _("  -b basedn  base dn for search\n"));
 	fprintf( stderr, _("  -E [!]<ext>[=<extparam>] search extensions (! indicates criticality)\n"));
-#ifdef LDAP_CONTROL_DONTUSECOPY
-	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
-#endif
 	fprintf( stderr, _("             [!]domainScope              (domain scope)\n"));
+	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
 	fprintf( stderr, _("             [!]mv=<filter>              (matched values filter)\n"));
 	fprintf( stderr, _("             [!]pr=<size>[/prompt|noprompt]   (paged results/prompt)\n"));
 	fprintf( stderr, _("             [!]subentries[=true|false]  (subentries)\n"));
