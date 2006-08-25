@@ -611,11 +611,31 @@ main( int argc, char **argv )
 	}
 
 	if ( infile != NULL ) {
+		int percent = 0;
+	
 		if ( infile[0] == '-' && infile[1] == '\0' ) {
 			fp = stdin;
 		} else if (( fp = fopen( infile, "r" )) == NULL ) {
 			perror( infile );
 			return EXIT_FAILURE;
+		}
+
+		for( i=0 ; filtpattern[i] ; i++ ) {
+			if( filtpattern[i] == '%' ) {
+				if( percent ) {
+					fprintf( stderr, _("Bad filter pattern \"%s\"\n"),
+						filtpattern );
+					return EXIT_FAILURE;
+				}
+
+				percent++;
+
+				if( filtpattern[i+1] != 's' ) {
+					fprintf( stderr, _("Bad filter pattern \"%s\"\n"),
+						filtpattern );
+					return EXIT_FAILURE;
+				}
+			}
 		}
 	}
 
