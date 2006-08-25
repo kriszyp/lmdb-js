@@ -223,6 +223,8 @@ do_random( char *uri, char *manager, struct berval *passwd,
 	char	**values = NULL;
 	LDAPMessage *res = NULL, *e = NULL;
 
+	srand( pid );
+
 	attrs[ 0 ] = attr;
 	attrs[ 1 ] = NULL;
 
@@ -294,8 +296,12 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 		for ( i = 0; i < innerloop; i++ ) {
 			char	buf[ BUFSIZ ];
+#if 0	/* use high-order bits for better randomness (Numerical Recipes in "C") */
+			int	r = rand() % nvalues;
+#endif
+			int	r = ((double)nvalues)*rand()/(RAND_MAX + 1.0);
 
-			snprintf( buf, sizeof( buf ), "(%s=%s)", attr, values[ rand() % nvalues ] );
+			snprintf( buf, sizeof( buf ), "(%s=%s)", attr, values[ r ] );
 
 			do_search( uri, manager, passwd, sbase, buf, &ld, noattrs,
 					1, maxretries, delay, force, chaserefs );
