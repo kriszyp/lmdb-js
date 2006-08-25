@@ -995,8 +995,8 @@ retry_lock:;
 	 * but the "override" flag is given to idassert.
 	 * It allows to use SASL bind and yet proxyAuthz users
 	 */
-	if ( op->o_conn != NULL &&
-		!op->o_do_not_cache &&
+	if ( op->o_conn != NULL && !op->o_do_not_cache &&
+		( !LDAP_BACK_CONN_ISPRIV( lc ) || BER_BVISEMPTY( &lc->lc_bound_ndn )) &&
 		( !isbound || ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok );
@@ -1427,6 +1427,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			if ( rc == 0 && *lcp != NULL ) {
 				/* freeit, because lc_refcnt == 1 */
 				(*lcp)->lc_refcnt = 0;
+				LDAP_BACK_CONN_TAINTED_SET( *lcp );
 				(void)ldap_back_freeconn( op, *lcp, 0 );
 				*lcp = NULL;
 			}
