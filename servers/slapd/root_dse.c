@@ -322,7 +322,7 @@ fail:
 		 * clients.
 		 */
 	for ( i=LDAP_VERSION3; i<=LDAP_VERSION_MAX; i++ ) {
-		char buf[BUFSIZ];
+		char buf[sizeof("255")];
 		snprintf(buf, sizeof buf, "%d", i);
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
