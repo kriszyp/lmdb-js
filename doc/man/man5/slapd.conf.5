@@ -54,7 +54,10 @@ than once, the last appearance in the
 file is used).
 .LP
 If a line begins with white space, it is considered a continuation
-of the previous line.  Blank lines and comment lines beginning with
+of the previous line.  No physical line should be over 2000 bytes
+long.
+.LP
+Blank lines and comment lines beginning with
 a `#' character are ignored.  Note: continuation lines are unwrapped
 before comment processing is applied.
 .LP
