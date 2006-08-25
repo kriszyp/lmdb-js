@@ -979,9 +979,8 @@ getNextPage:
 			attrs, attrsonly, NULL, NULL, NULL, -1 );
 
 	} else {
-		rc = 0;
 		first = 1;
-		while ( rc == 0 && fgets( line, sizeof( line ), fp ) != NULL ) { 
+		while ( fgets( line, sizeof( line ), fp ) != NULL ) { 
 			line[ strlen( line ) - 1 ] = '\0';
 			if ( !first ) {
 				putchar( '\n' );
@@ -990,6 +989,10 @@ getNextPage:
 			}
 			rc = dosearch( ld, base, scope, filtpattern, line,
 				attrs, attrsonly, NULL, NULL, NULL, -1 );
+
+			if ( rc != 0 && !contoper ) {
+				break;
+			}
 		}
 		if ( fp != stdin ) {
 			fclose( fp );
