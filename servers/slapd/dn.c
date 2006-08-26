@@ -86,6 +86,13 @@ LDAPRDN_validate( LDAPRDN rdn )
 			ava->la_private = ( void * )ad;
 		}
 
+		/*
+		 * Do not allow X-ORDERED 'VALUES' naming attributes
+		 */
+		if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
 		/* 
 		 * Replace attr oid/name with the canonical name
 		 */
@@ -378,6 +385,10 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 				/* BER encoding is empty */
 				return LDAP_INVALID_SYNTAX;
 			}
+
+			/* Do not allow X-ORDERED 'VALUES' naming attributes */
+		} else if( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) {
+			return LDAP_INVALID_SYNTAX;
 
 			/* AVA is binary encoded, don't muck with it */
 		} else if( flags & SLAP_LDAPDN_PRETTY ) {
