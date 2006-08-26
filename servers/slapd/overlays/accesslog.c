@@ -626,7 +626,7 @@ log_cf_gen(ConfigArgs *c)
 		case LOG_OLD:
 			if ( li->li_oldf ) {
 				filter2bv( li->li_oldf, &agebv );
-				value_add_one( &c->rvalue_vals, &agebv );
+				ber_bvarray_add( &c->rvalue_vals, &agebv );
 			}
 			else
 				rc = 1;
@@ -1318,6 +1318,8 @@ accesslog_db_destroy(
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	log_info *li = on->on_bi.bi_private;
 
+	if ( li->li_oldf )
+		filter_free( li->li_oldf );
 	ldap_pvt_thread_mutex_destroy( &li->li_log_mutex );
 	ldap_pvt_thread_mutex_destroy( &li->li_op_mutex );
 	free( li );
