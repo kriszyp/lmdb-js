@@ -707,6 +707,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 				&ep->e_nname, eip );
 			if ( *eip ) islocked = 1;
 			if ( rc ) {
+				ep->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
 				bdb_entry_return( bdb, ep, (*eip)->bei_zseq );
 #else
@@ -811,6 +812,7 @@ load1:
 		bdb_cache_entryinfo_unlock( *eip );
 	}
 	if ( ep ) {
+		ep->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
 		bdb_entry_return( bdb, ep, (*eip)->bei_zseq );
 #else
