@@ -129,52 +129,9 @@ LDAPDN_validate( LDAPDN dn )
 	assert( dn != NULL );
 
 	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
-		LDAPRDN		rdn = dn[ iRDN ];
-		int		iAVA;
-
-		assert( rdn != NULL );
-
-		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
-			LDAPAVA			*ava = rdn[ iAVA ];
-			AttributeDescription	*ad;
-			slap_syntax_validate_func *validate = NULL;
-
-			assert( ava != NULL );
-			
-			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
-				const char	*text = NULL;
-
-				rc = slap_bv2ad( &ava->la_attr, &ad, &text );
-				if ( rc != LDAP_SUCCESS ) {
-					rc = slap_bv2undef_ad( &ava->la_attr,
-						&ad, &text,
-						SLAP_AD_PROXIED|slap_DN_strict );
-					if ( rc != LDAP_SUCCESS ) {
-						return LDAP_INVALID_SYNTAX;
-					}
-				}
-
-				ava->la_private = ( void * )ad;
-			}
-
-			/* 
-			 * Replace attr oid/name with the canonical name
-			 */
-			ava->la_attr = ad->ad_cname;
-
-			validate = ad->ad_type->sat_syntax->ssyn_validate;
-
-			if ( validate ) {
-				/*
-			 	 * validate value by validate function
-				 */
-				rc = ( *validate )( ad->ad_type->sat_syntax,
-					&ava->la_value );
-			
-				if ( rc != LDAP_SUCCESS ) {
-					return LDAP_INVALID_SYNTAX;
-				}
-			}
+		rc = LDAPRDN_validate( dn[ iRDN ] );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
 		}
 	}
 
@@ -477,121 +434,9 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 	assert( dn != NULL );
 
 	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
-		LDAPRDN		rdn = dn[ iRDN ];
-		int		iAVA;
-
-		assert( rdn != NULL );
-
-		for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
-			LDAPAVA			*ava = rdn[ iAVA ];
-			AttributeDescription	*ad;
-			slap_syntax_validate_func *validf = NULL;
-			slap_mr_normalize_func *normf = NULL;
-			slap_syntax_transform_func *transf = NULL;
-			MatchingRule *mr = NULL;
-			struct berval		bv = BER_BVNULL;
-			int			do_sort = 0;
-
-			assert( ava != NULL );
-
-			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
-				const char	*text = NULL;
-
-				rc = slap_bv2ad( &ava->la_attr, &ad, &text );
-				if ( rc != LDAP_SUCCESS ) {
-					rc = slap_bv2undef_ad( &ava->la_attr,
-						&ad, &text,
-						SLAP_AD_PROXIED|slap_DN_strict );
-					if ( rc != LDAP_SUCCESS ) {
-						return LDAP_INVALID_SYNTAX;
-					}
-				}
-				
-				ava->la_private = ( void * )ad;
-				do_sort = 1;
-			}
-
-			/* 
-			 * Replace attr oid/name with the canonical name
-			 */
-			ava->la_attr = ad->ad_cname;
-
-			if( ava->la_flags & LDAP_AVA_BINARY ) {
-				if( ava->la_value.bv_len == 0 ) {
-					/* BER encoding is empty */
-					return LDAP_INVALID_SYNTAX;
-				}
-
-				/* AVA is binary encoded, don't muck with it */
-			} else if( flags & SLAP_LDAPDN_PRETTY ) {
-				transf = ad->ad_type->sat_syntax->ssyn_pretty;
-				if( !transf ) {
-					validf = ad->ad_type->sat_syntax->ssyn_validate;
-				}
-			} else { /* normalization */
-				validf = ad->ad_type->sat_syntax->ssyn_validate;
-				mr = ad->ad_type->sat_equality;
-				if( mr && (!( mr->smr_usage & SLAP_MR_MUTATION_NORMALIZER ))) {
-					normf = mr->smr_normalize;
-				}
-			}
-
-			if ( validf ) {
-				/* validate value before normalization */
-				rc = ( *validf )( ad->ad_type->sat_syntax,
-					ava->la_value.bv_len
-						? &ava->la_value
-						: (struct berval *) &slap_empty_bv );
-
-				if ( rc != LDAP_SUCCESS ) {
-					return LDAP_INVALID_SYNTAX;
-				}
-			}
-
-			if ( transf ) {
-				/*
-			 	 * transform value by pretty function
-				 *	if value is empty, use empty_bv
-				 */
-				rc = ( *transf )( ad->ad_type->sat_syntax,
-					ava->la_value.bv_len
-						? &ava->la_value
-						: (struct berval *) &slap_empty_bv,
-					&bv, ctx );
-			
-				if ( rc != LDAP_SUCCESS ) {
-					return LDAP_INVALID_SYNTAX;
-				}
-			}
-
-			if ( normf ) {
-				/*
-			 	 * normalize value
-				 *	if value is empty, use empty_bv
-				 */
-				rc = ( *normf )(
-					SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-					ad->ad_type->sat_syntax,
-					mr,
-					ava->la_value.bv_len
-						? &ava->la_value
-						: (struct berval *) &slap_empty_bv,
-					&bv, ctx );
-			
-				if ( rc != LDAP_SUCCESS ) {
-					return LDAP_INVALID_SYNTAX;
-				}
-			}
-
-
-			if( bv.bv_val ) {
-				if ( ava->la_flags & LDAP_AVA_FREE_VALUE )
-					ber_memfree_x( ava->la_value.bv_val, ctx );
-				ava->la_value = bv;
-				ava->la_flags |= LDAP_AVA_FREE_VALUE;
-			}
-
-			if( do_sort ) AVA_Sort( rdn, iAVA );
+		rc = LDAPRDN_rewrite( dn[ iRDN ], flags, ctx );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
 		}
 	}
 
