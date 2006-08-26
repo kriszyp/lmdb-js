@@ -174,6 +174,7 @@ typedef struct metasingleconn_t {
 #define META_BINDING_CLEAR(rs)		META_CND_CLEAR( (rs), META_BINDING )
 	
 	LDAP            	*msc_ld;
+	time_t			msc_time;
 	struct berval          	msc_bound_ndn;
 	struct berval		msc_cred;
 	unsigned		msc_mscflags;

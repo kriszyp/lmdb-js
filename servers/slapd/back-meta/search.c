@@ -727,13 +727,14 @@ get_result:;
 			rc = ldap_result( msc->msc_ld, candidates[ i ].sr_msgid,
 					LDAP_MSG_ONE, &tv, &res );
 
-			if ( rc == 0 ) {
+			switch ( rc ) {
+			case 0:
 				/* FIXME: res should not need to be freed */
 				assert( res == NULL );
 
 				continue;
 
-			} else if ( rc == -1 ) {
+			case -1:
 really_bad:;
 				/* something REALLY bad happened! */
 				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
@@ -785,8 +786,17 @@ really_bad:;
 				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				--ncandidates;
 				rs->sr_err = candidates[ i ].sr_err;
+				continue;
 
-			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+			default:
+				/* only touch when activity actually took place... */
+				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+					msc->msc_time = op->o_time;
+				}
+				break;
+			}
+
+			if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
 					/* don't retry any more... */
 					candidates[ i ].sr_type = REP_RESULT;
@@ -1310,6 +1320,17 @@ finish:;
 
 		if ( META_BACK_TGT_QUARANTINE( mi->mi_targets[ i ] ) ) {
 			meta_back_quarantine( op, &candidates[ i ], i );
+		}
+
+		/* only in case of timelimit exceeded, if the timelimit exceeded because
+		 * one contacted target never responded, invalidate the connection
+		 * NOTE: should we quarantine the target as well?  right now, the connection
+		 * is invalidated; the next time it will be recreated and the target
+		 * will be quarantined if it cannot be contacted */
+		if ( mi->mi_idle_timeout != 0 && rs->sr_err == LDAP_TIMELIMIT_EXCEEDED && op->o_time > mc->mc_conns[ i ].msc_time )
+		{
+			/* don't let anyone else use this expired connection */
+			LDAP_BACK_CONN_TAINTED_SET( mc );
 		}
 	}
 

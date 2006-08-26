@@ -353,6 +353,11 @@ retry:;
 			break;
 
 		default:
+			/* only touch when activity actually took place... */
+			if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+				msc->msc_time = op->o_time;
+			}
+
 			/* FIXME: matched? referrals? response controls? */
 			rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
 					NULL, NULL, NULL, NULL, 1 );
@@ -882,6 +887,11 @@ retry:;
 			 * structure (this includes 
 			 * LDAP_COMPARE_{TRUE|FALSE}) */
 			default:
+				/* only touch when activity actually took place... */
+				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+					msc->msc_time = op->o_time;
+				}
+
 				rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
 						&matched, &text, &refs, &ctrls, 1 );
 				res = NULL;

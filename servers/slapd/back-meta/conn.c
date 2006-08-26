@@ -347,10 +347,12 @@ meta_back_init_one_conn(
 
 retry:;
 			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
-			if ( rc < 0 ) {
+			switch ( rc ) {
+			case -1:
 				rs->sr_err = LDAP_OTHER;
+				break;
 
-			} else if ( rc == 0 ) {
+			case 0:
 				if ( nretries != 0 ) {
 					if ( nretries > 0 ) {
 						nretries--;
@@ -359,12 +361,22 @@ retry:;
 					goto retry;
 				}
 				rs->sr_err = LDAP_OTHER;
+				break;
 
-			} else if ( rc == LDAP_RES_EXTENDED ) {
+			default:
+				/* only touch when activity actually took place... */
+				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+					msc->msc_time = op->o_time;
+				}
+				break;
+			}
+
+			if ( rc == LDAP_RES_EXTENDED ) {
 				struct berval	*data = NULL;
 
+				/* NOTE: right now, data is unused, so don't get it */
 				rs->sr_err = ldap_parse_extended_result( msc->msc_ld, res,
-						NULL, &data, 0 );
+						NULL, NULL /* &data */ , 0 );
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					int		err;
 
@@ -385,6 +397,7 @@ retry:;
 						ldap_install_tls( msc->msc_ld );
 
 					} else if ( rs->sr_err == LDAP_REFERRAL ) {
+						/* FIXME: LDAP_OPERATIONS_ERROR? */
 						rs->sr_err = LDAP_OTHER;
 						rs->sr_text = "unwilling to chase referral returned by Start TLS exop";
 					}
@@ -1260,8 +1273,10 @@ retry_lock2:;
 				meta_back_release_conn( op, mc );
 			}
 
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-			rs->sr_text = "Unable to select valid candidates";
+			if ( rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+				rs->sr_text = "Unable to select valid candidates";
+			}
 
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
