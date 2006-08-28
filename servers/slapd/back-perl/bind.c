@@ -32,7 +32,7 @@ perl_back_bind(
 
 	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 
-#ifdef HAVE_WIN32_ASPERL
+#if defined(HAVE_WIN32_ASPERL) || defined(USE_ITHREADS)
 	PERL_SET_CONTEXT( PERL_INTERPRETER );
 #endif
 
