@@ -248,8 +248,6 @@ ppolicy_cf_default( ConfigArgs *c )
 {
 	slap_overinst *on = (slap_overinst *)c->bi;
 	pp_info *pi = (pp_info *)on->on_bi.bi_private;
-	BackendDB *be = (BackendDB *)c->be;
-	const char *text;
 	int rc = ARG_BAD_CONF;
 
 	assert ( c->type == PPOLICY_DEFAULT );
@@ -1200,6 +1198,14 @@ ppolicy_add(
 	if ((pa = attr_find( op->oq_add.rs_e->e_attrs,
 		slap_schema.si_ad_userPassword )))
 	{
+		assert( pa->a_vals );
+		assert( !BER_BVISNULL( &pa->a_vals[ 0 ] ) );
+
+		if ( !BER_BVISNULL( &pa->a_vals[ 1 ] ) ) {
+			send_ldap_error( op, rs, LDAP_CONSTRAINT_VIOLATION, "Password policy only allows one password value" );
+			return rs->sr_err;
+		}
+
 		/*
 		 * new entry contains a password - if we're not the root user
 		 * then we need to check that the password fits in with the
@@ -1443,18 +1449,43 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			pwmod = 1;
 			pwmop = ml->sml_op;
 			if ((deladd == 0) && (ml->sml_op == LDAP_MOD_DELETE) &&
-				(ml->sml_values) && (ml->sml_values[0].bv_val != NULL)) {
+				(ml->sml_values) && !BER_BVISNULL( &ml->sml_values[0] ))
+			{
 				deladd = 1;
 				delmod = ml;
 			}
 
 			if ((deladd == 1) && ((ml->sml_op == LDAP_MOD_ADD) ||
-								  (ml->sml_op == LDAP_MOD_REPLACE)))
+				  (ml->sml_op == LDAP_MOD_REPLACE)))
+			{
 				deladd = 2;
+			}
 
 			if ((ml->sml_op == LDAP_MOD_ADD) ||
 				(ml->sml_op == LDAP_MOD_REPLACE))
+			{
 				addmod = ml;
+
+				/* FIXME: there's no easy way to ensure
+				 * that add does not cause multiple
+				 * userPassword values; one way (that 
+				 * would be consistent with the single
+				 * password constraint) would be to turn
+				 * add into replace); another would be
+				 * to disallow add.
+				 *
+				 * Let's check at least that a single value
+				 * is being added
+				 */
+				assert( addmod->sml_values != NULL );
+				assert( !BER_BVISNULL( &addmod->sml_values[ 0 ] ) );
+				if ( !BER_BVISNULL( &addmod->sml_values[ 1 ] ) ) {
+					rs->sr_err = LDAP_CONSTRAINT_VIOLATION; 
+					rs->sr_text = "Password policy only allows one password value";
+					goto return_results;
+				}
+			}
+
 		} else if (! is_at_operational( ml->sml_desc->ad_type )) {
 			mod_pw_only = 0;
 			/* modifying something other than password */
