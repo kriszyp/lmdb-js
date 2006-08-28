@@ -248,6 +248,8 @@ int backend_startup(Backend *be)
 				return rc;
 			}
 		}
+		/* append global access controls */
+		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
 		return backend_startup_one( be );
 	}
