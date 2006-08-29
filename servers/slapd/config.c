@@ -1288,10 +1288,12 @@ void bindconf_free( slap_bindconf *bc ) {
 		BER_BVZERO( &bc->sb_authzId );
 	}
 #ifdef HAVE_TLS
+#if 0
 	if ( bc->sb_tls_ctx ) {
 		SSL_CTX_free( bc->sb_tls_ctx );
 		bc->sb_tls_ctx = NULL;
 	}
+#endif
 	if ( bc->sb_tls_cert ) {
 		ch_free( bc->sb_tls_cert );
 		bc->sb_tls_cert = NULL;
