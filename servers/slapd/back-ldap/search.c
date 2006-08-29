@@ -579,7 +579,7 @@ ldap_build_entry(
 					"%s ldap_build_entry: "
 					"slap_bv2undef_ad(%s): %s\n",
 					op->o_log_prefix, a.bv_val, text );
-				ch_free( attr );
+				attr_free( attr );
 				continue;
 			}
 		}
@@ -602,7 +602,7 @@ ldap_build_entry(
 			 */
 			( void )ber_scanf( &ber, "x" /* [W] */ );
 
-			ch_free( attr );
+			attr_free( attr );
 			continue;
 		}
 		
@@ -683,7 +683,7 @@ ldap_build_entry(
 
 				if ( rc != LDAP_SUCCESS ) {
 					BER_BVZERO( &attr->a_nvals[i] );
-					ch_free( attr );
+					attr_free( attr );
 					goto next_attr;
 				}
 			}
