@@ -40,37 +40,118 @@
 
 #include "slap.h"
 
+/*
+ * Allocate in chunks, minimum of 1000 at a time.
+ */
+#define	CHUNK_SIZE	1000
+typedef struct slap_list {
+	struct slap_list *next;
+} slap_list;
+static slap_list *attr_chunks;
+static Attribute *attr_list;
+static ldap_pvt_thread_mutex_t attr_mutex;
+
+int
+attr_prealloc( int num )
+{
+	Attribute *a;
+	slap_list *s;
+
+	if (!num) return 0;
+
+	s = ch_calloc( 1, sizeof(slap_list) + num * sizeof(Attribute));
+	s->next = attr_chunks;
+	attr_chunks = s;
+
+	a = (Attribute *)(s+1);
+	for ( ;num>1; num--) {
+		a->a_next = a+1;
+		a++;
+	}
+	a->a_next = attr_list;
+	attr_list = (Attribute *)(s+1);
+
+	return 0;
+}
+
 Attribute *
 attr_alloc( AttributeDescription *ad )
 {
-	Attribute *a = ch_malloc( sizeof(Attribute) );
-
-	a->a_desc = ad;
+	Attribute *a;
+	
+	
+	ldap_pvt_thread_mutex_lock( &attr_mutex );
+	if ( !attr_list )
+		attr_prealloc( CHUNK_SIZE );
+	a = attr_list;
+	attr_list = a->a_next;
 	a->a_next = NULL;
-	a->a_flags = 0;
-	a->a_vals = NULL;
-	a->a_nvals = NULL;
-#ifdef LDAP_COMP_MATCH
-	a->a_comp_data = NULL;
-#endif
+	ldap_pvt_thread_mutex_unlock( &attr_mutex );
+	
+	a->a_desc = ad;
 
 	return a;
 }
 
+/* Return a list of num attrs */
+Attribute *
+attrs_alloc( int num )
+{
+	Attribute *head = NULL;
+	Attribute **a;
+
+	ldap_pvt_thread_mutex_lock( &attr_mutex );
+	for ( a = &attr_list; *a && num > 0; a = &(*a)->a_next ) {
+		if ( !head )
+			head = *a;
+		num--;
+	}
+	attr_list = *a;
+	if ( num > 0 ) {
+		attr_prealloc( num > CHUNK_SIZE ? num : CHUNK_SIZE );
+		*a = attr_list;
+		for ( ; *a && num > 0; a = &(*a)->a_next ) {
+			if ( !head )
+				head = *a;
+			num--;
+		}
+		attr_list = *a;
+	}
+	*a = NULL;
+	ldap_pvt_thread_mutex_unlock( &attr_mutex );
+
+	return head;
+}
+
+
 void
 attr_free( Attribute *a )
 {
-	if ( a->a_nvals && a->a_nvals != a->a_vals ) {
-		ber_bvarray_free( a->a_nvals );
+	if ( a->a_nvals && a->a_nvals != a->a_vals &&
+		!( a->a_flags & SLAP_ATTR_DONT_FREE_VALS )) {
+		if ( a->a_flags & SLAP_ATTR_DONT_FREE_DATA ) {
+			free( a->a_nvals );
+		} else {
+			ber_bvarray_free( a->a_nvals );
+		}
 	}
 	/* a_vals may be equal to slap_dummy_bv, a static empty berval;
 	 * this is used as a placeholder for attributes that do not carry
 	 * values, e.g. when proxying search entries with the "attrsonly"
 	 * bit set. */
-	if ( a->a_vals != &slap_dummy_bv ) {
-		ber_bvarray_free( a->a_vals );
+	if ( a->a_vals != &slap_dummy_bv &&
+		!( a->a_flags & SLAP_ATTR_DONT_FREE_VALS )) {
+		if ( a->a_flags & SLAP_ATTR_DONT_FREE_DATA ) {
+			free( a->a_vals );
+		} else {
+			ber_bvarray_free( a->a_vals );
+		}
 	}
-	free( a );
+	memset( a, 0, sizeof( Attribute ));
+	ldap_pvt_thread_mutex_lock( &attr_mutex );
+	a->a_next = attr_list;
+	attr_list = a;
+	ldap_pvt_thread_mutex_unlock( &attr_mutex );
 }
 
 #ifdef LDAP_COMP_MATCH
@@ -399,3 +480,22 @@ attr_delete(
 	return LDAP_NO_SUCH_ATTRIBUTE;
 }
 
+int
+attr_init( void )
+{
+	ldap_pvt_thread_mutex_init( &attr_mutex );
+	return 0;
+}
+
+int
+attr_destroy( void )
+{
+	slap_list *a;
+
+	for ( a=attr_chunks; a; a=attr_chunks ) {
+		attr_chunks = a->next;
+		free( a );
+	}
+	ldap_pvt_thread_mutex_destroy( &attr_mutex );
+	return 0;
+}

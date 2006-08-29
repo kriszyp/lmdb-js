@@ -813,7 +813,7 @@ static Entry *accesslog_entry( Operation *op, int logop,
 	struct berval rdn, nrdn, timestamp, ntimestamp, bv;
 	slap_verbmasks *lo = logops+logop+EN_OFFSET;
 
-	Entry *e = ch_calloc( 1, sizeof(Entry) );
+	Entry *e = entry_alloc();
 
 	strcpy( rdnbuf, RDNEQ );
 	rdn.bv_val = rdnbuf;
@@ -1484,7 +1484,7 @@ accesslog_db_open(
 		const char *text = NULL;
 		Entry *e_ctx;
 
-		e = ch_calloc( 1, sizeof( Entry ));
+		e = entry_alloc();
 		e->e_name = *li->li_db->be_suffix;
 		e->e_nname = *li->li_db->be_nsuffix;
 

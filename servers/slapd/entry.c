@@ -47,17 +47,52 @@ const Entry slap_entry_root = {
 	NOID, { 0, "" }, { 0, "" }, NULL, 0, { 0, "" }, NULL
 };
 
+/*
+ * these mutexes must be used when calling the entry2str()
+ * routine since it returns a pointer to static data.
+ */
+ldap_pvt_thread_mutex_t	entry2str_mutex;
+
 static const struct berval dn_bv = BER_BVC("dn");
+
+/*
+ * Entry free list
+ *
+ * Allocate in chunks, minimum of 1000 at a time.
+ */
+#define	CHUNK_SIZE	1000
+typedef struct slap_list {
+	struct slap_list *next;
+} slap_list;
+static slap_list *entry_chunks;
+static Entry *entry_list;
+static ldap_pvt_thread_mutex_t entry_mutex;
 
 int entry_destroy(void)
 {
+	slap_list *e;
 	if ( ebuf ) free( ebuf );
 	ebuf = NULL;
 	ecur = NULL;
 	emaxsize = 0;
-	return 0;
+
+	for ( e=entry_chunks; e; e=entry_chunks ) {
+		entry_chunks = e->next;
+		free( e );
+	}
+
+	ldap_pvt_thread_mutex_destroy( &entry_mutex );
+	ldap_pvt_thread_mutex_destroy( &entry2str_mutex );
+	return attr_destroy();
 }
 
+
+int entry_init(void)
+{
+	ldap_pvt_thread_mutex_init( &entry2str_mutex );
+	ldap_pvt_thread_mutex_init( &entry_mutex );
+	return attr_init();
+}
 
 Entry *
 str2entry( char *s )
@@ -97,8 +132,7 @@ str2entry2( char *s, int checkvals )
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry: \"%s\"\n",
 		s ? s : "NULL", 0, 0 );
 
-	/* initialize reader/writer lock */
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	e = entry_alloc();
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -228,7 +262,7 @@ str2entry2( char *s, int checkvals )
 
 		if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
 			int j, k;
-			atail->a_next = (Attribute *) ch_malloc( sizeof(Attribute) );
+			atail->a_next = attr_alloc( NULL );
 			atail = atail->a_next;
 			atail->a_flags = 0;
 			atail->a_desc = ad_prev;
@@ -409,26 +443,27 @@ entry_clean( Entry *e )
 
 	/* e_private must be freed by the caller */
 	assert( e->e_private == NULL );
-	e->e_private = NULL;
 
 	/* free DNs */
 	if ( !BER_BVISNULL( &e->e_name ) ) {
 		free( e->e_name.bv_val );
-		BER_BVZERO( &e->e_name );
 	}
 	if ( !BER_BVISNULL( &e->e_nname ) ) {
 		free( e->e_nname.bv_val );
-		BER_BVZERO( &e->e_nname );
 	}
 
 	if ( !BER_BVISNULL( &e->e_bv ) ) {
 		free( e->e_bv.bv_val );
-		BER_BVZERO( &e->e_bv );
+	}
+
+	if ( &e->e_abv ) {
+		free( e->e_abv );
 	}
 
 	/* free attributes */
 	attrs_free( e->e_attrs );
-	e->e_attrs = NULL;
+
+	memset(e, 0, sizeof(Entry));
 }
 
 void
@@ -436,8 +471,51 @@ entry_free( Entry *e )
 {
 	entry_clean( e );
 
-	free( e );
+	ldap_pvt_thread_mutex_lock( &entry_mutex );
+	e->e_private = entry_list;
+	entry_list = e;
+	ldap_pvt_thread_mutex_unlock( &entry_mutex );
 }
+
+int
+entry_prealloc( int num )
+{
+	Entry *e;
+	slap_list *s;
+
+	if (!num) return 0;
+
+	s = ch_calloc( 1, sizeof(slap_list) + num * sizeof(Entry));
+	s->next = entry_chunks;
+	entry_chunks = s;
+
+	e = (Entry *)(s+1);
+	for ( ;num>1; num--) {
+		e->e_private = e+1;
+		e++;
+	}
+	e->e_private = entry_list;
+	entry_list = (Entry *)(s+1);
+
+	return 0;
+}
+
+Entry *
+entry_alloc( void )
+{
+	Entry *e;
+
+	ldap_pvt_thread_mutex_lock( &entry_mutex );
+	if ( !entry_list )
+		entry_prealloc( CHUNK_SIZE );
+	e = entry_list;
+	entry_list = e->e_private;
+	e->e_private = NULL;
+	ldap_pvt_thread_mutex_unlock( &entry_mutex );
+
+	return e;
+}
+
 
 /*
  * These routines are used only by Backend.
@@ -616,8 +694,8 @@ int entry_encode(Entry *e, struct berval *bv)
 		*ptr++ = '\0';
 		if (a->a_vals) {
 			for (i=0; a->a_vals[i].bv_val; i++);
-				entry_putlen(&ptr, i);
-				for (i=0; a->a_vals[i].bv_val; i++) {
+			entry_putlen(&ptr, i);
+			for (i=0; a->a_vals[i].bv_val; i++) {
 				entry_putlen(&ptr, a->a_vals[i].bv_len);
 				AC_MEMCPY(ptr, a->a_vals[i].bv_val,
 					a->a_vals[i].bv_len);
@@ -679,19 +757,9 @@ int entry_decode(struct berval *bv, Entry **e)
 			"entry_decode: value count was zero\n", 0, 0, 0);
 		return LDAP_OTHER;
 	}
-	i = sizeof(Entry) + (nattrs * sizeof(Attribute)) +
-		(nvals * sizeof(struct berval));
-#ifdef SLAP_ZONE_ALLOC
-	x = slap_zn_calloc(1, i + bv->bv_len, ctx);
-	AC_MEMCPY((char*)x + i, bv->bv_val, bv->bv_len);
-	bv->bv_val = (char*)x + i;
-	ptr = (unsigned char *)bv->bv_val;
-	/* pointer is reset, now advance past nattrs and nvals again */
-	entry_getlen(&ptr);
-	entry_getlen(&ptr);
-#else
-	x = ch_calloc(1, i);
-#endif
+	x = entry_alloc();
+	x->e_attrs = attrs_alloc( nattrs );
+	x->e_abv = ch_malloc( nvals * sizeof( struct berval ));
 	i = entry_getlen(&ptr);
 	x->e_name.bv_val = (char *) ptr;
 	x->e_name.bv_len = i;
@@ -705,21 +773,13 @@ int entry_decode(struct berval *bv, Entry **e)
 		x->e_dn, 0, 0 );
 	x->e_bv = *bv;
 
-	/* A valid entry must have at least one attr, so this
-	 * pointer can never be NULL
-	 */
-	x->e_attrs = (Attribute *)(x+1);
-	bptr = (BerVarray)x->e_attrs;
-	a = NULL;
+	a = x->e_attrs;
+	bptr = x->e_abv;
 
 	while ((i = entry_getlen(&ptr))) {
 		struct berval bv;
 		bv.bv_len = i;
 		bv.bv_val = (char *) ptr;
-		if (a) {
-			a->a_next = (Attribute *)bptr;
-		}
-		a = (Attribute *)bptr;
 		ad = NULL;
 		rc = slap_bv2ad( &bv, &ad, &text );
 
@@ -737,13 +797,9 @@ int entry_decode(struct berval *bv, Entry **e)
 		}
 		ptr += i + 1;
 		a->a_desc = ad;
-		bptr = (BerVarray)(a+1);
-		a->a_vals = bptr;
-		a->a_flags = 0;
-#ifdef LDAP_COMP_MATCH
-		a->a_comp_data = NULL;
-#endif
+		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
 		count = j = entry_getlen(&ptr);
+		a->a_vals = bptr;
 
 		while (j) {
 			i = entry_getlen(&ptr);
@@ -774,12 +830,12 @@ int entry_decode(struct berval *bv, Entry **e)
 		} else {
 			a->a_nvals = a->a_vals;
 		}
+		a = a->a_next;
 		nattrs--;
 		if ( !nattrs )
 			break;
 	}
 
-	if (a) a->a_next = NULL;
 	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s)\n",
 		x->e_dn, 0, 0 );
 	*e = x;

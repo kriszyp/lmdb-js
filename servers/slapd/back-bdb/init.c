@@ -424,6 +424,8 @@ bdb_db_open( BackendDB *be )
 
 	bdb->bi_flags |= BDB_IS_OPEN;
 
+	entry_prealloc( bdb->bi_cache.c_maxsize );
+	attr_prealloc( bdb->bi_cache.c_maxsize * 20 );
 	return 0;
 
 fail:

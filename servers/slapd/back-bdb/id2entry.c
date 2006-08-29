@@ -176,64 +176,31 @@ int bdb_id2entry_delete(
 	return rc;
 }
 
-#ifdef SLAP_ZONE_ALLOC
-int bdb_entry_return(
-	struct bdb_info *bdb,
-	Entry *e,
-	int zseq
-)
-#else
 int bdb_entry_return(
 	Entry *e
 )
-#endif
 {
-#ifdef SLAP_ZONE_ALLOC
-	if (!slap_zn_validate(bdb->bi_cache.c_zctx, e, zseq)) {
-		return 0;
-	}
-#endif
 	/* Our entries are allocated in two blocks; the data comes from
 	 * the db itself and the Entry structure and associated pointers
 	 * are allocated in entry_decode. The db data pointer is saved
-	 * in e_bv. Since the Entry structure is allocated as a single
-	 * block, e_attrs is always a fixed offset from e. The exception
-	 * is when an entry has been modified, in which case we also need
-	 * to free e_attrs.
+	 * in e_bv.
 	 */
-
-#ifdef LDAP_COMP_MATCH
-	comp_tree_free( e->e_attrs );
-#endif
-	if( !e->e_bv.bv_val ) {	/* Entry added by do_add */
-		entry_free( e );
-		return 0;
-	}
-	if( (void *) e->e_attrs != (void *) (e+1)) {
-		attrs_free( e->e_attrs );
-	}
-
-	/* See if the DNs were changed by modrdn */
-	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
-		e->e_bv.bv_val + e->e_bv.bv_len ) {
-		ch_free(e->e_name.bv_val);
-		ch_free(e->e_nname.bv_val);
+	if ( e->e_bv.bv_val ) {
+		/* See if the DNs were changed by modrdn */
+		if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
+			e->e_bv.bv_val + e->e_bv.bv_len ) {
+			ch_free(e->e_name.bv_val);
+			ch_free(e->e_nname.bv_val);
+		}
 		e->e_name.bv_val = NULL;
 		e->e_nname.bv_val = NULL;
+		/* In tool mode the e_bv buffer is realloc'd, leave it alone */
+		if( !(slapMode & SLAP_TOOL_MODE) ) {
+			free( e->e_bv.bv_val );
+		}
+		BER_BVZERO( &e->e_bv );
 	}
-#ifndef SLAP_ZONE_ALLOC
-	/* In tool mode the e_bv buffer is realloc'd, leave it alone */
-	if( !(slapMode & SLAP_TOOL_MODE) ) {
-		free( e->e_bv.bv_val );
-	}
-#endif /* !SLAP_ZONE_ALLOC */
-
-#ifdef SLAP_ZONE_ALLOC
-	slap_zn_free( e, bdb->bi_cache.c_zctx );
-#else
-	free( e );
-#endif
-
+	entry_free( e );
 	return 0;
 }
 

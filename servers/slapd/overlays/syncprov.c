@@ -2132,13 +2132,10 @@ syncprov_operational(
 			if ( !a ) {
 				for ( ap = &rs->sr_operational_attrs; *ap; ap=&(*ap)->a_next );
 
-				a = ch_malloc( sizeof(Attribute));
-				a->a_desc = slap_schema.si_ad_contextCSN;
+				a = attr_alloc( slap_schema.si_ad_contextCSN );
 				a->a_vals = ch_malloc( 2 * sizeof(struct berval));
 				a->a_vals[1].bv_val = NULL;
 				a->a_nvals = a->a_vals;
-				a->a_next = NULL;
-				a->a_flags = 0;
 				*ap = a;
 			}
 

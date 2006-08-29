@@ -69,7 +69,7 @@ do_add( Operation *op, SlapReply *rs )
 		return SLAPD_DISCONNECT;
 	}
 
-	op->ora_e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	op->ora_e = entry_alloc();
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
@@ -506,10 +506,7 @@ slap_mods2entry(
 			}
 		}
 
-		attr = ch_calloc( 1, sizeof(Attribute) );
-
-		/* move ad to attr structure */
-		attr->a_desc = mods->sml_desc;
+		attr = attr_alloc( mods->sml_desc );
 
 		/* move values to attr structure */
 		/*	should check for duplicates */

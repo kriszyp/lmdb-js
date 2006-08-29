@@ -141,13 +141,12 @@ void glue_parent(Operation *op) {
 
 	Debug(LDAP_DEBUG_TRACE, "=> glue_parent: fabricating glue for <%s>\n", ndn.bv_val, 0, 0);
 
-	e = ch_calloc(1, sizeof(Entry));
+	e = entry_alloc();
 	e->e_id = NOID;
 	ber_dupbv(&e->e_name, &ndn);
 	ber_dupbv(&e->e_nname, &ndn);
 
-	a = ch_calloc(1, sizeof(Attribute));
-	a->a_desc = slap_schema.si_ad_objectClass;
+	a = attr_alloc( slap_schema.si_ad_objectClass );
 	a->a_vals = ch_malloc(sizeof(struct berval) * 3);
 	ber_dupbv(&a->a_vals[0], &glue[0]);
 	ber_dupbv(&a->a_vals[1], &glue[1]);
@@ -156,8 +155,7 @@ void glue_parent(Operation *op) {
 	a->a_next = e->e_attrs;
 	e->e_attrs = a;
 
-	a = ch_calloc(1, sizeof(Attribute));
-	a->a_desc = slap_schema.si_ad_structuralObjectClass;
+	a = attr_alloc( slap_schema.si_ad_structuralObjectClass );
 	a->a_vals = ch_malloc(sizeof(struct berval) * 2);
 	ber_dupbv(&a->a_vals[0], &glue[1]);
 	ber_dupbv(&a->a_vals[1], &glue[2]);
@@ -199,12 +197,13 @@ BerVarray dup_bervarray(BerVarray b) {
 **	free only the Attribute*, not the contents;
 **
 */
-void free_attr_chain(Attribute *a) {
-	Attribute *ax;
-	for(; a; a = ax) {
-		ax = a->a_next;
-		ch_free(a);
+void free_attr_chain(Attribute *b) {
+	Attribute *a;
+	for(a=b; a; a=a->a_next) {
+		a->a_vals = NULL;
+		a->a_nvals = NULL;
 	}
+	attrs_free( b );
 	return;
 }
 
@@ -423,8 +422,7 @@ release:
 			if((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) del++;
 			continue;
 		}
-		a = ch_calloc(1, sizeof(Attribute));
-		a->a_desc  = m->sml_desc;
+		a = attr_alloc( m->sml_desc );
 		a->a_vals  = m->sml_values;
 		a->a_nvals = m->sml_nvalues;
 		a->a_next  = ax;

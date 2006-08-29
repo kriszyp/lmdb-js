@@ -42,11 +42,11 @@ schema_info( Entry **entry, const char **text )
 	struct berval	vals[5];
 	struct berval	nvals[5];
 
-	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	e = entry_alloc();
 	if( e == NULL ) {
 		/* Out of memory, do something about it */
 		Debug( LDAP_DEBUG_ANY, 
-			"schema_info: SLAP_CALLOC failed - out of memory.\n", 0, 0, 0 );
+			"schema_info: entry_alloc failed - out of memory.\n", 0, 0, 0 );
 		*text = "out of memory";
 		return LDAP_OTHER;
 	}

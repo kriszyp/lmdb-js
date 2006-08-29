@@ -213,10 +213,10 @@ root_dse_info(
 	AttributeDescription *ad_ref
 		= slap_schema.si_ad_ref;
 
-	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	e = entry_alloc();
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"root_dse_info: SLAP_CALLOC failed", 0, 0, 0 );
+			"root_dse_info: entry_alloc failed", 0, 0, 0 );
 		return LDAP_OTHER;
 	}
 
@@ -395,10 +395,10 @@ int read_root_dse_file( const char *fname )
 		return EXIT_FAILURE;
 	}
 
-	usr_attr = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	usr_attr = entry_alloc();
 	if( usr_attr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"read_root_dse_file: SLAP_CALLOC failed", 0, 0, 0 );
+			"read_root_dse_file: entry_alloc failed", 0, 0, 0 );
 		ldif_close( fp );
 		return LDAP_OTHER;
 	}

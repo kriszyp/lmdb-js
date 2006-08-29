@@ -71,11 +71,6 @@ ldap_pvt_thread_mutex_t	gmtime_mutex;
 
 slap_counters_t			slap_counters;
 
-/*
- * these mutexes must be used when calling the entry2str()
- * routine since it returns a pointer to static data.
- */
-ldap_pvt_thread_mutex_t	entry2str_mutex;
 ldap_pvt_thread_mutex_t	replog_mutex;
 
 static const char* slap_name = NULL;
@@ -119,6 +114,13 @@ slap_init( int mode, const char *name )
 		return 1;
 	}
 
+	if ( entry_init() != 0 ) {
+		slap_debug |= LDAP_DEBUG_NONE;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: entry_init failed\n",
+		    name, 0, 0 );
+		return 1;
+	}
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
@@ -134,7 +136,6 @@ slap_init( int mode, const char *name )
 
 		ldap_pvt_thread_pool_init( &connection_pool,
 				connection_pool_max, 0);
-		ldap_pvt_thread_mutex_init( &entry2str_mutex );
 		ldap_pvt_thread_mutex_init( &replog_mutex );
 
 		ldap_pvt_thread_mutex_init( &slap_counters.sc_sent_mutex );

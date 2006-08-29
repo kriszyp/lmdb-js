@@ -565,13 +565,10 @@ ldap_build_entry(
 		slap_syntax_validate_func	*validate;
 		slap_syntax_transform_func	*pretty;
 
-		attr = (Attribute *)ch_malloc( sizeof( Attribute ) );
+		attr = attr_alloc( NULL );
 		if ( attr == NULL ) {
 			continue;
 		}
-		attr->a_flags = 0;
-		attr->a_next = 0;
-		attr->a_desc = NULL;
 		if ( slap_bv2ad( &a, &attr->a_desc, &text ) 
 				!= LDAP_SUCCESS )
 		{
@@ -792,7 +789,7 @@ retry:
 		goto cleanup;
 	}
 
-	*ent = ch_calloc( 1, sizeof( Entry ) );
+	*ent = entry_alloc();
 	if ( *ent == NULL ) {
 		rc = LDAP_NO_MEMORY;
 		goto cleanup;

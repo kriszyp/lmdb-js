@@ -193,7 +193,7 @@ monitor_entry_stub(
 	if ( rc )
 		return NULL;
 
-	e = ch_calloc( 1, sizeof( Entry ));
+	e = entry_alloc();
 	if ( e ) {
 		struct berval nrdn;
 

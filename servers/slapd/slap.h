@@ -1102,6 +1102,8 @@ typedef struct slap_attr {
 	unsigned a_flags;
 #define SLAP_ATTR_IXADD		0x1U
 #define SLAP_ATTR_IXDEL		0x2U
+#define SLAP_ATTR_DONT_FREE_DATA	0x4U
+#define SLAP_ATTR_DONT_FREE_VALS	0x8U
 } Attribute;
 
 
@@ -1134,6 +1136,7 @@ typedef struct slap_entry {
 	slap_mask_t	e_ocflags;
 
 	struct berval	e_bv;		/* For entry_encode/entry_decode */
+	struct berval	*e_abv;
 
 	/* for use by the backend for any purpose */
 	void*	e_private;

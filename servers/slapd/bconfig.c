@@ -4403,7 +4403,7 @@ Entry *
 config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ConfigArgs *c, struct berval *rdn, ConfigOCs *main, ConfigOCs *extra )
 {
-	Entry *e = ch_calloc( 1, sizeof(Entry) );
+	Entry *e = entry_alloc();
 	CfEntryInfo *ce = ch_calloc( 1, sizeof(CfEntryInfo) );
 	struct berval val;
 	struct berval ad_name;

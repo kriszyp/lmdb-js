@@ -128,7 +128,7 @@ slap_create_context_csn_entry(
 
 	struct berval bv;
 
-	e = (Entry *) ch_calloc( 1, sizeof( Entry ));
+	e = entry_alloc();
 
 	attr_merge( e, slap_schema.si_ad_objectClass,
 		ocbva, NULL );

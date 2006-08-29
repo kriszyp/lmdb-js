@@ -1417,7 +1417,7 @@ meta_send_entry(
 			( void )ber_scanf( &ber, "x" /* [W] */ );
 			continue;
 		}
-		attr = ( Attribute * )ch_calloc( 1, sizeof( Attribute ) );
+		attr = attr_alloc( NULL );
 		if ( attr == NULL ) {
 			continue;
 		}

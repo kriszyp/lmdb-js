@@ -1260,7 +1260,7 @@ syncrepl_message_to_op(
 		}
 
 		if ( op->o_tag == LDAP_REQ_ADD ) {
-			op->ora_e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
+			op->ora_e = entry_alloc();
 			op->ora_e->e_name = op->o_req_dn;
 			op->ora_e->e_nname = op->o_req_ndn;
 			rc = slap_mods2entry( modlist, &op->ora_e, 1, 0, &text, txtbuf, textlen);
@@ -1389,7 +1389,7 @@ syncrepl_message_to_entry(
 		return -1;
 	}
 
-	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
+	e = entry_alloc();
 	e->e_name = op->o_req_dn;
 	e->e_nname = op->o_req_ndn;
 
@@ -2179,12 +2179,11 @@ syncrepl_add_glue(
 	}
 
 	while ( ndn.bv_val > e->e_nname.bv_val ) {
-		glue = (Entry *) ch_calloc( 1, sizeof(Entry) );
+		glue = entry_alloc();
 		ber_dupbv( &glue->e_name, &dn );
 		ber_dupbv( &glue->e_nname, &ndn );
 
-		a = ch_calloc( 1, sizeof( Attribute ));
-		a->a_desc = slap_schema.si_ad_objectClass;
+		a = attr_alloc( slap_schema.si_ad_objectClass );
 
 		a->a_vals = ch_calloc( 3, sizeof( struct berval ));
 		ber_dupbv( &a->a_vals[0], &gcbva[0] );
@@ -2196,8 +2195,7 @@ syncrepl_add_glue(
 		a->a_next = glue->e_attrs;
 		glue->e_attrs = a;
 
-		a = ch_calloc( 1, sizeof( Attribute ));
-		a->a_desc = slap_schema.si_ad_structuralObjectClass;
+		a = attr_alloc( slap_schema.si_ad_structuralObjectClass );
 
 		a->a_vals = ch_calloc( 2, sizeof( struct berval ));
 		ber_dupbv( &a->a_vals[0], &gcbva[1] );
