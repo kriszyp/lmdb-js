@@ -52,7 +52,8 @@ print_access(
 			desc->ad_cname.bv_val,
 			( val && !BER_BVISNULL( val ) ) ? "=" : "",
 			( val && !BER_BVISNULL( val ) ) ?
-				( desc == slap_schema.si_ad_userPassword ? "****" : val->bv_val ) : "",
+				( desc == slap_schema.si_ad_userPassword ?
+					"****" : val->bv_val ) : "",
 			accessmask2str( mask, accessmaskbuf, 1 ) );
 
 	return rc;
