@@ -1476,6 +1476,7 @@ accesslog_db_open(
 
 	if ( e ) {
 		be_entry_release_rw( op, e, 0 );
+
 	} else {
 		SlapReply rs = {REP_RESULT};
 		struct berval rdn, nrdn, attr;
@@ -1535,8 +1536,9 @@ accesslog_db_open(
 		SLAP_DBFLAGS( op->o_bd ) |= SLAP_DBFLAG_NOLASTMOD;
 		rc = op->o_bd->be_add( op, &rs );
 		SLAP_DBFLAGS( op->o_bd ) ^= SLAP_DBFLAG_NOLASTMOD;
-		attrs_free( e->e_attrs );
-		ch_free( e );
+		BER_BVZERO( &e->e_name );
+		BER_BVZERO( &e->e_nname );
+		entry_free( e );
 	}
 	ldap_pvt_thread_pool_context_reset( thrctx );
 	return rc;
