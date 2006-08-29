@@ -509,6 +509,10 @@ init_config_attrs(ConfigTable *ct) {
 			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s\n",
 				ct[i].attribute, err );
 			return code;
+		} else {
+#ifndef LDAP_DEVEL
+			ct[i].ad->ad_type->sat_flags |= SLAP_AT_HIDE;
+#endif
 		}
 	}
 
@@ -539,10 +543,14 @@ init_config_ocs( ConfigOCs *ocs ) {
 			return code;
 		}
 		ocs[i].co_oc = oc_find(oc->oc_names[0]);
-		if ( code )
+		if ( code ) {
 			ldap_objectclass_free(oc);
-		else
+		} else {
 			ldap_memfree(oc);
+#ifndef LDAP_DEVEL
+			ocs[i].co_oc->soc_flags |= SLAP_OC_HIDE;
+#endif
+		}
 	}
 	return 0;
 }
