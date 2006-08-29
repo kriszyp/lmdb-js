@@ -14,8 +14,7 @@ OpenLDAP Devel README
 		http://www.openldap.org/software/
 
 Contributing
-
-	See http://www.openldap.org/devel/contributing.html for how to
+	See <http://www.openldap.org/devel/contributing.html> for how to
 	contribute code or documentation to OpenLDAP.  Use the Issue Tracking
 	System <http://www.openldap.org/its/> to submit contributions.
 	While you are encouraged to coordinate and discuss the development
