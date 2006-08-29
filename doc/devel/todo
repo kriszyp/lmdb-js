@@ -37,7 +37,7 @@ Implement LDAP sorted search results control (RFC 2891)
 
 Medium projects
 ---------------
-Add syncrepl "turn" support
+Add syncrepl turn
 Implement DIT Structure Rules and Name Forms
 Implement LDAPprep
 Implement native support for simple SASL mechanisms
