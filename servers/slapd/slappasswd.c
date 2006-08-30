@@ -37,6 +37,7 @@
 #include <lutil_sha1.h>
 
 #include "ldap_defaults.h"
+#include "slap.h"
 
 static int	verbose = 0;
 
