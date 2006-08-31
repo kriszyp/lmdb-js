@@ -235,6 +235,16 @@ static struct slap_daemon {
 	for (i=0; i<dtblsize; i++) slap_daemon.sd_index[i] = -1; \
 } while (0)
 
+#define SLAP_SOCK_SET_DESTROY do { \
+	if ( slap_daemon.sd_epolls != NULL ) { \
+		ch_free( slap_daemon.sd_epolls ); \
+		slap_daemon.sd_epolls = NULL; \
+		ch_free( slap_daemon.sd_index ); \
+		slap_daemon.sd_index = NULL; \
+		close( slap_daemon.sd_epfd ); \
+	} \
+} while ( 0 )
+
 # define SLAP_EVENT_DECL struct epoll_event *revents
 
 # define SLAP_EVENT_INIT do { \
@@ -274,6 +284,8 @@ static struct slap_daemon {
 	FD_ZERO(&slap_daemon.sd_readers); \
 	FD_ZERO(&slap_daemon.sd_writers); \
 } while (0)
+
+#define		SLAP_SOCK_SET_DESTROY
 
 # define SLAP_SOCK_IS_ACTIVE(fd)	FD_ISSET((fd), &slap_daemon.sd_actives)
 # define SLAP_SOCK_IS_READ(fd)		FD_ISSET((fd), &slap_daemon.sd_readers)
@@ -2319,6 +2331,8 @@ static int sockdestroy(void)
 #if defined( HAVE_WINSOCK2 ) || defined( HAVE_WINSOCK )
 	WSACleanup();
 #endif
+	SLAP_SOCK_SET_DESTROY;
+
 	return 0;
 }
 
