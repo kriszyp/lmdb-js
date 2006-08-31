@@ -148,7 +148,7 @@ fi
 echo "Testing dontUseCopy control..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	-E \!dontUseCopy \
-	'sn=jensen' >! $SEARCHOUT
+	'sn=jensen' >> $SEARCHOUT
 RC=$?
 if test $RC = 10 ; then
 	echo "ldapsearch failed as expected ($RC)"
