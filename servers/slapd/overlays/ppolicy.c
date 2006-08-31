@@ -484,13 +484,13 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	}
 
 	if ((a = attr_find( pe->e_attrs, ad_pwdLockout )))
-    	pp->pwdLockout = !strcmp( a->a_nvals[0].bv_val, "TRUE" );
+    		pp->pwdLockout = bvmatch( &a->a_nvals[0], &slap_true_bv );
 	if ((a = attr_find( pe->e_attrs, ad_pwdMustChange )))
-    	pp->pwdMustChange = !strcmp( a->a_nvals[0].bv_val, "TRUE" );
+    		pp->pwdMustChange = bvmatch( &a->a_nvals[0], &slap_true_bv );
 	if ((a = attr_find( pe->e_attrs, ad_pwdAllowUserChange )))
-    	pp->pwdAllowUserChange = !strcmp( a->a_nvals[0].bv_val, "TRUE" );
+	    	pp->pwdAllowUserChange = bvmatch( &a->a_nvals[0], &slap_true_bv );
 	if ((a = attr_find( pe->e_attrs, ad_pwdSafeModify )))
-    	pp->pwdSafeModify = !strcmp( a->a_nvals[0].bv_val, "TRUE" );
+	    	pp->pwdSafeModify = bvmatch( &a->a_nvals[0], &slap_true_bv );
     
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	be_entry_release_r( op, pe );
@@ -897,7 +897,8 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 		 */
 		if ( ppb->pp.pwdMustChange &&
 			(a = attr_find( e->e_attrs, ad_pwdReset )) &&
-			!strcmp( a->a_nvals[0].bv_val, "TRUE" ) ) {
+			bvmatch( &a->a_nvals[0], &slap_true_bv ) )
+		{
 			/*
 			 * need to inject client controls here to give
 			 * more information. For the moment, we ensure
