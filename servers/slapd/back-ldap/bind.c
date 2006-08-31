@@ -1698,7 +1698,7 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 		 * so that referral chasing is attempted using the right
 		 * identity */
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
-		ber_dupbv( &lc->lc_bound_ndn, &binddn );
+		ber_bvreplace( &lc->lc_bound_ndn, &binddn );
 
 		if ( LDAP_BACK_SAVECRED( li ) ) {
 			if ( !BER_BVISNULL( &lc->lc_cred ) ) {
