@@ -387,7 +387,8 @@ ldap_int_open_connection(
 }
 
 
-int ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
+int
+ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
 {
 	int rc;
 	LDAPConn *c;
@@ -402,7 +403,7 @@ int ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
 	/* Make it appear that a search request, msgid 0, was sent */
 	lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ));
 	if( lr == NULL ) {
-		ldap_unbind( *ldp );
+		ldap_unbind_ext( *ldp, NULL, NULL );
 		*ldp = NULL;
 		return( LDAP_NO_MEMORY );
 	}
@@ -416,7 +417,7 @@ int ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
 	/* Attach the passed socket as the *LDAP's connection */
 	c = ldap_new_connection( *ldp, NULL, 1, 0, NULL);
 	if( c == NULL ) {
-		ldap_unbind( *ldp );
+		ldap_unbind_ext( *ldp, NULL, NULL );
 		*ldp = NULL;
 		return( LDAP_NO_MEMORY );
 	}
