@@ -78,8 +78,7 @@ Attribute *
 attr_alloc( AttributeDescription *ad )
 {
 	Attribute *a;
-	
-	
+
 	ldap_pvt_thread_mutex_lock( &attr_mutex );
 	if ( !attr_list )
 		attr_prealloc( CHUNK_SIZE );

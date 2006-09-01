@@ -420,6 +420,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 				}
 				ldap_free_urldesc( srvfunc );
 			}
+
 		} else {
 			int		msgid, rc;
 			struct berval	passwd = BER_BVNULL;
@@ -599,7 +600,10 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		}
 #endif
 
-		/* FIXME: is this at all possible? */
+		/* FIXME: is this at all possible?
+		 * ldap_ld_free() in unbind.c calls ldap_free_connection()
+		 * with force == 1 __after__ explicitly calling
+		 * ldap_free_request() on all requests */
 		if ( force ) {
 			LDAPRequest	*lr;
 

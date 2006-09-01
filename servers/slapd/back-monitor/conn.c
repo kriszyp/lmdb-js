@@ -181,7 +181,8 @@ monitor_subsys_conn_update(
 
 		for ( n = 0, c = connection_first( &connindex );
 				c != NULL;
-				n++, c = connection_next( c, &connindex ) ) {
+				n++, c = connection_next( c, &connindex ) )
+		{
 			/* No Op */ ;
 		}
 		connection_done( c );
@@ -426,9 +427,6 @@ monitor_subsys_conn_create(
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 
-	Connection		*c;
-	int			connindex;
-	monitor_entry_t 	*mp;
 	int			rc = SLAP_CB_CONTINUE;
 	monitor_subsys_t	*ms;
 
@@ -441,14 +439,18 @@ monitor_subsys_conn_create(
 	*ep = NULL;
 
 	if ( ndn == NULL ) {
-		Entry	*e = NULL,
-			*e_tmp = NULL;
+		Connection	*c;
+		int		connindex;
+		Entry		*e = NULL,
+				*e_tmp = NULL;
 
 		/* create all the children of e_parent */
 		for ( c = connection_first( &connindex );
 				c != NULL;
 				c = connection_next( c, &connindex ) )
 		{
+			monitor_entry_t 	*mp;
+
 			if ( conn_create( mi, c, &e, ms ) != SLAP_CB_CONTINUE
 					|| e == NULL )
 			{
@@ -473,6 +475,8 @@ monitor_subsys_conn_create(
 		*ep = e;
 
 	} else {
+		Connection		*c;
+		int			connindex;
 		unsigned long 		connid;
 		char			*next = NULL;
 		static struct berval	nconn_bv = BER_BVC( "cn=connection " );
