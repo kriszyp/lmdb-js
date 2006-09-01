@@ -263,23 +263,24 @@ typedef struct ldap_conn {
  * structure used to track outstanding requests
  */
 typedef struct ldapreq {
-	ber_int_t		lr_msgid;	/* the message id */
+	ber_int_t	lr_msgid;	/* the message id */
 	int		lr_status;	/* status of request */
 #define LDAP_REQST_COMPLETED	0
 #define LDAP_REQST_INPROGRESS	1
 #define LDAP_REQST_CHASINGREFS	2
 #define LDAP_REQST_NOTCONNECTED	3
 #define LDAP_REQST_WRITING	4
+	int		lr_refcnt;	/* count of references */
 	int		lr_outrefcnt;	/* count of outstanding referrals */
-	ber_int_t		lr_origid;	/* original request's message id */
+	ber_int_t	lr_origid;	/* original request's message id */
 	int		lr_parentcnt;	/* count of parent requests */
-	ber_tag_t		lr_res_msgtype;	/* result message type */
-	ber_int_t		lr_res_errno;	/* result LDAP errno */
+	ber_tag_t	lr_res_msgtype;	/* result message type */
+	ber_int_t	lr_res_errno;	/* result LDAP errno */
 	char		*lr_res_error;	/* result error string */
 	char		*lr_res_matched;/* result matched DN string */
 	BerElement	*lr_ber;	/* ber encoded request contents */
 	LDAPConn	*lr_conn;	/* connection used to send request */
-	struct berval	lr_dn;	/* DN of request, in lr_ber */
+	struct berval	lr_dn;		/* DN of request, in lr_ber */
 	struct ldapreq	*lr_parent;	/* request that spawned this referral */
 	struct ldapreq	*lr_child;	/* first child request */
 	struct ldapreq	*lr_refnext;	/* next referral spawned */
@@ -532,6 +533,7 @@ LDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 LDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc **srvlist, LDAPConn *lc, LDAPreqinfo *bind );
 LDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb, int connect, LDAPreqinfo *bind );
 LDAP_F (LDAPRequest *) ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
+LDAP_F (void) ldap_return_request_by_msgid( LDAP *ld, LDAPRequest *lr, int freeit );
 LDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );
 LDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
 LDAP_F (void) ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
