@@ -840,27 +840,36 @@ void connection_closing( Connection *c, const char *why )
 	}
 }
 
-static void connection_close( Connection *c )
+static void
+connection_close( Connection *c )
 {
-	ber_socket_t	sd;
+	ber_socket_t	sd = AC_SOCKET_INVALID;
 
 	assert( connections != NULL );
 	assert( c != NULL );
 	assert( c->c_struct_state == SLAP_C_USED );
 	assert( c->c_conn_state == SLAP_C_CLOSING );
 
-	/* note: c_mutex should be locked by caller */
+	/* NOTE: c_mutex should be locked by caller */
 
-	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
-	if( !LDAP_STAILQ_EMPTY(&c->c_ops) ) {
+	/* NOTE: don't get the file descriptor if not needed */
+	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
+	}
+
+	if ( !LDAP_STAILQ_EMPTY(&c->c_ops) ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_close: deferring conn=%lu sd=%d\n",
 			c->c_connid, sd, 0 );
 		return;
 	}
 
+	/* NOTE: if there's no pending ops, writewaiter must be 0 (ITS#4659) */
+	assert( c->c_writewaiter == 0 );
+
 	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%lu sd=%d\n",
 		c->c_connid, sd, 0 );
+
 	connection_destroy( c );
 }
 
