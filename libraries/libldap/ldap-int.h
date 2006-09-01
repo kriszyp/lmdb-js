@@ -533,7 +533,7 @@ LDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 LDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc **srvlist, LDAPConn *lc, LDAPreqinfo *bind );
 LDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb, int connect, LDAPreqinfo *bind );
 LDAP_F (LDAPRequest *) ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
-LDAP_F (void) ldap_return_request_by_msgid( LDAP *ld, LDAPRequest *lr, int freeit );
+LDAP_F (void) ldap_return_request( LDAP *ld, LDAPRequest *lr, int freeit );
 LDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );
 LDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
 LDAP_F (void) ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );

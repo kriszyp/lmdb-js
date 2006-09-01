@@ -768,7 +768,7 @@ nextresp2:
 			ber_free( ber, 1 );
 			ber = NULL;
 			if ( refer_cnt < 0 ) {
-				ldap_return_request_by_msgid( ld, lr, 0 );
+				ldap_return_request( ld, lr, 0 );
 				return( -1 );	/* fatal error */
 			}
 			lr->lr_res_errno = LDAP_SUCCESS; /* sucessfully chased referral */
@@ -830,7 +830,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 					}
 				}
 
-				ldap_return_request_by_msgid( ld, lr, 1 );
+				ldap_return_request( ld, lr, 1 );
 				lr = NULL;
 			}
 
@@ -848,7 +848,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	}
 
 	if ( lr != NULL ) {
-		ldap_return_request_by_msgid( ld, lr, 0 );
+		ldap_return_request( ld, lr, 0 );
 		lr = NULL;
 	}
 

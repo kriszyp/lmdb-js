@@ -1456,7 +1456,7 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 }
 
 void
-ldap_return_request_by_msgid( LDAP *ld, LDAPRequest *lrx, int freeit )
+ldap_return_request( LDAP *ld, LDAPRequest *lrx, int freeit )
 {
 	LDAPRequest	*lr;
 
