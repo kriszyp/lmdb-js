@@ -857,15 +857,14 @@ connection_close( Connection *c )
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
 	}
 
-	if ( !LDAP_STAILQ_EMPTY(&c->c_ops) ) {
+	if ( !LDAP_STAILQ_EMPTY(&c->c_ops) ||
+		!LDAP_STAILQ_EMPTY(&c->c_pending_ops) )
+	{
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_close: deferring conn=%lu sd=%d\n",
 			c->c_connid, sd, 0 );
 		return;
 	}
-
-	/* NOTE: if there's no pending ops, writewaiter must be 0 (ITS#4659) */
-	assert( c->c_writewaiter == 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%lu sd=%d\n",
 		c->c_connid, sd, 0 );
@@ -1158,6 +1157,7 @@ operations_error:
 			op->o_cancel = LDAP_TOO_LATE;
 		}
 	}
+
 	while ( op->o_cancel != SLAP_CANCEL_NONE &&
 		op->o_cancel != SLAP_CANCEL_DONE )
 	{
