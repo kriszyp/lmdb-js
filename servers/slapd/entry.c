@@ -846,7 +846,7 @@ Entry *entry_dup( Entry *e )
 {
 	Entry *ret;
 
-	ret = (Entry *)ch_calloc( 1, sizeof(*ret) );
+	ret = entry_alloc();
 
 	ret->e_id = e->e_id;
 	ber_dupbv( &ret->e_name, &e->e_name );
