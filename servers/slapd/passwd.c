@@ -282,8 +282,13 @@ old_good:
 					 * if it cares... */
 
 		rs->sr_err = op->o_bd->be_modify( op, rs );
+
+		/* be_modify() might have shuffled modifications */
+		qpw->rs_mods = op->orm_modlist;
+
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_rspdata = rsp;
+
 		} else if ( rsp ) {
 			ber_bvfree( rsp );
 			rsp = NULL;
