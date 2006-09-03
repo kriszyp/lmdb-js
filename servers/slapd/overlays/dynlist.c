@@ -350,7 +350,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 			continue;
 		}
 
-		if ( lud->lud_host ) {
+		if ( lud->lud_host != NULL ) {
 			/* FIXME: host not allowed; reject as illegal? */
 			Debug( LDAP_DEBUG_ANY, "dynlist_send_entry(\"%s\"): "
 				"illegal URI \"%s\"\n",
@@ -365,6 +365,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 			 * this can be useful in case of a database serving
 			 * the empty suffix */
 			BER_BVSTR( &dn, "" );
+
 		} else {
 			ber_str2bv( lud->lud_dn, 0, 0, &dn );
 		}
@@ -435,6 +436,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		if ( lud->lud_filter == NULL ) {
 			ber_dupbv_x( &o.ors_filterstr,
 					&dli->dli_default_filter, op->o_tmpmemctx );
+
 		} else {
 			struct berval	flt;
 			ber_str2bv( lud->lud_filter, 0, 0, &flt );
@@ -471,10 +473,8 @@ cleanup:;
 		if ( !BER_BVISNULL( &o.o_req_ndn ) ) {
 			op->o_tmpfree( o.o_req_ndn.bv_val, op->o_tmpmemctx );
 		}
-		if ( o.ors_filterstr.bv_val != lud->lud_filter ) {
-			op->o_tmpfree( o.ors_filterstr.bv_val, op->o_tmpmemctx );
-			lud->lud_filter = NULL;
-		}
+		assert( o.ors_filterstr.bv_val != lud->lud_filter );
+		op->o_tmpfree( o.ors_filterstr.bv_val, op->o_tmpmemctx );
 		ldap_free_urldesc( lud );
 	}
 
@@ -694,7 +694,7 @@ dynlist_build_def_filter( dynlist_info_t *dli )
 
 	dli->dli_default_filter.bv_len = STRLENOF( "(!(objectClass=" "))" )
 		+ dli->dli_oc->soc_cname.bv_len;
-	dli->dli_default_filter.bv_val = SLAP_MALLOC( dli->dli_default_filter.bv_len + 1 );
+	dli->dli_default_filter.bv_val = ch_malloc( dli->dli_default_filter.bv_len + 1 );
 	if ( dli->dli_default_filter.bv_val == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "dynlist_db_open: malloc failed.\n",
 			0, 0, 0 );
@@ -1343,9 +1343,11 @@ dynlist_db_open(
 			dli->dli_ad = ad;			
 		}
 
-		rc = dynlist_build_def_filter( dli );
-		if ( rc != 0 ) {
-			return rc;
+		if ( BER_BVISNULL( &dli->dli_default_filter ) ) {
+			rc = dynlist_build_def_filter( dli );
+			if ( rc != 0 ) {
+				return rc;
+			}
 		}
 	}
 
