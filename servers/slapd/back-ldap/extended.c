@@ -142,6 +142,11 @@ retry:
 			rs->sr_err = rc;
 
 		} else {
+			/* only touch when activity actually took place... */
+			if ( li->li_idle_timeout && lc ) {
+				lc->lc_time = op->o_time;
+			}
+
 			/* sigh. parse twice, because parse_passwd
 			 * doesn't give us the err / match / msg info.
 			 */
@@ -252,6 +257,11 @@ retry:
 			rs->sr_err = rc;
 
 		} else {
+			/* only touch when activity actually took place... */
+			if ( li->li_idle_timeout && lc ) {
+				lc->lc_time = op->o_time;
+			}
+
 			/* sigh. parse twice, because parse_passwd
 			 * doesn't give us the err / match / msg info.
 			 */

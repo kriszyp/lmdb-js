@@ -505,6 +505,7 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 #ifdef HAVE_TLS
 	int		is_tls = op->o_conn->c_is_tls;
 #endif /* HAVE_TLS */
+	time_t		lc_time = (time_t)(-1);
 
 	assert( lcp != NULL );
 
@@ -554,6 +555,10 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		ldap_unbind_ext( ld, NULL, NULL );
 		goto error_return;
+
+	} else if ( li->li_idle_timeout ) {
+		/* only touch when activity actually took place... */
+		lc_time = op->o_time;
 	}
 #endif /* HAVE_TLS */
 
@@ -569,6 +574,9 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 		LDAP_BACK_CONN_ISTLS_SET( *lcp );
 	} else {
 		LDAP_BACK_CONN_ISTLS_CLEAR( *lcp );
+	}
+	if ( lc_time != (time_t)(-1) ) {
+		(*lcp)->lc_time = lc_time;
 	}
 #endif /* HAVE_TLS */
 
@@ -804,9 +812,6 @@ retry_lock:
 #ifdef HAVE_TLS
 done:;
 #endif /* HAVE_TLS */
-	if ( li->li_idle_timeout && lc ) {
-		lc->lc_time = op->o_time;
-	}
 
 	return lc;
 }
@@ -1302,6 +1307,11 @@ retry:;
 		 * structure (this includes 
 		 * LDAP_COMPARE_{TRUE|FALSE}) */
 		default:
+			/* only touch when activity actually took place... */
+			if ( li->li_idle_timeout && lc ) {
+				lc->lc_time = op->o_time;
+			}
+
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match, &text, &refs, &ctrls, 1 );
 			rs->sr_text = text;

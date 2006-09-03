@@ -287,6 +287,11 @@ retry:
 			continue;
 
 		} else {
+			/* only touch when activity actually took place... */
+			if ( li->li_idle_timeout && lc ) {
+				lc->lc_time = op->o_time;
+			}
+
 			/* don't retry any more */
 			dont_retry = 1;
 		}
