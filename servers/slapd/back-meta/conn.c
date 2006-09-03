@@ -547,9 +547,10 @@ meta_back_retry(
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc = LDAP_UNAVAILABLE,
-				binding = LDAP_BACK_CONN_BINDING( msc );
+				binding;
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+	binding = LDAP_BACK_CONN_BINDING( msc );
 
 	assert( mc->mc_refcnt > 0 );
 	if ( mc->mc_refcnt == 1 ) {

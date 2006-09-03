@@ -314,6 +314,10 @@ meta_back_bind_op_result(
 	int			nretries = mt->mt_nretries;
 	char			buf[ SLAP_TEXT_BUFLEN ];
 
+	Debug( LDAP_DEBUG_TRACE,
+		">>> %s meta_back_bind_op_result[%d]\n",
+		op->o_log_prefix, candidate, 0 );
+
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		LDAP_BACK_TV_SET( &tv );
 
@@ -321,7 +325,8 @@ meta_back_bind_op_result(
 		 * handle response!!!
 		 */
 retry:;
-		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
+		rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
+		switch ( rc ) {
 		case 0:
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_bind_op_result[%d]: ldap_result=0 nretries=%d.\n",
@@ -336,8 +341,16 @@ retry:;
 				goto retry;
 			}
 
+			/* FIXME: binds cannot be abandoned */
+			/* don't let anyone else use this handler,
+			 * because there's a pending bind that will not
+			 * be acknowledged */
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
+			msc->msc_ld = NULL;
 			rs->sr_err = LDAP_BUSY;
-			(void)meta_back_cancel( mc, op, rs, msgid, candidate, sendok );
+			LDAP_BACK_CONN_BINDING_CLEAR( msc );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			break;
 
 		case -1:
@@ -368,7 +381,13 @@ retry:;
 		}
 	}
 
-	return rs->sr_err = slap_map_api2result( rs );
+	rs->sr_err = slap_map_api2result( rs );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"<<< %s meta_back_bind_op_result[%d] err=%d\n",
+		op->o_log_prefix, candidate, rs->sr_err );
+
+	return rs->sr_err;
 }
 
 /*
@@ -787,23 +806,29 @@ meta_back_cancel(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
+	int			rc = LDAP_OTHER;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> %s meta_back_cancel[%d] msgid=%d\n",
+		op->o_log_prefix, candidate, msgid );
+
 	/* default behavior */
 	if ( META_BACK_TGT_ABANDON( mt ) ) {
-		return ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+		rc = ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+
+	} else if ( META_BACK_TGT_IGNORE( mt ) ) {
+		rc = LDAP_SUCCESS;
+
+	} else if ( META_BACK_TGT_CANCEL( mt ) ) {
+		rc = ldap_cancel_s( msc->msc_ld, msgid, NULL, NULL );
+
+	} else {
+		assert( 0 );
 	}
 
-	if ( META_BACK_TGT_IGNORE( mt ) ) {
-		return LDAP_SUCCESS;
-	}
+	Debug( LDAP_DEBUG_TRACE, "<<< %s meta_back_cancel[%d] err=%d\n",
+		op->o_log_prefix, candidate, rc );
 
-	if ( META_BACK_TGT_CANCEL( mt ) ) {
-		/* FIXME: asynchronous? */
-		return ldap_cancel_s( msc->msc_ld, msgid, NULL, NULL );
-	}
-
-	assert( 0 );
-
-	return LDAP_OTHER;
+	return rc;
 }
 
 

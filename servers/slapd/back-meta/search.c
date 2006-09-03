@@ -93,20 +93,25 @@ meta_search_dobind_init(
 		return META_SEARCH_CANDIDATE;
 	}
 
+	retcode = META_SEARCH_BINDING;
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	if ( LDAP_BACK_CONN_ISBOUND( msc ) || LDAP_BACK_CONN_ISANON( msc ) ) {
-		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-		return META_SEARCH_CANDIDATE;
-	}
+		/* already bound (or anonymous) */
+		retcode = META_SEARCH_CANDIDATE;
 
-	if ( LDAP_BACK_CONN_BINDING( msc ) ) {
-		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+	} else if ( LDAP_BACK_CONN_BINDING( msc ) ) {
+		/* another thread is binding the target for this conn; wait */
 		candidates[ candidate ].sr_msgid = META_MSGID_NEED_BIND;
-		return META_SEARCH_NEED_BIND;
-	}
+		retcode = META_SEARCH_NEED_BIND;
 
-	LDAP_BACK_CONN_BINDING_SET( msc );
+	} else {
+		/* we'll need to bind the target for this conn */
+		LDAP_BACK_CONN_BINDING_SET( msc );
+	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+	if ( retcode != META_SEARCH_BINDING ) {
+		return retcode;
+	}
 
 	/* NOTE: this obsoletes pseudorootdn */
 	if ( op->o_conn != NULL &&
@@ -130,7 +135,8 @@ meta_search_dobind_init(
 		}
 
 		if ( LDAP_BACK_CONN_ISBOUND( msc ) ) {
-			/* idassert ws configured with SASL bind */
+			/* apparently, idassert was configured with SASL bind,
+			 * so bind occurred inside meta_back_proxy_authz_cred() */
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			LDAP_BACK_CONN_BINDING_CLEAR( msc );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
@@ -161,6 +167,8 @@ meta_search_dobind_init(
 
 down:;
 	case LDAP_SERVER_DOWN:
+		/* This is the worst thing that could happen:
+		 * the search will wait until the retry is over. */
 		if ( meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
 			return META_SEARCH_CANDIDATE;
 		}
@@ -234,6 +242,7 @@ meta_search_dobind_result(
 		}
 
 	} else {
+		/* FIXME: check if bound as idassert authcDN! */
 		if ( be_isroot( op ) ) {
 			LDAP_BACK_CONN_ISBOUND_SET( msc );
 		} else {
@@ -309,7 +318,8 @@ meta_back_search_start(
 				/*
 				 * this target is no longer candidate
 				 */
-				return META_SEARCH_NOT_CANDIDATE;
+				retcode = META_SEARCH_NOT_CANDIDATE;
+				goto doreturn;
 			}
 			break;
 
@@ -344,7 +354,8 @@ meta_back_search_start(
 			/*
 			 * this target is no longer candidate
 			 */
-			return META_SEARCH_NOT_CANDIDATE;
+			retcode = META_SEARCH_NOT_CANDIDATE;
+			goto doreturn;
 		}
 	}
 
@@ -354,7 +365,7 @@ meta_back_search_start(
 	Debug( LDAP_DEBUG_TRACE, "%s <<< meta_search_dobind_init[%d]=%d\n", op->o_log_prefix, candidate, retcode );
 
 	if ( retcode != META_SEARCH_CANDIDATE ) {
-		return retcode;
+		goto doreturn;
 	}
 
 	/*
@@ -370,14 +381,16 @@ meta_back_search_start(
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "Operation not allowed";
 		send_ldap_result( op, rs );
-		return META_SEARCH_ERR;
+		retcode = META_SEARCH_ERR;
+		goto doreturn;
 
 	case REWRITE_REGEXEC_ERR:
 
 		/*
 		 * this target is no longer candidate
 		 */
-		return META_SEARCH_NOT_CANDIDATE;
+		retcode = META_SEARCH_NOT_CANDIDATE;
+		goto doreturn;
 	}
 
 	/*
@@ -426,7 +439,8 @@ meta_back_search_start(
 
 	ctrls = op->o_ctrls;
 	if ( ldap_back_proxy_authz_ctrl( &msc->msc_bound_ndn,
-		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls )
+		!= LDAP_SUCCESS )
 	{
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 		retcode = META_SEARCH_NOT_CANDIDATE;
@@ -477,6 +491,9 @@ done:;
 	if ( mbase.bv_val != realbase.bv_val ) {
 		free( mbase.bv_val );
 	}
+
+doreturn:;
+	Debug( LDAP_DEBUG_TRACE, "%s <<< meta_back_search_start[%d]=%d\n", op->o_log_prefix, candidate, retcode );
 
 	return retcode;
 }
@@ -649,9 +666,15 @@ meta_back_search( Operation *op, SlapReply *rs )
 			}
 
 			if ( candidates[ i ].sr_msgid == META_MSGID_NEED_BIND ) {
+				meta_search_candidate_t	retcode;
+
 				/* initiate dobind */
-				switch ( meta_search_dobind_init( op, rs, &mc, i, candidates ) )
-				{
+				retcode = meta_search_dobind_init( op, rs, &mc, i, candidates );
+
+				Debug( LDAP_DEBUG_TRACE, "%s <<< meta_search_dobind_init[%d]=%d\n",
+					op->o_log_prefix, i, retcode );
+
+				switch ( retcode ) {
 				case META_SEARCH_BINDING:
 				case META_SEARCH_NEED_BIND:
 					break;
@@ -1127,11 +1150,24 @@ really_bad:;
 		/* check for abandon */
 		if ( op->o_abandon || doabandon ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				if ( candidates[ i ].sr_msgid != META_MSGID_IGNORE )
-				{
-					(void)meta_back_cancel( mc, op, rs,
-						candidates[ i ].sr_msgid, i,
-						LDAP_BACK_DONTSEND );
+				if ( candidates[ i ].sr_msgid >= 0 ) {
+					if ( META_IS_BINDING( &candidates[ i ] ) ) {
+						ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+						if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
+							/* if still binding, destroy */
+							ldap_unbind_ext( mc->mc_conns[ i ].msc_ld, NULL, NULL );
+							mc->mc_conns[ i ].msc_ld = NULL;
+							LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
+						}
+						ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+						META_BINDING_CLEAR( &candidates[ i ] );
+						
+					} else {
+						(void)meta_back_cancel( mc, op, rs,
+							candidates[ i ].sr_msgid, i,
+							LDAP_BACK_DONTSEND );
+					}
+
 					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				}
 			}
@@ -1293,6 +1329,13 @@ finish:;
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
 				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
+
+				assert( candidates[ i ].sr_msgid >= 0 );
+				assert( mc->mc_conns[ i ].msc_ld != NULL );
+
+				/* if still binding, destroy */
+				ldap_unbind_ext( mc->mc_conns[ i ].msc_ld, NULL, NULL );
+				mc->mc_conns[ i ].msc_ld = NULL;
 			}
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			META_BINDING_CLEAR( &candidates[ i ] );
@@ -1327,7 +1370,9 @@ finish:;
 		 * NOTE: should we quarantine the target as well?  right now, the connection
 		 * is invalidated; the next time it will be recreated and the target
 		 * will be quarantined if it cannot be contacted */
-		if ( mi->mi_idle_timeout != 0 && rs->sr_err == LDAP_TIMELIMIT_EXCEEDED && op->o_time > mc->mc_conns[ i ].msc_time )
+		if ( mi->mi_idle_timeout != 0
+			&& rs->sr_err == LDAP_TIMELIMIT_EXCEEDED
+			&& op->o_time > mc->mc_conns[ i ].msc_time )
 		{
 			/* don't let anyone else use this expired connection */
 			LDAP_BACK_CONN_TAINTED_SET( mc );
@@ -1435,7 +1480,7 @@ meta_send_entry(
 					mapped.bv_val, text );
 
 				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
-				ch_free( attr );
+				attr_free( attr );
 				continue;
 			}
 		}
@@ -1458,7 +1503,7 @@ meta_send_entry(
 			 */
 			( void )ber_scanf( &ber, "x" /* [W] */ );
 
-			ch_free(attr);
+			attr_free(attr);
 			continue;
 		}
 
