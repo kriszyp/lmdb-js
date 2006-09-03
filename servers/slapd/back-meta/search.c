@@ -577,24 +577,22 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 	initial_candidates = ncandidates;
 
-#if 0
-	{
+	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
 		char	cnd[BUFSIZ];
-		int	i;
+		int	c;
 
-		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( META_IS_CANDIDATE( &candidates[ i ] ) ) {
-				cnd[ i ] = '*';
+		for ( c = 0; c < mi->mi_ntargets; c++ ) {
+			if ( META_IS_CANDIDATE( &candidates[ c ] ) ) {
+				cnd[ c ] = '*';
 			} else {
-				cnd[ i ] = ' ';
+				cnd[ c ] = ' ';
 			}
 		}
-		cnd[ i ] = '\0';
+		cnd[ c ] = '\0';
 
-		Debug( LDAP_DEBUG_ANY, "%s meta_back_search: ncandidates=%d "
+		Debug( LDAP_DEBUG_TRACE, "%s meta_back_search: ncandidates=%d "
 			"cnd=\"%s\"\n", op->o_log_prefix, ncandidates, cnd );
 	}
-#endif
 
 	if ( initial_candidates == 0 ) {
 		/* NOTE: here we are not sending any matchedDN;
@@ -671,7 +669,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 				/* initiate dobind */
 				retcode = meta_search_dobind_init( op, rs, &mc, i, candidates );
 
-				Debug( LDAP_DEBUG_TRACE, "%s <<< meta_search_dobind_init[%d]=%d\n",
+				Debug( LDAP_DEBUG_TRACE, "%s <<< meta_search_dobind_init[%ld]=%d\n",
 					op->o_log_prefix, i, retcode );
 
 				switch ( retcode ) {
