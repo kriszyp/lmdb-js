@@ -90,6 +90,21 @@ typedef struct retcode_t {
 static int
 retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e );
 
+static unsigned int
+retcode_sleep( int s )
+{
+	/* sleep as required */
+	if ( s < 0 ) {
+		return sleep( (unsigned int)(rand() % ( -s )) );
+	}
+
+	if ( s > 0 ) {
+		return sleep( (unsigned int)s );
+	}
+
+	return 0;
+}
+
 static int
 retcode_cleanup_cb( Operation *op, SlapReply *rs )
 {
@@ -262,12 +277,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 	slap_callback		*cb = NULL;
 
 	/* sleep as required */
-	if ( rd->rd_sleep < 0 ) {
-		sleep( rand() % ( - rd->rd_sleep ) );
-
-	} else if ( rd->rd_sleep > 0 ) {
-		sleep( rd->rd_sleep );
-	}
+	retcode_sleep( rd->rd_sleep );
 
 	if ( !dnIsSuffix( &op->o_req_ndn, &rd->rd_npdn ) ) {
 		if ( RETCODE_INDIR( rd ) ) {
@@ -416,9 +426,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( rdi->rdi_sleeptime > 0 ) {
-			sleep( rdi->rdi_sleeptime );
-		}
+		retcode_sleep( rdi->rdi_sleeptime );
 	}
 
 	switch ( op->o_tag ) {
@@ -534,9 +542,8 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 	if ( a != NULL && a->a_nvals[ 0 ].bv_val[ 0 ] != '-' ) {
 		int	sleepTime;
 
-		sleepTime = strtoul( a->a_nvals[ 0 ].bv_val, &next, 0 );
-		if ( next != a->a_nvals[ 0 ].bv_val && next[ 0 ] == '\0' ) {
-			sleep( sleepTime );
+		if ( lutil_atoi( &sleepTime, a->a_nvals[ 0 ].bv_val ) == 0 ) {
+			retcode_sleep( sleepTime );
 		}
 	}
 
@@ -866,8 +873,7 @@ retcode_db_config(
 						return 1;
 					}
 
-					rdi.rdi_sleeptime = strtol( &argv[ i ][ STRLENOF( "sleeptime=" ) ], &next, 10 );
-					if ( next == argv[ i ] || next[ 0 ] != '\0' ) {
+					if ( lutil_atoi( &rdi.rdi_sleeptime, &argv[ i ][ STRLENOF( "sleeptime=" ) ] ) ) {
 						fprintf( stderr, "%s: line %d: retcode: "
 							"unable to parse \"sleeptime=%s\".\n",
 							fname, lineno, &argv[ i ][ STRLENOF( "sleeptime=" ) ] );
@@ -997,7 +1003,7 @@ retcode_db_open( BackendDB *be )
 		}
 
 		/* sleep time */
-		if ( rdi->rdi_sleeptime > 0 ) {
+		if ( rdi->rdi_sleeptime ) {
 			snprintf( buf, sizeof( buf ), "%d", rdi->rdi_sleeptime );
 			ber_str2bv( buf, 0, 0, &val[ 0 ] );
 
