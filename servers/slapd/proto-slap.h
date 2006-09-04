@@ -1256,6 +1256,7 @@ LDAP_SLAPD_F (Operation *) slap_op_alloc LDAP_P((
 LDAP_SLAPD_F (int) slap_op_add LDAP_P(( Operation **olist, Operation *op ));
 LDAP_SLAPD_F (int) slap_op_remove LDAP_P(( Operation **olist, Operation *op ));
 LDAP_SLAPD_F (Operation *) slap_op_pop LDAP_P(( Operation **olist ));
+LDAP_SLAPD_F (slap_op_t) slap_req2op LDAP_P(( ber_tag_t tag ));
 
 /*
  * operational.c

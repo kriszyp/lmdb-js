@@ -1006,7 +1006,7 @@ connection_operation( void *ctx, void *arg_v )
 	Operation *op = arg_v;
 	SlapReply rs = {REP_RESULT};
 	ber_tag_t tag = op->o_tag;
-	int opidx = -1;
+	slap_op_t opidx = SLAP_OP_LAST;
 	Connection *conn = op->o_conn;
 	void *memctx = NULL;
 	void *memctx_null = NULL;
@@ -1089,53 +1089,8 @@ connection_operation( void *ctx, void *arg_v )
 	}
 	}
 
-	switch ( tag ) {
-	case LDAP_REQ_BIND:
-		opidx = SLAP_OP_BIND;
-		break;
-
-	case LDAP_REQ_UNBIND:
-		opidx = SLAP_OP_UNBIND;
-		break;
-
-	case LDAP_REQ_ADD:
-		opidx = SLAP_OP_ADD;
-		break;
-
-	case LDAP_REQ_DELETE:
-		opidx = SLAP_OP_DELETE;
-		break;
-
-	case LDAP_REQ_MODRDN:
-		opidx = SLAP_OP_MODRDN;
-		break;
-
-	case LDAP_REQ_MODIFY:
-		opidx = SLAP_OP_MODIFY;
-		break;
-
-	case LDAP_REQ_COMPARE:
-		opidx = SLAP_OP_COMPARE;
-		break;
-
-	case LDAP_REQ_SEARCH:
-		opidx = SLAP_OP_SEARCH;
-		break;
-
-	case LDAP_REQ_ABANDON:
-		opidx = SLAP_OP_ABANDON;
-		break;
-
-	case LDAP_REQ_EXTENDED:
-		opidx = SLAP_OP_EXTENDED;
-		break;
-
-	default:
-		/* not reachable */
-		assert( 0 );
-	}
-
-	assert( opidx > -1 );
+	opidx = slap_req2op( tag );
+	assert( opidx != SLAP_OP_LAST );
 	INCR_OP_INITIATED( opidx );
 	rc = (*(opfun[opidx]))( op, &rs );
 
@@ -1143,7 +1098,7 @@ operations_error:
 	if ( rc == SLAPD_DISCONNECT ) {
 		tag = LBER_ERROR;
 
-	} else if ( opidx > -1 ) {
+	} else if ( opidx != SLAP_OP_LAST ) {
 		/* increment completed operations count 
 		 * only if operation was initiated
 		 * and rc != SLAPD_DISCONNECT */
