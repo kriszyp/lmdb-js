@@ -319,6 +319,43 @@ meta_back_bind_op_result(
 		op->o_log_prefix, candidate, 0 );
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
+		time_t		stoptime = (time_t)(-1),
+				timeout;
+		int		timeout_err = op->o_protocol >= LDAP_VERSION3 ?
+				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+		const char	*timeout_text = "Operation timed out";
+		slap_op_t	opidx = slap_req2op( op->o_tag );
+
+		/* since timeout is not specified, compute and use
+		 * the one specific to the ongoing operation */
+		if ( opidx == LDAP_REQ_SEARCH ) {
+			if ( op->ors_tlimit <= 0 ) {
+				timeout = 0;
+
+			} else {
+				timeout = op->ors_tlimit;
+				timeout_err = LDAP_TIMELIMIT_EXCEEDED;
+				timeout_text = NULL;
+			}
+
+		} else {
+			timeout = mt->mt_timeout[ opidx ];
+		}
+
+		/* better than nothing :) */
+		if ( timeout == 0 ) {
+			if ( mi->mi_idle_timeout ) {
+				timeout = mi->mi_idle_timeout;
+
+			} else if ( mi->mi_conn_ttl ) {
+				timeout = mi->mi_conn_ttl;
+			}
+		}
+
+		if ( timeout ) {
+			stoptime = op->o_time + timeout;
+		}
+
 		LDAP_BACK_TV_SET( &tv );
 
 		/*
@@ -328,11 +365,15 @@ retry:;
 		rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 		switch ( rc ) {
 		case 0:
+#if 0
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_bind_op_result[%d]: ldap_result=0 nretries=%d.\n",
 				op->o_log_prefix, candidate, nretries );
+#endif
 
-			if ( nretries != META_RETRY_NEVER ) {
+			if ( nretries != META_RETRY_NEVER 
+				|| ( timeout && slap_get_time() <= stoptime ) )
+			{
 				ldap_pvt_thread_yield();
 				if ( nretries > 0 ) {
 					nretries--;
@@ -341,16 +382,17 @@ retry:;
 				goto retry;
 			}
 
-			/* FIXME: binds cannot be abandoned */
 			/* don't let anyone else use this handler,
 			 * because there's a pending bind that will not
 			 * be acknowledged */
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 			msc->msc_ld = NULL;
-			rs->sr_err = LDAP_BUSY;
 			LDAP_BACK_CONN_BINDING_CLEAR( msc );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+
+			rs->sr_err = timeout_err;
+			rs->sr_text = timeout_text;
 			break;
 
 		case -1:
@@ -876,24 +918,55 @@ meta_back_op_result(
 			int		rc;
 			struct timeval	tv;
 			LDAPMessage	*res = NULL;
+			time_t		stoptime = (time_t)(-1);
+			int		timeout_err = op->o_protocol >= LDAP_VERSION3 ?
+						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+			const char	*timeout_text = "Operation timed out";
+
+			/* if timeout is not specified, compute and use
+			 * the one specific to the ongoing operation */
+			if ( timeout == (time_t)(-1) ) {
+				slap_op_t	opidx = slap_req2op( op->o_tag );
+
+				if ( opidx == SLAP_OP_SEARCH ) {
+					if ( op->ors_tlimit <= 0 ) {
+						timeout = 0;
+
+					} else {
+						timeout = op->ors_tlimit;
+						timeout_err = LDAP_TIMELIMIT_EXCEEDED;
+						timeout_text = NULL;
+					}
+
+				} else {
+					timeout = mt->mt_timeout[ opidx ];
+				}
+			}
+
+			/* better than nothing :) */
+			if ( timeout == 0 ) {
+				if ( mi->mi_idle_timeout ) {
+					timeout = mi->mi_idle_timeout;
+
+				} else if ( mi->mi_conn_ttl ) {
+					timeout = mi->mi_conn_ttl;
+				}
+			}
 
 			if ( timeout ) {
-				tv.tv_sec = timeout;
-				tv.tv_usec = 0;
-
-			} else {
-				LDAP_BACK_TV_SET( &tv );
+				stoptime = op->o_time + timeout;
 			}
+
+			LDAP_BACK_TV_SET( &tv );
 
 retry:;
 			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 			switch ( rc ) {
 			case 0:
-				if ( timeout ) {
+				if ( timeout && slap_get_time() > stoptime ) {
 					(void)meta_back_cancel( mc, op, rs, msgid, candidate, sendok );
-					rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
-						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
-					rs->sr_text = "Operation timed out";
+					rs->sr_err = timeout_err;
+					rs->sr_text = timeout_text;
 					break;
 				}
 

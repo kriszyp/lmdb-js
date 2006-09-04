@@ -273,7 +273,7 @@ typedef struct metatarget_t {
 	time_t			mt_network_timeout;
 	struct timeval		mt_bind_timeout;
 #define META_BIND_TIMEOUT	LDAP_BACK_RESULT_UTIMEOUT
-	time_t			mt_timeout[ LDAP_BACK_OP_LAST ];
+	time_t			mt_timeout[ SLAP_OP_LAST ];
 } metatarget_t;
 
 typedef struct metadncache_t {
@@ -334,7 +334,7 @@ typedef struct metainfo_t {
 	time_t			mi_conn_ttl;
 	time_t			mi_idle_timeout;
 	struct timeval		mi_bind_timeout;
-	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];
+	time_t			mi_timeout[ SLAP_OP_LAST ];
 } metainfo_t;
 
 typedef enum meta_op_type {

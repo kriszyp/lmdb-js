@@ -68,17 +68,16 @@ lastmod  off
 .fi
 .RE
 .LP
-for every
+for 
 .B ldap
 and
 .B meta
-database.
-This is because operational attributes related to entry creation and
-modification should not be proxied, as they could be mistakenly written
+databases.
+This was required because operational attributes related to entry creation 
+and modification should not be proxied, as they could be mistakenly written
 to the target server(s), generating an error.
-The current implementation automatically sets lastmod to off, so its use
-is redundant and should be omitted, because the lastmod directive will
-be deprecated in the future.
+The current implementation automatically sets lastmod to \fBoff\fP, 
+so its use is redundant and should be omitted.
 
 .SH SPECIAL CONFIGURATION DIRECTIVES
 Target configuration starts with the "uri" directive.
