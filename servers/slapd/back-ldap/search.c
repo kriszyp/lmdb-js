@@ -145,7 +145,7 @@ ldap_back_search(
 
 	ldapconn_t	*lc;
 	struct timeval	tv;
-	time_t		stoptime = (time_t)-1;
+	time_t		stoptime = (time_t)(-1);
 	LDAPMessage	*res,
 			*e;
 	int		rc = 0,

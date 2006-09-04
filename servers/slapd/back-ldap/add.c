@@ -104,7 +104,7 @@ retry:
 	rs->sr_err = ldap_add_ext( lc->lc_ld, op->o_req_dn.bv_val, attrs,
 			ctrls, NULL, &msgid );
 	rs->sr_err = ldap_back_op_result( lc, op, rs, msgid,
-		li->li_timeout[ LDAP_BACK_OP_ADD ],
+		li->li_timeout[ SLAP_OP_ADD ],
 		( LDAP_BACK_SENDRESULT | retrying ) );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && retrying ) {
 		retrying &= ~LDAP_BACK_RETRYING;

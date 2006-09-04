@@ -117,8 +117,9 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld, op->o_req_dn.bv_val,
 			LDAP_SASL_SIMPLE,
 			&op->orb_cred, op->o_ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 0, LDAP_BACK_SENDERR );
-
+	rc = ldap_back_op_result( lc, op, rs, msgid,
+		li->li_timeout[ SLAP_OP_BIND ],
+		LDAP_BACK_BIND_SERR );
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
 		 * back-ldap is the authorizing backend; for this
@@ -1116,7 +1117,8 @@ retry:;
 		return 0;
 	}
 
-	rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
+	rc = ldap_back_op_result( lc, op, rs, msgid,
+		-1, (sendok|LDAP_BACK_BINDING) );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 	}
@@ -1270,28 +1272,67 @@ ldap_back_op_result(
 		int		rc;
 		struct timeval	tv;
 		LDAPMessage	*res = NULL;
+		time_t		stoptime = (time_t)(-1);
+		int		timeout_err = op->o_protocol >= LDAP_VERSION3 ?
+					LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+		const char	*timeout_text = "Operation timed out";
+
+		/* if timeout is not specified, compute and use
+		 * the one specific to the ongoing operation */
+		if ( timeout == (time_t)(-1) ) {
+			slap_op_t	opidx = slap_req2op( op->o_tag );
+
+			if ( opidx == SLAP_OP_SEARCH ) {
+				if ( op->ors_tlimit <= 0 ) {
+					timeout = 0;
+
+				} else {
+					timeout = op->ors_tlimit;
+					timeout_err = LDAP_TIMELIMIT_EXCEEDED;
+					timeout_text = NULL;
+				}
+
+			} else {
+				timeout = li->li_timeout[ opidx ];
+			}
+		}
+
+		/* better than nothing :) */
+		if ( timeout == 0 ) {
+			if ( li->li_idle_timeout ) {
+				timeout = li->li_idle_timeout;
+
+			} else if ( li->li_conn_ttl ) {
+				timeout = li->li_conn_ttl;
+			}
+		}
 
 		if ( timeout ) {
-			tv.tv_sec = timeout;
-			tv.tv_usec = 0;
-
-		} else {
-			LDAP_BACK_TV_SET( &tv );
+			stoptime = op->o_time + timeout;
 		}
+
+		LDAP_BACK_TV_SET( &tv );
 
 retry:;
 		/* if result parsing fails, note the failure reason */
 		rc = ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 		switch ( rc ) {
 		case 0:
-			if ( timeout ) {
-				(void)ldap_back_cancel( lc, op, rs, msgid, sendok );
-				rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
-					LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
-				rs->sr_text = "Operation timed out";
+			if ( timeout && slap_get_time() > stoptime ) {
+				if ( sendok & LDAP_BACK_BINDING ) {
+					ldap_unbind_ext( lc->lc_ld, NULL, NULL );
+					lc->lc_ld = NULL;
+					LDAP_BACK_CONN_TAINTED_SET( lc );
+
+				} else {
+					(void)ldap_back_cancel( lc, op, rs, msgid, sendok );
+				}
+				rs->sr_err = timeout_err;
+				rs->sr_text = timeout_text;
 				break;
 			}
 
+			/* timeout == 0 */
 			LDAP_BACK_TV_SET( &tv );
 			ldap_pvt_thread_yield();
 			goto retry;
@@ -1690,7 +1731,8 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 		rs->sr_err = ldap_sasl_bind( lc->lc_ld,
 				binddn.bv_val, LDAP_SASL_SIMPLE,
 				&bindcred, NULL, NULL, &msgid );
-		rc = ldap_back_op_result( lc, op, rs, msgid, 0, sendok );
+		rc = ldap_back_op_result( lc, op, rs, msgid,
+			-1, (sendok|LDAP_BACK_BINDING) );
 		break;
 
 	default:

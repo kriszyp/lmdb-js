@@ -351,11 +351,22 @@ static slap_verbmasks cancel_mode[] = {
 	{ BER_BVNULL,			0 }
 };
 
+/* see enum in slap.h */
 static slap_cf_aux_table timeout_table[] = {
-	{ BER_BVC("add="), 0 * sizeof( time_t ), 'u', 0, NULL },
-	{ BER_BVC("delete="), 1 * sizeof( time_t ), 'u', 0, NULL },
-	{ BER_BVC("modify="), 2 * sizeof( time_t ), 'u', 0, NULL },
-	{ BER_BVC("modrdn="), 3 * sizeof( time_t ), 'u', 0, NULL },
+	{ BER_BVC("bind="),	SLAP_OP_BIND * sizeof( time_t ),	'u', 0, NULL },
+	/* unbind makes no sense */
+	{ BER_BVC("add="),	SLAP_OP_ADD * sizeof( time_t ),		'u', 0, NULL },
+	{ BER_BVC("delete="),	SLAP_OP_DELETE * sizeof( time_t ),	'u', 0, NULL },
+	{ BER_BVC("modrdn="),	SLAP_OP_MODRDN * sizeof( time_t ),	'u', 0, NULL },
+	{ BER_BVC("modify="),	SLAP_OP_MODIFY * sizeof( time_t ),	'u', 0, NULL },
+	{ BER_BVC("compare="),	SLAP_OP_COMPARE * sizeof( time_t ),	'u', 0, NULL },
+#if 0	/* uses timelimit instead */
+	{ BER_BVC("search="),	SLAP_OP_SEARCH * sizeof( time_t ),	'u', 0, NULL },
+#endif
+	/* abandon makes little sense */
+#if 0	/* not implemented yet */
+	{ BER_BVC("extended="),	SLAP_OP_EXTENDED * sizeof( time_t ),	'u', 0, NULL },
+#endif
 	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
@@ -921,13 +932,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_TIMEOUT:
 			BER_BVZERO( &bv );
 
-			for ( i = 0; i < LDAP_BACK_OP_LAST; i++ ) {
+			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 				if ( li->li_timeout[ i ] != 0 ) {
 					break;
 				}
 			}
 
-			if ( i == LDAP_BACK_OP_LAST ) {
+			if ( i == SLAP_OP_LAST ) {
 				return 1;
 			}
 
@@ -1099,7 +1110,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_TIMEOUT:
-			for ( i = 0; i < LDAP_BACK_OP_LAST; i++ ) {
+			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 				li->li_timeout[ i ] = 0;
 			}
 			break;
@@ -1578,10 +1589,14 @@ done_url:;
 				unsigned	u;
 
 				if ( lutil_atoux( &u, c->argv[ i ], 0 ) != 0 ) {
+					snprintf( c->msg, sizeof( c->msg),
+						"unable to parse timeout \"%s\"",
+						c->argv[ i ] );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 					return 1;
 				}
 
-				for ( j = 0; j < LDAP_BACK_OP_LAST; j++ ) {
+				for ( j = 0; j < SLAP_OP_LAST; j++ ) {
 					li->li_timeout[ j ] = u;
 				}
 
@@ -1589,6 +1604,10 @@ done_url:;
 			}
 
 			if ( slap_cf_aux_table_parse( c->argv[ i ], li->li_timeout, timeout_table, "slapd-ldap timeout" ) ) {
+				snprintf( c->msg, sizeof( c->msg),
+					"unable to parse timeout \"%s\"",
+					c->argv[ i ] );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return 1;
 			}
 		}

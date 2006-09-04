@@ -63,7 +63,8 @@ retry:
 			op->orc_ava->aa_desc->ad_cname.bv_val,
 			&op->orc_ava->aa_value, 
 			ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 0,
+	rc = ldap_back_op_result( lc, op, rs, msgid,
+		li->li_timeout[ SLAP_OP_COMPARE ],
 		( LDAP_BACK_SENDRESULT | retrying ) );
 	if ( rc == LDAP_UNAVAILABLE && retrying ) {
 		retrying &= ~LDAP_BACK_RETRYING;

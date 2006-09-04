@@ -87,7 +87,7 @@ retry:
 			op->orr_newrdn.bv_val, newSup,
 			op->orr_deleteoldrdn, ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
-		li->li_timeout[ LDAP_BACK_OP_MODRDN ],
+		li->li_timeout[ SLAP_OP_MODRDN ],
 		( LDAP_BACK_SENDRESULT | retrying ) );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && retrying ) {
 		retrying &= ~LDAP_BACK_RETRYING;

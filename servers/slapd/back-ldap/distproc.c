@@ -831,7 +831,7 @@ ldap_distproc_db_init_one(
 	BackendInfo	*bi = be->bd_info;
 	ldapinfo_t	*li;
 
-	int		t;
+	slap_op_t	t;
 
 	be->bd_info = lback;
 	be->be_private = NULL;
@@ -845,7 +845,7 @@ ldap_distproc_db_init_one(
 	li->li_nretries = lc->lc_common_li->li_nretries;
 	li->li_flags = lc->lc_common_li->li_flags;
 	li->li_version = lc->lc_common_li->li_version;
-	for ( t = 0; t < LDAP_BACK_OP_LAST; t++ ) {
+	for ( t = 0; t < SLAP_OP_LAST; t++ ) {
 		li->li_timeout[ t ] = lc->lc_common_li->li_timeout[ t ];
 	}
 	be->bd_info = bi;

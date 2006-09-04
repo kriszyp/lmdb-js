@@ -101,17 +101,6 @@ typedef struct ldapconn_t {
 	time_t			lc_time;
 } ldapconn_t;
 
-/*
- * operation enumeration for timeouts
- */
-enum {
-	LDAP_BACK_OP_ADD = 0,
-	LDAP_BACK_OP_DELETE,
-	LDAP_BACK_OP_MODIFY,
-	LDAP_BACK_OP_MODRDN,
-	LDAP_BACK_OP_LAST
-};
-
 typedef struct ldap_avl_info_t {
 	ldap_pvt_thread_mutex_t		lai_mutex;
 	Avlnode				*lai_tree;
@@ -279,7 +268,7 @@ typedef struct ldapinfo_t {
 	time_t		li_network_timeout;
 	time_t		li_conn_ttl;
 	time_t		li_idle_timeout;
-	time_t		li_timeout[ LDAP_BACK_OP_LAST ];
+	time_t		li_timeout[ SLAP_OP_LAST ];
 } ldapinfo_t;
 
 typedef enum ldap_back_send_t {
