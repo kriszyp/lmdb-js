@@ -1453,6 +1453,7 @@ LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P((
 	int lineno,
 	int argc, 
 	char **argv ));
+LDAP_SLAPD_F (void) slap_sasl_regexp_destroy LDAP_P(( void ));
 #endif /* SLAP_AUTH_REWRITE */
 LDAP_SLAPD_F (int) authzValidate LDAP_P((
 	Syntax *syn, struct berval *in ));
