@@ -95,7 +95,11 @@ retcode_sleep( int s )
 {
 	/* sleep as required */
 	if ( s < 0 ) {
-		return sleep( (unsigned int)(rand() % ( -s )) );
+#if 0	/* use high-order bits for better randomness (Numerical Recipes in "C") */
+		unsigned	r = rand() % (-s);
+#endif
+		unsigned	r = ((double)(-s))*rand()/(RAND_MAX + 1.0);
+		return sleep( r );
 	}
 
 	if ( s > 0 ) {
@@ -626,6 +630,8 @@ retcode_db_init( BackendDB *be )
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	retcode_t	*rd;
 
+	srand( getpid() );
+
 	rd = (retcode_t *)ch_malloc( sizeof( retcode_t ) );
 	memset( rd, 0, sizeof( retcode_t ) );
 
@@ -865,7 +871,6 @@ retcode_db_config(
 
 				} else if ( strncasecmp( argv[ i ], "sleeptime=", STRLENOF( "sleeptime=" ) ) == 0 )
 				{
-					char		*next;
 					if ( rdi.rdi_sleeptime != 0 ) {
 						fprintf( stderr, "%s: line %d: retcode: "
 							"\"sleeptime\" already provided.\n",
