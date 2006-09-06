@@ -33,12 +33,14 @@
 static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #endif /* defined(LDAP_SLAPI) */
 
+#if 0	/* moved to back-bdb/monitor.c */
 #if defined(SLAPD_BDB)
 #include "../back-bdb/back-bdb.h"
 #endif /* defined(SLAPD_BDB) */
 #if defined(SLAPD_HDB)
 #include "../back-hdb/back-bdb.h"
 #endif /* defined(SLAPD_HDB) */
+#endif
 #if defined(SLAPD_LDAP) 
 #include "../back-ldap/back-ldap.h"
 #endif /* defined(SLAPD_LDAP) */
@@ -291,6 +293,7 @@ monitor_subsys_database_init(
 		if ( 0 ) {
 			assert( 0 );
 
+#if 0 /* moved into back-bdb/monitor.c */
 #if defined(SLAPD_BDB) || defined(SLAPD_HDB) 
 		} else if ( strcmp( bi->bi_type, "bdb" ) == 0
 				|| strcmp( bi->bi_type, "hdb" ) == 0 )
@@ -337,6 +340,7 @@ monitor_subsys_database_init(
 			ch_free( bv.bv_val );
 
 #endif /* defined(SLAPD_BDB) || defined(SLAPD_HDB) */
+#endif
 #if defined(SLAPD_LDAP) 
 		} else if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
 			ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
