@@ -101,7 +101,7 @@ static struct {
 	char			*desc;
 	AttributeDescription	**ad;
 }		s_at[] = {
-	{ "olmBDBCounter", "( " BDB_MONITOR_SCHEMA_AD ".0 "
+	{ "olmBDBCounter", "( " BDB_MONITOR_SCHEMA_AD ".1 "
 		"NAME ( 'olmBDBCounter' ) "
 		"DESC 'A dummy counter' "
 		"SUP monitorCounter "
@@ -322,10 +322,14 @@ cleanup:;
 		if ( cb != NULL ) {
 			ch_free( cb );
 		}
+	}
 
-		if ( a != NULL ) {
-			attrs_free( a );
-		}
+	if ( !BER_BVISNULL( &filter ) ) {
+		ch_free( filter.bv_val );
+	}
+
+	if ( a != NULL ) {
+		attrs_free( a );
 	}
 	
 	return rc;
