@@ -28,7 +28,8 @@
 
 static ObjectClass		*oc_olmBDBDatabase;
 
-static AttributeDescription	*ad_olmBDBCounter;
+static AttributeDescription	*ad_olmBDBEntryCache,
+	*ad_olmBDBEntryInfo, *ad_olmBDBIDLCache;
 
 static int
 bdb_monitor_update(
@@ -40,20 +41,26 @@ bdb_monitor_update(
 	struct bdb_info		*bdb = (struct bdb_info *) priv;
 	Attribute		*a;
 
-	/* NOTE: dummy code that increments a olmBDBCounter
-	 * any time it's called; replace with something useful */
 	unsigned long		u;
 	char			buf[ BUFSIZ ];
 	struct berval		bv;
 
-	assert( ad_olmBDBCounter != NULL );
+	assert( ad_olmBDBEntryCache != NULL );
 
-	a = attr_find( e->e_attrs, ad_olmBDBCounter );
+	a = attr_find( e->e_attrs, ad_olmBDBEntryCache );
 	assert( a != NULL );
-	lutil_atoul( &u, a->a_vals[ 0 ].bv_val );
-	u++;
 	bv.bv_val = buf;
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", u );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_cursize );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	a = attr_find( e->e_attrs, ad_olmBDBEntryInfo );
+	assert( a != NULL );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_eiused );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	a = attr_find( e->e_attrs, ad_olmBDBIDLCache );
+	assert( a != NULL );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_idl_cache_size );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 	
 	return SLAP_CB_CONTINUE;
@@ -101,13 +108,29 @@ static struct {
 	char			*desc;
 	AttributeDescription	**ad;
 }		s_at[] = {
-	{ "olmBDBCounter", "( " BDB_MONITOR_SCHEMA_AD ".1 "
-		"NAME ( 'olmBDBCounter' ) "
-		"DESC 'A dummy counter' "
+	{ "olmBDBEntryCache", "( " BDB_MONITOR_SCHEMA_AD ".1 "
+		"NAME ( 'olmBDBEntryCache' ) "
+		"DESC 'Number of items in Entry Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )",
-		&ad_olmBDBCounter },
+		&ad_olmBDBEntryCache },
+
+	{ "olmBDBEntryInfo", "( " BDB_MONITOR_SCHEMA_AD ".2 "
+		"NAME ( 'olmBDBEntryInfo' ) "
+		"DESC 'Number of items in EntryInfo Cache' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )",
+		&ad_olmBDBEntryInfo },
+
+	{ "olmBDBIDLCache", "( " BDB_MONITOR_SCHEMA_AD ".3 "
+		"NAME ( 'olmBDBIDLCache' ) "
+		"DESC 'Number of items in IDL Cache' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )",
+		&ad_olmBDBIDLCache },
 
 	{ NULL }
 };
@@ -121,7 +144,7 @@ static struct {
 		"NAME ( 'olmBDBDatabase' ) "
 		"SUP monitoredObject STRUCTURAL "
 		"MAY ( "
-			"olmBDBCounter "
+			"olmBDBEntryCache $ olmBDBEntryInfo $ olmBDBIDLCache "
 			") )",
 		&oc_olmBDBDatabase },
 
@@ -298,28 +321,33 @@ bdb_monitor_open( BackendDB *be )
 	}
 
 	/* alloc as many as required (plus 1 for objectClass) */
-	a = attrs_alloc( 1 + 1 );
+	a = attrs_alloc( 1 + 3 );
 	if ( a == NULL ) {
 		rc = 1;
 		goto cleanup;
 	}
 
 	a->a_desc = slap_schema.si_ad_objectClass;
-	a->a_vals = NULL;
 	value_add_one( &a->a_vals, &oc_olmBDBDatabase->soc_cname );
 	a->a_nvals = a->a_vals;
 	next = a->a_next;
 
-	/* NOTE: dummy code that increments a olmBDBCounter
-	 * any time it's called; replace with something useful */
 	{
 		struct berval	bv = BER_BVC( "0" );
 
-		next->a_desc = ad_olmBDBCounter;
-		next->a_vals = NULL;
+		next->a_desc = ad_olmBDBEntryCache;
 		value_add_one( &next->a_vals, &bv );
 		next->a_nvals = next->a_vals;
-		next = a->a_next;
+		next = next->a_next;
+
+		next->a_desc = ad_olmBDBEntryInfo;
+		value_add_one( &next->a_vals, &bv );
+		next->a_nvals = next->a_vals;
+		next = next->a_next;
+
+		next->a_desc = ad_olmBDBIDLCache;
+		value_add_one( &next->a_vals, &bv );
+		next->a_nvals = next->a_vals;
 	}
 
 	cb = ch_calloc( sizeof( monitor_callback_t ), 1 );
