@@ -1502,9 +1502,54 @@ monitor_back_initialize(
 		{ NULL, NULL, 0, -1 }
 	};
 
+	static struct {
+		char			*name;
+		char			*oid;
+	}		s_oid[] = {
+		{ "olmAttributes",			"1.3.6.1.4.1.4203.666.1.55" },
+		{ "olmSubSystemAttributes",		"olmAttributes:0" },
+		{ "olmGenericAttributes",		"olmSubSystemAttributes:0" },
+		{ "olmDatabaseAttributes",		"olmSubSystemAttributes:1" },
+
+		/* for example, back-bdb specific attrs
+		 * are in "olmDatabaseAttributes:1"
+		 *
+		 * NOTE: developers, please record here OID assignments
+		 * for other modules */
+
+		{ "olmObjectClasses",			"1.3.6.1.4.1.4203.666.3.16" },
+		{ "olmSubSystemObjectClasses",		"olmObjectClasses:0" },
+		{ "olmGenericObjectClasses",		"olmSubSystemObjectClasses:0" },
+		{ "olmDatabaseObjectClasses",		"olmSubSystemObjectClasses:1" },
+
+		/* for example, back-bdb specific objectClasses
+		 * are in "olmDatabaseObjectClasses:1"
+		 *
+		 * NOTE: developers, please record here OID assignments
+		 * for other modules */
+
+		{ NULL }
+	};
+
 	int			i, rc;
 	const char		*text;
 	monitor_info_t		*mi = &monitor_info;
+
+	for ( i = 0; s_oid[ i ].name; i++ ) {
+		char	*argv[ 3 ];
+	
+		argv[ 0 ] = "monitor";
+		argv[ 1 ] = s_oid[ i ].name;
+		argv[ 2 ] = s_oid[ i ].oid;
+
+		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_initialize: unable to add "
+				"objectIdentifier \"%s=%s\"\n",
+				s_oid[ i ].name, s_oid[ i ].oid, 0 );
+			return 1;
+		}
+	}
 
 	/* schema integration */
 	for ( i = 0; mat[ i ].name; i++ ) {

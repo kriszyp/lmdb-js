@@ -49,10 +49,20 @@ static AttributeDescription	*ad_olmBDBEntryCache,
 
 static struct {
 	char			*name;
+	char			*oid;
+}		s_oid[] = {
+	{ "olmBDBAttributes",			"olmDatabaseAttributes:1" },
+	{ "olmBDBObjectClasses",		"olmDatabaseObjectClasses:1" },
+
+	{ NULL }
+};
+
+static struct {
+	char			*name;
 	char			*desc;
 	AttributeDescription	**ad;
 }		s_at[] = {
-	{ "olmBDBEntryCache", "( " BDB_MONITOR_SCHEMA_AD ".1 "
+	{ "olmBDBEntryCache", "( olmBDBAttributes:1 "
 		"NAME ( 'olmBDBEntryCache' ) "
 		"DESC 'Number of items in Entry Cache' "
 		"SUP monitorCounter "
@@ -60,7 +70,7 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_olmBDBEntryCache },
 
-	{ "olmBDBEntryInfo", "( " BDB_MONITOR_SCHEMA_AD ".2 "
+	{ "olmBDBEntryInfo", "( olmBDBAttributes:2 "
 		"NAME ( 'olmBDBEntryInfo' ) "
 		"DESC 'Number of items in EntryInfo Cache' "
 		"SUP monitorCounter "
@@ -68,7 +78,7 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_olmBDBEntryInfo },
 
-	{ "olmBDBIDLCache", "( " BDB_MONITOR_SCHEMA_AD ".3 "
+	{ "olmBDBIDLCache", "( olmBDBAttributes:3 "
 		"NAME ( 'olmBDBIDLCache' ) "
 		"DESC 'Number of items in IDL Cache' "
 		"SUP monitorCounter "
@@ -76,7 +86,7 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_olmBDBIDLCache },
 
-	{ "olmDbDirectory", "( " BDB_MONITOR_SCHEMA_AD ".4 "
+	{ "olmDbDirectory", "( olmBDBAttributes:4 "
 		"NAME ( 'olmDbDirectory' ) "
 		"DESC 'Path name of the directory "
 			"where the database environment resides' "
@@ -95,7 +105,7 @@ static struct {
 }		s_oc[] = {
 	/* augments an existing object, so it must be AUXILIARY
 	 * FIXME: derive from some ABSTRACT "monitoredEntity"? */
-	{ "olmBDBDatabase", "( " BDB_MONITOR_SCHEMA_OC ".1 "
+	{ "olmBDBDatabase", "( olmBDBObjectClasses:1 "
 		"NAME ( 'olmBDBDatabase' ) "
 		"SUP top AUXILIARY "
 		"MAY ( "
@@ -209,6 +219,22 @@ bdb_monitor_initialize( void )
 
 	if ( bdb_monitor_initialized++ ) {
 		return 0;
+	}
+
+	for ( i = 0; s_oid[ i ].name; i++ ) {
+		char	*argv[ 3 ];
+	
+		argv[ 0 ] = "back-bdb/back-hdb monitor";
+		argv[ 1 ] = s_oid[ i ].name;
+		argv[ 2 ] = s_oid[ i ].oid;
+
+		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_monitor_initialize: unable to add "
+				"objectIdentifier \"%s=%s\"\n",
+				s_oid[ i ].name, s_oid[ i ].oid, 0 );
+			return 1;
+		}
 	}
 
 	for ( i = 0; s_at[ i ].name != NULL; i++ ) {
