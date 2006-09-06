@@ -422,6 +422,12 @@ bdb_db_open( BackendDB *be )
 		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
 	}
 
+	/* monitor setup */
+	rc = bdb_monitor_open( be );
+	if ( rc != 0 ) {
+		goto fail;
+	}
+
 	bdb->bi_flags |= BDB_IS_OPEN;
 
 	entry_prealloc( bdb->bi_cache.c_maxsize );
@@ -662,6 +668,14 @@ bdb_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	/*
+	 * initialize monitor stuff
+	 */
+	rc = bdb_monitor_initialize();
+	if ( rc ) {
+		return rc;
+	}
 
 	rc = bdb_back_init_cf( bi );
 

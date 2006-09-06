@@ -40109,6 +40109,23 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+if test "$ol_enable_monitor" != no ; then
+	BUILD_SLAPD=yes
+	BUILD_MONITOR=$ol_enable_monitor
+	if test "$ol_enable_monitor" = mod ; then
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_DYNAMIC
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+
+cat >>confdefs.h <<_ACEOF
+#define SLAPD_MONITOR $MFLAG
+_ACEOF
+
+fi
+
 if test "$ol_enable_bdb" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_BDB=$ol_enable_bdb
@@ -40191,23 +40208,6 @@ if test "$ol_enable_meta" != no ; then
 
 cat >>confdefs.h <<_ACEOF
 #define SLAPD_META $MFLAG
-_ACEOF
-
-fi
-
-if test "$ol_enable_monitor" != no ; then
-	BUILD_SLAPD=yes
-	BUILD_MONITOR=$ol_enable_monitor
-	if test "$ol_enable_monitor" = mod ; then
-		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_DYNAMIC
-	else
-		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-
-cat >>confdefs.h <<_ACEOF
-#define SLAPD_MONITOR $MFLAG
 _ACEOF
 
 fi

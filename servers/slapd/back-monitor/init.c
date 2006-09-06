@@ -471,7 +471,7 @@ monitor_back_register_entry_parent(
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_register_entry_parent(\"\"): "
-				"base=%s scope=%d filter=%s : "
+				"base=\"%s\" scope=%d filter=\"%s\": "
 				"unable to find entry\n",
 				base->bv_val ? base->bv_val : "\"\"",
 				scope, filter->bv_val );
@@ -797,7 +797,7 @@ monitor_back_register_entry_attrs(
 
 				snprintf( buf, sizeof( buf ),
 					"monitor_back_register_entry_%s(\"\"): "
-					"base=%s scope=%d filter=%s : "
+					"base=\"%s\" scope=%d filter=\"%s\": "
 					"unable to find entry\n",
 					fname,
 					base->bv_val ? base->bv_val : "\"\"",
@@ -838,14 +838,26 @@ monitor_back_register_entry_attrs(
 			for ( atp = &e->e_attrs; *atp; atp = &(*atp)->a_next )
 				/* just get to last */ ;
 
-			*atp = attrs_dup( a );
-			if ( *atp == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-					"monitor_back_register_entry_%s(\"%s\"): "
-					"attrs_dup() failed\n",
-					fname, e->e_name.bv_val, 0 );
-				rc = -1;
-				goto done;
+			for ( ; a != NULL; a = a->a_next ) {
+				assert( a->a_desc != NULL );
+				assert( a->a_vals != NULL );
+
+				if ( attr_find( e->e_attrs, a->a_desc ) ) {
+					attr_merge( e, a->a_desc, a->a_vals,
+						a->a_nvals == a->a_vals ? NULL : a->a_nvals );
+
+				} else {
+					*atp = attr_dup( a );
+					if ( *atp == NULL ) {
+						Debug( LDAP_DEBUG_ANY,
+							"monitor_back_register_entry_%s(\"%s\"): "
+							"attr_dup() failed\n",
+							fname, e->e_name.bv_val, 0 );
+						rc = -1;
+						goto done;
+					}
+					atp = &(*atp)->a_next;
+				}
 			}
 		}
 
@@ -920,6 +932,57 @@ monitor_back_register_entry_callback(
 	struct berval		*filter )
 {
 	return monitor_back_register_entry_attrs( ndn, NULL, cb,
+			base, scope, filter );
+}
+
+/*
+ * TODO: add corresponding calls to remove installed callbacks, entries
+ * and so, in case the entity that installed them is removed (e.g. a 
+ * database, via back-config)
+ */
+int
+monitor_back_unregister_entry(
+	Entry			**ep,
+	monitor_callback_t	**cbp )
+{
+	/* TODO */
+	return 1;
+}
+
+int
+monitor_back_unregister_entry_parent(
+	Entry			**ep,
+	monitor_callback_t	**cbp,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter )
+{
+	/* TODO */
+	return 1;
+}
+
+int
+monitor_back_unregister_entry_attrs(
+	struct berval		*ndn,
+	Attribute		**ap,
+	monitor_callback_t	**cbp,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter )
+{
+	/* TODO */
+	return 1;
+}
+
+int
+monitor_back_unregister_entry_callback(
+	struct berval		*ndn,
+	monitor_callback_t	**cbp,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter )
+{
+	return monitor_back_unregister_entry_attrs( ndn, NULL, cbp,
 			base, scope, filter );
 }
 

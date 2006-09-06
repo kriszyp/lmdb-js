@@ -426,6 +426,14 @@ int bdb_modify_internal(
 	char *textbuf,
 	size_t textlen );
 
+/*
+ * monitor.c
+ */
+int bdb_monitor_initialize( void );
+int bdb_monitor_init( BackendDB *be );
+int bdb_monitor_open( BackendDB *be );
+int bdb_monitor_close( BackendDB *be );
+int bdb_monitor_destroy( BackendDB *be );
 
 /*
  * cache.c

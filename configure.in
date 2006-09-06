@@ -2562,6 +2562,20 @@ fi
 AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])
 AC_DEFINE(SLAPD_MOD_DYNAMIC,2,[dynamically linked module])
 
+dnl back-monitor goes first (well, after back-config)
+if test "$ol_enable_monitor" != no ; then
+	BUILD_SLAPD=yes
+	BUILD_MONITOR=$ol_enable_monitor
+	if test "$ol_enable_monitor" = mod ; then
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_DYNAMIC
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_MONITOR,$MFLAG,[define to support cn=Monitor backend])
+fi
+
 if test "$ol_enable_bdb" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_BDB=$ol_enable_bdb
@@ -2626,19 +2640,6 @@ if test "$ol_enable_meta" != no ; then
 		MFLAG=SLAPD_MOD_STATIC
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_META,$MFLAG,[define to support LDAP Metadirectory backend])
-fi
-
-if test "$ol_enable_monitor" != no ; then
-	BUILD_SLAPD=yes
-	BUILD_MONITOR=$ol_enable_monitor
-	if test "$ol_enable_monitor" = mod ; then
-		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_DYNAMIC
-	else
-		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_MONITOR,$MFLAG,[define to support cn=Monitor backend])
 fi
 
 if test "$ol_enable_null" != no ; then
