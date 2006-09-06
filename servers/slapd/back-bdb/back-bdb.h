@@ -203,6 +203,7 @@ struct bdb_info {
 	alock_info_t	bi_alock_info;
 	char		*bi_db_config_path;
 	BerVarray	bi_db_config;
+	bdb_monitor_cleanup_t	bi_monitor_cleanup;
 	int		bi_flags;
 #define	BDB_IS_OPEN		0x01
 #define	BDB_HAS_CONFIG	0x02
@@ -213,7 +214,6 @@ struct bdb_info {
 	int		bi_modrdns;		/* number of modrdns completed */
 	ldap_pvt_thread_mutex_t	bi_modrdns_mutex;
 #endif
-	bdb_monitor_cleanup_t	bi_monitor_cleanup;
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
