@@ -29,64 +29,8 @@
 static ObjectClass		*oc_olmBDBDatabase;
 
 static AttributeDescription	*ad_olmBDBEntryCache,
-	*ad_olmBDBEntryInfo, *ad_olmBDBIDLCache;
-
-static int
-bdb_monitor_update(
-	Operation	*op,
-	SlapReply	*rs,
-	Entry		*e,
-	void		*priv )
-{
-	struct bdb_info		*bdb = (struct bdb_info *) priv;
-	Attribute		*a;
-
-	unsigned long		u;
-	char			buf[ BUFSIZ ];
-	struct berval		bv;
-
-	assert( ad_olmBDBEntryCache != NULL );
-
-	a = attr_find( e->e_attrs, ad_olmBDBEntryCache );
-	assert( a != NULL );
-	bv.bv_val = buf;
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_cursize );
-	ber_bvreplace( &a->a_vals[ 0 ], &bv );
-
-	a = attr_find( e->e_attrs, ad_olmBDBEntryInfo );
-	assert( a != NULL );
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_eiused );
-	ber_bvreplace( &a->a_vals[ 0 ], &bv );
-
-	a = attr_find( e->e_attrs, ad_olmBDBIDLCache );
-	assert( a != NULL );
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_idl_cache_size );
-	ber_bvreplace( &a->a_vals[ 0 ], &bv );
-	
-	return SLAP_CB_CONTINUE;
-}
-
-static int
-bdb_monitor_modify(
-	Operation	*op,
-	SlapReply	*rs,
-	Entry		*e,
-	void		*priv )
-{
-	struct bdb_info		*bdb = (struct bdb_info *) priv;
-	
-	return SLAP_CB_CONTINUE;
-}
-
-static int
-bdb_monitor_free(
-	Entry		*e,
-	void		*priv )
-{
-	struct bdb_info		*bdb = (struct bdb_info *) priv;
-	
-	return SLAP_CB_CONTINUE;
-}
+	*ad_olmBDBEntryInfo, *ad_olmBDBIDLCache,
+	*ad_olmDbDirectory;
 
 /*
  * NOTE: there's some confusion in monitor OID arc;
@@ -132,6 +76,15 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_olmBDBIDLCache },
 
+	{ "olmDbDirectory", "( " BDB_MONITOR_SCHEMA_AD ".4 "
+		"NAME ( 'olmDbDirectory' ) "
+		"DESC 'Path name of the directory "
+			"where the database environment resides' "
+		"SUP monitoredInfo "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )",
+		&ad_olmDbDirectory },
+
 	{ NULL }
 };
 
@@ -140,16 +93,105 @@ static struct {
 	char		*desc;
 	ObjectClass	**oc;
 }		s_oc[] = {
+	/* augments an existing object, so it must be AUXILIARY
+	 * FIXME: derive from some ABSTRACT "monitoredEntity"? */
 	{ "olmBDBDatabase", "( " BDB_MONITOR_SCHEMA_OC ".1 "
 		"NAME ( 'olmBDBDatabase' ) "
-		"SUP monitoredObject STRUCTURAL "
+		"SUP top AUXILIARY "
 		"MAY ( "
-			"olmBDBEntryCache $ olmBDBEntryInfo $ olmBDBIDLCache "
+			"olmBDBEntryCache "
+			"$ olmBDBEntryInfo "
+			"$ olmBDBIDLCache "
+			"$ olmDbDirectory "
 			") )",
 		&oc_olmBDBDatabase },
 
 	{ NULL }
 };
+
+static int
+bdb_monitor_update(
+	Operation	*op,
+	SlapReply	*rs,
+	Entry		*e,
+	void		*priv )
+{
+	struct bdb_info		*bdb = (struct bdb_info *) priv;
+	Attribute		*a;
+
+	char			buf[ BUFSIZ ];
+	struct berval		bv;
+
+	assert( ad_olmBDBEntryCache != NULL );
+
+	a = attr_find( e->e_attrs, ad_olmBDBEntryCache );
+	assert( a != NULL );
+	bv.bv_val = buf;
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_cursize );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	a = attr_find( e->e_attrs, ad_olmBDBEntryInfo );
+	assert( a != NULL );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_eiused );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	a = attr_find( e->e_attrs, ad_olmBDBIDLCache );
+	assert( a != NULL );
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_idl_cache_size );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+	
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+bdb_monitor_modify(
+	Operation	*op,
+	SlapReply	*rs,
+	Entry		*e,
+	void		*priv )
+{
+	struct bdb_info		*bdb = (struct bdb_info *) priv;
+	
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+bdb_monitor_free(
+	Entry		*e,
+	void		*priv )
+{
+	struct bdb_info		*bdb = (struct bdb_info *) priv;
+
+	struct berval	values[ 2 ];
+	Modification	mod = { 0 };
+
+	const char	*text;
+	char		textbuf[ SLAP_TEXT_BUFLEN ];
+
+	int		i, rc;
+
+	/* Remove objectClass */
+	mod.sm_op = LDAP_MOD_DELETE;
+	mod.sm_desc = slap_schema.si_ad_objectClass;
+	mod.sm_values = values;
+	values[ 0 ] = oc_olmBDBDatabase->soc_cname;
+	BER_BVZERO( &values[ 1 ] );
+
+	rc = modify_delete_values( e, &mod, 1, &text,
+		textbuf, sizeof( textbuf ) );
+	/* don't care too much about return code... */
+
+	/* remove attrs */
+	for ( i = 0; s_at[ i ].name != NULL; i++ ) {
+		mod.sm_desc = *s_at[ i ].ad;
+		mod.sm_values = NULL;
+		rc = modify_delete_values( e, &mod, 1, &text,
+			textbuf, sizeof( textbuf ) );
+		/* don't care too much about return code... */
+	}
+	
+	return SLAP_CB_CONTINUE;
+}
 
 /*
  * call from within bdb_initialize()
@@ -321,7 +363,7 @@ bdb_monitor_open( BackendDB *be )
 	}
 
 	/* alloc as many as required (plus 1 for objectClass) */
-	a = attrs_alloc( 1 + 3 );
+	a = attrs_alloc( 1 + 4 );
 	if ( a == NULL ) {
 		rc = 1;
 		goto cleanup;
@@ -348,6 +390,57 @@ bdb_monitor_open( BackendDB *be )
 		next->a_desc = ad_olmBDBIDLCache;
 		value_add_one( &next->a_vals, &bv );
 		next->a_nvals = next->a_vals;
+		next = next->a_next;
+	}
+
+	{
+		struct berval	bv, nbv;
+		ber_len_t	pathlen = 0, len = 0;
+		char		path[ PATH_MAX ] = { '\0' };
+		char		*fname = bdb->bi_dbenv_home,
+				*ptr;
+
+		len = strlen( fname );
+		if ( fname[ 0 ] != '/' ) {
+			/* get full path name */
+			getcwd( path, sizeof( path ) );
+			pathlen = strlen( path );
+
+			if ( fname[ 0 ] == '.' && fname[ 1 ] == '/' ) {
+				fname += 2;
+				len -= 2;
+			}
+		}
+
+		bv.bv_len = pathlen + STRLENOF( "/" ) + len;
+		ptr = bv.bv_val = ch_malloc( bv.bv_len + STRLENOF( "/" ) + 1 );
+		if ( pathlen ) {
+			ptr = lutil_strncopy( ptr, path, pathlen );
+			ptr[ 0 ] = '/';
+			ptr++;
+		}
+		ptr = lutil_strncopy( ptr, fname, len );
+		if ( ptr[ -1 ] != '/' ) {
+			ptr[ 0 ] = '/';
+			ptr++;
+		}
+		ptr[ 0 ] = '\0';
+		
+		attr_normalize_one( ad_olmDbDirectory, &bv, &nbv, NULL );
+
+		next->a_desc = ad_olmDbDirectory;
+		next->a_vals = ch_calloc( sizeof( struct berval ), 2 );
+		next->a_vals[ 0 ] = bv;
+
+		if ( BER_BVISNULL( &nbv ) ) {
+			next->a_nvals = next->a_vals;
+
+		} else {
+			next->a_nvals = ch_calloc( sizeof( struct berval ), 2 );
+			next->a_nvals[ 0 ] = nbv;
+		}
+
+		next = next->a_next;
 	}
 
 	cb = ch_calloc( sizeof( monitor_callback_t ), 1 );
