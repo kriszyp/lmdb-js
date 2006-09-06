@@ -257,32 +257,81 @@ skip_url_prefix(
 	return( NULL );
 }
 
-
-static int str2scope( const char *p )
+int
+ldap_pvt_scope2bv( int scope, struct berval *bv )
 {
-	if ( strcasecmp( p, "one" ) == 0 ) {
-		return LDAP_SCOPE_ONELEVEL;
+	switch ( scope ) {
+	case LDAP_SCOPE_BASE:
+		BER_BVSTR( bv, "base" );
+		break;
 
-	} else if ( strcasecmp( p, "onelevel" ) == 0 ) {
-		return LDAP_SCOPE_ONELEVEL;
+	case LDAP_SCOPE_ONELEVEL:
+		BER_BVSTR( bv, "one" );
+		break;
 
-	} else if ( strcasecmp( p, "base" ) == 0 ) {
-		return LDAP_SCOPE_BASE;
+	case LDAP_SCOPE_SUBTREE:
+		BER_BVSTR( bv, "sub" );
+		break;
 
-	} else if ( strcasecmp( p, "sub" ) == 0 ) {
-		return LDAP_SCOPE_SUBTREE;
+	case LDAP_SCOPE_SUBORDINATE:
+		BER_BVSTR( bv, "subordinate" );
+		break;
 
-	} else if ( strcasecmp( p, "subtree" ) == 0 ) {
-		return LDAP_SCOPE_SUBTREE;
+	default:
+		return LDAP_OTHER;
+	}
 
-	} else if ( strcasecmp( p, "subordinate" ) == 0 ) {
-		return LDAP_SCOPE_SUBORDINATE;
+	return LDAP_SUCCESS;
+}
 
-	} else if ( strcasecmp( p, "children" ) == 0 ) {
-		return LDAP_SCOPE_SUBORDINATE;
+const char *
+ldap_pvt_scope2str( int scope )
+{
+	struct berval	bv;
+
+	if ( ldap_pvt_scope2bv( scope, &bv ) == LDAP_SUCCESS ) {
+		return bv.bv_val;
+	}
+
+	return NULL;
+}
+
+int
+ldap_pvt_bv2scope( struct berval *bv )
+{
+	static struct {
+		struct berval	bv;
+		int		scope;
+	}	v[] = {
+		{ BER_BVC( "one" ),		LDAP_SCOPE_ONELEVEL },
+		{ BER_BVC( "onelevel" ),	LDAP_SCOPE_ONELEVEL },
+		{ BER_BVC( "base" ),		LDAP_SCOPE_BASE },
+		{ BER_BVC( "sub" ),		LDAP_SCOPE_SUBTREE },
+		{ BER_BVC( "subtree" ),		LDAP_SCOPE_SUBTREE },
+		{ BER_BVC( "subord" ),		LDAP_SCOPE_SUBORDINATE },
+		{ BER_BVC( "subordinate" ),	LDAP_SCOPE_SUBORDINATE },
+		{ BER_BVC( "children" ),	LDAP_SCOPE_SUBORDINATE },
+		{ BER_BVNULL,			-1 }
+	};
+	int	i;
+
+	for ( i = 0; v[ i ].scope != -1; i++ ) {
+		if ( ber_bvstrcasecmp( bv, &v[ i ].bv ) == 0 ) {
+			return v[ i ].scope;
+		}
 	}
 
 	return( -1 );
+}
+
+int
+ldap_pvt_str2scope( const char *p )
+{
+	struct berval	bv;
+
+	ber_str2bv( p, 0, 0, &bv );
+
+	return ldap_pvt_bv2scope( &bv );
 }
 
 static const char	hex[] = "0123456789ABCDEF";
@@ -482,8 +531,9 @@ hex_escape_list( char *buf, int len, char **s, unsigned flags )
 static int
 desc2str_len( LDAPURLDesc *u )
 {
-	int	sep = 0;
-	int	len = 0;
+	int		sep = 0;
+	int		len = 0;
+	struct berval	scope;
 
 	if ( u == NULL ) {
 		return -1;
@@ -503,36 +553,11 @@ desc2str_len( LDAPURLDesc *u )
 		}
 	}
 
-	switch ( u->lud_scope ) {
-	case LDAP_SCOPE_BASE:
-	case LDAP_SCOPE_ONELEVEL:
-	case LDAP_SCOPE_SUBTREE:
-	case LDAP_SCOPE_SUBORDINATE:
-		switch ( u->lud_scope ) {
-		case LDAP_SCOPE_BASE:
-			len += STRLENOF( "base" );
-			break;
-
-		case LDAP_SCOPE_ONELEVEL:
-			len += STRLENOF( "one" );
-			break;
-
-		case LDAP_SCOPE_SUBTREE:
-			len += STRLENOF( "sub" );
-			break;
-
-		case LDAP_SCOPE_SUBORDINATE:
-			len += STRLENOF( "subordinate" );
-			break;
-		}
-
+	if ( ldap_pvt_scope2bv( u->lud_scope, &scope ) == LDAP_SUCCESS ) {
+		len += scope.bv_len;
 		if ( !sep ) {
 			sep = 3;
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	if ( u->lud_attrs ) {
@@ -573,10 +598,10 @@ desc2str_len( LDAPURLDesc *u )
 int
 desc2str( LDAPURLDesc *u, char *s, int len )
 {
-	int	i;
-	int	sep = 0;
-	int	sofar = 0;
-	int	gotscope = 0;
+	int		i;
+	int		sep = 0;
+	int		sofar = 0;
+	struct berval	scope = BER_BVNULL;
 
 	if ( u == NULL ) {
 		return -1;
@@ -586,20 +611,13 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 		return -1;
 	}
 
-	switch ( u->lud_scope ) {
-	case LDAP_SCOPE_BASE:
-	case LDAP_SCOPE_ONELEVEL:
-	case LDAP_SCOPE_SUBTREE:
-	case LDAP_SCOPE_SUBORDINATE:
-		gotscope = 1;
-		break;
-	}
+	ldap_pvt_scope2bv( u->lud_scope, &scope );
 
 	if ( u->lud_exts ) {
 		sep = 5;
 	} else if ( u->lud_filter ) {
 		sep = 4;
-	} else if ( gotscope ) {
+	} else if ( !BER_BVISEMPTY( &scope ) ) {
 		sep = 3;
 	} else if ( u->lud_attrs ) {
 		sep = 2;
@@ -662,30 +680,10 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 
 	assert( len >= 0 );
 
-	switch ( u->lud_scope ) {
-	case LDAP_SCOPE_BASE:
-		strcpy( &s[sofar], "base" );
-		sofar += STRLENOF("base");
-		len -= STRLENOF("base");
-		break;
-
-	case LDAP_SCOPE_ONELEVEL:
-		strcpy( &s[sofar], "one" );
-		sofar += STRLENOF("one");
-		len -= STRLENOF("one");
-		break;
-
-	case LDAP_SCOPE_SUBTREE:
-		strcpy( &s[sofar], "sub" );
-		sofar += STRLENOF("sub");
-		len -= STRLENOF("sub");
-		break;
-
-	case LDAP_SCOPE_SUBORDINATE:
-		strcpy( &s[sofar], "children" );
-		sofar += STRLENOF("children");
-		len -= STRLENOF("children");
-		break;
+	if ( !BER_BVISNULL( &scope ) ) {
+		strcpy( &s[sofar], scope.bv_val );
+		sofar += scope.bv_len;
+		len -= scope.bv_len;
 	}
 
 	assert( len >= 0 );
@@ -1025,7 +1023,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp, unsigned flags
 	if( *p != '\0' ) {
 		/* parse the scope */
 		ldap_pvt_hex_unescape( p );
-		ludp->lud_scope = str2scope( p );
+		ludp->lud_scope = ldap_pvt_str2scope( p );
 
 		if( ludp->lud_scope == -1 ) {
 			LDAP_FREE( url );
