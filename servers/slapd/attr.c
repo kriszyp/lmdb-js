@@ -308,15 +308,60 @@ attr_merge(
 }
 
 int
+attr_normalize(
+	AttributeDescription	*desc,
+	BerVarray		vals,
+	BerVarray		*nvalsp,
+	void	 		*memctx )
+{
+	int		rc = LDAP_SUCCESS;
+	BerVarray	nvals = NULL;
+
+	*nvalsp = NULL;
+
+	if ( desc->ad_type->sat_equality &&
+		desc->ad_type->sat_equality->smr_normalize )
+	{
+		int	i;
+		
+		for ( i = 0; !BER_BVISNULL( &vals[i] ); i++ );
+
+		nvals = slap_sl_calloc( sizeof(struct berval), i + 1, memctx );
+		for ( i = 0; !BER_BVISNULL( &vals[i] ); i++ ) {
+			rc = desc->ad_type->sat_equality->smr_normalize(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					desc->ad_type->sat_syntax,
+					desc->ad_type->sat_equality,
+					&vals[i], &nvals[i], memctx );
+
+			if ( rc != LDAP_SUCCESS ) {
+				BER_BVZERO( &nvals[i + 1] );
+				break;
+			}
+		}
+		BER_BVZERO( &nvals[i] );
+		*nvalsp = nvals;
+	}
+
+error_return:;
+	if ( rc != LDAP_SUCCESS && nvals != NULL ) {
+		ber_bvarray_free_x( nvals, memctx );
+	}
+
+	return rc;
+}
+
+int
 attr_merge_normalize(
-	Entry		*e,
-	AttributeDescription *desc,
-	BerVarray	vals,
-	void	 *memctx )
+	Entry			*e,
+	AttributeDescription	*desc,
+	BerVarray		vals,
+	void	 		*memctx )
 {
 	BerVarray	nvals = NULL;
 	int		rc;
 
+#if 0
 	if ( desc->ad_type->sat_equality &&
 		desc->ad_type->sat_equality->smr_normalize )
 	{
@@ -339,13 +384,20 @@ attr_merge_normalize(
 		}
 		BER_BVZERO( &nvals[i] );
 	}
+#endif
 
-	rc = attr_merge( e, desc, vals, nvals );
+	rc = attr_normalize( desc, vals, &nvals, memctx );
+	if ( rc == LDAP_SUCCESS ) {
+		rc = attr_merge( e, desc, vals, nvals );
+	}
 
+#if 0
 error_return:;
+#endif 
 	if ( nvals != NULL ) {
 		ber_bvarray_free_x( nvals, memctx );
 	}
+
 	return rc;
 }
 
@@ -383,20 +435,54 @@ attr_merge_one(
 }
 
 int
+attr_normalize_one(
+	AttributeDescription *desc,
+	struct berval	*val,
+	struct berval	*nval,
+	void		*memctx )
+{
+	int		rc = LDAP_SUCCESS;
+
+	BER_BVZERO( nval );
+
+	if ( desc->ad_type->sat_equality &&
+		desc->ad_type->sat_equality->smr_normalize )
+	{
+		rc = desc->ad_type->sat_equality->smr_normalize(
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+				desc->ad_type->sat_syntax,
+				desc->ad_type->sat_equality,
+				val, nval, memctx );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+	}
+
+	return rc;
+}
+
+int
 attr_merge_normalize_one(
 	Entry		*e,
 	AttributeDescription *desc,
 	struct berval	*val,
 	void		*memctx )
 {
-	struct berval	nval;
+	struct berval	nval = BER_BVNULL;
 	struct berval	*nvalp = NULL;
 	int		rc;
 
+	rc = attr_normalize_one( desc, val, &nval, memctx );
+	if ( rc == LDAP_SUCCESS && !BER_BVISNULL( &nval ) ) {
+		nvalp = &nval;
+	}
+
+#if 0
 	if ( desc->ad_type->sat_equality &&
 		desc->ad_type->sat_equality->smr_normalize )
 	{
-		rc = (*desc->ad_type->sat_equality->smr_normalize)(
+		rc = desc->ad_type->sat_equality->smr_normalize)
 				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 				desc->ad_type->sat_syntax,
 				desc->ad_type->sat_equality,
@@ -407,6 +493,7 @@ attr_merge_normalize_one(
 		}
 		nvalp = &nval;
 	}
+#endif
 
 	rc = attr_merge_one( e, desc, val, nvalp );
 	if ( nvalp != NULL ) {
