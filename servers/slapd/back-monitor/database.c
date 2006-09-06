@@ -33,14 +33,6 @@
 static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #endif /* defined(LDAP_SLAPI) */
 
-#if 0	/* moved to back-bdb/monitor.c */
-#if defined(SLAPD_BDB)
-#include "../back-bdb/back-bdb.h"
-#endif /* defined(SLAPD_BDB) */
-#if defined(SLAPD_HDB)
-#include "../back-hdb/back-bdb.h"
-#endif /* defined(SLAPD_HDB) */
-#endif
 #if defined(SLAPD_LDAP) 
 #include "../back-ldap/back-ldap.h"
 #endif /* defined(SLAPD_LDAP) */
@@ -293,54 +285,6 @@ monitor_subsys_database_init(
 		if ( 0 ) {
 			assert( 0 );
 
-#if 0 /* moved into back-bdb/monitor.c */
-#if defined(SLAPD_BDB) || defined(SLAPD_HDB) 
-		} else if ( strcmp( bi->bi_type, "bdb" ) == 0
-				|| strcmp( bi->bi_type, "hdb" ) == 0 )
-		{
-			struct berval	bv;
-			ber_len_t	pathlen = 0, len = 0;
-			char		path[ PATH_MAX ] = { '\0' };
-			struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-			char		*fname = bdb->bi_dbenv_home;
-
-			len = strlen( fname );
-			if ( fname[ 0 ] != '/' ) {
-				/* get full path name */
-				getcwd( path, sizeof( path ) );
-				pathlen = strlen( path );
-
-				if ( fname[ 0 ] == '.' && fname[ 1 ] == '/' ) {
-					fname += 2;
-					len -= 2;
-				}
-			}
-
-			bv.bv_len = STRLENOF( "file://" ) + pathlen
-				+ STRLENOF( "/" ) + len;
-			bv.bv_val = ch_malloc( bv.bv_len + STRLENOF( "/" ) + 1 );
-			AC_MEMCPY( bv.bv_val, "file://", STRLENOF( "file://" ) );
-			if ( pathlen ) {
-				AC_MEMCPY( &bv.bv_val[ STRLENOF( "file://" ) ],
-						path, pathlen );
-				bv.bv_val[ STRLENOF( "file://" ) + pathlen ] = '/';
-				pathlen++;
-			}
-			AC_MEMCPY( &bv.bv_val[ STRLENOF( "file://" ) + pathlen ],
-					fname, len );
-			if ( bv.bv_val[ bv.bv_len - 1 ] != '/' ) {
-				bv.bv_val[ bv.bv_len ] = '/';
-				bv.bv_len++;
-			}
-			bv.bv_val[ bv.bv_len ] = '\0';
-
-			attr_merge_normalize_one( e, slap_schema.si_ad_labeledURI,
-					&bv, NULL );
-
-			ch_free( bv.bv_val );
-
-#endif /* defined(SLAPD_BDB) || defined(SLAPD_HDB) */
-#endif
 #if defined(SLAPD_LDAP) 
 		} else if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
 			ldapinfo_t	*li = (ldapinfo_t *)be->be_private;

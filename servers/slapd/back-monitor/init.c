@@ -437,7 +437,7 @@ monitor_back_register_entry_parent(
 			"monitor_back_register_entry_parent(base=\"%s\" scope=%s filter=\"%s\"): "
 			"monitor database not configured.\n",
 			BER_BVISNULL( base ) ? "" : base->bv_val,
-			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
+			ldap_pvt_scope2str( scope ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 		return -1;
 	}
@@ -752,7 +752,7 @@ monitor_back_register_entry_attrs(
 			"monitor database not configured.\n",
 			fname,
 			BER_BVISNULL( base ) ? "" : base->bv_val,
-			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
+			ldap_pvt_scope2str( scope ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
 
@@ -942,48 +942,210 @@ monitor_back_register_entry_callback(
  */
 int
 monitor_back_unregister_entry(
-	Entry			**ep,
-	monitor_callback_t	**cbp )
+	Entry			*target_e )
 {
-	/* TODO */
-	return 1;
-}
+	monitor_info_t 	*mi;
 
-int
-monitor_back_unregister_entry_parent(
-	Entry			**ep,
-	monitor_callback_t	**cbp,
-	struct berval		*base,
-	int			scope,
-	struct berval		*filter )
-{
-	/* TODO */
-	return 1;
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry(\"%s\"): "
+			"monitor database not configured.\n",
+			target_e->e_name.bv_val, 0, 0 );
+
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+	assert( mi != NULL );
+
+	if ( monitor_subsys_opened ) {
+		Entry			*e = NULL;
+		monitor_entry_t 	*mp = NULL;
+		monitor_callback_t	*cb = NULL;
+
+		if ( monitor_cache_remove( mi, &target_e->e_nname, &e ) != 0 ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry(\"%s\"): "
+				"entry removal failed.\n",
+				target_e->e_name.bv_val, 0, 0 );
+			return -1;
+		}
+
+		mp = (monitor_entry_t *)e->e_private;
+		assert( mp != NULL );
+
+		for ( cb = mp->mp_cb; cb != NULL; ) {
+			monitor_callback_t	*next = cb->mc_next;
+
+			if ( cb->mc_free ) {
+				(void)cb->mc_free( e, cb->mc_private );
+			}
+			ch_free( cb );
+
+			cb = next;
+		}
+
+	} else {
+		/* TODO: remove from limbo */
+		return 1;
+	}
+
+	return 0;
 }
 
 int
 monitor_back_unregister_entry_attrs(
-	struct berval		*ndn,
-	Attribute		**ap,
-	monitor_callback_t	**cbp,
+	struct berval		*ndn_in,
+	Attribute		*target_a,
+	monitor_callback_t	*target_cb,
 	struct berval		*base,
 	int			scope,
 	struct berval		*filter )
 {
-	/* TODO */
-	return 1;
+	monitor_info_t 	*mi;
+	struct berval	ndn = BER_BVNULL;
+	char		*fname = ( target_a == NULL ? "callback" : "attrs" );
+
+	if ( be_monitor == NULL ) {
+		char		buf[ SLAP_TEXT_BUFLEN ];
+
+		snprintf( buf, sizeof( buf ),
+			"monitor_back_unregister_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
+			"monitor database not configured.\n",
+			fname,
+			BER_BVISNULL( base ) ? "" : base->bv_val,
+			(char *)ldap_pvt_scope2str( scope ),
+			BER_BVISNULL( filter ) ? "" : filter->bv_val );
+		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
+
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+	assert( mi != NULL );
+
+	if ( ndn_in != NULL ) {
+		ndn = *ndn_in;
+	}
+
+	if ( target_a == NULL && target_cb == NULL ) {
+		/* nothing to do */
+		return -1;
+	}
+
+	if ( ( ndn_in == NULL || BER_BVISNULL( &ndn ) )
+			&& BER_BVISNULL( filter ) )
+	{
+		/* need a filter */
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry_%s(\"\"): "
+			"need a valid filter\n",
+			fname, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_subsys_opened ) {
+		Entry			*e = NULL;
+		monitor_entry_t 	*mp = NULL;
+		int			freeit = 0;
+
+		if ( BER_BVISNULL( &ndn ) ) {
+			if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
+				char		buf[ SLAP_TEXT_BUFLEN ];
+
+				snprintf( buf, sizeof( buf ),
+					"monitor_back_unregister_entry_%s(\"\"): "
+					"base=\"%s\" scope=%d filter=\"%s\": "
+					"unable to find entry\n",
+					fname,
+					base->bv_val ? base->bv_val : "\"\"",
+					scope, filter->bv_val );
+
+				/* entry does not exist */
+				Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
+				return -1;
+			}
+
+			freeit = 1;
+		}
+
+		if ( monitor_cache_get( mi, &ndn, &e ) != 0 ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry(\"%s\"): "
+				"entry removal failed.\n",
+				ndn.bv_val, 0, 0 );
+			return -1;
+		}
+
+		mp = (monitor_entry_t *)e->e_private;
+		assert( mp != NULL );
+
+		if ( target_cb != NULL ) {
+			monitor_callback_t	**cbp;
+
+			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
+				if ( *cbp == target_cb ) {
+					if ( (*cbp)->mc_free ) {
+						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+					}
+					*cbp = (*cbp)->mc_next;
+					ch_free( target_cb );
+					break;
+				}
+			}
+		}
+
+		if ( target_a != NULL ) {
+			Attribute	*a;
+
+			for ( a = target_a; a != NULL; a = a->a_next ) {
+				Modification	mod = { 0 };
+				const char	*text;
+				char		textbuf[ SLAP_TEXT_BUFLEN ];
+
+				mod.sm_op = LDAP_MOD_DELETE;
+				mod.sm_desc = a->a_desc;
+				mod.sm_values = a->a_vals;
+				mod.sm_nvalues = a->a_nvals;
+
+				(void)modify_delete_values( e, &mod, 1,
+					&text, textbuf, sizeof( textbuf ) );
+			}
+		}
+
+		if ( freeit ) {
+			ber_memfree( ndn.bv_val );
+		}
+
+		if ( e ) {
+			monitor_cache_release( mi, e );
+		}
+
+	} else {
+		/* TODO: remove from limbo */
+		return 1;
+	}
+
+	return 0;
 }
 
 int
 monitor_back_unregister_entry_callback(
 	struct berval		*ndn,
-	monitor_callback_t	**cbp,
+	monitor_callback_t	*cb,
 	struct berval		*base,
 	int			scope,
 	struct berval		*filter )
 {
-	return monitor_back_unregister_entry_attrs( ndn, NULL, cbp,
-			base, scope, filter );
+	/* TODO: lookup entry (by ndn, if not NULL, and/or by callback);
+	 * unregister the callback; if a is not null, unregister the
+	 * given attrs.  In any case, call cb->cb_free */
+	return monitor_back_unregister_entry_attrs( ndn,
+		NULL, cb, base, scope, filter );
 }
 
 monitor_subsys_t *
