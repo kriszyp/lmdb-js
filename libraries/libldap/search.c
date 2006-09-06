@@ -415,8 +415,7 @@ static char escape[128] = {
 #define	NEEDFLTESCAPE(c)	((c) & 0x80 || escape[ (unsigned)(c) ])
 
 /*
- * compute the length of the escaped value;
- * returns ((ber_len_t)(-1)) if no escaping is required.
+ * compute the length of the escaped value
  */
 ber_len_t
 ldap_bv2escaped_filter_value_len( struct berval *in )
@@ -429,7 +428,6 @@ ldap_bv2escaped_filter_value_len( struct berval *in )
 		return 0;
 	}
 
-	/* assume we'll escape everything */
 	for( l = 0, i = 0; i < in->bv_len; l++, i++ ) {
 		char c = in->bv_val[ i ];
 		if ( NEEDFLTESCAPE( c ) ) {
