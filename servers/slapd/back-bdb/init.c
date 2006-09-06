@@ -447,6 +447,9 @@ bdb_db_close( BackendDB *be )
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
 
+	/* monitor setup */
+	(void)bdb_monitor_close( be );
+
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
 	ber_bvarray_free( bdb->bi_db_config );

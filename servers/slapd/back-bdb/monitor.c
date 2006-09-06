@@ -318,10 +318,15 @@ bdb_monitor_open( BackendDB *be )
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 	Attribute		*a, *next;
 	monitor_callback_t	*cb;
-	struct berval		base = BER_BVC( "cn=databases,cn=monitor" );
-	struct berval		suffix, filter;
+	struct berval		suffix, *filter, *base;
 	char			*ptr;
 	int			rc = 0;
+
+	bdb->bi_monitor_cleanup.bdm_scope = LDAP_SCOPE_ONELEVEL;
+	base = &bdb->bi_monitor_cleanup.bdm_base;
+	BER_BVSTR( base, "cn=databases,cn=monitor" );
+	filter = &bdb->bi_monitor_cleanup.bdm_filter;
+	BER_BVZERO( filter );
 
 	/* don't bother if monitor is not configured */
 	if ( !monitor_back_is_configured() ) {
@@ -349,14 +354,14 @@ bdb_monitor_open( BackendDB *be )
 		ldap_bv2escaped_filter_value( &be->be_nsuffix[ 0 ], &suffix );
 	}
 	
-	filter.bv_len = STRLENOF( "(namingContexts:distinguishedNameMatch:=)" ) + suffix.bv_len;
-	ptr = filter.bv_val = ch_malloc( filter.bv_len + 1 );
+	filter->bv_len = STRLENOF( "(namingContexts:distinguishedNameMatch:=)" ) + suffix.bv_len;
+	ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
 	ptr = lutil_strcopy( ptr, "(namingContexts:distinguishedNameMatch:=" );
 	ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
 	ptr[ 0 ] = ')';
 	ptr++;
 	ptr[ 0 ] = '\0';
-	assert( filter.bv_len == ptr - filter.bv_val );
+	assert( filter->bv_len == ptr - filter->bv_val );
 	
 	if ( suffix.bv_val != be->be_nsuffix[ 0 ].bv_val ) {
 		ch_free( suffix.bv_val );
@@ -449,24 +454,36 @@ bdb_monitor_open( BackendDB *be )
 	cb->mc_free = bdb_monitor_free;
 	cb->mc_private = (void *)bdb;
 
-	rc = monitor_back_register_entry_attrs( NULL,
-		a, cb, &base, LDAP_SCOPE_ONELEVEL, &filter );
+	rc = monitor_back_register_entry_attrs( NULL, a, cb,
+		base, LDAP_SCOPE_ONELEVEL, filter );
 
 cleanup:;
 	if ( rc != 0 ) {
 		if ( cb != NULL ) {
 			ch_free( cb );
+			cb = NULL;
+		}
+
+		if ( a != NULL ) {
+			attrs_free( a );
+			a = NULL;
+		}
+
+		if ( !BER_BVISNULL( filter ) ) {
+			ch_free( filter->bv_val );
+			BER_BVZERO( filter );
 		}
 	}
 
-	if ( !BER_BVISNULL( &filter ) ) {
-		ch_free( filter.bv_val );
-	}
+	/* store for cleanup */
+	bdb->bi_monitor_cleanup.bdm_cb = (void *)cb;
 
+	/* we don't need to keep track of the attributes, because
+	 * bdb_monitor_free() takes care of everything */
 	if ( a != NULL ) {
 		attrs_free( a );
 	}
-	
+
 	return rc;
 }
 
@@ -476,6 +493,22 @@ cleanup:;
 int
 bdb_monitor_close( BackendDB *be )
 {
+	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
+
+	if ( !BER_BVISNULL( &bdb->bi_monitor_cleanup.bdm_filter ) ) {
+		monitor_back_unregister_entry_callback( NULL,
+			(monitor_callback_t *)bdb->bi_monitor_cleanup.bdm_cb,
+			&bdb->bi_monitor_cleanup.bdm_base,
+			bdb->bi_monitor_cleanup.bdm_scope,
+			&bdb->bi_monitor_cleanup.bdm_filter );
+
+		if ( !BER_BVISNULL( &bdb->bi_monitor_cleanup.bdm_filter ) ) {
+			ch_free( bdb->bi_monitor_cleanup.bdm_filter.bv_val );
+		}
+
+		memset( &bdb->bi_monitor_cleanup, 0, sizeof( bdb->bi_monitor_cleanup ) );
+	}
+
 	return 0;
 }
 

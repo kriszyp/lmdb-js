@@ -150,6 +150,13 @@ struct bdb_db_info {
 	DB			*bdi_db;
 };
 
+typedef struct bdb_monitor_cleanup_t {
+	void		*bdm_cb;
+	struct berval	bdm_base;
+	int		bdm_scope;
+	struct berval	bdm_filter;
+} bdb_monitor_cleanup_t;
+
 /* From ldap_rq.h */
 struct re_s;
 
@@ -206,6 +213,7 @@ struct bdb_info {
 	int		bi_modrdns;		/* number of modrdns completed */
 	ldap_pvt_thread_mutex_t	bi_modrdns_mutex;
 #endif
+	bdb_monitor_cleanup_t	bi_monitor_cleanup;
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
