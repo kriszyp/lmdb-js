@@ -685,8 +685,12 @@ monitor_filter2ndn(
 	cb.sc_private = (void *)ndn;
 
 	op->ors_scope = scope;
-	ber_dupbv_x( &op->ors_filterstr, filter, op->o_tmpmemctx );
 	op->ors_filter = str2filter_x( op, filter->bv_val );
+	if ( op->ors_filter == NULL ) {
+		rc = LDAP_OTHER;
+		goto cleanup;
+	}
+	ber_dupbv_x( &op->ors_filterstr, filter, op->o_tmpmemctx );
 	op->ors_attrs = slap_anlist_no_attrs;
 	op->ors_attrsonly = 0;
 	op->ors_tlimit = SLAP_NO_LIMIT;
@@ -702,10 +706,19 @@ monitor_filter2ndn(
 
 	rc = op->o_bd->be_search( op, &rs );
 
-	filter_free_x( op, op->ors_filter );
-	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+cleanup:;
+	if ( op->ors_filter != NULL ) {
+		filter_free_x( op, op->ors_filter );
+	}
+	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
+		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	}
 
 	if ( rc != 0 ) {
 		return rc;
