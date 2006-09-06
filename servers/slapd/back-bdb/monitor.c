@@ -258,6 +258,20 @@ bdb_monitor_open( BackendDB *be )
 	char			*ptr;
 	int			rc = 0;
 
+	/* don't bother if monitor is not configured */
+	if ( !monitor_back_is_configured() ) {
+		static int warning = 0;
+
+		if ( warning++ == 0 ) {
+			Debug( LDAP_DEBUG_ANY, "bdb_monitor_open: "
+				"monitoring disabled; "
+				"configure monitor database to enable\n",
+				0, 0, 0 );
+		}
+
+		return 0;
+	}
+
 	/* monitor_back_register_entry_attrs() with a NULL ndn,
 	 * base="cn=Databases,cn=Monitor", scope=LDAP_SCOPE_ONE 
 	 * and filter="(namingContexts:distinguishedNameMatch:=<suffix>)" */
