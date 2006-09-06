@@ -1707,6 +1707,7 @@ struct slap_backend_db {
 #define SLAP_DBFLAG_OVERLAY		0x0100U	/* this db struct is an overlay */
 #define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0200U	/* this db struct is a global overlay */
 #define SLAP_DBFLAG_DYNAMIC		0x0400U /* this db allows dynamicObjects */
+#define	SLAP_DBFLAG_MONITORING		0x0800U	/* custom monitoring enabled */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
 #define SLAP_DBFLAG_SINGLE_SHADOW	0x4000U	/* a single-master shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
@@ -1718,6 +1719,7 @@ struct slap_backend_db {
 #define SLAP_DBHIDDEN(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_HIDDEN)
 #define SLAP_ISOVERLAY(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_OVERLAY)
 #define SLAP_ISGLOBALOVERLAY(be)		(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLOBAL_OVERLAY)
+#define SLAP_DBMONITORING(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_MONITORING)
 #define SLAP_NO_SCHEMA_CHECK(be)	\
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NO_SCHEMA_CHECK)
 #define	SLAP_GLUE_INSTANCE(be)		\

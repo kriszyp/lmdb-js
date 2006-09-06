@@ -44,8 +44,6 @@ static AttributeDescription	*ad_olmBDBEntryCache,
  * Databases monitor objectclasses	1.3.6.1.4.1.4203.666.3.16.0.1
  * BDB database monitor objectclasses	1.3.6.1.4.1.4203.666.3.16.0.1.1
  */
-#define	BDB_MONITOR_SCHEMA_AD		"1.3.6.1.4.1.4203.666.1.55.0.1.1"
-#define	BDB_MONITOR_SCHEMA_OC		"1.3.6.1.4.1.4203.666.3.16.0.1.1"
 
 static struct {
 	char			*name;
@@ -348,11 +346,9 @@ bdb_monitor_open( BackendDB *be )
 	char			*ptr;
 	int			rc = 0;
 
-	bdb->bi_monitor_cleanup.bdm_scope = LDAP_SCOPE_ONELEVEL;
-	base = &bdb->bi_monitor_cleanup.bdm_base;
-	BER_BVSTR( base, "cn=databases,cn=monitor" );
-	filter = &bdb->bi_monitor_cleanup.bdm_filter;
-	BER_BVZERO( filter );
+	if ( !SLAP_DBMONITORING( be ) ) {
+		return 0;
+	}
 
 	/* don't bother if monitor is not configured */
 	if ( !monitor_back_is_configured() ) {
@@ -371,6 +367,12 @@ bdb_monitor_open( BackendDB *be )
 	/* monitor_back_register_entry_attrs() with a NULL ndn,
 	 * base="cn=Databases,cn=Monitor", scope=LDAP_SCOPE_ONE 
 	 * and filter="(namingContexts:distinguishedNameMatch:=<suffix>)" */
+
+	bdb->bi_monitor_cleanup.bdm_scope = LDAP_SCOPE_ONELEVEL;
+	base = &bdb->bi_monitor_cleanup.bdm_base;
+	BER_BVSTR( base, "cn=databases,cn=monitor" );
+	filter = &bdb->bi_monitor_cleanup.bdm_filter;
+	BER_BVZERO( filter );
 
 	suffix.bv_len = ldap_bv2escaped_filter_value_len( &be->be_nsuffix[ 0 ] );
 	if ( suffix.bv_len == be->be_nsuffix[ 0 ].bv_len ) {

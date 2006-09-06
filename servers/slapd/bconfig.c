@@ -163,6 +163,7 @@ enum {
 	CFG_TTHREADS,
 	CFG_MIRRORMODE,
 	CFG_HIDDEN,
+	CFG_MONITORING,
 
 	CFG_LAST
 };
@@ -382,6 +383,10 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:31 NAME 'olcModulePath' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "monitoring", "TRUE|FALSE", 2, 2, 0,
+		ARG_MAGIC|CFG_MONITORING|ARG_DB|ARG_ON_OFF, &config_generic,
+		"( OLcfgDbAt:0.18 NAME 'olcMonitoring' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:32 NAME 'olcObjectClasses' "
 		"DESC 'OpenLDAP object classes' "
@@ -704,7 +709,8 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
-		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef $ olcMirrorMode ) )",
+		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef $ olcMirrorMode $ "
+		 "olcMonitoring ) )",
 		 	Cft_Database, NULL, cfAddDatabase },
 	{ "( OLcfgGlOc:5 "
 		"NAME 'olcOverlayConfig' "
@@ -941,6 +947,9 @@ config_generic(ConfigArgs *c) {
 			else
 				rc = 1;
 			break;
+		case CFG_MONITORING:
+			c->value_int = (SLAP_DBMONITORING(c->be) != 0);
+			break;
 		case CFG_SSTR_IF_MAX:
 			c->value_int = index_substr_if_maxlen;
 			break;
@@ -1028,6 +1037,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_DEPTH:
 		case CFG_LASTMOD:
 		case CFG_MIRRORMODE:
+		case CFG_MONITORING:
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
 		case CFG_SSTR_IF_MIN:
@@ -1416,6 +1426,13 @@ config_generic(ConfigArgs *c) {
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_SINGLE_SHADOW;
 			else
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
+			break;
+
+		case CFG_MONITORING:
+			if(c->value_int)
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_MONITORING;
+			else
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_MONITORING;
 			break;
 
 		case CFG_HIDDEN:
@@ -2041,7 +2058,7 @@ config_restrict(ConfigArgs *c) {
 		{ BER_BVC("compare"),		SLAP_RESTRICT_OP_COMPARE },
 		{ BER_BVC("read"),		SLAP_RESTRICT_OP_READS },
 		{ BER_BVC("write"),		SLAP_RESTRICT_OP_WRITES },
-		{ BER_BVC("extended"),	SLAP_RESTRICT_OP_EXTENDED },
+		{ BER_BVC("extended"),		SLAP_RESTRICT_OP_EXTENDED },
 		{ BER_BVC("extended=" LDAP_EXOP_START_TLS ),		SLAP_RESTRICT_EXOP_START_TLS },
 		{ BER_BVC("extended=" LDAP_EXOP_MODIFY_PASSWD ),	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
 		{ BER_BVC("extended=" LDAP_EXOP_X_WHO_AM_I ),		SLAP_RESTRICT_EXOP_WHOAMI },
