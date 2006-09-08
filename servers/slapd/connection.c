@@ -914,6 +914,7 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 
 	ldap_pvt_thread_mutex_lock( &connections_mutex );
 	for(; *index < dtblsize; (*index)++) {
+		int c_struct;
 		if( connections[*index].c_struct_state == SLAP_C_UNINITIALIZED ) {
 			assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 			break;
@@ -936,7 +937,10 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 			break;
 		}
 
-		assert( connections[*index].c_struct_state == SLAP_C_UNUSED );
+		c_struct = connections[*index].c_struct_state;
+		if ( c_struct == SLAP_C_PENDING )
+			continue;
+		assert( c_struct == SLAP_C_UNUSED );
 		assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 	}
 
