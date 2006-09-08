@@ -98,8 +98,9 @@ const char Versionstr[] =
 	OPENLDAP_PACKAGE " " OPENLDAP_VERSION " Standalone LDAP Server (slapd)";
 #endif
 
-#define CHECK_NONE	0x00
-#define CHECK_CONFIG	0x01
+#define	CHECK_NONE	0x00
+#define	CHECK_CONFIG	0x01
+#define	CHECK_LOGLEVEL	0x02
 static int check = CHECK_NONE;
 static int version = 0;
 
@@ -503,8 +504,8 @@ int main( int argc, char **argv )
 			int	level = 0;
 
 			if ( strcmp( optarg, "?" ) == 0 ) {
-				rc = loglevel_print( stdout );
-				goto destroy;
+				check |= CHECK_LOGLEVEL;
+				break;
 			}
 
 			no_detach = 1;
@@ -564,8 +565,8 @@ int main( int argc, char **argv )
 
 		case 's':	/* set syslog level */
 			if ( strcmp( optarg, "?" ) == 0 ) {
-				rc = loglevel_print( stdout );
-				goto destroy;
+				check |= CHECK_LOGLEVEL;
+				break;
 			}
 
 			if ( parse_debug_level( optarg, &ldap_syslog, &syslog_unknowns ) ) {
@@ -765,6 +766,11 @@ unhandled_option:;
 		syslog_unknowns = NULL;
 		if ( rc )
 			goto destroy;
+	}	
+
+	if ( check & CHECK_LOGLEVEL ) {
+		rc = 0;
+		goto destroy;
 	}
 
 	if ( check & CHECK_CONFIG ) {
@@ -935,6 +941,9 @@ shutdown:
 	rc |= slap_shutdown( NULL );
 
 destroy:
+	if ( check & CHECK_LOGLEVEL ) {
+		(void)loglevel_print( stdout );
+	}
 	/* remember an error during destroy */
 	rc |= slap_destroy();
 
