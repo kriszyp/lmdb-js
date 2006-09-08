@@ -254,10 +254,12 @@ typedef struct entry_limbo_t {
 	Entry			*el_e;
 	Attribute		*el_a;
 	struct berval		el_ndn;
-	struct berval		el_base;
+	struct berval		el_nbase;
 	int			el_scope;
 	struct berval		el_filter;
 	monitor_callback_t	*el_cb;
+	monitor_subsys_t	*el_mss;
+	unsigned long		el_flags;
 	struct entry_limbo_t	*el_next;
 } entry_limbo_t;
 
@@ -270,7 +272,9 @@ monitor_back_is_configured( void )
 int
 monitor_back_register_entry(
 	Entry			*e,
-	monitor_callback_t	*cb )
+	monitor_callback_t	*cb,
+	monitor_subsys_t	*mss,
+	unsigned long		flags )
 {
 	monitor_info_t 	*mi;
 
@@ -351,8 +355,14 @@ monitor_back_register_entry(
 		}
 		
 		e_new->e_private = ( void * )mp;
-		mp->mp_info = mp_parent->mp_info;
-		mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		if ( mss != NULL ) {
+			mp->mp_info = mss;
+			mp->mp_flags = flags;
+
+		} else {
+			mp->mp_info = mp_parent->mp_info;
+			mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		}
 		mp->mp_cb = cb;
 
 		ep = &mp_parent->mp_children;
@@ -401,6 +411,8 @@ done:;
 		}
 		
 		el.el_cb = cb;
+		el.el_mss = mss;
+		el.el_flags = flags;
 
 		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
 				*elpp;
@@ -425,7 +437,9 @@ int
 monitor_back_register_entry_parent(
 	Entry			*e,
 	monitor_callback_t	*cb,
-	struct berval		*base,
+	monitor_subsys_t	*mss,
+	unsigned long		flags,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
@@ -436,7 +450,7 @@ monitor_back_register_entry_parent(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_back_register_entry_parent(base=\"%s\" scope=%s filter=\"%s\"): "
 			"monitor database not configured.\n",
-			BER_BVISNULL( base ) ? "" : base->bv_val,
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
 			ldap_pvt_scope2str( scope ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 		return -1;
@@ -467,13 +481,13 @@ monitor_back_register_entry_parent(
 				*mp_parent = NULL;
 		int		rc = 0;
 
-		if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
+		if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_register_entry_parent(\"\"): "
 				"base=\"%s\" scope=%d filter=\"%s\": "
 				"unable to find entry\n",
-				base->bv_val ? base->bv_val : "\"\"",
+				nbase->bv_val ? nbase->bv_val : "\"\"",
 				scope, filter->bv_val );
 			return -1;
 		}
@@ -540,8 +554,14 @@ monitor_back_register_entry_parent(
 		e_new->e_nname = e_nname;
 		
 		e_new->e_private = ( void * )mp;
-		mp->mp_info = mp_parent->mp_info;
-		mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		if ( mss != NULL ) {
+			mp->mp_info = mss;
+			mp->mp_flags = flags;
+
+		} else {
+			mp->mp_info = mp_parent->mp_info;
+			mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		}
 		mp->mp_cb = cb;
 
 		ep = &mp_parent->mp_children;
@@ -580,7 +600,7 @@ done:;
 		}
 
 	} else {
-		entry_limbo_t	**elpp, el = { 0 };
+		entry_limbo_t	**elpp = NULL, el = { 0 };
 
 		el.el_type = LIMBO_ENTRY_PARENT;
 
@@ -590,18 +610,26 @@ done:;
 				"monitor_back_register_entry(\"%s\"): "
 				"entry_dup() failed\n",
 				e->e_name.bv_val, 0, 0 );
-			return -1;
+			goto done_limbo;
 		}
 		
-		if ( !BER_BVISNULL( base ) ) {
-			ber_dupbv( &el.el_base, base );
+		if ( !BER_BVISNULL( nbase ) ) {
+			ber_dupbv( &el.el_nbase, nbase );
 		}
+
 		el.el_scope = scope;
 		if ( !BER_BVISNULL( filter ) ) {
-			ber_dupbv( &el.el_filter, filter );
+			Filter	*f = str2filter( filter->bv_val );
+			if ( f == NULL ) {
+				goto done_limbo;
+			}
+			filter2bv( f, &el.el_filter );
+			filter_free( f );
 		}
 
 		el.el_cb = cb;
+		el.el_mss = mss;
+		el.el_flags = flags;
 
 		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
 				*elpp;
@@ -610,13 +638,24 @@ done:;
 
 		*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
 		if ( *elpp == NULL ) {
-			el.el_e->e_private = NULL;
+			goto done_limbo;
+		}
+
+done_limbo:;
+		if ( *elpp != NULL ) {
+			el.el_next = NULL;
+			**elpp = el;
+
+		} else {
+			if ( !BER_BVISNULL( &el.el_filter ) ) {
+				ch_free( el.el_filter.bv_val );
+			}
+			if ( !BER_BVISNULL( &el.el_nbase ) ) {
+				ch_free( el.el_nbase.bv_val );
+			}
 			entry_free( el.el_e );
 			return -1;
 		}
-
-		el.el_next = NULL;
-		**elpp = el;
 	}
 
 	return 0;
@@ -636,7 +675,7 @@ monitor_filter2ndn_cb( Operation *op, SlapReply *rs )
 
 int
 monitor_filter2ndn(
-	struct berval	*base,
+	struct berval	*nbase,
 	int		scope,
 	struct berval	*filter,
 	struct berval	*ndn )
@@ -668,14 +707,14 @@ monitor_filter2ndn(
 	op->o_tmpmfuncs = &ch_mfuncs;
 
 	op->o_bd = be_monitor;
-	if ( base == NULL || BER_BVISNULL( base ) ) {
+	if ( nbase == NULL || BER_BVISNULL( nbase ) ) {
 		ber_dupbv_x( &op->o_req_dn, &op->o_bd->be_suffix[ 0 ],
 				op->o_tmpmemctx );
 		ber_dupbv_x( &op->o_req_ndn, &op->o_bd->be_nsuffix[ 0 ],
 				op->o_tmpmemctx );
 
 	} else {
-		if ( dnPrettyNormal( NULL, base, &op->o_req_dn, &op->o_req_ndn,
+		if ( dnPrettyNormal( NULL, nbase, &op->o_req_dn, &op->o_req_ndn,
 					op->o_tmpmemctx ) ) {
 			return -1;
 		}
@@ -749,7 +788,7 @@ monitor_back_register_entry_attrs(
 	struct berval		*ndn_in,
 	Attribute		*a,
 	monitor_callback_t	*cb,
-	struct berval		*base,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
@@ -764,7 +803,7 @@ monitor_back_register_entry_attrs(
 			"monitor_back_register_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
 			"monitor database not configured.\n",
 			fname,
-			BER_BVISNULL( base ) ? "" : base->bv_val,
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
 			ldap_pvt_scope2str( scope ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
@@ -805,7 +844,7 @@ monitor_back_register_entry_attrs(
 		int			freeit = 0;
 
 		if ( BER_BVISNULL( &ndn ) ) {
-			if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
+			if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
 				char		buf[ SLAP_TEXT_BUFLEN ];
 
 				snprintf( buf, sizeof( buf ),
@@ -813,7 +852,7 @@ monitor_back_register_entry_attrs(
 					"base=\"%s\" scope=%d filter=\"%s\": "
 					"unable to find entry\n",
 					fname,
-					base->bv_val ? base->bv_val : "\"\"",
+					nbase->bv_val ? nbase->bv_val : "\"\"",
 					scope, filter->bv_val );
 
 				/* entry does not exist */
@@ -906,12 +945,17 @@ done:;
 		if ( !BER_BVISNULL( &ndn ) ) {
 			ber_dupbv( &el.el_ndn, &ndn );
 		}
-		if ( !BER_BVISNULL( base ) ) {
-			ber_dupbv( &el.el_base, base);
+		if ( !BER_BVISNULL( nbase ) ) {
+			ber_dupbv( &el.el_nbase, nbase);
 		}
 		el.el_scope = scope;
 		if ( !BER_BVISNULL( filter ) ) {
-			ber_dupbv( &el.el_filter, filter );
+			Filter	*f = str2filter( filter->bv_val );
+			if ( f == NULL ) {
+				goto done_limbo;
+			}
+			filter2bv( f, &el.el_filter );
+			filter_free( f );
 		}
 
 		el.el_a = attrs_dup( a );
@@ -929,8 +973,26 @@ done:;
 			return -1;
 		}
 
-		el.el_next = NULL;
-		**elpp = el;
+done_limbo:;
+		if ( *elpp != NULL ) {
+			el.el_next = NULL;
+			**elpp = el;
+
+		} else {
+			if ( !BER_BVISNULL( &el.el_filter ) ) {
+				ch_free( el.el_filter.bv_val );
+			}
+			if ( el.el_a != NULL ) {
+				attrs_free( el.el_a );
+			}
+			if ( !BER_BVISNULL( &el.el_nbase ) ) {
+				ch_free( &el.el_nbase.bv_val );
+			}
+			if ( !BER_BVISNULL( &el.el_ndn ) ) {
+				ch_free( el.el_ndn.bv_val );
+			}
+			return -1;
+		}
 	}
 
 	return 0;
@@ -940,12 +1002,12 @@ int
 monitor_back_register_entry_callback(
 	struct berval		*ndn,
 	monitor_callback_t	*cb,
-	struct berval		*base,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
 	return monitor_back_register_entry_attrs( ndn, NULL, cb,
-			base, scope, filter );
+			nbase, scope, filter );
 }
 
 /*
@@ -955,7 +1017,7 @@ monitor_back_register_entry_callback(
  */
 int
 monitor_back_unregister_entry(
-	Entry			*target_e )
+	struct berval	*ndn )
 {
 	monitor_info_t 	*mi;
 
@@ -963,7 +1025,7 @@ monitor_back_unregister_entry(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_back_unregister_entry(\"%s\"): "
 			"monitor database not configured.\n",
-			target_e->e_name.bv_val, 0, 0 );
+			ndn->bv_val, 0, 0 );
 
 		return -1;
 	}
@@ -977,12 +1039,12 @@ monitor_back_unregister_entry(
 		monitor_entry_t 	*mp = NULL;
 		monitor_callback_t	*cb = NULL;
 
-		if ( monitor_cache_remove( mi, &target_e->e_nname, &e ) != 0 ) {
+		if ( monitor_cache_remove( mi, ndn, &e ) != 0 ) {
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_unregister_entry(\"%s\"): "
 				"entry removal failed.\n",
-				target_e->e_name.bv_val, 0, 0 );
+				ndn->bv_val, 0, 0 );
 			return -1;
 		}
 
@@ -1000,9 +1062,177 @@ monitor_back_unregister_entry(
 			cb = next;
 		}
 
+		ch_free( mp );
+		e->e_private = NULL;
+		entry_free( e );
+
 	} else {
-		/* TODO: remove from limbo */
-		return 1;
+		entry_limbo_t	**elpp;
+
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		{
+			entry_limbo_t	*elp = *elpp;
+
+			if ( elp->el_type == LIMBO_ENTRY
+				&& dn_match( ndn, &elp->el_e->e_nname ) )
+			{
+				monitor_callback_t	*cb, *next;
+
+				for ( cb = elp->el_cb; cb; cb = next ) {
+					/* FIXME: call callbacks? */
+					next = cb->mc_next;
+					ch_free( cb );
+				}
+				assert( elp->el_e != NULL );
+				elp->el_e->e_private = NULL;
+				entry_free( elp->el_e );
+				*elpp = elp->el_next;
+				ch_free( elp );
+				elpp = NULL;
+				break;
+			}
+		}
+
+		if ( elpp != NULL ) {
+			/* not found!  where did it go? */
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int
+monitor_back_unregister_entry_parent(
+	struct berval		*nrdn,
+	monitor_callback_t	*target_cb,
+	struct berval		*nbase,
+	int			scope,
+	struct berval		*filter )
+{
+	monitor_info_t 	*mi;
+	struct berval	ndn = BER_BVNULL;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry_parent(base=\"%s\" scope=%s filter=\"%s\"): "
+			"monitor database not configured.\n",
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
+			ldap_pvt_scope2str( scope ),
+			BER_BVISNULL( filter ) ? "" : filter->bv_val );
+
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+	assert( mi != NULL );
+
+	if ( ( nrdn == NULL || BER_BVISNULL( nrdn ) )
+			&& BER_BVISNULL( filter ) )
+	{
+		/* need a filter */
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry_parent(\"\"): "
+			"need a valid filter\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_subsys_opened ) {
+		Entry			*e = NULL;
+		monitor_entry_t 	*mp = NULL;
+
+		if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry_parent(\"\"): "
+				"base=\"%s\" scope=%s filter=\"%s\": "
+				"unable to find entry\n",
+				nbase->bv_val ? nbase->bv_val : "\"\"",
+				ldap_pvt_scope2str( scope ),
+				filter->bv_val );
+			return -1;
+		}
+
+		if ( monitor_cache_remove( mi, &ndn, &e ) != 0 ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry(\"%s\"): "
+				"entry removal failed.\n",
+				ndn.bv_val, 0, 0 );
+			ber_memfree( ndn.bv_val );
+			return -1;
+		}
+		ber_memfree( ndn.bv_val );
+
+		mp = (monitor_entry_t *)e->e_private;
+		assert( mp != NULL );
+
+		if ( target_cb != NULL ) {
+			monitor_callback_t	**cbp;
+
+			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
+				if ( *cbp == target_cb ) {
+					if ( (*cbp)->mc_free ) {
+						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+					}
+					*cbp = (*cbp)->mc_next;
+					ch_free( target_cb );
+					break;
+				}
+			}
+		}
+
+
+		ch_free( mp );
+		e->e_private = NULL;
+		entry_free( e );
+
+	} else {
+		entry_limbo_t	**elpp;
+
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		{
+			entry_limbo_t	*elp = *elpp;
+
+			if ( elp->el_type == LIMBO_ENTRY_PARENT
+				&& dn_match( nrdn, &elp->el_e->e_nname )
+				&& dn_match( nbase, &elp->el_nbase )
+				&& scope == elp->el_scope
+				&& bvmatch( filter, &elp->el_filter ) )
+			{
+				monitor_callback_t	*cb, *next;
+
+				for ( cb = elp->el_cb; cb; cb = next ) {
+					/* FIXME: call callbacks? */
+					next = cb->mc_next;
+					ch_free( cb );
+				}
+				assert( elp->el_e != NULL );
+				elp->el_e->e_private = NULL;
+				entry_free( elp->el_e );
+				if ( !BER_BVISNULL( &elp->el_nbase ) ) {
+					ch_free( elp->el_nbase.bv_val );
+				}
+				if ( !BER_BVISNULL( &elp->el_filter ) ) {
+					ch_free( elp->el_filter.bv_val );
+				}
+				*elpp = elp->el_next;
+				ch_free( elp );
+				elpp = NULL;
+				break;
+			}
+		}
+
+		if ( elpp != NULL ) {
+			/* not found!  where did it go? */
+			return 1;
+		}
 	}
 
 	return 0;
@@ -1013,7 +1243,7 @@ monitor_back_unregister_entry_attrs(
 	struct berval		*ndn_in,
 	Attribute		*target_a,
 	monitor_callback_t	*target_cb,
-	struct berval		*base,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
@@ -1028,8 +1258,8 @@ monitor_back_unregister_entry_attrs(
 			"monitor_back_unregister_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
 			"monitor database not configured.\n",
 			fname,
-			BER_BVISNULL( base ) ? "" : base->bv_val,
-			(char *)ldap_pvt_scope2str( scope ),
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
+			ldap_pvt_scope2str( scope ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
 
@@ -1066,7 +1296,7 @@ monitor_back_unregister_entry_attrs(
 		int			freeit = 0;
 
 		if ( BER_BVISNULL( &ndn ) ) {
-			if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
+			if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
 				char		buf[ SLAP_TEXT_BUFLEN ];
 
 				snprintf( buf, sizeof( buf ),
@@ -1074,7 +1304,7 @@ monitor_back_unregister_entry_attrs(
 					"base=\"%s\" scope=%d filter=\"%s\": "
 					"unable to find entry\n",
 					fname,
-					base->bv_val ? base->bv_val : "\"\"",
+					nbase->bv_val ? nbase->bv_val : "\"\"",
 					scope, filter->bv_val );
 
 				/* entry does not exist */
@@ -1139,8 +1369,47 @@ monitor_back_unregister_entry_attrs(
 		}
 
 	} else {
-		/* TODO: remove from limbo */
-		return 1;
+		entry_limbo_t	**elpp;
+
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		{
+			entry_limbo_t	*elp = *elpp;
+
+			if ( elp->el_type == LIMBO_ATTRS
+				&& dn_match( nbase, &elp->el_nbase )
+				&& scope == elp->el_scope
+				&& bvmatch( filter, &elp->el_filter ) )
+			{
+				monitor_callback_t	*cb, *next;
+
+				for ( cb = elp->el_cb; cb; cb = next ) {
+					/* FIXME: call callbacks? */
+					next = cb->mc_next;
+					ch_free( cb );
+				}
+				assert( elp->el_e == NULL );
+				if ( elp->el_a != NULL ) {
+					attrs_free( elp->el_a );
+				}
+				if ( !BER_BVISNULL( &elp->el_nbase ) ) {
+					ch_free( elp->el_nbase.bv_val );
+				}
+				if ( !BER_BVISNULL( &elp->el_filter ) ) {
+					ch_free( elp->el_filter.bv_val );
+				}
+				*elpp = elp->el_next;
+				ch_free( elp );
+				elpp = NULL;
+				break;
+			}
+		}
+
+		if ( elpp != NULL ) {
+			/* not found!  where did it go? */
+			return 1;
+		}
 	}
 
 	return 0;
@@ -1150,7 +1419,7 @@ int
 monitor_back_unregister_entry_callback(
 	struct berval		*ndn,
 	monitor_callback_t	*cb,
-	struct berval		*base,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
@@ -1158,7 +1427,7 @@ monitor_back_unregister_entry_callback(
 	 * unregister the callback; if a is not null, unregister the
 	 * given attrs.  In any case, call cb->cb_free */
 	return monitor_back_unregister_entry_attrs( ndn,
-		NULL, cb, base, scope, filter );
+		NULL, cb, nbase, scope, filter );
 }
 
 monitor_subsys_t *
@@ -1986,14 +2255,18 @@ monitor_back_db_open(
 			case LIMBO_ENTRY:
 				monitor_back_register_entry(
 						el->el_e,
-						el->el_cb );
+						el->el_cb,
+						el->el_mss,
+						el->el_flags );
 				break;
 
 			case LIMBO_ENTRY_PARENT:
 				monitor_back_register_entry_parent(
 						el->el_e,
 						el->el_cb,
-						&el->el_base,
+						el->el_mss,
+						el->el_flags,
+						&el->el_nbase,
 						el->el_scope,
 						&el->el_filter );
 				break;
@@ -2004,7 +2277,7 @@ monitor_back_db_open(
 						&el->el_ndn,
 						el->el_a,
 						el->el_cb,
-						&el->el_base,
+						&el->el_nbase,
 						el->el_scope,
 						&el->el_filter );
 				break;
@@ -2013,7 +2286,7 @@ monitor_back_db_open(
 				monitor_back_register_entry_callback(
 						&el->el_ndn,
 						el->el_cb,
-						&el->el_base,
+						&el->el_nbase,
 						el->el_scope,
 						&el->el_filter );
 				break;
@@ -2031,8 +2304,8 @@ monitor_back_db_open(
 			if ( !BER_BVISNULL( &el->el_ndn ) ) {
 				ber_memfree( el->el_ndn.bv_val );
 			}
-			if ( !BER_BVISNULL( &el->el_base ) ) {
-				ber_memfree( el->el_base.bv_val );
+			if ( !BER_BVISNULL( &el->el_nbase ) ) {
+				ber_memfree( el->el_nbase.bv_val );
 			}
 			if ( !BER_BVISNULL( &el->el_filter ) ) {
 				ber_memfree( el->el_filter.bv_val );

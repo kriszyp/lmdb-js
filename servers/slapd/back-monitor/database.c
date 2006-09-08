@@ -33,13 +33,6 @@
 static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #endif /* defined(LDAP_SLAPI) */
 
-#if defined(SLAPD_LDAP) 
-#include "../back-ldap/back-ldap.h"
-#endif /* defined(SLAPD_LDAP) */
-#if defined(SLAPD_META) 
-#include "../back-meta/back-meta.h"
-#endif /* defined(SLAPD_META) */
-
 /* for PATH_MAX on some systems (e.g. Solaris) */
 #ifdef HAVE_LIMITS_H
 #include <limits.h>
@@ -279,63 +272,6 @@ monitor_subsys_database_init(
 						slap_schema.si_ad_seeAlso,
 						&bv, NULL );
 			}
-		}
-
-
-		if ( 0 ) {
-			assert( 0 );
-
-#if defined(SLAPD_LDAP) 
-		} else if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
-			ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
-#if 0
-			attr_merge_normalize( e, slap_schema.si_ad_labeledURI,
-					li->li_bvuri, NULL );
-#else
-			char		**urls = ldap_str2charray( li->li_uri, " " );
-
-			if ( urls != NULL ) {
-				int		u;
-
-				for ( u = 0; urls[ u ] != NULL; u++ ) {
-					struct berval	bv;
-
-					ber_str2bv( urls[ u ], 0, 0, &bv );
-
-					attr_merge_normalize_one( e,
-						slap_schema.si_ad_labeledURI,
-						&bv, NULL );
-				}
-
-				ldap_charray_free( urls );
-			}
-#endif
-
-#endif /* defined(SLAPD_LDAP) */
-#if defined(SLAPD_META) 
-		} else if ( strcmp( bi->bi_type, "meta" ) == 0 ) {
-			metainfo_t	*mi = (metainfo_t *)be->be_private;
-			int		t;
-
-			for ( t = 0; t < mi->mi_ntargets; t++ ) {
-				char		**urls = ldap_str2charray( mi->mi_targets[ t ]->mt_uri, " " );
-
-				if ( urls != NULL ) {
-					int		u;
-
-					for ( u = 0; urls[ u ] != NULL; u++ ) {
-						struct berval	bv;
-
-						ber_str2bv( urls[ u ], 0, 0, &bv );
-
-						attr_merge_normalize_one( e,
-							slap_schema.si_ad_labeledURI,
-							&bv, NULL );
-					}
-					ldap_charray_free( urls );
-				}
-			}
-#endif /* defined(SLAPD_META) */
 		}
 
 		j = -1;

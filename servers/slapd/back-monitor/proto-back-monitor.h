@@ -149,11 +149,15 @@ monitor_back_is_configured LDAP_P(( void ));
 extern int
 monitor_back_register_entry LDAP_P((
 	Entry			*e,
-	monitor_callback_t	*cb ));
+	monitor_callback_t	*cb,
+	monitor_subsys_t	*mss,
+	unsigned long		flags ));
 extern int
 monitor_back_register_entry_parent LDAP_P((
 	Entry			*e,
 	monitor_callback_t	*cb,
+	monitor_subsys_t	*mss,
+	unsigned long		flags,
 	struct berval		*base,
 	int			scope,
 	struct berval		*filter ));
@@ -180,7 +184,14 @@ monitor_back_register_entry_callback LDAP_P((
 	struct berval		*filter ));
 extern int
 monitor_back_unregister_entry LDAP_P((
-	Entry			*e ));
+	struct berval		*ndn ));
+extern int
+monitor_back_unregister_entry_parent LDAP_P((
+	struct berval		*nrdn,
+	monitor_callback_t	*target_cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter ));
 extern int
 monitor_back_unregister_entry_attrs LDAP_P((
 	struct berval		*ndn,
