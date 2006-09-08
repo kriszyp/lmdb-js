@@ -369,6 +369,7 @@ int main( int argc, char **argv )
 	size_t	l;
 
 	int slapd_pid_file_unlink = 0, slapd_args_file_unlink = 0;
+	int firstopt = 1;
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -623,6 +624,12 @@ int main( int argc, char **argv )
 			break;
 
 		case 'T':
+			if ( firstopt == 0 ) {
+				fprintf( stderr, "warning: \"-T %s\" "
+					"should be the first option.\n",
+					optarg );
+			}
+
 			/* try full option string first */
 			for ( i = 0; tools[i].name; i++ ) {
 				if ( strcmp( optarg, &tools[i].name[4] ) == 0 ) {
@@ -652,6 +659,10 @@ unhandled_option:;
 			rc = 1;
 			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 15 );
 			goto stop;
+		}
+
+		if ( firstopt ) {
+			firstopt = 0;
 		}
 	}
 
