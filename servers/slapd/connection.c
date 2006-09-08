@@ -829,9 +829,15 @@ void connection_closing( Connection *c, const char *why )
 		connection_abandon( c );
 
 		/* wake write blocked operations */
-		slapd_clr_write( sd, 1 );
 		if ( c->c_writewaiter ) {
 			ldap_pvt_thread_cond_signal( &c->c_write_cv );
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+			slapd_clr_write( sd, 1 );
+			ldap_pvt_thread_mutex_lock( &c->c_write_mutex );
+			ldap_pvt_thread_mutex_lock( &c->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &c->c_write_mutex );
+		} else {
+			slapd_clr_write( sd, 1 );
 		}
 
 	} else if( why == NULL && c->c_close_reason == conn_lost_str ) {
