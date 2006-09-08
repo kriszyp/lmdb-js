@@ -501,6 +501,11 @@ int main( int argc, char **argv )
 		case 'd': {	/* set debug level and 'do not detach' flag */
 			int	level = 0;
 
+			if ( strcmp( optarg, "?" ) == 0 ) {
+				rc = loglevel_print( stdout );
+				goto destroy;
+			}
+
 			no_detach = 1;
 			if ( parse_debug_level( optarg, &level, &debug_unknowns ) ) {
 				goto destroy;
@@ -557,6 +562,11 @@ int main( int argc, char **argv )
 		}
 
 		case 's':	/* set syslog level */
+			if ( strcmp( optarg, "?" ) == 0 ) {
+				rc = loglevel_print( stdout );
+				goto destroy;
+			}
+
 			if ( parse_debug_level( optarg, &ldap_syslog, &syslog_unknowns ) ) {
 				goto destroy;
 			}

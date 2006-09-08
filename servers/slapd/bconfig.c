@@ -2358,6 +2358,28 @@ loglevel2bvarray( int l, BerVarray *bva )
 	return mask_to_verbs( loglevel_ops, l, bva );
 }
 
+int
+loglevel_print( FILE *out )
+{
+	int	i;
+
+	if ( loglevel_ops == NULL ) {
+		loglevel_init();
+	}
+
+	fprintf( out, "Installed log subsystems:\n\n" );
+	for ( i = 0; !BER_BVISNULL( &loglevel_ops[ i ].word ); i++ ) {
+		fprintf( out, "\t%-30s (%d)\n",
+			loglevel_ops[ i ].word.bv_val,
+			loglevel_ops[ i ].mask );
+	}
+
+	fprintf( out, "\nNOTE: custom log subsystems may be later installed "
+		"by specific code\n\n" );
+
+	return 0;
+}
+
 static int config_syslog;
 
 static int
