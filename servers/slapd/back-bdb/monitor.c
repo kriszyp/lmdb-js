@@ -368,10 +368,10 @@ bdb_monitor_open( BackendDB *be )
 	 * base="cn=Databases,cn=Monitor", scope=LDAP_SCOPE_ONE 
 	 * and filter="(namingContexts:distinguishedNameMatch:=<suffix>)" */
 
-	bdb->bi_monitor_cleanup.bdm_scope = LDAP_SCOPE_ONELEVEL;
-	base = &bdb->bi_monitor_cleanup.bdm_base;
+	bdb->bi_monitor.bdm_scope = LDAP_SCOPE_ONELEVEL;
+	base = &bdb->bi_monitor.bdm_nbase;
 	BER_BVSTR( base, "cn=databases,cn=monitor" );
-	filter = &bdb->bi_monitor_cleanup.bdm_filter;
+	filter = &bdb->bi_monitor.bdm_filter;
 	BER_BVZERO( filter );
 
 	suffix.bv_len = ldap_bv2escaped_filter_value_len( &be->be_nsuffix[ 0 ] );
@@ -504,7 +504,7 @@ cleanup:;
 	}
 
 	/* store for cleanup */
-	bdb->bi_monitor_cleanup.bdm_cb = (void *)cb;
+	bdb->bi_monitor.bdm_cb = (void *)cb;
 
 	/* we don't need to keep track of the attributes, because
 	 * bdb_monitor_free() takes care of everything */
@@ -523,18 +523,18 @@ bdb_monitor_close( BackendDB *be )
 {
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 
-	if ( !BER_BVISNULL( &bdb->bi_monitor_cleanup.bdm_filter ) ) {
+	if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
 		monitor_back_unregister_entry_callback( NULL,
-			(monitor_callback_t *)bdb->bi_monitor_cleanup.bdm_cb,
-			&bdb->bi_monitor_cleanup.bdm_base,
-			bdb->bi_monitor_cleanup.bdm_scope,
-			&bdb->bi_monitor_cleanup.bdm_filter );
+			(monitor_callback_t *)bdb->bi_monitor.bdm_cb,
+			&bdb->bi_monitor.bdm_nbase,
+			bdb->bi_monitor.bdm_scope,
+			&bdb->bi_monitor.bdm_filter );
 
-		if ( !BER_BVISNULL( &bdb->bi_monitor_cleanup.bdm_filter ) ) {
-			ch_free( bdb->bi_monitor_cleanup.bdm_filter.bv_val );
+		if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
+			ch_free( bdb->bi_monitor.bdm_filter.bv_val );
 		}
 
-		memset( &bdb->bi_monitor_cleanup, 0, sizeof( bdb->bi_monitor_cleanup ) );
+		memset( &bdb->bi_monitor, 0, sizeof( bdb->bi_monitor ) );
 	}
 
 	return 0;
