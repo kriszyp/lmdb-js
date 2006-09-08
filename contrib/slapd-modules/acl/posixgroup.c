@@ -247,7 +247,7 @@ pg_dynacl_mask(
 		Attribute	*a_uid,
 				*a_member;
 
-		a_uid = attr_find( user->e_attrs, pg_uidNumber);
+		a_uid = attr_find( user->e_attrs, pg_uidNumber );
 		if ( !a_uid || !BER_BVISNULL( &a_uid->a_nvals[ 1 ] ) ) {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 
