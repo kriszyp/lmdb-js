@@ -1028,6 +1028,12 @@ monitor_back_unregister_entry(
 		return -1;
 	}
 
+	/* entry will be regularly freed, and resources released
+	 * according to callbacks */
+	if ( slapd_shutdown ) {
+		return 0;
+	}
+
 	mi = ( monitor_info_t * )be_monitor->be_private;
 
 	assert( mi != NULL );
@@ -1122,6 +1128,12 @@ monitor_back_unregister_entry_parent(
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 
 		return -1;
+	}
+
+	/* entry will be regularly freed, and resources released
+	 * according to callbacks */
+	if ( slapd_shutdown ) {
+		return 0;
 	}
 
 	mi = ( monitor_info_t * )be_monitor->be_private;
@@ -1262,6 +1274,12 @@ monitor_back_unregister_entry_attrs(
 		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
 
 		return -1;
+	}
+
+	/* entry will be regularly freed, and resources released
+	 * according to callbacks */
+	if ( slapd_shutdown ) {
+		return 0;
 	}
 
 	mi = ( monitor_info_t * )be_monitor->be_private;

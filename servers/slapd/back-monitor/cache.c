@@ -264,7 +264,10 @@ retry:;
 			}
 
 		}
-		monitor_cache_release( mi, mc->mc_e );
+
+		if ( mc ) {
+			monitor_cache_release( mi, mc->mc_e );
+		}
 	}
 
 	ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
