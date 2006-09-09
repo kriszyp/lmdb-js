@@ -343,7 +343,7 @@ bdb_monitor_open( BackendDB *be )
 {
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 	Attribute		*a, *next;
-	monitor_callback_t	*cb;
+	monitor_callback_t	*cb = NULL;
 	struct berval		suffix, *filter, *base;
 	char			*ptr;
 	int			rc = 0;
