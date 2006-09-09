@@ -244,6 +244,10 @@ monitor_back_search( Operation *op, SlapReply *rs )
 
 		rc = monitor_send_children( op, rs, e, 1 );
 		break;
+
+	default:
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		monitor_cache_release( mi, e );
 	}
 
 	rs->sr_attrs = NULL;
