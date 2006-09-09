@@ -481,7 +481,7 @@ monitor_back_register_entry_parent(
 				*mp_parent = NULL;
 		int		rc = 0;
 
-		if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
+		if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_register_entry_parent(\"\"): "
@@ -525,6 +525,7 @@ monitor_back_register_entry_parent(
 				"entry already exists\n",
 				e_name.bv_val, 0, 0 );
 			monitor_cache_release( mi, e_new );
+			e_new = NULL;
 			rc = -1;
 			goto done;
 		}
@@ -619,12 +620,7 @@ done:;
 
 		el.el_scope = scope;
 		if ( !BER_BVISNULL( filter ) ) {
-			Filter	*f = str2filter( filter->bv_val );
-			if ( f == NULL ) {
-				goto done_limbo;
-			}
-			filter2bv( f, &el.el_filter );
-			filter_free( f );
+			ber_dupbv( &el.el_filter, filter  );
 		}
 
 		el.el_cb = cb;
@@ -662,10 +658,17 @@ done_limbo:;
 }
 
 static int
-monitor_filter2ndn_cb( Operation *op, SlapReply *rs )
+monitor_search2ndn_cb( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH ) {
 		struct berval	*ndn = op->o_callback->sc_private;
+
+		if ( !BER_BVISNULL( ndn ) ) {
+			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+			ch_free( ndn->bv_val );
+			BER_BVZERO( ndn );
+			return rs->sr_err;
+		}
 		
 		ber_dupbv( ndn, &rs->sr_entry->e_nname );
 	}
@@ -674,7 +677,7 @@ monitor_filter2ndn_cb( Operation *op, SlapReply *rs )
 }
 
 int
-monitor_filter2ndn(
+monitor_search2ndn(
 	struct berval	*nbase,
 	int		scope,
 	struct berval	*filter,
@@ -684,7 +687,7 @@ monitor_filter2ndn(
 	OperationBuffer	opbuf;
 	Operation	*op;
 	SlapReply	rs = { 0 };
-	slap_callback	cb = { NULL, monitor_filter2ndn_cb, NULL, NULL };
+	slap_callback	cb = { NULL, monitor_search2ndn_cb, NULL, NULL };
 	int		rc;
 
 	BER_BVZERO( ndn );
@@ -844,7 +847,7 @@ monitor_back_register_entry_attrs(
 		int			freeit = 0;
 
 		if ( BER_BVISNULL( &ndn ) ) {
-			if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
+			if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
 				char		buf[ SLAP_TEXT_BUFLEN ];
 
 				snprintf( buf, sizeof( buf ),
@@ -950,12 +953,7 @@ done:;
 		}
 		el.el_scope = scope;
 		if ( !BER_BVISNULL( filter ) ) {
-			Filter	*f = str2filter( filter->bv_val );
-			if ( f == NULL ) {
-				goto done_limbo;
-			}
-			filter2bv( f, &el.el_filter );
-			filter_free( f );
+			ber_dupbv( &el.el_filter, filter  );
 		}
 
 		el.el_a = attrs_dup( a );
@@ -1145,7 +1143,7 @@ monitor_back_unregister_entry_parent(
 		Entry			*e = NULL;
 		monitor_entry_t 	*mp = NULL;
 
-		if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
+		if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_unregister_entry_parent(\"\"): "
@@ -1296,7 +1294,7 @@ monitor_back_unregister_entry_attrs(
 		int			freeit = 0;
 
 		if ( BER_BVISNULL( &ndn ) ) {
-			if ( monitor_filter2ndn( nbase, scope, filter, &ndn ) ) {
+			if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
 				char		buf[ SLAP_TEXT_BUFLEN ];
 
 				snprintf( buf, sizeof( buf ),

@@ -162,7 +162,7 @@ monitor_back_register_entry_parent LDAP_P((
 	int			scope,
 	struct berval		*filter ));
 extern int
-monitor_filter2ndn LDAP_P((
+monitor_search2ndn LDAP_P((
 	struct berval		*base,
 	int			scope,
 	struct berval		*filter,
