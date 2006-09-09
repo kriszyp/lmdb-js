@@ -45,6 +45,7 @@ static int
 bdb_db_init( BackendDB *be )
 {
 	struct bdb_info	*bdb;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE,
 		LDAP_XSTRING(bdb_db_init) ": Initializing " BDB_UCTYPE " database\n",
@@ -80,7 +81,9 @@ bdb_db_init( BackendDB *be )
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
-	return 0;
+	rc = bdb_monitor_init( be );
+
+	return rc;
 }
 
 static int
@@ -447,7 +450,7 @@ bdb_db_close( BackendDB *be )
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
 
-	/* monitor setup */
+	/* monitor handling */
 	(void)bdb_monitor_close( be );
 
 	bdb->bi_flags &= ~BDB_IS_OPEN;

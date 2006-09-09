@@ -330,6 +330,8 @@ done_oc:;
 int
 bdb_monitor_init( BackendDB *be )
 {
+	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_MONITORING;
+
 	return 0;
 }
 
@@ -364,11 +366,7 @@ bdb_monitor_open( BackendDB *be )
 		return 0;
 	}
 
-	/* monitor_back_register_entry_attrs() with a NULL ndn,
-	 * base="cn=Databases,cn=Monitor", scope=LDAP_SCOPE_ONE 
-	 * and filter="(namingContexts:distinguishedNameMatch:=<suffix>)" */
-
-	bdb->bi_monitor.bdm_scope = LDAP_SCOPE_ONELEVEL;
+	bdb->bi_monitor.bdm_scope = LDAP_SCOPE_SUBORDINATE;
 	base = &bdb->bi_monitor.bdm_nbase;
 	BER_BVSTR( base, "cn=databases,cn=monitor" );
 	filter = &bdb->bi_monitor.bdm_filter;
@@ -382,12 +380,16 @@ bdb_monitor_open( BackendDB *be )
 		ldap_bv2escaped_filter_value( &be->be_nsuffix[ 0 ], &suffix );
 	}
 	
-	filter->bv_len = STRLENOF( "(namingContexts:distinguishedNameMatch:=)" ) + suffix.bv_len;
+	filter->bv_len = STRLENOF( "(&(monitoredInfo=" )
+		+ strlen( be->bd_info->bi_type )
+		+ STRLENOF( ")(namingContexts:distinguishedNameMatch:=" )
+		+ suffix.bv_len + STRLENOF( "))" );
 	ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
-	ptr = lutil_strcopy( ptr, "(namingContexts:distinguishedNameMatch:=" );
+	ptr = lutil_strcopy( ptr, "(&(monitoredInfo=" );
+	ptr = lutil_strcopy( ptr, be->bd_info->bi_type );
+	ptr = lutil_strcopy( ptr, ")(namingContexts:distinguishedNameMatch:=" );
 	ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
-	ptr[ 0 ] = ')';
-	ptr++;
+	ptr = lutil_strcopy( ptr, "))" );
 	ptr[ 0 ] = '\0';
 	assert( filter->bv_len == ptr - filter->bv_val );
 	
@@ -483,7 +485,7 @@ bdb_monitor_open( BackendDB *be )
 	cb->mc_private = (void *)bdb;
 
 	rc = monitor_back_register_entry_attrs( NULL, a, cb,
-		base, LDAP_SCOPE_ONELEVEL, filter );
+		base, LDAP_SCOPE_SUBORDINATE, filter );
 
 cleanup:;
 	if ( rc != 0 ) {
