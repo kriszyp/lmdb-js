@@ -113,6 +113,24 @@ meta_search_dobind_init(
 		return retcode;
 	}
 
+	if ( msc->msc_ld == NULL ) {
+		/* for some reason (e.g. because formerly in "binding"
+		 * state, with eventual connection expiration or invalidation,
+		 * it was not initialized as expected */
+		rc = meta_back_init_one_conn( op, rs, *mcp, candidate,
+			LDAP_BACK_CONN_ISPRIV( *mcp ), LDAP_BACK_DONTSEND );
+		switch ( rc ) {
+		case LDAP_SUCCESS:
+			break;
+
+		case LDAP_SERVER_DOWN:
+			goto down;
+
+		default:
+			goto other;
+		}
+	}
+
 	/* NOTE: this obsoletes pseudorootdn */
 	if ( op->o_conn != NULL &&
 		!op->o_do_not_cache &&
@@ -156,8 +174,6 @@ meta_search_dobind_init(
 		}
 	}
 
-	assert( msc->msc_ld != NULL );
-
 	rc = ldap_sasl_bind( msc->msc_ld, binddn.bv_val, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 	switch ( rc ) {
@@ -180,6 +196,7 @@ down:;
 		}
 		/* fall thru */
 
+other:;
 	default:
 		rs->sr_err = rc;
 		rc = slap_map_api2result( rs );
