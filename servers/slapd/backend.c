@@ -578,7 +578,7 @@ be_db_close( void )
 	}
 
 	if ( frontendDB->bd_info->bi_db_close ) {
-		(*frontendDB->bd_info->bi_db_close)( frontendDB );
+		frontendDB->bd_info->bi_db_close( frontendDB );
 	}
 
 }

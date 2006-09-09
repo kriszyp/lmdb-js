@@ -1672,7 +1672,8 @@ slap_acl_mask(
 				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
 					da->da_name, 0, 0 );
 
-				(void)( *da->da_mask )( da->da_private, op, e, desc, val, nmatch, matches, &grant, &deny );
+				(void)da->da_mask( da->da_private, op, e, desc,
+					val, nmatch, matches, &grant, &deny );
 
 				tgrant |= grant;
 				tdeny |= deny;
