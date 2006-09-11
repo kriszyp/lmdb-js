@@ -535,7 +535,7 @@ do_syncrep2(
 	struct sync_cookie	syncCookie_req = { BER_BVNULL };
 	struct berval		cookie = BER_BVNULL;
 
-	int	rc, err, i;
+	int	rc, err;
 	ber_len_t	len;
 
 	struct berval	*psub;
@@ -591,14 +591,20 @@ do_syncrep2(
 			case LDAP_RES_SEARCH_ENTRY:
 				ldap_get_entry_controls( si->si_ld, msg, &rctrls );
 				/* we can't work without the control */
-				if ( !rctrls ) {
+				rctrlp = NULL;
+				if ( rctrls ) {
+					/* NOTE: make sure we use the right one;
+					 * a better approach would be to run thru
+					 * the whole list and take care of all */
+					rctrlp = ldap_find_control( LDAP_CONTROL_SYNC_STATE, rctrls );
+				}
+				if ( rctrlp == NULL ) {
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: "
 						"got search entry without "
-						"control\n", 0, 0, 0 );
+						"Sync State control\n", 0, 0, 0 );
 					rc = -1;
 					goto done;
 				}
-				rctrlp = *rctrls;
 				ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
 				ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID );
 				/* FIXME: what if syncUUID is NULL or empty?
@@ -813,6 +819,7 @@ do_syncrep2(
 								&syncCookie.ctxcsn );
 							ber_bvarray_free_x( syncUUIDs, op->o_tmpmemctx );
 						} else {
+							int i;
 							for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
 								struct berval *syncuuid_bv;
 								syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
