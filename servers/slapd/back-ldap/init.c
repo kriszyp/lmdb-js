@@ -154,6 +154,9 @@ ldap_back_db_open( BackendDB *be )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
 
+	slap_bindconf	sb = { 0 };
+	int		rc;
+
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_back_db_open: URI=%s\n",
 		li->li_uri != NULL ? li->li_uri : "", 0, 0 );
@@ -171,39 +174,15 @@ ldap_back_db_open( BackendDB *be )
 		break;
 	}
 
-#if 0 && defined(SLAPD_MONITOR)
-	{
-		/* FIXME: disabled because namingContexts doesn't have
-		 * a matching rule, and using an MRA filter doesn't work
-		 * because the normalized assertion is compared to the 
-		 * non-normalized value, which in general differs from
-		 * the normalized one.  See ITS#3406 */
-		struct berval	filter,
-				base = BER_BVC( "cn=Databases," SLAPD_MONITOR );
-		Attribute	a = { 0 };
-
-		filter.bv_len = STRLENOF( "(&(namingContexts:distinguishedNameMatch:=)(monitoredInfo=ldap))" )
-			+ be->be_nsuffix[ 0 ].bv_len;
-		filter.bv_val = ch_malloc( filter.bv_len + 1 );
-		snprintf( filter.bv_val, filter.bv_len + 1,
-				"(&(namingContexts:distinguishedNameMatch:=%s)(monitoredInfo=ldap))",
-				be->be_nsuffix[ 0 ].bv_val );
-
-		a.a_desc = slap_schema.si_ad_labeledURI;
-		a.a_vals = li->li_bvuri;
-		a.a_nvals = li->li_bvuri;
-		if ( monitor_back_register_entry_attrs( NULL, &a, NULL, &base, LDAP_SCOPE_SUBTREE, &filter ) ) {
-			/* error */
-		}
-
-		ch_free( filter.bv_val );
-	}
-#endif /* SLAPD_MONITOR */
+	ber_str2bv( li->li_uri, 0, 0, &sb.sb_uri );
+	sb.sb_version = li->li_version;
+	sb.sb_method = LDAP_AUTH_SIMPLE;
+	BER_BVSTR( &sb.sb_binddn, "" );
 
 	if ( LDAP_BACK_T_F_DISCOVER( li ) && !LDAP_BACK_T_F( li ) ) {
 		int		rc;
 
-		rc = slap_discover_feature( li->li_uri, li->li_version,
+		rc = slap_discover_feature( &sb,
 				slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 				LDAP_FEATURE_ABSOLUTE_FILTERS );
 		if ( rc == LDAP_COMPARE_TRUE ) {
@@ -212,9 +191,7 @@ ldap_back_db_open( BackendDB *be )
 	}
 
 	if ( LDAP_BACK_CANCEL_DISCOVER( li ) && !LDAP_BACK_CANCEL( li ) ) {
-		int		rc;
-
-		rc = slap_discover_feature( li->li_uri, li->li_version,
+		rc = slap_discover_feature( &sb,
 				slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
 				LDAP_EXOP_CANCEL );
 		if ( rc == LDAP_COMPARE_TRUE ) {

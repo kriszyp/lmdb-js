@@ -1052,8 +1052,15 @@ static slap_verbmasks methkey[] = {
 	{ BER_BVNULL, 0 }
 };
 
+static slap_verbmasks versionkey[] = {
+	{ BER_BVC("2"),		LDAP_VERSION2 },
+	{ BER_BVC("3"),		LDAP_VERSION3 },
+	{ BER_BVNULL, 0 }
+};
+
 static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
+	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'd', 0, versionkey },
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
 	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
 	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
@@ -1416,7 +1423,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
  * note: should move "version" into bindconf...
  */
 int
-slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
+slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 {
 	LDAP		*ld = NULL;
 	int		rc;
@@ -1431,9 +1438,9 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 		return rc;
 	}
 
-	if ( version != 0 ) {
+	if ( sb->sb_version != 0 ) {
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-			(const void *)&version );
+			(const void *)&sb->sb_version );
 	}
 
 #ifdef HAVE_TLS

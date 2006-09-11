@@ -1549,6 +1549,7 @@ done_url:;
 			&& mask == LDAP_BACK_F_T_F_DISCOVER
 			&& !LDAP_BACK_T_F( li ) )
 		{
+			slap_bindconf	sb = { 0 };
 			int		rc;
 
 			if ( li->li_uri == NULL ) {
@@ -1559,7 +1560,12 @@ done_url:;
 				return 1;
 			}
 
-			rc = slap_discover_feature( li->li_uri, li->li_version,
+			ber_str2bv( li->li_uri, 0, 0, &sb.sb_uri );
+			sb.sb_version = li->li_version;
+			sb.sb_method = LDAP_AUTH_SIMPLE;
+			BER_BVSTR( &sb.sb_binddn, "" );
+
+			rc = slap_discover_feature( &sb,
 					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 					LDAP_FEATURE_ABSOLUTE_FILTERS );
 			if ( rc == LDAP_COMPARE_TRUE ) {
@@ -1688,6 +1694,7 @@ done_url:;
 			&& mask == LDAP_BACK_F_CANCEL_EXOP_DISCOVER
 			&& !LDAP_BACK_CANCEL( li ) )
 		{
+			slap_bindconf	sb = { 0 };
 			int		rc;
 
 			if ( li->li_uri == NULL ) {
@@ -1698,7 +1705,12 @@ done_url:;
 				return 1;
 			}
 
-			rc = slap_discover_feature( li->li_uri, li->li_version,
+			ber_str2bv( li->li_uri, 0, 0, &sb.sb_uri );
+			sb.sb_version = li->li_version;
+			sb.sb_method = LDAP_AUTH_SIMPLE;
+			BER_BVSTR( &sb.sb_binddn, "" );
+
+			rc = slap_discover_feature( &sb,
 					slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
 					LDAP_EXOP_CANCEL );
 			if ( rc == LDAP_COMPARE_TRUE ) {

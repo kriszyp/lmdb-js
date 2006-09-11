@@ -619,7 +619,7 @@ LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
 LDAP_SLAPD_F (int) bindconf_tls_set LDAP_P((
 	slap_bindconf *bc, LDAP *ld ));
 LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
-LDAP_SLAPD_F (int) slap_client_connect LDAP_P(( LDAP **ldp, slap_bindconf *sb, int version ));
+LDAP_SLAPD_F (int) slap_client_connect LDAP_P(( LDAP **ldp, slap_bindconf *sb ));
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));
 LDAP_SLAPD_F (char *) anlist_unparse LDAP_P(( AttributeName *, char *, ber_len_t buflen ));
@@ -1390,8 +1390,7 @@ LDAP_SLAPD_F (int) read_root_dse_file LDAP_P((
 	const char *file));
 
 LDAP_SLAPD_F (int) slap_discover_feature LDAP_P((
-	const char	*uri,
-	int		version,
+	slap_bindconf	*sb,
 	const char	*attr,
 	const char	*val ));
 

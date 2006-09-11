@@ -478,6 +478,8 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 			lip->li_bvuri = bvuri;
 			rc = ldap_chain_db_open_one( op->o_bd );
 			if ( rc != 0 ) {
+				lip->li_uri = NULL;
+				lip->li_bvuri = NULL;
 				(void)ldap_chain_db_destroy_one( op->o_bd );
 				goto cleanup;
 			}
@@ -632,6 +634,8 @@ ldap_chain_search(
 			lip->li_bvuri = bvuri;
 			rc = ldap_chain_db_open_one( op->o_bd );
 			if ( rc != 0 ) {
+				lip->li_uri = NULL;
+				lip->li_bvuri = NULL;
 				(void)ldap_chain_db_destroy_one( op->o_bd );
 				goto cleanup;
 			}

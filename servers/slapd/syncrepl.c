@@ -423,7 +423,7 @@ do_syncrep1(
 
 	psub = &si->si_be->be_nsuffix[0];
 
-	rc = slap_client_connect( &si->si_ld, &si->si_bindconf, LDAP_VERSION3 );
+	rc = slap_client_connect( &si->si_ld, &si->si_bindconf );
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
@@ -3184,6 +3184,23 @@ add_syncrepl(
 	rc = parse_syncrepl_line( c, si );
 
 	if ( rc == 0 ) {
+		/* Must be LDAPv3 because we need controls */
+		switch ( si->si_bindconf.sb_version ) {
+		case 0:
+			/* not explicitly set */
+			si->si_bindconf.sb_version = LDAP_VERSION3;
+			break;
+		case 3:
+			/* explicitly set */
+			break;
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"version %d incompatible with syncrepl\n",
+				si->si_bindconf.sb_version, 0, 0 );
+			syncinfo_free( si );	
+			return 1;
+		}
+
 		si->si_be = c->be;
 		init_syncrepl( si );
 		si->si_re = ldap_pvt_runqueue_insert( &slapd_rq, si->si_interval,
@@ -3222,8 +3239,10 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	/* temporarily inhibit bindconf from printing URI */
 	uri = si->si_bindconf.sb_uri;
 	BER_BVZERO( &si->si_bindconf.sb_uri );
+	si->si_bindconf.sb_version = 0;
 	bindconf_unparse( &si->si_bindconf, &bc );
 	si->si_bindconf.sb_uri = uri;
+	si->si_bindconf.sb_version = LDAP_VERSION3;
 
 	ptr = buf;
 	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03ld " PROVIDERSTR "=%s",

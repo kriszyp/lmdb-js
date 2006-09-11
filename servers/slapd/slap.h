@@ -1502,6 +1502,7 @@ LDAP_SLAPD_V (int) slapMode;
 
 typedef struct slap_bindconf {
 	struct berval sb_uri;
+	int sb_version;
 	int sb_tls;
 	int sb_method;
 	struct berval sb_binddn;
