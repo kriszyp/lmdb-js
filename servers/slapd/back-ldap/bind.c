@@ -1467,11 +1467,11 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 		/* lc here must be the regular lc, reset and ready for init */
 		rc = ldap_back_prepare_conn( lcp, op, rs, sendok );
 		if ( rc != LDAP_SUCCESS ) {
-			rc = 0;
 			/* freeit, because lc_refcnt == 1 */
 			(*lcp)->lc_refcnt = 0;
 			(void)ldap_back_freeconn( op, *lcp, 0 );
 			*lcp = NULL;
+			rc = 0;
 
 		} else {
 			rc = ldap_back_dobind_int( *lcp, op, rs, sendok, 0, 0 );
