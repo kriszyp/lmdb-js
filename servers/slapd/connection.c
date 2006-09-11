@@ -923,7 +923,11 @@ Connection* connection_next( Connection *c, ber_socket_t *index )
 		int c_struct;
 		if( connections[*index].c_struct_state == SLAP_C_UNINITIALIZED ) {
 			assert( connections[*index].c_conn_state == SLAP_C_INVALID );
+#ifdef HAVE_WINSOCK
 			break;
+#else
+			continue;
+#endif
 		}
 
 		if( connections[*index].c_struct_state == SLAP_C_USED ) {
