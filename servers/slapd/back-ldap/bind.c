@@ -821,10 +821,12 @@ void
 ldap_back_release_conn_lock(
 	Operation		*op,
 	SlapReply		*rs,
-	ldapconn_t		*lc,
+	ldapconn_t		**lcp,
 	int			dolock )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+
+	ldapconn_t	*lc = *lcp;
 
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
@@ -834,6 +836,7 @@ ldap_back_release_conn_lock(
 	lc->lc_refcnt--;
 	if ( LDAP_BACK_CONN_TAINTED( lc ) ) {
 		ldap_back_freeconn( op, lc, 0 );
+		*lcp = NULL;
 	}
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
@@ -918,7 +921,7 @@ done:;
  */
 static int
 ldap_back_dobind_int(
-	ldapconn_t		*lc,
+	ldapconn_t		**lcp,
 	Operation		*op,
 	SlapReply		*rs,
 	ldap_back_send_t	sendok,
@@ -926,6 +929,8 @@ ldap_back_dobind_int(
 	int			dolock )
 {	
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+
+	ldapconn_t	*lc = *lcp;
 
 	int		rc,
 			isbound,
@@ -1108,6 +1113,7 @@ retry:;
 		/* FIXME: one binding-- too many? */
 		lc->lc_binding--;
 		ldap_back_freeconn( op, lc, dolock );
+		*lcp = NULL;
 		rs->sr_err = slap_map_api2result( rs );
 
 		if ( LDAP_BACK_QUARANTINE( li ) ) {
@@ -1128,7 +1134,7 @@ done:;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
 	if ( !rc ) {
-		ldap_back_release_conn_lock( op, rs, lc, dolock );
+		ldap_back_release_conn_lock( op, rs, lcp, dolock );
 	}
 
 	return rc;
@@ -1139,7 +1145,10 @@ ldap_back_dobind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	return ldap_back_dobind_int( lc, op, rs, sendok, li->li_nretries, 1 );
+	/* NOTE: ldap_back_dobind_int() may free lc;
+	 * callers of ldap_back_dobind() MUST no longer deal with lc
+	 * in case of failure */
+	return ldap_back_dobind_int( &lc, op, rs, sendok, li->li_nretries, 1 );
 }
 
 /*
@@ -1474,7 +1483,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			rc = 0;
 
 		} else {
-			rc = ldap_back_dobind_int( *lcp, op, rs, sendok, 0, 0 );
+			rc = ldap_back_dobind_int( lcp, op, rs, sendok, 0, 0 );
 			if ( rc == 0 && *lcp != NULL ) {
 				/* freeit, because lc_refcnt == 1 */
 				(*lcp)->lc_refcnt = 0;
@@ -1490,8 +1499,8 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			(void *)(*lcp), (*lcp)->lc_refcnt, 0 );
 
 		LDAP_BACK_CONN_TAINTED_SET( *lcp );
-		ldap_back_release_conn_lock( op, rs, *lcp, 0 );
-		*lcp = NULL;
+		ldap_back_release_conn_lock( op, rs, lcp, 0 );
+		assert( *lcp == NULL );
 
 		if ( sendok ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
