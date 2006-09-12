@@ -16,8 +16,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_MONITOR
-
 #include <stdio.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
@@ -26,6 +24,9 @@
 #include <sys/stat.h>
 #include "lutil.h"
 #include "back-bdb.h"
+
+#ifdef SLAPD_MONITOR
+
 #include "../back-monitor/back-monitor.h"
 
 static ObjectClass		*oc_olmBDBDatabase;
@@ -160,8 +161,6 @@ bdb_monitor_modify(
 	Entry		*e,
 	void		*priv )
 {
-	struct bdb_info		*bdb = (struct bdb_info *) priv;
-	
 	return SLAP_CB_CONTINUE;
 }
 
@@ -170,8 +169,6 @@ bdb_monitor_free(
 	Entry		*e,
 	void		*priv )
 {
-	struct bdb_info		*bdb = (struct bdb_info *) priv;
-
 	struct berval	values[ 2 ];
 	Modification	mod = { 0 };
 
@@ -203,12 +200,15 @@ bdb_monitor_free(
 	return SLAP_CB_CONTINUE;
 }
 
+#endif /* SLAPD_MONITOR */
+
 /*
  * call from within bdb_initialize()
  */
 int
 bdb_monitor_initialize( void )
 {
+#ifdef SLAPD_MONITOR
 	int		i, code;
 	const char	*err;
 
@@ -322,6 +322,7 @@ done_oc:;
 
 		ldap_memfree( oc );
 	}
+#endif /* SLAPD_MONITOR */
 
 	return 0;
 }
@@ -332,7 +333,9 @@ done_oc:;
 int
 bdb_monitor_init( BackendDB *be )
 {
+#ifdef SLAPD_MONITOR
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_MONITORING;
+#endif /* SLAPD_MONITOR */
 
 	return 0;
 }
@@ -343,6 +346,7 @@ bdb_monitor_init( BackendDB *be )
 int
 bdb_monitor_open( BackendDB *be )
 {
+#ifdef SLAPD_MONITOR
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 	Attribute		*a, *next;
 	monitor_callback_t	*cb = NULL;
@@ -517,6 +521,9 @@ cleanup:;
 	}
 
 	return rc;
+#else /* !SLAPD_MONITOR */
+	return 0;
+#endif /* SLAPD_MONITOR */
 }
 
 /*
@@ -525,6 +532,7 @@ cleanup:;
 int
 bdb_monitor_close( BackendDB *be )
 {
+#ifdef SLAPD_MONITOR
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 
 	if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
@@ -540,6 +548,7 @@ bdb_monitor_close( BackendDB *be )
 
 		memset( &bdb->bi_monitor, 0, sizeof( bdb->bi_monitor ) );
 	}
+#endif /* SLAPD_MONITOR */
 
 	return 0;
 }
@@ -552,5 +561,3 @@ bdb_monitor_destroy( BackendDB *be )
 {
 	return 0;
 }
-
-#endif /* SLAPD_MONITOR */
