@@ -36,7 +36,7 @@ generally the DN in a user's X.509 certificate should be
 identical to the DN of their LDAP entry. However, sometimes
 the DNs may not be exactly the same, and so the mapping
 facility described in 
-{{SECT:Mapping Authentication identities to LDAP entries}}
+{{SECT:Mapping Authentication Identities}}
 can be applied to these DNs as well.
 
 H2: TLS Configuration
