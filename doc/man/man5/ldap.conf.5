@@ -49,6 +49,34 @@ in the
 .SH OPTIONS
 The configuration options are case-insensitive;
 their value, on a case by case basis, may be case-sensitive.
+.LP
+Blank lines and lines beginning with a hash mark (`#')
+are ignored up to their end.
+.LP
+Valid lines are made of an option's name (a sequence of non-blanks,
+conventionally written in uppercase, although not required), 
+followed by a value.
+The value starts with the first non-blank character after 
+the option's name, and terminates at the end of the line, 
+or at the last sequence of blanks before the end of the line.
+The tokenization of the value, if any, is delegated to the handler(s)
+for that option, if any.  Quoting values that contain blanks 
+may be incorrect, as the quotes would become part of the value.
+For example,
+
+	URI	"ldap:// ldaps://"
+
+is incorrect, while
+
+	URI	ldap:// ldaps://
+
+is correct (note the absence of the double quotes).
+.LP
+A line cannot be longer than LINE_MAX, which should be more than 2000 bytes
+on all platforms.
+There is no mechanism to split a long line on multiple lines, either for
+beautification or to overcome the above limit.
+.LP
 The different configuration options are:
 .TP
 .B URI <ldap[s]://[name[:port]] ...>
