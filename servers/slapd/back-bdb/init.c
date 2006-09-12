@@ -81,7 +81,11 @@ bdb_db_init( BackendDB *be )
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
+#ifdef SLAPD_MONITOR
 	rc = bdb_monitor_init( be );
+#else
+	rc = 0;
+#endif
 
 	return rc;
 }
@@ -425,11 +429,13 @@ bdb_db_open( BackendDB *be )
 		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
 	}
 
+#ifdef SLAPD_MONITOR
 	/* monitor setup */
 	rc = bdb_monitor_open( be );
 	if ( rc != 0 ) {
 		goto fail;
 	}
+#endif
 
 	bdb->bi_flags |= BDB_IS_OPEN;
 
@@ -450,8 +456,10 @@ bdb_db_close( BackendDB *be )
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
 
+#ifdef SLAPD_MONITOR
 	/* monitor handling */
 	(void)bdb_monitor_close( be );
+#endif
 
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
@@ -675,6 +683,7 @@ bdb_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
+#ifdef SLAPD_MONITOR
 	/*
 	 * initialize monitor stuff
 	 */
@@ -682,6 +691,7 @@ bdb_back_initialize(
 	if ( rc ) {
 		return rc;
 	}
+#endif
 
 	rc = bdb_back_init_cf( bi );
 

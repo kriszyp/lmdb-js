@@ -16,6 +16,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_MONITOR
+
 #include <stdio.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
@@ -551,3 +553,4 @@ bdb_monitor_destroy( BackendDB *be )
 	return 0;
 }
 
+#endif /* SLAPD_MONITOR */
