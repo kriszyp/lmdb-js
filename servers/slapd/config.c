@@ -471,49 +471,18 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 
 int
 init_config_attrs(ConfigTable *ct) {
-	LDAPAttributeType *at;
 	int i, code;
-	const char *err;
 
 	for (i=0; ct[i].name; i++ ) {
-		int		freeit = 0;
-
 		if ( !ct[i].attribute ) continue;
-		at = ldap_str2attributetype( ct[i].attribute,
-			&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
-				ct[i].attribute, ldap_scherr2str(code), err );
+		code = register_at( ct[i].attribute, &ct[i].ad, 1 );
+		if ( code ) {
+			fprintf( stderr, "init_config_attrs: register_at failed\n" );
 			return code;
 		}
-
-		code = at_add( at, 0, NULL, &err );
-		if ( code ) {
-			if ( code == SLAP_SCHERR_ATTR_DUP ) {
-				freeit = 1;
-
-			} else {
-				ldap_attributetype_free( at );
-				fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
-					ct[i].attribute, scherr2str(code), err );
-				return code;
-			}
-		}
-		code = slap_str2ad( at->at_names[0], &ct[i].ad, &err );
-		if ( freeit || code ) {
-			ldap_attributetype_free( at );
-		} else {
-			ldap_memfree( at );
-		}
-		if ( code ) {
-			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s\n",
-				ct[i].attribute, err );
-			return code;
-		} else {
 #ifndef LDAP_DEVEL
-			ct[i].ad->ad_type->sat_flags |= SLAP_AT_HIDE;
+		ct[i].ad->ad_type->sat_flags |= SLAP_AT_HIDE;
 #endif
-		}
 	}
 
 	return 0;
@@ -521,36 +490,17 @@ init_config_attrs(ConfigTable *ct) {
 
 int
 init_config_ocs( ConfigOCs *ocs ) {
-	int i;
+	int i, code;
 
 	for (i=0;ocs[i].co_def;i++) {
-		LDAPObjectClass *oc;
-		int code;
-		const char *err;
-
-		oc = ldap_str2objectclass( ocs[i].co_def, &code, &err,
-			LDAP_SCHEMA_ALLOW_ALL );
-		if ( !oc ) {
-			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
-				ocs[i].co_def, ldap_scherr2str(code), err );
-			return code;
-		}
-		code = oc_add(oc,0,NULL,&err);
-		if ( code && code != SLAP_SCHERR_CLASS_DUP ) {
-			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
-				ocs[i].co_def, scherr2str(code), err );
-			ldap_objectclass_free(oc);
-			return code;
-		}
-		ocs[i].co_oc = oc_find(oc->oc_names[0]);
+		code = register_oc( ocs[i].co_def, &ocs[i].co_oc, 1 );
 		if ( code ) {
-			ldap_objectclass_free(oc);
-		} else {
-			ldap_memfree(oc);
-#ifndef LDAP_DEVEL
-			ocs[i].co_oc->soc_flags |= SLAP_OC_HIDE;
-#endif
+			fprintf( stderr, "init_config_ocs: register_oc failed\n" );
+			return code;
 		}
+#ifndef LDAP_DEVEL
+		ocs[i].co_oc->soc_flags |= SLAP_OC_HIDE;
+#endif
 	}
 	return 0;
 }

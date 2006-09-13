@@ -57,11 +57,10 @@ static struct {
 };
 
 static struct {
-	char			*name;
 	char			*desc;
 	AttributeDescription	**ad;
 }		s_at[] = {
-	{ "olmBDBEntryCache", "( olmBDBAttributes:1 "
+	{ "( olmBDBAttributes:1 "
 		"NAME ( 'olmBDBEntryCache' ) "
 		"DESC 'Number of items in Entry Cache' "
 		"SUP monitorCounter "
@@ -69,7 +68,7 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_olmBDBEntryCache },
 
-	{ "olmBDBEntryInfo", "( olmBDBAttributes:2 "
+	{ "( olmBDBAttributes:2 "
 		"NAME ( 'olmBDBEntryInfo' ) "
 		"DESC 'Number of items in EntryInfo Cache' "
 		"SUP monitorCounter "
@@ -77,7 +76,7 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_olmBDBEntryInfo },
 
-	{ "olmBDBIDLCache", "( olmBDBAttributes:3 "
+	{ "( olmBDBAttributes:3 "
 		"NAME ( 'olmBDBIDLCache' ) "
 		"DESC 'Number of items in IDL Cache' "
 		"SUP monitorCounter "
@@ -85,7 +84,7 @@ static struct {
 		"USAGE directoryOperation )",
 		&ad_olmBDBIDLCache },
 
-	{ "olmDbDirectory", "( olmBDBAttributes:4 "
+	{ "( olmBDBAttributes:4 "
 		"NAME ( 'olmDbDirectory' ) "
 		"DESC 'Path name of the directory "
 			"where the database environment resides' "
@@ -98,13 +97,12 @@ static struct {
 };
 
 static struct {
-	char		*name;
 	char		*desc;
 	ObjectClass	**oc;
 }		s_oc[] = {
 	/* augments an existing object, so it must be AUXILIARY
 	 * FIXME: derive from some ABSTRACT "monitoredEntity"? */
-	{ "olmBDBDatabase", "( olmBDBObjectClasses:1 "
+	{ "( olmBDBObjectClasses:1 "
 		"NAME ( 'olmBDBDatabase' ) "
 		"SUP top AUXILIARY "
 		"MAY ( "
@@ -187,7 +185,7 @@ bdb_monitor_free(
 	/* don't care too much about return code... */
 
 	/* remove attrs */
-	for ( i = 0; s_at[ i ].name != NULL; i++ ) {
+	for ( i = 0; s_at[ i ].desc != NULL; i++ ) {
 		mod.sm_desc = *s_at[ i ].ad;
 		mod.sm_values = NULL;
 		rc = modify_delete_values( e, &mod, 1, &text,
@@ -205,7 +203,6 @@ int
 bdb_monitor_initialize( void )
 {
 	int		i, code;
-	const char	*err;
 	BackendInfo *bi;
 
 	static int	bdb_monitor_initialized = 0;
@@ -236,90 +233,22 @@ bdb_monitor_initialize( void )
 		}
 	}
 
-	for ( i = 0; s_at[ i ].name != NULL; i++ ) {
-		LDAPAttributeType	*at;
-
-		at = ldap_str2attributetype( s_at[ i ].desc,
-			&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: "
-				"AttributeType load failed: %s %s\n",
-				ldap_scherr2str( code ), err, 0 );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		code = at_add( at, 0, NULL, &err );
+	for ( i = 0; s_at[ i ].desc != NULL; i++ ) {
+		code = register_at( s_at[ i ].desc, s_at[ i ].ad, 1 );
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: "
-				"AttributeType load failed: %s %s\n",
-				scherr2str( code ), err, 0 );
-			code = LDAP_INVALID_SYNTAX;
-			goto done_at;
+				"bdb_monitor_initialize: register_at failed\n",
+				0, 0, 0 );
 		}
-
-		code = slap_str2ad( s_at[ i ].name,
-				s_at[ i ].ad, &err );
-		if ( code != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: "
-				"unable to find AttributeDescription "
-				"\"%s\": %d (%s)\n",
-				s_at[ i ].name, code, err );
-			code = LDAP_UNDEFINED_TYPE;
-			goto done_at;
-		}
-
-done_at:;
-		if ( code ) {
-			ldap_attributetype_free( at );
-			return code;
-		}
-
-		ldap_memfree( at );
 	}
 
-	for ( i = 0; s_oc[ i ].name != NULL; i++ ) {
-		LDAPObjectClass *oc;
-
-		oc = ldap_str2objectclass( s_oc[ i ].desc,
-				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !oc ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: "
-				"ObjectClass load failed: %s %s\n",
-				ldap_scherr2str( code ), err, 0 );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		code = oc_add( oc, 0, NULL, &err );
+	for ( i = 0; s_oc[ i ].desc != NULL; i++ ) {
+		code = register_oc( s_oc[ i ].desc, s_oc[ i ].oc, 1 );
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: "
-				"ObjectClass load failed: %s %s\n",
-				scherr2str( code ), err, 0 );
-			code = LDAP_INVALID_SYNTAX;
-			goto done_oc;
+				"bdb_monitor_initialize: register_oc failed\n",
+				0, 0, 0 );
 		}
-
-		*s_oc[ i ].oc = oc_find( s_oc[ i ].name );
-		if ( *s_oc[ i ].oc == NULL ) {
-			code = LDAP_UNDEFINED_TYPE;
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: "
-				"unable to find objectClass \"%s\"\n",
-				s_oc[ i ].name, 0, 0 );
-			goto done_oc;
-		}
-
-done_oc:;
-		if ( code != LDAP_SUCCESS ) {
-			ldap_objectclass_free( oc );
-			return code;
-		}
-
-		ldap_memfree( oc );
 	}
 
 	return 0;

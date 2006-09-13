@@ -702,37 +702,15 @@ aci_init( void )
 	}
 
 	/* ACI attribute */
-	at = ldap_str2attributetype( aci_at.desc,
-		&rc, &text, LDAP_SCHEMA_ALLOW_ALL );
-	if ( !at ) {
-		Debug( LDAP_DEBUG_ANY,
-			"aci_init: AttributeType \"%s\" parse failed: %s %s\n",
-			aci_at.name, ldap_scherr2str( rc ), text );
-		return rc;
-	}
-
-	rc = at_add( at, 0, &sat, &text );
-	if ( rc != LDAP_SUCCESS ) {
-		ldap_attributetype_free( at );
-		Debug( LDAP_DEBUG_ANY,
-			"aci_init: AttributeType \"%s\" load failed: %s %s\n",
-			aci_at.name, scherr2str( rc ), text );
-		return rc;
-	}
-	ldap_memfree( at );
-
-	rc = slap_str2ad( aci_at.name,
-			aci_at.ad, &text );
+	rc = register_at( aci_at.desc, aci_at.ad, 0 );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"aci_init: unable to find AttributeDescription "
-			"\"%s\": %d (%s)\n",
-			aci_at.name, rc, text );
-		return 1;
+			"aci_init: at_register failed\n", 0, 0, 0 );
+		return rc;
 	}
 
 	/* install flags */
-	sat->sat_flags |= aci_at.flags;
+	(*aci_at.ad)->ad_type->sat_flags |= aci_at.flags;
 
 	return rc;
 }

@@ -755,3 +755,34 @@ oc_schema_info( Entry *e )
 	}
 	return 0;
 }
+
+int
+register_oc( char *def, ObjectClass **soc, int dupok )
+{
+	LDAPObjectClass *oc;
+	int code;
+	const char *err;
+
+	oc = ldap_str2objectclass( def, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
+	if ( !oc ) {
+		Debug( LDAP_DEBUG_ANY,
+			"register_oc: objectclass \"%s\": %s, %s\n",
+			def, ldap_scherr2str(code), err );
+		return code;
+	}
+	code = oc_add(oc,0,NULL,&err);
+	if ( code && ( code != SLAP_SCHERR_CLASS_DUP || !dupok )) {
+		Debug( LDAP_DEBUG_ANY,
+			"register_oc: objectclass \"%s\": %s, %s\n",
+			def, scherr2str(code), err );
+		ldap_objectclass_free(oc);
+		return code;
+	}
+	*soc = oc_find(oc->oc_names[0]);
+	if ( code ) {
+		ldap_objectclass_free(oc);
+	} else {
+		ldap_memfree(oc);
+	}
+	return 0;
+}

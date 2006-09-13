@@ -892,3 +892,44 @@ at_schema_info( Entry *e )
 	}
 	return 0;
 }
+
+int
+register_at( char *def, AttributeDescription **ad, int dupok )
+{
+	LDAPAttributeType *at;
+	int code, freeit = 0;
+	const char *err;
+
+	at = ldap_str2attributetype( def, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
+	if ( !at ) {
+		Debug( LDAP_DEBUG_ANY,
+			"register_at: AttributeType \"%s\": %s, %s\n",
+				def, ldap_scherr2str(code), err );
+		return code;
+	}
+
+	code = at_add( at, 0, NULL, &err );
+	if ( code ) {
+		if ( code == SLAP_SCHERR_ATTR_DUP && dupok ) {
+			freeit = 1;
+
+		} else {
+			ldap_attributetype_free( at );
+			Debug( LDAP_DEBUG_ANY,
+				"register_at: AttributeType \"%s\": %s, %s\n",
+				def, scherr2str(code), err );
+			return code;
+		}
+	}
+	code = slap_str2ad( at->at_names[0], ad, &err );
+	if ( freeit || code ) {
+		ldap_attributetype_free( at );
+	} else {
+		ldap_memfree( at );
+	}
+	if ( code ) {
+		Debug( LDAP_DEBUG_ANY, "register_at: AttributeType \"%s\": %s\n",
+			def, err, 0 );
+	}
+	return code;
+}
