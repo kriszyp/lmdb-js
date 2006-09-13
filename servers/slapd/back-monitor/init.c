@@ -44,6 +44,23 @@ BackendDB			*be_monitor;
 static struct monitor_subsys_t	**monitor_subsys;
 static int			monitor_subsys_opened;
 static monitor_info_t		monitor_info;
+static const monitor_extra_t monitor_extra = {
+	monitor_back_is_configured,
+	monitor_back_get_subsys,
+	monitor_back_get_subsys_by_dn,
+
+	monitor_back_register_subsys,
+	monitor_back_register_entry,
+	monitor_back_register_entry_parent,
+	monitor_back_register_entry_attrs,
+	monitor_back_register_entry_callback,
+
+	monitor_back_unregister_entry,
+	monitor_back_unregister_entry_parent,
+	monitor_back_unregister_entry_attrs,
+	monitor_back_unregister_entry_callback
+};
+	
 
 /*
  * subsystem data
@@ -1977,6 +1994,8 @@ monitor_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_extra = (void *)&monitor_extra;
 
 	/*
 	 * configuration objectClasses (fake)

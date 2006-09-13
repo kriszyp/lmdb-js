@@ -25,8 +25,6 @@
 #include "lutil.h"
 #include "back-bdb.h"
 
-#ifdef SLAPD_MONITOR
-
 #include "../back-monitor/back-monitor.h"
 
 static ObjectClass		*oc_olmBDBDatabase;
@@ -200,22 +198,23 @@ bdb_monitor_free(
 	return SLAP_CB_CONTINUE;
 }
 
-#endif /* SLAPD_MONITOR */
-
 /*
  * call from within bdb_initialize()
  */
 int
 bdb_monitor_initialize( void )
 {
-#ifdef SLAPD_MONITOR
 	int		i, code;
 	const char	*err;
+	BackendInfo *bi;
 
 	static int	bdb_monitor_initialized = 0;
 
-	/* register schema here; if compiled as dynamic object,
-	 * must be loaded __after__ back_monitor.la */
+	bi = backend_info("monitor");
+	if ( !bi )
+		return -1;
+
+	/* register schema here */
 
 	if ( bdb_monitor_initialized++ ) {
 		return 0;
@@ -322,7 +321,6 @@ done_oc:;
 
 		ldap_memfree( oc );
 	}
-#endif /* SLAPD_MONITOR */
 
 	return 0;
 }
@@ -333,9 +331,9 @@ done_oc:;
 int
 bdb_monitor_init( BackendDB *be )
 {
-#ifdef SLAPD_MONITOR
-	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_MONITORING;
-#endif /* SLAPD_MONITOR */
+	if ( bdb_monitor_initialize() == LDAP_SUCCESS ) {
+		SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_MONITORING;
+	}
 
 	return 0;
 }
@@ -346,20 +344,29 @@ bdb_monitor_init( BackendDB *be )
 int
 bdb_monitor_open( BackendDB *be )
 {
-#ifdef SLAPD_MONITOR
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 	Attribute		*a, *next;
 	monitor_callback_t	*cb = NULL;
 	struct berval		suffix, *filter, *base;
 	char			*ptr;
 	int			rc = 0;
+	monitor_extra_t *mbe;
 
 	if ( !SLAP_DBMONITORING( be ) ) {
 		return 0;
 	}
 
+	{
+		BackendInfo *mi = backend_info( "monitor" );
+		if ( !mi || !mi->bi_extra ) {
+			SLAP_DBFLAGS( be ) ^= SLAP_DBFLAG_MONITORING;
+			return 0;
+		}
+		mbe = mi->bi_extra;
+	}
+
 	/* don't bother if monitor is not configured */
-	if ( !monitor_back_is_configured() ) {
+	if ( !mbe->is_configured() ) {
 		static int warning = 0;
 
 		if ( warning++ == 0 ) {
@@ -490,7 +497,7 @@ bdb_monitor_open( BackendDB *be )
 	cb->mc_free = bdb_monitor_free;
 	cb->mc_private = (void *)bdb;
 
-	rc = monitor_back_register_entry_attrs( NULL, a, cb,
+	rc = mbe->register_entry_attrs( NULL, a, cb,
 		base, LDAP_SCOPE_SUBORDINATE, filter );
 
 cleanup:;
@@ -521,9 +528,6 @@ cleanup:;
 	}
 
 	return rc;
-#else /* !SLAPD_MONITOR */
-	return 0;
-#endif /* SLAPD_MONITOR */
 }
 
 /*
@@ -532,11 +536,16 @@ cleanup:;
 int
 bdb_monitor_close( BackendDB *be )
 {
-#ifdef SLAPD_MONITOR
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 
 	if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
-		monitor_back_unregister_entry_callback( NULL,
+		BackendInfo *mi = backend_info( "monitor" );
+		monitor_extra_t *mbe;
+
+		if ( !mi || !mi->bi_extra )
+			return 0;
+		mbe = mi->bi_extra;
+		mbe->unregister_entry_callback( NULL,
 			(monitor_callback_t *)bdb->bi_monitor.bdm_cb,
 			&bdb->bi_monitor.bdm_nbase,
 			bdb->bi_monitor.bdm_scope,
@@ -548,7 +557,6 @@ bdb_monitor_close( BackendDB *be )
 
 		memset( &bdb->bi_monitor, 0, sizeof( bdb->bi_monitor ) );
 	}
-#endif /* SLAPD_MONITOR */
 
 	return 0;
 }

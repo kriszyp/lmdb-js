@@ -268,6 +268,33 @@ extern BackendDB *be_monitor;
 /* increase this bufsize if entries in string form get too big */
 #define BACKMONITOR_BUFSIZE	8192
 
+typedef int (monitor_cbfunc)( struct berval *ndn, monitor_callback_t *cb,
+	struct berval *base, int scope, struct berval *filter );
+
+typedef int (monitor_cbafunc)( struct berval *ndn, Attribute *a,
+	monitor_callback_t *cb,
+	struct berval *base, int scope, struct berval *filter );
+
+typedef struct monitor_extra_t {
+	int (*is_configured)(void);
+	monitor_subsys_t * (*get_subsys)( const char *name );
+	monitor_subsys_t * (*get_subsys_by_dn)( struct berval *ndn, int sub );
+
+	int (*register_subsys)( monitor_subsys_t *ms );
+	int (*register_entry)( Entry *e, monitor_callback_t *cb,
+		monitor_subsys_t *ms, unsigned long flags );
+	int (*register_entry_parent)( Entry *e, monitor_callback_t *cb,
+		monitor_subsys_t *ms, unsigned long flags,
+		struct berval *base, int scope, struct berval *filter );
+	monitor_cbafunc *register_entry_attrs;
+	monitor_cbfunc *register_entry_callback;
+
+	int (*unregister_entry)( struct berval *ndn );
+	monitor_cbfunc *unregister_entry_parent;
+	monitor_cbafunc *unregister_entry_attrs;
+	monitor_cbfunc *unregister_entry_callback;
+} monitor_extra_t;
+
 LDAP_END_DECL
 
 #include "proto-back-monitor.h"

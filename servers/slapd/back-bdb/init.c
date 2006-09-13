@@ -675,14 +675,6 @@ bdb_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-	/*
-	 * initialize monitor stuff
-	 */
-	rc = bdb_monitor_initialize();
-	if ( rc ) {
-		return rc;
-	}
-
 	rc = bdb_back_init_cf( bi );
 
 	return rc;
