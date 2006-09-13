@@ -1119,11 +1119,10 @@ retcode_initialize( void )
 	const char	*err;
 
 	static struct {
-		char			*name;
 		char			*desc;
 		AttributeDescription	**ad;
 	} retcode_at[] = {
-	        { "errCode", "( 1.3.6.1.4.1.4203.666.11.4.1.1 "
+	        { "( 1.3.6.1.4.1.4203.666.11.4.1.1 "
 		        "NAME ( 'errCode' ) "
 		        "DESC 'LDAP error code' "
 		        "EQUALITY integerMatch "
@@ -1131,14 +1130,14 @@ retcode_initialize( void )
 		        "SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"SINGLE-VALUE )",
 			&ad_errCode },
-		{ "errOp", "( 1.3.6.1.4.1.4203.666.11.4.1.2 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.2 "
 			"NAME ( 'errOp' ) "
 			"DESC 'Operations the errObject applies to' "
 			"EQUALITY caseIgnoreMatch "
 			"SUBSTR caseIgnoreSubstringsMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 			&ad_errOp},
-		{ "errText", "( 1.3.6.1.4.1.4203.666.11.4.1.3 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.3 "
 			"NAME ( 'errText' ) "
 			"DESC 'LDAP error textual description' "
 			"EQUALITY caseIgnoreMatch "
@@ -1146,14 +1145,14 @@ retcode_initialize( void )
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
 			"SINGLE-VALUE )",
 			&ad_errText },
-		{ "errSleepTime", "( 1.3.6.1.4.1.4203.666.11.4.1.4 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.4 "
 			"NAME ( 'errSleepTime' ) "
 			"DESC 'Time to wait before returning the error' "
 			"EQUALITY integerMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"SINGLE-VALUE )",
 			&ad_errSleepTime },
-		{ "errMatchedDN", "( 1.3.6.1.4.1.4203.666.11.4.1.5 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.5 "
 			"NAME ( 'errMatchedDN' ) "
 			"DESC 'Value to be returned as matched DN' "
 			"EQUALITY distinguishedNameMatch "
@@ -1164,11 +1163,10 @@ retcode_initialize( void )
 	};
 
 	static struct {
-		char		*name;
 		char		*desc;
 		ObjectClass	**oc;
 	} retcode_oc[] = {
-		{ "errAbsObject", "( 1.3.6.1.4.1.4203.666.11.4.3.0 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.3.0 "
 			"NAME ( 'errAbsObject' ) "
 			"SUP top ABSTRACT "
 			"MUST ( errCode ) "
@@ -1181,12 +1179,12 @@ retcode_initialize( void )
 				"$ errMatchedDN "
 			") )",
 			&oc_errAbsObject },
-		{ "errObject", "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
 			"NAME ( 'errObject' ) "
 			"SUP errAbsObject STRUCTURAL "
 			")",
 			&oc_errObject },
-		{ "errAuxObject", "( 1.3.6.1.4.1.4203.666.11.4.3.2 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.3.2 "
 			"NAME ( 'errAuxObject' ) "
 			"SUP errAbsObject AUXILIARY "
 			")",
@@ -1195,72 +1193,21 @@ retcode_initialize( void )
 	};
 
 
-	for ( i = 0; retcode_at[ i ].name != NULL; i++ ) {
-		LDAPAttributeType	*at;
-
-		at = ldap_str2attributetype( retcode_at[ i ].desc,
-			&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			fprintf( stderr, "retcode: "
-				"AttributeType load failed: %s %s\n",
-				ldap_scherr2str( code ), err );
+	for ( i = 0; retcode_at[ i ].desc != NULL; i++ ) {
+		code = register_at( retcode_at[ i ].desc, retcode_at[ i ].ad, 0 );
+		if ( code ) {
+			Debug( LDAP_DEBUG_ANY,
+				"retcode: register_at failed\n", 0, 0, 0 );
 			return code;
-		}
-
-#if LDAP_VENDOR_VERSION_MINOR == X || LDAP_VENDOR_VERSION_MINOR > 2
-		code = at_add( at, 0, NULL, &err );
-#else
-		code = at_add( at, &err );
-#endif
-		ldap_memfree( at );
-		if ( code != LDAP_SUCCESS ) {
-			fprintf( stderr, "retcode: "
-				"AttributeType load failed: %s %s\n",
-				scherr2str( code ), err );
-			return code;
-		}
-
-		code = slap_str2ad( retcode_at[ i ].name,
-				retcode_at[ i ].ad, &err );
-		if ( code != LDAP_SUCCESS ) {
-			fprintf( stderr, "retcode: unable to find "
-				"AttributeDescription \"%s\": %d (%s)\n",
-				retcode_at[ i ].name, code, err );
-			return 1;
 		}
 	}
 
-	for ( i = 0; retcode_oc[ i ].name != NULL; i++ ) {
-		LDAPObjectClass *oc;
-
-		oc = ldap_str2objectclass( retcode_oc[ i ].desc,
-				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !oc ) {
-			fprintf( stderr, "retcode: "
-				"ObjectClass load failed: %s %s\n",
-				ldap_scherr2str( code ), err );
+	for ( i = 0; retcode_oc[ i ].desc != NULL; i++ ) {
+		code = register_oc( retcode_oc[ i ].desc, retcode_oc[ i ].oc, 0 );
+		if ( code ) {
+			Debug( LDAP_DEBUG_ANY,
+				"retcode: register_oc failed\n", 0, 0, 0 );
 			return code;
-		}
-
-#if LDAP_VENDOR_VERSION_MINOR == X || LDAP_VENDOR_VERSION_MINOR > 2
-		code = oc_add( oc, 0, NULL, &err );
-#else
-		code = oc_add( oc, &err );
-#endif
-		ldap_memfree(oc);
-		if ( code != LDAP_SUCCESS ) {
-			fprintf( stderr, "retcode: "
-				"ObjectClass load failed: %s %s\n",
-				scherr2str( code ), err );
-			return code;
-		}
-
-		*retcode_oc[ i ].oc = oc_find( retcode_oc[ i ].name );
-		if ( *retcode_oc[ i ].oc == NULL ) {
-			fprintf( stderr, "retcode: unable to find "
-				"objectClass \"%s\"\n",
-				retcode_oc[ i ].name );
-			return 1;
 		}
 	}
 
