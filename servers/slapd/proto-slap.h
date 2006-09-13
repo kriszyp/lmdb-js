@@ -1895,7 +1895,7 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 #else
 # if USE_MP_LONG_LONG
 #  define UI2BV_FORMAT	"%llu"
-# elif USE_MP_LONG_LONG
+# elif USE_MP_LONG
 #  define UI2BV_FORMAT	"%lu"
 # elif HAVE_LONG_LONG
 #  define UI2BV_FORMAT	"%llu"
