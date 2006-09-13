@@ -778,7 +778,8 @@ register_oc( char *def, ObjectClass **soc, int dupok )
 		ldap_objectclass_free(oc);
 		return code;
 	}
-	*soc = oc_find(oc->oc_names[0]);
+	if ( soc )
+		*soc = oc_find(oc->oc_names[0]);
 	if ( code ) {
 		ldap_objectclass_free(oc);
 	} else {

@@ -2330,31 +2330,16 @@ static char *obsolete_names[] = {
 
 int pcache_initialize()
 {
-	LDAPAttributeType *at;
 	int code;
-	const char *err;
 	struct berval debugbv = BER_BVC("pcache");
 
 	if (( code = slap_loglevel_get( &debugbv, &pcache_debug )))
 		return code;
 
-	at = ldap_str2attributetype( queryid_schema, &code, &err,
-		LDAP_SCHEMA_ALLOW_ALL );
-	if ( !at ) {
-		Debug( LDAP_DEBUG_ANY,
-			"pcache_initialize: ldap_str2attributetype failed %s %s\n",
-			ldap_scherr2str(code), err, 0 );
-		return code;
-	}
-	code = at_add( at, 0, NULL, &err );
-	if ( !code ) {
-		slap_str2ad( at->at_names[0], &ad_queryid, &err );
-	}
-	ldap_memfree( at );
+	code = register_at( queryid_schema, &ad_queryid, 0 );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY,
-			"pcache_initialize: at_add failed %s %s\n",
-			scherr2str(code), err, 0 );
+			"pcache_initialize: register_at failed\n", 0, 0, 0 );
 		return code;
 	}
 

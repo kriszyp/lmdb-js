@@ -1571,59 +1571,24 @@ int accesslog_initialize()
 
 	/* log schema integration */
 	for ( i=0; lattrs[i].at; i++ ) {
-		LDAPAttributeType *lat;
-		AttributeType *at;
 		int code;
-		const char *err;
 
-		lat = ldap_str2attributetype( lattrs[i].at, &code, &err,
-			LDAP_SCHEMA_ALLOW_ALL );
-		if ( !lat ) {
-			Debug( LDAP_DEBUG_ANY, "accesslog_init: "
-				"ldap_str2attributetype failed on %d: %s, %s\n",
-				i, ldap_scherr2str(code), err );
-			return -1;
-		}
-		code = at_add( lat, 0, &at, &err );
-		ldap_memfree( lat );
+		code = register_at( lattrs[i].at, lattrs[i].ad, 0 );
 		if ( code ) {
-			Debug( LDAP_DEBUG_ANY, "log_back_initialize: "
-				"at_add failed on %d: %s\n",
-				i, scherr2str(code), 0 );
-			return -1;
-		}
-		if ( slap_bv2ad( &at->sat_cname, lattrs[i].ad, &err )) {
-			Debug( LDAP_DEBUG_ANY, "accesslog_init: "
-				"slap_bv2ad failed on %d: %s\n",
-				i, err, 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"accesslog_init: register_at failed\n", 0, 0, 0 );
 			return -1;
 		}
 	}
 	for ( i=0; locs[i].ot; i++ ) {
-		LDAPObjectClass *loc;
-		ObjectClass *oc;
 		int code;
-		const char *err;
 
-		loc = ldap_str2objectclass( locs[i].ot, &code, &err,
-			LDAP_SCHEMA_ALLOW_ALL );
-		if ( !loc ) {
-			Debug( LDAP_DEBUG_ANY, "accesslog_init: "
-				"ldap_str2objectclass failed on %d: %s, %s\n",
-				i, ldap_scherr2str(code), err );
-			return -1;
-		}
-		
-		code = oc_add( loc, 0, &oc, &err );
-		ldap_memfree( loc );
+		code = register_oc( locs[i].ot, locs[i].oc, 0 );
 		if ( code ) {
-			Debug( LDAP_DEBUG_ANY, "accesslog_init: "
-				"oc_add failed on %d: %s\n",
-				i, scherr2str(code), 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"accesslog_init: register_oc failed\n", 0, 0, 0 );
 			return -1;
 		}
-		if ( locs[i].oc )
-			*locs[i].oc = oc;
 	}
 
 	return overlay_register(&accesslog);

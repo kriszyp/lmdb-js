@@ -894,11 +894,12 @@ at_schema_info( Entry *e )
 }
 
 int
-register_at( char *def, AttributeDescription **ad, int dupok )
+register_at( char *def, AttributeDescription **rad, int dupok )
 {
 	LDAPAttributeType *at;
 	int code, freeit = 0;
 	const char *err;
+	AttributeDescription *ad = NULL;
 
 	at = ldap_str2attributetype( def, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !at ) {
@@ -921,7 +922,7 @@ register_at( char *def, AttributeDescription **ad, int dupok )
 			return code;
 		}
 	}
-	code = slap_str2ad( at->at_names[0], ad, &err );
+	code = slap_str2ad( at->at_names[0], &ad, &err );
 	if ( freeit || code ) {
 		ldap_attributetype_free( at );
 	} else {
@@ -931,5 +932,6 @@ register_at( char *def, AttributeDescription **ad, int dupok )
 		Debug( LDAP_DEBUG_ANY, "register_at: AttributeType \"%s\": %s\n",
 			def, err, 0 );
 	}
+	if ( rad ) *rad = ad;
 	return code;
 }

@@ -2157,26 +2157,13 @@ static slap_overinst ppolicy;
 
 int ppolicy_initialize()
 {
-	LDAPAttributeType *at;
-	const char *err;
 	int i, code;
 
 	for (i=0; pwd_OpSchema[i].def; i++) {
-		at = ldap_str2attributetype( pwd_OpSchema[i].def, &code, &err,
-			LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			fprintf( stderr, "AttributeType Load failed %s %s\n",
-				ldap_scherr2str(code), err );
-			return code;
-		}
-		code = at_add( at, 0, NULL, &err );
-		if ( !code ) {
-			slap_str2ad( at->at_names[0], pwd_OpSchema[i].ad, &err );
-		}
-		ldap_memfree( at );
+		code = register_at( pwd_OpSchema[i].def, pwd_OpSchema[i].ad, 0 );
 		if ( code ) {
-			fprintf( stderr, "AttributeType Load failed %s %s\n",
-				scherr2str(code), err );
+			Debug( LDAP_DEBUG_ANY,
+				"ppolicy_initialize: register_at failed\n", 0, 0, 0 );
 			return code;
 		}
 		/* Allow Manager to set these as needed */
