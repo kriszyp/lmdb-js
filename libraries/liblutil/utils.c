@@ -314,6 +314,67 @@ int mkstemp( char * template )
 }
 #endif
 
+#ifdef _MSC_VER
+#include <windows.h>
+struct dirent {
+	char *d_name;
+};
+typedef struct DIR {
+	HANDLE dir;
+	struct dirent data;
+	int first;
+	char buf[MAX_PATH+1];
+} DIR;
+DIR *opendir( char *path )
+{
+	char tmp[32768];
+	int len = strlen(path);
+	DIR *d;
+	HANDLE h;
+	WIN32_FIND_DATA data;
+	
+	if (len+3 >= sizeof(tmp))
+		return NULL;
+
+	strcpy(tmp, path);
+	tmp[len++] = '\\';
+	tmp[len++] = '*';
+	tmp[len] = '\0';
+
+	h = FindFirstFile( tmp, &data );
+	
+	if ( h == INVALID_HANDLE_VALUE )
+		return NULL;
+
+	d = ber_memalloc( sizeof(DIR) );
+	if ( !d )
+		return NULL;
+	d->dir = h;
+	d->data.d_name = d->buf;
+	d->first = 1;
+	strcpy(d->data.d_name, data.cFileName);
+	return d;
+}
+struct dirent *readdir(DIR *dir)
+{
+	WIN32_FIND_DATA data;
+
+	if (dir->first) {
+		dir->first = 0;
+	} else {
+		if (!FindNextFile(dir->dir, &data))
+			return NULL;
+		strcpy(dir->data.d_name, data.cFileName);
+	}
+	return &dir->data;
+}
+void closedir(DIR *dir)
+{
+	FindClose(dir->dir);
+	ber_memfree(dir);
+}
+#endif
+
 /*
  * Memory Reverse Search
  */
