@@ -209,7 +209,11 @@ ldap_back_db_open( BackendDB *be )
 	/* monitor setup */
 	rc = ldap_back_monitor_db_open( be );
 	if ( rc != 0 ) {
+		/* ignore by now */
+		rc = 0;
+#if 0
 		goto fail;
+#endif
 	}
 
 	li->li_flags |= LDAP_BACK_F_ISOPEN;
