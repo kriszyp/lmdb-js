@@ -3558,7 +3558,8 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
 		ca->line = vals[i].bv_val;
-		if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) {
+		if (( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) &&
+			ca->line[0] == '{' ) {
 			char *idx = strchr( ca->line, '}' );
 			if ( idx ) ca->line = idx+1;
 		}
