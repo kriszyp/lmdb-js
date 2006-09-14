@@ -16032,7 +16032,7 @@ cat >>conftest.$ac_ext <<_ACEOF
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
-#ifdef WINNT
+#ifdef _WIN32
 #include <stdlib.h>
 #endif
 int
@@ -16397,7 +16397,7 @@ cat >>conftest.$ac_ext <<_ACEOF
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
-#ifdef WINNT
+#ifdef _WIN32
 #include <stdlib.h>
 #endif
 int

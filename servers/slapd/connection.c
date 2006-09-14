@@ -1483,7 +1483,7 @@ connection_input( Connection *conn )
 		return -1;
 	}
 
-	errno = 0;
+	sock_errset(0);
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( conn->c_is_udp ) {
@@ -1503,7 +1503,7 @@ connection_input( Connection *conn )
 
 	tag = ber_get_next( conn->c_sb, &len, conn->c_currentber );
 	if ( tag != LDAP_TAG_MESSAGE ) {
-		int err = errno;
+		int err = sock_errno();
 		ber_socket_t	sd;
 
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );

@@ -150,7 +150,7 @@ ldap_int_flush_request(
 	LDAPConn *lc = lr->lr_conn;
 
 	if ( ber_flush2( lc->lconn_sb, lr->lr_ber, LBER_FLUSH_FREE_NEVER ) != 0 ) {
-		if ( errno == EAGAIN ) {
+		if ( sock_errno() == EAGAIN ) {
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;
 			ldap_mark_select_write( ld, lc->lconn_sb );

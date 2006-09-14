@@ -170,7 +170,7 @@ static long send_ldap_ber(
 			break;
 		}
 
-		err = errno;
+		err = sock_errno();
 
 		/*
 		 * we got an error.  if it's ewouldblock, we need to

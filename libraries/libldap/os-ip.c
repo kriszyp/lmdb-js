@@ -63,7 +63,7 @@ do { \
 static void
 ldap_pvt_set_errno(int err)
 {
-	errno = err;
+	sock_errset(err);
 }
 
 int
@@ -208,7 +208,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	struct sockaddr *sin, socklen_t addrlen,
 	int async)
 {
-	int rc;
+	int rc, err;
 	struct timeval	tv = { 0 },
 			*opt_tv = NULL;
 
@@ -241,11 +241,8 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		return ( 0 );
 	}
 
-#ifdef HAVE_WINSOCK
-	ldap_pvt_set_errno( WSAGetLastError() );
-#endif
-
-	if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
+	err = sock_errno();
+	if ( err != EINPROGRESS && err != EWOULDBLOCK ) {
 		return ( -1 );
 	}
 	
