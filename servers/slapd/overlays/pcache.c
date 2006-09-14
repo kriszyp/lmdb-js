@@ -2301,16 +2301,8 @@ pcache_db_destroy(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 
-	/* cleanup stuff inherited from the original database... */
-	cm->db.be_suffix = NULL;
-	cm->db.be_nsuffix = NULL;
-	BER_BVZERO( &cm->db.be_rootdn );
-	BER_BVZERO( &cm->db.be_rootndn );
-	BER_BVZERO( &cm->db.be_rootpw );
-	/* FIXME: there might be more... */
-
 	if ( cm->db.be_private != NULL ) {
-		backend_destroy_one( &cm->db, 0 );
+		backend_stopdown_one( &cm->db );
 	}
 
 	ldap_pvt_thread_mutex_destroy( &qm->lru_mutex );

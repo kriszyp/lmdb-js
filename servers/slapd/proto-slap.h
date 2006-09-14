@@ -316,6 +316,7 @@ LDAP_SLAPD_F (int) backend_startup_one LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_sync LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_shutdown LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_destroy LDAP_P((void));
+LDAP_SLAPD_F (void) backend_stopdown_one LDAP_P((BackendDB *bd ));
 LDAP_SLAPD_F (void) backend_destroy_one LDAP_P((BackendDB *bd, int dynamic));
 
 LDAP_SLAPD_F (BackendInfo *) backend_info LDAP_P(( const char *type ));

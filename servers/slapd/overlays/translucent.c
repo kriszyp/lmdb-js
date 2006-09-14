@@ -773,16 +773,8 @@ translucent_db_destroy( BackendDB *be )
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_close\n", 0, 0, 0);
 
 	if ( ov ) {
-		/* cleanup stuff inherited from the original database... */
-		ov->db.be_suffix = NULL;
-		ov->db.be_nsuffix = NULL;
-		BER_BVZERO( &ov->db.be_rootdn );
-		BER_BVZERO( &ov->db.be_rootndn );
-		BER_BVZERO( &ov->db.be_rootpw );
-		/* FIXME: there might be more... */
-
 		if ( ov->db.be_private != NULL ) {
-			backend_destroy_one( &ov->db, 0 );
+			backend_stopdown_one( &ov->db );
 		}
 
 		ch_free(ov);
