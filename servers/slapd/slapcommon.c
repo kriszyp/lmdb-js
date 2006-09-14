@@ -517,6 +517,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 	}
 
+#ifdef LDAP_SYSLOG
 	if ( syslog_unknowns ) {
 		rc = parse_debug_unknowns( syslog_unknowns, &ldap_syslog );
 		ldap_charray_free( syslog_unknowns );
@@ -524,6 +525,7 @@ slap_tool_init(
 		if ( rc )
 			exit( EXIT_FAILURE );
 	}
+#endif
 
 	at_oc_cache = 1;
 

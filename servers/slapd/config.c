@@ -36,7 +36,14 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifndef S_ISREG
+#define	S_ISREG(m)	(((m) & _S_IFMT) == _S_IFREG)
+#endif
+
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "slap.h"
 #ifdef LDAP_SLAPI

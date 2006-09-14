@@ -181,7 +181,7 @@ static int spew_entry(Entry * e, struct berval * path) {
 	int entry_length;
 	char * entry_as_string;
 
-	openres = open(path->bv_val, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR | S_IWUSR);
+	openres = open(path->bv_val, O_WRONLY|O_CREAT|O_TRUNC, S_IREAD | S_IWRITE);
 	if(openres == -1) {
 		if(errno == ENOENT)
 			rs = LDAP_NO_SUCH_OBJECT;

@@ -93,20 +93,22 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 static unsigned int
 retcode_sleep( int s )
 {
+	unsigned int r = 0;
+
 	/* sleep as required */
 	if ( s < 0 ) {
 #if 0	/* use high-order bits for better randomness (Numerical Recipes in "C") */
-		unsigned	r = rand() % (-s);
+		r = rand() % (-s);
 #endif
-		unsigned	r = ((double)(-s))*rand()/(RAND_MAX + 1.0);
-		return sleep( r );
+		r = ((double)(-s))*rand()/(RAND_MAX + 1.0);
+	} else if ( s > 0 ) {
+		r = (unsigned int)s;
+	}
+	if ( r ) {
+		sleep( r );
 	}
 
-	if ( s > 0 ) {
-		return sleep( (unsigned int)s );
-	}
-
-	return 0;
+	return r;
 }
 
 static int

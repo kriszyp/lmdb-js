@@ -32,7 +32,9 @@
 #include <ac/assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
 #include <fcntl.h>
 
 #ifdef _WIN32
