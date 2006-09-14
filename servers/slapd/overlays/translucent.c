@@ -424,7 +424,7 @@ release:
 		}
 		a = attr_alloc( m->sml_desc );
 		a->a_vals  = m->sml_values;
-		a->a_nvals = m->sml_nvalues;
+		a->a_nvals = m->sml_nvalues ? m->sml_nvalues : a->a_vals;
 		a->a_next  = ax;
 		ax = a;
 	}
