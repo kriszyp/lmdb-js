@@ -18,6 +18,10 @@
 
 #if defined( HAVE_NT_THREADS )
 
+#define _WIN32_WINNT 0x0400
+#include <windows.h>
+#include <process.h>
+
 #include "ldap_pvt_thread.h" /* Get the thread interface */
 #define LDAP_THREAD_IMPLEMENTATION
 #include "ldap_thr_debug.h"	 /* May rename the symbols defined below */
