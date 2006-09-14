@@ -61,6 +61,21 @@
 #define mkdir(a,b)	mkdir(a)
 #define S_IRGRP 0
 #define S_IWGRP 0
+#ifndef F_OK
+#define F_OK 0
+#endif
+#ifndef W_OK
+#define W_OK 2
+#endif
+#ifndef R_OK
+#define R_OK 4
+#endif
+#ifndef S_IRUSR
+#define S_IRUSR S_IREAD
+#endif
+#ifndef S_IWUSR
+#define S_IWUSR S_IWRITE
+#endif
 #endif
 
 #undef SERVICE_NAME
