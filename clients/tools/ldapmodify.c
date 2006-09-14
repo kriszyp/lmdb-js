@@ -42,6 +42,7 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+#include <ac/socket.h>
 #include <ac/time.h>
 
 #ifdef HAVE_SYS_STAT_H
