@@ -741,15 +741,17 @@ static int translucent_db_open(BackendDB *be) {
 **
 */
 
-static int translucent_db_close(BackendDB *be) {
+static int
+translucent_db_close( BackendDB *be )
+{
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	int rc = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_close\n", 0, 0, 0);
 
-	if ( ov ) {
-		rc = (ov->db.bd_info && ov->db.bd_info->bi_db_close) ? ov->db.bd_info->bi_db_close(&ov->db) : 0;
+	if ( ov && ov->db.bd_info && ov->db.bd_info->bi_db_close ) {
+		rc = ov->db.bd_info->bi_db_close(&ov->db);
 	}
 
 	return(rc);
@@ -761,7 +763,9 @@ static int translucent_db_close(BackendDB *be) {
 **
 */
 
-static int translucent_db_destroy(BackendDB *be) {
+static int
+translucent_db_destroy( BackendDB *be )
+{
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	int rc = 0;
@@ -769,7 +773,18 @@ static int translucent_db_destroy(BackendDB *be) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_close\n", 0, 0, 0);
 
 	if ( ov ) {
-		rc = (ov->db.bd_info && ov->db.bd_info->bi_db_destroy) ? ov->db.bd_info->bi_db_destroy(&ov->db) : 0;
+		/* cleanup stuff inherited from the original database... */
+		ov->db.be_suffix = NULL;
+		ov->db.be_nsuffix = NULL;
+		BER_BVZERO( &ov->db.be_rootdn );
+		BER_BVZERO( &ov->db.be_rootndn );
+		BER_BVZERO( &ov->db.be_rootpw );
+		/* FIXME: there might be more... */
+
+		if ( ov->db.be_private != NULL ) {
+			backend_destroy_one( &ov->db, 0 );
+		}
+
 		ch_free(ov);
 		on->on_bi.bi_private = NULL;
 	}
