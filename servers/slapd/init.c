@@ -169,6 +169,8 @@ slap_init( int mode, const char *name )
 		if( rc == 0 ) {
 			rc = backend_init( );
 		}
+		if ( rc )
+			return rc;
 
 		break;
 
