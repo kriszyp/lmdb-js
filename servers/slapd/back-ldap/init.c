@@ -164,7 +164,7 @@ ldap_back_db_open( BackendDB *be )
 	ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
 
 	slap_bindconf	sb = { 0 };
-	int		rc;
+	int		rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_back_db_open: URI=%s\n",
