@@ -41,6 +41,8 @@ ldap_back_open( BackendInfo	*bi )
 int
 ldap_back_initialize( BackendInfo *bi )
 {
+	int		rc;
+
 	bi->bi_flags =
 #ifdef LDAP_DYNAMIC_OBJECTS
 		/* this is set because all the support a proxy has to provide
@@ -59,7 +61,7 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_db_init = ldap_back_db_init;
 	bi->bi_db_config = config_generic_wrapper;
 	bi->bi_db_open = ldap_back_db_open;
-	bi->bi_db_close = 0;
+	bi->bi_db_close = ldap_back_db_close;
 	bi->bi_db_destroy = ldap_back_db_destroy;
 
 	bi->bi_op_bind = ldap_back_bind;
@@ -80,13 +82,15 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
 
-	if ( chain_initialize() ) {
-		return -1;
+	rc = chain_initialize();
+	if ( rc ) {
+		return rc;
 	}
 
 #ifdef SLAP_DISTPROC
-	if ( distproc_initialize() ) {
-		return -1;
+	rc = distproc_initialize();
+	if ( rc ) {
+		return rc;
 	}
 #endif
 
@@ -97,6 +101,7 @@ int
 ldap_back_db_init( Backend *be )
 {
 	ldapinfo_t	*li;
+	int		rc;
 
 	li = (ldapinfo_t *)ch_calloc( 1, sizeof( ldapinfo_t ) );
 	if ( li == NULL ) {
@@ -146,7 +151,9 @@ ldap_back_db_init( Backend *be )
 
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
-	return 0;
+	rc = ldap_back_monitor_db_init( be );
+
+	return rc;
 }
 
 int
@@ -199,9 +206,16 @@ ldap_back_db_open( BackendDB *be )
 		}
 	}
 
+	/* monitor setup */
+	rc = ldap_back_monitor_db_open( be );
+	if ( rc != 0 ) {
+		goto fail;
+	}
+
 	li->li_flags |= LDAP_BACK_F_ISOPEN;
 
-	return 0;
+fail:;
+	return rc;
 }
 
 void
@@ -226,9 +240,19 @@ ldap_back_conn_free( void *v_lc )
 }
 
 int
-ldap_back_db_destroy(
-    Backend	*be
-)
+ldap_back_db_close( Backend *be )
+{
+	int		rc = 0;
+
+	if ( be->be_private ) {
+		rc = ldap_back_monitor_db_close( be );
+	}
+
+	return rc;
+}
+
+int
+ldap_back_db_destroy( Backend *be )
 {
 	if ( be->be_private ) {
 		ldapinfo_t	*li = ( ldapinfo_t * )be->be_private;
@@ -302,6 +326,8 @@ ldap_back_db_destroy(
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_uri_mutex );
+
+		(void)ldap_back_monitor_db_destroy( be );
 	}
 
 	ch_free( be->be_private );

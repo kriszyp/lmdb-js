@@ -24,13 +24,11 @@
 LDAP_BEGIN_DECL
 
 extern BI_init			ldap_back_initialize;
-
 extern BI_open			ldap_back_open;
-extern BI_close			ldap_back_close;
-extern BI_destroy		ldap_back_destroy;
 
 extern BI_db_init		ldap_back_db_init;
 extern BI_db_open		ldap_back_db_open;
+extern BI_db_close		ldap_back_db_close;
 extern BI_db_destroy		ldap_back_db_destroy;
 
 extern BI_op_bind		ldap_back_bind;
@@ -96,6 +94,11 @@ extern int chain_initialize( void );
 #ifdef SLAP_DISTPROC
 extern int distproc_initialize( void );
 #endif
+
+extern int ldap_back_monitor_db_init( BackendDB *be );
+extern int ldap_back_monitor_db_open( BackendDB *be );
+extern int ldap_back_monitor_db_close( BackendDB *be );
+extern int ldap_back_monitor_db_destroy( BackendDB *be );
 
 extern LDAP_REBIND_PROC		ldap_back_default_rebind;
 extern LDAP_URLLIST_PROC	ldap_back_default_urllist;

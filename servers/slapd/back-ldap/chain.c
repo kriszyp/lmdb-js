@@ -27,9 +27,9 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "lutil.h"
 #include "slap.h"
 #include "back-ldap.h"
-
 #include "config.h"
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -110,7 +110,7 @@ typedef struct ldap_chain_t {
 
 static int ldap_chain_db_init_common( BackendDB	*be );
 static int ldap_chain_db_init_one( BackendDB *be );
-#define	ldap_chain_db_open_one(be)	(lback)->bi_db_open( (be) )
+static int ldap_chain_db_open_one( BackendDB *be );
 #define	ldap_chain_db_close_one(be)	(0)
 #define	ldap_chain_db_destroy_one(be)	(lback)->bi_db_destroy( (be) )
 
@@ -135,6 +135,8 @@ ldap_chain_search(
 	SlapReply	*rs,
 	BerVarray	ref,
 	int		depth );
+
+static slap_overinst ldapchain;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static int
@@ -716,7 +718,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
-	void		*private = op->o_bd->be_private;
+	BackendDB	db, *bd = op->o_bd;
 	ldap_chain_cb_t	lb = { 0 };
 	slap_callback	*sc = op->o_callback,
 			sc2 = { 0 };
@@ -771,6 +773,10 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	 *   d) what protocol scheme (e.g. only ldaps://)
 	 *   e) what ssf
 	 */
+
+	db = *op->o_bd;
+	SLAP_DBFLAGS( &db ) &= ~SLAP_DBFLAG_MONITORING;
+	op->o_bd = &db;
 
 	matched = rs->sr_matched;
 	rs->sr_matched = NULL;
@@ -925,7 +931,7 @@ dont_chain:;
 	rs->sr_type = sr_type;
 	rs->sr_matched = matched;
 	rs->sr_ref = ref;
-	op->o_bd->be_private = private;
+	op->o_bd = bd;
 	op->o_callback = sc;
 	op->o_ndn = ndn;
 
@@ -1099,14 +1105,18 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 	if ( lc->lc_common_li == NULL ) {
 		lc->lc_common_li = li;
 
-	} else if ( avl_insert( &lc->lc_lai.lai_tree, (caddr_t)li,
-		ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
-	{
-		Debug( LDAP_DEBUG_ANY, "slapd-chain: "
-			"database \"%s\" insert failed.\n",
-			e->e_name.bv_val, 0, 0 );
-		rc = LDAP_CONSTRAINT_VIOLATION;
-		goto done;
+	} else {
+		li->li_uri = ch_strdup( at->a_vals[ 0 ].bv_val );
+		value_add_one( &li->li_bvuri, &at->a_vals[ 0 ] );
+		if ( avl_insert( &lc->lc_lai.lai_tree, (caddr_t)li,
+			ldap_chain_uri_cmp, ldap_chain_uri_dup ) )
+		{
+			Debug( LDAP_DEBUG_ANY, "slapd-chain: "
+				"database \"%s\" insert failed.\n",
+				e->e_name.bv_val, 0, 0 );
+			rc = LDAP_CONSTRAINT_VIOLATION;
+			goto done;
+		}
 	}
 
 done:;
@@ -1431,11 +1441,17 @@ ldap_chain_db_init(
 	ldap_chain_t	*lc = NULL;
 
 	if ( lback == NULL ) {
+		static BackendInfo	lback2;
+
 		lback = backend_info( "ldap" );
 
 		if ( lback == NULL ) {
 			return 1;
 		}
+
+		lback2 = *lback;
+		lback2.bi_type = ldapchain.on_bi.bi_type;
+		lback = &lback2;
 	}
 
 	lc = ch_malloc( sizeof( ldap_chain_t ) );
@@ -1654,10 +1670,10 @@ ldap_chain_db_open(
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	slap_mask_t	monitoring;
+	int		rc = 0;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-	int	rc = 0;
-
 	rc = overlay_register_control( be, LDAP_CONTROL_X_CHAINING_BEHAVIOR );
 	if ( rc != 0 ) {
 		return rc;
@@ -1671,7 +1687,13 @@ ldap_chain_db_open(
 		be->be_private = be_private;
 	}
 
-	return ldap_chain_db_func( be, db_open );
+	/* filter out and restore monitoring */
+	monitoring = ( SLAP_DBFLAGS( be ) & SLAP_DBFLAG_MONITORING );
+	SLAP_DBFLAGS( be ) &= ~SLAP_DBFLAG_MONITORING;
+	rc = ldap_chain_db_func( be, db_open );
+	SLAP_DBFLAGS( be ) |= monitoring;
+
+	return rc;
 }
 
 static int
@@ -1711,17 +1733,18 @@ ldap_chain_db_init_common(
 {
 	BackendInfo	*bi = be->bd_info;
 	ldapinfo_t	*li;
-	int		t;
+	int		rc;
 
 	be->bd_info = lback;
 	be->be_private = NULL;
-	t = lback->bi_db_init( be );
-	if ( t != 0 ) {
-		return t;
+	rc = lback->bi_db_init( be );
+	if ( rc != 0 ) {
+		return rc;
 	}
 	li = (ldapinfo_t *)be->be_private;
 	li->li_urllist_f = NULL;
 	li->li_urllist_p = NULL;
+
 	be->bd_info = bi;
 
 	return 0;
@@ -1767,6 +1790,35 @@ ldap_chain_db_init_one(
 	be->bd_info = bi;
 
 	return 0;
+}
+
+static int
+ldap_chain_db_open_one(
+	BackendDB	*be )
+{
+#ifdef SLAPD_MONITOR
+	if ( SLAP_DBMONITORING( be ) ) {
+		ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
+
+		if ( li->li_uri == NULL ) {
+			ber_str2bv( "cn=Common Connections", 0, 1,
+				&li->li_monitor_info.lmi_rdn );
+
+		} else {
+			char		*ptr;
+
+			li->li_monitor_info.lmi_rdn.bv_len
+				= STRLENOF( "cn=" ) + strlen( li->li_uri );
+			ptr = li->li_monitor_info.lmi_rdn.bv_val
+				= ch_malloc( li->li_monitor_info.lmi_rdn.bv_len + 1 );
+			ptr = lutil_strcopy( ptr, "cn=" );
+			ptr = lutil_strcopy( ptr, li->li_uri );
+			ptr[ 0 ] = '\0';
+		}
+	}
+#endif /* SLAPD_MONITOR */
+
+	return lback->bi_db_open( be );
 }
 
 typedef struct ldap_chain_conn_apply_t {
@@ -1936,8 +1988,6 @@ ldap_chain_parse_ctrl(
 	return LDAP_SUCCESS;
 }
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-
-static slap_overinst ldapchain;
 
 int
 chain_initialize( void )

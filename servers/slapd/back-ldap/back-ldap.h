@@ -24,9 +24,25 @@
 #ifndef SLAPD_LDAP_H
 #define SLAPD_LDAP_H
 
+#include "../back-monitor/back-monitor.h"
+
 LDAP_BEGIN_DECL
 
 struct ldapinfo_t;
+
+/* stuff required for monitoring */
+typedef struct ldap_monitor_info_t {
+	monitor_subsys_t	lmi_mss;
+	struct ldapinfo_t	*lmi_li;
+
+	struct berval		lmi_rdn;
+	struct berval		lmi_nrdn;
+	monitor_callback_t	*lmi_cb;
+	struct berval		lmi_base;
+	int			lmi_scope;
+	struct berval		lmi_filter;
+	struct berval		lmi_more_filter;
+} ldap_monitor_info_t;
 
 typedef struct ldapconn_t {
 	Connection		*lc_conn;
@@ -253,6 +269,8 @@ typedef struct ldapinfo_t {
 	int		li_version;
 
 	ldap_avl_info_t	li_conninfo;
+
+	ldap_monitor_info_t	li_monitor_info;
 
 	sig_atomic_t		li_isquarantined;
 #define	LDAP_BACK_FQ_NO		(0)
