@@ -129,13 +129,19 @@ monitor_subsys_thread_init(
 			break;
 
 		case LDAP_PVT_THREAD_POOL_PARAM_STATE:
-			ldap_pvt_thread_pool_query( &connection_pool,
-				mt[ i ].param, (void *)&state );
-			ber_str2bv( state, 0, 0, &bv );
+			if ( ldap_pvt_thread_pool_query( &connection_pool,
+				mt[ i ].param, (void *)&state ) == 0 )
+			{
+				ber_str2bv( state, 0, 0, &bv );
+
+			} else {
+				BER_BVSTR( &bv, "unknown" );
+			}
 			break;
 
 		default:
-			ldap_pvt_thread_pool_query( &connection_pool,
+			/* NOTE: in case of error, it'll be set to -1 */
+			(void)ldap_pvt_thread_pool_query( &connection_pool,
 				mt[ i ].param, (void *)&count );
 			bv.bv_val = buf;
 			bv.bv_len = snprintf( buf, sizeof( buf ), "%d", count );
@@ -276,25 +282,27 @@ monitor_subsys_thread_update(
 		if ( a == NULL ) {
 			return rs->sr_err = LDAP_OTHER;
 		}
-		ldap_pvt_thread_pool_query( &connection_pool,
-			mt[ i ].param, (void *)&state );
-		ber_str2bv( state, 0, 0, &bv );
-		ber_bvreplace( &a->a_vals[ 0 ], &bv );
+		if ( ldap_pvt_thread_pool_query( &connection_pool,
+			mt[ i ].param, (void *)&state ) == 0 )
+		{
+			ber_str2bv( state, 0, 0, &bv );
+			ber_bvreplace( &a->a_vals[ 0 ], &bv );
+		}
 		break;
 
 	default:
 		if ( a == NULL ) {
 			return rs->sr_err = LDAP_OTHER;
 		}
-		ldap_pvt_thread_pool_query( &connection_pool,
-			mt[ i ].param, (void *)&count );
-		bv.bv_val = buf;
-		bv.bv_len = snprintf( buf, sizeof( buf ), "%d", count );
-		if ( bv.bv_len >= sizeof( buf ) ) {
-			/* FIXME? */
-			break;
+		if ( ldap_pvt_thread_pool_query( &connection_pool,
+			mt[ i ].param, (void *)&count ) == 0 )
+		{
+			bv.bv_val = buf;
+			bv.bv_len = snprintf( buf, sizeof( buf ), "%d", count );
+			if ( bv.bv_len < sizeof( buf ) ) {
+				ber_bvreplace( &a->a_vals[ 0 ], &bv );
+			}
 		}
-		ber_bvreplace( &a->a_vals[ 0 ], &bv );
 		break;
 	}
 
