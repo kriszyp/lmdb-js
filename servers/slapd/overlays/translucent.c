@@ -364,11 +364,10 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 					m->sml_desc->ad_cname.bv_val, 0, 0);
 				for(mm = op->orm_modlist; mm->sml_next != m; mm = mm->sml_next);
 				mm->sml_next = m->sml_next;
-				mm = m;
-				m = m->sml_next;
-				mm->sml_next = NULL;		/* hack */
-				slap_mods_free(mm, 1);
-				if(m) continue;
+				m->sml_next = NULL;
+				slap_mods_free(m, 1);
+				m = mm;
+				continue;
 			}
 			m->sml_op = LDAP_MOD_ADD;
 		}
