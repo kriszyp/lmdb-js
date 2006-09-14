@@ -386,29 +386,113 @@ oc_add_sups(
 	return 0;
 }
 
+static void
+oc_delete_names( ObjectClass *oc )
+{
+	char			**names = oc->soc_names;
+
+	while (*names) {
+		struct oindexrec	tmpoir, *oir;
+
+		ber_str2bv( *names, 0, 0, &tmpoir.oir_name );
+		tmpoir.oir_oc = oc;
+		oir = (struct oindexrec *)avl_delete( &oc_index,
+			(caddr_t)&tmpoir, oc_index_cmp );
+		assert( oir != NULL );
+		ldap_memfree( oir );
+		names++;
+	}
+}
+
+/* Mark the ObjectClass as deleted, remove from list, and remove all its
+ * names from the AVL tree. Leave the OID in the tree.
+ */
+int
+oc_delete( ObjectClass *oc )
+{
+	oc->soc_flags |= SLAP_OC_DELETED;
+
+	LDAP_STAILQ_REMOVE(&oc_list,oc,slap_object_class,soc_next);
+
+	oc_delete_names( oc );
+
+	return 0;
+}
+
+static void
+oc_clean( ObjectClass *o )
+{
+	if (o->soc_sups) ldap_memfree(o->soc_sups);
+	if (o->soc_required) ldap_memfree(o->soc_required);
+	if (o->soc_allowed) ldap_memfree(o->soc_allowed);
+	if (o->soc_oidmacro) ldap_memfree(o->soc_oidmacro);
+}
+
+static void
+oc_destroy_one( void *v )
+{
+	struct oindexrec *oir = v;
+	ObjectClass *o = oir->oir_oc;
+
+	oc_clean( o );
+	ldap_objectclass_free((LDAPObjectClass *)o);
+	ldap_memfree(oir);
+}
+
 void
 oc_destroy( void )
 {
 	ObjectClass *o;
 
-	avl_free(oc_index, ldap_memfree);
 	while( !LDAP_STAILQ_EMPTY(&oc_list) ) {
 		o = LDAP_STAILQ_FIRST(&oc_list);
 		LDAP_STAILQ_REMOVE_HEAD(&oc_list, soc_next);
 
-		if (o->soc_sups) ldap_memfree(o->soc_sups);
-		if (o->soc_required) ldap_memfree(o->soc_required);
-		if (o->soc_allowed) ldap_memfree(o->soc_allowed);
-		if (o->soc_oidmacro) ldap_memfree(o->soc_oidmacro);
-		ldap_objectclass_free((LDAPObjectClass *)o);
+		oc_delete_names( o );
 	}
 	
+	avl_free( oc_index, oc_destroy_one );
+
 	while( !LDAP_STAILQ_EMPTY(&oc_undef_list) ) {
 		o = LDAP_STAILQ_FIRST(&oc_undef_list);
 		LDAP_STAILQ_REMOVE_HEAD(&oc_undef_list, soc_next);
 
 		ch_free( (ObjectClass *)o );
 	}
+}
+
+int
+oc_start( ObjectClass **oc )
+{
+	assert( oc != NULL );
+
+	*oc = LDAP_STAILQ_FIRST(&oc_list);
+
+	return (*oc != NULL);
+}
+
+int
+oc_next( ObjectClass **oc )
+{
+	assert( oc != NULL );
+
+#if 1	/* pedantic check */
+	{
+		ObjectClass *tmp = NULL;
+
+		LDAP_STAILQ_FOREACH(tmp,&oc_list,soc_next) {
+			if ( tmp == *oc ) {
+				break;
+			}
+		}
+
+		assert( tmp != NULL );
+	}
+#endif
+
+	*oc = LDAP_STAILQ_NEXT(*oc,soc_next);
+
+	return (*oc != NULL);
 }
 
 /*
@@ -462,38 +546,68 @@ oc_check_dup(
 	return SLAP_SCHERR_CLASS_DUP;
 }
 
+static struct oindexrec *oir_old;
+
+static int
+oc_dup_error( void *left, void *right )
+{
+	oir_old = left;
+	return -1;
+}
+
 static int
 oc_insert(
-    ObjectClass		*soc,
+    ObjectClass		**roc,
+	ObjectClass		*prev,
     const char		**err )
 {
 	struct oindexrec	*oir;
 	char			**names;
+	ObjectClass		*soc = *roc;
 
 	if ( soc->soc_oid ) {
 		oir = (struct oindexrec *)
 			ch_calloc( 1, sizeof(struct oindexrec) );
-		oir->oir_name.bv_val = soc->soc_oid;
-		oir->oir_name.bv_len = strlen( soc->soc_oid );
+		ber_str2bv( soc->soc_oid, 0, 0, &oir->oir_name );
 		oir->oir_oc = soc;
-
-		assert( oir->oir_name.bv_val != NULL );
-		assert( oir->oir_oc != NULL );
+		oir_old = NULL;
 
 		if ( avl_insert( &oc_index, (caddr_t) oir,
-			oc_index_cmp, avl_dup_error ) )
+			oc_index_cmp, oc_dup_error ) )
 		{
 			ObjectClass	*old_soc;
 			int		rc;
 
 			*err = soc->soc_oid;
 
-			old_soc = oc_bvfind( &oir->oir_name );
-			assert( old_soc != NULL );
-			rc = oc_check_dup( old_soc, soc );
+			assert( oir_old != NULL );
+			old_soc = oir_old->oir_oc;
 
-			ldap_memfree( oir );
-			return rc;
+			/* replacing a deleted definition? */
+			if ( old_soc->soc_flags & SLAP_OC_DELETED ) {
+				ObjectClass tmp;
+
+				/* Keep old oid, free new oid;
+				 * Keep new everything else, free old
+				 */
+				tmp = *old_soc;
+				*old_soc = *soc;
+				old_soc->soc_oid = tmp.soc_oid;
+				tmp.soc_oid = soc->soc_oid;
+				*soc = tmp;
+
+				oc_clean( soc );
+				oc_destroy_one( oir );
+
+				oir = oir_old;
+				soc = old_soc;
+				*roc = soc;
+			} else {
+				rc = oc_check_dup( old_soc, soc );
+
+				ldap_memfree( oir );
+				return rc;
+			}
 		}
 
 		/* FIX: temporal consistency check */
@@ -567,6 +681,7 @@ oc_add(
     LDAPObjectClass	*oc,
 	int user,
 	ObjectClass		**rsoc,
+	ObjectClass		*prev,
     const char		**err )
 {
 	ObjectClass	*soc;
@@ -646,7 +761,7 @@ oc_add(
 		soc->soc_flags |= SLAP_OC_HARDCODE;
 	}
 
-	code = oc_insert(soc,err);
+	code = oc_insert(&soc,prev,err);
 done:;
 	if ( code != 0 ) {
 		if ( soc->soc_sups ) {
@@ -770,7 +885,7 @@ register_oc( char *def, ObjectClass **soc, int dupok )
 			def, ldap_scherr2str(code), err );
 		return code;
 	}
-	code = oc_add(oc,0,NULL,&err);
+	code = oc_add(oc,0,NULL,NULL,&err);
 	if ( code && ( code != SLAP_SCHERR_CLASS_DUP || !dupok )) {
 		Debug( LDAP_DEBUG_ANY,
 			"register_oc: objectclass \"%s\": %s, %s\n",

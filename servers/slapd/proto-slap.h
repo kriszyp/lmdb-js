@@ -217,7 +217,7 @@ LDAP_SLAPD_F (int) at_delete_from_list LDAP_P((
 LDAP_SLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) at_add LDAP_P((
 	LDAPAttributeType *at, int user,
-	AttributeType **sat, const char **err ));
+	AttributeType **sat, AttributeType *prev, const char **err ));
 LDAP_SLAPD_F (void) at_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) is_at_subtype LDAP_P((
@@ -1187,6 +1187,7 @@ LDAP_SLAPD_F (int) oc_add LDAP_P((
 	LDAPObjectClass *oc,
 	int user,
 	ObjectClass **soc,
+	ObjectClass *prev,
 	const char **err));
 LDAP_SLAPD_F (void) oc_destroy LDAP_P(( void ));
 
@@ -1238,6 +1239,10 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	 : is_entry_objectclass((e), slap_schema.si_oc_syncConsumerSubentry, SLAP_OCF_SET_FLAGS))
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
+
+LDAP_SLAPD_F (int) oc_start LDAP_P(( ObjectClass **at ));
+LDAP_SLAPD_F (int) oc_next LDAP_P(( ObjectClass **at ));
+
 LDAP_SLAPD_F (void) oc_unparse LDAP_P((
 	BerVarray *bva, ObjectClass *start, ObjectClass *end, int system ));
 
@@ -1565,10 +1570,10 @@ LDAP_SLAPD_F (int) parse_cr LDAP_P((
 	ContentRule **scr ));
 LDAP_SLAPD_F (int) parse_oc LDAP_P((
 	const char *fname, int lineno, char *line, char **argv,
-	ObjectClass **soc ));
+	ObjectClass **soc, ObjectClass *prev ));
 LDAP_SLAPD_F (int) parse_at LDAP_P((
 	const char *fname, int lineno, char *line, char **argv,
-	AttributeType **sat ));
+	AttributeType **sat, AttributeType *prev ));
 LDAP_SLAPD_F (char *) scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
 LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
 	char delim ));

@@ -662,6 +662,7 @@ typedef struct slap_attribute_type {
 #define	SLAP_AT_ORDERED			0x0003U /* value has order index */
 
 #define	SLAP_AT_HARDCODE	0x10000U	/* hardcoded schema */
+#define	SLAP_AT_DELETED		0x20000U
 
 	slap_mask_t					sat_flags;
 
@@ -744,6 +745,7 @@ typedef struct slap_object_class {
 #define SLAP_OC_HIDE		0x8000
 #endif
 #define	SLAP_OC_HARDCODE	0x10000U	/* This is hardcoded schema */
+#define	SLAP_OC_DELETED		0x20000U
 
 /*
  * DIT content rule
