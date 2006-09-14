@@ -464,23 +464,110 @@ ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads
 }
 
 int
-ldap_pvt_thread_pool_backload ( ldap_pvt_thread_pool_t *tpool )
+ldap_pvt_thread_pool_query ( ldap_pvt_thread_pool_t *tpool, ldap_pvt_thread_pool_param_t param, void *value )
 {
-	struct ldap_int_thread_pool_s *pool;
-	int count;
+	struct ldap_int_thread_pool_s	*pool;
+	int				count = -1;
 
-	if (tpool == NULL)
-		return(-1);
+	if ( tpool == NULL || value == NULL ) {
+		return -1;
+	}
 
 	pool = *tpool;
 
-	if (pool == NULL)
-		return(0);
+	if ( pool == NULL ) {
+		return 0;
+	}
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-	count = pool->ltp_pending_count + pool->ltp_active_count;
-	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-	return(count);
+	switch ( param ) {
+	case LDAP_PVT_THREAD_POOL_PARAM_MAX:
+		count = pool->ltp_max_count;
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_MAX_PENDING:
+		count = pool->ltp_max_pending;
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_OPEN:
+		count = pool->ltp_open_count;
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_STARTING:
+		count = pool->ltp_starting;
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_ACTIVE:
+		count = pool->ltp_active_count;
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_PENDING:
+		count = pool->ltp_pending_count;
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD:
+		count = pool->ltp_pending_count + pool->ltp_active_count;
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_ACTIVE_MAX:
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_PENDING_MAX:
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD_MAX:
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_STATE: {
+		static struct {
+			char				*name;
+			ldap_int_thread_pool_state_t	state;
+		}		str2state[] = {
+			{ "running",	LDAP_INT_THREAD_POOL_RUNNING },
+			{ "finishing",	LDAP_INT_THREAD_POOL_FINISHING },
+			{ "stopping",	LDAP_INT_THREAD_POOL_STOPPING },
+			{ "pausing",	LDAP_INT_THREAD_POOL_PAUSING },
+			{ NULL }
+		};
+		int		i;
+
+		for ( i = 0; str2state[ i ].name != NULL; i++ ) {
+			if ( str2state[ i ].state == pool->ltp_state ) {
+				break;
+			}
+		}
+		*((char **)value) = str2state[ i ].name;
+		if ( str2state[ i ].name != NULL ) {
+			count = -2;
+		}
+		} break;
+	}
+	ldap_pvt_thread_mutex_unlock( &pool->ltp_mutex );
+
+	if ( count > -1 ) {
+		*((int *)value) = count;
+	}
+
+	return ( count == -1 ? -1 : 0 );
+}
+
+/*
+ * wrapper for ldap_pvt_thread_pool_query(), left around
+ * for backwards compatibility
+ */
+int
+ldap_pvt_thread_pool_backload ( ldap_pvt_thread_pool_t *tpool )
+{
+	int	rc, count;
+
+	rc = ldap_pvt_thread_pool_query( tpool,
+		LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD, (void *)&count );
+
+	if ( rc == 0 ) {
+		return count;
+	}
+
+	return rc;
 }
 
 int

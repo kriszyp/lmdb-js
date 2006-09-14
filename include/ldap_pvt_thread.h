@@ -212,6 +212,26 @@ ldap_pvt_thread_pool_maxthreads LDAP_P((
 	ldap_pvt_thread_pool_t *pool,
 	int max_threads ));
 
+typedef enum {
+	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN = -1,
+	LDAP_PVT_THREAD_POOL_PARAM_MAX,
+	LDAP_PVT_THREAD_POOL_PARAM_MAX_PENDING,
+	LDAP_PVT_THREAD_POOL_PARAM_OPEN,
+	LDAP_PVT_THREAD_POOL_PARAM_STARTING,
+	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE,
+	LDAP_PVT_THREAD_POOL_PARAM_PENDING,
+	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD,
+	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE_MAX,
+	LDAP_PVT_THREAD_POOL_PARAM_PENDING_MAX,
+	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD_MAX,
+	LDAP_PVT_THREAD_POOL_PARAM_STATE
+} ldap_pvt_thread_pool_param_t;
+
+LDAP_F( int )
+ldap_pvt_thread_pool_query LDAP_P((
+	ldap_pvt_thread_pool_t *pool,
+	ldap_pvt_thread_pool_param_t param, void *value ));
+
 LDAP_F( int )
 ldap_pvt_thread_pool_backload LDAP_P((
 	ldap_pvt_thread_pool_t *pool ));
