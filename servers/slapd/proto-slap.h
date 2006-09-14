@@ -230,6 +230,7 @@ LDAP_SLAPD_F (int) is_at_syntax LDAP_P((
 
 LDAP_SLAPD_F (int) at_start LDAP_P(( AttributeType **at ));
 LDAP_SLAPD_F (int) at_next LDAP_P(( AttributeType **at ));
+LDAP_SLAPD_F (void) at_delete LDAP_P(( AttributeType *at ));
 
 LDAP_SLAPD_F (void) at_unparse LDAP_P((
 	BerVarray *bva, AttributeType *start, AttributeType *end, int system ));
@@ -1240,8 +1241,9 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 
-LDAP_SLAPD_F (int) oc_start LDAP_P(( ObjectClass **at ));
-LDAP_SLAPD_F (int) oc_next LDAP_P(( ObjectClass **at ));
+LDAP_SLAPD_F (int) oc_start LDAP_P(( ObjectClass **oc ));
+LDAP_SLAPD_F (int) oc_next LDAP_P(( ObjectClass **oc ));
+LDAP_SLAPD_F (void) oc_delete LDAP_P(( ObjectClass *oc ));
 
 LDAP_SLAPD_F (void) oc_unparse LDAP_P((
 	BerVarray *bva, ObjectClass *start, ObjectClass *end, int system ));

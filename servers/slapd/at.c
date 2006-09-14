@@ -229,7 +229,7 @@ at_delete_names( AttributeType *at )
 /* Mark the attribute as deleted, remove from list, and remove all its
  * names from the AVL tree. Leave the OID in the tree.
  */
-int
+void
 at_delete( AttributeType *at )
 {
 	at->sat_flags |= SLAP_AT_DELETED;
@@ -237,8 +237,6 @@ at_delete( AttributeType *at )
 	LDAP_STAILQ_REMOVE(&attr_list,at,slap_attribute_type,sat_next);
 
 	at_delete_names( at );
-
-	return 0;
 }
 
 static void

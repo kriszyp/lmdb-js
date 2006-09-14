@@ -407,7 +407,7 @@ oc_delete_names( ObjectClass *oc )
 /* Mark the ObjectClass as deleted, remove from list, and remove all its
  * names from the AVL tree. Leave the OID in the tree.
  */
-int
+void
 oc_delete( ObjectClass *oc )
 {
 	oc->soc_flags |= SLAP_OC_DELETED;
@@ -415,8 +415,6 @@ oc_delete( ObjectClass *oc )
 	LDAP_STAILQ_REMOVE(&oc_list,oc,slap_object_class,soc_next);
 
 	oc_delete_names( oc );
-
-	return 0;
 }
 
 static void
