@@ -151,7 +151,9 @@ ldap_back_db_init( Backend *be )
 
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
+#if 0	/* disable by now */
 	rc = ldap_back_monitor_db_init( be );
+#endif
 
 	return rc;
 }
@@ -206,11 +208,13 @@ ldap_back_db_open( BackendDB *be )
 		}
 	}
 
+#if 0	/* disable by now */
 	/* monitor setup */
 	rc = ldap_back_monitor_db_open( be );
 	if ( rc != 0 ) {
 		goto fail;
 	}
+#endif
 
 	li->li_flags |= LDAP_BACK_F_ISOPEN;
 
@@ -244,9 +248,11 @@ ldap_back_db_close( Backend *be )
 {
 	int		rc = 0;
 
+#if 0	/* disable by now */
 	if ( be->be_private ) {
 		rc = ldap_back_monitor_db_close( be );
 	}
+#endif
 
 	return rc;
 }
@@ -256,6 +262,10 @@ ldap_back_db_destroy( Backend *be )
 {
 	if ( be->be_private ) {
 		ldapinfo_t	*li = ( ldapinfo_t * )be->be_private;
+
+#if 0	/* disable by now */
+		(void)ldap_back_monitor_db_destroy( be );
+#endif
 
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
@@ -326,8 +336,6 @@ ldap_back_db_destroy( Backend *be )
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_uri_mutex );
-
-		(void)ldap_back_monitor_db_destroy( be );
 	}
 
 	ch_free( be->be_private );
