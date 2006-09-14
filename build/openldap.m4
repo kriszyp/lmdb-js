@@ -1167,7 +1167,7 @@ AC_DEFUN([OL_SYS_ERRLIST],
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
-#ifdef WINNT
+#ifdef _WIN32
 #include <stdlib.h>
 #endif ]], [[char *c = (char *) *sys_errlist]])],[ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes],[ol_cv_dcl_sys_errlist=no])])
