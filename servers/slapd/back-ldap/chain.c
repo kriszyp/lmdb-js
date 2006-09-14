@@ -1796,7 +1796,6 @@ static int
 ldap_chain_db_open_one(
 	BackendDB	*be )
 {
-#ifdef SLAPD_MONITOR
 	if ( SLAP_DBMONITORING( be ) ) {
 		ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
 
@@ -1816,7 +1815,6 @@ ldap_chain_db_open_one(
 			ptr[ 0 ] = '\0';
 		}
 	}
-#endif /* SLAPD_MONITOR */
 
 	return lback->bi_db_open( be );
 }
