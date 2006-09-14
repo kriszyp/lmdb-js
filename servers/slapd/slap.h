@@ -979,16 +979,10 @@ typedef struct slap_mr_assertion {
 typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
 #define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
-#define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
-#define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
-#define SLAPD_FILTER_DN_CHILDREN	((ber_tag_t) -4)
 
 	union f_un_u {
 		/* precomputed result */
 		ber_int_t f_un_result;
-
-		/* DN */
-		struct berval *f_un_dn;
 
 		/* present */
 		AttributeDescription *f_un_desc;
@@ -1002,7 +996,6 @@ typedef struct slap_filter {
 		/* matching rule assertion */
 		MatchingRuleAssertion *f_un_mra;
 
-#define f_dn			f_un.f_un_dn
 #define f_desc			f_un.f_un_desc
 #define f_ava			f_un.f_un_ava
 #define f_av_desc		f_un.f_un_ava->aa_desc
