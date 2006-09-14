@@ -1114,6 +1114,33 @@ config_generic(ConfigArgs *c) {
 			if ( ce->ce_parent->ce_type == Cft_Global )
 				return 1;
 			}
+			cfn = c->private;
+			if ( c->valx < 0 ) {
+				ObjectClass *oc;
+
+				for( oc = cfn->c_oc_head; oc; oc_next( &oc )) {
+					oc_delete( oc );
+					if ( oc  == cfn->c_oc_tail )
+						break;
+				}
+				cfn->c_oc_head = cfn->c_oc_tail = NULL;
+			} else {
+				ObjectClass *oc, *prev = NULL;
+				int i;
+
+				for ( i=0, oc=cfn->c_oc_head; i<c->valx; i++) {
+					prev = oc;
+					oc_next( &oc );
+				}
+				oc_delete( oc );
+				if ( cfn->c_oc_tail == oc ) {
+					cfn->c_oc_tail = prev;
+				}
+				if ( cfn->c_oc_head == oc ) {
+					oc_next( &oc );
+					cfn->c_oc_head = oc;
+				}
+			}
 			break;
 
 		case CFG_ATTR: {
