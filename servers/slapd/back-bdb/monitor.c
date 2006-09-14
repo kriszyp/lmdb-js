@@ -173,6 +173,8 @@ bdb_monitor_free(
 
 	int		i, rc;
 
+	/* NOTE: if slap_shutdown != 0, priv might have already been freed */
+
 	/* Remove objectClass */
 	mod.sm_op = LDAP_MOD_DELETE;
 	mod.sm_desc = slap_schema.si_ad_objectClass;
@@ -199,23 +201,22 @@ bdb_monitor_free(
 /*
  * call from within bdb_initialize()
  */
-int
+static int
 bdb_monitor_initialize( void )
 {
 	int		i, code;
-	BackendInfo *bi;
 
 	static int	bdb_monitor_initialized = 0;
 
-	bi = backend_info("monitor");
-	if ( !bi )
+	if ( backend_info( "monitor" ) == NULL ) {
 		return -1;
-
-	/* register schema here */
+	}
 
 	if ( bdb_monitor_initialized++ ) {
 		return 0;
 	}
+
+	/* register schema here */
 
 	for ( i = 0; s_oid[ i ].name; i++ ) {
 		char	*argv[ 3 ];
@@ -258,9 +259,10 @@ bdb_monitor_initialize( void )
  * call from within bdb_db_init()
  */
 int
-bdb_monitor_init( BackendDB *be )
+bdb_monitor_db_init( BackendDB *be )
 {
 	if ( bdb_monitor_initialize() == LDAP_SUCCESS ) {
+		/* monitoring in back-bdb is on by default */
 		SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_MONITORING;
 	}
 
@@ -271,7 +273,7 @@ bdb_monitor_init( BackendDB *be )
  * call from within bdb_db_open()
  */
 int
-bdb_monitor_open( BackendDB *be )
+bdb_monitor_db_open( BackendDB *be )
 {
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 	Attribute		*a, *next;
@@ -279,20 +281,19 @@ bdb_monitor_open( BackendDB *be )
 	struct berval		suffix, *filter, *base;
 	char			*ptr;
 	int			rc = 0;
-	monitor_extra_t *mbe;
+	BackendInfo		*mi;
+	monitor_extra_t		*mbe;
 
 	if ( !SLAP_DBMONITORING( be ) ) {
 		return 0;
 	}
 
-	{
-		BackendInfo *mi = backend_info( "monitor" );
-		if ( !mi || !mi->bi_extra ) {
-			SLAP_DBFLAGS( be ) ^= SLAP_DBFLAG_MONITORING;
-			return 0;
-		}
-		mbe = mi->bi_extra;
+	mi = backend_info( "monitor" );
+	if ( !mi || !mi->bi_extra ) {
+		SLAP_DBFLAGS( be ) ^= SLAP_DBFLAG_MONITORING;
+		return 0;
 	}
+	mbe = mi->bi_extra;
 
 	/* don't bother if monitor is not configured */
 	if ( !mbe->is_configured() ) {
@@ -422,7 +423,9 @@ bdb_monitor_open( BackendDB *be )
 
 	cb = ch_calloc( sizeof( monitor_callback_t ), 1 );
 	cb->mc_update = bdb_monitor_update;
+#if 0	/* uncomment if required */
 	cb->mc_modify = bdb_monitor_modify;
+#endif
 	cb->mc_free = bdb_monitor_free;
 	cb->mc_private = (void *)bdb;
 
@@ -463,22 +466,22 @@ cleanup:;
  * call from within bdb_db_close()
  */
 int
-bdb_monitor_close( BackendDB *be )
+bdb_monitor_db_close( BackendDB *be )
 {
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 
 	if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
-		BackendInfo *mi = backend_info( "monitor" );
-		monitor_extra_t *mbe;
+		BackendInfo		*mi = backend_info( "monitor" );
+		monitor_extra_t		*mbe;
 
-		if ( !mi || !mi->bi_extra )
-			return 0;
-		mbe = mi->bi_extra;
-		mbe->unregister_entry_callback( NULL,
-			(monitor_callback_t *)bdb->bi_monitor.bdm_cb,
-			&bdb->bi_monitor.bdm_nbase,
-			bdb->bi_monitor.bdm_scope,
-			&bdb->bi_monitor.bdm_filter );
+		if ( mi && &mi->bi_extra ) {
+			mbe = mi->bi_extra;
+			mbe->unregister_entry_callback( NULL,
+				(monitor_callback_t *)bdb->bi_monitor.bdm_cb,
+				&bdb->bi_monitor.bdm_nbase,
+				bdb->bi_monitor.bdm_scope,
+				&bdb->bi_monitor.bdm_filter );
+		}
 
 		if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
 			ch_free( bdb->bi_monitor.bdm_filter.bv_val );
@@ -494,7 +497,7 @@ bdb_monitor_close( BackendDB *be )
  * call from within bdb_db_destroy()
  */
 int
-bdb_monitor_destroy( BackendDB *be )
+bdb_monitor_db_destroy( BackendDB *be )
 {
 	return 0;
 }

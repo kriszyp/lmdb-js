@@ -429,11 +429,10 @@ int bdb_modify_internal(
 /*
  * monitor.c
  */
-int bdb_monitor_initialize( void );
-int bdb_monitor_init( BackendDB *be );
-int bdb_monitor_open( BackendDB *be );
-int bdb_monitor_close( BackendDB *be );
-int bdb_monitor_destroy( BackendDB *be );
+int bdb_monitor_db_init( BackendDB *be );
+int bdb_monitor_db_open( BackendDB *be );
+int bdb_monitor_db_close( BackendDB *be );
+int bdb_monitor_db_destroy( BackendDB *be );
 
 /*
  * cache.c

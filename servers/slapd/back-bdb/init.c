@@ -81,7 +81,7 @@ bdb_db_init( BackendDB *be )
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
-	rc = bdb_monitor_init( be );
+	rc = bdb_monitor_db_init( be );
 
 	return rc;
 }
@@ -426,7 +426,7 @@ bdb_db_open( BackendDB *be )
 	}
 
 	/* monitor setup */
-	rc = bdb_monitor_open( be );
+	rc = bdb_monitor_db_open( be );
 	if ( rc != 0 ) {
 		goto fail;
 	}
@@ -451,7 +451,7 @@ bdb_db_close( BackendDB *be )
 	bdb_idl_cache_entry_t *entry, *next_entry;
 
 	/* monitor handling */
-	(void)bdb_monitor_close( be );
+	(void)bdb_monitor_db_close( be );
 
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
@@ -530,6 +530,9 @@ static int
 bdb_db_destroy( BackendDB *be )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+
+	/* monitor handling */
+	(void)bdb_monitor_db_close( be );
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );
