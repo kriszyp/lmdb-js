@@ -295,8 +295,8 @@ static ConfigOCs ldapocs[] = {
 		"NAME 'olcLDAPConfig' "
 		"DESC 'LDAP backend configuration' "
 		"SUP olcDatabaseConfig "
-		"MUST olcDbURI "
-		"MAY ( olcDbStartTLS "
+		"MAY ( olcDbURI "
+			"$ olcDbStartTLS "
 			"$ olcDbACLAuthcDn "
 			"$ olcDbACLPasswd "
 			"$ olcDbACLBind "
@@ -715,10 +715,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 		switch( c->type ) {
 		case LDAP_BACK_CFG_URI:
 			if ( li->li_uri != NULL ) {
-				struct berval	bv;
+				struct berval	bv, bv2;
 
 				ber_str2bv( li->li_uri, 0, 0, &bv );
-				value_add_one( &c->rvalue_vals, &bv );
+				bv2.bv_len = bv.bv_len + STRLENOF( "\"\"" );
+				bv2.bv_val = ch_malloc( bv2.bv_len + 1 );
+				snprintf( bv2.bv_val, bv2.bv_len + 1,
+					"\"%s\"", bv.bv_val );
+				ber_bvarray_add( &c->rvalue_vals, &bv2 );
 
 			} else {
 				rc = 1;
