@@ -502,10 +502,11 @@ monitor_back_register_entry_parent(
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_register_entry_parent(\"\"): "
-				"base=\"%s\" scope=%d filter=\"%s\": "
+				"base=\"%s\" scope=%s filter=\"%s\": "
 				"unable to find entry\n",
 				nbase->bv_val ? nbase->bv_val : "\"\"",
-				scope, filter->bv_val );
+				ldap_pvt_scope2str( scope ),
+				filter->bv_val );
 			return -1;
 		}
 
@@ -869,11 +870,12 @@ monitor_back_register_entry_attrs(
 
 				snprintf( buf, sizeof( buf ),
 					"monitor_back_register_entry_%s(\"\"): "
-					"base=\"%s\" scope=%d filter=\"%s\": "
+					"base=\"%s\" scope=%s filter=\"%s\": "
 					"unable to find entry\n",
 					fname,
 					nbase->bv_val ? nbase->bv_val : "\"\"",
-					scope, filter->bv_val );
+					ldap_pvt_scope2str( scope ),
+					filter->bv_val );
 
 				/* entry does not exist */
 				Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
