@@ -2128,8 +2128,7 @@ pcache_db_config(
 
 static int
 pcache_db_init(
-	BackendDB *be
-)
+	BackendDB *be )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm;
@@ -2171,8 +2170,7 @@ pcache_db_init(
 
 static int
 pcache_db_open(
-	BackendDB *be
-)
+	BackendDB *be )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager	*cm = on->on_bi.bi_private;
@@ -2212,6 +2210,13 @@ pcache_db_open(
 	cm->db.be_limits = be->be_limits;
 	cm->db.be_acl = be->be_acl;
 	cm->db.be_dfltaccess = be->be_dfltaccess;
+
+	if ( SLAP_DBMONITORING( be ) ) {
+		SLAP_DBFLAGS( &cm->db ) |= SLAP_DBFLAG_MONITORING;
+
+	} else {
+		SLAP_DBFLAGS( &cm->db ) &= ~SLAP_DBFLAG_MONITORING;
+	}
 
 	rc = backend_startup_one( &cm->db );
 
