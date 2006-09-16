@@ -791,7 +791,10 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	char textbuf[SLAP_TEXT_BUFLEN];
 
 	Debug( LDAP_DEBUG_TRACE, "ldif_back_add: \"%s\"\n", dn.bv_val, 0, 0);
-	slap_add_opattrs( op, &rs->sr_text, textbuf, sizeof( textbuf ), 1 );
+
+	rs->sr_err = slap_add_opattrs( op,
+		&rs->sr_text, textbuf, sizeof( textbuf ), 1 );
+	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
 
 	rs->sr_err = entry_schema_check(op, e, NULL, 0,
 		&rs->sr_text, textbuf, sizeof( textbuf ) );
