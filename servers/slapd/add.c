@@ -639,10 +639,16 @@ int slap_add_opattrs(
 		if ( oc ) {
 			rc = structural_class( oc->a_vals, &tmp, NULL, text,
 				textbuf, textlen );
-			if( rc != LDAP_SUCCESS ) return rc;
+			if( rc == LDAP_SUCCESS ) {
+				attr_merge_one( op->ora_e,
+					slap_schema.si_ad_structuralObjectClass,
+					&tmp, NULL );
 
-			attr_merge_one( op->ora_e, slap_schema.si_ad_structuralObjectClass,
-				&tmp, NULL );
+			} else if ( !SLAP_NO_SCHEMA_CHECK( op->o_bd ) &&
+				!get_no_schema_check( op ) )
+			{
+				return rc;
+			}
 		}
 	}
 
@@ -736,5 +742,6 @@ int slap_add_opattrs(
 				slap_schema.si_ad_modifyTimestamp, &timestamp, NULL );
 		}
 	}
+
 	return LDAP_SUCCESS;
 }
