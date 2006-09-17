@@ -548,7 +548,7 @@ static struct slap_daemon {
 # define SLAP_EVENT_CLR_READ(fd) 	FD_CLR((fd), &readfds)
 # define SLAP_EVENT_CLR_WRITE(fd)	FD_CLR((fd), &writefds)
 
-# define SLAP_EVENT_WAIT(tvp, snp)	do { \
+# define SLAP_EVENT_WAIT(tvp, nsp)	do { \
 	*(nsp) = select( SLAP_EVENT_MAX, &readfds, \
 		nwriters > 0 ? &writefds : NULL, NULL, (tvp) ); \
 } while (0)
