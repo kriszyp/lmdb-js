@@ -42,7 +42,12 @@
 
 #if defined(HAVE_SYS_EPOLL_H) && defined(HAVE_EPOLL)
 # include <sys/epoll.h>
-#endif
+#elif defined(SLAP_X_DEVPOLL) && defined(HAVE_SYS_DEVPOLL_H) && defined(HAVE_DEVPOLL)
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <fcntl.h>
+# include <sys/devpoll.h>
+#endif /* ! epoll && ! /dev/poll */
 
 #ifdef HAVE_TCPD
 # include <tcpd.h>
@@ -114,7 +119,14 @@ static struct slap_daemon {
 	int			*sd_index;
 	int			sd_epfd;
 	int			sd_nfds;
-#else /* ! epoll */
+#elif defined(SLAP_X_DEVPOLL) && defined(HAVE_DEVPOLL)
+	/* eXperimental */
+	struct pollfd		*sd_pollfd;
+	int			*sd_index;
+	Listener		**sd_l;
+	int			sd_dpfd;
+	int			sd_nfds;
+#else /* ! epoll && ! /dev/poll */
 #ifndef HAVE_WINSOCK
 	/* In winsock, accept() returns values higher than dtblsize
 		so don't bother with this optimization */
@@ -123,7 +135,7 @@ static struct slap_daemon {
 	fd_set			sd_actives;
 	fd_set			sd_readers;
 	fd_set			sd_writers;
-#endif /* ! epoll */
+#endif /* ! epoll && ! /dev/poll */
 } slap_daemon;
 
 /*
@@ -133,7 +145,7 @@ static struct slap_daemon {
  *   with file descriptors and events respectively
  *
  * - SLAP_<type>_* for private interface; type by now is one of
- *   EPOLL, SELECT
+ *   EPOLL, DEVPOLL, SELECT
  *
  * private interface should not be used in the code.
  */
@@ -271,7 +283,188 @@ static struct slap_daemon {
 		dtblsize, (tvp) ? (tvp)->tv_sec * 1000 : -1 ); \
 } while (0)
 
-#else /* ! epoll */
+#elif defined(SLAP_X_DEVPOLL) && defined(HAVE_DEVPOLL)
+
+/*************************************************************
+ * Use Solaris' (>= 2.7) /dev/poll infrastructure - poll(7d) *
+ *************************************************************/
+# define SLAP_EVENT_FNAME		"/dev/poll"
+# define SLAP_EVENTS_ARE_INDEXED	0
+/*
+ * - sd_index	is used much like with epoll()
+ * - sd_l	is maintained as an array containing the address
+ *		of the listener; the index is the fd itself
+ * - sd_pollfd	is used to keep track of what data has been
+ *		registered in /dev/poll
+ */
+# define SLAP_DEVPOLL_SOCK_IX(s)	(slap_daemon.sd_index[(s)])
+# define SLAP_DEVPOLL_SOCK_LX(s)	(slap_daemon.sd_l[(s)])
+# define SLAP_DEVPOLL_SOCK_EP(s)	(slap_daemon.sd_pollfd[SLAP_DEVPOLL_SOCK_IX((s))])
+# define SLAP_DEVPOLL_SOCK_FD(s)	(SLAP_DEVPOLL_SOCK_EP((s)).fd)
+# define SLAP_DEVPOLL_SOCK_EV(s)	(SLAP_DEVPOLL_SOCK_EP((s)).events)
+# define SLAP_SOCK_IS_ACTIVE(s)		(SLAP_DEVPOLL_SOCK_IX((s)) != -1)
+# define SLAP_SOCK_NOT_ACTIVE(s)	(SLAP_DEVPOLL_SOCK_IX((s)) == -1)
+# define SLAP_SOCK_IS_SET(s, mode)	(SLAP_DEVPOLL_SOCK_EV((s)) & (mode))
+
+# define SLAP_SOCK_IS_READ(s)		SLAP_SOCK_IS_SET((s), POLLIN)
+# define SLAP_SOCK_IS_WRITE(s)		SLAP_SOCK_IS_SET((s), POLLOUT)
+
+/* as far as I understand, any time we need to communicate with the kernel
+ * about the number and/or properties of a file descriptor we need it to
+ * wait for, we have to rewrite the whole set */
+# define SLAP_DEVPOLL_WRITE_POLLFD(s, pfd, n, what, shdn)	do { \
+	int rc; \
+	size_t size = (n) * sizeof( struct pollfd ); \
+	/* FIXME: use pwrite? */ \
+	rc = write( slap_daemon.sd_dpfd, (pfd), size ); \
+	if ( rc != size ) { \
+		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
+			"%s fd=%d failed errno=%d\n", \
+			(what), (s), errno ); \
+		if ( (shdn) ) { \
+			slapd_shutdown = 2; \
+		} \
+	} \
+} while (0)
+
+# define SLAP_DEVPOLL_SOCK_SET(s, mode) 	do { \
+	fprintf( stderr, "SLAP_SOCK_SET_%s(%d) = %d\n", \
+		(mode) == POLLIN ? "READ" : "WRITE", (s), \
+		( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) != (mode) ) ); \
+	if ( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) != (mode) ) { \
+		struct pollfd pfd; \
+		SLAP_DEVPOLL_SOCK_EV((s)) |= (mode); \
+		pfd.fd = SLAP_DEVPOLL_SOCK_FD((s)); \
+		pfd.events = /* (mode) */ SLAP_DEVPOLL_SOCK_EV((s)); \
+		SLAP_DEVPOLL_WRITE_POLLFD((s), &pfd, 1, "SET", 0); \
+	} \
+} while (0)
+
+# define SLAP_DEVPOLL_SOCK_CLR(s, mode)		do { \
+	fprintf( stderr, "SLAP_SOCK_CLR_%s(%d) = %d\n", \
+		(mode) == POLLIN ? "READ" : "WRITE", (s), \
+		( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) == (mode) ) ); \
+	if ((SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) == (mode) ) { \
+		struct pollfd pfd[2]; \
+		SLAP_DEVPOLL_SOCK_EV((s)) &= ~(mode); \
+		pfd[0].fd = SLAP_DEVPOLL_SOCK_FD((s)); \
+		pfd[0].events = POLLREMOVE; \
+		pfd[1] = SLAP_DEVPOLL_SOCK_EP((s)); \
+		SLAP_DEVPOLL_WRITE_POLLFD((s), &pfd[0], 2, "CLR", 0); \
+	} \
+} while (0)
+
+# define SLAP_SOCK_SET_READ(s)		SLAP_DEVPOLL_SOCK_SET(s, POLLIN)
+# define SLAP_SOCK_SET_WRITE(s)		SLAP_DEVPOLL_SOCK_SET(s, POLLOUT)
+
+# define SLAP_SOCK_CLR_READ(s)		SLAP_DEVPOLL_SOCK_CLR((s), POLLIN)
+# define SLAP_SOCK_CLR_WRITE(s)		SLAP_DEVPOLL_SOCK_CLR((s), POLLOUT)
+
+# ifdef SLAP_LIGHTWEIGHT_DISPATCHER
+#  define SLAP_SOCK_SET_SUSPEND(s) \
+	( slap_daemon.sd_suspend[SLAP_DEVPOLL_SOCK_IX((s))] = 1 )
+#  define SLAP_SOCK_CLR_SUSPEND(s) \
+	( slap_daemon.sd_suspend[SLAP_DEVPOLL_SOCK_IX((s))] = 0 )
+#  define SLAP_SOCK_IS_SUSPEND(s) \
+	( slap_daemon.sd_suspend[SLAP_DEVPOLL_SOCK_IX((s))] == 1 )
+# endif /* SLAP_LIGHTWEIGHT_DISPATCHER */
+
+# define SLAP_DEVPOLL_EVENT_CLR(i, mode)	(revents[(i)].events &= ~(mode))
+
+# define SLAP_EVENT_MAX			slap_daemon.sd_nfds
+
+/* If a Listener address is provided, store that in the sd_l array.
+ * If we can't do this add, the system is out of resources and we 
+ * need to shutdown.
+ */
+# define SLAP_SOCK_ADD(s, l)		do { \
+	fprintf( stderr, "SLAP_SOCK_ADD(%d, %p)\n", (s), (l) ); \
+	SLAP_DEVPOLL_SOCK_IX((s)) = slap_daemon.sd_nfds; \
+	SLAP_DEVPOLL_SOCK_LX((s)) = (l); \
+	SLAP_DEVPOLL_SOCK_FD((s)) = (s); \
+	SLAP_DEVPOLL_SOCK_EV((s)) = POLLIN; \
+	SLAP_DEVPOLL_WRITE_POLLFD((s), &SLAP_DEVPOLL_SOCK_EP((s)), 1, "ADD", 1); \
+	slap_daemon.sd_nfds++; \
+} while (0)
+
+# define SLAP_DEVPOLL_EV_LISTENER(ptr)	((ptr) != NULL)
+
+# define SLAP_SOCK_DEL(s)		do { \
+	int fd, index = SLAP_DEVPOLL_SOCK_IX((s)); \
+	fprintf( stderr, "SLAP_SOCK_DEL(%d)\n", (s) ); \
+	if ( index < 0 ) break; \
+	if ( index < slap_daemon.sd_nfds - 1 ) { \
+		struct pollfd pfd = slap_daemon.sd_pollfd[index]; \
+		fd = slap_daemon.sd_pollfd[slap_daemon.sd_nfds - 1].fd; \
+		slap_daemon.sd_pollfd[index] = slap_daemon.sd_pollfd[slap_daemon.sd_nfds - 1]; \
+		slap_daemon.sd_pollfd[slap_daemon.sd_nfds - 1] = pfd; \
+		slap_daemon.sd_index[fd] = index; \
+	} \
+	slap_daemon.sd_index[(s)] = -1; \
+	slap_daemon.sd_pollfd[slap_daemon.sd_nfds - 1].events = POLLREMOVE; \
+	SLAP_DEVPOLL_WRITE_POLLFD((s), &slap_daemon.sd_pollfd[slap_daemon.sd_nfds - 1], 1, "DEL", 0); \
+	slap_daemon.sd_pollfd[slap_daemon.sd_nfds - 1].events = 0; \
+	slap_daemon.sd_nfds--; \
+} while (0)
+
+# define SLAP_EVENT_CLR_READ(i)		SLAP_DEVPOLL_EVENT_CLR((i), POLLIN)
+# define SLAP_EVENT_CLR_WRITE(i)	SLAP_DEVPOLL_EVENT_CLR((i), POLLOUT)
+
+# define SLAP_DEVPOLL_EVENT_CHK(i, mode)	(revents[(i)].events & (mode))
+
+# define SLAP_EVENT_FD(i)		(revents[(i)].fd)
+
+# define SLAP_EVENT_IS_READ(i)		SLAP_DEVPOLL_EVENT_CHK((i), POLLIN)
+# define SLAP_EVENT_IS_WRITE(i)		SLAP_DEVPOLL_EVENT_CHK((i), POLLOUT)
+# define SLAP_EVENT_IS_LISTENER(i)	SLAP_DEVPOLL_EV_LISTENER(SLAP_DEVPOLL_SOCK_LX(SLAP_EVENT_FD((i))))
+# define SLAP_EVENT_LISTENER(i)		SLAP_DEVPOLL_SOCK_LX(SLAP_EVENT_FD((i)))
+
+# define SLAP_SOCK_INIT		do { \
+	slap_daemon.sd_pollfd = ch_calloc( 1, \
+		( sizeof(struct pollfd) * 2 \
+			+ sizeof( int ) \
+			+ sizeof( Listener * ) ) * dtblsize ); \
+	slap_daemon.sd_index = (int *)&slap_daemon.sd_pollfd[ 2 * dtblsize ]; \
+	slap_daemon.sd_l = (Listener **)&slap_daemon.sd_index[ dtblsize ]; \
+	slap_daemon.sd_dpfd = open( SLAP_EVENT_FNAME, O_RDWR ); \
+	if ( slap_daemon.sd_dpfd == -1 ) { \
+		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
+			"open(\"" SLAP_EVENT_FNAME "\") failed errno=%d\n", \
+			errno, 0, 0 ); \
+		SLAP_SOCK_DESTROY; \
+		return -1; \
+	} \
+	for ( i = 0; i < dtblsize; i++ ) { \
+		slap_daemon.sd_pollfd[i].fd = -1; \
+		slap_daemon.sd_index[i] = -1; \
+	} \
+} while (0)
+
+# define SLAP_SOCK_DESTROY		do { \
+	if ( slap_daemon.sd_pollfd != NULL ) { \
+		ch_free( slap_daemon.sd_pollfd ); \
+		slap_daemon.sd_pollfd = NULL; \
+		slap_daemon.sd_index = NULL; \
+		slap_daemon.sd_l = NULL; \
+		close( slap_daemon.sd_dpfd ); \
+	} \
+} while ( 0 )
+
+# define SLAP_EVENT_DECL		struct pollfd *revents
+
+# define SLAP_EVENT_INIT		do { \
+	revents = &slap_daemon.sd_pollfd[ dtblsize ]; \
+} while (0)
+
+# define SLAP_EVENT_WAIT(tvp, nsp)	do { \
+	struct dvpoll		sd_dvpoll; \
+	sd_dvpoll.dp_timeout = (tvp) ? (tvp)->tv_sec * 1000 : -1; \
+	sd_dvpoll.dp_nfds = dtblsize; \
+	sd_dvpoll.dp_fds = revents; \
+	*(nsp) = ioctl( slap_daemon.sd_dpfd, DP_POLL, &sd_dvpoll ); \
+} while (0)
+
+#else /* ! epoll && ! /dev/poll */
 
 /**************************************
  * Use select system call - select(2) *
@@ -359,7 +552,7 @@ static struct slap_daemon {
 	*(nsp) = select( SLAP_EVENT_MAX, &readfds, \
 		nwriters > 0 ? &writefds : NULL, NULL, (tvp) ); \
 } while (0)
-#endif /* ! epoll */
+#endif /* ! epoll && ! /dev/poll */
 
 #ifdef HAVE_SLP
 /*
