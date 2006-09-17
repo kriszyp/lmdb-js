@@ -955,13 +955,28 @@ AC_CHECK_HEADERS( poll.h )
 dnl ----------------------------------------------------------------
 AC_CHECK_HEADERS( sys/epoll.h )
 if test "${ac_cv_header_sys_epoll_h}" = yes; then
-AC_MSG_CHECKING(for epoll system call)
-AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(int argc, char *argv)
+	AC_MSG_CHECKING(for epoll system call)
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(int argc, char **argv)
 {
 	int epfd = epoll_create(256);
 	exit (epfd == -1 ? 1 : 0);
 }]])],[AC_MSG_RESULT(yes)
-AC_DEFINE(HAVE_EPOLL,1, [define if your system supports epoll])],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
+	AC_DEFINE(HAVE_EPOLL,1, [define if your system supports epoll])],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
+fi
+
+dnl ----------------------------------------------------------------
+AC_CHECK_HEADERS( sys/devpoll.h )
+dnl "/dev/poll" needs <sys/poll.h> as well...
+if test "${ac_cv_header_sys_devpoll_h}" = yes \
+		-a "${ac_cv_header_poll_h}" = yes ; \
+then
+	AC_MSG_CHECKING(for /dev/poll)
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(int argc, char **argv)
+{
+	int devpollfd = open("/dev/poll", /* O_RDWR */ 2);
+	exit (devpollfd == -1 ? 1 : 0);
+}]])],[AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE_DEVPOLL,1, [define if your system supports /dev/poll])],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
 fi
 
 dnl ----------------------------------------------------------------
@@ -2376,7 +2391,7 @@ if test $ac_cv_func_vprintf = yes ; then
 	AC_CHECK_FUNCS(snprintf vsnprintf)
 fi
 
-AC_CHECK_FUNCS(		\
+AC_CHECK_FUNCS(			\
 	bcopy			\
 	closesocket		\
 	chroot			\
@@ -2385,17 +2400,18 @@ AC_CHECK_FUNCS(		\
 	fcntl			\
 	flock			\
 	fstat			\
-	getdtablesize	\
+	getdtablesize		\
 	getgrgid		\
 	gethostname		\
 	getpass			\
-	getpassphrase	\
+	getpassphrase		\
 	getpwuid		\
 	getpwnam		\
 	getspnam		\
-	gettimeofday	\
+	gettimeofday		\
 	initgroups		\
 	inet_ntoa_b		\
+	ioctl			\
 	lockf			\
 	memcpy			\
 	memmove			\
