@@ -329,13 +329,24 @@ bdb_monitor_db_open( BackendDB *be )
 		ldap_bv2escaped_filter_value( &be->be_nsuffix[ 0 ], &suffix );
 	}
 
-	/* just look for the naming context */
-	filter->bv_len = STRLENOF( "(namingContexts:distinguishedNameMatch:=" )
-		+ suffix.bv_len + STRLENOF( ")" );
-	ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
-	ptr = lutil_strcopy( ptr, "(namingContexts:distinguishedNameMatch:=" );
-	ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
-	ptr = lutil_strcopy( ptr, ")" );
+	if ( BER_BVISEMPTY( &suffix ) ) {
+		/* frontend also has empty suffix, sigh! */
+		filter->bv_len = STRLENOF( "(&(namingContexts:distinguishedNameMatch:=" )
+			+ suffix.bv_len + STRLENOF( ")(!(cn=frontend)))" );
+		ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
+		ptr = lutil_strcopy( ptr, "(&(namingContexts:distinguishedNameMatch:=" );
+		ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
+		ptr = lutil_strcopy( ptr, ")(!(cn=frontend)))" );
+
+	} else {
+		/* just look for the naming context */
+		filter->bv_len = STRLENOF( "(namingContexts:distinguishedNameMatch:=" )
+			+ suffix.bv_len + STRLENOF( ")" );
+		ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
+		ptr = lutil_strcopy( ptr, "(namingContexts:distinguishedNameMatch:=" );
+		ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
+		ptr = lutil_strcopy( ptr, ")" );
+	}
 	ptr[ 0 ] = '\0';
 	assert( filter->bv_len == ptr - filter->bv_val );
 	
