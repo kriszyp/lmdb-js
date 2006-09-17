@@ -1201,7 +1201,7 @@ really_bad:;
 			 * LDAP_BACK_RESULT_UTIMEOUT at worst */
 			tv.tv_sec = 0;
 			tv.tv_usec = LDAP_BACK_RESULT_UTIMEOUT/initial_candidates;
-                        ldap_pvt_thread_yield();
+			ldap_pvt_thread_yield();
 		}
 	}
 
