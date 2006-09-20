@@ -286,6 +286,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	eh.data += eoff;
 
     rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+	if ( rc ) goto leave;
 
 #ifdef SLAP_ZONE_ALLOC
 	/* FIXME: will add ctx later */
