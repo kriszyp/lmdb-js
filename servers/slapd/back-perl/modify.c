@@ -63,6 +63,11 @@ perl_back_modify(
 			{
 				XPUSHs(sv_2mortal(newSVpv( mods->sm_values[i].bv_val, 0 )));
 			}
+
+			/* Fix delete attrib without value. */
+			if ( i == 0) {
+				XPUSHs(sv_newmortal());
+			}
 		}
 
 		PUTBACK;
