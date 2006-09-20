@@ -456,10 +456,6 @@ entry_clean( Entry *e )
 		free( e->e_bv.bv_val );
 	}
 
-	if ( &e->e_abv ) {
-		free( e->e_abv );
-	}
-
 	/* free attributes */
 	attrs_free( e->e_attrs );
 
@@ -720,20 +716,39 @@ int entry_encode(Entry *e, struct berval *bv)
 }
 
 /* Retrieve an Entry that was stored using entry_encode above.
- * We malloc a single block with the size stored above for the Entry
- * and all of its Attributes. We also must lookup the stored
- * attribute names to get AttributeDescriptions. To detect if the
- * attributes of an Entry are later modified, we note that e->e_attr
- * is always a constant offset from (e).
+ * First entry_header must be called to decode the size of the entry.
+ * Then a single block of memory must be malloc'd to accomodate the
+ * bervals and the bulk data. Next the bulk data is retrieved from
+ * the DB and parsed by entry_decode.
  *
  * Note: everything is stored in a single contiguous block, so
  * you can not free individual attributes or names from this
  * structure. Attempting to do so will likely corrupt memory.
  */
+int entry_header(EntryHeader *eh)
+{
+	unsigned char *ptr = (unsigned char *)eh->bv.bv_val;
+
+	eh->nattrs = entry_getlen(&ptr);
+	if ( !eh->nattrs ) {
+		Debug( LDAP_DEBUG_ANY,
+			"entry_header: attribute count was zero\n", 0, 0, 0);
+		return LDAP_OTHER;
+	}
+	eh->nvals = entry_getlen(&ptr);
+	if ( !eh->nvals ) {
+		Debug( LDAP_DEBUG_ANY,
+			"entry_header: value count was zero\n", 0, 0, 0);
+		return LDAP_OTHER;
+	}
+	eh->data = (char *)ptr;
+	return LDAP_SUCCESS;
+}
+
 #ifdef SLAP_ZONE_ALLOC
-int entry_decode(struct berval *bv, Entry **e, void *ctx)
+int entry_decode(EntryHeader *eh, Entry **e, void *ctx)
 #else
-int entry_decode(struct berval *bv, Entry **e)
+int entry_decode(EntryHeader *eh, Entry **e)
 #endif
 {
 	int i, j, count, nattrs, nvals;
@@ -742,24 +757,14 @@ int entry_decode(struct berval *bv, Entry **e)
 	Entry *x;
 	const char *text;
 	AttributeDescription *ad;
-	unsigned char *ptr = (unsigned char *)bv->bv_val;
+	unsigned char *ptr = (unsigned char *)eh->bv.bv_val;
 	BerVarray bptr;
 
-	nattrs = entry_getlen(&ptr);
-	if (!nattrs) {
-		Debug( LDAP_DEBUG_ANY,
-			"entry_decode: attribute count was zero\n", 0, 0, 0);
-		return LDAP_OTHER;
-	}
-	nvals = entry_getlen(&ptr);
-	if (!nvals) {
-		Debug( LDAP_DEBUG_ANY,
-			"entry_decode: value count was zero\n", 0, 0, 0);
-		return LDAP_OTHER;
-	}
+	nattrs = eh->nattrs;
+	nvals = eh->nvals;
 	x = entry_alloc();
 	x->e_attrs = attrs_alloc( nattrs );
-	x->e_abv = ch_malloc( nvals * sizeof( struct berval ));
+	ptr = (unsigned char *)eh->data;
 	i = entry_getlen(&ptr);
 	x->e_name.bv_val = (char *) ptr;
 	x->e_name.bv_len = i;
@@ -771,10 +776,10 @@ int entry_decode(struct berval *bv, Entry **e)
 	Debug( LDAP_DEBUG_TRACE,
 		"entry_decode: \"%s\"\n",
 		x->e_dn, 0, 0 );
-	x->e_bv = *bv;
+	x->e_bv = eh->bv;
 
 	a = x->e_attrs;
-	bptr = x->e_abv;
+	bptr = (BerVarray)eh->bv.bv_val;
 
 	while ((i = entry_getlen(&ptr))) {
 		struct berval bv;
@@ -853,9 +858,6 @@ Entry *entry_dup( Entry *e )
 	ber_dupbv( &ret->e_nname, &e->e_nname );
 	ret->e_attrs = attrs_dup( e->e_attrs );
 	ret->e_ocflags = e->e_ocflags;
-	ret->e_bv.bv_val = NULL;
-	ret->e_bv.bv_len = 0;
-	ret->e_private = NULL;
 
 	return ret;
 }

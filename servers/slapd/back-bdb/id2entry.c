@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <ac/string.h>
+#include <ac/errno.h>
 
 #include "back-bdb.h"
 
@@ -100,8 +101,9 @@ int bdb_id2entry(
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
 	DBC *cursor;
-	struct berval bv;
-	int rc = 0;
+	EntryHeader eh;
+	char buf[16];
+	int rc = 0, off;
 	ID nid;
 
 	*e = NULL;
@@ -112,7 +114,7 @@ int bdb_id2entry(
 	BDB_ID2DISK( id, &nid );
 
 	DBTzero( &data );
-	data.flags = DB_DBT_MALLOC;
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
 	/* fetch it */
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
@@ -122,19 +124,47 @@ int bdb_id2entry(
 	if ( !tid && locker )
 		cursor->locker = locker;
 
+	/* Get the nattrs / nvals counts first */
+	data.ulen = data.dlen = sizeof(buf);
+	data.data = buf;
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
+	if ( rc ) goto leave;
+
+	eh.bv.bv_val = buf;
+	eh.bv.bv_len = data.size;
+	rc = entry_header( &eh );
+	if ( rc ) goto leave;
+
+	/* Get the size */
+	data.flags ^= DB_DBT_PARTIAL;
+	data.ulen = 0;
+	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+	if ( rc != ENOMEM ) goto leave;
+
+	/* Allocate a block and retrieve the data */
+	off = eh.data - eh.bv.bv_val;
+	eh.bv.bv_len = eh.nvals * sizeof( struct berval ) + data.size;
+	eh.bv.bv_val = ch_malloc( eh.bv.bv_len );
+	eh.data = eh.bv.bv_val + eh.nvals * sizeof( struct berval );
+	data.data = eh.data;
+	data.ulen = data.size;
+
+	/* skip past already parsed nattr/nvals */
+	eh.data += off;
+
+	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+
+leave:
 	cursor->c_close( cursor );
 
 	if( rc != 0 ) {
 		return rc;
 	}
 
-	DBT2bv( &data, &bv );
-
 #ifdef SLAP_ZONE_ALLOC
-	rc = entry_decode(&bv, e, bdb->bi_cache.c_zctx);
+	rc = entry_decode(&eh, e, bdb->bi_cache.c_zctx);
 #else
-	rc = entry_decode(&bv, e);
+	rc = entry_decode(&eh, e);
 #endif
 
 	if( rc == 0 ) {
@@ -144,11 +174,11 @@ int bdb_id2entry(
 		 * decoded in place.
 		 */
 #ifndef SLAP_ZONE_ALLOC
-		ch_free(data.data);
+		ch_free(eh.bv.bv_val);
 #endif
 	}
 #ifdef SLAP_ZONE_ALLOC
-	ch_free(data.data);
+	ch_free(eh.bv.bv_val);
 #endif
 
 	return rc;

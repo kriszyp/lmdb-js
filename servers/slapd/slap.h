@@ -1108,6 +1108,13 @@ typedef struct slap_attr {
 typedef unsigned long	ID;
 #define NOID	((ID)~0)
 
+typedef struct slap_entry_header {
+	struct berval bv;
+	char *data;
+	int nattrs;
+	int nvals;
+} EntryHeader;
+
 /*
  * represents an entry in core
  */
@@ -1131,7 +1138,6 @@ typedef struct slap_entry {
 	slap_mask_t	e_ocflags;
 
 	struct berval	e_bv;		/* For entry_encode/entry_decode */
-	struct berval	*e_abv;
 
 	/* for use by the backend for any purpose */
 	void*	e_private;
