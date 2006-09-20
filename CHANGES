@@ -7,6 +7,8 @@ OpenLDAP 2.3.28 Engineering
 	Fixed slapd global access controls initialization (ITS#4654)
 	Fixed slapd setting c_sasl_bindop only on SASL binds
 	Fixed slapd-perl deletes (ITS#2612)
+	Fixed slapd-perl backend initialization (ITS#4358)
+	Fixed slapd-perl finding interpreter inside a thread (ITS#4358)
 
 OpenLDAP 2.3.27 Release
 	Fixed libldap dangling pointer issue (previous fix was broken) (ITS#4405)
