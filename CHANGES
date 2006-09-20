@@ -5,6 +5,7 @@ OpenLDAP 2.3.28 Engineering
 	Added ldapsearch bad filter pattern check (ITS#4647)
 	Fixed slapd-monitor locking with scope "subordinate" (ITS#4668)
 	Fixed slapd global access controls initialization (ITS#4654)
+    Fixed slapd setting c_sasl_bindop only on SASL binds
 
 OpenLDAP 2.3.27 Release
 	Fixed libldap dangling pointer issue (previous fix was broken) (ITS#4405)
