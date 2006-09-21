@@ -13,8 +13,8 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /*
- * Support for sambaPwdMustChange added by Marco D'Ettorre.
  * Support for table-driven configuration added by Pierangelo Masarati.
+ * Support for sambaPwdMustChange and sambaPwdCanChange added by Marco D'Ettorre.
  *
  * The conditions of the OpenLDAP Public License apply.
  */
@@ -71,6 +71,7 @@ static AttributeDescription *ad_sambaLMPassword;
 static AttributeDescription *ad_sambaNTPassword;
 static AttributeDescription *ad_sambaPwdLastSet;
 static AttributeDescription *ad_sambaPwdMustChange;
+static AttributeDescription *ad_sambaPwdCanChange;
 static ObjectClass *oc_sambaSamAccount;
 #endif
 
@@ -90,6 +91,8 @@ typedef struct smbk5pwd_t {
 #ifdef DO_SAMBA
 	/* How many seconds before forcing a password change? */
 	time_t	smb_must_change;
+        /* How many seconds after allowing a password change? */
+        time_t  smb_can_change;
 #endif
 } smbk5pwd_t;
 
@@ -560,6 +563,28 @@ static int smbk5pwd_exop_passwd(
 			ml->sml_values = keys;
 			ml->sml_nvalues = NULL;
 		}
+
+                if (pi->smb_can_change)
+                {
+                        ml = ch_malloc(sizeof(Modifications));
+                        ml->sml_next = qpw->rs_mods;
+                        qpw->rs_mods = ml;
+
+                        keys = ch_malloc( 2 * sizeof(struct berval) );
+                        keys[0].bv_val = ch_malloc( STRLENOF( "9223372036854775807L" ) + 1 );
+                        keys[0].bv_len = snprintf(keys[0].bv_val,
+                                        STRLENOF( "9223372036854775807L" ) + 1,
+                                        "%ld", slap_get_time() + pi->smb_can_change);
+                        BER_BVZERO( &keys[1] );
+
+                        ml->sml_desc = ad_sambaPwdCanChange;
+                        ml->sml_op = LDAP_MOD_REPLACE;
+#ifdef SLAP_MOD_INTERNAL
+                        ml->sml_flags = SLAP_MOD_INTERNAL;
+#endif
+                        ml->sml_values = keys;
+                        ml->sml_nvalues = NULL;
+                }
 	}
 #endif /* DO_SAMBA */
 	be_entry_release_r( op, e );
@@ -572,6 +597,7 @@ static slap_overinst smbk5pwd;
 /* back-config stuff */
 enum {
 	PC_SMB_MUST_CHANGE = 1,
+	PC_SMB_CAN_CHANGE,
 	PC_SMB_ENABLE
 };
 
@@ -592,6 +618,11 @@ static ConfigTable smbk5pwd_cfats[] = {
 		"( OLcfgOvAt:6.2 NAME 'olcSmbK5PwdMustChange' "
 		"DESC 'Credentials validity interval' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+        { "smbk5pwd-can-change", "time",
+                2, 2, 0, ARG_MAGIC|ARG_INT|PC_SMB_CAN_CHANGE, smbk5pwd_cf_func,
+                "( OLcfgOvAt:6.3 NAME 'olcSmbK5PwdCanChange' "
+                "DESC 'Credentials minimum validity interval' "
+                "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -604,6 +635,7 @@ static ConfigOCs smbk5pwd_cfocs[] = {
 		"MAY ( "
 			"olcSmbK5PwdEnable "
 			"$ olcSmbK5PwdMustChange "
+			"$ olcSmbK5PwdCanChange "
 		") )", Cft_Overlay, smbk5pwd_cfats },
 
 	{ NULL, 0, NULL }
@@ -637,6 +669,14 @@ smbk5pwd_cf_func( ConfigArgs *c )
 #endif /* ! DO_SAMBA */
 			break;
 
+                case PC_SMB_CAN_CHANGE:
+#ifdef DO_SAMBA
+                        c->value_int = pi->smb_can_change;
+#else /* ! DO_SAMBA */
+                        c->value_int = 0;
+#endif /* ! DO_SAMBA */
+                        break;
+
 		case PC_SMB_ENABLE:
 			c->rvalue_vals = NULL;
 			if ( pi->mode ) {
@@ -657,6 +697,9 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		switch( c->type ) {
 		case PC_SMB_MUST_CHANGE:
 			break;
+
+                case PC_SMB_CAN_CHANGE:
+                        break;
 
 		case PC_SMB_ENABLE:
 			if ( !c->line ) {
@@ -695,6 +738,24 @@ smbk5pwd_cf_func( ConfigArgs *c )
 		return 1;
 #endif /* ! DO_SAMBA */
 		break;
+
+        case PC_SMB_CAN_CHANGE:
+#ifdef DO_SAMBA
+                if ( c->value_int < 0 ) {
+                        Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
+                                "<%s> invalid negative value \"%d\".",
+                                c->log, c->argv[ 0 ], 0 );
+                        return 1;
+                }
+                pi->smb_can_change = c->value_int;
+#else /* ! DO_SAMBA */
+                Debug( LDAP_DEBUG_ANY, "%s: smbk5pwd: "
+                        "<%s> only meaningful "
+                        "when compiled with -DDO_SAMBA.\n",
+                        c->log, c->argv[ 0 ], 0 );
+                return 1;
+#endif /* ! DO_SAMBA */
+                break;
 
 	case PC_SMB_ENABLE: {
 		slap_mask_t	mode = pi->mode, m;
@@ -775,6 +836,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 		{ "sambaNTPassword",		&ad_sambaNTPassword },
 		{ "sambaPwdLastSet",		&ad_sambaPwdLastSet },
 		{ "sambaPwdMustChange",		&ad_sambaPwdMustChange },
+                { "sambaPwdCanChange",          &ad_sambaPwdCanChange },
 		{ NULL }
 	},
 #endif /* DO_SAMBA */
