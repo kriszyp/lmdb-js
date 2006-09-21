@@ -774,7 +774,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 			rs.sr_flags = REP_ENTRY_MUSTRELEASE;
 		if ( opc->sreference ) {
 			rs.sr_ref = get_entry_referrals( op, rs.sr_entry );
-			send_search_reference( op, &rs );
+			rs.sr_err = send_search_reference( op, &rs );
 			ber_bvarray_free( rs.sr_ref );
 			if ( !rs.sr_entry )
 				*e = NULL;
@@ -786,7 +786,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 		if ( rs.sr_entry->e_private )
 			rs.sr_flags = REP_ENTRY_MUSTRELEASE;
 		rs.sr_attrs = op->ors_attrs;
-		send_search_entry( op, &rs );
+		rs.sr_err = send_search_entry( op, &rs );
 		if ( !rs.sr_entry )
 			*e = NULL;
 		break;
@@ -798,9 +798,9 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 		if ( opc->sreference ) {
 			struct berval bv = BER_BVNULL;
 			rs.sr_ref = &bv;
-			send_search_reference( op, &rs );
+			rs.sr_err = send_search_reference( op, &rs );
 		} else {
-			send_search_entry( op, &rs );
+			rs.sr_err = send_search_entry( op, &rs );
 		}
 		break;
 	default:
@@ -878,6 +878,7 @@ syncprov_qtask( void *ctx, void *arg )
 	OperationBuffer opbuf;
 	Operation *op;
 	BackendDB be;
+	int rc;
 
 	op = (Operation *) &opbuf;
 	*op = *so->s_op;
@@ -898,7 +899,7 @@ syncprov_qtask( void *ctx, void *arg )
 	op->o_private = NULL;
 	op->o_callback = NULL;
 
-	(void)syncprov_qplay( op, on, so );
+	rc = syncprov_qplay( op, on, so );
 
 	/* decrement use count... */
 	syncprov_free_syncop( so );
@@ -906,9 +907,25 @@ syncprov_qtask( void *ctx, void *arg )
 	/* wait until we get explicitly scheduled again */
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, so->s_qtask );
-	ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 1 );
+	if ( rc == 0 ) {
+		ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 1 );
+	} else {
+		/* bail out on any error */
+		ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+	}
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
+#if 0	/* FIXME: connection_close isn't exported from slapd.
+		 * should it be?
+		 */
+	if ( rc ) {
+		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+		if ( connection_state_closing( op->o_conn )) {
+			connection_close( op->o_conn );
+		}
+		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+	}
+#endif
 	return NULL;
 }
 
