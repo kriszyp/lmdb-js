@@ -906,9 +906,9 @@ syncprov_qtask( void *ctx, void *arg )
 
 	/* wait until we get explicitly scheduled again */
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-	ldap_pvt_runqueue_stoptask( &slapd_rq, so->s_qtask );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	if ( rc == 0 ) {
-		ldap_pvt_runqueue_resched( &slapd_rq, so->s_qtask, 1 );
+		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 1 );
 	} else {
 		/* bail out on any error */
 		ldap_pvt_runqueue_remove( &slapd_rq, rtask );
