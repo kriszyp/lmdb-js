@@ -1359,11 +1359,15 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	bytes = send_ldap_ber( op->o_conn, ber );
 	ber_free_buf( ber );
 
-	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
-	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+	if ( bytes < 0 ) {
+		rc = LDAP_UNAVAILABLE;
+	} else {
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+	}
 #ifdef LDAP_CONNECTIONLESS
 	}
 #endif
