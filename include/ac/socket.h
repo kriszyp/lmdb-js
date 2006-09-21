@@ -24,6 +24,9 @@
 #ifdef HAVE_POLL_H
 #include <poll.h>
 #endif
+#ifdef HAVE_SYS_POLL_H
+#include <sys/poll.h>
+#endif
 
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -220,7 +223,7 @@ LDAP_LUTIL_F( int ) getpeereid( int s, uid_t *, gid_t * );
 #define	NI_MAXHOST	256
 #endif
 
-#ifdef HAVE_POLL_H
+#ifdef HAVE_POLL
 # ifndef INFTIM
 #  define INFTIM (-1)
 # endif

@@ -950,7 +950,9 @@ dnl AC_SYS_RESTARTABLE_SYSCALLS
 
 dnl ----------------------------------------------------------------
 AC_CHECK_FUNCS( poll )
-AC_CHECK_HEADERS( poll.h )
+if test $ac_cv_func_poll = yes; then
+AC_CHECK_HEADERS( poll.h sys/poll.h )
+fi
 
 dnl ----------------------------------------------------------------
 AC_CHECK_HEADERS( sys/epoll.h )
