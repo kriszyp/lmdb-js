@@ -15,7 +15,7 @@
 
 LIBRARY = libldap.la
 
-PROGRAMS = apitest dntest ftest ltest
+PROGRAMS = apitest dntest ftest ltest urltest
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	controls.c messages.c references.c extended.c cyrus.c \
@@ -57,6 +57,8 @@ ftest:	$(XLIBS) ftest.o
 	$(LTLINK) -o $@ ftest.o $(LIBS)
 ltest:	$(XLIBS) test.o
 	$(LTLINK) -o $@ test.o $(LIBS)
+urltest: $(XLIBS) urltest.o
+	$(LTLINK) -o $@ urltest.o $(LIBS)
 
 CFFILES=ldap.conf
 
