@@ -354,7 +354,7 @@ rewrite_map_apply(
 				( struct rewrite_context * )map->lm_data,
 				key->bv_val, &val->bv_val );
 		if ( val->bv_val != NULL ) {
-			if ( val->bv_val = key->bv_val ) {
+			if ( val->bv_val == key->bv_val ) {
 				val->bv_len = key->bv_len;
 				key->bv_val = NULL;
 			} else {
