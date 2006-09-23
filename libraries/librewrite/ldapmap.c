@@ -155,7 +155,7 @@ map_ldap_parse(
 				data->lm_binddn[ l ] = '\0';
 			}
 		} else if ( strncasecmp( argv[ 0 ], "bindpw=", 7 ) == 0 ) {
-			data->lm_bindpw = strdup( argv[ 2 ] + 7 );
+			data->lm_bindpw = strdup( argv[ 0 ] + 7 );
 			if ( data->lm_bindpw == NULL ) {
 				map_ldap_free( data );
 				return NULL;
