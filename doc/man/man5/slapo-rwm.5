@@ -393,6 +393,51 @@ The count applies to the rewriting operation as a whole, not
 to any single rule; an optional per-rule limit can be set.
 This limit is overridden by setting specific per-rule limits
 with the `M{n}' flag.
+
+.SH "MAPS"
+Currently, few maps are builtin and there are no provisions for developers
+to register new map types at runtime.
+
+Supported maps are:
+.TP
+.B LDAP <URI> [bindwhen=<when>] [version=<version>] [binddn=<DN>] [credentials=<cred>]
+The
+.B LDAP
+map expands a value by performing a simple LDAP search.
+Its configuration is based on a mandatory URI, whose
+.B attrs
+portion must contain exactly one attribute
+(use
+.B entryDN
+to fetch the DN of an entry).
+If a multi-valued attribute is used, only the first value is considered.
+
+The parameter
+.B bindwhen
+determines when the connection is established.
+It can take the values
+.BR now ,
+.BR later ,
+and
+.BR everytime ,
+respectively indicating that the connection should be created at startup,
+when required, or any time it is used.
+In the former two cases, the connection is cached, while in the latter
+a fresh new one is used all times.  This is the default.
+
+The parameters
+.B binddn
+and
+.B credentials
+represent the DN and the password that is used to perform an authenticated
+simple bind before performing the search operation; if not given,
+an anonymous connection is used.
+
+The parameter
+.B version
+can be 2 or 3 to indicate the protocol version that must be used.
+The default is 3.
+
 .SH "REWRITE CONFIGURATION EXAMPLES"
 .nf
 # set to `off' to disable rewriting

@@ -23,6 +23,13 @@
 #include "rewrite-int.h"
 #include "rewrite-map.h"
 
+typedef enum {
+	MAP_LDAP_UNKNOWN,
+	MAP_LDAP_EVERYTIME,
+	MAP_LDAP_NOW,
+	MAP_LDAP_LATER
+} bindwhen_t;
+
 /*
  * LDAP map data structure
  */
@@ -33,10 +40,7 @@ struct ldap_map_data {
 	char                           *lm_binddn;
 	struct berval			lm_cred;
 
-#define MAP_LDAP_EVERYTIME		0x00
-#define MAP_LDAP_NOW			0x01
-#define MAP_LDAP_LATER			0x02
-	int                             lm_when;
+	bindwhen_t			lm_when;
 
 	LDAP                           *lm_ld;
 
@@ -91,7 +95,7 @@ map_ldap_parse(
 )
 {
 	struct ldap_map_data *data;
-	char *p;
+	char *p, *uri;
 
 	assert( info != NULL );
 	assert( fname != NULL );
@@ -110,13 +114,18 @@ map_ldap_parse(
 		return NULL;
 	}
 
-	data->lm_url = strdup( argv[ 0 ] );
+	uri = argv[ 0 ];
+	if ( strncasecmp( uri, "uri=", STRLENOF( "uri=" ) ) == 0 ) {
+		uri += STRLENOF( "uri=" );
+	}
+
+	data->lm_url = strdup( uri );
 	if ( data->lm_url == NULL ) {
 		map_ldap_free( data );
 		return NULL;
 	}
 	
-	if ( ldap_url_parse( argv[ 0 ], &data->lm_lud ) != REWRITE_SUCCESS ) {
+	if ( ldap_url_parse( uri, &data->lm_lud ) != REWRITE_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 				"[%s:%d] illegal URI '%s'\n",
 				fname, lineno, argv[ 0 ] );
@@ -124,6 +133,7 @@ map_ldap_parse(
 		return NULL;
 	}
 
+	/* trim everything after [host][:port] */
 	p = strchr( data->lm_url, '/' );
 	assert( p[ 1 ] == '/' );
 	if ( ( p = strchr( p + 2, '/' ) ) != NULL ) {
@@ -266,6 +276,10 @@ map_ldap_parse(
 				"[%s:%d] unknown option %s (ignored)\n",
 				fname, lineno, argv[0] );
 		}
+	}
+
+	if ( data->lm_when == MAP_LDAP_UNKNOWN ) {
+		data->lm_when = MAP_LDAP_EVERYTIME;
 	}
 
 	return ( void * )data;
