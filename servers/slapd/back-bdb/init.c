@@ -532,7 +532,7 @@ bdb_db_destroy( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	/* monitor handling */
-	(void)bdb_monitor_db_close( be );
+	(void)bdb_monitor_db_destroy( be );
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );
