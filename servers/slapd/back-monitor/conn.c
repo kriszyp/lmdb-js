@@ -50,6 +50,7 @@ monitor_subsys_conn_init(
 	monitor_info_t	*mi;
 	Entry		*e, **ep, *e_conn;
 	monitor_entry_t	*mp;
+	char		buf[ BACKMONITOR_BUFSIZE ];
 	struct berval	bv;
 
 	assert( be != NULL );
@@ -72,6 +73,51 @@ monitor_subsys_conn_init(
 	ep = &mp->mp_children;
 
 	/*
+	 * Max file descriptors
+	 */
+	BER_BVSTR( &bv, "cn=Max File Descriptors" );
+	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
+		mi->mi_oc_monitorCounterObject, mi, NULL, NULL );
+	
+	if ( e == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_conn_init: "
+			"unable to create entry \"%s,%s\"\n",
+			bv.bv_val, ms->mss_ndn.bv_val, 0 );
+		return( -1 );
+	}
+
+	if ( dtblsize ) {
+		bv.bv_val = buf;
+		bv.bv_len = snprintf( buf, sizeof( buf ), "%d", dtblsize );
+
+	} else {
+		BER_BVSTR( &bv, "0" );
+	}
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
+	
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
+	e->e_private = ( void * )mp;
+	mp->mp_info = ms;
+	mp->mp_flags = ms->mss_flags \
+		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+	mp->mp_flags &= ~MONITOR_F_VOLATILE_CH;
+
+	if ( monitor_cache_add( mi, e ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_conn_init: "
+			"unable to add entry \"cn=Total,%s\"\n",
+			ms->mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+
+	*ep = e;
+	ep = &mp->mp_next;
+	
+	/*
 	 * Total conns
 	 */
 	BER_BVSTR( &bv, "cn=Total" );
@@ -86,7 +132,7 @@ monitor_subsys_conn_init(
 		return( -1 );
 	}
 	
-	BER_BVSTR( &bv, "0" );
+	BER_BVSTR( &bv, "-1" );
 	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = monitor_entrypriv_create();
