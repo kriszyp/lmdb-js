@@ -198,6 +198,8 @@ bdb_monitor_free(
 	return SLAP_CB_CONTINUE;
 }
 
+#define	bdb_monitor_initialize	BDB_SYMBOL(monitor_initialize)
+
 /*
  * call from within bdb_initialize()
  */

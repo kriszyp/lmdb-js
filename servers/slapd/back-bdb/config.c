@@ -31,7 +31,7 @@
 #	define	SLAP_BDB_ALLOW_DIRTY_READ
 #endif
 
-#define bdb_cf_gen			BDB_SYMBOL(cf_gen)
+#define bdb_cf_gen		BDB_SYMBOL(cf_gen)
 #define	bdb_cf_cleanup		BDB_SYMBOL(cf_cleanup)
 #define bdb_checkpoint		BDB_SYMBOL(checkpoint)
 #define bdb_online_index	BDB_SYMBOL(online_index)
@@ -140,7 +140,7 @@ static ConfigOCs bdbocs[] = {
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbShmKey $ "
-		" olcDbCacheFree ) )",
+		"olcDbCacheFree ) )",
 		 	Cft_Database, bdbcfg },
 	{ NULL, 0, NULL }
 };
@@ -333,7 +333,7 @@ bdb_cf_cleanup( ConfigArgs *c )
 }
 
 static int
-bdb_cf_gen(ConfigArgs *c)
+bdb_cf_gen( ConfigArgs *c )
 {
 	struct bdb_info *bdb = c->be->be_private;
 	int rc;
@@ -342,7 +342,7 @@ bdb_cf_gen(ConfigArgs *c)
 		rc = 0;
 		switch( c->type ) {
 		case BDB_CHKPT:
-			if (bdb->bi_txn_cp ) {
+			if ( bdb->bi_txn_cp ) {
 				char buf[64];
 				struct berval bv;
 				bv.bv_len = sprintf( buf, "%d %d", bdb->bi_txn_cp_kbyte,
@@ -363,8 +363,10 @@ bdb_cf_gen(ConfigArgs *c)
 			break;
 
 		case BDB_CONFIG:
-			if (( slapMode&SLAP_SERVER_MODE ) && !( bdb->bi_flags&BDB_IS_OPEN )
-				&& !bdb->bi_db_config ) {
+			if ( ( slapMode & SLAP_SERVER_MODE )
+				&& !( bdb->bi_flags & BDB_IS_OPEN )
+				&& !bdb->bi_db_config )
+			{
 				char	buf[SLAP_TEXT_BUFLEN];
 				FILE *f = fopen( bdb->bi_db_config_path, "r" );
 				struct berval bv;
@@ -442,7 +444,7 @@ bdb_cf_gen(ConfigArgs *c)
 			if ( bdb->bi_txn_cp_task ) {
 				struct re_s *re = bdb->bi_txn_cp_task;
 				bdb->bi_txn_cp_task = NULL;
-				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ))
+				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ) )
 					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
 				ldap_pvt_runqueue_remove( &slapd_rq, re );
 			}
