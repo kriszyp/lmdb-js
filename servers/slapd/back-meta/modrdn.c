@@ -118,6 +118,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
+retry:;
 	ctrls = op->o_ctrls;
 	if ( ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
 		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls ) != LDAP_SUCCESS )
@@ -126,7 +127,6 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-retry:;
 	rs->sr_err = ldap_rename( mc->mc_conns[ candidate ].msc_ld,
 			mdn.bv_val, op->orr_newrdn.bv_val,
 			mnewSuperior.bv_val, op->orr_deleteoldrdn,
@@ -136,6 +136,8 @@ retry:;
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 			goto retry;
 		}
 	}

@@ -454,6 +454,7 @@ meta_back_search_start(
 		tvp = &tv;
 	}
 
+retry:;
 	ctrls = op->o_ctrls;
 	if ( ldap_back_proxy_authz_ctrl( &msc->msc_bound_ndn,
 		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls )
@@ -467,7 +468,6 @@ meta_back_search_start(
 	/*
 	 * Starts the search
 	 */
-retry:;
 	assert( msc->msc_ld != NULL );
 	rc = ldap_search_ext( msc->msc_ld,
 			mbase.bv_val, realscope, mfilter.bv_val,
@@ -482,6 +482,8 @@ retry:;
 	case LDAP_SERVER_DOWN:
 		if ( nretries && meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
 			nretries = 0;
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 			goto retry;
 		}
 
