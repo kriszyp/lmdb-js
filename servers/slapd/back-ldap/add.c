@@ -92,6 +92,7 @@ ldap_back_add(
 	}
 	attrs[ i ] = NULL;
 
+retry:
 	ctrls = op->o_ctrls;
 	rs->sr_err = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -99,7 +100,6 @@ ldap_back_add(
 		goto cleanup;
 	}
 
-retry:
 	rs->sr_err = ldap_add_ext( lc->lc_ld, op->o_req_dn.bv_val, attrs,
 			ctrls, NULL, &msgid );
 	rs->sr_err = ldap_back_op_result( lc, op, rs, msgid,
@@ -107,6 +107,8 @@ retry:
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 			goto retry;
 		}
 	}

@@ -73,6 +73,7 @@ ldap_back_modrdn(
 		newSup = op->orr_newSup->bv_val;
 	}
 
+retry:
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
@@ -81,7 +82,6 @@ ldap_back_modrdn(
 		goto cleanup;
 	}
 
-retry:
 	rs->sr_err = ldap_rename( lc->lc_ld, op->o_req_dn.bv_val,
 			op->orr_newrdn.bv_val, newSup,
 			op->orr_deleteoldrdn, ctrls, NULL, &msgid );
@@ -90,6 +90,8 @@ retry:
 	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 		do_retry = 0;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 			goto retry;
 		}
 	}

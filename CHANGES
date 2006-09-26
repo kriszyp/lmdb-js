@@ -5,9 +5,10 @@ OpenLDAP 2.3.28 Engineering
 	Fixed librewrite LDAP map parsing bug
 	Fixed librewrite map double free bug
 	Added ldapsearch bad filter pattern check (ITS#4647)
-	Fixed slapd-monitor locking with scope "subordinate" (ITS#4668)
 	Fixed slapd global access controls initialization (ITS#4654)
 	Fixed slapd setting c_sasl_bindop only on SASL binds
+	Fixed slapd-ldap retry with idassert (ITS#4686)
+	Fixed slapd-monitor locking with scope "subordinate" (ITS#4668)
 	Fixed slapd-perl deletes (ITS#2612)
 	Fixed slapd-perl backend initialization (ITS#4358)
 	Fixed slapd-perl finding interpreter inside a thread (ITS#4358)
