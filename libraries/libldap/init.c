@@ -116,7 +116,7 @@ static const struct ol_attribute {
 static void openldap_ldap_init_w_conf(
 	const char *file, int userconf )
 {
-	char linebuf[ LINE_MAX ];
+	char linebuf[ AC_LINE_MAX ];
 	FILE *fp;
 	int i;
 	char *cmd, *opt;
