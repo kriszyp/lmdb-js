@@ -29,6 +29,7 @@
 
 #include "ldap-int.h"
 #include "ldap_defaults.h"
+#include "lutil.h"
 
 struct ldapoptions ldap_int_global_options =
 	{ LDAP_UNINITIALIZED, LDAP_DEBUG_NONE };  
@@ -42,6 +43,9 @@ struct ldapoptions ldap_int_global_options =
 
 #define ATTR_SASL	6
 #define ATTR_TLS	7
+
+#define ATTR_OPT_TV	8
+#define ATTR_OPT_INT	9
 
 struct ol_keyvalue {
 	const char *		key;
@@ -63,6 +67,9 @@ static const struct ol_attribute {
 	const void *	data;
 	size_t		offset;
 } attrs[] = {
+	{0, ATTR_OPT_TV,	"TIMEOUT",		NULL,	LDAP_OPT_TIMEOUT},
+	{0, ATTR_OPT_TV,	"NETWORK_TIMEOUT",	NULL,	LDAP_OPT_NETWORK_TIMEOUT},
+	{0, ATTR_OPT_INT,	"VERSION",		NULL,	LDAP_OPT_PROTOCOL_VERSION},
 	{0, ATTR_KV,		"DEREF",	deref_kv, /* or &deref_kv[0] */
 		offsetof(struct ldapoptions, ldo_deref)},
 	{0, ATTR_INT,		"SIZELIMIT",	NULL,
@@ -205,7 +212,7 @@ static void openldap_ldap_init_w_conf(
 
 			case ATTR_INT:
 				p = &((char *) gopts)[attrs[i].offset];
-				* (int*) p = atoi(opt);
+				(void)lutil_atoi( (int*) p, opt );
 				break;
 
 			case ATTR_KV: {
@@ -241,6 +248,22 @@ static void openldap_ldap_init_w_conf(
 			   	ldap_int_tls_config( NULL, attrs[i].offset, opt );
 #endif
 				break;
+			case ATTR_OPT_TV: {
+				struct timeval tv;
+				tv.tv_sec = -1;
+				tv.tv_usec = 0;
+				(void)lutil_atol( &tv.tv_sec, opt );
+				if ( tv.tv_sec > 0 ) {
+					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv);
+				}
+				} break;
+			case ATTR_OPT_INT: {
+				int v = -1;
+				(void)lutil_atoi( &v, opt );
+				if ( v > 0 ) {
+					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v);
+				}
+				} break;
 			}
 
 			break;
