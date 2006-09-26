@@ -159,6 +159,16 @@ Aliases are only dereferenced when locating the base object of the search.
 Aliases are dereferenced both in searching and in locating the base object
 of the search.
 .RE
+.TP
+.B VERSION {2|3}
+Specifies what version of the LDAP protocol should be used.
+.TP
+.B TIMEOUT <integer>
+Specifies a generic timeout (in seconds).  Currently ignored.
+.TP
+.B NETWORK_TIMEOUT <integer>
+Specifies the timeout (in seconds) after which the poll(2)/select(2)
+following a connect(2) returns in case of no activity.
 .SH SASL OPTIONS
 If OpenLDAP is built with Simple Authentication and Security Layer support,
 there are more options you can specify.
