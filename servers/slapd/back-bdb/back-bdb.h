@@ -271,6 +271,10 @@ struct bdb_op_info {
 
 #endif
 
+#ifndef DB_BUFFER_SMALL
+#define DB_BUFFER_SMALL			ENOMEM
+#endif
+
 #define BDB_REUSE_LOCKERS
 
 #define BDB_CSN_COMMIT	0
