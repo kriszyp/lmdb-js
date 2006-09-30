@@ -123,15 +123,15 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
 		 * back-ldap is the authorizing backend; for this
-		 * purpose, a successful bind is followed by a
-		 * bind with the configured identity assertion */
+		 * purpose, after a successful bind the connection
+		 * is trashed and further operations will use
+		 * a default connections with identity assertion */
 		/* NOTE: use with care */
 		if ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
-			ldap_back_proxy_authz_bind( lc, op, rs, LDAP_BACK_SENDERR );
-			if ( !LDAP_BACK_CONN_ISBOUND( lc ) ) {
-				rc = 1;
-			}
-			goto done;
+			LDAP_BACK_CONN_TAINTED_SET( lc );
+			ldap_back_release_conn( op, rs, lc );
+
+			return( rc );
 		}
 
 		/* rebind is now done inside ldap_back_proxy_authz_bind()
@@ -148,7 +148,6 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 			ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
 		}
 	}
-done:;
 
 	assert( lc->lc_binding == 1 );
 	lc->lc_binding = 0;
@@ -505,8 +504,8 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	LDAP		*ld = NULL;
 #ifdef HAVE_TLS
 	int		is_tls = op->o_conn->c_is_tls;
-#endif /* HAVE_TLS */
 	time_t		lc_time = (time_t)(-1);
+#endif /* HAVE_TLS */
 
 	assert( lcp != NULL );
 
@@ -1007,7 +1006,9 @@ retry_lock:;
 	 * It allows to use SASL bind and yet proxyAuthz users
 	 */
 	if ( op->o_conn != NULL && !op->o_do_not_cache &&
-		( !LDAP_BACK_CONN_ISPRIV( lc ) || BER_BVISEMPTY( &lc->lc_bound_ndn )) &&
+		( !LDAP_BACK_CONN_ISPRIV( lc ) ||
+			LDAP_BACK_CONN_ISIDASSERT( lc ) ||
+			BER_BVISEMPTY( &lc->lc_bound_ndn ) ) &&
 		( !isbound || ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok );
@@ -1545,6 +1546,8 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 		goto done;
 	}
 
+	LDAP_BACK_CONN_ISIDASSERT_SET( lc );
+
 	if ( op->o_tag == LDAP_REQ_BIND ) {
 		ndn = op->o_req_ndn;
 
@@ -1574,7 +1577,6 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_b
 	 * control to every operation with the dn bound 
 	 * to the connection as control value.
 	 */
-
 	/* bind as proxyauthzdn only if no idassert mode
 	 * is requested, or if the client's identity
 	 * is authorized */
