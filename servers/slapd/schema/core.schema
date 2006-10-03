@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 #
-## Portions Copyright (C) The Internet Society (1997-2003).
+## Portions Copyright (C) The Internet Society (1997-2006).
 ## All Rights Reserved.
 ##
 ## This document and translations of it may be copied and furnished to
@@ -51,6 +51,7 @@
 #	RFC 2247 (dc/dcObject)
 #	RFC 2587 (PKI)
 #	RFC 2589 (Dynamic Directory Services)
+#	RFC 4524 (associatedDomain)
 #
 # Select informational schema items:
 #	RFC 2377 (uidObject)
@@ -573,7 +574,18 @@ objectclass ( 1.3.6.1.1.3.1 NAME 'uidObject'
 	DESC 'RFC2377: uid object'
 	SUP top AUXILIARY MUST uid )
 
-# From COSINE Pilot
+# RFC 4524
+#   The 'associatedDomain' attribute specifies DNS [RFC1034][RFC2181]
+#   host names [RFC1123] that are associated with an object.   That is,
+#   values of this attribute should conform to the following ABNF:
+#
+#    domain = root / label *( DOT label )
+#    root   = SPACE
+#    label  = LETDIG [ *61( LETDIG / HYPHEN ) LETDIG ]
+#    LETDIG = %x30-39 / %x41-5A / %x61-7A ; "0" - "9" / "A"-"Z" / "a"-"z"
+#    SPACE  = %x20                        ; space (" ")
+#    HYPHEN = %x2D                        ; hyphen ("-")
+#    DOT    = %x2E                        ; period (".")
 attributetype ( 0.9.2342.19200300.100.1.37
 	NAME 'associatedDomain'
 	DESC 'RFC1274: domain associated with object'
