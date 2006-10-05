@@ -1795,6 +1795,9 @@ retry_add:;
 				dnParent( &entry->e_name, &newp );
 				op->orr_newSup = &newp;
 				op->orr_nnewSup = &nnewp;
+			} else {
+				op->orr_newSup = NULL;
+				op->orr_nnewSup = NULL;
 			}
 			op->orr_deleteoldrdn = 0;
 			op->orr_modlist = NULL;
