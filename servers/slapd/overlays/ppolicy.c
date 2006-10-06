@@ -827,26 +827,12 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			 * we now check whether the password has expired.
 			 *
 			 * We can skip this bit if passwords don't age in
-			 * the policy.
+			 * the policy. Also, if there was no pwdChangedTime
+			 * attribute in the entry, the password never expires.
 			 */
 			if (ppb->pp.pwdMaxAge == 0) goto grace;
 
-			if (pwtime == (time_t)-1) {
-				/*
-				 * Hmm. No password changed time on the
-				 * entry. This is odd - it should have
-				 * been provided when the attribute was added.
-				 *
-				 * However, it's possible that it could be
-				 * missing if the DIT was established via
-				 * an import process.
-				 */
-				Debug( LDAP_DEBUG_ANY,
-					"ppolicy_bind: Entry %s does not have valid pwdChangedTime attribute - assuming password expired\n",
-					e->e_name.bv_val, 0, 0);
-				
-				pwExpired = 1;
-			} else {
+			if (pwtime != (time_t)-1) {
 				/*
 				 * Check: was the last change time of
 				 * the password older than the maximum age
