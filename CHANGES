@@ -7,6 +7,7 @@ OpenLDAP 2.3.28 Engineering
 	Added ldapsearch bad filter pattern check (ITS#4647)
 	Fixed slapd global access controls initialization (ITS#4654)
 	Fixed slapd setting c_sasl_bindop only on SASL binds
+	Fixed slapd return code not being propagated (ITS#4565)
 	Fixed slapd-ldap retry with idassert (ITS#4686)
 	Fixed slapd-monitor locking with scope "subordinate" (ITS#4668)
 	Fixed slapd-perl deletes (ITS#2612)
