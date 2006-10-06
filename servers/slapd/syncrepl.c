@@ -1301,6 +1301,9 @@ syncrepl_message_to_op(
 				goto done;
 			op->orr_newSup = &psup;
 			op->orr_nnewSup = &nsup;
+		} else {
+			op->orr_newSup = NULL;
+			op->orr_nnewSup = NULL;
 		}
 		op->orr_newrdn = prdn;
 		op->orr_nnewrdn = nrdn;
