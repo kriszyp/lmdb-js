@@ -1330,7 +1330,10 @@ This option puts a replica database into "mirror" mode.  Update
 operations will be accepted from any user, not just the updatedn.  The
 database must already be configured as a slurpd or syncrepl consumer
 before this keyword may be set.  This mode must be used with extreme
-care, as it does not offer any consistency guarantees.
+care, as it does not offer any consistency guarantees.  This feature
+is intended to be used with an external frontend that guarantees that
+writes are only directed to a single master, switching to an alternate
+server only if the original master goes down.
 By default, mirrormode is off.
 .TP
 .B overlay <overlay-name>
