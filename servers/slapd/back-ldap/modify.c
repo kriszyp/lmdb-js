@@ -38,7 +38,7 @@ ldap_back_modify(
 {
 	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t		*lc;
+	ldapconn_t		*lc = NULL;
 	LDAPMod			**modv = NULL,
 				*mods = NULL;
 	Modifications		*ml;
@@ -48,8 +48,7 @@ ldap_back_modify(
 	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 	LDAPControl		**ctrls = NULL;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 

@@ -23,17 +23,17 @@ if test $BACKMETA = metano ; then
 	exit 0
 fi
 
-# to be removed some time...
-if test "x$TEST_META" = "xno" ; then
-	echo '### Test disabled by "TEST_META=no"; unset TEST_META to re-enable'
-	echo ""
-	exit 0
-else
-	echo "### this test is experimental; in case of problems,"
-	echo "### set \"TEST_META=no\" to disable, and report thru"
-	echo "### the Issue Tracking System <http://www.openldap.org/its/>"
-	echo ""
-fi
+#### No longer experimental, IMHO
+###if test "x$TEST_META" = "xno" ; then
+###	echo '### Test disabled by "TEST_META=no"; unset TEST_META to re-enable'
+###	echo ""
+###	exit 0
+###else
+###	echo "### this test is experimental; in case of problems,"
+###	echo "### set \"TEST_META=no\" to disable, and report thru"
+###	echo "### the Issue Tracking System <http://www.openldap.org/its/>"
+###	echo ""
+###fi
 
 if test x$TESTLOOPS = x ; then
 	TESTLOOPS=50

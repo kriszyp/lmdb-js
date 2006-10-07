@@ -38,14 +38,13 @@ ldap_back_compare(
 {
 	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t		*lc;
+	ldapconn_t		*lc = NULL;
 	ber_int_t		msgid;
 	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 	LDAPControl		**ctrls = NULL;
 	int			rc = LDAP_SUCCESS;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		lc = NULL;
 		goto cleanup;
 	}

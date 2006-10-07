@@ -38,15 +38,14 @@ ldap_back_modrdn(
 {
 	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t		*lc;
+	ldapconn_t		*lc = NULL;
 	ber_int_t		msgid;
 	LDAPControl		**ctrls = NULL;
 	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 	int			rc = LDAP_SUCCESS;
 	char			*newSup = NULL;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 

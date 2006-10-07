@@ -38,7 +38,7 @@ ldap_back_add(
 {
 	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t		*lc;
+	ldapconn_t		*lc = NULL;
 	int			i = 0,
 				j = 0;
 	Attribute		*a;
@@ -54,8 +54,7 @@ ldap_back_add(
 	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_add(\"%s\")\n",
 			op->o_req_dn.bv_val, 0, 0 );
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		lc = NULL;
 		goto cleanup;
 	}

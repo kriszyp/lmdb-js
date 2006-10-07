@@ -35,13 +35,6 @@
 #include "back-meta.h"
 
 /*
- * Set PRINT_CONNTREE larger than 0 to dump the connection tree (debug only)
- */
-#ifndef PRINT_CONNTREE
-#define PRINT_CONNTREE 0
-#endif /* !PRINT_CONNTREE */
-
-/*
  * meta_back_conndn_cmp
  *
  * compares two struct metaconn based on the value of the conn pointer
@@ -145,7 +138,7 @@ meta_back_conndn_dup(
 /*
  * Debug stuff (got it from libavl)
  */
-#if PRINT_CONNTREE > 0
+#if META_BACK_PRINT_CONNTREE > 0
 static void
 ravl_print( Avlnode *root, int depth )
 {
@@ -172,13 +165,13 @@ ravl_print( Avlnode *root, int depth )
 	ravl_print( root->avl_left, depth + 1 );
 }
 
-static void
-myprint( Avlnode *root, char *msg )
+void
+meta_back_print_conntree( Avlnode *root, char *msg )
 {
 	fprintf( stderr, "========> %s\n", msg );
 	
 	if ( root == 0 ) {
-		fprintf( stderr, "\tNULL\n" );
+		fprintf( stderr, "\t(empty)\n" );
 
 	} else {
 		ravl_print( root, 0 );
@@ -186,7 +179,7 @@ myprint( Avlnode *root, char *msg )
 	
 	fprintf( stderr, "<======== %s\n", msg );
 }
-#endif /* PRINT_CONNTREE */
+#endif /* META_BACK_PRINT_CONNTREE */
 /*
  * End of debug stuff
  */
@@ -895,13 +888,19 @@ retry_lock:;
 			if ( ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
 				|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout ) )
 			{
+#if META_BACK_PRINT_CONNTREE > 0
+				meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_getconn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 				/* don't let anyone else use this expired connection */
 				(void)avl_delete( &mi->mi_conninfo.lai_tree,
 					(caddr_t)mc, meta_back_conndnmc_cmp );
+#if META_BACK_PRINT_CONNTREE > 0
+				meta_back_print_conntree( mi->mi_conninfo.lai_tree, "<<< meta_back_getconn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 				LDAP_BACK_CONN_TAINTED_SET( mc );
 
 				Debug( LDAP_DEBUG_TRACE, "%s meta_back_getconn: mc=%p conn=%ld expired.\n",
-					op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+					op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc ) );
 			}
 
 			/* Don't reuse connections while they're still binding */
@@ -1311,13 +1310,14 @@ done:;
 		 * Inserts the newly created metaconn in the avl tree
 		 */
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_getconn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 		err = avl_insert( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
 			       	meta_back_conndn_cmp, meta_back_conndn_dup );
-
-#if PRINT_CONNTREE > 0
-		myprint( mi->mi_conninfo.lai_tree, "meta_back_getconn" );
-#endif /* PRINT_CONNTREE */
-		
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_getconn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 		/*
@@ -1340,7 +1340,7 @@ done:;
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
 				op->o_log_prefix, ncandidates,
-				LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+				LDAP_BACK_PCONN_ID( mc ) );
 	
 			mc->mc_refcnt = 0;	
 			meta_back_conn_free( mc );
@@ -1357,13 +1357,13 @@ done:;
 		Debug( LDAP_DEBUG_TRACE,
 			"%s meta_back_getconn: candidates=%d conn=%ld inserted\n",
 			op->o_log_prefix, ncandidates,
-			LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+			LDAP_BACK_PCONN_ID( mc ) );
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"%s meta_back_getconn: candidates=%d conn=%ld fetched\n",
 			op->o_log_prefix, ncandidates,
-			LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+			LDAP_BACK_PCONN_ID( mc ) );
 	}
 	
 	return mc;
@@ -1385,11 +1385,27 @@ meta_back_release_conn_lock(
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
 	LDAP_BACK_CONN_BINDING_CLEAR( mc );
-	if ( LDAP_BACK_CONN_TAINTED( mc ) ) {
+	/* NOTE: the connection is removed if either it is tainted
+	 * or if it is shared and no one else is using it.  This needs
+	 * to occur because for intrinsic reasons cached connections
+	 * that are not privileged would live forever and pollute
+	 * the connection space (and eat up resources).  Maybe this
+	 * should be configurable... */
+	if ( LDAP_BACK_CONN_TAINTED( mc ) || 
+		( !LDAP_BACK_CONN_ISPRIV( mc ) &&
+			LDAP_BACK_PCONN_ISPRIV( mc ) && 
+			mc->mc_refcnt == 0 ) )
+	{
 		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld tainted.\n",
-			op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+			op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc ) );
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_release_conn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 		(void)avl_delete( &mi->mi_conninfo.lai_tree,
 			( caddr_t )mc, meta_back_conndnmc_cmp );
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi->mi_conninfo.lai_tree, "<<< meta_back_release_conn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 		if ( mc->mc_refcnt == 0 ) {
 			meta_back_conn_free( mc );
 		}

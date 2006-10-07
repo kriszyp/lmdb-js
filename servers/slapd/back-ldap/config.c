@@ -1836,7 +1836,7 @@ ldap_back_exop_whoami(
 		&& !strcmp( op->o_conn->c_authz_backend->be_type, "ldap" )
 		&& !dn_match( &op->o_ndn, &op->o_conn->c_ndn ) )
 	{
-		ldapconn_t	*lc;
+		ldapconn_t	*lc = NULL;
 		LDAPControl c, *ctrls[2] = {NULL, NULL};
 		LDAPMessage *res;
 		Operation op2 = *op;
@@ -1846,8 +1846,7 @@ ldap_back_exop_whoami(
 
 		ctrls[0] = &c;
 		op2.o_ndn = op->o_conn->c_ndn;
-		lc = ldap_back_getconn(&op2, rs, LDAP_BACK_SENDERR);
-		if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+		if ( !ldap_back_dobind( &lc, &op2, rs, LDAP_BACK_SENDERR ) ) {
 			return -1;
 		}
 		c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;

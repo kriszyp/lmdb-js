@@ -219,6 +219,9 @@ retry_lock:;
 			}
 
 			assert( mc->mc_refcnt == 1 );
+#if META_BACK_PRINT_CONNTREE > 0
+			meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_bind" );
+#endif /* META_BACK_PRINT_CONNTREE */
 			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp );
 			assert( tmpmc == mc );
@@ -229,7 +232,7 @@ retry_lock:;
 				{
 					Debug( LDAP_DEBUG_TRACE,
 						"=>meta_back_bind: destroying conn %ld (refcnt=%u)\n",
-						LDAP_BACK_PCONN_ID( mc->mc_conn ), mc->mc_refcnt, 0 );
+						LDAP_BACK_PCONN_ID( mc ), mc->mc_refcnt, 0 );
 
 					if ( tmpmc->mc_refcnt != 0 ) {
 						/* taint it */
@@ -252,6 +255,9 @@ retry_lock:;
 			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );
+#if META_BACK_PRINT_CONNTREE > 0
+			meta_back_print_conntree( mi->mi_conninfo.lai_tree, "<<< meta_back_bind" );
+#endif /* META_BACK_PRINT_CONNTREE */
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			if ( lerr == -1 ) {
 				meta_clear_candidates( op, mc );
@@ -560,6 +566,7 @@ meta_back_single_dobind(
 		!op->o_do_not_cache &&
 		( BER_BVISNULL( &msc->msc_bound_ndn ) ||
 			BER_BVISEMPTY( &msc->msc_bound_ndn ) ||
+			( LDAP_BACK_CONN_ISPRIV( msc ) && dn_match( &msc->msc_bound_ndn, &mt->mt_idassert_authcDN ) ) ||
 			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)meta_back_proxy_authz_bind( mc, candidate, op, rs, sendok );
@@ -626,7 +633,7 @@ meta_back_dobind(
 	Debug( LDAP_DEBUG_TRACE,
 		"%s meta_back_dobind: conn=%ld%s\n",
 		op->o_log_prefix,
-		LDAP_BACK_PCONN_ID( mc->mc_conn ),
+		LDAP_BACK_PCONN_ID( mc ),
 		isroot ? " (isroot)" : "" );
 
 	/*
@@ -757,7 +764,7 @@ retry_ok:;
 done:;
 	Debug( LDAP_DEBUG_TRACE,
 		"%s meta_back_dobind: conn=%ld bound=%d\n",
-		op->o_log_prefix, LDAP_BACK_PCONN_ID( mc->mc_conn ), bound );
+		op->o_log_prefix, LDAP_BACK_PCONN_ID( mc ), bound );
 
 	if ( bound == 0 ) {
 		meta_back_release_conn( op, mc );

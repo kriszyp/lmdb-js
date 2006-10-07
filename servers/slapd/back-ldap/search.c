@@ -143,7 +143,7 @@ ldap_back_search(
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
-	ldapconn_t	*lc;
+	ldapconn_t	*lc = NULL;
 	struct timeval	tv;
 	time_t		stoptime = (time_t)(-1);
 	LDAPMessage	*res,
@@ -160,8 +160,7 @@ ldap_back_search(
 	/* FIXME: shouldn't this be null? */
 	const char	*save_matched = rs->sr_matched;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
@@ -719,7 +718,7 @@ ldap_back_entry_get(
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
-	ldapconn_t	*lc;
+	ldapconn_t	*lc = NULL;
 	int		rc = 1,
 			do_not_cache;
 	struct berval	bdn;
@@ -736,8 +735,7 @@ ldap_back_entry_get(
 	/* Tell getconn this is a privileged op */
 	do_not_cache = op->o_do_not_cache;
 	op->o_do_not_cache = 1;
-	lc = ldap_back_getconn( op, &rs, LDAP_BACK_DONTSEND );
-	if ( !lc || !ldap_back_dobind( lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
+	if ( !ldap_back_dobind( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 		op->o_do_not_cache = do_not_cache;
 		return rs.sr_err;
 	}

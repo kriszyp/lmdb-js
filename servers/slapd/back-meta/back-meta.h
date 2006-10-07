@@ -33,6 +33,13 @@
 #include "rewrite.h"
 LDAP_BEGIN_DECL
 
+/*
+ * Set META_BACK_PRINT_CONNTREE larger than 0 to dump the connection tree (debug only)
+ */
+#ifndef META_BACK_PRINT_CONNTREE
+#define META_BACK_PRINT_CONNTREE 0
+#endif /* !META_BACK_PRINT_CONNTREE */
+
 struct slap_conn;
 struct slap_op;
 
@@ -187,6 +194,7 @@ typedef struct metasingleconn_t {
 
 typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;
+#define	lc_conn			mc_conn
 	unsigned		mc_refcnt;
 
 	time_t			mc_create_time;
@@ -371,6 +379,13 @@ meta_back_retry(
 extern void
 meta_back_conn_free(
 	void			*v_mc );
+
+#if META_BACK_PRINT_CONNTREE > 0
+extern void
+meta_back_print_conntree(
+	Avlnode			*root,
+	char			*msg );
+#endif
 
 extern int
 meta_back_init_one_conn(

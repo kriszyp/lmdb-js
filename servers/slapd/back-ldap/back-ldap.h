@@ -48,7 +48,9 @@ typedef struct ldapconn_t {
 	Connection		*lc_conn;
 #define	LDAP_BACK_PCONN		((void *)0x0)
 #define	LDAP_BACK_PCONN_TLS	((void *)0x1)
-#define	LDAP_BACK_PCONN_ID(c)	((void *)(c) > LDAP_BACK_PCONN_TLS ? (c)->c_connid : -1)
+#define LDAP_BACK_PCONN_PRIV	(-1)
+#define LDAP_BACK_PCONN_ISPRIV(lc)	((void *)(lc)->lc_conn <= LDAP_BACK_PCONN_TLS)
+#define	LDAP_BACK_PCONN_ID(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) ? LDAP_BACK_PCONN_PRIV : (lc)->lc_conn->c_connid )
 #ifdef HAVE_TLS
 #define	LDAP_BACK_PCONN_SET(op)	((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_TLS : LDAP_BACK_PCONN)
 #else /* ! HAVE_TLS */
@@ -310,7 +312,9 @@ typedef enum ldap_back_send_t {
 	LDAP_BACK_RETRY_DONTSEND	= (LDAP_BACK_RETRYING),
 	LDAP_BACK_RETRY_SOK		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDOK),
 	LDAP_BACK_RETRY_SERR		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDERR),
-	LDAP_BACK_RETRY_SRES		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDRESULT)
+	LDAP_BACK_RETRY_SRES		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDRESULT),
+
+	LDAP_BACK_GETCONN		= 0x10
 } ldap_back_send_t;
 
 /* define to use asynchronous StartTLS */
@@ -324,6 +328,10 @@ typedef enum ldap_back_send_t {
 		(tv)->tv_sec = LDAP_BACK_RESULT_TIMEOUT; \
 		(tv)->tv_usec = LDAP_BACK_RESULT_UTIMEOUT; \
 	} while ( 0 )
+
+#ifndef LDAP_BACK_PRINT_CONNTREE
+#define LDAP_BACK_PRINT_CONNTREE 0
+#endif /* !LDAP_BACK_PRINT_CONNTREE */
 
 LDAP_END_DECL
 

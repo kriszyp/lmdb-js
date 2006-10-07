@@ -115,12 +115,13 @@ meta_search_dobind_init(
 
 	if ( msc->msc_ld == NULL ) {
 		/* for some reason (e.g. because formerly in "binding"
-		 * state, with eventual connection expiration or invalidation,
+		 * state, with eventual connection expiration or invalidation)
 		 * it was not initialized as expected */
 		rc = meta_back_init_one_conn( op, rs, *mcp, candidate,
 			LDAP_BACK_CONN_ISPRIV( *mcp ), LDAP_BACK_DONTSEND );
 		switch ( rc ) {
 		case LDAP_SUCCESS:
+			assert( msc->msc_ld != NULL );
 			break;
 
 		case LDAP_SERVER_DOWN:
@@ -597,7 +598,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	initial_candidates = ncandidates;
 
 	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-		char	cnd[BUFSIZ];
+		char	cnd[ BUFSIZ ];
 		int	c;
 
 		for ( c = 0; c < mi->mi_ntargets; c++ ) {
@@ -716,6 +717,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 					break;
 
 				case META_SEARCH_CANDIDATE:
+					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 					switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 					{
 					case META_SEARCH_CANDIDATE:
@@ -766,12 +768,10 @@ meta_back_search( Operation *op, SlapReply *rs )
 get_result:;
 			rc = ldap_result( msc->msc_ld, candidates[ i ].sr_msgid,
 					LDAP_MSG_ONE, &tv, &res );
-
 			switch ( rc ) {
 			case 0:
 				/* FIXME: res should not need to be freed */
 				assert( res == NULL );
-
 				continue;
 
 			case -1:
@@ -781,6 +781,7 @@ really_bad:;
 					candidates[ i ].sr_type = REP_RESULT;
 
 					if ( meta_back_retry( op, rs, &mc, i, LDAP_BACK_DONTSEND ) ) {
+						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 						switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 						{
 						case META_SEARCH_CANDIDATE:
@@ -1131,6 +1132,7 @@ really_bad:;
 
 				retcode = meta_search_dobind_result( op, rs, &mc, i, candidates, res );
 				if ( retcode == META_SEARCH_CANDIDATE ) {
+					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 					retcode = meta_back_search_start( op, rs, &dc, &mc, i, candidates );
 				}
 
