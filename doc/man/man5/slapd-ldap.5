@@ -97,16 +97,25 @@ needs be created.
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
 .RS
 Allows to define the parameters of the authentication method that is 
-internally used by the proxy to collect info related to access control.
+internally used by the proxy to collect info related to access control,
+and whenever an operation occurs with the identity of the rootdn
+of the LDAP proxy database.
 The identity defined by this directive, according to the properties
 associated to the authentication method, is supposed to have read access 
 on the target server to attributes used on the proxy for ACL checking.
+
 There is no risk of giving away such values; they are only used to
 check permissions.
 The default is to use
 .BR simple 
 bind, with empty \fIbinddn\fP and \fIcredentials\fP,
 which means that the related operations will be performed anonymously.
+If not set, and if \fBidassert-bind\fP is defined, this latter identity
+is used instead.  See \fBidassert-bind\fP for details.
+
+The connection between the proxy database and the remote server
+associated to this identity is cached regardless of the lifespan
+of the client-proxy connection that first established it.
 
 .B This identity is by no means implicitly used by the proxy 
 .B when the client connects anonymously.
@@ -320,6 +329,10 @@ flag is used, operations are performed anonymously for those identities
 whose assertion is not allowed by the
 .B idassert-authzFrom
 patterns.
+
+The identity associated to this directive is also used for privileged
+operations whenever \fBidassert-bind\fP is defined and \fBacl-bind\fP
+is not.  See \fBacl-bind\fP for details.
 
 This directive obsoletes
 .BR idassert-authcDN ,
