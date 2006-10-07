@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.28 Engineering
 	Fixed libldap ldap.conf max line length (ITS#4669)
+	Fixed liblutil LDIF CR/LF parsing bug (ITS#4635)
 	Fixed librewrite LDAP map parsing bug
 	Fixed librewrite map double free bug
 	Added ldapsearch bad filter pattern check (ITS#4647)
