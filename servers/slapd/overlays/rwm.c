@@ -811,7 +811,7 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	/* TODO: re-encode the request */
+	/* TODO: re-encode the request with the massaged DN */
 
 	return SLAP_CB_CONTINUE;
 }
