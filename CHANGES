@@ -17,6 +17,8 @@ OpenLDAP 2.3.28 Engineering
 	Fixed slapd-perl finding interpreter inside a thread (ITS#4358)
 	Fixed slapo-ppolicy pwdChangedTime behavior (ITS#4692)
 	Fixed slapo-translucent ldapmodify crash (ITS#4673)
+	Documentation
+		Updated ldapsearch(1) options (ITS#4371, #4526, #4647)
 
 OpenLDAP 2.3.27 Release
 	Fixed libldap dangling pointer issue (previous fix was broken) (ITS#4405)
