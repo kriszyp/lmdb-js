@@ -210,10 +210,15 @@ static void openldap_ldap_init_w_conf(
 
 				break;
 
-			case ATTR_INT:
+			case ATTR_INT: {
+				char *next;
+				long l;
 				p = &((char *) gopts)[attrs[i].offset];
-				(void)lutil_atoi( (int*) p, opt );
-				break;
+				l = strtol( opt, &next, 10 );
+				if ( next != opt && next[ 0 ] == '\0' ) {
+					* (int*) p = l;
+				}
+				} break;
 
 			case ATTR_KV: {
 					const struct ol_keyvalue *kv;
@@ -250,18 +255,21 @@ static void openldap_ldap_init_w_conf(
 				break;
 			case ATTR_OPT_TV: {
 				struct timeval tv;
+				char *next;
 				tv.tv_sec = -1;
 				tv.tv_usec = 0;
-				(void)lutil_atol( &tv.tv_sec, opt );
-				if ( tv.tv_sec > 0 ) {
-					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv);
+				tv.tv_sec = strtol( opt, &next, 10 );
+				if ( next != opt && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
+					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv );
 				}
 				} break;
 			case ATTR_OPT_INT: {
-				int v = -1;
-				(void)lutil_atoi( &v, opt );
-				if ( v > 0 ) {
-					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v);
+				long l;
+				char *next;
+				l = strtol( opt, &next, 10 );
+				if ( next != opt && next[ 0 ] == '\0' && l > 0 && (long)((int)l) == l ) {
+					int v = (int)l;
+					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v );
 				}
 				} break;
 			}
