@@ -385,7 +385,7 @@ ldap_back_monitor_db_open( BackendDB *be )
 	ldapinfo_t		*li = (ldapinfo_t *) be->be_private;
 	char			buf[ BACKMONITOR_BUFSIZE ];
 	Entry			*e = NULL;
-	monitor_callback_t	*cb;
+	monitor_callback_t	*cb = NULL;
 	struct berval		suffix, *filter, *base;
 	char			*ptr;
 	time_t			now;
