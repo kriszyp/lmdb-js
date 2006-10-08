@@ -201,11 +201,11 @@ monitor_subsys_thread_update(
 
 	for ( i = 0; !BER_BVISNULL( &mt[ i ].nrdn ); i++ ) {
 		if ( dn_match( &mt[ i ].nrdn, &rdn ) ) {
-			which = i;
 			break;
 		}
 	}
 
+	which = i;
 	if ( BER_BVISNULL( &mt[ which ].nrdn ) ) {
 		return SLAP_CB_CONTINUE;
 	}
