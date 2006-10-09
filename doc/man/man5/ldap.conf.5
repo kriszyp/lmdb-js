@@ -79,19 +79,34 @@ beautification or to overcome the above limit.
 .LP
 The different configuration options are:
 .TP
-.B URI <ldap[s]://[name[:port]] ...>
+.B URI <ldap[si]://[name[:port]] ...>
 Specifies the URI(s) of an LDAP server(s) to which the
 .I LDAP 
-library should connect.  The URI scheme may be either
-.B ldap
-or
+library should connect.  The URI scheme may be any of
+.BR ldap ,
 .B ldaps 
-which refer to LDAP over TCP and LDAP over SSL (TLS) respectively.
+or
+.BR ldapi ,
+which refer to LDAP over TCP, LDAP over SSL (TLS) and LDAP
+over local sockets, respectively.
 Each server's name can be specified as a
 domain-style name or an IP address literal.  Optionally, the
 server's name can followed by a ':' and the port number the LDAP
 server is listening on.  If no port number is provided, the default
 port for the scheme is used (389 for ldap://, 636 for ldaps://).
+For LDAP over local sockets,
+.B name 
+is the name of the socket, and no
+.B port
+is allowed; note that directory separators must be URL-encoded,
+like any other characters that are special to URLs; so the socket
+
+	/usr/local/var/ldapi
+
+must be specified as
+
+	ldapi://%2Fusr%2Flocal%2Fvar%2Fldapi
+
 A space separated list of URIs may be provided.
 .TP
 .B BASE <base>
