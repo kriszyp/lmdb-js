@@ -177,7 +177,7 @@ ldap_get_option(
 
 	case LDAP_OPT_TIMEOUT:
 		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api) != 0 ) {
+		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api ) != 0 ) {
 			return LDAP_OPT_ERROR;
 		}
 		return LDAP_OPT_SUCCESS;
@@ -658,6 +658,7 @@ ldap_set_option(
 	/* read-only options */
 	case LDAP_OPT_API_INFO:
 	case LDAP_OPT_DESC:
+	case LDAP_OPT_SOCKBUF:
 	case LDAP_OPT_API_FEATURE_INFO:
 		return LDAP_OPT_ERROR;
 
@@ -691,14 +692,17 @@ ldap_set_option(
 
 	switch(option) {
 	case LDAP_OPT_DEREF:
+		/* FIXME: check value for protocol compliance? */
 		lo->ldo_deref = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SIZELIMIT:
+		/* FIXME: check value for protocol compliance? */
 		lo->ldo_sizelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMELIMIT:
+		/* FIXME: check value for protocol compliance? */
 		lo->ldo_timelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
