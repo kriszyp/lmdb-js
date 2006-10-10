@@ -2266,9 +2266,9 @@ acl_usage( void )
 {
 	char *access =
 		"<access clause> ::= access to <what> "
-				"[ by <who> <access> [ <control> ] ]+ \n";
+				"[ by <who> [ <access> ] [ <control> ] ]+ \n";
 	char *what =
-		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrspec>]\n"
+		"<what> ::= * | dn[.<dnstyle>=<DN>] [filter=<filter>] [attrs=<attrspec>]\n"
 		"<attrspec> ::= <attrname> [val[/<matchingRule>][.<attrstyle>]=<value>] | <attrlist>\n"
 		"<attrlist> ::= <attr> [ , <attrlist> ]\n"
 		"<attr> ::= <attrname> | @<objectClass> | !<objectClass> | entry | children\n";
