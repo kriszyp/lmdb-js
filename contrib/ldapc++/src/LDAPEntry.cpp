@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "LDAPEntry.h"
 
+#include "LDAPAsynConnection.h"
 #include "LDAPException.h"
 
 using namespace std;

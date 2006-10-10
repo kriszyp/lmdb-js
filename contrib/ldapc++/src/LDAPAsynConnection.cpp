@@ -12,7 +12,6 @@
 #include "LDAPBindRequest.h"
 #include "LDAPCompareRequest.h"
 #include "LDAPDeleteRequest.h"
-#include "LDAPException.h"
 #include "LDAPExtRequest.h"
 #include "LDAPEntry.h"
 #include "LDAPModDNRequest.h"
