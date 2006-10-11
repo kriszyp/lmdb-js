@@ -987,7 +987,13 @@ OL_STRERROR
 
 dnl ----------------------------------------------------------------
 dnl require POSIX regex
-AC_CHECK_HEADERS( regex.h )
+AC_CHECK_HEADERS( regex.h, [], [],
+[$ac_includes_default
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+])
+
 if test "$ac_cv_header_regex_h" != yes ; then
 	AC_MSG_ERROR([POSIX regex.h required.])
 fi
