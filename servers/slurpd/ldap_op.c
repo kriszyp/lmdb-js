@@ -215,8 +215,8 @@ op_ldap_add(
 		ri->ri_hostname, ri->ri_port, re->re_dn );
 	rc = ldap_add_s( ri->ri_ldp, re->re_dn, ldmarr );
 
-	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
-	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_RESULT_CODE, &lderr);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_DIAGNOSTIC_MESSAGE, errmsg);
 	*errfree = 1;
 
     } else {
@@ -353,7 +353,7 @@ op_ldap_modify(
 	Debug( LDAP_DEBUG_ARGS, "replica %s:%d - modify dn \"%s\"\n",
 		ri->ri_hostname, ri->ri_port, re->re_dn );
 	rc = ldap_modify_s( ri->ri_ldp, re->re_dn, ldmarr );
-	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_DIAGNOSTIC_MESSAGE, errmsg);
 	*errfree = 1;
     }
     free_ldmarr( ldmarr );
@@ -379,7 +379,7 @@ op_ldap_delete(
     Debug( LDAP_DEBUG_ARGS, "replica %s:%d - delete dn \"%s\"\n",
 	    ri->ri_hostname, ri->ri_port, re->re_dn );
     rc = ldap_delete_s( ri->ri_ldp, re->re_dn );
-    ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+    ldap_get_option( ri->ri_ldp, LDAP_OPT_DIAGNOSTIC_MESSAGE, errmsg);
     *errfree = 1;
 
     return( rc );
@@ -512,8 +512,8 @@ op_ldap_modrdn(
     /* Do the modrdn */
     rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, newrdn, newsup, drdnflag );
 
-	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
-	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_RESULT_CODE, &lderr);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_DIAGNOSTIC_MESSAGE, errmsg);
 	*errfree = 1;
     return( lderr );
 }

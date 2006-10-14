@@ -237,7 +237,7 @@ the library duplicates the corresponding string.
 .B LDAP_OPT_RESULT_CODE
 Sets/gets the LDAP result code associated to the handle.
 This option was formerly known as
-.BR LDAP_OPT_ERROR_NUMBER.
+.BR LDAP_OPT_ERROR_NUMBER .
 Both
 .BR outvalue
 and
@@ -245,8 +245,10 @@ and
 must be a 
 .BR "int *" .
 .TP
-.B LDAP_OPT_ERROR_STRING
+.B LDAP_OPT_DIAGNOSTIC_MESSAGE
 Sets/gets a string containing the error string associated to the LDAP handle.
+This option was formerly known as 
+.BR LDAP_OPT_ERROR_STRING .
 .BR outvalue
 must be a
 .BR "char **" ,

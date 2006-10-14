@@ -363,7 +363,7 @@ main( int argc, char **argv )
 			}
 
 			error_msg = NULL;
-			ldap_get_option(ld, LDAP_OPT_ERROR_STRING, &error_msg);
+			ldap_get_option(ld, LDAP_OPT_DIAGNOSTIC_MESSAGE, &error_msg);
 			if ( error_msg != NULL ) {
 				if ( *error_msg != '\0' ) {
 					fprintf( rejfp, _(", additional info: %s"), error_msg );
@@ -1158,7 +1158,7 @@ static int process_response(
 		}
 
 		if ( rc == -1 ) {
-			ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+			ldap_get_option( ld, LDAP_OPT_RESULT_CODE, &rc );
 			return rc;
 		}
 

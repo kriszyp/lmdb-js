@@ -402,7 +402,7 @@ retry:;
 			break;
 
 		case -1:
-			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
+			ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE,
 				&rs->sr_err );
 
 			snprintf( buf, sizeof( buf ),
@@ -982,7 +982,7 @@ retry:;
 				goto retry;
 
 			case -1:
-				ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
+				ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE,
 						&rs->sr_err );
 				break;
 
@@ -1055,7 +1055,7 @@ retry:;
 
 			rs->sr_err = LDAP_SUCCESS;
 
-			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+			ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE, &rs->sr_err );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				/*
 				 * better check the type of error. In some cases
@@ -1064,7 +1064,7 @@ retry:;
 				 * positive result ...
 				 */
 				ldap_get_option( msc->msc_ld,
-						LDAP_OPT_ERROR_STRING, &xtext );
+						LDAP_OPT_DIAGNOSTIC_MESSAGE, &xtext );
 				if ( xtext != NULL && xtext [ 0 ] == '\0' ) {
 					ldap_memfree( xtext );
 					xtext = NULL;

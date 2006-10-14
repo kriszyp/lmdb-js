@@ -207,7 +207,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 				/* we do not retry in this case;
 				 * only for unique operations... */
 				ldap_get_option( msc->msc_ld,
-					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+					LDAP_OPT_RESULT_CODE, &rs->sr_err );
 				rres = slap_map_api2result( rs );
 				rres = rc;
 				rc = -1;
@@ -263,7 +263,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 						free( err );
 					}
 					ldap_get_option( msc->msc_ld,
-						LDAP_OPT_ERROR_STRING, &err );
+						LDAP_OPT_DIAGNOSTIC_MESSAGE, &err );
 
 					if ( match != NULL ) {
 						free( match );

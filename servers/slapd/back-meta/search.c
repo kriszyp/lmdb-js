@@ -988,7 +988,7 @@ really_bad:;
 				res = NULL;
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					ldap_get_option( msc->msc_ld,
-							LDAP_OPT_ERROR_NUMBER,
+							LDAP_OPT_RESULT_CODE,
 							&rs->sr_err );
 					sres = slap_map_api2result( rs );
 					candidates[ i ].sr_type = REP_RESULT;
