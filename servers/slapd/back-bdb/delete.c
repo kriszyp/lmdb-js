@@ -351,7 +351,11 @@ retry:	/* transaction retry */
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(bdb_delete) ": pre-read "
 				"failed!\n", 0, 0, 0 );
-			goto return_results;
+			if ( op->o_preread & SLAP_CONTROL_CRITICAL ) {
+				/* FIXME: is it correct to abort
+				 * operation if control fails? */
+				goto return_results;
+			}
 		}
 	}
 

@@ -395,7 +395,11 @@ retry:	/* transaction retry */
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(bdb_add) ": post-read "
 				"failed!\n", 0, 0, 0 );
-			goto return_results;
+			if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
+				/* FIXME: is it correct to abort
+				 * operation if control fails? */
+				goto return_results;
+			}
 		}
 	}
 
