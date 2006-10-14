@@ -10,9 +10,9 @@ OpenLDAP LDAP (libldap, -lldap)
 .nf
 .B #include <ldap.h>
 .LP
-.BI "int ldap_get_option(LDAP *" ld ", int" option ", void *" outvalue ");"
+.BI "int ldap_get_option(LDAP *" ld ", int " option ", void *" outvalue ");"
 .LP
-.BI "int ldap_set_option(LDAP *" ld ", int" option ", const void *" invalue ");"
+.BI "int ldap_set_option(LDAP *" ld ", int " option ", const void *" invalue ");"
 .SH DESCRIPTION
 .LP
 These routines provide access to options stored either in a LDAP handle
@@ -22,7 +22,8 @@ either retrieved by
 .BR ldap_get_option (3)
 or set by
 .BR ldap_set_option (3)
-is cast to (void *).
+is cast to 
+.BR "void *" .
 The actual type is determined based on the value of the
 .B option
 argument.
