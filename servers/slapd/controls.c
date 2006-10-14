@@ -1294,18 +1294,37 @@ static int parsePostRead (
 		goto done;
 	}
 
-	for( i=0; i<siz; i++ ) {
+	for ( i = 0; i < siz; i++ ) {
 		const char	*dummy = NULL;
+		int		rc;
 
 		an[i].an_desc = NULL;
 		an[i].an_oc = NULL;
 		an[i].an_oc_exclude = 0;
-		rs->sr_err = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
-		if ( rs->sr_err != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
-			rs->sr_text = dummy
-				? dummy
-				: "postread control: unknown attributeType";
-			goto done;
+		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		if ( rc != LDAP_SUCCESS ) {
+			int			i;
+			static struct berval	special_attrs[] = {
+				BER_BVC( LDAP_NO_ATTRS ),
+				BER_BVC( LDAP_ALL_USER_ATTRIBUTES ),
+				BER_BVC( LDAP_ALL_OPERATIONAL_ATTRIBUTES ),
+				BER_BVNULL
+			};
+
+			/* deal with special attribute types */
+			for ( i = 0; !BER_BVISNULL( &special_attrs[ i ] ); i++ ) {
+				if ( bvmatch( &an[i].an_name, &special_attrs[ i ] ) ) {
+					break;
+				}
+			}
+
+			if ( BER_BVISNULL( &special_attrs[ i ] ) && ctrl->ldctl_iscritical ) {
+				rs->sr_err = rc;
+				rs->sr_text = dummy
+					? dummy
+					: "postread control: unknown attributeType";
+				goto done;
+			}
 		}
 	}
 
