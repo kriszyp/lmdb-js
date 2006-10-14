@@ -154,16 +154,16 @@ meta_back_search_start(
 	 */
 	dc->ctx = "searchBase";
 	switch ( ldap_back_dn_massage( dc, &realbase, &mbase ) ) {
-	default:
+	case LDAP_SUCCESS:
 		break;
 
-	case REWRITE_REGEXEC_UNWILLING:
+	case LDAP_UNWILLING_TO_PERFORM:
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "Operation not allowed";
 		send_ldap_result( op, rs );
 		return META_SEARCH_ERR;
 
-	case REWRITE_REGEXEC_ERR:
+	default:
 
 		/*
 		 * this target is no longer candidate
