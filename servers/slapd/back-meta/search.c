@@ -117,6 +117,10 @@ meta_search_dobind_init(
 		/* for some reason (e.g. because formerly in "binding"
 		 * state, with eventual connection expiration or invalidation)
 		 * it was not initialized as expected */
+
+		Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] ld=NULL\n",
+			op->o_log_prefix, candidate, 0 );
+
 		rc = meta_back_init_one_conn( op, rs, *mcp, candidate,
 			LDAP_BACK_CONN_ISPRIV( *mcp ), LDAP_BACK_DONTSEND );
 		switch ( rc ) {
@@ -175,6 +179,8 @@ meta_search_dobind_init(
 		}
 	}
 
+	assert( msc->msc_ld != NULL );
+
 	rc = ldap_sasl_bind( msc->msc_ld, binddn.bv_val, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 	switch ( rc ) {
@@ -182,8 +188,8 @@ meta_search_dobind_init(
 		META_BINDING_SET( &candidates[ candidate ] );
 		return META_SEARCH_BINDING;
 
-down:;
 	case LDAP_SERVER_DOWN:
+down:;
 		/* This is the worst thing that could happen:
 		 * the search will wait until the retry is over. */
 		if ( meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
@@ -197,8 +203,8 @@ down:;
 		}
 		/* fall thru */
 
-other:;
 	default:
+other:;
 		rs->sr_err = rc;
 		rc = slap_map_api2result( rs );
 
@@ -243,7 +249,7 @@ meta_search_dobind_result(
 	/* FIXME: matched? referrals? response controls? */
 	rc = ldap_parse_result( msc->msc_ld, res,
 		&candidates[ candidate ].sr_err,
-		NULL, NULL, NULL, NULL, 1 );
+		NULL, NULL, NULL, NULL, 0 );
 	if ( rc != LDAP_SUCCESS ) {
 		candidates[ candidate ].sr_err = rc;
 	}
@@ -525,7 +531,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 	metaconn_t	*mc;
 	struct timeval	tv = { 0, 0 };
 	time_t		stoptime = (time_t)-1;
-	LDAPMessage	*res = NULL, *e;
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;
 	int		last = 0, ncandidates = 0,
@@ -678,6 +683,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
+			LDAPMessage		*res = NULL, *msg;
 
 			if ( candidates[ i ].sr_msgid == META_MSGID_IGNORE ) {
 				continue;
@@ -721,7 +727,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 					switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 					{
 					case META_SEARCH_CANDIDATE:
-						goto get_result;
+						break;
 
 						/* means that failed but onerr == continue */
 					case META_SEARCH_NOT_CANDIDATE:
@@ -765,9 +771,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 			 * get a LDAP_TIMELIMIT_EXCEEDED from
 			 * one of them ...
 			 */
-get_result:;
 			rc = ldap_result( msc->msc_ld, candidates[ i ].sr_msgid,
-					LDAP_MSG_ONE, &tv, &res );
+					LDAP_MSG_RECEIVED, &tv, &res );
 			switch ( rc ) {
 			case 0:
 				/* FIXME: res should not need to be freed */
@@ -785,7 +790,7 @@ really_bad:;
 						switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 						{
 						case META_SEARCH_CANDIDATE:
-							goto get_result;
+							break;
 
 							/* means that failed but onerr == continue */
 						case META_SEARCH_NOT_CANDIDATE:
@@ -837,333 +842,332 @@ really_bad:;
 				break;
 			}
 
-			if ( rc == LDAP_RES_SEARCH_ENTRY ) {
-				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
-					/* don't retry any more... */
-					candidates[ i ].sr_type = REP_RESULT;
-				}
+			for ( msg = ldap_first_message( msc->msc_ld, res );
+				msg != NULL;
+				msg = ldap_next_message( msc->msc_ld, msg ) )
+			{
+				rc = ldap_msgtype( msg );
+				if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+					LDAPMessage	*e;
 
-				is_ok++;
+					if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
+						/* don't retry any more... */
+						candidates[ i ].sr_type = REP_RESULT;
+					}
 
-				e = ldap_first_entry( msc->msc_ld, res );
-				savepriv = op->o_private;
-				op->o_private = (void *)i;
-				rs->sr_err = meta_send_entry( op, rs, mc, i, e );
-				ldap_msgfree( res );
-				res = NULL;
+					is_ok++;
 
-				switch ( rs->sr_err ) {
-				case LDAP_SIZELIMIT_EXCEEDED:
+					e = ldap_first_entry( msc->msc_ld, msg );
 					savepriv = op->o_private;
 					op->o_private = (void *)i;
-					send_ldap_result( op, rs );
-					op->o_private = savepriv;
-					rs->sr_err = LDAP_SUCCESS;
-					goto finish;
+					rs->sr_err = meta_send_entry( op, rs, mc, i, e );
 
-				case LDAP_UNAVAILABLE:
-					rs->sr_err = LDAP_OTHER;
-					goto finish;
-				}
-				op->o_private = savepriv;
+					switch ( rs->sr_err ) {
+					case LDAP_SIZELIMIT_EXCEEDED:
+						savepriv = op->o_private;
+						op->o_private = (void *)i;
+						send_ldap_result( op, rs );
+						op->o_private = savepriv;
+						rs->sr_err = LDAP_SUCCESS;
+						ldap_msgfree( res );
+						res = NULL;
+						goto finish;
 
-				/* don't wait any longer... */
-				gotit = 1;
-				tv.tv_sec = 0;
-				tv.tv_usec = 0;
-
-#if 0
-				/*
-				 * If scope is BASE, we need to jump out
-				 * as soon as one entry is found; if
-				 * the target pool is properly crafted,
-				 * this should correspond to the sole
-				 * entry that has the base DN
-				 */
-				/* FIXME: this defeats the purpose of
-				 * doing a search with scope == base and
-				 * sizelimit = 1 to determine if a
-				 * candidate is actually unique */
-				if ( op->ors_scope == LDAP_SCOPE_BASE
-						&& rs->sr_nentries > 0 )
-				{
-					doabandon = 1;
-					ncandidates = 0;
-					sres = LDAP_SUCCESS;
-					break;
-				}
-#endif
-
-			} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
-				char		**references = NULL;
-				int		cnt;
-
-				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
-					/* don't retry any more... */
-					candidates[ i ].sr_type = REP_RESULT;
-				}
-
-				is_ok++;
-
-				rc = ldap_parse_reference( msc->msc_ld, res,
-						&references, &rs->sr_ctrls, 1 );
-				res = NULL;
-
-				if ( rc != LDAP_SUCCESS ) {
-					continue;
-				}
-
-				if ( references == NULL ) {
-					continue;
-				}
-
-#ifdef ENABLE_REWRITE
-				dc.ctx = "referralDN";
-#else /* ! ENABLE_REWRITE */
-				dc.tofrom = 0;
-				dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
-
-				/* FIXME: merge all and return at the end */
-
-				for ( cnt = 0; references[ cnt ]; cnt++ )
-					;
-
-				rs->sr_ref = ch_calloc( sizeof( struct berval ), cnt + 1 );
-
-				for ( cnt = 0; references[ cnt ]; cnt++ ) {
-					ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
-				}
-				BER_BVZERO( &rs->sr_ref[ cnt ] );
-
-				( void )ldap_back_referral_result_rewrite( &dc, rs->sr_ref );
-
-				if ( rs->sr_ref != NULL && !BER_BVISNULL( &rs->sr_ref[ 0 ] ) ) {
-					/* ignore return value by now */
-					savepriv = op->o_private;
-					op->o_private = (void *)i;
-					( void )send_search_reference( op, rs );
+					case LDAP_UNAVAILABLE:
+						rs->sr_err = LDAP_OTHER;
+						ldap_msgfree( res );
+						res = NULL;
+						goto finish;
+					}
 					op->o_private = savepriv;
 
-					ber_bvarray_free( rs->sr_ref );
-					rs->sr_ref = NULL;
-				}
+					/* don't wait any longer... */
+					gotit = 1;
+					tv.tv_sec = 0;
+					tv.tv_usec = 0;
 
-				/* cleanup */
-				if ( references ) {
-					ber_memvfree( (void **)references );
-				}
-
-				if ( rs->sr_ctrls ) {
-					ldap_controls_free( rs->sr_ctrls );
-					rs->sr_ctrls = NULL;
-				}
-
-			} else if ( rc == LDAP_RES_SEARCH_RESULT ) {
-				char		buf[ SLAP_TEXT_BUFLEN ];
-				char		**references = NULL;
-
-				if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
-					/* don't retry any more... */
-					candidates[ i ].sr_type = REP_RESULT;
-				}
-
-				/* NOTE: ignores response controls
-				 * (and intermediate response controls
-				 * as well, except for those with search
-				 * references); this may not be correct,
-				 * but if they're not ignored then
-				 * back-meta would need to merge them
-				 * consistently (think of pagedResults...)
-				 */
-				/* FIXME: response controls? */
-				rs->sr_err = ldap_parse_result( msc->msc_ld,
-							res,
-							&candidates[ i ].sr_err,
-							(char **)&candidates[ i ].sr_matched,
-							NULL /* (char **)&candidates[ i ].sr_text */ ,
-							&references,
-							NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
-							1 );
-				res = NULL;
-				if ( rs->sr_err != LDAP_SUCCESS ) {
-					ldap_get_option( msc->msc_ld,
-							LDAP_OPT_RESULT_CODE,
-							&rs->sr_err );
-					sres = slap_map_api2result( rs );
-					candidates[ i ].sr_type = REP_RESULT;
-					goto really_bad;
-				}
-
-				/* massage matchedDN if need be */
-				if ( candidates[ i ].sr_matched != NULL ) {
-					struct berval	match, mmatch;
-
-					ber_str2bv( candidates[ i ].sr_matched,
-						0, 0, &match );
-					candidates[ i ].sr_matched = NULL;
-
-					dc.ctx = "matchedDN";
-					dc.target = mi->mi_targets[ i ];
-					if ( !ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
-						if ( mmatch.bv_val == match.bv_val ) {
-							candidates[ i ].sr_matched = ch_strdup( mmatch.bv_val );
-
-						} else {
-							candidates[ i ].sr_matched = mmatch.bv_val;
-						}
-
-						candidate_match++;
-					} 
-					ldap_memfree( match.bv_val );
-				}
-
-				/* add references to array */
-				if ( references ) {
-					BerVarray	sr_ref;
+				} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
+					char		**references = NULL;
 					int		cnt;
 
+					if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
+						/* don't retry any more... */
+						candidates[ i ].sr_type = REP_RESULT;
+					}
+	
+					is_ok++;
+	
+					rc = ldap_parse_reference( msc->msc_ld, msg,
+							&references, &rs->sr_ctrls, 0 );
+	
+					if ( rc != LDAP_SUCCESS ) {
+						continue;
+					}
+	
+					if ( references == NULL ) {
+						continue;
+					}
+
+#ifdef ENABLE_REWRITE
+					dc.ctx = "referralDN";
+#else /* ! ENABLE_REWRITE */
+					dc.tofrom = 0;
+					dc.normalized = 0;
+#endif /* ! ENABLE_REWRITE */
+
+					/* FIXME: merge all and return at the end */
 					for ( cnt = 0; references[ cnt ]; cnt++ )
 						;
-
-					sr_ref = ch_calloc( sizeof( struct berval ), cnt + 1 );
-
+	
+					rs->sr_ref = ch_calloc( sizeof( struct berval ), cnt + 1 );
+	
 					for ( cnt = 0; references[ cnt ]; cnt++ ) {
-						ber_str2bv( references[ cnt ], 0, 1, &sr_ref[ cnt ] );
+						ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
 					}
-					BER_BVZERO( &sr_ref[ cnt ] );
+					BER_BVZERO( &rs->sr_ref[ cnt ] );
+	
+					( void )ldap_back_referral_result_rewrite( &dc, rs->sr_ref );
 
-					( void )ldap_back_referral_result_rewrite( &dc, sr_ref );
-				
+					if ( rs->sr_ref != NULL && !BER_BVISNULL( &rs->sr_ref[ 0 ] ) ) {
+						/* ignore return value by now */
+						savepriv = op->o_private;
+						op->o_private = (void *)i;
+						( void )send_search_reference( op, rs );
+						op->o_private = savepriv;
+	
+						ber_bvarray_free( rs->sr_ref );
+						rs->sr_ref = NULL;
+					}
+
 					/* cleanup */
-					ber_memvfree( (void **)references );
+					if ( references ) {
+						ber_memvfree( (void **)references );
+					}
 
-					if ( rs->sr_v2ref == NULL ) {
-						rs->sr_v2ref = sr_ref;
+					if ( rs->sr_ctrls ) {
+						ldap_controls_free( rs->sr_ctrls );
+						rs->sr_ctrls = NULL;
+					}
 
-					} else {
-						for ( cnt = 0; !BER_BVISNULL( &sr_ref[ cnt ] ); cnt++ ) {
-							ber_bvarray_add( &rs->sr_v2ref, &sr_ref[ cnt ] );
+				} else if ( rc == LDAP_RES_SEARCH_RESULT ) {
+					char		buf[ SLAP_TEXT_BUFLEN ];
+					char		**references = NULL;
+
+					if ( candidates[ i ].sr_type == REP_INTERMEDIATE ) {
+						/* don't retry any more... */
+						candidates[ i ].sr_type = REP_RESULT;
+					}
+	
+					/* NOTE: ignores response controls
+					 * (and intermediate response controls
+					 * as well, except for those with search
+					 * references); this may not be correct,
+					 * but if they're not ignored then
+					 * back-meta would need to merge them
+					 * consistently (think of pagedResults...)
+					 */
+					/* FIXME: response controls? */
+					rs->sr_err = ldap_parse_result( msc->msc_ld,
+						msg,
+						&candidates[ i ].sr_err,
+						(char **)&candidates[ i ].sr_matched,
+						NULL /* (char **)&candidates[ i ].sr_text */ ,
+						&references,
+						NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
+						0 );
+					if ( rs->sr_err != LDAP_SUCCESS ) {
+						ldap_get_option( msc->msc_ld,
+							LDAP_OPT_RESULT_CODE,
+							&rs->sr_err );
+						sres = slap_map_api2result( rs );
+						candidates[ i ].sr_type = REP_RESULT;
+						ldap_msgfree( res );
+						res = NULL;
+						goto really_bad;
+					}
+
+					/* massage matchedDN if need be */
+					if ( candidates[ i ].sr_matched != NULL ) {
+						struct berval	match, mmatch;
+
+						ber_str2bv( candidates[ i ].sr_matched,
+							0, 0, &match );
+						candidates[ i ].sr_matched = NULL;
+
+						dc.ctx = "matchedDN";
+						dc.target = mi->mi_targets[ i ];
+						if ( !ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
+							if ( mmatch.bv_val == match.bv_val ) {
+								candidates[ i ].sr_matched
+									= ch_strdup( mmatch.bv_val );
+
+							} else {
+								candidates[ i ].sr_matched = mmatch.bv_val;
+							}
+
+							candidate_match++;
+						} 
+						ldap_memfree( match.bv_val );
+					}
+
+					/* add references to array */
+					if ( references ) {
+						BerVarray	sr_ref;
+						int		cnt;
+	
+						for ( cnt = 0; references[ cnt ]; cnt++ )
+							;
+	
+						sr_ref = ch_calloc( sizeof( struct berval ), cnt + 1 );
+	
+						for ( cnt = 0; references[ cnt ]; cnt++ ) {
+							ber_str2bv( references[ cnt ], 0, 1, &sr_ref[ cnt ] );
 						}
-						ber_memfree( sr_ref );
+						BER_BVZERO( &sr_ref[ cnt ] );
+	
+						( void )ldap_back_referral_result_rewrite( &dc, sr_ref );
+					
+						/* cleanup */
+						ber_memvfree( (void **)references );
+	
+						if ( rs->sr_v2ref == NULL ) {
+							rs->sr_v2ref = sr_ref;
+
+						} else {
+							for ( cnt = 0; !BER_BVISNULL( &sr_ref[ cnt ] ); cnt++ ) {
+								ber_bvarray_add( &rs->sr_v2ref, &sr_ref[ cnt ] );
+							}
+							ber_memfree( sr_ref );
+						}
 					}
-				}
-
-				rs->sr_err = candidates[ i ].sr_err;
-				sres = slap_map_api2result( rs );
-
-				if ( LogTest( LDAP_DEBUG_TRACE | LDAP_DEBUG_ANY ) ) {
-					snprintf( buf, sizeof( buf ),
-						"%s meta_back_search[%ld] "
-						"match=\"%s\" err=%ld",
-						op->o_log_prefix, i,
-						candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
-						(long) candidates[ i ].sr_err );
-					if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
-						Debug( LDAP_DEBUG_TRACE, "%s.\n", buf, 0, 0 );
-
-					} else {
-						Debug( LDAP_DEBUG_ANY, "%s (%s).\n",
-							buf, ldap_err2string( candidates[ i ].sr_err ), 0 );
+	
+					rs->sr_err = candidates[ i ].sr_err;
+					sres = slap_map_api2result( rs );
+	
+					if ( LogTest( LDAP_DEBUG_TRACE | LDAP_DEBUG_ANY ) ) {
+						snprintf( buf, sizeof( buf ),
+							"%s meta_back_search[%ld] "
+							"match=\"%s\" err=%ld",
+							op->o_log_prefix, i,
+							candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
+							(long) candidates[ i ].sr_err );
+						if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
+							Debug( LDAP_DEBUG_TRACE, "%s.\n", buf, 0, 0 );
+	
+						} else {
+							Debug( LDAP_DEBUG_ANY, "%s (%s).\n",
+								buf, ldap_err2string( candidates[ i ].sr_err ), 0 );
+						}
 					}
-				}
-
-				switch ( sres ) {
-				case LDAP_NO_SUCH_OBJECT:
-					/* is_ok is touched any time a valid
-					 * (even intermediate) result is
-					 * returned; as a consequence, if
-					 * a candidate returns noSuchObject
-					 * it is ignored and the candidate
-					 * is simply demoted. */
-					if ( is_ok ) {
-						sres = LDAP_SUCCESS;
+	
+					switch ( sres ) {
+					case LDAP_NO_SUCH_OBJECT:
+						/* is_ok is touched any time a valid
+						 * (even intermediate) result is
+						 * returned; as a consequence, if
+						 * a candidate returns noSuchObject
+						 * it is ignored and the candidate
+						 * is simply demoted. */
+						if ( is_ok ) {
+							sres = LDAP_SUCCESS;
+						}
+						break;
+	
+					case LDAP_SUCCESS:
+					case LDAP_REFERRAL:
+						is_ok++;
+						break;
+	
+					case LDAP_SIZELIMIT_EXCEEDED:
+						/* if a target returned sizelimitExceeded
+						 * and the entry count is equal to the
+						 * proxy's limit, the target would have
+						 * returned more, and the error must be
+						 * propagated to the client; otherwise,
+						 * the target enforced a limit lower
+						 * than what requested by the proxy;
+						 * ignore it */
+						if ( rs->sr_nentries == op->ors_slimit
+							|| META_BACK_ONERR_STOP( mi ) )
+						{
+							savepriv = op->o_private;
+							op->o_private = (void *)i;
+							send_ldap_result( op, rs );
+							op->o_private = savepriv;
+							ldap_msgfree( res );
+							res = NULL;
+							goto finish;
+						}
+						break;
+	
+					default:
+						if ( META_BACK_ONERR_STOP( mi ) ) {
+							savepriv = op->o_private;
+							op->o_private = (void *)i;
+							send_ldap_result( op, rs );
+							op->o_private = savepriv;
+							ldap_msgfree( res );
+							res = NULL;
+							goto finish;
+						}
+						break;
 					}
-					break;
-
-				case LDAP_SUCCESS:
-				case LDAP_REFERRAL:
-					is_ok++;
-					break;
-
-				case LDAP_SIZELIMIT_EXCEEDED:
-					/* if a target returned sizelimitExceeded
-					 * and the entry count is equal to the
-					 * proxy's limit, the target would have
-					 * returned more, and the error must be
-					 * propagated to the client; otherwise,
-					 * the target enforced a limit lower
-					 * than what requested by the proxy;
-					 * ignore it */
-					if ( rs->sr_nentries == op->ors_slimit
-						|| META_BACK_ONERR_STOP( mi ) )
-					{
-						savepriv = op->o_private;
-						op->o_private = (void *)i;
-						send_ldap_result( op, rs );
-						op->o_private = savepriv;
-						goto finish;
-					}
-					break;
-
-				default:
-					if ( META_BACK_ONERR_STOP( mi ) ) {
-						savepriv = op->o_private;
-						op->o_private = (void *)i;
-						send_ldap_result( op, rs );
-						op->o_private = savepriv;
-						goto finish;
-					}
-					break;
-				}
-
-				last = i;
-				rc = 0;
-
-				/*
-				 * When no candidates are left,
-				 * the outer cycle finishes
-				 */
-				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
-				--ncandidates;
-
-			} else if ( rc == LDAP_RES_BIND ) {
-				meta_search_candidate_t	retcode;
-
-				retcode = meta_search_dobind_result( op, rs, &mc, i, candidates, res );
-				if ( retcode == META_SEARCH_CANDIDATE ) {
-					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
-					retcode = meta_back_search_start( op, rs, &dc, &mc, i, candidates );
-				}
-
-				switch ( retcode ) {
-				case META_SEARCH_CANDIDATE:
-					goto get_result;
-
-					/* means that failed but onerr == continue */
-				case META_SEARCH_NOT_CANDIDATE:
-				case META_SEARCH_ERR:
+	
+					last = i;
+					rc = 0;
+	
+					/*
+					 * When no candidates are left,
+					 * the outer cycle finishes
+					 */
 					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 					--ncandidates;
-
-					if ( META_BACK_ONERR_STOP( mi ) ) {
-						savepriv = op->o_private;
-						op->o_private = (void *)i;
-						send_ldap_result( op, rs );
-						op->o_private = savepriv;
-						goto finish;
+	
+				} else if ( rc == LDAP_RES_BIND ) {
+					meta_search_candidate_t	retcode;
+	
+					retcode = meta_search_dobind_result( op, rs, &mc, i, candidates, msg );
+					if ( retcode == META_SEARCH_CANDIDATE ) {
+						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+						retcode = meta_back_search_start( op, rs, &dc, &mc, i, candidates );
 					}
-					break;
-
-				default:
+	
+					switch ( retcode ) {
+					case META_SEARCH_CANDIDATE:
+						break;
+	
+						/* means that failed but onerr == continue */
+					case META_SEARCH_NOT_CANDIDATE:
+					case META_SEARCH_ERR:
+						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+						--ncandidates;
+	
+						if ( META_BACK_ONERR_STOP( mi ) ) {
+							savepriv = op->o_private;
+							op->o_private = (void *)i;
+							send_ldap_result( op, rs );
+							op->o_private = savepriv;
+							ldap_msgfree( res );
+							res = NULL;
+							goto finish;
+						}
+						break;
+	
+					default:
+						assert( 0 );
+						break;
+					}
+	
+				} else {
 					assert( 0 );
-					break;
+					ldap_msgfree( res );
+					res = NULL;
+					goto really_bad;
 				}
-
-			} else {
-				assert( 0 );
-				goto really_bad;
 			}
+
+			ldap_msgfree( res );
+			res = NULL;
 		}
 
 		/* check for abandon */
