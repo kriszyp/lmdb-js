@@ -1505,14 +1505,15 @@ int slap_read_controls(
 		op->o_preread_attrs : op->o_postread_attrs; 
 
 	bv.bv_len = entry_flatsize( rs->sr_entry, 0 );
-	bv.bv_val = op->o_tmpalloc(bv.bv_len, op->o_tmpmemctx );
+	bv.bv_val = op->o_tmpalloc( bv.bv_len, op->o_tmpmemctx );
 
 	ber_init2( ber, &bv, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	/* create new operation */
 	myop = *op;
-	myop.o_bd = NULL;
+	/* FIXME: o_bd needed for ACL */
+	myop.o_bd = op->o_bd;
 	myop.o_res_ber = ber;
 	myop.o_callback = NULL;
 	myop.ors_slimit = 1;
