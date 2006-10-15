@@ -148,7 +148,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 	if(Conf->min_args && (c->argc < Conf->min_args)) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> missing <%s> argument",
 			c->argv[0], Conf->what );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n", c->log, c->msg, 0 );
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n", c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
 	}
 	if(Conf->max_args && (c->argc > Conf->max_args)) {
@@ -158,41 +158,41 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 			c->argv[0], Conf->what );
 
 		ignored = "";
-		Debug(LDAP_DEBUG_CONFIG, "%s: %s%s.\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s%s.\n",
 				c->log, c->msg, ignored );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_DB) && !c->be) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> only allowed within database declaration",
 			c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_PRE_BI) && c->bi) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> must occur before any backend %sdeclaration",
 			c->argv[0], (arg_syn & ARG_PRE_DB) ? "or database " : "" );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n",
 			c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_PRE_DB) && c->be && c->be != frontendDB) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> must occur before any database declaration",
 			c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_PAREN) && *c->argv[1] != '(' /*')'*/) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> old format not supported", c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if(arg_type && !Conf->arg_item && !(arg_syn & ARG_OFFSET)) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> invalid config_table, arg_item is NULL",
 			c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
@@ -211,7 +211,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		if ( rc != LDAP_SUCCESS ) {
 			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid DN %d (%s)",
 				c->argv[0], rc, ldap_err2string( rc ));
-			Debug(LDAP_DEBUG_CONFIG, "%s: %s\n" , c->log, c->msg, 0);
+			Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n" , c->log, c->msg, 0);
 			return(ARG_BAD_CONF);
 		}
 		if ( check_only ) {
@@ -227,7 +227,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as int",
 						c->argv[0], c->argv[1] );
-					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+					Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0);
 					return(ARG_BAD_CONF);
 				}
@@ -237,7 +237,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as long",
 						c->argv[0], c->argv[1] );
-					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+					Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0);
 					return(ARG_BAD_CONF);
 				}
@@ -248,7 +248,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as ber_len_t",
 						c->argv[0], c->argv[1] );
-					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+					Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0);
 					return(ARG_BAD_CONF);
 				}
@@ -270,7 +270,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				} else {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value",
 						c->argv[0] );
-					Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+					Debug(LDAP_DEBUG_ANY|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0 );
 					return(ARG_BAD_CONF);
 				}
@@ -281,7 +281,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 			larg = larg ? larg : (barg ? barg : iarg);
 			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value",
 				c->argv[0] );
-			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+			Debug(LDAP_DEBUG_ANY|LDAP_DEBUG_NONE, "%s: %s\n",
 				c->log, c->msg, 0 );
 			return(ARG_BAD_CONF);
 		}
