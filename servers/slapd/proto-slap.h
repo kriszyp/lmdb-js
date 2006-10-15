@@ -843,6 +843,7 @@ LDAP_SLAPD_F (int) register_certificate_map_function LDAP_P(( SLAP_CERT_MAP_FN *
  */
 LDAP_SLAPD_V (const Entry) slap_entry_root;
 
+LDAP_SLAPD_F (int) entry_init LDAP_P((void));
 LDAP_SLAPD_F (int) entry_destroy LDAP_P((void));
 
 LDAP_SLAPD_F (Entry *) str2entry LDAP_P(( char	*s ));

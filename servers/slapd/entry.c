@@ -86,8 +86,8 @@ int entry_destroy(void)
 	return attr_destroy();
 }
 
-
-int entry_init(void)
+int
+entry_init(void)
 {
 	ldap_pvt_thread_mutex_init( &entry2str_mutex );
 	ldap_pvt_thread_mutex_init( &entry_mutex );
