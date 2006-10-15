@@ -2489,7 +2489,7 @@ loglevel_print( FILE *out )
 
 	fprintf( out, "Installed log subsystems:\n\n" );
 	for ( i = 0; !BER_BVISNULL( &loglevel_ops[ i ].word ); i++ ) {
-		fprintf( out, "\t%-30s (%d)\n",
+		fprintf( out, "\t%-30s (%lu)\n",
 			loglevel_ops[ i ].word.bv_val,
 			loglevel_ops[ i ].mask );
 	}
@@ -2640,7 +2640,7 @@ config_security(ConfigArgs *c) {
 	}
 	for(i = 1; i < c->argc; i++) {
 		slap_ssf_t *tgt = NULL;
-		char *src;
+		char *src = NULL;
 		for ( j=0; !BER_BVISNULL( &sec_keys[j].key ); j++ ) {
 			if(!strncasecmp(c->argv[i], sec_keys[j].key.bv_val,
 				sec_keys[j].key.bv_len)) {
