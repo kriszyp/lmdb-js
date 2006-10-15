@@ -1330,11 +1330,15 @@ slap_open_listener(
 		{
 			mode_t old_umask;
 
-			old_umask = umask( 0 );
+			if ( (*sal)->sa_family == AF_LOCAL ) {
+				old_umask = umask( 0 );
+			}
 #endif /* LDAP_PF_LOCAL */
 			rc = bind( l.sl_sd, *sal, addrlen );
 #ifdef LDAP_PF_LOCAL
-			umask( old_umask );
+			if ( (*sal)->sa_family == AF_LOCAL ) {
+				umask( old_umask );
+			}
 		}
 #endif /* LDAP_PF_LOCAL */
 		if ( rc ) {
