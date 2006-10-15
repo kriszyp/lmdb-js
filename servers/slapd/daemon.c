@@ -1308,39 +1308,43 @@ slap_open_listener(
 #ifdef LDAP_PF_LOCAL
 		case AF_LOCAL:
 #ifdef LOCAL_CREDS
-		{
-			int one = 1;
-			setsockopt( l.sl_sd, 0, LOCAL_CREDS, &one, sizeof( one ) );
-		}
+			{
+				int one = 1;
+				setsockopt( l.sl_sd, 0, LOCAL_CREDS, &one, sizeof( one ) );
+			}
 #endif /* LOCAL_CREDS */
 
-		addrlen = sizeof( struct sockaddr_un );
+			addrlen = sizeof( struct sockaddr_un );
+			break;
+#endif /* LDAP_PF_LOCAL */
+		}
 
+#ifdef LDAP_PF_LOCAL
 		/* create socket with all permissions set for those systems
 		 * that honor permissions on sockets (e.g. Linux); typically,
 		 * only write is required.  To exploit filesystem permissions,
 		 * place the socket in a directory and use directory's
 		 * permissions.  Need write perms to the directory to 
 		 * create/unlink the socket; likely need exec perms to access
-		 * the socket */
+		 * the socket (ITS#4709) */
 		{
 			mode_t old_umask;
 
 			old_umask = umask( 0 );
-			rc = bind( l.sl_sd, *sal, addrlen );
-			umask( old_umask );
-			if ( rc ) {
-				err = sock_errno();
-				Debug( LDAP_DEBUG_ANY,
-					"daemon: bind(%ld) failed errno=%d (%s)\n",
-					(long)l.sl_sd, err, sock_errstr( err ) );
-				tcp_close( l.sl_sd );
-				sal++;
-				continue;
-			}
-		}
-		break;
 #endif /* LDAP_PF_LOCAL */
+			rc = bind( l.sl_sd, *sal, addrlen );
+#ifdef LDAP_PF_LOCAL
+			umask( old_umask );
+		}
+#endif /* LDAP_PF_LOCAL */
+		if ( rc ) {
+			err = sock_errno();
+			Debug( LDAP_DEBUG_ANY,
+				"daemon: bind(%ld) failed errno=%d (%s)\n",
+				(long)l.sl_sd, err, sock_errstr( err ) );
+			tcp_close( l.sl_sd );
+			sal++;
+			continue;
 		}
 
 		switch ( (*sal)->sa_family ) {
