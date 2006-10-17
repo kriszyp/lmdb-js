@@ -831,6 +831,10 @@ void connection_closing( Connection *c, const char *why )
 		/* wake write blocked operations */
 		if ( c->c_writewaiter ) {
 			ldap_pvt_thread_cond_signal( &c->c_write_cv );
+			/* ITS#4667 this may allow another thread to drop into
+			 * connection_resched / connection_close before we
+			 * finish, but that's OK.
+			 */
 			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			slapd_clr_write( sd, 1 );
 			ldap_pvt_thread_mutex_lock( &c->c_write_mutex );
@@ -854,10 +858,12 @@ connection_close( Connection *c )
 	assert( connections != NULL );
 	assert( c != NULL );
 
-	if ( c->c_conn_state != SLAP_C_CLOSING )
+	/* ITS#4667 we may have gotten here twice */
+	if ( c->c_conn_state == SLAP_C_INVALID )
 		return;
 
 	assert( c->c_struct_state == SLAP_C_USED );
+	assert( c->c_struct_state == SLAP_C_CLOSING );
 
 	/* NOTE: c_mutex should be locked by caller */
 
