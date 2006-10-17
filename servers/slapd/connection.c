@@ -853,8 +853,11 @@ connection_close( Connection *c )
 
 	assert( connections != NULL );
 	assert( c != NULL );
+
+	if ( c->c_conn_state != SLAP_C_CLOSING )
+		return;
+
 	assert( c->c_struct_state == SLAP_C_USED );
-	assert( c->c_conn_state == SLAP_C_CLOSING );
 
 	/* NOTE: c_mutex should be locked by caller */
 
