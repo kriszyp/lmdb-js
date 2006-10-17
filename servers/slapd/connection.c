@@ -863,7 +863,7 @@ connection_close( Connection *c )
 		return;
 
 	assert( c->c_struct_state == SLAP_C_USED );
-	assert( c->c_struct_state == SLAP_C_CLOSING );
+	assert( c->c_conn_state == SLAP_C_CLOSING );
 
 	/* NOTE: c_mutex should be locked by caller */
 
