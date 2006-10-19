@@ -1,5 +1,4 @@
 OpenLDAP 2.3 Change Log
-	Fixed slapd-meta DN massage error code handling (ITS#4711)
 
 OpenLDAP 2.3.28 Engineering
 	Fixed libldap ldap.conf max line length (ITS#4669)
@@ -13,6 +12,7 @@ OpenLDAP 2.3.28 Engineering
 	Fixed slapd integerBitAndMatch (ITS#4672)
 	Fixed slapd syncrepl modrdn new superior (ITS#4695)
 	Fixed slapd-ldap retry with idassert (ITS#4686)
+	Fixed slapd-meta DN massage error code handling (ITS#4711)
 	Fixed slapd-monitor locking with scope "subordinate" (ITS#4668)
 	Fixed slapd-perl deletes (ITS#2612)
 	Fixed slapd-perl backend initialization (ITS#4358)
