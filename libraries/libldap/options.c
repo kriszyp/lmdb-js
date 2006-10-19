@@ -177,7 +177,7 @@ ldap_get_option(
 
 	case LDAP_OPT_TIMEOUT:
 		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api) != 0 ) {
+		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api ) != 0 ) {
 			return LDAP_OPT_ERROR;
 		}
 		return LDAP_OPT_SUCCESS;
@@ -242,7 +242,7 @@ ldap_get_option(
 
 		return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_ERROR_NUMBER:
+	case LDAP_OPT_RESULT_CODE:
 		if(ld == NULL) {
 			/* bad param */
 			break;
@@ -250,7 +250,7 @@ ldap_get_option(
 		* (int *) outvalue = ld->ld_errno;
 		return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_ERROR_STRING:
+	case LDAP_OPT_DIAGNOSTIC_MESSAGE:
 		if(ld == NULL) {
 			/* bad param */
 			break;
@@ -578,7 +578,7 @@ ldap_set_option(
 			lo->ldo_defbase = defbase;
 		} return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_ERROR_STRING: {
+	case LDAP_OPT_DIAGNOSTIC_MESSAGE: {
 			const char *err = (const char *) invalue;
 
 			if(ld == NULL) {
@@ -658,6 +658,7 @@ ldap_set_option(
 	/* read-only options */
 	case LDAP_OPT_API_INFO:
 	case LDAP_OPT_DESC:
+	case LDAP_OPT_SOCKBUF:
 	case LDAP_OPT_API_FEATURE_INFO:
 		return LDAP_OPT_ERROR;
 
@@ -666,7 +667,7 @@ ldap_set_option(
 	case LDAP_OPT_SIZELIMIT:
 	case LDAP_OPT_TIMELIMIT:
 	case LDAP_OPT_PROTOCOL_VERSION:
-	case LDAP_OPT_ERROR_NUMBER:
+	case LDAP_OPT_RESULT_CODE:
 	case LDAP_OPT_DEBUG_LEVEL:
 		if(invalue == NULL) {
 			/* no place to set from */
@@ -691,14 +692,17 @@ ldap_set_option(
 
 	switch(option) {
 	case LDAP_OPT_DEREF:
+		/* FIXME: check value for protocol compliance? */
 		lo->ldo_deref = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SIZELIMIT:
+		/* FIXME: check value for protocol compliance? */
 		lo->ldo_sizelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMELIMIT:
+		/* FIXME: check value for protocol compliance? */
 		lo->ldo_timelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
 
@@ -711,7 +715,7 @@ ldap_set_option(
 			lo->ldo_version = vers;
 		} return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_ERROR_NUMBER: {
+	case LDAP_OPT_RESULT_CODE: {
 			int err = * (const int *) invalue;
 
 			if(ld == NULL) {

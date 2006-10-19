@@ -44,6 +44,23 @@ BackendDB			*be_monitor;
 static struct monitor_subsys_t	**monitor_subsys;
 static int			monitor_subsys_opened;
 static monitor_info_t		monitor_info;
+static const monitor_extra_t monitor_extra = {
+	monitor_back_is_configured,
+	monitor_back_get_subsys,
+	monitor_back_get_subsys_by_dn,
+
+	monitor_back_register_subsys,
+	monitor_back_register_entry,
+	monitor_back_register_entry_parent,
+	monitor_back_register_entry_attrs,
+	monitor_back_register_entry_callback,
+
+	monitor_back_unregister_entry,
+	monitor_back_unregister_entry_parent,
+	monitor_back_unregister_entry_attrs,
+	monitor_back_unregister_entry_callback
+};
+	
 
 /*
  * subsystem data
@@ -254,10 +271,12 @@ typedef struct entry_limbo_t {
 	Entry			*el_e;
 	Attribute		*el_a;
 	struct berval		el_ndn;
-	struct berval		el_base;
+	struct berval		el_nbase;
 	int			el_scope;
 	struct berval		el_filter;
 	monitor_callback_t	*el_cb;
+	monitor_subsys_t	*el_mss;
+	unsigned long		el_flags;
 	struct entry_limbo_t	*el_next;
 } entry_limbo_t;
 
@@ -270,7 +289,9 @@ monitor_back_is_configured( void )
 int
 monitor_back_register_entry(
 	Entry			*e,
-	monitor_callback_t	*cb )
+	monitor_callback_t	*cb,
+	monitor_subsys_t	*mss,
+	unsigned long		flags )
 {
 	monitor_info_t 	*mi;
 
@@ -351,8 +372,14 @@ monitor_back_register_entry(
 		}
 		
 		e_new->e_private = ( void * )mp;
-		mp->mp_info = mp_parent->mp_info;
-		mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		if ( mss != NULL ) {
+			mp->mp_info = mss;
+			mp->mp_flags = flags;
+
+		} else {
+			mp->mp_info = mp_parent->mp_info;
+			mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		}
 		mp->mp_cb = cb;
 
 		ep = &mp_parent->mp_children;
@@ -401,6 +428,8 @@ done:;
 		}
 		
 		el.el_cb = cb;
+		el.el_mss = mss;
+		el.el_flags = flags;
 
 		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
 				*elpp;
@@ -425,7 +454,9 @@ int
 monitor_back_register_entry_parent(
 	Entry			*e,
 	monitor_callback_t	*cb,
-	struct berval		*base,
+	monitor_subsys_t	*mss,
+	unsigned long		flags,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
@@ -436,8 +467,8 @@ monitor_back_register_entry_parent(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_back_register_entry_parent(base=\"%s\" scope=%s filter=\"%s\"): "
 			"monitor database not configured.\n",
-			BER_BVISNULL( base ) ? "" : base->bv_val,
-			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
+			ldap_pvt_scope2str( scope ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 		return -1;
 	}
@@ -467,14 +498,15 @@ monitor_back_register_entry_parent(
 				*mp_parent = NULL;
 		int		rc = 0;
 
-		if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
+		if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_register_entry_parent(\"\"): "
-				"base=%s scope=%d filter=%s : "
+				"base=\"%s\" scope=%s filter=\"%s\": "
 				"unable to find entry\n",
-				base->bv_val ? base->bv_val : "\"\"",
-				scope, filter->bv_val );
+				nbase->bv_val ? nbase->bv_val : "\"\"",
+				ldap_pvt_scope2str( scope ),
+				filter->bv_val );
 			return -1;
 		}
 
@@ -511,6 +543,7 @@ monitor_back_register_entry_parent(
 				"entry already exists\n",
 				e_name.bv_val, 0, 0 );
 			monitor_cache_release( mi, e_new );
+			e_new = NULL;
 			rc = -1;
 			goto done;
 		}
@@ -540,8 +573,14 @@ monitor_back_register_entry_parent(
 		e_new->e_nname = e_nname;
 		
 		e_new->e_private = ( void * )mp;
-		mp->mp_info = mp_parent->mp_info;
-		mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		if ( mss != NULL ) {
+			mp->mp_info = mss;
+			mp->mp_flags = flags;
+
+		} else {
+			mp->mp_info = mp_parent->mp_info;
+			mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		}
 		mp->mp_cb = cb;
 
 		ep = &mp_parent->mp_children;
@@ -580,7 +619,7 @@ done:;
 		}
 
 	} else {
-		entry_limbo_t	**elpp, el = { 0 };
+		entry_limbo_t	**elpp = NULL, el = { 0 };
 
 		el.el_type = LIMBO_ENTRY_PARENT;
 
@@ -590,18 +629,21 @@ done:;
 				"monitor_back_register_entry(\"%s\"): "
 				"entry_dup() failed\n",
 				e->e_name.bv_val, 0, 0 );
-			return -1;
+			goto done_limbo;
 		}
 		
-		if ( !BER_BVISNULL( base ) ) {
-			ber_dupbv( &el.el_base, base );
+		if ( !BER_BVISNULL( nbase ) ) {
+			ber_dupbv( &el.el_nbase, nbase );
 		}
+
 		el.el_scope = scope;
 		if ( !BER_BVISNULL( filter ) ) {
-			ber_dupbv( &el.el_filter, filter );
+			ber_dupbv( &el.el_filter, filter  );
 		}
 
 		el.el_cb = cb;
+		el.el_mss = mss;
+		el.el_flags = flags;
 
 		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
 				*elpp;
@@ -610,23 +652,41 @@ done:;
 
 		*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
 		if ( *elpp == NULL ) {
-			el.el_e->e_private = NULL;
+			goto done_limbo;
+		}
+
+done_limbo:;
+		if ( *elpp != NULL ) {
+			el.el_next = NULL;
+			**elpp = el;
+
+		} else {
+			if ( !BER_BVISNULL( &el.el_filter ) ) {
+				ch_free( el.el_filter.bv_val );
+			}
+			if ( !BER_BVISNULL( &el.el_nbase ) ) {
+				ch_free( el.el_nbase.bv_val );
+			}
 			entry_free( el.el_e );
 			return -1;
 		}
-
-		el.el_next = NULL;
-		**elpp = el;
 	}
 
 	return 0;
 }
 
 static int
-monitor_filter2ndn_cb( Operation *op, SlapReply *rs )
+monitor_search2ndn_cb( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH ) {
 		struct berval	*ndn = op->o_callback->sc_private;
+
+		if ( !BER_BVISNULL( ndn ) ) {
+			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+			ch_free( ndn->bv_val );
+			BER_BVZERO( ndn );
+			return rs->sr_err;
+		}
 		
 		ber_dupbv( ndn, &rs->sr_entry->e_nname );
 	}
@@ -635,8 +695,8 @@ monitor_filter2ndn_cb( Operation *op, SlapReply *rs )
 }
 
 int
-monitor_filter2ndn(
-	struct berval	*base,
+monitor_search2ndn(
+	struct berval	*nbase,
 	int		scope,
 	struct berval	*filter,
 	struct berval	*ndn )
@@ -645,7 +705,7 @@ monitor_filter2ndn(
 	OperationBuffer	opbuf;
 	Operation	*op;
 	SlapReply	rs = { 0 };
-	slap_callback	cb = { NULL, monitor_filter2ndn_cb, NULL, NULL };
+	slap_callback	cb = { NULL, monitor_search2ndn_cb, NULL, NULL };
 	int		rc;
 
 	BER_BVZERO( ndn );
@@ -668,14 +728,14 @@ monitor_filter2ndn(
 	op->o_tmpmfuncs = &ch_mfuncs;
 
 	op->o_bd = be_monitor;
-	if ( base == NULL || BER_BVISNULL( base ) ) {
+	if ( nbase == NULL || BER_BVISNULL( nbase ) ) {
 		ber_dupbv_x( &op->o_req_dn, &op->o_bd->be_suffix[ 0 ],
 				op->o_tmpmemctx );
 		ber_dupbv_x( &op->o_req_ndn, &op->o_bd->be_nsuffix[ 0 ],
 				op->o_tmpmemctx );
 
 	} else {
-		if ( dnPrettyNormal( NULL, base, &op->o_req_dn, &op->o_req_ndn,
+		if ( dnPrettyNormal( NULL, nbase, &op->o_req_dn, &op->o_req_ndn,
 					op->o_tmpmemctx ) ) {
 			return -1;
 		}
@@ -685,8 +745,12 @@ monitor_filter2ndn(
 	cb.sc_private = (void *)ndn;
 
 	op->ors_scope = scope;
-	ber_dupbv_x( &op->ors_filterstr, filter, op->o_tmpmemctx );
 	op->ors_filter = str2filter_x( op, filter->bv_val );
+	if ( op->ors_filter == NULL ) {
+		rc = LDAP_OTHER;
+		goto cleanup;
+	}
+	ber_dupbv_x( &op->ors_filterstr, filter, op->o_tmpmemctx );
 	op->ors_attrs = slap_anlist_no_attrs;
 	op->ors_attrsonly = 0;
 	op->ors_tlimit = SLAP_NO_LIMIT;
@@ -702,10 +766,19 @@ monitor_filter2ndn(
 
 	rc = op->o_bd->be_search( op, &rs );
 
-	filter_free_x( op, op->ors_filter );
-	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+cleanup:;
+	if ( op->ors_filter != NULL ) {
+		filter_free_x( op, op->ors_filter );
+	}
+	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
+		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	}
 
 	if ( rc != 0 ) {
 		return rc;
@@ -736,7 +809,7 @@ monitor_back_register_entry_attrs(
 	struct berval		*ndn_in,
 	Attribute		*a,
 	monitor_callback_t	*cb,
-	struct berval		*base,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
@@ -751,8 +824,8 @@ monitor_back_register_entry_attrs(
 			"monitor_back_register_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
 			"monitor database not configured.\n",
 			fname,
-			BER_BVISNULL( base ) ? "" : base->bv_val,
-			scope == LDAP_SCOPE_BASE ? "base" : ( scope == LDAP_SCOPE_ONELEVEL ? "one" : "subtree" ),
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
+			ldap_pvt_scope2str( scope ),
 			BER_BVISNULL( filter ) ? "" : filter->bv_val );
 		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
 
@@ -792,16 +865,17 @@ monitor_back_register_entry_attrs(
 		int			freeit = 0;
 
 		if ( BER_BVISNULL( &ndn ) ) {
-			if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
+			if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
 				char		buf[ SLAP_TEXT_BUFLEN ];
 
 				snprintf( buf, sizeof( buf ),
 					"monitor_back_register_entry_%s(\"\"): "
-					"base=%s scope=%d filter=%s : "
+					"base=\"%s\" scope=%s filter=\"%s\": "
 					"unable to find entry\n",
 					fname,
-					base->bv_val ? base->bv_val : "\"\"",
-					scope, filter->bv_val );
+					nbase->bv_val ? nbase->bv_val : "\"\"",
+					ldap_pvt_scope2str( scope ),
+					filter->bv_val );
 
 				/* entry does not exist */
 				Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
@@ -838,14 +912,26 @@ monitor_back_register_entry_attrs(
 			for ( atp = &e->e_attrs; *atp; atp = &(*atp)->a_next )
 				/* just get to last */ ;
 
-			*atp = attrs_dup( a );
-			if ( *atp == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-					"monitor_back_register_entry_%s(\"%s\"): "
-					"attrs_dup() failed\n",
-					fname, e->e_name.bv_val, 0 );
-				rc = -1;
-				goto done;
+			for ( ; a != NULL; a = a->a_next ) {
+				assert( a->a_desc != NULL );
+				assert( a->a_vals != NULL );
+
+				if ( attr_find( e->e_attrs, a->a_desc ) ) {
+					attr_merge( e, a->a_desc, a->a_vals,
+						a->a_nvals == a->a_vals ? NULL : a->a_nvals );
+
+				} else {
+					*atp = attr_dup( a );
+					if ( *atp == NULL ) {
+						Debug( LDAP_DEBUG_ANY,
+							"monitor_back_register_entry_%s(\"%s\"): "
+							"attr_dup() failed\n",
+							fname, e->e_name.bv_val, 0 );
+						rc = -1;
+						goto done;
+					}
+					atp = &(*atp)->a_next;
+				}
 			}
 		}
 
@@ -881,12 +967,12 @@ done:;
 		if ( !BER_BVISNULL( &ndn ) ) {
 			ber_dupbv( &el.el_ndn, &ndn );
 		}
-		if ( !BER_BVISNULL( base ) ) {
-			ber_dupbv( &el.el_base, base);
+		if ( !BER_BVISNULL( nbase ) ) {
+			ber_dupbv( &el.el_nbase, nbase);
 		}
 		el.el_scope = scope;
 		if ( !BER_BVISNULL( filter ) ) {
-			ber_dupbv( &el.el_filter, filter );
+			ber_dupbv( &el.el_filter, filter  );
 		}
 
 		el.el_a = attrs_dup( a );
@@ -904,8 +990,26 @@ done:;
 			return -1;
 		}
 
-		el.el_next = NULL;
-		**elpp = el;
+done_limbo:;
+		if ( *elpp != NULL ) {
+			el.el_next = NULL;
+			**elpp = el;
+
+		} else {
+			if ( !BER_BVISNULL( &el.el_filter ) ) {
+				ch_free( el.el_filter.bv_val );
+			}
+			if ( el.el_a != NULL ) {
+				attrs_free( el.el_a );
+			}
+			if ( !BER_BVISNULL( &el.el_nbase ) ) {
+				ch_free( &el.el_nbase.bv_val );
+			}
+			if ( !BER_BVISNULL( &el.el_ndn ) ) {
+				ch_free( el.el_ndn.bv_val );
+			}
+			return -1;
+		}
 	}
 
 	return 0;
@@ -915,12 +1019,450 @@ int
 monitor_back_register_entry_callback(
 	struct berval		*ndn,
 	monitor_callback_t	*cb,
-	struct berval		*base,
+	struct berval		*nbase,
 	int			scope,
 	struct berval		*filter )
 {
 	return monitor_back_register_entry_attrs( ndn, NULL, cb,
-			base, scope, filter );
+			nbase, scope, filter );
+}
+
+/*
+ * TODO: add corresponding calls to remove installed callbacks, entries
+ * and so, in case the entity that installed them is removed (e.g. a 
+ * database, via back-config)
+ */
+int
+monitor_back_unregister_entry(
+	struct berval	*ndn )
+{
+	monitor_info_t 	*mi;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry(\"%s\"): "
+			"monitor database not configured.\n",
+			ndn->bv_val, 0, 0 );
+
+		return -1;
+	}
+
+	/* entry will be regularly freed, and resources released
+	 * according to callbacks */
+	if ( slapd_shutdown ) {
+		return 0;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+	assert( mi != NULL );
+
+	if ( monitor_subsys_opened ) {
+		Entry			*e = NULL;
+		monitor_entry_t 	*mp = NULL;
+		monitor_callback_t	*cb = NULL;
+
+		if ( monitor_cache_remove( mi, ndn, &e ) != 0 ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry(\"%s\"): "
+				"entry removal failed.\n",
+				ndn->bv_val, 0, 0 );
+			return -1;
+		}
+
+		mp = (monitor_entry_t *)e->e_private;
+		assert( mp != NULL );
+
+		for ( cb = mp->mp_cb; cb != NULL; ) {
+			monitor_callback_t	*next = cb->mc_next;
+
+			if ( cb->mc_free ) {
+				(void)cb->mc_free( e, cb->mc_private );
+			}
+			ch_free( cb );
+
+			cb = next;
+		}
+
+		ch_free( mp );
+		e->e_private = NULL;
+		entry_free( e );
+
+	} else {
+		entry_limbo_t	**elpp;
+
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		{
+			entry_limbo_t	*elp = *elpp;
+
+			if ( elp->el_type == LIMBO_ENTRY
+				&& dn_match( ndn, &elp->el_e->e_nname ) )
+			{
+				monitor_callback_t	*cb, *next;
+
+				for ( cb = elp->el_cb; cb; cb = next ) {
+					/* FIXME: call callbacks? */
+					next = cb->mc_next;
+					ch_free( cb );
+				}
+				assert( elp->el_e != NULL );
+				elp->el_e->e_private = NULL;
+				entry_free( elp->el_e );
+				*elpp = elp->el_next;
+				ch_free( elp );
+				elpp = NULL;
+				break;
+			}
+		}
+
+		if ( elpp != NULL ) {
+			/* not found!  where did it go? */
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int
+monitor_back_unregister_entry_parent(
+	struct berval		*nrdn,
+	monitor_callback_t	*target_cb,
+	struct berval		*nbase,
+	int			scope,
+	struct berval		*filter )
+{
+	monitor_info_t 	*mi;
+	struct berval	ndn = BER_BVNULL;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry_parent(base=\"%s\" scope=%s filter=\"%s\"): "
+			"monitor database not configured.\n",
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
+			ldap_pvt_scope2str( scope ),
+			BER_BVISNULL( filter ) ? "" : filter->bv_val );
+
+		return -1;
+	}
+
+	/* entry will be regularly freed, and resources released
+	 * according to callbacks */
+	if ( slapd_shutdown ) {
+		return 0;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+	assert( mi != NULL );
+
+	if ( ( nrdn == NULL || BER_BVISNULL( nrdn ) )
+			&& BER_BVISNULL( filter ) )
+	{
+		/* need a filter */
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry_parent(\"\"): "
+			"need a valid filter\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_subsys_opened ) {
+		Entry			*e = NULL;
+		monitor_entry_t 	*mp = NULL;
+
+		if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry_parent(\"\"): "
+				"base=\"%s\" scope=%s filter=\"%s\": "
+				"unable to find entry\n",
+				nbase->bv_val ? nbase->bv_val : "\"\"",
+				ldap_pvt_scope2str( scope ),
+				filter->bv_val );
+			return -1;
+		}
+
+		if ( monitor_cache_remove( mi, &ndn, &e ) != 0 ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry(\"%s\"): "
+				"entry removal failed.\n",
+				ndn.bv_val, 0, 0 );
+			ber_memfree( ndn.bv_val );
+			return -1;
+		}
+		ber_memfree( ndn.bv_val );
+
+		mp = (monitor_entry_t *)e->e_private;
+		assert( mp != NULL );
+
+		if ( target_cb != NULL ) {
+			monitor_callback_t	**cbp;
+
+			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
+				if ( *cbp == target_cb ) {
+					if ( (*cbp)->mc_free ) {
+						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+					}
+					*cbp = (*cbp)->mc_next;
+					ch_free( target_cb );
+					break;
+				}
+			}
+		}
+
+
+		ch_free( mp );
+		e->e_private = NULL;
+		entry_free( e );
+
+	} else {
+		entry_limbo_t	**elpp;
+
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		{
+			entry_limbo_t	*elp = *elpp;
+
+			if ( elp->el_type == LIMBO_ENTRY_PARENT
+				&& dn_match( nrdn, &elp->el_e->e_nname )
+				&& dn_match( nbase, &elp->el_nbase )
+				&& scope == elp->el_scope
+				&& bvmatch( filter, &elp->el_filter ) )
+			{
+				monitor_callback_t	*cb, *next;
+
+				for ( cb = elp->el_cb; cb; cb = next ) {
+					/* FIXME: call callbacks? */
+					next = cb->mc_next;
+					ch_free( cb );
+				}
+				assert( elp->el_e != NULL );
+				elp->el_e->e_private = NULL;
+				entry_free( elp->el_e );
+				if ( !BER_BVISNULL( &elp->el_nbase ) ) {
+					ch_free( elp->el_nbase.bv_val );
+				}
+				if ( !BER_BVISNULL( &elp->el_filter ) ) {
+					ch_free( elp->el_filter.bv_val );
+				}
+				*elpp = elp->el_next;
+				ch_free( elp );
+				elpp = NULL;
+				break;
+			}
+		}
+
+		if ( elpp != NULL ) {
+			/* not found!  where did it go? */
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int
+monitor_back_unregister_entry_attrs(
+	struct berval		*ndn_in,
+	Attribute		*target_a,
+	monitor_callback_t	*target_cb,
+	struct berval		*nbase,
+	int			scope,
+	struct berval		*filter )
+{
+	monitor_info_t 	*mi;
+	struct berval	ndn = BER_BVNULL;
+	char		*fname = ( target_a == NULL ? "callback" : "attrs" );
+
+	if ( be_monitor == NULL ) {
+		char		buf[ SLAP_TEXT_BUFLEN ];
+
+		snprintf( buf, sizeof( buf ),
+			"monitor_back_unregister_entry_%s(base=\"%s\" scope=%s filter=\"%s\"): "
+			"monitor database not configured.\n",
+			fname,
+			BER_BVISNULL( nbase ) ? "" : nbase->bv_val,
+			ldap_pvt_scope2str( scope ),
+			BER_BVISNULL( filter ) ? "" : filter->bv_val );
+		Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
+
+		return -1;
+	}
+
+	/* entry will be regularly freed, and resources released
+	 * according to callbacks */
+	if ( slapd_shutdown ) {
+		return 0;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+	assert( mi != NULL );
+
+	if ( ndn_in != NULL ) {
+		ndn = *ndn_in;
+	}
+
+	if ( target_a == NULL && target_cb == NULL ) {
+		/* nothing to do */
+		return -1;
+	}
+
+	if ( ( ndn_in == NULL || BER_BVISNULL( &ndn ) )
+			&& BER_BVISNULL( filter ) )
+	{
+		/* need a filter */
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_unregister_entry_%s(\"\"): "
+			"need a valid filter\n",
+			fname, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_subsys_opened ) {
+		Entry			*e = NULL;
+		monitor_entry_t 	*mp = NULL;
+		int			freeit = 0;
+
+		if ( BER_BVISNULL( &ndn ) ) {
+			if ( monitor_search2ndn( nbase, scope, filter, &ndn ) ) {
+				char		buf[ SLAP_TEXT_BUFLEN ];
+
+				snprintf( buf, sizeof( buf ),
+					"monitor_back_unregister_entry_%s(\"\"): "
+					"base=\"%s\" scope=%d filter=\"%s\": "
+					"unable to find entry\n",
+					fname,
+					nbase->bv_val ? nbase->bv_val : "\"\"",
+					scope, filter->bv_val );
+
+				/* entry does not exist */
+				Debug( LDAP_DEBUG_ANY, "%s\n", buf, 0, 0 );
+				return -1;
+			}
+
+			freeit = 1;
+		}
+
+		if ( monitor_cache_get( mi, &ndn, &e ) != 0 ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_unregister_entry(\"%s\"): "
+				"entry removal failed.\n",
+				ndn.bv_val, 0, 0 );
+			return -1;
+		}
+
+		mp = (monitor_entry_t *)e->e_private;
+		assert( mp != NULL );
+
+		if ( target_cb != NULL ) {
+			monitor_callback_t	**cbp;
+
+			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
+				if ( *cbp == target_cb ) {
+					if ( (*cbp)->mc_free ) {
+						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+					}
+					*cbp = (*cbp)->mc_next;
+					ch_free( target_cb );
+					break;
+				}
+			}
+		}
+
+		if ( target_a != NULL ) {
+			Attribute	*a;
+
+			for ( a = target_a; a != NULL; a = a->a_next ) {
+				Modification	mod = { 0 };
+				const char	*text;
+				char		textbuf[ SLAP_TEXT_BUFLEN ];
+
+				mod.sm_op = LDAP_MOD_DELETE;
+				mod.sm_desc = a->a_desc;
+				mod.sm_values = a->a_vals;
+				mod.sm_nvalues = a->a_nvals;
+
+				(void)modify_delete_values( e, &mod, 1,
+					&text, textbuf, sizeof( textbuf ) );
+			}
+		}
+
+		if ( freeit ) {
+			ber_memfree( ndn.bv_val );
+		}
+
+		if ( e ) {
+			monitor_cache_release( mi, e );
+		}
+
+	} else {
+		entry_limbo_t	**elpp;
+
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		{
+			entry_limbo_t	*elp = *elpp;
+
+			if ( elp->el_type == LIMBO_ATTRS
+				&& dn_match( nbase, &elp->el_nbase )
+				&& scope == elp->el_scope
+				&& bvmatch( filter, &elp->el_filter ) )
+			{
+				monitor_callback_t	*cb, *next;
+
+				for ( cb = elp->el_cb; cb; cb = next ) {
+					/* FIXME: call callbacks? */
+					next = cb->mc_next;
+					ch_free( cb );
+				}
+				assert( elp->el_e == NULL );
+				if ( elp->el_a != NULL ) {
+					attrs_free( elp->el_a );
+				}
+				if ( !BER_BVISNULL( &elp->el_nbase ) ) {
+					ch_free( elp->el_nbase.bv_val );
+				}
+				if ( !BER_BVISNULL( &elp->el_filter ) ) {
+					ch_free( elp->el_filter.bv_val );
+				}
+				*elpp = elp->el_next;
+				ch_free( elp );
+				elpp = NULL;
+				break;
+			}
+		}
+
+		if ( elpp != NULL ) {
+			/* not found!  where did it go? */
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int
+monitor_back_unregister_entry_callback(
+	struct berval		*ndn,
+	monitor_callback_t	*cb,
+	struct berval		*nbase,
+	int			scope,
+	struct berval		*filter )
+{
+	/* TODO: lookup entry (by ndn, if not NULL, and/or by callback);
+	 * unregister the callback; if a is not null, unregister the
+	 * given attrs.  In any case, call cb->cb_free */
+	return monitor_back_unregister_entry_attrs( ndn,
+		NULL, cb, nbase, scope, filter );
 }
 
 monitor_subsys_t *
@@ -991,12 +1533,11 @@ monitor_back_initialize(
 	};
 
 	struct m_s {
-		char	*name;
 		char	*schema;
 		slap_mask_t flags;
 		int	offset;
 	} moc[] = {
-		{ "monitor", "( 1.3.6.1.4.1.4203.666.3.16.1 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.1 "
 			"NAME 'monitor' "
 			"DESC 'OpenLDAP system monitoring' "
 			"SUP top STRUCTURAL "
@@ -1010,44 +1551,44 @@ monitor_back_initialize(
 				"$ monitorOverlay "
 			") )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitor) },
-		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.16.2 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.2 "
 			"NAME 'monitorServer' "
 			"DESC 'Server monitoring root entry' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorServer) },
-		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.3.16.3 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.3 "
 			"NAME 'monitorContainer' "
 			"DESC 'monitor container class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorContainer) },
-		{ "monitorCounterObject", "( 1.3.6.1.4.1.4203.666.3.16.4 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.4 "
 			"NAME 'monitorCounterObject' "
 			"DESC 'monitor counter class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorCounterObject) },
-		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.16.5 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.5 "
 			"NAME 'monitorOperation' "
 			"DESC 'monitor operation class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorOperation) },
-		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.16.6 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.6 "
 			"NAME 'monitorConnection' "
 			"DESC 'monitor connection class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorConnection) },
-		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.16.7 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.7 "
 			"NAME 'managedObject' "
 			"DESC 'monitor managed entity class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_managedObject) },
-		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.16.8 "
+		{ "( 1.3.6.1.4.1.4203.666.3.16.8 "
 			"NAME 'monitoredObject' "
 			"DESC 'monitor monitored entity class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitoredObject) },
-		{ NULL, NULL, 0, -1 }
+		{ NULL, 0, -1 }
 	}, mat[] = {
-		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.55.1 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.1 "
 			"NAME 'monitoredInfo' "
 			"DESC 'monitored info' "
 			/* "SUP name " */
@@ -1057,12 +1598,12 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitoredInfo) },
-		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.1.55.2 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.2 "
 			"NAME 'managedInfo' "
 			"DESC 'monitor managed info' "
 			"SUP name )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_managedInfo) },
-		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.1.55.3 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.3 "
 			"NAME 'monitorCounter' "
 			"DESC 'monitor counter' "
 			"EQUALITY integerMatch "
@@ -1071,28 +1612,28 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorCounter) },
-		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.1.55.4 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.4 "
 			"NAME 'monitorOpCompleted' "
 			"DESC 'monitor completed operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOpCompleted) },
-		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.1.55.5 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.5 "
 			"NAME 'monitorOpInitiated' "
 			"DESC 'monitor initiated operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOpInitiated) },
-		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.1.55.6 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.6 "
 			"NAME 'monitorConnectionNumber' "
 			"DESC 'monitor connection number' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionNumber) },
-		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.1.55.7 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.7 "
 			"NAME 'monitorConnectionAuthzDN' "
 			"DESC 'monitor connection authorization DN' "
 			/* "SUP distinguishedName " */
@@ -1101,21 +1642,21 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionAuthzDN) },
-		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.1.55.8 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.8 "
 			"NAME 'monitorConnectionLocalAddress' "
 			"DESC 'monitor connection local address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionLocalAddress) },
-		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.1.55.9 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.9 "
 			"NAME 'monitorConnectionPeerAddress' "
 			"DESC 'monitor connection peer address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionPeerAddress) },
-		{ "monitorTimestamp", "( 1.3.6.1.4.1.4203.666.1.55.10 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.10 "
 			"NAME 'monitorTimestamp' "
 			"DESC 'monitor timestamp' "
 			"EQUALITY generalizedTimeMatch "
@@ -1125,14 +1666,14 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorTimestamp) },
-		{ "monitorOverlay", "( 1.3.6.1.4.1.4203.666.1.55.11 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.11 "
 			"NAME 'monitorOverlay' "
 			"DESC 'name of overlays defined for a given database' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOverlay) },
-		{ "readOnly", "( 1.3.6.1.4.1.4203.666.1.55.12 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.12 "
 			"NAME 'readOnly' "
 			"DESC 'read/write status of a given database' "
 			"EQUALITY booleanMatch "
@@ -1140,89 +1681,89 @@ monitor_back_initialize(
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_readOnly) },
-		{ "restrictedOperation", "( 1.3.6.1.4.1.4203.666.1.55.13 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.13 "
 			"NAME 'restrictedOperation' "
 			"DESC 'name of restricted operation for a given database' "
 			"SUP managedInfo )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_restrictedOperation ) },
-		{ "monitorConnectionProtocol", "( 1.3.6.1.4.1.4203.666.1.55.14 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.14 "
 			"NAME 'monitorConnectionProtocol' "
 			"DESC 'monitor connection protocol' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionProtocol) },
-		{ "monitorConnectionOpsReceived", "( 1.3.6.1.4.1.4203.666.1.55.15 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.15 "
 			"NAME 'monitorConnectionOpsReceived' "
 			"DESC 'monitor number of operations received by the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsReceived) },
-		{ "monitorConnectionOpsExecuting", "( 1.3.6.1.4.1.4203.666.1.55.16 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.16 "
 			"NAME 'monitorConnectionOpsExecuting' "
 			"DESC 'monitor number of operations in execution within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsExecuting) },
-		{ "monitorConnectionOpsPending", "( 1.3.6.1.4.1.4203.666.1.55.17 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.17 "
 			"NAME 'monitorConnectionOpsPending' "
 			"DESC 'monitor number of pending operations within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsPending) },
-		{ "monitorConnectionOpsCompleted", "( 1.3.6.1.4.1.4203.666.1.55.18 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.18 "
 			"NAME 'monitorConnectionOpsCompleted' "
 			"DESC 'monitor number of operations completed within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsCompleted) },
-		{ "monitorConnectionGet", "( 1.3.6.1.4.1.4203.666.1.55.19 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.19 "
 			"NAME 'monitorConnectionGet' "
 			"DESC 'number of times connection_get() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionGet) },
-		{ "monitorConnectionRead", "( 1.3.6.1.4.1.4203.666.1.55.20 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.20 "
 			"NAME 'monitorConnectionRead' "
 			"DESC 'number of times connection_read() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionRead) },
-		{ "monitorConnectionWrite", "( 1.3.6.1.4.1.4203.666.1.55.21 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.21 "
 			"NAME 'monitorConnectionWrite' "
 			"DESC 'number of times connection_write() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionWrite) },
-		{ "monitorConnectionMask", "( 1.3.6.1.4.1.4203.666.1.55.22 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.22 "
 			"NAME 'monitorConnectionMask' "
 			"DESC 'monitor connection mask' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionMask) },
-		{ "monitorConnectionListener", "( 1.3.6.1.4.1.4203.666.1.55.23 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.23 "
 			"NAME 'monitorConnectionListener' "
 			"DESC 'monitor connection listener' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionListener) },
-		{ "monitorConnectionPeerDomain", "( 1.3.6.1.4.1.4203.666.1.55.24 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.24 "
 			"NAME 'monitorConnectionPeerDomain' "
 			"DESC 'monitor connection peer domain' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionPeerDomain) },
-		{ "monitorConnectionStartTime", "( 1.3.6.1.4.1.4203.666.1.55.25 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.25 "
 			"NAME 'monitorConnectionStartTime' "
 			"DESC 'monitor connection start time' "
 			"SUP monitorTimestamp "
@@ -1230,7 +1771,7 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionStartTime) },
-		{ "monitorConnectionActivityTime", "( 1.3.6.1.4.1.4203.666.1.55.26 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.26 "
 			"NAME 'monitorConnectionActivityTime' "
 			"DESC 'monitor connection activity time' "
 			"SUP monitorTimestamp "
@@ -1238,7 +1779,7 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionActivityTime) },
-		{ "monitorIsShadow", "( 1.3.6.1.4.1.4203.666.1.55.27 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.27 "
 			"NAME 'monitorIsShadow' "
 			"DESC 'TRUE if the database is shadow' "
 			"EQUALITY booleanMatch "
@@ -1246,14 +1787,14 @@ monitor_back_initialize(
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorIsShadow) },
-		{ "monitorUpdateRef", "( 1.3.6.1.4.1.4203.666.1.55.28 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.28 "
 			"NAME 'monitorUpdateRef' "
 			"DESC 'update referral for shadow databases' "
 			"SUP monitoredInfo "
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorUpdateRef) },
-		{ "monitorRuntimeConfig", "( 1.3.6.1.4.1.4203.666.1.55.29 "
+		{ "( 1.3.6.1.4.1.4203.666.1.55.29 "
 			"NAME 'monitorRuntimeConfig' "
 			"DESC 'TRUE if component allows runtime configuration' "
 			"EQUALITY booleanMatch "
@@ -1261,103 +1802,87 @@ monitor_back_initialize(
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorRuntimeConfig) },
-		{ NULL, NULL, 0, -1 }
+		{ NULL, 0, -1 }
+	};
+
+	static struct {
+		char			*name;
+		char			*oid;
+	}		s_oid[] = {
+		{ "olmAttributes",			"1.3.6.1.4.1.4203.666.1.55" },
+		{ "olmSubSystemAttributes",		"olmAttributes:0" },
+		{ "olmGenericAttributes",		"olmSubSystemAttributes:0" },
+		{ "olmDatabaseAttributes",		"olmSubSystemAttributes:1" },
+
+		/* for example, back-bdb specific attrs
+		 * are in "olmDatabaseAttributes:1"
+		 *
+		 * NOTE: developers, please record here OID assignments
+		 * for other modules */
+
+		{ "olmObjectClasses",			"1.3.6.1.4.1.4203.666.3.16" },
+		{ "olmSubSystemObjectClasses",		"olmObjectClasses:0" },
+		{ "olmGenericObjectClasses",		"olmSubSystemObjectClasses:0" },
+		{ "olmDatabaseObjectClasses",		"olmSubSystemObjectClasses:1" },
+
+		/* for example, back-bdb specific objectClasses
+		 * are in "olmDatabaseObjectClasses:1"
+		 *
+		 * NOTE: developers, please record here OID assignments
+		 * for other modules */
+
+		{ NULL }
 	};
 
 	int			i, rc;
 	const char		*text;
 	monitor_info_t		*mi = &monitor_info;
 
-	/* schema integration */
-	for ( i = 0; mat[ i ].name; i++ ) {
-		LDAPAttributeType	*at;
-		int			code;
-		const char		*err;
-		AttributeDescription	**ad;
+	for ( i = 0; s_oid[ i ].name; i++ ) {
+		char	*argv[ 3 ];
+	
+		argv[ 0 ] = "monitor";
+		argv[ 1 ] = s_oid[ i ].name;
+		argv[ 2 ] = s_oid[ i ].oid;
 
-		at = ldap_str2attributetype( mat[ i ].schema, &code,
-			&err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
-				"in AttributeType \"%s\" %s before %s\n",
-				mat[ i ].name, ldap_scherr2str(code), err );
-			return -1;
-		}
-
-		if ( at->at_oid == NULL ) {
-			ldap_attributetype_free(at);
-			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
-				"null OID for attributeType \"%s\"\n",
-				mat[ i ].name, 0, 0 );
-			return -1;
-		}
-
-		code = at_add(at, 0, NULL, &err);
-		if ( code ) {
-			ldap_attributetype_free(at);
-			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
-				"%s in attributeType \"%s\"\n",
-				scherr2str(code), mat[ i ].name, 0 );
-			return -1;
-		}
-		ldap_memfree(at);
-
-		ad = ((AttributeDescription **)&(((char *)mi)[ mat[ i ].offset ]));
-		ad[ 0 ] = NULL;
-		if ( slap_str2ad( mat[ i ].name, ad, &text ) ) {
+		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"monitor_back_db_init: %s\n", text, 0, 0 );
+				"monitor_back_initialize: unable to add "
+				"objectIdentifier \"%s=%s\"\n",
+				s_oid[ i ].name, s_oid[ i ].oid, 0 );
+			return 1;
+		}
+	}
+
+	/* schema integration */
+	for ( i = 0; mat[ i ].schema; i++ ) {
+		int			code;
+		AttributeDescription **ad =
+			((AttributeDescription **)&(((char *)mi)[ mat[ i ].offset ]));
+
+		*ad = NULL;
+		code = register_at( mat[ i ].schema, ad, 0 );
+
+		if ( code ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_db_init: register_at failed\n", 0, 0, 0 );
 			return -1;
 		}
-
 		(*ad)->ad_type->sat_flags |= mat[ i ].flags;
 	}
 
-	for ( i = 0; moc[ i ].name; i++ ) {
-		LDAPObjectClass		*oc;
+	for ( i = 0; moc[ i ].schema; i++ ) {
 		int			code;
-		const char		*err;
-		ObjectClass		*Oc;
+		ObjectClass		**Oc =
+			((ObjectClass **)&(((char *)mi)[ moc[ i ].offset ]));
 
-		oc = ldap_str2objectclass(moc[ i ].schema, &code, &err,
-				LDAP_SCHEMA_ALLOW_ALL );
-		if ( !oc ) {
-			Debug( LDAP_DEBUG_ANY,
-				"unable to parse monitor objectclass \"%s\": "
-				"%s before %s\n" , moc[ i ].name,
-				ldap_scherr2str(code), err );
-			return -1;
-		}
-
-		if ( oc->oc_oid == NULL ) {
-			ldap_objectclass_free(oc);
-			Debug( LDAP_DEBUG_ANY,
-				"objectclass \"%s\" has no OID\n" ,
-				moc[ i ].name, 0, 0 );
-			return -1;
-		}
-
-		code = oc_add(oc, 0, NULL, &err);
+		code = register_oc( moc[ i ].schema, Oc, 0 );
 		if ( code ) {
-			ldap_objectclass_free(oc);
 			Debug( LDAP_DEBUG_ANY,
-				"objectclass \"%s\": %s \"%s\"\n" ,
-				moc[ i ].name, scherr2str(code), err );
+				"monitor_back_db_init: register_oc failed\n", 0, 0, 0 );
 			return -1;
 		}
-		ldap_memfree(oc);
-
-		Oc = oc_find( moc[ i ].name );
-		if ( Oc == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
-					"unable to find objectClass %s "
-					"(just added)\n", moc[ i ].name, 0, 0 );
-			return -1;
-		}
-
-		Oc->soc_flags |= moc[ i ].flags;
-
-		((ObjectClass **)&(((char *)mi)[ moc[ i ].offset ]))[ 0 ] = Oc;
+		(*Oc)->soc_flags |= moc[ i ].flags;
 	}
 
 	bi->bi_controls = controls;
@@ -1409,6 +1934,8 @@ monitor_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_extra = (void *)&monitor_extra;
 
 	/*
 	 * configuration objectClasses (fake)
@@ -1703,14 +2230,18 @@ monitor_back_db_open(
 			case LIMBO_ENTRY:
 				monitor_back_register_entry(
 						el->el_e,
-						el->el_cb );
+						el->el_cb,
+						el->el_mss,
+						el->el_flags );
 				break;
 
 			case LIMBO_ENTRY_PARENT:
 				monitor_back_register_entry_parent(
 						el->el_e,
 						el->el_cb,
-						&el->el_base,
+						el->el_mss,
+						el->el_flags,
+						&el->el_nbase,
 						el->el_scope,
 						&el->el_filter );
 				break;
@@ -1721,7 +2252,7 @@ monitor_back_db_open(
 						&el->el_ndn,
 						el->el_a,
 						el->el_cb,
-						&el->el_base,
+						&el->el_nbase,
 						el->el_scope,
 						&el->el_filter );
 				break;
@@ -1730,7 +2261,7 @@ monitor_back_db_open(
 				monitor_back_register_entry_callback(
 						&el->el_ndn,
 						el->el_cb,
-						&el->el_base,
+						&el->el_nbase,
 						el->el_scope,
 						&el->el_filter );
 				break;
@@ -1748,8 +2279,8 @@ monitor_back_db_open(
 			if ( !BER_BVISNULL( &el->el_ndn ) ) {
 				ber_memfree( el->el_ndn.bv_val );
 			}
-			if ( !BER_BVISNULL( &el->el_base ) ) {
-				ber_memfree( el->el_base.bv_val );
+			if ( !BER_BVISNULL( &el->el_nbase ) ) {
+				ber_memfree( el->el_nbase.bv_val );
 			}
 			if ( !BER_BVISNULL( &el->el_filter ) ) {
 				ber_memfree( el->el_filter.bv_val );

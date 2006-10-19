@@ -38,7 +38,7 @@ ldap_back_modify(
 {
 	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t		*lc;
+	ldapconn_t		*lc = NULL;
 	LDAPMod			**modv = NULL,
 				*mods = NULL;
 	Modifications		*ml;
@@ -48,8 +48,7 @@ ldap_back_modify(
 	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 	LDAPControl		**ctrls = NULL;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
@@ -66,7 +65,7 @@ ldap_back_modify(
 
 	isupdate = be_shadow_update( op );
 	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
-		if ( !isupdate && !get_manageDIT( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
+		if ( !isupdate && !get_relax( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
 			continue;
 		}
@@ -98,6 +97,7 @@ ldap_back_modify(
 	}
 	modv[ i ] = 0;
 
+retry:;
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
 		li->li_version, &li->li_idassert, op, rs, &ctrls );
@@ -107,15 +107,16 @@ ldap_back_modify(
 		goto cleanup;
 	}
 
-retry:
 	rs->sr_err = ldap_modify_ext( lc->lc_ld, op->o_req_dn.bv_val, modv,
 			ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
-		li->li_timeout[ LDAP_BACK_OP_MODIFY],
+		li->li_timeout[ SLAP_OP_MODIFY ],
 		( LDAP_BACK_SENDRESULT | retrying ) );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && retrying ) {
 		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 			goto retry;
 		}
 	}

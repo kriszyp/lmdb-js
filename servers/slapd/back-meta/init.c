@@ -128,11 +128,16 @@ meta_back_db_open(
 	int		i, rc;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		slap_bindconf	sb = { 0 };
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
+		ber_str2bv( mt->mt_uri, 0, 0, &sb.sb_uri );
+		sb.sb_version = mt->mt_version;
+		sb.sb_method = LDAP_AUTH_SIMPLE;
+		BER_BVSTR( &sb.sb_binddn, "" );
+
 		if ( META_BACK_TGT_T_F_DISCOVER( mt ) ) {
-			rc = slap_discover_feature( mt->mt_uri,
-					mt->mt_version,
+			rc = slap_discover_feature( &sb,
 					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 					LDAP_FEATURE_ABSOLUTE_FILTERS );
 			if ( rc == LDAP_COMPARE_TRUE ) {
@@ -141,8 +146,7 @@ meta_back_db_open(
 		}
 
 		if ( META_BACK_TGT_CANCEL_DISCOVER( mt ) ) {
-			rc = slap_discover_feature( mt->mt_uri,
-					mt->mt_version,
+			rc = slap_discover_feature( &sb,
 					slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
 					LDAP_EXOP_CANCEL );
 			if ( rc == LDAP_COMPARE_TRUE ) {

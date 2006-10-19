@@ -248,6 +248,8 @@ int backend_startup(Backend *be)
 				return rc;
 			}
 		}
+		/* append global access controls */
+		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
 		return backend_startup_one( be );
 	}
@@ -382,16 +384,18 @@ int backend_shutdown( Backend *be )
 	return 0;
 }
 
-void backend_destroy_one( BackendDB *bd, int dynamic )
+/*
+ * This function is supposed to be the exact counterpart
+ * of backend_startup_one(), although this one calls bi_db_destroy()
+ * while backend_startup_one() calls bi_db_open().
+ *
+ * Make sure backend_stopdown_one() destroys resources allocated
+ * by backend_startup_one(); only call backend_destroy_one() when
+ * all stuff in a BackendDB needs to be destroyed
+ */
+void
+backend_stopdown_one( BackendDB *bd )
 {
-	if ( dynamic ) {
-		LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
-	}
-
-	if ( bd->be_syncinfo ) {
-		syncinfo_free( bd->be_syncinfo );
-	}
-
 	if ( bd->be_pending_csn_list ) {
 		struct slap_csn_entry *csne;
 		csne = LDAP_TAILQ_FIRST( bd->be_pending_csn_list );
@@ -409,6 +413,20 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	if ( bd->bd_info->bi_db_destroy ) {
 		bd->bd_info->bi_db_destroy( bd );
 	}
+}
+
+void backend_destroy_one( BackendDB *bd, int dynamic )
+{
+	if ( dynamic ) {
+		LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
+	}
+
+	if ( bd->be_syncinfo ) {
+		syncinfo_free( bd->be_syncinfo );
+	}
+
+	backend_stopdown_one( bd );
+
 	ber_bvarray_free( bd->be_suffix );
 	ber_bvarray_free( bd->be_nsuffix );
 	if ( !BER_BVISNULL( &bd->be_rootdn ) ) {
@@ -576,7 +594,7 @@ be_db_close( void )
 	}
 
 	if ( frontendDB->bd_info->bi_db_close ) {
-		(*frontendDB->bd_info->bi_db_close)( frontendDB );
+		frontendDB->bd_info->bi_db_close( frontendDB );
 	}
 
 }
@@ -867,10 +885,9 @@ backend_check_controls(
 		}
 	}
 
-	/* temporarily removed */
-#if 0
+#if 0 /* temporarily removed */
 	/* check should be generalized */
-	if( get_manageDIT(op) && !be_isroot(op)) {
+	if( get_relax(op) && !be_isroot(op)) {
 		rs->sr_text = "requires manager authorization";
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}

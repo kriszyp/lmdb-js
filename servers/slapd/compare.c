@@ -243,7 +243,13 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		ava.aa_desc->ad_cname.bv_val, 0, 0 );
 
 	op->orc_ava = &ava;
-	if ( ava.aa_desc == slap_schema.si_ad_entryDN ) {
+
+	if ( SLAP_SHADOW(op->o_bd) && get_dontUseCopy(op) ) {
+		/* don't use shadow copy */
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"copy not used" );
+
+	} else if ( ava.aa_desc == slap_schema.si_ad_entryDN ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"entryDN compare not supported" );
 

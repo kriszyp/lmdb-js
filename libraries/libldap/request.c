@@ -150,7 +150,7 @@ ldap_int_flush_request(
 	LDAPConn *lc = lr->lr_conn;
 
 	if ( ber_flush2( lc->lconn_sb, lr->lr_ber, LBER_FLUSH_FREE_NEVER ) != 0 ) {
-		if ( errno == EAGAIN ) {
+		if ( sock_errno() == EAGAIN ) {
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;
 			ldap_mark_select_write( ld, lc->lconn_sb );
@@ -293,7 +293,8 @@ ldap_send_server_request(
 	}
 
 	lr->lr_prev = NULL;
-	if (( lr->lr_next = ld->ld_requests ) != NULL ) {
+	lr->lr_next = ld->ld_requests;
+	if ( lr->lr_next != NULL ) {
 		lr->lr_next->lr_prev = lr;
 	}
 	ld->ld_requests = lr;
@@ -420,6 +421,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 				}
 				ldap_free_urldesc( srvfunc );
 			}
+
 		} else {
 			int		msgid, rc;
 			struct berval	passwd = BER_BVNULL;
@@ -599,7 +601,10 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		}
 #endif
 
-		/* FIXME: is this at all possible? */
+		/* FIXME: is this at all possible?
+		 * ldap_ld_free() in unbind.c calls ldap_free_connection()
+		 * with force == 1 __after__ explicitly calling
+		 * ldap_free_request() on all requests */
 		if ( force ) {
 			LDAPRequest	*lr;
 
@@ -736,10 +741,20 @@ ldap_dump_requests_and_responses( LDAP *ld )
 static void
 ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 {
+	/* if lr_refcnt > 0, the request has been looked up 
+	 * by ldap_find_request_by_msgid(); if in the meanwhile
+	 * the request is free()'d by someone else, just decrease
+	 * the reference count and extract it from the request
+	 * list; later on, it will be freed. */
 	if ( lr->lr_prev == NULL ) {
-		/* free'ing the first request? */
-		assert( ld->ld_requests == lr );
-		ld->ld_requests = lr->lr_next;
+		if ( lr->lr_refcnt == 0 ) {
+			/* free'ing the first request? */
+			assert( ld->ld_requests == lr );
+		}
+
+		if ( ld->ld_requests == lr ) {
+			ld->ld_requests = lr->lr_next;
+		}
 
 	} else {
 		lr->lr_prev->lr_next = lr->lr_next;
@@ -747,6 +762,15 @@ ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 
 	if ( lr->lr_next != NULL ) {
 		lr->lr_next->lr_prev = lr->lr_prev;
+	}
+
+	if ( lr->lr_refcnt > 0 ) {
+		lr->lr_refcnt = -lr->lr_refcnt;
+
+		lr->lr_prev = NULL;
+		lr->lr_next = NULL;
+
+		return;
 	}
 
 	if ( lr->lr_ber != NULL ) {
@@ -784,8 +808,10 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 
 	if ( lr->lr_parent != NULL ) {
 		--lr->lr_parent->lr_outrefcnt;
-		for ( ttmplr = &lr->lr_parent->lr_child; *ttmplr && *ttmplr != lr; ttmplr = &(*ttmplr)->lr_refnext ); 
-		if ( *ttmplr == lr )  
+		for ( ttmplr = &lr->lr_parent->lr_child;
+			*ttmplr && *ttmplr != lr;
+			ttmplr = &(*ttmplr)->lr_refnext );
+		if ( *ttmplr == lr )
 			*ttmplr = lr->lr_refnext;
 	}
 	ldap_free_request_int( ld, lr );
@@ -1418,6 +1444,7 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 			continue;	/* Skip completed requests */
 		}
 		if ( msgid == lr->lr_msgid ) {
+			lr->lr_refcnt++;
 			break;
 		}
 	}
@@ -1428,4 +1455,35 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 	return( lr );
 }
 
+void
+ldap_return_request( LDAP *ld, LDAPRequest *lrx, int freeit )
+{
+	LDAPRequest	*lr;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
+		if ( lr == lrx ) {
+			if ( lr->lr_refcnt > 0 ) {
+				lr->lr_refcnt--;
+
+			} else if ( lr->lr_refcnt < 0 ) {
+				lr->lr_refcnt++;
+				if ( lr->lr_refcnt == 0 ) {
+					lr = NULL;
+				}
+			}
+			break;
+		}
+	}
+	if ( lr == NULL ) {
+		ldap_free_request_int( ld, lrx );
+
+	} else if ( freeit ) {
+		ldap_free_request( ld, lrx );
+	}
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+}

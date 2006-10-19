@@ -121,7 +121,7 @@ Ri_process(
 		case DO_LDAP_ERR_FATAL: {
 		    /* Non-retryable error.  Write rejection log. */
 			int ld_errno = 0;
-			ldap_get_option(ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+			ldap_get_option(ri->ri_ldp, LDAP_OPT_RESULT_CODE, &ld_errno);
 		    write_reject( ri, re, ld_errno, errmsg );
 		    /* Update status ... */
 		    (void) sglob->st->st_update( sglob->st, ri->ri_stel, re );

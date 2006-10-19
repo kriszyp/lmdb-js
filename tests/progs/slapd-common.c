@@ -235,7 +235,7 @@ tester_ldap_error( LDAP *ld, const char *fname, const char *msg )
 
 	ldap_get_option( ld, LDAP_OPT_RESULT_CODE, (void *)&err );
 	if ( err != LDAP_SUCCESS ) {
-		ldap_get_option( ld, LDAP_OPT_ERROR_STRING, (void *)&text );
+		ldap_get_option( ld, LDAP_OPT_DIAGNOSTIC_MESSAGE, (void *)&text );
 	}
 
 	fprintf( stderr, "%s: %s: %s (%d) %s %s\n",

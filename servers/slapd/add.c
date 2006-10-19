@@ -69,7 +69,7 @@ do_add( Operation *op, SlapReply *rs )
 		return SLAPD_DISCONNECT;
 	}
 
-	op->ora_e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	op->ora_e = entry_alloc();
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
@@ -506,10 +506,7 @@ slap_mods2entry(
 			}
 		}
 
-		attr = ch_calloc( 1, sizeof(Attribute) );
-
-		/* move ad to attr structure */
-		attr->a_desc = mods->sml_desc;
+		attr = attr_alloc( mods->sml_desc );
 
 		/* move values to attr structure */
 		/*	should check for duplicates */
@@ -642,10 +639,16 @@ int slap_add_opattrs(
 		if ( oc ) {
 			rc = structural_class( oc->a_vals, &tmp, NULL, text,
 				textbuf, textlen );
-			if( rc != LDAP_SUCCESS ) return rc;
+			if( rc == LDAP_SUCCESS ) {
+				attr_merge_one( op->ora_e,
+					slap_schema.si_ad_structuralObjectClass,
+					&tmp, NULL );
 
-			attr_merge_one( op->ora_e, slap_schema.si_ad_structuralObjectClass,
-				&tmp, NULL );
+			} else if ( !SLAP_NO_SCHEMA_CHECK( op->o_bd ) &&
+				!get_no_schema_check( op ) )
+			{
+				return rc;
+			}
 		}
 	}
 
@@ -739,5 +742,6 @@ int slap_add_opattrs(
 				slap_schema.si_ad_modifyTimestamp, &timestamp, NULL );
 		}
 	}
+
 	return LDAP_SUCCESS;
 }

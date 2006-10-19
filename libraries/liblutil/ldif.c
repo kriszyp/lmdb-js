@@ -822,7 +822,8 @@ ldif_read_record(
 		if ( last_ch == '\n' ) {
 			(*lno)++;
 
-			if ( line[0] == '\n' ) {
+			if ( line[0] == '\n' ||
+				( line[0] == '\r' && line[1] == '\n' )) {
 				if ( !found_entry ) {
 					lcur = 0;
 					top_comment = 0;

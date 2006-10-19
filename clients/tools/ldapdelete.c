@@ -39,6 +39,7 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+#include <ac/socket.h>
 #include <ac/time.h>
 
 #include <ldap.h>
@@ -331,7 +332,7 @@ static int deletechildren(
 			char *dn = ldap_get_dn( ld, e );
 
 			if( dn == NULL ) {
-				ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+				ldap_get_option( ld, LDAP_OPT_RESULT_CODE, &rc );
 				tool_perror( "ldap_prune", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
 				return rc;
@@ -406,7 +407,7 @@ static int deletechildren(
 			char *dn = ldap_get_dn( ld, e );
 
 			if( dn == NULL ) {
-				ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+				ldap_get_option( ld, LDAP_OPT_RESULT_CODE, &rc );
 				tool_perror( "ldap_prune", rc, NULL, NULL, NULL, NULL );
 				ber_memfree( dn );
 				return rc;

@@ -163,6 +163,7 @@ enum {
 	CFG_TTHREADS,
 	CFG_MIRRORMODE,
 	CFG_HIDDEN,
+	CFG_MONITORING,
 
 	CFG_LAST
 };
@@ -258,7 +259,7 @@ static ConfigTable config_back_cf_table[] = {
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "attribute",	"attribute", 2, 0, STRLENOF( "attribute" ),
-		ARG_PAREN|ARG_MAGIC|CFG_ATTR|ARG_NO_DELETE|ARG_NO_INSERT,
+		ARG_PAREN|ARG_MAGIC|CFG_ATTR,
 		&config_generic, "( OLcfgGlAt:4 NAME 'olcAttributeTypes' "
 			"DESC 'OpenLDAP attributeTypes' "
 			"EQUALITY caseIgnoreMatch "
@@ -382,7 +383,11 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:31 NAME 'olcModulePath' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC|ARG_NO_DELETE|ARG_NO_INSERT,
+	{ "monitoring", "TRUE|FALSE", 2, 2, 0,
+		ARG_MAGIC|CFG_MONITORING|ARG_DB|ARG_ON_OFF, &config_generic,
+		"( OLcfgDbAt:0.18 NAME 'olcMonitoring' "
+			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC,
 		&config_generic, "( OLcfgGlAt:32 NAME 'olcObjectClasses' "
 		"DESC 'OpenLDAP object classes' "
 		"EQUALITY caseIgnoreMatch "
@@ -704,7 +709,8 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplicaArgsFile $ olcReplicaPidFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
-		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef $ olcMirrorMode ) )",
+		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef $ olcMirrorMode $ "
+		 "olcMonitoring ) )",
 		 	Cft_Database, NULL, cfAddDatabase },
 	{ "( OLcfgGlOc:5 "
 		"NAME 'olcOverlayConfig' "
@@ -941,6 +947,9 @@ config_generic(ConfigArgs *c) {
 			else
 				rc = 1;
 			break;
+		case CFG_MONITORING:
+			c->value_int = (SLAP_DBMONITORING(c->be) != 0);
+			break;
 		case CFG_SSTR_IF_MAX:
 			c->value_int = index_substr_if_maxlen;
 			break;
@@ -1028,6 +1037,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_DEPTH:
 		case CFG_LASTMOD:
 		case CFG_MIRRORMODE:
+		case CFG_MONITORING:
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
 		case CFG_SSTR_IF_MIN:
@@ -1098,6 +1108,76 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 
+		case CFG_OC: {
+			CfEntryInfo *ce = c->ca_entry->e_private;
+			/* can't modify the hardcoded schema */
+			if ( ce->ce_parent->ce_type == Cft_Global )
+				return 1;
+			}
+			cfn = c->private;
+			if ( c->valx < 0 ) {
+				ObjectClass *oc;
+
+				for( oc = cfn->c_oc_head; oc; oc_next( &oc )) {
+					oc_delete( oc );
+					if ( oc  == cfn->c_oc_tail )
+						break;
+				}
+				cfn->c_oc_head = cfn->c_oc_tail = NULL;
+			} else {
+				ObjectClass *oc, *prev = NULL;
+				int i;
+
+				for ( i=0, oc=cfn->c_oc_head; i<c->valx; i++) {
+					prev = oc;
+					oc_next( &oc );
+				}
+				oc_delete( oc );
+				if ( cfn->c_oc_tail == oc ) {
+					cfn->c_oc_tail = prev;
+				}
+				if ( cfn->c_oc_head == oc ) {
+					oc_next( &oc );
+					cfn->c_oc_head = oc;
+				}
+			}
+			break;
+
+		case CFG_ATTR: {
+			CfEntryInfo *ce = c->ca_entry->e_private;
+			/* can't modify the hardcoded schema */
+			if ( ce->ce_parent->ce_type == Cft_Global )
+				return 1;
+			}
+			cfn = c->private;
+			if ( c->valx < 0 ) {
+				AttributeType *at;
+
+				for( at = cfn->c_at_head; at; at_next( &at )) {
+					at_delete( at );
+					if ( at  == cfn->c_at_tail )
+						break;
+				}
+				cfn->c_at_head = cfn->c_at_tail = NULL;
+			} else {
+				AttributeType *at, *prev = NULL;
+				int i;
+
+				for ( i=0, at=cfn->c_at_head; i<c->valx; i++) {
+					prev = at;
+					at_next( &at );
+				}
+				at_delete( at );
+				if ( cfn->c_at_tail == at ) {
+					cfn->c_at_tail = prev;
+				}
+				if ( cfn->c_at_head == at ) {
+					at_next( &at );
+					cfn->c_at_head = at;
+				}
+			}
+			break;
+
 		case CFG_LIMITS:
 			/* FIXME: there is no limits_free function */
 		case CFG_ATOPT:
@@ -1106,9 +1186,7 @@ config_generic(ConfigArgs *c) {
 			/* FIXME: there is no way to remove attributes added by
 				a DSE file */
 		case CFG_OID:
-		case CFG_OC:
 		case CFG_DIT:
-		case CFG_ATTR:
 		case CFG_MODPATH:
 		default:
 			rc = 1;
@@ -1233,6 +1311,8 @@ config_generic(ConfigArgs *c) {
 		case CFG_OID: {
 			OidMacro *om;
 
+			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
+				cfn = c->private;
 			if(parse_oidm(c->fname, c->lineno, c->argc, c->argv, 1, &om))
 				return(1);
 			if (!cfn->c_om_head) cfn->c_om_head = om;
@@ -1241,29 +1321,77 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_OC: {
-			ObjectClass *oc;
+			ObjectClass *oc, *prev;
 
-			if(parse_oc(c->fname, c->lineno, p, c->argv, &oc)) return(1);
+			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
+				cfn = c->private;
+			if ( c->valx < 0 ) {
+				prev = cfn->c_oc_tail;
+			} else {
+				prev = NULL;
+				/* If adding anything after the first, prev is easy */
+				if ( c->valx ) {
+					int i;
+					for (i=0, oc = cfn->c_oc_head; i<c->valx; i++) {
+						prev = oc;
+						oc_next( &oc );
+					}
+				} else
+				/* If adding the first, and head exists, find its prev */
+					if (cfn->c_oc_head) {
+					for ( oc_start( &oc ); oc != cfn->c_oc_head; ) {
+						prev = oc;
+						oc_next( &oc );
+					}
+				}
+				/* else prev is NULL, append to end of global list */
+			}
+			if(parse_oc(c->fname, c->lineno, p, c->argv, &oc, prev)) return(1);
 			if (!cfn->c_oc_head) cfn->c_oc_head = oc;
-			cfn->c_oc_tail = oc;
+			if (cfn->c_oc_tail == prev) cfn->c_oc_tail = oc;
+			}
+			break;
+
+		case CFG_ATTR: {
+			AttributeType *at, *prev;
+
+			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
+				cfn = c->private;
+			if ( c->valx < 0 ) {
+				prev = cfn->c_at_tail;
+			} else {
+				prev = NULL;
+				/* If adding anything after the first, prev is easy */
+				if ( c->valx ) {
+					int i;
+					for (i=0, at = cfn->c_at_head; i<c->valx; i++) {
+						prev = at;
+						at_next( &at );
+					}
+				} else
+				/* If adding the first, and head exists, find its prev */
+					if (cfn->c_at_head) {
+					for ( at_start( &at ); at != cfn->c_at_head; ) {
+						prev = at;
+						at_next( &at );
+					}
+				}
+				/* else prev is NULL, append to end of global list */
+			}
+			if(parse_at(c->fname, c->lineno, p, c->argv, &at, prev)) return(1);
+			if (!cfn->c_at_head) cfn->c_at_head = at;
+			if (cfn->c_at_tail == prev) cfn->c_at_tail = at;
 			}
 			break;
 
 		case CFG_DIT: {
 			ContentRule *cr;
 
+			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
+				cfn = c->private;
 			if(parse_cr(c->fname, c->lineno, p, c->argv, &cr)) return(1);
 			if (!cfn->c_cr_head) cfn->c_cr_head = cr;
 			cfn->c_cr_tail = cr;
-			}
-			break;
-
-		case CFG_ATTR: {
-			AttributeType *at;
-
-			if(parse_at(c->fname, c->lineno, p, c->argv, &at)) return(1);
-			if (!cfn->c_at_head) cfn->c_at_head = at;
-			cfn->c_at_tail = at;
 			}
 			break;
 
@@ -1378,6 +1506,8 @@ config_generic(ConfigArgs *c) {
 			{
 				struct berval bv;
 				ber_str2bv( c->argv[1], 0, 1, &bv );
+				if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
+					cfn = c->private;
 				ber_bvarray_add( &cfn->c_dseFiles, &bv );
 			}
 			break;
@@ -1416,6 +1546,13 @@ config_generic(ConfigArgs *c) {
 				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_SINGLE_SHADOW;
 			else
 				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
+			break;
+
+		case CFG_MONITORING:
+			if(c->value_int)
+				SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_MONITORING;
+			else
+				SLAP_DBFLAGS(c->be) &= ~SLAP_DBFLAG_MONITORING;
 			break;
 
 		case CFG_HIDDEN:
@@ -2041,7 +2178,7 @@ config_restrict(ConfigArgs *c) {
 		{ BER_BVC("compare"),		SLAP_RESTRICT_OP_COMPARE },
 		{ BER_BVC("read"),		SLAP_RESTRICT_OP_READS },
 		{ BER_BVC("write"),		SLAP_RESTRICT_OP_WRITES },
-		{ BER_BVC("extended"),	SLAP_RESTRICT_OP_EXTENDED },
+		{ BER_BVC("extended"),		SLAP_RESTRICT_OP_EXTENDED },
 		{ BER_BVC("extended=" LDAP_EXOP_START_TLS ),		SLAP_RESTRICT_EXOP_START_TLS },
 		{ BER_BVC("extended=" LDAP_EXOP_MODIFY_PASSWD ),	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
 		{ BER_BVC("extended=" LDAP_EXOP_X_WHO_AM_I ),		SLAP_RESTRICT_EXOP_WHOAMI },
@@ -2341,6 +2478,28 @@ loglevel2bvarray( int l, BerVarray *bva )
 	return mask_to_verbs( loglevel_ops, l, bva );
 }
 
+int
+loglevel_print( FILE *out )
+{
+	int	i;
+
+	if ( loglevel_ops == NULL ) {
+		loglevel_init();
+	}
+
+	fprintf( out, "Installed log subsystems:\n\n" );
+	for ( i = 0; !BER_BVISNULL( &loglevel_ops[ i ].word ); i++ ) {
+		fprintf( out, "\t%-30s (%lu)\n",
+			loglevel_ops[ i ].word.bv_val,
+			loglevel_ops[ i ].mask );
+	}
+
+	fprintf( out, "\nNOTE: custom log subsystems may be later installed "
+		"by specific code\n\n" );
+
+	return 0;
+}
+
 static int config_syslog;
 
 static int
@@ -2481,7 +2640,7 @@ config_security(ConfigArgs *c) {
 	}
 	for(i = 1; i < c->argc; i++) {
 		slap_ssf_t *tgt = NULL;
-		char *src;
+		char *src = NULL;
 		for ( j=0; !BER_BVISNULL( &sec_keys[j].key ); j++ ) {
 			if(!strncasecmp(c->argv[i], sec_keys[j].key.bv_val,
 				sec_keys[j].key.bv_len)) {
@@ -3377,7 +3536,7 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	AttributeDescription *ad;
 	BerVarray vals;
 
-	int i, rc = 0, sort = 0;
+	int i, rc = 0;
 
 	if ( isAttr ) {
 		a = ptr;
@@ -3390,7 +3549,6 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	}
 
 	if ( a && ( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL )) {
-		sort = 1;
 		rc = ordered_value_sort( a, 1 );
 		if ( rc ) {
 			snprintf(ca->msg, sizeof( ca->msg ), "ordered_value_sort failed on attr %s\n",
@@ -3400,7 +3558,8 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
 		ca->line = vals[i].bv_val;
-		if ( sort ) {
+		if (( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) &&
+			ca->line[0] == '{' ) {
 			char *idx = strchr( ca->line, '}' );
 			if ( idx ) ca->line = idx+1;
 		}
@@ -4130,8 +4289,9 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 					if ( rc ) rc = LDAP_OTHER;
 				}
 				if ( ml->sml_values ) {
+					d = d->next;
 					ch_free( dels );
-					dels = d->next;
+					dels = d;
 				}
 				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 					ml->sml_values = vals;
@@ -4403,7 +4563,7 @@ Entry *
 config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ConfigArgs *c, struct berval *rdn, ConfigOCs *main, ConfigOCs *extra )
 {
-	Entry *e = ch_calloc( 1, sizeof(Entry) );
+	Entry *e = entry_alloc();
 	CfEntryInfo *ce = ch_calloc( 1, sizeof(CfEntryInfo) );
 	struct berval val;
 	struct berval ad_name;

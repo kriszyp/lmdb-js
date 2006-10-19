@@ -80,7 +80,7 @@ set_dup( SetCookie *cp, BerVarray set, unsigned flags )
 		for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ )
 			;
 		newset = cp->set_op->o_tmpcalloc( i + 1,
-				sizeof(struct berval), 
+				sizeof( struct berval ), 
 				cp->set_op->o_tmpmemctx );
 		if ( newset == NULL ) {
 			return NULL;
@@ -121,7 +121,7 @@ slap_set_join(
 			if ( rset == NULL ) {
 				if ( lset == NULL ) {
 					set = cp->set_op->o_tmpcalloc( 1,
-							sizeof(struct berval),
+							sizeof( struct berval ),
 							cp->set_op->o_tmpmemctx );
 					BER_BVZERO( set );
 					return set;
@@ -137,7 +137,7 @@ slap_set_join(
 		}
 
 		i = slap_set_size( lset ) + slap_set_size( rset ) + 1;
-		set = cp->set_op->o_tmpcalloc( i, sizeof(struct berval), cp->set_op->o_tmpmemctx );
+		set = cp->set_op->o_tmpcalloc( i, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 		if ( set != NULL ) {
 			/* set_chase() depends on this routine to
 			 * keep the first elements of the result
@@ -188,7 +188,7 @@ slap_set_join(
 		if ( lset == NULL || BER_BVISNULL( lset )
 				|| rset == NULL || BER_BVISNULL( rset ) )
 		{
-			set = cp->set_op->o_tmpcalloc( 1, sizeof(struct berval),
+			set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
 					cp->set_op->o_tmpmemctx );
 			BER_BVZERO( set );
 
@@ -221,7 +221,7 @@ slap_set_join(
 		i = slap_set_size( rset );
 		j = slap_set_size( lset );
 
-		set = cp->set_op->o_tmpcalloc( i * j + 1, sizeof(struct berval),
+		set = cp->set_op->o_tmpcalloc( i * j + 1, sizeof( struct berval ),
 				cp->set_op->o_tmpmemctx );
 		if ( set == NULL ) {
 			break;
@@ -283,7 +283,7 @@ set_chase( SLAP_SET_GATHER gatherer,
 	int		i;
 
 	if ( set == NULL ) {
-		set = cp->set_op->o_tmpcalloc( 1, sizeof(struct berval),
+		set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
 				cp->set_op->o_tmpmemctx );
 		BER_BVZERO( set );
 		return set;
@@ -293,13 +293,13 @@ set_chase( SLAP_SET_GATHER gatherer,
 		return set;
 	}
 
-	nset = cp->set_op->o_tmpcalloc( 1, sizeof(struct berval), cp->set_op->o_tmpmemctx );
+	nset = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 	if ( nset == NULL ) {
 		slap_set_dispose( cp, set, 0 );
 		return NULL;
 	}
 	for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
-		vals = (gatherer)( cp, &set[ i ], desc );
+		vals = gatherer( cp, &set[ i ], desc );
 		if ( vals != NULL ) {
 			nset = slap_set_join( cp, nset, '|', vals );
 		}
@@ -308,7 +308,7 @@ set_chase( SLAP_SET_GATHER gatherer,
 
 	if ( closure ) {
 		for ( i = 0; !BER_BVISNULL( &nset[ i ] ); i++ ) {
-			vals = (gatherer)( cp, &nset[ i ], desc );
+			vals = gatherer( cp, &nset[ i ], desc );
 			if ( vals != NULL ) {
 				nset = slap_set_join( cp, nset, '|', vals );
 				if ( nset == NULL ) {
@@ -329,13 +329,13 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 #define STACK_SIZE	64
 #define IS_SET(x)	( (unsigned long)(x) >= 256 )
 #define IS_OP(x)	( (unsigned long)(x) < 256 )
-#define SF_ERROR(x)	do { rc = -1; goto _error; } while (0)
-#define SF_TOP()	( (BerVarray)( (stp < 0) ? 0 : stack[ stp ] ) )
-#define SF_POP()	( (BerVarray)( (stp < 0) ? 0 : stack[ stp-- ] ) )
+#define SF_ERROR(x)	do { rc = -1; goto _error; } while ( 0 )
+#define SF_TOP()	( (BerVarray)( ( stp < 0 ) ? 0 : stack[ stp ] ) )
+#define SF_POP()	( (BerVarray)( ( stp < 0 ) ? 0 : stack[ stp-- ] ) )
 #define SF_PUSH(x)	do { \
-		if (stp >= (STACK_SIZE - 1)) SF_ERROR(overflow); \
+		if ( stp >= ( STACK_SIZE - 1 ) ) SF_ERROR( overflow ); \
 		stack[ ++stp ] = (BerVarray)(long)(x); \
-	} while (0)
+	} while ( 0 )
 
 	BerVarray	set, lset;
 	BerVarray	stack[ STACK_SIZE ] = { 0 };
@@ -380,7 +380,7 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 				SF_POP();
 				set = slap_set_join( cp, lset, op, set );
 				if ( set == NULL ) {
-					SF_ERROR(memory);
+					SF_ERROR( memory );
 				}
 				SF_PUSH( set );
 				set = NULL;
@@ -421,18 +421,18 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 			if ( ( SF_TOP() == (void *)'/' ) || IS_SET( SF_TOP() ) ) {
 				SF_ERROR( syntax );
 			}
-			for ( len = 0; ( c = *filter++ ) && (c != /* [ */ ']'); len++ )
+			for ( len = 0; ( c = *filter++ ) && ( c != /* [ */ ']' ); len++ )
 				;
 			if ( c == 0 ) {
-				SF_ERROR(syntax);
+				SF_ERROR( syntax );
 			}
 			
-			set = cp->set_op->o_tmpcalloc( 2, sizeof(struct berval),
+			set = cp->set_op->o_tmpcalloc( 2, sizeof( struct berval ),
 					cp->set_op->o_tmpmemctx );
 			if ( set == NULL ) {
-				SF_ERROR(memory);
+				SF_ERROR( memory );
 			}
-			set->bv_val = cp->set_op->o_tmpcalloc( len + 1, sizeof(char),
+			set->bv_val = cp->set_op->o_tmpcalloc( len + 1, sizeof( char ),
 					cp->set_op->o_tmpmemctx );
 			if ( BER_BVISNULL( set ) ) {
 				SF_ERROR( memory );
@@ -478,7 +478,7 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 				if ( ( SF_TOP() == (void *)'/' ) || IS_SET( SF_TOP() ) ) {
 					SF_ERROR( syntax );
 				}
-				set = cp->set_op->o_tmpcalloc( 2, sizeof(struct berval),
+				set = cp->set_op->o_tmpcalloc( 2, sizeof( struct berval ),
 						cp->set_op->o_tmpmemctx );
 				if ( set == NULL ) {
 					SF_ERROR( memory );
@@ -495,7 +495,7 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 				if ( ( SF_TOP() == (void *)'/' ) || IS_SET( SF_TOP() ) ) {
 					SF_ERROR( syntax );
 				}
-				set = cp->set_op->o_tmpcalloc( 2, sizeof(struct berval),
+				set = cp->set_op->o_tmpcalloc( 2, sizeof( struct berval ),
 						cp->set_op->o_tmpmemctx );
 				if ( set == NULL ) {
 					SF_ERROR( memory );

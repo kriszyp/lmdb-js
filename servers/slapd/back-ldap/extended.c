@@ -44,7 +44,7 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, BI_op_extended exop )
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
-	ldapconn_t	*lc;
+	ldapconn_t	*lc = NULL;
 	LDAPControl	**oldctrls = NULL;
 	int		rc;
 
@@ -52,8 +52,7 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, BI_op_extended exop )
 	 * called twice; maybe we could avoid the 
 	 * ldap_back_dobind() call inside each extended()
 	 * call ... */
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return -1;
 	}
 
@@ -112,7 +111,7 @@ ldap_back_exop_passwd(
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
-	ldapconn_t	*lc;
+	ldapconn_t	*lc = NULL;
 	req_pwdexop_s	*qpw = &op->oq_pwdexop;
 	LDAPMessage	*res;
 	ber_int_t	msgid;
@@ -120,8 +119,7 @@ ldap_back_exop_passwd(
 	int		do_retry = 1;
 	char *text = NULL;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return -1;
 	}
 
@@ -142,6 +140,11 @@ retry:
 			rs->sr_err = rc;
 
 		} else {
+			/* only touch when activity actually took place... */
+			if ( li->li_idle_timeout && lc ) {
+				lc->lc_time = op->o_time;
+			}
+
 			/* sigh. parse twice, because parse_passwd
 			 * doesn't give us the err / match / msg info.
 			 */
@@ -226,15 +229,14 @@ ldap_back_exop_generic(
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
-	ldapconn_t	*lc;
+	ldapconn_t	*lc = NULL;
 	LDAPMessage	*res;
 	ber_int_t	msgid;
 	int		rc;
 	int		do_retry = 1;
 	char *text = NULL;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return -1;
 	}
 
@@ -252,6 +254,11 @@ retry:
 			rs->sr_err = rc;
 
 		} else {
+			/* only touch when activity actually took place... */
+			if ( li->li_idle_timeout && lc ) {
+				lc->lc_time = op->o_time;
+			}
+
 			/* sigh. parse twice, because parse_passwd
 			 * doesn't give us the err / match / msg info.
 			 */

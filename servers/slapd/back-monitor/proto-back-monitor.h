@@ -54,6 +54,11 @@ monitor_cache_get LDAP_P((
 	struct berval		*ndn,
 	Entry			**ep ));
 extern int
+monitor_cache_remove LDAP_P((
+	monitor_info_t		*mi,
+	struct berval		*ndn,
+	Entry			**ep ));
+extern int
 monitor_cache_dn2entry LDAP_P((
 	Operation		*op,
 	SlapReply		*rs,
@@ -144,16 +149,20 @@ monitor_back_is_configured LDAP_P(( void ));
 extern int
 monitor_back_register_entry LDAP_P((
 	Entry			*e,
-	monitor_callback_t	*cb ));
+	monitor_callback_t	*cb,
+	monitor_subsys_t	*mss,
+	unsigned long		flags ));
 extern int
 monitor_back_register_entry_parent LDAP_P((
 	Entry			*e,
 	monitor_callback_t	*cb,
+	monitor_subsys_t	*mss,
+	unsigned long		flags,
 	struct berval		*base,
 	int			scope,
 	struct berval		*filter ));
 extern int
-monitor_filter2ndn LDAP_P((
+monitor_search2ndn LDAP_P((
 	struct berval		*base,
 	int			scope,
 	struct berval		*filter,
@@ -168,6 +177,31 @@ monitor_back_register_entry_attrs LDAP_P((
 	struct berval		*filter ));
 extern int
 monitor_back_register_entry_callback LDAP_P((
+	struct berval		*ndn,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter ));
+extern int
+monitor_back_unregister_entry LDAP_P((
+	struct berval		*ndn ));
+extern int
+monitor_back_unregister_entry_parent LDAP_P((
+	struct berval		*nrdn,
+	monitor_callback_t	*target_cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter ));
+extern int
+monitor_back_unregister_entry_attrs LDAP_P((
+	struct berval		*ndn,
+	Attribute		*a,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter ));
+extern int
+monitor_back_unregister_entry_callback LDAP_P((
 	struct berval		*ndn,
 	monitor_callback_t	*cb,
 	struct berval		*base,

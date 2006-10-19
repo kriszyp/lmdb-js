@@ -63,7 +63,7 @@ do { \
 static void
 ldap_pvt_set_errno(int err)
 {
-	errno = err;
+	sock_errset(err);
 }
 
 int
@@ -123,20 +123,31 @@ ldap_pvt_close_socket(LDAP *ld, int s)
 static int
 ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 {
-	osip_debug(ld, "ldap_prepare_socket: %d\n", s,0,0);
+	osip_debug( ld, "ldap_prepare_socket: %d\n", s, 0, 0 );
 
-#ifdef TCP_NODELAY
-	if( proto == LDAP_PROTO_TCP ) {
+#if defined( SO_KEEPALIVE ) || defined( TCP_NODELAY )
+	if ( proto == LDAP_PROTO_TCP ) {
 		int dummy = 1;
+#ifdef SO_KEEPALIVE
+		if ( setsockopt( s, SOL_SOCKET, SO_KEEPALIVE,
+			(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
+		{
+			osip_debug( ld, "ldap_prepare_socket: "
+				"setsockopt(%d, SO_KEEPALIVE) failed (ignored).\n",
+				s, 0, 0 );
+		}
+#endif /* SO_KEEPALIVE */
+#ifdef TCP_NODELAY
 		if ( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
 			(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
 		{
-			osip_debug(ld, "ldap_prepare_socket: "
+			osip_debug( ld, "ldap_prepare_socket: "
 				"setsockopt(%d, TCP_NODELAY) failed (ignored).\n",
-				s, 0, 0);
+				s, 0, 0 );
 		}
+#endif /* TCP_NODELAY */
 	}
-#endif
+#endif /* SO_KEEPALIVE || TCP_NODELAY */
 
 	return 0;
 }
@@ -208,7 +219,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	struct sockaddr *sin, socklen_t addrlen,
 	int async)
 {
-	int rc;
+	int rc, err;
 	struct timeval	tv = { 0 },
 			*opt_tv = NULL;
 
@@ -241,11 +252,8 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		return ( 0 );
 	}
 
-#ifdef HAVE_WINSOCK
-	ldap_pvt_set_errno( WSAGetLastError() );
-#endif
-
-	if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
+	err = sock_errno();
+	if ( err != EINPROGRESS && err != EWOULDBLOCK ) {
 		return ( -1 );
 	}
 	

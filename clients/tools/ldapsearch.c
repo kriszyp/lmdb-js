@@ -122,10 +122,8 @@ usage( void )
 	fprintf( stderr, _("  -A         retrieve attribute names only (no values)\n"));
 	fprintf( stderr, _("  -b basedn  base dn for search\n"));
 	fprintf( stderr, _("  -E [!]<ext>[=<extparam>] search extensions (! indicates criticality)\n"));
-#ifdef LDAP_CONTROL_DONTUSECOPY
-	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
-#endif
 	fprintf( stderr, _("             [!]domainScope              (domain scope)\n"));
+	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
 	fprintf( stderr, _("             [!]mv=<filter>              (matched values filter)\n"));
 	fprintf( stderr, _("             [!]pr=<size>[/prompt|noprompt]   (paged results/prompt)\n"));
 	fprintf( stderr, _("             [!]subentries[=true|false]  (subentries)\n"));
@@ -678,11 +676,31 @@ main( int argc, char **argv )
 	}
 
 	if ( infile != NULL ) {
+		int percent = 0;
+	
 		if ( infile[0] == '-' && infile[1] == '\0' ) {
 			fp = stdin;
 		} else if (( fp = fopen( infile, "r" )) == NULL ) {
 			perror( infile );
 			return EXIT_FAILURE;
+		}
+
+		for( i=0 ; filtpattern[i] ; i++ ) {
+			if( filtpattern[i] == '%' ) {
+				if( percent ) {
+					fprintf( stderr, _("Bad filter pattern \"%s\"\n"),
+						filtpattern );
+					return EXIT_FAILURE;
+				}
+
+				percent++;
+
+				if( filtpattern[i+1] != 's' ) {
+					fprintf( stderr, _("Bad filter pattern \"%s\"\n"),
+						filtpattern );
+					return EXIT_FAILURE;
+				}
+			}
 		}
 	}
 
@@ -961,9 +979,8 @@ getNextPage:
 			attrs, attrsonly, NULL, NULL, NULL, -1 );
 
 	} else {
-		rc = 0;
 		first = 1;
-		while ( rc == 0 && fgets( line, sizeof( line ), fp ) != NULL ) { 
+		while ( fgets( line, sizeof( line ), fp ) != NULL ) { 
 			line[ strlen( line ) - 1 ] = '\0';
 			if ( !first ) {
 				putchar( '\n' );
@@ -972,6 +989,10 @@ getNextPage:
 			}
 			rc = dosearch( ld, base, scope, filtpattern, line,
 				attrs, attrsonly, NULL, NULL, NULL, -1 );
+
+			if ( rc != 0 && !contoper ) {
+				break;
+			}
 		}
 		if ( fp != stdin ) {
 			fclose( fp );

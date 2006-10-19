@@ -423,7 +423,7 @@ do_syncrep1(
 
 	psub = &si->si_be->be_nsuffix[0];
 
-	rc = slap_client_connect( &si->si_ld, &si->si_bindconf, LDAP_VERSION3 );
+	rc = slap_client_connect( &si->si_ld, &si->si_bindconf );
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
@@ -535,7 +535,7 @@ do_syncrep2(
 	struct sync_cookie	syncCookie_req = { BER_BVNULL };
 	struct berval		cookie = BER_BVNULL;
 
-	int	rc, err, i;
+	int	rc, err;
 	ber_len_t	len;
 
 	struct berval	*psub;
@@ -591,14 +591,20 @@ do_syncrep2(
 			case LDAP_RES_SEARCH_ENTRY:
 				ldap_get_entry_controls( si->si_ld, msg, &rctrls );
 				/* we can't work without the control */
-				if ( !rctrls ) {
+				rctrlp = NULL;
+				if ( rctrls ) {
+					/* NOTE: make sure we use the right one;
+					 * a better approach would be to run thru
+					 * the whole list and take care of all */
+					rctrlp = ldap_find_control( LDAP_CONTROL_SYNC_STATE, rctrls );
+				}
+				if ( rctrlp == NULL ) {
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: "
 						"got search entry without "
-						"control\n", 0, 0, 0 );
+						"Sync State control\n", 0, 0, 0 );
 					rc = -1;
 					goto done;
 				}
-				rctrlp = *rctrls;
 				ber_init2( ber, &rctrlp->ldctl_value, LBER_USE_DER );
 				ber_scanf( ber, "{em" /*"}"*/, &syncstate, &syncUUID );
 				/* FIXME: what if syncUUID is NULL or empty?
@@ -813,6 +819,7 @@ do_syncrep2(
 								&syncCookie.ctxcsn );
 							ber_bvarray_free_x( syncUUIDs, op->o_tmpmemctx );
 						} else {
+							int i;
 							for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
 								struct berval *syncuuid_bv;
 								syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
@@ -1260,7 +1267,7 @@ syncrepl_message_to_op(
 		}
 
 		if ( op->o_tag == LDAP_REQ_ADD ) {
-			op->ora_e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
+			op->ora_e = entry_alloc();
 			op->ora_e->e_name = op->o_req_dn;
 			op->ora_e->e_nname = op->o_req_ndn;
 			rc = slap_mods2entry( modlist, &op->ora_e, 1, 0, &text, txtbuf, textlen);
@@ -1294,6 +1301,9 @@ syncrepl_message_to_op(
 				goto done;
 			op->orr_newSup = &psup;
 			op->orr_nnewSup = &nsup;
+		} else {
+			op->orr_newSup = NULL;
+			op->orr_nnewSup = NULL;
 		}
 		op->orr_newrdn = prdn;
 		op->orr_nnewrdn = nrdn;
@@ -1389,7 +1399,7 @@ syncrepl_message_to_entry(
 		return -1;
 	}
 
-	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
+	e = entry_alloc();
 	e->e_name = op->o_req_dn;
 	e->e_nname = op->o_req_ndn;
 
@@ -1788,6 +1798,9 @@ retry_add:;
 				dnParent( &entry->e_name, &newp );
 				op->orr_newSup = &newp;
 				op->orr_nnewSup = &nnewp;
+			} else {
+				op->orr_newSup = NULL;
+				op->orr_nnewSup = NULL;
 			}
 			op->orr_deleteoldrdn = 0;
 			op->orr_modlist = NULL;
@@ -2179,12 +2192,11 @@ syncrepl_add_glue(
 	}
 
 	while ( ndn.bv_val > e->e_nname.bv_val ) {
-		glue = (Entry *) ch_calloc( 1, sizeof(Entry) );
+		glue = entry_alloc();
 		ber_dupbv( &glue->e_name, &dn );
 		ber_dupbv( &glue->e_nname, &ndn );
 
-		a = ch_calloc( 1, sizeof( Attribute ));
-		a->a_desc = slap_schema.si_ad_objectClass;
+		a = attr_alloc( slap_schema.si_ad_objectClass );
 
 		a->a_vals = ch_calloc( 3, sizeof( struct berval ));
 		ber_dupbv( &a->a_vals[0], &gcbva[0] );
@@ -2196,8 +2208,7 @@ syncrepl_add_glue(
 		a->a_next = glue->e_attrs;
 		glue->e_attrs = a;
 
-		a = ch_calloc( 1, sizeof( Attribute ));
-		a->a_desc = slap_schema.si_ad_structuralObjectClass;
+		a = attr_alloc( slap_schema.si_ad_structuralObjectClass );
 
 		a->a_vals = ch_calloc( 2, sizeof( struct berval ));
 		ber_dupbv( &a->a_vals[0], &gcbva[1] );
@@ -3179,6 +3190,23 @@ add_syncrepl(
 	rc = parse_syncrepl_line( c, si );
 
 	if ( rc == 0 ) {
+		/* Must be LDAPv3 because we need controls */
+		switch ( si->si_bindconf.sb_version ) {
+		case 0:
+			/* not explicitly set */
+			si->si_bindconf.sb_version = LDAP_VERSION3;
+			break;
+		case 3:
+			/* explicitly set */
+			break;
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"version %d incompatible with syncrepl\n",
+				si->si_bindconf.sb_version, 0, 0 );
+			syncinfo_free( si );	
+			return 1;
+		}
+
 		si->si_be = c->be;
 		init_syncrepl( si );
 		si->si_re = ldap_pvt_runqueue_insert( &slapd_rq, si->si_interval,
@@ -3217,8 +3245,10 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	/* temporarily inhibit bindconf from printing URI */
 	uri = si->si_bindconf.sb_uri;
 	BER_BVZERO( &si->si_bindconf.sb_uri );
+	si->si_bindconf.sb_version = 0;
 	bindconf_unparse( &si->si_bindconf, &bc );
 	si->si_bindconf.sb_uri = uri;
+	si->si_bindconf.sb_version = LDAP_VERSION3;
 
 	ptr = buf;
 	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03ld " PROVIDERSTR "=%s",

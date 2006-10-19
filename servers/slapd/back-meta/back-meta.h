@@ -33,6 +33,13 @@
 #include "rewrite.h"
 LDAP_BEGIN_DECL
 
+/*
+ * Set META_BACK_PRINT_CONNTREE larger than 0 to dump the connection tree (debug only)
+ */
+#ifndef META_BACK_PRINT_CONNTREE
+#define META_BACK_PRINT_CONNTREE 0
+#endif /* !META_BACK_PRINT_CONNTREE */
+
 struct slap_conn;
 struct slap_op;
 
@@ -174,6 +181,7 @@ typedef struct metasingleconn_t {
 #define META_BINDING_CLEAR(rs)		META_CND_CLEAR( (rs), META_BINDING )
 	
 	LDAP            	*msc_ld;
+	time_t			msc_time;
 	struct berval          	msc_bound_ndn;
 	struct berval		msc_cred;
 	unsigned		msc_mscflags;
@@ -186,6 +194,7 @@ typedef struct metasingleconn_t {
 
 typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;
+#define	lc_conn			mc_conn
 	unsigned		mc_refcnt;
 
 	time_t			mc_create_time;
@@ -272,7 +281,7 @@ typedef struct metatarget_t {
 	time_t			mt_network_timeout;
 	struct timeval		mt_bind_timeout;
 #define META_BIND_TIMEOUT	LDAP_BACK_RESULT_UTIMEOUT
-	time_t			mt_timeout[ LDAP_BACK_OP_LAST ];
+	time_t			mt_timeout[ SLAP_OP_LAST ];
 } metatarget_t;
 
 typedef struct metadncache_t {
@@ -333,7 +342,7 @@ typedef struct metainfo_t {
 	time_t			mi_conn_ttl;
 	time_t			mi_idle_timeout;
 	struct timeval		mi_bind_timeout;
-	time_t			mi_timeout[ LDAP_BACK_OP_LAST ];
+	time_t			mi_timeout[ SLAP_OP_LAST ];
 } metainfo_t;
 
 typedef enum meta_op_type {
@@ -370,6 +379,13 @@ meta_back_retry(
 extern void
 meta_back_conn_free(
 	void			*v_mc );
+
+#if META_BACK_PRINT_CONNTREE > 0
+extern void
+meta_back_print_conntree(
+	Avlnode			*root,
+	char			*msg );
+#endif
 
 extern int
 meta_back_init_one_conn(

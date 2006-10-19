@@ -19,10 +19,10 @@ if test "$BACKEND" != "bdb" && test "$BACKEND" != "hdb" ; then
 fi
 
 # test now handles known issues
-if test x"$PROXYSYNC" = x ; then
-	echo "Test disabled; set PROXYSYNC=yes to enable"
-	exit 0
-fi
+#if test x"$PROXYSYNC" = x ; then
+#	echo "Test disabled; set PROXYSYNC=yes to enable"
+#	exit 0
+#fi
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh

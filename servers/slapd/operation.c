@@ -165,3 +165,32 @@ slap_op_alloc(
 
 	return( op );
 }
+
+slap_op_t
+slap_req2op( ber_tag_t tag )
+{
+	switch ( tag ) {
+	case LDAP_REQ_BIND:
+		return SLAP_OP_BIND;
+	case LDAP_REQ_UNBIND:
+		return SLAP_OP_UNBIND;
+	case LDAP_REQ_ADD:
+		return SLAP_OP_ADD;
+	case LDAP_REQ_DELETE:
+		return SLAP_OP_DELETE;
+	case LDAP_REQ_MODRDN:
+		return SLAP_OP_MODRDN;
+	case LDAP_REQ_MODIFY:
+		return SLAP_OP_MODIFY;
+	case LDAP_REQ_COMPARE:
+		return SLAP_OP_COMPARE;
+	case LDAP_REQ_SEARCH:
+		return SLAP_OP_SEARCH;
+	case LDAP_REQ_ABANDON:
+		return SLAP_OP_ABANDON;
+	case LDAP_REQ_EXTENDED:
+		return SLAP_OP_EXTENDED;
+	}
+
+	return SLAP_OP_LAST;
+}

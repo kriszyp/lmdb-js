@@ -64,21 +64,20 @@ lastmod  off
 .fi
 .RE
 .LP
-for every
+for 
 .B ldap
 and
 .B meta
-database.
-This is because operational attributes related to entry creation and
-modification should not be proxied, as they could be mistakenly written
+databases.
+This was required because operational attributes related to entry creation 
+and modification should not be proxied, as they could be mistakenly written
 to the target server(s), generating an error.
-The current implementation automatically sets lastmod to off, so its use
-is redundant and should be omitted, because the lastmod directive will
-be deprecated in the future.
+The current implementation automatically sets lastmod to \fBoff\fP, 
+so its use is redundant and should be omitted.
 
 .TP
 .B uri <ldapurl>
-LDAP server to use.  Multiple URIs can be set in in a single
+LDAP server to use.  Multiple URIs can be set in a single
 .B ldapurl
 argument, resulting in the underlying library automatically 
 call the first server of the list that responds, e.g. 
@@ -86,10 +85,10 @@ call the first server of the list that responds, e.g.
 \fBuri "ldap://host/ ldap://backup-host/"\fP
 
 The URI list is space- or comma-separated.
-.\"This statement is mandatory.
-.\".TP
-.\".B server <hostport>
-.\"Obsolete option; same as `uri ldap://<hostport>/'.
+Whenever the server that responds is not the first one in the list,
+the list is rearranged and the responsive server is moved to the head,
+so that it will be first contacted the next time a connection
+needs be created.
 .HP
 .hy 0
 .B acl-bind
@@ -98,16 +97,25 @@ The URI list is space- or comma-separated.
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
 .RS
 Allows to define the parameters of the authentication method that is 
-internally used by the proxy to collect info related to access control.
+internally used by the proxy to collect info related to access control,
+and whenever an operation occurs with the identity of the rootdn
+of the LDAP proxy database.
 The identity defined by this directive, according to the properties
 associated to the authentication method, is supposed to have read access 
 on the target server to attributes used on the proxy for ACL checking.
+
 There is no risk of giving away such values; they are only used to
 check permissions.
 The default is to use
 .BR simple 
 bind, with empty \fIbinddn\fP and \fIcredentials\fP,
 which means that the related operations will be performed anonymously.
+If not set, and if \fBidassert-bind\fP is defined, this latter identity
+is used instead.  See \fBidassert-bind\fP for details.
+
+The connection between the proxy database and the remote server
+associated to this identity is cached regardless of the lifespan
+of the client-proxy connection that first established it.
 
 .B This identity is by no means implicitly used by the proxy 
 .B when the client connects anonymously.
@@ -226,7 +234,8 @@ or
 parameters).
 Otherwise, the default
 .B proxyauthz
-is used, i.e. the proxyAuthz control is added to all operations.
+is used, i.e. the proxyAuthz control (Proxied Authorization, RFC 4370)
+is added to all operations.
 
 The supported modes are:
 
@@ -297,7 +306,7 @@ useful when the asserted identities do not exist on the remote server.
 
 Flags can be
 
-\fBoverride,{prescriptive|non-prescriptive}\fP
+\fBoverride,[non-]prescriptive\fP
 
 When the 
 .B override
@@ -320,6 +329,10 @@ flag is used, operations are performed anonymously for those identities
 whose assertion is not allowed by the
 .B idassert-authzFrom
 patterns.
+
+The identity associated to this directive is also used for privileged
+operations whenever \fBidassert-bind\fP is defined and \fBacl-bind\fP
+is not.  See \fBacl-bind\fP for details.
 
 This directive obsoletes
 .BR idassert-authcDN ,
@@ -389,19 +402,37 @@ If set to
 support is detected by reading the remote server's root DSE.
 
 .TP
-.B timeout [{add|delete|modify|modrdn}=]<val> [...]
+.B timeout [<op>=]<val> [...]
 This directive allows to set per-operation timeouts.
-If no operation is specified, it affects all.
-Currently, only write operations are addressed, because searches
-can already be limited by means of the
-.B limits
-directive (see 
+Operations can be
+
+\fB<op> ::= bind, add, delete, modrdn, modify, compare\fP
+
+The \fBsearch\fP operation is already controlled either
+by the \fBtimelimit\fP parameter or by server-side enforced
+time limits (see \fBtimelimit\fP and \fBlimits\fP in
 .BR slapd.conf (5)
-for details), and other operations are not supposed to incur into the
-need for timeouts.
-Note: if the timelimit is exceeded, the operation is abandoned;
-the protocol does not provide any means to rollback the operation,
-so the client will not know if the operation eventually succeeded or not.
+for details).
+Timeout is meaningless for the remaining operations,
+\fBunbind\fP and \fBabandon\fP, which do not imply any response,
+while it is not yet implemented in currently supported \fBextended\fP 
+operations.
+If no operation is specified, the timeout \fBval\fP affects all
+supported operations.
+
+Note: if the timelimit is exceeded, the operation is cancelled
+(according to the \fBcancel\fP directive);
+the protocol does not provide any means to rollback operations,
+so the client will not be notified about the result of the operation,
+which may eventually succeeded or not.
+In case the timeout is exceeded during a bind operation, the connection
+is destroyed, according to RFC4511.
+
+Note: in some cases, this backend may issue binds prior
+to other operations (e.g. to bind anonymously or with some prescribed
+identity according to the \fBidassert-bind\fP directive).
+In this case, the timeout of the operation that resulted in the bind
+is used.
 
 .TP
 .B tls {[try-]start|[try-]propagate}
@@ -410,26 +441,31 @@ only works if the URI directive protocol scheme is not \fBldaps://\fP.
 \fBpropagate\fP issues the StartTLS operation only if the original
 connection did.
 The \fBtry-\fP prefix instructs the proxy to continue operations
-if the StartTLS operation failed; its use is highly deprecated.
+if the StartTLS operation failed; its use is \fBnot\fP recommended.
 
 .SH BACKWARD COMPATIBILITY
-The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
-as a side-effect, some of the traditional directives have been
+The LDAP backend has been heavily reworked between releases 2.2 and 2.3,
+and subsequently between 2.3 and 2.4.
+As a side-effect, some of the traditional directives have been
 deprecated and should be no longer used, as they might disappear
 in future releases.
 
 .TP
 .B acl-authcDN "<administrative DN for access control purposes>"
-DN which is used to query the target server for acl checking; it
-is supposed to have read access on the target server to attributes used
+Formerly known as the
+.BR binddn ,
+it is the DN that is used to query the target server for acl checking;
+it is supposed to have read access on the target server to attributes used
 on the proxy for acl checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
+
 .B The acl-authcDN identity is by no means implicitly used by the proxy 
 .B when the client connects anonymously.
-See the
+The
 .B idassert-*
-feature instead.
+feature can be used (at own risk) for that purpose instead.
+
 This directive is obsoleted by the
 .B binddn
 arg of
@@ -438,11 +474,13 @@ when \fIbindmethod\fP=\fBsimple\fP, and will be dismissed in the future.
 
 .TP
 .B acl-passwd <password>
-Password used with the above
+Formerly known as the
+.BR bindpw ,
+it is the password used with the above
 .B acl-authcDN
 directive.
 This directive is obsoleted by the
-.B binddn
+.B credentials
 arg of
 .B acl-bind
 when \fIbindmethod\fP=\fBsimple\fP, and will be dismissed in the future.
@@ -465,7 +503,7 @@ Password used with the
 above.
 This directive is obsoleted by the
 .B crendentials
-of
+arg of
 .B idassert-bind
 when \fIbindmethod\fP=\fBsimple\fP, and will be dismissed in the future.
 
@@ -487,6 +525,12 @@ This directive is obsoleted by the
 arg of
 .BR idassert-bind ,
 and will be dismissed in the future.
+
+.TP
+.B port <port>
+this directive is no longer supported.  Use the 
+.B uri
+directive as described above.
 
 .TP
 .B server <hostname[:port]>

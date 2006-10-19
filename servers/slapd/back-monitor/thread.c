@@ -35,6 +35,40 @@ monitor_subsys_thread_update(
 	SlapReply		*rs,
 	Entry 			*e );
 
+typedef enum {
+	MT_UNKNOWN,
+	MT_RUNQUEUE,
+	MT_TASKLIST,
+
+	MT_LAST
+} monitor_thread_t;
+
+static struct {
+	struct berval			rdn;
+	struct berval			nrdn;
+	ldap_pvt_thread_pool_param_t	param;
+	monitor_thread_t		mt;
+}		mt[] = {
+	{ BER_BVC( "cn=Max" ),		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_MAX,		MT_UNKNOWN },
+	{ BER_BVC( "cn=Max Pending" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_MAX_PENDING,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Open" ),		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_OPEN,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Starting" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_STARTING,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Active" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Pending" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_PENDING,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Backload" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD,	MT_UNKNOWN },
+#if 0	/* not meaningful right now */
+	{ BER_BVC( "cn=Active Max" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE_MAX,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Pending Max" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_PENDING_MAX,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Backload Max" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD_MAX,MT_UNKNOWN },
+#endif
+	{ BER_BVC( "cn=State" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_STATE,	MT_UNKNOWN },
+
+	{ BER_BVC( "cn=Runqueue" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_RUNQUEUE },
+	{ BER_BVC( "cn=Tasklist" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_TASKLIST },
+
+	{ BER_BVNULL }
+};
+
 /*
  * initializes log subentry
  */
@@ -47,8 +81,7 @@ monitor_subsys_thread_init(
 	monitor_info_t	*mi;
 	monitor_entry_t	*mp;
 	Entry		*e, **ep, *e_thread;
-	static char	buf[ BACKMONITOR_BUFSIZE ];
-	struct berval bv;
+	int		i;
 
 	ms->mss_update = monitor_subsys_thread_update;
 
@@ -66,146 +99,80 @@ monitor_subsys_thread_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	/*
-	 * Max
-	 */
-	BER_BVSTR( &bv, "cn=Max" );
-	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
-	if ( e == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to create entry \"cn=Max,%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", connection_pool_max );
-	bv.bv_val = buf;
-	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+	for ( i = 0; !BER_BVISNULL( &mt[ i ].rdn ); i++ ) {
+		static char	buf[ BACKMONITOR_BUFSIZE ];
+		int		count = -1;
+		char		*state = NULL;
+		struct berval	bv = BER_BVNULL;
+
+		/*
+		 * Max
+		 */
+		e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn,
+			&mt[ i ].rdn,
+			mi->mi_oc_monitoredObject, mi, NULL, NULL );
+		if ( e == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_thread_init: "
+				"unable to create entry \"%s,%s\"\n",
+				mt[ i ].rdn.bv_val,
+				ms->mss_ndn.bv_val, 0 );
+			return( -1 );
+		}
+
+		/* NOTE: reference to the normalized DN of the entry,
+		 * under the assumption it's not modified */
+		dnRdn( &e->e_nname, &mt[ i ].nrdn );
+
+		switch ( mt[ i ].param ) {
+		case LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN:
+			break;
+
+		case LDAP_PVT_THREAD_POOL_PARAM_STATE:
+			if ( ldap_pvt_thread_pool_query( &connection_pool,
+				mt[ i ].param, (void *)&state ) == 0 )
+			{
+				ber_str2bv( state, 0, 0, &bv );
+
+			} else {
+				BER_BVSTR( &bv, "unknown" );
+			}
+			break;
+
+		default:
+			/* NOTE: in case of error, it'll be set to -1 */
+			(void)ldap_pvt_thread_pool_query( &connection_pool,
+				mt[ i ].param, (void *)&count );
+			bv.bv_val = buf;
+			bv.bv_len = snprintf( buf, sizeof( buf ), "%d", count );
+			break;
+		}
+
+		if ( !BER_BVISNULL( &bv ) ) {
+			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+		}
 	
-	mp = monitor_entrypriv_create();
-	if ( mp == NULL ) {
-		return -1;
-	}
-	e->e_private = ( void * )mp;
-	mp->mp_info = ms;
-	mp->mp_flags = ms->mss_flags \
-		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			return -1;
+		}
+		e->e_private = ( void * )mp;
+		mp->mp_info = ms;
+		mp->mp_flags = ms->mss_flags \
+			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
-	if ( monitor_cache_add( mi, e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to add entry \"cn=Max,%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
+		if ( monitor_cache_add( mi, e ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_thread_init: "
+				"unable to add entry \"%s,%s\"\n",
+				mt[ i ].rdn.bv_val,
+				ms->mss_ndn.bv_val, 0 );
+			return( -1 );
+		}
 	
-	*ep = e;
-	ep = &mp->mp_next;
-
-	/*
-	 * Backload
-	 */
-	BER_BVSTR( &bv, "cn=Backload" );
-	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
-	if ( e == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to create entry \"cn=Backload,%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
-		return( -1 );
+		*ep = e;
+		ep = &mp->mp_next;
 	}
-	BER_BVSTR( &bv, "0" );
-	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
-
-	mp = monitor_entrypriv_create();
-	if ( mp == NULL ) {
-		return -1;
-	}
-	e->e_private = ( void * )mp;
-	mp->mp_info = ms;
-	mp->mp_flags = ms->mss_flags \
-		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
-
-	if ( monitor_cache_add( mi, e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to add entry \"cn=Backload,%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-	
-	*ep = e;
-	ep = &mp->mp_next;
-
-	/*
-	 * Runqueue runners
-	 */
-	BER_BVSTR( &bv, "cn=Runqueue" );
-	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
-	if ( e == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to create entry \"cn=Runqueue,%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-
-	mp = monitor_entrypriv_create();
-	if ( mp == NULL ) {
-		return -1;
-	}
-	e->e_private = ( void * )mp;
-	mp->mp_info = ms;
-	mp->mp_flags = ms->mss_flags \
-		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
-
-	if ( monitor_cache_add( mi, e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to add entry \"cn=Runqueue,%s\"\n",
-			ms->mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-	
-	*ep = e;
-	ep = &mp->mp_next;
-
-	/*
-	 * Tasklist
-	 */
-	BER_BVSTR( &bv, "cn=Tasklist" );
-	e = monitor_entry_stub( &ms->mss_dn, &ms->mss_ndn, &bv,
-		mi->mi_oc_monitoredObject, mi, NULL, NULL );
-	if ( e == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to create entry \"%s,%s\"\n",
-			bv.bv_val, ms->mss_ndn.bv_val, 0 );
-		return( -1 );
-	}
-
-	mp = monitor_entrypriv_create();
-	if ( mp == NULL ) {
-		return -1;
-	}
-	e->e_private = ( void * )mp;
-	mp->mp_info = ms;
-	mp->mp_flags = ms->mss_flags \
-		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
-
-	if ( monitor_cache_add( mi, e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: "
-			"unable to add entry \"%s\"\n",
-			e->e_name.bv_val, 0, 0 );
-		return( -1 );
-	}
-	
-	*ep = e;
-	ep = &mp->mp_next;
 
 	monitor_cache_release( mi, e_thread );
 
@@ -222,122 +189,119 @@ monitor_subsys_thread_update(
 	Attribute		*a;
 	BerVarray		vals = NULL;
 	char 			buf[ BACKMONITOR_BUFSIZE ];
-	enum {
-		MT_UNKNOWN,
-		MT_MAX,
-		MT_BACKLOAD,
-		MT_RUNQUEUE,
-		MT_TASKLIST,
-
-		MT_LAST
-	};
-	static slap_verbmasks	mt[] = {
-		{ BER_BVC( "cn=max" ),		MT_MAX		},
-		{ BER_BVC( "cn=backload" ),	MT_BACKLOAD	},
-		{ BER_BVC( "cn=runqueue" ),	MT_RUNQUEUE	},
-		{ BER_BVC( "cn=tasklist" ),	MT_TASKLIST	},
-		{ BER_BVNULL,			MT_UNKNOWN	}
-	};
 	struct berval		rdn, bv;
 	int			which, i;
 	struct re_s		*re;
+	int			count = -1;
+	char			*state = NULL;
 
 	assert( mi != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
 
-	which = bverb_to_mask( &rdn, mt );
-	if ( BER_BVISNULL( &mt[ which ].word )
-		|| mt[ which ].mask == MT_UNKNOWN )
-	{
+	for ( i = 0; !BER_BVISNULL( &mt[ i ].nrdn ); i++ ) {
+		if ( dn_match( &mt[ i ].nrdn, &rdn ) ) {
+			break;
+		}
+	}
+
+	which = i;
+	if ( BER_BVISNULL( &mt[ which ].nrdn ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
 	a = attr_find( e->e_attrs, mi->mi_ad_monitoredInfo );
 
-	switch ( mt[ which ].mask ) {
-	case MT_MAX:
+	switch ( mt[ which ].param ) {
+	case LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN:
+		switch ( mt[ which ].mt ) {
+		case MT_RUNQUEUE:
+			if ( a != NULL ) {
+				if ( a->a_nvals != a->a_vals ) {
+					ber_bvarray_free( a->a_nvals );
+				}
+				ber_bvarray_free( a->a_vals );
+				a->a_vals = NULL;
+				a->a_nvals = NULL;
+			}
+
+			i = 0;
+			bv.bv_val = buf;
+			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+			LDAP_STAILQ_FOREACH( re, &slapd_rq.run_list, rnext ) {
+				bv.bv_len = snprintf( buf, sizeof( buf ), "{%d}%s(%s)",
+					i, re->tname, re->tspec );
+				if ( bv.bv_len < sizeof( buf ) ) {
+					value_add_one( &vals, &bv );
+				}
+				i++;
+			}
+			ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	
+			if ( vals ) {
+				attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
+				ber_bvarray_free( vals );
+			}
+			break;
+
+		case MT_TASKLIST:
+			if ( a != NULL ) {
+				if ( a->a_nvals != a->a_vals ) {
+					ber_bvarray_free( a->a_nvals );
+				}
+				ber_bvarray_free( a->a_vals );
+				a->a_vals = NULL;
+				a->a_nvals = NULL;
+			}
+	
+			i = 0;
+			bv.bv_val = buf;
+			ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+			LDAP_STAILQ_FOREACH( re, &slapd_rq.task_list, tnext ) {
+				bv.bv_len = snprintf( buf, sizeof( buf ), "{%d}%s(%s)",
+					i, re->tname, re->tspec );
+				if ( bv.bv_len < sizeof( buf ) ) {
+					value_add_one( &vals, &bv );
+				}
+				i++;
+			}
+			ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	
+			if ( vals ) {
+				attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
+				ber_bvarray_free( vals );
+			}
+			break;
+
+		default:
+			assert( 0 );
+		}
+		break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_STATE:
 		if ( a == NULL ) {
 			return rs->sr_err = LDAP_OTHER;
 		}
-		bv.bv_val = buf;
-		bv.bv_len = snprintf( buf, sizeof( buf ), "%d", connection_pool_max );
-		if ( bv.bv_len >= sizeof( buf ) ) {
-			/* FIXME? */
-			break;
+		if ( ldap_pvt_thread_pool_query( &connection_pool,
+			mt[ i ].param, (void *)&state ) == 0 )
+		{
+			ber_str2bv( state, 0, 0, &bv );
+			ber_bvreplace( &a->a_vals[ 0 ], &bv );
 		}
-		ber_bvreplace( &a->a_vals[ 0 ], &bv );
 		break;
 
-	case MT_BACKLOAD:
+	default:
 		if ( a == NULL ) {
 			return rs->sr_err = LDAP_OTHER;
 		}
-		bv.bv_val = buf;
-		bv.bv_len = snprintf( buf, sizeof( buf ), "%d", 
-			ldap_pvt_thread_pool_backload( &connection_pool ) );
-		if ( bv.bv_len >= sizeof( buf ) ) {
-			/* FIXME? */
-			break;
-		}
-		ber_bvreplace( &a->a_vals[ 0 ], &bv );
-		break;
-
-	case MT_RUNQUEUE:
-		if ( a != NULL ) {
-			if ( a->a_nvals != a->a_vals ) {
-				ber_bvarray_free( a->a_nvals );
-			}
-			ber_bvarray_free( a->a_vals );
-			a->a_vals = NULL;
-			a->a_nvals = NULL;
-		}
-
-		i = 0;
-		bv.bv_val = buf;
-		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-		LDAP_STAILQ_FOREACH( re, &slapd_rq.run_list, rnext ) {
-			bv.bv_len = snprintf( buf, sizeof( buf ), "{%d}%s(%s)",
-				i, re->tname, re->tspec );
+		if ( ldap_pvt_thread_pool_query( &connection_pool,
+			mt[ i ].param, (void *)&count ) == 0 )
+		{
+			bv.bv_val = buf;
+			bv.bv_len = snprintf( buf, sizeof( buf ), "%d", count );
 			if ( bv.bv_len < sizeof( buf ) ) {
-				value_add_one( &vals, &bv );
+				ber_bvreplace( &a->a_vals[ 0 ], &bv );
 			}
-			i++;
-		}
-		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-
-		if ( vals ) {
-			attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
-			ber_bvarray_free( vals );
-		}
-		break;
-
-	case MT_TASKLIST:
-		if ( a != NULL ) {
-			if ( a->a_nvals != a->a_vals ) {
-				ber_bvarray_free( a->a_nvals );
-			}
-			ber_bvarray_free( a->a_vals );
-			a->a_vals = NULL;
-			a->a_nvals = NULL;
-		}
-
-		i = 0;
-		bv.bv_val = buf;
-		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-		LDAP_STAILQ_FOREACH( re, &slapd_rq.task_list, tnext ) {
-			bv.bv_len = snprintf( buf, sizeof( buf ), "{%d}%s(%s)",
-				i, re->tname, re->tspec );
-			if ( bv.bv_len < sizeof( buf ) ) {
-				value_add_one( &vals, &bv );
-			}
-			i++;
-		}
-		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-
-		if ( vals ) {
-			attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
-			ber_bvarray_free( vals );
 		}
 		break;
 	}

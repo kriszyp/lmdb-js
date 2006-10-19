@@ -98,8 +98,9 @@ const char Versionstr[] =
 	OPENLDAP_PACKAGE " " OPENLDAP_VERSION " Standalone LDAP Server (slapd)";
 #endif
 
-#define CHECK_NONE	0x00
-#define CHECK_CONFIG	0x01
+#define	CHECK_NONE	0x00
+#define	CHECK_CONFIG	0x01
+#define	CHECK_LOGLEVEL	0x02
 static int check = CHECK_NONE;
 static int version = 0;
 
@@ -369,6 +370,7 @@ int main( int argc, char **argv )
 	size_t	l;
 
 	int slapd_pid_file_unlink = 0, slapd_args_file_unlink = 0;
+	int firstopt = 1;
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -501,6 +503,11 @@ int main( int argc, char **argv )
 		case 'd': {	/* set debug level and 'do not detach' flag */
 			int	level = 0;
 
+			if ( strcmp( optarg, "?" ) == 0 ) {
+				check |= CHECK_LOGLEVEL;
+				break;
+			}
+
 			no_detach = 1;
 			if ( parse_debug_level( optarg, &level, &debug_unknowns ) ) {
 				goto destroy;
@@ -557,6 +564,11 @@ int main( int argc, char **argv )
 		}
 
 		case 's':	/* set syslog level */
+			if ( strcmp( optarg, "?" ) == 0 ) {
+				check |= CHECK_LOGLEVEL;
+				break;
+			}
+
 			if ( parse_debug_level( optarg, &ldap_syslog, &syslog_unknowns ) ) {
 				goto destroy;
 			}
@@ -613,6 +625,12 @@ int main( int argc, char **argv )
 			break;
 
 		case 'T':
+			if ( firstopt == 0 ) {
+				fprintf( stderr, "warning: \"-T %s\" "
+					"should be the first option.\n",
+					optarg );
+			}
+
 			/* try full option string first */
 			for ( i = 0; tools[i].name; i++ ) {
 				if ( strcmp( optarg, &tools[i].name[4] ) == 0 ) {
@@ -642,6 +660,10 @@ unhandled_option:;
 			rc = 1;
 			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 15 );
 			goto stop;
+		}
+
+		if ( firstopt ) {
+			firstopt = 0;
 		}
 	}
 
@@ -744,6 +766,11 @@ unhandled_option:;
 		syslog_unknowns = NULL;
 		if ( rc )
 			goto destroy;
+	}	
+
+	if ( check & CHECK_LOGLEVEL ) {
+		rc = 0;
+		goto destroy;
 	}
 
 	if ( check & CHECK_CONFIG ) {
@@ -914,6 +941,9 @@ shutdown:
 	rc |= slap_shutdown( NULL );
 
 destroy:
+	if ( check & CHECK_LOGLEVEL ) {
+		(void)loglevel_print( stdout );
+	}
 	/* remember an error during destroy */
 	rc |= slap_destroy();
 
@@ -961,10 +991,12 @@ stop:
 #ifdef HAVE_TLS
 	if ( slap_tls_ld ) {
 		SSL_CTX_free( slap_tls_ctx );
-		ldap_unbind( slap_tls_ld );
+		ldap_unbind_ext( slap_tls_ld, NULL, NULL );
 	}
 	ldap_pvt_tls_destroy();
 #endif
+
+	slap_sasl_regexp_destroy();
 
 	if ( slapd_pid_file_unlink ) {
 		unlink( slapd_pid_file );

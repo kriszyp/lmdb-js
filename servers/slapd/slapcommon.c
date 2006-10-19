@@ -283,7 +283,7 @@ slap_tool_init(
 	while ( (i = getopt( argc, argv, options )) != EOF ) {
 		switch ( i ) {
 		case 'a':
-			filterstr = strdup( optarg );
+			filterstr = ch_strdup( optarg );
 			break;
 
 		case 'b':
@@ -320,11 +320,11 @@ slap_tool_init(
 			break;
 
 		case 'f':	/* specify a conf file */
-			conffile = strdup( optarg );
+			conffile = ch_strdup( optarg );
 			break;
 
 		case 'F':	/* specify a conf dir */
-			confdir = strdup( optarg );
+			confdir = ch_strdup( optarg );
 			break;
 
 		case 'g':	/* disable subordinate glue */
@@ -338,7 +338,7 @@ slap_tool_init(
 			break;
 
 		case 'l':	/* LDIF file */
-			ldiffile = strdup( optarg );
+			ldiffile = ch_strdup( optarg );
 			break;
 
 		case 'M':
@@ -383,7 +383,7 @@ slap_tool_init(
 			if ( tool == SLAPADD )
 				mode |= SLAP_TOOL_NO_SCHEMA_CHECK;
 			else if ( tool == SLAPCAT )
-				subtree = strdup( optarg );
+				subtree = ch_strdup( optarg );
 			break;
 
 		case 't':	/* turn on truncate */
@@ -517,6 +517,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 	}
 
+#ifdef LDAP_SYSLOG
 	if ( syslog_unknowns ) {
 		rc = parse_debug_unknowns( syslog_unknowns, &ldap_syslog );
 		ldap_charray_free( syslog_unknowns );
@@ -524,6 +525,7 @@ slap_tool_init(
 		if ( rc )
 			exit( EXIT_FAILURE );
 	}
+#endif
 
 	at_oc_cache = 1;
 

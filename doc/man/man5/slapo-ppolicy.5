@@ -29,6 +29,12 @@ is performed with the
 .B rootdn
 identity; all the operations, when performed with any other identity,
 may be subjected to constraints, like access control.
+.P
+Note that the IETF Password Policy proposal for LDAP makes sense
+when considering a single-valued password attribute, while 
+the userPassword attribute allows multiple values.  This implementation
+enforces a single value for the userPassword attribute, despite
+its specification.
 
 .SH CONFIGURATION
 These 

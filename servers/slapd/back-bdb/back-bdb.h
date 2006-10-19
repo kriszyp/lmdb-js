@@ -150,6 +150,13 @@ struct bdb_db_info {
 	DB			*bdi_db;
 };
 
+typedef struct bdb_monitor_t {
+	void		*bdm_cb;
+	struct berval	bdm_nbase;
+	int		bdm_scope;
+	struct berval	bdm_filter;
+} bdb_monitor_t;
+
 /* From ldap_rq.h */
 struct re_s;
 
@@ -196,6 +203,7 @@ struct bdb_info {
 	alock_info_t	bi_alock_info;
 	char		*bi_db_config_path;
 	BerVarray	bi_db_config;
+	bdb_monitor_t	bi_monitor;
 	int		bi_flags;
 #define	BDB_IS_OPEN		0x01
 #define	BDB_HAS_CONFIG	0x02
@@ -261,6 +269,10 @@ struct bdb_op_info {
 	(db)->open(db, NULL, file, name, type, flags, mode)
 #endif
 
+#endif
+
+#ifndef DB_BUFFER_SMALL
+#define DB_BUFFER_SMALL			ENOMEM
 #endif
 
 #define BDB_REUSE_LOCKERS

@@ -186,7 +186,7 @@ meta_back_db_config(
 		mt->mt_version = mi->mi_version;
 		mt->mt_network_timeout = mi->mi_network_timeout;
 		mt->mt_bind_timeout = mi->mi_bind_timeout;
-		for ( c = 0; c < LDAP_BACK_OP_LAST; c++ ) {
+		for ( c = 0; c < SLAP_OP_LAST; c++ ) {
 			mt->mt_timeout[ c ] = mi->mi_timeout[ c ];
 		}
 
@@ -890,7 +890,7 @@ meta_back_db_config(
 
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"timeout [{add|delete|modify|modrdn}=]<val> [...]\" takes at least 1 argument\n",
+	"%s: line %d: \"timeout [{add|bind|delete|modify|modrdn}=]<val> [...]\" takes at least 1 argument\n",
 				fname, lineno, 0 );
 			return( 1 );
 		}
@@ -903,19 +903,33 @@ meta_back_db_config(
 			if ( sep != NULL ) {
 				size_t	len = sep - argv[ c ];
 
-				if ( strncasecmp( argv[ c ], "add", len ) == 0 ) {
-					t = &tv[ LDAP_BACK_OP_ADD ];
+				if ( strncasecmp( argv[ c ], "bind", len ) == 0 ) {
+					t = &tv[ SLAP_OP_BIND ];
+				/* unbind makes little sense */
+				} else if ( strncasecmp( argv[ c ], "add", len ) == 0 ) {
+					t = &tv[ SLAP_OP_ADD ];
 				} else if ( strncasecmp( argv[ c ], "delete", len ) == 0 ) {
-					t = &tv[ LDAP_BACK_OP_DELETE ];
-				} else if ( strncasecmp( argv[ c ], "modify", len ) == 0 ) {
-					t = &tv[ LDAP_BACK_OP_MODIFY ];
+					t = &tv[ SLAP_OP_DELETE ];
 				} else if ( strncasecmp( argv[ c ], "modrdn", len ) == 0 ) {
-					t = &tv[ LDAP_BACK_OP_MODRDN ];
+					t = &tv[ SLAP_OP_MODRDN ];
+				} else if ( strncasecmp( argv[ c ], "modify", len ) == 0 ) {
+					t = &tv[ SLAP_OP_MODIFY ];
+				} else if ( strncasecmp( argv[ c ], "compare", len ) == 0 ) {
+					t = &tv[ SLAP_OP_COMPARE ];
+#if 0				/* uses timelimit instead */
+				} else if ( strncasecmp( argv[ c ], "search", len ) == 0 ) {
+					t = &tv[ SLAP_OP_SEARCH ];
+#endif
+				/* abandon makes little sense */
+#if 0				/* not implemented yet */
+				} else if ( strncasecmp( argv[ c ], "extended", len ) == 0 ) {
+					t = &tv[ SLAP_OP_EXTENDED ];
+#endif
 				} else {
 					char	buf[ SLAP_TEXT_BUFLEN ];
 					snprintf( buf, sizeof( buf ),
-						"unknown operation \"%s\" for timeout #%d",
-						argv[ c ], c );
+						"unknown/unhandled operation \"%s\" for timeout #%d",
+						argv[ c ], c - 1 );
 					Debug( LDAP_DEBUG_ANY,
 						"%s: line %d: %s.\n",
 						fname, lineno, buf );
@@ -940,7 +954,7 @@ meta_back_db_config(
 			} else {
 				int	i;
 	
-				for ( i = 0; i < LDAP_BACK_OP_LAST; i++ ) {
+				for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 					tv[ i ] = (time_t)val;
 				}
 			}

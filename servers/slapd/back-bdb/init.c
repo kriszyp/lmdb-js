@@ -45,6 +45,7 @@ static int
 bdb_db_init( BackendDB *be )
 {
 	struct bdb_info	*bdb;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE,
 		LDAP_XSTRING(bdb_db_init) ": Initializing " BDB_UCTYPE " database\n",
@@ -80,7 +81,9 @@ bdb_db_init( BackendDB *be )
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
-	return 0;
+	rc = bdb_monitor_db_init( be );
+
+	return rc;
 }
 
 static int
@@ -422,8 +425,16 @@ bdb_db_open( BackendDB *be )
 		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
 	}
 
+	/* monitor setup */
+	rc = bdb_monitor_db_open( be );
+	if ( rc != 0 ) {
+		goto fail;
+	}
+
 	bdb->bi_flags |= BDB_IS_OPEN;
 
+	entry_prealloc( bdb->bi_cache.c_maxsize );
+	attr_prealloc( bdb->bi_cache.c_maxsize * 20 );
 	return 0;
 
 fail:
@@ -438,6 +449,9 @@ bdb_db_close( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
+
+	/* monitor handling */
+	(void)bdb_monitor_db_close( be );
 
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
@@ -516,6 +530,9 @@ static int
 bdb_db_destroy( BackendDB *be )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+
+	/* monitor handling */
+	(void)bdb_monitor_db_destroy( be );
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );

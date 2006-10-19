@@ -198,21 +198,32 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			lrc = ldap_result( msc->msc_ld, msgid[ i ],
 					LDAP_MSG_ALL, &tv, &res );
 
-			if ( lrc == 0 ) {
+			switch ( lrc ) {
+			case 0:
 				assert( res == NULL );
 				continue;
 
-			} else if ( lrc == -1 ) {
+			case -1:
 				/* we do not retry in this case;
 				 * only for unique operations... */
 				ldap_get_option( msc->msc_ld,
-					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+					LDAP_OPT_RESULT_CODE, &rs->sr_err );
 				rres = slap_map_api2result( rs );
 				rres = rc;
 				rc = -1;
 				goto finish;
 
-			} else if ( lrc == LDAP_RES_COMPARE ) {
+			default:
+				/* only touch when activity actually took place... */
+				/* NOTE: no mutex because there's only a loose requirement
+				 * to bump it up... */
+				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+					msc->msc_time = op->o_time;
+				}
+				break;
+			}
+
+			if ( lrc == LDAP_RES_COMPARE ) {
 				if ( count > 0 ) {
 					rres = LDAP_OTHER;
 					rc = -1;
@@ -252,7 +263,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 						free( err );
 					}
 					ldap_get_option( msc->msc_ld,
-						LDAP_OPT_ERROR_STRING, &err );
+						LDAP_OPT_DIAGNOSTIC_MESSAGE, &err );
 
 					if ( match != NULL ) {
 						free( match );

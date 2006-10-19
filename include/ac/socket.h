@@ -23,6 +23,8 @@
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
+#elif defined(HAVE_SYS_POLL_H)
+#include <sys/poll.h>
 #endif
 
 #ifdef HAVE_SYS_SOCKET_H
@@ -80,6 +82,7 @@
 #undef	sock_errstr
 #define sock_errno()	errno
 #define sock_errstr(e)	STRERROR(e)
+#define sock_errset(e)	errno = (e)
 
 #ifdef HAVE_WINSOCK
 #	define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
@@ -100,8 +103,10 @@
 
 #undef	sock_errno
 #undef	sock_errstr
+#undef	sock_errset
 #define	sock_errno()	WSAGetLastError()
 #define	sock_errstr(e)	ber_pvt_wsa_err2string(e)
+#define	sock_errset(e)	WSASetLastError(e)
 
 LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 
@@ -217,7 +222,7 @@ LDAP_LUTIL_F( int ) getpeereid( int s, uid_t *, gid_t * );
 #define	NI_MAXHOST	256
 #endif
 
-#ifdef HAVE_POLL_H
+#ifdef HAVE_POLL
 # ifndef INFTIM
 #  define INFTIM (-1)
 # endif

@@ -25,29 +25,24 @@
 #include "../../libraries/liblber/lber-int.h"
 
 static SLAP_CTRL_PARSE_FN parseAssert;
-static SLAP_CTRL_PARSE_FN parsePreRead;
-static SLAP_CTRL_PARSE_FN parsePostRead;
-static SLAP_CTRL_PARSE_FN parseProxyAuthz;
-#ifdef SLAP_DONTUSECOPY
+static SLAP_CTRL_PARSE_FN parseDomainScope;
 static SLAP_CTRL_PARSE_FN parseDontUseCopy;
-#endif
-#ifdef SLAP_RELAX
-static SLAP_CTRL_PARSE_FN parseManageDIT;
-#endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
+static SLAP_CTRL_PARSE_FN parsePermissiveModify;
+static SLAP_CTRL_PARSE_FN parsePreRead, parsePostRead;
+static SLAP_CTRL_PARSE_FN parseProxyAuthz;
+static SLAP_CTRL_PARSE_FN parseRelax;
+static SLAP_CTRL_PARSE_FN parseSearchOptions;
 #ifdef SLAP_SORTEDRESULTS
 static SLAP_CTRL_PARSE_FN parseSortedResults;
 #endif
-static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
-static SLAP_CTRL_PARSE_FN parsePermissiveModify;
-static SLAP_CTRL_PARSE_FN parseDomainScope;
+static SLAP_CTRL_PARSE_FN parseSubentries;
 #ifdef SLAP_CONTROL_X_TREE_DELETE
 static SLAP_CTRL_PARSE_FN parseTreeDelete;
 #endif
-static SLAP_CTRL_PARSE_FN parseSearchOptions;
-static SLAP_CTRL_PARSE_FN parseSubentries;
+static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
@@ -147,6 +142,11 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		parseDomainScope, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+	{ LDAP_CONTROL_DONTUSECOPY,
+ 		(int)offsetof(struct slap_control_ids, sc_dontUseCopy),
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE,
+		NULL, NULL,
+		parseDontUseCopy, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
  		(int)offsetof(struct slap_control_ids, sc_permissiveModify),
 		SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE,
@@ -174,20 +174,11 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef SLAP_DONTUSECOPY
-	{ LDAP_CONTROL_DONTUSECOPY,
- 		(int)offsetof(struct slap_control_ids, sc_dontUseCopy),
-		SLAP_CTRL_INTROGATE|SLAP_CTRL_HIDE,
-		NULL, NULL,
-		parseDontUseCopy, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
-#ifdef SLAP_RELAX
 	{ LDAP_CONTROL_RELAX,
- 		(int)offsetof(struct slap_control_ids, sc_manageDIT),
+ 		(int)offsetof(struct slap_control_ids, sc_relax),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE,
 		NULL, NULL,
-		parseManageDIT, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
+		parseRelax, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #ifdef LDAP_X_TXN
 	{ LDAP_CONTROL_X_TXN_SPEC,
  		(int)offsetof(struct slap_control_ids, sc_txnSpec),
@@ -848,7 +839,6 @@ slap_remove_control(
 	return rs->sr_err;
 }
 
-#ifdef SLAP_DONTUSECOPY
 static int parseDontUseCopy (
 	Operation *op,
 	SlapReply *rs,
@@ -864,7 +854,7 @@ static int parseDontUseCopy (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_iscritical != SLAP_CONTROL_CRITICAL ) {
+	if ( !ctrl->ldctl_iscritical ) {
 		rs->sr_text = "dontUseCopy criticality of FALSE not allowed";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -872,15 +862,13 @@ static int parseDontUseCopy (
 	op->o_dontUseCopy = SLAP_CONTROL_CRITICAL;
 	return LDAP_SUCCESS;
 }
-#endif
 
-#ifdef SLAP_RELAX
-static int parseManageDIT (
+static int parseRelax (
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( op->o_managedit != SLAP_CONTROL_NONE ) {
+	if ( op->o_relax != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "relax control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -890,13 +878,12 @@ static int parseManageDIT (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	op->o_managedit = ctrl->ldctl_iscritical
+	op->o_relax = ctrl->ldctl_iscritical
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
 
 	return LDAP_SUCCESS;
 }
-#endif
 
 static int parseManageDSAit (
 	Operation *op,
@@ -1307,18 +1294,37 @@ static int parsePostRead (
 		goto done;
 	}
 
-	for( i=0; i<siz; i++ ) {
+	for ( i = 0; i < siz; i++ ) {
 		const char	*dummy = NULL;
+		int		rc;
 
 		an[i].an_desc = NULL;
 		an[i].an_oc = NULL;
 		an[i].an_oc_exclude = 0;
-		rs->sr_err = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
-		if ( rs->sr_err != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
-			rs->sr_text = dummy
-				? dummy
-				: "postread control: unknown attributeType";
-			goto done;
+		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		if ( rc != LDAP_SUCCESS ) {
+			int			i;
+			static struct berval	special_attrs[] = {
+				BER_BVC( LDAP_NO_ATTRS ),
+				BER_BVC( LDAP_ALL_USER_ATTRIBUTES ),
+				BER_BVC( LDAP_ALL_OPERATIONAL_ATTRIBUTES ),
+				BER_BVNULL
+			};
+
+			/* deal with special attribute types */
+			for ( i = 0; !BER_BVISNULL( &special_attrs[ i ] ); i++ ) {
+				if ( bvmatch( &an[i].an_name, &special_attrs[ i ] ) ) {
+					break;
+				}
+			}
+
+			if ( BER_BVISNULL( &special_attrs[ i ] ) && ctrl->ldctl_iscritical ) {
+				rs->sr_err = rc;
+				rs->sr_text = dummy
+					? dummy
+					: "postread control: unknown attributeType";
+				goto done;
+			}
 		}
 	}
 

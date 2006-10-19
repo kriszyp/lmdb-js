@@ -49,21 +49,65 @@ in the
 .SH OPTIONS
 The configuration options are case-insensitive;
 their value, on a case by case basis, may be case-sensitive.
+.LP
+Blank lines and lines beginning with a hash mark (`#')
+are ignored up to their end.
+.LP
+Valid lines are made of an option's name (a sequence of non-blanks,
+conventionally written in uppercase, although not required), 
+followed by a value.
+The value starts with the first non-blank character after 
+the option's name, and terminates at the end of the line, 
+or at the last sequence of blanks before the end of the line.
+The tokenization of the value, if any, is delegated to the handler(s)
+for that option, if any.  Quoting values that contain blanks 
+may be incorrect, as the quotes would become part of the value.
+For example,
+
+	URI	"ldap:// ldaps://"
+
+is incorrect, while
+
+	URI	ldap:// ldaps://
+
+is correct (note the absence of the double quotes).
+.LP
+A line cannot be longer than LINE_MAX, which should be more than 2000 bytes
+on all platforms.
+There is no mechanism to split a long line on multiple lines, either for
+beautification or to overcome the above limit.
+.LP
 The different configuration options are:
 .TP
-.B URI <ldap[s]://[name[:port]] ...>
+.B URI <ldap[si]://[name[:port]] ...>
 Specifies the URI(s) of an LDAP server(s) to which the
 .I LDAP 
-library should connect.  The URI scheme may be either
-.B ldap
-or
+library should connect.  The URI scheme may be any of
+.BR ldap ,
 .B ldaps 
-which refer to LDAP over TCP and LDAP over SSL (TLS) respectively.
+or
+.BR ldapi ,
+which refer to LDAP over TCP, LDAP over SSL (TLS) and LDAP
+over IPC (UNIX domain sockets), respectively.
 Each server's name can be specified as a
 domain-style name or an IP address literal.  Optionally, the
 server's name can followed by a ':' and the port number the LDAP
 server is listening on.  If no port number is provided, the default
 port for the scheme is used (389 for ldap://, 636 for ldaps://).
+For LDAP over IPC,
+.B name 
+is the name of the socket, and no
+.B port
+is required, nor allowed; note that directory separators must be 
+URL-encoded, like any other characters that are special to URLs; 
+so the socket
+
+	/usr/local/var/ldapi
+
+must be specified as
+
+	ldapi://%2Fusr%2Flocal%2Fvar%2Fldapi
+
 A space separated list of URIs may be provided.
 .TP
 .B BASE <base>
@@ -131,6 +175,16 @@ Aliases are only dereferenced when locating the base object of the search.
 Aliases are dereferenced both in searching and in locating the base object
 of the search.
 .RE
+.TP
+.B VERSION {2|3}
+Specifies what version of the LDAP protocol should be used.
+.TP
+.B TIMEOUT <integer>
+Specifies a generic timeout (in seconds).  Currently ignored.
+.TP
+.B NETWORK_TIMEOUT <integer>
+Specifies the timeout (in seconds) after which the poll(2)/select(2)
+following a connect(2) returns in case of no activity.
 .SH SASL OPTIONS
 If OpenLDAP is built with Simple Authentication and Security Layer support,
 there are more options you can specify.

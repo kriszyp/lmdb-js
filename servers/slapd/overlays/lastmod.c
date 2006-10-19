@@ -63,12 +63,11 @@ struct berval lastmodType[] = {
 };
 
 static struct m_s {
-	char			*name;
 	char			*schema;
 	slap_mask_t 		flags;
 	int			offset;
 } moc[] = {
-	{ "lastmod", "( 1.3.6.1.4.1.4203.666.3.13"
+	{ "( 1.3.6.1.4.1.4203.666.3.13"
 		"NAME 'lastmod' "
 		"DESC 'OpenLDAP per-database last modification monitoring' "
 		"STRUCTURAL "
@@ -83,7 +82,7 @@ static struct m_s {
 		offsetof( struct lastmod_schema_t, lms_oc_lastmod ) },
 	{ NULL }
 }, mat[] = {
-	{ "lastmodDN", "( 1.3.6.1.4.1.4203.666.1.28"
+	{ "( 1.3.6.1.4.1.4203.666.1.28"
 		"NAME 'lastmodDN' "
 		"DESC 'DN of last modification' "
 		"EQUALITY distinguishedNameMatch "
@@ -91,7 +90,7 @@ static struct m_s {
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )", SLAP_AT_HIDE,
 		offsetof( struct lastmod_schema_t, lms_ad_lastmodDN ) },
-	{ "lastmodType", "( 1.3.6.1.4.1.4203.666.1.29"
+	{ "( 1.3.6.1.4.1.4203.666.1.29"
 		"NAME 'lastmodType' "
 		"DESC 'Type of last modification' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
@@ -100,7 +99,7 @@ static struct m_s {
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )", SLAP_AT_HIDE,
 		offsetof( struct lastmod_schema_t, lms_ad_lastmodType ) },
-	{ "lastmodEnabled", "( 1.3.6.1.4.1.4203.666.1.30"
+	{ "( 1.3.6.1.4.1.4203.666.1.30"
 		"NAME 'lastmodEnabled' "
 		"DESC 'Lastmod overlay state' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
@@ -748,96 +747,33 @@ lastmod_db_init(
 		const char 	*text;
 
 		/* schema integration */
-		for ( i = 0; mat[i].name; i++ ) {
-			LDAPAttributeType	*at;
+		for ( i = 0; mat[i].schema; i++ ) {
 			int			code;
-			const char		*err;
-			AttributeDescription	**ad;
-	
-			at = ldap_str2attributetype( mat[i].schema, &code,
-				&err, LDAP_SCHEMA_ALLOW_ALL );
-			if ( !at ) {
-				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
-					"in AttributeType '%s' %s before %s\n",
-					mat[i].name, ldap_scherr2str(code), err );
-				return -1;
-			}
-	
-			if ( at->at_oid == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
-					"null OID for attributeType '%s'\n",
-					mat[i].name, 0, 0 );
-				ldap_attributetype_free( at );
-				return -1;
-			}
-	
-			code = at_add(at, 0, NULL, &err);
-			if ( code ) {
-				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
-					"%s in attributeType '%s'\n",
-					scherr2str(code), mat[i].name, 0 );
-				ldap_attributetype_free( at );
-				return -1;
-			}
-			ldap_memfree(at);
-	
-			ad = ((AttributeDescription **)&(((char *)&lastmod_schema)[mat[i].offset]));
+			AttributeDescription	**ad =
+				((AttributeDescription **)&(((char *)&lastmod_schema)[mat[i].offset]));
 			ad[0] = NULL;
-			if ( slap_str2ad( mat[i].name, ad, &text ) ) {
+
+			code = register_at( mat[i].schema, ad, 0 );
+			if ( code ) {
 				Debug( LDAP_DEBUG_ANY,
-					"lastmod_init: %s\n", text, 0, 0 );
+					"lastmod_init: register_at failed\n", 0, 0, 0 );
 				return -1;
 			}
-	
 			(*ad)->ad_type->sat_flags |= mat[i].flags;
 		}
 
-		for ( i = 0; moc[i].name; i++ ) {
-			LDAPObjectClass		*oc;
+		for ( i = 0; moc[i].schema; i++ ) {
 			int			code;
-			const char		*err;
-			ObjectClass		*Oc;
+			ObjectClass		**Oc =
+				((ObjectClass **)&(((char *)&lastmod_schema)[moc[i].offset]));
 	
-			oc = ldap_str2objectclass(moc[i].schema, &code, &err,
-					LDAP_SCHEMA_ALLOW_ALL );
-			if ( !oc ) {
-				Debug( LDAP_DEBUG_ANY,
-					"unable to parse lastmod objectClass '%s': "
-					"%s before %s\n" , moc[i].name,
-					ldap_scherr2str(code), err );
-				return -1;
-			}
-
-			if ( oc->oc_oid == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-					"objectClass '%s' has no OID\n" ,
-					moc[i].name, 0, 0 );
-				ldap_objectclass_free( oc );
-				return -1;
-			}
-
-			code = oc_add(oc, 0, NULL, &err);
+			code = register_oc( moc[i].schema, Oc, 0 );
 			if ( code ) {
 				Debug( LDAP_DEBUG_ANY,
-					"objectClass '%s': %s \"%s\"\n" ,
-					moc[i].name, scherr2str(code), err );
-				ldap_objectclass_free( oc );
+					"lastmod_init: register_oc failed\n", 0, 0, 0 );
 				return -1;
 			}
-	
-			ldap_memfree(oc);
-	
-			Oc = oc_find( moc[i].name );
-			if ( Oc == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
-						"unable to find objectClass %s "
-						"(just added)\n", moc[i].name, 0, 0 );
-				return -1;
-			}
-
-			Oc->soc_flags |= moc[i].flags;
-
-			((ObjectClass **)&(((char *)&lastmod_schema)[moc[i].offset]))[0] = Oc;
+			(*Oc)->soc_flags |= moc[i].flags;
 		}
 	}
 

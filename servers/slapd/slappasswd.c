@@ -37,6 +37,7 @@
 #include <lutil_sha1.h>
 
 #include "ldap_defaults.h"
+#include "slap.h"
 
 static int	verbose = 0;
 
@@ -108,7 +109,7 @@ slappasswd( int argc, char *argv[] )
 				return EXIT_FAILURE;
 
 			} else {
-				scheme = strdup( optarg );
+				scheme = ch_strdup( optarg );
 			}
 			break;
 
@@ -127,7 +128,7 @@ slappasswd( int argc, char *argv[] )
 
 			} else {
 				char* p;
-				newpw = strdup( optarg );
+				newpw = ch_strdup( optarg );
 
 				for( p = optarg; *p != '\0'; p++ ) {
 					*p = '\0';
@@ -172,7 +173,7 @@ slappasswd( int argc, char *argv[] )
 		if( newpw == NULL ) {
 			/* prompt for new password */
 			char *cknewpw;
-			newpw = strdup(getpassphrase("New password: "));
+			newpw = ch_strdup(getpassphrase("New password: "));
 			cknewpw = getpassphrase("Re-enter new password: ");
 	
 			if( strcmp( newpw, cknewpw )) {

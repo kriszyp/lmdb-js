@@ -170,7 +170,7 @@ static long send_ldap_ber(
 			break;
 		}
 
-		err = errno;
+		err = sock_errno();
 
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
@@ -1359,11 +1359,15 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	bytes = send_ldap_ber( op->o_conn, ber );
 	ber_free_buf( ber );
 
-	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
-	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+	if ( bytes < 0 ) {
+		rc = LDAP_UNAVAILABLE;
+	} else {
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+	}
 #ifdef LDAP_CONNECTIONLESS
 	}
 #endif
@@ -1501,14 +1505,15 @@ int slap_read_controls(
 		op->o_preread_attrs : op->o_postread_attrs; 
 
 	bv.bv_len = entry_flatsize( rs->sr_entry, 0 );
-	bv.bv_val = op->o_tmpalloc(bv.bv_len, op->o_tmpmemctx );
+	bv.bv_val = op->o_tmpalloc( bv.bv_len, op->o_tmpmemctx );
 
 	ber_init2( ber, &bv, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	/* create new operation */
 	myop = *op;
-	myop.o_bd = NULL;
+	/* FIXME: o_bd needed for ACL */
+	myop.o_bd = op->o_bd;
 	myop.o_res_ber = ber;
 	myop.o_callback = NULL;
 	myop.ors_slimit = 1;

@@ -55,10 +55,12 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo /dev/null > $TESTOUT
+
 echo "Using ldapadd to populate the database..."
 # may need "-e relax" for draft 09, but not yet.
 $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
-	$LDIFPPOLICY > $TESTOUT 2>&1
+	$LDIFPPOLICY >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
@@ -135,7 +137,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Filling password history..."
-$LDAPMODIFY -v -D "$USER" -h $LOCALHOST -p $PORT1 -w $PASS > \
+$LDAPMODIFY -v -D "$USER" -h $LOCALHOST -p $PORT1 -w $PASS >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
@@ -193,7 +195,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 echo "Testing password history..."
-$LDAPMODIFY -v -D "$USER" -h $LOCALHOST -p $PORT1 -w 20urgle12-6 > \
+$LDAPMODIFY -v -D "$USER" -h $LOCALHOST -p $PORT1 -w 20urgle12-6 >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
@@ -213,7 +215,7 @@ fi
 
 echo "Testing forced reset..."
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
@@ -249,7 +251,7 @@ fi
 
 echo "Clearing forced reset..."
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
@@ -276,7 +278,7 @@ echo "Testing Safe modify..."
 
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
 	-w $PASS -s failexpect \
-	-D "$USER" > $TESTOUT 2>&1
+	-D "$USER" >> $TESTOUT 2>&1
 RC=$?
 if test $RC = 0 ; then
 	echo "Safe modify test 1 failed ($RC)!"
@@ -288,7 +290,7 @@ sleep 2
 
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
 	-w $PASS -s failexpect -a $PASS \
-	-D "$USER" > $TESTOUT 2>&1
+	-D "$USER" >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Safe modify test 2 failed ($RC)!"
@@ -300,14 +302,15 @@ echo "Testing length requirement..."
 
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 \
 	-w failexpect -a failexpect -s spw \
-	-D "$USER" > $TESTOUT 2>&1
+	-D "$USER" > ${TESTOUT}.2 2>&1
 RC=$?
+cat ${TESTOUT}.2 >> $TESTOUT
 if test $RC = 0 ; then
 	echo "Length requirement test failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
-COUNT=`grep "Password fails quality" $TESTOUT | wc -l`
+COUNT=`grep "Password fails quality" ${TESTOUT}.2 | wc -l`
 if test $COUNT != 1 ; then
 	echo "Length requirement test failed"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
@@ -317,7 +320,7 @@ fi
 echo "Testing hashed length requirement..."
 
 $LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$USER" -w failexpect > \
-	$TESTOUT 2>&1 << EOMODS
+	${TESTOUT}.2 2>&1 << EOMODS
 dn: $USER
 changetype: modify
 delete: userPassword
@@ -328,14 +331,64 @@ userPassword: {MD5}xxxxxx
 
 EOMODS
 RC=$?
+cat ${TESTOUT}.2 >> $TESTOUT
 if test $RC = 0 ; then
 	echo "Hashed length requirement test failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
-COUNT=`grep "Password fails quality" $TESTOUT | wc -l`
+COUNT=`grep "Password fails quality" ${TESTOUT}.2 | wc -l`
 if test $COUNT != 1 ; then
 	echo "Hashed length requirement test failed"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Testing multiple password add/modify checks..."
+
+$LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: cn=Add Should Fail, ou=People, dc=example, dc=com
+changetype: add
+objectClass: inetOrgPerson
+cn: Add Should Fail
+sn: Fail
+userPassword: firstpw
+userPassword: secondpw
+EOMODS
+RC=$?
+if test $RC = 0 ; then
+	echo "Multiple password add test failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+$LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: $USER
+changetype: modify
+add: userPassword
+userPassword: firstpw
+userPassword: secondpw
+EOMODS
+RC=$?
+if test $RC = 0 ; then
+	echo "Multiple password modify add test failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+$LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD >> \
+	$TESTOUT 2>&1 << EOMODS
+dn: $USER
+changetype: modify
+replace: userPassword
+userPassword: firstpw
+userPassword: secondpw
+EOMODS
+RC=$?
+if test $RC = 0 ; then
+	echo "Multiple password modify replace test failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi

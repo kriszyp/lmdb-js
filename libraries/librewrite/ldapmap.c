@@ -23,22 +23,29 @@
 #include "rewrite-int.h"
 #include "rewrite-map.h"
 
+typedef enum {
+	MAP_LDAP_UNKNOWN,
+	MAP_LDAP_EVERYTIME,
+	MAP_LDAP_NOW,
+	MAP_LDAP_LATER
+} bindwhen_t;
+
 /*
  * LDAP map data structure
  */
 struct ldap_map_data {
 	char                           *lm_url;
 	LDAPURLDesc                    *lm_lud;
-	int                             lm_attrsonly;
+	int				lm_version;
 	char                           *lm_binddn;
-	char                           *lm_bindpw;
+	struct berval			lm_cred;
 
-#define MAP_LDAP_EVERYTIME		0x00
-#define MAP_LDAP_NOW			0x01
-#define MAP_LDAP_LATER			0x02
-	int                             lm_when;
+	bindwhen_t			lm_when;
 
 	LDAP                           *lm_ld;
+
+	int                             lm_wantdn;
+	char				*lm_attrs[ 2 ];
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_mutex_t         lm_mutex;
@@ -64,12 +71,15 @@ map_ldap_free(
 		free( data->lm_binddn );
 	}
 
-	if ( data->lm_bindpw != NULL ) {
-		free( data->lm_bindpw );
+	if ( data->lm_cred.bv_val != NULL ) {
+		memset( data->lm_cred.bv_val, 0, data->lm_cred.bv_len );
+		free( data->lm_cred.bv_val );
+		data->lm_cred.bv_val = NULL;
+		data->lm_cred.bv_len = 0;
 	}
 
 	if ( data->lm_when != MAP_LDAP_EVERYTIME && data->lm_ld != NULL ) {
-		ldap_unbind_s( data->lm_ld );
+		ldap_unbind_ext( data->lm_ld, NULL, NULL );
 	}
 
 	free( data );
@@ -85,7 +95,7 @@ map_ldap_parse(
 )
 {
 	struct ldap_map_data *data;
-	char *p;
+	char *p, *uri;
 
 	assert( info != NULL );
 	assert( fname != NULL );
@@ -104,13 +114,18 @@ map_ldap_parse(
 		return NULL;
 	}
 
-	data->lm_url = strdup( argv[ 0 ] );
+	uri = argv[ 0 ];
+	if ( strncasecmp( uri, "uri=", STRLENOF( "uri=" ) ) == 0 ) {
+		uri += STRLENOF( "uri=" );
+	}
+
+	data->lm_url = strdup( uri );
 	if ( data->lm_url == NULL ) {
 		map_ldap_free( data );
 		return NULL;
 	}
 	
-	if ( ldap_url_parse( argv[ 0 ], &data->lm_lud ) != REWRITE_SUCCESS ) {
+	if ( ldap_url_parse( uri, &data->lm_lud ) != REWRITE_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 				"[%s:%d] illegal URI '%s'\n",
 				fname, lineno, argv[ 0 ] );
@@ -118,19 +133,48 @@ map_ldap_parse(
 		return NULL;
 	}
 
+	/* trim everything after [host][:port] */
 	p = strchr( data->lm_url, '/' );
 	assert( p[ 1 ] == '/' );
 	if ( ( p = strchr( p + 2, '/' ) ) != NULL ) {
 		p[ 0 ] = '\0';
 	}
 
-	if ( strcasecmp( data->lm_lud->lud_attrs[ 0 ], "dn" ) == 0 ) {
-		data->lm_attrsonly = 1;
+	if ( data->lm_lud->lud_attrs == NULL ) {
+		data->lm_attrs[ 0 ] = LDAP_NO_ATTRS;
+		data->lm_wantdn = 1;
+
+	} else {
+		if ( data->lm_lud->lud_attrs[ 1 ] != NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"[%s:%d] only one attribute allowed in URI\n",
+				fname, lineno, 0 );
+			map_ldap_free( data );
+			return NULL;
+		}
+
+		if ( strcasecmp( data->lm_lud->lud_attrs[ 0 ], "dn" ) == 0
+			|| strcasecmp( data->lm_lud->lud_attrs[ 0 ], "entryDN" ) == 0 )
+		{
+			ldap_memfree( data->lm_lud->lud_attrs[ 0 ] );
+			ldap_memfree( data->lm_lud->lud_attrs );
+			data->lm_lud->lud_attrs = NULL;
+			data->lm_attrs[ 0 ] = LDAP_NO_ATTRS;
+			data->lm_wantdn = 1;
+
+		} else {
+			data->lm_attrs[ 0 ] = data->lm_lud->lud_attrs[ 0 ];
+		}
 	}
-	      
+
+	data->lm_attrs[ 1 ] = NULL;
+
+	/* safe defaults */
+	data->lm_version = LDAP_VERSION3;
+
 	for ( argc--, argv++; argc > 0; argc--, argv++ ) {
-		if ( strncasecmp( argv[ 0 ], "binddn=", 7 ) == 0 ) {
-			char *p = argv[ 0 ] + 7;
+		if ( strncasecmp( argv[ 0 ], "binddn=", STRLENOF( "binddn=" ) ) == 0 ) {
+			char *p = argv[ 0 ] + STRLENOF( "binddn=" );
 			int l;
 
 			if ( p[ 0 ] == '\"' || p [ 0 ] == '\'' ) {
@@ -154,14 +198,24 @@ map_ldap_parse(
 					|| data->lm_binddn[ l ] == '\'' ) {
 				data->lm_binddn[ l ] = '\0';
 			}
-		} else if ( strncasecmp( argv[ 0 ], "bindpw=", 7 ) == 0 ) {
-			data->lm_bindpw = strdup( argv[ 2 ] + 7 );
-			if ( data->lm_bindpw == NULL ) {
+
+			/* deprecated */
+		} else if ( strncasecmp( argv[ 0 ], "bindpw=", STRLENOF( "bindpw=" ) ) == 0 ) {
+			ber_str2bv( argv[ 0 ] + STRLENOF( "bindpw=" ), 0, 1, &data->lm_cred );
+			if ( data->lm_cred.bv_val == NULL ) {
 				map_ldap_free( data );
 				return NULL;
 			}
-		} else if ( strncasecmp( argv[ 0 ], "bindwhen=", 9 ) == 0 ) {
-			char *p = argv[ 0 ] + 9;
+
+		} else if ( strncasecmp( argv[ 0 ], "credentials=", STRLENOF( "credentials=" ) ) == 0 ) {
+			ber_str2bv( argv[ 0 ] + STRLENOF( "credentials=" ), 0, 1, &data->lm_cred );
+			if ( data->lm_cred.bv_val == NULL ) {
+				map_ldap_free( data );
+				return NULL;
+			}
+
+		} else if ( strncasecmp( argv[ 0 ], "bindwhen=", STRLENOF( "bindwhen=" ) ) == 0 ) {
+			char *p = argv[ 0 ] + STRLENOF( "bindwhen=" );
 
 			if ( strcasecmp( p, "now" ) == 0 ) {
 				int rc;
@@ -176,6 +230,10 @@ map_ldap_parse(
 					map_ldap_free( data );
 					return NULL;
 				}
+
+				ldap_set_option( data->lm_ld,
+					LDAP_OPT_PROTOCOL_VERSION,
+					(void *)&data->lm_version );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 				ldap_pvt_thread_mutex_init( &data->lm_mutex );
@@ -193,7 +251,35 @@ map_ldap_parse(
 			} else {
 				/* ignore ... */
 			}
+
+		} else if ( strncasecmp( argv[ 0 ], "version=", STRLENOF( "version=" ) ) == 0 ) {
+			if ( lutil_atoi( &data->lm_version, argv[ 0 ] + STRLENOF( "version=" ) ) ) {
+				map_ldap_free( data );
+				return NULL;
+			}
+
+			switch ( data->lm_version ) {
+			case LDAP_VERSION2:
+			case LDAP_VERSION3:
+				break;
+
+			default:
+				Debug( LDAP_DEBUG_ANY,
+					"[%s:%d] unknown version %s\n",
+					fname, lineno, p );
+				map_ldap_free( data );
+				return NULL;
+			}
+
+		} else {
+			Debug( LDAP_DEBUG_ANY,
+				"[%s:%d] unknown option %s (ignored)\n",
+				fname, lineno, argv[0] );
 		}
+	}
+
+	if ( data->lm_when == MAP_LDAP_UNKNOWN ) {
+		data->lm_when = MAP_LDAP_EVERYTIME;
 	}
 
 	return ( void * )data;
@@ -209,12 +295,11 @@ map_ldap_apply(
 {
 	LDAP *ld;
 	LDAPMessage *res = NULL, *entry;
-	char **values;
 	int rc;
 	struct ldap_map_data *data = ( struct ldap_map_data * )map->lb_private;
 	LDAPURLDesc *lud = data->lm_lud;
 	
-	int first_try = 1;
+	int first_try = 1, set_version = 0;
 
 	assert( map != NULL );
 	assert( map->lb_type == REWRITE_BUILTIN_MAP_LDAP );
@@ -227,6 +312,7 @@ map_ldap_apply(
 
 	if ( data->lm_when == MAP_LDAP_EVERYTIME ) {
 		rc = ldap_initialize( &ld, data->lm_url );
+		set_version = 1;
 
 	} else {
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
@@ -237,6 +323,7 @@ map_ldap_apply(
 
 		if ( data->lm_when == MAP_LDAP_LATER && data->lm_ld == NULL ) {
 			rc = ldap_initialize( &data->lm_ld, data->lm_url );
+			set_version = 1;
 		}
 		
 		ld = data->lm_ld;
@@ -248,14 +335,23 @@ map_ldap_apply(
 	}
 
 do_bind:;
+	if ( set_version ) {
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
+			(void *)&data->lm_version );
+		set_version = 0;
+	}
+
 	if ( data->lm_binddn != NULL ) {
-		rc = ldap_simple_bind_s( ld, data->lm_binddn, data->lm_bindpw );
+		rc = ldap_sasl_bind_s( ld, data->lm_binddn,
+			LDAP_SASL_SIMPLE, &data->lm_cred,
+			NULL, NULL, NULL );
 		if ( rc == LDAP_SERVER_DOWN && first_try ) {
 			first_try = 0;
 			if ( ldap_initialize( &ld, data->lm_url ) != LDAP_SUCCESS ) {
 				rc = REWRITE_ERR;
 				goto rc_return;
 			}
+			set_version = 1;
 			goto do_bind;
 
 		} else if ( rc != REWRITE_SUCCESS ) {
@@ -264,17 +360,18 @@ do_bind:;
 		}
 	}
 
-	rc = ldap_search_s( ld, lud->lud_dn, lud->lud_scope, ( char * )filter,
-			lud->lud_attrs, data->lm_attrsonly, &res );
+	rc = ldap_search_ext_s( ld, lud->lud_dn, lud->lud_scope, ( char * )filter,
+			data->lm_attrs, 0, NULL, NULL, NULL, 1, &res );
 	if ( rc == LDAP_SERVER_DOWN && first_try ) {
 		first_try = 0;
                 if ( ldap_initialize( &ld, data->lm_url ) != LDAP_SUCCESS ) {
 			rc = REWRITE_ERR;
 			goto rc_return;
 		}
+		set_version = 1;
 		goto do_bind;
 
-	} else if ( rc != REWRITE_SUCCESS ) {
+	} else if ( rc != LDAP_SUCCESS ) {
 		rc = REWRITE_ERR;
 		goto rc_return;
 	}
@@ -288,24 +385,31 @@ do_bind:;
 	entry = ldap_first_entry( ld, res );
 	assert( entry != NULL );
 
-	if ( data->lm_attrsonly == 1 ) {
+	if ( data->lm_wantdn == 1 ) {
 		/*
 		 * dn is newly allocated, so there's no need to strdup it
 		 */
 		val->bv_val = ldap_get_dn( ld, entry );
+		val->bv_len = strlen( val->bv_val );
 
 	} else {
-		values = ldap_get_values( ld, entry, lud->lud_attrs[ 0 ] );
-		if ( values == NULL || values[ 0 ] == NULL ) {
-			if ( values != NULL ) {
-				ldap_value_free( values );
+		struct berval **values;
+
+		values = ldap_get_values_len( ld, entry, data->lm_attrs[ 0 ] );
+		if ( values != NULL ) {
+			if ( values[ 0 ] != NULL && values[ 0 ]->bv_val != NULL ) {
+#if 0
+				/* NOTE: in principle, multiple values
+				 * should not be acceptable according
+				 * to the current API; ignore by now */
+				if ( values[ 1 ] != NULL ) {
+					/* error */				
+				}
+#endif
+				ber_dupbv( val, values[ 0 ] );
 			}
-			ldap_msgfree( res );
-			rc = REWRITE_ERR;
-			goto rc_return;
+			ldap_value_free_len( values );
 		}
-		val->bv_val = strdup( values[ 0 ] );
-		ldap_value_free( values );
 	}
 	
 	ldap_msgfree( res );
@@ -314,12 +418,11 @@ do_bind:;
 		rc = REWRITE_ERR;
 		goto rc_return;
 	}
-	val->bv_len = strlen( val->bv_val );
 
 rc_return:;
 	if ( data->lm_when == MAP_LDAP_EVERYTIME ) {
 		if ( ld != NULL ) {
-			ldap_unbind_s( ld );
+			ldap_unbind_ext( ld, NULL, NULL );
 		}
 
 	} else {
@@ -344,33 +447,8 @@ map_ldap_destroy(
 	
 	data = ( struct ldap_map_data * )(*pmap)->lb_private;
 
-	if ( data->lm_when != MAP_LDAP_EVERYTIME && data->lm_ld != NULL ) {
-		ldap_unbind_s( data->lm_ld );
-		data->lm_ld = NULL;
-	}
+	map_ldap_free( data );
 
-	if ( data->lm_lud ) {
-		ldap_free_urldesc( data->lm_lud );
-		data->lm_lud = NULL;
-	}
-
-	if ( data->lm_url ) {
-		free( data->lm_url );
-		data->lm_url = NULL;
-	}
-
-	if ( data->lm_binddn ) {
-		free( data->lm_binddn );
-		data->lm_binddn = NULL;
-	}
-
-	if (data->lm_bindpw ) {
-		memset( data->lm_bindpw, 0, strlen( data->lm_bindpw ) );
-		free( data->lm_bindpw );
-		data->lm_bindpw = NULL;
-	}
-	
-	free( data );
 	(*pmap)->lb_private = NULL;
 
 	return 0;

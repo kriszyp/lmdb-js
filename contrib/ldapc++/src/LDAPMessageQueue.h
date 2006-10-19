@@ -10,9 +10,9 @@
 #include <stack>
 
 #include <LDAPUrlList.h>
+#include <LDAPMessage.h>
 
 class LDAPAsynConnection;
-class LDAPMsg;
 class LDAPRequest;
 class LDAPSearchRequest;
 class LDAPUrl;

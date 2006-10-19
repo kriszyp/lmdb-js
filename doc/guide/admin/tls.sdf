@@ -36,18 +36,18 @@ generally the DN in a user's X.509 certificate should be
 identical to the DN of their LDAP entry. However, sometimes
 the DNs may not be exactly the same, and so the mapping
 facility described in 
-{{SECT:Mapping Authentication identities to LDAP entries}}
+{{SECT:Mapping Authentication Identities}}
 can be applied to these DNs as well.
 
 H2: TLS Configuration
 
-After obtaining the required certificates, a
-number of options must be configured on both the client
-and the server to enable TLS and make use of the certificates.
-At a minimum, the clients must be configured with the filename
-containing all of the {{TERM[expand]CA}} (CA) certificates it
-will trust. The server must be configured with the {{TERM:CA}}
-certificates and also its own server certificate and private key.
+After obtaining the required certificates, a number of options must
+be configured on both the client and the server to enable TLS and
+make use of the certificates.  At a minimum, the clients must be
+configured with the name of the file containing all of the
+{{TERM[expand]CA}} (CA) certificates it will trust. The server must
+be configured with the {{TERM:CA}} certificates and also its own
+server certificate and private key.
 
 Typically a single CA will have issued the server certificate
 and all of the trusted client certificates, so the server only

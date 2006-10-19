@@ -175,6 +175,18 @@ do_extended(
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_extended( op, rs );
 
+	/* clean up in case some overlay set them? */
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		if ( !BER_BVISNULL( &op->o_req_dn )
+			&& op->o_req_ndn.bv_val != op->o_req_dn.bv_val )
+		{
+			op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_dn );
+		BER_BVZERO( &op->o_req_ndn );
+	}
+
 done:
 	return rs->sr_err;
 }

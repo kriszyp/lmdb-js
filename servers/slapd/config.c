@@ -36,7 +36,14 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifndef S_ISREG
+#define	S_ISREG(m)	(((m) & _S_IFMT) == _S_IFREG)
+#endif
+
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "slap.h"
 #ifdef LDAP_SLAPI
@@ -141,7 +148,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 	if(Conf->min_args && (c->argc < Conf->min_args)) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> missing <%s> argument",
 			c->argv[0], Conf->what );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n", c->log, c->msg, 0 );
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n", c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
 	}
 	if(Conf->max_args && (c->argc > Conf->max_args)) {
@@ -151,41 +158,41 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 			c->argv[0], Conf->what );
 
 		ignored = "";
-		Debug(LDAP_DEBUG_CONFIG, "%s: %s%s.\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s%s.\n",
 				c->log, c->msg, ignored );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_DB) && !c->be) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> only allowed within database declaration",
 			c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_PRE_BI) && c->bi) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> must occur before any backend %sdeclaration",
 			c->argv[0], (arg_syn & ARG_PRE_DB) ? "or database " : "" );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n",
 			c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_PRE_DB) && c->be && c->be != frontendDB) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> must occur before any database declaration",
 			c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: keyword %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_syn & ARG_PAREN) && *c->argv[1] != '(' /*')'*/) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> old format not supported", c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if(arg_type && !Conf->arg_item && !(arg_syn & ARG_OFFSET)) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> invalid config_table, arg_item is NULL",
 			c->argv[0] );
-		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+		Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
@@ -204,7 +211,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		if ( rc != LDAP_SUCCESS ) {
 			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid DN %d (%s)",
 				c->argv[0], rc, ldap_err2string( rc ));
-			Debug(LDAP_DEBUG_CONFIG, "%s: %s\n" , c->log, c->msg, 0);
+			Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n" , c->log, c->msg, 0);
 			return(ARG_BAD_CONF);
 		}
 		if ( check_only ) {
@@ -220,7 +227,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as int",
 						c->argv[0], c->argv[1] );
-					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+					Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0);
 					return(ARG_BAD_CONF);
 				}
@@ -230,7 +237,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as long",
 						c->argv[0], c->argv[1] );
-					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+					Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0);
 					return(ARG_BAD_CONF);
 				}
@@ -241,7 +248,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> unable to parse \"%s\" as ber_len_t",
 						c->argv[0], c->argv[1] );
-					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+					Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0);
 					return(ARG_BAD_CONF);
 				}
@@ -263,7 +270,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 				} else {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value",
 						c->argv[0] );
-					Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+					Debug(LDAP_DEBUG_ANY|LDAP_DEBUG_NONE, "%s: %s\n",
 						c->log, c->msg, 0 );
 					return(ARG_BAD_CONF);
 				}
@@ -274,7 +281,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 			larg = larg ? larg : (barg ? barg : iarg);
 			snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value",
 				c->argv[0] );
-			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+			Debug(LDAP_DEBUG_ANY|LDAP_DEBUG_NONE, "%s: %s\n",
 				c->log, c->msg, 0 );
 			return(ARG_BAD_CONF);
 		}
@@ -471,45 +478,18 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 
 int
 init_config_attrs(ConfigTable *ct) {
-	LDAPAttributeType *at;
 	int i, code;
-	const char *err;
 
 	for (i=0; ct[i].name; i++ ) {
-		int		freeit = 0;
-
 		if ( !ct[i].attribute ) continue;
-		at = ldap_str2attributetype( ct[i].attribute,
-			&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
-				ct[i].attribute, ldap_scherr2str(code), err );
+		code = register_at( ct[i].attribute, &ct[i].ad, 1 );
+		if ( code ) {
+			fprintf( stderr, "init_config_attrs: register_at failed\n" );
 			return code;
 		}
-
-		code = at_add( at, 0, NULL, &err );
-		if ( code ) {
-			if ( code == SLAP_SCHERR_ATTR_DUP ) {
-				freeit = 1;
-
-			} else {
-				ldap_attributetype_free( at );
-				fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
-					ct[i].attribute, scherr2str(code), err );
-				return code;
-			}
-		}
-		code = slap_str2ad( at->at_names[0], &ct[i].ad, &err );
-		if ( freeit || code ) {
-			ldap_attributetype_free( at );
-		} else {
-			ldap_memfree( at );
-		}
-		if ( code ) {
-			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s\n",
-				ct[i].attribute, err );
-			return code;
-		}
+#ifndef LDAP_DEVEL
+		ct[i].ad->ad_type->sat_flags |= SLAP_AT_HIDE;
+#endif
 	}
 
 	return 0;
@@ -517,32 +497,17 @@ init_config_attrs(ConfigTable *ct) {
 
 int
 init_config_ocs( ConfigOCs *ocs ) {
-	int i;
+	int i, code;
 
 	for (i=0;ocs[i].co_def;i++) {
-		LDAPObjectClass *oc;
-		int code;
-		const char *err;
-
-		oc = ldap_str2objectclass( ocs[i].co_def, &code, &err,
-			LDAP_SCHEMA_ALLOW_ALL );
-		if ( !oc ) {
-			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
-				ocs[i].co_def, ldap_scherr2str(code), err );
+		code = register_oc( ocs[i].co_def, &ocs[i].co_oc, 1 );
+		if ( code ) {
+			fprintf( stderr, "init_config_ocs: register_oc failed\n" );
 			return code;
 		}
-		code = oc_add(oc,0,NULL,&err);
-		if ( code && code != SLAP_SCHERR_CLASS_DUP ) {
-			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
-				ocs[i].co_def, scherr2str(code), err );
-			ldap_objectclass_free(oc);
-			return code;
-		}
-		ocs[i].co_oc = oc_find(oc->oc_names[0]);
-		if ( code )
-			ldap_objectclass_free(oc);
-		else
-			ldap_memfree(oc);
+#ifndef LDAP_DEVEL
+		ocs[i].co_oc->soc_flags |= SLAP_OC_HIDE;
+#endif
 	}
 	return 0;
 }
@@ -1044,8 +1009,15 @@ static slap_verbmasks methkey[] = {
 	{ BER_BVNULL, 0 }
 };
 
+static slap_verbmasks versionkey[] = {
+	{ BER_BVC("2"),		LDAP_VERSION2 },
+	{ BER_BVC("3"),		LDAP_VERSION3 },
+	{ BER_BVNULL, 0 }
+};
+
 static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
+	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'd', 0, versionkey },
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
 	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
 	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
@@ -1154,7 +1126,7 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 int
 slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0 )
 {
-	char buf[BUFSIZ], *ptr;
+	char buf[AC_LINE_MAX], *ptr;
 	slap_cf_aux_table *tab;
 	struct berval tmp;
 
@@ -1288,10 +1260,12 @@ void bindconf_free( slap_bindconf *bc ) {
 		BER_BVZERO( &bc->sb_authzId );
 	}
 #ifdef HAVE_TLS
+#if 0
 	if ( bc->sb_tls_ctx ) {
 		SSL_CTX_free( bc->sb_tls_ctx );
 		bc->sb_tls_ctx = NULL;
 	}
+#endif
 	if ( bc->sb_tls_cert ) {
 		ch_free( bc->sb_tls_cert );
 		bc->sb_tls_cert = NULL;
@@ -1406,7 +1380,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
  * note: should move "version" into bindconf...
  */
 int
-slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
+slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 {
 	LDAP		*ld = NULL;
 	int		rc;
@@ -1421,9 +1395,9 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb, int version )
 		return rc;
 	}
 
-	if ( version != 0 ) {
+	if ( sb->sb_version != 0 ) {
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-			(const void *)&version );
+			(const void *)&sb->sb_version );
 	}
 
 #ifdef HAVE_TLS
@@ -1610,7 +1584,7 @@ strtok_quote( char *line, char *sep, char **quote_ptr )
 	return( tmp );
 }
 
-static char	buf[BUFSIZ];
+static char	buf[AC_LINE_MAX];
 static char	*line;
 static size_t lmax, lcur;
 
@@ -1618,7 +1592,7 @@ static size_t lmax, lcur;
 	do { \
 		size_t len = strlen( buf ); \
 		while ( lcur + len + 1 > lmax ) { \
-			lmax += BUFSIZ; \
+			lmax += AC_LINE_MAX; \
 			line = (char *) ch_realloc( line, lmax ); \
 		} \
 		strcpy( line + lcur, buf ); \

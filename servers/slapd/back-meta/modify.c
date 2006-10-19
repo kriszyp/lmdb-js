@@ -92,7 +92,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	for ( i = 0, ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		int	j, is_oc = 0;
 
-		if ( !isupdate && !get_manageDIT( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
+		if ( !isupdate && !get_relax( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
 			continue;
 		}
@@ -176,6 +176,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 	modv[ i ] = 0;
 
+retry:;
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
 		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls );
@@ -184,14 +185,15 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-retry:;
 	rs->sr_err = ldap_modify_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			modv, ctrls, NULL, &msgid );
 	rs->sr_err = meta_back_op_result( mc, op, rs, candidate, msgid,
-		mt->mt_timeout[ LDAP_BACK_OP_MODIFY ], LDAP_BACK_SENDRESULT );
+		mt->mt_timeout[ SLAP_OP_MODIFY ], LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 			goto retry;
 		}
 	}

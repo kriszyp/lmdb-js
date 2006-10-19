@@ -45,7 +45,7 @@ test_file( const char *fname, const char *ftype )
 
 	switch ( stat( fname, &st ) ) {
 	case 0:
-		if ( !( st.st_mode & S_IWUSR ) ) {
+		if ( !( st.st_mode & S_IWRITE ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s file "
 				"\"%s\" exists, but user does not have access\n",
 				ftype, fname, 0 );

@@ -54,7 +54,10 @@ than once, the last appearance in the
 file is used).
 .LP
 If a line begins with white space, it is considered a continuation
-of the previous line.  Blank lines and comment lines beginning with
+of the previous line.  No physical line should be over 2000 bytes
+long.
+.LP
+Blank lines and comment lines beginning with
 a `#' character are ignored.  Note: continuation lines are unwrapped
 before comment processing is applied.
 .LP
@@ -216,7 +219,7 @@ and
 .I authzTo
 describes an 
 .B identity 
-or a set of identities; it can take three forms:
+or a set of identities; it can take five forms:
 .RS
 .TP
 .B ldap:///<base>??[<scope>]?<filter>
@@ -1327,7 +1330,10 @@ This option puts a replica database into "mirror" mode.  Update
 operations will be accepted from any user, not just the updatedn.  The
 database must already be configured as a slurpd or syncrepl consumer
 before this keyword may be set.  This mode must be used with extreme
-care, as it does not offer any consistency guarantees.
+care, as it does not offer any consistency guarantees.  This feature
+is intended to be used with an external frontend that guarantees that
+writes are only directed to a single master, switching to an alternate
+server only if the original master goes down.
 By default, mirrormode is off.
 .TP
 .B overlay <overlay-name>
@@ -1573,15 +1579,19 @@ setting up a replicated
 directory service using the 
 .B syncrepl
 replication engine.
+
 .B rid
 identifies the current
 .B syncrepl
 directive within the replication consumer site.
 It is a non-negative integer having no more than three digits.
+
 .B provider
 specifies the replication provider site containing the master content
 as an LDAP URI. If <port> is not given, the standard LDAP port number
-(389 or 636) is used. The content of the
+(389 or 636) is used.
+
+The content of the
 .B syncrepl
 replica is defined using a search
 specification as its result set. The consumer
@@ -1599,6 +1609,11 @@ The \fBscope\fP defaults to \fBsub\fP, the \fBfilter\fP defaults to
 attributes, and \fBattrsonly\fP is unset by default.
 The \fBsizelimit\fP and \fBtimelimit\fP only
 accept "unlimited" and positive integers, and both default to "unlimited".
+Note, however, that any provider-side limits for the replication identity
+will be enforced by the provider regardless of the limits requested
+by the LDAP Content Synchronization operation, much like for any other
+search operation.
+
 The LDAP Content Synchronization protocol has two operation types.
 In the
 .B refreshOnly
@@ -1614,6 +1629,7 @@ Further updates to the master replica will generate
 .B searchResultEntry
 to the consumer slapd as the search responses to the persistent
 synchronization search.
+
 If an error occurs during replication, the consumer will attempt to
 reconnect according to the
 .B retry
@@ -1622,10 +1638,12 @@ For example, retry="60 10 300 3" lets the consumer retry every 60 seconds
 for the first 10 times and then retry every 300 seconds for the next 3
 times before stop retrying. The `+' in <# of retries> means indefinite
 number of retries until success.
+
 The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
 .B schemachecking
 parameter. The default is off.
+
 A
 .B bindmethod
 of 
@@ -1657,6 +1675,11 @@ keyword above) for a SASL bind can be set with the
 option. A non default SASL realm can be set with the
 .B realm 
 option.
+The provider, other than allow authentication of the syncrepl identity,
+should grant that identity appropriate access privileges to the data 
+that is being replicated (\fBaccess\fP directive), and appropriate time 
+and size limits (\fBlimits\fP directive).
+
 
 The
 .B starttls

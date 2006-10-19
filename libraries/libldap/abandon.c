@@ -124,14 +124,22 @@ do_abandon(
 	sendabandon = 1;
 
 	/* find the request that we are abandoning */
-	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
+start_again:;
+	lr = ld->ld_requests;
+	while ( lr != NULL ) {
 		if ( lr->lr_msgid == msgid ) {	/* this message */
 			break;
 		}
+
 		if ( lr->lr_origid == msgid ) {/* child:  abandon it */
-			(void) do_abandon( ld,
+			(void)do_abandon( ld,
 				lr->lr_origid, lr->lr_msgid, sctrls, cctrls );
+
+			/* restart, as lr may now be dangling... */
+			goto start_again;
 		}
+
+		lr = lr->lr_next;
 	}
 
 	if ( lr != NULL ) {

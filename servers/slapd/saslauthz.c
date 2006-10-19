@@ -1313,7 +1313,8 @@ int slap_sasl_rewrite_config(
 	return rc;
 }
 
-int slap_sasl_rewrite_destroy( void )
+static int
+slap_sasl_rewrite_destroy( void )
 {
 	if ( sasl_rwinfo ) {
 		rewrite_info_delete( &sasl_rwinfo );
@@ -1373,38 +1374,59 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 
 	reg = &SaslRegexp[nSaslRegexp];
 
-	reg->sr_match = ch_strdup( match );
-	reg->sr_replace = ch_strdup( replace );
-
 #ifdef SLAP_AUTH_REWRITE
 	rc = slap_sasl_regexp_rewrite_config( "sasl-regexp", 0,
 			match, replace, AUTHID_CONTEXT );
-	if ( rc == LDAP_SUCCESS ) nSaslRegexp++;
-	return rc;
 #else /* ! SLAP_AUTH_REWRITE */
 
 	/* Precompile matching pattern */
-	rc = regcomp( &reg->sr_workspace, reg->sr_match, REG_EXTENDED|REG_ICASE );
+	rc = regcomp( &reg->sr_workspace, match, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
-		"SASL match pattern %s could not be compiled by regexp engine\n",
-		reg->sr_match, 0, 0 );
+			"SASL match pattern %s could not be compiled by regexp engine\n",
+			match, 0, 0 );
 
 #ifdef ENABLE_REWRITE
-	/* Dummy block to force symbol references in librewrite */
-	if ( slapMode == ( SLAP_SERVER_MODE|SLAP_TOOL_MODE )) {
-		rewrite_info_init( 0 );
-	}
+		/* Dummy block to force symbol references in librewrite */
+		if ( slapMode == ( SLAP_SERVER_MODE|SLAP_TOOL_MODE )) {
+			rewrite_info_init( 0 );
+		}
 #endif
 		return( LDAP_OTHER );
 	}
 
-	rc = slap_sasl_rx_off( reg->sr_replace, reg->sr_offset );
-	if ( rc != LDAP_SUCCESS ) return rc;
-
-	nSaslRegexp++;
-	return( LDAP_SUCCESS );
+	rc = slap_sasl_rx_off( replace, reg->sr_offset );
 #endif /* ! SLAP_AUTH_REWRITE */
+	if ( rc == LDAP_SUCCESS ) {
+		reg->sr_match = ch_strdup( match );
+		reg->sr_replace = ch_strdup( replace );
+
+		nSaslRegexp++;
+	}
+
+	return rc;
+}
+
+void
+slap_sasl_regexp_destroy( void )
+{
+	if ( SaslRegexp ) {
+		int	n;
+
+		for ( n = 0; n < nSaslRegexp; n++ ) {
+			ch_free( SaslRegexp[ n ].sr_match );
+			ch_free( SaslRegexp[ n ].sr_replace );
+#ifndef SLAP_AUTH_REWRITE
+			regfree( &SaslRegexp[ n ].sr_workspace );
+#endif /* SLAP_AUTH_REWRITE */
+		}
+
+		ch_free( SaslRegexp );
+	}
+
+#ifdef SLAP_AUTH_REWRITE
+	slap_sasl_rewrite_destroy();
+#endif /* SLAP_AUTH_REWRITE */
 }
 
 void slap_sasl_regexp_unparse( BerVarray *out )

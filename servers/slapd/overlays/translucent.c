@@ -141,13 +141,12 @@ void glue_parent(Operation *op) {
 
 	Debug(LDAP_DEBUG_TRACE, "=> glue_parent: fabricating glue for <%s>\n", ndn.bv_val, 0, 0);
 
-	e = ch_calloc(1, sizeof(Entry));
+	e = entry_alloc();
 	e->e_id = NOID;
 	ber_dupbv(&e->e_name, &ndn);
 	ber_dupbv(&e->e_nname, &ndn);
 
-	a = ch_calloc(1, sizeof(Attribute));
-	a->a_desc = slap_schema.si_ad_objectClass;
+	a = attr_alloc( slap_schema.si_ad_objectClass );
 	a->a_vals = ch_malloc(sizeof(struct berval) * 3);
 	ber_dupbv(&a->a_vals[0], &glue[0]);
 	ber_dupbv(&a->a_vals[1], &glue[1]);
@@ -156,8 +155,7 @@ void glue_parent(Operation *op) {
 	a->a_next = e->e_attrs;
 	e->e_attrs = a;
 
-	a = ch_calloc(1, sizeof(Attribute));
-	a->a_desc = slap_schema.si_ad_structuralObjectClass;
+	a = attr_alloc( slap_schema.si_ad_structuralObjectClass );
 	a->a_vals = ch_malloc(sizeof(struct berval) * 2);
 	ber_dupbv(&a->a_vals[0], &glue[1]);
 	ber_dupbv(&a->a_vals[1], &glue[2]);
@@ -199,12 +197,13 @@ BerVarray dup_bervarray(BerVarray b) {
 **	free only the Attribute*, not the contents;
 **
 */
-void free_attr_chain(Attribute *a) {
-	Attribute *ax;
-	for(; a; a = ax) {
-		ax = a->a_next;
-		ch_free(a);
+void free_attr_chain(Attribute *b) {
+	Attribute *a;
+	for(a=b; a; a=a->a_next) {
+		a->a_vals = NULL;
+		a->a_nvals = NULL;
 	}
+	attrs_free( b );
 	return;
 }
 
@@ -365,11 +364,10 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 					m->sml_desc->ad_cname.bv_val, 0, 0);
 				for(mm = op->orm_modlist; mm->sml_next != m; mm = mm->sml_next);
 				mm->sml_next = m->sml_next;
-				mm = m;
-				m = m->sml_next;
-				mm->sml_next = NULL;		/* hack */
-				slap_mods_free(mm, 1);
-				if(m) continue;
+				m->sml_next = NULL;
+				slap_mods_free(m, 1);
+				m = mm;
+				continue;
 			}
 			m->sml_op = LDAP_MOD_ADD;
 		}
@@ -423,10 +421,9 @@ release:
 			if((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) del++;
 			continue;
 		}
-		a = ch_calloc(1, sizeof(Attribute));
-		a->a_desc  = m->sml_desc;
+		a = attr_alloc( m->sml_desc );
 		a->a_vals  = m->sml_values;
-		a->a_nvals = m->sml_nvalues;
+		a->a_nvals = m->sml_nvalues ? m->sml_nvalues : a->a_vals;
 		a->a_next  = ax;
 		ax = a;
 	}
@@ -744,15 +741,17 @@ static int translucent_db_open(BackendDB *be) {
 **
 */
 
-static int translucent_db_close(BackendDB *be) {
+static int
+translucent_db_close( BackendDB *be )
+{
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	int rc = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_close\n", 0, 0, 0);
 
-	if ( ov ) {
-		rc = (ov->db.bd_info && ov->db.bd_info->bi_db_close) ? ov->db.bd_info->bi_db_close(&ov->db) : 0;
+	if ( ov && ov->db.bd_info && ov->db.bd_info->bi_db_close ) {
+		rc = ov->db.bd_info->bi_db_close(&ov->db);
 	}
 
 	return(rc);
@@ -764,7 +763,9 @@ static int translucent_db_close(BackendDB *be) {
 **
 */
 
-static int translucent_db_destroy(BackendDB *be) {
+static int
+translucent_db_destroy( BackendDB *be )
+{
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	int rc = 0;
@@ -772,7 +773,10 @@ static int translucent_db_destroy(BackendDB *be) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_close\n", 0, 0, 0);
 
 	if ( ov ) {
-		rc = (ov->db.bd_info && ov->db.bd_info->bi_db_destroy) ? ov->db.bd_info->bi_db_destroy(&ov->db) : 0;
+		if ( ov->db.be_private != NULL ) {
+			backend_stopdown_one( &ov->db );
+		}
+
 		ch_free(ov);
 		on->on_bi.bi_private = NULL;
 	}

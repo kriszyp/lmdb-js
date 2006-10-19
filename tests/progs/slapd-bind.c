@@ -288,7 +288,7 @@ do_base( char *uri, char *dn, struct berval *pass, char *base, char *filter, cha
 	int version = LDAP_VERSION3;
 	char *nullstr = "";
 
-	srand(pid);
+	srand( pid );
 
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
@@ -397,16 +397,19 @@ novals:;
 
 	/* Ok, got list of DNs, now start binding to each */
 	for ( i = 0; i < maxloop; i++ ) {
-		int j, k;
-		struct berval cred = { 0, NULL };
+		int		j;
+		struct berval	cred = { 0, NULL };
 
-		for ( j = 0, k = 0; k < ndns; k++) {
-			j = rand() % ndns;
-		}
+
+#if 0	/* use high-order bits for better randomness (Numerical Recipes in "C") */
+		j = rand() % ndns;
+#endif
+		j = ((double)ndns)*rand()/(RAND_MAX + 1.0);
 
 		if ( creds && !BER_BVISEMPTY( &creds[j] ) ) {
 			cred = creds[j];
 		}
+
 		if ( do_bind( uri, dns[j], &cred, 1, force, chaserefs, noinit, &ld )
 			&& !force )
 		{

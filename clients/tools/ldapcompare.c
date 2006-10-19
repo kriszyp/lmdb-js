@@ -46,6 +46,7 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
+#include <ac/socket.h>
 #include <ac/time.h>
 #include <sys/stat.h>
 
@@ -82,10 +83,8 @@ usage( void )
 	fprintf( stderr, _("  b64value\tbase64 encoding of assertion value\n"));
 
 	fprintf( stderr, _("Compare options:\n"));
-#ifdef LDAP_CONTROL_DONTUSECOPY
 	fprintf( stderr, _("  -E [!]<ext>[=<extparam>] compare extensions (! indicates criticality)\n"));
 	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
-#endif
 	fprintf( stderr, _("  -z         Quiet mode,"
 		" don't print anything, use return values\n"));
 	tool_common_usage();

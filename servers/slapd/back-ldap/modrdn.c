@@ -38,15 +38,14 @@ ldap_back_modrdn(
 {
 	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
-	ldapconn_t		*lc;
+	ldapconn_t		*lc = NULL;
 	ber_int_t		msgid;
 	LDAPControl		**ctrls = NULL;
 	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 	int			rc = LDAP_SUCCESS;
 	char			*newSup = NULL;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
@@ -73,6 +72,7 @@ ldap_back_modrdn(
 		newSup = op->orr_newSup->bv_val;
 	}
 
+retry:
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
 		li->li_version, &li->li_idassert, op, rs, &ctrls );
@@ -82,16 +82,17 @@ ldap_back_modrdn(
 		goto cleanup;
 	}
 
-retry:
 	rs->sr_err = ldap_rename( lc->lc_ld, op->o_req_dn.bv_val,
 			op->orr_newrdn.bv_val, newSup,
 			op->orr_deleteoldrdn, ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid,
-		li->li_timeout[ LDAP_BACK_OP_MODRDN ],
+		li->li_timeout[ SLAP_OP_MODRDN ],
 		( LDAP_BACK_SENDRESULT | retrying ) );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && retrying ) {
 		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 			goto retry;
 		}
 	}

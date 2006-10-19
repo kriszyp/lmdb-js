@@ -53,8 +53,7 @@ backsql_operational_entryUUID( backsql_info *bi, backsql_entryID *id )
 		return NULL;
 	}
 
-	a = ch_malloc( sizeof( Attribute ) );
-	a->a_desc = desc;
+	a = attr_alloc( desc );
 
 	a->a_vals = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	a->a_vals[ 0 ] = val;
@@ -63,9 +62,6 @@ backsql_operational_entryUUID( backsql_info *bi, backsql_entryID *id )
 	a->a_nvals = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	a->a_nvals[ 0 ] = nval;
 	BER_BVZERO( &a->a_nvals[ 1 ] );
-	
-	a->a_next = NULL;
-	a->a_flags = 0;
 
 	return a;
 }
@@ -77,8 +73,7 @@ backsql_operational_entryCSN( Operation *op )
 	struct berval	entryCSN;
 	Attribute	*a;
 
-	a = ch_malloc( sizeof( Attribute ) );
-	a->a_desc = slap_schema.si_ad_entryCSN;
+	a = attr_alloc( slap_schema.si_ad_entryCSN );
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
 	BER_BVZERO( &a->a_vals[ 1 ] );
 
@@ -99,9 +94,6 @@ backsql_operational_entryCSN( Operation *op )
 	ber_dupbv( &a->a_vals[ 0 ], &entryCSN );
 
 	a->a_nvals = a->a_vals;
-
-	a->a_next = NULL;
-	a->a_flags = 0;
 
 	return a;
 }

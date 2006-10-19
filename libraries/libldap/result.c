@@ -322,13 +322,13 @@ wait4msg(
 				if ( rc == -1 ) {
 					Debug( LDAP_DEBUG_TRACE,
 						"ldap_int_select returned -1: errno %d\n",
-						errno, 0, 0 );
+						sock_errno(), 0, 0 );
 				}
 #endif
 
 				if ( rc == 0 || ( rc == -1 && (
 					!LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
-						|| errno != EINTR ) ) )
+						|| sock_errno() != EINTR ) ) )
 				{
 					ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 						LDAP_TIMEOUT);
@@ -337,6 +337,7 @@ wait4msg(
 
 				if ( rc == -1 ) {
 					rc = LDAP_MSG_X_KEEP_LOOKING;	/* select interrupted: loop */
+
 				} else {
 					rc = LDAP_MSG_X_KEEP_LOOKING;
 #ifdef LDAP_R_COMPILE
@@ -470,7 +471,7 @@ retry:
 	assert( LBER_VALID (ber) );
 
 	/* get the next message */
-	errno = 0;
+	sock_errset(0);
 #ifdef LDAP_CONNECTIONLESS
 	if ( LDAP_IS_UDP(ld) ) {
 		struct sockaddr from;
@@ -495,10 +496,10 @@ nextresp3:
 			"ber_get_next failed.\n", 0, 0, 0 );
 #endif		   
 #ifdef EWOULDBLOCK			
-		if ( errno == EWOULDBLOCK ) return LDAP_MSG_X_KEEP_LOOKING;
+		if ( sock_errno() == EWOULDBLOCK ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 #ifdef EAGAIN
-		if ( errno == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
+		if ( sock_errno() == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 		ld->ld_errno = LDAP_SERVER_DOWN;
 		return -1;
@@ -577,6 +578,7 @@ nextresp2:
 				/* Get the referral list */
 				if ( ber_scanf( &tmpber, "{v}", &refs ) == LBER_ERROR ) {
 					rc = LDAP_DECODING_ERROR;
+
 				} else {
 					/* Note: refs array is freed by ldap_chase_v3referrals */
 					refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
@@ -598,6 +600,7 @@ nextresp2:
 					}
 				}
 			}
+
 		} else {
 			/* Check for V3 referral */
 			ber_len_t	len;
@@ -608,14 +611,12 @@ nextresp2:
 				    != LBER_ERROR )
 			{
 				if ( lr_res_error != NULL ) {
-					{
-						if ( lr->lr_res_error != NULL ) {
-							(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
-							LDAP_FREE( (char *)lr_res_error );
+					if ( lr->lr_res_error != NULL ) {
+						(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
+						LDAP_FREE( (char *)lr_res_error );
 
-						} else {
-							lr->lr_res_error = lr_res_error;
-						}
+					} else {
+						lr->lr_res_error = lr_res_error;
 					}
 					lr_res_error = NULL;
 				}
@@ -637,6 +638,7 @@ nextresp2:
 							Debug( LDAP_DEBUG_TRACE,
 								"read1msg: referral decode error, mark request completed, ld %p msgid %d\n",
 								(void *)ld, lr->lr_msgid, 0);
+
 						} else {
 							/* Chase the referral 
 							 * Note: refs arrary is freed by ldap_chase_v3referrals
@@ -659,6 +661,7 @@ nextresp2:
 					LDAP_FREE( lr->lr_res_matched );
 					lr->lr_res_matched = NULL;
 				}
+
 				if( lr->lr_res_error != NULL ) {
 					LDAP_FREE( lr->lr_res_error );
 					lr->lr_res_error = NULL;
@@ -690,6 +693,7 @@ nextresp2:
 				 */
 				if ( tag == LDAP_RES_SEARCH_RESULT )
 					refer_cnt = 0;
+
 			} else if ( ber_scanf( &tmpber, "{eAA}", &lderr,
 				&lr->lr_res_matched, &lr_res_error )
 				!= LBER_ERROR )
@@ -733,8 +737,10 @@ nextresp2:
 					lr->lr_res_errno = ( lderr ==
 					LDAP_PARTIAL_RESULTS ) ? LDAP_SUCCESS
 					: lderr;
+
 				} else if ( ld->ld_errno != LDAP_SUCCESS ) {
 					lr->lr_res_errno = ld->ld_errno;
+
 				} else {
 					lr->lr_res_errno = LDAP_PARTIAL_RESULTS;
 				}
@@ -762,13 +768,16 @@ nextresp2:
 			ber_free( ber, 1 );
 			ber = NULL;
 			if ( refer_cnt < 0 ) {
+				ldap_return_request( ld, lr, 0 );
 				return( -1 );	/* fatal error */
 			}
 			lr->lr_res_errno = LDAP_SUCCESS; /* sucessfully chased referral */
+
 		} else {
 			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL ) {
 				/* request without any referrals */
 				simple_request = ( hadref ? 0 : 1 );
+
 			} else {
 				/* request with referrals or child request */
 				ber_free( ber, 1 );
@@ -791,9 +800,9 @@ nextresp2:
 			/* Check if all requests are finished, lr is now parent */
 			tmplr = lr;
 			if ( tmplr->lr_status == LDAP_REQST_COMPLETED ) {
-				for ( tmplr=lr->lr_child;
+				for ( tmplr = lr->lr_child;
 					tmplr != NULL;
-					tmplr=tmplr->lr_refnext)
+					tmplr = tmplr->lr_refnext )
 				{
 					if ( tmplr->lr_status != LDAP_REQST_COMPLETED ) break;
 				}
@@ -821,13 +830,8 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 					}
 				}
 
-#ifdef LDAP_R_COMPILE
-				ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
-				ldap_free_request( ld, lr );
-#ifdef LDAP_R_COMPILE
-				ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
+				ldap_return_request( ld, lr, 1 );
+				lr = NULL;
 			}
 
 			if ( lc != NULL ) {
@@ -841,6 +845,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 				lc = *lcp = NULL;
 			}
 		}
+	}
+
+	if ( lr != NULL ) {
+		ldap_return_request( ld, lr, 0 );
+		lr = NULL;
 	}
 
 	if ( ber == NULL ) {

@@ -41,6 +41,8 @@ ldap_back_open( BackendInfo	*bi )
 int
 ldap_back_initialize( BackendInfo *bi )
 {
+	int		rc;
+
 	bi->bi_flags =
 #ifdef LDAP_DYNAMIC_OBJECTS
 		/* this is set because all the support a proxy has to provide
@@ -59,7 +61,7 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_db_init = ldap_back_db_init;
 	bi->bi_db_config = config_generic_wrapper;
 	bi->bi_db_open = ldap_back_db_open;
-	bi->bi_db_close = 0;
+	bi->bi_db_close = ldap_back_db_close;
 	bi->bi_db_destroy = ldap_back_db_destroy;
 
 	bi->bi_op_bind = ldap_back_bind;
@@ -80,13 +82,15 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
 
-	if ( chain_initialize() ) {
-		return -1;
+	rc = chain_initialize();
+	if ( rc ) {
+		return rc;
 	}
 
 #ifdef SLAP_DISTPROC
-	if ( distproc_initialize() ) {
-		return -1;
+	rc = distproc_initialize();
+	if ( rc ) {
+		return rc;
 	}
 #endif
 
@@ -97,6 +101,7 @@ int
 ldap_back_db_init( Backend *be )
 {
 	ldapinfo_t	*li;
+	int		rc;
 
 	li = (ldapinfo_t *)ch_calloc( 1, sizeof( ldapinfo_t ) );
 	if ( li == NULL ) {
@@ -146,13 +151,18 @@ ldap_back_db_init( Backend *be )
 
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
-	return 0;
+	rc = ldap_back_monitor_db_init( be );
+
+	return rc;
 }
 
 int
 ldap_back_db_open( BackendDB *be )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
+
+	slap_bindconf	sb = { 0 };
+	int		rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_back_db_open: URI=%s\n",
@@ -171,39 +181,15 @@ ldap_back_db_open( BackendDB *be )
 		break;
 	}
 
-#if 0 && defined(SLAPD_MONITOR)
-	{
-		/* FIXME: disabled because namingContexts doesn't have
-		 * a matching rule, and using an MRA filter doesn't work
-		 * because the normalized assertion is compared to the 
-		 * non-normalized value, which in general differs from
-		 * the normalized one.  See ITS#3406 */
-		struct berval	filter,
-				base = BER_BVC( "cn=Databases," SLAPD_MONITOR );
-		Attribute	a = { 0 };
-
-		filter.bv_len = STRLENOF( "(&(namingContexts:distinguishedNameMatch:=)(monitoredInfo=ldap))" )
-			+ be->be_nsuffix[ 0 ].bv_len;
-		filter.bv_val = ch_malloc( filter.bv_len + 1 );
-		snprintf( filter.bv_val, filter.bv_len + 1,
-				"(&(namingContexts:distinguishedNameMatch:=%s)(monitoredInfo=ldap))",
-				be->be_nsuffix[ 0 ].bv_val );
-
-		a.a_desc = slap_schema.si_ad_labeledURI;
-		a.a_vals = li->li_bvuri;
-		a.a_nvals = li->li_bvuri;
-		if ( monitor_back_register_entry_attrs( NULL, &a, NULL, &base, LDAP_SCOPE_SUBTREE, &filter ) ) {
-			/* error */
-		}
-
-		ch_free( filter.bv_val );
-	}
-#endif /* SLAPD_MONITOR */
+	ber_str2bv( li->li_uri, 0, 0, &sb.sb_uri );
+	sb.sb_version = li->li_version;
+	sb.sb_method = LDAP_AUTH_SIMPLE;
+	BER_BVSTR( &sb.sb_binddn, "" );
 
 	if ( LDAP_BACK_T_F_DISCOVER( li ) && !LDAP_BACK_T_F( li ) ) {
 		int		rc;
 
-		rc = slap_discover_feature( li->li_uri, li->li_version,
+		rc = slap_discover_feature( &sb,
 				slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 				LDAP_FEATURE_ABSOLUTE_FILTERS );
 		if ( rc == LDAP_COMPARE_TRUE ) {
@@ -212,9 +198,7 @@ ldap_back_db_open( BackendDB *be )
 	}
 
 	if ( LDAP_BACK_CANCEL_DISCOVER( li ) && !LDAP_BACK_CANCEL( li ) ) {
-		int		rc;
-
-		rc = slap_discover_feature( li->li_uri, li->li_version,
+		rc = slap_discover_feature( &sb,
 				slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
 				LDAP_EXOP_CANCEL );
 		if ( rc == LDAP_COMPARE_TRUE ) {
@@ -222,9 +206,20 @@ ldap_back_db_open( BackendDB *be )
 		}
 	}
 
+	/* monitor setup */
+	rc = ldap_back_monitor_db_open( be );
+	if ( rc != 0 ) {
+		/* ignore by now */
+		rc = 0;
+#if 0
+		goto fail;
+#endif
+	}
+
 	li->li_flags |= LDAP_BACK_F_ISOPEN;
 
-	return 0;
+fail:;
+	return rc;
 }
 
 void
@@ -249,12 +244,24 @@ ldap_back_conn_free( void *v_lc )
 }
 
 int
-ldap_back_db_destroy(
-    Backend	*be
-)
+ldap_back_db_close( Backend *be )
+{
+	int		rc = 0;
+
+	if ( be->be_private ) {
+		rc = ldap_back_monitor_db_close( be );
+	}
+
+	return rc;
+}
+
+int
+ldap_back_db_destroy( Backend *be )
 {
 	if ( be->be_private ) {
 		ldapinfo_t	*li = ( ldapinfo_t * )be->be_private;
+
+		(void)ldap_back_monitor_db_destroy( be );
 
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 

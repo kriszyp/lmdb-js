@@ -694,7 +694,7 @@ done:;
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		int	rc;
 
-		/* FIXME: this could be allowed when manageDIT is used...
+		/* FIXME: this could be allowed when the Relax control is used...
 		 * in that case:
 		 *
 		 * TODO
@@ -713,7 +713,7 @@ done:;
 		rc = is_dynamicObject - was_dynamicObject;
 		if ( rc ) {
 #if 0 /* fix subordinate issues first */
-			if ( get_manageDIT( op ) ) {
+			if ( get_relax( op ) ) {
 				switch ( rc ) {
 				case -1:
 					/* need to delete entryTtl to have a consistent entry */
@@ -1077,7 +1077,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		}
 
 		/* we require manage privileges on the entryTtl,
-		 * and fake a manageDIT control */
+		 * and fake a Relax control */
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_bd = &db;
 		db.bd_info = (BackendInfo *)on->on_info;
@@ -1085,7 +1085,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		sc.sc_response = slap_replog_cb;
 		sc.sc_next = &sc2;
 		sc2.sc_response = slap_null_cb;
-		op2.o_managedit = SLAP_CONTROL_CRITICAL;
+		op2.o_relax = SLAP_CONTROL_CRITICAL;
 		op2.orm_modlist = &ttlmod;
 
 		ttlmod.sml_op = LDAP_MOD_REPLACE;
@@ -1844,11 +1844,10 @@ dds_initialize()
 
 	if ( !do_not_load_schema ) {
 		static struct {
-			char			*name;
 			char			*desc;
 			AttributeDescription	**ad;
 		}		s_at[] = {
-			{ "entryExpireTimestamp", "( 1.3.6.1.4.1.4203.666.1.57 "
+			{ "( 1.3.6.1.4.1.4203.666.1.57 "
 				"NAME ( 'entryExpireTimestamp' ) "
 				"DESC 'RFC2589 OpenLDAP extension: expire time of a dynamic object, "
 					"computed as now + entryTtl' "
@@ -1862,34 +1861,12 @@ dds_initialize()
 			{ NULL }
 		};
 
-		for ( i = 0; s_at[ i ].name != NULL; i++ ) {
-			LDAPAttributeType	*at;
-
-			at = ldap_str2attributetype( s_at[ i ].desc,
-				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-			if ( !at ) {
-				fprintf( stderr, "dds_initialize: "
-					"AttributeType load failed: %s %s\n",
-					ldap_scherr2str( code ), err );
+		for ( i = 0; s_at[ i ].desc != NULL; i++ ) {
+			code = register_at( s_at[ i ].desc, s_at[ i ].ad, 0 );
+			if ( code ) {
+				Debug( LDAP_DEBUG_ANY,
+					"dds_initialize: register_at failed\n", 0, 0, 0 );
 				return code;
-			}
-
-			code = at_add( at, 0, NULL, &err );
-			ldap_memfree( at );
-			if ( code != LDAP_SUCCESS ) {
-				fprintf( stderr, "dds_initialize: "
-					"AttributeType load failed: %s %s\n",
-					scherr2str( code ), err );
-				return code;
-			}
-
-			code = slap_str2ad( s_at[ i ].name, s_at[ i ].ad, &err );
-			if ( code != LDAP_SUCCESS ) {
-				fprintf( stderr, "dds_initialize: "
-					"unable to find AttributeDescription "
-					"\"%s\": %d (%s)\n",
-					s_at[ i ].name, code, err );
-				return 1;
 			}
 		}
 	}

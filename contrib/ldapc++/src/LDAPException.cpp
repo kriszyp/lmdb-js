@@ -22,7 +22,7 @@ LDAPException::LDAPException(int res_code, const string& err_string){
 
 LDAPException::LDAPException(const LDAPAsynConnection *lc){
     LDAP *l = lc->getSessionHandle();
-    ldap_get_option(l,LDAP_OPT_ERROR_NUMBER,&m_res_code);
+    ldap_get_option(l,LDAP_OPT_RESULT_CODE,&m_res_code);
     const char *res_cstring = ldap_err2string(m_res_code);
     if ( res_cstring ) {
         m_res_string = string(res_cstring);
@@ -30,7 +30,7 @@ LDAPException::LDAPException(const LDAPAsynConnection *lc){
         m_res_string = "";
     }
     const char* err_string;
-    ldap_get_option(l,LDAP_OPT_ERROR_STRING,&err_string);
+    ldap_get_option(l,LDAP_OPT_DIAGNOSTIC_MESSAGE,&err_string);
     if ( err_string ) {
         m_res_string = string(err_string);
     } else {

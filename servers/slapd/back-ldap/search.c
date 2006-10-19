@@ -143,9 +143,9 @@ ldap_back_search(
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
-	ldapconn_t	*lc;
+	ldapconn_t	*lc = NULL;
 	struct timeval	tv;
-	time_t		stoptime = (time_t)-1;
+	time_t		stoptime = (time_t)(-1);
 	LDAPMessage	*res,
 			*e;
 	int		rc = 0,
@@ -160,8 +160,7 @@ ldap_back_search(
 	/* FIXME: shouldn't this be null? */
 	const char	*save_matched = rs->sr_matched;
 
-	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
@@ -287,6 +286,11 @@ retry:
 			continue;
 
 		} else {
+			/* only touch when activity actually took place... */
+			if ( li->li_idle_timeout && lc ) {
+				lc->lc_time = op->o_time;
+			}
+
 			/* don't retry any more */
 			dont_retry = 1;
 		}
@@ -565,13 +569,10 @@ ldap_build_entry(
 		slap_syntax_validate_func	*validate;
 		slap_syntax_transform_func	*pretty;
 
-		attr = (Attribute *)ch_malloc( sizeof( Attribute ) );
+		attr = attr_alloc( NULL );
 		if ( attr == NULL ) {
 			continue;
 		}
-		attr->a_flags = 0;
-		attr->a_next = 0;
-		attr->a_desc = NULL;
 		if ( slap_bv2ad( &a, &attr->a_desc, &text ) 
 				!= LDAP_SUCCESS )
 		{
@@ -582,7 +583,7 @@ ldap_build_entry(
 					"%s ldap_build_entry: "
 					"slap_bv2undef_ad(%s): %s\n",
 					op->o_log_prefix, a.bv_val, text );
-				ch_free( attr );
+				attr_free( attr );
 				continue;
 			}
 		}
@@ -605,7 +606,7 @@ ldap_build_entry(
 			 */
 			( void )ber_scanf( &ber, "x" /* [W] */ );
 
-			ch_free( attr );
+			attr_free( attr );
 			continue;
 		}
 		
@@ -686,7 +687,7 @@ ldap_build_entry(
 
 				if ( rc != LDAP_SUCCESS ) {
 					BER_BVZERO( &attr->a_nvals[i] );
-					ch_free( attr );
+					attr_free( attr );
 					goto next_attr;
 				}
 			}
@@ -717,7 +718,7 @@ ldap_back_entry_get(
 {
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
-	ldapconn_t	*lc;
+	ldapconn_t	*lc = NULL;
 	int		rc = 1,
 			do_not_cache;
 	struct berval	bdn;
@@ -734,8 +735,7 @@ ldap_back_entry_get(
 	/* Tell getconn this is a privileged op */
 	do_not_cache = op->o_do_not_cache;
 	op->o_do_not_cache = 1;
-	lc = ldap_back_getconn( op, &rs, LDAP_BACK_DONTSEND );
-	if ( !lc || !ldap_back_dobind( lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
+	if ( !ldap_back_dobind( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 		op->o_do_not_cache = do_not_cache;
 		return rs.sr_err;
 	}
@@ -765,6 +765,7 @@ ldap_back_entry_get(
 		*ptr++ = '\0';
 	}
 
+retry:
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
 		li->li_version, &li->li_idassert, op, &rs, &ctrls );
@@ -772,7 +773,6 @@ ldap_back_entry_get(
 		goto cleanup;
 	}
 	
-retry:
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
 				attrp, 0, ctrls, NULL,
 				NULL, LDAP_NO_LIMIT, &result );
@@ -780,6 +780,8 @@ retry:
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
 			do_retry = 0;
 			if ( ldap_back_retry( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
+				/* if the identity changed, there might be need to re-authz */
+				(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 				goto retry;
 			}
 		}
@@ -792,7 +794,7 @@ retry:
 		goto cleanup;
 	}
 
-	*ent = ch_calloc( 1, sizeof( Entry ) );
+	*ent = entry_alloc();
 	if ( *ent == NULL ) {
 		rc = LDAP_NO_MEMORY;
 		goto cleanup;

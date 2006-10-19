@@ -213,10 +213,10 @@ root_dse_info(
 	AttributeDescription *ad_ref
 		= slap_schema.si_ad_ref;
 
-	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	e = entry_alloc();
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"root_dse_info: SLAP_CALLOC failed", 0, 0, 0 );
+			"root_dse_info: entry_alloc failed", 0, 0, 0 );
 		return LDAP_OTHER;
 	}
 
@@ -322,7 +322,7 @@ fail:
 		 * clients.
 		 */
 	for ( i=LDAP_VERSION3; i<=LDAP_VERSION_MAX; i++ ) {
-		char buf[BUFSIZ];
+		char buf[sizeof("255")];
 		snprintf(buf, sizeof buf, "%d", i);
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
@@ -395,10 +395,10 @@ int read_root_dse_file( const char *fname )
 		return EXIT_FAILURE;
 	}
 
-	usr_attr = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	usr_attr = entry_alloc();
 	if( usr_attr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"read_root_dse_file: SLAP_CALLOC failed", 0, 0, 0 );
+			"read_root_dse_file: entry_alloc failed", 0, 0, 0 );
 		ldif_close( fp );
 		return LDAP_OTHER;
 	}
@@ -459,12 +459,11 @@ int read_root_dse_file( const char *fname )
 
 int
 slap_discover_feature(
-	const char	*uri,
-	int		version,
+	slap_bindconf	*sb,
 	const char	*attr,
 	const char	*val )
 {
-	LDAP		*ld;
+	LDAP		*ld = NULL;
 	LDAPMessage	*res = NULL, *entry;
 	int		rc, i;
 	struct berval	cred = BER_BVC( "" ),
@@ -472,26 +471,12 @@ slap_discover_feature(
 			**values = NULL;
 	char		*attrs[ 2 ] = { NULL, NULL };
 
-	ber_str2bv( val, 0, 0, &bv_val );
+	rc = slap_client_connect( &ld, sb );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
 	attrs[ 0 ] = (char *) attr;
-
-	rc = ldap_initialize( &ld, uri );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
-
-	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-		(const void *)&version );
-	if ( rc != LDAP_SUCCESS ) {
-		goto done;
-	}
-
-	rc = ldap_sasl_bind_s( ld, "", LDAP_SASL_SIMPLE,
-			&cred, NULL, NULL, NULL );
-	if ( rc != LDAP_SUCCESS ) {
-		goto done;
-	}
-
 	rc = ldap_search_ext_s( ld, "", LDAP_SCOPE_BASE, "(objectClass=*)",
 			attrs, 0, NULL, NULL, NULL, 0, &res );
 	if ( rc != LDAP_SUCCESS ) {
@@ -509,6 +494,7 @@ slap_discover_feature(
 		goto done;
 	}
 
+	ber_str2bv( val, 0, 0, &bv_val );
 	for ( i = 0; values[ i ] != NULL; i++ ) {
 		if ( bvmatch( &bv_val, values[ i ] ) ) {
 			rc = LDAP_COMPARE_TRUE;

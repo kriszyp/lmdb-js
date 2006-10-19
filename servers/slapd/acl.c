@@ -354,7 +354,7 @@ access_allowed_mask(
 		{
 			access = ACL_AUTH;
 
-		} else if ( get_manageDIT( op ) && access_level == ACL_WRITE &&
+		} else if ( get_relax( op ) && access_level == ACL_WRITE &&
 			desc == slap_schema.si_ad_entry )
 		{
 			access = ACL_MANAGE;
@@ -1672,7 +1672,8 @@ slap_acl_mask(
 				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
 					da->da_name, 0, 0 );
 
-				(void)( *da->da_mask )( da->da_private, op, e, desc, val, nmatch, matches, &grant, &deny );
+				(void)da->da_mask( da->da_private, op, e, desc,
+					val, nmatch, matches, &grant, &deny );
 
 				tgrant |= grant;
 				tdeny |= deny;

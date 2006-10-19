@@ -67,8 +67,6 @@ LDAP_BEGIN_DECL
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define LDAP_COMP_MATCH
 #define LDAP_SYNC_TIMESTAMP
-
-#define SLAP_DONTUSECOPY
 #define SLAP_SORTEDRESULTS
 #endif
 
@@ -664,6 +662,7 @@ typedef struct slap_attribute_type {
 #define	SLAP_AT_ORDERED			0x0003U /* value has order index */
 
 #define	SLAP_AT_HARDCODE	0x10000U	/* hardcoded schema */
+#define	SLAP_AT_DELETED		0x20000U
 
 	slap_mask_t					sat_flags;
 
@@ -746,6 +745,7 @@ typedef struct slap_object_class {
 #define SLAP_OC_HIDE		0x8000
 #endif
 #define	SLAP_OC_HARDCODE	0x10000U	/* This is hardcoded schema */
+#define	SLAP_OC_DELETED		0x20000U
 
 /*
  * DIT content rule
@@ -979,16 +979,10 @@ typedef struct slap_mr_assertion {
 typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
 #define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
-#define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
-#define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
-#define SLAPD_FILTER_DN_CHILDREN	((ber_tag_t) -4)
 
 	union f_un_u {
 		/* precomputed result */
 		ber_int_t f_un_result;
-
-		/* DN */
-		struct berval *f_un_dn;
 
 		/* present */
 		AttributeDescription *f_un_desc;
@@ -1002,7 +996,6 @@ typedef struct slap_filter {
 		/* matching rule assertion */
 		MatchingRuleAssertion *f_un_mra;
 
-#define f_dn			f_un.f_un_dn
 #define f_desc			f_un.f_un_desc
 #define f_ava			f_un.f_un_ava
 #define f_av_desc		f_un.f_un_ava->aa_desc
@@ -1104,6 +1097,8 @@ typedef struct slap_attr {
 	unsigned a_flags;
 #define SLAP_ATTR_IXADD		0x1U
 #define SLAP_ATTR_IXDEL		0x2U
+#define SLAP_ATTR_DONT_FREE_DATA	0x4U
+#define SLAP_ATTR_DONT_FREE_VALS	0x8U
 } Attribute;
 
 
@@ -1112,6 +1107,13 @@ typedef struct slap_attr {
  */
 typedef unsigned long	ID;
 #define NOID	((ID)~0)
+
+typedef struct slap_entry_header {
+	struct berval bv;
+	char *data;
+	int nattrs;
+	int nvals;
+} EntryHeader;
 
 /*
  * represents an entry in core
@@ -1501,6 +1503,7 @@ LDAP_SLAPD_V (int) slapMode;
 
 typedef struct slap_bindconf {
 	struct berval sb_uri;
+	int sb_version;
 	int sb_tls;
 	int sb_method;
 	struct berval sb_binddn;
@@ -1706,6 +1709,7 @@ struct slap_backend_db {
 #define SLAP_DBFLAG_OVERLAY		0x0100U	/* this db struct is an overlay */
 #define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0200U	/* this db struct is a global overlay */
 #define SLAP_DBFLAG_DYNAMIC		0x0400U /* this db allows dynamicObjects */
+#define	SLAP_DBFLAG_MONITORING		0x0800U	/* custom monitoring enabled */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
 #define SLAP_DBFLAG_SINGLE_SHADOW	0x4000U	/* a single-master shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
@@ -1717,6 +1721,7 @@ struct slap_backend_db {
 #define SLAP_DBHIDDEN(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_HIDDEN)
 #define SLAP_ISOVERLAY(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_OVERLAY)
 #define SLAP_ISGLOBALOVERLAY(be)		(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLOBAL_OVERLAY)
+#define SLAP_DBMONITORING(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_MONITORING)
 #define SLAP_NO_SCHEMA_CHECK(be)	\
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NO_SCHEMA_CHECK)
 #define	SLAP_GLUE_INSTANCE(be)		\
@@ -2189,7 +2194,8 @@ struct slap_backend_info {
 	unsigned int bi_nDB;	/* number of databases of this type */
 	struct ConfigOCs *bi_cf_ocs;
 	char	**bi_obsolete_names;
-	void	*bi_private;	/* anything the backend type needs */
+	void	*bi_extra;		/* backend type-specific APIs */
+	void	*bi_private;	/* backend type-specific config data */
 	LDAP_STAILQ_ENTRY(slap_backend_info) bi_next ;
 };
 
@@ -2297,7 +2303,6 @@ struct slap_control_ids {
 	int sc_assert;
 	int sc_domainScope;
 	int sc_dontUseCopy;
-	int sc_manageDIT;
 	int sc_manageDSAit;
 	int sc_modifyIncrement;
 	int sc_noOp;
@@ -2306,6 +2311,7 @@ struct slap_control_ids {
 	int sc_postRead;
 	int sc_preRead;
 	int sc_proxyAuthz;
+	int sc_relax;
 	int sc_searchOptions;
 #ifdef SLAP_SORTEDRESULTS
 	int sc_sortedResults;
@@ -2468,8 +2474,8 @@ typedef struct slap_op {
 #define o_dontUseCopy			o_ctrlflag[slap_cids.sc_dontUseCopy]
 #define get_dontUseCopy(op)		_SCM((op)->o_dontUseCopy)
 
-#define o_managedit				o_ctrlflag[slap_cids.sc_manageDIT]
-#define get_manageDIT(op)		_SCM((op)->o_managedit)
+#define o_relax				o_ctrlflag[slap_cids.sc_relax]
+#define get_relax(op)		_SCM((op)->o_relax)
 
 #define o_managedsait	o_ctrlflag[slap_cids.sc_manageDSAit]
 #define get_manageDSAit(op)				_SCM((op)->o_managedsait)
@@ -2732,7 +2738,7 @@ struct slap_listener {
 /*
  * Operation indices
  */
-enum {
+typedef enum {
 	SLAP_OP_BIND = 0,
 	SLAP_OP_UNBIND,
 	SLAP_OP_ADD,
@@ -2744,7 +2750,7 @@ enum {
 	SLAP_OP_ABANDON,
 	SLAP_OP_EXTENDED,
 	SLAP_OP_LAST
-};
+} slap_op_t;
 
 typedef struct slap_counters_t {
 	ldap_pvt_thread_mutex_t	sc_sent_mutex;
@@ -2777,7 +2783,7 @@ typedef struct slap_counters_t {
 #define SLAP_CTRL_HIDE				0x80000000U
 #endif
 
-#define SLAP_CTRL_REQUIRES_ROOT		0x40000000U /* for ManageDIT */
+#define SLAP_CTRL_REQUIRES_ROOT		0x40000000U /* for Relax */
 
 #define SLAP_CTRL_GLOBAL			0x00800000U
 #define SLAP_CTRL_GLOBAL_SEARCH		0x00010000U	/* for NOOP */

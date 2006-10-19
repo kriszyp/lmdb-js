@@ -691,8 +691,7 @@ ordered_value_add(
 		Attribute **ap;
 		anum = 0;
 		for ( ap=&e->e_attrs; *ap; ap = &(*ap)->a_next ) ;
-		a = ch_calloc( 1, sizeof(Attribute) );
-		a->a_desc = ad;
+		a = attr_alloc( ad );
 		*ap = a;
 	}
 

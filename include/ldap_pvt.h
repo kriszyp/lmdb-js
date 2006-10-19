@@ -65,6 +65,18 @@ LDAP_F (char *) ldap_url_list2urls LDAP_P((
 LDAP_F (void) ldap_free_urllist LDAP_P((
 	struct ldap_url_desc *ludlist ));
 
+LDAP_F (int) ldap_pvt_scope2bv LDAP_P ((
+	int scope, struct berval *bv ));
+
+LDAP_F (LDAP_CONST char *) ldap_pvt_scope2str LDAP_P ((
+	int scope ));
+
+LDAP_F (int) ldap_pvt_bv2scope LDAP_P ((
+	struct berval *bv ));
+
+LDAP_F (int) ldap_pvt_str2scope LDAP_P ((
+	LDAP_CONST char * ));
+
 LDAP_F( char * )
 ldap_pvt_ctime LDAP_P((
 	const time_t *tp,

@@ -39,7 +39,7 @@ It also returns, in \fIberptr\fP, a pointer to a BerElement it has
 allocated to keep track of its current position.  This pointer should
 be passed to subsequent calls to
 .B ldap_next_attribute()
-and is used used
+and is used
 to effectively step through the entry's attributes.  The caller is
 solely responsible for freeing the BerElement pointed to by \fIberptr\fP
 when it is no longer needed by calling

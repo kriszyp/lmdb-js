@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <ac/string.h>
+#include <ac/errno.h>
 
 #include "back-bdb.h"
 
@@ -100,8 +101,9 @@ int bdb_id2entry(
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
 	DBC *cursor;
-	struct berval bv;
-	int rc = 0;
+	EntryHeader eh;
+	char buf[16];
+	int rc = 0, off;
 	ID nid;
 
 	*e = NULL;
@@ -112,7 +114,7 @@ int bdb_id2entry(
 	BDB_ID2DISK( id, &nid );
 
 	DBTzero( &data );
-	data.flags = DB_DBT_MALLOC;
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
 	/* fetch it */
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
@@ -122,19 +124,48 @@ int bdb_id2entry(
 	if ( !tid && locker )
 		cursor->locker = locker;
 
+	/* Get the nattrs / nvals counts first */
+	data.ulen = data.dlen = sizeof(buf);
+	data.data = buf;
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
+	if ( rc ) goto leave;
+
+
+	eh.bv.bv_val = buf;
+	eh.bv.bv_len = data.size;
+	rc = entry_header( &eh );
+	if ( rc ) goto leave;
+
+	/* Get the size */
+	data.flags ^= DB_DBT_PARTIAL;
+	data.ulen = 0;
+	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+	if ( rc != DB_BUFFER_SMALL ) goto leave;
+
+	/* Allocate a block and retrieve the data */
+	off = eh.data - eh.bv.bv_val;
+	eh.bv.bv_len = eh.nvals * sizeof( struct berval ) + data.size;
+	eh.bv.bv_val = ch_malloc( eh.bv.bv_len );
+	eh.data = eh.bv.bv_val + eh.nvals * sizeof( struct berval );
+	data.data = eh.data;
+	data.ulen = data.size;
+
+	/* skip past already parsed nattr/nvals */
+	eh.data += off;
+
+	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+
+leave:
 	cursor->c_close( cursor );
 
 	if( rc != 0 ) {
 		return rc;
 	}
 
-	DBT2bv( &data, &bv );
-
 #ifdef SLAP_ZONE_ALLOC
-	rc = entry_decode(&bv, e, bdb->bi_cache.c_zctx);
+	rc = entry_decode(&eh, e, bdb->bi_cache.c_zctx);
 #else
-	rc = entry_decode(&bv, e);
+	rc = entry_decode(&eh, e);
 #endif
 
 	if( rc == 0 ) {
@@ -144,11 +175,11 @@ int bdb_id2entry(
 		 * decoded in place.
 		 */
 #ifndef SLAP_ZONE_ALLOC
-		ch_free(data.data);
+		ch_free(eh.bv.bv_val);
 #endif
 	}
 #ifdef SLAP_ZONE_ALLOC
-	ch_free(data.data);
+	ch_free(eh.bv.bv_val);
 #endif
 
 	return rc;
@@ -176,64 +207,31 @@ int bdb_id2entry_delete(
 	return rc;
 }
 
-#ifdef SLAP_ZONE_ALLOC
-int bdb_entry_return(
-	struct bdb_info *bdb,
-	Entry *e,
-	int zseq
-)
-#else
 int bdb_entry_return(
 	Entry *e
 )
-#endif
 {
-#ifdef SLAP_ZONE_ALLOC
-	if (!slap_zn_validate(bdb->bi_cache.c_zctx, e, zseq)) {
-		return 0;
-	}
-#endif
 	/* Our entries are allocated in two blocks; the data comes from
 	 * the db itself and the Entry structure and associated pointers
 	 * are allocated in entry_decode. The db data pointer is saved
-	 * in e_bv. Since the Entry structure is allocated as a single
-	 * block, e_attrs is always a fixed offset from e. The exception
-	 * is when an entry has been modified, in which case we also need
-	 * to free e_attrs.
+	 * in e_bv.
 	 */
-
-#ifdef LDAP_COMP_MATCH
-	comp_tree_free( e->e_attrs );
-#endif
-	if( !e->e_bv.bv_val ) {	/* Entry added by do_add */
-		entry_free( e );
-		return 0;
-	}
-	if( (void *) e->e_attrs != (void *) (e+1)) {
-		attrs_free( e->e_attrs );
-	}
-
-	/* See if the DNs were changed by modrdn */
-	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
-		e->e_bv.bv_val + e->e_bv.bv_len ) {
-		ch_free(e->e_name.bv_val);
-		ch_free(e->e_nname.bv_val);
+	if ( e->e_bv.bv_val ) {
+		/* See if the DNs were changed by modrdn */
+		if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
+			e->e_bv.bv_val + e->e_bv.bv_len ) {
+			ch_free(e->e_name.bv_val);
+			ch_free(e->e_nname.bv_val);
+		}
 		e->e_name.bv_val = NULL;
 		e->e_nname.bv_val = NULL;
+		/* In tool mode the e_bv buffer is realloc'd, leave it alone */
+		if( !(slapMode & SLAP_TOOL_MODE) ) {
+			free( e->e_bv.bv_val );
+		}
+		BER_BVZERO( &e->e_bv );
 	}
-#ifndef SLAP_ZONE_ALLOC
-	/* In tool mode the e_bv buffer is realloc'd, leave it alone */
-	if( !(slapMode & SLAP_TOOL_MODE) ) {
-		free( e->e_bv.bv_val );
-	}
-#endif /* !SLAP_ZONE_ALLOC */
-
-#ifdef SLAP_ZONE_ALLOC
-	slap_zn_free( e, bdb->bi_cache.c_zctx );
-#else
-	free( e );
-#endif
-
+	entry_free( e );
 	return 0;
 }
 

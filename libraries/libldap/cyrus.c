@@ -161,7 +161,7 @@ sb_sasl_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	ber_pvt_sb_buf_init( &p->buf_out );
 	if ( ber_pvt_sb_grow_buffer( &p->sec_buf_in, SASL_MIN_BUFF_SIZE ) < 0 ) {
 		LBER_FREE( p );
-		errno = ENOMEM;
+		sock_errset(ENOMEM);
 		return -1;
 	}
 	sasl_getprop( p->sasl_context, SASL_MAXOUTBUF,
@@ -288,7 +288,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	if ( ( p->sec_buf_in.buf_size < (ber_len_t) ret ) && 
 		ber_pvt_sb_grow_buffer( &p->sec_buf_in, ret ) < 0 )
 	{
-		errno = ENOMEM;
+		sock_errset(ENOMEM);
 		return -1;
 	}
 	p->sec_buf_in.buf_end = ret;
@@ -327,7 +327,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
 			"sb_sasl_read: failed to decode packet: %s\n",
 			sasl_errstring( ret, NULL, NULL ) );
-		errno = EIO;
+		sock_errset(EIO);
 		return -1;
 	}
 	
@@ -356,7 +356,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 		/* Still have something left?? */
 		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
-			errno = EAGAIN;
+			sock_errset(EAGAIN);
 			return -1;
 		}
 	}
@@ -383,7 +383,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
 			"sb_sasl_write: failed to encode packet: %s\n",
 			sasl_errstring( ret, NULL, NULL ) );
-		errno = EIO;
+		sock_errset(EIO);
 		return -1;
 	}
 	p->buf_out.buf_end = p->buf_out.buf_size;

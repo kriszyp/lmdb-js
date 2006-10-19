@@ -2128,8 +2128,7 @@ pcache_db_config(
 
 static int
 pcache_db_init(
-	BackendDB *be
-)
+	BackendDB *be )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm;
@@ -2171,8 +2170,7 @@ pcache_db_init(
 
 static int
 pcache_db_open(
-	BackendDB *be
-)
+	BackendDB *be )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager	*cm = on->on_bi.bi_private;
@@ -2212,6 +2210,13 @@ pcache_db_open(
 	cm->db.be_limits = be->be_limits;
 	cm->db.be_acl = be->be_acl;
 	cm->db.be_dfltaccess = be->be_dfltaccess;
+
+	if ( SLAP_DBMONITORING( be ) ) {
+		SLAP_DBFLAGS( &cm->db ) |= SLAP_DBFLAG_MONITORING;
+
+	} else {
+		SLAP_DBFLAGS( &cm->db ) &= ~SLAP_DBFLAG_MONITORING;
+	}
 
 	rc = backend_startup_one( &cm->db );
 
@@ -2301,16 +2306,8 @@ pcache_db_destroy(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 
-	/* cleanup stuff inherited from the original database... */
-	cm->db.be_suffix = NULL;
-	cm->db.be_nsuffix = NULL;
-	BER_BVZERO( &cm->db.be_rootdn );
-	BER_BVZERO( &cm->db.be_rootndn );
-	BER_BVZERO( &cm->db.be_rootpw );
-	/* FIXME: there might be more... */
-
 	if ( cm->db.be_private != NULL ) {
-		backend_destroy_one( &cm->db, 0 );
+		backend_stopdown_one( &cm->db );
 	}
 
 	ldap_pvt_thread_mutex_destroy( &qm->lru_mutex );
@@ -2330,31 +2327,16 @@ static char *obsolete_names[] = {
 
 int pcache_initialize()
 {
-	LDAPAttributeType *at;
 	int code;
-	const char *err;
 	struct berval debugbv = BER_BVC("pcache");
 
 	if (( code = slap_loglevel_get( &debugbv, &pcache_debug )))
 		return code;
 
-	at = ldap_str2attributetype( queryid_schema, &code, &err,
-		LDAP_SCHEMA_ALLOW_ALL );
-	if ( !at ) {
-		Debug( LDAP_DEBUG_ANY,
-			"pcache_initialize: ldap_str2attributetype failed %s %s\n",
-			ldap_scherr2str(code), err, 0 );
-		return code;
-	}
-	code = at_add( at, 0, NULL, &err );
-	if ( !code ) {
-		slap_str2ad( at->at_names[0], &ad_queryid, &err );
-	}
-	ldap_memfree( at );
+	code = register_at( queryid_schema, &ad_queryid, 0 );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY,
-			"pcache_initialize: at_add failed %s %s\n",
-			scherr2str(code), err, 0 );
+			"pcache_initialize: register_at failed\n", 0, 0, 0 );
 		return code;
 	}
 

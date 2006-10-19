@@ -2353,16 +2353,11 @@ numericStringNormalize(
  * Integer conversion macros that will use the largest available
  * type.
  */
-#if defined(HAVE_STRTOLL) && defined(LLONG_MAX) \
-	&& defined(LLONG_MIN) && defined(HAVE_LONG_LONG)
+#if defined(HAVE_STRTOLL) && defined(HAVE_LONG_LONG)
 # define SLAP_STRTOL(n,e,b)  strtoll(n,e,b) 
-# define SLAP_LONG_MAX       LLONG_MAX
-# define SLAP_LONG_MIN       LLONG_MIN
 # define SLAP_LONG           long long
 #else
 # define SLAP_STRTOL(n,e,b)  strtol(n,e,b)
-# define SLAP_LONG_MAX       LONG_MAX
-# define SLAP_LONG_MIN       LONG_MIN
 # define SLAP_LONG           long
 #endif /* HAVE_STRTOLL ... */
 
@@ -2377,18 +2372,17 @@ integerBitAndMatch(
 {
 	SLAP_LONG lValue, lAssertedValue;
 
+	errno = 0;
 	/* safe to assume integers are NUL terminated? */
 	lValue = SLAP_STRTOL(value->bv_val, NULL, 10);
-	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX) &&
-		errno == ERANGE )
+	if( errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
 	lAssertedValue = SLAP_STRTOL(((struct berval *)assertedValue)->bv_val,
 		NULL, 10);
-	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX ) &&
-		errno == ERANGE )
+	if( errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
@@ -2408,18 +2402,17 @@ integerBitOrMatch(
 {
 	SLAP_LONG lValue, lAssertedValue;
 
+	errno = 0;
 	/* safe to assume integers are NUL terminated? */
 	lValue = SLAP_STRTOL(value->bv_val, NULL, 10);
-	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX ) &&
-		errno == ERANGE )
+	if( errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
 	lAssertedValue = SLAP_STRTOL( ((struct berval *)assertedValue)->bv_val,
 		NULL, 10);
-	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX ) &&
-		errno == ERANGE )
+	if( errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}

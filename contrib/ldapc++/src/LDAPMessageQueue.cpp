@@ -10,7 +10,6 @@
 #include "LDAPMessageQueue.h"
 #include "LDAPRequest.h"
 #include "LDAPAsynConnection.h"
-#include "LDAPMessage.h"
 #include "LDAPResult.h"
 #include "LDAPSearchReference.h"
 #include "LDAPSearchRequest.h"

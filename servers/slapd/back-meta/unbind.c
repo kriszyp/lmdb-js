@@ -51,16 +51,22 @@ meta_back_conn_destroy(
 	mc_curr.mc_conn = conn;
 	
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+#if META_BACK_PRINT_CONNTREE > 0
+	meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_conn_destroy" );
+#endif /* META_BACK_PRINT_CONNTREE */
 	while ( ( mc = avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )&mc_curr, meta_back_conn_cmp ) ) != NULL )
 	{
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_conn_destroy: destroying conn %ld\n",
-			LDAP_BACK_PCONN_ID( mc->mc_conn ), 0, 0 );
+			LDAP_BACK_PCONN_ID( mc ), 0, 0 );
 		
 		assert( mc->mc_refcnt == 0 );
 
 		meta_back_conn_free( mc );
 	}
+#if META_BACK_PRINT_CONNTREE > 0
+	meta_back_print_conntree( mi->mi_conninfo.lai_tree, "<<< meta_back_conn_destroy" );
+#endif /* META_BACK_PRINT_CONNTREE */
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 	/*

@@ -145,6 +145,18 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing dontUseCopy control..."
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	-E \!dontUseCopy \
+	'sn=jensen' >> $SEARCHOUT
+RC=$?
+if test $RC = 10 ; then
+	echo "ldapsearch failed as expected ($RC)"
+else
+	echo "ldapsearch did not error as expected ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 

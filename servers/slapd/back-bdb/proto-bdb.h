@@ -426,6 +426,19 @@ int bdb_modify_internal(
 	char *textbuf,
 	size_t textlen );
 
+/*
+ * monitor.c
+ */
+
+#define bdb_monitor_db_init	BDB_SYMBOL(monitor_db_init)
+#define bdb_monitor_db_open	BDB_SYMBOL(monitor_db_open)
+#define bdb_monitor_db_close	BDB_SYMBOL(monitor_db_close)
+#define bdb_monitor_db_destroy	BDB_SYMBOL(monitor_db_destroy)
+
+int bdb_monitor_db_init( BackendDB *be );
+int bdb_monitor_db_open( BackendDB *be );
+int bdb_monitor_db_close( BackendDB *be );
+int bdb_monitor_db_destroy( BackendDB *be );
 
 /*
  * cache.c

@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <ac/string.h>
+#include <ac/errno.h>
 
 #define AVL_INTERNAL
 #include "back-bdb.h"
@@ -25,6 +26,8 @@
 
 static DBC *cursor = NULL;
 static DBT key, data;
+static EntryHeader eh;
+static int eoff;
 
 typedef struct dn_id {
 	ID id;
@@ -82,7 +85,7 @@ int bdb_tool_entry_open(
 	DBTzero( &key );
 	DBTzero( &data );
 	key.flags = DB_DBT_REALLOC;
-	data.flags = DB_DBT_REALLOC;
+	data.flags = DB_DBT_USERMEM;
 
 	if (cursor == NULL) {
 		int rc = bdb->bi_id2entry->bdi_db->cursor(
@@ -132,9 +135,9 @@ int bdb_tool_entry_close(
 		ch_free( key.data );
 		key.data = NULL;
 	}
-	if( data.data ) {
-		ch_free( data.data );
-		data.data = NULL;
+	if( eh.bv.bv_val ) {
+		ch_free( eh.bv.bv_val );
+		eh.bv.bv_val = NULL;
 	}
 
 	if( cursor ) {
@@ -165,14 +168,19 @@ ID bdb_tool_entry_next(
 	int rc;
 	ID id;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	char buf[16], *dptr;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( bdb != NULL );
 	
+	/* Get the header */
+	data.ulen = data.dlen = sizeof( buf );
+	data.data = buf;
+	data.flags |= DB_DBT_PARTIAL;
 	rc = cursor->c_get( cursor, &key, &data, DB_NEXT );
 
-	if( rc != 0 ) {
+	if( rc ) {
 		/* If we're doing linear indexing and there are more attrs to
 		 * index, and we're at the end of the database, start over.
 		 */
@@ -190,7 +198,13 @@ ID bdb_tool_entry_next(
 		}
 	}
 
-	if( data.data == NULL ) {
+	dptr = eh.bv.bv_val;
+	eh.bv.bv_val = buf;
+	eh.bv.bv_len = data.size;
+	rc = entry_header( &eh );
+	eoff = eh.data - eh.bv.bv_val;
+	eh.bv.bv_val = dptr;
+	if( rc ) {
 		return NOID;
 	}
 
@@ -248,48 +262,65 @@ int bdb_tool_id2entry_get(
 
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
-	int rc;
+	int rc, off;
 	Entry *e = NULL;
-	struct berval bv;
+	char *dptr;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
-	assert( data.data != NULL );
 
-	DBT2bv( &data, &bv );
+	/* Get the size */
+	data.flags ^= DB_DBT_PARTIAL;
+	data.ulen = 0;
+    rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+	if ( rc != DB_BUFFER_SMALL ) goto leave;
+
+	/* Allocate a block and retrieve the data */
+	eh.bv.bv_len = eh.nvals * sizeof( struct berval ) + data.size;
+	eh.bv.bv_val = ch_realloc( eh.bv.bv_val, eh.bv.bv_len );
+	eh.data = eh.bv.bv_val + eh.nvals * sizeof( struct berval );
+	data.data = eh.data;
+	data.ulen = data.size;
+
+	/* Skip past already parsed nattr/nvals */
+	eh.data += eoff;
+
+    rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
+	if ( rc ) goto leave;
 
 #ifdef SLAP_ZONE_ALLOC
 	/* FIXME: will add ctx later */
-	rc = entry_decode( &bv, &e, NULL );
+	rc = entry_decode( &eh, &e, NULL );
 #else
-	rc = entry_decode( &bv, &e );
+	rc = entry_decode( &eh, &e );
 #endif
 
 	if( rc == LDAP_SUCCESS ) {
 		e->e_id = id;
-	}
 #ifdef BDB_HIER
-	if ( slapMode & SLAP_TOOL_READONLY ) {
-		EntryInfo *ei = NULL;
-		Operation op = {0};
-		Opheader ohdr = {0};
+		if ( slapMode & SLAP_TOOL_READONLY ) {
+			EntryInfo *ei = NULL;
+			Operation op = {0};
+			Opheader ohdr = {0};
 
-		op.o_hdr = &ohdr;
-		op.o_bd = be;
-		op.o_tmpmemctx = NULL;
-		op.o_tmpmfuncs = &ch_mfuncs;
+			op.o_hdr = &ohdr;
+			op.o_bd = be;
+			op.o_tmpmemctx = NULL;
+			op.o_tmpmfuncs = &ch_mfuncs;
 
-		rc = bdb_cache_find_parent( &op, NULL, cursor->locker, id, &ei );
-		if ( rc == LDAP_SUCCESS ) {
-			bdb_cache_entryinfo_unlock( ei );
-			e->e_private = ei;
-			ei->bei_e = e;
-			bdb_fix_dn( e, 0 );
-			ei->bei_e = NULL;
-			e->e_private = NULL;
+			rc = bdb_cache_find_parent( &op, NULL, cursor->locker, id, &ei );
+			if ( rc == LDAP_SUCCESS ) {
+				bdb_cache_entryinfo_unlock( ei );
+				e->e_private = ei;
+				ei->bei_e = e;
+				bdb_fix_dn( e, 0 );
+				ei->bei_e = NULL;
+				e->e_private = NULL;
+			}
 		}
-	}
 #endif
+	}
+leave:
 	return e;
 }
 

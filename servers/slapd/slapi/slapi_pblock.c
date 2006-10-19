@@ -64,7 +64,7 @@ pblock_get_param_class( int param )
 	case SLAPI_DB2LDIF_PRINTKEY:
 	case SLAPI_LDIF2DB_REMOVEDUPVALS:
 	case SLAPI_MANAGEDSAIT:
-	case SLAPI_X_MANAGEDIT:
+	case SLAPI_X_RELAX:
 	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
 	case SLAPI_IS_REPLICATED_OPERATION:
 	case SLAPI_X_CONN_IS_UDP:
@@ -519,9 +519,9 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((int *)value) = get_manageDSAit( pb->pb_op );
 		break;
-	case SLAPI_X_MANAGEDIT:
+	case SLAPI_X_RELAX:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((int *)value) = get_manageDIT( pb->pb_op );
+		*((int *)value) = get_relax( pb->pb_op );
 		break;
 	case SLAPI_BACKEND:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -924,9 +924,9 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_managedsait = *((int *)value);
 		break;
-	case SLAPI_X_MANAGEDIT:
+	case SLAPI_X_RELAX:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pb_op->o_managedit = *((int *)value);
+		pb->pb_op->o_relax = *((int *)value);
 		break;
 	case SLAPI_BACKEND:
 		PBLOCK_ASSERT_OP( pb, 0 );

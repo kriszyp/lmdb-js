@@ -232,9 +232,6 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	/* Set the bindop for the benefit of in-directory SASL lookups */
-	op->o_conn->c_sasl_bindop = op;
-
 	if ( op->orb_method == LDAP_AUTH_SASL ) {
 		if ( op->o_protocol < LDAP_VERSION3 ) {
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
@@ -269,6 +266,10 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		} else {
 			ber_dupbv(&op->o_conn->c_sasl_bind_mech, &op->orb_tmp_mech);
 		}
+
+		/* Set the bindop for the benefit of in-directory SASL lookups */
+		op->o_conn->c_sasl_bindop = op;
+
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 		rs->sr_err = slap_sasl_bind( op, rs );

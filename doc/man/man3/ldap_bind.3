@@ -144,10 +144,10 @@ referred server if the application wants the libraries to follow the referral.
 .LP
 The \fIurl\fP parameter points to the URL referral string received from the LDAP server.
 The LDAP application can use the 
-.BR ldap_url_parse()
+.BR ldap_url_parse (3)
+function to parse the string into its components.
 .LP
 The \fIrequest\fP parameter specifies the request operation that generated the referral. 
-function to parse the string into its components.
 .LP
 The \fImsgid\fP parameter specifies the message ID of the request generating the referral.
 .LP

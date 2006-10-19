@@ -219,6 +219,9 @@ retry_lock:;
 			}
 
 			assert( mc->mc_refcnt == 1 );
+#if META_BACK_PRINT_CONNTREE > 0
+			meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_bind" );
+#endif /* META_BACK_PRINT_CONNTREE */
 			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp );
 			assert( tmpmc == mc );
@@ -229,7 +232,7 @@ retry_lock:;
 				{
 					Debug( LDAP_DEBUG_TRACE,
 						"=>meta_back_bind: destroying conn %ld (refcnt=%u)\n",
-						LDAP_BACK_PCONN_ID( mc->mc_conn ), mc->mc_refcnt, 0 );
+						LDAP_BACK_PCONN_ID( mc ), mc->mc_refcnt, 0 );
 
 					if ( tmpmc->mc_refcnt != 0 ) {
 						/* taint it */
@@ -252,6 +255,9 @@ retry_lock:;
 			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );
+#if META_BACK_PRINT_CONNTREE > 0
+			meta_back_print_conntree( mi->mi_conninfo.lai_tree, "<<< meta_back_bind" );
+#endif /* META_BACK_PRINT_CONNTREE */
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			if ( lerr == -1 ) {
 				meta_clear_candidates( op, mc );
@@ -314,20 +320,66 @@ meta_back_bind_op_result(
 	int			nretries = mt->mt_nretries;
 	char			buf[ SLAP_TEXT_BUFLEN ];
 
+	Debug( LDAP_DEBUG_TRACE,
+		">>> %s meta_back_bind_op_result[%d]\n",
+		op->o_log_prefix, candidate, 0 );
+
 	if ( rs->sr_err == LDAP_SUCCESS ) {
+		time_t		stoptime = (time_t)(-1),
+				timeout;
+		int		timeout_err = op->o_protocol >= LDAP_VERSION3 ?
+				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+		const char	*timeout_text = "Operation timed out";
+		slap_op_t	opidx = slap_req2op( op->o_tag );
+
+		/* since timeout is not specified, compute and use
+		 * the one specific to the ongoing operation */
+		if ( opidx == LDAP_REQ_SEARCH ) {
+			if ( op->ors_tlimit <= 0 ) {
+				timeout = 0;
+
+			} else {
+				timeout = op->ors_tlimit;
+				timeout_err = LDAP_TIMELIMIT_EXCEEDED;
+				timeout_text = NULL;
+			}
+
+		} else {
+			timeout = mt->mt_timeout[ opidx ];
+		}
+
+		/* better than nothing :) */
+		if ( timeout == 0 ) {
+			if ( mi->mi_idle_timeout ) {
+				timeout = mi->mi_idle_timeout;
+
+			} else if ( mi->mi_conn_ttl ) {
+				timeout = mi->mi_conn_ttl;
+			}
+		}
+
+		if ( timeout ) {
+			stoptime = op->o_time + timeout;
+		}
+
 		LDAP_BACK_TV_SET( &tv );
 
 		/*
 		 * handle response!!!
 		 */
 retry:;
-		switch ( ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res ) ) {
+		rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
+		switch ( rc ) {
 		case 0:
+#if 0
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_bind_op_result[%d]: ldap_result=0 nretries=%d.\n",
 				op->o_log_prefix, candidate, nretries );
+#endif
 
-			if ( nretries != META_RETRY_NEVER ) {
+			if ( nretries != META_RETRY_NEVER 
+				|| ( timeout && slap_get_time() <= stoptime ) )
+			{
 				ldap_pvt_thread_yield();
 				if ( nretries > 0 ) {
 					nretries--;
@@ -336,12 +388,21 @@ retry:;
 				goto retry;
 			}
 
-			rs->sr_err = LDAP_BUSY;
-			(void)meta_back_cancel( mc, op, rs, msgid, candidate, sendok );
+			/* don't let anyone else use this handler,
+			 * because there's a pending bind that will not
+			 * be acknowledged */
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
+			msc->msc_ld = NULL;
+			LDAP_BACK_CONN_BINDING_CLEAR( msc );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+
+			rs->sr_err = timeout_err;
+			rs->sr_text = timeout_text;
 			break;
 
 		case -1:
-			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
+			ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE,
 				&rs->sr_err );
 
 			snprintf( buf, sizeof( buf ),
@@ -353,6 +414,11 @@ retry:;
 			break;
 
 		default:
+			/* only touch when activity actually took place... */
+			if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+				msc->msc_time = op->o_time;
+			}
+
 			/* FIXME: matched? referrals? response controls? */
 			rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
 					NULL, NULL, NULL, NULL, 1 );
@@ -363,7 +429,13 @@ retry:;
 		}
 	}
 
-	return rs->sr_err = slap_map_api2result( rs );
+	rs->sr_err = slap_map_api2result( rs );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"<<< %s meta_back_bind_op_result[%d] err=%d\n",
+		op->o_log_prefix, candidate, rs->sr_err );
+
+	return rs->sr_err;
 }
 
 /*
@@ -494,6 +566,7 @@ meta_back_single_dobind(
 		!op->o_do_not_cache &&
 		( BER_BVISNULL( &msc->msc_bound_ndn ) ||
 			BER_BVISEMPTY( &msc->msc_bound_ndn ) ||
+			( LDAP_BACK_CONN_ISPRIV( msc ) && dn_match( &msc->msc_bound_ndn, &mt->mt_idassert_authcDN ) ) ||
 			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)meta_back_proxy_authz_bind( mc, candidate, op, rs, sendok );
@@ -560,7 +633,7 @@ meta_back_dobind(
 	Debug( LDAP_DEBUG_TRACE,
 		"%s meta_back_dobind: conn=%ld%s\n",
 		op->o_log_prefix,
-		LDAP_BACK_PCONN_ID( mc->mc_conn ),
+		LDAP_BACK_PCONN_ID( mc ),
 		isroot ? " (isroot)" : "" );
 
 	/*
@@ -691,7 +764,7 @@ retry_ok:;
 done:;
 	Debug( LDAP_DEBUG_TRACE,
 		"%s meta_back_dobind: conn=%ld bound=%d\n",
-		op->o_log_prefix, LDAP_BACK_PCONN_ID( mc->mc_conn ), bound );
+		op->o_log_prefix, LDAP_BACK_PCONN_ID( mc ), bound );
 
 	if ( bound == 0 ) {
 		meta_back_release_conn( op, mc );
@@ -782,23 +855,29 @@ meta_back_cancel(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
+	int			rc = LDAP_OTHER;
+
+	Debug( LDAP_DEBUG_TRACE, ">>> %s meta_back_cancel[%d] msgid=%d\n",
+		op->o_log_prefix, candidate, msgid );
+
 	/* default behavior */
 	if ( META_BACK_TGT_ABANDON( mt ) ) {
-		return ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+		rc = ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+
+	} else if ( META_BACK_TGT_IGNORE( mt ) ) {
+		rc = LDAP_SUCCESS;
+
+	} else if ( META_BACK_TGT_CANCEL( mt ) ) {
+		rc = ldap_cancel_s( msc->msc_ld, msgid, NULL, NULL );
+
+	} else {
+		assert( 0 );
 	}
 
-	if ( META_BACK_TGT_IGNORE( mt ) ) {
-		return LDAP_SUCCESS;
-	}
+	Debug( LDAP_DEBUG_TRACE, "<<< %s meta_back_cancel[%d] err=%d\n",
+		op->o_log_prefix, candidate, rc );
 
-	if ( META_BACK_TGT_CANCEL( mt ) ) {
-		/* FIXME: asynchronous? */
-		return ldap_cancel_s( msc->msc_ld, msgid, NULL, NULL );
-	}
-
-	assert( 0 );
-
-	return LDAP_OTHER;
+	return rc;
 }
 
 
@@ -846,24 +925,55 @@ meta_back_op_result(
 			int		rc;
 			struct timeval	tv;
 			LDAPMessage	*res = NULL;
+			time_t		stoptime = (time_t)(-1);
+			int		timeout_err = op->o_protocol >= LDAP_VERSION3 ?
+						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+			const char	*timeout_text = "Operation timed out";
+
+			/* if timeout is not specified, compute and use
+			 * the one specific to the ongoing operation */
+			if ( timeout == (time_t)(-1) ) {
+				slap_op_t	opidx = slap_req2op( op->o_tag );
+
+				if ( opidx == SLAP_OP_SEARCH ) {
+					if ( op->ors_tlimit <= 0 ) {
+						timeout = 0;
+
+					} else {
+						timeout = op->ors_tlimit;
+						timeout_err = LDAP_TIMELIMIT_EXCEEDED;
+						timeout_text = NULL;
+					}
+
+				} else {
+					timeout = mt->mt_timeout[ opidx ];
+				}
+			}
+
+			/* better than nothing :) */
+			if ( timeout == 0 ) {
+				if ( mi->mi_idle_timeout ) {
+					timeout = mi->mi_idle_timeout;
+
+				} else if ( mi->mi_conn_ttl ) {
+					timeout = mi->mi_conn_ttl;
+				}
+			}
 
 			if ( timeout ) {
-				tv.tv_sec = timeout;
-				tv.tv_usec = 0;
-
-			} else {
-				LDAP_BACK_TV_SET( &tv );
+				stoptime = op->o_time + timeout;
 			}
+
+			LDAP_BACK_TV_SET( &tv );
 
 retry:;
 			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 			switch ( rc ) {
 			case 0:
-				if ( timeout ) {
+				if ( timeout && slap_get_time() > stoptime ) {
 					(void)meta_back_cancel( mc, op, rs, msgid, candidate, sendok );
-					rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
-						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
-					rs->sr_text = "Operation timed out";
+					rs->sr_err = timeout_err;
+					rs->sr_text = timeout_text;
 					break;
 				}
 
@@ -872,7 +982,7 @@ retry:;
 				goto retry;
 
 			case -1:
-				ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
+				ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE,
 						&rs->sr_err );
 				break;
 
@@ -882,6 +992,11 @@ retry:;
 			 * structure (this includes 
 			 * LDAP_COMPARE_{TRUE|FALSE}) */
 			default:
+				/* only touch when activity actually took place... */
+				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+					msc->msc_time = op->o_time;
+				}
+
 				rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
 						&matched, &text, &refs, &ctrls, 1 );
 				res = NULL;
@@ -940,7 +1055,7 @@ retry:;
 
 			rs->sr_err = LDAP_SUCCESS;
 
-			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+			ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE, &rs->sr_err );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				/*
 				 * better check the type of error. In some cases
@@ -949,7 +1064,7 @@ retry:;
 				 * positive result ...
 				 */
 				ldap_get_option( msc->msc_ld,
-						LDAP_OPT_ERROR_STRING, &xtext );
+						LDAP_OPT_DIAGNOSTIC_MESSAGE, &xtext );
 				if ( xtext != NULL && xtext [ 0 ] == '\0' ) {
 					ldap_memfree( xtext );
 					xtext = NULL;

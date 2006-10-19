@@ -205,7 +205,7 @@ slapi_entry_attr_delete(
 Slapi_Entry *
 slapi_entry_alloc( void ) 
 {
-	return (Slapi_Entry *)slapi_ch_calloc( 1, sizeof(Slapi_Entry) );
+	return (Slapi_Entry *)entry_alloc();
 }
 
 void 

@@ -661,10 +661,10 @@ read_baseObject(
 		return LDAP_OTHER;
 	}
 
-	bi->sql_baseObject = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	bi->sql_baseObject = entry_alloc();
 	if ( bi->sql_baseObject == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"read_baseObject_file: SLAP_CALLOC failed", 0, 0, 0 );
+			"read_baseObject_file: entry_alloc failed", 0, 0, 0 );
 		ldif_close( fp );
 		return LDAP_NO_MEMORY;
 	}

@@ -950,18 +950,35 @@ dnl AC_SYS_RESTARTABLE_SYSCALLS
 
 dnl ----------------------------------------------------------------
 AC_CHECK_FUNCS( poll )
-AC_CHECK_HEADERS( poll.h )
+if test $ac_cv_func_poll = yes; then
+AC_CHECK_HEADERS( poll.h sys/poll.h )
+fi
 
 dnl ----------------------------------------------------------------
 AC_CHECK_HEADERS( sys/epoll.h )
 if test "${ac_cv_header_sys_epoll_h}" = yes; then
-AC_MSG_CHECKING(for epoll system call)
-AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(int argc, char *argv)
+	AC_MSG_CHECKING(for epoll system call)
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(int argc, char **argv)
 {
 	int epfd = epoll_create(256);
 	exit (epfd == -1 ? 1 : 0);
 }]])],[AC_MSG_RESULT(yes)
-AC_DEFINE(HAVE_EPOLL,1, [define if your system supports epoll])],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
+	AC_DEFINE(HAVE_EPOLL,1, [define if your system supports epoll])],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
+fi
+
+dnl ----------------------------------------------------------------
+AC_CHECK_HEADERS( sys/devpoll.h )
+dnl "/dev/poll" needs <sys/poll.h> as well...
+if test "${ac_cv_header_sys_devpoll_h}" = yes \
+		-a "${ac_cv_header_poll_h}" = yes ; \
+then
+	AC_MSG_CHECKING(for /dev/poll)
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(int argc, char **argv)
+{
+	int devpollfd = open("/dev/poll", /* O_RDWR */ 2);
+	exit (devpollfd == -1 ? 1 : 0);
+}]])],[AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE_DEVPOLL,1, [define if your system supports /dev/poll])],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
 fi
 
 dnl ----------------------------------------------------------------
@@ -970,7 +987,13 @@ OL_STRERROR
 
 dnl ----------------------------------------------------------------
 dnl require POSIX regex
-AC_CHECK_HEADERS( regex.h )
+AC_CHECK_HEADERS( regex.h, [], [],
+[$ac_includes_default
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+])
+
 if test "$ac_cv_header_regex_h" != yes ; then
 	AC_MSG_ERROR([POSIX regex.h required.])
 fi
@@ -2376,7 +2399,7 @@ if test $ac_cv_func_vprintf = yes ; then
 	AC_CHECK_FUNCS(snprintf vsnprintf)
 fi
 
-AC_CHECK_FUNCS(		\
+AC_CHECK_FUNCS(			\
 	bcopy			\
 	closesocket		\
 	chroot			\
@@ -2385,17 +2408,18 @@ AC_CHECK_FUNCS(		\
 	fcntl			\
 	flock			\
 	fstat			\
-	getdtablesize	\
+	getdtablesize		\
 	getgrgid		\
 	gethostname		\
 	getpass			\
-	getpassphrase	\
+	getpassphrase		\
 	getpwuid		\
 	getpwnam		\
 	getspnam		\
-	gettimeofday	\
+	gettimeofday		\
 	initgroups		\
 	inet_ntoa_b		\
+	ioctl			\
 	lockf			\
 	memcpy			\
 	memmove			\
@@ -2562,6 +2586,20 @@ fi
 AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])
 AC_DEFINE(SLAPD_MOD_DYNAMIC,2,[dynamically linked module])
 
+dnl back-monitor goes first (well, after back-config)
+if test "$ol_enable_monitor" != no ; then
+	BUILD_SLAPD=yes
+	BUILD_MONITOR=$ol_enable_monitor
+	if test "$ol_enable_monitor" = mod ; then
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_DYNAMIC
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_MONITOR,$MFLAG,[define to support cn=Monitor backend])
+fi
+
 if test "$ol_enable_bdb" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_BDB=$ol_enable_bdb
@@ -2626,19 +2664,6 @@ if test "$ol_enable_meta" != no ; then
 		MFLAG=SLAPD_MOD_STATIC
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_META,$MFLAG,[define to support LDAP Metadirectory backend])
-fi
-
-if test "$ol_enable_monitor" != no ; then
-	BUILD_SLAPD=yes
-	BUILD_MONITOR=$ol_enable_monitor
-	if test "$ol_enable_monitor" = mod ; then
-		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_DYNAMIC
-	else
-		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_MONITOR,$MFLAG,[define to support cn=Monitor backend])
 fi
 
 if test "$ol_enable_null" != no ; then

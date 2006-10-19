@@ -24,13 +24,11 @@
 LDAP_BEGIN_DECL
 
 extern BI_init			ldap_back_initialize;
-
 extern BI_open			ldap_back_open;
-extern BI_close			ldap_back_close;
-extern BI_destroy		ldap_back_destroy;
 
 extern BI_db_init		ldap_back_db_init;
 extern BI_db_open		ldap_back_db_open;
+extern BI_db_close		ldap_back_db_close;
 extern BI_db_destroy		ldap_back_db_destroy;
 
 extern BI_op_bind		ldap_back_bind;
@@ -48,10 +46,9 @@ extern BI_connection_destroy	ldap_back_conn_destroy;
 extern BI_entry_get_rw		ldap_back_entry_get;
 
 int ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock );
-ldapconn_t *ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok );
-void ldap_back_release_conn_lock( Operation *op, SlapReply *rs, ldapconn_t *lc, int dolock );
-#define ldap_back_release_conn(op, rs, lc) ldap_back_release_conn_lock((op), (rs), (lc), 1)
-int ldap_back_dobind( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
+void ldap_back_release_conn_lock( Operation *op, SlapReply *rs, ldapconn_t **lcp, int dolock );
+#define ldap_back_release_conn(op, rs, lc) ldap_back_release_conn_lock((op), (rs), &(lc), 1)
+int ldap_back_dobind( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_map_result( SlapReply *rs );
 int ldap_back_op_result( ldapconn_t *lc, Operation *op, SlapReply *rs,
@@ -84,6 +81,11 @@ ldap_back_quarantine(
 	Operation	*op,
 	SlapReply	*rs );
 
+#ifdef LDAP_BACK_PRINT_CONNTREE
+extern void
+ldap_back_print_conntree( Avlnode *root, char *msg );
+#endif /* LDAP_BACK_PRINT_CONNTREE */
+
 extern void slap_retry_info_destroy( slap_retry_info_t *ri );
 extern int slap_retry_info_parse( char *in, slap_retry_info_t *ri,
 	char *buf, ber_len_t buflen );
@@ -96,6 +98,11 @@ extern int chain_initialize( void );
 #ifdef SLAP_DISTPROC
 extern int distproc_initialize( void );
 #endif
+
+extern int ldap_back_monitor_db_init( BackendDB *be );
+extern int ldap_back_monitor_db_open( BackendDB *be );
+extern int ldap_back_monitor_db_close( BackendDB *be );
+extern int ldap_back_monitor_db_destroy( BackendDB *be );
 
 extern LDAP_REBIND_PROC		ldap_back_default_rebind;
 extern LDAP_URLLIST_PROC	ldap_back_default_urllist;

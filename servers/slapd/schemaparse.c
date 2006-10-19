@@ -176,7 +176,8 @@ parse_oc(
 	int		lineno,
 	char		*line,
 	char		**argv,
-	ObjectClass	**soc )
+	ObjectClass	**soc,
+	ObjectClass *prev )
 {
 	LDAPObjectClass *oc;
 	int		code;
@@ -199,7 +200,7 @@ parse_oc(
 		goto done;
 	}
 
-	code = oc_add( oc, 1, soc, &err );
+	code = oc_add( oc, 1, soc, prev, &err );
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str( code ), err );
@@ -267,7 +268,8 @@ parse_at(
 	int		lineno,
 	char		*line,
 	char		**argv,
-	AttributeType	**sat )
+	AttributeType	**sat,
+	AttributeType	*prev )
 {
 	LDAPAttributeType *at;
 	int		code;
@@ -298,7 +300,7 @@ parse_at(
 		goto done;
 	}
 
-	code = at_add( at, 1, sat, &err);
+	code = at_add( at, 1, sat, prev, &err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);

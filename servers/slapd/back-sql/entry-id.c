@@ -615,10 +615,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		append = 1;
 
 		/* Make space for the array of values */
-		attr = (Attribute *) ch_malloc( sizeof( Attribute ) );
-		attr->a_desc = at->bam_ad;
-		attr->a_flags = 0;
-		attr->a_next = NULL;
+		attr = attr_alloc( at->bam_ad );
 		attr->a_vals = ch_calloc( count + 1, sizeof( struct berval ) );
 		if ( attr->a_vals == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "Out of memory!\n", 0,0,0 );

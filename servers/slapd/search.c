@@ -349,9 +349,28 @@ fe_op_search( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-	/* actually do the search and send the result(s) */
-	if ( op->o_bd->be_search ) {
+	if ( SLAP_SHADOW(op->o_bd) && get_dontUseCopy(op) ) {
+		/* don't use shadow copy */
+		BerVarray defref = op->o_bd->be_update_refs
+			? op->o_bd->be_update_refs : default_referral;
+
+		if( defref != NULL ) {
+			rs->sr_ref = referral_rewrite( defref,
+				NULL, &op->o_req_dn, op->ors_scope );
+			if( !rs->sr_ref) rs->sr_ref = defref;
+			rs->sr_err = LDAP_REFERRAL;
+			send_ldap_result( op, rs );
+
+			if (rs->sr_ref != defref) ber_bvarray_free( rs->sr_ref );
+
+		} else {
+			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"copy not used; no referral information available" );
+		}
+
+	} else if ( op->o_bd->be_search ) {
 		if ( limits_check( op, rs ) == 0 ) {
+			/* actually do the search and send the result(s) */
 			(op->o_bd->be_search)( op, rs );
 		}
 		/* else limits_check() sends error */

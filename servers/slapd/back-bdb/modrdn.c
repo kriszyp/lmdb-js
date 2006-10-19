@@ -578,8 +578,12 @@ retry:	/* transaction retry */
 		{
 			Debug( LDAP_DEBUG_TRACE,        
 				"<=- " LDAP_XSTRING(bdb_modrdn)
-				": post-read failed!\n", 0, 0, 0 );
-			goto return_results;
+				": pre-read failed!\n", 0, 0, 0 );
+			if ( op->o_preread & SLAP_CONTROL_CRITICAL ) {
+				/* FIXME: is it correct to abort
+				 * operation if control fails? */
+				goto return_results;
+			}
 		}                   
 	}
 
@@ -717,7 +721,11 @@ retry:	/* transaction retry */
 			Debug( LDAP_DEBUG_TRACE,        
 				"<=- " LDAP_XSTRING(bdb_modrdn)
 				": post-read failed!\n", 0, 0, 0 );
-			goto return_results;
+			if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
+				/* FIXME: is it correct to abort
+				 * operation if control fails? */
+				goto return_results;
+			}
 		}                   
 	}
 

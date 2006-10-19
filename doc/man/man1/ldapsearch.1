@@ -9,6 +9,8 @@ ldapsearch \- LDAP search tool
 [\c
 .BR \-n ]
 [\c
+.BR \-c ]
+[\c
 .BR \-u ]
 [\c
 .BR \-v ]
@@ -106,6 +108,11 @@ If no \fIattrs\fP are listed, all user attributes are returned.  If only
 Show what would be done, but don't actually perform the search.  Useful for
 debugging in conjunction with -v.
 .TP
+.B \-c
+Continuous operation mode. Errors are reported, but ldapsearch will continue
+with searches. The default is to exit after reporting an error.  Only useful
+in conjunction with -f.
+.TP
 .B \-u
 Include the User Friendly Name form of the Distinguished Name (DN)
 in the output.
@@ -165,9 +172,16 @@ must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .BI \-f \ file
 Read a series of lines from \fIfile\fP, performing one LDAP search for
 each line.  In this case, the \fIfilter\fP given on the command line
-is treated as a pattern where the first occurrence of \fB%s\fP is
-replaced with a line from \fIfile\fP.  If \fIfile\fP is a single \fI-\fP
-character, then the lines are read from standard input.
+is treated as a pattern where the first and only occurrence of \fB%s\fP
+is replaced with a line from \fIfile\fP.  Any other occurence of the
+the \fB%\fP character in the pattern will be regarded as an error.
+Where it is desired that the search filter include a \fB%\fP character,
+the character should be encoded as \fB\\25\fP (see RFC 4515).
+If \fIfile\fP is a single
+\fI-\fP character, then the lines are read from standard input.
+.B ldapsearch
+will exit when the first non-successful search result is returned,
+unless -c is used.
 .TP
 .B \-x 
 Use simple authentication instead of SASL.

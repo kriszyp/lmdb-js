@@ -2469,7 +2469,7 @@ backsql_entry_get(
 		BER_BVZERO( &anlist[ 1 ].an_name );
 	}
 
-	bsi.bsi_e = ch_malloc( sizeof( Entry ) );
+	bsi.bsi_e = entry_alloc();
 	rc = backsql_init_search( &bsi,
 			ndn,
 			LDAP_SCOPE_BASE, 

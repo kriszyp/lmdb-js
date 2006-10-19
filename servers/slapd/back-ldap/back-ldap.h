@@ -24,15 +24,33 @@
 #ifndef SLAPD_LDAP_H
 #define SLAPD_LDAP_H
 
+#include "../back-monitor/back-monitor.h"
+
 LDAP_BEGIN_DECL
 
 struct ldapinfo_t;
+
+/* stuff required for monitoring */
+typedef struct ldap_monitor_info_t {
+	monitor_subsys_t	lmi_mss;
+	struct ldapinfo_t	*lmi_li;
+
+	struct berval		lmi_rdn;
+	struct berval		lmi_nrdn;
+	monitor_callback_t	*lmi_cb;
+	struct berval		lmi_base;
+	int			lmi_scope;
+	struct berval		lmi_filter;
+	struct berval		lmi_more_filter;
+} ldap_monitor_info_t;
 
 typedef struct ldapconn_t {
 	Connection		*lc_conn;
 #define	LDAP_BACK_PCONN		((void *)0x0)
 #define	LDAP_BACK_PCONN_TLS	((void *)0x1)
-#define	LDAP_BACK_PCONN_ID(c)	((void *)(c) > LDAP_BACK_PCONN_TLS ? (c)->c_connid : -1)
+#define LDAP_BACK_PCONN_PRIV	(-1)
+#define LDAP_BACK_PCONN_ISPRIV(lc)	((void *)(lc)->lc_conn <= LDAP_BACK_PCONN_TLS)
+#define	LDAP_BACK_PCONN_ID(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) ? LDAP_BACK_PCONN_PRIV : (lc)->lc_conn->c_connid )
 #ifdef HAVE_TLS
 #define	LDAP_BACK_PCONN_SET(op)	((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_TLS : LDAP_BACK_PCONN)
 #else /* ! HAVE_TLS */
@@ -68,6 +86,7 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_FCONN_ISTLS	(0x00000008U)
 #define	LDAP_BACK_FCONN_BINDING	(0x00000010U)
 #define	LDAP_BACK_FCONN_TAINTED	(0x00000020U)
+#define	LDAP_BACK_FCONN_ISIDASR	(0x00000040U)
 
 /* 0x00FF0000 are reserved for back-meta */
 
@@ -93,6 +112,10 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_CONN_TAINTED(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_TAINTED)
 #define	LDAP_BACK_CONN_TAINTED_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_TAINTED)
 #define	LDAP_BACK_CONN_TAINTED_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_TAINTED)
+#define	LDAP_BACK_CONN_ISIDASSERT(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ISIDASR)
+#define	LDAP_BACK_CONN_ISIDASSERT_SET(lc)	LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ISIDASR)
+#define	LDAP_BACK_CONN_ISIDASSERT_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_ISIDASR)
+#define	LDAP_BACK_CONN_ISIDASSERT_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), LDAP_BACK_FCONN_ISIDASR, (mlc))
 
 	unsigned		lc_refcnt;
 	unsigned		lc_binding;
@@ -100,17 +123,6 @@ typedef struct ldapconn_t {
 	time_t			lc_create_time;
 	time_t			lc_time;
 } ldapconn_t;
-
-/*
- * operation enumeration for timeouts
- */
-enum {
-	LDAP_BACK_OP_ADD = 0,
-	LDAP_BACK_OP_DELETE,
-	LDAP_BACK_OP_MODIFY,
-	LDAP_BACK_OP_MODRDN,
-	LDAP_BACK_OP_LAST
-};
 
 typedef struct ldap_avl_info_t {
 	ldap_pvt_thread_mutex_t		lai_mutex;
@@ -265,6 +277,8 @@ typedef struct ldapinfo_t {
 
 	ldap_avl_info_t	li_conninfo;
 
+	ldap_monitor_info_t	li_monitor_info;
+
 	sig_atomic_t		li_isquarantined;
 #define	LDAP_BACK_FQ_NO		(0)
 #define	LDAP_BACK_FQ_YES	(1)
@@ -279,7 +293,7 @@ typedef struct ldapinfo_t {
 	time_t		li_network_timeout;
 	time_t		li_conn_ttl;
 	time_t		li_idle_timeout;
-	time_t		li_timeout[ LDAP_BACK_OP_LAST ];
+	time_t		li_timeout[ SLAP_OP_LAST ];
 } ldapinfo_t;
 
 typedef enum ldap_back_send_t {
@@ -298,7 +312,9 @@ typedef enum ldap_back_send_t {
 	LDAP_BACK_RETRY_DONTSEND	= (LDAP_BACK_RETRYING),
 	LDAP_BACK_RETRY_SOK		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDOK),
 	LDAP_BACK_RETRY_SERR		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDERR),
-	LDAP_BACK_RETRY_SRES		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDRESULT)
+	LDAP_BACK_RETRY_SRES		= (LDAP_BACK_RETRYING|LDAP_BACK_SENDRESULT),
+
+	LDAP_BACK_GETCONN		= 0x10
 } ldap_back_send_t;
 
 /* define to use asynchronous StartTLS */
@@ -312,6 +328,10 @@ typedef enum ldap_back_send_t {
 		(tv)->tv_sec = LDAP_BACK_RESULT_TIMEOUT; \
 		(tv)->tv_usec = LDAP_BACK_RESULT_UTIMEOUT; \
 	} while ( 0 )
+
+#ifndef LDAP_BACK_PRINT_CONNTREE
+#define LDAP_BACK_PRINT_CONNTREE 0
+#endif /* !LDAP_BACK_PRINT_CONNTREE */
 
 LDAP_END_DECL
 

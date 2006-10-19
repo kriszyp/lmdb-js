@@ -93,11 +93,17 @@ txnReturn:
 
 	/* add opattrs to shadow as well, only missing attrs will actually
 	 * be added; helps compatibility with older OL versions */
-	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+	rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": entry failed op attrs add: "
+			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
+		goto return_results;
+	}
 
 	/* check entry's schema */
 	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
-		get_manageDIT(op), &rs->sr_text, textbuf, textlen );
+		get_relax(op), &rs->sr_text, textbuf, textlen );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": entry failed schema check: "
@@ -237,44 +243,47 @@ retry:	/* transaction retry */
 		goto return_results;;
 	}
 
-	if ( is_entry_subentry( p ) ) {
-		/* parent is a subentry, don't allow add */
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": parent is subentry\n",
-			0, 0, 0 );
-		rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
-		rs->sr_text = "parent is a subentry";
-		goto return_results;;
-	}
-	if ( is_entry_alias( p ) ) {
-		/* parent is an alias, don't allow add */
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": parent is alias\n",
-			0, 0, 0 );
-		rs->sr_err = LDAP_ALIAS_PROBLEM;
-		rs->sr_text = "parent is an alias";
-		goto return_results;;
-	}
+	if ( p != (Entry *)&slap_entry_root ) {
+		if ( is_entry_subentry( p ) ) {
+			/* parent is a subentry, don't allow add */
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(bdb_add) ": parent is subentry\n",
+				0, 0, 0 );
+			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
+			rs->sr_text = "parent is a subentry";
+			goto return_results;;
+		}
 
-	if ( is_entry_referral( p ) ) {
-		/* parent is a referral, don't allow add */
-		rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
-			op->o_tmpmemctx );
-		rs->sr_ref = get_entry_referrals( op, p );
-		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
-		p = NULL;
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": parent is referral\n",
-			0, 0, 0 );
+		if ( is_entry_alias( p ) ) {
+			/* parent is an alias, don't allow add */
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(bdb_add) ": parent is alias\n",
+				0, 0, 0 );
+			rs->sr_err = LDAP_ALIAS_PROBLEM;
+			rs->sr_text = "parent is an alias";
+			goto return_results;;
+		}
 
-		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
-		goto return_results;
-	}
+		if ( is_entry_referral( p ) ) {
+			/* parent is a referral, don't allow add */
+			rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
+				op->o_tmpmemctx );
+			rs->sr_ref = get_entry_referrals( op, p );
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			p = NULL;
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(bdb_add) ": parent is referral\n",
+				0, 0, 0 );
 
-	if ( subentry ) {
-		/* FIXME: */
-		/* parent must be an administrative point of the required kind */
+			rs->sr_err = LDAP_REFERRAL;
+			rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
+			goto return_results;
+		}
+
+		if ( subentry ) {
+			/* FIXME: */
+			/* parent must be an administrative point of the required kind */
+		}
 	}
 
 	/* free parent and reader lock */
@@ -386,7 +395,11 @@ retry:	/* transaction retry */
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- " LDAP_XSTRING(bdb_add) ": post-read "
 				"failed!\n", 0, 0, 0 );
-			goto return_results;
+			if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
+				/* FIXME: is it correct to abort
+				 * operation if control fails? */
+				goto return_results;
+			}
 		}
 	}
 

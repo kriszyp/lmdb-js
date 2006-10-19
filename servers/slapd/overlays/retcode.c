@@ -90,6 +90,27 @@ typedef struct retcode_t {
 static int
 retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e );
 
+static unsigned int
+retcode_sleep( int s )
+{
+	unsigned int r = 0;
+
+	/* sleep as required */
+	if ( s < 0 ) {
+#if 0	/* use high-order bits for better randomness (Numerical Recipes in "C") */
+		r = rand() % (-s);
+#endif
+		r = ((double)(-s))*rand()/(RAND_MAX + 1.0);
+	} else if ( s > 0 ) {
+		r = (unsigned int)s;
+	}
+	if ( r ) {
+		sleep( r );
+	}
+
+	return r;
+}
+
 static int
 retcode_cleanup_cb( Operation *op, SlapReply *rs )
 {
@@ -262,12 +283,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 	slap_callback		*cb = NULL;
 
 	/* sleep as required */
-	if ( rd->rd_sleep < 0 ) {
-		sleep( rand() % ( - rd->rd_sleep ) );
-
-	} else if ( rd->rd_sleep > 0 ) {
-		sleep( rd->rd_sleep );
-	}
+	retcode_sleep( rd->rd_sleep );
 
 	if ( !dnIsSuffix( &op->o_req_ndn, &rd->rd_npdn ) ) {
 		if ( RETCODE_INDIR( rd ) ) {
@@ -416,9 +432,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( rdi->rdi_sleeptime > 0 ) {
-			sleep( rdi->rdi_sleeptime );
-		}
+		retcode_sleep( rdi->rdi_sleeptime );
 	}
 
 	switch ( op->o_tag ) {
@@ -534,9 +548,8 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 	if ( a != NULL && a->a_nvals[ 0 ].bv_val[ 0 ] != '-' ) {
 		int	sleepTime;
 
-		sleepTime = strtoul( a->a_nvals[ 0 ].bv_val, &next, 0 );
-		if ( next != a->a_nvals[ 0 ].bv_val && next[ 0 ] == '\0' ) {
-			sleep( sleepTime );
+		if ( lutil_atoi( &sleepTime, a->a_nvals[ 0 ].bv_val ) == 0 ) {
+			retcode_sleep( sleepTime );
 		}
 	}
 
@@ -618,6 +631,8 @@ retcode_db_init( BackendDB *be )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	retcode_t	*rd;
+
+	srand( getpid() );
 
 	rd = (retcode_t *)ch_malloc( sizeof( retcode_t ) );
 	memset( rd, 0, sizeof( retcode_t ) );
@@ -858,7 +873,6 @@ retcode_db_config(
 
 				} else if ( strncasecmp( argv[ i ], "sleeptime=", STRLENOF( "sleeptime=" ) ) == 0 )
 				{
-					char		*next;
 					if ( rdi.rdi_sleeptime != 0 ) {
 						fprintf( stderr, "%s: line %d: retcode: "
 							"\"sleeptime\" already provided.\n",
@@ -866,8 +880,7 @@ retcode_db_config(
 						return 1;
 					}
 
-					rdi.rdi_sleeptime = strtol( &argv[ i ][ STRLENOF( "sleeptime=" ) ], &next, 10 );
-					if ( next == argv[ i ] || next[ 0 ] != '\0' ) {
+					if ( lutil_atoi( &rdi.rdi_sleeptime, &argv[ i ][ STRLENOF( "sleeptime=" ) ] ) ) {
 						fprintf( stderr, "%s: line %d: retcode: "
 							"unable to parse \"sleeptime=%s\".\n",
 							fname, lineno, &argv[ i ][ STRLENOF( "sleeptime=" ) ] );
@@ -997,7 +1010,7 @@ retcode_db_open( BackendDB *be )
 		}
 
 		/* sleep time */
-		if ( rdi->rdi_sleeptime > 0 ) {
+		if ( rdi->rdi_sleeptime ) {
 			snprintf( buf, sizeof( buf ), "%d", rdi->rdi_sleeptime );
 			ber_str2bv( buf, 0, 0, &val[ 0 ] );
 
@@ -1108,11 +1121,10 @@ retcode_initialize( void )
 	const char	*err;
 
 	static struct {
-		char			*name;
 		char			*desc;
 		AttributeDescription	**ad;
 	} retcode_at[] = {
-	        { "errCode", "( 1.3.6.1.4.1.4203.666.11.4.1.1 "
+	        { "( 1.3.6.1.4.1.4203.666.11.4.1.1 "
 		        "NAME ( 'errCode' ) "
 		        "DESC 'LDAP error code' "
 		        "EQUALITY integerMatch "
@@ -1120,14 +1132,14 @@ retcode_initialize( void )
 		        "SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"SINGLE-VALUE )",
 			&ad_errCode },
-		{ "errOp", "( 1.3.6.1.4.1.4203.666.11.4.1.2 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.2 "
 			"NAME ( 'errOp' ) "
 			"DESC 'Operations the errObject applies to' "
 			"EQUALITY caseIgnoreMatch "
 			"SUBSTR caseIgnoreSubstringsMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 			&ad_errOp},
-		{ "errText", "( 1.3.6.1.4.1.4203.666.11.4.1.3 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.3 "
 			"NAME ( 'errText' ) "
 			"DESC 'LDAP error textual description' "
 			"EQUALITY caseIgnoreMatch "
@@ -1135,14 +1147,14 @@ retcode_initialize( void )
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
 			"SINGLE-VALUE )",
 			&ad_errText },
-		{ "errSleepTime", "( 1.3.6.1.4.1.4203.666.11.4.1.4 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.4 "
 			"NAME ( 'errSleepTime' ) "
 			"DESC 'Time to wait before returning the error' "
 			"EQUALITY integerMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"SINGLE-VALUE )",
 			&ad_errSleepTime },
-		{ "errMatchedDN", "( 1.3.6.1.4.1.4203.666.11.4.1.5 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.5 "
 			"NAME ( 'errMatchedDN' ) "
 			"DESC 'Value to be returned as matched DN' "
 			"EQUALITY distinguishedNameMatch "
@@ -1153,11 +1165,10 @@ retcode_initialize( void )
 	};
 
 	static struct {
-		char		*name;
 		char		*desc;
 		ObjectClass	**oc;
 	} retcode_oc[] = {
-		{ "errAbsObject", "( 1.3.6.1.4.1.4203.666.11.4.3.0 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.3.0 "
 			"NAME ( 'errAbsObject' ) "
 			"SUP top ABSTRACT "
 			"MUST ( errCode ) "
@@ -1170,12 +1181,12 @@ retcode_initialize( void )
 				"$ errMatchedDN "
 			") )",
 			&oc_errAbsObject },
-		{ "errObject", "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
 			"NAME ( 'errObject' ) "
 			"SUP errAbsObject STRUCTURAL "
 			")",
 			&oc_errObject },
-		{ "errAuxObject", "( 1.3.6.1.4.1.4203.666.11.4.3.2 "
+		{ "( 1.3.6.1.4.1.4203.666.11.4.3.2 "
 			"NAME ( 'errAuxObject' ) "
 			"SUP errAbsObject AUXILIARY "
 			")",
@@ -1184,72 +1195,21 @@ retcode_initialize( void )
 	};
 
 
-	for ( i = 0; retcode_at[ i ].name != NULL; i++ ) {
-		LDAPAttributeType	*at;
-
-		at = ldap_str2attributetype( retcode_at[ i ].desc,
-			&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			fprintf( stderr, "retcode: "
-				"AttributeType load failed: %s %s\n",
-				ldap_scherr2str( code ), err );
+	for ( i = 0; retcode_at[ i ].desc != NULL; i++ ) {
+		code = register_at( retcode_at[ i ].desc, retcode_at[ i ].ad, 0 );
+		if ( code ) {
+			Debug( LDAP_DEBUG_ANY,
+				"retcode: register_at failed\n", 0, 0, 0 );
 			return code;
-		}
-
-#if LDAP_VENDOR_VERSION_MINOR == X || LDAP_VENDOR_VERSION_MINOR > 2
-		code = at_add( at, 0, NULL, &err );
-#else
-		code = at_add( at, &err );
-#endif
-		ldap_memfree( at );
-		if ( code != LDAP_SUCCESS ) {
-			fprintf( stderr, "retcode: "
-				"AttributeType load failed: %s %s\n",
-				scherr2str( code ), err );
-			return code;
-		}
-
-		code = slap_str2ad( retcode_at[ i ].name,
-				retcode_at[ i ].ad, &err );
-		if ( code != LDAP_SUCCESS ) {
-			fprintf( stderr, "retcode: unable to find "
-				"AttributeDescription \"%s\": %d (%s)\n",
-				retcode_at[ i ].name, code, err );
-			return 1;
 		}
 	}
 
-	for ( i = 0; retcode_oc[ i ].name != NULL; i++ ) {
-		LDAPObjectClass *oc;
-
-		oc = ldap_str2objectclass( retcode_oc[ i ].desc,
-				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !oc ) {
-			fprintf( stderr, "retcode: "
-				"ObjectClass load failed: %s %s\n",
-				ldap_scherr2str( code ), err );
+	for ( i = 0; retcode_oc[ i ].desc != NULL; i++ ) {
+		code = register_oc( retcode_oc[ i ].desc, retcode_oc[ i ].oc, 0 );
+		if ( code ) {
+			Debug( LDAP_DEBUG_ANY,
+				"retcode: register_oc failed\n", 0, 0, 0 );
 			return code;
-		}
-
-#if LDAP_VENDOR_VERSION_MINOR == X || LDAP_VENDOR_VERSION_MINOR > 2
-		code = oc_add( oc, 0, NULL, &err );
-#else
-		code = oc_add( oc, &err );
-#endif
-		ldap_memfree(oc);
-		if ( code != LDAP_SUCCESS ) {
-			fprintf( stderr, "retcode: "
-				"ObjectClass load failed: %s %s\n",
-				scherr2str( code ), err );
-			return code;
-		}
-
-		*retcode_oc[ i ].oc = oc_find( retcode_oc[ i ].name );
-		if ( *retcode_oc[ i ].oc == NULL ) {
-			fprintf( stderr, "retcode: unable to find "
-				"objectClass \"%s\"\n",
-				retcode_oc[ i ].name );
-			return 1;
 		}
 	}
 

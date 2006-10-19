@@ -73,6 +73,10 @@ fi
 echo "Testing virtual naming context mapping with $RELAYS backend(s)..."
 echo ""
 
+tmpfile=savelog.log
+if test -f $tmpfile ; then
+	rm -f $tmpfile
+fi
 first=1
 for RELAY in $RELAYS ; do
 	RUNIT=yes
@@ -92,11 +96,16 @@ for RELAY in $RELAYS ; do
 			echo ">>>>> waiting for things to exit"
 			test $KILLSERVERS != no && wait
 			echo ""
-	
+
+			mv -f $LOG1 $tmpfile
 			rm -rf $TESTDIR
 		fi
 
 		mkdir -p $TESTDIR $DBDIR1
+
+		if test -f $tmpfile ; then
+			mv $tmpfile $LOG1
+		fi
 	
 		. $SRCDIR/scripts/relay
 	fi
