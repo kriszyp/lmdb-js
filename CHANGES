@@ -8,6 +8,7 @@ OpenLDAP 2.3.28 Release
 	Added ldapsearch bad filter pattern check (ITS#4647)
 	Fixed slapd global access controls initialization (ITS#4654)
 	Fixed slapd setting c_sasl_bindop only on SASL binds
+	Fixed slapd max line length issue (ITS#4651)
 	Fixed slapd return code not being propagated (ITS#4565)
 	Fixed slapd integerBitAndMatch (ITS#4672)
 	Fixed slapd syncrepl modrdn new superior (ITS#4695)

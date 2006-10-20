@@ -1120,7 +1120,7 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 int
 slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0 )
 {
-	char buf[BUFSIZ], *ptr;
+	char buf[AC_LINE_MAX], *ptr;
 	slap_cf_aux_table *tab;
 	struct berval tmp;
 
@@ -1307,7 +1307,7 @@ strtok_quote( char *line, char *sep, char **quote_ptr )
 	return( tmp );
 }
 
-static char	buf[BUFSIZ];
+static char	buf[AC_LINE_MAX];
 static char	*line;
 static size_t lmax, lcur;
 
@@ -1315,7 +1315,7 @@ static size_t lmax, lcur;
 	do { \
 		size_t len = strlen( buf ); \
 		while ( lcur + len + 1 > lmax ) { \
-			lmax += BUFSIZ; \
+			lmax += AC_LINE_MAX; \
 			line = (char *) ch_realloc( line, lmax ); \
 		} \
 		strcpy( line + lcur, buf ); \
