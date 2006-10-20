@@ -102,6 +102,9 @@ ldap_txn_end_s(
 	int rc;
 	BerElement *txnber = NULL;
 	struct berval *txnval = NULL;
+	struct berval *retdata = NULL;
+
+	if ( retidp != NULL ) *retidp = -1;
 
 	txnber = ber_alloc_t( LBER_USE_DER );
 
@@ -114,7 +117,38 @@ ldap_txn_end_s(
 	ber_flatten( txnber, &txnval );
 
 	rc = ldap_extended_operation_s( ld, LDAP_EXOP_X_TXN_END,
-		txnval, sctrls, cctrls, NULL, NULL );
+		txnval, sctrls, cctrls, NULL, &retdata );
+
+	ber_free( txnber, 1 );
+
+	/* parse retdata */
+	if( retdata != NULL ) {
+		BerElement *ber;
+		ber_tag_t tag;
+		ber_int_t retid;
+
+		if( retidp == NULL ) goto done;
+
+		ber = ber_init( retdata );
+
+		if( ber == NULL ) {
+			rc = ld->ld_errno = LDAP_NO_MEMORY;
+			goto done;
+		}
+
+		tag = ber_scanf( ber, "i", &retid );
+		ber_free( ber, 1 );
+
+		if ( tag != LBER_INTEGER ) {
+			rc = ld->ld_errno = LDAP_DECODING_ERROR;
+			goto done;
+		}
+
+		*retidp = (int) retid;
+
+done:
+		ber_bvfree( retdata );
+	}
 
 	return rc;
 }
