@@ -28,6 +28,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "lutil.h"
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
@@ -529,7 +530,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t	*mc;
-	struct timeval	tv = { 0, 0 };
+	struct timeval	save_tv = { 0, 0 },
+			tv;
 	time_t		stoptime = (time_t)-1;
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;
@@ -771,6 +773,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 			 * get a LDAP_TIMELIMIT_EXCEEDED from
 			 * one of them ...
 			 */
+			tv = save_tv;
 			rc = ldap_result( msc->msc_ld, candidates[ i ].sr_msgid,
 					LDAP_MSG_RECEIVED, &tv, &res );
 			switch ( rc ) {
@@ -883,8 +886,8 @@ really_bad:;
 
 					/* don't wait any longer... */
 					gotit = 1;
-					tv.tv_sec = 0;
-					tv.tv_usec = 0;
+					save_tv.tv_sec = 0;
+					save_tv.tv_usec = 0;
 
 				} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
 					char		**references = NULL;
@@ -1204,11 +1207,18 @@ really_bad:;
 
 		/* if no entry was found during this loop,
 		 * set a minimal timeout */
-		if ( gotit == 0 ) {
-			/* make the entire wait last
-			 * LDAP_BACK_RESULT_UTIMEOUT at worst */
-			tv.tv_sec = 0;
-			tv.tv_usec = LDAP_BACK_RESULT_UTIMEOUT/initial_candidates;
+		if ( ncandidates > 0 && gotit == 0 ) {
+			if ( save_tv.tv_sec == 0 && save_tv.tv_usec == 0 ) {
+				save_tv.tv_usec = LDAP_BACK_RESULT_UTIMEOUT/initial_candidates;
+
+				/* arbitrarily limit to something between 1 and 2 minutes */
+			} else if ( ( stoptime == -1 && save_tv.tv_sec < 60 )
+				|| save_tv.tv_sec < ( stoptime - slap_get_time() ) / ( 2 * ncandidates ) )
+			{
+				/* double the timeout */
+				lutil_timermul( &save_tv, 2, &save_tv );
+			}
+
 			ldap_pvt_thread_yield();
 		}
 	}
@@ -1351,14 +1361,13 @@ finish:;
 		if ( mc && META_IS_BINDING( &candidates[ i ] ) ) {
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
-				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
-
 				assert( candidates[ i ].sr_msgid >= 0 );
 				assert( mc->mc_conns[ i ].msc_ld != NULL );
 
 				/* if still binding, destroy */
 				ldap_unbind_ext( mc->mc_conns[ i ].msc_ld, NULL, NULL );
 				mc->mc_conns[ i ].msc_ld = NULL;
+				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
 			}
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			META_BINDING_CLEAR( &candidates[ i ] );
