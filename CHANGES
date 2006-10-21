@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.29 Engineering
+
 OpenLDAP 2.3.28 Release
 	Fixed libldap ldap.conf max line length (ITS#4669)
 	Fixed libldap use keepalive for syncrepl (ITS#4708)
