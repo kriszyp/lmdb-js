@@ -68,7 +68,8 @@
 #include "ldap-int.h"
 #include "ldap_log.h"
 
-static int ldap_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
+static int ldap_abandoned_idx LDAP_P(( LDAP *ld, ber_int_t msgid ));
+#define ldap_abandoned(ld, msgid)	( ldap_abandoned_idx((ld), (msgid)) > -1 )
 static int ldap_mark_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
 static int wait4msg LDAP_P(( LDAP *ld, ber_int_t msgid, int all, struct timeval *timeout,
 	LDAPMessage **result ));
@@ -107,8 +108,8 @@ ldap_result(
 	struct timeval *timeout,
 	LDAPMessage **result )
 {
-	LDAPMessage	*lm;
-	int	rc;
+	LDAPMessage	*lm = NULL;
+	int		rc;
 
 	assert( ld != NULL );
 	assert( result != NULL );
@@ -118,19 +119,26 @@ ldap_result(
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
 #endif
-	lm = chkResponseList(ld, msgid, all);
+
+#if 0
+	/* this is already done inside wait4msg(), right?... */
+	lm = chkResponseList( ld, msgid, all );
+#endif
 
 	if ( lm == NULL ) {
 		rc = wait4msg( ld, msgid, all, timeout, result );
+
 	} else {
 		*result = lm;
 		ld->ld_errno = LDAP_SUCCESS;
 		rc = lm->lm_msgtype;
 	}
+
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
-	return( rc );
+
+	return rc;
 }
 
 static LDAPMessage *
@@ -140,6 +148,7 @@ chkResponseList(
 	int all)
 {
 	LDAPMessage	*lm, **lastlm, *nextlm;
+	int		cnt = 0;
 
 	/*
 	 * Look through the list of responses we have received on
@@ -159,11 +168,12 @@ chkResponseList(
 	lastlm = &ld->ld_responses;
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
+		++cnt;
 
 		if ( ldap_abandoned( ld, lm->lm_msgid ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"ldap_chkResponseList msg abandoned, msgid %d\n",
-			    msgid, 0, 0 );
+				msgid, 0, 0 );
 			ldap_mark_abandoned( ld, lm->lm_msgid );
 
 			/* Remove this entry from list */
@@ -178,14 +188,16 @@ chkResponseList(
 			LDAPMessage	*tmp;
 
 			if ( all == LDAP_MSG_ONE || all == LDAP_MSG_RECEIVED ||
-				msgid == LDAP_RES_UNSOLICITED ) {
+				msgid == LDAP_RES_UNSOLICITED )
+			{
 				break;
 			}
 
 			tmp = lm->lm_chain_tail;
-			if ((tmp->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
+			if ( (tmp->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
 				(tmp->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-				(tmp->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
+				(tmp->lm_msgtype == LDAP_RES_INTERMEDIATE) )
+			{
 				tmp = NULL;
 			}
 
@@ -198,28 +210,38 @@ chkResponseList(
 		lastlm = &lm->lm_next;
 	}
 
-    if ( lm != NULL ) {
+#if 0
+	{
+		char	buf[ BUFSIZ ];
+
+		snprintf( buf, sizeof( buf ), "ld=%p msgid=%d%s cnt=%d",
+			ld, msgid, all ? " all" : "", cnt );
+		Debug( LDAP_DEBUG_TRACE, "+++ chkResponseList %s\n", buf, 0, 0 );
+	}
+#endif
+
+	if ( lm != NULL ) {
 		/* Found an entry, remove it from the list */
-	    if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL ) {
+		if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL ) {
 			*lastlm = lm->lm_chain;
 			lm->lm_chain->lm_next = lm->lm_next;
 			lm->lm_chain->lm_chain_tail = ( lm->lm_chain_tail != lm ) ? lm->lm_chain_tail : lm->lm_chain;
 			lm->lm_chain = NULL;
 			lm->lm_chain_tail = NULL;
-	    } else {
+		} else {
 			*lastlm = lm->lm_next;
 		}
-	    lm->lm_next = NULL;
-    }
+		lm->lm_next = NULL;
+	}
 
 #ifdef LDAP_DEBUG
-	if( lm == NULL) {
+	if ( lm == NULL) {
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_chkResponseList returns ld %p NULL\n", (void *)ld, 0, 0);
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_chkResponseList returns ld %p msgid %d, type 0x%02lu\n",
-			(void *)ld, lm->lm_msgid, (unsigned long) lm->lm_msgtype);
+			(void *)ld, lm->lm_msgid, (unsigned long) lm->lm_msgtype );
 	}
 #endif
     return lm;
@@ -1158,7 +1180,7 @@ ldap_msgfree( LDAPMessage *lm )
 		LDAP_FREE( (char *) lm );
 	}
 
-	return( type );
+	return type;
 }
 
 /*
@@ -1174,62 +1196,95 @@ ldap_msgdelete( LDAP *ld, int msgid )
 
 	assert( ld != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_msgdelete\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_msgdelete ld=%p msgid=%d\n",
+		(void *)ld, msgid, 0 );
 
-	prev = NULL;
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
 #endif
+	prev = NULL;
 	for ( lm = ld->ld_responses; lm != NULL; lm = lm->lm_next ) {
-		if ( lm->lm_msgid == msgid )
+		if ( lm->lm_msgid == msgid ) {
 			break;
+		}
 		prev = lm;
 	}
 
 	if ( lm == NULL ) {
 		rc = -1;
+
 	} else {
-		if ( prev == NULL )
+		if ( prev == NULL ) {
 			ld->ld_responses = lm->lm_next;
-		else
+		} else {
 			prev->lm_next = lm->lm_next;
+		}
 	}
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
-	if ( lm && ldap_msgfree( lm ) == LDAP_RES_SEARCH_ENTRY )
+	if ( lm && ldap_msgfree( lm ) == LDAP_RES_SEARCH_ENTRY ) {
 		rc = -1;
+	}
 
-	return( rc );
+	return rc;
 }
 
 
 /*
- * ldap_abandoned
+ * ldap_abandoned_idx
  *
- * return 1 if message msgid is waiting to be abandoned, 0 otherwise
+ * return the location of the message id in the array of abandoned
+ * message ids, or -1
  *
  * expects ld_res_mutex to be locked
  */
 static int
-ldap_abandoned( LDAP *ld, ber_int_t msgid )
+ldap_abandoned_idx( LDAP *ld, ber_int_t msgid )
 {
-	int	i;
+	int	begin,
+		end;
 
 #ifdef LDAP_R_COMPILE
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
-	if ( ld->ld_abandoned == NULL )
-		return( 0 );
+	assert( ld->ld_nabandoned >= 0 );
 
-	for ( i = 0; ld->ld_abandoned[i] != -1; i++ )
-		if ( ld->ld_abandoned[i] == msgid )
-			return( 1 );
+	if ( ld->ld_abandoned == NULL || ld->ld_nabandoned == 0 ) {
+		return -1;
+	}
 
-	return( 0 );
+	begin = 0;
+	end = ld->ld_nabandoned - 1;
+
+	/* use bisection */
+	if ( msgid < ld->ld_abandoned[ begin ] ) {
+		return -1;
+	}
+
+	if ( msgid > ld->ld_abandoned[ end ] ) {
+		return -1;
+	}
+
+	while ( end >= begin ) {
+		int	pos = (begin + end)/2;
+		int	curid = ld->ld_abandoned[ pos ];
+
+		if ( msgid < curid ) {
+			end = pos - 1;
+
+		} else if ( msgid > curid ) {
+			begin = pos + 1;
+
+		} else {
+			return pos;
+		}
+	}
+
+	/* not abandoned */
+	return -1;
 }
-
 
 /*
  * ldap_mark_abandoned
@@ -1239,25 +1294,22 @@ ldap_abandoned( LDAP *ld, ber_int_t msgid )
 static int
 ldap_mark_abandoned( LDAP *ld, ber_int_t msgid )
 {
-	int	i;
+	int	i, idx;
 
 #ifdef LDAP_R_COMPILE
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
-	if ( ld->ld_abandoned == NULL )
-		return( -1 );
-
-	for ( i = 0; ld->ld_abandoned[i] != -1; i++ )
-		if ( ld->ld_abandoned[i] == msgid )
-			break;
-
-	if ( ld->ld_abandoned[i] == -1 )
-		return( -1 );
-
-	for ( ; ld->ld_abandoned[i] != -1; i++ ) {
-		ld->ld_abandoned[i] = ld->ld_abandoned[i + 1];
+	idx = ldap_abandoned_idx( ld, msgid );
+	if ( idx == -1 ) {
+		return -1;
 	}
 
-	return( 0 );
+	--ld->ld_nabandoned;
+	assert( ld->ld_nabandoned >= 0 );
+	for ( i = idx; i < ld->ld_nabandoned; i++ ) {
+		ld->ld_abandoned[ i ] = ld->ld_abandoned[ i + 1 ];
+	}
+
+	return 0;
 }

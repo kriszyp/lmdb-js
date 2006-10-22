@@ -365,7 +365,8 @@ struct ldap {
 	ldap_pvt_thread_mutex_t	ld_res_mutex;
 #endif
 
-	ber_int_t		*ld_abandoned;	/* array of abandoned requests */
+	ber_len_t	ld_nabandoned;
+	ber_int_t	*ld_abandoned;	/* array of abandoned requests */
 
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
 
@@ -395,6 +396,11 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
 #else
 #define	LDAP_NEXT_MSGID(ld, id)	id = ++(ld)->ld_msgid
 #endif
+
+LDAP_F ( int )
+ldap_int_discard LDAP_P((
+	LDAP *ld,
+	ber_int_t msgid ));
 
 /*
  * in init.c

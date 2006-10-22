@@ -1342,7 +1342,7 @@ ldap_back_cancel(
 	}
 
 	if ( LDAP_BACK_IGNORE( li ) ) {
-		return LDAP_SUCCESS;
+		return ldap_int_discard( lc->lc_ld, msgid );
 	}
 
 	if ( LDAP_BACK_CANCEL( li ) ) {
