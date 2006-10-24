@@ -396,8 +396,11 @@ attribute of the database entry in the configuration backend.
 .TP
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.  Useful when
-\fBchase-referrals\fP is set to \fByes\fP, useless otherwise.
+for rebinds, when trying to re-establish a broken connection,
+or when chasing a referral, if 
+.B chase-referrals
+is set to
+.IR yes .
 
 .TP
 .B single\-conn {NO|yes}

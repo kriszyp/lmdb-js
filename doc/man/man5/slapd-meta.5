@@ -163,7 +163,11 @@ it affects all targets with the same pattern.
 .TP
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.
+for rebinds, when trying to re-establish a broken connection,
+or when chasing a referral, if 
+.B chase-referrals
+is set to
+.IR yes .
 
 .TP
 .B single\-conn {NO|yes}
