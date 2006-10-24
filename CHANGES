@@ -1,6 +1,8 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.29 Engineering
+	Documentation
+		Fixed slapd-ldap/meta(5) missing network-timeout (ITS#4718)
 
 OpenLDAP 2.3.28 Release
 	Fixed libldap ldap.conf max line length (ITS#4669)

@@ -262,6 +262,18 @@ See
 .BR slapd-ldap (5).
 
 .TP
+.B network-timeout <time>
+Sets the network timeout value after which
+.BR poll (2)/ select (2) 
+following a 
+.BR connect (2) 
+returns in case of no activity.
+The value is in seconds, and it can be specified as for
+.BR idle-timeout .
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
 .B nretries {forever|never|<nretries>}
 This directive defines how many times a bind should be retried
 in case of temporary failure in contacting a target.  If defined
