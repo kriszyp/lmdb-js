@@ -146,7 +146,11 @@ identity to be deferred until actually needed by subsequent operations.
 .TP
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.
+for rebinds, when trying to re-establish a broken connection,
+or when chasing a referral, if 
+.B chase-referrals
+is set to
+.IR yes .
 
 .SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:

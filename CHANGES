@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.29 Engineering
 	Documentation
+		Fixed slapd-ldap/meta(5) rebind-as-user usage (ITS#4715)
 		Fixed slapd-ldap/meta(5) missing network-timeout (ITS#4718)
 
 OpenLDAP 2.3.28 Release
