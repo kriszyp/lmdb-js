@@ -229,4 +229,11 @@ ldap_pvt_thread_self( void )
 	return(0);
 }
 
+ldap_pvt_thread_t
+ldap_pvt_thread_pool_tid( void *vctx )
+{
+
+	return(0);
+}
+
 #endif /* NO_THREADS */
