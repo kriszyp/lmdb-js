@@ -1,4 +1,5 @@
 /* dynlist.c - dynamic list overlay */
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2003-2006 The OpenLDAP Foundation.
