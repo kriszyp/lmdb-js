@@ -835,8 +835,8 @@ void connection_closing( Connection *c, const char *why )
 			 * connection_resched / connection_close before we
 			 * finish, but that's OK.
 			 */
-			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			slapd_clr_write( sd, 1 );
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			ldap_pvt_thread_mutex_lock( &c->c_write_mutex );
 			ldap_pvt_thread_mutex_lock( &c->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &c->c_write_mutex );
