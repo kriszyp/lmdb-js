@@ -282,8 +282,13 @@ old_good:
 					 * if it cares... */
 
 		rs->sr_err = op->o_bd->be_modify( op, rs );
+
+		/* be_modify() might have shuffled modifications */
+		qpw->rs_mods = op->orm_modlist;
+
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_rspdata = rsp;
+
 		} else if ( rsp ) {
 			ber_bvfree( rsp );
 			rsp = NULL;
@@ -520,8 +525,7 @@ void
 slap_passwd_generate( struct berval *pass )
 {
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_generate\n", 0, 0, 0 );
-	pass->bv_val = NULL;
-	pass->bv_len = 0;
+	BER_BVZERO( pass );
 
 	/*
 	 * generate passwords of only 8 characters as some getpass(3)
