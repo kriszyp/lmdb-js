@@ -16,9 +16,19 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
+
+#include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap-int.h"
+#include "ldap_log.h"
 
 /*
  *	BindRequest ::= SEQUENCE {
@@ -39,20 +49,8 @@
  *		serverSaslCreds		OCTET STRING OPTIONAL -- LDAPv3
  *	}
  *
+ * (Source: RFC 2251)
  */
-
-#include "portable.h"
-
-#include <stdio.h>
-
-#include <ac/stdlib.h>
-
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/time.h>
-
-#include "ldap-int.h"
-#include "ldap_log.h"
 
 /*
  * ldap_bind - bind to the ldap server (and X.500).  The dn and password

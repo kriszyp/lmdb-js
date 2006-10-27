@@ -15,9 +15,6 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
 
 #include "portable.h"
 
@@ -28,6 +25,32 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/* A modify request/response looks like this:
+ *        ModifyRequest ::= [APPLICATION 6] SEQUENCE {              
+ *             object          LDAPDN,
+ *             changes         SEQUENCE OF change SEQUENCE {
+ *                  operation       ENUMERATED {      
+ *                       add     (0),                
+ *                       delete  (1),                 
+ *                       replace (2),
+ *                       ...  },
+ *                  modification    PartialAttribute } }                  
+ *
+ *        PartialAttribute ::= SEQUENCE {
+ *             type       AttributeDescription,
+ *             vals       SET OF value AttributeValue }
+ *
+ *        AttributeDescription ::= LDAPString           
+ *              -- Constrained to <attributedescription> [RFC4512]
+ *                                      
+ *        AttributeValue ::= OCTET STRING
+ *		
+ *        ModifyResponse ::= [APPLICATION 7] LDAPResult
+ *
+ * (Source: RFC 4511)
+ */
+
 
 /*
  * ldap_modify_ext - initiate an ldap extended modify operation.
@@ -64,25 +87,6 @@ ldap_modify_ext( LDAP *ld,
 	BerElement	*ber;
 	int		i, rc;
 	ber_int_t	id;
-
-	/*
-	 * A modify request looks like this:
-	 *	ModifyRequet ::= SEQUENCE {
-	 *		object		DistinguishedName,
-	 *		modifications	SEQUENCE OF SEQUENCE {
-	 *			operation	ENUMERATED {
-	 *				add	(0),
-	 *				delete (1),
-	 *				replace	(2),
-	 *				increment (3) -- extension
-	 *			},
-	 *			modification	SEQUENCE {
-	 *				type	AttributeType,
-	 *				values	SET OF AttributeValue
-	 *			}
-	 *		}
-	 *	}
-	 */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_modify_ext\n", 0, 0, 0 );
 

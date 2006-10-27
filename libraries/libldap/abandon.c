@@ -16,14 +16,6 @@
 /* Portions  Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997).
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
-
-/*
- * An abandon request looks like this:
- *	AbandonRequest ::= MessageID
- */
 
 #include "portable.h"
 
@@ -36,6 +28,12 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/*
+ * An abandon request looks like this:
+ *		AbandonRequest ::= [APPLICATION 16] MessageID
+ * and has no response.  (Source: RFC 4511)
+ */
 
 static int
 do_abandon(

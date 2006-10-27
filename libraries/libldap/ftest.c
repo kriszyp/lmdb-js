@@ -38,7 +38,7 @@ int usage()
 {
 	fprintf( stderr, "usage:\n"
 		"  ftest [-d n] filter\n"
-		"    filter - RFC 2254 string representation of an "
+		"    filter - RFC 4515 string representation of an "
 			"LDAP search filter\n" );
 	return EXIT_FAILURE;
 }

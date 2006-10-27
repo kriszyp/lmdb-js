@@ -16,20 +16,6 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997).
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
-
-/*
- * An add request looks like this:
- *	AddRequest ::= SEQUENCE {
- *		entry	DistinguishedName,
- *		attrs	SEQUENCE OF SEQUENCE {
- *			type	AttributeType,
- *			values	SET OF AttributeValue
- *		}
- *	}
- */
 
 #include "portable.h"
 
@@ -40,6 +26,30 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/* An LDAP Add Request/Response looks like this:
+ *        AddRequest ::= [APPLICATION 8] SEQUENCE {
+ *            entry           LDAPDN,
+ *            attributes      AttributeList }
+ *
+ *        AttributeList ::= SEQUENCE OF attribute Attribute
+ *
+ *        Attribute ::= PartialAttribute(WITH COMPONENTS {
+ *             ...,
+ *             vals (SIZE(1..MAX))})
+ *
+ *        PartialAttribute ::= SEQUENCE {
+ *             type       AttributeDescription,
+ *             vals       SET OF value AttributeValue }
+ *
+ *        AttributeDescription ::= LDAPString           
+ *             -- Constrained to <attributedescription> [RFC4512]
+ *                                      
+ *        AttributeValue ::= OCTET STRING
+ *        
+ *        AddResponse ::= [APPLICATION 9] LDAPResult 
+ * (Source: RFC 4511)
+ */
 
 /*
  * ldap_add - initiate an ldap add operation.  Parameters:

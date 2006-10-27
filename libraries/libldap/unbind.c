@@ -15,16 +15,6 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
-
-/* An Unbind Request looks like this:
- *
- *	UnbindRequest ::= NULL
- *
- * and has no response.
- */
 
 #include "portable.h"
 
@@ -36,6 +26,13 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/* An Unbind Request looks like this:
+ *
+ *	UnbindRequest ::= [APPLICATION 2] NULL
+ *
+ * and has no response.  (Source: RFC 4511)
+ */
 
 int
 ldap_unbind_ext(

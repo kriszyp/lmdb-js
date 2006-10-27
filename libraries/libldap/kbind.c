@@ -15,9 +15,20 @@
 /* Portions Copyright (c) 1993 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
+
+#include "portable.h"
+
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+
+#include <stdio.h>
+#include <ac/stdlib.h>
+
+#include <ac/krb.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap-int.h"
 
 /*
  *	BindRequest ::= SEQUENCE {
@@ -39,20 +50,6 @@
  *	}
  *
  */
-
-#include "portable.h"
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-
-#include <stdio.h>
-#include <ac/stdlib.h>
-
-#include <ac/krb.h>
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/time.h>
-
-#include "ldap-int.h"
 
 /*
  * ldap_kerberos_bind1 - initiate a bind to the ldap server using

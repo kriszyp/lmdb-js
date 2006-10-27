@@ -15,9 +15,6 @@
 /* Portions Copyright (c) 1993 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
 
 /*
  *	BindRequest ::= SEQUENCE {

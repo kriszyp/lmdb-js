@@ -16,9 +16,6 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (2006)
- * ASN.1 fragments are from RFC 4511; see RFC for full legal notices.
- */
 
 #include "portable.h"
 
@@ -804,6 +801,8 @@ put_vrFilter( BerElement *ber, const char *str_in )
 	 *		matchingRule    [1] MatchingRuleId OPTIONAL,
 	 *		type            [2] AttributeDescription OPTIONAL,
 	 *		matchValue      [3] AssertionValue }
+	 *
+	 * (Source: RFC 3876)
 	 */
 
 	Debug( LDAP_DEBUG_TRACE, "put_vrFilter: \"%s\"\n", str_in, 0, 0 );

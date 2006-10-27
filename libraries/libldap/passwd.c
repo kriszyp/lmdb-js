@@ -27,7 +27,7 @@
 #include "ldap-int.h"
 
 /*
- * LDAP Password Modify (Extended) Operation <RFC 3062>
+ * LDAP Password Modify (Extended) Operation (RFC 3062)
  */
 
 int ldap_parse_passwd(

@@ -23,22 +23,9 @@
  * without restriction or fee of any kind as long as this notice
  * is preserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC 2251 for full legal notices.
- */
 
 /* ACKNOWLEDGEMENTS:
  * 	Juan C. Gomez
- */
-
-/*
- * A modify rdn request looks like this:
- *	ModifyRDNRequest ::= SEQUENCE {
- *		entry		DistinguishedName,
- *		newrdn		RelativeDistinguishedName,
- *		deleteoldrdn	BOOLEAN
- *		newSuperior	[0] DistinguishedName	[v3 only]
- *	}
  */
 
 #include "portable.h"
@@ -50,6 +37,17 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/*
+ * A modify rdn request looks like this:
+ *	ModifyRDNRequest ::= SEQUENCE {
+ *		entry		DistinguishedName,
+ *		newrdn		RelativeDistinguishedName,
+ *		deleteoldrdn	BOOLEAN
+ *		newSuperior	[0] DistinguishedName	[v3 only]
+ *	}
+ */
+
 
 /*
  * ldap_rename - initiate an ldap extended modifyDN operation.

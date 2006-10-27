@@ -337,16 +337,16 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
  * from ( fin & LDAP_DN_FORMAT_MASK ) to ( fout & LDAP_DN_FORMAT_MASK )
  * 
  * fin can be one of:
- * 	LDAP_DN_FORMAT_LDAP		(rfc 2253 and ldapbis liberal, 
- * 					plus some rfc 1779)
- * 	LDAP_DN_FORMAT_LDAPV3		(rfc 2253 and ldapbis)
- * 	LDAP_DN_FORMAT_LDAPV2		(rfc 1779)
+ * 	LDAP_DN_FORMAT_LDAP		(RFC 4514 and ldapbis liberal, 
+ * 					plus some RFC 1779)
+ * 	LDAP_DN_FORMAT_LDAPV3	(RFC 4514 and ldapbis)
+ * 	LDAP_DN_FORMAT_LDAPV2	(RFC 1779)
  * 	LDAP_DN_FORMAT_DCE		(?)
  *
  * fout can be any of the above except
  * 	LDAP_DN_FORMAT_LDAP
  * plus:
- * 	LDAP_DN_FORMAT_UFN		(rfc 1781, partial and with extensions)
+ * 	LDAP_DN_FORMAT_UFN		(RFC 1781, partial and with extensions)
  * 	LDAP_DN_FORMAT_AD_CANONICAL	(?)
  */
 int

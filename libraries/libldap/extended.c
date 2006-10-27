@@ -12,9 +12,18 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* Portions Copyright (C) The Internet Society (1997).
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
+
+#include "portable.h"
+
+#include <stdio.h>
+#include <ac/stdlib.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap-int.h"
+#include "ldap_log.h"
 
 /*
  * LDAPv3 Extended Operation Request
@@ -30,19 +39,8 @@
  *		response         [11] OCTET STRING OPTIONAL
  *	}
  *
+ * (Source RFC 4511)
  */
-
-#include "portable.h"
-
-#include <stdio.h>
-#include <ac/stdlib.h>
-
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/time.h>
-
-#include "ldap-int.h"
-#include "ldap_log.h"
 
 int
 ldap_extended_operation(

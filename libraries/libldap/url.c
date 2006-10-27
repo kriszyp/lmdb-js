@@ -1,4 +1,4 @@
-/* LIBLDAP url.c -- LDAP URL (RFC 2255) related routines */
+/* LIBLDAP url.c -- LDAP URL (RFC 4516) related routines */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
@@ -25,7 +25,7 @@
  *  where:
  *   attributes is a comma separated list
  *   scope is one of these three strings:  base one sub (default=base)
- *   filter is an string-represented filter as in RFC 2254
+ *   filter is an string-represented filter as in RFC 4515
  *
  *  e.g.,  ldap://host:port/dc=com?o,cn?base?(o=openldap)?extension
  *

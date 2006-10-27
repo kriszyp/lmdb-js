@@ -15,15 +15,6 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/*
- * Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
-
-/*
- * A delete request looks like this:
- *	DelRequet ::= DistinguishedName,
- */
 
 #include "portable.h"
 
@@ -34,6 +25,12 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/*
+ * A delete request looks like this:
+ *	DelRequet ::= DistinguishedName,
+ */
+
 
 /*
  * ldap_delete_ext - initiate an ldap extended delete operation. Parameters:
