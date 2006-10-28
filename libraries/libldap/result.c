@@ -537,7 +537,7 @@ nextresp3:
 
 	/* if it's been abandoned, toss it */
 	if ( ldap_abandoned( ld, id ) ) {
-		Debug( LDAP_DEBUG_ANY, "abandoned ld %p msgid %ld\n",
+		Debug( LDAP_DEBUG_ANY, "abandoned/discarded ld %p msgid %ld\n",
 			(void *)ld, (long) id, 0);
 retry_ber:
 		ber_free( ber, 1 );
