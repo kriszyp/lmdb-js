@@ -1003,15 +1003,8 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 		 * an AttributeType can be encoded as:
 		 * - its string representation; in detail, implementations
 		 *   MUST recognize AttributeType string type names listed 
-		 *   in section 2.3 of draft-ietf-ldapbis-dn-XX.txt, and
-		 *   MAY recognize other names.
-		 * - its numeric OID (a dotted decimal string); in detail
-		 *   RFC 2253 asserts that ``Implementations MUST allow 
-		 *   an oid in the attribute type to be prefixed by one 
-		 *   of the character strings "oid." or "OID."''.  As soon
-		 *   as draft-ietf-ldapbis-dn-XX.txt obsoletes RFC 2253 
-		 *   I'm not sure whether this is required or not any 
-		 *   longer; to be liberal, we still implement it.
+		 *   in Section 3 of RFC 4514, and MAY recognize other names.
+		 * - its numeric OID (a dotted decimal string)
 		 */
 		case B4AVA:
 			if ( LDAP_DN_ASCII_SPACE( p[ 0 ] ) ) {
@@ -1111,9 +1104,8 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 				if ( LDAP_DN_LANG_SEP( p[ 0 ] ) ) {
 					
 					/*
-					 * RFC 2253 does not explicitly
-					 * allow lang extensions to attribute 
-					 * types in DNs ... 
+					 * RFC 4514 explicitly does not allow attribute
+					 * description options, such as language tags.
 					 */
 					if ( flags & LDAP_DN_PEDANTIC ) {
 						goto parsing_error;
@@ -1233,7 +1225,7 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 			}
 
 			/*
-			 * here STRING means RFC 2253 string
+			 * here STRING means RFC 4514 string
 			 * FIXME: what about DCE strings? 
 			 */
 			if ( !p[ 0 ] ) {
