@@ -1073,7 +1073,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 	ber_tag_t	tag;
 	int		err;
 	ComponentFilter	f;
-	/* TAG : item, and, or, not in RFC 2254 */
+	/* TAG : item, and, or, not in RFC 4515 */
 	tag = strip_cav_tag( cav );
 
 	if ( tag == LBER_ERROR ) {

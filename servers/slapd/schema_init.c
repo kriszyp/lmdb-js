@@ -710,11 +710,14 @@ bitStringValidate(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	/*
-	 * RFC 2252 section 6.3 Bit String
-	 *	bitstring = "'" *binary-digit "'B"
-	 *	binary-digit = "0" / "1"
-	 * example: '0101111101'B
+	/* RFC 4517 Section 3.3.2 Bit String:
+     *	BitString    = SQUOTE *binary-digit SQUOTE "B"
+     *	binary-digit = "0" / "1"
+	 *
+	 * where SQUOTE [RFC4512] is
+	 *	SQUOTE  = %x27 ; single quote ("'")
+	 *
+	 * Example: '0101111101'B
 	 */
 	
 	if( in->bv_val[0] != '\'' ||
@@ -734,39 +737,7 @@ bitStringValidate(
 }
 
 /*
- * Syntax is [RFC2252]:
- *
-
-6.3. Bit String
-
-   ( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )
-
-   Values in this syntax are encoded according to the following BNF:
-
-      bitstring = "'" *binary-digit "'B"
-
-      binary-digit = "0" / "1"
-
-   ... 
-
-6.21. Name And Optional UID
-
-   ( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )
-
-   Values in this syntax are encoded according to the following BNF:
-
-      NameAndOptionalUID = DistinguishedName [ "#" bitstring ]
-
-   Although the '#' character may occur in a string representation of a
-   distinguished name, no additional special quoting is done.  This
-   syntax has been added subsequent to RFC 1778.
-
-   Example:
-
-      1.3.6.1.4.1.1466.0=#04024869,O=Test,C=GB#'0101'B
-
- *
- * draft-ietf-ldapbis-syntaxes-xx.txt says:
+ * Syntaxes from RFC 4517
  *
 
 3.3.2.  Bit String

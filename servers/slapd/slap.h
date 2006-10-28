@@ -157,7 +157,7 @@ LDAP_BEGIN_DECL
  * on normalized/pretty DN, such that ';' is never used
  * as RDN separator, and all occurrences of ';' must be escaped */
 #define DN_SEPARATOR(c)	((c) == ',')
-#define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 2253 */
+#define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 4514 */
 #define RDN_SEPARATOR(c) (DN_SEPARATOR(c) || RDN_ATTRTYPEANDVALUE_SEPARATOR(c))
 #define RDN_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
@@ -461,7 +461,7 @@ typedef struct slap_matching_rule_use MatchingRuleUse;
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
 	MatchingRuleUse			*smr_mru;
-	/* RFC2252 string representation */
+	/* RFC 4512 string representation */
 	struct berval			smr_str;
 	/*
 	 * Note: the former
@@ -590,7 +590,7 @@ typedef struct slap_matching_rule {
 struct slap_matching_rule_use {
 	LDAPMatchingRuleUse		smru_mruleuse;
 	MatchingRule			*smru_mr;
-	/* RFC2252 string representation */
+	/* RFC 4512 string representation */
 	struct berval			smru_str;
 
 	LDAP_SLIST_ENTRY(slap_matching_rule_use) smru_next;

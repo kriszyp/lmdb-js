@@ -1,4 +1,4 @@
-/* str2filter.c - parse an RFC 2554 string filter */
+/* str2filter.c - parse an RFC 4515 string filter */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
