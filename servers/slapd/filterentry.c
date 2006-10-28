@@ -276,14 +276,14 @@ static int test_mra_filter(
 					if ( normalize_attribute && mra->ma_rule->smr_normalize ) {
 						/*
 				
-				Document: draft-ietf-ldapbis-protocol
+				Document: RFC 4511
 
 				    4.5.1. Search Request 
 				        ...
 				    If the type field is present and the matchingRule is present, 
 			            the matchValue is compared against entry attributes of the 
 			            specified type. In this case, the matchingRule MUST be one 
-				    suitable for use with the specified type (see [Syntaxes]), 
+				    suitable for use with the specified type (see [RFC4517]), 
 				    otherwise the filter item is Undefined.  
 
 

@@ -337,9 +337,8 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
  * from ( fin & LDAP_DN_FORMAT_MASK ) to ( fout & LDAP_DN_FORMAT_MASK )
  * 
  * fin can be one of:
- * 	LDAP_DN_FORMAT_LDAP		(RFC 4514 and ldapbis liberal, 
- * 					plus some RFC 1779)
- * 	LDAP_DN_FORMAT_LDAPV3	(RFC 4514 and ldapbis)
+ * 	LDAP_DN_FORMAT_LDAP		(RFC 4514 liberal, plus some RFC 1779)
+ * 	LDAP_DN_FORMAT_LDAPV3	(RFC 4514)
  * 	LDAP_DN_FORMAT_LDAPV2	(RFC 1779)
  * 	LDAP_DN_FORMAT_DCE		(?)
  *
@@ -433,14 +432,14 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 #define LDAP_DN_VALUE_END(c) \
 	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) )
 
-/* NOTE: according to draft-ietf-ldapbis-dn, '=' can be escaped
- * and treated as special, i.e. escaped both as "\<hexpair>" and
- * as "\=", but it is treated as a regular char, i.e. it can also 
- * appear as '='.
+/* NOTE: according to RFC 4514, '=' can be escaped and treated as special,
+ * i.e. escaped both as "\<hexpair>" and * as "\=", but it is treated as
+ * a regular char, i.e. it can also appear as '='.
  *
- * As such, in 2.2 we used to allow reading unescaped '=',
- * but we always produced escaped '\3D'; this changes 
- * since 2.3, if compatibility issues do not arise */
+ * As such, in 2.2 we used to allow reading unescaped '=', but we always
+ * produced escaped '\3D'; this changes since 2.3, if compatibility issues
+ * do not arise
+ */
 #define LDAP_DN_NE(c) \
 	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
 	  || LDAP_DN_QUOTES(c) \

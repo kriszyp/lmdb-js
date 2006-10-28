@@ -1028,7 +1028,7 @@ get_token( const char ** sp, char ** token_val )
 			**sp != '$' &&
 			**sp != '\'' &&
 			/* for suggested minimum upper bound on the number
-			 * of characters <draft-ietf-ldapbis-syntaxes> */
+			 * of characters (RFC 4517) */
 			**sp != '{' &&
 			**sp != '\0' )
 			(*sp)++;

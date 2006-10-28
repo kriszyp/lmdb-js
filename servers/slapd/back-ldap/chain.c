@@ -421,7 +421,7 @@ ldap_chain_op(
 		/* We're setting the URI of the first referral;
 		 * what if there are more?
 
-Document: draft-ietf-ldapbis-protocol-27.txt
+Document: RFC 4511
 
 4.1.10. Referral 
    ...

@@ -795,7 +795,7 @@ bitStringValidate(
    [X.520].
 
  *
- * draft-ietf-ldapbis-models-xx.txt [MODELS] says:
+ * RFC 4512 says:
  *
 
 1.4. Common ABNF Productions
@@ -813,11 +813,11 @@ bitStringValidate(
  * 
  * 1.3.6.1.4.1.1466.0=#04024869,o=test,c=gb#'101'B
  * 
- * Since draft-ietf-ldapbis-dn-xx.txt clarifies that SHARP,
- * i.e. "#", doesn't have to be escaped except when at the
- * beginning of a value, the definition of Name and Optional
- * UID appears to be flawed, because there is no clear means
- * to determine whether the UID part is present or not.
+ * RFC 4514 clarifies that SHARP, i.e. "#", doesn't have to
+ * be escaped except when at the beginning of a value, the
+ * definition of Name and Optional UID appears to be flawed,
+ * because there is no clear means to determine whether the
+ * UID part is present or not.
  *
  * Example:
  *
@@ -1263,7 +1263,7 @@ Summary:
 
   TelephoneNumber	subset	subset	i + ignore all spaces and "-"
 
-  See draft-ietf-ldapbis-strpro for details (once published).
+  See RFC 4518 for details.
 
 
 Directory String -
