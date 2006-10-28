@@ -852,18 +852,13 @@ backend_check_controls(
 
 			case LDAP_COMPARE_FALSE:
 				if ( !op->o_bd->be_ctrls[cid] && (*ctrls)->ldctl_iscritical ) {
-					/* Per RFC 2251 (and LDAPBIS discussions), if the control
-					 * is recognized and appropriate for the operation (which
-					 * we've already verified), then the server should make
-					 * use of the control when performing the operation.
-					 * 
-					 * Here we find that operation extended by the control
-					 * is unavailable in a particular context, and the control
-					 * is marked Critical, hence the return of
-					 * unwillingToPerform.
+					/* RFC 4511 allows unavailableCriticalExtension to be
+					 * returned when the server is unwilling to perform
+					 * an operation extended by a recognized critical
+					 * control.
 					 */
 					rs->sr_text = "critical control unavailable in context";
-					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 					goto done;
 				}
 				break;
