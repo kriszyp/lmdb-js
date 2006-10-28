@@ -170,17 +170,18 @@ meta_back_conn_free(
 {
 	metaconn_t		*mc = v_mc;
 	int			ntargets;
+	Operation		op;
 
 	assert( mc != NULL );
 	assert( mc->mc_refcnt == 0 );
 
 	/* at least one must be present... */
 	assert( mc->mc_conns != NULL );
-	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
+	ntargets = mc->mc_info->mi_ntargets;
 	assert( ntargets > 0 );
 
 	for ( ; ntargets--; ) {
-		(void)meta_clear_one_candidate( &mc->mc_conns[ ntargets ] );
+		(void)meta_clear_one_candidate( NULL, mc, ntargets );
 	}
 
 	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {

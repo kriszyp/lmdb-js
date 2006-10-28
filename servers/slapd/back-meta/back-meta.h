@@ -162,12 +162,11 @@ ldap_dnattr_result_rewrite(
 
 struct metainfo_t;
 
-typedef struct metasingleconn_t {
-	int			msc_candidate;
-#define	META_NOT_CANDIDATE	((ber_tag_t)0x0)
-#define	META_CANDIDATE		((ber_tag_t)0x1)
-#define	META_BINDING		((ber_tag_t)0x2)
+#define	META_NOT_CANDIDATE		((ber_tag_t)0x0)
+#define	META_CANDIDATE			((ber_tag_t)0x1)
+#define	META_BINDING			((ber_tag_t)0x2)
 
+typedef struct metasingleconn_t {
 #define META_CND_ISSET(rs,f)		( ( (rs)->sr_tag & (f) ) == (f) )
 #define META_CND_SET(rs,f)		( (rs)->sr_tag |= (f) )
 #define META_CND_CLEAR(rs,f)		( (rs)->sr_tag &= ~(f) )
@@ -188,8 +187,6 @@ typedef struct metasingleconn_t {
 	/* NOTE: lc_lcflags is redefined to msc_mscflags to reuse the macros
 	 * defined for back-ldap */
 #define	lc_lcflags		msc_mscflags
-
-	struct metainfo_t	*msc_info;
 } metasingleconn_t;
 
 typedef struct metaconn_t {
@@ -212,6 +209,9 @@ typedef struct metaconn_t {
 	int             	mc_authz_target;
 #define META_BOUND_NONE		(-1)
 #define META_BOUND_ALL		(-2)
+
+	struct metainfo_t	*mc_info;
+
 	/* supersedes the connection stuff */
 	metasingleconn_t	mc_conns[ 1 ];
 	/* NOTE: mc_conns must be last, because
@@ -490,7 +490,9 @@ meta_clear_unused_candidates(
 
 extern int
 meta_clear_one_candidate(
-	metasingleconn_t	*mc );
+	Operation		*op,
+	metaconn_t		*mc,
+	int			candidate );
 
 extern int
 meta_clear_candidates(

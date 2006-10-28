@@ -110,6 +110,7 @@ meta_search_dobind_init(
 		LDAP_BACK_CONN_BINDING_SET( msc );
 	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+
 	if ( retcode != META_SEARCH_BINDING ) {
 		return retcode;
 	}
@@ -186,6 +187,7 @@ meta_search_dobind_init(
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 	switch ( rc ) {
 	case LDAP_SUCCESS:
+		assert( candidates[ candidate ].sr_msgid >= 0 );
 		META_BINDING_SET( &candidates[ candidate ] );
 		return META_SEARCH_BINDING;
 
@@ -194,6 +196,7 @@ down:;
 		/* This is the worst thing that could happen:
 		 * the search will wait until the retry is over. */
 		if ( meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
+			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 			return META_SEARCH_CANDIDATE;
 		}
 
@@ -536,7 +539,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;
 	int		last = 0, ncandidates = 0,
-			initial_candidates = 0, candidate_match = 0;
+			initial_candidates = 0, candidate_match = 0,
+			needbind = 0;
+	ldap_back_send_t	sendok = LDAP_BACK_SENDERR;
 	long		i;
 	dncookie	dc;
 	int		is_ok = 0;
@@ -549,7 +554,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	mc = meta_back_getconn( op, rs, NULL, LDAP_BACK_SENDERR );
+getconn:;
+	mc = meta_back_getconn( op, rs, NULL, sendok );
 	if ( !mc ) {
 		return rs->sr_err;
 	}
@@ -585,9 +591,12 @@ meta_back_search( Operation *op, SlapReply *rs )
 		case META_SEARCH_NOT_CANDIDATE:
 			break;
 
+		case META_SEARCH_NEED_BIND:
+			++needbind;
+			/* fallthru */
+
 		case META_SEARCH_CANDIDATE:
 		case META_SEARCH_BINDING:
-		case META_SEARCH_NEED_BIND:
 			candidates[ i ].sr_type = REP_INTERMEDIATE;
 			++ncandidates;
 			break;
@@ -600,6 +609,26 @@ meta_back_search( Operation *op, SlapReply *rs )
 			rc = -1;
 			goto finish;
 		}
+	}
+
+	if ( ncandidates > 0 && needbind == ncandidates ) {
+		assert( ( sendok & LDAP_BACK_BINDING ) == 0 );
+
+		/* FIXME: better create a separate connection? */
+		sendok |= LDAP_BACK_BINDING;
+
+#if 0
+		Debug( LDAP_DEBUG_TRACE, "*** %s drop mc=%p create new connection\n",
+			op->o_log_prefix, mc, 0 );
+#endif
+
+		meta_back_release_conn( op, mc );
+		mc = NULL;
+
+		needbind = 0;
+		ncandidates = 0;
+
+		goto getconn;
 	}
 
 	initial_candidates = ncandidates;
@@ -668,7 +697,10 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * among the candidates
 	 */
 	for ( rc = 0; ncandidates > 0; ) {
-		int	gotit = 0, doabandon = 0;
+		int	gotit = 0,
+			doabandon = 0;
+
+		needbind = ncandidates;
 
 		/* check time limit */
 		if ( op->ors_tlimit != SLAP_NO_LIMIT
@@ -701,17 +733,11 @@ meta_back_search( Operation *op, SlapReply *rs )
 					op->o_log_prefix, i, retcode );
 
 				switch ( retcode ) {
-				case META_SEARCH_BINDING:
 				case META_SEARCH_NEED_BIND:
-					break;
+					needbind--;
+					/* fallthru */
 
-				case META_SEARCH_NOT_CANDIDATE:
-					/*
-					 * When no candidates are left,
-					 * the outer cycle finishes
-					 */
-					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
-					--ncandidates;
+				case META_SEARCH_BINDING:
 					break;
 
 				case META_SEARCH_ERR:
@@ -722,6 +748,16 @@ meta_back_search( Operation *op, SlapReply *rs )
 						op->o_private = savepriv;
 						goto finish;
 					}
+					/* fallthru */
+
+				case META_SEARCH_NOT_CANDIDATE:
+					/*
+					 * When no candidates are left,
+					 * the outer cycle finishes
+					 */
+					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+					assert( ncandidates > 0 );
+					--ncandidates;
 					break;
 
 				case META_SEARCH_CANDIDATE:
@@ -729,14 +765,10 @@ meta_back_search( Operation *op, SlapReply *rs )
 					switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 					{
 					case META_SEARCH_CANDIDATE:
+						assert( candidates[ i ].sr_msgid >= 0 );
 						break;
 
-						/* means that failed but onerr == continue */
-					case META_SEARCH_NOT_CANDIDATE:
 					case META_SEARCH_ERR:
-						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
-						--ncandidates;
-
 						if ( META_BACK_ONERR_STOP( mi ) ) {
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
@@ -744,6 +776,14 @@ meta_back_search( Operation *op, SlapReply *rs )
 							op->o_private = savepriv;
 							goto finish;
 						}
+						/* fallthru */
+
+					case META_SEARCH_NOT_CANDIDATE:
+						/* means that meta_back_search_start()
+						 * failed but onerr == continue */
+						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+						assert( ncandidates > 0 );
+						--ncandidates;
 						break;
 
 					default:
@@ -814,6 +854,7 @@ really_bad:;
 							assert( 0 );
 
 						default:
+							/* unrecoverable error */
 							rc = rs->sr_err = LDAP_OTHER;
 							goto finish;
 						}
@@ -833,6 +874,7 @@ really_bad:;
 				 * the outer cycle finishes
 				 */
 				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+				assert( ncandidates > 0 );
 				--ncandidates;
 				rs->sr_err = candidates[ i ].sr_err;
 				continue;
@@ -919,6 +961,7 @@ really_bad:;
 #endif /* ! ENABLE_REWRITE */
 
 					/* FIXME: merge all and return at the end */
+	
 					for ( cnt = 0; references[ cnt ]; cnt++ )
 						;
 	
@@ -1181,6 +1224,13 @@ really_bad:;
 						ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 						if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
 							/* if still binding, destroy */
+
+#if 0
+							Debug( LDAP_DEBUG_ANY, "### %s meta_back_search(abandon) "
+								"ldap_unbind_ext[%ld] ld=%p\n",
+								op->o_log_prefix, i, (void *)mc->mc_conns[i].msc_ld );
+#endif
+
 							ldap_unbind_ext( mc->mc_conns[ i ].msc_ld, NULL, NULL );
 							mc->mc_conns[ i ].msc_ld = NULL;
 							LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
@@ -1195,6 +1245,8 @@ really_bad:;
 					}
 
 					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+					assert( ncandidates > 0 );
+					--ncandidates;
 				}
 			}
 
@@ -1219,7 +1271,40 @@ really_bad:;
 				lutil_timermul( &save_tv, 2, &save_tv );
 			}
 
-			ldap_pvt_thread_yield();
+#if 0
+			if ( LogTest( LDAP_DEBUG_TRACE ) ) {
+				char	buf[ BUFSIZ ];
+
+				snprintf( buf, sizeof( buf ), "%s %ld.%06ld %d/%d mc=%p",
+					op->o_log_prefix, save_tv.tv_sec, save_tv.tv_usec,
+					ncandidates, initial_candidates, mc );
+				Debug( LDAP_DEBUG_TRACE, "### %s\n", buf, 0, 0 );
+				for ( i = 0; i < mi->mi_ntargets; i++ ) {
+					if ( candidates[ i ].sr_msgid == META_MSGID_IGNORE ) {
+						continue;
+					}
+			
+					snprintf( buf, sizeof( buf ), "[%ld] ld=%p%s%s\n",
+						i,
+						mc->mc_conns[ i ].msc_ld,
+						( candidates[ i ].sr_msgid == META_MSGID_NEED_BIND ) ?  " needbind" : "",
+						META_IS_BINDING( &candidates[ i ] ) ? " binding" : "" );
+					Debug( LDAP_DEBUG_TRACE, "###    %s\n", buf, 0, 0 );
+				}
+			}
+#endif
+
+			if ( needbind == 0 ) {
+#if 0
+				Debug( LDAP_DEBUG_TRACE, "### %s select(%ld.%06ld)\n",
+					op->o_log_prefix, save_tv.tv_sec, save_tv.tv_usec );
+#endif
+				tv = save_tv;
+				(void)select( 0, NULL, NULL, NULL, &tv );
+
+			} else {
+				ldap_pvt_thread_yield();
+			}
 		}
 	}
 
@@ -1363,6 +1448,12 @@ finish:;
 			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
 				assert( candidates[ i ].sr_msgid >= 0 );
 				assert( mc->mc_conns[ i ].msc_ld != NULL );
+
+#if 0
+				Debug( LDAP_DEBUG_ANY, "### %s meta_back_search(cleanup) "
+					"ldap_unbind_ext[%ld] ld=%p\n",
+					op->o_log_prefix, i, (void *)mc->mc_conns[i].msc_ld );
+#endif
 
 				/* if still binding, destroy */
 				ldap_unbind_ext( mc->mc_conns[ i ].msc_ld, NULL, NULL );

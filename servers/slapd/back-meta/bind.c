@@ -33,6 +33,8 @@
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
+#undef ldap_debug	/* silence a warning in ldap-int.h */
+#include "../../../libraries/libldap/ldap-int.h"
 
 #include "lutil_ldap.h"
 
@@ -392,6 +394,13 @@ retry:;
 			 * because there's a pending bind that will not
 			 * be acknowledged */
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+			assert( LDAP_BACK_CONN_BINDING( msc ) );
+
+#if 0
+			Debug( LDAP_DEBUG_ANY, "### %s meta_back_bind_op_result ldap_unbind_ext[%d] ld=%p\n",
+				op->o_log_prefix, candidate, (void *)msc->msc_ld );
+#endif
+
 			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 			msc->msc_ld = NULL;
 			LDAP_BACK_CONN_BINDING_CLEAR( msc );

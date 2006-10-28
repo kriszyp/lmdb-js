@@ -181,9 +181,19 @@ meta_clear_unused_candidates(
  */
 int
 meta_clear_one_candidate(
-	metasingleconn_t	*msc )
+	Operation	*op,
+	metaconn_t	*mc,
+	int		candidate )
 {
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+
 	if ( msc->msc_ld ) {
+
+#if 0
+		Debug( LDAP_DEBUG_ANY, "### %s meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p\n",
+			op ? op->o_log_prefix : "", candidate, (void *)mc );
+#endif
+
 		ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 		msc->msc_ld = NULL;
 	}
@@ -214,7 +224,7 @@ meta_clear_candidates( Operation *op, metaconn_t *mc )
 	int		c;
 
 	for ( c = 0; c < mi->mi_ntargets; c++ ) {
-		meta_clear_one_candidate( &mc->mc_conns[ c ] );
+		meta_clear_one_candidate( op, mc, c );
 	}
 
 	return 0;

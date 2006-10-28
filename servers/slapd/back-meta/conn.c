@@ -195,7 +195,7 @@ metaconn_alloc(
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t	*mc;
-	int		i, ntargets = mi->mi_ntargets;
+	int		ntargets = mi->mi_ntargets;
 
 	assert( ntargets > 0 );
 
@@ -206,9 +206,7 @@ metaconn_alloc(
 		return NULL;
 	}
 
-	for ( i = 0; i < ntargets; i++ ) {
-		mc->mc_conns[ i ].msc_info = mi;
-	}
+	mc->mc_info = mi;
 
 	mc->mc_authz_target = META_BOUND_NONE;
 	mc->mc_refcnt = 1;
@@ -425,6 +423,12 @@ retry:;
 		if ( rs->sr_err == LDAP_SERVER_DOWN
 				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( mi ) ) )
 		{
+
+#if 0
+			Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(TLS) ldap_unbind_ext[%d] ld=%p\n",
+				op->o_log_prefix, candidate, (void *)msc->msc_ld );
+#endif
+
 			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 			msc->msc_ld = NULL;
 			goto error_return;
@@ -487,6 +491,12 @@ retry:;
 			if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
 						&msc->msc_bound_ndn ) )
 			{
+
+#if 0
+				Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(rewrite) ldap_unbind_ext[%d] ld=%p\n",
+					op->o_log_prefix, candidate, (void *)msc->msc_ld );
+#endif
+
 				ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 				msc->msc_ld = NULL;
 				goto error_return;
@@ -563,7 +573,7 @@ meta_back_retry(
 				op->o_log_prefix, candidate, buf );
 		}
 
-		meta_clear_one_candidate( msc );
+		meta_clear_one_candidate( op, mc, candidate );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
 		( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
@@ -571,6 +581,8 @@ meta_back_retry(
 		/* mc here must be the regular mc, reset and ready for init */
 		rc = meta_back_init_one_conn( op, rs, mc, candidate,
 			LDAP_BACK_CONN_ISPRIV( mc ), sendok );
+
+		/* restore the "binding" flag, in case */
 		if ( binding ) {
 			LDAP_BACK_CONN_BINDING_SET( msc );
 		}
@@ -584,10 +596,18 @@ meta_back_retry(
 				"meta_back_single_dobind=%d\n",
 				op->o_log_prefix, candidate, rc );
 			if ( rc == LDAP_SUCCESS ) {
-				if ( be_isroot( op )  ) {
+				if ( !BER_BVISNULL( &msc->msc_bound_ndn ) &&
+					!BER_BVISEMPTY( &msc->msc_bound_ndn ) )
+				{
 					LDAP_BACK_CONN_ISBOUND_SET( msc );
+
 				} else {
 					LDAP_BACK_CONN_ISANON_SET( msc );
+				}
+
+				/* when bound, dispose of the "binding" flag */
+				if ( binding ) {
+					LDAP_BACK_CONN_BINDING_CLEAR( msc );
 				}
 			}
         	}
@@ -1184,7 +1204,8 @@ retry_lock2:;
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			metatarget_t		*mt = mi->mi_targets[ i ];
-			metasingleconn_t	*msc = &mc->mc_conns[ i ];
+
+			META_CANDIDATE_RESET( &candidates[ i ] );
 
 			if ( i == cached 
 				|| meta_back_is_candidate( mt, &op->o_req_ndn,
@@ -1221,7 +1242,7 @@ retry_lock2:;
 					 * be tried?
 					 */
 					if ( new_conn ) {
-						( void )meta_clear_one_candidate( msc );
+						( void )meta_clear_one_candidate( op, mc, i );
 					}
 					/* leave the target candidate, but record the error for later use */
 					candidates[ i ].sr_err = lerr;
@@ -1258,9 +1279,8 @@ retry_lock2:;
 
 			} else {
 				if ( new_conn ) {
-					( void )meta_clear_one_candidate( msc );
+					( void )meta_clear_one_candidate( op, mc, i );
 				}
-				META_CANDIDATE_RESET( &candidates[ i ] );
 			}
 		}
 
