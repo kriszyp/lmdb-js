@@ -224,13 +224,18 @@ LDAP_F (void) ldap_pvt_sasl_remove LDAP_P(( struct sockbuf * ));
 struct ldap;
 struct ldapmsg;
 
-LDAP_F (int) ldap_open_internal_connection LDAP_P((
-	struct ldap **ldp, ber_socket_t *fdp ));
+/* abandon */
+LDAP_F ( int ) ldap_pvt_discard LDAP_P((
+	struct ldap *ld, ber_int_t msgid ));
 
 /* messages.c */
 LDAP_F( BerElement * )
 ldap_get_message_ber LDAP_P((
 	struct ldapmsg * ));
+
+/* open */
+LDAP_F (int) ldap_open_internal_connection LDAP_P((
+	struct ldap **ldp, ber_socket_t *fdp ));
 
 /* search.c */
 LDAP_F( int ) ldap_pvt_put_filter LDAP_P((

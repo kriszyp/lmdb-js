@@ -874,7 +874,7 @@ meta_back_cancel(
 		rc = ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
 
 	} else if ( META_BACK_TGT_IGNORE( mt ) ) {
-		rc = ldap_int_discard( msc->msc_ld, msgid );
+		rc = ldap_pvt_discard( msc->msc_ld, msgid );
 
 	} else if ( META_BACK_TGT_CANCEL( mt ) ) {
 		rc = ldap_cancel_s( msc->msc_ld, msgid, NULL, NULL );

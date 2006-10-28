@@ -397,11 +397,6 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
 #define	LDAP_NEXT_MSGID(ld, id)	id = ++(ld)->ld_msgid
 #endif
 
-LDAP_F ( int )
-ldap_int_discard LDAP_P((
-	LDAP *ld,
-	ber_int_t msgid ));
-
 /*
  * in init.c
  */
