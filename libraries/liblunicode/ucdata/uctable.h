@@ -1493,9 +1493,9 @@ static const ac_uint4 _ucprop_ranges[] = {
 	0x0000fe70, 0x0000fe74, 0x0000fe76, 0x0000fefc
 };
 
-static const ac_uint4 _uccase_size = 4512;
+static const ac_uint4 _uccase_size = 1504;
 
-static const ac_uint2 _uccase_len[2] = {2235, 2265};
+static const ac_uint2 _uccase_len[2] = {745, 755};
 
 static const ac_uint4 _uccase_map[] = {
 	0x00000041, 0x00000061, 0x00000041,
