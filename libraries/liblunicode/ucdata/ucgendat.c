@@ -1409,10 +1409,10 @@ write_cdata(char *opath)
 
 #if HARDCODE_DATA
     fprintf(out, PREF "ac_uint4 _uccase_size = %ld;\n\n",
-        (long) (upper_used + lower_used + title_used));
+        (long) (upper_used + lower_used + title_used)*3);
 
     fprintf(out, PREF "ac_uint2 _uccase_len[2] = {%ld, %ld};\n\n",
-        (long) upper_used, (long) lower_used);
+        (long) upper_used*3, (long) lower_used*3);
     fprintf(out, PREF "ac_uint4 _uccase_map[] = {");
 
     if (upper_used > 0)
