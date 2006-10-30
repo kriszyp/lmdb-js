@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.29 Engineering
+	Fixed liblunicode case mapping (ITS#4724)
 	Fixed slapo-dynlist leaks (ITS#4664)
 	Fixed slapo-ppolicy leaks (ITS#4665)
 	Documentation
