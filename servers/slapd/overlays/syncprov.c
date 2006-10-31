@@ -1243,9 +1243,9 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 }
 
 static void
-syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
+syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on,
+	struct berval *csn )
 {
-	syncprov_info_t		*si = on->on_bi.bi_private;
 	Modifications mod;
 	Operation opm;
 	SlapReply rsm = { 0 };
@@ -1253,12 +1253,12 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	slap_callback cb = {0};
 
 	/* If ctxcsn is empty, delete it */
-	if ( BER_BVISEMPTY( &si->si_ctxcsn )) {
+	if ( BER_BVISEMPTY( csn )) {
 		mod.sml_values = NULL;
 	} else {
 		mod.sml_values = bv;
 		bv[1].bv_val = NULL;
-		bv[0] = si->si_ctxcsn;
+		bv[0] = *csn;
 	}
 	mod.sml_nvalues = NULL;
 	mod.sml_desc = slap_schema.si_ad_contextCSN;
@@ -1493,6 +1493,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn = BER_BVNULL;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+		int do_check = 0;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
@@ -1515,7 +1516,6 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 		si->si_numops++;
 		if ( si->si_chkops || si->si_chktime ) {
-			int do_check=0;
 			if ( si->si_chkops && si->si_numops >= si->si_chkops ) {
 				do_check = 1;
 				si->si_numops = 0;
@@ -1525,14 +1525,15 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				do_check = 1;
 				si->si_chklast = op->o_time;
 			}
-			if ( do_check ) {
-				syncprov_checkpoint( op, rs, on );
-			}
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
 
 		opc->sctxcsn.bv_len = maxcsn.bv_len;
 		opc->sctxcsn.bv_val = cbuf;
+
+		if ( do_check ) {
+			syncprov_checkpoint( op, rs, on, &opc->sctxcsn );
+		}
 
 		/* Handle any persistent searches */
 		if ( si->si_ops ) {
@@ -2458,7 +2459,7 @@ syncprov_db_close(
 		op->o_bd = be;
 		op->o_dn = be->be_rootdn;
 		op->o_ndn = be->be_rootndn;
-		syncprov_checkpoint( op, &rs, on );
+		syncprov_checkpoint( op, &rs, on, &si->si_ctxcsn );
 		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
 

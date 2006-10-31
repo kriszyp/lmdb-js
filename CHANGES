@@ -4,6 +4,7 @@ OpenLDAP 2.3.29 Engineering
 	Fixed liblunicode case mapping (ITS#4724)
 	Fixed slapo-dynlist leaks (ITS#4664)
 	Fixed slapo-ppolicy leaks (ITS#4665)
+	Fixed slapo-syncprov deadlock (ITS#4720)
 	Documentation
 		Fixed slapd-ldap/meta(5) rebind-as-user usage (ITS#4715)
 		Fixed slapd-ldap/meta(5) missing network-timeout (ITS#4718)
