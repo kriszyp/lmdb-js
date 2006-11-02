@@ -1081,7 +1081,10 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 				ptr = lutil_strcopy( vals[i].bv_val,
 					m->sml_desc->ad_cname.bv_val );
 				*ptr++ = ':';
-				*ptr++ = '-';
+				if ( m->sml_op == LDAP_MOD_DELETE )
+					*ptr++ = '-';
+				else
+					*ptr++ = '=';
 				*ptr = '\0';
 				i++;
 			}
