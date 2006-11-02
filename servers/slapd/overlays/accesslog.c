@@ -1028,7 +1028,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 				for (b=m->sml_values; !BER_BVISNULL( b ); b++) {
 					i++;
 				}
-			} else if ( m->sml_op == LDAP_MOD_DELETE ) {
+			} else if ( m->sml_op == LDAP_MOD_DELETE ||
+				m->sml_op == LDAP_MOD_REPLACE ) {
 				i++;
 			}
 		}
@@ -1073,7 +1074,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 					}
 					accesslog_val2val( m->sml_desc, b, c_op, &vals[i] );
 				}
-			} else if ( m->sml_op == LDAP_MOD_DELETE ) {
+			} else if ( m->sml_op == LDAP_MOD_DELETE ||
+				m->sml_op == LDAP_MOD_REPLACE ) {
 				vals[i].bv_len = m->sml_desc->ad_cname.bv_len + 2;
 				vals[i].bv_val = ch_malloc( vals[i].bv_len+1 );
 				ptr = lutil_strcopy( vals[i].bv_val,
