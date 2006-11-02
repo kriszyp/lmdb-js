@@ -141,7 +141,7 @@ do_abandon(
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_discard origid %d, msgid %d\n",
+	Debug( LDAP_DEBUG_TRACE, "do_abandon origid %d, msgid %d\n",
 		origid, msgid, 0 );
 
 	/* find the request that we are abandoning */

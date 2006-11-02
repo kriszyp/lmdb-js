@@ -716,7 +716,8 @@ ldap_dump_requests_and_responses( LDAP *ld )
 		Debug( LDAP_DEBUG_TRACE, "   outstanding referrals %d, parent count %d\n",
 			lr->lr_outrefcnt, lr->lr_parentcnt, 0 );
 	}
-	Debug( LDAP_DEBUG_TRACE, "  ld %p request count %d\n", (void *)ld, i, 0 );
+	Debug( LDAP_DEBUG_TRACE, "  ld %p request count %d (abandoned %d)\n",
+		(void *)ld, i, ld->ld_nabandoned );
 	Debug( LDAP_DEBUG_TRACE, "** ld %p Response Queue:\n", (void *)ld, 0, 0 );
 	if ( ( lm = ld->ld_responses ) == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   Empty\n", 0, 0, 0 );
