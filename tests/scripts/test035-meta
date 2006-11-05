@@ -471,6 +471,8 @@ case $RC in
 	;;
 esac
 
+# NOTE: cannot send to $SEARCHOUT because the returned entries
+# are not predictable...
 echo "Checking server-enforced size limit..."
 echo "# Checking server-enforced size limit..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
@@ -493,6 +495,8 @@ case $RC in
 	;;
 esac
 
+# NOTE: cannot send to $SEARCHOUT because the returned entries
+# are not predictable...
 echo "Checking client-requested size limit..."
 echo "# Checking client-requested size limit..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
