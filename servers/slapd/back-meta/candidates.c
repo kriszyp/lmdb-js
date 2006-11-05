@@ -189,10 +189,14 @@ meta_clear_one_candidate(
 
 	if ( msc->msc_ld ) {
 
-#if 0
-		Debug( LDAP_DEBUG_ANY, "### %s meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p\n",
-			op ? op->o_log_prefix : "", candidate, (void *)mc );
-#endif
+#ifdef DEBUG_205
+		char	buf[ BUFSIZ ];
+
+		snprintf( buf, sizeof( buf ), "meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p ld=%p",
+			candidate, (void *)mc, (void *)msc->msc_ld );
+		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
+			op ? op->o_log_prefix : "", buf, 0 );
+#endif /* DEBUG_205 */
 
 		ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 		msc->msc_ld = NULL;
@@ -212,20 +216,3 @@ meta_clear_one_candidate(
 	return 0;
 }
 
-/*
- * meta_clear_candidates
- *
- * clears all candidates
- */
-int
-meta_clear_candidates( Operation *op, metaconn_t *mc )
-{
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	int		c;
-
-	for ( c = 0; c < mi->mi_ntargets; c++ ) {
-		meta_clear_one_candidate( op, mc, c );
-	}
-
-	return 0;
-}

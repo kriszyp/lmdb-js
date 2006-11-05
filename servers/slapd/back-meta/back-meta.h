@@ -494,11 +494,6 @@ meta_clear_one_candidate(
 	metaconn_t		*mc,
 	int			candidate );
 
-extern int
-meta_clear_candidates(
-	Operation		*op,
-	metaconn_t		*mc );
-
 /*
  * Dn cache stuff (experimental)
  */

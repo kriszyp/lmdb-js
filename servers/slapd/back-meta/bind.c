@@ -253,6 +253,7 @@ retry_lock:;
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
 			if ( isroot ) {
+				LDAP_BACK_CONN_ISPRIV_SET( mc );
 				mc->mc_conn = LDAP_BACK_PCONN_SET( op );
 			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
@@ -262,9 +263,8 @@ retry_lock:;
 #endif /* META_BACK_PRINT_CONNTREE */
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			if ( lerr == -1 ) {
-				meta_clear_candidates( op, mc );
-
 				/* we can do this because mc_refcnt == 1 */
+				assert( mc->mc_refcnt == 1 );
 				mc->mc_refcnt = 0;
 				meta_back_conn_free( mc );
 				mc = NULL;
@@ -396,10 +396,10 @@ retry:;
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 			assert( LDAP_BACK_CONN_BINDING( msc ) );
 
-#if 0
+#ifdef DEBUG_205
 			Debug( LDAP_DEBUG_ANY, "### %s meta_back_bind_op_result ldap_unbind_ext[%d] ld=%p\n",
 				op->o_log_prefix, candidate, (void *)msc->msc_ld );
-#endif
+#endif /* DEBUG_205 */
 
 			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 			msc->msc_ld = NULL;
@@ -575,7 +575,7 @@ meta_back_single_dobind(
 		!op->o_do_not_cache &&
 		( BER_BVISNULL( &msc->msc_bound_ndn ) ||
 			BER_BVISEMPTY( &msc->msc_bound_ndn ) ||
-			( LDAP_BACK_CONN_ISPRIV( msc ) && dn_match( &msc->msc_bound_ndn, &mt->mt_idassert_authcDN ) ) ||
+			( LDAP_BACK_CONN_ISPRIV( mc ) && dn_match( &msc->msc_bound_ndn, &mt->mt_idassert_authcDN ) ) ||
 			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)meta_back_proxy_authz_bind( mc, candidate, op, rs, sendok );

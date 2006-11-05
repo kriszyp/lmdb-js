@@ -156,11 +156,12 @@ ravl_print( Avlnode *root, int depth )
 	}
 
 	mc = (metaconn_t *)root->avl_data;
-	fprintf( stderr, "mc=%p local=\"%s\" conn=%p %s refcnt=%d\n",
+	fprintf( stderr, "mc=%p local=\"%s\" conn=%p %s refcnt=%d%s\n",
 		(void *)mc,
 		mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
 		(void *)mc->mc_conn,
-		avl_bf2str( root->avl_bf ), mc->mc_refcnt );
+		avl_bf2str( root->avl_bf ), mc->mc_refcnt,
+		LDAP_BACK_CONN_TAINTED( mc ) ? " tainted" : "" );
 	
 	ravl_print( root->avl_left, depth + 1 );
 }
@@ -424,10 +425,10 @@ retry:;
 				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( mi ) ) )
 		{
 
-#if 0
+#ifdef DEBUG_205
 			Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(TLS) ldap_unbind_ext[%d] ld=%p\n",
 				op->o_log_prefix, candidate, (void *)msc->msc_ld );
-#endif
+#endif /* DEBUG_205 */
 
 			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 			msc->msc_ld = NULL;
@@ -464,8 +465,6 @@ retry:;
 			ber_bvreplace( &msc->msc_bound_ndn, &slap_empty_bv );
 		}
 
-		LDAP_BACK_CONN_ISPRIV_SET( msc );
-
 	} else {
 		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 			memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
@@ -492,10 +491,10 @@ retry:;
 						&msc->msc_bound_ndn ) )
 			{
 
-#if 0
+#ifdef DEBUG_205
 				Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(rewrite) ldap_unbind_ext[%d] ld=%p\n",
 					op->o_log_prefix, candidate, (void *)msc->msc_ld );
-#endif
+#endif /* DEBUG_205 */
 
 				ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 				msc->msc_ld = NULL;
@@ -872,7 +871,7 @@ meta_back_getconn(
 		META_DNTYPE_ENTRY,
 		META_DNTYPE_PARENT,
 		META_DNTYPE_NEWPARENT
-			} dn_type = META_DNTYPE_ENTRY;
+	}		dn_type = META_DNTYPE_ENTRY;
 	struct berval	ndn = op->o_req_ndn,
 			pndn;
 
@@ -923,7 +922,8 @@ retry_lock:;
 					op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc ) );
 			}
 
-			/* Don't reuse connections while they're still binding */
+			/* Don't reuse connections while they're still binding
+			 * NOTE: only makes sense for binds */
 			if ( LDAP_BACK_CONN_BINDING( mc ) ) {
 				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 				ldap_pvt_thread_yield();
@@ -959,12 +959,12 @@ retry_lock:;
 		}
 		break;
 
+	case LDAP_REQ_COMPARE:
 	case LDAP_REQ_DELETE:
 	case LDAP_REQ_MODIFY:
 		/* just a unique candidate */
 		break;
 
-	case LDAP_REQ_COMPARE:
 	case LDAP_REQ_SEARCH:
 		/* allow multiple candidates for the searchBase */
 		op_type = META_OP_ALLOW_MULTIPLE;
@@ -990,6 +990,13 @@ retry_lock:;
 			if ( sendok & LDAP_BACK_BINDING ) {
 				LDAP_BACK_CONN_BINDING_SET( mc );
 			}
+			if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
+				LDAP_BACK_CONN_ISPRIV_SET( mc );
+			}
+
+		} else if ( 0 ) {
+			/* TODO: if any of the connections is binding,
+			 * release mc and create a new one */
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
@@ -1121,12 +1128,11 @@ retry_lock2:;
 					(caddr_t)&mc_curr, meta_back_conndn_cmp );
 				if ( mc != NULL ) {
 					/* Don't reuse connections while they're still binding */
-					if ( LDAP_BACK_CONN_BINDING( mc ) ) {
+					if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
 						ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 						ldap_pvt_thread_yield();
 						goto retry_lock2;
 					}
-
 					mc->mc_refcnt++;
 				}
 				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
@@ -1141,6 +1147,9 @@ retry_lock2:;
 				new_conn = 1;
 				if ( sendok & LDAP_BACK_BINDING ) {
 					LDAP_BACK_CONN_BINDING_SET( mc );
+				}
+				if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
+					LDAP_BACK_CONN_ISPRIV_SET( mc );
 				}
 			}
 		}
@@ -1197,8 +1206,8 @@ retry_lock2:;
 			mc->mc_conn = mc_curr.mc_conn;
 			ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
 			new_conn = 1;
-			if ( sendok & LDAP_BACK_BINDING ) {
-				LDAP_BACK_CONN_BINDING_SET( mc );
+			if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
+				LDAP_BACK_CONN_ISPRIV_SET( mc );
 			}
 		}
 
@@ -1404,7 +1413,6 @@ meta_back_release_conn_lock(
 	}
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
-	LDAP_BACK_CONN_BINDING_CLEAR( mc );
 	/* NOTE: the connection is removed if either it is tainted
 	 * or if it is shared and no one else is using it.  This needs
 	 * to occur because for intrinsic reasons cached connections
@@ -1428,8 +1436,14 @@ meta_back_release_conn_lock(
 #endif /* META_BACK_PRINT_CONNTREE */
 		if ( mc->mc_refcnt == 0 ) {
 			meta_back_conn_free( mc );
+			mc = NULL;
 		}
 	}
+
+	if ( mc != NULL ) {
+		LDAP_BACK_CONN_BINDING_CLEAR( mc );
+	}
+
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 	}

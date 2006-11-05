@@ -170,7 +170,6 @@ meta_back_conn_free(
 {
 	metaconn_t		*mc = v_mc;
 	int			ntargets;
-	Operation		op;
 
 	assert( mc != NULL );
 	assert( mc->mc_refcnt == 0 );
