@@ -1265,7 +1265,7 @@ void *ldap_pvt_sasl_mutex_new(void)
 {
 	ldap_pvt_thread_mutex_t *mutex;
 
-	mutex = (ldap_pvt_thread_mutex_t *) LDAP_MALLOC(
+	mutex = (ldap_pvt_thread_mutex_t *) LDAP_CALLOC( 1,
 		sizeof(ldap_pvt_thread_mutex_t) );
 
 	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {
