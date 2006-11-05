@@ -1704,7 +1704,6 @@ fe_aux_operational(
 {
 	Attribute		**ap;
 	int			rc = 0;
-	BackendDB		*be_orig;
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count them */ ;
@@ -1730,14 +1729,14 @@ fe_aux_operational(
 		ap = &(*ap)->a_next;
 	}
 
-	if ( op->o_bd != NULL )
-	{
+	if ( op->o_bd != NULL ) {
+		BackendDB		*be_orig = op->o_bd;
+
 		/* Let the overlays have a chance at this */
-		be_orig = op->o_bd;
 		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
-		if ( !be_match( op->o_bd, frontendDB ) &&
+		if ( op->o_bd != NULL && !be_match( op->o_bd, frontendDB ) &&
 			( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
-			op->o_bd != NULL && op->o_bd->be_operational != NULL )
+			op->o_bd->be_operational != NULL )
 		{
 			rc = op->o_bd->be_operational( op, rs );
 		}
