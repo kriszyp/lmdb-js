@@ -328,7 +328,7 @@ static struct slap_daemon {
 } while (0)
 
 # define SLAP_DEVPOLL_SOCK_SET(s, mode) 	do { \
-	fprintf( stderr, "SLAP_SOCK_SET_%s(%d) = %d\n", \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_SET_%s(%d)=%d\n", \
 		(mode) == POLLIN ? "READ" : "WRITE", (s), \
 		( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) != (mode) ) ); \
 	if ( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) != (mode) ) { \
@@ -341,7 +341,7 @@ static struct slap_daemon {
 } while (0)
 
 # define SLAP_DEVPOLL_SOCK_CLR(s, mode)		do { \
-	fprintf( stderr, "SLAP_SOCK_CLR_%s(%d) = %d\n", \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_CLR_%s(%d)=%d\n", \
 		(mode) == POLLIN ? "READ" : "WRITE", (s), \
 		( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) == (mode) ) ); \
 	if ((SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) == (mode) ) { \
@@ -378,7 +378,7 @@ static struct slap_daemon {
  * need to shutdown.
  */
 # define SLAP_SOCK_ADD(s, l)		do { \
-	fprintf( stderr, "SLAP_SOCK_ADD(%d, %p)\n", (s), (l) ); \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_ADD(%d, %p)\n", (s), (l), 0 ); \
 	SLAP_DEVPOLL_SOCK_IX((s)) = slap_daemon.sd_nfds; \
 	SLAP_DEVPOLL_SOCK_LX((s)) = (l); \
 	SLAP_DEVPOLL_SOCK_FD((s)) = (s); \
@@ -391,7 +391,7 @@ static struct slap_daemon {
 
 # define SLAP_SOCK_DEL(s)		do { \
 	int fd, index = SLAP_DEVPOLL_SOCK_IX((s)); \
-	fprintf( stderr, "SLAP_SOCK_DEL(%d)\n", (s) ); \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_DEL(%d)\n", (s), 0, 0 ); \
 	if ( index < 0 ) break; \
 	if ( index < slap_daemon.sd_nfds - 1 ) { \
 		struct pollfd pfd = slap_daemon.sd_pollfd[index]; \
@@ -713,8 +713,8 @@ slapd_add( ber_socket_t s, int isactive, Listener *sl )
 
 	SLAP_SOCK_ADD(s, sl);
 
-	Debug( LDAP_DEBUG_CONNS, "daemon: added %ldr\n",
-		(long) s, 0, 0 );
+	Debug( LDAP_DEBUG_CONNS, "daemon: added %ldr%s listener=%p\n",
+		(long) s, isactive ? " (active)" : "", (void *)sl );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -1599,6 +1599,10 @@ slap_listener(
 	char peername[sizeof("IP=255.255.255.255:65336")];
 #endif /* LDAP_PF_LOCAL */
 
+	Debug( LDAP_DEBUG_TRACE,
+		">>> slap_listener(%s)",
+		sl->sl_url.bv_val, 0, 0 );
+
 	peername[0] = '\0';
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1850,13 +1854,15 @@ slap_listener_thread(
 	void* ctx,
 	void* ptr )
 {
-	int rc;
+	int		rc;
+	Listener	*sl = (Listener *)ptr;
 
-	rc = slap_listener( (Listener*)ptr );
+	rc = slap_listener( sl );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"listener_thread: failed %d", rc, 0, 0 );
+			"slap_listener_thread(%s): failed err=%d",
+			sl->sl_url.bv_val, rc, 0 );
 	}
 
 	return (void*)NULL;
