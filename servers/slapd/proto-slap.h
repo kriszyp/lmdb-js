@@ -720,8 +720,8 @@ LDAP_SLAPD_F (int) slapd_daemon_init( const char *urls );
 LDAP_SLAPD_F (int) slapd_daemon_destroy(void);
 LDAP_SLAPD_F (int) slapd_daemon(void);
 LDAP_SLAPD_F (Listener **)	slapd_get_listeners LDAP_P((void));
-LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wasactive,
-	int wake, int locked ));
+LDAP_SLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, Sockbuf *sb,
+	int wasactive, int wake, int locked ));
 LDAP_SLAPD_F (void) slapd_sd_lock();
 LDAP_SLAPD_F (void) slapd_sd_unlock();
 
@@ -1241,6 +1241,7 @@ LDAP_SLAPD_F (Operation *) slap_op_alloc LDAP_P((
 LDAP_SLAPD_F (int) slap_op_add LDAP_P(( Operation **olist, Operation *op ));
 LDAP_SLAPD_F (int) slap_op_remove LDAP_P(( Operation **olist, Operation *op ));
 LDAP_SLAPD_F (Operation *) slap_op_pop LDAP_P(( Operation **olist ));
+LDAP_SLAPD_F (slap_op_t) slap_req2op LDAP_P(( ber_tag_t tag ));
 
 /*
  * operational.c
