@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.29 Engineering
+	Fixed liblber/libldap error codes on Windows (ITS#4606)
 	Fixed liblunicode case mapping (ITS#4724)
 	Fixed slapo-accesslog purge contextCSN bug (ITS#4704)
 	Fixed slapo-accesslog modify/replace bug (ITS#4728)
