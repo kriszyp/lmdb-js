@@ -301,13 +301,13 @@ wait4msg(
 				if ( rc == -1 ) {
 					Debug( LDAP_DEBUG_TRACE,
 						"ldap_int_select returned -1: errno %d\n",
-						errno, 0, 0 );
+						sock_errno(), 0, 0 );
 				}
 #endif
 
 				if ( rc == 0 || ( rc == -1 && (
 					!LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
-						|| errno != EINTR )))
+						|| sock_errno() != EINTR )))
 				{
 					ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 						LDAP_TIMEOUT);
@@ -445,7 +445,7 @@ retry:
 	assert( LBER_VALID (ber) );
 
 	/* get the next message */
-	errno = 0;
+	sock_errset(0);
 #ifdef LDAP_CONNECTIONLESS
 	if ( LDAP_IS_UDP(ld) ) {
 		struct sockaddr from;
@@ -469,10 +469,10 @@ nextresp3:
 				"ber_get_next failed.\n", 0, 0, 0 );
 #endif		   
 #ifdef EWOULDBLOCK			
-			if (errno==EWOULDBLOCK) return LDAP_MSG_X_KEEP_LOOKING;
+			if ( sock_errno() == EWOULDBLOCK ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 #ifdef EAGAIN
-			if (errno == EAGAIN) return LDAP_MSG_X_KEEP_LOOKING;
+			if ( sock_errno() == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 			ld->ld_errno = LDAP_SERVER_DOWN;
 			return -1;

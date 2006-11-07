@@ -500,7 +500,7 @@ ber_get_next(
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
-		errno = 0;
+		sock_errset(0);
 		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
 			((char *)&ber->ber_len + LENSIZE*2 - 1)-ber->ber_rwptr);
 		if (sblen<=0) return LBER_DEFAULT;
@@ -520,16 +520,16 @@ ber_get_next(
 						break;
 					/* Is the tag too big? */
 					if (i == sizeof(ber_tag_t)-1) {
-						errno = ERANGE;
+						sock_errset(ERANGE);
 						return LBER_DEFAULT;
 					}
 				}
 				/* Did we run out of bytes? */
 				if ((char *)p == ber->ber_rwptr) {
 #if defined( EWOULDBLOCK )
-					errno = EWOULDBLOCK;
+					sock_errset(EWOULDBLOCK);
 #elif defined( EAGAIN )
-					errno = EAGAIN;
+					sock_errset(EAGAIN);
 #endif			
 					return LBER_DEFAULT;
 				}
@@ -540,9 +540,9 @@ ber_get_next(
 
 		if ( ber->ber_ptr == ber->ber_rwptr ) {
 #if defined( EWOULDBLOCK )
-			errno = EWOULDBLOCK;
+			sock_errset(EWOULDBLOCK);
 #elif defined( EAGAIN )
-			errno = EAGAIN;
+			sock_errset(EAGAIN);
 #endif			
 			return LBER_DEFAULT;
 		}
@@ -553,15 +553,15 @@ ber_get_next(
 			unsigned char *p = (unsigned char *)ber->ber_ptr;
 			int llen = *p++ & 0x7f;
 			if (llen > (int)sizeof(ber_len_t)) {
-				errno = ERANGE;
+				sock_errset(ERANGE);
 				return LBER_DEFAULT;
 			}
 			/* Not enough bytes? */
 			if (ber->ber_rwptr - (char *)p < llen) {
 #if defined( EWOULDBLOCK )
-				errno = EWOULDBLOCK;
+				sock_errset(EWOULDBLOCK);
 #elif defined( EAGAIN )
-				errno = EAGAIN;
+				sock_errset(EAGAIN);
 #endif			
 				return LBER_DEFAULT;
 			}
@@ -592,7 +592,7 @@ ber_get_next(
 
 		/* make sure length is reasonable */
 		if ( ber->ber_len == 0 ) {
-			errno = ERANGE;
+			sock_errset(ERANGE);
 			return LBER_DEFAULT;
 		}
 
@@ -600,7 +600,7 @@ ber_get_next(
 			ber_log_printf( LDAP_DEBUG_CONNS, ber->ber_debug,
 				"ber_get_next: sockbuf_max_incoming exceeded "
 				"(%ld > %ld)\n", ber->ber_len, sb->sb_max_incoming );
-			errno = ERANGE;
+			sock_errset(ERANGE);
 			return LBER_DEFAULT;
 		}
 
@@ -611,7 +611,7 @@ ber_get_next(
 			 * already read.
 			 */
 			if ( ber->ber_len < sblen + l ) {
-				errno = ERANGE;
+				sock_errset(ERANGE);
 				return LBER_DEFAULT;
 			}
 			ber->ber_buf = (char *) ber_memalloc_x( ber->ber_len + 1, ber->ber_memctx );
@@ -643,16 +643,16 @@ ber_get_next(
 		to_go = ber->ber_end - ber->ber_rwptr;
 		assert( to_go > 0 );
 		
-		errno = 0;
+		sock_errset(0);
 		res = ber_int_sb_read( sb, ber->ber_rwptr, to_go );
 		if (res<=0) return LBER_DEFAULT;
 		ber->ber_rwptr+=res;
 		
 		if (res<to_go) {
 #if defined( EWOULDBLOCK )
-			errno = EWOULDBLOCK;
+			sock_errset(EWOULDBLOCK);
 #elif defined( EAGAIN )
-			errno = EAGAIN;
+			sock_errset(EAGAIN);
 #endif			
 			return LBER_DEFAULT;
 		}
