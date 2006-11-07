@@ -254,6 +254,9 @@ OL_ARG_WITH(yielding_select,
 OL_ARG_WITH(mp,
 	[  --with-mp               with multiple precision statistics auto|longlong|long|bignum|gmp],
 	auto, [auto longlong long bignum gmp yes no])
+OL_ARG_WITH(odbc,
+	[  --with-odbc             with specific ODBC support iodbc|unixodbc|auto],
+	auto, [auto iodbc unixodbc] )
 
 dnl ----------------------------------------------------------------
 dnl Server options
@@ -2071,15 +2074,33 @@ if test $ol_enable_sql != no ; then
 	sql_LIBS="$LIBS"
 	LIBS="$LTHREAD_LIBS"
 
-	AC_CHECK_LIB(iodbc,SQLDriverConnect,[have_iodbc=yes],[have_iodbc=no])
-	if test $have_iodbc = yes ; then
-		ol_link_sql="-liodbc"
-	else
-		AC_CHECK_LIB(odbc,SQLDriverConnect,[have_odbc=yes],[have_odbc=no])
-		if test $have_odbc = yes ; then
-			ol_link_sql="-lodbc"
-		fi
+	if test $ol_with_odbc = auto ; then
+		ol_with_odbc="iodbc unixodbc"
 	fi
+
+	for odbc in $ol_with_odbc ; do
+		if test $ol_link_sql = no ; then
+			case $odbc in
+			iodbc)
+				AC_CHECK_LIB(iodbc, SQLDriverConnect, [have_iodbc=yes], [have_iodbc=no])
+				if test $have_iodbc = yes ; then
+					ol_link_sql="-liodbc"
+				fi
+				;;
+
+			unixodbc)
+				AC_CHECK_LIB(odbc, SQLDriverConnect, [have_odbc=yes], [have_odbc=no])
+				if test $have_odbc = yes ; then
+					ol_link_sql="-lodbc"
+				fi
+				;;
+
+			*)
+				AC_MSG_ERROR([unknown ODBC library])
+				;;
+			esac
+		fi
+	done
 
 	LIBS="$sql_LIBS"
 
