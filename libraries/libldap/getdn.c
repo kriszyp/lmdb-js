@@ -2025,7 +2025,7 @@ static int
 strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 {
 	ber_len_t	l, cl = 1;
-	char		*p;
+	char		*p, *end;
 	int		escaped_byte_len = LDAP_DN_IS_PRETTY( flags ) ? 1 : 3;
 #ifdef PRETTY_ESCAPE
 	int		escaped_ascii_len = LDAP_DN_IS_PRETTY( flags ) ? 2 : 3;
@@ -2039,7 +2039,8 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 		return( 0 );
 	}
 
-	for ( l = 0, p = val->bv_val; p < val->bv_val + val->bv_len; p += cl ) {
+	end = val->bv_val + val->bv_len - 1;
+	for ( l = 0, p = val->bv_val; p <= end; p += cl ) {
 
 		/* 
 		 * escape '%x00' 
@@ -2068,7 +2069,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 		} else if ( LDAP_DN_NEEDESCAPE( p[ 0 ] )
 				|| LDAP_DN_SHOULDESCAPE( p[ 0 ] )
 				|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
-				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
+				|| ( p == end && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
 #ifdef PRETTY_ESCAPE
 #if 0
 			if ( LDAP_DN_WILLESCAPE_HEX( flags, p[ 0 ] ) ) {
