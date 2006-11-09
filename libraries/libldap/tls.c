@@ -215,6 +215,8 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 	if ( lo->ldo_tls_ctx )
 		return 0;
 
+	ldap_pvt_tls_init();
+
 	if ( is_server && !certfile && !keyfile && !cacertfile && !cacertdir ) {
 		/* minimum configuration not provided */
 		return LDAP_NOT_SUPPORTED;
