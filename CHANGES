@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.30 Engineering
+
 OpenLDAP 2.3.29 Release
 	Fixed liblber/libldap error codes on Windows (ITS#4606)
 	Fixed libldap string length assert (ITS#4740)
