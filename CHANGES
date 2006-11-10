@@ -1,6 +1,8 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.30 Engineering
+	Documentation
+		Fixed ldapsearch(1) man page acknowledgement (ITS#4743)
 
 OpenLDAP 2.3.29 Release
 	Fixed liblber/libldap error codes on Windows (ITS#4606)
