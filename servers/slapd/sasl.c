@@ -1534,7 +1534,7 @@ slap_sasl_setpass( Operation *op, SlapReply *rs )
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
 	rs->sr_err = sasl_getprop( op->o_conn->c_sasl_authctx, SASL_USERNAME,
-		(SASL_CONST void **)&id.bv_val );
+		(SASL_CONST void **)(char *)&id.bv_val );
 
 	if( rs->sr_err != SASL_OK ) {
 		rs->sr_text = "unable to retrieve SASL username";

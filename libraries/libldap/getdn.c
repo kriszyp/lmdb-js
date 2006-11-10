@@ -3370,7 +3370,7 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 		if ( newDN == NULL )
 			return LDAP_NO_MEMORY;
 	} else {
-		newDN = (LDAPDN)ptrs;
+		newDN = (LDAPDN)(char *)ptrs;
 	}
 	
 	newDN[nrdns] = NULL;
@@ -3502,7 +3502,7 @@ nomem:
 
 	if ( oidsize != 0 )
 		LDAP_FREE( oidbuf );
-	if ( newDN != (LDAPDN) ptrs )
+	if ( newDN != (LDAPDN)(char *) ptrs )
 		LDAP_FREE( newDN );
 	return rc;
 }

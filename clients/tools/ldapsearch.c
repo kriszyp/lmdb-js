@@ -920,7 +920,7 @@ getNextPage:
 		char	*realbase = base;
 
 		if ( realbase == NULL ) {
-			ldap_get_option( ld, LDAP_OPT_DEFBASE, (void **)&realbase );
+			ldap_get_option( ld, LDAP_OPT_DEFBASE, (void **)(char *)&realbase );
 		}
 		
 		printf( "#\n" );
