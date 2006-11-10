@@ -397,7 +397,7 @@ static ac_uint4
 _uccase_lookup(ac_uint4 code, long l, long r, int field)
 {
     long m;
-	ac_uint4 *tmp;
+	const ac_uint4 *tmp;
 
     /*
      * Do the binary search.
