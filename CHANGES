@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.29 Release
 	Fixed liblber/libldap error codes on Windows (ITS#4606)
+	Fixed libldap string length assert (ITS#4740)
 	Fixed liblunicode case mapping (ITS#4724)
 	Fixed slapd ldapi:// socket permissions (ITS#4709)
 	Fixed slapd c_writewaiters assert (ITS#4696, #4736)
