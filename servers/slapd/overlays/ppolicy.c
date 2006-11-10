@@ -553,13 +553,12 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
 				ok = prog( cred->bv_val, &txt, e );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
-				if (txt) {
+				if (ok != LDAP_SUCCESS) {
 					Debug(LDAP_DEBUG_ANY,
 						"check_password_quality: module error: (%s) %s.[%d]\n",
-						pp->pwdCheckModule, txt, ok );
+						pp->pwdCheckModule, txt ? txt : "", ok );
 					free(txt);
-				} else
-					ok = LDAP_SUCCESS;
+				}
 			}
 			    
 			lt_dlclose( mod );
