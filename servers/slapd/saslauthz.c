@@ -1627,10 +1627,10 @@ static int sasl_sc_smatch( Operation *o, SlapReply *rs )
 
 	if (dn_match(sm->dn, &rs->sr_entry->e_nname)) {
 		sm->match = 1;
-		return -1;	/* short-circuit the search */
+		return LDAP_UNAVAILABLE;	/* short-circuit the search */
 	}
 
-	return 1;
+	return 0;
 }
 
 int
