@@ -64,6 +64,7 @@ static ConfigTable constraintcfg[] = {
       4, 4, 0, ARG_MAGIC | CONSTRAINT_ATTRIBUTE, constraint_cf_gen,
       "( OLcfgOvAt:13.1 NAME 'olcConstraintAttribute' "
       "DESC 'regular expression constraint for attribute' "
+	  "EQUALITY caseIgnoreMatch "
       "SYNTAX OMsDirectoryString )", NULL, NULL },
     { NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -168,9 +169,10 @@ constraint_cf_gen( ConfigArgs *c )
             switch (c->type) {
                 case CONSTRAINT_ATTRIBUTE:
                     if ( slap_str2ad( c->argv[1], &ap.ap, &text ) ) {
-                        Debug( LDAP_DEBUG_CONFIG,
-                               "constraint_add: <%s>: attribute description unknown %s.\n",
-                               c->argv[1], text, 0 );
+						snprintf( c->msg, sizeof( c->msg ),
+							"%s <%s>: %s\n", c->argv[0], c->argv[1], text );
+                        Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+                               "%s: %s\n", c->log, c->msg, 0 );
                         return( ARG_BAD_CONF );
                     }
 
@@ -184,17 +186,21 @@ constraint_cf_gen( ConfigArgs *c )
                             
                             regerror( err, ap.re, errmsg, sizeof(errmsg) );
                             ch_free(ap.re);
-                            Debug( LDAP_DEBUG_CONFIG,
-                                   "%s: Illegal regular expression \"%s\": Error %s\n",
-                                   c->argv[1], c->argv[3], errmsg);
+							snprintf( c->msg, sizeof( c->msg ),
+                                   "%s %s: Illegal regular expression \"%s\": Error %s",
+                                   c->argv[0], c->argv[1], c->argv[3], errmsg);
+                            Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+									"%s: %s\n", c->log, c->msg, 0 );
                             ap.re = NULL;
                             return( ARG_BAD_CONF );
                         }
                         ap.re_str = ch_strdup( c->argv[3] );
                     } else {
-                        Debug( LDAP_DEBUG_CONFIG,
-                               "%s: Unknown constraint type: %s\n",
-                               c->argv[1], c->argv[2], 0 );
+						snprintf( c->msg, sizeof( c->msg ),
+                               "%s %s: Unknown constraint type: %s",
+                               c->argv[0], c->argv[1], c->argv[2] );
+                        Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+                               "%s: %s\n", c->log, c->msg, 0 );
                         return ( ARG_BAD_CONF );
                     }
                     

@@ -107,6 +107,7 @@ static ConfigTable log_cfats[] = {
 	{ "logoldattr", "attrs", 2, 0, 0, ARG_MAGIC|LOG_OLDATTR,
 		log_cf_gen, "( OLcfgOvAt:4.6 NAME 'olcAccessLogOldAttr' "
 			"DESC 'Log old values of these attributes even if unmodified' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL }
 };
@@ -807,7 +808,10 @@ log_cf_gen(ConfigArgs *c)
 					la->next = li->li_oldattrs;
 					li->li_oldattrs = la;
 				} else {
-					sprintf( c->msg, "%s: %s", c->argv[i], text );
+					snprintf( c->msg, sizeof( c->msg ), "%s <%s>: %s",
+						c->argv[0], c->argv[i], text );
+					Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+						"%s: %s\n", c->log, c->msg, 0 );
 					rc = ARG_BAD_CONF;
 					break;
 				}

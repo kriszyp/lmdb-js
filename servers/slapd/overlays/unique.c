@@ -68,10 +68,12 @@ static ConfigTable uniquecfg[] = {
 	{ "unique_ignore", "attribute...", 2, 0, 0, ARG_MAGIC|UNIQUE_IGNORE,
 	  unique_cf_gen, "( OLcfgOvAt:10.2 NAME 'olcUniqueIgnore' "
 	  "DESC 'Attributes for which uniqueness shall not be enforced' "
+	  "EQUALITY caseIgnoreMatch "	/* Should use OID syntax */
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "unique_attributes", "attribute...", 2, 0, 0, ARG_MAGIC|UNIQUE_ATTR,
 	  unique_cf_gen, "( OLcfgOvAt:10.3 NAME 'olcUniqueAttribute' "
 	  "DESC 'Attributes for which uniqueness shall be enforced' "
+	  "EQUALITY caseIgnoreMatch "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "unique_strict", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET|UNIQUE_STRICT,
@@ -187,9 +189,10 @@ unique_cf_gen( ConfigArgs *c )
 		case UNIQUE_BASE:
 			if ( !dnIsSuffix ( &c->value_ndn,
 					   &be->be_nsuffix[0] ) ) {
-				sprintf ( c->msg, "dn is not a suffix of backend base" );
-				Debug ( LDAP_DEBUG_CONFIG, "unique add: %s\n",
-					c->msg, NULL, NULL );
+				sprintf ( c->msg, "%s dn is not a suffix of backend base",
+					c->argv[0] );
+				Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+					"%s: %s\n", c->log, c->msg, 0 );
 				rc = ARG_BAD_CONF;
 			}
 			if ( ud->dn.bv_val ) ber_memfree ( ud->dn.bv_val );
@@ -216,13 +219,10 @@ unique_cf_gen( ConfigArgs *c )
 						ud->attrs = up;
 					}
 				} else {
-					Debug ( LDAP_DEBUG_CONFIG,
-						"unique add: <%s>: %s\n",
-						c->argv[i], text, NULL );
-					strncpy ( c->msg,
-						  text,
-						  SLAP_TEXT_BUFLEN-1 );
-					c->msg[SLAP_TEXT_BUFLEN-1] = '\0';
+					snprintf( c->msg, sizeof( c->msg ),
+						"%s <%s>: %s", c->argv[0], c->argv[i], text );
+					Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+						"%s: %s\n", c->log, c->msg, 0 );
 					rc = ARG_BAD_CONF;
 				}
 			}
