@@ -135,8 +135,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-BINDDN="cn=Jane Doe,ou=Alumni Association,ou=People,dc=example,dc=com"
-BINDPW=jdoe
+BINDDN="cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com"
+BINDPW=jen
 AUTHZID="u:bjorn"
 echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (URI)..."
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
