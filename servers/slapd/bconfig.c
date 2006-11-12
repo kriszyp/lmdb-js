@@ -3950,7 +3950,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 				if ( ptr ) ca->line = ptr+1;
 			}
 			ca->valx = i;
-			rc = config_parse_add( ct, ca );
+			rc = config_parse_add( ct, ca, i );
 			if ( rc ) {
 				rc = LDAP_OTHER;
 				goto done;
@@ -4321,7 +4321,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 							ca->line = ptr+1;
 						}
 					}
-					rc = config_parse_add( ct, ca );
+					rc = config_parse_add( ct, ca, i );
 					if ( rc ) {
 						rc = LDAP_OTHER;
 						goto out;
