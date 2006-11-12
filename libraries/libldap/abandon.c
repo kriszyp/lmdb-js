@@ -148,11 +148,13 @@ do_abandon(
 start_again:;
 	lr = ld->ld_requests;
 	while ( lr != NULL ) {
-		if ( lr->lr_msgid == msgid ) {	/* this message */
+		/* this message */
+		if ( lr->lr_msgid == msgid ) {
 			break;
 		}
 
-		if ( lr->lr_origid == msgid ) {/* child:  abandon it */
+		/* child: abandon it */
+		if ( lr->lr_origid == msgid ) {
 			(void)do_abandon( ld, lr->lr_origid, lr->lr_msgid,
 				sctrls, sendabandon );
 
@@ -291,7 +293,13 @@ start_again:;
 			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
 		}
 
-		if ( origid == msgid ) {
+#if 0
+		/* FIXME: this is needed so that restarting
+		 * the initial search for lr doesn't result
+		 * in an endless loop */
+		if ( origid == msgid )
+#endif
+		{
 			ldap_free_request( ld, lr );
 		}
 	}

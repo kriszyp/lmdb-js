@@ -1087,18 +1087,19 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 }
 
 
-static void
-merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
-{
 /*
  * Merge error information in "lr" with "parentr" error code and string.
  */
+static void
+merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
+{
 	if ( lr->lr_res_errno == LDAP_PARTIAL_RESULTS ) {
 		parentr->lr_res_errno = lr->lr_res_errno;
 		if ( lr->lr_res_error != NULL ) {
 			(void)ldap_append_referral( ld, &parentr->lr_res_error,
 			    lr->lr_res_error );
 		}
+
 	} else if ( lr->lr_res_errno != LDAP_SUCCESS &&
 		parentr->lr_res_errno == LDAP_SUCCESS )
 	{
@@ -1118,11 +1119,11 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "merged parent (id %d) error info:  ",
-	    parentr->lr_msgid, 0, 0 );
+		parentr->lr_msgid, 0, 0 );
 	Debug( LDAP_DEBUG_TRACE, "result errno %d, error <%s>, matched <%s>\n",
-	    parentr->lr_res_errno, parentr->lr_res_error ?
-	    parentr->lr_res_error : "", parentr->lr_res_matched ?
-	    parentr->lr_res_matched : "" );
+		parentr->lr_res_errno,
+		parentr->lr_res_error ?  parentr->lr_res_error : "",
+		parentr->lr_res_matched ?  parentr->lr_res_matched : "" );
 }
 
 

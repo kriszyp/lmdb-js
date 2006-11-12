@@ -725,9 +725,9 @@ ldap_dump_requests_and_responses( LDAP *ld )
 	for ( i = 0; lm != NULL; lm = lm->lm_next, i++ ) {
 		Debug( LDAP_DEBUG_TRACE, " * msgid %d,  type %lu\n",
 		    lm->lm_msgid, (unsigned long)lm->lm_msgtype, 0 );
-		if ( ( l = lm->lm_chain ) != NULL ) {
+		if ( lm->lm_chain != NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "   chained responses:\n", 0, 0, 0 );
-			for ( ; l != NULL; l = l->lm_chain ) {
+			for ( l = lm->lm_chain; l != NULL; l = l->lm_chain ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"  * msgid %d,  type %lu\n",
 					l->lm_msgid,
@@ -795,7 +795,6 @@ ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 void
 ldap_free_request( LDAP *ld, LDAPRequest *lr )
 {
-	LDAPRequest     **ttmplr;
 #ifdef LDAP_R_COMPILE
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_req_mutex );
 #endif
@@ -804,16 +803,21 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 		lr->lr_origid, lr->lr_msgid, 0 );
 
 	/* free all referrals (child requests) */
-	while ( lr->lr_child )
+	while ( lr->lr_child ) {
 		ldap_free_request( ld, lr->lr_child );
+	}
 
 	if ( lr->lr_parent != NULL ) {
+		LDAPRequest     **lrp;
+
 		--lr->lr_parent->lr_outrefcnt;
-		for ( ttmplr = &lr->lr_parent->lr_child;
-			*ttmplr && *ttmplr != lr;
-			ttmplr = &(*ttmplr)->lr_refnext );
-		if ( *ttmplr == lr )
-			*ttmplr = lr->lr_refnext;
+		for ( lrp = &lr->lr_parent->lr_child;
+			*lrp && *lrp != lr;
+			lrp = &(*lrp)->lr_refnext );
+
+		if ( *lrp == lr ) {
+			*lrp = lr->lr_refnext;
+		}
 	}
 	ldap_free_request_int( ld, lr );
 }
