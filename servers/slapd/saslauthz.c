@@ -1606,7 +1606,7 @@ static int sasl_sc_sasl2dn( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			"%s: slap_sc_sasl2dn: search DN returned more than 1 entry\n",
 			op->o_log_prefix, 0, 0 );
-		return LDAP_OTHER;
+		return LDAP_UNAVAILABLE; /* short-circuit the search */
 	}
 
 	ber_dupbv_x( ndn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
