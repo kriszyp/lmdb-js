@@ -1326,6 +1326,8 @@ syncrepl_message_to_op(
 	}
 done:
 	slap_graduate_commit_csn( op );
+	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
+	BER_BVZERO( &op->o_csn );
 	if ( modlist )
 		slap_mods_free( modlist, op->o_tag != LDAP_REQ_ADD );
 	if ( !BER_BVISNULL( &rdn )) {
@@ -2014,6 +2016,7 @@ syncrepl_del_nonpresent(
 			slap_uuidstr_from_normalized( &uf.f_av_value, &uuids[i],
 				op->o_tmpmemctx );
 			filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+			op->o_tmpfree( uf.f_av_value.bv_val, op->o_tmpmemctx );
 			uf.f_av_value = uuids[i];
 			rc = be->be_search( op, &rs_search );
 			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
@@ -2085,6 +2088,7 @@ syncrepl_del_nonpresent(
 				op->orm_modlist = &mod1;
 
 				rc = be->be_modify( op, &rs_modify );
+				if ( mod2.sml_next ) slap_mods_free( mod2.sml_next, 1 );
 			}
 
 			while ( rs_delete.sr_err == LDAP_SUCCESS &&
@@ -2316,9 +2320,9 @@ syncrepl_updateCookie(
 	}
 
 	slap_graduate_commit_csn( op );
-
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
+	if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
 
 	return rc;
 }
