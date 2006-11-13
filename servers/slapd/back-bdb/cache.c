@@ -770,7 +770,9 @@ load1:
 #endif
 						ep = NULL;
 					}
+					bdb_cache_entryinfo_lock( *eip );
 					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
+					bdb_cache_entryinfo_unlock( *eip );
 					if ( rc == 0 ) {
 						/* If we succeeded, downgrade back to a readlock. */
 						rc = bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
