@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.30 Engineering
 	Fixed slapd authzTo/authzFrom URL matching (ITS#4744)
+	Fixed slapd syncrepl consumer memory leaks (ITS#4746)
 	Fixed slapd-hdb livelock (ITS#4738)
 	Fixed slapo-ppolicy external quality check (ITS#4741)
 	Documentation
