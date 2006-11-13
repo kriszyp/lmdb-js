@@ -118,42 +118,6 @@ Specifies the default bind DN to use when performing ldap operations.
 The bind DN must be specified as a Distinguished Name in LDAP format.
 .B This is a user\-only option.
 .TP
-.B HOST <name[:port] ...>
-Specifies the name(s) of an LDAP server(s) to which the
-.I LDAP 
-library should connect.  Each server's name can be specified as a
-domain-style name or an IP address and optionally followed by a ':' and
-the port number the ldap server is listening on.  A space separated
-list of hosts may be provided.
-.B HOST
-is deprecated in favor of
-.BR URI .
-.TP
-.B PORT <port>
-Specifies the default port used when connecting to LDAP servers(s).
-The port may be specified as a number.
-.B PORT
-is deprecated in favor of
-.BR URI.
-.TP
-.B REFERRALS <on/true/yes/off/false/no>
-Specifies if the client should automatically follow referrals returned
-by LDAP servers.
-The default is on.
-Note that the command line tools
-.BR ldapsearch (1)
-&co always override this option.
-.TP
-.B SIZELIMIT <integer>
-Specifies a size limit to use when performing searches.  The
-number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
-specifies unlimited search size.
-.TP
-.B TIMELIMIT <integer>
-Specifies a time limit to use when performing searches.  The
-number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
-specifies unlimited search time to be used.
-.TP
 .B DEREF <when>
 Specifies how alias dereferencing is done when performing a search. The
 .B <when>
@@ -175,15 +139,54 @@ Aliases are dereferenced both in searching and in locating the base object
 of the search.
 .RE
 .TP
+.TP
+.B HOST <name[:port] ...>
+Specifies the name(s) of an LDAP server(s) to which the
+.I LDAP 
+library should connect.  Each server's name can be specified as a
+domain-style name or an IP address and optionally followed by a ':' and
+the port number the ldap server is listening on.  A space separated
+list of hosts may be provided.
+.B HOST
+is deprecated in favor of
+.BR URI .
+.TP
+.B NETWORK_TIMEOUT <integer>
+Specifies the timeout (in seconds) after which the poll(2)/select(2)
+following a connect(2) returns in case of no activity.
+.TP
+.B PORT <port>
+Specifies the default port used when connecting to LDAP servers(s).
+The port may be specified as a number.
+.B PORT
+is deprecated in favor of
+.BR URI.
+.TP
+.B REFERRALS <on/true/yes/off/false/no>
+Specifies if the client should automatically follow referrals returned
+by LDAP servers.
+The default is on.
+Note that the command line tools
+.BR ldapsearch (1)
+&co always override this option.
+.TP
+.B RESTART <on/true/yes/off/false/no>
+Determines whether the library should implicitly restart connections (FIXME).
+.TP
+.B SIZELIMIT <integer>
+Specifies a size limit to use when performing searches.  The
+number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
+specifies unlimited search size.
+.TP
+.B TIMELIMIT <integer>
+Specifies a time limit to use when performing searches.  The
+number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
+specifies unlimited search time to be used.
 .B VERSION {2|3}
 Specifies what version of the LDAP protocol should be used.
 .TP
 .B TIMEOUT <integer>
 Specifies a generic timeout (in seconds).  Currently ignored.
-.TP
-.B NETWORK_TIMEOUT <integer>
-Specifies the timeout (in seconds) after which the poll(2)/select(2)
-following a connect(2) returns in case of no activity.
 .SH SASL OPTIONS
 If OpenLDAP is built with Simple Authentication and Security Layer support,
 there are more options you can specify.
