@@ -169,9 +169,10 @@ The default is on.
 Note that the command line tools
 .BR ldapsearch (1)
 &co always override this option.
-.TP
-.B RESTART <on/true/yes/off/false/no>
-Determines whether the library should implicitly restart connections (FIXME).
+.\" This should only be allowed via ldap_set_option(3)
+.\".TP
+.\".B RESTART <on/true/yes/off/false/no>
+.\"Determines whether the library should implicitly restart connections (FIXME).
 .TP
 .B SIZELIMIT <integer>
 Specifies a size limit to use when performing searches.  The

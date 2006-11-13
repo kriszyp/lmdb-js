@@ -85,7 +85,10 @@ static const struct ol_attribute {
 	{0, ATTR_OPTION,	"HOST",			NULL,	LDAP_OPT_HOST_NAME}, /* deprecated */
 	{0, ATTR_OPTION,	"URI",			NULL,	LDAP_OPT_URI}, /* replaces HOST/PORT */
 	{0, ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
+#if 0
+	/* This should only be allowed via ldap_set_option(3) */
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
+#endif
 
 #ifdef HAVE_CYRUS_SASL
 	{0, ATTR_STRING,	"SASL_MECH",		NULL,
