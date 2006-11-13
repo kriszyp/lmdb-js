@@ -1177,7 +1177,7 @@ syncrepl_message_to_op(
 	struct berval	rdn = BER_BVNULL, sup = BER_BVNULL,
 		prdn = BER_BVNULL, nrdn = BER_BVNULL,
 		psup = BER_BVNULL, nsup = BER_BVNULL;
-	int		rc, deleteOldRdn = 0;
+	int		rc, deleteOldRdn = 0, freeReqDn = 0;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -1212,6 +1212,7 @@ syncrepl_message_to_op(
 			ber_dupbv( &op->o_req_ndn, &ndn );
 			slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
 			slap_sl_free( dn.bv_val, op->o_tmpmemctx );
+			freeReqDn = 1;
 		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_req )) {
 			int i = verb_to_mask( bvals[0].bv_val, modops );
 			if ( i < 0 ) {
@@ -1270,6 +1271,7 @@ syncrepl_message_to_op(
 			op->ora_e = entry_alloc();
 			op->ora_e->e_name = op->o_req_dn;
 			op->ora_e->e_nname = op->o_req_ndn;
+			freeReqDn = 0;
 			rc = slap_mods2entry( modlist, &op->ora_e, 1, 0, &text, txtbuf, textlen);
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: mods2entry (%s)\n",
@@ -1339,6 +1341,10 @@ done:
 			ch_free( nrdn.bv_val );
 		if ( !BER_BVISNULL( &prdn ))
 			ch_free( prdn.bv_val );
+	}
+	if ( freeReqDn ) {
+		ch_free( op->o_req_ndn.bv_val );
+		ch_free( op->o_req_dn.bv_val );
 	}
 	ber_free ( ber, 0 );
 	return rc;
