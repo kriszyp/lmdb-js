@@ -27,6 +27,8 @@
 
 #include "../back-monitor/back-monitor.h"
 
+#include "config.h"
+
 static ObjectClass		*oc_olmBDBDatabase;
 
 static AttributeDescription	*ad_olmBDBEntryCache,
@@ -207,6 +209,8 @@ static int
 bdb_monitor_initialize( void )
 {
 	int		i, code;
+	ConfigArgs c;
+	char	*argv[ 3 ];
 
 	static int	bdb_monitor_initialized = 0;
 
@@ -220,14 +224,17 @@ bdb_monitor_initialize( void )
 
 	/* register schema here */
 
+	argv[ 0 ] = "back-bdb/back-hdb monitor";
+	c.argv = argv;
+	c.argc = 3;
+	c.fname = argv[0];
+
 	for ( i = 0; s_oid[ i ].name; i++ ) {
-		char	*argv[ 3 ];
-	
-		argv[ 0 ] = "back-bdb/back-hdb monitor";
+		c.lineno = i;
 		argv[ 1 ] = s_oid[ i ].name;
 		argv[ 2 ] = s_oid[ i ].oid;
 
-		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_monitor_initialize: unable to add "
 				"objectIdentifier \"%s=%s\"\n",

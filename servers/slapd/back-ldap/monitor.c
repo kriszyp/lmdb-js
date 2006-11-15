@@ -32,6 +32,8 @@
 #include "lutil.h"
 #include "back-ldap.h"
 
+#include "config.h"
+
 static ObjectClass		*oc_olmLDAPDatabase;
 
 static AttributeDescription	*ad_olmDbURIList;
@@ -305,6 +307,8 @@ ldap_back_monitor_initialize( void )
 {
 	int		i, code;
 	const char	*err;
+	ConfigArgs c;
+	char	*argv[ 3 ];
 
 	static int	ldap_back_monitor_initialized = 0;
 
@@ -319,14 +323,16 @@ ldap_back_monitor_initialize( void )
 		return -1;
 	}
 
+	argv[ 0 ] = "back-ldap monitor";
+	c.argv = argv;
+	c.argc = 3;
+	c.fname = argv[0];
 	for ( i = 0; s_oid[ i ].name; i++ ) {
-		char	*argv[ 3 ];
 	
-		argv[ 0 ] = "back-ldap monitor";
 		argv[ 1 ] = s_oid[ i ].name;
 		argv[ 2 ] = s_oid[ i ].oid;
 
-		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"ldap_back_monitor_initialize: unable to add "
 				"objectIdentifier \"%s=%s\"\n",

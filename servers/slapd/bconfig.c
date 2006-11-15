@@ -393,7 +393,7 @@ static ConfigTable config_back_cf_table[] = {
 		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 			NULL, NULL },
-	{ "objectidentifier", NULL,	0, 0, 0, ARG_MAGIC|CFG_OID,
+	{ "objectidentifier", "name> <oid",	3, 3, 0, ARG_MAGIC|CFG_OID,
 		&config_generic, "( OLcfgGlAt:33 NAME 'olcObjectIdentifier' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
@@ -747,7 +747,6 @@ static ConfigOCs cf_ocs[] = {
 
 static int
 config_generic(ConfigArgs *c) {
-	char *p;
 	int i;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
@@ -1195,8 +1194,6 @@ config_generic(ConfigArgs *c) {
 		return rc;
 	}
 
- 	p = strchr(c->line,'(' /*')'*/);
-
 	switch(c->type) {
 		case CFG_BACKEND:
 			if(!(c->bi = backend_info(c->argv[1]))) {
@@ -1313,7 +1310,7 @@ config_generic(ConfigArgs *c) {
 
 			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
 				cfn = c->private;
-			if(parse_oidm(c->fname, c->lineno, c->argc, c->argv, 1, &om))
+			if(parse_oidm(c, 1, &om))
 				return(1);
 			if (!cfn->c_om_head) cfn->c_om_head = om;
 			cfn->c_om_tail = om;
@@ -1346,7 +1343,7 @@ config_generic(ConfigArgs *c) {
 				}
 				/* else prev is NULL, append to end of global list */
 			}
-			if(parse_oc(c->fname, c->lineno, p, c->argv, &oc, prev)) return(1);
+			if(parse_oc(c, &oc, prev)) return(1);
 			if (!cfn->c_oc_head) cfn->c_oc_head = oc;
 			if (cfn->c_oc_tail == prev) cfn->c_oc_tail = oc;
 			}
@@ -1378,7 +1375,7 @@ config_generic(ConfigArgs *c) {
 				}
 				/* else prev is NULL, append to end of global list */
 			}
-			if(parse_at(c->fname, c->lineno, p, c->argv, &at, prev)) return(1);
+			if(parse_at(c, &at, prev)) return(1);
 			if (!cfn->c_at_head) cfn->c_at_head = at;
 			if (cfn->c_at_tail == prev) cfn->c_at_tail = at;
 			}
@@ -1389,7 +1386,7 @@ config_generic(ConfigArgs *c) {
 
 			if ( c->op == LDAP_MOD_ADD && c->private && cfn != c->private )
 				cfn = c->private;
-			if(parse_cr(c->fname, c->lineno, p, c->argv, &cr)) return(1);
+			if(parse_cr(c, &cr)) return(1);
 			if (!cfn->c_cr_head) cfn->c_cr_head = cr;
 			cfn->c_cr_tail = cr;
 			}
@@ -5182,6 +5179,7 @@ int
 config_back_initialize( BackendInfo *bi )
 {
 	ConfigTable		*ct = config_back_cf_table;
+	ConfigArgs ca;
 	char			*argv[4];
 	int			i;
 	AttributeDescription	*ad = NULL;
@@ -5233,11 +5231,17 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_get = config_tool_entry_get;
 	bi->bi_tool_entry_put = config_tool_entry_put;
 
+	ca.argv = argv;
+	argv[ 0 ] = "slapd";
+	ca.argv = argv;
+	ca.argc = 3;
+	ca.fname = argv[0];
+
 	argv[3] = NULL;
 	for (i=0; OidMacros[i].name; i++ ) {
 		argv[1] = OidMacros[i].name;
 		argv[2] = OidMacros[i].oid;
-		parse_oidm( "slapd", i, 3, argv, 0, NULL );
+		parse_oidm( &ca, 0, NULL );
 	}
 
 	bi->bi_cf_ocs = cf_ocs;

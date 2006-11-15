@@ -24,6 +24,7 @@
 
 #include "slap.h"
 #include "ldap_schema.h"
+#include "config.h"
 
 static void		oc_usage(void); 
 static void		at_usage(void);
@@ -124,28 +125,29 @@ cr_usage( void )
 
 int
 parse_cr(
-	const char	*fname,
-	int		lineno,
-	char		*line,
-	char		**argv,
+	struct config_args_s *c,
 	ContentRule	**scr )
 {
 	LDAPContentRule *cr;
 	int		code;
 	const char	*err;
+	char *line = strchr( c->line, '(' );
 
 	cr = ldap_str2contentrule( line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !cr ) {
-		fprintf( stderr, "%s: line %d: %s before %s\n",
-			 fname, lineno, ldap_scherr2str(code), err );
+		snprintf( c->msg, sizeof( c->msg ), "%s: %s before %s",
+			c->argv[0], ldap_scherr2str( code ), err );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		cr_usage();
 		return 1;
 	}
 
 	if ( cr->cr_oid == NULL ) {
-		fprintf( stderr,
-			"%s: line %d: Content rule has no OID\n",
-			fname, lineno );
+		snprintf( c->msg, sizeof( c->msg ), "%s: OID is missing",
+			c->argv[0] );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		cr_usage();
 		code = 1;
 		goto done;
@@ -153,8 +155,10 @@ parse_cr(
 
 	code = cr_add( cr, 1, scr, &err );
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
-			 fname, lineno, scherr2str( code ), err );
+		snprintf( c->msg, sizeof( c->msg ), "%s: %s: \"%s\"",
+			c->argv[0], scherr2str(code), err);
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		code = 1;
 		goto done;
 	}
@@ -172,29 +176,30 @@ done:;
 
 int
 parse_oc(
-	const char	*fname,
-	int		lineno,
-	char		*line,
-	char		**argv,
+	struct config_args_s *c,
 	ObjectClass	**soc,
 	ObjectClass *prev )
 {
 	LDAPObjectClass *oc;
 	int		code;
 	const char	*err;
+	char *line = strchr( c->line, '(' );
 
 	oc = ldap_str2objectclass(line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !oc ) {
-		fprintf( stderr, "%s: line %d: %s before %s\n",
-			 fname, lineno, ldap_scherr2str( code ), err );
+		snprintf( c->msg, sizeof( c->msg ), "%s: %s before %s",
+			c->argv[0], ldap_scherr2str( code ), err );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		oc_usage();
 		return 1;
 	}
 
 	if ( oc->oc_oid == NULL ) {
-		fprintf( stderr,
-			"%s: line %d: objectclass has no OID\n",
-			fname, lineno );
+		snprintf( c->msg, sizeof( c->msg ), "%s: OID is missing",
+			c->argv[0] );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		oc_usage();
 		code = 1;
 		goto done;
@@ -202,8 +207,10 @@ parse_oc(
 
 	code = oc_add( oc, 1, soc, prev, &err );
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
-			 fname, lineno, scherr2str( code ), err );
+		snprintf( c->msg, sizeof( c->msg ), "%s: %s: \"%s\"",
+			c->argv[0], scherr2str(code), err);
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		code = 1;
 		goto done;
 	}
@@ -264,29 +271,30 @@ at_usage( void )
 
 int
 parse_at(
-	const char	*fname,
-	int		lineno,
-	char		*line,
-	char		**argv,
+	struct config_args_s *c,
 	AttributeType	**sat,
 	AttributeType	*prev )
 {
 	LDAPAttributeType *at;
 	int		code;
 	const char	*err;
+	char *line = strchr( c->line, '(' );
 
 	at = ldap_str2attributetype( line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !at ) {
-		fprintf( stderr, "%s: line %d: %s before %s\n",
-			 fname, lineno, ldap_scherr2str(code), err );
+		snprintf( c->msg, sizeof( c->msg ), "%s: %s before %s",
+			c->argv[0], ldap_scherr2str(code), err );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		at_usage();
 		return 1;
 	}
 
 	if ( at->at_oid == NULL ) {
-		fprintf( stderr,
-			"%s: line %d: attributeType has no OID\n",
-			fname, lineno );
+		snprintf( c->msg, sizeof( c->msg ), "%s: OID is missing",
+			c->argv[0] );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		at_usage();
 		code = 1;
 		goto done;
@@ -294,16 +302,20 @@ parse_at(
 
 	/* operational attributes should be defined internally */
 	if ( at->at_usage ) {
-		fprintf( stderr, "%s: line %d: attribute type \"%s\" is operational\n",
-			 fname, lineno, at->at_oid );
+		snprintf( c->msg, sizeof( c->msg ), "%s: \"%s\" is operational",
+			c->argv[0], at->at_oid );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		code = 1;
 		goto done;
 	}
 
 	code = at_add( at, 1, sat, prev, &err);
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
-			 fname, lineno, scherr2str(code), err);
+		snprintf( c->msg, sizeof( c->msg ), "%s: %s: \"%s\"",
+			c->argv[0], scherr2str(code), err);
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		code = 1;
 		goto done;
 	}

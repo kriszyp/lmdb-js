@@ -24,6 +24,7 @@
 
 #include "slap.h"
 #include "lutil.h"
+#include "config.h"
 
 static LDAP_STAILQ_HEAD(OidMacroList, slap_oid_macro) om_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(om_list);
@@ -92,10 +93,7 @@ oidm_destroy()
 
 int
 parse_oidm(
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char 	**argv,
+	struct config_args_s *c,
 	int		user,
 	OidMacro **rom)
 {
@@ -103,46 +101,46 @@ parse_oidm(
 	OidMacro *om = NULL;
 	struct berval bv;
 
-	if (argc != 3) {
-		fprintf( stderr, "%s: line %d: too many arguments\n",
-			fname, lineno );
-usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
-		if (om) SLAP_FREE( om );
-		return 1;
-	}
-
-	oid = oidm_find( argv[1] );
+	oid = oidm_find( c->argv[1] );
 	if( oid != NULL ) {
-		fprintf( stderr,
-			"%s: line %d: "
-			"ObjectIdentifier \"%s\" previously defined \"%s\"",
-			fname, lineno, argv[1], oid );
+		snprintf( c->msg, sizeof( c->msg ),
+			"%s: \"%s\" previously defined \"%s\"",
+			c->argv[0], c->argv[1], oid );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		SLAP_FREE( oid );
 		return 1;
 	}
 
 	om = (OidMacro *) SLAP_CALLOC( sizeof(OidMacro), 1 );
 	if( om == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "parse_oidm: SLAP_CALLOC failed", 0, 0, 0 );
+		snprintf( c->msg, sizeof( c->msg ),
+			"%s: SLAP_CALLOC failed", c->argv[0] );
+		Debug( LDAP_DEBUG_ANY,
+			"%s %s\n", c->log, c->msg, 0 );
 		return 1;
 	}
 
 	om->som_names = NULL;
 	om->som_subs = NULL;
-	ber_str2bv( argv[1], 0, 1, &bv );
+	ber_str2bv( c->argv[1], 0, 1, &bv );
 	ber_bvarray_add( &om->som_names, &bv );
-	ber_str2bv( argv[2], 0, 1, &bv );
+	ber_str2bv( c->argv[2], 0, 1, &bv );
 	ber_bvarray_add( &om->som_subs, &bv );
-	om->som_oid.bv_val = oidm_find( argv[2] );
+	om->som_oid.bv_val = oidm_find( c->argv[2] );
 
 	if (!om->som_oid.bv_val) {
-		fprintf( stderr, "%s: line %d: OID %s not recognized\n",
-			fname, lineno, argv[2] );
-		goto usage;
+		snprintf( c->msg, sizeof( c->msg ),
+			"%s: OID %s not recognized",
+			c->argv[0], c->argv[2] );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
+		SLAP_FREE( om );
+		return 1;
 	}
 
-	if (om->som_oid.bv_val == argv[2]) {
-		om->som_oid.bv_val = ch_strdup( argv[2] );
+	if (om->som_oid.bv_val == c->argv[2]) {
+		om->som_oid.bv_val = ch_strdup( c->argv[2] );
 	}
 
 	om->som_oid.bv_len = strlen( om->som_oid.bv_val );

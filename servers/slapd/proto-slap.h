@@ -31,6 +31,8 @@
 
 LDAP_BEGIN_DECL
 
+struct config_args_s;	/* config.h */
+
 /*
  * aci.c
  */
@@ -1264,8 +1266,7 @@ LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) oidm_unparse LDAP_P((
 	BerVarray *bva, OidMacro *start, OidMacro *end, int system ));
 LDAP_SLAPD_F (int) parse_oidm LDAP_P((
-	const char *fname, int lineno, int argc, char **argv, int user,
-	OidMacro **om ));
+	struct config_args_s *ca, int user, OidMacro **om ));
 
 /*
  * operation.c
@@ -1571,14 +1572,11 @@ LDAP_SLAPD_F (int) slap_schema_check LDAP_P((void));
 LDAP_SLAPD_F( int ) slap_valid_descr( const char * );
 
 LDAP_SLAPD_F (int) parse_cr LDAP_P((
-	const char *fname, int lineno, char *line, char **argv,
-	ContentRule **scr ));
+	struct config_args_s *ca, ContentRule **scr ));
 LDAP_SLAPD_F (int) parse_oc LDAP_P((
-	const char *fname, int lineno, char *line, char **argv,
-	ObjectClass **soc, ObjectClass *prev ));
+	struct config_args_s *ca, ObjectClass **soc, ObjectClass *prev ));
 LDAP_SLAPD_F (int) parse_at LDAP_P((
-	const char *fname, int lineno, char *line, char **argv,
-	AttributeType **sat, AttributeType *prev ));
+	struct config_args_s *ca, AttributeType **sat, AttributeType *prev ));
 LDAP_SLAPD_F (char *) scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
 LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
 	char delim ));

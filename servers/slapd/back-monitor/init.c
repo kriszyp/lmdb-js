@@ -30,6 +30,8 @@
 #include "lber_pvt.h"
 #include "back-monitor.h"
 
+#include "config.h"
+
 #undef INTEGRATE_CORE_SCHEMA
 
 /*
@@ -1837,15 +1839,19 @@ monitor_back_initialize(
 	int			i, rc;
 	const char		*text;
 	monitor_info_t		*mi = &monitor_info;
+	ConfigArgs c;
+	char	*argv[ 3 ];
+
+	argv[ 0 ] = "monitor";
+	c.argv = argv;
+	c.argc = 3;
+	c.fname = argv[0];
 
 	for ( i = 0; s_oid[ i ].name; i++ ) {
-		char	*argv[ 3 ];
-	
-		argv[ 0 ] = "monitor";
 		argv[ 1 ] = s_oid[ i ].name;
 		argv[ 2 ] = s_oid[ i ].oid;
 
-		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_initialize: unable to add "
 				"objectIdentifier \"%s=%s\"\n",
