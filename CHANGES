@@ -1,6 +1,8 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.31 Engineering
+	Documentation
+		Fixed typo in slapo-retcode(5) man page (ITS#4753)
 
 OpenLDAP 2.3.30 Release
 	Fixed slapd authzTo/authzFrom URL matching (ITS#4744)
