@@ -15,19 +15,25 @@ provided by {{slapd}}(8).
 
 H2: What is a directory service?
 
-A directory is a specialized database optimized for reading, browsing
-and searching.  Directories tend to contain descriptive, attribute-based
-information and support sophisticated filtering capabilities.
-Directories generally do not support complicated transaction or
-roll-back schemes found in database management systems designed
-for handling high-volume complex updates.  Directory updates are
-typically simple all-or-nothing changes, if they are allowed at
-all.  Directories are tuned to give quick response to high-volume
-lookup or search operations. They may have the ability to replicate
-information widely in order to increase availability and reliability,
-while reducing response time.  When directory information is
-replicated, temporary inconsistencies between the replicas may be
-okay, as long as they get in sync eventually.
+A directory is a specialized database specifically designed for
+searching and browsing, in additional to supporting basic lookup
+and update functions.
+
+Note: A directory is defined by some as merely a database optimized
+for read access.  This definition, at best, is overly simplistic.
+
+Directories tend to contain descriptive, attribute-based information
+and support sophisticated filtering capabilities.  Directories
+generally do not support complicated transaction or roll-back schemes
+found in database management systems designed for handling high-volume
+complex updates.  Directory updates are typically simple all-or-nothing
+changes, if they are allowed at all.  Directories are generally
+tuned to give quick response to high-volume lookup or search
+operations. They may have the ability to replicate information
+widely in order to increase availability and reliability, while
+reducing response time.  When directory information is replicated,
+temporary inconsistencies between the replicas may be okay, as long
+as inconsistencies are resolved in a timely manner.
 
 There are many different ways to provide a directory service.
 Different methods allow different kinds of information to be stored
@@ -41,9 +47,17 @@ services are usually {{distributed}}, meaning that the data they
 contain is spread across many machines, all of which cooperate to
 provide the directory service. Typically a global service defines
 a uniform {{namespace}} which gives the same view of the data no
-matter where you are in relation to the data itself.  The Internet
-{{TERM[expand]DNS}} (DNS) is an example of a globally distributed
-directory service.
+matter where you are in relation to the data itself.
+
+A web directory, such as provided by the Open Directory Project
+<{{URL:http://dmoz.org}}>, is a good example of a directory service.
+These services catalog web pages and are specifically designed to
+support browsing and searching.
+
+While some consider the Internet {{TERM[expand]DNS}} (DNS) is an
+example of a globally distributed directory service, DNS is not
+browsable nor searchable.  It is more properly described as a
+globaly distributed {{lookup}} service.
 
 
 H2: What is LDAP?
