@@ -1055,14 +1055,22 @@ attributes (specified by <what>) by one or more requestors (specified
 by <who>).
 If no access controls are present, the default policy
 allows anyone and everyone to read anything but restricts
-updates to rootdn.  (e.g., "olcAccess: to * by * read"). Access
-controls set in the frontend are appended to any access
-controls set on the specific databases.
-The rootdn of a database can always read and write EVERYTHING
-in that database!
+updates to rootdn.  (e.g., "olcAccess: to * by * read").
 See
 .BR slapd.access (5)
 and the "OpenLDAP Administrator's Guide" for details.
+
+Access controls set in the frontend are appended to any access
+controls set on the specific databases.
+The rootdn of a database can always read and write EVERYTHING
+in that database.
+
+Extra special care must be taken with the access controls on the
+config database. Unlike other databases, the default policy for the
+config database is to only allow access to the rootdn. Regular users
+should not have read access, and write access should be granted very
+carefully to privileged administrators.
+
 .TP
 .B olcDefaultSearchBase: <dn>
 Specify a default search base to use when client submits a
