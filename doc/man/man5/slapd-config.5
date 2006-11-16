@@ -1444,8 +1444,9 @@ server only if the original master goes down.
 By default, mirrormode is FALSE.
 .TP
 .B olcPlugin: <plugin_type> <lib_path> <init_function> [<arguments>]
-Configure a SLAPI plugin. The SLAPI plugin architecture is defined
-by Netscape/Sun/iPlanet/RedHat and is not documented here.
+Configure a SLAPI plugin. See the
+.BR slapd.plugin (5)
+manpage for more details.
 .\".HP
 .\".hy 0
 .\".B replica uri=ldap[s]://<hostname>[:port]|host=<hostname>[:port] 
