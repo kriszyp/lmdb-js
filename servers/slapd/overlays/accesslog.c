@@ -1531,7 +1531,6 @@ accesslog_db_root(
 
 		/* Get contextCSN from main DB */
 		op->o_bd = on->on_info->oi_origdb;
-/*		op->o_bd->bd_info = on->on_info->oi_orig; */
 		rc = be_entry_get_rw( op, op->o_bd->be_nsuffix, NULL,
 			slap_schema.si_ad_contextCSN, 0, &e_ctx );
 
@@ -1545,7 +1544,6 @@ accesslog_db_root(
 			}
 			be_entry_release_rw( op, e_ctx, 0 );
 		}
-		op->o_bd->bd_info = (BackendInfo *)on;
 		op->o_bd = li->li_db;
 
 		op->ora_e = e;
