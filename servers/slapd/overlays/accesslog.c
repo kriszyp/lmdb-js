@@ -58,6 +58,7 @@ typedef struct log_attr {
 
 typedef struct log_info {
 	BackendDB *li_db;
+	struct berval li_db_suffix;
 	slap_mask_t li_ops;
 	int li_age;
 	int li_cycle;
@@ -627,7 +628,13 @@ log_cf_gen(ConfigArgs *c)
 	case SLAP_CONFIG_EMIT:
 		switch( c->type ) {
 		case LOG_DB:
-			if ( li->li_db == NULL ) {
+			if ( !BER_BVISEMPTY( &li->li_db_suffix )) {
+				value_add_one( &c->rvalue_vals, &li->li_db_suffix );
+				value_add_one( &c->rvalue_nvals, &li->li_db_suffix );
+			} else if ( li->li_db ) {
+				value_add_one( &c->rvalue_vals, li->li_db->be_suffix );
+				value_add_one( &c->rvalue_nvals, li->li_db->be_nsuffix );
+			} else {
 				snprintf( c->msg, sizeof( c->msg ),
 					"accesslog: \"logdb <suffix>\" must be specified" );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
@@ -635,8 +642,6 @@ log_cf_gen(ConfigArgs *c)
 				rc = 1;
 				break;
 			}
-			value_add( &c->rvalue_vals, li->li_db->be_suffix );
-			value_add( &c->rvalue_nvals, li->li_db->be_nsuffix );
 			break;
 		case LOG_OPS:
 			rc = mask_to_verbs( logops, li->li_ops, &c->rvalue_vals );
@@ -740,24 +745,21 @@ log_cf_gen(ConfigArgs *c)
 	default:
 		switch( c->type ) {
 		case LOG_DB:
-			li->li_db = select_backend( &c->value_ndn, 0, 0 );
-			if ( !li->li_db ) {
-				snprintf( c->msg, sizeof( c->msg ),
-					"<%s> no matching backend found for suffix",
-					c->argv[0] );
-				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->value_dn.bv_val );
-				rc = 1;
-			} else if ( BER_BVISEMPTY( &li->li_db->be_rootdn )) {
-				snprintf( c->msg, sizeof( c->msg ),
-					"<%s> no rootDN was configured for suffix",
-					c->argv[0] );
-				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->value_dn.bv_val );
-				rc = 1;
+			if ( CONFIG_ONLINE_ADD( c )) {
+				li->li_db = select_backend( &c->value_ndn, 0, 0 );
+				if ( !li->li_db ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"<%s> no matching backend found for suffix",
+						c->argv[0] );
+					Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
+						c->log, c->msg, c->value_dn.bv_val );
+					rc = 1;
+				}
+				ch_free( c->value_ndn.bv_val );
+			} else {
+				li->li_db_suffix = c->value_ndn;
 			}
 			ch_free( c->value_dn.bv_val );
-			ch_free( c->value_ndn.bv_val );
 			break;
 		case LOG_OPS:
 			rc = verbs_to_mask( c->argc, c->argv, logops, &tmask );
@@ -1468,37 +1470,27 @@ accesslog_db_destroy(
 	return LDAP_SUCCESS;
 }
 
-static int
-accesslog_db_open(
-	BackendDB *be
-)
+/* Create the logdb's root entry if it's missing */
+static void *
+accesslog_db_root(
+	void *ctx,
+	void *arg )
 {
-	slap_overinst *on = (slap_overinst *)be->bd_info;
+	struct re_s *rtask = arg;
+	slap_overinst *on = rtask->arg;
 	log_info *li = on->on_bi.bi_private;
 
-	Connection conn;
+	Connection conn = {0};
 	OperationBuffer opbuf;
 	Operation *op = (Operation *) &opbuf;
+
 	Entry *e;
 	int rc;
-	void *thrctx;
 
-	if ( li->li_db == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"accesslog: \"logdb <suffix>\" must be specified.\n",
-			0, 0, 0 );
-		return 1;
-	}
-
-	if ( slapMode & SLAP_TOOL_MODE )
-		return 0;
-
-	thrctx = ldap_pvt_thread_pool_context();
-	connection_fake_init( &conn, op, thrctx );
+	connection_fake_init( &conn, op, ctx );
 	op->o_bd = li->li_db;
 	op->o_dn = li->li_db->be_rootdn;
 	op->o_ndn = li->li_db->be_rootndn;
-
 	rc = be_entry_get_rw( op, li->li_db->be_nsuffix, NULL, NULL, 0, &e );
 
 	if ( e ) {
@@ -1538,9 +1530,9 @@ accesslog_db_open(
 		attr_merge_one( e, ad, &rdn, &nrdn );
 
 		/* Get contextCSN from main DB */
-		op->o_bd = be;
-		op->o_bd->bd_info = on->on_info->oi_orig;
-		rc = be_entry_get_rw( op, be->be_nsuffix, NULL,
+		op->o_bd = on->on_info->oi_origdb;
+/*		op->o_bd->bd_info = on->on_info->oi_orig; */
+		rc = be_entry_get_rw( op, op->o_bd->be_nsuffix, NULL,
 			slap_schema.si_ad_contextCSN, 0, &e_ctx );
 
 		if ( e_ctx ) {
@@ -1567,8 +1559,47 @@ accesslog_db_open(
 		BER_BVZERO( &e->e_nname );
 		entry_free( e );
 	}
-	ldap_pvt_thread_pool_context_reset( thrctx );
-	return rc;
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+	ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+	return NULL;
+}
+
+static int
+accesslog_db_open(
+	BackendDB *be
+)
+{
+	slap_overinst *on = (slap_overinst *)be->bd_info;
+	log_info *li = on->on_bi.bi_private;
+
+
+	if ( !BER_BVISEMPTY( &li->li_db_suffix )) {
+		li->li_db = select_backend( &li->li_db_suffix, 0, 0 );
+		ch_free( li->li_db_suffix.bv_val );
+		BER_BVZERO( &li->li_db_suffix );
+	}
+	if ( li->li_db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"accesslog: \"logdb <suffix>\" missing or invalid.\n",
+			0, 0, 0 );
+		return 1;
+	}
+
+	if ( slapMode & SLAP_TOOL_MODE )
+		return 0;
+
+	if ( BER_BVISEMPTY( &li->li_db->be_rootndn )) {
+		ber_dupbv( &li->li_db->be_rootdn, li->li_db->be_suffix );
+		ber_dupbv( &li->li_db->be_rootndn, li->li_db->be_nsuffix );
+	}
+
+	ldap_pvt_runqueue_insert( &slapd_rq, 3600, accesslog_db_root, on,
+		"accesslog_db_root", li->li_db->be_suffix[0].bv_val );
+
+	return 0;
 }
 
 int accesslog_initialize()
