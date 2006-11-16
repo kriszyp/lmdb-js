@@ -439,8 +439,8 @@ replication consumer site running a syncrepl replication engine.
 The master database is located at the replication provider site
 specified by the {{EX:provider}} parameter. The replica database is
 kept up-to-date with the master content using the LDAP Content
-Synchronization protocol. See {{EX:draft-zeilenga-ldup-sync-xx.txt}}
-({{a work in progress}}) for more information on the protocol.
+Synchronization protocol. See {{REF:RFC4533}}
+for more information on the protocol.
 
 The {{EX:rid}} parameter is used for identification of the current
 {{EX:syncrepl}} directive within the replication consumer server,
