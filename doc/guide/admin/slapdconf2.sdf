@@ -12,7 +12,7 @@ operations with data in {{TERM:LDIF}}. The LDAP configuration engine
 allows all of slapd's configuration options to be changed on the fly,
 generally without requiring a server restart for the changes
 to take effect. The old style {{slapd.conf}}(5) file is still
-supported, but must be converted to the new {{slapd.d}}(5) format
+supported, but must be converted to the new {{slapd-config}}(5) format
 to allow runtime changes to be saved. While the old style
 configuration uses a single file, normally installed as
 {{F:/usr/local/etc/openldap/slapd.conf}}, the new style
@@ -49,7 +49,7 @@ FT[align="Center"] Figure 5.1: Sample configuration tree.
 Other objects may be part of the configuration but were omitted from
 the illustration for clarity.
 
-The {{slapd.d}} configuration tree has a very specific structure. The
+The {{slapd-config}} configuration tree has a very specific structure. The
 root of the tree is named {{EX:cn=config}} and contains global configuration
 settings. Additional settings are contained in separate child entries:
 * Include files
@@ -146,7 +146,7 @@ and object classes) are also provided in the
 H2: Configuration Directives
 
 This section details commonly used configuration directives.  For
-a complete list, see the {{slapd.d}}(5) manual page.  This section
+a complete list, see the {{slapd-config}}(5) manual page.  This section
 will treat the configuration directives in a top-down order, starting
 with the global directives in the {{EX:cn=config}} entry. Each
 directive will be described along with its default value (if any) and
