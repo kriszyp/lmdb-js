@@ -230,4 +230,5 @@ RFC4517|PS|Lightweight Directory Access Protocol (LDAP): Syntaxes and Matching R
 RFC4518|PS|Lightweight Directory Access Protocol (LDAP): Internationalized String Preparation|http://www.rfc-editor.org/rfc/rfc4518.txt
 RFC4519|PS|Lightweight Directory Access Protocol (LDAP): Schema for User Applications|http://www.rfc-editor.org/rfc/rfc4519.txt
 RFC4520|BCP|IANA Considerations for LDAP|http://www.rfc-editor.org/rfc/rfc4520.txt
+RFC4533|X|The Lightweight Directory Access Protocol (LDAP) Content Synchronization Operation|http://www.rfc-editor.org/rfc/rfc4533.txt
 !endblock

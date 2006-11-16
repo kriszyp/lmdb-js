@@ -66,9 +66,7 @@ The LDAP Sync protocol allows a client to maintain a synchronized
 copy of a DIT fragment. The LDAP Sync operation is defined as a set
 of controls and other protocol elements which extend the LDAP search
 operation. This section introduces the LDAP Content Sync protocol
-only briefly. For more information, refer to the Internet Draft
-{{The LDAP Content Synchronization Operation
-<draft-zeilenga-ldup-sync-05.txt>}}.
+only briefly. For more information, refer to {{REF:RFC4533}}.
 
 The LDAP Sync protocol supports both polling and listening for
 changes by defining two respective synchronization operations:
