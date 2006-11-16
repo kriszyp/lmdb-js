@@ -1056,9 +1056,8 @@ by <who>).
 If no access controls are present, the default policy
 allows anyone and everyone to read anything but restricts
 updates to rootdn.  (e.g., "olcAccess: to * by * read"). Access
-controls set in the frontend are inherited by all other databases.
-Access controls set in specific databases do not override these
-global settings; they are appended to the global settings.
+controls set in the frontend are appended to any access
+controls set on the specific databases.
 The rootdn of a database can always read and write EVERYTHING
 in that database!
 See
@@ -1076,7 +1075,7 @@ This option puts the database into "read-only" mode.  Any attempts to
 modify the database will return an "unwilling to perform" error.  By
 default, olcReadOnly is FALSE. Note that when this option is set
 TRUE on the frontend, it cannot be reset without restarting the
-server, since further writes to tne config database will be rejected.
+server, since further writes to the config database will be rejected.
 .TP
 .B olcRequires: <conditions>
 Specify a set of conditions to require (default none).
