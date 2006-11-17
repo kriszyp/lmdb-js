@@ -312,7 +312,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 
 	fd = open( path->bv_val, O_RDONLY );
 	if ( fd < 0 ) {
-		Debug( LDAP_DEBUG_ANY,
+		Debug( LDAP_DEBUG_TRACE,
 			"=> ldif_enum_tree: failed to open %s: %s\n",
 			path->bv_val, STRERROR(errno), 0 );
 		return LDAP_NO_SUCH_OBJECT;
