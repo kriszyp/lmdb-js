@@ -117,7 +117,7 @@ keyword, with an "olc" prefix added on.
 
 The parser for many of these attributes is the same as used for parsing
 the slapd.conf keywords. As such, slapd.conf keywords that allow multiple
-items to be specified on one line, separate by whitespace, will allow
+items to be specified on one line, separated by whitespace, will allow
 multiple items to be specified in one attribute value. However, when
 reading the attribute via LDAP, the items will be returned as individual
 attribute values.
@@ -459,12 +459,12 @@ server
 .B with another database,
 without disrupting the currently active clients.
 The default is FALSE.  You may wish to use
-.B idletimeout
+.B olcIdletTmeout
 along with this option.
 .TP
 .B olcIdleTimeout: <integer>
 Specify the number of seconds to wait before forcibly closing
-an idle client connection.  A idletimeout of 0 disables this
+an idle client connection.  A setting of 0 disables this
 feature.  The default is 0.
 .TP
 .B olcIndexSubstrIfMaxlen: <integer>
@@ -483,7 +483,7 @@ at least this many characters in order to be processed. Attribute values
 longer than this length will be processed in segments of this length. The
 default is 4. The subany index will also be used in subinitial and
 subfinal index lookups when the filter string is longer than the
-.I index_substr_if_maxlen
+.I olcIndexSubstrIfMaxlen
 value.
 .TP
 .B olcIndexSubstrAnyStep: <integer>
@@ -673,7 +673,9 @@ server's process ID ( see
 The ( absolute ) name of a file that will contain log
 messages from
 .B SLAPI
-plugins.
+plugins. See
+.BR slapd.plugin (5)
+for details.
 .TP
 .B olcReferral: <url>
 Specify the referral to pass back when
@@ -821,7 +823,8 @@ will recognize.
 .B olcTLSCACertificatePath: <path>
 Specifies the path of a directory that contains Certificate Authority
 certificates in separate individual files. Usually only one of this
-or the olcTLSCACertificateFile is used.
+or the olcTLSCACertificateFile is defined. If both are specified, both
+locations will be used.
 .TP
 .B olcTLSCertificateFile: <filename>
 Specifies the file that contains the
@@ -1449,7 +1452,7 @@ care, as it does not offer any consistency guarantees.  This feature
 is intended to be used with an external frontend that guarantees that
 writes are only directed to a single master, switching to an alternate
 server only if the original master goes down.
-By default, mirrormode is FALSE.
+By default, this setting is FALSE.
 .TP
 .B olcPlugin: <plugin_type> <lib_path> <init_function> [<arguments>]
 Configure a SLAPI plugin. See the
@@ -2035,6 +2038,14 @@ olcAccess: to attrs=userPassword  by * auth
 # Read access to other attributes and entries.
 olcAccess: to * by * read
 
+# set a rootpw for the config database so we can bind.
+# deny access to everyone else.
+dn: olcDatabase=config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: config
+olcRootPW: {SSHA}XKYnrjvGT3wZFQrDD5040US592LxsdLy
+olcAccess: to * by * none
+
 dn: olcDatabase=bdb,cn=config
 objectClass: olcDatabaseConfig
 objectClass: olcBdbConfig
@@ -2071,7 +2082,19 @@ slapadd -F ETCDIR/slapd.d -n 0 -l config.ldif
 .LP
 "OpenLDAP Administrator's Guide" contains a longer annotated
 example of a slapd configuration.
+
+Alternatively, an existing slapd.conf file can be converted to the new
+format using slapd or any of the slap tools:
+.RS
+.nf
+slaptest -f ETCDIR/slapd.conf -F ETCDIR/slapd.d
+.fi
+.RE
+
 .SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
 .TP
 ETCDIR/slapd.d
 default slapd configuration directory
