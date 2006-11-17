@@ -62,7 +62,7 @@ static LDAP_STAILQ_HEAD(ATList, slap_attribute_type) attr_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(attr_list);
 
 /* Last hardcoded attribute registered */
-static AttributeType *attr_sys_tail;
+AttributeType *at_sys_tail;
 
 int at_oc_cache;
 
@@ -529,8 +529,8 @@ at_insert(
 	}
 
 	if ( sat->sat_flags & SLAP_AT_HARDCODE ) {
-		prev = attr_sys_tail;
-		attr_sys_tail = sat;
+		prev = at_sys_tail;
+		at_sys_tail = sat;
 	}
 	if ( prev ) {
 		LDAP_STAILQ_INSERT_AFTER( &attr_list, prev, sat, sat_next );
@@ -924,7 +924,7 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 	/* count the result size */
 	i = 0;
 	for ( at=start; at; at=LDAP_STAILQ_NEXT(at, sat_next)) {
-		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
+		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) break;
 		i++;
 		if ( at == end ) break;
 	}
@@ -941,7 +941,7 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 	i = 0;
 	for ( at=start; at; at=LDAP_STAILQ_NEXT(at, sat_next)) {
 		LDAPAttributeType lat, *latp;
-		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
+		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) break;
 		if ( at->sat_oidmacro ) {
 			lat = at->sat_atype;
 			lat.at_oid = at->sat_oidmacro;

@@ -37,8 +37,11 @@
 
 #include "config.h"
 
-static struct berval config_rdn = BER_BVC("cn=config");
-static struct berval schema_rdn = BER_BVC("cn=schema");
+#define	CONFIG_RDN	"cn=config"
+#define	SCHEMA_RDN	"cn=schema"
+
+static struct berval config_rdn = BER_BVC(CONFIG_RDN);
+static struct berval schema_rdn = BER_BVC(SCHEMA_RDN);
 
 extern int slap_DN_strict;	/* dn.c */
 
@@ -71,6 +74,8 @@ typedef struct {
 	int		cb_use_ldif;
 } CfBackInfo;
 
+static CfBackInfo cfBackInfo;
+
 static char	*passwd_salt;
 static char	*logfileName;
 #ifdef SLAP_AUTH_REWRITE
@@ -81,14 +86,24 @@ static struct berval cfdir;
 
 /* Private state */
 static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
-	*cfAd_include;
+	*cfAd_include, *cfAd_attr, *cfAd_oc, *cfAd_om;
 
 static ConfigFile *cfn;
 
 static Avlnode *CfOcTree;
 
+/* System schema state */
+extern AttributeType *at_sys_tail;	/* at.c */
+extern ObjectClass *oc_sys_tail;	/* oc.c */
+extern OidMacro *om_sys_tail;	/* oidm.c */
+static AttributeType *cf_at_tail;
+static ObjectClass *cf_oc_tail;
+static OidMacro *cf_om_tail;
+
 static int config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca,
 	SlapReply *rs, int *renumber, Operation *op );
+
+static int config_check_schema( CfBackInfo *cfb );
 
 static ConfigDriver config_fname;
 static ConfigDriver config_cfdir;
@@ -1610,6 +1625,10 @@ config_generic(ConfigArgs *c) {
 				}
 				ber_str2bv(ptr, 0, 1, &bv);
 				ber_bvarray_add( &modcur->mp_loads, &bv );
+			}
+			/* Check for any new hardcoded schema */
+			if ( c->op == LDAP_MOD_ADD && CONFIG_ONLINE_ADD( c )) {
+				config_check_schema( &cfBackInfo );
 			}
 			break;
 
@@ -4746,6 +4765,87 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 }
 #endif
 
+static int
+config_check_schema(CfBackInfo *cfb)
+{
+	struct berval schema_dn = BER_BVC(SCHEMA_RDN "," CONFIG_RDN);
+	ConfigArgs c = {0};
+	ConfigFile *cf = cfb->cb_config;
+	CfEntryInfo *ce, *last;
+	Entry *e;
+
+	/* If there's no root entry, we must be in the midst of converting */
+	if ( !cfb->cb_root )
+		return 0;
+
+	/* Make sure the main schema entry exists */
+	ce = config_find_base( cfb->cb_root, &schema_dn, &last );
+	if ( ce ) {
+		Attribute *a;
+		struct berval *bv;
+
+		e = ce->ce_entry;
+
+		/* Make sure it's up to date */
+		if ( cf_om_tail != om_sys_tail ) {
+			a = attr_find( e->e_attrs, cfAd_om );
+			if ( a ) {
+				if ( a->a_nvals != a->a_vals )
+					ber_bvarray_free( a->a_nvals );
+				ber_bvarray_free( a->a_vals );
+				a->a_vals = NULL;
+				a->a_nvals = NULL;
+			}
+			oidm_unparse( &bv, NULL, NULL, 1 );
+			attr_merge_normalize( e, cfAd_om, bv, NULL );
+			ber_bvarray_free( bv );
+			cf_om_tail = om_sys_tail;
+		}
+		if ( cf_at_tail != at_sys_tail ) {
+			a = attr_find( e->e_attrs, cfAd_attr );
+			if ( a ) {
+				if ( a->a_nvals != a->a_vals )
+					ber_bvarray_free( a->a_nvals );
+				ber_bvarray_free( a->a_vals );
+				a->a_vals = NULL;
+				a->a_nvals = NULL;
+			}
+			at_unparse( &bv, NULL, NULL, 1 );
+			attr_merge_normalize( e, cfAd_attr, bv, NULL );
+			ber_bvarray_free( bv );
+			cf_at_tail = at_sys_tail;
+		}
+		if ( cf_oc_tail != oc_sys_tail ) {
+			a = attr_find( e->e_attrs, cfAd_oc );
+			if ( a ) {
+				if ( a->a_nvals != a->a_vals )
+					ber_bvarray_free( a->a_nvals );
+				ber_bvarray_free( a->a_vals );
+				a->a_vals = NULL;
+				a->a_nvals = NULL;
+			}
+			oc_unparse( &bv, NULL, NULL, 1 );
+			attr_merge_normalize( e, cfAd_oc, bv, NULL );
+			ber_bvarray_free( bv );
+			cf_oc_tail = oc_sys_tail;
+		}
+	} else {
+		SlapReply rs = {REP_RESULT};
+		c.private = NULL;
+		e = config_build_entry( NULL, &rs, cfb->cb_root, &c, &schema_rdn,
+			&CFOC_SCHEMA, NULL );
+		if ( !e ) {
+			return -1;
+		}
+		ce = e->e_private;
+		ce->ce_private = cfb->cb_config;
+		cf_at_tail = at_sys_tail;
+		cf_oc_tail = oc_sys_tail;
+		cf_om_tail = om_sys_tail;
+	}
+	return 0;
+}
+
 static const char *defacl[] = {
 	NULL, "to", "*", "by", "*", "none", NULL
 };
@@ -4776,9 +4876,10 @@ config_back_db_open( BackendDB *be )
 		parse_acl(be, "config_back_db_open", 0, 6, (char **)defacl, 0 );
 	}
 
-	/* If we read the config from back-ldif, nothing to do here */
-	if ( cfb->cb_got_ldif )
-		return 0;
+	/* If we read the config from back-ldif, do some quick sanity checks */
+	if ( cfb->cb_got_ldif ) {
+		return config_check_schema( cfb );
+	}
 
 	if ( cfb->cb_use_ldif ) {
 		thrctx = ldap_pvt_thread_pool_context();
@@ -4838,6 +4939,9 @@ config_back_db_open( BackendDB *be )
 	}
 	ce = e->e_private;
 	ce->ce_private = cfb->cb_config;
+	cf_at_tail = at_sys_tail;
+	cf_oc_tail = oc_sys_tail;
+	cf_om_tail = om_sys_tail;
 
 	/* Create schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
@@ -5028,8 +5132,6 @@ config_back_db_destroy( BackendDB *be )
 		backend_destroy_one( &cfb->cb_db, 0 );
 	}
 
-	free( be->be_private );
-
 	loglevel_destroy();
 
 	return 0;
@@ -5041,7 +5143,7 @@ config_back_db_init( BackendDB *be )
 	struct berval dn;
 	CfBackInfo *cfb;
 
-	cfb = ch_calloc( 1, sizeof(CfBackInfo));
+	cfb = &cfBackInfo;
 	cfb->cb_config = ch_calloc( 1, sizeof(ConfigFile));
 	cfn = cfb->cb_config;
 	be->be_private = cfb;
@@ -5145,9 +5247,12 @@ static struct {
 	char *name;
 	AttributeDescription **desc;
 } ads[] = {
+	{ "attribute", &cfAd_attr },
 	{ "backend", &cfAd_backend },
 	{ "database", &cfAd_database },
 	{ "include", &cfAd_include },
+	{ "objectclass", &cfAd_oc },
+	{ "objectidentifier", &cfAd_om },
 	{ "overlay", &cfAd_overlay },
 	{ NULL, NULL }
 };

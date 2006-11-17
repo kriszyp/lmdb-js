@@ -29,7 +29,7 @@
 static LDAP_STAILQ_HEAD(OidMacroList, slap_oid_macro) om_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(om_list);
 
-static OidMacro *om_sys_tail;
+OidMacro *om_sys_tail;
 
 /* Replace an OID Macro invocation with its full numeric OID.
  * If the macro is used with "macroname:suffix" append ".suffix"
@@ -149,6 +149,7 @@ parse_oidm(
 	if ( !user ) {
 		om->som_flags |= SLAP_OM_HARDCODE;
 		prev = om_sys_tail;
+		om_sys_tail = om;
 	}
 
 	if ( prev ) {
@@ -173,7 +174,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 	/* count the result size */
 	i = 0;
 	for ( om=start; om; om=LDAP_STAILQ_NEXT(om, som_next)) {
-		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) continue;
+		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) break;
 		for ( j=0; !BER_BVISNULL(&om->som_names[j]); j++ );
 		i += j;
 		if ( om == end ) break;
@@ -189,7 +190,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 		ibuf[0] = '\0';
 	}
 	for ( i=0,om=start; om; om=LDAP_STAILQ_NEXT(om, som_next)) {
-		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) continue;
+		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) break;
 		for ( j=0; !BER_BVISNULL(&om->som_names[j]); i++,j++ ) {
 			if ( !sys ) {
 				idx.bv_len = sprintf(idx.bv_val, "{%d}", i );

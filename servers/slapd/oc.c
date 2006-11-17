@@ -134,7 +134,8 @@ static Avlnode	*oc_index = NULL;
 static Avlnode	*oc_cache = NULL;
 static LDAP_STAILQ_HEAD(OCList, slap_object_class) oc_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(oc_list);
-static ObjectClass *oc_sys_tail;
+
+ObjectClass *oc_sys_tail;
 
 static int
 oc_index_cmp(
@@ -805,7 +806,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 	/* count the result size */
 	i = 0;
 	for ( oc=start; oc; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
-		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
+		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) break;
 		i++;
 		if ( oc == end ) break;
 	}
@@ -822,7 +823,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 	i = 0;
 	for ( oc=start; oc; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
 		LDAPObjectClass loc, *locp;
-		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
+		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) break;
 		if ( oc->soc_oidmacro ) {
 			loc = oc->soc_oclass;
 			loc.oc_oid = oc->soc_oidmacro;
