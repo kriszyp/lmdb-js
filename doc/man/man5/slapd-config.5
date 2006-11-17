@@ -404,9 +404,9 @@ the authentication identity must have "auth" access in the subject.
 
 Multiple 
 .B olcAuthzRegexp 
-values can be given in the configuration file to allow for multiple matching 
+values can be specified to allow for multiple matching 
 and replacement patterns. The matching patterns are checked in the order they 
-appear in the file, stopping at the first successful match.
+appear in the attribute, stopping at the first successful match.
 
 .\".B Caution:
 .\"Because the plus sign + is a character recognized by the regular expression engine,
@@ -588,11 +588,11 @@ as a list of integers (that are ORed internally),
 or as a list of the names that are shown between brackets, such that
 .LP
 .nf
-    olcLogLevel 129
-    olcLogLevel 0x81
-    olcLogLevel 128 1
-    olcLogLevel 0x80 0x1
-    olcLogLevel acl trace
+    olcLogLevel: 129
+    olcLogLevel: 0x81
+    olcLogLevel: 128 1
+    olcLogLevel: 0x80 0x1
+    olcLogLevel: acl trace
 .fi
 .LP
 are equivalent.
@@ -602,8 +602,8 @@ can be used as a shortcut to enable logging at all levels (equivalent to -1).
 The keyword
 .BR none ,
 or the equivalent integer representation, causes those messages
-that are logged regardless of the configured loglevel to be logged.
-In fact, if no loglevel (or a 0 level) is defined, no logging occurs, 
+that are logged regardless of the configured olcLogLevel to be logged.
+In fact, if no olcLogLevel (or a 0 level) is defined, no logging occurs, 
 so at least the 
 .B none
 level is required to have high priority messages logged.
@@ -836,8 +836,11 @@ Specifies the file that contains the
 .B slapd
 server private key that matches the certificate stored in the
 .B olcTLSCertificateFile
-file.  Currently, the private key must not be protected with a password, so
-it is of critical importance that it is protected carefully. 
+file. If the private key is protected with a password, the password must
+be manually typed in when slapd starts.  Usually the private key is not
+protected with a password, to allow slapd to start without manual
+intervention, so
+it is of critical importance that the file is protected carefully. 
 .TP
 .B olcTLSDHParamFile: <filename>
 This directive specifies the file that contains parameters for Diffie-Hellman
@@ -1588,10 +1591,10 @@ only exist in some of these databases. In general, all of the glued
 databases should be configured as similarly as possible, since the intent
 is to provide the appearance of a single directory.
 
-Note that the \fIsubordinate\fP functionality is implemented internally
+Note that the subordinate functionality is implemented internally
 by the \fIglue\fP overlay and as such its behavior will interact with other
 overlays in use. By default, the glue overlay is automatically configured as
-the last overlay on the superior backend. Its position on the backend
+the last overlay on the superior database. Its position on the database
 can be explicitly configured by setting an \fBoverlay glue\fP directive
 at the desired position. This explicit configuration is necessary e.g.
 when using the \fIsyncprov\fP overlay, which needs to follow \fIglue\fP
