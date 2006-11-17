@@ -61,6 +61,9 @@ static Avlnode	*attr_cache = NULL;
 static LDAP_STAILQ_HEAD(ATList, slap_attribute_type) attr_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(attr_list);
 
+/* Last hardcoded attribute registered */
+static AttributeType *attr_sys_tail;
+
 int at_oc_cache;
 
 static int
@@ -525,6 +528,10 @@ at_insert(
 		}
 	}
 
+	if ( sat->sat_flags & SLAP_AT_HARDCODE ) {
+		prev = attr_sys_tail;
+		attr_sys_tail = sat;
+	}
 	if ( prev ) {
 		LDAP_STAILQ_INSERT_AFTER( &attr_list, prev, sat, sat_next );
 	} else {

@@ -29,6 +29,8 @@
 static LDAP_STAILQ_HEAD(OidMacroList, slap_oid_macro) om_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(om_list);
 
+static OidMacro *om_sys_tail;
+
 /* Replace an OID Macro invocation with its full numeric OID.
  * If the macro is used with "macroname:suffix" append ".suffix"
  * to the expansion.
@@ -98,7 +100,7 @@ parse_oidm(
 	OidMacro **rom)
 {
 	char *oid;
-	OidMacro *om = NULL;
+	OidMacro *om = NULL, *prev = NULL;
 	struct berval bv;
 
 	oid = oidm_find( c->argv[1] );
@@ -144,10 +146,16 @@ parse_oidm(
 	}
 
 	om->som_oid.bv_len = strlen( om->som_oid.bv_val );
-	if ( !user )
+	if ( !user ) {
 		om->som_flags |= SLAP_OM_HARDCODE;
+		prev = om_sys_tail;
+	}
 
-	LDAP_STAILQ_INSERT_TAIL( &om_list, om, som_next );
+	if ( prev ) {
+		LDAP_STAILQ_INSERT_AFTER( &om_list, prev, om, som_next );
+	} else {
+		LDAP_STAILQ_INSERT_TAIL( &om_list, om, som_next );
+	}
 	if ( rom ) *rom = om;
 	return 0;
 }

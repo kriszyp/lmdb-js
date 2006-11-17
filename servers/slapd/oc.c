@@ -134,6 +134,7 @@ static Avlnode	*oc_index = NULL;
 static Avlnode	*oc_cache = NULL;
 static LDAP_STAILQ_HEAD(OCList, slap_object_class) oc_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(oc_list);
+static ObjectClass *oc_sys_tail;
 
 static int
 oc_index_cmp(
@@ -669,7 +670,15 @@ oc_insert(
 			names++;
 		}
 	}
-	LDAP_STAILQ_INSERT_TAIL( &oc_list, soc, soc_next );
+	if ( soc->soc_flags & SLAP_OC_HARDCODE ) {
+		prev = oc_sys_tail;
+		oc_sys_tail = soc;
+	}
+	if ( prev ) {
+		LDAP_STAILQ_INSERT_AFTER( &oc_list, prev, soc, soc_next );
+	} else {
+		LDAP_STAILQ_INSERT_TAIL( &oc_list, soc, soc_next );
+	}
 
 	return 0;
 }
