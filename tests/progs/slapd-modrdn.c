@@ -183,14 +183,12 @@ do_modrdn( char *uri, char *manager,
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
-	pid_t	pid;
 	char	*DNs[2];
 	char	*rdns[2];
 	int	rc = LDAP_SUCCESS;
 	char	*p1, *p2;
 	int	version = LDAP_VERSION3;
 
-	pid = getpid();
 	DNs[0] = entry;
 	DNs[1] = strdup( entry );
 

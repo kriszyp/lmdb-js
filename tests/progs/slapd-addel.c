@@ -320,7 +320,6 @@ do_addel(
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
-	pid_t	pid = getpid();
 	int	rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 

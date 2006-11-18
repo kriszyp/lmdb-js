@@ -36,6 +36,8 @@
 #include "lutil.h"
 
 #include "ldap.h"
+#include "ldap_pvt.h"
+#include "lber_pvt.h"
 #include "slapd-common.h"
 
 #define SEARCHCMD		"slapd-search"
@@ -75,8 +77,13 @@ static char argbuf[BUFSIZ];
 #endif
 
 static void
-usage( char *name )
+usage( char *name, char opt )
 {
+	if ( opt ) {
+		fprintf( stderr, "%s: unable to handle option \'%c\'\n\n",
+			name, opt );
+	}
+
 	fprintf( stderr,
 		"usage: %s "
 		"-H <uri> | ([-h <host>] -p <port>) "
@@ -85,13 +92,14 @@ usage( char *name )
 		"-d <datadir> "
 		"[-i <ignore>] "
 		"[-j <maxchild>] "
-		"[-l <loops>] "
+		"[-l {<loops>|<type>=<loops>[,...]}] "
 		"[-L <outerloops>] "
 		"-P <progdir> "
 		"[-r <maxretries>] "
 		"[-t <delay>] "
+		"[-C] "
 		"[-F] "
-		"[-C]\n",
+		"[-N]\n",
 		name );
 	exit( EXIT_FAILURE );
 }
@@ -116,6 +124,7 @@ main( int argc, char **argv )
 	int		friendly = 0;
 	int		chaserefs = 0;
 	int		noattrs = 0;
+	int		nobind = 0;
 	char		*ignore = NULL;
 	/* search */
 	char		*sfile = NULL;
@@ -144,22 +153,22 @@ main( int argc, char **argv )
 	char		acmd[MAXPATHLEN];
 	char		aloops[] = "18446744073709551615UL";
 	/* modrdn */
+	char		*nfile = NULL;
+	char		*nreqs[MAXREQS];
+	int		nnum = 0;
+	char		*nargs[MAXARGS];
+	int		nanum;
+	char		ncmd[MAXPATHLEN];
+	char		nloops[] = "18446744073709551615UL";
+	/* modify */
 	char		*mfile = NULL;
 	char		*mreqs[MAXREQS];
+	char		*mdn[MAXREQS];
 	int		mnum = 0;
 	char		*margs[MAXARGS];
 	int		manum;
 	char		mcmd[MAXPATHLEN];
 	char		mloops[] = "18446744073709551615UL";
-	/* modify */
-	char		*modfile = NULL;
-	char		*modreqs[MAXREQS];
-	char		*moddn[MAXREQS];
-	int		modnum = 0;
-	char		*modargs[MAXARGS];
-	int		modanum;
-	char		modcmd[MAXPATHLEN];
-	char		modloops[] = "18446744073709551615UL";
 	/* bind */
 	char		*bfile = NULL;
 	char		*breqs[MAXREQS];
@@ -170,18 +179,54 @@ main( int argc, char **argv )
 	int		banum;
 	char		bcmd[MAXPATHLEN];
 	char		bloops[] = "18446744073709551615UL";
+	char		**bargs_extra = NULL;
 
 	char		*friendlyOpt = NULL;
 	int		pw_ask = 0;
 	char		*pw_file = NULL;
 
+	/* extra action to do after bind... */
+	typedef struct extra_t {
+		char		*action;
+		struct extra_t	*next;
+	}		extra_t;
+
+	extra_t		*extra = NULL;
+	int		nextra = 0;
+
 	tester_init( "slapd-tester", TESTER_TESTER );
 
-	while ( (i = getopt( argc, argv, "ACD:d:FH:h:i:j:l:L:P:p:r:t:w:Wy:" )) != EOF ) {
+	sloops[0] = '\0';
+	rloops[0] = '\0';
+	aloops[0] = '\0';
+	nloops[0] = '\0';
+	mloops[0] = '\0';
+	bloops[0] = '\0';
+
+	while ( (i = getopt( argc, argv, "AB:CD:d:FH:h:i:j:l:L:NP:p:r:t:w:Wy:" )) != EOF ) {
 		switch( i ) {
 		case 'A':
 			noattrs++;
 			break;
+
+		case 'B':
+			{
+			char	**p,
+				**b = ldap_str2charray( optarg, "," );
+			extra_t	**epp;
+
+			for ( epp = &extra; *epp; epp = &(*epp)->next )
+				;
+
+			for ( p = b; p[0]; p++ ) {
+				*epp = calloc( 1, sizeof( extra_t ) );
+				(*epp)->action = p[0];
+				epp = &(*epp)->next;
+				nextra++;
+			}
+
+			ldap_memfree( b );
+			} break;
 
 		case 'C':
 			chaserefs++;
@@ -213,18 +258,60 @@ main( int argc, char **argv )
 
 		case 'j':		/* the number of parallel clients */
 			if ( lutil_atoi( &maxkids, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], 'j' );
 			}
 			break;
 
 		case 'l':		/* the number of loops per client */
-			if ( lutil_atoi( &loops, optarg ) != 0 ) {
-				usage( argv[0] );
+			if ( !isdigit( optarg[0] ) ) {
+				char	**p,
+					**l = ldap_str2charray( optarg, "," );
+
+				for ( p = l; p[0]; p++) {
+					struct {
+						struct berval	type;
+						char		*buf;
+					} types[] = {
+						{ BER_BVC( "add=" ),	aloops },
+						{ BER_BVC( "bind=" ),	bloops },
+						{ BER_BVC( "modify=" ),	mloops },
+						{ BER_BVC( "modrdn=" ),	nloops },
+						{ BER_BVC( "read=" ),	rloops },
+						{ BER_BVC( "search=" ),	sloops },
+						{ BER_BVNULL,		NULL }
+					};
+					int	c, n;
+
+					for ( c = 0; types[c].type.bv_val; c++ ) {
+						if ( strncasecmp( p[0], types[c].type.bv_val, types[c].type.bv_len ) == 0 ) {
+							break;
+						}
+					}
+
+					if ( types[c].type.bv_val == NULL ) {
+						usage( argv[0], 'l' );
+					}
+
+					if ( lutil_atoi( &n, &p[0][types[c].type.bv_len] ) != 0 ) {
+						usage( argv[0], 'l' );
+					}
+
+					snprintf( types[c].buf, sizeof( aloops ), "%d", n );
+				}
+
+				ldap_charray_free( l );
+
+			} else if ( lutil_atoi( &loops, optarg ) != 0 ) {
+				usage( argv[0], 'l' );
 			}
 			break;
 
 		case 'L':		/* the number of outerloops per client */
 			outerloops = strdup( optarg );
+			break;
+
+		case 'N':
+			nobind++;
 			break;
 
 		case 'P':		/* prog directory */
@@ -257,14 +344,14 @@ main( int argc, char **argv )
 			break;
 
 		default:
-			usage( argv[0] );
+			usage( argv[0], '\0' );
 			break;
 		}
 	}
 
 	if (( dirname == NULL ) || ( port == NULL && uri == NULL ) ||
 			( manager == NULL ) || ( passwd == NULL ) || ( progdir == NULL ))
-		usage( argv[0] );
+		usage( argv[0], '\0' );
 
 #ifdef HAVE_WINSOCK
 	children = malloc( maxkids * sizeof(HANDLE) );
@@ -286,10 +373,10 @@ main( int argc, char **argv )
 			rfile = get_file_name( dirname, file->d_name );
 			continue;
 		} else if ( !strcasecmp( file->d_name, TMODRDNFILE )) {
-			mfile = get_file_name( dirname, file->d_name );
+			nfile = get_file_name( dirname, file->d_name );
 			continue;
 		} else if ( !strcasecmp( file->d_name, TMODIFYFILE )) {
-			modfile = get_file_name( dirname, file->d_name );
+			mfile = get_file_name( dirname, file->d_name );
 			continue;
 		} else if ( !strncasecmp( file->d_name, TADDFILE, strlen( TADDFILE ))
 			&& ( anum < MAXREQS )) {
@@ -327,13 +414,13 @@ main( int argc, char **argv )
 	}
 
 	/* look for modrdn requests */
-	if ( mfile ) {
-		mnum = get_read_entries( mfile, mreqs, NULL );
+	if ( nfile ) {
+		nnum = get_read_entries( nfile, nreqs, NULL );
 	}
 
 	/* look for modify requests */
-	if ( modfile ) {
-		modnum = get_search_filters( modfile, modreqs, NULL, moddn );
+	if ( mfile ) {
+		mnum = get_search_filters( mfile, mreqs, NULL, mdn );
 	}
 
 	/* look for bind requests */
@@ -358,12 +445,12 @@ main( int argc, char **argv )
 		break;
 	}
 
-	snprintf( sloops, sizeof( sloops ), "%d", 10 * loops );
-	snprintf( rloops, sizeof( rloops ), "%d", 20 * loops );
-	snprintf( aloops, sizeof( aloops ), "%d", loops );
-	snprintf( mloops, sizeof( mloops ), "%d", loops );
-	snprintf( modloops, sizeof( modloops ), "%d", loops );
-	snprintf( bloops, sizeof( bloops ), "%d", 20 * loops );
+	if ( sloops[0] == '\0' ) snprintf( sloops, sizeof( sloops ), "%d", 10 * loops );
+	if ( rloops[0] == '\0' ) snprintf( rloops, sizeof( rloops ), "%d", 20 * loops );
+	if ( aloops[0] == '\0' ) snprintf( aloops, sizeof( aloops ), "%d", loops );
+	if ( nloops[0] == '\0' ) snprintf( nloops, sizeof( nloops ), "%d", loops );
+	if ( mloops[0] == '\0' ) snprintf( mloops, sizeof( mloops ), "%d", loops );
+	if ( bloops[0] == '\0' ) snprintf( bloops, sizeof( bloops ), "%d", 20 * loops );
 
 	/*
 	 * generate the search clients
@@ -402,6 +489,9 @@ main( int argc, char **argv )
 	}
 	if ( noattrs ) {
 		sargs[sanum++] = "-A";
+	}
+	if ( nobind ) {
+		sargs[sanum++] = "-N";
 	}
 	if ( ignore ) {
 		sargs[sanum++] = "-i";
@@ -471,8 +561,51 @@ main( int argc, char **argv )
 	 * generate the modrdn clients
 	 */
 
+	nanum = 0;
+	snprintf( ncmd, sizeof ncmd, "%s" LDAP_DIRSEP MODRDNCMD,
+		progdir );
+	nargs[nanum++] = ncmd;
+	if ( uri ) {
+		nargs[nanum++] = "-H";
+		nargs[nanum++] = uri;
+	} else {
+		nargs[nanum++] = "-h";
+		nargs[nanum++] = host;
+		nargs[nanum++] = "-p";
+		nargs[nanum++] = port;
+	}
+	nargs[nanum++] = "-D";
+	nargs[nanum++] = manager;
+	nargs[nanum++] = "-w";
+	nargs[nanum++] = passwd;
+	nargs[nanum++] = "-l";
+	nargs[nanum++] = nloops;
+	nargs[nanum++] = "-L";
+	nargs[nanum++] = outerloops;
+	nargs[nanum++] = "-r";
+	nargs[nanum++] = retries;
+	nargs[nanum++] = "-t";
+	nargs[nanum++] = delay;
+	if ( friendly ) {
+		nargs[nanum++] = friendlyOpt;
+	}
+	if ( chaserefs ) {
+		nargs[nanum++] = "-C";
+	}
+	if ( ignore ) {
+		nargs[nanum++] = "-i";
+		nargs[nanum++] = ignore;
+	}
+	nargs[nanum++] = "-e";
+	nargs[nanum++] = NULL;		/* will hold the modrdn entry */
+	nargs[nanum++] = NULL;
+	
+	/*
+	 * generate the modify clients
+	 */
+
 	manum = 0;
-	snprintf( mcmd, sizeof mcmd, "%s" LDAP_DIRSEP MODRDNCMD,
+	snprintf( mcmd, sizeof mcmd, "%s" LDAP_DIRSEP MODIFYCMD,
 		progdir );
 	margs[manum++] = mcmd;
 	if ( uri ) {
@@ -507,53 +640,10 @@ main( int argc, char **argv )
 		margs[manum++] = ignore;
 	}
 	margs[manum++] = "-e";
-	margs[manum++] = NULL;		/* will hold the modrdn entry */
+	margs[manum++] = NULL;		/* will hold the modify entry */
+	margs[manum++] = "-a";;
+	margs[manum++] = NULL;		/* will hold the ava */
 	margs[manum++] = NULL;
-	
-	/*
-	 * generate the modify clients
-	 */
-
-	modanum = 0;
-	snprintf( modcmd, sizeof modcmd, "%s" LDAP_DIRSEP MODIFYCMD,
-		progdir );
-	modargs[modanum++] = modcmd;
-	if ( uri ) {
-		modargs[modanum++] = "-H";
-		modargs[modanum++] = uri;
-	} else {
-		modargs[modanum++] = "-h";
-		modargs[modanum++] = host;
-		modargs[modanum++] = "-p";
-		modargs[modanum++] = port;
-	}
-	modargs[modanum++] = "-D";
-	modargs[modanum++] = manager;
-	modargs[modanum++] = "-w";
-	modargs[modanum++] = passwd;
-	modargs[modanum++] = "-l";
-	modargs[modanum++] = modloops;
-	modargs[modanum++] = "-L";
-	modargs[modanum++] = outerloops;
-	modargs[modanum++] = "-r";
-	modargs[modanum++] = retries;
-	modargs[modanum++] = "-t";
-	modargs[modanum++] = delay;
-	if ( friendly ) {
-		modargs[modanum++] = friendlyOpt;
-	}
-	if ( chaserefs ) {
-		modargs[modanum++] = "-C";
-	}
-	if ( ignore ) {
-		modargs[modanum++] = "-i";
-		modargs[modanum++] = ignore;
-	}
-	modargs[modanum++] = "-e";
-	modargs[modanum++] = NULL;		/* will hold the modify entry */
-	modargs[modanum++] = "-a";;
-	modargs[modanum++] = NULL;		/* will hold the ava */
-	modargs[modanum++] = NULL;
 
 	/*
 	 * generate the add/delete clients
@@ -636,6 +726,10 @@ main( int argc, char **argv )
 		bargs[banum++] = "-i";
 		bargs[banum++] = ignore;
 	}
+	if ( nextra ) {
+		bargs[banum++] = "-B";
+		bargs_extra = &bargs[banum++];
+	}
 	bargs[banum++] = "-D";
 	bargs[banum++] = NULL;
 	bargs[banum++] = "-w";
@@ -674,15 +768,15 @@ main( int argc, char **argv )
 			fork_child( rcmd, rargs );
 		}
 
-		if ( j < mnum ) {
-			margs[manum - 2] = mreqs[j];
-			fork_child( mcmd, margs );
+		if ( j < nnum ) {
+			nargs[nanum - 2] = nreqs[j];
+			fork_child( ncmd, nargs );
 		}
 
-		if ( j < modnum ) {
-			modargs[modanum - 4] = moddn[j];
-			modargs[modanum - 2] = modreqs[j];
-			fork_child( modcmd, modargs );
+		if ( j < mnum ) {
+			margs[manum - 4] = mdn[j];
+			margs[manum - 2] = mreqs[j];
+			fork_child( mcmd, margs );
 		}
 
 		if ( j < anum ) {
@@ -692,6 +786,15 @@ main( int argc, char **argv )
 
 		if ( DOREQ( bnum, j ) ) {
 			int	jj = j % bnum;
+
+			if ( nextra ) {
+				int	n = ((double)nextra)*rand()/(RAND_MAX + 1.0);
+				extra_t	*e;
+
+				for ( e = extra; n-- > 0; e = e->next )
+					;
+				*bargs_extra = e->action;
+			}
 
 			if ( battrs[jj] != NULL ) {
 				bargs[banum - 4] = manager ? manager : "";
@@ -830,6 +933,7 @@ get_read_entries( char *filename, char *entries[], char *filters[] )
 static void
 fork_child( char *prog, char **args )
 {
+	/* note: obscures global pid var; intended */
 	pid_t	pid;
 
 	wait4kids( maxkids );

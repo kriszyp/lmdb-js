@@ -35,6 +35,7 @@
 #include <ldap.h>
 #include <lutil.h>
 #include <lber_pvt.h>
+#include <ldap_pvt.h>
 
 #include "slapd-common.h"
 
@@ -42,11 +43,13 @@
 
 static int
 do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
-	int force, int chaserefs, int noinit, LDAP **ldp );
+	int force, int chaserefs, int noinit, LDAP **ldp,
+	int action_type, void *action );
 
 static int
 do_base( char *uri, char *dn, struct berval *pass, char *base, char *filter, char *pwattr,
-	int maxloop, int force, int chaserefs, int noinit, int delay );
+	int maxloop, int force, int chaserefs, int noinit, int delay,
+	int action_type, void *action );
 
 /* This program can be invoked two ways: if -D is used to specify a Bind DN,
  * that DN will be used repeatedly for all of the Binds. If instead -b is used
@@ -56,14 +59,20 @@ do_base( char *uri, char *dn, struct berval *pass, char *base, char *filter, cha
  * assumed that the users are all onelevel children of the base.
  */
 static void
-usage( char *name )
+usage( char *name, char opt )
 {
+	if ( opt ) {
+		fprintf( stderr, "%s: unable to handle option \'%c\'\n\n",
+			name, opt );
+	}
+
 	fprintf( stderr, "usage: %s "
 		"[-H uri | -h <host> [-p port]] "
 		"[-D <dn> [-w <passwd>]] "
 		"[-b <baseDN> [-f <searchfilter>] [-a pwattr]] "
 		"[-l <loops>] "
 		"[-L <outerloops>] "
+		"[-B <extra>[,...]] "
 		"[-F] "
 		"[-C] "
 		"[-I] "
@@ -92,12 +101,26 @@ main( int argc, char **argv )
 	int		noinit = 0;
 	int		delay = 0;
 
+	/* extra action to do after bind... */
+	struct berval	type[] = {
+		BER_BVC( "tester=" ),
+		BER_BVC( "add=" ),
+		BER_BVC( "bind=" ),
+		BER_BVC( "modify=" ),
+		BER_BVC( "modrdn=" ),
+		BER_BVC( "read=" ),
+		BER_BVC( "search=" ),
+		BER_BVNULL
+	};
+
+	LDAPURLDesc	*extra_ludp = NULL;
+
 	tester_init( "slapd-bind", TESTER_BIND );
 
 	/* by default, tolerate invalid credentials */
 	tester_ignore_str2errlist( "INVALID_CREDENTIALS" );
 
-	while ( (i = getopt( argc, argv, "a:b:H:h:i:p:D:w:l:L:f:FIt:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "a:b:B:H:h:i:p:D:w:l:L:f:FIt:" )) != EOF ) {
 		switch( i ) {
 		case 'a':
 			pwattr = optarg;
@@ -106,6 +129,48 @@ main( int argc, char **argv )
 		case 'b':		/* base DN of a tree of user DNs */
 			base = optarg;
 			break;
+
+		case 'B':
+			{
+			int	c;
+
+			for ( c = 0; type[c].bv_val; c++ ) {
+				if ( strncasecmp( optarg, type[c].bv_val, type[c].bv_len ) == 0 )
+				{
+					break;
+				}
+			}
+
+			if ( type[c].bv_val == NULL ) {
+				usage( argv[0], 'B' );
+			}
+
+			switch ( c ) {
+			case TESTER_TESTER:
+			case TESTER_BIND:
+				/* invalid */
+				usage( argv[0], 'B' );
+
+			case TESTER_SEARCH:
+				{
+				if ( ldap_url_parse( &optarg[type[c].bv_len], &extra_ludp ) != LDAP_URL_SUCCESS )
+				{
+					usage( argv[0], 'B' );
+				}
+				} break;
+
+			case TESTER_ADDEL:
+			case TESTER_MODIFY:
+			case TESTER_MODRDN:
+			case TESTER_READ:
+				/* nothing to do */
+				break;
+
+			default:
+				assert( 0 );
+			}
+
+			} break;
 
 		case 'C':
 			chaserefs++;
@@ -125,7 +190,7 @@ main( int argc, char **argv )
 
 		case 'p':		/* the servers port */
 			if ( lutil_atoi( &port, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], 'p' );
 			}
 			break;
 
@@ -140,13 +205,13 @@ main( int argc, char **argv )
 
 		case 'l':		/* the number of loops */
 			if ( lutil_atoi( &loops, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], 'l' );
 			}
 			break;
 
 		case 'L':		/* the number of outerloops */
 			if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], 'L' );
 			}
 			break;
 
@@ -166,18 +231,18 @@ main( int argc, char **argv )
 		case 't':
 			/* sleep between binds */
 			if ( lutil_atoi( &delay, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], 't' );
 			}
 			break;
 
 		default:
-			usage( argv[0] );
+			usage( argv[0], i );
 			break;
 		}
 	}
 
 	if ( port == -1 && uri == NULL ) {
-		usage( argv[0] );
+		usage( argv[0], '\0' );
 	}
 
 	uri = tester_uri( uri, host, port );
@@ -185,10 +250,10 @@ main( int argc, char **argv )
 	for ( i = 0; i < outerloops; i++ ) {
 		if ( base != NULL ) {
 			do_base( uri, dn, &pass, base, filter, pwattr, loops,
-				force, chaserefs, noinit, delay );
+				force, chaserefs, noinit, delay, -1, NULL );
 		} else {
 			do_bind( uri, dn, &pass, loops,
-				force, chaserefs, noinit, NULL );
+				force, chaserefs, noinit, NULL, -1, NULL );
 		}
 	}
 
@@ -198,15 +263,62 @@ main( int argc, char **argv )
 
 static int
 do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
-	int force, int chaserefs, int noinit, LDAP **ldp )
+	int force, int chaserefs, int noinit, LDAP **ldp,
+	int action_type, void *action )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	int  	i, rc = -1;
-	pid_t	pid = getpid();
 
-	if ( maxloop > 1 )
+	/* for internal search */
+	int	timelimit = 0;
+	int	sizelimit = 0;
+
+	switch ( action_type ) {
+	case -1:
+		break;
+
+	case TESTER_SEARCH:
+		{
+		LDAPURLDesc	*ludp = (LDAPURLDesc *)action;
+
+		assert( action != NULL );
+
+		if ( ludp->lud_exts != NULL ) {
+			for ( i = 0; ludp->lud_exts[ i ] != NULL; i++ ) {
+				char	*ext = ludp->lud_exts[ i ];
+				int	crit = 0;
+
+				if (ext[0] == '!') {
+					crit++;
+					ext++;
+				}
+
+				if ( strncasecmp( ext, "x-timelimit=", STRLENOF( "x-timelimit=" ) ) == 0 ) {
+					if ( lutil_atoi( &timelimit, &ext[ STRLENOF( "x-timelimit=" ) ] ) && crit ) {
+						tester_error( "unable to parse critical extension x-timelimit" );
+					}
+
+				} else if ( strncasecmp( ext, "x-sizelimit=", STRLENOF( "x-sizelimit=" ) ) == 0 ) {
+					if ( lutil_atoi( &sizelimit, &ext[ STRLENOF( "x-sizelimit=" ) ] ) && crit ) {
+						tester_error( "unable to parse critical extension x-sizelimit" );
+					}
+
+				} else if ( crit ) {
+					tester_error( "unknown critical extension" );
+				}
+			}
+		}
+		} break;
+
+	default:
+		/* nothing to do yet */
+		break;
+	}
+			
+	if ( maxloop > 1 ) {
 		fprintf( stderr, "PID=%ld - Bind(%d): dn=\"%s\".\n",
 			 (long) pid, maxloop, dn );
+	}
 
 	for ( i = 0; i < maxloop; i++ ) {
 		if ( !noinit || ld == NULL ) {
@@ -240,6 +352,35 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 				tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
 			}
 		}
+
+		switch ( action_type ) {
+		case -1:
+			break;
+
+		case TESTER_SEARCH:
+			{
+			LDAPURLDesc	*ludp = (LDAPURLDesc *)action;
+			LDAPMessage	*res = NULL;
+			struct timeval	tv = { 0 }, *tvp = NULL;
+
+			if ( timelimit ) {
+				tv.tv_sec = timelimit;
+				tvp = &tv;
+			}
+
+			assert( action != NULL );
+
+			rc = ldap_search_ext_s( ld,
+				ludp->lud_dn, ludp->lud_scope,
+				ludp->lud_filter, ludp->lud_attrs, 0,
+				NULL, NULL, tvp, sizelimit, &res );
+			ldap_msgfree( res );
+			} break;
+
+		default:
+			/* nothing to do yet */
+			break;
+		}
 			
 		if ( !noinit ) {
 			ldap_unbind_ext( ld, NULL, NULL );
@@ -268,11 +409,11 @@ do_bind( char *uri, char *dn, struct berval *pass, int maxloop,
 
 static int
 do_base( char *uri, char *dn, struct berval *pass, char *base, char *filter, char *pwattr,
-	int maxloop, int force, int chaserefs, int noinit, int delay )
+	int maxloop, int force, int chaserefs, int noinit, int delay,
+	int action_type, void *action )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0;
-	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 	ber_int_t msgid;
 	LDAPMessage *res, *msg;
@@ -287,8 +428,6 @@ do_base( char *uri, char *dn, struct berval *pass, char *base, char *filter, cha
 #endif
 	int version = LDAP_VERSION3;
 	char *nullstr = "";
-
-	srand( pid );
 
 	ldap_initialize( &ld, uri );
 	if ( ld == NULL ) {
@@ -410,8 +549,8 @@ novals:;
 			cred = creds[j];
 		}
 
-		if ( do_bind( uri, dns[j], &cred, 1, force, chaserefs, noinit, &ld )
-			&& !force )
+		if ( do_bind( uri, dns[j], &cred, 1, force, chaserefs, noinit, &ld,
+			action_type, action ) && !force )
 		{
 			break;
 		}

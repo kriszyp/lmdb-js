@@ -200,7 +200,6 @@ do_modify( char *uri, char *manager,
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
-	pid_t	pid;
 	int     rc = LDAP_SUCCESS;
 
 	struct ldapmod mod;
@@ -208,8 +207,6 @@ do_modify( char *uri, char *manager,
 	char *values[2];
 	int version = LDAP_VERSION3;
 
-	pid = getpid();
-	
 	values[0] = value;
 	values[1] = NULL;
 	mod.mod_op = LDAP_MOD_ADD;

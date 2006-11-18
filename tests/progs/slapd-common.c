@@ -31,6 +31,10 @@
 #include "ldap_pvt.h"
 #include "slapd-common.h"
 
+/* global vars */
+pid_t pid;
+
+/* static vars */
 static char progname[ BUFSIZ ];
 tester_t progtype;
 
@@ -208,7 +212,9 @@ tester_ignore_err( int err )
 void
 tester_init( const char *pname, tester_t ptype )
 {
-	snprintf( progname, sizeof( progname ), "%s PID=%d", pname, getpid() );
+	pid = getpid();
+	srand( pid );
+	snprintf( progname, sizeof( progname ), "%s PID=%d", pname, pid );
 	progtype = ptype;
 }
 

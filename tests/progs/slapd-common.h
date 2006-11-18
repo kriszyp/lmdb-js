@@ -27,7 +27,8 @@ typedef enum {
 	TESTER_MODIFY,
 	TESTER_MODRDN,
 	TESTER_READ,
-	TESTER_SEARCH
+	TESTER_SEARCH,
+	TESTER_LAST
 } tester_t;
 
 extern void tester_init( const char *pname, tester_t ptype );
@@ -37,5 +38,7 @@ extern void tester_perror( const char *fname, const char *msg );
 extern void tester_ldap_error( LDAP *ld, const char *fname, const char *msg );
 extern int tester_ignore_str2errlist( const char *err );
 extern unsigned tester_ignore_err( int err );
+
+extern pid_t		pid;
 
 #endif /* SLAPD_COMMON_H */
