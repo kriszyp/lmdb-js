@@ -458,6 +458,10 @@ retry:;
 		if ( !BER_BVISNULL( &mt->mt_idassert_authcDN ) ) {
 			ber_bvreplace( &msc->msc_bound_ndn, &mt->mt_idassert_authcDN );
 			if ( !BER_BVISNULL( &mt->mt_idassert_passwd ) ) {
+				if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+					memset( msc->msc_cred.bv_val, 0,
+						msc->msc_cred.bv_len );
+				}
 				ber_bvreplace( &msc->msc_cred, &mt->mt_idassert_passwd );
 			}
 

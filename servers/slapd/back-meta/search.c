@@ -194,7 +194,11 @@ meta_search_dobind_init(
 		if ( !BER_BVISNULL( &binddn ) ) {
 			ber_bvreplace( &msc->msc_bound_ndn, &binddn );
 			if ( LDAP_BACK_SAVECRED( mi ) && !BER_BVISNULL( &cred ) ) {
-				ber_dupbv( &msc->msc_cred, &cred );
+				if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+					memset( msc->msc_cred.bv_val, 0,
+						msc->msc_cred.bv_len );
+				}
+				ber_bvreplace( &msc->msc_cred, &cred );
 			}
 		}
 

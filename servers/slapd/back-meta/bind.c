@@ -168,9 +168,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 					BER_BVZERO( &msc->msc_bound_ndn );
 				}
 
-				if ( LDAP_BACK_SAVECRED( mi ) &&
-					!BER_BVISNULL( &msc->msc_cred ) )
-				{
+				if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 					/* destroy sensitive data */
 					memset( msc->msc_cred.bv_val, 0,
 						msc->msc_cred.bv_len );
@@ -471,7 +469,7 @@ meta_back_single_bind(
 		BER_BVZERO( &msc->msc_bound_ndn );
 	}
 
-	if ( LDAP_BACK_SAVECRED( mi ) && !BER_BVISNULL( &msc->msc_cred ) ) {
+	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 		/* destroy sensitive data */
 		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
 		ch_free( msc->msc_cred.bv_val );
@@ -523,6 +521,10 @@ meta_back_single_bind(
 	mc->mc_authz_target = candidate;
 
 	if ( LDAP_BACK_SAVECRED( mi ) ) {
+		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+			memset( msc->msc_cred.bv_val, 0,
+				msc->msc_cred.bv_len );
+		}
 		ber_bvreplace( &msc->msc_cred, &op->orb_cred );
 		ldap_set_rebind_proc( msc->msc_ld, mt->mt_rebind_f, msc );
 	}
