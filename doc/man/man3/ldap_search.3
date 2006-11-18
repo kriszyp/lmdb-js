@@ -24,7 +24,8 @@ int \fIattrsonly\fB,
 LDAPControl **\fIserverctrls\fB,
 LDAPControl **\fIclientctrls\fB,
 struct timeval *\fItimeout\fB,
-int sizelimit, *\fImsgidp\fB );
+int \fIsizelimit\fB,
+int *\fImsgidp\fB );
 .RE
 .LP
 .ft B
@@ -39,6 +40,7 @@ int \fIattrsonly\fB,
 LDAPControl **\fIserverctrls\fB,
 LDAPControl **\fIclientctrls\fB,
 struct timeval *\fItimeout\fB,
+int \fIsizelimit\fB,
 LDAPMessage **\fIres\fB );
 .RE
 .SH DESCRIPTION
