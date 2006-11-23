@@ -277,6 +277,10 @@ other:;
 			retcode = META_SEARCH_ERR;
 
 		} else {
+			if ( META_BACK_ONERR_REPORT( mi ) ) {
+				candidates[ candidate ].sr_err = rc;
+			}
+
 			retcode = META_SEARCH_NOT_CANDIDATE;
 		}
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
@@ -322,6 +326,9 @@ meta_search_dobind_result(
 			meta_back_release_conn( op, mc );
 			*mcp = NULL;
 			retcode = META_SEARCH_ERR;
+
+		} else if ( META_BACK_ONERR_REPORT( mi ) ) {
+			candidates[ candidate ].sr_err = rc;
 		}
 
 	} else {
@@ -376,6 +383,9 @@ meta_back_search_start(
 			META_BACK_ONERR_STOP( mi ) ? "" : " (ignored)" );
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			return META_SEARCH_ERR;
+		}
+		if ( META_BACK_ONERR_REPORT( mi ) ) {
+			candidates[ candidate ].sr_err = LDAP_OTHER;
 		}
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 		return META_SEARCH_NOT_CANDIDATE;
@@ -837,6 +847,9 @@ getconn:;
 						op->o_private = savepriv;
 						goto finish;
 					}
+					if ( META_BACK_ONERR_REPORT( mi ) ) {
+						candidates[ i ].sr_err = rs->sr_err;
+					}
 					/* fallthru */
 
 				case META_SEARCH_NOT_CANDIDATE:
@@ -864,6 +877,9 @@ getconn:;
 							send_ldap_result( op, rs );
 							op->o_private = savepriv;
 							goto finish;
+						}
+						if ( META_BACK_ONERR_REPORT( mi ) ) {
+							candidates[ i ].sr_err = rs->sr_err;
 						}
 						/* fallthru */
 
@@ -954,6 +970,9 @@ really_bad:;
 								op->o_private = savepriv;
 								goto finish;
 							}
+							if ( META_BACK_ONERR_REPORT( mi ) ) {
+								candidates[ i ].sr_err = rs->sr_err;
+							}
 							break;
 
 						case META_SEARCH_BINDING:
@@ -974,6 +993,9 @@ really_bad:;
 						send_ldap_result( op, rs );
 						op->o_private = savepriv;
 						goto finish;
+					}
+					if ( META_BACK_ONERR_REPORT( mi ) ) {
+						candidates[ i ].sr_err = rs->sr_err;
 					}
 				}
 
@@ -1131,7 +1153,7 @@ really_bad:;
 						0 );
 					if ( rs->sr_err != LDAP_SUCCESS ) {
 						ldap_get_option( msc->msc_ld,
-							LDAP_OPT_RESULT_CODE,
+							LDAP_OPT_ERROR_NUMBER,
 							&rs->sr_err );
 						sres = slap_map_api2result( rs );
 						candidates[ i ].sr_type = REP_RESULT;
@@ -1252,6 +1274,9 @@ really_bad:;
 							res = NULL;
 							goto finish;
 						}
+						if ( META_BACK_ONERR_REPORT( mi ) ) {
+							candidates[ i ].sr_err = rs->sr_err;
+						}
 						break;
 	
 					default:
@@ -1263,6 +1288,9 @@ really_bad:;
 							ldap_msgfree( res );
 							res = NULL;
 							goto finish;
+						}
+						if ( META_BACK_ONERR_REPORT( mi ) ) {
+							candidates[ i ].sr_err = rs->sr_err;
 						}
 						break;
 					}
@@ -1304,6 +1332,9 @@ really_bad:;
 							ldap_msgfree( res );
 							res = NULL;
 							goto finish;
+						}
+						if ( META_BACK_ONERR_REPORT( mi ) ) {
+							candidates[ i ].sr_err = rs->sr_err;
 						}
 						break;
 	
@@ -1526,14 +1557,35 @@ really_bad:;
 	/*
 	 * In case we returned at least one entry, we return LDAP_SUCCESS
 	 * otherwise, the latter error code we got
-	 *
-	 * FIXME: we should handle error codes and return the more 
-	 * important/reasonable
 	 */
 
-	if ( sres == LDAP_SUCCESS && rs->sr_v2ref ) {
-		sres = LDAP_REFERRAL;
+	if ( sres == LDAP_SUCCESS ) {
+		if ( rs->sr_v2ref ) {
+			sres = LDAP_REFERRAL;
+		}
+
+		if ( META_BACK_ONERR_REPORT( mi ) ) {
+			/*
+			 * Report errors, if any
+			 *
+			 * FIXME: we should handle error codes and return the more 
+			 * important/reasonable
+			 */
+			for ( i = 0; i < mi->mi_ntargets; i++ ) {
+				if ( !META_IS_CANDIDATE( &candidates[ i ] ) ) {
+					continue;
+				}
+
+				if ( candidates[ i ].sr_err != LDAP_SUCCESS
+					&& candidates[ i ].sr_err != LDAP_NO_SUCH_OBJECT )
+				{
+					sres = candidates[ i ].sr_err;
+					break;
+				}
+			}
+		}
 	}
+
 	rs->sr_err = sres;
 	rs->sr_matched = matched;
 	rs->sr_ref = ( sres == LDAP_REFERRAL ? rs->sr_v2ref : NULL );

@@ -769,20 +769,23 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "onerr" ) == 0 ) {
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"onerr {CONTINUE|stop}\" takes 1 argument\n",
+	"%s: line %d: \"onerr {CONTINUE|report|stop}\" takes 1 argument\n",
 				fname, lineno, 0 );
 			return( 1 );
 		}
 
 		if ( strcasecmp( argv[ 1 ], "continue" ) == 0 ) {
-			mi->mi_flags &= ~META_BACK_F_ONERR_STOP;
+			mi->mi_flags &= ~META_BACK_F_ONERR_MASK;
 
 		} else if ( strcasecmp( argv[ 1 ], "stop" ) == 0 ) {
 			mi->mi_flags |= META_BACK_F_ONERR_STOP;
 
+		} else if ( strcasecmp( argv[ 1 ], "report" ) == 0 ) {
+			mi->mi_flags |= META_BACK_F_ONERR_REPORT;
+
 		} else {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"onerr {CONTINUE|stop}\": invalid arg \"%s\".\n",
+	"%s: line %d: \"onerr {CONTINUE|report|stop}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}

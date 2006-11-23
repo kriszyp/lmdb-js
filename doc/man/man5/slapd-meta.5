@@ -115,14 +115,17 @@ illustrated for the
 directive.
 
 .TP
-.B onerr {CONTINUE|stop}
+.B onerr {CONTINUE|report|stop}
 This directive allows to select the behavior in case an error is returned
 by one target during a search.
 The default, \fBcontinue\fP, consists in continuing the operation, 
 trying to return as much data as possible.
-If this statement is set to \fBstop\fP, the search is terminated as soon 
+If the value is set to \fBstop\fP, the search is terminated as soon 
 as an error is returned by one target, and the error is immediately 
 propagated to the client.
+If the value is set to \fBreport\fP, the search is continuated to the end
+but, in case at least one target returned an error code, the first
+non-success error code is returned.
 
 .TP
 .B protocol\-version {0,2,3}
