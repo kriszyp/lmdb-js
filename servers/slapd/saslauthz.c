@@ -1130,6 +1130,7 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		} else {
 			BER_BVSTR( &group_oc, SLAPD_GROUP_CLASS );
+			BER_BVSTR( &member_at, SLAPD_GROUP_ATTR );
 		}
 		group_dn.bv_val++;
 		group_dn.bv_len = uri->bv_len - ( group_dn.bv_val - uri->bv_val );
