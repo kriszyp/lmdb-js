@@ -1206,6 +1206,8 @@ retry:;
 
 		/* FIXME: one binding-- too many? */
 		lc->lc_binding--;
+		assert( lc->lc_refcnt == 1 );
+		lc->lc_refcnt = 0;
 		ldap_back_freeconn( op, lc, dolock );
 		*lcp = NULL;
 		rs->sr_err = slap_map_api2result( rs );
