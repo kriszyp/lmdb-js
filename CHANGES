@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.31 Engineering
+	Fixed slapd "group" authz default member parsing (ITS#4761)
 	Documentation
 		Fixed typo in slapo-retcode(5) man page (ITS#4753)
 
