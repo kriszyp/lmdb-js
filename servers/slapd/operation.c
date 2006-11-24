@@ -61,6 +61,17 @@ void slap_op_destroy(void)
 }
 
 void
+slap_op_groups_free( Operation *op )
+{
+	GroupAssertion *g, *n;
+	for ( g = op->o_groups; g; g = n ) {
+		n = g->ga_next;
+		slap_sl_free( g, op->o_tmpmemctx );
+	}
+	op->o_groups = NULL;
+}
+
+void
 slap_op_free( Operation *op )
 {
 	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
@@ -87,13 +98,8 @@ slap_op_free( Operation *op )
 	}
 #endif
 
-	{
-		GroupAssertion *g, *n;
-		for ( g = op->o_groups; g; g = n ) {
-			n = g->ga_next;
-			slap_sl_free( g, op->o_tmpmemctx );
-		}
-		op->o_groups = NULL;
+	if ( op->o_groups ) {
+		slap_op_groups_free( op );
 	}
 
 #if defined( LDAP_SLAPI )

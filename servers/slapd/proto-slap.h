@@ -1232,6 +1232,7 @@ LDAP_SLAPD_F (int) parse_oidm LDAP_P((
  */
 LDAP_SLAPD_F (void) slap_op_init LDAP_P(( void ));
 LDAP_SLAPD_F (void) slap_op_destroy LDAP_P(( void ));
+LDAP_SLAPD_F (void) slap_op_groups_free LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (void) slap_op_free LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (void) slap_op_time LDAP_P(( time_t *t, int *n ));
 LDAP_SLAPD_F (Operation *) slap_op_alloc LDAP_P((
