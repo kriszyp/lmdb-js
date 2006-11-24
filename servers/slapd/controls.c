@@ -991,14 +991,6 @@ static int parseProxyAuthz (
 	op->o_ndn = dn;
 	ber_dupbv( &op->o_dn, &dn );
 
-	/*
-	 * since the authzid has changed, we need to delete
-	 * cached groups (ITS#4760)
-	 */
-        if ( op->o_groups ) {
-                slap_op_groups_free( op );
-        }
-
 	Statslog( LDAP_DEBUG_STATS, "%s PROXYAUTHZ dn=\"%s\"\n",
 	    op->o_log_prefix, dn.bv_val, 0, 0, 0 );
 
