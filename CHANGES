@@ -3,6 +3,7 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.31 Engineering
 	Fixed slapd group ACL caching when proxyAuthz'ing (ITS#4760)
 	Fixed slapd "group" authz default member parsing (ITS#4761)
+	Fixed slapd-bdb/hdb/ldbm slap_add_opattrs error checking
 	Documentation
 		Fixed typo in slapo-retcode(5) man page (ITS#4753)
 
@@ -19,7 +20,7 @@ OpenLDAP 2.3.29 Release
 	Fixed libldap string length assert (ITS#4740)
 	Fixed liblunicode case mapping (ITS#4724)
 	Fixed slapd ldapi:// socket permissions (ITS#4709)
-	Fixed slapd c_writewaiters assert (ITS#4696, #4736)
+	Fixed slapd c_writewaiters assert (ITS#4696,4736)
 	Fixed slapo-accesslog purge contextCSN bug (ITS#4704)
 	Fixed slapo-accesslog modify/replace bug (ITS#4728)
 	Fixed slapo-dynlist leaks (ITS#4664)

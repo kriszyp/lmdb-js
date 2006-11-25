@@ -56,7 +56,13 @@ ldbm_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 	
-	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+	rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"entry failed op attrs add: %s (%d)\n",
+			rs->sr_text, rs->sr_err, 0 );
+		goto return_results;
+	}
 
 	cb.sc_cleanup = ldbm_csn_cb;
 	cb.sc_next = op->o_callback;
