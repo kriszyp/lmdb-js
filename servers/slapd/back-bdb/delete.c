@@ -580,7 +580,7 @@ return_results:
 		slap_sl_free( *preread_ctrl, op->o_tmpmemctx );
 	}
 
-	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp_kbyte ) {
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
 	}
