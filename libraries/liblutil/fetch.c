@@ -52,8 +52,12 @@ ldif_open_url(
 		p = urlstr + sizeof("file:")-1;
 
 		/* we don't check for LDAP_DIRSEP since URLs should contain '/' */
-		if ( p[0] == '/' && p[1] == '/' )
+		if ( p[0] == '/' && p[1] == '/' ) {
 			p += 2;
+			/* path must be absolute if authority is present */
+			if ( p[0] != '/' )
+				return NULL;
+		}
 
 		p = ber_strdup( p );
 		ldap_pvt_hex_unescape( p );
