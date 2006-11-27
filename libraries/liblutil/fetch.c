@@ -48,17 +48,12 @@ ldif_open_url(
 	url = fetchGetURL( (char*) urlstr, "" );
 
 #else
-	if( strncasecmp( "file://", urlstr, sizeof("file://")-1 ) == 0 ) {
-		p = strchr( &urlstr[sizeof("file://")-1], '/' );
-		if( p == NULL ) {
-			return NULL;
-		}
+	if( strncasecmp( "file:", urlstr, sizeof("file:")-1 ) == 0 ) {
+		p = urlstr + sizeof("file:")-1;
 
 		/* we don't check for LDAP_DIRSEP since URLs should contain '/' */
-		if( p[1] == '.' && ( p[2] == '/' || ( p[2] == '.' && p[3] == '/' ))) {
-			/* skip over false root */
-			p++;
-		}
+		if ( p[0] == '/' && p[1] == '/' )
+			p += 2;
 
 		p = ber_strdup( p );
 		ldap_pvt_hex_unescape( p );
