@@ -335,7 +335,7 @@ main( int argc, char **argv )
 		&rbuf, &lmax ))
 	{
 		if ( rejfp ) {
-			len = lmax;
+			len = strlen( rbuf );
 			if (( rejbuf = (char *)ber_memalloc( len+1 )) == NULL ) {
 				perror( "malloc" );
 				exit( EXIT_FAILURE );
