@@ -1270,13 +1270,13 @@ parse_acl(
 
 					{
 						int rc;
-						struct berval vals[2];
+						ObjectClass *ocs[2];
 
-						ber_str2bv( b->a_group_oc->soc_oid, 0, 0, &vals[0] );
-						BER_BVZERO( &vals[1] );
+						ocs[0] = b->a_group_oc;
+						ocs[1] = NULL;
 
 						rc = oc_check_allowed( b->a_group_at->ad_type,
-							vals, NULL );
+							ocs, NULL );
 
 						if( rc != 0 ) {
 							char	buf[ SLAP_TEXT_BUFLEN ];

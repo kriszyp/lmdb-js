@@ -4243,7 +4243,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	
 	if(rc == LDAP_SUCCESS) {
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check(op, e, NULL, 0,
+		rc = entry_schema_check(op, e, NULL, 0, 0,
 			&rs->sr_text, ca->msg, sizeof(ca->msg) );
 	}
 	if ( rc == LDAP_SUCCESS ) {
@@ -4646,10 +4646,10 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	}
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
-	rc = structural_class(oc_at->a_vals, &val, NULL, &text, c->msg,
-		sizeof(c->msg));
-	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &val, NULL );
-	if ( op ) {
+	rc = structural_class(oc_at->a_vals, &oc, NULL, &text, c->msg,
+		sizeof(c->msg), op->o_tmpmemctx );
+	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &oc->soc_cname, NULL );
+	if ( !op->o_noop ) {
 		op->ora_e = e;
 		op->o_bd->be_add( op, rs );
 		if ( ( rs->sr_err != LDAP_SUCCESS ) 
@@ -4881,18 +4881,18 @@ config_back_db_open( BackendDB *be )
 		return config_check_schema( cfb );
 	}
 
-	if ( cfb->cb_use_ldif ) {
-		thrctx = ldap_pvt_thread_pool_context();
-		op = (Operation *) &opbuf;
-		connection_fake_init( &conn, op, thrctx );
+	thrctx = ldap_pvt_thread_pool_context();
+	op = (Operation *) &opbuf;
+	connection_fake_init( &conn, op, thrctx );
 
-		op->o_tag = LDAP_REQ_ADD;
-		op->o_callback = &cb;
-		op->o_bd = &cfb->cb_db;
-		op->o_dn = op->o_bd->be_rootdn;
-		op->o_ndn = op->o_bd->be_rootndn;
-	} else {
-		op = NULL;
+	op->o_tag = LDAP_REQ_ADD;
+	op->o_callback = &cb;
+	op->o_bd = &cfb->cb_db;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+
+	if ( !cfb->cb_use_ldif ) {
+		op->o_noop = 1;
 	}
 
 	/* create root of tree */

@@ -152,10 +152,10 @@ backsql_modify( Operation *op, SlapReply *rs )
 			goto do_transact;
 		}
 
-		rs->sr_err = entry_schema_check( op, &m, NULL, 0,
+		rs->sr_err = entry_schema_check( op, &m, NULL, 0, 0,
 			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+			Debug( LDAP_DEBUG_TRACE, "   backsql_modify(\"%s\"): "
 				"entry failed schema check -- aborting\n",
 				m.e_name.bv_val, 0, 0 );
 			e = NULL;

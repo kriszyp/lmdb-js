@@ -1515,21 +1515,22 @@ LDAP_SLAPD_F (int) schema_info LDAP_P(( Entry **entry, const char **text ));
  */
 LDAP_SLAPD_F( int ) oc_check_allowed(
 	AttributeType *type,
-	BerVarray oclist,
+	ObjectClass **socs,
 	ObjectClass *sc );
 
 LDAP_SLAPD_F( int ) structural_class(
 	BerVarray ocs,
-	struct berval *scbv,
 	ObjectClass **sc,
+	ObjectClass ***socs,
 	const char **text,
-	char *textbuf, size_t textlen );
+	char *textbuf, size_t textlen, void *ctx );
 
 LDAP_SLAPD_F( int ) entry_schema_check(
 	Operation *op,
 	Entry *e,
 	Attribute *attrs,
 	int manage,
+	int add_soc,
 	const char** text,
 	char *textbuf, size_t textlen );
 
@@ -1537,7 +1538,7 @@ LDAP_SLAPD_F( int ) mods_structural_class(
 	Modifications *mods,
 	struct berval *oc,
 	const char** text,
-	char *textbuf, size_t textlen );
+	char *textbuf, size_t textlen, void *ctx );
 
 /*
  * schema_init.c

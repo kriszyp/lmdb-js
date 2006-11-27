@@ -181,7 +181,7 @@ monitor_subsys_log_modify(
 		}
 
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check( op, e, save_attrs, 0,
+		rc = entry_schema_check( op, e, save_attrs, 0, 0,
 			&text, textbuf, sizeof( textbuf ) );
 		if ( rc != LDAP_SUCCESS ) {
 			rs->sr_err = rc;

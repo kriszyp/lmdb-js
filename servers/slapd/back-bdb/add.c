@@ -91,22 +91,23 @@ txnReturn:
 
 	ctrls[num_ctrls] = 0;
 
+
+	/* check entry's schema */
+	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
+		get_relax(op), 1, &rs->sr_text, textbuf, textlen );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": entry failed schema check: "
+			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
+		goto return_results;
+	}
+
 	/* add opattrs to shadow as well, only missing attrs will actually
 	 * be added; helps compatibility with older OL versions */
 	rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": entry failed op attrs add: "
-			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
-		goto return_results;
-	}
-
-	/* check entry's schema */
-	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
-		get_relax(op), &rs->sr_text, textbuf, textlen );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": entry failed schema check: "
 			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
 		goto return_results;
 	}

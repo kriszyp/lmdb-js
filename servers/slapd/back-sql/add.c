@@ -957,13 +957,11 @@ backsql_add( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(\"%s\")\n",
 			op->ora_e->e_name.bv_val, 0, 0 );
 
-	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
-
 	/* check schema */
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		rs->sr_err = entry_schema_check( op, op->ora_e, NULL, 0,
+		rs->sr_err = entry_schema_check( op, op->ora_e, NULL, 0, 1,
 			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
@@ -973,6 +971,8 @@ backsql_add( Operation *op, SlapReply *rs )
 			goto done;
 		}
 	}
+
+	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 
 	/* search structuralObjectClass */
 	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
@@ -1003,7 +1003,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 
 		rs->sr_err = structural_class( at->a_vals, &scname, NULL,
-				&text, buf, sizeof( buf ) );
+				&text, buf, sizeof( buf ), op->o_tmpmemctx );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"%s (%d)\n",

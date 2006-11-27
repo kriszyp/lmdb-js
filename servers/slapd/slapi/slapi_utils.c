@@ -3118,7 +3118,7 @@ int slapi_entry_schema_check( Slapi_PBlock *pb, Slapi_Entry *e )
 
 	pb->pb_op->o_bd = select_backend( &e->e_nname, 0, 0 );
 	if ( pb->pb_op->o_bd != NULL ) {
-		rc = entry_schema_check( pb->pb_op, e, NULL, 0,
+		rc = entry_schema_check( pb->pb_op, e, NULL, 0, 0,
 			&text, textbuf, textlen );
 	}
 	pb->pb_op->o_bd = be_orig;

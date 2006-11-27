@@ -71,6 +71,7 @@ slapadd( int argc, char **argv )
 
 	memset( &opbuf, 0, sizeof(opbuf) );
 	op = (Operation *) &opbuf;
+	op->o_hdr = (Opheader *)(op+1);
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
@@ -163,8 +164,6 @@ slapadd( int argc, char **argv )
 		}
 
 		{
-			Attribute *sc = attr_find( e->e_attrs,
-				slap_schema.si_ad_structuralObjectClass );
 			Attribute *oc = attr_find( e->e_attrs,
 				slap_schema.si_ad_objectClass );
 
@@ -178,30 +177,11 @@ slapadd( int argc, char **argv )
 				break;
 			}
 
-			if( sc == NULL ) {
-				struct berval val;
-
-				rc = structural_class( oc->a_vals, &val,
-					NULL, &text, textbuf, textlen );
-
-				if( rc != LDAP_SUCCESS ) {
-					fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
-						progname, e->e_dn, lineno, rc, text );
-					rc = EXIT_FAILURE;
-					entry_free( e );
-					if( continuemode ) continue;
-					break;
-				}
-
-				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
-					&val, NULL );
-			}
-
 			/* check schema */
 			op->o_bd = be;
 
 			if ( (slapMode & SLAP_TOOL_NO_SCHEMA_CHECK) == 0) {
-				rc = entry_schema_check( op, e, NULL, manage,
+				rc = entry_schema_check( op, e, NULL, manage, 1,
 					&text, textbuf, textlen );
 
 				if( rc != LDAP_SUCCESS ) {

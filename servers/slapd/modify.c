@@ -810,6 +810,8 @@ int slap_mods_check(
 #endif	/* PRESERVE_ORDER */
 
 					cv = ml->sml_nvalues ? ml->sml_nvalues : ml->sml_values;
+					if ( ad == slap_schema.si_ad_objectClass )
+						mr = NULL;	/* shortcut matching */
 
 					/* record indices to preserve input ordering */
 					ix = slap_sl_malloc( nvals * sizeof(int), ctx );

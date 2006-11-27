@@ -250,31 +250,24 @@ static int objectSubClassIndexer(
 {
 	int rc, noc, i;
 	BerVarray ocvalues;
+	ObjectClass **socs;
 	
 	for( noc=0; values[noc].bv_val != NULL; noc++ ) {
 		/* just count em */;
 	}
 
 	/* over allocate */
-	ocvalues = slap_sl_malloc( sizeof( struct berval ) * (noc+16), ctx );
+	socs = slap_sl_malloc( (noc+16) * sizeof( ObjectClass * ), ctx );
 
-	/* copy listed values (and termination) */
+	/* initialize */
 	for( i=0; i<noc; i++ ) {
-		ObjectClass *oc = oc_bvfind( &values[i] );
-		if( oc ) {
-			ocvalues[i] = oc->soc_cname;
-		} else {
-			ocvalues[i] = values[i];
-		}
+		socs[i] = oc_bvfind( &values[i] );
 	}
-
-	ocvalues[i].bv_val = NULL;
-	ocvalues[i].bv_len = 0;
 
 	/* expand values */
 	for( i=0; i<noc; i++ ) {
 		int j;
-		ObjectClass *oc = oc_bvfind( &ocvalues[i] );
+		ObjectClass *oc = socs[i];
 		if( oc == NULL || oc->soc_sups == NULL ) continue;
 		
 		for( j=0; oc->soc_sups[j] != NULL; j++ ) {
@@ -283,35 +276,37 @@ static int objectSubClassIndexer(
 			int k;
 
 			for( k=0; k<noc; k++ ) {
-				if( bvmatch( &ocvalues[k], &sup->soc_cname ) ) {
+				if( sup == socs[k] ) {
 					found++;
 					break;
 				}
 			}
 
 			if( !found ) {
-				ocvalues = slap_sl_realloc( ocvalues,
-					sizeof( struct berval ) * (noc+2), ctx );
+				socs = slap_sl_realloc( socs,
+					sizeof( ObjectClass * ) * (noc+2), ctx );
 
 				assert( k == noc );
-
-				ocvalues[noc] = sup->soc_cname;
-
-				assert( ocvalues[noc].bv_val != NULL );
-				assert( ocvalues[noc].bv_len != 0 );
-
-				noc++;
-
-				ocvalues[noc].bv_len = 0;
-				ocvalues[noc].bv_val = NULL;
+				socs[noc++] = sup;
 			}
 		}
 	}
+
+	ocvalues = slap_sl_malloc( sizeof( struct berval ) * (noc+1), ctx );
+	/* copy values */
+	for( i=0; i<noc; i++ ) {
+		if ( socs[i] )
+			ocvalues[i] = socs[i]->soc_cname;
+		else
+			ocvalues[i] = values[i];
+	}
+	BER_BVZERO( &ocvalues[i] );
 
 	rc = octetStringIndexer( use, mask, syntax, mr,
 		prefix, ocvalues, keysp, ctx );
 
 	slap_sl_free( ocvalues, ctx );
+	slap_sl_free( socs, ctx );
 	return rc;
 }
 

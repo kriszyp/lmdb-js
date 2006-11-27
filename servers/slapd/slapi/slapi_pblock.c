@@ -497,7 +497,8 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 
 			rc = mods_structural_class( pb->pb_op->ora_modlist,
 				&tmpval, &pb->pb_rs->sr_text,
-				pb->pb_textbuf, sizeof( pb->pb_textbuf ));
+				pb->pb_textbuf, sizeof( pb->pb_textbuf ),
+				pb->pb_op->o_tmpmemctx );
 			*((char **)value) = tmpval.bv_val;
 		} else {
 			rc = PBLOCK_ERROR;

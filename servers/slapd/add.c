@@ -631,30 +631,6 @@ int slap_add_opattrs(
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	Attribute *a;
 
-	a = attr_find( op->ora_e->e_attrs,
-		slap_schema.si_ad_structuralObjectClass );
-
-	if ( !a ) {
-		Attribute *oc;
-		int rc;
-
-		oc = attr_find( op->ora_e->e_attrs, slap_schema.si_ad_objectClass );
-		if ( oc ) {
-			rc = structural_class( oc->a_vals, &tmp, NULL, text,
-				textbuf, textlen );
-			if( rc == LDAP_SUCCESS ) {
-				attr_merge_one( op->ora_e,
-					slap_schema.si_ad_structuralObjectClass,
-					&tmp, NULL );
-
-			} else if ( !SLAP_NO_SCHEMA_CHECK( op->o_bd ) &&
-				!get_no_schema_check( op ) )
-			{
-				return rc;
-			}
-		}
-	}
-
 	if ( SLAP_LASTMOD( op->o_bd ) ) {
 		char *ptr;
 		int gotcsn = 0;

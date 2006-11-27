@@ -1021,7 +1021,7 @@ next:;
 			}
 
 			rc = structural_class( nvals, &soc, NULL, 
-					&text, textbuf, textlen );
+					&text, textbuf, textlen, op->o_tmpmemctx );
 			if ( rc != LDAP_SUCCESS ) {
       				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
 					"structural_class() failed %d (%s)\n",
