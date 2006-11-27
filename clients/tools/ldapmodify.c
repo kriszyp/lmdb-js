@@ -3,6 +3,7 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Portions Copyright 2006 Howard Chu.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 1998-2001 Net Boolean Incorporated.
  * Portions Copyright 2001-2003 IBM Corporation.
@@ -32,6 +33,7 @@
  * include:
  *   Kurt D. Zeilenga
  *   Norbert Klasen
+ *   Howard Chu
  */
 
 #include "portable.h"
@@ -578,7 +580,7 @@ short_input:
 				goto short_input;
 			if ( BVICMP( btype+i, &BV_NEWRDN )) {
 				fprintf( stderr, _("%s: expecting \"%s:\" but saw"
-					" \"%s:\" (line %d of entry \"%s\")\n"),
+					" \"%s:\" (line %d, entry \"%s\")\n"),
 					prog, BV_NEWRDN.bv_val, btype[i].bv_val, linenum+i, dn );
 				rc = LDAP_PARAM_ERROR;
 				goto leave;
@@ -589,7 +591,7 @@ short_input:
 				goto short_input;
 			if ( BVICMP( btype+i, &BV_DELETEOLDRDN )) {
 				fprintf( stderr, _("%s: expecting \"%s:\" but saw"
-					" \"%s:\" (line %d of entry \"%s\")\n"),
+					" \"%s:\" (line %d, entry \"%s\")\n"),
 					prog, BV_DELETEOLDRDN.bv_val, btype[i].bv_val, linenum+i, dn );
 				rc = LDAP_PARAM_ERROR;
 				goto leave;
@@ -599,7 +601,7 @@ short_input:
 			if ( i < lines ) {
 				if ( BVICMP( btype+i, &BV_NEWSUP )) {
 					fprintf( stderr, _("%s: expecting \"%s:\" but saw"
-						" \"%s:\" (line %d of entry \"%s\")\n"),
+						" \"%s:\" (line %d, entry \"%s\")\n"),
 						prog, BV_NEWSUP.bv_val, btype[i].bv_val, linenum+i, dn );
 					rc = LDAP_PARAM_ERROR;
 					goto leave;
@@ -628,7 +630,7 @@ short_input:
 	if ( got_all ) {
 		if ( i < lines ) {
 			fprintf( stderr,
-				_("%s: extra lines at end (line %d of entry \"%s\")\n"),
+				_("%s: extra lines at end (line %d, entry \"%s\")\n"),
 				prog, linenum+i, dn );
 			rc = LDAP_PARAM_ERROR;
 			goto leave;
@@ -716,8 +718,8 @@ short_input:
     
 			if ( ++icnt != vals[i].bv_len ) {
 				fprintf( stderr, _("%s: illegal trailing space after"
-					" \"%s: %s\" trimmed (line %d of entry \"%s\")\n"),
-					prog, type, vals[i].bv_val, linenum, dn );
+					" \"%s: %s\" trimmed (line %d, entry \"%s\")\n"),
+					prog, type, vals[i].bv_val, linenum+i, dn );
 				vals[i].bv_val[icnt] = '\0';
 			}
 #endif /* LIBERAL_CHANGETYPE_MODOP */
@@ -745,16 +747,27 @@ short_input:
 				modop = LDAP_MOD_INCREMENT;
 				mops[i] = M_SEP;
 				nmods--;
-			} else {	/* no modify op:  use default */
-				modop = ldapadd ? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
-				mops[i] = modop;
+			} else {	/* no modify op: invalid LDIF */
+				fprintf( stderr, _("%s: modify operation type is missing at"
+					" line %d, entry \"%s\"\n"),
+					prog, linenum+i, dn );
+				rc = LDAP_PARAM_ERROR;
+				goto leave;
 			}
+			bv = vals[i];
 		} else if ( expect_sep && BER_BVISEMPTY( btype+i )) {
 			mops[i] = M_SEP;
 			expect_sep = 0;
 			expect_modop = 1;
 			nmods--;
 		} else {
+			if ( BVICMP( btype+i, &bv )) {
+				fprintf( stderr, _("%s: wrong attributeType at"
+					" line %d, entry \"%s\"\n"),
+					prog, linenum+i, dn );
+				rc = LDAP_PARAM_ERROR;
+				goto leave;
+			}
 			mops[i] = modop;
 			/* If prev op was deferred and matches this type,
 			 * clear the flag
@@ -767,6 +780,7 @@ short_input:
 		}
 	}
 
+#if 0	/* we should faithfully encode the LDIF, not combine */
 	/* Make sure all modops with multiple values are contiguous */
 	for (i=idn; i<lines; i++) {
 		if ( mops[i] == M_SEP )
@@ -801,6 +815,7 @@ short_input:
 			}
 		}
 	}
+#endif
 
 	/* Allocate space for array of mods, array of pointers to mods,
 	 * and array of pointers to values, allowing for NULL terminators
