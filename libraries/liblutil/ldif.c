@@ -777,6 +777,8 @@ ldif_close(
 	}
 }
 
+#define	LDIF_MAXLINE	4096
+
 /*
  * ldif_read_record - read an ldif record.  Return 1 for success, 0 for EOF.
  */
@@ -787,7 +789,7 @@ ldif_read_record(
 	char        **bufp,     /* ptr to malloced output buffer           */
 	int         *buflenp )  /* ptr to length of *bufp                  */
 {
-	char        linebuf[BUFSIZ], *line, *nbufp;
+	char        linebuf[LDIF_MAXLINE], *line, *nbufp;
 	ber_len_t   lcur = 0, len, linesize;
 	int         last_ch = '\n', found_entry = 0, stop, top_comment = 0;
 
@@ -882,7 +884,7 @@ ldif_read_record(
 		}
 
 		if ( *buflenp - lcur <= len ) {
-			*buflenp += len + BUFSIZ;
+			*buflenp += len + LDIF_MAXLINE;
 			nbufp = ber_memrealloc( *bufp, *buflenp );
 			if( nbufp == NULL ) {
 				return 0;
