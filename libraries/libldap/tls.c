@@ -103,7 +103,10 @@ static void tls_init_threads( void )
 		ldap_pvt_thread_mutex_init( &tls_mutexes[i] );
 	}
 	CRYPTO_set_locking_callback( tls_locking_cb );
-	/* FIXME: the thread id should be added somehow... */
+	CRYPTO_set_id_callback( ldap_pvt_thread_self );
+	/* FIXME: CRYPTO_set_id_callback only works when ldap_pvt_thread_t
+	 * is an integral type that fits in an unsigned long
+	 */
 
 	ldap_pvt_thread_mutex_init( &tls_def_ctx_mutex );
 	ldap_pvt_thread_mutex_init( &tls_connect_mutex );
