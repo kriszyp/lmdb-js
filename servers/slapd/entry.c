@@ -862,3 +862,76 @@ Entry *entry_dup( Entry *e )
 	return ret;
 }
 
+#if 1
+/* Duplicates an entry using a single malloc. Saves CPU time, increases
+ * heap usage because a single large malloc is harder to satisfy than
+ * lots of small ones, and the freed space isn't as easily reusable.
+ *
+ * Probably not worth using this function.
+ */
+Entry *entry_dup_bv( Entry *e )
+{
+	ber_len_t len;
+	int nattrs, nvals;
+	Entry *ret;
+	struct berval *bvl;
+	char *ptr;
+	Attribute *src, *dst;
+
+	ret = entry_alloc();
+
+	entry_partsize(e, &len, &nattrs, &nvals, 1);
+	ret->e_id = e->e_id;
+	ret->e_attrs = attrs_alloc( nattrs );
+	ret->e_ocflags = e->e_ocflags;
+	ret->e_bv.bv_len = len + nvals * sizeof(struct berval);
+	ret->e_bv.bv_val = ch_malloc( ret->e_bv.bv_len );
+
+	bvl = (struct berval *)ret->e_bv.bv_val;
+	ptr = (char *)(bvl + nvals);
+
+	ret->e_name.bv_len = e->e_name.bv_len;
+	ret->e_name.bv_val = ptr;
+	AC_MEMCPY( ptr, e->e_name.bv_val, e->e_name.bv_len );
+	ptr += e->e_name.bv_len;
+	*ptr++ = '\0';
+
+	ret->e_nname.bv_len = e->e_nname.bv_len;
+	ret->e_nname.bv_val = ptr;
+	AC_MEMCPY( ptr, e->e_nname.bv_val, e->e_nname.bv_len );
+	ptr += e->e_name.bv_len;
+	*ptr++ = '\0';
+
+	dst = ret->e_attrs;
+	for (src = e->e_attrs; src; src=src->a_next,dst=dst->a_next ) {
+		int i;
+		dst->a_desc = src->a_desc;
+		dst->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
+		dst->a_vals = bvl;
+		for ( i=0; src->a_vals[i].bv_val; i++ ) {
+			bvl->bv_len = src->a_vals[i].bv_len;
+			bvl->bv_val = ptr;
+			AC_MEMCPY( ptr, src->a_vals[i].bv_val, bvl->bv_len );
+			ptr += bvl->bv_len;
+			*ptr++ = '\0';
+			bvl++;
+		}
+		BER_BVZERO(bvl);
+		bvl++;
+		if ( src->a_vals != src->a_nvals ) {
+			dst->a_nvals = bvl;
+			for ( i=0; src->a_nvals[i].bv_val; i++ ) {
+				bvl->bv_len = src->a_nvals[i].bv_len;
+				bvl->bv_val = ptr;
+				AC_MEMCPY( ptr, src->a_nvals[i].bv_val, bvl->bv_len );
+				ptr += bvl->bv_len;
+				*ptr++ = '\0';
+				bvl++;
+			}
+			BER_BVZERO(bvl);
+			bvl++;
+		}
+	}
+	return ret;
+}
+#endif

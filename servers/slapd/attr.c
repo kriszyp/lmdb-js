@@ -181,15 +181,10 @@ attrs_free( Attribute *a )
 	}
 }
 
-Attribute *
-attr_dup( Attribute *a )
+
+static void
+attr_dup2( Attribute *tmp, Attribute *a )
 {
-	Attribute *tmp;
-
-	if ( a == NULL) return NULL;
-
-	tmp = attr_alloc( a->a_desc );
-
 	if ( a->a_vals != NULL ) {
 		int	i;
 
@@ -224,31 +219,42 @@ attr_dup( Attribute *a )
 		} else {
 			tmp->a_nvals = tmp->a_vals;
 		}
-
-	} else {
-		tmp->a_vals = NULL;
-		tmp->a_nvals = NULL;
 	}
+}
+
+Attribute *
+attr_dup( Attribute *a )
+{
+	Attribute *tmp;
+
+	if ( a == NULL) return NULL;
+
+	tmp = attr_alloc( a->a_desc );
+	attr_dup2( tmp, a );
 	return tmp;
 }
 
 Attribute *
 attrs_dup( Attribute *a )
 {
-	Attribute *tmp, **next;
+	int i;
+	Attribute *tmp, *anew;
 
 	if( a == NULL ) return NULL;
 
-	tmp = NULL;
-	next = &tmp;
-
-	for( ; a != NULL ; a = a->a_next ) {
-		*next = attr_dup( a );
-		next = &((*next)->a_next);
+	/* count them */
+	for( tmp=a,i=0; tmp; tmp=tmp->a_next ) {
+		i++;
 	}
-	*next = NULL;
 
-	return tmp;
+	anew = attrs_alloc( i );
+
+	for( tmp=anew; a; a=a->a_next ) {
+		attr_dup2( tmp, a );
+		tmp=tmp->a_next;
+	}
+
+	return anew;
 }
 
 

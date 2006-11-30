@@ -872,6 +872,7 @@ LDAP_SLAPD_F (int) entry_cmp LDAP_P(( Entry *a, Entry *b ));
 LDAP_SLAPD_F (int) entry_dn_cmp LDAP_P(( const void *v_a, const void *v_b ));
 LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( const void *v_a, const void *v_b ));
 LDAP_SLAPD_F (Entry *) entry_dup LDAP_P(( Entry *e ));
+LDAP_SLAPD_F (Entry *) entry_dup_bv LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (Entry *) entry_alloc LDAP_P((void));
 LDAP_SLAPD_F (int) entry_prealloc LDAP_P((int num));
 
