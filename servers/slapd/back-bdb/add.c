@@ -26,7 +26,7 @@ bdb_add(Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct berval	pdn;
-	Entry		*p = NULL;
+	Entry		*p = NULL, *oe = op->ora_e;
 	EntryInfo	*ei;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
@@ -415,17 +415,16 @@ retry:	/* transaction retry */
 
 	} else {
 		struct berval nrdn;
-		Entry *e = entry_dup( op->ora_e );
 
 		/* pick the RDN if not suffix; otherwise pick the entire DN */
 		if (pdn.bv_len) {
-			nrdn.bv_val = e->e_nname.bv_val;
+			nrdn.bv_val = op->ora_e->e_nname.bv_val;
 			nrdn.bv_len = pdn.bv_val - op->ora_e->e_nname.bv_val - 1;
 		} else {
-			nrdn = e->e_nname;
+			nrdn = op->ora_e->e_nname;
 		}
 
-		bdb_cache_add( bdb, ei, e, &nrdn, locker );
+		bdb_cache_add( bdb, ei, op->ora_e, &nrdn, locker );
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";
@@ -467,9 +466,22 @@ return_results:
 		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
 	}
 
-	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp_kbyte ) {
-		TXN_CHECKPOINT( bdb->bi_dbenv,
-			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
+	if( rs->sr_err == LDAP_SUCCESS ) {
+		EntryInfo *ei = op->ora_e->e_private;
+
+		/* We own the entry now, and it can be purged at will
+		 * Check to make sure it's the same entry we entered with.
+		 * Possibly a callback may have mucked with it, although
+		 * in general callbacks should treat the entry as read-only.
+		 */
+		if ( op->ora_e == oe )
+			op->ora_e = NULL;
+		ei->bei_state ^= CACHE_ENTRY_NOT_LINKED;
+
+		if ( bdb->bi_txn_cp_kbyte ) {
+			TXN_CHECKPOINT( bdb->bi_dbenv,
+				bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
+		}
 	}
 	return rs->sr_err;
 }

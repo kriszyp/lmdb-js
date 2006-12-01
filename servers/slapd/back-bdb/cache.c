@@ -931,7 +931,9 @@ bdb_cache_add(
 	}
 	new->bei_e = e;
 	e->e_private = new;
-	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
+	/* Set "Not linked" status so LRU purger ignores it */
+	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS |
+		CACHE_ENTRY_NOT_LINKED;
 	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
 	if (eip->bei_parent) {
 		eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
