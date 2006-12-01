@@ -494,6 +494,7 @@ static struct slap_daemon {
 
 # define SLAP_SOCK_INIT			do { \
 	SLAP_SELECT_CHK_SETSIZE; \
+	FD_ZERO(&slap_daemon.sd_actives); \
 	FD_ZERO(&slap_daemon.sd_readers); \
 	FD_ZERO(&slap_daemon.sd_writers); \
 } while (0)
