@@ -250,6 +250,7 @@ attrs_dup( Attribute *a )
 	anew = attrs_alloc( i );
 
 	for( tmp=anew; a; a=a->a_next ) {
+		tmp->a_desc = a->a_desc;
 		attr_dup2( tmp, a );
 		tmp=tmp->a_next;
 	}
