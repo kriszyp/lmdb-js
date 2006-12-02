@@ -1017,19 +1017,21 @@ static slap_verbmasks versionkey[] = {
 
 static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
-	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'd', 0, versionkey },
-	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
-	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
+	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'i', 0, versionkey },
+	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'i', 0, methkey },
+	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, (slap_verbmasks *)dnNormalize },
 	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
 	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 'b', 0, NULL },
 	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 's', 0, NULL },
 	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
-	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, NULL },
-	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
+	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, (slap_verbmasks *)authzNormalize },
+	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, (slap_verbmasks *)authzNormalize },
 #ifdef HAVE_TLS
-	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
+	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'i', 0, tlskey },
 
-#define aux_TLS (bindkey+10)	/* beginning of TLS keywords */
+	/* NOTE: replace "11" with the actual index
+	 * of the first TLS-related line */
+#define aux_TLS (bindkey+11)	/* beginning of TLS keywords */
 
 	{ BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
 	{ BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
@@ -1044,14 +1046,23 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
+/*
+ * 's':	char *
+ * 'b':	struct berval; if !NULL, normalize using ((slap_mr_normalize_func *)aux)
+ * 'i':	int; if !NULL, compute using ((slap_verbmasks *)aux)
+ * 'u':	unsigned
+ * 'I':	long
+ * 'U':	unsigned long
+ */
+
 int
 slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, LDAP_CONST char *tabmsg )
 {
 	int rc = SLAP_CONF_UNKNOWN;
 	slap_cf_aux_table *tab;
 
-	for (tab = tab0; !BER_BVISNULL(&tab->key); tab++ ) {
-		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len )) {
+	for ( tab = tab0; !BER_BVISNULL( &tab->key ); tab++ ) {
+		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len ) ) {
 			char **cptr;
 			int *iptr, j;
 			unsigned *uptr;
@@ -1069,27 +1080,39 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 
 			case 'b':
 				bptr = (struct berval *)((char *)dst + tab->off);
-				ber_str2bv( val, 0, 1, bptr );
-				rc = 0;
-				break;
+				if ( tab->aux != NULL ) {
+					struct berval	dn;
+					slap_mr_normalize_func *normalize = (slap_mr_normalize_func *)tab->aux;
 
-			case 'd':
-				assert( tab->aux != NULL );
-				iptr = (int *)((char *)dst + tab->off);
+					ber_str2bv( val, 0, 0, &dn );
+					rc = normalize( 0, NULL, NULL, &dn, bptr, NULL );
 
-				rc = 1;
-				for ( j = 0; !BER_BVISNULL( &tab->aux[j].word ); j++ ) {
-					if ( !strcasecmp( val, tab->aux[j].word.bv_val ) ) {
-						*iptr = tab->aux[j].mask;
-						rc = 0;
-					}
+				} else {
+					ber_str2bv( val, 0, 1, bptr );
+					rc = 0;
 				}
 				break;
 
 			case 'i':
 				iptr = (int *)((char *)dst + tab->off);
 
-				rc = lutil_atoix( iptr, val, 0 );
+				if ( tab->aux != NULL ) {
+					slap_verbmasks *aux = (slap_verbmasks *)tab->aux;
+
+					assert( aux != NULL );
+
+					rc = 1;
+					for ( j = 0; !BER_BVISNULL( &aux[j].word ); j++ ) {
+						if ( !strcasecmp( val, aux[j].word.bv_val ) ) {
+							*iptr = aux[j].mask;
+							rc = 0;
+							break;
+						}
+					}
+
+				} else {
+					rc = lutil_atoix( iptr, val, 0 );
+				}
 				break;
 
 			case 'u':
@@ -1145,6 +1168,7 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 		case 'b':
 			bptr = (struct berval *)((char *)src + tab->off);
 			cptr = &bptr->bv_val;
+
 		case 's':
 			if ( *cptr ) {
 				*ptr++ = ' ';
@@ -1155,25 +1179,26 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 			}
 			break;
 
-		case 'd':
-			assert( tab->aux != NULL );
-			iptr = (int *)((char *)src + tab->off);
-		
-			for ( i = 0; !BER_BVISNULL( &tab->aux[i].word ); i++ ) {
-				if ( *iptr == tab->aux[i].mask ) {
-					*ptr++ = ' ';
-					ptr = lutil_strcopy( ptr, tab->key.bv_val );
-					ptr = lutil_strcopy( ptr, tab->aux[i].word.bv_val );
-					break;
-				}
-			}
-			break;
-
 		case 'i':
 			iptr = (int *)((char *)src + tab->off);
-			*ptr++ = ' ';
-			ptr = lutil_strcopy( ptr, tab->key.bv_val );
-			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%d", *iptr );
+
+			if ( tab->aux != NULL ) {
+				slap_verbmasks *aux = (slap_verbmasks *)tab->aux;
+
+				for ( i = 0; !BER_BVISNULL( &aux[i].word ); i++ ) {
+					if ( *iptr == aux[i].mask ) {
+						*ptr++ = ' ';
+						ptr = lutil_strcopy( ptr, tab->key.bv_val );
+						ptr = lutil_strcopy( ptr, aux[i].word.bv_val );
+						break;
+					}
+				}
+
+			} else {
+				*ptr++ = ' ';
+				ptr = lutil_strcopy( ptr, tab->key.bv_val );
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%d", *iptr );
+			}
 			break;
 
 		case 'u':
