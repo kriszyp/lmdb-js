@@ -3170,7 +3170,7 @@ parse_syncrepl_line(
 		} else if ( bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
 			snprintf( c->msg, sizeof( c->msg ),
 				"Error: parse_syncrepl_line: "
-				"unknown keyword \"%s\"\n", c->argv[ i ] );
+				"unable to parse \"%s\"\n", c->argv[ i ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 			return -1;
 		}
