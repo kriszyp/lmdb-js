@@ -2493,6 +2493,13 @@ syncprov_db_init(
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	syncprov_info_t	*si;
 
+	if ( SLAP_ISGLOBALOVERLAY( be ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"syncprov must be instantiated within a database.\n",
+			0, 0, 0 );
+		return 1;
+	}
+
 	si = ch_calloc(1, sizeof(syncprov_info_t));
 	on->on_bi.bi_private = si;
 	ldap_pvt_thread_mutex_init( &si->si_csn_mutex );
