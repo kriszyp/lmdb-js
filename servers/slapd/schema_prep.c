@@ -363,7 +363,7 @@ static struct slap_schema_oc_map {
 	{ "subschema", "( 2.5.20.1 NAME 'subschema' "
 		"DESC 'RFC4512: controlling subschema (sub)entry' "
 		"AUXILIARY "
-		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
+		"MAY ( dITStructureRules $ nameForms $ dITContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
 			"matchingRuleUse ) )",
 		subentryObjectClass, SLAP_OC_OPERATIONAL,
@@ -742,7 +742,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_subtreeSpecification) },
 
 	/* subschema subentry attributes */
-	{ "ditStructureRules", "( 2.5.21.1 NAME 'dITStructureRules' "
+	{ "dITStructureRules", "( 2.5.21.1 NAME 'dITStructureRules' "
 			"DESC 'RFC4512: DIT structure rules' "
 			"EQUALITY integerFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.17 "
@@ -751,7 +751,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_ditStructureRules) },
-	{ "ditContentRules", "( 2.5.21.2 NAME 'dITContentRules' "
+	{ "dITContentRules", "( 2.5.21.2 NAME 'dITContentRules' "
 			"DESC 'RFC4512: DIT content rules' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 USAGE directoryOperation )",

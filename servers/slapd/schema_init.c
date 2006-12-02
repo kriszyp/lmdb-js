@@ -4165,13 +4165,13 @@ char *directoryStringSyntaxes[] = {
 };
 char *integerFirstComponentMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.27" /* INTEGER */,
-	"1.3.6.1.4.1.1466.115.121.1.17" /* ditStructureRuleDescription */,
+	"1.3.6.1.4.1.1466.115.121.1.17" /* dITStructureRuleDescription */,
 	NULL
 };
 char *objectIdentifierFirstComponentMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.38" /* OID */,
 	"1.3.6.1.4.1.1466.115.121.1.3"  /* attributeTypeDescription */,
-	"1.3.6.1.4.1.1466.115.121.1.16" /* ditContentRuleDescription */,
+	"1.3.6.1.4.1.1466.115.121.1.16" /* dITContentRuleDescription */,
 	"1.3.6.1.4.1.1466.115.121.1.54" /* ldapSyntaxDescription */,
 	"1.3.6.1.4.1.1466.115.121.1.30" /* matchingRuleDescription */,
 	"1.3.6.1.4.1.1466.115.121.1.31" /* matchingRuleUseDescription */,
