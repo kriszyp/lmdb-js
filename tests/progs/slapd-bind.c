@@ -98,7 +98,7 @@ main( int argc, char **argv )
 	int		outerloops = 1;
 	int		force = 0;
 	int		chaserefs = 0;
-	int		noinit = 0;
+	int		noinit = 1;
 	int		delay = 0;
 
 	/* extra action to do after bind... */
@@ -225,7 +225,7 @@ main( int argc, char **argv )
 
 		case 'I':
 			/* reuse connection */
-			noinit++;
+			noinit = 0;
 			break;
 
 		case 't':

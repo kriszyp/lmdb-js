@@ -125,6 +125,7 @@ main( int argc, char **argv )
 	int		chaserefs = 0;
 	int		noattrs = 0;
 	int		nobind = 0;
+	int		noinit = 1;
 	char		*ignore = NULL;
 	/* search */
 	char		*sfile = NULL;
@@ -203,7 +204,7 @@ main( int argc, char **argv )
 	mloops[0] = '\0';
 	bloops[0] = '\0';
 
-	while ( (i = getopt( argc, argv, "AB:CD:d:FH:h:i:j:l:L:NP:p:r:t:w:Wy:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "AB:CD:d:FH:h:Ii:j:l:L:NP:p:r:t:Ww:y:" )) != EOF ) {
 		switch( i ) {
 		case 'A':
 			noattrs++;
@@ -250,6 +251,10 @@ main( int argc, char **argv )
 
 		case 'h':		/* slapd host */
 			host = strdup( optarg );
+			break;
+
+		case 'I':
+			noinit = 0;
 			break;
 
 		case 'i':
@@ -696,7 +701,9 @@ main( int argc, char **argv )
 	snprintf( bcmd, sizeof bcmd, "%s" LDAP_DIRSEP BINDCMD,
 		progdir );
 	bargs[banum++] = bcmd;
-	bargs[banum++] = "-I";	/* don't init on each bind */
+	if ( !noinit ) {
+		bargs[banum++] = "-I";	/* init on each bind */
+	}
 	if ( uri ) {
 		bargs[banum++] = "-H";
 		bargs[banum++] = uri;
