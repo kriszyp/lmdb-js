@@ -1576,7 +1576,7 @@ typedef struct slap_cf_aux_table {
 	int off;
 	char type;
 	char quote;
-	slap_verbmasks *aux;
+	void *aux;
 } slap_cf_aux_table;
 
 #define SLAP_LIMIT_TIME	1

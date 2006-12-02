@@ -3,6 +3,7 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.31 Engineering
 	Fixed slapd group ACL caching when proxyAuthz'ing (ITS#4760)
 	Fixed slapd "group" authz default member parsing (ITS#4761)
+	Fixed slapd DN parsing in bindconf_parse (ITS#4766)
 	Fixed slapd-bdb/hdb/ldbm slap_add_opattrs error checking
 	Documentation
 		Fixed typo in slapo-retcode(5) man page (ITS#4753)
