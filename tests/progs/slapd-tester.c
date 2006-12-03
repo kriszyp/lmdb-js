@@ -99,6 +99,7 @@ usage( char *name, char opt )
 		"[-t <delay>] "
 		"[-C] "
 		"[-F] "
+		"[-I] "
 		"[-N]\n",
 		name );
 	exit( EXIT_FAILURE );
