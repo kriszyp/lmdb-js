@@ -82,8 +82,9 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-modrdn", TESTER_MODRDN );
 
-	while ( (i = getopt( argc, argv, "CFH:h:i:p:D:w:e:l:L:r:t:" )) != EOF ) {
-		switch( i ) {
+	while ( ( i = getopt( argc, argv, "CD:e:FH:h:i:L:l:p:r:t:w:" ) ) != EOF )
+	{
+		switch ( i ) {
 		case 'C':
 			chaserefs++;
 			break;

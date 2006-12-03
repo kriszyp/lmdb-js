@@ -205,14 +205,14 @@ main( int argc, char **argv )
 	mloops[0] = '\0';
 	bloops[0] = '\0';
 
-	while ( (i = getopt( argc, argv, "AB:CD:d:FH:h:Ii:j:l:L:NP:p:r:t:Ww:y:" )) != EOF ) {
-		switch( i ) {
+	while ( ( i = getopt( argc, argv, "AB:CD:d:FH:h:Ii:j:L:l:NP:p:r:t:Ww:y:" ) ) != EOF )
+	{
+		switch ( i ) {
 		case 'A':
 			noattrs++;
 			break;
 
-		case 'B':
-			{
+		case 'B': {
 			char	**p,
 				**b = ldap_str2charray( optarg, "," );
 			extra_t	**epp;
@@ -357,7 +357,9 @@ main( int argc, char **argv )
 
 	if (( dirname == NULL ) || ( port == NULL && uri == NULL ) ||
 			( manager == NULL ) || ( passwd == NULL ) || ( progdir == NULL ))
+	{
 		usage( argv[0], '\0' );
+	}
 
 #ifdef HAVE_WINSOCK
 	children = malloc( maxkids * sizeof(HANDLE) );

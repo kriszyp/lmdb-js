@@ -81,7 +81,8 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-modify", TESTER_MODIFY );
 
-	while ( (i = getopt( argc, argv, "CFH:h:i:p:D:w:e:a:l:L:r:t:" )) != EOF ) {
+	while ( ( i = getopt( argc, argv, "a:CD:e:FH:h:i:L:l:p:r:t:w:" ) ) != EOF )
+	{
 		switch ( i ) {
 		case 'C':
 			chaserefs++;

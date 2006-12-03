@@ -96,8 +96,8 @@ main( int argc, char **argv )
 	/* by default, tolerate referrals and no such object */
 	tester_ignore_str2errlist( "REFERRAL,NO_SUCH_OBJECT" );
 
-	while ( (i = getopt( argc, argv, "ACD:H:h:i:p:e:Ff:l:L:r:t:w:" )) != EOF ) {
-		switch( i ) {
+	while ( (i = getopt( argc, argv, "ACD:e:Ff:H:h:i:L:l:p:r:t:w:" )) != EOF ) {
+		switch ( i ) {
 		case 'A':
 			noattrs++;
 			break;

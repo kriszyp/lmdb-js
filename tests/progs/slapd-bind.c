@@ -120,8 +120,9 @@ main( int argc, char **argv )
 	/* by default, tolerate invalid credentials */
 	tester_ignore_str2errlist( "INVALID_CREDENTIALS" );
 
-	while ( (i = getopt( argc, argv, "a:b:B:H:h:i:p:D:w:l:L:f:FIt:" )) != EOF ) {
-		switch( i ) {
+	while ( ( i = getopt( argc, argv, "a:B:b:D:Ff:H:h:Ii:L:l:p:t:w:" ) ) != EOF )
+	{
+		switch ( i ) {
 		case 'a':
 			pwattr = optarg;
 			break;

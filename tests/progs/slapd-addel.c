@@ -87,8 +87,9 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-addel", TESTER_ADDEL );
 
-	while ( (i = getopt( argc, argv, "CFH:h:p:D:w:f:l:L:r:t:" )) != EOF ) {
-		switch( i ) {
+	while ( ( i = getopt( argc, argv, "CD:Ff:H:h:i:L:l:p:r:t:w:" ) ) != EOF )
+	{
+		switch ( i ) {
 		case 'C':
 			chaserefs++;
 			break;
