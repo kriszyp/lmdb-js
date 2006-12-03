@@ -1218,7 +1218,7 @@ ldap_chase_referrals( LDAP *ld,
 				}
 			}
 			if ( looped ) {
-				ldap_free_urllist(srv);
+				ldap_free_urllist( srv );
 				ld->ld_errno = LDAP_CLIENT_LOOP;
 				rc = -1;
 				continue;

@@ -34,6 +34,7 @@
  *		AbandonRequest ::= [APPLICATION 16] MessageID
  * and has no response.  (Source: RFC 4511)
  */
+#include "lutil.h"
 
 static int
 do_abandon(
@@ -137,7 +138,6 @@ do_abandon(
 {
 	BerElement	*ber;
 	int		i, err;
-	ber_int_t	*old_abandon;
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
@@ -154,7 +154,7 @@ start_again:;
 		}
 
 		/* child: abandon it */
-		if ( lr->lr_origid == msgid ) {
+		if ( lr->lr_origid == msgid && !lr->lr_abandoned ) {
 			(void)do_abandon( ld, lr->lr_origid, lr->lr_msgid,
 				sctrls, sendabandon );
 
@@ -293,14 +293,11 @@ start_again:;
 			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
 		}
 
-#if 0
-		/* FIXME: this is needed so that restarting
-		 * the initial search for lr doesn't result
-		 * in an endless loop */
-		if ( origid == msgid )
-#endif
-		{
+		if ( origid == msgid ) {
 			ldap_free_request( ld, lr );
+
+		} else {
+			lr->lr_abandoned = 1;
 		}
 	}
 
@@ -313,73 +310,16 @@ start_again:;
 
 	/* use bisection */
 	i = 0;
-	if ( ld->ld_abandoned != NULL ) {
-		int		begin,
-				end;
-
-		assert( ld->ld_nabandoned >= 0 );
-
-		begin = 0;
-		end = ld->ld_nabandoned - 1;
-
-		if ( ld->ld_nabandoned == 0 || ld->ld_abandoned[ begin ] > msgid ) {
-			i = 0;
-
-		} else if ( ld->ld_abandoned[ end ] < msgid ) {
-			i = ld->ld_nabandoned;
-
-		} else {
-			int	pos, curid;
-
-			while ( end >= begin ) {
-				pos = (begin + end)/2;
-				curid = ld->ld_abandoned[ pos ];
-
-				if ( msgid < curid ) {
-					end = pos - 1;
-
-				} else if ( msgid > curid ) {
-					begin = pos + 1;
-
-				} else {
-					/* already abandoned? */
-					i = -1;
-					break;
-				}
-			}
-
-			if ( i == 0 ) {
-				i = pos;
-			}
-		}
-	}
-
-	if ( i != -1 ) {
-		int	pos = i;
-
-		old_abandon = ld->ld_abandoned;
-
-		ld->ld_abandoned = (ber_int_t *) LDAP_REALLOC( (char *)ld->ld_abandoned,
-			( ld->ld_nabandoned + 1 ) * sizeof( ber_int_t ) );
-
-		if ( ld->ld_abandoned == NULL ) {
-			ld->ld_abandoned = old_abandon;
-			ld->ld_errno = LDAP_NO_MEMORY;
-			goto done;
-		}
-
-		for ( i = ld->ld_nabandoned; i > pos; i-- ) {
-			ld->ld_abandoned[ i ] = ld->ld_abandoned[ i - 1 ];
-		}
-		ld->ld_abandoned[ pos ] = msgid;
-		++ld->ld_nabandoned;
+	if ( ld->ld_nabandoned == 0 ||
+		lutil_bisect_find( ld->ld_abandoned, ld->ld_nabandoned, msgid, &i ) == 0 )
+	{
+		lutil_bisect_insert( &ld->ld_abandoned, &ld->ld_nabandoned, msgid, i );
 	}
 
 	if ( err != -1 ) {
 		ld->ld_errno = LDAP_SUCCESS;
 	}
 
-done:;
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );

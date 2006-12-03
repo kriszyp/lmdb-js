@@ -322,6 +322,13 @@ lutil_unparse_time( char *buf, size_t buflen, unsigned long t );
 	} while ( 0 );
 #endif /* ! timermul */
 
+LDAP_LUTIL_F (int)
+lutil_bisect_find( ber_int_t *v, ber_len_t n, ber_int_t id, int *idxp );
+LDAP_LUTIL_F (int)
+lutil_bisect_insert( ber_int_t **vp, ber_len_t *np, int id, int idx );
+LDAP_LUTIL_F (int)
+lutil_bisect_delete( ber_int_t **vp, ber_len_t *np, int id, int idx );
+
 LDAP_END_DECL
 
 #endif /* _LUTIL_H */

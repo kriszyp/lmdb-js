@@ -64,10 +64,10 @@
 
 #include "ldap-int.h"
 #include "ldap_log.h"
+#include "lutil.h"
 
-static int ldap_abandoned_idx LDAP_P(( LDAP *ld, ber_int_t msgid ));
-#define ldap_abandoned(ld, msgid)	( ldap_abandoned_idx((ld), (msgid)) > -1 )
-static int ldap_mark_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
+static int ldap_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid, int *idx ));
+static int ldap_mark_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid, int idx ));
 static int wait4msg LDAP_P(( LDAP *ld, ber_int_t msgid, int all, struct timeval *timeout,
 	LDAPMessage **result ));
 static ber_tag_t try_read1msg LDAP_P(( LDAP *ld, ber_int_t msgid,
@@ -164,14 +164,29 @@ chkResponseList(
 
 	lastlm = &ld->ld_responses;
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
+		int	idx;
+
 		nextlm = lm->lm_next;
 		++cnt;
 
-		if ( ldap_abandoned( ld, lm->lm_msgid ) ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"ldap_chkResponseList msg abandoned, msgid %d\n",
-				msgid, 0, 0 );
-			ldap_mark_abandoned( ld, lm->lm_msgid );
+		if ( ldap_abandoned( ld, lm->lm_msgid, &idx ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"response list msg abandoned, "
+				"msgid %d message type %s\n",
+				lm->lm_msgid, ldap_int_msgtype2str( lm->lm_msgtype ), 0 );
+
+			switch ( lm->lm_msgtype ) {
+			case LDAP_RES_SEARCH_ENTRY:
+			case LDAP_RES_SEARCH_REFERENCE:
+			case LDAP_RES_INTERMEDIATE:
+				break;
+
+			default:
+				/* there's no need to keep the id
+				 * in the abandoned list any longer */
+				ldap_mark_abandoned( ld, lm->lm_msgid, idx );
+				break;
+			}
 
 			/* Remove this entry from list */
 			*lastlm = nextlm;
@@ -184,16 +199,17 @@ chkResponseList(
 		if ( msgid == LDAP_RES_ANY || lm->lm_msgid == msgid ) {
 			LDAPMessage	*tmp;
 
-			if ( all == LDAP_MSG_ONE || all == LDAP_MSG_RECEIVED ||
+			if ( all == LDAP_MSG_ONE ||
+				all == LDAP_MSG_RECEIVED ||
 				msgid == LDAP_RES_UNSOLICITED )
 			{
 				break;
 			}
 
 			tmp = lm->lm_chain_tail;
-			if ( (tmp->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
-				(tmp->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-				(tmp->lm_msgtype == LDAP_RES_INTERMEDIATE) )
+			if ( tmp->lm_msgtype == LDAP_RES_SEARCH_ENTRY ||
+				tmp->lm_msgtype == LDAP_RES_SEARCH_REFERENCE ||
+				tmp->lm_msgtype == LDAP_RES_INTERMEDIATE )
 			{
 				tmp = NULL;
 			}
@@ -206,16 +222,6 @@ chkResponseList(
 		}
 		lastlm = &lm->lm_next;
 	}
-
-#if 0
-	{
-		char	buf[ BUFSIZ ];
-
-		snprintf( buf, sizeof( buf ), "ld=%p msgid=%d%s cnt=%d",
-			ld, msgid, all ? " all" : "", cnt );
-		Debug( LDAP_DEBUG_TRACE, "+++ chkResponseList %s\n", buf, 0, 0 );
-	}
-#endif
 
 	if ( lm != NULL ) {
 		/* Found an entry, remove it from the list */
@@ -238,10 +244,11 @@ chkResponseList(
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_chkResponseList returns ld %p msgid %d, type 0x%02lu\n",
-			(void *)ld, lm->lm_msgid, (unsigned long) lm->lm_msgtype );
+			(void *)ld, lm->lm_msgid, (unsigned long)lm->lm_msgtype );
 	}
 #endif
-    return lm;
+
+	return lm;
 }
 
 static int
@@ -318,7 +325,7 @@ wait4msg(
 #endif
 			for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
-						LBER_SB_OPT_DATA_READY, NULL ) )
+					LBER_SB_OPT_DATA_READY, NULL ) )
 				{
 #ifdef LDAP_R_COMPILE
 					ldap_pvt_thread_mutex_unlock( &ld->ld_conn_mutex );
@@ -440,6 +447,7 @@ try_read1msg(
 	BerElement	*ber;
 	LDAPMessage	*newmsg, *l, *prev;
 	ber_int_t	id;
+	int		idx;
 	ber_tag_t	tag;
 	ber_len_t	len;
 	int		foundit = 0;
@@ -481,7 +489,7 @@ retry:
 	if ( lc->lconn_ber == NULL ) {
 		lc->lconn_ber = ldap_alloc_ber_with_options( ld );
 
-		if( lc->lconn_ber == NULL ) {
+		if ( lc->lconn_ber == NULL ) {
 			return -1;
 		}
 	}
@@ -495,7 +503,7 @@ retry:
 	if ( LDAP_IS_UDP(ld) ) {
 		struct sockaddr from;
 		ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr) );
-		if (ld->ld_options.ldo_version == LDAP_VERSION2) isv2 = 1;
+		if ( ld->ld_options.ldo_version == LDAP_VERSION2 ) isv2 = 1;
 	}
 nextresp3:
 #endif
@@ -536,9 +544,27 @@ nextresp3:
 	}
 
 	/* if it's been abandoned, toss it */
-	if ( ldap_abandoned( ld, id ) ) {
-		Debug( LDAP_DEBUG_ANY, "abandoned/discarded ld %p msgid %ld\n",
-			(void *)ld, (long) id, 0);
+	if ( ldap_abandoned( ld, id, &idx ) ) {
+		/* the message type */
+		tag = ber_peek_tag( ber, &len );
+		switch ( tag ) {
+		case LDAP_RES_SEARCH_ENTRY:
+		case LDAP_RES_SEARCH_REFERENCE:
+		case LDAP_RES_INTERMEDIATE:
+		case LBER_ERROR:
+			break;
+
+		default:
+			/* there's no need to keep the id
+			 * in the abandoned list any longer */
+			ldap_mark_abandoned( ld, id, idx );
+			break;
+		}
+
+		Debug( LDAP_DEBUG_ANY,
+			"abandoned/discarded ld %p msgid %ld message type %s\n",
+			(void *)ld, (long)id, ldap_int_msgtype2str( tag ) );
+
 retry_ber:
 		ber_free( ber, 1 );
 		if ( ber_sockbuf_ctrl( lc->lconn_sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
@@ -549,19 +575,34 @@ retry_ber:
 
 	lr = ldap_find_request_by_msgid( ld, id );
 	if ( lr == NULL ) {
+		const char	*msg = "unknown";
+
+		/* the message type */
+		tag = ber_peek_tag( ber, &len );
+		switch ( tag ) {
+		case LBER_ERROR:
+			break;
+
+		default:
+			msg = ldap_int_msgtype2str( tag );
+			break;
+		}
+
 		Debug( LDAP_DEBUG_ANY,
-			"no request for response on ld %p msgid %ld (tossing)\n",
-			(void *)ld, (long)id, 0 );
+			"no request for response on ld %p msgid %ld message type %s (tossing)\n",
+			(void *)ld, (long)id, msg );
+
 		goto retry_ber;
 	}
 #ifdef LDAP_CONNECTIONLESS
-	if (LDAP_IS_UDP(ld) && isv2) {
+	if ( LDAP_IS_UDP(ld) && isv2 ) {
 		ber_scanf(ber, "x{");
 	}
 nextresp2:
 #endif
 	/* the message type */
-	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
+	tag = ber_peek_tag( ber, &len );
+	if ( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( ber, 1 );
 		return( -1 );
@@ -569,7 +610,7 @@ nextresp2:
 
 	Debug( LDAP_DEBUG_TRACE,
 		"read1msg: ld %p msgid %ld message type %s\n",
-		(void *)ld, (long) lr->lr_msgid, ldap_int_msgtype2str( tag ));
+		(void *)ld, (long)lr->lr_msgid, ldap_int_msgtype2str( tag ) );
 
 	id = lr->lr_origid;
 	refer_cnt = 0;
@@ -582,17 +623,17 @@ nextresp2:
 	 * referral / search reference, or pass it back to the application
 	 */
 	v3ref = V3REF_NOREF;	/* Assume not a V3 search reference/referral */
-	if( (tag != LDAP_RES_SEARCH_ENTRY) && (ld->ld_version > LDAP_VERSION2) ) {
+	if ( tag != LDAP_RES_SEARCH_ENTRY && ld->ld_version > LDAP_VERSION2 ) {
 		BerElement	tmpber = *ber; 	/* struct copy */
-		char **refs = NULL;
+		char		**refs = NULL;
 
-		if( tag == LDAP_RES_SEARCH_REFERENCE ) {
+		if ( tag == LDAP_RES_SEARCH_REFERENCE ) {
 			/* This is a V3 search reference */
 			/* Assume we do not chase the reference,
 			 * but pass it to application */
 			v3ref = V3REF_TOAPP;
-			if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
-					(lr->lr_parent != NULL) )
+			if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
+					lr->lr_parent != NULL )
 			{
 				/* Get the referral list */
 				if ( ber_scanf( &tmpber, "{v}", &refs ) == LBER_ERROR ) {
@@ -601,7 +642,7 @@ nextresp2:
 				} else {
 					/* Note: refs array is freed by ldap_chase_v3referrals */
 					refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
-					    1, &lr->lr_res_error, &hadref );
+						1, &lr->lr_res_error, &hadref );
 					if ( refer_cnt > 0 ) {
 						/* sucessfully chased reference */
 						/* If haven't got end search, set chasing referrals */
@@ -611,7 +652,7 @@ nextresp2:
 								"read1msg:  search ref chased, "
 								"mark request chasing refs, "
 								"id = %d\n",
-								lr->lr_msgid, 0, 0);
+								lr->lr_msgid, 0, 0 );
 						}
 
 						/* We sucessfully chased the reference */
@@ -644,19 +685,20 @@ nextresp2:
 				if ( ber_peek_tag( &tmpber, &len ) == LDAP_TAG_REFERRAL ) {
 					/* We have a V3 referral, assume we cannot chase it */
 					v3ref = V3REF_TOAPP;
-					if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
-							 || (lr->lr_parent != NULL) )
+					if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
+							 || lr->lr_parent != NULL )
 					{
 						/* Assume referral not chased and return it to app */
 						v3ref = V3REF_TOAPP;
 
 						/* Get the referral list */
-						if( ber_scanf( &tmpber, "{v}", &refs) == LBER_ERROR) {
+						if ( ber_scanf( &tmpber, "{v}", &refs) == LBER_ERROR) {
 							rc = LDAP_DECODING_ERROR;
 							lr->lr_status = LDAP_REQST_COMPLETED;
 							Debug( LDAP_DEBUG_TRACE,
-								"read1msg: referral decode error, mark request completed, ld %p msgid %d\n",
-								(void *)ld, lr->lr_msgid, 0);
+								"read1msg: referral decode error, "
+								"mark request completed, ld %p msgid %d\n",
+								(void *)ld, lr->lr_msgid, 0 );
 
 						} else {
 							/* Chase the referral 
@@ -666,9 +708,10 @@ nextresp2:
 								0, &lr->lr_res_error, &hadref );
 							lr->lr_status = LDAP_REQST_COMPLETED;
 							Debug( LDAP_DEBUG_TRACE,
-								"read1msg: referral chased, mark request completed, ld %p msgid %d\n",
+								"read1msg: referral chased, "
+								"mark request completed, ld %p msgid %d\n",
 								(void *)ld, lr->lr_msgid, 0);
-							if( refer_cnt > 0) {
+							if ( refer_cnt > 0 ) {
 								/* Referral successfully chased */
 								v3ref = V3REF_SUCCESS;
 							}
@@ -676,12 +719,12 @@ nextresp2:
 					}
 				}
 
-				if( lr->lr_res_matched != NULL ) {
+				if ( lr->lr_res_matched != NULL ) {
 					LDAP_FREE( lr->lr_res_matched );
 					lr->lr_res_matched = NULL;
 				}
 
-				if( lr->lr_res_error != NULL ) {
+				if ( lr->lr_res_error != NULL ) {
 					LDAP_FREE( lr->lr_res_error );
 					lr->lr_res_error = NULL;
 				}
@@ -693,8 +736,9 @@ nextresp2:
 	 * go through the following code.  This code also chases V2 referrals
 	 * and checks if all referrals have been chased.
 	 */
-	if ( (tag != LDAP_RES_SEARCH_ENTRY) && (v3ref != V3REF_TOAPP) &&
-		(tag != LDAP_RES_INTERMEDIATE ))
+	if ( tag != LDAP_RES_SEARCH_ENTRY &&
+		v3ref != V3REF_TOAPP &&
+		tag != LDAP_RES_INTERMEDIATE )
 	{
 		/* For a v3 search referral/reference, only come here if already chased it */
 		if ( ld->ld_version >= LDAP_VERSION2 &&
@@ -734,8 +778,8 @@ nextresp2:
 					break;
 
 				default:
-					if ( lr->lr_res_error == NULL
-						|| lr->lr_res_error[ 0 ] == '\0' )
+					if ( lr->lr_res_error == NULL ||
+						lr->lr_res_error[ 0 ] == '\0' )
 					{
 						break;
 					}
@@ -753,9 +797,9 @@ nextresp2:
 
 				/* save errno, message, and matched string */
 				if ( !hadref || lr->lr_res_error == NULL ) {
-					lr->lr_res_errno = ( lderr ==
-					LDAP_PARTIAL_RESULTS ) ? LDAP_SUCCESS
-					: lderr;
+					lr->lr_res_errno =
+						lderr == LDAP_PARTIAL_RESULTS
+						? LDAP_SUCCESS : lderr;
 
 				} else if ( ld->ld_errno != LDAP_SUCCESS ) {
 					lr->lr_res_errno = ld->ld_errno;
@@ -828,17 +872,20 @@ nextresp2:
 			}
 
 			/* This is the parent request if the request has referrals */
-			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL &&
+			if ( lr->lr_outrefcnt <= 0 &&
+				lr->lr_parent == NULL &&
 				tmplr == NULL )
 			{
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
 				Debug( LDAP_DEBUG_ANY, "request done: ld %p msgid %ld\n",
 					(void *)ld, (long) id, 0 );
-Debug( LDAP_DEBUG_TRACE,
-"res_errno: %d, res_error: <%s>, res_matched: <%s>\n",
-lr->lr_res_errno, lr->lr_res_error ? lr->lr_res_error : "",
-lr->lr_res_matched ? lr->lr_res_matched : "" );
+				Debug( LDAP_DEBUG_TRACE,
+					"res_errno: %d, res_error: <%s>, "
+					"res_matched: <%s>\n",
+					lr->lr_res_errno,
+					lr->lr_res_error ? lr->lr_res_error : "",
+					lr->lr_res_matched ? lr->lr_res_matched : "" );
 				if ( !simple_request ) {
 					ber_free( ber, 1 );
 					ber = NULL;
@@ -908,18 +955,18 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 				 */
 				ber = ber_dup( ber );
 				ber_scanf( ber, "x" );
-				if (ber_peek_tag(ber, &len) != LBER_DEFAULT) {
+				if ( ber_peek_tag( ber, &len ) != LBER_DEFAULT ) {
 					/* There's more - dup the ber buffer so they can all be
 					 * individually freed by ldap_msgfree.
 					 */
 					struct berval bv;
-					ber_get_option(ber, LBER_OPT_BER_REMAINING_BYTES, &len);
-					bv.bv_val = LDAP_MALLOC(len);
-					if (bv.bv_val) {
-						ok=1;
-						ber_read(ber, bv.bv_val, len);
+					ber_get_option( ber, LBER_OPT_BER_REMAINING_BYTES, &len );
+					bv.bv_val = LDAP_MALLOC( len );
+					if ( bv.bv_val ) {
+						ok = 1;
+						ber_read( ber, bv.bv_val, len );
 						bv.bv_len = len;
-						ber_init2(ber, &bv, ld->ld_lberoptions );
+						ber_init2( ber, &bv, ld->ld_lberoptions );
 					}
 				}
 			} else {
@@ -941,16 +988,20 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 			chain_head->lm_chain_tail = newmsg;
 			tmp = newmsg;
 			/* "ok" means there's more to parse */
-			if (ok) {
-				if (isv2) goto nextresp2;
-				else goto nextresp3;
+			if ( ok ) {
+				if ( isv2 ) {
+					goto nextresp2;
+
+				} else {
+					goto nextresp3;
+				}
 			} else {
 				/* got to end of datagram without a SearchResult. Free
 				 * our dup'd ber, but leave any buffer alone. For v2 case,
 				 * the previous response is still using this buffer. For v3,
 				 * the new ber has no buffer to free yet.
 				 */
-				ber_free(ber, 0);
+				ber_free( ber, 0 );
 				return -1;
 			}
 		} else if ( moremsgs ) {
@@ -970,12 +1021,14 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	/* is this the one we're looking for? */
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {
 		if ( all == LDAP_MSG_ONE
-		    || (newmsg->lm_msgtype != LDAP_RES_SEARCH_RESULT
-		    && newmsg->lm_msgtype != LDAP_RES_SEARCH_ENTRY
-		    && newmsg->lm_msgtype != LDAP_RES_SEARCH_REFERENCE) ) {
+			|| ( newmsg->lm_msgtype != LDAP_RES_SEARCH_RESULT
+			    	&& newmsg->lm_msgtype != LDAP_RES_SEARCH_ENTRY
+			  	&& newmsg->lm_msgtype != LDAP_RES_SEARCH_REFERENCE ) )
+		{
 			*result = newmsg;
 			ld->ld_errno = LDAP_SUCCESS;
 			return( tag );
+
 		} else if ( newmsg->lm_msgtype == LDAP_RES_SEARCH_RESULT) {
 			foundit = 1;	/* return the chain later */
 		}
@@ -1056,7 +1109,7 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 		lr->lr_res_error ? lr->lr_res_error : "" ) == -1 )
 	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free(ber, 1);
+		ber_free( ber, 1 );
 		return( LBER_ERROR );
 	}
 
@@ -1064,13 +1117,13 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 
 	if ( ber_skip_tag( ber, &len ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		ber_free(ber, 1);
+		ber_free( ber, 1 );
 		return( LBER_ERROR );
 	}
 
 	if ( ber_get_enum( ber, &along ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		ber_free(ber, 1);
+		ber_free( ber, 1 );
 		return( LBER_ERROR );
 	}
 
@@ -1078,7 +1131,7 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 
 	if ( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		ber_free(ber, 1);
+		ber_free( ber, 1 );
 		return( LBER_ERROR );
 	}
 
@@ -1097,7 +1150,7 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 		parentr->lr_res_errno = lr->lr_res_errno;
 		if ( lr->lr_res_error != NULL ) {
 			(void)ldap_append_referral( ld, &parentr->lr_res_error,
-			    lr->lr_res_error );
+				lr->lr_res_error );
 		}
 
 	} else if ( lr->lr_res_errno != LDAP_SUCCESS &&
@@ -1145,7 +1198,8 @@ ldap_msgid( LDAPMessage *lm )
 }
 
 
-char * ldap_int_msgtype2str( ber_tag_t tag )
+const char *
+ldap_int_msgtype2str( ber_tag_t tag )
 {
 	switch( tag ) {
 	case LDAP_RES_ADD: return "add";
@@ -1190,7 +1244,7 @@ int
 ldap_msgdelete( LDAP *ld, int msgid )
 {
 	LDAPMessage	*lm, *prev;
-	int rc = 0;
+	int		rc = 0;
 
 	assert( ld != NULL );
 
@@ -1221,8 +1275,17 @@ ldap_msgdelete( LDAP *ld, int msgid )
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
-	if ( lm && ldap_msgfree( lm ) == LDAP_RES_SEARCH_ENTRY ) {
-		rc = -1;
+	if ( lm ) {
+		switch ( ldap_msgfree( lm ) ) {
+		case LDAP_RES_SEARCH_ENTRY:
+		case LDAP_RES_SEARCH_REFERENCE:
+		case LDAP_RES_INTERMEDIATE:
+			rc = -1;
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	return rc;
@@ -1230,7 +1293,7 @@ ldap_msgdelete( LDAP *ld, int msgid )
 
 
 /*
- * ldap_abandoned_idx
+ * ldap_abandoned
  *
  * return the location of the message id in the array of abandoned
  * message ids, or -1
@@ -1238,50 +1301,17 @@ ldap_msgdelete( LDAP *ld, int msgid )
  * expects ld_res_mutex to be locked
  */
 static int
-ldap_abandoned_idx( LDAP *ld, ber_int_t msgid )
+ldap_abandoned( LDAP *ld, ber_int_t msgid, int *idxp )
 {
-	int	begin,
-		end;
-
 #ifdef LDAP_R_COMPILE
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
+	assert( idxp != NULL );
+	assert( msgid >= 0 );
 	assert( ld->ld_nabandoned >= 0 );
 
-	if ( ld->ld_abandoned == NULL || ld->ld_nabandoned == 0 ) {
-		return -1;
-	}
-
-	begin = 0;
-	end = ld->ld_nabandoned - 1;
-
-	/* use bisection */
-	if ( msgid < ld->ld_abandoned[ begin ] ) {
-		return -1;
-	}
-
-	if ( msgid > ld->ld_abandoned[ end ] ) {
-		return -1;
-	}
-
-	while ( end >= begin ) {
-		int	pos = (begin + end)/2;
-		int	curid = ld->ld_abandoned[ pos ];
-
-		if ( msgid < curid ) {
-			end = pos - 1;
-
-		} else if ( msgid > curid ) {
-			begin = pos + 1;
-
-		} else {
-			return pos;
-		}
-	}
-
-	/* not abandoned */
-	return -1;
+	return lutil_bisect_find( ld->ld_abandoned, ld->ld_nabandoned, msgid, idxp );
 }
 
 /*
@@ -1290,24 +1320,25 @@ ldap_abandoned_idx( LDAP *ld, ber_int_t msgid )
  * expects ld_res_mutex to be locked
  */
 static int
-ldap_mark_abandoned( LDAP *ld, ber_int_t msgid )
+ldap_mark_abandoned( LDAP *ld, ber_int_t msgid, int idx )
 {
-	int	i, idx;
+	int		i;
 
 #ifdef LDAP_R_COMPILE
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
-	idx = ldap_abandoned_idx( ld, msgid );
-	if ( idx == -1 ) {
-		return -1;
-	}
+	/* NOTE: those assertions are repeated in lutil_bisect_delete() */
+	assert( idx >= 0 );
+	assert( idx < ld->ld_nabandoned );
+	assert( ld->ld_abandoned[ idx ] == msgid );
 
-	--ld->ld_nabandoned;
-	assert( ld->ld_nabandoned >= 0 );
-	for ( i = idx; i < ld->ld_nabandoned; i++ ) {
-		ld->ld_abandoned[ i ] = ld->ld_abandoned[ i + 1 ];
+#if 0
+	fprintf( stderr, "--> ldap_mark_abandoned %p %p %d %d:\n", (void *)&i, (void *)ld, msgid, idx );
+	for ( i = 0; i < ld->ld_nabandoned; i++ ) {
+		fprintf( stderr, "\t%p %p %d\n", (void *)&i, (void *)ld, ld->ld_abandoned[ i ] );
 	}
+#endif
 
-	return 0;
+	return lutil_bisect_delete( &ld->ld_abandoned, &ld->ld_nabandoned, msgid, idx );
 }

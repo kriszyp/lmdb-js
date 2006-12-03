@@ -272,6 +272,7 @@ typedef struct ldapreq {
 #define LDAP_REQST_WRITING	4
 	int		lr_refcnt;	/* count of references */
 	int		lr_outrefcnt;	/* count of outstanding referrals */
+	int		lr_abandoned;	/* the request has been abandoned */
 	ber_int_t	lr_origid;	/* original request's message id */
 	int		lr_parentcnt;	/* count of parent requests */
 	ber_tag_t	lr_res_msgtype;	/* result message type */
@@ -549,7 +550,7 @@ LDAP_F (int) ldap_int_flush_request( LDAP *ld, LDAPRequest *lr );
 /*
  * in result.c:
  */
-LDAP_F (char *) ldap_int_msgtype2str( ber_tag_t tag );
+LDAP_F (const char *) ldap_int_msgtype2str( ber_tag_t tag );
 
 /*
  * in search.c
