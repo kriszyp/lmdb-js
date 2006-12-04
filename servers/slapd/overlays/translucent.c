@@ -300,7 +300,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
-	Entry ne, *e = NULL, *re = NULL;
+	Entry *e = NULL, *re = NULL;
 	Attribute *a, *ax;
 	Modifications *m, *mm;
 	int del, rc, erc = 0;
@@ -413,6 +413,7 @@ release:
 	Debug(LDAP_DEBUG_TRACE, "=> translucent_modify: fabricating local add\n", 0, 0, 0);
 	a = NULL;
 	for(del = 0, ax = NULL, m = op->orm_modlist; m; m = m->sml_next) {
+		Attribute atmp;
 		if(((m->sml_op & LDAP_MOD_OP) != LDAP_MOD_ADD) &&
 		   ((m->sml_op & LDAP_MOD_OP) != LDAP_MOD_REPLACE)) {
 			Debug(LDAP_DEBUG_ANY,
@@ -421,15 +422,16 @@ release:
 			if((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) del++;
 			continue;
 		}
-		a = attr_alloc( m->sml_desc );
-		a->a_vals  = m->sml_values;
-		a->a_nvals = m->sml_nvalues ? m->sml_nvalues : a->a_vals;
+		atmp.a_desc = m->sml_desc;
+		atmp.a_vals = m->sml_values;
+		atmp.a_nvals = m->sml_nvalues ? m->sml_nvalues : atmp.a_vals;
+		a = attr_dup( &atmp );
 		a->a_next  = ax;
 		ax = a;
 	}
 
 	if(del && ov->strict) {
-		free_attr_chain(a);
+		attrs_free( a );
 		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
 			"attempt to delete attributes from local database");
 		return(rs->sr_err);
@@ -447,17 +449,13 @@ release:
 		return(rs->sr_err);
 	}
 
-	ne.e_id		= NOID;
-	ne.e_name	= op->o_req_dn;
-	ne.e_nname	= op->o_req_ndn;
-	ne.e_attrs	= a;
-	ne.e_ocflags	= 0;
-	ne.e_bv.bv_len	= 0;
-	ne.e_bv.bv_val	= NULL;
-	ne.e_private	= NULL;
+	e = entry_alloc();
+	ber_dupbv( &e->e_name, &op->o_req_dn );
+	ber_dupbv( &e->e_nname, &op->o_req_ndn );
+	e->e_attrs = a;
 
 	nop.o_tag	= LDAP_REQ_ADD;
-	nop.oq_add.rs_e	= &ne;
+	nop.oq_add.rs_e	= e;
 
 	glue_parent(&nop);
 
@@ -466,7 +464,8 @@ release:
 	cb.sc_next = nop.o_callback;
 	nop.o_callback = &cb;
 	rc = on->on_info->oi_orig->bi_op_add(&nop, &nrs);
-	free_attr_chain(a);
+	if ( nop.ora_e == e )
+		entry_free( e );
 
 	return(rc);
 }

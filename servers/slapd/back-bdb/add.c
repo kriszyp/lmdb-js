@@ -467,7 +467,7 @@ return_results:
 	}
 
 	if( rs->sr_err == LDAP_SUCCESS ) {
-		EntryInfo *ei = op->ora_e->e_private;
+		EntryInfo *ei = oe->e_private;
 
 		/* We own the entry now, and it can be purged at will
 		 * Check to make sure it's the same entry we entered with.
