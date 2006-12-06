@@ -738,9 +738,11 @@ connection_destroy( Connection *c )
 	if ( sd != AC_SOCKET_INVALID ) {
 		slapd_remove( sd, sb, 1, 0, 0 );
 
-		Statslog( LDAP_DEBUG_STATS, (close_reason
-									 ? "conn=%lu fd=%ld closed (%s)\n"
-									 : "conn=%lu fd=%ld closed\n"),
+		if ( close_reason == NULL ) {
+			close_reason = "";
+		}
+
+		Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed (%s)\n",
 			connid, (long) sd, close_reason, 0, 0 );
 	}
 }
