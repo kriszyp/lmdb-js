@@ -58,7 +58,7 @@ field from the parsed message. This string should be freed using
 .LP
 The \fIreferralsp\fP parameter will be filled in with an allocated array of
 referral strings from the parsed message. This array should be freed using
-.BR ldap_value_free (3).
+.BR ldap_memvfree (3).
 If no referrals were returned, \fI*referralsp\fP is set to NULL.
 .LP
 The \fIserverctrlsp\fP parameter will be filled in with an allocated array of
@@ -99,6 +99,7 @@ result parameters are undefined.
 .BR ldap_result (3),
 .BR ldap_search (3),
 .BR ldap_memfree (3),
+.BR ldap_memvfree (3),
 .BR ldap_get_values (3),
 .BR ldap_controls_free (3),
 .BR lber-types (3)
