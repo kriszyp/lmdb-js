@@ -3,4 +3,14 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Glossary
 
+H2: Terms
 !catalog terms ''; columns="Term,Definition"
+
+H2: Related Organizations
+!catalog organisations ''; columns="Name,Long,Jump"
+
+H2: Related Products
+!catalog products ''; columns="Name,Jump"
+
+H2: References
+!catalog references ''; columns="Reference,Document,Status,Jump"

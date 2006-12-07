@@ -194,7 +194,7 @@ FAQ|Frequently Asked Questions
 FTP|File Transfer Protocol
 FYI|For Your Information
 GSER|Generic String Encoding Rules
-GSS-API|Generic Security Service Application Program Interface
+GSSAPI|Generic Security Service Application Program Interface
 HDB|Heirarchial Database
 HOB|Hierarchical Operational Binding
 I-D|Internet-Draft
@@ -269,14 +269,14 @@ Reference|Status|Document|Jump
 RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|http://www.rfc-editor.org/rfc/rfc2079.txt
 RFC2296|PS|Use of Language Codes in LDAP|http://www.rfc-editor.org/rfc/rfc2296.txt
 RFC2307|X|An Approach for Using LDAP as a Network Information Service|http://www.rfc-editor.org/rfc/rfc2307.txt
-RFC2798|INFO|Definition of the inetOrgPerson LDAP Object Class|http://www.rfc-editor.org/rfc/rfc2798.txt
+RFC2798|I|Definition of the inetOrgPerson LDAP Object Class|http://www.rfc-editor.org/rfc/rfc2798.txt
 RFC2831|PS|Using Digest Authentication as a SASL Mechanism|http://www.rfc-editor.org/rfc/rfc2831.txt
 RFC2849|PS|The LDAP Data Interchange Format|http://www.rfc-editor.org/rfc/rfc2849.txt
 RFC3088|X|OpenLDAP Root Service|http://www.rfc-editor.org/rfc/rfc3088.txt
 RFC3296|PS|Named Subordinate References in LDAP|http://www.rfc-editor.org/rfc/rfc3296.txt
-RFC3384|INFO|Lightweight Directory Access Protocol (version 3) Replication Requirements|http://www.rfc-editor.org/rfc/rfc3384.txt
-RFC3494|INFO|Lightweight Directory Access Protocol version 2 (LDAPv2) to Historic Status|http://www.rfc-editor.org/rfc/rfc3494.txt
-RFC4013|PS|SASLprep: Stringprep Profile for User Names and Passwords
+RFC3384|I|Lightweight Directory Access Protocol (version 3) Replication Requirements|http://www.rfc-editor.org/rfc/rfc3384.txt
+RFC3494|I|Lightweight Directory Access Protocol version 2 (LDAPv2) to Historic Status|http://www.rfc-editor.org/rfc/rfc3494.txt
+RFC4013|PS|SASLprep: Stringprep Profile for User Names and Passwords|http://www.rfc-editor.org/rfc/rfc4013.txt
 RFC4346|PS|The Transport Layer Security (TLS) Protocol, Version 1.1|http://www.rfc-editor.org/rfc/rfc4346.txt
 RFC4422|PS|Simple Authentication and Security Layer (SASL)|http://www.rfc-editor.org/rfc/rfc4422.txt
 RFC4510|PS|Lightweight Directory Access Protocol (LDAP) Technical Specification Roadmap|http://www.rfc-editor.org/rfc/rfc4510.txt
