@@ -142,66 +142,126 @@ TCL|http://www.tcl.tk/
 # Internet and X.500 terms
 !block terms; data
 Term|Definition
+3DES|Triple DES
+ABNF|Augmented Backus-Naur Form
+ACDF|Access Control Decision Function
+ACE|ASCII Compatible Encoding
+ACIA|Access Control Inner Area
+ACID|Atomicity, Consistency, Isolation, and Durability
+ACI|Access Control Information
+ACL|Access Control List
+ACSA|Access Control Specific Area
+ADDMD|Administration Directory Management Domain
 AES|Advance Encryption Standard
 API|Application Program Interface
+ASN.1|Abstract Syntax Notation - One
 ASN|Abstract Syntax Notation
-ASN.1|Abstract Syntax Notation 1
-BCP|Best Common Practice
+AVA|Attribute Value Assertion
+AuthcId|Authentication Identity
+AuthzId|Authorization Identity
+BCP|Best Current Practice
 BDB|Berkeley DB
 BER|Basic Encoding Rules
-BNF|BNF
+BNF|Backus-Naur Form
 C|The C Programming Language
 CA|Certificate Authority
+CCITT|International Telegraph and Telephone Consultative Committee
+CER|Canonical Encoding Rules
 CLDAP|Connection-less LDAP
+CN|Common Name
+CRL|Certificate Revocation List
+COSINE|Co-operation and Open Systems Interconnection in Europe
+DACD|Directory Access Control Domain
 DAP|Directory Access Protocol
+DC|Domain Component
 DER|Distinguished Encoding Rules
 DES|Data Encryption Standard
-3DES|Triple DES
+DIB|Directory Information Base
+DISP|Directory Information Shadowing Protocol
 DIT|Directory Information Tree
-DN|Distinguished Name
+DMD|Directory Management Domain
+DMO|Doman Management Organization
 DNS|Domain Name System
-DS|Draft Standard
-DSA|Directory Service Agent
+DN|Distinguished Name
+DOP|Directory Operational Binding Management Protocol
+DSAIT|DSA Information Tree
+DSA|Directory System Agent
 DSE|DSA-specific Entry
+DSP|Directory System Protocol
+DS|Draft Standard
 DUA|Directory User Agent
 FAQ|Frequently Asked Questions
 FTP|File Transfer Protocol
 FYI|For Your Information
-GSSAPI|Generic Security Services Application Program Interface
+GSER|Generic String Encoding Rules
+GSS-API|Generic Security Service Application Program Interface
 HDB|Heirarchial Database
-I-D|Internet Draft
-IP|Internet Protocol
+HOB|Hierarchical Operational Binding
+I-D|Internet-Draft
+IA5|International Alphabet 5
+IDNA|Internationalized Domain Names in Applications
+IDN|Internationalized Domain Name
+ID|Identification
+ID|Identifier
 IPSEC|Internet Protocol Security
+IPsec| IP Security
+IPv4|Internet Protocol, version 4
+IPv6|Internet Protocol, version 6
+IP|Internet Protocol
 ITS|Issue Tracking System
 Kerberos|Kerberos Authentication Service
 LBER|Lightweight BER
+LDAPv3|LDAP, version 3
 LDAP|Lightweight Directory Access Protocol
 LDIF|LDAP Data Interchange Format
+MD5|Message Digest 5
 MIB|Management Information Base
+MODDN|Modify DN
+MODRDN|Modify RDN
+NHOB|Non-specific Hierarchical Operational Binding
+NSAP|Network Service Access Point
+NSSR|Non-specific Subordinate Reference
 OID|Object Identifier
 OSI|Open Systems Interconnect
 OTP|One Time Password
+PDU|Protocol Data Unit
 PEM|Privacy Enhanced eMail
+PKCS|Public Key Cryptosystem
+PKI|Public Key Infrastructure
+PKIX|Public Key Infrastructure X.509
+PRDMD|Private Directory Management Domain
 PS|Proposed Standard
 RDN|Relative Distinguished Name
-RFC|Request for Comments
+RFC|Request for Comment
+RHOB|Relative Hierarchical Operational Binding
+RXER|Robust XML Encoding Rules
+SASL|Simple Authentication and Security Layer
+SDSE|Shadowed DSE
+SHA1|Secure Hash Algorithm 1
+SMTP|Simple Mail Transfer Protocol
+SNMP|Simple Network Management Protocol
 SRP|Secure Remote Password
 SSF|Security Strength Factor
 SSL|Secure Socket Layer
 STD|Internet Standard
 TCP|Transmission Control Protocol
 TLS|Transport Layer Security
-SASL|Simple Authentication and Security Layer
-SMTP|Simple Mail Transfer Protocol
-SNMP|Simple Network Management Protocol
-STD|Internet Standard
+UCS|Universal Multiple-Octet Coded Character Set
 UDP|User Datagram Protocol
+UID|User Identifier
 UNIX|UNIX
 URI|Uniform Resource Identifier
 URL|Uniform Resource Locator
+URN|Uniform Resource Name
+UTF-8|Unicode Transformation Format 8
+UTR|Unicode Technical Report
+UUID|Universally Unique Identifier
 WWW|World Wide Web
 X.500|X.500 Directory Services
 X.509|X.509 Public Key and Attribute Certificate Frameworks
+XED|XML Enabled Directory
+XER|XML Encoding Rules
+XML|Extensible Markup Language
 !endblock
 
 !block references; data
