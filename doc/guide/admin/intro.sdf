@@ -3,14 +3,16 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Introduction to OpenLDAP Directory Services
 
-This document describes how to build, configure, and operate OpenLDAP
-software to provide directory services.  This includes details on
-how to configure and run the stand-alone {{TERM:LDAP}} daemon,
-{{slapd}}(8) and the stand-alone LDAP update replication daemon,
-{{slurpd}}(8). It is intended for newcomers and experienced
-administrators alike.  This section provides a basic introduction
-to directory services and, in particular, the directory services
-provided by {{slapd}}(8).
+This document describes how to build, configure, and operate
+{{PRD:OpenLDAP}} Software to provide directory services.  This
+includes details on how to configure and run the stand-alone
+{{TERM:LDAP}} daemon, {{slapd}}(8) and the stand-alone LDAP update
+replication daemon, {{slurpd}}(8).  It is intended for new and
+experienced administrators alike.  This section provides a basic
+introduction to directory services and, in particular, the directory
+services provided by {{slapd}}(8).  This introduction is only
+intended to provide enough information so one might get started
+learning about {{TERM:LDAP}}, {{TERM:X.500}}, and directory services.
 
 
 H2: What is a directory service?
@@ -49,7 +51,7 @@ provide the directory service. Typically a global service defines
 a uniform {{namespace}} which gives the same view of the data no
 matter where you are in relation to the data itself.
 
-A web directory, such as provided by the Open Directory Project
+A web directory, such as provided by the {{Open Directory Project}}
 <{{URL:http://dmoz.org}}>, is a good example of a directory service.
 These services catalog web pages and are specifically designed to
 support browsing and searching.
@@ -70,8 +72,7 @@ services.  LDAP is an {{ORG:IETF}} Standard Track protocol and is
 specified as detailed in "Lightweight Directory Access Protocol
 (LDAP) Technical Specification Road Map" {{REF:RFC4510}}.
 
-This section gives an overview of LDAP from a
-user's perspective.
+This section gives an overview of LDAP from a user's perspective.
 
 {{What kind of information can be stored in the directory?}} The
 LDAP information model is based on {{entries}}. An entry is a
@@ -121,8 +122,8 @@ the entry itself (called the {{TERM[expand]RDN}} or RDN) and
 concatenating the names of its ancestor entries. For example, the
 entry for Barbara Jensen in the Internet naming example above has
 an RDN of {{EX:uid=babs}} and a DN of
-{{EX:uid=babs,ou=People,dc=example,dc=com}}. The full DN format
-is described in {{REF:RFC4514}}, "LDAP: String Representation of
+{{EX:uid=babs,ou=People,dc=example,dc=com}}. The full DN format is
+described in {{REF:RFC4514}}, "LDAP: String Representation of
 Distinguished Names."
 
 {{How is the information accessed?}} LDAP defines operations for
@@ -286,7 +287,7 @@ well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules which extend {{slapd}} in numerous ways.  Also,
 a number of {{programmable database}} modules are provided.  These
 allow you to expose external data sources to {{slapd}} using popular
-programming languages ({{PRD:Perl}}, {{shell}}, {{SQL}}, and
+programming languages ({{PRD:Perl}}, {{shell}}, {{TERM:SQL}}, and
 {{PRD:TCL}}).
 
 {{B:Threads}}: {{slapd}} is threaded for high performance.  A single
@@ -312,7 +313,7 @@ reasonable defaults, making your job much easier.
 
 H2: What is slurpd and what can it do?
 
-{{slurpd}}(8) is a daemon that, with {{slapd}} help, provides
+{{slurpd}}(8) is a daemon that, with {{slapd}}(8) help, provides
 replicated service.  It is responsible for distributing changes
 made to the master {{slapd}} database out to the various {{slapd}}
 replicas.  It frees {{slapd}} from having to worry that some replicas

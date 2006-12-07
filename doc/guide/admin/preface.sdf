@@ -31,7 +31,7 @@ operating {{TERM:LDAP}}-based directory software.
 This document is meant to be used in conjunction with other OpenLDAP
 information resources provided with the software package and on
 the project's extensive site ({{URL:http://www.OpenLDAP.org/}}) on
-the World Wide Web.  The site makes available a number of resources.
+the {{TERM[expand]WWW}}.  The site makes available a number of resources.
 
 !block table; align=Center; coltags="N,URL"; \
 	title="OpenLDAP Resources"
@@ -58,15 +58,16 @@ U-Mich LDAP document: {{The SLAPD and SLURPD Administrators Guide}}.
 
 P2[notoc] Amendments
 
-Suggested enhancements and corrections to this document should
-be submitted using the {{PRD:OpenLDAP}}
-{{{{TERM[expand]ITS}}}} ({{URL: http://www.openldap.org/its/}}).
+Suggested enhancements and corrections to this document should be
+submitted using the {{PRD:OpenLDAP}} {{TERM[expand]ITS}}
+({{URL: http://www.openldap.org/its/}}).
 
 
 P2[notoc] About this document
 
-This document was produced using the {{Simple Document Format}}
-({{URL:http://search.cpan.org/src/IANC/sdf-2.001/doc/}}) documentation
-system developed by {{Ian Clatworthy}}.  Tools for {{SDF}} are
-available from CPAN ({{URL:http://search.cpan.org/search?query=SDF}}).
+This document was produced using the {{TERM[expand]SDF}} (SDF)
+documentation system
+({{URL:http://search.cpan.org/src/IANC/sdf-2.001/doc/}}) developed
+by {{Ian Clatworthy}}.  Tools for SDF are available from {{ORG:CPAN}}
+({{URL:http://search.cpan.org/search?query=SDF}}).
 

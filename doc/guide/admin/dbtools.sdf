@@ -7,7 +7,7 @@ H1: Database Creation and Maintenance Tools
 This section tells you how to create a slapd database from scratch,
 and how to do trouble shooting if you run into problems. There are
 two ways to create a database. First, you can create the database
-on-line using LDAP. With this method, you simply start up slapd
+on-line using {{TERM:LDAP}}. With this method, you simply start up slapd
 and add entries using the LDAP client of your choice. This method
 is fine for relatively small databases (a few hundred or thousand
 entries, depending on your requirements). This method works for

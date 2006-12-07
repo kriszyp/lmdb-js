@@ -103,6 +103,7 @@ Name|Long|Jump
 ANSI|American National Standards Institute|http://www.ansi.org/
 BSI|British Standards Institute|http://www.bsa-global.com/
 Cyrus|Project Cyrus|http://cyrusimap.web.cmu.edu/
+CPAN|Comprehensive Perl Archive Network|http://cpan.org/
 FSF|Free Software Foundation|http://www.fsf.org/
 GNU|GNU Not Unix Project|http://www.gnu.org/
 IAB|Internet Architecture Board|http://www.iab.org/
@@ -132,6 +133,9 @@ GDBM|http://www.gnu.org/software/gdbm/
 Heimdal|http://www.pdc.kth.se/heimdal/
 MIT Kerberos|http://web.mit.edu/kerberos/www/
 OpenLDAP|http://www.openldap.org/
+OpenLDAP FAQ|http://www.openldap.org/faq/
+OpenLDAP ITS|http://www.openldap.org/its/
+OpenLDAP Software|http://www.openldap.org/software/
 OpenSSL|http://www.openssl.org/
 Perl|http://www.perl.org/
 TCL|http://www.tcl.tk/
@@ -250,6 +254,7 @@ SRP|Secure Remote Password
 SSF|Security Strength Factor
 SSL|Secure Socket Layer
 STD|Internet Standard
+SQL|Structured Query Language
 TCP|Transmission Control Protocol
 TLS|Transport Layer Security
 UCS|Universal Multiple-Octet Coded Character Set

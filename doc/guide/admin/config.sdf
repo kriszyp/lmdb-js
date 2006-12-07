@@ -10,11 +10,12 @@ fits in with the rest of the world.
 
 H2: Local Directory Service
 
-In this configuration, you run a {{slapd}} which provides directory
-service for your local domain only. It does not interact with other
-directory servers in any way. This configuration is shown in Figure 3.1.
+In this configuration, you run a {{slapd}}(8) instance which provides
+directory service for your local domain only. It does not interact
+with other directory servers in any way. This configuration is shown
+in Figure 3.1.
 
-!import "config_local.gif"; align="center"; title="Local service via slapd configuration"
+!import "config_local.gif"; align="center"; title="Local service via slapd(8) configuration"
 FT[align="Center"] Figure 3.1: Local service configuration.
 
 Use this configuration if you are just starting out (it's the one the
@@ -25,11 +26,12 @@ It's easy to upgrade to another configuration later if you want.
 
 H2: Local Directory Service with Referrals
 
-In this configuration, you run a slapd which provides directory service
-for your local domain and configure it to return referrals to a
-{{superior}} service capable of handling requests outside your local domain.
-You may run this service yourself or use one provided to you.
-This configuration is shown in Figure 3.2.
+In this configuration, you run a {{slapd}}(8) instance which provides
+directory service for your local domain and configure it to return
+referrals to a {{superior}} service capable of handling requests
+outside your local domain.  You may run this service yourself or
+use one provided to you.  This configuration is shown in Figure
+3.2.
 
 !import "config_ref.gif"; align="center"; title="Local service with referrals"
 FT[align="Center"] Figure 3.2: Local service with referrals 
@@ -40,16 +42,16 @@ participate in the Global Directory.
 
 H2: Replicated Directory Service
 
-The slurpd daemon is used to propagate changes from a master slapd
-to one or more slave slapds. An example master-slave configuration
-is shown in figure 3.3.
+The {{slurpd}}(8) daemon is used to propagate changes from a master
+{{slapd}}(8) instance to one or more slave {{slapd}}(8) instances.
+An example master-slave configuration is shown in figure 3.3.
 
 !import "config_repl.gif"; align="center"; title="Replicated Directory Services"
 FT[align="Center"] Figure 3.3: Replicated Directory Services
 
 This configuration can be used in conjunction with either of the first
-two configurations in situations where a single slapd does not
-provide the required reliability or availability.
+two configurations in situations where a single {{slapd}}(8) instance
+does not provide the required reliability or availability.
 
 H2: Distributed Local Directory Service
 
