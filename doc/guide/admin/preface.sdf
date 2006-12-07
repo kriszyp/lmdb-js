@@ -59,7 +59,7 @@ U-Mich LDAP document: {{The SLAPD and SLURPD Administrators Guide}}.
 P2[notoc] Amendments
 
 Suggested enhancements and corrections to this document should
-be submitted using the {{ORG:OpenLDAP}}
+be submitted using the {{PRD:OpenLDAP}}
 {{{{TERM[expand]ITS}}}} ({{URL: http://www.openldap.org/its/}}).
 
 

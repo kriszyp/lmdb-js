@@ -76,9 +76,10 @@ confidentiality protection.  OpenLDAP supports negotiation of
 See the {{SECT:Using TLS}} chapter for more information.  StartTLS
 is the standard track mechanism.
 
-A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as DIGEST-MD5
-and {{TERM:GSSAPI}}, also provide data integrity and confidentiality
-protection.  See the {{SECT:Using SASL}} chapter for more information.
+A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as
+{{TERM:DIGEST-MD5}} and {{TERM:GSSAPI}}, also provide data integrity
+and confidentiality protection.  See the {{SECT:Using SASL}} chapter
+for more information.
 
 
 H3: Security Strength Factors

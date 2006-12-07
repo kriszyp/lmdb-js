@@ -102,7 +102,7 @@ ________________<BR>
 Name|Long|Jump
 ANSI|American National Standards Institute|http://www.ansi.org/
 BSI|British Standards Institute|http://www.bsa-global.com/
-Cyrus|Project Cyrus|http://asg.web.cmu.edu/cyrus/
+Cyrus|Project Cyrus|http://cyrusimap.web.cmu.edu/
 FSF|Free Software Foundation|http://www.fsf.org/
 GNU|GNU Not Unix Project|http://www.gnu.org/
 IAB|Internet Architecture Board|http://www.iab.org/
@@ -114,10 +114,9 @@ ISO|International Standards Organisation|http://www.iso.org/
 ITU|International Telephone Union|http://www.itu.int/
 OLF|OpenLDAP Foundation|http://www.openldap.org/foundation/
 OLP|OpenLDAP Project|http://www.openldap.org/project/
-OpenLDAP|OpenLDAP Project|http://www.openldap.org/
 OpenSSL|OpenSSL Project|http://www.openssl.org/
-RFC|RFC Editor|http://www.rfc-editor.org/
-Oracle|Oracle|http://www.oracle.com/
+RFC Editor|RFC Editor|http://www.rfc-editor.org/
+Oracle|Oracle Corporation|http://www.oracle.com/
 UM|University of Michigan|http://www.umich.edu/
 UMLDAP|University of Michigan LDAP Team|http://www.umich.edu/~dirsvcs/ldap/ldap.html
 !endblock
@@ -126,18 +125,18 @@ UMLDAP|University of Michigan LDAP Team|http://www.umich.edu/~dirsvcs/ldap/ldap.
 Name|Jump
 Berkeley DB|http://www.oracle.com/database/berkeley-db/db/index.html
 CVS|http://www.cvshome.org/
-Cyrus|http://asg.web.cmu.edu/cyrus/
+Cyrus:http://cyrusimap.web.cmu.edu/generalinfo.html
+Cyrus SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
 GNU|http://www.gnu.org/software/
 GDBM|http://www.gnu.org/software/gdbm/
 Heimdal|http://www.pdc.kth.se/heimdal/
 MIT Kerberos|http://web.mit.edu/kerberos/www/
-OpenLDAP|http://www.openldap.org/software/
+OpenLDAP|http://www.openldap.org/
 OpenSSL|http://www.openssl.org/
 Perl|http://www.perl.org/
-SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
-SQL|http://www.jcc.com/SQLPages/jccs_sql.htm
 TCL|http://www.tcl.tk/
-UMLDAP|University of Michigan LDAP|http://www.umich.edu/~dirsvcs/ldap/ldap.html
+SDF|http://search.cpan.org/src/IANC/sdf-2.001/doc/catalog.html
+UMLDAP|http://www.umich.edu/~dirsvcs/ldap/ldap.html
 !endblock
 
 # Internet and X.500 terms
@@ -164,20 +163,22 @@ BCP|Best Current Practice
 BDB|Berkeley DB
 BER|Basic Encoding Rules
 BNF|Backus-Naur Form
-C|The C Programming Language
 CA|Certificate Authority
 CCITT|International Telegraph and Telephone Consultative Committee
 CER|Canonical Encoding Rules
 CLDAP|Connection-less LDAP
 CN|Common Name
-CRL|Certificate Revocation List
 COSINE|Co-operation and Open Systems Interconnection in Europe
+CRAM-MD5|SASL MD5 Challedge/Response Authentication Mechanism
+CRL|Certificate Revocation List
+C|The C Programming Language
 DACD|Directory Access Control Domain
 DAP|Directory Access Protocol
 DC|Domain Component
 DER|Distinguished Encoding Rules
 DES|Data Encryption Standard
 DIB|Directory Information Base
+DIGEST-MD5|SASL Digest MD5 Authentication Mechanism
 DISP|Directory Information Shadowing Protocol
 DIT|Directory Information Tree
 DMD|Directory Management Domain
@@ -191,11 +192,13 @@ DSE|DSA-specific Entry
 DSP|Directory System Protocol
 DS|Draft Standard
 DUA|Directory User Agent
+EXTERNAL|SASL External Authentication Mechanism
 FAQ|Frequently Asked Questions
 FTP|File Transfer Protocol
 FYI|For Your Information
 GSER|Generic String Encoding Rules
-GSSAPI|Generic Security Service Application Program Interface
+GSS-API|Generic Security Service Application Program Interface
+GSSAPI|SASL Kerberos V GSS-API Authentication Mechanism
 HDB|Heirarchial Database
 HOB|Hierarchical Operational Binding
 I-D|Internet-Draft
@@ -228,15 +231,17 @@ OTP|One Time Password
 PDU|Protocol Data Unit
 PEM|Privacy Enhanced eMail
 PKCS|Public Key Cryptosystem
-PKI|Public Key Infrastructure
 PKIX|Public Key Infrastructure X.509
+PKI|Public Key Infrastructure
+PLAIN|SASL Plaintext Password Authentication Mechanism
 PRDMD|Private Directory Management Domain
 PS|Proposed Standard
 RDN|Relative Distinguished Name
-RFC|Request for Comment
+RFC|Request for Comments
 RHOB|Relative Hierarchical Operational Binding
 RXER|Robust XML Encoding Rules
 SASL|Simple Authentication and Security Layer
+SDF|Simple Document Format
 SDSE|Shadowed DSE
 SHA1|Secure Hash Algorithm 1
 SMTP|Simple Mail Transfer Protocol

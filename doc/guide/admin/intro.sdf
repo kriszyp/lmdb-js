@@ -239,9 +239,9 @@ interesting features and capabilities include:
 
 {{B:{{TERM[expand]SASL}}}}: {{slapd}} supports strong authentication
 and data security (integrity and confidentiality) services through
-the use of SASL.  {{slapd}}'s SASL implementation utilizes {{PRD:Cyrus}}
-{{PRD:SASL}} software which supports a number of mechanisms including
-DIGEST-MD5, EXTERNAL, and GSSAPI.
+the use of SASL.  {{slapd}}'s SASL implementation utilizes {{PRD:Cyrus
+SASL}} software which supports a number of mechanisms including
+{{TERM:DIGEST-MD5}}, {{TERM:EXTERNAL}}, and {{TERM:GSSAPI}}.
 
 {{B:{{TERM[expand]TLS}}}}: {{slapd}} supports certificate-based
 authentication and data security (integrity and confidentiality)
@@ -286,7 +286,7 @@ well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules which extend {{slapd}} in numerous ways.  Also,
 a number of {{programmable database}} modules are provided.  These
 allow you to expose external data sources to {{slapd}} using popular
-programming languages ({{PRD:Perl}}, {{shell}}, {{PRD:SQL}}, and
+programming languages ({{PRD:Perl}}, {{shell}}, {{SQL}}, and
 {{PRD:TCL}}).
 
 {{B:Threads}}: {{slapd}} is threaded for high performance.  A single

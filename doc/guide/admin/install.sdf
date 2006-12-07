@@ -4,7 +4,7 @@
 
 H1: Building and Installing OpenLDAP Software
 
-This chapter details how to build and install the {{ORG:OpenLDAP}}
+This chapter details how to build and install the {{PRD:OpenLDAP}}
 Software package including {{slapd}}(8), the stand-alone LDAP daemon
 and {{slurpd}}(8), the stand-alone update replication daemon.
 Building and installing OpenLDAP Software requires several steps:
@@ -76,27 +76,10 @@ OpenLDAP Software will not be fully LDAPv3 compliant unless OpenLDAP's
 {{EX:configure}} detects a usable OpenSSL installation.
 
 
-H3: Kerberos Authentication Services
-
-OpenLDAP clients and servers support Kerberos-based authentication
-services.
-In particular, OpenLDAP supports the {{TERM:SASL}}/{{TERM:GSSAPI}}
-authentication mechanism using either {{PRD:Heimdal}} or
-{{PRD:MIT Kerberos}} V packages.
-If you desire to use Kerberos-based SASL/GSSAPI authentication,
-you should install either Heimdal or MIT Kerberos V.
-
-Heimdal Kerberos is available from {{URL:http://www.pdc.kth.se/heimdal/}}.
-MIT Kerberos is available from {{URL:http://web.mit.edu/kerberos/www/}}.
-
-Use of strong authentication services, such as those provided by
-Kerberos, is highly recommended.
-
-
 H3: {{TERM[expand]SASL}}
 
-OpenLDAP clients and servers require installation of {{PRD:Cyrus}}'s
-{{PRD:SASL}} libraries to provide {{TERM[expand]SASL}} services.  Though
+OpenLDAP clients and servers require installation of {{PRD:Cyrus SASL}} 
+libraries to provide {{TERM[expand]SASL}} services.  Though
 some operating systems may provide this library as part of the
 base system or as an optional software component, Cyrus SASL
 often requires separate installation.
@@ -108,6 +91,23 @@ if preinstalled.
 
 OpenLDAP Software will not be fully LDAPv3 compliant unless OpenLDAP's
 configure detects a usable Cyrus SASL installation.
+
+
+H3: {{TERM[expand]Kerberos}}
+
+OpenLDAP clients and servers support {{TERM:Kerberos}} authentication
+services.  In particular, OpenLDAP supports the Kerberos V
+{{TERM:GSS-API}} {{TERM:SASL}} authentication mechanism known as
+the {{TERM:GSSAPI}} mechanism.  This feature requires, in addition to
+Cyrus SASL libraries, either {{PRD:Heimdal}} or {{PRD:MIT Kerberos}}
+V libraries.
+
+Heimdal Kerberos is available from {{URL:http://www.pdc.kth.se/heimdal/}}.
+MIT Kerberos is available from {{URL:http://web.mit.edu/kerberos/www/}}.
+
+Use of strong authentication services, such as those provided by
+Kerberos, is highly recommended.
+
 
 
 H3: Database Software

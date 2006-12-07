@@ -24,7 +24,7 @@ feature, allowing them to authenticate themselves and then switch
 their identity to that of another user or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
-Administrators}}, provided with the {{PRD:Cyrus}} {{PRD:SASL}}
+Administrators}}, provided with the {{PRD:Cyrus SASL}}
 package (in {{FILE:doc/sysadmin.html}}) and have a working Cyrus
 SASL installation.  You should use the Cyrus SASL {{EX:sample_client}}
 and {{EX:sample_server}} to test your SASL installation before
