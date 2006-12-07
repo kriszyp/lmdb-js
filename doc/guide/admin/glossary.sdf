@@ -1,0 +1,6 @@
+# $OpenLDAP$
+# Copyright 2006 The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+H1: Glossary
+
+!catalog terms ''; columns="Term,Definition"

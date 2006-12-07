@@ -79,6 +79,11 @@ PB:
 PB:
 
 # Appendices 
+# Terms
+!include "glossary.sdf"; appendix
+PB:
+
+# Autoconf 
 !include "../release/autoconf.sdf"; appendix
 PB:
 

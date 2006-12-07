@@ -20,6 +20,7 @@ sdf-src: \
 	abstract.sdf \
 	config.sdf \
 	dbtools.sdf \
+	glossary.sdf \
 	guide.sdf \
 	install.sdf \
 	intro.sdf \
