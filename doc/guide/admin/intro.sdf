@@ -268,7 +268,7 @@ of different database backends you can choose from. They include
 {{TERM:HDB}}, a hierarchical high-performance transactional
 backend; {{SHELL}}, a backend interface to arbitrary shell scripts;
 and PASSWD, a simple backend interface to the {{passwd}}(5) file.
-The BDB and HDB backends utilize {{ORG:Sleepycat}} {{PRD:Berkeley
+The BDB and HDB backends utilize {{ORG:Oracle}} {{PRD:Berkeley
 DB}}.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to

@@ -113,7 +113,7 @@ configure detects a usable Cyrus SASL installation.
 H3: Database Software
 
 OpenLDAP's {{slapd}}(8) {{TERM:BDB}} and {{TERM:HDB}} primary database backends
-require {{ORG[expand]Sleepycat}} {{PRD:Berkeley DB}}.
+require {{ORG[expand]Oracle}} {{PRD:Berkeley DB}}.
 If not available at configure time, you will not be able build
 {{slapd}}(8) with these primary database backends.
 
@@ -122,10 +122,10 @@ Your operating system may provide a supported version of
 software component.  If not, you'll have to obtain and
 install it yourself.
 
-{{PRD:Berkeley DB}} is available from {{ORG[expand]Sleepycat}}'s
-download page {{URL: http://www.sleepycat.com/download/}}.  There
-are several versions available.  Generally, the most recent release
-(with published patches) is recommended.  This package is required
+{{PRD:Berkeley DB}} is available from {{ORG[expand]Oracle}}'s Berkeley DB
+download page
+{{URL: http://www.oracle.com/technology/software/products/berkeley-db/index.html}}.  There are several versions available.  Generally, the most recent
+release (with published patches) is recommended.  This package is required
 if you wish to use the {{TERM:BDB}} or {{TERM:HDB}} database backends.
 
 

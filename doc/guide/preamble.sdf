@@ -102,29 +102,29 @@ ________________<BR>
 Name|Long|Jump
 ANSI|American National Standards Institute|http://www.ansi.org/
 BSI|British Standards Institute|http://www.bsa-global.com/
-OpenLDAP|OpenLDAP|http://www.openldap.org/
-OLF|OpenLDAP Foundation|http://www.openldap.org/foundation/
-OLP|OpenLDAP Project|http://www.openldap.org/project/
-UM|University of Michigan|http://www.umich.edu/
-UMLDAP|University of Michigan LDAP|http://www.umich.edu/~dirsvcs/ldap/ldap.html
-IANA|Internet Assigned Numbers Authority|http://www.iana.org/
+Cyrus|Project Cyrus|http://asg.web.cmu.edu/cyrus/
+FSF|Free Software Foundation|http://www.fsf.org/
+GNU|GNU Not Unix Project|http://www.gnu.org/
 IAB|Internet Architecture Board|http://www.iab.org/
-IETF|Internet Engineering Task Force|http://www.ietf.org/
+IANA|Internet Assigned Numbers Authority|http://www.iana.org/
 IESG|Internet Engineering Steering Group|http://www.ietf.org/iesg/
+IETF|Internet Engineering Task Force|http://www.ietf.org/
 IRTF|Internet Research Task Force|http://www.irtf.org/
 ISO|International Standards Organisation|http://www.iso.org/
 ITU|International Telephone Union|http://www.itu.int/
+OLF|OpenLDAP Foundation|http://www.openldap.org/foundation/
+OLP|OpenLDAP Project|http://www.openldap.org/project/
+OpenLDAP|OpenLDAP Project|http://www.openldap.org/
+OpenSSL|OpenSSL Project|http://www.openssl.org/
 RFC|RFC Editor|http://www.rfc-editor.org/
-OpenSSL|OpenSSL|http://www.openssl.org/
-Cyrus|Cyrus Electronic Mail Project|http://asg.web.cmu.edu/cyrus/
-Sleepycat|Sleepycat Software|http://www.sleepycat.com/
-FSF|Free Software Foundation|http://www.fsf.org/
-GNU|GNU Not Unix|http://www.gnu.org/
+Oracle|Oracle|http://www.oracle.com/
+UM|University of Michigan|http://www.umich.edu/
+UMLDAP|University of Michigan LDAP Team|http://www.umich.edu/~dirsvcs/ldap/ldap.html
 !endblock
 
 !block products; data
 Name|Jump
-Berkeley DB|http://www.sleepycat.com/products/transactional.shtml
+Berkeley DB|http://www.oracle.com/database/berkeley-db/db/index.html
 CVS|http://www.cvshome.org/
 Cyrus|http://asg.web.cmu.edu/cyrus/
 GNU|http://www.gnu.org/software/
@@ -137,6 +137,7 @@ Perl|http://www.perl.org/
 SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
 SQL|http://www.jcc.com/SQLPages/jccs_sql.htm
 TCL|http://www.tcl.tk/
+UMLDAP|University of Michigan LDAP|http://www.umich.edu/~dirsvcs/ldap/ldap.html
 !endblock
 
 # Internet and X.500 terms
