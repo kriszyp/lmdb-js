@@ -7,10 +7,10 @@ H2: Terms
 !catalog terms ''; headings; columns="Term,Definition"
 
 H2: Related Organizations
-!catalog organisations ''; headings; columns="Name,Long,Jump"
+!catalog organisations ''; headings; columns="ORG:Name,Long,URL:Jump"
 
 H2: Related Products
-!catalog products ''; headings; columns="Name,Jump"
+!catalog products ''; headings; columns="PRD:Name,URL:Jump"
 
 H2: References
-!catalog references ''; headings; columns="Reference,Document,Status,Jump"
+!catalog references ''; headings; columns="REF:Reference,Document,Status,URL:Jump"

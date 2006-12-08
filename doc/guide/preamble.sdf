@@ -101,7 +101,7 @@ ________________<BR>
 !block organisations; data; sort='Name'
 Name|Long|Jump
 ANSI|American National Standards Institute|http://www.ansi.org/
-BSI|British Standards Institute|http://www.bsa-global.com/
+BSI|British Standards Institute|http://www.bsi-global.com/
 COSINE|Co-operation and Open Systems Interconnection in Europe
 CPAN|Comprehensive Perl Archive Network|http://cpan.org/
 Cyrus|Project Cyrus|http://cyrusimap.web.cmu.edu/
@@ -276,6 +276,7 @@ syncrepl|LDAP Sync-based Replication
 
 !block references; data; sort=Reference; style=grid
 Reference|Status|Document|Jump
+UM-GUIDE|O|The SLAPD and SLURPD Administrators Guide|http://www.umich.edu/~dirsvcs/ldap/doc/guides/slapd/guide.pdf
 RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|http://www.rfc-editor.org/rfc/rfc2079.txt
 RFC2296|PS|Use of Language Codes in LDAP|http://www.rfc-editor.org/rfc/rfc2296.txt
 RFC2307|X|An Approach for Using LDAP as a Network Information Service|http://www.rfc-editor.org/rfc/rfc2307.txt
