@@ -3,20 +3,29 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Monitoring Slapd
 
-{{slapd}} supports a monitoring interface you can use to find out
-many useful bits of information about what {{slapd}} is currently
-doing, how many connections it has, how many threads are
-working, etc. 
- 
-The monitor backend to {{slapd}} is not an actual database; if enabled, it is 
-automatically generated and dynamically maintained by {{slapd}} with information 
-about the running status of the daemon.
+{{slapd}}(8) supports a monitoring interface you can use to obtain
+information regarding the current state of your {{slapd}} instance.
+For instance, the interface allows you to determine how many clients
+are connected to the server currently.  The interface is accessed
+used {{TERM:LDAP}} and is provided via the {{monitor}} backend.  A
+manual page, {{slapd-monitor}}(5) is available.
 
-To inspect all monitor information, issue a subtree search with base 
-{{EX:cn=Monitor}}, requesting  that  attributes  {{EX:+}} and  {{EX:*}} are 
-returned. The monitor backend produces mostly operational attributes, and LDAP 
-only returns operational attributes that are explicitly requested.  Requesting 
-attribute "+" is  an  extension  which  requests  all operational attributes.
+The monitor backend to {{slapd}} is not an actual database; if
+enabled, it is automatically generated and dynamically maintained
+by {{slapd}} with information about the running status of the daemon.
+
+To inspect all monitor information, one can issue a subtree search
+with base {{EX:cn=Monitor}} and filter {{EX:(objectClass=*)}},
+requesting the return of all user (e.g., '*') and operational (e.g.,
+'+' attributes.   Many of the attributes provided by monitor backend
+are operational attributes, and hence will not be returned unless
+explicitly requested.  For example:
+
+> ldapsearch -x -D 'cn=Manager,dc=example,dc=com' -W -b 'cn=Monitor' '+' '*'
+
+As there are may be many objects under {{EX:cn=Monitor}}, a search
+with a narrower search criteria may be more appropriate.
+
 
 H2: Configuration
 
