@@ -67,7 +67,7 @@ static struct {
 		"DESC 'Number of items in Entry Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmBDBEntryCache },
 
 	{ "( olmBDBAttributes:2 "
@@ -75,7 +75,7 @@ static struct {
 		"DESC 'Number of items in EntryInfo Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmBDBEntryInfo },
 
 	{ "( olmBDBAttributes:3 "
@@ -83,7 +83,7 @@ static struct {
 		"DESC 'Number of items in IDL Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmBDBIDLCache },
 
 	{ "( olmBDBAttributes:4 "
@@ -92,7 +92,7 @@ static struct {
 			"where the database environment resides' "
 		"SUP monitoredInfo "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmDbDirectory },
 
 	{ NULL }
