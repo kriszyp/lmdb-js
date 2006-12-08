@@ -89,11 +89,11 @@ by actual text are shown in brackets {{EX:<>}}.
 
 H4: access to <what> [ by <who> [<accesslevel>] [<control>] ]+
 
-This directive grants access (specified by <accesslevel>) to a
-set of entries and/or attributes (specified by <what>) by one or
-more requesters (specified by <who>).
-See the {{SECT:Access Control}} section of this chapter for a
-summary of basic usage.
+This directive grants access (specified by <accesslevel>) to a set
+of entries and/or attributes (specified by <what>) by one or more
+requesters (specified by <who>).  See the {{SECT:The access
+Configuration Directive}} section of this chapter for a summary of
+basic usage.
 
 !if 0
 More details discussion of this directive can be found in the

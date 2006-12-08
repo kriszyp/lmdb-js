@@ -270,10 +270,10 @@ Note that by default, the {{slapd}}(8) database grants {{read access
 to everybody}} excepting the {{super-user}} (as specified by the
 {{EX:rootdn}} configuration directive).  It is highly recommended
 that you establish controls to restrict access to authorized users.
-Access controls are discussed in the {{SECT:Access Control}} section
-of {{SECT:The slapd Configuration File}} chapter.  You are also
-encouraged to read the {{SECT:Security Considerations}}, {{SECT:Using
-SASL}} and {{SECT:Using TLS}} sections.
+Access controls are discussed in the {{SECT:The access Configuration
+Directive}} section of {{SECT:The slapd Configuration File}} chapter.
+You are also encouraged to read the {{SECT:Security Considerations}},
+{{SECT:Using SASL}} and {{SECT:Using TLS}} sections.
 
 The following chapters provide more detailed information on making,
 installing, and running {{slapd}}(8).
