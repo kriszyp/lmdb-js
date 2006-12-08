@@ -6,8 +6,7 @@ H1: Introduction to OpenLDAP Directory Services
 This document describes how to build, configure, and operate
 {{PRD:OpenLDAP}} Software to provide directory services.  This
 includes details on how to configure and run the stand-alone
-{{TERM:LDAP}} daemon, {{slapd}}(8) and the stand-alone LDAP update
-replication daemon, {{slurpd}}(8).  It is intended for new and
+{{TERM:LDAP}} daemon, {{slapd}}(8).  It is intended for new and
 experienced administrators alike.  This section provides a basic
 introduction to directory services and, in particular, the directory
 services provided by {{slapd}}(8).  This introduction is only
@@ -199,10 +198,7 @@ X.500 DAP, or have no immediate plans to run X.500 DAP, read on.
 
 It is possible to replicate data from an LDAP directory server to
 a X.500 DAP {{TERM:DSA}}.  This requires an LDAP/DAP gateway.
-OpenLDAP does not provide such a gateway, but our replication daemon
-can be used to replicate to such a gateway.  See the {{SECT:Replication
-with slurpd}} chapter of this document for information regarding
-replication.
+OpenLDAP Software does not include such a gateway.
 
 
 H2: What is the difference between LDAPv2 and LDAPv3?
@@ -299,8 +295,8 @@ required while providing high performance.
 copies of directory information.  This {{single-master/multiple-slave}}
 replication scheme is vital in high-volume environments where a
 single {{slapd}} just doesn't provide the necessary availability
-or reliability. {{slapd}} supports two replication methods: {{LDAP
-Sync}}-based and {{slurpd}}(8)-based replication.
+or reliability.  {{slapd}} includes support for {{LDAP Sync}}-based
+replication.
 
 {{B:Proxy Cache}}: {{slapd}} can be configured as a caching
 LDAP proxy service.
@@ -309,23 +305,4 @@ LDAP proxy service.
 single configuration file which allows you to change just about
 everything you'd ever want to change.  Configuration options have
 reasonable defaults, making your job much easier.
-
-
-H2: What is slurpd and what can it do?
-
-{{slurpd}}(8) is a daemon that, with {{slapd}}(8) help, provides
-replicated service.  It is responsible for distributing changes
-made to the master {{slapd}} database out to the various {{slapd}}
-replicas.  It frees {{slapd}} from having to worry that some replicas
-might be down or unreachable when a change comes through; {{slurpd}}
-handles retrying failed requests automatically.  {{slapd}} and
-{{slurpd}} communicate through a simple text file that is used to
-log changes.
-
-See the {{SECT:Replication with slurpd}} chapter for information
-about how to configure and run {{slurpd}}(8).
-
-Alternatively, {{LDAP-Sync}}-based replication may be used to provide
-a replicated service.  See the {{SECT:LDAP Sync Replication}} chapter
-for details.
 

@@ -28,30 +28,33 @@ H2: Local Directory Service with Referrals
 
 In this configuration, you run a {{slapd}}(8) instance which provides
 directory service for your local domain and configure it to return
-referrals to a {{superior}} service capable of handling requests
-outside your local domain.  You may run this service yourself or
-use one provided to you.  This configuration is shown in Figure
-3.2.
+referrals to other servers capable of handling requests.  You may
+run this service (or services) yourself or use one provided to you.
+This configuration is shown in Figure 3.2.
 
 !import "config_ref.gif"; align="center"; title="Local service with referrals"
 FT[align="Center"] Figure 3.2: Local service with referrals 
 
-Use this configuration if you want to provide local service and 
-participate in the Global Directory.
+Use this configuration if you want to provide local service and
+participate in the Global Directory,  or you want to delegate
+responsibility for {{subordinate}} entries to another server.
 
 
 H2: Replicated Directory Service
 
-The {{slurpd}}(8) daemon is used to propagate changes from a master
-{{slapd}}(8) instance to one or more slave {{slapd}}(8) instances.
-An example master-slave configuration is shown in figure 3.3.
+slapd(8) includes support for {{LDAP Sync}}-based replication, called
+{{syncrepl}}, which may be used to maintain shadow copies of directory
+information on multiple directory servers.   In its most basic
+configuration, the {{master}} is a syncrepl provider and one or more
+{{slave}} (or {{shadow}}) are syncrepl consumers.  An example
+master-slave configuration is shown in figure 3.3.
 
 !import "config_repl.gif"; align="center"; title="Replicated Directory Services"
 FT[align="Center"] Figure 3.3: Replicated Directory Services
 
-This configuration can be used in conjunction with either of the first
-two configurations in situations where a single {{slapd}}(8) instance
-does not provide the required reliability or availability.
+This configuration can be used in conjunction with either of the
+first two configurations in situations where a single {{slapd}}(8)
+instance does not provide the required reliability or availability.
 
 H2: Distributed Local Directory Service
 

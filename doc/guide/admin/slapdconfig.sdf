@@ -10,10 +10,10 @@ runtime configuration is primarily accomplished through the
 {{slapd.conf}}(5) file, normally installed in the
 {{EX:/usr/local/etc/openldap}} directory.
 
-An alternate configuration file can be specified via a
-command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
-describes the general format of the config file, followed by a
-detailed description of commonly used config file directives.
+An alternate configuration file location can be specified via a command-line
+option to {{slapd}}(8). This chapter describes the general format
+of the {{slapd.conf}}(5) configuration file, followed by a detailed
+description of commonly used config file directives.
 
 
 H2: Configuration File Format
@@ -334,7 +334,6 @@ an authorization identity.
 See the chapter entitled {{SECT:Replication with slurpd}} for more
 information on how to use this directive.
 
-
 H4: replogfile <filename>
 
 This directive specifies the name of the replication log file to
@@ -538,10 +537,12 @@ for more information on how to use this directive.
 
 H4: updatedn <DN>
 
-This directive is only applicable in a slave slapd. It specifies
-the DN allowed to make changes to the replica.  This may be the DN
+This directive is only applicable in a {{slave}} (or {{shadow}})
+{{slapd(8)}} instance.  It specifies the DN allowed to make changes to
+the replica.  This may be the DN
 {{slurpd}}(8) binds as when making changes to the replica or the DN
 associated with a SASL identity.
+
 
 Entry-based Example:
 
@@ -556,7 +557,8 @@ on how to use this directive.
 
 H4: updateref <URL>
 
-This directive is only applicable in a slave slapd. It
+This directive is only applicable in a {{slave}} (or {{shadow}})
+{{slapd}}(8) instance. It
 specifies the URL to return to clients which submit update
 requests upon the replica.
 If specified multiple times, each {{TERM:URL}} is provided.

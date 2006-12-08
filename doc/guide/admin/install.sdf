@@ -5,12 +5,11 @@
 H1: Building and Installing OpenLDAP Software
 
 This chapter details how to build and install the {{PRD:OpenLDAP}}
-Software package including {{slapd}}(8), the stand-alone LDAP daemon
-and {{slurpd}}(8), the stand-alone update replication daemon.
-Building and installing OpenLDAP Software requires several steps:
-installing prerequisite software, configuring OpenLDAP Software
-itself, making, and finally installing.  The following sections
-describe this process in detail.
+Software package including {{slapd}}(8), the stand-alone {{TERM:LDAP}}
+daemon.  Building and installing OpenLDAP Software requires several
+steps: installing prerequisite software, configuring OpenLDAP
+Software itself, making, and finally installing.  The following
+sections describe this process in detail.
 
 
 H2: Obtaining and Extracting the Software
@@ -219,8 +218,8 @@ Now build the software, this step will actually compile OpenLDAP.
 >	make
 
 You should examine the output of this command carefully to make sure
-everything is built correctly. Note that this command builds the LDAP
-libraries and associated clients as well as {{slapd}}(8) and {{slurpd}}(8).
+everything is built correctly.  Note that this command builds the LDAP
+libraries and associated clients as well as {{slapd}}(8).
 
 
 H2: Testing the Software
