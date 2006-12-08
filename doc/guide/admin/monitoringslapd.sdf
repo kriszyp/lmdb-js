@@ -3,109 +3,355 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Monitoring Slapd
 
-Slapd supports a monitoring interface you can use to find out
-many useful bits of information about what slapd is currently
+{{slapd}} supports a monitoring interface you can use to find out
+many useful bits of information about what {{slapd}} is currently
 doing, how many connections it has, how many threads are
-working, etc. You can access the monitor feature by doing a
-base object search of the SLAPD_MONITOR_DN from
-include/ldapconfig.h with any kind of valid filter (e.g.,
-"(objectclass=*)"). By default, this DN is set to "cn=monitor".
-You will get one entry returned to you, with the following
-attributes:
+working, etc. 
+ 
+The monitor backend to {{slapd}} is not an actual database; if enabled, it is 
+automatically generated and dynamically maintained by {{slapd}} with information 
+about the running status of the daemon.
 
-E: version: slapd <version> (<date>)
+To inspect all monitor information, issue a subtree search with base 
+{{EX:cn=Monitor}}, requesting  that  attributes  {{EX:+}} and  {{EX:*}} are 
+returned. The monitor backend produces mostly operational attributes, and LDAP 
+only returns operational attributes that are explicitly requested.  Requesting 
+attribute "+" is  an  extension  which  requests  all operational attributes.
 
-This attribute identifies the slapd server software by name,
-version, and build date, e.g., {{EX: slapd 3.3 (Thu May 21 14:19:03
-EDT 1996)}}
+H2: Configuration
 
-E: threads: <integer>
+These {{slapd.conf}}(5) options apply to the monitor backend database.  That is, 
+they must follow a {{EX:database monitor}} line and come before any subsequent 
+{{backend}} or {{database}} lines.
 
-This attribute indicates the number of threads (operations)
-currently outstanding in slapd.
+As opposed to most databases, the monitor database can be instantiated only 
+once, i.e. only  one  occurrence  of {{EX:database monitor}} can occur in 
+the {{slapd.conf}}(5) file. Moreover, the suffix of the database cannot be 
+explicitly set by means of the suffix directive.  The suffix is automatically 
+set to {{EX:cn=Monitor}}
 
-E: connection: <fd> : <opentime> : <opsinitiated> :
-E: 	<opscompleted> : <binddn> : [ <rw> ]
+The monitor backend honors access control semantics as indicated in 
+{{slapd.access}}(5), including the disclose access privilege, on all currently 
+implemented operations.
 
-This multi-valued attribute summarizes information for each
-open connection. The information given is {{EX: <fd>}}, the file
-descriptor; {{EX: <opentime>}}, the time the connection was opened
-in UTC format; {{EX: <opsinitiated>}}, the number of operations
-initiated over the connection; {{EX: <opscompleted>}}, the number
-of operations completed over the connection; {{EX: <binddn>}}, the
-DN currently bound to the connection; and optionally {{EX: <rw>}},
-indicating whether the connection is currently blocked for
-read or write..
+For understanding how to do the following with dynamic configuration, 
+see {{SECT:Configuring slapd}}
 
-E: currentconnections: <integer>
+H3: Enabling the monitor backend
 
-The current number of connections.
+Enable at configure:
 
-E: totalconnections: <integer>
+>   configure --enable-monitor
 
-The total number of connections handled by slapd since it
-started.
+Or if you have enabled modules, put in {{slapd.conf}}(5):
 
-E: dtablesize: <integer>
+>   # Load dynamic backend modules:
+>   modulepath  /usr/local/libexec/openldap
+>   moduleload  back_monitor.la
 
-The size of slapd's file descriptor table.
+Also ensure that the {{core.schema}} file is loaded. The monitor backend 
+relies on some standard track {{attributeTypes}} that must be already defined 
+when the backend is started.
 
-E: writewaiters: <integer>
+H3: Activate the monitor database
 
-The number of threads blocked waiting to write data to a
-client.
+Put this in your {{slapd.conf}}(5) or via the {{config}} backend
 
-E: readwaiters: <integer>
+>   database monitor
 
-The number of threads blocked waiting to read data from a
-client.
+You may also specify a {{rootpw}} below this
 
-E: opsinitiated: <integer>
+H3: Add ACLs
 
-The total number of operations initiated by slapd since it
-started.
+Here's an example you might use:
 
-E: opscompleted: <integer>
+>   access to dn.subtree="cn=Monitor"
+>       by dn.exact="uid=Admin,dc=my,dc=org" write
+>       by users read
+>       by * none
 
-The total number of operations completed by slapd since it
-started.
+More information is detailed in {{slapd.access}}(5)
 
-E: entriessent: <integer>
+H2: Available Subsystems
 
-The total number of entries sent to clients by slapd since it
-started.
+There are various subsytems you can explicitly query for, with most information
+being held in the {{monitoredInfo}} attribute.
 
-E: bytessent: <integer>
+H3: Backends
 
-The total number of bytes sent to clients by slapd since it
-started.
+The main entry contains the type of backends enabled at compile time;
+the subentries, for each backend, contain the type of the backend.
+It should also contain the modules that have been loaded if dynamic 
+backends are enabled.
 
-E: currenttime: <UTC time>
+For example:
 
-Slapd's idea of the current time.
+Backend 1:
 
-E: starttime: <integer>
+>   dn: cn=Backend 1,cn=Backends,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitoredInfo: ldif
+>   monitorRuntimeConfig: TRUE
+>   supportedControl: 2.16.840.1.113730.3.4.2
+>   entryDN: cn=Backend 1,cn=Backends,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
 
-The time slapd was started.
+Backend 2:
 
-E: nbackends: <integer>
+>   dn: cn=Backend 2,cn=Backends,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitoredInfo: hdb
+>   monitorRuntimeConfig: TRUE
+>   supportedControl: 1.3.6.1.1.12
+>   supportedControl: 2.16.840.1.113730.3.4.2
+>   supportedControl: 1.3.6.1.4.1.4203.666.5.2
+>   supportedControl: 1.2.840.113556.1.4.319
+>   supportedControl: 1.3.6.1.1.13.1
+>   supportedControl: 1.3.6.1.1.13.2
+>   supportedControl: 1.3.6.1.4.1.4203.1.10.1
+>   supportedControl: 1.2.840.113556.1.4.1413
+>   entryDN: cn=Backend 2,cn=Backends,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
 
-The number of backends currently being served by slapd.
+Backend 3:
 
-E: concurrency: <integer>
+>   # Backend 3, Backends, Monitor
+>   dn: cn=Backend 3,cn=Backends,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitoredInfo: monitor
+>   monitorRuntimeConfig: TRUE
+>   supportedControl: 2.16.840.1.113730.3.4.2
+>   entryDN: cn=Backend 3,cn=Backends,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
 
-Under Solaris 2.x only, an indication of the current level of
-thread concurrency.
+H3: Connections
 
-Note that slapd takes a snapshot of this information and
-returns it to you. No attempt is made to ensure that the
-information is consistent (i.e., if an operation thread is
-modifying one of these things when the monitor thread is
-reading it, strange results could be returned).
+The main entry is empty; it should contain some statistics on the number 
+of connections.
+
+Dynamic subentries are created for each open connection, with stats on
+the activity on that connection (the format will be detailed later).
+There are two special subentries that show the number of total and
+current connections respectively.
+
+For example:
+
+Total Connections:
+
+>   dn: cn=Total,cn=Connections,cn=Monitor
+>   structuralObjectClass: monitorCounterObject
+>   monitorCounter: 4
+>   entryDN: cn=Total,cn=Connections,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+Current Connections:
+
+>   dn: cn=Current,cn=Connections,cn=Monitor
+>   structuralObjectClass: monitorCounterObject
+>   monitorCounter: 2
+>   entryDN: cn=Current,cn=Connections,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+
+H3: Databases
+
+The main entry contains the naming context of each configured database; 
+the subentries contain, for each database, the type and the naming
+context.
+
+For example:
+
+>   # Database 2, Databases, Monitor
+>   dn: cn=Database 2,cn=Databases,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitoredInfo: monitor
+>   monitorIsShadow: FALSE
+>   monitorContext: cn=Monitor
+>   readOnly: FALSE
+>   entryDN: cn=Database 2,cn=Databases,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+H3: Listener
+
+It contains the description of the devices the server is currently 
+listening on:
+
+>   # Listener 0, Listeners, Monitor
+>   dn: cn=Listener 0,cn=Listeners,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitorConnectionLocalAddress: IP=0.0.0.0:389
+>   entryDN: cn=Listener 0,cn=Listeners,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+
+H3: Log
+
+It contains the currently active log items.  The {{Log}} subsystem allows 
+user modify operations on the {{description}} attribute, whose values {{MUST}} 
+be in the list of admittable log switches:
+
+>   Trace
+>   Packets
+>   Args
+>   Conns
+>   BER
+>   Filter
+>   Config		(useless)
+>   ACL
+>   Stats
+>   Stats2
+>   Shell
+>   Parse
+>   Cache		(deprecated)
+>   Index
+
+These values can be added, replaced or deleted; they affect what 
+messages are sent to the syslog device.
+
+H3: Operations
+
+It shows some statistics on the operations performed by the server:
+
+>   Initiated
+>   Completed
+
+and for each operation type, i.e.:
+
+>   Bind
+>   Unbind
+>   Add
+>   Delete
+>   Modrdn
+>   Modify
+>   Compare
+>   Search
+>   Abandon
+>   Extended
+
+There are too many types to list example here, so please try for yourself 
+using {{SECT: Monitor search example}}
+
+H3: Overlays
+
+The main entry contains the type of overlays available at run-time;
+the subentries, for each overlay, contain the type of the overlay.
+
+It should also contain the modules that have been loaded if dynamic 
+overlays are enabled:
+
+>   # Overlays, Monitor
+>   dn: cn=Overlays,cn=Monitor
+>   structuralObjectClass: monitorContainer
+>   monitoredInfo: syncprov
+>   monitoredInfo: accesslog
+>   monitoredInfo: glue
+>   entryDN: cn=Overlays,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: TRUE
+
+H3: SASL
+
+Currently empty.
+
+H3: Statistics
+
+It shows some statistics on the data sent by the server:
+
+>   Bytes
+>   PDU
+>   Entries
+>   Referrals
+
+e.g.
+
+>   # Entries, Statistics, Monitor
+>   dn: cn=Entries,cn=Statistics,cn=Monitor
+>   structuralObjectClass: monitorCounterObject
+>   monitorCounter: 612248
+>   entryDN: cn=Entries,cn=Statistics,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+H3: Threads
+
+It contains the maximum number of threads enabled at startup and the 
+current backload.
+
+e.g.
+
+>   # Max, Threads, Monitor
+>   dn: cn=Max,cn=Threads,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitoredInfo: 16
+>   entryDN: cn=Max,cn=Threads,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+
+H3: Time
+
+It contains two subentries with the start time and the current time 
+of the server.
+
+e.g.
+
+Start time:
+
+>   dn: cn=Start,cn=Time,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitorTimestamp: 20061205124040Z
+>   entryDN: cn=Start,cn=Time,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+Current time:
+
+>   dn: cn=Current,cn=Time,cn=Monitor
+>   structuralObjectClass: monitoredObject
+>   monitorTimestamp: 20061207120624Z
+>   entryDN: cn=Current,cn=Time,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+H3: TLS
+
+Currently empty.
+
+H3: Waiters
+
+It contains the number of current read waiters.
+
+e.g.
+
+Read waiters:
+
+>   dn: cn=Read,cn=Waiters,cn=Monitor
+>   structuralObjectClass: monitorCounterObject
+>   monitorCounter: 7
+>   entryDN: cn=Read,cn=Waiters,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+Write waiters:
+
+>   dn: cn=Write,cn=Waiters,cn=Monitor
+>   structuralObjectClass: monitorCounterObject
+>   monitorCounter: 0
+>   entryDN: cn=Write,cn=Waiters,cn=Monitor
+>   subschemaSubentry: cn=Subschema
+>   hasSubordinates: FALSE
+
+H2: Monitor search example
 
 You should be able to use any LDAP client to retrieve this
 information. Here's how you might do it using the
 {{I: ldapsearch}}(1) client:
 
-E: ldapsearch -x -s base -b cn=monitor 'objectclass=*'
-
+>   ldapsearch -x -s base -b cn=monitor 'objectclass=*' +
