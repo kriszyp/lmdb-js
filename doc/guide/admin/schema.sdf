@@ -114,9 +114,9 @@ see {{URL:http://www.alvestrand.no/harald/objectid/}}.
 .{{Under no circumstances should you hijack OID namespace!}}
 
 To obtain a registered OID at {{no cost}}, apply for an OID under
-the {{ORG[expand]IANA}} (IANA) maintained {{Private Enterprise}}
+the {{ORG[expand]IANA}} (ORG:IANA) maintained {{Private Enterprise}}
 arc.  Any private enterprise (organization) may request an OID to
-be assigned under this arc.  Just fill out the {{ORG:IANA}} form
+be assigned under this arc.  Just fill out the IANA form
 at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}} and your
 official OID will be sent to you usually within a few days.  Your
 base OID will be something like {{EX:1.3.6.1.4.1.X}} where {{EX:X}}
@@ -181,7 +181,7 @@ attribute found in the subschema subentry, e.g.:
 E:	attributetype <{{REF:RFC4512}} Attribute Type Description>
 
 where Attribute Type Description is defined by the following
-{{TERM:BNF}}:
+{{TERM:ABNF}}:
 
 >      AttributeTypeDescription = "(" whsp
 >            numericoid whsp              ; AttributeType identifier
@@ -301,9 +301,9 @@ description, e.g:
 >		SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
 >		SINGLE-VALUE )
 
-However, if we want this name to be included in
-{{EX:name}} assertions [e.g. {{EX:(name=*Jane*)}}], the attribute
-could alternatively be defined as a subtype of {{EX:name}}, e.g.:
+However, if we want this name to be used in {{EX:name}} assertions,
+e.g. {{EX:(name=*Jane*)}}, the attribute could alternatively be
+defined as a subtype of {{EX:name}}, e.g.:
 
 >	attributetype ( 1.1.2.1.1 NAME 'x-my-UniqueName'
 >		DESC 'unique name with my organization' 
@@ -354,7 +354,7 @@ attribute found in the subschema subentry, e.g.:
 E:	objectclass <{{REF:RFC4512}} Object Class Description>
 
 where Object Class Description is defined by the following
-{{TERM:BNF}}:
+{{TERM:ABNF}}:
 
 >	ObjectClassDescription = "(" whsp
 >		numericoid whsp      ; ObjectClass identifier
@@ -369,7 +369,7 @@ where Object Class Description is defined by the following
 >		whsp ")"
 
 where whsp is a space ('{{EX: }}'), numericoid is a globally unique
-OID in numeric form (e.g. {{EX:1.1.0}}), qdescrs is one or more
+OID in dotted-decimal form (e.g. {{EX:1.1.0}}), qdescrs is one or more
 names, and oids is one or more names and/or OIDs.
 
 
