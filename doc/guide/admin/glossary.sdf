@@ -4,13 +4,13 @@
 H1: Glossary
 
 H2: Terms
-!catalog terms ''; columns="Term,Definition"
+!catalog terms ''; headings; columns="Term,Definition"
 
 H2: Related Organizations
-!catalog organisations ''; columns="Name,Long,Jump"
+!catalog organisations ''; headings; columns="Name,Long,Jump"
 
 H2: Related Products
-!catalog products ''; columns="Name,Jump"
+!catalog products ''; headings; columns="Name,Jump"
 
 H2: References
-!catalog references ''; columns="Reference,Document,Status,Jump"
+!catalog references ''; headings; columns="Reference,Document,Status,Jump"

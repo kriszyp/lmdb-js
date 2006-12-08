@@ -5,8 +5,8 @@
 H1: Building and Installing OpenLDAP Software
 
 This chapter details how to build and install the {{PRD:OpenLDAP}}
-Software package including {{slapd}}(8), the stand-alone {{TERM:LDAP}}
-daemon.  Building and installing OpenLDAP Software requires several
+Software package including {{slapd}}(8), the Standalone {{TERM:LDAP}}
+Daemon.  Building and installing OpenLDAP Software requires several
 steps: installing prerequisite software, configuring OpenLDAP
 Software itself, making, and finally installing.  The following
 sections describe this process in detail.

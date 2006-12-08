@@ -4,7 +4,7 @@
 H1: The Big Picture - Configuration Choices
 
 This section gives a brief overview of various {{TERM:LDAP}} directory
-configurations, and how your stand-alone LDAP server {{slapd}}(8)
+configurations, and how your Standalone LDAP Daemon {{slapd}}(8)
 fits in with the rest of the world.
 
 

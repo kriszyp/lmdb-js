@@ -3,10 +3,10 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Running slapd
 
-{{slapd}}(8) is designed to be run as a stand-alone server.  This allows
-the server to take advantage of caching, manage concurrency issues
-with underlying databases, and conserve system resources.  Running
-from {{inetd}}(8) is {{NOT}} an option.
+{{slapd}}(8) is designed to be run as a standalone service.  This
+allows the server to take advantage of caching, manage concurrency
+issues with underlying databases, and conserve system resources.
+Running from {{inetd}}(8) is {{NOT}} an option.
 
 
 H2: Command-Line Options

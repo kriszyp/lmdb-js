@@ -5,8 +5,8 @@ H1: Introduction to OpenLDAP Directory Services
 
 This document describes how to build, configure, and operate
 {{PRD:OpenLDAP}} Software to provide directory services.  This
-includes details on how to configure and run the stand-alone
-{{TERM:LDAP}} daemon, {{slapd}}(8).  It is intended for new and
+includes details on how to configure and run the Standalone
+{{TERM:LDAP}} Daemon, {{slapd}}(8).  It is intended for new and
 experienced administrators alike.  This section provides a basic
 introduction to directory services and, in particular, the directory
 services provided by {{slapd}}(8).  This introduction is only
@@ -156,16 +156,15 @@ services.
 
 H2: How does LDAP work?
 
-LDAP directory service is based on a {{client-server}} model. One
-or more LDAP servers contain the data making up the directory
-information tree (DIT).  The client connects to servers and
-asks it a question.  The server responds with an answer and/or 
-with a pointer to where the client can get additional information
-(typically, another LDAP server).  No matter which LDAP server a
-client connects to, it sees the same view of the directory; a name
-presented to one LDAP server references the same entry it would at
-another LDAP server. This is an important feature of a global
-directory service, like LDAP.
+LDAP utilizes a {{client-server model}}. One or more LDAP servers
+contain the data making up the directory information tree ({{TERM:DIT}}).
+The client connects to servers and asks it a question.  The server
+responds with an answer and/or with a pointer to where the client
+can get additional information (typically, another LDAP server).
+No matter which LDAP server a client connects to, it sees the same
+view of the directory; a name presented to one LDAP server references
+the same entry it would at another LDAP server.  This is an important
+feature of a global directory service.
 
 
 H2: What about X.500?
@@ -185,7 +184,7 @@ While LDAP is still used to access X.500 directory service via
 gateways, LDAP is now more commonly directly implemented in X.500
 servers. 
 
-The stand-alone LDAP daemon, or {{slapd}}(8), can be viewed as a
+The Standalone LDAP Daemon, or {{slapd}}(8), can be viewed as a
 {{lightweight}} X.500 directory server.  That is, it does not
 implement the X.500's DAP nor does it support the complete X.500
 models.

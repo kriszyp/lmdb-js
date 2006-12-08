@@ -5,7 +5,7 @@
 H1: A Quick-Start Guide
 
 The following is a quick start guide to [[DOC_NAME]],
-including the stand-alone {{TERM:LDAP}} daemon, {{slapd}}(8).
+including the Standalone {{TERM:LDAP}} Daemon, {{slapd}}(8).
 
 It is meant to walk you through the basic steps needed to install
 and configure OpenLDAP Software. It should be used in conjunction

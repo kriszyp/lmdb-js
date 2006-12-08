@@ -98,22 +98,23 @@ ________________<BR>
 
 
 # OpenLDAP related organization
-!block organisations; data
+!block organisations; data; sort='Name'
 Name|Long|Jump
 ANSI|American National Standards Institute|http://www.ansi.org/
 BSI|British Standards Institute|http://www.bsa-global.com/
-Cyrus|Project Cyrus|http://cyrusimap.web.cmu.edu/
+COSINE|Co-operation and Open Systems Interconnection in Europe
 CPAN|Comprehensive Perl Archive Network|http://cpan.org/
+Cyrus|Project Cyrus|http://cyrusimap.web.cmu.edu/
 FSF|Free Software Foundation|http://www.fsf.org/
 GNU|GNU Not Unix Project|http://www.gnu.org/
 IAB|Internet Architecture Board|http://www.iab.org/
 IANA|Internet Assigned Numbers Authority|http://www.iana.org/
-IEEE|Institute of Electrical and Electronics Engineers
+IEEE|Institute of Electrical and Electronics Engineers|http://www.ieee.org
 IESG|Internet Engineering Steering Group|http://www.ietf.org/iesg/
 IETF|Internet Engineering Task Force|http://www.ietf.org/
 IRTF|Internet Research Task Force|http://www.irtf.org/
-ISOC|Internet Society|http://www.isoc.org/
 ISO|International Standards Organisation|http://www.iso.org/
+ISOC|Internet Society|http://www.isoc.org/
 ITU|International Telephone Union|http://www.itu.int/
 OLF|OpenLDAP Foundation|http://www.openldap.org/foundation/
 OLP|OpenLDAP Project|http://www.openldap.org/project/
@@ -124,11 +125,11 @@ UM|University of Michigan|http://www.umich.edu/
 UMLDAP|University of Michigan LDAP Team|http://www.umich.edu/~dirsvcs/ldap/ldap.html
 !endblock
 
-!block products; data
+!block products; data; sort='Name'
 Name|Jump
 Berkeley DB|http://www.oracle.com/database/berkeley-db/db/index.html
 CVS|http://www.cvshome.org/
-Cyrus:http://cyrusimap.web.cmu.edu/generalinfo.html
+Cyrus|http://cyrusimap.web.cmu.edu/generalinfo.html
 Cyrus SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
 GNU|http://www.gnu.org/software/
 GDBM|http://www.gnu.org/software/gdbm/
@@ -146,7 +147,7 @@ UMLDAP|http://www.umich.edu/~dirsvcs/ldap/ldap.html
 !endblock
 
 # Internet and X.500 terms
-!block terms; data
+!block terms; data; sort='Term'
 Term|Definition
 3DES|Triple DES
 ABNF|Augmented Backus-Naur Form
@@ -157,6 +158,7 @@ ACID|Atomicity, Consistency, Isolation, and Durability
 ACI|Access Control Information
 ACL|Access Control List
 AES|Advance Encryption Standard
+ABI|Application Binary Interface
 API|Application Program Interface
 ASN.1|Abstract Syntax Notation - One
 AVA|Attribute Value Assertion
@@ -168,15 +170,13 @@ BCP|Best Current Practice
 BDB|Berkeley DB (Backend)
 BER|Basic Encoding Rules
 BNF|Backus-Naur Form
+C|The C Programming Language
 CA|Certificate Authority
-CCITT|International Telegraph and Telephone Consultative Committee
 CER|Canonical Encoding Rules
 CLDAP|Connection-less LDAP
 CN|Common Name
-COSINE|Co-operation and Open Systems Interconnection in Europe
 CRAM-MD5|SASL MD5 Challedge/Response Authentication Mechanism
 CRL|Certificate Revocation List
-C|The C Programming Language
 DAP|Directory Access Protocol
 DC|Domain Component
 DER|Distinguished Encoding Rules
@@ -235,7 +235,6 @@ PKI|Public Key Infrastructure
 PKIX|Public Key Infrastructure (X.509)
 PLAIN|SASL Plaintext Password Authentication Mechanism
 POSIX|Portable Operating System Interface
-PRDMD|Private Directory Management Domain
 PS|Proposed Standard
 RDN|Relative Distinguished Name
 RFC|Request for Comments
@@ -275,7 +274,7 @@ XML|Extensible Markup Language
 syncrepl|LDAP Sync-based Replication
 !endblock
 
-!block references; data
+!block references; data; sort=Reference; style=grid
 Reference|Status|Document|Jump
 RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|http://www.rfc-editor.org/rfc/rfc2079.txt
 RFC2296|PS|Use of Language Codes in LDAP|http://www.rfc-editor.org/rfc/rfc2296.txt
