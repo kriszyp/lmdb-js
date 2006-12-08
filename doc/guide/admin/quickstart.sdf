@@ -5,7 +5,7 @@
 H1: A Quick-Start Guide
 
 The following is a quick start guide to [[DOC_NAME]],
-including the stand-alone LDAP daemon, {{slapd}}(8).
+including the stand-alone {{TERM:LDAP}} daemon, {{slapd}}(8).
 
 It is meant to walk you through the basic steps needed to install
 and configure OpenLDAP Software. It should be used in conjunction
@@ -27,7 +27,7 @@ Guide.
 ^{{B: Get the software}}
 
 . You can obtain a copy of the software by following the
-instructions on the OpenLDAP download page
+instructions on the OpenLDAP Software download page
 ({{URL: http://www.openldap.org/software/download/}}).  It is
 recommended that new users start with the latest {{release}}.
 
@@ -56,7 +56,7 @@ name of the release.
 {{F:README}} and {{F:INSTALL}} documents provided with the distribution.
 The {{F:COPYRIGHT}} and {{F:LICENSE}} provide information on
 acceptable use, copying, and limitation of warranty of OpenLDAP
-software. 
+Software. 
 
 .{{S: }}
 . You should also review other chapters of this document.
@@ -198,7 +198,8 @@ in the {{slapd}}(8) manual page and the
 +{{B:Add initial entries to your directory}}.
 
 . You can use {{ldapadd}}(1) to add entries to your LDAP directory.
-{{ldapadd}} expects input in LDIF form. We'll do it in two steps:
+{{ldapadd}} expects input in {{TERM:LDIF}} form.  We'll do it in two
+steps:
 
 ^^ create an LDIF file
 ++ run ldapadd

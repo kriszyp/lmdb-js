@@ -28,7 +28,7 @@ indirectly).
 
 H2: Distributed Schema Files
 
-OpenLDAP is distributed with a set of schema specifications for
+OpenLDAP Software is distributed with a set of schema specifications for
 your use.  Each set is defined in a file suitable for inclusion
 (using the {{EX:include}} directive) in your {{slapd.conf}}(5)
 file.  These schema files are normally installed in the
@@ -55,7 +55,7 @@ desired file in the global definitions portion of your
 >	include /usr/local/etc/openldap/schema/inetorgperson.schema
 
 Additional files may be available.  Please consult the OpenLDAP
-FAQ ({{URL:http://www.openldap.org/faq/}}).
+{{TERM:FAQ}} ({{URL:http://www.openldap.org/faq/}}).
 
 Note: You should not modify any of the schema items defined
 in provided files.
@@ -229,22 +229,22 @@ and a brief description.  Each name is an alias for the OID.
 {{slapd}}(8) returns the first listed name when returning results.
 
 The first attribute, {{EX:name}}, holds values of {{EX:directoryString}}
-(UTF-8 encoded Unicode) syntax.  The syntax is specified by OID
-(1.3.6.1.4.1.1466.115.121.1.15 identifies the directoryString
-syntax).  A length recommendation of 32768 is specified.  Servers
-should support values of this length, but may support longer values
-The field does NOT specify a size constraint, so is ignored on
-servers (such as slapd) which don't impose such size limits.  In
-addition, the equality and substring matching uses case ignore
-rules.  Below are tables listing commonly used syntax and
-matching rules (OpenLDAP supports these and many more).
+({{TERM:UTF-8}} encoded Unicode) syntax.  The syntax is
+specified by OID (1.3.6.1.4.1.1466.115.121.1.15 identifies the
+directoryString syntax).  A length recommendation of 32768 is
+specified.  Servers should support values of this length, but may
+support longer values The field does NOT specify a size constraint,
+so is ignored on servers (such as slapd) which don't impose such
+size limits.  In addition, the equality and substring matching uses
+case ignore rules.  Below are tables listing commonly used syntax
+and matching rules ({{slapd}}(8) supports these and many more).
 
 !block table; align=Center; coltags="EX,EX,N"; \
 	title="Table 8.3: Commonly Used Syntaxes"
 Name			OID				Description
 boolean			1.3.6.1.4.1.1466.115.121.1.7	boolean value
 directoryString		1.3.6.1.4.1.1466.115.121.1.15	Unicode (UTF-8) string
-distinguishedName	1.3.6.1.4.1.1466.115.121.1.12	LDAP DN
+distinguishedName	1.3.6.1.4.1.1466.115.121.1.12	LDAP {{TERM:DN}}
 integer			1.3.6.1.4.1.1466.115.121.1.27	integer
 numericString		1.3.6.1.4.1.1466.115.121.1.36	numeric string
 OID			1.3.6.1.4.1.1466.115.121.1.38	object identifier
@@ -406,8 +406,8 @@ and {{EX:givenName}} and allows {{EX:x-my-Photo}}.
 H2: Transferring Schema
 
 Since the {{slapd.conf}}(5) schema directives use {{REF:RFC4512}}
-format values, you can extract schema elements published by
-any LDAPv3 server and easily construct directives for use with
+format values, you can extract schema elements published by any
+{{TERM:LDAPv3}} server and easily construct directives for use with
 {{slapd}}(8).
 
 LDAPv3 servers publish schema elements in special {{subschema}}

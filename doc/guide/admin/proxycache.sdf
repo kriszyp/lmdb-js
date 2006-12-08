@@ -4,12 +4,12 @@
 
 H1: The Proxy Cache Engine
 
-LDAP servers typically hold one or more subtrees of a DIT. Replica
-(or shadow) servers hold shadow copies of entries held by one or
-more master servers.  Changes are propagated from the master server
-to replica (slave) servers using LDAP Sync or {{slurpd}}(8). An
-LDAP cache is a special type of replica which holds entries
-corresponding to search filters instead of subtrees.
+{{TERM:LDAP}} servers typically hold one or more subtrees of a
+{{TERM:DIT}}. Replica (or shadow) servers hold shadow copies of
+entries held by one or more master servers.  Changes are propagated
+from the master server to replica (slave) servers using LDAP Sync
+or {{slurpd}}(8). An LDAP cache is a special type of replica which
+holds entries corresponding to search filters instead of subtrees.
 
 H2: Overview
 

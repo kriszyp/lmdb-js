@@ -10,18 +10,18 @@ SASL in OpenLDAP.
 
 There are several industry standard authentication mechanisms that
 can be used with SASL, including {{TERM:GSSAPI}} for {{TERM:Kerberos}}
-V, DIGEST-MD5, and PLAIN and EXTERNAL for use with {{TERM[expand]TLS}}
-(TLS).
+V, {{TERM:DIGEST-MD5}}, and {{TERM:PLAIN}} and {{TERM:EXTERNAL}}
+for use with {{TERM[expand]TLS}} (TLS).
 
 The standard client tools provided with OpenLDAP Software, such as
 {{ldapsearch}}(1) and {{ldapmodify}}(1), will by default attempt
-to authenticate the user to the {{slapd}}(8) server using SASL.
-Basic authentication service can be set up by the LDAP administrator
-with a few steps, allowing users to be authenticated to the slapd
-server as their LDAP entry.  With a few extra steps, some users and
-services can be allowed to exploit SASL's proxy authorization
-feature, allowing them to authenticate themselves and then switch
-their identity to that of another user or service.
+to authenticate the user to the {{TERM:LDAP}} directory server using
+SASL.  Basic authentication service can be set up by the LDAP
+administrator with a few steps, allowing users to be authenticated
+to the slapd server as their LDAP entry.  With a few extra steps,
+some users and services can be allowed to exploit SASL's proxy
+authorization feature, allowing them to authenticate themselves and
+then switch their identity to that of another user or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
 Administrators}}, provided with the {{PRD:Cyrus SASL}}
@@ -56,19 +56,19 @@ document.
 The DIGEST-MD5 mechanism is the mandatory-to-implement authentication
 mechanism for LDAPv3.  Though DIGEST-MD5 is not a strong authentication
 mechanism in comparison with trusted third party authentication
-systems (such as Kerberos or public key systems), it does offer
-significant protections against a number of attacks.  Unlike the
-CRAM-MD5 mechanism, it prevents chosen plaintext attacks.  DIGEST-MD5
-is favored over the use of plaintext password mechanisms.  The
-CRAM-MD5 mechanism is deprecated in favor of DIGEST-MD5.  Use of
-{{SECT:DIGEST-MD5}} is discussed below.
+systems (such as {{TERM:Kerberos}} or public key systems), it does
+offer significant protections against a number of attacks.  Unlike
+the {{TERM:CRAM-MD5}} mechanism, it prevents chosen plaintext
+attacks.  DIGEST-MD5 is favored over the use of plaintext password
+mechanisms.  The CRAM-MD5 mechanism is deprecated in favor of
+DIGEST-MD5.  Use of {{SECT:DIGEST-MD5}} is discussed below.
 
-The GSSAPI mechanism utilizes Kerberos V to provide secure
-authentication services.  The KERBEROS_V4 mechanism is available
-for those using Kerberos IV.  Kerberos is viewed as a secure,
-distributed authentication system suitable for both small and large
-enterprises.  Use of {{SECT:GSSAPI}} and {{SECT:KERBEROS_V4}} are
-discussed below.
+The GSSAPI mechanism utilizes {{TERM:GSS-API}} {{TERM:Kerberos}} V
+to provide secure authentication services.  The KERBEROS_V4 mechanism
+is available for those using Kerberos IV.  Kerberos is viewed as a
+secure, distributed authentication system suitable for both small
+and large enterprises.  Use of {{SECT:GSSAPI}} and {{SECT:KERBEROS_V4}}
+are discussed below.
 
 The EXTERNAL mechanism utilizes authentication services provided
 by lower level network services such as {{TERM:TLS}} (TLS).  When
@@ -85,18 +85,18 @@ document.
 H2: SASL Authentication
 
 Getting basic SASL authentication running involves a few steps.
-The first step configures your slapd server environment so
-that it can communicate with client programs using the security
-system in place at your site. This usually involves setting up a
-service key, a public key, or other form of secret. The second step
-concerns mapping authentication identities to LDAP DN's, which
+The first step configures your slapd server environment so that it
+can communicate with client programs using the security system in
+place at your site. This usually involves setting up a service key,
+a public key, or other form of secret. The second step concerns
+mapping authentication identities to LDAP {{TERM:DN}}'s, which
 depends on how entries are laid out in your directory. An explanation
 of the first step will be given in the next section using Kerberos
 V4 as an example mechanism. The steps necessary for your site's
 authentication mechanism will be similar, but a guide to every
 mechanism available under SASL is beyond the scope of this chapter.
-The second step is described in the section 
-{{SECT:Mapping Authentication Identities}}.
+The second step is described in the section {{SECT:Mapping
+Authentication Identities}}.
 
 
 H3: GSSAPI

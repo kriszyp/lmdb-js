@@ -4,14 +4,14 @@
 
 H1: LDAP Sync Replication
 
-The LDAP Sync replication engine, syncrepl for short, is a consumer-side
-replication engine that enables the consumer LDAP server to maintain
-a shadow copy of a DIT fragment. A syncrepl engine resides at the
-consumer-side as one of the {{slapd}} (8) threads. It creates and
-maintains a consumer replica by connecting to the replication
-provider to perform the initial DIT content load followed either
-by periodic content polling or by timely updates upon content
-changes.
+The LDAP Sync Replication engine, {{syncrepl}} for short, is a
+consumer-side replication engine that enables the consumer {{TERM:LDAP}}
+server to maintain a shadow copy of a DIT fragment. A syncrepl
+engine resides at the consumer-side as one of the {{slapd}} (8)
+threads. It creates and maintains a consumer replica by connecting
+to the replication provider to perform the initial {{TERM:DIT}}
+content load followed either by periodic content polling or by
+timely updates upon content changes.
 
 Syncrepl uses the LDAP Content Synchronization (or LDAP Sync for
 short) protocol as the replica synchronization protocol.  It provides
