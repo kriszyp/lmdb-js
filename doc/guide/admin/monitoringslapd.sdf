@@ -26,41 +26,36 @@ explicitly requested.  For example:
 As there are may be many objects under {{EX:cn=Monitor}}, a search
 with a narrower search criteria may be more appropriate.
 
+Support for the monitor backend is included in slapd(8) in default
+builds.  The monitor backend may also be built as a loadable module.
+The remainder of this section assumes slapd(8) was with with monitor
+backend support (e.g., {{EX:--enable-monitor=yes}}, the default),
+or build as a module (e.g., {{EX:--enable-monitor=mod}} and loaded
+into slapd(8).
+
 
 H2: Configuration
 
-These {{slapd.conf}}(5) options apply to the monitor backend database.  That is, 
-they must follow a {{EX:database monitor}} line and come before any subsequent 
-{{backend}} or {{database}} lines.
+These {{slapd.conf}}(5) options apply to the monitor backend database.
+That is, they must follow a {{EX:database monitor}} line and come
+before any subsequent {{backend}} or {{database}} lines.
 
-As opposed to most databases, the monitor database can be instantiated only 
-once, i.e. only  one  occurrence  of {{EX:database monitor}} can occur in 
-the {{slapd.conf}}(5) file. Moreover, the suffix of the database cannot be 
-explicitly set by means of the suffix directive.  The suffix is automatically 
-set to {{EX:cn=Monitor}}
+As opposed to most databases, the monitor database can be instantiated
+only once, i.e. only  one  occurrence  of {{EX:database monitor}}
+can occur in the {{slapd.conf}}(5) file. Moreover, the suffix of
+the database cannot be explicitly set by means of the suffix
+directive.  The suffix is automatically set to {{EX:cn=Monitor}}
 
-The monitor backend honors access control semantics as indicated in 
-{{slapd.access}}(5), including the disclose access privilege, on all currently 
-implemented operations.
+The monitor backend honors access control semantics as indicated
+in {{slapd.access}}(5), including the disclose access privilege,
+on all currently implemented operations.
 
 For understanding how to do the following with dynamic configuration, 
 see {{SECT:Configuring slapd}}
 
-H3: Enabling the monitor backend
-
-Enable at configure:
-
->   configure --enable-monitor
-
-Or if you have enabled modules, put in {{slapd.conf}}(5):
-
->   # Load dynamic backend modules:
->   modulepath  /usr/local/libexec/openldap
->   moduleload  back_monitor.la
-
-Also ensure that the {{core.schema}} file is loaded. The monitor backend 
-relies on some standard track {{attributeTypes}} that must be already defined 
-when the backend is started.
+Also ensure that the {{core.schema}} file is loaded. The monitor
+backend relies on some standard track {{attributeTypes}} that must
+be already defined when the backend is started.
 
 H3: Activate the monitor database
 
@@ -83,19 +78,17 @@ More information is detailed in {{slapd.access}}(5)
 
 H2: Available Subsystems
 
-There are various subsytems you can explicitly query for, with most information
-being held in the {{monitoredInfo}} attribute.
+There are various subsytems you can explicitly query for, with most
+information being held in the {{monitoredInfo}} attribute.
 
 H3: Backends
 
-The main entry contains the type of backends enabled at compile time;
-the subentries, for each backend, contain the type of the backend.
-It should also contain the modules that have been loaded if dynamic 
-backends are enabled.
+The main entry contains the type of backends enabled at compile
+time; the subentries, for each backend, contain the type of the
+backend.  It should also contain the modules that have been loaded
+if dynamic backends are enabled.
 
 For example:
-
-Backend 1:
 
 >   dn: cn=Backend 1,cn=Backends,cn=Monitor
 >   structuralObjectClass: monitoredObject
@@ -105,9 +98,7 @@ Backend 1:
 >   entryDN: cn=Backend 1,cn=Backends,cn=Monitor
 >   subschemaSubentry: cn=Subschema
 >   hasSubordinates: FALSE
-
-Backend 2:
-
+>
 >   dn: cn=Backend 2,cn=Backends,cn=Monitor
 >   structuralObjectClass: monitoredObject
 >   monitoredInfo: hdb
@@ -123,9 +114,7 @@ Backend 2:
 >   entryDN: cn=Backend 2,cn=Backends,cn=Monitor
 >   subschemaSubentry: cn=Subschema
 >   hasSubordinates: FALSE
-
-Backend 3:
-
+>
 >   # Backend 3, Backends, Monitor
 >   dn: cn=Backend 3,cn=Backends,cn=Monitor
 >   structuralObjectClass: monitoredObject
@@ -135,6 +124,10 @@ Backend 3:
 >   entryDN: cn=Backend 3,cn=Backends,cn=Monitor
 >   subschemaSubentry: cn=Subschema
 >   hasSubordinates: FALSE
+
+In this example, the server has three backends: 1) a {{ldif}} backend,
+2) a {{hdb}} backend, and 3) a {{monitor}} backend.
+
 
 H3: Connections
 
