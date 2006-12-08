@@ -108,9 +108,11 @@ FSF|Free Software Foundation|http://www.fsf.org/
 GNU|GNU Not Unix Project|http://www.gnu.org/
 IAB|Internet Architecture Board|http://www.iab.org/
 IANA|Internet Assigned Numbers Authority|http://www.iana.org/
+IEEE|Institute of Electrical and Electronics Engineers
 IESG|Internet Engineering Steering Group|http://www.ietf.org/iesg/
 IETF|Internet Engineering Task Force|http://www.ietf.org/
 IRTF|Internet Research Task Force|http://www.irtf.org/
+ISOC|Internet Society|http://www.isoc.org/
 ISO|International Standards Organisation|http://www.iso.org/
 ITU|International Telephone Union|http://www.itu.int/
 OLF|OpenLDAP Foundation|http://www.openldap.org/foundation/
@@ -150,21 +152,20 @@ Term|Definition
 ABNF|Augmented Backus-Naur Form
 ACDF|Access Control Decision Function
 ACE|ASCII Compatible Encoding
-ACIA|Access Control Inner Area
+ASCII|American Standard Code for Information Interchange
 ACID|Atomicity, Consistency, Isolation, and Durability
 ACI|Access Control Information
 ACL|Access Control List
-ACSA|Access Control Specific Area
-ADDMD|Administration Directory Management Domain
 AES|Advance Encryption Standard
 API|Application Program Interface
 ASN.1|Abstract Syntax Notation - One
-ASN|Abstract Syntax Notation
 AVA|Attribute Value Assertion
+AuthcDN|Authentication DN
 AuthcId|Authentication Identity
+AuthzDN|Authorizaiton DN
 AuthzId|Authorization Identity
 BCP|Best Current Practice
-BDB|Berkeley DB
+BDB|Berkeley DB (Backend)
 BER|Basic Encoding Rules
 BNF|Backus-Naur Form
 CA|Certificate Authority
@@ -176,7 +177,6 @@ COSINE|Co-operation and Open Systems Interconnection in Europe
 CRAM-MD5|SASL MD5 Challedge/Response Authentication Mechanism
 CRL|Certificate Revocation List
 C|The C Programming Language
-DACD|Directory Access Control Domain
 DAP|Directory Access Protocol
 DC|Domain Component
 DER|Distinguished Encoding Rules
@@ -185,8 +185,6 @@ DIB|Directory Information Base
 DIGEST-MD5|SASL Digest MD5 Authentication Mechanism
 DISP|Directory Information Shadowing Protocol
 DIT|Directory Information Tree
-DMD|Directory Management Domain
-DMO|Doman Management Organization
 DNS|Domain Name System
 DN|Distinguished Name
 DOP|Directory Operational Binding Management Protocol
@@ -203,8 +201,7 @@ FYI|For Your Information
 GSER|Generic String Encoding Rules
 GSS-API|Generic Security Service Application Program Interface
 GSSAPI|SASL Kerberos V GSS-API Authentication Mechanism
-HDB|Heirarchial Database
-HOB|Hierarchical Operational Binding
+HDB|Hierarchical Database (Backend)
 I-D|Internet-Draft
 IA5|International Alphabet 5
 IDNA|Internationalized Domain Names in Applications
@@ -221,13 +218,12 @@ Kerberos|Kerberos Authentication Service
 LBER|Lightweight BER
 LDAPv3|LDAP, version 3
 LDAP|Lightweight Directory Access Protocol
+LDAP Sync|LDAP Content Sychronization
 LDIF|LDAP Data Interchange Format
 MD5|Message Digest 5
 MIB|Management Information Base
 MODDN|Modify DN
 MODRDN|Modify RDN
-NHOB|Non-specific Hierarchical Operational Binding
-NSAP|Network Service Access Point
 NSSR|Non-specific Subordinate Reference
 OID|Object Identifier
 OSI|Open Systems Interconnect
@@ -235,36 +231,39 @@ OTP|One Time Password
 PDU|Protocol Data Unit
 PEM|Privacy Enhanced eMail
 PKCS|Public Key Cryptosystem
-PKIX|Public Key Infrastructure X.509
 PKI|Public Key Infrastructure
+PKIX|Public Key Infrastructure (X.509)
 PLAIN|SASL Plaintext Password Authentication Mechanism
+POSIX|Portable Operating System Interface
 PRDMD|Private Directory Management Domain
 PS|Proposed Standard
 RDN|Relative Distinguished Name
 RFC|Request for Comments
-RHOB|Relative Hierarchical Operational Binding
 RXER|Robust XML Encoding Rules
 SASL|Simple Authentication and Security Layer
 SDF|Simple Document Format
 SDSE|Shadowed DSE
 SHA1|Secure Hash Algorithm 1
+SLAPD|Standalone LDAP Daemon
+SLURPD|Standalone LDAP Update Replication Daemon
 SMTP|Simple Mail Transfer Protocol
 SNMP|Simple Network Management Protocol
+SQL|Structured Query Language
 SRP|Secure Remote Password
 SSF|Security Strength Factor
 SSL|Secure Socket Layer
 STD|Internet Standard
-SQL|Structured Query Language
 TCP|Transmission Control Protocol
 TLS|Transport Layer Security
 UCS|Universal Multiple-Octet Coded Character Set
 UDP|User Datagram Protocol
 UID|User Identifier
-UNIX|UNIX
+Unicode|The Unicode Standard
+UNIX|Unix
 URI|Uniform Resource Identifier
 URL|Uniform Resource Locator
 URN|Uniform Resource Name
-UTF-8|Unicode Transformation Format 8
+UTF-8|8-bit UCS/Unicode Transformation Format
 UTR|Unicode Technical Report
 UUID|Universally Unique Identifier
 WWW|World Wide Web
@@ -273,6 +272,7 @@ X.509|X.509 Public Key and Attribute Certificate Frameworks
 XED|XML Enabled Directory
 XER|XML Encoding Rules
 XML|Extensible Markup Language
+syncrepl|LDAP Sync-based Replication
 !endblock
 
 !block references; data
