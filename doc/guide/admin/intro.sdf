@@ -68,8 +68,8 @@ it is a lightweight protocol for accessing directory services,
 specifically {{TERM:X.500}}-based directory services.  LDAP runs
 over {{TERM:TCP}}/{{TERM:IP}} or other connection oriented transfer
 services.  LDAP is an {{ORG:IETF}} Standard Track protocol and is
-specified as detailed in "Lightweight Directory Access Protocol
-(LDAP) Technical Specification Road Map" {{REF:RFC4510}}.
+specified in "Lightweight Directory Access Protocol (LDAP) Technical
+Specification Road Map" {{REF:RFC4510}}.
 
 This section gives an overview of LDAP from a user's perspective.
 
@@ -83,8 +83,8 @@ common name, or "{{EX:mail}}" for email address. The syntax of
 values depend on the attribute type.  For example, a {{EX:cn}}
 attribute might contain the value {{EX:Babs Jensen}}.  A {{EX:mail}}
 attribute might contain the value "{{EX:babs@example.com}}". A
-{{EX:jpegPhoto}} attribute would contain a photograph in the JPEG
-(binary) format.
+{{EX:jpegPhoto}} attribute would contain a photograph in the
+{{TERM:JPEG}} (binary) format.
 
 {{How is the information arranged?}} In LDAP, directory entries
 are arranged in a hierarchical tree-like structure.  Traditionally,
@@ -231,7 +231,8 @@ service, or run a service all by yourself. Some of slapd's more
 interesting features and capabilities include:
 
 {{B:LDAPv3}}: {{slapd}} implements version 3 of {{TERM[expand]LDAP}}.
-{{slapd}} supports LDAP over both IPv4 and IPv6 and Unix IPC.
+{{slapd}} supports LDAP over both {{TERM:IPv4}} and {{TERM:IPv6}}
+and Unix {{TERM:IPC}}.
 
 {{B:{{TERM[expand]SASL}}}}: {{slapd}} supports strong authentication
 and data security (integrity and confidentiality) services through

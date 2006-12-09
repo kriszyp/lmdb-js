@@ -145,7 +145,7 @@ the session.  User/password authenticated bind is enabled by default.
 However, as this mechanism itself offers no evesdropping protection
 (e.g., the password is set in the clear), it is recommended that
 it be used only in tightly controlled systems or when the LDAP
-session is protected by other means (e.g., TLS, {{TERM:IPSEC}}).
+session is protected by other means (e.g., TLS, {{TERM:IPsec}}).
 Where the administrator relies on TLS to protect the password, it
 is recommended that unprotected authentication be disabled.  This
 is done by setting "{{EX:disallow bind_simple_unprotected}}" in

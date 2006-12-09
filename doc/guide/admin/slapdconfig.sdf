@@ -321,7 +321,7 @@ authentication is to be used when connecting to the slave slapd.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
-or IPSEC).  Simple authentication requires specification of
+or {{TERM:IPsec}}).  Simple authentication requires specification of
 {{EX:binddn}} and {{EX:credentials}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
@@ -514,7 +514,7 @@ to the provider slapd.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
-or IPSEC). Simple authentication requires specification of {{EX:binddn}}
+or IPsec). Simple authentication requires specification of {{EX:binddn}}
 and {{EX:credentials}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
@@ -588,9 +588,9 @@ containing the database and associated indices live.
 >	directory /usr/local/var/openldap-data
 
 
-H2: Access Control
+H2: The access Configuration Directive
 
-Access to slapd entries and attributes is controlled by the
+Access to entries and attributes is controlled by the
 access configuration file directive. The general form of an
 access line is:
 

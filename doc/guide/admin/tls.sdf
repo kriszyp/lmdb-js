@@ -187,7 +187,7 @@ command to continue.
 In LDAPv2 environments, TLS is normally started using the LDAP
 Secure URI scheme ({{EX:ldaps://}}) instead of the normal LDAP URI
 scheme ({{EX:ldap://}}).  OpenLDAP command line tools allow either
-scheme to used with the {{EX:-U}} flag and with the {{EX:URI}}
+scheme to used with the {{EX:-H}} flag and with the {{EX:URI}}
 {{ldap.conf}}(5) option.
 
 
