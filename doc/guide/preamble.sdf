@@ -134,6 +134,7 @@ Cyrus SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
 GNU|http://www.gnu.org/software/
 GDBM|http://www.gnu.org/software/gdbm/
 Heimdal|http://www.pdc.kth.se/heimdal/
+JLDAP|http://www.openldap.org/jldap/
 MIT Kerberos|http://web.mit.edu/kerberos/www/
 OpenLDAP|http://www.openldap.org/
 OpenLDAP FAQ|http://www.openldap.org/faq/
@@ -208,17 +209,18 @@ IDNA|Internationalized Domain Names in Applications
 IDN|Internationalized Domain Name
 ID|Identification
 ID|Identifier
-IPSEC|Internet Protocol Security
-IPsec| IP Security
+IP|Internet Protocol
+IPC|Inter-process communication
+IPsec|Internet Protocol Security
 IPv4|Internet Protocol, version 4
 IPv6|Internet Protocol, version 6
-IP|Internet Protocol
 ITS|Issue Tracking System
+JPEG|Joint Photographic Experts Group
 Kerberos|Kerberos Authentication Service
 LBER|Lightweight BER
-LDAPv3|LDAP, version 3
 LDAP|Lightweight Directory Access Protocol
 LDAP Sync|LDAP Content Sychronization
+LDAPv3|LDAP, version 3
 LDIF|LDAP Data Interchange Format
 MD5|Message Digest 5
 MIB|Management Information Base
@@ -238,6 +240,7 @@ POSIX|Portable Operating System Interface
 PS|Proposed Standard
 RDN|Relative Distinguished Name
 RFC|Request for Comments
+RPC|Remote Procedure Call
 RXER|Robust XML Encoding Rules
 SASL|Simple Authentication and Security Layer
 SDF|Simple Document Format
