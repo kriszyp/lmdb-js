@@ -4,14 +4,14 @@
 
 H1: LDAP Sync Replication
 
-The LDAP Sync Replication engine, {{syncrepl}} for short, is a
-consumer-side replication engine that enables the consumer {{TERM:LDAP}}
-server to maintain a shadow copy of a DIT fragment. A syncrepl
-engine resides at the consumer-side as one of the {{slapd}} (8)
-threads. It creates and maintains a consumer replica by connecting
-to the replication provider to perform the initial {{TERM:DIT}}
-content load followed either by periodic content polling or by
-timely updates upon content changes.
+The {{TERM:LDAP Sync}} Replication engine, {{TERM:syncrepl}} for
+short, is a consumer-side replication engine that enables the
+consumer {{TERM:LDAP}} server to maintain a shadow copy of a
+{{TERM:DIT}} fragment. A syncrepl engine resides at the consumer-side
+as one of the {{slapd}}(8) threads. It creates and maintains a
+consumer replica by connecting to the replication provider to perform
+the initial DIT content load followed either by periodic content
+polling or by timely updates upon content changes.
 
 Syncrepl uses the LDAP Content Synchronization (or LDAP Sync for
 short) protocol as the replica synchronization protocol.  It provides
@@ -66,7 +66,7 @@ The LDAP Sync protocol allows a client to maintain a synchronized
 copy of a DIT fragment. The LDAP Sync operation is defined as a set
 of controls and other protocol elements which extend the LDAP search
 operation. This section introduces the LDAP Content Sync protocol
-only briefly. For more information, refer to {{REF:RFC4533}}.
+only briefly.  For more information, refer to {{REF:RFC4533}}.
 
 The LDAP Sync protocol supports both polling and listening for
 changes by defining two respective synchronization operations:
@@ -155,13 +155,14 @@ H2: Syncrepl Details
 
 The syncrepl engine utilizes both the {{refreshOnly}} and the
 {{refreshAndPersist}} operations of the LDAP Sync protocol.  If a
-syncrepl specification is included in a database definition, {{slapd}}
-(8) launches a syncrepl engine as a {{slapd}} (8) thread and schedules
-its execution. If the {{refreshOnly}} operation is specified, the
-syncrepl engine will be rescheduled at the interval time after a
-synchronization operation is completed.  If the {{refreshAndPersist}}
-operation is specified, the engine will remain active and process
-the persistent synchronization messages from the provider.
+syncrepl specification is included in a database definition,
+{{slapd}}(8) launches a syncrepl engine as a {{slapd}}(8) thread
+and schedules its execution. If the {{refreshOnly}} operation is
+specified, the syncrepl engine will be rescheduled at the interval
+time after a synchronization operation is completed.  If the
+{{refreshAndPersist}} operation is specified, the engine will remain
+active and process the persistent synchronization messages from the
+provider.
 
 The syncrepl engine utilizes both the present phase and the delete
 phase of the refresh synchronization. It is possible to configure
@@ -260,7 +261,7 @@ this change without the use of the session log.
 H2: Configuring Syncrepl
 
 Because syncrepl is a consumer-side replication engine, the syncrepl
-specification is defined in {{slapd.conf}} (5) of the consumer
+specification is defined in {{slapd.conf}}(5) of the consumer
 server, not in the provider server's configuration file.  The initial
 loading of the replica content can be performed either by starting
 the syncrepl engine with no synchronization cookie or by populating
@@ -284,7 +285,7 @@ syncrepl.
 H3: Set up the provider slapd
 
 The provider is implemented as an overlay, so the overlay itself
-must first be configured in {{slapd.conf}} (5) before it can be
+must first be configured in {{slapd.conf}}(5) before it can be
 used. The provider has only two configuration directives, for setting
 checkpoints on the {{EX:contextCSN}} and for configuring the session
 log.  Because the LDAP Sync search is subject to access control,
@@ -313,7 +314,7 @@ Note that using the session log requires searching on the {{entryUUID}}
 attribute. Setting an eq index on this attribute will greatly benefit
 the performance of the session log on the provider.
 
-A more complete example of the {{slapd.conf}} content is thus:
+A more complete example of the {{slapd.conf}}(5) content is thus:
 
 >	database bdb
 >	suffix dc=Example,dc=com
@@ -329,7 +330,7 @@ A more complete example of the {{slapd.conf}} content is thus:
 H3: Set up the consumer slapd
 
 The syncrepl replication is specified in the database section of
-{{slapd.conf}} (5) for the replica context.  The syncrepl engine
+{{slapd.conf}}(5) for the replica context.  The syncrepl engine
 is backend independent and the directive can be defined with any
 database type.
 
@@ -352,7 +353,7 @@ database type.
 >		binddn="cn=syncuser,dc=example,dc=com"
 >		credentials=secret
 
-In this example, the consumer will connect to the provider slapd
+In this example, the consumer will connect to the provider {{slapd}}(8)
 at port 389 of {{FILE:ldap://provider.example.com}} to perform a
 polling ({{refreshOnly}}) mode of synchronization once a day.  It
 will bind as {{EX:cn=syncuser,dc=example,dc=com}} using simple
@@ -369,8 +370,8 @@ entries whose objectClass is organizationalPerson in the entire
 subtree rooted at {{EX:dc=example,dc=com}}. The requested attributes
 are {{EX:cn}}, {{EX:sn}}, {{EX:ou}}, {{EX:telephoneNumber}},
 {{EX:title}}, and {{EX:l}}. The schema checking is turned off, so
-that the consumer {{slapd}} (8) will not enforce entry schema
-checking when it process updates from the provider {{slapd}} (8).
+that the consumer {{slapd}}(8) will not enforce entry schema
+checking when it process updates from the provider {{slapd}}(8).
 
 For more detailed information on the syncrepl directive, see the
 {{SECT:syncrepl}} section of {{SECT:The slapd Configuration File}}
@@ -379,7 +380,7 @@ chapter of this admin guide.
 
 H3: Start the provider and the consumer slapd
 
-The provider {{slapd}} (8) is not required to be restarted.
+The provider {{slapd}}(8) is not required to be restarted.
 {{contextCSN}} is automatically generated as needed: it might be
 originally contained in the {{TERM:LDIF}} file, generated by
 {{slapadd}} (8), generated upon changes in the context, or generated
@@ -389,7 +390,7 @@ LDIF file is being loaded which did not previously contain the
 (8) to cause it to be generated. This will allow the server to
 startup a little quicker the first time it runs.
 
-When starting a consumer {{slapd}} (8), it is possible to provide
+When starting a consumer {{slapd}}(8), it is possible to provide
 a synchronization cookie as the {{-c cookie}} command line option
 in order to start the synchronization from a specific state.  The
 cookie is a comma separated list of name=value pairs. Currently
@@ -397,7 +398,7 @@ supported syncrepl cookie fields are {{csn=<csn>}} and {{rid=<rid>}}.
 {{<csn>}} represents the current synchronization state of the
 consumer replica.  {{<rid>}} identifies a consumer replica locally
 within the consumer server. It is used to relate the cookie to the
-syncrepl definition in {{slapd.conf}} (5) which has the matching
+syncrepl definition in {{slapd.conf}}(5) which has the matching
 replica identifier.  The {{<rid>}} must have no more than 3 decimal
 digits.  The command line cookie overrides the synchronization
 cookie stored in the consumer replica database.
