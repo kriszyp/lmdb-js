@@ -120,5 +120,5 @@ To kill off {{slapd}}(8) safely, you should give a command like this
 
 where {{F:/usr/local/var}} is determined by {{EX:configure}}.
 
-Killing slapd by a more drastic method may cause information
-loss or database corruption.
+Killing slapd by a more drastic method may cause information loss or
+database corruption.
