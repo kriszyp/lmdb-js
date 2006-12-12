@@ -550,6 +550,24 @@ if test $RC != 16 ; then
 	exit 1
 fi
 
+echo "Testing delete: valid local record, remote attribute..."
+
+$LDAPMODIFY -v -D "$TRANSLUCENTROOT" -H $URI2 -w $PASSWD > \
+        $TESTOUT 2>&1 << EOF_MOD8
+version: 1
+dn: uid=danger,ou=users,o=translucent
+changetype: modify
+delete: initials
+EOF_MOD8
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)"
+	grep "$FAILURE" $TESTOUT
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
 echo "Testing modify: valid remote record, combination add-modify-delete..."
 
 $LDAPMODIFY -v -D "$TRANSLUCENTROOT" -H $URI2 -w $PASSWD > \
