@@ -1275,7 +1275,8 @@ syncrepl_message_to_op(
 		}
 
 		if ( op->o_tag == LDAP_REQ_ADD ) {
-			op->ora_e = entry_alloc();
+			Entry *e = entry_alloc();
+			op->ora_e = e;
 			op->ora_e->e_name = op->o_req_dn;
 			op->ora_e->e_nname = op->o_req_ndn;
 			freeReqDn = 0;
@@ -1290,7 +1291,8 @@ syncrepl_message_to_op(
 					"syncrepl_message_to_op: rid %03d be_add %s (%d)\n", 
 					si->si_rid, op->o_req_dn.bv_val, rc );
 			}
-			be_entry_release_w( op, op->ora_e );
+			if ( e == op->ora_e )
+				be_entry_release_w( op, op->ora_e );
 		} else {
 			op->orm_modlist = modlist;
 			rc = op->o_bd->be_modify( op, &rs );
@@ -1738,7 +1740,8 @@ retry_add:;
 					si->si_rid, rc, 0 );
 			switch ( rs_add.sr_err ) {
 			case LDAP_SUCCESS:
-				be_entry_release_w( op, entry );
+				if ( op->ora_e == entry )
+					be_entry_release_w( op, entry );
 				entry = NULL;
 				break;
 
@@ -2244,7 +2247,8 @@ syncrepl_add_glue(
 		op->ora_e = glue;
 		rc = be->be_add ( op, &rs_add );
 		if ( rs_add.sr_err == LDAP_SUCCESS ) {
-			be_entry_release_w( op, glue );
+			if ( op->ora_e == glue )
+				be_entry_release_w( op, glue );
 		} else {
 		/* incl. ALREADY EXIST */
 			entry_free( glue );
@@ -2277,7 +2281,8 @@ syncrepl_add_glue(
 	op->ora_e = e;
 	rc = be->be_add ( op, &rs_add );
 	if ( rs_add.sr_err == LDAP_SUCCESS ) {
-		be_entry_release_w( op, e );
+		if ( op->ora_e == e )
+			be_entry_release_w( op, e );
 	} else {
 		entry_free( e );
 	}

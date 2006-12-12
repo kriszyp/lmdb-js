@@ -1282,6 +1282,8 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	}
 
 	op2.o_bd->be_add( &op2, &rs2 );
+	if ( e == op2.ora_e ) entry_free( e );
+	e = NULL;
 
 done:
 	if ( lo->mask & LOG_OP_WRITES )
@@ -1390,7 +1392,8 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 		memset(cids, 0, sizeof( cids ));
 
 		op2.o_bd->be_add( &op2, &rs2 );
-		entry_free( e );
+		if ( e == op2.ora_e )
+			entry_free( e );
 	}
 	return SLAP_CB_CONTINUE;
 }
@@ -1428,7 +1431,8 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	memset(cids, 0, sizeof( cids ));
 
 	op2.o_bd->be_add( &op2, &rs2 );
-	entry_free( e );
+	if ( e == op2.ora_e )
+		entry_free( e );
 
 	return SLAP_CB_CONTINUE;
 }
@@ -1505,8 +1509,8 @@ accesslog_db_root(
 		Entry *e_ctx;
 
 		e = entry_alloc();
-		e->e_name = *li->li_db->be_suffix;
-		e->e_nname = *li->li_db->be_nsuffix;
+		ber_dupbv( &e->e_name, li->li_db->be_suffix );
+		ber_dupbv( &e->e_nname, li->li_db->be_nsuffix );
 
 		attr_merge_one( e, slap_schema.si_ad_objectClass,
 			&log_container->soc_cname, NULL );
@@ -1553,9 +1557,8 @@ accesslog_db_root(
 		SLAP_DBFLAGS( op->o_bd ) |= SLAP_DBFLAG_NOLASTMOD;
 		rc = op->o_bd->be_add( op, &rs );
 		SLAP_DBFLAGS( op->o_bd ) ^= SLAP_DBFLAG_NOLASTMOD;
-		BER_BVZERO( &e->e_name );
-		BER_BVZERO( &e->e_nname );
-		entry_free( e );
+		if ( e == op->ora_e )
+			entry_free( e );
 	}
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );

@@ -216,7 +216,8 @@ merge_entry(
 			rc = 0;
 		}
 	} else {
-		be_entry_release_w( op, e );
+		if ( op->ora_e == e )
+			be_entry_release_w( op, e );
 		rc = 1;
 	}
 
