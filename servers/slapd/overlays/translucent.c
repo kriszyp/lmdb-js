@@ -345,10 +345,12 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 		Debug(LDAP_DEBUG_TRACE, "=> translucent_modify: found local entry\n", 0, 0, 0);
 		for(mm = &op->orm_modlist; *mm; ) {
 			m = *mm;
-			mm = &m->sml_next;
 			for(a = e->e_attrs; a; a = a->a_next)
 				if(a->a_desc == m->sml_desc) break;
-			if(a) continue;		/* found local attr */
+			if(a) {
+				mm = &m->sml_next;
+				continue;		/* found local attr */
+			}
 			if(m->sml_op == LDAP_MOD_DELETE) {
 				for(a = re->e_attrs; a; a = a->a_next)
 					if(a->a_desc == m->sml_desc) break;
@@ -370,6 +372,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 				continue;
 			}
 			m->sml_op = LDAP_MOD_ADD;
+			mm = &m->sml_next;
 		}
 		erc = SLAP_CB_CONTINUE;
 release:
