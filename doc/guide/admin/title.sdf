@@ -6,6 +6,7 @@
 # Master: master.sdf
 # 
 
+!define DOC_TOC	3
 !define DOC_TYPE	"Administrator's Guide"
 
 !build_title

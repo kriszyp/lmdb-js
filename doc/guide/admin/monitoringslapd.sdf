@@ -84,7 +84,7 @@ information being held in the {{monitoredInfo}} attribute.
 H3: Backends
 
 The main entry contains the type of backends enabled at compile
-time; the subentries, for each backend, contain the type of the
+time; the child entries, for each backend, contain the type of the
 backend.  It should also contain the modules that have been loaded
 if dynamic backends are enabled.
 
@@ -134,9 +134,9 @@ H3: Connections
 The main entry is empty; it should contain some statistics on the number 
 of connections.
 
-Dynamic subentries are created for each open connection, with stats on
+Dynamic child entries are created for each open connection, with stats on
 the activity on that connection (the format will be detailed later).
-There are two special subentries that show the number of total and
+There are two special child entries that show the number of total and
 current connections respectively.
 
 For example:
@@ -163,7 +163,7 @@ Current Connections:
 H3: Databases
 
 The main entry contains the naming context of each configured database; 
-the subentries contain, for each database, the type and the naming
+the child entries contain, for each database, the type and the naming
 context.
 
 For example:
@@ -243,7 +243,7 @@ using {{SECT: Monitor search example}}
 H3: Overlays
 
 The main entry contains the type of overlays available at run-time;
-the subentries, for each overlay, contain the type of the overlay.
+the child entries, for each overlay, contain the type of the overlay.
 
 It should also contain the modules that have been loaded if dynamic 
 overlays are enabled:
@@ -299,7 +299,7 @@ e.g.
 
 H3: Time
 
-It contains two subentries with the start time and the current time 
+It contains two child entries with the start time and the current time 
 of the server.
 
 e.g.
