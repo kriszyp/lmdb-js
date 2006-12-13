@@ -65,7 +65,7 @@ glue_back_select (
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	int i;
 
-	for (i = 0; i<gi->gi_nodes; i++) {
+	for (i = gi->gi_nodes-1; i >= 0; i--) {
 		assert( gi->gi_n[i].gn_be->be_nsuffix != NULL );
 
 		if (dnIsSuffix(dn, &gi->gi_n[i].gn_be->be_nsuffix[0])) {
@@ -199,11 +199,24 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	if ( func[which] )
 		rc = func[which]( op, rs );
 	else
-		rc = SLAP_CB_CONTINUE;
+		rc = SLAP_CB_BYPASS;
 
 	op->o_bd = b0;
 	op->o_bd->bd_info = bi0;
 	return rc;
+}
+
+static int
+glue_response ( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	BackendDB *be = op->o_bd;
+	be = glue_back_select (op->o_bd, &op->o_req_ndn);
+
+	/* If we're on the master backend, let overlay framework handle it.
+	 * Otherwise, bail out.
+	 */
+	return ( op->o_bd == be ) ? SLAP_CB_CONTINUE : SLAP_CB_BYPASS;
 }
 
 static int
@@ -340,7 +353,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 		b1 = op->o_bd;
 
 		/*
-		 * Execute in reverse order, most general first 
+		 * Execute in reverse order, most specific first 
 		 */
 		for (i = gi->gi_nodes; i >= 0; i--) {
 			if ( i == gi->gi_nodes ) {
@@ -384,6 +397,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
 					gs.err = LDAP_SUCCESS;
 				}
+				op->ors_scope = LDAP_SCOPE_ONELEVEL;
+				op->o_req_dn = dn;
+				op->o_req_ndn = ndn;
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dn_match(&op->o_bd->be_nsuffix[0], &ndn))
@@ -1006,6 +1022,7 @@ glue_sub_init()
 
 	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
 	glue.on_bi.bi_chk_controls = glue_chk_controls;
+	glue.on_response = glue_response;
 
 	return overlay_register( &glue );
 }
