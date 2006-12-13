@@ -1755,6 +1755,9 @@ static int connection_bind_cleanup_cb( Operation *op, SlapReply *rs )
 {
 	op->o_conn->c_sasl_bindop = NULL;
 
+	ch_free( op->o_callback );
+	op->o_callback = NULL;
+
 	return SLAP_CB_CONTINUE;
 }
 
