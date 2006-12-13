@@ -232,7 +232,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	void *private = op->o_bd->be_private;
 	Entry ne, *e = NULL, *re = NULL;
 	Attribute *a, *ax;
-	Modifications *m, *mm;
+	Modifications *m, **mm;
 	int del, rc, erc = 0;
 	slap_callback cb = { 0 };
 
@@ -275,10 +275,14 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 
 	if(e && rc == LDAP_SUCCESS) {
 		Debug(LDAP_DEBUG_TRACE, "=> translucent_modify: found local entry\n", 0, 0, 0);
-		for(m = op->orm_modlist; m; m = m->sml_next) {
+		for(mm = &op->orm_modlist; *mm; ) {
+			m = *mm;
 			for(a = e->e_attrs; a; a = a->a_next)
 				if(a->a_desc == m->sml_desc) break;
-			if(a) continue;		/* found local attr */
+			if(a) {
+				mm = &m->sml_next;
+				continue;		/* found local attr */
+			}
 			if(m->sml_op == LDAP_MOD_DELETE) {
 				for(a = re->e_attrs; a; a = a->a_next)
 					if(a->a_desc == m->sml_desc) break;
@@ -294,14 +298,13 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 				Debug(LDAP_DEBUG_TRACE,
 					"=> translucent_modify: silently dropping delete: %s\n",
 					m->sml_desc->ad_cname.bv_val, 0, 0);
-				for(mm = op->orm_modlist; mm->sml_next != m; mm = mm->sml_next);
-				mm->sml_next = m->sml_next;
+				*mm = m->sml_next;
 				m->sml_next = NULL;
 				slap_mods_free(m, 1);
-				m = mm;
 				continue;
 			}
 			m->sml_op = LDAP_MOD_ADD;
+			mm = &m->sml_next;
 		}
 		erc = SLAP_CB_CONTINUE;
 release:
