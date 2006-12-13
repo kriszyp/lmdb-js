@@ -414,7 +414,7 @@ H4: syncrepl
 >		[type=refreshOnly|refreshAndPersist]
 >		[interval=dd:hh:mm:ss]
 >		[retry=[<retry interval> <# of retries>]+]
->		[searchbase=<base DN>]
+>		searchbase=<base DN>
 >		[filter=<filter str>]
 >		[scope=sub|one|base]
 >		[attrs=<attr list>]
