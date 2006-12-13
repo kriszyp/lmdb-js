@@ -655,7 +655,7 @@ nextresp2:
 								lr->lr_msgid, 0, 0 );
 						}
 
-						/* We sucessfully chased the reference */
+						/* We successfully chased the reference */
 						v3ref = V3REF_SUCCESS;
 					}
 				}
@@ -727,6 +727,20 @@ nextresp2:
 				if ( lr->lr_res_error != NULL ) {
 					LDAP_FREE( lr->lr_res_error );
 					lr->lr_res_error = NULL;
+				}
+
+				/* Since it's not a SearchReference, it must be a
+				 * result. Since we're not chasing the referral,
+				 * this request is done.
+				 */
+				if ( v3ref == V3REF_TOAPP ) {
+					lr->lr_status = LDAP_REQST_COMPLETED;
+					Debug( LDAP_DEBUG_TRACE,
+						"request done: ld %p msgid %d, "
+						"referral returned to app\n",
+						(void *)ld, lr->lr_msgid, 0);
+					ldap_return_request( ld, lr, 1 );
+					lr = NULL;
 				}
 			}
 		}
