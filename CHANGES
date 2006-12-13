@@ -4,8 +4,10 @@ OpenLDAP 2.3.31 Engineering
 	Fixed libldap unchased referral leak (ITS#4545)
 	Fixed slapd group ACL caching when proxyAuthz'ing (ITS#4760)
 	Fixed slapd "group" authz default member parsing (ITS#4761)
+	Fixed slapd uninitialized sd_actives array (ITS#4765)
 	Fixed slapd DN parsing in bindconf_parse (ITS#4766)
 	Fixed slapd conditional in macro argument (ITS#4769)
+	Fixed slapd memleak on failed bind (ITS#4771)
 	Fixed slapd-bdb/hdb/ldbm slap_add_opattrs error checking
 	Fixed slapd glue parent/sub db overlay nesting (ITS#4615)
 	Documentation
