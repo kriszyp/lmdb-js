@@ -238,6 +238,11 @@ over_back_response ( Operation *op, SlapReply *rs )
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
+	/* Bypass the remaining on_response layers, but allow
+	 * normal execution to continue.
+	 */
+	if ( rc == SLAP_CB_BYPASS )
+		rc = SLAP_CB_CONTINUE;
 	op->o_bd = be;
 	return rc;
 }
@@ -493,6 +498,8 @@ int overlay_op_walk(
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
+	if ( rc == SLAP_CB_BYPASS )
+		rc = SLAP_CB_CONTINUE;
 
 	func = &oi->oi_orig->bi_op_bind;
 	if ( func[which] && rc == SLAP_CB_CONTINUE ) {

@@ -199,11 +199,24 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	if ( func[which] )
 		rc = func[which]( op, rs );
 	else
-		rc = SLAP_CB_CONTINUE;
+		rc = SLAP_CB_BYPASS;
 
 	op->o_bd = b0;
 	op->o_bd->bd_info = bi0;
 	return rc;
+}
+
+static int
+glue_response ( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	BackendDB *be = op->o_bd;
+	be = glue_back_select (op->o_bd, &op->o_req_ndn);
+
+	/* If we're on the master backend, let overlay framework handle it.
+	 * Otherwise, bail out.
+	 */
+	return ( op->o_bd == be ) ? SLAP_CB_CONTINUE : SLAP_CB_BYPASS;
 }
 
 static int
@@ -1012,6 +1025,7 @@ glue_sub_init()
 
 	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
 	glue.on_bi.bi_chk_controls = glue_chk_controls;
+	glue.on_response = glue_response;
 
 	return overlay_register( &glue );
 }
