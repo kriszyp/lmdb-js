@@ -303,9 +303,9 @@ static Connection* connection_get( ber_socket_t s )
 	if( c != NULL ) {
 		ber_socket_t	sd;
 
-		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
-
 		ldap_pvt_thread_mutex_lock( &c->c_mutex );
+
+		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
 		if( c->c_struct_state != SLAP_C_USED ) {
