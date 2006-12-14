@@ -612,9 +612,6 @@ nextresp2:
 					if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
 							 || (lr->lr_parent != NULL) )
 					{
-						/* Assume referral not chased and return it to app */
-						v3ref = V3REF_TOAPP;
-
 						/* Get the referral list */
 						if( ber_scanf( &tmpber, "{v}", &refs) == LBER_ERROR) {
 							rc = LDAP_DECODING_ERROR;
@@ -630,11 +627,15 @@ nextresp2:
 							    0, &lr->lr_res_error, &hadref );
 							lr->lr_status = LDAP_REQST_COMPLETED;
 							Debug( LDAP_DEBUG_TRACE,
-								"read1msg: referral chased, mark request completed, ld %p msgid %d\n",
-								(void *)ld, lr->lr_msgid, 0);
+								"read1msg: referral %s chased, "
+								"mark request completed, ld %p msgid %d\n",
+								hadref ? "" : "not",
+								(void *)ld, lr->lr_msgid);
 							if( refer_cnt > 0) {
 								/* Referral successfully chased */
 								v3ref = V3REF_SUCCESS;
+							} else {
+								refer_cnt = 0;
 							}
 						}
 					}
@@ -648,26 +649,6 @@ nextresp2:
 					LDAP_FREE( lr->lr_res_error );
 					lr->lr_res_error = NULL;
 				}
-
-				/* Since it's not a SearchReference, it must be a
-				 * result. Since we're not chasing the referral,
-				 * this request is done.
-				 */
-				if ( v3ref == V3REF_TOAPP ) {
-					lr->lr_status = LDAP_REQST_COMPLETED;
-					Debug( LDAP_DEBUG_TRACE,
-						"request done: ld %p msgid %d, "
-						"referral returned to app\n",
-						(void *)ld, lr->lr_msgid, 0);
-#ifdef LDAP_R_COMPILE
-					ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
-					ldap_free_request( ld, lr );
-#ifdef LDAP_R_COMPILE
-					ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
-					lr = NULL;
-				}
 			}
 		}
 	}
@@ -676,11 +657,13 @@ nextresp2:
 	 * go through the following code.  This code also chases V2 referrals
 	 * and checks if all referrals have been chased.
 	 */
-	if ( (tag != LDAP_RES_SEARCH_ENTRY) && (v3ref != V3REF_TOAPP) &&
-		(tag != LDAP_RES_INTERMEDIATE ))
+	if ( tag != LDAP_RES_SEARCH_ENTRY &&
+		tag != LDAP_RES_SEARCH_REFERENCE &&
+		tag != LDAP_RES_INTERMEDIATE )
 	{
 		/* For a v3 search referral/reference, only come here if already chased it */
 		if ( ld->ld_version >= LDAP_VERSION2 &&
+			v3ref != V3REF_TOAPP &&
 			( lr->lr_parent != NULL ||
 			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ) )
 		{
