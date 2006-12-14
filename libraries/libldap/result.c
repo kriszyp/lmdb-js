@@ -462,16 +462,6 @@ try_read1msg(
 	int		moremsgs = 0, isv2 = 0;
 #endif
 
-	/*
-	 * v3ref = flag for V3 referral / search reference
-	 * 0 = not a ref, 1 = sucessfully chased ref, -1 = pass ref to application
-	 */
-	enum {
-		V3REF_NOREF	= 0,
-		V3REF_SUCCESS	= 1,
-		V3REF_TOAPP	= -1
-	}	v3ref;
-
 	assert( ld != NULL );
 	assert( lcp != NULL );
 	assert( *lcp != NULL );
@@ -619,22 +609,17 @@ nextresp2:
 	lr->lr_res_msgtype = tag;
 
 	/*
-	 * This code figures out if we are going to chase a
-	 * referral / search reference, or pass it back to the application
+	 * Check for V3 search reference
 	 */
-	v3ref = V3REF_NOREF;	/* Assume not a V3 search reference/referral */
-	if ( tag != LDAP_RES_SEARCH_ENTRY && ld->ld_version > LDAP_VERSION2 ) {
-		BerElement	tmpber = *ber; 	/* struct copy */
-		char		**refs = NULL;
-
-		if ( tag == LDAP_RES_SEARCH_REFERENCE ) {
+	if ( tag == LDAP_RES_SEARCH_REFERENCE ) {
+		if ( ld->ld_version > LDAP_VERSION2 ) {
 			/* This is a V3 search reference */
-			/* Assume we do not chase the reference,
-			 * but pass it to application */
-			v3ref = V3REF_TOAPP;
 			if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
 					lr->lr_parent != NULL )
 			{
+				char **refs = NULL;
+				tmpber = *ber;
+
 				/* Get the referral list */
 				if ( ber_scanf( &tmpber, "{v}", &refs ) == LBER_ERROR ) {
 					rc = LDAP_DECODING_ERROR;
@@ -644,7 +629,7 @@ nextresp2:
 					refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
 						1, &lr->lr_res_error, &hadref );
 					if ( refer_cnt > 0 ) {
-						/* sucessfully chased reference */
+						/* successfully chased reference */
 						/* If haven't got end search, set chasing referrals */
 						if ( lr->lr_status != LDAP_REQST_COMPLETED ) {
 							lr->lr_status = LDAP_REQST_CHASINGREFS;
@@ -654,40 +639,44 @@ nextresp2:
 								"id = %d\n",
 								lr->lr_msgid, 0, 0 );
 						}
-
-						/* We successfully chased the reference */
-						v3ref = V3REF_SUCCESS;
 					}
 				}
 			}
+		}
+	} else 
+	if ( tag != LDAP_RES_SEARCH_ENTRY && tag != LDAP_RES_INTERMEDIATE ) {
+	/* All results that just return a status, i.e. don't return data
+	 * go through the following code.  This code also chases V2 referrals
+	 * and checks if all referrals have been chased.
+	 */
+		char		*lr_res_error = NULL;
 
-		} else {
-			/* Check for V3 referral */
-			ber_len_t	len;
-			char		*lr_res_error = NULL;
+		tmpber = *ber; 	/* struct copy */
+		if ( ber_scanf( &tmpber, "{eAA", &lderr,
+				&lr->lr_res_matched, &lr_res_error )
+				!= LBER_ERROR )
+		{
+			if ( lr_res_error != NULL ) {
+				if ( lr->lr_res_error != NULL ) {
+					(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
+					LDAP_FREE( (char *)lr_res_error );
 
-			if ( ber_scanf( &tmpber, "{eAA",/*}*/ &lderr,
-				    &lr->lr_res_matched, &lr_res_error )
-				    != LBER_ERROR )
-			{
-				if ( lr_res_error != NULL ) {
-					if ( lr->lr_res_error != NULL ) {
-						(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
-						LDAP_FREE( (char *)lr_res_error );
-
-					} else {
-						lr->lr_res_error = lr_res_error;
-					}
-					lr_res_error = NULL;
+				} else {
+					lr->lr_res_error = lr_res_error;
 				}
+				lr_res_error = NULL;
+			}
+
+			/* Do we need to check for referrals? */
+			if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
+					lr->lr_parent != NULL )
+			{
+				char		**refs = NULL;
+				ber_len_t	len;
 
 				/* Check if V3 referral */
 				if ( ber_peek_tag( &tmpber, &len ) == LDAP_TAG_REFERRAL ) {
-					/* We have a V3 referral, assume we cannot chase it */
-					v3ref = V3REF_TOAPP;
-					if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
-							 || lr->lr_parent != NULL )
-					{
+					if ( ld->ld_version > LDAP_VERSION2 ) {
 						/* Get the referral list */
 						if ( ber_scanf( &tmpber, "{v}", &refs) == LBER_ERROR) {
 							rc = LDAP_DECODING_ERROR;
@@ -699,7 +688,7 @@ nextresp2:
 
 						} else {
 							/* Chase the referral 
-							 * Note: refs arrary is freed by ldap_chase_v3referrals
+							 * refs array is freed by ldap_chase_v3referrals
 							 */
 							refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
 								0, &lr->lr_res_error, &hadref );
@@ -707,121 +696,57 @@ nextresp2:
 							Debug( LDAP_DEBUG_TRACE,
 								"read1msg: referral %s chased, "
 								"mark request completed, ld %p msgid %d\n",
-								hadref ? "" : "not",
+								refer_cnt > 0 ? "" : "not",
 								(void *)ld, lr->lr_msgid);
-							if ( refer_cnt > 0 ) {
-								/* Referral successfully chased */
-								v3ref = V3REF_SUCCESS;
-							} else {
+							if ( refer_cnt < 0 ) {
 								refer_cnt = 0;
 							}
 						}
 					}
-				}
+				} else {
+					switch ( lderr ) {
+					case LDAP_SUCCESS:
+					case LDAP_COMPARE_TRUE:
+					case LDAP_COMPARE_FALSE:
+						break;
 
-				if ( lr->lr_res_matched != NULL ) {
-					LDAP_FREE( lr->lr_res_matched );
-					lr->lr_res_matched = NULL;
-				}
+					default:
+						if ( lr->lr_res_error == NULL ||
+							lr->lr_res_error[ 0 ] == '\0' )
+						{
+							break;
+						}
 
-				if ( lr->lr_res_error != NULL ) {
-					LDAP_FREE( lr->lr_res_error );
-					lr->lr_res_error = NULL;
-				}
-			}
-		}
-	}
-
-	/* All results that just return a status, i.e. don't return data
-	 * go through the following code.  This code also chases V2 referrals
-	 * and checks if all referrals have been chased.
-	 */
-	if ( tag != LDAP_RES_SEARCH_ENTRY &&
-		tag != LDAP_RES_SEARCH_REFERENCE &&
-		tag != LDAP_RES_INTERMEDIATE )
-	{
-		/* For a v3 search referral/reference, only come here if already chased it */
-		if ( ld->ld_version >= LDAP_VERSION2 &&
-			v3ref != V3REF_TOAPP &&
-			( lr->lr_parent != NULL ||
-			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ) )
-		{
-			char		*lr_res_error = NULL;
-
-			tmpber = *ber;	/* struct copy */
-			if ( v3ref == V3REF_SUCCESS ) {
-				/* V3 search reference or V3 referral
-				 * sucessfully chased. If this message
-				 * is a search result, then it has no more
-				 * outstanding referrals.
-				 */
-				if ( tag == LDAP_RES_SEARCH_RESULT )
-					refer_cnt = 0;
-
-			} else if ( ber_scanf( &tmpber, "{eAA}", &lderr,
-				&lr->lr_res_matched, &lr_res_error )
-				!= LBER_ERROR )
-			{
-				if ( lr_res_error != NULL ) {
-					if ( lr->lr_res_error != NULL ) {
-						(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
-						LDAP_FREE( (char *)lr_res_error );
-					} else {
-						lr->lr_res_error = lr_res_error;
-					}
-					lr_res_error = NULL;
-				}
-
-				switch ( lderr ) {
-				case LDAP_SUCCESS:
-				case LDAP_COMPARE_TRUE:
-				case LDAP_COMPARE_FALSE:
-					break;
-
-				default:
-					if ( lr->lr_res_error == NULL ||
-						lr->lr_res_error[ 0 ] == '\0' )
-					{
+						/* V2 referrals are in error string */
+						refer_cnt = ldap_chase_referrals( ld, lr,
+							&lr->lr_res_error, -1, &hadref );
+						lr->lr_status = LDAP_REQST_COMPLETED;
+						Debug( LDAP_DEBUG_TRACE,
+							"read1msg:  V2 referral chased, "
+							"mark request completed, id = %d\n",
+							lr->lr_msgid, 0, 0 );
 						break;
 					}
-
-					/* referrals are in error string */
-					refer_cnt = ldap_chase_referrals( ld, lr,
-						&lr->lr_res_error, -1, &hadref );
-					lr->lr_status = LDAP_REQST_COMPLETED;
-					Debug( LDAP_DEBUG_TRACE,
-						"read1msg:  V2 referral chased, "
-						"mark request completed, id = %d\n",
-						lr->lr_msgid, 0, 0 );
-					break;
 				}
-
-				/* save errno, message, and matched string */
-				if ( !hadref || lr->lr_res_error == NULL ) {
-					lr->lr_res_errno =
-						lderr == LDAP_PARTIAL_RESULTS
-						? LDAP_SUCCESS : lderr;
-
-				} else if ( ld->ld_errno != LDAP_SUCCESS ) {
-					lr->lr_res_errno = ld->ld_errno;
-
-				} else {
-					lr->lr_res_errno = LDAP_PARTIAL_RESULTS;
-				}
-
-				Debug( LDAP_DEBUG_TRACE, "new result:  "
-					"res_errno: %d, "
-					"res_error: <%s>, "
-					"res_matched: <%s>\n",
-    					lr->lr_res_errno,
-					lr->lr_res_error ? lr->lr_res_error : "",
-					lr->lr_res_matched ? lr->lr_res_matched : "" );
 			}
 
-			/* in any case, don't leave any lr_res_error 'round */
-			if ( lr_res_error ) {
-				LDAP_FREE( lr_res_error );
+			/* save errno, message, and matched string */
+			if ( !hadref || lr->lr_res_error == NULL ) {
+				lr->lr_res_errno =
+					lderr == LDAP_PARTIAL_RESULTS
+					? LDAP_SUCCESS : lderr;
+
+			} else if ( ld->ld_errno != LDAP_SUCCESS ) {
+				lr->lr_res_errno = ld->ld_errno;
+
+			} else {
+				lr->lr_res_errno = LDAP_PARTIAL_RESULTS;
 			}
+		}
+
+		/* in any case, don't leave any lr_res_error 'round */
+		if ( lr_res_error ) {
+			LDAP_FREE( lr_res_error );
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
