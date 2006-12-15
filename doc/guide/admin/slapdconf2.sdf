@@ -609,6 +609,7 @@ H4: olcSyncrepl
 
 >	olcSyncrepl: rid=<replica ID>
 >		provider=ldap[s]://<hostname>[:port]
+>		[starttls=yes|critical]
 >		[type=refreshOnly|refreshAndPersist]
 >		[interval=dd:hh:mm:ss]
 >		[retry=[<retry interval> <# of retries>]+]
@@ -657,6 +658,12 @@ specification is located at the consumer site, whereas the {{EX:replica}}
 specification is located at the provider site. {{EX:syncrepl}} and
 {{EX:replica}} directives define two independent replication
 mechanisms. They do not represent the replication peers of each other.
+
+The {{EX:starttls}} parameter specifies use of the StartTLS extended
+operation to establish a TLS session before Binding to the provider. If the
+StartTLS request fails and the {{EX:critical}} argument was used, the
+session will be aborted. Otherwise the syncrepl session continues without
+TLS.
 
 The content of the syncrepl replica is defined using a search
 specification as its result set. The consumer slapd will
