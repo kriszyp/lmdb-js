@@ -9,6 +9,7 @@ OpenLDAP 2.3.31 Engineering
 	Fixed slapd conditional in macro argument (ITS#4769)
 	Fixed slapd memleak on failed bind (ITS#4771)
 	Fixed slapd-bdb/hdb/ldbm slap_add_opattrs error checking
+	Fixed slapd-perl interpreter context (ITS#4751)
 	Fixed slapd glue parent/sub db overlay nesting (ITS#4615)
 	Documentation
 		Fixed typo in slapo-retcode(5) man page (ITS#4753)
