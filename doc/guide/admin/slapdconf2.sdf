@@ -629,6 +629,17 @@ H4: olcSyncrepl
 >		[credentials=<passwd>]
 >		[realm=<realm>]
 >		[secprops=<properties>]
+>		[starttls=yes|critical]
+>		[tls_cert=<file>]
+>		[tls_key=<file>]
+>		[tls_cacert=<file>]
+>		[tls_cacertdir=<path>]
+>		[tls_reqcert=never|allow|try|demand]
+>		[tls_ciphersuite=<ciphers>]
+>		[tls_crlcheck=none|peer|all]
+>		[logbase=<base DN>]
+>		[logfilter=<filter str>]
+>		[syncdata=default|accesslog|changelog]
 
 
 This directive specifies the current database as a replica of the
@@ -726,6 +737,25 @@ an authorization identity.
 The {{EX:realm}} parameter specifies a realm which a certain
 mechanisms authenticate the identity within. The {{EX:secprops}}
 parameter specifies Cyrus SASL security properties.
+
+The {{EX:starttls}} parameter specifies use of the StartTLS extended
+operation to establish a TLS session before Binding to the provider.
+If the {{EX:critical}} argument is supplied, the session will be aborted
+if the StartTLS request fails. Otherwise the syncrepl session continues
+without TLS.  Note that the main slapd TLS settings are not used by the
+syncrepl engine; by default the TLS parameters from {{EX:ldap.conf}}
+will be used.  TLS settings may be specified here, in which case the
+{{EX:ldap.conf}} settings will be completely ignored.
+
+Rather than replicating whole entries, the consumer can query logs of
+data modifications. This mode of operation is referred to as
+{{EX:delta syncrepl}}. In addition to the above parameters, the
+{{EX:logbase}} and {{EX:logfilter}} parameters must be set appropriately
+for the log that will be used. The {{EX:syncdata}} parameter must be set
+to either "accesslog" if the log conforms to the {{EX:slapo-accesslog (5)}}
+log format, or "changelog" if the log conforms to the obsolete
+{{EX:changelog}} format. If the {{EX:syncdata}} parameter is omitted or set
+to "default" then the log parameters are ignored.
 
 The syncrepl replication mechanism is supported by the
 two native backends: back-bdb and back-hdb.
