@@ -302,7 +302,7 @@ with
 	<dnstyle>={{exact|base(object)}|regex
 		|one(level)|sub(tree)|children|level{<n>}}
 	<groupstyle>={exact|expand}
-	<peernamestyle>={<style>|ip|path}
+	<peernamestyle>={<style>|ip|ipv6|path}
 	<domainstyle>={exact|regex|sub(tree)}
 	<setstyle>={exact|regex}
 	<modifier>={expand}
@@ -533,7 +533,10 @@ The statements
 and
 .BR sockurl=<sockurl>
 mean that the contacting host IP (in the form 
-.BR "IP=<ip>:<port>" )
+.BR "IP=<ip>:<port>"
+for IPv4, or
+.BR "IP=[<ipv6>]:<port>"
+for IPv6)
 or the contacting host named pipe file name (in the form
 .B "PATH=<path>"
 if connecting through a named pipe) for
@@ -582,6 +585,9 @@ and
 are dotted digit representations of the IP and the mask, while
 .BR <n> ,
 delimited by curly brackets, is an optional port.
+The same applies to IPv6 addresses when the special
+.B ipv6
+style is used.
 When checking access privileges, the IP portion of the
 .BR peername 
 is extracted, eliminating the
@@ -594,7 +600,9 @@ portion of the pattern after masking with
 .BR <mask> .
 As an example, 
 .B peername.ip=127.0.0.1
-allows connections only from localhost,
+and
+.B peername.ipv6=::1
+allow connections only from localhost,
 .B peername.ip=192.168.1.0%255.255.255.0 
 allows connections from any IP in the 192.168.1 class C domain, and
 .B peername.ip=192.168.1.16%255.255.255.240{9009}
