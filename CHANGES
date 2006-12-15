@@ -11,6 +11,7 @@ OpenLDAP 2.3.31 Engineering
 	Fixed slapd-bdb/hdb/ldbm slap_add_opattrs error checking
 	Fixed slapd-perl interpreter context (ITS#4751)
 	Fixed slapd glue parent/sub db overlay nesting (ITS#4615)
+	Fixed contrib smbk5pwd, check kadm5 init result
 	Documentation
 		Fixed typo in slapo-retcode(5) man page (ITS#4753)
 		Fixed syncrepl searchbase being listed as optional in slapd.conf(5) man page (ITS#4540)
