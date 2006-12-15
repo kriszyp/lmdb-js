@@ -1048,6 +1048,42 @@ int slap_sasl_destroy( void )
 	return 0;
 }
 
+#if SASL_VERSION_MAJOR >= 2
+static char *
+slap_sasl_peer2ipport( struct berval *peer )
+{
+	int		isv6 = 0;
+	char		*ipport,
+			*p = &peer->bv_val[ STRLENOF( "IP=" ) ];
+	ber_len_t	plen = peer->bv_len - STRLENOF( "IP=" );
+
+	/* IPv6? */
+	if ( p[0] == '[' ) {
+		isv6 = 1;
+		plen--;
+	}
+	ipport = ch_strdup( &p[isv6] );
+
+	/* Convert IPv6/IPv4 addresses to address;port syntax. */
+	p = strrchr( ipport, ':' );
+	if ( p != NULL ) {
+		*p = ';';
+		if ( isv6 ) {
+			assert( p[-1] == ']' );
+			AC_MEMCPY( &p[-1], p, plen - ( p - ipport ) + 1 );
+		}
+
+	} else if ( isv6 ) {
+		/* trim ']' */
+		plen--;
+		assert( p[plen] == ']' );
+		p[plen] = '\0';
+	}
+
+	return ipport;
+}
+#endif
+
 int slap_sasl_open( Connection *conn, int reopen )
 {
 	int sc = LDAP_SUCCESS;
@@ -1109,31 +1145,17 @@ int slap_sasl_open( Connection *conn, int reopen )
 	/* create new SASL context */
 #if SASL_VERSION_MAJOR >= 2
 	if ( conn->c_sock_name.bv_len != 0 &&
-	     strncmp( conn->c_sock_name.bv_val, "IP=", 3 ) == 0) {
-		char *p;
-
-		iplocalport = ch_strdup( conn->c_sock_name.bv_val + 3 );
-		/* Convert IPv6 addresses to address;port syntax. */
-		p = strrchr( iplocalport, ' ' );
-		/* Convert IPv4 addresses to address;port syntax. */
-		if ( p == NULL ) p = strchr( iplocalport, ':' );
-		if ( p != NULL ) {
-			*p = ';';
-		}
+		strncmp( conn->c_sock_name.bv_val, "IP=", STRLENOF( "IP=" ) ) == 0 )
+	{
+		iplocalport = slap_sasl_peer2ipport( &conn->c_sock_name );
 	}
+
 	if ( conn->c_peer_name.bv_len != 0 &&
-	     strncmp( conn->c_peer_name.bv_val, "IP=", 3 ) == 0) {
-		char *p;
-
-		ipremoteport = ch_strdup( conn->c_peer_name.bv_val + 3 );
-		/* Convert IPv6 addresses to address;port syntax. */
-		p = strrchr( ipremoteport, ' ' );
-		/* Convert IPv4 addresses to address;port syntax. */
-		if ( p == NULL ) p = strchr( ipremoteport, ':' );
-		if ( p != NULL ) {
-			*p = ';';
-		}
+		strncmp( conn->c_peer_name.bv_val, "IP=", STRLENOF( "IP=" ) ) == 0 )
+	{
+		ipremoteport = slap_sasl_peer2ipport( &conn->c_peer_name );
 	}
+
 	sc = sasl_server_new( "ldap", global_host, global_realm,
 		iplocalport, ipremoteport, session_callbacks, SASL_SUCCESS_DATA, &ctx );
 	if ( iplocalport != NULL ) {
