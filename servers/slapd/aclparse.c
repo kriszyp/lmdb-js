@@ -52,6 +52,7 @@ char *style_strings[] = {
 	"users",
 	"self",
 	"ip",
+	"ipv6",
 	"path",
 	NULL
 };
@@ -2271,7 +2272,7 @@ acl_usage( void )
 			"exact | regex\n"
 		"<attrstyle> ::= exact | regex | base(Object) | one(level) | "
 			"sub(tree) | children\n"
-		"<peernamestyle> ::= exact | regex | ip | path\n"
+		"<peernamestyle> ::= exact | regex | ip | ipv6 | path\n"
 		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
 		"<access> ::= [[real]self]{<level>|<priv>}\n"
 		"<level> ::= none|disclose|auth|compare|search|read|{write|add|delete}|manage\n"
