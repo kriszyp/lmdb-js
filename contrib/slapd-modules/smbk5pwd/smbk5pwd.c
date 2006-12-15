@@ -880,20 +880,32 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 		ret = krb5_init_context(&context);
 		if (ret) {
 			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
-				"unable to initialize krb5 context.\n",
-				0, 0, 0 );
+				"unable to initialize krb5 context (%d).\n",
+				ret, 0, 0 );
 			oc_krb5KDCEntry = NULL;
 			return -1;
 		}
 
-		/* FIXME: check return code? */
 		ret = kadm5_s_init_with_password_ctx( context,
 			KADM5_ADMIN_SERVICE,
 			NULL,
 			KADM5_ADMIN_SERVICE,
 			&conf, 0, 0, &kadm_context );
+		if (ret) {
+			char *err_str, *err_msg = "<unknown error>";
+			err_str = krb5_get_error_string( context );
+			if (!err_str)
+				err_msg = krb5_get_err_text( context, ret );
+			Debug( LDAP_DEBUG_ANY, "smbk5pwd: "
+				"unable to initialize krb5 admin context: %s (%d).\n",
+				err_str ? err_str : err_msg, ret, 0 );
+			if (err_str)
+				krb5_free_error_string( context, err_str );
+			krb5_free_context( context );
+			oc_krb5KDCEntry = NULL;
+			return -1;
+		}
 
-		/* FIXME: check return code? */
 		db = _kadm5_s_get_db( kadm_context );
 	}
 #endif /* DO_KRB5 */
