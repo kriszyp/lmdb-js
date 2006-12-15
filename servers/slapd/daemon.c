@@ -1388,9 +1388,9 @@ slap_open_listener(
 			inet_ntop( AF_INET6, &((struct sockaddr_in6 *)*sal)->sin6_addr,
 				addr, sizeof addr);
 			port = ntohs( ((struct sockaddr_in6 *)*sal)->sin6_port );
-			l.sl_name.bv_len = strlen(addr) + sizeof("IP= 65535");
+			l.sl_name.bv_len = strlen(addr) + sizeof("IP=[]:65535");
 			l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len );
-			snprintf( l.sl_name.bv_val, l.sl_name.bv_len, "IP=%s %d", 
+			snprintf( l.sl_name.bv_val, l.sl_name.bv_len, "IP=[%s]:%d", 
 				addr, port );
 			l.sl_name.bv_len = strlen( l.sl_name.bv_val );
 		} break;
@@ -1595,7 +1595,7 @@ slap_listener(
 #ifdef LDAP_PF_LOCAL
 	char peername[MAXPATHLEN + sizeof("PATH=")];
 #elif defined(LDAP_PF_INET6)
-	char peername[sizeof("IP=ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535")];
+	char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
 #else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
 	char peername[sizeof("IP=255.255.255.255:65336")];
 #endif /* LDAP_PF_LOCAL */
@@ -1759,7 +1759,7 @@ slap_listener(
 		peeraddr = (char *) inet_ntop( AF_INET6,
 				      &from.sa_in6_addr.sin6_addr,
 				      addr, sizeof addr );
-		sprintf( peername, "IP=%s %d",
+		sprintf( peername, "IP=[%s]:%d",
 			 peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
 			 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 	}
@@ -1767,10 +1767,10 @@ slap_listener(
 #  endif /* LDAP_PF_INET6 */
 
 	case AF_INET:
-	peeraddr = inet_ntoa( from.sa_in_addr.sin_addr );
-	sprintf( peername, "IP=%s:%d",
-		peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
-		(unsigned) ntohs( from.sa_in_addr.sin_port ) );
+		peeraddr = inet_ntoa( from.sa_in_addr.sin_addr );
+		sprintf( peername, "IP=%s:%d",
+			peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+			(unsigned) ntohs( from.sa_in_addr.sin_port ) );
 		break;
 
 	default:

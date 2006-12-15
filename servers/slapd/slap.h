@@ -1231,6 +1231,7 @@ typedef enum slap_style_e {
 	ACL_STYLE_USERS,
 	ACL_STYLE_SELF,
 	ACL_STYLE_IP,
+	ACL_STYLE_IPV6,
 	ACL_STYLE_PATH
 } slap_style_t;
 
@@ -1398,8 +1399,15 @@ typedef struct slap_access {
 	/* connection related stuff */
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
+#ifdef LDAP_PF_INET6
+	struct in6_addr	a_peername_addr6,
+			a_peername_mask6;
+#define	a_peername_addr	a_peername_addr6.s6_addr32[0]
+#define	a_peername_mask	a_peername_mask6.s6_addr32[0]
+#else /* ! LDAP_PF_INET6 */
 	unsigned long	a_peername_addr,
 			a_peername_mask;
+#endif /* ! LDAP_PF_INET6 */
 	int		a_peername_port;
 
 	slap_style_t a_sockname_style;

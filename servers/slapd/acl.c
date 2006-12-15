@@ -40,6 +40,9 @@
 #define ACL_BUF_SIZE 	1024	/* use most appropriate size */
 
 static const struct berval	acl_bv_ip_eq = BER_BVC( "IP=" );
+#ifdef LDAP_PF_INET6
+static const struct berval	acl_bv_ipv6_eq = BER_BVC( "IP=[" );
+#endif /* LDAP_PF_INET6 */
 #ifdef LDAP_PF_LOCAL
 static const struct berval	acl_bv_path_eq = BER_BVC("PATH=");
 #endif /* LDAP_PF_LOCAL */
@@ -242,7 +245,6 @@ slap_access_allowed(
 			}
 		}
 
-vd_access:
 		control = slap_acl_mask( a, &mask, op,
 			e, desc, val, MAXREMATCHES, matches, count, state );
 
@@ -1316,6 +1318,58 @@ slap_acl_mask(
 
 						if ( (addr & b->a_peername_mask) != b->a_peername_addr )
 							continue;
+
+#ifdef LDAP_PF_INET6
+					/* extract IPv6 and try exact match */
+					} else if ( b->a_peername_style == ACL_STYLE_IPV6 ) {
+						char		*port;
+						char		buf[] = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF";
+						struct berval	ip;
+						struct in6_addr	addr;
+						int		port_number = -1, i;
+						
+						if ( strncasecmp( op->o_conn->c_peer_name.bv_val, 
+									acl_bv_ipv6_eq.bv_val,
+									acl_bv_ipv6_eq.bv_len ) != 0 ) 
+							continue;
+
+						ip.bv_val = op->o_conn->c_peer_name.bv_val + acl_bv_ipv6_eq.bv_len;
+						ip.bv_len = op->o_conn->c_peer_name.bv_len - acl_bv_ipv6_eq.bv_len;
+
+						port = strrchr( ip.bv_val, ']' );
+						if ( port ) {
+							ip.bv_len = port - ip.bv_val;
+							++port;
+							if ( port[0] == ':' && lutil_atoi( &port_number, ++port ) != 0 )
+								continue;
+						}
+						
+						/* the port check can be anticipated here */
+						if ( b->a_peername_port != -1 && port_number != b->a_peername_port )
+							continue;
+						
+						/* address longer than expected? */
+						if ( ip.bv_len >= sizeof(buf) )
+							continue;
+
+						AC_MEMCPY( buf, ip.bv_val, ip.bv_len );
+						buf[ ip.bv_len ] = '\0';
+
+						if ( inet_pton( AF_INET6, buf, &addr ) != 1 )
+							continue;
+
+						/* check mask */
+						for ( i = 0; i < 4; i++ ) {
+							if ( ( addr.s6_addr32[i] & b->a_peername_mask6.s6_addr32[i] )
+								!= b->a_peername_addr6.s6_addr32[i] )
+							{
+								break;
+							}
+						}
+
+						if ( i != 4 )
+							continue;
+#endif /* LDAP_PF_INET6 */
 
 #ifdef LDAP_PF_LOCAL
 					/* extract path and try exact match */

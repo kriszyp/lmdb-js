@@ -804,6 +804,14 @@ parse_acl(
 				} else if ( strcasecmp( style, "ip" ) == 0 ) {
 					sty = ACL_STYLE_IP;
 
+				} else if ( strcasecmp( style, "ipv6" ) == 0 ) {
+#ifndef LDAP_PF_INET6
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: IPv6 not supported\n",
+						fname, lineno, 0 );
+#endif /* ! LDAP_PF_INET6 */
+					sty = ACL_STYLE_IPV6;
+
 				} else if ( strcasecmp( style, "path" ) == 0 ) {
 					sty = ACL_STYLE_PATH;
 #ifndef LDAP_PF_LOCAL
@@ -1301,6 +1309,7 @@ parse_acl(
 					case ACL_STYLE_EXPAND:
 						/* cheap replacement to regex for simple expansion */
 					case ACL_STYLE_IP:
+					case ACL_STYLE_IPV6:
 					case ACL_STYLE_PATH:
 						/* legal, peername specific */
 						break;
@@ -1384,6 +1393,52 @@ parse_acl(
 									goto fail;
 								}
 							}
+
+#ifdef LDAP_PF_INET6
+						} else if ( sty == ACL_STYLE_IPV6 ) {
+							char		*addr = NULL,
+									*mask = NULL,
+									*port = NULL;
+
+							split( right, '{', &addr, &port );
+							split( addr, '%', &addr, &mask );
+
+							if ( inet_pton( AF_INET6, addr, &b->a_peername_addr6 ) != 1 ) {
+								/* illegal address */
+								Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+									"illegal peername address \"%s\".\n",
+									fname, lineno, addr );
+								goto fail;
+							}
+
+							if ( mask == NULL ) {
+								mask = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF";
+							}
+
+							if ( inet_pton( AF_INET6, mask, &b->a_peername_mask6 ) != 1 ) {
+								/* illegal mask */
+								Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+									"illegal peername address mask "
+									"\"%s\".\n",
+									fname, lineno, mask );
+								goto fail;
+							}
+
+							b->a_peername_port = -1;
+							if ( port ) {
+								char	*end = NULL;
+
+								b->a_peername_port = strtol( port, &end, 10 );
+								if ( end == port || end[0] != '}' ) {
+									/* illegal port */
+									Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+										"illegal peername port specification "
+										"\"{%s}\".\n",
+										fname, lineno, port );
+									goto fail;
+								}
+							}
+#endif /* LDAP_PF_INET6 */
 						}
 					}
 					continue;
