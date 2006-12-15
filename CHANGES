@@ -13,6 +13,9 @@ OpenLDAP 2.3.31 Engineering
 	Fixed slapd glue parent/sub db overlay nesting (ITS#4615)
 	Documentation
 		Fixed typo in slapo-retcode(5) man page (ITS#4753)
+		Fixed syncrepl searchbase being listed as optional in slapd.conf(5) man page (ITS#4540)
+		Fixed syncrepl searchbase being listed as optional in the admin guide (ITS#4540)
+		Fixed missing syncrepl starttls documentation in the admin guide (ITS#4510)
 
 OpenLDAP 2.3.30 Release
 	Fixed slapd authzTo/authzFrom URL matching (ITS#4744)
