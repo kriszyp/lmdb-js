@@ -34,6 +34,9 @@ perl_back_search(
 	char *buf;
 	int i;
 
+#if defined(HAVE_WIN32_ASPERL) || defined(USE_ITHREADS)
+	PERL_SET_CONTEXT( PERL_INTERPRETER );
+#endif
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
@@ -84,8 +87,6 @@ perl_back_search(
 						send_entry = 1;
 
 					if (send_entry) {
-						int	rc;
-
 						rs->sr_entry = e;
 						rs->sr_attrs = op->ors_attrs;
 						rs->sr_flags = REP_ENTRY_MODIFIABLE;
