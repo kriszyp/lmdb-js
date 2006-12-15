@@ -414,8 +414,12 @@ ldap_chain_op(
 	li.li_bvuri = bvuri;
 	first_rc = -1;
 	for ( ; !BER_BVISNULL( ref ); ref++ ) {
-		LDAPURLDesc	*srv;
-		char		*save_dn;
+		LDAPURLDesc	*srv = NULL;
+		struct berval	save_req_dn = op->o_req_dn,
+				save_req_ndn = op->o_req_ndn,
+				dn,
+				pdn = BER_BVNULL,
+				ndn = BER_BVNULL;
 		int		temporary = 0;
 			
 		/* We're setting the URI of the first referral;
@@ -443,21 +447,34 @@ Document: RFC 4511
 			continue;
 		}
 
-		/* remove DN essentially because later on 
-		 * ldap_initialize() will parse the URL 
-		 * as a comma-separated URL list */
-		save_dn = srv->lud_dn;
-		srv->lud_dn = "";
-		srv->lud_scope = LDAP_SCOPE_DEFAULT;
-		li.li_uri = ldap_url_desc2str( srv );
-		srv->lud_dn = save_dn;
+		/* normalize DN */
+		ber_str2bv( srv->lud_dn, 0, 0, &dn );
+		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+		if ( rc == LDAP_SUCCESS ) {
+			/* remove DN essentially because later on 
+			 * ldap_initialize() will parse the URL 
+			 * as a comma-separated URL list */
+			srv->lud_dn = "";
+			srv->lud_scope = LDAP_SCOPE_DEFAULT;
+			li.li_uri = ldap_url_desc2str( srv );
+			srv->lud_dn = dn.bv_val;
+		}
 		ldap_free_urldesc( srv );
 
-		if ( li.li_uri == NULL ) {
+		if ( rc != LDAP_SUCCESS ) {
 			/* try next */
 			rc = LDAP_OTHER;
 			continue;
 		}
+
+		if ( li.li_uri == NULL ) {
+			/* try next */
+			rc = LDAP_OTHER;
+			goto further_cleanup;
+		}
+
+		op->o_req_dn = pdn;
+		op->o_req_ndn = ndn;
 
 		ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
 
@@ -523,6 +540,17 @@ cleanup:;
 			(void)ldap_chain_db_close_one( op->o_bd );
 			(void)ldap_chain_db_destroy_one( op->o_bd );
 		}
+
+further_cleanup:;
+		if ( !BER_BVISNULL( &pdn ) ) {
+			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_dn = save_req_dn;
+
+		if ( !BER_BVISNULL( &ndn ) ) {
+			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_ndn = save_req_ndn;
 		
 		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
 			break;
@@ -579,7 +607,11 @@ ldap_chain_search(
 	li.li_bvuri = bvuri;
 	for ( ; !BER_BVISNULL( &ref[0] ); ref++ ) {
 		LDAPURLDesc	*srv;
-		char		*save_dn;
+		struct berval	save_req_dn = op->o_req_dn,
+				save_req_ndn = op->o_req_ndn,
+				dn,
+				pdn = BER_BVNULL,
+				ndn = BER_BVNULL;
 		int		temporary = 0;
 
 		/* parse reference and use
@@ -591,28 +623,34 @@ ldap_chain_search(
 			continue;
 		}
 
-		/* remove DN essentially because later on 
-		 * ldap_initialize() will parse the URL 
-		 * as a comma-separated URL list */
-		save_dn = srv->lud_dn;
-		srv->lud_dn = "";
-		srv->lud_scope = LDAP_SCOPE_DEFAULT;
-		li.li_uri = ldap_url_desc2str( srv );
-		if ( li.li_uri != NULL ) {
-			ber_str2bv_x( save_dn, 0, 1, &op->o_req_dn,
-					op->o_tmpmemctx );
-			ber_dupbv_x( &op->o_req_ndn, &op->o_req_dn,
-					op->o_tmpmemctx );
+		/* normalize DN */
+		ber_str2bv( srv->lud_dn, 0, 0, &dn );
+		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+		if ( rc == LDAP_SUCCESS ) {
+			/* remove DN essentially because later on 
+			 * ldap_initialize() will parse the URL 
+			 * as a comma-separated URL list */
+			srv->lud_dn = "";
+			srv->lud_scope = LDAP_SCOPE_DEFAULT;
+			li.li_uri = ldap_url_desc2str( srv );
+			srv->lud_dn = dn.bv_val;
 		}
-
-		srv->lud_dn = save_dn;
 		ldap_free_urldesc( srv );
+
+		if ( rc != LDAP_SUCCESS ) {
+			/* try next */
+			rc = LDAP_OTHER;
+			continue;
+		}
 
 		if ( li.li_uri == NULL ) {
 			/* try next */
-			rs->sr_err = LDAP_OTHER;
-			continue;
+			rc = LDAP_OTHER;
+			goto further_cleanup;
 		}
+
+		op->o_req_dn = pdn;
+		op->o_req_ndn = ndn;
 
 		ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
 
@@ -682,6 +720,17 @@ cleanup:;
 			(void)ldap_chain_db_close_one( op->o_bd );
 			(void)ldap_chain_db_destroy_one( op->o_bd );
 		}
+		
+further_cleanup:;
+		if ( !BER_BVISNULL( &pdn ) ) {
+			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_dn = save_req_dn;
+
+		if ( !BER_BVISNULL( &ndn ) ) {
+			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_ndn = save_req_ndn;
 		
 		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
 			break;
