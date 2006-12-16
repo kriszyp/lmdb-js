@@ -8,19 +8,20 @@ The following is a quick start guide to [[DOC_NAME]],
 including the Standalone {{TERM:LDAP}} Daemon, {{slapd}}(8).
 
 It is meant to walk you through the basic steps needed to install
-and configure OpenLDAP Software. It should be used in conjunction
-with the other chapters of this document, manual pages, and other
-materials provided with the distribution (e.g. the {{F:INSTALL}}
-document) or on the OpenLDAP web site (in particular, the OpenLDAP
-Software {{TERM:FAQ}}).
+and configure {{PRD:OpenLDAP Software}}.  It should be used in
+conjunction with the other chapters of this document, manual pages,
+and other materials provided with the distribution (e.g. the
+{{F:INSTALL}} document) or on the {{PRD:OpenLDAP}} web site
+({{URL: http://www.OpenLDAP.org}}), in particular the OpenLDAP
+Software {{TERM:FAQ}} ({{URL: http://www.OpenLDAP.org/faq/?file=2}}).
 
 If you intend to run OpenLDAP Software seriously, you should review
 all of this document before attempting to install the software.
 
 Note: This quick start guide does not use strong authentication
 nor any integrity or confidential protection services.  These
-services are described in other chapters of the OpenLDAP Administrator's
-Guide.
+services are described in other chapters of the
+OpenLDAP Administrator's Guide.
 
 
 .{{S: }}
@@ -179,7 +180,7 @@ by running the command:
 
 . To check to see if the server is running and configured correctly,
 you can run a search against it with {{ldapsearch}}(1).  By default,
-ldapsearch is installed as {{F:/usr/local/bin/ldapsearch}}:
+{{ldapsearch}} is installed as {{F:/usr/local/bin/ldapsearch}}:
 
 ..{{EX:ldapsearch -x -b '' -s base '(objectclass=*)' namingContexts}}
 
