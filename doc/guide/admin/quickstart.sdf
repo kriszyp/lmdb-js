@@ -86,9 +86,9 @@ what's best:
 
 . Assuming {{EX:configure}} doesn't dislike your system, you can
 proceed with building the software.  If {{EX:configure}} did
-complain, well, you'll likely need to go to the FAQ Installation
-Section ({{URL:http://www.openldap.org/faq/}} and/or actually
-read the {{SECT:Building and Installing OpenLDAP Software}}
+complain, well, you'll likely need to go to the Software FAQ
+{{Installation}} section ({{URL:http://www.openldap.org/faq/?file=8}})
+and/or actually read the {{SECT:Building and Installing OpenLDAP Software}}
 chapter of this document.
 
 
@@ -172,7 +172,7 @@ specified directory must exist prior to starting {{slapd}}(8).
 .{{S: }}
 +{{B:Start SLAPD}}.
 
-. You are now ready to start the stand-alone LDAP server, {{slapd}}(8),
+. You are now ready to start the Standalone LDAP Daemon, {{slapd}}(8),
 by running the command:
 
 ..{{EX:su root -c /usr/local/libexec/slapd}}
