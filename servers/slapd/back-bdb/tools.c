@@ -391,6 +391,9 @@ bdb_tool_index_add(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 
+	if (!bdb->bi_nattrs)
+		return 0;
+
 	if ( slapMode & SLAP_TOOL_QUICK ) {
 		IndexRec *ir;
 		int i, rc;
