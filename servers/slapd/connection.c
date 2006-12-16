@@ -196,22 +196,20 @@ int connections_shutdown(void)
 	ber_socket_t i;
 
 	for ( i = 0; i < dtblsize; i++ ) {
-		if( connections[i].c_struct_state != SLAP_C_USED ) {
-			continue;
-		}
-		/* give persistent clients a chance to cleanup */
-		if( connections[i].c_conn_state == SLAP_C_CLIENT ) {
-			ldap_pvt_thread_pool_submit( &connection_pool,
-			connections[i].c_clientfunc, connections[i].c_clientarg );
-			continue;
-		}
-
 		ldap_pvt_thread_mutex_lock( &connections[i].c_mutex );
+		if( connections[i].c_struct_state == SLAP_C_USED ) {
 
-		/* c_mutex is locked */
-		connection_closing( &connections[i], "slapd shutdown" );
-		connection_close( &connections[i] );
-
+			/* give persistent clients a chance to cleanup */
+			if( connections[i].c_conn_state == SLAP_C_CLIENT ) {
+				ldap_pvt_thread_pool_submit( &connection_pool,
+				connections[i].c_clientfunc, connections[i].c_clientarg );
+				continue;
+			} else {
+				/* c_mutex is locked */
+				connection_closing( &connections[i], "slapd shutdown" );
+				connection_close( &connections[i] );
+			}
+		}
 		ldap_pvt_thread_mutex_unlock( &connections[i].c_mutex );
 	}
 
@@ -306,9 +304,9 @@ static Connection* connection_get( ber_socket_t s )
 	if( c != NULL ) {
 		ber_socket_t	sd;
 
-		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
-
 		ldap_pvt_thread_mutex_lock( &c->c_mutex );
+
+		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
 		if( c->c_struct_state != SLAP_C_USED ) {
