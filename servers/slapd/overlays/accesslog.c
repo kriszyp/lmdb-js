@@ -176,7 +176,7 @@ static AttributeDescription *ad_reqDN, *ad_reqStart, *ad_reqEnd, *ad_reqType,
 	*ad_reqScope, *ad_reqFilter, *ad_reqAttr, *ad_reqEntries,
 	*ad_reqSizeLimit, *ad_reqTimeLimit, *ad_reqAttrsOnly, *ad_reqData,
 	*ad_reqId, *ad_reqMessage, *ad_reqVersion, *ad_reqDerefAliases,
-	*ad_reqReferral, *ad_reqOld;
+	*ad_reqReferral, *ad_reqOld, *ad_auditContext;
 
 static struct {
 	char *at;
@@ -330,6 +330,26 @@ static struct {
 		"SUBSTR octetStringSubstringsMatch "
 		"SYNTAX OMsOctetString "
 		"SINGLE-VALUE )", &ad_reqData },
+
+	/*
+	 * from <draft-chu-ldap-logschema-01.txt>:
+	 *
+
+   ( LOG_SCHEMA_AT .30 NAME 'auditContext'
+   DESC 'DN of auditContainer'
+   EQUALITY distinguishedNameMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+   SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
+
+	 * - removed EQUALITY matchingRule
+	 * - changed directoryOperation in dSAOperation
+	 */
+	{ "( " LOG_SCHEMA_AT ".30 NAME 'auditContext' "
+		"DESC 'DN of auditContainer' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+		"SINGLE-VALUE "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )", &ad_auditContext },
 	{ NULL, NULL }
 };
 
@@ -1437,6 +1457,34 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static int
+accesslog_operational( Operation *op, SlapReply *rs )
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	log_info *li = on->on_bi.bi_private;
+
+	if ( rs->sr_entry != NULL
+		&& dn_match( &op->o_bd->be_nsuffix[0], &rs->sr_entry->e_nname ) )
+	{
+		Attribute	**ap;
+
+		for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
+			/* just count */ ;
+
+		if ( SLAP_OPATTRS( rs->sr_attr_flags ) ||
+				ad_inlist( ad_auditContext, rs->sr_attrs ) )
+		{
+			*ap = attr_alloc( ad_auditContext );
+			value_add_one( &(*ap)->a_vals,
+				&li->li_db->be_suffix[0] );
+			value_add_one( &(*ap)->a_nvals,
+				&li->li_db->be_nsuffix[0] );
+		}
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
 static slap_overinst accesslog;
 
 static int
@@ -1619,6 +1667,7 @@ int accesslog_initialize()
 	accesslog.on_bi.bi_op_modrdn = accesslog_op_mod;
 	accesslog.on_bi.bi_op_unbind = accesslog_unbind;
 	accesslog.on_bi.bi_op_abandon = accesslog_abandon;
+	accesslog.on_bi.bi_operational = accesslog_operational;
 	accesslog.on_response = accesslog_response;
 
 	accesslog.on_bi.bi_cf_ocs = log_cfocs;
