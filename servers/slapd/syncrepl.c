@@ -752,7 +752,7 @@ do_syncrep2(
 					ber_tag_t tag;
 					case LDAP_TAG_SYNC_NEW_COOKIE:
 						Debug( LDAP_DEBUG_SYNC,
-							"do_syncrep2: rid %03d %s - %s%s\n", 
+							"do_syncrep2: rid %03d %s - %s\n", 
 							si->si_rid,
 							"LDAP_RES_INTERMEDIATE", 
 							"NEW_COOKIE" );
