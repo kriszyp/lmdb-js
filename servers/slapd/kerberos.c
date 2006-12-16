@@ -41,6 +41,10 @@ krbv4_ldap_auth(
 
 	Debug( LDAP_DEBUG_TRACE, "=> kerberosv4_ldap_auth\n", 0, 0, 0 );
 
+	if( cred->len > sizeof(ktxt->dat) ) {
+		return LDAP_OTHER;
+	}
+
 	AC_MEMCPY( ktxt->dat, cred->bv_val, cred->bv_len );
 	ktxt->length = cred->bv_len;
 
