@@ -3,7 +3,7 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.31 Engineering
 	Fixed libldap unchased referral leak (ITS#4545)
 	Fixed libldap tls callback (ITS#4723)
-	Fixed liblutil authority spec URLs
+	Fixed liblutil ldif file: URL parsing
 	Fixed slapd group ACL caching when proxyAuthz'ing (ITS#4760)
 	Fixed slapd "group" authz default member parsing (ITS#4761)
 	Fixed slapd uninitialized sd_actives array (ITS#4765)
@@ -14,19 +14,19 @@ OpenLDAP 2.3.31 Engineering
 	Fixed slapd schema preparation case to match RFCs (ITS#4764)
 	Fixed slapd kbind buffer overflow condition (ITS#4775)
 	Fixed slapd connections_shutdown assert
-	Fixed slapd-bdb/hdb/ldbm slap_add_opattrs error checking
-	Fixed slapd-bdb/hdb setting up threads when no indicies specified
-	Fixed slapd-perl interpreter context (ITS#4751)
 	Fixed slapd glue parent/sub db overlay nesting (ITS#4615)
-	Fixed slapo-syncprov to complain if instantiated outside of a database definition
+	Fixed slapd-bdb/hdb/ldbm slap_add_opattrs error checking
+	Fixed slapd-bdb/hdb setting up tool threads when no indices specified
+	Fixed slapd-perl interpreter context (ITS#4751)
+	Fixed slapo-syncprov to complain if defined outside of a database
 	Fixed test021 modify ops to be syntactically correct
 	Fixed contrib smbk5pwd, check kadm5 init result
 	Documentation
 		Fixed typo in slapo-retcode(5) man page (ITS#4753)
-		Fixed syncrepl searchbase being listed as optional in slapd.conf(5) man page (ITS#4540)
-		Fixed syncrepl searchbase being listed as optional in the admin guide (ITS#4540)
-		Fixed missing syncrepl starttls documentation in the admin guide (ITS#4510)
-		Fixed reference to deprecated function in ldap_parse_result(3) man page
+		Fixed syncrepl searchbase notation in slapd.conf(5) (ITS#4540)
+		Fixed syncrepl searchbase notation in the admin guide (ITS#4540)
+		Added syncrepl starttls in the admin guide (ITS#4510)
+		Fixed reference to deprecated function in ldap_parse_result(3)
 
 OpenLDAP 2.3.30 Release
 	Fixed slapd authzTo/authzFrom URL matching (ITS#4744)
