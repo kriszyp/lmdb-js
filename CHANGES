@@ -4,6 +4,7 @@ OpenLDAP 2.3.31 Engineering
 	Fixed libldap unchased referral leak (ITS#4545)
 	Fixed libldap tls callback (ITS#4723)
 	Fixed liblutil ldif file: URL parsing
+	Fixed slapd syncrepl logging (ITS#4755)
 	Fixed slapd group ACL caching when proxyAuthz'ing (ITS#4760)
 	Fixed slapd "group" authz default member parsing (ITS#4761)
 	Fixed slapd uninitialized sd_actives array (ITS#4765)
