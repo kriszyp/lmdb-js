@@ -77,7 +77,7 @@ changetype: modify
 add: objectClass
 objectClass: extensibleObject
 -
-add: cAcertificate
+add: cAcertificate;binary
 cAcertificate;binary::
  MIIDVDCCAr2gAwIBAgIBADANBgkqhkiG9w0BAQQFADB3MQswCQYDVQQGEwJVUzET
  MBEGA1UECBMKQ2FsaWZvcm5pYTEfMB0GA1UEChMWT3BlbkxEQVAgRXhhbXBsZSwg
@@ -103,7 +103,7 @@ changetype: modify
 add: objectClass
 objectClass: strongAuthenticationUser
 -
-add: userCertificate
+add: userCertificate;binary
 userCertificate;binary::
  MIIDazCCAtSgAwIBAgIBAjANBgkqhkiG9w0BAQQFADB3MQswCQYDVQQGEwJVUzET
  MBEGA1UECBMKQ2FsaWZvcm5pYTEfMB0GA1UEChMWT3BlbkxEQVAgRXhhbXBsZSwg
@@ -130,7 +130,7 @@ changetype: modify
 add: objectClass
 objectClass: strongAuthenticationUser
 -
-add: userCertificate
+add: userCertificate;binary
 userCertificate;binary::
  MIIDcDCCAtmgAwIBAgIBATANBgkqhkiG9w0BAQQFADB3MQswCQYDVQQGEwJVUzET
  MBEGA1UECBMKQ2FsaWZvcm5pYTEfMB0GA1UEChMWT3BlbkxEQVAgRXhhbXBsZSwg
