@@ -283,7 +283,7 @@ cleanup:;
 
 	if ( user != NULL && user != target ) {
 		op->o_bd = user_be;
-		be_entry_release_r( op, group );
+		be_entry_release_r( op, user );
 		op->o_bd = be;
 	}
 
