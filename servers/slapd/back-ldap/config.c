@@ -65,6 +65,7 @@ enum {
 	LDAP_BACK_CFG_NETWORK_TIMEOUT,
 	LDAP_BACK_CFG_VERSION,
 	LDAP_BACK_CFG_SINGLECONN,
+	LDAP_BACK_CFG_USETEMP,
 	LDAP_BACK_CFG_CANCEL,
 	LDAP_BACK_CFG_QUARANTINE,
 	LDAP_BACK_CFG_REWRITE,
@@ -277,6 +278,14 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "use-temporaries", "TRUE/FALSE", 2, 0, 0,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_USETEMP,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.22 "
+			"NAME 'olcDbUseTemporaries' "
+			"DESC 'Use temporary connections if the cached one is busy' "
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -314,6 +323,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbSingleConn "
 			"$ olcDbCancel "
 			"$ olcDbQuarantine "
+			"$ olcDbUseTemporaries "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -530,15 +540,42 @@ slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
 	struct berval	in;
 	int		rc;
 
-	ber_str2bv( c->argv[ 1 ], 0, 0, &in );
-	rc = authzNormalize( 0, NULL, NULL, &in, &bv, NULL );
-	if ( rc != LDAP_SUCCESS ) {
-		snprintf( c->msg, sizeof( c->msg ),
-			"\"idassert-authzFrom <authz>\": "
-			"invalid syntax" );
-		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
-		return 1;
-	}
+ 	if ( strcmp( c->argv[ 1 ], "*" ) == 0
+ 		|| strcmp( c->argv[ 1 ], ".*" ) == 0
+ 		|| strcmp( c->argv[ 1 ], "dn:*" ) == 0
+ 		|| strcasecmp( c->argv[ 1 ], "dn.regex:.*" ) == 0 )
+ 	{
+ 		if ( si->si_authz != NULL ) {
+ 			snprintf( c->msg, sizeof( c->msg ),
+ 				"\"idassert-authzFrom <authz>\": "
+ 				"\"%s\" conflicts with existing authz rules",
+ 				c->argv[ 1 ] );
+ 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+ 			return 1;
+ 		}
+ 
+ 		si->si_flags |= LDAP_BACK_AUTH_AUTHZ_ALL;
+ 
+ 		return 0;
+ 
+ 	} else if ( ( si->si_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) ) {
+  		snprintf( c->msg, sizeof( c->msg ),
+  			"\"idassert-authzFrom <authz>\": "
+ 			"\"<authz>\" conflicts with \"*\"" );
+  		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+  		return 1;
+  	}
+ 	
+ 	ber_str2bv( c->argv[ 1 ], 0, 0, &in );
+ 	rc = authzNormalize( 0, NULL, NULL, &in, &bv, NULL );
+ 	if ( rc != LDAP_SUCCESS ) {
+ 		snprintf( c->msg, sizeof( c->msg ),
+ 			"\"idassert-authzFrom <authz>\": "
+ 			"invalid syntax" );
+ 		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+ 		return 1;
+ 	}
+  
 	ber_bvarray_add( &si->si_authz, &bv );
 
 	return 0;
@@ -776,7 +813,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 			int		i;
 
 			if ( li->li_idassert_authz == NULL ) {
-				rc = 1;
+				if ( ( li->li_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) ) {
+					BER_BVSTR( &bv, "*" );
+					value_add_one( &c->rvalue_vals, &bv );
+
+				} else {
+					rc = 1;
+				}
 				break;
 			}
 
@@ -1013,6 +1056,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 			c->value_int = LDAP_BACK_SINGLECONN( li );
 			break;
 
+		case LDAP_BACK_CFG_USETEMP:
+			c->value_int = LDAP_BACK_USE_TEMPORARIES( li );
+			break;
+
 		case LDAP_BACK_CFG_CANCEL: {
 			slap_mask_t	mask = LDAP_BACK_F_CANCEL_MASK2;
 
@@ -1137,6 +1184,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_SINGLECONN:
 			li->li_flags &= ~LDAP_BACK_F_SINGLECONN;
+			break;
+
+		case LDAP_BACK_CFG_USETEMP:
+			li->li_flags &= ~LDAP_BACK_F_USE_TEMPORARIES;
 			break;
 
 		case LDAP_BACK_CFG_QUARANTINE:
@@ -1681,6 +1732,15 @@ done_url:;
 
 		} else {
 			li->li_flags &= ~LDAP_BACK_F_SINGLECONN;
+		}
+		break;
+
+	case LDAP_BACK_CFG_USETEMP:
+		if ( c->value_int ) {
+			li->li_flags |= LDAP_BACK_F_USE_TEMPORARIES;
+
+		} else {
+			li->li_flags &= ~LDAP_BACK_F_USE_TEMPORARIES;
 		}
 		break;
 

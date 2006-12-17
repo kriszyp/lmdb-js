@@ -104,11 +104,12 @@ ldap_back_conndnlc_cmp( const void *c1, const void *c2 );
 int
 ldap_back_bind( Operation *op, SlapReply *rs )
 {
-	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
-	ldapconn_t	*lc;
+	ldapinfo_t		*li = (ldapinfo_t *) op->o_bd->be_private;
+	ldapconn_t		*lc;
 
-	int rc = 0;
-	ber_int_t msgid;
+	int			rc = 0;
+	ber_int_t		msgid;
+	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_BIND_SERR, NULL, NULL );
 	if ( !lc ) {
@@ -121,24 +122,35 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	}
 	LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 
+retry:;
 	/* method is always LDAP_AUTH_SIMPLE if we got here */
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld, op->o_req_dn.bv_val,
 			LDAP_SASL_SIMPLE,
 			&op->orb_cred, op->o_ctrls, NULL, &msgid );
+	/* FIXME: should we always retry, or only when piping the bind
+	 * in the "override" connection pool? */
 	rc = ldap_back_op_result( lc, op, rs, msgid,
 		li->li_timeout[ SLAP_OP_BIND ],
-		LDAP_BACK_BIND_SERR );
+		LDAP_BACK_BIND_SERR | retrying );
+	if ( rc == LDAP_UNAVAILABLE && retrying ) {
+		retrying &= ~LDAP_BACK_RETRYING;
+		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_BIND_SERR ) ) {
+			goto retry;
+		}
+	}
+
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
 		 * back-ldap is the authorizing backend; for this
 		 * purpose, after a successful bind the connection
-		 * is trashed and further operations will use
-		 * a default connections with identity assertion */
+		 * is left for further binds, and further operations 
+		 * on this client connection will use a default
+		 * connection with identity assertion */
 		/* NOTE: use with care */
 		if ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
-			LDAP_BACK_CONN_TAINTED_SET( lc );
+			assert( lc->lc_binding == 1 );
+			lc->lc_binding = 0;
 			ldap_back_release_conn( op, rs, lc );
-
 			return( rc );
 		}
 
@@ -632,7 +644,8 @@ ldap_back_getconn(
 	ldapconn_t	*lc = NULL,
 			lc_curr = { 0 };
 	int		refcnt = 1,
-			binding = 1;
+			binding = 1,
+			lookupconn = !( sendok & LDAP_BACK_BINDING );
 
 	/* if the server is quarantined, and
 	 * - the current interval did not expire yet, or
@@ -672,18 +685,49 @@ ldap_back_getconn(
 		lc_curr.lc_conn = LDAP_BACK_PCONN_SET( op );
 
 	} else {
-		lc_curr.lc_local_ndn = op->o_ndn;
-		/* Explicit binds must not be shared */
+		struct berval	tmpbinddn,
+				tmpbindcred,
+				save_o_dn,
+				save_o_ndn;
+		int		isproxyauthz;
+
+		/* need cleanup */
+		if ( binddn == NULL ) {
+			binddn = &tmpbinddn;
+		}	
+		if ( bindcred == NULL ) {
+			bindcred = &tmpbindcred;
+		}
 		if ( op->o_tag == LDAP_REQ_BIND ) {
+			save_o_dn = op->o_dn;
+			save_o_ndn = op->o_ndn;
+			op->o_dn = op->o_req_dn;
+			op->o_ndn = op->o_req_ndn;
+		}
+		isproxyauthz = ldap_back_is_proxy_authz( op, rs, sendok, binddn, bindcred );
+		if ( op->o_tag == LDAP_REQ_BIND ) {
+			op->o_dn = save_o_dn;
+			op->o_ndn = save_o_ndn;
+		}
+
+		lc_curr.lc_local_ndn = op->o_ndn;
+		/* Explicit binds must not be shared;
+		 * however, explicit binds are piped in a special connection
+		 * when idassert is to occur with "override" set */
+		if ( op->o_tag == LDAP_REQ_BIND && !isproxyauthz ) {
 			lc_curr.lc_conn = op->o_conn;
 
 		} else {
-			if ( !( sendok & LDAP_BACK_BINDING ) && 
-				ldap_back_is_proxy_authz( op, rs, sendok, binddn, bindcred ) )
-			{
+			if ( isproxyauthz && !( sendok & LDAP_BACK_BINDING ) ) {
 				lc_curr.lc_local_ndn = *binddn;
 				lc_curr.lc_conn = LDAP_BACK_PCONN_SET( op );
 				LDAP_BACK_CONN_ISIDASSERT_SET( &lc_curr );
+
+			} else if ( isproxyauthz && ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) {
+				lc_curr.lc_local_ndn = slap_empty_bv;
+				lc_curr.lc_conn = LDAP_BACK_PCONN_BIND_SET( op );
+				LDAP_BACK_CONN_ISIDASSERT_SET( &lc_curr );
+				lookupconn = 1;
 
 			} else if ( SLAP_IS_AUTHZ_BACKEND( op ) ) {
 				lc_curr.lc_conn = op->o_conn;
@@ -695,7 +739,7 @@ ldap_back_getconn(
 	}
 
 	/* Explicit Bind requests always get their own conn */
-	if ( !( sendok & LDAP_BACK_BINDING ) ) {
+	if ( lookupconn ) {
 		/* Searches for a ldapconn in the avl tree */
 retry_lock:
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
@@ -705,13 +749,26 @@ retry_lock:
 		if ( lc != NULL ) {
 			/* Don't reuse connections while they're still binding */
 			if ( LDAP_BACK_CONN_BINDING( lc ) ) {
-				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
-				ldap_pvt_thread_yield();
-				goto retry_lock;
-			}
+				if ( !LDAP_BACK_USE_TEMPORARIES( li ) ) {
+					ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
-			refcnt = ++lc->lc_refcnt;
-			binding = ++lc->lc_binding;
+					ldap_pvt_thread_yield();
+					goto retry_lock;
+				}
+
+				lc = NULL;
+
+			} else {
+
+				if ( op->o_tag == LDAP_REQ_BIND ) {
+					/* right now, this is the only possible case */
+					assert( ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) );
+					LDAP_BACK_CONN_BINDING_SET( lc );
+				}
+
+				refcnt = ++lc->lc_refcnt;
+				binding = ++lc->lc_binding;
+			}
 		}
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 	}
@@ -825,21 +882,14 @@ retry_lock:
 			break;
 
 		case -1:
-			if ( !( sendok & LDAP_BACK_BINDING ) ) {
+			if ( !( sendok & LDAP_BACK_BINDING ) && !LDAP_BACK_USE_TEMPORARIES( li ) ) {
 				/* duplicate: free and try to get the newly created one */
+				ldap_back_conn_free( lc );
+				lc = NULL;
 				goto retry_lock;
 			}
+
 			/* taint connection, so that it'll be freed when released */
-			ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
-#if LDAP_BACK_PRINT_CONNTREE > 0
-			ldap_back_print_conntree( li->li_conninfo.lai_tree, ">>> ldap_back_getconn(delete)" );
-#endif /* LDAP_BACK_PRINT_CONNTREE */
-			(void *)avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-					ldap_back_conndnlc_cmp );
-#if LDAP_BACK_PRINT_CONNTREE > 0
-			ldap_back_print_conntree( li->li_conninfo.lai_tree, "<<< ldap_back_getconn(delete)" );
-#endif /* LDAP_BACK_PRINT_CONNTREE */
-			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 			LDAP_BACK_CONN_TAINTED_SET( lc );
 			break;
 
@@ -926,7 +976,7 @@ ldap_back_quarantine(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
 	slap_retry_info_t	*ri = &li->li_quarantine;
 
@@ -971,9 +1021,13 @@ ldap_back_quarantine(
 		ri->ri_last = new_last;
 
 	} else if ( li->li_isquarantined != LDAP_BACK_FQ_NO ) {
+		if ( ri->ri_last == slap_get_time() ) {
+			goto done;
+		}
+
 		Debug( LDAP_DEBUG_ANY,
-			"%s: ldap_back_quarantine exit.\n",
-			op->o_log_prefix, ri->ri_idx, ri->ri_count );
+			"%s: ldap_back_quarantine exit (%d) err=%d.\n",
+			op->o_log_prefix, li->li_isquarantined, rs->sr_err );
 
 		if ( li->li_quarantine_f ) {
 			(void)li->li_quarantine_f( li, li->li_quarantine_p );
@@ -1466,7 +1520,7 @@ retry:;
 		 * LDAP_COMPARE_{TRUE|FALSE}) */
 		default:
 			/* only touch when activity actually took place... */
-			if ( li->li_idle_timeout ) {
+			if ( li->li_idle_timeout && lc ) {
 				lc->lc_time = op->o_time;
 			}
 
@@ -1589,6 +1643,9 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			(void)ldap_back_freeconn( op, *lcp, 0 );
 			*lcp = NULL;
 			rc = 0;
+
+		} else if ( ( sendok & LDAP_BACK_BINDING ) ) {
+			rc = 1;
 
 		} else {
 			rc = ldap_back_dobind_int( lcp, op, rs, sendok, 0, 0 );
