@@ -26,11 +26,110 @@
 #include "slap.h"
 #include "rwm.h"
 
+typedef struct rwm_op_state {
+	struct berval ro_dn;
+	struct berval ro_ndn;
+	struct berval r_dn;
+	struct berval r_ndn;
+	OpRequest o_request;
+} rwm_op_state;
+
 static int
 rwm_db_destroy( BackendDB *be );
 
+typedef struct rwm_op_cb {
+	slap_callback cb;
+	rwm_op_state ros;
+} rwm_op_cb;
+
+static rwm_op_cb rwm_cb;
+
+static void
+rwm_keyfree(
+	void		*key,
+	void		*data )
+{
+	ber_memfree_x( data, NULL );
+}
+
 static int
-rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
+rwm_op_cleanup( Operation *op, SlapReply *rs )
+{
+	slap_callback	*cb = op->o_callback;
+	rwm_op_state *ros = cb->sc_private;
+
+	if ( rs->sr_type == REP_RESULT || op->o_abandon ||
+		rs->sr_err == SLAPD_ABANDON ) {
+
+		op->o_req_dn = ros->ro_dn;
+		op->o_req_ndn = ros->ro_ndn;
+
+		if ( !BER_BVISEMPTY( &ros->r_dn )) ch_free( ros->r_dn.bv_val );
+		if ( !BER_BVISEMPTY( &ros->r_ndn )) ch_free( ros->r_ndn.bv_val );
+
+		switch( op->o_tag ) {
+		case LDAP_REQ_COMPARE:
+			break;
+		case LDAP_REQ_MODIFY:
+			break;
+		case LDAP_REQ_MODRDN:
+			if ( op->orr_newSup != ros->orr_newSup ) {
+				ch_free( op->orr_newSup->bv_val );
+				ch_free( op->orr_nnewSup->bv_val );
+				op->o_tmpfree( op->orr_newSup, op->o_tmpmemctx );
+				op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
+				op->orr_newSup = ros->orr_newSup;
+				op->orr_nnewSup = ros->orr_nnewSup;
+			}
+			break;
+		case LDAP_REQ_SEARCH:
+			ch_free( op->ors_attrs );
+			filter_free_x( op, op->ors_filter );
+			ch_free( op->ors_filterstr.bv_val );
+			op->ors_attrs = ros->ors_attrs;
+			op->ors_filter = ros->ors_filter;
+			op->ors_filterstr = ros->ors_filterstr;
+			break;
+		default:	break;
+		}
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static rwm_op_cb *
+rwm_callback_get( Operation *op, SlapReply *rs )
+{
+	rwm_op_cb	*roc = NULL;
+
+	if ( op->o_threadctx == NULL ) {
+		roc = &rwm_cb;
+	} else {
+		ldap_pvt_thread_pool_getkey( op->o_threadctx,
+				rwm_keyfree, (void *)&roc, NULL );
+		if ( roc == NULL ) {
+			roc = ch_malloc( sizeof( struct rwm_op_cb ));
+			ldap_pvt_thread_pool_setkey( op->o_threadctx,
+					rwm_keyfree, roc, rwm_keyfree );
+		}
+	}
+	roc->cb.sc_cleanup = rwm_op_cleanup;
+	roc->cb.sc_response = NULL;
+	roc->cb.sc_next = op->o_callback;
+	roc->cb.sc_private = &roc->ros;
+	roc->ros.ro_dn = op->o_req_dn;
+	roc->ros.ro_ndn = op->o_req_ndn;
+	roc->ros.o_request = op->o_request;
+	BER_BVZERO( &roc->ros.r_dn );
+	BER_BVZERO( &roc->ros.r_ndn );
+
+	return roc;
+}
+
+
+static int
+rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie,
+	rwm_op_state *ros )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -77,12 +176,12 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	}
 
 	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
-		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		op->o_req_dn = dn;
+		ros->r_dn  = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	ros->r_ndn = ndn;
 	op->o_req_ndn = ndn;
 
 	return LDAP_SUCCESS;
@@ -101,11 +200,13 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	char			*olddn = op->o_req_dn.bv_val;
 	int			isupdate;
 
+	rwm_op_cb *roc = rwm_callback_get( op, rs );
+
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDN" );
+	rc = rwm_op_dn_massage( op, rs, "addDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -225,7 +326,8 @@ cleanup_attr:;
 		attr_free( a );
 	}
 
-	/* TODO: map attribute types, values of DN-valued attributes ... */
+	op->o_callback = &roc->cb;
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -261,17 +363,21 @@ rwm_op_bind( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
+	rwm_op_cb *roc = rwm_callback_get( op, rs );
+
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "bindDN" );
+	rc = rwm_op_dn_massage( op, rs, "bindDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "bindDN massage error" );
 		return -1;
 	}
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 }
@@ -301,11 +407,13 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 	struct berval		mapped_at = BER_BVNULL,
 				mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
 
+	rwm_op_cb *roc = rwm_callback_get( op, rs );
+
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "compareDN" );
+	rc = rwm_op_dn_massage( op, rs, "compareDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -383,6 +491,8 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 		op->orc_ava->aa_desc = ad;
 	}
 
+	op->o_callback = &roc->cb;
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -392,17 +502,21 @@ rwm_op_delete( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
+	rwm_op_cb *roc = rwm_callback_get( op, rs );
+
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "deleteDN" );
+	rc = rwm_op_dn_massage( op, rs, "deleteDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "deleteDN massage error" );
 		return -1;
 	}
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 }
@@ -418,11 +532,13 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	Modifications		**mlp;
 	int			rc;
 
+	rwm_op_cb *roc = rwm_callback_get( op, rs );
+
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "modifyDN" );
+	rc = rwm_op_dn_massage( op, rs, "modifyDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -546,6 +662,8 @@ cleanup_mod:;
 		free( ml );
 	}
 
+	op->o_callback = &roc->cb;
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -557,6 +675,8 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 	
 	int			rc;
+
+	rwm_op_cb *roc = rwm_callback_get( op, rs );
 
 	if ( op->orr_newSup ) {
 		dncookie	dc;
@@ -585,8 +705,10 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 		}
 
 		if ( op->orr_newSup->bv_val != newSup.bv_val ) {
-			op->o_tmpfree( op->orr_newSup->bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( op->orr_nnewSup->bv_val, op->o_tmpmemctx );
+			op->orr_newSup = op->o_tmpalloc( sizeof( struct berval ),
+				op->o_tmpmemctx );
+			op->orr_nnewSup = op->o_tmpalloc( sizeof( struct berval ),
+				op->o_tmpmemctx );
 			*op->orr_newSup = newSup;
 			*op->orr_nnewSup = nnewSup;
 		}
@@ -596,61 +718,43 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	 * Rewrite the dn, if needed
  	 */
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "renameDN" );
+	rc = rwm_op_dn_massage( op, rs, "renameDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "renameDN massage error" );
+		if ( op->orr_newSup != roc->ros.orr_newSup ) {
+			ch_free( op->orr_newSup->bv_val );
+			ch_free( op->orr_nnewSup->bv_val );
+			op->o_tmpfree( op->orr_newSup, op->o_tmpmemctx );
+			op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
+			op->orr_newSup = roc->ros.orr_newSup;
+			op->orr_nnewSup = roc->ros.orr_nnewSup;
+		}
 		return -1;
 	}
 
 	/* TODO: rewrite newRDN, attribute types, 
 	 * values of DN-valued attributes ... */
+
+	op->o_callback = &roc->cb;
+
 	return SLAP_CB_CONTINUE;
 }
 
-static slap_callback	rwm_cb;
-
-static void
-rwm_keyfree(
-	void		*key,
-	void		*data )
-{
-	ber_memfree_x( data, NULL );
-}
-
-static slap_callback *
-rwm_callback_get( Operation *op )
-{
-	void		*data = NULL;
-
-	if ( op->o_threadctx == NULL ) {
-		return &rwm_cb;
-	}
-
-	ldap_pvt_thread_pool_getkey( op->o_threadctx,
-			rwm_keyfree, &data, NULL );
-	if ( data == NULL ) {
-		data = ch_calloc( sizeof( slap_callback ), 1 );
-		ldap_pvt_thread_pool_setkey( op->o_threadctx,
-				rwm_keyfree, data, rwm_keyfree );
-	}
-
-	return (slap_callback *)data;
-}
 
 static int
 rwm_swap_attrs( Operation *op, SlapReply *rs )
 {
 	slap_callback	*cb = op->o_callback;
-	AttributeName	*an = (AttributeName *)cb->sc_private;
+	rwm_op_state *ros = cb->sc_private;
 
-	rs->sr_attrs = an;
+	rs->sr_attrs = ros->ors_attrs;
 	
-	return SLAP_CB_CONTINUE;
+ 	return SLAP_CB_CONTINUE;
 }
 
 static int
@@ -666,19 +770,20 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	struct berval		fstr = BER_BVNULL;
 	Filter			*f = NULL;
 
-	slap_callback		*cb = NULL;
 	AttributeName		*an = NULL;
 
 	char			*text = NULL;
+
+	rwm_op_cb *roc = rwm_callback_get( op, rs );
 
 #ifdef ENABLE_REWRITE
 	rc = rewrite_session_var_set( rwmap->rwm_rw, op->o_conn,
 		"searchFilter", op->ors_filterstr.bv_val );
 	if ( rc == LDAP_SUCCESS )
-		rc = rwm_op_dn_massage( op, rs, "searchDN" );
+		rc = rwm_op_dn_massage( op, rs, "searchDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		text = "searchDN massage error";
@@ -711,14 +816,6 @@ rwm_op_search( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
-		ch_free( op->ors_filterstr.bv_val );
-	}
-
-	if( op->ors_filter ) {
-		filter_free_x( op, op->ors_filter );
-	}
-
 	op->ors_filter = f;
 	op->ors_filterstr = fstr;
 
@@ -729,15 +826,10 @@ rwm_op_search( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	cb = rwm_callback_get( op );
-
-	cb->sc_response = rwm_swap_attrs;
-	cb->sc_cleanup = NULL;
-	cb->sc_private = (void *)op->ors_attrs;
-	cb->sc_next = op->o_callback;
-
-	op->o_callback = cb;
 	op->ors_attrs = an;
+	roc->cb.sc_response = rwm_swap_attrs;
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 
@@ -754,6 +846,8 @@ error_return:;
 		ch_free( fstr.bv_val );
 	}
 
+	op->oq_search = roc->ros.oq_search;
+
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	send_ldap_error( op, rs, rc, text );
 
@@ -766,6 +860,7 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
+	rwm_op_cb *roc;
 
 	struct berval	id = BER_BVNULL,
 			pwold = BER_BVNULL,
@@ -799,11 +894,13 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 		ber_dupbv_x( &op->o_req_ndn, &op->o_ndn, op->o_tmpmemctx );
 	}
 
+	roc = rwm_callback_get( op, rs );
+
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "extendedDN" );
+	rc = rwm_op_dn_massage( op, rs, "extendedDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -812,6 +909,8 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 	}
 
 	/* TODO: re-encode the request with the massaged DN */
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 }
@@ -829,6 +928,7 @@ rwm_extended( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
+	rwm_op_cb *roc;
 
 	int	i;
 
@@ -852,11 +952,13 @@ rwm_extended( Operation *op, SlapReply *rs )
 		}
 	}
 
+	roc = rwm_callback_get( op, rs );
+
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "extendedDN" );
+	rc = rwm_op_dn_massage( op, rs, "extendedDN", &roc->ros );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
+	rc = rwm_op_dn_massage( op, rs, &rc, &roc->ros );
 #endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -865,6 +967,8 @@ rwm_extended( Operation *op, SlapReply *rs )
 	}
 
 	/* TODO: rewrite/map extended data ? ... */
+	op->o_callback = &roc->cb;
+
 	return SLAP_CB_CONTINUE;
 }
 

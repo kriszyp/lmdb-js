@@ -2381,6 +2381,19 @@ typedef struct slap_op_header {
 #endif
 } Opheader;
 
+typedef union slap_op_request {
+	req_add_s oq_add;
+	req_bind_s oq_bind;
+	req_compare_s oq_compare;
+	req_modify_s oq_modify;
+	req_modrdn_s oq_modrdn;
+	req_search_s oq_search;
+	req_abandon_s oq_abandon;
+	req_abandon_s oq_cancel;
+	req_extended_s oq_extended;
+	req_pwdexop_s oq_pwdexop;
+} OpRequest;
+
 typedef struct slap_op {
 	Opheader *o_hdr;
 
@@ -2409,18 +2422,7 @@ typedef struct slap_op {
 	struct berval	o_req_dn;	/* DN of target of request */
 	struct berval	o_req_ndn;
 
-	union o_req_u {
-		req_add_s oq_add;
-		req_bind_s oq_bind;
-		req_compare_s oq_compare;
-		req_modify_s oq_modify;
-		req_modrdn_s oq_modrdn;
-		req_search_s oq_search;
-		req_abandon_s oq_abandon;
-		req_abandon_s oq_cancel;
-		req_extended_s oq_extended;
-		req_pwdexop_s oq_pwdexop;
-	} o_request;
+	OpRequest o_request;
 
 /* short hands for union members */
 #define oq_add o_request.oq_add
