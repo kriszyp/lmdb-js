@@ -323,7 +323,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbSingleConn "
 			"$ olcDbCancel "
 			"$ olcDbQuarantine "
-			"$ olcDbUseTemporaries "
+			"$ olcDbUseTemporaryConn "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
