@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.31 Engineering
+OpenLDAP 2.3.31 Release
 	Fixed libldap unchased referral leak (ITS#4545)
 	Fixed libldap tls callback (ITS#4723)
 	Fixed liblutil ldif file: URL parsing
