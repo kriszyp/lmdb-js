@@ -1400,10 +1400,35 @@ typedef struct slap_access {
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
 #ifdef LDAP_PF_INET6
-	struct in6_addr	a_peername_addr6,
-			a_peername_mask6;
-#define	a_peername_addr	a_peername_addr6.s6_addr32[0]
-#define	a_peername_mask	a_peername_mask6.s6_addr32[0]
+	union {
+		struct in6_addr	ax6;
+		unsigned long	ax;
+	}	ax_peername_addr,
+		ax_peername_mask;
+#define	a_peername_addr6	ax_peername_addr.ax6
+#define	a_peername_addr		ax_peername_addr.ax
+#define	a_peername_mask6	ax_peername_mask.ax6
+#define	a_peername_mask		ax_peername_mask.ax
+/* apparently, only s6_addr is portable;
+ * define a portable address mask comparison */
+#define	slap_addr6_mask(val, msk, asr) ( \
+	(((val)->s6_addr[0] & (msk)->s6_addr[0]) == (asr)->s6_addr[0]) \
+	&& (((val)->s6_addr[1] & (msk)->s6_addr[1]) == (asr)->s6_addr[1]) \
+	&& (((val)->s6_addr[2] & (msk)->s6_addr[2]) == (asr)->s6_addr[2]) \
+	&& (((val)->s6_addr[3] & (msk)->s6_addr[3]) == (asr)->s6_addr[3]) \
+	&& (((val)->s6_addr[4] & (msk)->s6_addr[4]) == (asr)->s6_addr[4]) \
+	&& (((val)->s6_addr[5] & (msk)->s6_addr[5]) == (asr)->s6_addr[5]) \
+	&& (((val)->s6_addr[6] & (msk)->s6_addr[6]) == (asr)->s6_addr[6]) \
+	&& (((val)->s6_addr[7] & (msk)->s6_addr[7]) == (asr)->s6_addr[7]) \
+	&& (((val)->s6_addr[8] & (msk)->s6_addr[8]) == (asr)->s6_addr[8]) \
+	&& (((val)->s6_addr[9] & (msk)->s6_addr[9]) == (asr)->s6_addr[9]) \
+	&& (((val)->s6_addr[10] & (msk)->s6_addr[10]) == (asr)->s6_addr[10]) \
+	&& (((val)->s6_addr[11] & (msk)->s6_addr[11]) == (asr)->s6_addr[11]) \
+	&& (((val)->s6_addr[12] & (msk)->s6_addr[12]) == (asr)->s6_addr[12]) \
+	&& (((val)->s6_addr[13] & (msk)->s6_addr[13]) == (asr)->s6_addr[13]) \
+	&& (((val)->s6_addr[14] & (msk)->s6_addr[14]) == (asr)->s6_addr[14]) \
+	&& (((val)->s6_addr[15] & (msk)->s6_addr[15]) == (asr)->s6_addr[15]) \
+	)
 #else /* ! LDAP_PF_INET6 */
 	unsigned long	a_peername_addr,
 			a_peername_mask;

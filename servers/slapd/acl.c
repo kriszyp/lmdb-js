@@ -1359,15 +1359,7 @@ slap_acl_mask(
 							continue;
 
 						/* check mask */
-						for ( i = 0; i < 4; i++ ) {
-							if ( ( addr.s6_addr32[i] & b->a_peername_mask6.s6_addr32[i] )
-								!= b->a_peername_addr6.s6_addr32[i] )
-							{
-								break;
-							}
-						}
-
-						if ( i != 4 )
+						if ( !slap_addr6_mask( &addr, &b->a_peername_mask6, &b->a_peername_addr6 ) )
 							continue;
 #endif /* LDAP_PF_INET6 */
 
