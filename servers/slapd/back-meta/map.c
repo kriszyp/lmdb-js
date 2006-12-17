@@ -90,19 +90,19 @@ ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping **m )
 	assert( m != NULL );
 
 	*m = NULL;
-	
+
 	mapping = (struct ldapmapping *)ch_calloc( 2, 
 			sizeof( struct ldapmapping ) );
 	if ( mapping == NULL ) {
 		return;
 	}
 
-	ber_str2bv( "objectclass", sizeof("objectclass")-1, 1, &mapping->src);
-	ber_dupbv( &mapping->dst, &mapping->src );
-	mapping[1].src = mapping->src;
-	mapping[1].dst = mapping->dst;
+	ber_str2bv( "objectclass", STRLENOF("objectclass"), 1, &mapping[0].src);
+	ber_dupbv( &mapping[0].dst, &mapping[0].src );
+	mapping[1].src = mapping[0].src;
+	mapping[1].dst = mapping[0].dst;
 
-	avl_insert( &lm->map, (caddr_t)mapping, 
+	avl_insert( &lm->map, (caddr_t)&mapping[0], 
 			mapping_cmp, mapping_dup );
 	avl_insert( &lm->remap, (caddr_t)&mapping[1], 
 			mapping_cmp, mapping_dup );
@@ -120,6 +120,7 @@ ldap_back_mapping ( struct ldapmap *map, struct berval *s, struct ldapmapping **
 
 	if ( remap == BACKLDAP_REMAP ) {
 		tree = map->remap;
+
 	} else {
 		tree = map->map;
 	}
@@ -138,6 +139,13 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	int remap )
 {
 	struct ldapmapping *mapping;
+
+	/* map->map may be NULL when mapping is configured,
+	 * but map->remap can't */
+	if ( map->remap == NULL ) {
+		*bv = *s;
+		return;
+	}
 
 	BER_BVZERO( bv );
 	( void )ldap_back_mapping( map, s, &mapping, remap );

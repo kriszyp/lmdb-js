@@ -176,6 +176,13 @@ is set to
 .B single\-conn {NO|yes}
 Discards current cached connection when the client rebinds.
 
+.TP
+.B use-temporary-conn {NO|yes}
+when set to 
+.BR yes ,
+create a temporary connection whenever competing with other threads
+for a shared one; otherwise, wait until the shared connection is available.
+
 .SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:
 

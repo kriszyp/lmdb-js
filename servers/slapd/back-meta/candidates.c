@@ -187,7 +187,7 @@ meta_clear_one_candidate(
 {
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
-	if ( msc->msc_ld ) {
+	if ( msc->msc_ld != NULL ) {
 
 #ifdef DEBUG_205
 		char	buf[ BUFSIZ ];
@@ -212,6 +212,8 @@ meta_clear_one_candidate(
 		ber_memfree_x( msc->msc_cred.bv_val, NULL );
 		BER_BVZERO( &msc->msc_cred );
 	}
+
+	msc->msc_mscflags = 0;
 
 	return 0;
 }

@@ -38,7 +38,6 @@ static int
 meta_back_new_target( 
 	metatarget_t	**mtp )
 {
-        struct ldapmapping	*mapping;
 	char			*rargv[ 3 ];
 	metatarget_t		*mt;
 
@@ -51,7 +50,6 @@ meta_back_new_target(
 		ch_free( mt );
 		return -1;
 	}
-
 
 	/*
 	 * the filter rewrite as a string must be disabled
@@ -67,8 +65,6 @@ meta_back_new_target(
 	rargv[ 1 ] = "default";
 	rargv[ 2 ] = NULL;
 	rewrite_parse( mt->mt_rwmap.rwm_rw, "<suffix massage>", 1, 2, rargv );
-
-	ldap_back_map_init( &mt->mt_rwmap.rwm_at, &mapping );
 
 	ldap_pvt_thread_mutex_init( &mt->mt_uri_mutex );
 
@@ -849,6 +845,38 @@ meta_back_db_config(
 			return 1;
 		}
 
+	/* use-temporaries? */
+	} else if ( strcasecmp( argv[ 0 ], "use-temporary-conn" ) == 0 ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"use-temporary-conn {FALSE|true}\" takes 1 argument\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( mi->mi_ntargets > 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"use-temporary-conn\" must appear before target definitions\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 0:
+			mi->mi_flags &= ~LDAP_BACK_F_USE_TEMPORARIES;
+			break;
+
+		case 1:
+			mi->mi_flags |= LDAP_BACK_F_USE_TEMPORARIES;
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"use-temporary-conn {FALSE|true}\": invalid arg \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
 	} else if ( strcasecmp( argv[ 0 ], "cancel" ) == 0 ) {
 		unsigned 	flag = 0;
 		unsigned	*flagsp = mi->mi_ntargets ?
@@ -1402,7 +1430,7 @@ ldap_back_map_config(
 	if ( strcmp( argv[ 2 ], "*" ) == 0 ) {
 		if ( argc < 4 || strcmp( argv[ 3 ], "*" ) == 0 ) {
 			map->drop_missing = ( argc < 4 );
-			return 0;
+			goto success_return;
 		}
 		src = dst = argv[ 3 ];
 
@@ -1416,7 +1444,7 @@ ldap_back_map_config(
 	}
 
 	if ( ( map == at_map )
-			&& ( strcasecmp( src, "objectclass" ) == 0
+		&& ( strcasecmp( src, "objectclass" ) == 0
 			|| strcasecmp( dst, "objectclass" ) == 0 ) )
 	{
 		Debug( LDAP_DEBUG_ANY,
@@ -1543,6 +1571,12 @@ ldap_back_map_config(
 	}
 	avl_insert( &map->remap, (caddr_t)&mapping[ 1 ],
 				mapping_cmp, mapping_dup );
+
+success_return:;
+	if ( !is_oc && map->map == NULL ) {
+		/* only init if required */
+		ldap_back_map_init( map, &mapping );
+	}
 
 	return 0;
 

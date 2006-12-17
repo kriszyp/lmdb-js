@@ -399,9 +399,7 @@ retry:;
 				op->o_log_prefix, candidate, (void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
-			ldap_unbind_ext( msc->msc_ld, NULL, NULL );
-			msc->msc_ld = NULL;
-			LDAP_BACK_CONN_BINDING_CLEAR( msc );
+			meta_clear_one_candidate( op, mc, candidate );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
 			rs->sr_err = timeout_err;
@@ -683,7 +681,8 @@ retry_binding:;
 			++bound;
 			continue;
 
-		} else if ( LDAP_BACK_CONN_BINDING( msc ) ) {
+		} else if ( META_BACK_CONN_CREATING( msc ) || LDAP_BACK_CONN_BINDING( msc ) )
+		{
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			ldap_pvt_thread_yield();
 			goto retry_binding;
@@ -710,7 +709,7 @@ retry_binding:;
 
 
 			if ( rc == LDAP_UNAVAILABLE ) {
-				/* FIXME: meta_back_retry() already calls
+				/* FIXME: meta_back_retry() already re-calls
 				 * meta_back_single_dobind() */
 				if ( meta_back_retry( op, rs, &mc, i, sendok ) ) {
 					goto retry_ok;
@@ -720,6 +719,7 @@ retry_binding:;
 					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 					LDAP_BACK_CONN_BINDING_CLEAR( msc );
 					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+					meta_back_release_conn( op, mc );
 				}
 
 				return 0;

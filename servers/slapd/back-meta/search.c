@@ -108,7 +108,7 @@ meta_search_dobind_init(
 			bound = 1;
 		}
 
-		snprintf( buf, sizeof( buf ), " mc=%p lc=%p%s DN=\"%s\"",
+		snprintf( buf, sizeof( buf ), " mc=%p ld=%p%s DN=\"%s\"",
 			(void *)mc, (void *)msc->msc_ld,
 			bound ? " bound" : " anonymous",
 			bound == 0 ? "" : msc->msc_bound_ndn.bv_val );
@@ -118,13 +118,13 @@ meta_search_dobind_init(
 
 		retcode = META_SEARCH_CANDIDATE;
 
-	} else if ( LDAP_BACK_CONN_BINDING( msc ) ) {
+	} else if ( META_BACK_CONN_CREATING( msc ) || LDAP_BACK_CONN_BINDING( msc ) ) {
 		/* another thread is binding the target for this conn; wait */
 
 #ifdef DEBUG_205
 		char	buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		snprintf( buf, sizeof( buf ), " mc=%p lc=%p needbind",
+		snprintf( buf, sizeof( buf ), " mc=%p ld=%p needbind",
 			(void *)mc, (void *)msc->msc_ld );
 		Debug( LDAP_DEBUG_ANY, "### %s meta_search_dobind_init[%d]%s\n",
 			op->o_log_prefix, candidate, buf );
@@ -145,6 +145,32 @@ meta_search_dobind_init(
 			op->o_log_prefix, candidate, buf );
 #endif /* DEBUG_205 */
 
+		if ( msc->msc_ld == NULL ) {
+			/* for some reason (e.g. because formerly in "binding"
+			 * state, with eventual connection expiration or invalidation)
+			 * it was not initialized as expected */
+
+			Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] mc=%p ld=NULL\n",
+				op->o_log_prefix, candidate, (void *)mc );
+
+			rc = meta_back_init_one_conn( op, rs, *mcp, candidate,
+				LDAP_BACK_CONN_ISPRIV( *mcp ), LDAP_BACK_DONTSEND, 0 );
+			switch ( rc ) {
+			case LDAP_SUCCESS:
+				assert( msc->msc_ld != NULL );
+				break;
+
+			case LDAP_SERVER_DOWN:
+			case LDAP_UNAVAILABLE:
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+				goto down;
+	
+			default:
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+				goto other;
+			}
+		}
+
 		LDAP_BACK_CONN_BINDING_SET( msc );
 	}
 
@@ -152,29 +178,6 @@ meta_search_dobind_init(
 
 	if ( retcode != META_SEARCH_BINDING ) {
 		return retcode;
-	}
-
-	if ( msc->msc_ld == NULL ) {
-		/* for some reason (e.g. because formerly in "binding"
-		 * state, with eventual connection expiration or invalidation)
-		 * it was not initialized as expected */
-
-		Debug( LDAP_DEBUG_ANY, "%s meta_search_dobind_init[%d] mc=%p ld=NULL\n",
-			op->o_log_prefix, candidate, (void *)mc );
-
-		rc = meta_back_init_one_conn( op, rs, *mcp, candidate,
-			LDAP_BACK_CONN_ISPRIV( *mcp ), LDAP_BACK_DONTSEND );
-		switch ( rc ) {
-		case LDAP_SUCCESS:
-			assert( msc->msc_ld != NULL );
-			break;
-
-		case LDAP_SERVER_DOWN:
-			goto down;
-
-		default:
-			goto other;
-		}
 	}
 
 	/* NOTE: this obsoletes pseudorootdn */
@@ -268,7 +271,7 @@ other:;
 		rc = slap_map_api2result( rs );
 
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-		LDAP_BACK_CONN_BINDING_CLEAR( msc );
+		meta_clear_one_candidate( op, mc, candidate );
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( op, mc, 0 );
@@ -315,14 +318,17 @@ meta_search_dobind_result(
 		NULL, NULL, NULL, NULL, 0 );
 	if ( rc != LDAP_SUCCESS ) {
 		candidates[ candidate ].sr_err = rc;
+
+	} else {
+		rc = slap_map_api2result( &candidates[ candidate ] );
 	}
-	rc = slap_map_api2result( &candidates[ candidate ] );
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	LDAP_BACK_CONN_BINDING_CLEAR( msc );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 	        	LDAP_BACK_CONN_TAINTED_SET( mc );
+			meta_clear_one_candidate( op, mc, candidate );
 			meta_back_release_conn_lock( op, mc, 0 );
 			*mcp = NULL;
 			retcode = META_SEARCH_ERR;
@@ -796,9 +802,8 @@ getconn:;
 	 */
 	for ( rc = 0; ncandidates > 0; ) {
 		int	gotit = 0,
-			doabandon = 0;
-
-		needbind = ncandidates;
+			doabandon = 0,
+			alreadybound = ncandidates;
 
 		/* check time limit */
 		if ( op->ors_tlimit != SLAP_NO_LIMIT
@@ -834,7 +839,7 @@ getconn:;
 
 				switch ( retcode ) {
 				case META_SEARCH_NEED_BIND:
-					needbind--;
+					alreadybound--;
 					/* fallthru */
 
 				case META_SEARCH_BINDING:
@@ -918,11 +923,12 @@ getconn:;
 
 				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 				snprintf( buf, sizeof( buf ),
-					"%s meta_back_search[%ld] mc=%p msgid=%d%s%s\n",
+					"%s meta_back_search[%ld] mc=%p msgid=%d%s%s%s\n",
 					op->o_log_prefix, (long)i, (void *)mc,
 					candidates[ i ].sr_msgid,
 					META_IS_BINDING( &candidates[ i ] ) ? " binding" : "",
-					LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ? " connbinding" : "" );
+					LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ? " connbinding" : "",
+					META_BACK_CONN_CREATING( &mc->mc_conns[ i ] ) ? " conncreating" : "" );
 				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 					
 				Debug( LDAP_DEBUG_ANY, "!!! %s\n", buf, 0, 0 );
@@ -1376,9 +1382,7 @@ really_bad:;
 							Debug( LDAP_DEBUG_ANY, "### %s\n", buf, 0, 0 );
 #endif /* DEBUG_205 */
 
-							ldap_unbind_ext( mc->mc_conns[ i ].msc_ld, NULL, NULL );
-							mc->mc_conns[ i ].msc_ld = NULL;
-							LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
+							meta_clear_one_candidate( op, mc, i );
 						}
 						ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 						META_BINDING_CLEAR( &candidates[ i ] );
@@ -1439,7 +1443,7 @@ really_bad:;
 			}
 #endif
 
-			if ( needbind == 0 ) {
+			if ( alreadybound == 0 ) {
 #if 0
 				Debug( LDAP_DEBUG_TRACE, "### %s select(%ld.%06ld)\n",
 					op->o_log_prefix, save_tv.tv_sec, save_tv.tv_usec );
@@ -1622,9 +1626,7 @@ finish:;
 #endif /* DEBUG_205 */
 
 				/* if still binding, destroy */
-				ldap_unbind_ext( mc->mc_conns[ i ].msc_ld, NULL, NULL );
-				mc->mc_conns[ i ].msc_ld = NULL;
-				LDAP_BACK_CONN_BINDING_CLEAR( &mc->mc_conns[ i ] );
+				meta_clear_one_candidate( op, mc, i );
 			}
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			META_BINDING_CLEAR( &candidates[ i ] );

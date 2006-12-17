@@ -160,6 +160,35 @@ ldap_dnattr_result_rewrite(
 
 /* (end of) from back-ldap.h before rwm removal */
 
+/*
+ * A metasingleconn_t can be in the following, mutually exclusive states:
+ *
+ *	- none			(0x0U)
+ *	- creating		META_BACK_FCONN_CREATING
+ *	- initialized		META_BACK_FCONN_INITED
+ *	- binding		LDAP_BACK_FCONN_BINDING
+ *	- bound/anonymous	LDAP_BACK_FCONN_ISBOUND/LDAP_BACK_FCONN_ISANON
+ *
+ * possible modifiers are:
+ *
+ *	- privileged		LDAP_BACK_FCONN_ISPRIV
+ *	- privileged, TLS	LDAP_BACK_FCONN_ISTLS
+ *	- subjected to idassert	LDAP_BACK_FCONN_ISIDASR
+ *	- tainted		LDAP_BACK_FCONN_TAINTED
+ */
+
+#define META_BACK_FCONN_INITED		(0x00100000U)
+#define META_BACK_FCONN_CREATING	(0x00200000U)
+
+#define	META_BACK_CONN_INITED(lc)		LDAP_BACK_CONN_ISSET((lc), META_BACK_FCONN_INITED)
+#define	META_BACK_CONN_INITED_SET(lc)		LDAP_BACK_CONN_SET((lc), META_BACK_FCONN_INITED)
+#define	META_BACK_CONN_INITED_CLEAR(lc)		LDAP_BACK_CONN_CLEAR((lc), META_BACK_FCONN_INITED)
+#define	META_BACK_CONN_INITED_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), META_BACK_FCONN_INITED, (mlc))
+#define	META_BACK_CONN_CREATING(lc)		LDAP_BACK_CONN_ISSET((lc), META_BACK_FCONN_CREATING)
+#define	META_BACK_CONN_CREATING_SET(lc)		LDAP_BACK_CONN_SET((lc), META_BACK_FCONN_CREATING)
+#define	META_BACK_CONN_CREATING_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), META_BACK_FCONN_CREATING)
+#define	META_BACK_CONN_CREATING_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), META_BACK_FCONN_CREATING, (mlc))
+
 struct metainfo_t;
 
 #define	META_NOT_CANDIDATE		((ber_tag_t)0x0)
@@ -329,16 +358,18 @@ typedef struct metainfo_t {
 	unsigned		mi_flags;
 #define	li_flags		mi_flags
 /* uses flags as defined in <back-ldap/back-ldap.h> */
-#define	META_BACK_F_ONERR_STOP		(0x00010000U)
-#define	META_BACK_F_ONERR_REPORT	(0x00020000U)
+#define	META_BACK_F_ONERR_STOP		(0x00100000U)
+#define	META_BACK_F_ONERR_REPORT	(0x00200000U)
 #define	META_BACK_F_ONERR_MASK		(META_BACK_F_ONERR_STOP|META_BACK_F_ONERR_REPORT)
-#define	META_BACK_F_DEFER_ROOTDN_BIND	(0x00040000U)
+#define	META_BACK_F_DEFER_ROOTDN_BIND	(0x00400000U)
+#define	META_BACK_F_PROXYAUTHZ_ALWAYS	(0x00800000U)
 
 #define	META_BACK_ONERR_STOP(mi)	( (mi)->mi_flags & META_BACK_F_ONERR_STOP )
 #define	META_BACK_ONERR_REPORT(mi)	( (mi)->mi_flags & META_BACK_F_ONERR_REPORT )
 #define	META_BACK_ONERR_CONTINUE(mi)	( !( (mi)->mi_flags & META_BACK_F_ONERR_MASK ) )
 
 #define META_BACK_DEFER_ROOTDN_BIND(mi)	( (mi)->mi_flags & META_BACK_F_DEFER_ROOTDN_BIND )
+#define META_BACK_PROXYAUTHZ_ALWAYS(mi)	( (mi)->mi_flags & META_BACK_F_PROXYAUTHZ_ALWAYS )
 
 	int			mi_version;
 	time_t			mi_network_timeout;
@@ -397,7 +428,8 @@ meta_back_init_one_conn(
 	metaconn_t		*mc,
 	int			candidate,
 	int			ispriv,
-	ldap_back_send_t	sendok );
+	ldap_back_send_t	sendok,
+	int			dolock );
 
 extern void
 meta_back_quarantine(

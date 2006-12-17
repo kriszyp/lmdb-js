@@ -125,7 +125,9 @@ meta_back_db_open(
 {
 	metainfo_t	*mi = (metainfo_t *)be->be_private;
 
-	int		i, rc;
+	int		i,
+			not_always = 0,
+			rc;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		slap_bindconf	sb = { 0 };
@@ -153,6 +155,18 @@ meta_back_db_open(
 				mt->mt_flags |= LDAP_BACK_F_CANCEL_EXOP;
 			}
 		}
+
+		if ( not_always == 0 ) {
+			if ( !( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )
+				|| !( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+			{
+				not_always = 1;
+			}
+		}
+	}
+
+	if ( not_always == 0 ) {
+		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_ALWAYS;
 	}
 
 	return 0;
@@ -175,7 +189,6 @@ meta_back_conn_free(
 	assert( mc->mc_refcnt == 0 );
 
 	/* at least one must be present... */
-	assert( mc->mc_conns != NULL );
 	ntargets = mc->mc_info->mi_ntargets;
 	assert( ntargets > 0 );
 
