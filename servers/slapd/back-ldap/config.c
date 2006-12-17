@@ -278,7 +278,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "use-temporaries", "TRUE/FALSE", 2, 0, 0,
+	{ "use-temporary-conn", "TRUE/FALSE", 2, 0, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_USETEMP,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.22 "
 			"NAME 'olcDbUseTemporaries' "
