@@ -281,7 +281,7 @@ static ConfigTable ldapcfg[] = {
 	{ "use-temporary-conn", "TRUE/FALSE", 2, 0, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_USETEMP,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.22 "
-			"NAME 'olcDbUseTemporaries' "
+			"NAME 'olcDbUseTemporaryConn' "
 			"DESC 'Use temporary connections if the cached one is busy' "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
