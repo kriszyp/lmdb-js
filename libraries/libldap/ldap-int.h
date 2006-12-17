@@ -399,6 +399,17 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
 #endif
 
 /*
+ * in abandon.c
+ */
+
+LDAP_F (int)
+ldap_int_bisect_find( ber_int_t *v, ber_len_t n, ber_int_t id, int *idxp );
+LDAP_F (int)
+ldap_int_bisect_insert( ber_int_t **vp, ber_len_t *np, int id, int idx );
+LDAP_F (int)
+ldap_int_bisect_delete( ber_int_t **vp, ber_len_t *np, int id, int idx );
+
+/*
  * in init.c
  */
 

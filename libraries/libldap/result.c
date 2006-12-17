@@ -1237,7 +1237,7 @@ ldap_abandoned( LDAP *ld, ber_int_t msgid, int *idxp )
 	assert( msgid >= 0 );
 	assert( ld->ld_nabandoned >= 0 );
 
-	return lutil_bisect_find( ld->ld_abandoned, ld->ld_nabandoned, msgid, idxp );
+	return ldap_int_bisect_find( ld->ld_abandoned, ld->ld_nabandoned, msgid, idxp );
 }
 
 /*
@@ -1252,11 +1252,11 @@ ldap_mark_abandoned( LDAP *ld, ber_int_t msgid, int idx )
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
-	/* NOTE: those assertions are repeated in lutil_bisect_delete() */
+	/* NOTE: those assertions are repeated in ldap_int_bisect_delete() */
 	assert( idx >= 0 );
 	assert( idx < ld->ld_nabandoned );
 	assert( ld->ld_abandoned[ idx ] == msgid );
 
-	return lutil_bisect_delete( &ld->ld_abandoned, &ld->ld_nabandoned,
+	return ldap_int_bisect_delete( &ld->ld_abandoned, &ld->ld_nabandoned,
 		msgid, idx );
 }
