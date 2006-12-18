@@ -42,16 +42,6 @@ typedef struct rwm_op_cb {
 	rwm_op_state ros;
 } rwm_op_cb;
 
-static rwm_op_cb rwm_cb;
-
-static void
-rwm_keyfree(
-	void		*key,
-	void		*data )
-{
-	ber_memfree_x( data, NULL );
-}
-
 static int
 rwm_op_cleanup( Operation *op, SlapReply *rs )
 {
@@ -97,6 +87,8 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 			break;
 		default:	break;
 		}
+		op->o_callback = op->o_callback->sc_next;
+		op->o_tmpfree( cb, op->o_tmpmemctx );
 	}
 
 	return SLAP_CB_CONTINUE;
@@ -107,17 +99,7 @@ rwm_callback_get( Operation *op, SlapReply *rs )
 {
 	rwm_op_cb	*roc = NULL;
 
-	if ( op->o_threadctx == NULL ) {
-		roc = &rwm_cb;
-	} else {
-		ldap_pvt_thread_pool_getkey( op->o_threadctx,
-				rwm_keyfree, (void *)&roc, NULL );
-		if ( roc == NULL ) {
-			roc = ch_malloc( sizeof( struct rwm_op_cb ));
-			ldap_pvt_thread_pool_setkey( op->o_threadctx,
-					rwm_keyfree, roc, rwm_keyfree );
-		}
-	}
+	roc = op->o_tmpalloc( sizeof( struct rwm_op_cb ), op->o_tmpmemctx );
 	roc->cb.sc_cleanup = rwm_op_cleanup;
 	roc->cb.sc_response = NULL;
 	roc->cb.sc_next = op->o_callback;
