@@ -194,6 +194,7 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	case LDAP_REQ_DELETE: which = op_delete; break;
 	case LDAP_REQ_MODIFY: which = op_modify; break;
 	case LDAP_REQ_MODRDN: which = op_modrdn; break;
+	case LDAP_REQ_EXTENDED: which = op_extended; break;
 	default: assert( 0 ); break;
 	}
 
@@ -1024,6 +1025,7 @@ glue_sub_init()
 	glue.on_bi.bi_op_modrdn = glue_op_func;
 	glue.on_bi.bi_op_add = glue_op_func;
 	glue.on_bi.bi_op_delete = glue_op_func;
+	glue.on_bi.bi_extended = glue_op_func;
 
 	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
 	glue.on_bi.bi_chk_controls = glue_chk_controls;
