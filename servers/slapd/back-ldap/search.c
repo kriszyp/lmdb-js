@@ -152,6 +152,7 @@ ldap_back_search(
 			msgid; 
 	struct berval	match = BER_BVNULL,
 			filter = BER_BVNULL;
+	int		free_filter = 0;
 	int		i;
 	char		**attrs = NULL;
 	int		freetext = 0;
@@ -239,6 +240,7 @@ retry:
 
 		case LDAP_FILTER_ERROR:
 			if ( ldap_back_munge_filter( op, &filter ) ) {
+				free_filter = 1;
 				goto retry;
 			}
 
@@ -498,7 +500,7 @@ finish:;
 		rs->sr_matched = save_matched;
 	}
 
-	if ( !BER_BVISNULL( &filter ) && filter.bv_val != op->ors_filterstr.bv_val ) {
+	if ( free_filter ) {
 		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
