@@ -1517,16 +1517,6 @@ rwm_response( Operation *op, SlapReply *rs )
 
 	switch( op->o_tag ) {
 	case LDAP_REQ_SEARCH:
-		/* Note: the operation attrs are remapped */
-		if ( rs->sr_type == REP_RESULT
-				&& op->ors_attrs != NULL
-				&& op->ors_attrs != rs->sr_attrs )
-		{
-			ch_free( op->ors_attrs );
-			op->ors_attrs = rs->sr_attrs;
-		}
-		/* fall thru */
-
 	case LDAP_REQ_BIND:
 	case LDAP_REQ_ADD:
 	case LDAP_REQ_DELETE:
