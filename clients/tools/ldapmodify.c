@@ -453,7 +453,7 @@ process_ldif_rec( char *rbuf, int linenum )
 			continue;
 		}
 	
-		if ( rc = ldif_parse_line2( line, btype+i, vals+i, &freev ) < 0 ) {
+		if ( ( rc = ldif_parse_line2( line, btype+i, vals+i, &freev ) ) < 0 ) {
 			fprintf( stderr, _("%s: invalid format (line %d) entry: \"%s\"\n"),
 				prog, linenum+i, dn == NULL ? "" : dn );
 			rc = LDAP_PARAM_ERROR;
@@ -685,7 +685,7 @@ short_input:
 				fprintf( stderr, _("%s: attributeDescription \"%s\":"
 					" (possible missing newline"
 						" after line %d, entry \"%s\"?)\n"),
-					prog, btype+i, linenum+i - 1, dn );
+					prog, btype[i].bv_val, linenum+i - 1, dn );
 			}
 			if ( BVICMP(btype+i,&bv)) {
 				bvl[k++] = NULL;
