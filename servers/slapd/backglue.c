@@ -88,6 +88,15 @@ typedef struct glue_state {
 } glue_state;
 
 static int
+glue_op_cleanup( Operation *op, SlapReply *rs )
+{
+	/* This is not a final result */
+	if (rs->sr_type == REP_RESULT )
+		rs->sr_type = REP_GLUE_RESULT;
+	return SLAP_CB_CONTINUE;
+}
+
+static int
 glue_op_response ( Operation *op, SlapReply *rs )
 {
 	glue_state *gs = op->o_callback->sc_private;
@@ -165,8 +174,6 @@ glue_op_response ( Operation *op, SlapReply *rs )
 			gs->nctrls = j;
 			gs->ctrls = newctrls;
 		}
-		/* This is not a final result */
-		rs->sr_type = REP_GLUE_RESULT;
 	}
 	return 0;
 }
@@ -319,7 +326,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	int i;
 	long stoptime = 0, starttime;
 	glue_state gs = {NULL, NULL, NULL, 0, 0, 0, 0};
-	slap_callback cb = { NULL, glue_op_response, NULL, NULL };
+	slap_callback cb = { NULL, glue_op_response, glue_op_cleanup, NULL };
 	int scope0, tlimit0;
 	struct berval dn, ndn, *pdn;
 
