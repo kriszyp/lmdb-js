@@ -624,8 +624,8 @@ tool_args( int argc, char **argv )
 		 			nettimeout.tv_sec = ival;
 		 		}
 		 		if( nettimeout.tv_sec < 0 || nettimeout.tv_sec > LDAP_MAXINT ) {
-		 			fprintf( stderr, _("%s: invalid network timeout (%d) specified\n"),
-		 				prog, nettimeout.tv_sec );
+		 			fprintf( stderr, _("%s: invalid network timeout (%ld) specified\n"),
+		 				prog, (long)nettimeout.tv_sec );
 	 				exit( EXIT_FAILURE );
  				}
 			} else {
@@ -1038,8 +1038,8 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 	 		if ( ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, (void *) &nettimeout )
 				!= LDAP_OPT_SUCCESS )
 			{
-		 		fprintf( stderr, "Could not set LDAP_OPT_NETWORK_TIMEOUT %d\n",
-					nettimeout.tv_sec );
+		 		fprintf( stderr, "Could not set LDAP_OPT_NETWORK_TIMEOUT %ld\n",
+					(long)nettimeout.tv_sec );
 	 			exit( EXIT_FAILURE );
 			}
 		}
