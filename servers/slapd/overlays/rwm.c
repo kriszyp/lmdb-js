@@ -85,6 +85,12 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 			op->ors_filter = ros->ors_filter;
 			op->ors_filterstr = ros->ors_filterstr;
 			break;
+		case LDAP_REQ_EXTENDED:
+			if ( op->ore_reqdata != ros->ore_reqdata ) {
+				ber_bvfree( op->ore_reqdata );
+				op->ore_reqdata = ros->ore_reqdata;
+			}
+			break;
 		default:	break;
 		}
 		op->o_callback = op->o_callback->sc_next;
@@ -874,6 +880,7 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 	struct berval	id = BER_BVNULL,
 			pwold = BER_BVNULL,
 			pwnew = BER_BVNULL;
+	BerElement *ber = NULL;
 
 	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
 		return LDAP_SUCCESS;
@@ -917,7 +924,26 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	/* TODO: re-encode the request with the massaged DN */
+	ber = ber_alloc_t( LBER_USE_DER );
+	if ( !ber ) {
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "No memory";
+		return rs->sr_err;
+	}
+	ber_printf( ber, "{" );
+	if ( !BER_BVISNULL( &id )) {
+		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_ID, 
+			&op->o_req_dn );
+	}
+	if ( !BER_BVISNULL( &pwold )) {
+		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, &pwold );
+	}
+	if ( !BER_BVISNULL( &pwnew )) {
+		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, &pwnew );
+	}
+	ber_printf( ber, "N}" );
+	ber_flatten( ber, &op->ore_reqdata );
+	ber_free( ber, 1 );
 
 	op->o_callback = &roc->cb;
 
