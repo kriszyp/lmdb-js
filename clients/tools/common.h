@@ -94,6 +94,9 @@ extern struct berval	pr_cookie;
 extern int		chaining;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+/* options */
+extern struct timeval	nettimeout;
+
 /* Defined in common.c, set in main() */
 extern const char	__Version[];
 

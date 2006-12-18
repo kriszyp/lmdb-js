@@ -249,7 +249,7 @@ urlize(char *url)
 
 
 const char options[] = "a:Ab:cE:F:l:Ls:S:tT:uz:"
-	"Cd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
+	"Cd:D:e:f:h:H:IkKMnO:o:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )

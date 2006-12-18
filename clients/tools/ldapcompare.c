@@ -102,7 +102,7 @@ static int docompare LDAP_P((
 
 
 const char options[] = "z"
-	"Cd:D:e:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
+	"Cd:D:e:h:H:IkKMnO:o:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 #ifdef LDAP_CONTROL_DONTUSECOPY
 int dontUseCopy = 0;

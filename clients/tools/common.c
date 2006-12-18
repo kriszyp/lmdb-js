@@ -125,6 +125,9 @@ static int	chainingResolve = -1;
 static int	chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+/* options */
+struct timeval	nettimeout = { -1 , 0 };
+
 typedef int (*print_ctrl_fn)( LDAP *ld, LDAPControl *ctrl );
 
 static int print_preread( LDAP *ld, LDAPControl *ctrl );
@@ -220,6 +223,8 @@ N_("  -K         like -k, but do only step 1 of the Kerberos bind\n"),
 N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
 N_("  -O props   SASL security properties\n"),
+N_("  -o <opt>[=<optparam] general options\n"),
+N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
 N_("  -p port    port on LDAP server\n"),
 N_("  -P version procotol version (default: 3)\n"),
 N_("  -Q         use SASL Quiet mode\n"),
@@ -589,6 +594,45 @@ tool_args( int argc, char **argv )
 			break;
 		case 'n':	/* print operations, don't actually do them */
 			dont++;
+			break;
+		case 'o':
+			control = ber_strdup( optarg );
+			if ( (cvalue = strchr( control, '=' )) != NULL ) {
+				*cvalue++ = '\0';
+			}
+
+			if ( strcasecmp( control, "nettimeout" ) == 0 ) {
+				if( nettimeout.tv_sec != -1 ) {
+					fprintf( stderr, "nettimeout option previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+				if( cvalue == NULL || cvalue[0] == '\0' ) {
+					fprintf( stderr, "nettimeout: option value expected\n" );
+					usage();
+				}
+		 		if ( strcasecmp( cvalue, "none" ) == 0 ) {
+		 			nettimeout.tv_sec = 0;
+		 		} else if ( strcasecmp( cvalue, "max" ) == 0 ) {
+		 			nettimeout.tv_sec = LDAP_MAXINT;
+		 		} else {
+		 			ival = strtol( cvalue, &next, 10 );
+		 			if ( next == NULL || next[0] != '\0' ) {
+		 				fprintf( stderr,
+		 					_("Unable to parse network timeout \"%s\"\n"), cvalue );
+		 				exit( EXIT_FAILURE );
+		 			}
+		 			nettimeout.tv_sec = ival;
+		 		}
+		 		if( nettimeout.tv_sec < 0 || nettimeout.tv_sec > LDAP_MAXINT ) {
+		 			fprintf( stderr, _("%s: invalid network timeout (%d) specified\n"),
+		 				prog, nettimeout.tv_sec );
+	 				exit( EXIT_FAILURE );
+ 				}
+			} else {
+				fprintf( stderr, "Invalid general option name: %s\n",
+					control );
+				usage();
+			}
 			break;
 		case 'O':
 #ifdef HAVE_CYRUS_SASL
@@ -987,6 +1031,16 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 				if ( use_tls > 1 ) {
 					exit( EXIT_FAILURE );
 				}
+			}
+		}
+
+		if ( nettimeout.tv_sec > 0 ) {
+	 		if ( ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, (void *) &nettimeout )
+				!= LDAP_OPT_SUCCESS )
+			{
+		 		fprintf( stderr, "Could not set LDAP_OPT_NETWORK_TIMEOUT %d\n",
+					nettimeout.tv_sec );
+	 			exit( EXIT_FAILURE );
 			}
 		}
 	}
