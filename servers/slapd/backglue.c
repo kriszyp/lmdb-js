@@ -166,7 +166,7 @@ glue_op_response ( Operation *op, SlapReply *rs )
 			gs->ctrls = newctrls;
 		}
 		/* This is not a final result */
-		rs->sr_type = REP_INTERMEDIATE;
+		rs->sr_type = REP_GLUE_RESULT;
 	}
 	return 0;
 }
