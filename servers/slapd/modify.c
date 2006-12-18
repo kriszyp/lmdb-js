@@ -901,16 +901,17 @@ int slap_mods_check(
 					}
 				}
 done:
-				j = ix[i];
 				slap_sl_free( ix, ctx );
 
 				if ( rc != LDAP_SUCCESS ) {
 					return rc;
 				} else if ( match == 0 ) {
 					/* value exists already */
+					assert( i >= 0 );
+					assert( i < nvals );
 					snprintf( textbuf, textlen,
 						"%s: value #%d provided more than once",
-						ml->sml_desc->ad_cname.bv_val, j );
+						ml->sml_desc->ad_cname.bv_val, ix[i] );
 					*text = textbuf;
 					return LDAP_TYPE_OR_VALUE_EXISTS;
 				}
