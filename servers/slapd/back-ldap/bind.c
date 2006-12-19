@@ -1158,10 +1158,11 @@ retry_lock:;
 	if ( LDAP_BACK_CONN_ISIDASSERT( lc ) ) {
 		if ( BER_BVISEMPTY( &binddn ) && BER_BVISEMPTY( &bindcred ) ) {
 			/* if we got here, it shouldn't return result */
-			(void)ldap_back_is_proxy_authz( op, rs,
+			rc = ldap_back_is_proxy_authz( op, rs,
 				LDAP_BACK_DONTSEND, &binddn, &bindcred );
+			assert( rc == 1 );
 		}
-		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok, &binddn, &bindcred );
+		rc = ldap_back_proxy_authz_bind( lc, op, rs, sendok, &binddn, &bindcred );
 		goto done;
 	}
 
