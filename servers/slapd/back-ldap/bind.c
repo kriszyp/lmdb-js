@@ -704,7 +704,7 @@ ldap_back_getconn(
 			op->o_dn = op->o_req_dn;
 			op->o_ndn = op->o_req_ndn;
 		}
-		isproxyauthz = ldap_back_is_proxy_authz( op, rs, sendok, binddn, bindcred );
+		isproxyauthz = ldap_back_is_proxy_authz( op, rs, 0, binddn, bindcred );
 		if ( op->o_tag == LDAP_REQ_BIND ) {
 			op->o_dn = save_o_dn;
 			op->o_ndn = save_o_ndn;
@@ -1154,7 +1154,7 @@ retry_lock:;
 	 */
 	if ( LDAP_BACK_CONN_ISIDASSERT( lc ) ) {
 		if ( BER_BVISEMPTY( &binddn ) && BER_BVISEMPTY( &bindcred ) ) {
-			ldap_back_is_proxy_authz( op, rs, sendok, &binddn, &bindcred );
+			ldap_back_is_proxy_authz( op, rs, 0, &binddn, &bindcred );
 		}
 		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok, &binddn, &bindcred );
 		goto done;
