@@ -704,7 +704,10 @@ ldap_back_getconn(
 			op->o_dn = op->o_req_dn;
 			op->o_ndn = op->o_req_ndn;
 		}
-		isproxyauthz = ldap_back_is_proxy_authz( op, rs, 0, binddn, bindcred );
+		isproxyauthz = ldap_back_is_proxy_authz( op, rs, sendok, binddn, bindcred );
+		if ( isproxyauthz == -1 ) {
+			return NULL;
+		}
 		if ( op->o_tag == LDAP_REQ_BIND ) {
 			op->o_dn = save_o_dn;
 			op->o_ndn = save_o_ndn;
@@ -1154,7 +1157,9 @@ retry_lock:;
 	 */
 	if ( LDAP_BACK_CONN_ISIDASSERT( lc ) ) {
 		if ( BER_BVISEMPTY( &binddn ) && BER_BVISEMPTY( &bindcred ) ) {
-			ldap_back_is_proxy_authz( op, rs, 0, &binddn, &bindcred );
+			/* if we got here, it shouldn't return result */
+			(void)ldap_back_is_proxy_authz( op, rs,
+				LDAP_BACK_DONTSEND, &binddn, &bindcred );
 		}
 		(void)ldap_back_proxy_authz_bind( lc, op, rs, sendok, &binddn, &bindcred );
 		goto done;
@@ -1706,6 +1711,7 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			send_ldap_result( op, rs );
+			dobind = -1;
 		}
 		goto done;
 	}
@@ -1740,6 +1746,7 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 				rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
 				if ( sendok & LDAP_BACK_SENDERR ) {
 					send_ldap_result( op, rs );
+					dobind = -1;
 				}
 
 			} else {
@@ -1766,6 +1773,7 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 				if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
 					if ( sendok & LDAP_BACK_SENDERR ) {
 						send_ldap_result( op, rs );
+						dobind = -1;
 					}
 
 				} else {

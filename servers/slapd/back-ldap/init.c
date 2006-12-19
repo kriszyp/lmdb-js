@@ -152,6 +152,10 @@ ldap_back_db_init( Backend *be )
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
 	rc = ldap_back_monitor_db_init( be );
+	if ( rc != 0 ) {
+		/* ignore, by now */
+		rc = 0;
+	}
 
 	return rc;
 }
