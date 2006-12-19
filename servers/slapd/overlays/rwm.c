@@ -27,6 +27,7 @@
 #include "rwm.h"
 
 typedef struct rwm_op_state {
+	ber_tag_t r_tag;
 	struct berval ro_dn;
 	struct berval ro_ndn;
 	struct berval r_dn;
@@ -48,8 +49,8 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 	slap_callback	*cb = op->o_callback;
 	rwm_op_state *ros = cb->sc_private;
 
-	if ( rs->sr_type == REP_RESULT || op->o_abandon ||
-		rs->sr_err == SLAPD_ABANDON ) {
+	if ( rs->sr_type == REP_RESULT || rs->sr_type == REP_EXTENDED ||
+		op->o_abandon || rs->sr_err == SLAPD_ABANDON ) {
 
 		op->o_req_dn = ros->ro_dn;
 		op->o_req_ndn = ros->ro_ndn;
@@ -57,7 +58,7 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 		if ( !BER_BVISEMPTY( &ros->r_dn )) ch_free( ros->r_dn.bv_val );
 		if ( !BER_BVISEMPTY( &ros->r_ndn )) ch_free( ros->r_ndn.bv_val );
 
-		switch( op->o_tag ) {
+		switch( ros->r_tag ) {
 		case LDAP_REQ_COMPARE:
 			if ( op->orc_ava->aa_value.bv_val != ros->orc_ava->aa_value.bv_val )
 				op->o_tmpfree( op->orc_ava->aa_value.bv_val, op->o_tmpmemctx );
@@ -110,6 +111,7 @@ rwm_callback_get( Operation *op, SlapReply *rs )
 	roc->cb.sc_response = NULL;
 	roc->cb.sc_next = op->o_callback;
 	roc->cb.sc_private = &roc->ros;
+	roc->ros.r_tag = op->o_tag;
 	roc->ros.ro_dn = op->o_req_dn;
 	roc->ros.ro_ndn = op->o_req_ndn;
 	roc->ros.o_request = op->o_request;
