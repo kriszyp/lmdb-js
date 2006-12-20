@@ -265,10 +265,14 @@ slap_set_join(
 
 done:;
 	if ( !( op_flags & SLAP_SET_LREFARR ) && lset != NULL ) {
+		if ( !( op_flags & SLAP_SET_LREFVAL ))
+			cp->set_op->o_tmpfree( lset->bv_val, cp->set_op->o_tmpmemctx );
 		cp->set_op->o_tmpfree( lset, cp->set_op->o_tmpmemctx );
 	}
 
 	if ( !( op_flags & SLAP_SET_RREFARR ) && rset != NULL ) {
+		if ( !( op_flags & SLAP_SET_RREFVAL ))
+			cp->set_op->o_tmpfree( rset->bv_val, cp->set_op->o_tmpmemctx );
 		cp->set_op->o_tmpfree( rset, cp->set_op->o_tmpmemctx );
 	}
 
