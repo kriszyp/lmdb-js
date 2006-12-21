@@ -3183,6 +3183,10 @@ config_find_base( CfEntryInfo *root, struct berval *dn, CfEntryInfo **last )
 typedef struct setup_cookie {
 	CfBackInfo *cfb;
 	ConfigArgs *ca;
+	Entry *frontend;
+	Entry *config;
+	int	got_frontend;
+	int got_config;
 } setup_cookie;
 
 static int
@@ -3192,6 +3196,56 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 		setup_cookie *sc = op->o_callback->sc_private;
 
 		sc->cfb->cb_got_ldif = 1;
+		/* Does the frontend exist? */
+		if ( !sc->got_frontend ) {
+			if ( !strncmp( rs->sr_entry->e_nname.bv_val,
+				"olcDatabase", STRLENOF( "olcDatabase" ))) {
+				if ( strncmp( rs->sr_entry->e_nname.bv_val +
+					STRLENOF( "olcDatabase" ), "={-1}frontend",
+					STRLENOF( "={-1}frontend" ))) {
+					struct berval rdn;
+					int i = op->o_noop;
+					sc->ca->be = frontendDB;
+					sc->ca->bi = frontendDB->bd_info;
+					frontendDB->be_cf_ocs = &CFOC_FRONTEND;
+					rdn.bv_val = sc->ca->log;
+					rdn.bv_len = snprintf(rdn.bv_val, sizeof( sc->ca->log ),
+						"%s=" SLAP_X_ORDERED_FMT "%s",
+						cfAd_database->ad_cname.bv_val, -1,
+						sc->ca->bi->bi_type);
+					op->o_noop = 1;
+					sc->frontend = config_build_entry( op, rs,
+						sc->cfb->cb_root, sc->ca, &rdn, &CFOC_DATABASE,
+						sc->ca->be->be_cf_ocs );
+					op->o_noop = i;
+				}
+				sc->got_frontend++;
+			}
+		}
+		/* Does the configDB exist? */
+		if ( sc->got_frontend && !sc->got_config &&
+			!strncmp( rs->sr_entry->e_nname.bv_val,
+			"olcDatabase", STRLENOF( "olcDatabase" ))) {
+			if ( strncmp( rs->sr_entry->e_nname.bv_val +
+				STRLENOF( "olcDatabase" ), "={0}config",
+				STRLENOF( "={0}config" ))) {
+				struct berval rdn;
+				int i = op->o_noop;
+				sc->ca->be = LDAP_STAILQ_FIRST( &backendDB );
+				sc->ca->bi = sc->ca->be->bd_info;
+				rdn.bv_val = sc->ca->log;
+				rdn.bv_len = snprintf(rdn.bv_val, sizeof( sc->ca->log ),
+					"%s=" SLAP_X_ORDERED_FMT "%s",
+					cfAd_database->ad_cname.bv_val, 0,
+					sc->ca->bi->bi_type);
+				op->o_noop = 1;
+				sc->config = config_build_entry( op, rs, sc->cfb->cb_root,
+					sc->ca, &rdn, &CFOC_DATABASE, sc->ca->be->be_cf_ocs );
+				op->o_noop = i;
+			}
+			sc->got_config++;
+		}
+
 		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL, NULL );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "config error processing %s: %s\n",
@@ -3294,6 +3348,10 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		sc.cfb = cfb;
 		sc.ca = &c;
 		cb.sc_private = &sc;
+		sc.got_frontend = 0;
+		sc.got_config = 0;
+		sc.frontend = NULL;
+		sc.config = NULL;
 
 		op->o_bd = &cfb->cb_db;
 		
@@ -3306,6 +3364,15 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		/* Restore normal DN validation */
 		slap_DN_strict = prev_DN_strict;
 
+		op->o_tag = LDAP_REQ_ADD;
+		if ( rc == LDAP_SUCCESS && sc.frontend ) {
+			op->ora_e = sc.frontend;
+			rc = op->o_bd->be_add( op, &rs );
+		}
+		if ( rc == LDAP_SUCCESS && sc.config ) {
+			op->ora_e = sc.config;
+			rc = op->o_bd->be_add( op, &rs );
+		}
 		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
 
