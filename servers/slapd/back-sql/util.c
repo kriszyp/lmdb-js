@@ -252,7 +252,7 @@ backsql_entry_addattr(
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(\"%s\"): %s=%s\n", 
-		e->e_name.bv_val, ad->ad_cname->bv_val, val->bv_val );
+		e->e_name.bv_val, ad->ad_cname.bv_val, val->bv_val );
 #endif /* BACKSQL_TRACE */
 
 	rc = attr_merge_normalize_one( e, ad, val, memctx );
