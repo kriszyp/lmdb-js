@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.32 Engineering
+	Fixed slapd ACL set memleak (ITS#4780)
 	Fixed slapd-sql Debug typo (ITS#4784)
 
 OpenLDAP 2.3.31 Release
