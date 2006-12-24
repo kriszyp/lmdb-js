@@ -877,6 +877,32 @@ meta_back_db_config(
 			return 1;
 		}
 
+	/* privileged connections pool max size ? */
+	} else if ( strcasecmp( argv[ 0 ], "conn-pool-max" ) == 0 ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"conn-pool-max <n>\" takes 1 argument\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( mi->mi_ntargets > 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"conn-pool-max\" must appear before target definitions\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( lutil_atoi( &mi->mi_conn_priv_max, argv[1] )
+			|| mi->mi_conn_priv_max < LDAP_BACK_CONN_PRIV_MIN
+			|| mi->mi_conn_priv_max > LDAP_BACK_CONN_PRIV_MAX )
+		{
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"conn-pool-max <n>\": invalid arg \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
 	} else if ( strcasecmp( argv[ 0 ], "cancel" ) == 0 ) {
 		unsigned 	flag = 0;
 		unsigned	*flagsp = mi->mi_ntargets ?

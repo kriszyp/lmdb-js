@@ -102,6 +102,7 @@ ldap_back_db_init( Backend *be )
 {
 	ldapinfo_t	*li;
 	int		rc;
+	unsigned	i;
 
 	li = (ldapinfo_t *)ch_calloc( 1, sizeof( ldapinfo_t ) );
 	if ( li == NULL ) {
@@ -145,6 +146,12 @@ ldap_back_db_init( Backend *be )
 	li->li_version = LDAP_VERSION3;
 
 	ldap_pvt_thread_mutex_init( &li->li_conninfo.lai_mutex );
+
+	for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+		li->li_conn_priv[ i ].lic_num = 0;
+		LDAP_TAILQ_INIT( &li->li_conn_priv[ i ].lic_priv );
+	}
+	li->li_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
 
 	be->be_private = li;
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_NOLASTMOD;
@@ -244,6 +251,8 @@ ldap_back_conn_free( void *v_lc )
 	if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
 		ch_free( lc->lc_local_ndn.bv_val );
 	}
+	lc->lc_q.tqe_prev = NULL;
+	lc->lc_q.tqe_next = NULL;
 	ch_free( lc );
 }
 
@@ -264,6 +273,7 @@ ldap_back_db_destroy( Backend *be )
 {
 	if ( be->be_private ) {
 		ldapinfo_t	*li = ( ldapinfo_t * )be->be_private;
+		unsigned	i;
 
 		(void)ldap_back_monitor_db_destroy( be );
 
@@ -327,6 +337,14 @@ ldap_back_db_destroy( Backend *be )
 		}
                	if ( li->li_conninfo.lai_tree ) {
 			avl_free( li->li_conninfo.lai_tree, ldap_back_conn_free );
+		}
+		for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+			while ( !LDAP_TAILQ_EMPTY( &li->li_conn_priv[ i ].lic_priv ) ) {
+				ldapconn_t	*lc = LDAP_TAILQ_FIRST( &li->li_conn_priv[ i ].lic_priv );
+
+				LDAP_TAILQ_REMOVE( &li->li_conn_priv[ i ].lic_priv, lc, lc_q );
+				ldap_back_conn_free( lc );
+			}
 		}
 		if ( LDAP_BACK_QUARANTINE( li ) ) {
 			slap_retry_info_destroy( &li->li_quarantine );

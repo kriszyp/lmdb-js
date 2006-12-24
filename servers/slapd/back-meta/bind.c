@@ -220,7 +220,7 @@ retry_lock:;
 
 			assert( mc->mc_refcnt == 1 );
 #if META_BACK_PRINT_CONNTREE > 0
-			meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_bind" );
+			meta_back_print_conntree( mi, ">>> meta_back_bind" );
 #endif /* META_BACK_PRINT_CONNTREE */
 			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp );
@@ -252,12 +252,12 @@ retry_lock:;
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
 			if ( isroot ) {
 				LDAP_BACK_CONN_ISPRIV_SET( mc );
-				mc->mc_conn = LDAP_BACK_PCONN_SET( op );
+				LDAP_BACK_PCONN_SET( mc, op );
 			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );
 #if META_BACK_PRINT_CONNTREE > 0
-			meta_back_print_conntree( mi->mi_conninfo.lai_tree, "<<< meta_back_bind" );
+			meta_back_print_conntree( mi, "<<< meta_back_bind" );
 #endif /* META_BACK_PRINT_CONNTREE */
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			if ( lerr == -1 ) {

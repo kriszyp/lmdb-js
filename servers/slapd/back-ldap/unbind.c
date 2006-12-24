@@ -49,7 +49,7 @@ ldap_back_conn_destroy(
 	
 	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 #if LDAP_BACK_PRINT_CONNTREE > 0
-		ldap_back_print_conntree( li->li_conninfo.lai_tree, ">>> ldap_back_conn_destroy" );
+	ldap_back_print_conntree( li, ">>> ldap_back_conn_destroy" );
 #endif /* LDAP_BACK_PRINT_CONNTREE */
 	while ( ( lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)&lc_curr, ldap_back_conn_cmp ) ) != NULL )
 	{
@@ -67,7 +67,7 @@ ldap_back_conn_destroy(
 		ldap_back_conn_free( lc );
 	}
 #if LDAP_BACK_PRINT_CONNTREE > 0
-		ldap_back_print_conntree( li->li_conninfo.lai_tree, "<<< ldap_back_conn_destroy" );
+	ldap_back_print_conntree( li, "<<< ldap_back_conn_destroy" );
 #endif /* LDAP_BACK_PRINT_CONNTREE */
 	ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 

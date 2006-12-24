@@ -52,7 +52,7 @@ meta_back_conn_destroy(
 	
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 #if META_BACK_PRINT_CONNTREE > 0
-	meta_back_print_conntree( mi->mi_conninfo.lai_tree, ">>> meta_back_conn_destroy" );
+	meta_back_print_conntree( mi, ">>> meta_back_conn_destroy" );
 #endif /* META_BACK_PRINT_CONNTREE */
 	while ( ( mc = avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )&mc_curr, meta_back_conn_cmp ) ) != NULL )
 	{
@@ -65,7 +65,7 @@ meta_back_conn_destroy(
 		meta_back_conn_free( mc );
 	}
 #if META_BACK_PRINT_CONNTREE > 0
-	meta_back_print_conntree( mi->mi_conninfo.lai_tree, "<<< meta_back_conn_destroy" );
+	meta_back_print_conntree( mi, "<<< meta_back_conn_destroy" );
 #endif /* META_BACK_PRINT_CONNTREE */
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 

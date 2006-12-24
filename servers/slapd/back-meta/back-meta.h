@@ -241,6 +241,8 @@ typedef struct metaconn_t {
 
 	struct metainfo_t	*mc_info;
 
+	LDAP_TAILQ_ENTRY(metaconn_t)	mc_q;
+
 	/* supersedes the connection stuff */
 	metasingleconn_t	mc_conns[ 1 ];
 	/* NOTE: mc_conns must be last, because
@@ -346,7 +348,14 @@ typedef struct metainfo_t {
 
 	metadncache_t		mi_cache;
 	
+	/* cached connections; 
+	 * special conns are in tailq rather than in tree */
 	ldap_avl_info_t		mi_conninfo;
+	struct {
+		int						mic_num;
+		LDAP_TAILQ_HEAD(mc_conn_priv_q, metaconn_t)	mic_priv;
+	}			mi_conn_priv[ LDAP_BACK_PCONN_LAST ];
+	int			mi_conn_priv_max;
 
 	/* NOTE: quarantine uses the connection mutex */
 	slap_retry_info_t	mi_quarantine;
@@ -417,7 +426,7 @@ meta_back_conn_free(
 #if META_BACK_PRINT_CONNTREE > 0
 extern void
 meta_back_print_conntree(
-	Avlnode			*root,
+	metainfo_t		*mi,
 	char			*msg );
 #endif
 

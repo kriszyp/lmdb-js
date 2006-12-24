@@ -66,6 +66,7 @@ enum {
 	LDAP_BACK_CFG_VERSION,
 	LDAP_BACK_CFG_SINGLECONN,
 	LDAP_BACK_CFG_USETEMP,
+	LDAP_BACK_CFG_CONNPOOLMAX,
 	LDAP_BACK_CFG_CANCEL,
 	LDAP_BACK_CFG_QUARANTINE,
 	LDAP_BACK_CFG_REWRITE,
@@ -286,6 +287,14 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+	{ "conn-pool-max", "<n>", 2, 0, 0,
+		ARG_MAGIC|ARG_INT|LDAP_BACK_CFG_CONNPOOLMAX,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.23 "
+			"NAME 'olcDbConnectionPoolMax' "
+			"DESC 'Max size of privileged connections pool' "
+			"SYNTAX OMsInteger "
+			"SINGLE-VALUE )",
+		NULL, NULL },
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -324,6 +333,7 @@ static ConfigOCs ldapocs[] = {
 			"$ olcDbCancel "
 			"$ olcDbQuarantine "
 			"$ olcDbUseTemporaryConn "
+			"$ olcDbConnectionPoolMax "
 		") )",
 		 	Cft_Database, ldapcfg},
 	{ NULL, 0, NULL }
@@ -1060,6 +1070,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 			c->value_int = LDAP_BACK_USE_TEMPORARIES( li );
 			break;
 
+		case LDAP_BACK_CFG_CONNPOOLMAX:
+			c->value_int = li->li_conn_priv_max;
+			break;
+
 		case LDAP_BACK_CFG_CANCEL: {
 			slap_mask_t	mask = LDAP_BACK_F_CANCEL_MASK2;
 
@@ -1188,6 +1202,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 		case LDAP_BACK_CFG_USETEMP:
 			li->li_flags &= ~LDAP_BACK_F_USE_TEMPORARIES;
+			break;
+
+		case LDAP_BACK_CFG_CONNPOOLMAX:
+			li->li_conn_priv_max = LDAP_BACK_CONN_PRIV_MIN;
 			break;
 
 		case LDAP_BACK_CFG_QUARANTINE:
@@ -1742,6 +1760,24 @@ done_url:;
 		} else {
 			li->li_flags &= ~LDAP_BACK_F_USE_TEMPORARIES;
 		}
+		break;
+
+	case LDAP_BACK_CFG_CONNPOOLMAX:
+		if ( c->value_int < LDAP_BACK_CONN_PRIV_MIN
+			|| c->value_int > LDAP_BACK_CONN_PRIV_MAX )
+		{
+			snprintf( c->msg, sizeof( c->msg ),
+				"invalid max size " "of privileged "
+				"connections pool \"%s\" "
+				"in \"conn-pool-max <n> "
+				"(must be between %d and %d)\"",
+				c->argv[ 1 ],
+				LDAP_BACK_CONN_PRIV_MIN,
+				LDAP_BACK_CONN_PRIV_MAX );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			return 1;
+		}
+		li->li_conn_priv_max = c->value_int;
 		break;
 
 	case LDAP_BACK_CFG_CANCEL: {

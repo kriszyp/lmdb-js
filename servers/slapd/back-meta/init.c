@@ -90,6 +90,7 @@ meta_back_db_init(
 	Backend		*be )
 {
 	metainfo_t	*mi;
+	int		i;
 
 	mi = ch_calloc( 1, sizeof( metainfo_t ) );
 	if ( mi == NULL ) {
@@ -113,6 +114,12 @@ meta_back_db_init(
 	/* safe default */
 	mi->mi_nretries = META_RETRY_DEFAULT;
 	mi->mi_version = LDAP_VERSION3;
+
+	for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+		mi->mi_conn_priv[ i ].mic_num = 0;
+		LDAP_TAILQ_INIT( &mi->mi_conn_priv[ i ].mic_priv );
+	}
+	mi->mi_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
 	
 	be->be_private = mi;
 
@@ -297,6 +304,14 @@ meta_back_db_destroy(
 
 		if ( mi->mi_conninfo.lai_tree ) {
 			avl_free( mi->mi_conninfo.lai_tree, meta_back_conn_free );
+		}
+		for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+			while ( !LDAP_TAILQ_EMPTY( &mi->mi_conn_priv[ i ].mic_priv ) ) {
+				metaconn_t	*mc = LDAP_TAILQ_FIRST( &mi->mi_conn_priv[ i ].mic_priv );
+
+				LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ i ].mic_priv, mc, mc_q );
+				meta_back_conn_free( mc );
+			}
 		}
 
 		/*
