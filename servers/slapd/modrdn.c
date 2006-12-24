@@ -417,6 +417,7 @@ slap_modrdn2mods(
 			goto done;
 		}
 	}
+	rs->sr_text = NULL;
 
 	/* Add new attribute values to the entry */
 	for ( a_cnt = 0; new_rdn[a_cnt]; a_cnt++ ) {

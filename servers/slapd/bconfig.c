@@ -1228,7 +1228,7 @@ config_generic(ConfigArgs *c) {
 			} else if ( !strcasecmp( c->argv[1], "frontend" )) {
 				c->be = frontendDB;
 			} else {
-				c->be = backend_db_init(c->argv[1], NULL);
+				c->be = backend_db_init(c->argv[1], NULL, c->valx);
 				if ( !c->be ) {
 					snprintf( c->msg, sizeof( c->msg ), "<%s> failed init", c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
@@ -1934,26 +1934,21 @@ config_timelimit(ConfigArgs *c) {
 
 static int
 config_overlay(ConfigArgs *c) {
-	slap_overinfo *oi;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		assert(0);
 	}
-	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1])) {
+	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1],
+		c->valx, &c->bi)) {
 		/* log error */
 		Debug( LDAP_DEBUG_ANY,
 			"%s: (optional) %s overlay \"%s\" configuration failed.\n",
 			c->log, c->be == frontendDB ? "global " : "", &c->argv[1][1]);
 		return 1;
-	} else if(overlay_config(c->be, c->argv[1])) {
+	} else if(overlay_config(c->be, c->argv[1], c->valx, &c->bi)) {
 		return(1);
 	}
-	/* Setup context for subsequent config directives.
-	 * The newly added overlay is at the head of the list.
-	 */
-	oi = (slap_overinfo *)c->be->bd_info;
-	c->bi = &oi->oi_list->on_bi;
 	return(0);
 }
 
@@ -3218,8 +3213,11 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 						sc->cfb->cb_root, sc->ca, &rdn, &CFOC_DATABASE,
 						sc->ca->be->be_cf_ocs );
 					op->o_noop = i;
+					sc->got_frontend++;
+				} else {
+					sc->got_frontend++;
+					goto ok;
 				}
-				sc->got_frontend++;
 			}
 		}
 		/* Does the configDB exist? */
@@ -3246,6 +3244,7 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 			sc->got_config++;
 		}
 
+ok:
 		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL, NULL );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "config error processing %s: %s\n",
@@ -3285,7 +3284,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	if ( !cfb->cb_db.bd_info )
 		return 0;	/* FIXME: eventually this will be a fatal error */
 
-	if ( backend_db_init( "ldif", &cfb->cb_db ) == NULL )
+	if ( backend_db_init( "ldif", &cfb->cb_db, -1 ) == NULL )
 		return 1;
 
 	cfb->cb_db.be_suffix = be->be_suffix;
@@ -3421,7 +3420,7 @@ read_config(const char *fname, const char *dir) {
 	int rc;
 
 	/* Setup the config backend */
-	be = backend_db_init( "config", NULL );
+	be = backend_db_init( "config", NULL, 0 );
 	if ( !be )
 		return 1;
 
@@ -3655,11 +3654,176 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 }
 
 static int
+config_rename_attr( SlapReply *rs, Entry *e, struct berval *rdn,
+	Attribute **at )
+{
+	struct berval rtype, rval;
+	Attribute *a;
+	AttributeDescription *ad = NULL;
+
+	dnRdn( &e->e_name, rdn );
+	rval.bv_val = strchr(rdn->bv_val, '=' ) + 1;
+	rval.bv_len = rdn->bv_len - (rval.bv_val - rdn->bv_val);
+	rtype.bv_val = rdn->bv_val;
+	rtype.bv_len = rval.bv_val - rtype.bv_val - 1;
+
+	/* Find attr */
+	slap_bv2ad( &rtype, &ad, &rs->sr_text );
+	a = attr_find( e->e_attrs, ad );
+	if (!a ) return LDAP_NAMING_VIOLATION;
+	*at = a;
+
+	return 0;
+}
+
+static void
+config_rename_kids( CfEntryInfo *ce )
+{
+	CfEntryInfo *ce2;
+	struct berval rdn, nrdn;
+
+	for (ce2 = ce->ce_kids; ce2; ce2 = ce2->ce_sibs) {
+		dnRdn ( &ce2->ce_entry->e_name, &rdn );
+		dnRdn ( &ce2->ce_entry->e_nname, &nrdn );
+		free( ce2->ce_entry->e_name.bv_val );
+		free( ce2->ce_entry->e_nname.bv_val );
+		build_new_dn( &ce2->ce_entry->e_name, &ce->ce_entry->e_name,
+			&rdn, NULL );
+		build_new_dn( &ce2->ce_entry->e_nname, &ce->ce_entry->e_nname,
+			&nrdn, NULL );
+		config_rename_kids( ce2 );
+	}
+}
+
+static int
+config_rename_one( Operation *op, SlapReply *rs, Entry *e,
+	CfEntryInfo *parent, Attribute *a, struct berval *newrdn,
+	struct berval *nnewrdn, int use_ldif )
+{
+	char *ptr1;
+	int rc = 0;
+	struct berval odn, ondn;
+
+	odn = e->e_name;
+	ondn = e->e_nname;
+	build_new_dn( &e->e_name, &parent->ce_entry->e_name, newrdn, NULL );
+	build_new_dn( &e->e_nname, &parent->ce_entry->e_nname, nnewrdn, NULL );
+
+	/* Replace attr */
+	free( a->a_vals[0].bv_val );
+	ptr1 = strchr( newrdn->bv_val, '=' ) + 1;
+	a->a_vals[0].bv_len = newrdn->bv_len - (ptr1 - newrdn->bv_val);
+	a->a_vals[0].bv_val = ch_malloc( a->a_vals[0].bv_len + 1 );
+	strcpy( a->a_vals[0].bv_val, ptr1 );
+
+	if ( a->a_nvals != a->a_vals ) {
+		free( a->a_nvals[0].bv_val );
+		ptr1 = strchr( nnewrdn->bv_val, '=' ) + 1;
+		a->a_nvals[0].bv_len = nnewrdn->bv_len - (ptr1 - nnewrdn->bv_val);
+		a->a_nvals[0].bv_val = ch_malloc( a->a_nvals[0].bv_len + 1 );
+		strcpy( a->a_nvals[0].bv_val, ptr1 );
+	}
+	if ( use_ldif ) {
+		CfBackInfo *cfb = (CfBackInfo *)op->o_bd->be_private;
+		BackendDB *be = op->o_bd;
+		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		struct berval dn, ndn, xdn, xndn;
+
+		op->o_bd = &cfb->cb_db;
+
+		/* Save current rootdn; use the underlying DB's rootdn */
+		dn = op->o_dn;
+		ndn = op->o_ndn;
+		xdn = op->o_req_dn;
+		xndn = op->o_req_ndn;
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+		op->o_req_dn = odn;
+		op->o_req_ndn = ondn;
+
+		sc.sc_next = op->o_callback;
+		op->o_callback = &sc;
+		op->orr_newrdn = *newrdn;
+		op->orr_nnewrdn = *nnewrdn;
+		op->orr_deleteoldrdn = 1;
+		op->orr_modlist = NULL;
+		slap_modrdn2mods( op, rs );
+		rc = op->o_bd->be_modrdn( op, rs );
+		slap_mods_free( op->orr_modlist, 1 );
+
+		op->o_bd = be;
+		op->o_callback = sc.sc_next;
+		op->o_dn = dn;
+		op->o_ndn = ndn;
+		op->o_req_dn = xdn;
+		op->o_req_ndn = xndn;
+	}
+	free( odn.bv_val );
+	free( ondn.bv_val );
+	if ( e->e_private )
+		config_rename_kids( e->e_private );
+	return rc;
+}
+
+static int
+config_renumber_one( Operation *op, SlapReply *rs, CfEntryInfo *parent, 
+	Entry *e, int idx, int tailindex, int use_ldif )
+{
+	struct berval ival, newrdn, nnewrdn;
+	struct berval rdn;
+	Attribute *a;
+	char ibuf[32], *ptr1, *ptr2 = NULL;
+	int rc = 0;
+
+	rc = config_rename_attr( rs, e, &rdn, &a );
+	if ( rc ) return rc;
+
+	ival.bv_val = ibuf;
+	ival.bv_len = snprintf( ibuf, sizeof( ibuf ), SLAP_X_ORDERED_FMT, idx );
+	if ( ival.bv_len >= sizeof( ibuf ) ) {
+		return LDAP_NAMING_VIOLATION;
+	}
+	
+	newrdn.bv_len = rdn.bv_len + ival.bv_len;
+	newrdn.bv_val = ch_malloc( newrdn.bv_len+1 );
+
+	if ( tailindex ) {
+		ptr1 = lutil_strncopy( newrdn.bv_val, rdn.bv_val, rdn.bv_len );
+		ptr1 = lutil_strcopy( ptr1, ival.bv_val );
+	} else {
+		int xlen;
+		ptr2 = ber_bvchr( &rdn, '}' );
+		if ( ptr2 ) {
+			ptr2++;
+		} else {
+			ptr2 = rdn.bv_val + a->a_desc->ad_cname.bv_len + 1;
+		}
+		xlen = rdn.bv_len - (ptr2 - rdn.bv_val);
+		ptr1 = lutil_strncopy( newrdn.bv_val, a->a_desc->ad_cname.bv_val,
+			a->a_desc->ad_cname.bv_len );
+		*ptr1++ = '=';
+		ptr1 = lutil_strcopy( ptr1, ival.bv_val );
+		ptr1 = lutil_strncopy( ptr1, ptr2, xlen );
+		*ptr1 = '\0';
+	}
+
+	/* Do the equivalent of ModRDN */
+	/* Replace DN / NDN */
+	newrdn.bv_len = ptr1 - newrdn.bv_val;
+	rdnNormalize( 0, NULL, NULL, &newrdn, &nnewrdn, NULL );
+	rc = config_rename_one( op, rs, e, parent, a, &newrdn, &nnewrdn, use_ldif );
+
+	free( nnewrdn.bv_val );
+	free( newrdn.bv_val );
+	return rc;
+}
+
+static int
 check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
-	SlapReply *rs, int *renum )
+	SlapReply *rs, int *renum, int *ibase )
 {
 	CfEntryInfo *ce;
-	int index = -1, gotindex = 0, nsibs;
+	int index = -1, gotindex = 0, nsibs, rc = 0;
 	int renumber = 0, tailindex = 0;
 	char *ptr1, *ptr2 = NULL;
 	struct berval rdn;
@@ -3710,83 +3874,14 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 				renumber = 1;
 			}
 		}
+		/* just make index = nsibs */
 		if ( !renumber ) {
-			struct berval ival, newrdn, nnewrdn;
-			struct berval rtype, rval;
-			Attribute *a;
-			AttributeDescription *ad = NULL;
-			char ibuf[32];
-			const char *text;
-
-			rval.bv_val = strchr(rdn.bv_val, '=' ) + 1;
-			rval.bv_len = rdn.bv_len - (rval.bv_val - rdn.bv_val);
-			rtype.bv_val = rdn.bv_val;
-			rtype.bv_len = rval.bv_val - rtype.bv_val - 1;
-
-			/* Find attr */
-			slap_bv2ad( &rtype, &ad, &text );
-			a = attr_find( e->e_attrs, ad );
-			if (!a ) return LDAP_NAMING_VIOLATION;
-
-			ival.bv_val = ibuf;
-			ival.bv_len = snprintf( ibuf, sizeof( ibuf ), SLAP_X_ORDERED_FMT, nsibs );
-			if ( ival.bv_len >= sizeof( ibuf ) ) {
-				return LDAP_NAMING_VIOLATION;
-			}
-			
-			newrdn.bv_len = rdn.bv_len + ival.bv_len;
-			newrdn.bv_val = ch_malloc( newrdn.bv_len+1 );
-
-			if ( tailindex ) {
-				ptr1 = lutil_strncopy( newrdn.bv_val, rdn.bv_val, rdn.bv_len );
-				ptr1 = lutil_strcopy( ptr1, ival.bv_val );
-			} else {
-				int xlen;
-				if ( !gotindex ) {
-					ptr2 = rval.bv_val;
-					xlen = rval.bv_len;
-				} else {
-					xlen = rdn.bv_len - (ptr2 - rdn.bv_val);
-				}
-				ptr1 = lutil_strncopy( newrdn.bv_val, rtype.bv_val,
-					rtype.bv_len );
-				*ptr1++ = '=';
-				ptr1 = lutil_strcopy( ptr1, ival.bv_val );
-				ptr1 = lutil_strncopy( ptr1, ptr2, xlen );
-				*ptr1 = '\0';
-			}
-
-			/* Do the equivalent of ModRDN */
-			/* Replace DN / NDN */
-			newrdn.bv_len = ptr1 - newrdn.bv_val;
-			rdnNormalize( 0, NULL, NULL, &newrdn, &nnewrdn, NULL );
-			free( e->e_name.bv_val );
-			build_new_dn( &e->e_name, &parent->ce_entry->e_name,
-				&newrdn, NULL );
-			free( e->e_nname.bv_val );
-			build_new_dn( &e->e_nname, &parent->ce_entry->e_nname,
-				&nnewrdn, NULL );
-
-			/* Replace attr */
-			free( a->a_vals[0].bv_val );
-			ptr1 = strchr( newrdn.bv_val, '=' ) + 1;
-			a->a_vals[0].bv_len = newrdn.bv_len - (ptr1 - newrdn.bv_val);
-			a->a_vals[0].bv_val = ch_malloc( a->a_vals[0].bv_len + 1 );
-			strcpy( a->a_vals[0].bv_val, ptr1 );
-
-			if ( a->a_nvals != a->a_vals ) {
-				free( a->a_nvals[0].bv_val );
-				ptr1 = strchr( nnewrdn.bv_val, '=' ) + 1;
-				a->a_nvals[0].bv_len = nnewrdn.bv_len - (ptr1 - nnewrdn.bv_val);
-				a->a_nvals[0].bv_val = ch_malloc( a->a_nvals[0].bv_len + 1 );
-				strcpy( a->a_nvals[0].bv_val, ptr1 );
-			}
-			free( nnewrdn.bv_val );
-			free( newrdn.bv_val );
+			rc = config_renumber_one( NULL, rs, parent, e, index, tailindex, 0 );
 		}
 	}
+	if ( ibase ) *ibase = index;
 	if ( renum ) *renum = renumber;
-	return 0;
+	return rc;
 }
 
 static ConfigOCs **
@@ -3897,14 +3992,17 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	CfEntryInfo *ce, *last;
 	ConfigOCs **colst;
 	Attribute *a, *oc_at;
-	int i, nocs, rc = 0;
+	int i, ibase = -1, nocs, rc = 0;
 	struct berval pdn;
 	ConfigTable *ct;
 	char *ptr;
 
-	/* Make sure parent exists and entry does not */
+	/* Make sure parent exists and entry does not. But allow
+	 * Databases and Overlays to be inserted.
+	 */
 	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
-	if ( ce )
+	if ( ce && ce->ce_type != Cft_Database &&
+		ce->ce_type != Cft_Overlay )
 		return LDAP_ALREADY_EXISTS;
 
 	dnParent( &e->e_nname, &pdn );
@@ -3995,12 +4093,13 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	 * but only the other types support auto-renumbering of siblings.
 	 */
 	{
-		int renumber = renum ? *renum : 0;
-		rc = check_name_index( last, colst[0]->co_type, e, rs, renum );
+		rc = check_name_index( last, colst[0]->co_type, e, rs, renum,
+			&ibase );
 		if ( rc ) {
 			goto done;
 		}
-		if ( renum && *renum && renumber == -1 ) {
+		if ( renum && *renum && colst[0]->co_type != Cft_Database &&
+			colst[0]->co_type != Cft_Overlay ) {
 			snprintf( ca->msg, sizeof( ca->msg ),
 				"operation requires sibling renumbering" );
 			rc = LDAP_UNWILLING_TO_PERFORM;
@@ -4027,12 +4126,24 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
+			char *iptr = NULL;
 			ca->line = a->a_vals[i].bv_val;
 			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 				ptr = strchr( ca->line, '}' );
-				if ( ptr ) ca->line = ptr+1;
+				if ( ptr ) {
+					iptr = strchr( ca->line, '{' );
+					ca->line = ptr+1;
+				}
 			}
-			ca->valx = i;
+			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED_SIB ) {
+				if ( iptr ) {
+					ca->valx = strtol( iptr+1, NULL, 0 );
+				} else {
+					ca->valx = -1;
+				}
+			} else {
+				ca->valx = i;
+			}
 			rc = config_parse_add( ct, ca, i );
 			if ( rc ) {
 				rc = LDAP_OTHER;
@@ -4063,6 +4174,7 @@ ok:
 		}
 	}
 
+	ca->valx = ibase;
 	ce = ch_calloc( 1, sizeof(CfEntryInfo) );
 	ce->ce_parent = last;
 	ce->ce_entry = entry_dup( e );
@@ -4071,6 +4183,7 @@ ok:
 	ce->ce_be = ca->be;
 	ce->ce_bi = ca->bi;
 	ce->ce_private = ca->private;
+	ca->ca_entry = ce->ce_entry;
 	if ( !last ) {
 		cfb->cb_root = ce;
 	} else if ( last->ce_kids ) {
@@ -4098,6 +4211,76 @@ done:
 	return rc;
 }
 
+#define	BIGTMP	10000
+static int
+config_rename_add( Operation *op, SlapReply *rs, CfEntryInfo *ce,
+	int base, int rebase, int max, int use_ldif )
+{
+	CfEntryInfo *ce2, *ce3, *cetmp = NULL, *cerem = NULL;
+	ConfigType etype = ce->ce_type;
+	int count = 0, rc = 0;
+
+	/* Reverse ce list */
+	for (ce2 = ce->ce_sibs;ce2;ce2 = ce3) {
+		if (ce2->ce_type != etype) {
+			cerem = ce2;
+			break;
+		}
+		ce3 = ce2->ce_sibs;
+		ce2->ce_sibs = cetmp;
+		cetmp = ce2;
+		count++;
+		if ( max && count >= max ) {
+			cerem = ce3;
+			break;
+		}
+	}
+
+	/* Move original to a temp name until increments are done */
+	if ( rebase ) {
+		ce->ce_entry->e_private = NULL;
+		rc = config_renumber_one( op, rs, ce->ce_parent, ce->ce_entry,
+			base+BIGTMP, 0, use_ldif );
+		ce->ce_entry->e_private = ce;
+	}
+	/* start incrementing */
+	for (ce2=cetmp; ce2; ce2=ce3) {
+		ce3 = ce2->ce_sibs;
+		ce2->ce_sibs = cerem;
+		cerem = ce2;
+		if ( rc == 0 ) 
+			rc = config_renumber_one( op, rs, ce2->ce_parent, ce2->ce_entry,
+				count+base, 0, use_ldif );
+		count--;
+	}
+	if ( rebase )
+		rc = config_renumber_one( op, rs, ce->ce_parent, ce->ce_entry,
+			base, 0, use_ldif );
+	return rc;
+}
+
+static int
+config_rename_del( Operation *op, SlapReply *rs, CfEntryInfo *ce,
+	CfEntryInfo *ce2, int old, int use_ldif )
+{
+	int count = 0;
+
+	/* Renumber original to a temp value */
+	ce->ce_entry->e_private = NULL;
+	config_renumber_one( op, rs, ce->ce_parent, ce->ce_entry,
+		old+BIGTMP, 0, use_ldif );
+	ce->ce_entry->e_private = ce;
+
+	/* start decrementing */
+	for (; ce2 != ce; ce2=ce2->ce_sibs) {
+		config_renumber_one( op, rs, ce2->ce_parent, ce2->ce_entry,
+			count+old, 0, use_ldif );
+		count++;
+	}
+	return config_renumber_one( op, rs, ce->ce_parent, ce->ce_entry,
+		count+old, 0, use_ldif );
+}
+
 /* Parse an LDAP entry into config directives, then store in underlying
  * database.
  */
@@ -4122,15 +4305,25 @@ config_back_add( Operation *op, SlapReply *rs )
 	 * 1) check for existence of entry
 	 * 2) check for sibling renumbering
 	 * 3) perform internal add
-	 * 4) store entry in underlying database
-	 * 5) perform any necessary renumbering
+	 * 4) perform any necessary renumbering
+	 * 5) store entry in underlying database
 	 */
-	/* NOTE: by now we do not accept adds that require renumbering */
-	renumber = -1;
 	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber, op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rs->sr_text = ca.msg;
 		goto out2;
+	}
+
+	if ( renumber ) {
+		CfEntryInfo *ce = ca.ca_entry->e_private;
+		req_add_s addr = op->oq_add;
+		op->o_tag = LDAP_REQ_MODRDN;
+		rs->sr_err = config_rename_add( op, rs, ce, ca.valx, 0, 0, cfb->cb_use_ldif );
+		op->o_tag = LDAP_REQ_ADD;
+		op->oq_add = addr;
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			goto out2;
+		}
 	}
 
 	if ( cfb->cb_use_ldif ) {
@@ -4153,10 +4346,6 @@ config_back_add( Operation *op, SlapReply *rs )
 		op->o_callback = sc.sc_next;
 		op->o_dn = dn;
 		op->o_ndn = ndn;
-	}
-
-	if ( renumber ) {
-		/* TODO */
 	}
 
 out2:;
@@ -4521,6 +4710,8 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
+	struct berval rdn;
+	int ixold, ixnew;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -4555,10 +4746,153 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		goto out;
 	}
+
+	/* If newRDN == oldRDN, quietly succeed */
+	dnRdn( &op->o_req_ndn, &rdn );
+	if ( dn_match( &rdn, &op->orr_nnewrdn )) {
+		rs->sr_err = LDAP_SUCCESS;
+		goto out;
+	}
+
+	/* Current behavior, subject to change as needed:
+	 *
+	 * For backends and overlays, we only allow renumbering.
+	 * For schema, we allow renaming with the same number.
+	 * Otherwise, the op is not allowed.
+	 */
+
+	if ( ce->ce_type == Cft_Schema ) {
+		char *ptr1, *ptr2;
+		int len;
+
+		/* Can't alter the main cn=schema entry */
+		if ( ce->ce_parent->ce_type == Cft_Global ) {
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "renaming not allowed for this entry";
+			goto out;
+		}
+
+		/* We could support this later if desired */
+		ptr1 = ber_bvchr( &rdn, '}' );
+		ptr2 = ber_bvchr( &op->orr_newrdn, '}' );
+		len = ptr1 - rdn.bv_val;
+		if ( len != ptr2 - op->orr_newrdn.bv_val ||
+			strncmp( rdn.bv_val, op->orr_newrdn.bv_val, len )) {
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "schema reordering not supported";
+			goto out;
+		}
+	} else if ( ce->ce_type == Cft_Database ||
+		ce->ce_type == Cft_Overlay ) {
+		char *ptr1, *ptr2, *iptr1, *iptr2;
+		int len1, len2;
+
+		iptr2 = ber_bvchr( &op->orr_newrdn, '=' ) + 1;
+		if ( *iptr2 != '{' ) {
+			rs->sr_err = LDAP_NAMING_VIOLATION;
+			rs->sr_text = "new ordering index is required";
+			goto out;
+		}
+		iptr2++;
+		iptr1 = ber_bvchr( &rdn, '{' ) + 1;
+		ptr1 = ber_bvchr( &rdn, '}' );
+		ptr2 = ber_bvchr( &op->orr_newrdn, '}' );
+		if ( !ptr2 ) {
+			rs->sr_err = LDAP_NAMING_VIOLATION;
+			rs->sr_text = "new ordering index is required";
+			goto out;
+		}
+
+		len1 = ptr1 - rdn.bv_val;
+		len2 = ptr2 - op->orr_newrdn.bv_val;
+
+		if ( rdn.bv_len - len1 != op->orr_newrdn.bv_len - len2 ||
+			strncmp( ptr1, ptr2, rdn.bv_len - len1 )) {
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "changing database/overlay type not allowed";
+			goto out;
+		}
+		ixold = strtol( iptr1, NULL, 0 );
+		ixnew = strtol( iptr2, &ptr1, 0 );
+		if ( ptr1 != ptr2 || ixold < 0 || ixnew < 0 ) {
+			rs->sr_err = LDAP_NAMING_VIOLATION;
+			goto out;
+		}
+		/* config DB is always 0, cannot be changed */
+		if ( ce->ce_type == Cft_Database && ( ixold == 0 || ixnew == 0 )) {
+			rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+			goto out;
+		}
+	} else {
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "renaming not supported for this entry";
+		goto out;
+	}
+
 	ldap_pvt_thread_pool_pause( &connection_pool );
 
-	rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-	rs->sr_text = "renaming not implemented yet within naming context";
+	if ( ce->ce_type == Cft_Schema ) {
+		struct berval rdn;
+		Attribute *a;
+		rs->sr_err = config_rename_attr( rs, ce->ce_entry, &rdn, &a );
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			rs->sr_err = config_rename_one( op, rs, ce->ce_entry,
+				ce->ce_parent, a, &op->orr_newrdn, &op->orr_nnewrdn,
+				cfb->cb_use_ldif );
+		}
+	} else {
+		CfEntryInfo *ce2, *cebase, **cprev, **cbprev, *ceold;
+		req_modrdn_s modr = op->oq_modrdn;
+		int i;
+
+		/* Advance to first of this type */
+		cprev = &ce->ce_parent->ce_kids;
+		for ( ce2 = *cprev; ce2 && ce2->ce_type != ce->ce_type; ) {
+			cprev = &ce2->ce_sibs;
+			ce2 = ce2->ce_sibs;
+		}
+		/* Skip the -1 entry */
+		if ( ce->ce_type == Cft_Database ) {
+			cprev = &ce2->ce_sibs;
+			ce2 = ce2->ce_sibs;
+		}
+		cebase = ce2;
+		cbprev = cprev;
+
+		/* Remove from old slot */
+		for ( ce2 = *cprev; ce2 && ce2 != ce; ce2 = ce2->ce_sibs )
+			cprev = &ce2->ce_sibs;
+		*cprev = ce->ce_sibs;
+		ceold = ce->ce_sibs;
+
+		/* Insert into new slot */
+		cprev = cbprev;
+		for ( i=0; i<ixnew; i++ ) {
+			ce2 = *cprev;
+			if ( !ce2 )
+				break;
+			cprev = &ce2->ce_sibs;
+		}
+		ce->ce_sibs = *cprev;
+		*cprev = ce;
+
+		ixnew = i;
+
+		/* NOTE: These should be encoded in the OC tables, not inline here */
+		if ( ce->ce_type == Cft_Database )
+			backend_db_move( ce->ce_be, ixnew );
+		else if ( ce->ce_type == Cft_Overlay )
+			overlay_move( ce->ce_be, (slap_overinst *)ce->ce_bi, ixnew );
+			
+		if ( ixold < ixnew ) {
+			rs->sr_err = config_rename_del( op, rs, ce, ceold, ixold,
+				cfb->cb_use_ldif );
+		} else {
+			rs->sr_err = config_rename_add( op, rs, ce, ixnew, 1,
+				ixold - ixnew, cfb->cb_use_ldif );
+		}
+		op->oq_modrdn = modr;
+	}
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
 out:

@@ -114,7 +114,7 @@ relay_back_db_config(
 		 * where the overlay is instantiated by moving
 		 * around the "relay" directive, although this could
 		 * make slapd.conf a bit confusing. */
-		if ( overlay_config( be, "rwm" ) ) {
+		if ( overlay_config( be, "rwm", -1, NULL ) ) {
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: line %d: unable to install "
 				"rwm overlay "

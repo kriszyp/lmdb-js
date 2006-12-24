@@ -530,13 +530,48 @@ BackendInfo* backend_info(const char *type)
 	return NULL;
 }
 
+void
+backend_db_insert(
+	BackendDB *be,
+	int idx
+)
+{
+	/* If idx < 0, just add to end of list */
+	if ( idx < 0 ) {
+		LDAP_STAILQ_INSERT_TAIL(&backendDB, be, be_next);
+	} else if ( idx == 0 ) {
+		LDAP_STAILQ_INSERT_HEAD(&backendDB, be, be_next);
+	} else {
+		int i;
+		BackendDB *b2;
+
+		b2 = LDAP_STAILQ_FIRST(&backendDB);
+		idx--;
+		for (i=0; i<idx; i++) {
+			b2 = LDAP_STAILQ_NEXT(b2, be_next);
+		}
+		LDAP_STAILQ_INSERT_AFTER(&backendDB, b2, be, be_next);
+	}
+}
+
+void
+backend_db_move(
+	BackendDB *be,
+	int idx
+)
+{
+	LDAP_STAILQ_REMOVE(&backendDB, be, slap_backend_db, be_next);
+	backend_db_insert(be, idx);
+}
 
 BackendDB *
 backend_db_init(
     const char	*type,
-	BackendDB *be )
+	BackendDB *b0,
+	int idx )
 {
 	BackendInfo *bi = backend_info(type);
+	BackendDB *be = b0;
 	int	rc = 0;
 
 	if( bi == NULL ) {
@@ -549,8 +584,11 @@ backend_db_init(
 	 */
 	if ( !be ) {
 		be = ch_calloc( 1, sizeof(Backend) );
+		/* Just append */
+		if ( idx >= nbackends )
+			idx = -1;
 		nbackends++;
-		LDAP_STAILQ_INSERT_TAIL(&backendDB, be, be_next);
+		backend_db_insert( be, idx );
 	}
 
 	be->bd_info = bi;
@@ -574,11 +612,16 @@ backend_db_init(
 
 	if ( rc != 0 ) {
 		fprintf( stderr, "database init failed (%s)\n", type );
-		nbackends--;
-		return NULL;
+		/* If we created and linked this be, remove it and free it */
+		if ( !b0 ) {
+			LDAP_STAILQ_REMOVE(&backendDB, be, slap_backend_db, be_next);
+			ch_free( be );
+			be = NULL;
+			nbackends--;
+		}
+	} else {
+		bi->bi_nDB++;
 	}
-
-	bi->bi_nDB++;
 	return( be );
 }
 

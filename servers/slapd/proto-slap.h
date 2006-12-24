@@ -323,7 +323,9 @@ LDAP_SLAPD_F (void) backend_destroy_one LDAP_P((BackendDB *bd, int dynamic));
 
 LDAP_SLAPD_F (BackendInfo *) backend_info LDAP_P(( const char *type ));
 LDAP_SLAPD_F (BackendDB *) backend_db_init LDAP_P(( const char *type,
-	BackendDB *be ));
+	BackendDB *be, int idx ));
+LDAP_SLAPD_F (void) backend_db_insert LDAP_P((BackendDB *bd, int idx));
+LDAP_SLAPD_F (void) backend_db_move LDAP_P((BackendDB *bd, int idx));
 
 LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
 	struct berval * dn,
@@ -411,7 +413,8 @@ LDAP_SLAPD_F (int) glue_sub_del( BackendDB *be );
  * backover.c
  */
 LDAP_SLAPD_F (int) overlay_register LDAP_P(( slap_overinst *on ));
-LDAP_SLAPD_F (int) overlay_config LDAP_P(( BackendDB *be, const char *ov ));
+LDAP_SLAPD_F (int) overlay_config LDAP_P(( BackendDB *be, const char *ov,
+	int idx, BackendInfo **res ));
 LDAP_SLAPD_F (void) overlay_destroy_one LDAP_P((
 	BackendDB *be,
 	slap_overinst *on ));
@@ -428,6 +431,10 @@ LDAP_SLAPD_F (int) overlay_op_walk LDAP_P((
 	slap_operation_t which,
 	slap_overinfo *oi,
 	slap_overinst *on ));
+LDAP_SLAPD_F (void) overlay_insert LDAP_P((
+	BackendDB *be, slap_overinst *on, slap_overinst ***prev, int idx ));
+LDAP_SLAPD_F (void) overlay_move LDAP_P((
+	BackendDB *be, slap_overinst *on, int idx ));
 
 /*
  * bconfig.c

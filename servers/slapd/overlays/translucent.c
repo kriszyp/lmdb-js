@@ -699,7 +699,7 @@ static int translucent_db_init(BackendDB *be) {
 	ov->db.be_private = NULL;
 	ov->db.be_pcl_mutexp = &ov->db.be_pcl_mutex;
 
-	if ( !backend_db_init( "ldap", &ov->db )) {
+	if ( !backend_db_init( "ldap", &ov->db, -1 )) {
 		Debug( LDAP_DEBUG_CONFIG, "translucent: unable to open captive back-ldap\n", 0, 0, 0);
 		return 1;
 	}

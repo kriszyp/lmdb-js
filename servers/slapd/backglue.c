@@ -956,7 +956,7 @@ glue_sub_attach()
 
 			/* If it's not already configured, set up the overlay */
 			if ( !SLAP_GLUE_INSTANCE( be )) {
-				rc = overlay_config( be, glue.on_bi.bi_type );
+				rc = overlay_config( be, glue.on_bi.bi_type, -1, NULL );
 				if ( rc )
 					break;
 			}

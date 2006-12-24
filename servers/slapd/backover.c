@@ -942,13 +942,76 @@ overlay_destroy_one( BackendDB *be, slap_overinst *on )
 	}
 }
 
+void
+overlay_insert( BackendDB *be, slap_overinst *on2, slap_overinst ***prev,
+	int idx )
+{
+	slap_overinfo *oi = (slap_overinfo *)be->bd_info;
+
+	if ( idx == -1 ) {
+		on2->on_next = oi->oi_list;
+		oi->oi_list = on2;
+	} else {
+		int i;
+		slap_overinst *on, *otmp1 = NULL, *otmp2;
+
+		/* Since the list is in reverse order and is singly linked,
+		 * we reverse it to find the idx insertion point. Adding
+		 * on overlay at a specific point should be a pretty
+		 * infrequent occurrence.
+		 */
+		for ( on = oi->oi_list; on; on=otmp2 ) {
+			otmp2 = on->on_next;
+			on->on_next = otmp1;
+			otmp1 = on;
+		}
+		oi->oi_list = NULL;
+		/* advance to insertion point */
+		for ( i=0, on = otmp1; i<idx; i++ ) {
+			otmp1 = on->on_next;
+			on->on_next = oi->oi_list;
+			oi->oi_list = on;
+		}
+		/* insert */
+		on2->on_next = oi->oi_list;
+		oi->oi_list = on2;
+		if ( otmp1 ) {
+			*prev = &otmp1->on_next;
+			/* replace remainder of list */
+			for ( on=otmp1; on; on=otmp1 ) {
+				otmp1 = on->on_next;
+				on->on_next = oi->oi_list;
+				oi->oi_list = on;
+			}
+		}
+	}
+}
+
+void
+overlay_move( BackendDB *be, slap_overinst *on, int idx )
+{
+	slap_overinfo *oi = (slap_overinfo *)be->bd_info;
+	slap_overinst **onp;
+
+	for (onp = &oi->oi_list; *onp; onp= &(*onp)->on_next) {
+		if ( *onp == on ) {
+			*onp = on->on_next;
+			break;
+		}
+	}
+	overlay_insert( be, on, &onp, idx );
+}
+
 /* add an overlay to a particular backend. */
 int
-overlay_config( BackendDB *be, const char *ov )
+overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res )
 {
-	slap_overinst *on = NULL, *on2 = NULL;
+	slap_overinst *on = NULL, *on2 = NULL, **prev;
 	slap_overinfo *oi = NULL;
 	BackendInfo *bi = NULL;
+
+	if ( res )
+		*res = NULL;
 
 	on = overlay_find( ov );
 	if ( !on ) {
@@ -1049,27 +1112,43 @@ overlay_config( BackendDB *be, const char *ov )
 		oi = be->bd_info->bi_private;
 	}
 
-	/* Insert new overlay on head of list. Overlays are executed
-	 * in reverse of config order...
+	/* Insert new overlay into list. By default overlays are
+	 * added to head of list and executed in LIFO order.
 	 */
 	on2 = ch_calloc( 1, sizeof(slap_overinst) );
 	*on2 = *on;
 	on2->on_info = oi;
-	on2->on_next = oi->oi_list;
-	oi->oi_list = on2;
+
+	prev = &oi->oi_list;
+	/* Do we need to find the insertion point? */
+	if ( idx >= 0 ) {
+		int i;
+
+		/* count current overlays */
+		for ( i=0, on=oi->oi_list; on; on=on->on_next, i++ );
+
+		/* are we just appending a new one? */
+		if ( idx >= i )
+			idx = -1;
+	}
+	overlay_insert( be, on2, &prev, idx );
 
 	/* Any initialization needed? */
-	if ( on->on_bi.bi_db_init ) {
+	if ( on2->on_bi.bi_db_init ) {
 		int rc;
 		be->bd_info = (BackendInfo *)on2;
 		rc = on2->on_bi.bi_db_init( be );
 		be->bd_info = (BackendInfo *)oi;
 		if ( rc ) {
-			oi->oi_list = on2->on_next;
+			*prev = on2->on_next;
 			ch_free( on2 );
+			on2 = NULL;
 			return rc;
 		}
 	}
+
+	if ( res )
+		*res = &on2->on_bi;
 
 	return 0;
 }

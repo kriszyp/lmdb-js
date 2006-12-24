@@ -1926,7 +1926,7 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		if ( !backend_db_init( c->argv[1], &cm->db )) {
+		if ( !backend_db_init( c->argv[1], &cm->db, -1 )) {
 			snprintf( c->msg, sizeof( c->msg ), "unknown backend type (arg #1)" );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
