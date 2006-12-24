@@ -152,6 +152,7 @@ bdb_monitor_update(
 	return SLAP_CB_CONTINUE;
 }
 
+#if 0	/* uncomment if required */
 static int
 bdb_monitor_modify(
 	Operation	*op,
@@ -161,11 +162,12 @@ bdb_monitor_modify(
 {
 	return SLAP_CB_CONTINUE;
 }
+#endif
 
 static int
 bdb_monitor_free(
 	Entry		*e,
-	void		*priv )
+	void		**priv )
 {
 	struct berval	values[ 2 ];
 	Modification	mod = { 0 };
@@ -176,6 +178,7 @@ bdb_monitor_free(
 	int		i, rc;
 
 	/* NOTE: if slap_shutdown != 0, priv might have already been freed */
+	*priv = NULL;
 
 	/* Remove objectClass */
 	mod.sm_op = LDAP_MOD_DELETE;

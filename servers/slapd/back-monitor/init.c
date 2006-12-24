@@ -992,7 +992,6 @@ done:;
 			return -1;
 		}
 
-done_limbo:;
 		if ( *elpp != NULL ) {
 			el.el_next = NULL;
 			**elpp = el;
@@ -1080,7 +1079,7 @@ monitor_back_unregister_entry(
 			monitor_callback_t	*next = cb->mc_next;
 
 			if ( cb->mc_free ) {
-				(void)cb->mc_free( e, cb->mc_private );
+				(void)cb->mc_free( e, &cb->mc_private );
 			}
 			ch_free( cb );
 
@@ -1208,7 +1207,7 @@ monitor_back_unregister_entry_parent(
 			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
 				if ( *cbp == target_cb ) {
 					if ( (*cbp)->mc_free ) {
-						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+						(void)(*cbp)->mc_free( e, &(*cbp)->mc_private );
 					}
 					*cbp = (*cbp)->mc_next;
 					ch_free( target_cb );
@@ -1370,7 +1369,7 @@ monitor_back_unregister_entry_attrs(
 			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
 				if ( *cbp == target_cb ) {
 					if ( (*cbp)->mc_free ) {
-						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+						(void)(*cbp)->mc_free( e, &(*cbp)->mc_private );
 					}
 					*cbp = (*cbp)->mc_next;
 					ch_free( target_cb );
@@ -1837,7 +1836,6 @@ monitor_back_initialize(
 	};
 
 	int			i, rc;
-	const char		*text;
 	monitor_info_t		*mi = &monitor_info;
 	ConfigArgs c;
 	char	*argv[ 3 ];
@@ -2231,10 +2229,11 @@ monitor_back_db_open(
 
 		for ( ; el; ) {
 			entry_limbo_t	*tmp;
+			int		rc;
 
 			switch ( el->el_type ) {
 			case LIMBO_ENTRY:
-				monitor_back_register_entry(
+				rc = monitor_back_register_entry(
 						el->el_e,
 						el->el_cb,
 						el->el_mss,
@@ -2242,7 +2241,7 @@ monitor_back_db_open(
 				break;
 
 			case LIMBO_ENTRY_PARENT:
-				monitor_back_register_entry_parent(
+				rc = monitor_back_register_entry_parent(
 						el->el_e,
 						el->el_cb,
 						el->el_mss,
@@ -2254,7 +2253,7 @@ monitor_back_db_open(
 				
 
 			case LIMBO_ATTRS:
-				monitor_back_register_entry_attrs(
+				rc = monitor_back_register_entry_attrs(
 						&el->el_ndn,
 						el->el_a,
 						el->el_cb,
@@ -2264,7 +2263,7 @@ monitor_back_db_open(
 				break;
 
 			case LIMBO_CB:
-				monitor_back_register_entry_callback(
+				rc = monitor_back_register_entry_callback(
 						&el->el_ndn,
 						el->el_cb,
 						&el->el_nbase,
@@ -2290,6 +2289,12 @@ monitor_back_db_open(
 			}
 			if ( !BER_BVISNULL( &el->el_filter ) ) {
 				ber_memfree( el->el_filter.bv_val );
+			}
+			if ( el->el_cb && rc != 0 ) {
+				if ( el->el_cb->mc_dispose ) {
+					el->el_cb->mc_dispose( &el->el_cb->mc_private );
+				}
+				ch_free( el->el_cb );
 			}
 
 			tmp = el;

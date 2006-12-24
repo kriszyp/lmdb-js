@@ -265,9 +265,11 @@ done:;
 static int
 ldap_back_monitor_free(
 	Entry		*e,
-	void		*priv )
+	void		**priv )
 {
-	ldapinfo_t		*li = (ldapinfo_t *)priv;
+	ldapinfo_t		*li = (ldapinfo_t *)(*priv);
+
+	*priv = NULL;
 
 	if ( !slapd_shutdown && !BER_BVISNULL( &li->li_monitor_info.lmi_rdn ) ) {
 		ldap_back_monitor_info_destroy( li );
@@ -306,7 +308,6 @@ static int
 ldap_back_monitor_initialize( void )
 {
 	int		i, code;
-	const char	*err;
 	ConfigArgs c;
 	char	*argv[ 3 ];
 

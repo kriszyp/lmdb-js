@@ -405,7 +405,7 @@ monitor_entry_destroy( void *v_mc )
 				monitor_callback_t	*next = cb->mc_next;
 
 				if ( cb->mc_free ) {
-					cb->mc_free( mc->mc_e, cb->mc_private );
+					(void)cb->mc_free( mc->mc_e, &cb->mc_private );
 				}
 				ch_free( mp->mp_cb );
 

@@ -39,9 +39,13 @@ typedef struct monitor_callback_t {
 	int				(*mc_modify)( Operation *op, SlapReply *rs, Entry *e, void *priv );
 						/* modify callback
 						   for user-defined entries */
-	int				(*mc_free)( Entry *e, void *priv );
+	int				(*mc_free)( Entry *e, void **priv );
 						/* delete callback
 						   for user-defined entries */
+	void				(*mc_dispose)( void **priv );
+						/* dispose callback
+						   to dispose of the callback
+						   private data itself */
 	void				*mc_private;	/* opaque pointer to
 						   private data */
 	struct monitor_callback_t	*mc_next;
