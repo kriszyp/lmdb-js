@@ -555,6 +555,12 @@ int slap_mods_check(
 		if ( ml->sml_desc == NULL ) {
 			rc = slap_bv2ad( &ml->sml_type, &ml->sml_desc, text );
 			if( rc != LDAP_SUCCESS ) {
+				if ( get_no_schema_check( op )) {
+					rc = slap_bv2undef_ad( &ml->sml_type, &ml->sml_desc,
+						text, 0 );
+				}
+			}
+			if( rc != LDAP_SUCCESS ) {
 				snprintf( textbuf, textlen, "%s: %s",
 					ml->sml_type.bv_val, *text );
 				*text = textbuf;
