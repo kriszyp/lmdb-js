@@ -1463,9 +1463,6 @@ accesslog_operational( Operation *op, SlapReply *rs )
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
 
-	if ( op->o_sync != SLAP_CONTROL_NONE )
-		return SLAP_CB_CONTINUE;
-
 	if ( rs->sr_entry != NULL
 		&& dn_match( &op->o_bd->be_nsuffix[0], &rs->sr_entry->e_nname ) )
 	{
