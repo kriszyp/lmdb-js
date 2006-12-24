@@ -1004,8 +1004,8 @@ next:;
 			const char	*text = NULL;
 			char		textbuf[ 1024 ];
 			size_t		textlen = sizeof( textbuf );
-			struct berval	soc,
-					bv[ 2 ],
+			ObjectClass	*soc = NULL;
+			struct berval	bv[ 2 ],
 					*nvals;
 			int		rc = LDAP_SUCCESS;
 
@@ -1031,12 +1031,12 @@ next:;
 				return rc;
 			}
 
-			if ( !bvmatch( &soc, &bsi->bsi_oc->bom_oc->soc_cname ) ) {
+			if ( !bvmatch( &soc->soc_cname, &bsi->bsi_oc->bom_oc->soc_cname ) ) {
       				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
 					"computed structuralObjectClass %s "
 					"does not match objectClass %s associated "
 					"to entry\n",
-					bsi->bsi_e->e_name.bv_val, soc.bv_val,
+					bsi->bsi_e->e_name.bv_val, soc->soc_cname.bv_val,
 					bsi->bsi_oc->bom_oc->soc_cname.bv_val );
 				backsql_entry_clean( op, bsi->bsi_e );
 				return rc;

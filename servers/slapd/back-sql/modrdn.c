@@ -50,7 +50,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 				*e = NULL;
 	int			manageDSAit = get_manageDSAit( op );
 	struct berval		*newSuperior = op->oq_modrdn.rs_newSup;
-	char			*next;
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_modrdn() renaming entry \"%s\", "
 			"newrdn=\"%s\", newSuperior=\"%s\"\n",

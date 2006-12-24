@@ -924,6 +924,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	Entry			p = { 0 }, *e = NULL;
 	Attribute		*at,
 				*at_objectClass = NULL;
+	ObjectClass		*soc = NULL;
 	struct berval		scname = BER_BVNULL;
 	struct berval		pdn;
 	struct berval		realdn = BER_BVNULL;
@@ -1002,7 +1003,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			goto done;
 		}
 
-		rs->sr_err = structural_class( at->a_vals, &scname, NULL,
+		rs->sr_err = structural_class( at->a_vals, &soc, NULL,
 				&text, buf, sizeof( buf ), op->o_tmpmemctx );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
@@ -1011,6 +1012,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			e = NULL;
 			goto done;
 		}
+		scname = soc->soc_cname;
 
 	} else {
 		scname = at->a_vals[0];
