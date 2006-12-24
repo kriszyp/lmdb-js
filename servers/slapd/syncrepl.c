@@ -495,7 +495,7 @@ do_syncrep1(
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_syncrep1: rid %03d "
+		Debug( LDAP_DEBUG_ANY, "do_syncrep1: rid %03ld "
 			"ldap_search_ext: %s (%d)\n",
 			si->si_rid, ldap_err2string( rc ), rc );
 	}
@@ -561,7 +561,7 @@ do_syncrep2(
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-	Debug( LDAP_DEBUG_TRACE, "=>do_syncrep2 rid %03d\n", si->si_rid, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=>do_syncrep2 rid %03ld\n", si->si_rid, 0, 0 );
 
 	psub = &si->si_be->be_nsuffix[0];
 
@@ -600,7 +600,7 @@ do_syncrep2(
 					rctrlp = ldap_find_control( LDAP_CONTROL_SYNC_STATE, rctrls );
 				}
 				if ( rctrlp == NULL ) {
-					Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03d "
+					Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03ld "
 						"got search entry without "
 						"Sync State control\n", si->si_rid, 0, 0 );
 					rc = -1;
@@ -611,7 +611,7 @@ do_syncrep2(
 				/* FIXME: what if syncUUID is NULL or empty?
 				 * (happens with back-sql...) */
 				if ( BER_BVISEMPTY( &syncUUID ) ) {
-					Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03d "
+					Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03ld "
 						"got empty syncUUID\n", si->si_rid, 0, 0 );
 					ldap_controls_free( rctrls );
 					rc = -1;
@@ -654,13 +654,13 @@ do_syncrep2(
 
 			case LDAP_RES_SEARCH_REFERENCE:
 				Debug( LDAP_DEBUG_ANY,
-					"do_syncrep2: rid %03d reference received error\n",
+					"do_syncrep2: rid %03ld reference received error\n",
 					si->si_rid, 0, 0 );
 				break;
 
 			case LDAP_RES_SEARCH_RESULT:
 				Debug( LDAP_DEBUG_SYNC,
-					"do_syncrep2: rid %03d LDAP_RES_SEARCH_RESULT\n",
+					"do_syncrep2: rid %03ld LDAP_RES_SEARCH_RESULT\n",
 					si->si_rid, 0, 0 );
 				ldap_parse_result( si->si_ld, msg, &err, NULL, NULL, NULL,
 					&rctrls, 0 );
@@ -752,7 +752,7 @@ do_syncrep2(
 					ber_tag_t tag;
 					case LDAP_TAG_SYNC_NEW_COOKIE:
 						Debug( LDAP_DEBUG_SYNC,
-							"do_syncrep2: rid %03d %s - %s\n", 
+							"do_syncrep2: rid %03ld %s - %s\n", 
 							si->si_rid,
 							"LDAP_RES_INTERMEDIATE", 
 							"NEW_COOKIE" );
@@ -761,7 +761,7 @@ do_syncrep2(
 					case LDAP_TAG_SYNC_REFRESH_DELETE:
 					case LDAP_TAG_SYNC_REFRESH_PRESENT:
 						Debug( LDAP_DEBUG_SYNC,
-							"do_syncrep2: rid %03d %s - %s\n", 
+							"do_syncrep2: rid %03ld %s - %s\n", 
 							si->si_rid,
 							"LDAP_RES_INTERMEDIATE", 
 							si_tag == LDAP_TAG_SYNC_REFRESH_PRESENT ?
@@ -793,7 +793,7 @@ do_syncrep2(
 						break;
 					case LDAP_TAG_SYNC_ID_SET:
 						Debug( LDAP_DEBUG_SYNC,
-							"do_syncrep2: rid %03d %s - %s\n", 
+							"do_syncrep2: rid %03ld %s - %s\n", 
 							si->si_rid,
 							"LDAP_RES_INTERMEDIATE", 
 							"SYNC_ID_SET" );
@@ -838,7 +838,7 @@ do_syncrep2(
 						break;
 					default:
 						Debug( LDAP_DEBUG_ANY,
-							"do_syncrep2: rid %03d unknown syncinfo tag (%ld)\n",
+							"do_syncrep2: rid %03ld unknown syncinfo tag (%ld)\n",
 							si->si_rid, (long) si_tag, 0 );
 						ldap_memfree( retoid );
 						ber_bvfree( retdata );
@@ -873,7 +873,7 @@ do_syncrep2(
 					break;
 
 				} else {
-					Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03d "
+					Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03ld "
 						"unknown intermediate response (%d)\n",
 						si->si_rid, rc, 0 );
 					ldap_memfree( retoid );
@@ -883,7 +883,7 @@ do_syncrep2(
 				break;
 
 			default:
-				Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03d "
+				Debug( LDAP_DEBUG_ANY, "do_syncrep2: rid %03ld "
 					"unknown message\n", si->si_rid, 0, 0 );
 				break;
 
@@ -905,7 +905,7 @@ do_syncrep2(
 		errstr = ldap_err2string( rc );
 		
 		Debug( LDAP_DEBUG_ANY,
-			"do_syncrep2: rid %03d %s\n", si->si_rid, errstr, 0 );
+			"do_syncrep2: rid %03ld %s\n", si->si_rid, errstr, 0 );
 	}
 
 done:
@@ -944,7 +944,7 @@ do_syncrepl(
 	int i, defer = 1;
 	Backend *be;
 
-	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl rid %03d\n", si->si_rid, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl rid %03ld\n", si->si_rid, 0, 0 );
 
 	if ( si == NULL )
 		return NULL;
@@ -1186,7 +1186,7 @@ syncrepl_message_to_op(
 	int		rc, deleteOldRdn = 0, freeReqDn = 0;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: rid %03d "
+		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: rid %03ld "
 			"Message type should be entry (%d)",
 			si->si_rid, ldap_msgtype( msg ), 0 );
 		return -1;
@@ -1201,7 +1201,7 @@ syncrepl_message_to_op(
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"syncrepl_message_to_op: rid %03d dn get failed (%d)",
+			"syncrepl_message_to_op: rid %03ld dn get failed (%d)",
 			si->si_rid, rc, 0 );
 		return rc;
 	}
@@ -1225,7 +1225,7 @@ syncrepl_message_to_op(
 			int i = verb_to_mask( bvals[0].bv_val, modops );
 			if ( i < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
-					"syncrepl_message_to_op: rid %03d unknown op %s",
+					"syncrepl_message_to_op: rid %03ld unknown op %s",
 					si->si_rid, bvals[0].bv_val, 0 );
 				ch_free( bvals );
 				rc = -1;
@@ -1270,7 +1270,7 @@ syncrepl_message_to_op(
 		rc = slap_mods_check( op, modlist, &text, txtbuf, textlen, NULL );
 
 		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: rid %03d "
+			Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: rid %03ld "
 				"mods check (%s)\n",
 				si->si_rid, text, 0 );
 			goto done;
@@ -1284,13 +1284,13 @@ syncrepl_message_to_op(
 			freeReqDn = 0;
 			rc = slap_mods2entry( modlist, &op->ora_e, 1, 0, &text, txtbuf, textlen);
 			if( rc != LDAP_SUCCESS ) {
-				Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: rid %03d "
+				Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: rid %03ld "
 				"mods2entry (%s)\n",
 					si->si_rid, text, 0 );
 			} else {
 				rc = op->o_bd->be_add( op, &rs );
 				Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_message_to_op: rid %03d be_add %s (%d)\n", 
+					"syncrepl_message_to_op: rid %03ld be_add %s (%d)\n", 
 					si->si_rid, op->o_req_dn.bv_val, rc );
 			}
 			if ( e == op->ora_e )
@@ -1299,7 +1299,7 @@ syncrepl_message_to_op(
 			op->orm_modlist = modlist;
 			rc = op->o_bd->be_modify( op, &rs );
 			Debug( LDAP_DEBUG_SYNC,
-				"syncrepl_message_to_op: rid %03d be_modify %s (%d)\n", 
+				"syncrepl_message_to_op: rid %03ld be_modify %s (%d)\n", 
 				si->si_rid, op->o_req_dn.bv_val, rc );
 		}
 		break;
@@ -1328,13 +1328,13 @@ syncrepl_message_to_op(
 		rc = op->o_bd->be_modrdn( op, &rs );
 		slap_mods_free( op->orr_modlist, 1 );
 		Debug( LDAP_DEBUG_SYNC,
-			"syncrepl_message_to_op: rid %03d be_modrdn %s (%d)\n", 
+			"syncrepl_message_to_op: rid %03ld be_modrdn %s (%d)\n", 
 			si->si_rid, op->o_req_dn.bv_val, rc );
 		break;
 	case LDAP_REQ_DELETE:
 		rc = op->o_bd->be_delete( op, &rs );
 		Debug( LDAP_DEBUG_SYNC,
-			"syncrepl_message_to_op: rid %03d be_delete %s (%d)\n", 
+			"syncrepl_message_to_op: rid %03ld be_delete %s (%d)\n", 
 			si->si_rid, op->o_req_dn.bv_val, rc );
 		break;
 	}
@@ -1388,7 +1388,7 @@ syncrepl_message_to_entry(
 	*modlist = NULL;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03d "
+		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03ld "
 			"Message type should be entry (%d)",
 			si->si_rid, ldap_msgtype( msg ), 0 );
 		return -1;
@@ -1400,7 +1400,7 @@ syncrepl_message_to_entry(
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"syncrepl_message_to_entry: rid %03d dn get failed (%d)",
+			"syncrepl_message_to_entry: rid %03ld dn get failed (%d)",
 			si->si_rid, rc, 0 );
 		return rc;
 	}
@@ -1447,7 +1447,7 @@ syncrepl_message_to_entry(
 	}
 
 	if ( *modlist == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03d no attributes\n",
+		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03ld no attributes\n",
 			si->si_rid, 0, 0 );
 		rc = -1;
 		goto done;
@@ -1456,7 +1456,7 @@ syncrepl_message_to_entry(
 	rc = slap_mods_check( op, *modlist, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03d mods check (%s)\n",
+		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03ld mods check (%s)\n",
 			si->si_rid, text, 0 );
 		goto done;
 	}
@@ -1488,7 +1488,7 @@ syncrepl_message_to_entry(
 	
 	rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
 	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03d mods2entry (%s)\n",
+		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03ld mods2entry (%s)\n",
 			si->si_rid, text, 0 );
 	}
 
@@ -1570,27 +1570,27 @@ syncrepl_entry(
 
 	switch( syncstate ) {
 	case LDAP_SYNC_PRESENT:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03d %s\n",
+		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03ld %s\n",
 					si->si_rid,
 					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_PRESENT)", 0 );
 		break;
 	case LDAP_SYNC_ADD:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03d %s\n",
+		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03ld %s\n",
 					si->si_rid,
 					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_ADD)", 0 );
 		break;
 	case LDAP_SYNC_DELETE:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03d %s\n",
+		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03ld %s\n",
 					si->si_rid,
 					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_DELETE)", 0 );
 		break;
 	case LDAP_SYNC_MODIFY:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03d %s\n",
+		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03ld %s\n",
 					si->si_rid,
 					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_MODIFY)", 0 );
 		break;
 	default:
-		Debug( LDAP_DEBUG_ANY, "syncrepl_entry: rid %03d %s\n",
+		Debug( LDAP_DEBUG_ANY, "syncrepl_entry: rid %03ld %s\n",
 					si->si_rid,
 					"LDAP_RES_SEARCH_ENTRY(UNKNOWN syncstate)", 0 );
 	}
@@ -1618,7 +1618,7 @@ syncrepl_entry(
 
 	(void)slap_uuidstr_from_normalized( &syncUUID_strrep, syncUUID, op->o_tmpmemctx );
 	if ( syncuuid_bv ) {
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03d inserted UUID %s\n",
+		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03ld inserted UUID %s\n",
 			si->si_rid, syncUUID_strrep.bv_val, 0 );
 	}
 	op->ors_filter = &f;
@@ -1656,7 +1656,7 @@ syncrepl_entry(
 	if ( limits_check( op, &rs_search ) == 0 ) {
 		rc = be->be_search( op, &rs_search );
 		Debug( LDAP_DEBUG_SYNC,
-				"syncrepl_entry: rid %03d be_search (%d)\n", 
+				"syncrepl_entry: rid %03ld be_search (%d)\n", 
 				si->si_rid, rc, 0 );
 	}
 
@@ -1669,11 +1669,11 @@ syncrepl_entry(
 
 	if ( entry && !BER_BVISNULL( &entry->e_name ) ) {
 		Debug( LDAP_DEBUG_SYNC,
-				"syncrepl_entry: rid %03d %s\n",
+				"syncrepl_entry: rid %03ld %s\n",
 				si->si_rid, entry->e_name.bv_val, 0 );
 	} else {
 		Debug( LDAP_DEBUG_SYNC,
-				"syncrepl_entry: rid %03d %s\n",
+				"syncrepl_entry: rid %03ld %s\n",
 				si->si_rid, dni.dn.bv_val ? dni.dn.bv_val : "(null)", 0 );
 	}
 
@@ -1738,7 +1738,7 @@ retry_add:;
 
 			rc = be->be_add( op, &rs_add );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: rid %03d be_add (%d)\n", 
+					"syncrepl_entry: rid %03ld be_add (%d)\n", 
 					si->si_rid, rc, 0 );
 			switch ( rs_add.sr_err ) {
 			case LDAP_SUCCESS:
@@ -1799,7 +1799,7 @@ retry_add:;
 
 			default:
 				Debug( LDAP_DEBUG_ANY,
-					"syncrepl_entry: rid %03d be_add failed (%d)\n",
+					"syncrepl_entry: rid %03ld be_add failed (%d)\n",
 					si->si_rid, rs_add.sr_err, 0 );
 				break;
 			}
@@ -1843,7 +1843,7 @@ retry_add:;
 
 			slap_mods_free( op->orr_modlist, 1 );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: rid %03d be_modrdn (%d)\n", 
+					"syncrepl_entry: rid %03ld be_modrdn (%d)\n", 
 					si->si_rid, rc, 0 );
 			if ( rs_modify.sr_err == LDAP_SUCCESS ) {
 				op->o_req_dn = entry->e_name;
@@ -1908,11 +1908,11 @@ retry_add:;
 
 			rc = be->be_modify( op, &rs_modify );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: rid %03d be_modify (%d)\n", 
+					"syncrepl_entry: rid %03ld be_modify (%d)\n", 
 					si->si_rid, rc, 0 );
 			if ( rs_modify.sr_err != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"syncrepl_entry: rid %03d be_modify failed (%d)\n",
+					"syncrepl_entry: rid %03ld be_modify failed (%d)\n",
 					si->si_rid, rs_modify.sr_err, 0 );
 			}
 		}
@@ -1924,7 +1924,7 @@ retry_add:;
 			op->o_tag = LDAP_REQ_DELETE;
 			rc = be->be_delete( op, &rs_delete );
 			Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_entry: rid %03d be_delete (%d)\n", 
+					"syncrepl_entry: rid %03ld be_delete (%d)\n", 
 					si->si_rid, rc, 0 );
 
 			while ( rs_delete.sr_err == LDAP_SUCCESS
@@ -1947,7 +1947,7 @@ retry_add:;
 
 	default :
 		Debug( LDAP_DEBUG_ANY,
-			"syncrepl_entry: rid %03d unknown syncstate\n", si->si_rid, 0, 0 );
+			"syncrepl_entry: rid %03ld unknown syncstate\n", si->si_rid, 0, 0 );
 		goto done;
 	}
 
@@ -2084,7 +2084,7 @@ syncrepl_del_nonpresent(
 			op->o_req_ndn = *np_prev->npe_nname;
 			rc = op->o_bd->be_delete( op, &rs_delete );
 			Debug( LDAP_DEBUG_SYNC,
-				"syncrepl_del_nonpresent: rid %03d be_delete %s (%d)\n", 
+				"syncrepl_del_nonpresent: rid %03ld be_delete %s (%d)\n", 
 				si->si_rid, op->o_req_dn.bv_val, rc );
 
 			if ( rs_delete.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF ) {
@@ -2339,7 +2339,7 @@ syncrepl_updateCookie(
 		slap_dup_sync_cookie( &si->si_syncCookie, syncCookie );
 	} else {
 		Debug( LDAP_DEBUG_ANY,
-			"syncrepl_updateCookie: rid %03d be_modify failed (%d)\n",
+			"syncrepl_updateCookie: rid %03ld be_modify failed (%d)\n",
 			si->si_rid, rs_modify.sr_err, 0 );
 	}
 
@@ -2476,7 +2476,7 @@ nonpresent_callback(
 					syncuuid_cmp );
 
 			if ( slap_debug & LDAP_DEBUG_SYNC )
-				sprintf( buf, "%03d %s", si->si_rid,
+				sprintf( buf, "%03ld %s", si->si_rid,
 					present_uuid ? "got" : "not" );
 
 			Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: rid %s UUID %s, dn %s\n",
