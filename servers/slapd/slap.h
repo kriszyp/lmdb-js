@@ -1917,17 +1917,17 @@ typedef struct req_modify_s {
 } req_modify_s;
 
 typedef struct req_modrdn_s {
+	Modifications *rs_modlist;
 	struct berval rs_newrdn;
 	struct berval rs_nnewrdn;
 	struct berval *rs_newSup;
 	struct berval *rs_nnewSup;
 	int rs_deleteoldrdn;
-	Modifications *rs_modlist;
 } req_modrdn_s;
 
 typedef struct req_add_s {
-	Entry *rs_e;
 	Modifications *rs_modlist;	/* FIXME: temporary */
+	Entry *rs_e;
 } req_add_s;
 
 typedef struct req_abandon_s {
