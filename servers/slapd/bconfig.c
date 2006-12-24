@@ -1509,7 +1509,7 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_ROOTDSE:
-			if(read_root_dse_file(c->argv[1])) {
+			if(root_dse_read_file(c->argv[1])) {
 				snprintf( c->msg, sizeof( c->msg ), "<%s> could not read file", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
 					c->log, c->msg, c->argv[1] );

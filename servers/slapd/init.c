@@ -124,6 +124,7 @@ slap_init( int mode, const char *name )
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
+		root_dse_init();
 
 		/* FALLTHRU */
 	case SLAP_TOOL_MODE:
@@ -274,10 +275,14 @@ int slap_destroy(void)
 
 	slap_sasl_destroy();
 
+	/* rootdse destroy goes before entry_destroy()
+	 * because it may use entry_free() */
+	root_dse_destroy();
 	entry_destroy();
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
+
 	case SLAP_TOOL_MODE:
 
 		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_sent_mutex );

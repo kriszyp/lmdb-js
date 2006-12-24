@@ -1412,12 +1412,15 @@ LDAP_SLAPD_V( const struct berval ) slap_dummy_bv;
 /*
  * root_dse.c
  */
+LDAP_SLAPD_F (int) root_dse_init LDAP_P(( void ));
+LDAP_SLAPD_F (int) root_dse_destroy LDAP_P(( void ));
+
 LDAP_SLAPD_F (int) root_dse_info LDAP_P((
 	Connection *conn,
 	Entry **e,
 	const char **text ));
 
-LDAP_SLAPD_F (int) read_root_dse_file LDAP_P((
+LDAP_SLAPD_F (int) root_dse_read_file LDAP_P((
 	const char *file));
 
 LDAP_SLAPD_F (int) slap_discover_feature LDAP_P((
