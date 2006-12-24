@@ -4866,6 +4866,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 	ldap_pvt_thread_pool_pause( &connection_pool );
 
 	if ( ce->ce_type == Cft_Schema ) {
+		req_modrdn_s modr = op->oq_modrdn;
 		struct berval rdn;
 		Attribute *a;
 		rs->sr_err = config_rename_attr( rs, ce->ce_entry, &rdn, &a );
@@ -4874,6 +4875,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 				ce->ce_parent, a, &op->orr_newrdn, &op->orr_nnewrdn,
 				cfb->cb_use_ldif );
 		}
+		op->oq_modrdn = modr;
 	} else {
 		CfEntryInfo *ce2, *cebase, **cprev, **cbprev, *ceold;
 		req_modrdn_s modr = op->oq_modrdn;
