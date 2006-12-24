@@ -2091,22 +2091,30 @@ config_suffix(ConfigArgs *c)
 		free(pdn.bv_val);
 		free(ndn.bv_val);
 	} else if(tbe) {
-		char	*type = tbe->bd_info->bi_type;
+		BackendDB *b2 = tbe;
 
-		if ( overlay_is_over( tbe ) ) {
-			slap_overinfo	*oi = (slap_overinfo *)tbe->bd_info->bi_private;
-			type = oi->oi_orig->bi_type;
+		/* Does tbe precede be? */
+		while (( b2 = LDAP_STAILQ_NEXT(b2, be_next )) && b2 && b2 != c->be );
+
+		if ( b2 ) {
+			char	*type = tbe->bd_info->bi_type;
+
+			if ( overlay_is_over( tbe ) ) {
+				slap_overinfo	*oi = (slap_overinfo *)tbe->bd_info->bi_private;
+				type = oi->oi_orig->bi_type;
+			}
+
+			snprintf( c->msg, sizeof( c->msg ), "<%s> namingContext \"%s\" "
+				"already served by a preceding %s database",
+				c->argv[0], pdn.bv_val, type );
+			Debug(LDAP_DEBUG_ANY, "%s: %s serving namingContext \"%s\"\n",
+				c->log, c->msg, tbe->be_suffix[0].bv_val);
+			free(pdn.bv_val);
+			free(ndn.bv_val);
+			return(1);
 		}
-
-		snprintf( c->msg, sizeof( c->msg ), "<%s> namingContext \"%s\" already served by "
-			"a preceding %s database serving namingContext",
-			c->argv[0], pdn.bv_val, type );
-		Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-			c->log, c->msg, tbe->be_suffix[0].bv_val);
-		free(pdn.bv_val);
-		free(ndn.bv_val);
-		return(1);
-	} else if(pdn.bv_len == 0 && default_search_nbase.bv_len) {
+	}
+	if(pdn.bv_len == 0 && default_search_nbase.bv_len) {
 		Debug(LDAP_DEBUG_ANY, "%s: suffix DN empty and default search "
 			"base provided \"%s\" (assuming okay)\n",
 			c->log, default_search_base.bv_val, 0);
