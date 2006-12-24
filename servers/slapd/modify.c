@@ -183,7 +183,7 @@ do_modify(
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_check( modlist,
+	rs->sr_err = slap_mods_check( op, modlist,
 		&rs->sr_text, textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -539,6 +539,7 @@ slap_mods_no_repl_user_mod_check(
  * Do basic attribute type checking and syntax validation.
  */
 int slap_mods_check(
+	Operation *op,
 	Modifications *ml,
 	const char **text,
 	char *textbuf,

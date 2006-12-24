@@ -2607,7 +2607,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 	if ( pb == NULL || pb->pb_op == NULL )
 		return LDAP_PARAM_ERROR;
 
-	ml = slapi_int_ldapmods2modifications( mods );
+	ml = slapi_int_ldapmods2modifications( pb->pb_op, mods );
 	if ( ml == NULL ) {
 		return LDAP_OTHER;
 	}
@@ -2677,7 +2677,7 @@ LDAPMod **slapi_int_modifications2ldapmods( Modifications *modlist )
  * before prettying (and we can't easily get out of calling
  * slap_mods_check() because we need normalized values).
  */
-Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods )
+Modifications *slapi_int_ldapmods2modifications ( Operation *op, LDAPMod **mods )
 {
 	Modifications *modlist = NULL, **modtail;
 	LDAPMod **modp;
@@ -2746,7 +2746,7 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods )
 		modtail = &mod->sml_next;
 	}
 
-	if ( slap_mods_check( modlist, &text, textbuf, sizeof( textbuf ), NULL ) != LDAP_SUCCESS ) {
+	if ( slap_mods_check( op, modlist, &text, textbuf, sizeof( textbuf ), NULL ) != LDAP_SUCCESS ) {
 		slap_mods_free( modlist, 1 );
 		modlist = NULL;
 	}

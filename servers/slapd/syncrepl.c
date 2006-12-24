@@ -985,6 +985,8 @@ do_syncrepl(
 	op->o_bd = be = si->si_be;
 	op->o_dn = op->o_bd->be_rootdn;
 	op->o_ndn = op->o_bd->be_rootndn;
+	if ( !si->si_schemachecking )
+		op->o_no_schema_check = 1;
 
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
@@ -1265,7 +1267,7 @@ syncrepl_message_to_op(
 		/* If we didn't get required data, bail */
 		if ( !modlist ) goto done;
 
-		rc = slap_mods_check( modlist, &text, txtbuf, textlen, NULL );
+		rc = slap_mods_check( op, modlist, &text, txtbuf, textlen, NULL );
 
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: rid %03d "
@@ -1451,7 +1453,7 @@ syncrepl_message_to_entry(
 		goto done;
 	}
 
-	rc = slap_mods_check( *modlist, &text, txtbuf, textlen, NULL );
+	rc = slap_mods_check( op, *modlist, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03d mods check (%s)\n",

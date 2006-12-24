@@ -157,7 +157,7 @@ do_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
+	rs->sr_err = slap_mods_check( op, modlist, &rs->sr_text,
 		textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -323,15 +323,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 					goto done;
 				}
 
-#if 0			/* This is a no-op since *modtail is NULL */
-				rs->sr_err = slap_mods2entry( *modtail, &op->ora_e,
-					0, 0, &rs->sr_text, textbuf, textlen );
-				if ( rs->sr_err != LDAP_SUCCESS ) {
-					send_ldap_result( op, rs );
-					goto done;
-				}
-#endif
-
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
 			}
@@ -471,44 +462,6 @@ slap_mods2entry(
 			return LDAP_TYPE_OR_VALUE_EXISTS;
 #endif
 		}
-
-#if 0	/* checked for duplicates in slap_mods_check */
-		if( mods->sml_values[1].bv_val != NULL ) {
-			/* check for duplicates */
-			int		i, j, rc, match;
-			MatchingRule *mr = mods->sml_desc->ad_type->sat_equality;
-
-			for ( i = 1; mods->sml_values[i].bv_val != NULL; i++ ) {
-				/* test asserted values against themselves */
-				for( j = 0; j < i; j++ ) {
-					rc = ordered_value_match( &match, mods->sml_desc, mr,
-						SLAP_MR_EQUALITY
-						| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
-						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-						mods->sml_nvalues
-							? &mods->sml_nvalues[i]
-							: &mods->sml_values[i],
-						mods->sml_nvalues
-							? &mods->sml_nvalues[j]
-							: &mods->sml_values[j],
-						text );
-
-					if ( rc == LDAP_SUCCESS && match == 0 ) {
-						/* value exists already */
-						snprintf( textbuf, textlen,
-							"%s: value #%d provided more than once",
-							mods->sml_desc->ad_cname.bv_val, j );
-						*text = textbuf;
-						return LDAP_TYPE_OR_VALUE_EXISTS;
-
-					} else if ( rc != LDAP_SUCCESS ) {
-						return rc;
-					}
-				}
-			}
-		}
-#endif
 
 		attr = attr_alloc( mods->sml_desc );
 

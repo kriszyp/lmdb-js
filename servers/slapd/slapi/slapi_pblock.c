@@ -1005,7 +1005,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			break;
 		}
 
-		newmods = slapi_int_ldapmods2modifications( (LDAPMod **)value );
+		newmods = slapi_int_ldapmods2modifications( pb->pb_op, (LDAPMod **)value );
 		if ( newmods != NULL ) {
 			slap_mods_free( *mlp, 1 );
 			*mlp = newmods;

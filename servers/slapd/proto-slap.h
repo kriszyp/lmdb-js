@@ -1098,6 +1098,7 @@ LDAP_SLAPD_F ( int ) slap_mods_no_repl_user_mod_check(
 	size_t textlen );
 
 LDAP_SLAPD_F( int ) slap_mods_check(
+	Operation *op,
 	Modifications *ml,
 	const char **text,
 	char *textbuf, size_t textlen, void *ctx );
