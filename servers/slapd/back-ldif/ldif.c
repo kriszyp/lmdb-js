@@ -971,6 +971,9 @@ static int move_entry(Entry * entry, struct berval * ndn,
 			if(res != -1) {
 				/* if this fails we should log something bad */
 				res = unlink(path.bv_val);
+				path.bv_val[path.bv_len - STRLENOF(".ldif")] = '\0';
+				newpath.bv_val[newpath.bv_len - STRLENOF(".ldif")] = '\0';
+				res = rename(path.bv_val, newpath.bv_val);
 				res = LDAP_SUCCESS;
 			}
 			else {
