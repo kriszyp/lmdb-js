@@ -1326,7 +1326,7 @@ slap_acl_mask(
 						char		buf[] = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF";
 						struct berval	ip;
 						struct in6_addr	addr;
-						int		port_number = -1, i;
+						int		port_number = -1;
 						
 						if ( strncasecmp( op->o_conn->c_peer_name.bv_val, 
 									acl_bv_ipv6_eq.bv_val,

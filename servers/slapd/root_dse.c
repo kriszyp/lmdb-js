@@ -486,8 +486,7 @@ slap_discover_feature(
 	LDAP		*ld = NULL;
 	LDAPMessage	*res = NULL, *entry;
 	int		rc, i;
-	struct berval	cred = BER_BVC( "" ),
-			bv_val,
+	struct berval	bv_val,
 			**values = NULL;
 	char		*attrs[ 2 ] = { NULL, NULL };
 
