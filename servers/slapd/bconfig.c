@@ -4195,11 +4195,37 @@ ok:
 	if ( !last ) {
 		cfb->cb_root = ce;
 	} else if ( last->ce_kids ) {
-		CfEntryInfo *c2;
+		CfEntryInfo *c2, **cprev;
 
-		for (c2=last->ce_kids; c2 && c2->ce_sibs; c2 = c2->ce_sibs);
-
-		c2->ce_sibs = ce;
+		/* Advance to first of this type */
+		cprev = &last->ce_kids;
+		for ( c2 = *cprev; c2 && c2->ce_type != ce->ce_type; ) {
+			cprev = &c2->ce_sibs;
+			c2 = c2->ce_sibs;
+		}
+		/* Account for the (-1) frontendDB entry */
+		if ( ce->ce_type == Cft_Database ) {
+			if ( ca->be == frontendDB )
+				ibase = 0;
+			else if ( ibase != -1 )
+				ibase++;
+		}
+		/* Append */
+		if ( ibase < 0 ) {
+			for (c2 = *cprev; c2 && c2->ce_type == ce->ce_type;) {
+				cprev = &c2->ce_sibs;
+				c2 = c2->ce_sibs;
+			}
+		} else {
+		/* Insert */
+			int i;
+			for ( i=0; i<ibase; i++ ) {
+				c2 = *cprev;
+				cprev = &c2->ce_sibs;
+			}
+		}
+		ce->ce_sibs = *cprev;
+		*cprev = ce;
 	} else {
 		last->ce_kids = ce;
 	}
