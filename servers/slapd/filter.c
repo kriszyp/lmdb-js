@@ -42,7 +42,7 @@ static int	get_filter_list(
 static int	get_ssa(
 	Operation *op,
 	BerElement *ber,
-	SubstringsAssertion **s,
+	Filter *f,
 	const char **text );
 
 static void simple_vrFilter2bv(
@@ -79,8 +79,8 @@ get_filter(
 	 *		substrings	[4]	SubstringFilter,
 	 *		greaterOrEqual	[5]	AttributeValueAssertion,
 	 *		lessOrEqual	[6]	AttributeValueAssertion,
-	 *		present		[7]	AttributeType,,
-	 *		approxMatch	[8]	AttributeValueAssertion
+	 *		present		[7]	AttributeType,
+	 *		approxMatch	[8]	AttributeValueAssertion,
 	 *		extensibleMatch [9]	MatchingRuleAssertion
 	 *	}
 	 *
@@ -117,7 +117,7 @@ get_filter(
 	switch ( f.f_choice ) {
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
-		err = get_ava( op, ber, &f.f_ava, SLAP_MR_EQUALITY, text );
+		err = get_ava( op, ber, &f, SLAP_MR_EQUALITY, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -127,7 +127,7 @@ get_filter(
 
 	case LDAP_FILTER_SUBSTRINGS:
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
-		err = get_ssa( op, ber, &f.f_sub, text );
+		err = get_ssa( op, ber, &f, text );
 		if( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -136,7 +136,7 @@ get_filter(
 
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
-		err = get_ava( op, ber, &f.f_ava, SLAP_MR_ORDERING, text );
+		err = get_ava( op, ber, &f, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -145,7 +145,7 @@ get_filter(
 
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
-		err = get_ava( op, ber, &f.f_ava, SLAP_MR_ORDERING, text );
+		err = get_ava( op, ber, &f, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -166,9 +166,8 @@ get_filter(
 		err = slap_bv2ad( &type, &f.f_desc, text );
 
 		if( err != LDAP_SUCCESS ) {
-			err = slap_bv2undef_ad( &type, &f.f_desc, text,
-				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
-
+			f.f_choice |= SLAPD_FILTER_UNDEFINED;
+			err = slap_bv2undef_ad( &type, &f.f_desc, text, SLAP_AD_PROXIED);
 			if ( err != LDAP_SUCCESS ) {
 				/* unrecognized attribute description or other error */
 				Debug( LDAP_DEBUG_ANY, 
@@ -176,12 +175,9 @@ get_filter(
 					"type=%s (%d)\n",
 					op->o_connid, type.bv_val, err );
 
-				f.f_choice = SLAPD_FILTER_COMPUTED;
-				f.f_result = LDAP_COMPARE_FALSE;
 				err = LDAP_SUCCESS;
-				*text = NULL;
-				break;
 			}
+			*text = NULL;
 		}
 
 		assert( f.f_desc != NULL );
@@ -189,7 +185,7 @@ get_filter(
 
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
-		err = get_ava( op, ber, &f.f_ava, SLAP_MR_EQUALITY_APPROX, text );
+		err = get_ava( op, ber, &f, SLAP_MR_EQUALITY_APPROX, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -253,7 +249,7 @@ get_filter(
 	case LDAP_FILTER_EXT:
 		Debug( LDAP_DEBUG_FILTER, "EXTENSIBLE\n", 0, 0, 0 );
 
-		err = get_mra( op, ber, &f.f_mra, text );
+		err = get_mra( op, ber, &f, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -320,7 +316,7 @@ static int
 get_ssa(
 	Operation *op,
 	BerElement	*ber,
-	SubstringsAssertion	**out,
+	Filter 		*f,
 	const char	**text )
 {
 	ber_tag_t	tag;
@@ -331,7 +327,6 @@ get_ssa(
 	SubstringsAssertion ssa;
 
 	*text = "error decoding filter";
-	*out = NULL;
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_ssa\n", 0, 0, 0 );
 	if ( ber_scanf( ber, "{m" /*}*/, &desc ) == LBER_ERROR ) {
@@ -348,9 +343,8 @@ get_ssa(
 	rc = slap_bv2ad( &desc, &ssa.sa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
-		rc = slap_bv2undef_ad( &desc, &ssa.sa_desc, text,
-			SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
-
+		f->f_choice |= SLAPD_FILTER_UNDEFINED;
+		rc = slap_bv2undef_ad( &desc, &ssa.sa_desc, text, SLAP_AD_PROXIED);
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, 
 				"get_ssa: conn %lu unknown attribute type=%s (%ld)\n",
@@ -463,8 +457,8 @@ return_error:
 	}
 
 	if( rc == LDAP_SUCCESS ) {
-		*out = op->o_tmpalloc( sizeof( ssa ), op->o_tmpmemctx );
-		**out = ssa;
+		f->f_sub = op->o_tmpalloc( sizeof( ssa ), op->o_tmpmemctx );
+		*f->f_sub = ssa;
 	}
 
 	Debug( LDAP_DEBUG_FILTER, "end get_ssa\n", 0, 0, 0 );
@@ -479,6 +473,8 @@ filter_free_x( Operation *op, Filter *f )
 	if ( f == NULL ) {
 		return;
 	}
+
+	f->f_choice &= SLAPD_FILTER_MASK;
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_PRESENT:
@@ -553,90 +549,64 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 			ber_bvunknown = BER_BVC( "(?=unknown)" ),
 			ber_bvnone = BER_BVC( "(?=none)" );
 	ber_len_t	len;
+	ber_tag_t	choice;
+	int undef;
+	char *sign;
 
 	if ( f == NULL ) {
 		ber_dupbv_x( fstr, &ber_bvnone, op->o_tmpmemctx );
 		return;
 	}
 
-	switch ( f->f_choice ) {
+	undef = f->f_choice & SLAPD_FILTER_UNDEFINED;
+	choice = f->f_choice & SLAPD_FILTER_MASK;
+
+	switch ( choice ) {
 	case LDAP_FILTER_EQUALITY:
+		fstr->bv_len = STRLENOF("(=)");
+		sign = "=";
+		goto simple;
+	case LDAP_FILTER_GE:
+		fstr->bv_len = STRLENOF("(>=)");
+		sign = ">=";
+		goto simple;
+	case LDAP_FILTER_LE:
+		fstr->bv_len = STRLENOF("(<=)");
+		sign = "<=";
+		goto simple;
+	case LDAP_FILTER_APPROX:
+		fstr->bv_len = STRLENOF("(~=)");
+		sign = "~=";
+
+simple:
 		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
 		/* NOTE: tmp can legitimately be NULL (meaning empty) 
 		 * since in a Filter values in AVAs are supposed
 		 * to have been normalized, meaning that an empty value
 		 * is legal for that attribute's syntax */
 
-		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
-			tmp.bv_len + STRLENOF("(=)");
+		fstr->bv_len += f->f_av_desc->ad_cname.bv_len + tmp.bv_len;
+		if ( undef )
+			fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
-			f->f_av_desc->ad_cname.bv_val,
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s)",
+			undef ? "?" : "",
+			f->f_av_desc->ad_cname.bv_val, sign,
 			tmp.bv_len ? tmp.bv_val : "" );
 
-		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
-		break;
-
-	case LDAP_FILTER_GE:
-		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
-		/* NOTE: tmp can legitimately be NULL (meaning empty) 
-		 * since in a Filter values in AVAs are supposed
-		 * to have been normalized, meaning that an empty value
-		 * is legal for that attribute's syntax */
-
-		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
-			tmp.bv_len + STRLENOF("(>=)");
-		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
-
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
-			f->f_av_desc->ad_cname.bv_val,
-			tmp.bv_len ? tmp.bv_val : "");
-
-		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
-		break;
-
-	case LDAP_FILTER_LE:
-		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
-		/* NOTE: tmp can legitimately be NULL (meaning empty) 
-		 * since in a Filter values in AVAs are supposed
-		 * to have been normalized, meaning that an empty value
-		 * is legal for that attribute's syntax */
-
-		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
-			tmp.bv_len + STRLENOF("(<=)");
-		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
-
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
-			f->f_av_desc->ad_cname.bv_val,
-			tmp.bv_len ? tmp.bv_val : "");
-
-		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
-		break;
-
-	case LDAP_FILTER_APPROX:
-		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
-		/* NOTE: tmp can legitimately be NULL (meaning empty) 
-		 * since in a Filter values in AVAs are supposed
-		 * to have been normalized, meaning that an empty value
-		 * is legal for that attribute's syntax */
-
-		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
-			tmp.bv_len + STRLENOF("(~=)");
-		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
-
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
-			f->f_av_desc->ad_cname.bv_val,
-			tmp.bv_len ? tmp.bv_val : "");
 		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		fstr->bv_len = f->f_sub_desc->ad_cname.bv_len +
 			STRLENOF("(=*)");
+		if ( undef )
+			fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 128, op->o_tmpmemctx );
 
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s=*)",
+			undef ? "?" : "",
 			f->f_sub_desc->ad_cname.bv_val );
 
 		if ( f->f_sub_initial.bv_val != NULL ) {
@@ -705,9 +675,13 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 	case LDAP_FILTER_PRESENT:
 		fstr->bv_len = f->f_desc->ad_cname.bv_len +
 			STRLENOF("(=*)");
+		if ( undef )
+			fstr->bv_len++;
+
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s=*)",
+			undef ? "?" : "",
 			f->f_desc->ad_cname.bv_val );
 		break;
 
@@ -761,7 +735,8 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 			tmp.bv_len + STRLENOF("(:=)");
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s%s:=%s)",
+			undef ? "?" : "",
 			ad.bv_val,
 			f->f_mr_dnattrs ? ":dn" : "",
 			f->f_mr_rule_text.bv_len ? ":" : "",
@@ -824,7 +799,7 @@ filter_dup( Filter *f, void *memctx )
 	n->f_choice = f->f_choice;
 	n->f_next = NULL;
 
-	switch( f->f_choice ) {
+	switch( f->f_choice & SLAPD_FILTER_MASK ) {
 	case SLAPD_FILTER_COMPUTED:
 		n->f_result = f->f_result;
 		break;
@@ -915,7 +890,7 @@ get_simple_vrFilter(
 	switch ( vrf.vrf_choice ) {
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
-		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_EQUALITY, text );
+		err = get_ava( op, ber, (Filter *)&vrf, SLAP_MR_EQUALITY, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -925,12 +900,12 @@ get_simple_vrFilter(
 
 	case LDAP_FILTER_SUBSTRINGS:
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
-		err = get_ssa( op, ber, &vrf.vrf_sub, text );
+		err = get_ssa( op, ber, (Filter *)&vrf, text );
 		break;
 
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
-		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_ORDERING, text );
+		err = get_ava( op, ber, (Filter *)&vrf, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -938,7 +913,7 @@ get_simple_vrFilter(
 
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
-		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_ORDERING, text );
+		err = get_ava( op, ber, (Filter *)&vrf, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -958,8 +933,9 @@ get_simple_vrFilter(
 		err = slap_bv2ad( &type, &vrf.vrf_desc, text );
 
 		if( err != LDAP_SUCCESS ) {
+			vrf.vrf_choice |= SLAPD_FILTER_UNDEFINED;
 			err = slap_bv2undef_ad( &type, &vrf.vrf_desc, text,
-				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+				SLAP_AD_PROXIED);
 
 			if( err != LDAP_SUCCESS ) {
 				/* unrecognized attribute description or other error */
@@ -978,7 +954,7 @@ get_simple_vrFilter(
 
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
-		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_EQUALITY_APPROX, text );
+		err = get_ava( op, ber, (Filter *)&vrf, SLAP_MR_EQUALITY_APPROX, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -987,7 +963,7 @@ get_simple_vrFilter(
 	case LDAP_FILTER_EXT:
 		Debug( LDAP_DEBUG_FILTER, "EXTENSIBLE\n", 0, 0, 0 );
 
-		err = get_mra( op, ber, &vrf.vrf_mra, text );
+		err = get_mra( op, ber, (Filter *)&vrf, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -1103,7 +1079,7 @@ vrFilter_free( Operation *op, ValuesReturnFilter *vrf )
 	for ( p = vrf; p != NULL; p = next ) {
 		next = p->vrf_next;
 
-		switch ( vrf->vrf_choice ) {
+		switch ( vrf->vrf_choice & SLAPD_FILTER_MASK ) {
 		case LDAP_FILTER_PRESENT:
 			break;
 
@@ -1187,13 +1163,15 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 			op->o_tmpmemctx );
 		return;
 	}
+	int undef = vrf->vrf_choice & SLAPD_FILTER_UNDEFINED;
 
-	switch ( vrf->vrf_choice ) {
+	switch ( vrf->vrf_choice & SLAPD_FILTER_MASK ) {
 	case LDAP_FILTER_EQUALITY:
 		filter_escape_value_x( &vrf->vrf_av_value, &tmp, op->o_tmpmemctx );
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + STRLENOF("(=)");
+		if ( undef ) fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
@@ -1208,6 +1186,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + STRLENOF("(>=)");
+		if ( undef ) fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
@@ -1222,6 +1201,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + STRLENOF("(<=)");
+		if ( undef ) fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
@@ -1236,6 +1216,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + STRLENOF("(~=)");
+		if ( undef ) fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
@@ -1247,6 +1228,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 	case LDAP_FILTER_SUBSTRINGS:
 		fstr->bv_len = vrf->vrf_sub_desc->ad_cname.bv_len +
 			STRLENOF("(=*)");
+		if ( undef ) fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 128, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
@@ -1307,6 +1289,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 	case LDAP_FILTER_PRESENT:
 		fstr->bv_len = vrf->vrf_desc->ad_cname.bv_len +
 			STRLENOF("(=*)");
+		if ( undef ) fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
@@ -1329,6 +1312,7 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 			( vrf->vrf_mr_rule_text.bv_len
 				? vrf->vrf_mr_rule_text.bv_len+1 : 0 ) +
 			tmp.bv_len + STRLENOF("(:=)");
+		if ( undef ) fstr->bv_len++;
 		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",

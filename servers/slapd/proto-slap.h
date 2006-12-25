@@ -295,7 +295,7 @@ LDAP_SLAPD_F (int) attr_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (int) get_ava LDAP_P((
 	Operation *op,
 	BerElement *ber,
-	AttributeAssertion **ava,
+	Filter *f,
 	unsigned usage,
 	const char **text ));
 LDAP_SLAPD_F (void) ava_free LDAP_P((
@@ -1190,7 +1190,7 @@ LDAP_SLAPD_F (int) mr_usable_with_at( MatchingRule *mr,
 LDAP_SLAPD_F (int) get_mra LDAP_P((
 	Operation *op,
 	BerElement *ber,
-	MatchingRuleAssertion **mra,
+	Filter *f,
 	const char **text ));
 LDAP_SLAPD_F (void) mra_free LDAP_P((
 	Operation *op,

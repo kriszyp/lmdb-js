@@ -55,7 +55,7 @@ int
 get_ava(
 	Operation *op,
 	BerElement	*ber,
-	AttributeAssertion	**ava,
+	Filter *f,
 	unsigned usage,
 	const char **text )
 {
@@ -85,8 +85,9 @@ get_ava(
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
-		rc = slap_bv2undef_ad( &type, &aa->aa_desc, text,
-				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+		f->f_choice |= SLAPD_FILTER_UNDEFINED;
+		*text = NULL;
+		rc = slap_bv2undef_ad( &type, &aa->aa_desc, text, SLAP_AD_PROXIED);
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_FILTER,
@@ -101,10 +102,11 @@ get_ava(
 		usage, &value, &aa->aa_value, text, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
+		f->f_choice |= SLAPD_FILTER_UNDEFINED;
 		Debug( LDAP_DEBUG_FILTER,
 		"get_ava: illegal value for attributeType %s\n", type.bv_val, 0, 0 );
-		op->o_tmpfree( aa, op->o_tmpmemctx );
-		return rc;
+		ber_dupbv_x( &aa->aa_value, &value, op->o_tmpmemctx );
+		rc = LDAP_SUCCESS;
 	}
 
 #ifdef LDAP_COMP_MATCH
@@ -120,6 +122,6 @@ get_ava(
 		}
 	}
 #endif
-	*ava = aa;
+	f->f_ava = aa;
 	return LDAP_SUCCESS;
 }

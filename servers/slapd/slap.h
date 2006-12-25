@@ -977,7 +977,9 @@ typedef struct slap_mr_assertion {
  */
 typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
-#define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
+#define SLAPD_FILTER_COMPUTED		0
+#define SLAPD_FILTER_MASK			0x7fff
+#define SLAPD_FILTER_UNDEFINED		0x8000
 
 	union f_un_u {
 		/* precomputed result */

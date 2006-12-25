@@ -66,6 +66,12 @@ test_filter(
 	int	rc;
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter\n", 0, 0, 0 );
 
+	if ( f->f_choice & SLAPD_FILTER_UNDEFINED ) {
+		Debug( LDAP_DEBUG_FILTER, "    UNDEFINED\n", 0, 0, 0 );
+		rc = SLAPD_COMPARE_UNDEFINED;
+		goto out;
+	}
+
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
 		Debug( LDAP_DEBUG_FILTER, "    COMPUTED %s (%d)\n",
@@ -144,7 +150,7 @@ test_filter(
 		    f->f_choice, 0, 0 );
 		rc = LDAP_PROTOCOL_ERROR;
 	}
-
+out:
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter %d\n", rc, 0, 0 );
 	return( rc );
 }

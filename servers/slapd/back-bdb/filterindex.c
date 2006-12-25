@@ -102,6 +102,11 @@ bdb_filter_candidates(
 #endif
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_filter_candidates\n", 0, 0, 0 );
 
+	if ( f->f_choice & SLAPD_FILTER_UNDEFINED ) {
+		BDB_IDL_ZERO( ids );
+		goto out;
+	}
+
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
 		switch( f->f_result ) {
@@ -204,6 +209,7 @@ bdb_filter_candidates(
 		}
 	}
 
+out:
 	Debug( LDAP_DEBUG_FILTER,
 		"<= bdb_filter_candidates: id=%ld first=%ld last=%ld\n",
 		(long) ids[0],

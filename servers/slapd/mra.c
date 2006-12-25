@@ -48,7 +48,7 @@ int
 get_mra(
 	Operation *op,
 	BerElement	*ber,
-	MatchingRuleAssertion	**mra,
+	Filter *f,
 	const char **text )
 {
 	int rc;
@@ -141,8 +141,8 @@ get_mra(
 	if( type.bv_val != NULL ) {
 		rc = slap_bv2ad( &type, &ma.ma_desc, text );
 		if( rc != LDAP_SUCCESS ) {
-			rc = slap_bv2undef_ad( &type, &ma.ma_desc, text,
-				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+			f->f_choice |= SLAPD_FILTER_UNDEFINED;
+			rc = slap_bv2undef_ad( &type, &ma.ma_desc, text, SLAP_AD_PROXIED);
 
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -214,12 +214,12 @@ get_mra(
 	length = sizeof(ma);
 	/* Append rule_text to end of struct */
 	if (rule_text.bv_val) length += rule_text.bv_len + 1;
-	*mra = op->o_tmpalloc( length, op->o_tmpmemctx );
-	**mra = ma;
+	f->f_mra = op->o_tmpalloc( length, op->o_tmpmemctx );
+	*f->f_mra = ma;
 	if (rule_text.bv_val) {
-		(*mra)->ma_rule_text.bv_len = rule_text.bv_len;
-		(*mra)->ma_rule_text.bv_val = (char *)(*mra+1);
-		AC_MEMCPY((*mra)->ma_rule_text.bv_val, rule_text.bv_val,
+		f->f_mra->ma_rule_text.bv_len = rule_text.bv_len;
+		f->f_mra->ma_rule_text.bv_val = (char *)(f->f_mra+1);
+		AC_MEMCPY(f->f_mra->ma_rule_text.bv_val, rule_text.bv_val,
 			rule_text.bv_len+1);
 	}
 
