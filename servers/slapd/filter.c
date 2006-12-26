@@ -1170,13 +1170,14 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 {
 	struct berval tmp;
 	ber_len_t len;
+	int undef;
 
 	if ( vrf == NULL ) {
 		ber_str2bv_x( "No filter!", STRLENOF("No filter!"), 1, fstr,
 			op->o_tmpmemctx );
 		return;
 	}
-	int undef = vrf->vrf_choice & SLAPD_FILTER_UNDEFINED;
+	undef = vrf->vrf_choice & SLAPD_FILTER_UNDEFINED;
 
 	switch ( vrf->vrf_choice & SLAPD_FILTER_MASK ) {
 	case LDAP_FILTER_EQUALITY:
