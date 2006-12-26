@@ -782,6 +782,7 @@ typedef struct slap_attr_desc {
 #define SLAP_DESC_NONE			0x00U
 #define SLAP_DESC_BINARY		0x01U
 #define SLAP_DESC_TAG_RANGE		0x80U
+#define SLAP_DESC_TEMPORARY		0x1000U
 } AttributeDescription;
 
 /* flags to slap_*2undef_ad to register undefined (0, the default)

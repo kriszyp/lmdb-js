@@ -773,6 +773,24 @@ int slap_bv2undef_ad(
 	return LDAP_SUCCESS;
 }
 
+AttributeDescription *
+slap_bv2tmp_ad(
+	struct berval *bv,
+	void *memctx )
+{
+	AttributeDescription *ad =
+		 slap_sl_mfuncs.bmf_malloc( sizeof(AttributeDescription) +
+			bv->bv_len + 1, memctx );
+
+	ad->ad_cname.bv_val = (char *)(ad+1);
+	strncpy( ad->ad_cname.bv_val, bv->bv_val, bv->bv_len+1 );
+	ad->ad_cname.bv_len = bv->bv_len;
+	ad->ad_flags = SLAP_DESC_TEMPORARY;
+	ad->ad_type = slap_schema.si_at_undefined;
+
+	return ad;
+}
+
 static int
 undef_promote(
 	AttributeType	*at,

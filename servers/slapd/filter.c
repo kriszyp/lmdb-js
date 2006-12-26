@@ -167,7 +167,9 @@ get_filter(
 
 		if( err != LDAP_SUCCESS ) {
 			f.f_choice |= SLAPD_FILTER_UNDEFINED;
-			err = slap_bv2undef_ad( &type, &f.f_desc, text, SLAP_AD_PROXIED);
+			err = slap_bv2undef_ad( &type, &f.f_desc, text,
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+
 			if ( err != LDAP_SUCCESS ) {
 				/* unrecognized attribute description or other error */
 				Debug( LDAP_DEBUG_ANY, 
@@ -176,6 +178,7 @@ get_filter(
 					op->o_connid, type.bv_val, err );
 
 				err = LDAP_SUCCESS;
+				f.f_desc = slap_bv2tmp_ad( &type, op->o_tmpmemctx );
 			}
 			*text = NULL;
 		}
@@ -344,19 +347,15 @@ get_ssa(
 
 	if( rc != LDAP_SUCCESS ) {
 		f->f_choice |= SLAPD_FILTER_UNDEFINED;
-		rc = slap_bv2undef_ad( &desc, &ssa.sa_desc, text, SLAP_AD_PROXIED);
+		rc = slap_bv2undef_ad( &desc, &ssa.sa_desc, text,
+			SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
+
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, 
 				"get_ssa: conn %lu unknown attribute type=%s (%ld)\n",
 				op->o_connid, desc.bv_val, (long) rc );
 	
-			/* skip over the rest of this filter */
-			for ( tag = ber_first_element( ber, &len, &last );
-				tag != LBER_DEFAULT;
-				tag = ber_next_element( ber, &len, last ) ) {
-				ber_scanf( ber, "x" );
-			}
-			return rc;
+			ssa.sa_desc = slap_bv2tmp_ad( &desc, op->o_tmpmemctx );
 		}
 	}
 
@@ -449,6 +448,8 @@ return_error:
 				(long) rc, 0, 0 );
 			slap_sl_free( ssa.sa_initial.bv_val, op->o_tmpmemctx );
 			ber_bvarray_free_x( ssa.sa_any, op->o_tmpmemctx );
+			if ( ssa.sa_desc->ad_flags & SLAP_DESC_TEMPORARY )
+				op->o_tmpfree( ssa.sa_desc, op->o_tmpmemctx );
 			slap_sl_free( ssa.sa_final.bv_val, op->o_tmpmemctx );
 			return rc;
 		}
@@ -495,6 +496,8 @@ filter_free_x( Operation *op, Filter *f )
 		if ( f->f_sub_final.bv_val != NULL ) {
 			op->o_tmpfree( f->f_sub_final.bv_val, op->o_tmpmemctx );
 		}
+		if ( f->f_sub->sa_desc->ad_flags & SLAP_DESC_TEMPORARY )
+			op->o_tmpfree( f->f_sub->sa_desc, op->o_tmpmemctx );
 		op->o_tmpfree( f->f_sub, op->o_tmpmemctx );
 		break;
 
@@ -804,7 +807,10 @@ filter_dup( Filter *f, void *memctx )
 		n->f_result = f->f_result;
 		break;
 	case LDAP_FILTER_PRESENT:
-		n->f_desc = f->f_desc;
+		if ( f->f_desc->ad_flags & SLAP_DESC_TEMPORARY )
+			n->f_desc = slap_bv2tmp_ad( &f->f_desc->ad_cname, memctx );
+		else
+			n->f_desc = f->f_desc;
 		break;
 	case LDAP_FILTER_EQUALITY:
 	case LDAP_FILTER_GE:
@@ -813,11 +819,16 @@ filter_dup( Filter *f, void *memctx )
 		/* Should this be ava_dup() ? */
 		n->f_ava = mf->bmf_calloc( 1, sizeof(AttributeAssertion), memctx );
 		*n->f_ava = *f->f_ava;
+		if ( f->f_av_desc->ad_flags & SLAP_DESC_TEMPORARY )
+			n->f_av_desc = slap_bv2tmp_ad( &f->f_av_desc->ad_cname, memctx );
 		ber_dupbv_x( &n->f_av_value, &f->f_av_value, memctx );
 		break;
 	case LDAP_FILTER_SUBSTRINGS:
 		n->f_sub = mf->bmf_calloc( 1, sizeof(SubstringsAssertion), memctx );
-		n->f_sub_desc = f->f_sub_desc;
+		if ( f->f_sub_desc->ad_flags & SLAP_DESC_TEMPORARY )
+			n->f_sub_desc = slap_bv2tmp_ad( &f->f_sub_desc->ad_cname, memctx );
+		else
+			n->f_sub_desc = f->f_sub_desc;
 		if ( !BER_BVISNULL( &f->f_sub_initial ))
 			ber_dupbv_x( &n->f_sub_initial, &f->f_sub_initial, memctx );
 		if ( f->f_sub_any ) {
@@ -841,6 +852,8 @@ filter_dup( Filter *f, void *memctx )
 			length += f->f_mr_rule_text.bv_len + 1;
 		n->f_mra = mf->bmf_calloc( 1, length, memctx );
 		*n->f_mra = *f->f_mra;
+		if ( f->f_mr_desc && ( f->f_sub_desc->ad_flags & SLAP_DESC_TEMPORARY ))
+			n->f_mr_desc = slap_bv2tmp_ad( &f->f_mr_desc->ad_cname, memctx );
 		ber_dupbv_x( &n->f_mr_value, &f->f_mr_value, memctx );
 		if ( !BER_BVISNULL( &f->f_mr_rule_text )) {
 			n->f_mr_rule_text.bv_val = (char *)(n->f_mra+1);

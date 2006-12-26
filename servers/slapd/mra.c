@@ -41,6 +41,8 @@ mra_free(
 #endif
 	/* op->o_tmpfree( mra->ma_value.bv_val, op->o_tmpmemctx ); */
 	ch_free( mra->ma_value.bv_val );
+	if ( mra->ma_desc && mra->ma_desc->ad_flags & SLAP_DESC_TEMPORARY )
+		op->o_tmpfree( mra->ma_desc, op->o_tmpmemctx );
 	if ( freeit ) op->o_tmpfree( (char *) mra, op->o_tmpmemctx );
 }
 
@@ -142,10 +144,12 @@ get_mra(
 		rc = slap_bv2ad( &type, &ma.ma_desc, text );
 		if( rc != LDAP_SUCCESS ) {
 			f->f_choice |= SLAPD_FILTER_UNDEFINED;
-			rc = slap_bv2undef_ad( &type, &ma.ma_desc, text, SLAP_AD_PROXIED);
+			rc = slap_bv2undef_ad( &type, &ma.ma_desc, text,
+				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
 
 			if( rc != LDAP_SUCCESS ) {
-				return rc;
+				ma.ma_desc = slap_bv2tmp_ad( &type, op->o_tmpmemctx );
+				rc = LDAP_SUCCESS;
 			}
 		}
 	}
