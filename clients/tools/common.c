@@ -32,6 +32,7 @@
 #include <ac/ctype.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
+#include <ac/time.h>
 
 #ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_SASL_H
