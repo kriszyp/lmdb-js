@@ -1601,7 +1601,7 @@ slap_listener(
 #endif /* LDAP_PF_LOCAL */
 
 	Debug( LDAP_DEBUG_TRACE,
-		">>> slap_listener(%s)",
+		">>> slap_listener(%s)\n",
 		sl->sl_url.bv_val, 0, 0 );
 
 	peername[0] = '\0';
