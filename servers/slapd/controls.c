@@ -1254,6 +1254,8 @@ static int parseValuesReturnFilter (
 	rs->sr_err = get_vrFilter( op, ber,
 		(ValuesReturnFilter **)&(op->o_vrFilter), &rs->sr_text);
 
+	(void) ber_free( ber, 1 );
+
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
