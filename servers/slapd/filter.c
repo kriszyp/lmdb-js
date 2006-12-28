@@ -1001,7 +1001,7 @@ get_simple_vrFilter(
 	}
 
 	if ( err == LDAP_SUCCESS ) {
-		*filt = ch_malloc( sizeof vrf );
+		*filt = op->o_tmpalloc( sizeof vrf, op->o_tmpmemctx );
 		**filt = vrf;
 	}
 
