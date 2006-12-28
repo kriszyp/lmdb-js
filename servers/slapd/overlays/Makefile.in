@@ -18,7 +18,6 @@ SRCS = overlays.c \
 	auditlog.c \
 	constraint.c \
 	dds.c \
-	denyop.c \
 	dyngroup.c \
 	dynlist.c \
 	pcache.c \
@@ -70,9 +69,6 @@ constraint.la : constraint.lo
 
 dds.la : dds.lo
 	$(LTLINK_MOD) -module -o $@ dds.lo version.lo $(LINK_LIBS)
-
-denyop.la : denyop.lo
-	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
 
 dyngroup.la : dyngroup.lo
 	$(LTLINK_MOD) -module -o $@ dyngroup.lo version.lo $(LINK_LIBS)
