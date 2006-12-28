@@ -1,4 +1,5 @@
 /* lastmod.c - returns last modification info */
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2004-2006 The OpenLDAP Foundation.
@@ -563,7 +564,7 @@ lastmod_update( Operation *op, SlapReply *rs )
 			int		rc;
 
 			op->o_bd->bd_info = (BackendInfo *)on->on_info->oi_orig;
-			rc = (*op->o_bd->bd_info->bi_entry_get_rw)( op, &bv_name, NULL, NULL, 0, &e );
+			rc = op->o_bd->bd_info->bi_entry_get_rw( op, &bv_name, NULL, NULL, 0, &e );
 			if ( rc == LDAP_SUCCESS ) {
 				a = attr_find( e->e_attrs, slap_schema.si_ad_modifiersName );
 				if ( a != NULL ) {
@@ -592,7 +593,7 @@ lastmod_update( Operation *op, SlapReply *rs )
 				assert( dn_match( &bv_name, &e->e_name ) );
 				assert( dn_match( &bv_nname, &e->e_nname ) );
 
-				(*op->o_bd->bd_info->bi_entry_release_rw)( op, e, 0 );
+				op->o_bd->bd_info->bi_entry_release_rw( op, e, 0 );
 			}
 
 			op->o_bd->bd_info = bi;
