@@ -331,10 +331,8 @@ Overlays="accesslog \
 	auditlog \
 	constraint \
 	dds \
-	denyop \
 	dyngroup \
 	dynlist \
-	lastmod \
 	ppolicy \
 	proxycache \
 	refint \
@@ -359,13 +357,9 @@ OL_ARG_ENABLE(constraint,[    --enable-constraint	  Attribute Constraint overlay
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dds,[    --enable-dds  	  Dynamic Directory Services overlay],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay],
-	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dynlist,[    --enable-dynlist	  Dynamic List overlay],
-	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(lastmod,[    --enable-lastmod	  Last Modification overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay],
 	no, [no yes mod], ol_enable_overlays)
@@ -2816,18 +2810,6 @@ if test "$ol_enable_dds" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DDS,$MFLAG,[define for Dynamic Directory Services overlay])
 fi
 
-if test "$ol_enable_denyop" != no ; then
-	BUILD_DENYOP=$ol_enable_denyop
-	if test "$ol_enable_denyop" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS denyop.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS denyop.o"
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_DENYOP,$MFLAG,[define for Deny Operation overlay])
-fi
-
 if test "$ol_enable_dyngroup" != no ; then
 	BUILD_DYNGROUP=$ol_enable_dyngroup
 	if test "$ol_enable_dyngroup" = mod ; then
@@ -2850,18 +2832,6 @@ if test "$ol_enable_dynlist" != no ; then
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dynlist.o"
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNLIST,$MFLAG,[define for Dynamic List overlay])
-fi
-
-if test "$ol_enable_lastmod" != no ; then
-	BUILD_LASTMOD=$ol_enable_lastmod
-	if test "$ol_enable_lastmod" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS lastmod.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS lastmod.o"
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_LASTMOD,$MFLAG,[define for Last Modification overlay])
 fi
 
 if test "$ol_enable_ppolicy" != no ; then

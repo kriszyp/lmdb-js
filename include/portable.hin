@@ -972,17 +972,11 @@
 /* define for Dynamic Directory Services overlay */
 #undef SLAPD_OVER_DDS
 
-/* define for Deny Operation overlay */
-#undef SLAPD_OVER_DENYOP
-
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DYNGROUP
 
 /* define for Dynamic List overlay */
 #undef SLAPD_OVER_DYNLIST
-
-/* define for Last Modification overlay */
-#undef SLAPD_OVER_LASTMOD
 
 /* define for Password Policy overlay */
 #undef SLAPD_OVER_PPOLICY
