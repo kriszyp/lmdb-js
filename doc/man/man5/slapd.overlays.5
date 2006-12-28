@@ -36,11 +36,6 @@ This overlay allows automatic referral chasing when a referral would
 have been returned, either when configured by the server or when 
 requested by the client.
 .TP
-.B denyop
-Deny Operation.
-This overlay allows selected operations to be denied, similar to the
-\fBrestrict\fP option.
-.TP
 .B dyngroup
 Dynamic Group.
 This is a demo overlay which extends the Compare operation to detect
@@ -50,12 +45,6 @@ It has no effect on any other operations.
 .B dynlist
 Dynamic List.
 This overlay allows expansion of dynamic groups and more.
-.TP
-.B lastmod
-Last Modification.
-This overlay maintains a service entry in the database with the DN,
-modification type, modifiersName and modifyTimestamp of the last write
-operation performed on that database.
 .TP
 .B pcache
 Proxycache.
@@ -122,7 +111,6 @@ default slapd configuration directory
 .BR slapo\-auditlog (5),
 .BR slapo\-chain (5),
 .BR slapo\-dynlist (5),
-.BR slapo\-lastmod (5),
 .BR slapo\-pcache (5),
 .BR slapo\-ppolicy (5),
 .BR slapo\-refint (5),
