@@ -124,7 +124,7 @@ attrs_alloc( int num )
 
 
 void
-attr_free( Attribute *a )
+attr_clean( Attribute *a )
 {
 	if ( a->a_nvals && a->a_nvals != a->a_vals &&
 		!( a->a_flags & SLAP_ATTR_DONT_FREE_VALS )) {
@@ -146,7 +146,19 @@ attr_free( Attribute *a )
 			ber_bvarray_free( a->a_vals );
 		}
 	}
-	memset( a, 0, sizeof( Attribute ));
+	a->a_desc = NULL;
+	a->a_vals = NULL;
+	a->a_nvals = NULL;
+#ifdef LDAP_COMP_MATCH
+	a->a_comp_data = NULL;
+#endif
+	a->a_flags = 0;
+}
+
+void
+attr_free( Attribute *a )
+{
+	attr_clean( a );
 	ldap_pvt_thread_mutex_lock( &attr_mutex );
 	a->a_next = attr_list;
 	attr_list = a;
@@ -173,14 +185,18 @@ comp_tree_free( Attribute *a )
 void
 attrs_free( Attribute *a )
 {
-	Attribute *next;
+	Attribute *b;
 
-	for( ; a != NULL ; a = next ) {
-		next = a->a_next;
-		attr_free( a );
+	for(b = a ; b != NULL ; b = b->a_next ) {
+		attr_clean( b );
+		if ( !b->a_next )
+			break;
 	}
+	ldap_pvt_thread_mutex_lock( &attr_mutex );
+	b->a_next = attr_list;
+	attr_list = a;
+	ldap_pvt_thread_mutex_unlock( &attr_mutex );
 }
-
 
 static void
 attr_dup2( Attribute *tmp, Attribute *a )
