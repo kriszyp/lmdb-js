@@ -499,7 +499,8 @@ int bdb_cache_add(
 	EntryInfo *pei,
 	Entry   *e,
 	struct berval *nrdn,
-	u_int32_t locker
+	u_int32_t locker,
+	DB_LOCK *lock
 );
 int bdb_cache_modrdn(
 	struct bdb_info *bdb,

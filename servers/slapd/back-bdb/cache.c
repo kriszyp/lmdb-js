@@ -886,10 +886,10 @@ bdb_cache_add(
 	EntryInfo *eip,
 	Entry *e,
 	struct berval *nrdn,
-	u_int32_t locker )
+	u_int32_t locker,
+	DB_LOCK *lock )
 {
 	EntryInfo *new, ei;
-	DB_LOCK lock;
 	int rc;
 #ifdef BDB_HIER
 	struct berval rdn = e->e_name;
@@ -903,7 +903,7 @@ bdb_cache_add(
 	/* Lock this entry so that bdb_add can run to completion.
 	 * It can only fail if BDB has run out of lock resources.
 	 */
-	rc = bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, &ei, 1, 0, &lock );
+	rc = bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, &ei, 0, 0, lock );
 	if ( rc ) {
 		bdb_cache_entryinfo_unlock( eip );
 		return rc;
@@ -931,9 +931,7 @@ bdb_cache_add(
 	}
 	new->bei_e = e;
 	e->e_private = new;
-	/* Set "Not linked" status so LRU purger ignores it */
-	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS |
-		CACHE_ENTRY_NOT_LINKED;
+	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
 	if (eip->bei_parent) {
 		eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;

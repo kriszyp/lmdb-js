@@ -35,7 +35,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {0};
 	int subentry;
-	u_int32_t	locker = 0;
+	u_int32_t	locker = 0, rlocker = 0;
 	DB_LOCK		lock;
 
 	int		num_retries = 0;
@@ -127,6 +127,9 @@ txnReturn:
 		rs->sr_text = "internal error";
 		goto return_results;
 	}
+
+	/* Get our thread locker ID */
+	rs->sr_err = LOCK_ID( bdb->bi_dbenv, &rlocker );
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -424,7 +427,8 @@ retry:	/* transaction retry */
 			nrdn = op->ora_e->e_nname;
 		}
 
-		bdb_cache_add( bdb, ei, op->ora_e, &nrdn, locker );
+		/* Use the thread locker here, outside the txn */
+		bdb_cache_add( bdb, ei, op->ora_e, &nrdn, rlocker, &lock );
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";
@@ -461,27 +465,26 @@ return_results:
 	}
 	op->o_private = NULL;
 
-	if( postread_ctrl != NULL && (*postread_ctrl) != NULL ) {
-		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
-		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
-	}
-
 	if( rs->sr_err == LDAP_SUCCESS ) {
-		EntryInfo *ei = oe->e_private;
-
 		/* We own the entry now, and it can be purged at will
 		 * Check to make sure it's the same entry we entered with.
 		 * Possibly a callback may have mucked with it, although
 		 * in general callbacks should treat the entry as read-only.
 		 */
+		bdb_cache_return_entry_r( bdb->bi_dbenv, &bi->bi_cache, oe, &lock );
 		if ( op->ora_e == oe )
 			op->ora_e = NULL;
-		ei->bei_state ^= CACHE_ENTRY_NOT_LINKED;
 
 		if ( bdb->bi_txn_cp_kbyte ) {
 			TXN_CHECKPOINT( bdb->bi_dbenv,
 				bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
 		}
 	}
+
+	if( postread_ctrl != NULL && (*postread_ctrl) != NULL ) {
+		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
+		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
+	}
+
 	return rs->sr_err;
 }
