@@ -187,15 +187,17 @@ attrs_free( Attribute *a )
 {
 	Attribute *b;
 
-	for(b = a ; b != NULL ; b = b->a_next ) {
-		attr_clean( b );
-		if ( !b->a_next )
-			break;
+	if ( a ) {
+		for(b = a ; ; b = b->a_next ) {
+			attr_clean( b );
+			if ( !b->a_next )
+				break;
+		}
+		ldap_pvt_thread_mutex_lock( &attr_mutex );
+		b->a_next = attr_list;
+		attr_list = a;
+		ldap_pvt_thread_mutex_unlock( &attr_mutex );
 	}
-	ldap_pvt_thread_mutex_lock( &attr_mutex );
-	b->a_next = attr_list;
-	attr_list = a;
-	ldap_pvt_thread_mutex_unlock( &attr_mutex );
 }
 
 static void
