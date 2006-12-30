@@ -148,10 +148,11 @@ it be used only in tightly controlled systems or when the LDAP
 session is protected by other means (e.g., TLS, {{TERM:IPsec}}).
 Where the administrator relies on TLS to protect the password, it
 is recommended that unprotected authentication be disabled.  This
-is done by setting "{{EX:disallow bind_simple_unprotected}}" in
-{{slapd.conf}}(5).  The {{EX:security}} directive's {{EX:simple_bind}}
-option provides fine grain control over the level of confidential
+is done using the {{EX:security}} directive's {{EX:simple_bind}}
+option, which provides fine grain control over the level of confidential
 protection to require for {{simple}} user/password authentication.
+E.g., using {{EX:security simple_bind=56}} would require {{simple}}
+binds to use encryption of DES equivalent or better.
 
 The user/password authenticated bind mechanism can be completely
 disabled by setting "{{EX:disallow bind_simple}}".
