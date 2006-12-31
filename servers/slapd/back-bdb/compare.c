@@ -80,7 +80,7 @@ dn2entry_retry:
 				rs->sr_err = LDAP_REFERRAL;
 			}
 
-			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+			bdb_cache_return_entry_r( bdb, e, &lock );
 			e = NULL;
 
 		} else {
@@ -182,8 +182,7 @@ return_results:
 done:
 	/* free entry */
 	if ( e != NULL ) {
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
-				e, &lock );
+		bdb_cache_return_entry_r( bdb, e, &lock );
 	}
 
 	LOCK_ID_FREE ( bdb->bi_dbenv, locker );

@@ -119,8 +119,7 @@ static Entry * deref_base (
 		/* Free the previous entry, continue to work with the
 		 * one we just retrieved.
 		 */
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
-			*matched, lock);
+		bdb_cache_return_entry_r( bdb, *matched, lock);
 		*lock = lockr;
 
 		/* We found a regular entry. Return this to the caller. The
@@ -212,7 +211,7 @@ static int search_aliases(
 		if (first) {
 			first = 0;
 		} else {
-			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &locka);
+			bdb_cache_return_entry_r (bdb, e, &locka);
 		}
 		BDB_IDL_CPY(subscop2, subscop);
 		rs->sr_err = bdb_idl_intersection(curscop, subscop);
@@ -238,8 +237,7 @@ retry1:
 			 * turned into a range that spans IDs indiscriminately
 			 */
 			if (!is_entry_alias(a)) {
-				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
-					a, &lockr);
+				bdb_cache_return_entry_r (bdb, a, &lockr);
 				continue;
 			}
 
@@ -257,15 +255,13 @@ retry1:
 					bdb_idl_insert(newsubs, a->e_id);
 					bdb_idl_insert(scopes, a->e_id);
 				}
-				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
-					a, &lockr);
+				bdb_cache_return_entry_r( bdb, a, &lockr);
 
 			} else if (matched) {
 				/* Alias could not be dereferenced, or it deref'd to
 				 * an ID we've already seen. Ignore it.
 				 */
-				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
-					matched, &lockr );
+				bdb_cache_return_entry_r( bdb, matched, &lockr );
 				rs->sr_text = NULL;
 			}
 		}
@@ -405,8 +401,7 @@ dn2entry_retry:
 			if ( e ) {
 				build_new_dn( &op->o_req_ndn, &e->e_nname, &stub,
 					op->o_tmpmemctx );
-				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
-					e, &lock);
+				bdb_cache_return_entry_r (bdb, e, &lock);
 				matched = NULL;
 				goto dn2entry_retry;
 			}
@@ -444,8 +439,7 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 			slap_zn_runlock(bdb->bi_cache.c_zctx, matched);
 #endif
-			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
-				matched, &lock);
+			bdb_cache_return_entry_r (bdb, matched, &lock);
 			matched = NULL;
 
 			if ( erefs ) {
@@ -493,7 +487,7 @@ dn2entry_retry:
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
 		if ( e != &e_root ) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_cache_return_entry_r(bdb, e, &lock);
 		}
 		send_ldap_result( op, rs );
 		return rs->sr_err;
@@ -512,7 +506,7 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+		bdb_cache_return_entry_r( bdb, e, &lock );
 		e = NULL;
 
 		if ( erefs ) {
@@ -550,7 +544,7 @@ dn2entry_retry:
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
 		if ( e != &e_root ) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_cache_return_entry_r(bdb, e, &lock);
 		}
 		send_ldap_result( op, rs );
 		return 1;
@@ -573,7 +567,7 @@ dn2entry_retry:
 	slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
 	if ( e != &e_root ) {
-		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+		bdb_cache_return_entry_r(bdb, e, &lock);
 	}
 	e = NULL;
 
@@ -852,8 +846,7 @@ fetch_entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-					bdb_cache_return_entry_r( bdb->bi_dbenv,
-							&bdb->bi_cache, e, &lock );
+					bdb_cache_return_entry_r( bdb, e, &lock );
 					e = NULL;
 					send_paged_response( op, rs, &lastid, tentries );
 					goto done;
@@ -880,8 +873,7 @@ fetch_entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-					bdb_cache_return_entry_r(bdb->bi_dbenv,
-						&bdb->bi_cache, e, &lock);
+					bdb_cache_return_entry_r(bdb, e, &lock);
 					e = NULL;
 					rs->sr_entry = NULL;
 					if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
@@ -909,8 +901,7 @@ loop_continue:
 #ifdef SLAP_ZONE_ALLOC
 			slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-			bdb_cache_return_entry_r( bdb->bi_dbenv,
-				&bdb->bi_cache, e , &lock );
+			bdb_cache_return_entry_r( bdb, e , &lock );
 			e = NULL;
 			rs->sr_entry = NULL;
 		}

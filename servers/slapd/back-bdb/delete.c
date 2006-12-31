@@ -517,8 +517,7 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	} else {
-		rc = bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
-			locker, &lock );
+		rc = bdb_cache_delete( bdb, e, locker, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

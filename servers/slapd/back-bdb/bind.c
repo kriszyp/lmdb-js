@@ -88,8 +88,7 @@ dn2entry_retry:
 	e = ei->bei_e;
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if( e != NULL ) {
-			bdb_cache_return_entry_r( bdb->bi_dbenv,
-				&bdb->bi_cache, e, &lock );
+			bdb_cache_return_entry_r( bdb, e, &lock );
 			e = NULL;
 		}
 
@@ -196,7 +195,7 @@ dn2entry_retry:
 done:
 	/* free entry and reader lock */
 	if( e != NULL ) {
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+		bdb_cache_return_entry_r( bdb, e, &lock );
 	}
 
 	LOCK_ID_FREE(bdb->bi_dbenv, locker);

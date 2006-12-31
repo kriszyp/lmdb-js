@@ -136,7 +136,7 @@ retry:	/* transaction retry */
 		if( p ) {
 			/* free parent and reader lock */
 			if ( p != (Entry *)&slap_entry_root ) {
-				bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+				bdb_unlocked_cache_return_entry_r( bdb, p );
 			}
 			p = NULL;
 		}
@@ -218,7 +218,7 @@ retry:	/* transaction retry */
 		rs->sr_ref = is_entry_referral( p )
 			? get_entry_referrals( op, p )
 			: NULL;
-		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+		bdb_unlocked_cache_return_entry_r( bdb, p );
 		p = NULL;
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": parent "
@@ -273,7 +273,7 @@ retry:	/* transaction retry */
 			rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
 				op->o_tmpmemctx );
 			rs->sr_ref = get_entry_referrals( op, p );
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			bdb_unlocked_cache_return_entry_r( bdb, p );
 			p = NULL;
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(bdb_add) ": parent is referral\n",
@@ -292,7 +292,7 @@ retry:	/* transaction retry */
 
 	/* free parent and reader lock */
 	if ( p != (Entry *)&slap_entry_root ) {
-		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+		bdb_unlocked_cache_return_entry_r( bdb, p );
 	}
 	p = NULL;
 
@@ -471,7 +471,7 @@ return_results:
 		 * Possibly a callback may have mucked with it, although
 		 * in general callbacks should treat the entry as read-only.
 		 */
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bi->bi_cache, oe, &lock );
+		bdb_cache_return_entry_r( bdb, oe, &lock );
 		if ( op->ora_e == oe )
 			op->ora_e = NULL;
 

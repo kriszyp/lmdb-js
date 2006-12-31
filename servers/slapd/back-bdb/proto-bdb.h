@@ -454,20 +454,20 @@ int bdb_monitor_db_destroy( BackendDB *be );
  * and we can trim out all of this stuff.
  */
 #if 0
-void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e,
+void bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 	int rw, DB_LOCK *lock );
 #else
-#define bdb_cache_return_entry_rw( env, cache, e, rw, lock ) \
-	bdb_cache_entry_db_unlock( env, lock )
-#define	bdb_cache_return_entry( env, lock ) \
-	bdb_cache_entry_db_unlock( env, lock )
+#define bdb_cache_return_entry_rw( bdb, e, rw, lock ) \
+	bdb_cache_entry_db_unlock( bdb, lock )
+#define	bdb_cache_return_entry( bdb, lock ) \
+	bdb_cache_entry_db_unlock( bdb, lock )
 #endif
-#define bdb_cache_return_entry_r(env, c, e, l) \
-	bdb_cache_return_entry_rw((env), (c), (e), 0, (l))
-#define bdb_cache_return_entry_w(env, c, e, l) \
-	bdb_cache_return_entry_rw((env), (c), (e), 1, (l))
+#define bdb_cache_return_entry_r(bdb, e, l) \
+	bdb_cache_return_entry_rw((bdb), (e), 0, (l))
+#define bdb_cache_return_entry_w(bdb, e, l) \
+	bdb_cache_return_entry_rw((bdb), (e), 1, (l))
 #if 0
-void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
+void bdb_unlocked_cache_return_entry_rw( struct bdb_info *bdb, Entry *e, int rw );
 #else
 #define	bdb_unlocked_cache_return_entry_rw( a, b, c )	((void)0)
 #endif
@@ -512,9 +512,9 @@ int bdb_cache_modrdn(
 	DB_LOCK *lock
 );
 int bdb_cache_modify(
+	struct bdb_info *bdb,
 	Entry *e,
 	Attribute *newAttrs,
-	DB_ENV *env,
 	u_int32_t locker,
 	DB_LOCK *lock
 );
@@ -546,9 +546,8 @@ bdb_cache_find_parent(
 	EntryInfo **res
 );
 int bdb_cache_delete(
-	Cache	*cache,
+	struct bdb_info *bdb,
 	Entry	*e,
-	DB_ENV	*env,
 	u_int32_t locker,
 	DB_LOCK	*lock
 );
@@ -557,12 +556,6 @@ void bdb_cache_delete_cleanup(
 	EntryInfo *ei
 );
 void bdb_cache_release_all( Cache *cache );
-void bdb_cache_delete_entry(
-	struct bdb_info *bdb,
-	EntryInfo *ei,
-	u_int32_t locker,
-	DB_LOCK *lock
-);
 
 #ifdef BDB_HIER
 int hdb_cache_load(
@@ -574,7 +567,7 @@ int hdb_cache_load(
 
 #define bdb_cache_entry_db_relock		BDB_SYMBOL(cache_entry_db_relock)
 int bdb_cache_entry_db_relock(
-	DB_ENV *env,
+	struct bdb_info *bdb,
 	u_int32_t locker,
 	EntryInfo *ei,
 	int rw,
@@ -582,7 +575,7 @@ int bdb_cache_entry_db_relock(
 	DB_LOCK *lock );
 
 int bdb_cache_entry_db_unlock(
-	DB_ENV *env,
+	struct bdb_info *bdb,
 	DB_LOCK *lock );
 
 #ifdef BDB_REUSE_LOCKERS

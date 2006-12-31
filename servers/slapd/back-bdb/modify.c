@@ -600,7 +600,7 @@ retry:	/* transaction retry */
 			attrs_free( dummy.e_attrs );
 
 		} else {
-			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
+			rc = bdb_cache_modify( bdb, e, dummy.e_attrs, locker, &lock );
 			switch( rc ) {
 			case DB_LOCK_DEADLOCK:
 			case DB_LOCK_NOTGRANTED:

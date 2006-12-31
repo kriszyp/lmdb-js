@@ -260,14 +260,13 @@ int bdb_entry_release(
 
 		/* lock is freed with txn */
 		if ( !boi || boi->boi_txn ) {
-			bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
+			bdb_unlocked_cache_return_entry_rw( bdb, e, rw );
 		} else {
 			struct bdb_lock_info *bli, *prev;
 			for ( prev=(struct bdb_lock_info *)&boi->boi_locks,
 				bli = boi->boi_locks; bli; prev=bli, bli=bli->bli_next ) {
 				if ( bli->bli_id == e->e_id ) {
-					bdb_cache_return_entry_rw( bdb->bi_dbenv, &bdb->bi_cache,
-						e, rw, &bli->bli_lock );
+					bdb_cache_return_entry_rw( bdb, e, rw, &bli->bli_lock );
 					prev->bli_next = bli->bli_next;
 					op->o_tmpfree( bli, op->o_tmpmemctx );
 					break;
@@ -411,7 +410,7 @@ dn2entry_retry:
 return_results:
 	if( rc != LDAP_SUCCESS ) {
 		/* free entry */
-		bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
+		bdb_cache_return_entry_rw(bdb, e, rw, &lock);
 
 	} else {
 		if ( slapMode == SLAP_SERVER_MODE ) {
@@ -438,7 +437,7 @@ return_results:
 			}
 		} else {
 			*ent = entry_dup( e );
-			bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
+			bdb_cache_return_entry_rw(bdb, e, rw, &lock);
 		}
 	}
 
