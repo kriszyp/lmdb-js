@@ -1527,11 +1527,11 @@ connection_input( Connection *conn )
 
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
 
-		Debug( LDAP_DEBUG_TRACE,
-			"ber_get_next on fd %d failed errno=%d (%s)\n",
-			sd, err, sock_errstr(err) );
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			/* log, close and send error */
+			Debug( LDAP_DEBUG_TRACE,
+				"ber_get_next on fd %d failed errno=%d (%s)\n",
+			sd, err, sock_errstr(err) );
 			ber_free( conn->c_currentber, 1 );
 			conn->c_currentber = NULL;
 
