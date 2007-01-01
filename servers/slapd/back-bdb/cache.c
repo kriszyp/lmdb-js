@@ -605,7 +605,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 		/* If we can successfully writelock it, then
 		 * the object is idle.
 		 */
-		if ( bdb_cache_entry_db_lock( bdb->bi_dbenv,
+		if ( bdb_cache_entry_db_lock( bdb,
 			bdb->bi_cache.c_locker, elru, 1, 1, lockp ) == 0 ) {
 
 			/* Free entry for this node if it's present */
