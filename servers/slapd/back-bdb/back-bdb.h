@@ -127,9 +127,10 @@ typedef struct bdb_cache {
 	int		c_minfree;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
+	u_int32_t	c_locker;	/* used by lru cleaner */
 	EntryInfo	c_dntree;
 	EntryInfo	*c_eifree;	/* free list */
-	Avlnode         *c_idtree;
+	Avlnode		*c_idtree;
 	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
 	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
 	ldap_pvt_thread_rdwr_t c_rwlock;

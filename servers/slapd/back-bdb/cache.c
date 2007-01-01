@@ -556,6 +556,7 @@ int hdb_cache_load(
 static void
 bdb_cache_lru_purge( struct bdb_info *bdb )
 {
+	DB_LOCK		lock, *lockp;
 	EntryInfo *elru, *elnext;
 	int count, islocked;
 
@@ -566,6 +567,12 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	if ( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ) {
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_head_mutex );
 		return;
+	}
+
+	if ( bdb->bi_cache.c_locker ) {
+		lockp = &lock;
+	} else {
+		lockp = NULL;
 	}
 
 	count = 0;
@@ -592,33 +599,43 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			continue;
 		}
 
+		/* entryinfo is locked */
 		islocked = 1;
 
-		/* Free entry for this node if it's present */
-		if ( elru->bei_e ) {
-			elru->bei_e->e_private = NULL;
-#ifdef SLAP_ZONE_ALLOC
-			bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
-#else
-			bdb_entry_return( elru->bei_e );
-#endif
-			elru->bei_e = NULL;
-			count++;
-		}
-		/* ITS#4010 if we're in slapcat, and this node is a leaf
-		 * node, free it.
-		 *
-		 * FIXME: we need to do this for slapd as well, (which is
-		 * why we compute bi_cache.c_leaves now) but at the moment
-		 * we can't because it causes unresolvable deadlocks. 
+		/* If we can successfully writelock it, then
+		 * the object is idle.
 		 */
-		if ( slapMode & SLAP_TOOL_READONLY ) {
-			if ( !elru->bei_kids ) {
-				bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
-				bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
-				islocked = 0;
+		if ( bdb_cache_entry_db_lock( bdb->bi_dbenv,
+			bdb->bi_cache.c_locker, elru, 1, 1, lockp ) == 0 ) {
+
+			/* Free entry for this node if it's present */
+			if ( elru->bei_e ) {
+				elru->bei_e->e_private = NULL;
+#ifdef SLAP_ZONE_ALLOC
+				bdb_entry_return( bdb, elru->bei_e, elru->bei_zseq );
+#else
+				bdb_entry_return( elru->bei_e );
+#endif
+				elru->bei_e = NULL;
+				count++;
 			}
-			/* Leave node on LRU list for a future pass */
+			bdb_cache_entry_dbunlock( bdb, lockp );
+
+			/* ITS#4010 if we're in slapcat, and this node is a leaf
+			 * node, free it.
+			 *
+			 * FIXME: we need to do this for slapd as well, (which is
+			 * why we compute bi_cache.c_leaves now) but at the moment
+			 * we can't because it causes unresolvable deadlocks. 
+			 */
+			if ( slapMode & SLAP_TOOL_READONLY ) {
+				if ( !elru->bei_kids ) {
+					bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
+					bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
+					islocked = 0;
+				}
+				/* Leave node on LRU list for a future pass */
+			}
 		}
 
 		if ( islocked )
