@@ -593,9 +593,13 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 		/* If this node is in the process of linking into the cache,
 		 * or this node is being deleted, skip it.
+		 *
+		 * Also, if this node has no entry attached, skip it, there's
+		 * nothing to purge anyway.
 		 */
-		if ( elru->bei_state & ( CACHE_ENTRY_NOT_LINKED |
-			CACHE_ENTRY_DELETED | CACHE_ENTRY_LOADING )) {
+		if (( elru->bei_state & ( CACHE_ENTRY_NOT_LINKED |
+			CACHE_ENTRY_DELETED | CACHE_ENTRY_LOADING )) ||
+			!elru->bei_e ) {
 			bdb_cache_entryinfo_unlock( elru );
 			continue;
 		}
@@ -650,7 +654,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 		}
 	}
 
-	bdb->bi_cache.c_lruhead = elru;
+	bdb->bi_cache.c_lruhead = elnext;
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_head_mutex );
 }
 
@@ -777,19 +781,13 @@ load1:
 				bdb_cache_entryinfo_unlock( *eip );
 				islocked = 0;
 			}
-			rc = bdb_cache_entry_db_lock( bdb, locker, *eip, 0, 0, lock );
+			rc = bdb_cache_entry_db_lock( bdb, locker, *eip, load, 0, lock );
 			if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 				rc = DB_NOTFOUND;
 				bdb_cache_entry_db_unlock( bdb, lock );
 			} else if ( rc == 0 ) {
 				if ( load ) {
-					/* Give up original read lock, obtain write lock
-					 */
-				    if ( rc == 0 ) {
-						rc = bdb_cache_entry_db_relock( bdb, locker,
-							*eip, 1, 0, lock );
-					}
-					if ( rc == 0 && !ep) {
+					if ( !ep) {
 						rc = bdb_id2entry( op->o_bd, tid, locker, id, &ep );
 					}
 					if ( rc == 0 ) {
