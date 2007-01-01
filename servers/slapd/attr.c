@@ -185,17 +185,21 @@ comp_tree_free( Attribute *a )
 void
 attrs_free( Attribute *a )
 {
-	Attribute *b;
+	Attribute *b, *tail, *next;
 
 	if ( a ) {
-		for(b = a ; ; b = b->a_next ) {
-			attr_clean( b );
-			if ( !b->a_next )
-				break;
-		}
+		tail = a;
+		do {
+			next = a->a_next;
+			attr_clean( a );
+			a->a_next = b;
+			b = a;
+			a = next;
+		} while ( next );
+
 		ldap_pvt_thread_mutex_lock( &attr_mutex );
-		b->a_next = attr_list;
-		attr_list = a;
+		tail->a_next = attr_list;
+		attr_list = b;
 		ldap_pvt_thread_mutex_unlock( &attr_mutex );
 	}
 }
