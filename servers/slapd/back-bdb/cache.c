@@ -495,13 +495,14 @@ hdb_cache_find_parent(
 			bdb_cache_entryinfo_lock( ei2 );
 			ein->bei_parent = ei2;
 
+			avl_insert( &ei2->bei_kids, (caddr_t)ein, bdb_rdn_cmp,
+				avl_dup_error);
+			ei2->bei_ckids++;
+
 			/* Reset all the state info */
 			for (ein = eir; ein != ei2; ein=ein->bei_parent)
 				ein->bei_state &= ~CACHE_ENTRY_NOT_LINKED;
 
-			avl_insert( &ei2->bei_kids, (caddr_t)ein, bdb_rdn_cmp,
-				avl_dup_error);
-			ei2->bei_ckids++;
 			bdb_cache_entryinfo_unlock( ei2 );
 			bdb_cache_entryinfo_lock( eir );
 
