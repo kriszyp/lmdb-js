@@ -619,7 +619,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 				elru->bei_e = NULL;
 				count++;
 			}
-			bdb_cache_entry_dbunlock( bdb, lockp );
+			bdb_cache_entry_db_unlock( bdb, lockp );
 
 			/* ITS#4010 if we're in slapcat, and this node is a leaf
 			 * node, free it.
