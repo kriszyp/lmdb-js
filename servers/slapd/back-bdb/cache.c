@@ -1288,15 +1288,22 @@ bdb_lru_print( Cache *cache )
 {
 	EntryInfo	*e;
 
-	fprintf( stderr, "LRU queue (head to tail):\n" );
-	for ( e = cache->c_lruhead; e != NULL; e = e->bei_lrunext ) {
-		fprintf( stderr, "\trdn \"%20s\" id %ld\n",
-			e->bei_nrdn.bv_val, e->bei_id );
+	fprintf( stderr, "LRU circle head: %p\n", cache->c_lruhead );
+	fprintf( stderr, "LRU circle (tail forward):\n" );
+	for ( e = cache->c_lrutail; ; ) {
+		fprintf( stderr, "\t%p, %p id %ld rdn \"%s\"\n",
+			e, e->bei_e, e->bei_id, e->bei_nrdn.bv_val );
+		e = e->bei_lrunext;
+		if ( e == cache->c_lrutail )
+			break;
 	}
-	fprintf( stderr, "LRU queue (tail to head):\n" );
-	for ( e = cache->c_lrutail; e != NULL; e = e->bei_lruprev ) {
-		fprintf( stderr, "\trdn \"%20s\" id %ld\n",
-			e->bei_nrdn.bv_val, e->bei_id );
+	fprintf( stderr, "LRU circle (tail backward):\n" );
+	for ( e = cache->c_lrutail; ; ) {
+		fprintf( stderr, "\t%p, %p id %ld rdn \"%s\"\n",
+			e, e->bei_e, e->bei_id, e->bei_nrdn.bv_val );
+		e = e->bei_lruprev;
+		if ( e == cache->c_lrutail )
+			break;
 	}
 }
 #endif
