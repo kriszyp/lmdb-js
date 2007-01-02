@@ -310,6 +310,15 @@ static Connection* connection_get( ber_socket_t s )
 		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
+#ifdef HAVE_WINSOCK
+		/* Avoid race condition after releasing
+		 * connections_mutex
+		 */
+		if ( sd != s ) {
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+			return NULL;
+		}
+#endif
 		if( c->c_struct_state != SLAP_C_USED ) {
 			/* connection must have been closed due to resched */
 
