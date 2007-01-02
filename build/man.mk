@@ -32,7 +32,8 @@ all-common:
 			-e 's%LIBDIR%$(libdir)%' \
 			-e 's%LIBEXECDIR%$(libexecdir)%' \
 			-e 's%RELEASEDATE%$(RELEASEDATE)%' \
-			$(srcdir)/$$page > $$page.$(TMP_SUFFIX); \
+				$(srcdir)/$$page \
+			| $(SOELIM) - > $$page.$(TMP_SUFFIX); \
 	done
 
 install-common:

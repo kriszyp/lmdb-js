@@ -6,6 +6,8 @@ OpenLDAP 2.3.32 Engineering
 	Fixed slapd connection_get race condition on Windows (ITS#4793)
 	Fixed slapd values return filter control leak (ITS#4794)
 	Fixed slapd-sql Debug typo (ITS#4784)
+	Documentation
+		Fixed man page .so bug
 
 OpenLDAP 2.3.31 Release
 	Fixed libldap unchased referral leak (ITS#4545)

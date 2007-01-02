@@ -149,6 +149,8 @@ SUBST = $(SHTOOL) subst
 MANCOMPRESS=$(CAT)
 MANCOMPRESSSUFFIX=
 
+SOELIM=soelim
+
 INCLUDEDIR= $(top_srcdir)/include
 LDAP_INCPATH= -I$(LDAP_INCDIR) -I$(INCLUDEDIR)
 LDAP_LIBDIR= $(top_builddir)/libraries
