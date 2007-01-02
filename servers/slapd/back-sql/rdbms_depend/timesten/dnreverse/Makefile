@@ -1,4 +1,4 @@
-## Copyright 1997-2006 The OpenLDAP Foundation, All Rights Reserved.
+## Copyright 1997-2007 The OpenLDAP Foundation, All Rights Reserved.
 ##  COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 
 #
