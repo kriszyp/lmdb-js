@@ -8,6 +8,7 @@ OpenLDAP 2.3.32 Engineering
 	Fixed slapd-sql Debug typo (ITS#4784)
 	Documentation
 		Fixed man page .so bug
+		Fixed reference to deprecated option in admin guide (ITS#4795)
 
 OpenLDAP 2.3.31 Release
 	Fixed libldap unchased referral leak (ITS#4545)
