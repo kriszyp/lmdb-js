@@ -142,6 +142,13 @@ rwm_map( struct ldapmap *map, struct berval *s, struct berval *bv, int remap )
 {
 	struct ldapmapping *mapping;
 
+	/* map->map may be NULL when mapping is configured,
+	 * but map->remap can't */
+	if ( map->remap == NULL ) {
+		*bv = *s;
+		return;
+	}
+
 	BER_BVZERO( bv );
 	( void )rwm_mapping( map, s, &mapping, remap );
 	if ( mapping != NULL ) {
