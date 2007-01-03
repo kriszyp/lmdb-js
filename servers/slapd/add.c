@@ -314,7 +314,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 				}
 
 
-				/* check for duplicate values */
+				/* check for unmodifiable attributes */
 				rs->sr_err = slap_mods_no_repl_user_mod_check( op,
 					modlist, &rs->sr_text, textbuf, textlen );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -322,12 +322,14 @@ fe_op_add( Operation *op, SlapReply *rs )
 					goto done;
 				}
 
+#if 0			/* This is a no-op since *modtail is NULL */
 				rs->sr_err = slap_mods2entry( *modtail, &op->ora_e,
 					0, 0, &rs->sr_text, textbuf, textlen );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
 					goto done;
 				}
+#endif
 			}
 
 #ifdef SLAPD_MULTIMASTER
@@ -436,7 +438,7 @@ slap_mods2entry(
 			attr->a_vals = ch_realloc( attr->a_vals,
 				sizeof( struct berval ) * (i+j) );
 
-			/* should check for duplicates */
+			/* checked for duplicates in slap_mods_check */
 
 			if ( dup ) {
 				for ( j = 0; mods->sml_values[j].bv_val; j++ ) {
@@ -475,6 +477,7 @@ slap_mods2entry(
 #endif
 		}
 
+#if 0	/* checked for duplicates in slap_mods_check */
 		if( mods->sml_values[1].bv_val != NULL ) {
 			/* check for duplicates */
 			int		i, j, rc, match;
@@ -510,6 +513,7 @@ slap_mods2entry(
 				}
 			}
 		}
+#endif
 
 		attr = ch_calloc( 1, sizeof(Attribute) );
 
@@ -517,7 +521,6 @@ slap_mods2entry(
 		attr->a_desc = mods->sml_desc;
 
 		/* move values to attr structure */
-		/*	should check for duplicates */
 		if ( dup ) { 
 			int i;
 			for ( i = 0; mods->sml_values[i].bv_val; i++ ) /* EMPTY */;
