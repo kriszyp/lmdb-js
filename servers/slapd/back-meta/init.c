@@ -137,7 +137,7 @@ meta_back_db_open(
 			rc;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		slap_bindconf	sb = { 0 };
+		slap_bindconf	sb = { BER_BVNULL };
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
 		ber_str2bv( mt->mt_uri, 0, 0, &sb.sb_uri );

@@ -172,7 +172,7 @@ ldap_back_db_open( BackendDB *be )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
 
-	slap_bindconf	sb = { 0 };
+	slap_bindconf	sb = { BER_BVNULL };
 	int		rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -198,8 +198,6 @@ ldap_back_db_open( BackendDB *be )
 	BER_BVSTR( &sb.sb_binddn, "" );
 
 	if ( LDAP_BACK_T_F_DISCOVER( li ) && !LDAP_BACK_T_F( li ) ) {
-		int		rc;
-
 		rc = slap_discover_feature( &sb,
 				slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 				LDAP_FEATURE_ABSOLUTE_FILTERS );

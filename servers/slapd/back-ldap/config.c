@@ -1622,7 +1622,7 @@ done_url:;
 			&& mask == LDAP_BACK_F_T_F_DISCOVER
 			&& !LDAP_BACK_T_F( li ) )
 		{
-			slap_bindconf	sb = { 0 };
+			slap_bindconf	sb = { BER_BVNULL };
 			int		rc;
 
 			if ( li->li_uri == NULL ) {
@@ -1794,7 +1794,7 @@ done_url:;
 			&& mask == LDAP_BACK_F_CANCEL_EXOP_DISCOVER
 			&& !LDAP_BACK_CANCEL( li ) )
 		{
-			slap_bindconf	sb = { 0 };
+			slap_bindconf	sb = { BER_BVNULL };
 			int		rc;
 
 			if ( li->li_uri == NULL ) {
