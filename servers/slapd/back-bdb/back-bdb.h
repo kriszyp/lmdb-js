@@ -70,6 +70,7 @@ typedef struct bdb_idl_cache_entry_s {
 	struct berval kstr;
 	ID      *idl;
 	DB      *db;
+	int		idl_flags;
 	struct bdb_idl_cache_entry_s* idl_lru_prev;
 	struct bdb_idl_cache_entry_s* idl_lru_next;
 } bdb_idl_cache_entry_t;

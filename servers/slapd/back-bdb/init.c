@@ -477,14 +477,14 @@ bdb_db_close( BackendDB *be )
 		avl_free( bdb->bi_idl_tree, NULL );
 		bdb->bi_idl_tree = NULL;
 		entry = bdb->bi_idl_lru_head;
-		while ( entry != NULL ) {
+		do {
 			next_entry = entry->idl_lru_next;
 			if ( entry->idl )
 				free( entry->idl );
 			free( entry->kstr.bv_val );
 			free( entry );
 			entry = next_entry;
-		}
+		} while ( entry != bdb->bi_idl_lru_head );
 		bdb->bi_idl_lru_head = bdb->bi_idl_lru_tail = NULL;
 	}
 

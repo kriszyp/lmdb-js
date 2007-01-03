@@ -28,28 +28,10 @@
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
 #define IDL_LRU_DELETE( bdb, e ) do { 					\
-	if ( e->idl_lru_prev != NULL ) {				\
-		e->idl_lru_prev->idl_lru_next = e->idl_lru_next; 	\
-	} else {							\
-		bdb->bi_idl_lru_head = e->idl_lru_next;			\
-	}								\
-	if ( e->idl_lru_next != NULL ) {				\
-		e->idl_lru_next->idl_lru_prev = e->idl_lru_prev;	\
-	} else {							\
-		bdb->bi_idl_lru_tail = e->idl_lru_prev;			\
-	}								\
-} while ( 0 )
-
-#define IDL_LRU_ADD( bdb, e ) do {					\
-	e->idl_lru_next = bdb->bi_idl_lru_head;				\
-	if ( e->idl_lru_next != NULL ) {				\
-		e->idl_lru_next->idl_lru_prev = (e);			\
-	}								\
-	(bdb)->bi_idl_lru_head = (e);					\
-	e->idl_lru_prev = NULL;						\
-	if ( (bdb)->bi_idl_lru_tail == NULL ) {				\
-		(bdb)->bi_idl_lru_tail = (e);				\
-	}								\
+	if ( e == bdb->bi_idl_lru_head ) bdb->bi_idl_lru_head = e->idl_lru_next; \
+	if ( e == bdb->bi_idl_lru_tail ) bdb->bi_idl_lru_tail = e->idl_lru_prev; \
+	e->idl_lru_next->idl_lru_prev = e->idl_lru_prev; \
+	e->idl_lru_prev->idl_lru_next = e->idl_lru_next; \
 } while ( 0 )
 
 static int
@@ -317,10 +299,7 @@ bdb_idl_cache_get(
 	if ( matched_idl_entry != NULL ) {
 		if ( matched_idl_entry->idl && ids )
 			BDB_IDL_CPY( ids, matched_idl_entry->idl );
-		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
-		IDL_LRU_DELETE( bdb, matched_idl_entry );
-		IDL_LRU_ADD( bdb, matched_idl_entry );
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
+		matched_idl_entry->idl_flags |= CACHE_ENTRY_REFERENCED;
 		if ( matched_idl_entry->idl )
 			rc = LDAP_SUCCESS;
 		else
@@ -340,7 +319,7 @@ bdb_idl_cache_put(
 	int			rc )
 {
 	bdb_idl_cache_entry_t idl_tmp;
-	bdb_idl_cache_entry_t *ee;
+	bdb_idl_cache_entry_t *ee, *eprev;
 
 	if ( rc == DB_NOTFOUND || BDB_IDL_IS_ZERO( ids ))
 		return;
@@ -355,6 +334,7 @@ bdb_idl_cache_put(
 
 	ee->idl_lru_prev = NULL;
 	ee->idl_lru_next = NULL;
+	ee->idl_flags = 0;
 	ber_dupbv( &ee->kstr, &idl_tmp.kstr );
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
 	if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
@@ -367,11 +347,27 @@ bdb_idl_cache_put(
 		return;
 	}
 	ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
-	IDL_LRU_ADD( bdb, ee );
+	/* LRU_ADD */
+	if ( bdb->bi_idl_lru_head ) {
+		ee->idl_lru_next = bdb->bi_idl_lru_head;
+		ee->idl_lru_prev = bdb->bi_idl_lru_head->idl_lru_prev;
+		bdb->bi_idl_lru_head->idl_lru_prev->idl_lru_next = ee;
+		bdb->bi_idl_lru_head->idl_lru_prev = ee;
+	} else {
+		ee->idl_lru_next = ee->idl_lru_prev = ee;
+		bdb->bi_idl_lru_tail = ee;
+	}
+	bdb->bi_idl_lru_head = ee;
+
 	if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
-		int i = 0;
-		while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
-			ee = bdb->bi_idl_lru_tail;
+		int i;
+		ee = bdb->bi_idl_lru_tail;
+		for ( i = 0; i < 10; i++, ee = eprev ) {
+			eprev = ee->idl_lru_prev;
+			if ( ee->idl_flags & CACHE_ENTRY_REFERENCED ) {
+				ee->idl_flags ^= CACHE_ENTRY_REFERENCED;
+				continue;
+			}
 			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
 				    bdb_idl_entry_cmp ) == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_put: "
@@ -385,8 +381,8 @@ bdb_idl_cache_put(
 			ch_free( ee->idl );
 			ch_free( ee );
 		}
+		bdb->bi_idl_lru_tail = eprev;
 	}
-
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 }
