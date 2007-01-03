@@ -68,7 +68,6 @@ LDAP_BEGIN_DECL
 
 typedef struct bdb_idl_cache_entry_s {
 	struct berval kstr;
-	ldap_pvt_thread_rdwr_t idl_entry_rwlock;
 	ID      *idl;
 	DB      *db;
 	struct bdb_idl_cache_entry_s* idl_lru_prev;
