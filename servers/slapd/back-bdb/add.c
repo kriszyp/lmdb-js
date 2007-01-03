@@ -39,6 +39,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	DB_LOCK		lock;
 
 	int		num_retries = 0;
+	int		success;
 
 	LDAPControl **postread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
@@ -457,6 +458,7 @@ retry:	/* transaction retry */
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
+	success = rs->sr_err;
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 
@@ -465,7 +467,7 @@ return_results:
 	}
 	op->o_private = NULL;
 
-	if( rs->sr_err == LDAP_SUCCESS ) {
+	if( success == LDAP_SUCCESS ) {
 		/* We own the entry now, and it can be purged at will
 		 * Check to make sure it's the same entry we entered with.
 		 * Possibly a callback may have mucked with it, although
