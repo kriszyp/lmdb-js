@@ -553,7 +553,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 		}
 	}
 
-	if ( rs->sr_err != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS && !LDAP_API_ERROR( rs->sr_err )) {
 		BackendDB	db = *op->o_bd,
 				*o_bd = op->o_bd;
 		void		*o_callback = op->o_callback;
