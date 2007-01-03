@@ -500,10 +500,12 @@ entry_prealloc( int num )
 
 	if (!num) return 0;
 
+#if STRIDE_FACTOR > 1
 	/* Round up to our stride factor */
 	num += STRIDE_FACTOR-1;
 	num /= STRIDE_FACTOR;
 	num *= STRIDE_FACTOR;
+#endif
 
 	s = ch_calloc( 1, sizeof(slap_list) + num * sizeof(Entry));
 	s->next = entry_chunks;
