@@ -11,7 +11,7 @@ OpenLDAP 2.3.32 Engineering
 	Documentation
 		Fixed reference to deprecated option in admin guide (ITS#4795)
 
-OpenLDAP 2.3.31 Release
+OpenLDAP 2.3.31 Release 2006/12/17
 	Fixed libldap unchased referral leak (ITS#4545)
 	Fixed libldap tls callback (ITS#4723)
 	Fixed liblutil ldif file: URL parsing
@@ -39,7 +39,7 @@ OpenLDAP 2.3.31 Release
 		Added syncrepl starttls in the admin guide (ITS#4510)
 		Fixed reference to deprecated function in ldap_parse_result(3)
 
-OpenLDAP 2.3.30 Release
+OpenLDAP 2.3.30 Release 2006/11/14
 	Fixed slapd authzTo/authzFrom URL matching (ITS#4744)
 	Fixed slapd syncrepl consumer memory leaks (ITS#4746)
 	Fixed slapd-hdb livelock (ITS#4738)
@@ -47,7 +47,7 @@ OpenLDAP 2.3.30 Release
 	Documentation
 		Fixed ldapsearch(1) man page acknowledgement (ITS#4743)
 
-OpenLDAP 2.3.29 Release
+OpenLDAP 2.3.29 Release 2006/11/10
 	Fixed liblber/libldap error codes on Windows (ITS#4606)
 	Fixed libldap string length assert (ITS#4740)
 	Fixed liblunicode case mapping (ITS#4724)
@@ -64,7 +64,7 @@ OpenLDAP 2.3.29 Release
 		Fixed slapd-ldap/meta(5) rebind-as-user usage (ITS#4715)
 		Fixed slapd-ldap/meta(5) missing network-timeout (ITS#4718)
 
-OpenLDAP 2.3.28 Release
+OpenLDAP 2.3.28 Release 2006/10/21
 	Fixed libldap ldap.conf max line length (ITS#4669)
 	Fixed libldap use keepalive for syncrepl (ITS#4708)
 	Fixed liblutil LDIF CR/LF parsing bug (ITS#4635)
@@ -89,10 +89,10 @@ OpenLDAP 2.3.28 Release
 		Updated ldapsearch(1) options (ITS#4371,4526,4647)
 		Fixed slapd.access(5) non-optional dn= error (ITS#4522)
 
-OpenLDAP 2.3.27 Release
+OpenLDAP 2.3.27 Release 2006/08/19
 	Fixed libldap dangling pointer issue (previous fix was broken) (ITS#4405)
 
-OpenLDAP 2.3.26 Release
+OpenLDAP 2.3.26 Release 2006/08/17
 	Fixed libldap dnssrv bug with "not present" positive statement (ITS#4610)
 	Fixed libldap dangling pointer issue (ITS#4405)
 	Fixed slapd incorrect rebuilding of replica URI (ITS#4633)
@@ -104,7 +104,7 @@ OpenLDAP 2.3.26 Release
 	Fixed slapo-ppolicy logging verbosity when using default policy
 	Fixed slapo-syncprov incomplete sync on restart issues (ITS#4622)
 
-OpenLDAP 2.3.25 Release
+OpenLDAP 2.3.25 Release 2006/08/01
 	Fixed liblber ber_bvreplace_x argument checks
 	Add libldap_r TLS concurrency workaround (ITS#4583)
 	Fixed liblutil password length bug
@@ -139,17 +139,17 @@ OpenLDAP 2.3.25 Release
 		Added slapd.conf(5) access control note to authz-regexp discussion
 		Updated slapo-syncprov(5) to clarify SyncProv and syncrepl diffs
 
-OpenLDAP 2.3.24 Release
+OpenLDAP 2.3.24 Release 2006/05/30
 	Fixed slapd syncrepl timestamp bug (delta-sync/cascade) (ITS#4567)
 	Fixed slapd-bdb/hdb non-root users adding suffix/root entries (ITS#4552)
 	Re-fixed slapd-ldap improper free bug in exop (ITS#4550)
 	Fixed slapd-ldif assert bug (ITS#4568)
 	Fixed slapo-syncprov crash under glued database (ITS#4562)
 
-OpenLDAP 2.3.23 Release
+OpenLDAP 2.3.23 Release 2006/05/17
 	Fixed slapd-ldap improper free bug (ITS#4550)
 
-OpenLDAP 2.3.22 Release
+OpenLDAP 2.3.22 Release 2006/05/15
 	Fixed libldap referral input destroy issue (ITS#4533)
 	Fixed libldap ldap_sort_entries tail bug (ITS#4536)
 	Fixed libldap default connection concurrency issue (ITS#4541)
@@ -197,7 +197,7 @@ OpenLDAP 2.3.22 Release
 		Fixed slapd(8) logging header reference (ITS#4509)
 		Clarified slapd.conf(5) "disable bind_anon" feature
 
-OpenLDAP 2.3.21 Release
+OpenLDAP 2.3.21 Release 2006/04/08
 	Fixed libldap referral chasing issue (ITS#4448)
 	Fixed libldap invalid free bug (ITS#4436)
 	Fixed libldap mutex leak (ITS#4441)
@@ -227,7 +227,7 @@ OpenLDAP 2.3.21 Release
 		Updated libtool to version 1.5.22 (ITS#4471)
 		Updated shtool to version 2.0.5
 
-OpenLDAP 2.3.20 Release
+OpenLDAP 2.3.20 Release 2006/02/18
 	Added libldap SASL workaround for broken LDAP servers (ITS#4391)
 	Fixed libldap/slapd valuesReturnFilter OID (ITS#4404)
 	Fixed slapd config_generic_wrapper missing parameter bug (ITS#4376)
@@ -260,7 +260,7 @@ OpenLDAP 2.3.20 Release
 	Documentation
 		Updated misc. manual pages
 
-OpenLDAP 2.3.19 Release
+OpenLDAP 2.3.19 Release 2006/01/25
 	Fixed libldap disable DH key exchange with DH params (ITS#4354)
 	Fixed libldap_r thread pool destroy hang (ITS#4349,ITS#4368)
 	Fixed slapd slap_daemon destroy issue (ITS#4370)
@@ -274,7 +274,7 @@ OpenLDAP 2.3.19 Release
 		Fixed slaptools when --disable-debug (ITS#4351)
 		Fixed slapd(8) solaris select(2) issue (ITS#4357)
 
-OpenLDAP 2.3.18 Release
+OpenLDAP 2.3.18 Release 2006/01/17
 	Fixed slapd syncrepl variable used before set bug (ITS#4331)
 	Updated slapd-meta retry capabilities (ITS#4328)
 	Fixed slapd-bdb slapcat autorecover bug (ITS#4324)
@@ -294,7 +294,7 @@ OpenLDAP 2.3.18 Release
 		Updated release documents
 		Updated misc. manual pages
 
-OpenLDAP 2.3.17 Release
+OpenLDAP 2.3.17 Release 2006/01/10
 	Fixed slapd anonymous proxy authorization issue (ITS#4320)
 	Fixed slapd-ldap/meta session reuse issue (ITS#4315)
 	Fixed slapd-ldap idassert anon-to-anon issue (ITS#4321)
@@ -303,7 +303,7 @@ OpenLDAP 2.3.17 Release
 		Updated Linux sched_yield(2) workaround to use nanosleep(2) (ITS#3950)
 		Fixed configure report-to URL
 
-OpenLDAP 2.3.16 Release
+OpenLDAP 2.3.16 Release 2006/01/08
 	Fixed slapd-bdb reindexing via cn=config not noticed issue (ITS#4260)
 	Fixed slapd-monitor connection search crash (ITS#4300)
 	Flapd slapd cn=config bad ACL syntax modify crash (ITS#4306)
@@ -321,7 +321,7 @@ OpenLDAP 2.3.16 Release
 		Added slapd-bdb(5) cachefree description
 		Updated misc. manual pages
 
-OpenLDAP 2.3.15 Release
+OpenLDAP 2.3.15 Release 2006/01/04
 	Fixed slapd strerror logging bug (ITS#4292)
 	Fixed slapd ACL add/delete fraction issue (ITS#4295)
 	Fixed slapd ACL users selfwrite issue (ITS#4299)
@@ -330,7 +330,7 @@ OpenLDAP 2.3.15 Release
 	Build environment
 		Disable test030-relay when threads are unavailable (ITS#4297)
 
-OpenLDAP 2.3.14 Release
+OpenLDAP 2.3.14 Release 2005/12/23
 	Fixed slapd assertion control restrictions
 	Fixed slapd sc_prev update after free bug (ITS#4237)
 	Fixed slapd pid file creation (ITS#4241,4251)
@@ -369,7 +369,7 @@ OpenLDAP 2.3.14 Release
 		Updated slapo-pcache(5) (ITS#4232)
 		Updated slapindex(8) (ITS#4242)
 
-OpenLDAP 2.3.13 Release
+OpenLDAP 2.3.13 Release 2005/11/30
 	Fixed libldap/liblutil MSG_ACCRIGHTSLEN bug (ITS#4206)
 	Fixed libldap ldap_bv2escaped_filter_value issue (ITS#4212)
 	Fixed liblutil URL value-specs issue (ITS#4221)
@@ -403,7 +403,7 @@ OpenLDAP 2.3.13 Release
 	Documentation
 		Updated ldif(5) to include change record description
 
-OpenLDAP 2.3.12 Release
+OpenLDAP 2.3.12 Release 2005/11/17
 	Fixed libldap ldapi:// authdn construction
 	Added libldap ldap_bv2escaped_filter_value (ITS#2535)
 	Added libldap/slapd TLS DSA certificate support (ITS#4017)
@@ -458,7 +458,7 @@ OpenLDAP 2.3.12 Release
 		slapd.conf(5) defaultSearchBase issue (ITS#4162)
 		slap tool man pages wll typo (ITS#4169)
 
-OpenLDAP 2.3.11 Release
+OpenLDAP 2.3.11 Release 2005/10/12
 	Fixed libldap reentrancy issue (ITS#3988)
 	Fixed libldap ndelay without timeout
 	Fixed slapd ldaps:// not configured issue (ITS#4082,4083)
@@ -468,7 +468,7 @@ OpenLDAP 2.3.11 Release
 	Updated slapd syncrepl to use ldap_unbind_ext
 	Removed lint
 
-OpenLDAP 2.3.10 Release
+OpenLDAP 2.3.10 Release 2005/10/10
 	Fixed libldap chasing of chased referrals (ITS#2942)
 	Added libldap LDAP_NOT_SUPPORTED for TLS (ITS#4072)
 	Added libldap LDAP_MSG_RECEIVED support
@@ -477,7 +477,7 @@ OpenLDAP 2.3.10 Release
 	Fixed slapd-meta bus error (ITS#4073)
 	Fixed slapd-meta/ldap/rwm empty naming context issue (ITS#4071)
 
-OpenLDAP 2.3.9 Release
+OpenLDAP 2.3.9 Release 2005/10/07
 	Fixed slapd req_pwdexop bug
 	Fixed slapo-syncprov queued UUIDs bug (ITS#4068)
 	Fixed slapo-syncprov memory leak
@@ -487,7 +487,7 @@ OpenLDAP 2.3.9 Release
 		Updated testsuite to test only primary backends by default
 		Disable test041-aci
 
-OpenLDAP 2.3.8 Release
+OpenLDAP 2.3.8 Release 2005/10/05
 	Fixed slapd undef HAVE_EPOLL issue
 	Fixed slapd connection-get wake bug (ITS#3999)
 	Fixed slapd uninitialized var bug (ITS#3854)
@@ -548,7 +548,7 @@ OpenLDAP 2.3.8 Release
 		Fixed test suite tool error handling
 		Updated contrib/ldapc++ build environment
 
-OpenLDAP 2.3.7 Release
+OpenLDAP 2.3.7 Release 2005/08/31
 	Updated slapd ManageDIT support
 	Updated slapd ACI syntax checking (ITS#3877)
 	Fixed slapd STATS2 referral logging
@@ -587,7 +587,7 @@ OpenLDAP 2.3.7 Release
 		Fixed tests veryclean-local testdata cleanup
 		Add subtree rename test (hdb only)
 
-OpenLDAP 2.3.6 Release
+OpenLDAP 2.3.6 Release 2005/08/19
 	Fixed slapd dnRelativeMatch return (ITS#3931)
 	Fixed slapd send_search_entry issue (ITS#3951)
 	Fixed slapd-bdb/hdb release entry in paged response
@@ -617,7 +617,7 @@ OpenLDAP 2.3.6 Release
 		Fixed test015-xsearch regression (ITS#3506)
 		Added test040-subtree-rename
 
-OpenLDAP 2.3.5 Release
+OpenLDAP 2.3.5 Release 2005/08/14
 	Fixed slapd integerBitOr/AndMatch logic (ITS#3782)
 	Fixed slapd substrings filter length checks (ITS#3790)
 	Fixed slapd thread pool initialization (ITS#3793)
@@ -703,6 +703,6 @@ OpenLDAP 2.3.5 Release
 		Updated slapd-monitor(5) (ITS#3822,3836)
 		Updated slapd-bdb(5) (ITS#3823)
 
-OpenLDAP 2.3.4 Release
+OpenLDAP 2.3.4 Release 2005/06/10
 	Initial release for "general use".
 
