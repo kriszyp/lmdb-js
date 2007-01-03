@@ -88,6 +88,15 @@ typedef struct glue_state {
 } glue_state;
 
 static int
+glue_op_cleanup( Operation *op, SlapReply *rs )
+{
+	/* This is not a final result */
+	if (rs->sr_type == REP_RESULT )
+		rs->sr_type = REP_GLUE_RESULT;
+	return SLAP_CB_CONTINUE;
+}
+
+static int
 glue_op_response ( Operation *op, SlapReply *rs )
 {
 	glue_state *gs = op->o_callback->sc_private;
@@ -192,6 +201,7 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	case LDAP_REQ_DELETE: which = op_delete; break;
 	case LDAP_REQ_MODIFY: which = op_modify; break;
 	case LDAP_REQ_MODRDN: which = op_modrdn; break;
+	case LDAP_REQ_EXTENDED: which = op_extended; break;
 	default: assert( 0 ); break;
 	}
 
@@ -316,7 +326,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	int i;
 	long stoptime = 0, starttime;
 	glue_state gs = {NULL, NULL, NULL, 0, 0, 0, 0};
-	slap_callback cb = { NULL, glue_op_response, NULL, NULL };
+	slap_callback cb = { NULL, glue_op_response, glue_op_cleanup, NULL };
 	int scope0, tlimit0;
 	struct berval dn, ndn, *pdn;
 
@@ -1019,6 +1029,7 @@ glue_sub_init()
 	glue.on_bi.bi_op_modrdn = glue_op_func;
 	glue.on_bi.bi_op_add = glue_op_func;
 	glue.on_bi.bi_op_delete = glue_op_func;
+	glue.on_bi.bi_extended = glue_op_func;
 
 	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
 	glue.on_bi.bi_chk_controls = glue_chk_controls;

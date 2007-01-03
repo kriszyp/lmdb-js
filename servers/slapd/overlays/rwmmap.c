@@ -449,6 +449,7 @@ rwm_int_filter_map_rewrite(
 {
 	int		i;
 	Filter		*p;
+	AttributeDescription *ad;
 	struct berval	atmp,
 			vtmp,
 			*tmp;
@@ -475,7 +476,8 @@ rwm_int_filter_map_rewrite(
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
+		ad = f->f_av_desc;
+		if ( map_attr_value( dc, &ad, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			goto computed;
@@ -491,7 +493,8 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_GE:
-		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
+		ad = f->f_av_desc;
+		if ( map_attr_value( dc, &ad, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			goto computed;
@@ -507,7 +510,8 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_LE:
-		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
+		ad = f->f_av_desc;
+		if ( map_attr_value( dc, &ad, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			goto computed;
@@ -523,7 +527,8 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_APPROX:
-		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
+		ad = f->f_av_desc;
+		if ( map_attr_value( dc, &ad, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			goto computed;
@@ -539,7 +544,8 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		if ( map_attr_value( dc, &f->f_sub_desc, &atmp,
+		ad = f->f_sub_desc;
+		if ( map_attr_value( dc, &ad, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
 			goto computed;
@@ -601,7 +607,8 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_PRESENT:
-		if ( map_attr_value( dc, &f->f_desc, &atmp,
+		ad = f->f_desc;
+		if ( map_attr_value( dc, &ad, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
 			goto computed;
@@ -647,7 +654,8 @@ rwm_int_filter_map_rewrite(
 
 	case LDAP_FILTER_EXT: {
 		if ( f->f_mr_desc ) {
-			if ( map_attr_value( dc, &f->f_mr_desc, &atmp,
+			ad = f->f_mr_desc;
+			if ( map_attr_value( dc, &ad, &atmp,
 						&f->f_mr_value, &vtmp, RWM_MAP ) )
 			{
 				goto computed;
