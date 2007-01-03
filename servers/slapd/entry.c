@@ -444,22 +444,30 @@ entry_clean( Entry *e )
 	/* e_private must be freed by the caller */
 	assert( e->e_private == NULL );
 
+	e->e_id = 0;
+
 	/* free DNs */
 	if ( !BER_BVISNULL( &e->e_name ) ) {
 		free( e->e_name.bv_val );
+		BER_BVZERO( &e->e_name );
 	}
 	if ( !BER_BVISNULL( &e->e_nname ) ) {
 		free( e->e_nname.bv_val );
+		BER_BVZERO( &e->e_nname );
 	}
 
 	if ( !BER_BVISNULL( &e->e_bv ) ) {
 		free( e->e_bv.bv_val );
+		BER_BVZERO( &e->e_bv );
 	}
 
 	/* free attributes */
-	attrs_free( e->e_attrs );
+	if ( e->e_attrs ) {
+		attrs_free( e->e_attrs );
+		e->e_attrs = NULL;
+	}
 
-	memset(e, 0, sizeof(Entry));
+	e->e_ocflags = 0;
 }
 
 void
@@ -473,24 +481,45 @@ entry_free( Entry *e )
 	ldap_pvt_thread_mutex_unlock( &entry_mutex );
 }
 
+/* These parameters work well on AMD64 */
+#if 0
+#define	STRIDE 8
+#define	STRIPE 5
+#else
+#define	STRIDE 1
+#define	STRIPE 1
+#endif
+#define	STRIDE_FACTOR (STRIDE*STRIPE)
+
 int
 entry_prealloc( int num )
 {
-	Entry *e;
+	Entry *e, **prev, *tmp;
 	slap_list *s;
+	int i, j;
 
 	if (!num) return 0;
+
+	/* Round up to our stride factor */
+	num += STRIDE_FACTOR-1;
+	num /= STRIDE_FACTOR;
+	num *= STRIDE_FACTOR;
 
 	s = ch_calloc( 1, sizeof(slap_list) + num * sizeof(Entry));
 	s->next = entry_chunks;
 	entry_chunks = s;
 
-	e = (Entry *)(s+1);
-	for ( ;num>1; num--) {
-		e->e_private = e+1;
-		e++;
+	prev = &tmp;
+	for (i=0; i<STRIPE; i++) {
+		e = (Entry *)(s+1);
+		e += i;
+		for (j=i; j<num; j+= STRIDE) {
+			*prev = e;
+			prev = (Entry **)&e->e_private;
+			e += STRIDE;
+		}
 	}
-	e->e_private = entry_list;
+	*prev = entry_list;
 	entry_list = (Entry *)(s+1);
 
 	return 0;
