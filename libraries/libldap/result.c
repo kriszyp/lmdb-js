@@ -903,33 +903,43 @@ nextresp2:
 	}
 
 	/* try to handle unsolicited responses as appropriate */
-	if ( id == 0 && msgid != LDAP_RES_UNSOLICITED ) {
+	if ( id == 0 && msgid > LDAP_RES_UNSOLICITED ) {
 		int	is_nod = 0;
 
 		tag = ber_peek_tag( ber, &len );
 
 		/* we have a res oid */
 		if ( tag == LDAP_TAG_EXOP_RES_OID ) {
-			char	*resoid = NULL;
+			static struct berval	bv_nod = BER_BVC( LDAP_NOTICE_OF_DISCONNECTION );
+			struct berval		resoid = BER_BVNULL;
 
-			if ( ber_scanf( ber, "a", &resoid ) == LBER_ERROR ) {
+			if ( ber_scanf( ber, "m", &resoid ) == LBER_ERROR ) {
 				ld->ld_errno = LDAP_DECODING_ERROR;
 				ber_free( ber, 1 );
 				return -1;
 			}
 
-			assert( resoid[ 0 ] != '\0' );
+			assert( !BER_BVISEMPTY( &resoid ) );
 
-			is_nod = strcmp( resoid, LDAP_NOTICE_OF_DISCONNECTION ) == 0;
-			LDAP_FREE( resoid );
+			is_nod = ber_bvcmp( &resoid, &bv_nod ) == 0;
 
 			tag = ber_peek_tag( ber, &len );
 		}
 
-		/* we have a res value */
+#if 0 /* don't need right now */
+		/* we have res data */
 		if ( tag == LDAP_TAG_EXOP_RES_VALUE ) {
-			/* don't need right now */
+			struct berval resdata;
+
+			if ( ber_scanf( ber, "m", &resdata ) == LBER_ERROR ) {
+				ld->ld_errno = LDAP_DECODING_ERROR;
+				ber_free( ber, 0 );
+				return ld->ld_errno;
+			}
+
+			/* use it... */
 		}
+#endif
 
 		/* handle RFC 4511 "Notice of Disconnection" locally */
 
