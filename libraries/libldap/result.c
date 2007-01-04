@@ -43,11 +43,11 @@
  *	LDAPResult ::= SEQUENCE {
  *		resultCode			ENUMERATED { ... },
  *		matchedDN			LDAPDN,
- *		diagnosticMessage	LDAPString,
+ *		diagnosticMessage		LDAPString,
  *		referral			[3] Referral OPTIONAL
  *	}
  *	Referral ::= SEQUENCE OF LDAPURL	(one or more)
- *	LDAPURL ::= LDAPString				(limited to URL chars)
+ *	LDAPURL ::= LDAPString			(limited to URL chars)
  */
 
 #include "portable.h"
@@ -92,7 +92,8 @@ static LDAPMessage * chkResponseList LDAP_P(( LDAP *ld, int msgid, int all));
  * search references, followed by an ldap result).  An extension to
  * LDAPv3 allows partial extended responses to be returned in response
  * to any request.  The type of the first message received is returned.
- * When waiting, any messages that have been abandoned are discarded.
+ * When waiting, any messages that have been abandoned/discarded are 
+ * discarded.
  *
  * Example:
  *	ldap_result( s, msgid, all, timeout, result )
@@ -451,7 +452,7 @@ try_read1msg(
 	ber_tag_t	tag;
 	ber_len_t	len;
 	int		foundit = 0;
-	LDAPRequest	*lr, *tmplr;
+	LDAPRequest	*lr, *tmplr, dummy_lr = { 0 };
 	LDAPConn	*lc;
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
@@ -533,63 +534,69 @@ nextresp3:
 		return( -1 );
 	}
 
+	/* id == 0 iff unsolicited notification message (RFC 4511) */
+
 	/* if it's been abandoned, toss it */
-	if ( ldap_abandoned( ld, id, &idx ) ) {
-		/* the message type */
-		tag = ber_peek_tag( ber, &len );
-		switch ( tag ) {
-		case LDAP_RES_SEARCH_ENTRY:
-		case LDAP_RES_SEARCH_REFERENCE:
-		case LDAP_RES_INTERMEDIATE:
-		case LBER_ERROR:
-			break;
+	if ( id > 0 ) {
+		if ( ldap_abandoned( ld, id, &idx ) ) {
+			/* the message type */
+			tag = ber_peek_tag( ber, &len );
+			switch ( tag ) {
+			case LDAP_RES_SEARCH_ENTRY:
+			case LDAP_RES_SEARCH_REFERENCE:
+			case LDAP_RES_INTERMEDIATE:
+			case LBER_ERROR:
+				break;
 
-		default:
-			/* there's no need to keep the id
-			 * in the abandoned list any longer */
-			ldap_mark_abandoned( ld, id, idx );
-			break;
-		}
+			default:
+				/* there's no need to keep the id
+				 * in the abandoned list any longer */
+				ldap_mark_abandoned( ld, id, idx );
+				break;
+			}
 
-		Debug( LDAP_DEBUG_ANY,
-			"abandoned/discarded ld %p msgid %ld message type %s\n",
-			(void *)ld, (long)id, ldap_int_msgtype2str( tag ) );
+			Debug( LDAP_DEBUG_ANY,
+				"abandoned/discarded ld %p msgid %ld message type %s\n",
+				(void *)ld, (long)id, ldap_int_msgtype2str( tag ) );
 
 retry_ber:
-		ber_free( ber, 1 );
-		if ( ber_sockbuf_ctrl( lc->lconn_sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
-			goto retry;
-		}
-		return( LDAP_MSG_X_KEEP_LOOKING );	/* continue looking */
-	}
-
-	lr = ldap_find_request_by_msgid( ld, id );
-	if ( lr == NULL ) {
-		const char	*msg = "unknown";
-
-		/* the message type */
-		tag = ber_peek_tag( ber, &len );
-		switch ( tag ) {
-		case LBER_ERROR:
-			break;
-
-		default:
-			msg = ldap_int_msgtype2str( tag );
-			break;
+			ber_free( ber, 1 );
+			if ( ber_sockbuf_ctrl( lc->lconn_sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
+				goto retry;
+			}
+			return( LDAP_MSG_X_KEEP_LOOKING );	/* continue looking */
 		}
 
-		Debug( LDAP_DEBUG_ANY,
-			"no request for response on ld %p msgid %ld message type %s (tossing)\n",
-			(void *)ld, (long)id, msg );
+		lr = ldap_find_request_by_msgid( ld, id );
+		if ( lr == NULL ) {
+			const char	*msg = "unknown";
 
-		goto retry_ber;
-	}
+			/* the message type */
+			tag = ber_peek_tag( ber, &len );
+			switch ( tag ) {
+			case LBER_ERROR:
+				break;
+
+			default:
+				msg = ldap_int_msgtype2str( tag );
+				break;
+			}
+
+			Debug( LDAP_DEBUG_ANY,
+				"no request for response on ld %p msgid %ld message type %s (tossing)\n",
+				(void *)ld, (long)id, msg );
+
+			goto retry_ber;
+		}
+
 #ifdef LDAP_CONNECTIONLESS
-	if ( LDAP_IS_UDP(ld) && isv2 ) {
-		ber_scanf(ber, "x{");
-	}
+		if ( LDAP_IS_UDP(ld) && isv2 ) {
+			ber_scanf(ber, "x{");
+		}
 nextresp2:
 #endif
+	}
+
 	/* the message type */
 	tag = ber_peek_tag( ber, &len );
 	if ( tag == LBER_ERROR ) {
@@ -601,6 +608,44 @@ nextresp2:
 	Debug( LDAP_DEBUG_TRACE,
 		"read1msg: ld %p msgid %ld message type %s\n",
 		(void *)ld, (long)lr->lr_msgid, ldap_int_msgtype2str( tag ) );
+
+	if ( id == 0 ) {
+		/* unsolicited notification message (RFC 4511) */
+		if ( tag != LDAP_RES_EXTENDED ) {
+			/* toss it */
+			goto retry_ber;
+
+			/* strictly speaking, it's an error; from RFC 4511:
+
+4.4.  Unsolicited Notification
+
+   An unsolicited notification is an LDAPMessage sent from the server to
+   the client that is not in response to any LDAPMessage received by the
+   server.  It is used to signal an extraordinary condition in the
+   server or in the LDAP session between the client and the server.  The
+   notification is of an advisory nature, and the server will not expect
+   any response to be returned from the client.
+
+   The unsolicited notification is structured as an LDAPMessage in which
+   the messageID is zero and protocolOp is set to the extendedResp
+   choice using the ExtendedResponse type (See Section 4.12).  The
+   responseName field of the ExtendedResponse always contains an LDAPOID
+   that is unique for this notification.
+
+			 * however, since unsolicited responses
+			 * are of advisory nature, better
+			 * toss it, right now
+			 */
+
+#if 0
+			ld->ld_errno = LDAP_DECODING_ERROR;
+			ber_free( ber, 1 );
+			return( -1 );
+#endif
+		}
+
+		lr = &dummy_lr;
+	}
 
 	id = lr->lr_origid;
 	refer_cnt = 0;
@@ -643,12 +688,12 @@ nextresp2:
 				}
 			}
 		}
-	} else 
-	if ( tag != LDAP_RES_SEARCH_ENTRY && tag != LDAP_RES_INTERMEDIATE ) {
-	/* All results that just return a status, i.e. don't return data
-	 * go through the following code.  This code also chases V2 referrals
-	 * and checks if all referrals have been chased.
-	 */
+
+	} else if ( tag != LDAP_RES_SEARCH_ENTRY && tag != LDAP_RES_INTERMEDIATE ) {
+		/* All results that just return a status, i.e. don't return data
+		 * go through the following code.  This code also chases V2 referrals
+		 * and checks if all referrals have been chased.
+		 */
 		char		*lr_res_error = NULL;
 
 		tmpber = *ber; 	/* struct copy */
@@ -711,10 +756,15 @@ nextresp2:
 						break;
 
 					default:
-						if ( lr->lr_res_error == NULL ||
-							lr->lr_res_error[ 0 ] == '\0' )
-						{
+						if ( lr->lr_res_error == NULL ) {
 							break;
+						}
+
+						/* pedantic, should never happen */
+						if ( lr->lr_res_error[ 0 ] == '\0' ) {
+							LDAP_FREE( lr->lr_res_error );
+							lr->lr_res_error = NULL;
+							break;	
 						}
 
 						/* V2 referrals are in error string */
@@ -822,7 +872,9 @@ nextresp2:
 					}
 				}
 
-				ldap_return_request( ld, lr, 1 );
+				if ( lr != &dummy_lr ) {
+					ldap_return_request( ld, lr, 1 );
+				}
 				lr = NULL;
 			}
 
@@ -840,12 +892,68 @@ nextresp2:
 	}
 
 	if ( lr != NULL ) {
-		ldap_return_request( ld, lr, 0 );
+		if ( lr != &dummy_lr ) {
+			ldap_return_request( ld, lr, 0 );
+		}
 		lr = NULL;
 	}
 
 	if ( ber == NULL ) {
 		return( rc );
+	}
+
+	/* try to handle unsolicited responses as appropriate */
+	if ( id == 0 && msgid != LDAP_RES_UNSOLICITED ) {
+		int	is_nod = 0;
+
+		tag = ber_peek_tag( ber, &len );
+
+		/* we have a res oid */
+		if ( tag == LDAP_TAG_EXOP_RES_OID ) {
+			char	*resoid = NULL;
+
+			if ( ber_scanf( ber, "a", &resoid ) == LBER_ERROR ) {
+				ld->ld_errno = LDAP_DECODING_ERROR;
+				ber_free( ber, 1 );
+				return -1;
+			}
+
+			assert( resoid[ 0 ] != '\0' );
+
+			is_nod = strcmp( resoid, LDAP_NOTICE_OF_DISCONNECTION ) == 0;
+			LDAP_FREE( resoid );
+
+			tag = ber_peek_tag( ber, &len );
+		}
+
+		/* we have a res value */
+		if ( tag == LDAP_TAG_EXOP_RES_VALUE ) {
+			/* don't need right now */
+		}
+
+		/* handle RFC 4511 "Notice of Disconnection" locally */
+
+		if ( is_nod ) {
+			if ( tag == LDAP_TAG_EXOP_RES_VALUE ) {
+				ld->ld_errno = LDAP_DECODING_ERROR;
+				ber_free( ber, 1 );
+				return -1;
+			}
+
+			/* get rid of the connection... */
+			if ( lc != NULL ) {
+#ifdef LDAP_R_COMPILE
+				ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+				ldap_free_connection( ld, lc, 0, 1 );
+#ifdef LDAP_R_COMPILE
+				ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+				*lcp = NULL;
+			}
+
+			return LDAP_RES_EXTENDED;
+		}
 	}
 
 	/* make a new ldap message */
@@ -968,8 +1076,9 @@ nextresp2:
 
 	prev = NULL;
 	for ( l = ld->ld_responses; l != NULL; l = l->lm_next ) {
-		if ( l->lm_msgid == newmsg->lm_msgid )
+		if ( l->lm_msgid == newmsg->lm_msgid ) {
 			break;
+		}
 		prev = l;
 	}
 
@@ -994,10 +1103,11 @@ nextresp2:
 
 	/* return the whole chain if that's what we were looking for */
 	if ( foundit ) {
-		if ( prev == NULL )
+		if ( prev == NULL ) {
 			ld->ld_responses = l->lm_next;
-		else
+		} else {
 			prev->lm_next = l->lm_next;
+		}
 		*result = l;
 	}
 
