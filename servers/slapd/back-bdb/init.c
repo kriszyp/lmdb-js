@@ -71,8 +71,7 @@ bdb_db_init( BackendDB *be )
 #ifdef BDB_HIER
 	ldap_pvt_thread_mutex_init( &bdb->bi_modrdns_mutex );
 #endif
-	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_head_mutex );
-	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_tail_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_lru_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_count_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_eifree_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
@@ -423,6 +422,10 @@ bdb_db_open( BackendDB *be )
 		goto fail;
 	}
 
+	if ( !quick ) {
+		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+	}
+
 	/* monitor setup */
 	rc = bdb_monitor_db_open( be );
 	if ( rc != 0 ) {
@@ -486,6 +489,12 @@ bdb_db_close( BackendDB *be )
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
+		/* Free cache locker if we enabled locking */
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
+			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+			bdb->bi_cache.c_locker = 0;
+		}
+
 		/* force a checkpoint, but not if we were ReadOnly,
 		 * and not in Quick mode since there are no transactions there.
 		 */
@@ -532,8 +541,7 @@ bdb_db_destroy( BackendDB *be )
 	bdb_attr_index_destroy( bdb );
 
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
-	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_head_mutex );
-	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_tail_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_count_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_eifree_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );

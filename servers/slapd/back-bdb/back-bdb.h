@@ -95,6 +95,7 @@ typedef struct bdb_entry_info {
 #define	CACHE_ENTRY_WALKING	0x20
 #define	CACHE_ENTRY_ONELEVEL	0x40
 #define	CACHE_ENTRY_REFERENCED	0x80
+	int bei_finders;
 
 	/*
 	 * remaining fields require backend cache lock to access
@@ -132,9 +133,9 @@ typedef struct bdb_cache {
 	int		c_minfree;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
+	u_int32_t	c_locker;	/* used by lru cleaner */
 	ldap_pvt_thread_rdwr_t c_rwlock;
-	ldap_pvt_thread_mutex_t lru_head_mutex;
-	ldap_pvt_thread_mutex_t lru_tail_mutex;
+	ldap_pvt_thread_mutex_t c_lru_mutex;
 	ldap_pvt_thread_mutex_t c_count_mutex;
 	ldap_pvt_thread_mutex_t c_eifree_mutex;
 #ifdef SLAP_ZONE_ALLOC
