@@ -1122,7 +1122,8 @@ hdb_dn2idl(
 		cx.key.size = sizeof(ID)+1;
 		*ptr = cx.prefix;
 		cx.id = e->e_id;
-		bdb_idl_cache_put( cx.bdb, cx.db, &cx.key, cx.ids, cx.rc );
+		if ( cx.bdb->bi_idl_cache_max_size )
+			bdb_idl_cache_put( cx.bdb, cx.db, &cx.key, cx.ids, cx.rc );
 	}
 
 	if ( cx.rc == DB_NOTFOUND )
