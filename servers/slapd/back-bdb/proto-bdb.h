@@ -120,6 +120,7 @@ int bdb_dn2id_children(
 
 int bdb_dn2idl(
 	Operation *op,
+	u_int32_t locker,
 	Entry *e,
 	ID *ids,
 	ID *stack );
@@ -166,6 +167,7 @@ char *ebcdic_dberror( int rc );
 
 int bdb_filter_candidates(
 	Operation *op,
+	u_int32_t locker,
 	Filter	*f,
 	ID *ids,
 	ID *tmp,
@@ -282,7 +284,7 @@ unsigned bdb_idl_search( ID *ids, ID id );
 int bdb_idl_fetch_key(
 	BackendDB	*be,
 	DB			*db,
-	DB_TXN		*tid,
+	u_int32_t locker,
 	DBT			*key,
 	ID			*ids,
 	DBC                     **saved_cursor,
@@ -388,7 +390,7 @@ extern int
 bdb_key_read(
     Backend	*be,
 	DB *db,
-	DB_TXN *txn,
+	u_int32_t locker,
     struct berval *k,
 	ID *ids,
     DBC **saved_cursor,

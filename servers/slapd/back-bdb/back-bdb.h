@@ -122,17 +122,16 @@ typedef struct bdb_entry_info {
 
 /* for the in-core cache of entries */
 typedef struct bdb_cache {
+	EntryInfo	*c_eifree;	/* free list */
+	Avlnode		*c_idtree;
+	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
+	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
+	EntryInfo	c_dntree;
 	int		c_maxsize;
 	int		c_cursize;
 	int		c_minfree;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
-	u_int32_t	c_locker;	/* used by lru cleaner */
-	EntryInfo	c_dntree;
-	EntryInfo	*c_eifree;	/* free list */
-	Avlnode		*c_idtree;
-	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
-	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
 	ldap_pvt_thread_rdwr_t c_rwlock;
 	ldap_pvt_thread_mutex_t lru_head_mutex;
 	ldap_pvt_thread_mutex_t lru_tail_mutex;

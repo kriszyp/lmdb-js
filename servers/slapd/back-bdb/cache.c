@@ -31,7 +31,7 @@
 #ifdef BDB_HIER
 #define bdb_cache_lru_purge	hdb_cache_lru_purge
 #endif
-static void bdb_cache_lru_purge( struct bdb_info *bdb );
+static void bdb_cache_lru_purge( struct bdb_info *bdb, uint32_t locker );
 
 static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 #ifdef LDAP_DEBUG
@@ -555,9 +555,9 @@ int hdb_cache_load(
 #endif
 
 static void
-bdb_cache_lru_purge( struct bdb_info *bdb )
+bdb_cache_lru_purge( struct bdb_info *bdb, uint32_t locker )
 {
-	DB_LOCK		lock, *lockp;
+	DB_LOCK		lock;
 	EntryInfo *elru, *elnext;
 	int count, islocked;
 
@@ -568,12 +568,6 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	if ( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ) {
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_head_mutex );
 		return;
-	}
-
-	if ( bdb->bi_cache.c_locker ) {
-		lockp = &lock;
-	} else {
-		lockp = NULL;
 	}
 
 	count = 0;
@@ -610,8 +604,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 		/* If we can successfully writelock it, then
 		 * the object is idle.
 		 */
-		if ( bdb_cache_entry_db_lock( bdb,
-			bdb->bi_cache.c_locker, elru, 1, 1, lockp ) == 0 ) {
+		if ( bdb_cache_entry_db_lock( bdb, locker, elru, 1, 1, &lock ) == 0 ) {
 
 			/* Free entry for this node if it's present */
 			if ( elru->bei_e ) {
@@ -624,7 +617,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 				elru->bei_e = NULL;
 				count++;
 			}
-			bdb_cache_entry_db_unlock( bdb, lockp );
+			bdb_cache_entry_db_unlock( bdb, &lock );
 
 			/* ITS#4010 if we're in slapcat, and this node is a leaf
 			 * node, free it.
@@ -801,9 +794,6 @@ load1:
 #endif
 						ep = NULL;
 					}
-					bdb_cache_entryinfo_lock( *eip );
-					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
-					bdb_cache_entryinfo_unlock( *eip );
 					if ( rc == 0 ) {
 						/* If we succeeded, downgrade back to a readlock. */
 						rc = bdb_cache_entry_db_relock( bdb, locker,
@@ -812,6 +802,9 @@ load1:
 						/* Otherwise, release the lock. */
 						bdb_cache_entry_db_unlock( bdb, lock );
 					}
+					bdb_cache_entryinfo_lock( *eip );
+					(*eip)->bei_state ^= CACHE_ENTRY_LOADING;
+					bdb_cache_entryinfo_unlock( *eip );
 				} else if ( !(*eip)->bei_e ) {
 					/* Some other thread is trying to load the entry,
 					 * wait for it to finish.
@@ -862,7 +855,7 @@ load1:
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 		}
 		if ( purge )
-			bdb_cache_lru_purge( bdb );
+			bdb_cache_lru_purge( bdb, locker );
 	}
 
 #ifdef SLAP_ZONE_ALLOC
@@ -962,7 +955,7 @@ bdb_cache_add(
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 
 	if ( purge )
-		bdb_cache_lru_purge( bdb );
+		bdb_cache_lru_purge( bdb, locker );
 
 	return rc;
 }

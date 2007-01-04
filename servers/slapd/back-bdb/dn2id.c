@@ -332,6 +332,7 @@ bdb_dn2id_children(
 int
 bdb_dn2idl(
 	Operation *op,
+	u_int32_t locker,
 	Entry *e,
 	ID *ids,
 	ID *stack )
@@ -362,7 +363,7 @@ bdb_dn2idl(
 	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
 	BDB_IDL_ZERO( ids );
-	rc = bdb_idl_fetch_key( op->o_bd, db, NULL, &key, ids, NULL, 0 );
+	rc = bdb_idl_fetch_key( op->o_bd, db, locker, &key, ids, NULL, 0 );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -830,6 +831,7 @@ hdb_dn2id_children(
 struct dn2id_cookie {
 	struct bdb_info *bdb;
 	Operation *op;
+	u_int32_t locker;
 	EntryInfo *ei;
 	ID *ids;
 	ID *tmp;
@@ -1060,6 +1062,7 @@ gotit:
 int
 hdb_dn2idl(
 	Operation	*op,
+	u_int32_t locker,
 	Entry		*e,
 	ID *ids,
 	ID *stack )
@@ -1090,6 +1093,7 @@ hdb_dn2idl(
 	cx.tmp = stack;
 	cx.buf = stack + BDB_IDL_UM_SIZE;
 	cx.op = op;
+	cx.locker = locker;
 	cx.need_sort = 0;
 	cx.depth = 0;
 
