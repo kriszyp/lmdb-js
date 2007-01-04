@@ -43,6 +43,8 @@ static AttributeDescription	*ad_errSleepTime;
 static AttributeDescription	*ad_errMatchedDN;
 static AttributeDescription	*ad_errUnsolicitedOID;
 static AttributeDescription	*ad_errUnsolicitedData;
+static AttributeDescription	*ad_errDisconnect;
+
 static ObjectClass		*oc_errAbsObject;
 static ObjectClass		*oc_errObject;
 static ObjectClass		*oc_errAuxObject;
@@ -75,6 +77,10 @@ typedef struct retcode_item_t {
 	slap_mask_t		rdi_mask;
 	struct berval		rdi_unsolicited_oid;
 	struct berval		rdi_unsolicited_data;
+
+	unsigned		rdi_flags;
+#define	RDI_DISCONNECT		(0x1U)
+
 	struct retcode_item_t	*rdi_next;
 } retcode_item_t;
 
@@ -407,6 +413,10 @@ retcode_op_func( Operation *op, SlapReply *rs )
 		rs->sr_text = "retcode not found";
 
 	} else {
+		if ( rdi->rdi_flags & RDI_DISCONNECT ) {
+			return rs->sr_err = SLAPD_DISCONNECT;
+		}
+
 		rs->sr_err = rdi->rdi_err;
 		rs->sr_text = rdi->rdi_text.bv_val;
 		rs->sr_matched = rdi->rdi_matched.bv_val;
@@ -558,6 +568,12 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 		if ( !gotit ) {
 			return SLAP_CB_CONTINUE;
 		}
+	}
+
+	/* disconnect */
+	a = attr_find( e->e_attrs, ad_errDisconnect );
+	if ( a != NULL && bvmatch( &a->a_nvals[ 0 ], &slap_true_bv ) ) {
+		return rs->sr_err = SLAPD_DISCONNECT;
 	}
 
 	/* error code */
@@ -983,10 +999,22 @@ retcode_db_config(
 							&rdi.rdi_unsolicited_oid );
 					}
 
+				} else if ( strncasecmp( argv[ i ], "flags=", STRLENOF( "flags=" ) ) == 0 )
+				{
+					if ( strcasecmp( &argv[ i ][ STRLENOF( "flags=" ) ], "disconnect" ) == 0 ) {
+						rdi.rdi_flags |= RDI_DISCONNECT;
+
+					} else {
+						fprintf( stderr, "%s: line %d: retcode: "
+							"unknown flag \"%s\".\n",
+							fname, lineno, &argv[ i ][ STRLENOF( "flags=" ) ] );
+						return 1;
+					}
+
 				} else {
 					fprintf( stderr, "%s: line %d: retcode: "
 						"unknown option \"%s\".\n",
-							fname, lineno, argv[ i ] );
+						fname, lineno, argv[ i ] );
 					return 1;
 				}
 			}
@@ -1269,6 +1297,12 @@ retcode_initialize( void )
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
 			"SINGLE-VALUE )",
 			&ad_errUnsolicitedData },
+		{ "( 1.3.6.1.4.1.4203.666.11.4.1.8 "
+			"NAME ( 'errDisconnect' ) "
+			"DESC 'Disconnect without notice' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+			"SINGLE-VALUE )",
+			&ad_errDisconnect },
 		{ NULL }
 	};
 
@@ -1289,6 +1323,7 @@ retcode_initialize( void )
 				"$ errMatchedDN "
 				"$ errUnsolicitedOID "
 				"$ errUnsolicitedData "
+				"$ errDisconnect "
 			") )",
 			&oc_errAbsObject },
 		{ "( 1.3.6.1.4.1.4203.666.11.4.3.1 "
