@@ -906,14 +906,14 @@ nextresp2:
 	if ( id == 0 && msgid > LDAP_RES_UNSOLICITED ) {
 		int	is_nod = 0;
 
-		tag = ber_peek_tag( ber, &len );
+		tag = ber_peek_tag( &tmpber, &len );
 
 		/* we have a res oid */
 		if ( tag == LDAP_TAG_EXOP_RES_OID ) {
 			static struct berval	bv_nod = BER_BVC( LDAP_NOTICE_OF_DISCONNECTION );
 			struct berval		resoid = BER_BVNULL;
 
-			if ( ber_scanf( ber, "m", &resoid ) == LBER_ERROR ) {
+			if ( ber_scanf( &tmpber, "m", &resoid ) == LBER_ERROR ) {
 				ld->ld_errno = LDAP_DECODING_ERROR;
 				ber_free( ber, 1 );
 				return -1;
@@ -923,7 +923,7 @@ nextresp2:
 
 			is_nod = ber_bvcmp( &resoid, &bv_nod ) == 0;
 
-			tag = ber_peek_tag( ber, &len );
+			tag = ber_peek_tag( &tmpber, &len );
 		}
 
 #if 0 /* don't need right now */
@@ -931,7 +931,7 @@ nextresp2:
 		if ( tag == LDAP_TAG_EXOP_RES_VALUE ) {
 			struct berval resdata;
 
-			if ( ber_scanf( ber, "m", &resdata ) == LBER_ERROR ) {
+			if ( ber_scanf( &tmpber, "m", &resdata ) == LBER_ERROR ) {
 				ld->ld_errno = LDAP_DECODING_ERROR;
 				ber_free( ber, 0 );
 				return ld->ld_errno;
@@ -962,7 +962,9 @@ nextresp2:
 				*lcp = NULL;
 			}
 
-			return LDAP_RES_EXTENDED;
+			/* need to return -1, because otherwise
+			 * a valid result is expected */
+			return -1;
 		}
 	}
 
