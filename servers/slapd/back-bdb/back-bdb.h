@@ -133,6 +133,7 @@ typedef struct bdb_cache {
 	int		c_minfree;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
+	int		c_purging;
 	u_int32_t	c_locker;	/* used by lru cleaner */
 	ldap_pvt_thread_rdwr_t c_rwlock;
 	ldap_pvt_thread_mutex_t c_lru_mutex;

@@ -85,22 +85,22 @@ bdb_cache_entryinfo_new( Cache *cache )
  * during a purge operation.
  */
 static void
-bdb_cache_lru_link( Cache *cache, EntryInfo *ei )
+bdb_cache_lru_link( struct bdb_info *bdb, EntryInfo *ei )
 {
 	/* Insert into circular LRU list */
-	ldap_pvt_thread_mutex_lock( &cache->c_lru_mutex );
-	ei->bei_lruprev = cache->c_lrutail;
-	if ( cache->c_lrutail ) {
-		ei->bei_lrunext = cache->c_lrutail->bei_lrunext;
-		cache->c_lrutail->bei_lrunext = ei;
+	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
+	ei->bei_lruprev = bdb->bi_cache.c_lrutail;
+	if ( bdb->bi_cache.c_lrutail ) {
+		ei->bei_lrunext = bdb->bi_cache.c_lrutail->bei_lrunext;
+		bdb->bi_cache.c_lrutail->bei_lrunext = ei;
 		if ( ei->bei_lrunext )
 			ei->bei_lrunext->bei_lruprev = ei;
 	} else {
 		ei->bei_lrunext = ei->bei_lruprev = ei;
-		cache->c_lruhead = ei;
+		bdb->bi_cache.c_lruhead = ei;
 	}
-	cache->c_lrutail = ei;
-	ldap_pvt_thread_mutex_unlock( &cache->c_lru_mutex );
+	bdb->bi_cache.c_lrutail = ei;
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
 }
 
 #ifdef NO_THREADS
@@ -293,7 +293,6 @@ bdb_entryinfo_add_internal(
 		ei->bei_parent->bei_ckids++;
 #endif
 	}
-	bdb_cache_lru_link( &bdb->bi_cache, ei2 );
 
 	*res = ei2;
 	return 0;
@@ -467,8 +466,6 @@ hdb_cache_find_parent(
 				ein->bei_ckids++;
 				bdb_cache_entryinfo_unlock( ein );
 			}
-		} else {
-			bdb_cache_lru_link( &bdb->bi_cache, ein );
 		}
 
 		/* If this is the first time, save this node
@@ -555,6 +552,13 @@ int hdb_cache_load(
 }
 #endif
 
+#define LRU_DEL( c, e ) do { \
+	if ( e == (c)->c_lruhead ) (c)->c_lruhead = e->bei_lrunext; \
+	if ( e == (c)->c_lrutail ) (c)->c_lrutail = e->bei_lruprev; \
+	e->bei_lrunext->bei_lruprev = e->bei_lruprev; \
+	e->bei_lruprev->bei_lrunext = e->bei_lrunext; \
+} while ( 0 )
+
 static void
 bdb_cache_lru_purge( struct bdb_info *bdb )
 {
@@ -563,11 +567,14 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	int i, count, islocked, tests;
 
 	/* Don't bother if we can't get the lock */
-	if ( ldap_pvt_thread_mutex_trylock( &bdb->bi_cache.c_lru_mutex ) )
+	if ( ldap_pvt_thread_mutex_trylock( &bdb->bi_cache.c_lru_mutex ) ) {
+		bdb->bi_cache.c_purging = 0;
 		return;
+	}
 
 	if ( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ) {
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
+		bdb->bi_cache.c_purging = 0;
 		return;
 	}
 
@@ -646,6 +653,8 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 					islocked = 0;
 				}
 				/* Leave node on LRU list for a future pass */
+			} else {
+				LRU_DEL( &bdb->bi_cache, elru );
 			}
 		}
 
@@ -662,6 +671,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 	bdb->bi_cache.c_lruhead = elnext;
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
+	bdb->bi_cache.c_purging = 0;
 }
 
 EntryInfo *
@@ -808,6 +818,7 @@ load1:
 						(*eip)->bei_zseq = *((ber_len_t *)ep - 2);
 #endif
 						ep = NULL;
+						bdb_cache_lru_link( bdb, *eip );
 					}
 					if ( rc == 0 ) {
 						/* If we succeeded, downgrade back to a readlock. */
@@ -866,8 +877,11 @@ load1:
 		if ( load ) {
 			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
 			bdb->bi_cache.c_cursize++;
-			if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize )
+			if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
+				!bdb->bi_cache.c_purging ) {
 				purge = 1;
+				bdb->bi_cache.c_purging = 1;
+			}
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 		}
 		if ( purge )
@@ -966,8 +980,11 @@ bdb_cache_add(
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
 	++bdb->bi_cache.c_cursize;
-	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize )
+	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
+		!bdb->bi_cache.c_purging ) {
 		purge = 1;
+		bdb->bi_cache.c_purging = 1;
+	}
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 
 	if ( purge )
@@ -1220,11 +1237,7 @@ bdb_cache_delete_internal(
 
 	if ( rc == 0 ){
 		/* lru */
-		if ( e == cache->c_lruhead ) cache->c_lruhead = e->bei_lrunext;
-		if ( e == cache->c_lrutail ) cache->c_lrutail = e->bei_lruprev;
-
-		if ( e->bei_lrunext ) e->bei_lrunext->bei_lruprev = e->bei_lruprev;
-		if ( e->bei_lruprev ) e->bei_lruprev->bei_lrunext = e->bei_lrunext;
+		LRU_DEL( cache, e );
 
 		if ( e->bei_e ) {
 			ldap_pvt_thread_mutex_lock( &cache->c_count_mutex );
