@@ -58,7 +58,7 @@ If not defined, the suffix of the database is used.
 .hy 0
 .B retcode\-item <RDN> <errCode> [op=<oplist>] [text=<message>]
 .B [ref=<referral>] [sleeptime=<sec>] [matched=<DN>]
-.B [unsolicited=<OID>[:<data>]] [flags=disconnect[,...]]
+.B [unsolicited=<OID>[:<data>]] [flags=[{pre|post}-]disconnect[,...]]
 .RS
 A dynamically generated entry, located below \fBretcode\-parent\fP.
 The \fBerrCode\fP is the number of the response code;
@@ -79,9 +79,10 @@ The \fBunsolicited\fP field can be used to cause the return
 of an RFC 4511 unsolicited response message; if \fBOID\fP
 is not "0", an extended response is generated, with the optional
 \fBdata\fP appended.
-If \fBflags\fP contains \fBdisconnect\fP, 
+If \fBflags\fP contains \fBdisconnect\fP, or \fBpre-disconnect\fP,
 .BR slapd (8)
-disconnects abruptly, without notice.
+disconnects abruptly, without notice; \fBpost-disconnect\fP
+causes disconnection right after sending response as appropriate.
 .RE
 .TP
 .B retcode\-indir
@@ -186,7 +187,8 @@ in RFC 4511 unsolicited response:
 .LP
 If TRUE,
 .BR slapd (8)
-disconnects abruptly without notice:
+disconnects abruptly without notice; if FALSE, it disconnects
+after sending response as appropriate:
 .RS 4
 ( 1.3.6.1.4.1.4203.666.11.4.1.8
     NAME ( 'errDisconnect' )

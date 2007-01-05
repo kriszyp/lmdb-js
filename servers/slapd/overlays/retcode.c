@@ -79,7 +79,8 @@ typedef struct retcode_item_t {
 	struct berval		rdi_unsolicited_data;
 
 	unsigned		rdi_flags;
-#define	RDI_DISCONNECT		(0x1U)
+#define	RDI_PRE_DISCONNECT	(0x1U)
+#define	RDI_POST_DISCONNECT	(0x2U)
 
 	struct retcode_item_t	*rdi_next;
 } retcode_item_t;
@@ -413,7 +414,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 		rs->sr_text = "retcode not found";
 
 	} else {
-		if ( rdi->rdi_flags & RDI_DISCONNECT ) {
+		if ( rdi->rdi_flags & RDI_PRE_DISCONNECT ) {
 			return rs->sr_err = SLAPD_DISCONNECT;
 		}
 
@@ -492,6 +493,10 @@ retcode_op_func( Operation *op, SlapReply *rs )
 		}
 		rs->sr_matched = NULL;
 		rs->sr_text = NULL;
+
+		if ( rdi && rdi->rdi_flags & RDI_POST_DISCONNECT ) {
+			return rs->sr_err = SLAPD_DISCONNECT;
+		}
 		break;
 	}
 
@@ -536,6 +541,7 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 	Attribute	*a;
 	int		err;
 	char		*next;
+	int		disconnect = 0;
 
 	if ( get_manageDSAit( op ) ) {
 		return SLAP_CB_CONTINUE;
@@ -572,8 +578,11 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 
 	/* disconnect */
 	a = attr_find( e->e_attrs, ad_errDisconnect );
-	if ( a != NULL && bvmatch( &a->a_nvals[ 0 ], &slap_true_bv ) ) {
-		return rs->sr_err = SLAPD_DISCONNECT;
+	if ( a != NULL ) {
+		if ( bvmatch( &a->a_nvals[ 0 ], &slap_true_bv ) ) {
+			return rs->sr_err = SLAPD_DISCONNECT;
+		}
+		disconnect = 1;
 	}
 
 	/* error code */
@@ -685,8 +694,12 @@ retcode_entry_response( Operation *op, SlapReply *rs, BackendInfo *bi, Entry *e 
 		op->o_bd = o_bd;
 		op->o_callback = o_callback;
 	}
-	
+
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+		if ( disconnect ) {
+			return rs->sr_err = SLAPD_DISCONNECT;
+		}
+	
 		op->o_abandon = 1;
 		return rs->sr_err;
 	}
@@ -1001,13 +1014,20 @@ retcode_db_config(
 
 				} else if ( strncasecmp( argv[ i ], "flags=", STRLENOF( "flags=" ) ) == 0 )
 				{
-					if ( strcasecmp( &argv[ i ][ STRLENOF( "flags=" ) ], "disconnect" ) == 0 ) {
-						rdi.rdi_flags |= RDI_DISCONNECT;
+					char *arg = &argv[ i ][ STRLENOF( "flags=" ) ];
+					if ( strcasecmp( arg, "disconnect" ) == 0 ) {
+						rdi.rdi_flags |= RDI_PRE_DISCONNECT;
+
+					} else if ( strcasecmp( arg, "pre-disconnect" ) == 0 ) {
+						rdi.rdi_flags |= RDI_PRE_DISCONNECT;
+
+					} else if ( strcasecmp( arg, "post-disconnect" ) == 0 ) {
+						rdi.rdi_flags |= RDI_POST_DISCONNECT;
 
 					} else {
 						fprintf( stderr, "%s: line %d: retcode: "
 							"unknown flag \"%s\".\n",
-							fname, lineno, &argv[ i ][ STRLENOF( "flags=" ) ] );
+							fname, lineno, arg );
 						return 1;
 					}
 
