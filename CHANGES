@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.33 Engineering
+
 OpenLDAP 2.3.32 Release (2007/01/04)
 	Fixed slapd add redundant duplicate value check (ITS#4600)
 	Fixed slapd ACL set memleak (ITS#4780)
