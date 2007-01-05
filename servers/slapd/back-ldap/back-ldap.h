@@ -247,27 +247,27 @@ typedef struct ldapinfo_t {
 	LDAP_URLLIST_PROC	*li_urllist_f;
 	void			*li_urllist_p;
 
-	slap_bindconf	li_acl;
-#define	li_acl_authcID	li_acl.sb_authcId
-#define	li_acl_authcDN	li_acl.sb_binddn
-#define	li_acl_passwd	li_acl.sb_cred
-#define	li_acl_authzID	li_acl.sb_authzId
+	slap_bindconf		li_acl;
+#define	li_acl_authcID		li_acl.sb_authcId
+#define	li_acl_authcDN		li_acl.sb_binddn
+#define	li_acl_passwd		li_acl.sb_cred
+#define	li_acl_authzID		li_acl.sb_authzId
 #define	li_acl_authmethod	li_acl.sb_method
 #define	li_acl_sasl_mech	li_acl.sb_saslmech
 #define	li_acl_sasl_realm	li_acl.sb_realm
-#define	li_acl_secprops	li_acl.sb_secprops
+#define	li_acl_secprops		li_acl.sb_secprops
 
 	/* ID assert stuff */
-	slap_idassert_t	li_idassert;
+	slap_idassert_t		li_idassert;
 	/* end of ID assert stuff */
 
-	int		li_nretries;
+	int			li_nretries;
 #define LDAP_BACK_RETRY_UNDEFINED	(-2)
 #define LDAP_BACK_RETRY_FOREVER		(-1)
 #define LDAP_BACK_RETRY_NEVER		(0)
 #define LDAP_BACK_RETRY_DEFAULT		(3)
 
-	unsigned	li_flags;
+	unsigned		li_flags;
 
 /* 0xFFF00000U are reserved for back-meta */
 
@@ -331,24 +331,23 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_CANCEL(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
 #define	LDAP_BACK_CANCEL_DISCOVER(li)	LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
 
-	int		li_version;
+	int			li_version;
 
 	/* cached connections; 
 	 * special conns are in tailq rather than in tree */
-	ldap_avl_info_t	li_conninfo;
-
-	ldap_monitor_info_t	li_monitor_info;
-
+	ldap_avl_info_t		li_conninfo;
 	struct {
 		int						lic_num;
 		LDAP_TAILQ_HEAD(lc_conn_priv_q, ldapconn_t)	lic_priv;
-	}		li_conn_priv[ LDAP_BACK_PCONN_LAST ];
-	int		li_conn_priv_max;
+	}			li_conn_priv[ LDAP_BACK_PCONN_LAST ];
+	int			li_conn_priv_max;
 #define	LDAP_BACK_CONN_PRIV_MIN		(1)
 #define	LDAP_BACK_CONN_PRIV_MAX		(256)
 	/* must be between LDAP_BACK_CONN_PRIV_MIN
 	 * and LDAP_BACK_CONN_PRIV_MAX ! */
 #define	LDAP_BACK_CONN_PRIV_DEFAULT	(16)
+
+	ldap_monitor_info_t	li_monitor_info;
 
 	sig_atomic_t		li_isquarantined;
 #define	LDAP_BACK_FQ_NO		(0)
@@ -361,10 +360,10 @@ typedef struct ldapinfo_t {
 	ldap_back_quarantine_f	li_quarantine_f;
 	void			*li_quarantine_p;
 
-	time_t		li_network_timeout;
-	time_t		li_conn_ttl;
-	time_t		li_idle_timeout;
-	time_t		li_timeout[ SLAP_OP_LAST ];
+	time_t			li_network_timeout;
+	time_t			li_conn_ttl;
+	time_t			li_idle_timeout;
+	time_t			li_timeout[ SLAP_OP_LAST ];
 } ldapinfo_t;
 
 typedef enum ldap_back_send_t {
