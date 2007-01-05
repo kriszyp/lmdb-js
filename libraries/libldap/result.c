@@ -878,7 +878,11 @@ nextresp2:
 				lr = NULL;
 			}
 
-			if ( lc != NULL ) {
+			/*
+			 * RF 4511 unsolicited (id == 0) responses
+			 * shouldn't necessarily end the connection
+			 */
+			if ( lc != NULL && id != 0 ) {
 #ifdef LDAP_R_COMPILE
 				ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
@@ -959,7 +963,7 @@ nextresp2:
 #ifdef LDAP_R_COMPILE
 				ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
-				*lcp = NULL;
+				lc = *lcp = NULL;
 			}
 
 			/* need to return -1, because otherwise
