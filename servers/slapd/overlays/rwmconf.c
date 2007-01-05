@@ -47,6 +47,7 @@ rwm_map_config(
 	struct ldapmapping	*mapping;
 	char			*src, *dst;
 	int			is_oc = 0;
+	int			rc = 0;
 
 	if ( argc < 3 || argc > 4 ) {
 		fprintf( stderr,
@@ -73,7 +74,7 @@ rwm_map_config(
 	if ( strcmp( argv[2], "*" ) == 0 ) {
 		if ( argc < 4 || strcmp( argv[3], "*" ) == 0 ) {
 			map->drop_missing = ( argc < 4 );
-			return 0;
+			goto success_return;
 		}
 		src = dst = argv[3];
 
@@ -230,7 +231,13 @@ rwm_map_config(
 	avl_insert( &map->remap, (caddr_t)&mapping[1],
 				rwm_mapping_cmp, rwm_mapping_dup );
 
-	return 0;
+success_return:;
+	if ( !is_oc && map->map == NULL ) {
+		/* only init if required */
+		rc = rwm_map_init( map, &mapping ) != LDAP_SUCCESS;
+	}
+
+	return rc;
 
 error_return:;
 	if ( mapping ) {

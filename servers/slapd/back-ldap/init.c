@@ -81,11 +81,15 @@ int
 ldap_back_db_init( Backend *be )
 {
 	ldapinfo_t	*li;
+	unsigned	i;
 
 	li = (ldapinfo_t *)ch_calloc( 1, sizeof( ldapinfo_t ) );
 	if ( li == NULL ) {
  		return -1;
  	}
+
+	li->li_rebind_f = ldap_back_default_rebind;
+	ldap_pvt_thread_mutex_init( &li->li_uri_mutex );
 
 	BER_BVZERO( &li->li_acl_authcID );
 	BER_BVZERO( &li->li_acl_authcDN );
@@ -105,7 +109,7 @@ ldap_back_db_init( Backend *be )
 
 	li->li_idassert_authmethod = LDAP_AUTH_NONE;
 	BER_BVZERO( &li->li_idassert_sasl_mech );
-	li->li_idassert.sb_tls = SB_TLS_DEFAULT;
+	li->li_idassert_tls = SB_TLS_DEFAULT;
 
 	/* by default, use proxyAuthz control on each operation */
 	li->li_idassert_flags = LDAP_BACK_AUTH_PRESCRIPTIVE;
@@ -119,6 +123,12 @@ ldap_back_db_init( Backend *be )
 	li->li_version = LDAP_VERSION3;
 
 	ldap_pvt_thread_mutex_init( &li->li_conninfo.lai_mutex );
+
+	for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+		li->li_conn_priv[ i ].lic_num = 0;
+		LDAP_TAILQ_INIT( &li->li_conn_priv[ i ].lic_priv );
+	}
+	li->li_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
 
 	be->be_private = li;
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_NOLASTMOD;
@@ -150,47 +160,29 @@ ldap_back_db_open( BackendDB *be )
 		break;
 	}
 
-#if 0 && defined(SLAPD_MONITOR)
-	{
-		/* FIXME: disabled because namingContexts doesn't have
-		 * a matching rule, and using an MRA filter doesn't work
-		 * because the normalized assertion is compared to the 
-		 * non-normalized value, which in general differs from
-		 * the normalized one.  See ITS#3406 */
-		struct berval	filter,
-				base = BER_BVC( "cn=Databases," SLAPD_MONITOR );
-		Attribute	a = { 0 };
-
-		filter.bv_len = STRLENOF( "(&(namingContexts:distinguishedNameMatch:=)(monitoredInfo=ldap))" )
-			+ be->be_nsuffix[ 0 ].bv_len;
-		filter.bv_val = ch_malloc( filter.bv_len + 1 );
-		snprintf( filter.bv_val, filter.bv_len + 1,
-				"(&(namingContexts:distinguishedNameMatch:=%s)(monitoredInfo=ldap))",
-				be->be_nsuffix[ 0 ].bv_val );
-
-		a.a_desc = slap_schema.si_ad_labeledURI;
-		a.a_vals = li->li_bvuri;
-		a.a_nvals = li->li_bvuri;
-		if ( monitor_back_register_entry_attrs( NULL, &a, NULL, &base, LDAP_SCOPE_SUBTREE, &filter ) ) {
-			/* error */
-		}
-
-		ch_free( filter.bv_val );
-	}
-#endif /* SLAPD_MONITOR */
-
-	if ( li->li_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+	if ( LDAP_BACK_T_F_DISCOVER( li ) && !LDAP_BACK_T_F( li ) ) {
 		int		rc;
-
-		li->li_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
 
 		rc = slap_discover_feature( li->li_uri, li->li_version,
 				slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 				LDAP_FEATURE_ABSOLUTE_FILTERS );
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			li->li_flags |= LDAP_BACK_F_SUPPORT_T_F;
+			li->li_flags |= LDAP_BACK_F_T_F;
 		}
 	}
+
+	if ( LDAP_BACK_CANCEL_DISCOVER( li ) && !LDAP_BACK_CANCEL( li ) ) {
+		int		rc;
+
+		rc = slap_discover_feature( li->li_uri, li->li_version,
+				slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
+				LDAP_EXOP_CANCEL );
+		if ( rc == LDAP_COMPARE_TRUE ) {
+			li->li_flags |= LDAP_BACK_F_CANCEL_EXOP;
+		}
+	}
+
+	li->li_flags |= LDAP_BACK_F_ISOPEN;
 
 	return 0;
 }
@@ -213,16 +205,17 @@ ldap_back_conn_free( void *v_lc )
 	if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
 		ch_free( lc->lc_local_ndn.bv_val );
 	}
+	lc->lc_q.tqe_prev = NULL;
+	lc->lc_q.tqe_next = NULL;
 	ch_free( lc );
 }
 
 int
-ldap_back_db_destroy(
-    Backend	*be
-)
+ldap_back_db_destroy( Backend *be )
 {
 	if ( be->be_private ) {
 		ldapinfo_t	*li = ( ldapinfo_t * )be->be_private;
+		unsigned	i;
 
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
@@ -285,9 +278,22 @@ ldap_back_db_destroy(
                	if ( li->li_conninfo.lai_tree ) {
 			avl_free( li->li_conninfo.lai_tree, ldap_back_conn_free );
 		}
+		for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+			while ( !LDAP_TAILQ_EMPTY( &li->li_conn_priv[ i ].lic_priv ) ) {
+				ldapconn_t	*lc = LDAP_TAILQ_FIRST( &li->li_conn_priv[ i ].lic_priv );
+
+				LDAP_TAILQ_REMOVE( &li->li_conn_priv[ i ].lic_priv, lc, lc_q );
+				ldap_back_conn_free( lc );
+			}
+		}
+		if ( LDAP_BACK_QUARANTINE( li ) ) {
+			slap_retry_info_destroy( &li->li_quarantine );
+			ldap_pvt_thread_mutex_destroy( &li->li_quarantine_mutex );
+		}
 
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->li_conninfo.lai_mutex );
+		ldap_pvt_thread_mutex_destroy( &li->li_uri_mutex );
 	}
 
 	ch_free( be->be_private );

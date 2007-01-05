@@ -1,6 +1,13 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.33 Engineering
+	Fixed slapd-ldap/meta privileged conn caching (ITS#4547)
+	Fixed slapd-ldap chase-referrals switch (ITS#4557)
+	Fixed slapd-ldap bind behavior when idassert is always used (ITS#4781)
+	Fixed slapd-ldap response handling bugs (ITS#4782)
+	Fixed slapd-ldap/meta privileged connections handling (ITS#4791)
+	Fixed slapd-meta retrying (ITS#4594, 4762)
+	Fixed slapo-chain referral DN use (ITS#4776)
 
 OpenLDAP 2.3.32 Release (2007/01/04)
 	Fixed slapd add redundant duplicate value check (ITS#4600)

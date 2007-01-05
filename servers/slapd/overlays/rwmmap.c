@@ -84,6 +84,7 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 	/* FIXME: I don't think this is needed any more... */
 	rc = slap_str2ad( "objectClass", &mapping[0].m_src_ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
+		ch_free( mapping );
 		return rc;
 	}
 
@@ -112,6 +113,10 @@ rwm_mapping( struct ldapmap *map, struct berval *s, struct ldapmapping **m, int 
 	Avlnode *tree;
 	struct ldapmapping fmapping;
 
+	if ( map == NULL ) {
+		return 0;
+	}
+
 	assert( m != NULL );
 
 	if ( remap == RWM_REMAP ) {
@@ -136,6 +141,13 @@ void
 rwm_map( struct ldapmap *map, struct berval *s, struct berval *bv, int remap )
 {
 	struct ldapmapping *mapping;
+
+	/* map->map may be NULL when mapping is configured,
+	 * but map->remap can't */
+	if ( map->remap == NULL ) {
+		*bv = *s;
+		return;
+	}
 
 	BER_BVZERO( bv );
 	( void )rwm_mapping( map, s, &mapping, remap );

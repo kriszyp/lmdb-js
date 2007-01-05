@@ -383,7 +383,7 @@ monitor_subsys_database_init(
 			int		t;
 
 			for ( t = 0; t < mi->mi_ntargets; t++ ) {
-				char		**urls = ldap_str2charray( mi->mi_targets[ t ].mt_uri, " " );
+				char		**urls = ldap_str2charray( mi->mi_targets[ t ]->mt_uri, " " );
 				int		u;
 
 				for ( u = 0; urls[ u ] != NULL; u++ ) {

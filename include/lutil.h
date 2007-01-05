@@ -296,6 +296,32 @@ lutil_parse_time( const char *in, unsigned long *tp );
 LDAP_LUTIL_F (int)
 lutil_unparse_time( char *buf, size_t buflen, unsigned long t );
 
+#ifdef timerdiv
+#define lutil_timerdiv timerdiv
+#else /* ! timerdiv */
+/* works inplace (x == t) */
+#define lutil_timerdiv(t,d,x) \
+	do { \
+		time_t s = (t)->tv_sec; \
+		assert( d > 0 ); \
+		(x)->tv_sec = s / d; \
+		(x)->tv_usec = ( (t)->tv_usec + 1000000 * ( s % d ) ) / d; \
+	} while ( 0 )
+#endif /* ! timerdiv */
+
+#ifdef timermul
+#define lutil_timermul timermul
+#else /* ! timermul */
+/* works inplace (x == t) */
+#define lutil_timermul(t,m,x) \
+	do { \
+		time_t u = (t)->tv_usec * m; \
+		assert( m > 0 ); \
+		(x)->tv_sec = (t)->tv_sec * m + u / 1000000; \
+		(x)->tv_usec = u % 1000000; \
+	} while ( 0 );
+#endif /* ! timermul */
+
 LDAP_END_DECL
 
 #endif /* _LUTIL_H */

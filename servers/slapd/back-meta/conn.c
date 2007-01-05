@@ -35,11 +35,6 @@
 #include "back-meta.h"
 
 /*
- * Set PRINT_CONNTREE larger than 0 to dump the connection tree (debug only)
- */
-#define PRINT_CONNTREE 0
-
-/*
  * meta_back_conndn_cmp
  *
  * compares two struct metaconn based on the value of the conn pointer
@@ -143,46 +138,79 @@ meta_back_conndn_dup(
 /*
  * Debug stuff (got it from libavl)
  */
-#if PRINT_CONNTREE > 0
+#if META_BACK_PRINT_CONNTREE > 0
 static void
-ravl_print( Avlnode *root, int depth )
+meta_back_ravl_print( Avlnode *root, int depth )
 {
 	int     	i;
-	metaconn_t	*mc = (metaconn_t *)root->avl_data;
+	metaconn_t	*mc;
 	
 	if ( root == 0 ) {
 		return;
 	}
 	
-	ravl_print( root->avl_right, depth + 1 );
+	meta_back_ravl_print( root->avl_right, depth + 1 );
 	
 	for ( i = 0; i < depth; i++ ) {
-		printf( "    " );
+		fprintf( stderr, "-" );
 	}
 
-	printf( "c(%d%s%s) %d\n",
-		LDAP_BACK_PCONN_ID( mc->mc_conn ),
-		BER_BVISNULL( &mc->mc_local_ndn ) ? "" : ": ",
-		BER_BVISNULL( &mc->mc_local_ndn ) ? "" : mc->mc_local_ndn.bv_val,
-		root->avl_bf );
+	mc = (metaconn_t *)root->avl_data;
+	fprintf( stderr, "mc=%p local=\"%s\" conn=%p %s refcnt=%d%s\n",
+		(void *)mc,
+		mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
+		(void *)mc->mc_conn,
+		avl_bf2str( root->avl_bf ), mc->mc_refcnt,
+		LDAP_BACK_CONN_TAINTED( mc ) ? " tainted" : "" );
 	
-	ravl_print( root->avl_left, depth + 1 );
+	meta_back_ravl_print( root->avl_left, depth + 1 );
 }
 
-static void
-myprint( Avlnode *root )
+/* NOTE: duplicate from back-ldap/bind.c */
+static char* priv2str[] = {
+	"privileged",
+	"privileged/TLS",
+	"anonymous",
+	"anonymous/TLS",
+	"bind",
+	"bind/TLS",
+	NULL
+};
+
+void
+meta_back_print_conntree( metainfo_t *mi, char *msg )
 {
-	printf( "********\n" );
+	int	c;
+
+	fprintf( stderr, "========> %s\n", msg );
 	
-	if ( root == 0 ) {
-		printf( "\tNULL\n" );
-	} else {
-		ravl_print( root, 0 );
+	for ( c = LDAP_BACK_PCONN_FIRST; c < LDAP_BACK_PCONN_LAST; c++ ) {
+		int		i = 0;
+		metaconn_t	*mc;
+
+		fprintf( stderr, "  %s[%d]\n", priv2str[ c ], mi->mi_conn_priv[ c ].mic_num );
+
+		LDAP_TAILQ_FOREACH( mc, &mi->mi_conn_priv[ c ].mic_priv, mc_q )
+		{
+			fprintf( stderr, "    [%d] mc=%p local=\"%s\" conn=%p refcnt=%d flags=0x%08x\n",
+				i,
+				(void *)mc,
+				mc->mc_local_ndn.bv_val ? mc->mc_local_ndn.bv_val : "",
+				(void *)mc->mc_conn, mc->mc_refcnt, mc->msc_mscflags );
+			i++;
+		}
 	}
 	
-	printf( "********\n" );
+	if ( mi->mi_conninfo.lai_tree == NULL ) {
+		fprintf( stderr, "\t(empty)\n" );
+
+	} else {
+		meta_back_ravl_print( mi->mi_conninfo.lai_tree, 0 );
+	}
+	
+	fprintf( stderr, "<======== %s\n", msg );
 }
-#endif /* PRINT_CONNTREE */
+#endif /* META_BACK_PRINT_CONNTREE */
 /*
  * End of debug stuff
  */
@@ -198,49 +226,23 @@ metaconn_alloc(
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t	*mc;
-	int		i, ntargets = mi->mi_ntargets;
+	int		ntargets = mi->mi_ntargets;
 
 	assert( ntargets > 0 );
 
 	/* malloc all in one */
-	mc = ( metaconn_t * )ch_malloc( sizeof( metaconn_t )
-			+ sizeof( metasingleconn_t ) * ntargets );
+	mc = ( metaconn_t * )ch_calloc( 1, sizeof( metaconn_t )
+		+ sizeof( metasingleconn_t ) * ( ntargets - 1 ) );
 	if ( mc == NULL ) {
 		return NULL;
 	}
 
-	for ( i = 0; i < ntargets; i++ ) {
-		mc->mc_conns[ i ].msc_ld = NULL;
-		BER_BVZERO( &mc->mc_conns[ i ].msc_bound_ndn );
-		BER_BVZERO( &mc->mc_conns[ i ].msc_cred );
-		mc->mc_conns[ i ].msc_mscflags = 0;
-		mc->mc_conns[ i ].msc_info = mi;
-	}
+	mc->mc_info = mi;
 
-	BER_BVZERO( &mc->mc_local_ndn );
-	mc->msc_mscflags = 0;
 	mc->mc_authz_target = META_BOUND_NONE;
 	mc->mc_refcnt = 1;
 
 	return mc;
-}
-
-static void
-meta_back_freeconn(
-	Operation	*op,
-	metaconn_t	*mc )
-{
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-
-	assert( mc != NULL );
-
-	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-
-	if ( --mc->mc_refcnt == 0 ) {
-		meta_back_conn_free( mc );
-	}
-
-	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 }
 
 /*
@@ -252,31 +254,125 @@ int
 meta_back_init_one_conn(
 	Operation		*op,
 	SlapReply		*rs,
-	metatarget_t		*mt, 
 	metaconn_t		*mc,
 	int			candidate,
 	int			ispriv,
-	ldap_back_send_t	sendok )
+	ldap_back_send_t	sendok,
+	int			dolock )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			version;
 	dncookie		dc;
 	int			isauthz = ( candidate == mc->mc_authz_target );
+	int			do_return = 0;
+#ifdef HAVE_TLS
+	int			is_ldaps = 0;
+#endif /* HAVE_TLS */
+
+	/* if the server is quarantined, and
+	 * - the current interval did not expire yet, or
+	 * - no more retries should occur,
+	 * don't return the connection */
+	if ( mt->mt_isquarantined ) {
+		slap_retry_info_t	*ri = &mt->mt_quarantine;
+		int			dont_retry = 1;
+
+		if ( mt->mt_isquarantined == LDAP_BACK_FQ_YES ) {
+			dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
+				|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
+			if ( !dont_retry ) {
+				if ( StatslogTest( LDAP_DEBUG_ANY ) ) {
+					char	buf[ SLAP_TEXT_BUFLEN ];
+
+					snprintf( buf, sizeof( buf ),
+						"meta_back_init_one_conn[%d]: quarantine "
+						"retry block #%d try #%d",
+						candidate, ri->ri_idx, ri->ri_count );
+					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
+						op->o_log_prefix, buf, 0 );
+				}
+
+				mt->mt_isquarantined = LDAP_BACK_FQ_RETRYING;
+			}
+		}
+
+		if ( dont_retry ) {
+			rs->sr_err = LDAP_UNAVAILABLE;
+			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+				send_ldap_result( op, rs );
+			}
+			return rs->sr_err;
+		}
+	}
+
+retry_lock:;
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+	}
 
 	/*
 	 * Already init'ed
 	 */
-	if ( msc->msc_ld != NULL ) {
-		return rs->sr_err = LDAP_SUCCESS;
+	if ( LDAP_BACK_CONN_ISBOUND( msc )
+		|| LDAP_BACK_CONN_ISANON( msc ) )
+	{
+		assert( msc->msc_ld != NULL );
+		rs->sr_err = LDAP_SUCCESS;
+		do_return = 1;
+
+	} else if ( META_BACK_CONN_CREATING( msc )
+		|| LDAP_BACK_CONN_BINDING( msc ) )
+	{
+		if ( !LDAP_BACK_USE_TEMPORARIES( mi ) ) {
+			if ( dolock ) {
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+			}
+
+			ldap_pvt_thread_yield();
+			goto retry_lock;
+		}
+
+		/* sounds more appropriate */
+		rs->sr_err = LDAP_BUSY;
+		do_return = 1;
+
+	} else if ( META_BACK_CONN_INITED( msc ) ) {
+		assert( msc->msc_ld != NULL );
+		rs->sr_err = LDAP_SUCCESS;
+		do_return = 1;
+
+	} else {
+		/*
+		 * creating...
+		 */
+		META_BACK_CONN_CREATING_SET( msc );
 	}
 
-	msc->msc_mscflags = 0;
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+	}
+
+	if ( do_return ) {
+		if ( rs->sr_err != LDAP_SUCCESS && op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+			send_ldap_result( op, rs );
+		}
+
+		return rs->sr_err;
+	}
+
+	assert( msc->msc_ld == NULL );
        
 	/*
 	 * Attempts to initialize the connection to the target ds
 	 */
+	ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
 	rs->sr_err = ldap_initialize( &msc->msc_ld, mt->mt_uri );
+#ifdef HAVE_TLS
+	is_ldaps = ldap_is_ldaps_url( mt->mt_uri );
+#endif /* HAVE_TLS */
+	ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto error_return;
 	}
@@ -303,7 +399,7 @@ meta_back_init_one_conn(
 #ifdef HAVE_TLS
 	/* start TLS ("tls [try-]{start|propagate}" statement) */
 	if ( ( LDAP_BACK_USE_TLS( mi ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( mi ) ) )
-			&& !ldap_is_ldaps_url( mt->mt_uri ) )
+			&& !is_ldaps )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
@@ -322,10 +418,12 @@ meta_back_init_one_conn(
 
 retry:;
 			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
-			if ( rc < 0 ) {
+			switch ( rc ) {
+			case -1:
 				rs->sr_err = LDAP_OTHER;
+				break;
 
-			} else if ( rc == 0 ) {
+			case 0:
 				if ( nretries != 0 ) {
 					if ( nretries > 0 ) {
 						nretries--;
@@ -334,15 +432,26 @@ retry:;
 					goto retry;
 				}
 				rs->sr_err = LDAP_OTHER;
+				break;
 
-			} else if ( rc == LDAP_RES_EXTENDED ) {
+			default:
+				/* only touch when activity actually took place... */
+				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
+					msc->msc_time = op->o_time;
+				}
+				break;
+			}
+
+			if ( rc == LDAP_RES_EXTENDED ) {
 				struct berval	*data = NULL;
 
+				/* NOTE: right now, data is unused, so don't get it */
 				rs->sr_err = ldap_parse_extended_result( msc->msc_ld, res,
-						NULL, &data, 0 );
+						NULL, NULL /* &data */ , 0 );
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					int		err;
 
+					/* FIXME: matched? referrals? response controls? */
 					rs->sr_err = ldap_parse_result( msc->msc_ld, res,
 						&err, NULL, NULL, NULL, NULL, 1 );
 					res = NULL;
@@ -359,6 +468,7 @@ retry:;
 						ldap_install_tls( msc->msc_ld );
 
 					} else if ( rs->sr_err == LDAP_REFERRAL ) {
+						/* FIXME: LDAP_OPERATIONS_ERROR? */
 						rs->sr_err = LDAP_OTHER;
 						rs->sr_text = "unwilling to chase referral returned by Start TLS exop";
 					}
@@ -393,7 +503,14 @@ retry:;
 		if ( rs->sr_err == LDAP_SERVER_DOWN
 				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( mi ) ) )
 		{
-			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+
+#ifdef DEBUG_205
+			Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(TLS) ldap_unbind_ext[%d] ld=%p\n",
+				op->o_log_prefix, candidate, (void *)msc->msc_ld );
+#endif /* DEBUG_205 */
+
+			/* need to trash a failed Start TLS */
+			meta_clear_one_candidate( op, mc, candidate );
 			goto error_return;
 		}
 	}
@@ -417,21 +534,30 @@ retry:;
 	 */
 
 	if ( ispriv ) {
-		if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
-			ber_dupbv( &msc->msc_bound_ndn, &mt->mt_pseudorootdn );
-			if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
-				ber_dupbv( &msc->msc_cred, &mt->mt_pseudorootpw );
+		if ( !BER_BVISNULL( &mt->mt_idassert_authcDN ) ) {
+			ber_bvreplace( &msc->msc_bound_ndn, &mt->mt_idassert_authcDN );
+			if ( !BER_BVISNULL( &mt->mt_idassert_passwd ) ) {
+				if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+					memset( msc->msc_cred.bv_val, 0,
+						msc->msc_cred.bv_len );
+				}
+				ber_bvreplace( &msc->msc_cred, &mt->mt_idassert_passwd );
 			}
 
 		} else {
-			ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
+			ber_bvreplace( &msc->msc_bound_ndn, &slap_empty_bv );
 		}
 
-		LDAP_BACK_CONN_ISPRIV_SET( msc );
-
 	} else {
-		BER_BVZERO( &msc->msc_cred );
-		BER_BVZERO( &msc->msc_bound_ndn );
+		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+			memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
+			ber_memfree_x( msc->msc_cred.bv_val, NULL );
+			BER_BVZERO( &msc->msc_cred );
+		}
+		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+			ber_memfree_x( msc->msc_bound_ndn.bv_val, NULL );
+			BER_BVZERO( &msc->msc_bound_ndn );
+		}
 		if ( !BER_BVISEMPTY( &op->o_ndn )
 			&& SLAP_IS_AUTHZ_BACKEND( op )
 			&& isauthz )
@@ -447,30 +573,48 @@ retry:;
 			if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
 						&msc->msc_bound_ndn ) )
 			{
-				ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+
+#ifdef DEBUG_205
+				Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(rewrite) ldap_unbind_ext[%d] ld=%p\n",
+					op->o_log_prefix, candidate, (void *)msc->msc_ld );
+#endif /* DEBUG_205 */
+
+				/* need to trash a connection not fully established */
+				meta_clear_one_candidate( op, mc, candidate );
 				goto error_return;
 			}
 			
-			/* copy the DN idf needed */
+			/* copy the DN if needed */
 			if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
 				ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
 			}
 
+			assert( !BER_BVISNULL( &msc->msc_bound_ndn ) );
+
 		} else {
-			ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
+			ber_dupbv( &msc->msc_bound_ndn, (struct berval *)&slap_empty_bv );
 		}
 	}
 
 	assert( !BER_BVISNULL( &msc->msc_bound_ndn ) );
 
 error_return:;
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+	}
+	META_BACK_CONN_CREATING_CLEAR( msc );
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		/*
 		 * Sets a cookie for the rewrite session
 		 */
 		( void )rewrite_session_init( mt->mt_rwmap.rwm_rw, op->o_conn );
+		META_BACK_CONN_INITED_SET( msc );
+	}
+	if ( dolock ) {
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+	}
 
-	} else {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			send_ldap_result( op, rs );
@@ -495,35 +639,48 @@ meta_back_retry(
 	ldap_back_send_t	sendok )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = &mi->mi_targets[ candidate ];
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc = LDAP_UNAVAILABLE,
-				binding = LDAP_BACK_CONN_BINDING( msc );
+				binding;
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 
+	assert( !META_BACK_CONN_CREATING( msc ) );
+	binding = LDAP_BACK_CONN_BINDING( msc );
+	LDAP_BACK_CONN_BINDING_CLEAR( msc );
+
 	assert( mc->mc_refcnt > 0 );
 	if ( mc->mc_refcnt == 1 ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
+		if ( StatslogTest( LDAP_DEBUG_ANY ) ) {
+			char	buf[ SLAP_TEXT_BUFLEN ];
 
-		snprintf( buf, sizeof( buf ),
-			"retrying URI=\"%s\" DN=\"%s\"",
-			mt->mt_uri,
-			BER_BVISNULL( &msc->msc_bound_ndn ) ?
-				"" : msc->msc_bound_ndn.bv_val );
-		Debug( LDAP_DEBUG_ANY,
-			"%s meta_back_retry[%d]: %s.\n",
-			op->o_log_prefix, candidate, buf );
+			/* this lock is required; however,
+			 * it's invoked only when logging is on */
+			ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
+			snprintf( buf, sizeof( buf ),
+				"retrying URI=\"%s\" DN=\"%s\"",
+				mt->mt_uri,
+				BER_BVISNULL( &msc->msc_bound_ndn ) ?
+					"" : msc->msc_bound_ndn.bv_val );
+			ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
 
-		meta_clear_one_candidate( msc );
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_retry[%d]: %s.\n",
+				op->o_log_prefix, candidate, buf );
+		}
+
+		meta_clear_one_candidate( op, mc, candidate );
 		LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
 
 		( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
 
 		/* mc here must be the regular mc, reset and ready for init */
-		rc = meta_back_init_one_conn( op, rs, mt, mc, candidate,
-			LDAP_BACK_CONN_ISPRIV( mc ), sendok );
+		rc = meta_back_init_one_conn( op, rs, mc, candidate,
+			LDAP_BACK_CONN_ISPRIV( mc ), sendok, 0 );
+
+		/* restore the "binding" flag, in case */
 		if ( binding ) {
 			LDAP_BACK_CONN_BINDING_SET( msc );
 		}
@@ -531,23 +688,95 @@ meta_back_retry(
 		if ( rc == LDAP_SUCCESS ) {
 			rc = meta_back_single_dobind( op, rs, mcp, candidate,
 				sendok, mt->mt_nretries, 0 );
+
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_retry[%d]: "
+				"meta_back_single_dobind=%d\n",
+				op->o_log_prefix, candidate, rc );
+			if ( rc == LDAP_SUCCESS ) {
+				if ( !BER_BVISNULL( &msc->msc_bound_ndn ) &&
+					!BER_BVISEMPTY( &msc->msc_bound_ndn ) )
+				{
+					LDAP_BACK_CONN_ISBOUND_SET( msc );
+
+				} else {
+					LDAP_BACK_CONN_ISANON_SET( msc );
+				}
+
+				/* when bound, dispose of the "binding" flag */
+				if ( binding ) {
+					LDAP_BACK_CONN_BINDING_CLEAR( msc );
+				}
+			}
         	}
+
+		/* don't send twice */
+		sendok &= ~LDAP_BACK_SENDERR;
 	}
 
 	if ( rc != LDAP_SUCCESS ) {
+		SlapReply		*candidates = meta_back_candidates_get( op );
+
+		candidates[ candidate ].sr_err = rc;
+
 		if ( *mcp != NULL ) {
-			if ( binding ) {
-				LDAP_BACK_CONN_BINDING_CLEAR( msc );
+			if ( mc->mc_refcnt == 1 ) {
+				if ( binding ) {
+					LDAP_BACK_CONN_BINDING_CLEAR( msc );
+				}
+				(void)meta_clear_one_candidate( op, mc, candidate );
 			}
-			meta_back_release_conn_lock( op, mc, 1, 0 );
-			*mcp = NULL;
+
+			LDAP_BACK_CONN_TAINTED_SET( mc );
+			/* only release if mandatory; otherwise
+			 * let the caller do what's best before
+			 * releasing */
+			if ( META_BACK_ONERR_STOP( mi ) ) {
+				meta_back_release_conn_lock( op, mc, 0 );
+				*mcp = NULL;
+
+			} else {
+#if META_BACK_PRINT_CONNTREE > 0
+				meta_back_print_conntree( mi, ">>> meta_back_retry" );
+#endif /* META_BACK_PRINT_CONNTREE */
+
+				/* FIXME: could be done better, reworking meta_back_release_conn_lock() */
+				if ( LDAP_BACK_PCONN_ISPRIV( mc ) ) {
+					if ( mc->mc_q.tqe_prev != NULL ) {
+						assert( LDAP_BACK_CONN_CACHED( mc ) );
+						assert( mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num > 0 );
+						LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
+							mc, mc_q );
+						mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num--;
+						mc->mc_q.tqe_prev = NULL;
+						mc->mc_q.tqe_next = NULL;
+
+					} else {
+						assert( !LDAP_BACK_CONN_CACHED( mc ) );
+					}
+
+				} else {
+					/* FIXME: check if in tree, for consistency? */
+					(void)avl_delete( &mi->mi_conninfo.lai_tree,
+						( caddr_t )mc, meta_back_conndnmc_cmp );
+				}
+				LDAP_BACK_CONN_CACHED_CLEAR( mc );
+
+#if META_BACK_PRINT_CONNTREE > 0
+				meta_back_print_conntree( mi, "<<< meta_back_retry" );
+#endif /* META_BACK_PRINT_CONNTREE */
+			}
 		}
 
-		if ( sendok ) {
-			rs->sr_err = LDAP_UNAVAILABLE;
+		if ( sendok & LDAP_BACK_SENDERR ) {
+			rs->sr_err = rc;
 			rs->sr_text = NULL;
 			send_ldap_result( op, rs );
 		}
+	}
+
+	if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+		meta_back_quarantine( op, rs, candidate );
 	}
 
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
@@ -644,9 +873,7 @@ meta_back_get_candidate(
 			 * and a default target is defined, and it is
 			 * a candidate, try using it (FIXME: YMMV) */
 			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
-				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ].mt_nsuffix,
-						mi->mi_targets[ mi->mi_defaulttarget ].mt_scope,
-						mi->mi_targets[ mi->mi_defaulttarget ].mt_subtree_exclude,
+				&& meta_back_is_candidate( mi->mi_targets[ mi->mi_defaulttarget ],
 						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
 			{
 				candidate = mi->mi_defaulttarget;
@@ -716,9 +943,11 @@ meta_back_candidates_get( Operation *op )
 	} else if ( mc->mc_ntargets < mi->mi_ntargets ) {
 		/* NOTE: in the future, may want to allow back-config
 		 * to add/remove targets from back-meta... */
-		mc->mc_ntargets = mi->mi_ntargets;
 		mc->mc_candidates = ch_realloc( mc->mc_candidates,
-				sizeof( SlapReply ) * mc->mc_ntargets );
+				sizeof( SlapReply ) * mi->mi_ntargets );
+		memset( &mc->mc_candidates[ mc->mc_ntargets ], 0,
+			sizeof( SlapReply ) * ( mi->mi_ntargets - mc->mc_ntargets ) );
+		mc->mc_ntargets = mi->mi_ntargets;
 	}
 
 	return mc->mc_candidates;
@@ -779,18 +1008,18 @@ meta_back_getconn(
 		META_DNTYPE_ENTRY,
 		META_DNTYPE_PARENT,
 		META_DNTYPE_NEWPARENT
-			} dn_type = META_DNTYPE_ENTRY;
+	}		dn_type = META_DNTYPE_ENTRY;
 	struct berval	ndn = op->o_req_ndn,
 			pndn;
 
 	SlapReply	*candidates = meta_back_candidates_get( op );
 
 	/* Internal searches are privileged and shared. So is root. */
-	/* FIXME: there seem to be concurrency issues */
-	if ( op->o_do_not_cache || be_isroot( op ) ) {
+	/* FIXME: there seems to be concurrency issues */
+	if ( META_BACK_PROXYAUTHZ_ALWAYS( mi ) || op->o_do_not_cache || be_isroot( op ) ) {
 		mc_curr.mc_local_ndn = op->o_bd->be_rootndn;
 		LDAP_BACK_CONN_ISPRIV_SET( &mc_curr );
-		mc_curr.mc_conn = LDAP_BACK_PCONN_SET( op );
+		LDAP_BACK_PCONN_ROOTDN_SET( &mc_curr, op );
 
 	} else {
 		mc_curr.mc_local_ndn = op->o_ndn;
@@ -800,37 +1029,110 @@ meta_back_getconn(
 			mc_curr.mc_conn = op->o_conn;
 	
 		} else {
-			mc_curr.mc_conn = LDAP_BACK_PCONN_SET( op );
+			LDAP_BACK_CONN_ISANON_SET( &mc_curr );
+			LDAP_BACK_PCONN_ANON_SET( &mc_curr, op );
 		}
 	}
 
 	/* Explicit Bind requests always get their own conn */
 	if ( !( sendok & LDAP_BACK_BINDING ) ) {
 		/* Searches for a metaconn in the avl tree */
-retry_lock:
+retry_lock:;
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-		mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
-			(caddr_t)&mc_curr, meta_back_conndn_cmp );
-		if ( mc ) {
-			if ( ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
-				|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout ) )
+		if ( LDAP_BACK_PCONN_ISPRIV( &mc_curr ) ) {
+			/* lookup a conn that's not binding */
+			LDAP_TAILQ_FOREACH( mc,
+				&mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( &mc_curr ) ].mic_priv,
+				mc_q )
 			{
-				/* don't let anyone else use this expired connection */
-				(void)avl_delete( &mi->mi_conninfo.lai_tree,
-					(caddr_t)mc, meta_back_conndnmc_cmp );
-
-				Debug( LDAP_DEBUG_TRACE, "%s meta_back_getconn: mc=%p conn=%ld expired.\n",
-					op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+				if ( !LDAP_BACK_CONN_BINDING( mc ) && mc->mc_refcnt == 0 ) {
+					break;
+				}
 			}
 
-			/* Don't reuse connections while they're still binding */
+			if ( mc != NULL ) {
+				if ( mc != LDAP_TAILQ_LAST( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
+					metaconn_t, mc_q ) )
+				{
+					LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
+						mc, mc_q );
+					mc->mc_q.tqe_prev = NULL;
+					mc->mc_q.tqe_next = NULL;
+					LDAP_TAILQ_INSERT_TAIL( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
+						mc, mc_q );
+				}
+
+			} else if ( !LDAP_BACK_USE_TEMPORARIES( mi )
+				&& mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( &mc_curr ) ].mic_num == mi->mi_conn_priv_max )
+			{
+				mc = LDAP_TAILQ_FIRST( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( &mc_curr ) ].mic_priv );
+			}
+			
+
+		} else {
+			mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
+				(caddr_t)&mc_curr, meta_back_conndn_cmp );
+		}
+
+		if ( mc ) {
+			/* catch taint errors */
+			assert( !LDAP_BACK_CONN_TAINTED( mc ) );
+
+			/* Don't reuse connections while they're still binding
+			 * NOTE: only makes sense for binds */
 			if ( LDAP_BACK_CONN_BINDING( mc ) ) {
-				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-				ldap_pvt_thread_yield();
-				goto retry_lock;
-			}
+				if ( !LDAP_BACK_USE_TEMPORARIES( mi ) ) {
+					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
-			mc->mc_refcnt++;
+					ldap_pvt_thread_yield();
+					goto retry_lock;
+				}
+
+				/* release conn, and create a temporary */
+				mc = NULL;
+
+			} else {
+				if ( ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
+					|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout ) )
+				{
+#if META_BACK_PRINT_CONNTREE > 0
+					meta_back_print_conntree( mi,
+						">>> meta_back_getconn(expired)" );
+#endif /* META_BACK_PRINT_CONNTREE */
+
+					/* don't let anyone else use this expired connection */
+					if ( LDAP_BACK_PCONN_ISPRIV( mc ) ) {
+						if ( mc->mc_q.tqe_prev != NULL ) {
+							assert( LDAP_BACK_CONN_CACHED( mc ) );
+							assert( mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num > 0 );
+							LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
+								mc, mc_q );
+							mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num--;
+							mc->mc_q.tqe_prev = NULL;
+							mc->mc_q.tqe_next = NULL;
+
+						} else {
+							assert( !LDAP_BACK_CONN_CACHED( mc ) );
+						}
+
+					} else {
+						(void)avl_delete( &mi->mi_conninfo.lai_tree,
+							(caddr_t)mc, meta_back_conndnmc_cmp );
+					}
+
+#if META_BACK_PRINT_CONNTREE > 0
+					meta_back_print_conntree( mi,
+						"<<< meta_back_getconn(expired)" );
+#endif /* META_BACK_PRINT_CONNTREE */
+					LDAP_BACK_CONN_TAINTED_SET( mc );
+					LDAP_BACK_CONN_CACHED_CLEAR( mc );
+
+					Debug( LDAP_DEBUG_TRACE, "%s meta_back_getconn: mc=%p conn=%ld expired (tainted).\n",
+						op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc ) );
+				}
+
+				mc->mc_refcnt++;
+			}
 		}
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 	}
@@ -859,12 +1161,12 @@ retry_lock:
 		}
 		break;
 
+	case LDAP_REQ_COMPARE:
 	case LDAP_REQ_DELETE:
 	case LDAP_REQ_MODIFY:
 		/* just a unique candidate */
 		break;
 
-	case LDAP_REQ_COMPARE:
 	case LDAP_REQ_SEARCH:
 		/* allow multiple candidates for the searchBase */
 		op_type = META_OP_ALLOW_MULTIPLE;
@@ -882,6 +1184,7 @@ retry_lock:
 
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( mc == NULL ) {
+			assert( new_conn == 0 );
 			mc = metaconn_alloc( op );
 			mc->mc_conn = mc_curr.mc_conn;
 			ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
@@ -889,20 +1192,28 @@ retry_lock:
 			if ( sendok & LDAP_BACK_BINDING ) {
 				LDAP_BACK_CONN_BINDING_SET( mc );
 			}
+			if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
+				LDAP_BACK_CONN_ISPRIV_SET( mc );
+
+			} else if ( LDAP_BACK_CONN_ISANON( &mc_curr ) ) {
+				LDAP_BACK_CONN_ISANON_SET( mc );
+			}
+
+		} else if ( 0 ) {
+			/* TODO: if any of the connections is binding,
+			 * release mc and create a new one */
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			metatarget_t		*mt = &mi->mi_targets[ i ];
-
 			/*
 			 * The target is activated; if needed, it is
 			 * also init'd
 			 */
 			candidates[ i ].sr_err = meta_back_init_one_conn( op,
-				rs, mt, mc, i,
-				LDAP_BACK_CONN_ISPRIV( &mc_curr ), sendok );
+				rs, mc, i, LDAP_BACK_CONN_ISPRIV( &mc_curr ),
+				LDAP_BACK_DONTSEND, !new_conn );
 			if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
-				candidates[ i ].sr_tag = META_CANDIDATE;
+				META_CANDIDATE_SET( &candidates[ i ] );
 				ncandidates++;
 	
 			} else {
@@ -912,7 +1223,7 @@ retry_lock:
 				 * be init'd, should the other ones
 				 * be tried?
 				 */
-				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+				META_CANDIDATE_RESET( &candidates[ i ] );
 				err = candidates[ i ].sr_err;
 				continue;
 			}
@@ -920,7 +1231,8 @@ retry_lock:
 
 		if ( ncandidates == 0 ) {
 			if ( new_conn ) {
-				meta_back_freeconn( op, mc );
+				mc->mc_refcnt = 0;
+				meta_back_conn_free( mc );
 
 			} else {
 				meta_back_release_conn( op, mc );
@@ -958,7 +1270,7 @@ retry_lock:
 		int			j;
 
 		for ( j = 0; j < mi->mi_ntargets; j++ ) {
-			candidates[ j ].sr_tag = META_NOT_CANDIDATE;
+			META_CANDIDATE_RESET( &candidates[ j ] );
 		}
 
 		/*
@@ -1020,26 +1332,43 @@ retry_lock2:;
 				mc = (metaconn_t *)avl_find( mi->mi_conninfo.lai_tree, 
 					(caddr_t)&mc_curr, meta_back_conndn_cmp );
 				if ( mc != NULL ) {
-					/* Don't reuse connections while they're still binding */
-					if ( LDAP_BACK_CONN_BINDING( mc ) ) {
-						ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-						ldap_pvt_thread_yield();
-						goto retry_lock2;
-					}
+					/* catch taint errors */
+					assert( !LDAP_BACK_CONN_TAINTED( mc ) );
 
-					mc->mc_refcnt++;
+					/* Don't reuse connections while they're still binding */
+					if ( META_BACK_CONN_CREATING( &mc->mc_conns[ i ] )
+						|| LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) )
+					{
+						if ( !LDAP_BACK_USE_TEMPORARIES( mi ) ) {
+							ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+							ldap_pvt_thread_yield();
+							goto retry_lock2;
+						}
+
+						mc = NULL;
+
+					} else {
+						mc->mc_refcnt++;
+					}
 				}
 				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 			}
 
 			/* Looks like we didn't get a bind. Open a new session... */
 			if ( mc == NULL ) {
+				assert( new_conn == 0 );
 				mc = metaconn_alloc( op );
 				mc->mc_conn = mc_curr.mc_conn;
 				ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
 				new_conn = 1;
 				if ( sendok & LDAP_BACK_BINDING ) {
 					LDAP_BACK_CONN_BINDING_SET( mc );
+				}
+				if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
+					LDAP_BACK_CONN_ISPRIV_SET( mc );
+
+				} else if ( LDAP_BACK_CONN_ISANON( &mc_curr ) ) {
+					LDAP_BACK_CONN_ISANON_SET( mc );
 				}
 			}
 		}
@@ -1049,7 +1378,7 @@ retry_lock2:;
 		 */
 		( void )meta_clear_unused_candidates( op, i );
 
-		mt = &mi->mi_targets[ i ];
+		mt = mi->mi_targets[ i ];
 		msc = &mc->mc_conns[ i ];
 
 		/*
@@ -1057,18 +1386,18 @@ retry_lock2:;
 		 * also init'd. In case of error, meta_back_init_one_conn
 		 * sends the appropriate result.
 		 */
-		err = meta_back_init_one_conn( op, rs, mt, mc, i,
-			LDAP_BACK_CONN_ISPRIV( &mc_curr ), sendok );
+		err = meta_back_init_one_conn( op, rs, mc, i,
+			LDAP_BACK_CONN_ISPRIV( &mc_curr ), sendok, !new_conn );
 		if ( err != LDAP_SUCCESS ) {
 			/*
 			 * FIXME: in case one target cannot
 			 * be init'd, should the other ones
 			 * be tried?
 			 */
-			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
+			META_CANDIDATE_RESET( &candidates[ i ] );
  			if ( new_conn ) {
-				(void)meta_clear_one_candidate( msc );
-				meta_back_freeconn( op, mc );
+				mc->mc_refcnt = 0;
+				meta_back_conn_free( mc );
 
 			} else {
 				meta_back_release_conn( op, mc );
@@ -1077,7 +1406,7 @@ retry_lock2:;
 		}
 
 		candidates[ i ].sr_err = LDAP_SUCCESS;
-		candidates[ i ].sr_tag = META_CANDIDATE;
+		META_CANDIDATE_SET( &candidates[ i ] );
 		ncandidates++;
 
 		if ( candidate ) {
@@ -1091,42 +1420,51 @@ retry_lock2:;
 
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( mc == NULL ) {
+			assert( new_conn == 0 );
 			mc = metaconn_alloc( op );
 			mc->mc_conn = mc_curr.mc_conn;
 			ber_dupbv( &mc->mc_local_ndn, &mc_curr.mc_local_ndn );
 			new_conn = 1;
-			if ( sendok & LDAP_BACK_BINDING ) {
-				LDAP_BACK_CONN_BINDING_SET( mc );
+			if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
+				LDAP_BACK_CONN_ISPRIV_SET( mc );
+
+			} else if ( LDAP_BACK_CONN_ISANON( &mc_curr ) ) {
+				LDAP_BACK_CONN_ISANON_SET( mc );
 			}
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			metatarget_t		*mt = &mi->mi_targets[ i ];
-			metasingleconn_t	*msc = &mc->mc_conns[ i ];
+			metatarget_t		*mt = mi->mi_targets[ i ];
+
+			META_CANDIDATE_RESET( &candidates[ i ] );
 
 			if ( i == cached 
-				|| meta_back_is_candidate( &mt->mt_nsuffix,
-						mt->mt_scope,
-						mt->mt_subtree_exclude,
-						&op->o_req_ndn,
-						LDAP_SCOPE_SUBTREE ) )
+				|| meta_back_is_candidate( mt, &op->o_req_ndn,
+					LDAP_SCOPE_SUBTREE ) )
 			{
 
 				/*
 				 * The target is activated; if needed, it is
 				 * also init'd
 				 */
-				int lerr = meta_back_init_one_conn( op, rs,
-						mt, mc, i,
-						LDAP_BACK_CONN_ISPRIV( &mc_curr ),
-						sendok );
+				int lerr = meta_back_init_one_conn( op, rs, mc, i,
+					LDAP_BACK_CONN_ISPRIV( &mc_curr ),
+					LDAP_BACK_DONTSEND, !new_conn );
 				if ( lerr == LDAP_SUCCESS ) {
-					candidates[ i ].sr_tag = META_CANDIDATE;
+					META_CANDIDATE_SET( &candidates[ i ] );
 					candidates[ i ].sr_err = LDAP_SUCCESS;
 					ncandidates++;
 
 					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d]\n",
 						op->o_log_prefix, i, 0 );
+
+				} else if ( lerr == LDAP_UNAVAILABLE && !META_BACK_ONERR_STOP( mi ) ) {
+					META_CANDIDATE_SET( &candidates[ i ] );
+					candidates[ i ].sr_err = LDAP_UNAVAILABLE;
+
+					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d] %s\n",
+						op->o_log_prefix, i,
+						mt->mt_isquarantined != LDAP_BACK_FQ_NO ? "quarantined" : "unavailable" );
 
 				} else {
 				
@@ -1136,36 +1474,61 @@ retry_lock2:;
 					 * be tried?
 					 */
 					if ( new_conn ) {
-						( void )meta_clear_one_candidate( msc );
+						( void )meta_clear_one_candidate( op, mc, i );
 					}
 					/* leave the target candidate, but record the error for later use */
 					candidates[ i ].sr_err = lerr;
 					err = lerr;
 
-					Debug( LDAP_DEBUG_ANY, "%s: meta_back_getconn[%d] failed: %d\n",
-						op->o_log_prefix, i, lerr );
+					if ( lerr == LDAP_UNAVAILABLE && mt->mt_isquarantined != LDAP_BACK_FQ_NO ) {
+						Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d] quarantined err=%d\n",
+							op->o_log_prefix, i, lerr );
 
+					} else {
+						Debug( LDAP_DEBUG_ANY, "%s: meta_back_getconn[%d] failed err=%d\n",
+							op->o_log_prefix, i, lerr );
+					}
+
+					if ( META_BACK_ONERR_STOP( mi ) ) {
+						if ( sendok & LDAP_BACK_SENDERR ) {
+							send_ldap_result( op, rs );
+							rs->sr_text = NULL;
+						}
+						if ( new_conn ) {
+							mc->mc_refcnt = 0;
+							meta_back_conn_free( mc );
+
+						} else {
+							meta_back_release_conn( op, mc );
+						}
+
+						return NULL;
+					}
+
+					rs->sr_text = NULL;
 					continue;
 				}
 
 			} else {
 				if ( new_conn ) {
-					( void )meta_clear_one_candidate( msc );
+					( void )meta_clear_one_candidate( op, mc, i );
 				}
-				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 			}
 		}
 
 		if ( ncandidates == 0 ) {
 			if ( new_conn ) {
-				meta_back_freeconn( op, mc );
+				mc->mc_refcnt = 0;
+				meta_back_conn_free( mc );
 
 			} else {
 				meta_back_release_conn( op, mc );
 			}
 
-			rs->sr_err = LDAP_NO_SUCH_OBJECT;
-			rs->sr_text = "Unable to select valid candidates";
+			if ( rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+				rs->sr_text = "Unable to select valid candidates";
+			}
 
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
@@ -1191,7 +1554,6 @@ done:;
 	}
 
 	if ( new_conn ) {
-		
 		if ( mi->mi_conn_ttl ) {
 			mc->mc_create_time = op->o_time;
 		}
@@ -1200,49 +1562,86 @@ done:;
 		 * Inserts the newly created metaconn in the avl tree
 		 */
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-		err = avl_insert( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
-			       	meta_back_conndn_cmp, meta_back_conndn_dup );
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi, ">>> meta_back_getconn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 
-#if PRINT_CONNTREE > 0
-		myprint( mi->mi_conninfo.lai_tree );
-#endif /* PRINT_CONNTREE */
-		
+		if ( LDAP_BACK_PCONN_ISPRIV( mc ) ) {
+			if ( mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num < mi->mi_conn_priv_max ) {
+				LDAP_TAILQ_INSERT_TAIL( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv, mc, mc_q );
+				mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num++;
+				LDAP_BACK_CONN_CACHED_SET( mc );
+
+			} else {
+				LDAP_BACK_CONN_TAINTED_SET( mc );
+			}
+			rs->sr_err = 0;
+
+		} else {
+			err = avl_insert( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
+			       	meta_back_conndn_cmp, meta_back_conndn_dup );
+			LDAP_BACK_CONN_CACHED_SET( mc );
+		}
+
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi, ">>> meta_back_getconn" );
+#endif /* META_BACK_PRINT_CONNTREE */
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
-		/*
-		 * Err could be -1 in case a duplicate metaconn is inserted
-		 *
-		 * FIXME: what if the same client issues more than one
-		 * asynchronous operations?
-		 */
-		if ( err != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
-				op->o_log_prefix, ncandidates,
-				LDAP_BACK_PCONN_ID( mc->mc_conn ) );
-		
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "Internal server error";
-			meta_back_freeconn( op, mc );
-			if ( sendok & LDAP_BACK_SENDERR ) {
-				send_ldap_result( op, rs );
-				rs->sr_text = NULL;
+		if ( !LDAP_BACK_PCONN_ISPRIV( mc ) ) {
+			/*
+			 * Err could be -1 in case a duplicate metaconn is inserted
+			 */
+			switch ( err ) {
+			case 0:
+				break;
+
+			case -1:
+				LDAP_BACK_CONN_CACHED_CLEAR( mc );
+				/* duplicate: free and try to get the newly created one */
+				if ( !( sendok & LDAP_BACK_BINDING ) && !LDAP_BACK_USE_TEMPORARIES( mi ) ) {
+					mc->mc_refcnt = 0;	
+					meta_back_conn_free( mc );
+	
+					new_conn = 0;
+					goto retry_lock;
+				}
+
+				LDAP_BACK_CONN_TAINTED_SET( mc );
+				break;
+
+			default:
+				LDAP_BACK_CONN_CACHED_CLEAR( mc );
+				Debug( LDAP_DEBUG_ANY,
+					"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
+					op->o_log_prefix, ncandidates,
+					LDAP_BACK_PCONN_ID( mc ) );
+	
+				mc->mc_refcnt = 0;	
+				meta_back_conn_free( mc );
+
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "proxy bind collision";
+				if ( sendok & LDAP_BACK_SENDERR ) {
+					send_ldap_result( op, rs );
+					rs->sr_text = NULL;
+				}
+				return NULL;
 			}
-			return NULL;
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
 			"%s meta_back_getconn: candidates=%d conn=%ld inserted\n",
 			op->o_log_prefix, ncandidates,
-			LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+			LDAP_BACK_PCONN_ID( mc ) );
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"%s meta_back_getconn: candidates=%d conn=%ld fetched\n",
 			op->o_log_prefix, ncandidates,
-			LDAP_BACK_PCONN_ID( mc->mc_conn ) );
+			LDAP_BACK_PCONN_ID( mc ) );
 	}
-	
+
 	return mc;
 }
 
@@ -1250,7 +1649,6 @@ void
 meta_back_release_conn_lock(
        	Operation 		*op,
 	metaconn_t		*mc,
-	int			dofree,
 	int			dolock )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
@@ -1262,21 +1660,140 @@ meta_back_release_conn_lock(
 	}
 	assert( mc->mc_refcnt > 0 );
 	mc->mc_refcnt--;
-	LDAP_BACK_CONN_BINDING_CLEAR( mc );
-	if ( dofree
-		|| ( mi->mi_conn_ttl != 0 && op->o_time > mc->mc_create_time + mi->mi_conn_ttl )
-		|| ( mi->mi_idle_timeout != 0 && op->o_time > mc->mc_time + mi->mi_idle_timeout ) )
-	{
-		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld expired.\n",
-			op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc->mc_conn ) );
-		(void)avl_delete( &mi->mi_conninfo.lai_tree,
-			( caddr_t )mc, meta_back_conndnmc_cmp );
+	/* NOTE: the connection is removed if either it is tainted
+	 * or if it is shared and no one else is using it.  This needs
+	 * to occur because for intrinsic reasons cached connections
+	 * that are not privileged would live forever and pollute
+	 * the connection space (and eat up resources).  Maybe this
+	 * should be configurable... */
+	if ( LDAP_BACK_CONN_TAINTED( mc ) ) {
+		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld tainted.\n",
+			op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc ) );
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi, ">>> meta_back_release_conn" );
+#endif /* META_BACK_PRINT_CONNTREE */
+
+		if ( LDAP_BACK_PCONN_ISPRIV( mc ) ) {
+			if ( mc->mc_q.tqe_prev != NULL ) {
+				assert( LDAP_BACK_CONN_CACHED( mc ) );
+				assert( mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num > 0 );
+				mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num--;
+				LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv, mc, mc_q );
+
+			} else {
+				assert( !LDAP_BACK_CONN_CACHED( mc ) );
+			}
+			mc->mc_q.tqe_prev = NULL;
+			mc->mc_q.tqe_next = NULL;
+
+		} else {
+			metaconn_t	*tmpmc;
+
+			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree,
+				( caddr_t )mc, meta_back_conndnmc_cmp );
+
+			if ( tmpmc == NULL ) {
+				Debug( LDAP_DEBUG_TRACE, "%s: meta_back_release_conn: unable to find mc=%p\n",
+					op->o_log_prefix, (void *)mc, 0 );
+			} else {
+				assert( tmpmc == mc );
+			}
+		}
+
+		LDAP_BACK_CONN_CACHED_CLEAR( mc );
+
+#if META_BACK_PRINT_CONNTREE > 0
+		meta_back_print_conntree( mi, "<<< meta_back_release_conn" );
+#endif /* META_BACK_PRINT_CONNTREE */
+
 		if ( mc->mc_refcnt == 0 ) {
-			meta_clear_candidates( op, mc );
 			meta_back_conn_free( mc );
+			mc = NULL;
 		}
 	}
+
+	if ( mc != NULL && LDAP_BACK_CONN_BINDING( mc ) ) {
+		LDAP_BACK_CONN_BINDING_CLEAR( mc );
+	}
+
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 	}
 }
+
+void
+meta_back_quarantine(
+	Operation	*op,
+	SlapReply	*rs,
+	int		candidate )
+{
+	metainfo_t		*mi = (metainfo_t *)op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
+
+	slap_retry_info_t	*ri = &mt->mt_quarantine;
+
+	ldap_pvt_thread_mutex_lock( &mt->mt_quarantine_mutex );
+
+	if ( rs->sr_err == LDAP_UNAVAILABLE ) {
+		time_t	new_last = slap_get_time();
+
+		switch ( mt->mt_isquarantined ) {
+		case LDAP_BACK_FQ_NO:
+			if ( ri->ri_last == new_last ) {
+				goto done;
+			}
+
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_quarantine[%d]: enter.\n",
+				op->o_log_prefix, candidate, 0 );
+
+			ri->ri_idx = 0;
+			ri->ri_count = 0;
+			break;
+
+		case LDAP_BACK_FQ_RETRYING:
+			if ( StatslogTest( LDAP_DEBUG_ANY ) ) {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				snprintf( buf, sizeof( buf ),
+					"meta_back_quarantine[%d]: block #%d try #%d failed",
+					candidate, ri->ri_idx, ri->ri_count );
+				Debug( LDAP_DEBUG_ANY, "%s %s.\n",
+					op->o_log_prefix, buf, 0 );
+			}
+
+			++ri->ri_count;
+			if ( ri->ri_num[ ri->ri_idx ] != SLAP_RETRYNUM_FOREVER
+				&& ri->ri_count == ri->ri_num[ ri->ri_idx ] )
+			{
+				ri->ri_count = 0;
+				++ri->ri_idx;
+			}
+			break;
+
+		default:
+			break;
+		}
+
+		mt->mt_isquarantined = LDAP_BACK_FQ_YES;
+		ri->ri_last = new_last;
+
+	} else if ( mt->mt_isquarantined == LDAP_BACK_FQ_RETRYING ) {
+		Debug( LDAP_DEBUG_ANY,
+			"%s meta_back_quarantine[%d]: exit.\n",
+			op->o_log_prefix, candidate, 0 );
+
+		if ( mi->mi_quarantine_f ) {
+			(void)mi->mi_quarantine_f( mi, candidate,
+				mi->mi_quarantine_p );
+		}
+
+		ri->ri_count = 0;
+		ri->ri_idx = 0;
+		mt->mt_isquarantined = LDAP_BACK_FQ_NO;
+	}
+
+done:;
+	ldap_pvt_thread_mutex_unlock( &mt->mt_quarantine_mutex );
+}
+

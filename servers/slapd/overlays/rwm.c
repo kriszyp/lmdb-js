@@ -121,6 +121,7 @@ rwm_callback_get( Operation *op, SlapReply *rs )
 	return roc;
 }
 
+
 static int
 rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie,
 	rwm_op_state *ros )
@@ -1642,7 +1643,6 @@ rwm_db_init(
 	BackendDB	*be )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
-	struct ldapmapping	*mapping = NULL;
 	struct ldaprwmap	*rwmap;
 #ifdef ENABLE_REWRITE
 	char			*rargv[ 3 ];
@@ -1670,13 +1670,6 @@ rwm_db_init(
 	rargv[ 2 ] = NULL;
 	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
 #endif /* ENABLE_REWRITE */
-
-	if ( rwm_map_init( &rwmap->rwm_oc, &mapping ) != LDAP_SUCCESS ||
-			rwm_map_init( &rwmap->rwm_at, &mapping ) != LDAP_SUCCESS )
-	{
-		rc = 1;
-		goto error_return;
-	}
 
 error_return:;
 	on->on_bi.bi_private = (void *)rwmap;

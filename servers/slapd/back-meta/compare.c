@@ -34,296 +34,122 @@
 int
 meta_back_compare( Operation *op, SlapReply *rs )
 {
-	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metaconn_t		*mc = NULL;
-	char			*match = NULL,
-				*err = NULL;
-	struct berval		mmatch = BER_BVNULL;
-	int			ncandidates = 0,
-				last = 0,
-				i,
-				count = 0,
-				rc,
-       				cres = LDAP_SUCCESS,
-				rres = LDAP_SUCCESS,
-				*msgid;
-	dncookie		dc;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t	*mt;
+	metaconn_t	*mc;
+	int		rc = 0;
+	int		candidate = -1;
+	struct berval	mdn = BER_BVNULL;
+	dncookie	dc;
+	struct berval	mapped_attr = op->orc_ava->aa_desc->ad_cname;
+	struct berval	mapped_value = op->orc_ava->aa_value;
+	int		msgid;
+	int		do_retry = 1;
+	LDAPControl	**ctrls = NULL;
 
-	SlapReply		*candidates = meta_back_candidates_get( op );
-
-	mc = meta_back_getconn( op, rs, NULL, LDAP_BACK_SENDERR );
+	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
-	
-	msgid = ch_calloc( sizeof( int ), mi->mi_ntargets );
-	if ( msgid == NULL ) {
-		send_ldap_error( op, rs, LDAP_OTHER, NULL );
-		rc = LDAP_OTHER;
-		goto done;
-	}
+
+	assert( mc->mc_conns[ candidate ].msc_ld != NULL );
 
 	/*
-	 * start an asynchronous compare for each candidate target
+	 * Rewrite the modify dn, if needed
 	 */
+	mt = mi->mi_targets[ candidate ];
+	dc.target = mt;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "compareDN";
 
-	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		struct berval		mdn = BER_BVNULL;
-		struct berval		mapped_attr = op->orc_ava->aa_desc->ad_cname;
-		struct berval		mapped_value = op->orc_ava->aa_value;
+	switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+	case LDAP_UNWILLING_TO_PERFORM:
+		rc = 1;
+		goto cleanup;
 
-		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
-			msgid[ i ] = -1;
-			continue;
-		}
-
-		/*
-		 * Rewrite the compare dn, if needed
-		 */
-		dc.target = &mi->mi_targets[ i ];
-
-		switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
-		case LDAP_UNWILLING_TO_PERFORM:
-			rc = 1;
-			goto finish;
-
-		default:
-			break;
-		}
-
-		/*
-		 * if attr is objectClass, try to remap the value
-		 */
-		if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-			ldap_back_map( &mi->mi_targets[ i ].mt_rwmap.rwm_oc,
-					&op->orc_ava->aa_value,
-					&mapped_value, BACKLDAP_MAP );
-
-			if ( BER_BVISNULL( &mapped_value ) || mapped_value.bv_val[0] == '\0' ) {
-				continue;
-			}
-		/*
-		 * else try to remap the attribute
-		 */
-		} else {
-			ldap_back_map( &mi->mi_targets[ i ].mt_rwmap.rwm_at,
-				&op->orc_ava->aa_desc->ad_cname,
-				&mapped_attr, BACKLDAP_MAP );
-			if ( BER_BVISNULL( &mapped_attr ) || mapped_attr.bv_val[0] == '\0' ) {
-				continue;
-			}
-
-			if ( op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
-			{
-				dc.ctx = "compareAttrDN";
-
-				switch ( ldap_back_dn_massage( &dc, &op->orc_ava->aa_value, &mapped_value ) )
-				{
-				case LDAP_UNWILLING_TO_PERFORM:
-					rc = 1;
-					goto finish;
-
-				default:
-					break;
-				}
-			}
-		}
-		
-		/*
-		 * the compare op is spawned across the targets and the first
-		 * that returns determines the result; a constraint on unicity
-		 * of the result ought to be enforced
-		 */
-		 rc = ldap_compare_ext( mc->mc_conns[ i ].msc_ld, mdn.bv_val,
-				mapped_attr.bv_val, &mapped_value,
-				op->o_ctrls, NULL, &msgid[ i ] );
-
-		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
-			free( mdn.bv_val );
-			BER_BVZERO( &mdn );
-		}
-
-		if ( mapped_attr.bv_val != op->orc_ava->aa_desc->ad_cname.bv_val ) {
-			free( mapped_attr.bv_val );
-			BER_BVZERO( &mapped_attr );
-		}
-
-		if ( mapped_value.bv_val != op->orc_ava->aa_value.bv_val ) {
-			free( mapped_value.bv_val );
-			BER_BVZERO( &mapped_value );
-		}
-
-		if ( rc != LDAP_SUCCESS ) {
-			/* FIXME: what should we do with the error? */
-			continue;
-		}
-
-		++ncandidates;
+	default:
+		break;
 	}
 
 	/*
-	 * wait for replies
+	 * if attr is objectClass, try to remap the value
 	 */
-	for ( rc = 0, count = 0; ncandidates > 0; ) {
+	if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass ) {
+		ldap_back_map( &mt->mt_rwmap.rwm_oc,
+				&op->orc_ava->aa_value,
+				&mapped_value, BACKLDAP_MAP );
 
-		/*
-		 * FIXME: should we check for abandon?
-		 */
-		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			metasingleconn_t	*msc = &mc->mc_conns[ i ];
-			int			lrc;
-			LDAPMessage		*res = NULL;
-			struct timeval		tv;
+		if ( BER_BVISNULL( &mapped_value ) || BER_BVISEMPTY( &mapped_value ) ) {
+			goto cleanup;
+		}
 
-			LDAP_BACK_TV_SET( &tv );
+	/*
+	 * else try to remap the attribute
+	 */
+	} else {
+		ldap_back_map( &mt->mt_rwmap.rwm_at,
+			&op->orc_ava->aa_desc->ad_cname,
+			&mapped_attr, BACKLDAP_MAP );
+		if ( BER_BVISNULL( &mapped_attr ) || BER_BVISEMPTY( &mapped_attr ) ) {
+			goto cleanup;
+		}
 
-			if ( msgid[ i ] == -1 ) {
-				continue;
-			}
+		if ( op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
+		{
+			dc.ctx = "compareAttrDN";
 
-			lrc = ldap_result( msc->msc_ld, msgid[ i ],
-					LDAP_MSG_ALL, &tv, &res );
+			switch ( ldap_back_dn_massage( &dc, &op->orc_ava->aa_value, &mapped_value ) )
+			{
+			case LDAP_UNWILLING_TO_PERFORM:
+				rc = 1;
+				goto cleanup;
 
-			if ( lrc == 0 ) {
-				assert( res == NULL );
-				continue;
-
-			} else if ( lrc == -1 ) {
-				/* we do not retry in this case;
-				 * only for unique operations... */
-				ldap_get_option( msc->msc_ld,
-					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
-				rres = slap_map_api2result( rs );
-				rres = rc;
-				rc = -1;
-				goto finish;
-
-			} else if ( lrc == LDAP_RES_COMPARE ) {
-				if ( count > 0 ) {
-					rres = LDAP_OTHER;
-					rc = -1;
-					goto finish;
-				}
-
-				rc = ldap_parse_result( msc->msc_ld, res,
-						&rs->sr_err,
-						NULL, NULL, NULL, NULL, 1 );
-				if ( rc != LDAP_SUCCESS ) {
-					rres = rc;
-					rc = -1;
-					goto finish;
-				}
-				
-				switch ( rs->sr_err ) {
-				case LDAP_COMPARE_TRUE:
-				case LDAP_COMPARE_FALSE:
-
-					/*
-					 * true or false, got it;
-					 * sending to cache ...
-					 */
-					if ( mi->mi_cache.ttl != META_DNCACHE_DISABLED ) {
-						( void )meta_dncache_update_entry( &mi->mi_cache, &op->o_req_ndn, i );
-					}
-
-					count++;
-					rc = 0;
-					break;
-
-				default:
-					rres = slap_map_api2result( rs );
-
-					if ( err != NULL ) {
-						free( err );
-					}
-					ldap_get_option( msc->msc_ld,
-						LDAP_OPT_ERROR_STRING, &err );
-
-					if ( match != NULL ) {
-						free( match );
-					}
-					ldap_get_option( msc->msc_ld,
-						LDAP_OPT_MATCHED_DN, &match );
-					
-					last = i;
-					break;
-				}
-				msgid[ i ] = -1;
-				--ncandidates;
-
-			} else {
-				msgid[ i ] = -1;
-				--ncandidates;
-				if ( res ) {
-					ldap_msgfree( res );
-				}
+			default:
 				break;
 			}
 		}
 	}
 
-finish:;
+retry:;
+	ctrls = op->o_ctrls;
+	rc = ldap_back_proxy_authz_ctrl( &mc->mc_conns[ candidate ].msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto cleanup;
+	}
 
-	/*
-	 * Rewrite the matched portion of the search base, if required
-	 * 
-	 * FIXME: only the last one gets caught!
-	 */
-	if ( count == 1 ) {
-		if ( match != NULL ) {
-			free( match );
-			match = NULL;
-		}
-		
-		/*
-		 * the result of the compare is assigned to the res code
-		 * that will be returned
-		 */
-		rres = cres;
-		
-		/*
-		 * At least one compare failed with matched portion,
-		 * and none was successful
-		 */
-	} else if ( match != NULL && match[ 0 ] != '\0' ) {
-		struct berval matched, pmatched;
+	rs->sr_err = ldap_compare_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			mapped_attr.bv_val, &mapped_value,
+			ctrls, NULL, &msgid );
 
-		ber_str2bv( match, 0, 0, &matched );
-
-		dc.ctx = "matchedDN";
-		ldap_back_dn_massage( &dc, &matched, &mmatch );
-		if ( dnPretty( NULL, &mmatch, &pmatched, NULL ) == LDAP_SUCCESS ) {
-			if ( mmatch.bv_val != match ) {
-				free( mmatch.bv_val );
-			}
-			mmatch = pmatched;
+	rs->sr_err = meta_back_op_result( mc, op, rs, candidate, msgid,
+		mt->mt_timeout[ SLAP_OP_COMPARE ], LDAP_BACK_SENDRESULT );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( meta_back_retry( op, rs, &mc, candidate, LDAP_BACK_SENDERR ) ) {
+			/* if the identity changed, there might be need to re-authz */
+			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+			goto retry;
 		}
 	}
 
-	if ( rres != LDAP_SUCCESS ) {
-		rs->sr_err = rres;
-	}
-	rs->sr_matched = mmatch.bv_val;
-	send_ldap_result( op, rs );
-	rs->sr_matched = NULL;
+cleanup:;
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 
-	if ( match != NULL ) {
-		if ( mmatch.bv_val != match ) {
-			free( mmatch.bv_val );
-		}
-		free( match );
+	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
+		free( mdn.bv_val );
 	}
 
-	if ( msgid ) {
-		free( msgid );
+	if ( op->orc_ava->aa_value.bv_val != mapped_value.bv_val ) {
+		free( mapped_value.bv_val );
 	}
 
-done:;
-	meta_back_release_conn( op, mc );
+	if ( mc ) {
+		meta_back_release_conn( op, mc );
+	}
 
-	return rc;
+	return rs->sr_err;
 }
 

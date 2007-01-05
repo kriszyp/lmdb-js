@@ -76,6 +76,7 @@ meta_back_db_init(
 	Backend		*be )
 {
 	metainfo_t	*mi;
+	int		i;
 
 	mi = ch_calloc( 1, sizeof( metainfo_t ) );
 	if ( mi == NULL ) {
@@ -90,12 +91,20 @@ meta_back_db_init(
 	mi->mi_bind_timeout.tv_sec = 0;
 	mi->mi_bind_timeout.tv_usec = META_BIND_TIMEOUT;
 
+	mi->mi_rebind_f = meta_back_default_rebind;
+
 	ldap_pvt_thread_mutex_init( &mi->mi_conninfo.lai_mutex );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache.mutex );
 
 	/* safe default */
 	mi->mi_nretries = META_RETRY_DEFAULT;
 	mi->mi_version = LDAP_VERSION3;
+
+	for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+		mi->mi_conn_priv[ i ].mic_num = 0;
+		LDAP_TAILQ_INIT( &mi->mi_conn_priv[ i ].mic_priv );
+	}
+	mi->mi_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
 	
 	be->be_private = mi;
 
@@ -108,46 +117,73 @@ meta_back_db_open(
 {
 	metainfo_t	*mi = (metainfo_t *)be->be_private;
 
-	int		i, rc;
+	int		i,
+			not_always = 0,
+			rc;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		if ( mi->mi_targets[ i ].mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER )
-		{
-			mi->mi_targets[ i ].mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
-			rc = slap_discover_feature( mi->mi_targets[ i ].mt_uri,
-					mi->mi_targets[ i ].mt_version,
+		metatarget_t	*mt = mi->mi_targets[ i ];
+
+		if ( META_BACK_TGT_T_F_DISCOVER( mt ) ) {
+			rc = slap_discover_feature( mt->mt_uri, mt->mt_version,
 					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
 					LDAP_FEATURE_ABSOLUTE_FILTERS );
 			if ( rc == LDAP_COMPARE_TRUE ) {
-				mi->mi_targets[ i ].mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
+				mt->mt_flags |= LDAP_BACK_F_T_F;
 			}
 		}
+
+		if ( META_BACK_TGT_CANCEL_DISCOVER( mt ) ) {
+			rc = slap_discover_feature( mt->mt_uri, mt->mt_version,
+					slap_schema.si_ad_supportedExtension->ad_cname.bv_val,
+					LDAP_EXOP_CANCEL );
+			if ( rc == LDAP_COMPARE_TRUE ) {
+				mt->mt_flags |= LDAP_BACK_F_CANCEL_EXOP;
+			}
+		}
+
+		if ( not_always == 0 ) {
+			if ( !( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )
+				|| !( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+			{
+				not_always = 1;
+			}
+		}
+	}
+
+	if ( not_always == 0 ) {
+		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_ALWAYS;
 	}
 
 	return 0;
 }
 
+/*
+ * meta_back_conn_free()
+ *
+ * actually frees a connection; the reference count must be 0,
+ * and it must not (or no longer) be in the cache.
+ */
 void
 meta_back_conn_free( 
 	void 		*v_mc )
 {
 	metaconn_t		*mc = v_mc;
-	int			i, ntargets;
+	int			ntargets;
 
 	assert( mc != NULL );
 	assert( mc->mc_refcnt == 0 );
 
-	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
-		free( mc->mc_local_ndn.bv_val );
+	/* at least one must be present... */
+	ntargets = mc->mc_info->mi_ntargets;
+	assert( ntargets > 0 );
+
+	for ( ; ntargets--; ) {
+		(void)meta_clear_one_candidate( NULL, mc, ntargets );
 	}
 
-	assert( mc->mc_conns != NULL );
-
-	/* at least one must be present... */
-	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
-
-	for ( i = 0; i < ntargets; i++ ) {
-		(void)meta_clear_one_candidate( &mc->mc_conns[ i ] );
+	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
+		free( mc->mc_local_ndn.bv_val );
 	}
 
 	free( mc );
@@ -180,6 +216,7 @@ target_free(
 {
 	if ( mt->mt_uri ) {
 		free( mt->mt_uri );
+		ldap_pvt_thread_mutex_destroy( &mt->mt_uri_mutex );
 	}
 	if ( mt->mt_subtree_exclude ) {
 		ber_bvarray_free( mt->mt_subtree_exclude );
@@ -196,11 +233,26 @@ target_free(
 	if ( !BER_BVISNULL( &mt->mt_bindpw ) ) {
 		free( mt->mt_bindpw.bv_val );
 	}
-	if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
-		free( mt->mt_pseudorootdn.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_idassert_authcID ) ) {
+		ch_free( mt->mt_idassert_authcID.bv_val );
 	}
-	if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
-		free( mt->mt_pseudorootpw.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_idassert_authcDN ) ) {
+		ch_free( mt->mt_idassert_authcDN.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_passwd ) ) {
+		ch_free( mt->mt_idassert_passwd.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_authzID ) ) {
+		ch_free( mt->mt_idassert_authzID.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_sasl_mech ) ) {
+		ch_free( mt->mt_idassert_sasl_mech.bv_val );
+	}
+	if ( !BER_BVISNULL( &mt->mt_idassert_sasl_realm ) ) {
+		ch_free( mt->mt_idassert_sasl_realm.bv_val );
+	}
+	if ( mt->mt_idassert_authz != NULL ) {
+		ber_bvarray_free( mt->mt_idassert_authz );
 	}
 	if ( mt->mt_rwmap.rwm_rw ) {
 		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
@@ -209,6 +261,8 @@ target_free(
 	avl_free( mt->mt_rwmap.rwm_oc.map, mapping_free );
 	avl_free( mt->mt_rwmap.rwm_at.remap, mapping_dst_free );
 	avl_free( mt->mt_rwmap.rwm_at.map, mapping_free );
+
+	free( mt );
 }
 
 int
@@ -230,6 +284,14 @@ meta_back_db_destroy(
 		if ( mi->mi_conninfo.lai_tree ) {
 			avl_free( mi->mi_conninfo.lai_tree, meta_back_conn_free );
 		}
+		for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+			while ( !LDAP_TAILQ_EMPTY( &mi->mi_conn_priv[ i ].mic_priv ) ) {
+				metaconn_t	*mc = LDAP_TAILQ_FIRST( &mi->mi_conn_priv[ i ].mic_priv );
+
+				LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ i ].mic_priv, mc, mc_q );
+				meta_back_conn_free( mc );
+			}
+		}
 
 		/*
 		 * Destroy the per-target stuff (assuming there's at
@@ -237,7 +299,18 @@ meta_back_db_destroy(
 		 */
 		if ( mi->mi_targets != NULL ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				target_free( &mi->mi_targets[ i ] );
+				metatarget_t	*mt = mi->mi_targets[ i ];
+
+				if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+					if ( mt->mt_quarantine.ri_num != mi->mi_quarantine.ri_num )
+					{
+						slap_retry_info_destroy( &mt->mt_quarantine );
+					}
+
+					ldap_pvt_thread_mutex_destroy( &mt->mt_quarantine_mutex );
+				}
+
+				target_free( mt );
 			}
 
 			free( mi->mi_targets );
@@ -256,6 +329,10 @@ meta_back_db_destroy(
 
 		if ( mi->mi_candidates != NULL ) {
 			ber_memfree_x( mi->mi_candidates, NULL );
+		}
+
+		if ( META_BACK_QUARANTINE( mi ) ) {
+			slap_retry_info_destroy( &mi->mi_quarantine );
 		}
 	}
 
