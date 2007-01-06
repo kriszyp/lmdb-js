@@ -1876,7 +1876,10 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 
 	default:
 		/* NOTE: rootdn can always idassert */
-		if ( BER_BVISNULL( &ndn ) && li->li_idassert_authz == NULL ) {
+		if ( BER_BVISNULL( &ndn )
+			&& li->li_idassert_authz == NULL
+			&& !( li->li_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+		{
 			if ( li->li_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
 				rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
 				if ( sendok & LDAP_BACK_SENDERR ) {
