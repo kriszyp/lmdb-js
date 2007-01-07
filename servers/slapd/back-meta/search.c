@@ -229,6 +229,10 @@ meta_search_dobind_init(
 
 	assert( msc->msc_ld != NULL );
 
+	/* connect must be async */
+retry:;
+	ldap_set_option( msc->msc_ld, LDAP_OPT_CONNECT_ASYNC, LDAP_OPT_ON );
+
 	rc = ldap_sasl_bind( msc->msc_ld, binddn.bv_val, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 
@@ -249,13 +253,55 @@ meta_search_dobind_init(
 		META_BINDING_SET( &candidates[ candidate ] );
 		return META_SEARCH_BINDING;
 
+	case LDAP_X_CONNECTING:
+		/* must retry, same conn */
+		candidates[ candidate ].sr_msgid = META_MSGID_NEED_BIND;
+		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+		LDAP_BACK_CONN_BINDING_CLEAR( msc );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+		return META_SEARCH_NEED_BIND;
+
 	case LDAP_SERVER_DOWN:
 down:;
 		/* This is the worst thing that could happen:
 		 * the search will wait until the retry is over. */
-		if ( meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
-			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
-			return META_SEARCH_CANDIDATE;
+		if ( !META_IS_RETRYING( &candidates[ candidate ] ) ) {
+			META_RETRYING_SET( &candidates[ candidate ] );
+
+			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+
+			assert( mc->mc_refcnt > 0 );
+			if ( LogTest( LDAP_DEBUG_ANY ) ) {
+				char	buf[ SLAP_TEXT_BUFLEN ];
+
+				/* this lock is required; however,
+				 * it's invoked only when logging is on */
+				ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
+				snprintf( buf, sizeof( buf ),
+					"retrying URI=\"%s\" DN=\"%s\"",
+					mt->mt_uri,
+					BER_BVISNULL( &msc->msc_bound_ndn ) ?
+						"" : msc->msc_bound_ndn.bv_val );
+				ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
+
+				Debug( LDAP_DEBUG_ANY,
+					"%s meta_search_dobind_init[%d]: %s.\n",
+					op->o_log_prefix, candidate, buf );
+			}
+
+			meta_clear_one_candidate( op, mc, candidate );
+			LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+
+			( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
+
+			/* mc here must be the regular mc, reset and ready for init */
+			rc = meta_back_init_one_conn( op, rs, mc, candidate,
+				LDAP_BACK_CONN_ISPRIV( mc ), LDAP_BACK_DONTSEND, 0 );
+
+			LDAP_BACK_CONN_BINDING_SET( msc );
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+
+			goto retry;
 		}
 
 		if ( *mcp == NULL ) {
@@ -272,6 +318,7 @@ other:;
 
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		meta_clear_one_candidate( op, mc, candidate );
+		candidates[ candidate ].sr_err = rc;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( op, mc, 0 );
@@ -280,10 +327,6 @@ other:;
 			retcode = META_SEARCH_ERR;
 
 		} else {
-			if ( META_BACK_ONERR_REPORT( mi ) ) {
-				candidates[ candidate ].sr_err = rc;
-			}
-
 			retcode = META_SEARCH_NOT_CANDIDATE;
 		}
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
@@ -326,16 +369,14 @@ meta_search_dobind_result(
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	LDAP_BACK_CONN_BINDING_CLEAR( msc );
 	if ( rc != LDAP_SUCCESS ) {
+		meta_clear_one_candidate( op, mc, candidate );
+		candidates[ candidate ].sr_err = rc;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 	        	LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_clear_one_candidate( op, mc, candidate );
 			meta_back_release_conn_lock( op, mc, 0 );
 			*mcp = NULL;
 			retcode = META_SEARCH_ERR;
 			rs->sr_err = rc;
-
-		} else if ( META_BACK_ONERR_REPORT( mi ) ) {
-			candidates[ candidate ].sr_err = rc;
 		}
 
 	} else {
@@ -349,6 +390,9 @@ meta_search_dobind_result(
 			LDAP_BACK_CONN_ISBOUND_SET( msc );
 		}
 		retcode = META_SEARCH_CANDIDATE;
+
+		/* connect must be async */
+		ldap_set_option( msc->msc_ld, LDAP_OPT_CONNECT_ASYNC, LDAP_OPT_OFF );
 	}
 
 	candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
@@ -388,11 +432,9 @@ meta_back_search_start(
 			"%s: meta_back_search_start candidate=%d ld=NULL%s.\n",
 			op->o_log_prefix, candidate,
 			META_BACK_ONERR_STOP( mi ) ? "" : " (ignored)" );
+		candidates[ candidate ].sr_err = LDAP_OTHER;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			return META_SEARCH_ERR;
-		}
-		if ( META_BACK_ONERR_REPORT( mi ) ) {
-			candidates[ candidate ].sr_err = LDAP_OTHER;
 		}
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 		return META_SEARCH_NOT_CANDIDATE;
@@ -846,15 +888,13 @@ getconn:;
 					break;
 
 				case META_SEARCH_ERR:
+					candidates[ i ].sr_err = rs->sr_err;
 					if ( META_BACK_ONERR_STOP( mi ) ) {
 						savepriv = op->o_private;
 						op->o_private = (void *)i;
 						send_ldap_result( op, rs );
 						op->o_private = savepriv;
 						goto finish;
-					}
-					if ( META_BACK_ONERR_REPORT( mi ) ) {
-						candidates[ i ].sr_err = rs->sr_err;
 					}
 					/* fallthru */
 
@@ -877,15 +917,13 @@ getconn:;
 						break;
 
 					case META_SEARCH_ERR:
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( META_BACK_ONERR_STOP( mi ) ) {
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
 							send_ldap_result( op, rs );
 							op->o_private = savepriv;
 							goto finish;
-						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
 						}
 						/* fallthru */
 
@@ -970,15 +1008,13 @@ really_bad:;
 							candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 							--ncandidates;
 
+							candidates[ i ].sr_err = rs->sr_err;
 							if ( META_BACK_ONERR_STOP( mi ) ) {
 								savepriv = op->o_private;
 								op->o_private = (void *)i;
 								send_ldap_result( op, rs );
 								op->o_private = savepriv;
 								goto finish;
-							}
-							if ( META_BACK_ONERR_REPORT( mi ) ) {
-								candidates[ i ].sr_err = rs->sr_err;
 							}
 							break;
 
@@ -994,15 +1030,13 @@ really_bad:;
 						}
 					}
 
+					candidates[ i ].sr_err = rs->sr_err;
 					if ( META_BACK_ONERR_STOP( mi ) ) {
 						savepriv = op->o_private;
 						op->o_private = (void *)i;
 						send_ldap_result( op, rs );
 						op->o_private = savepriv;
 						goto finish;
-					}
-					if ( META_BACK_ONERR_REPORT( mi ) ) {
-						candidates[ i ].sr_err = rs->sr_err;
 					}
 				}
 
@@ -1270,6 +1304,7 @@ really_bad:;
 						 * the target enforced a limit lower
 						 * than what requested by the proxy;
 						 * ignore it */
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( rs->sr_nentries == op->ors_slimit
 							|| META_BACK_ONERR_STOP( mi ) )
 						{
@@ -1281,12 +1316,10 @@ really_bad:;
 							res = NULL;
 							goto finish;
 						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
-						}
 						break;
 	
 					default:
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( META_BACK_ONERR_STOP( mi ) ) {
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
@@ -1295,9 +1328,6 @@ really_bad:;
 							ldap_msgfree( res );
 							res = NULL;
 							goto finish;
-						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
 						}
 						break;
 					}
@@ -1331,6 +1361,7 @@ really_bad:;
 						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 						--ncandidates;
 	
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( META_BACK_ONERR_STOP( mi ) ) {
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
@@ -1339,9 +1370,6 @@ really_bad:;
 							ldap_msgfree( res );
 							res = NULL;
 							goto finish;
-						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
 						}
 						break;
 	

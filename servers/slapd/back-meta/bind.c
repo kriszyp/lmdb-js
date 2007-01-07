@@ -407,7 +407,7 @@ retry:;
 			break;
 
 		case -1:
-			ldap_get_option( msc->msc_ld, LDAP_OPT_RESULT_CODE,
+			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
 				&rs->sr_err );
 
 			snprintf( buf, sizeof( buf ),
@@ -493,9 +493,15 @@ meta_back_single_bind(
 	 * and more in case of failure ... */
 	/* FIXME: should we check if at least some of the op->o_ctrls
 	 * can/should be passed? */
-	rs->sr_err = ldap_sasl_bind( msc->msc_ld, mdn.bv_val,
+	for (;;) {
+		rs->sr_err = ldap_sasl_bind( msc->msc_ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->orb_cred,
 			op->o_ctrls, NULL, &msgid );
+		if ( rs->sr_err != LDAP_X_CONNECTING ) {
+			break;
+		}
+		ldap_pvt_thread_yield();
+	}
 	meta_back_bind_op_result( op, rs, mc, candidate, msgid, LDAP_BACK_DONTSEND );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto return_results;
@@ -564,7 +570,6 @@ meta_back_single_dobind(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
-	int			rc;
 	static struct berval	cred = BER_BVC( "" );
 	int			msgid;
 
@@ -579,19 +584,25 @@ meta_back_single_dobind(
 			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)meta_back_proxy_authz_bind( mc, candidate, op, rs, sendok );
-		rc = rs->sr_err;
-		goto done;
+
+	} else {
+
+		/* FIXME: should we check if at least some of the op->o_ctrls
+		 * can/should be passed? */
+		for (;;) {
+			rs->sr_err = ldap_sasl_bind( msc->msc_ld,
+				"", LDAP_SASL_SIMPLE, &cred,
+				NULL, NULL, &msgid );
+			if ( rs->sr_err != LDAP_X_CONNECTING ) {
+				break;
+			}
+			ldap_pvt_thread_yield();
+		}
+
+		rs->sr_err = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
 	}
 
-	/* FIXME: should we check if at least some of the op->o_ctrls
-	 * can/should be passed? */
-	rs->sr_err = ldap_sasl_bind( msc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
-			NULL, NULL, &msgid );
-	rc = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
-
-done:;
-	rs->sr_err = rc;
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		if ( dolock ) {
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		}
@@ -614,7 +625,7 @@ done:;
 		meta_back_quarantine( op, rs, candidate );
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 /*
@@ -1457,9 +1468,15 @@ meta_back_proxy_authz_bind( metaconn_t *mc, int candidate, Operation *op, SlapRe
 		switch ( method ) {
 		case LDAP_AUTH_NONE:
 		case LDAP_AUTH_SIMPLE:
-			rs->sr_err = ldap_sasl_bind( msc->msc_ld,
+			for (;;) {
+				rs->sr_err = ldap_sasl_bind( msc->msc_ld,
 					binddn.bv_val, LDAP_SASL_SIMPLE,
 					&cred, NULL, NULL, &msgid );
+				if ( rs->sr_err != LDAP_X_CONNECTING ) {
+					break;
+				}
+				ldap_pvt_thread_yield();
+			}
 			rc = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
 			if ( rc == LDAP_SUCCESS ) {
 				/* set rebind stuff in case of successful proxyAuthz bind,

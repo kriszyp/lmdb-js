@@ -194,6 +194,7 @@ struct metainfo_t;
 #define	META_NOT_CANDIDATE		((ber_tag_t)0x0)
 #define	META_CANDIDATE			((ber_tag_t)0x1)
 #define	META_BINDING			((ber_tag_t)0x2)
+#define	META_RETRYING			((ber_tag_t)0x4)
 
 typedef struct metasingleconn_t {
 #define META_CND_ISSET(rs,f)		( ( (rs)->sr_tag & (f) ) == (f) )
@@ -207,6 +208,9 @@ typedef struct metasingleconn_t {
 #define META_IS_BINDING(rs)		META_CND_ISSET( (rs), META_BINDING )
 #define META_BINDING_SET(rs)		META_CND_SET( (rs), META_BINDING )
 #define META_BINDING_CLEAR(rs)		META_CND_CLEAR( (rs), META_BINDING )
+#define META_IS_RETRYING(rs)		META_CND_ISSET( (rs), META_RETRYING )
+#define META_RETRYING_SET(rs)		META_CND_SET( (rs), META_RETRYING )
+#define META_RETRYING_CLEAR(rs)		META_CND_CLEAR( (rs), META_RETRYING )
 	
 	LDAP            	*msc_ld;
 	time_t			msc_time;
