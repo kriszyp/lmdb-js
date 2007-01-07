@@ -223,10 +223,18 @@ ldap_send_server_request(
 			lc->lconn_status = LDAP_CONNST_CONNECTED;
 			break;
 
-		case -2:
-			/* caller will have to call again */
-			ld->ld_errno = LDAP_X_CONNECTING;
-			/* fallthru */
+		case -2: {
+			/* async only occurs if a network timeout is set */
+				struct timeval *tvp = ld->ld_options.ldo_tm_net;
+				assert( tvp != NULL );
+
+				/* honor network timeout */
+				if ( time( NULL ) - lc->lconn_created <= tvp->tv_sec )
+				{
+					/* caller will have to call again */
+					ld->ld_errno = LDAP_X_CONNECTING;
+				}
+			} /* fallthru */
 
 		default:
 			/* error */

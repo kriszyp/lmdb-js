@@ -345,6 +345,8 @@ ldap_int_open_connection(
 			break;
 	}
 
+	conn->lconn_created = time( NULL );
+
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
 		INT_MAX, (void *)"ldap_" );

@@ -243,6 +243,7 @@ typedef struct ldap_conn {
 	void		*lconn_sasl_sockctx;	/* for security layer */
 #endif
 	int			lconn_refcnt;
+	time_t		lconn_created;	/* time */
 	time_t		lconn_lastused;	/* time */
 	int			lconn_rebind_inprogress;	/* set if rebind in progress */
 	char		***lconn_rebind_queue;		/* used if rebind in progress */
