@@ -242,6 +242,10 @@ ldap_get_option(
 
 		return LDAP_OPT_SUCCESS;
 
+	case LDAP_OPT_CONNECT_ASYNC:
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_CONNECT_ASYNC);
+		return LDAP_OPT_SUCCESS;
+		
 	case LDAP_OPT_RESULT_CODE:
 		if(ld == NULL) {
 			/* bad param */
@@ -390,6 +394,14 @@ ldap_set_option(
 			LDAP_BOOL_CLR(lo, LDAP_BOOL_RESTART);
 		} else {
 			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
+		}
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_CONNECT_ASYNC:
+		if(invalue == LDAP_OPT_OFF) {
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_CONNECT_ASYNC);
+		} else {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_CONNECT_ASYNC);
 		}
 		return LDAP_OPT_SUCCESS;
 	}

@@ -117,6 +117,7 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOL_REFERRALS		0
 #define LDAP_BOOL_RESTART		1
 #define LDAP_BOOL_TLS			3
+#define	LDAP_BOOL_CONNECT_ASYNC		4
 
 #define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	((LDAP_BOOLEANS)1 << (n))
@@ -510,6 +511,8 @@ LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest,
 	const struct timeval *tm );
 LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
 	int proto, const char *host, int port, int async );
+LDAP_F (int) ldap_int_poll( LDAP *ld, ber_socket_t s,
+	struct timeval *tvp );
 
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || \
 	defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)

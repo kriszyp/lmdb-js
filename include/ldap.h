@@ -122,6 +122,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_REFERRAL_URLS      0x5007  /* Referral URLs */
 #define LDAP_OPT_SOCKBUF            0x5008  /* sockbuf */
 #define LDAP_OPT_DEFBASE		0x5009	/* searchbase */
+#define	LDAP_OPT_CONNECT_ASYNC		0x5010	/* create connections asynchronously */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
@@ -653,6 +654,7 @@ typedef struct ldapcontrol {
 #define LDAP_MORE_RESULTS_TO_RETURN		(-15)	/* Obsolete */
 #define LDAP_CLIENT_LOOP				(-16)
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	(-17)
+#define	LDAP_X_CONNECTING			(-18)
 
 
 /*

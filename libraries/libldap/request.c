@@ -209,11 +209,37 @@ ldap_send_server_request(
 		}
 	}
 
+	/* async connect... */
+	if ( lc != NULL && lc->lconn_status == LDAP_CONNST_CONNECTING ) {
+		ber_socket_t	sd = AC_SOCKET_ERROR;
+		struct timeval	tv = { 0 };
+
+		ber_sockbuf_ctrl( lc->lconn_sb, LBER_SB_OPT_GET_FD, &sd );
+
+		/* poll ... */
+		switch ( ldap_int_poll( ld, sd, &tv ) ) {
+		case 0:
+			/* go on! */
+			lc->lconn_status = LDAP_CONNST_CONNECTED;
+			break;
+
+		case -2:
+			/* caller will have to call again */
+			ld->ld_errno = LDAP_X_CONNECTING;
+			/* fallthru */
+
+		default:
+			/* error */
+			break;
+		}
+	}
+
 	if ( lc == NULL || lc->lconn_status != LDAP_CONNST_CONNECTED ) {
-		ber_free( ber, 1 );
 		if ( ld->ld_errno == LDAP_SUCCESS ) {
 			ld->ld_errno = LDAP_SERVER_DOWN;
 		}
+
+		ber_free( ber, 1 );
 		if ( incparent ) {
 			/* Forget about the bind */
 			--parentreq->lr_outrefcnt; 
@@ -312,6 +338,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	int connect, LDAPreqinfo *bind )
 {
 	LDAPConn	*lc;
+	int		async = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection %d %d %d\n",
 		use_ldsb, connect, (bind != NULL) );
@@ -341,8 +368,10 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 	if ( connect ) {
 		LDAPURLDesc	**srvp, *srv = NULL;
 
+		async = LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_CONNECT_ASYNC );
+
 		for ( srvp = srvlist; *srvp != NULL; srvp = &(*srvp)->lud_next ) {
-			if ( ldap_int_open_connection( ld, lc, *srvp, 0 ) != -1 )
+			if ( ldap_int_open_connection( ld, lc, *srvp, async) != -1 )
 			{
 				srv = *srvp;
 
@@ -366,7 +395,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 		lc->lconn_server = ldap_url_dup( srv );
 	}
 
-	lc->lconn_status = LDAP_CONNST_CONNECTED;
+	lc->lconn_status = async ? LDAP_CONNST_CONNECTING : LDAP_CONNST_CONNECTED;
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_conn_mutex );
 #endif
@@ -663,8 +692,9 @@ ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 		}
 		Debug( LDAP_DEBUG_TRACE, "  refcnt: %d  status: %s\n", lc->lconn_refcnt,
 			( lc->lconn_status == LDAP_CONNST_NEEDSOCKET )
-			?  "NeedSocket" : ( lc->lconn_status == LDAP_CONNST_CONNECTING )
-			? "Connecting" : "Connected", 0 );
+				? "NeedSocket" :
+				( lc->lconn_status == LDAP_CONNST_CONNECTING )
+					? "Connecting" : "Connected", 0 );
 		Debug( LDAP_DEBUG_TRACE, "  last used: %s%s\n",
 			ldap_pvt_ctime( &lc->lconn_lastused, timebuf ),
 			lc->lconn_rebind_inprogress ? "  rebind in progress" : "", 0 );

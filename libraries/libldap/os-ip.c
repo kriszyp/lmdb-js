@@ -214,6 +214,137 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 
 #endif /* HAVE_WINSOCK */
 
+/* NOTE: this is identical to analogous code in os-local.c */
+int
+ldap_int_poll(
+	LDAP *ld,
+	ber_socket_t s,
+	struct timeval *tvp )
+{
+	int		timeout = INFTIM;
+	struct timeval	tv = { 0 };
+	int		rc;
+		
+	if ( tvp != NULL ) {
+		tv = *tvp;
+		timeout = TV2MILLISEC( tvp );
+	}
+
+	osip_debug(ld, "ldap_int_poll: fd: %d tm: %ld\n",
+		s, tvp ? tvp->tv_sec : -1L, 0);
+
+#ifdef HAVE_POLL
+	{
+		struct pollfd fd;
+
+		fd.fd = s;
+		fd.events = POLL_WRITE;
+
+		do {
+			fd.revents = 0;
+			rc = poll( &fd, 1, timeout );
+		
+		} while ( rc == AC_SOCKET_ERROR && errno == EINTR &&
+			LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_RESTART ) );
+
+		if ( rc == AC_SOCKET_ERROR ) {
+			return rc;
+		}
+
+		if ( timeout == 0 && rc == 0 ) {
+			return -2;
+		}
+
+		if ( fd.revents & POLL_WRITE ) {
+			if ( ldap_pvt_is_socket_ready( ld, s ) == -1 ) {
+				return -1;
+			}
+
+			if ( ldap_pvt_ndelay_off( ld, s ) == -1 ) {
+				return -1;
+			}
+			return 0;
+		}
+	}
+#else
+	{
+		fd_set		wfds, *z = NULL;
+#ifdef HAVE_WINSOCK
+		fd_set		efds;
+#endif
+
+#if defined( FD_SETSIZE ) && !defined( HAVE_WINSOCK )
+		if ( s >= FD_SETSIZE ) {
+			rc = AC_SOCKET_ERROR;
+			tcp_close( s );
+			ldap_pvt_set_errno( EMFILE );
+			return rc;
+		}
+#endif
+
+		do {
+			FD_ZERO(&wfds);
+			FD_SET(s, &wfds );
+
+#ifdef HAVE_WINSOCK
+			FD_ZERO(&efds);
+			FD_SET(s, &efds );
+#endif
+
+			rc = select( ldap_int_tblsize, z, &wfds,
+#ifdef HAVE_WINSOCK
+				&efds,
+#else
+				z,
+#endif
+				tvp ? &tv : NULL );
+		} while ( rc == AC_SOCKET_ERROR && errno == EINTR &&
+			LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_RESTART ) );
+
+		if ( rc == AC_SOCKET_ERROR ) {
+			return rc;
+		}
+
+		if ( timeout == 0 && rc == 0 ) {
+			return -2;
+		}
+
+#ifdef HAVE_WINSOCK
+		/* This means the connection failed */
+		if ( FD_ISSET(s, &efds) ) {
+			int so_errno;
+			int dummy = sizeof(so_errno);
+			if ( getsockopt( s, SOL_SOCKET, SO_ERROR,
+				(char *) &so_errno, &dummy ) == AC_SOCKET_ERROR || !so_errno )
+			{
+				/* impossible */
+				so_errno = WSAGetLastError();
+			}
+			ldap_pvt_set_errno( so_errno );
+			osip_debug(ld, "ldap_int_poll: error on socket %d: "
+			       "errno: %d (%s)\n", s, errno, sock_errstr( errno ));
+			return -1;
+		}
+#endif
+		if ( FD_ISSET(s, &wfds) ) {
+#ifndef HAVE_WINSOCK
+			if ( ldap_pvt_is_socket_ready( ld, s ) == -1 ) {
+				return -1;
+			}
+#endif
+			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) {
+				return -1;
+			}
+			return 0;
+		}
+	}
+#endif
+
+	osip_debug(ld, "ldap_int_poll: timed out\n",0,0,0);
+	ldap_pvt_set_errno( ETIMEDOUT );
+	return -1;
+}
+
 static int
 ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	struct sockaddr *sin, socklen_t addrlen,
@@ -240,7 +371,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		tv = *opt_tv;
 	}
 
-	osip_debug(ld, "ldap_connect_timeout: fd: %d tm: %ld async: %d\n",
+	osip_debug(ld, "ldap_pvt_connect: fd: %d tm: %ld async: %d\n",
 			s, opt_tv ? tv.tv_sec : -1L, async);
 
 	if ( opt_tv && ldap_pvt_ndelay_on(ld, s) == -1 )
@@ -257,10 +388,14 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		return ( -1 );
 	}
 	
-#ifdef notyet
-	if ( async ) return ( -2 );
-#endif
+	if ( async ) {
+		/* caller will call ldap_int_poll() as appropriate? */
+		return ( -2 );
+	}
 
+	rc = ldap_int_poll( ld, s, opt_tv );
+
+#if 0
 #ifdef HAVE_POLL
 	{
 		struct pollfd fd;
@@ -349,9 +484,10 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	}
 #endif
 
-	osip_debug(ld, "ldap_connect_timeout: timed out\n",0,0,0);
-	ldap_pvt_set_errno( ETIMEDOUT );
-	return -1;
+#endif
+
+	osip_debug(ld, "ldap_pvt_connect: %d\n", rc, 0, 0);
+	return rc;
 }
 
 #ifndef HAVE_INET_ATON
@@ -482,7 +618,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 		rc = ldap_pvt_connect( ld, s,
 			sai->ai_addr, sai->ai_addrlen, async );
-		if ( (rc == 0) || (rc == -2) ) {
+		if ( rc == 0 || rc == -2 ) {
 			ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &s );
 			break;
 		}
