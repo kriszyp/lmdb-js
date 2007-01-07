@@ -85,7 +85,7 @@ static struct {
 		BER_BVC("Queue of running threads - besides those handling operations"),
 		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_RUNQUEUE },
 	{ BER_BVC( "cn=Tasklist" ),
-		BER_BVC("List of standby threads - besides those handling operations"),
+		BER_BVC("List of running plus standby threads - besides those handling operations"),
 		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_TASKLIST },
 
 	{ BER_BVNULL }
@@ -278,6 +278,9 @@ monitor_subsys_thread_update(
 			if ( vals ) {
 				attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
 				ber_bvarray_free( vals );
+
+			} else {
+				attr_delete( &e->e_attrs, mi->mi_ad_monitoredInfo );
 			}
 			break;
 
@@ -307,6 +310,9 @@ monitor_subsys_thread_update(
 			if ( vals ) {
 				attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
 				ber_bvarray_free( vals );
+
+			} else {
+				attr_delete( &e->e_attrs, mi->mi_ad_monitoredInfo );
 			}
 			break;
 
