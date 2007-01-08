@@ -83,7 +83,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "tls", "what", 2, 2, 0,
+	{ "tls", "what", 2, 0, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_TLS,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.1 "
 			"NAME 'olcDbStartTLS' "
@@ -352,6 +352,7 @@ static slap_verbmasks tls_mode[] = {
 	{ BER_BVC( "try-propagate" ),	LDAP_BACK_F_PROPAGATE_TLS },
 	{ BER_BVC( "start" ),		LDAP_BACK_F_TLS_USE_MASK },
 	{ BER_BVC( "try-start" ),	LDAP_BACK_F_USE_TLS },
+	{ BER_BVC( "ldaps" ),		LDAP_BACK_F_TLS_LDAPS },
 	{ BER_BVC( "none" ),		LDAP_BACK_F_NONE },
 	{ BER_BVNULL,			0 }
 };
@@ -712,6 +713,7 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 			return 1;
 		}
 	}
+	bindconf_tls_defaults( &si->si_bc );
 
 	return 0;
 }
@@ -776,10 +778,23 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 			break;
 
-		case LDAP_BACK_CFG_TLS:
+		case LDAP_BACK_CFG_TLS: {
+			struct berval bc = BER_BVNULL, bv2;
 			enum_to_verb( tls_mode, ( li->li_flags & LDAP_BACK_F_TLS_MASK ), &bv );
 			assert( !BER_BVISNULL( &bv ) );
-			value_add_one( &c->rvalue_vals, &bv );
+			bindconf_tls_unparse( &li->li_tls, &bc );
+
+			if ( !BER_BVISEMPTY( &bc )) {
+				bv2.bv_len = bv.bv_len + bc.bv_len + 1;
+				bv2.bv_val = ch_malloc(bv2.bv_len + 1 );
+				strcpy( bv2.bv_val, bv.bv_val );
+				bv2.bv_val[bv.bv_len] = ' ';
+				strcpy( bv2.bv_val+bv.bv_len+1, bc.bv_val );
+				ber_bvarray_add( &c->rvalue_vals, &bv2 );
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			}
 			break;
 
 		case LDAP_BACK_CFG_ACL_AUTHCDN:
@@ -1379,6 +1394,13 @@ done_url:;
 		}
 		li->li_flags &= ~LDAP_BACK_F_TLS_MASK;
 		li->li_flags |= tls_mode[i].mask;
+		if ( c->argc > 2 ) {
+			for ( i=0; i<c->argc; i++ ) {
+				if ( bindconf_tls_parse( c->argv[i], &li->li_tls ))
+					return 1;
+			}
+			bindconf_tls_defaults( &li->li_tls );
+		}
 		break;
 
 	case LDAP_BACK_CFG_ACL_AUTHCDN:
@@ -1437,6 +1459,7 @@ done_url:;
 				return 1;
 			}
 		}
+		bindconf_tls_defaults( &li->li_acl );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_MODE:

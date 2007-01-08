@@ -127,7 +127,7 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs,
 	ldap_back_send_t sendok, struct berval *binddn, struct berval *bindcred );
 
 static int
-ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs,
+ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs,
 	ldap_back_send_t sendok );
 
 static int
@@ -610,7 +610,7 @@ retry:;
 #endif /* HAVE_TLS */
 
 static int
-ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
+ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 	int		version;
@@ -618,9 +618,8 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 #ifdef HAVE_TLS
 	int		is_tls = op->o_conn->c_is_tls;
 	time_t		lc_time = (time_t)(-1);
+	slap_bindconf *sb;
 #endif /* HAVE_TLS */
-
-	assert( lcp != NULL );
 
 	ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 	rs->sr_err = ldap_initialize( &ld, li->li_uri );
@@ -661,6 +660,19 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	}
 
 #ifdef HAVE_TLS
+	if ( LDAP_BACK_CONN_ISPRIV( lc ))
+		sb = &li->li_acl;
+	else if ( LDAP_BACK_CONN_ISIDASSERT( lc ))
+		sb = &li->li_idassert.si_bc;
+	else
+		sb = &li->li_tls;
+
+	if ( sb->sb_tls_do_init ) {
+		bindconf_tls_set( sb, ld );
+	} else if ( sb->sb_tls_ctx ) {
+		ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
+	}
+
 	ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,
 			li->li_uri, li->li_flags, li->li_nretries, &rs->sr_text );
@@ -675,21 +687,17 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	}
 #endif /* HAVE_TLS */
 
-	if ( *lcp == NULL ) {
-		*lcp = (ldapconn_t *)ch_calloc( 1, sizeof( ldapconn_t ) );
-		(*lcp)->lc_flags = li->li_flags;
-	}
-	(*lcp)->lc_ld = ld;
-	(*lcp)->lc_refcnt = 1;
-	(*lcp)->lc_binding = 1;
+	lc->lc_ld = ld;
+	lc->lc_refcnt = 1;
+	lc->lc_binding = 1;
 #ifdef HAVE_TLS
 	if ( is_tls ) {
-		LDAP_BACK_CONN_ISTLS_SET( *lcp );
+		LDAP_BACK_CONN_ISTLS_SET( lc );
 	} else {
-		LDAP_BACK_CONN_ISTLS_CLEAR( *lcp );
+		LDAP_BACK_CONN_ISTLS_CLEAR( lc );
 	}
 	if ( lc_time != (time_t)(-1) ) {
-		(*lcp)->lc_time = lc_time;
+		lc->lc_time = lc_time;
 	}
 #endif /* HAVE_TLS */
 
@@ -706,7 +714,7 @@ error_return:;
 
 	} else {
 		if ( li->li_conn_ttl > 0 ) {
-			(*lcp)->lc_create_time = op->o_time;
+			lc->lc_create_time = op->o_time;
 		}
 	}
 
@@ -892,7 +900,11 @@ retry_lock:
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if ( lc == NULL ) {
-		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
+		lc = (ldapconn_t *)ch_calloc( 1, sizeof( ldapconn_t ) );
+		lc->lc_flags = li->li_flags;
+		lc->lc_lcflags = lc_curr.lc_lcflags;
+		if ( ldap_back_prepare_conn( lc, op, rs, sendok ) != LDAP_SUCCESS ) {
+			ch_free( lc );
 			return NULL;
 		}
 

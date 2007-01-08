@@ -1275,12 +1275,29 @@ slap_tls_get_config( LDAP *ld, int opt, char **val )
 }
 
 int
+bindconf_tls_parse( const char *word, slap_bindconf *bc )
+{
+#ifdef HAVE_TLS
+	if ( slap_cf_aux_table_parse( word, bc, aux_TLS, "tls config" ) == 0 ) {
+		bc->sb_tls_do_init = 1;
+		return 0;
+	}
+#endif
+	return -1;
+}
+
+int
+bindconf_tls_unparse( slap_bindconf *bc, struct berval *bv )
+{
+	return slap_cf_aux_table_unparse( bc, bv, aux_TLS );
+}
+
+int
 bindconf_parse( const char *word, slap_bindconf *bc )
 {
 #ifdef HAVE_TLS
 	/* Detect TLS config changes explicitly */
-	if ( slap_cf_aux_table_parse( word, bc, aux_TLS, "tls config" ) == 0 ) {
-		bc->sb_tls_do_init = 1;
+	if ( bindconf_tls_parse( word, bc ) == 0 ) {
 		return 0;
 	}
 #endif
