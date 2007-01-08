@@ -2174,6 +2174,7 @@ ldap_back_proxy_authz_ctrl(
 	slap_idassert_mode_t	mode;
 	struct berval		assertedID,
 				ndn;
+	int			isroot = 0;
 
 	*pctrls = NULL;
 
@@ -2203,7 +2204,7 @@ ldap_back_proxy_authz_ctrl(
 		goto done;
 	}
 
-	if ( !op->o_conn || op->o_do_not_cache || be_isroot( op ) ) {
+	if ( !op->o_conn || op->o_do_not_cache || ( isroot = be_isroot( op ) ) ) {
 		goto done;
 	}
 
@@ -2255,7 +2256,7 @@ ldap_back_proxy_authz_ctrl(
 			goto done;
 		}
 
-	} else if ( si->si_authz && !be_isroot( op ) ) {
+	} else if ( si->si_authz && !isroot ) {
 		int		rc;
 		struct berval authcDN;
 
@@ -2306,21 +2307,11 @@ ldap_back_proxy_authz_ctrl(
 	}
 
 	switch ( mode ) {
-	case LDAP_BACK_IDASSERT_SELF:
-		if ( BER_BVISNULL( &ndn ) ) {
-			goto done;
-		}
-		assertedID = ndn;
-		break;
-
 	case LDAP_BACK_IDASSERT_LEGACY:
 		/* original behavior:
 		 * assert the client's identity */
-		if ( BER_BVISNULL( &ndn ) ) {
-			assertedID = slap_empty_bv;
-		} else {
-			assertedID = ndn;
-		}
+	case LDAP_BACK_IDASSERT_SELF:
+		assertedID = ndn;
 		break;
 
 	case LDAP_BACK_IDASSERT_ANONYMOUS:
@@ -2342,6 +2333,7 @@ ldap_back_proxy_authz_ctrl(
 		assert( 0 );
 	}
 
+	/* if we got here, "" is allowed to proxyAuthz */
 	if ( BER_BVISNULL( &assertedID ) ) {
 		assertedID = slap_empty_bv;
 	}
