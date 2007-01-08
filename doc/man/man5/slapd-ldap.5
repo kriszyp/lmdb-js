@@ -95,6 +95,13 @@ needs be created.
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
 .RS
 Allows to define the parameters of the authentication method that is 
 internally used by the proxy to collect info related to access control,
@@ -127,6 +134,11 @@ This directive obsoletes
 .BR acl-authcDN ,
 and
 .BR acl-passwd .
+
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand".
 .RE
 
 .TP
@@ -193,6 +205,13 @@ for details on the syntax of this field.
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
 .B [authz={native|proxyauthz}] [mode=<mode>] [flags=<flags>]
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
 .RS
 Allows to define the parameters of the authentication method that is 
 internally used by the proxy to authorize connections that are 
@@ -330,6 +349,11 @@ whose assertion is not allowed by the
 .B idassert-authzFrom
 patterns.
 
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand".
+
 The identity associated to this directive is also used for privileged
 operations whenever \fBidassert-bind\fP is defined and \fBacl-bind\fP
 is not.  See \fBacl-bind\fP for details.
@@ -447,14 +471,30 @@ identity according to the \fBidassert-bind\fP directive).
 In this case, the timeout of the operation that resulted in the bind
 is used.
 
-.TP
-.B tls {[try-]start|[try-]propagate}
-execute the StartTLS extended operation when the connection is initialized;
-only works if the URI directive protocol scheme is not \fBldaps://\fP.
+.HP
+.hy 0
+.B tls {[try-]start|[try-]propagate|ldaps}
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
+.RS
+Specify the use of TLS when a regular connection is initialized. The
+StartTLS extended operation will be used unless the URI directive protocol
+scheme is \fBldaps://\fP. In that case this keyword may only be
+set to "ldaps" and the StartTLS operation will not be used.
 \fBpropagate\fP issues the StartTLS operation only if the original
 connection did.
 The \fBtry-\fP prefix instructs the proxy to continue operations
 if the StartTLS operation failed; its use is \fBnot\fP recommended.
+
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand".
 
 .TP
 .B use-temporary-conn {NO|yes}
