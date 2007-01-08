@@ -987,6 +987,8 @@ bdb_cache_add(
 	}
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 
+	bdb_cache_lru_link( bdb, new );
+
 	if ( purge )
 		bdb_cache_lru_purge( bdb );
 
