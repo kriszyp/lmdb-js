@@ -323,6 +323,7 @@ other:;
 			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( op, mc, 0 );
 			*mcp = NULL;
+			rs->sr_err = rc;
 
 			retcode = META_SEARCH_ERR;
 
