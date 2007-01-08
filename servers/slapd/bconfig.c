@@ -3094,22 +3094,9 @@ config_tls_option(ConfigArgs *c) {
 static int
 config_tls_config(ConfigArgs *c) {
 	int i, flag;
-	slap_verbmasks crlkeys[] = {
-		{ BER_BVC("none"),	LDAP_OPT_X_TLS_CRL_NONE },
-		{ BER_BVC("peer"),	LDAP_OPT_X_TLS_CRL_PEER },
-		{ BER_BVC("all"),	LDAP_OPT_X_TLS_CRL_ALL },
-		{ BER_BVNULL, 0 }
-	};
-	slap_verbmasks vfykeys[] = {
-		{ BER_BVC("never"),	LDAP_OPT_X_TLS_NEVER },
-		{ BER_BVC("demand"),	LDAP_OPT_X_TLS_DEMAND },
-		{ BER_BVC("try"),	LDAP_OPT_X_TLS_TRY },
-		{ BER_BVC("hard"),	LDAP_OPT_X_TLS_HARD },
-		{ BER_BVNULL, 0 }
-	}, *keys;
 	switch(c->type) {
-	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		keys = crlkeys;	break;
-	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT;	keys = vfykeys;	break;
+	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK; break;
+	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT; break;
 	default:
 		Debug(LDAP_DEBUG_ANY, "%s: "
 				"unknown tls_option <0x%x>\n",
@@ -3117,14 +3104,7 @@ config_tls_config(ConfigArgs *c) {
 		return 1;
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
-		ldap_pvt_tls_get_option( slap_tls_ld, flag, &c->value_int );
-		for (i=0; !BER_BVISNULL(&keys[i].word); i++) {
-			if (keys[i].mask == c->value_int) {
-				c->value_string = ch_strdup( keys[i].word.bv_val );
-				return 0;
-			}
-		}
-		return 1;
+		return slap_tls_get_config( slap_tls_ld, flag, &c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		int i = 0;
 		return ldap_pvt_tls_set_option( slap_tls_ld, flag, &i );

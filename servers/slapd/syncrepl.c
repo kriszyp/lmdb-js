@@ -3248,6 +3248,11 @@ add_syncrepl(
 		if ( !si->si_re )
 			rc = -1;
 	}
+
+#ifdef HAVE_TLS
+	/* Use main slapd defaults */
+	bindconf_tls_defaults( &si->si_bindconf );
+#endif
 	if ( rc < 0 ) {
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
 		syncinfo_free( si );	

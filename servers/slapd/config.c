@@ -998,6 +998,21 @@ static slap_verbmasks tlskey[] = {
 	{ BER_BVC("critical"),	SB_TLS_CRITICAL },
 	{ BER_BVNULL, 0 }
 };
+
+static slap_verbmasks crlkeys[] = {
+		{ BER_BVC("none"),	LDAP_OPT_X_TLS_CRL_NONE },
+		{ BER_BVC("peer"),	LDAP_OPT_X_TLS_CRL_PEER },
+		{ BER_BVC("all"),	LDAP_OPT_X_TLS_CRL_ALL },
+		{ BER_BVNULL, 0 }
+	};
+
+static slap_verbmasks vfykeys[] = {
+		{ BER_BVC("never"),	LDAP_OPT_X_TLS_NEVER },
+		{ BER_BVC("demand"),	LDAP_OPT_X_TLS_DEMAND },
+		{ BER_BVC("try"),	LDAP_OPT_X_TLS_TRY },
+		{ BER_BVC("hard"),	LDAP_OPT_X_TLS_HARD },
+		{ BER_BVNULL, 0 }
+	};
 #endif
 
 static slap_verbmasks methkey[] = {
@@ -1233,6 +1248,33 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 }
 
 int
+slap_tls_get_config( LDAP *ld, int opt, char **val )
+{
+	slap_verbmasks *keys;
+	int i, ival;
+
+	*val = NULL;
+	switch( opt ) {
+	case LDAP_OPT_X_TLS_CRLCHECK:
+		keys = crlkeys;
+		break;
+	case LDAP_OPT_X_TLS_REQUIRE_CERT:
+		keys = vfykeys;
+		break;
+	default:
+		return -1;
+	}
+	ldap_pvt_tls_get_option( ld, opt, &ival );
+	for (i=0; !BER_BVISNULL(&keys[i].word); i++) {
+		if (keys[i].mask == ival) {
+			*val = ch_strdup( keys[i].word.bv_val );
+			return 0;
+		}
+	}
+	return -1;
+}
+
+int
 bindconf_parse( const char *word, slap_bindconf *bc )
 {
 #ifdef HAVE_TLS
@@ -1321,6 +1363,37 @@ void bindconf_free( slap_bindconf *bc ) {
 		bc->sb_tls_crlcheck = NULL;
 	}
 #endif
+#endif
+}
+
+void
+bindconf_tls_defaults( slap_bindconf *bc )
+{
+#ifdef HAVE_TLS
+	if ( bc->sb_tls_do_init ) {
+		if ( !bc->sb_tls_cacert )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CACERTFILE,
+				&bc->sb_tls_cacert );
+		if ( !bc->sb_tls_cacertdir )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CACERTDIR,
+				&bc->sb_tls_cacertdir );
+		if ( !bc->sb_tls_cert )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CERTFILE,
+				&bc->sb_tls_cert );
+		if ( !bc->sb_tls_key )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_KEYFILE,
+				&bc->sb_tls_key );
+		if ( !bc->sb_tls_cipher_suite )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CIPHER_SUITE,
+				&bc->sb_tls_cipher_suite );
+		if ( !bc->sb_tls_reqcert )
+			bc->sb_tls_reqcert = ch_strdup("demand");
+#ifdef HAVE_OPENSSL_CRL
+		if ( !bc->sb_tls_crlcheck )
+			slap_tls_get_config( slap_tls_ld, LDAP_OPT_X_TLS_CRLCHECK,
+				&bc->sb_tls_crlcheck );
+#endif
+	}
 #endif
 }
 
