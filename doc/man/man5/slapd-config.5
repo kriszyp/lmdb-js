@@ -1781,11 +1781,9 @@ parameter specifies use of the StartTLS extended operation
 to establish a TLS session before Binding to the provider. If the
 .B critical
 argument is supplied, the session will be aborted if the StartTLS request
-fails. Otherwise the syncrepl session continues without TLS.  Note that the
-main slapd TLS settings are not used by the syncrepl engine;
-by default the TLS parameters from ETCDIR/ldap.conf will be used.
-TLS settings may be specified here, in which case the ldap.conf settings
-will be completely ignored.
+fails. Otherwise the syncrepl session continues without TLS. The
+tls_reqcert setting defaults to "demand" and the other TLS settings
+default to the same as the main slapd TLS settings.
 
 Rather than replicating whole entries, the consumer can query logs of
 data modifications. This mode of operation is referred to as \fIdelta
