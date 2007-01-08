@@ -371,12 +371,6 @@ retry:;
 		rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 		switch ( rc ) {
 		case 0:
-#if 0
-			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_bind_op_result[%d]: ldap_result=0 nretries=%d.\n",
-				op->o_log_prefix, candidate, nretries );
-#endif
-
 			if ( nretries != META_RETRY_NEVER 
 				|| ( timeout && slap_get_time() <= stoptime ) )
 			{
@@ -564,7 +558,6 @@ meta_back_single_dobind(
 	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
-	int			rc;
 	static struct berval	cred = BER_BVC( "" );
 	int			msgid;
 
@@ -579,19 +572,18 @@ meta_back_single_dobind(
 			( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 	{
 		(void)meta_back_proxy_authz_bind( mc, candidate, op, rs, sendok );
-		rc = rs->sr_err;
-		goto done;
+
+	} else {
+
+		/* FIXME: should we check if at least some of the op->o_ctrls
+		 * can/should be passed? */
+		rs->sr_err = ldap_sasl_bind( msc->msc_ld,
+			"", LDAP_SASL_SIMPLE, &cred,
+			NULL, NULL, &msgid );
+		rs->sr_err = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
 	}
 
-	/* FIXME: should we check if at least some of the op->o_ctrls
-	 * can/should be passed? */
-	rs->sr_err = ldap_sasl_bind( msc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
-			NULL, NULL, &msgid );
-	rc = meta_back_bind_op_result( op, rs, mc, candidate, msgid, sendok );
-
-done:;
-	rs->sr_err = rc;
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		if ( dolock ) {
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		}
@@ -604,17 +596,13 @@ done:;
 		if ( dolock ) {
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 		}
-
-		if ( META_BACK_ONERR_STOP( mi ) && ( sendok & LDAP_BACK_SENDERR ) ) {
-			send_ldap_result( op, rs );
-		}
 	}
 
 	if ( META_BACK_TGT_QUARANTINE( mt ) ) {
 		meta_back_quarantine( op, rs, candidate );
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 /*

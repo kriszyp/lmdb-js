@@ -52,6 +52,7 @@ meta_send_entry(
 	LDAPMessage 	*e );
 
 typedef enum meta_search_candidate_t {
+	META_SEARCH_UNDEFINED = -2,
 	META_SEARCH_ERR = -1,
 	META_SEARCH_NOT_CANDIDATE,
 	META_SEARCH_CANDIDATE,
@@ -272,18 +273,16 @@ other:;
 
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		meta_clear_one_candidate( op, mc, candidate );
+		candidates[ candidate ].sr_err = rc;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			LDAP_BACK_CONN_TAINTED_SET( mc );
 			meta_back_release_conn_lock( op, mc, 0 );
 			*mcp = NULL;
+			rs->sr_err = rc;
 
 			retcode = META_SEARCH_ERR;
 
 		} else {
-			if ( META_BACK_ONERR_REPORT( mi ) ) {
-				candidates[ candidate ].sr_err = rc;
-			}
-
 			retcode = META_SEARCH_NOT_CANDIDATE;
 		}
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
@@ -326,16 +325,14 @@ meta_search_dobind_result(
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 	LDAP_BACK_CONN_BINDING_CLEAR( msc );
 	if ( rc != LDAP_SUCCESS ) {
+		meta_clear_one_candidate( op, mc, candidate );
+		candidates[ candidate ].sr_err = rc;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 	        	LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_clear_one_candidate( op, mc, candidate );
 			meta_back_release_conn_lock( op, mc, 0 );
 			*mcp = NULL;
 			retcode = META_SEARCH_ERR;
 			rs->sr_err = rc;
-
-		} else if ( META_BACK_ONERR_REPORT( mi ) ) {
-			candidates[ candidate ].sr_err = rc;
 		}
 
 	} else {
@@ -388,11 +385,9 @@ meta_back_search_start(
 			"%s: meta_back_search_start candidate=%d ld=NULL%s.\n",
 			op->o_log_prefix, candidate,
 			META_BACK_ONERR_STOP( mi ) ? "" : " (ignored)" );
+		candidates[ candidate ].sr_err = LDAP_OTHER;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			return META_SEARCH_ERR;
-		}
-		if ( META_BACK_ONERR_REPORT( mi ) ) {
-			candidates[ candidate ].sr_err = LDAP_OTHER;
 		}
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 		return META_SEARCH_NOT_CANDIDATE;
@@ -696,6 +691,10 @@ getconn:;
 			op->o_private = savepriv;
 			rc = -1;
 			goto finish;
+
+		default:
+			assert( 0 );
+			break;
 		}
 	}
 
@@ -819,6 +818,7 @@ getconn:;
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			meta_search_candidate_t	retcode = META_SEARCH_UNDEFINED;
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 			LDAPMessage		*res = NULL, *msg;
 
@@ -829,8 +829,6 @@ getconn:;
 
 			/* if target still needs bind, retry */
 			if ( candidates[ i ].sr_msgid == META_MSGID_NEED_BIND ) {
-				meta_search_candidate_t	retcode;
-
 				/* initiate dobind */
 				retcode = meta_search_dobind_init( op, rs, &mc, i, candidates );
 
@@ -846,15 +844,13 @@ getconn:;
 					break;
 
 				case META_SEARCH_ERR:
+					candidates[ i ].sr_err = rs->sr_err;
 					if ( META_BACK_ONERR_STOP( mi ) ) {
 						savepriv = op->o_private;
 						op->o_private = (void *)i;
 						send_ldap_result( op, rs );
 						op->o_private = savepriv;
 						goto finish;
-					}
-					if ( META_BACK_ONERR_REPORT( mi ) ) {
-						candidates[ i ].sr_err = rs->sr_err;
 					}
 					/* fallthru */
 
@@ -877,15 +873,13 @@ getconn:;
 						break;
 
 					case META_SEARCH_ERR:
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( META_BACK_ONERR_STOP( mi ) ) {
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
 							send_ldap_result( op, rs );
 							op->o_private = savepriv;
 							goto finish;
-						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
 						}
 						/* fallthru */
 
@@ -961,15 +955,14 @@ really_bad:;
 						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 						switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 						{
-						case META_SEARCH_CANDIDATE:
-							/* get back into business... */
-							continue;
-
 							/* means that failed but onerr == continue */
 						case META_SEARCH_NOT_CANDIDATE:
 							candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+
+							assert( ncandidates > 0 );
 							--ncandidates;
 
+							candidates[ i ].sr_err = rs->sr_err;
 							if ( META_BACK_ONERR_STOP( mi ) ) {
 								savepriv = op->o_private;
 								op->o_private = (void *)i;
@@ -977,13 +970,15 @@ really_bad:;
 								op->o_private = savepriv;
 								goto finish;
 							}
-							if ( META_BACK_ONERR_REPORT( mi ) ) {
-								candidates[ i ].sr_err = rs->sr_err;
-							}
-							break;
+							/* fall thru */
+
+						case META_SEARCH_CANDIDATE:
+							/* get back into business... */
+							continue;
 
 						case META_SEARCH_BINDING:
 						case META_SEARCH_NEED_BIND:
+						case META_SEARCH_UNDEFINED:
 							assert( 0 );
 
 						default:
@@ -994,15 +989,13 @@ really_bad:;
 						}
 					}
 
+					candidates[ i ].sr_err = rs->sr_err;
 					if ( META_BACK_ONERR_STOP( mi ) ) {
 						savepriv = op->o_private;
 						op->o_private = (void *)i;
 						send_ldap_result( op, rs );
 						op->o_private = savepriv;
 						goto finish;
-					}
-					if ( META_BACK_ONERR_REPORT( mi ) ) {
-						candidates[ i ].sr_err = rs->sr_err;
 					}
 				}
 
@@ -1270,6 +1263,7 @@ really_bad:;
 						 * the target enforced a limit lower
 						 * than what requested by the proxy;
 						 * ignore it */
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( rs->sr_nentries == op->ors_slimit
 							|| META_BACK_ONERR_STOP( mi ) )
 						{
@@ -1281,12 +1275,10 @@ really_bad:;
 							res = NULL;
 							goto finish;
 						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
-						}
 						break;
 	
 					default:
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( META_BACK_ONERR_STOP( mi ) ) {
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
@@ -1295,9 +1287,6 @@ really_bad:;
 							ldap_msgfree( res );
 							res = NULL;
 							goto finish;
-						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
 						}
 						break;
 					}
@@ -1310,6 +1299,7 @@ really_bad:;
 					 * the outer cycle finishes
 					 */
 					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+					assert( ncandidates > 0 );
 					--ncandidates;
 	
 				} else if ( rc == LDAP_RES_BIND ) {
@@ -1329,8 +1319,10 @@ really_bad:;
 					case META_SEARCH_NOT_CANDIDATE:
 					case META_SEARCH_ERR:
 						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+						assert( ncandidates > 0 );
 						--ncandidates;
 	
+						candidates[ i ].sr_err = rs->sr_err;
 						if ( META_BACK_ONERR_STOP( mi ) ) {
 							savepriv = op->o_private;
 							op->o_private = (void *)i;
@@ -1340,10 +1332,7 @@ really_bad:;
 							res = NULL;
 							goto finish;
 						}
-						if ( META_BACK_ONERR_REPORT( mi ) ) {
-							candidates[ i ].sr_err = rs->sr_err;
-						}
-						break;
+						goto free_message;
 	
 					default:
 						assert( 0 );
@@ -1358,6 +1347,7 @@ really_bad:;
 				}
 			}
 
+free_message:;
 			ldap_msgfree( res );
 			res = NULL;
 		}

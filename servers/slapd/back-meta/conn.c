@@ -643,7 +643,8 @@ meta_back_retry(
 	metaconn_t		*mc = *mcp;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc = LDAP_UNAVAILABLE,
-				binding;
+				binding,
+				quarantine = 1;
 
 	ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 
@@ -686,6 +687,7 @@ meta_back_retry(
 		}
 
 		if ( rc == LDAP_SUCCESS ) {
+			quarantine = 0;
 			rc = meta_back_single_dobind( op, rs, mcp, candidate,
 				sendok, mt->mt_nretries, 0 );
 
@@ -775,7 +777,7 @@ meta_back_retry(
 		}
 	}
 
-	if ( META_BACK_TGT_QUARANTINE( mt ) ) {
+	if ( quarantine && META_BACK_TGT_QUARANTINE( mt ) ) {
 		meta_back_quarantine( op, rs, candidate );
 	}
 
@@ -1450,9 +1452,9 @@ retry_lock2:;
 				int lerr = meta_back_init_one_conn( op, rs, mc, i,
 					LDAP_BACK_CONN_ISPRIV( &mc_curr ),
 					LDAP_BACK_DONTSEND, !new_conn );
+				candidates[ i ].sr_err = lerr;
 				if ( lerr == LDAP_SUCCESS ) {
 					META_CANDIDATE_SET( &candidates[ i ] );
-					candidates[ i ].sr_err = LDAP_SUCCESS;
 					ncandidates++;
 
 					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d]\n",
@@ -1460,7 +1462,6 @@ retry_lock2:;
 
 				} else if ( lerr == LDAP_UNAVAILABLE && !META_BACK_ONERR_STOP( mi ) ) {
 					META_CANDIDATE_SET( &candidates[ i ] );
-					candidates[ i ].sr_err = LDAP_UNAVAILABLE;
 
 					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_getconn[%d] %s\n",
 						op->o_log_prefix, i,
@@ -1477,7 +1478,6 @@ retry_lock2:;
 						( void )meta_clear_one_candidate( op, mc, i );
 					}
 					/* leave the target candidate, but record the error for later use */
-					candidates[ i ].sr_err = lerr;
 					err = lerr;
 
 					if ( lerr == LDAP_UNAVAILABLE && mt->mt_isquarantined != LDAP_BACK_FQ_NO ) {
