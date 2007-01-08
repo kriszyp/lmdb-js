@@ -371,12 +371,6 @@ retry:;
 		rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 		switch ( rc ) {
 		case 0:
-#if 0
-			Debug( LDAP_DEBUG_ANY,
-				"%s meta_back_bind_op_result[%d]: ldap_result=0 nretries=%d.\n",
-				op->o_log_prefix, candidate, nretries );
-#endif
-
 			if ( nretries != META_RETRY_NEVER 
 				|| ( timeout && slap_get_time() <= stoptime ) )
 			{
@@ -614,10 +608,6 @@ meta_back_single_dobind(
 		}
 		if ( dolock ) {
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-		}
-
-		if ( META_BACK_ONERR_STOP( mi ) && ( sendok & LDAP_BACK_SENDERR ) ) {
-			send_ldap_result( op, rs );
 		}
 	}
 

@@ -52,6 +52,7 @@ meta_send_entry(
 	LDAPMessage 	*e );
 
 typedef enum meta_search_candidate_t {
+	META_SEARCH_UNDEFINED = -2,
 	META_SEARCH_ERR = -1,
 	META_SEARCH_NOT_CANDIDATE,
 	META_SEARCH_CANDIDATE,
@@ -298,10 +299,16 @@ down:;
 			rc = meta_back_init_one_conn( op, rs, mc, candidate,
 				LDAP_BACK_CONN_ISPRIV( mc ), LDAP_BACK_DONTSEND, 0 );
 
-			LDAP_BACK_CONN_BINDING_SET( msc );
+			if ( rc == LDAP_SUCCESS ) {
+				LDAP_BACK_CONN_BINDING_SET( msc );
+			}
+
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
-			goto retry;
+			if ( rc == LDAP_SUCCESS ) {
+				candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
+				goto retry;
+			}
 		}
 
 		if ( *mcp == NULL ) {
@@ -739,6 +746,10 @@ getconn:;
 			op->o_private = savepriv;
 			rc = -1;
 			goto finish;
+
+		default:
+			assert( 0 );
+			break;
 		}
 	}
 
@@ -862,6 +873,7 @@ getconn:;
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			meta_search_candidate_t	retcode = META_SEARCH_UNDEFINED;
 			metasingleconn_t	*msc = &mc->mc_conns[ i ];
 			LDAPMessage		*res = NULL, *msg;
 
@@ -872,8 +884,6 @@ getconn:;
 
 			/* if target still needs bind, retry */
 			if ( candidates[ i ].sr_msgid == META_MSGID_NEED_BIND ) {
-				meta_search_candidate_t	retcode;
-
 				/* initiate dobind */
 				retcode = meta_search_dobind_init( op, rs, &mc, i, candidates );
 
@@ -1000,13 +1010,11 @@ really_bad:;
 						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 						switch ( meta_back_search_start( op, rs, &dc, &mc, i, candidates ) )
 						{
-						case META_SEARCH_CANDIDATE:
-							/* get back into business... */
-							continue;
-
 							/* means that failed but onerr == continue */
 						case META_SEARCH_NOT_CANDIDATE:
 							candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+
+							assert( ncandidates > 0 );
 							--ncandidates;
 
 							candidates[ i ].sr_err = rs->sr_err;
@@ -1017,10 +1025,15 @@ really_bad:;
 								op->o_private = savepriv;
 								goto finish;
 							}
-							break;
+							/* fall thru */
+
+						case META_SEARCH_CANDIDATE:
+							/* get back into business... */
+							continue;
 
 						case META_SEARCH_BINDING:
 						case META_SEARCH_NEED_BIND:
+						case META_SEARCH_UNDEFINED:
 							assert( 0 );
 
 						default:
@@ -1341,6 +1354,7 @@ really_bad:;
 					 * the outer cycle finishes
 					 */
 					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+					assert( ncandidates > 0 );
 					--ncandidates;
 	
 				} else if ( rc == LDAP_RES_BIND ) {
@@ -1360,6 +1374,7 @@ really_bad:;
 					case META_SEARCH_NOT_CANDIDATE:
 					case META_SEARCH_ERR:
 						candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+						assert( ncandidates > 0 );
 						--ncandidates;
 	
 						candidates[ i ].sr_err = rs->sr_err;
@@ -1372,7 +1387,7 @@ really_bad:;
 							res = NULL;
 							goto finish;
 						}
-						break;
+						goto free_message;
 	
 					default:
 						assert( 0 );
@@ -1387,6 +1402,7 @@ really_bad:;
 				}
 			}
 
+free_message:;
 			ldap_msgfree( res );
 			res = NULL;
 		}
