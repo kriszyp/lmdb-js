@@ -56,8 +56,7 @@
  * ldap_bind - bind to the ldap server (and X.500).  The dn and password
  * of the entry to which to bind are supplied, along with the authentication
  * method to use.  The msgid of the bind request is returned on success,
- * -1 if there's trouble.  Note, the kerberos support assumes the user already
- * has a valid tgt for now.  ldap_result() should be called to find out the
+ * -1 if there's trouble.  ldap_result() should be called to find out the
  * outcome of the bind request.
  *
  * Example:
@@ -74,14 +73,6 @@ ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmetho
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind( ld, dn, passwd ) );
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	case LDAP_AUTH_KRBV41:
-		return( ldap_kerberos_bind1( ld, dn ) );
-
-	case LDAP_AUTH_KRBV42:
-		return( ldap_kerberos_bind2( ld, dn ) );
-#endif
-
 	case LDAP_AUTH_SASL:
 		/* user must use ldap_sasl_bind */
 		/* FALL-THRU */
@@ -97,8 +88,7 @@ ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmetho
  * of the entry to which to bind are supplied, along with the authentication
  * method to use.  This routine just calls whichever bind routine is
  * appropriate and returns the result of the bind (e.g. LDAP_SUCCESS or
- * some other error indication).  Note, the kerberos support assumes the
- * user already has a valid tgt for now.
+ * some other error indication).
  *
  * Examples:
  *	ldap_bind_s( ld, "cn=manager, o=university of michigan, c=us",
@@ -118,17 +108,6 @@ ldap_bind_s(
 	switch ( authmethod ) {
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind_s( ld, dn, passwd ) );
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	case LDAP_AUTH_KRBV4:
-		return( ldap_kerberos_bind_s( ld, dn ) );
-
-	case LDAP_AUTH_KRBV41:
-		return( ldap_kerberos_bind1_s( ld, dn ) );
-
-	case LDAP_AUTH_KRBV42:
-		return( ldap_kerberos_bind2_s( ld, dn ) );
-#endif
 
 	case LDAP_AUTH_SASL:
 		/* user must use ldap_sasl_bind */

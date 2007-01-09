@@ -480,18 +480,6 @@ LDAP_F (int) ldap_int_client_controls LDAP_P((
  */
 LDAP_F (int) ldap_int_next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-/*
- * in kerberos.c
- */
-LDAP_F (char *) ldap_get_kerberosv4_credentials LDAP_P((
-	LDAP *ld,
-	LDAP_CONST char *who,
-	LDAP_CONST char *service,
-	ber_len_t *len ));
-
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-
 
 /*
  * in open.c
