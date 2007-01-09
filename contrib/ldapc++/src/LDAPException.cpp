@@ -32,9 +32,9 @@ LDAPException::LDAPException(const LDAPAsynConnection *lc){
     const char* err_string;
     ldap_get_option(l,LDAP_OPT_DIAGNOSTIC_MESSAGE,&err_string);
     if ( err_string ) {
-        m_res_string = string(err_string);
+        m_err_string = string(err_string);
     } else {
-        m_res_string = "";
+        m_err_string = "";
     }
 }
 
