@@ -962,7 +962,7 @@ getconn:;
 			}
 
 			/* check for abandon */
-			if ( op->o_abandon ) {
+			if ( op->o_abandon || LDAP_BACK_CONN_ABANDON( mc ) ) {
 				break;
 			}
 
@@ -1408,7 +1408,7 @@ free_message:;
 		}
 
 		/* check for abandon */
-		if ( op->o_abandon || doabandon ) {
+		if ( op->o_abandon || LDAP_BACK_CONN_ABANDON( mc ) ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
 				if ( candidates[ i ].sr_msgid >= 0 ) {
 					if ( META_IS_BINDING( &candidates[ i ] ) ) {
@@ -1446,9 +1446,10 @@ free_message:;
 
 			if ( op->o_abandon ) {
 				rc = SLAPD_ABANDON;
-				/* let send_ldap_result play cleanup handlers (ITS#4645) */
-				break;
 			}
+
+			/* let send_ldap_result play cleanup handlers (ITS#4645) */
+			break;
 		}
 
 		/* if no entry was found during this loop,
@@ -1465,34 +1466,7 @@ free_message:;
 				lutil_timermul( &save_tv, 2, &save_tv );
 			}
 
-#if 0
-			if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-				char	buf[ SLAP_TEXT_BUFLEN ];
-
-				snprintf( buf, sizeof( buf ), "%s %ld.%06ld %d/%d mc=%p",
-					op->o_log_prefix, save_tv.tv_sec, save_tv.tv_usec,
-					ncandidates, initial_candidates, mc );
-				Debug( LDAP_DEBUG_TRACE, "### %s\n", buf, 0, 0 );
-				for ( i = 0; i < mi->mi_ntargets; i++ ) {
-					if ( candidates[ i ].sr_msgid == META_MSGID_IGNORE ) {
-						continue;
-					}
-			
-					snprintf( buf, sizeof( buf ), "[%ld] ld=%p%s%s\n",
-						i,
-						mc->mc_conns[ i ].msc_ld,
-						( candidates[ i ].sr_msgid == META_MSGID_NEED_BIND ) ?  " needbind" : "",
-						META_IS_BINDING( &candidates[ i ] ) ? " binding" : "" );
-					Debug( LDAP_DEBUG_TRACE, "###    %s\n", buf, 0, 0 );
-				}
-			}
-#endif
-
 			if ( alreadybound == 0 ) {
-#if 0
-				Debug( LDAP_DEBUG_TRACE, "### %s select(%ld.%06ld)\n",
-					op->o_log_prefix, save_tv.tv_sec, save_tv.tv_usec );
-#endif
 				tv = save_tv;
 				(void)select( 0, NULL, NULL, NULL, &tv );
 
@@ -1581,28 +1555,6 @@ free_message:;
 	} else if ( sres == LDAP_NO_SUCH_OBJECT ) {
 		matched = op->o_bd->be_suffix[ 0 ].bv_val;
 	}
-
-#if 0
-	{
-		char	buf[ SLAP_TEXT_BUFLEN ];
-		char	cnd[ SLAP_TEXT_BUFLEN ];
-		int	i;
-
-		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( META_IS_CANDIDATE( &candidates[ i ] ) ) {
-				cnd[ i ] = '*';
-			} else {
-				cnd[ i ] = ' ';
-			}
-		}
-		cnd[ i ] = '\0';
-
-		snprintf( buf, sizeof( buf ), "%s meta_back_search: is_scope=%d is_ok=%d cnd=\"%s\"\n",
-			op->o_log_prefix, initial_candidates, is_ok, cnd );
-
-		Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
-	}
-#endif
 
 	/*
 	 * In case we returned at least one entry, we return LDAP_SUCCESS
