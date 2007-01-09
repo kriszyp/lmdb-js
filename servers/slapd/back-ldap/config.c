@@ -1396,8 +1396,8 @@ done_url:;
 		}
 		li->li_flags &= ~LDAP_BACK_F_TLS_MASK;
 		li->li_flags |= tls_mode[i].mask;
-		if ( c->argc > 2 ) {
-			for ( i=0; i<c->argc; i++ ) {
+		if ( c->argc > 3 ) {
+			for ( i=2; i<c->argc; i++ ) {
 				if ( bindconf_tls_parse( c->argv[i], &li->li_tls ))
 					return 1;
 			}
