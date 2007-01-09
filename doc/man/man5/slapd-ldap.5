@@ -38,11 +38,14 @@ rules; see
 for details.
 
 .LP
-Note: When looping back to the same instance of \fBslapd\fP(8), 
-each connection requires a new thread; as a consequence, \fBslapd\fP(8)
+Note: When looping back to the same instance of
+.BR slapd (8), 
+each connection requires a new thread; as a consequence,
+.BR slapd (8)
 must be compiled with thread support, and the \fBthreads\fP parameter 
 may need some tuning; in those cases, one may consider using 
-\fBslapd-relay\fP(5) instead, which performs the relayed operation 
+.BR slapd-relay (5)
+instead, which performs the relayed operation 
 internally and thus reuses the same connection.
 
 .SH CONFIGURATION
