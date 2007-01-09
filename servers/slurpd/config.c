@@ -613,12 +613,7 @@ parse_replica_line(
 	} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
 		sizeof( BINDMETHSTR ) - 1 ) ) {
 	    val = cargv[ i ] + sizeof( BINDMETHSTR );
-	    if ( !strcasecmp( val, KERBEROSSTR )) {
-	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
-	    fprintf( stderr, "specified in the slapd configuration file.\n" );
-	    fprintf( stderr, "slurpd no longer supports Kerberos.\n" );
-	    exit( EXIT_FAILURE );
-	    } else if ( !strcasecmp( val, SIMPLESTR )) {
+	    if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = LDAP_AUTH_SIMPLE;
 		gots |= GOT_METHOD;
 	    } else if ( !strcasecmp( val, SASLSTR )) {

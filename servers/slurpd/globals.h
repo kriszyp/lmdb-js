@@ -77,10 +77,6 @@ typedef struct globals {
     St	*st;
     /* Pointer to replication queue */
     Rq *rq;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-    /* Default name of kerberos srvtab file */
-    char *default_srvtab;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     /* Non-zero if we shall print the version */
     int version;
 } Globals;

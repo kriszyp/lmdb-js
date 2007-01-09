@@ -95,9 +95,6 @@ init_globals( void )
 	fprintf( stderr, "Cannot initialize queue\n" );
 	exit( EXIT_FAILURE );
     }
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-    g->default_srvtab = SRVTAB;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
     return g;
 }
