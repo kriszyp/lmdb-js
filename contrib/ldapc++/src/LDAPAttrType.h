@@ -24,6 +24,7 @@ class LDAPAttrType{
 	StringList names;
 	string desc, oid;
 	bool single;
+	int usage;
 	
     public :
 
@@ -74,15 +75,22 @@ class LDAPAttrType{
 	StringList getNames();
 	
 	/**
-	 * Returns true if attribute type hllows only single value
+	 * Returns true if attribute type allows only single value
 	 */
 	bool isSingle();
 	
+	/**
+ 	 * Return the 'usage' value:
+ 	 * (0=userApplications, 1=directoryOperation, 2=distributedOperation, 
+	 *  3=dSAOperation)
+ 	 */
+ 	int getUsage ();
+
 	void setNames (char **at_names);
 	void setDesc (char *at_desc);
 	void setOid (char *at_oid);
 	void setSingle (int at_single_value);
-	
+	void setUsage (int at_usage );
 };
 
 #endif // LDAP_ATTRTYPE_H
