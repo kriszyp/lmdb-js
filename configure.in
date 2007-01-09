@@ -230,8 +230,6 @@ OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
 dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
 ol_enable_referrals=${ol_enable_referrals-no}
-dnl OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (deprecated)], no)dnl
-ol_enable_kbind=${ol_enable_kbind-no}
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
 OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
 
@@ -241,9 +239,6 @@ OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
 	auto, [auto yes no] )
-dnl	OL_ARG_WITH(kerberos,[  --with-kerberos	  with Kerberos support],
-dnl		auto, [auto k5 k5only k425 kth k4 afs yes no])
-ol_with_kerberos=${ol_with_kerberos-auto}
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
@@ -497,22 +492,6 @@ fi
 if test $ol_enable_lmpasswd = yes ; then
 	if test $ol_with_tls = no ; then
 		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
-	fi
-fi
-
-if test $ol_enable_kbind = yes ; then
-	if test $ol_with_kerberos = no ; then
-		AC_MSG_ERROR([options require --with-kerberos])
-	elif test $ol_with_kerberos = auto ; then
-		ol_with_kerberos=yes
-	fi
-
-elif test $ol_enable_kbind = no ; then
-	if test $ol_with_kerberos = auto ; then
-		ol_with_kerberos=no
-	elif test $ol_with_kerberos != no ; then
-		AC_MSG_WARN([Kerberos detection enabled unnecessarily]);
-		ol_with_kerberos=no
 	fi
 fi
 
@@ -1116,174 +1095,6 @@ if test $ol_enable_local != no ; then
 	elif test $ac_cv_header_sys_un_h = no ; then
 		AC_MSG_ERROR([AF_LOCAL domain support requires sys/un.h])
 	fi
-fi
-
-dnl ----------------------------------------------------------------
-dnl Kerberos
-ol_link_kbind=no
-ol_link_krb5=no
-ol_link_krb4=no
-
-case $ol_with_kerberos in yes | auto | k5 | k5only | k425)
-
-	AC_CHECK_HEADERS(krb5.h)
-
-	if test $ac_cv_header_krb5_h = yes ; then
-		dnl lazy check for Heimdal Kerberos
-		AC_CHECK_HEADERS(heim_err.h)
-		if test $ac_cv_header_heim_err_h = yes ; then
-			krb5_impl=heimdal
-		else
-			krb5_impl=mit
-		fi
-
-		if test $krb5_impl = mit; then
-			AC_CHECK_LIB(k5crypto, main,
-				[krb5crypto=k5crypto],
-				[krb5crypto=crypto])
-
-			AC_CHECK_LIB(krb5, main,
-				[have_krb5=yes
-				KRB5_LIBS="-lkrb5 -l$krb5crypto -lcom_err"],
-				[have_krb5=no],
-				[-l$krb5crypto -lcom_err])
-
-		elif test $krb5_impl = heimdal; then
-			AC_CHECK_LIB(des, main,
-				[krb5crypto=des],
-				[krb5crypto=crypto])
-
-			AC_CHECK_LIB(krb5, main,
-				[have_krb5=yes
-				KRB5_LIBS="-lkrb5 -l$krb5crypto -lasn1 -lroken -lcom_err"],
-				[have_krb5=no],
-				[-l$krb5crypto -lasn1 -lroken -lcom_err])
-
-			AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1,
-				[define if you have HEIMDAL Kerberos])
-
-		else
-			have_krb5=no
-			AC_MSG_WARN([Unrecognized Kerberos5 Implementation])
-		fi
-
-		if test $have_krb5 = yes ; then
-			ol_link_krb5=yes
-
-			AC_DEFINE(HAVE_KRB5, 1,
-				[define if you have Kerberos V])
-
-			if test $ol_with_kerberos = k5only ; then
-				ol_with_kerberos=found
-			fi
-
-		elif test $ol_with_kerberos != auto ; then
-			AC_MSG_ERROR([Required Kerberos 5 support not available])
-		fi
-
-	fi
-	;;
-esac
-
-if test $ol_link_krb5 = yes &&
-   { test $ol_with_kerberos = yes ||
-     test $ol_with_kerberos = auto ||
-     test $ol_with_kerberos = k425; }; then
-
-	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
-
-	if test $ac_cv_header_kerberosIV_krb_h = yes ; then
-		if test $krb5_impl = mit; then
-			AC_CHECK_LIB(krb4, main, [have_k425=yes
-				KRB4_LIBS="-lkrb4 -ldes425"], [have_k425=no],
-				[-ldes425 -lkrb5 -l$krb5crypto -lcom_err])
-
-		elif test $krb5_impl = heimdal; then
-			AC_CHECK_LIB(krb4, main, [have_k425=yes
-				KRB4_LIBS="-lkrb4"], [have_k425=no],
-				[-lkrb5 -l$krb5crypto -lasn1 -lroken -lcom_err])
-
-		else
-			have_425=no
-			AC_MSG_WARN([Unrecongized Kerberos V Implementation])
-		fi
-
-		if test $have_k425 = yes ; then
-			ol_with_kerberos=found
-			ol_link_krb4=yes
-
-			AC_DEFINE(HAVE_KRB425, 1,
-				[define if you have Kerberos V with IV support])
-			AC_DEFINE(HAVE_KRB4, 1,
-				[define if you have Kerberos IV])
-
-			AC_CACHE_CHECK([for des_debug in Kerberos libraries],
-				[ol_cv_var_des_debug], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="$KRB4_LIBS $KRB5_LIBS $LIBS"
-				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#include <kerberosIV/krb.h>
-#include <kerberosIV/des.h>
-extern int des_debug;
-]], [[
-des_debug = 1;
-]])],[ol_cv_var_des_debug=yes],[ol_cv_var_des_debug=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
-
-			if test $ol_cv_var_des_debug = yes ; then
-				AC_DEFINE(HAVE_DES_DEBUG,1,
-					[define if you have Kerberos des_debug])
-			fi
-
-			LIBS="$save_LIBS"
-		fi
-	fi
-fi
-
-if test $ol_link_krb5 = yes ; then
-	ol_with_kerberos=found
-fi
-
-case $ol_with_kerberos in yes | auto | k4 | kth)
-
-	AC_CHECK_HEADERS(krb.h des.h krb-archaeology.h )
-
-	if test $ac_cv_header_krb_h = yes ; then
-		AC_CHECK_LIB(krb, main, [have_k4=yes], [have_k4=no], [-ldes])
-
-		if test $have_k4 = yes ; then
-			ol_with_kerberos=found
-			ol_link_krb4=yes
-
-			AC_DEFINE(HAVE_KRB4, 1,
-				[define if you have Kerberos IV])
-
-			KRB4_LIBS="-lkrb -ldes"
-
-			if test $ac_cv_header_krb_archaeology_h = yes ; then
-				AC_DEFINE(HAVE_KTH_KERBEROS, 1,
-					[define if you have Kth Kerberos])
-			fi
-		fi
-	fi
-	;;
-esac
-
-if test $ol_link_krb4 = yes && test $ol_enable_kbind != no ; then
-	ol_link_kbind=yes
-
-elif test $ol_enable_kbind = yes ; then
-	AC_MSG_ERROR([Kerberos IV detection failed])
-fi
-
-if test $ol_link_krb4 = yes || test $ol_link_krb5 = yes ; then
-	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
-
-elif test $ol_with_kerberos != auto && test $ol_with_kerberos != no ; then
-	AC_MSG_ERROR([Kerberos detection failed])
 fi
 
 dnl ----------------------------------------------------------------
@@ -2540,10 +2351,6 @@ fi
 if test "$ol_enable_syslog" = yes ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
-fi
-if test "$ol_link_kbind" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION,
-		[define to LDAP VENDOR VERSION])
 fi
 if test "$ol_enable_proctitle" != no ; then
 	AC_DEFINE(LDAP_PROCTITLE,1,
