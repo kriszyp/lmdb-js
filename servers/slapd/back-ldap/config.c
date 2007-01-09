@@ -552,7 +552,6 @@ slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
 	int		rc;
 
  	if ( strcmp( c->argv[ 1 ], "*" ) == 0
- 		|| strcmp( c->argv[ 1 ], ".*" ) == 0
  		|| strcmp( c->argv[ 1 ], "dn:*" ) == 0
  		|| strcasecmp( c->argv[ 1 ], "dn.regex:.*" ) == 0 )
  	{
