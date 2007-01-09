@@ -786,14 +786,16 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 			if ( !BER_BVISEMPTY( &bc )) {
 				bv2.bv_len = bv.bv_len + bc.bv_len + 1;
-				bv2.bv_val = ch_malloc(bv2.bv_len + 1 );
+				bv2.bv_val = ch_malloc( bv2.bv_len + 1 );
 				strcpy( bv2.bv_val, bv.bv_val );
 				bv2.bv_val[bv.bv_len] = ' ';
-				strcpy( bv2.bv_val+bv.bv_len+1, bc.bv_val );
+				strcpy( &bv2.bv_val[bv.bv_len + 1], bc.bv_val );
 				ber_bvarray_add( &c->rvalue_vals, &bv2 );
+
 			} else {
 				value_add_one( &c->rvalue_vals, &bv );
 			}
+			ber_memfree( bc.bv_val );
 			}
 			break;
 

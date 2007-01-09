@@ -187,8 +187,6 @@ retry:;
 		 * connection with identity assertion */
 		/* NOTE: use with care */
 		if ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
-			assert( lc->lc_binding == 1 );
-			lc->lc_binding = 0;
 			ldap_back_release_conn( op, rs, lc );
 			return( rc );
 		}
@@ -211,9 +209,6 @@ retry:;
 			lc->lc_cred.bv_len = 0;
 		}
 	}
-
-	assert( lc->lc_binding == 1 );
-	lc->lc_binding = 0;
 
 	/* must re-insert if local DN changed as result of bind */
 	if ( !LDAP_BACK_CONN_ISBOUND( lc )
@@ -660,12 +655,15 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	}
 
 #ifdef HAVE_TLS
-	if ( LDAP_BACK_CONN_ISPRIV( lc ))
+	if ( LDAP_BACK_CONN_ISPRIV( lc ) ) {
 		sb = &li->li_acl;
-	else if ( LDAP_BACK_CONN_ISIDASSERT( lc ))
+
+	} else if ( LDAP_BACK_CONN_ISIDASSERT( lc ) ) {
 		sb = &li->li_idassert.si_bc;
-	else
+
+	} else {
 		sb = &li->li_tls;
+	}
 
 	if ( sb->sb_tls_do_init ) {
 		bindconf_tls_set( sb, ld );
@@ -689,7 +687,6 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 
 	lc->lc_ld = ld;
 	lc->lc_refcnt = 1;
-	lc->lc_binding = 1;
 #ifdef HAVE_TLS
 	if ( is_tls ) {
 		LDAP_BACK_CONN_ISTLS_SET( lc );
@@ -733,7 +730,6 @@ ldap_back_getconn(
 	ldapconn_t	*lc = NULL,
 			lc_curr = { 0 };
 	int		refcnt = 1,
-			binding = 1,
 			lookupconn = !( sendok & LDAP_BACK_BINDING );
 
 	/* if the server is quarantined, and
@@ -892,7 +888,6 @@ retry_lock:
 				}
 
 				refcnt = ++lc->lc_refcnt;
-				binding = ++lc->lc_binding;
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
@@ -978,7 +973,6 @@ retry_lock:
 
 			if ( tmplc != NULL ) {
 				refcnt = ++tmplc->lc_refcnt;
-				binding = ++tmplc->lc_binding;
 				ldap_back_conn_free( lc );
 				lc = tmplc;
 			}
@@ -996,7 +990,6 @@ retry_lock:
 		LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 
 		assert( lc->lc_refcnt == 1 );
-		assert( lc->lc_binding == 1 );
 
 #if LDAP_BACK_PRINT_CONNTREE > 0
 		ldap_back_print_conntree( li, ">>> ldap_back_getconn(insert)" );
@@ -1029,8 +1022,8 @@ retry_lock:
 			char	buf[ SLAP_TEXT_BUFLEN ];
 
 			snprintf( buf, sizeof( buf ),
-				"lc=%p inserted refcnt=%u binding=%u rc=%d",
-				(void *)lc, refcnt, binding, rs->sr_err );
+				"lc=%p inserted refcnt=%u rc=%d",
+				(void *)lc, refcnt, rs->sr_err );
 				
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s: %s\n",
@@ -1117,8 +1110,8 @@ retry_lock:
 			char	buf[ SLAP_TEXT_BUFLEN ];
 
 			snprintf( buf, sizeof( buf ),
-				"conn %p fetched refcnt=%u binding=%u%s",
-				(void *)lc, refcnt, binding, expiring ? " expiring" : "" );
+				"conn %p fetched refcnt=%u %s",
+				(void *)lc, refcnt, expiring ? " expiring" : "" );
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
 		}
@@ -1280,7 +1273,6 @@ retry_lock:;
 		/* check if already bound */
 		rc = isbound = LDAP_BACK_CONN_ISBOUND( lc );
 		if ( isbound ) {
-			lc->lc_binding--;
  			if ( dolock ) {
  				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
  			}
@@ -1300,16 +1292,6 @@ retry_lock:;
  			LDAP_BACK_CONN_BINDING_SET( lc );
 			binding = 1;
 		}
-	}
-
-	/* wait for pending operations to finish */
-	/* FIXME: may become a bottleneck! */
-	if ( lc->lc_refcnt != lc->lc_binding ) {
- 		if ( dolock ) {
- 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
- 		}
-		ldap_pvt_thread_yield();
-		goto retry_lock;
 	}
 
  	if ( dolock ) {
@@ -1419,9 +1401,8 @@ retry:;
 				lc->lc_ld = NULL;
 
 				/* lc here must be the regular lc, reset and ready for init */
-				rs->sr_err = ldap_back_prepare_conn( &lc, op, rs, sendok );
+				rs->sr_err = ldap_back_prepare_conn( lc, op, rs, sendok );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
-					lc->lc_binding--;
 					lc->lc_refcnt = 0;
 				}
 			}
@@ -1441,14 +1422,11 @@ retry:;
 			if ( dolock ) {
 				ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 			}
-			lc->lc_binding--;
 			if ( dolock ) {
 				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 			}
 		}
 
-		/* FIXME: one binding-- too many? */
-		lc->lc_binding--;
 		assert( lc->lc_refcnt == 1 );
 		lc->lc_refcnt = 0;
 		ldap_back_freeconn( op, lc, dolock );
@@ -1475,7 +1453,6 @@ retry:;
 	}
 
 done:;
-	lc->lc_binding--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
 	if ( !rc ) {
@@ -1828,7 +1805,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 		LDAP_BACK_CONN_ISBOUND_CLEAR( (*lcp) );
 
 		/* lc here must be the regular lc, reset and ready for init */
-		rc = ldap_back_prepare_conn( lcp, op, rs, sendok );
+		rc = ldap_back_prepare_conn( *lcp, op, rs, sendok );
 		if ( rc != LDAP_SUCCESS ) {
 			/* freeit, because lc_refcnt == 1 */
 			(*lcp)->lc_refcnt = 0;
