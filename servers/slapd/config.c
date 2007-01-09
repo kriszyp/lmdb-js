@@ -1255,12 +1255,14 @@ slap_tls_get_config( LDAP *ld, int opt, char **val )
 
 	*val = NULL;
 	switch( opt ) {
+#ifdef HAVE_TLS
 	case LDAP_OPT_X_TLS_CRLCHECK:
 		keys = crlkeys;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		keys = vfykeys;
 		break;
+#endif
 	default:
 		return -1;
 	}
@@ -1289,7 +1291,10 @@ bindconf_tls_parse( const char *word, slap_bindconf *bc )
 int
 bindconf_tls_unparse( slap_bindconf *bc, struct berval *bv )
 {
+#ifdef HAVE_TLS
 	return slap_cf_aux_table_unparse( bc, bv, aux_TLS );
+#endif
+	return -1;
 }
 
 int
