@@ -53,18 +53,6 @@
 
 #include "common.h"
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-#if !LDAP_DEPRECATED
-/* Necessary for old LDAPv2 Kerberos Bind methods */
-LDAP_F( int )
-ldap_bind LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who,
-	LDAP_CONST char *passwd,
-	int authmethod ));
-#endif
-#endif
-
 /* input-related vars */
 
 /* misc. parameters */
@@ -219,8 +207,6 @@ N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
-N_("  -k         use Kerberos authentication\n"),
-N_("  -K         like -k, but do only step 1 of the Kerberos bind\n"),
 N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
 N_("  -O props   SASL security properties\n"),
@@ -563,32 +549,6 @@ tool_args( int argc, char **argv )
 				prog );
 			exit( EXIT_FAILURE );
 #endif
-		case 'k':	/* kerberos bind */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-			if( authmethod != -1 ) {
-				fprintf( stderr, "%s: -k incompatible with previous "
-					"authentication choice\n", prog );
-				exit( EXIT_FAILURE );
-			}
-			authmethod = LDAP_AUTH_KRBV4;
-#else
-			fprintf( stderr, "%s: not compiled with Kerberos support\n", prog );
-			exit( EXIT_FAILURE );
-#endif
-			break;
-		case 'K':	/* kerberos bind, part one only */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-			if( authmethod != -1 ) {
-				fprintf( stderr, "%s: incompatible with previous "
-					"authentication choice\n", prog );
-				exit( EXIT_FAILURE );
-			}
-			authmethod = LDAP_AUTH_KRBV41;
-#else
-			fprintf( stderr, "%s: not compiled with Kerberos support\n", prog );
-			exit( EXIT_FAILURE );
-#endif
-			break;
 		case 'M':
 			/* enable Manage DSA IT */
 			manageDSAit++;
@@ -937,15 +897,6 @@ tool_args( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 #endif
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	} else {
-		if ( authmethod == LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
-			fprintf( stderr, "%s: -k/-K incompatible with LDAPv%d\n",
-				prog, protocol );
-			exit( EXIT_FAILURE );
-		}
-#endif
 	}
 }
 
@@ -1124,15 +1075,6 @@ tool_bind( LDAP *ld )
 
 		msgbuf[0] = 0;
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-		if ( authmethod == LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
-			msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
-			if ( msgid == -1 ) {
-				tool_perror( "ldap_bind", -1, NULL, NULL, NULL, NULL );
-				exit( LDAP_LOCAL_ERROR );
-			}
-		} else
-#endif
 		{
 			/* simple bind */
 			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE, &passwd,
