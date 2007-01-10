@@ -521,7 +521,7 @@ finish:;
 	}
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rs->sr_err;
@@ -821,7 +821,7 @@ cleanup:
 	}
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, &rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;

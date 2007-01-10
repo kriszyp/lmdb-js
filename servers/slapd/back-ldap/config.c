@@ -2006,7 +2006,7 @@ retry:
 		}
 
 		if ( lc != NULL ) {
-			ldap_back_release_conn( &op2, rs, lc );
+			ldap_back_release_conn( (ldapinfo_t *)op2.o_bd->be_private, lc );
 		}
 
 	} else {

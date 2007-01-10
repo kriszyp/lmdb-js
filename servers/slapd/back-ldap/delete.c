@@ -36,7 +36,7 @@ ldap_back_delete(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
 	ldapconn_t		*lc = NULL;
 	ber_int_t		msgid;
@@ -76,7 +76,7 @@ cleanup:
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;

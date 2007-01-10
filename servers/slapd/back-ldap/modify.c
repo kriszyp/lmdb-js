@@ -130,7 +130,7 @@ cleanup:;
 	ch_free( modv );
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;
