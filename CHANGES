@@ -9,6 +9,7 @@ OpenLDAP 2.3.33 Engineering
 	Fixed slapd-ldap/meta privileged connections handling (ITS#4791)
 	Fixed slapd-meta retrying (ITS#4594, 4762)
 	Fixed slapo-chain referral DN use (ITS#4776)
+	Fixed libldap ldap_pvt_put_filter syntax checks (ITS#4648)
 
 OpenLDAP 2.3.32 Release (2007/01/04)
 	Fixed slapd add redundant duplicate value check (ITS#4600)
