@@ -901,9 +901,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_authPassword;
 	AttributeDescription *si_ad_authPasswordSchemes;
 #endif
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	AttributeDescription *si_ad_krbName;
-#endif
 	AttributeDescription *si_ad_description;
 	AttributeDescription *si_ad_seeAlso;
 
@@ -1815,7 +1812,6 @@ struct slap_backend_db {
 
 #define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */
-#define SLAP_DISALLOW_BIND_KRBV4	0x0004U /* Kerberos V4 authentication */
 
 #define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
 #define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */

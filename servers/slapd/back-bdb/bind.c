@@ -17,7 +17,6 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ac/krb.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 
@@ -30,12 +29,6 @@ bdb_bind( Operation *op, SlapReply *rs )
 	Entry		*e;
 	Attribute	*a;
 	EntryInfo	*ei;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	char		krbname[MAX_K_NAME_SZ + 1];
-	AttributeDescription *krbattr = slap_schema.si_ad_krbName;
-	struct berval	krbval;
-	AUTH_DAT	ad;
-#endif
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
@@ -144,50 +137,8 @@ dn2entry_retry:
 		rs->sr_err = 0;
 		break;
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	case LDAP_AUTH_KRBV41:
-		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad )
-			!= LDAP_SUCCESS )
-		{
-			rs->sr_err = LDAP_INVALID_CREDENTIALS,
-			goto done;
-		}
-
-		rs->sr_err = access_allowed( op, e,
-			krbattr, NULL, ACL_AUTH, NULL );
-		if ( ! rs->sr_err ) {
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS,
-			goto done;
-		}
-
-		krbval.bv_len = sprintf( krbname, "%s%s%s@%s", ad.pname,
-			*ad.pinst ? "." : "", ad.pinst, ad.prealm );
-
-		if ( (a = attr_find( e->e_attrs, krbattr )) == NULL ) {
-			/*
-			 * no krbname values present: check against DN
-			 */
-			if ( strcasecmp( op->o_req_dn.bv_val, krbname ) == 0 ) {
-				rs->sr_err = 0;
-				break;
-			}
-			rs->sr_err = LDAP_INAPPROPRIATE_AUTH,
-			goto done;
-
-		} else {	/* look for krbname match */
-			krbval.bv_val = krbname;
-
-			if ( value_find( a->a_desc, a->a_vals, &krbval ) != 0 ) {
-				rs->sr_err = LDAP_INVALID_CREDENTIALS;
-				goto done;
-			}
-		}
-		rs->sr_err = 0;
-		break;
-#endif
-
 	default:
-		assert( 0 ); /* should not be unreachable */
+		assert( 0 ); /* should not be reachable */
 		rs->sr_err = LDAP_STRONG_AUTH_NOT_SUPPORTED;
 		rs->sr_text = "authentication method not supported";
 	}

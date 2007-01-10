@@ -68,7 +68,6 @@ int		global_gentlehup = 0;
 int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
-char		*ldap_srvtab = "";
 char		**default_passwd_hash = NULL;
 struct berval default_search_base = BER_BVNULL;
 struct berval default_search_nbase = BER_BVNULL;

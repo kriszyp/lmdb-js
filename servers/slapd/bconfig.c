@@ -536,14 +536,6 @@ static ConfigTable config_back_cf_table[] = {
 	{ "sockbuf_max_incoming_auth", "max", 2, 2, 0, ARG_BER_LEN_T,
 		&sockbuf_max_incoming_auth, "( OLcfgGlAt:62 NAME 'olcSockbufMaxIncomingAuth' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "srvtab", "file", 2, 2, 0,
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-		ARG_STRING, &ldap_srvtab,
-#else
-		ARG_IGNORED, NULL,
-#endif
-		"( OLcfgGlAt:63 NAME 'olcSrvtab' "
-			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "subordinate", "[advertise]", 1, 2, 0, ARG_DB|ARG_MAGIC,
 		&config_subordinate, "( OLcfgDbAt:0.15 NAME 'olcSubordinate' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
@@ -693,7 +685,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcRootDSE $ "
 		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSecurity $ olcSizeLimit $ "
-		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ olcSrvtab $ "
+		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
@@ -2272,7 +2264,6 @@ config_disallows(ConfigArgs *c) {
 	slap_verbmasks disallowable_ops[] = {
 		{ BER_BVC("bind_anon"),		SLAP_DISALLOW_BIND_ANON },
 		{ BER_BVC("bind_simple"),	SLAP_DISALLOW_BIND_SIMPLE },
-		{ BER_BVC("bind_krb4"),		SLAP_DISALLOW_BIND_KRBV4 },
 		{ BER_BVC("tls_2_anon"),		SLAP_DISALLOW_TLS_2_ANON },
 		{ BER_BVC("tls_authc"),		SLAP_DISALLOW_TLS_AUTHC },
 		{ BER_BVNULL, 0 }

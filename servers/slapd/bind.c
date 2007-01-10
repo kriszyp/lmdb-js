@@ -86,8 +86,8 @@ do_bind(
 	 *		name		DistinguishedName,	 -- dn
 	 *		authentication	CHOICE {
 	 *			simple		[0] OCTET STRING -- passwd
-	 *			krbv42ldap	[1] OCTET STRING
-	 *			krbv42dsa	[2] OCTET STRING
+	 *			krbv42ldap	[1] OCTET STRING -- OBSOLETE
+	 *			krbv42dsa	[2] OCTET STRING -- OBSOLETE
 	 *			SASL		[3] SaslCredentials
 	 *		}
 	 *	}
@@ -339,33 +339,6 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_protocol, op->o_req_ndn.bv_val, 0 );
 			goto cleanup;
 		}
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	} else if ( op->orb_method == LDAP_AUTH_KRBV41 ) {
-		if ( global_disallows & SLAP_DISALLOW_BIND_KRBV4 ) {
-			/* disallow krbv4 authentication */
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			rs->sr_text = "unwilling to perform Kerberos V4 bind";
-
-			send_ldap_result( op, rs );
-
-			Debug( LDAP_DEBUG_TRACE,
-				"do_bind: v%d Kerberos V4 (step 1) bind refused\n",
-				op->o_protocol, 0, 0 );
-			goto cleanup;
-		}
-		BER_BVSTR( &op->orb_tmp_mech, "KRBV4" );
-
-	} else if ( op->orb_method == LDAP_AUTH_KRBV42 ) {
-		rs->sr_err = LDAP_AUTH_METHOD_NOT_SUPPORTED;
-		rs->sr_text = "Kerberos V4 (step 2) bind not supported";
-		send_ldap_result( op, rs );
-
-		Debug( LDAP_DEBUG_TRACE,
-			"do_bind: v%d Kerberos V4 (step 2) bind refused\n",
-			op->o_protocol, 0, 0 );
-		goto cleanup;
-#endif
 
 	} else {
 		rs->sr_err = LDAP_AUTH_METHOD_NOT_SUPPORTED;

@@ -1010,14 +1010,6 @@ LDAP_SLAPD_F (int)	slap_destroy LDAP_P((void));
 LDAP_SLAPD_V (char *)	slap_known_controls[];
 
 /*
- * kerberos.c
- */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-LDAP_SLAPD_V (char *)	ldap_srvtab;
-LDAP_SLAPD_V (int)	krbv4_ldap_auth();
-#endif
-
-/*
  * ldapsync.c
  */
 LDAP_SLAPD_F (void) slap_compose_sync_cookie LDAP_P((
