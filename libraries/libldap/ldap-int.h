@@ -252,9 +252,6 @@ typedef struct ldap_conn {
 #define LDAP_CONNST_CONNECTING		2
 #define LDAP_CONNST_CONNECTED		3
 	LDAPURLDesc		*lconn_server;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	char			*lconn_krbinstance;
-#endif
 	BerElement		*lconn_ber;	/* ber receiving on this conn. */
 
 	struct ldap_conn *lconn_next;
@@ -503,8 +500,7 @@ LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
 LDAP_F (int) ldap_int_poll( LDAP *ld, ber_socket_t s,
 	struct timeval *tvp );
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || \
-	defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LDAP_V (char *) ldap_int_hostname;
 LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb,
 	const char *host );

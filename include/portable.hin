@@ -132,12 +132,6 @@
 /* Define to 1 if you have the <db.h> header file. */
 #undef HAVE_DB_H
 
-/* define if you have Kerberos des_debug */
-#undef HAVE_DES_DEBUG
-
-/* Define to 1 if you have the <des.h> header file. */
-#undef HAVE_DES_H
-
 /* define if your system supports /dev/poll */
 #undef HAVE_DEVPOLL
 
@@ -250,12 +244,6 @@
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
 
-/* define if you have HEIMDAL Kerberos */
-#undef HAVE_HEIMDAL_KERBEROS
-
-/* Define to 1 if you have the <heim_err.h> header file. */
-#undef HAVE_HEIM_ERR_H
-
 /* Define to 1 if you have the `hstrerror' function. */
 #undef HAVE_HSTRERROR
 
@@ -282,36 +270,6 @@
 
 /* Define to 1 if you have the <io.h> header file. */
 #undef HAVE_IO_H
-
-/* define if you have Kerberos */
-#undef HAVE_KERBEROS
-
-/* Define to 1 if you have the <kerberosIV/des.h> header file. */
-#undef HAVE_KERBEROSIV_DES_H
-
-/* Define to 1 if you have the <kerberosIV/krb.h> header file. */
-#undef HAVE_KERBEROSIV_KRB_H
-
-/* define if you have Kerberos IV */
-#undef HAVE_KRB4
-
-/* define if you have Kerberos V with IV support */
-#undef HAVE_KRB425
-
-/* define if you have Kerberos V */
-#undef HAVE_KRB5
-
-/* Define to 1 if you have the <krb5.h> header file. */
-#undef HAVE_KRB5_H
-
-/* Define to 1 if you have the <krb-archaeology.h> header file. */
-#undef HAVE_KRB_ARCHAEOLOGY_H
-
-/* Define to 1 if you have the <krb.h> header file. */
-#undef HAVE_KRB_H
-
-/* define if you have Kth Kerberos */
-#undef HAVE_KTH_KERBEROS
 
 /* Define to 1 if you have the `gen' library (-lgen). */
 #undef HAVE_LIBGEN
@@ -818,9 +776,6 @@
 
 /* define to 1 if library is thread safe */
 #undef LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
-
-/* define to LDAP VENDOR VERSION */
-#undef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 /* define to LDAP VENDOR VERSION */
 #undef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS

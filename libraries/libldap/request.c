@@ -632,11 +632,6 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		ldap_int_sasl_close( ld, lc );
 
 		ldap_free_urllist( lc->lconn_server );
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-		if ( lc->lconn_krbinstance != NULL ) {
-			LDAP_FREE( lc->lconn_krbinstance );
-		}
-#endif
 
 		/* FIXME: is this at all possible?
 		 * ldap_ld_free() in unbind.c calls ldap_free_connection()

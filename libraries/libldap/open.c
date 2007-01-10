@@ -372,19 +372,6 @@ ldap_int_open_connection(
 	}
 #endif
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	if ( conn->lconn_krbinstance == NULL ) {
-		char *c;
-		conn->lconn_krbinstance = ldap_host_connected_to(
-			conn->lconn_sb, host );
-
-		if( conn->lconn_krbinstance != NULL && 
-		    ( c = strchr( conn->lconn_krbinstance, '.' )) != NULL ) {
-			*c = '\0';
-		}
-	}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-
 	return( 0 );
 }
 

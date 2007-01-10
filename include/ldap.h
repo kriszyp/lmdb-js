@@ -1153,35 +1153,6 @@ ldap_simple_bind_s LDAP_P(( /* deprecated, use ldap_sasl_bind_s */
 	LDAP_CONST char *who,
 	LDAP_CONST char *passwd ));
 
-
-/*
- * in kbind.c:
- *	(deprecated - use SASL instead)
- */
-LDAP_F( int )
-ldap_kerberos_bind_s LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind1 LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind1_s LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind2 LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind2_s LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
 #endif
 
 

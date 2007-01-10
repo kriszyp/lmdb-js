@@ -19,10 +19,8 @@
  *		name		DistinguishedName,	 -- who
  *		authentication	CHOICE {
  *			simple		[0] OCTET STRING -- passwd
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
- *			krbv42ldap	[1] OCTET STRING
- *			krbv42dsa	[2] OCTET STRING
-#endif
+ *			krbv42ldap	[1] OCTET STRING -- OBSOLETE
+ *			krbv42dsa	[2] OCTET STRING -- OBSOLETE
  *			sasl		[3] SaslCredentials	-- LDAPv3
  *		}
  *	}

@@ -444,8 +444,7 @@ ldap_int_destroy_global_options(void)
 	WSACleanup( );
 #endif
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
-	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	if ( ldap_int_hostname ) {
 		LDAP_FREE( ldap_int_hostname );
 		ldap_int_hostname = NULL;
@@ -529,8 +528,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
    	return;
 }
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
-	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 char * ldap_int_hostname = NULL;
 #endif
 
@@ -578,8 +576,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 }
 #endif
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
-	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	{
 		char	*name = ldap_int_hostname;
 
