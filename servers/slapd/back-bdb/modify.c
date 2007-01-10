@@ -211,7 +211,7 @@ int bdb_modify_internal(
 		attrs_free( e->e_attrs );
 		/* clear the indexing flags */
 		for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
-			ap->a_flags = 0;
+			ap->a_flags &= ~(SLAP_ATTR_IXADD|SLAP_ATTR_IXDEL);
 		}
 		e->e_attrs = save_attrs;
 
