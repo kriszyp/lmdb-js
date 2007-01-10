@@ -425,6 +425,10 @@ ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 				parens--;
 				break;
 
+			case '(':
+				rc = -1;
+				goto done;
+
 			default:
 				Debug( LDAP_DEBUG_TRACE, "put_filter: simple\n",
 				    0, 0, 0 );
@@ -497,9 +501,11 @@ ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 			str = next;
 			break;
 		}
+		if ( !parens )
+			break;
 	}
 
-	rc = parens ? -1 : 0;
+	rc = ( parens || *str ) ? -1 : 0;
 
 done:
 	LDAP_FREE( freeme );
