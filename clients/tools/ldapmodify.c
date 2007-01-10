@@ -942,6 +942,7 @@ parse_ldif_control(
 
 	if (ppctrls) pctrls = *ppctrls;
 	/* OID should come first. Validate and extract it. */
+	s = bval->bv_val;
 	if (*s == 0) return ( LDAP_PARAM_ERROR );
 	oidStart = s;
 	while (isdigit((unsigned char)*s) || *s == '.') {
