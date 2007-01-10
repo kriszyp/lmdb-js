@@ -94,7 +94,7 @@ list is passed to the init function.
 .TP
 .B pluginlog <file>
 Specify an alternative path for the plugin log file (default is
-LOCALSTATEDIR/error).
+LOCALSTATEDIR/errors).
 .TP
 .B modulepath <pathspec>
 This statement sets the module load path for dynamically loadable 
@@ -114,6 +114,9 @@ is very platform dependent.
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
+.TP
+LOCALSTATEDIR/errors
+default plugin log file
 .SH SEE ALSO
 .BR slapd (8),
 .LP
