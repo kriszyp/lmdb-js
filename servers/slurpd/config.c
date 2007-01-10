@@ -652,13 +652,6 @@ parse_replica_line(
 			AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {
 	    val = cargv[ i ] + sizeof( AUTHZSTR );
 	    ri->ri_authzId = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], 
-			SRVTABSTR, sizeof( SRVTABSTR ) - 1 ) ) {
-	    val = cargv[ i ] + sizeof( SRVTABSTR );
-	    if ( ri->ri_srvtab != NULL ) {
-		free( ri->ri_srvtab );
-	    }
-	    ri->ri_srvtab = strdup( val );
 	} else {
 	    fprintf( stderr, 
 		    "Error: parse_replica_line: unknown keyword \"%s\"\n",

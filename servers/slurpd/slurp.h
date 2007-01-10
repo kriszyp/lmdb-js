@@ -162,7 +162,6 @@
 #define	OLDAUTHCSTR		"bindprincipal"
 #define	AUTHCSTR		"authcID"
 #define	AUTHZSTR		"authzID"
-#define	SRVTABSTR		"srvtab"
 #define	SASLMECHSTR		"saslmech"
 #define	REALMSTR		"realm"
 #define	SECPROPSSTR		"secprops"

@@ -209,7 +209,6 @@ Ri_init(
     (*ri)->ri_bind_dn = NULL;
     (*ri)->ri_password = NULL;
     (*ri)->ri_authcId = NULL;
-    (*ri)->ri_srvtab = NULL;
     (*ri)->ri_curr = NULL;
 
     return 0;
