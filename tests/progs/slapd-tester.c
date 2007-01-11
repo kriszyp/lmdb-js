@@ -137,7 +137,8 @@ main( int argc, char **argv )
 	char		*sargs[MAXARGS];
 	int		sanum;
 	char		scmd[MAXPATHLEN];
-	char		sloops[] = "18446744073709551615UL";
+	/* static so that its address can be used in initializer below. */
+	static char	sloops[] = "18446744073709551615UL";
 	/* read */
 	char		*rfile = NULL;
 	char		*rreqs[MAXREQS];
@@ -146,14 +147,14 @@ main( int argc, char **argv )
 	char		*rflts[MAXREQS];
 	int		ranum;
 	char		rcmd[MAXPATHLEN];
-	char		rloops[] = "18446744073709551615UL";
+	static char	rloops[] = "18446744073709551615UL";
 	/* addel */
 	char		*afiles[MAXREQS];
 	int		anum = 0;
 	char		*aargs[MAXARGS];
 	int		aanum;
 	char		acmd[MAXPATHLEN];
-	char		aloops[] = "18446744073709551615UL";
+	static char	aloops[] = "18446744073709551615UL";
 	/* modrdn */
 	char		*nfile = NULL;
 	char		*nreqs[MAXREQS];
@@ -161,7 +162,7 @@ main( int argc, char **argv )
 	char		*nargs[MAXARGS];
 	int		nanum;
 	char		ncmd[MAXPATHLEN];
-	char		nloops[] = "18446744073709551615UL";
+	static char	nloops[] = "18446744073709551615UL";
 	/* modify */
 	char		*mfile = NULL;
 	char		*mreqs[MAXREQS];
@@ -170,7 +171,7 @@ main( int argc, char **argv )
 	char		*margs[MAXARGS];
 	int		manum;
 	char		mcmd[MAXPATHLEN];
-	char		mloops[] = "18446744073709551615UL";
+	static char	mloops[] = "18446744073709551615UL";
 	/* bind */
 	char		*bfile = NULL;
 	char		*breqs[MAXREQS];
@@ -180,7 +181,7 @@ main( int argc, char **argv )
 	char		*bargs[MAXARGS];
 	int		banum;
 	char		bcmd[MAXPATHLEN];
-	char		bloops[] = "18446744073709551615UL";
+	static char	bloops[] = "18446744073709551615UL";
 	char		**bargs_extra = NULL;
 
 	char		*friendlyOpt = NULL;
