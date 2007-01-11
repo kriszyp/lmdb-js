@@ -1167,7 +1167,7 @@ static int dosearch(
 				nextended++;
 				print_extended( ld, msg );
 
-				if( ldap_msgid( msg ) == 0 ) {
+				if ( ldap_msgid( msg ) == 0 ) {
 					/* unsolicited extended operation */
 					goto done;
 				}
