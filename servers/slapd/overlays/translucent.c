@@ -689,7 +689,6 @@ static int translucent_db_config(
 static int translucent_db_init(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov;
-	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_init\n", 0, 0, 0);
 

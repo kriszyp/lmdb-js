@@ -1837,7 +1837,6 @@ dds_initialize()
 {
 	int		rc = 0;
 	int		i, code;
-	const char	*err;
 
 	/* Make sure we don't exceed the bits reserved for userland */
 	config_check_userland( DDS_LAST );

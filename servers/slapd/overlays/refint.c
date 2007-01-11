@@ -645,7 +645,7 @@ refint_response(
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	refint_data *id = on->on_bi.bi_private;
 	BerValue pdn;
-	int rc, ac;
+	int ac;
 	refint_q *rq;
 	BackendDB *db;
 	refint_attrs *ip;

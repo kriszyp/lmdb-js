@@ -346,7 +346,6 @@ ldap_int_bisect_find( ber_int_t *v, ber_len_t n, ber_int_t id, int *idxp )
 {
 	int		begin,
 			end,
-			i,
 			rc = 0;
 
 	assert( n >= 0 );

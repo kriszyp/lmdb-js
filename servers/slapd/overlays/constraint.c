@@ -87,7 +87,6 @@ constraint_cf_gen( ConfigArgs *c )
     struct berval bv;
     int i, rc = 0;
     constraint ap = { NULL, NULL, NULL  }, *a2 = NULL;
-    regmatch_t rm[2];
     const char *text = NULL;
     
     switch ( c->op ) {

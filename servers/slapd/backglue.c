@@ -219,7 +219,6 @@ glue_op_func ( Operation *op, SlapReply *rs )
 static int
 glue_response ( Operation *op, SlapReply *rs )
 {
-	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	BackendDB *be = op->o_bd;
 	be = glue_back_select (op->o_bd, &op->o_req_ndn);
 

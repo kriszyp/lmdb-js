@@ -5178,7 +5178,6 @@ config_check_schema(CfBackInfo *cfb)
 {
 	struct berval schema_dn = BER_BVC(SCHEMA_RDN "," CONFIG_RDN);
 	ConfigArgs c = {0};
-	ConfigFile *cf = cfb->cb_config;
 	CfEntryInfo *ce, *last;
 	Entry *e;
 

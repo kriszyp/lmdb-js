@@ -262,9 +262,8 @@ int bdb_tool_id2entry_get(
 
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
-	int rc, off;
+	int rc;
 	Entry *e = NULL;
-	char *dptr;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
