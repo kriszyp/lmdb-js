@@ -805,7 +805,7 @@ retry:
 	rc = ldap_build_entry( op, e, *ent, &bdn );
 
 	if ( rc != LDAP_SUCCESS ) {
-		ch_free( *ent );
+		entry_free( *ent );
 		*ent = NULL;
 	}
 
