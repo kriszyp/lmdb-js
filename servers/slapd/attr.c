@@ -377,7 +377,6 @@ attr_normalize(
 		*nvalsp = nvals;
 	}
 
-error_return:;
 	if ( rc != LDAP_SUCCESS && nvals != NULL ) {
 		ber_bvarray_free_x( nvals, memctx );
 	}
