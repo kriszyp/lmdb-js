@@ -1326,7 +1326,22 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			fi
 
 			dnl Check functions for compatibility
-			AC_CHECK_FUNCS(pthread_kill pthread_rwlock_destroy)
+			AC_CHECK_FUNCS(pthread_kill)
+
+			dnl Check for pthread_rwlock_destroy with <pthread.h>
+			dnl as pthread_rwlock_t may not be defined.
+			AC_CACHE_CHECK([for pthread_rwlock_destroy with <pthread.h>],
+				[ol_cv_func_pthread_rwlock_destroy], [
+				dnl save the flags
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <pthread.h>
+pthread_rwlock_t rwlock;
+]], [[pthread_rwlock_destroy(&rwlock);]])],[ol_cv_func_pthread_rwlock_destroy=yes],[ol_cv_func_pthread_rwlock_destroy=no])
+			])
+			if test $ol_cv_func_pthread_rwlock_destroy = yes ; then
+				AC_DEFINE(HAVE_PTHREAD_RWLOCK_DESTROY,1,
+					[define if you have pthread_rwlock_destroy function])],
+			fi
 
 			dnl Check for pthread_detach with <pthread.h> inclusion
 			dnl as it's symbol may have been mangled.
