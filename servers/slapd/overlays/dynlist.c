@@ -298,6 +298,8 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 done:;
 	if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
 		entry_free( rs->sr_entry );
+		rs->sr_entry = NULL;
+		rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
 	}
 
 	return 0;
