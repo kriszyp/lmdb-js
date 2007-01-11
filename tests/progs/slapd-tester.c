@@ -269,7 +269,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'l':		/* the number of loops per client */
-			if ( !isdigit( optarg[0] ) ) {
+			if ( !isdigit( (unsigned char) optarg[0] ) ) {
 				char	**p,
 					**l = ldap_str2charray( optarg, "," );
 
