@@ -9,6 +9,7 @@ OpenLDAP 2.3.33 Engineering
 	Fixed slapd-ldap/meta privileged connections handling (ITS#4791)
 	Fixed slapd-meta retrying (ITS#4594, 4762)
 	Fixed slapo-chain referral DN use (ITS#4776)
+	Fixed slapo-dynlist dangling pointer after entry free (ITS#4801)
 	Fixed libldap ldap_pvt_put_filter syntax checks (ITS#4648)
 	Documentation
 		Fixed reference to deprecated stmt in slapacl(8) (ITS#4803)
