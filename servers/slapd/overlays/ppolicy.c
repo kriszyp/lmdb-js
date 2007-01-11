@@ -1282,7 +1282,7 @@ ppolicy_add(
 	if ((pa = attr_find( op->oq_add.rs_e->e_attrs,
 		slap_schema.si_ad_userPassword )))
 	{
-		assert( pa->a_vals );
+		assert( pa->a_vals != NULL );
 		assert( !BER_BVISNULL( &pa->a_vals[ 0 ] ) );
 
 		if ( !BER_BVISNULL( &pa->a_vals[ 1 ] ) ) {
