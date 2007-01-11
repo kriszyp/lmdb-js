@@ -212,6 +212,7 @@ ldap_pvt_thread_pool_maxthreads LDAP_P((
 	ldap_pvt_thread_pool_t *pool,
 	int max_threads ));
 
+#ifndef LDAP_PVT_THREAD_H_DONE
 typedef enum {
 	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN = -1,
 	LDAP_PVT_THREAD_POOL_PARAM_MAX,
@@ -226,6 +227,7 @@ typedef enum {
 	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD_MAX,
 	LDAP_PVT_THREAD_POOL_PARAM_STATE
 } ldap_pvt_thread_pool_param_t;
+#endif /* !LDAP_PVT_THREAD_H_DONE */
 
 LDAP_F( int )
 ldap_pvt_thread_pool_query LDAP_P((
