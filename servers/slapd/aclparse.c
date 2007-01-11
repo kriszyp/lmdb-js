@@ -1110,6 +1110,7 @@ parse_acl(
 				if ( strncasecmp( left, "group", STRLENOF( "group" ) ) == 0 ) {
 					char *name = NULL;
 					char *value = NULL;
+					char *attr_name = SLAPD_GROUP_ATTR;
 
 					switch ( sty ) {
 					case ACL_STYLE_REGEX:
@@ -1227,50 +1228,41 @@ parse_acl(
 					}
 
 					if ( name && *name ) {
-						rc = slap_str2ad( name, &b->a_group_at, &text );
-
-						if( rc != LDAP_SUCCESS ) {
-							char	buf[ SLAP_TEXT_BUFLEN ];
-
-							snprintf( buf, sizeof( buf ),
-								"group \"%s\": %s.",
-								right, text );
-							Debug( LDAP_DEBUG_ANY,
-								"%s: line %d: %s\n",
-								fname, lineno, buf );
-							goto fail;
-						}
+						attr_name = name;
 						*--name = '/';
 
-					} else {
-						rc = slap_str2ad( SLAPD_GROUP_ATTR, &b->a_group_at, &text );
+					}
 
-						if ( rc != LDAP_SUCCESS ) {
-							char	buf[ SLAP_TEXT_BUFLEN ];
+					rc = slap_str2ad( attr_name, &b->a_group_at, &text );
+					if ( rc != LDAP_SUCCESS ) {
+						char	buf[ SLAP_TEXT_BUFLEN ];
 
-							snprintf( buf, sizeof( buf ),
-								"group \"%s\": %s.",
-								SLAPD_GROUP_ATTR, text );
-							Debug( LDAP_DEBUG_ANY,
-								"%s: line %d: %s\n",
-								fname, lineno, buf );
-							goto fail;
-						}
+						snprintf( buf, sizeof( buf ),
+							"group \"%s\": %s.",
+							right, text );
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: %s\n",
+							fname, lineno, buf );
+						goto fail;
 					}
 
 					if ( !is_at_syntax( b->a_group_at->ad_type,
-							SLAPD_DN_SYNTAX ) &&
-						!is_at_syntax( b->a_group_at->ad_type,
-							SLAPD_NAMEUID_SYNTAX ) &&
-						!is_at_subtype( b->a_group_at->ad_type,
-							slap_schema.si_ad_labeledURI->ad_type ) )
+							SLAPD_DN_SYNTAX ) /* e.g. "member" */
+						&& !is_at_syntax( b->a_group_at->ad_type,
+							SLAPD_NAMEUID_SYNTAX ) /* e.g. memberUID */
+						&& !is_at_subtype( b->a_group_at->ad_type,
+							slap_schema.si_ad_labeledURI->ad_type ) /* e.g. memberURL */ )
 					{
 						char	buf[ SLAP_TEXT_BUFLEN ];
 
 						snprintf( buf, sizeof( buf ),
-							"group \"%s\": inappropriate syntax: %s.",
+							"group \"%s\" attr \"%s\": inappropriate syntax: %s; "
+							"must be " SLAPD_DN_SYNTAX " (DN), "
+							SLAPD_NAMEUID_SYNTAX " (NameUID) "
+							"or a subtype of labeledURI.",
 							right,
-							b->a_group_at->ad_type->sat_syntax_oid );
+							attr_name,
+							at_syntax( b->a_group_at->ad_type ) );
 						Debug( LDAP_DEBUG_ANY,
 							"%s: line %d: %s\n",
 							fname, lineno, buf );

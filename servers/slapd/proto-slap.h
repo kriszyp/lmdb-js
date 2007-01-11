@@ -230,6 +230,8 @@ LDAP_SLAPD_F (int) is_at_subtype LDAP_P((
 	AttributeType *sub,
 	AttributeType *super ));
 
+LDAP_SLAPD_F (const char *) at_syntax LDAP_P((
+	AttributeType *at ));
 LDAP_SLAPD_F (int) is_at_syntax LDAP_P((
 	AttributeType *at,
 	const char *oid ));

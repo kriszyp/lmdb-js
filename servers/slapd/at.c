@@ -27,14 +27,30 @@
 #include "slap.h"
 
 
-int is_at_syntax(
-	AttributeType *at,
-	const char *oid )
+const char *
+at_syntax(
+	AttributeType	*at )
 {
-	for( ; at != NULL; at = at->sat_sup ) {
-		if( at->sat_syntax_oid ) {
-			return ( strcmp( at->sat_syntax_oid, oid ) == 0 );
+	for ( ; at != NULL; at = at->sat_sup ) {
+		if ( at->sat_syntax_oid ) {
+			return at->sat_syntax_oid;
 		}
+	}
+
+	assert( 0 );
+
+	return NULL;
+}
+
+int
+is_at_syntax(
+	AttributeType	*at,
+	const char	*oid )
+{
+	const char *syn_oid = at_syntax( at );
+
+	if ( syn_oid ) {
+		return strcmp( syn_oid, oid ) == 0;
 	}
 
 	return 0;
