@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.33 Release (2007/01/12)
+	Fixed slapd syncrepl error logging with delta-syncrepl
 	Fixed slapd-ldap/meta privileged conn caching (ITS#4547)
 	Fixed slapd-ldap chase-referrals switch (ITS#4557)
 	Fixed slapd-ldap bind behavior when idassert is always used (ITS#4781)
