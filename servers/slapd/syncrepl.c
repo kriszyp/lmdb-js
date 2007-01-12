@@ -1298,7 +1298,7 @@ syncrepl_message_to_op(
 		} else {
 			op->orm_modlist = modlist;
 			rc = op->o_bd->be_modify( op, &rs );
-			Debug( LDAP_DEBUG_SYNC,
+			Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 				"syncrepl_message_to_op: rid %03ld be_modify %s (%d)\n", 
 				si->si_rid, op->o_req_dn.bv_val, rc );
 		}
@@ -1327,13 +1327,13 @@ syncrepl_message_to_op(
 			goto done;
 		rc = op->o_bd->be_modrdn( op, &rs );
 		slap_mods_free( op->orr_modlist, 1 );
-		Debug( LDAP_DEBUG_SYNC,
+		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 			"syncrepl_message_to_op: rid %03ld be_modrdn %s (%d)\n", 
 			si->si_rid, op->o_req_dn.bv_val, rc );
 		break;
 	case LDAP_REQ_DELETE:
 		rc = op->o_bd->be_delete( op, &rs );
-		Debug( LDAP_DEBUG_SYNC,
+		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 			"syncrepl_message_to_op: rid %03ld be_delete %s (%d)\n", 
 			si->si_rid, op->o_req_dn.bv_val, rc );
 		break;
