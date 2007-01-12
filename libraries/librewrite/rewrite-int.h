@@ -157,10 +157,11 @@ struct rewrite_map {
  * Builtin maps
  */
 struct rewrite_builtin_map {
-#define REWRITE_BUILTIN_MAP_LDAP	0x0201
+#define REWRITE_BUILTIN_MAP	0x0200
 	int                             lb_type;
 	char                           *lb_name;
 	void                           *lb_private;
+	const rewrite_mapper		   *lb_mapper;
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_mutex_t         lb_mutex;

@@ -28,6 +28,10 @@
 #include "rewrite-int.h"
 #include "rewrite-map.h"
 
+static int num_mappers;
+static const rewrite_mapper **mappers;
+#define	MAPPER_ALLOC	8
+
 struct rewrite_map *
 rewrite_map_parse(
 		struct rewrite_info *info,
@@ -417,14 +421,12 @@ rewrite_map_apply(
 	case REWRITE_MAP_BUILTIN: {
 		struct rewrite_builtin_map *bmap = map->lm_data;
 
-		switch ( bmap->lb_type ) {
-		case REWRITE_BUILTIN_MAP_LDAP:
-			rc = map_ldap_apply( bmap, key->bv_val, val );
-			break;
-		default:
+		if ( bmap->lb_mapper && bmap->lb_mapper->rm_apply )
+			rc = bmap->lb_mapper->rm_apply( bmap->lb_private, key->bv_val,
+				val );
+		else
 			rc = REWRITE_ERR;
 			break;
-		}
 		break;
 	}
 
@@ -445,15 +447,8 @@ rewrite_builtin_map_free(
 
 	assert( map != NULL );
 
-	switch ( map->lb_type ) {
-	case REWRITE_BUILTIN_MAP_LDAP:
-		map_ldap_destroy( &map );
-		break;
-
-	default:
-		assert(0);
-		break;
-	}
+	if ( map->lb_mapper && map->lb_mapper->rm_destroy )
+		map->lb_mapper->rm_destroy( map->lb_private );
 
 	free( map->lb_name );
 	free( map );
@@ -495,3 +490,58 @@ rewrite_map_destroy(
 	return 0;
 }
 
+/* ldapmap.c */
+extern const rewrite_mapper rewrite_ldap_mapper;
+
+const rewrite_mapper *
+rewrite_mapper_find(
+	const char *name
+)
+{
+	int i;
+
+	if ( !strcasecmp( name, "ldap" ))
+		return &rewrite_ldap_mapper;
+
+	for (i=0; i<num_mappers; i++)
+		if ( !strcasecmp( name, mappers[i]->rm_name ))
+			return mappers[i];
+	return NULL;
+}
+
+int
+rewrite_mapper_register(
+	const rewrite_mapper *map
+)
+{
+	if ( num_mappers % MAPPER_ALLOC == 0 ) {
+		const rewrite_mapper **mnew;
+		mnew = realloc( mappers, (num_mappers + MAPPER_ALLOC) *
+			sizeof( rewrite_mapper * ));
+		if ( mnew )
+			mappers = mnew;
+		else
+			return -1;
+	}
+	mappers[num_mappers++] = map;
+	return 0;
+}
+
+int
+rewrite_mapper_unregister(
+	const rewrite_mapper *map
+)
+{
+	int i;
+
+	for (i = 0; i<num_mappers; i++) {
+		if ( mappers[i] == map ) {
+			num_mappers--;
+			mappers[i] = mappers[num_mappers];
+			mappers[num_mappers] = NULL;
+			return 0;
+		}
+	}
+	/* not found */
+	return -1;
+}

@@ -29,26 +29,4 @@ rewrite_builtin_map_find(
                 const char *name
 );
 
-
-/*
- * LDAP map
- */
-LDAP_REWRITE_F (void  *)
-map_ldap_parse(
-		struct rewrite_info *info,
-		const char *fname,
-		int lineno,
-	       	int argc,
-	       	char **argv
-);
-
-LDAP_REWRITE_F (int)
-map_ldap_apply( struct rewrite_builtin_map *map,
-		const char *filter,
-		struct berval *val
-);
-
-LDAP_REWRITE_F (int)
-map_ldap_destroy( struct rewrite_builtin_map **map );
-
 #endif /* MAP_H */
