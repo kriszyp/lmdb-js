@@ -35,6 +35,7 @@ static void bdb_cache_lru_purge( struct bdb_info *bdb );
 
 static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 #ifdef LDAP_DEBUG
+#define SLAPD_UNUSED
 #ifdef SLAPD_UNUSED
 static void	bdb_lru_print(Cache *cache);
 #endif
@@ -76,6 +77,14 @@ bdb_cache_entryinfo_new( Cache *cache )
 	return ei;
 }
 
+#define LRU_DEL( c, e ) do { \
+	if ( e == (c)->c_lruhead ) (c)->c_lruhead = e->bei_lruprev; \
+	if ( e == (c)->c_lrutail ) (c)->c_lrutail = e->bei_lruprev; \
+	e->bei_lrunext->bei_lruprev = e->bei_lruprev; \
+	e->bei_lruprev->bei_lrunext = e->bei_lrunext; \
+	e->bei_lruprev = NULL; \
+} while ( 0 )
+
 /* Note - we now use a Second-Chance / Clock algorithm instead of
  * Least-Recently-Used. This tremendously improves concurrency
  * because we no longer need to manipulate the lists every time an
@@ -87,8 +96,14 @@ bdb_cache_entryinfo_new( Cache *cache )
 static void
 bdb_cache_lru_link( struct bdb_info *bdb, EntryInfo *ei )
 {
+
 	/* Insert into circular LRU list */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
+
+	/* Still linked, remove */
+	if ( ei->bei_lruprev ) {
+		LRU_DEL( &bdb->bi_cache, ei );
+	}
 	ei->bei_lruprev = bdb->bi_cache.c_lrutail;
 	if ( bdb->bi_cache.c_lrutail ) {
 		ei->bei_lrunext = bdb->bi_cache.c_lrutail->bei_lrunext;
@@ -552,25 +567,19 @@ int hdb_cache_load(
 }
 #endif
 
-#define LRU_DEL( c, e ) do { \
-	if ( e == (c)->c_lruhead ) (c)->c_lruhead = e->bei_lrunext; \
-	if ( e == (c)->c_lrutail ) (c)->c_lrutail = e->bei_lruprev; \
-	e->bei_lrunext->bei_lruprev = e->bei_lruprev; \
-	e->bei_lruprev->bei_lrunext = e->bei_lrunext; \
-} while ( 0 )
-
+/* This is best-effort only. If all entries in the cache are
+ * busy, they will all be kept. This is unlikely to happen
+ * unless the cache is very much smaller than the working set.
+ */
 static void
 bdb_cache_lru_purge( struct bdb_info *bdb )
 {
 	DB_LOCK		lock, *lockp;
-	EntryInfo *elru, *elnext;
-	int i, count, islocked, tests;
+	EntryInfo *elru, *elnext = NULL;
+	int count, islocked, eimax;
 
-	/* Don't bother if we can't get the lock */
-	if ( ldap_pvt_thread_mutex_trylock( &bdb->bi_cache.c_lru_mutex ) ) {
-		bdb->bi_cache.c_purging = 0;
-		return;
-	}
+	/* Wait for the mutex; we're the only one trying to purge. */
+	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
 
 	if ( bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize ) {
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_lru_mutex );
@@ -586,35 +595,36 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 
 	count = 0;
 
-	/* Give up after two loops around the circle */
-	tests = bdb->bi_cache.c_cursize * 2;
+	/* maximum number of EntryInfo leaves to cache. In slapcat
+	 * we always free all leaf nodes.
+	 */
+	if ( slapMode & SLAP_TOOL_READONLY )
+		eimax = 0;
+	else
+		eimax = bdb->bi_cache.c_maxsize * 4;
 
 	/* Look for an unused entry to remove */
-	for ( i = 0, elru = bdb->bi_cache.c_lruhead; i < tests;
-		i++, elru = elnext ) {
+	for ( elru = bdb->bi_cache.c_lruhead; elru; elru = elnext ) {
 		elnext = elru->bei_lrunext;
 
 		if ( ldap_pvt_thread_mutex_trylock( &elru->bei_kids_mutex ))
-			continue;
+			goto bottom;
 
 		/* This flag implements the clock replacement behavior */
 		if ( elru->bei_state & ( CACHE_ENTRY_REFERENCED )) {
 			elru->bei_state &= ~CACHE_ENTRY_REFERENCED;
 			bdb_cache_entryinfo_unlock( elru );
-			continue;
+			goto bottom;
 		}
 
 		/* If this node is in the process of linking into the cache,
 		 * or this node is being deleted, skip it.
-		 *
-		 * Also, if this node has no entry attached, skip it, there's
-		 * nothing to purge anyway.
 		 */
 		if (( elru->bei_state & ( CACHE_ENTRY_NOT_LINKED |
 			CACHE_ENTRY_DELETED | CACHE_ENTRY_LOADING )) ||
-			elru->bei_finders > 0 || !elru->bei_e ) {
+			elru->bei_finders > 0 ) {
 			bdb_cache_entryinfo_unlock( elru );
-			continue;
+			goto bottom;
 		}
 
 		/* entryinfo is locked */
@@ -639,23 +649,18 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			}
 			bdb_cache_entry_db_unlock( bdb, lockp );
 
-			/* ITS#4010 if we're in slapcat, and this node is a leaf
-			 * node, free it.
-			 *
-			 * FIXME: we need to do this for slapd as well, (which is
-			 * why we compute bi_cache.c_leaves now) but at the moment
-			 * we can't because it causes unresolvable deadlocks. 
+			/* 
+			 * If it is a leaf node, and we're over the limit, free it.
 			 */
-			if ( slapMode & SLAP_TOOL_READONLY ) {
-				if ( !elru->bei_kids ) {
-					bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
-					bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
-					islocked = 0;
-				}
-				/* Leave node on LRU list for a future pass */
-			} else {
+			if ( elru->bei_kids ) {
+				/* Drop from list, we ignore it... */
 				LRU_DEL( &bdb->bi_cache, elru );
-			}
+			} else if ( bdb->bi_cache.c_leaves > eimax ) {
+				/* Too many leaf nodes, free this one */
+				bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
+				bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
+				islocked = 0;
+			}	/* Leave on list until we need to free it */
 		}
 
 		if ( islocked )
@@ -667,6 +672,9 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 			break;
 		}
+bottom:
+		if ( elnext == bdb->bi_cache.c_lruhead )
+			break;
 	}
 
 	bdb->bi_cache.c_lruhead = elnext;
