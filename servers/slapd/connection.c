@@ -747,11 +747,12 @@ connection_destroy( Connection *c )
 		slapd_remove( sd, sb, 1, 0, 0 );
 
 		if ( close_reason == NULL ) {
-			close_reason = "";
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed\n",
+				connid, (long) sd, 0, 0, 0 );
+		} else {
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed (%s)\n",
+				connid, (long) sd, close_reason, 0, 0 );
 		}
-
-		Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed (%s)\n",
-			connid, (long) sd, close_reason, 0, 0 );
 	}
 }
 
