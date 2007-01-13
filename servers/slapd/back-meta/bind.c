@@ -205,7 +205,9 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			ber_dupbv( &op->orb_edn, be_root_dn( op->o_bd ) );
 		}
 
-		if ( !dn_match( &op->o_req_ndn, &mc->mc_local_ndn ) ) {
+		if ( !LDAP_BACK_PCONN_ISPRIV( mc )
+			&& !dn_match( &op->o_req_ndn, &mc->mc_local_ndn ) )
+		{
 			metaconn_t	*tmpmc;
 			int		lerr;
 
@@ -271,7 +273,7 @@ retry_lock:;
 	}
 
 	if ( mc != NULL ) {
-		meta_back_release_conn( op, mc );
+		meta_back_release_conn( mi, mc );
 	}
 
 	/*
@@ -603,7 +605,7 @@ meta_back_single_dobind(
 	        LDAP_BACK_CONN_BINDING_CLEAR( msc );
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 	        	LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_back_release_conn_lock( op, mc, 0 );
+			meta_back_release_conn_lock( mi, mc, 0 );
 			*mcp = NULL;
 		}
 		if ( dolock ) {
@@ -720,7 +722,7 @@ retry_binding:;
 					ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 					LDAP_BACK_CONN_BINDING_CLEAR( msc );
 					ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-					meta_back_release_conn( op, mc );
+					meta_back_release_conn( mi, mc );
 				}
 
 				return 0;
@@ -779,7 +781,7 @@ done:;
 		op->o_log_prefix, LDAP_BACK_PCONN_ID( mc ), bound );
 
 	if ( bound == 0 ) {
-		meta_back_release_conn( op, mc );
+		meta_back_release_conn( mi, mc );
 
 send_err:;
 		if ( sendok & LDAP_BACK_SENDERR ) {
@@ -1278,7 +1280,10 @@ meta_back_proxy_authz_cred(
 
 	default:
 		/* NOTE: rootdn can always idassert */
-		if ( BER_BVISNULL( &ndn ) && mt->mt_idassert_authz == NULL ) {
+		if ( BER_BVISNULL( &ndn )
+			&& mt->mt_idassert_authz == NULL
+			&& !( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+		{
 			if ( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
 				rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
 				if ( sendok & LDAP_BACK_SENDERR ) {

@@ -375,14 +375,18 @@ typedef struct metainfo_t {
 #define	META_BACK_F_ONERR_REPORT	(0x00200000U)
 #define	META_BACK_F_ONERR_MASK		(META_BACK_F_ONERR_STOP|META_BACK_F_ONERR_REPORT)
 #define	META_BACK_F_DEFER_ROOTDN_BIND	(0x00400000U)
-#define	META_BACK_F_PROXYAUTHZ_ALWAYS	(0x00800000U)
+#define	META_BACK_F_PROXYAUTHZ_ALWAYS	(0x00800000U)	/* users always proxyauthz */
+#define	META_BACK_F_PROXYAUTHZ_ANON	(0x01000000U)	/* anonymous always proxyauthz */
+#define	META_BACK_F_PROXYAUTHZ_NOANON	(0x02000000U)	/* anonymous remains anonymous */
 
-#define	META_BACK_ONERR_STOP(mi)	( (mi)->mi_flags & META_BACK_F_ONERR_STOP )
-#define	META_BACK_ONERR_REPORT(mi)	( (mi)->mi_flags & META_BACK_F_ONERR_REPORT )
-#define	META_BACK_ONERR_CONTINUE(mi)	( !( (mi)->mi_flags & META_BACK_F_ONERR_MASK ) )
+#define	META_BACK_ONERR_STOP(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_STOP )
+#define	META_BACK_ONERR_REPORT(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_REPORT )
+#define	META_BACK_ONERR_CONTINUE(mi)	( !LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_MASK ) )
 
-#define META_BACK_DEFER_ROOTDN_BIND(mi)	( (mi)->mi_flags & META_BACK_F_DEFER_ROOTDN_BIND )
-#define META_BACK_PROXYAUTHZ_ALWAYS(mi)	( (mi)->mi_flags & META_BACK_F_PROXYAUTHZ_ALWAYS )
+#define META_BACK_DEFER_ROOTDN_BIND(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_DEFER_ROOTDN_BIND )
+#define META_BACK_PROXYAUTHZ_ALWAYS(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_ALWAYS )
+#define META_BACK_PROXYAUTHZ_ANON(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_ANON )
+#define META_BACK_PROXYAUTHZ_NOANON(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_NOANON )
 
 	int			mi_version;
 	time_t			mi_network_timeout;
@@ -410,10 +414,10 @@ meta_back_getconn(
 
 extern void
 meta_back_release_conn_lock(
-       	Operation 		*op,
+       	metainfo_t		*mi,
 	metaconn_t		*mc,
 	int			dolock );
-#define meta_back_release_conn(op, mc)	meta_back_release_conn_lock( (op), (mc), 1 )
+#define meta_back_release_conn(mi, mc)	meta_back_release_conn_lock( (mi), (mc), 1 )
 
 extern int
 meta_back_retry(

@@ -134,6 +134,8 @@ meta_back_db_open(
 
 	int		i,
 			not_always = 0,
+			not_always_anon_proxyauthz = 0,
+			not_always_anon_non_prescriptive = 0,
 			rc;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
@@ -165,15 +167,46 @@ meta_back_db_open(
 
 		if ( not_always == 0 ) {
 			if ( !( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )
-				|| !( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+				|| mt->mt_idassert_authz != NULL )
 			{
 				not_always = 1;
+			}
+		}
+
+		if ( ( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL )
+			&& !( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) )
+		{
+			Debug( LDAP_DEBUG_ANY, "meta_back_db_open(%s): "
+				"target #%d inconsistent idassert configuration "
+				"(likely authz=\"*\" used with \"non-prescriptive\" flag)\n",
+				be->be_suffix[ 0 ].bv_val, i, 0 );
+			return 1;
+		}
+
+		if ( not_always_anon_proxyauthz == 0 ) {
+			if ( !( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+			{
+				not_always_anon_proxyauthz = 1;
+			}
+		}
+
+		if ( not_always_anon_non_prescriptive == 0 ) {
+			if ( ( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) )
+			{
+				not_always_anon_non_prescriptive = 1;
 			}
 		}
 	}
 
 	if ( not_always == 0 ) {
 		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_ALWAYS;
+	}
+
+	if ( not_always_anon_proxyauthz == 0 ) {
+		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_ANON;
+
+	} else if ( not_always_anon_non_prescriptive == 0 ) {
+		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_NOANON;
 	}
 
 	return 0;

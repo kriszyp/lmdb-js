@@ -328,7 +328,7 @@ other:;
 		candidates[ candidate ].sr_err = rc;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 			LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_back_release_conn_lock( op, mc, 0 );
+			meta_back_release_conn_lock( mi, mc, 0 );
 			*mcp = NULL;
 			rs->sr_err = rc;
 
@@ -381,7 +381,7 @@ meta_search_dobind_result(
 		candidates[ candidate ].sr_err = rc;
 		if ( META_BACK_ONERR_STOP( mi ) ) {
 	        	LDAP_BACK_CONN_TAINTED_SET( mc );
-			meta_back_release_conn_lock( op, mc, 0 );
+			meta_back_release_conn_lock( mi, mc, 0 );
 			*mcp = NULL;
 			retcode = META_SEARCH_ERR;
 			rs->sr_err = rc;
@@ -780,7 +780,7 @@ getconn:;
 			op->o_log_prefix, (void *)mc, 0 );
 #endif /* DEBUG_205 */
 
-		meta_back_release_conn( op, mc );
+		meta_back_release_conn( mi, mc );
 		mc = NULL;
 
 		needbind = 0;
@@ -1668,7 +1668,7 @@ finish:;
 	}
 
 	if ( mc ) {
-		meta_back_release_conn( op, mc );
+		meta_back_release_conn( mi, mc );
 	}
 
 	return rs->sr_err;

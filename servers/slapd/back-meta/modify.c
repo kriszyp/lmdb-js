@@ -214,7 +214,7 @@ cleanup:;
 	free( modv );
 
 	if ( mc ) {
-		meta_back_release_conn( op, mc );
+		meta_back_release_conn( mi, mc );
 	}
 
 	return rs->sr_err;

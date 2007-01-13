@@ -1080,7 +1080,8 @@ retry_lock:
 
 			snprintf( buf, sizeof( buf ),
 				"conn %p fetched refcnt=%u%s",
-				(void *)lc, refcnt, expiring ? " expiring" : "" );
+				(void *)lc, refcnt,
+				expiring ? " expiring" : "" );
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
 		}
