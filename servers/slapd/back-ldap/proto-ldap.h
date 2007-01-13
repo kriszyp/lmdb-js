@@ -47,8 +47,8 @@ extern BI_connection_destroy	ldap_back_conn_destroy;
 
 extern BI_entry_get_rw		ldap_back_entry_get;
 
-void ldap_back_release_conn_lock( Operation *op, SlapReply *rs, ldapconn_t **lcp, int dolock );
-#define ldap_back_release_conn(op, rs, lc) ldap_back_release_conn_lock((op), (rs), &(lc), 1)
+void ldap_back_release_conn_lock( ldapinfo_t *li, ldapconn_t **lcp, int dolock );
+#define ldap_back_release_conn(li, lc) ldap_back_release_conn_lock((li), &(lc), 1)
 int ldap_back_dobind( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_map_result( SlapReply *rs );
@@ -62,6 +62,8 @@ extern int ldap_back_conndn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conndn_dup( void *c1, void *c2 );
 extern void ldap_back_conn_free( void *c );
+
+extern ldapconn_t * ldap_back_conn_delete( ldapinfo_t *li, ldapconn_t *lc );
 
 extern int
 ldap_back_proxy_authz_ctrl(

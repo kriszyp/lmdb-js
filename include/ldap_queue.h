@@ -111,6 +111,7 @@
  * _HEAD		+	+	+	+	+
  * _ENTRY		+	+	+	+	+
  * _INIT		+	+	+	+	+
+ * _ENTRY_INIT		+	+	+	+	+
  * _EMPTY		+	+	+	+	+
  * _FIRST		+	+	+	+	+
  * _NEXT		+	+	+	+	+
@@ -158,6 +159,10 @@ struct {								\
 
 #define LDAP_SLIST_INIT(head) {						\
 	(head)->slh_first = NULL;					\
+}
+
+#define LDAP_SLIST_ENTRY_INIT(var, field) {				\
+	(var)->field.sle_next = NULL;					\
 }
 
 #define LDAP_SLIST_INSERT_AFTER(slistelm, elm, field) do {		\
@@ -218,6 +223,10 @@ struct {								\
 	(head)->stqh_first = NULL;					\
 	(head)->stqh_last = &(head)->stqh_first;			\
 } while (0)
+
+#define LDAP_STAILQ_ENTRY_INIT(var, field) {				\
+	(entry)->field.stqe_next = NULL;				\
+}
 
 #define LDAP_STAILQ_FIRST(head)	((head)->stqh_first)
 
@@ -310,6 +319,11 @@ struct {								\
 	(head)->lh_first = NULL;					\
 } while (0)
 
+#define LDAP_LIST_ENTRY_INIT(var, field) do {				\
+	(var)->field.le_next = NULL;					\
+	(var)->field.le_prev = NULL;					\
+} while (0)
+
 #define LDAP_LIST_INSERT_AFTER(listelm, elm, field) do {		\
 	if (((elm)->field.le_next = (listelm)->field.le_next) != NULL)	\
 		(listelm)->field.le_next->field.le_prev =		\
@@ -396,6 +410,11 @@ struct {								\
 	(head)->tqh_last = &(head)->tqh_first;				\
 } while (0)
 
+#define LDAP_TAILQ_ENTRY_INIT(var, field) do {				\
+	(var)->field.tqe_next = NULL;					\
+	(var)->field.tqe_prev = NULL;					\
+} while (0)
+
 #define LDAP_TAILQ_INSERT_HEAD(head, elm, field) do {			\
 	if (((elm)->field.tqe_next = (head)->tqh_first) != NULL)	\
 		(head)->tqh_first->field.tqe_prev =			\
@@ -474,6 +493,11 @@ struct {								\
 #define	LDAP_CIRCLEQ_INIT(head) do {					\
 	(head)->cqh_first = (void *)(head);				\
 	(head)->cqh_last = (void *)(head);				\
+} while (0)
+
+#define LDAP_CIRCLEQ_ENTRY_INIT(var, field) do {			\
+	(var)->field.cqe_next = NULL;					\
+	(var)->field.cqe_prev = NULL;					\
 } while (0)
 
 #define LDAP_CIRCLEQ_INSERT_AFTER(head, listelm, elm, field) do {	\

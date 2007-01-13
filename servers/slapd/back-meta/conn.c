@@ -734,7 +734,7 @@ meta_back_retry(
 			 * let the caller do what's best before
 			 * releasing */
 			if ( META_BACK_ONERR_STOP( mi ) ) {
-				meta_back_release_conn_lock( op, mc, 0 );
+				meta_back_release_conn_lock( mi, mc, 0 );
 				*mcp = NULL;
 
 			} else {
@@ -750,8 +750,7 @@ meta_back_retry(
 						LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
 							mc, mc_q );
 						mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num--;
-						mc->mc_q.tqe_prev = NULL;
-						mc->mc_q.tqe_next = NULL;
+						LDAP_TAILQ_ENTRY_INIT( mc, mc_q );
 
 					} else {
 						assert( !LDAP_BACK_CONN_CACHED( mc ) );
@@ -1017,17 +1016,28 @@ meta_back_getconn(
 	SlapReply	*candidates = meta_back_candidates_get( op );
 
 	/* Internal searches are privileged and shared. So is root. */
-	/* FIXME: there seems to be concurrency issues */
-	if ( META_BACK_PROXYAUTHZ_ALWAYS( mi ) || op->o_do_not_cache || be_isroot( op ) ) {
-		mc_curr.mc_local_ndn = op->o_bd->be_rootndn;
+	if ( ( !BER_BVISEMPTY( &op->o_ndn ) && META_BACK_PROXYAUTHZ_ALWAYS( mi ) )
+		|| ( BER_BVISEMPTY( &op->o_ndn ) && META_BACK_PROXYAUTHZ_ANON( mi ) )
+		|| op->o_do_not_cache || be_isroot( op ) )
+	{
 		LDAP_BACK_CONN_ISPRIV_SET( &mc_curr );
+		mc_curr.mc_local_ndn = op->o_bd->be_rootndn;
 		LDAP_BACK_PCONN_ROOTDN_SET( &mc_curr, op );
+
+	} else if ( BER_BVISEMPTY( &op->o_ndn ) && META_BACK_PROXYAUTHZ_NOANON( mi ) )
+	{
+		LDAP_BACK_CONN_ISANON_SET( &mc_curr );
+		BER_BVSTR( &mc_curr.mc_local_ndn, "" );
+		LDAP_BACK_PCONN_ANON_SET( &mc_curr, op );
 
 	} else {
 		mc_curr.mc_local_ndn = op->o_ndn;
 
 		/* Explicit binds must not be shared */
-		if ( op->o_tag == LDAP_REQ_BIND || SLAP_IS_AUTHZ_BACKEND( op ) ) {
+		if ( !BER_BVISEMPTY( &op->o_ndn )
+			|| op->o_tag == LDAP_REQ_BIND
+			|| SLAP_IS_AUTHZ_BACKEND( op ) )
+		{
 			mc_curr.mc_conn = op->o_conn;
 	
 		} else {
@@ -1037,7 +1047,10 @@ meta_back_getconn(
 	}
 
 	/* Explicit Bind requests always get their own conn */
-	if ( !( sendok & LDAP_BACK_BINDING ) ) {
+	if ( sendok & LDAP_BACK_BINDING ) {
+		mc_curr.mc_conn = op->o_conn;
+
+	} else {
 		/* Searches for a metaconn in the avl tree */
 retry_lock:;
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
@@ -1058,8 +1071,7 @@ retry_lock:;
 				{
 					LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
 						mc, mc_q );
-					mc->mc_q.tqe_prev = NULL;
-					mc->mc_q.tqe_next = NULL;
+					LDAP_TAILQ_ENTRY_INIT( mc, mc_q );
 					LDAP_TAILQ_INSERT_TAIL( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
 						mc, mc_q );
 				}
@@ -1110,8 +1122,7 @@ retry_lock:;
 							LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv,
 								mc, mc_q );
 							mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num--;
-							mc->mc_q.tqe_prev = NULL;
-							mc->mc_q.tqe_next = NULL;
+							LDAP_TAILQ_ENTRY_INIT( mc, mc_q );
 
 						} else {
 							assert( !LDAP_BACK_CONN_CACHED( mc ) );
@@ -1237,7 +1248,7 @@ retry_lock:;
 				meta_back_conn_free( mc );
 
 			} else {
-				meta_back_release_conn( op, mc );
+				meta_back_release_conn( mi, mc );
 			}
 
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
@@ -1288,7 +1299,7 @@ retry_lock:;
 	
 			if ( i < 0 || rs->sr_err != LDAP_SUCCESS ) {
 				if ( mc != NULL ) {
-					meta_back_release_conn( op, mc );
+					meta_back_release_conn( mi, mc );
 				}
 
 				if ( sendok & LDAP_BACK_SENDERR ) {
@@ -1307,7 +1318,7 @@ retry_lock:;
 		if ( dn_type == META_DNTYPE_NEWPARENT && meta_back_get_candidate( op, rs, op->orr_nnewSup ) != i )
 		{
 			if ( mc != NULL ) {
-				meta_back_release_conn( op, mc );
+				meta_back_release_conn( mi, mc );
 			}
 
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -1402,7 +1413,7 @@ retry_lock2:;
 				meta_back_conn_free( mc );
 
 			} else {
-				meta_back_release_conn( op, mc );
+				meta_back_release_conn( mi, mc );
 			}
 			return NULL;
 		}
@@ -1499,7 +1510,7 @@ retry_lock2:;
 							meta_back_conn_free( mc );
 
 						} else {
-							meta_back_release_conn( op, mc );
+							meta_back_release_conn( mi, mc );
 						}
 
 						return NULL;
@@ -1522,7 +1533,7 @@ retry_lock2:;
 				meta_back_conn_free( mc );
 
 			} else {
-				meta_back_release_conn( op, mc );
+				meta_back_release_conn( mi, mc );
 			}
 
 			if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -1647,12 +1658,10 @@ done:;
 
 void
 meta_back_release_conn_lock(
-       	Operation 		*op,
+       	metainfo_t		*mi,
 	metaconn_t		*mc,
 	int			dolock )
 {
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-
 	assert( mc != NULL );
 
 	if ( dolock ) {
@@ -1667,8 +1676,6 @@ meta_back_release_conn_lock(
 	 * the connection space (and eat up resources).  Maybe this
 	 * should be configurable... */
 	if ( LDAP_BACK_CONN_TAINTED( mc ) ) {
-		Debug( LDAP_DEBUG_TRACE, "%s meta_back_release_conn: mc=%p conn=%ld tainted.\n",
-			op->o_log_prefix, (void *)mc, LDAP_BACK_PCONN_ID( mc ) );
 #if META_BACK_PRINT_CONNTREE > 0
 		meta_back_print_conntree( mi, ">>> meta_back_release_conn" );
 #endif /* META_BACK_PRINT_CONNTREE */
@@ -1677,14 +1684,13 @@ meta_back_release_conn_lock(
 			if ( mc->mc_q.tqe_prev != NULL ) {
 				assert( LDAP_BACK_CONN_CACHED( mc ) );
 				assert( mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num > 0 );
-				mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num--;
 				LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv, mc, mc_q );
+				mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num--;
+				LDAP_TAILQ_ENTRY_INIT( mc, mc_q );
 
 			} else {
 				assert( !LDAP_BACK_CONN_CACHED( mc ) );
 			}
-			mc->mc_q.tqe_prev = NULL;
-			mc->mc_q.tqe_next = NULL;
 
 		} else {
 			metaconn_t	*tmpmc;
@@ -1692,12 +1698,7 @@ meta_back_release_conn_lock(
 			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree,
 				( caddr_t )mc, meta_back_conndnmc_cmp );
 
-			if ( tmpmc == NULL ) {
-				Debug( LDAP_DEBUG_TRACE, "%s: meta_back_release_conn: unable to find mc=%p\n",
-					op->o_log_prefix, (void *)mc, 0 );
-			} else {
-				assert( tmpmc == mc );
-			}
+			assert( tmpmc == NULL && tmpmc == mc );
 		}
 
 		LDAP_BACK_CONN_CACHED_CLEAR( mc );

@@ -551,7 +551,6 @@ slap_idassert_authzfrom_parse( ConfigArgs *c, slap_idassert_t *si )
 	struct berval	bv;
 
  	if ( strcmp( c->argv[ 1 ], "*" ) == 0
- 		|| strcmp( c->argv[ 1 ], ".*" ) == 0
  		|| strcmp( c->argv[ 1 ], "dn:*" ) == 0
  		|| strcasecmp( c->argv[ 1 ], "dn.regex:.*" ) == 0 )
  	{
@@ -1979,7 +1978,7 @@ retry:
 		}
 
 		if ( lc != NULL ) {
-			ldap_back_release_conn( &op2, rs, lc );
+			ldap_back_release_conn( (ldapinfo_t *)op2.o_bd->be_private, lc );
 		}
 
 	} else {

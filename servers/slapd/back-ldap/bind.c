@@ -112,7 +112,7 @@ ldap_back_print_conntree( ldapinfo_t *li, char *msg )
 #endif /* LDAP_BACK_PRINT_CONNTREE */
 
 static int
-ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock );
+ldap_back_freeconn( ldapinfo_t *li, ldapconn_t *lc, int dolock );
 
 static ldapconn_t *
 ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
@@ -127,11 +127,45 @@ ldap_back_proxy_authz_bind( ldapconn_t *lc, Operation *op, SlapReply *rs,
 	ldap_back_send_t sendok, struct berval *binddn, struct berval *bindcred );
 
 static int
-ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs,
+ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs,
 	ldap_back_send_t sendok );
 
 static int
 ldap_back_conndnlc_cmp( const void *c1, const void *c2 );
+
+ldapconn_t *
+ldap_back_conn_delete( ldapinfo_t *li, ldapconn_t *lc )
+{
+	if ( LDAP_BACK_PCONN_ISPRIV( lc ) ) {
+		if ( LDAP_BACK_CONN_CACHED( lc ) ) {
+			assert( lc->lc_q.tqe_prev != NULL );
+			assert( li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num > 0 );
+			li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num--;
+			LDAP_TAILQ_REMOVE( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv, lc, lc_q );
+			LDAP_TAILQ_ENTRY_INIT( lc, lc_q );
+			LDAP_BACK_CONN_CACHED_CLEAR( lc );
+
+		} else {
+			assert( LDAP_BACK_CONN_TAINTED( lc ) );
+			assert( lc->lc_q.tqe_prev == NULL );
+		}
+
+	} else {
+		ldapconn_t	*tmplc = NULL;
+
+		if ( LDAP_BACK_CONN_CACHED( lc ) ) {
+			assert( !LDAP_BACK_CONN_TAINTED( lc ) );
+			tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
+				ldap_back_conndnlc_cmp );
+			assert( tmplc == lc );
+			LDAP_BACK_CONN_CACHED_CLEAR( lc );
+		}
+
+		assert( LDAP_BACK_CONN_TAINTED( lc ) || tmplc == lc );
+	}
+
+	return lc;
+}
 
 int
 ldap_back_bind( Operation *op, SlapReply *rs )
@@ -187,9 +221,7 @@ retry:;
 		 * connection with identity assertion */
 		/* NOTE: use with care */
 		if ( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
-			assert( lc->lc_binding == 1 );
-			lc->lc_binding = 0;
-			ldap_back_release_conn( op, rs, lc );
+			ldap_back_release_conn( li, lc );
 			return( rc );
 		}
 
@@ -211,9 +243,6 @@ retry:;
 			lc->lc_cred.bv_len = 0;
 		}
 	}
-
-	assert( lc->lc_binding == 1 );
-	lc->lc_binding = 0;
 
 	/* must re-insert if local DN changed as result of bind */
 	if ( !LDAP_BACK_CONN_ISBOUND( lc )
@@ -237,27 +266,7 @@ retry_lock:;
 #endif /* LDAP_BACK_PRINT_CONNTREE */
 
 		assert( lc->lc_refcnt == 1 );
-		if ( LDAP_BACK_PCONN_ISPRIV( lc ) ) {
-			/* this can happen, for example, if the bind fails
-			 * for some reason... */
-			if ( lc->lc_q.tqe_prev != NULL ) {
-				assert( LDAP_BACK_CONN_CACHED( lc ) );
-				assert( li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num > 0 );
-				LDAP_TAILQ_REMOVE( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv, lc, lc_q );
-				li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num--;
-				lc->lc_q.tqe_prev = NULL;
-				lc->lc_q.tqe_next = NULL;
-
-			} else {
-				assert( !LDAP_BACK_CONN_CACHED( lc ) );
-			}
-
-		} else {
-			tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-					ldap_back_conndnlc_cmp );
-			assert( ( LDAP_BACK_CONN_TAINTED( lc ) && tmplc == NULL ) || lc == tmplc );
-		}
-		LDAP_BACK_CONN_CACHED_CLEAR( lc );
+		ldap_back_conn_delete( li, lc );
 
 		/* delete all cached connections with the current connection */
 		if ( LDAP_BACK_SINGLECONN( li ) ) {
@@ -312,7 +321,7 @@ retry_lock:;
 	}
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return( rc );
@@ -414,10 +423,8 @@ ldap_back_conndn_dup( void *c1, void *c2 )
 }
 
 static int
-ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
+ldap_back_freeconn( ldapinfo_t *li, ldapconn_t *lc, int dolock )
 {
-	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
-
 	if ( dolock ) {
 		ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 	}
@@ -426,31 +433,7 @@ ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock )
 	ldap_back_print_conntree( li, ">>> ldap_back_freeconn" );
 #endif /* LDAP_BACK_PRINT_CONNTREE */
 
-	if ( LDAP_BACK_PCONN_ISPRIV( lc ) ) {
-		if ( lc->lc_q.tqe_prev != NULL ) {
-			assert( LDAP_BACK_CONN_CACHED( lc ) );
-			assert( li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num > 0 );
-			li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num--;
-			LDAP_TAILQ_REMOVE( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv, lc, lc_q );
-			LDAP_BACK_CONN_CACHED_CLEAR( lc );
-
-		} else {
-			assert( !LDAP_BACK_CONN_CACHED( lc ) );
-		}
-		lc->lc_q.tqe_prev = NULL;
-		lc->lc_q.tqe_next = NULL;
-
-	} else {
-		ldapconn_t	*tmplc = NULL;
-
-		if ( LDAP_BACK_CONN_CACHED( lc ) ) {
-			tmplc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-				ldap_back_conndnlc_cmp );
-			assert( tmplc == lc );
-			LDAP_BACK_CONN_CACHED_CLEAR( lc );
-		}
-		assert( LDAP_BACK_CONN_TAINTED( lc ) || tmplc == lc );
-	}
+	(void)ldap_back_conn_delete( li, lc );
 
 	if ( lc->lc_refcnt == 0 ) {
 		ldap_back_conn_free( (void *)lc );
@@ -610,7 +593,7 @@ retry:;
 #endif /* HAVE_TLS */
 
 static int
-ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
+ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 	int		version;
@@ -619,8 +602,6 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	int		is_tls = op->o_conn->c_is_tls;
 	time_t		lc_time = (time_t)(-1);
 #endif /* HAVE_TLS */
-
-	assert( lcp != NULL );
 
 	ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 	rs->sr_err = ldap_initialize( &ld, li->li_uri );
@@ -671,21 +652,16 @@ ldap_back_prepare_conn( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_bac
 	}
 #endif /* HAVE_TLS */
 
-	if ( *lcp == NULL ) {
-		*lcp = (ldapconn_t *)ch_calloc( 1, sizeof( ldapconn_t ) );
-		(*lcp)->lc_flags = li->li_flags;
-	}
-	(*lcp)->lc_ld = ld;
-	(*lcp)->lc_refcnt = 1;
-	(*lcp)->lc_binding = 1;
+	lc->lc_ld = ld;
+	lc->lc_refcnt = 1;
 #ifdef HAVE_TLS
 	if ( is_tls ) {
-		LDAP_BACK_CONN_ISTLS_SET( *lcp );
+		LDAP_BACK_CONN_ISTLS_SET( lc );
 	} else {
-		LDAP_BACK_CONN_ISTLS_CLEAR( *lcp );
+		LDAP_BACK_CONN_ISTLS_CLEAR( lc );
 	}
 	if ( lc_time != (time_t)(-1) ) {
-		(*lcp)->lc_time = lc_time;
+		lc->lc_time = lc_time;
 	}
 #endif /* HAVE_TLS */
 
@@ -702,7 +678,7 @@ error_return:;
 
 	} else {
 		if ( li->li_conn_ttl > 0 ) {
-			(*lcp)->lc_create_time = op->o_time;
+			lc->lc_create_time = op->o_time;
 		}
 	}
 
@@ -721,7 +697,6 @@ ldap_back_getconn(
 	ldapconn_t	*lc = NULL,
 			lc_curr = { 0 };
 	int		refcnt = 1,
-			binding = 1,
 			lookupconn = !( sendok & LDAP_BACK_BINDING );
 
 	/* if the server is quarantined, and
@@ -841,8 +816,7 @@ retry_lock:
 				{
 					LDAP_TAILQ_REMOVE( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv,
 						lc, lc_q );
-					lc->lc_q.tqe_prev = NULL;
-					lc->lc_q.tqe_next = NULL;
+					LDAP_TAILQ_ENTRY_INIT( lc, lc_q );
 					LDAP_TAILQ_INSERT_TAIL( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv,
 						lc, lc_q );
 				}
@@ -880,7 +854,6 @@ retry_lock:
 				}
 
 				refcnt = ++lc->lc_refcnt;
-				binding = ++lc->lc_binding;
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
@@ -888,7 +861,11 @@ retry_lock:
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if ( lc == NULL ) {
-		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
+		lc = (ldapconn_t *)ch_calloc( 1, sizeof( ldapconn_t ) );
+		lc->lc_flags = li->li_flags;
+		lc->lc_lcflags = lc_curr.lc_lcflags;
+		if ( ldap_back_prepare_conn( lc, op, rs, sendok ) != LDAP_SUCCESS ) {
+			ch_free( lc );
 			return NULL;
 		}
 
@@ -962,7 +939,6 @@ retry_lock:
 
 			if ( tmplc != NULL ) {
 				refcnt = ++tmplc->lc_refcnt;
-				binding = ++tmplc->lc_binding;
 				ldap_back_conn_free( lc );
 				lc = tmplc;
 			}
@@ -980,7 +956,6 @@ retry_lock:
 		LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 
 		assert( lc->lc_refcnt == 1 );
-		assert( lc->lc_binding == 1 );
 
 #if LDAP_BACK_PRINT_CONNTREE > 0
 		ldap_back_print_conntree( li, ">>> ldap_back_getconn(insert)" );
@@ -1013,8 +988,8 @@ retry_lock:
 			char	buf[ SLAP_TEXT_BUFLEN ];
 
 			snprintf( buf, sizeof( buf ),
-				"lc=%p inserted refcnt=%u binding=%u rc=%d",
-				(void *)lc, refcnt, binding, rs->sr_err );
+				"lc=%p inserted refcnt=%u rc=%d",
+				(void *)lc, refcnt, rs->sr_err );
 				
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s: %s\n",
@@ -1069,26 +1044,8 @@ retry_lock:
 			ldap_back_print_conntree( li, ">>> ldap_back_getconn(timeout)" );
 #endif /* LDAP_BACK_PRINT_CONNTREE */
 
-			if ( LDAP_BACK_PCONN_ISPRIV( lc ) ) {
-				if ( lc->lc_q.tqe_prev != NULL ) {
-					assert( LDAP_BACK_CONN_CACHED( lc ) );
-					assert( li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num > 0 );
-					LDAP_TAILQ_REMOVE( &li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_priv,
-						lc, lc_q );
-					li->li_conn_priv[ LDAP_BACK_CONN2PRIV( lc ) ].lic_num--;
-					lc->lc_q.tqe_prev = NULL;
-					lc->lc_q.tqe_next = NULL;
-
-				} else {
-					assert( !LDAP_BACK_CONN_CACHED( lc ) );
-				}
-
-			} else {
-				(void)avl_delete( &li->li_conninfo.lai_tree, (caddr_t)lc,
-					ldap_back_conndnlc_cmp );
-			}
+			(void)ldap_back_conn_delete( li, lc );
 			LDAP_BACK_CONN_TAINTED_SET( lc );
-			LDAP_BACK_CONN_CACHED_CLEAR( lc );
 
 #if LDAP_BACK_PRINT_CONNTREE > 0
 			ldap_back_print_conntree( li, "<<< ldap_back_getconn(timeout)" );
@@ -1101,8 +1058,9 @@ retry_lock:
 			char	buf[ SLAP_TEXT_BUFLEN ];
 
 			snprintf( buf, sizeof( buf ),
-				"conn %p fetched refcnt=%u binding=%u%s",
-				(void *)lc, refcnt, binding, expiring ? " expiring" : "" );
+				"conn %p fetched refcnt=%u%s",
+				(void *)lc, refcnt,
+				expiring ? " expiring" : "" );
 			Debug( LDAP_DEBUG_TRACE,
 				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
 		}
@@ -1117,12 +1075,10 @@ done:;
 
 void
 ldap_back_release_conn_lock(
-	Operation		*op,
-	SlapReply		*rs,
+	ldapinfo_t		*li,
 	ldapconn_t		**lcp,
 	int			dolock )
 {
-	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
 
 	ldapconn_t	*lc = *lcp;
 
@@ -1133,7 +1089,7 @@ ldap_back_release_conn_lock(
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	lc->lc_refcnt--;
 	if ( LDAP_BACK_CONN_TAINTED( lc ) ) {
-		ldap_back_freeconn( op, lc, 0 );
+		ldap_back_freeconn( li, lc, 0 );
 		*lcp = NULL;
 	}
 	if ( dolock ) {
@@ -1264,7 +1220,6 @@ retry_lock:;
 		/* check if already bound */
 		rc = isbound = LDAP_BACK_CONN_ISBOUND( lc );
 		if ( isbound ) {
-			lc->lc_binding--;
  			if ( dolock ) {
  				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
  			}
@@ -1284,16 +1239,6 @@ retry_lock:;
  			LDAP_BACK_CONN_BINDING_SET( lc );
 			binding = 1;
 		}
-	}
-
-	/* wait for pending operations to finish */
-	/* FIXME: may become a bottleneck! */
-	if ( lc->lc_refcnt != lc->lc_binding ) {
- 		if ( dolock ) {
- 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
- 		}
-		ldap_pvt_thread_yield();
-		goto retry_lock;
 	}
 
  	if ( dolock ) {
@@ -1403,9 +1348,8 @@ retry:;
 				lc->lc_ld = NULL;
 
 				/* lc here must be the regular lc, reset and ready for init */
-				rs->sr_err = ldap_back_prepare_conn( &lc, op, rs, sendok );
+				rs->sr_err = ldap_back_prepare_conn( lc, op, rs, sendok );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
-					lc->lc_binding--;
 					lc->lc_refcnt = 0;
 				}
 			}
@@ -1420,22 +1364,11 @@ retry:;
 				}
 				goto retry;
 			}
-
-		} else {
-			if ( dolock ) {
-				ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
-			}
-			lc->lc_binding--;
-			if ( dolock ) {
-				ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
-			}
 		}
 
-		/* FIXME: one binding-- too many? */
-		lc->lc_binding--;
 		assert( lc->lc_refcnt == 1 );
 		lc->lc_refcnt = 0;
-		ldap_back_freeconn( op, lc, dolock );
+		ldap_back_freeconn( li, lc, dolock );
 		*lcp = NULL;
 		rs->sr_err = slap_map_api2result( rs );
 
@@ -1459,11 +1392,10 @@ retry:;
 	}
 
 done:;
-	lc->lc_binding--;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
 	if ( !rc ) {
-		ldap_back_release_conn_lock( op, rs, lcp, dolock );
+		ldap_back_release_conn_lock( li, lcp, dolock );
 
 	} else if ( LDAP_BACK_SAVECRED( li ) ) {
 		ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
@@ -1773,11 +1705,11 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 		LDAP_BACK_CONN_ISBOUND_CLEAR( (*lcp) );
 
 		/* lc here must be the regular lc, reset and ready for init */
-		rc = ldap_back_prepare_conn( lcp, op, rs, sendok );
+		rc = ldap_back_prepare_conn( *lcp, op, rs, sendok );
 		if ( rc != LDAP_SUCCESS ) {
 			/* freeit, because lc_refcnt == 1 */
 			(*lcp)->lc_refcnt = 0;
-			(void)ldap_back_freeconn( op, *lcp, 0 );
+			(void)ldap_back_freeconn( li, *lcp, 0 );
 			*lcp = NULL;
 			rc = 0;
 
@@ -1793,7 +1725,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 				/* freeit, because lc_refcnt == 1 */
 				(*lcp)->lc_refcnt = 0;
 				LDAP_BACK_CONN_TAINTED_SET( *lcp );
-				(void)ldap_back_freeconn( op, *lcp, 0 );
+				(void)ldap_back_freeconn( li, *lcp, 0 );
 				*lcp = NULL;
 			}
 		}
@@ -1804,7 +1736,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			(void *)(*lcp), (*lcp)->lc_refcnt, 0 );
 
 		LDAP_BACK_CONN_TAINTED_SET( *lcp );
-		ldap_back_release_conn_lock( op, rs, lcp, 0 );
+		ldap_back_release_conn_lock( li, lcp, 0 );
 		assert( *lcp == NULL );
 
 		if ( sendok ) {
