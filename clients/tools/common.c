@@ -202,7 +202,9 @@ N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n")
 #ifdef LDAP_DEVEL
 N_("             [!]relax\n")
 #endif
-N_("             abandon, cancel (SIGINT sends abandon/cancel; not really controls)\n"),
+N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
+   "             or ignores response; if critical, doesn't wait for SIGINT.\n"
+   "             not really controls)\n")
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
@@ -502,9 +504,21 @@ tool_args( int argc, char **argv )
 			/* this shouldn't go here, really; but it's a feature... */
 			} else if ( strcasecmp( control, "abandon" ) == 0 ) {
 				abcan = LDAP_REQ_ABANDON;
+				if ( crit ) {
+					gotintr = abcan;
+				}
 
 			} else if ( strcasecmp( control, "cancel" ) == 0 ) {
 				abcan = LDAP_REQ_EXTENDED;
+				if ( crit ) {
+					gotintr = abcan;
+				}
+
+			} else if ( strcasecmp( control, "ignore" ) == 0 ) {
+				abcan = -1;
+				if ( crit ) {
+					gotintr = abcan;
+				}
 
 			} else {
 				fprintf( stderr, "Invalid general control name: %s\n",
@@ -1423,6 +1437,10 @@ tool_check_abandon( LDAP *ld, int msgid )
 		rc = ldap_abandon_ext( ld, msgid, NULL, NULL );
 		fprintf( stderr, "got interrupt, abandon got %d: %s\n",
 				rc, ldap_err2string( rc ) );
+		return -1;
+
+	case -1:
+		/* just unbind, ignoring the request */
 		return -1;
 	}
 
