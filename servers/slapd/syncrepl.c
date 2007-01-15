@@ -1462,7 +1462,7 @@ syncrepl_message_to_entry(
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
 
-	struct berval	bdn = {0, NULL}, dn, ndn;
+	struct berval	bdn = BER_BVNULL, dn, ndn;
 	int		rc;
 
 	*modlist = NULL;
@@ -1477,7 +1477,6 @@ syncrepl_message_to_entry(
 	op->o_tag = LDAP_REQ_ADD;
 
 	rc = ldap_get_dn_ber( si->si_ld, msg, &ber, &bdn );
-
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_entry: rid %03d dn get failed (%d)",
@@ -1492,13 +1491,15 @@ syncrepl_message_to_entry(
 	slap_sl_free( dn.bv_val, op->o_tmpmemctx );
 
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
-		if ( entry )
-			*entry = NULL;
-		return LDAP_SUCCESS;
+		/* NOTE: this could be done even before decoding the DN,
+		 * although encoding errors wouldn't be detected */
+		rc = LDAP_SUCCESS;
+		goto done;
 	}
 
 	if ( entry == NULL ) {
-		return -1;
+		rc = -1;
+		goto done;
 	}
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
@@ -1574,7 +1575,7 @@ syncrepl_message_to_entry(
 	}
 
 done:
-	ber_free ( ber, 0 );
+	ber_free( ber, 0 );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( e ) {
 			entry_free( e );
