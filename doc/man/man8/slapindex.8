@@ -16,6 +16,7 @@ slapindex \- SLAPD index to LDIF utility
 .B [\-o name[=value]
 .B [\-q]
 .B [\-v]
+.B [attr] [...]
 .B 
 .LP
 .SH DESCRIPTION
@@ -116,6 +117,14 @@ To reindex your SLAPD database, give the command:
 .nf
 .ft tt
 	SBINDIR/slapindex
+.ft
+.fi
+To regenerate the index for only a specific attribute, e.g. "uid",
+give the command:
+.LP
+.nf
+.ft tt
+	SBINDIR/slapindex uid
 .ft
 .fi
 .SH "SEE ALSO"
