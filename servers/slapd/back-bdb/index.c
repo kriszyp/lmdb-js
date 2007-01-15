@@ -482,8 +482,8 @@ bdb_index_entry(
 		AttrInfo *ai;
 		/* see if attribute has components to be indexed */
 		ai = bdb_attr_mask( op->o_bd->be_private, ap->a_desc->ad_type->sat_ad );
-		if ( ai ) cr_list = ai->ai_cr;
-		else cr_list = NULL;
+		if ( !ai ) continue;
+		cr_list = ai->ai_cr;
 		if ( attr_converter && cr_list ) {
 			syn = ap->a_desc->ad_type->sat_syntax;
 			ap->a_comp_data = op->o_tmpalloc( sizeof( ComponentData ), op->o_tmpmemctx );
