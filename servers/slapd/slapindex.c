@@ -88,11 +88,7 @@ slapindex( int argc, char **argv )
 			printf("indexing id=%08lx\n", (long) id );
 		}
 
-		/* Backend will set its attr list on first call. Clear
-		 * the list on all subsequent calls.
-		 */
 		rtn =  be->be_entry_reindex( be, id, adv );
-		adv = NULL;
 
 		if( rtn != LDAP_SUCCESS ) {
 			rc = EXIT_FAILURE;
