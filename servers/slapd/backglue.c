@@ -764,13 +764,14 @@ glue_tool_entry_put (
 static int
 glue_tool_entry_reindex (
 	BackendDB *b0,
-	ID id
+	ID id,
+	AttributeDescription **adv
 )
 {
 	if (!glueBack || !glueBack->be_entry_reindex)
 		return -1;
 
-	return glueBack->be_entry_reindex (glueBack, id);
+	return glueBack->be_entry_reindex (glueBack, id, adv);
 }
 
 static int
