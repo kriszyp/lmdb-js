@@ -579,7 +579,8 @@ done:
 
 int bdb_tool_entry_reindex(
 	BackendDB *be,
-	ID id )
+	ID id,
+	AttributeDescription **adv )
 {
 	struct bdb_info *bi = (struct bdb_info *) be->be_private;
 	int rc;
@@ -597,6 +598,45 @@ int bdb_tool_entry_reindex(
 	 */
 	if (!bi->bi_attrs) {
 		return 0;
+	}
+
+	/* Check for explicit list of attrs to index */
+	if ( adv ) {
+		int i, j, n;
+
+		/* count */
+		for ( n = 0; adv[n]; n++ ) ;
+
+		/* insertion sort */
+		for ( i = 0; i < n; i++ ) {
+			AttributeDescription *ad = adv[i];
+			for ( j = i-1; j>=0; j--) {
+				if ( SLAP_PTRCMP( adv[j], ad ) <= 0 ) break;
+				adv[j+1] = adv[j];
+			}
+			adv[j+1] = ad;
+		}
+
+		for ( i = 0; adv[i]; i++ ) {
+			if ( bi->bi_attrs[i]->ai_desc != adv[i] ) {
+				for ( j = i+1; j < bi->bi_nattrs; j++ ) {
+					if ( bi->bi_attrs[j]->ai_desc == adv[i] ) {
+						AttrInfo *ai = bi->bi_attrs[i];
+						bi->bi_attrs[i] = bi->bi_attrs[j];
+						bi->bi_attrs[j] = ai;
+						break;
+					}
+				}
+				if ( j == bi->bi_nattrs ) {
+					Debug( LDAP_DEBUG_ANY,
+						LDAP_XSTRING(bdb_tool_entry_reindex)
+						": no index configured for %s\n",
+						adv[i]->ad_cname.bv_val, 0, 0 );
+					return -1;
+				}
+			}
+		}
+		bi->bi_nattrs = i;
 	}
 
 	/* Get the first attribute to index */

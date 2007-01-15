@@ -2077,7 +2077,7 @@ typedef ID (BI_tool_entry_next) LDAP_P(( BackendDB *be ));
 typedef Entry* (BI_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 typedef ID (BI_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
-typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
+typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id, AttributeDescription **adv ));
 typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
 typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));

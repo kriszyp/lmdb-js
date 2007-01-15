@@ -37,6 +37,7 @@ slapindex( int argc, char **argv )
 	ID id;
 	int rc = EXIT_SUCCESS;
 	const char *progname = "slapindex";
+	AttributeDescription *ad, **adv = NULL;
 
 	slap_tool_init( progname, SLAPINDEX, argc, argv );
 
@@ -51,12 +52,32 @@ slapindex( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
+	argc -= optind;
+	if ( argc > 0 ) {
+		const char *text;
+		int i;
+
+		argv = &argv[optind];
+		adv = (AttributeDescription **)argv;
+
+		for (i = 0; i < argc; i++ ) {
+			ad = NULL;
+			rc = slap_str2ad( argv[i], &ad, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr, "slap_str2ad(%s) failed %d (%s)\n",
+					argv[i], rc, ldap_err2string( rc ));
+				exit( EXIT_FAILURE );
+			}
+			adv[i] = ad;
+		}
+	}
+
 	if( be->be_entry_open( be, 0 ) != 0 ) {
 		fprintf( stderr, "%s: could not open database.\n",
 			progname );
 		exit( EXIT_FAILURE );
 	}
-
+	
 	for ( id = be->be_entry_first( be );
 		id != NOID;
 		id = be->be_entry_next( be ) )
@@ -67,7 +88,11 @@ slapindex( int argc, char **argv )
 			printf("indexing id=%08lx\n", (long) id );
 		}
 
-		rtn =  be->be_entry_reindex( be, id );
+		/* Backend will set its attr list on first call. Clear
+		 * the list on all subsequent calls.
+		 */
+		rtn =  be->be_entry_reindex( be, id, adv );
+		adv = NULL;
 
 		if( rtn != LDAP_SUCCESS ) {
 			rc = EXIT_FAILURE;

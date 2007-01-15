@@ -88,7 +88,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPINDEX:
-		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix] [-q]\n";
+		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix] [attr ...] [-q]\n";
 		break;
 
 	case SLAPTEST:
@@ -441,8 +441,14 @@ slap_tool_init(
 	switch ( tool ) {
 	case SLAPADD:
 	case SLAPCAT:
-	case SLAPINDEX:
 		if ( ( argc != optind ) || (dbnum >= 0 && base.bv_val != NULL ) ) {
+			usage( tool, progname );
+		}
+
+		break;
+
+	case SLAPINDEX:
+		if ( dbnum >= 0 && base.bv_val != NULL ) {
 			usage( tool, progname );
 		}
 
