@@ -623,6 +623,8 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		o.ors_attrs = an;
 		o.ors_attrsonly = 0;
 
+		o.o_acl_priv = ACL_COMPARE;
+
 		rc = o.o_bd->be_search( &o, &r );
 		filter_free_x( &o, o.ors_filter );
 

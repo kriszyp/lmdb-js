@@ -2480,6 +2480,7 @@ typedef struct slap_op {
 	GroupAssertion *o_groups;
 	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
+	slap_access_t o_acl_priv;
 
 	char o_nocaching;
 	char o_delete_glue_parent;

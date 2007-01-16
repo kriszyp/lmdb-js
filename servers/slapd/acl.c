@@ -351,7 +351,10 @@ access_allowed_mask(
 	assert( attr != NULL );
 
 	if ( op ) {
-		if ( op->o_is_auth_check &&
+		if ( op->o_acl_priv != ACL_NONE ) {
+			access = op->o_acl_priv;
+
+		} else if ( op->o_is_auth_check &&
 			( access_level == ACL_SEARCH || access_level == ACL_READ ) )
 		{
 			access = ACL_AUTH;
