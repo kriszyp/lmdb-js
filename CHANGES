@@ -1,7 +1,6 @@
 OpenLDAP 2.3 Change Log
-	Fixed slapd-meta typo in assert
 
-OpenLDAP 2.3.33 Release (2007/01/12)
+OpenLDAP 2.3.33 Release (2007/01/17)
 	Fixed slapd syncrepl error logging with delta-syncrepl
 	Fixed slapd-ldap/meta privileged conn caching (ITS#4547)
 	Fixed slapd-ldap chase-referrals switch (ITS#4557)
