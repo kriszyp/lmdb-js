@@ -1699,7 +1699,7 @@ meta_back_release_conn_lock(
 			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree,
 				( caddr_t )mc, meta_back_conndnmc_cmp );
 
-			assert( tmpmc == NULL && tmpmc == mc );
+			assert( tmpmc == NULL || tmpmc == mc );
 		}
 
 		LDAP_BACK_CONN_CACHED_CLEAR( mc );
