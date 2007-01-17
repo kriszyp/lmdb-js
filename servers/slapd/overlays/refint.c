@@ -320,12 +320,14 @@ refint_close(
 		ij = ii->next;
 		ch_free(ii);
 	}
+	id->attrs = NULL;
 
-	ch_free(id->dn.bv_val);
-	ch_free(id->nothing.bv_val);
-	ch_free(id->nnothing.bv_val);
-
-	memset( id, 0, sizeof(*id));
+	ch_free( id->dn.bv_val );
+	BER_BVZERO( &id->dn );
+	ch_free( id->nothing.bv_val );
+	BER_BVZERO( &id->nothing );
+	ch_free( id->nnothing.bv_val );
+	BER_BVZERO( &id->nnothing );
 
 	return(0);
 }
