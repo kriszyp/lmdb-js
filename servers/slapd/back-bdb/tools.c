@@ -604,17 +604,19 @@ int bdb_tool_entry_reindex(
 	if ( adv ) {
 		int i, j, n;
 
-		/* count */
-		for ( n = 0; adv[n]; n++ ) ;
+		if ( bi->bi_attrs[0]->ai_desc != adv[0] ) {
+			/* count */
+			for ( n = 0; adv[n]; n++ ) ;
 
-		/* insertion sort */
-		for ( i = 0; i < n; i++ ) {
-			AttributeDescription *ad = adv[i];
-			for ( j = i-1; j>=0; j--) {
-				if ( SLAP_PTRCMP( adv[j], ad ) <= 0 ) break;
-				adv[j+1] = adv[j];
+			/* insertion sort */
+			for ( i = 0; i < n; i++ ) {
+				AttributeDescription *ad = adv[i];
+				for ( j = i-1; j>=0; j--) {
+					if ( SLAP_PTRCMP( adv[j], ad ) <= 0 ) break;
+					adv[j+1] = adv[j];
+				}
+				adv[j+1] = ad;
 			}
-			adv[j+1] = ad;
 		}
 
 		for ( i = 0; adv[i]; i++ ) {
