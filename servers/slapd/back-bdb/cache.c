@@ -280,7 +280,7 @@ static int
 bdb_id_dup_err( void *v1, void *v2 )
 {
 	EntryInfo *e2 = v2;
-	e2->bei_e = v1;
+	e2->bei_lrunext = v1;
 	return -1;
 }
 
@@ -313,7 +313,7 @@ bdb_entryinfo_add_internal(
 	/* Add to cache ID tree */
 	if (avl_insert( &bdb->bi_cache.c_idtree, ei2, bdb_id_cmp,
 		bdb_id_dup_err )) {
-		EntryInfo *eix = (EntryInfo *)ei2->bei_e;
+		EntryInfo *eix = ei2->bei_lrunext;
 		bdb_cache_entryinfo_free( &bdb->bi_cache, ei2 );
 		ei2 = eix;
 #ifdef BDB_HIER
@@ -495,7 +495,7 @@ hdb_cache_find_parent(
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 		if ( avl_insert( &bdb->bi_cache.c_idtree, (caddr_t)ein,
 			bdb_id_cmp, bdb_id_dup_err ) ) {
-			EntryInfo *eix = (EntryInfo *)ein->bei_e;
+			EntryInfo *eix = ein->bei_lrunext;
 
 			/* Someone else created this node just before us.
 			 * Free our new copy and use the existing one.
@@ -818,6 +818,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			rc = DB_NOTFOUND;
 		} else {
 			(*eip)->bei_finders++;
+			(*eip)->bei_state |= CACHE_ENTRY_REFERENCED;
 			/* Make sure only one thread tries to load the entry */
 load1:
 #ifdef SLAP_ZONE_ALLOC
