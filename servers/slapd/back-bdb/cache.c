@@ -77,6 +77,28 @@ bdb_cache_entryinfo_new( Cache *cache )
 	return ei;
 }
 
+static void
+bdb_cache_entryinfo_free( Cache *cache, EntryInfo *ei )
+{
+	free( ei->bei_nrdn.bv_val );
+	ei->bei_nrdn.bv_val = NULL;
+#ifdef BDB_HIER
+	free( ei->bei_rdn.bv_val );
+	ei->bei_rdn.bv_val = NULL;
+	ei->bei_modrdns = 0;
+	ei->bei_ckids = 0;
+	ei->bei_dkids = 0;
+#endif
+	ei->bei_parent = NULL;
+	ei->bei_kids = NULL;
+	ei->bei_lruprev = NULL;
+
+	ldap_pvt_thread_mutex_lock( &cache->c_eifree_mutex );
+	ei->bei_lrunext = cache->c_eifree;
+	cache->c_eifree = ei;
+	ldap_pvt_thread_mutex_unlock( &cache->c_eifree_mutex );
+}
+
 #define LRU_DEL( c, e ) do { \
 	if ( e == (c)->c_lruhead ) (c)->c_lruhead = e->bei_lruprev; \
 	if ( e == (c)->c_lrutail ) (c)->c_lrutail = e->bei_lruprev; \
@@ -254,6 +276,14 @@ bdb_id_cmp( const void *v_e1, const void *v_e2 )
 	return e1->bei_id - e2->bei_id;
 }
 
+static int
+bdb_id_dup_err( void *v1, void *v2 )
+{
+	EntryInfo *e2 = v2;
+	e2->bei_e = v1;
+	return -1;
+}
+
 /* Create an entryinfo in the cache. Caller must release the locks later.
  */
 static int
@@ -281,10 +311,11 @@ bdb_entryinfo_add_internal(
 #endif
 
 	/* Add to cache ID tree */
-	if (avl_insert( &bdb->bi_cache.c_idtree, ei2, bdb_id_cmp, avl_dup_error )) {
-		EntryInfo *eix;
+	if (avl_insert( &bdb->bi_cache.c_idtree, ei2, bdb_id_cmp,
+		bdb_id_dup_err )) {
+		EntryInfo *eix = (EntryInfo *)ei2->bei_e;
 		eix = avl_find( bdb->bi_cache.c_idtree, ei2, bdb_id_cmp );
-		bdb_cache_entryinfo_destroy( ei2 );
+		bdb_cache_entryinfo_free( &bdb->bi_cache, ei2 );
 		ei2 = eix;
 #ifdef BDB_HIER
 		/* It got freed above because its value was
@@ -464,14 +495,14 @@ hdb_cache_find_parent(
 		/* Insert this node into the ID tree */
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 		if ( avl_insert( &bdb->bi_cache.c_idtree, (caddr_t)ein,
-			bdb_id_cmp, avl_dup_error ) ) {
+			bdb_id_cmp, bdb_id_dup_err ) ) {
+			EntryInfo *eix = (EntryInfo *)ein->bei_e;
 
 			/* Someone else created this node just before us.
 			 * Free our new copy and use the existing one.
 			 */
-			bdb_cache_entryinfo_destroy( ein );
-			ein = (EntryInfo *)avl_find( bdb->bi_cache.c_idtree,
-				(caddr_t) &ei, bdb_id_cmp );
+			bdb_cache_entryinfo_free( &bdb->bi_cache, ein );
+			ein = eix;
 			
 			/* Link in any kids we've already processed */
 			if ( ei2 ) {
@@ -607,7 +638,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	for ( elru = bdb->bi_cache.c_lruhead; elru; elru = elnext ) {
 		elnext = elru->bei_lrunext;
 
-		if ( ldap_pvt_thread_mutex_trylock( &elru->bei_kids_mutex ))
+		if ( bdb_cache_entryinfo_trylock( elru ))
 			goto bottom;
 
 		/* This flag implements the clock replacement behavior */
@@ -732,8 +763,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			(caddr_t) &ei, bdb_id_cmp );
 		if ( *eip ) {
 			/* If the lock attempt fails, the info is in use */
-			if ( ldap_pvt_thread_mutex_trylock(
-					&(*eip)->bei_kids_mutex )) {
+			if ( bdb_cache_entryinfo_trylock( *eip )) {
 				ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
 				/* If this node is being deleted, treat
 				 * as if the delete has already finished
@@ -1187,23 +1217,7 @@ bdb_cache_delete_cleanup(
 		ei->bei_e = NULL;
 	}
 
-	free( ei->bei_nrdn.bv_val );
-	ei->bei_nrdn.bv_val = NULL;
-#ifdef BDB_HIER
-	free( ei->bei_rdn.bv_val );
-	ei->bei_rdn.bv_val = NULL;
-	ei->bei_modrdns = 0;
-	ei->bei_ckids = 0;
-	ei->bei_dkids = 0;
-#endif
-	ei->bei_parent = NULL;
-	ei->bei_kids = NULL;
-	ei->bei_lruprev = NULL;
-
-	ldap_pvt_thread_mutex_lock( &cache->c_eifree_mutex );
-	ei->bei_lrunext = cache->c_eifree;
-	cache->c_eifree = ei;
-	ldap_pvt_thread_mutex_unlock( &cache->c_eifree_mutex );
+	bdb_cache_entryinfo_free( cache, ei );
 	bdb_cache_entryinfo_unlock( ei );
 }
 

@@ -451,6 +451,8 @@ int bdb_monitor_db_destroy( BackendDB *be );
 	ldap_pvt_thread_mutex_lock( &(e)->bei_kids_mutex )
 #define	bdb_cache_entryinfo_unlock(e) \
 	ldap_pvt_thread_mutex_unlock( &(e)->bei_kids_mutex )
+#define	bdb_cache_entryinfo_trylock(e) \
+	ldap_pvt_thread_mutex_trylock( &(e)->bei_kids_mutex )
 
 /* What a mess. Hopefully the current cache scheme will stabilize
  * and we can trim out all of this stuff.
