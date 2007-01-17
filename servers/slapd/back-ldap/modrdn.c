@@ -88,7 +88,7 @@ retry:
 	rc = ldap_back_op_result( lc, op, rs, msgid,
 		li->li_timeout[ SLAP_OP_MODRDN ],
 		( LDAP_BACK_SENDRESULT | retrying ) );
-	if ( rs->sr_err == LDAP_SERVER_DOWN && retrying ) {
+	if ( rs->sr_err == LDAP_UNAVAILABLE && retrying ) {
 		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			/* if the identity changed, there might be need to re-authz */
