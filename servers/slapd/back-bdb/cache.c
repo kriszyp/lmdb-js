@@ -65,6 +65,7 @@ bdb_cache_entryinfo_new( Cache *cache )
 			cache->c_eifree = ei->bei_lrunext;
 		}
 		ldap_pvt_thread_mutex_unlock( &cache->c_eifree_mutex );
+		ei->bei_finders = 0;
 	}
 	if ( !ei ) {
 		ei = ch_calloc(1, sizeof(EntryInfo));
@@ -72,7 +73,6 @@ bdb_cache_entryinfo_new( Cache *cache )
 	}
 
 	ei->bei_state = CACHE_ENTRY_REFERENCED;
-	ei->bei_finders = 0;
 
 	return ei;
 }
@@ -314,7 +314,6 @@ bdb_entryinfo_add_internal(
 	if (avl_insert( &bdb->bi_cache.c_idtree, ei2, bdb_id_cmp,
 		bdb_id_dup_err )) {
 		EntryInfo *eix = (EntryInfo *)ei2->bei_e;
-		eix = avl_find( bdb->bi_cache.c_idtree, ei2, bdb_id_cmp );
 		bdb_cache_entryinfo_free( &bdb->bi_cache, ei2 );
 		ei2 = eix;
 #ifdef BDB_HIER
