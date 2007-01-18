@@ -42,6 +42,7 @@
  */
 #define	META_MSGID_IGNORE	(-1)
 #define	META_MSGID_NEED_BIND	(-2)
+#define	META_MSGID_CONNECTING	(-3)
 
 static int
 meta_send_entry(
@@ -57,7 +58,8 @@ typedef enum meta_search_candidate_t {
 	META_SEARCH_NOT_CANDIDATE,
 	META_SEARCH_CANDIDATE,
 	META_SEARCH_BINDING,
-	META_SEARCH_NEED_BIND
+	META_SEARCH_NEED_BIND,
+	META_SEARCH_CONNECTING
 } meta_search_candidate_t;
 
 /*
@@ -256,11 +258,11 @@ retry:;
 
 	case LDAP_X_CONNECTING:
 		/* must retry, same conn */
-		candidates[ candidate ].sr_msgid = META_MSGID_NEED_BIND;
+		candidates[ candidate ].sr_msgid = META_MSGID_CONNECTING;
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 		LDAP_BACK_CONN_BINDING_CLEAR( msc );
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-		return META_SEARCH_NEED_BIND;
+		return META_SEARCH_CONNECTING;
 
 	case LDAP_SERVER_DOWN:
 down:;
@@ -733,6 +735,7 @@ getconn:;
 			++needbind;
 			/* fallthru */
 
+		case META_SEARCH_CONNECTING:
 		case META_SEARCH_CANDIDATE:
 		case META_SEARCH_BINDING:
 			candidates[ i ].sr_type = REP_INTERMEDIATE;
@@ -883,7 +886,9 @@ getconn:;
 			}
 
 			/* if target still needs bind, retry */
-			if ( candidates[ i ].sr_msgid == META_MSGID_NEED_BIND ) {
+			if ( candidates[ i ].sr_msgid == META_MSGID_NEED_BIND
+				|| candidates[ i ].sr_msgid == META_MSGID_CONNECTING )
+			{
 				/* initiate dobind */
 				retcode = meta_search_dobind_init( op, rs, &mc, i, candidates );
 
@@ -895,6 +900,7 @@ getconn:;
 					alreadybound--;
 					/* fallthru */
 
+				case META_SEARCH_CONNECTING:
 				case META_SEARCH_BINDING:
 					break;
 
@@ -1032,6 +1038,7 @@ really_bad:;
 							continue;
 
 						case META_SEARCH_BINDING:
+						case META_SEARCH_CONNECTING:
 						case META_SEARCH_NEED_BIND:
 						case META_SEARCH_UNDEFINED:
 							assert( 0 );
