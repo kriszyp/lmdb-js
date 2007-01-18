@@ -54,17 +54,20 @@ ldap_back_conn_destroy(
 	while ( ( lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)&lc_curr, ldap_back_conn_cmp ) ) != NULL )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_conn_destroy: destroying conn %ld (refcnt=%u)\n",
-			LDAP_BACK_PCONN_ID( lc ), lc->lc_refcnt, 0 );
+			"=>ldap_back_conn_destroy: destroying conn %ld "
+			"refcnt=%d flags=0x%08x\n",
+			LDAP_BACK_PCONN_ID( lc ),
+			lc->lc_refcnt, lc->lc_lcflags );
 
-		assert( lc->lc_refcnt == 0 );
+		if ( lc->lc_refcnt > 0 ) {
+			/* someone else might be accessing the connection;
+			 * mark for deletion */
+			LDAP_BACK_CONN_CACHED_CLEAR( lc );
+			LDAP_BACK_CONN_TAINTED_SET( lc );
 
-		/*
-		 * Needs a test because the handler may be corrupted,
-		 * and calling ldap_unbind on a corrupted header results
-		 * in a segmentation fault
-		 */
-		ldap_back_conn_free( lc );
+		} else {
+			ldap_back_conn_free( lc );
+		}
 	}
 #if LDAP_BACK_PRINT_CONNTREE > 0
 	ldap_back_print_conntree( li, "<<< ldap_back_conn_destroy" );
