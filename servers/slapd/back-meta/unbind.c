@@ -57,12 +57,20 @@ meta_back_conn_destroy(
 	while ( ( mc = avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )&mc_curr, meta_back_conn_cmp ) ) != NULL )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"=>meta_back_conn_destroy: destroying conn %ld\n",
-			LDAP_BACK_PCONN_ID( mc ), 0, 0 );
+			"=>meta_back_conn_destroy: destroying conn %ld "
+			"refcnt=%d flags=0x%08x\n",
+			LDAP_BACK_PCONN_ID( mc ),
+			mc->mc_refcnt, mc->msc_mscflags );
 		
-		assert( mc->mc_refcnt == 0 );
+		if ( mc->mc_refcnt > 0 ) {
+			/* someone else might be accessing the connection;
+			 * mark for deletion */
+			LDAP_BACK_CONN_CACHED_CLEAR( mc );
+			LDAP_BACK_CONN_TAINTED_SET( mc );
 
-		meta_back_conn_free( mc );
+		} else {
+			meta_back_conn_free( mc );
+		}
 	}
 #if META_BACK_PRINT_CONNTREE > 0
 	meta_back_print_conntree( mi, "<<< meta_back_conn_destroy" );
