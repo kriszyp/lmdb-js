@@ -23340,7 +23340,7 @@ echo "${ECHO_T}$ol_cv_func_pthread_rwlock_destroy" >&6
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_PTHREAD_RWLOCK_DESTROY 1
 _ACEOF
-],
+
 			fi
 
 									echo "$as_me:$LINENO: checking for pthread_detach with <pthread.h>" >&5

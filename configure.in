@@ -1340,7 +1340,7 @@ pthread_rwlock_t rwlock;
 			])
 			if test $ol_cv_func_pthread_rwlock_destroy = yes ; then
 				AC_DEFINE(HAVE_PTHREAD_RWLOCK_DESTROY,1,
-					[define if you have pthread_rwlock_destroy function])],
+					[define if you have pthread_rwlock_destroy function])
 			fi
 
 			dnl Check for pthread_detach with <pthread.h> inclusion
