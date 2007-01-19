@@ -1,4 +1,6 @@
 OpenLDAP 2.3 Change Log
+
+OpenLDAP 2.3.34 Engineering
 	Fixed slapd-ldap C-API code tests (ITS#4808)
 
 OpenLDAP 2.3.33 Release (2007/01/17)
