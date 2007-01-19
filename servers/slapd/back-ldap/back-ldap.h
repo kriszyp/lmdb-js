@@ -79,11 +79,11 @@ typedef struct ldapconn_t {
 						( -1 - (long)(lc)->lc_conn ) : (lc)->lc_conn->c_connid )
 #ifdef HAVE_TLS
 #define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
-	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_ROOTDN_TLS : LDAP_BACK_PCONN_ROOTDN))
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ROOTDN_TLS : (void *) LDAP_BACK_PCONN_ROOTDN))
 #define	LDAP_BACK_PCONN_ANON_SET(lc, op) \
-	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_ANON_TLS : LDAP_BACK_PCONN_ANON))
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ANON_TLS : (void *) LDAP_BACK_PCONN_ANON))
 #define	LDAP_BACK_PCONN_BIND_SET(lc, op) \
-	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_BIND_TLS : LDAP_BACK_PCONN_BIND))
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_BIND_TLS : (void *) LDAP_BACK_PCONN_BIND))
 #else /* ! HAVE_TLS */
 #define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
 	((lc)->lc_conn = (void *)LDAP_BACK_PCONN_ROOTDN)
