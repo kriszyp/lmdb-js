@@ -103,7 +103,7 @@ static OidMacro *cf_om_tail;
 static int config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca,
 	SlapReply *rs, int *renumber, Operation *op );
 
-static int config_check_schema( CfBackInfo *cfb );
+static int config_check_schema( Operation *op, CfBackInfo *cfb );
 
 static ConfigDriver config_fname;
 static ConfigDriver config_cfdir;
@@ -1620,7 +1620,7 @@ config_generic(ConfigArgs *c) {
 			}
 			/* Check for any new hardcoded schema */
 			if ( c->op == LDAP_MOD_ADD && CONFIG_ONLINE_ADD( c )) {
-				config_check_schema( &cfBackInfo );
+				config_check_schema( NULL, &cfBackInfo );
 			}
 			break;
 
@@ -5055,9 +5055,9 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	rc = structural_class(oc_at->a_vals, &oc, NULL, &text, c->msg,
-		sizeof(c->msg), op->o_tmpmemctx );
+		sizeof(c->msg), op ? op->o_tmpmemctx : NULL );
 	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &oc->soc_cname, NULL );
-	if ( !op->o_noop ) {
+	if ( op && !op->o_noop ) {
 		op->ora_e = e;
 		op->o_bd->be_add( op, rs );
 		if ( ( rs->sr_err != LDAP_SUCCESS ) 
@@ -5174,7 +5174,7 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 #endif
 
 static int
-config_check_schema(CfBackInfo *cfb)
+config_check_schema(Operation *op, CfBackInfo *cfb)
 {
 	struct berval schema_dn = BER_BVC(SCHEMA_RDN "," CONFIG_RDN);
 	ConfigArgs c = {0};
@@ -5239,7 +5239,7 @@ config_check_schema(CfBackInfo *cfb)
 	} else {
 		SlapReply rs = {REP_RESULT};
 		c.private = NULL;
-		e = config_build_entry( NULL, &rs, cfb->cb_root, &c, &schema_rdn,
+		e = config_build_entry( op, &rs, cfb->cb_root, &c, &schema_rdn,
 			&CFOC_SCHEMA, NULL );
 		if ( !e ) {
 			return -1;
@@ -5283,11 +5283,6 @@ config_back_db_open( BackendDB *be )
 		parse_acl(be, "config_back_db_open", 0, 6, (char **)defacl, 0 );
 	}
 
-	/* If we read the config from back-ldif, do some quick sanity checks */
-	if ( cfb->cb_got_ldif ) {
-		return config_check_schema( cfb );
-	}
-
 	thrctx = ldap_pvt_thread_pool_context();
 	op = (Operation *) &opbuf;
 	connection_fake_init( &conn, op, thrctx );
@@ -5300,6 +5295,11 @@ config_back_db_open( BackendDB *be )
 
 	if ( !cfb->cb_use_ldif ) {
 		op->o_noop = 1;
+	}
+
+	/* If we read the config from back-ldif, do some quick sanity checks */
+	if ( cfb->cb_got_ldif ) {
+		return config_check_schema( op, cfb );
 	}
 
 	/* create root of tree */
