@@ -3243,11 +3243,36 @@ add_syncrepl(
 		}
 
 		si->si_be = c->be;
-		init_syncrepl( si );
-		si->si_re = ldap_pvt_runqueue_insert( &slapd_rq, si->si_interval,
-			do_syncrepl, si, "do_syncrepl", c->be->be_suffix[0].bv_val );
-		if ( !si->si_re )
-			rc = -1;
+		if ( slapMode & SLAP_SERVER_MODE ) {
+			Listener **l = slapd_get_listeners();
+			int isMe = 0;
+
+			/* check if URL points to current server. If so, ignore
+			 * this configuration. We require an exact match. Just
+			 * in case they really want to do this, they can vary
+			 * the case of the URL to allow it.
+			 */
+			if ( l ) {
+				int i;
+				for ( i=0; l[i]; i++ ) {
+					if ( bvmatch( &l[i]->sl_url, &si->si_bindconf.sb_uri )) {
+						isMe = 1;
+						break;
+					}
+				}
+			}
+
+			if ( !isMe ) {
+				init_syncrepl( si );
+				si->si_re = ldap_pvt_runqueue_insert( &slapd_rq,
+					si->si_interval, do_syncrepl, si, "do_syncrepl",
+					c->be->be_suffix[0].bv_val );
+				if ( si->si_re )
+					rc = config_sync_shadow( c ) ? -1 : 0;
+				else
+					rc = -1;
+			}
+		}
 	}
 
 #ifdef HAVE_TLS
@@ -3458,8 +3483,7 @@ syncrepl_config( ConfigArgs *c )
 			"syncrepl: database already shadowed.\n",
 			c->log, 0, 0);
 		return(1);
-	} else if ( add_syncrepl( c ) ) {
-		return(1);
+	} else {
+		return add_syncrepl( c );
 	}
-	return config_sync_shadow( c );
 }

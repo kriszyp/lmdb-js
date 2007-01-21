@@ -2959,9 +2959,6 @@ config_shadow( ConfigArgs *c, int flag )
 
 	} else if ( SLAP_MONITOR(c->be) ) {
 		notallowed = "monitor";
-
-	} else if ( SLAP_CONFIG(c->be) ) {
-		notallowed = "config";
 	}
 
 	if ( notallowed != NULL ) {
@@ -2996,7 +2993,7 @@ config_updateref(ConfigArgs *c) {
 		}
 		return 0;
 	}
-	if(!SLAP_SHADOW(c->be)) {
+	if(!SLAP_SHADOW(c->be) && !c->be->be_syncinfo) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> must appear after syncrepl or updatedn",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
@@ -3803,7 +3800,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 {
 	CfEntryInfo *ce;
 	int index = -1, gotindex = 0, nsibs, rc = 0;
-	int renumber = 0, tailindex = 0;
+	int renumber = 0, tailindex = 0, isfrontend = 0;
 	char *ptr1, *ptr2 = NULL;
 	struct berval rdn;
 
@@ -3818,6 +3815,9 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 
 	/* See if the rdn has an index already */
 	dnRdn( &e->e_name, &rdn );
+	if ( ce_type == Cft_Database && !strncmp( rdn.bv_val + rdn.bv_len -
+		STRLENOF("frontend"), "frontend", STRLENOF("frontend") ))
+		isfrontend = 1;
 	ptr1 = ber_bvchr( &e->e_name, '{' );
 	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
 		char	*next;
@@ -3833,12 +3833,13 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		}
 		if ( index < 0 ) {
 			/* Special case, we allow -1 for the frontendDB */
-			if ( index != -1 || ce_type != Cft_Database ||
-				strncmp( ptr2+1, "frontend,", STRLENOF("frontend,") ))
-
+			if ( index != -1 || !isfrontend )
 				return LDAP_NAMING_VIOLATION;
 		}
 	}
+
+	if ( !isfrontend && index == -1 )
+		index = 0;
 
 	/* count related kids */
 	for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
@@ -4908,6 +4909,13 @@ out:
 }
 
 static int
+config_back_delete( Operation *op, SlapReply *rs )
+{
+	send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM, NULL );
+	return rs->sr_err;
+}
+
+static int
 config_back_search( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
@@ -5724,7 +5732,7 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_op_modify = config_back_modify;
 	bi->bi_op_modrdn = config_back_modrdn;
 	bi->bi_op_add = config_back_add;
-	bi->bi_op_delete = 0;
+	bi->bi_op_delete = config_back_delete;
 	bi->bi_op_abandon = 0;
 
 	bi->bi_extended = 0;
