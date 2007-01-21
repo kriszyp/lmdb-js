@@ -1730,7 +1730,6 @@ dds_db_open(
 	rc = entry_info_register( dds_entry_info, (void *)di );
 
 done:;
-	ldap_pvt_thread_pool_context_reset( thrctx );
 
 	return rc;
 }

@@ -2449,7 +2449,6 @@ syncprov_db_open(
 
 out:
 	op->o_bd->bd_info = (BackendInfo *)on;
-	ldap_pvt_thread_pool_context_reset( thrctx );
 	return 0;
 }
 
@@ -2479,7 +2478,6 @@ syncprov_db_close(
 		op->o_dn = be->be_rootdn;
 		op->o_ndn = be->be_rootndn;
 		syncprov_checkpoint( op, &rs, on, &si->si_ctxcsn );
-		ldap_pvt_thread_pool_context_reset( thrctx );
 	}
 
     return 0;
