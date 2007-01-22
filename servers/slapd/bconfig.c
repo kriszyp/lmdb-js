@@ -3724,6 +3724,7 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 		op->orr_deleteoldrdn = 1;
 		op->orr_modlist = NULL;
 		slap_modrdn2mods( op, rs );
+		slap_mods_opattrs( op, &op->orr_modlist, 1 );
 		rc = op->o_bd->be_modrdn( op, rs );
 		slap_mods_free( op->orr_modlist, 1 );
 
@@ -3851,7 +3852,8 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 			if ( index < nsibs ) {
 				if ( tailindex ) return LDAP_NAMING_VIOLATION;
 				/* Siblings need to be renumbered */
-				renumber = 1;
+				if ( index != -1 || !isfrontend )
+					renumber = 1;
 			}
 		}
 		/* just make index = nsibs */
@@ -3978,12 +3980,15 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	char *ptr;
 
 	/* Make sure parent exists and entry does not. But allow
-	 * Databases and Overlays to be inserted.
+	 * Databases and Overlays to be inserted. Don't do any
+	 * auto-renumbering if manageDSAit control is present.
 	 */
 	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
-	if ( ce && ce->ce_type != Cft_Database &&
-		ce->ce_type != Cft_Overlay )
+	if ( ce ) {
+		if (( op && op->o_managedsait ) ||
+			( ce->ce_type != Cft_Database && ce->ce_type != Cft_Overlay ))
 		return LDAP_ALREADY_EXISTS;
+	}
 
 	dnParent( &e->e_nname, &pdn );
 
@@ -4171,7 +4176,7 @@ ok:
 
 		/* Advance to first of this type */
 		cprev = &last->ce_kids;
-		for ( c2 = *cprev; c2 && c2->ce_type != ce->ce_type; ) {
+		for ( c2 = *cprev; c2 && c2->ce_type < ce->ce_type; ) {
 			cprev = &c2->ce_sibs;
 			c2 = c2->ce_sibs;
 		}
@@ -4304,6 +4309,19 @@ config_back_add( Operation *op, SlapReply *rs )
 	}
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
+
+	/* add opattrs for syncprov */
+	{
+		char textbuf[SLAP_TEXT_BUFLEN];
+		size_t textlen = sizeof textbuf;
+		rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				LDAP_XSTRING(config_back_add) ": entry failed op attrs add: "
+				"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
+			goto out;
+		}
+	}
 
 	ldap_pvt_thread_pool_pause( &connection_pool );
 
@@ -4673,7 +4691,10 @@ config_back_modify( Operation *op, SlapReply *rs )
 		}
 	}
 
-	ldap_pvt_thread_pool_pause( &connection_pool );
+	slap_mods_opattrs( op, &op->orm_modlist, 1 );
+
+	if ( !slapd_shutdown )
+		ldap_pvt_thread_pool_pause( &connection_pool );
 
 	/* Strategy:
 	 * 1) perform the Modify on the cached Entry.
@@ -4705,7 +4726,8 @@ config_back_modify( Operation *op, SlapReply *rs )
 		op->o_ndn = ndn;
 	}
 
-	ldap_pvt_thread_pool_resume( &connection_pool );
+	if ( !slapd_shutdown )
+		ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
 	return rs->sr_err;
@@ -5011,17 +5033,18 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	Debug( LDAP_DEBUG_TRACE, "config_build_entry: \"%s\"\n", rdn->bv_val, 0, 0);
 	e->e_private = ce;
 	ce->ce_entry = e;
+	ce->ce_type = main->co_type;
 	ce->ce_parent = parent;
 	if ( parent ) {
 		pdn = parent->ce_entry->e_nname;
-		if ( parent->ce_kids )
-			for ( ceprev = parent->ce_kids; ceprev->ce_sibs;
+		if ( parent->ce_kids && parent->ce_kids->ce_type < ce->ce_type )
+			for ( ceprev = parent->ce_kids; ceprev->ce_sibs &&
+				ceprev->ce_type < ce->ce_type;
 				ceprev = ceprev->ce_sibs );
 	} else {
 		BER_BVZERO( &pdn );
 	}
 
-	ce->ce_type = main->co_type;
 	ce->ce_private = c->private;
 	ce->ce_be = c->be;
 	ce->ce_bi = c->bi;
@@ -5074,8 +5097,10 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 		}
 	}
 	if ( ceprev ) {
+		ce->ce_sibs = ceprev->ce_sibs;
 		ceprev->ce_sibs = ce;
 	} else if ( parent ) {
+		ce->ce_sibs = parent->ce_kids;
 		parent->ce_kids = ce;
 	}
 

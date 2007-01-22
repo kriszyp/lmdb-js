@@ -30,15 +30,16 @@ typedef struct ConfigTable {
 	void *notify;
 } ConfigTable;
 
+/* search entries are returned according to this order */
 typedef enum {
 	Cft_Abstract = 0,
 	Cft_Global,
+	Cft_Include,
+	Cft_Module,
 	Cft_Schema,
 	Cft_Backend,
 	Cft_Database,
 	Cft_Overlay,
-	Cft_Include,
-	Cft_Module,
 	Cft_Misc	/* backend/overlay defined */
 } ConfigType;
 
@@ -136,6 +137,7 @@ typedef struct config_args_s {
 #define SLAP_CONFIG_ADD		0x4000	/* config file add vs LDAP add */
 	int op;
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
+	Operation *ca_op;
 	BackendDB *be;
 	BackendInfo *bi;
 	Entry *ca_entry;	/* entry being modified */
