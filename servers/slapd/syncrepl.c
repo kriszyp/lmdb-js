@@ -1325,6 +1325,9 @@ syncrepl_message_to_op(
 		op->orr_modlist = NULL;
 		if ( slap_modrdn2mods( op, &rs ))
 			goto done;
+		/* FIXME: append entryCSN, modifiersName, modifyTimestamp to
+		 * modlist here. Should accesslog give these to us in a reqMod?
+		 */
 		rc = op->o_bd->be_modrdn( op, &rs );
 		slap_mods_free( op->orr_modlist, 1 );
 		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
@@ -1523,17 +1526,18 @@ static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
  * the new ones. This avoids the issue of trying to delete/add a non-leaf
  * entry.
  *
- * We don't try to otherwise distinguish ModDN from Modify; in the case of
- * a ModDN we will issue both operations on the local database.
+ * We otherwise distinguish ModDN from Modify; in the case of
+ * a ModDN we just use the CSN, modifyTimestamp and modifiersName
+ * operational attributes from the entry, and do a regular ModDN.
  */
 typedef struct dninfo {
 	Entry *new_entry;
 	struct berval dn;
 	struct berval ndn;
 	int renamed;	/* Was an existing entry renamed? */
-	int wasChanged;	/* are the attributes changed? */
-	int attrs;		/* how many attribute types are in the ads list */
-	AttributeDescription **ads;
+	int delOldRDN;	/* Was old RDN deleted? */
+	Modifications **modlist;	/* the modlist we received */
+	Modifications *mods;	/* the modlist we compared */
 } dninfo;
 
 static int
@@ -1653,6 +1657,7 @@ syncrepl_entry(
 	cb.sc_response = dn_callback;
 	cb.sc_private = &dni;
 	dni.new_entry = entry;
+	dni.modlist = modlist;
 
 	if ( limits_check( op, &rs_search ) == 0 ) {
 		rc = be->be_search( op, &rs_search );
@@ -1826,7 +1831,7 @@ retry_add:;
 				op->orr_newSup = NULL;
 				op->orr_nnewSup = NULL;
 			}
-			op->orr_deleteoldrdn = 0;
+			op->orr_deleteoldrdn = dni.delOldRDN;
 			op->orr_modlist = NULL;
 			if (( rc = slap_modrdn2mods( op, &rs_modify ))) {
 				goto done;
@@ -1838,6 +1843,34 @@ retry_add:;
 			noldp = op->orr_nnewrdn;
 			ber_dupbv_x( &op->orr_nnewrdn, &noldp, op->o_tmpmemctx );
 
+			/* Setup opattrs too */
+			{
+				AttributeDescription *opattrs[] = {
+					slap_schema.si_ad_entryCSN,
+					slap_schema.si_ad_modifiersName,
+					slap_schema.si_ad_modifyTimestamp,
+					NULL
+				};
+				Modifications *mod, **modtail, **ml;
+				int i;
+
+				for (mod=op->orr_modlist; mod->sml_next; mod=mod->sml_next)
+					;
+				modtail = &mod->sml_next;
+
+				/* pull mod off incoming modlist, append to orr_modlist */
+				for (i=0; opattrs[i]; i++) {
+					for (ml = modlist; *ml; ml = &(*ml)->sml_next)
+						if ( (*ml)->sml_desc == opattrs[i] ) {
+							mod = *ml;
+							*ml = mod->sml_next;
+							mod->sml_next = NULL;
+							*modtail = mod;
+							modtail = &mod->sml_next;
+							break;
+						}
+				}
+			}
 			rc = be->be_modrdn( op, &rs_modify );
 			op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );
@@ -1846,68 +1879,14 @@ retry_add:;
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: rid %03ld be_modrdn (%d)\n", 
 					si->si_rid, rc, 0 );
-			if ( rs_modify.sr_err == LDAP_SUCCESS ) {
-				op->o_req_dn = entry->e_name;
-				op->o_req_ndn = entry->e_nname;
-			} else {
-				goto done;
-			}
-			if ( dni.wasChanged )
-				slap_op_time( &op->o_time, &op->o_tincr );
+			goto done;
 		}
-		if ( dni.wasChanged ) {
-			Modifications *mod, *modhead = NULL;
-			Modifications *modtail = NULL;
-			int i;
-
+		if ( dni.mods ) {
 			op->o_tag = LDAP_REQ_MODIFY;
-
-			assert( *modlist != NULL );
-
-			/* Delete all the old attrs */
-			for ( i = 0; i < dni.attrs; i++ ) {
-				mod = ch_malloc( sizeof( Modifications ) );
-				mod->sml_op = LDAP_MOD_DELETE;
-				mod->sml_flags = 0;
-				mod->sml_desc = dni.ads[i];
-				mod->sml_type = mod->sml_desc->ad_cname;
-				mod->sml_values = NULL;
-				mod->sml_nvalues = NULL;
-				if ( !modhead ) modhead = mod;
-				if ( modtail ) {
-					modtail->sml_next = mod;
-				}
-				modtail = mod;
-			}
-
-			/* Append passed in list to ours */
-			if ( modtail ) {
-				modtail->sml_next = *modlist;
-				*modlist = modhead;
-			} else {
-				mod = *modlist;
-			}
-
-			/* Find end of this list */
-			for ( ; mod != NULL; mod = mod->sml_next ) {
-				modtail = mod;
-			}
-
-			mod = (Modifications *)ch_calloc(1, sizeof(Modifications));
-			mod->sml_op = LDAP_MOD_REPLACE;
-			mod->sml_flags = 0;
-			mod->sml_desc = slap_schema.si_ad_entryUUID;
-			mod->sml_type = mod->sml_desc->ad_cname;
-			ber_dupbv( &uuid_bv, &syncUUID_strrep );
-			ber_bvarray_add( &mod->sml_values, &uuid_bv );
-			ber_dupbv( &uuid_bv, syncUUID );
-			ber_bvarray_add( &mod->sml_nvalues, &uuid_bv );
-			modtail->sml_next = mod;
-					
-			op->o_tag = LDAP_REQ_MODIFY;
-			op->orm_modlist = *modlist;
+			op->orm_modlist = dni.mods;
 
 			rc = be->be_modify( op, &rs_modify );
+			slap_mods_free( op->orm_modlist, 1 );
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: rid %03ld be_modify (%d)\n", 
 					si->si_rid, rc, 0 );
@@ -1956,9 +1935,6 @@ done:
 	if ( !BER_BVISNULL( &syncUUID_strrep ) ) {
 		slap_sl_free( syncUUID_strrep.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &syncUUID_strrep );
-	}
-	if ( dni.ads ) {
-		op->o_tmpfree( dni.ads, op->o_tmpmemctx );
 	}
 	if ( !BER_BVISNULL( &dni.ndn ) ) {
 		op->o_tmpfree( dni.ndn.bv_val, op->o_tmpmemctx );
@@ -2352,6 +2328,129 @@ syncrepl_updateCookie(
 	return rc;
 }
 
+static void
+attr_cmp( Operation *op, Attribute *old, Attribute *new,
+	Modifications ***mret, Modifications ***mcur )
+{
+	int i, j, doadd = 0;
+	Modifications *mod, **modtail;
+
+	modtail = *mret;
+
+	if ( old ) {
+		int n, o, d, a, *adds, *dels;
+		/* count old and new */
+		for ( o=0; old->a_vals[o].bv_val; o++ ) ;
+		for ( n=0; new->a_vals[n].bv_val; n++ ) ;
+
+		adds = op->o_tmpalloc( sizeof(int) * n, op->o_tmpmemctx );
+		dels = op->o_tmpalloc( sizeof(int) * o, op->o_tmpmemctx );
+		d = 0;
+		a = 0;
+		i = 0;
+		j = 0;
+
+		while ( i < o && j < n ) {
+			int k;
+			if ( bvmatch( &old->a_vals[i], &new->a_vals[j] )) {
+				i++;
+				j++;
+				continue;
+			}
+			for ( k=j+1; k<n; k++ ) {
+				if ( bvmatch( &old->a_vals[i], &new->a_vals[k] )) {
+					break;
+				}
+			}
+			/* an old value was deleted */
+			if ( k == n ) {
+				dels[d++] = i++;
+				continue;
+			}
+			for ( k=i+1; k<o; k++ ) {
+				if ( bvmatch( &old->a_vals[k], &new->a_vals[j] )) {
+					break;
+				}
+			}
+			if ( k == o ) {
+				adds[a++] = j++;
+			}
+		}
+		while ( i < o )
+			dels[d++] = i++;
+		while ( j < n )
+			adds[a++] = j++;
+
+		/* all old values were deleted, just use the replace op */
+		if ( d == o ) {
+			i = j-1;
+		} else if ( d ) {
+		/* delete some values */
+			mod = ch_malloc( sizeof( Modifications ) );
+			mod->sml_op = LDAP_MOD_DELETE;
+			mod->sml_flags = 0;
+			mod->sml_desc = old->a_desc;
+			mod->sml_type = mod->sml_desc->ad_cname;
+			mod->sml_values = ch_malloc(( d+1) * sizeof(struct berval));
+			if ( old->a_vals != old->a_nvals )
+				mod->sml_nvalues = ch_malloc(( d+1) * sizeof(struct berval));
+			else
+				mod->sml_nvalues = NULL;
+			for ( i=0; i<d; i++ ) {
+				ber_dupbv( &mod->sml_values[i], &old->a_vals[dels[i]] );
+				if ( mod->sml_nvalues )
+					ber_dupbv( &mod->sml_nvalues[i], &old->a_nvals[dels[i]] );
+			}
+			BER_BVZERO( &mod->sml_values[i] );
+			if ( mod->sml_nvalues )
+				BER_BVZERO( &mod->sml_nvalues[i] );
+			*modtail = mod;
+			modtail = &mod->sml_next;
+			i = j;
+		}
+		op->o_tmpfree( dels, op->o_tmpmemctx );
+		/* some values were added */
+		if ( a && d < o ) {
+			mod = ch_malloc( sizeof( Modifications ) );
+			mod->sml_op = LDAP_MOD_ADD;
+			mod->sml_flags = 0;
+			mod->sml_desc = old->a_desc;
+			mod->sml_type = mod->sml_desc->ad_cname;
+			mod->sml_values = ch_malloc(( a+1) * sizeof(struct berval));
+			if ( old->a_vals != old->a_nvals )
+				mod->sml_nvalues = ch_malloc(( a+1) * sizeof(struct berval));
+			else
+				mod->sml_nvalues = NULL;
+			for ( i=0; i<a; i++ ) {
+				ber_dupbv( &mod->sml_values[i], &new->a_vals[adds[i]] );
+				if ( mod->sml_nvalues )
+					ber_dupbv( &mod->sml_nvalues[i], &new->a_nvals[adds[i]] );
+			}
+			BER_BVZERO( &mod->sml_values[i] );
+			if ( mod->sml_nvalues )
+				BER_BVZERO( &mod->sml_nvalues[i] );
+			*modtail = mod;
+			modtail = &mod->sml_next;
+			i = j;
+		}
+		op->o_tmpfree( adds, op->o_tmpmemctx );
+	} else {
+		/* new attr, just use the new mod */
+		i = 0;
+		j = 1;
+	}
+	/* advance to next element */
+	mod = **mcur;
+	if ( i != j ) {
+		**mcur = mod->sml_next;
+		*modtail = mod;
+		modtail = &mod->sml_next;
+	} else {
+		*mcur = &mod->sml_next;
+	}
+	*mret = modtail;
+}
+
 static int
 dn_callback(
 	Operation*	op,
@@ -2372,72 +2471,73 @@ dn_callback(
 			 * in the provider are always propagated.
 			 */
 			if ( dni->new_entry ) {
+				Modifications **modtail, **ml;
 				Attribute *old, *new;
 				int i;
 
-				/* Did the DN change? Note that we don't explicitly try to
-				 * discover if the deleteOldRdn argument applies here. It
-				 * would save an unnecessary Modify if we detected it, but
-				 * that's a fair amount of trouble to compare the two attr
-				 * lists in detail. (Just test normalized DN; we ignore
-				 * insignificant changes here.)
+				/* Did the DN change?
 				 */
-				if ( !dn_match( &rs->sr_entry->e_nname,
-						&dni->new_entry->e_nname ) )
+				if ( !dn_match( &rs->sr_entry->e_name,
+						&dni->new_entry->e_name ) )
 				{
+					struct berval oldRDN, oldVal;
+					AttributeDescription *ad = NULL;
+					Attribute *a;
+
 					dni->renamed = 1;
+					/* See if the oldRDN was deleted */
+					dnRdn( &rs->sr_entry->e_nname, &oldRDN );
+					oldVal.bv_val = strchr(oldRDN.bv_val, '=') + 1;
+					oldVal.bv_len = oldRDN.bv_len - ( oldVal.bv_val -
+						oldRDN.bv_val );
+					oldRDN.bv_len -= oldVal.bv_len + 2;
+					slap_bv2ad( &oldRDN, &ad, &rs->sr_text );
+					a = attr_find( dni->new_entry->e_attrs, ad );
+					if ( !a || value_find_ex( ad,
+						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
+						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+						SLAP_MR_VALUE_OF_SYNTAX, a->a_nvals,
+						&oldVal, op->o_tmpmemctx ) != LDAP_SUCCESS )
+					{
+						dni->delOldRDN = 1;
+					}
+					/* OK, this was just a modDN, we're done */
+					return LDAP_SUCCESS;
 				}
 
-				for ( i = 0, old = rs->sr_entry->e_attrs;
-						old;
-						i++, old = old->a_next )
-					;
-
-				dni->attrs = i;
+				modtail = &dni->mods;
+				ml = dni->modlist;
 
 				/* We assume that attributes are saved in the same order
 				 * in the remote and local databases. So if we walk through
 				 * the attributeDescriptions one by one they should match in
-				 * lock step. If not, we signal a change. Otherwise we test
-				 * all the values...
+				 * lock step. If not, look for an add or delete.
 				 */
 				for ( old = rs->sr_entry->e_attrs, new = dni->new_entry->e_attrs;
-						old && new;
-						old = old->a_next, new = new->a_next )
+						old && new; )
 				{
 					if ( old->a_desc != new->a_desc ) {
-						dni->wasChanged = 1;
-						break;
+						/* Delete old attr, force into new order */
+						Modifications *mod;
+						mod = ch_malloc( sizeof( Modifications ) );
+						mod->sml_op = LDAP_MOD_DELETE;
+						mod->sml_flags = 0;
+						mod->sml_desc = old->a_desc;
+						mod->sml_type = mod->sml_desc->ad_cname;
+						mod->sml_values = NULL;
+						mod->sml_nvalues = NULL;
+						*modtail = mod;
+						modtail = &mod->sml_next;
+
+						old = old->a_next;
+						continue;
 					}
-					for ( i = 0; ; i++ ) {
-						int nold, nnew;
-						nold = BER_BVISNULL( &old->a_vals[i] );
-						nnew = BER_BVISNULL( &new->a_vals[i] );
-						/* If both are empty, stop looking */
-						if ( nold && nnew ) {
-							break;
-						}
-						/* If they are different, stop looking */
-						if ( nold != nnew ) {
-							dni->wasChanged = 1;
-							break;
-						}
-						if ( ber_bvcmp( &old->a_vals[i], &new->a_vals[i] )) {
-							dni->wasChanged = 1;
-							break;
-						}
-					}
-					if ( dni->wasChanged ) break;
+					attr_cmp( op, old, new, &modtail, &ml );
+					new = new->a_next;
+					old = old->a_next;
 				}
-				if ( dni->wasChanged ) {
-					dni->ads = op->o_tmpalloc( dni->attrs *
-						sizeof(AttributeDescription *), op->o_tmpmemctx );
-					i = 0;
-					for ( old = rs->sr_entry->e_attrs; old; old = old->a_next ) {
-						dni->ads[i] = old->a_desc;
-						i++;
-					}
-				}
+				*modtail = *ml;
+				*ml = NULL;
 			}
 		}
 	} else if ( rs->sr_type == REP_RESULT ) {
