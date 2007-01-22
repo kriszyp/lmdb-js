@@ -2516,19 +2516,42 @@ dn_callback(
 				for ( old = rs->sr_entry->e_attrs, new = dni->new_entry->e_attrs;
 						old && new; )
 				{
+#if 1
+					if ( new->a_flags & SLAP_ATTR_IXADD ) {
+						new = new->a_next;
+						continue;
+					}
+#endif
 					if ( old->a_desc != new->a_desc ) {
-						/* Delete old attr, force into new order */
 						Modifications *mod;
-						mod = ch_malloc( sizeof( Modifications ) );
-						mod->sml_op = LDAP_MOD_DELETE;
-						mod->sml_flags = 0;
-						mod->sml_desc = old->a_desc;
-						mod->sml_type = mod->sml_desc->ad_cname;
-						mod->sml_values = NULL;
-						mod->sml_nvalues = NULL;
-						*modtail = mod;
-						modtail = &mod->sml_next;
+						Attribute *tmp;
 
+						/* If it's just been re-added later,
+						 * remember that we've seen it.
+						 */
+						tmp = attr_find( new, old->a_desc );
+						if ( tmp ) {
+							tmp->a_flags |= SLAP_ATTR_IXADD;
+						} else {
+							/* If it's a new attribute, pull it in.
+							 */
+							tmp = attr_find( old, new->a_desc );
+							if ( !tmp ) {
+								attr_cmp( op, NULL, new, &modtail, &ml );
+								new = new->a_next;
+								continue;
+							}
+							/* Delete old attr */
+							mod = ch_malloc( sizeof( Modifications ) );
+							mod->sml_op = LDAP_MOD_DELETE;
+							mod->sml_flags = 0;
+							mod->sml_desc = old->a_desc;
+							mod->sml_type = mod->sml_desc->ad_cname;
+							mod->sml_values = NULL;
+							mod->sml_nvalues = NULL;
+							*modtail = mod;
+							modtail = &mod->sml_next;
+						}
 						old = old->a_next;
 						continue;
 					}
