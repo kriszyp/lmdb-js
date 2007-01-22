@@ -124,6 +124,8 @@ PLSRMASTERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
 DDSCONF=$DATADIR/slapd-dds.conf
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 
+DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
+
 # generated files
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
