@@ -3702,7 +3702,7 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 	if ( use_ldif ) {
 		CfBackInfo *cfb = (CfBackInfo *)op->o_bd->be_private;
 		BackendDB *be = op->o_bd;
-		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		slap_callback sc = { NULL, slap_null_cb, NULL, NULL }, *scp;
 		struct berval dn, ndn, xdn, xndn;
 
 		op->o_bd = &cfb->cb_db;
@@ -3717,7 +3717,7 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 		op->o_req_dn = odn;
 		op->o_req_ndn = ondn;
 
-		sc.sc_next = op->o_callback;
+		scp = op->o_callback;
 		op->o_callback = &sc;
 		op->orr_newrdn = *newrdn;
 		op->orr_nnewrdn = *nnewrdn;
@@ -3729,7 +3729,7 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 		slap_mods_free( op->orr_modlist, 1 );
 
 		op->o_bd = be;
-		op->o_callback = sc.sc_next;
+		op->o_callback = scp;
 		op->o_dn = dn;
 		op->o_ndn = ndn;
 		op->o_req_dn = xdn;
@@ -3839,9 +3839,6 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		}
 	}
 
-	if ( !isfrontend && index == -1 )
-		index = 0;
-
 	/* count related kids */
 	for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
 		if ( ce->ce_type == ce_type ) nsibs++;
@@ -3856,6 +3853,9 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 					renumber = 1;
 			}
 		}
+		if ( !isfrontend && index == -1 )
+			index = nsibs;
+
 		/* just make index = nsibs */
 		if ( !renumber ) {
 			rc = config_renumber_one( NULL, rs, parent, e, index, tailindex, 0 );
@@ -3986,7 +3986,8 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
 	if ( ce ) {
 		if (( op && op->o_managedsait ) ||
-			( ce->ce_type != Cft_Database && ce->ce_type != Cft_Overlay ))
+			( ce->ce_type != Cft_Database && ce->ce_type != Cft_Overlay &&
+			  ce->ce_type != Cft_Module ))
 		return LDAP_ALREADY_EXISTS;
 	}
 
@@ -4314,6 +4315,10 @@ config_back_add( Operation *op, SlapReply *rs )
 	{
 		char textbuf[SLAP_TEXT_BUFLEN];
 		size_t textlen = sizeof textbuf;
+		rs->sr_err = entry_schema_check(op, op->ora_e, NULL, 0, 1,
+			&rs->sr_text, textbuf, sizeof( textbuf ) );
+		if ( rs->sr_err != LDAP_SUCCESS )
+			goto out;
 		rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -4352,7 +4357,7 @@ config_back_add( Operation *op, SlapReply *rs )
 
 	if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
-		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		slap_callback sc = { NULL, slap_null_cb, NULL, NULL }, *scp;
 		struct berval dn, ndn;
 
 		op->o_bd = &cfb->cb_db;
@@ -4363,11 +4368,11 @@ config_back_add( Operation *op, SlapReply *rs )
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_ndn = op->o_bd->be_rootndn;
 
-		sc.sc_next = op->o_callback;
+		scp = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_add( op, rs );
 		op->o_bd = be;
-		op->o_callback = sc.sc_next;
+		op->o_callback = scp;
 		op->o_dn = dn;
 		op->o_ndn = ndn;
 	}
@@ -4377,6 +4382,7 @@ out2:;
 
 out:;
 	send_ldap_result( op, rs );
+	slap_graduate_commit_csn( op );
 	return rs->sr_err;
 }
 
@@ -4707,7 +4713,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 		rs->sr_text = ca.msg;
 	} else if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
-		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		slap_callback sc = { NULL, slap_null_cb, NULL, NULL }, *scp;
 		struct berval dn, ndn;
 
 		op->o_bd = &cfb->cb_db;
@@ -4717,11 +4723,11 @@ config_back_modify( Operation *op, SlapReply *rs )
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_ndn = op->o_bd->be_rootndn;
 
-		sc.sc_next = op->o_callback;
+		scp = op->o_callback;
 		op->o_callback = &sc;
 		op->o_bd->be_modify( op, rs );
 		op->o_bd = be;
-		op->o_callback = sc.sc_next;
+		op->o_callback = scp;
 		op->o_dn = dn;
 		op->o_ndn = ndn;
 	}
@@ -4730,6 +4736,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
+	slap_graduate_commit_csn( op );
 	return rs->sr_err;
 }
 
