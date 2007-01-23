@@ -401,8 +401,10 @@ conn_create(
 			c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
 			
 			c->c_listener_url.bv_val,
-			c->c_peer_domain.bv_val,
-			c->c_peer_name.bv_val,
+			BER_BVISNULL( &c->c_peer_domain )
+				? "" : c->c_peer_domain.bv_val,
+			BER_BVISNULL( &c->c_peer_name )
+				? "" : c->c_peer_name.bv_val,
 			c->c_sock_name.bv_val,
 			
 			buf2,
