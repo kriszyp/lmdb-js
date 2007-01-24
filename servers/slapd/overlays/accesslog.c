@@ -402,7 +402,7 @@ static struct {
 		"DESC 'ModRDN operation' "
 		"SUP auditWriteObject STRUCTURAL "
 		"MUST ( reqNewRDN $ reqDeleteOldRDN ) "
-		"MAY ( reqNewSuperior $ reqOld ) )", &log_ocs[LOG_EN_MODRDN] },
+		"MAY ( reqNewSuperior $ reqMod $ reqOld ) )", &log_ocs[LOG_EN_MODRDN] },
 	{ "( " LOG_SCHEMA_OC ".11 NAME 'auditSearch' "
 		"DESC 'Search operation' "
 		"SUP auditReadObject STRUCTURAL "
@@ -1064,6 +1064,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		break;
 	}
 
+	case LOG_EN_MODRDN:
 	case LOG_EN_MODIFY:
 		/* count all the mods */
 		i = 0;
@@ -1100,6 +1101,13 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 				if ( a )
 					a->a_flags = 1;
 			}
+
+			/* don't log the RDN mods; they're explicitly logged later */
+			if ( logop == LOG_EN_MODRDN &&
+			 	( m->sml_op == SLAP_MOD_SOFTADD ||
+				  m->sml_op == LDAP_MOD_DELETE ))
+				continue;
+
 			if ( m->sml_values ) {
 				for (b=m->sml_values; !BER_BVISNULL( b ); b++,i++) {
 					char c_op;
@@ -1167,43 +1175,10 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			a->a_nvals = vals;
 			last_attr->a_next = a;
 		}
-		break;
+		if ( logop == LOG_EN_MODIFY )
+			break;
 
-	case LOG_EN_MODRDN:
-		if ( old ) {
-			/* count all the vals */
-			i = 0;
-			for ( a=old->e_attrs; a; a=a->a_next ) {
-				log_attr *la;
-
-				/* look for attrs that are always logged */
-				for ( la=li->li_oldattrs; la; la=la->next ) {
-					if ( a->a_desc == la->attr ) {
-						for (b=a->a_vals; !BER_BVISNULL( b ); b++) {
-							i++;
-						}
-					}
-				}
-			}
-			vals = ch_malloc( (i+1) * sizeof( struct berval ));
-			i = 0;
-			for ( a=old->e_attrs; a; a=a->a_next ) {
-				log_attr *la;
-				for ( la=li->li_oldattrs; la; la=la->next ) {
-					if ( a->a_desc == la->attr ) {
-						for (b=a->a_vals; !BER_BVISNULL( b ); b++,i++) {
-							accesslog_val2val( a->a_desc, b, 0, &vals[i] );
-						}
-					}
-				}
-			}
-			vals[i].bv_val = NULL;
-			vals[i].bv_len = 0;
-			a = attr_alloc( ad_reqOld );
-			a->a_vals = vals;
-			a->a_nvals = vals;
-			last_attr->a_next = a;
-		}
+		/* Now log the actual modRDN info */
 		attr_merge_one( e, ad_reqNewRDN, &op->orr_newrdn, &op->orr_nnewrdn );
 		attr_merge_one( e, ad_reqDeleteOldRDN, op->orr_deleteoldrdn ?
 			(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv,

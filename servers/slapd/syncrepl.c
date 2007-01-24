@@ -1325,9 +1325,14 @@ syncrepl_message_to_op(
 		op->orr_modlist = NULL;
 		if ( slap_modrdn2mods( op, &rs ))
 			goto done;
-		/* FIXME: append entryCSN, modifiersName, modifyTimestamp to
-		 * modlist here. Should accesslog give these to us in a reqMod?
-		 */
+		/* Append modlist for operational attrs */
+		{
+			Modifications *m;
+
+			for ( m = op->orr_modlist; m->sml_next; m = m->sml_next ) ;
+			m->sml_next = modlist;
+			modlist = NULL;
+		}
 		rc = op->o_bd->be_modrdn( op, &rs );
 		slap_mods_free( op->orr_modlist, 1 );
 		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
