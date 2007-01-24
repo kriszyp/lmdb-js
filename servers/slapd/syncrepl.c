@@ -1489,7 +1489,7 @@ syncrepl_message_to_entry(
 			modtail = &mod->sml_next;
 		}
 	}
-	
+
 	rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: rid %03ld mods2entry (%s)\n",
@@ -1616,12 +1616,31 @@ syncrepl_entry(
 		}
 	}
 
+	(void)slap_uuidstr_from_normalized( &syncUUID_strrep, syncUUID, op->o_tmpmemctx );
+	if ( syncstate != LDAP_SYNC_DELETE ) {
+		Attribute	*a = attr_find( entry->e_attrs, slap_schema.si_ad_entryUUID );
+
+		if ( a == NULL ) {
+			/* add if missing */
+			attr_merge_one( entry, slap_schema.si_ad_entryUUID,
+				&syncUUID_strrep, syncUUID );
+
+		} else if ( !bvmatch( &a->a_nvals[0], syncUUID ) ) {
+			/* replace only if necessary */
+			if ( a->a_nvals != a->a_vals ) {
+				ber_memfree( a->a_nvals[0].bv_val );
+				ber_dupbv( &a->a_nvals[0], syncUUID );
+			}
+			ber_memfree( a->a_vals[0].bv_val );
+			ber_dupbv( &a->a_vals[0], &syncUUID_strrep );
+		}
+	}
+
 	f.f_choice = LDAP_FILTER_EQUALITY;
 	f.f_ava = &ava;
 	ava.aa_desc = slap_schema.si_ad_entryUUID;
 	ava.aa_value = *syncUUID;
 
-	(void)slap_uuidstr_from_normalized( &syncUUID_strrep, syncUUID, op->o_tmpmemctx );
 	if ( syncuuid_bv ) {
 		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: rid %03ld inserted UUID %s\n",
 			si->si_rid, syncUUID_strrep.bv_val, 0 );
@@ -1683,37 +1702,19 @@ syncrepl_entry(
 				si->si_rid, dni.dn.bv_val ? dni.dn.bv_val : "(null)", 0 );
 	}
 
-	if ( syncstate != LDAP_SYNC_DELETE ) {
-		Attribute	*a = attr_find( entry->e_attrs, slap_schema.si_ad_entryUUID );
-
-		if ( a == NULL ) {
-			/* add if missing */
-			attr_merge_one( entry, slap_schema.si_ad_entryUUID,
-				&syncUUID_strrep, syncUUID );
-
-		} else if ( !bvmatch( &a->a_nvals[0], syncUUID ) ) {
-			/* replace only if necessary */
-			if ( a->a_nvals != a->a_vals ) {
-				ber_memfree( a->a_nvals[0].bv_val );
-				ber_dupbv( &a->a_nvals[0], syncUUID );
-			}
-			ber_memfree( a->a_vals[0].bv_val );
-			ber_dupbv( &a->a_vals[0], &syncUUID_strrep );
-		}
-		/* Don't save the contextCSN on the inooming context entry,
-		 * we'll write it when syncrepl_updateCookie eventually
-		 * gets called. (ITS#4622)
-		 */
-		if ( syncstate == LDAP_SYNC_ADD && dn_match( &entry->e_nname,
-			&be->be_nsuffix[0] )) {
-			Attribute **ap;
-			for ( ap = &entry->e_attrs; *ap; ap=&(*ap)->a_next ) {
-				a = *ap;
-				if ( a->a_desc == slap_schema.si_ad_contextCSN ) {
-					*ap = a->a_next;
-					attr_free( a );
-					break;
-				}
+	/* Don't save the contextCSN on the inooming context entry,
+	 * we'll write it when syncrepl_updateCookie eventually
+	 * gets called. (ITS#4622)
+	 */
+	if ( syncstate == LDAP_SYNC_ADD && dn_match( &entry->e_nname,
+		&be->be_nsuffix[0] )) {
+		Attribute *a, **ap;
+		for ( ap = &entry->e_attrs; *ap; ap=&(*ap)->a_next ) {
+			a = *ap;
+			if ( a->a_desc == slap_schema.si_ad_contextCSN ) {
+				*ap = a->a_next;
+				attr_free( a );
+				break;
 			}
 		}
 	}
@@ -2446,7 +2447,8 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	} else {
-		*mcur = &mod->sml_next;
+		if ( mod )
+			*mcur = &mod->sml_next;
 	}
 	*mret = modtail;
 }
