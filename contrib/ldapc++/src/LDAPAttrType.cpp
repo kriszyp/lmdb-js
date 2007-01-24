@@ -44,7 +44,7 @@ LDAPAttrType::LDAPAttrType (string at_item) {
 	this->setDesc( a->at_desc );
 	this->setOid( a->at_oid );
 	this->setSingle( a->at_single_value );
-	this->setSingle( a->at_usage );
+	this->setUsage( a->at_usage );
     }
     // else? -> error
 }
