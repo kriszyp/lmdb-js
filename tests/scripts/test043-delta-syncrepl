@@ -235,7 +235,6 @@ dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, dc=exampl
 changetype: delete
 
 EOMODS
-
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapmodify failed ($RC)!"
@@ -251,7 +250,7 @@ kill -HUP $SLAVEPID
 sleep 10
 
 echo "Modifying more entries on the master..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+$LDAPMODIFY -v -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=Rosco P. Coltrane, ou=Retired, ou=People, dc=example,dc=com
 changetype: delete
@@ -271,6 +270,12 @@ cn: Rosco P. Coltrane
 dn: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
 changetype: modify
 replace: drink
+
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
+changetype: modrdn
+newrdn: cn=Some Staff
+deleteoldrdn: 1
+
 EOMODS
 
 echo "Restarting consumer..."
@@ -311,7 +316,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'objectclass=*' > $MASTEROUT 2>&1
+	'objectclass=*' \* + > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -322,7 +327,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'objectclass=*' > $SLAVEOUT 2>&1
+	'objectclass=*' \* + > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -334,9 +339,9 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering master results..."
-. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+. $LDIFFILTER < $MASTEROUT | grep -iv auditcontext: > $MASTERFLT
 echo "Filtering slave results..."
-. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+. $LDIFFILTER < $SLAVEOUT | grep -iv auditcontext: > $SLAVEFLT
 
 echo "Comparing retrieved entries from master and slave..."
 $CMP $MASTERFLT $SLAVEFLT > $CMPOUT
