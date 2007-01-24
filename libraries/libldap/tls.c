@@ -1299,6 +1299,10 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		*(int *)arg = lo->ldo_tls_crlcheck;
 		break;
 #endif
+	case LDAP_OPT_X_TLS_CIPHER_SUITE:
+		*(char **)arg = lo->ldo_tls_ciphersuite ?
+			LDAP_STRDUP( lo->ldo_tls_ciphersuite ) : NULL;
+		break;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		*(char **)arg = tls_opt_randfile ?
 			LDAP_STRDUP( tls_opt_randfile ) : NULL;
