@@ -828,9 +828,10 @@ do_syncrep2(
 								struct berval *syncuuid_bv;
 								syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
 								slap_sl_free( syncUUIDs[i].bv_val,op->o_tmpmemctx );
-								avl_insert( &si->si_presentlist,
+								if ( avl_insert( &si->si_presentlist,
 									(caddr_t) syncuuid_bv,
-									syncuuid_cmp, avl_dup_error );
+									syncuuid_cmp, avl_dup_error ))
+									ber_bvfree( syncuuid_bv );
 							}
 							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
@@ -1608,8 +1609,11 @@ syncrepl_entry(
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD )) {
 		if ( !si->si_refreshPresent ) {
 			syncuuid_bv = ber_dupbv( NULL, syncUUID );
-			avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
-				syncuuid_cmp, avl_dup_error );
+			if ( avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
+				syncuuid_cmp, avl_dup_error )) {
+				ber_bvfree( syncuuid_bv );
+				syncuuid_bv = NULL;
+			}
 		}
 	}
 
