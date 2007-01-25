@@ -3385,7 +3385,7 @@ add_syncrepl(
 			 * in case they really want to do this, they can vary
 			 * the case of the URL to allow it.
 			 */
-			if ( l ) {
+			if ( l && !SLAP_DBHIDDEN( c->be )) {
 				int i;
 				for ( i=0; l[i]; i++ ) {
 					if ( bvmatch( &l[i]->sl_url, &si->si_bindconf.sb_uri )) {
