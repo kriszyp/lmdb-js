@@ -723,14 +723,6 @@ monitor_search2ndn(
 
 	op->o_tag = LDAP_REQ_SEARCH;
 
-	/* use global malloc for now */
-	if ( op->o_tmpmemctx ) {
-		/* FIXME: connection_fake_init() calls slap_sl_mem_create, so we destroy it for now */
-		slap_sl_mem_destroy( NULL, op->o_tmpmemctx );
-		op->o_tmpmemctx = NULL;
-	}
-	op->o_tmpmfuncs = &ch_mfuncs;
-
 	op->o_bd = be_monitor;
 	if ( nbase == NULL || BER_BVISNULL( nbase ) ) {
 		ber_dupbv_x( &op->o_req_dn, &op->o_bd->be_suffix[ 0 ],
@@ -777,11 +769,11 @@ cleanup:;
 	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}
-	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
-		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	}
 	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
 		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
+		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	}
 
 	if ( rc != 0 ) {
