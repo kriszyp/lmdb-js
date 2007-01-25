@@ -1412,12 +1412,6 @@ syncrepl_message_to_entry(
 		return rc;
 	}
 
-	dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
-	ber_dupbv( &op->o_req_dn, &dn );
-	ber_dupbv( &op->o_req_ndn, &ndn );
-	slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
-	slap_sl_free( dn.bv_val, op->o_tmpmemctx );
-
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
 		/* NOTE: this could be done even before decoding the DN,
 		 * although encoding errors wouldn't be detected */
@@ -1429,6 +1423,12 @@ syncrepl_message_to_entry(
 		rc = -1;
 		goto done;
 	}
+
+	dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
+	ber_dupbv( &op->o_req_dn, &dn );
+	ber_dupbv( &op->o_req_ndn, &ndn );
+	slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+	slap_sl_free( dn.bv_val, op->o_tmpmemctx );
 
 	e = entry_alloc();
 	e->e_name = op->o_req_dn;
