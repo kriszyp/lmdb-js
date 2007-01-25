@@ -580,7 +580,7 @@ syncprov_findcsn( Operation *op, find_csn_t mode )
 	char buf[LDAP_LUTIL_CSNSTR_BUFSIZE + STRLENOF("(entryCSN<=)")];
 	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	struct berval maxcsn;
-	Filter cf, af;
+	Filter cf;
 #ifdef LDAP_COMP_MATCH
 	AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
 #else
@@ -652,14 +652,8 @@ again:
 		cb.sc_response = findcsn_cb;
 		break;
 	case FIND_PRESENT:
-		af.f_choice = LDAP_FILTER_AND;
-		af.f_next = NULL;
-		af.f_and = &cf;
-		cf.f_choice = LDAP_FILTER_LE;
-		cf.f_av_value = srs->sr_state.ctxcsn;
-		cf.f_next = op->ors_filter;
-		fop.ors_filter = &af;
-		filter2bv_x( &fop, fop.ors_filter, &fop.ors_filterstr );
+		fop.ors_filter = op->ors_filter;
+		fop.ors_filterstr = op->ors_filterstr;
 		fop.ors_attrsonly = 0;
 		fop.ors_attrs = uuid_anlist;
 		fop.ors_slimit = SLAP_NO_LIMIT;
@@ -703,7 +697,6 @@ again:
 		break;
 	case FIND_PRESENT:
 		op->o_tmpfree( pcookie.uuids, op->o_tmpmemctx );
-		op->o_tmpfree( fop.ors_filterstr.bv_val, op->o_tmpmemctx );
 		break;
 	}
 
@@ -1388,9 +1381,22 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	 * and everything else at the end. Do this first so we can
 	 * unlock the list mutex.
 	 */
+        Debug( LDAP_DEBUG_SYNC, "srs csn %s\n", srs-> sr_state.ctxcsn.bv_val, 0, 0 );
 	for ( se=sl->sl_head; se; se=se->se_next ) {
-		if ( ber_bvcmp( &se->se_csn, &srs->sr_state.ctxcsn ) <= 0 ) continue;
-		if ( ber_bvcmp( &se->se_csn, ctxcsn ) > 0 ) break;
+                Debug( LDAP_DEBUG_SYNC, "log csn %s\n", se-> se_csn.bv_val,
+0, 0 );
+                ndel = ber_bvcmp( &se->se_csn, &srs->sr_state.ctxcsn );
+                if ( ndel <= 0 ) {
+                        Debug( LDAP_DEBUG_SYNC, "cmp %d, too old\n", ndel,
+0, 0 );
+                        continue;
+                }
+                ndel = ber_bvcmp( &se->se_csn, ctxcsn );
+                if ( ndel > 0 ) {
+                        Debug( LDAP_DEBUG_SYNC, "cmp %d, too new\n", ndel,
+0, 0 );
+                        break;
+                }
 		if ( se->se_tag == LDAP_REQ_DELETE ) {
 			j = i;
 			i++;
