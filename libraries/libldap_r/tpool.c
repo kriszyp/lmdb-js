@@ -826,9 +826,15 @@ int ldap_pvt_thread_pool_setkey(
 
 	for ( i=0; i<MAXKEYS; i++ ) {
 		if ( !ctx->ltu_key[i].ltk_key || ctx->ltu_key[i].ltk_key == key ) {
-			ctx->ltu_key[i].ltk_key = key;
-			ctx->ltu_key[i].ltk_data = data;
-			ctx->ltu_key[i].ltk_free = kfree;
+			if ( data || kfree ) {
+				ctx->ltu_key[i].ltk_key = key;
+				ctx->ltu_key[i].ltk_data = data;
+				ctx->ltu_key[i].ltk_free = kfree;
+			} else {
+				ctx->ltu_key[i].ltk_key = NULL;
+				ctx->ltu_key[i].ltk_data = NULL;
+				ctx->ltu_key[i].ltk_free = NULL;
+			}
 			return 0;
 		}
 	}
@@ -863,7 +869,7 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 /*
  * This is necessary if the caller does not have access to the
  * thread context handle (for example, a slapd plugin calling
- * slapi_search_internal()). No doubt it is more efficient to
+ * slapi_search_internal()). No doubt it is more efficient
  * for the application to keep track of the thread context
  * handles itself.
  */
