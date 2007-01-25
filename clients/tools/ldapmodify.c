@@ -1155,6 +1155,7 @@ static int process_response(
 
 		if ( rc == -1 ) {
 			ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+			tool_perror( "ldap_result", rc, NULL, NULL, NULL, NULL );
 			return rc;
 		}
 
