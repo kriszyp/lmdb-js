@@ -1371,6 +1371,19 @@ bdb_locker_id_free( void *key, void *data )
 	}
 }
 
+/* free up any keys used by the main thread */
+void
+bdb_locker_flush( DB_ENV *env )
+{
+	void *data;
+	void *ctx = ldap_pvt_thread_pool_context();
+
+	if ( !ldap_pvt_thread_pool_getkey( ctx, env, &data, NULL ) ) {
+		ldap_pvt_thread_pool_setkey( ctx, env, NULL, NULL );
+		bdb_locker_id_free( env, data );
+	}
+}
+
 int
 bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
 {

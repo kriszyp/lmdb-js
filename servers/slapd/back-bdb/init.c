@@ -494,7 +494,9 @@ bdb_db_close( BackendDB *be )
 			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
 			bdb->bi_cache.c_locker = 0;
 		}
-
+#ifdef BDB_REUSE_LOCKERS
+		bdb_locker_flush( bdb->bi_dbenv );
+#endif
 		/* force a checkpoint, but not if we were ReadOnly,
 		 * and not in Quick mode since there are no transactions there.
 		 */
