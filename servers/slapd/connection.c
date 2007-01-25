@@ -1974,8 +1974,13 @@ connection_fake_init(
 	connection_init_log_prefix( op );
 
 #ifdef LDAP_SLAPI
-	slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
-	slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
+	/* FIXME: somebody needs to destroy these. Perhaps they should
+	 * only be allocated on the slab.
+	 */
+	if ( slapi_plugins_used ) {
+		slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
+		slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
+	}
 #endif /* LDAP_SLAPI */
 
 	slap_op_time( &op->o_time, &op->o_tincr );
