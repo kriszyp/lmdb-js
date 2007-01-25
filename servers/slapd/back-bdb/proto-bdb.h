@@ -574,7 +574,9 @@ int bdb_cache_entry_db_unlock(
 #ifdef BDB_REUSE_LOCKERS
 
 #define bdb_locker_id				BDB_SYMBOL(locker_id)
+#define bdb_locker_flush			BDB_SYMBOL(locker_flush)
 int bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker );
+void bdb_locker_flush( DB_ENV *env );
 
 #define	LOCK_ID_FREE(env, locker)	((void)0)
 #define	LOCK_ID(env, locker)	bdb_locker_id(op, env, locker)
