@@ -843,7 +843,7 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 			rc = be_entry_get_rw( op, &opc.sndn, NULL, NULL, 0, &e );
 			if ( rc ) {
 				Debug( LDAP_DEBUG_SYNC, "syncprov_qplay: failed to get %s, "
-					"error (%d), ignoring...\n", opc.sndn.bv_val, rc );
+					"error (%d), ignoring...\n", opc.sndn.bv_val, rc, 0 );
 				ch_free( sr );
 				rc = 0;
 				continue;
