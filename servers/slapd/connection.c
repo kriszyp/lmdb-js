@@ -1974,8 +1974,6 @@ connection_fake_destroy(
 	conn.c_connid = -1;
 	op.o_connid = -1;
 
-	Debug(LDAP_DEBUG_ANY, "connection_fake_destroy: %p\n", eb, 0, 0 );
-
 	ber_memfree_x( eb, NULL );
 	slapi_int_free_object_extensions( SLAPI_X_EXT_OPERATION, &op );
 	slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION, &conn );
@@ -2019,7 +2017,6 @@ connection_fake_init(
 		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &eb,
 			NULL )) {
 			eb = ch_malloc( sizeof( *eb ));
-			Debug(LDAP_DEBUG_ANY, "connection_fake_init: ctx %p, %p\n", ctx, eb, 0 );
 			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
 			slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 			eb->eb_conn = conn->c_extensions;
