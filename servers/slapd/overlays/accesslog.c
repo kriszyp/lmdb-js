@@ -1455,7 +1455,6 @@ accesslog_db_open(
 		attrs_free( e->e_attrs );
 		ch_free( e );
 	}
-	ldap_pvt_thread_pool_context_reset( thrctx );
 	return rc;
 }
 
