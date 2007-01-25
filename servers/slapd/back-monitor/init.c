@@ -706,6 +706,7 @@ monitor_search2ndn(
 	Connection	conn = { 0 };
 	OperationBuffer	opbuf;
 	Operation	*op;
+	void	*thrctx;
 	SlapReply	rs = { 0 };
 	slap_callback	cb = { NULL, monitor_search2ndn_cb, NULL, NULL };
 	int		rc;
@@ -717,7 +718,8 @@ monitor_search2ndn(
 	}
 
 	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, &conn );
+	thrctx = ldap_pvt_thread_pool_context();
+	connection_fake_init( &conn, op, thrctx );
 
 	op->o_tag = LDAP_REQ_SEARCH;
 
