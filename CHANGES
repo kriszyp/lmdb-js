@@ -3,8 +3,11 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.34 Engineering
 	Fixed libldap missing get_option(TLS CipherSuite) (ITS#4815)
 	Fixed ldapmodify printing error from ldap_result() (ITS#4812)
+	Fixed slapd syncrepl memory leaks (ITS#4805)
+	Fixed slapd-bdb/hdb be_entry_get with aliases/referrals (ITS#4810)
 	Fixed slapd-ldap C-API code tests (ITS#4808)
 	Fixed slapd-monitor NULL printf (ITS#4811)
+	Fixed slapo-syncprov presence list (ITS#4813)
 
 OpenLDAP 2.3.33 Release (2007/01/17)
 	Fixed slapd syncrepl error logging with delta-syncrepl
