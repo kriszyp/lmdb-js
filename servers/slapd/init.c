@@ -271,6 +271,9 @@ int slap_destroy(void)
 		ber_bvarray_free( default_referral );
 	}
 
+	/* clear out any thread-keys for the main thread */
+	ldap_pvt_thread_pool_context_reset( ldap_pvt_thread_pool_context());
+
 	rc = backend_destroy();
 
 	slap_sasl_destroy();

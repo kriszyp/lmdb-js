@@ -1946,6 +1946,38 @@ int connection_write(ber_socket_t s)
 	return 0;
 }
 
+#ifdef LDAP_SLAPI
+typedef struct conn_fake_extblock {
+	void *eb_conn;
+	void *eb_op;
+} conn_fake_extblock;
+
+static void
+connection_fake_destroy(
+	void *key,
+	void *data )
+{
+	Connection conn = {0};
+	Operation op = {0};
+	Opheader ohdr = {0};
+
+	conn_fake_extblock *eb = data;
+	
+	op.o_hdr = &ohdr;
+	op.o_hdr->oh_extensions = eb->eb_op;
+	conn.c_extensions = eb->eb_conn;
+	op.o_conn = &conn;
+	conn.c_connid = -1;
+	op.o_connid = -1;
+
+	Debug(LDAP_DEBUG_ANY, "connection_fake_destroy: %p\n", eb, 0, 0 );
+
+	ber_memfree_x( eb, NULL );
+	slapi_int_free_object_extensions( SLAPI_X_EXT_OPERATION, &op );
+	slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION, &conn );
+}
+#endif
+
 void
 connection_fake_init(
 	Connection *conn,
@@ -1974,12 +2006,24 @@ connection_fake_init(
 	connection_init_log_prefix( op );
 
 #ifdef LDAP_SLAPI
-	/* FIXME: somebody needs to destroy these. Perhaps they should
-	 * only be allocated on the slab.
-	 */
 	if ( slapi_plugins_used ) {
-		slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
-		slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
+		conn_fake_extblock *eb = NULL;
+
+		/* Use thread keys to make sure these eventually get cleaned up */
+		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &eb,
+			NULL )) {
+			eb = ch_malloc( sizeof( *eb ));
+			Debug(LDAP_DEBUG_ANY, "connection_fake_init: ctx %p, %p\n", ctx, eb, 0 );
+			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
+			slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
+			eb->eb_conn = conn->c_extensions;
+			eb->eb_op = op->o_hdr->oh_extensions;
+			ldap_pvt_thread_pool_setkey( ctx, connection_fake_init, eb,
+				connection_fake_destroy );
+		} else {
+			conn->c_extensions = eb->eb_conn;
+			op->o_hdr->oh_extensions = eb->eb_op;
+		}
 	}
 #endif /* LDAP_SLAPI */
 
