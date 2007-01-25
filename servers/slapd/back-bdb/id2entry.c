@@ -384,21 +384,6 @@ dn2entry_retry:
 		"=> bdb_entry_get: found entry: \"%s\"\n",
 		ndn->bv_val, 0, 0 ); 
 
-	/* find attribute values */
-	if( is_entry_alias( e ) ) {
-		Debug( LDAP_DEBUG_ACL,
-			"<= bdb_entry_get: entry is an alias\n", 0, 0, 0 );
-		rc = LDAP_ALIAS_PROBLEM;
-		goto return_results;
-	}
-
-	if( is_entry_referral( e ) ) {
-		Debug( LDAP_DEBUG_ACL,
-			"<= bdb_entry_get: entry is a referral\n", 0, 0, 0 );
-		rc = LDAP_REFERRAL;
-		goto return_results;
-	}
-
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_entry_get: failed to find objectClass %s\n",
