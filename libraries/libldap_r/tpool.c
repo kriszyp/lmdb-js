@@ -491,12 +491,7 @@ ldap_int_thread_pool_wrapper (
 		}
 	}
 
-	for ( i=0; i<MAXKEYS && ltc_key[i].ltk_key; i++ ) {
-		if (ltc_key[i].ltk_free)
-			ltc_key[i].ltk_free(
-				ltc_key[i].ltk_key,
-				ltc_key[i].ltk_data );
-	}
+	ldap_pvt_thread_pool_context_reset( ltc_key );
 
 	thread_keys[keyslot].ctx = NULL;
 	thread_keys[keyslot].id = tid_zero;
@@ -602,7 +597,10 @@ int ldap_pvt_thread_pool_setkey(
 
 	for ( i=0; i<MAXKEYS; i++ ) {
 		if ( !ctx[i].ltk_key || ctx[i].ltk_key == key ) {
-			ctx[i].ltk_key = key;
+			if ( data || kfree )
+				ctx[i].ltk_key = key;
+			else
+				ctx[i].ltk_key = NULL;
 			ctx[i].ltk_data = data;
 			ctx[i].ltk_free = kfree;
 			return 0;
@@ -665,7 +663,9 @@ void ldap_pvt_thread_pool_context_reset( void *vctx )
 	ldap_int_thread_key_t *ctx = vctx;
 	int i;
 
-	for ( i=0; i<MAXKEYS && ctx[i].ltk_key; i++) {
+	for ( i=MAXKEYS-1; i>=0; i--) {
+		if ( ctx[i].ltk_key )
+			continue;
 		if ( ctx[i].ltk_free )
 			ctx[i].ltk_free( ctx[i].ltk_key, ctx[i].ltk_data );
 		ctx[i].ltk_key = NULL;
