@@ -830,6 +830,12 @@ unhandled_option:;
 	}
 #endif
 
+#ifdef HAVE_CYRUS_SASL
+	if( global_host == NULL ) {
+		global_host = ldap_pvt_get_fqdn( NULL );
+	}
+#endif
+
 	(void) SIGNAL( LDAP_SIGUSR1, slap_sig_wake );
 	(void) SIGNAL( LDAP_SIGUSR2, slap_sig_shutdown );
 

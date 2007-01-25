@@ -1138,10 +1138,6 @@ int slap_sasl_open( Connection *conn, int reopen )
 
 	conn->c_sasl_layers = 0;
 
-	if( global_host == NULL ) {
-		global_host = ldap_pvt_get_fqdn( NULL );
-	}
-
 	/* create new SASL context */
 #if SASL_VERSION_MAJOR >= 2
 	if ( conn->c_sock_name.bv_len != 0 &&
