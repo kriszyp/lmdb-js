@@ -1619,7 +1619,22 @@ retry:;
 				if ( sendok & LDAP_BACK_BINDING ) {
 					ldap_unbind_ext( lc->lc_ld, NULL, NULL );
 					lc->lc_ld = NULL;
+
+					/* let it be used, but taint/delete it so that 
+					 * no-one else can look it up any further */
+					ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+
+#if LDAP_BACK_PRINT_CONNTREE > 0
+					ldap_back_print_conntree( li, ">>> ldap_back_getconn(timeout)" );
+#endif /* LDAP_BACK_PRINT_CONNTREE */
+
+					(void)ldap_back_conn_delete( li, lc );
 					LDAP_BACK_CONN_TAINTED_SET( lc );
+
+#if LDAP_BACK_PRINT_CONNTREE > 0
+					ldap_back_print_conntree( li, "<<< ldap_back_getconn(timeout)" );
+#endif /* LDAP_BACK_PRINT_CONNTREE */
+					ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
 				} else {
 					(void)ldap_back_cancel( lc, op, rs, msgid, sendok );
