@@ -973,10 +973,8 @@ meta_back_db_config(
 					t = &tv[ SLAP_OP_MODIFY ];
 				} else if ( strncasecmp( argv[ c ], "compare", len ) == 0 ) {
 					t = &tv[ SLAP_OP_COMPARE ];
-#if 0				/* uses timelimit instead */
 				} else if ( strncasecmp( argv[ c ], "search", len ) == 0 ) {
 					t = &tv[ SLAP_OP_SEARCH ];
-#endif
 				/* abandon makes little sense */
 #if 0				/* not implemented yet */
 				} else if ( strncasecmp( argv[ c ], "extended", len ) == 0 ) {
