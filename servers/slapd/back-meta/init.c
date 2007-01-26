@@ -123,6 +123,13 @@ meta_back_db_open(
 			not_always_anon_non_prescriptive = 0,
 			rc;
 
+	if ( mi->mi_ntargets == 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"meta_back_db_open: no targets defined\n",
+			0, 0, 0 );
+		return 1;
+	}
+
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
