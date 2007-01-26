@@ -666,7 +666,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct timeval	save_tv = { 0, 0 },
 			tv;
 	time_t		stoptime = (time_t)(-1),
-			lastres_time = slap_get_time();
+			lastres_time = slap_get_time(),
+			timeout = 0;
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;
 	int		last = 0, ncandidates = 0,
@@ -717,6 +718,13 @@ getconn:;
 		candidates[ i ].sr_text = NULL;
 		candidates[ i ].sr_ref = NULL;
 		candidates[ i ].sr_ctrls = NULL;
+
+		/* get largest timeout among candidates */
+		if ( mi->mi_targets[ i ]->mt_timeout[ SLAP_OP_SEARCH ]
+			&& mi->mi_targets[ i ]->mt_timeout[ SLAP_OP_SEARCH ] > timeout )
+		{
+			timeout = mi->mi_targets[ i ]->mt_timeout[ SLAP_OP_SEARCH ];
+		}
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
@@ -865,13 +873,13 @@ getconn:;
 		time_t	curr_time = 0;
 
 		/* check timeout */
-		if ( mi->mi_timeout[ SLAP_OP_SEARCH ]
-			&& lastres_time > 0
-			&& ( slap_get_time() - lastres_time ) > mi->mi_timeout[ SLAP_OP_SEARCH ] )
+		if ( timeout && lastres_time > 0
+			&& ( slap_get_time() - lastres_time ) > timeout )
 		{
 			doabandon = 1;
 			rs->sr_text = "Operation timed out";
-			rc = rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+			rc = rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
 			savepriv = op->o_private;
 			op->o_private = (void *)i;
 			send_ldap_result( op, rs );
