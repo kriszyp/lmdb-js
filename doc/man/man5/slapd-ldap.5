@@ -446,13 +446,15 @@ support is detected by reading the remote server's root DSE.
 This directive allows to set per-operation timeouts.
 Operations can be
 
-\fB<op> ::= bind, add, delete, modrdn, modify, compare\fP
+\fB<op> ::= bind, add, delete, modrdn, modify, compare, search\fP
 
-The \fBsearch\fP operation is already controlled either
+The overall duration of the \fBsearch\fP operation is controlled either
 by the \fBtimelimit\fP parameter or by server-side enforced
 time limits (see \fBtimelimit\fP and \fBlimits\fP in
 .BR slapd.conf (5)
 for details).
+This \fBtimeout\fP parameter controls how long the target can be 
+irresponsive before the operation is aborted.
 Timeout is meaningless for the remaining operations,
 \fBunbind\fP and \fBabandon\fP, which do not imply any response,
 while it is not yet implemented in currently supported \fBextended\fP 
