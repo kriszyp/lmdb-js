@@ -1894,6 +1894,7 @@ retry_add:;
 		if ( dni.mods ) {
 			op->o_tag = LDAP_REQ_MODIFY;
 			op->orm_modlist = dni.mods;
+			op->orm_no_opattrs = 1;
 
 			rc = be->be_modify( op, &rs_modify );
 			slap_mods_free( op->orm_modlist, 1 );

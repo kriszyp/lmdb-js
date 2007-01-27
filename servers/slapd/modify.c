@@ -881,7 +881,7 @@ void slap_mods_opattrs(
 	Modifications *mod, **modtail, *modlast;
 	int gotcsn = 0, gotmname = 0, gotmtime = 0;
 
-	if ( SLAP_LASTMOD( op->o_bd ) ) {
+	if ( SLAP_LASTMOD( op->o_bd ) && !op->orm_no_opattrs ) {
 		char *ptr;
 		timestamp.bv_val = timebuf;
 		for ( modtail = modsp; *modtail; modtail = &(*modtail)->sml_next ) {

@@ -1913,6 +1913,7 @@ typedef struct req_compare_s {
 typedef struct req_modify_s {
 	Modifications *rs_modlist;
 	int rs_increment;		/* FIXME: temporary */
+	char rs_no_opattrs;		/* don't att modify operational attrs */
 } req_modify_s;
 
 typedef struct req_modrdn_s {
@@ -2466,6 +2467,7 @@ typedef struct slap_op {
 #define orn_msgid oq_abandon.rs_msgid
 #define orm_modlist oq_modify.rs_modlist
 #define orm_increment oq_modify.rs_increment
+#define orm_no_opattrs oq_modify.rs_no_opattrs
 
 #define ore_reqoid oq_extended.rs_reqoid
 #define ore_flags oq_extended.rs_flags
