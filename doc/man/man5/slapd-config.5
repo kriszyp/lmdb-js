@@ -45,9 +45,6 @@ global settings for slapd. Multiple child entries underneath the
 root entry are used to carry various other settings:
 .RS
 .TP
-.B cn=Include
-old-style include files
-.TP
 .B cn=Module
 dynamically loaded modules
 .TP
@@ -60,17 +57,6 @@ backend-specific settings
 .B olcDatabase=xxx
 database-specific settings
 .RE
-
-The
-.B cn=Include
-entries will only appear in configurations that were
-converted from slapd.conf format. There can be multiple entries, one
-for each included file. These entries only serve as placeholders to
-document the fact that files were previously included. After those
-files have been read and parsed, their content is merged into the
-main configuration and then the include files are ignored thereafter.
-These entries may form an arbitrarily deep subtree, reflecting any
-nesting of the original include files.
 
 The
 .B cn=Module
