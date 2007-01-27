@@ -344,8 +344,7 @@ static ConfigTable config_back_cf_table[] = {
 		&global_idletimeout, "( OLcfgGlAt:18 NAME 'olcIdleTimeout' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "include", "file", 2, 2, 0, ARG_MAGIC,
-		&config_include, "( OLcfgGlAt:19 NAME 'olcInclude' "
-			"SUP labeledURI )", NULL, NULL },
+		&config_include, NULL, NULL, NULL },
 	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MIN,
 		&config_generic, "( OLcfgGlAt:20 NAME 'olcIndexSubstrIfMinLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -646,7 +645,7 @@ static ConfigTable config_back_cf_table[] = {
 };
 
 /* Routines to check if a child can be added to this type */
-static ConfigLDAPadd cfAddSchema, cfAddInclude, cfAddDatabase,
+static ConfigLDAPadd cfAddSchema, cfAddDatabase,
 	cfAddBackend, cfAddModule, cfAddOverlay;
 
 /* NOTE: be careful when defining array members
@@ -656,10 +655,9 @@ static ConfigLDAPadd cfAddSchema, cfAddInclude, cfAddDatabase,
 #define CFOC_BACKEND	cf_ocs[3]
 #define CFOC_DATABASE	cf_ocs[4]
 #define CFOC_OVERLAY	cf_ocs[5]
-#define CFOC_INCLUDE	cf_ocs[6]
-#define CFOC_FRONTEND	cf_ocs[7]
+#define CFOC_FRONTEND	cf_ocs[6]
 #ifdef SLAPD_MODULES
-#define CFOC_MODULE	cf_ocs[8]
+#define CFOC_MODULE	cf_ocs[7]
 #endif /* SLAPD_MODULES */
 
 static ConfigOCs cf_ocs[] = {
@@ -724,13 +722,6 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcOverlay )", Cft_Overlay, NULL, cfAddOverlay },
-	{ "( OLcfgGlOc:6 "
-		"NAME 'olcIncludeFile' "
-		"DESC 'OpenLDAP configuration include file' "
-		"SUP olcConfig STRUCTURAL "
-		"MUST olcInclude "
-		"MAY ( cn $ olcRootDSE ) )",
-		Cft_Include, NULL, cfAddInclude },
 	/* This should be STRUCTURAL like all the other database classes, but
 	 * that would mean inheriting all of the olcDatabaseConfig attributes,
 	 * which causes them to be merged twice in config_build_entry.
@@ -3019,15 +3010,8 @@ config_include(ConfigArgs *c) {
 	ConfigFile *cf;
 	ConfigFile *cfsave = cfn;
 	ConfigFile *cf2 = NULL;
-	if (c->op == SLAP_CONFIG_EMIT) {
-		if (c->private) {
-			ConfigFile *cf = c->private;
-			value_add_one( &c->rvalue_vals, &cf->c_file );
-			return 0;
-		}
-		return 1;
-	} else if ( c->op == LDAP_MOD_DELETE ) {
-	}
+
+	/* No dynamic config for include files */
 	cf = ch_calloc( 1, sizeof(ConfigFile));
 	if ( cfn->c_kids ) {
 		for (cf2=cfn->c_kids; cf2 && cf2->c_sibs; cf2=cf2->c_sibs) ;
@@ -3811,7 +3795,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	if ( ce_type == Cft_Global ) return 0;
 	if ( ce_type == Cft_Schema && parent->ce_type == Cft_Global ) return 0;
 
-	if ( ce_type == Cft_Include || ce_type == Cft_Module )
+	if ( ce_type == Cft_Module )
 		tailindex = 1;
 
 	/* See if the rdn has an index already */
@@ -3893,21 +3877,6 @@ count_ocs( Attribute *oc_at, int *nocs )
 	}
 	*nocs = j;
 	return colst;
-}
-
-static int
-cfAddInclude( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
-{
-	if ( p->ce_type != Cft_Global && p->ce_type != Cft_Include )
-		return LDAP_CONSTRAINT_VIOLATION;
-
-	/* If we're reading from a configdir, don't parse this entry */
-	if ( ca->lineno )
-		return LDAP_COMPARE_TRUE;
-
-	cfn = p->ce_private;
-	ca->private = cfn;
-	return LDAP_SUCCESS;
 }
 
 static int
@@ -4026,6 +3995,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		ca->fname = cfdir.bv_val;
 		ca->lineno = 1;
 	}
+	ca->ca_op = op;
 
 	colst = count_ocs( oc_at, &nocs );
 
@@ -4419,6 +4389,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	ca->private = ce->ce_private;
 	ca->ca_entry = e;
 	ca->fname = "slapd";
+	ca->ca_op = op;
 	strcpy( ca->log, "back-config" );
 
 	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
@@ -5097,6 +5068,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &oc->soc_cname, NULL );
 	if ( op && !op->o_noop ) {
 		op->ora_e = e;
+		op->ora_modlist = NULL;
 		op->o_bd->be_add( op, rs );
 		if ( ( rs->sr_err != LDAP_SUCCESS ) 
 				&& (rs->sr_err != LDAP_ALREADY_EXISTS) ) {
@@ -5153,34 +5125,6 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		} else if ( e && cf->c_kids ) {
 			c->private = cf->c_kids;
 			config_build_schema_inc( c, e->e_private, op, rs );
-		}
-	}
-	return 0;
-}
-
-static int
-config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
-	Operation *op, SlapReply *rs )
-{
-	Entry *e;
-	int i;
-	ConfigFile *cf = c->private;
-
-	for (i=0; cf; cf=cf->c_sibs, i++) {
-		c->value_dn.bv_val = c->log;
-		c->value_dn.bv_len = snprintf(c->value_dn.bv_val, sizeof( c->log ), "cn=include" SLAP_X_ORDERED_FMT, i);
-		if ( c->value_dn.bv_len >= sizeof( c->log ) ) {
-			/* FIXME: how can indicate error? */
-			return -1;
-		}
-		c->private = cf;
-		e = config_build_entry( op, rs, ceparent, c, &c->value_dn,
-			&CFOC_INCLUDE, NULL );
-		if ( ! e ) {
-			return -1;
-		} else if ( e && cf->c_kids ) {
-			c->private = cf->c_kids;
-			config_build_includes( c, e->e_private, op, rs );
 		}
 	}
 	return 0;
@@ -5355,15 +5299,6 @@ config_back_db_open( BackendDB *be )
 
 	parent = e;
 	ceparent = ce;
-
-	/* Create includeFile nodes */
-	if ( cfb->cb_config->c_kids ) {
-		c.depth = 0;
-		c.private = cfb->cb_config->c_kids;
-		if ( config_build_includes( &c, ceparent, op, &rs ) ) {
-			return -1;
-		}
-	}
 
 #ifdef SLAPD_MODULES
 	/* Create Module nodes... */

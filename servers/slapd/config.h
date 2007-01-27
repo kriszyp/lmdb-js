@@ -34,7 +34,6 @@ typedef struct ConfigTable {
 typedef enum {
 	Cft_Abstract = 0,
 	Cft_Global,
-	Cft_Include,
 	Cft_Module,
 	Cft_Schema,
 	Cft_Backend,
