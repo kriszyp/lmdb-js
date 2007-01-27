@@ -18,7 +18,10 @@ configuration uses a single file, normally installed as
 {{F:/usr/local/etc/openldap/slapd.conf}}, the new style
 uses a slapd backend database to store the configuration. The
 configuration database normally resides in the
-{{F:/usr/local/etc/openldap/slapd.d}} directory.
+{{F:/usr/local/etc/openldap/slapd.d}} directory. When
+converting from the slapd.conf format to slapd.d format, any
+include files will also be integrated into the resulting configuration
+database.
 
 An alternate configuration directory (or file) can be specified via
 a command-line option to {{slapd}}(8). This chapter describes the
@@ -52,10 +55,6 @@ the illustration for clarity.
 The {{slapd-config}} configuration tree has a very specific structure. The
 root of the tree is named {{EX:cn=config}} and contains global configuration
 settings. Additional settings are contained in separate child entries:
-* Include files
-.. Usually these are just pathnames left over from a converted
-{{EX:slapd.conf}} file.
-.. Otherwise use of Include files is deprecated.
 * Dynamically loaded modules
 .. These may only be used if the {{EX:--enable-modules}} option was
 used to configure the software.
@@ -242,39 +241,6 @@ H4: Sample Entry
 >olcIdleTimeout: 30
 >olcLogLevel: Stats
 >olcReferral: ldap://root.openldap.org
-
-
-
-H3: cn=include
-
-An include entry holds the pathname of one include file. Include files
-are part of the old style slapd.conf configuration system and must be in
-slapd.conf format. Include files were commonly used to load schema
-specifications. While they are still supported, their use is deprecated.
-Include entries must have the {{EX:olcIncludeFile}} objectClass.
-
-
-H4: olcInclude: <filename>
-
-This directive specifies that slapd should read additional
-configuration information from the given file. 
-
-Note: You should be careful when using this directive - there is
-no small limit on the number of nested include directives, and no
-loop detection is done.
-
-
-H4: Sample Entries
-
->dn: cn=include{0},cn=config
->objectClass: olcIncludeFile
->cn: include{0}
->olcInclude: ./schema/core.schema
->
->dn: cn=include{1},cn=config
->objectClass: olcIncludeFile
->cn: include{1}
->olcInclude: ./schema/cosine.schema
 
 
 H3: cn=module
