@@ -1117,6 +1117,12 @@ LDAP_SLAPD_F( void ) slap_mods_opattrs(
 	Modifications **modsp,
 	int manage_ctxcsn );
 
+LDAP_SLAPD_F( int ) slap_parse_modlist(
+	Operation *op,
+	SlapReply *rs,
+	BerElement *ber,
+	req_modify_s *ms );
+
 /*
  * mods.c
  */

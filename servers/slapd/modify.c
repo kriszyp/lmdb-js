@@ -44,9 +44,6 @@ do_modify(
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
-	Modifications	*modlist = NULL;
-	Modifications	**modtail = &modlist;
-	int		increment = 0;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 
@@ -80,94 +77,12 @@ do_modify(
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
 
-	/* collect modifications & save for later */
-	for ( tag = ber_first_element( op->o_ber, &len, &last );
-	    tag != LBER_DEFAULT;
-	    tag = ber_next_element( op->o_ber, &len, last ) )
-	{
-		ber_int_t mop;
-		Modifications tmp, *mod;
-
-		tmp.sml_nvalues = NULL;
-
-		if ( ber_scanf( op->o_ber, "{e{m[W]}}", &mop,
-		    &tmp.sml_type, &tmp.sml_values ) == LBER_ERROR )
-		{
-			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR,
-				"decoding modlist error" );
-			rs->sr_err = SLAPD_DISCONNECT;
-			goto cleanup;
-		}
-
-		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
-		mod->sml_op = mop;
-		mod->sml_flags = 0;
-		mod->sml_type = tmp.sml_type;
-		mod->sml_values = tmp.sml_values;
-		mod->sml_nvalues = NULL;
-		mod->sml_desc = NULL;
-		mod->sml_next = NULL;
-		*modtail = mod;
-
-		switch( mop ) {
-		case LDAP_MOD_ADD:
-			if ( mod->sml_values == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-					"do_modify: modify/add operation (%ld) requires values\n",
-					(long) mop, 0, 0 );
-
-				send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
-					"modify/add operation requires values" );
-				goto cleanup;
-			}
-
-			/* fall through */
-
-		case LDAP_MOD_DELETE:
-		case LDAP_MOD_REPLACE:
-			break;
-
-		case LDAP_MOD_INCREMENT:
-			if( op->o_protocol >= LDAP_VERSION3 ) {
-				increment++;
-				if ( mod->sml_values == NULL ) {
-					Debug( LDAP_DEBUG_ANY, "do_modify: "
-						"modify/increment operation (%ld) requires value\n",
-						(long) mop, 0, 0 );
-
-					send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
-						"modify/increment operation requires value" );
-					goto cleanup;
-				}
-
-				if ( !BER_BVISNULL( &mod->sml_values[ 1 ] ) ) {
-					Debug( LDAP_DEBUG_ANY, "do_modify: modify/increment "
-						"operation (%ld) requires single value\n",
-						(long) mop, 0, 0 );
-
-					send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
-						"modify/increment operation requires single value" );
-					goto cleanup;
-				}
-
-				break;
-			}
-			/* fall thru */
-
-		default: {
-				Debug( LDAP_DEBUG_ANY,
-					"do_modify: unrecognized modify operation (%ld)\n",
-					(long) mop, 0, 0 );
-
-				send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
-					"unrecognized modify operation" );
-				goto cleanup;
-			}
-		}
-
-		modtail = &mod->sml_next;
+	rs->sr_err = slap_parse_modlist( op, rs, op->o_ber, &op->oq_modify );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: slap_parse_modlist failed err=%d msg=%s\n",
+			rs->sr_err, rs->sr_text, 0 );
+		goto cleanup;
 	}
-	*modtail = NULL;
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
@@ -183,17 +98,13 @@ do_modify(
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_check( op, modlist,
+	rs->sr_err = slap_mods_check( op, op->orm_modlist,
 		&rs->sr_text, textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto cleanup;
 	}
-
-	/* FIXME: needs review */
-	op->orm_modlist = modlist;
-	op->orm_increment = increment;
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_modify( op, rs );
@@ -975,37 +886,51 @@ void slap_mods_opattrs(
 		timestamp.bv_val = timebuf;
 		for ( modtail = modsp; *modtail; modtail = &(*modtail)->sml_next ) {
 			if ( (*modtail)->sml_op != LDAP_MOD_ADD &&
-				(*modtail)->sml_op != LDAP_MOD_REPLACE ) continue;
-			if ( (*modtail)->sml_desc == slap_schema.si_ad_entryCSN ) {
+				(*modtail)->sml_op != LDAP_MOD_REPLACE )
+			{
+				continue;
+			}
+
+			if ( (*modtail)->sml_desc == slap_schema.si_ad_entryCSN )
+			{
 				csn = (*modtail)->sml_values[0];
 				gotcsn = 1;
-			} else
-			if ( (*modtail)->sml_desc == slap_schema.si_ad_modifiersName ) {
+
+			} else if ( (*modtail)->sml_desc == slap_schema.si_ad_modifiersName )
+			{
 				gotmname = 1;
-			} else
-			if ( (*modtail)->sml_desc == slap_schema.si_ad_modifyTimestamp ) {
+
+			} else if ( (*modtail)->sml_desc == slap_schema.si_ad_modifyTimestamp )
+			{
 				gotmtime = 1;
 			}
 		}
+
 		if ( BER_BVISEMPTY( &op->o_csn )) {
 			if ( !gotcsn ) {
 				csn.bv_val = csnbuf;
 				csn.bv_len = sizeof( csnbuf );
 				slap_get_csn( op, &csn, manage_ctxcsn );
+
 			} else {
-				if ( manage_ctxcsn )
+				if ( manage_ctxcsn ) {
 					slap_queue_csn( op, &csn );
+				}
 			}
+
 		} else {
 			csn = op->o_csn;
 		}
+
 		ptr = ber_bvchr( &csn, '#' );
 		if ( ptr ) {
 			timestamp.bv_len = ptr - csn.bv_val;
-			if ( timestamp.bv_len >= sizeof( timebuf ))	/* ?!? */
+			if ( timestamp.bv_len >= sizeof( timebuf ) ) {	/* ?!? */
 				timestamp.bv_len = sizeof( timebuf ) - 1;
+			}
 			AC_MEMCPY( timebuf, csn.bv_val, timestamp.bv_len );
 			timebuf[timestamp.bv_len] = '\0';
+
 		} else {
 			time_t now = slap_get_time();
 
@@ -1017,6 +942,7 @@ void slap_mods_opattrs(
 		if ( BER_BVISEMPTY( &op->o_dn ) ) {
 			BER_BVSTR( &name, SLAPD_ANONYMOUS );
 			nname = name;
+
 		} else {
 			name = op->o_dn;
 			nname = op->o_ndn;
@@ -1075,5 +1001,119 @@ void slap_mods_opattrs(
 			modtail = &mod->sml_next;
 		}
 	}
+}
+
+int
+slap_parse_modlist(
+	Operation *op,
+	SlapReply *rs,
+	BerElement *ber,
+	req_modify_s *ms )
+{
+	ber_tag_t	tag;
+	ber_len_t	len;
+	char		*last;
+	Modifications	**modtail = &ms->rs_modlist;
+
+	ms->rs_modlist = NULL;
+	ms->rs_increment = 0;
+
+	rs->sr_err = LDAP_SUCCESS;
+
+	/* collect modifications & save for later */
+	for ( tag = ber_first_element( ber, &len, &last );
+		tag != LBER_DEFAULT;
+		tag = ber_next_element( ber, &len, last ) )
+	{
+		ber_int_t mop;
+		Modifications tmp, *mod;
+
+		tmp.sml_nvalues = NULL;
+
+		if ( ber_scanf( ber, "{e{m[W]}}", &mop,
+		    &tmp.sml_type, &tmp.sml_values ) == LBER_ERROR )
+		{
+			rs->sr_text = "decoding modlist error";
+			rs->sr_err = LDAP_PROTOCOL_ERROR;
+			goto done;
+		}
+
+		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
+		mod->sml_op = mop;
+		mod->sml_flags = 0;
+		mod->sml_type = tmp.sml_type;
+		mod->sml_values = tmp.sml_values;
+		mod->sml_nvalues = NULL;
+		mod->sml_desc = NULL;
+		mod->sml_next = NULL;
+		*modtail = mod;
+
+		switch( mop ) {
+		case LDAP_MOD_ADD:
+			if ( mod->sml_values == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "slap_parse_modlist: "
+					"modify/add operation (%ld) requires values\n",
+					(long) mop, 0, 0 );
+
+				rs->sr_text = "modify/add operation requires values";
+				rs->sr_err = LDAP_PROTOCOL_ERROR;
+				goto done;
+			}
+
+			/* fall through */
+
+		case LDAP_MOD_DELETE:
+		case LDAP_MOD_REPLACE:
+			break;
+
+		case LDAP_MOD_INCREMENT:
+			if( op->o_protocol >= LDAP_VERSION3 ) {
+				ms->rs_increment++;
+				if ( mod->sml_values == NULL ) {
+					Debug( LDAP_DEBUG_ANY, "slap_parse_modlist: "
+						"modify/increment operation (%ld) requires value\n",
+						(long) mop, 0, 0 );
+
+					rs->sr_text = "modify/increment operation requires value";
+					rs->sr_err = LDAP_PROTOCOL_ERROR;
+					goto done;
+				}
+
+				if ( !BER_BVISNULL( &mod->sml_values[ 1 ] ) ) {
+					Debug( LDAP_DEBUG_ANY,  "slap_parse_modlist: modify/increment "
+						"operation (%ld) requires single value\n",
+						(long) mop, 0, 0 );
+
+					rs->sr_text = "modify/increment operation requires single value";
+					rs->sr_err = LDAP_PROTOCOL_ERROR;
+					goto done;
+				}
+
+				break;
+			}
+			/* fall thru */
+
+		default:
+			Debug( LDAP_DEBUG_ANY, "slap_parse_modlist: "
+				"unrecognized modify operation (%ld)\n",
+				(long) mop, 0, 0 );
+
+			rs->sr_text = "unrecognized modify operation";
+			rs->sr_err = LDAP_PROTOCOL_ERROR;
+			goto done;
+		}
+
+		modtail = &mod->sml_next;
+	}
+	*modtail = NULL;
+
+done:
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		slap_mods_free( ms->rs_modlist, 1 );
+		ms->rs_modlist = NULL;
+		ms->rs_increment = 0;
+	}
+
+	return rs->sr_err;
 }
 
