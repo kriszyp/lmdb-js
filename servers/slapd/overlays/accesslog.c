@@ -1068,13 +1068,14 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	case LOG_EN_MODIFY:
 		/* count all the mods */
 		i = 0;
-		for ( m=op->orm_modlist; m; m=m->sml_next ) {
+		for ( m = op->orm_modlist; m; m = m->sml_next ) {
 			if ( m->sml_values ) {
-				for (b=m->sml_values; !BER_BVISNULL( b ); b++) {
+				for ( b = m->sml_values; !BER_BVISNULL( b ); b++ ) {
 					i++;
 				}
 			} else if ( m->sml_op == LDAP_MOD_DELETE ||
-				m->sml_op == LDAP_MOD_REPLACE ) {
+				m->sml_op == LDAP_MOD_REPLACE )
+			{
 				i++;
 			}
 		}
@@ -1083,36 +1084,41 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 
 		/* init flags on old entry */
 		if ( old ) {
-			for ( a=old->e_attrs; a; a=a->a_next ) {
+			for ( a = old->e_attrs; a; a = a->a_next ) {
 				log_attr *la;
 				a->a_flags = 0;
 
 				/* look for attrs that are always logged */
-				for ( la=li->li_oldattrs; la; la=la->next )
-					if ( a->a_desc == la->attr )
+				for ( la = li->li_oldattrs; la; la = la->next ) {
+					if ( a->a_desc == la->attr ) {
 						a->a_flags = 1;
+					}
+				}
 			}
 		}
 
-		for ( m=op->orm_modlist; m; m=m->sml_next ) {
+		for ( m = op->orm_modlist; m; m = m->sml_next ) {
 			/* Mark this attribute as modified */
 			if ( old ) {
 				a = attr_find( old->e_attrs, m->sml_desc );
-				if ( a )
+				if ( a ) {
 					a->a_flags = 1;
+				}
 			}
 
 			/* don't log the RDN mods; they're explicitly logged later */
 			if ( logop == LOG_EN_MODRDN &&
 			 	( m->sml_op == SLAP_MOD_SOFTADD ||
-				  m->sml_op == LDAP_MOD_DELETE ))
+				  m->sml_op == LDAP_MOD_DELETE ) )
+			{
 				continue;
+			}
 
 			if ( m->sml_values ) {
-				for (b=m->sml_values; !BER_BVISNULL( b ); b++,i++) {
+				for ( b = m->sml_values; !BER_BVISNULL( b ); b++, i++ ) {
 					char c_op;
 
-					switch( m->sml_op ) {
+					switch ( m->sml_op ) {
 					case LDAP_MOD_ADD: c_op = '+'; break;
 					case LDAP_MOD_DELETE:	c_op = '-'; break;
 					case LDAP_MOD_REPLACE:	c_op = '='; break;
@@ -1127,39 +1133,46 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 					accesslog_val2val( m->sml_desc, b, c_op, &vals[i] );
 				}
 			} else if ( m->sml_op == LDAP_MOD_DELETE ||
-				m->sml_op == LDAP_MOD_REPLACE ) {
+				m->sml_op == LDAP_MOD_REPLACE )
+			{
 				vals[i].bv_len = m->sml_desc->ad_cname.bv_len + 2;
-				vals[i].bv_val = ch_malloc( vals[i].bv_len+1 );
+				vals[i].bv_val = ch_malloc( vals[i].bv_len + 1 );
 				ptr = lutil_strcopy( vals[i].bv_val,
 					m->sml_desc->ad_cname.bv_val );
 				*ptr++ = ':';
-				if ( m->sml_op == LDAP_MOD_DELETE )
+				if ( m->sml_op == LDAP_MOD_DELETE ) {
 					*ptr++ = '-';
-				else
+				} else {
 					*ptr++ = '=';
+				}
 				*ptr = '\0';
 				i++;
 			}
 		}
-		vals[i].bv_val = NULL;
-		vals[i].bv_len = 0;
-		a = attr_alloc( ad_reqMod );
-		a->a_vals = vals;
-		a->a_nvals = vals;
-		last_attr->a_next = a;
+
+		if ( i > 0 ) {
+			BER_BVZERO( &vals[i] );
+			a = attr_alloc( ad_reqMod );
+			a->a_vals = vals;
+			a->a_nvals = vals;
+			last_attr->a_next = a;
+			last_attr = a;
+
+		} else {
+			ch_free( vals );
+		}
 
 		if ( old ) {
-			last_attr = a;
 			/* count all the vals */
 			i = 0;
-			for ( a=old->e_attrs; a; a=a->a_next ) {
+			for ( a = old->e_attrs; a != NULL; a = a->a_next ) {
 				if ( a->a_vals && a->a_flags ) {
-					for (b=a->a_vals; !BER_BVISNULL( b ); b++) {
-					i++;
+					for ( b = a->a_vals; !BER_BVISNULL( b ); b++ ) {
+						i++;
 					}
 				}
 			}
-			vals = ch_malloc( (i+1) * sizeof( struct berval ));
+			vals = ch_malloc( (i + 1) * sizeof( struct berval ) );
 			i = 0;
 			for ( a=old->e_attrs; a; a=a->a_next ) {
 				if ( a->a_vals && a->a_flags ) {
@@ -1175,8 +1188,9 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			a->a_nvals = vals;
 			last_attr->a_next = a;
 		}
-		if ( logop == LOG_EN_MODIFY )
+		if ( logop == LOG_EN_MODIFY ) {
 			break;
+		}
 
 		/* Now log the actual modRDN info */
 		attr_merge_one( e, ad_reqNewRDN, &op->orr_newrdn, &op->orr_nnewrdn );
