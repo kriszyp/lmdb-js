@@ -1228,6 +1228,13 @@ idassert-authzFrom	"dn:<rootdn>"
 				fname, lineno, buf );
 			return 1;
 		}
+
+		if ( mi->mi_ntargets ) {
+			mi->mi_flags |= LDAP_BACK_F_QUARANTINE;
+
+		} else {
+			mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags |= LDAP_BACK_F_QUARANTINE;
+		}
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {

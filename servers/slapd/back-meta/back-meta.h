@@ -298,7 +298,6 @@ typedef struct metatarget_t {
 	sig_atomic_t		mt_isquarantined;
 	slap_retry_info_t	mt_quarantine;
 	ldap_pvt_thread_mutex_t	mt_quarantine_mutex;
-#define	META_BACK_TGT_QUARANTINE(mt)	( (mt)->mt_quarantine.ri_num != NULL )
 
 	unsigned		mt_flags;
 #define	META_BACK_TGT_ISSET(mt,f)		( ( (mt)->mt_flags & (f) ) == (f) )
@@ -311,6 +310,7 @@ typedef struct metatarget_t {
 #define	META_BACK_TGT_IGNORE(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_IGNORE )
 #define	META_BACK_TGT_CANCEL(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
 #define	META_BACK_TGT_CANCEL_DISCOVER(mt)	META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
+#define	META_BACK_TGT_QUARANTINE(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_QUARANTINE )
 
 	int			mt_version;
 	time_t			mt_network_timeout;
@@ -363,8 +363,6 @@ typedef struct metainfo_t {
 
 	/* NOTE: quarantine uses the connection mutex */
 	slap_retry_info_t	mi_quarantine;
-
-#define	META_BACK_QUARANTINE(mi)	( (mi)->mi_quarantine.ri_num != NULL )
 	meta_back_quarantine_f	mi_quarantine_f;
 	void			*mi_quarantine_p;
 
@@ -387,6 +385,8 @@ typedef struct metainfo_t {
 #define META_BACK_PROXYAUTHZ_ALWAYS(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_ALWAYS )
 #define META_BACK_PROXYAUTHZ_ANON(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_ANON )
 #define META_BACK_PROXYAUTHZ_NOANON(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_NOANON )
+
+#define META_BACK_QUARANTINE(mi)	LDAP_BACK_ISSET( (mi), LDAP_BACK_F_QUARANTINE )
 
 	int			mi_version;
 	time_t			mi_network_timeout;
