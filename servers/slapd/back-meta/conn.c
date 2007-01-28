@@ -279,28 +279,33 @@ meta_back_init_one_conn(
 		slap_retry_info_t	*ri = &mt->mt_quarantine;
 		int			dont_retry = 1;
 
-		if ( mt->mt_isquarantined == LDAP_BACK_FQ_YES ) {
-			dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
-				|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
-			if ( !dont_retry ) {
-				if ( StatslogTest( LDAP_DEBUG_ANY ) ) {
-					char	buf[ SLAP_TEXT_BUFLEN ];
+		if ( mt->mt_quarantine.ri_interval ) {
+			ldap_pvt_thread_mutex_lock( &mt->mt_quarantine_mutex );
+			if ( mt->mt_isquarantined == LDAP_BACK_FQ_YES ) {
+				dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
+					|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
+				if ( !dont_retry ) {
+					if ( StatslogTest( LDAP_DEBUG_ANY ) ) {
+						char	buf[ SLAP_TEXT_BUFLEN ];
 
-					snprintf( buf, sizeof( buf ),
-						"meta_back_init_one_conn[%d]: quarantine "
-						"retry block #%d try #%d",
-						candidate, ri->ri_idx, ri->ri_count );
-					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-						op->o_log_prefix, buf, 0 );
+						snprintf( buf, sizeof( buf ),
+							"meta_back_init_one_conn[%d]: quarantine "
+							"retry block #%d try #%d",
+							candidate, ri->ri_idx, ri->ri_count );
+						Debug( LDAP_DEBUG_ANY, "%s %s.\n",
+							op->o_log_prefix, buf, 0 );
+					}
 				}
 
 				mt->mt_isquarantined = LDAP_BACK_FQ_RETRYING;
 			}
+			ldap_pvt_thread_mutex_unlock( &mt->mt_quarantine_mutex );
 		}
 
 		if ( dont_retry ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+				rs->sr_text = "Target is quarantined";
 				send_ldap_result( op, rs );
 			}
 			return rs->sr_err;
@@ -336,6 +341,7 @@ retry_lock:;
 
 		/* sounds more appropriate */
 		rs->sr_err = LDAP_BUSY;
+		rs->sr_text = "No connections to target are available";
 		do_return = 1;
 
 	} else if ( META_BACK_CONN_INITED( msc ) ) {
@@ -355,7 +361,10 @@ retry_lock:;
 	}
 
 	if ( do_return ) {
-		if ( rs->sr_err != LDAP_SUCCESS && op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+		if ( rs->sr_err != LDAP_SUCCESS
+			&& op->o_conn
+			&& ( sendok & LDAP_BACK_SENDERR ) )
+		{
 			send_ldap_result( op, rs );
 		}
 
@@ -398,8 +407,10 @@ retry_lock:;
 
 #ifdef HAVE_TLS
 	/* start TLS ("tls [try-]{start|propagate}" statement) */
-	if ( ( LDAP_BACK_USE_TLS( mi ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( mi ) ) )
-			&& !is_ldaps )
+	if ( ( LDAP_BACK_USE_TLS( mi )
+		|| ( op->o_conn->c_is_tls
+			&& LDAP_BACK_PROPAGATE_TLS( mi ) ) )
+		&& !is_ldaps )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
@@ -446,14 +457,14 @@ retry:;
 				struct berval	*data = NULL;
 
 				/* NOTE: right now, data is unused, so don't get it */
-				rs->sr_err = ldap_parse_extended_result( msc->msc_ld, res,
-						NULL, NULL /* &data */ , 0 );
+				rs->sr_err = ldap_parse_extended_result( msc->msc_ld,
+					res, NULL, NULL /* &data */ , 0 );
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					int		err;
 
 					/* FIXME: matched? referrals? response controls? */
-					rs->sr_err = ldap_parse_result( msc->msc_ld, res,
-						&err, NULL, NULL, NULL, NULL, 1 );
+					rs->sr_err = ldap_parse_result( msc->msc_ld,
+						res, &err, NULL, NULL, NULL, NULL, 1 );
 					res = NULL;
 
 					if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -470,14 +481,12 @@ retry:;
 					} else if ( rs->sr_err == LDAP_REFERRAL ) {
 						/* FIXME: LDAP_OPERATIONS_ERROR? */
 						rs->sr_err = LDAP_OTHER;
-						rs->sr_text = "unwilling to chase referral returned by Start TLS exop";
+						rs->sr_text = "Unwilling to chase referral "
+							"returned by Start TLS exop";
 					}
 
 					if ( data ) {
-						if ( data->bv_val ) {
-							ber_memfree( data->bv_val );
-						}
-						ber_memfree( data );
+						ber_bvfree( data );
 					}
 				}
 
@@ -501,12 +510,16 @@ retry:;
 		 * of misconfiguration, but also when used in the chain 
 		 * overlay, where the "uri" can be parsed out of a referral */
 		if ( rs->sr_err == LDAP_SERVER_DOWN
-				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( mi ) ) )
+			|| ( rs->sr_err != LDAP_SUCCESS
+				&& LDAP_BACK_TLS_CRITICAL( mi ) ) )
 		{
 
 #ifdef DEBUG_205
-			Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(TLS) ldap_unbind_ext[%d] ld=%p\n",
-				op->o_log_prefix, candidate, (void *)msc->msc_ld );
+			Debug( LDAP_DEBUG_ANY,
+				"### %s meta_back_init_one_conn(TLS) "
+				"ldap_unbind_ext[%d] ld=%p\n",
+				op->o_log_prefix, candidate,
+				(void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 			/* need to trash a failed Start TLS */
@@ -575,8 +588,11 @@ retry:;
 			{
 
 #ifdef DEBUG_205
-				Debug( LDAP_DEBUG_ANY, "### %s meta_back_init_one_conn(rewrite) ldap_unbind_ext[%d] ld=%p\n",
-					op->o_log_prefix, candidate, (void *)msc->msc_ld );
+				Debug( LDAP_DEBUG_ANY,
+					"### %s meta_back_init_one_conn(rewrite) "
+					"ldap_unbind_ext[%d] ld=%p\n",
+					op->o_log_prefix, candidate,
+					(void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 				/* need to trash a connection not fully established */
@@ -618,7 +634,6 @@ error_return:;
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			send_ldap_result( op, rs );
-			rs->sr_text = NULL;
 		}
 	}
 
@@ -771,7 +786,7 @@ meta_back_retry(
 
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			rs->sr_err = rc;
-			rs->sr_text = NULL;
+			rs->sr_text = "Unable to retry";
 			send_ldap_result( op, rs );
 		}
 	}
@@ -830,7 +845,7 @@ meta_back_get_candidate(
 	 */
 	if ( candidate == META_TARGET_NONE ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		rs->sr_text = "no suitable candidate target found";
+		rs->sr_text = "No suitable candidate target found";
 
 	} else if ( candidate == META_TARGET_MULTIPLE ) {
 		Filter		f = { 0 };
@@ -883,7 +898,7 @@ meta_back_get_candidate(
 
 			} else {
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-				rs->sr_text = "cannot select unique candidate target";
+				rs->sr_text = "Unable to select unique candidate target";
 			}
 			break;
 		}
@@ -1259,7 +1274,6 @@ retry_lock:;
 					rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
 				}
 				send_ldap_result( op, rs );
-				rs->sr_text = NULL;
 				rs->sr_matched = NULL;
 			}
 
@@ -1307,7 +1321,6 @@ retry_lock:;
 						rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
 					}
 					send_ldap_result( op, rs );
-					rs->sr_text = NULL;
 					rs->sr_matched = NULL;
 				}
 			
@@ -1322,10 +1335,9 @@ retry_lock:;
 			}
 
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			rs->sr_text = "cross-target rename not supported";
+			rs->sr_text = "Cross-target rename not supported";
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				send_ldap_result( op, rs );
-				rs->sr_text = NULL;
 			}
 
 			return NULL;
@@ -1503,7 +1515,6 @@ retry_lock2:;
 					if ( META_BACK_ONERR_STOP( mi ) ) {
 						if ( sendok & LDAP_BACK_SENDERR ) {
 							send_ldap_result( op, rs );
-							rs->sr_text = NULL;
 						}
 						if ( new_conn ) {
 							mc->mc_refcnt = 0;
@@ -1516,7 +1527,6 @@ retry_lock2:;
 						return NULL;
 					}
 
-					rs->sr_text = NULL;
 					continue;
 				}
 
@@ -1546,7 +1556,6 @@ retry_lock2:;
 					rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
 				}
 				send_ldap_result( op, rs );
-				rs->sr_text = NULL;
 				rs->sr_matched = NULL;
 			}
 
@@ -1632,10 +1641,9 @@ done:;
 				meta_back_conn_free( mc );
 
 				rs->sr_err = LDAP_OTHER;
-				rs->sr_text = "proxy bind collision";
+				rs->sr_text = "Proxy bind collision";
 				if ( sendok & LDAP_BACK_SENDERR ) {
 					send_ldap_result( op, rs );
-					rs->sr_text = NULL;
 				}
 				return NULL;
 			}
@@ -1698,6 +1706,7 @@ meta_back_release_conn_lock(
 			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree,
 				( caddr_t )mc, meta_back_conndnmc_cmp );
 
+			/* Overparanoid, but useful... */
 			assert( tmpmc == NULL || tmpmc == mc );
 		}
 

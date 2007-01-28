@@ -382,9 +382,7 @@ static slap_cf_aux_table timeout_table[] = {
 	{ BER_BVC("modrdn="),	SLAP_OP_MODRDN * sizeof( time_t ),	'u', 0, NULL },
 	{ BER_BVC("modify="),	SLAP_OP_MODIFY * sizeof( time_t ),	'u', 0, NULL },
 	{ BER_BVC("compare="),	SLAP_OP_COMPARE * sizeof( time_t ),	'u', 0, NULL },
-#if 0	/* uses timelimit instead */
 	{ BER_BVC("search="),	SLAP_OP_SEARCH * sizeof( time_t ),	'u', 0, NULL },
-#endif
 	/* abandon makes little sense */
 #if 0	/* not implemented yet */
 	{ BER_BVC("extended="),	SLAP_OP_EXTENDED * sizeof( time_t ),	'u', 0, NULL },
@@ -1224,6 +1222,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			slap_retry_info_destroy( &li->li_quarantine );
 			ldap_pvt_thread_mutex_destroy( &li->li_quarantine_mutex );
 			li->li_isquarantined = 0;
+			li->li_flags &= ~LDAP_BACK_F_QUARANTINE;
 			break;
 
 		default:
@@ -1835,6 +1834,7 @@ done_url:;
 			/* give it a chance to retry if the pattern gets reset
 			 * via back-config */
 			li->li_isquarantined = 0;
+			li->li_flags |= LDAP_BACK_F_QUARANTINE;
 		}
 		break;
 

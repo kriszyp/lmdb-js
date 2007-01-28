@@ -63,11 +63,11 @@ typedef struct ldapconn_t {
 						( -1 - (long)(lc)->lc_conn ) : (lc)->lc_conn->c_connid )
 #ifdef HAVE_TLS
 #define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
-	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_ROOTDN_TLS : LDAP_BACK_PCONN_ROOTDN))
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ROOTDN_TLS : (void *) LDAP_BACK_PCONN_ROOTDN))
 #define	LDAP_BACK_PCONN_ANON_SET(lc, op) \
-	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_ANON_TLS : LDAP_BACK_PCONN_ANON))
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ANON_TLS : (void *) LDAP_BACK_PCONN_ANON))
 #define	LDAP_BACK_PCONN_BIND_SET(lc, op) \
-	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_BIND_TLS : LDAP_BACK_PCONN_BIND))
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_BIND_TLS : (void *) LDAP_BACK_PCONN_BIND))
 #else /* ! HAVE_TLS */
 #define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
 	((lc)->lc_conn = (void *)LDAP_BACK_PCONN_ROOTDN)
@@ -288,6 +288,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_F_CANCEL_MASK		(LDAP_BACK_F_CANCEL_IGNORE|LDAP_BACK_F_CANCEL_EXOP)
 #define	LDAP_BACK_F_CANCEL_MASK2	(LDAP_BACK_F_CANCEL_MASK|LDAP_BACK_F_CANCEL_EXOP_DISCOVER)
 
+#define	LDAP_BACK_F_QUARANTINE		(0x00010000U)
+
 #define	LDAP_BACK_ISSET_F(ff,f)		( ( (ff) & (f) ) == (f) )
 #define	LDAP_BACK_ISMASK_F(ff,m,f)	( ( (ff) & (m) ) == (f) )
 
@@ -319,6 +321,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_CANCEL(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
 #define	LDAP_BACK_CANCEL_DISCOVER(li)	LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
 
+#define	LDAP_BACK_QUARANTINE(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_QUARANTINE )
+
 	int			li_version;
 
 	/* cached connections; 
@@ -341,7 +345,6 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_FQ_RETRYING	(2)
 
 	slap_retry_info_t	li_quarantine;
-#define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
 	ldap_pvt_thread_mutex_t	li_quarantine_mutex;
 	ldap_back_quarantine_f	li_quarantine_f;
 	void			*li_quarantine_p;

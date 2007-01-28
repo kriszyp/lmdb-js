@@ -649,7 +649,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	metaconn_t	*mc;
 	struct timeval	save_tv = { 0, 0 },
 			tv;
-	time_t		stoptime = (time_t)-1;
+	time_t		stoptime = (time_t)(-1),
+			lastres_time = slap_get_time(),
+			timeout = 0;
 	int		rc = 0, sres = LDAP_SUCCESS;
 	char		*matched = NULL;
 	int		last = 0, ncandidates = 0,
@@ -700,6 +702,13 @@ getconn:;
 		candidates[ i ].sr_text = NULL;
 		candidates[ i ].sr_ref = NULL;
 		candidates[ i ].sr_ctrls = NULL;
+
+		/* get largest timeout among candidates */
+		if ( mi->mi_targets[ i ]->mt_timeout[ SLAP_OP_SEARCH ]
+			&& mi->mi_targets[ i ]->mt_timeout[ SLAP_OP_SEARCH ] > timeout )
+		{
+			timeout = mi->mi_targets[ i ]->mt_timeout[ SLAP_OP_SEARCH ];
+		}
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
@@ -844,6 +853,22 @@ getconn:;
 		int	gotit = 0,
 			doabandon = 0,
 			alreadybound = ncandidates;
+		time_t	curr_time = 0;
+
+		/* check timeout */
+		if ( timeout && lastres_time > 0
+			&& ( slap_get_time() - lastres_time ) > timeout )
+		{
+			doabandon = 1;
+			rs->sr_text = "Operation timed out";
+			rc = rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+			savepriv = op->o_private;
+			op->o_private = (void *)i;
+			send_ldap_result( op, rs );
+			op->o_private = savepriv;
+			goto finish;
+		}
 
 		/* check time limit */
 		if ( op->ors_tlimit != SLAP_NO_LIMIT
@@ -1051,9 +1076,11 @@ really_bad:;
 				continue;
 
 			default:
+				lastres_time = slap_get_time();
+
 				/* only touch when activity actually took place... */
-				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
-					msc->msc_time = op->o_time;
+				if ( mi->mi_idle_timeout != 0 && msc->msc_time < lastres_time ) {
+					msc->msc_time = lastres_time;
 				}
 				break;
 			}

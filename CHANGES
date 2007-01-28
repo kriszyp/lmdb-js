@@ -6,6 +6,7 @@ OpenLDAP 2.3.34 Engineering
 	Fixed slapadd LDIF parsing (ITS#4817)
 	Fixed slapd syncrepl memory leaks (ITS#4805)
 	Fixed slapd-bdb/hdb be_entry_get with aliases/referrals (ITS#4810)
+	Fixed slapd-ldap more response handling bugs (ITS#4782)
 	Fixed slapd-ldap C-API code tests (ITS#4808)
 	Fixed slapd-monitor NULL printf (ITS#4811)
 	Fixed slapo-syncprov presence list (ITS#4813)

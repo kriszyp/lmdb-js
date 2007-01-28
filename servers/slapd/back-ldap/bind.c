@@ -644,6 +644,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		ldap_unbind_ext( ld, NULL, NULL );
+		rs->sr_text = "Start TLS failed";
 		goto error_return;
 
 	} else if ( li->li_idle_timeout ) {
@@ -670,10 +671,9 @@ error_return:;
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			if ( rs->sr_text == NULL ) {
-				rs->sr_text = "ldap_initialize() failed";
+				rs->sr_text = "Proxy connection initialization failed";
 			}
 			send_ldap_result( op, rs );
-			rs->sr_text = NULL;
 		}
 
 	} else {
@@ -726,6 +726,7 @@ ldap_back_getconn(
 		if ( dont_retry ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+				rs->sr_text = "Target is quarantined";
 				send_ldap_result( op, rs );
 			}
 			return NULL;
@@ -1019,10 +1020,9 @@ retry_lock:
 				LDAP_BACK_CONN_CACHED_CLEAR( lc );
 				ldap_back_conn_free( lc );
 				rs->sr_err = LDAP_OTHER;
-				rs->sr_text = "proxy bind collision";
+				rs->sr_text = "Proxy bind collision";
 				if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
 					send_ldap_result( op, rs );
-					rs->sr_text = NULL;
 				}
 				return NULL;
 			}
@@ -1350,6 +1350,7 @@ retry:;
 				/* lc here must be the regular lc, reset and ready for init */
 				rs->sr_err = ldap_back_prepare_conn( lc, op, rs, sendok );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
+					sendok &= ~LDAP_BACK_SENDERR;
 					lc->lc_refcnt = 0;
 				}
 			}
@@ -1379,6 +1380,7 @@ retry:;
 		if ( rs->sr_err != LDAP_SUCCESS &&
 			( sendok & LDAP_BACK_SENDERR ) )
 		{
+			rs->sr_text = "Internal proxy bind failure";
 			send_ldap_result( op, rs );
 		}
 
@@ -1386,7 +1388,7 @@ retry:;
 	}
 
 	rc = ldap_back_op_result( lc, op, rs, msgid,
-		-1, (sendok|LDAP_BACK_BINDING) );
+		-1, ( sendok | LDAP_BACK_BINDING ) );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAP_BACK_CONN_ISBOUND_SET( lc );
 	}
@@ -1559,7 +1561,22 @@ retry:;
 				if ( sendok & LDAP_BACK_BINDING ) {
 					ldap_unbind_ext( lc->lc_ld, NULL, NULL );
 					lc->lc_ld = NULL;
+
+					/* let it be used, but taint/delete it so that 
+					 * no-one else can look it up any further */
+					ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
+
+#if LDAP_BACK_PRINT_CONNTREE > 0
+					ldap_back_print_conntree( li, ">>> ldap_back_getconn(timeout)" );
+#endif /* LDAP_BACK_PRINT_CONNTREE */
+
+					(void)ldap_back_conn_delete( li, lc );
 					LDAP_BACK_CONN_TAINTED_SET( lc );
+
+#if LDAP_BACK_PRINT_CONNTREE > 0
+					ldap_back_print_conntree( li, "<<< ldap_back_getconn(timeout)" );
+#endif /* LDAP_BACK_PRINT_CONNTREE */
+					ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
 				} else {
 					(void)ldap_back_cancel( lc, op, rs, msgid, sendok );
@@ -1636,6 +1653,7 @@ retry:;
 				ldap_back_quarantine( op, rs );
 			}
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
+				if ( rs->sr_text == NULL ) rs->sr_text = "Proxy operation retry failed";
 				send_ldap_result( op, rs );
 			}
 		}
@@ -1681,8 +1699,7 @@ int
 ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
-	int		rc = 0,
-			binding;
+	int		rc = 0;
 
 	assert( lcp != NULL );
 	assert( *lcp != NULL );
@@ -1690,7 +1707,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 	ldap_pvt_thread_mutex_lock( &li->li_conninfo.lai_mutex );
 
 	if ( (*lcp)->lc_refcnt == 1 ) {
-		binding = LDAP_BACK_CONN_BINDING( *lcp );
+		int binding = LDAP_BACK_CONN_BINDING( *lcp );
 
 		ldap_pvt_thread_mutex_lock( &li->li_uri_mutex );
 		Debug( LDAP_DEBUG_ANY,
@@ -1739,9 +1756,9 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 		ldap_back_release_conn_lock( li, lcp, 0 );
 		assert( *lcp == NULL );
 
-		if ( sendok ) {
+		if ( sendok & LDAP_BACK_SENDERR ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
-			rs->sr_text = "unable to retry";
+			rs->sr_text = "Unable to retry";
 			send_ldap_result( op, rs );
 		}
 	}
@@ -1986,7 +2003,7 @@ ldap_back_proxy_authz_bind(
 				binddn->bv_val, LDAP_SASL_SIMPLE,
 				bindcred, NULL, NULL, &msgid );
 		rc = ldap_back_op_result( lc, op, rs, msgid,
-			-1, (sendok|LDAP_BACK_BINDING) );
+			-1, ( sendok | LDAP_BACK_BINDING ) );
 		break;
 
 	default:

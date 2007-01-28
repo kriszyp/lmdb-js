@@ -1237,15 +1237,14 @@ meta_back_proxy_authz_cred(
 					send_ldap_result( op, rs );
 				}
 				LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+				goto done;
 
-			} else {
-				rs->sr_err = LDAP_SUCCESS;
-				*binddn = slap_empty_bv;
-				*bindcred = slap_empty_bv;
-				break;
 			}
 
-			goto done;
+			rs->sr_err = LDAP_SUCCESS;
+			*binddn = slap_empty_bv;
+			*bindcred = slap_empty_bv;
+			break;
 
 		} else if ( mt->mt_idassert_authz && !be_isroot( op ) ) {
 			struct berval authcDN;
@@ -1264,15 +1263,13 @@ meta_back_proxy_authz_cred(
 						send_ldap_result( op, rs );
 					}
 					LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
-
-				} else {
-					rs->sr_err = LDAP_SUCCESS;
-					*binddn = slap_empty_bv;
-					*bindcred = slap_empty_bv;
-					break;
+					goto done;
 				}
 
-				goto done;
+				rs->sr_err = LDAP_SUCCESS;
+				*binddn = slap_empty_bv;
+				*bindcred = slap_empty_bv;
+				break;
 			}
 		}
 
