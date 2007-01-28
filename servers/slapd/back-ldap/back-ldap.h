@@ -308,6 +308,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_F_CANCEL_MASK		(LDAP_BACK_F_CANCEL_IGNORE|LDAP_BACK_F_CANCEL_EXOP)
 #define	LDAP_BACK_F_CANCEL_MASK2	(LDAP_BACK_F_CANCEL_MASK|LDAP_BACK_F_CANCEL_EXOP_DISCOVER)
 
+#define	LDAP_BACK_F_QUARANTINE		(0x00010000U)
+
 #define	LDAP_BACK_ISSET_F(ff,f)		( ( (ff) & (f) ) == (f) )
 #define	LDAP_BACK_ISMASK_F(ff,m,f)	( ( (ff) & (m) ) == (f) )
 
@@ -339,6 +341,8 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_CANCEL(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
 #define	LDAP_BACK_CANCEL_DISCOVER(li)	LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
 
+#define	LDAP_BACK_QUARANTINE(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_QUARANTINE )
+
 	int			li_version;
 
 	/* cached connections; 
@@ -363,7 +367,6 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_FQ_RETRYING	(2)
 
 	slap_retry_info_t	li_quarantine;
-#define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
 	ldap_pvt_thread_mutex_t	li_quarantine_mutex;
 	ldap_back_quarantine_f	li_quarantine_f;
 	void			*li_quarantine_p;
