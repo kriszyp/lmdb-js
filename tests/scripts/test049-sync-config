@@ -27,8 +27,8 @@ DBPRO=$PRODIR/db
 DBCON=$CONDIR/db
 CFPRO=$PRODIR/slapd.d
 CFCON=$CONDIR/slapd.d
-LOG1=./slapd.1.log
-LOG2=./slapd.2.log
+LOG1=slapd.1.log
+LOG2=slapd.2.log
 
 mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
 
@@ -45,7 +45,7 @@ mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
 echo "Starting master slapd on TCP/IP port $PORT1..."
 $SLAPADD -F $CFPRO -n 0 -l $DYNAMICCONF
 cd $PRODIR
-$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING > ../../$LOG1 2>&1 &
+$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING > ../$LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -118,7 +118,7 @@ fi
 echo "Starting slave slapd on TCP/IP port $PORT2..."
 $SLAPADD -F $CFCON -n 0 -l $DYNAMICCONF
 cd $CONDIR
-$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING > ../../$LOG2 2>&1 &
+$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING > ../$LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
     echo SLAVEPID $SLAVEPID
