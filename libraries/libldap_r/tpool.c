@@ -826,6 +826,7 @@ int ldap_pvt_thread_pool_setkey(
 
 	for ( i=0; i<MAXKEYS; i++ ) {
 		if ( !ctx->ltu_key[i].ltk_key || ctx->ltu_key[i].ltk_key == key ) {
+			ctx->ltu_key[i].ltk_key = key;
 			ctx->ltu_key[i].ltk_data = data;
 			ctx->ltu_key[i].ltk_free = kfree;
 			return 0;
