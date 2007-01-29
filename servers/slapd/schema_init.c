@@ -2107,7 +2107,7 @@ IA5StringNormalize(
 	 * position.  One is enough because the above loop collapsed
 	 * all whitespace to a single space.
 	 */
-	if ( ASCII_SPACE( q[-1] ) ) --q;
+	if ( q > normalized->bv_val && ASCII_SPACE( q[-1] ) ) --q;
 
 	/* null terminate */
 	*q = '\0';
