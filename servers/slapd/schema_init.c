@@ -2049,8 +2049,6 @@ IA5StringValidate(
 {
 	ber_len_t i;
 
-	if( BER_BVISEMPTY( val ) ) return LDAP_INVALID_SYNTAX;
-
 	for(i=0; i < val->bv_len; i++) {
 		if( !LDAP_ASCII(val->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -2072,8 +2070,6 @@ IA5StringNormalize(
 	char *p, *q;
 	int casefold = !SLAP_MR_ASSOCIATED( mr,
 		slap_schema.si_mr_caseExactIA5Match );
-
-	assert( !BER_BVISEMPTY( val ) );
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ) != 0 );
 
@@ -2117,12 +2113,6 @@ IA5StringNormalize(
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
-	if( BER_BVISEMPTY( normalized ) ) {
-		normalized->bv_val = slap_sl_realloc( normalized->bv_val, 2, ctx );
-		normalized->bv_val[0] = ' ';
-		normalized->bv_val[1] = '\0';
-		normalized->bv_len = 1;
-	}
 
 	return LDAP_SUCCESS;
 }
