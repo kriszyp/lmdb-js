@@ -4960,6 +4960,41 @@ out:
 	return 0;
 }
 
+/* no-op, we never free entries */
+int config_entry_release(
+	Operation *op,
+	Entry *e,
+	int rw )
+{
+	return LDAP_SUCCESS;
+}
+
+/* return LDAP_SUCCESS IFF we can retrieve the specified entry.
+ */
+int config_back_entry_get(
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **ent )
+{
+	CfBackInfo *cfb;
+	CfEntryInfo *ce, *last;
+
+	cfb = (CfBackInfo *)op->o_bd->be_private;
+
+	ce = config_find_base( cfb->cb_root, ndn, &last );
+	if ( ce ) {
+		*ent = ce->ce_entry;
+		if ( *ent && oc && !is_entry_objectclass_or_sub( *ent, oc ) ) {
+			*ent = NULL;
+		}
+	}
+
+	return ( *ent == NULL ? 1 : 0 );
+}
+
 static void
 config_build_attrs( Entry *e, AttributeType **at, AttributeDescription *ad,
 	ConfigTable *ct, ConfigArgs *c )
@@ -5710,6 +5745,9 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_entry_release_rw = config_entry_release;
+	bi->bi_entry_get_rw = config_back_entry_get;
 
 	bi->bi_tool_entry_open = config_tool_entry_open;
 	bi->bi_tool_entry_close = config_tool_entry_close;
