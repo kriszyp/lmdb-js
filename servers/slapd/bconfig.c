@@ -200,6 +200,12 @@ static OidRec OidMacros[] = {
 	{ "OLcfgBkOc", "OLcfgOc:1" },
 	{ "OLcfgDbOc", "OLcfgOc:2" },
 	{ "OLcfgOvOc", "OLcfgOc:3" },
+
+	/* Syntaxes. We should just start using the standard names and
+	 * document that they are predefined and available for users
+	 * to reference in their own schema. Defining schema without
+	 * OID macros is for masochists...
+	 */
 	{ "OMsyn", "1.3.6.1.4.1.1466.115.121.1" },
 	{ "OMsBoolean", "OMsyn:7" },
 	{ "OMsDN", "OMsyn:12" },
