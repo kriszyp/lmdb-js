@@ -859,7 +859,7 @@ in the /var/tmp/bdb-log directory. Also a flag is set to tell BDB to
 delete transaction log files as soon as their contents have been
 checkpointed and they are no longer needed. Without this setting the
 transaction log files will continue to accumulate until some other
-cleanup procedure removes them. See the SleepyCat documentation for the
+cleanup procedure removes them. See the Berkeley DB documentation for the
 {{EX:db_archive}} command for details.
 
 Ideally the BDB cache must be
@@ -868,7 +868,7 @@ should be large enough to accomodate most transactions without overflowing,
 and the log directory must be on a separate physical disk from the main
 database files. And both the database directory and the log directory
 should be separate from disks used for regular system activities such as
-the root, boot, or swap filesystems. See the FAQ-o-Matic and the SleepyCat
+the root, boot, or swap filesystems. See the FAQ-o-Matic and the Berkeley DB
 documentation for more details.
 
 
@@ -898,7 +898,8 @@ H4: olcDbIndex: {<attrlist> | default} [pres,eq,approx,sub,none]
 
 This directive specifies the indices to maintain for the given
 attribute. If only an {{EX:<attrlist>}} is given, the default
-indices are maintained.
+indices are maintained. The index keywords correspond to the
+common types of matches that may be used in an LDAP search filter.
 
 \Example:
 
@@ -915,10 +916,36 @@ be maintained for {{EX:cn}} and {{EX:sn}} attribute types.  The
 fourth line causes an equality index for the {{EX:objectClass}}
 attribute type.
 
+There is no index keyword for inequality matches. Generally these
+matches do not use an index. However, some attributes do support
+indexing for inequality matches, based on the equality index.
+
+A substring index can be more explicitly specified as {{EX:subinitial}},
+{{EX:subany}}, or {{EX:subfinal}}, corresponding to the three 
+possible components
+of a substring match filter. A subinitial index only indexes
+substrings that appear at the beginning of an attribute value.
+A subfinal index only indexes substrings that appear at the end
+of an attribute value, while subany indexes substrings that occur
+anywhere in a value.
+
+Note that by default, setting an index for an attribute also
+affects every subtype of that attribute. E.g., setting an equality
+index on the {{EX:name}} attribute causes {{EX:cn}}, {{EX:sn}}, and every other
+attribute that inherits from {{EX:name}} to be indexed.
+
 By default, no indices are maintained.  It is generally advised
 that minimally an equality index upon objectClass be maintained.
 
 >	olcDbindex: objectClass eq
+
+Additional indices should be configured corresponding to the
+most common searches that are used on the database.
+Presence indexing should not be configured for an attribute
+unless the attribute occurs very rarely in the database, and
+presence searches on the attribute occur very frequently during
+normal use of the directory. Most applications don't use presence
+searches, so usually presence indexing is not very useful.
 
 If this setting is changed while slapd is running, an internal task
 will be run to generate the changed index data. All server operations
