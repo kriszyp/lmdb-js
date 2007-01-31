@@ -99,19 +99,34 @@ parse_oidm(
 	int		user,
 	OidMacro **rom)
 {
-	char *oid;
+	char *oid, *oidv;
 	OidMacro *om = NULL, *prev = NULL;
 	struct berval bv;
 
+	oidv = oidm_find( c->argv[2] );
+	if( !oidv ) {
+		snprintf( c->msg, sizeof( c->msg ),
+			"%s: OID %s not recognized",
+			c->argv[0], c->argv[2] );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
+		return 1;
+	}
+
 	oid = oidm_find( c->argv[1] );
 	if( oid != NULL ) {
+		int rc;
 		snprintf( c->msg, sizeof( c->msg ),
 			"%s: \"%s\" previously defined \"%s\"",
 			c->argv[0], c->argv[1], oid );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
 			"%s %s\n", c->log, c->msg, 0 );
+		/* Allow duplicate if the definition is identical */
+		rc = strcmp( oid, oidv ) != 0;
 		SLAP_FREE( oid );
-		return 1;
+		if ( oidv != c->argv[2] )
+			SLAP_FREE( oidv );
+		return rc;
 	}
 
 	om = (OidMacro *) SLAP_CALLOC( sizeof(OidMacro), 1 );
@@ -120,6 +135,8 @@ parse_oidm(
 			"%s: SLAP_CALLOC failed", c->argv[0] );
 		Debug( LDAP_DEBUG_ANY,
 			"%s %s\n", c->log, c->msg, 0 );
+		if ( oidv != c->argv[2] )
+			SLAP_FREE( oidv );
 		return 1;
 	}
 
@@ -129,17 +146,7 @@ parse_oidm(
 	ber_bvarray_add( &om->som_names, &bv );
 	ber_str2bv( c->argv[2], 0, 1, &bv );
 	ber_bvarray_add( &om->som_subs, &bv );
-	om->som_oid.bv_val = oidm_find( c->argv[2] );
-
-	if (!om->som_oid.bv_val) {
-		snprintf( c->msg, sizeof( c->msg ),
-			"%s: OID %s not recognized",
-			c->argv[0], c->argv[2] );
-		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
-		SLAP_FREE( om );
-		return 1;
-	}
+	om->som_oid.bv_val = oidv;
 
 	if (om->som_oid.bv_val == c->argv[2]) {
 		om->som_oid.bv_val = ch_strdup( c->argv[2] );
