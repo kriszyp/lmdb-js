@@ -846,6 +846,14 @@ is multi-valued, to accomodate multiple configuration directives. No default
 is provided, but it is essential to use proper settings here to get the
 best server performance.
 
+Any changes made to this attribute will be written to the {{EX:DB_CONFIG}}
+file and will cause the database environment to be reset so the changes
+can take immediate effect. If the environment cache is large and has not
+been recently checkpointed, this reset operation may take a long time. It
+may be advisable to manually perform a single checkpoint using the Berkeley DB
+{{db_checkpoint}} utility before using LDAP Modify to change this
+attribute.
+
 \Example:
 
 >	olcDbConfig: set_cachesize 0 10485760 0
