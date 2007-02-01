@@ -9,6 +9,7 @@ OpenLDAP 2.3.34 Engineering
 	Fixed slapd-ldap more response handling bugs (ITS#4782)
 	Fixed slapd-ldap C-API code tests (ITS#4808)
 	Fixed slapd-monitor NULL printf (ITS#4811)
+	Fixed slapo-chain spurious additional info in response (ITS#4828)
 	Fixed slapo-syncprov presence list (ITS#4813)
 
 OpenLDAP 2.3.33 Release (2007/01/17)

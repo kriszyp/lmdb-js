@@ -414,6 +414,7 @@ ldap_chain_op(
 	li.li_bvuri = bvuri;
 	first_rc = -1;
 	for ( ; !BER_BVISNULL( ref ); ref++ ) {
+		SlapReply	rs2 = { 0 };
 		LDAPURLDesc	*srv = NULL;
 		struct berval	save_req_dn = op->o_req_dn,
 				save_req_ndn = op->o_req_ndn,
@@ -523,7 +524,7 @@ Document: RFC 4511
 		lb->lb_op_f = op_f;
 		lb->lb_depth = depth + 1;
 
-		rc = op_f( op, rs );
+		rc = op_f( op, &rs2 );
 
 		/* note the first error */
 		if ( first_rc == -1 ) {
@@ -552,9 +553,12 @@ further_cleanup:;
 		}
 		op->o_req_ndn = save_req_ndn;
 		
-		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
+		if ( rc == LDAP_SUCCESS && rs2.sr_err == LDAP_SUCCESS ) {
+			*rs = rs2;
 			break;
 		}
+
+		rc = rs2.sr_err;
 	}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -606,6 +610,7 @@ ldap_chain_search(
 	 * to be set once for all (correct?) */
 	li.li_bvuri = bvuri;
 	for ( ; !BER_BVISNULL( &ref[0] ); ref++ ) {
+		SlapReply	rs2 = { 0 };
 		LDAPURLDesc	*srv;
 		struct berval	save_req_dn = op->o_req_dn,
 				save_req_ndn = op->o_req_ndn,
@@ -702,7 +707,7 @@ ldap_chain_search(
 
 		/* FIXME: should we also copy filter and scope?
 		 * according to RFC3296, no */
-		rc = lback->bi_op_search( op, rs );
+		rc = lback->bi_op_search( op, &rs2 );
 		if ( first_rc == -1 ) {
 			first_rc = rc;
 		}
@@ -732,11 +737,12 @@ further_cleanup:;
 		}
 		op->o_req_ndn = save_req_ndn;
 		
-		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
+		if ( rc == LDAP_SUCCESS && rs2.sr_err == LDAP_SUCCESS ) {
+			*rs = rs2;
 			break;
 		}
 
-		rc = rs->sr_err;
+		rc = rs2.sr_err;
 	}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -772,6 +778,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_callback	*sc = op->o_callback,
 			sc2 = { 0 };
 	int		rc = 0;
+	char		*text = NULL;
 	const char	*matched;
 	BerVarray	ref;
 	struct berval	ndn = op->o_ndn;
@@ -826,6 +833,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	db = *op->o_bd;
 	op->o_bd = &db;
 
+	text = rs->sr_text;
+	rs->sr_text = NULL;
 	matched = rs->sr_matched;
 	rs->sr_matched = NULL;
 	ref = rs->sr_ref;
@@ -959,6 +968,7 @@ cannot_chain:;
 				rc = SLAP_CB_CONTINUE;
 				rs->sr_err = sr_err;
 				rs->sr_type = sr_type;
+				rs->sr_text = text;
 				rs->sr_matched = matched;
 				rs->sr_ref = ref;
 			}
@@ -977,6 +987,7 @@ cannot_chain:;
 dont_chain:;
 	rs->sr_err = sr_err;
 	rs->sr_type = sr_type;
+	rs->sr_text = text;
 	rs->sr_matched = matched;
 	rs->sr_ref = ref;
 	op->o_bd = bd;
