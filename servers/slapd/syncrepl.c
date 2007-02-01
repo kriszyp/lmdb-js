@@ -2383,7 +2383,7 @@ static void
 attr_cmp( Operation *op, Attribute *old, Attribute *new,
 	Modifications ***mret, Modifications ***mcur )
 {
-	int i, j, doadd = 0;
+	int i, j;
 	Modifications *mod, **modtail;
 
 	modtail = *mret;
@@ -2498,13 +2498,14 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 	}
 	/* advance to next element */
 	mod = **mcur;
-	if ( i != j ) {
-		**mcur = mod->sml_next;
-		*modtail = mod;
-		modtail = &mod->sml_next;
-	} else {
-		if ( mod )
+	if ( mod ) {
+		if ( i != j ) {
+			**mcur = mod->sml_next;
+			*modtail = mod;
+			modtail = &mod->sml_next;
+		} else {
 			*mcur = &mod->sml_next;
+		}
 	}
 	*mret = modtail;
 }
@@ -2574,12 +2575,12 @@ dn_callback(
 				for ( old = rs->sr_entry->e_attrs, new = dni->new_entry->e_attrs;
 						old && new; )
 				{
-#if 1
+					/* If we've seen this before, use its mod now */
 					if ( new->a_flags & SLAP_ATTR_IXADD ) {
+						attr_cmp( op, NULL, new, &modtail, &ml );
 						new = new->a_next;
 						continue;
 					}
-#endif
 					if ( old->a_desc != new->a_desc ) {
 						Modifications *mod;
 						Attribute *tmp;
@@ -2613,7 +2614,12 @@ dn_callback(
 						old = old->a_next;
 						continue;
 					}
-					attr_cmp( op, old, new, &modtail, &ml );
+					/* kludge - always update modifiersName so that it
+					 * stays co-located with the other mod opattrs
+					 */
+					attr_cmp( op, old->a_desc !=
+						slap_schema.si_ad_modifiersName ? old : NULL,
+						new, &modtail, &ml );
 					new = new->a_next;
 					old = old->a_next;
 				}
