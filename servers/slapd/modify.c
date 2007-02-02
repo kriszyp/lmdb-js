@@ -924,11 +924,9 @@ void slap_mods_opattrs(
 
 		ptr = ber_bvchr( &csn, '#' );
 		if ( ptr ) {
-			timestamp.bv_len = ptr - csn.bv_val;
-			if ( timestamp.bv_len >= sizeof( timebuf ) ) {	/* ?!? */
-				timestamp.bv_len = sizeof( timebuf ) - 1;
-			}
+			timestamp.bv_len = STRLENOF("YYYYMMDDHHMMSSZ");
 			AC_MEMCPY( timebuf, csn.bv_val, timestamp.bv_len );
+			timebuf[timestamp.bv_len-1] = 'Z';
 			timebuf[timestamp.bv_len] = '\0';
 
 		} else {

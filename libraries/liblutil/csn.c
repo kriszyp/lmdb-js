@@ -35,8 +35,8 @@
  * where s is a counter of operations within a timeslice, r is
  * the replica id (normally zero), and c is a counter of
  * modifications within this operation.  s, r, and c are
- * represented in hex and zero padded to lengths of 6, 2, and
- * 6, respectively.
+ * represented in hex and zero padded to lengths of 6, 3, and
+ * 6, respectively. (In previous implementations r was only 2 digits.)
  *
  * Calls to this routine MUST be serialized with other calls
  * to gmtime().
@@ -51,33 +51,26 @@
 size_t
 lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 {
-	static time_t csntime;
+	struct lutil_tm tm;
 	static unsigned int csnop;
+	static int prev_sec, prev_usec;
 
-	time_t t;
 	unsigned int op;
-	struct tm *ltm;
-#ifdef HAVE_GMTIME_R
-	struct tm ltm_buf;
-#endif
 	int n;
 
-	time( &t );
-	if ( t > csntime ) {
-		csntime = t;
+	lutil_gettime( &tm );
+
+	if ( tm.tm_usec != prev_usec || tm.tm_sec != prev_sec ) {
+		prev_sec = tm.tm_sec;
+		prev_usec = tm.tm_usec;
 		csnop = 0;
 	}
 	op = csnop++;
 
-#ifdef HAVE_GMTIME_R
-	ltm = gmtime_r( &t, &ltm_buf );
-#else
-	ltm = gmtime( &t );
-#endif
 	n = snprintf( buf, len,
-		"%4d%02d%02d%02d%02d%02dZ#%06x#%02x#%06x",
-	    ltm->tm_year + 1900, ltm->tm_mon + 1, ltm->tm_mday, ltm->tm_hour,
-	    ltm->tm_min, ltm->tm_sec, op, replica, mod );
+		"%4d%02d%02d%02d%02d%02d.%06dZ#%06x#%03x#%06x",
+	    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+	    tm.tm_min, tm.tm_sec, tm.tm_usec, op, replica, mod );
 
 	if( n < 0 ) return 0;
 	return ( (size_t) n < len ) ? n : 0;
