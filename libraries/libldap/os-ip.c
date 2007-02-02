@@ -221,14 +221,8 @@ ldap_int_poll(
 	ber_socket_t s,
 	struct timeval *tvp )
 {
-	int		timeout = INFTIM;
-	struct timeval	tv = { 0 };
 	int		rc;
 		
-	if ( tvp != NULL ) {
-		tv = *tvp;
-		timeout = TV2MILLISEC( tvp );
-	}
 
 	osip_debug(ld, "ldap_int_poll: fd: %d tm: %ld\n",
 		s, tvp ? tvp->tv_sec : -1L, 0);
@@ -236,10 +230,14 @@ ldap_int_poll(
 #ifdef HAVE_POLL
 	{
 		struct pollfd fd;
+		int timeout = INFTIM;
 
 		fd.fd = s;
 		fd.events = POLL_WRITE;
 
+		if ( tvp != NULL ) {
+			timeout = TV2MILLISEC( tvp );
+		}
 		do {
 			fd.revents = 0;
 			rc = poll( &fd, 1, timeout );
@@ -272,6 +270,7 @@ ldap_int_poll(
 #ifdef HAVE_WINSOCK
 		fd_set		efds;
 #endif
+		struct timeval	tv = { 0 };
 
 #if defined( FD_SETSIZE ) && !defined( HAVE_WINSOCK )
 		if ( s >= FD_SETSIZE ) {
@@ -281,6 +280,10 @@ ldap_int_poll(
 			return rc;
 		}
 #endif
+
+		if ( tvp != NULL ) {
+			tv = *tvp;
+		}
 
 		do {
 			FD_ZERO(&wfds);
@@ -305,7 +308,7 @@ ldap_int_poll(
 			return rc;
 		}
 
-		if ( timeout == 0 && rc == 0 ) {
+		if ( rc == 0 && tvp && tvp->tv_sec == 0 && tvp->tv_usec == 0 ) {
 			return -2;
 		}
 
