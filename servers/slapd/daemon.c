@@ -583,28 +583,17 @@ slapd_slp_init( const char* urls )
 	/* find and expand INADDR_ANY URLs */
 	for ( i = 0; slapd_srvurls[i] != NULL; i++ ) {
 		if ( strcmp( slapd_srvurls[i], "ldap:///" ) == 0 ) {
-			char *host = ldap_pvt_get_fqdn( NULL );
-			if ( host != NULL ) {
-				slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
-					strlen( host ) +
-					sizeof( LDAP_SRVTYPE_PREFIX ) );
-				strcpy( lutil_strcopy(slapd_srvurls[i],
-					LDAP_SRVTYPE_PREFIX ), host );
-
-				ch_free( host );
-			}
-
+			slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
+				strlen( global_host ) +
+				sizeof( LDAP_SRVTYPE_PREFIX ) );
+			strcpy( lutil_strcopy(slapd_srvurls[i],
+				LDAP_SRVTYPE_PREFIX ), global_host );
 		} else if ( strcmp( slapd_srvurls[i], "ldaps:///" ) == 0 ) {
-			char *host = ldap_pvt_get_fqdn( NULL );
-			if ( host != NULL ) {
-				slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
-					strlen( host ) +
-					sizeof( LDAPS_SRVTYPE_PREFIX ) );
-				strcpy( lutil_strcopy(slapd_srvurls[i],
-					LDAPS_SRVTYPE_PREFIX ), host );
-
-				ch_free( host );
-			}
+			slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
+				strlen( global_host ) +
+				sizeof( LDAPS_SRVTYPE_PREFIX ) );
+			strcpy( lutil_strcopy(slapd_srvurls[i],
+				LDAPS_SRVTYPE_PREFIX ), global_host );
 		}
 	}
 

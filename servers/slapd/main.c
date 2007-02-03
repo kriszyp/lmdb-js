@@ -697,6 +697,8 @@ unhandled_option:;
 
 	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
 
+	global_host = ldap_pvt_get_fqdn( NULL );
+
 	if( check == CHECK_NONE && slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
@@ -827,12 +829,6 @@ unhandled_option:;
 			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 			goto destroy;
 		}
-	}
-#endif
-
-#ifdef HAVE_CYRUS_SASL
-	if( global_host == NULL ) {
-		global_host = ldap_pvt_get_fqdn( NULL );
 	}
 #endif
 
