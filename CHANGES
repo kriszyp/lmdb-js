@@ -11,6 +11,8 @@ OpenLDAP 2.3.34 Engineering
 	Fixed slapd-monitor NULL printf (ITS#4811)
 	Fixed slapo-chain spurious additional info in response (ITS#4828)
 	Fixed slapo-syncprov presence list (ITS#4813)
+	Documentation
+		Note slapo-dynlist interaction with manageDSAit (ITS#4831)
 
 OpenLDAP 2.3.33 Release (2007/01/17)
 	Fixed slapd syncrepl error logging with delta-syncrepl
