@@ -22,6 +22,10 @@ The resulting entry must comply with the LDAP data model, so constraints
 are enforced.
 For example, if a \fISINGLE-VALUE\fP attribute is listed,
 only the first value results in the final entry.
+The above described behavior is disabled when the \fImanageDSAit\fP
+control (RFC 3296) is used.
+In that case, the contents of the dynamic group entry is returned;
+namely, the URLs are returned instead of being expanded.
 
 .SH CONFIGURATION
 The config directives that are specific to the
