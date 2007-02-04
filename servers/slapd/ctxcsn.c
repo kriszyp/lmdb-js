@@ -28,6 +28,7 @@
 
 const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
 const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
+int slap_serverID;
 
 void
 slap_get_commit_csn(
@@ -184,7 +185,7 @@ slap_get_csn(
 #ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #endif
-	csn->bv_len = lutil_csnstr( csn->bv_val, csn->bv_len, 0, 0 );
+	csn->bv_len = lutil_csnstr( csn->bv_val, csn->bv_len, slap_serverID, 0 );
 #ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif

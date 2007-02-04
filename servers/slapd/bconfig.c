@@ -179,6 +179,7 @@ enum {
 	CFG_MIRRORMODE,
 	CFG_HIDDEN,
 	CFG_MONITORING,
+	CFG_SERVERID,
 
 	CFG_LAST
 };
@@ -532,6 +533,10 @@ static ConfigTable config_back_cf_table[] = {
 		&config_security, "( OLcfgGlAt:59 NAME 'olcSecurity' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "serverID", "number> <[URI]", 2, 3, 0, ARG_MAGIC|CFG_SERVERID,
+		&config_generic, "( OLcfgGlAt:81 NAME 'olcServerID' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "sizelimit", "limit",	2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_sizelimit, "( OLcfgGlAt:60 NAME 'olcSizeLimit' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
@@ -688,7 +693,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
 		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
-		 "olcSecurity $ olcSizeLimit $ "
+		 "olcSecurity $ olcServerID $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
@@ -748,6 +753,16 @@ static ConfigOCs cf_ocs[] = {
 #endif
 	{ NULL, 0, NULL }
 };
+
+typedef struct ServerID {
+	struct ServerID *si_next;
+	struct berval si_url;
+	int si_num;
+} ServerID;
+
+#define SERVERID_MAX	4095
+
+static ServerID *sid_list;
 
 static int
 config_generic(ConfigArgs *c) {
@@ -935,6 +950,30 @@ config_generic(ConfigArgs *c) {
 			}
 			}
 			break;
+		case CFG_SERVERID:
+			if ( sid_list ) {
+				ServerID *si;
+				struct berval bv;
+				char *ptr;
+
+				for ( si = sid_list; si; si=si->si_next ) {
+					if ( !BER_BVISEMPTY( &si->si_url )) {
+						bv.bv_len = si->si_url.bv_len + 6;
+						bv.bv_val = ch_malloc( bv.bv_len );
+						sprintf( bv.bv_val, "%d %s", si->si_num,
+							si->si_url.bv_val );
+						ber_bvarray_add( &c->rvalue_vals, &bv );
+					} else {
+						char buf[5];
+						bv.bv_val = buf;
+						bv.bv_len = sprintf( buf, "%d", si->si_num );
+						value_add_one( &c->rvalue_vals, &bv );
+					}
+				}
+			} else {
+				rc = 1;
+			}
+			break;
 		case CFG_LOGFILE:
 			if ( logfileName )
 				c->value_string = ch_strdup( logfileName );
@@ -1083,6 +1122,23 @@ config_generic(ConfigArgs *c) {
 			logfileName = NULL;
 			break;
 
+		case CFG_SERVERID: {
+			int i;
+			ServerID *si, **sip;
+
+			for ( i=0, si = sid_list, sip = &sid_list;
+				si; si = *sip, i++ ) {
+				if ( c->valx == -1 || i == c->valx ) {
+					*sip = si->si_next;
+					ch_free( si );
+					if ( c->valx >= 0 )
+						break;
+				} else {
+					sip = &si->si_next;
+				}
+			}
+			}
+			break;
 		case CFG_HIDDEN:
 			c->be->be_flags &= ~SLAP_DBFLAG_HIDDEN;
 			break;
@@ -1513,6 +1569,111 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 
+		case CFG_SERVERID:
+			{
+				ServerID *si, **sip;
+				LDAPURLDesc *lud;
+				int num = atoi( c->argv[1] );
+				if ( num < 0 || num > SERVERID_MAX ) {
+					snprintf( c->msg, sizeof( c->msg ),
+						"<%s> illegal server ID", c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
+						c->log, c->msg, c->argv[1] );
+					return 1;
+				}
+				/* only one value allowed if no URL is given */
+				if ( c->argc > 2 ) {
+					int len;
+
+					if ( sid_list && BER_BVISEMPTY( &sid_list->si_url )) {
+						snprintf( c->msg, sizeof( c->msg ),
+							"<%s> only one server ID allowed now", c->argv[0] );
+						Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
+							c->log, c->msg, c->argv[1] );
+						return 1;
+					}
+
+					if ( ldap_url_parse( c->argv[2], &lud )) {
+						snprintf( c->msg, sizeof( c->msg ),
+							"<%s> invalid URL", c->argv[0] );
+						Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
+							c->log, c->msg, c->argv[2] );
+						return 1;
+					}
+					len = strlen( c->argv[2] );
+					si = ch_malloc( sizeof(ServerID) + len + 1 );
+					si->si_url.bv_val = (char *)(si+1);
+					si->si_url.bv_len = len;
+					strcpy( si->si_url.bv_val, c->argv[3] );
+				} else {
+					if ( sid_list ) {
+						snprintf( c->msg, sizeof( c->msg ),
+							"<%s> unqualified server ID not allowed now", c->argv[0] );
+						Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
+							c->log, c->msg, c->argv[1] );
+						return 1;
+					}
+					si = ch_malloc( sizeof(ServerID) );
+					slap_serverID = num;
+				}
+				si->si_next = NULL;
+				si->si_num = num;
+				for ( sip = &sid_list; *sip; sip = &(*sip)->si_next );
+				*sip = si;
+
+				if (( slapMode & SLAP_SERVER_MODE ) && c->argc > 2 ) {
+					/* If hostname is empty, or is localhost, or matches
+					 * our hostname, this serverID refers to this host.
+					 * Compare it against listeners and ports.
+					 */
+					if ( !lud->lud_host || !lud->lud_host[0] ||
+						!strncasecmp("localhost", lud->lud_host,
+							STRLENOF("localhost")) ||
+						!strcasecmp( global_host, lud->lud_host )) {
+						Listener **l = slapd_get_listeners();
+						int i;
+
+						for ( i=0; l[i]; i++ ) {
+							LDAPURLDesc *lu2;
+							int isMe = 0;
+							ldap_url_parse( &l[i]->sl_url, &lu2 );
+							do {
+								if ( strcasecmp( lud->lud_scheme,
+									lu2->lud_scheme ))
+									break;
+								if ( lud->lud_port != lu2->lud_port )
+									break;
+								/* Listener on ANY address */
+								if ( !lu2->lud_host || !lu2->lud_host[0] ) {
+									isMe = 1;
+									break;
+								}
+								/* URL on ANY address */
+								if ( !lud->lud_host || !lud->lud_host[0] ) {
+									isMe = 1;
+									break;
+								}
+								/* Listener has specific host, must
+								 * match it
+								 */
+								if ( !strcasecmp( lud->lud_host,
+									lu2->lud_host )) {
+									isMe = 1;
+									break;
+								}
+							} while(0);
+							ldap_free_urldesc( lu2 );
+							if ( isMe ) {
+								slap_serverID = si->si_num;
+								break;
+							}
+						}
+					}
+				}
+				if ( c->argc > 2 )
+					ldap_free_urldesc( lud );
+			}
+			break;
 		case CFG_LOGFILE: {
 				FILE *logfile;
 				if ( logfileName ) ch_free( logfileName );

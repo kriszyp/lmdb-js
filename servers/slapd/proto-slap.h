@@ -733,6 +733,7 @@ LDAP_SLAPD_F (ContentRule *) cr_bvfind LDAP_P((
  * ctxcsn.c
  */
 
+LDAP_SLAPD_V( int ) slap_serverID;
 LDAP_SLAPD_V( const struct berval ) slap_ldapsync_bv;
 LDAP_SLAPD_V( const struct berval ) slap_ldapsync_cn_bv;
 LDAP_SLAPD_F (void) slap_get_commit_csn LDAP_P((
