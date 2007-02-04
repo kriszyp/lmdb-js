@@ -1942,6 +1942,10 @@ retry_add:;
 					"syncrepl_entry: rid %03ld be_modify failed (%d)\n",
 					si->si_rid, rs_modify.sr_err, 0 );
 			}
+		} else {
+			Debug( LDAP_DEBUG_SYNC,
+					"syncrepl_entry: rid %03ld entry unchanged, ignored (%s)\n", 
+					si->si_rid, op->o_req_dn.bv_val, 0 );
 		}
 		goto done;
 	case LDAP_SYNC_DELETE :
@@ -2615,11 +2619,14 @@ dn_callback(
 						continue;
 					}
 					/* kludge - always update modifiersName so that it
-					 * stays co-located with the other mod opattrs
+					 * stays co-located with the other mod opattrs. But only
+					 * if we know there are other valid mods.
 					 */
-					attr_cmp( op, old->a_desc !=
-						slap_schema.si_ad_modifiersName ? old : NULL,
-						new, &modtail, &ml );
+					if ( old->a_desc == slap_schema.si_ad_modifiersName &&
+						dni->mods )
+						attr_cmp( op, NULL, new, &modtail, &ml );
+					else
+						attr_cmp( op, old, new, &modtail, &ml );
 					new = new->a_next;
 					old = old->a_next;
 				}
