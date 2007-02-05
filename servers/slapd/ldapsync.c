@@ -40,7 +40,7 @@ slap_compose_sync_cookie(
 	int len, numcsn = 0;
 
 	if ( csn ) {
-		for (; !BER_BVISEMPTY( &csn[numcsn] ); numcsn++);
+		for (; !BER_BVISNULL( &csn[numcsn] ); numcsn++);
 	}
 
 	if ( numcsn == 0 || rid == -1 ) {
@@ -68,7 +68,7 @@ slap_compose_sync_cookie(
 		len = sprintf( cookie->bv_val, "rid=%03d,csn=", rid );
 		ptr = cookie->bv_val + len;
 		for ( i=0; i<numcsn; i++) {
-			ptr = lutil_strncopy( ptr, csn->bv_val, csn->bv_len );
+			ptr = lutil_strncopy( ptr, csn[i].bv_val, csn[i].bv_len );
 			*ptr++ = ';';
 		}
 		ptr--;
