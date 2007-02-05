@@ -1602,7 +1602,7 @@ config_generic(ConfigArgs *c) {
 					si = ch_malloc( sizeof(ServerID) + len + 1 );
 					si->si_url.bv_val = (char *)(si+1);
 					si->si_url.bv_len = len;
-					strcpy( si->si_url.bv_val, c->argv[3] );
+					strcpy( si->si_url.bv_val, c->argv[2] );
 				} else {
 					if ( sid_list ) {
 						snprintf( c->msg, sizeof( c->msg ),
@@ -4113,6 +4113,8 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	ConfigTable *ct;
 	char *ptr;
 
+	memset( ca, 0, sizeof(ConfigArgs));
+
 	/* Make sure parent exists and entry does not. But allow
 	 * Databases and Overlays to be inserted. Don't do any
 	 * auto-renumbering if manageDSAit control is present.
@@ -4147,8 +4149,6 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
-
-	memset( ca, 0, sizeof(ConfigArgs));
 
 	/* Fake the coordinates based on whether we're part of an
 	 * LDAP Add or if reading the config dir
