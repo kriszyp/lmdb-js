@@ -275,6 +275,10 @@ wait4msg(
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
+	if ( timeout == NULL ) {
+		timeout = ld->ld_options.ldo_tm_api;
+	}
+
 #ifdef LDAP_DEBUG
 	if ( timeout == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "wait4msg ld %p msgid %d (infinite timeout)\n",
