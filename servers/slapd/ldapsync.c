@@ -185,8 +185,9 @@ slap_parse_sync_cookie(
 			slap_syntax_validate_func *validate;
 			struct berval stamp;
 
-			csn_str = next + STRLENOF("csn=");
+			next += STRLENOF("csn=");
 			while ( next < end ) {
+				csn_str = next;
 				/* FIXME use csnValidate when it gets implemented */
 				csn_ptr = strchr( csn_str, '#' );
 				if ( !csn_ptr || csn_ptr > end )
