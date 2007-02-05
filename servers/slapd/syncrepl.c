@@ -2661,7 +2661,10 @@ dn_callback(
 			if ( dni->new_entry ) {
 				Modifications **modtail, **ml;
 				Attribute *old, *new;
-				int i;
+				int i, is_ctx;
+
+				is_ctx = dn_match( &rs->sr_entry->e_nname,
+					&op->o_bd->be_nsuffix[0] );
 
 				/* Did the DN change?
 				 */
@@ -2720,6 +2723,13 @@ dn_callback(
 						new = new->a_next;
 						continue;
 					}
+					/* Skip contextCSN */
+					if ( is_ctx && old->a_desc ==
+						slap_schema.si_ad_contextCSN ) {
+						old = old->a_next;
+						continue;
+					}
+
 					if ( old->a_desc != new->a_desc ) {
 						Modifications *mod;
 						Attribute *tmp;
