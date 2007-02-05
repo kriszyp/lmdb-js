@@ -1045,9 +1045,9 @@ static slap_cf_aux_table bindkey[] = {
 #ifdef HAVE_TLS
 	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'i', 0, tlskey },
 
-	/* NOTE: replace "11" with the actual index
+	/* NOTE: replace "13" with the actual index
 	 * of the first TLS-related line */
-#define aux_TLS (bindkey+11)	/* beginning of TLS keywords */
+#define aux_TLS (bindkey+13)	/* beginning of TLS keywords */
 
 	{ BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
 	{ BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
