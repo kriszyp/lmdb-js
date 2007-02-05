@@ -153,7 +153,7 @@ ldap_compare_ext_s(
 	if (  rc != LDAP_SUCCESS )
 		return( rc );
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 )
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 || !res )
 		return( ld->ld_errno );
 
 	return( ldap_result2error( ld, res, 1 ) );

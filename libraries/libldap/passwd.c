@@ -156,7 +156,7 @@ ldap_passwd_s(
 		return rc;
 	}
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 ) {
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 || !res ) {
 		return ld->ld_errno;
 	}
 

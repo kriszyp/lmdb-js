@@ -191,7 +191,7 @@ ldap_sasl_bind_s(
 	}
 #endif
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 ) {
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &result ) == -1 || !result ) {
 		return( ld->ld_errno );	/* ldap_result sets ld_errno */
 	}
 

@@ -219,7 +219,7 @@ ldap_rename_s(
 
 	rc = ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &res );
 
-	if( rc == -1 ) {
+	if( rc == -1 || !res ) {
 		return ld->ld_errno;
 	}
 

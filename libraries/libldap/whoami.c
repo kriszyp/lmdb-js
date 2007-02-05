@@ -88,7 +88,7 @@ ldap_whoami_s(
 	rc = ldap_whoami( ld, sctrls, cctrls, &msgid );
 	if ( rc != LDAP_SUCCESS ) return rc;
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 ) {
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 || !res ) {
 		return ld->ld_errno;
 	}
 
