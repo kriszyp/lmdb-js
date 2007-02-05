@@ -555,7 +555,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDN )", NULL, NULL },
 	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
 		&syncrepl_config, "( OLcfgDbAt:0.11 NAME 'olcSyncrepl' "
-			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "threads", "count", 2, 2, 0,
 #ifdef NO_THREADS
 		ARG_IGNORED, NULL,
@@ -759,8 +759,6 @@ typedef struct ServerID {
 	struct berval si_url;
 	int si_num;
 } ServerID;
-
-#define SERVERID_MAX	4095
 
 static ServerID *sid_list;
 
@@ -1574,7 +1572,7 @@ config_generic(ConfigArgs *c) {
 				ServerID *si, **sip;
 				LDAPURLDesc *lud;
 				int num = atoi( c->argv[1] );
-				if ( num < 0 || num > SERVERID_MAX ) {
+				if ( num < 0 || num > SLAP_SYNC_SID_MAX ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> illegal server ID", c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
@@ -1636,7 +1634,7 @@ config_generic(ConfigArgs *c) {
 						for ( i=0; l[i]; i++ ) {
 							LDAPURLDesc *lu2;
 							int isMe = 0;
-							ldap_url_parse( &l[i]->sl_url, &lu2 );
+							ldap_url_parse( l[i]->sl_url.bv_val, &lu2 );
 							do {
 								if ( strcasecmp( lud->lud_scheme,
 									lu2->lud_scheme ))

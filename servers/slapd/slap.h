@@ -1650,14 +1650,17 @@ typedef BackendDB Backend;
 struct syncinfo_s;
 
 #define SLAP_SYNC_RID_SIZE	3
+#define SLAP_SYNC_SID_MAX	4095	/* based on liblutil/csn.c field width */
 #define SLAP_SYNCUUID_SET_SIZE 256
 
 #define	SLAP_SYNC_UPDATE_MSGID	1
 
 struct sync_cookie {
-	struct berval ctxcsn;
+	struct berval *ctxcsn;
 	struct berval octet_str;
-	long rid;
+	int rid;
+	int numcsns;
+	int *sids;
 	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
 };
 
