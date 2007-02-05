@@ -1494,7 +1494,7 @@ syncrepl_message_to_entry(
 	size_t textlen = sizeof txtbuf;
 
 	struct berval	bdn = BER_BVNULL, dn, ndn;
-	int		rc;
+	int		rc, is_ctx;
 
 	*modlist = NULL;
 
@@ -1533,6 +1533,8 @@ syncrepl_message_to_entry(
 	slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
 	slap_sl_free( dn.bv_val, op->o_tmpmemctx );
 
+	is_ctx = dn_match( &op->o_req_ndn, &op->o_bd->be_nsuffix[0] );
+
 	e = entry_alloc();
 	e->e_name = op->o_req_dn;
 	e->e_nname = op->o_req_ndn;
@@ -1542,6 +1544,15 @@ syncrepl_message_to_entry(
 			LBER_ERROR ) || BER_BVISNULL( &tmp.sml_type ) )
 		{
 			break;
+		}
+
+		/* Drop all updates to the contextCSN of the context entry
+		 * (ITS#4622, etc.)
+		 */
+		if ( is_ctx && !strcasecmp( tmp.sml_type.bv_val,
+			slap_schema.si_ad_contextCSN->ad_cname.bv_val )) {
+			ber_bvarray_free( tmp.sml_values );
+			continue;
 		}
 
 		mod  = (Modifications *) ch_malloc( sizeof( Modifications ) );
@@ -1812,24 +1823,6 @@ syncrepl_entry(
 		Debug( LDAP_DEBUG_SYNC,
 				"syncrepl_entry: %s %s\n",
 				si->si_ridtxt, dni.dn.bv_val ? dni.dn.bv_val : "(null)", 0 );
-	}
-
-	/* Don't save the contextCSN on the inooming context entry,
-	 * we'll write it when syncrepl_updateCookie eventually
-	 * gets called. (ITS#4622)
-	 */
-	if ( syncstate == LDAP_SYNC_ADD && dn_match( &entry->e_nname,
-		&be->be_nsuffix[0] ) )
-	{
-		Attribute *a, **ap;
-		for ( ap = &entry->e_attrs; *ap; ap=&(*ap)->a_next ) {
-			a = *ap;
-			if ( a->a_desc == slap_schema.si_ad_contextCSN ) {
-				*ap = a->a_next;
-				attr_free( a );
-				break;
-			}
-		}
 	}
 
 	slap_op_time( &op->o_time, &op->o_tincr );
@@ -2468,11 +2461,9 @@ syncrepl_updateCookie(
 	else
 		op->orm_modlist = &mod[1];
 
-	op->o_permissive_modify = SLAP_CONTROL_CRITICAL;
 	op->orm_no_opattrs = 1;
 	rc = be->be_modify( op, &rs_modify );
 	op->o_msgid = 0;
-	op->o_permissive_modify = 0;
 
 	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
