@@ -145,6 +145,9 @@ ber_bvarray_free_x LDAP_P(( BerVarray p, void *ctx ));
 LBER_F( int )
 ber_bvarray_add_x LDAP_P(( BerVarray *p, BerValue *bv, void *ctx ));
 
+LBER_F( int )
+ber_bvarray_dup_x LDAP_P(( BerVarray *dst, BerVarray src, void *ctx ));
+
 #if 0
 #define ber_bvstrcmp(v1,v2) \
 	((v1)->bv_len < (v2)->bv_len \
