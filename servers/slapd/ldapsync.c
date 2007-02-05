@@ -35,7 +35,8 @@ slap_compose_sync_cookie(
 	Operation *op,
 	struct berval *cookie,
 	BerVarray csn,
-	int rid )
+	int rid,
+	int sid )
 {
 	int len, numcsn = 0;
 
@@ -51,6 +52,9 @@ slap_compose_sync_cookie(
 		} else {
 			len = snprintf( cookiestr, sizeof( cookiestr ),
 					"rid=%03d", rid );
+			if ( sid >= 0 ) {
+				len += sprintf( cookiestr+len, ",sid=%03x", sid );
+			}
 		}
 		ber_str2bv_x( cookiestr, len, 1, cookie, 
 			op ? op->o_tmpmemctx : NULL );
@@ -63,10 +67,17 @@ slap_compose_sync_cookie(
 			len += csn[i].bv_len + 1;
 
 		len += STRLENOF("rid=123,csn=");
+		if ( sid >= 0 )
+			len += STRLENOF("sid=xxx,");
+
 		cookie->bv_val = slap_sl_malloc( len, op ? op->o_tmpmemctx : NULL );
 
-		len = sprintf( cookie->bv_val, "rid=%03d,csn=", rid );
+		len = sprintf( cookie->bv_val, "rid=%03d,", rid );
 		ptr = cookie->bv_val + len;
+		if ( sid >= 0 ) {
+			ptr += sprintf( ptr, "sid=%03x,", sid );
+		}
+		ptr = lutil_strcopy( ptr, "csn=" );
 		for ( i=0; i<numcsn; i++) {
 			ptr = lutil_strncopy( ptr, csn[i].bv_val, csn[i].bv_len );
 			*ptr++ = ';';
@@ -160,6 +171,7 @@ slap_parse_sync_cookie(
 		return -1;
 
 	cookie->rid = -1;
+	cookie->sid = -1;
 	cookie->ctxcsn = NULL;
 	cookie->sids = NULL;
 	cookie->numcsns = 0;
@@ -178,6 +190,17 @@ slap_parse_sync_cookie(
 			}
 			if ( !ad ) {
 				break;
+			}
+			continue;
+		}
+		if ( !strncmp( next, "sid=", STRLENOF("sid=") )) {
+			rid_ptr = next;
+			cookie->sid = strtoul( &rid_ptr[ STRLENOF( "sid=" ) ], &next, 16 );
+			if ( next == rid_ptr || next > end || *next != ',' ) {
+				return -1;
+			}
+			if ( *next == ',' ) {
+				next++;
 			}
 			continue;
 		}
@@ -258,6 +281,7 @@ slap_init_sync_cookie_ctxcsn(
 	cookie->ctxcsn = NULL;
 	value_add_one( &cookie->ctxcsn, &ctxcsn );
 	cookie->numcsns = 1;
+	cookie->sid = slap_serverID;
 
 	return 0;
 }
@@ -287,6 +311,7 @@ slap_dup_sync_cookie(
 	}
 
 	new->rid = src->rid;
+	new->sid = src->sid;
 	new->numcsns = src->numcsns;
 
 	if ( src->numcsns ) {

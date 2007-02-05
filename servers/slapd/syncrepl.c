@@ -520,13 +520,14 @@ do_syncrep1(
 		}
 
 		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid );
+			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
+			SLAP_SINGLE_SHADOW( si->si_be ) ? -1 : slap_serverID );
 	} else {
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 		/* match SIDs */
 		if ( si->si_cookieState->cs_num > 1 && si->si_cookieAge !=
 			si->si_cookieState->cs_age ) {
-			int i, j;
+			int i, j, changed = 0;
 
 			for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
 				/* bogus, just dup everything */
@@ -534,6 +535,7 @@ do_syncrep1(
 					ber_bvarray_free( si->si_syncCookie.ctxcsn );
 					ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
 						si->si_cookieState->cs_vals, NULL );
+					changed = 1;
 					break;
 				}
 				for (j=0; j<si->si_cookieState->cs_num; j++) {
@@ -542,8 +544,15 @@ do_syncrep1(
 						continue;
 					ber_bvreplace( &si->si_syncCookie.ctxcsn[i],
 						&si->si_cookieState->cs_vals[j] );
+					changed = 1;
 					break;
 				}
+			}
+			if ( changed ) {
+				ch_free( si->si_syncCookie.octet_str.bv_val );
+				slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+					si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
+					SLAP_SINGLE_SHADOW( si->si_be ) ? -1 : slap_serverID );
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
@@ -1092,6 +1101,13 @@ reload:
 			goto reload;
 		}
 
+		/* We got deleted while running on cn=config */
+		if ( !si->si_ctype ) {
+			if ( si->si_conn_setup )
+				dostop = 1;
+			rc = -1;
+		}
+
 		if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 			/* If we succeeded, enable the connection for further listening.
 			 * If we failed, tear down the connection and reschedule.
@@ -1146,7 +1162,8 @@ reload:
 				break;
 		}
 
-		if ( !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
+		if ( !si->si_ctype
+			|| !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
 			ldap_pvt_runqueue_remove( &slapd_rq, rtask );
 		} else if ( RETRYNUM_VALID( si->si_retrynum[i] ) ) {
 			if ( si->si_retrynum[i] > 0 )
@@ -1160,6 +1177,24 @@ reload:
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 
+	/* Do final delete cleanup */
+	if ( !si->si_ctype ) {
+		cookie_state *cs = NULL;
+		syncinfo_t **sip;
+
+		cs = be->be_syncinfo->si_cookieState;
+		for ( sip = &be->be_syncinfo; *sip != si; sip = &(*sip)->si_next );
+		*sip = si->si_next;
+		syncinfo_free( si );
+		if ( !be->be_syncinfo ) {
+			SLAP_DBFLAGS( be ) &= ~(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SYNC_SHADOW);
+			if ( cs ) {
+				ber_bvarray_free( cs->cs_vals );
+				ldap_pvt_thread_mutex_destroy( &cs->cs_mutex );
+				ch_free( cs );
+			}
+		}
+	}
 	return NULL;
 }
 
@@ -3836,7 +3871,18 @@ syncrepl_config( ConfigArgs *c )
 				si = *sip;
 				if ( c->valx == -1 || i == c->valx ) {
 					*sip = si->si_next;
-					syncinfo_free( si );
+					/* If the task is currently active, we have to leave
+					 * it running. It will exit on its own. This will only
+					 * happen when running on the cn=config DB.
+					 */
+					if ( si->si_re &&
+						ldap_pvt_runqueue_isrunning( &slapd_rq, si->si_re ) ) {
+						si->si_ctype = 0;
+					} else {
+						syncinfo_free( si );
+					}
+					if ( i == c->valx )
+						break;
 				} else {
 					sip = &si->si_next;
 				}

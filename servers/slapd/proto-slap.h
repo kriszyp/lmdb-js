@@ -1016,7 +1016,7 @@ LDAP_SLAPD_V (char *)	slap_known_controls[];
  * ldapsync.c
  */
 LDAP_SLAPD_F (void) slap_compose_sync_cookie LDAP_P((
-				Operation *, struct berval *, BerVarray, int ));
+				Operation *, struct berval *, BerVarray, int, int ));
 LDAP_SLAPD_F (void) slap_sync_cookie_free LDAP_P((
 				struct sync_cookie *, int free_cookie ));
 LDAP_SLAPD_F (int) slap_parse_csn_sid LDAP_P((

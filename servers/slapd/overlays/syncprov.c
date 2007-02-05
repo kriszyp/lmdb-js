@@ -59,6 +59,7 @@ typedef struct syncops {
 	ID		s_eid;		/* entryID of search base */
 	Operation	*s_op;		/* search op */
 	int		s_rid;
+	int		s_sid;
 	struct berval s_filterstr;
 	int		s_flags;	/* search status */
 #define	PS_IS_REFRESHING	0x01
@@ -769,7 +770,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	ctrls[1] = NULL;
 	csns[0] = opc->sctxcsn;
 	BER_BVZERO( &csns[1] );
-	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid );
+	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, so->s_sid );
 
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
@@ -977,6 +978,12 @@ static int
 syncprov_qresp( opcookie *opc, syncops *so, int mode )
 {
 	syncres *sr;
+	int sid;
+
+	/* Don't send changes back to their originator */
+	sid = slap_parse_csn_sid( &opc->sctxcsn );
+	if ( sid == so->s_sid )
+		return LDAP_SUCCESS;
 
 	sr = ch_malloc(sizeof(syncres) + opc->suuid.bv_len + 1 +
 		opc->sdn.bv_len + 1 + opc->sndn.bv_len + 1 + opc->sctxcsn.bv_len + 1 );
@@ -1523,7 +1530,8 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	if ( ndel ) {
 		struct berval cookie;
 
-		slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid );
+		slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid,
+			srs->sr_state.sid );
 		uuids[ndel].bv_val = NULL;
 		syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, &cookie, 0, uuids, 1 );
 		op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
@@ -1919,6 +1927,13 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			int i, sid;
 			sid = slap_parse_csn_sid( &a->a_nvals[0] );
 
+			/* Don't send changed entries back to the originator */
+			if ( sid == srs->sr_state.sid ) {
+				Debug( LDAP_DEBUG_SYNC,
+					"Entry %s changed by peer, ignored\n",
+					rs->sr_entry->e_name.bv_val, 0, 0 );
+				return LDAP_SUCCESS;
+			}
 			/* Make sure entry is less than the snapshot'd contextCSN */
 			for ( i=0; i<ss->ss_numcsns; i++ ) {
 				if ( sid == ss->ss_sids[i] && ber_bvcmp( &a->a_nvals[0],
@@ -1957,7 +1972,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		struct berval cookie;
 
 		slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
-			srs->sr_state.rid );
+			srs->sr_state.rid, srs->sr_state.sid );
 
 		/* Is this a regular refresh? */
 		if ( !ss->ss_so ) {
@@ -2051,6 +2066,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		*sop = so;
 		ldap_pvt_thread_mutex_init( &sop->s_mutex );
 		sop->s_rid = srs->sr_state.rid;
+		sop->s_rid = srs->sr_state.sid;
 		sop->s_inuse = 1;
 
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
