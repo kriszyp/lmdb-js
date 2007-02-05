@@ -56,15 +56,14 @@ must be a
 This is a read-only, handler-specific option.
 .TP
 .B LDAP_OPT_TIMEOUT
-Sets/gets a timeout value (\fIFIXME: currently unused\fP).
-.BR outvalue
+Sets/gets a timeout value for the synchronous API calls.
+.B outvalue
+and
+.B invalue
 must be a 
-.BR "struct timeval **" ,
-and the resulting pointer must be freed by the caller using
-.BR ldap_memfree (3).
-.BR invalue
-must be a
-.BR "struct timeval *" .
+.BR "struct timeval *" ,
+and they cannot be NULL. Using a struct with seconds set to -1 results
+in an infinite timeout, which is the default.
 .TP
 .B LDAP_OPT_NETWORK_TIMEOUT
 Sets/gets the network timeout value after which
@@ -72,14 +71,13 @@ Sets/gets the network timeout value after which
 following a 
 .BR connect (2) 
 returns in case of no activity.
-.BR outvalue
+.B outvalue
+and
+.B invalue
 must be a 
-.BR "struct timeval **" ,
-and the resulting pointer must be freed by the caller using
-.BR ldap_memfree (3).
-.BR invalue
-must be a
-.BR "struct timeval *" .
+.BR "struct timeval *" ,
+and they cannot be NULL. Using a struct with seconds set to -1 results
+in an infinite timeout, which is the default.
 .TP
 .B LDAP_OPT_DEREF
 Sets/gets the value that defines when alias deferencing must occur.
