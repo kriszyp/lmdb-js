@@ -576,6 +576,11 @@ compare_csns( struct sync_cookie *sc1, struct sync_cookie *sc2, int *which )
 
 	*which = 0;
 
+	if ( sc1->numcsns < sc2->numcsns ) {
+		*which = sc1->numcsns;
+		return -1;
+	}
+
 	for (i=0; !BER_BVISNULL( &sc1->ctxcsn[i] ); i++) {
 		for (j=0; !BER_BVISNULL( &sc2->ctxcsn[j] ); j++) {
 			if ( sc1->sids[i] != sc2->sids[j] )
@@ -3060,21 +3065,12 @@ syncinfo_free( syncinfo_t *sie )
 #define SLIMITSTR		"sizelimit"
 #define TLIMITSTR		"timelimit"
 #define SYNCDATASTR		"syncdata"
+#define LOGBASESTR		"logbase"
+#define LOGFILTERSTR	"logfilter"
 
 /* FIXME: undocumented */
-#define	LOGBASESTR	"logbase"
-#define LOGFILTERSTR	"logfilter"
-#define OLDAUTHCSTR		"bindprincipal"
 #define EXATTRSSTR		"exattrs"
 #define MANAGEDSAITSTR		"manageDSAit"
-
-/* FIXME: unused */
-#define LASTMODSTR		"lastmod"
-#define LMGENSTR		"gen"
-#define LMNOSTR			"no"
-#define LMREQSTR		"req"
-#define SRVTABSTR		"srvtab"
-#define SUFFIXSTR		"suffix"
 
 /* mandatory */
 #define GOT_ID			0x0001
