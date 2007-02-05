@@ -275,8 +275,9 @@ wait4msg(
 	LDAP_PVT_THREAD_ASSERT_MUTEX_OWNER( &ld->ld_res_mutex );
 #endif
 
-	if ( timeout == NULL ) {
-		timeout = ld->ld_options.ldo_tm_api;
+	if ( timeout == NULL && ld->ld_options.ldo_tm_api.tv_sec >= 0 ) {
+		tv = ld->ld_options.ldo_tm_api;
+		timeout = &tv;
 	}
 
 #ifdef LDAP_DEBUG

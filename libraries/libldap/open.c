@@ -122,8 +122,6 @@ ldap_create( LDAP **ldp )
 	/* but not pointers to malloc'ed items */
 	ld->ld_options.ldo_sctrls = NULL;
 	ld->ld_options.ldo_cctrls = NULL;
-	ld->ld_options.ldo_tm_api = NULL;
-	ld->ld_options.ldo_tm_net = NULL;
 	ld->ld_options.ldo_defludp = NULL;
 
 #ifdef HAVE_CYRUS_SASL
@@ -145,14 +143,6 @@ ldap_create( LDAP **ldp )
 		sizeof( ld->ld_options.ldo_tls_info ));
 	ld->ld_options.ldo_tls_ctx = NULL;
 #endif
-
-	if ( gopts->ldo_tm_api &&
-		ldap_int_timeval_dup( &ld->ld_options.ldo_tm_api, gopts->ldo_tm_api ))
-		goto nomem;
-
-	if ( gopts->ldo_tm_net &&
-		ldap_int_timeval_dup( &ld->ld_options.ldo_tm_net, gopts->ldo_tm_net ))
-		goto nomem;
 
 	if ( gopts->ldo_defludp ) {
 		ld->ld_options.ldo_defludp = ldap_url_duplist(gopts->ldo_defludp);
@@ -178,8 +168,6 @@ ldap_create( LDAP **ldp )
 nomem:
 	ldap_free_select_info( ld->ld_selectinfo );
 	ldap_free_urllist( ld->ld_options.ldo_defludp );
-	LDAP_FREE( ld->ld_options.ldo_tm_net );
-	LDAP_FREE( ld->ld_options.ldo_tm_api );
 #ifdef HAVE_CYRUS_SASL
 	LDAP_FREE( ld->ld_options.ldo_def_sasl_authzid );
 	LDAP_FREE( ld->ld_options.ldo_def_sasl_authcid );

@@ -354,8 +354,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	int async)
 {
 	int rc, err;
-	struct timeval	tv = { 0 },
-			*opt_tv = NULL;
+	struct timeval	tv, *opt_tv = NULL;
 
 #ifdef LDAP_CONNECTIONLESS
 	/* We could do a connect() but that would interfere with
@@ -369,9 +368,9 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		return ( 0 );
 	}
 #endif
-	opt_tv = ld->ld_options.ldo_tm_net;
-	if ( opt_tv != NULL ) {
-		tv = *opt_tv;
+	if ( ld->ld_options.ldo_tm_net.tv_sec >= 0 ) {
+		tv = ld->ld_options.ldo_tm_net;
+		opt_tv = &tv;
 	}
 
 	osip_debug(ld, "ldap_pvt_connect: fd: %d tm: %ld async: %d\n",

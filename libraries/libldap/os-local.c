@@ -168,12 +168,11 @@ static int
 ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 {
 	int rc;
-	struct timeval	tv = { 0 },
-			*opt_tv = NULL;
+	struct timeval	tv, *opt_tv = NULL;
 
-	opt_tv = ld->ld_options.ldo_tm_net;
-	if ( opt_tv != NULL ) {
-		tv = *opt_tv;
+	if ( ld->ld_options.ldo_tm_net.tv_sec >= 0 ) {
+		tv = ld->ld_options.ldo_tm_net;
+		opt_tv = &tv;
 	}
 
 	oslocal_debug(ld, "ldap_connect_timeout: fd: %d tm: %ld async: %d\n",

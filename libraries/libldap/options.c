@@ -176,17 +176,11 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMEOUT:
-		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api ) != 0 ) {
-			return LDAP_OPT_ERROR;
-		}
+		*(struct timeval *) outvalue = lo->ldo_tm_api;
 		return LDAP_OPT_SUCCESS;
 		
 	case LDAP_OPT_NETWORK_TIMEOUT:
-		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_net ) != 0 ) {
-			return LDAP_OPT_ERROR;
-		}
+		*(struct timeval *) outvalue = lo->ldo_tm_net;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_DEREF:
@@ -452,28 +446,14 @@ ldap_set_option(
 			const struct timeval *tv = 
 				(const struct timeval *) invalue;
 
-			if ( lo->ldo_tm_api != NULL ) {
-				LDAP_FREE( lo->ldo_tm_api );
-				lo->ldo_tm_api = NULL;
-			}
-
-			if ( ldap_int_timeval_dup( &lo->ldo_tm_api, tv ) != 0 ) {
-				return LDAP_OPT_ERROR;
-			}
+			lo->ldo_tm_api = *tv;
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_NETWORK_TIMEOUT: {
 			const struct timeval *tv = 
 				(const struct timeval *) invalue;
 
-			if ( lo->ldo_tm_net != NULL ) {
-				LDAP_FREE( lo->ldo_tm_net );
-				lo->ldo_tm_net = NULL;
-			}
-
-			if ( ldap_int_timeval_dup( &lo->ldo_tm_net, tv ) != 0 ) {
-				return LDAP_OPT_ERROR;
-			}
+			lo->ldo_tm_net = *tv;
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME: {

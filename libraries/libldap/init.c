@@ -259,7 +259,6 @@ static void openldap_ldap_init_w_conf(
 			case ATTR_OPT_TV: {
 				struct timeval tv;
 				char *next;
-				tv.tv_sec = -1;
 				tv.tv_usec = 0;
 				tv.tv_sec = strtol( opt, &next, 10 );
 				if ( next != opt && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
@@ -476,8 +475,8 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_timelimit = LDAP_NO_LIMIT;
 	gopts->ldo_sizelimit = LDAP_NO_LIMIT;
 
-	gopts->ldo_tm_api = (struct timeval *)NULL;
-	gopts->ldo_tm_net = (struct timeval *)NULL;
+	gopts->ldo_tm_api.tv_sec = -1;
+	gopts->ldo_tm_net.tv_sec = -1;
 
 	/* ldo_defludp will be freed by the termination handler
 	 */

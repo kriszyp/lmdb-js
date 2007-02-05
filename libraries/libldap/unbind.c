@@ -144,16 +144,6 @@ ldap_ld_free(
 	}
 #endif
 
-	if ( ld->ld_options.ldo_tm_api != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_tm_api );
-		ld->ld_options.ldo_tm_api = NULL;
-	}
-
-	if ( ld->ld_options.ldo_tm_net != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_tm_net );
-		ld->ld_options.ldo_tm_net = NULL;
-	}
-
 #ifdef HAVE_CYRUS_SASL
 	if ( ld->ld_options.ldo_def_sasl_mech != NULL ) {
 		LDAP_FREE( ld->ld_options.ldo_def_sasl_mech );

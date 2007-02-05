@@ -173,8 +173,8 @@ struct ldapoptions {
 #endif
 
 	/* per API call timeout */
-	struct timeval		*ldo_tm_api;
-	struct timeval		*ldo_tm_net;
+	struct timeval		ldo_tm_api;
+	struct timeval		ldo_tm_net;
 
 	ber_int_t		ldo_version;
 	ber_int_t		ldo_deref;
