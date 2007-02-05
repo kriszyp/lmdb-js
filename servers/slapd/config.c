@@ -1033,6 +1033,8 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
 	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'i', 0, versionkey },
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'i', 0, methkey },
+	{ BER_BVC("timeout="), offsetof(slap_bindconf, sb_timeout_api), 'i', 0, NULL },
+	{ BER_BVC("network-timeout="), offsetof(slap_bindconf, sb_timeout_net), 'i', 0, NULL },
 	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, (slap_verbmasks *)dnNormalize },
 	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
 	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 'b', 0, NULL },
@@ -1503,6 +1505,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 {
 	LDAP		*ld = NULL;
 	int		rc;
+	struct timeval tv;
 
 	/* Init connection to master */
 	rc = ldap_initialize( &ld, sb->sb_uri.bv_val );
@@ -1517,6 +1520,18 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 	if ( sb->sb_version != 0 ) {
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
 			(const void *)&sb->sb_version );
+	}
+
+	if ( sb->sb_timeout_api ) {
+		tv.tv_sec = sb->sb_timeout_api;
+		tv.tv_usec = 0;
+		ldap_set_option( ld, LDAP_OPT_TIMEOUT, &tv );
+	}
+
+	if ( sb->sb_timeout_net ) {
+		tv.tv_sec = sb->sb_timeout_net;
+		tv.tv_usec = 0;
+		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, &tv );
 	}
 
 #ifdef HAVE_TLS

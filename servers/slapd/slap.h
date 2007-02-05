@@ -1538,6 +1538,8 @@ typedef struct slap_bindconf {
 	int sb_version;
 	int sb_tls;
 	int sb_method;
+	int sb_timeout_api;
+	int sb_timeout_net;
 	struct berval sb_binddn;
 	struct berval sb_cred;
 	struct berval sb_saslmech;
