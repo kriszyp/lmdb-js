@@ -2061,17 +2061,28 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 
 	/* snapshot the ctxcsn */
 	ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
-	ber_bvarray_dup_x( &ctxcsn, si->si_ctxcsn, op->o_tmpmemctx );
 	numcsns = si->si_numcsns;
-	sids = op->o_tmpalloc( numcsns * sizeof(int), op->o_tmpmemctx );
-	for ( i=0; i<numcsns; i++ )
-		sids[i] = si->si_sids[i];
+	if ( numcsns ) {
+		ber_bvarray_dup_x( &ctxcsn, si->si_ctxcsn, op->o_tmpmemctx );
+		sids = op->o_tmpalloc( numcsns * sizeof(int), op->o_tmpmemctx );
+		for ( i=0; i<numcsns; i++ )
+			sids[i] = si->si_sids[i];
+	} else {
+		ctxcsn = NULL;
+		sids = NULL;
+	}
 	ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
 	
 	/* If we have a cookie, handle the PRESENT lookups */
 	if ( srs->sr_state.ctxcsn ) {
 		sessionlog *sl;
 		int i, j;
+
+		/* If we don't have any CSN of our own yet, pretend nothing
+		 * has changed.
+		 */
+		if ( !numcsns )
+			goto no_change;
 
 		/* If there are SIDs we don't recognize in the cookie, drop them */
 		for (i=0; i<srs->sr_state.numcsns; ) {
@@ -2116,7 +2127,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 					break;
 			}
 			if ( !changed ) {
-				nochange = 1;
+no_change:		nochange = 1;
 				if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					LDAPControl	*ctrls[2];
 
@@ -2534,10 +2545,10 @@ syncprov_db_open(
 		char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 		struct berval csn;
 
-		if ( SLAP_SYNC_SHADOW( op->o_bd ) && SLAP_SINGLE_SHADOW( op->o_bd )) {
-		/* If we're also a consumer, and we're not multimaster,
-		 * then don't generate anything, wait for our provider to send it
-		 * to us.
+		if ( SLAP_SYNC_SHADOW( op->o_bd )) {
+		/* If we're also a consumer, then don't generate anything.
+		 * Wait for our provider to send it to us, or for a local
+		 * modify if we have multimaster.
 		 */
 			goto out;
 		}
