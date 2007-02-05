@@ -2696,6 +2696,16 @@ dn_callback(
 				modtail = &dni->mods;
 				ml = dni->modlist;
 
+				/* Make sure new entry is actually newer than old entry */
+				old = attr_find( rs->sr_entry->e_attrs,
+					slap_schema.si_ad_entryCSN );
+				new = attr_find( dni->new_entry->e_attrs,
+					slap_schema.si_ad_entryCSN );
+				if ( new && old && ber_bvcmp( &old->a_vals[0],
+					&new->a_vals[0] ) >= 0 ) {
+					return LDAP_SUCCESS;
+				}
+
 				/* We assume that attributes are saved in the same order
 				 * in the remote and local databases. So if we walk through
 				 * the attributeDescriptions one by one they should match in
