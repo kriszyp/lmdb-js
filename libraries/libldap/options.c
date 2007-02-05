@@ -442,19 +442,6 @@ ldap_set_option(
 			}
 		} return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_TIMEOUT: {
-			const struct timeval *tv = 
-				(const struct timeval *) invalue;
-
-			lo->ldo_tm_api = *tv;
-		} return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_NETWORK_TIMEOUT: {
-			const struct timeval *tv = 
-				(const struct timeval *) invalue;
-
-			lo->ldo_tm_net = *tv;
-		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME: {
 			const char *host = (const char *) invalue;
@@ -661,6 +648,8 @@ ldap_set_option(
 	case LDAP_OPT_PROTOCOL_VERSION:
 	case LDAP_OPT_RESULT_CODE:
 	case LDAP_OPT_DEBUG_LEVEL:
+	case LDAP_OPT_TIMEOUT:
+	case LDAP_OPT_NETWORK_TIMEOUT:
 		if(invalue == NULL) {
 			/* no place to set from */
 			return LDAP_OPT_ERROR;
@@ -697,6 +686,20 @@ ldap_set_option(
 		/* FIXME: check value for protocol compliance? */
 		lo->ldo_timelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_TIMEOUT: {
+			const struct timeval *tv = 
+				(const struct timeval *) invalue;
+
+			lo->ldo_tm_api = *tv;
+		} return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_NETWORK_TIMEOUT: {
+			const struct timeval *tv = 
+				(const struct timeval *) invalue;
+
+			lo->ldo_tm_net = *tv;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_PROTOCOL_VERSION: {
 			int vers = * (const int *) invalue;
