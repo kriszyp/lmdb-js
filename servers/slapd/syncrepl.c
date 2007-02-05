@@ -2468,9 +2468,11 @@ syncrepl_updateCookie(
 	else
 		op->orm_modlist = &mod[1];
 
+	op->o_permissive_modify = SLAP_CONTROL_CRITICAL;
 	op->orm_no_opattrs = 1;
 	rc = be->be_modify( op, &rs_modify );
 	op->o_msgid = 0;
+	op->o_permissive_modify = 0;
 
 	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
