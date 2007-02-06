@@ -613,19 +613,38 @@ glue_close (
 }
 
 static int
+glue_entry_get_rw (
+	Operation		*op,
+	struct berval	*dn,
+	ObjectClass		*oc,
+	AttributeDescription	*ad,
+	int	rw,
+	Entry	**e )
+{
+	BackendDB *b0 = op->o_bd;
+	op->o_bd = glue_back_select( b0, dn );
+	int rc;
+
+	if ( op->o_bd->be_fetch ) {
+		rc = op->o_bd->be_fetch( op, dn, oc, ad, rw, e );
+	} else {
+		rc = LDAP_UNWILLING_TO_PERFORM;
+	}
+	op->o_bd =b0;
+	return rc;
+}
+
+static int
 glue_entry_release_rw (
 	Operation *op,
 	Entry *e,
 	int rw
 )
 {
-	BackendDB *b0, b2;
+	BackendDB *b0 = op->o_bd;
 	int rc = -1;
 
-	b0 = op->o_bd;
-	b2 = *op->o_bd;
-	b2.bd_info = (BackendInfo *)glue_tool_inst( op->o_bd->bd_info );
-	op->o_bd = glue_back_select (&b2, &e->e_nname);
+	op->o_bd = glue_back_select (b0, &e->e_nname);
 
 	if ( op->o_bd->be_release ) {
 		rc = op->o_bd->be_release( op, e, rw );
@@ -821,8 +840,6 @@ glue_db_init(
 	 */
 	oi->oi_bi.bi_open = glue_open;
 	oi->oi_bi.bi_close = glue_close;
-
-	oi->oi_bi.bi_entry_release_rw = glue_entry_release_rw;
 
 	/* Only advertise these if the root DB supports them */
 	if ( bi->bi_tool_entry_open )
@@ -1036,6 +1053,9 @@ glue_sub_init()
 
 	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
 	glue.on_bi.bi_chk_controls = glue_chk_controls;
+	glue.on_bi.bi_entry_get_rw = glue_entry_get_rw;
+	glue.on_bi.bi_entry_release_rw = glue_entry_release_rw;
+
 	glue.on_response = glue_response;
 
 	return overlay_register( &glue );

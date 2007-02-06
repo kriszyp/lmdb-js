@@ -437,6 +437,19 @@ LDAP_SLAPD_F (int) overlay_op_walk LDAP_P((
 	slap_operation_t which,
 	slap_overinfo *oi,
 	slap_overinst *on ));
+LDAP_SLAPD_F (int) overlay_entry_get_ov LDAP_P((
+	Operation *op,
+	struct berval *dn,
+	ObjectClass *oc,
+	AttributeDescription *ad,
+	int rw,
+	Entry **e,
+	slap_overinst *ov ));
+LDAP_SLAPD_F (int) overlay_entry_release_ov LDAP_P((
+	Operation *op,
+	Entry *e,
+	int rw,
+	slap_overinst *ov ));
 LDAP_SLAPD_F (void) overlay_insert LDAP_P((
 	BackendDB *be, slap_overinst *on, slap_overinst ***prev, int idx ));
 LDAP_SLAPD_F (void) overlay_move LDAP_P((
