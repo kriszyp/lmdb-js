@@ -112,8 +112,7 @@ static int syncrepl_message_to_entry(
 					Modifications **, Entry **, int );
 static int syncrepl_entry(
 					syncinfo_t *, Operation*, Entry*,
-					Modifications**,int, struct berval*,
-					struct sync_cookie * );
+					Modifications**,int, struct berval* );
 static int syncrepl_updateCookie(
 					syncinfo_t *, Operation *, struct berval *,
 					struct sync_cookie * );
@@ -737,7 +736,7 @@ do_syncrep2(
 					&modlist, &entry, syncstate ) ) == LDAP_SUCCESS )
 				{
 					if ( ( rc = syncrepl_entry( si, op, entry, &modlist,
-						syncstate, &syncUUID, &syncCookie ) ) == LDAP_SUCCESS &&
+						syncstate, &syncUUID ) ) == LDAP_SUCCESS &&
 						syncCookie.ctxcsn )
 					{
 						rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
@@ -1721,8 +1720,7 @@ syncrepl_entry(
 	Entry* entry,
 	Modifications** modlist,
 	int syncstate,
-	struct berval* syncUUID,
-	struct sync_cookie* syncCookie )
+	struct berval* syncUUID )
 {
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL, NULL, NULL, NULL };
@@ -1880,11 +1878,21 @@ syncrepl_entry(
 	}
 
 	slap_op_time( &op->o_time, &op->o_tincr );
-	if ( syncCookie->ctxcsn )
-		slap_queue_csn( op, syncCookie->ctxcsn );
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
+		{
+			Attribute *a = attr_find( entry->e_attrs, slap_schema.si_ad_entryCSN );
+			if ( a ) {
+				/* FIXME: op->o_csn is assumed to be
+				 * on the thread's slab; this needs
+				 * to be cleared ASAP.
+				 * What happens if already present?
+				 */
+				assert( BER_BVISNULL( &op->o_csn ) );
+				op->o_csn = a->a_vals[0];
+			}
+		}
 retry_add:;
 		if ( BER_BVISNULL( &dni.dn ) ) {
 
@@ -2102,7 +2110,6 @@ retry_add:;
 	}
 
 done:
-	slap_graduate_commit_csn( op );
 	if ( !BER_BVISNULL( &syncUUID_strrep ) ) {
 		slap_sl_free( syncUUID_strrep.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &syncUUID_strrep );

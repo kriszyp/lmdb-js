@@ -981,7 +981,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 
 	/* Don't send changes back to their originator */
 	sid = slap_parse_csn_sid( &opc->sctxcsn );
-	if ( sid == so->s_sid )
+	if ( sid >= 0 && sid == so->s_sid )
 		return LDAP_SUCCESS;
 
 	sr = ch_malloc(sizeof(syncres) + opc->suuid.bv_len + 1 +
