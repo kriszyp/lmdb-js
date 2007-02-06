@@ -486,7 +486,12 @@ __db_version
 ])
 
 if test $ol_cv_bdb_major = 4 ; then
-	if test $ol_cv_bdb_minor = 4 ; then
+	if test $ol_cv_bdb_minor = 5 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db45,[-ldb45])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_45,[-ldb-45])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_5,[-ldb-4.5])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_5,[-ldb-4-5])
+	elif test $ol_cv_bdb_minor = 4 ; then
 		OL_BERKELEY_DB_TRY(ol_cv_db_db44,[-ldb44])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_44,[-ldb-44])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
