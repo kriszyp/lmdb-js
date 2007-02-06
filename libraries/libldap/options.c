@@ -176,11 +176,21 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMEOUT:
-		*(struct timeval *) outvalue = lo->ldo_tm_api;
+		/* the caller has to free outvalue ! */
+		if ( lo->ldo_tm_api.tv_sec < 0 ) {
+			*(void **)outvalue = NULL;
+		} else if ( ldap_int_timeval_dup( outvalue, &lo->ldo_tm_api ) != 0 ) {
+			return LDAP_OPT_ERROR;
+		}
 		return LDAP_OPT_SUCCESS;
 		
 	case LDAP_OPT_NETWORK_TIMEOUT:
-		*(struct timeval *) outvalue = lo->ldo_tm_net;
+		/* the caller has to free outvalue ! */
+		if ( lo->ldo_tm_net.tv_sec < 0 ) {
+			*(void **)outvalue = NULL;
+		} else if ( ldap_int_timeval_dup( outvalue, &lo->ldo_tm_net ) != 0 ) {
+			return LDAP_OPT_ERROR;
+		}
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_DEREF:
