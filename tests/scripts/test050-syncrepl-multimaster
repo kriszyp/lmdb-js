@@ -248,10 +248,10 @@ olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=003 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
-  interval=00:00:00:10 retry="5 5 300 5"
+  interval=00:00:00:10 retry="5 5 300 5" timeout=1
 olcSyncRepl: rid=004 provider=$URI2 binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
-  interval=00:00:00:10 retry="5 5 300 5"
+  interval=00:00:00:10 retry="5 5 300 5" timeout=1
 olcMirrorMode: TRUE
 
 dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
