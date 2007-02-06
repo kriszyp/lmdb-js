@@ -281,7 +281,7 @@ slap_init_sync_cookie_ctxcsn(
 	cookie->ctxcsn = NULL;
 	value_add_one( &cookie->ctxcsn, &ctxcsn );
 	cookie->numcsns = 1;
-	cookie->sid = slap_serverID;
+	cookie->sid = -1;
 
 	return 0;
 }
