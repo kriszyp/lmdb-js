@@ -555,6 +555,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDN )", NULL, NULL },
 	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
 		&syncrepl_config, "( OLcfgDbAt:0.11 NAME 'olcSyncrepl' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "threads", "count", 2, 2, 0,
 #ifdef NO_THREADS
