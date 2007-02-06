@@ -2066,7 +2066,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		*sop = so;
 		ldap_pvt_thread_mutex_init( &sop->s_mutex );
 		sop->s_rid = srs->sr_state.rid;
-		sop->s_rid = srs->sr_state.sid;
+		sop->s_sid = srs->sr_state.sid;
 		sop->s_inuse = 1;
 
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
