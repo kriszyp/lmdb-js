@@ -60,10 +60,14 @@ lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 
 	lutil_gettime( &tm );
 
-	if ( tm.tm_usec != prev_usec || tm.tm_sec != prev_sec ) {
+	if ( tm.tm_sec > prev_sec || ( tm.tm_sec == prev_sec &&
+		tm.tm_usec > prev_usec )) {
 		prev_sec = tm.tm_sec;
 		prev_usec = tm.tm_usec;
 		csnop = 0;
+	} else {
+		tm.tm_sec = prev_sec;
+		tm.tm_usec = prev_usec;
 	}
 	op = csnop++;
 
