@@ -2746,6 +2746,12 @@ dn_callback(
 					slap_schema.si_ad_entryCSN );
 				if ( new && old && ber_bvcmp( &old->a_vals[0],
 					&new->a_vals[0] ) >= 0 ) {
+					Debug( LDAP_DEBUG_SYNC,
+						"dn_callback : new entry is older than ours "
+						"%s ours %s, new %s\n",
+						rs->sr_entry->e_name.bv_val,
+						old->a_vals[0].bv_val,
+						new->a_vals[0].bv_val );
 					return LDAP_SUCCESS;
 				}
 
