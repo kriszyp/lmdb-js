@@ -43,8 +43,29 @@ mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
 #
 
 echo "Initializing server configurations..."
-$SLAPADD -F $CFPRO -n 0 -l $DYNAMICCONF
-$SLAPADD -F $CFCON -n 0 -l $DYNAMICCONF
+$SLAPADD -F $CFCON -n 0 <<EOF
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcServerID: 2
+
+dn: olcDatabase={0}config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: {0}config
+olcRootPW:< file:configpw
+EOF
+
+$SLAPADD -F $CFPRO -n 0 <<EOF
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcServerID: 1
+
+dn: olcDatabase={0}config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: {0}config
+olcRootPW:< file:configpw
+EOF
 
 echo "Starting producer slapd on TCP/IP port $PORT1..."
 cd $PRODIR
@@ -100,15 +121,11 @@ fi
 # neither server will progress. The timeout will drop the syncrepl
 # attempt and allow the modifies to complete.
 #
-# Setting the ServerIDs after the fact is bogus; the entries that
-# were created before this point all have SID 0 in their CSNs. Still
-# that should be harmless.
-#
 CONFIGPW=`cat $CONFIGPWF`
 $LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: cn=config
 changetype: modify
-add: olcServerID
+replace: olcServerID
 olcServerID: 1 $URI1
 olcServerID: 2 $URI2
 
