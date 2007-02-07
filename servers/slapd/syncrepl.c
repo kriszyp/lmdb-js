@@ -453,47 +453,15 @@ do_syncrep1(
 	op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf )
 		?  op->o_sasl_ssf : op->o_tls_ssf;
 
-
+	/* We've just started up, or the remote server hasn't sent us
+	 * any meaningful state.
+	 */
 	if ( BER_BVISNULL( &si->si_syncCookie.octet_str ) ) {
 		int i;
 
-		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
-		if ( !si->si_cookieState->cs_num ) {
-			/* get contextCSN shadow replica from database */
-			BerVarray csn = NULL;
-			void *ctx = op->o_tmpmemctx;
-
-			op->o_req_ndn = op->o_bd->be_nsuffix[0];
-			op->o_req_dn = op->o_req_ndn;
-
-			/* try to read stored contextCSN */
-			op->o_tmpmemctx = NULL;
-			backend_attribute( op, NULL, &op->o_req_ndn,
-				slap_schema.si_ad_contextCSN, &csn, ACL_READ );
-			op->o_tmpmemctx = ctx;
-			if ( csn ) {
-				si->si_cookieState->cs_vals = csn;
-				for (i=0; !BER_BVISNULL( &csn[i] ); i++);
-				si->si_cookieState->cs_num = i;
-				si->si_cookieState->cs_sids = slap_parse_csn_sids( csn, i );
-			}
-		}
-		if ( si->si_cookieState->cs_num ) {
-			ber_bvarray_free( si->si_syncCookie.ctxcsn );
-			if ( ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
-				si->si_cookieState->cs_vals, NULL )) {
-				rc = LDAP_NO_MEMORY;
-				goto done;
-			}
-			si->si_syncCookie.numcsns = si->si_cookieState->cs_num;
-			si->si_syncCookie.sids = ch_malloc( si->si_cookieState->cs_num *
-				sizeof(int) );
-			for ( i=0; i<si->si_syncCookie.numcsns; i++ )
-				si->si_syncCookie.sids[i] = si->si_cookieState->cs_sids[i];
-		}
-		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
-
 		si->si_syncCookie.rid = si->si_rid;
+		si->si_syncCookie.sid = SLAP_SINGLE_SHADOW( si->si_be ) ? -1 :
+			slap_serverID;
 
 		LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
 			if ( si->si_rid == sc->rid ) {
@@ -509,25 +477,109 @@ do_syncrep1(
 
 			/* ctxcsn wasn't parsed yet, do it now */
 			slap_parse_sync_cookie( sc, op->o_tmpmemctx );
-			if ( !sc->ctxcsn ) {
-				/* if cmdline cookie does not have ctxcsn */
-				/* component, set it to an initial value */
-				slap_init_sync_cookie_ctxcsn( sc );
-			}
 			slap_sync_cookie_free( &si->si_syncCookie, 0 );
 			slap_dup_sync_cookie( &si->si_syncCookie, sc );
 			slap_sync_cookie_free( sc, 1 );
+		} else {
+			ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+			if ( !si->si_cookieState->cs_num ) {
+				/* get contextCSN shadow replica from database */
+				BerVarray csn = NULL;
+				void *ctx = op->o_tmpmemctx;
+
+				op->o_req_ndn = op->o_bd->be_nsuffix[0];
+				op->o_req_dn = op->o_req_ndn;
+
+				/* try to read stored contextCSN */
+				op->o_tmpmemctx = NULL;
+				backend_attribute( op, NULL, &op->o_req_ndn,
+					slap_schema.si_ad_contextCSN, &csn, ACL_READ );
+				op->o_tmpmemctx = ctx;
+				if ( csn ) {
+					si->si_cookieState->cs_vals = csn;
+					for (i=0; !BER_BVISNULL( &csn[i] ); i++);
+					si->si_cookieState->cs_num = i;
+					si->si_cookieState->cs_sids = slap_parse_csn_sids( csn, i );
+				}
+			}
+			if ( si->si_cookieState->cs_num ) {
+				ber_bvarray_free( si->si_syncCookie.ctxcsn );
+				if ( ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
+					si->si_cookieState->cs_vals, NULL )) {
+					rc = LDAP_NO_MEMORY;
+					goto done;
+				}
+				si->si_syncCookie.numcsns = si->si_cookieState->cs_num;
+				si->si_syncCookie.sids = ch_malloc( si->si_cookieState->cs_num *
+					sizeof(int) );
+				for ( i=0; i<si->si_syncCookie.numcsns; i++ )
+					si->si_syncCookie.sids[i] = si->si_cookieState->cs_sids[i];
+			}
+			ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 		}
 
 		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
 			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
-			SLAP_SINGLE_SHADOW( si->si_be ) ? -1 : slap_serverID );
+			si->si_syncCookie.sid );
 	} else {
+		AttributeName at[2];
+		Attribute a = { slap_schema.si_ad_contextCSN };
+		Entry e = {0};
+		SlapReply rs = {0};
+		int i, j, changed = 0;
+
+		/* Look for contextCSN from syncprov overlay. If
+		 * there's no overlay, this will be a no-op. That means
+		 * this is a pure consumer, so local changes will not be
+		 * allowed, and all changes will already be reflected in
+		 * the cookieState.
+		 */
+		e.e_attrs = &a;
+		e.e_name = si->si_wbe->be_suffix[0];
+		e.e_nname = si->si_wbe->be_nsuffix[0];
+		rs.sr_entry = &e;
+		rs.sr_flags = REP_ENTRY_MODIFIABLE;
+		at[0].an_name = a.a_desc->ad_cname;
+		at[0].an_desc = a.a_desc;
+		BER_BVZERO( &at[1].an_name );
+
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
-		/* match SIDs */
+		rc = backend_operational( op, &rs );
+		if ( rc == LDAP_SUCCESS && a.a_vals ) {
+			int num;
+			for (i=0; !BER_BVISNULL( &a.a_vals[i] ); i++) ;
+			num = i;
+			/* check for differences */
+			if ( num != si->si_cookieState->cs_num ) {
+				changed = 1;
+			} else {
+				for ( i=0; i<num; i++ ) {
+					if ( ber_bvcmp( &a.a_vals[i],
+						&si->si_cookieState->cs_vals[i] )) {
+						changed =1;
+						break;
+					}
+				}
+			}
+			if ( changed ) {
+				ber_bvarray_free( si->si_cookieState->cs_vals );
+				ch_free( si->si_cookieState->cs_sids );
+				si->si_cookieState->cs_num = num;
+				si->si_cookieState->cs_vals = a.a_vals;
+				si->si_cookieState->cs_sids = slap_parse_csn_sids( a.a_vals,
+					num );
+				si->si_cookieState->cs_age++;
+			} else {
+				ber_bvarray_free( a.a_vals );
+			}
+			changed = 0;
+		}
+		/* See if the cookieState has changed due to anything outside
+		 * this particular consumer. That includes other consumers in
+		 * the same context, or local changes detected above.
+		 */
 		if ( si->si_cookieState->cs_num > 1 && si->si_cookieAge !=
 			si->si_cookieState->cs_age ) {
-			int i, j, changed = 0;
 
 			for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
 				/* bogus, just dup everything */
@@ -542,6 +594,9 @@ do_syncrep1(
 					if ( si->si_syncCookie.sids[i] !=
 						si->si_cookieState->cs_sids[j] )
 						continue;
+					if ( bvmatch( &si->si_syncCookie.ctxcsn[i],
+						&si->si_cookieState->cs_vals[j] ))
+						break;
 					ber_bvreplace( &si->si_syncCookie.ctxcsn[i],
 						&si->si_cookieState->cs_vals[j] );
 					changed = 1;
