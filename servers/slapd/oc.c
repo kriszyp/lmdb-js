@@ -422,10 +422,22 @@ oc_delete( ObjectClass *oc )
 static void
 oc_clean( ObjectClass *o )
 {
-	if (o->soc_sups) ldap_memfree(o->soc_sups);
-	if (o->soc_required) ldap_memfree(o->soc_required);
-	if (o->soc_allowed) ldap_memfree(o->soc_allowed);
-	if (o->soc_oidmacro) ldap_memfree(o->soc_oidmacro);
+	if (o->soc_sups) {
+		ldap_memfree(o->soc_sups);
+		o->soc_sups = NULL;
+	}
+	if (o->soc_required) {
+		ldap_memfree(o->soc_required);
+		o->soc_required = NULL;
+	}
+	if (o->soc_allowed) {
+		ldap_memfree(o->soc_allowed);
+		o->soc_allowed = NULL;
+	}
+	if (o->soc_oidmacro) {
+		ldap_memfree(o->soc_oidmacro);
+		o->soc_oidmacro = NULL;
+	}
 }
 
 static void
@@ -476,7 +488,7 @@ oc_next( ObjectClass **oc )
 {
 	assert( oc != NULL );
 
-#if 1	/* pedantic check */
+#if 0	/* pedantic check: breaks when deleting an oc, don't use it. */
 	{
 		ObjectClass *tmp = NULL;
 
