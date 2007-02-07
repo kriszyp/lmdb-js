@@ -284,8 +284,14 @@ at_clean( AttributeType *a )
 		}
 	}
 
-	if ( a->sat_oidmacro ) ldap_memfree( a->sat_oidmacro );
-	if ( a->sat_subtypes ) ldap_memfree( a->sat_subtypes );
+	if ( a->sat_oidmacro ) {
+		ldap_memfree( a->sat_oidmacro );
+		a->sat_oidmacro = NULL;
+	}
+	if ( a->sat_subtypes ) {
+		ldap_memfree( a->sat_subtypes );
+		a->sat_subtypes = NULL;
+	}
 }
 
 static void
@@ -339,7 +345,7 @@ at_next( AttributeType **at )
 {
 	assert( at != NULL );
 
-#if 1	/* pedantic check */
+#if 0	/* pedantic check: don't use this */
 	{
 		AttributeType *tmp = NULL;
 
