@@ -4529,13 +4529,40 @@ typedef struct delrec {
 } delrec;
 
 static int
+config_modify_add( ConfigTable *ct, ConfigArgs *ca, AttributeDescription *ad,
+	int i )
+{
+	int rc;
+
+	if (ad->ad_type->sat_flags & SLAP_AT_ORDERED &&
+		ca->line[0] == '{' )
+	{
+		char *ptr = strchr( ca->line + 1, '}' );
+		if ( ptr ) {
+			char	*next;
+
+			ca->valx = strtol( ca->line + 1, &next, 0 );
+			if ( next == ca->line + 1 || next[ 0 ] != '}' ) {
+				return LDAP_OTHER;
+			}
+			ca->line = ptr+1;
+		}
+	}
+	rc = config_parse_add( ct, ca, i );
+	if ( rc ) {
+		rc = LDAP_OTHER;
+	}
+	return rc;
+}
+
+static int
 config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	ConfigArgs *ca )
 {
 	int rc = LDAP_UNWILLING_TO_PERFORM;
 	Modifications *ml;
 	Entry *e = ce->ce_entry;
-	Attribute *save_attrs = e->e_attrs, *oc_at;
+	Attribute *save_attrs = e->e_attrs, *oc_at, *s, *a;
 	ConfigTable *ct;
 	ConfigOCs **colst;
 	int i, nocs;
@@ -4546,6 +4573,11 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
 
 	colst = count_ocs( oc_at, &nocs );
+
+	/* make sure add/del flags are clear; should always be true */
+	for ( s = save_attrs; s; s = s->a_next ) {
+		s->a_flags &= ~(SLAP_ATTR_IXADD|SLAP_ATTR_IXDEL);
+	}
 
 	e->e_attrs = attrs_dup( e->e_attrs );
 
@@ -4569,7 +4601,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				rc = LDAP_OTHER;
 				snprintf(ca->msg, sizeof(ca->msg), "cannot delete %s",
 					ml->sml_desc->ad_cname.bv_val );
-				goto out;
+				goto out_noop;
 			}
 			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 				vals = ml->sml_values;
@@ -4631,11 +4663,11 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 							rc = LDAP_OTHER;
 							snprintf(ca->msg, sizeof(ca->msg), "cannot insert %s",
 								ml->sml_desc->ad_cname.bv_val );
-							goto out;
+							goto out_noop;
 						}
 					}
 					rc = check_vals( ct, ca, ml, 0 );
-					if ( rc ) goto out;
+					if ( rc ) goto out_noop;
 				}
 			}
 			rc = modify_add_values(e, &ml->sml_mod,
@@ -4664,117 +4696,142 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 		if(rc != LDAP_SUCCESS) break;
 	}
 	
-	if(rc == LDAP_SUCCESS) {
+	if ( rc == LDAP_SUCCESS) {
 		/* check that the entry still obeys the schema */
 		rc = entry_schema_check(op, e, NULL, 0, 0,
 			&rs->sr_text, ca->msg, sizeof(ca->msg) );
+		if ( rc ) goto out_noop;
 	}
-	if ( rc == LDAP_SUCCESS ) {
-		/* Basic syntax checks are OK. Do the actual settings. */
-		for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
-			ct = config_find_table( colst, nocs, ml->sml_desc );
-			if ( !ct ) continue;
+	/* Basic syntax checks are OK. Do the actual settings. */
+	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+		ct = config_find_table( colst, nocs, ml->sml_desc );
+		if ( !ct ) continue;
 
-			switch (ml->sml_op) {
-			case LDAP_MOD_DELETE:
-			case LDAP_MOD_REPLACE: {
-				BerVarray vals = NULL, nvals = NULL;
-				Attribute *a;
-				delrec *d = NULL;
+		s = attr_find( save_attrs, ml->sml_desc );
+		a = attr_find( e->e_attrs, ml->sml_desc );
 
-				a = attr_find( e->e_attrs, ml->sml_desc );
+		switch (ml->sml_op) {
+		case LDAP_MOD_DELETE:
+		case LDAP_MOD_REPLACE: {
+			BerVarray vals = NULL, nvals = NULL;
+			delrec *d = NULL;
 
-				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
-					vals = ml->sml_values;
-					nvals = ml->sml_nvalues;
-					ml->sml_values = NULL;
-					ml->sml_nvalues = NULL;
-				}
+			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
+				vals = ml->sml_values;
+				nvals = ml->sml_nvalues;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
+			}
 
-				if ( ml->sml_values )
-					d = dels;
+			if ( ml->sml_values )
+				d = dels;
 
-				/* If we didn't delete the whole attribute */
-				if ( ml->sml_values && a ) {
-					struct berval *mvals;
-					int j;
+			/* If we didn't delete the whole attribute */
+			if ( ml->sml_values && a ) {
+				struct berval *mvals;
+				int j;
 
-					if ( ml->sml_nvalues )
-						mvals = ml->sml_nvalues;
-					else
-						mvals = ml->sml_values;
+				if ( ml->sml_nvalues )
+					mvals = ml->sml_nvalues;
+				else
+					mvals = ml->sml_values;
 
-					/* use the indexes we saved up above */
-					for (i=0; i < d->nidx; i++) {
-						struct berval bv = *mvals++;
-						if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED &&
-							bv.bv_val[0] == '{' ) {
-							ptr = strchr( bv.bv_val, '}' ) + 1;
-							bv.bv_len -= ptr - bv.bv_val;
-							bv.bv_val = ptr;
-						}
-						ca->line = bv.bv_val;
-						ca->valx = d->idx[i];
-						rc = config_del_vals( ct, ca );
-						if ( rc != LDAP_SUCCESS ) break;
-						for (j=i+1; j < d->nidx; j++)
-							if ( d->idx[j] >d->idx[i] )
-								d->idx[j]--;
+				/* use the indexes we saved up above */
+				for (i=0; i < d->nidx; i++) {
+					struct berval bv = *mvals++;
+					if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED &&
+						bv.bv_val[0] == '{' ) {
+						ptr = strchr( bv.bv_val, '}' ) + 1;
+						bv.bv_len -= ptr - bv.bv_val;
+						bv.bv_val = ptr;
 					}
-				} else {
-					ca->valx = -1;
-					ca->line = NULL;
+					ca->line = bv.bv_val;
+					ca->valx = d->idx[i];
 					rc = config_del_vals( ct, ca );
-					if ( rc ) rc = LDAP_OTHER;
+					if ( rc != LDAP_SUCCESS ) break;
+					s->a_flags |= SLAP_ATTR_IXDEL;
+					for (j=i+1; j < d->nidx; j++)
+						if ( d->idx[j] >d->idx[i] )
+							d->idx[j]--;
 				}
-				if ( ml->sml_values ) {
-					d = d->next;
-					ch_free( dels );
-					dels = d;
-				}
-				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
-					ml->sml_values = vals;
-					ml->sml_nvalues = nvals;
-				}
-				if ( !vals || rc != LDAP_SUCCESS )
-					break;
-				}
-				/* FALLTHRU: LDAP_MOD_REPLACE && vals */
-
-			case LDAP_MOD_ADD:
-				for (i=0; ml->sml_values[i].bv_val; i++) {
-					ca->line = ml->sml_values[i].bv_val;
-					ca->valx = -1;
-					if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_ORDERED &&
-						ca->line[0] == '{' )
-					{
-						ptr = strchr( ca->line + 1, '}' );
-						if ( ptr ) {
-							char	*next;
-
-							ca->valx = strtol( ca->line + 1, &next, 0 );
-							if ( next == ca->line + 1 || next[ 0 ] != '}' ) {
-								rc = LDAP_OTHER;
-								goto out;
-							}
-							ca->line = ptr+1;
-						}
-					}
-					rc = config_parse_add( ct, ca, i );
-					if ( rc ) {
-						rc = LDAP_OTHER;
-						goto out;
-					}
-				}
-
+			} else {
+				ca->valx = -1;
+				ca->line = NULL;
+				rc = config_del_vals( ct, ca );
+				if ( rc ) rc = LDAP_OTHER;
+				s->a_flags |= SLAP_ATTR_IXDEL;
+			}
+			if ( ml->sml_values ) {
+				d = d->next;
+				ch_free( dels );
+				dels = d;
+			}
+			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
+				ml->sml_values = vals;
+				ml->sml_nvalues = nvals;
+			}
+			if ( !vals || rc != LDAP_SUCCESS )
 				break;
 			}
+			/* FALLTHRU: LDAP_MOD_REPLACE && vals */
+
+		case LDAP_MOD_ADD:
+			for (i=0; ml->sml_values[i].bv_val; i++) {
+				ca->line = ml->sml_values[i].bv_val;
+				ca->valx = -1;
+				rc = config_modify_add( ct, ca, ml->sml_desc, i );
+				if ( rc )
+					goto out;
+				a->a_flags |= SLAP_ATTR_IXADD;
+			}
+			break;
 		}
 	}
 
 out:
+	/* Undo for a failed operation */
+	if ( rc != LDAP_SUCCESS ) {
+		for ( s = save_attrs; s; s = s->a_next ) {
+			if ( s->a_flags & SLAP_ATTR_IXDEL ) {
+				s->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
+				ct = config_find_table( colst, nocs, s->a_desc );
+				a = attr_find( e->e_attrs, s->a_desc );
+				if ( a ) {
+					/* clear the flag so the add check below will skip it */
+					a->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
+					ca->valx = -1;
+					ca->line = NULL;
+					config_del_vals( ct, ca );
+				}
+				for ( i=0; !BER_BVISNULL( &s->a_vals[i] ); i++ ) {
+					ca->line = s->a_vals[i].bv_val;
+					ca->valx = -1;
+					config_modify_add( ct, ca, s->a_desc, i );
+				}
+			}
+		}
+		for ( a = e->e_attrs; a; a = a->a_next ) {
+			if ( a->a_flags & SLAP_ATTR_IXADD ) {
+				ct = config_find_table( colst, nocs, a->a_desc );
+				ca->valx = -1;
+				ca->line = NULL;
+				config_del_vals( ct, ca );
+				s = attr_find( save_attrs, a->a_desc );
+				if ( s ) {
+					s->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
+					for ( i=0; !BER_BVISNULL( &s->a_vals[i] ); i++ ) {
+						ca->line = s->a_vals[i].bv_val;
+						ca->valx = -1;
+						config_modify_add( ct, ca, s->a_desc, i );
+					}
+				}
+			}
+		}
+	}
+
 	if ( ca->cleanup )
 		ca->cleanup( ca );
+out_noop:
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
 	} else {
