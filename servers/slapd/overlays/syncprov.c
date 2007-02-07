@@ -131,7 +131,7 @@ typedef struct syncprov_info_t {
 	time_t	si_chklast;	/* time of last checkpoint */
 	Avlnode	*si_mods;	/* entries being modified */
 	sessionlog	*si_logs;
-	ldap_pvt_thread_mutex_t	si_csn_mutex;
+	ldap_pvt_thread_rdwr_t	si_csn_rwlock;
 	ldap_pvt_thread_mutex_t	si_ops_mutex;
 	ldap_pvt_thread_mutex_t	si_mods_mutex;
 } syncprov_info_t;
@@ -1548,11 +1548,10 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn = BER_BVNULL;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-		int do_check = 0;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
-		ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
+		ldap_pvt_thread_rdwr_wlock( &si->si_csn_rwlock );
 		slap_get_commit_csn( op, &maxcsn );
 		if ( !BER_BVISNULL( &maxcsn ) ) {
 			int i, sid;
@@ -1579,12 +1578,13 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		/* Don't do any processing for consumer contextCSN updates */
 		if ( SLAP_SYNC_SHADOW( op->o_bd ) && 
 			op->o_msgid == SLAP_SYNC_UPDATE_MSGID ) {
-			ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
+			ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 			return SLAP_CB_CONTINUE;
 		}
 
 		si->si_numops++;
 		if ( si->si_chkops || si->si_chktime ) {
+			int do_check = 0;
 			if ( si->si_chkops && si->si_numops >= si->si_chkops ) {
 				do_check = 1;
 				si->si_numops = 0;
@@ -1594,15 +1594,14 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				do_check = 1;
 				si->si_chklast = op->o_time;
 			}
+			if ( do_check ) {
+				syncprov_checkpoint( op, rs, on );
+			}
 		}
-		ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
 
 		opc->sctxcsn.bv_len = maxcsn.bv_len;
 		opc->sctxcsn.bv_val = cbuf;
-
-		if ( do_check ) {
-			syncprov_checkpoint( op, rs, on );
-		}
 
 		/* Handle any persistent searches */
 		if ( si->si_ops ) {
@@ -1658,7 +1657,7 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 
 		a.a_desc = slap_schema.si_ad_contextCSN;
 
-		ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
+		ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
 
 		a.a_vals = si->si_ctxcsn;
 		a.a_nvals = a.a_vals;
@@ -1690,7 +1689,7 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 
 return_results:;
 
-		ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
+		ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 
 		send_ldap_result( op, rs );
 
@@ -2073,7 +2072,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	}
 
 	/* snapshot the ctxcsn */
-	ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
+	ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
 	numcsns = si->si_numcsns;
 	if ( numcsns ) {
 		ber_bvarray_dup_x( &ctxcsn, si->si_ctxcsn, op->o_tmpmemctx );
@@ -2084,7 +2083,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		ctxcsn = NULL;
 		sids = NULL;
 	}
-	ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
+	ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 	
 	/* If we have a cookie, handle the PRESENT lookups */
 	if ( srs->sr_state.ctxcsn ) {
@@ -2270,7 +2269,7 @@ syncprov_operational(
 					break;
 			}
 
-			ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
+			ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
 			if ( si->si_ctxcsn ) {
 				if ( !a ) {
 					for ( ap = &rs->sr_operational_attrs; *ap;
@@ -2293,7 +2292,7 @@ syncprov_operational(
 				ber_bvarray_dup_x( &a->a_vals, si->si_ctxcsn, NULL );
 				a->a_nvals = a->a_vals;
 			}
-			ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
+			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
 	}
 	return SLAP_CB_CONTINUE;
@@ -2628,7 +2627,7 @@ syncprov_db_init(
 
 	si = ch_calloc(1, sizeof(syncprov_info_t));
 	on->on_bi.bi_private = si;
-	ldap_pvt_thread_mutex_init( &si->si_csn_mutex );
+	ldap_pvt_thread_rdwr_init( &si->si_csn_rwlock );
 	ldap_pvt_thread_mutex_init( &si->si_ops_mutex );
 	ldap_pvt_thread_mutex_init( &si->si_mods_mutex );
 
@@ -2665,7 +2664,7 @@ syncprov_db_destroy(
 		}
 		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_ops_mutex );
-		ldap_pvt_thread_mutex_destroy( &si->si_csn_mutex );
+		ldap_pvt_thread_rdwr_destroy( &si->si_csn_rwlock );
 		ch_free( si );
 	}
 
