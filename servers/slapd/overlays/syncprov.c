@@ -1548,6 +1548,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn = BER_BVNULL;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+		int do_check = 0;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
@@ -1584,7 +1585,6 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 
 		si->si_numops++;
 		if ( si->si_chkops || si->si_chktime ) {
-			int do_check = 0;
 			if ( si->si_chkops && si->si_numops >= si->si_chkops ) {
 				do_check = 1;
 				si->si_numops = 0;
@@ -1594,11 +1594,14 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				do_check = 1;
 				si->si_chklast = op->o_time;
 			}
-			if ( do_check ) {
-				syncprov_checkpoint( op, rs, on );
-			}
 		}
 		ldap_pvt_thread_rdwr_wunlock( &si->si_csn_rwlock );
+
+		if ( do_check ) {
+			ldap_pvt_thread_rdwr_rlock( &si->si_csn_rwlock );
+			syncprov_checkpoint( op, rs, on );
+			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
+		}
 
 		opc->sctxcsn.bv_len = maxcsn.bv_len;
 		opc->sctxcsn.bv_val = cbuf;
