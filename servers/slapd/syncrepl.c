@@ -799,6 +799,7 @@ do_syncrep2(
 				}
 				if ( !syncCookie_req.ctxcsn ) {
 					match = -1;
+					m = 0;
 				} else if ( !syncCookie.ctxcsn ) {
 					match = 1;
 				} else {
@@ -945,6 +946,7 @@ do_syncrep2(
 
 					if ( !syncCookie_req.ctxcsn ) {
 						match = -1;
+						m = 0;
 					} else if ( !syncCookie.ctxcsn ) {
 						match = 1;
 					} else {
