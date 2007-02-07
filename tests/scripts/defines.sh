@@ -123,6 +123,7 @@ PLSRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist-ldap.conf
 PLSRMASTERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
 DDSCONF=$DATADIR/slapd-dds.conf
 PASSWDCONF=$DATADIR/slapd-passwd.conf
+UNDOCONF=$DATADIR/slapd-config-undo.conf
 
 DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
 
