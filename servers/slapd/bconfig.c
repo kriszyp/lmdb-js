@@ -4101,6 +4101,50 @@ cfAddOverlay( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 	return LDAP_SUCCESS;
 }
 
+static void
+schema_destroy_one( ConfigArgs *ca, ConfigOCs **colst, int nocs,
+	CfEntryInfo *p )
+{
+	ConfigTable *ct;
+	ConfigFile *cfo;
+	AttributeDescription *ad;
+	const char *text;
+
+	ca->valx = -1;
+	ca->line = NULL;
+	if ( cfn->c_cr_head ) {
+		struct berval bv = BER_BVC("olcDitContentRules");
+		ad = NULL;
+		slap_bv2ad( &bv, &ad, &text );
+		ct = config_find_table( colst, nocs, ad );
+		config_del_vals( ct, ca );
+	}
+	if ( cfn->c_oc_head ) {
+		struct berval bv = BER_BVC("olcObjectClasses");
+		ad = NULL;
+		slap_bv2ad( &bv, &ad, &text );
+		ct = config_find_table( colst, nocs, ad );
+		config_del_vals( ct, ca );
+	}
+	if ( cfn->c_at_head ) {
+		struct berval bv = BER_BVC("olcAttributeTypes");
+		ad = NULL;
+		slap_bv2ad( &bv, &ad, &text );
+		ct = config_find_table( colst, nocs, ad );
+		config_del_vals( ct, ca );
+	}
+	if ( cfn->c_om_head ) {
+		struct berval bv = BER_BVC("olcObjectIdentifier");
+		ad = NULL;
+		slap_bv2ad( &bv, &ad, &text );
+		ct = config_find_table( colst, nocs, ad );
+		config_del_vals( ct, ca );
+	}
+	cfo = p->ce_private;
+	cfo->c_kids = cfn->c_sibs;
+	ch_free( cfn );
+}
+
 /* Parse an LDAP entry into config directives */
 static int
 config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
@@ -4196,7 +4240,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	}
 
 	if ( rc != LDAP_SUCCESS )
-		goto done;
+		goto done_noop;
 
 	/* Parse all the values and check for simple syntax errors before
 	 * performing any set actions.
@@ -4218,14 +4262,14 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		rc = check_name_index( last, colst[0]->co_type, e, rs, renum,
 			&ibase );
 		if ( rc ) {
-			goto done;
+			goto done_noop;
 		}
 		if ( renum && *renum && colst[0]->co_type != Cft_Database &&
 			colst[0]->co_type != Cft_Overlay ) {
 			snprintf( ca->msg, sizeof( ca->msg ),
 				"operation requires sibling renumbering" );
 			rc = LDAP_UNWILLING_TO_PERFORM;
-			goto done;
+			goto done_noop;
 		}
 	}
 
@@ -4239,7 +4283,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		rc = check_vals( ct, ca, a, 1 );
-		if ( rc ) goto done;
+		if ( rc ) goto done_noop;
 	}
 
 	/* Basic syntax checks are OK. Do the actual settings. */
@@ -4351,8 +4395,11 @@ done:
 				backend_destroy_one( ca->be, 1 );
 		} else if ( (colst[0]->co_type == Cft_Overlay) && ca->bi ) {
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
+		} else if ( colst[0]->co_type == Cft_Schema ) {
+			schema_destroy_one( ca, colst, nocs, last );
 		}
 	}
+done_noop:
 
 	ch_free( ca->argv );
 	if ( colst ) ch_free( colst );
