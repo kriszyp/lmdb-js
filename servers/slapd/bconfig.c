@@ -4003,8 +4003,11 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 					renumber = 1;
 			}
 		}
-		if ( !isfrontend && index == -1 )
+		if ( !isfrontend && index == -1 ) {
 			index = nsibs;
+			if ( ce_type == Cft_Database )
+				index--;
+		}
 
 		/* just make index = nsibs */
 		if ( !renumber ) {
