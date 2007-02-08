@@ -12,6 +12,8 @@ OpenLDAP 2.3.34 Engineering
 	Fixed slapo-chain spurious additional info in response (ITS#4828)
 	Fixed slapo-syncprov presence list (ITS#4813)
 	Fixed slapo-syncprov contextCSN checkpoint again (ITS#4720)
+	Added slapo-ppolicy cn=config support (ITS#4836)
+	Added slapo-auditlog cn=config support
 	Documentation
 		Note slapo-dynlist interaction with manageDSAit (ITS#4831)
 
