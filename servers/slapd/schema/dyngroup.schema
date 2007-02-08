@@ -17,6 +17,10 @@
 # http://enterprise.netscape.com/docs/enterprise/60/admin/esusrgrp.htm#1019520
 # for details.
 #
+# The above URL is no longer valid; an archive of old Netscape documentation
+# is available here:
+# http://www.redhat.com/docs/manuals/ent-server/
+#
 # depends upon:
 #	core.schema
 #
