@@ -29,12 +29,33 @@
 #include <ac/ctype.h>
 
 #include "slap.h"
+#include "config.h"
 #include "ldif.h"
 
 typedef struct auditlog_data {
 	ldap_pvt_thread_mutex_t ad_mutex;
 	char *ad_logfile;
 } auditlog_data;
+
+static ConfigTable auditlogcfg[] = {
+	{ "auditlog", "filename", 2, 2, 0,
+	  ARG_STRING|ARG_OFFSET,
+	  (void *)offsetof(auditlog_data, ad_logfile),
+	  "( OLcfgOvAt:15.1 NAME 'olcAuditlogFile' "
+	  "DESC 'Filename for auditlogging' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs auditlogocs[] = {
+	{ "( OLcfgOvOc:15.1 "
+	  "NAME 'olcAuditlogConfig' "
+	  "DESC 'Auditlog configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY ( olcAuditlogFile ) )",
+	  Cft_Overlay, auditlogcfg },
+	{ NULL, 0, NULL }
+};
 
 static int fprint_ldif(FILE *f, char *name, char *val, ber_len_t len) {
 	char *s;
@@ -51,14 +72,14 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 	FILE *f;
 	Attribute *a;
 	Modifications *m;
-	struct berval *b;
-	char *what, *subop, *suffix, *who = NULL;
+	struct berval *b, *who = NULL;
+	char *what, *suffix;
 	long stamp = slap_get_time();
 	int i;
 
 	if ( rs->sr_err != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
 
-	if ( !op->o_bd || !ad->ad_logfile ) return SLAP_CB_CONTINUE;
+	if ( !ad->ad_logfile ) return SLAP_CB_CONTINUE;
 
 /*
 ** add or modify: use modifiersName if present
@@ -71,7 +92,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 			what = "add";
 			for(a = op->ora_e->e_attrs; a; a = a->a_next)
 				if( a->a_desc == slap_schema.si_ad_modifiersName ) {
-					who = a->a_vals[0].bv_val;
+					who = &a->a_vals[0];
 					break;
 				}
 			break;
@@ -81,7 +102,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 				if( m->sml_desc == slap_schema.si_ad_modifiersName &&
 					( m->sml_op == LDAP_MOD_ADD ||
 					m->sml_op == LDAP_MOD_REPLACE )) {
-					who = m->sml_values[0].bv_val;
+					who = &m->sml_values[0];
 					break;
 				}
 			break;
@@ -96,7 +117,7 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 ** note: this means requestor's dn when modifiersName is null
 */
 	if ( !who )
-		who = op->o_dn.bv_val;
+		who = &op->o_dn;
 
 	ldap_pvt_thread_mutex_lock(&ad->ad_mutex);
 	if((f = fopen(ad->ad_logfile, "a")) == NULL) {
@@ -104,14 +125,20 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 		return SLAP_CB_CONTINUE;
 	}
 
-	fprintf(f, "# %s %ld %s%s%s\ndn: %s\nchangetype: %s\n",
-		what, stamp, suffix, who ? " " : "", who ? who : "",
+	fprintf(f, "# %s %ld %s%s%s\n",
+		what, stamp, suffix, who ? " " : "", who ? who->bv_val : "");
+
+	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) &&
+		(!who || !dn_match( who, &op->o_conn->c_dn )))
+		fprintf(f, "# realdn: %s\n", op->o_conn->c_dn.bv_val );
+
+	fprintf(f, "dn: %s\nchangetype: %s\n",
 		op->o_req_dn.bv_val, what);
 
 	switch(op->o_tag) {
 	  case LDAP_REQ_ADD:
 		for(a = op->ora_e->e_attrs; a; a = a->a_next)
-		    if(b = a->a_vals)
+		  if((b = a->a_vals) != NULL)
 			for(i = 0; b[i].bv_val; i++)
 				fprint_ldif(f, a->a_desc->ad_cname.bv_val, b[i].bv_val, b[i].bv_len);
 		break;
@@ -128,7 +155,8 @@ static int auditlog_response(Operation *op, SlapReply *rs) {
 					continue;
 			}
 			fprintf(f, "%s: %s\n", what, m->sml_desc->ad_cname.bv_val);
-			if(b = m->sml_values) for(i = 0; b[i].bv_val; i++)
+			if((b = m->sml_values) != NULL)
+			  for(i = 0; b[i].bv_val; i++)
 				fprint_ldif(f, m->sml_desc->ad_cname.bv_val, b[i].bv_val, b[i].bv_len);
 			fprintf(f, "-\n");
 		}
@@ -220,13 +248,17 @@ auditlog_config(
 }
 
 int auditlog_initialize() {
+	int rc;
 
 	auditlog.on_bi.bi_type = "auditlog";
 	auditlog.on_bi.bi_db_init = auditlog_db_init;
-	auditlog.on_bi.bi_db_config = auditlog_config;
 	auditlog.on_bi.bi_db_close = auditlog_db_close;
 	auditlog.on_bi.bi_db_destroy = auditlog_db_destroy;
 	auditlog.on_response = auditlog_response;
+
+	auditlog.on_bi.bi_cf_ocs = auditlogocs;
+	rc = config_register_schema( auditlogcfg, auditlogocs );
+	if ( rc ) return rc;
 
 	return overlay_register(&auditlog);
 }
