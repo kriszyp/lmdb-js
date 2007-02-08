@@ -66,7 +66,6 @@ static int list_candidates(
 	ID *tmp,
 	ID *stack );
 
-#ifdef LDAP_COMP_MATCH
 static int
 ext_candidates(
         Operation *op,
@@ -76,6 +75,7 @@ ext_candidates(
         ID *tmp,
         ID *stack);
 
+#ifdef LDAP_COMP_MATCH
 static int
 comp_candidates (
 	Operation *op,
@@ -204,12 +204,10 @@ bdb_filter_candidates(
 		rc = list_candidates( op, locker,
 			f->f_or, LDAP_FILTER_OR, ids, tmp, stack );
 		break;
-#ifdef LDAP_COMP_MATCH
 	case LDAP_FILTER_EXT:
                 Debug( LDAP_DEBUG_FILTER, "\tEXT\n", 0, 0, 0 );
                 rc = ext_candidates( op, locker, f->f_mra, ids, tmp, stack );
                 break;
-#endif
 	default:
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %lu\n",
 			(unsigned long) f->f_choice, 0, 0 );
@@ -480,6 +478,7 @@ comp_candidates (
 
 	return( rc );
 }
+#endif
 
 static int
 ext_candidates(
@@ -490,19 +489,75 @@ ext_candidates(
         ID *tmp,
         ID *stack)
 {
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+
+#ifdef LDAP_COMP_MATCH
 	/*
 	 * Currently Only Component Indexing for componentFilterMatch is supported
 	 * Indexing for an extensible filter is not supported yet
 	 */
-	if ( !mra->ma_cf ) {
-		struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-		BDB_IDL_ALL( bdb, ids );
-		return 0;
+	if ( mra->ma_cf ) {
+		return comp_candidates ( op, locker, mra, mra->ma_cf, ids, tmp, stack);
+	}
+#endif
+	if ( mra->ma_desc == slap_schema.si_ad_entryDN ) {
+		int rc;
+		EntryInfo *ei;
+
+		BDB_IDL_ZERO( ids );
+		if ( mra->ma_rule == slap_schema.si_mr_distinguishedNameMatch ) {
+			ei = NULL;
+			rc = bdb_cache_find_ndn( op, NULL, &mra->ma_value, &ei );
+			if ( rc == LDAP_SUCCESS )
+				bdb_idl_insert( ids, ei->bei_id );
+			if ( ei )
+				bdb_cache_entryinfo_unlock( ei );
+			return 0;
+		} else if ( mra->ma_rule && mra->ma_rule->smr_match ==
+			dnRelativeMatch && dnIsSuffix( &mra->ma_value,
+				op->o_bd->be_nsuffix )) {
+			int scope;
+			if ( mra->ma_rule == slap_schema.si_mr_dnSuperiorMatch ) {
+				struct berval pdn;
+				ei = NULL;
+				dnParent( &mra->ma_value, &pdn );
+				bdb_cache_find_ndn( op, NULL, &pdn, &ei );
+				if ( ei ) {
+					bdb_cache_entryinfo_unlock( ei );
+					while ( ei && ei->bei_id ) {
+						bdb_idl_insert( ids, ei->bei_id );
+						ei = ei->bei_parent;
+					}
+				}
+				return 0;
+			}
+			if ( mra->ma_rule == slap_schema.si_mr_dnSubtreeMatch )
+				scope = LDAP_SCOPE_SUBTREE;
+			else if ( mra->ma_rule == slap_schema.si_mr_dnOneLevelMatch )
+				scope = LDAP_SCOPE_ONELEVEL;
+			else if ( mra->ma_rule == slap_schema.si_mr_dnSubordinateMatch )
+				scope = LDAP_SCOPE_SUBORDINATE;
+			else
+				scope = LDAP_SCOPE_BASE;
+			if ( scope > LDAP_SCOPE_BASE ) {
+				ei = NULL;
+				rc = bdb_cache_find_ndn( op, NULL, &mra->ma_value, &ei );
+				if ( ei )
+					bdb_cache_entryinfo_unlock( ei );
+				if ( rc == LDAP_SUCCESS ) {
+					int sc = op->ors_scope;
+					op->ors_scope = scope;
+					rc = bdb_dn2idl( op, locker, &mra->ma_value, ei, ids,
+						stack );
+				}
+				return 0;
+			}
+		}
 	}
 
-	return comp_candidates ( op, locker, mra, mra->ma_cf, ids, tmp, stack);
+	BDB_IDL_ALL( bdb, ids );
+	return 0;
 }
-#endif
 
 static int
 list_candidates(

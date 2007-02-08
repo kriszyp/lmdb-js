@@ -121,7 +121,8 @@ int bdb_dn2id_children(
 int bdb_dn2idl(
 	Operation *op,
 	u_int32_t locker,
-	Entry *e,
+	struct berval *ndn,
+	EntryInfo *ei,
 	ID *ids,
 	ID *stack );
 

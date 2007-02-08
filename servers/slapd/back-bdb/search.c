@@ -206,7 +206,7 @@ static int search_aliases(
 		 * to the cumulative list of candidates.
 		 */
 		BDB_IDL_CPY( curscop, aliases );
-		rs->sr_err = bdb_dn2idl( op, locker, e, subscop,
+		rs->sr_err = bdb_dn2idl( op, locker, &e->e_nname, BEI(e), subscop,
 			subscop2+BDB_IDL_DB_SIZE );
 		if (first) {
 			first = 0;
@@ -313,7 +313,7 @@ bdb_search( Operation *op, SlapReply *rs )
 	ID		scopes[BDB_IDL_DB_SIZE];
 	Entry		*e = NULL, base, e_root = {0};
 	Entry		*matched = NULL;
-	EntryInfo	*ei, ei_root = {0};
+	EntryInfo	*ei;
 	struct berval	realbase = BER_BVNULL;
 	slap_mask_t	mask;
 	int		manageDSAit;
@@ -350,13 +350,11 @@ bdb_search( Operation *op, SlapReply *rs )
 
 	if ( op->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
-		ei_root.bei_e = &e_root;
-		ei_root.bei_parent = &ei_root;
-		e_root.e_private = &ei_root;
+		ei = &bdb->bi_cache.c_dntree;
+		e_root.e_private = ei;
 		e_root.e_id = 0;
 		BER_BVSTR( &e_root.e_nname, "" );
 		BER_BVSTR( &e_root.e_name, "" );
-		ei = &ei_root;
 		rs->sr_err = LDAP_SUCCESS;
 	} else {
 		if ( op->ors_deref & LDAP_DEREF_FINDING ) {
@@ -1100,7 +1098,7 @@ static int search_candidates(
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 		rc = search_aliases( op, rs, e, locker, ids, scopes, stack );
 	} else {
-		rc = bdb_dn2idl( op, locker, e, ids, stack );
+		rc = bdb_dn2idl( op, locker, &e->e_nname, BEI(e), ids, stack );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
