@@ -564,7 +564,15 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 
-	entry_free( bdb->bi_cache.c_dntree.bei_e );
+	{
+		Entry *e;
+		e = bdb->bi_cache.c_dntree.bei_e;
+		bdb->bi_cache.c_dntree.bei_e = NULL;
+		e->e_private = NULL;
+		BER_BVZERO( &e->e_name );
+		BER_BVZERO( &e->e_nname );
+		entry_free( e );
+	}
 
 	ch_free( bdb );
 	be->be_private = NULL;
