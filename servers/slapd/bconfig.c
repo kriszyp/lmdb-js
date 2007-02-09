@@ -3871,6 +3871,8 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 		op->o_callback = &sc;
 		op->orr_newrdn = *newrdn;
 		op->orr_nnewrdn = *nnewrdn;
+		op->orr_newSup = NULL;
+		op->orr_nnewSup = NULL;
 		op->orr_deleteoldrdn = 1;
 		op->orr_modlist = NULL;
 		slap_modrdn2mods( op, rs );
@@ -3994,6 +3996,10 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		if ( ce->ce_type == ce_type ) nsibs++;
 	}
 
+	/* account for -1 frontend */
+	if ( ce_type == Cft_Database )
+		nsibs--;
+
 	if ( index != nsibs ) {
 		if ( gotindex ) {
 			if ( index < nsibs ) {
@@ -4005,8 +4011,6 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 		}
 		if ( !isfrontend && index == -1 ) {
 			index = nsibs;
-			if ( ce_type == Cft_Database )
-				index--;
 		}
 
 		/* just make index = nsibs */
