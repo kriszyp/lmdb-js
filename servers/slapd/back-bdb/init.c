@@ -564,6 +564,8 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 
+	entry_free( bdb->bi_cache.c_dntree.bei_e );
+
 	ch_free( bdb );
 	be->be_private = NULL;
 
