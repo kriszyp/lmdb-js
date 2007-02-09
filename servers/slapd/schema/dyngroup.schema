@@ -57,7 +57,7 @@ attributetype ( NetscapeLDAPattributeType:198
 
 objectClass ( NetscapeLDAPobjectClass:33
 	NAME 'groupOfURLs'
-	SUP top AUXILIARY
+	SUP top STRUCTURAL
 	MUST cn
 	MAY ( memberURL $ businessCategory $ description $ o $ ou $
 		owner $ seeAlso ) )
