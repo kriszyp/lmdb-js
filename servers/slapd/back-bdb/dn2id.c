@@ -349,7 +349,8 @@ bdb_dn2idl(
 		ndn->bv_val, 0, 0 );
 
 #ifndef	BDB_MULTIPLE_SUFFIXES
-	if ( prefix == DN_SUBTREE_PREFIX && ei->bei_parent->bei_id == 0 ) {
+	if ( prefix == DN_SUBTREE_PREFIX
+		&& ( ei->bei_id == 0 || ei->bei_parent->bei_id == 0 )) {
 		BDB_IDL_ALL(bdb, ids);
 		return 0;
 	}
@@ -1077,7 +1078,8 @@ hdb_dn2idl(
 
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( op->ors_scope != LDAP_SCOPE_ONELEVEL && 
-		ei->bei_parent->bei_id == 0 )
+		( ei->bei_id == 0 ||
+		ei->bei_parent->bei_id == 0 ))
 	{
 		BDB_IDL_ALL( bdb, ids );
 		return 0;

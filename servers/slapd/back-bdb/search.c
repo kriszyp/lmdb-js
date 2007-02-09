@@ -311,7 +311,7 @@ bdb_search( Operation *op, SlapReply *rs )
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	ID		scopes[BDB_IDL_DB_SIZE];
-	Entry		*e = NULL, base, e_root = {0};
+	Entry		*e = NULL, base, *e_root;
 	Entry		*matched = NULL;
 	EntryInfo	*ei;
 	struct berval	realbase = BER_BVNULL;
@@ -348,13 +348,10 @@ bdb_search( Operation *op, SlapReply *rs )
 		}
 	}
 
+	e_root = bdb->bi_cache.c_dntree.bei_e;
 	if ( op->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
-		ei = &bdb->bi_cache.c_dntree;
-		e_root.e_private = ei;
-		e_root.e_id = 0;
-		BER_BVSTR( &e_root.e_nname, "" );
-		BER_BVSTR( &e_root.e_name, "" );
+		ei = e_root->e_private;
 		rs->sr_err = LDAP_SUCCESS;
 	} else {
 		if ( op->ors_deref & LDAP_DEREF_FINDING ) {
@@ -484,14 +481,14 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-		if ( e != &e_root ) {
+		if ( e != e_root ) {
 			bdb_cache_return_entry_r(bdb, e, &lock);
 		}
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
 
-	if ( !manageDSAit && e != &e_root && is_entry_referral( e ) ) {
+	if ( !manageDSAit && e != e_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn = BER_BVNULL;
 		BerVarray erefs = NULL;
@@ -541,7 +538,7 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-		if ( e != &e_root ) {
+		if ( e != e_root ) {
 			bdb_cache_return_entry_r(bdb, e, &lock);
 		}
 		send_ldap_result( op, rs );
@@ -564,7 +561,7 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 	slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-	if ( e != &e_root ) {
+	if ( e != e_root ) {
 		bdb_cache_return_entry_r(bdb, e, &lock);
 	}
 	e = NULL;

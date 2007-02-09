@@ -79,6 +79,15 @@ bdb_db_init( BackendDB *be )
 	ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 
+	{
+		Entry *e = entry_alloc();
+		e->e_id = 0;
+		e->e_private = &bdb->bi_cache.c_dntree;
+		BER_BVSTR( &e->e_name, "" );
+		BER_BVSTR( &e->e_nname, "" );
+		bdb->bi_cache.c_dntree.bei_e = e;
+	}
+
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
