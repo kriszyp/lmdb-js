@@ -2539,7 +2539,7 @@ syncprov_db_open(
 		if ( a ) {
 			int i;
 			ber_bvarray_dup_x( &si->si_ctxcsn, a->a_vals, NULL );
-			for ( i=0; !BER_BVISEMPTY( &a->a_vals[i] ); i++ );
+			for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ );
 			si->si_numcsns = i;
 			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, i );
 		}
