@@ -312,7 +312,6 @@ lutil_gettime( struct lutil_tm *tm )
 	count.QuadPart -= offset;
 
 	tm->tm_usec = count.QuadPart % 1000000;
-	printf("tm_usec %d, msec %d\n", tm->tm_usec, st.wMilliseconds);
 
 	/* any difference larger than microseconds is
 	 * already reflected in st
