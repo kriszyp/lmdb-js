@@ -171,7 +171,8 @@ entry_schema_check(
 			"entry_check_schema(%s): %s\n",
 			e->e_dn, textbuf, 0 );
 
-		return LDAP_OBJECT_CLASS_VIOLATION;
+		rc = LDAP_OBJECT_CLASS_VIOLATION;
+		goto leave;
 	}
 
 	if( sc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
@@ -183,7 +184,8 @@ entry_schema_check(
 			"entry_check_schema(%s): %s\n",
 			e->e_dn, textbuf, 0 );
 
-		return LDAP_OTHER;
+		rc = LDAP_OTHER;
+		goto leave;
 	}
 
 got_soc:
@@ -196,7 +198,8 @@ got_soc:
 			"entry_check_schema(%s): %s\n",
 			e->e_dn, textbuf, 0 );
 
-		return LDAP_OBJECT_CLASS_VIOLATION;
+		rc = LDAP_OBJECT_CLASS_VIOLATION;
+		goto leave;
 	}
 
 	*text = textbuf;
@@ -384,18 +387,20 @@ got_soc:
 							}
 						}
 					}
+					snprintf( textbuf, textlen, 
+						"class '%s' not allowed by content rule '%s'",
+						oc->soc_cname.bv_val,
+						ldap_contentrule2name( &cr->scr_crule ) );
 				} else if ( global_disallows & SLAP_DISALLOW_AUX_WO_CR ) {
 					k = -1;
+					snprintf( textbuf, textlen, 
+						"class '%s' not allowed by any content rule",
+						oc->soc_cname.bv_val );
 				} else {
 					k = 0;	
 				}
 
 				if( k == -1 ) {
-					snprintf( textbuf, textlen, 
-						"content rule '%s' does not allow class '%s'",
-						ldap_contentrule2name( &cr->scr_crule ),
-						oc->soc_cname.bv_val );
-
 					Debug( LDAP_DEBUG_ANY,
 						"Entry (%s): %s\n",
 						e->e_dn, textbuf, 0 );
