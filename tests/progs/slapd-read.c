@@ -291,6 +291,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 				noattrs, nobind, 1, maxretries, delay, force,
 				chaserefs );
 		}
+		free( values );
 		break;
 
 	default:
