@@ -282,6 +282,8 @@ void
 lutil_gettime( struct lutil_tm *tm )
 {
 	static LARGE_INTEGER cFreq;
+	static LARGE_INTEGER prevCount;
+	static int subs;
 	static int offset;
 	LARGE_INTEGER count;
 	SYSTEMTIME st;
@@ -306,6 +308,18 @@ lutil_gettime( struct lutil_tm *tm )
 		offset = ( usec - st.wMilliseconds ) * 1000;
 	}
 
+	/* It shouldn't ever go backwards, but multiple CPUs might
+	 * be able to hit in the same tick.
+	 */
+	if ( count.QuadPart <= prevCount.QuadPart ) {
+		subs++;
+	} else {
+		subs = 0;
+		prevCount = count;
+	}
+
+	tm->tm_usub = subs;
+
 	/* convert to microseconds */
 	count.QuadPart *= 1000000;
 	count.QuadPart /= cFreq.QuadPart;
@@ -329,6 +343,9 @@ void
 lutil_gettime( struct lutil_tm *ltm )
 {
 	struct timeval tv;
+	static struct timeval prevTv;
+	static int subs;
+
 #ifdef HAVE_GMTIME_R
 	struct tm tm_buf;
 #endif
@@ -337,6 +354,16 @@ lutil_gettime( struct lutil_tm *ltm )
 
 	gettimeofday( &tv, NULL );
 	t = tv.tv_sec;
+
+	if ( tv.tv_sec < prevTv.tv_sec
+		|| ( tv.tv_sec == prevTv.tv_sec && tv.tv_usec == prevTv.tv_usec )) {
+		subs++;
+	} else {
+		subs = 0;
+		prevTv = tv;
+	}
+
+	ltm->tm_usub = subs;
 
 #ifdef HAVE_GMTIME_R
 	tm = gmtime_r( &t, &tm_buf );

@@ -52,29 +52,14 @@ size_t
 lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 {
 	struct lutil_tm tm;
-	static unsigned int csnop;
-	static int prev_sec, prev_usec;
-
-	unsigned int op;
 	int n;
 
 	lutil_gettime( &tm );
 
-	if ( tm.tm_sec > prev_sec || ( tm.tm_sec == prev_sec &&
-		tm.tm_usec > prev_usec )) {
-		prev_sec = tm.tm_sec;
-		prev_usec = tm.tm_usec;
-		csnop = 0;
-	} else {
-		tm.tm_sec = prev_sec;
-		tm.tm_usec = prev_usec;
-	}
-	op = csnop++;
-
 	n = snprintf( buf, len,
 		"%4d%02d%02d%02d%02d%02d.%06dZ#%06x#%03x#%06x",
 	    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
-	    tm.tm_min, tm.tm_sec, tm.tm_usec, op, replica, mod );
+	    tm.tm_min, tm.tm_sec, tm.tm_usec, tm.tm_usub, replica, mod );
 
 	if( n < 0 ) return 0;
 	return ( (size_t) n < len ) ? n : 0;

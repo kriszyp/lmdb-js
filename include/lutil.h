@@ -158,6 +158,7 @@ typedef struct lutil_tm {
 	int tm_mon;	/* month 0-11 */
 	int tm_year;	/* year - 1900 */
 	int tm_usec;	/* microseconds */
+	int tm_usub;	/* submicro */
 } lutil_tm;
 
 typedef struct lutil_timet {
