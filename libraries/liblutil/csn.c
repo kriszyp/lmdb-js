@@ -48,6 +48,7 @@
 
 #include <lutil.h>
 
+/* Must be mutex-protected, because lutil_gettime needs mutex protection */
 size_t
 lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 {

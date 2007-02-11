@@ -272,7 +272,9 @@ int lutil_parsetime( char *atm, struct lutil_tm *tm )
 	return -1;
 }
 
-/* return a broken out time, with microseconds */
+/* return a broken out time, with microseconds
+ * Must be mutex-protected.
+ */
 #ifdef _WIN32
 /* Windows SYSTEMTIME only has 10 millisecond resolution, so we
  * also need to use a high resolution timer to get microseconds.
