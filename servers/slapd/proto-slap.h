@@ -1186,8 +1186,11 @@ LDAP_SLAPD_F (int) module_load LDAP_P((
 	const char* file_name,
 	int argc, char *argv[] ));
 LDAP_SLAPD_F (int) module_path LDAP_P(( const char* path ));
+LDAP_SLAPD_F (int) module_unload LDAP_P(( const char* file_name ));
 
-LDAP_SLAPD_F (void) *module_resolve LDAP_P((
+LDAP_SLAPD_F (void *) module_handle LDAP_P(( const char* file_name ));
+
+LDAP_SLAPD_F (void *) module_resolve LDAP_P((
 	const void *module, const char *name));
 
 #endif /* SLAPD_MODULES */
@@ -1844,9 +1847,7 @@ LDAP_SLAPD_V (int)			slap_tool_thread_max;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
 
-#ifndef HAVE_GMTIME_R
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
-#endif
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	ad_undef_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	oc_undef_mutex;

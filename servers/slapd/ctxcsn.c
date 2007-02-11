@@ -182,13 +182,10 @@ slap_get_csn(
 {
 	if ( csn == NULL ) return LDAP_OTHER;
 
-#ifndef HAVE_GMTIME_R
+	/* gmtime doesn't always need a mutex, but lutil_csnstr does */
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#endif
 	csn->bv_len = lutil_csnstr( csn->bv_val, csn->bv_len, slap_serverID, 0 );
-#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-#endif
 
 	if ( manage_ctxcsn )
 		slap_queue_csn( op, csn );
