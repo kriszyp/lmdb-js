@@ -34,8 +34,7 @@ fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
 mkdir testrun/confdir
-#$SLAPD -f $CONF1 -F testrun/confdir -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
-valgrind ../servers/slapd/.libs/lt-slapd -f $CONF1 -F testrun/confdir -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -F testrun/confdir -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
