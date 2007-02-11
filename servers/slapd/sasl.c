@@ -1053,16 +1053,16 @@ static char *
 slap_sasl_peer2ipport( struct berval *peer )
 {
 	int		isv6 = 0;
-	char		*ipport,
-			*p = &peer->bv_val[ STRLENOF( "IP=" ) ];
+	char		*ipport, *p,
+			*addr = &peer->bv_val[ STRLENOF( "IP=" ) ];
 	ber_len_t	plen = peer->bv_len - STRLENOF( "IP=" );
 
 	/* IPv6? */
-	if ( p[0] == '[' ) {
+	if ( addr[0] == '[' ) {
 		isv6 = 1;
 		plen--;
 	}
-	ipport = ch_strdup( &p[isv6] );
+	ipport = ch_strdup( &addr[isv6] );
 
 	/* Convert IPv6/IPv4 addresses to address;port syntax. */
 	p = strrchr( ipport, ':' );
@@ -1076,8 +1076,8 @@ slap_sasl_peer2ipport( struct berval *peer )
 	} else if ( isv6 ) {
 		/* trim ']' */
 		plen--;
-		assert( p[plen] == ']' );
-		p[plen] = '\0';
+		assert( addr[plen] == ']' );
+		addr[plen] = '\0';
 	}
 
 	return ipport;
