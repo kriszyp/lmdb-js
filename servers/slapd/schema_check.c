@@ -387,10 +387,12 @@ got_soc:
 							}
 						}
 					}
-					snprintf( textbuf, textlen, 
-						"class '%s' not allowed by content rule '%s'",
-						oc->soc_cname.bv_val,
-						ldap_contentrule2name( &cr->scr_crule ) );
+					if ( k ) {
+						snprintf( textbuf, textlen, 
+							"class '%s' not allowed by content rule '%s'",
+							oc->soc_cname.bv_val,
+							ldap_contentrule2name( &cr->scr_crule ) );
+					}
 				} else if ( global_disallows & SLAP_DISALLOW_AUX_WO_CR ) {
 					k = -1;
 					snprintf( textbuf, textlen, 
