@@ -160,6 +160,9 @@ handlers in liblber include
 .B ber_sockbuf_io_tcp
 The default stream-oriented provider
 .TP
+.B ber_sockbuf_io_fd
+A stream-oriented provider for local IPC sockets
+.TP
 .B ber_sockbuf_io_dgram
 A datagram-oriented provider. This handler is only present if the liblber
 library was built with LDAP_CONNECTIONLESS defined.
@@ -169,7 +172,9 @@ A buffering layer, usually used with a datagram provider to hide the
 datagram semantics from upper layers.
 .TP
 .B ber_sockbuf_io_debug
-A generic handler that outputs hex dumps of all traffic.
+A generic handler that outputs hex dumps of all traffic. This handler
+may be inserted multiple times at arbitrary layers to show the flow
+of data between other handlers.
 .LP
 Additional handlers may be present in libldap if support for them was
 enabled:
