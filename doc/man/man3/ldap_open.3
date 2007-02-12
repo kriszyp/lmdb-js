@@ -107,19 +107,27 @@ and it explicitly returns an error code.
 allows an LDAP structure to be initialized using an already-opened
 connection. The
 .I proto
-parameter should be one of
-.BR LDAP_PROTO_TCP ,
-.BR LDAP_PROTO_UDP ,
-or 
-.B LDAP_PROTO_IPC
+parameter should be one of LDAP_PROTO_TCP, LDAP_PROTO_UDP,
+or LDAP_PROTO_IPC
 for a connection using TCP, UDP, or IPC, respectively. The value
-.B LDAP_PROTO_EXT
+LDAP_PROTO_EXT
 may also be specified if user-supplied sockbuf handlers are going to
 be used. Note that support for UDP is not implemented unless libldap
 was built with LDAP_CONNECTIONLESS defined.
 The
 .I uri
 parameter may optionally be provided for informational purposes.
+
+Note: the first call into the LDAP library also initializes the global
+options for the library. As such the first call should be single-threaded
+or otherwise protected to insure that only one call is active. It is
+recommended that
+.BR ldap_get_option ()
+or
+.BR ldap_set_option ()
+be used in the program's main thread before any additional threads are created.
+See
+.BR ldap_get_option (3).
 
 .SH ERRORS
 If an error occurs,
