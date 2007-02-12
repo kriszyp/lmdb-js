@@ -28,6 +28,17 @@ int ldap_initialize(ldp, uri)
 .ft
 LDAP **ldp;
 char *uri;
+.LP
+.ft B
+#include <ldap_pvt.h>
+.LP
+.ft B
+int ldap_init_fd(fd, proto, uri, ldp)
+.ft
+ber_socket_t fd;
+int proto;
+char *uri;
+LDAP **ldp;
 .SH DESCRIPTION
 .LP
 .B ldap_open()
@@ -37,8 +48,12 @@ the connection and to maintain per-connection information.
 .B ldap_init()
 allocates an LDAP structure but does not open an initial connection.
 .B ldap_initialize()
-allocates an LDAP structure but does not open an initial connection.  One
-of these three routines must be called before any operations are attempted.
+allocates an LDAP structure but does not open an initial connection.
+.B ldap_init_fd()
+allocates an LDAP structure using an existing connection on the
+provided socket.
+One
+of these routines must be called before any operations are attempted.
 .LP
 .B ldap_open()
 takes \fIhost\fP, the hostname on which the LDAP server is
@@ -87,6 +102,23 @@ are deprecated in favor of
 .BR ldap_initialize() ,
 essentially because the latter allows to specify a schema in the URI
 and it explicitly returns an error code.
+.LP
+.B ldap_init_fd()
+allows an LDAP structure to be initialized using an already-opened
+connection. The
+.I proto
+parameter should be one of
+.BR LDAP_PROTO_TCP ,
+.BR LDAP_PROTO_UDP ,
+or 
+.B LDAP_PROTO_IPC
+for a connection using TCP, UDP, or IPC, respectively. The value
+.B LDAP_PROTO_EXT
+may also be specified if user-supplied sockbuf handlers are going to
+be used. The
+.I uri
+parameter may optionally be provided for informational purposes.
+
 .SH ERRORS
 If an error occurs,
 .B ldap_open()
@@ -94,6 +126,8 @@ and
 .B ldap_init()
 will return NULL and errno should be set appropriately.
 .B ldap_initialize()
+and
+.B ldap_init_fd()
 will directly return the LDAP code associated to the error (or
 .I LDAP_SUCCESS
 in case of success);
@@ -103,6 +137,7 @@ errno should be set as well whenever appropriate.
 .BR ldap_bind (3),
 .BR ldap_get_option (3),
 .BR ldap_set_option (3),
+.BR lber-sockbuf (3),
 .BR errno (3)
 .SH ACKNOWLEDGEMENTS
 .so ../Project
