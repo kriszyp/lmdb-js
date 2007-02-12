@@ -1682,7 +1682,7 @@ ldap_count_values LDAP_P((	/* deprecated, use ldap_count_values_len */
 	char **vals ));
 
 LDAP_F( void )
-ldap_value_free LDAP_P((	/* deprecated, use ldap_values_free_len */
+ldap_value_free LDAP_P((	/* deprecated, use ldap_value_free_len */
 	char **vals ));
 #endif
 
