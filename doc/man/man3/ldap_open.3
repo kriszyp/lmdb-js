@@ -115,7 +115,9 @@ or
 for a connection using TCP, UDP, or IPC, respectively. The value
 .B LDAP_PROTO_EXT
 may also be specified if user-supplied sockbuf handlers are going to
-be used. The
+be used. Note that support for UDP is not implemented unless libldap
+was built with LDAP_CONNECTIONLESS defined.
+The
 .I uri
 parameter may optionally be provided for informational purposes.
 
