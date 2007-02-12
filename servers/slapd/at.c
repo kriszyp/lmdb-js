@@ -455,6 +455,7 @@ at_insert(
 			/* replacing a deleted definition? */
 			if ( old_sat->sat_flags & SLAP_AT_DELETED ) {
 				AttributeType tmp;
+				AttributeDescription *ad;
 				
 				/* Keep old oid, free new oid;
 				 * Keep old ads, free new ads;
@@ -467,6 +468,14 @@ at_insert(
 				old_sat->sat_ad = tmp.sat_ad;
 				tmp.sat_ad = sat->sat_ad;
 				*sat = tmp;
+
+				/* Check for basic ad pointing at old cname */
+				for ( ad = old_sat->sat_ad; ad; ad=ad->ad_next ) {
+					if ( ad->ad_cname.bv_val == sat->sat_cname.bv_val ) {
+						ad->ad_cname = old_sat->sat_cname;
+						break;
+					}
+				}
 
 				at_clean( sat );
 				at_destroy_one( air );
