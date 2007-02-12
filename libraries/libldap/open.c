@@ -240,6 +240,95 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 }
 
 int
+ldap_init_fd(
+	ber_socket_t fd,
+	int proto,
+	LDAP_CONST char *url,
+	LDAP **ldp
+)
+{
+	int rc;
+	LDAP *ld;
+	LDAPConn *conn;
+
+	*ldp = NULL;
+	rc = ldap_create( &ld );
+	if( rc != LDAP_SUCCESS )
+		return( rc );
+
+	if (url != NULL) {
+		rc = ldap_set_option(ld, LDAP_OPT_URI, url);
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_ld_free(ld, 1, NULL, NULL);
+			return rc;
+		}
+	}
+
+	/* Attach the passed socket as the LDAP's connection */
+	conn = ldap_new_connection( ld, NULL, 1, 0, NULL);
+	if( conn == NULL ) {
+		ldap_unbind_ext( ld, NULL, NULL );
+		return( LDAP_NO_MEMORY );
+	}
+	ber_sockbuf_ctrl( conn->lconn_sb, LBER_SB_OPT_SET_FD, &fd );
+	ld->ld_defconn = conn;
+	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
+
+	switch( proto ) {
+	case LDAP_PROTO_TCP:
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)"tcp_" );
+#endif
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_tcp,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		break;
+
+#ifdef LDAP_CONNECTIONLESS
+	case LDAP_PROTO_UDP:
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)"udp_" );
+#endif
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_udp,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		break;
+#endif /* LDAP_CONNECTIONLESS */
+
+	case LDAP_PROTO_IPC:
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)"ipc_" );
+#endif
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_fd,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		break;
+
+	case LDAP_PROTO_EXT:
+		/* caller must supply sockbuf handlers */
+		break;
+
+	default:
+		ldap_unbind_ext( ld, NULL, NULL );
+		return LDAP_PARAM_ERROR;
+	}
+
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+		INT_MAX, (void *)"ldap_" );
+#endif
+
+	/* Add the connection to the *LDAP's select pool */
+	ldap_mark_select_read( ld, conn->lconn_sb );
+	ldap_mark_select_write( ld, conn->lconn_sb );
+	
+	*ldp = ld;
+	return LDAP_SUCCESS;
+}
+
+int
 ldap_int_open_connection(
 	LDAP *ld,
 	LDAPConn *conn,

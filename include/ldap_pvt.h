@@ -27,6 +27,7 @@ LDAP_BEGIN_DECL
 #define LDAP_PROTO_TCP 1 /* ldap://  */
 #define LDAP_PROTO_UDP 2 /* reserved */
 #define LDAP_PROTO_IPC 3 /* ldapi:// */
+#define LDAP_PROTO_EXT 4 /* user-defined socket/sockbuf */
 
 LDAP_F ( int )
 ldap_pvt_url_scheme2proto LDAP_P((
@@ -236,6 +237,8 @@ ldap_get_message_ber LDAP_P((
 /* open */
 LDAP_F (int) ldap_open_internal_connection LDAP_P((
 	struct ldap **ldp, ber_socket_t *fdp ));
+LDAP_F (int) ldap_init_fd LDAP_P((
+	ber_socket_t fd, int proto, LDAP_CONST char *url, struct ldap **ldp ));
 
 /* search.c */
 LDAP_F( int ) ldap_pvt_put_filter LDAP_P((
