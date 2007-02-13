@@ -2669,6 +2669,10 @@ syncprov_db_destroy(
 				
 			ch_free( si->si_logs );
 		}
+		if ( si->si_ctxcsn )
+			ber_bvarray_free( si->si_ctxcsn );
+		if ( si->si_sids )
+			ch_free( si->si_sids );
 		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_ops_mutex );
 		ldap_pvt_thread_rdwr_destroy( &si->si_csn_rwlock );
