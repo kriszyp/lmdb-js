@@ -295,6 +295,12 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 		ldap_msgfree( res );
 
+		if ( !values ) {
+			fprintf( stderr, "  PID=%ld - Search base=\"%s\" filter=\"%s\" got %d values.\n",
+				(long) pid, sbase, filter, nvalues );
+			exit(EXIT_FAIL);
+		}
+
 		if ( do_retry == maxretries ) {
 			fprintf( stderr, "  PID=%ld - Search base=\"%s\" filter=\"%s\" got %d values.\n",
 				(long) pid, sbase, filter, nvalues );
