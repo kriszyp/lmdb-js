@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -260,14 +260,13 @@ int bdb_entry_release(
 
 		/* lock is freed with txn */
 		if ( !boi || boi->boi_txn ) {
-			bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
+			bdb_unlocked_cache_return_entry_rw( bdb, e, rw );
 		} else {
 			struct bdb_lock_info *bli, *prev;
 			for ( prev=(struct bdb_lock_info *)&boi->boi_locks,
 				bli = boi->boi_locks; bli; prev=bli, bli=bli->bli_next ) {
 				if ( bli->bli_id == e->e_id ) {
-					bdb_cache_return_entry_rw( bdb->bi_dbenv, &bdb->bi_cache,
-						e, rw, &bli->bli_lock );
+					bdb_cache_return_entry_rw( bdb, e, rw, &bli->bli_lock );
 					prev->bli_next = bli->bli_next;
 					op->o_tmpfree( bli, op->o_tmpmemctx );
 					break;
@@ -385,21 +384,6 @@ dn2entry_retry:
 		"=> bdb_entry_get: found entry: \"%s\"\n",
 		ndn->bv_val, 0, 0 ); 
 
-	/* find attribute values */
-	if( is_entry_alias( e ) ) {
-		Debug( LDAP_DEBUG_ACL,
-			"<= bdb_entry_get: entry is an alias\n", 0, 0, 0 );
-		rc = LDAP_ALIAS_PROBLEM;
-		goto return_results;
-	}
-
-	if( is_entry_referral( e ) ) {
-		Debug( LDAP_DEBUG_ACL,
-			"<= bdb_entry_get: entry is a referral\n", 0, 0, 0 );
-		rc = LDAP_REFERRAL;
-		goto return_results;
-	}
-
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_entry_get: failed to find objectClass %s\n",
@@ -411,7 +395,7 @@ dn2entry_retry:
 return_results:
 	if( rc != LDAP_SUCCESS ) {
 		/* free entry */
-		bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
+		bdb_cache_return_entry_rw(bdb, e, rw, &lock);
 
 	} else {
 		if ( slapMode == SLAP_SERVER_MODE ) {
@@ -438,7 +422,7 @@ return_results:
 			}
 		} else {
 			*ent = entry_dup( e );
-			bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
+			bdb_cache_return_entry_rw(bdb, e, rw, &lock);
 		}
 	}
 

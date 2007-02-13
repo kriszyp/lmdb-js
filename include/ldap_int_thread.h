@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ typedef pthread_cond_t		ldap_int_thread_cond_t;
 #define LDAP_THREAD_HAVE_SETCONCURRENCY 1
 #endif
 
-#if 0 && defined( HAVE_PTHREAD_RWLOCK_DESTROY )
+#if defined( HAVE_PTHREAD_RWLOCK_DESTROY )
 #define LDAP_THREAD_HAVE_RDWR 1
 typedef pthread_rwlock_t ldap_int_thread_rdwr_t;
 #endif

@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 #
 # master file for the OpenLDAP Administrator's Guide
@@ -60,8 +60,8 @@ PB:
 !include "tls.sdf"; chapter
 PB:
 
-#!include "monitoringslapd.sdf"; chapter
-#PB:
+!include "monitoringslapd.sdf"; chapter
+PB:
 
 #!include "tuning.sdf"; chapter
 #PB:
@@ -79,6 +79,11 @@ PB:
 PB:
 
 # Appendices 
+# Terms
+!include "glossary.sdf"; appendix
+PB:
+
+# Autoconf 
 !include "../release/autoconf.sdf"; appendix
 PB:
 

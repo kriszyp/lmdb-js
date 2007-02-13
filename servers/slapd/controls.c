@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -990,7 +990,6 @@ static int parseProxyAuthz (
 	 */
 	op->o_ndn = dn;
 	ber_dupbv( &op->o_dn, &dn );
-
 
 	Statslog( LDAP_DEBUG_STATS, "%s PROXYAUTHZ dn=\"%s\"\n",
 	    op->o_log_prefix, dn.bv_val, 0, 0, 0 );

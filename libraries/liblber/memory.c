@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -745,6 +745,33 @@ ber_bvarray_free( BerVarray a )
 }
 
 int
+ber_bvarray_dup_x( BerVarray *dst, BerVarray src, void *ctx )
+{
+	int i, j;
+	BerVarray new;
+
+	if ( !src ) {
+		*dst = NULL;
+		return 0;
+	}
+
+	for (i=0; !BER_BVISNULL( &src[i] ); i++) ;
+	new = ber_memalloc_x(( i+1 ) * sizeof(BerValue), ctx );
+	if ( !new )
+		return -1;
+	for (j=0; j<i; j++) {
+		ber_dupbv_x( &new[j], &src[j], ctx );
+		if ( BER_BVISNULL( &new[j] )) {
+			ber_bvarray_free_x( new, ctx );
+			return -1;
+		}
+	}
+	BER_BVZERO( &new[j] );
+	*dst = new;
+	return 0;
+}
+
+int
 ber_bvarray_add_x( BerVarray *a, BerValue *bv, void *ctx )
 {
 	int	n;
@@ -784,6 +811,7 @@ ber_bvarray_add_x( BerVarray *a, BerValue *bv, void *ctx )
 
 	(*a)[n++] = *bv;
 	(*a)[n].bv_val = NULL;
+	(*a)[n].bv_len = 0;
 
 	return n;
 }

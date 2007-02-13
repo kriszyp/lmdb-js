@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -157,7 +157,7 @@ do_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
+	rs->sr_err = slap_mods_check( op, modlist, &rs->sr_text,
 		textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -315,16 +315,9 @@ fe_op_add( Operation *op, SlapReply *rs )
 				}
 
 
-				/* check for duplicate values */
+				/* check for unmodifiable attributes */
 				rs->sr_err = slap_mods_no_repl_user_mod_check( op,
 					op->ora_modlist, &rs->sr_text, textbuf, textlen );
-				if ( rs->sr_err != LDAP_SUCCESS ) {
-					send_ldap_result( op, rs );
-					goto done;
-				}
-
-				rs->sr_err = slap_mods2entry( *modtail, &op->ora_e,
-					0, 0, &rs->sr_text, textbuf, textlen );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
 					goto done;
@@ -431,7 +424,7 @@ slap_mods2entry(
 			attr->a_vals = ch_realloc( attr->a_vals,
 				sizeof( struct berval ) * (i+j) );
 
-			/* should check for duplicates */
+			/* checked for duplicates in slap_mods_check */
 
 			if ( dup ) {
 				for ( j = 0; mods->sml_values[j].bv_val; j++ ) {
@@ -470,46 +463,9 @@ slap_mods2entry(
 #endif
 		}
 
-		if( mods->sml_values[1].bv_val != NULL ) {
-			/* check for duplicates */
-			int		i, j, rc, match;
-			MatchingRule *mr = mods->sml_desc->ad_type->sat_equality;
-
-			for ( i = 1; mods->sml_values[i].bv_val != NULL; i++ ) {
-				/* test asserted values against themselves */
-				for( j = 0; j < i; j++ ) {
-					rc = ordered_value_match( &match, mods->sml_desc, mr,
-						SLAP_MR_EQUALITY
-						| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
-						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-						mods->sml_nvalues
-							? &mods->sml_nvalues[i]
-							: &mods->sml_values[i],
-						mods->sml_nvalues
-							? &mods->sml_nvalues[j]
-							: &mods->sml_values[j],
-						text );
-
-					if ( rc == LDAP_SUCCESS && match == 0 ) {
-						/* value exists already */
-						snprintf( textbuf, textlen,
-							"%s: value #%d provided more than once",
-							mods->sml_desc->ad_cname.bv_val, j );
-						*text = textbuf;
-						return LDAP_TYPE_OR_VALUE_EXISTS;
-
-					} else if ( rc != LDAP_SUCCESS ) {
-						return rc;
-					}
-				}
-			}
-		}
-
 		attr = attr_alloc( mods->sml_desc );
 
 		/* move values to attr structure */
-		/*	should check for duplicates */
 		if ( dup ) { 
 			int i;
 			for ( i = 0; mods->sml_values[i].bv_val; i++ ) /* EMPTY */;
@@ -628,30 +584,6 @@ int slap_add_opattrs(
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	Attribute *a;
 
-	a = attr_find( op->ora_e->e_attrs,
-		slap_schema.si_ad_structuralObjectClass );
-
-	if ( !a ) {
-		Attribute *oc;
-		int rc;
-
-		oc = attr_find( op->ora_e->e_attrs, slap_schema.si_ad_objectClass );
-		if ( oc ) {
-			rc = structural_class( oc->a_vals, &tmp, NULL, text,
-				textbuf, textlen );
-			if( rc == LDAP_SUCCESS ) {
-				attr_merge_one( op->ora_e,
-					slap_schema.si_ad_structuralObjectClass,
-					&tmp, NULL );
-
-			} else if ( !SLAP_NO_SCHEMA_CHECK( op->o_bd ) &&
-				!get_no_schema_check( op ) )
-			{
-				return rc;
-			}
-		}
-	}
-
 	if ( SLAP_LASTMOD( op->o_bd ) ) {
 		char *ptr;
 		int gotcsn = 0;
@@ -676,10 +608,9 @@ int slap_add_opattrs(
 		}
 		ptr = ber_bvchr( &csn, '#' );
 		if ( ptr ) {
-			timestamp.bv_len = ptr - csn.bv_val;
-			if ( timestamp.bv_len >= sizeof(timebuf) )	/* ?!? */
-				timestamp.bv_len = sizeof(timebuf) - 1;
+			timestamp.bv_len = STRLENOF("YYYYMMDDHHMMSSZ");
 			AC_MEMCPY( timebuf, csn.bv_val, timestamp.bv_len );
+			timebuf[timestamp.bv_len-1] = 'Z';
 			timebuf[timestamp.bv_len] = '\0';
 		} else {
 			time_t now = slap_get_time();

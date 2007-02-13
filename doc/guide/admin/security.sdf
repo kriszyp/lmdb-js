@@ -1,4 +1,4 @@
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Security Considerations
@@ -76,9 +76,10 @@ confidentiality protection.  OpenLDAP supports negotiation of
 See the {{SECT:Using TLS}} chapter for more information.  StartTLS
 is the standard track mechanism.
 
-A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as DIGEST-MD5
-and {{TERM:GSSAPI}}, also provide data integrity and confidentiality
-protection.  See the {{SECT:Using SASL}} chapter for more information.
+A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as
+{{TERM:DIGEST-MD5}} and {{TERM:GSSAPI}}, also provide data integrity
+and confidentiality protection.  See the {{SECT:Using SASL}} chapter
+for more information.
 
 
 H3: Security Strength Factors
@@ -102,9 +103,9 @@ requires integrity protection for all operations and encryption
 protection, 3DES equivalent, for update operations (e.g. add, delete,
 modify, etc.).  See {{slapd.conf}}(5) for details.
 
-For fine-grained control, SSFs may be used in access controls.  See
-{{SECT:Access Control}} section of the {{SECT:The slapd Configuration
-File}} for more information.
+For fine-grained control, SSFs may be used in access controls.
+See {{SECT:The access Configuration Directive}} section of the
+{{SECT:The slapd Configuration File}} for more information.
 
 
 H2: Authentication Methods
@@ -144,13 +145,14 @@ the session.  User/password authenticated bind is enabled by default.
 However, as this mechanism itself offers no evesdropping protection
 (e.g., the password is set in the clear), it is recommended that
 it be used only in tightly controlled systems or when the LDAP
-session is protected by other means (e.g., TLS, {{TERM:IPSEC}}).
+session is protected by other means (e.g., TLS, {{TERM:IPsec}}).
 Where the administrator relies on TLS to protect the password, it
 is recommended that unprotected authentication be disabled.  This
-is done by setting "{{EX:disallow bind_simple_unprotected}}" in
-{{slapd.conf}}(5).  The {{EX:security}} directive's {{EX:simple_bind}}
-option provides fine grain control over the level of confidential
+is done using the {{EX:security}} directive's {{EX:simple_bind}}
+option, which provides fine grain control over the level of confidential
 protection to require for {{simple}} user/password authentication.
+E.g., using {{EX:security simple_bind=56}} would require {{simple}}
+binds to use encryption of DES equivalent or better.
 
 The user/password authenticated bind mechanism can be completely
 disabled by setting "{{EX:disallow bind_simple}}".

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -720,12 +720,7 @@ ldap_int_thread_pool_wrapper (
 		}
 	}
 
-	for ( i=0; i<MAXKEYS && uctx.ltu_key[i].ltk_key; i++ ) {
-		if (uctx.ltu_key[i].ltk_free)
-			uctx.ltu_key[i].ltk_free(
-				uctx.ltu_key[i].ltk_key,
-				uctx.ltu_key[i].ltk_data );
-	}
+	ldap_pvt_thread_pool_context_reset(&uctx);
 
 	thread_keys[keyslot].ctx = NULL;
 	thread_keys[keyslot].id = tid_zero;
@@ -868,7 +863,7 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 /*
  * This is necessary if the caller does not have access to the
  * thread context handle (for example, a slapd plugin calling
- * slapi_search_internal()). No doubt it is more efficient to
+ * slapi_search_internal()). No doubt it is more efficient
  * for the application to keep track of the thread context
  * handles itself.
  */
@@ -895,7 +890,9 @@ void ldap_pvt_thread_pool_context_reset( void *vctx )
 	ldap_int_thread_userctx_t *ctx = vctx;
 	int i;
 
-	for ( i=0; i<MAXKEYS && ctx->ltu_key[i].ltk_key; i++) {
+	for ( i=MAXKEYS-1; i>=0; i--) {
+		if ( !ctx->ltu_key[i].ltk_key )
+			continue;
 		if ( ctx->ltu_key[i].ltk_free )
 			ctx->ltu_key[i].ltk_free( ctx->ltu_key[i].ltk_key,
 			ctx->ltu_key[i].ltk_data );

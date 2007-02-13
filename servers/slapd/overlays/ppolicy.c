@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2006 The OpenLDAP Foundation.
+ * Copyright 2004-2007 The OpenLDAP Foundation.
  * Portions Copyright 2004-2005 Howard Chu, Symas Corporation.
  * Portions Copyright 2004 Hewlett-Packard Company.
  * All rights reserved.
@@ -645,13 +645,12 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
 				ok = prog( cred->bv_val, &txt, e );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
-				if (txt) {
+				if (ok != LDAP_SUCCESS) {
 					Debug(LDAP_DEBUG_ANY,
 						"check_password_quality: module error: (%s) %s.[%d]\n",
-						pp->pwdCheckModule, txt, ok );
+						pp->pwdCheckModule, txt ? txt : "", ok );
 					free(txt);
-				} else
-					ok = LDAP_SUCCESS;
+				}
 			}
 			    
 			lt_dlclose( mod );
@@ -1283,7 +1282,7 @@ ppolicy_add(
 	if ((pa = attr_find( op->oq_add.rs_e->e_attrs,
 		slap_schema.si_ad_userPassword )))
 	{
-		assert( pa->a_vals );
+		assert( pa->a_vals != NULL );
 		assert( !BER_BVISNULL( &pa->a_vals[ 0 ] ) );
 
 		if ( !BER_BVISNULL( &pa->a_vals[ 1 ] ) ) {

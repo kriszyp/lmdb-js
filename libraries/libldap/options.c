@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -177,14 +177,18 @@ ldap_get_option(
 
 	case LDAP_OPT_TIMEOUT:
 		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api ) != 0 ) {
+		if ( lo->ldo_tm_api.tv_sec < 0 ) {
+			*(void **)outvalue = NULL;
+		} else if ( ldap_int_timeval_dup( outvalue, &lo->ldo_tm_api ) != 0 ) {
 			return LDAP_OPT_ERROR;
 		}
 		return LDAP_OPT_SUCCESS;
 		
 	case LDAP_OPT_NETWORK_TIMEOUT:
 		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_net ) != 0 ) {
+		if ( lo->ldo_tm_net.tv_sec < 0 ) {
+			*(void **)outvalue = NULL;
+		} else if ( ldap_int_timeval_dup( outvalue, &lo->ldo_tm_net ) != 0 ) {
 			return LDAP_OPT_ERROR;
 		}
 		return LDAP_OPT_SUCCESS;
@@ -242,6 +246,10 @@ ldap_get_option(
 
 		return LDAP_OPT_SUCCESS;
 
+	case LDAP_OPT_CONNECT_ASYNC:
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_CONNECT_ASYNC);
+		return LDAP_OPT_SUCCESS;
+		
 	case LDAP_OPT_RESULT_CODE:
 		if(ld == NULL) {
 			/* bad param */
@@ -392,6 +400,14 @@ ldap_set_option(
 			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
 		}
 		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_CONNECT_ASYNC:
+		if(invalue == LDAP_OPT_OFF) {
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_CONNECT_ASYNC);
+		} else {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_CONNECT_ASYNC);
+		}
+		return LDAP_OPT_SUCCESS;
 	}
 
 	/* options which can withstand invalue == NULL */
@@ -436,33 +452,6 @@ ldap_set_option(
 			}
 		} return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_TIMEOUT: {
-			const struct timeval *tv = 
-				(const struct timeval *) invalue;
-
-			if ( lo->ldo_tm_api != NULL ) {
-				LDAP_FREE( lo->ldo_tm_api );
-				lo->ldo_tm_api = NULL;
-			}
-
-			if ( ldap_int_timeval_dup( &lo->ldo_tm_api, tv ) != 0 ) {
-				return LDAP_OPT_ERROR;
-			}
-		} return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_NETWORK_TIMEOUT: {
-			const struct timeval *tv = 
-				(const struct timeval *) invalue;
-
-			if ( lo->ldo_tm_net != NULL ) {
-				LDAP_FREE( lo->ldo_tm_net );
-				lo->ldo_tm_net = NULL;
-			}
-
-			if ( ldap_int_timeval_dup( &lo->ldo_tm_net, tv ) != 0 ) {
-				return LDAP_OPT_ERROR;
-			}
-		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME: {
 			const char *host = (const char *) invalue;
@@ -669,6 +658,8 @@ ldap_set_option(
 	case LDAP_OPT_PROTOCOL_VERSION:
 	case LDAP_OPT_RESULT_CODE:
 	case LDAP_OPT_DEBUG_LEVEL:
+	case LDAP_OPT_TIMEOUT:
+	case LDAP_OPT_NETWORK_TIMEOUT:
 		if(invalue == NULL) {
 			/* no place to set from */
 			return LDAP_OPT_ERROR;
@@ -705,6 +696,20 @@ ldap_set_option(
 		/* FIXME: check value for protocol compliance? */
 		lo->ldo_timelimit = * (const int *) invalue;
 		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_TIMEOUT: {
+			const struct timeval *tv = 
+				(const struct timeval *) invalue;
+
+			lo->ldo_tm_api = *tv;
+		} return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_NETWORK_TIMEOUT: {
+			const struct timeval *tv = 
+				(const struct timeval *) invalue;
+
+			lo->ldo_tm_net = *tv;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_PROTOCOL_VERSION: {
 			int vers = * (const int *) invalue;

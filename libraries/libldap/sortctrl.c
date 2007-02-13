@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,6 @@
 /* Note: A verbatim copy of version 2.0.1 of the OpenLDAP Public License 
  * can be found in the file "build/LICENSE-2.0.1" in this distribution
  * of OpenLDAP Software.
- */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
  */
 
 #include "portable.h"

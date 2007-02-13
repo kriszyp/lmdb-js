@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -160,14 +160,43 @@ ldap_dnattr_result_rewrite(
 
 /* (end of) from back-ldap.h before rwm removal */
 
+/*
+ * A metasingleconn_t can be in the following, mutually exclusive states:
+ *
+ *	- none			(0x0U)
+ *	- creating		META_BACK_FCONN_CREATING
+ *	- initialized		META_BACK_FCONN_INITED
+ *	- binding		LDAP_BACK_FCONN_BINDING
+ *	- bound/anonymous	LDAP_BACK_FCONN_ISBOUND/LDAP_BACK_FCONN_ISANON
+ *
+ * possible modifiers are:
+ *
+ *	- privileged		LDAP_BACK_FCONN_ISPRIV
+ *	- privileged, TLS	LDAP_BACK_FCONN_ISTLS
+ *	- subjected to idassert	LDAP_BACK_FCONN_ISIDASR
+ *	- tainted		LDAP_BACK_FCONN_TAINTED
+ */
+
+#define META_BACK_FCONN_INITED		(0x00100000U)
+#define META_BACK_FCONN_CREATING	(0x00200000U)
+
+#define	META_BACK_CONN_INITED(lc)		LDAP_BACK_CONN_ISSET((lc), META_BACK_FCONN_INITED)
+#define	META_BACK_CONN_INITED_SET(lc)		LDAP_BACK_CONN_SET((lc), META_BACK_FCONN_INITED)
+#define	META_BACK_CONN_INITED_CLEAR(lc)		LDAP_BACK_CONN_CLEAR((lc), META_BACK_FCONN_INITED)
+#define	META_BACK_CONN_INITED_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), META_BACK_FCONN_INITED, (mlc))
+#define	META_BACK_CONN_CREATING(lc)		LDAP_BACK_CONN_ISSET((lc), META_BACK_FCONN_CREATING)
+#define	META_BACK_CONN_CREATING_SET(lc)		LDAP_BACK_CONN_SET((lc), META_BACK_FCONN_CREATING)
+#define	META_BACK_CONN_CREATING_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), META_BACK_FCONN_CREATING)
+#define	META_BACK_CONN_CREATING_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), META_BACK_FCONN_CREATING, (mlc))
+
 struct metainfo_t;
 
-typedef struct metasingleconn_t {
-	int			msc_candidate;
-#define	META_NOT_CANDIDATE	((ber_tag_t)0x0)
-#define	META_CANDIDATE		((ber_tag_t)0x1)
-#define	META_BINDING		((ber_tag_t)0x2)
+#define	META_NOT_CANDIDATE		((ber_tag_t)0x0)
+#define	META_CANDIDATE			((ber_tag_t)0x1)
+#define	META_BINDING			((ber_tag_t)0x2)
+#define	META_RETRYING			((ber_tag_t)0x4)
 
+typedef struct metasingleconn_t {
 #define META_CND_ISSET(rs,f)		( ( (rs)->sr_tag & (f) ) == (f) )
 #define META_CND_SET(rs,f)		( (rs)->sr_tag |= (f) )
 #define META_CND_CLEAR(rs,f)		( (rs)->sr_tag &= ~(f) )
@@ -179,6 +208,9 @@ typedef struct metasingleconn_t {
 #define META_IS_BINDING(rs)		META_CND_ISSET( (rs), META_BINDING )
 #define META_BINDING_SET(rs)		META_CND_SET( (rs), META_BINDING )
 #define META_BINDING_CLEAR(rs)		META_CND_CLEAR( (rs), META_BINDING )
+#define META_IS_RETRYING(rs)		META_CND_ISSET( (rs), META_RETRYING )
+#define META_RETRYING_SET(rs)		META_CND_SET( (rs), META_RETRYING )
+#define META_RETRYING_CLEAR(rs)		META_CND_CLEAR( (rs), META_RETRYING )
 	
 	LDAP            	*msc_ld;
 	time_t			msc_time;
@@ -188,8 +220,6 @@ typedef struct metasingleconn_t {
 	/* NOTE: lc_lcflags is redefined to msc_mscflags to reuse the macros
 	 * defined for back-ldap */
 #define	lc_lcflags		msc_mscflags
-
-	struct metainfo_t	*msc_info;
 } metasingleconn_t;
 
 typedef struct metaconn_t {
@@ -212,6 +242,11 @@ typedef struct metaconn_t {
 	int             	mc_authz_target;
 #define META_BOUND_NONE		(-1)
 #define META_BOUND_ALL		(-2)
+
+	struct metainfo_t	*mc_info;
+
+	LDAP_TAILQ_ENTRY(metaconn_t)	mc_q;
+
 	/* supersedes the connection stuff */
 	metasingleconn_t	mc_conns[ 1 ];
 	/* NOTE: mc_conns must be last, because
@@ -263,7 +298,6 @@ typedef struct metatarget_t {
 	sig_atomic_t		mt_isquarantined;
 	slap_retry_info_t	mt_quarantine;
 	ldap_pvt_thread_mutex_t	mt_quarantine_mutex;
-#define	META_BACK_TGT_QUARANTINE(mt)	( (mt)->mt_quarantine.ri_num != NULL )
 
 	unsigned		mt_flags;
 #define	META_BACK_TGT_ISSET(mt,f)		( ( (mt)->mt_flags & (f) ) == (f) )
@@ -276,6 +310,7 @@ typedef struct metatarget_t {
 #define	META_BACK_TGT_IGNORE(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_IGNORE )
 #define	META_BACK_TGT_CANCEL(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
 #define	META_BACK_TGT_CANCEL_DISCOVER(mt)	META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
+#define	META_BACK_TGT_QUARANTINE(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_QUARANTINE )
 
 	int			mt_version;
 	time_t			mt_network_timeout;
@@ -317,25 +352,41 @@ typedef struct metainfo_t {
 
 	metadncache_t		mi_cache;
 	
+	/* cached connections; 
+	 * special conns are in tailq rather than in tree */
 	ldap_avl_info_t		mi_conninfo;
+	struct {
+		int						mic_num;
+		LDAP_TAILQ_HEAD(mc_conn_priv_q, metaconn_t)	mic_priv;
+	}			mi_conn_priv[ LDAP_BACK_PCONN_LAST ];
+	int			mi_conn_priv_max;
 
 	/* NOTE: quarantine uses the connection mutex */
 	slap_retry_info_t	mi_quarantine;
-
-#define	META_BACK_QUARANTINE(mi)	( (mi)->mi_quarantine.ri_num != NULL )
 	meta_back_quarantine_f	mi_quarantine_f;
 	void			*mi_quarantine_p;
 
 	unsigned		mi_flags;
 #define	li_flags		mi_flags
 /* uses flags as defined in <back-ldap/back-ldap.h> */
-#define	META_BACK_F_ONERR_STOP		(0x00010000U)
-#define	META_BACK_F_DEFER_ROOTDN_BIND	(0x00020000U)
+#define	META_BACK_F_ONERR_STOP		(0x00100000U)
+#define	META_BACK_F_ONERR_REPORT	(0x00200000U)
+#define	META_BACK_F_ONERR_MASK		(META_BACK_F_ONERR_STOP|META_BACK_F_ONERR_REPORT)
+#define	META_BACK_F_DEFER_ROOTDN_BIND	(0x00400000U)
+#define	META_BACK_F_PROXYAUTHZ_ALWAYS	(0x00800000U)	/* users always proxyauthz */
+#define	META_BACK_F_PROXYAUTHZ_ANON	(0x01000000U)	/* anonymous always proxyauthz */
+#define	META_BACK_F_PROXYAUTHZ_NOANON	(0x02000000U)	/* anonymous remains anonymous */
 
-#define	META_BACK_ONERR_STOP(mi)	( (mi)->mi_flags & META_BACK_F_ONERR_STOP )
-#define	META_BACK_ONERR_CONTINUE(mi)	( !META_BACK_ONERR_CONTINUE( (mi) ) )
+#define	META_BACK_ONERR_STOP(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_STOP )
+#define	META_BACK_ONERR_REPORT(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_REPORT )
+#define	META_BACK_ONERR_CONTINUE(mi)	( !LDAP_BACK_ISSET( (mi), META_BACK_F_ONERR_MASK ) )
 
-#define META_BACK_DEFER_ROOTDN_BIND(mi)	( (mi)->mi_flags & META_BACK_F_DEFER_ROOTDN_BIND )
+#define META_BACK_DEFER_ROOTDN_BIND(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_DEFER_ROOTDN_BIND )
+#define META_BACK_PROXYAUTHZ_ALWAYS(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_ALWAYS )
+#define META_BACK_PROXYAUTHZ_ANON(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_ANON )
+#define META_BACK_PROXYAUTHZ_NOANON(mi)	LDAP_BACK_ISSET( (mi), META_BACK_F_PROXYAUTHZ_NOANON )
+
+#define META_BACK_QUARANTINE(mi)	LDAP_BACK_ISSET( (mi), LDAP_BACK_F_QUARANTINE )
 
 	int			mi_version;
 	time_t			mi_network_timeout;
@@ -363,10 +414,10 @@ meta_back_getconn(
 
 extern void
 meta_back_release_conn_lock(
-       	Operation 		*op,
+       	metainfo_t		*mi,
 	metaconn_t		*mc,
 	int			dolock );
-#define meta_back_release_conn(op, mc)	meta_back_release_conn_lock( (op), (mc), 1 )
+#define meta_back_release_conn(mi, mc)	meta_back_release_conn_lock( (mi), (mc), 1 )
 
 extern int
 meta_back_retry(
@@ -383,7 +434,7 @@ meta_back_conn_free(
 #if META_BACK_PRINT_CONNTREE > 0
 extern void
 meta_back_print_conntree(
-	Avlnode			*root,
+	metainfo_t		*mi,
 	char			*msg );
 #endif
 
@@ -394,7 +445,8 @@ meta_back_init_one_conn(
 	metaconn_t		*mc,
 	int			candidate,
 	int			ispriv,
-	ldap_back_send_t	sendok );
+	ldap_back_send_t	sendok,
+	int			dolock );
 
 extern void
 meta_back_quarantine(
@@ -490,12 +542,9 @@ meta_clear_unused_candidates(
 
 extern int
 meta_clear_one_candidate(
-	metasingleconn_t	*mc );
-
-extern int
-meta_clear_candidates(
 	Operation		*op,
-	metaconn_t		*mc );
+	metaconn_t		*mc,
+	int			candidate );
 
 /*
  * Dn cache stuff (experimental)

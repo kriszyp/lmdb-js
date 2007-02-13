@@ -1,4 +1,4 @@
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Using TLS
@@ -6,25 +6,26 @@ H1: Using TLS
 OpenLDAP clients and servers are capable of using the
 {{TERM[expand]TLS}} ({{TERM:TLS}}) framework to provide
 integrity and confidentiality protections and to support
-LDAP authentication using the {{TERM:SASL}} EXTERNAL mechanism. 
+LDAP authentication using the {{TERM:SASL}} {{TERM:EXTERNAL}} mechanism. 
 TLS is defined in {{REF:RFC4346}}.
 
 H2: TLS Certificates
 
 TLS uses {{TERM:X.509}} certificates to carry client and server
-identities. All servers are required to have valid certificates,
-whereas client certificates are optional. Clients must have a
+identities.  All servers are required to have valid certificates,
+whereas client certificates are optional.  Clients must have a
 valid certificate in order to authenticate via SASL EXTERNAL.
 For more information on creating and managing certificates,
 see the {{PRD:OpenSSL}} documentation.
 
 H3: Server Certificates
 
-The DN of a server certificate must use the CN attribute
-to name the server, and the {{EX:CN}} must carry the server's
-fully qualified domain name. Additional alias names and wildcards
-may be present in the {{EX:subjectAltName}} certificate extension.
-More details on server certificate names are in {{REF:RFC4513}}.
+The {{TERM:DN}} of a server certificate must use the {{EX:CN}}
+attribute to name the server, and the {{EX:CN}} must carry the
+server's fully qualified domain name. Additional alias names and
+wildcards may be present in the {{EX:subjectAltName}} certificate
+extension.  More details on server certificate names are in
+{{REF:RFC4513}}.
 
 H3: Client Certificates
 
@@ -117,29 +118,29 @@ and {{EX:SSLv2}}.
 H4: TLSRandFile <filename>
 
 This directive specifies the file to obtain random bits from when
-{{EX:/dev/urandom}} is not available. If the
-system provides {{EX:/dev/urandom}} then this option is not needed,
-otherwise a source of random data must be configured.
-Some systems (e.g. Linux)
-provide {{EX:/dev/urandom}} by default, while others (e.g. Solaris)
+{{FILE:/dev/urandom}} is not available. If the system provides
+{{FILE:/dev/urandom}} then this option is not needed, otherwise a
+source of random data must be configured.  Some systems (e.g. Linux)
+provide {{FILE:/dev/urandom}} by default, while others (e.g. Solaris)
 require the installation of a patch to provide it, and others may
 not support it at all. In the latter case, EGD or PRNGD should be
 installed, and this directive should specify the name of the EGD/PRNGD
-socket. The environment variable {{EX:RANDFILE}} can also be used to specify
-the filename. Also, in the absence of these options, the {{EX:.rnd}}
-file in the slapd user's home directory may be used if it exists. To
-use the {{EX:.rnd}} file, just create the file and copy a few hundred
-bytes of arbitrary data into the file. The file is only used to
-provide a seed for the pseudo-random number generator, and it doesn't
-need very much data to work.
+socket. The environment variable {{EX:RANDFILE}} can also be used
+to specify the filename. Also, in the absence of these options, the
+{{EX:.rnd}} file in the slapd user's home directory may be used if
+it exists. To use the {{EX:.rnd}} file, just create the file and
+copy a few hundred bytes of arbitrary data into the file. The file
+is only used to provide a seed for the pseudo-random number generator,
+and it doesn't need very much data to work.
 
 H4: TLSEphemeralDHParamFile <filename>
 
-This directive specifies the file that contains parameters for Diffie-Hellman
-ephemeral key exchange.  This is required in order to use a DSA certificate on
-the server side (i.e. {{EX:TLSCertificateKeyFile}} points to a DSA key).
-Multiple sets of parameters can be included in the file; all of them will
-be processed.  Parameters can be generated using the following command
+This directive specifies the file that contains parameters for
+Diffie-Hellman ephemeral key exchange.  This is required in order
+to use a DSA certificate on the server side (i.e.
+{{EX:TLSCertificateKeyFile}} points to a DSA key).  Multiple sets
+of parameters can be included in the file; all of them will be
+processed.  Parameters can be generated using the following command
 
 >	openssl dhparam [-dsaparam] -out <filename> <numbits>
 
@@ -177,8 +178,8 @@ be configured on a system-wide basis, they may all be overridden by
 individual users in their {{.ldaprc}} files.
 
 The LDAP Start TLS operation is used in LDAP to initiate TLS
-negotatation.  All OpenLDAP command line tools support a {{E:-Z}}
-and {{E:-ZZ}} flag to indicate whether a Start TLS operation is to
+negotatation.  All OpenLDAP command line tools support a {{EX:-Z}}
+and {{EX:-ZZ}} flag to indicate whether a Start TLS operation is to
 be issued.  The latter flag indicates that the tool is to cease
 processing if TLS cannot be started while the former allows the
 command to continue.
@@ -186,7 +187,7 @@ command to continue.
 In LDAPv2 environments, TLS is normally started using the LDAP
 Secure URI scheme ({{EX:ldaps://}}) instead of the normal LDAP URI
 scheme ({{EX:ldap://}}).  OpenLDAP command line tools allow either
-scheme to used with the {{EX:-U}} flag and with the {{EX:URI}}
+scheme to used with the {{EX:-H}} flag and with the {{EX:URI}}
 {{ldap.conf}}(5) option.
 
 

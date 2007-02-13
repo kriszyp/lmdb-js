@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,16 +15,6 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
-
-/* An Unbind Request looks like this:
- *
- *	UnbindRequest ::= NULL
- *
- * and has no response.
- */
 
 #include "portable.h"
 
@@ -36,6 +26,13 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/* An Unbind Request looks like this:
+ *
+ *	UnbindRequest ::= [APPLICATION 2] NULL
+ *
+ * and has no response.  (Source: RFC 4511)
+ */
 
 int
 ldap_unbind_ext(
@@ -146,16 +143,6 @@ ldap_ld_free(
 		ld->ld_options.ldo_peer = NULL;
 	}
 #endif
-
-	if ( ld->ld_options.ldo_tm_api != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_tm_api );
-		ld->ld_options.ldo_tm_api = NULL;
-	}
-
-	if ( ld->ld_options.ldo_tm_net != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_tm_net );
-		ld->ld_options.ldo_tm_net = NULL;
-	}
 
 #ifdef HAVE_CYRUS_SASL
 	if ( ld->ld_options.ldo_def_sasl_mech != NULL ) {

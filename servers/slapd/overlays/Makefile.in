@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 2003-2006 The OpenLDAP Foundation.
+## Copyright 2003-2007 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -18,10 +18,8 @@ SRCS = overlays.c \
 	auditlog.c \
 	constraint.c \
 	dds.c \
-	denyop.c \
 	dyngroup.c \
 	dynlist.c \
-	lastmod.c \
 	pcache.c \
 	ppolicy.c \
 	refint.c \
@@ -72,17 +70,11 @@ constraint.la : constraint.lo
 dds.la : dds.lo
 	$(LTLINK_MOD) -module -o $@ dds.lo version.lo $(LINK_LIBS)
 
-denyop.la : denyop.lo
-	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
-
 dyngroup.la : dyngroup.lo
 	$(LTLINK_MOD) -module -o $@ dyngroup.lo version.lo $(LINK_LIBS)
 
 dynlist.la : dynlist.lo
 	$(LTLINK_MOD) -module -o $@ dynlist.lo version.lo $(LINK_LIBS)
-
-lastmod.la : lastmod.lo
-	$(LTLINK_MOD) -module -o $@ lastmod.lo version.lo $(LINK_LIBS)
 
 pcache.la : pcache.lo
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Portions Copyright 2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -32,6 +32,7 @@
 #include <ac/ctype.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
+#include <ac/time.h>
 
 #ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_SASL_H
@@ -51,18 +52,6 @@
 #include "lber_pvt.h"
 
 #include "common.h"
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-#if !LDAP_DEPRECATED
-/* Necessary for old LDAPv2 Kerberos Bind methods */
-LDAP_F( int )
-ldap_bind LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who,
-	LDAP_CONST char *passwd,
-	int authmethod ));
-#endif
-#endif
 
 /* input-related vars */
 
@@ -124,6 +113,9 @@ int		chaining = 0;
 static int	chainingResolve = -1;
 static int	chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+/* options */
+struct timeval	nettimeout = { -1 , 0 };
 
 typedef int (*print_ctrl_fn)( LDAP *ld, LDAPControl *ctrl );
 
@@ -210,16 +202,18 @@ N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n")
 #ifdef LDAP_DEVEL
 N_("             [!]relax\n")
 #endif
-N_("             abandon, cancel (SIGINT sends abandon/cancel; not really controls)\n"),
+N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
+   "             or ignores response; if critical, doesn't wait for SIGINT.\n"
+   "             not really controls)\n")
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
-N_("  -k         use Kerberos authentication\n"),
-N_("  -K         like -k, but do only step 1 of the Kerberos bind\n"),
 N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
 N_("  -O props   SASL security properties\n"),
+N_("  -o <opt>[=<optparam] general options\n"),
+N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
 N_("  -p port    port on LDAP server\n"),
 N_("  -P version procotol version (default: 3)\n"),
 N_("  -Q         use SASL Quiet mode\n"),
@@ -510,9 +504,21 @@ tool_args( int argc, char **argv )
 			/* this shouldn't go here, really; but it's a feature... */
 			} else if ( strcasecmp( control, "abandon" ) == 0 ) {
 				abcan = LDAP_REQ_ABANDON;
+				if ( crit ) {
+					gotintr = abcan;
+				}
 
 			} else if ( strcasecmp( control, "cancel" ) == 0 ) {
 				abcan = LDAP_REQ_EXTENDED;
+				if ( crit ) {
+					gotintr = abcan;
+				}
+
+			} else if ( strcasecmp( control, "ignore" ) == 0 ) {
+				abcan = -1;
+				if ( crit ) {
+					gotintr = abcan;
+				}
 
 			} else {
 				fprintf( stderr, "Invalid general control name: %s\n",
@@ -557,38 +563,51 @@ tool_args( int argc, char **argv )
 				prog );
 			exit( EXIT_FAILURE );
 #endif
-		case 'k':	/* kerberos bind */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-			if( authmethod != -1 ) {
-				fprintf( stderr, "%s: -k incompatible with previous "
-					"authentication choice\n", prog );
-				exit( EXIT_FAILURE );
-			}
-			authmethod = LDAP_AUTH_KRBV4;
-#else
-			fprintf( stderr, "%s: not compiled with Kerberos support\n", prog );
-			exit( EXIT_FAILURE );
-#endif
-			break;
-		case 'K':	/* kerberos bind, part one only */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-			if( authmethod != -1 ) {
-				fprintf( stderr, "%s: incompatible with previous "
-					"authentication choice\n", prog );
-				exit( EXIT_FAILURE );
-			}
-			authmethod = LDAP_AUTH_KRBV41;
-#else
-			fprintf( stderr, "%s: not compiled with Kerberos support\n", prog );
-			exit( EXIT_FAILURE );
-#endif
-			break;
 		case 'M':
 			/* enable Manage DSA IT */
 			manageDSAit++;
 			break;
 		case 'n':	/* print operations, don't actually do them */
 			dont++;
+			break;
+		case 'o':
+			control = ber_strdup( optarg );
+			if ( (cvalue = strchr( control, '=' )) != NULL ) {
+				*cvalue++ = '\0';
+			}
+
+			if ( strcasecmp( control, "nettimeout" ) == 0 ) {
+				if( nettimeout.tv_sec != -1 ) {
+					fprintf( stderr, "nettimeout option previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+				if( cvalue == NULL || cvalue[0] == '\0' ) {
+					fprintf( stderr, "nettimeout: option value expected\n" );
+					usage();
+				}
+		 		if ( strcasecmp( cvalue, "none" ) == 0 ) {
+		 			nettimeout.tv_sec = 0;
+		 		} else if ( strcasecmp( cvalue, "max" ) == 0 ) {
+		 			nettimeout.tv_sec = LDAP_MAXINT;
+		 		} else {
+		 			ival = strtol( cvalue, &next, 10 );
+		 			if ( next == NULL || next[0] != '\0' ) {
+		 				fprintf( stderr,
+		 					_("Unable to parse network timeout \"%s\"\n"), cvalue );
+		 				exit( EXIT_FAILURE );
+		 			}
+		 			nettimeout.tv_sec = ival;
+		 		}
+		 		if( nettimeout.tv_sec < 0 || nettimeout.tv_sec > LDAP_MAXINT ) {
+		 			fprintf( stderr, _("%s: invalid network timeout (%ld) specified\n"),
+		 				prog, (long)nettimeout.tv_sec );
+	 				exit( EXIT_FAILURE );
+ 				}
+			} else {
+				fprintf( stderr, "Invalid general option name: %s\n",
+					control );
+				usage();
+			}
 			break;
 		case 'O':
 #ifdef HAVE_CYRUS_SASL
@@ -892,15 +911,6 @@ tool_args( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 #endif
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	} else {
-		if ( authmethod == LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
-			fprintf( stderr, "%s: -k/-K incompatible with LDAPv%d\n",
-				prog, protocol );
-			exit( EXIT_FAILURE );
-		}
-#endif
 	}
 }
 
@@ -989,6 +999,16 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 				}
 			}
 		}
+
+		if ( nettimeout.tv_sec > 0 ) {
+	 		if ( ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, (void *) &nettimeout )
+				!= LDAP_OPT_SUCCESS )
+			{
+		 		fprintf( stderr, "Could not set LDAP_OPT_NETWORK_TIMEOUT %ld\n",
+					(long)nettimeout.tv_sec );
+	 			exit( EXIT_FAILURE );
+			}
+		}
 	}
 
 	return ld;
@@ -1069,15 +1089,6 @@ tool_bind( LDAP *ld )
 
 		msgbuf[0] = 0;
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-		if ( authmethod == LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
-			msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod );
-			if ( msgid == -1 ) {
-				tool_perror( "ldap_bind", -1, NULL, NULL, NULL, NULL );
-				exit( LDAP_LOCAL_ERROR );
-			}
-		} else
-#endif
 		{
 			/* simple bind */
 			rc = ldap_sasl_bind( ld, binddn, LDAP_SASL_SIMPLE, &passwd,
@@ -1426,6 +1437,10 @@ tool_check_abandon( LDAP *ld, int msgid )
 		rc = ldap_abandon_ext( ld, msgid, NULL, NULL );
 		fprintf( stderr, "got interrupt, abandon got %d: %s\n",
 				rc, ldap_err2string( rc ) );
+		return -1;
+
+	case -1:
+		/* just unbind, ignoring the request */
 		return -1;
 	}
 

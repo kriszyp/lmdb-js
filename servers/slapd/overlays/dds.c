@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2006 The OpenLDAP Foundation.
+ * Copyright 2005-2007 The OpenLDAP Foundation.
  * Portions Copyright 2005-2006 SysNet s.n.c.
  * All rights reserved.
  *
@@ -1730,7 +1730,6 @@ dds_db_open(
 	rc = entry_info_register( dds_entry_info, (void *)di );
 
 done:;
-	ldap_pvt_thread_pool_context_reset( thrctx );
 
 	return rc;
 }
@@ -1837,7 +1836,6 @@ dds_initialize()
 {
 	int		rc = 0;
 	int		i, code;
-	const char	*err;
 
 	/* Make sure we don't exceed the bits reserved for userland */
 	config_check_userland( DDS_LAST );

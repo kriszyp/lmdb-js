@@ -5,6 +5,7 @@ uid: danger
 sn: warning
 cn: danger
 businessCategory: backend-opaque
+initials: dw
 carLicense: BACK
 departmentNumber: 7341
 displayName: Warning

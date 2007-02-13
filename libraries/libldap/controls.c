@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,15 @@
  * can be found in the file "build/LICENSE-2.0.1" in this distribution
  * of OpenLDAP Software.
  */
-/* Portions Copyright (C) The Internet Society (2006)
- * ASN.1 fragments are from RFC 4511; see RFC for full legal notices.
- */
+
+#include "portable.h"
+
+#include <ac/stdlib.h>
+
+#include <ac/time.h>
+#include <ac/string.h>
+
+#include "ldap-int.h"
 
 /* LDAPv3 Controls (RFC 4511)
  *
@@ -44,16 +50,6 @@
  *		controlValue	OCTET STRING OPTIONAL
  *	}
  */
-
-#include "portable.h"
-
-#include <ac/stdlib.h>
-
-#include <ac/time.h>
-#include <ac/string.h>
-
-#include "ldap-int.h"
-
 
 /*
  * ldap_int_put_controls

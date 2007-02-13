@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,9 +45,8 @@ extern BI_connection_destroy	ldap_back_conn_destroy;
 
 extern BI_entry_get_rw		ldap_back_entry_get;
 
-int ldap_back_freeconn( Operation *op, ldapconn_t *lc, int dolock );
-void ldap_back_release_conn_lock( Operation *op, SlapReply *rs, ldapconn_t **lcp, int dolock );
-#define ldap_back_release_conn(op, rs, lc) ldap_back_release_conn_lock((op), (rs), &(lc), 1)
+void ldap_back_release_conn_lock( ldapinfo_t *li, ldapconn_t **lcp, int dolock );
+#define ldap_back_release_conn(li, lc) ldap_back_release_conn_lock((li), &(lc), 1)
 int ldap_back_dobind( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
 int ldap_back_map_result( SlapReply *rs );
@@ -61,6 +60,8 @@ extern int ldap_back_conndn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conndn_dup( void *c1, void *c2 );
 extern void ldap_back_conn_free( void *c );
+
+extern ldapconn_t * ldap_back_conn_delete( ldapinfo_t *li, ldapconn_t *lc );
 
 extern int
 ldap_back_proxy_authz_ctrl(
@@ -83,7 +84,7 @@ ldap_back_quarantine(
 
 #ifdef LDAP_BACK_PRINT_CONNTREE
 extern void
-ldap_back_print_conntree( Avlnode *root, char *msg );
+ldap_back_print_conntree( ldapinfo_t *li, char *msg );
 #endif /* LDAP_BACK_PRINT_CONNTREE */
 
 extern void slap_retry_info_destroy( slap_retry_info_t *ri );

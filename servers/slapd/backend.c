@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -422,7 +422,7 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	}
 
 	if ( bd->be_syncinfo ) {
-		syncinfo_free( bd->be_syncinfo );
+		syncinfo_free( bd->be_syncinfo, 1 );
 	}
 
 	backend_stopdown_one( bd );
@@ -530,13 +530,48 @@ BackendInfo* backend_info(const char *type)
 	return NULL;
 }
 
+void
+backend_db_insert(
+	BackendDB *be,
+	int idx
+)
+{
+	/* If idx < 0, just add to end of list */
+	if ( idx < 0 ) {
+		LDAP_STAILQ_INSERT_TAIL(&backendDB, be, be_next);
+	} else if ( idx == 0 ) {
+		LDAP_STAILQ_INSERT_HEAD(&backendDB, be, be_next);
+	} else {
+		int i;
+		BackendDB *b2;
+
+		b2 = LDAP_STAILQ_FIRST(&backendDB);
+		idx--;
+		for (i=0; i<idx; i++) {
+			b2 = LDAP_STAILQ_NEXT(b2, be_next);
+		}
+		LDAP_STAILQ_INSERT_AFTER(&backendDB, b2, be, be_next);
+	}
+}
+
+void
+backend_db_move(
+	BackendDB *be,
+	int idx
+)
+{
+	LDAP_STAILQ_REMOVE(&backendDB, be, slap_backend_db, be_next);
+	backend_db_insert(be, idx);
+}
 
 BackendDB *
 backend_db_init(
     const char	*type,
-	BackendDB *be )
+	BackendDB *b0,
+	int idx )
 {
 	BackendInfo *bi = backend_info(type);
+	BackendDB *be = b0;
 	int	rc = 0;
 
 	if( bi == NULL ) {
@@ -549,8 +584,11 @@ backend_db_init(
 	 */
 	if ( !be ) {
 		be = ch_calloc( 1, sizeof(Backend) );
+		/* Just append */
+		if ( idx >= nbackends )
+			idx = -1;
 		nbackends++;
-		LDAP_STAILQ_INSERT_TAIL(&backendDB, be, be_next);
+		backend_db_insert( be, idx );
 	}
 
 	be->bd_info = bi;
@@ -574,11 +612,16 @@ backend_db_init(
 
 	if ( rc != 0 ) {
 		fprintf( stderr, "database init failed (%s)\n", type );
-		nbackends--;
-		return NULL;
+		/* If we created and linked this be, remove it and free it */
+		if ( !b0 ) {
+			LDAP_STAILQ_REMOVE(&backendDB, be, slap_backend_db, be_next);
+			ch_free( be );
+			be = NULL;
+			nbackends--;
+		}
+	} else {
+		bi->bi_nDB++;
 	}
-
-	bi->bi_nDB++;
 	return( be );
 }
 
@@ -852,18 +895,13 @@ backend_check_controls(
 
 			case LDAP_COMPARE_FALSE:
 				if ( !op->o_bd->be_ctrls[cid] && (*ctrls)->ldctl_iscritical ) {
-					/* Per RFC 2251 (and LDAPBIS discussions), if the control
-					 * is recognized and appropriate for the operation (which
-					 * we've already verified), then the server should make
-					 * use of the control when performing the operation.
-					 * 
-					 * Here we find that operation extended by the control
-					 * is unavailable in a particular context, and the control
-					 * is marked Critical, hence the return of
-					 * unwillingToPerform.
+					/* RFC 4511 allows unavailableCriticalExtension to be
+					 * returned when the server is unwilling to perform
+					 * an operation extended by a recognized critical
+					 * control.
 					 */
 					rs->sr_text = "critical control unavailable in context";
-					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 					goto done;
 				}
 				break;
@@ -1709,7 +1747,6 @@ fe_aux_operational(
 {
 	Attribute		**ap;
 	int			rc = 0;
-	BackendDB		*be_orig;
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count them */ ;
@@ -1735,14 +1772,14 @@ fe_aux_operational(
 		ap = &(*ap)->a_next;
 	}
 
-	if ( op->o_bd != NULL )
-	{
+	if ( op->o_bd != NULL ) {
+		BackendDB		*be_orig = op->o_bd;
+
 		/* Let the overlays have a chance at this */
-		be_orig = op->o_bd;
 		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
-		if ( !be_match( op->o_bd, frontendDB ) &&
+		if ( op->o_bd != NULL && !be_match( op->o_bd, frontendDB ) &&
 			( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
-			op->o_bd != NULL && op->o_bd->be_operational != NULL )
+			op->o_bd->be_operational != NULL )
 		{
 			rc = op->o_bd->be_operational( op, rs );
 		}

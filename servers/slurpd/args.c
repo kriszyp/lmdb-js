@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,11 +52,7 @@ usage( char *name )
 {
     fprintf( stderr, "usage: %s\t[-d debug-level] [-s syslog-level]\n", name );
     fprintf( stderr, "\t\t[-f slapd-config-file] [-r replication-log-file]\n" );
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-    fprintf( stderr, "\t\t[-t tmp-dir] [-o] [-k srvtab-file]\n" );
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     fprintf( stderr, "\t\t[-t tmp-dir] [-o]\n" );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     fprintf( stderr, "\t\t[-n service-name]\n" );
 }
 

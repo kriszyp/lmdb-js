@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,12 @@ struct module_regtable_t {
 typedef struct module_loaded_t {
 	struct module_loaded_t *next;
 	lt_dlhandle lib;
+	char name[1];
 } module_loaded_t;
 
 module_loaded_t *module_list = NULL;
 
-static int module_unload (module_loaded_t *module);
+static int module_int_unload (module_loaded_t *module);
 
 #ifdef HAVE_EBCDIC
 static char ebuf[BUFSIZ];
@@ -74,7 +75,7 @@ int module_kill (void)
 {
 	/* unload all modules before shutdown */
 	while (module_list != NULL) {
-		module_unload(module_list);
+		module_int_unload(module_list);
 	}
 
 	if (lt_dlexit()) {
@@ -91,6 +92,30 @@ int module_kill (void)
 	return 0;
 }
 
+void * module_handle( const char *file_name )
+{
+	module_loaded_t *module;
+
+	for ( module = module_list; module; module= module->next ) {
+		if ( !strcmp( module->name, file_name )) {
+			return module;
+		}
+	}
+	return NULL;
+}
+
+int module_unload( const char *file_name )
+{
+	module_loaded_t *module;
+
+	module = module_handle( file_name );
+	if ( module ) {
+		module_int_unload( module );
+		return 0;
+	}
+	return -1;	/* not found */
+}
+
 int module_load(const char* file_name, int argc, char *argv[])
 {
 	module_loaded_t *module = NULL;
@@ -103,13 +128,15 @@ int module_load(const char* file_name, int argc, char *argv[])
 #define	file	file_name
 #endif
 
-	module = (module_loaded_t *)ch_calloc(1, sizeof(module_loaded_t));
+	module = (module_loaded_t *)ch_calloc(1, sizeof(module_loaded_t) +
+		strlen(file_name));
 	if (module == NULL) {
 		Debug(LDAP_DEBUG_ANY, "module_load failed: (%s) out of memory\n", file_name,
 			0, 0);
 
 		return -1;
 	}
+	strcpy( module->name, file_name );
 
 #ifdef HAVE_EBCDIC
 	strcpy( file, file_name );
@@ -183,7 +210,7 @@ int module_load(const char* file_name, int argc, char *argv[])
 		Debug(LDAP_DEBUG_CONFIG, "module %s: unknown registration type (%d)\n",
 			file_name, rc, 0);
 
-		module_unload(module);
+		module_int_unload(module);
 		return -1;
 	}
 
@@ -192,7 +219,7 @@ int module_load(const char* file_name, int argc, char *argv[])
 		Debug(LDAP_DEBUG_CONFIG, "module %s: %s module could not be registered\n",
 			file_name, module_regtable[rc].type, 0);
 
-		module_unload(module);
+		module_int_unload(module);
 		return rc;
 	}
 
@@ -227,7 +254,7 @@ void *module_resolve (const void *module, const char *name)
 	return(lt_dlsym(((module_loaded_t *)module)->lib, name));
 }
 
-static int module_unload (module_loaded_t *module)
+static int module_int_unload (module_loaded_t *module)
 {
 	module_loaded_t *mod;
 	MODULE_TERM_FN terminate;

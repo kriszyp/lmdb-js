@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -710,11 +710,14 @@ bitStringValidate(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	/*
-	 * RFC 2252 section 6.3 Bit String
-	 *	bitstring = "'" *binary-digit "'B"
-	 *	binary-digit = "0" / "1"
-	 * example: '0101111101'B
+	/* RFC 4517 Section 3.3.2 Bit String:
+     *	BitString    = SQUOTE *binary-digit SQUOTE "B"
+     *	binary-digit = "0" / "1"
+	 *
+	 * where SQUOTE [RFC4512] is
+	 *	SQUOTE  = %x27 ; single quote ("'")
+	 *
+	 * Example: '0101111101'B
 	 */
 	
 	if( in->bv_val[0] != '\'' ||
@@ -734,39 +737,7 @@ bitStringValidate(
 }
 
 /*
- * Syntax is [RFC2252]:
- *
-
-6.3. Bit String
-
-   ( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )
-
-   Values in this syntax are encoded according to the following BNF:
-
-      bitstring = "'" *binary-digit "'B"
-
-      binary-digit = "0" / "1"
-
-   ... 
-
-6.21. Name And Optional UID
-
-   ( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )
-
-   Values in this syntax are encoded according to the following BNF:
-
-      NameAndOptionalUID = DistinguishedName [ "#" bitstring ]
-
-   Although the '#' character may occur in a string representation of a
-   distinguished name, no additional special quoting is done.  This
-   syntax has been added subsequent to RFC 1778.
-
-   Example:
-
-      1.3.6.1.4.1.1466.0=#04024869,O=Test,C=GB#'0101'B
-
- *
- * draft-ietf-ldapbis-syntaxes-xx.txt says:
+ * Syntaxes from RFC 4517
  *
 
 3.3.2.  Bit String
@@ -824,7 +795,7 @@ bitStringValidate(
    [X.520].
 
  *
- * draft-ietf-ldapbis-models-xx.txt [MODELS] says:
+ * RFC 4512 says:
  *
 
 1.4. Common ABNF Productions
@@ -842,11 +813,11 @@ bitStringValidate(
  * 
  * 1.3.6.1.4.1.1466.0=#04024869,o=test,c=gb#'101'B
  * 
- * Since draft-ietf-ldapbis-dn-xx.txt clarifies that SHARP,
- * i.e. "#", doesn't have to be escaped except when at the
- * beginning of a value, the definition of Name and Optional
- * UID appears to be flawed, because there is no clear means
- * to determine whether the UID part is present or not.
+ * RFC 4514 clarifies that SHARP, i.e. "#", doesn't have to
+ * be escaped except when at the beginning of a value, the
+ * definition of Name and Optional UID appears to be flawed,
+ * because there is no clear means to determine whether the
+ * UID part is present or not.
  *
  * Example:
  *
@@ -1292,7 +1263,7 @@ Summary:
 
   TelephoneNumber	subset	subset	i + ignore all spaces and "-"
 
-  See draft-ietf-ldapbis-strpro for details (once published).
+  See RFC 4518 for details.
 
 
 Directory String -
@@ -2078,8 +2049,6 @@ IA5StringValidate(
 {
 	ber_len_t i;
 
-	if( BER_BVISEMPTY( val ) ) return LDAP_INVALID_SYNTAX;
-
 	for(i=0; i < val->bv_len; i++) {
 		if( !LDAP_ASCII(val->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -2101,8 +2070,6 @@ IA5StringNormalize(
 	char *p, *q;
 	int casefold = !SLAP_MR_ASSOCIATED( mr,
 		slap_schema.si_mr_caseExactIA5Match );
-
-	assert( !BER_BVISEMPTY( val ) );
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ) != 0 );
 
@@ -2140,18 +2107,12 @@ IA5StringNormalize(
 	 * position.  One is enough because the above loop collapsed
 	 * all whitespace to a single space.
 	 */
-	if ( ASCII_SPACE( q[-1] ) ) --q;
+	if ( q > normalized->bv_val && ASCII_SPACE( q[-1] ) ) --q;
 
 	/* null terminate */
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
-	if( BER_BVISEMPTY( normalized ) ) {
-		normalized->bv_val = slap_sl_realloc( normalized->bv_val, 2, ctx );
-		normalized->bv_val[0] = ' ';
-		normalized->bv_val[1] = '\0';
-		normalized->bv_len = 1;
-	}
 
 	return LDAP_SUCCESS;
 }
@@ -4194,13 +4155,13 @@ char *directoryStringSyntaxes[] = {
 };
 char *integerFirstComponentMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.27" /* INTEGER */,
-	"1.3.6.1.4.1.1466.115.121.1.17" /* ditStructureRuleDescription */,
+	"1.3.6.1.4.1.1466.115.121.1.17" /* dITStructureRuleDescription */,
 	NULL
 };
 char *objectIdentifierFirstComponentMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.38" /* OID */,
 	"1.3.6.1.4.1.1466.115.121.1.3"  /* attributeTypeDescription */,
-	"1.3.6.1.4.1.1466.115.121.1.16" /* ditContentRuleDescription */,
+	"1.3.6.1.4.1.1466.115.121.1.16" /* dITContentRuleDescription */,
 	"1.3.6.1.4.1.1466.115.121.1.54" /* ldapSyntaxDescription */,
 	"1.3.6.1.4.1.1466.115.121.1.30" /* matchingRuleDescription */,
 	"1.3.6.1.4.1.1466.115.121.1.31" /* matchingRuleUseDescription */,

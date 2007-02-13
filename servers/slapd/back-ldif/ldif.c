@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2006 The OpenLDAP Foundation.
+ * Copyright 2005-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -312,7 +312,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 
 	fd = open( path->bv_val, O_RDONLY );
 	if ( fd < 0 ) {
-		Debug( LDAP_DEBUG_ANY,
+		Debug( LDAP_DEBUG_TRACE,
 			"=> ldif_enum_tree: failed to open %s: %s\n",
 			path->bv_val, STRERROR(errno), 0 );
 		return LDAP_NO_SUCH_OBJECT;
@@ -582,7 +582,7 @@ static int apply_modify_to_entry(Entry * entry,
 			entry->e_ocflags = 0;
 		}
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check( op, entry, NULL, 0,
+		rc = entry_schema_check( op, entry, NULL, 0, 0,
 			  &rs->sr_text, textbuf, sizeof( textbuf ) );
 	}
 
@@ -792,14 +792,14 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 
 	Debug( LDAP_DEBUG_TRACE, "ldif_back_add: \"%s\"\n", dn.bv_val, 0, 0);
 
+	rs->sr_err = entry_schema_check(op, e, NULL, 0, 1,
+		&rs->sr_text, textbuf, sizeof( textbuf ) );
+	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
+
 	rs->sr_err = slap_add_opattrs( op,
 		&rs->sr_text, textbuf, sizeof( textbuf ), 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
 
-	rs->sr_err = entry_schema_check(op, e, NULL, 0,
-		&rs->sr_text, textbuf, sizeof( textbuf ) );
-	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
-				
 	ldap_pvt_thread_rdwr_wlock(&ni->li_rdwr);
 
 	dn2path(&dn, &op->o_bd->be_nsuffix[0], &ni->li_base_path, &leaf_path);
@@ -971,6 +971,9 @@ static int move_entry(Entry * entry, struct berval * ndn,
 			if(res != -1) {
 				/* if this fails we should log something bad */
 				res = unlink(path.bv_val);
+				path.bv_val[path.bv_len - STRLENOF(".ldif")] = '\0';
+				newpath.bv_val[newpath.bv_len - STRLENOF(".ldif")] = '\0';
+				res = rename(path.bv_val, newpath.bv_val);
 				res = LDAP_SUCCESS;
 			}
 			else {

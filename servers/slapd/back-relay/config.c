@@ -1,7 +1,7 @@
 /* config.c - relay backend configuration file routine */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2006 The OpenLDAP Foundation.
+ * Copyright 2004-2007 The OpenLDAP Foundation.
  * Portions Copyright 2004 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -114,7 +114,7 @@ relay_back_db_config(
 		 * where the overlay is instantiated by moving
 		 * around the "relay" directive, although this could
 		 * make slapd.conf a bit confusing. */
-		if ( overlay_config( be, "rwm" ) ) {
+		if ( overlay_config( be, "rwm", -1, NULL ) ) {
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: line %d: unable to install "
 				"rwm overlay "

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2006 The OpenLDAP Foundation.
+ * Copyright 2004-2007 The OpenLDAP Foundation.
  * Portions Copyright 2005 Symas Corporation.
  * All rights reserved.
  *
@@ -300,9 +300,9 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
-	Entry ne, *e = NULL, *re = NULL;
+	Entry *e = NULL, *re = NULL;
 	Attribute *a, *ax;
-	Modifications *m, *mm;
+	Modifications *m, **mm;
 	int del, rc, erc = 0;
 	slap_callback cb = { 0 };
 
@@ -343,10 +343,14 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 
 	if(e && rc == LDAP_SUCCESS) {
 		Debug(LDAP_DEBUG_TRACE, "=> translucent_modify: found local entry\n", 0, 0, 0);
-		for(m = op->orm_modlist; m; m = m->sml_next) {
+		for(mm = &op->orm_modlist; *mm; ) {
+			m = *mm;
 			for(a = e->e_attrs; a; a = a->a_next)
 				if(a->a_desc == m->sml_desc) break;
-			if(a) continue;		/* found local attr */
+			if(a) {
+				mm = &m->sml_next;
+				continue;		/* found local attr */
+			}
 			if(m->sml_op == LDAP_MOD_DELETE) {
 				for(a = re->e_attrs; a; a = a->a_next)
 					if(a->a_desc == m->sml_desc) break;
@@ -362,14 +366,13 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 				Debug(LDAP_DEBUG_TRACE,
 					"=> translucent_modify: silently dropping delete: %s\n",
 					m->sml_desc->ad_cname.bv_val, 0, 0);
-				for(mm = op->orm_modlist; mm->sml_next != m; mm = mm->sml_next);
-				mm->sml_next = m->sml_next;
+				*mm = m->sml_next;
 				m->sml_next = NULL;
 				slap_mods_free(m, 1);
-				m = mm;
 				continue;
 			}
 			m->sml_op = LDAP_MOD_ADD;
+			mm = &m->sml_next;
 		}
 		erc = SLAP_CB_CONTINUE;
 release:
@@ -413,6 +416,7 @@ release:
 	Debug(LDAP_DEBUG_TRACE, "=> translucent_modify: fabricating local add\n", 0, 0, 0);
 	a = NULL;
 	for(del = 0, ax = NULL, m = op->orm_modlist; m; m = m->sml_next) {
+		Attribute atmp;
 		if(((m->sml_op & LDAP_MOD_OP) != LDAP_MOD_ADD) &&
 		   ((m->sml_op & LDAP_MOD_OP) != LDAP_MOD_REPLACE)) {
 			Debug(LDAP_DEBUG_ANY,
@@ -421,15 +425,16 @@ release:
 			if((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) del++;
 			continue;
 		}
-		a = attr_alloc( m->sml_desc );
-		a->a_vals  = m->sml_values;
-		a->a_nvals = m->sml_nvalues ? m->sml_nvalues : a->a_vals;
+		atmp.a_desc = m->sml_desc;
+		atmp.a_vals = m->sml_values;
+		atmp.a_nvals = m->sml_nvalues ? m->sml_nvalues : atmp.a_vals;
+		a = attr_dup( &atmp );
 		a->a_next  = ax;
 		ax = a;
 	}
 
 	if(del && ov->strict) {
-		free_attr_chain(a);
+		attrs_free( a );
 		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
 			"attempt to delete attributes from local database");
 		return(rs->sr_err);
@@ -447,17 +452,13 @@ release:
 		return(rs->sr_err);
 	}
 
-	ne.e_id		= NOID;
-	ne.e_name	= op->o_req_dn;
-	ne.e_nname	= op->o_req_ndn;
-	ne.e_attrs	= a;
-	ne.e_ocflags	= 0;
-	ne.e_bv.bv_len	= 0;
-	ne.e_bv.bv_val	= NULL;
-	ne.e_private	= NULL;
+	e = entry_alloc();
+	ber_dupbv( &e->e_name, &op->o_req_dn );
+	ber_dupbv( &e->e_nname, &op->o_req_ndn );
+	e->e_attrs = a;
 
 	nop.o_tag	= LDAP_REQ_ADD;
-	nop.oq_add.rs_e	= &ne;
+	nop.oq_add.rs_e	= e;
 
 	glue_parent(&nop);
 
@@ -466,7 +467,8 @@ release:
 	cb.sc_next = nop.o_callback;
 	nop.o_callback = &cb;
 	rc = on->on_info->oi_orig->bi_op_add(&nop, &nrs);
-	free_attr_chain(a);
+	if ( nop.ora_e == e )
+		entry_free( e );
 
 	return(rc);
 }
@@ -687,7 +689,6 @@ static int translucent_db_config(
 static int translucent_db_init(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov;
-	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_init\n", 0, 0, 0);
 
@@ -697,7 +698,7 @@ static int translucent_db_init(BackendDB *be) {
 	ov->db.be_private = NULL;
 	ov->db.be_pcl_mutexp = &ov->db.be_pcl_mutex;
 
-	if ( !backend_db_init( "ldap", &ov->db )) {
+	if ( !backend_db_init( "ldap", &ov->db, -1 )) {
 		Debug( LDAP_DEBUG_CONFIG, "translucent: unable to open captive back-ldap\n", 0, 0, 0);
 		return 1;
 	}

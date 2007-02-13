@@ -1,12 +1,13 @@
 .TH LBER_TYPES 3 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
-.\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ber_int_t, ber_uint_t, ber_len_t, ber_slen_t, ber_tag_t,
 struct berval, BerValue, BerVarray, BerElement,
 ber_bvfree, ber_bvecfree, ber_bvecadd, ber_bvarray_free, ber_bvarray_add,
-ber_bvdup, ber_dupbv, ber_bvstr, ber_bvstrdup, ber_str2bv, ber_free
+ber_bvdup, ber_dupbv, ber_bvstr, ber_bvstrdup, ber_str2bv,
+ber_alloc_t, ber_init, ber_init2, ber_free
 \- LBER types and allocation functions
 .SH LIBRARY
 OpenLDAP LBER (liblber, -llber)
@@ -49,6 +50,12 @@ typedef struct berelement BerElement;
 .BI "struct berval *ber_bvstrdup(const char *" str ");"
 .LP
 .BI "struct berval *ber_str2bv(const char *" str ", ber_len_t " len ", int " dup ", struct berval *" bv ");"
+.LP
+.BI "BerElement *ber_alloc_t(int " options ");"
+.LP
+.BI "BerElement *ber_init(struct berval *" bv ");"
+.LP
+.BI "void ber_init2(BerElement *" ber ", struct berval *" bv ", int " options ");"
 .LP
 .BI "void ber_free(BerElement *" ber ", int " freebuf ");"
 .SH DESCRIPTION
@@ -151,10 +158,29 @@ in this version of the library.
 .LP
 .B BerElement
 is an opaque structure used to maintain state information used in
-encoding and decoding.  BerElement structures are created using
-.BR ber_alloc_t (3)
-and
-.BR ber_init (3).
+encoding and decoding.
+.BR ber_alloc_t ()
+is used to create an empty BerElement structure. If
+.B LBER_USE_DER
+is specified for the
+.I options
+parameter then data lengths for data written to the BerElement will be
+encoded in the minimal number of octets required, otherwise they will
+always be written as four byte values. 
+.BR ber_init ()
+creates a BerElement structure that is initialized with a copy of the
+data in its
+.I bv
+parameter.
+.BR ber_init2 ()
+initializes an existing BerElement
+.I ber
+using the data in the
+.I bv
+parameter. The data is referenced directly, not copied. The
+.I options
+parameter is the same as for
+.BR ber_alloc_t ().
 .BR ber_free ()
 frees a BerElement pointed to by \fIber\fP.  If \fIber\fP is NULL, the routine
 does nothing.  If \fIfreebuf\fP is zero, the internal buffer is not freed.
@@ -164,7 +190,4 @@ does nothing.  If \fIfreebuf\fP is zero, the internal buffer is not freed.
 .BR lber-memory (3)
 .LP
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

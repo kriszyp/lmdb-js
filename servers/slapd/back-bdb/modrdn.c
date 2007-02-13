@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -783,7 +783,7 @@ return_results:
 	}
 	send_ldap_result( op, rs );
 
-	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp_kbyte ) {
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
 	}

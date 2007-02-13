@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@ LDAP_BEGIN_DECL
 #define LDAP_PROTO_TCP 1 /* ldap://  */
 #define LDAP_PROTO_UDP 2 /* reserved */
 #define LDAP_PROTO_IPC 3 /* ldapi:// */
+#define LDAP_PROTO_EXT 4 /* user-defined socket/sockbuf */
 
 LDAP_F ( int )
 ldap_pvt_url_scheme2proto LDAP_P((
@@ -224,13 +225,20 @@ LDAP_F (void) ldap_pvt_sasl_remove LDAP_P(( struct sockbuf * ));
 struct ldap;
 struct ldapmsg;
 
-LDAP_F (int) ldap_open_internal_connection LDAP_P((
-	struct ldap **ldp, ber_socket_t *fdp ));
+/* abandon */
+LDAP_F ( int ) ldap_pvt_discard LDAP_P((
+	struct ldap *ld, ber_int_t msgid ));
 
 /* messages.c */
 LDAP_F( BerElement * )
 ldap_get_message_ber LDAP_P((
 	struct ldapmsg * ));
+
+/* open */
+LDAP_F (int) ldap_open_internal_connection LDAP_P((
+	struct ldap **ldp, ber_socket_t *fdp ));
+LDAP_F (int) ldap_init_fd LDAP_P((
+	ber_socket_t fd, int proto, LDAP_CONST char *url, struct ldap **ldp ));
 
 /* search.c */
 LDAP_F( int ) ldap_pvt_put_filter LDAP_P((

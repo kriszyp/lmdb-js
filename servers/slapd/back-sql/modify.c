@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * All rights reserved.
@@ -152,10 +152,10 @@ backsql_modify( Operation *op, SlapReply *rs )
 			goto do_transact;
 		}
 
-		rs->sr_err = entry_schema_check( op, &m, NULL, 0,
+		rs->sr_err = entry_schema_check( op, &m, NULL, 0, 0,
 			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+			Debug( LDAP_DEBUG_TRACE, "   backsql_modify(\"%s\"): "
 				"entry failed schema check -- aborting\n",
 				m.e_name.bv_val, 0, 0 );
 			e = NULL;

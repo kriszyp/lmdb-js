@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -385,7 +385,7 @@ ldap_search_s(
 	    == -1 )
 		return( ld->ld_errno );
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, res ) == -1 )
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, res ) == -1 || !res )
 		return( ld->ld_errno );
 
 	return( ldap_result2error( ld, *res, 0 ) );

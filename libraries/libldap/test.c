@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -252,17 +252,7 @@ bind_prompt( LDAP *ld,
 	printf("rebind for request=%ld msgid=%ld url=%s\n",
 		request, (long) msgid, url );
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-		get_line( dn, sizeof(dn), stdin,
-		    "re-bind method (0->simple, 1->krbv41, 2->krbv42, 3->krbv41&2)? " );
-	if (( authmethod = atoi( dn )) == 3 ) {
-		authmethod = LDAP_AUTH_KRBV4;
-		} else {
-		authmethod |= 0x80;
-		}
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	authmethod = LDAP_AUTH_SIMPLE;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 		get_line( dn, sizeof(dn), stdin, "re-bind dn? " );
 		strcat( dn, dnsuffix );
@@ -412,13 +402,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'b':	/* asynch bind */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-			get_line( line, sizeof(line), stdin,
-			    "method (0->simple, 1->krbv41, 2->krbv42)? " );
-			method = atoi( line ) | 0x80;
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			get_line( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -438,17 +422,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'B':	/* synch bind */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-			get_line( line, sizeof(line), stdin,
-			    "method 0->simple 1->krbv41 2->krbv42 3->krb? " );
-			method = atoi( line );
-			if ( method == 3 )
-				method = LDAP_AUTH_KRBV4;
-			else
-				method = method | 0x80;
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			get_line( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -337,16 +337,15 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
  * from ( fin & LDAP_DN_FORMAT_MASK ) to ( fout & LDAP_DN_FORMAT_MASK )
  * 
  * fin can be one of:
- * 	LDAP_DN_FORMAT_LDAP		(rfc 2253 and ldapbis liberal, 
- * 					plus some rfc 1779)
- * 	LDAP_DN_FORMAT_LDAPV3		(rfc 2253 and ldapbis)
- * 	LDAP_DN_FORMAT_LDAPV2		(rfc 1779)
+ * 	LDAP_DN_FORMAT_LDAP		(RFC 4514 liberal, plus some RFC 1779)
+ * 	LDAP_DN_FORMAT_LDAPV3	(RFC 4514)
+ * 	LDAP_DN_FORMAT_LDAPV2	(RFC 1779)
  * 	LDAP_DN_FORMAT_DCE		(?)
  *
  * fout can be any of the above except
  * 	LDAP_DN_FORMAT_LDAP
  * plus:
- * 	LDAP_DN_FORMAT_UFN		(rfc 1781, partial and with extensions)
+ * 	LDAP_DN_FORMAT_UFN		(RFC 1781, partial and with extensions)
  * 	LDAP_DN_FORMAT_AD_CANONICAL	(?)
  */
 int
@@ -433,14 +432,14 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 #define LDAP_DN_VALUE_END(c) \
 	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) )
 
-/* NOTE: according to draft-ietf-ldapbis-dn, '=' can be escaped
- * and treated as special, i.e. escaped both as "\<hexpair>" and
- * as "\=", but it is treated as a regular char, i.e. it can also 
- * appear as '='.
+/* NOTE: according to RFC 4514, '=' can be escaped and treated as special,
+ * i.e. escaped both as "\<hexpair>" and * as "\=", but it is treated as
+ * a regular char, i.e. it can also appear as '='.
  *
- * As such, in 2.2 we used to allow reading unescaped '=',
- * but we always produced escaped '\3D'; this changes 
- * since 2.3, if compatibility issues do not arise */
+ * As such, in 2.2 we used to allow reading unescaped '=', but we always
+ * produced escaped '\3D'; this changes since 2.3, if compatibility issues
+ * do not arise
+ */
 #define LDAP_DN_NE(c) \
 	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
 	  || LDAP_DN_QUOTES(c) \
@@ -1003,15 +1002,8 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 		 * an AttributeType can be encoded as:
 		 * - its string representation; in detail, implementations
 		 *   MUST recognize AttributeType string type names listed 
-		 *   in section 2.3 of draft-ietf-ldapbis-dn-XX.txt, and
-		 *   MAY recognize other names.
-		 * - its numeric OID (a dotted decimal string); in detail
-		 *   RFC 2253 asserts that ``Implementations MUST allow 
-		 *   an oid in the attribute type to be prefixed by one 
-		 *   of the character strings "oid." or "OID."''.  As soon
-		 *   as draft-ietf-ldapbis-dn-XX.txt obsoletes RFC 2253 
-		 *   I'm not sure whether this is required or not any 
-		 *   longer; to be liberal, we still implement it.
+		 *   in Section 3 of RFC 4514, and MAY recognize other names.
+		 * - its numeric OID (a dotted decimal string)
 		 */
 		case B4AVA:
 			if ( LDAP_DN_ASCII_SPACE( p[ 0 ] ) ) {
@@ -1111,9 +1103,8 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 				if ( LDAP_DN_LANG_SEP( p[ 0 ] ) ) {
 					
 					/*
-					 * RFC 2253 does not explicitly
-					 * allow lang extensions to attribute 
-					 * types in DNs ... 
+					 * RFC 4514 explicitly does not allow attribute
+					 * description options, such as language tags.
 					 */
 					if ( flags & LDAP_DN_PEDANTIC ) {
 						goto parsing_error;
@@ -1233,7 +1224,7 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 			}
 
 			/*
-			 * here STRING means RFC 2253 string
+			 * here STRING means RFC 4514 string
 			 * FIXME: what about DCE strings? 
 			 */
 			if ( !p[ 0 ] ) {
@@ -2025,7 +2016,7 @@ static int
 strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 {
 	ber_len_t	l, cl = 1;
-	char		*p;
+	char		*p, *end;
 	int		escaped_byte_len = LDAP_DN_IS_PRETTY( flags ) ? 1 : 3;
 #ifdef PRETTY_ESCAPE
 	int		escaped_ascii_len = LDAP_DN_IS_PRETTY( flags ) ? 2 : 3;
@@ -2039,7 +2030,8 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 		return( 0 );
 	}
 
-	for ( l = 0, p = val->bv_val; p < val->bv_val + val->bv_len; p += cl ) {
+	end = val->bv_val + val->bv_len - 1;
+	for ( l = 0, p = val->bv_val; p <= end; p += cl ) {
 
 		/* 
 		 * escape '%x00' 
@@ -2068,7 +2060,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 		} else if ( LDAP_DN_NEEDESCAPE( p[ 0 ] )
 				|| LDAP_DN_SHOULDESCAPE( p[ 0 ] )
 				|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
-				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
+				|| ( p == end && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
 #ifdef PRETTY_ESCAPE
 #if 0
 			if ( LDAP_DN_WILLESCAPE_HEX( flags, p[ 0 ] ) ) {
@@ -3378,7 +3370,7 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 		if ( newDN == NULL )
 			return LDAP_NO_MEMORY;
 	} else {
-		newDN = (LDAPDN)ptrs;
+		newDN = (LDAPDN)(char *)ptrs;
 	}
 	
 	newDN[nrdns] = NULL;
@@ -3510,7 +3502,7 @@ nomem:
 
 	if ( oidsize != 0 )
 		LDAP_FREE( oidbuf );
-	if ( newDN != (LDAPDN) ptrs )
+	if ( newDN != (LDAPDN)(char *) ptrs )
 		LDAP_FREE( newDN );
 	return rc;
 }

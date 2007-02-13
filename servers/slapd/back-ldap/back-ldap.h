@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -44,18 +44,57 @@ typedef struct ldap_monitor_info_t {
 	struct berval		lmi_more_filter;
 } ldap_monitor_info_t;
 
+enum {
+	/* even numbers are connection types */
+	LDAP_BACK_PCONN_FIRST = 0,
+	LDAP_BACK_PCONN_ROOTDN = LDAP_BACK_PCONN_FIRST,
+	LDAP_BACK_PCONN_ANON = 2,
+	LDAP_BACK_PCONN_BIND = 4,
+
+	/* add the TLS bit */
+	LDAP_BACK_PCONN_TLS = 0x1U,
+
+	LDAP_BACK_PCONN_ROOTDN_TLS = (LDAP_BACK_PCONN_ROOTDN|LDAP_BACK_PCONN_TLS),
+	LDAP_BACK_PCONN_ANON_TLS = (LDAP_BACK_PCONN_ANON|LDAP_BACK_PCONN_TLS),
+	LDAP_BACK_PCONN_BIND_TLS = (LDAP_BACK_PCONN_BIND|LDAP_BACK_PCONN_TLS),
+
+	LDAP_BACK_PCONN_LAST
+};
+
 typedef struct ldapconn_t {
 	Connection		*lc_conn;
-#define	LDAP_BACK_PCONN		((void *)0x0)
-#define	LDAP_BACK_PCONN_TLS	((void *)0x1)
-#define LDAP_BACK_PCONN_PRIV	(-1)
-#define LDAP_BACK_PCONN_ISPRIV(lc)	((void *)(lc)->lc_conn <= LDAP_BACK_PCONN_TLS)
-#define	LDAP_BACK_PCONN_ID(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) ? LDAP_BACK_PCONN_PRIV : (lc)->lc_conn->c_connid )
+#define	LDAP_BACK_CONN2PRIV(lc)		((unsigned long)(lc)->lc_conn)
+#define LDAP_BACK_PCONN_ISPRIV(lc)	((void *)(lc)->lc_conn >= (void *)LDAP_BACK_PCONN_FIRST \
+						&& (void *)(lc)->lc_conn < (void *)LDAP_BACK_PCONN_LAST)
+#define LDAP_BACK_PCONN_ISROOTDN(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
+						&& (LDAP_BACK_CONN2PRIV((lc)) < LDAP_BACK_PCONN_ANON))
+#define LDAP_BACK_PCONN_ISANON(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
+						&& (LDAP_BACK_CONN2PRIV((lc)) < LDAP_BACK_PCONN_BIND) \
+						&& (LDAP_BACK_CONN2PRIV((lc)) >= LDAP_BACK_PCONN_ANON))
+#define LDAP_BACK_PCONN_ISBIND(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
+						&& (LDAP_BACK_CONN2PRIV((lc)) >= LDAP_BACK_PCONN_BIND))
+#define LDAP_BACK_PCONN_ISTLS(lc)	(LDAP_BACK_PCONN_ISPRIV((lc)) \
+						&& (LDAP_BACK_CONN2PRIV((lc)) & LDAP_BACK_PCONN_TLS))
+#define	LDAP_BACK_PCONN_ID(lc)		(LDAP_BACK_PCONN_ISPRIV((lc)) ? \
+						( -1 - (long)(lc)->lc_conn ) : (lc)->lc_conn->c_connid )
 #ifdef HAVE_TLS
-#define	LDAP_BACK_PCONN_SET(op)	((op)->o_conn->c_is_tls ? LDAP_BACK_PCONN_TLS : LDAP_BACK_PCONN)
+#define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ROOTDN_TLS : (void *) LDAP_BACK_PCONN_ROOTDN))
+#define	LDAP_BACK_PCONN_ANON_SET(lc, op) \
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_ANON_TLS : (void *) LDAP_BACK_PCONN_ANON))
+#define	LDAP_BACK_PCONN_BIND_SET(lc, op) \
+	((lc)->lc_conn = (void *)((op)->o_conn->c_is_tls ? (void *) LDAP_BACK_PCONN_BIND_TLS : (void *) LDAP_BACK_PCONN_BIND))
 #else /* ! HAVE_TLS */
-#define	LDAP_BACK_PCONN_SET(op)	(LDAP_BACK_PCONN)
+#define	LDAP_BACK_PCONN_ROOTDN_SET(lc, op) \
+	((lc)->lc_conn = (void *)LDAP_BACK_PCONN_ROOTDN)
+#define	LDAP_BACK_PCONN_ANON_SET(lc, op) \
+	((lc)->lc_conn = (void *)LDAP_BACK_PCONN_ANON)
+#define	LDAP_BACK_PCONN_BIND_SET(lc, op) \
+	((lc)->lc_conn = (void *)LDAP_BACK_PCONN_BIND)
 #endif /* ! HAVE_TLS */
+#define	LDAP_BACK_PCONN_SET(lc, op) \
+	(BER_BVISEMPTY(&(op)->o_ndn) ? \
+		LDAP_BACK_PCONN_ANON_SET((lc), (op)) : LDAP_BACK_PCONN_ROOTDN_SET((lc), (op)))
 
 	LDAP			*lc_ld;
 	struct berval		lc_cred;
@@ -79,6 +118,8 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_CONN_CLEAR(lc,f)	LDAP_BACK_CONN_CLEAR_F(&(lc)->lc_lcflags, (f))
 #define	LDAP_BACK_CONN_CPY(lc,f,mlc)	LDAP_BACK_CONN_CPY_F(&(lc)->lc_lcflags, (f), &(mlc)->lc_lcflags)
 
+/* 0xFFF00000U are reserved for back-meta */
+
 #define	LDAP_BACK_FCONN_ISBOUND	(0x00000001U)
 #define	LDAP_BACK_FCONN_ISANON	(0x00000002U)
 #define	LDAP_BACK_FCONN_ISBMASK	(LDAP_BACK_FCONN_ISBOUND|LDAP_BACK_FCONN_ISANON)
@@ -86,9 +127,9 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_FCONN_ISTLS	(0x00000008U)
 #define	LDAP_BACK_FCONN_BINDING	(0x00000010U)
 #define	LDAP_BACK_FCONN_TAINTED	(0x00000020U)
-#define	LDAP_BACK_FCONN_ISIDASR	(0x00000040U)
-
-/* 0x00FF0000 are reserved for back-meta */
+#define	LDAP_BACK_FCONN_ABANDON	(0x00000040U)
+#define	LDAP_BACK_FCONN_ISIDASR	(0x00000080U)
+#define	LDAP_BACK_FCONN_CACHED	(0x00000100U)
 
 #define	LDAP_BACK_CONN_ISBOUND(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ISBOUND)
 #define	LDAP_BACK_CONN_ISBOUND_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ISBOUND)
@@ -112,16 +153,23 @@ typedef struct ldapconn_t {
 #define	LDAP_BACK_CONN_TAINTED(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_TAINTED)
 #define	LDAP_BACK_CONN_TAINTED_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_TAINTED)
 #define	LDAP_BACK_CONN_TAINTED_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_TAINTED)
+#define	LDAP_BACK_CONN_ABANDON(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ABANDON)
+#define	LDAP_BACK_CONN_ABANDON_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ABANDON)
+#define	LDAP_BACK_CONN_ABANDON_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_ABANDON)
 #define	LDAP_BACK_CONN_ISIDASSERT(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_ISIDASR)
 #define	LDAP_BACK_CONN_ISIDASSERT_SET(lc)	LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_ISIDASR)
 #define	LDAP_BACK_CONN_ISIDASSERT_CLEAR(lc)	LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_ISIDASR)
 #define	LDAP_BACK_CONN_ISIDASSERT_CPY(lc, mlc)	LDAP_BACK_CONN_CPY((lc), LDAP_BACK_FCONN_ISIDASR, (mlc))
+#define	LDAP_BACK_CONN_CACHED(lc)		LDAP_BACK_CONN_ISSET((lc), LDAP_BACK_FCONN_CACHED)
+#define	LDAP_BACK_CONN_CACHED_SET(lc)		LDAP_BACK_CONN_SET((lc), LDAP_BACK_FCONN_CACHED)
+#define	LDAP_BACK_CONN_CACHED_CLEAR(lc)		LDAP_BACK_CONN_CLEAR((lc), LDAP_BACK_FCONN_CACHED)
 
 	unsigned		lc_refcnt;
-	unsigned		lc_binding;
 	unsigned		lc_flags;
 	time_t			lc_create_time;
 	time_t			lc_time;
+
+	LDAP_TAILQ_ENTRY(ldapconn_t)	lc_q;
 } ldapconn_t;
 
 typedef struct ldap_avl_info_t {
@@ -171,12 +219,13 @@ typedef struct slap_idassert_t {
 #define	li_idassert_tls		li_idassert.si_bc.sb_tls
 
 	unsigned 	si_flags;
-#define LDAP_BACK_AUTH_NONE				0x00U
-#define	LDAP_BACK_AUTH_NATIVE_AUTHZ			0x01U
-#define	LDAP_BACK_AUTH_OVERRIDE				0x02U
-#define	LDAP_BACK_AUTH_PRESCRIPTIVE			0x04U
-#define	LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ		0x08U
-#define	LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND	0x10U
+#define LDAP_BACK_AUTH_NONE				(0x00U)
+#define	LDAP_BACK_AUTH_NATIVE_AUTHZ			(0x01U)
+#define	LDAP_BACK_AUTH_OVERRIDE				(0x02U)
+#define	LDAP_BACK_AUTH_PRESCRIPTIVE			(0x04U)
+#define	LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ		(0x08U)
+#define	LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND	(0x10U)
+#define	LDAP_BACK_AUTH_AUTHZ_ALL			(0x20U)
 #define	li_idassert_flags	li_idassert.si_flags
 
 	BerVarray	si_authz;
@@ -201,57 +250,71 @@ typedef struct ldapinfo_t {
 	LDAP_URLLIST_PROC	*li_urllist_f;
 	void			*li_urllist_p;
 
-	slap_bindconf	li_acl;
-#define	li_acl_authcID	li_acl.sb_authcId
-#define	li_acl_authcDN	li_acl.sb_binddn
-#define	li_acl_passwd	li_acl.sb_cred
-#define	li_acl_authzID	li_acl.sb_authzId
+	/* we only care about the TLS options here */
+	slap_bindconf		li_tls;
+
+	slap_bindconf		li_acl;
+#define	li_acl_authcID		li_acl.sb_authcId
+#define	li_acl_authcDN		li_acl.sb_binddn
+#define	li_acl_passwd		li_acl.sb_cred
+#define	li_acl_authzID		li_acl.sb_authzId
 #define	li_acl_authmethod	li_acl.sb_method
 #define	li_acl_sasl_mech	li_acl.sb_saslmech
 #define	li_acl_sasl_realm	li_acl.sb_realm
-#define	li_acl_secprops	li_acl.sb_secprops
+#define	li_acl_secprops		li_acl.sb_secprops
 
 	/* ID assert stuff */
-	slap_idassert_t	li_idassert;
+	slap_idassert_t		li_idassert;
 	/* end of ID assert stuff */
 
-	int		li_nretries;
+	int			li_nretries;
 #define LDAP_BACK_RETRY_UNDEFINED	(-2)
 #define LDAP_BACK_RETRY_FOREVER		(-1)
 #define LDAP_BACK_RETRY_NEVER		(0)
 #define LDAP_BACK_RETRY_DEFAULT		(3)
 
-	unsigned	li_flags;
-#define LDAP_BACK_F_NONE		(0x0000U)
-#define LDAP_BACK_F_SAVECRED		(0x0001U)
-#define LDAP_BACK_F_USE_TLS		(0x0002U)
-#define LDAP_BACK_F_PROPAGATE_TLS	(0x0004U)
-#define LDAP_BACK_F_TLS_CRITICAL	(0x0008U)
+	unsigned		li_flags;
+
+/* 0xFFF00000U are reserved for back-meta */
+
+#define LDAP_BACK_F_NONE		(0x00000000U)
+#define LDAP_BACK_F_SAVECRED		(0x00000001U)
+#define LDAP_BACK_F_USE_TLS		(0x00000002U)
+#define LDAP_BACK_F_PROPAGATE_TLS	(0x00000004U)
+#define LDAP_BACK_F_TLS_CRITICAL	(0x00000008U)
+#define LDAP_BACK_F_TLS_LDAPS		(0x00000010U)
+
 #define LDAP_BACK_F_TLS_USE_MASK	(LDAP_BACK_F_USE_TLS|LDAP_BACK_F_TLS_CRITICAL)
 #define LDAP_BACK_F_TLS_PROPAGATE_MASK	(LDAP_BACK_F_PROPAGATE_TLS|LDAP_BACK_F_TLS_CRITICAL)
-#define LDAP_BACK_F_TLS_MASK		(LDAP_BACK_F_TLS_USE_MASK|LDAP_BACK_F_TLS_PROPAGATE_MASK)
-#define LDAP_BACK_F_CHASE_REFERRALS	(0x0010U)
-#define LDAP_BACK_F_PROXY_WHOAMI	(0x0020U)
+#define LDAP_BACK_F_TLS_MASK		(LDAP_BACK_F_TLS_USE_MASK|LDAP_BACK_F_TLS_PROPAGATE_MASK|LDAP_BACK_F_TLS_LDAPS)
+#define LDAP_BACK_F_CHASE_REFERRALS	(0x00000020U)
+#define LDAP_BACK_F_PROXY_WHOAMI	(0x00000040U)
 
-#define	LDAP_BACK_F_T_F			(0x0040U)
-#define	LDAP_BACK_F_T_F_DISCOVER	(0x0080U)
+#define	LDAP_BACK_F_T_F			(0x00000080U)
+#define	LDAP_BACK_F_T_F_DISCOVER	(0x00000100U)
 #define	LDAP_BACK_F_T_F_MASK		(LDAP_BACK_F_T_F)
 #define	LDAP_BACK_F_T_F_MASK2		(LDAP_BACK_F_T_F_MASK|LDAP_BACK_F_T_F_DISCOVER)
 
-#define LDAP_BACK_F_MONITOR		(0x0100U)
-#define	LDAP_BACK_F_SINGLECONN		(0x0200U)
+#define LDAP_BACK_F_MONITOR		(0x00000200U)
+#define	LDAP_BACK_F_SINGLECONN		(0x00000400U)
+#define LDAP_BACK_F_USE_TEMPORARIES	(0x00000800U)
 
-#define	LDAP_BACK_F_ISOPEN		(0x0400U)
+#define	LDAP_BACK_F_ISOPEN		(0x00001000U)
 
-#define	LDAP_BACK_F_CANCEL_ABANDON	(0x0000U)
-#define	LDAP_BACK_F_CANCEL_IGNORE	(0x1000U)
-#define	LDAP_BACK_F_CANCEL_EXOP		(0x2000U)
-#define	LDAP_BACK_F_CANCEL_EXOP_DISCOVER	(0x4000U)
+#define	LDAP_BACK_F_CANCEL_ABANDON	(0x00000000U)
+#define	LDAP_BACK_F_CANCEL_IGNORE	(0x00002000U)
+#define	LDAP_BACK_F_CANCEL_EXOP		(0x00004000U)
+#define	LDAP_BACK_F_CANCEL_EXOP_DISCOVER	(0x00008000U)
 #define	LDAP_BACK_F_CANCEL_MASK		(LDAP_BACK_F_CANCEL_IGNORE|LDAP_BACK_F_CANCEL_EXOP)
 #define	LDAP_BACK_F_CANCEL_MASK2	(LDAP_BACK_F_CANCEL_MASK|LDAP_BACK_F_CANCEL_EXOP_DISCOVER)
 
-#define	LDAP_BACK_ISSET(li,f)		( ( (li)->li_flags & (f) ) == (f) )
-#define	LDAP_BACK_ISMASK(li,m,f)	( ( (li)->li_flags & (m) ) == (f) )
+#define	LDAP_BACK_F_QUARANTINE		(0x00010000U)
+
+#define	LDAP_BACK_ISSET_F(ff,f)		( ( (ff) & (f) ) == (f) )
+#define	LDAP_BACK_ISMASK_F(ff,m,f)	( ( (ff) & (m) ) == (f) )
+
+#define	LDAP_BACK_ISSET(li,f)		LDAP_BACK_ISSET_F( (li)->li_flags, (f) )
+#define	LDAP_BACK_ISMASK(li,m,f)	LDAP_BACK_ISMASK_F( (li)->li_flags, (m), (f) )
 
 #define LDAP_BACK_SAVECRED(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_SAVECRED )
 #define LDAP_BACK_USE_TLS(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_USE_TLS )
@@ -260,11 +323,16 @@ typedef struct ldapinfo_t {
 #define LDAP_BACK_CHASE_REFERRALS(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_CHASE_REFERRALS )
 #define LDAP_BACK_PROXY_WHOAMI(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_PROXY_WHOAMI )
 
+#define LDAP_BACK_USE_TLS_F(ff)		LDAP_BACK_ISSET_F( (ff), LDAP_BACK_F_USE_TLS )
+#define LDAP_BACK_PROPAGATE_TLS_F(ff)	LDAP_BACK_ISSET_F( (ff), LDAP_BACK_F_PROPAGATE_TLS )
+#define LDAP_BACK_TLS_CRITICAL_F(ff)	LDAP_BACK_ISSET_F( (ff), LDAP_BACK_F_TLS_CRITICAL )
+
 #define	LDAP_BACK_T_F(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_T_F_MASK, LDAP_BACK_F_T_F )
 #define	LDAP_BACK_T_F_DISCOVER(li)	LDAP_BACK_ISMASK( (li), LDAP_BACK_F_T_F_MASK2, LDAP_BACK_F_T_F_DISCOVER )
 
 #define LDAP_BACK_MONITOR(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_MONITOR )
 #define	LDAP_BACK_SINGLECONN(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_SINGLECONN )
+#define	LDAP_BACK_USE_TEMPORARIES(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_USE_TEMPORARIES)
 
 #define	LDAP_BACK_ISOPEN(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_ISOPEN )
 
@@ -273,9 +341,23 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_CANCEL(li)		LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
 #define	LDAP_BACK_CANCEL_DISCOVER(li)	LDAP_BACK_ISMASK( (li), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
 
-	int		li_version;
+#define	LDAP_BACK_QUARANTINE(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_QUARANTINE )
 
-	ldap_avl_info_t	li_conninfo;
+	int			li_version;
+
+	/* cached connections; 
+	 * special conns are in tailq rather than in tree */
+	ldap_avl_info_t		li_conninfo;
+	struct {
+		int						lic_num;
+		LDAP_TAILQ_HEAD(lc_conn_priv_q, ldapconn_t)	lic_priv;
+	}			li_conn_priv[ LDAP_BACK_PCONN_LAST ];
+	int			li_conn_priv_max;
+#define	LDAP_BACK_CONN_PRIV_MIN		(1)
+#define	LDAP_BACK_CONN_PRIV_MAX		(256)
+	/* must be between LDAP_BACK_CONN_PRIV_MIN
+	 * and LDAP_BACK_CONN_PRIV_MAX ! */
+#define	LDAP_BACK_CONN_PRIV_DEFAULT	(16)
 
 	ldap_monitor_info_t	li_monitor_info;
 
@@ -285,15 +367,14 @@ typedef struct ldapinfo_t {
 #define	LDAP_BACK_FQ_RETRYING	(2)
 
 	slap_retry_info_t	li_quarantine;
-#define	LDAP_BACK_QUARANTINE(li)	( (li)->li_quarantine.ri_num != NULL )
 	ldap_pvt_thread_mutex_t	li_quarantine_mutex;
 	ldap_back_quarantine_f	li_quarantine_f;
 	void			*li_quarantine_p;
 
-	time_t		li_network_timeout;
-	time_t		li_conn_ttl;
-	time_t		li_idle_timeout;
-	time_t		li_timeout[ SLAP_OP_LAST ];
+	time_t			li_network_timeout;
+	time_t			li_conn_ttl;
+	time_t			li_idle_timeout;
+	time_t			li_timeout[ SLAP_OP_LAST ];
 } ldapinfo_t;
 
 typedef enum ldap_back_send_t {

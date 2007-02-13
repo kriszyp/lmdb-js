@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -90,6 +90,7 @@ meta_back_db_init(
 	Backend		*be )
 {
 	metainfo_t	*mi;
+	int		i;
 
 	mi = ch_calloc( 1, sizeof( metainfo_t ) );
 	if ( mi == NULL ) {
@@ -113,6 +114,12 @@ meta_back_db_init(
 	/* safe default */
 	mi->mi_nretries = META_RETRY_DEFAULT;
 	mi->mi_version = LDAP_VERSION3;
+
+	for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+		mi->mi_conn_priv[ i ].mic_num = 0;
+		LDAP_TAILQ_INIT( &mi->mi_conn_priv[ i ].mic_priv );
+	}
+	mi->mi_conn_priv_max = LDAP_BACK_CONN_PRIV_DEFAULT;
 	
 	be->be_private = mi;
 
@@ -125,10 +132,21 @@ meta_back_db_open(
 {
 	metainfo_t	*mi = (metainfo_t *)be->be_private;
 
-	int		i, rc;
+	int		i,
+			not_always = 0,
+			not_always_anon_proxyauthz = 0,
+			not_always_anon_non_prescriptive = 0,
+			rc;
+
+	if ( mi->mi_ntargets == 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"meta_back_db_open: no targets defined\n",
+			0, 0, 0 );
+		return 1;
+	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		slap_bindconf	sb = { 0 };
+		slap_bindconf	sb = { BER_BVNULL };
 		metatarget_t	*mt = mi->mi_targets[ i ];
 
 		ber_str2bv( mt->mt_uri, 0, 0, &sb.sb_uri );
@@ -153,6 +171,49 @@ meta_back_db_open(
 				mt->mt_flags |= LDAP_BACK_F_CANCEL_EXOP;
 			}
 		}
+
+		if ( not_always == 0 ) {
+			if ( !( mt->mt_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )
+				|| mt->mt_idassert_authz != NULL )
+			{
+				not_always = 1;
+			}
+		}
+
+		if ( ( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL )
+			&& !( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) )
+		{
+			Debug( LDAP_DEBUG_ANY, "meta_back_db_open(%s): "
+				"target #%d inconsistent idassert configuration "
+				"(likely authz=\"*\" used with \"non-prescriptive\" flag)\n",
+				be->be_suffix[ 0 ].bv_val, i, 0 );
+			return 1;
+		}
+
+		if ( not_always_anon_proxyauthz == 0 ) {
+			if ( !( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL ) )
+			{
+				not_always_anon_proxyauthz = 1;
+			}
+		}
+
+		if ( not_always_anon_non_prescriptive == 0 ) {
+			if ( ( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) )
+			{
+				not_always_anon_non_prescriptive = 1;
+			}
+		}
+	}
+
+	if ( not_always == 0 ) {
+		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_ALWAYS;
+	}
+
+	if ( not_always_anon_proxyauthz == 0 ) {
+		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_ANON;
+
+	} else if ( not_always_anon_non_prescriptive == 0 ) {
+		mi->mi_flags |= META_BACK_F_PROXYAUTHZ_NOANON;
 	}
 
 	return 0;
@@ -175,12 +236,11 @@ meta_back_conn_free(
 	assert( mc->mc_refcnt == 0 );
 
 	/* at least one must be present... */
-	assert( mc->mc_conns != NULL );
-	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
+	ntargets = mc->mc_info->mi_ntargets;
 	assert( ntargets > 0 );
 
 	for ( ; ntargets--; ) {
-		(void)meta_clear_one_candidate( &mc->mc_conns[ ntargets ] );
+		(void)meta_clear_one_candidate( NULL, mc, ntargets );
 	}
 
 	if ( !BER_BVISNULL( &mc->mc_local_ndn ) ) {
@@ -284,6 +344,14 @@ meta_back_db_destroy(
 
 		if ( mi->mi_conninfo.lai_tree ) {
 			avl_free( mi->mi_conninfo.lai_tree, meta_back_conn_free );
+		}
+		for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
+			while ( !LDAP_TAILQ_EMPTY( &mi->mi_conn_priv[ i ].mic_priv ) ) {
+				metaconn_t	*mc = LDAP_TAILQ_FIRST( &mi->mi_conn_priv[ i ].mic_priv );
+
+				LDAP_TAILQ_REMOVE( &mi->mi_conn_priv[ i ].mic_priv, mc, mc_q );
+				meta_back_conn_free( mc );
+			}
 		}
 
 		/*

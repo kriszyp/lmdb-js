@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -36,7 +36,7 @@ ldap_back_delete(
 		Operation	*op,
 		SlapReply	*rs )
 {
-	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+	ldapinfo_t		*li = (ldapinfo_t *)op->o_bd->be_private;
 
 	ldapconn_t		*lc = NULL;
 	ber_int_t		msgid;
@@ -63,7 +63,7 @@ retry:
 	rc = ldap_back_op_result( lc, op, rs, msgid,
 		li->li_timeout[ SLAP_OP_DELETE ],
 		( LDAP_BACK_SENDRESULT | retrying ) );
-	if ( rs->sr_err == LDAP_SERVER_DOWN && retrying ) {
+	if ( rs->sr_err == LDAP_UNAVAILABLE && retrying ) {
 		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			/* if the identity changed, there might be need to re-authz */
@@ -76,7 +76,7 @@ cleanup:
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;

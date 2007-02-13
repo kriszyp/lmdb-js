@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Portions Copyright 2003 Mark Benson.
  * Portions Copyright 2002 John Morrissey.
  * All rights reserved.
@@ -613,12 +613,7 @@ parse_replica_line(
 	} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
 		sizeof( BINDMETHSTR ) - 1 ) ) {
 	    val = cargv[ i ] + sizeof( BINDMETHSTR );
-	    if ( !strcasecmp( val, KERBEROSSTR )) {
-	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
-	    fprintf( stderr, "specified in the slapd configuration file.\n" );
-	    fprintf( stderr, "slurpd no longer supports Kerberos.\n" );
-	    exit( EXIT_FAILURE );
-	    } else if ( !strcasecmp( val, SIMPLESTR )) {
+	    if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = LDAP_AUTH_SIMPLE;
 		gots |= GOT_METHOD;
 	    } else if ( !strcasecmp( val, SASLSTR )) {
@@ -657,13 +652,6 @@ parse_replica_line(
 			AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {
 	    val = cargv[ i ] + sizeof( AUTHZSTR );
 	    ri->ri_authzId = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], 
-			SRVTABSTR, sizeof( SRVTABSTR ) - 1 ) ) {
-	    val = cargv[ i ] + sizeof( SRVTABSTR );
-	    if ( ri->ri_srvtab != NULL ) {
-		free( ri->ri_srvtab );
-	    }
-	    ri->ri_srvtab = strdup( val );
 	} else {
 	    fprintf( stderr, 
 		    "Error: parse_replica_line: unknown keyword \"%s\"\n",

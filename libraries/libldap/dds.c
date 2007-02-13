@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2006 The OpenLDAP Foundation.
+ * Copyright 2005-2007 The OpenLDAP Foundation.
  * Portions Copyright 2005-2006 SysNet s.n.c.
  * All rights reserved.
  *
@@ -142,7 +142,7 @@ ldap_refresh_s(
 	if ( rc != LDAP_SUCCESS ) return rc;
 	
 	rc = ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *)NULL, &res );
-	if( rc == -1 ) return ld->ld_errno;
+	if( rc == -1 || !res ) return ld->ld_errno;
 
 	rc = ldap_parse_refresh( ld, res, newttl );
 	if( rc != LDAP_SUCCESS ) {

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * Portions Copyright 2004 Mark Adamson.
@@ -924,6 +924,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	Entry			p = { 0 }, *e = NULL;
 	Attribute		*at,
 				*at_objectClass = NULL;
+	ObjectClass		*soc = NULL;
 	struct berval		scname = BER_BVNULL;
 	struct berval		pdn;
 	struct berval		realdn = BER_BVNULL;
@@ -957,13 +958,11 @@ backsql_add( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(\"%s\")\n",
 			op->ora_e->e_name.bv_val, 0, 0 );
 
-	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
-
 	/* check schema */
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		rs->sr_err = entry_schema_check( op, op->ora_e, NULL, 0,
+		rs->sr_err = entry_schema_check( op, op->ora_e, NULL, 0, 1,
 			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
@@ -973,6 +972,8 @@ backsql_add( Operation *op, SlapReply *rs )
 			goto done;
 		}
 	}
+
+	slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 
 	/* search structuralObjectClass */
 	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
@@ -1002,8 +1003,8 @@ backsql_add( Operation *op, SlapReply *rs )
 			goto done;
 		}
 
-		rs->sr_err = structural_class( at->a_vals, &scname, NULL,
-				&text, buf, sizeof( buf ) );
+		rs->sr_err = structural_class( at->a_vals, &soc, NULL,
+				&text, buf, sizeof( buf ), op->o_tmpmemctx );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"%s (%d)\n",
@@ -1011,6 +1012,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			e = NULL;
 			goto done;
 		}
+		scname = soc->soc_cname;
 
 	} else {
 		scname = at->a_vals[0];

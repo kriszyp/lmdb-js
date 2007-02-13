@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -205,13 +205,13 @@ int bdb_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( op, e, save_attrs, get_relax(op),
+	rc = entry_schema_check( op, e, save_attrs, get_relax(op), 0,
 		text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS || op->o_noop ) {
 		attrs_free( e->e_attrs );
 		/* clear the indexing flags */
 		for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
-			ap->a_flags = 0;
+			ap->a_flags &= ~(SLAP_ATTR_IXADD|SLAP_ATTR_IXDEL);
 		}
 		e->e_attrs = save_attrs;
 
@@ -600,7 +600,7 @@ retry:	/* transaction retry */
 			attrs_free( dummy.e_attrs );
 
 		} else {
-			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
+			rc = bdb_cache_modify( bdb, e, dummy.e_attrs, locker, &lock );
 			switch( rc ) {
 			case DB_LOCK_DEADLOCK:
 			case DB_LOCK_NOTGRANTED:
@@ -640,7 +640,7 @@ return_results:
 	}
 	send_ldap_result( op, rs );
 
-	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp_kbyte ) {
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
 	}

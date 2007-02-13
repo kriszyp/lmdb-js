@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -375,13 +375,31 @@ fail:
 	return LDAP_SUCCESS;
 }
 
+int
+root_dse_init( void )
+{
+	return 0;
+}
+
+int
+root_dse_destroy( void )
+{
+	if ( usr_attr ) {
+		entry_free( usr_attr );
+		usr_attr = NULL;
+	}
+
+	return 0;
+}
+
 /*
  * Read the entries specified in fname and merge the attributes
  * to the user defined rootDSE. Note thaat if we find any errors
  * what so ever, we will discard the entire entries, print an
  * error message and return.
  */
-int read_root_dse_file( const char *fname )
+int
+root_dse_read_file( const char *fname )
 {
 	struct LDIFFP	*fp;
 	int rc = 0, lineno = 0, lmax = 0;
@@ -389,7 +407,7 @@ int read_root_dse_file( const char *fname )
 
 	if ( (fp = ldif_open( fname, "r" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"could not open rootdse attr file \"%s\" - absolute path?\n",
+			"root_dse_read_file: could not open rootdse attr file \"%s\" - absolute path?\n",
 			fname, 0, 0 );
 		perror( fname );
 		return EXIT_FAILURE;
@@ -398,7 +416,7 @@ int read_root_dse_file( const char *fname )
 	usr_attr = entry_alloc();
 	if( usr_attr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"read_root_dse_file: entry_alloc failed", 0, 0, 0 );
+			"root_dse_read_file: entry_alloc failed", 0, 0, 0 );
 		ldif_close( fp );
 		return LDAP_OTHER;
 	}
@@ -409,17 +427,19 @@ int read_root_dse_file( const char *fname )
 		Attribute *a;
 
 		if( e == NULL ) {
-			fprintf( stderr, "root_dse: could not parse entry (line=%d)\n",
-				lineno );
+			Debug( LDAP_DEBUG_ANY, "root_dse_read_file: "
+				"could not parse entry (file=\"%s\" line=%d)\n",
+				fname, lineno, 0 );
 			rc = EXIT_FAILURE;
 			break;
 		}
 
 		/* make sure the DN is the empty DN */
 		if( e->e_nname.bv_len ) {
-			fprintf( stderr,
-				"root_dse: invalid rootDSE - dn=\"%s\" (line=%d)\n",
-				e->e_dn, lineno );
+			Debug( LDAP_DEBUG_ANY,
+				"root_dse_read_file: invalid rootDSE "
+				"- dn=\"%s\" (file=\"%s\" line=%d)\n",
+				e->e_dn, fname, lineno );
 			entry_free( e );
 			rc = EXIT_FAILURE;
 			break;
@@ -453,7 +473,7 @@ int read_root_dse_file( const char *fname )
 
 	ldif_close( fp );
 
-	Debug(LDAP_DEBUG_CONFIG, "rootDSE file %s read.\n", fname, 0, 0);
+	Debug(LDAP_DEBUG_CONFIG, "rootDSE file=\"%s\" read.\n", fname, 0, 0);
 	return rc;
 }
 
@@ -466,8 +486,7 @@ slap_discover_feature(
 	LDAP		*ld = NULL;
 	LDAPMessage	*res = NULL, *entry;
 	int		rc, i;
-	struct berval	cred = BER_BVC( "" ),
-			bv_val,
+	struct berval	bv_val,
 			**values = NULL;
 	char		*attrs[ 2 ] = { NULL, NULL };
 

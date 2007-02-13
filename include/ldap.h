@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -122,6 +122,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_REFERRAL_URLS      0x5007  /* Referral URLs */
 #define LDAP_OPT_SOCKBUF            0x5008  /* sockbuf */
 #define LDAP_OPT_DEFBASE		0x5009	/* searchbase */
+#define	LDAP_OPT_CONNECT_ASYNC		0x5010	/* create connections asynchronously */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
@@ -653,6 +654,7 @@ typedef struct ldapcontrol {
 #define LDAP_MORE_RESULTS_TO_RETURN		(-15)	/* Obsolete */
 #define LDAP_CLIENT_LOOP				(-16)
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	(-17)
+#define	LDAP_X_CONNECTING			(-18)
 
 
 /*
@@ -734,6 +736,138 @@ typedef struct ldap_url_desc {
 #define LDAP_URL_ERR_BADSCOPE	0x08	/* scope string is invalid (or missing) */
 #define LDAP_URL_ERR_BADFILTER	0x09	/* bad or missing filter */
 #define LDAP_URL_ERR_BADEXTS	0x0a	/* bad or missing extensions */
+
+/*
+ * LDAP sync (RFC4533) API
+ */
+
+typedef struct ldap_sync_t ldap_sync_t;
+
+typedef enum {
+	/* these are private - the client should never see them */
+	LDAP_SYNC_CAPI_NONE		= -1,
+
+	LDAP_SYNC_CAPI_PHASE_FLAG	= 0x10U,
+	LDAP_SYNC_CAPI_IDSET_FLAG	= 0x20U,
+	LDAP_SYNC_CAPI_DONE_FLAG	= 0x40U,
+
+	/* these are passed to ls_search_entry() */
+	LDAP_SYNC_CAPI_PRESENT		= LDAP_SYNC_PRESENT,
+	LDAP_SYNC_CAPI_ADD		= LDAP_SYNC_ADD,
+	LDAP_SYNC_CAPI_MODIFY		= LDAP_SYNC_MODIFY,
+	LDAP_SYNC_CAPI_DELETE		= LDAP_SYNC_DELETE,
+
+	/* these are passed to ls_intermediate() */
+	LDAP_SYNC_CAPI_PRESENTS		= ( LDAP_SYNC_CAPI_PHASE_FLAG | LDAP_SYNC_CAPI_PRESENT ),
+	LDAP_SYNC_CAPI_DELETES		= ( LDAP_SYNC_CAPI_PHASE_FLAG | LDAP_SYNC_CAPI_DELETE ),
+
+	LDAP_SYNC_CAPI_PRESENTS_IDSET	= ( LDAP_SYNC_CAPI_PRESENTS | LDAP_SYNC_CAPI_IDSET_FLAG ),
+	LDAP_SYNC_CAPI_DELETES_IDSET	= ( LDAP_SYNC_CAPI_DELETES | LDAP_SYNC_CAPI_IDSET_FLAG ),
+
+	LDAP_SYNC_CAPI_DONE		= ( LDAP_SYNC_CAPI_DONE_FLAG | LDAP_SYNC_CAPI_PRESENTS )
+} ldap_sync_refresh_t;
+
+/*
+ * Called when an entry is returned by ldap_result().
+ * If phase is LDAP_SYNC_CAPI_ADD or LDAP_SYNC_CAPI_MODIFY,
+ * the entry has been either added or modified, and thus
+ * the complete view of the entry should be in the LDAPMessage.
+ * If phase is LDAP_SYNC_CAPI_PRESENT or LDAP_SYNC_CAPI_DELETE,
+ * only the DN should be in the LDAPMessage.
+ */
+typedef int (*ldap_sync_search_entry_f) LDAP_P((
+	ldap_sync_t			*ls,
+	LDAPMessage			*msg,
+	struct berval			*entryUUID,
+	ldap_sync_refresh_t		phase ));
+
+/*
+ * Called when a reference is returned; the client should know 
+ * what to do with it.
+ */
+typedef int (*ldap_sync_search_reference_f) LDAP_P((
+	ldap_sync_t			*ls,
+	LDAPMessage			*msg ));
+
+/*
+ * Called when specific intermediate/final messages are returned.
+ * If phase is LDAP_SYNC_CAPI_PRESENTS or LDAP_SYNC_CAPI_DELETES,
+ * a "presents" or "deletes" phase begins.
+ * If phase is LDAP_SYNC_CAPI_DONE, a special "presents" phase
+ * with refreshDone set to "TRUE" has been returned, to indicate
+ * that the refresh phase of a refreshAndPersist is complete.
+ * In the above cases, syncUUIDs is NULL.
+ *
+ * If phase is LDAP_SYNC_CAPI_PRESENTS_IDSET or 
+ * LDAP_SYNC_CAPI_DELETES_IDSET, syncUUIDs is an array of UUIDs
+ * that are either present or have been deleted.
+ */
+typedef int (*ldap_sync_intermediate_f) LDAP_P((
+	ldap_sync_t			*ls,
+	LDAPMessage			*msg,
+	BerVarray			syncUUIDs,
+	ldap_sync_refresh_t		phase ));
+
+/*
+ * Called when a searchResultDone is returned.  In refreshAndPersist,
+ * this can only occur if the search for any reason is being terminated
+ * by the server.
+ */
+typedef int (*ldap_sync_search_result_f) LDAP_P((
+	ldap_sync_t			*ls,
+	LDAPMessage			*msg,
+	int				refreshDeletes ));
+
+/*
+ * This structure contains all information about the persistent search;
+ * the caller is responsible for connecting, setting version, binding, tls...
+ */
+struct ldap_sync_t {
+	/* conf search params */
+	char				*ls_base;
+	int				ls_scope;
+	char				*ls_filter;
+	char				**ls_attrs;
+	int				ls_timelimit;
+	int				ls_sizelimit;
+
+	/* poll timeout */
+	int				ls_timeout;
+
+	/* helpers - add as appropriate */
+	ldap_sync_search_entry_f	ls_search_entry;
+	ldap_sync_search_reference_f	ls_search_reference;
+	ldap_sync_intermediate_f	ls_intermediate;
+	ldap_sync_search_result_f	ls_search_result;
+
+	/* set by the caller as appropriate */
+	void				*ls_private;
+
+	/* conn stuff */
+	LDAP				*ls_ld;
+
+	/* --- the parameters below are private - do not modify --- */
+
+	/* FIXME: make the structure opaque, and provide an interface
+	 * to modify the public values? */
+
+	/* result stuff */
+	int				ls_msgid;
+
+	/* sync stuff */
+	/* needed by refreshOnly */
+	int				ls_reloadHint;
+
+	/* opaque - need to pass between sessions, updated by the API */
+	struct berval			ls_cookie;
+
+	/* state variable - do not modify */
+	ldap_sync_refresh_t		ls_refreshPhase;
+};
+
+/*
+ * End of LDAP sync (RFC4533) API
+ */
 
 /*
  * The API draft spec says we should declare (or cause to be declared)
@@ -1019,35 +1153,6 @@ ldap_simple_bind_s LDAP_P(( /* deprecated, use ldap_sasl_bind_s */
 	LDAP_CONST char *who,
 	LDAP_CONST char *passwd ));
 
-
-/*
- * in kbind.c:
- *	(deprecated - use SASL instead)
- */
-LDAP_F( int )
-ldap_kerberos_bind_s LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind1 LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind1_s LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind2 LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
-
-LDAP_F( int )
-ldap_kerberos_bind2_s LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *who ));
 #endif
 
 
@@ -1577,7 +1682,7 @@ ldap_count_values LDAP_P((	/* deprecated, use ldap_count_values_len */
 	char **vals ));
 
 LDAP_F( void )
-ldap_value_free LDAP_P((	/* deprecated, use ldap_values_free_len */
+ldap_value_free LDAP_P((	/* deprecated, use ldap_value_free_len */
 	char **vals ));
 #endif
 
@@ -2119,6 +2224,54 @@ ldap_txn_end_s LDAP_P(( LDAP *ld,
 	LDAPControl **cctrl,
 	int *retidp ));
 #endif
+
+/*
+ * in ldap_sync.c
+ */
+
+/*
+ * initialize the persistent search structure
+ */
+LDAP_F( ldap_sync_t * )
+ldap_sync_initialize LDAP_P((
+	ldap_sync_t	*ls ));
+
+/*
+ * destroy the persistent search structure
+ */
+LDAP_F( void )
+ldap_sync_destroy LDAP_P((
+	ldap_sync_t	*ls,
+	int		freeit ));
+
+/*
+ * initialize a refreshOnly sync
+ */
+LDAP_F( int )
+ldap_sync_init LDAP_P((
+	ldap_sync_t	*ls,
+	int		mode ));
+
+/*
+ * initialize a refreshOnly sync
+ */
+LDAP_F( int )
+ldap_sync_init_refresh_only LDAP_P((
+	ldap_sync_t	*ls ));
+
+/*
+ * initialize a refreshAndPersist sync
+ */
+LDAP_F( int )
+ldap_sync_init_refresh_and_persist LDAP_P((
+	ldap_sync_t	*ls ));
+
+/*
+ * poll for new responses
+ */
+LDAP_F( int )
+ldap_sync_poll LDAP_P((
+	ldap_sync_t	*ls ));
 
 LDAP_END_DECL
 #endif /* _LDAP_H */

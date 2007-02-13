@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -313,6 +313,9 @@ ucisprop(ac_uint4 code, ac_uint4 mask1, ac_uint4 mask2)
 
 #if !HARDCODE_DATA
 
+/* These record the number of slots in the map.
+ * There are 3 words per slot.
+ */
 static ac_uint4 _uccase_size;
 static ac_uint2 _uccase_len[2];
 static ac_uint4 *_uccase_map;
@@ -356,23 +359,23 @@ _uccase_load(char *paths, int reload)
      * Set the node count and lengths of the upper and lower case mapping
      * tables.
      */
-    _uccase_size = hdr.cnt * 3;
-    _uccase_len[0] = hdr.size.len[0] * 3;
-    _uccase_len[1] = hdr.size.len[1] * 3;
+    _uccase_size = hdr.cnt;
+    _uccase_len[0] = hdr.size.len[0];
+    _uccase_len[1] = hdr.size.len[1];
 
     _uccase_map = (ac_uint4 *)
-        malloc(_uccase_size * sizeof(ac_uint4));
+        malloc(_uccase_size * 3 * sizeof(ac_uint4));
 
     /*
      * Load the case mapping table.
      */
-    fread((char *) _uccase_map, sizeof(ac_uint4), _uccase_size, in);
+    fread((char *) _uccase_map, sizeof(ac_uint4), _uccase_size * 3, in);
 
     /*
      * Do an endian swap if necessary.
      */
     if (hdr.bom == 0xfffe) {
-        for (i = 0; i < _uccase_size; i++)
+        for (i = 0; i < _uccase_size * 3; i++)
           _uccase_map[i] = endian_long(_uccase_map[i]);
     }
     fclose(in);
@@ -394,6 +397,7 @@ static ac_uint4
 _uccase_lookup(ac_uint4 code, long l, long r, int field)
 {
     long m;
+	const ac_uint4 *tmp;
 
     /*
      * Do the binary search.
@@ -404,13 +408,13 @@ _uccase_lookup(ac_uint4 code, long l, long r, int field)
          * the beginning of a case mapping triple.
          */
         m = (l + r) >> 1;
-        m -= (m % 3);
-        if (code > _uccase_map[m])
-          l = m + 3;
-        else if (code < _uccase_map[m])
-          r = m - 3;
-        else if (code == _uccase_map[m])
-          return _uccase_map[m + field];
+		tmp = &_uccase_map[m*3];
+        if (code > *tmp)
+          l = m + 1;
+        else if (code < *tmp)
+          r = m - 1;
+        else if (code == *tmp)
+          return tmp[field];
     }
 
     return code;
@@ -431,14 +435,14 @@ uctoupper(ac_uint4 code)
          */
         field = 2;
         l = _uccase_len[0];
-        r = (l + _uccase_len[1]) - 3;
+        r = (l + _uccase_len[1]) - 1;
     } else {
         /*
          * The character is title case.
          */
         field = 1;
         l = _uccase_len[0] + _uccase_len[1];
-        r = _uccase_size - 3;
+        r = _uccase_size - 1;
     }
     return _uccase_lookup(code, l, r, field);
 }
@@ -458,14 +462,14 @@ uctolower(ac_uint4 code)
          */
         field = 1;
         l = 0;
-        r = _uccase_len[0] - 3;
+        r = _uccase_len[0] - 1;
     } else {
         /*
          * The character is title case.
          */
         field = 2;
         l = _uccase_len[0] + _uccase_len[1];
-        r = _uccase_size - 3;
+        r = _uccase_size - 1;
     }
     return _uccase_lookup(code, l, r, field);
 }
@@ -489,13 +493,13 @@ uctotitle(ac_uint4 code)
          * The character is upper case.
          */
         l = 0;
-        r = _uccase_len[0] - 3;
+        r = _uccase_len[0] - 1;
     } else {
         /*
          * The character is lower case.
          */
         l = _uccase_len[0];
-        r = (l + _uccase_len[1]) - 3;
+        r = (l + _uccase_len[1]) - 1;
     }
     return _uccase_lookup(code, l, r, field);
 }

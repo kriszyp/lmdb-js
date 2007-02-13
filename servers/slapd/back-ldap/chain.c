@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 2003 Howard Chu.
  * All rights reserved.
  *
@@ -414,14 +414,19 @@ ldap_chain_op(
 	li.li_bvuri = bvuri;
 	first_rc = -1;
 	for ( ; !BER_BVISNULL( ref ); ref++ ) {
-		LDAPURLDesc	*srv;
-		char		*save_dn;
+		SlapReply	rs2 = { 0 };
+		LDAPURLDesc	*srv = NULL;
+		struct berval	save_req_dn = op->o_req_dn,
+				save_req_ndn = op->o_req_ndn,
+				dn,
+				pdn = BER_BVNULL,
+				ndn = BER_BVNULL;
 		int		temporary = 0;
 			
 		/* We're setting the URI of the first referral;
 		 * what if there are more?
 
-Document: draft-ietf-ldapbis-protocol-27.txt
+Document: RFC 4511
 
 4.1.10. Referral 
    ...
@@ -443,21 +448,34 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 			continue;
 		}
 
-		/* remove DN essentially because later on 
-		 * ldap_initialize() will parse the URL 
-		 * as a comma-separated URL list */
-		save_dn = srv->lud_dn;
-		srv->lud_dn = "";
-		srv->lud_scope = LDAP_SCOPE_DEFAULT;
-		li.li_uri = ldap_url_desc2str( srv );
-		srv->lud_dn = save_dn;
+		/* normalize DN */
+		ber_str2bv( srv->lud_dn, 0, 0, &dn );
+		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+		if ( rc == LDAP_SUCCESS ) {
+			/* remove DN essentially because later on 
+			 * ldap_initialize() will parse the URL 
+			 * as a comma-separated URL list */
+			srv->lud_dn = "";
+			srv->lud_scope = LDAP_SCOPE_DEFAULT;
+			li.li_uri = ldap_url_desc2str( srv );
+			srv->lud_dn = dn.bv_val;
+		}
 		ldap_free_urldesc( srv );
 
-		if ( li.li_uri == NULL ) {
+		if ( rc != LDAP_SUCCESS ) {
 			/* try next */
 			rc = LDAP_OTHER;
 			continue;
 		}
+
+		if ( li.li_uri == NULL ) {
+			/* try next */
+			rc = LDAP_OTHER;
+			goto further_cleanup;
+		}
+
+		op->o_req_dn = pdn;
+		op->o_req_ndn = ndn;
 
 		ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
 
@@ -506,7 +524,7 @@ Document: draft-ietf-ldapbis-protocol-27.txt
 		lb->lb_op_f = op_f;
 		lb->lb_depth = depth + 1;
 
-		rc = op_f( op, rs );
+		rc = op_f( op, &rs2 );
 
 		/* note the first error */
 		if ( first_rc == -1 ) {
@@ -523,10 +541,24 @@ cleanup:;
 			(void)ldap_chain_db_close_one( op->o_bd );
 			(void)ldap_chain_db_destroy_one( op->o_bd );
 		}
+
+further_cleanup:;
+		if ( !BER_BVISNULL( &pdn ) ) {
+			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_dn = save_req_dn;
+
+		if ( !BER_BVISNULL( &ndn ) ) {
+			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_ndn = save_req_ndn;
 		
-		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
+		if ( rc == LDAP_SUCCESS && rs2.sr_err == LDAP_SUCCESS ) {
+			*rs = rs2;
 			break;
 		}
+
+		rc = rs2.sr_err;
 	}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -578,8 +610,13 @@ ldap_chain_search(
 	 * to be set once for all (correct?) */
 	li.li_bvuri = bvuri;
 	for ( ; !BER_BVISNULL( &ref[0] ); ref++ ) {
+		SlapReply	rs2 = { 0 };
 		LDAPURLDesc	*srv;
-		char		*save_dn;
+		struct berval	save_req_dn = op->o_req_dn,
+				save_req_ndn = op->o_req_ndn,
+				dn,
+				pdn = BER_BVNULL,
+				ndn = BER_BVNULL;
 		int		temporary = 0;
 
 		/* parse reference and use
@@ -591,28 +628,34 @@ ldap_chain_search(
 			continue;
 		}
 
-		/* remove DN essentially because later on 
-		 * ldap_initialize() will parse the URL 
-		 * as a comma-separated URL list */
-		save_dn = srv->lud_dn;
-		srv->lud_dn = "";
-		srv->lud_scope = LDAP_SCOPE_DEFAULT;
-		li.li_uri = ldap_url_desc2str( srv );
-		if ( li.li_uri != NULL ) {
-			ber_str2bv_x( save_dn, 0, 1, &op->o_req_dn,
-					op->o_tmpmemctx );
-			ber_dupbv_x( &op->o_req_ndn, &op->o_req_dn,
-					op->o_tmpmemctx );
+		/* normalize DN */
+		ber_str2bv( srv->lud_dn, 0, 0, &dn );
+		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+		if ( rc == LDAP_SUCCESS ) {
+			/* remove DN essentially because later on 
+			 * ldap_initialize() will parse the URL 
+			 * as a comma-separated URL list */
+			srv->lud_dn = "";
+			srv->lud_scope = LDAP_SCOPE_DEFAULT;
+			li.li_uri = ldap_url_desc2str( srv );
+			srv->lud_dn = dn.bv_val;
 		}
-
-		srv->lud_dn = save_dn;
 		ldap_free_urldesc( srv );
+
+		if ( rc != LDAP_SUCCESS ) {
+			/* try next */
+			rc = LDAP_OTHER;
+			continue;
+		}
 
 		if ( li.li_uri == NULL ) {
 			/* try next */
-			rs->sr_err = LDAP_OTHER;
-			continue;
+			rc = LDAP_OTHER;
+			goto further_cleanup;
 		}
+
+		op->o_req_dn = pdn;
+		op->o_req_ndn = ndn;
 
 		ber_str2bv( li.li_uri, 0, 0, &li.li_bvuri[ 0 ] );
 
@@ -664,7 +707,7 @@ ldap_chain_search(
 
 		/* FIXME: should we also copy filter and scope?
 		 * according to RFC3296, no */
-		rc = lback->bi_op_search( op, rs );
+		rc = lback->bi_op_search( op, &rs2 );
 		if ( first_rc == -1 ) {
 			first_rc = rc;
 		}
@@ -683,11 +726,23 @@ cleanup:;
 			(void)ldap_chain_db_destroy_one( op->o_bd );
 		}
 		
-		if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
+further_cleanup:;
+		if ( !BER_BVISNULL( &pdn ) ) {
+			op->o_tmpfree( pdn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_dn = save_req_dn;
+
+		if ( !BER_BVISNULL( &ndn ) ) {
+			op->o_tmpfree( ndn.bv_val, op->o_tmpmemctx );
+		}
+		op->o_req_ndn = save_req_ndn;
+		
+		if ( rc == LDAP_SUCCESS && rs2.sr_err == LDAP_SUCCESS ) {
+			*rs = rs2;
 			break;
 		}
 
-		rc = rs->sr_err;
+		rc = rs2.sr_err;
 	}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -723,6 +778,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_callback	*sc = op->o_callback,
 			sc2 = { 0 };
 	int		rc = 0;
+	char		*text = NULL;
 	const char	*matched;
 	BerVarray	ref;
 	struct berval	ndn = op->o_ndn;
@@ -778,6 +834,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	SLAP_DBFLAGS( &db ) &= ~SLAP_DBFLAG_MONITORING;
 	op->o_bd = &db;
 
+	text = rs->sr_text;
+	rs->sr_text = NULL;
 	matched = rs->sr_matched;
 	rs->sr_matched = NULL;
 	ref = rs->sr_ref;
@@ -911,6 +969,7 @@ cannot_chain:;
 				rc = SLAP_CB_CONTINUE;
 				rs->sr_err = sr_err;
 				rs->sr_type = sr_type;
+				rs->sr_text = text;
 				rs->sr_matched = matched;
 				rs->sr_ref = ref;
 			}
@@ -929,6 +988,7 @@ cannot_chain:;
 dont_chain:;
 	rs->sr_err = sr_err;
 	rs->sr_type = sr_type;
+	rs->sr_text = text;
 	rs->sr_matched = matched;
 	rs->sr_ref = ref;
 	op->o_bd = bd;

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -87,8 +87,9 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-addel", TESTER_ADDEL );
 
-	while ( (i = getopt( argc, argv, "CFH:h:p:D:w:f:l:L:r:t:" )) != EOF ) {
-		switch( i ) {
+	while ( ( i = getopt( argc, argv, "CD:Ff:H:h:i:L:l:p:r:t:w:" ) ) != EOF )
+	{
+		switch ( i ) {
 		case 'C':
 			chaserefs++;
 			break;
@@ -320,7 +321,6 @@ do_addel(
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
-	pid_t	pid = getpid();
 	int	rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 

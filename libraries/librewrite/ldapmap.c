@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,9 +85,8 @@ map_ldap_free(
 	free( data );
 }
 
-void *
+static void *
 map_ldap_parse(
-		struct rewrite_info *info,
 		const char *fname,
 		int lineno,
 		int argc,
@@ -97,7 +96,6 @@ map_ldap_parse(
 	struct ldap_map_data *data;
 	char *p, *uri;
 
-	assert( info != NULL );
 	assert( fname != NULL );
 	assert( argv != NULL );
 
@@ -285,9 +283,9 @@ map_ldap_parse(
 	return ( void * )data;
 }
 
-int
+static int
 map_ldap_apply(
-		struct rewrite_builtin_map *map,
+		void *private,
 		const char *filter,
 		struct berval *val
 
@@ -296,14 +294,12 @@ map_ldap_apply(
 	LDAP *ld;
 	LDAPMessage *res = NULL, *entry;
 	int rc;
-	struct ldap_map_data *data = ( struct ldap_map_data * )map->lb_private;
+	struct ldap_map_data *data = private;
 	LDAPURLDesc *lud = data->lm_lud;
 	
 	int first_try = 1, set_version = 0;
 
-	assert( map != NULL );
-	assert( map->lb_type == REWRITE_BUILTIN_MAP_LDAP );
-	assert( map->lb_private != NULL );
+	assert( private != NULL );
 	assert( filter != NULL );
 	assert( val != NULL );
 
@@ -435,22 +431,24 @@ rc_return:;
 	return rc;
 }
 
-int
+static int
 map_ldap_destroy(
-		struct rewrite_builtin_map **pmap
+		void *private
 )
 {
-	struct ldap_map_data *data;
+	struct ldap_map_data *data = private;
 
-	assert( pmap != NULL );
-	assert( *pmap != NULL );
+	assert( private != NULL );
 	
-	data = ( struct ldap_map_data * )(*pmap)->lb_private;
-
 	map_ldap_free( data );
-
-	(*pmap)->lb_private = NULL;
 
 	return 0;
 }
+
+const rewrite_mapper rewrite_ldap_mapper = {
+	"ldap",
+	map_ldap_parse,
+	map_ldap_apply,
+	map_ldap_destroy
+};
 

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -181,9 +181,23 @@ meta_clear_unused_candidates(
  */
 int
 meta_clear_one_candidate(
-	metasingleconn_t	*msc )
+	Operation	*op,
+	metaconn_t	*mc,
+	int		candidate )
 {
-	if ( msc->msc_ld ) {
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+
+	if ( msc->msc_ld != NULL ) {
+
+#ifdef DEBUG_205
+		char	buf[ BUFSIZ ];
+
+		snprintf( buf, sizeof( buf ), "meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p ld=%p",
+			candidate, (void *)mc, (void *)msc->msc_ld );
+		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
+			op ? op->o_log_prefix : "", buf, 0 );
+#endif /* DEBUG_205 */
+
 		ldap_unbind_ext( msc->msc_ld, NULL, NULL );
 		msc->msc_ld = NULL;
 	}
@@ -199,23 +213,8 @@ meta_clear_one_candidate(
 		BER_BVZERO( &msc->msc_cred );
 	}
 
-	return 0;
-}
-
-/*
- * meta_clear_candidates
- *
- * clears all candidates
- */
-int
-meta_clear_candidates( Operation *op, metaconn_t *mc )
-{
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	int		c;
-
-	for ( c = 0; c < mi->mi_ntargets; c++ ) {
-		meta_clear_one_candidate( &mc->mc_conns[ c ] );
-	}
+	msc->msc_mscflags = 0;
 
 	return 0;
 }
+

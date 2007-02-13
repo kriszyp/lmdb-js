@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ int
 bdb_key_read(
 	Backend	*be,
 	DB *db,
-	DB_TXN *txn,
+	u_int32_t locker,
 	struct berval *k,
 	ID *ids,
 	DBC **saved_cursor,
@@ -47,7 +47,7 @@ bdb_key_read(
 	key.ulen = key.size;
 	key.flags = DB_DBT_USERMEM;
 
-	rc = bdb_idl_fetch_key( be, db, txn, &key, ids, saved_cursor, get_flag );
+	rc = bdb_idl_fetch_key( be, db, locker, &key, ids, saved_cursor, get_flag );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read: failed (%d)\n",

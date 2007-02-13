@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 2003 IBM Corporation.
  * Portions Copyright 2003 Symas Corporation.
  * All rights reserved.
@@ -216,7 +216,8 @@ merge_entry(
 			rc = 0;
 		}
 	} else {
-		be_entry_release_w( op, e );
+		if ( op->ora_e == e )
+			be_entry_release_w( op, e );
 		rc = 1;
 	}
 
@@ -1925,7 +1926,7 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		if ( !backend_db_init( c->argv[1], &cm->db )) {
+		if ( !backend_db_init( c->argv[1], &cm->db, -1 )) {
 			snprintf( c->msg, sizeof( c->msg ), "unknown backend type (arg #1)" );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );

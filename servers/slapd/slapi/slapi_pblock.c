@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2006 The OpenLDAP Foundation.
+ * Copyright 2002-2007 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -497,7 +497,8 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 
 			rc = mods_structural_class( pb->pb_op->ora_modlist,
 				&tmpval, &pb->pb_rs->sr_text,
-				pb->pb_textbuf, sizeof( pb->pb_textbuf ));
+				pb->pb_textbuf, sizeof( pb->pb_textbuf ),
+				pb->pb_op->o_tmpmemctx );
 			*((char **)value) = tmpval.bv_val;
 		} else {
 			rc = PBLOCK_ERROR;
@@ -1004,7 +1005,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			break;
 		}
 
-		newmods = slapi_int_ldapmods2modifications( (LDAPMod **)value );
+		newmods = slapi_int_ldapmods2modifications( pb->pb_op, (LDAPMod **)value );
 		if ( newmods != NULL ) {
 			slap_mods_free( *mlp, 1 );
 			*mlp = newmods;

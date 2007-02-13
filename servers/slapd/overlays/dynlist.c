@@ -1,7 +1,8 @@
 /* dynlist.c - dynamic list overlay */
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 2004-2005 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -22,10 +23,14 @@
 
 #ifdef SLAPD_OVER_DYNLIST
 
-#if LDAP_VENDOR_VERSION_MINOR != X && LDAP_VENDOR_VERSION_MINOR < 3
-#define OL_2_2_COMPAT
-#elif SLAPD_OVER_DYNGROUP != SLAPD_MOD_STATIC
+#if LDAP_VENDOR_VERSION_MINOR == X || LDAP_VENDOR_VERSION_MINOR > 3
+#if SLAPD_OVER_DYNGROUP != SLAPD_MOD_STATIC
 #define TAKEOVER_DYNGROUP
+#endif
+#else
+#if LDAP_VENDOR_VERSION_MINOR < 3
+#define OL_2_2_COMPAT
+#endif
 #endif
 
 #include <stdio.h>
@@ -193,7 +198,8 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 
 	for ( a = rs->sr_entry->e_attrs; a != NULL; a = a->a_next ) {
 		BerVarray	vals, nvals = NULL;
-		int		i, j;
+		int		i, j,
+				is_oc = a->a_desc == slap_schema.si_ad_objectClass;
 
 		/* if attribute is not requested, skip it */
 		if ( rs->sr_attrs == NULL ) {
@@ -242,6 +248,14 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 		}
 
 		for ( i = 0, j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
+			if ( is_oc ) {
+				ObjectClass	*soc = oc_bvfind( &a->a_vals[i] );
+
+				if ( soc->soc_kind == LDAP_SCHEMA_STRUCTURAL ) {
+					continue;
+				}
+			}
+
 			if ( access_allowed( op, rs->sr_entry, a->a_desc,
 						&a->a_nvals[i], ACL_READ, &acl_state ) )
 			{
@@ -284,6 +298,8 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 done:;
 	if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
 		entry_free( rs->sr_entry );
+		rs->sr_entry = NULL;
+		rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
 	}
 
 	return 0;
@@ -606,6 +622,8 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		BER_BVZERO( &an[1].an_name );
 		o.ors_attrs = an;
 		o.ors_attrsonly = 0;
+
+		o.o_acl_priv = ACL_COMPARE;
 
 		rc = o.o_bd->be_search( &o, &r );
 		filter_free_x( &o, o.ors_filter );

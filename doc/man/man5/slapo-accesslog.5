@@ -1,5 +1,5 @@
 .TH SLAPO-ACCESSLOG 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2005-2006 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 2005-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -25,9 +25,9 @@ directive.
 .TP
 .B logdb <suffix>
 Specify the suffix of a database to be used for storing the log records.
-The specified database must have already been configured in a prior section
-of the config file, and it must have a rootDN configured. The access controls
-on the log database should prevent general write access. The suffix entry
+The specified database must be defined elsewhere in the configuration.
+The access controls
+on the log database should prevent general access. The suffix entry
 of the log database will be created automatically by this overlay. The log
 entries will be generated as the immediate children of the suffix entry.
 .TP
@@ -96,17 +96,19 @@ succeed or not. The default is FALSE.
 .LP
 .nf
 	database bdb
-	suffix cn=log
-	\...
-	index reqStart eq
-
-	database bdb
 	suffix dc=example,dc=com
 	\...
 	overlay accesslog
 	logdb cn=log
 	logops writes reads
 	logold (objectclass=person)
+
+	database bdb
+	suffix cn=log
+	\...
+	index reqStart eq
+	access to *
+	  by dn.base="cn=admin,dc=example,dc=com" read
 .fi
 
 .SH SCHEMA

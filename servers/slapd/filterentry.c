@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,12 @@ test_filter(
 {
 	int	rc;
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter\n", 0, 0, 0 );
+
+	if ( f->f_choice & SLAPD_FILTER_UNDEFINED ) {
+		Debug( LDAP_DEBUG_FILTER, "    UNDEFINED\n", 0, 0, 0 );
+		rc = SLAPD_COMPARE_UNDEFINED;
+		goto out;
+	}
 
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
@@ -144,7 +150,7 @@ test_filter(
 		    f->f_choice, 0, 0 );
 		rc = LDAP_PROTOCOL_ERROR;
 	}
-
+out:
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter %d\n", rc, 0, 0 );
 	return( rc );
 }
@@ -276,14 +282,14 @@ static int test_mra_filter(
 					if ( normalize_attribute && mra->ma_rule->smr_normalize ) {
 						/*
 				
-				Document: draft-ietf-ldapbis-protocol
+				Document: RFC 4511
 
 				    4.5.1. Search Request 
 				        ...
 				    If the type field is present and the matchingRule is present, 
 			            the matchValue is compared against entry attributes of the 
 			            specified type. In this case, the matchingRule MUST be one 
-				    suitable for use with the specified type (see [Syntaxes]), 
+				    suitable for use with the specified type (see [RFC4517]), 
 				    otherwise the filter item is Undefined.  
 
 

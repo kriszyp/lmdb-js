@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2006 The OpenLDAP Foundation.
+ * Copyright 2004-2007 The OpenLDAP Foundation.
  * Portions Copyright 2004 Symas Corporation.
  * All rights reserved.
  *
@@ -96,6 +96,7 @@ static ConfigTable refintcfg[] = {
 	  ARG_MAGIC|REFINT_ATTRS, refint_cf_gen,
 	  "( OLcfgOvAt:11.1 NAME 'olcRefintAttribute' "
 	  "DESC 'Attributes for referential integrity' "
+	  "EQUALITY caseIgnoreMatch "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "refint_nothing", "string", 2, 2, 0,
 	  ARG_DN|ARG_MAGIC|REFINT_NOTHING, refint_cf_gen,
@@ -208,13 +209,10 @@ refint_cf_gen(ConfigArgs *c)
 					ip->next = dd->attrs;
 					dd->attrs = ip;
 				} else {
-					Debug ( LDAP_DEBUG_CONFIG,
-						"refint add: <%s>: %s\n",
-						c->argv[i], text, NULL );
-					strncpy ( c->msg,
-						  text,
-						  SLAP_TEXT_BUFLEN-1 );
-					c->msg[SLAP_TEXT_BUFLEN-1] = '\0';
+					snprintf( c->msg, sizeof( c->msg ),
+						"%s <%s>: %s", c->argv[0], c->argv[i], text );
+					Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+						"%s: %s\n", c->log, c->msg, 0 );
 					rc = ARG_BAD_CONF;
 				}
 			}
@@ -322,12 +320,14 @@ refint_close(
 		ij = ii->next;
 		ch_free(ii);
 	}
+	id->attrs = NULL;
 
-	ch_free(id->dn.bv_val);
-	ch_free(id->nothing.bv_val);
-	ch_free(id->nnothing.bv_val);
-
-	memset( id, 0, sizeof(*id));
+	ch_free( id->dn.bv_val );
+	BER_BVZERO( &id->dn );
+	ch_free( id->nothing.bv_val );
+	BER_BVZERO( &id->nothing );
+	ch_free( id->nnothing.bv_val );
+	BER_BVZERO( &id->nnothing );
 
 	return(0);
 }
@@ -647,7 +647,7 @@ refint_response(
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	refint_data *id = on->on_bi.bi_private;
 	BerValue pdn;
-	int rc, ac;
+	int ac;
 	refint_q *rq;
 	BackendDB *db;
 	refint_attrs *ip;

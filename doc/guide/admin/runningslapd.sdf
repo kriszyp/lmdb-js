@@ -1,12 +1,12 @@
 # $OpenLDAP$
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Running slapd
 
-{{slapd}}(8) is designed to be run as a stand-alone server.  This allows
-the server to take advantage of caching, manage concurrency issues
-with underlying databases, and conserve system resources.  Running
-from {{inetd}}(8) is {{NOT}} an option.
+{{slapd}}(8) is designed to be run as a standalone service.  This
+allows the server to take advantage of caching, manage concurrency
+issues with underlying databases, and conserve system resources.
+Running from {{inetd}}(8) is {{NOT}} an option.
 
 
 H2: Command-Line Options
@@ -22,16 +22,17 @@ The default is normally {{F:/usr/local/etc/openldap/slapd.conf}}.
 >	-h <URLs>
 
 This option specifies alternative listener configurations.  The
-default is {{EX:ldap:///}} which implies LDAP over TCP on all
-interfaces on the default LDAP port 389.  You can specify
-specific host-port pairs or other protocol schemes (such as
-ldaps:// or ldapi://).  For example,
-{{EX:-h "ldaps:// ldap://127.0.0.1:666"}} will create
-two listeners: one for LDAP over SSL on all interfaces on
-the default LDAP/SSL port 636, and one for LDAP over TCP on
-the {{EX:localhost}} ({{loopback}}) interface on port 666.
-Hosts may be specified using IPv4 dotted-decimal form or
-using host names.  Port values must be numeric.
+default is {{EX:ldap:///}} which implies {{TERM:LDAP}} over
+{{TERM:TCP}} on all interfaces on the default LDAP port 389.  You
+can specify specific host-port pairs or other protocol schemes (such
+as {{EX:ldaps://}} or {{EX:ldapi://}}).  For example, {{EX:-h
+"ldaps:// ldap://127.0.0.1:666"}} will create two listeners: one
+for the (non-standard) {{EX:ldaps://}} scheme on all interfaces on
+the default {{EX:ldaps://}} port 636, and one for the standard
+{{EX:ldap://}} scheme on the {{EX:localhost}} ({{loopback}}) interface
+on port 666.  Hosts may be specified using using hostnames or
+{{TERM:IPv4}} or {{TERM:IPv6}} addresses.  Port values must be
+numeric.
 
 >	-n <service-name>
 
@@ -67,7 +68,7 @@ exits, regardless of any other options you give it. Current
 debugging levels are
 
 !block table; colaligns="RL"; align=Center; \
-	title="Table 6.1: Debugging Levels"
+	title="Table 7.1: Debugging Levels"
 Level	Description
 -1	enable all debugging
 0	no debugging
@@ -113,11 +114,11 @@ terminal and run in the background.
 
 H2: Stopping slapd
 
-To kill off slapd safely, you should give a command like this
+To kill off {{slapd}}(8) safely, you should give a command like this
 
 > 	kill -INT `cat /usr/local/var/slapd.pid`
 
 where {{F:/usr/local/var}} is determined by {{EX:configure}}.
 
-Killing slapd by a more drastic method may cause information
-loss or database corruption.
+Killing slapd by a more drastic method may cause information loss or
+database corruption.

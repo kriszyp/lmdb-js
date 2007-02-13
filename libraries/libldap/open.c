@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -122,8 +122,6 @@ ldap_create( LDAP **ldp )
 	/* but not pointers to malloc'ed items */
 	ld->ld_options.ldo_sctrls = NULL;
 	ld->ld_options.ldo_cctrls = NULL;
-	ld->ld_options.ldo_tm_api = NULL;
-	ld->ld_options.ldo_tm_net = NULL;
 	ld->ld_options.ldo_defludp = NULL;
 
 #ifdef HAVE_CYRUS_SASL
@@ -145,14 +143,6 @@ ldap_create( LDAP **ldp )
 		sizeof( ld->ld_options.ldo_tls_info ));
 	ld->ld_options.ldo_tls_ctx = NULL;
 #endif
-
-	if ( gopts->ldo_tm_api &&
-		ldap_int_timeval_dup( &ld->ld_options.ldo_tm_api, gopts->ldo_tm_api ))
-		goto nomem;
-
-	if ( gopts->ldo_tm_net &&
-		ldap_int_timeval_dup( &ld->ld_options.ldo_tm_net, gopts->ldo_tm_net ))
-		goto nomem;
 
 	if ( gopts->ldo_defludp ) {
 		ld->ld_options.ldo_defludp = ldap_url_duplist(gopts->ldo_defludp);
@@ -178,8 +168,6 @@ ldap_create( LDAP **ldp )
 nomem:
 	ldap_free_select_info( ld->ld_selectinfo );
 	ldap_free_urllist( ld->ld_options.ldo_defludp );
-	LDAP_FREE( ld->ld_options.ldo_tm_net );
-	LDAP_FREE( ld->ld_options.ldo_tm_api );
 #ifdef HAVE_CYRUS_SASL
 	LDAP_FREE( ld->ld_options.ldo_def_sasl_authzid );
 	LDAP_FREE( ld->ld_options.ldo_def_sasl_authcid );
@@ -247,6 +235,95 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 #endif
 	}
 
+	*ldp = ld;
+	return LDAP_SUCCESS;
+}
+
+int
+ldap_init_fd(
+	ber_socket_t fd,
+	int proto,
+	LDAP_CONST char *url,
+	LDAP **ldp
+)
+{
+	int rc;
+	LDAP *ld;
+	LDAPConn *conn;
+
+	*ldp = NULL;
+	rc = ldap_create( &ld );
+	if( rc != LDAP_SUCCESS )
+		return( rc );
+
+	if (url != NULL) {
+		rc = ldap_set_option(ld, LDAP_OPT_URI, url);
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_ld_free(ld, 1, NULL, NULL);
+			return rc;
+		}
+	}
+
+	/* Attach the passed socket as the LDAP's connection */
+	conn = ldap_new_connection( ld, NULL, 1, 0, NULL);
+	if( conn == NULL ) {
+		ldap_unbind_ext( ld, NULL, NULL );
+		return( LDAP_NO_MEMORY );
+	}
+	ber_sockbuf_ctrl( conn->lconn_sb, LBER_SB_OPT_SET_FD, &fd );
+	ld->ld_defconn = conn;
+	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
+
+	switch( proto ) {
+	case LDAP_PROTO_TCP:
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)"tcp_" );
+#endif
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_tcp,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		break;
+
+#ifdef LDAP_CONNECTIONLESS
+	case LDAP_PROTO_UDP:
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)"udp_" );
+#endif
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_udp,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		break;
+#endif /* LDAP_CONNECTIONLESS */
+
+	case LDAP_PROTO_IPC:
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)"ipc_" );
+#endif
+		ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_fd,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		break;
+
+	case LDAP_PROTO_EXT:
+		/* caller must supply sockbuf handlers */
+		break;
+
+	default:
+		ldap_unbind_ext( ld, NULL, NULL );
+		return LDAP_PARAM_ERROR;
+	}
+
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+		INT_MAX, (void *)"ldap_" );
+#endif
+
+	/* Add the connection to the *LDAP's select pool */
+	ldap_mark_select_read( ld, conn->lconn_sb );
+	ldap_mark_select_write( ld, conn->lconn_sb );
+	
 	*ldp = ld;
 	return LDAP_SUCCESS;
 }
@@ -345,6 +422,8 @@ ldap_int_open_connection(
 			break;
 	}
 
+	conn->lconn_created = time( NULL );
+
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
 		INT_MAX, (void *)"ldap_" );
@@ -369,19 +448,6 @@ ldap_int_open_connection(
 		}
 	}
 #endif
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	if ( conn->lconn_krbinstance == NULL ) {
-		char *c;
-		conn->lconn_krbinstance = ldap_host_connected_to(
-			conn->lconn_sb, host );
-
-		if( conn->lconn_krbinstance != NULL && 
-		    ( c = strchr( conn->lconn_krbinstance, '.' )) != NULL ) {
-			*c = '\0';
-		}
-	}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 	return( 0 );
 }

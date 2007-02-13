@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2006 The OpenLDAP Foundation.
+ * Copyright 2001-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -935,7 +935,7 @@ int slapi_over_config( BackendDB *be )
 		slapi_over_initialized = 1;
 	}
 
-	return overlay_config( be, SLAPI_OVERLAY_NAME );
+	return overlay_config( be, SLAPI_OVERLAY_NAME, -1, NULL );
 }
 
 #endif /* LDAP_SLAPI */

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -120,7 +120,9 @@ int bdb_dn2id_children(
 
 int bdb_dn2idl(
 	Operation *op,
-	Entry *e,
+	u_int32_t locker,
+	struct berval *ndn,
+	EntryInfo *ei,
 	ID *ids,
 	ID *stack );
 
@@ -166,6 +168,7 @@ char *ebcdic_dberror( int rc );
 
 int bdb_filter_candidates(
 	Operation *op,
+	u_int32_t locker,
 	Filter	*f,
 	ID *ids,
 	ID *tmp,
@@ -282,7 +285,7 @@ unsigned bdb_idl_search( ID *ids, ID id );
 int bdb_idl_fetch_key(
 	BackendDB	*be,
 	DB			*db,
-	DB_TXN		*tid,
+	u_int32_t locker,
 	DBT			*key,
 	ID			*ids,
 	DBC                     **saved_cursor,
@@ -388,7 +391,7 @@ extern int
 bdb_key_read(
     Backend	*be,
 	DB *db,
-	DB_TXN *txn,
+	u_int32_t locker,
     struct berval *k,
 	ID *ids,
     DBC **saved_cursor,
@@ -449,25 +452,27 @@ int bdb_monitor_db_destroy( BackendDB *be );
 	ldap_pvt_thread_mutex_lock( &(e)->bei_kids_mutex )
 #define	bdb_cache_entryinfo_unlock(e) \
 	ldap_pvt_thread_mutex_unlock( &(e)->bei_kids_mutex )
+#define	bdb_cache_entryinfo_trylock(e) \
+	ldap_pvt_thread_mutex_trylock( &(e)->bei_kids_mutex )
 
 /* What a mess. Hopefully the current cache scheme will stabilize
  * and we can trim out all of this stuff.
  */
 #if 0
-void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e,
+void bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 	int rw, DB_LOCK *lock );
 #else
-#define bdb_cache_return_entry_rw( env, cache, e, rw, lock ) \
-	bdb_cache_entry_db_unlock( env, lock )
-#define	bdb_cache_return_entry( env, lock ) \
-	bdb_cache_entry_db_unlock( env, lock )
+#define bdb_cache_return_entry_rw( bdb, e, rw, lock ) \
+	bdb_cache_entry_db_unlock( bdb, lock )
+#define	bdb_cache_return_entry( bdb, lock ) \
+	bdb_cache_entry_db_unlock( bdb, lock )
 #endif
-#define bdb_cache_return_entry_r(env, c, e, l) \
-	bdb_cache_return_entry_rw((env), (c), (e), 0, (l))
-#define bdb_cache_return_entry_w(env, c, e, l) \
-	bdb_cache_return_entry_rw((env), (c), (e), 1, (l))
+#define bdb_cache_return_entry_r(bdb, e, l) \
+	bdb_cache_return_entry_rw((bdb), (e), 0, (l))
+#define bdb_cache_return_entry_w(bdb, e, l) \
+	bdb_cache_return_entry_rw((bdb), (e), 1, (l))
 #if 0
-void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
+void bdb_unlocked_cache_return_entry_rw( struct bdb_info *bdb, Entry *e, int rw );
 #else
 #define	bdb_unlocked_cache_return_entry_rw( a, b, c )	((void)0)
 #endif
@@ -499,7 +504,8 @@ int bdb_cache_add(
 	EntryInfo *pei,
 	Entry   *e,
 	struct berval *nrdn,
-	u_int32_t locker
+	u_int32_t locker,
+	DB_LOCK *lock
 );
 int bdb_cache_modrdn(
 	struct bdb_info *bdb,
@@ -511,9 +517,9 @@ int bdb_cache_modrdn(
 	DB_LOCK *lock
 );
 int bdb_cache_modify(
+	struct bdb_info *bdb,
 	Entry *e,
 	Attribute *newAttrs,
-	DB_ENV *env,
 	u_int32_t locker,
 	DB_LOCK *lock
 );
@@ -545,9 +551,8 @@ bdb_cache_find_parent(
 	EntryInfo **res
 );
 int bdb_cache_delete(
-	Cache	*cache,
+	struct bdb_info *bdb,
 	Entry	*e,
-	DB_ENV	*env,
 	u_int32_t locker,
 	DB_LOCK	*lock
 );
@@ -556,12 +561,6 @@ void bdb_cache_delete_cleanup(
 	EntryInfo *ei
 );
 void bdb_cache_release_all( Cache *cache );
-void bdb_cache_delete_entry(
-	struct bdb_info *bdb,
-	EntryInfo *ei,
-	u_int32_t locker,
-	DB_LOCK *lock
-);
 
 #ifdef BDB_HIER
 int hdb_cache_load(
@@ -573,7 +572,7 @@ int hdb_cache_load(
 
 #define bdb_cache_entry_db_relock		BDB_SYMBOL(cache_entry_db_relock)
 int bdb_cache_entry_db_relock(
-	DB_ENV *env,
+	struct bdb_info *bdb,
 	u_int32_t locker,
 	EntryInfo *ei,
 	int rw,
@@ -581,13 +580,15 @@ int bdb_cache_entry_db_relock(
 	DB_LOCK *lock );
 
 int bdb_cache_entry_db_unlock(
-	DB_ENV *env,
+	struct bdb_info *bdb,
 	DB_LOCK *lock );
 
 #ifdef BDB_REUSE_LOCKERS
 
 #define bdb_locker_id				BDB_SYMBOL(locker_id)
+#define bdb_locker_flush			BDB_SYMBOL(locker_flush)
 int bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker );
+void bdb_locker_flush( DB_ENV *env );
 
 #define	LOCK_ID_FREE(env, locker)	((void)0)
 #define	LOCK_ID(env, locker)	bdb_locker_id(op, env, locker)

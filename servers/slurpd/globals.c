@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,9 +95,6 @@ init_globals( void )
 	fprintf( stderr, "Cannot initialize queue\n" );
 	exit( EXIT_FAILURE );
     }
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-    g->default_srvtab = SRVTAB;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
     return g;
 }

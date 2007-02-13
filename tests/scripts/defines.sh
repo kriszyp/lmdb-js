@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2006 The OpenLDAP Foundation.
+## Copyright 1998-2007 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -123,6 +123,9 @@ PLSRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist-ldap.conf
 PLSRMASTERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
 DDSCONF=$DATADIR/slapd-dds.conf
 PASSWDCONF=$DATADIR/slapd-passwd.conf
+UNDOCONF=$DATADIR/slapd-config-undo.conf
+
+DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
 
 # generated files
 CONF1=$TESTDIR/slapd.1.conf
@@ -152,10 +155,10 @@ TOOLPROTO="-P 3"
 LDIFFILTER=$SRCDIR/scripts/acfilter.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
 
-SLAPADD="../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
-SLAPCAT="../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
-SLAPINDEX="../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
-SLAPPASSWD="../servers/slapd/slapd -Tpasswd"
+SLAPADD="`pwd`/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
+SLAPCAT="`pwd`/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
+SLAPINDEX="`pwd`/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
+SLAPPASSWD="`pwd`/../servers/slapd/slapd -Tpasswd"
 
 unset DIFF_OPTIONS
 # NOTE: -u/-c is not that portable...
@@ -163,8 +166,8 @@ DIFF="diff -i"
 CMP="diff -i"
 BCMP="diff -iB"
 CMPOUT=/dev/null
-SLAPD="../servers/slapd/slapd -s0"
-SLURPD=../servers/slurpd/slurpd
+SLAPD="`pwd`/../servers/slapd/slapd -s0"
+SLURPD="`pwd`/../servers/slurpd/slurpd"
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
 LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $LDAP_TOOLARGS -LLL"
 LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"

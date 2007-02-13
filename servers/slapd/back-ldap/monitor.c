@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 #include "lutil.h"
 #include "back-ldap.h"
+
+#include "config.h"
 
 static ObjectClass		*oc_olmLDAPDatabase;
 
@@ -263,9 +265,11 @@ done:;
 static int
 ldap_back_monitor_free(
 	Entry		*e,
-	void		*priv )
+	void		**priv )
 {
-	ldapinfo_t		*li = (ldapinfo_t *)priv;
+	ldapinfo_t		*li = (ldapinfo_t *)(*priv);
+
+	*priv = NULL;
 
 	if ( !slapd_shutdown && !BER_BVISNULL( &li->li_monitor_info.lmi_rdn ) ) {
 		ldap_back_monitor_info_destroy( li );
@@ -304,7 +308,8 @@ static int
 ldap_back_monitor_initialize( void )
 {
 	int		i, code;
-	const char	*err;
+	ConfigArgs c;
+	char	*argv[ 3 ];
 
 	static int	ldap_back_monitor_initialized = 0;
 
@@ -319,14 +324,16 @@ ldap_back_monitor_initialize( void )
 		return -1;
 	}
 
+	argv[ 0 ] = "back-ldap monitor";
+	c.argv = argv;
+	c.argc = 3;
+	c.fname = argv[0];
 	for ( i = 0; s_oid[ i ].name; i++ ) {
-		char	*argv[ 3 ];
 	
-		argv[ 0 ] = "back-ldap monitor";
 		argv[ 1 ] = s_oid[ i ].name;
 		argv[ 2 ] = s_oid[ i ].oid;
 
-		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"ldap_back_monitor_initialize: unable to add "
 				"objectIdentifier \"%s=%s\"\n",

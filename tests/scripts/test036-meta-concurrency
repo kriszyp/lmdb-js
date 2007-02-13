@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2006 The OpenLDAP Foundation.
+## Copyright 1998-2007 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -198,7 +198,8 @@ done
 
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT3 \
-	-D "cn=Manager,$METABASEDN" -w $PASSWD -l $TESTLOOPS -r 20 -FF
+	-D "cn=Manager,$METABASEDN" -w $PASSWD -l $TESTLOOPS -r 20 -FF \
+	-i '!REFERRAL'
 RC=$?
 
 if test $RC != 0 ; then

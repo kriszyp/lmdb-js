@@ -1,5 +1,5 @@
 .TH SLAPO-CHAIN 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 1998-2006 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copyright 1998-2007 The OpenLDAP Foundation, All Rights Reserved.
 .\" Copying restrictions apply.  See the COPYRIGHT file.
 .\" $OpenLDAP$
 .SH NAME
@@ -13,15 +13,15 @@ overlay to
 .BR slapd (8)
 allows automatic referral chasing.
 Any time a referral is returned (except for bind operations),
-it chased by using an instance of the ldap backend.
+it is chased by using an instance of the ldap backend.
 If operations are performed with an identity (i.e. after a bind),
 that identity can be asserted while chasing the referrals 
 by means of the \fIidentity assertion\fP feature of back-ldap
 (see
 .BR slapd-ldap (5)
 for details), which is essentially based on the
-.B proxyAuthz
-control (see \fIdraft-weltman-ldapv3-proxy\fP for details.)
+.B proxied authorization
+control [RFC 4370].
 Referral chasing can be controlled by the client by issuing the 
 \fBchaining\fP control
 (see \fIdraft-sermersheim-ldap-chaining\fP for details.)
@@ -40,7 +40,7 @@ related to the instances of the \fIldap\fP backend that may be implicitly
 instantiated by the overlay may assume a special meaning when used 
 in conjunction with this overlay.  They are described in
 .BR slapd-ldap (5),
-and they also need be prefixed by
+and they also need to be prefixed by
 .BR chain\- .
 .TP
 .B overlay chain
@@ -59,7 +59,7 @@ connections to URIs parsed out of referrals that are not predefined,
 to be reused for later chaining.
 These URIs inherit the properties configured for the underlying 
 \fBslapd-ldap\fP(5) before any occurrence of the \fBchain-uri\fP
-directive; in detail, they are essentially chained anonymously.
+directive; basically, they are chained anonymously.
 .TP
 .B chain-chaining [resolve=<r>] [continuation=<c>] [critical]
 This directive enables the \fIchaining\fP control

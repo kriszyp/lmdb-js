@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,12 +40,12 @@
 
 static void
 do_read( char *uri, char *manager, struct berval *passwd,
-	char *entry, LDAP **ld, int noattrs, int maxloop,
+	char *entry, LDAP **ld, int noattrs, int nobind, int maxloop,
 	int maxretries, int delay, int force, int chaserefs );
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, int noattrs,
+	char *sbase, char *filter, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs );
 
 static void
@@ -60,6 +60,7 @@ usage( char *name )
 		"[-A] "
 		"[-C] "
 		"[-F] "
+		"[-N] "
 		"[-f filter] "
 		"[-i <ignore>] "
 		"[-l <loops>] "
@@ -88,14 +89,15 @@ main( int argc, char **argv )
 	int		force = 0;
 	int		chaserefs = 0;
 	int		noattrs = 0;
+	int		nobind = 0;
 
 	tester_init( "slapd-read", TESTER_READ );
 
 	/* by default, tolerate referrals and no such object */
 	tester_ignore_str2errlist( "REFERRAL,NO_SUCH_OBJECT" );
 
-	while ( (i = getopt( argc, argv, "ACD:H:h:i:p:e:Ff:l:L:r:t:w:" )) != EOF ) {
-		switch( i ) {
+	while ( (i = getopt( argc, argv, "ACD:e:Ff:H:h:i:L:l:p:r:t:w:" )) != EOF ) {
+		switch ( i ) {
 		case 'A':
 			noattrs++;
 			break;
@@ -114,6 +116,10 @@ main( int argc, char **argv )
 
 		case 'i':
 			tester_ignore_str2errlist( optarg );
+			break;
+
+		case 'N':
+			nobind++;
 			break;
 
 		case 'p':		/* the servers port */
@@ -188,11 +194,11 @@ main( int argc, char **argv )
 	for ( i = 0; i < outerloops; i++ ) {
 		if ( filter != NULL ) {
 			do_random( uri, manager, &passwd, entry, filter,
-				noattrs, loops, retries, delay, force,
+				noattrs, nobind, loops, retries, delay, force,
 				chaserefs );
 
 		} else {
-			do_read( uri, manager, &passwd, entry, NULL, noattrs,
+			do_read( uri, manager, &passwd, entry, NULL, noattrs, nobind,
 				loops, retries, delay, force, chaserefs );
 		}
 	}
@@ -202,20 +208,17 @@ main( int argc, char **argv )
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, int noattrs,
+	char *sbase, char *filter, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
 	char	*attrs[ 2 ];
-	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 	int	nvalues = 0;
 	char	**values = NULL;
 	LDAPMessage *res = NULL, *e = NULL;
-
-	srand( pid );
 
 	attrs[ 0 ] = LDAP_NO_ATTRS;
 	attrs[ 1 ] = NULL;
@@ -235,17 +238,19 @@ do_random( char *uri, char *manager, struct berval *passwd,
 				(long) pid, innerloop, sbase, filter );
 	}
 
-	rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
-	if ( rc != LDAP_SUCCESS ) {
-		tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
-		switch ( rc ) {
-		case LDAP_BUSY:
-		case LDAP_UNAVAILABLE:
-		/* fallthru */
-		default:
-			break;
+	if ( nobind == 0 ) {
+		rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
+			switch ( rc ) {
+			case LDAP_BUSY:
+			case LDAP_UNAVAILABLE:
+			/* fallthru */
+			default:
+				break;
+			}
+			exit( EXIT_FAILURE );
 		}
-		exit( EXIT_FAILURE );
 	}
 
 	rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,
@@ -283,9 +288,10 @@ do_random( char *uri, char *manager, struct berval *passwd,
 			int	r = ((double)nvalues)*rand()/(RAND_MAX + 1.0);
 
 			do_read( uri, manager, passwd, values[ r ], &ld,
-				noattrs, 1, maxretries, delay, force,
+				noattrs, nobind, 1, maxretries, delay, force,
 				chaserefs );
 		}
+		free( values );
 		break;
 
 	default:
@@ -302,13 +308,12 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 static void
 do_read( char *uri, char *manager, struct berval *passwd, char *entry,
-	LDAP **ldp, int noattrs, int maxloop,
+	LDAP **ldp, int noattrs, int nobind, int maxloop,
 	int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	int  	i = 0, do_retry = maxretries;
 	char	*attrs[] = { "1.1", NULL };
-	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 
@@ -329,25 +334,27 @@ retry:;
 				(long) pid, maxloop, entry );
 		}
 
-		rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
-			switch ( rc ) {
-			case LDAP_BUSY:
-			case LDAP_UNAVAILABLE:
-				if ( do_retry > 0 ) {
-					ldap_unbind_ext( ld, NULL, NULL );
-					do_retry--;
-					if ( delay != 0 ) {
-					    sleep( delay );
+		if ( nobind == 0 ) {
+			rc = ldap_sasl_bind_s( ld, manager, LDAP_SASL_SIMPLE, passwd, NULL, NULL, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+				tester_ldap_error( ld, "ldap_sasl_bind_s", NULL );
+				switch ( rc ) {
+				case LDAP_BUSY:
+				case LDAP_UNAVAILABLE:
+					if ( do_retry > 0 ) {
+						ldap_unbind_ext( ld, NULL, NULL );
+						do_retry--;
+						if ( delay != 0 ) {
+						    sleep( delay );
+						}
+						goto retry;
 					}
-					goto retry;
+				/* fallthru */
+				default:
+					break;
 				}
-			/* fallthru */
-			default:
-				break;
+				exit( EXIT_FAILURE );
 			}
-			exit( EXIT_FAILURE );
 		}
 	}
 

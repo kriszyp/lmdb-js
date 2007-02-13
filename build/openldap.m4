@@ -2,7 +2,7 @@ dnl OpenLDAP Autoconf Macros
 dnl $OpenLDAP$
 dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
-dnl Copyright 1998-2006 The OpenLDAP Foundation.
+dnl Copyright 1998-2007 The OpenLDAP Foundation.
 dnl All rights reserved.
 dnl
 dnl Redistribution and use in source and binary forms, with or without
@@ -486,7 +486,12 @@ __db_version
 ])
 
 if test $ol_cv_bdb_major = 4 ; then
-	if test $ol_cv_bdb_minor = 4 ; then
+	if test $ol_cv_bdb_minor = 5 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db45,[-ldb45])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_45,[-ldb-45])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_5,[-ldb-4.5])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_5,[-ldb-4-5])
+	elif test $ol_cv_bdb_minor = 4 ; then
 		OL_BERKELEY_DB_TRY(ol_cv_db_db44,[-ldb44])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_44,[-ldb-44])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
@@ -691,8 +696,8 @@ AC_DEFUN([OL_BDB_COMPAT],
 #	define DB_VERSION_MINOR 0
 #endif
 
-/* require 4.2 or later */
-#if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 2)
+/* require 4.2 or later, but exclude 4.3 */
+#if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 2) && (DB_VERSION_MINOR !=3)
 	__db_version_compat
 #endif
 	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])

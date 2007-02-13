@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,8 +82,9 @@ main( int argc, char **argv )
 
 	tester_init( "slapd-modrdn", TESTER_MODRDN );
 
-	while ( (i = getopt( argc, argv, "CFH:h:i:p:D:w:e:l:L:r:t:" )) != EOF ) {
-		switch( i ) {
+	while ( ( i = getopt( argc, argv, "CD:e:FH:h:i:L:l:p:r:t:w:" ) ) != EOF )
+	{
+		switch ( i ) {
 		case 'C':
 			chaserefs++;
 			break;
@@ -183,14 +184,12 @@ do_modrdn( char *uri, char *manager,
 {
 	LDAP	*ld = NULL;
 	int  	i = 0, do_retry = maxretries;
-	pid_t	pid;
 	char	*DNs[2];
 	char	*rdns[2];
 	int	rc = LDAP_SUCCESS;
 	char	*p1, *p2;
 	int	version = LDAP_VERSION3;
 
-	pid = getpid();
 	DNs[0] = entry;
 	DNs[1] = strdup( entry );
 

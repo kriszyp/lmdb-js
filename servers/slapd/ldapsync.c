@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
  *
@@ -34,34 +34,58 @@ void
 slap_compose_sync_cookie(
 	Operation *op,
 	struct berval *cookie,
-	struct berval *csn,
-	int rid )
+	BerVarray csn,
+	int rid,
+	int sid )
 {
-	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 20 ];
-	int len;
+	int len, numcsn = 0;
 
-	if ( BER_BVISNULL( csn )) {
+	if ( csn ) {
+		for (; !BER_BVISNULL( &csn[numcsn] ); numcsn++);
+	}
+
+	if ( numcsn == 0 || rid == -1 ) {
+		char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 20 ];
 		if ( rid == -1 ) {
 			cookiestr[0] = '\0';
 			len = 0;
 		} else {
-			len = snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+			len = snprintf( cookiestr, sizeof( cookiestr ),
 					"rid=%03d", rid );
+			if ( sid >= 0 ) {
+				len += sprintf( cookiestr+len, ",sid=%03x", sid );
+			}
 		}
+		ber_str2bv_x( cookiestr, len, 1, cookie, 
+			op ? op->o_tmpmemctx : NULL );
 	} else {
-		char *end = cookiestr + sizeof(cookiestr);
-		char *ptr = lutil_strcopy( cookiestr, "csn=" );
-		len = csn->bv_len;
-		if ( ptr + len >= end )
-			len = end - ptr;
-		ptr = lutil_strncopy( ptr, csn->bv_val, len );
-		if ( rid != -1 && ptr < end - STRLENOF(",rid=xxx") ) {
-			ptr += sprintf( ptr, ",rid=%03d", rid );
+		char *ptr;
+		int i;
+
+		len = 0;
+		for ( i=0; i<numcsn; i++)
+			len += csn[i].bv_len + 1;
+
+		len += STRLENOF("rid=123,csn=");
+		if ( sid >= 0 )
+			len += STRLENOF("sid=xxx,");
+
+		cookie->bv_val = slap_sl_malloc( len, op ? op->o_tmpmemctx : NULL );
+
+		len = sprintf( cookie->bv_val, "rid=%03d,", rid );
+		ptr = cookie->bv_val + len;
+		if ( sid >= 0 ) {
+			ptr += sprintf( ptr, "sid=%03x,", sid );
 		}
-		len = ptr - cookiestr;
+		ptr = lutil_strcopy( ptr, "csn=" );
+		for ( i=0; i<numcsn; i++) {
+			ptr = lutil_strncopy( ptr, csn[i].bv_val, csn[i].bv_len );
+			*ptr++ = ';';
+		}
+		ptr--;
+		*ptr = '\0';
+		cookie->bv_len = ptr - cookie->bv_val;
 	}
-	ber_str2bv_x( cookiestr, len, 1, cookie, 
-		op ? op->o_tmpmemctx : NULL );
 }
 
 void
@@ -73,11 +97,16 @@ slap_sync_cookie_free(
 	if ( cookie == NULL )
 		return;
 
-	if ( !BER_BVISNULL( &cookie->ctxcsn )) {
-		ch_free( cookie->ctxcsn.bv_val );
-		BER_BVZERO( &cookie->ctxcsn );
+	if ( cookie->sids ) {
+		ch_free( cookie->sids );
+		cookie->sids = NULL;
 	}
 
+	if ( cookie->ctxcsn ) {
+		ber_bvarray_free( cookie->ctxcsn );
+		cookie->ctxcsn = NULL;
+	}
+	cookie->numcsns = 0;
 	if ( !BER_BVISNULL( &cookie->octet_str )) {
 		ch_free( cookie->octet_str.bv_val );
 		BER_BVZERO( &cookie->octet_str );
@@ -91,6 +120,37 @@ slap_sync_cookie_free(
 }
 
 int
+slap_parse_csn_sid( struct berval *csn )
+{
+	char *p, *q;
+	int i;
+
+	p = memchr( csn->bv_val, '#', csn->bv_len );
+	if ( p )
+		p = strchr( p+1, '#' );
+	if ( !p )
+		return -1;
+	p++;
+	i = strtoul( p, &q, 10 );
+	if ( p == q || i > SLAP_SYNC_SID_MAX )
+		i = -1;
+	return i;
+}
+
+int *
+slap_parse_csn_sids( BerVarray csns, int numcsns )
+{
+	int i, *ret;
+	char *p, *q;
+
+	ret = ch_malloc( numcsns * sizeof(int) );
+	for ( i=0; i<numcsns; i++ ) {
+		ret[i] = slap_parse_csn_sid( &csns[i] );
+	}
+	return ret;
+}
+
+int
 slap_parse_sync_cookie(
 	struct sync_cookie *cookie,
 	void *memctx
@@ -99,10 +159,10 @@ slap_parse_sync_cookie(
 	char *csn_ptr;
 	char *csn_str;
 	int csn_str_len;
-	int valid = 0;
 	char *rid_ptr;
 	char *cval;
-	char *next;
+	char *next, *end;
+	AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
 
 	if ( cookie == NULL )
 		return -1;
@@ -111,60 +171,89 @@ slap_parse_sync_cookie(
 		return -1;
 
 	cookie->rid = -1;
-	/* FIXME: may read past end of cookie->octet_str.bv_val */
-	rid_ptr = strstr( cookie->octet_str.bv_val, "rid=" );
-	if ( rid_ptr == NULL 
-		|| rid_ptr > &cookie->octet_str.bv_val[ cookie->octet_str.bv_len - STRLENOF( "rid=" ) ] )
-	{
-		return -1;
-	}
+	cookie->sid = -1;
+	cookie->ctxcsn = NULL;
+	cookie->sids = NULL;
+	cookie->numcsns = 0;
 
-	if ( rid_ptr[ STRLENOF( "rid=" ) ] == '-' ) {
-		return -1;
-	}
-	cookie->rid = strtoul( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );
-	if ( next == &rid_ptr[ STRLENOF( "rid=" ) ] || ( next[ 0 ] != ',' && next[ 0 ] != '\0' ) ) {
-		return -1;
-	}
+	end = cookie->octet_str.bv_val + cookie->octet_str.bv_len;
 
-	while (( csn_ptr = strstr( cookie->octet_str.bv_val, "csn=" )) != NULL ) {
-		AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
-		slap_syntax_validate_func *validate;
-		struct berval stamp;
-
-		/* This only happens when called from main */
-		if ( ad == NULL )
-			break;
-
-		if ( csn_ptr >= &cookie->octet_str.bv_val[ cookie->octet_str.bv_len - STRLENOF( "csn=" ) ] ) {
-			return -1;
+	for ( next=cookie->octet_str.bv_val; next < end; ) {
+		if ( !strncmp( next, "rid=", STRLENOF("rid=") )) {
+			rid_ptr = next;
+			cookie->rid = strtoul( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );
+			if ( next == rid_ptr || next > end || *next != ',' ) {
+				return -1;
+			}
+			if ( *next == ',' ) {
+				next++;
+			}
+			if ( !ad ) {
+				break;
+			}
+			continue;
 		}
+		if ( !strncmp( next, "sid=", STRLENOF("sid=") )) {
+			rid_ptr = next;
+			cookie->sid = strtoul( &rid_ptr[ STRLENOF( "sid=" ) ], &next, 16 );
+			if ( next == rid_ptr || next > end || *next != ',' ) {
+				return -1;
+			}
+			if ( *next == ',' ) {
+				next++;
+			}
+			continue;
+		}
+		if ( !strncmp( next, "csn=", STRLENOF("csn=") )) {
+			slap_syntax_validate_func *validate;
+			struct berval stamp;
 
-		csn_str = csn_ptr + STRLENOF("csn=");
-		cval = strchr( csn_str, ',' );
-		if ( cval && cval < &cookie->octet_str.bv_val[ cookie->octet_str.bv_len ] )
-			csn_str_len = cval - csn_str;
-		else
-			csn_str_len = 0;
-
-		/* FIXME use csnValidate when it gets implemented */
-		csn_ptr = strchr( csn_str, '#' );
-		if ( !csn_ptr || csn_str >= &cookie->octet_str.bv_val[ cookie->octet_str.bv_len ] ) break;
-
-		stamp.bv_val = csn_str;
-		stamp.bv_len = csn_ptr - csn_str;
-		validate = ad->ad_type->sat_syntax->ssyn_validate;
-		if ( validate( ad->ad_type->sat_syntax, &stamp ) != LDAP_SUCCESS )
-			break;
-		valid = 1;
-		break;
+			next += STRLENOF("csn=");
+			while ( next < end ) {
+				csn_str = next;
+				/* FIXME use csnValidate when it gets implemented */
+				csn_ptr = strchr( csn_str, '#' );
+				if ( !csn_ptr || csn_ptr > end )
+					break;
+				/* ad will be NULL when called from main. we just
+				 * want to parse the rid then. But we still iterate
+				 * through the string to find the end.
+				 */
+				if ( ad ) {
+					stamp.bv_val = csn_str;
+					stamp.bv_len = csn_ptr - csn_str;
+					validate = ad->ad_type->sat_syntax->ssyn_validate;
+					if ( validate( ad->ad_type->sat_syntax, &stamp )
+						!= LDAP_SUCCESS )
+						break;
+				}
+				cval = strchr( csn_ptr, ';' );
+				if ( !cval )
+					cval = strchr(csn_ptr, ',' );
+				if ( cval )
+					stamp.bv_len = cval - csn_str;
+				else
+					stamp.bv_len = end - csn_str;
+				if ( ad ) {
+					value_add_one( &cookie->ctxcsn, &stamp );
+					cookie->numcsns++;
+				}
+				if ( cval ) {
+					next = cval + 1;
+					if ( *cval != ';' )
+						break;
+				} else {
+					next = end;
+					break;
+				}
+			}
+			continue;
+		}
+		next++;
 	}
-	if ( valid ) {
-		ber_str2bv_x( csn_str, csn_str_len, 1, &cookie->ctxcsn, memctx );
-	} else {
-		BER_BVZERO( &cookie->ctxcsn );
+	if ( cookie->numcsns ) {
+		cookie->sids = slap_parse_csn_sids( cookie->ctxcsn, cookie->numcsns );
 	}
-
 	return 0;
 }
 
@@ -189,7 +278,10 @@ slap_init_sync_cookie_ctxcsn(
 
 	ctxcsn.bv_val = octet_str.bv_val + 4;
 	ctxcsn.bv_len = octet_str.bv_len - 4;
-	ber_dupbv( &cookie->ctxcsn, &ctxcsn );
+	cookie->ctxcsn = NULL;
+	value_add_one( &cookie->ctxcsn, &ctxcsn );
+	cookie->numcsns = 1;
+	cookie->sid = -1;
 
 	return 0;
 }
@@ -201,14 +293,16 @@ slap_dup_sync_cookie(
 )
 {
 	struct sync_cookie *new;
+	int i;
 
 	if ( src == NULL )
 		return NULL;
 
 	if ( dst ) {
-		ch_free( dst->ctxcsn.bv_val );
+		ber_bvarray_free( dst->ctxcsn );
+		dst->ctxcsn = NULL;
+		dst->sids = NULL;
 		ch_free( dst->octet_str.bv_val );
-		BER_BVZERO( &dst->ctxcsn );
 		BER_BVZERO( &dst->octet_str );
 		new = dst;
 	} else {
@@ -217,9 +311,19 @@ slap_dup_sync_cookie(
 	}
 
 	new->rid = src->rid;
+	new->sid = src->sid;
+	new->numcsns = src->numcsns;
 
-	if ( !BER_BVISNULL( &src->ctxcsn )) {
-		ber_dupbv( &new->ctxcsn, &src->ctxcsn );
+	if ( src->numcsns ) {
+		if ( ber_bvarray_dup_x( &new->ctxcsn, src->ctxcsn, NULL )) {
+			if ( !dst ) {
+				ch_free( new );
+			}
+			return NULL;
+		}
+		new->sids = ch_malloc( src->numcsns * sizeof(int) );
+		for (i=0; i<src->numcsns; i++)
+			new->sids[i] = src->sids[i];
 	}
 
 	if ( !BER_BVISNULL( &src->octet_str )) {

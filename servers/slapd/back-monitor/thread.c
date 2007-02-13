@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2006 The OpenLDAP Foundation.
+ * Copyright 2001-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -29,12 +29,7 @@
 
 #include <ldap_rq.h>
 
-static int 
-monitor_subsys_thread_update( 
-	Operation		*op,
-	SlapReply		*rs,
-	Entry 			*e );
-
+#ifndef NO_THREADS
 typedef enum {
 	MT_UNKNOWN,
 	MT_RUNQUEUE,
@@ -45,29 +40,63 @@ typedef enum {
 
 static struct {
 	struct berval			rdn;
+	struct berval			desc;
 	struct berval			nrdn;
 	ldap_pvt_thread_pool_param_t	param;
 	monitor_thread_t		mt;
 }		mt[] = {
-	{ BER_BVC( "cn=Max" ),		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_MAX,		MT_UNKNOWN },
-	{ BER_BVC( "cn=Max Pending" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_MAX_PENDING,	MT_UNKNOWN },
-	{ BER_BVC( "cn=Open" ),		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_OPEN,	MT_UNKNOWN },
-	{ BER_BVC( "cn=Starting" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_STARTING,	MT_UNKNOWN },
-	{ BER_BVC( "cn=Active" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE,	MT_UNKNOWN },
-	{ BER_BVC( "cn=Pending" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_PENDING,	MT_UNKNOWN },
-	{ BER_BVC( "cn=Backload" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Max" ),
+		BER_BVC("Maximum number of threads as configured"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_MAX,		MT_UNKNOWN },
+	{ BER_BVC( "cn=Max Pending" ),
+		BER_BVC("Maximum number of pending threads"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_MAX_PENDING,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Open" ),		
+		BER_BVC("Number of open threads"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_OPEN,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Starting" ),	
+		BER_BVC("Number of threads being started"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_STARTING,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Active" ),	
+		BER_BVC("Number of active threads"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Pending" ),	
+		BER_BVC("Number of pending threads"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_PENDING,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Backload" ),	
+		BER_BVC("Number of active plus pending threads"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD,	MT_UNKNOWN },
 #if 0	/* not meaningful right now */
-	{ BER_BVC( "cn=Active Max" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE_MAX,	MT_UNKNOWN },
-	{ BER_BVC( "cn=Pending Max" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_PENDING_MAX,	MT_UNKNOWN },
-	{ BER_BVC( "cn=Backload Max" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD_MAX,MT_UNKNOWN },
+	{ BER_BVC( "cn=Active Max" ),
+		BER_BVNULL,
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_ACTIVE_MAX,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Pending Max" ),
+		BER_BVNULL,
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_PENDING_MAX,	MT_UNKNOWN },
+	{ BER_BVC( "cn=Backload Max" ),
+		BER_BVNULL,
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_BACKLOAD_MAX,MT_UNKNOWN },
 #endif
-	{ BER_BVC( "cn=State" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_STATE,	MT_UNKNOWN },
+	{ BER_BVC( "cn=State" ),
+		BER_BVC("Thread pool state"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_STATE,	MT_UNKNOWN },
 
-	{ BER_BVC( "cn=Runqueue" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_RUNQUEUE },
-	{ BER_BVC( "cn=Tasklist" ),	BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_TASKLIST },
+	{ BER_BVC( "cn=Runqueue" ),
+		BER_BVC("Queue of running threads - besides those handling operations"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_RUNQUEUE },
+	{ BER_BVC( "cn=Tasklist" ),
+		BER_BVC("List of running plus standby threads - besides those handling operations"),
+		BER_BVNULL,	LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN,	MT_TASKLIST },
 
 	{ BER_BVNULL }
 };
+
+static int 
+monitor_subsys_thread_update( 
+	Operation		*op,
+	SlapReply		*rs,
+	Entry 			*e );
+#endif /* ! NO_THREADS */
 
 /*
  * initializes log subentry
@@ -75,9 +104,9 @@ static struct {
 int
 monitor_subsys_thread_init(
 	BackendDB       	*be,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
+#ifndef NO_THREADS
 	monitor_info_t	*mi;
 	monitor_entry_t	*mp;
 	Entry		*e, **ep, *e_thread;
@@ -90,7 +119,7 @@ monitor_subsys_thread_init(
 	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_thread ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_thread_init: unable to get entry \"%s\"\n",
-			ms->mss_ndn.bv_val, 
+			ms->mss_dn.bv_val, 
 			0, 0 );
 		return( -1 );
 	}
@@ -151,6 +180,12 @@ monitor_subsys_thread_init(
 		if ( !BER_BVISNULL( &bv ) ) {
 			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
 		}
+
+		if ( !BER_BVISNULL( &mt[ i ].desc ) ) {
+			attr_merge_normalize_one( e,
+				slap_schema.si_ad_description,
+				&mt[ i ].desc, NULL );
+		}
 	
 		mp = monitor_entrypriv_create();
 		if ( mp == NULL ) {
@@ -166,7 +201,7 @@ monitor_subsys_thread_init(
 				"monitor_subsys_thread_init: "
 				"unable to add entry \"%s,%s\"\n",
 				mt[ i ].rdn.bv_val,
-				ms->mss_ndn.bv_val, 0 );
+				ms->mss_dn.bv_val, 0 );
 			return( -1 );
 		}
 	
@@ -176,9 +211,11 @@ monitor_subsys_thread_init(
 
 	monitor_cache_release( mi, e_thread );
 
+#endif /* ! NO_THREADS */
 	return( 0 );
 }
 
+#ifndef NO_THREADS
 static int 
 monitor_subsys_thread_update( 
 	Operation		*op,
@@ -241,6 +278,9 @@ monitor_subsys_thread_update(
 			if ( vals ) {
 				attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
 				ber_bvarray_free( vals );
+
+			} else {
+				attr_delete( &e->e_attrs, mi->mi_ad_monitoredInfo );
 			}
 			break;
 
@@ -270,6 +310,9 @@ monitor_subsys_thread_update(
 			if ( vals ) {
 				attr_merge_normalize( e, mi->mi_ad_monitoredInfo, vals, NULL );
 				ber_bvarray_free( vals );
+
+			} else {
+				attr_delete( &e->e_attrs, mi->mi_ad_monitoredInfo );
 			}
 			break;
 
@@ -310,4 +353,4 @@ monitor_subsys_thread_update(
 
 	return SLAP_CB_CONTINUE;
 }
-
+#endif /* ! NO_THREADS */

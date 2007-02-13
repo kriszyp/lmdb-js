@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,7 @@ char *style_strings[] = {
 	"users",
 	"self",
 	"ip",
+	"ipv6",
 	"path",
 	NULL
 };
@@ -804,6 +805,14 @@ parse_acl(
 				} else if ( strcasecmp( style, "ip" ) == 0 ) {
 					sty = ACL_STYLE_IP;
 
+				} else if ( strcasecmp( style, "ipv6" ) == 0 ) {
+#ifndef LDAP_PF_INET6
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: IPv6 not supported\n",
+						fname, lineno, 0 );
+#endif /* ! LDAP_PF_INET6 */
+					sty = ACL_STYLE_IPV6;
+
 				} else if ( strcasecmp( style, "path" ) == 0 ) {
 					sty = ACL_STYLE_PATH;
 #ifndef LDAP_PF_LOCAL
@@ -1101,6 +1110,7 @@ parse_acl(
 				if ( strncasecmp( left, "group", STRLENOF( "group" ) ) == 0 ) {
 					char *name = NULL;
 					char *value = NULL;
+					char *attr_name = SLAPD_GROUP_ATTR;
 
 					switch ( sty ) {
 					case ACL_STYLE_REGEX:
@@ -1218,49 +1228,41 @@ parse_acl(
 					}
 
 					if ( name && *name ) {
-						rc = slap_str2ad( name, &b->a_group_at, &text );
-
-						if( rc != LDAP_SUCCESS ) {
-							char	buf[ SLAP_TEXT_BUFLEN ];
-
-							snprintf( buf, sizeof( buf ),
-								"group \"%s\": %s.",
-								right, text );
-							Debug( LDAP_DEBUG_ANY,
-								"%s: line %d: %s\n",
-								fname, lineno, buf );
-							goto fail;
-						}
+						attr_name = name;
 						*--name = '/';
 
-					} else {
-						rc = slap_str2ad( SLAPD_GROUP_ATTR, &b->a_group_at, &text );
+					}
 
-						if ( rc != LDAP_SUCCESS ) {
-							char	buf[ SLAP_TEXT_BUFLEN ];
+					rc = slap_str2ad( attr_name, &b->a_group_at, &text );
+					if ( rc != LDAP_SUCCESS ) {
+						char	buf[ SLAP_TEXT_BUFLEN ];
 
-							snprintf( buf, sizeof( buf ),
-								"group \"%s\": %s.",
-								SLAPD_GROUP_ATTR, text );
-							Debug( LDAP_DEBUG_ANY,
-								"%s: line %d: %s\n",
-								fname, lineno, buf );
-							goto fail;
-						}
+						snprintf( buf, sizeof( buf ),
+							"group \"%s\": %s.",
+							right, text );
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: %s\n",
+							fname, lineno, buf );
+						goto fail;
 					}
 
 					if ( !is_at_syntax( b->a_group_at->ad_type,
-						SLAPD_DN_SYNTAX ) &&
-						!is_at_syntax( b->a_group_at->ad_type,
-						SLAPD_NAMEUID_SYNTAX ) &&
-						!is_at_subtype( b->a_group_at->ad_type, slap_schema.si_ad_labeledURI->ad_type ) )
+							SLAPD_DN_SYNTAX ) /* e.g. "member" */
+						&& !is_at_syntax( b->a_group_at->ad_type,
+							SLAPD_NAMEUID_SYNTAX ) /* e.g. memberUID */
+						&& !is_at_subtype( b->a_group_at->ad_type,
+							slap_schema.si_ad_labeledURI->ad_type ) /* e.g. memberURL */ )
 					{
 						char	buf[ SLAP_TEXT_BUFLEN ];
 
 						snprintf( buf, sizeof( buf ),
-							"group \"%s\": inappropriate syntax: %s.",
+							"group \"%s\" attr \"%s\": inappropriate syntax: %s; "
+							"must be " SLAPD_DN_SYNTAX " (DN), "
+							SLAPD_NAMEUID_SYNTAX " (NameUID) "
+							"or a subtype of labeledURI.",
 							right,
-							b->a_group_at->ad_type->sat_syntax_oid );
+							attr_name,
+							at_syntax( b->a_group_at->ad_type ) );
 						Debug( LDAP_DEBUG_ANY,
 							"%s: line %d: %s\n",
 							fname, lineno, buf );
@@ -1270,13 +1272,13 @@ parse_acl(
 
 					{
 						int rc;
-						struct berval vals[2];
+						ObjectClass *ocs[2];
 
-						ber_str2bv( b->a_group_oc->soc_oid, 0, 0, &vals[0] );
-						BER_BVZERO( &vals[1] );
+						ocs[0] = b->a_group_oc;
+						ocs[1] = NULL;
 
 						rc = oc_check_allowed( b->a_group_at->ad_type,
-							vals, NULL );
+							ocs, NULL );
 
 						if( rc != 0 ) {
 							char	buf[ SLAP_TEXT_BUFLEN ];
@@ -1301,6 +1303,7 @@ parse_acl(
 					case ACL_STYLE_EXPAND:
 						/* cheap replacement to regex for simple expansion */
 					case ACL_STYLE_IP:
+					case ACL_STYLE_IPV6:
 					case ACL_STYLE_PATH:
 						/* legal, peername specific */
 						break;
@@ -1384,6 +1387,52 @@ parse_acl(
 									goto fail;
 								}
 							}
+
+#ifdef LDAP_PF_INET6
+						} else if ( sty == ACL_STYLE_IPV6 ) {
+							char		*addr = NULL,
+									*mask = NULL,
+									*port = NULL;
+
+							split( right, '{', &addr, &port );
+							split( addr, '%', &addr, &mask );
+
+							if ( inet_pton( AF_INET6, addr, &b->a_peername_addr6 ) != 1 ) {
+								/* illegal address */
+								Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+									"illegal peername address \"%s\".\n",
+									fname, lineno, addr );
+								goto fail;
+							}
+
+							if ( mask == NULL ) {
+								mask = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF";
+							}
+
+							if ( inet_pton( AF_INET6, mask, &b->a_peername_mask6 ) != 1 ) {
+								/* illegal mask */
+								Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+									"illegal peername address mask "
+									"\"%s\".\n",
+									fname, lineno, mask );
+								goto fail;
+							}
+
+							b->a_peername_port = -1;
+							if ( port ) {
+								char	*end = NULL;
+
+								b->a_peername_port = strtol( port, &end, 10 );
+								if ( end == port || end[0] != '}' ) {
+									/* illegal port */
+									Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+										"illegal peername port specification "
+										"\"{%s}\".\n",
+										fname, lineno, port );
+									goto fail;
+								}
+							}
+#endif /* LDAP_PF_INET6 */
 						}
 					}
 					continue;
@@ -2216,7 +2265,7 @@ acl_usage( void )
 			"exact | regex\n"
 		"<attrstyle> ::= exact | regex | base(Object) | one(level) | "
 			"sub(tree) | children\n"
-		"<peernamestyle> ::= exact | regex | ip | path\n"
+		"<peernamestyle> ::= exact | regex | ip | ipv6 | path\n"
 		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
 		"<access> ::= [[real]self]{<level>|<priv>}\n"
 		"<level> ::= none|disclose|auth|compare|search|read|{write|add|delete}|manage\n"

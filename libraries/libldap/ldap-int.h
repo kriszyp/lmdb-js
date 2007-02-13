@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,20 +95,20 @@
 LDAP_BEGIN_DECL
 
 #define LDAP_URL_PREFIX         "ldap://"
-#define LDAP_URL_PREFIX_LEN     (sizeof(LDAP_URL_PREFIX)-1)
-#define LDAPS_URL_PREFIX		"ldaps://"
-#define LDAPS_URL_PREFIX_LEN	(sizeof(LDAPS_URL_PREFIX)-1)
+#define LDAP_URL_PREFIX_LEN     STRLENOF(LDAP_URL_PREFIX)
+#define LDAPS_URL_PREFIX	"ldaps://"
+#define LDAPS_URL_PREFIX_LEN	STRLENOF(LDAPS_URL_PREFIX)
 #define LDAPI_URL_PREFIX	"ldapi://"
-#define LDAPI_URL_PREFIX_LEN	(sizeof(LDAPI_URL_PREFIX)-1)
+#define LDAPI_URL_PREFIX_LEN	STRLENOF(LDAPI_URL_PREFIX)
 #ifdef LDAP_CONNECTIONLESS
 #define LDAPC_URL_PREFIX	"cldap://"
-#define LDAPC_URL_PREFIX_LEN	(sizeof(LDAPC_URL_PREFIX)-1)
+#define LDAPC_URL_PREFIX_LEN	STRLENOF(LDAPC_URL_PREFIX)
 #endif
-#define LDAP_URL_URLCOLON		"URL:"
-#define LDAP_URL_URLCOLON_LEN	(sizeof(LDAP_URL_URLCOLON)-1)
+#define LDAP_URL_URLCOLON	"URL:"
+#define LDAP_URL_URLCOLON_LEN	STRLENOF(LDAP_URL_URLCOLON)
 
 #define LDAP_REF_STR		"Referral:\n"
-#define LDAP_REF_STR_LEN	(sizeof(LDAP_REF_STR)-1)
+#define LDAP_REF_STR_LEN	STRLENOF(LDAP_REF_STR)
 #define LDAP_LDAP_REF_STR	LDAP_URL_PREFIX
 #define LDAP_LDAP_REF_STR_LEN	LDAP_URL_PREFIX_LEN
 
@@ -117,6 +117,7 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOL_REFERRALS		0
 #define LDAP_BOOL_RESTART		1
 #define LDAP_BOOL_TLS			3
+#define	LDAP_BOOL_CONNECT_ASYNC		4
 
 #define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	((LDAP_BOOLEANS)1 << (n))
@@ -172,8 +173,8 @@ struct ldapoptions {
 #endif
 
 	/* per API call timeout */
-	struct timeval		*ldo_tm_api;
-	struct timeval		*ldo_tm_net;
+	struct timeval		ldo_tm_api;
+	struct timeval		ldo_tm_net;
 
 	ber_int_t		ldo_version;
 	ber_int_t		ldo_deref;
@@ -242,6 +243,7 @@ typedef struct ldap_conn {
 	void		*lconn_sasl_sockctx;	/* for security layer */
 #endif
 	int			lconn_refcnt;
+	time_t		lconn_created;	/* time */
 	time_t		lconn_lastused;	/* time */
 	int			lconn_rebind_inprogress;	/* set if rebind in progress */
 	char		***lconn_rebind_queue;		/* used if rebind in progress */
@@ -250,9 +252,6 @@ typedef struct ldap_conn {
 #define LDAP_CONNST_CONNECTING		2
 #define LDAP_CONNST_CONNECTED		3
 	LDAPURLDesc		*lconn_server;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	char			*lconn_krbinstance;
-#endif
 	BerElement		*lconn_ber;	/* ber receiving on this conn. */
 
 	struct ldap_conn *lconn_next;
@@ -272,6 +271,7 @@ typedef struct ldapreq {
 #define LDAP_REQST_WRITING	4
 	int		lr_refcnt;	/* count of references */
 	int		lr_outrefcnt;	/* count of outstanding referrals */
+	int		lr_abandoned;	/* the request has been abandoned */
 	ber_int_t	lr_origid;	/* original request's message id */
 	int		lr_parentcnt;	/* count of parent requests */
 	ber_tag_t	lr_res_msgtype;	/* result message type */
@@ -365,7 +365,8 @@ struct ldap {
 	ldap_pvt_thread_mutex_t	ld_res_mutex;
 #endif
 
-	ber_int_t		*ld_abandoned;	/* array of abandoned requests */
+	ber_len_t	ld_nabandoned;
+	ber_int_t	*ld_abandoned;	/* array of abandoned requests */
 
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
 
@@ -395,6 +396,17 @@ LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
 #else
 #define	LDAP_NEXT_MSGID(ld, id)	id = ++(ld)->ld_msgid
 #endif
+
+/*
+ * in abandon.c
+ */
+
+LDAP_F (int)
+ldap_int_bisect_find( ber_int_t *v, ber_len_t n, ber_int_t id, int *idxp );
+LDAP_F (int)
+ldap_int_bisect_insert( ber_int_t **vp, ber_len_t *np, int id, int idx );
+LDAP_F (int)
+ldap_int_bisect_delete( ber_int_t **vp, ber_len_t *np, int id, int idx );
 
 /*
  * in init.c
@@ -465,18 +477,6 @@ LDAP_F (int) ldap_int_client_controls LDAP_P((
  */
 LDAP_F (int) ldap_int_next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-/*
- * in kerberos.c
- */
-LDAP_F (char *) ldap_get_kerberosv4_credentials LDAP_P((
-	LDAP *ld,
-	LDAP_CONST char *who,
-	LDAP_CONST char *service,
-	ber_len_t *len ));
-
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-
 
 /*
  * in open.c
@@ -497,9 +497,10 @@ LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest,
 	const struct timeval *tm );
 LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
 	int proto, const char *host, int port, int async );
+LDAP_F (int) ldap_int_poll( LDAP *ld, ber_socket_t s,
+	struct timeval *tvp );
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || \
-	defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LDAP_V (char *) ldap_int_hostname;
 LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb,
 	const char *host );
@@ -548,7 +549,7 @@ LDAP_F (int) ldap_int_flush_request( LDAP *ld, LDAPRequest *lr );
 /*
  * in result.c:
  */
-LDAP_F (char *) ldap_int_msgtype2str( ber_tag_t tag );
+LDAP_F (const char *) ldap_int_msgtype2str( ber_tag_t tag );
 
 /*
  * in search.c

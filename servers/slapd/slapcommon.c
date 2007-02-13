@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -88,7 +88,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPINDEX:
-		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix] [-q]\n";
+		options = " [-c]\n\t[-g] [-n databasenumber | -b suffix] [attr ...] [-q]\n";
 		break;
 
 	case SLAPTEST:
@@ -441,8 +441,14 @@ slap_tool_init(
 	switch ( tool ) {
 	case SLAPADD:
 	case SLAPCAT:
-	case SLAPINDEX:
 		if ( ( argc != optind ) || (dbnum >= 0 && base.bv_val != NULL ) ) {
+			usage( tool, progname );
+		}
+
+		break;
+
+	case SLAPINDEX:
+		if ( dbnum >= 0 && base.bv_val != NULL ) {
 			usage( tool, progname );
 		}
 

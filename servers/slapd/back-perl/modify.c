@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999 John C. Quillan.
  * Portions Copyright 2002 myinternet Limited.
  * All rights reserved.
@@ -27,6 +27,9 @@ perl_back_modify(
 	int count;
 	int i;
 
+#if defined(HAVE_WIN32_ASPERL) || defined(USE_ITHREADS)
+	PERL_SET_CONTEXT( PERL_INTERPRETER );
+#endif
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 

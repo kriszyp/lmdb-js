@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2006 The OpenLDAP Foundation.
+ * Copyright 2001-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -405,7 +405,7 @@ monitor_entry_destroy( void *v_mc )
 				monitor_callback_t	*next = cb->mc_next;
 
 				if ( cb->mc_free ) {
-					cb->mc_free( mc->mc_e, cb->mc_private );
+					(void)cb->mc_free( mc->mc_e, &cb->mc_private );
 				}
 				ch_free( mp->mp_cb );
 

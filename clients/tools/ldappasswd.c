@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 1998-2001 Net Boolean Incorporated.
  * Portions Copyright 2001-2003 IBM Corporation.
@@ -81,7 +81,7 @@ usage( void )
 
 
 const char options[] = "a:As:St:T:"
-	"d:D:e:h:H:InO:p:QR:U:vVw:WxX:y:Y:Z";
+	"d:D:e:h:H:InO:o:p:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
@@ -410,6 +410,9 @@ main( int argc, char *argv[] )
 	ber_memvfree( (void **) refs );
 	ber_memfree( retoid );
 	ber_bvfree( retdata );
+
+	rc = ldap_search_s( ld, binddn, LDAP_SCOPE_BASE, "(objectclass=*)",
+		NULL, 0, &res );
 
 	rc = ( code == LDAP_SUCCESS ) ? EXIT_SUCCESS : EXIT_FAILURE;
 

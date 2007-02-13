@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2006 The OpenLDAP Foundation.
+ * Copyright 2002-2007 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -465,7 +465,7 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		assert( pb->pb_op->ora_modlist != NULL );
 	}
 
-	rs->sr_err = slap_mods_check( pb->pb_op->ora_modlist, &rs->sr_text,
+	rs->sr_err = slap_mods_check( pb->pb_op, pb->pb_op->ora_modlist, &rs->sr_text,
 		pb->pb_textbuf, sizeof( pb->pb_textbuf ), NULL );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
                 goto cleanup;
@@ -550,7 +550,7 @@ slapi_modify_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_check( pb->pb_op->orm_modlist,
+	rs->sr_err = slap_mods_check( pb->pb_op, pb->pb_op->orm_modlist,
 		&rs->sr_text, pb->pb_textbuf, sizeof( pb->pb_textbuf ), NULL );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
                 goto cleanup;

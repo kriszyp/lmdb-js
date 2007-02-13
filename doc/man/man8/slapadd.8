@@ -1,6 +1,6 @@
 .TH SLAPADD 8C "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
-.\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 slapadd \- Add entries to a SLAPD database
@@ -34,15 +34,6 @@ Databases configured as
 .B subordinate
 of this one are also updated, unless \fB-g\fP is specified.
 The LDIF input is read from standard input or the specified file.
-.LP
-As
-.B slapadd
-is designed to accept LDIF in database order, as produced by
-.BR slapcat (8),
-it does not verify that superior entries exist before
-adding an entry, does not perform all user and system
-schema checks, and does not maintain operational
-attributes (such as createTimeStamp and modifiersName). 
 .SH OPTIONS
 .TP
 .BI \-b " suffix" 

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2006 The OpenLDAP Foundation.
+ * Copyright 2001-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -29,6 +29,8 @@
 #include "config.h"
 #include "lber_pvt.h"
 #include "back-monitor.h"
+
+#include "config.h"
 
 #undef INTEGRATE_CORE_SCHEMA
 
@@ -704,6 +706,7 @@ monitor_search2ndn(
 	Connection	conn = { 0 };
 	OperationBuffer	opbuf;
 	Operation	*op;
+	void	*thrctx;
 	SlapReply	rs = { 0 };
 	slap_callback	cb = { NULL, monitor_search2ndn_cb, NULL, NULL };
 	int		rc;
@@ -715,14 +718,13 @@ monitor_search2ndn(
 	}
 
 	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, &conn );
+	thrctx = ldap_pvt_thread_pool_context();
+	connection_fake_init( &conn, op, thrctx );
 
 	op->o_tag = LDAP_REQ_SEARCH;
 
 	/* use global malloc for now */
 	if ( op->o_tmpmemctx ) {
-		/* FIXME: connection_fake_init() calls slap_sl_mem_create, so we destroy it for now */
-		slap_sl_mem_destroy( NULL, op->o_tmpmemctx );
 		op->o_tmpmemctx = NULL;
 	}
 	op->o_tmpmfuncs = &ch_mfuncs;
@@ -990,7 +992,6 @@ done:;
 			return -1;
 		}
 
-done_limbo:;
 		if ( *elpp != NULL ) {
 			el.el_next = NULL;
 			**elpp = el;
@@ -1078,7 +1079,7 @@ monitor_back_unregister_entry(
 			monitor_callback_t	*next = cb->mc_next;
 
 			if ( cb->mc_free ) {
-				(void)cb->mc_free( e, cb->mc_private );
+				(void)cb->mc_free( e, &cb->mc_private );
 			}
 			ch_free( cb );
 
@@ -1206,7 +1207,7 @@ monitor_back_unregister_entry_parent(
 			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
 				if ( *cbp == target_cb ) {
 					if ( (*cbp)->mc_free ) {
-						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+						(void)(*cbp)->mc_free( e, &(*cbp)->mc_private );
 					}
 					*cbp = (*cbp)->mc_next;
 					ch_free( target_cb );
@@ -1368,7 +1369,7 @@ monitor_back_unregister_entry_attrs(
 			for ( cbp = &mp->mp_cb; *cbp != NULL; cbp = &(*cbp)->mc_next ) {
 				if ( *cbp == target_cb ) {
 					if ( (*cbp)->mc_free ) {
-						(void)(*cbp)->mc_free( e, (*cbp)->mc_private );
+						(void)(*cbp)->mc_free( e, &(*cbp)->mc_private );
 					}
 					*cbp = (*cbp)->mc_next;
 					ch_free( target_cb );
@@ -1596,7 +1597,7 @@ monitor_back_initialize(
 			"SUBSTR caseIgnoreSubstringsMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitoredInfo) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.2 "
 			"NAME 'managedInfo' "
@@ -1610,28 +1611,28 @@ monitor_back_initialize(
 			"ORDERING integerOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorCounter) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.4 "
 			"NAME 'monitorOpCompleted' "
 			"DESC 'monitor completed operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOpCompleted) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.5 "
 			"NAME 'monitorOpInitiated' "
 			"DESC 'monitor initiated operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOpInitiated) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.6 "
 			"NAME 'monitorConnectionNumber' "
 			"DESC 'monitor connection number' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionNumber) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.7 "
 			"NAME 'monitorConnectionAuthzDN' "
@@ -1640,21 +1641,21 @@ monitor_back_initialize(
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionAuthzDN) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.8 "
 			"NAME 'monitorConnectionLocalAddress' "
 			"DESC 'monitor connection local address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionLocalAddress) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.9 "
 			"NAME 'monitorConnectionPeerAddress' "
 			"DESC 'monitor connection peer address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionPeerAddress) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.10 "
 			"NAME 'monitorTimestamp' "
@@ -1664,14 +1665,14 @@ monitor_back_initialize(
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
 			"SINGLE-VALUE "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorTimestamp) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.11 "
 			"NAME 'monitorOverlay' "
 			"DESC 'name of overlays defined for a given database' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOverlay) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.12 "
 			"NAME 'readOnly' "
@@ -1679,7 +1680,7 @@ monitor_back_initialize(
 			"EQUALITY booleanMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
 			"SINGLE-VALUE "
-			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_readOnly) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.13 "
 			"NAME 'restrictedOperation' "
@@ -1691,77 +1692,77 @@ monitor_back_initialize(
 			"DESC 'monitor connection protocol' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionProtocol) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.15 "
 			"NAME 'monitorConnectionOpsReceived' "
 			"DESC 'monitor number of operations received by the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsReceived) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.16 "
 			"NAME 'monitorConnectionOpsExecuting' "
 			"DESC 'monitor number of operations in execution within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsExecuting) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.17 "
 			"NAME 'monitorConnectionOpsPending' "
 			"DESC 'monitor number of pending operations within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsPending) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.18 "
 			"NAME 'monitorConnectionOpsCompleted' "
 			"DESC 'monitor number of operations completed within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsCompleted) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.19 "
 			"NAME 'monitorConnectionGet' "
 			"DESC 'number of times connection_get() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionGet) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.20 "
 			"NAME 'monitorConnectionRead' "
 			"DESC 'number of times connection_read() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionRead) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.21 "
 			"NAME 'monitorConnectionWrite' "
 			"DESC 'number of times connection_write() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionWrite) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.22 "
 			"NAME 'monitorConnectionMask' "
 			"DESC 'monitor connection mask' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionMask) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.23 "
 			"NAME 'monitorConnectionListener' "
 			"DESC 'monitor connection listener' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionListener) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.24 "
 			"NAME 'monitorConnectionPeerDomain' "
 			"DESC 'monitor connection peer domain' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionPeerDomain) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.25 "
 			"NAME 'monitorConnectionStartTime' "
@@ -1769,7 +1770,7 @@ monitor_back_initialize(
 			"SUP monitorTimestamp "
 			"SINGLE-VALUE "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionStartTime) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.26 "
 			"NAME 'monitorConnectionActivityTime' "
@@ -1777,7 +1778,7 @@ monitor_back_initialize(
 			"SUP monitorTimestamp "
 			"SINGLE-VALUE "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionActivityTime) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.27 "
 			"NAME 'monitorIsShadow' "
@@ -1785,14 +1786,14 @@ monitor_back_initialize(
 			"EQUALITY booleanMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
 			"SINGLE-VALUE "
-			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorIsShadow) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.28 "
 			"NAME 'monitorUpdateRef' "
 			"DESC 'update referral for shadow databases' "
 			"SUP monitoredInfo "
 			"SINGLE-VALUE "
-			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorUpdateRef) },
 		{ "( 1.3.6.1.4.1.4203.666.1.55.29 "
 			"NAME 'monitorRuntimeConfig' "
@@ -1800,7 +1801,7 @@ monitor_back_initialize(
 			"EQUALITY booleanMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
 			"SINGLE-VALUE "
-			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			"USAGE dSAOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorRuntimeConfig) },
 		{ NULL, 0, -1 }
 	};
@@ -1835,17 +1836,20 @@ monitor_back_initialize(
 	};
 
 	int			i, rc;
-	const char		*text;
 	monitor_info_t		*mi = &monitor_info;
+	ConfigArgs c;
+	char	*argv[ 3 ];
+
+	argv[ 0 ] = "monitor";
+	c.argv = argv;
+	c.argc = 3;
+	c.fname = argv[0];
 
 	for ( i = 0; s_oid[ i ].name; i++ ) {
-		char	*argv[ 3 ];
-	
-		argv[ 0 ] = "monitor";
 		argv[ 1 ] = s_oid[ i ].name;
 		argv[ 2 ] = s_oid[ i ].oid;
 
-		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_initialize: unable to add "
 				"objectIdentifier \"%s=%s\"\n",
@@ -2225,10 +2229,11 @@ monitor_back_db_open(
 
 		for ( ; el; ) {
 			entry_limbo_t	*tmp;
+			int		rc;
 
 			switch ( el->el_type ) {
 			case LIMBO_ENTRY:
-				monitor_back_register_entry(
+				rc = monitor_back_register_entry(
 						el->el_e,
 						el->el_cb,
 						el->el_mss,
@@ -2236,7 +2241,7 @@ monitor_back_db_open(
 				break;
 
 			case LIMBO_ENTRY_PARENT:
-				monitor_back_register_entry_parent(
+				rc = monitor_back_register_entry_parent(
 						el->el_e,
 						el->el_cb,
 						el->el_mss,
@@ -2248,7 +2253,7 @@ monitor_back_db_open(
 				
 
 			case LIMBO_ATTRS:
-				monitor_back_register_entry_attrs(
+				rc = monitor_back_register_entry_attrs(
 						&el->el_ndn,
 						el->el_a,
 						el->el_cb,
@@ -2258,7 +2263,7 @@ monitor_back_db_open(
 				break;
 
 			case LIMBO_CB:
-				monitor_back_register_entry_callback(
+				rc = monitor_back_register_entry_callback(
 						&el->el_ndn,
 						el->el_cb,
 						&el->el_nbase,
@@ -2284,6 +2289,12 @@ monitor_back_db_open(
 			}
 			if ( !BER_BVISNULL( &el->el_filter ) ) {
 				ber_memfree( el->el_filter.bv_val );
+			}
+			if ( el->el_cb && rc != 0 ) {
+				if ( el->el_cb->mc_dispose ) {
+					el->el_cb->mc_dispose( &el->el_cb->mc_private );
+				}
+				ch_free( el->el_cb );
 			}
 
 			tmp = el;

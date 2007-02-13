@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2006 The OpenLDAP Foundation.
+ * Copyright 2002-2007 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -27,7 +27,7 @@ LDAP_BEGIN_DECL
 
 /* slapi_utils.c */
 LDAP_SLAPI_F (LDAPMod **) slapi_int_modifications2ldapmods LDAP_P(( Modifications * ));
-LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod ** ));
+LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( Operation *op, LDAPMod ** ));
 LDAP_SLAPI_F (int) slapi_int_count_controls LDAP_P(( LDAPControl **ctrls ));
 LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));
 LDAP_SLAPI_F (int) slapi_int_access_allowed LDAP_P((Operation *op, Entry *entry, AttributeDescription *desc, struct berval *val, slap_access_t access, AccessControlState *state ));

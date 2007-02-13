@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -283,7 +283,7 @@ cleanup:;
 
 	if ( user != NULL && user != target ) {
 		op->o_bd = user_be;
-		be_entry_release_r( op, group );
+		be_entry_release_r( op, user );
 		op->o_bd = be;
 	}
 

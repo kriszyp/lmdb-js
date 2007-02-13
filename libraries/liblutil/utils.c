@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,9 +27,13 @@
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
-#include <lutil.h>
-#include <ldap_defaults.h>
+#include "lutil.h"
+#include "ldap_defaults.h"
+#include "ldap_pvt.h"
 
 #ifdef HAVE_EBCDIC
 int _trans_argv = 1;
@@ -268,6 +272,117 @@ int lutil_parsetime( char *atm, struct lutil_tm *tm )
 	return -1;
 }
 
+/* return a broken out time, with microseconds
+ * Must be mutex-protected.
+ */
+#ifdef _WIN32
+/* Windows SYSTEMTIME only has 10 millisecond resolution, so we
+ * also need to use a high resolution timer to get microseconds.
+ * This is pretty clunky.
+ */
+void
+lutil_gettime( struct lutil_tm *tm )
+{
+	static LARGE_INTEGER cFreq;
+	static LARGE_INTEGER prevCount;
+	static int subs;
+	static int offset;
+	LARGE_INTEGER count;
+	SYSTEMTIME st;
+
+	GetSystemTime( &st );
+	QueryPerformanceCounter( &count );
+
+	/* We assume Windows has at least a vague idea of
+	 * when a second begins. So we align our microsecond count
+	 * with the Windows millisecond count using this offset.
+	 * We retain the submillisecond portion of our own count.
+	 */
+	if ( !cFreq.QuadPart ) {
+		long long t;
+		int usec;
+		QueryPerformanceFrequency( &cFreq );
+
+		t = count.QuadPart * 1000000;
+		t /= cFreq.QuadPart;
+		usec = t % 10000000;
+		usec /= 1000;
+		offset = ( usec - st.wMilliseconds ) * 1000;
+	}
+
+	/* It shouldn't ever go backwards, but multiple CPUs might
+	 * be able to hit in the same tick.
+	 */
+	if ( count.QuadPart <= prevCount.QuadPart ) {
+		subs++;
+	} else {
+		subs = 0;
+		prevCount = count;
+	}
+
+	tm->tm_usub = subs;
+
+	/* convert to microseconds */
+	count.QuadPart *= 1000000;
+	count.QuadPart /= cFreq.QuadPart;
+	count.QuadPart -= offset;
+
+	tm->tm_usec = count.QuadPart % 1000000;
+
+	/* any difference larger than microseconds is
+	 * already reflected in st
+	 */
+
+	tm->tm_sec = st.wSecond;
+	tm->tm_min = st.wMinute;
+	tm->tm_hour = st.wHour;
+	tm->tm_mday = st.wDay;
+	tm->tm_mon = st.wMonth - 1;
+	tm->tm_year = st.wYear - 1900;
+}
+#else
+void
+lutil_gettime( struct lutil_tm *ltm )
+{
+	struct timeval tv;
+	static struct timeval prevTv;
+	static int subs;
+
+#ifdef HAVE_GMTIME_R
+	struct tm tm_buf;
+#endif
+	struct tm *tm;
+	time_t t;
+
+	gettimeofday( &tv, NULL );
+	t = tv.tv_sec;
+
+	if ( tv.tv_sec < prevTv.tv_sec
+		|| ( tv.tv_sec == prevTv.tv_sec && tv.tv_usec == prevTv.tv_usec )) {
+		subs++;
+	} else {
+		subs = 0;
+		prevTv = tv;
+	}
+
+	ltm->tm_usub = subs;
+
+#ifdef HAVE_GMTIME_R
+	tm = gmtime_r( &t, &tm_buf );
+#else
+	tm = gmtime( &t );
+#endif
+
+	ltm->tm_sec = tm->tm_sec;
+	ltm->tm_min = tm->tm_min;
+	ltm->tm_hour = tm->tm_hour;
+	ltm->tm_mday = tm->tm_mday;
+	ltm->tm_mon = tm->tm_mon;
+	ltm->tm_year = tm->tm_year;
+	ltm->tm_usec = tv.tv_usec;
+}
+#endif
+
 /* strcopy is like strcpy except it returns a pointer to the trailing NUL of
  * the result string. This allows fast construction of catenated strings
  * without the overhead of strlen/strcat.
@@ -315,7 +430,6 @@ int mkstemp( char * template )
 #endif
 
 #ifdef _MSC_VER
-#include <windows.h>
 struct dirent {
 	char *d_name;
 };
@@ -490,6 +604,7 @@ lutil_atoulx( unsigned long *v, const char *s, int x )
 
 static	char		time_unit[] = "dhms";
 
+/* Used to parse and unparse time intervals, not timestamps */
 int
 lutil_parse_time(
 	const char	*in,

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 #include "ldap-int.h"
 
 /*
- * LDAP Password Modify (Extended) Operation <RFC 3062>
+ * LDAP Password Modify (Extended) Operation (RFC 3062)
  */
 
 int ldap_parse_passwd(
@@ -156,7 +156,7 @@ ldap_passwd_s(
 		return rc;
 	}
 
-	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 ) {
+	if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 || !res ) {
 		return ld->ld_errno;
 	}
 

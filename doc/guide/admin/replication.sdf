@@ -1,7 +1,12 @@
 # $OpenLDAP$
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Replication with slurpd
+
+Note: this section is provided for historical reasons.  {{slurpd}}(8)
+is deprecated in favor of LDAP Sync based replication, commonly
+referred to as {{syncrepl}}.  Syncrepl is discussed in
+{{SECT:LDAP Sync Replication}} section of this document.
 
 In certain configurations, a single {{slapd}}(8) instance may be
 insufficient to handle the number of clients requiring

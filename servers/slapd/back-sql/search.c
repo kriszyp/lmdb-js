@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * Portions Copyright 2004 Mark Adamson.
@@ -2398,20 +2398,23 @@ send_results:;
 	if ( op->o_sync ) {
 		Operation	op2 = *op;
 		SlapReply	rs2 = { 0 };
-		Entry		e = { 0 };
+		Entry		*e = entry_alloc();
 		slap_callback	cb = { 0 };
 
 		op2.o_tag = LDAP_REQ_ADD;
 		op2.o_bd = select_backend( &op->o_bd->be_nsuffix[0], 0, 0 );
-		op2.ora_e = &e;
+		op2.ora_e = e;
 		op2.o_callback = &cb;
 
-		e.e_name = op->o_bd->be_suffix[0];
-		e.e_nname = op->o_bd->be_nsuffix[0];
+		ber_dupbv( &e->e_name, op->o_bd->be_suffix );
+		ber_dupbv( &e->e_nname, op->o_bd->be_nsuffix );
 
 		cb.sc_response = slap_null_cb;
 
 		op2.o_bd->be_add( &op2, &rs2 );
+
+		if ( op2.ora_e == e )
+			entry_free( e );
 	}
 #endif /* BACKSQL_SYNCPROV */
 

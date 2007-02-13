@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -18,7 +18,6 @@
 
 #include <stdio.h>
 
-#include <ac/krb.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/unistd.h>

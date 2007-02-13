@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -93,6 +93,9 @@ extern struct berval	pr_cookie;
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 extern int		chaining;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+/* options */
+extern struct timeval	nettimeout;
 
 /* Defined in common.c, set in main() */
 extern const char	__Version[];

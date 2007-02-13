@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,9 +24,12 @@
 
 #include "slap.h"
 #include "lutil.h"
+#include "config.h"
 
 static LDAP_STAILQ_HEAD(OidMacroList, slap_oid_macro) om_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(om_list);
+
+OidMacro *om_sys_tail;
 
 /* Replace an OID Macro invocation with its full numeric OID.
  * If the macro is used with "macroname:suffix" append ".suffix"
@@ -92,64 +95,75 @@ oidm_destroy()
 
 int
 parse_oidm(
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char 	**argv,
+	struct config_args_s *c,
 	int		user,
 	OidMacro **rom)
 {
-	char *oid;
-	OidMacro *om = NULL;
+	char *oid, *oidv;
+	OidMacro *om = NULL, *prev = NULL;
 	struct berval bv;
 
-	if (argc != 3) {
-		fprintf( stderr, "%s: line %d: too many arguments\n",
-			fname, lineno );
-usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
-		if (om) SLAP_FREE( om );
+	oidv = oidm_find( c->argv[2] );
+	if( !oidv ) {
+		snprintf( c->msg, sizeof( c->msg ),
+			"%s: OID %s not recognized",
+			c->argv[0], c->argv[2] );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
 		return 1;
 	}
 
-	oid = oidm_find( argv[1] );
+	oid = oidm_find( c->argv[1] );
 	if( oid != NULL ) {
-		fprintf( stderr,
-			"%s: line %d: "
-			"ObjectIdentifier \"%s\" previously defined \"%s\"",
-			fname, lineno, argv[1], oid );
+		int rc;
+		snprintf( c->msg, sizeof( c->msg ),
+			"%s: \"%s\" previously defined \"%s\"",
+			c->argv[0], c->argv[1], oid );
+		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+			"%s %s\n", c->log, c->msg, 0 );
+		/* Allow duplicate if the definition is identical */
+		rc = strcmp( oid, oidv ) != 0;
 		SLAP_FREE( oid );
-		return 1;
+		if ( oidv != c->argv[2] )
+			SLAP_FREE( oidv );
+		return rc;
 	}
 
 	om = (OidMacro *) SLAP_CALLOC( sizeof(OidMacro), 1 );
 	if( om == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "parse_oidm: SLAP_CALLOC failed", 0, 0, 0 );
+		snprintf( c->msg, sizeof( c->msg ),
+			"%s: SLAP_CALLOC failed", c->argv[0] );
+		Debug( LDAP_DEBUG_ANY,
+			"%s %s\n", c->log, c->msg, 0 );
+		if ( oidv != c->argv[2] )
+			SLAP_FREE( oidv );
 		return 1;
 	}
 
 	om->som_names = NULL;
 	om->som_subs = NULL;
-	ber_str2bv( argv[1], 0, 1, &bv );
+	ber_str2bv( c->argv[1], 0, 1, &bv );
 	ber_bvarray_add( &om->som_names, &bv );
-	ber_str2bv( argv[2], 0, 1, &bv );
+	ber_str2bv( c->argv[2], 0, 1, &bv );
 	ber_bvarray_add( &om->som_subs, &bv );
-	om->som_oid.bv_val = oidm_find( argv[2] );
+	om->som_oid.bv_val = oidv;
 
-	if (!om->som_oid.bv_val) {
-		fprintf( stderr, "%s: line %d: OID %s not recognized\n",
-			fname, lineno, argv[2] );
-		goto usage;
-	}
-
-	if (om->som_oid.bv_val == argv[2]) {
-		om->som_oid.bv_val = ch_strdup( argv[2] );
+	if (om->som_oid.bv_val == c->argv[2]) {
+		om->som_oid.bv_val = ch_strdup( c->argv[2] );
 	}
 
 	om->som_oid.bv_len = strlen( om->som_oid.bv_val );
-	if ( !user )
+	if ( !user ) {
 		om->som_flags |= SLAP_OM_HARDCODE;
+		prev = om_sys_tail;
+		om_sys_tail = om;
+	}
 
-	LDAP_STAILQ_INSERT_TAIL( &om_list, om, som_next );
+	if ( prev ) {
+		LDAP_STAILQ_INSERT_AFTER( &om_list, prev, om, som_next );
+	} else {
+		LDAP_STAILQ_INSERT_TAIL( &om_list, om, som_next );
+	}
 	if ( rom ) *rom = om;
 	return 0;
 }
@@ -167,7 +181,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 	/* count the result size */
 	i = 0;
 	for ( om=start; om; om=LDAP_STAILQ_NEXT(om, som_next)) {
-		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) continue;
+		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) break;
 		for ( j=0; !BER_BVISNULL(&om->som_names[j]); j++ );
 		i += j;
 		if ( om == end ) break;
@@ -183,7 +197,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 		ibuf[0] = '\0';
 	}
 	for ( i=0,om=start; om; om=LDAP_STAILQ_NEXT(om, som_next)) {
-		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) continue;
+		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) break;
 		for ( j=0; !BER_BVISNULL(&om->som_names[j]); i++,j++ ) {
 			if ( !sys ) {
 				idx.bv_len = sprintf(idx.bv_val, "{%d}", i );

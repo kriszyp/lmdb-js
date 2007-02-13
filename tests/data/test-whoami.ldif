@@ -254,7 +254,8 @@ telephonenumber: +1 313 555 0355
 authzFrom: dn.exact:cn=Barbara Jensen,ou=Information Technology Division,ou=Pe
  ople,dc=example,dc=com
 authzFrom: u:melliot
-authzFrom: ldap:///ou=People,dc=example,dc=com??sub?cn=Jane Doe
+authzFrom: ldap:///ou=People,dc=example,dc=com??sub?(|(cn=Jane Doe)
+ (cn=Jennifer Smith))
 authzFrom: group/groupOfUniqueNames/uniqueMember:cn=ITD Staff,ou=Groups,dc=exa
  mple,dc=com
 authzFrom: dn.onelevel:ou=Information Technology Division,ou=People,dc=example,dc=com

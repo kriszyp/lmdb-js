@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -196,23 +196,22 @@ int connections_shutdown(void)
 	ber_socket_t i;
 
 	for ( i = 0; i < dtblsize; i++ ) {
-		if( connections[i].c_struct_state != SLAP_C_USED ) {
-			continue;
+		if( connections[i].c_struct_state != SLAP_C_UNINITIALIZED ) {
+			ldap_pvt_thread_mutex_lock( &connections[i].c_mutex );
+			if( connections[i].c_struct_state == SLAP_C_USED ) {
+
+				/* give persistent clients a chance to cleanup */
+				if( connections[i].c_conn_state == SLAP_C_CLIENT ) {
+					ldap_pvt_thread_pool_submit( &connection_pool,
+					connections[i].c_clientfunc, connections[i].c_clientarg );
+				} else {
+					/* c_mutex is locked */
+					connection_closing( &connections[i], "slapd shutdown" );
+					connection_close( &connections[i] );
+				}
+			}
+			ldap_pvt_thread_mutex_unlock( &connections[i].c_mutex );
 		}
-		/* give persistent clients a chance to cleanup */
-		if( connections[i].c_conn_state == SLAP_C_CLIENT ) {
-			ldap_pvt_thread_pool_submit( &connection_pool,
-			connections[i].c_clientfunc, connections[i].c_clientarg );
-			continue;
-		}
-
-		ldap_pvt_thread_mutex_lock( &connections[i].c_mutex );
-
-		/* c_mutex is locked */
-		connection_closing( &connections[i], "slapd shutdown" );
-		connection_close( &connections[i] );
-
-		ldap_pvt_thread_mutex_unlock( &connections[i].c_mutex );
 	}
 
 	return 0;
@@ -306,11 +305,20 @@ static Connection* connection_get( ber_socket_t s )
 	if( c != NULL ) {
 		ber_socket_t	sd;
 
-		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
-
 		ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
+		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
+
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
+#ifdef HAVE_WINSOCK
+		/* Avoid race condition after releasing
+		 * connections_mutex
+		 */
+		if ( sd != s ) {
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+			return NULL;
+		}
+#endif
 		if( c->c_struct_state != SLAP_C_USED ) {
 			/* connection must have been closed due to resched */
 
@@ -738,10 +746,13 @@ connection_destroy( Connection *c )
 	if ( sd != AC_SOCKET_INVALID ) {
 		slapd_remove( sd, sb, 1, 0, 0 );
 
-		Statslog( LDAP_DEBUG_STATS, (close_reason
-									 ? "conn=%lu fd=%ld closed (%s)\n"
-									 : "conn=%lu fd=%ld closed\n"),
-			connid, (long) sd, close_reason, 0, 0 );
+		if ( close_reason == NULL ) {
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed\n",
+				connid, (long) sd, 0, 0, 0 );
+		} else {
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed (%s)\n",
+				connid, (long) sd, close_reason, 0, 0 );
+		}
 	}
 }
 
@@ -835,8 +846,8 @@ void connection_closing( Connection *c, const char *why )
 			 * connection_resched / connection_close before we
 			 * finish, but that's OK.
 			 */
-			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			slapd_clr_write( sd, 1 );
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			ldap_pvt_thread_mutex_lock( &c->c_write_mutex );
 			ldap_pvt_thread_mutex_lock( &c->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &c->c_write_mutex );
@@ -1517,11 +1528,11 @@ connection_input( Connection *conn )
 
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
 
-		Debug( LDAP_DEBUG_TRACE,
-			"ber_get_next on fd %d failed errno=%d (%s)\n",
-			sd, err, sock_errstr(err) );
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			/* log, close and send error */
+			Debug( LDAP_DEBUG_TRACE,
+				"ber_get_next on fd %d failed errno=%d (%s)\n",
+			sd, err, sock_errstr(err) );
 			ber_free( conn->c_currentber, 1 );
 			conn->c_currentber = NULL;
 
@@ -1749,13 +1760,17 @@ static int connection_bind_cleanup_cb( Operation *op, SlapReply *rs )
 {
 	op->o_conn->c_sasl_bindop = NULL;
 
+	ch_free( op->o_callback );
+	op->o_callback = NULL;
+
 	return SLAP_CB_CONTINUE;
 }
 
 static int connection_bind_cb( Operation *op, SlapReply *rs )
 {
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-	op->o_conn->c_conn_state = SLAP_C_ACTIVE;
+	if ( op->o_conn->c_conn_state == SLAP_C_BINDING )
+		op->o_conn->c_conn_state = SLAP_C_ACTIVE;
 	op->o_conn->c_sasl_bind_in_progress =
 		( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS );
 
@@ -1931,6 +1946,36 @@ int connection_write(ber_socket_t s)
 	return 0;
 }
 
+#ifdef LDAP_SLAPI
+typedef struct conn_fake_extblock {
+	void *eb_conn;
+	void *eb_op;
+} conn_fake_extblock;
+
+static void
+connection_fake_destroy(
+	void *key,
+	void *data )
+{
+	Connection conn = {0};
+	Operation op = {0};
+	Opheader ohdr = {0};
+
+	conn_fake_extblock *eb = data;
+	
+	op.o_hdr = &ohdr;
+	op.o_hdr->oh_extensions = eb->eb_op;
+	conn.c_extensions = eb->eb_conn;
+	op.o_conn = &conn;
+	conn.c_connid = -1;
+	op.o_connid = -1;
+
+	ber_memfree_x( eb, NULL );
+	slapi_int_free_object_extensions( SLAPI_X_EXT_OPERATION, &op );
+	slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION, &conn );
+}
+#endif
+
 void
 connection_fake_init(
 	Connection *conn,
@@ -1959,8 +2004,24 @@ connection_fake_init(
 	connection_init_log_prefix( op );
 
 #ifdef LDAP_SLAPI
-	slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
-	slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
+	if ( slapi_plugins_used ) {
+		conn_fake_extblock *eb = NULL;
+
+		/* Use thread keys to make sure these eventually get cleaned up */
+		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &eb,
+			NULL )) {
+			eb = ch_malloc( sizeof( *eb ));
+			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
+			slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
+			eb->eb_conn = conn->c_extensions;
+			eb->eb_op = op->o_hdr->oh_extensions;
+			ldap_pvt_thread_pool_setkey( ctx, connection_fake_init, eb,
+				connection_fake_destroy );
+		} else {
+			conn->c_extensions = eb->eb_conn;
+			op->o_hdr->oh_extensions = eb->eb_op;
+		}
+	}
 #endif /* LDAP_SLAPI */
 
 	slap_op_time( &op->o_time, &op->o_tincr );

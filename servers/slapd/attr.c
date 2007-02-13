@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -124,7 +124,7 @@ attrs_alloc( int num )
 
 
 void
-attr_free( Attribute *a )
+attr_clean( Attribute *a )
 {
 	if ( a->a_nvals && a->a_nvals != a->a_vals &&
 		!( a->a_flags & SLAP_ATTR_DONT_FREE_VALS )) {
@@ -146,7 +146,19 @@ attr_free( Attribute *a )
 			ber_bvarray_free( a->a_vals );
 		}
 	}
-	memset( a, 0, sizeof( Attribute ));
+	a->a_desc = NULL;
+	a->a_vals = NULL;
+	a->a_nvals = NULL;
+#ifdef LDAP_COMP_MATCH
+	a->a_comp_data = NULL;
+#endif
+	a->a_flags = 0;
+}
+
+void
+attr_free( Attribute *a )
+{
+	attr_clean( a );
 	ldap_pvt_thread_mutex_lock( &attr_mutex );
 	a->a_next = attr_list;
 	attr_list = a;
@@ -173,23 +185,28 @@ comp_tree_free( Attribute *a )
 void
 attrs_free( Attribute *a )
 {
-	Attribute *next;
+	Attribute *b, *tail, *next;
 
-	for( ; a != NULL ; a = next ) {
-		next = a->a_next;
-		attr_free( a );
+	if ( a ) {
+		tail = a;
+		do {
+			next = a->a_next;
+			attr_clean( a );
+			a->a_next = b;
+			b = a;
+			a = next;
+		} while ( next );
+
+		ldap_pvt_thread_mutex_lock( &attr_mutex );
+		tail->a_next = attr_list;
+		attr_list = b;
+		ldap_pvt_thread_mutex_unlock( &attr_mutex );
 	}
 }
 
-Attribute *
-attr_dup( Attribute *a )
+static void
+attr_dup2( Attribute *tmp, Attribute *a )
 {
-	Attribute *tmp;
-
-	if ( a == NULL) return NULL;
-
-	tmp = attr_alloc( a->a_desc );
-
 	if ( a->a_vals != NULL ) {
 		int	i;
 
@@ -224,31 +241,43 @@ attr_dup( Attribute *a )
 		} else {
 			tmp->a_nvals = tmp->a_vals;
 		}
-
-	} else {
-		tmp->a_vals = NULL;
-		tmp->a_nvals = NULL;
 	}
+}
+
+Attribute *
+attr_dup( Attribute *a )
+{
+	Attribute *tmp;
+
+	if ( a == NULL) return NULL;
+
+	tmp = attr_alloc( a->a_desc );
+	attr_dup2( tmp, a );
 	return tmp;
 }
 
 Attribute *
 attrs_dup( Attribute *a )
 {
-	Attribute *tmp, **next;
+	int i;
+	Attribute *tmp, *anew;
 
 	if( a == NULL ) return NULL;
 
-	tmp = NULL;
-	next = &tmp;
-
-	for( ; a != NULL ; a = a->a_next ) {
-		*next = attr_dup( a );
-		next = &((*next)->a_next);
+	/* count them */
+	for( tmp=a,i=0; tmp; tmp=tmp->a_next ) {
+		i++;
 	}
-	*next = NULL;
 
-	return tmp;
+	anew = attrs_alloc( i );
+
+	for( tmp=anew; a; a=a->a_next ) {
+		tmp->a_desc = a->a_desc;
+		attr_dup2( tmp, a );
+		tmp=tmp->a_next;
+	}
+
+	return anew;
 }
 
 
@@ -348,7 +377,6 @@ attr_normalize(
 		*nvalsp = nvals;
 	}
 
-error_return:;
 	if ( rc != LDAP_SUCCESS && nvals != NULL ) {
 		ber_bvarray_free_x( nvals, memctx );
 	}

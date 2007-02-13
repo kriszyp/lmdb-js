@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,8 @@ mra_free(
 #endif
 	/* op->o_tmpfree( mra->ma_value.bv_val, op->o_tmpmemctx ); */
 	ch_free( mra->ma_value.bv_val );
+	if ( mra->ma_desc && mra->ma_desc->ad_flags & SLAP_DESC_TEMPORARY )
+		op->o_tmpfree( mra->ma_desc, op->o_tmpmemctx );
 	if ( freeit ) op->o_tmpfree( (char *) mra, op->o_tmpmemctx );
 }
 
@@ -48,7 +50,7 @@ int
 get_mra(
 	Operation *op,
 	BerElement	*ber,
-	MatchingRuleAssertion	**mra,
+	Filter *f,
 	const char **text )
 {
 	int rc;
@@ -141,11 +143,13 @@ get_mra(
 	if( type.bv_val != NULL ) {
 		rc = slap_bv2ad( &type, &ma.ma_desc, text );
 		if( rc != LDAP_SUCCESS ) {
+			f->f_choice |= SLAPD_FILTER_UNDEFINED;
 			rc = slap_bv2undef_ad( &type, &ma.ma_desc, text,
 				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
 
 			if( rc != LDAP_SUCCESS ) {
-				return rc;
+				ma.ma_desc = slap_bv2tmp_ad( &type, op->o_tmpmemctx );
+				rc = LDAP_SUCCESS;
 			}
 		}
 	}
@@ -214,12 +218,12 @@ get_mra(
 	length = sizeof(ma);
 	/* Append rule_text to end of struct */
 	if (rule_text.bv_val) length += rule_text.bv_len + 1;
-	*mra = op->o_tmpalloc( length, op->o_tmpmemctx );
-	**mra = ma;
+	f->f_mra = op->o_tmpalloc( length, op->o_tmpmemctx );
+	*f->f_mra = ma;
 	if (rule_text.bv_val) {
-		(*mra)->ma_rule_text.bv_len = rule_text.bv_len;
-		(*mra)->ma_rule_text.bv_val = (char *)(*mra+1);
-		AC_MEMCPY((*mra)->ma_rule_text.bv_val, rule_text.bv_val,
+		f->f_mra->ma_rule_text.bv_len = rule_text.bv_len;
+		f->f_mra->ma_rule_text.bv_val = (char *)(f->f_mra+1);
+		AC_MEMCPY(f->f_mra->ma_rule_text.bv_val, rule_text.bv_val,
 			rule_text.bv_len+1);
 	}
 

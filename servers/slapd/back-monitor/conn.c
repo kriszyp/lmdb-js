@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2006 The OpenLDAP Foundation.
+ * Copyright 2001-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -383,8 +383,10 @@ conn_create(
 			c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
 			
 			c->c_listener_url.bv_val,
-			c->c_peer_domain.bv_val,
-			c->c_peer_name.bv_val,
+			BER_BVISNULL( &c->c_peer_domain )
+				? "" : c->c_peer_domain.bv_val,
+			BER_BVISNULL( &c->c_peer_name )
+				? "" : c->c_peer_name.bv_val,
 			c->c_sock_name.bv_val,
 			
 			buf2,
@@ -432,6 +434,7 @@ conn_create(
 		&c->c_dn, &c->c_ndn );
 
 	/* NOTE: client connections leave the c_peer_* fields NULL */
+	assert( !BER_BVISNULL( &c->c_listener_url ) );
 	attr_merge_one( e, mi->mi_ad_monitorConnectionListener,
 		&c->c_listener_url, NULL );
 
@@ -443,6 +446,7 @@ conn_create(
 		BER_BVISNULL( &c->c_peer_name ) ? &bv_unknown : &c->c_peer_name,
 		NULL );
 
+	assert( !BER_BVISNULL( &c->c_sock_name ) );
 	attr_merge_one( e, mi->mi_ad_monitorConnectionLocalAddress,
 		&c->c_sock_name, NULL );
 

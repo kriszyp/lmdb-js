@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 1998-2001 Net Boolean Incorporated.
  * Portions Copyright 2001-2003 IBM Corporation.
@@ -91,7 +91,7 @@ usage( void )
 
 
 const char options[] = "rs:"
-	"cd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
+	"cd:D:e:f:h:H:IMnO:o:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )

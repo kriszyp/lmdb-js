@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
  *
@@ -28,6 +28,7 @@
 
 const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
 const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
+int slap_serverID;
 
 void
 slap_get_commit_csn(
@@ -181,13 +182,10 @@ slap_get_csn(
 {
 	if ( csn == NULL ) return LDAP_OTHER;
 
-#ifndef HAVE_GMTIME_R
+	/* gmtime doesn't always need a mutex, but lutil_csnstr does */
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#endif
-	csn->bv_len = lutil_csnstr( csn->bv_val, csn->bv_len, 0, 0 );
-#ifndef HAVE_GMTIME_R
+	csn->bv_len = lutil_csnstr( csn->bv_val, csn->bv_len, slap_serverID, 0 );
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-#endif
 
 	if ( manage_ctxcsn )
 		slap_queue_csn( op, csn );

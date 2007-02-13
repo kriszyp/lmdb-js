@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -120,11 +120,11 @@ schema_info( Entry **entry, const char **text )
 		char		timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
 		/*
-		 * According to RFC 2251:
+		 * According to RFC 4512:
 
-   Servers SHOULD provide the attributes createTimestamp and
-   modifyTimestamp in subschema entries, in order to allow clients to
-   maintain their caches of schema information.
+   Servers SHOULD maintain the 'creatorsName', 'createTimestamp',       
+   'modifiersName', and 'modifyTimestamp' attributes for all entries of 
+   the DIT. 
 
 		 * to be conservative, we declare schema created 
 		 * AND modified at server startup time ...

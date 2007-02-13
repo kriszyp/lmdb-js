@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,6 @@ int		global_gentlehup = 0;
 int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
-char		*ldap_srvtab = "";
 char		**default_passwd_hash = NULL;
 struct berval default_search_base = BER_BVNULL;
 struct berval default_search_nbase = BER_BVNULL;
@@ -618,12 +617,12 @@ config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
 }
 
 int
-config_parse_add(ConfigTable *ct, ConfigArgs *c)
+config_parse_add(ConfigTable *ct, ConfigArgs *c, int valx)
 {
 	int	rc = 0;
 
 	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
-		ct->ad->ad_cname.bv_val, c->valx );
+		ct->ad->ad_cname.bv_val, valx );
 	c->argc = 1;
 	c->argv[0] = ct->ad->ad_cname.bv_val;
 
@@ -998,6 +997,21 @@ static slap_verbmasks tlskey[] = {
 	{ BER_BVC("critical"),	SB_TLS_CRITICAL },
 	{ BER_BVNULL, 0 }
 };
+
+static slap_verbmasks crlkeys[] = {
+		{ BER_BVC("none"),	LDAP_OPT_X_TLS_CRL_NONE },
+		{ BER_BVC("peer"),	LDAP_OPT_X_TLS_CRL_PEER },
+		{ BER_BVC("all"),	LDAP_OPT_X_TLS_CRL_ALL },
+		{ BER_BVNULL, 0 }
+	};
+
+static slap_verbmasks vfykeys[] = {
+		{ BER_BVC("never"),	LDAP_OPT_X_TLS_NEVER },
+		{ BER_BVC("demand"),	LDAP_OPT_X_TLS_DEMAND },
+		{ BER_BVC("try"),	LDAP_OPT_X_TLS_TRY },
+		{ BER_BVC("hard"),	LDAP_OPT_X_TLS_HARD },
+		{ BER_BVNULL, 0 }
+	};
 #endif
 
 static slap_verbmasks methkey[] = {
@@ -1017,19 +1031,23 @@ static slap_verbmasks versionkey[] = {
 
 static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("uri="), offsetof(slap_bindconf, sb_uri), 'b', 1, NULL },
-	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'd', 0, versionkey },
-	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
-	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
+	{ BER_BVC("version="), offsetof(slap_bindconf, sb_version), 'i', 0, versionkey },
+	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'i', 0, methkey },
+	{ BER_BVC("timeout="), offsetof(slap_bindconf, sb_timeout_api), 'i', 0, NULL },
+	{ BER_BVC("network-timeout="), offsetof(slap_bindconf, sb_timeout_net), 'i', 0, NULL },
+	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, (slap_verbmasks *)dnNormalize },
 	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
 	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 'b', 0, NULL },
 	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 's', 0, NULL },
 	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
-	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, NULL },
-	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
+	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, (slap_verbmasks *)authzNormalize },
+	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, (slap_verbmasks *)authzNormalize },
 #ifdef HAVE_TLS
-	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
+	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'i', 0, tlskey },
 
-#define aux_TLS (bindkey+10)	/* beginning of TLS keywords */
+	/* NOTE: replace "13" with the actual index
+	 * of the first TLS-related line */
+#define aux_TLS (bindkey+13)	/* beginning of TLS keywords */
 
 	{ BER_BVC("tls_cert="), offsetof(slap_bindconf, sb_tls_cert), 's', 1, NULL },
 	{ BER_BVC("tls_key="), offsetof(slap_bindconf, sb_tls_key), 's', 1, NULL },
@@ -1044,14 +1062,23 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
+/*
+ * 's':	char *
+ * 'b':	struct berval; if !NULL, normalize using ((slap_mr_normalize_func *)aux)
+ * 'i':	int; if !NULL, compute using ((slap_verbmasks *)aux)
+ * 'u':	unsigned
+ * 'I':	long
+ * 'U':	unsigned long
+ */
+
 int
 slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, LDAP_CONST char *tabmsg )
 {
 	int rc = SLAP_CONF_UNKNOWN;
 	slap_cf_aux_table *tab;
 
-	for (tab = tab0; !BER_BVISNULL(&tab->key); tab++ ) {
-		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len )) {
+	for ( tab = tab0; !BER_BVISNULL( &tab->key ); tab++ ) {
+		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len ) ) {
 			char **cptr;
 			int *iptr, j;
 			unsigned *uptr;
@@ -1069,27 +1096,39 @@ slap_cf_aux_table_parse( const char *word, void *dst, slap_cf_aux_table *tab0, L
 
 			case 'b':
 				bptr = (struct berval *)((char *)dst + tab->off);
-				ber_str2bv( val, 0, 1, bptr );
-				rc = 0;
-				break;
+				if ( tab->aux != NULL ) {
+					struct berval	dn;
+					slap_mr_normalize_func *normalize = (slap_mr_normalize_func *)tab->aux;
 
-			case 'd':
-				assert( tab->aux != NULL );
-				iptr = (int *)((char *)dst + tab->off);
+					ber_str2bv( val, 0, 0, &dn );
+					rc = normalize( 0, NULL, NULL, &dn, bptr, NULL );
 
-				rc = 1;
-				for ( j = 0; !BER_BVISNULL( &tab->aux[j].word ); j++ ) {
-					if ( !strcasecmp( val, tab->aux[j].word.bv_val ) ) {
-						*iptr = tab->aux[j].mask;
-						rc = 0;
-					}
+				} else {
+					ber_str2bv( val, 0, 1, bptr );
+					rc = 0;
 				}
 				break;
 
 			case 'i':
 				iptr = (int *)((char *)dst + tab->off);
 
-				rc = lutil_atoix( iptr, val, 0 );
+				if ( tab->aux != NULL ) {
+					slap_verbmasks *aux = (slap_verbmasks *)tab->aux;
+
+					assert( aux != NULL );
+
+					rc = 1;
+					for ( j = 0; !BER_BVISNULL( &aux[j].word ); j++ ) {
+						if ( !strcasecmp( val, aux[j].word.bv_val ) ) {
+							*iptr = aux[j].mask;
+							rc = 0;
+							break;
+						}
+					}
+
+				} else {
+					rc = lutil_atoix( iptr, val, 0 );
+				}
 				break;
 
 			case 'u':
@@ -1145,6 +1184,7 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 		case 'b':
 			bptr = (struct berval *)((char *)src + tab->off);
 			cptr = &bptr->bv_val;
+
 		case 's':
 			if ( *cptr ) {
 				*ptr++ = ' ';
@@ -1155,25 +1195,26 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 			}
 			break;
 
-		case 'd':
-			assert( tab->aux != NULL );
-			iptr = (int *)((char *)src + tab->off);
-		
-			for ( i = 0; !BER_BVISNULL( &tab->aux[i].word ); i++ ) {
-				if ( *iptr == tab->aux[i].mask ) {
-					*ptr++ = ' ';
-					ptr = lutil_strcopy( ptr, tab->key.bv_val );
-					ptr = lutil_strcopy( ptr, tab->aux[i].word.bv_val );
-					break;
-				}
-			}
-			break;
-
 		case 'i':
 			iptr = (int *)((char *)src + tab->off);
-			*ptr++ = ' ';
-			ptr = lutil_strcopy( ptr, tab->key.bv_val );
-			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%d", *iptr );
+
+			if ( tab->aux != NULL ) {
+				slap_verbmasks *aux = (slap_verbmasks *)tab->aux;
+
+				for ( i = 0; !BER_BVISNULL( &aux[i].word ); i++ ) {
+					if ( *iptr == aux[i].mask ) {
+						*ptr++ = ' ';
+						ptr = lutil_strcopy( ptr, tab->key.bv_val );
+						ptr = lutil_strcopy( ptr, aux[i].word.bv_val );
+						break;
+					}
+				}
+
+			} else {
+				*ptr++ = ' ';
+				ptr = lutil_strcopy( ptr, tab->key.bv_val );
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ), "%d", *iptr );
+			}
 			break;
 
 		case 'u':
@@ -1208,12 +1249,61 @@ slap_cf_aux_table_unparse( void *src, struct berval *bv, slap_cf_aux_table *tab0
 }
 
 int
+slap_tls_get_config( LDAP *ld, int opt, char **val )
+{
+	slap_verbmasks *keys;
+	int i, ival;
+
+	*val = NULL;
+	switch( opt ) {
+#ifdef HAVE_TLS
+	case LDAP_OPT_X_TLS_CRLCHECK:
+		keys = crlkeys;
+		break;
+	case LDAP_OPT_X_TLS_REQUIRE_CERT:
+		keys = vfykeys;
+		break;
+#endif
+	default:
+		return -1;
+	}
+	ldap_pvt_tls_get_option( ld, opt, &ival );
+	for (i=0; !BER_BVISNULL(&keys[i].word); i++) {
+		if (keys[i].mask == ival) {
+			*val = ch_strdup( keys[i].word.bv_val );
+			return 0;
+		}
+	}
+	return -1;
+}
+
+int
+bindconf_tls_parse( const char *word, slap_bindconf *bc )
+{
+#ifdef HAVE_TLS
+	if ( slap_cf_aux_table_parse( word, bc, aux_TLS, "tls config" ) == 0 ) {
+		bc->sb_tls_do_init = 1;
+		return 0;
+	}
+#endif
+	return -1;
+}
+
+int
+bindconf_tls_unparse( slap_bindconf *bc, struct berval *bv )
+{
+#ifdef HAVE_TLS
+	return slap_cf_aux_table_unparse( bc, bv, aux_TLS );
+#endif
+	return -1;
+}
+
+int
 bindconf_parse( const char *word, slap_bindconf *bc )
 {
 #ifdef HAVE_TLS
 	/* Detect TLS config changes explicitly */
-	if ( slap_cf_aux_table_parse( word, bc, aux_TLS, "tls config" ) == 0 ) {
-		bc->sb_tls_do_init = 1;
+	if ( bindconf_tls_parse( word, bc ) == 0 ) {
 		return 0;
 	}
 #endif
@@ -1296,6 +1386,37 @@ void bindconf_free( slap_bindconf *bc ) {
 		bc->sb_tls_crlcheck = NULL;
 	}
 #endif
+#endif
+}
+
+void
+bindconf_tls_defaults( slap_bindconf *bc )
+{
+#ifdef HAVE_TLS
+	if ( bc->sb_tls_do_init ) {
+		if ( !bc->sb_tls_cacert )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CACERTFILE,
+				&bc->sb_tls_cacert );
+		if ( !bc->sb_tls_cacertdir )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CACERTDIR,
+				&bc->sb_tls_cacertdir );
+		if ( !bc->sb_tls_cert )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CERTFILE,
+				&bc->sb_tls_cert );
+		if ( !bc->sb_tls_key )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_KEYFILE,
+				&bc->sb_tls_key );
+		if ( !bc->sb_tls_cipher_suite )
+			ldap_pvt_tls_get_option( slap_tls_ld, LDAP_OPT_X_TLS_CIPHER_SUITE,
+				&bc->sb_tls_cipher_suite );
+		if ( !bc->sb_tls_reqcert )
+			bc->sb_tls_reqcert = ch_strdup("demand");
+#ifdef HAVE_OPENSSL_CRL
+		if ( !bc->sb_tls_crlcheck )
+			slap_tls_get_config( slap_tls_ld, LDAP_OPT_X_TLS_CRLCHECK,
+				&bc->sb_tls_crlcheck );
+#endif
+	}
 #endif
 }
 
@@ -1384,6 +1505,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 {
 	LDAP		*ld = NULL;
 	int		rc;
+	struct timeval tv;
 
 	/* Init connection to master */
 	rc = ldap_initialize( &ld, sb->sb_uri.bv_val );
@@ -1398,6 +1520,18 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 	if ( sb->sb_version != 0 ) {
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
 			(const void *)&sb->sb_version );
+	}
+
+	if ( sb->sb_timeout_api ) {
+		tv.tv_sec = sb->sb_timeout_api;
+		tv.tv_usec = 0;
+		ldap_set_option( ld, LDAP_OPT_TIMEOUT, &tv );
+	}
+
+	if ( sb->sb_timeout_net ) {
+		tv.tv_sec = sb->sb_timeout_net;
+		tv.tv_usec = 0;
+		ldap_set_option( ld, LDAP_OPT_NETWORK_TIMEOUT, &tv );
 	}
 
 #ifdef HAVE_TLS

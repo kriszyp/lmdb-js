@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -328,7 +328,7 @@ static struct slap_daemon {
 } while (0)
 
 # define SLAP_DEVPOLL_SOCK_SET(s, mode) 	do { \
-	fprintf( stderr, "SLAP_SOCK_SET_%s(%d) = %d\n", \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_SET_%s(%d)=%d\n", \
 		(mode) == POLLIN ? "READ" : "WRITE", (s), \
 		( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) != (mode) ) ); \
 	if ( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) != (mode) ) { \
@@ -341,7 +341,7 @@ static struct slap_daemon {
 } while (0)
 
 # define SLAP_DEVPOLL_SOCK_CLR(s, mode)		do { \
-	fprintf( stderr, "SLAP_SOCK_CLR_%s(%d) = %d\n", \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_CLR_%s(%d)=%d\n", \
 		(mode) == POLLIN ? "READ" : "WRITE", (s), \
 		( (SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) == (mode) ) ); \
 	if ((SLAP_DEVPOLL_SOCK_EV((s)) & (mode)) == (mode) ) { \
@@ -378,7 +378,7 @@ static struct slap_daemon {
  * need to shutdown.
  */
 # define SLAP_SOCK_ADD(s, l)		do { \
-	fprintf( stderr, "SLAP_SOCK_ADD(%d, %p)\n", (s), (l) ); \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_ADD(%d, %p)\n", (s), (l), 0 ); \
 	SLAP_DEVPOLL_SOCK_IX((s)) = slap_daemon.sd_nfds; \
 	SLAP_DEVPOLL_SOCK_LX((s)) = (l); \
 	SLAP_DEVPOLL_SOCK_FD((s)) = (s); \
@@ -391,7 +391,7 @@ static struct slap_daemon {
 
 # define SLAP_SOCK_DEL(s)		do { \
 	int fd, index = SLAP_DEVPOLL_SOCK_IX((s)); \
-	fprintf( stderr, "SLAP_SOCK_DEL(%d)\n", (s) ); \
+	Debug( LDAP_DEBUG_CONNS, "SLAP_SOCK_DEL(%d)\n", (s), 0, 0 ); \
 	if ( index < 0 ) break; \
 	if ( index < slap_daemon.sd_nfds - 1 ) { \
 		struct pollfd pfd = slap_daemon.sd_pollfd[index]; \
@@ -494,6 +494,7 @@ static struct slap_daemon {
 
 # define SLAP_SOCK_INIT			do { \
 	SLAP_SELECT_CHK_SETSIZE; \
+	FD_ZERO(&slap_daemon.sd_actives); \
 	FD_ZERO(&slap_daemon.sd_readers); \
 	FD_ZERO(&slap_daemon.sd_writers); \
 } while (0)
@@ -582,28 +583,17 @@ slapd_slp_init( const char* urls )
 	/* find and expand INADDR_ANY URLs */
 	for ( i = 0; slapd_srvurls[i] != NULL; i++ ) {
 		if ( strcmp( slapd_srvurls[i], "ldap:///" ) == 0 ) {
-			char *host = ldap_pvt_get_fqdn( NULL );
-			if ( host != NULL ) {
-				slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
-					strlen( host ) +
-					sizeof( LDAP_SRVTYPE_PREFIX ) );
-				strcpy( lutil_strcopy(slapd_srvurls[i],
-					LDAP_SRVTYPE_PREFIX ), host );
-
-				ch_free( host );
-			}
-
+			slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
+				strlen( global_host ) +
+				sizeof( LDAP_SRVTYPE_PREFIX ) );
+			strcpy( lutil_strcopy(slapd_srvurls[i],
+				LDAP_SRVTYPE_PREFIX ), global_host );
 		} else if ( strcmp( slapd_srvurls[i], "ldaps:///" ) == 0 ) {
-			char *host = ldap_pvt_get_fqdn( NULL );
-			if ( host != NULL ) {
-				slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
-					strlen( host ) +
-					sizeof( LDAPS_SRVTYPE_PREFIX ) );
-				strcpy( lutil_strcopy(slapd_srvurls[i],
-					LDAPS_SRVTYPE_PREFIX ), host );
-
-				ch_free( host );
-			}
+			slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
+				strlen( global_host ) +
+				sizeof( LDAPS_SRVTYPE_PREFIX ) );
+			strcpy( lutil_strcopy(slapd_srvurls[i],
+				LDAPS_SRVTYPE_PREFIX ), global_host );
 		}
 	}
 
@@ -713,8 +703,8 @@ slapd_add( ber_socket_t s, int isactive, Listener *sl )
 
 	SLAP_SOCK_ADD(s, sl);
 
-	Debug( LDAP_DEBUG_CONNS, "daemon: added %ldr\n",
-		(long) s, 0, 0 );
+	Debug( LDAP_DEBUG_CONNS, "daemon: added %ldr%s listener=%p\n",
+		(long) s, isactive ? " (active)" : "", (void *)sl );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -1387,9 +1377,9 @@ slap_open_listener(
 			inet_ntop( AF_INET6, &((struct sockaddr_in6 *)*sal)->sin6_addr,
 				addr, sizeof addr);
 			port = ntohs( ((struct sockaddr_in6 *)*sal)->sin6_port );
-			l.sl_name.bv_len = strlen(addr) + sizeof("IP= 65535");
+			l.sl_name.bv_len = strlen(addr) + sizeof("IP=[]:65535");
 			l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len );
-			snprintf( l.sl_name.bv_val, l.sl_name.bv_len, "IP=%s %d", 
+			snprintf( l.sl_name.bv_val, l.sl_name.bv_len, "IP=[%s]:%d", 
 				addr, port );
 			l.sl_name.bv_len = strlen( l.sl_name.bv_val );
 		} break;
@@ -1594,10 +1584,14 @@ slap_listener(
 #ifdef LDAP_PF_LOCAL
 	char peername[MAXPATHLEN + sizeof("PATH=")];
 #elif defined(LDAP_PF_INET6)
-	char peername[sizeof("IP=ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535")];
+	char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
 #else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
 	char peername[sizeof("IP=255.255.255.255:65336")];
 #endif /* LDAP_PF_LOCAL */
+
+	Debug( LDAP_DEBUG_TRACE,
+		">>> slap_listener(%s)\n",
+		sl->sl_url.bv_val, 0, 0 );
 
 	peername[0] = '\0';
 
@@ -1754,7 +1748,7 @@ slap_listener(
 		peeraddr = (char *) inet_ntop( AF_INET6,
 				      &from.sa_in6_addr.sin6_addr,
 				      addr, sizeof addr );
-		sprintf( peername, "IP=%s %d",
+		sprintf( peername, "IP=[%s]:%d",
 			 peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
 			 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 	}
@@ -1762,10 +1756,10 @@ slap_listener(
 #  endif /* LDAP_PF_INET6 */
 
 	case AF_INET:
-	peeraddr = inet_ntoa( from.sa_in_addr.sin_addr );
-	sprintf( peername, "IP=%s:%d",
-		peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
-		(unsigned) ntohs( from.sa_in_addr.sin_port ) );
+		peeraddr = inet_ntoa( from.sa_in_addr.sin_addr );
+		sprintf( peername, "IP=%s:%d",
+			peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+			(unsigned) ntohs( from.sa_in_addr.sin_port ) );
 		break;
 
 	default:
@@ -1850,13 +1844,15 @@ slap_listener_thread(
 	void* ctx,
 	void* ptr )
 {
-	int rc;
+	int		rc;
+	Listener	*sl = (Listener *)ptr;
 
-	rc = slap_listener( (Listener*)ptr );
+	rc = slap_listener( sl );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"listener_thread: failed %d", rc, 0, 0 );
+			"slap_listener_thread(%s): failed err=%d",
+			sl->sl_url.bv_val, rc, 0 );
 	}
 
 	return (void*)NULL;

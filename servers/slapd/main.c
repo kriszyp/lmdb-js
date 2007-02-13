@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -696,6 +696,8 @@ unhandled_option:;
 	}
 
 	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
+
+	global_host = ldap_pvt_get_fqdn( NULL );
 
 	if( check == CHECK_NONE && slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;

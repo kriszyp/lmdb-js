@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 
 #include "slurp.h"
 #include "globals.h"
+#include "lutil.h"
 
 
 /*
@@ -77,8 +78,8 @@ fm(
 #ifdef SIGHUP
     (void) SIGNAL( SIGHUP, slurp_set_shutdown );
 #endif
-#if defined(SIGBREAK) && defined(HAVE_NT_SERVICE_MANAGER)
-    (void) SIGNAL( SIGBREAK, do_nothing );
+#if defined(SIGBREAK)
+    (void) SIGNAL( SIGBREAK, slurp_set_shutdown );
 #endif
 
     if ( sglob->one_shot_mode ) {
@@ -165,8 +166,15 @@ fm(
 RETSIGTYPE
 slurp_set_shutdown(int sig)
 {
+#if HAVE_NT_SERVICE_MANAGER && SIGBREAK
+    if (is_NT_Service && sig == SIGBREAK) {
+	/* empty */;
+    } else
+#endif
+    {
     sglob->slurpd_shutdown = 1;				/* set flag */
     tcp_write( sglob->wake_sds[1], "0", 1);		/* wake up file mgr */
+    }
 
     (void) SIGNAL_REINSTALL( sig, slurp_set_shutdown );	/* reinstall handlers */
 }

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * Portions Copyright 2004 Mark Adamson.
@@ -1004,8 +1004,8 @@ next:;
 			const char	*text = NULL;
 			char		textbuf[ 1024 ];
 			size_t		textlen = sizeof( textbuf );
-			struct berval	soc,
-					bv[ 2 ],
+			ObjectClass	*soc = NULL;
+			struct berval	bv[ 2 ],
 					*nvals;
 			int		rc = LDAP_SUCCESS;
 
@@ -1021,7 +1021,7 @@ next:;
 			}
 
 			rc = structural_class( nvals, &soc, NULL, 
-					&text, textbuf, textlen );
+					&text, textbuf, textlen, op->o_tmpmemctx );
 			if ( rc != LDAP_SUCCESS ) {
       				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
 					"structural_class() failed %d (%s)\n",
@@ -1031,12 +1031,12 @@ next:;
 				return rc;
 			}
 
-			if ( !bvmatch( &soc, &bsi->bsi_oc->bom_oc->soc_cname ) ) {
+			if ( !bvmatch( &soc->soc_cname, &bsi->bsi_oc->bom_oc->soc_cname ) ) {
       				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
 					"computed structuralObjectClass %s "
 					"does not match objectClass %s associated "
 					"to entry\n",
-					bsi->bsi_e->e_name.bv_val, soc.bv_val,
+					bsi->bsi_e->e_name.bv_val, soc->soc_cname.bv_val,
 					bsi->bsi_oc->bom_oc->soc_cname.bv_val );
 				backsql_entry_clean( op, bsi->bsi_e );
 				return rc;

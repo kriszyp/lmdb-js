@@ -1,6 +1,6 @@
 .TH LDAP_BIND 3 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
-.\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_sasl_bind, ldap_sasl_bind_s, ldap_sasl_interactive_bind_s, ldap_parse_sasl_bind_result, ldap_unbind, ldap_unbind_s, ldap_unbind_ext, ldap_unbind_ext_s, ldap_set_rebind_proc \- LDAP bind routines
@@ -49,27 +49,25 @@ OpenLDAP LDAP (libldap, -lldap)
 .BI "void *" defaults ");"
 .RE
 .LP
+.BI "int (LDAP_SASL_INTERACT_PROC)(LDAP *" ld ", unsigned " flags ", void *" defaults ", void *" sasl_interact ");"
+.LP
 .BI "int ldap_unbind(LDAP *" ld ");"
 .LP
 .BI "int ldap_unbind_s(LDAP *" ld ");"
-.\" .LP
-.\" .ft B
-.\" void ldap_set_rebind_proc( ld, rebindproc )
-.\" .ft
-.\" LDAP *ld;
-.\" int (*rebindproc)();
 .LP
 .BI "int ldap_unbind_ext(LDAP *" ld ", LDAPControl *" sctrls "[],"
 .RS
-.BI LDAPControl *" cctrls "[]);"
+.BI "LDAPControl *" cctrls "[]);"
 .RE
 .LP
 .BI "int ldap_unbind_ext_s(LDAP *" ld ", LDAPControl *" sctrls "[],"
 .RS
-.BI LDAPControl *" cctrls "[]);"
+.BI "LDAPControl *" cctrls "[]);"
 .RE
 .LP
-.BI "int ldap_set_rebind_proc (LDAP *" ld ", LDAP_REBIND_PROC *" ldap_proc ", void *" params);"
+.BI "int ldap_set_rebind_proc (LDAP *" ld ", LDAP_REBIND_PROC *" ldap_proc ", void *" params ");"
+.LP
+.BI "int (LDAP_REBIND_PROC)(LDAP *" ld ", LDAP_CONST char *" url ", ber_tag_t " request ", ber_int_t " msgid ", void *" params ");"
 .SH DESCRIPTION
 .LP
 These routines provide various interfaces to the LDAP bind operation.
@@ -120,7 +118,98 @@ returns the message id of the request it initiates.
 .B ldap_bind_s()
 returns an LDAP error indication.
 .SH SASL AUTHENTICATION
-Description still under construction...
+For SASL binds the server always ignores any provided DN, so the
+.I dn
+parameter should always be NULL.
+.BR ldap_sasl_bind_s ()
+sends a single SASL bind request with the given SASL
+.I mechanism
+and credentials in the
+.I cred
+parameter. The format of the credentials depends on the particular
+SASL mechanism in use. For mechanisms that provide mutual authentication
+the server's credentials will be returned in the
+.I servercredp
+parameter.
+The routine returns an LDAP error indication (see
+.BR ldap_error (3)).
+The
+.BR ldap_sasl_bind ()
+call is asynchronous, taking the same parameters but only sending the
+request and returning the message id of the request it sent. The result of
+the operation can be obtained by a subsequent
+call to
+.BR ldap_result (3).
+The result must be additionally parsed by
+.BR ldap_parse_sasl_bind_result ()
+to obtain any server credentials sent from the server.
+.LP
+Many SASL mechanisms require multiple message exchanges to perform a
+complete authentication. Applications should generally use
+.BR ldap_sasl_interactive_bind_s ()
+rather than calling the basic
+.BR ldap_sasl_bind ()
+functions directly. The
+.I mechs
+parameter should contain a space-separated list of candidate mechanisms
+to use. If this parameter is NULL or empty the library will query
+the supportedSASLMechanisms attribute from the server's rootDSE
+for the list of SASL mechanisms the server supports. The
+.I flags
+parameter controls the interaction used to retrieve any necessary
+SASL authentication parameters and should be one of:
+.TP
+LDAP_SASL_AUTOMATIC
+use defaults if available, prompt otherwise
+.TP
+LDAP_SASL_INTERACTIVE
+always prompt
+.TP
+LDAP_SASL_QUIET
+never prompt
+.LP
+The
+.I interact
+function uses the provided
+.I defaults
+to handle requests from the SASL library for particular authentication
+parameters. There is no defined format for the
+.I defaults
+information;
+it is up to the caller to use whatever format is appropriate for the
+supplied
+.I interact
+function.
+The
+.I sasl_interact
+parameter comes from the underlying SASL library. When used with Cyrus SASL
+this is an array of
+.B sasl_interact_t
+structures. The Cyrus SASL library will prompt for a variety of inputs,
+including:
+.TP
+SASL_CB_GETREALM
+the realm for the authentication attempt
+.TP
+SASL_CB_AUTHNAME
+the username to authenticate
+.TP
+SASL_CB_PASS
+the password for the provided username
+.TP
+SASL_CB_USER
+the username to use for proxy authorization
+.TP
+SASL_CB_NOECHOPROMPT
+generic prompt for input with input echoing disabled
+.TP
+SASL_CB_ECHOPROMPT
+generic prompt for input with input echoing enabled
+.TP
+SASL_CB_LIST_END
+indicates the end of the array of prompts
+.LP
+See the Cyrus SASL documentation for more details.
 .SH REBINDING
 .LP
 The
@@ -136,8 +225,7 @@ to use the rebind function. Use the
 .BR ldap_set_option
 function to set the value.
 .LP
-The rebind function has the following syntax.
-.B int rebind_function (LDAP *ld, const char *url,int request,ber_int_t   msgid);
+The rebind function parameters are as follows:
 .LP
 The \fIld\fP parameter must be used by the application when binding to the
 referred server if the application wants the libraries to follow the referral.
@@ -147,9 +235,13 @@ The LDAP application can use the
 .BR ldap_url_parse (3)
 function to parse the string into its components.
 .LP
-The \fIrequest\fP parameter specifies the request operation that generated the referral. 
+The \fIrequest\fP parameter specifies the type of request that generated the referral. 
 .LP
 The \fImsgid\fP parameter specifies the message ID of the request generating the referral.
+.LP
+The \fIparams\fP parameter is the same value as passed originally to the
+.BR ldap_set_rebind_proc ()
+function.
 .LP
 The LDAP libraries set all the parameters when they call the rebind function. The application
 should not attempt to free either the ld or the url structures in the rebind function.
@@ -168,38 +260,6 @@ The
 call is just another name for
 .BR ldap_unbind() ;
 both of these calls are synchronous in nature.
-.\" .SH RE-BINDING WHILE FOLLOWING REFERRALS
-.\" The
-.\" .B ldap_set_rebind_proc()
-.\" call is used to set a routine that will be called back to obtain bind
-.\" credentials used when a new server is contacted during the following of
-.\" an LDAP referral.  Note that this function is only available when the
-.\" LDAP libraries are compiled with LDAP_REFERRALS defined and is only
-.\" used when the ld_options field in the LDAP structure has
-.\" LDAP_OPT_REFERRALS set (this is the default).  If
-.\" .B ldap_set_rebind_proc()
-.\" is never called, or if it is called with a NULL \fIrebindproc\fP
-.\" parameter, an unauthenticated simple LDAP bind will always be done
-.\" when chasing referrals.
-.\" .LP
-.\" \fIrebindproc\fP should be a function that is declared like this:
-.\" .LP
-.\" .nf
-.\" int rebindproc( LDAP *ld, char **whop, char **credp,
-.\" int *methodp, int freeit );
-.\" .fi
-.\" .LP
-.\" The LDAP library will first call the rebindproc to obtain the
-.\" referral bind credentials, and the \fIfreeit\fP parameter will be
-.\" zero.  The \fIwhop\fP, \fIcredp\fP, and \fImethodp\fP should be
-.\" set as appropriate.  If the rebindproc returns LDAP_SUCCESS, referral
-.\" processing continues, and the rebindproc will be called a second
-.\" time with \fIfreeit\fP non-zero to give your application a chance to
-.\" free any memory allocated in the previous call.
-.\" .LP
-.\" If anything but LDAP_SUCCESS is returned by the first call to
-.\" the rebindproc, then referral processing is stopped and that error code
-.\" is returned for the original LDAP operation.
 .LP
 The
 .B ldap_unbind_ext()
@@ -213,7 +273,7 @@ routines return whatever \fIld_errno\fP is set to.  See
 .BR ldap_error (3)
 for more information.
 .SH NOTES
-If an anonymous bind is sufficient for the application,the rebind process
+If an anonymous bind is sufficient for the application, the rebind process
 need not be provided. The LDAP libraries with the LDAP_OPT_REFERRALS option
 set to ON (default value) will automatically follow referrals using an anonymous bind.
 .LP
@@ -231,7 +291,4 @@ The bind method must be synchronous.
 .B Cyrus SASL
 (http://asg.web.cmu.edu/sasl/)
 .SH ACKNOWLEDGEMENTS
-.B OpenLDAP
-is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B OpenLDAP
-is derived from University of Michigan LDAP 3.3 Release.  
+.so ../Project

@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2006 The OpenLDAP Foundation.
+## Copyright 1998-2007 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -471,6 +471,8 @@ case $RC in
 	;;
 esac
 
+# NOTE: cannot send to $SEARCHOUT because the returned entries
+# are not predictable...
 echo "Checking server-enforced size limit..."
 echo "# Checking server-enforced size limit..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
@@ -493,6 +495,8 @@ case $RC in
 	;;
 esac
 
+# NOTE: cannot send to $SEARCHOUT because the returned entries
+# are not predictable...
 echo "Checking client-requested size limit..."
 echo "# Checking client-requested size limit..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \

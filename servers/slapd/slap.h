@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,6 @@ LDAP_BEGIN_DECL
 #define SLAP_SORTEDRESULTS
 #endif
 
-#define SLAP_RELAX
 #define LDAP_DYNAMIC_OBJECTS
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 #define SLAP_DISTPROC
@@ -158,7 +157,7 @@ LDAP_BEGIN_DECL
  * on normalized/pretty DN, such that ';' is never used
  * as RDN separator, and all occurrences of ';' must be escaped */
 #define DN_SEPARATOR(c)	((c) == ',')
-#define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 2253 */
+#define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 4514 */
 #define RDN_SEPARATOR(c) (DN_SEPARATOR(c) || RDN_ATTRTYPEANDVALUE_SEPARATOR(c))
 #define RDN_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
@@ -462,7 +461,7 @@ typedef struct slap_matching_rule_use MatchingRuleUse;
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
 	MatchingRuleUse			*smr_mru;
-	/* RFC2252 string representation */
+	/* RFC 4512 string representation */
 	struct berval			smr_str;
 	/*
 	 * Note: the former
@@ -591,7 +590,7 @@ typedef struct slap_matching_rule {
 struct slap_matching_rule_use {
 	LDAPMatchingRuleUse		smru_mruleuse;
 	MatchingRule			*smru_mr;
-	/* RFC2252 string representation */
+	/* RFC 4512 string representation */
 	struct berval			smru_str;
 
 	LDAP_SLIST_ENTRY(slap_matching_rule_use) smru_next;
@@ -783,6 +782,7 @@ typedef struct slap_attr_desc {
 #define SLAP_DESC_NONE			0x00U
 #define SLAP_DESC_BINARY		0x01U
 #define SLAP_DESC_TAG_RANGE		0x80U
+#define SLAP_DESC_TEMPORARY		0x1000U
 } AttributeDescription;
 
 /* flags to slap_*2undef_ad to register undefined (0, the default)
@@ -901,9 +901,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_authPassword;
 	AttributeDescription *si_ad_authPasswordSchemes;
 #endif
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	AttributeDescription *si_ad_krbName;
-#endif
 	AttributeDescription *si_ad_description;
 	AttributeDescription *si_ad_seeAlso;
 
@@ -978,7 +975,9 @@ typedef struct slap_mr_assertion {
  */
 typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
-#define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
+#define SLAPD_FILTER_COMPUTED		0
+#define SLAPD_FILTER_MASK			0x7fff
+#define SLAPD_FILTER_UNDEFINED		0x8000
 
 	union f_un_u {
 		/* precomputed result */
@@ -1232,6 +1231,7 @@ typedef enum slap_style_e {
 	ACL_STYLE_USERS,
 	ACL_STYLE_SELF,
 	ACL_STYLE_IP,
+	ACL_STYLE_IPV6,
 	ACL_STYLE_PATH
 } slap_style_t;
 
@@ -1399,8 +1399,40 @@ typedef struct slap_access {
 	/* connection related stuff */
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
+#ifdef LDAP_PF_INET6
+	union {
+		struct in6_addr	ax6;
+		unsigned long	ax;
+	}	ax_peername_addr,
+		ax_peername_mask;
+#define	a_peername_addr6	ax_peername_addr.ax6
+#define	a_peername_addr		ax_peername_addr.ax
+#define	a_peername_mask6	ax_peername_mask.ax6
+#define	a_peername_mask		ax_peername_mask.ax
+/* apparently, only s6_addr is portable;
+ * define a portable address mask comparison */
+#define	slap_addr6_mask(val, msk, asr) ( \
+	(((val)->s6_addr[0] & (msk)->s6_addr[0]) == (asr)->s6_addr[0]) \
+	&& (((val)->s6_addr[1] & (msk)->s6_addr[1]) == (asr)->s6_addr[1]) \
+	&& (((val)->s6_addr[2] & (msk)->s6_addr[2]) == (asr)->s6_addr[2]) \
+	&& (((val)->s6_addr[3] & (msk)->s6_addr[3]) == (asr)->s6_addr[3]) \
+	&& (((val)->s6_addr[4] & (msk)->s6_addr[4]) == (asr)->s6_addr[4]) \
+	&& (((val)->s6_addr[5] & (msk)->s6_addr[5]) == (asr)->s6_addr[5]) \
+	&& (((val)->s6_addr[6] & (msk)->s6_addr[6]) == (asr)->s6_addr[6]) \
+	&& (((val)->s6_addr[7] & (msk)->s6_addr[7]) == (asr)->s6_addr[7]) \
+	&& (((val)->s6_addr[8] & (msk)->s6_addr[8]) == (asr)->s6_addr[8]) \
+	&& (((val)->s6_addr[9] & (msk)->s6_addr[9]) == (asr)->s6_addr[9]) \
+	&& (((val)->s6_addr[10] & (msk)->s6_addr[10]) == (asr)->s6_addr[10]) \
+	&& (((val)->s6_addr[11] & (msk)->s6_addr[11]) == (asr)->s6_addr[11]) \
+	&& (((val)->s6_addr[12] & (msk)->s6_addr[12]) == (asr)->s6_addr[12]) \
+	&& (((val)->s6_addr[13] & (msk)->s6_addr[13]) == (asr)->s6_addr[13]) \
+	&& (((val)->s6_addr[14] & (msk)->s6_addr[14]) == (asr)->s6_addr[14]) \
+	&& (((val)->s6_addr[15] & (msk)->s6_addr[15]) == (asr)->s6_addr[15]) \
+	)
+#else /* ! LDAP_PF_INET6 */
 	unsigned long	a_peername_addr,
 			a_peername_mask;
+#endif /* ! LDAP_PF_INET6 */
 	int		a_peername_port;
 
 	slap_style_t a_sockname_style;
@@ -1506,6 +1538,8 @@ typedef struct slap_bindconf {
 	int sb_version;
 	int sb_tls;
 	int sb_method;
+	int sb_timeout_api;
+	int sb_timeout_net;
 	struct berval sb_binddn;
 	struct berval sb_cred;
 	struct berval sb_saslmech;
@@ -1546,7 +1580,7 @@ typedef struct slap_cf_aux_table {
 	int off;
 	char type;
 	char quote;
-	slap_verbmasks *aux;
+	void *aux;
 } slap_cf_aux_table;
 
 #define SLAP_LIMIT_TIME	1
@@ -1618,14 +1652,18 @@ typedef BackendDB Backend;
 struct syncinfo_s;
 
 #define SLAP_SYNC_RID_SIZE	3
+#define SLAP_SYNC_SID_MAX	4095	/* based on liblutil/csn.c field width */
 #define SLAP_SYNCUUID_SET_SIZE 256
 
 #define	SLAP_SYNC_UPDATE_MSGID	1
 
 struct sync_cookie {
-	struct berval ctxcsn;
+	struct berval *ctxcsn;
 	struct berval octet_str;
-	long rid;
+	int rid;
+	int sid;
+	int numcsns;
+	int *sids;
 	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
 };
 
@@ -1780,7 +1818,6 @@ struct slap_backend_db {
 
 #define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */
-#define SLAP_DISALLOW_BIND_KRBV4	0x0004U /* Kerberos V4 authentication */
 
 #define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
 #define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */
@@ -1882,20 +1919,21 @@ typedef struct req_compare_s {
 typedef struct req_modify_s {
 	Modifications *rs_modlist;
 	int rs_increment;		/* FIXME: temporary */
+	char rs_no_opattrs;		/* don't att modify operational attrs */
 } req_modify_s;
 
 typedef struct req_modrdn_s {
+	Modifications *rs_modlist;
 	struct berval rs_newrdn;
 	struct berval rs_nnewrdn;
 	struct berval *rs_newSup;
 	struct berval *rs_nnewSup;
 	int rs_deleteoldrdn;
-	Modifications *rs_modlist;
 } req_modrdn_s;
 
 typedef struct req_add_s {
-	Entry *rs_e;
 	Modifications *rs_modlist;	/* FIXME: temporary */
+	Entry *rs_e;
 } req_add_s;
 
 typedef struct req_abandon_s {
@@ -1929,7 +1967,8 @@ typedef enum slap_reply_e {
 	REP_EXTENDED,
 	REP_SEARCH,
 	REP_SEARCHREF,
-	REP_INTERMEDIATE
+	REP_INTERMEDIATE,
+	REP_GLUE_RESULT
 } slap_reply_t;
 
 typedef struct rep_sasl_s {
@@ -2045,7 +2084,7 @@ typedef ID (BI_tool_entry_next) LDAP_P(( BackendDB *be ));
 typedef Entry* (BI_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 typedef ID (BI_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
-typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
+typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id, AttributeDescription **adv ));
 typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
 typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
@@ -2262,6 +2301,7 @@ typedef struct slap_overinfo {
 
 /* Should successive callbacks in a chain be processed? */
 #define	SLAP_CB_FREEME		0x04000
+#define	SLAP_CB_BYPASS		0x08800
 #define	SLAP_CB_CONTINUE	0x08000
 
 /*
@@ -2348,6 +2388,19 @@ typedef struct slap_op_header {
 #endif
 } Opheader;
 
+typedef union slap_op_request {
+	req_add_s oq_add;
+	req_bind_s oq_bind;
+	req_compare_s oq_compare;
+	req_modify_s oq_modify;
+	req_modrdn_s oq_modrdn;
+	req_search_s oq_search;
+	req_abandon_s oq_abandon;
+	req_abandon_s oq_cancel;
+	req_extended_s oq_extended;
+	req_pwdexop_s oq_pwdexop;
+} OpRequest;
+
 typedef struct slap_op {
 	Opheader *o_hdr;
 
@@ -2376,18 +2429,7 @@ typedef struct slap_op {
 	struct berval	o_req_dn;	/* DN of target of request */
 	struct berval	o_req_ndn;
 
-	union o_req_u {
-		req_add_s oq_add;
-		req_bind_s oq_bind;
-		req_compare_s oq_compare;
-		req_modify_s oq_modify;
-		req_modrdn_s oq_modrdn;
-		req_search_s oq_search;
-		req_abandon_s oq_abandon;
-		req_abandon_s oq_cancel;
-		req_extended_s oq_extended;
-		req_pwdexop_s oq_pwdexop;
-	} o_request;
+	OpRequest o_request;
 
 /* short hands for union members */
 #define oq_add o_request.oq_add
@@ -2431,6 +2473,7 @@ typedef struct slap_op {
 #define orn_msgid oq_abandon.rs_msgid
 #define orm_modlist oq_modify.rs_modlist
 #define orm_increment oq_modify.rs_increment
+#define orm_no_opattrs oq_modify.rs_no_opattrs
 
 #define ore_reqoid oq_extended.rs_reqoid
 #define ore_flags oq_extended.rs_flags
@@ -2445,6 +2488,7 @@ typedef struct slap_op {
 	GroupAssertion *o_groups;
 	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
+	slap_access_t o_acl_priv;
 
 	char o_nocaching;
 	char o_delete_glue_parent;

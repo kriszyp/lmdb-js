@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1028,7 +1028,7 @@ get_token( const char ** sp, char ** token_val )
 			**sp != '$' &&
 			**sp != '\'' &&
 			/* for suggested minimum upper bound on the number
-			 * of characters <draft-ietf-ldapbis-syntaxes> */
+			 * of characters (RFC 4517) */
 			**sp != '{' &&
 			**sp != '\0' )
 			(*sp)++;

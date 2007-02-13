@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -152,6 +152,7 @@ ldap_back_search(
 			msgid; 
 	struct berval	match = BER_BVNULL,
 			filter = BER_BVNULL;
+	int		free_filter = 0;
 	int		i;
 	char		**attrs = NULL;
 	int		freetext = 0;
@@ -239,6 +240,7 @@ retry:
 
 		case LDAP_FILTER_ERROR:
 			if ( ldap_back_munge_filter( op, &filter ) ) {
+				free_filter = 1;
 				goto retry;
 			}
 
@@ -254,15 +256,23 @@ retry:
 		}
 	}
 
+	/* if needed, initialize timeout */
+	if ( li->li_timeout[ SLAP_OP_SEARCH ] ) {
+		if ( tv.tv_sec == 0 || tv.tv_sec > li->li_timeout[ SLAP_OP_SEARCH ] ) {
+			tv.tv_sec = li->li_timeout[ SLAP_OP_SEARCH ];
+			tv.tv_usec = 0;
+		}
+	}
+
 	/* We pull apart the ber result, stuff it into a slapd entry, and
 	 * let send_search_entry stuff it back into ber format. Slow & ugly,
 	 * but this is necessary for version matching, and for ACL processing.
 	 */
 
-	for ( rc = 0; rc != -1; rc = ldap_result( lc->lc_ld, msgid, LDAP_MSG_ONE, &tv, &res ) )
+	for ( rc = -2; rc != -1; rc = ldap_result( lc->lc_ld, msgid, LDAP_MSG_ONE, &tv, &res ) )
 	{
 		/* check for abandon */
-		if ( op->o_abandon ) {
+		if ( op->o_abandon || LDAP_BACK_CONN_ABANDON( lc ) ) {
 			if ( rc > 0 ) {
 				ldap_msgfree( res );
 			}
@@ -271,9 +281,22 @@ retry:
 			goto finish;
 		}
 
-		if ( rc == 0 ) {
-			LDAP_BACK_TV_SET( &tv );
+		if ( rc == 0 || rc == -2 ) {
 			ldap_pvt_thread_yield();
+
+			/* check timeout */
+			if ( li->li_timeout[ SLAP_OP_SEARCH ] ) {
+				if ( rc == 0 ) {
+					(void)ldap_back_cancel( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
+					rs->sr_text = "Operation timed out";
+					rc = rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+						LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+					goto finish;
+				}
+
+			} else {
+				LDAP_BACK_TV_SET( &tv );
+			}
 
 			/* check time limit */
 			if ( op->ors_tlimit != SLAP_NO_LIMIT
@@ -435,6 +458,14 @@ retry:
 			rc = 0;
 			break;
 		}
+
+		/* if needed, restore timeout */
+		if ( li->li_timeout[ SLAP_OP_SEARCH ] ) {
+			if ( tv.tv_sec == 0 || tv.tv_sec > li->li_timeout[ SLAP_OP_SEARCH ] ) {
+				tv.tv_sec = li->li_timeout[ SLAP_OP_SEARCH ];
+				tv.tv_usec = 0;
+			}
+		}
 	}
 
  	if ( rc == -1 && dont_retry == 0 ) {
@@ -498,7 +529,7 @@ finish:;
 		rs->sr_matched = save_matched;
 	}
 
-	if ( !BER_BVISNULL( &filter ) && filter.bv_val != op->ors_filterstr.bv_val ) {
+	if ( free_filter ) {
 		op->o_tmpfree( filter.bv_val, op->o_tmpmemctx );
 	}
 
@@ -519,7 +550,7 @@ finish:;
 	}
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rs->sr_err;
@@ -803,7 +834,7 @@ retry:
 	rc = ldap_build_entry( op, e, *ent, &bdn );
 
 	if ( rc != LDAP_SUCCESS ) {
-		ch_free( *ent );
+		entry_free( *ent );
 		*ent = NULL;
 	}
 
@@ -819,7 +850,7 @@ cleanup:
 	}
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, &rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;

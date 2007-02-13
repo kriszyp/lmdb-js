@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,9 +68,9 @@ LDAP_BEGIN_DECL
 
 typedef struct bdb_idl_cache_entry_s {
 	struct berval kstr;
-	ldap_pvt_thread_rdwr_t idl_entry_rwlock;
 	ID      *idl;
 	DB      *db;
+	int		idl_flags;
 	struct bdb_idl_cache_entry_s* idl_lru_prev;
 	struct bdb_idl_cache_entry_s* idl_lru_next;
 } bdb_idl_cache_entry_t;
@@ -94,6 +94,8 @@ typedef struct bdb_entry_info {
 #define	CACHE_ENTRY_LOADING	0x10
 #define	CACHE_ENTRY_WALKING	0x20
 #define	CACHE_ENTRY_ONELEVEL	0x40
+#define	CACHE_ENTRY_REFERENCED	0x80
+	int bei_finders;
 
 	/*
 	 * remaining fields require backend cache lock to access
@@ -121,20 +123,22 @@ typedef struct bdb_entry_info {
 
 /* for the in-core cache of entries */
 typedef struct bdb_cache {
-	int             c_maxsize;
-	int             c_cursize;
+	EntryInfo	*c_eifree;	/* free list */
+	Avlnode		*c_idtree;
+	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
+	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
+	EntryInfo	c_dntree;
+	int		c_maxsize;
+	int		c_cursize;
 	int		c_minfree;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
-	EntryInfo	c_dntree;
-	EntryInfo	*c_eifree;	/* free list */
-	Avlnode         *c_idtree;
-	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
-	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
-	ldap_pvt_thread_rdwr_t c_rwlock;
-	ldap_pvt_thread_mutex_t lru_head_mutex;
-	ldap_pvt_thread_mutex_t lru_tail_mutex;
+	int		c_purging;
 	u_int32_t	c_locker;	/* used by lru cleaner */
+	ldap_pvt_thread_rdwr_t c_rwlock;
+	ldap_pvt_thread_mutex_t c_lru_mutex;
+	ldap_pvt_thread_mutex_t c_count_mutex;
+	ldap_pvt_thread_mutex_t c_eifree_mutex;
 #ifdef SLAP_ZONE_ALLOC
 	void *c_zctx;
 #endif

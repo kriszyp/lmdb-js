@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,14 +27,30 @@
 #include "slap.h"
 
 
-int is_at_syntax(
-	AttributeType *at,
-	const char *oid )
+const char *
+at_syntax(
+	AttributeType	*at )
 {
-	for( ; at != NULL; at = at->sat_sup ) {
-		if( at->sat_syntax_oid ) {
-			return ( strcmp( at->sat_syntax_oid, oid ) == 0 );
+	for ( ; at != NULL; at = at->sat_sup ) {
+		if ( at->sat_syntax_oid ) {
+			return at->sat_syntax_oid;
 		}
+	}
+
+	assert( 0 );
+
+	return NULL;
+}
+
+int
+is_at_syntax(
+	AttributeType	*at,
+	const char	*oid )
+{
+	const char *syn_oid = at_syntax( at );
+
+	if ( syn_oid ) {
+		return strcmp( syn_oid, oid ) == 0;
 	}
 
 	return 0;
@@ -60,6 +76,9 @@ static Avlnode	*attr_index = NULL;
 static Avlnode	*attr_cache = NULL;
 static LDAP_STAILQ_HEAD(ATList, slap_attribute_type) attr_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(attr_list);
+
+/* Last hardcoded attribute registered */
+AttributeType *at_sys_tail;
 
 int at_oc_cache;
 
@@ -265,8 +284,14 @@ at_clean( AttributeType *a )
 		}
 	}
 
-	if ( a->sat_oidmacro ) ldap_memfree( a->sat_oidmacro );
-	if ( a->sat_subtypes ) ldap_memfree( a->sat_subtypes );
+	if ( a->sat_oidmacro ) {
+		ldap_memfree( a->sat_oidmacro );
+		a->sat_oidmacro = NULL;
+	}
+	if ( a->sat_subtypes ) {
+		ldap_memfree( a->sat_subtypes );
+		a->sat_subtypes = NULL;
+	}
 }
 
 static void
@@ -320,7 +345,7 @@ at_next( AttributeType **at )
 {
 	assert( at != NULL );
 
-#if 1	/* pedantic check */
+#if 0	/* pedantic check: don't use this */
 	{
 		AttributeType *tmp = NULL;
 
@@ -430,6 +455,7 @@ at_insert(
 			/* replacing a deleted definition? */
 			if ( old_sat->sat_flags & SLAP_AT_DELETED ) {
 				AttributeType tmp;
+				AttributeDescription *ad;
 				
 				/* Keep old oid, free new oid;
 				 * Keep old ads, free new ads;
@@ -442,6 +468,14 @@ at_insert(
 				old_sat->sat_ad = tmp.sat_ad;
 				tmp.sat_ad = sat->sat_ad;
 				*sat = tmp;
+
+				/* Check for basic ad pointing at old cname */
+				for ( ad = old_sat->sat_ad; ad; ad=ad->ad_next ) {
+					if ( ad->ad_cname.bv_val == sat->sat_cname.bv_val ) {
+						ad->ad_cname = old_sat->sat_cname;
+						break;
+					}
+				}
 
 				at_clean( sat );
 				at_destroy_one( air );
@@ -525,6 +559,10 @@ at_insert(
 		}
 	}
 
+	if ( sat->sat_flags & SLAP_AT_HARDCODE ) {
+		prev = at_sys_tail;
+		at_sys_tail = sat;
+	}
 	if ( prev ) {
 		LDAP_STAILQ_INSERT_AFTER( &attr_list, prev, sat, sat_next );
 	} else {
@@ -917,7 +955,7 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 	/* count the result size */
 	i = 0;
 	for ( at=start; at; at=LDAP_STAILQ_NEXT(at, sat_next)) {
-		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
+		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) break;
 		i++;
 		if ( at == end ) break;
 	}
@@ -934,7 +972,7 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 	i = 0;
 	for ( at=start; at; at=LDAP_STAILQ_NEXT(at, sat_next)) {
 		LDAPAttributeType lat, *latp;
-		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
+		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) break;
 		if ( at->sat_oidmacro ) {
 			lat = at->sat_atype;
 			lat.at_oid = at->sat_oidmacro;

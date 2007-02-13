@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 2004 by IBM Corporation.
  * All rights reserved.
  *
@@ -1073,7 +1073,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 	ber_tag_t	tag;
 	int		err;
 	ComponentFilter	f;
-	/* TAG : item, and, or, not in RFC 2254 */
+	/* TAG : item, and, or, not in RFC 4515 */
 	tag = strip_cav_tag( cav );
 
 	if ( tag == LBER_ERROR ) {

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -119,8 +119,7 @@ static Entry * deref_base (
 		/* Free the previous entry, continue to work with the
 		 * one we just retrieved.
 		 */
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
-			*matched, lock);
+		bdb_cache_return_entry_r( bdb, *matched, lock);
 		*lock = lockr;
 
 		/* We found a regular entry. Return this to the caller. The
@@ -185,7 +184,7 @@ static int search_aliases(
 
 	/* Find all aliases in database */
 	BDB_IDL_ZERO( aliases );
-	rs->sr_err = bdb_filter_candidates( op, &af, aliases,
+	rs->sr_err = bdb_filter_candidates( op, locker, &af, aliases,
 		curscop, visited );
 	if (rs->sr_err != LDAP_SUCCESS) {
 		return rs->sr_err;
@@ -207,12 +206,12 @@ static int search_aliases(
 		 * to the cumulative list of candidates.
 		 */
 		BDB_IDL_CPY( curscop, aliases );
-		rs->sr_err = bdb_dn2idl( op, e, subscop,
+		rs->sr_err = bdb_dn2idl( op, locker, &e->e_nname, BEI(e), subscop,
 			subscop2+BDB_IDL_DB_SIZE );
 		if (first) {
 			first = 0;
 		} else {
-			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &locka);
+			bdb_cache_return_entry_r (bdb, e, &locka);
 		}
 		BDB_IDL_CPY(subscop2, subscop);
 		rs->sr_err = bdb_idl_intersection(curscop, subscop);
@@ -238,8 +237,7 @@ retry1:
 			 * turned into a range that spans IDs indiscriminately
 			 */
 			if (!is_entry_alias(a)) {
-				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
-					a, &lockr);
+				bdb_cache_return_entry_r (bdb, a, &lockr);
 				continue;
 			}
 
@@ -257,15 +255,13 @@ retry1:
 					bdb_idl_insert(newsubs, a->e_id);
 					bdb_idl_insert(scopes, a->e_id);
 				}
-				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
-					a, &lockr);
+				bdb_cache_return_entry_r( bdb, a, &lockr);
 
 			} else if (matched) {
 				/* Alias could not be dereferenced, or it deref'd to
 				 * an ID we've already seen. Ignore it.
 				 */
-				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
-					matched, &lockr );
+				bdb_cache_return_entry_r( bdb, matched, &lockr );
 				rs->sr_text = NULL;
 			}
 		}
@@ -315,9 +311,9 @@ bdb_search( Operation *op, SlapReply *rs )
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	ID		scopes[BDB_IDL_DB_SIZE];
-	Entry		*e = NULL, base, e_root = {0};
+	Entry		*e = NULL, base, *e_root;
 	Entry		*matched = NULL;
-	EntryInfo	*ei, ei_root = {0};
+	EntryInfo	*ei;
 	struct berval	realbase = BER_BVNULL;
 	slap_mask_t	mask;
 	int		manageDSAit;
@@ -352,15 +348,10 @@ bdb_search( Operation *op, SlapReply *rs )
 		}
 	}
 
+	e_root = bdb->bi_cache.c_dntree.bei_e;
 	if ( op->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
-		ei_root.bei_e = &e_root;
-		ei_root.bei_parent = &ei_root;
-		e_root.e_private = &ei_root;
-		e_root.e_id = 0;
-		BER_BVSTR( &e_root.e_nname, "" );
-		BER_BVSTR( &e_root.e_name, "" );
-		ei = &ei_root;
+		ei = e_root->e_private;
 		rs->sr_err = LDAP_SUCCESS;
 	} else {
 		if ( op->ors_deref & LDAP_DEREF_FINDING ) {
@@ -405,8 +396,7 @@ dn2entry_retry:
 			if ( e ) {
 				build_new_dn( &op->o_req_ndn, &e->e_nname, &stub,
 					op->o_tmpmemctx );
-				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
-					e, &lock);
+				bdb_cache_return_entry_r (bdb, e, &lock);
 				matched = NULL;
 				goto dn2entry_retry;
 			}
@@ -444,8 +434,7 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 			slap_zn_runlock(bdb->bi_cache.c_zctx, matched);
 #endif
-			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
-				matched, &lock);
+			bdb_cache_return_entry_r (bdb, matched, &lock);
 			matched = NULL;
 
 			if ( erefs ) {
@@ -492,14 +481,14 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-		if ( e != &e_root ) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+		if ( e != e_root ) {
+			bdb_cache_return_entry_r(bdb, e, &lock);
 		}
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
 
-	if ( !manageDSAit && e != &e_root && is_entry_referral( e ) ) {
+	if ( !manageDSAit && e != e_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn = BER_BVNULL;
 		BerVarray erefs = NULL;
@@ -512,7 +501,7 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+		bdb_cache_return_entry_r( bdb, e, &lock );
 		e = NULL;
 
 		if ( erefs ) {
@@ -549,8 +538,8 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-		if ( e != &e_root ) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+		if ( e != e_root ) {
+			bdb_cache_return_entry_r(bdb, e, &lock);
 		}
 		send_ldap_result( op, rs );
 		return 1;
@@ -572,8 +561,8 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 	slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-	if ( e != &e_root ) {
-		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+	if ( e != e_root ) {
+		bdb_cache_return_entry_r(bdb, e, &lock);
 	}
 	e = NULL;
 
@@ -852,8 +841,7 @@ fetch_entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-					bdb_cache_return_entry_r( bdb->bi_dbenv,
-							&bdb->bi_cache, e, &lock );
+					bdb_cache_return_entry_r( bdb, e, &lock );
 					e = NULL;
 					send_paged_response( op, rs, &lastid, tentries );
 					goto done;
@@ -880,8 +868,7 @@ fetch_entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 					slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-					bdb_cache_return_entry_r(bdb->bi_dbenv,
-						&bdb->bi_cache, e, &lock);
+					bdb_cache_return_entry_r(bdb, e, &lock);
 					e = NULL;
 					rs->sr_entry = NULL;
 					if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
@@ -909,8 +896,7 @@ loop_continue:
 #ifdef SLAP_ZONE_ALLOC
 			slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
-			bdb_cache_return_entry_r( bdb->bi_dbenv,
-				&bdb->bi_cache, e , &lock );
+			bdb_cache_return_entry_r( bdb, e , &lock );
 			e = NULL;
 			rs->sr_entry = NULL;
 		}
@@ -1109,11 +1095,11 @@ static int search_candidates(
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
 		rc = search_aliases( op, rs, e, locker, ids, scopes, stack );
 	} else {
-		rc = bdb_dn2idl( op, e, ids, stack );
+		rc = bdb_dn2idl( op, locker, &e->e_nname, BEI(e), ids, stack );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = bdb_filter_candidates( op, &f, ids,
+		rc = bdb_filter_candidates( op, locker, &f, ids,
 			stack, stack+BDB_IDL_UM_SIZE );
 	}
 

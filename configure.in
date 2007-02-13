@@ -1,7 +1,7 @@
 dnl $OpenLDAP$
 dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
-dnl Copyright 1998-2006 The OpenLDAP Foundation.
+dnl Copyright 1998-2007 The OpenLDAP Foundation.
 dnl All rights reserved.
 dnl
 dnl Redistribution and use in source and binary forms, with or without
@@ -23,7 +23,7 @@ define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
 define([AC_LIBTOOL_LANG_GCJ_CONFIG], [:])dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
-AC_COPYRIGHT([[Copyright 1998-2006 The OpenLDAP Foundation. All rights reserved.
+AC_COPYRIGHT([[Copyright 1998-2007 The OpenLDAP Foundation. All rights reserved.
 Restrictions apply, see COPYRIGHT and LICENSE files.]])
 AC_REVISION([$OpenLDAP$])
 AC_INIT([OpenLDAP],,[http://www.openldap.org/its/])
@@ -93,7 +93,7 @@ AH_TOP([
 /* begin of portable.h.pre */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation
+ * Copyright 1998-2007 The OpenLDAP Foundation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -230,8 +230,6 @@ OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
 dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
 ol_enable_referrals=${ol_enable_referrals-no}
-dnl OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (deprecated)], no)dnl
-ol_enable_kbind=${ol_enable_kbind-no}
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
 OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
 
@@ -241,9 +239,6 @@ OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
 	auto, [auto yes no] )
-dnl	OL_ARG_WITH(kerberos,[  --with-kerberos	  with Kerberos support],
-dnl		auto, [auto k5 k5only k425 kth k4 afs yes no])
-ol_with_kerberos=${ol_with_kerberos-auto}
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
@@ -254,6 +249,9 @@ OL_ARG_WITH(yielding_select,
 OL_ARG_WITH(mp,
 	[  --with-mp               with multiple precision statistics auto|longlong|long|bignum|gmp],
 	auto, [auto longlong long bignum gmp yes no])
+OL_ARG_WITH(odbc,
+	[  --with-odbc             with specific ODBC support iodbc|unixodbc|auto],
+	auto, [auto iodbc unixodbc] )
 
 dnl ----------------------------------------------------------------
 dnl Server options
@@ -328,10 +326,8 @@ Overlays="accesslog \
 	auditlog \
 	constraint \
 	dds \
-	denyop \
 	dyngroup \
 	dynlist \
-	lastmod \
 	ppolicy \
 	proxycache \
 	refint \
@@ -356,13 +352,9 @@ OL_ARG_ENABLE(constraint,[    --enable-constraint	  Attribute Constraint overlay
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dds,[    --enable-dds  	  Dynamic Directory Services overlay],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay],
-	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dynlist,[    --enable-dynlist	  Dynamic List overlay],
-	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(lastmod,[    --enable-lastmod	  Last Modification overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay],
 	no, [no yes mod], ol_enable_overlays)
@@ -500,22 +492,6 @@ fi
 if test $ol_enable_lmpasswd = yes ; then
 	if test $ol_with_tls = no ; then
 		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
-	fi
-fi
-
-if test $ol_enable_kbind = yes ; then
-	if test $ol_with_kerberos = no ; then
-		AC_MSG_ERROR([options require --with-kerberos])
-	elif test $ol_with_kerberos = auto ; then
-		ol_with_kerberos=yes
-	fi
-
-elif test $ol_enable_kbind = no ; then
-	if test $ol_with_kerberos = auto ; then
-		ol_with_kerberos=no
-	elif test $ol_with_kerberos != no ; then
-		AC_MSG_WARN([Kerberos detection enabled unnecessarily]);
-		ol_with_kerberos=no
 	fi
 fi
 
@@ -1122,174 +1098,6 @@ if test $ol_enable_local != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl Kerberos
-ol_link_kbind=no
-ol_link_krb5=no
-ol_link_krb4=no
-
-case $ol_with_kerberos in yes | auto | k5 | k5only | k425)
-
-	AC_CHECK_HEADERS(krb5.h)
-
-	if test $ac_cv_header_krb5_h = yes ; then
-		dnl lazy check for Heimdal Kerberos
-		AC_CHECK_HEADERS(heim_err.h)
-		if test $ac_cv_header_heim_err_h = yes ; then
-			krb5_impl=heimdal
-		else
-			krb5_impl=mit
-		fi
-
-		if test $krb5_impl = mit; then
-			AC_CHECK_LIB(k5crypto, main,
-				[krb5crypto=k5crypto],
-				[krb5crypto=crypto])
-
-			AC_CHECK_LIB(krb5, main,
-				[have_krb5=yes
-				KRB5_LIBS="-lkrb5 -l$krb5crypto -lcom_err"],
-				[have_krb5=no],
-				[-l$krb5crypto -lcom_err])
-
-		elif test $krb5_impl = heimdal; then
-			AC_CHECK_LIB(des, main,
-				[krb5crypto=des],
-				[krb5crypto=crypto])
-
-			AC_CHECK_LIB(krb5, main,
-				[have_krb5=yes
-				KRB5_LIBS="-lkrb5 -l$krb5crypto -lasn1 -lroken -lcom_err"],
-				[have_krb5=no],
-				[-l$krb5crypto -lasn1 -lroken -lcom_err])
-
-			AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1,
-				[define if you have HEIMDAL Kerberos])
-
-		else
-			have_krb5=no
-			AC_MSG_WARN([Unrecognized Kerberos5 Implementation])
-		fi
-
-		if test $have_krb5 = yes ; then
-			ol_link_krb5=yes
-
-			AC_DEFINE(HAVE_KRB5, 1,
-				[define if you have Kerberos V])
-
-			if test $ol_with_kerberos = k5only ; then
-				ol_with_kerberos=found
-			fi
-
-		elif test $ol_with_kerberos != auto ; then
-			AC_MSG_ERROR([Required Kerberos 5 support not available])
-		fi
-
-	fi
-	;;
-esac
-
-if test $ol_link_krb5 = yes &&
-   { test $ol_with_kerberos = yes ||
-     test $ol_with_kerberos = auto ||
-     test $ol_with_kerberos = k425; }; then
-
-	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
-
-	if test $ac_cv_header_kerberosIV_krb_h = yes ; then
-		if test $krb5_impl = mit; then
-			AC_CHECK_LIB(krb4, main, [have_k425=yes
-				KRB4_LIBS="-lkrb4 -ldes425"], [have_k425=no],
-				[-ldes425 -lkrb5 -l$krb5crypto -lcom_err])
-
-		elif test $krb5_impl = heimdal; then
-			AC_CHECK_LIB(krb4, main, [have_k425=yes
-				KRB4_LIBS="-lkrb4"], [have_k425=no],
-				[-lkrb5 -l$krb5crypto -lasn1 -lroken -lcom_err])
-
-		else
-			have_425=no
-			AC_MSG_WARN([Unrecongized Kerberos V Implementation])
-		fi
-
-		if test $have_k425 = yes ; then
-			ol_with_kerberos=found
-			ol_link_krb4=yes
-
-			AC_DEFINE(HAVE_KRB425, 1,
-				[define if you have Kerberos V with IV support])
-			AC_DEFINE(HAVE_KRB4, 1,
-				[define if you have Kerberos IV])
-
-			AC_CACHE_CHECK([for des_debug in Kerberos libraries],
-				[ol_cv_var_des_debug], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="$KRB4_LIBS $KRB5_LIBS $LIBS"
-				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#include <kerberosIV/krb.h>
-#include <kerberosIV/des.h>
-extern int des_debug;
-]], [[
-des_debug = 1;
-]])],[ol_cv_var_des_debug=yes],[ol_cv_var_des_debug=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
-
-			if test $ol_cv_var_des_debug = yes ; then
-				AC_DEFINE(HAVE_DES_DEBUG,1,
-					[define if you have Kerberos des_debug])
-			fi
-
-			LIBS="$save_LIBS"
-		fi
-	fi
-fi
-
-if test $ol_link_krb5 = yes ; then
-	ol_with_kerberos=found
-fi
-
-case $ol_with_kerberos in yes | auto | k4 | kth)
-
-	AC_CHECK_HEADERS(krb.h des.h krb-archaeology.h )
-
-	if test $ac_cv_header_krb_h = yes ; then
-		AC_CHECK_LIB(krb, main, [have_k4=yes], [have_k4=no], [-ldes])
-
-		if test $have_k4 = yes ; then
-			ol_with_kerberos=found
-			ol_link_krb4=yes
-
-			AC_DEFINE(HAVE_KRB4, 1,
-				[define if you have Kerberos IV])
-
-			KRB4_LIBS="-lkrb -ldes"
-
-			if test $ac_cv_header_krb_archaeology_h = yes ; then
-				AC_DEFINE(HAVE_KTH_KERBEROS, 1,
-					[define if you have Kth Kerberos])
-			fi
-		fi
-	fi
-	;;
-esac
-
-if test $ol_link_krb4 = yes && test $ol_enable_kbind != no ; then
-	ol_link_kbind=yes
-
-elif test $ol_enable_kbind = yes ; then
-	AC_MSG_ERROR([Kerberos IV detection failed])
-fi
-
-if test $ol_link_krb4 = yes || test $ol_link_krb5 = yes ; then
-	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
-
-elif test $ol_with_kerberos != auto && test $ol_with_kerberos != no ; then
-	AC_MSG_ERROR([Kerberos detection failed])
-fi
-
-dnl ----------------------------------------------------------------
 dnl TLS/SSL
 	
 if test $ol_with_tls = yes ; then
@@ -1518,7 +1326,22 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			fi
 
 			dnl Check functions for compatibility
-			AC_CHECK_FUNCS(pthread_kill pthread_rwlock_destroy)
+			AC_CHECK_FUNCS(pthread_kill)
+
+			dnl Check for pthread_rwlock_destroy with <pthread.h>
+			dnl as pthread_rwlock_t may not be defined.
+			AC_CACHE_CHECK([for pthread_rwlock_destroy with <pthread.h>],
+				[ol_cv_func_pthread_rwlock_destroy], [
+				dnl save the flags
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <pthread.h>
+pthread_rwlock_t rwlock;
+]], [[pthread_rwlock_destroy(&rwlock);]])],[ol_cv_func_pthread_rwlock_destroy=yes],[ol_cv_func_pthread_rwlock_destroy=no])
+			])
+			if test $ol_cv_func_pthread_rwlock_destroy = yes ; then
+				AC_DEFINE(HAVE_PTHREAD_RWLOCK_DESTROY,1,
+					[define if you have pthread_rwlock_destroy function])
+			fi
 
 			dnl Check for pthread_detach with <pthread.h> inclusion
 			dnl as it's symbol may have been mangled.
@@ -2071,15 +1894,33 @@ if test $ol_enable_sql != no ; then
 	sql_LIBS="$LIBS"
 	LIBS="$LTHREAD_LIBS"
 
-	AC_CHECK_LIB(iodbc,SQLDriverConnect,[have_iodbc=yes],[have_iodbc=no])
-	if test $have_iodbc = yes ; then
-		ol_link_sql="-liodbc"
-	else
-		AC_CHECK_LIB(odbc,SQLDriverConnect,[have_odbc=yes],[have_odbc=no])
-		if test $have_odbc = yes ; then
-			ol_link_sql="-lodbc"
-		fi
+	if test $ol_with_odbc = auto ; then
+		ol_with_odbc="iodbc unixodbc"
 	fi
+
+	for odbc in $ol_with_odbc ; do
+		if test $ol_link_sql = no ; then
+			case $odbc in
+			iodbc)
+				AC_CHECK_LIB(iodbc, SQLDriverConnect, [have_iodbc=yes], [have_iodbc=no])
+				if test $have_iodbc = yes ; then
+					ol_link_sql="-liodbc"
+				fi
+				;;
+
+			unixodbc)
+				AC_CHECK_LIB(odbc, SQLDriverConnect, [have_odbc=yes], [have_odbc=no])
+				if test $have_odbc = yes ; then
+					ol_link_sql="-lodbc"
+				fi
+				;;
+
+			*)
+				AC_MSG_ERROR([unknown ODBC library])
+				;;
+			esac
+		fi
+	done
 
 	LIBS="$sql_LIBS"
 
@@ -2526,10 +2367,6 @@ if test "$ol_enable_syslog" = yes ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
 fi
-if test "$ol_link_kbind" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION,
-		[define to LDAP VENDOR VERSION])
-fi
 if test "$ol_enable_proctitle" != no ; then
 	AC_DEFINE(LDAP_PROCTITLE,1,
 		[define this for LDAP process title support])
@@ -2795,18 +2632,6 @@ if test "$ol_enable_dds" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DDS,$MFLAG,[define for Dynamic Directory Services overlay])
 fi
 
-if test "$ol_enable_denyop" != no ; then
-	BUILD_DENYOP=$ol_enable_denyop
-	if test "$ol_enable_denyop" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS denyop.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS denyop.o"
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_DENYOP,$MFLAG,[define for Deny Operation overlay])
-fi
-
 if test "$ol_enable_dyngroup" != no ; then
 	BUILD_DYNGROUP=$ol_enable_dyngroup
 	if test "$ol_enable_dyngroup" = mod ; then
@@ -2829,18 +2654,6 @@ if test "$ol_enable_dynlist" != no ; then
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dynlist.o"
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNLIST,$MFLAG,[define for Dynamic List overlay])
-fi
-
-if test "$ol_enable_lastmod" != no ; then
-	BUILD_LASTMOD=$ol_enable_lastmod
-	if test "$ol_enable_lastmod" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS lastmod.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS lastmod.o"
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_LASTMOD,$MFLAG,[define for Last Modification overlay])
 fi
 
 if test "$ol_enable_ppolicy" != no ; then
@@ -3139,7 +2952,7 @@ rm -f $BACKENDSC
 cat > $BACKENDSC << ENDX
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -3190,7 +3003,7 @@ rm -f $OVERLAYSC
 cat > $OVERLAYSC << ENDX
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Portions Copyright 2000 Mark Adamson, Carnegie Mellon.
  * All rights reserved.
  *
@@ -1130,6 +1130,7 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		} else {
 			BER_BVSTR( &group_oc, SLAPD_GROUP_CLASS );
+			BER_BVSTR( &member_at, SLAPD_GROUP_ATTR );
 		}
 		group_dn.bv_val++;
 		group_dn.bv_len = uri->bv_len - ( group_dn.bv_val - uri->bv_val );
@@ -1606,7 +1607,7 @@ static int sasl_sc_sasl2dn( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			"%s: slap_sc_sasl2dn: search DN returned more than 1 entry\n",
 			op->o_log_prefix, 0, 0 );
-		return LDAP_OTHER;
+		return LDAP_UNAVAILABLE; /* short-circuit the search */
 	}
 
 	ber_dupbv_x( ndn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
@@ -1623,23 +1624,11 @@ static int sasl_sc_smatch( Operation *o, SlapReply *rs )
 {
 	smatch_info *sm = o->o_callback->sc_private;
 
-	if ( rs->sr_type != REP_SEARCH ) {
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			sm->match = -1;
-		}
-		return 0;
-	}
-
-	if ( sm->match == 1 ) {
-		sm->match = -1;
-		return 0;
-	}
+	if (rs->sr_type != REP_SEARCH) return 0;
 
 	if (dn_match(sm->dn, &rs->sr_entry->e_nname)) {
 		sm->match = 1;
-
-	} else {
-		sm->match = -1;
+		return LDAP_UNAVAILABLE;	/* short-circuit the search */
 	}
 
 	return 0;
@@ -1859,7 +1848,7 @@ exact_match:
 
 	op.o_bd->be_search( &op, &rs );
 
-	if (sm.match == 1) {
+	if (sm.match) {
 		rc = LDAP_SUCCESS;
 	} else {
 		rc = LDAP_INAPPROPRIATE_AUTH;
@@ -1893,14 +1882,18 @@ slap_sasl_check_authz( Operation *op,
 	AttributeDescription *ad,
 	struct berval *authc )
 {
-	int rc;
-	BerVarray vals = NULL;
+	int		rc,
+			do_not_cache = op->o_do_not_cache;
+	BerVarray	vals = NULL;
 
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_check_authz: does %s match %s rule in %s?\n",
 	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 
+	/* ITS#4760: don't cache group access */
+	op->o_do_not_cache = 1;
 	rc = backend_attribute( op, NULL, searchDN, ad, &vals, ACL_AUTH );
+	op->o_do_not_cache = do_not_cache;
 	if( rc != LDAP_SUCCESS ) goto COMPLETE;
 
 	/* Check if the *assertDN matches any *vals */

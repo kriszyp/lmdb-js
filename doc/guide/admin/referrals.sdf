@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Constructing a Distributed Directory Service
@@ -51,7 +51,7 @@ object would be added to {{EX:a.example.net}}:
 The server uses this information to generate referrals and
 search continuations to subordinate servers.
 
-For those familiar with X.500, a {{named referral}} object is
+For those familiar with {{TERM:X.500}}, a {{named referral}} object is
 similar to an X.500 knowledge reference held in a {{subr}}
 {{TERM:DSE}}.
 
@@ -75,8 +75,8 @@ that A holds the immediate superior naming context.
 The server uses this information to generate referrals to
 management operations.
 
-For those familiar with X.500, this use of the {{EX:ref}} attribute
-is similar to an X.500 knowledge reference held in a
+For those familiar with {{TERM:X.500}}, this use of the {{EX:ref}}
+attribute is similar to an X.500 knowledge reference held in a
 {{immSupr}} {{TERM:DSE}}.
 !endif
 
@@ -99,12 +99,12 @@ as follows:
 
 >	referral	ldap://a.example.net/
 
-The server uses this information to generate referrals for
-operations acting upon entries not within or subordinate
-to any of the naming contexts held by the server.
+The server uses this information to generate referrals for operations
+acting upon entries not within or subordinate to any of the naming
+contexts held by the server.
 
-For those familiar with X.500, this use of the {{EX:ref}} attribute
-is similar to an X.500 knowledge reference held in a
+For those familiar with {{TERM:X.500}}, this use of the {{EX:ref}}
+attribute is similar to an X.500 knowledge reference held in a
 {{Supr}} {{TERM:DSE}}.
 
 

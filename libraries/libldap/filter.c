@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,9 +15,6 @@
  */
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
- */
-/* Portions Copyright (C) The Internet Society (2006)
- * ASN.1 fragments are from RFC 4511; see RFC for full legal notices.
  */
 
 #include "portable.h"
@@ -425,6 +422,10 @@ ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 				parens--;
 				break;
 
+			case '(':
+				rc = -1;
+				goto done;
+
 			default:
 				Debug( LDAP_DEBUG_TRACE, "put_filter: simple\n",
 				    0, 0, 0 );
@@ -497,9 +498,11 @@ ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 			str = next;
 			break;
 		}
+		if ( !parens )
+			break;
 	}
 
-	rc = parens ? -1 : 0;
+	rc = ( parens || *str ) ? -1 : 0;
 
 done:
 	LDAP_FREE( freeme );
@@ -804,6 +807,8 @@ put_vrFilter( BerElement *ber, const char *str_in )
 	 *		matchingRule    [1] MatchingRuleId OPTIONAL,
 	 *		type            [2] AttributeDescription OPTIONAL,
 	 *		matchValue      [3] AssertionValue }
+	 *
+	 * (Source: RFC 3876)
 	 */
 
 	Debug( LDAP_DEBUG_TRACE, "put_vrFilter: \"%s\"\n", str_in, 0, 0 );

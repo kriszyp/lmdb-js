@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -78,7 +78,7 @@ cleanup:
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 	
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rs->sr_err;

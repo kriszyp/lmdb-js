@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -12,9 +12,18 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* Portions Copyright (C) The Internet Society (1997).
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
+
+#include "portable.h"
+
+#include <stdio.h>
+#include <ac/stdlib.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap-int.h"
+#include "ldap_log.h"
 
 /*
  * LDAPv3 Extended Operation Request
@@ -30,19 +39,8 @@
  *		response         [11] OCTET STRING OPTIONAL
  *	}
  *
+ * (Source RFC 4511)
  */
-
-#include "portable.h"
-
-#include <stdio.h>
-#include <ac/stdlib.h>
-
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/time.h>
-
-#include "ldap-int.h"
-#include "ldap_log.h"
 
 int
 ldap_extended_operation(
@@ -140,7 +138,7 @@ ldap_extended_operation_s(
         return( rc );
 	}
  
-    if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 ) {
+    if ( ldap_result( ld, msgid, LDAP_MSG_ALL, (struct timeval *) NULL, &res ) == -1 || !res ) {
         return( ld->ld_errno );
 	}
 

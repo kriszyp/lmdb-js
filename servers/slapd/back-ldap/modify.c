@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -130,7 +130,7 @@ cleanup:;
 	ch_free( modv );
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;

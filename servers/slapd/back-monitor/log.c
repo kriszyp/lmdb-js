@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2006 The OpenLDAP Foundation.
+ * Copyright 2001-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -181,7 +181,7 @@ monitor_subsys_log_modify(
 		}
 
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check( op, e, save_attrs, 0,
+		rc = entry_schema_check( op, e, save_attrs, 0, 0,
 			&text, textbuf, sizeof( textbuf ) );
 		if ( rc != LDAP_SUCCESS ) {
 			rs->sr_err = rc;

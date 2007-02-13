@@ -1,29 +1,32 @@
 # $OpenLDAP$
-# Copyright 2005-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2005-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Configuring slapd
 
 Once the software has been built and installed, you are ready
 to configure {{slapd}}(8) for use at your site. Unlike previous
-OpenLDAP releases, the slapd runtime configuration in 2.3 is
-fully LDAP-enabled and can be managed using the standard LDAP
+OpenLDAP releases, the slapd(8) runtime configuration in 2.3 (and later)
+is fully LDAP-enabled and can be managed using the standard LDAP
 operations with data in {{TERM:LDIF}}. The LDAP configuration engine
 allows all of slapd's configuration options to be changed on the fly,
 generally without requiring a server restart for the changes
 to take effect. The old style {{slapd.conf}}(5) file is still
-supported, but must be converted to the new {{slapd.d}}(5) format
+supported, but must be converted to the new {{slapd-config}}(5) format
 to allow runtime changes to be saved. While the old style
 configuration uses a single file, normally installed as
 {{F:/usr/local/etc/openldap/slapd.conf}}, the new style
 uses a slapd backend database to store the configuration. The
 configuration database normally resides in the
-{{F:/usr/local/etc/openldap/slapd.d}} directory.
+{{F:/usr/local/etc/openldap/slapd.d}} directory. When
+converting from the slapd.conf format to slapd.d format, any
+include files will also be integrated into the resulting configuration
+database.
 
-An alternate configuration directory (or file) can be specified via a
-command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
-describes the general format of the configuration system, followed by a
-detailed description of commonly used config settings.
+An alternate configuration directory (or file) can be specified via
+a command-line option to {{slapd}}(8). This chapter describes the
+general format of the configuration system, followed by a detailed
+description of commonly used config settings.
 
 Note: some of the backends and of the distributed overlays
 do not support runtime configuration yet.  In those cases,
@@ -49,13 +52,9 @@ FT[align="Center"] Figure 5.1: Sample configuration tree.
 Other objects may be part of the configuration but were omitted from
 the illustration for clarity.
 
-The {{slapd.d}} configuration tree has a very specific structure. The
+The {{slapd-config}} configuration tree has a very specific structure. The
 root of the tree is named {{EX:cn=config}} and contains global configuration
 settings. Additional settings are contained in separate child entries:
-* Include files
-.. Usually these are just pathnames left over from a converted
-{{EX:slapd.conf}} file.
-.. Otherwise use of Include files is deprecated.
 * Dynamically loaded modules
 .. These may only be used if the {{EX:--enable-modules}} option was
 used to configure the software.
@@ -146,7 +145,7 @@ and object classes) are also provided in the
 H2: Configuration Directives
 
 This section details commonly used configuration directives.  For
-a complete list, see the {{slapd.d}}(5) manual page.  This section
+a complete list, see the {{slapd-config}}(5) manual page.  This section
 will treat the configuration directives in a top-down order, starting
 with the global directives in the {{EX:cn=config}} entry. Each
 directive will be described along with its default value (if any) and
@@ -242,39 +241,6 @@ H4: Sample Entry
 >olcIdleTimeout: 30
 >olcLogLevel: Stats
 >olcReferral: ldap://root.openldap.org
-
-
-
-H3: cn=include
-
-An include entry holds the pathname of one include file. Include files
-are part of the old style slapd.conf configuration system and must be in
-slapd.conf format. Include files were commonly used to load schema
-specifications. While they are still supported, their use is deprecated.
-Include entries must have the {{EX:olcIncludeFile}} objectClass.
-
-
-H4: olcInclude: <filename>
-
-This directive specifies that slapd should read additional
-configuration information from the given file. 
-
-Note: You should be careful when using this directive - there is
-no small limit on the number of nested include directives, and no
-loop detection is done.
-
-
-H4: Sample Entries
-
->dn: cn=include{0},cn=config
->objectClass: olcIncludeFile
->cn: include{0}
->olcInclude: ./schema/core.schema
->
->dn: cn=include{1},cn=config
->objectClass: olcIncludeFile
->cn: include{1}
->olcInclude: ./schema/cosine.schema
 
 
 H3: cn=module
@@ -504,8 +470,8 @@ to the slave slapd.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
-or IPSEC).  Simple authentication requires specification of
-{{EX:binddn}} and {{EX:credentials}} parameters.
+or {{TERM:IPsec}}).  Simple authentication requires specification
+of {{EX:binddn}} and {{EX:credentials}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
 requires specification of a mechanism using the {{EX:saslmech}} parameter.
@@ -522,11 +488,12 @@ H4: olcReplogfile: <filename>
 
 This directive specifies the name of the replication log file to
 which slapd will log changes. The replication log is typically
-written by slapd and read by slurpd. Normally, this directive is
-only used if slurpd is being used to replicate the database.
-However, you can also use it to generate a transaction log, if
-slurpd is not running. In this case, you will need to periodically
-truncate the file, since it will grow indefinitely otherwise.
+written by {{slapd}}(8) and read by {{slurpd}}(8). Normally, this
+directive is only used if {{slurpd}}(8) is being used to replicate
+the database.  However, you can also use it to generate a transaction
+log, if {{slurpd}}(8) is not running. In this case, you will need to
+periodically truncate the file, since it will grow indefinitely
+otherwise.
 
 See the chapter entitled {{SECT:Replication with slurpd}} for more
 information on how to use this directive.
@@ -612,7 +579,7 @@ H4: olcSyncrepl
 >		[type=refreshOnly|refreshAndPersist]
 >		[interval=dd:hh:mm:ss]
 >		[retry=[<retry interval> <# of retries>]+]
->		[searchbase=<base DN>]
+>		searchbase=<base DN>
 >		[filter=<filter str>]
 >		[scope=sub|one|base]
 >		[attrs=<attr list>]
@@ -628,6 +595,17 @@ H4: olcSyncrepl
 >		[credentials=<passwd>]
 >		[realm=<realm>]
 >		[secprops=<properties>]
+>		[starttls=yes|critical]
+>		[tls_cert=<file>]
+>		[tls_key=<file>]
+>		[tls_cacert=<file>]
+>		[tls_cacertdir=<path>]
+>		[tls_reqcert=never|allow|try|demand]
+>		[tls_ciphersuite=<ciphers>]
+>		[tls_crlcheck=none|peer|all]
+>		[logbase=<base DN>]
+>		[logfilter=<filter str>]
+>		[syncdata=default|accesslog|changelog]
 
 
 This directive specifies the current database as a replica of the
@@ -636,8 +614,8 @@ replication consumer site running a syncrepl replication engine.
 The master database is located at the replication provider site
 specified by the {{EX:provider}} parameter. The replica database is
 kept up-to-date with the master content using the LDAP Content
-Synchronization protocol. See {{EX:draft-zeilenga-ldup-sync-xx.txt}}
-({{a work in progress}}) for more information on the protocol.
+Synchronization protocol. See {{REF:RFC4533}}
+for more information on the protocol.
 
 The {{EX:rid}} parameter is used for identification of the current
 {{EX:syncrepl}} directive within the replication consumer server,
@@ -672,7 +650,7 @@ attributes, and {{EX:attrsonly}} is unset by default. Both {{EX:sizelimit}}
 and {{EX:timelimit}} default to "unlimited", and only positive integers
 or "unlimited" may be specified.
 
-The LDAP Content Synchronization protocol has two operation
+The {{TERM[expand]LDAP Sync}} protocol has two operation
 types: {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
 The operation type is specified by the {{EX:type}} parameter.
 In the {{EX:refreshOnly}} operation, the next synchronization search operation
@@ -680,7 +658,7 @@ is periodically rescheduled at an interval time after each
 synchronization operation finishes. The interval is specified
 by the {{EX:interval}} parameter. It is set to one day by default.
 In the {{EX:refreshAndPersist}} operation, a synchronization search
-remains persistent in the provider slapd. Further updates to the
+remains persistent in the provider {{slapd}} instance. Further updates to the
 master replica will generate {{EX:searchResultEntry}} to the consumer slapd
 as the search responses to the persistent synchronization search.
 
@@ -708,11 +686,11 @@ master database.
 The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}},
 depending on whether simple password-based authentication or
 {{TERM:SASL}} authentication is to be used when connecting
-to the provider slapd.
+to the provider {{slapd}} instance.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
-or IPSEC). Simple authentication requires specification of {{EX:binddn}}
+or IPsec). Simple authentication requires specification of {{EX:binddn}}
 and {{EX:credentials}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
@@ -726,11 +704,31 @@ The {{EX:realm}} parameter specifies a realm which a certain
 mechanisms authenticate the identity within. The {{EX:secprops}}
 parameter specifies Cyrus SASL security properties.
 
-The syncrepl replication mechanism is supported by the
-two native backends: back-bdb and back-hdb.
+The {{EX:starttls}} parameter specifies use of the StartTLS extended
+operation to establish a TLS session before authenticating to the provider.
+If the {{EX:critical}} argument is supplied, the session will be aborted
+if the StartTLS request fails.  Otherwise the syncrepl session continues
+without TLS.  Note that the main slapd TLS settings are not used by the
+syncrepl engine; by default the TLS parameters from a {{ldap.conf}}(5)
+configuration file will be used.  TLS settings may be specified here,
+in which case any {{ldap.conf}}(5) settings will be completely ignored.
 
-See the {{SECT:LDAP Sync Replication}} chapter of the admin guide
-for more information on how to use this directive.
+Rather than replicating whole entries, the consumer can query logs
+of data modifications.  This mode of operation is referred to as
+{{delta syncrepl}}.  In addition to the above parameters, the
+{{EX:logbase}} and {{EX:logfilter}} parameters must be set appropriately
+for the log that will be used. The {{EX:syncdata}} parameter must
+be set to either {{EX:"accesslog"}} if the log conforms to the
+{{slapo-accesslog}}(5) log format, or {{EX:"changelog"}} if the log
+conforms to the obsolete {{changelog}} format. If the {{EX:syncdata}}
+parameter is omitted or set to {{EX:"default"}} then the log
+parameters are ignored.
+
+The {{syncrepl}} replication mechanism is supported by the {{bdb}} and
+{{hdb}} backends.
+
+See the {{SECT:LDAP Sync Replication}} chapter of this guide for
+more information on how to use this directive.
 
 
 H4: olcTimeLimit: <integer>
@@ -848,6 +846,14 @@ is multi-valued, to accomodate multiple configuration directives. No default
 is provided, but it is essential to use proper settings here to get the
 best server performance.
 
+Any changes made to this attribute will be written to the {{EX:DB_CONFIG}}
+file and will cause the database environment to be reset so the changes
+can take immediate effect. If the environment cache is large and has not
+been recently checkpointed, this reset operation may take a long time. It
+may be advisable to manually perform a single checkpoint using the Berkeley DB
+{{db_checkpoint}} utility before using LDAP Modify to change this
+attribute.
+
 \Example:
 
 >	olcDbConfig: set_cachesize 0 10485760 0
@@ -861,7 +867,7 @@ in the /var/tmp/bdb-log directory. Also a flag is set to tell BDB to
 delete transaction log files as soon as their contents have been
 checkpointed and they are no longer needed. Without this setting the
 transaction log files will continue to accumulate until some other
-cleanup procedure removes them. See the SleepyCat documentation for the
+cleanup procedure removes them. See the Berkeley DB documentation for the
 {{EX:db_archive}} command for details.
 
 Ideally the BDB cache must be
@@ -870,7 +876,7 @@ should be large enough to accomodate most transactions without overflowing,
 and the log directory must be on a separate physical disk from the main
 database files. And both the database directory and the log directory
 should be separate from disks used for regular system activities such as
-the root, boot, or swap filesystems. See the FAQ-o-Matic and the SleepyCat
+the root, boot, or swap filesystems. See the FAQ-o-Matic and the Berkeley DB
 documentation for more details.
 
 
@@ -900,7 +906,8 @@ H4: olcDbIndex: {<attrlist> | default} [pres,eq,approx,sub,none]
 
 This directive specifies the indices to maintain for the given
 attribute. If only an {{EX:<attrlist>}} is given, the default
-indices are maintained.
+indices are maintained. The index keywords correspond to the
+common types of matches that may be used in an LDAP search filter.
 
 \Example:
 
@@ -917,10 +924,36 @@ be maintained for {{EX:cn}} and {{EX:sn}} attribute types.  The
 fourth line causes an equality index for the {{EX:objectClass}}
 attribute type.
 
+There is no index keyword for inequality matches. Generally these
+matches do not use an index. However, some attributes do support
+indexing for inequality matches, based on the equality index.
+
+A substring index can be more explicitly specified as {{EX:subinitial}},
+{{EX:subany}}, or {{EX:subfinal}}, corresponding to the three 
+possible components
+of a substring match filter. A subinitial index only indexes
+substrings that appear at the beginning of an attribute value.
+A subfinal index only indexes substrings that appear at the end
+of an attribute value, while subany indexes substrings that occur
+anywhere in a value.
+
+Note that by default, setting an index for an attribute also
+affects every subtype of that attribute. E.g., setting an equality
+index on the {{EX:name}} attribute causes {{EX:cn}}, {{EX:sn}}, and every other
+attribute that inherits from {{EX:name}} to be indexed.
+
 By default, no indices are maintained.  It is generally advised
 that minimally an equality index upon objectClass be maintained.
 
 >	olcDbindex: objectClass eq
+
+Additional indices should be configured corresponding to the
+most common searches that are used on the database.
+Presence indexing should not be configured for an attribute
+unless the attribute occurs very rarely in the database, and
+presence searches on the attribute occur very frequently during
+normal use of the directory. Most applications don't use presence
+searches, so usually presence indexing is not very useful.
 
 If this setting is changed while slapd is running, an internal task
 will be run to generate the changed index data. All server operations

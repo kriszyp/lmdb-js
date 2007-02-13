@@ -1,6 +1,6 @@
 .TH SLAPPASSWD 8C "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
-.\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 slappasswd \- OpenLDAP password utility
@@ -137,13 +137,13 @@ provides 31 characters of salt.
 Omit the trailing newline; useful to pipe the credentials
 into a command.
 .SH LIMITATIONS
-The practice storing hashed passwords in userPassword violates
+The practice of storing hashed passwords in userPassword violates
 Standard Track (RFC 4519) schema specifications and may hinder
 interoperability.  A new attribute type, authPassword, to hold
 hashed passwords has been defined (RFC 3112), but is not yet
 implemented in
 .BR slapd (8).
-.TP
+.LP
 It should also be noted that the behavior of
 .BR crypt (3)
 is platform specific.
@@ -151,7 +151,7 @@ is platform specific.
 Use of hashed passwords does not protect passwords during
 protocol transfer.  TLS or other eavesdropping protections
 should be in\-place before using LDAP simple bind.
-.TP
+.LP
 The hashed password values should be protected as if they
 were clear text passwords.
 .SH "SEE ALSO"

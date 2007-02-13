@@ -1,5 +1,5 @@
 .TH SLAPD-LDAP 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 1998-2006 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -38,11 +38,14 @@ rules; see
 for details.
 
 .LP
-Note: When looping back to the same instance of \fBslapd\fP(8), 
-each connection requires a new thread; as a consequence, \fBslapd\fP(8)
+Note: When looping back to the same instance of
+.BR slapd (8), 
+each connection requires a new thread; as a consequence,
+.BR slapd (8)
 must be compiled with thread support, and the \fBthreads\fP parameter 
 may need some tuning; in those cases, one may consider using 
-\fBslapd-relay\fP(5) instead, which performs the relayed operation 
+.BR slapd-relay (5)
+instead, which performs the relayed operation 
 internally and thus reuses the same connection.
 
 .SH CONFIGURATION
@@ -95,6 +98,13 @@ needs be created.
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
 .RS
 Allows to define the parameters of the authentication method that is 
 internally used by the proxy to collect info related to access control,
@@ -127,6 +137,11 @@ This directive obsoletes
 .BR acl-authcDN ,
 and
 .BR acl-passwd .
+
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand".
 .RE
 
 .TP
@@ -193,6 +208,13 @@ for details on the syntax of this field.
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
 .B [authz={native|proxyauthz}] [mode=<mode>] [flags=<flags>]
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
 .RS
 Allows to define the parameters of the authentication method that is 
 internally used by the proxy to authorize connections that are 
@@ -330,6 +352,11 @@ whose assertion is not allowed by the
 .B idassert-authzFrom
 patterns.
 
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand".
+
 The identity associated to this directive is also used for privileged
 operations whenever \fBidassert-bind\fP is defined and \fBacl-bind\fP
 is not.  See \fBacl-bind\fP for details.
@@ -346,6 +373,16 @@ and
 .B idle-timeout <time>
 This directive causes a cached connection to be dropped an recreated
 after it has been idle for the specified time.
+
+.TP
+.B network-timeout <time>
+Sets the network timeout value after which
+.BR poll (2)/ select (2) 
+following a 
+.BR connect (2) 
+returns in case of no activity.
+The value is in seconds, and it can be specified as for
+.BR idle-timeout .
 
 .TP
 .B protocol\-version {0,2,3}
@@ -386,8 +423,11 @@ attribute of the database entry in the configuration backend.
 .TP
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.  Useful when
-\fBchase-referrals\fP is set to \fByes\fP, useless otherwise.
+for rebinds, when trying to re-establish a broken connection,
+or when chasing a referral, if 
+.B chase-referrals
+is set to
+.IR yes .
 
 .TP
 .B single\-conn {NO|yes}
@@ -406,13 +446,15 @@ support is detected by reading the remote server's root DSE.
 This directive allows to set per-operation timeouts.
 Operations can be
 
-\fB<op> ::= bind, add, delete, modrdn, modify, compare\fP
+\fB<op> ::= bind, add, delete, modrdn, modify, compare, search\fP
 
-The \fBsearch\fP operation is already controlled either
+The overall duration of the \fBsearch\fP operation is controlled either
 by the \fBtimelimit\fP parameter or by server-side enforced
 time limits (see \fBtimelimit\fP and \fBlimits\fP in
 .BR slapd.conf (5)
 for details).
+This \fBtimeout\fP parameter controls how long the target can be 
+irresponsive before the operation is aborted.
 Timeout is meaningless for the remaining operations,
 \fBunbind\fP and \fBabandon\fP, which do not imply any response,
 while it is not yet implemented in currently supported \fBextended\fP 
@@ -434,14 +476,37 @@ identity according to the \fBidassert-bind\fP directive).
 In this case, the timeout of the operation that resulted in the bind
 is used.
 
-.TP
-.B tls {[try-]start|[try-]propagate}
-execute the StartTLS extended operation when the connection is initialized;
-only works if the URI directive protocol scheme is not \fBldaps://\fP.
+.HP
+.hy 0
+.B tls {[try-]start|[try-]propagate|ldaps}
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_ciphersuite=<ciphers>]
+.B [tls_crlcheck=none|peer|all]
+.RS
+Specify the use of TLS when a regular connection is initialized. The
+StartTLS extended operation will be used unless the URI directive protocol
+scheme is \fBldaps://\fP. In that case this keyword may only be
+set to "ldaps" and the StartTLS operation will not be used.
 \fBpropagate\fP issues the StartTLS operation only if the original
 connection did.
 The \fBtry-\fP prefix instructs the proxy to continue operations
 if the StartTLS operation failed; its use is \fBnot\fP recommended.
+
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand".
+
+.TP
+.B use-temporary-conn {NO|yes}
+when set to 
+.BR yes ,
+create a temporary connection whenever competing with other threads
+for a shared one; otherwise, wait until the shared connection is available.
 
 .SH BACKWARD COMPATIBILITY
 The LDAP backend has been heavily reworked between releases 2.2 and 2.3,

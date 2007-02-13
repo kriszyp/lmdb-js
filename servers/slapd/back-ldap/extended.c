@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,7 +78,7 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, BI_op_extended exop )
 
 done:;
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 			
 	return rc;
@@ -216,7 +216,7 @@ retry:
 	}
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;
@@ -316,7 +316,7 @@ retry:
 	}
 
 	if ( lc != NULL ) {
-		ldap_back_release_conn( op, rs, lc );
+		ldap_back_release_conn( li, lc );
 	}
 
 	return rc;

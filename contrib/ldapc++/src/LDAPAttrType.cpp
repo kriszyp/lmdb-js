@@ -15,6 +15,7 @@ LDAPAttrType::LDAPAttrType(){
     desc = string ();
     names = StringList ();
     single = false;
+    usage = 0;
 }
 
 LDAPAttrType::LDAPAttrType (const LDAPAttrType &at){
@@ -25,6 +26,7 @@ LDAPAttrType::LDAPAttrType (const LDAPAttrType &at){
     desc = at.desc;
     names = at.names;
     single = at.single;
+    usage = at.usage;
 }
 
 LDAPAttrType::LDAPAttrType (string at_item) { 
@@ -38,10 +40,11 @@ LDAPAttrType::LDAPAttrType (string at_item) {
     a = ldap_str2attributetype (at_item.c_str(), &ret, &errp,SCHEMA_PARSE_FLAG);
 
     if (a) {
-	this->setNames (a->at_names);
-	this->setDesc (a->at_desc);
-	this->setOid (a->at_oid);
-	this->setSingle (a->at_single_value);
+	this->setNames( a->at_names );
+	this->setDesc( a->at_desc );
+	this->setOid( a->at_oid );
+	this->setSingle( a->at_single_value );
+	this->setUsage( a->at_usage );
     }
     // else? -> error
 }
@@ -70,6 +73,10 @@ void LDAPAttrType::setOid (char *at_oid) {
 	oid = at_oid;
 }
 
+void LDAPAttrType::setUsage (int at_usage) {
+    usage = at_usage;
+}
+
 bool LDAPAttrType::isSingle () {
     return single;
 }
@@ -92,4 +99,8 @@ string LDAPAttrType::getName () {
 	return "";
     else
 	return *(names.begin());
+}
+
+int LDAPAttrType::getUsage () {
+    return usage;
 }

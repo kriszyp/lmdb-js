@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: The slapd Configuration File
@@ -10,10 +10,10 @@ runtime configuration is primarily accomplished through the
 {{slapd.conf}}(5) file, normally installed in the
 {{EX:/usr/local/etc/openldap}} directory.
 
-An alternate configuration file can be specified via a
-command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
-describes the general format of the config file, followed by a
-detailed description of commonly used config file directives.
+An alternate configuration file location can be specified via a command-line
+option to {{slapd}}(8). This chapter describes the general format
+of the {{slapd.conf}}(5) configuration file, followed by a detailed
+description of commonly used config file directives.
 
 
 H2: Configuration File Format
@@ -89,11 +89,11 @@ by actual text are shown in brackets {{EX:<>}}.
 
 H4: access to <what> [ by <who> [<accesslevel>] [<control>] ]+
 
-This directive grants access (specified by <accesslevel>) to a
-set of entries and/or attributes (specified by <what>) by one or
-more requesters (specified by <who>).
-See the {{SECT:Access Control}} section of this chapter for a
-summary of basic usage.
+This directive grants access (specified by <accesslevel>) to a set
+of entries and/or attributes (specified by <what>) by one or more
+requesters (specified by <who>).  See the {{SECT:The access
+Configuration Directive}} section of this chapter for a summary of
+basic usage.
 
 !if 0
 More details discussion of this directive can be found in the
@@ -142,7 +142,7 @@ correspond to what kind of debugging, invoke slapd with {{EX:-?}}
 or consult the table below. The possible values for <integer> are:
 
 !block table; colaligns="RL"; align=Center; \
-	title="Table 5.1: Debugging Levels"
+	title="Table 6.1: Debugging Levels"
 Level	Description
 -1	enable all debugging
 0	no debugging
@@ -229,7 +229,7 @@ H4: backend <type>
 
 This directive marks the beginning of a backend declaration.
 {{EX:<type>}} should be one of the
-supported backend types listed in Table 5.2.
+supported backend types listed in Table 6.2.
 
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 5.2: Database Backends"
@@ -264,7 +264,7 @@ H4: database <type>
 This directive marks the beginning of a database instance
 declaration.
 {{EX:<type>}} should be one of the
-supported backend types listed in Table 5.2.
+supported backend types listed in Table 6.2.
 
 \Example:
 
@@ -321,7 +321,7 @@ authentication is to be used when connecting to the slave slapd.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
-or IPSEC).  Simple authentication requires specification of
+or {{TERM:IPsec}}).  Simple authentication requires specification of
 {{EX:binddn}} and {{EX:credentials}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
@@ -333,7 +333,6 @@ an authorization identity.
 
 See the chapter entitled {{SECT:Replication with slurpd}} for more
 information on how to use this directive.
-
 
 H4: replogfile <filename>
 
@@ -415,7 +414,7 @@ H4: syncrepl
 >		[type=refreshOnly|refreshAndPersist]
 >		[interval=dd:hh:mm:ss]
 >		[retry=[<retry interval> <# of retries>]+]
->		[searchbase=<base DN>]
+>		searchbase=<base DN>
 >		[filter=<filter str>]
 >		[scope=sub|one|base]
 >		[attrs=<attr list>]
@@ -439,8 +438,8 @@ replication consumer site running a syncrepl replication engine.
 The master database is located at the replication provider site
 specified by the {{EX:provider}} parameter. The replica database is
 kept up-to-date with the master content using the LDAP Content
-Synchronization protocol. See {{EX:draft-zeilenga-ldup-sync-xx.txt}}
-({{a work in progress}}) for more information on the protocol.
+Synchronization protocol. See {{REF:RFC4533}}
+for more information on the protocol.
 
 The {{EX:rid}} parameter is used for identification of the current
 {{EX:syncrepl}} directive within the replication consumer server,
@@ -515,7 +514,7 @@ to the provider slapd.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
-or IPSEC). Simple authentication requires specification of {{EX:binddn}}
+or IPsec). Simple authentication requires specification of {{EX:binddn}}
 and {{EX:credentials}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
@@ -538,10 +537,12 @@ for more information on how to use this directive.
 
 H4: updatedn <DN>
 
-This directive is only applicable in a slave slapd. It specifies
-the DN allowed to make changes to the replica.  This may be the DN
+This directive is only applicable in a {{slave}} (or {{shadow}})
+{{slapd(8)}} instance.  It specifies the DN allowed to make changes to
+the replica.  This may be the DN
 {{slurpd}}(8) binds as when making changes to the replica or the DN
 associated with a SASL identity.
+
 
 Entry-based Example:
 
@@ -556,7 +557,8 @@ on how to use this directive.
 
 H4: updateref <URL>
 
-This directive is only applicable in a slave slapd. It
+This directive is only applicable in a {{slave}} (or {{shadow}})
+{{slapd}}(8) instance. It
 specifies the URL to return to clients which submit update
 requests upon the replica.
 If specified multiple times, each {{TERM:URL}} is provided.
@@ -586,9 +588,9 @@ containing the database and associated indices live.
 >	directory /usr/local/var/openldap-data
 
 
-H2: Access Control
+H2: The access Configuration Directive
 
-Access to slapd entries and attributes is controlled by the
+Access to entries and attributes is controlled by the
 access configuration file directive. The general form of an
 access line is:
 
@@ -716,7 +718,7 @@ access. Note that access is granted to "entities" not "entries."
 The following table summarizes entity specifiers:
 
 !block table; align=Center; coltags="EX,N"; \
-	title="Table 5.3: Access Entity Specifiers"
+	title="Table 6.3: Access Entity Specifiers"
 Specifier|Entities
 *|All, including anonymous and authenticated users
 anonymous|Anonymous (non-authenticated) users
@@ -749,7 +751,7 @@ H3: The access to grant
 The kind of <access> granted can be one of the following:
 
 !block table; colaligns="LRL"; coltags="EX,EX,N"; align=Center; \
-	title="Table 5.4: Access Levels"
+	title="Table 6.4: Access Levels"
 Level		Privileges	Description
 none		=0			no access
 disclose	=d			needed for information disclosure on error

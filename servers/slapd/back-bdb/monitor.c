@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,8 @@
 #include "back-bdb.h"
 
 #include "../back-monitor/back-monitor.h"
+
+#include "config.h"
 
 static ObjectClass		*oc_olmBDBDatabase;
 
@@ -65,7 +67,7 @@ static struct {
 		"DESC 'Number of items in Entry Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmBDBEntryCache },
 
 	{ "( olmBDBAttributes:2 "
@@ -73,7 +75,7 @@ static struct {
 		"DESC 'Number of items in EntryInfo Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmBDBEntryInfo },
 
 	{ "( olmBDBAttributes:3 "
@@ -81,7 +83,7 @@ static struct {
 		"DESC 'Number of items in IDL Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmBDBIDLCache },
 
 	{ "( olmBDBAttributes:4 "
@@ -90,7 +92,7 @@ static struct {
 			"where the database environment resides' "
 		"SUP monitoredInfo "
 		"NO-USER-MODIFICATION "
-		"USAGE directoryOperation )",
+		"USAGE dSAOperation )",
 		&ad_olmDbDirectory },
 
 	{ NULL }
@@ -150,6 +152,7 @@ bdb_monitor_update(
 	return SLAP_CB_CONTINUE;
 }
 
+#if 0	/* uncomment if required */
 static int
 bdb_monitor_modify(
 	Operation	*op,
@@ -159,11 +162,12 @@ bdb_monitor_modify(
 {
 	return SLAP_CB_CONTINUE;
 }
+#endif
 
 static int
 bdb_monitor_free(
 	Entry		*e,
-	void		*priv )
+	void		**priv )
 {
 	struct berval	values[ 2 ];
 	Modification	mod = { 0 };
@@ -174,6 +178,7 @@ bdb_monitor_free(
 	int		i, rc;
 
 	/* NOTE: if slap_shutdown != 0, priv might have already been freed */
+	*priv = NULL;
 
 	/* Remove objectClass */
 	mod.sm_op = LDAP_MOD_DELETE;
@@ -207,6 +212,8 @@ static int
 bdb_monitor_initialize( void )
 {
 	int		i, code;
+	ConfigArgs c;
+	char	*argv[ 3 ];
 
 	static int	bdb_monitor_initialized = 0;
 
@@ -220,14 +227,17 @@ bdb_monitor_initialize( void )
 
 	/* register schema here */
 
+	argv[ 0 ] = "back-bdb/back-hdb monitor";
+	c.argv = argv;
+	c.argc = 3;
+	c.fname = argv[0];
+
 	for ( i = 0; s_oid[ i ].name; i++ ) {
-		char	*argv[ 3 ];
-	
-		argv[ 0 ] = "back-bdb/back-hdb monitor";
+		c.lineno = i;
 		argv[ 1 ] = s_oid[ i ].name;
 		argv[ 2 ] = s_oid[ i ].oid;
 
-		if ( parse_oidm( argv[ 0 ], i, 3, argv, 0, NULL ) != 0 ) {
+		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_monitor_initialize: unable to add "
 				"objectIdentifier \"%s=%s\"\n",

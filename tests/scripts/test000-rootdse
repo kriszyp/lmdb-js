@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2006 The OpenLDAP Foundation.
+## Copyright 1998-2007 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ sleep 1
 echo "Using ldapsearch to retrieve the root DSE..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -b "" -s base -h $LOCALHOST -p $PORT1 \
-		'+extensibleObject' > $SEARCHOUT 2>&1
+		'@extensibleObject' > $SEARCHOUT 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -57,7 +57,7 @@ if test $RC = 0 ; then
 		count=3
 		echo "Using ldapsearch to retrieve the cn=Monitor..."
 		$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 \
-			'+extensibleObject' >> $SEARCHOUT 2>&1
+			'@monitor' >> $SEARCHOUT 2>&1
 		RC=$?
 		;;
 	esac

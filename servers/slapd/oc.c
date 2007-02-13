@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -134,6 +134,8 @@ static Avlnode	*oc_index = NULL;
 static Avlnode	*oc_cache = NULL;
 static LDAP_STAILQ_HEAD(OCList, slap_object_class) oc_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(oc_list);
+
+ObjectClass *oc_sys_tail;
 
 static int
 oc_index_cmp(
@@ -420,10 +422,22 @@ oc_delete( ObjectClass *oc )
 static void
 oc_clean( ObjectClass *o )
 {
-	if (o->soc_sups) ldap_memfree(o->soc_sups);
-	if (o->soc_required) ldap_memfree(o->soc_required);
-	if (o->soc_allowed) ldap_memfree(o->soc_allowed);
-	if (o->soc_oidmacro) ldap_memfree(o->soc_oidmacro);
+	if (o->soc_sups) {
+		ldap_memfree(o->soc_sups);
+		o->soc_sups = NULL;
+	}
+	if (o->soc_required) {
+		ldap_memfree(o->soc_required);
+		o->soc_required = NULL;
+	}
+	if (o->soc_allowed) {
+		ldap_memfree(o->soc_allowed);
+		o->soc_allowed = NULL;
+	}
+	if (o->soc_oidmacro) {
+		ldap_memfree(o->soc_oidmacro);
+		o->soc_oidmacro = NULL;
+	}
 }
 
 static void
@@ -474,7 +488,7 @@ oc_next( ObjectClass **oc )
 {
 	assert( oc != NULL );
 
-#if 1	/* pedantic check */
+#if 0	/* pedantic check: breaks when deleting an oc, don't use it. */
 	{
 		ObjectClass *tmp = NULL;
 
@@ -669,7 +683,15 @@ oc_insert(
 			names++;
 		}
 	}
-	LDAP_STAILQ_INSERT_TAIL( &oc_list, soc, soc_next );
+	if ( soc->soc_flags & SLAP_OC_HARDCODE ) {
+		prev = oc_sys_tail;
+		oc_sys_tail = soc;
+	}
+	if ( prev ) {
+		LDAP_STAILQ_INSERT_AFTER( &oc_list, prev, soc, soc_next );
+	} else {
+		LDAP_STAILQ_INSERT_TAIL( &oc_list, soc, soc_next );
+	}
 
 	return 0;
 }
@@ -796,7 +818,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 	/* count the result size */
 	i = 0;
 	for ( oc=start; oc; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
-		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
+		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) break;
 		i++;
 		if ( oc == end ) break;
 	}
@@ -813,7 +835,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 	i = 0;
 	for ( oc=start; oc; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
 		LDAPObjectClass loc, *locp;
-		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
+		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) break;
 		if ( oc->soc_oidmacro ) {
 			loc = oc->soc_oclass;
 			loc.oc_oid = oc->soc_oidmacro;

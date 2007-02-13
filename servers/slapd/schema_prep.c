@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -250,31 +250,24 @@ static int objectSubClassIndexer(
 {
 	int rc, noc, i;
 	BerVarray ocvalues;
+	ObjectClass **socs;
 	
 	for( noc=0; values[noc].bv_val != NULL; noc++ ) {
 		/* just count em */;
 	}
 
 	/* over allocate */
-	ocvalues = slap_sl_malloc( sizeof( struct berval ) * (noc+16), ctx );
+	socs = slap_sl_malloc( (noc+16) * sizeof( ObjectClass * ), ctx );
 
-	/* copy listed values (and termination) */
+	/* initialize */
 	for( i=0; i<noc; i++ ) {
-		ObjectClass *oc = oc_bvfind( &values[i] );
-		if( oc ) {
-			ocvalues[i] = oc->soc_cname;
-		} else {
-			ocvalues[i] = values[i];
-		}
+		socs[i] = oc_bvfind( &values[i] );
 	}
-
-	ocvalues[i].bv_val = NULL;
-	ocvalues[i].bv_len = 0;
 
 	/* expand values */
 	for( i=0; i<noc; i++ ) {
 		int j;
-		ObjectClass *oc = oc_bvfind( &ocvalues[i] );
+		ObjectClass *oc = socs[i];
 		if( oc == NULL || oc->soc_sups == NULL ) continue;
 		
 		for( j=0; oc->soc_sups[j] != NULL; j++ ) {
@@ -283,35 +276,37 @@ static int objectSubClassIndexer(
 			int k;
 
 			for( k=0; k<noc; k++ ) {
-				if( bvmatch( &ocvalues[k], &sup->soc_cname ) ) {
+				if( sup == socs[k] ) {
 					found++;
 					break;
 				}
 			}
 
 			if( !found ) {
-				ocvalues = slap_sl_realloc( ocvalues,
-					sizeof( struct berval ) * (noc+2), ctx );
+				socs = slap_sl_realloc( socs,
+					sizeof( ObjectClass * ) * (noc+2), ctx );
 
 				assert( k == noc );
-
-				ocvalues[noc] = sup->soc_cname;
-
-				assert( ocvalues[noc].bv_val != NULL );
-				assert( ocvalues[noc].bv_len != 0 );
-
-				noc++;
-
-				ocvalues[noc].bv_len = 0;
-				ocvalues[noc].bv_val = NULL;
+				socs[noc++] = sup;
 			}
 		}
 	}
+
+	ocvalues = slap_sl_malloc( sizeof( struct berval ) * (noc+1), ctx );
+	/* copy values */
+	for( i=0; i<noc; i++ ) {
+		if ( socs[i] )
+			ocvalues[i] = socs[i]->soc_cname;
+		else
+			ocvalues[i] = values[i];
+	}
+	BER_BVZERO( &ocvalues[i] );
 
 	rc = octetStringIndexer( use, mask, syntax, mr,
 		prefix, ocvalues, keysp, ctx );
 
 	slap_sl_free( ocvalues, ctx );
+	slap_sl_free( socs, ctx );
 	return rc;
 }
 
@@ -368,7 +363,7 @@ static struct slap_schema_oc_map {
 	{ "subschema", "( 2.5.20.1 NAME 'subschema' "
 		"DESC 'RFC4512: controlling subschema (sub)entry' "
 		"AUXILIARY "
-		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
+		"MAY ( dITStructureRules $ nameForms $ dITContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
 			"matchingRuleUse ) )",
 		subentryObjectClass, SLAP_OC_OPERATIONAL,
@@ -608,7 +603,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY CSNMatch "
 			"ORDERING CSNOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1{64} "
-			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
+			"NO-USER-MODIFICATION USAGE dSAOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
@@ -747,7 +742,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_subtreeSpecification) },
 
 	/* subschema subentry attributes */
-	{ "ditStructureRules", "( 2.5.21.1 NAME 'dITStructureRules' "
+	{ "dITStructureRules", "( 2.5.21.1 NAME 'dITStructureRules' "
 			"DESC 'RFC4512: DIT structure rules' "
 			"EQUALITY integerFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.17 "
@@ -756,7 +751,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_ditStructureRules) },
-	{ "ditContentRules", "( 2.5.21.2 NAME 'dITContentRules' "
+	{ "dITContentRules", "( 2.5.21.2 NAME 'dITContentRules' "
 			"DESC 'RFC4512: DIT content rules' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 USAGE directoryOperation )",
@@ -990,18 +985,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_authPasswordSchemes) },
-#endif
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	{ "krbName", "( 1.3.6.1.4.1.250.1.32 "
-			"NAME ( 'krbName' 'kerberosName' ) "
-			"DESC 'Kerberos principal associated with object' "
-			"EQUALITY caseIgnoreIA5Match "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 "
-			"SINGLE-VALUE )",
-		NULL, 0,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
 
 	{ "description", "( 2.5.4.13 NAME 'description' "

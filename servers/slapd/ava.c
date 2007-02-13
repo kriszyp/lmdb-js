@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,8 @@ ava_free(
 		nibble_mem_free ( ava->aa_cf->cf_ca->ca_comp_data.cd_mem_op );
 #endif
 	op->o_tmpfree( ava->aa_value.bv_val, op->o_tmpmemctx );
+	if ( ava->aa_desc->ad_flags & SLAP_DESC_TEMPORARY )
+		op->o_tmpfree( ava->aa_desc, op->o_tmpmemctx );
 	if ( freeit ) op->o_tmpfree( (char *) ava, op->o_tmpmemctx );
 }
 
@@ -55,7 +57,7 @@ int
 get_ava(
 	Operation *op,
 	BerElement	*ber,
-	AttributeAssertion	**ava,
+	Filter *f,
 	unsigned usage,
 	const char **text )
 {
@@ -85,13 +87,17 @@ get_ava(
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
+		f->f_choice |= SLAPD_FILTER_UNDEFINED;
+		*text = NULL;
 		rc = slap_bv2undef_ad( &type, &aa->aa_desc, text,
 				SLAP_AD_PROXIED|SLAP_AD_NOINSERT );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_FILTER,
 			"get_ava: unknown attributeType %s\n", type.bv_val, 0, 0 );
-			op->o_tmpfree( aa, op->o_tmpmemctx );
+			aa->aa_desc = slap_bv2tmp_ad( &type, op->o_tmpmemctx );
+			ber_dupbv_x( &aa->aa_value, &value, op->o_tmpmemctx );
+			f->f_ava = aa;
 			return rc;
 		}
 	}
@@ -101,10 +107,11 @@ get_ava(
 		usage, &value, &aa->aa_value, text, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
+		f->f_choice |= SLAPD_FILTER_UNDEFINED;
 		Debug( LDAP_DEBUG_FILTER,
 		"get_ava: illegal value for attributeType %s\n", type.bv_val, 0, 0 );
-		op->o_tmpfree( aa, op->o_tmpmemctx );
-		return rc;
+		ber_dupbv_x( &aa->aa_value, &value, op->o_tmpmemctx );
+		rc = LDAP_SUCCESS;
 	}
 
 #ifdef LDAP_COMP_MATCH
@@ -120,6 +127,6 @@ get_ava(
 		}
 	}
 #endif
-	*ava = aa;
+	f->f_ava = aa;
 	return LDAP_SUCCESS;
 }

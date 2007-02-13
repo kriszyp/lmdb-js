@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@ bdb_add(Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct berval	pdn;
-	Entry		*p = NULL;
+	Entry		*p = NULL, *oe = op->ora_e;
 	EntryInfo	*ei;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
@@ -35,10 +35,11 @@ bdb_add(Operation *op, SlapReply *rs )
 	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {0};
 	int subentry;
-	u_int32_t	locker = 0;
+	u_int32_t	locker = 0, rlocker = 0;
 	DB_LOCK		lock;
 
 	int		num_retries = 0;
+	int		success;
 
 	LDAPControl **postread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
@@ -91,22 +92,23 @@ txnReturn:
 
 	ctrls[num_ctrls] = 0;
 
+
+	/* check entry's schema */
+	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
+		get_relax(op), 1, &rs->sr_text, textbuf, textlen );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_add) ": entry failed schema check: "
+			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
+		goto return_results;
+	}
+
 	/* add opattrs to shadow as well, only missing attrs will actually
 	 * be added; helps compatibility with older OL versions */
 	rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": entry failed op attrs add: "
-			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
-		goto return_results;
-	}
-
-	/* check entry's schema */
-	rs->sr_err = entry_schema_check( op, op->oq_add.rs_e, NULL,
-		get_relax(op), &rs->sr_text, textbuf, textlen );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_add) ": entry failed schema check: "
 			"%s (%d)\n", rs->sr_text, rs->sr_err, 0 );
 		goto return_results;
 	}
@@ -127,12 +129,15 @@ txnReturn:
 		goto return_results;
 	}
 
+	/* Get our thread locker ID */
+	rs->sr_err = LOCK_ID( bdb->bi_dbenv, &rlocker );
+
 	if( 0 ) {
 retry:	/* transaction retry */
 		if( p ) {
 			/* free parent and reader lock */
 			if ( p != (Entry *)&slap_entry_root ) {
-				bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+				bdb_unlocked_cache_return_entry_r( bdb, p );
 			}
 			p = NULL;
 		}
@@ -214,7 +219,7 @@ retry:	/* transaction retry */
 		rs->sr_ref = is_entry_referral( p )
 			? get_entry_referrals( op, p )
 			: NULL;
-		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+		bdb_unlocked_cache_return_entry_r( bdb, p );
 		p = NULL;
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": parent "
@@ -269,7 +274,7 @@ retry:	/* transaction retry */
 			rs->sr_matched = ber_strdup_x( p->e_name.bv_val,
 				op->o_tmpmemctx );
 			rs->sr_ref = get_entry_referrals( op, p );
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			bdb_unlocked_cache_return_entry_r( bdb, p );
 			p = NULL;
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(bdb_add) ": parent is referral\n",
@@ -288,7 +293,7 @@ retry:	/* transaction retry */
 
 	/* free parent and reader lock */
 	if ( p != (Entry *)&slap_entry_root ) {
-		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+		bdb_unlocked_cache_return_entry_r( bdb, p );
 	}
 	p = NULL;
 
@@ -414,17 +419,17 @@ retry:	/* transaction retry */
 
 	} else {
 		struct berval nrdn;
-		Entry *e = entry_dup( op->ora_e );
 
 		/* pick the RDN if not suffix; otherwise pick the entire DN */
 		if (pdn.bv_len) {
-			nrdn.bv_val = e->e_nname.bv_val;
+			nrdn.bv_val = op->ora_e->e_nname.bv_val;
 			nrdn.bv_len = pdn.bv_val - op->ora_e->e_nname.bv_val - 1;
 		} else {
-			nrdn = e->e_nname;
+			nrdn = op->ora_e->e_nname;
 		}
 
-		bdb_cache_add( bdb, ei, e, &nrdn, locker );
+		/* Use the thread locker here, outside the txn */
+		bdb_cache_add( bdb, ei, op->ora_e, &nrdn, rlocker, &lock );
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";
@@ -453,6 +458,7 @@ retry:	/* transaction retry */
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
+	success = rs->sr_err;
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 
@@ -461,14 +467,26 @@ return_results:
 	}
 	op->o_private = NULL;
 
+	if( success == LDAP_SUCCESS ) {
+		/* We own the entry now, and it can be purged at will
+		 * Check to make sure it's the same entry we entered with.
+		 * Possibly a callback may have mucked with it, although
+		 * in general callbacks should treat the entry as read-only.
+		 */
+		bdb_cache_return_entry_r( bdb, oe, &lock );
+		if ( op->ora_e == oe )
+			op->ora_e = NULL;
+
+		if ( bdb->bi_txn_cp_kbyte ) {
+			TXN_CHECKPOINT( bdb->bi_dbenv,
+				bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
+		}
+	}
+
 	if( postread_ctrl != NULL && (*postread_ctrl) != NULL ) {
 		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
 		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
 	}
 
-	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
-		TXN_CHECKPOINT( bdb->bi_dbenv,
-			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
-	}
 	return rs->sr_err;
 }

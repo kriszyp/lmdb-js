@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -281,7 +281,7 @@ load_extop2(
 		LDAP_SUCCESS )
 	{
 		oidm.bv_val = oidm_find( ext_oid->bv_val );
-		if ( ext_oid == NULL ) {
+		if ( oidm.bv_val == NULL ) {
 			return -1;
 		}
 		oidm.bv_len = strlen( oidm.bv_val );

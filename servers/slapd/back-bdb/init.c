@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,12 +71,22 @@ bdb_db_init( BackendDB *be )
 #ifdef BDB_HIER
 	ldap_pvt_thread_mutex_init( &bdb->bi_modrdns_mutex );
 #endif
-	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_head_mutex );
-	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_tail_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_lru_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_count_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_eifree_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
+
+	{
+		Entry *e = entry_alloc();
+		e->e_id = 0;
+		e->e_private = &bdb->bi_cache.c_dntree;
+		BER_BVSTR( &e->e_name, "" );
+		BER_BVSTR( &e->e_nname, "" );
+		bdb->bi_cache.c_dntree.bei_e = e;
+	}
 
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
@@ -471,18 +481,18 @@ bdb_db_close( BackendDB *be )
 
 	bdb_cache_release_all (&bdb->bi_cache);
 
-	if ( bdb->bi_idl_cache_max_size ) {
+	if ( bdb->bi_idl_cache_size ) {
 		avl_free( bdb->bi_idl_tree, NULL );
 		bdb->bi_idl_tree = NULL;
 		entry = bdb->bi_idl_lru_head;
-		while ( entry != NULL ) {
+		do {
 			next_entry = entry->idl_lru_next;
 			if ( entry->idl )
 				free( entry->idl );
 			free( entry->kstr.bv_val );
 			free( entry );
 			entry = next_entry;
-		}
+		} while ( entry != bdb->bi_idl_lru_head );
 		bdb->bi_idl_lru_head = bdb->bi_idl_lru_tail = NULL;
 	}
 
@@ -493,7 +503,9 @@ bdb_db_close( BackendDB *be )
 			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
 			bdb->bi_cache.c_locker = 0;
 		}
-
+#ifdef BDB_REUSE_LOCKERS
+		bdb_locker_flush( bdb->bi_dbenv );
+#endif
 		/* force a checkpoint, but not if we were ReadOnly,
 		 * and not in Quick mode since there are no transactions there.
 		 */
@@ -540,8 +552,9 @@ bdb_db_destroy( BackendDB *be )
 	bdb_attr_index_destroy( bdb );
 
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
-	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_head_mutex );
-	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_tail_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_lru_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_count_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_eifree_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 #ifdef BDB_HIER
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_modrdns_mutex );
@@ -550,6 +563,16 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
 	ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
+
+	{
+		Entry *e;
+		e = bdb->bi_cache.c_dntree.bei_e;
+		bdb->bi_cache.c_dntree.bei_e = NULL;
+		e->e_private = NULL;
+		BER_BVZERO( &e->e_name );
+		BER_BVZERO( &e->e_nname );
+		entry_free( e );
+	}
 
 	ch_free( bdb );
 	be->be_private = NULL;

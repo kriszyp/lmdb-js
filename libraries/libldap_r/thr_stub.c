@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -226,6 +226,13 @@ void ldap_pvt_thread_pool_context_reset( void *vctx )
 ldap_pvt_thread_t
 ldap_pvt_thread_self( void )
 {
+	return(0);
+}
+
+ldap_pvt_thread_t
+ldap_pvt_thread_pool_tid( void *vctx )
+{
+
 	return(0);
 }
 

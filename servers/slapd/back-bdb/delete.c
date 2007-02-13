@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -517,8 +517,7 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	} else {
-		rc = bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
-			locker, &lock );
+		rc = bdb_cache_delete( bdb, e, locker, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -580,7 +579,7 @@ return_results:
 		slap_sl_free( *preread_ctrl, op->o_tmpmemctx );
 	}
 
-	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp_kbyte ) {
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
 	}

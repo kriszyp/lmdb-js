@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 1998-2001 Net Boolean Incorporated.
  * Portions Copyright 2001-2003 IBM Corporation.
@@ -249,7 +249,7 @@ urlize(char *url)
 
 
 const char options[] = "a:Ab:cE:F:l:Ls:S:tT:uz:"
-	"Cd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
+	"Cd:D:e:f:h:H:IMnO:o:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
@@ -920,7 +920,7 @@ getNextPage:
 		char	*realbase = base;
 
 		if ( realbase == NULL ) {
-			ldap_get_option( ld, LDAP_OPT_DEFBASE, (void **)&realbase );
+			ldap_get_option( ld, LDAP_OPT_DEFBASE, (void **)(char *)&realbase );
 		}
 		
 		printf( "#\n" );
@@ -1167,7 +1167,7 @@ static int dosearch(
 				nextended++;
 				print_extended( ld, msg );
 
-				if( ldap_msgid( msg ) == 0 ) {
+				if ( ldap_msgid( msg ) == 0 ) {
 					/* unsolicited extended operation */
 					goto done;
 				}

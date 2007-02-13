@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -204,7 +204,7 @@ cleanup:;
 
 done:;
 	if ( mc ) {
-		meta_back_release_conn( op, mc );
+		meta_back_release_conn( mi, mc );
 	}
 
 	return rs->sr_err;

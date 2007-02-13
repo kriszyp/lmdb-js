@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,15 +30,15 @@ typedef struct ConfigTable {
 	void *notify;
 } ConfigTable;
 
+/* search entries are returned according to this order */
 typedef enum {
 	Cft_Abstract = 0,
 	Cft_Global,
+	Cft_Module,
 	Cft_Schema,
 	Cft_Backend,
 	Cft_Database,
 	Cft_Overlay,
-	Cft_Include,
-	Cft_Module,
 	Cft_Misc	/* backend/overlay defined */
 } ConfigType;
 
@@ -136,6 +136,7 @@ typedef struct config_args_s {
 #define SLAP_CONFIG_ADD		0x4000	/* config file add vs LDAP add */
 	int op;
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
+	Operation *ca_op;
 	BackendDB *be;
 	BackendInfo *bi;
 	Entry *ca_entry;	/* entry being modified */
@@ -165,7 +166,7 @@ void init_config_argv( ConfigArgs *c );
 int init_config_attrs(ConfigTable *ct);
 int init_config_ocs( ConfigOCs *ocs );
 int config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx);
-int config_parse_add(ConfigTable *ct, ConfigArgs *c);
+int config_parse_add(ConfigTable *ct, ConfigArgs *c, int valx);
 int read_config_file(const char *fname, int depth, ConfigArgs *cf,
 	ConfigTable *cft );
 

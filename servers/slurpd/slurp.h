@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -156,14 +156,12 @@
 #define	SUFFIXSTR		"suffix"
 #define	BINDDNSTR		"binddn"
 #define	BINDMETHSTR		"bindmethod"
-#define	KERBEROSSTR		"kerberos"
 #define	SIMPLESTR		"simple"
 #define	SASLSTR			"sasl"
 #define	CREDSTR			"credentials"
 #define	OLDAUTHCSTR		"bindprincipal"
 #define	AUTHCSTR		"authcID"
 #define	AUTHZSTR		"authzID"
-#define	SRVTABSTR		"srvtab"
 #define	SASLMECHSTR		"saslmech"
 #define	REALMSTR		"realm"
 #define	SECPROPSSTR		"secprops"
@@ -179,7 +177,6 @@
 #define	BIND_ERR_OPEN				2
 #define	BIND_ERR_BAD_ATYPE			3
 #define	BIND_ERR_SIMPLE_FAILED		4
-#define	BIND_ERR_KERBEROS_FAILED	5
 #define	BIND_ERR_BADRI				6
 #define	BIND_ERR_VERSION			7
 #define	BIND_ERR_REFERRALS			8
@@ -241,14 +238,13 @@ struct ri {
     char	*ri_uri;		/* e.g. "ldaps://ldap-1.example.com:636" */
     LDAP	*ri_ldp;		/* LDAP struct for this replica */
     int		ri_tls;			/* TLS: 0=no, 1=yes, 2=critical */
-    int		ri_bind_method;		/* AUTH_SIMPLE or AUTH_KERBEROS */
+    int		ri_bind_method;		/* AUTH_SIMPLE or AUTH_SASL */
     char	*ri_bind_dn;		/* DN to bind as when replicating */
     char	*ri_password;		/* Password for any method */
     char	*ri_secprops;		/* SASL security properties */
     char	*ri_realm;			/* realm for any mechanism */
     char	*ri_authcId;		/* authentication ID for any mechanism */
     char	*ri_authzId;		/* authorization ID for any mechanism */
-    char	*ri_srvtab;		/* srvtab file for kerberos bind */
     char	*ri_saslmech;		/* SASL mechanism to use */
     struct re	*ri_curr;		/* current repl entry being processed */
     struct stel	*ri_stel;		/* pointer to Stel for this replica */

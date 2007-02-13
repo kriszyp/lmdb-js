@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,9 +65,7 @@ struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
 ldap_pvt_thread_pool_t	connection_pool;
 int			connection_pool_max = SLAP_MAX_WORKER_THREADS;
 int		slap_tool_thread_max = 1;
-#ifndef HAVE_GMTIME_R
 ldap_pvt_thread_mutex_t	gmtime_mutex;
-#endif
 
 slap_counters_t			slap_counters;
 
@@ -124,6 +122,7 @@ slap_init( int mode, const char *name )
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
+		root_dse_init();
 
 		/* FALLTHRU */
 	case SLAP_TOOL_MODE:
@@ -159,9 +158,7 @@ slap_init( int mode, const char *name )
 		}
 #endif /* SLAPD_MONITOR */
 
-#ifndef HAVE_GMTIME_R
 		ldap_pvt_thread_mutex_init( &gmtime_mutex );
-#endif
 		slap_passwd_init();
 
 		rc = slap_sasl_init();
@@ -270,14 +267,21 @@ int slap_destroy(void)
 		ber_bvarray_free( default_referral );
 	}
 
+	/* clear out any thread-keys for the main thread */
+	ldap_pvt_thread_pool_context_reset( ldap_pvt_thread_pool_context());
+
 	rc = backend_destroy();
 
 	slap_sasl_destroy();
 
+	/* rootdse destroy goes before entry_destroy()
+	 * because it may use entry_free() */
+	root_dse_destroy();
 	entry_destroy();
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
+
 	case SLAP_TOOL_MODE:
 
 		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_sent_mutex );

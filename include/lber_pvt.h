@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -144,6 +144,9 @@ ber_bvarray_free_x LDAP_P(( BerVarray p, void *ctx ));
 
 LBER_F( int )
 ber_bvarray_add_x LDAP_P(( BerVarray *p, BerValue *bv, void *ctx ));
+
+LBER_F( int )
+ber_bvarray_dup_x LDAP_P(( BerVarray *dst, BerVarray src, void *ctx ));
 
 #if 0
 #define ber_bvstrcmp(v1,v2) \

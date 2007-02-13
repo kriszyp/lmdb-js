@@ -1,33 +1,40 @@
 # $OpenLDAP$
-# Copyright 1999-2006 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Introduction to OpenLDAP Directory Services
 
-This document describes how to build, configure, and operate OpenLDAP
-software to provide directory services.  This includes details on
-how to configure and run the stand-alone {{TERM:LDAP}} daemon,
-{{slapd}}(8) and the stand-alone LDAP update replication daemon,
-{{slurpd}}(8). It is intended for newcomers and experienced
-administrators alike.  This section provides a basic introduction
-to directory services and, in particular, the directory services
-provided by {{slapd}}(8).
+This document describes how to build, configure, and operate
+{{PRD:OpenLDAP}} Software to provide directory services.  This
+includes details on how to configure and run the Standalone
+{{TERM:LDAP}} Daemon, {{slapd}}(8).  It is intended for new and
+experienced administrators alike.  This section provides a basic
+introduction to directory services and, in particular, the directory
+services provided by {{slapd}}(8).  This introduction is only
+intended to provide enough information so one might get started
+learning about {{TERM:LDAP}}, {{TERM:X.500}}, and directory services.
 
 
 H2: What is a directory service?
 
-A directory is a specialized database optimized for reading, browsing
-and searching.  Directories tend to contain descriptive, attribute-based
-information and support sophisticated filtering capabilities.
-Directories generally do not support complicated transaction or
-roll-back schemes found in database management systems designed
-for handling high-volume complex updates.  Directory updates are
-typically simple all-or-nothing changes, if they are allowed at
-all.  Directories are tuned to give quick response to high-volume
-lookup or search operations. They may have the ability to replicate
-information widely in order to increase availability and reliability,
-while reducing response time.  When directory information is
-replicated, temporary inconsistencies between the replicas may be
-okay, as long as they get in sync eventually.
+A directory is a specialized database specifically designed for
+searching and browsing, in additional to supporting basic lookup
+and update functions.
+
+Note: A directory is defined by some as merely a database optimized
+for read access.  This definition, at best, is overly simplistic.
+
+Directories tend to contain descriptive, attribute-based information
+and support sophisticated filtering capabilities.  Directories
+generally do not support complicated transaction or roll-back schemes
+found in database management systems designed for handling high-volume
+complex updates.  Directory updates are typically simple all-or-nothing
+changes, if they are allowed at all.  Directories are generally
+tuned to give quick response to high-volume lookup or search
+operations. They may have the ability to replicate information
+widely in order to increase availability and reliability, while
+reducing response time.  When directory information is replicated,
+temporary inconsistencies between the replicas may be okay, as long
+as inconsistencies are resolved in a timely manner.
 
 There are many different ways to provide a directory service.
 Different methods allow different kinds of information to be stored
@@ -41,9 +48,17 @@ services are usually {{distributed}}, meaning that the data they
 contain is spread across many machines, all of which cooperate to
 provide the directory service. Typically a global service defines
 a uniform {{namespace}} which gives the same view of the data no
-matter where you are in relation to the data itself.  The Internet
-{{TERM[expand]DNS}} (DNS) is an example of a globally distributed
-directory service.
+matter where you are in relation to the data itself.
+
+A web directory, such as provided by the {{Open Directory Project}}
+<{{URL:http://dmoz.org}}>, is a good example of a directory service.
+These services catalog web pages and are specifically designed to
+support browsing and searching.
+
+While some consider the Internet {{TERM[expand]DNS}} (DNS) is an
+example of a globally distributed directory service, DNS is not
+browsable nor searchable.  It is more properly described as a
+globaly distributed {{lookup}} service.
 
 
 H2: What is LDAP?
@@ -53,11 +68,10 @@ it is a lightweight protocol for accessing directory services,
 specifically {{TERM:X.500}}-based directory services.  LDAP runs
 over {{TERM:TCP}}/{{TERM:IP}} or other connection oriented transfer
 services.  LDAP is an {{ORG:IETF}} Standard Track protocol and is
-specified as detailed in "Lightweight Directory Access Protocol
-(LDAP) Technical Specification Road Map" {{REF:RFC4510}}.
+specified in "Lightweight Directory Access Protocol (LDAP) Technical
+Specification Road Map" {{REF:RFC4510}}.
 
-This section gives an overview of LDAP from a
-user's perspective.
+This section gives an overview of LDAP from a user's perspective.
 
 {{What kind of information can be stored in the directory?}} The
 LDAP information model is based on {{entries}}. An entry is a
@@ -69,8 +83,8 @@ common name, or "{{EX:mail}}" for email address. The syntax of
 values depend on the attribute type.  For example, a {{EX:cn}}
 attribute might contain the value {{EX:Babs Jensen}}.  A {{EX:mail}}
 attribute might contain the value "{{EX:babs@example.com}}". A
-{{EX:jpegPhoto}} attribute would contain a photograph in the JPEG
-(binary) format.
+{{EX:jpegPhoto}} attribute would contain a photograph in the
+{{TERM:JPEG}} (binary) format.
 
 {{How is the information arranged?}} In LDAP, directory entries
 are arranged in a hierarchical tree-like structure.  Traditionally,
@@ -107,8 +121,8 @@ the entry itself (called the {{TERM[expand]RDN}} or RDN) and
 concatenating the names of its ancestor entries. For example, the
 entry for Barbara Jensen in the Internet naming example above has
 an RDN of {{EX:uid=babs}} and a DN of
-{{EX:uid=babs,ou=People,dc=example,dc=com}}. The full DN format
-is described in {{REF:RFC4514}}, "LDAP: String Representation of
+{{EX:uid=babs,ou=People,dc=example,dc=com}}. The full DN format is
+described in {{REF:RFC4514}}, "LDAP: String Representation of
 Distinguished Names."
 
 {{How is the information accessed?}} LDAP defines operations for
@@ -142,16 +156,15 @@ services.
 
 H2: How does LDAP work?
 
-LDAP directory service is based on a {{client-server}} model. One
-or more LDAP servers contain the data making up the directory
-information tree (DIT).  The client connects to servers and
-asks it a question.  The server responds with an answer and/or 
-with a pointer to where the client can get additional information
-(typically, another LDAP server).  No matter which LDAP server a
-client connects to, it sees the same view of the directory; a name
-presented to one LDAP server references the same entry it would at
-another LDAP server. This is an important feature of a global
-directory service, like LDAP.
+LDAP utilizes a {{client-server model}}. One or more LDAP servers
+contain the data making up the directory information tree ({{TERM:DIT}}).
+The client connects to servers and asks it a question.  The server
+responds with an answer and/or with a pointer to where the client
+can get additional information (typically, another LDAP server).
+No matter which LDAP server a client connects to, it sees the same
+view of the directory; a name presented to one LDAP server references
+the same entry it would at another LDAP server.  This is an important
+feature of a global directory service.
 
 
 H2: What about X.500?
@@ -171,7 +184,7 @@ While LDAP is still used to access X.500 directory service via
 gateways, LDAP is now more commonly directly implemented in X.500
 servers. 
 
-The stand-alone LDAP daemon, or {{slapd}}(8), can be viewed as a
+The Standalone LDAP Daemon, or {{slapd}}(8), can be viewed as a
 {{lightweight}} X.500 directory server.  That is, it does not
 implement the X.500's DAP nor does it support the complete X.500
 models.
@@ -184,10 +197,7 @@ X.500 DAP, or have no immediate plans to run X.500 DAP, read on.
 
 It is possible to replicate data from an LDAP directory server to
 a X.500 DAP {{TERM:DSA}}.  This requires an LDAP/DAP gateway.
-OpenLDAP does not provide such a gateway, but our replication daemon
-can be used to replicate to such a gateway.  See the {{SECT:Replication
-with slurpd}} chapter of this document for information regarding
-replication.
+OpenLDAP Software does not include such a gateway.
 
 
 H2: What is the difference between LDAPv2 and LDAPv3?
@@ -221,13 +231,14 @@ service, or run a service all by yourself. Some of slapd's more
 interesting features and capabilities include:
 
 {{B:LDAPv3}}: {{slapd}} implements version 3 of {{TERM[expand]LDAP}}.
-{{slapd}} supports LDAP over both IPv4 and IPv6 and Unix IPC.
+{{slapd}} supports LDAP over both {{TERM:IPv4}} and {{TERM:IPv6}}
+and Unix {{TERM:IPC}}.
 
 {{B:{{TERM[expand]SASL}}}}: {{slapd}} supports strong authentication
 and data security (integrity and confidentiality) services through
-the use of SASL.  {{slapd}}'s SASL implementation utilizes {{PRD:Cyrus}}
-{{PRD:SASL}} software which supports a number of mechanisms including
-DIGEST-MD5, EXTERNAL, and GSSAPI.
+the use of SASL.  {{slapd}}'s SASL implementation utilizes {{PRD:Cyrus
+SASL}} software which supports a number of mechanisms including
+{{TERM:DIGEST-MD5}}, {{TERM:EXTERNAL}}, and {{TERM:GSSAPI}}.
 
 {{B:{{TERM[expand]TLS}}}}: {{slapd}} supports certificate-based
 authentication and data security (integrity and confidentiality)
@@ -254,7 +265,7 @@ of different database backends you can choose from. They include
 {{TERM:HDB}}, a hierarchical high-performance transactional
 backend; {{SHELL}}, a backend interface to arbitrary shell scripts;
 and PASSWD, a simple backend interface to the {{passwd}}(5) file.
-The BDB and HDB backends utilize {{ORG:Sleepycat}} {{PRD:Berkeley
+The BDB and HDB backends utilize {{ORG:Oracle}} {{PRD:Berkeley
 DB}}.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to
@@ -272,7 +283,7 @@ well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules which extend {{slapd}} in numerous ways.  Also,
 a number of {{programmable database}} modules are provided.  These
 allow you to expose external data sources to {{slapd}} using popular
-programming languages ({{PRD:Perl}}, {{shell}}, {{PRD:SQL}}, and
+programming languages ({{PRD:Perl}}, {{shell}}, {{TERM:SQL}}, and
 {{PRD:TCL}}).
 
 {{B:Threads}}: {{slapd}} is threaded for high performance.  A single
@@ -284,8 +295,8 @@ required while providing high performance.
 copies of directory information.  This {{single-master/multiple-slave}}
 replication scheme is vital in high-volume environments where a
 single {{slapd}} just doesn't provide the necessary availability
-or reliability. {{slapd}} supports two replication methods: {{LDAP
-Sync}}-based and {{slurpd}}(8)-based replication.
+or reliability.  {{slapd}} includes support for {{LDAP Sync}}-based
+replication.
 
 {{B:Proxy Cache}}: {{slapd}} can be configured as a caching
 LDAP proxy service.
@@ -294,23 +305,4 @@ LDAP proxy service.
 single configuration file which allows you to change just about
 everything you'd ever want to change.  Configuration options have
 reasonable defaults, making your job much easier.
-
-
-H2: What is slurpd and what can it do?
-
-{{slurpd}}(8) is a daemon that, with {{slapd}} help, provides
-replicated service.  It is responsible for distributing changes
-made to the master {{slapd}} database out to the various {{slapd}}
-replicas.  It frees {{slapd}} from having to worry that some replicas
-might be down or unreachable when a change comes through; {{slurpd}}
-handles retrying failed requests automatically.  {{slapd}} and
-{{slurpd}} communicate through a simple text file that is used to
-log changes.
-
-See the {{SECT:Replication with slurpd}} chapter for information
-about how to configure and run {{slurpd}}(8).
-
-Alternatively, {{LDAP-Sync}}-based replication may be used to provide
-a replicated service.  See the {{SECT:LDAP Sync Replication}} chapter
-for details.
 

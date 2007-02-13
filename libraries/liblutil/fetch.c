@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Kurt D. Zeilenga.
  * All rights reserved.
  *
@@ -43,24 +43,23 @@ ldif_open_url(
 	LDAP_CONST char *urlstr )
 {
 	FILE *url;
-	char *p = NULL;
 #ifdef HAVE_FETCH
 	url = fetchGetURL( (char*) urlstr, "" );
 
 #else
-	if( strncasecmp( "file://", urlstr, sizeof("file://")-1 ) == 0 ) {
-		p = strchr( &urlstr[sizeof("file://")-1], '/' );
-		if( p == NULL ) {
-			return NULL;
-		}
+	if( strncasecmp( "file:", urlstr, sizeof("file:")-1 ) == 0 ) {
+		char *p;
+		urlstr += sizeof("file:")-1;
 
 		/* we don't check for LDAP_DIRSEP since URLs should contain '/' */
-		if( p[1] == '.' && ( p[2] == '/' || ( p[2] == '.' && p[3] == '/' ))) {
-			/* skip over false root */
-			p++;
+		if ( urlstr[0] == '/' && urlstr[1] == '/' ) {
+			urlstr += 2;
+			/* path must be absolute if authority is present */
+			if ( urlstr[0] != '/' )
+				return NULL;
 		}
 
-		p = ber_strdup( p );
+		p = ber_strdup( urlstr );
 		ldap_pvt_hex_unescape( p );
 
 		url = fopen( p, "rb" );

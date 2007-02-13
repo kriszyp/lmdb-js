@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,7 +85,10 @@ static const struct ol_attribute {
 	{0, ATTR_OPTION,	"HOST",			NULL,	LDAP_OPT_HOST_NAME}, /* deprecated */
 	{0, ATTR_OPTION,	"URI",			NULL,	LDAP_OPT_URI}, /* replaces HOST/PORT */
 	{0, ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
+#if 0
+	/* This should only be allowed via ldap_set_option(3) */
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
+#endif
 
 #ifdef HAVE_CYRUS_SASL
 	{0, ATTR_STRING,	"SASL_MECH",		NULL,
@@ -256,7 +259,6 @@ static void openldap_ldap_init_w_conf(
 			case ATTR_OPT_TV: {
 				struct timeval tv;
 				char *next;
-				tv.tv_sec = -1;
 				tv.tv_usec = 0;
 				tv.tv_sec = strtol( opt, &next, 10 );
 				if ( next != opt && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
@@ -441,8 +443,7 @@ ldap_int_destroy_global_options(void)
 	WSACleanup( );
 #endif
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
-	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	if ( ldap_int_hostname ) {
 		LDAP_FREE( ldap_int_hostname );
 		ldap_int_hostname = NULL;
@@ -474,8 +475,8 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_timelimit = LDAP_NO_LIMIT;
 	gopts->ldo_sizelimit = LDAP_NO_LIMIT;
 
-	gopts->ldo_tm_api = (struct timeval *)NULL;
-	gopts->ldo_tm_net = (struct timeval *)NULL;
+	gopts->ldo_tm_api.tv_sec = -1;
+	gopts->ldo_tm_net.tv_sec = -1;
 
 	/* ldo_defludp will be freed by the termination handler
 	 */
@@ -526,8 +527,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
    	return;
 }
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
-	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 char * ldap_int_hostname = NULL;
 #endif
 
@@ -575,8 +575,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 }
 #endif
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
-	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	{
 		char	*name = ldap_int_hostname;
 

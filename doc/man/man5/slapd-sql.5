@@ -26,7 +26,7 @@ You can take a look at
 (OpenLDAP FAQ-O-Matic/General LDAP FAQ/Directories vs. conventional
 databases) to find out more on this point.
 .LP
-The idea (detailed below) is to use some metainformation to translate
+The idea (detailed below) is to use some meta-information to translate
 LDAP queries to SQL queries, leaving relational schema untouched, so
 that old applications can continue using it without any
 modifications.
@@ -34,7 +34,7 @@ This allows SQL and LDAP applications to inter-operate without
 replication, and exchange data as needed.
 .LP
 The SQL backend is designed to be tunable to virtually any relational
-schema without having to change source (through that metainformation
+schema without having to change source (through that meta-information
 mentioned).
 Also, it uses ODBC to connect to RDBMSes, and is highly configurable
 for SQL dialects RDBMSes may use, so it may be used for integration
@@ -107,7 +107,7 @@ suffix, and the scope is subtree; rather collect all entries.
 .RE
 .SH STATEMENT CONFIGURATION
 These options specify SQL query templates for loading schema mapping
-metainformation, adding and deleting entries to ldap_entries, etc.
+meta-information, adding and deleting entries to ldap_entries, etc.
 All these and subtree_cond should have the given default values.
 For the current value it is recommended to look at the sources,
 or in the log output when slapd starts with "-d 5" or greater.
@@ -520,7 +520,7 @@ not very narrow ;) If anyone needs support for different types for
 keys - he may want to write a patch, and submit it to OpenLDAP ITS,
 then I'll include it.
 .LP
-Also, several people complained that they don't really need very
+Also, several users complained that they don't really need very
 structured trees, and they don't want to update one more table every
 time they add or delete an instance in the relational schema.
 Those people can use a view instead of a real table for ldap_entries, something
@@ -551,8 +551,8 @@ and the baseObject cannot be created; in this case, see the
 directive for a possible workaround.
 
 .LP
-.SH Typical SQL backend operation
-Having metainformation loaded, the SQL backend uses these tables to
+.SH TYPICAL SQL BACKEND OPERATION
+Having meta-information loaded, the SQL backend uses these tables to
 determine a set of primary keys of candidates (depending on search
 scope and filter).
 It tries to do it for each objectclass registered in ldap_objclasses.
@@ -592,7 +592,7 @@ into the most relaxed SQL condition to filter candidates), and send it to
 the user.
 .LP
 ADD, DELETE, MODIFY and MODRDN operations are also performed on per-attribute
-metainformation (add_proc etc.).
+meta-information (add_proc etc.).
 In those fields one can specify an SQL statement or stored procedure
 call which can add, or delete given values of a given attribute, using
 the given entry keyval (see examples -- mostly PostgreSQL, ORACLE and MSSQL 
@@ -605,17 +605,16 @@ Please see samples to find out what are the parameters passed, and other
 information on this matter - they are self-explanatory for those familiar
 with the concepts expressed above.
 .LP
-.SH Common techniques (referrals, multiclassing etc.)
-First of all, let's remember that among other major differences to the
-complete LDAP data model, the concept above does not directly support
-such things as multiple objectclasses per entry, and referrals.
+.SH COMMON TECHNIQUES
+First of all, let's recall that among other major differences to the
+complete LDAP data model, the above illustrated concept does not directly
+support such features as multiple objectclasses per entry, and referrals.
 Fortunately, they are easy to adopt in this scheme.
-The SQL backend suggests one more table being added to the schema:
+The SQL backend requires that one more table is added to the schema:
 ldap_entry_objectclasses(entry_id,oc_name).
 .LP
-The first contains any number of objectclass names that corresponding
-entries will be found by, in addition to that mentioned in
-mapping.
+That table contains any number of objectclass names that corresponding
+entries will possess, in addition to that mentioned in mapping.
 The SQL backend automatically adds attribute mapping for the "objectclass"
 attribute to each objectclass mapping that loads values from this table.
 So, you may, for instance, have a mapping for inetOrgPerson, and use it
@@ -635,7 +634,7 @@ The use of the naming attribute usually requires to add
 an "extensibleObject" value to ldap_entry_objclasses.
 
 .LP
-.SH Caveats
+.SH CAVEATS
 As previously stated, this backend should not be considered
 a replacement of other data storage backends, but rather a gateway
 to existing RDBMS storages that need to be published in LDAP form.
@@ -652,11 +651,22 @@ If you need to find all the leaf entries, please use
 instead.
 .LP
 A directoryString value of the form "__First___Last_"
-(where underscores should be replaced by spaces) corresponds
+(where underscores mean spaces, ASCII 0x20 char) corresponds
 to its prettified counterpart "First_Last"; this is not currently
 honored by back-sql if non-prettified data is written via RDBMS;
 when non-prettified data is written thru back-sql, the prettified 
 values are actually used instead.
+
+.LP
+.SH BUGS
+When the
+.B ldap_entry_objclasses
+table is empty, filters on the 
+.B objectClass
+attribute erroneously result in no candidates.
+A workaround consists in adding at least one row to that table,
+no matter if valid or not.
+
 .LP
 .SH PROXY CACHE OVERLAY
 The proxy cache overlay 

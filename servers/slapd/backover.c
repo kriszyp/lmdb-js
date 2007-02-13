@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -238,6 +238,11 @@ over_back_response ( Operation *op, SlapReply *rs )
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
+	/* Bypass the remaining on_response layers, but allow
+	 * normal execution to continue.
+	 */
+	if ( rc == SLAP_CB_BYPASS )
+		rc = SLAP_CB_CONTINUE;
 	op->o_bd = be;
 	return rc;
 }
@@ -315,6 +320,147 @@ over_access_allowed(
 	op->o_bd->bd_info = bi;
 
 	return rc;
+}
+
+int
+overlay_entry_get_ov(
+	Operation		*op,
+	struct berval	*dn,
+	ObjectClass		*oc,
+	AttributeDescription	*ad,
+	int	rw,
+	Entry	**e,
+	slap_overinst *on )
+{
+	slap_overinfo *oi = on->on_info;
+	BackendDB *be = op->o_bd, db;
+	BackendInfo *bi = op->o_bd->bd_info;
+	int rc = SLAP_CB_CONTINUE;
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_entry_get_rw ) {
+			/* NOTE: do not copy the structure until required */
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_entry_get_rw( op, dn,
+				oc, ad, rw, e );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
+		}
+
+		if ( oi->oi_orig->bi_entry_get_rw ) {
+			rc = oi->oi_orig->bi_entry_get_rw( op, dn,
+				oc, ad, rw, e );
+		}
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = LDAP_UNWILLING_TO_PERFORM;
+	}
+
+	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
+	return rc;
+}
+
+static int
+over_entry_get_rw(
+	Operation		*op,
+	struct berval	*dn,
+	ObjectClass		*oc,
+	AttributeDescription	*ad,
+	int	rw,
+	Entry	**e )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+	return overlay_entry_get_ov( op, dn, oc, ad, rw, e, on );
+}
+
+int
+overlay_entry_release_ov(
+	Operation	*op,
+	Entry	*e,
+	int rw,
+	slap_overinst *on )
+{
+	slap_overinfo *oi = on->on_info;
+	BackendDB *be = op->o_bd, db;
+	BackendInfo *bi = op->o_bd->bd_info;
+	int rc = SLAP_CB_CONTINUE;
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_entry_release_rw ) {
+			/* NOTE: do not copy the structure until required */
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_entry_release_rw( op, e, rw );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
+		}
+
+		if ( oi->oi_orig->bi_entry_release_rw ) {
+			rc = oi->oi_orig->bi_entry_release_rw( op, e, rw );
+		}
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		entry_free( e );
+		rc = 0;
+	}
+
+	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
+	return rc;
+}
+
+static int
+over_entry_release_rw(
+	Operation	*op,
+	Entry	*e,
+	int rw )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+	return overlay_entry_release_ov( op, e, rw, on );
 }
 
 static int
@@ -493,6 +639,8 @@ int overlay_op_walk(
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
+	if ( rc == SLAP_CB_BYPASS )
+		rc = SLAP_CB_CONTINUE;
 
 	func = &oi->oi_orig->bi_op_bind;
 	if ( func[which] && rc == SLAP_CB_CONTINUE ) {
@@ -935,13 +1083,76 @@ overlay_destroy_one( BackendDB *be, slap_overinst *on )
 	}
 }
 
+void
+overlay_insert( BackendDB *be, slap_overinst *on2, slap_overinst ***prev,
+	int idx )
+{
+	slap_overinfo *oi = (slap_overinfo *)be->bd_info;
+
+	if ( idx == -1 ) {
+		on2->on_next = oi->oi_list;
+		oi->oi_list = on2;
+	} else {
+		int i;
+		slap_overinst *on, *otmp1 = NULL, *otmp2;
+
+		/* Since the list is in reverse order and is singly linked,
+		 * we reverse it to find the idx insertion point. Adding
+		 * on overlay at a specific point should be a pretty
+		 * infrequent occurrence.
+		 */
+		for ( on = oi->oi_list; on; on=otmp2 ) {
+			otmp2 = on->on_next;
+			on->on_next = otmp1;
+			otmp1 = on;
+		}
+		oi->oi_list = NULL;
+		/* advance to insertion point */
+		for ( i=0, on = otmp1; i<idx; i++ ) {
+			otmp1 = on->on_next;
+			on->on_next = oi->oi_list;
+			oi->oi_list = on;
+		}
+		/* insert */
+		on2->on_next = oi->oi_list;
+		oi->oi_list = on2;
+		if ( otmp1 ) {
+			*prev = &otmp1->on_next;
+			/* replace remainder of list */
+			for ( on=otmp1; on; on=otmp1 ) {
+				otmp1 = on->on_next;
+				on->on_next = oi->oi_list;
+				oi->oi_list = on;
+			}
+		}
+	}
+}
+
+void
+overlay_move( BackendDB *be, slap_overinst *on, int idx )
+{
+	slap_overinfo *oi = (slap_overinfo *)be->bd_info;
+	slap_overinst **onp;
+
+	for (onp = &oi->oi_list; *onp; onp= &(*onp)->on_next) {
+		if ( *onp == on ) {
+			*onp = on->on_next;
+			break;
+		}
+	}
+	overlay_insert( be, on, &onp, idx );
+}
+
 /* add an overlay to a particular backend. */
 int
-overlay_config( BackendDB *be, const char *ov )
+overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res )
 {
-	slap_overinst *on = NULL, *on2 = NULL;
+	slap_overinst *on = NULL, *on2 = NULL, **prev;
 	slap_overinfo *oi = NULL;
 	BackendInfo *bi = NULL;
+
+	if ( res )
+		*res = NULL;
 
 	on = overlay_find( ov );
 	if ( !on ) {
@@ -1020,6 +1231,8 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_chk_controls = over_aux_chk_controls;
 
 		/* these have specific arglists */
+		bi->bi_entry_get_rw = over_entry_get_rw;
+		bi->bi_entry_release_rw = over_entry_release_rw;
 		bi->bi_access_allowed = over_access_allowed;
 		bi->bi_acl_group = over_acl_group;
 		bi->bi_acl_attribute = over_acl_attribute;
@@ -1042,27 +1255,43 @@ overlay_config( BackendDB *be, const char *ov )
 		oi = be->bd_info->bi_private;
 	}
 
-	/* Insert new overlay on head of list. Overlays are executed
-	 * in reverse of config order...
+	/* Insert new overlay into list. By default overlays are
+	 * added to head of list and executed in LIFO order.
 	 */
 	on2 = ch_calloc( 1, sizeof(slap_overinst) );
 	*on2 = *on;
 	on2->on_info = oi;
-	on2->on_next = oi->oi_list;
-	oi->oi_list = on2;
+
+	prev = &oi->oi_list;
+	/* Do we need to find the insertion point? */
+	if ( idx >= 0 ) {
+		int i;
+
+		/* count current overlays */
+		for ( i=0, on=oi->oi_list; on; on=on->on_next, i++ );
+
+		/* are we just appending a new one? */
+		if ( idx >= i )
+			idx = -1;
+	}
+	overlay_insert( be, on2, &prev, idx );
 
 	/* Any initialization needed? */
-	if ( on->on_bi.bi_db_init ) {
+	if ( on2->on_bi.bi_db_init ) {
 		int rc;
 		be->bd_info = (BackendInfo *)on2;
 		rc = on2->on_bi.bi_db_init( be );
 		be->bd_info = (BackendInfo *)oi;
 		if ( rc ) {
-			oi->oi_list = on2->on_next;
+			*prev = on2->on_next;
 			ch_free( on2 );
+			on2 = NULL;
 			return rc;
 		}
 	}
+
+	if ( res )
+		*res = &on2->on_bi;
 
 	return 0;
 }

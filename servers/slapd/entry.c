@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -207,6 +207,8 @@ str2entry2( char *s, int checkvals )
 		goto fail;
 	}
 
+#define bvcasematch(bv1, bv2)	( ((bv1)->bv_len == (bv2)->bv_len) && (strncasecmp((bv1)->bv_val, (bv2)->bv_val, (bv1)->bv_len) == 0) )
+
 	/* Make sure all attributes with multiple values are contiguous */
 	if ( checkvals ) {
 		int j, k;
@@ -215,7 +217,7 @@ str2entry2( char *s, int checkvals )
 
 		for (i=0; i<lines; i++) {
 			for ( j=i+1; j<lines; j++ ) {
-				if ( bvmatch( type+i, type+j )) {
+				if ( bvcasematch( type+i, type+j )) {
 					/* out of order, move intervening attributes down */
 					if ( j != i+1 ) {
 						bv = vals[j];
@@ -238,7 +240,7 @@ str2entry2( char *s, int checkvals )
 
 	for ( i=0; i<=lines; i++ ) {
 		ad_prev = ad;
-		if ( !ad || ( i<lines && !bvmatch( type+i, &ad->ad_cname ))) {
+		if ( !ad || ( i<lines && !bvcasematch( type+i, &ad->ad_cname ))) {
 			ad = NULL;
 			rc = slap_bv2ad( type+i, &ad, &text );
 
@@ -444,22 +446,30 @@ entry_clean( Entry *e )
 	/* e_private must be freed by the caller */
 	assert( e->e_private == NULL );
 
+	e->e_id = 0;
+
 	/* free DNs */
 	if ( !BER_BVISNULL( &e->e_name ) ) {
 		free( e->e_name.bv_val );
+		BER_BVZERO( &e->e_name );
 	}
 	if ( !BER_BVISNULL( &e->e_nname ) ) {
 		free( e->e_nname.bv_val );
+		BER_BVZERO( &e->e_nname );
 	}
 
 	if ( !BER_BVISNULL( &e->e_bv ) ) {
 		free( e->e_bv.bv_val );
+		BER_BVZERO( &e->e_bv );
 	}
 
 	/* free attributes */
-	attrs_free( e->e_attrs );
+	if ( e->e_attrs ) {
+		attrs_free( e->e_attrs );
+		e->e_attrs = NULL;
+	}
 
-	memset(e, 0, sizeof(Entry));
+	e->e_ocflags = 0;
 }
 
 void
@@ -473,24 +483,47 @@ entry_free( Entry *e )
 	ldap_pvt_thread_mutex_unlock( &entry_mutex );
 }
 
+/* These parameters work well on AMD64 */
+#if 0
+#define	STRIDE 8
+#define	STRIPE 5
+#else
+#define	STRIDE 1
+#define	STRIPE 1
+#endif
+#define	STRIDE_FACTOR (STRIDE*STRIPE)
+
 int
 entry_prealloc( int num )
 {
-	Entry *e;
+	Entry *e, **prev, *tmp;
 	slap_list *s;
+	int i, j;
 
 	if (!num) return 0;
+
+#if STRIDE_FACTOR > 1
+	/* Round up to our stride factor */
+	num += STRIDE_FACTOR-1;
+	num /= STRIDE_FACTOR;
+	num *= STRIDE_FACTOR;
+#endif
 
 	s = ch_calloc( 1, sizeof(slap_list) + num * sizeof(Entry));
 	s->next = entry_chunks;
 	entry_chunks = s;
 
-	e = (Entry *)(s+1);
-	for ( ;num>1; num--) {
-		e->e_private = e+1;
-		e++;
+	prev = &tmp;
+	for (i=0; i<STRIPE; i++) {
+		e = (Entry *)(s+1);
+		e += i;
+		for (j=i; j<num; j+= STRIDE) {
+			*prev = e;
+			prev = (Entry **)&e->e_private;
+			e += STRIDE;
+		}
 	}
-	e->e_private = entry_list;
+	*prev = entry_list;
 	entry_list = (Entry *)(s+1);
 
 	return 0;
@@ -862,3 +895,76 @@ Entry *entry_dup( Entry *e )
 	return ret;
 }
 
+#if 1
+/* Duplicates an entry using a single malloc. Saves CPU time, increases
+ * heap usage because a single large malloc is harder to satisfy than
+ * lots of small ones, and the freed space isn't as easily reusable.
+ *
+ * Probably not worth using this function.
+ */
+Entry *entry_dup_bv( Entry *e )
+{
+	ber_len_t len;
+	int nattrs, nvals;
+	Entry *ret;
+	struct berval *bvl;
+	char *ptr;
+	Attribute *src, *dst;
+
+	ret = entry_alloc();
+
+	entry_partsize(e, &len, &nattrs, &nvals, 1);
+	ret->e_id = e->e_id;
+	ret->e_attrs = attrs_alloc( nattrs );
+	ret->e_ocflags = e->e_ocflags;
+	ret->e_bv.bv_len = len + nvals * sizeof(struct berval);
+	ret->e_bv.bv_val = ch_malloc( ret->e_bv.bv_len );
+
+	bvl = (struct berval *)ret->e_bv.bv_val;
+	ptr = (char *)(bvl + nvals);
+
+	ret->e_name.bv_len = e->e_name.bv_len;
+	ret->e_name.bv_val = ptr;
+	AC_MEMCPY( ptr, e->e_name.bv_val, e->e_name.bv_len );
+	ptr += e->e_name.bv_len;
+	*ptr++ = '\0';
+
+	ret->e_nname.bv_len = e->e_nname.bv_len;
+	ret->e_nname.bv_val = ptr;
+	AC_MEMCPY( ptr, e->e_nname.bv_val, e->e_nname.bv_len );
+	ptr += e->e_name.bv_len;
+	*ptr++ = '\0';
+
+	dst = ret->e_attrs;
+	for (src = e->e_attrs; src; src=src->a_next,dst=dst->a_next ) {
+		int i;
+		dst->a_desc = src->a_desc;
+		dst->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
+		dst->a_vals = bvl;
+		for ( i=0; src->a_vals[i].bv_val; i++ ) {
+			bvl->bv_len = src->a_vals[i].bv_len;
+			bvl->bv_val = ptr;
+			AC_MEMCPY( ptr, src->a_vals[i].bv_val, bvl->bv_len );
+			ptr += bvl->bv_len;
+			*ptr++ = '\0';
+			bvl++;
+		}
+		BER_BVZERO(bvl);
+		bvl++;
+		if ( src->a_vals != src->a_nvals ) {
+			dst->a_nvals = bvl;
+			for ( i=0; src->a_nvals[i].bv_val; i++ ) {
+				bvl->bv_len = src->a_nvals[i].bv_len;
+				bvl->bv_val = ptr;
+				AC_MEMCPY( ptr, src->a_nvals[i].bv_val, bvl->bv_len );
+				ptr += bvl->bv_len;
+				*ptr++ = '\0';
+				bvl++;
+			}
+			BER_BVZERO(bvl);
+			bvl++;
+		}
+	}
+	return ret;
+}
+#endif

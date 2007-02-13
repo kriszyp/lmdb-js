@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -165,7 +165,7 @@ sb_sasl_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 		return -1;
 	}
 	sasl_getprop( p->sasl_context, SASL_MAXOUTBUF,
-		(SASL_CONST void **) &p->sasl_maxbuf );
+		(SASL_CONST void **)(char *) &p->sasl_maxbuf );
 	    
 	sbiod->sbiod_pvt = p;
 
@@ -847,7 +847,7 @@ ldap_int_sasl_bind(
 
 	if( flags != LDAP_SASL_QUIET ) {
 		saslrc = sasl_getprop( ctx, SASL_USERNAME,
-			(SASL_CONST void **) &data );
+			(SASL_CONST void **)(char *) &data );
 		if( saslrc == SASL_OK && data && *data ) {
 			fprintf( stderr, "SASL username: %s\n", data );
 		}
@@ -861,7 +861,7 @@ ldap_int_sasl_bind(
 #endif
 	}
 
-	saslrc = sasl_getprop( ctx, SASL_SSF, (SASL_CONST void **) &ssf );
+	saslrc = sasl_getprop( ctx, SASL_SSF, (SASL_CONST void **)(char *) &ssf );
 	if( saslrc == SASL_OK ) {
 		if( flags != LDAP_SASL_QUIET ) {
 			fprintf( stderr, "SASL SSF: %lu\n",
@@ -1158,7 +1158,7 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 			}
 
 			sc = sasl_getprop( ctx, SASL_SSF,
-				(SASL_CONST void **) &ssf );
+				(SASL_CONST void **)(char *) &ssf );
 
 			if ( sc != SASL_OK ) {
 				return -1;
@@ -1265,7 +1265,7 @@ void *ldap_pvt_sasl_mutex_new(void)
 {
 	ldap_pvt_thread_mutex_t *mutex;
 
-	mutex = (ldap_pvt_thread_mutex_t *) LDAP_MALLOC(
+	mutex = (ldap_pvt_thread_mutex_t *) LDAP_CALLOC( 1,
 		sizeof(ldap_pvt_thread_mutex_t) );
 
 	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {

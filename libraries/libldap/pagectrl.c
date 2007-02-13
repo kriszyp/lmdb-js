@@ -1,6 +1,6 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * Copyright 2006 Hans Leidekker
  * All rights reserved.
  *
@@ -11,9 +11,6 @@
  * A copy of this license is available in the file LICENSE in the
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
- */
-/* Portions Copyright (C) The Internet Society (1999)
- * ASN.1 fragments are from RFC 2696; see RFC for full legal notices.
  */
 
 #include "portable.h"

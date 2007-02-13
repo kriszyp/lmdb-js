@@ -1,5 +1,5 @@
 .TH SLAPD-META 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 1998-2006 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copyright 1998-2007 The OpenLDAP Foundation, All Rights Reserved.
 .\" Copying restrictions apply.  See the COPYRIGHT file.
 .\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
 .\" $OpenLDAP$
@@ -87,6 +87,11 @@ to all backends.
 They are:
 
 .TP
+.B conn-ttl <time>
+This directive causes a cached connection to be dropped an recreated
+after a given ttl, regardless of being idle or not.
+
+.TP
 .B default-target none
 This directive forces the backend to reject all those operations
 that must resolve to a single target in case none or multiple
@@ -110,19 +115,17 @@ illustrated for the
 directive.
 
 .TP
-.B conn-ttl <time>
-This directive causes a cached connection to be dropped an recreated
-after a given ttl, regardless of being idle or not.
-
-.TP
-.B onerr {CONTINUE|stop}
+.B onerr {CONTINUE|report|stop}
 This directive allows to select the behavior in case an error is returned
 by one target during a search.
 The default, \fBcontinue\fP, consists in continuing the operation, 
 trying to return as much data as possible.
-If this statement is set to \fBstop\fP, the search is terminated as soon 
+If the value is set to \fBstop\fP, the search is terminated as soon 
 as an error is returned by one target, and the error is immediately 
 propagated to the client.
+If the value is set to \fBreport\fP, the search is continuated to the end
+but, in case at least one target returned an error code, the first
+non-success error code is returned.
 
 .TP
 .B protocol\-version {0,2,3}
@@ -163,11 +166,22 @@ it affects all targets with the same pattern.
 .TP
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.
+for rebinds, when trying to re-establish a broken connection,
+or when chasing a referral, if 
+.B chase-referrals
+is set to
+.IR yes .
 
 .TP
 .B single\-conn {NO|yes}
 Discards current cached connection when the client rebinds.
+
+.TP
+.B use-temporary-conn {NO|yes}
+when set to 
+.BR yes ,
+create a temporary connection whenever competing with other threads
+for a shared one; otherwise, wait until the shared connection is available.
 
 .SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:
@@ -283,6 +297,18 @@ See
 .BR slapd-ldap (5).
 
 .TP
+.B network-timeout <time>
+Sets the network timeout value after which
+.BR poll (2)/ select (2) 
+following a 
+.BR connect (2) 
+returns in case of no activity.
+The value is in seconds, and it can be specified as for
+.BR idle-timeout .
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
 .B nretries {forever|never|<nretries>}
 This directive defines how many times a bind should be retried
 in case of temporary failure in contacting a target.  If defined
@@ -345,22 +371,35 @@ If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
 .TP
-.B timeout [{add|delete|modify|modrdn}=]<seconds> [...]
-This directive allows to set per-database, per-target and per-operation
-timeouts.
-If no operation is specified, it affects all.
-Currently, only write operations are addressed, because searches
-can already be limited by means of the
-.B limits
-directive (see 
+.B timeout [<op>=]<val> [...]
+This directive allows to set per-operation timeouts.
+Operations can be
+
+\fB<op> ::= bind, add, delete, modrdn, modify, compare, search\fP
+
+The overall duration of the \fBsearch\fP operation is controlled either
+by the \fBtimelimit\fP parameter or by server-side enforced
+time limits (see \fBtimelimit\fP and \fBlimits\fP in
 .BR slapd.conf (5)
-for details), and other operations are not supposed to incur into the
-need for timeouts.
-Note: if the timelimit is exceeded, the operation is abandoned;
-the protocol does not provide any means to rollback the operation,
-so the client will not know if the operation eventually succeeded or not.
-If set before any target specification, it affects all targets, unless
-overridden by any per-target directive.
+for details).
+This \fBtimeout\fP parameter controls how long the target can be 
+irresponsive before the operation is aborted.
+Timeout is meaningless for the remaining operations,
+\fBunbind\fP and \fBabandon\fP, which do not imply any response,
+while it is not yet implemented in currently supported \fBextended\fP 
+operations.
+If no operation is specified, the timeout \fBval\fP affects all
+supported operations.
+If specified before any target definition, it affects all targets
+unless overridden by per-target directives.
+
+Note: if the timelimit is exceeded, the operation is cancelled
+(according to the \fBcancel\fP directive);
+the protocol does not provide any means to rollback operations,
+so the client will not be notified about the result of the operation,
+which may eventually succeeded or not.
+In case the timeout is exceeded during a bind operation, the connection
+is destroyed, according to RFC4511.
 
 .TP
 .B tls {[try-]start|[try-]propagate}

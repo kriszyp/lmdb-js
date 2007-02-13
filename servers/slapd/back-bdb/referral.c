@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,7 @@ dn2entry_retry:
 				}
 			}
 
-			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_cache_return_entry_r (bdb, e, &lock);
 			e = NULL;
 		} else if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) && default_referral != NULL ) {
 			rc = LDAP_OTHER;
@@ -156,7 +156,7 @@ dn2entry_retry:
 		ber_bvarray_free( refs );
 	}
 
-	bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+	bdb_cache_return_entry_r(bdb, e, &lock);
 	LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 	return rc;
 }

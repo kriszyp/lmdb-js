@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2007 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -38,7 +38,6 @@ static int
 meta_back_new_target( 
 	metatarget_t	**mtp )
 {
-        struct ldapmapping	*mapping;
 	char			*rargv[ 3 ];
 	metatarget_t		*mt;
 
@@ -51,7 +50,6 @@ meta_back_new_target(
 		ch_free( mt );
 		return -1;
 	}
-
 
 	/*
 	 * the filter rewrite as a string must be disabled
@@ -67,8 +65,6 @@ meta_back_new_target(
 	rargv[ 1 ] = "default";
 	rargv[ 2 ] = NULL;
 	rewrite_parse( mt->mt_rwmap.rwm_rw, "<suffix massage>", 1, 2, rargv );
-
-	ldap_back_map_init( &mt->mt_rwmap.rwm_at, &mapping );
 
 	ldap_pvt_thread_mutex_init( &mt->mt_uri_mutex );
 
@@ -769,20 +765,23 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "onerr" ) == 0 ) {
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"onerr {CONTINUE|stop}\" takes 1 argument\n",
+	"%s: line %d: \"onerr {CONTINUE|report|stop}\" takes 1 argument\n",
 				fname, lineno, 0 );
 			return( 1 );
 		}
 
 		if ( strcasecmp( argv[ 1 ], "continue" ) == 0 ) {
-			mi->mi_flags &= ~META_BACK_F_ONERR_STOP;
+			mi->mi_flags &= ~META_BACK_F_ONERR_MASK;
 
 		} else if ( strcasecmp( argv[ 1 ], "stop" ) == 0 ) {
 			mi->mi_flags |= META_BACK_F_ONERR_STOP;
 
+		} else if ( strcasecmp( argv[ 1 ], "report" ) == 0 ) {
+			mi->mi_flags |= META_BACK_F_ONERR_REPORT;
+
 		} else {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: \"onerr {CONTINUE|stop}\": invalid arg \"%s\".\n",
+	"%s: line %d: \"onerr {CONTINUE|report|stop}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
@@ -842,6 +841,64 @@ meta_back_db_config(
 		default:
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: \"single-conn {FALSE|true}\": invalid arg \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
+	/* use-temporaries? */
+	} else if ( strcasecmp( argv[ 0 ], "use-temporary-conn" ) == 0 ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"use-temporary-conn {FALSE|true}\" takes 1 argument\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( mi->mi_ntargets > 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"use-temporary-conn\" must appear before target definitions\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 0:
+			mi->mi_flags &= ~LDAP_BACK_F_USE_TEMPORARIES;
+			break;
+
+		case 1:
+			mi->mi_flags |= LDAP_BACK_F_USE_TEMPORARIES;
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"use-temporary-conn {FALSE|true}\": invalid arg \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
+	/* privileged connections pool max size ? */
+	} else if ( strcasecmp( argv[ 0 ], "conn-pool-max" ) == 0 ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"conn-pool-max <n>\" takes 1 argument\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( mi->mi_ntargets > 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"conn-pool-max\" must appear before target definitions\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		if ( lutil_atoi( &mi->mi_conn_priv_max, argv[1] )
+			|| mi->mi_conn_priv_max < LDAP_BACK_CONN_PRIV_MIN
+			|| mi->mi_conn_priv_max > LDAP_BACK_CONN_PRIV_MAX )
+		{
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"conn-pool-max <n>\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
@@ -916,10 +973,8 @@ meta_back_db_config(
 					t = &tv[ SLAP_OP_MODIFY ];
 				} else if ( strncasecmp( argv[ c ], "compare", len ) == 0 ) {
 					t = &tv[ SLAP_OP_COMPARE ];
-#if 0				/* uses timelimit instead */
 				} else if ( strncasecmp( argv[ c ], "search", len ) == 0 ) {
 					t = &tv[ SLAP_OP_SEARCH ];
-#endif
 				/* abandon makes little sense */
 #if 0				/* not implemented yet */
 				} else if ( strncasecmp( argv[ c ], "extended", len ) == 0 ) {
@@ -1173,6 +1228,13 @@ idassert-authzFrom	"dn:<rootdn>"
 				fname, lineno, buf );
 			return 1;
 		}
+
+		if ( mi->mi_ntargets ) {
+			mi->mi_flags |= LDAP_BACK_F_QUARANTINE;
+
+		} else {
+			mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags |= LDAP_BACK_F_QUARANTINE;
+		}
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
@@ -1399,7 +1461,7 @@ ldap_back_map_config(
 	if ( strcmp( argv[ 2 ], "*" ) == 0 ) {
 		if ( argc < 4 || strcmp( argv[ 3 ], "*" ) == 0 ) {
 			map->drop_missing = ( argc < 4 );
-			return 0;
+			goto success_return;
 		}
 		src = dst = argv[ 3 ];
 
@@ -1413,7 +1475,7 @@ ldap_back_map_config(
 	}
 
 	if ( ( map == at_map )
-			&& ( strcasecmp( src, "objectclass" ) == 0
+		&& ( strcasecmp( src, "objectclass" ) == 0
 			|| strcasecmp( dst, "objectclass" ) == 0 ) )
 	{
 		Debug( LDAP_DEBUG_ANY,
@@ -1540,6 +1602,12 @@ ldap_back_map_config(
 	}
 	avl_insert( &map->remap, (caddr_t)&mapping[ 1 ],
 				mapping_cmp, mapping_dup );
+
+success_return:;
+	if ( !is_oc && map->map == NULL ) {
+		/* only init if required */
+		ldap_back_map_init( map, &mapping );
+	}
 
 	return 0;
 
