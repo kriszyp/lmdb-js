@@ -434,6 +434,9 @@ process_ldif_rec( char *rbuf, int linenum )
 
 	lines = ldif_countlines( rbuf );
 	btype = ber_memcalloc( 1, (lines+1)*2*sizeof(struct berval)+lines );
+	if ( !btype )
+		return LDAP_NO_MEMORY;
+
 	vals = btype+lines+1;
 	freeval = (char *)(vals+lines+1);
 	i = -1;
