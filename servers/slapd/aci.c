@@ -449,7 +449,7 @@ aci_mask(
 	   This routine now supports scope={ENTRY,CHILDREN}
 	   with the semantics:
 	     - ENTRY applies to "entry" and "subtree";
-	     - CHILDREN aplies to "children" and "subtree"
+	     - CHILDREN applies to "children" and "subtree"
 	 */
 
 	/* check that the aci has all 5 components */
@@ -1016,7 +1016,7 @@ bv_get_tail(
  *    action    := perms;attrs[[;perms;attrs]...]
  *    perms     := perm[[,perm]...]
  *    perm      := c|s|r|w|x
- *    attrs     := attribute[[,attribute]..]|[all]
+ *    attrs     := attribute[[,attribute]..]|"[all]"
  *    attribute := attributeType|attributeType=attributeValue|attributeType=attributeValuePrefix*
  *    type      := public|users|self|dnattr|group|role|set|set-ref|
  *                 access_id|subtree|onelevel|children
@@ -1544,6 +1544,8 @@ OpenLDAPaciPrettyNormal(
 			freesubject = 0,
 			freetype = 0;
 	char		*ptr;
+
+	BER_BVZERO( out );
 
 	if ( BER_BVISEMPTY( val ) ) {
 		Debug( LDAP_DEBUG_ACL, "aciPrettyNormal: value is empty\n", 0, 0, 0 );
