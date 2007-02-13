@@ -14,6 +14,8 @@ OpenLDAP 2.3.34 Engineering
 	Fixed slapo-syncprov contextCSN checkpoint again (ITS#4720)
 	Added slapo-ppolicy cn=config support (ITS#4836)
 	Added slapo-auditlog cn=config support
+	Build environment
+		Added Berkeley DB 4.5 detection
 	Documentation
 		Note slapo-dynlist interaction with manageDSAit (ITS#4831)
 
