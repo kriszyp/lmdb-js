@@ -697,6 +697,7 @@ ldap_sync_init( ldap_sync_t *ls, int mode )
 		ber == NULL ? "=" : "!" );
 #endif /* LDAP_SYNC_TRACE */
 	if ( ber == NULL ) {
+		rc = LDAP_NO_MEMORY;
 		goto done;
 	}
 
