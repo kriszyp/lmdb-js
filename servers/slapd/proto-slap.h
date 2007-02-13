@@ -1673,7 +1673,7 @@ LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
 
 LDAP_SLAPD_F (int)  syncrepl_add_glue LDAP_P(( 
 					Operation*, Entry* ));
-LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( struct syncinfo_s * ));
+LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( struct syncinfo_s *, int all ));
 
 /* syntax.c */
 LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((

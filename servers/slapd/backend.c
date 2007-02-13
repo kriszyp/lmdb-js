@@ -422,7 +422,7 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	}
 
 	if ( bd->be_syncinfo ) {
-		syncinfo_free( bd->be_syncinfo );
+		syncinfo_free( bd->be_syncinfo, 1 );
 	}
 
 	backend_stopdown_one( bd );
