@@ -4803,7 +4803,8 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 					ca->valx = d->idx[i];
 					rc = config_del_vals( ct, ca );
 					if ( rc != LDAP_SUCCESS ) break;
-					s->a_flags |= SLAP_ATTR_IXDEL;
+					if ( s )
+						s->a_flags |= SLAP_ATTR_IXDEL;
 					for (j=i+1; j < d->nidx; j++)
 						if ( d->idx[j] >d->idx[i] )
 							d->idx[j]--;
@@ -4813,7 +4814,8 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				ca->line = NULL;
 				rc = config_del_vals( ct, ca );
 				if ( rc ) rc = LDAP_OTHER;
-				s->a_flags |= SLAP_ATTR_IXDEL;
+				if ( s )
+					s->a_flags |= SLAP_ATTR_IXDEL;
 			}
 			if ( ml->sml_values ) {
 				d = d->next;
