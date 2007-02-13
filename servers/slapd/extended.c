@@ -281,7 +281,7 @@ load_extop2(
 		LDAP_SUCCESS )
 	{
 		oidm.bv_val = oidm_find( ext_oid->bv_val );
-		if ( ext_oid == NULL ) {
+		if ( oidm.bv_val == NULL ) {
 			return -1;
 		}
 		oidm.bv_len = strlen( oidm.bv_val );

@@ -1628,13 +1628,11 @@ syncrepl_message_to_entry(
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
 		/* NOTE: this could be done even before decoding the DN,
 		 * although encoding errors wouldn't be detected */
-		rc = LDAP_SUCCESS;
-		goto done;
+		return LDAP_SUCCESS;
 	}
 
 	if ( entry == NULL ) {
-		rc = -1;
-		goto done;
+		return -1;
 	}
 
 	dnPrettyNormal( NULL, &bdn, &dn, &ndn, op->o_tmpmemctx );
