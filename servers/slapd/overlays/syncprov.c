@@ -2179,6 +2179,8 @@ no_change:		nochange = 1;
 			/* No, so a reload is required */
 			/* the 2.2 consumer doesn't send this hint */
 			if ( si->si_usehint && srs->sr_rhint == 0 ) {
+				if ( ctxcsn )
+					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
 				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
 				return rs->sr_err;
 			}
@@ -2187,6 +2189,8 @@ no_change:		nochange = 1;
 			/* If changed and doing Present lookup, send Present UUIDs */
 			if ( do_present && syncprov_findcsn( op, FIND_PRESENT ) !=
 				LDAP_SUCCESS ) {
+				if ( ctxcsn )
+					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
 				send_ldap_result( op, rs );
 				return rs->sr_err;
 			}
