@@ -298,7 +298,7 @@ do_random( char *uri, char *manager, struct berval *passwd,
 		if ( !values ) {
 			fprintf( stderr, "  PID=%ld - Search base=\"%s\" filter=\"%s\" got %d values.\n",
 				(long) pid, sbase, filter, nvalues );
-			exit(EXIT_FAIL);
+			exit(EXIT_FAILURE);
 		}
 
 		if ( do_retry == maxretries ) {
