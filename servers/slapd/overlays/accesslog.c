@@ -1297,7 +1297,6 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 done:
 	if ( lo->mask & LOG_OP_WRITES )
 		ldap_pvt_thread_mutex_unlock( &li->li_log_mutex );
-	if ( e ) entry_free( e );
 	if ( old ) entry_free( old );
 	return SLAP_CB_CONTINUE;
 }
