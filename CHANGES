@@ -5,6 +5,7 @@ OpenLDAP 2.3.34 Engineering
 	Fixed ldapmodify printing error from ldap_result() (ITS#4812)
 	Fixed slapadd LDIF parsing (ITS#4817)
 	Fixed slapd syncrepl memory leaks (ITS#4805)
+	Fixed slapd dynacl/ACI compatibility with 2.1
 	Fixed slapd-bdb/hdb be_entry_get with aliases/referrals (ITS#4810)
 	Fixed slapd-ldap more response handling bugs (ITS#4782)
 	Fixed slapd-ldap C-API code tests (ITS#4808)
