@@ -278,18 +278,31 @@ aci_list_get_attr_rights(
 	ACL_INIT(mask);
 	for ( i = 1; acl_get_part( list, i + 1, ';', &bv ) >= 0; i += 2 ) {
 		if ( aci_list_has_attr( &bv, attr, val ) == 0 ) {
-			Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights test %s for %s -> failed\n", bv.bv_val, attr->bv_val, 0 );
+			Debug( LDAP_DEBUG_ACL,
+				"        <= aci_list_get_attr_rights "
+				"test %s for %s -> failed\n",
+				bv.bv_val, attr->bv_val, 0 );
 			continue;
 		}
-		Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights test %s for %s -> ok\n", bv.bv_val, attr->bv_val, 0 );
+
+		Debug( LDAP_DEBUG_ACL,
+			"        <= aci_list_get_attr_rights "
+			"test %s for %s -> ok\n",
+			bv.bv_val, attr->bv_val, 0 );
 
 		if ( acl_get_part( list, i, ';', &bv ) < 0 ) {
-			Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights test no rightsk\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ACL,
+				"        <= aci_list_get_attr_rights "
+				"test no rights\n",
+				0, 0, 0 );
 			continue;
 		}
 
 		mask |= aci_list_map_rights( &bv );
-		Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights rights %s to mask 0x%x\n", bv.bv_val, mask, 0 );
+		Debug( LDAP_DEBUG_ACL,
+			"        <= aci_list_get_attr_rights "
+			"rights %s to mask 0x%x\n",
+			bv.bv_val, mask, 0 );
 	}
 
 	return mask;
