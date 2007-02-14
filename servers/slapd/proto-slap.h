@@ -720,6 +720,11 @@ LDAP_SLAPD_F (void) connection_fake_init LDAP_P((
 	Connection *conn,
 	Operation *op,
 	void *threadctx ));
+LDAP_SLAPD_F (void) connection_fake_init2 LDAP_P((
+	Connection *conn,
+	Operation *op,
+	void *threadctx,
+	int newmem ));
 LDAP_SLAPD_F (void) connection_assign_nextid LDAP_P((Connection *));
 
 /*
@@ -1651,7 +1656,7 @@ LDAP_SLAPD_V (BerMemoryFunctions) slap_sl_mfuncs;
 
 LDAP_SLAPD_F (void) slap_sl_mem_init LDAP_P(( void ));
 LDAP_SLAPD_F (void *) slap_sl_mem_create LDAP_P((
-						ber_len_t size, int stack, void *ctx ));
+						ber_len_t size, int stack, void *ctx, int new ));
 LDAP_SLAPD_F (void) slap_sl_mem_detach LDAP_P(( void *ctx, void *memctx ));
 LDAP_SLAPD_F (void) slap_sl_mem_destroy LDAP_P(( void *key, void *data ));
 LDAP_SLAPD_F (void *) slap_sl_context LDAP_P(( void *ptr ));

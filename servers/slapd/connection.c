@@ -1111,7 +1111,7 @@ connection_operation( void *ctx, void *arg_v )
 #endif
 	memsiz = SLAP_SLAB_SIZE;
 
-	memctx = slap_sl_mem_create( memsiz, SLAP_SLAB_STACK, ctx );
+	memctx = slap_sl_mem_create( memsiz, SLAP_SLAB_STACK, ctx, 1 );
 	op->o_tmpmemctx = memctx;
 	op->o_tmpmfuncs = &slap_sl_mfuncs;
 	if ( tag != LDAP_REQ_ADD && tag != LDAP_REQ_MODIFY ) {
@@ -1982,6 +1982,16 @@ connection_fake_init(
 	Operation *op,
 	void *ctx )
 {
+	connection_fake_init2( conn, op, ctx, 0 );
+}
+
+void
+connection_fake_init2(
+	Connection *conn,
+	Operation *op,
+	void *ctx,
+	int newmem )
+{
 	conn->c_connid = -1;
 	conn->c_send_ldap_result = slap_send_ldap_result;
 	conn->c_send_search_entry = slap_send_search_entry;
@@ -1994,7 +2004,8 @@ connection_fake_init(
 	op->o_hdr = (Opheader *)(op+1);
 	op->o_controls = (void **)(op->o_hdr+1);
 	/* set memory context */
-	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx);
+	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx,
+		newmem );
 	op->o_tmpmfuncs = &slap_sl_mfuncs;
 	op->o_threadctx = ctx;
 	op->o_tid = ldap_pvt_thread_pool_tid( ctx );

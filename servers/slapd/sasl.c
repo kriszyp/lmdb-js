@@ -28,6 +28,10 @@
 
 #include "slap.h"
 
+#ifdef ENABLE_REWRITE
+#include <rewrite.h>
+#endif
+
 #ifdef HAVE_CYRUS_SASL
 # ifdef HAVE_SASL_SASL_H
 #  include <sasl/sasl.h>
@@ -950,8 +954,234 @@ static int chk_sasl(
 
 #endif /* HAVE_CYRUS_SASL */
 
+#ifdef ENABLE_REWRITE
+
+typedef struct slapd_map_data {
+	struct berval base;
+	struct berval filter;
+	AttributeName attrs[2];
+	int scope;
+} slapd_map_data;
+
+static void *
+slapd_rw_config( const char *fname, int lineno, int argc, char **argv )
+{
+	slapd_map_data *ret = NULL;
+	LDAPURLDesc *lud = NULL;
+	char *uri;
+	AttributeDescription *ad = NULL;
+	int rc, flen = 0;
+	struct berval dn, ndn;
+
+	if ( argc != 1 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"[%s:%d] slapd map needs URI\n",
+			fname, lineno, 0 );
+        return NULL;
+	}
+
+	uri = argv[0];
+	if ( strncasecmp( uri, "uri=", STRLENOF( "uri=" ) ) == 0 ) {
+		uri += STRLENOF( "uri=" );
+	}
+
+	if ( ldap_url_parse( uri, &lud ) != LDAP_URL_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"[%s:%d] illegal URI '%s'\n",
+			fname, lineno, uri );
+        return NULL;
+	}
+
+	if ( strcasecmp( lud->lud_scheme, "ldap" )) {
+		Debug( LDAP_DEBUG_ANY,
+			"[%s:%d] illegal URI scheme '%s'\n",
+			fname, lineno, lud->lud_scheme );
+		goto done;
+	}
+
+	if (( lud->lud_host && lud->lud_host[0] ) || lud->lud_exts
+		|| !lud->lud_dn ) {
+		Debug( LDAP_DEBUG_ANY,
+			"[%s:%d] illegal URI '%s'\n",
+			fname, lineno, uri );
+		goto done;
+	}
+
+	if ( lud->lud_attrs ) {
+		if ( lud->lud_attrs[1] ) {
+			Debug( LDAP_DEBUG_ANY,
+				"[%s:%d] only one attribute allowed in URI\n",
+				fname, lineno, 0 );
+			goto done;
+		}
+		if ( strcasecmp( lud->lud_attrs[0], "dn" ) &&
+			strcasecmp( lud->lud_attrs[0], "entryDN" )) {
+			const char *text;
+			rc = slap_str2ad( lud->lud_attrs[0], &ad, &text );
+			if ( rc )
+				goto done;
+		}
+	}
+	ber_str2bv( lud->lud_dn, 0, 0, &dn );
+	if ( dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL ))
+		goto done;
+
+	if ( lud->lud_filter ) {
+		flen = strlen( lud->lud_filter ) + 1;
+	}
+	ret = ch_malloc( sizeof( slapd_map_data ) + flen );
+	ret->base = ndn;
+	if ( flen ) {
+		ret->filter.bv_val = (char *)(ret+1);
+		ret->filter.bv_len = flen - 1;
+		strcpy( ret->filter.bv_val, lud->lud_filter );
+	} else {
+		BER_BVZERO( &ret->filter );
+	}
+	ret->scope = lud->lud_scope;
+	if ( ad ) {
+		ret->attrs[0].an_name = ad->ad_cname;
+	} else {
+		BER_BVZERO( &ret->attrs[0].an_name );
+	}
+	ret->attrs[0].an_desc = ad;
+	BER_BVZERO( &ret->attrs[1].an_name );
+done:
+	ldap_free_urldesc( lud );
+	return ret;
+}
+
+struct slapd_rw_info {
+	slapd_map_data *si_data;
+	struct berval si_val;
+};
+
+static int
+slapd_rw_cb( Operation *op, SlapReply *rs )
+{
+	if ( rs->sr_type == REP_SEARCH ) {
+		struct slapd_rw_info *si = op->o_callback->sc_private;
+
+		if ( si->si_data->attrs[0].an_desc ) {
+			Attribute *a;
+
+			a = attr_find( rs->sr_entry->e_attrs,
+				si->si_data->attrs[0].an_desc );
+			if ( a ) {
+				ber_dupbv( &si->si_val, a->a_vals );
+			}
+		} else {
+			ber_dupbv( &si->si_val, &rs->sr_entry->e_name );
+		}
+	}
+	return LDAP_SUCCESS;
+}
+
+static int
+slapd_rw_apply( void *private, const char *filter, struct berval *val )
+{
+	slapd_map_data *sl = private;
+	slap_callback cb = { NULL };
+	Connection conn = {0};
+	OperationBuffer opbuf;
+	Operation *op;
+	void *thrctx;
+	SlapReply rs = {REP_RESULT};
+	struct slapd_rw_info si;
+	char *ptr;
+	int rc;
+
+	thrctx = ldap_pvt_thread_pool_context();
+	op = (Operation *)&opbuf;
+	connection_fake_init2( &conn, op, thrctx, 0 );
+
+	op->o_tag = LDAP_REQ_SEARCH;
+	op->o_req_dn = op->o_req_ndn = sl->base;
+	op->o_bd = select_backend( &op->o_req_ndn, 0, 1 );
+	if ( !op->o_bd ) {
+		return REWRITE_ERR;
+	}
+	si.si_data = sl;
+	BER_BVZERO( &si.si_val );
+	op->ors_scope = sl->scope;
+	op->ors_deref = LDAP_DEREF_NEVER;
+	op->ors_slimit = 1;
+	op->ors_tlimit = SLAP_NO_LIMIT;
+	if ( sl->attrs[0].an_desc ) {
+		op->ors_attrs = sl->attrs;
+	} else {
+		op->ors_attrs = slap_anlist_no_attrs;
+	}
+	if ( filter ) {
+		rc = strlen( filter );
+	} else {
+		rc = 0;
+	}
+	rc += sl->filter.bv_len;
+	ptr = op->ors_filterstr.bv_val = op->o_tmpalloc( rc + 1, op->o_tmpmemctx );
+	if ( sl->filter.bv_len ) {
+		ptr = lutil_strcopy( ptr, sl->filter.bv_val );
+	}
+	strcpy( ptr, filter );
+	op->ors_filter = str2filter_x( op, op->ors_filterstr.bv_val );
+	if ( !op->ors_filter ) {
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+		return REWRITE_ERR;
+	}
+
+	op->ors_attrsonly = 0;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+	op->o_do_not_cache = 1;
+
+	cb.sc_response = slapd_rw_cb;
+	cb.sc_private = &si;
+	op->o_callback = &cb;
+
+	rc = op->o_bd->be_search( op, &rs );
+	if ( rc == LDAP_SUCCESS && !BER_BVISNULL( &si.si_val )) {
+		*val = si.si_val;
+		rc = REWRITE_SUCCESS;
+	} else {
+		if ( !BER_BVISNULL( &si.si_val )) {
+			ch_free( si.si_val.bv_val );
+		}
+		rc = REWRITE_ERR;
+	}
+	filter_free_x( op, op->ors_filter );
+	op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	return rc;
+}
+
+static int
+slapd_rw_destroy( void *private )
+{
+	slapd_map_data *md = private;
+
+	assert( private != NULL );
+
+	ch_free( md->base.bv_val );
+	ch_free( md->filter.bv_val );
+	ch_free( md );
+
+	return 0;
+}
+
+static const rewrite_mapper slapd_mapper = {
+	"slapd",
+	slapd_rw_config,
+	slapd_rw_apply,
+	slapd_rw_destroy
+};
+#endif
+
 int slap_sasl_init( void )
 {
+
+#ifdef ENABLE_REWRITE
+	rewrite_mapper_register( &slapd_mapper );
+#endif
+
 #ifdef HAVE_CYRUS_SASL
 	int rc;
 	static sasl_callback_t server_callbacks[] = {
