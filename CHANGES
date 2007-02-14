@@ -4,6 +4,7 @@ OpenLDAP 2.3.34 Engineering
 	Fixed libldap missing get_option(TLS CipherSuite) (ITS#4815)
 	Fixed ldapmodify printing error from ldap_result() (ITS#4812)
 	Fixed slapadd LDIF parsing (ITS#4817)
+	Fixed slapd libltdl link ordering (ITS#4830)
 	Fixed slapd syncrepl memory leaks (ITS#4805)
 	Fixed slapd dynacl/ACI compatibility with 2.1
 	Fixed slapd-bdb/hdb be_entry_get with aliases/referrals (ITS#4810)
