@@ -1629,7 +1629,8 @@ syncrepl_message_to_entry(
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
 		/* NOTE: this could be done even before decoding the DN,
 		 * although encoding errors wouldn't be detected */
-		return LDAP_SUCCESS;
+		rc = LDAP_SUCCESS;
+		goto done;
 	}
 
 	if ( entry == NULL ) {
@@ -1733,7 +1734,8 @@ done:
 			e = NULL;
 		}
 	}
-	*entry = e;
+	if ( entry )
+		*entry = e;
 
 	return rc;
 }
