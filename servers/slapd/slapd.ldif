@@ -77,9 +77,10 @@ olcDatabase: frontend
 #
 dn: olcDatabase=bdb,cn=config
 objectClass: olcDatabaseConfig
+objectClass: olcBdbConfig
 olcDatabase: bdb
-olcSuffix:		"dc=my-domain,dc=com"
-olcRootDN:		"cn=Manager,dc=my-domain,dc=com"
+olcSuffix:		dc=my-domain,dc=com
+olcRootDN:		cn=Manager,dc=my-domain,dc=com
 # Cleartext passwords, especially for the rootdn, should
 # be avoided.  See slappasswd(8) and slapd.d(5) for details.
 # Use of strong authentication encouraged.
