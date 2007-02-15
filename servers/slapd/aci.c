@@ -278,18 +278,31 @@ aci_list_get_attr_rights(
 	ACL_INIT(mask);
 	for ( i = 1; acl_get_part( list, i + 1, ';', &bv ) >= 0; i += 2 ) {
 		if ( aci_list_has_attr( &bv, attr, val ) == 0 ) {
-			Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights test %s for %s -> failed\n", bv.bv_val, attr->bv_val, 0 );
+			Debug( LDAP_DEBUG_ACL,
+				"        <= aci_list_get_attr_rights "
+				"test %s for %s -> failed\n",
+				bv.bv_val, attr->bv_val, 0 );
 			continue;
 		}
-		Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights test %s for %s -> ok\n", bv.bv_val, attr->bv_val, 0 );
+
+		Debug( LDAP_DEBUG_ACL,
+			"        <= aci_list_get_attr_rights "
+			"test %s for %s -> ok\n",
+			bv.bv_val, attr->bv_val, 0 );
 
 		if ( acl_get_part( list, i, ';', &bv ) < 0 ) {
-			Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights test no rightsk\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ACL,
+				"        <= aci_list_get_attr_rights "
+				"test no rights\n",
+				0, 0, 0 );
 			continue;
 		}
 
 		mask |= aci_list_map_rights( &bv );
-		Debug( LDAP_DEBUG_ACL, "        <= aci_list_get_attr_rights rights %s to mask 0x%x\n", bv.bv_val, mask, 0 );
+		Debug( LDAP_DEBUG_ACL,
+			"        <= aci_list_get_attr_rights "
+			"rights %s to mask 0x%x\n",
+			bv.bv_val, mask, 0 );
 	}
 
 	return mask;
@@ -449,7 +462,7 @@ aci_mask(
 	   This routine now supports scope={ENTRY,CHILDREN}
 	   with the semantics:
 	     - ENTRY applies to "entry" and "subtree";
-	     - CHILDREN aplies to "children" and "subtree"
+	     - CHILDREN applies to "children" and "subtree"
 	 */
 
 	/* check that the aci has all 5 components */
@@ -1016,7 +1029,7 @@ bv_get_tail(
  *    action    := perms;attrs[[;perms;attrs]...]
  *    perms     := perm[[,perm]...]
  *    perm      := c|s|r|w|x
- *    attrs     := attribute[[,attribute]..]|[all]
+ *    attrs     := attribute[[,attribute]..]|"[all]"
  *    attribute := attributeType|attributeType=attributeValue|attributeType=attributeValuePrefix*
  *    type      := public|users|self|dnattr|group|role|set|set-ref|
  *                 access_id|subtree|onelevel|children
@@ -1544,6 +1557,8 @@ OpenLDAPaciPrettyNormal(
 			freesubject = 0,
 			freetype = 0;
 	char		*ptr;
+
+	BER_BVZERO( out );
 
 	if ( BER_BVISEMPTY( val ) ) {
 		Debug( LDAP_DEBUG_ACL, "aciPrettyNormal: value is empty\n", 0, 0, 0 );

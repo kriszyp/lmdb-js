@@ -94,7 +94,8 @@ void *
 slap_sl_mem_create(
 	ber_len_t size,
 	int stack,
-	void *ctx
+	void *ctx,
+	int new
 )
 {
 	struct slab_heap *sh;
@@ -112,6 +113,9 @@ slap_sl_mem_create(
 		ctx, (void *)slap_sl_mem_init, &sh_tmp, NULL );
 	sh = sh_tmp;
 #endif
+
+	if ( !new )
+		return sh;
 
 	/* round up to doubleword boundary */
 	size += pad;
