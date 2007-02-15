@@ -30,8 +30,6 @@
 #include <ldap_pvt_thread.h>
 #endif
 
-#include <ac/time.h> /* for struct timeval */
-
 #ifdef HAVE_CYRUS_SASL
 	/* the need for this should be removed */
 #ifdef HAVE_SASL_SASL_H
@@ -43,6 +41,9 @@
 #define SASL_MAX_BUFF_SIZE	65536
 #define SASL_MIN_BUFF_SIZE	4096
 #endif
+
+/* for struct timeval */
+#include <ac/time.h>
 
 #undef TV2MILLISEC
 #define TV2MILLISEC(tv) (((tv)->tv_sec * 1000) + ((tv)->tv_usec/1000))
