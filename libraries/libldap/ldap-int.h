@@ -30,6 +30,8 @@
 #include <ldap_pvt_thread.h>
 #endif
 
+#include <ac/time.h> /* for struct timeval */
+
 #ifdef HAVE_CYRUS_SASL
 	/* the need for this should be removed */
 #ifdef HAVE_SASL_SASL_H
