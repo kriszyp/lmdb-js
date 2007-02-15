@@ -1177,18 +1177,19 @@ static const rewrite_mapper slapd_mapper = {
 
 int slap_sasl_init( void )
 {
-
-#ifdef ENABLE_REWRITE
-	rewrite_mapper_register( &slapd_mapper );
-#endif
-
 #ifdef HAVE_CYRUS_SASL
 	int rc;
 	static sasl_callback_t server_callbacks[] = {
 		{ SASL_CB_LOG, &slap_sasl_log, NULL },
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
+#endif
 
+#ifdef ENABLE_REWRITE
+	rewrite_mapper_register( &slapd_mapper );
+#endif
+
+#ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_VERSION
 	/* stringify the version number, sasl.h doesn't do it for us */
 #define	VSTR0(maj, min, pat)	#maj "." #min "." #pat

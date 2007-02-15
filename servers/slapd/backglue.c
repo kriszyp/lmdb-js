@@ -621,9 +621,9 @@ glue_entry_get_rw (
 	int	rw,
 	Entry	**e )
 {
+	int rc;
 	BackendDB *b0 = op->o_bd;
 	op->o_bd = glue_back_select( b0, dn );
-	int rc;
 
 	if ( op->o_bd->be_fetch ) {
 		rc = op->o_bd->be_fetch( op, dn, oc, ad, rw, e );
