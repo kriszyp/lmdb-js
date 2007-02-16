@@ -1220,9 +1220,11 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 
 	if ( op->o_tag != LDAP_REQ_ADD && e ) {
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		be_entry_release_rw( op, e, 0 );
-		op->o_bd->bd_info = (BackendInfo *)on;
+		if ( !SLAP_ISOVERLAY( op->o_bd )) {
+			op->o_bd = &db;
+		}
+		overlay_entry_release_ov( op, e, 0, on );
+		op->o_bd = b0;
 	}
 	if ( freefdn ) {
 		op->o_tmpfree( fc.fdn->bv_val, op->o_tmpmemctx );
@@ -2545,7 +2547,7 @@ syncprov_db_open(
 			ber_bvarray_dup_x( &si->si_ctxcsn, a->a_vals, NULL );
 			for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ );
 			si->si_numcsns = i;
-			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, i );
+			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, i, NULL );
 		}
 		overlay_entry_release_ov( op, e, 0, on );
 		if ( si->si_ctxcsn ) {

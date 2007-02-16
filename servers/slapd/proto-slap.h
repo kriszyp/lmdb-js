@@ -1040,7 +1040,7 @@ LDAP_SLAPD_F (void) slap_sync_cookie_free LDAP_P((
 LDAP_SLAPD_F (int) slap_parse_csn_sid LDAP_P((
 				struct berval * ));
 LDAP_SLAPD_F (int *) slap_parse_csn_sids LDAP_P((
-				BerVarray, int ));
+				BerVarray, int, void *memctx ));
 LDAP_SLAPD_F (int) slap_parse_sync_cookie LDAP_P((
 				struct sync_cookie *, void *memctx ));
 LDAP_SLAPD_F (int) slap_init_sync_cookie_ctxcsn LDAP_P((

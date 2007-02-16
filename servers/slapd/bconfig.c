@@ -5245,6 +5245,9 @@ int config_entry_release(
 	Entry *e,
 	int rw )
 {
+	if ( !e->e_private ) {
+		entry_free( e );
+	}
 	return LDAP_SUCCESS;
 }
 

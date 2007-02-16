@@ -499,7 +499,7 @@ do_syncrep1(
 					si->si_cookieState->cs_vals = csn;
 					for (i=0; !BER_BVISNULL( &csn[i] ); i++);
 					si->si_cookieState->cs_num = i;
-					si->si_cookieState->cs_sids = slap_parse_csn_sids( csn, i );
+					si->si_cookieState->cs_sids = slap_parse_csn_sids( csn, i, NULL );
 				}
 			}
 			if ( si->si_cookieState->cs_num ) {
@@ -567,7 +567,7 @@ do_syncrep1(
 				si->si_cookieState->cs_num = num;
 				si->si_cookieState->cs_vals = a.a_vals;
 				si->si_cookieState->cs_sids = slap_parse_csn_sids( a.a_vals,
-					num );
+					num, NULL );
 				si->si_cookieState->cs_age++;
 			} else {
 				ber_bvarray_free( a.a_vals );
@@ -852,11 +852,11 @@ do_syncrep2(
 					}
 					ber_scanf( ber, /*"{"*/ "}" );
 				}
-				if ( !syncCookie_req.ctxcsn ) {
+				if ( !syncCookie.ctxcsn ) {
+					match = 1;
+				} else if ( !syncCookie_req.ctxcsn ) {
 					match = -1;
 					m = 0;
-				} else if ( !syncCookie.ctxcsn ) {
-					match = 1;
 				} else {
 					match = compare_csns( &syncCookie_req, &syncCookie, &m );
 				}
@@ -999,11 +999,11 @@ do_syncrep2(
 						continue;
 					}
 
-					if ( !syncCookie_req.ctxcsn ) {
+					if ( !syncCookie.ctxcsn ) {
+						match = 1;
+					} else if ( !syncCookie_req.ctxcsn ) {
 						match = -1;
 						m = 0;
-					} else if ( !syncCookie.ctxcsn ) {
-						match = 1;
 					} else {
 						match = compare_csns( &syncCookie_req, &syncCookie, &m );
 					}
@@ -2608,7 +2608,7 @@ syncrepl_updateCookie(
 			value_add( &si->si_cookieState->cs_vals, syncCookie->ctxcsn );
 			free( si->si_cookieState->cs_sids );
 			si->si_cookieState->cs_sids = slap_parse_csn_sids(
-				si->si_cookieState->cs_vals, si->si_cookieState->cs_num );
+				si->si_cookieState->cs_vals, si->si_cookieState->cs_num, NULL );
 		}
 
 		si->si_cookieState->cs_age++;
