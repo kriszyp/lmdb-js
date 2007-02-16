@@ -187,7 +187,10 @@ specifies unlimited search time to be used.
 Specifies what version of the LDAP protocol should be used.
 .TP
 .B TIMEOUT <integer>
-Specifies a generic timeout (in seconds).  Currently ignored.
+Specifies a timeout (in seconds) after which calls to synchronous LDAP
+APIs will abort if no response is received.  Also used for any
+.BR ldap_result (3)
+calls where a NULL timeout parameter is supplied.
 .SH SASL OPTIONS
 If OpenLDAP is built with Simple Authentication and Security Layer support,
 there are more options you can specify.
@@ -368,6 +371,8 @@ user ldap configuration file
 local ldap configuration file
 .SH "SEE ALSO"
 .BR ldap (3),
+.BR ldap_set_option (3),
+.BR ldap_result (3),
 .BR openssl (1),
 .BR sasl (3)
 .SH AUTHOR

@@ -43,7 +43,10 @@ routine will block or not, depending upon the setting
 of the \fItimeout\fP parameter.
 If timeout is not a NULL pointer,  it  specifies  a  maximum
 interval  to wait for the selection to complete.  If timeout
-is a NULL  pointer,  the  select  blocks  indefinitely.   To
+is a NULL  pointer, the LDAP_OPT_TIMEOUT value set by
+.BR ldap_set_option (3)
+is used. With the default setting,
+the  select  blocks  indefinitely.   To
 effect  a  poll,  the  timeout argument should be a non-NULL
 pointer, pointing to a zero-valued timeval structure.  See
 .BR select (2)
