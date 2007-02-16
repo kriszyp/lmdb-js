@@ -1800,7 +1800,6 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 			rc = ldap_back_dobind_int( lcp, op, rs, sendok, 0, 0 );
 			if ( rc == 0 && *lcp != NULL ) {
 				/* freeit, because lc_refcnt == 1 */
-				LDAP_BACK_CONN_TAINTED_SET( *lcp );
 				(*lcp)->lc_refcnt = 0;
 				LDAP_BACK_CONN_TAINTED_SET( *lcp );
 				(void)ldap_back_freeconn( li, *lcp, 0 );
