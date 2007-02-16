@@ -1982,7 +1982,7 @@ connection_fake_init(
 	Operation *op,
 	void *ctx )
 {
-	connection_fake_init2( conn, op, ctx, 0 );
+	connection_fake_init2( conn, op, ctx, 1 );
 }
 
 void
