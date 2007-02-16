@@ -42,6 +42,9 @@
 #define SASL_MIN_BUFF_SIZE	4096
 #endif
 
+/* for struct timeval */
+#include <ac/time.h>
+
 #undef TV2MILLISEC
 #define TV2MILLISEC(tv) (((tv)->tv_sec * 1000) + ((tv)->tv_usec/1000))
 
