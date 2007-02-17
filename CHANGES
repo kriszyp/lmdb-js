@@ -1,6 +1,8 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.34 Release (2007/02/17)
+OpenLDAP 2.3.35 Engineering
+
+OpenLDAP 2.3.34 Release (2007/02/16)
 	Fixed libldap missing get_option(TLS CipherSuite) (ITS#4815)
 	Fixed ldapmodify printing error from ldap_result() (ITS#4812)
 	Fixed slapadd LDIF parsing (ITS#4817)
