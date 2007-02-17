@@ -572,6 +572,10 @@ int oc_check_allowed(
 	for ( i = 0; socs[i]; i++ ) {
 		/* if we know about the oc */
 		ObjectClass	*oc = socs[i];
+		/* extensibleObject allows all */
+		if ( oc == slap_schema.si_oc_extensibleObject ) {
+			return LDAP_SUCCESS;
+		}
 		if ( oc != NULL && oc->soc_kind != LDAP_SCHEMA_ABSTRACT &&
 			( sc == NULL || oc->soc_kind == LDAP_SCHEMA_AUXILIARY ))
 		{
