@@ -1321,124 +1321,159 @@ fe_acl_group(
 	if ( target && dn_match( &target->e_nname, gr_ndn ) ) {
 		e = target;
 		rc = 0;
+
 	} else {
 		op->o_private = NULL;
 		rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
 		e_priv = op->o_private;
 		op->o_private = o_priv;
 	}
+
 	if ( e ) {
 		a = attr_find( e->e_attrs, group_at );
 		if ( a ) {
-			/* If the attribute is a subtype of labeledURI, treat this as
-			 * a dynamic group ala groupOfURLs
+			/* If the attribute is a subtype of labeledURI,
+			 * treat this as a dynamic group ala groupOfURLs
 			 */
-			if (is_at_subtype( group_at->ad_type,
+			if ( is_at_subtype( group_at->ad_type,
 				slap_schema.si_ad_labeledURI->ad_type ) )
 			{
 				int i;
 				LDAPURLDesc *ludp;
 				struct berval bv, nbase;
 				Filter *filter;
-				Entry *user;
+				Entry *user = NULL;
 				void *user_priv = NULL;
 				Backend *b2 = op->o_bd;
 
 				if ( target && dn_match( &target->e_nname, op_ndn ) ) {
 					user = target;
-				} else {
-					op->o_bd = select_backend( op_ndn, 0, 0 );
-					op->o_private = NULL;
-					rc = be_entry_get_rw(op, op_ndn, NULL, NULL, 0, &user );
-					user_priv = op->o_private;
-					op->o_private = o_priv;
 				}
 				
-				if ( rc == 0 ) {
-					rc = LDAP_COMPARE_FALSE;
-					for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
-						if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) !=
-							LDAP_URL_SUCCESS )
-						{
-							continue;
-						}
-						BER_BVZERO( &nbase );
-						/* host part must be empty */
-						/* attrs and extensions parts must be empty */
-						if ( ( ludp->lud_host && *ludp->lud_host ) ||
-							ludp->lud_attrs || ludp->lud_exts )
-						{
-							goto loopit;
-						}
-						ber_str2bv( ludp->lud_dn, 0, 0, &bv );
-						if ( dnNormalize( 0, NULL, NULL, &bv, &nbase,
-							op->o_tmpmemctx ) != LDAP_SUCCESS )
-						{
-							goto loopit;
-						}
-						switch ( ludp->lud_scope ) {
-						case LDAP_SCOPE_BASE:
-							if ( !dn_match( &nbase, op_ndn ) ) {
-								goto loopit;
-							}
-							break;
-						case LDAP_SCOPE_ONELEVEL:
-							dnParent( op_ndn, &bv );
-							if ( !dn_match( &nbase, &bv ) ) {
-								goto loopit;
-							}
-							break;
-						case LDAP_SCOPE_SUBTREE:
-							if ( !dnIsSuffix( op_ndn, &nbase ) ) {
-								goto loopit;
-							}
-							break;
-						case LDAP_SCOPE_SUBORDINATE:
-							if ( dn_match( &nbase, op_ndn ) ||
-								!dnIsSuffix( op_ndn, &nbase ) )
-							{
-								goto loopit;
-							}
-						}
-						filter = str2filter_x( op, ludp->lud_filter );
-						if ( filter ) {
-							if ( test_filter( NULL, user, filter ) ==
-								LDAP_COMPARE_TRUE )
-							{
-								rc = 0;
-							}
-							filter_free_x( op, filter );
-						}
-loopit:
-						ldap_free_urldesc( ludp );
-						if ( !BER_BVISNULL( &nbase ) ) {
-							op->o_tmpfree( nbase.bv_val, op->o_tmpmemctx );
-						}
-						if ( rc == 0 ) break;
+				rc = LDAP_COMPARE_FALSE;
+				for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
+					if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) !=
+						LDAP_URL_SUCCESS )
+					{
+						continue;
 					}
-					if ( user != target ) {
-						op->o_private = user_priv;
-						be_entry_release_r( op, user );
-						op->o_private = o_priv;
+
+					BER_BVZERO( &nbase );
+
+					/* host, attrs and extensions parts must be empty */
+					if ( ( ludp->lud_host && *ludp->lud_host )
+						|| ludp->lud_attrs
+						|| ludp->lud_exts )
+					{
+						goto loopit;
+					}
+
+					ber_str2bv( ludp->lud_dn, 0, 0, &bv );
+					if ( dnNormalize( 0, NULL, NULL, &bv, &nbase,
+						op->o_tmpmemctx ) != LDAP_SUCCESS )
+					{
+						goto loopit;
+					}
+
+					switch ( ludp->lud_scope ) {
+					case LDAP_SCOPE_BASE:
+						if ( !dn_match( &nbase, op_ndn ) ) {
+							goto loopit;
+						}
+						break;
+					case LDAP_SCOPE_ONELEVEL:
+						dnParent( op_ndn, &bv );
+						if ( !dn_match( &nbase, &bv ) ) {
+							goto loopit;
+						}
+						break;
+					case LDAP_SCOPE_SUBTREE:
+						if ( !dnIsSuffix( op_ndn, &nbase ) ) {
+							goto loopit;
+						}
+						break;
+					case LDAP_SCOPE_SUBORDINATE:
+						if ( dn_match( &nbase, op_ndn ) ||
+							!dnIsSuffix( op_ndn, &nbase ) )
+						{
+							goto loopit;
+						}
+					}
+
+					/* NOTE: this could be NULL
+					 * if no filter is provided,
+					 * or if filter parsing fails.
+					 * In the latter case,
+					 * we should give up. */
+					if ( ludp->lud_filter != NULL && ludp->lud_filter != '\0') {
+						filter = str2filter_x( op, ludp->lud_filter );
+						if ( filter == NULL ) {
+							/* give up... */
+							rc = LDAP_OTHER;
+							goto loopit;
+						}
+
+						/* only get user if required
+						 * and not available yet */
+						if ( user == NULL ) {	
+							int rc2;
+
+							op->o_bd = select_backend( op_ndn, 0, 0 );
+							op->o_private = NULL;
+							rc2 = be_entry_get_rw( op, op_ndn, NULL, NULL, 0, &user );
+							user_priv = op->o_private;
+							op->o_private = o_priv;
+							if ( rc2 != 0 ) {
+								/* give up... */
+								rc = LDAP_OTHER;
+								goto loopit;
+							}
+						}
+
+						if ( test_filter( NULL, user, filter ) ==
+							LDAP_COMPARE_TRUE )
+						{
+							rc = 0;
+						}
+						filter_free_x( op, filter );
+					}
+loopit:
+					ldap_free_urldesc( ludp );
+					if ( !BER_BVISNULL( &nbase ) ) {
+						op->o_tmpfree( nbase.bv_val, op->o_tmpmemctx );
+					}
+					if ( rc != LDAP_COMPARE_FALSE ) {
+						break;
 					}
 				}
+
+				if ( user != NULL && user != target ) {
+					op->o_private = user_priv;
+					be_entry_release_r( op, user );
+					op->o_private = o_priv;
+				}
 				op->o_bd = b2;
+
 			} else {
 				rc = value_find_ex( group_at,
-				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a->a_nvals, op_ndn, op->o_tmpmemctx );
-				if ( rc == LDAP_NO_SUCH_ATTRIBUTE )
+					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+					a->a_nvals, op_ndn, op->o_tmpmemctx );
+				if ( rc == LDAP_NO_SUCH_ATTRIBUTE ) {
 					rc = LDAP_COMPARE_FALSE;
+				}
 			}
+
 		} else {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
+
 		if ( e != target ) {
 			op->o_private = e_priv;
 			be_entry_release_r( op, e );
 			op->o_private = o_priv;
 		}
+
 	} else {
 		rc = LDAP_NO_SUCH_OBJECT;
 	}
@@ -1455,6 +1490,7 @@ loopit:
 		g->ga_next = op->o_groups;
 		op->o_groups = g;
 	}
+
 done:
 	op->o_bd = be;
 	return rc;
