@@ -377,11 +377,13 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 		async = LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_CONNECT_ASYNC );
 
 		for ( srvp = srvlist; *srvp != NULL; srvp = &(*srvp)->lud_next ) {
-			if ( ldap_int_open_connection( ld, lc, *srvp, async) != -1 )
-			{
+			int		rc;
+
+			rc = ldap_int_open_connection( ld, lc, *srvp, async );
+			if ( rc != -1 ) {
 				srv = *srvp;
 
-				if ( ld->ld_urllist_proc ) {
+				if ( ld->ld_urllist_proc && ( !async || rc != -2 ) ) {
 					ld->ld_urllist_proc( ld, srvlist, srvp, ld->ld_urllist_params );
 				}
 
