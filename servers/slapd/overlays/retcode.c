@@ -202,11 +202,11 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 {
 	retcode_cb_t	*rdc = (retcode_cb_t *)op->o_callback->sc_private;
 
+	op->o_tag = rdc->rdc_tag;
 	if ( rs->sr_type == REP_SEARCH ) {
 		ber_tag_t	o_tag = op->o_tag;
 		int		rc;
 
-		op->o_tag = rdc->rdc_tag;
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {
 			rs->sr_attrs = rdc->rdc_attrs;
 		}
@@ -216,7 +216,11 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 		return rc;
 	}
 
-	if ( rs->sr_err == LDAP_SUCCESS ) {
+	switch ( rs->sr_err ) {
+	case LDAP_SUCCESS:
+	case LDAP_NO_SUCH_OBJECT:
+		/* in case of noSuchObject, stop the internal search
+		 * for in-directory error stuff */
 		if ( !op->o_abandon ) {
 			rdc->rdc_flags = SLAP_CB_CONTINUE;
 		}
@@ -301,7 +305,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 			case LDAP_REQ_BIND:
 				/* skip if rootdn */
 				if ( be_isroot_pw( op ) ) {
-					return SLAP_CB_CONTINUE;
+					return LDAP_SUCCESS;
 				}
 				return retcode_op_internal( op, rs );
 
