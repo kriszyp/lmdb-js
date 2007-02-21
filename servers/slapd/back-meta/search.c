@@ -232,10 +232,10 @@ meta_search_dobind_init(
 
 	assert( msc->msc_ld != NULL );
 
-	/* connect must be async */
-retry:;
+	/* connect must be async only the first time... */
 	ldap_set_option( msc->msc_ld, LDAP_OPT_CONNECT_ASYNC, LDAP_OPT_ON );
 
+retry:;
 	rc = ldap_sasl_bind( msc->msc_ld, binddn.bv_val, LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &candidates[ candidate ].sr_msgid );
 
@@ -1223,6 +1223,8 @@ really_bad:;
 						candidates[ i ].sr_type = REP_RESULT;
 					}
 	
+					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
+
 					/* NOTE: ignores response controls
 					 * (and intermediate response controls
 					 * as well, except for those with search
@@ -1387,7 +1389,6 @@ really_bad:;
 					 * When no candidates are left,
 					 * the outer cycle finishes
 					 */
-					candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 					assert( ncandidates > 0 );
 					--ncandidates;
 	
@@ -1444,10 +1445,16 @@ free_message:;
 		/* check for abandon */
 		if ( op->o_abandon || LDAP_BACK_CONN_ABANDON( mc ) ) {
 			for ( i = 0; i < mi->mi_ntargets; i++ ) {
-				if ( candidates[ i ].sr_msgid >= 0 ) {
-					if ( META_IS_BINDING( &candidates[ i ] ) ) {
+				if ( candidates[ i ].sr_msgid >= 0
+					|| candidates[ i ].sr_msgid == META_MSGID_CONNECTING )
+				{
+					if ( META_IS_BINDING( &candidates[ i ] )
+						|| candidates[ i ].sr_msgid == META_MSGID_CONNECTING )
+					{
 						ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-						if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
+						if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] )
+							|| candidates[ i ].sr_msgid == META_MSGID_CONNECTING )
+						{
 							/* if still binding, destroy */
 
 #ifdef DEBUG_205
@@ -1644,23 +1651,35 @@ finish:;
 			continue;
 		}
 
-		if ( mc && META_IS_BINDING( &candidates[ i ] ) ) {
-			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-			if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] ) ) {
-				assert( candidates[ i ].sr_msgid >= 0 );
-				assert( mc->mc_conns[ i ].msc_ld != NULL );
+		if ( mc ) {
+			if ( META_IS_BINDING( &candidates[ i ] )
+				|| candidates[ i ].sr_msgid == META_MSGID_CONNECTING )
+			{
+				ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
+				if ( LDAP_BACK_CONN_BINDING( &mc->mc_conns[ i ] )
+					|| candidates[ i ].sr_msgid == META_MSGID_CONNECTING )
+				{
+					assert( candidates[ i ].sr_msgid >= 0
+						|| candidates[ i ].sr_msgid == META_MSGID_CONNECTING );
+					assert( mc->mc_conns[ i ].msc_ld != NULL );
 
 #ifdef DEBUG_205
-				Debug( LDAP_DEBUG_ANY, "### %s meta_back_search(cleanup) "
-					"ldap_unbind_ext[%ld] ld=%p\n",
-					op->o_log_prefix, i, (void *)mc->mc_conns[i].msc_ld );
+					Debug( LDAP_DEBUG_ANY, "### %s meta_back_search(cleanup) "
+						"ldap_unbind_ext[%ld] ld=%p\n",
+						op->o_log_prefix, i, (void *)mc->mc_conns[i].msc_ld );
 #endif /* DEBUG_205 */
 
-				/* if still binding, destroy */
-				meta_clear_one_candidate( op, mc, i );
+					/* if still binding, destroy */
+					meta_clear_one_candidate( op, mc, i );
+				}
+				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
+				META_BINDING_CLEAR( &candidates[ i ] );
+
+			} else if ( candidates[ i ].sr_msgid >= 0 ) {
+				(void)meta_back_cancel( mc, op, rs,
+					candidates[ i ].sr_msgid, i,
+					LDAP_BACK_DONTSEND );
 			}
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-			META_BINDING_CLEAR( &candidates[ i ] );
 		}
 
 		if ( candidates[ i ].sr_matched ) {
