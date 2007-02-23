@@ -36,6 +36,17 @@ This overlay allows automatic referral chasing when a referral would
 have been returned, either when configured by the server or when 
 requested by the client.
 .TP
+.B constraint
+Constraint.
+This overlay enforces a regular expression constraint on all values
+of specified attributes. It is used to enforce a more rigourous
+syntax when the underlying attribute syntax is too general.
+.TP
+.B dds
+Dynamic Directory Services.
+This overlay supports dynamic objects, which have a limited life after
+which they expire and are automatically deleted.
+.TP
 .B dyngroup
 Dynamic Group.
 This is a demo overlay which extends the Compare operation to detect
@@ -98,6 +109,11 @@ Attribute Uniqueness.
 This overlay can be used with a backend database such as
 .BR slapd-bdb (5)
 to enforce the uniqueness of some or all attributes within a subtree.
+.TP
+.B valsort
+Value Sorting.
+This overlay can be used to enforce a specific order for the values
+of an attribute when it is returned in a search.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
@@ -110,6 +126,9 @@ default slapd configuration directory
 .BR slapo\-accesslog (5),
 .BR slapo\-auditlog (5),
 .BR slapo\-chain (5),
+.BR slapo\-constraint (5),
+.BR slapo\-dds (5),
+.BR slapo\-dyngroup (5),
 .BR slapo\-dynlist (5),
 .BR slapo\-pcache (5),
 .BR slapo\-ppolicy (5),
@@ -119,6 +138,7 @@ default slapd configuration directory
 .BR slapo\-syncprov (5),
 .BR slapo\-translucent (5),
 .BR slapo\-unique (5).
+.BR slapo\-valsort (5).
 .BR slapd\-config (5),
 .BR slapd.conf (5),
 .BR slapd.backends (5),
