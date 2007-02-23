@@ -88,10 +88,14 @@ Search filters to be passed to the search routines are to be
 constructed by hand and should conform to RFC 4515 UTF\-8
 string representation.
 .LP
-LDAP URL are to be passed to routines are expected to conform
+LDAP URLs to be passed to routines are expected to conform
 to RFC 4516 format.  The
 .BR ldap_url (3)
 routines can be used to work with LDAP URLs.
+.LP
+LDAP controls to be passed to routines can be manipulated using the
+.BR ldap_controls (3)
+routines.
 .SH DISPLAYING RESULTS
 Results obtained from the search routines can be output by hand,
 by calling
@@ -183,6 +187,12 @@ list of LDAP errors and their meanings
 .TP
 .SM ldap_err2string(3)
 convert LDAP error indication to a string
+.TP
+.SM ldap_extended_operation(3)
+asynchronously perform an arbitrary extended operation
+.TP
+.SM ldap_extended_operation_s(3)
+synchronously perform an arbitrary extended operation
 .TP
 .SM ldap_first_attribute(3)
 return first attribute name in an entry
