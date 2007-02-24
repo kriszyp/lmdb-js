@@ -3805,7 +3805,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 
 	ptr = buf;
 	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03ld " PROVIDERSTR "=%s",
-		si->si_rid, si->si_bindconf.sb_uri.bv_val );
+		(long)si->si_rid, si->si_bindconf.sb_uri.bv_val );
 	if ( ptr - buf >= sizeof( buf ) ) return;
 	if ( !BER_BVISNULL( &bc ) ) {
 		if ( WHATSLEFT <= bc.bv_len ) {
