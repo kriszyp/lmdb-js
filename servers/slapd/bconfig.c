@@ -5368,6 +5368,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	attr_merge_normalize_one(e, ad, &val, NULL );
 
 	oc = main->co_oc;
+	c->table = main->co_type;
 	if ( oc->soc_required )
 		config_build_attrs( e, oc->soc_required, ad, main->co_table, c );
 
@@ -5376,6 +5377,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 
 	if ( extra ) {
 		oc = extra->co_oc;
+		c->table = extra->co_type;
 		if ( oc->soc_required )
 			config_build_attrs( e, oc->soc_required, ad, extra->co_table, c );
 
