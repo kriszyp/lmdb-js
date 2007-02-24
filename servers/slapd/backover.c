@@ -147,6 +147,7 @@ over_db_config(
 			ca.bi = &on->on_bi;
 			ct = config_find_keyword( on->on_bi.bi_cf_ocs->co_table, &ca );
 			if ( ct ) {
+				ca.table = on->on_bi.bi_cf_ocs->co_type;
 				rc = config_add_vals( ct, &ca );
 				if ( rc != SLAP_CONF_UNKNOWN )
 					break;

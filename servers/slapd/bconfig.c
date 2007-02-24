@@ -3431,6 +3431,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	argv[1] = (char *)dir;
 	argv[2] = NULL;
 	c.argv = argv;
+	c.table = Cft_Database;
 
 	ct = config_find_keyword( c.be->be_cf_ocs->co_table, &c );
 	if ( !ct )
@@ -3667,14 +3668,17 @@ config_send( Operation *op, SlapReply *rs, CfEntryInfo *ce, int depth )
 }
 
 static ConfigTable *
-config_find_table( ConfigOCs **colst, int nocs, AttributeDescription *ad )
+config_find_table( ConfigOCs **colst, int nocs, AttributeDescription *ad,
+	ConfigArgs *ca )
 {
 	int i, j;
 
 	for (j=0; j<nocs; j++) {
 		for (i=0; colst[j]->co_table[i].name; i++)
-			if ( colst[j]->co_table[i].ad == ad )
+			if ( colst[j]->co_table[i].ad == ad ) {
+				ca->table = colst[j]->co_type;
 				return &colst[j]->co_table[i];
+			}
 	}
 	return NULL;
 }
@@ -4123,28 +4127,28 @@ schema_destroy_one( ConfigArgs *ca, ConfigOCs **colst, int nocs,
 		struct berval bv = BER_BVC("olcDitContentRules");
 		ad = NULL;
 		slap_bv2ad( &bv, &ad, &text );
-		ct = config_find_table( colst, nocs, ad );
+		ct = config_find_table( colst, nocs, ad, ca );
 		config_del_vals( ct, ca );
 	}
 	if ( cfn->c_oc_head ) {
 		struct berval bv = BER_BVC("olcObjectClasses");
 		ad = NULL;
 		slap_bv2ad( &bv, &ad, &text );
-		ct = config_find_table( colst, nocs, ad );
+		ct = config_find_table( colst, nocs, ad, ca );
 		config_del_vals( ct, ca );
 	}
 	if ( cfn->c_at_head ) {
 		struct berval bv = BER_BVC("olcAttributeTypes");
 		ad = NULL;
 		slap_bv2ad( &bv, &ad, &text );
-		ct = config_find_table( colst, nocs, ad );
+		ct = config_find_table( colst, nocs, ad, ca );
 		config_del_vals( ct, ca );
 	}
 	if ( cfn->c_om_head ) {
 		struct berval bv = BER_BVC("olcObjectIdentifier");
 		ad = NULL;
 		slap_bv2ad( &bv, &ad, &text );
-		ct = config_find_table( colst, nocs, ad );
+		ct = config_find_table( colst, nocs, ad, ca );
 		config_del_vals( ct, ca );
 	}
 	cfo = p->ce_private;
@@ -4287,7 +4291,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 
 	for ( a=e->e_attrs; a; a=a->a_next ) {
 		if ( a == oc_at ) continue;
-		ct = config_find_table( colst, nocs, a->a_desc );
+		ct = config_find_table( colst, nocs, a->a_desc, ca );
 		if ( !ct ) continue;	/* user data? */
 		rc = check_vals( ct, ca, a, 1 );
 		if ( rc ) goto done_noop;
@@ -4296,7 +4300,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	/* Basic syntax checks are OK. Do the actual settings. */
 	for ( a=e->e_attrs; a; a=a->a_next ) {
 		if ( a == oc_at ) continue;
-		ct = config_find_table( colst, nocs, a->a_desc );
+		ct = config_find_table( colst, nocs, a->a_desc, ca );
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
 			char *iptr = NULL;
@@ -4645,7 +4649,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	strcpy( ca->log, "back-config" );
 
 	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
-		ct = config_find_table( colst, nocs, ml->sml_desc );
+		ct = config_find_table( colst, nocs, ml->sml_desc, ca );
 		switch (ml->sml_op) {
 		case LDAP_MOD_DELETE:
 		case LDAP_MOD_REPLACE: {
@@ -4758,7 +4762,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	}
 	/* Basic syntax checks are OK. Do the actual settings. */
 	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
-		ct = config_find_table( colst, nocs, ml->sml_desc );
+		ct = config_find_table( colst, nocs, ml->sml_desc, ca );
 		if ( !ct ) continue;
 
 		s = attr_find( save_attrs, ml->sml_desc );
@@ -4850,7 +4854,7 @@ out:
 		for ( s = save_attrs; s; s = s->a_next ) {
 			if ( s->a_flags & SLAP_ATTR_IXDEL ) {
 				s->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
-				ct = config_find_table( colst, nocs, s->a_desc );
+				ct = config_find_table( colst, nocs, s->a_desc, ca );
 				a = attr_find( e->e_attrs, s->a_desc );
 				if ( a ) {
 					/* clear the flag so the add check below will skip it */
@@ -4868,7 +4872,7 @@ out:
 		}
 		for ( a = e->e_attrs; a; a = a->a_next ) {
 			if ( a->a_flags & SLAP_ATTR_IXADD ) {
-				ct = config_find_table( colst, nocs, a->a_desc );
+				ct = config_find_table( colst, nocs, a->a_desc, ca );
 				ca->valx = -1;
 				ca->line = NULL;
 				config_del_vals( ct, ca );

@@ -142,6 +142,7 @@ typedef struct config_args_s {
 	Entry *ca_entry;	/* entry being modified */
 	void *private;	/* anything */
 	ConfigDriver *cleanup;
+	ConfigType table;	/* which config table did we come from */
 } ConfigArgs;
 
 /* If lineno is zero, we have an actual LDAP Add request from a client.
