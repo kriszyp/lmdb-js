@@ -41,6 +41,10 @@ static const struct bdbi_database {
 typedef void * db_malloc(size_t);
 typedef void * db_realloc(void *, size_t);
 
+#define bdb_db_init	BDB_SYMBOL(db_init)
+#define bdb_db_open BDB_SYMBOL(db_open)
+#define bdb_db_close BDB_SYMBOL(db_close)
+
 static int
 bdb_db_init( BackendDB *be )
 {
@@ -113,19 +117,19 @@ bdb_db_open( BackendDB *be )
 
 	if ( be->be_suffix == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: need suffix\n",
+			LDAP_XSTRING(bdb_db_open) ": need suffix\n",
 			0, 0, 0 );
 		return -1;
 	}
 
 	Debug( LDAP_DEBUG_ARGS,
-		"bdb_db_open: %s\n",
+		LDAP_XSTRING(bdb_db_open) ": %s\n",
 		be->be_suffix[0].bv_val, 0, 0 );
 
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( be->be_suffix[1].bv_val ) {
 	Debug( LDAP_DEBUG_ANY,
-		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
+		LDAP_XSTRING(bdb_db_open) ": only one suffix allowed\n", 0, 0, 0 );
 		return -1;
 	}
 #endif
@@ -134,7 +138,7 @@ bdb_db_open( BackendDB *be )
 	rc = stat( bdb->bi_dbenv_home, &stat1 );
 	if( rc !=0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: Cannot access database directory %s (%d)\n",
+			LDAP_XSTRING(bdb_db_open) ": Cannot access database directory %s (%d)\n",
 			bdb->bi_dbenv_home, errno, 0 );
 			return -1;
 	}
@@ -156,19 +160,19 @@ bdb_db_open( BackendDB *be )
 
 	if( rc == ALOCK_RECOVER ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: unclean shutdown detected;"
+			LDAP_XSTRING(bdb_db_open) ": unclean shutdown detected;"
 			" attempting recovery.\n", 
 			0, 0, 0 );
 		do_alock_recover = 1;
 		do_recover = DB_RECOVER;
 	} else if( rc == ALOCK_BUSY ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: database already in use\n", 
+			LDAP_XSTRING(bdb_db_open) ": database already in use\n", 
 			0, 0, 0 );
 		return -1;
 	} else if( rc != ALOCK_CLEAN ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: alock package is unstable\n", 
+			LDAP_XSTRING(bdb_db_open) ": alock package is unstable\n", 
 			0, 0, 0 );
 		return -1;
 	}
@@ -186,7 +190,7 @@ bdb_db_open( BackendDB *be )
 			if( stat( path, &stat2 ) == 0 ) {
 				if( stat2.st_mtime < stat1.st_mtime ) {
 					Debug( LDAP_DEBUG_ANY,
-						"bdb_db_open: DB_CONFIG for suffix %s has changed.\n"
+						LDAP_XSTRING(bdb_db_open) ": DB_CONFIG for suffix %s has changed.\n"
 						"Performing database recovery to activate new settings.\n",
 						be->be_suffix[0].bv_val, 0, 0 );
 					do_recover = DB_RECOVER;
@@ -196,7 +200,7 @@ bdb_db_open( BackendDB *be )
 	}
 	else {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: Warning - No DB_CONFIG file found "
+			LDAP_XSTRING(bdb_db_open) ": Warning - No DB_CONFIG file found "
 			"in directory %s: (%d)\n"
 			"Expect poor performance for suffix %s.\n",
 			bdb->bi_dbenv_home, errno, be->be_suffix[0].bv_val );
@@ -208,7 +212,7 @@ bdb_db_open( BackendDB *be )
 	 */
 	if ( do_recover && ( slapMode & SLAP_TOOL_READONLY )) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: Recovery skipped in read-only mode. "
+			LDAP_XSTRING(bdb_db_open) ": Recovery skipped in read-only mode. "
 			"Run manual recovery if errors are encountered.\n",
 			0, 0, 0 );
 		do_recover = 0;
@@ -218,7 +222,7 @@ bdb_db_open( BackendDB *be )
 	/* An existing environment in Quick mode has nothing to recover. */
 	if ( alockt && do_recover ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: cannot recover, database must be reinitialized.\n", 
+			LDAP_XSTRING(bdb_db_open) ": cannot recover, database must be reinitialized.\n", 
 			0, 0, 0 );
 		rc = -1;
 		goto fail;
@@ -227,7 +231,7 @@ bdb_db_open( BackendDB *be )
 	rc = db_env_create( &bdb->bi_dbenv, 0 );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: db_env_create failed: %s (%d)\n",
+			LDAP_XSTRING(bdb_db_open) ": db_env_create failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		goto fail;
 	}
@@ -244,10 +248,11 @@ bdb_db_open( BackendDB *be )
 	 * currently requested modes, remove it.
 	 */
 	if ( !do_recover && ( alockt ^ quick )) {
+shm_retry:
 		rc = bdb->bi_dbenv->remove( bdb->bi_dbenv, dbhome, DB_FORCE );
 		if ( rc ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: dbenv remove failed: %s (%d)\n",
+				LDAP_XSTRING(bdb_db_open) ": dbenv remove failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
 			bdb->bi_dbenv = NULL;
 			goto fail;
@@ -255,7 +260,7 @@ bdb_db_open( BackendDB *be )
 		rc = db_env_create( &bdb->bi_dbenv, 0 );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: db_env_create failed: %s (%d)\n",
+				LDAP_XSTRING(bdb_db_open) ": db_env_create failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
 			goto fail;
 		}
@@ -274,7 +279,7 @@ bdb_db_open( BackendDB *be )
 			bdb->bi_dbenv_xflags, 1);
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
+				LDAP_XSTRING(bdb_db_open) ": dbenv_set_flags failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
 			goto fail;
 		}
@@ -283,7 +288,7 @@ bdb_db_open( BackendDB *be )
 #define	BDB_TXN_FLAGS	(DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN)
 
 	Debug( LDAP_DEBUG_TRACE,
-		"bdb_db_open: dbenv_open(%s)\n",
+		LDAP_XSTRING(bdb_db_open) ": dbenv_open(%s)\n",
 		bdb->bi_dbenv_home, 0, 0);
 
 	flags = DB_INIT_MPOOL | DB_CREATE | DB_THREAD;
@@ -300,8 +305,21 @@ bdb_db_open( BackendDB *be )
 			flags | do_recover, bdb->bi_dbenv_mode );
 
 	if ( rc ) {
+		/* Regular open faied, probably a missing shm environment.
+		 * Start over, do a recovery.
+		 */
+		if ( !do_recover && bdb->bi_shm_key ) {
+			bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
+			rc = db_env_create( &bdb->bi_dbenv, 0 );
+			if( rc == 0 ) {
+				Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_db_open)
+					": Shared memory env open failed, assuming stale env\n",
+					0, 0, 0 );
+				goto shm_retry;
+			}
+		}
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: Database cannot be %s, err %d. "
+			LDAP_XSTRING(bdb_db_open) ": Database cannot be %s, err %d. "
 			"Restore from backup!\n",
 				do_recover ? "recovered" : "opened", rc, 0);
 		goto fail;
@@ -309,7 +327,7 @@ bdb_db_open( BackendDB *be )
 
 	if ( do_alock_recover && alock_recover (&bdb->bi_alock_info) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: alock_recover failed\n",
+			LDAP_XSTRING(bdb_db_open) ": alock_recover failed\n",
 			0, 0, 0 );
 		rc = -1;
 		goto fail;
@@ -347,7 +365,7 @@ bdb_db_open( BackendDB *be )
 		rc = db_create( &db->bdi_db, bdb->bi_dbenv, 0 );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: db_create(%s) failed: %s (%d)\n",
+				LDAP_XSTRING(bdb_db_open) ": db_create(%s) failed: %s (%d)\n",
 				bdb->bi_dbenv_home, db_strerror(rc), rc );
 			goto fail;
 		}
@@ -408,7 +426,7 @@ bdb_db_open( BackendDB *be )
 			snprintf( buf, sizeof(buf), "%s/%s", 
 				bdb->bi_dbenv_home, bdbi_databases[i].file );
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: db_open(%s) failed: %s (%d)\n",
+				LDAP_XSTRING(bdb_db_open) ": db_open(%s) failed: %s (%d)\n",
 				buf, db_strerror(rc), rc );
 			db->bdi_db->close( db->bdi_db, 0 );
 			goto fail;
@@ -426,7 +444,7 @@ bdb_db_open( BackendDB *be )
 	rc = bdb_last_id( be, NULL );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_open: last_id(%s) failed: %s (%d)\n",
+			LDAP_XSTRING(bdb_db_open) ": last_id(%s) failed: %s (%d)\n",
 			bdb->bi_dbenv_home, db_strerror(rc), rc );
 		goto fail;
 	}
