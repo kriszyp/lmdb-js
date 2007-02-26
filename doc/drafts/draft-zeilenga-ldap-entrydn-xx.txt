@@ -1,0 +1,283 @@
+
+
+
+
+
+
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Standard Track                   Isode Limited
+Expires in six months                               14 February 2007
+
+
+
+                  The LDAP entryDN Operational Attribute
+                   <draft-zeilenga-ldap-entrydn-01.txt>
+
+
+
+Status of this Memo
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as an Standard Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extensions mailing list
+  <ldapext@ietf.org>.  Please send editorial comments directly to the
+  author <Kurt.Zeilenga@Isode.COM>.
+
+  By submitting this Internet-Draft, each author represents that any
+  applicable patent or other IPR claims of which he or she is aware have
+  been or will be disclosed, and any of which he or she becomes aware
+  will be disclosed, in accordance with Section 6 of BCP 79.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups. Note that other
+  groups may also distribute working documents as Internet-Drafts.
+
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time. It is inappropriate to use Internet-Drafts as reference material
+  or to cite them other than as "work in progress."
+
+  The list of current Internet-Drafts can be accessed at
+  http://www.ietf.org/1id-abstracts.html.
+
+  The list of Internet-Draft Shadow Directories can be accessed at
+  http://www.ietf.org/shadow.html.
+
+
+  Copyright (C) The IETF Trust (2007).  All Rights Reserved.
+
+  Please see the Full Copyright section near the end of this document
+  for more information.
+
+
+
+
+
+
+Zeilenga             draft-zeilenga-ldap-entrydn-01             [Page 1]
+
+INTERNET-DRAFT                LDAP entryDN              14 February 2007
+
+
+Abstract
+
+  This document describes the LDAP/X.500 'entryDN' operational
+  attribute.  The attribute provides a copy of the entry's distinguished
+  name for use in attribute value assertions.
+
+
+1. Background and Intended Use
+
+  In X.500 Directory Services [X.501], such as those accessible using
+  the Lightweight Directory Access Protocol (LDAP) [RFC4510], an entry
+  is identified by its distinguished name (DN) [RFC4512].  However, as
+  an entry's DN is not an attribute of the entry, it is not possible to
+  perform attribute value assertions [RFC4511] against it.
+
+  This document describes the 'entryDN' operational attribute which
+  holds a copy of the entry's distributed name.  This attribute may be
+  used in search filters.  For instance, searching the subtree
+  <dc=example,dc=com> with the filter:
+      (entryDN:componentFilterMatch:=or:{
+          item:{ component "3", rule rdnMatch, value "ou=A" },
+          item:{ component "3", rule rdnMatch, value "ou=B" } })
+  would return entries in the subtree <ou=A,dc=example,dc=com> and
+  entries in subtree <ou=B,dc=example,com>, but would not return any
+  other entries in the subtree <dc=example,dc=com>.
+
+  In this document, DNs are presented using the string representation
+  defined in [RFC4514].  Search filters above is described using the
+  string representation defined in [RFC4515] with whitespace (line
+  breaks and indentation) added to improve readability.  The
+  'componetFilterMatch' and 'rdnMatch' rules are specified in [RFC3687].
+
+  Schema definitions are provided using LDAP description formats
+  [RFC4512].  Definitions provided here are formatted (line wrapped) for
+  readability.
+
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in BCP 14 [RFC2119].
+
+
+2. 'entryDN' Operational Attribute
+
+  The 'entryDN' operational attribute provides a copy of the entry's
+  current DN.
+
+  The following is a LDAP attribute type description suitable for
+  publication in subschema subentries.
+
+
+
+Zeilenga             draft-zeilenga-ldap-entrydn-01             [Page 2]
+
+INTERNET-DRAFT                LDAP entryDN              14 February 2007
+
+
+      ( IANA-ASSIGNED-OID NAME 'entryDN'
+          DESC 'DN of the entry'
+          EQUALITY distinguishedNameMatch
+          SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+          SINGLE-VALUE
+          NO-USER-MODIFICATION
+          USAGE directoryOperation )
+
+  Note that the DN of the entry cannot be modified through this
+  attribute.
+
+
+3. Security Considerations
+
+  As this attribute only provides an additional mechanism to access an
+  entry's DN, the introduction of this attribute is not believed to
+  introduce new security considerations.
+
+
+4. IANA Considerations
+
+4.1. Object Identifier Registration
+
+  It is requested that IANA register upon Standards Action assign an
+  LDAP Object Identifier [RFC4520] for use in this document.
+
+      Subject: Request for LDAP OID Registration
+      Person & email address to contact for further information:
+          Kurt Zeilenga <Kurt.Zeilenga@Isode.COM>
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+      Comments:
+          Identifies the 'entryDN' attribute type
+
+
+5.4. 'entryDN' Descriptor Registration
+
+  It is requested that IANA register upon Standards Action the LDAP
+  'entryDN' descriptor [RFC4520].
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): entryDN
+      Object Identifier: IANA-ASSIGNED-OID
+      Person & email address to contact for further information:
+          Kurt Zeilenga <Kurt.Zeilenga@Isode.COM>
+      Usage: Attribute Type
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+
+
+
+Zeilenga             draft-zeilenga-ldap-entrydn-01             [Page 3]
+
+INTERNET-DRAFT                LDAP entryDN              14 February 2007
+
+
+6. Acknowledgments
+
+  TBD.
+
+
+7. Author's Address
+
+  Kurt D. Zeilenga
+  Isode Limited
+
+  Email: Kurt.Zeilenga@Isode.COM
+
+
+8. References
+
+
+8.1. Normative References
+
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+
+  [RFC4510]     Zeilenga, K. (editor), "LDAP: Technical Specification
+                Road Map", RFC 4510, June 2006.
+
+  [RFC4512]     Zeilenga, K. (editor), "LDAP: Directory Information
+                Models", RFC 4512, June 2006.
+
+  [X.501]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Models," X.501(1993) (also ISO/IEC 9594-2:1994).
+
+
+8.2. Informative References
+
+  [RFC3687]     Legg, S., "Lightweight Directory Access Protocol (LDAP)
+                and X.500 Component Matching Rules", RFC 3687, February
+                2004.
+
+  [RFC4511]     Sermersheim, J. (editor), "LDAP: The Protocol", RFC
+                4511, June 2006.
+
+  [RFC4514]     Zeilenga, K. (editor), "LDAP: String Representation of
+                Distinguished Names", RFC 4514, June 2006.
+
+  [RFC4515]     Smith, M. (editor), "LDAP: String Representation of
+                Search Filters", RFC 4515, June 2006.
+
+  [RFC4520]     Zeilenga, K., "Internet Assigned Numbers Authority
+
+
+
+Zeilenga             draft-zeilenga-ldap-entrydn-01             [Page 4]
+
+INTERNET-DRAFT                LDAP entryDN              14 February 2007
+
+
+                (IANA) Considerations for the Lightweight Directory
+                Access Protocol (LDAP)", RFC 4520, BCP 64, June 2006.
+
+
+
+Intellectual Property
+
+  The IETF takes no position regarding the validity or scope of any
+  Intellectual Property Rights or other rights that might be claimed to
+  pertain to the implementation or use of the technology described in
+  this document or the extent to which any license under such rights
+  might or might not be available; nor does it represent that it has
+  made any independent effort to identify any such rights.  Information
+  on the procedures with respect to rights in RFC documents can be found
+  in BCP 78 and BCP 79.
+
+  Copies of IPR disclosures made to the IETF Secretariat and any
+  assurances of licenses to be made available, or the result of an
+  attempt made to obtain a general license or permission for the use of
+  such proprietary rights by implementers or users of this specification
+  can be obtained from the IETF on-line IPR repository at
+  http://www.ietf.org/ipr.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights that may cover technology that may be required to implement
+  this standard.  Please address the information to the IETF at
+  ietf-ipr@ietf.org.
+
+
+
+Full Copyright
+
+  Copyright (C) The IETF Trust (2007).
+
+  This document is subject to the rights, licenses and restrictions
+  contained in BCP 78, and except as set forth therein, the authors
+  retain all their rights.
+
+  This document and the information contained herein are provided on an
+  "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY, THE IETF TRUST AND
+  THE INTERNET ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF
+  THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+Zeilenga             draft-zeilenga-ldap-entrydn-01             [Page 5]
+

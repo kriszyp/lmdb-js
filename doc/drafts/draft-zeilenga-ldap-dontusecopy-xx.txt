@@ -5,13 +5,13 @@
 
 
 INTERNET-DRAFT                                   Kurt D. Zeilenga
-Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                            5 March 2006
+Intended Category: Standard Track                Isode Limited
+Expires in six months                            14 February 2007
 
 
 
                      The LDAP Don't Use Copy Control
-                 <draft-zeilenga-ldap-dontusecopy-02.txt>
+                 <draft-zeilenga-ldap-dontusecopy-04.txt>
 
 
 Status of this Memo
@@ -21,7 +21,7 @@ Status of this Memo
   document.  Distribution of this memo is unlimited.  Technical
   discussion of this document will take place on the IETF LDAP
   Extensions mailing list <ldapext@ietf.org>.  Please send editorial
-  comments directly to the author <Kurt@OpenLDAP.org>.
+  comments directly to the author <Kurt.Zeilenga@Isode.COM>.
 
   By submitting this Internet-Draft, each author represents that any
   applicable patent or other IPR claims of which he or she is aware have
@@ -38,13 +38,13 @@ Status of this Memo
   or to cite them other than as "work in progress."
 
   The list of current Internet-Drafts can be accessed at
-  http://www.ietf.org/1id-abstracts.html
+  http://www.ietf.org/1id-abstracts.html.
 
   The list of Internet-Draft Shadow Directories can be accessed at
-  http://www.ietf.org/shadow.html
+  http://www.ietf.org/shadow.html.
 
 
-  Copyright (C) The Internet Society (2006).  All Rights Reserved.
+  Copyright (C) The IETF Trust (2007).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -57,7 +57,7 @@ Status of this Memo
 
 Zeilenga               LDAP Don't Use Copy Control              [Page 1]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-04   14 February 2007
 
 
 Abstract
@@ -71,7 +71,7 @@ Abstract
 1.  Background and Intended Usage
 
   This document defines the Lightweight Directory Access Protocol (LDAP)
-  [Roadmap] Don't Use Copy control extension.  The control may be
+  [RFC4510] Don't Use Copy control extension.  The control may be
   attached to request messages to indicate that copied (replicated or
   cached) information [X.500] should not be used in providing service.
   This control is based upon the X.511 [X.511] dontUseCopy service
@@ -94,14 +94,14 @@ Abstract
 
 3.  The Don't Use Copy Control
 
-  The Don't Use Copy control is an LDAP Control [Protocol] whose
+  The Don't Use Copy control is an LDAP Control [RFC4511] whose
   controlType is IANA-ASSIGNED-OID and controlValue is absent.  The
   criticality MUST be TRUE.  There is no corresponding response control.
 
   The control is appropriate for both LDAP interrogation operations,
-  including Compare and Search operations [Protocol].  It is
+  including Compare and Search operations [RFC4511].  It is
   inappropriate for all other operations, including Abandon, Bind,
-  Delete, Modify, ModifyDN, StartTLS, and Unbind operations [Protocol].
+  Delete, Modify, ModifyDN, StartTLS, and Unbind operations [RFC4511].
 
   When the control is attached to an LDAP request, the requested
   operation MUST NOT be performed on copied information.  That is, the
@@ -113,13 +113,19 @@ Abstract
 
 Zeilenga               LDAP Don't Use Copy Control              [Page 2]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-04   14 February 2007
 
 
   is not available (either locally or through chaining), the server MUST
   either return a referral directing the client to a server believed to
   be better able to service the request or return an appropriate result
   code (e.g., unwillingToPerform).
+
+  Servers implementing this technical specification SHOULD publish the
+  object identifier IANA-ASSIGNED-OID as a value of the
+  'supportedControl' attribute [RFC4512] in their root DSE.  A server
+  MAY choose to advertise this extension only when the client is
+  authorized to use it.
 
 
 4.  Security Considerations
@@ -131,9 +137,9 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
   consider whether use of copied information, in particular security and
   policy information, may result insecure behavior.
 
-  Security considerations for the base operations [Protocol] extended by
+  Security considerations for the base operations [RFC4511] extended by
   this control, as well as general LDAP security considerations
-  [Roadmap], generally apply to implementation and use of this
+  [RFC4510], generally apply to implementation and use of this
   extension.
 
 
@@ -142,12 +148,12 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
 5.1.  Object Identifier
 
   It is requested that IANA assign upon Standards Action an LDAP Object
-  Identifier [BCP64bis] to identify the LDAP Don't Use Copy Control
+  Identifier [RFC4520] to identify the LDAP Don't Use Copy Control
   defined in this document.
 
       Subject: Request for LDAP Object Identifier Registration
       Person & email address to contact for further information:
-          Kurt Zeilenga <kurt@OpenLDAP.org>
+          Kurt Zeilenga <Kurt.Zeilenga@Isode.COM>
       Specification: RFC XXXX
       Author/Change Controller: IESG
       Comments:
@@ -155,23 +161,23 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
 
 5.2  LDAP Protocol Mechanism
 
-  Registration of this protocol mechanism [BCP64bis] is requested.
+  Registration of this protocol mechanism [RFC4520] is requested.
 
       Subject: Request for LDAP Protocol Mechanism Registration
-      Object Identifier: IANA-ASSIGNED-OID
-      Description: Don't Use Copy Control
-      Person & email address to contact for further information:
-          Kurt Zeilenga <kurt@openldap.org>
-      Usage: Control
-      Specification: RFC XXXX
 
 
 
 Zeilenga               LDAP Don't Use Copy Control              [Page 3]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-04   14 February 2007
 
 
+      Object Identifier: IANA-ASSIGNED-OID
+      Description: Don't Use Copy Control
+      Person & email address to contact for further information:
+          Kurt Zeilenga <Kurt.Zeilenga@Isode.COM>
+      Usage: Control
+      Specification: RFC XXXX
       Author/Change Controller: IESG
       Comments: none
 
@@ -180,9 +186,9 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
 6.  Author's Address
 
   Kurt D. Zeilenga
-  OpenLDAP Foundation
+  Isode Limited
 
-  Email: Kurt@OpenLDAP.org
+  Email: Kurt.Zeilenga@Isode.COM
 
 
 7. References
@@ -197,12 +203,14 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
   [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
                 Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
-  [Roadmap]     Zeilenga, K. (editor), "LDAP: Technical Specification
-                Road Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in
-                progress.
+  [RFC4510]     Zeilenga, K. (editor), "LDAP: Technical Specification
+                Road Map", RFC 4510, June 2006.
 
-  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
-                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+  [RFC4511]     Sermersheim, J. (editor), "LDAP: The Protocol", RFC
+                4511, June 2006.
+
+  [RFC4512]     Zeilenga, K. (editor), "LDAP: Directory Information
+                Models", RFC 4512, June 2006.
 
 
 7.2. Informative References
@@ -212,23 +220,26 @@ INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
                 -- Overview of concepts, models and services,"
                 X.500(1993) (also ISO/IEC 9594-1:1994).
 
-  [X.511]       International Telecommunication Union -
-                Telecommunication Standardization Sector, "The
-                Directory: Abstract Service Definition", X.511(1993)
-                (also ISO/IEC 9594-3:1993).
-
-  [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP",
-                draft-ietf-ldapbis-bcp64-xx.txt, a work in progress.
-
 
 
 
 Zeilenga               LDAP Don't Use Copy Control              [Page 4]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-02       5 March 2006
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-04   14 February 2007
 
 
-Intellectual Property Rights
+  [X.511]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The
+                Directory: Abstract Service Definition", X.511(1993)
+                (also ISO/IEC 9594-3:1993).
+
+  [RFC4520]     Zeilenga, K., "Internet Assigned Numbers Authority
+                (IANA) Considerations for the Lightweight Directory
+                Access Protocol (LDAP)", RFC 4520, BCP 64, June 2006.
+
+
+
+Intellectual Property
 
   The IETF takes no position regarding the validity or scope of any
   Intellectual Property Rights or other rights that might be claimed to
@@ -256,7 +267,7 @@ Intellectual Property Rights
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2006).
+  Copyright (C) The IETF Trust (2007).
 
   This document is subject to the rights, licenses and restrictions
   contained in BCP 78, and except as set forth therein, the authors
@@ -264,10 +275,18 @@ Full Copyright
 
   This document and the information contained herein are provided on an
   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
-  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
-  ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
-  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY, THE IETF TRUST AND
+
+
+
+Zeilenga               LDAP Don't Use Copy Control              [Page 5]
+
+INTERNET-DRAFT     draft-zeilenga-ldap-dontusecopy-04   14 February 2007
+
+
+  THE INTERNET ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF
+  THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
@@ -279,5 +298,42 @@ Full Copyright
 
 
 
-Zeilenga               LDAP Don't Use Copy Control              [Page 5]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga               LDAP Don't Use Copy Control              [Page 6]
 
