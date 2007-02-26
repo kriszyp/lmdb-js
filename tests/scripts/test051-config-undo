@@ -91,7 +91,7 @@ if test $RC != 80 ; then
 fi
 
 echo Surveying the damage
-$LDAPMODIFY -D cn=manager,o=undo -w secret -h $LOCALHOST -p $PORT1 <<EOF
+$LDAPMODIFY -D "cn=manager,o=undo" -w secret -h $LOCALHOST -p $PORT1 <<EOF
 dn: o=foo,o=undo
 changetype: add
 objectClass: organization
