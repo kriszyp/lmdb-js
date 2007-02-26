@@ -166,6 +166,11 @@ str2entry2( char *s, int checkvals )
 			break;
 		}
 		i++;
+		if (i >= lines) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<= str2entry ran past end of entry\n", 0, 0, 0 );
+			goto fail;
+		}
 
 		rc = ldif_parse_line2( s, type+i, vals+i, &freev );
 		freeval[i] = freev;
