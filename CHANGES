@@ -3,7 +3,7 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.35 Engineering
 	Fixed entry consistency check in str2entry2 (ITS#4852)
 	Fixed slapd-bdb/hdb startup with missing shm env (ITS#4851)
-	Fixed slapd-meta filter mapping
+	Fixed slapd-meta/slapo-rwm filter mapping
 
 OpenLDAP 2.3.34 Release (2007/02/16)
 	Fixed libldap missing get_option(TLS CipherSuite) (ITS#4815)
