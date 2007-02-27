@@ -144,7 +144,7 @@ refint_config(
 			ip->attr = ad;
 			ip->next = id->attrs;
 			id->attrs = ip;
-			Debug(LDAP_DEBUG_ANY, "%s: line %d: new attribute <%s>\n",
+			Debug(LDAP_DEBUG_CONFIG, "%s: line %d: new attribute <%s>\n",
 				fname, lineno, argv[i]);
 		}
 	} else if(!strcasecmp(*argv, "refint_base")) {
