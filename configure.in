@@ -1004,8 +1004,17 @@ dnl Look for uuid_generate
 if test $have_uuid = no ; then
 	AC_CHECK_HEADERS(uuid/uuid.h)
 	if test $ac_cv_header_uuid_uuid_h = yes ; then
-		AC_CHECK_FUNCS( uuid_generate )
-		have_uuid=$ac_cv_func_uuid_generate
+		save_LIBS="$LIBS"
+		AC_SEARCH_LIBS(uuid_generate, uuid, [have_uuid=yes], :)
+		LIBS="$save_LIBS"
+
+		if test have_uuid = yes ; then
+			AC_DEFINE(HAVE_UUID_GENERATE,1,
+				[define if you have uuid_generate()])
+
+			test "$ac_cv_search_uuid_generate" = "none required" || \
+				SLAPD_LIBS="$SLAPD_LIBS $ac_cv_search_uuid_generate"
+		fi
 	fi
 fi
 
