@@ -988,7 +988,7 @@ have_uuid=no
 AC_CHECK_HEADERS(sys/uuid.h)
 if test $ac_cv_header_sys_uuid_h = yes ; then
 	save_LIBS="$LIBS"
-	AC_SEARCH_LIBS(uuid_to_str, uuid, [have_uuid=yes], :)
+	AC_SEARCH_LIBS([uuid_to_str], [uuid], [have_uuid=yes], :)
 	LIBS="$save_LIBS"
 
 	if test have_uuid = yes ; then
@@ -1005,7 +1005,7 @@ if test $have_uuid = no ; then
 	AC_CHECK_HEADERS(uuid/uuid.h)
 	if test $ac_cv_header_uuid_uuid_h = yes ; then
 		save_LIBS="$LIBS"
-		AC_SEARCH_LIBS(uuid_generate, uuid, [have_uuid=yes], :)
+		AC_SEARCH_LIBS([uuid_generate], [uuid], [have_uuid=yes], :)
 		LIBS="$save_LIBS"
 
 		if test have_uuid = yes ; then

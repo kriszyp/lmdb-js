@@ -729,7 +729,7 @@
 /* Define to 1 if you have the <utime.h> header file. */
 #undef HAVE_UTIME_H
 
-/* Define to 1 if you have the `uuid_generate' function. */
+/* define if you have uuid_generate() */
 #undef HAVE_UUID_GENERATE
 
 /* define if you have uuid_to_str() */
