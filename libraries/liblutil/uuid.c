@@ -41,6 +41,8 @@
 
 #ifdef HAVE_UUID_TO_STR
 #  include <sys/uuid.h>
+#elif defined( HAVE_UUID_GENERATE )
+#  include <uuid/uuid.h>
 #elif defined( _WIN32 )
 #  include <rpc.h>
 #else
@@ -56,7 +58,7 @@
 #include <lutil.h>
 
 /* not needed for Windows */
-#if !defined(HAVE_UUID_TO_STR) && !defined(_WIN32)
+#if !defined(HAVE_UUID_TO_STR) && !defined(HAVE_UUID_GENERATE) && !defined(_WIN32)
 static unsigned char *
 lutil_eaddr( void )
 {
@@ -251,7 +253,7 @@ mul64ll(unsigned long i1, unsigned long i2)
 
 #endif /* ULONG_MAX >= 64 bits || HAVE_LONG_LONG */
 
-#endif /* !HAVE_UUID_TO_STR && !_WIN32 */
+#endif /* !HAVE_UUID_TO_STR && !HAVE_UUID_GENERATE && !_WIN32 */
 
 /*
 ** All we really care about is an ISO UUID string.  The format of a UUID is:
@@ -298,6 +300,13 @@ lutil_uuidstr( char *buf, size_t len )
 
 	return l;
 
+#elif defined( HAVE_UUID_GENERATE )
+	uuid_t uu;
+
+	uuid_generate( uu );
+	uuid_unparse_lower( uu, buf );
+	return strlen( buf );
+	
 #elif defined( _WIN32 )
 	UUID uuid;
 	unsigned char *uuidstr;
