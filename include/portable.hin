@@ -421,7 +421,7 @@
 /* Define to 1 if you have the `pthread_kill_other_threads_np' function. */
 #undef HAVE_PTHREAD_KILL_OTHER_THREADS_NP
 
-/* Define to 1 if you have the `pthread_rwlock_destroy' function. */
+/* define if you have pthread_rwlock_destroy function */
 #undef HAVE_PTHREAD_RWLOCK_DESTROY
 
 /* Define to 1 if you have the `pthread_setconcurrency' function. */
@@ -729,8 +729,14 @@
 /* Define to 1 if you have the <utime.h> header file. */
 #undef HAVE_UTIME_H
 
+/* Define to 1 if you have the `uuid_generate' function. */
+#undef HAVE_UUID_GENERATE
+
 /* define if you have uuid_to_str() */
 #undef HAVE_UUID_TO_STR
+
+/* Define to 1 if you have the <uuid/uuid.h> header file. */
+#undef HAVE_UUID_UUID_H
 
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
