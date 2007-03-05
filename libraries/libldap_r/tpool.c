@@ -664,7 +664,7 @@ void ldap_pvt_thread_pool_context_reset( void *vctx )
 	int i;
 
 	for ( i=MAXKEYS-1; i>=0; i--) {
-		if ( ctx[i].ltk_key )
+		if ( ctx[i].ltk_key == NULL )
 			continue;
 		if ( ctx[i].ltk_free )
 			ctx[i].ltk_free( ctx[i].ltk_key, ctx[i].ltk_data );
