@@ -2183,7 +2183,6 @@ backsql_search( Operation *op, SlapReply *rs )
 		case LDAP_SCOPE_SUBTREE:
 			/* FIXME: this should never fail... */
 			if ( !dnIsSuffix( &eid->eid_ndn, &op->o_req_ndn ) ) {
-				assert( 0 );
 				goto next_entry2;
 			}
 			break;

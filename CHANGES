@@ -5,6 +5,7 @@ OpenLDAP 2.3.35 Engineering
 	Fixed str2anlist handling of undefined attrs/OCs (ITS#4854)
 	Fixed slapd-bdb/hdb startup with missing shm env (ITS#4851)
 	Fixed slapd-meta/slapo-rwm filter mapping
+	Fixed slapd-sql subtree shortcut (ITS#4856)
 	Fixed slapo-refint config message (ITS#4853)
 	Fixed libldap_r tpool reset (ITS#4855)
 
