@@ -906,12 +906,14 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	}
 
 	an = ch_realloc( an, ( i + j + 1 ) * sizeof( AttributeName ) );
-	BER_BVZERO( &an[i + j].an_name );
 	anew = an + i;
 	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
 		s != NULL;
 		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
 	{
+		/* put a stop mark */
+		BER_BVZERO( &anew[1].an_name );
+
 		anew->an_desc = NULL;
 		anew->an_oc = NULL;
 		anew->an_oc_exclude = 0;
