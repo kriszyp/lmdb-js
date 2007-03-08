@@ -853,7 +853,6 @@ getconn:;
 		int	gotit = 0,
 			doabandon = 0,
 			alreadybound = ncandidates;
-		time_t	curr_time = 0;
 
 		/* check timeout */
 		if ( timeout && lastres_time > 0
@@ -1220,15 +1219,14 @@ really_bad:;
 						NULL /* &candidates[ i ].sr_ctrls (unused) */ ,
 						0 );
 					if ( rs->sr_err != LDAP_SUCCESS ) {
-						ldap_get_option( msc->msc_ld,
-							LDAP_OPT_ERROR_NUMBER,
-							&rs->sr_err );
-						sres = slap_map_api2result( rs );
+						sres = slap_map_api2result( &candidates[ i ] );
 						candidates[ i ].sr_type = REP_RESULT;
 						ldap_msgfree( res );
 						res = NULL;
 						goto really_bad;
 					}
+
+					rs->sr_err = candidates[ i ].sr_err;
 
 					/* massage matchedDN if need be */
 					if ( candidates[ i ].sr_matched != NULL ) {
@@ -1255,37 +1253,60 @@ really_bad:;
 					}
 
 					/* add references to array */
-					if ( references ) {
-						BerVarray	sr_ref;
-						int		cnt;
-	
-						for ( cnt = 0; references[ cnt ]; cnt++ )
-							;
-	
-						sr_ref = ch_calloc( sizeof( struct berval ), cnt + 1 );
-	
-						for ( cnt = 0; references[ cnt ]; cnt++ ) {
-							ber_str2bv( references[ cnt ], 0, 1, &sr_ref[ cnt ] );
-						}
-						BER_BVZERO( &sr_ref[ cnt ] );
-	
-						( void )ldap_back_referral_result_rewrite( &dc, sr_ref );
-					
-						/* cleanup */
-						ber_memvfree( (void **)references );
-	
-						if ( rs->sr_v2ref == NULL ) {
-							rs->sr_v2ref = sr_ref;
+					/* RFC 4511: referrals can only appear
+					 * if result code is LDAP_REFERRAL */
+					if ( references != NULL
+						&& references[ 0 ] != NULL
+						&& references[ 0 ][ 0 ] != '\0' )
+					{
+						if ( rs->sr_err != LDAP_REFERRAL ) {
+							Debug( LDAP_DEBUG_ANY,
+								"%s meta_back_search[%ld]: "
+								"got referrals with err=%d\n",
+								op->o_log_prefix,
+								i, rs->sr_err );
 
 						} else {
-							for ( cnt = 0; !BER_BVISNULL( &sr_ref[ cnt ] ); cnt++ ) {
-								ber_bvarray_add( &rs->sr_v2ref, &sr_ref[ cnt ] );
-							}
-							ber_memfree( sr_ref );
-						}
-					}
+							BerVarray	sr_ref;
+							int		cnt;
 	
-					rs->sr_err = candidates[ i ].sr_err;
+							for ( cnt = 0; references[ cnt ]; cnt++ )
+								;
+	
+							sr_ref = ch_calloc( sizeof( struct berval ), cnt + 1 );
+	
+							for ( cnt = 0; references[ cnt ]; cnt++ ) {
+								ber_str2bv( references[ cnt ], 0, 1, &sr_ref[ cnt ] );
+							}
+							BER_BVZERO( &sr_ref[ cnt ] );
+	
+							( void )ldap_back_referral_result_rewrite( &dc, sr_ref );
+					
+							if ( rs->sr_v2ref == NULL ) {
+								rs->sr_v2ref = sr_ref;
+
+							} else {
+								for ( cnt = 0; !BER_BVISNULL( &sr_ref[ cnt ] ); cnt++ ) {
+									ber_bvarray_add( &rs->sr_v2ref, &sr_ref[ cnt ] );
+								}
+								ber_memfree( sr_ref );
+							}
+						}
+
+					} else if ( rs->sr_err == LDAP_REFERRAL ) {
+						Debug( LDAP_DEBUG_ANY,
+							"%s meta_back_search[%ld]: "
+							"got err=%d with null "
+							"or empty referrals\n",
+							op->o_log_prefix,
+							i, rs->sr_err );
+
+						rs->sr_err = LDAP_NO_SUCH_OBJECT;
+					}
+
+					/* cleanup */
+					ber_memvfree( (void **)references );
+	
 					sres = slap_map_api2result( rs );
 	
 					if ( StatslogTest( LDAP_DEBUG_TRACE | LDAP_DEBUG_ANY ) ) {

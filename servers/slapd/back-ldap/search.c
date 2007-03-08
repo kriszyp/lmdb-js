@@ -420,31 +420,47 @@ retry:
 				freetext = 1;
 			}
 
-			if ( references && references[ 0 ] && references[ 0 ][ 0 ] ) {
-				int	cnt;
-
+			/* RFC 4511: referrals can only appear
+			 * if result code is LDAP_REFERRAL */
+			if ( references 
+				&& references[ 0 ]
+				&& references[ 0 ][ 0 ] )
+			{
 				if ( rs->sr_err != LDAP_REFERRAL ) {
-					/* FIXME: error */
 					Debug( LDAP_DEBUG_ANY,
 						"%s ldap_back_search: "
-						"got referrals with %d\n",
+						"got referrals with err=%d\n",
 						op->o_log_prefix,
 						rs->sr_err, 0 );
-					rs->sr_err = LDAP_REFERRAL;
-				}
 
-				for ( cnt = 0; references[ cnt ]; cnt++ )
-					/* NO OP */ ;
+				} else {
+					int	cnt;
+
+					for ( cnt = 0; references[ cnt ]; cnt++ )
+						/* NO OP */ ;
 				
-				rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
-					op->o_tmpmemctx );
+					rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
+						op->o_tmpmemctx );
 
-				for ( cnt = 0; references[ cnt ]; cnt++ ) {
-					/* duplicating ...*/
-					ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
+					for ( cnt = 0; references[ cnt ]; cnt++ ) {
+						/* duplicating ...*/
+						ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
+					}
+					BER_BVZERO( &rs->sr_ref[ cnt ] );
 				}
-				BER_BVZERO( &rs->sr_ref[ cnt ] );
+
+			} else if ( rs->sr_err == LDAP_REFERRAL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s ldap_back_search: "
+					"got err=%d with null "
+					"or empty referrals\n",
+					op->o_log_prefix,
+					rs->sr_err, 0 );
+
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}
+
+			ber_memvfree( (void **)references );
 
 			if ( match.bv_val != NULL ) {
 #ifndef LDAP_NULL_IS_NULL
@@ -463,11 +479,6 @@ retry:
 				rs->sr_text = NULL;
 			}
 #endif /* LDAP_NULL_IS_NULL */
-
-			/* cleanup */
-			if ( references ) {
-				ber_memvfree( (void **)references );
-			}
 
 			rc = 0;
 			break;

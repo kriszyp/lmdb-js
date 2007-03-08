@@ -965,18 +965,46 @@ retry:;
 				if ( rc != LDAP_SUCCESS ) {
 					rs->sr_err = rc;
 				}
-				if ( refs != NULL ) {
-					int	i;
+
+				/* RFC 4511: referrals can only appear
+				 * if result code is LDAP_REFERRAL */
+				if ( refs != NULL
+					&& refs[ 0 ] != NULL
+					&& refs[ 0 ][ 0 ] != '\0' )
+				{
+					if ( rs->sr_err != LDAP_REFERRAL ) {
+						Debug( LDAP_DEBUG_ANY,
+							"%s meta_back_op_result[%d]: "
+							"got referrals with err=%d\n",
+							op->o_log_prefix,
+							candidate, rs->sr_err );
+
+					} else {
+						int	i;
 	
-					for ( i = 0; refs[ i ] != NULL; i++ )
-						/* count */ ;
-					rs->sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( i + 1 ),
-						op->o_tmpmemctx );
-					for ( i = 0; refs[ i ] != NULL; i++ ) {
-						ber_str2bv( refs[ i ], 0, 0, &rs->sr_ref[ i ] );
+						for ( i = 0; refs[ i ] != NULL; i++ )
+							/* count */ ;
+						rs->sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( i + 1 ),
+							op->o_tmpmemctx );
+						for ( i = 0; refs[ i ] != NULL; i++ ) {
+							ber_str2bv( refs[ i ], 0, 0, &rs->sr_ref[ i ] );
+						}
+						BER_BVZERO( &rs->sr_ref[ i ] );
 					}
-					BER_BVZERO( &rs->sr_ref[ i ] );
+
+				} else if ( rs->sr_err == LDAP_REFERRAL ) {
+					Debug( LDAP_DEBUG_ANY,
+						"%s meta_back_op_result[%d]: "
+						"got err=%d with null "
+						"or empty referrals\n",
+						op->o_log_prefix,
+						candidate, rs->sr_err );
+
+					rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				}
+
+				ber_memvfree( (void **)refs );
+
 				if ( ctrls != NULL ) {
 					rs->sr_ctrls = ctrls;
 				}
