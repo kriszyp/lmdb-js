@@ -1003,8 +1003,6 @@ retry:;
 					rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				}
 
-				ber_memvfree( (void **)refs );
-
 				if ( ctrls != NULL ) {
 					rs->sr_ctrls = ctrls;
 				}
@@ -1148,9 +1146,11 @@ retry:;
 		ldap_memfree( text );
 	}
 	if ( rs->sr_ref ) {
-		assert( refs != NULL );
-		ber_memvfree( (void **)refs );
 		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
+		rs->sr_ref = NULL;
+	}
+	if ( refs ) {
+		ber_memvfree( (void **)refs );
 	}
 	if ( ctrls ) {
 		assert( rs->sr_ctrls != NULL );

@@ -158,6 +158,8 @@ ldap_back_search(
 	int		freetext = 0;
 	int		do_retry = 1, dont_retry = 0;
 	LDAPControl	**ctrls = NULL;
+	char		**references = NULL;
+
 	/* FIXME: shouldn't this be null? */
 	const char	*save_matched = rs->sr_matched;
 
@@ -356,8 +358,6 @@ retry:
 			}
 
 		} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
-			char		**references = NULL;
-
 			do_retry = 0;
 			rc = ldap_parse_reference( lc->lc_ld, res,
 					&references, &rs->sr_ctrls, 1 );
@@ -398,6 +398,7 @@ retry:
 				ber_memvfree( (void **)references );
 				op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 				rs->sr_ref = NULL;
+				references = NULL;
 			}
 
 			if ( rs->sr_ctrls ) {
@@ -406,7 +407,7 @@ retry:
 			}
 
 		} else {
-			char		**references = NULL, *err = NULL;
+			char		*err = NULL;
 
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match.bv_val, &err,
@@ -444,7 +445,7 @@ retry:
 
 					for ( cnt = 0; references[ cnt ]; cnt++ ) {
 						/* duplicating ...*/
-						ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
+						ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
 					}
 					BER_BVZERO( &rs->sr_ref[ cnt ] );
 				}
@@ -459,8 +460,6 @@ retry:
 
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}
-
-			ber_memvfree( (void **)references );
 
 			if ( match.bv_val != NULL ) {
 #ifndef LDAP_NULL_IS_NULL
@@ -566,8 +565,12 @@ finish:;
 	}
 
 	if ( rs->sr_ref ) {
-		ber_bvarray_free_x( rs->sr_ref, op->o_tmpmemctx );
+		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 		rs->sr_ref = NULL;
+	}
+
+	if ( references ) {
+		ber_memvfree( (void **)references );
 	}
 
 	if ( attrs ) {
