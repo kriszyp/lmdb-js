@@ -1106,6 +1106,13 @@ or
 .BR sql ,
 depending on which backend will serve the database.
 .TP
+.B hidden on | off
+Controls whether the database will be used to answer
+queries. A database that is hidden will never be
+selected to answer any queries, and any suffix configured
+on the database will be ignored in checks for conflicts
+with other databases. By default, hidden is off.
+.TP
 .B lastmod on | off
 Controls whether
 .B slapd
