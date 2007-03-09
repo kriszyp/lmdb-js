@@ -497,13 +497,6 @@ for the segments of a filter string that are processed for a subany index
 lookup. The default is 2. For example, with the default values, a search
 using this filter "cn=*abcdefgh*" would generate index lookups for
 "abcd", "cdef", and "efgh".
-
-.\"-- NEW_LOGGING option --
-.\".TP
-.\".B logfile <filename>
-.\"Specify a file for recording debug log messages. By default these messages
-.\"only go to stderr and are not recorded anywhere else. Specifying a logfile
-.\"copies messages to both stderr and the logfile.
 .TP
 .B localSSF <SSF>
 Specifies the Security Strength Factor (SSF) to be given local LDAP sessions,
@@ -512,6 +505,11 @@ see
 .BR sasl-secprops 's
 .B minssf
 option description.  The default is 71.
+.TP
+.B logfile <filename>
+Specify a file for recording debug log messages. By default these messages
+only go to stderr and are not recorded anywhere else. Specifying a logfile
+copies messages to both stderr and the logfile.
 .TP
 .B loglevel <integer> [...]
 Specify the level at which debugging statements and operation 
