@@ -33,6 +33,9 @@ fi
 # configure backside
 mkdir -p $TESTDIR $DBDIR1
 
+$SLAPPASSWD -g -n >$CONFIGPWF
+echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
+
 . $CONFFILTER $BACKEND $MONITORDB < $TRANSLUCENTREMOTECONF > $CONF1
 echo "Running slapadd to build remote slapd database..."
 $SLAPADD -f $CONF1 -l $LDIFTRANSLUCENTCONFIG

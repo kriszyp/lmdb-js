@@ -27,10 +27,10 @@ DBPRO=$PRODIR/db
 DBCON=$CONDIR/db
 CFPRO=$PRODIR/slapd.d
 CFCON=$CONDIR/slapd.d
-LOG1=slapd.1.log
-LOG2=slapd.2.log
 
 mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
+
+$SLAPPASSWD -g -n >$CONFIGPWF
 
 #
 # Test replication of dynamic config:
@@ -43,16 +43,17 @@ mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
 #
 
 echo "Starting producer slapd on TCP/IP port $PORT1..."
-$SLAPADD -F $CFPRO -n 0 -l $DYNAMICCONF
+. $CONFFILTER $BACKEND $MONITORDB < $DYNAMICCONF > $CONFLDIF
+$SLAPADD -F $CFPRO -n 0 -l $CONFLDIF
 cd $PRODIR
-$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING > ../$LOG1 2>&1 &
+$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
 KILLPIDS="$PID"
-cd ../..
+cd $TESTWD
 
 sleep 1
 
@@ -90,7 +91,7 @@ EOF
 		exit $RC
 	fi
 fi
-CONFIGPW=`cat $CONFIGPWF`
+read CONFIGPW < $CONFIGPWF
 $LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcDatabase={0}config,cn=config
 changetype: modify
@@ -116,16 +117,16 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
-$SLAPADD -F $CFCON -n 0 -l $DYNAMICCONF
+$SLAPADD -F $CFCON -n 0 -l $CONFLDIF
 cd $CONDIR
-$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING > ../$LOG2 2>&1 &
+$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
     echo SLAVEPID $SLAVEPID
     read foo
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
-cd ../..
+cd $TESTWD
 
 sleep 1
 

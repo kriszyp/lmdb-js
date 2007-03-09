@@ -176,21 +176,18 @@ if test -d ${TESTDIR} ; then
 		/bin/rm -rf ${TESTDIR}/db.*
 	fi
 fi
+mkdir -p ${TESTDIR}
 
 if test $USERDATA = yes ; then
 	if test ! -d userdata ; then
 		echo "User data directory (userdata) does not exist."
 		exit 1
 	fi
-	mkdir -p ${TESTDIR}
 	cp -R userdata/* ${TESTDIR}
 fi
 
 # disable LDAP initialization
 LDAPNOINIT=true; export LDAPNOINIT
-
-$SLAPPASSWD -g -n >$CONFIGPWF
-echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >configpw.conf
 
 echo "Running ${SCRIPT}..."
 $SCRIPT $*
