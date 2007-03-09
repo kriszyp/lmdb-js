@@ -488,6 +488,11 @@ see
 .B minssf
 option description.  The default is 71.
 .TP
+.B olcLogFile <filename>
+Specify a file for recording debug log messages. By default these messages
+only go to stderr and are not recorded anywhere else. Specifying a logfile
+copies messages to both stderr and the logfile.
+.TP
 .B olcLogLevel: <integer> [...]
 Specify the level at which debugging statements and operation 
 statistics should be syslogged (currently logged to the
@@ -496,8 +501,7 @@ LOG_LOCAL4 facility).
 They must be considered subsystems rather than increasingly verbose 
 log levels.
 Some messages with higher priority are logged regardless 
-of the configured loglevel as soon as some logging is configured,
-otherwise anything is logged at all.
+of the configured loglevel as soon as any logging is configured.
 Log levels are additive, and available levels are:
 .RS
 .RS
