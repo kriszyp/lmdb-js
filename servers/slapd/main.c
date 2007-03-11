@@ -396,7 +396,7 @@ int main( int argc, char **argv )
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	{
-		int *i;
+		int *ip;
 		char *newConfigFile;
 		char *newConfigDir;
 		char *newUrls;
@@ -408,9 +408,9 @@ int main( int argc, char **argv )
 			    regService = serverName;
 		}
 
-		i = (int*)lutil_getRegParam( regService, "DebugLevel" );
-		if ( i != NULL ) {
-			slap_debug = *i;
+		ip = (int*)lutil_getRegParam( regService, "DebugLevel" );
+		if ( ip != NULL ) {
+			slap_debug = *ip;
 			Debug( LDAP_DEBUG_ANY,
 				"new debug level from registry is: %d\n", slap_debug, 0, 0 );
 		}
@@ -532,7 +532,6 @@ int main( int argc, char **argv )
 		case 'o': {
 			char		*val = strchr( optarg, '=' );
 			struct berval	opt;
-			int		i;
 
 			opt.bv_val = optarg;
 			
