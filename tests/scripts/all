@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
- . scripts/defines.sh
+. $SRCDIR/scripts/defines.sh
 TB=`$SHTOOL echo -e "%B"`
 TN=`$SHTOOL echo -e "%b"`
 SLEEPTIME=10
