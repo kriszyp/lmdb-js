@@ -369,13 +369,18 @@ wait4msg(
 		}
 
 		if ( rc == LDAP_MSG_X_KEEP_LOOKING && tvp != NULL ) {
+			time_t	delta_time;
+
 			tmp_time = time( NULL );
-			tv0.tv_sec -= ( tmp_time - start_time );
-			if ( tv0.tv_sec <= 0 ) {
+			delta_time = tmp_time - start_time;
+
+			/* do not assume time_t is signed */
+			if ( tv0.tv_sec <= delta_time ) {
 				rc = 0;	/* timed out */
 				ld->ld_errno = LDAP_TIMEOUT;
 				break;
 			}
+			tv0.tv_sec -= delta_time;
 			tv.tv_sec = tv0.tv_sec;
 
 			Debug( LDAP_DEBUG_TRACE, "wait4msg ld %p %ld secs to go\n",
