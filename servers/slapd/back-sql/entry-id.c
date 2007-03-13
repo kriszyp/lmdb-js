@@ -735,11 +735,27 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				}
 #endif /* BACKSQL_TRACE */
 
-				/*
-				 * FIXME: what if a binary 
-				 * is fetched?
+				/* ITS#3386, ITS#3113 - 20070308
+				 * If a binary is fetched?
+				 * must use the actual size read
+				 * from the database.
 				 */
-				ber_str2bv( row.cols[ i ], 0, 0, &bv );
+				if ( BACKSQL_IS_BINARY( row.col_type[ i ] ) ) {
+#ifdef BACKSQL_TRACE
+					Debug( LDAP_DEBUG_ANY,
+						"==>backsql_get_attr_vals(\"%s\"): "
+						"column name %s: data is binary; "
+						"using database size %ld\n",
+						bsi->bsi_e->e_name.bv_val,
+						ad->ad_cname.bv_val,
+						row.value_len[ i ] );
+#endif /* BACKSQL_TRACE */
+					bv.bv_val = row.cols[ i ];
+					bv.bv_len = row.value_len[ i ];
+
+				} else {
+					ber_str2bv( row.cols[ i ], 0, 0, &bv );
+				}
 
 #ifdef BACKSQL_PRETTY_VALIDATE
 				if ( pretty ) {

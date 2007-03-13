@@ -132,10 +132,6 @@ RETCODE
 backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 {
 	RETCODE		rc;
-	SQLCHAR		colname[ 64 ];
-	SQLSMALLINT	name_len, col_type, col_scale, col_null;
-	UDWORD		col_prec;
-	int		i;
 
 	if ( row == NULL ) {
 		return SQL_ERROR;
@@ -155,6 +151,11 @@ backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 		backsql_PrintErrors( SQL_NULL_HENV, SQL_NULL_HDBC, sth, rc );
 
 	} else {
+		SQLCHAR		colname[ 64 ];
+		SQLSMALLINT	name_len, col_type, col_scale, col_null;
+		UDWORD		col_prec;
+		int		i;
+
 #ifdef BACKSQL_TRACE
 		Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 			"ncols=%d\n", (int)row->ncols, 0, 0 );
@@ -162,58 +163,115 @@ backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 
 		row->col_names = (BerVarray)ber_memcalloc_x( row->ncols + 1, 
 				sizeof( struct berval ), ctx );
-		if ( !row->col_names ) goto nomem3;
-		row->cols = (char **)ber_memcalloc_x( row->ncols + 1, 
-				sizeof( char * ), ctx );
-		if ( !row->cols ) goto nomem2;
+		if ( row->col_names == NULL ) {
+			goto nomem;
+		}
+
 		row->col_prec = (UDWORD *)ber_memcalloc_x( row->ncols,
 				sizeof( UDWORD ), ctx );
-		if ( !row->col_prec ) goto nomem1;
+		if ( row->col_prec == NULL ) {
+			goto nomem;
+		}
+
+		row->col_type = (SQLSMALLINT *)ber_memcalloc_x( row->ncols,
+				sizeof( SQLSMALLINT ), ctx );
+		if ( row->col_type == NULL ) {
+			goto nomem;
+		}
+
+		row->cols = (char **)ber_memcalloc_x( row->ncols + 1, 
+				sizeof( char * ), ctx );
+		if ( row->cols == NULL ) {
+			goto nomem;
+		}
+
 		row->value_len = (SQLINTEGER *)ber_memcalloc_x( row->ncols,
 				sizeof( SQLINTEGER ), ctx );
-		if ( !row->value_len ) {
+		if ( row->value_len == NULL ) {
+			goto nomem;
+		}
+
+		if ( 0 ) {
+nomem:
+			ber_memfree_x( row->col_names, ctx );
+			row->col_names = NULL;
 			ber_memfree_x( row->col_prec, ctx );
 			row->col_prec = NULL;
-nomem1:		ber_memfree_x( row->cols, ctx );
+			ber_memfree_x( row->col_type, ctx );
+			row->col_type = NULL;
+			ber_memfree_x( row->cols, ctx );
 			row->cols = NULL;
-nomem2:		ber_memfree_x( row->col_names, ctx );
-			row->col_names = NULL;
-nomem3:		Debug( LDAP_DEBUG_ANY, "backsql_BindRowAsStrings: "
+			ber_memfree_x( row->value_len, ctx );
+			row->value_len = NULL;
+
+			Debug( LDAP_DEBUG_ANY, "backsql_BindRowAsStrings: "
 				"out of memory\n", 0, 0, 0 );
+
 			return LDAP_NO_MEMORY;
 		}
-		for ( i = 1; i <= row->ncols; i++ ) {
-			rc = SQLDescribeCol( sth, (SQLSMALLINT)i, &colname[ 0 ],
+
+		for ( i = 0; i < row->ncols; i++ ) {
+			SQLSMALLINT	TargetType;
+
+			rc = SQLDescribeCol( sth, (SQLSMALLINT)(i + 1), &colname[ 0 ],
 					(SQLUINTEGER)( sizeof( colname ) - 1 ),
 					&name_len, &col_type,
 					&col_prec, &col_scale, &col_null );
 			/* FIXME: test rc? */
 
 			ber_str2bv_x( (char *)colname, 0, 1,
-					&row->col_names[ i - 1 ], ctx );
+					&row->col_names[ i ], ctx );
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 				"col_name=%s, col_prec[%d]=%d\n",
-				colname, (int)i, (int)col_prec );
+				colname, (int)(i + 1), (int)col_prec );
 #endif /* BACKSQL_TRACE */
 			if ( col_type != SQL_CHAR && col_type != SQL_VARCHAR )
 			{
 				col_prec = MAX_ATTR_LEN;
 			}
 
-			row->cols[ i - 1 ] = (char *)ber_memcalloc_x( col_prec + 1,
+			row->cols[ i ] = (char *)ber_memcalloc_x( col_prec + 1,
 					sizeof( char ), ctx );
-			row->col_prec[ i - 1 ] = col_prec;
-			rc = SQLBindCol( sth, (SQLUSMALLINT)i,
-					 SQL_C_CHAR,
-					 (SQLPOINTER)row->cols[ i - 1 ],
-					 col_prec + 1,
-					 &row->value_len[ i - 1 ] );
+			row->col_prec[ i ] = col_prec;
+			row->col_type[ i ] = col_type;
+
+			/*
+			 * ITS#3386, ITS#3113 - 20070308
+			 * Note: there are many differences between various DPMS and ODBC
+			 * Systems; some support SQL_C_BLOB, SQL_C_BLOB_LOCATOR.  YMMV:
+			 * This has only been tested on Linux/MySQL/UnixODBC
+			 * For BINARY-type Fields (BLOB, etc), read the data as BINARY
+			 */
+			if ( BACKSQL_IS_BINARY( col_type ) ) {
+#ifdef BACKSQL_TRACE
+				Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
+					"col_name=%s, col_type[%d]=%d: reading binary data\n",
+					colname, (int)(i + 1), (int)col_type);
+#endif /* BACKSQL_TRACE */
+				TargetType = SQL_C_BINARY;
+
+			} else {
+				/* Otherwise read it as Character data */
+#ifdef BACKSQL_TRACE
+				Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
+					"col_name=%s, col_type[%d]=%d: reading character data\n",
+					colname, (int)(i + 1), (int)col_type);
+#endif /* BACKSQL_TRACE */
+				TargetType = SQL_C_CHAR;
+			}
+
+			rc = SQLBindCol( sth, (SQLUSMALLINT)(i + 1),
+				 TargetType,
+				 (SQLPOINTER)row->cols[ i ],
+				 col_prec + 1,
+				 &row->value_len[ i ] );
+
 			/* FIXME: test rc? */
 		}
 
-		BER_BVZERO( &row->col_names[ i - 1 ] );
-		row->cols[ i - 1 ] = NULL;
+		BER_BVZERO( &row->col_names[ i ] );
+		row->cols[ i ] = NULL;
 	}
 
 #ifdef BACKSQL_TRACE
@@ -237,8 +295,9 @@ backsql_FreeRow_x( BACKSQL_ROW_NTS *row, void *ctx )
 	}
 
 	ber_bvarray_free_x( row->col_names, ctx );
-	ber_memvfree_x( (void **)row->cols, ctx );
 	ber_memfree_x( row->col_prec, ctx );
+	ber_memfree_x( row->col_type, ctx );
+	ber_memvfree_x( (void **)row->cols, ctx );
 	ber_memfree_x( row->value_len, ctx );
 
 	return SQL_SUCCESS;

@@ -181,6 +181,7 @@ typedef struct {
 	SWORD		ncols;
 	BerVarray	col_names;
 	UDWORD		*col_prec;
+	SQLSMALLINT	*col_type;
 	char		**cols;
 	SQLINTEGER	*value_len;
 } BACKSQL_ROW_NTS;
@@ -581,6 +582,11 @@ typedef struct backsql_info {
 	  || LDAP_UPDATE_ERROR( (rc) ) )
 #define BACKSQL_SANITIZE_ERROR( rc ) \
 	( BACKSQL_LEGAL_ERROR( (rc) ) ? (rc) : LDAP_OTHER )
+
+#define BACKSQL_IS_BINARY(ct) \
+	( (ct) == SQL_BINARY \
+	  || (ct) == SQL_VARBINARY \
+	  || (ct) == SQL_LONGVARBINARY)
 
 #endif /* __BACKSQL_H__ */
 
