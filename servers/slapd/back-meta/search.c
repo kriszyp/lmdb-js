@@ -316,6 +316,7 @@ down:;
 		if ( *mcp == NULL ) {
 			retcode = META_SEARCH_ERR;
 			rs->sr_err = LDAP_UNAVAILABLE;
+			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 			break;
 		}
 		/* fall thru */
@@ -630,6 +631,7 @@ retry:;
 
 		if ( *mcp == NULL ) {
 			retcode = META_SEARCH_ERR;
+			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 			break;
 		}
 		/* fall thru */
