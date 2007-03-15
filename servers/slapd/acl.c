@@ -2053,7 +2053,7 @@ acl_set_cb_gather( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( bvals ) {
+		if ( bvalsp ) {
 			p->bvals = slap_set_join( p->cookie, p->bvals,
 					( '|' | SLAP_SET_RREF ), bvalsp );
 		}
