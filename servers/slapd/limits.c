@@ -502,7 +502,6 @@ limits_parse(
 			ad.bv_val = strchr( oc.bv_val, '/' );
 			if ( ad.bv_val != NULL ) {
 				const char	*text = NULL;
-				int		rc;
 
 				oc.bv_len = ad.bv_val - oc.bv_val;
 
@@ -533,7 +532,6 @@ no_oc:;
 
 		if ( group_ad == NULL ) {
 			const char	*text = NULL;
-			int		rc;
 			
 			rc = slap_str2ad( SLAPD_GROUP_ATTR, &group_ad, &text );
 

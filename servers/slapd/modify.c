@@ -695,7 +695,7 @@ int slap_mods_check(
 
 					MatchingRule *mr = ad->ad_type->sat_equality;
 					int istack[sizeof(int)*16];
-					int i,j,k,l,ir,jstack, rc, match, *ix, itmp;
+					int i, j, k, l, ir, jstack, match, *ix, itmp;
 					struct berval a, *cv;
 
 /* If PRESERVE_ORDER is defined only the index array is sorted; the
