@@ -373,6 +373,7 @@ retry:;
 				case LDAP_UNAVAILABLE:
 					if ( do_retry > 0 ) {
 						ldap_unbind_ext( ld, NULL, NULL );
+						ld = NULL;
 						do_retry--;
 						if ( delay != 0 ) {
 						    sleep( delay );
