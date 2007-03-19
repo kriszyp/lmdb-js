@@ -181,12 +181,12 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie,
 
 	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
 		op->o_req_dn = dn;
-		ros->r_dn  = dn;
+		ros->r_dn = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
-	ros->r_ndn = ndn;
 	op->o_req_ndn = ndn;
+	ros->r_ndn = ndn;
 
 	return LDAP_SUCCESS;
 }
@@ -204,7 +204,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	char			*olddn = op->o_req_dn.bv_val;
 	int			isupdate;
 
-	rwm_op_cb *roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "addDN", &roc->ros );
@@ -367,7 +367,7 @@ rwm_op_bind( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
-	rwm_op_cb *roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "bindDN", &roc->ros );
@@ -408,9 +408,9 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	int			rc;
-	struct berval mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
+	struct berval		mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
 
-	rwm_op_cb *roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "compareDN", &roc->ros );
@@ -505,7 +505,7 @@ rwm_op_delete( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
-	rwm_op_cb *roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "deleteDN", &roc->ros );
@@ -535,7 +535,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	Modifications		**mlp;
 	int			rc;
 
-	rwm_op_cb *roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "modifyDN", &roc->ros );
@@ -702,7 +702,7 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	
 	int			rc;
 
-	rwm_op_cb *roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 	if ( op->orr_newSup ) {
 		dncookie	dc;
@@ -800,7 +800,7 @@ rwm_op_search( Operation *op, SlapReply *rs )
 
 	char			*text = NULL;
 
-	rwm_op_cb *roc = rwm_callback_get( op, rs );
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 #ifdef ENABLE_REWRITE
 	rc = rewrite_session_var_set( rwmap->rwm_rw, op->o_conn,
