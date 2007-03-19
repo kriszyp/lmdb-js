@@ -781,12 +781,12 @@ ldap_back_getconn(
 			op->o_ndn = op->o_req_ndn;
 		}
 		isproxyauthz = ldap_back_is_proxy_authz( op, rs, sendok, binddn, bindcred );
-		if ( isproxyauthz == -1 ) {
-			return NULL;
-		}
 		if ( op->o_tag == LDAP_REQ_BIND ) {
 			op->o_dn = save_o_dn;
 			op->o_ndn = save_o_ndn;
+		}
+		if ( isproxyauthz == -1 ) {
+			return NULL;
 		}
 
 		lc_curr.lc_local_ndn = op->o_ndn;
