@@ -45,6 +45,40 @@ static ber_len_t ber_getnint LDAP_P((
 	ber_int_t *num,
 	ber_len_t len ));
 
+/* out->bv_len should be the buffer size on input */
+int
+ber_decode_oid( BerValue *in, BerValue *out )
+{
+	unsigned char *der = in->bv_val;
+	unsigned long val, val1;
+	int i, len;
+	char *ptr;
+
+	assert( in != NULL );
+	assert( out != NULL );
+
+	/* expands by 5/2, and we add dots - call it 3 */
+	if ( !out->bv_val || out->bv_len < in->bv_len * 3 )
+		return -1;
+
+	val1 = der[0] / 40;
+	val = der[0] - val1 * 40;
+
+	len = sprintf( out->bv_val, "%ld.%ld", val1, val );
+	ptr = out->bv_val + len;
+	val = 0;
+	for ( i=1; i<in->bv_len; i++ ) {
+		val = val << 7;
+		val |= der[i] & 0x7f;
+		if ( !( der[i] & 0x80 )) {
+			ptr += sprintf( ptr, ".%ld", val );
+			val = 0;
+		}
+	}
+	out->bv_len = ptr - out->bv_val;
+	return 0;
+}
+
 /* return the tag - LBER_DEFAULT returned means trouble */
 ber_tag_t
 ber_get_tag( BerElement *ber )

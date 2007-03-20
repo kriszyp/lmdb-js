@@ -177,6 +177,67 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	return rc == i ?  i+1 : -1;
 }
 
+/* out->bv_len should be the buffer size on input */
+int
+ber_encode_oid( BerValue *in, BerValue *out )
+{
+	unsigned char *der = out->bv_val;
+	unsigned long val, val1;
+	int i, len;
+	char *ptr, *end, *inend;
+
+	assert( in != NULL );
+	assert( out != NULL );
+
+	if ( !out->bv_val || out->bv_len < in->bv_len )
+		return -1;
+
+	/* OIDs must have at least two components */
+	if ( sscanf( in->bv_val, "%ld.%ld", &val, &val1 ) != 2 )
+		return -1;
+
+	val *= 40;
+	val += val1;
+
+	inend = in->bv_val + in->bv_len;
+
+	ptr = strchr( in->bv_val, '.' );
+	ptr = strchr( ptr+1, '.' );
+	if ( ptr )
+		++ptr;
+	else
+		ptr = inend;
+
+	for (;;) {
+		if ( !val ) {
+			*der++ = 0;
+		} else {
+			int hibit = 0;
+			i = sizeof(unsigned long) + 1;
+			len = i;
+			for (;val;) {
+				i--;
+				val1 = val & 0x7f;
+				val >>= 7;
+				der[i] = val1 | hibit;
+				hibit = 0x80;
+			}
+			if ( i ) {
+				len -= i;
+				memcpy( der, der+i, len );
+			}
+			der += len;
+		}
+		if ( ptr >= inend ) break;
+		val = strtol( ptr, &end, 10 );
+		if ( ptr == end ) break;
+		if ( *end && *end != '.' ) break;
+		ptr = end + 1;
+	}
+	out->bv_len = (char *)der - out->bv_val;
+	return 0;
+}
+
 static int
 ber_put_int_or_enum(
 	BerElement *ber,
