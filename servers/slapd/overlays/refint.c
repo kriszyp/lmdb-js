@@ -151,12 +151,12 @@ refint_config(
 		/* XXX only one basedn (yet) - need validate argument! */
 		if(id->dn.bv_val) ch_free(id->dn.bv_val);
 		ber_str2bv( argv[1], 0, 0, &dn );
-		Debug(LDAP_DEBUG_ANY, "%s: line %d: new baseDN <%s>\n",
-			fname, lineno, argv[1]);
 		if(dnNormalize(0, NULL, NULL, &dn, &id->dn, NULL)) {
 			Debug(LDAP_DEBUG_ANY, "%s: line %d: bad baseDN!\n", fname, lineno, 0);
 			return(1);
 		}
+		Debug(LDAP_DEBUG_CONFIG, "%s: line %d: new baseDN <%s>\n",
+			fname, lineno, argv[1]);
 	} else if(!strcasecmp(*argv, "refint_nothing")) {
 		if(id->nothing.bv_val) ch_free(id->nothing.bv_val);
 		if(id->nnothing.bv_val) ch_free(id->nnothing.bv_val);
@@ -165,7 +165,7 @@ refint_config(
 			Debug(LDAP_DEBUG_ANY, "%s: line %d: bad nothingDN!\n", fname, lineno, 0);
 			return(1);
 		}
-		Debug(LDAP_DEBUG_ANY, "%s: line %d: new nothingDN<%s>\n",
+		Debug(LDAP_DEBUG_CONFIG, "%s: line %d: new nothingDN<%s>\n",
 			fname, lineno, argv[1]);
 	} else {
 		return(SLAP_CONF_UNKNOWN);
