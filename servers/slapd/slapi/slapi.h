@@ -30,11 +30,11 @@ LDAP_BEGIN_DECL
 /*
  * Quick 'n' dirty to make struct slapi_* in slapi-plugin.h opaque
  */
-#define slapi_entry	slap_entry
-#define slapi_attr	slap_attr
+#define slapi_entry	Entry
+#define slapi_attr	Attribute
 #define slapi_value	berval
 #define slapi_valueset	berval *
-#define slapi_filter	slap_filter
+#define slapi_filter	Filter
 
 LDAP_END_DECL
 
