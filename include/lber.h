@@ -316,9 +316,19 @@ ber_scanf LDAP_P((
 	LDAP_CONST char *fmt,
 	... ));
 
+LBER_F( int )
+ber_decode_oid LDAP_P((
+	struct berval *in,
+	struct berval *out ));
+
 /*
  * in encode.c
  */
+LBER_F( int )
+ber_encode_oid LDAP_P((
+	struct berval *in,
+	struct berval *out ));
+
 typedef int (*BEREncodeCallback) LDAP_P((
 	BerElement *ber,
 	void *data ));
@@ -400,6 +410,11 @@ ber_printf LDAP_P((
 /*
  * in io.c:
  */
+
+LBER_F( ber_slen_t )
+ber_skip_data LDAP_P((
+	BerElement *ber,
+	ber_len_t len ));
 
 LBER_F( ber_slen_t )
 ber_read LDAP_P((
