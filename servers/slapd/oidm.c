@@ -26,7 +26,7 @@
 #include "lutil.h"
 #include "config.h"
 
-static LDAP_STAILQ_HEAD(OidMacroList, slap_oid_macro) om_list
+static LDAP_STAILQ_HEAD(OidMacroList, OidMacro) om_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(om_list);
 
 OidMacro *om_sys_tail;

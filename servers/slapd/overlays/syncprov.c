@@ -1030,7 +1030,7 @@ syncprov_drop_psearch( syncops *so, int lock )
 			ldap_pvt_thread_mutex_lock( &so->s_op->o_conn->c_mutex );
 		so->s_op->o_conn->c_n_ops_executing--;
 		so->s_op->o_conn->c_n_ops_completed++;
-		LDAP_STAILQ_REMOVE( &so->s_op->o_conn->c_ops, so->s_op, slap_op,
+		LDAP_STAILQ_REMOVE( &so->s_op->o_conn->c_ops, so->s_op, Operation,
 			o_next );
 		if ( lock )
 			ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );

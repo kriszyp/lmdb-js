@@ -30,7 +30,7 @@ struct sindexrec {
 };
 
 static Avlnode	*syn_index = NULL;
-static LDAP_SLIST_HEAD(SyntaxList, slap_syntax) syn_list
+static LDAP_SLIST_HEAD(SyntaxList, Syntax) syn_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&syn_list);
 
 static int

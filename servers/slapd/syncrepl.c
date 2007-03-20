@@ -59,46 +59,46 @@ typedef struct cookie_state {
 
 typedef struct syncinfo_s {
 	struct syncinfo_s	*si_next;
-	struct slap_backend_db *si_be;
-	struct slap_backend_db *si_wbe;
-	struct re_s			*si_re;
-	int					si_rid;
-	char				si_ridtxt[8];
+	BackendDB		*si_be;
+	BackendDB		*si_wbe;
+	struct re_s		*si_re;
+	int			si_rid;
+	char			si_ridtxt[8];
 	slap_bindconf		si_bindconf;
 	struct berval		si_base;
 	struct berval		si_logbase;
 	struct berval		si_filterstr;
 	struct berval		si_logfilterstr;
-	int					si_scope;
-	int					si_attrsonly;
-	char				*si_anfile;
+	int			si_scope;
+	int			si_attrsonly;
+	char			*si_anfile;
 	AttributeName		*si_anlist;
 	AttributeName		*si_exanlist;
-	char 				**si_attrs;
-	char				**si_exattrs;
-	int					si_allattrs;
-	int					si_allopattrs;
-	int					si_schemachecking;
-	int					si_type;	/* the active type */
-	int					si_ctype;	/* the configured type */
-	time_t				si_interval;
-	time_t				*si_retryinterval;
-	int					*si_retrynum_init;
-	int					*si_retrynum;
+	char 			**si_attrs;
+	char			**si_exattrs;
+	int			si_allattrs;
+	int			si_allopattrs;
+	int			si_schemachecking;
+	int			si_type;	/* the active type */
+	int			si_ctype;	/* the configured type */
+	time_t			si_interval;
+	time_t			*si_retryinterval;
+	int			*si_retrynum_init;
+	int			*si_retrynum;
 	struct sync_cookie	si_syncCookie;
 	cookie_state		*si_cookieState;
-	int					si_cookieAge;
-	int					si_manageDSAit;
-	int					si_slimit;
-	int					si_tlimit;
-	int					si_refreshDelete;
-	int					si_refreshPresent;
-	int					si_syncdata;
-	int					si_logstate;
-	int					si_conn_setup;
-	Avlnode				*si_presentlist;
-	LDAP				*si_ld;
-	LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
+	int			si_cookieAge;
+	int			si_manageDSAit;
+	int			si_slimit;
+	int			si_tlimit;
+	int			si_refreshDelete;
+	int			si_refreshPresent;
+	int			si_syncdata;
+	int			si_logstate;
+	int			si_conn_setup;
+	Avlnode			*si_presentlist;
+	LDAP			*si_ld;
+	LDAP_LIST_HEAD(np, nonpresent_entry)	si_nonpresentlist;
 	ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
 
@@ -120,9 +120,9 @@ static struct berval * slap_uuidstr_from_normalized(
 					struct berval *, struct berval *, void * );
 
 /* callback functions */
-static int dn_callback( struct slap_op *, struct slap_rep * );
-static int nonpresent_callback( struct slap_op *, struct slap_rep * );
-static int null_callback( struct slap_op *, struct slap_rep * );
+static int dn_callback( Operation *, SlapReply * );
+static int nonpresent_callback( Operation *, SlapReply * );
+static int null_callback( Operation *, SlapReply * );
 
 static AttributeDescription *sync_descs[4];
 

@@ -30,9 +30,9 @@ struct mindexrec {
 };
 
 static Avlnode	*mr_index = NULL;
-static LDAP_SLIST_HEAD(MRList, slap_matching_rule) mr_list
+static LDAP_SLIST_HEAD(MRList, MatchingRule) mr_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&mr_list);
-static LDAP_SLIST_HEAD(MRUList, slap_matching_rule_use) mru_list
+static LDAP_SLIST_HEAD(MRUList, MatchingRuleUse) mru_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&mru_list);
 
 static int

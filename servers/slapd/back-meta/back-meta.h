@@ -31,6 +31,7 @@
 
 /* String rewrite library */
 #include "rewrite.h"
+
 LDAP_BEGIN_DECL
 
 /*
@@ -39,9 +40,6 @@ LDAP_BEGIN_DECL
 #ifndef META_BACK_PRINT_CONNTREE
 #define META_BACK_PRINT_CONNTREE 0
 #endif /* !META_BACK_PRINT_CONNTREE */
-
-struct slap_conn;
-struct slap_op;
 
 /* from back-ldap.h before rwm removal */
 struct ldapmap {
@@ -223,7 +221,7 @@ typedef struct metasingleconn_t {
 } metasingleconn_t;
 
 typedef struct metaconn_t {
-	struct slap_conn	*mc_conn;
+	Connection		*mc_conn;
 #define	lc_conn			mc_conn
 	unsigned		mc_refcnt;
 

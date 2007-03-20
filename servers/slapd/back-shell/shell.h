@@ -46,10 +46,6 @@ struct shellinfo {
 	char	**si_delete;	/* cmd + args to exec for delete  */
 };
 
-struct slap_backend_db;
-struct slap_conn;
-struct slap_op;
-
 extern pid_t forkandexec LDAP_P((
 	char **args,
 	FILE **rfp,
@@ -57,11 +53,11 @@ extern pid_t forkandexec LDAP_P((
 
 extern void print_suffixes LDAP_P((
 	FILE *fp,
-	struct slap_backend_db *bd));
+	BackendDB *bd));
 
 extern int read_and_send_results LDAP_P((
-	struct slap_op *op,
-	struct slap_rep *rs,
+	Operation *op,
+	SlapReply *rs,
 	FILE *fp));
 
 LDAP_END_DECL

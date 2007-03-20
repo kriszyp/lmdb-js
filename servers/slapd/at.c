@@ -74,7 +74,7 @@ struct aindexrec {
 
 static Avlnode	*attr_index = NULL;
 static Avlnode	*attr_cache = NULL;
-static LDAP_STAILQ_HEAD(ATList, slap_attribute_type) attr_list
+static LDAP_STAILQ_HEAD(ATList, AttributeType) attr_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(attr_list);
 
 /* Last hardcoded attribute registered */
@@ -253,7 +253,7 @@ at_delete( AttributeType *at )
 {
 	at->sat_flags |= SLAP_AT_DELETED;
 
-	LDAP_STAILQ_REMOVE(&attr_list,at,slap_attribute_type,sat_next);
+	LDAP_STAILQ_REMOVE(&attr_list, at, AttributeType, sat_next);
 
 	at_delete_names( at );
 }

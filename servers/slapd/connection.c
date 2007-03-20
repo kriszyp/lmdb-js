@@ -1157,7 +1157,7 @@ operations_error:
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
-	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
+	LDAP_STAILQ_REMOVE( &conn->c_ops, op, Operation, o_next);
 	LDAP_STAILQ_NEXT(op, o_next) = NULL;
 	slap_op_free( op );
 	conn->c_n_ops_executing--;

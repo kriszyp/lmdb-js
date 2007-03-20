@@ -27,7 +27,7 @@
 #include "back-monitor.h"
 
 int
-monitor_back_compare( struct slap_op *op, struct slap_rep *rs)
+monitor_back_compare( Operation *op, SlapReply *rs )
 {
 	monitor_info_t	*mi = ( monitor_info_t * ) op->o_bd->be_private;
 	Entry           *e, *matched = NULL;

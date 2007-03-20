@@ -21,7 +21,7 @@
 LDAP_BEGIN_DECL
 
 typedef struct slap_set_cookie {
-	struct slap_op *set_op;
+	Operation *set_op;
 } SetCookie;
 
 /* this routine needs to return the bervals instead of

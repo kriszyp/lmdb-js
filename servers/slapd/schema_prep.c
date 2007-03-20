@@ -85,9 +85,9 @@ oidValidate(
 
 
 static int objectClassPretty(
-	struct slap_syntax *syntax,
-	struct berval * in,
-	struct berval * out,
+	Syntax *syntax,
+	struct berval *in,
+	struct berval *out,
 	void *ctx )
 {
 	ObjectClass *oc;
@@ -241,8 +241,8 @@ objectSubClassMatch(
 static int objectSubClassIndexer( 
 	slap_mask_t use,
 	slap_mask_t mask,
-	struct slap_syntax *syntax,
-	struct slap_matching_rule *mr,
+	Syntax *syntax,
+	MatchingRule *mr,
 	struct berval *prefix,
 	BerVarray values,
 	BerVarray *keysp,

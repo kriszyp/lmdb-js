@@ -26,7 +26,7 @@
 #include "back-relay.h"
 
 static int
-relay_back_swap_bd( struct slap_op *op, struct slap_rep *rs )
+relay_back_swap_bd( Operation *op, SlapReply *rs )
 {
 	slap_callback	*cb = op->o_callback;
 	BackendDB	*be = op->o_bd;
@@ -38,7 +38,7 @@ relay_back_swap_bd( struct slap_op *op, struct slap_rep *rs )
 }
 
 static void
-relay_back_add_cb( slap_callback *cb, struct slap_op *op )
+relay_back_add_cb( slap_callback *cb, Operation *op )
 {
 	cb->sc_next = op->o_callback;
 	cb->sc_response = relay_back_swap_bd;
@@ -55,7 +55,7 @@ relay_back_add_cb( slap_callback *cb, struct slap_op *op )
  *	any valid error 	send as error result
  */
 static BackendDB *
-relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
+relay_back_select_backend( Operation *op, SlapReply *rs, int err )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd = ri->ri_bd;
@@ -100,7 +100,7 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 }
 
 int
-relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_bind( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -134,7 +134,7 @@ relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_unbind( Operation *op, SlapReply *rs )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
@@ -165,7 +165,7 @@ relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_search( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -200,7 +200,7 @@ relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_compare( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -235,7 +235,7 @@ relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_modify( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -270,7 +270,7 @@ relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_modrdn( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -305,7 +305,7 @@ relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_add( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -340,7 +340,7 @@ relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_delete( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -370,7 +370,7 @@ relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_abandon( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -400,7 +400,7 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_cancel( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -435,7 +435,7 @@ relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_extended( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
@@ -470,7 +470,7 @@ relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_entry_release_rw( struct slap_op *op, Entry *e, int rw )
+relay_back_entry_release_rw( Operation *op, Entry *e, int rw )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
@@ -497,7 +497,7 @@ relay_back_entry_release_rw( struct slap_op *op, Entry *e, int rw )
 }
 
 int
-relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
+relay_back_entry_get_rw( Operation *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
@@ -532,7 +532,7 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
  * naming context... mmmh.
  */
 int
-relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
+relay_back_chk_referrals( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 0;
@@ -574,7 +574,7 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_operational( struct slap_op *op, struct slap_rep *rs )
+relay_back_operational( Operation *op, SlapReply *rs )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
@@ -608,7 +608,7 @@ relay_back_operational( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_has_subordinates( struct slap_op *op, Entry *e, int *hasSubs )
+relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
@@ -635,7 +635,7 @@ relay_back_has_subordinates( struct slap_op *op, Entry *e, int *hasSubs )
 }
 
 int
-relay_back_connection_init( BackendDB *bd, struct slap_conn *c )
+relay_back_connection_init( BackendDB *bd, Connection *c )
 {
 	relay_back_info		*ri = (relay_back_info *)bd->be_private;
 
@@ -652,7 +652,7 @@ relay_back_connection_init( BackendDB *bd, struct slap_conn *c )
 }
 
 int
-relay_back_connection_destroy( BackendDB *bd, struct slap_conn *c )
+relay_back_connection_destroy( BackendDB *bd, Connection *c )
 {
 	relay_back_info		*ri = (relay_back_info *)bd->be_private;
 

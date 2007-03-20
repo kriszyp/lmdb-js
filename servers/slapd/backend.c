@@ -418,7 +418,7 @@ backend_stopdown_one( BackendDB *bd )
 void backend_destroy_one( BackendDB *bd, int dynamic )
 {
 	if ( dynamic ) {
-		LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
+		LDAP_STAILQ_REMOVE(&backendDB, bd, BackendDB, be_next );
 	}
 
 	if ( bd->be_syncinfo ) {
@@ -560,7 +560,7 @@ backend_db_move(
 	int idx
 )
 {
-	LDAP_STAILQ_REMOVE(&backendDB, be, slap_backend_db, be_next);
+	LDAP_STAILQ_REMOVE(&backendDB, be, BackendDB, be_next);
 	backend_db_insert(be, idx);
 }
 
@@ -614,7 +614,7 @@ backend_db_init(
 		fprintf( stderr, "database init failed (%s)\n", type );
 		/* If we created and linked this be, remove it and free it */
 		if ( !b0 ) {
-			LDAP_STAILQ_REMOVE(&backendDB, be, slap_backend_db, be_next);
+			LDAP_STAILQ_REMOVE(&backendDB, be, BackendDB, be_next);
 			ch_free( be );
 			be = NULL;
 			nbackends--;

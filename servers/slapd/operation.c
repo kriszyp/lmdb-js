@@ -38,7 +38,7 @@
 #endif
 
 static ldap_pvt_thread_mutex_t	slap_op_mutex;
-static LDAP_STAILQ_HEAD(s_o, slap_op)	slap_free_ops;
+static LDAP_STAILQ_HEAD(s_o, Operation)	slap_free_ops;
 static time_t last_time;
 static int last_incr;
 

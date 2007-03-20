@@ -348,7 +348,7 @@ LDAP_SLAPD_F (int) be_slurp_update LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_shadow_update LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_isupdate_dn LDAP_P(( Backend *be, struct berval *ndn ));
 LDAP_SLAPD_F (struct berval *) be_root_dn LDAP_P(( Backend *be ));
-LDAP_SLAPD_F (int) be_entry_get_rw LDAP_P(( struct slap_op *o,
+LDAP_SLAPD_F (int) be_entry_get_rw LDAP_P(( Operation *o,
 		struct berval *ndn, ObjectClass *oc,
 		AttributeDescription *at, int rw, Entry **e ));
 LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P((
@@ -1600,7 +1600,7 @@ LDAP_SLAPD_F( slap_mr_indexer_func ) octetStringIndexer;
 LDAP_SLAPD_F( slap_mr_filter_func ) octetStringFilter;
 
 LDAP_SLAPD_F( int ) numericoidValidate LDAP_P((
-	struct slap_syntax *syntax,
+	Syntax *syntax,
         struct berval *in ));
 LDAP_SLAPD_F( int ) octetStringMatch LDAP_P((
 	int *matchp,
