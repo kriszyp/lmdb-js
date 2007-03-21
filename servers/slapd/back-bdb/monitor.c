@@ -455,10 +455,12 @@ bdb_monitor_db_open( BackendDB *be )
 	cb->mc_free = bdb_monitor_free;
 	cb->mc_private = (void *)bdb;
 
-	(void)mbe->register_database( be );
-
-	rc = mbe->register_entry_attrs( NULL, a, cb,
-		base, bdb->bi_monitor.bdm_scope, filter );
+	/* make sure the database is registered; then add monitor attributes */
+	rc = mbe->register_database( be );
+	if ( rc == 0 ) {
+		rc = mbe->register_entry_attrs( NULL, a, cb,
+			base, bdb->bi_monitor.bdm_scope, filter );
+	}
 
 cleanup:;
 	if ( rc != 0 ) {

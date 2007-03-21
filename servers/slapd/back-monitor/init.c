@@ -226,6 +226,12 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 };
 
 int
+monitor_subsys_is_opened( void )
+{
+	return monitor_subsys_opened;
+}
+
+int
 monitor_back_register_subsys(
 	monitor_subsys_t	*ms )
 {
@@ -249,7 +255,7 @@ monitor_back_register_subsys(
 	/* if a subsystem is registered __AFTER__ subsystem 
 	 * initialization (depending on the sequence the databases
 	 * are listed in slapd.conf), init it */
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 
 		/* FIXME: this should only be possible
 		 * if be_monitor is already initialized */
@@ -269,11 +275,20 @@ enum {
 	LIMBO_ENTRY,
 	LIMBO_ENTRY_PARENT,
 	LIMBO_ATTRS,
-	LIMBO_CB
+	LIMBO_CB,
+	LIMBO_BACKEND,
+	LIMBO_DATABASE,
+	LIMBO_OVERLAY_INFO,
+	LIMBO_OVERLAY,
+
+	LIMBO_LAST
 };
 
 typedef struct entry_limbo_t {
 	int			el_type;
+	BackendInfo		*el_bi;
+	BackendDB		*el_be;
+	slap_overinst		*el_on;
 	Entry			*el_e;
 	Attribute		*el_a;
 	struct berval		el_ndn;
@@ -314,6 +329,62 @@ monitor_back_register_overlay(
 }
 
 int
+monitor_back_register_backend_limbo(
+	BackendInfo		*bi )
+{
+	return -1;
+}
+
+int
+monitor_back_register_database_limbo(
+	BackendDB		*be )
+{
+	entry_limbo_t	**elpp, el = { 0 };
+	monitor_info_t 	*mi;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_database_limbo: "
+			"monitor database not configured.\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+
+	el.el_type = LIMBO_DATABASE;
+
+	el.el_be = be;
+	
+	for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		/* go to last */;
+
+	*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
+
+	el.el_next = NULL;
+	**elpp = el;
+
+	return 0;
+}
+
+int
+monitor_back_register_overlay_info_limbo(
+	slap_overinst		*on )
+{
+	return -1;
+}
+
+int
+monitor_back_register_overlay_limbo(
+	BackendDB		*be )
+{
+	return -1;
+}
+
+int
 monitor_back_register_entry(
 	Entry			*e,
 	monitor_callback_t	*cb,
@@ -336,7 +407,7 @@ monitor_back_register_entry(
 	assert( e != NULL );
 	assert( e->e_private == NULL );
 	
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry		*e_parent = NULL,
 				*e_new = NULL,
 				**ep = NULL;
@@ -515,7 +586,7 @@ monitor_back_register_entry_parent(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry		*e_parent = NULL,
 				*e_new = NULL,
 				**ep = NULL;
@@ -883,7 +954,7 @@ monitor_back_register_entry_attrs(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		Attribute		**atp = NULL;
 		monitor_entry_t 	*mp = NULL;
@@ -1083,7 +1154,7 @@ monitor_back_unregister_entry(
 
 	assert( mi != NULL );
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		monitor_entry_t 	*mp = NULL;
 		monitor_callback_t	*cb = NULL;
@@ -1196,7 +1267,7 @@ monitor_back_unregister_entry_parent(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		monitor_entry_t 	*mp = NULL;
 
@@ -1351,7 +1422,7 @@ monitor_back_unregister_entry_attrs(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		monitor_entry_t 	*mp = NULL;
 		int			freeit = 0;
@@ -2294,6 +2365,22 @@ monitor_back_db_open(
 						&el->el_nbase,
 						el->el_scope,
 						&el->el_filter );
+				break;
+
+			case LIMBO_BACKEND:
+				rc = monitor_back_register_backend( el->el_bi );
+				break;
+
+			case LIMBO_DATABASE:
+				rc = monitor_back_register_database( el->el_be );
+				break;
+
+			case LIMBO_OVERLAY_INFO:
+				rc = monitor_back_register_overlay_info( el->el_on );
+				break;
+
+			case LIMBO_OVERLAY:
+				rc = monitor_back_register_overlay( el->el_be );
 				break;
 
 			default:

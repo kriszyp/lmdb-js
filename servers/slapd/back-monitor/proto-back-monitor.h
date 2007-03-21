@@ -135,6 +135,9 @@ monitor_entry_stub LDAP_P((
  * init
  */
 extern int
+monitor_subsys_is_opened LDAP_P((
+	void ));
+extern int
 monitor_back_register_subsys LDAP_P((
 	monitor_subsys_t	*ms ));
 extern int
@@ -148,6 +151,18 @@ monitor_back_register_overlay_info LDAP_P((
 	slap_overinst		*on ));
 extern int
 monitor_back_register_overlay LDAP_P((
+	BackendDB		*be ));
+extern int
+monitor_back_register_backend_limbo LDAP_P((
+	BackendInfo		*bi ));
+extern int
+monitor_back_register_database_limbo LDAP_P((
+	BackendDB		*be ));
+extern int
+monitor_back_register_overlay_info_limbo LDAP_P((
+	slap_overinst		*on ));
+extern int
+monitor_back_register_overlay_limbo LDAP_P((
 	BackendDB		*be ));
 extern monitor_subsys_t *
 monitor_back_get_subsys LDAP_P((

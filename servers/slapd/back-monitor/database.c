@@ -353,8 +353,13 @@ monitor_back_register_database(
 				*ms_database,
 				*ms_overlay;
 	struct berval		bv;
+	char			buf[ BACKMONITOR_BUFSIZE ];
 
 	assert( be_monitor != NULL );
+
+	if ( !monitor_subsys_is_opened() ) {
+		return monitor_back_register_database_limbo( be );
+	}
 
 	mi = ( monitor_info_t * )be_monitor->be_private;
 
@@ -401,31 +406,45 @@ monitor_back_register_database(
 
 	mp = ( monitor_entry_t * )e_database->e_private;
 	for ( i = -1, ep = &mp->mp_children; *ep; i++ ) {
+		Attribute	*a;
+
+		a = attr_find( (*ep)->e_attrs, slap_schema.si_ad_namingContexts );
+		if ( a ) {
+			int		j, k;
+
+			for ( j = 0; !BER_BVISNULL( &a->a_nvals[ j ] ); j++ ) {
+				for ( k = 0; !BER_BVISNULL( &be->be_nsuffix[ k ] ); k++ ) {
+					if ( dn_match( &a->a_nvals[ j ], &be->be_nsuffix[ k ] ) ) {
+						rc = 0;
+						goto done;
+					}
+				}
+			}
+		}
+
 		mp = ( monitor_entry_t * )(*ep)->e_private;
 
 		assert( mp != NULL );
 		ep = &mp->mp_next;
 	}
 
-	{	
-		char		buf[ BACKMONITOR_BUFSIZE ];
-
-		bv.bv_val = buf;
-		bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Database %d", i );
-		if ( bv.bv_len >= sizeof( buf ) ) {
-			return -1;
-		}
-		
-		rc = monitor_subsys_database_init_one( mi, be,
-			ms_database, ms_backend, ms_overlay, &bv, e_database, &ep );
-		if ( rc != 0 ) {
-			return rc;
-		}
+	bv.bv_val = buf;
+	bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Database %d", i );
+	if ( bv.bv_len >= sizeof( buf ) ) {
+		rc = -1;
+		goto done;
 	}
 	
+	rc = monitor_subsys_database_init_one( mi, be,
+		ms_database, ms_backend, ms_overlay, &bv, e_database, &ep );
+	if ( rc != 0 ) {
+		goto done;
+	}
+
+done:;
 	monitor_cache_release( mi, e_database );
 
-	return 0;
+	return rc;
 }
 
 int
