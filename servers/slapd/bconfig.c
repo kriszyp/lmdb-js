@@ -4302,16 +4302,31 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		char		textbuf[ SLAP_TEXT_BUFLEN ];
 		const char	*text = textbuf;
 
-		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
-			"DN=\"%s\" no structural objectClass\n",
-			op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
-
-		structural_class( oc_at->a_nvals, &soc, NULL, &text, textbuf, sizeof(textbuf), NULL );
+		/* FIXME: check result */
+		rc = structural_class( oc_at->a_nvals, &soc, NULL,
+			&text, textbuf, sizeof(textbuf), NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+				"DN=\"%s\" no structural objectClass (%s)\n",
+				op ? op->o_log_prefix : "", e->e_name.bv_val, text );
+			return rc;
+		}
 		attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &soc->soc_cname, NULL );
 		soc_at = attr_find( e->e_attrs, slap_schema.si_ad_structuralObjectClass );
 		if ( soc_at == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+				"DN=\"%s\" no structural objectClass; "
+				"unable to merge computed class %s\n",
+				op ? op->o_log_prefix : "", e->e_name.bv_val,
+				soc->soc_cname.bv_val );
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
+
+		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+			"DN=\"%s\" no structural objectClass; "
+			"computed objectClass %s merged\n",
+			op ? op->o_log_prefix : "", e->e_name.bv_val,
+			soc->soc_cname.bv_val );
 	}
 
 	/* Fake the coordinates based on whether we're part of an
