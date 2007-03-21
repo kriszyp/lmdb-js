@@ -27,8 +27,8 @@ The
 routine is used to wait for and return the result of
 an operation previously initiated by one of the LDAP asynchronous
 operation routines (e.g.,
-.BR ldap_search (3),
-.BR ldap_modify (3),
+.BR ldap_search_ext (3),
+.BR ldap_modify_ext (3),
 etc.).  Those routines all return -1 in case of error, and an
 invocation identifier upon successful initiation of the operation. The
 invocation identifier is picked by the library and is guaranteed to be
@@ -103,7 +103,7 @@ routine is used to free the memory allocated for
 result(s) by
 .B ldap_result()
 or
-.BR ldap_search_s (3)
+.BR ldap_search_ext_s (3)
 and friends.
 It takes a pointer to the result or result chain to be freed and returns
 the type of the last message in the chain.
@@ -126,7 +126,6 @@ and
 return -1 on error.
 .SH SEE ALSO
 .BR ldap (3),
-.BR ldap_search (3),
 .BR ldap_first_message (3),
 .BR select (2)
 .SH ACKNOWLEDGEMENTS
