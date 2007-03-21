@@ -4027,32 +4027,65 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	return rc;
 }
 
+static int
+count_oc( ObjectClass *oc, ConfigOCs ***copp, int *nocs )
+{
+	ConfigOCs	co, *cop;
+	ObjectClass	**sups;
+
+	co.co_name = &oc->soc_cname;
+	cop = avl_find( CfOcTree, &co, CfOc_cmp );
+	if ( cop ) {
+		int	i;
+
+		/* check for duplicates */
+		for ( i = 0; i < *nocs; i++ ) {
+			if ( *copp && (*copp)[i] == cop ) {
+				break;
+			}
+		}
+
+		if ( i == *nocs ) {
+			ConfigOCs **tmp = ch_realloc( *copp, (*nocs + 1)*sizeof( ConfigOCs * ) );
+			if ( tmp == NULL ) {
+				return -1;
+			}
+			*copp = tmp;
+			(*copp)[*nocs] = cop;
+			(*nocs)++;
+		}
+	}
+
+	for ( sups = oc->soc_sups; sups && *sups; sups++ ) {
+		if ( count_oc( *sups, copp, nocs ) ) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 static ConfigOCs **
 count_ocs( Attribute *oc_at, int *nocs )
 {
-	int i, j, n;
-	ConfigOCs co, *coptr, **colst;
+	int		i;
+	ConfigOCs	**colst = NULL;
 
-	/* count the objectclasses */
-	for ( i=0; oc_at->a_nvals[i].bv_val; i++ );
-	n = i;
-	colst = (ConfigOCs **)ch_malloc( n * sizeof(ConfigOCs *));
+	*nocs = 0;
 
-	for ( i=0, j=0; i<n; i++) {
-		co.co_name = &oc_at->a_nvals[i];
-		coptr = avl_find( CfOcTree, &co, CfOc_cmp );
-		
-		/* ignore non-config objectclasses. probably should be
-		 * an error, general data doesn't belong here.
-		 */
-		if ( !coptr ) continue;
+	for ( i = 0; !BER_BVISNULL( &oc_at->a_nvals[i] ); i++ )
+		/* count attrs */ ;
 
-		/* Ignore the root objectclass, it has no implementation.
-		 */
-		if ( coptr->co_type == Cft_Abstract ) continue;
-		colst[j++] = coptr;
+	for ( ; i--; ) {
+		ObjectClass	*oc = oc_bvfind( &oc_at->a_nvals[i] );
+
+		assert( oc != NULL );
+		if ( count_oc( oc, &colst, nocs ) ) {
+			ch_free( colst );
+			return NULL;
+		}
 	}
-	*nocs = j;
+
 	return colst;
 }
 
@@ -4081,8 +4114,9 @@ cfAddSchema( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 static int
 cfAddDatabase( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 {
-	if ( p->ce_type != Cft_Global )
+	if ( p->ce_type != Cft_Global ) {
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 	ca->be = frontendDB;	/* just to get past check_vals */
 	return LDAP_SUCCESS;
 }
@@ -4090,24 +4124,27 @@ cfAddDatabase( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 static int
 cfAddBackend( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 {
-	if ( p->ce_type != Cft_Global )
+	if ( p->ce_type != Cft_Global ) {
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 	return LDAP_SUCCESS;
 }
 
 static int
 cfAddModule( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 {
-	if ( p->ce_type != Cft_Global )
+	if ( p->ce_type != Cft_Global ) {
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 	return LDAP_SUCCESS;
 }
 
 static int
 cfAddOverlay( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 {
-	if ( p->ce_type != Cft_Database )
+	if ( p->ce_type != Cft_Database ) {
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 	ca->be = p->ce_be;
 	return LDAP_SUCCESS;
 }
@@ -4156,18 +4193,49 @@ schema_destroy_one( ConfigArgs *ca, ConfigOCs **colst, int nocs,
 	ch_free( cfn );
 }
 
+static int
+config_add_oc( ConfigOCs **cop, CfEntryInfo *last, Entry *e, ConfigArgs *ca )
+{
+	int		rc = LDAP_CONSTRAINT_VIOLATION;
+	ObjectClass	**ocp;
+
+	if ( (*cop)->co_ldadd ) {
+		rc = (*cop)->co_ldadd( last, e, ca );
+		if ( rc != LDAP_CONSTRAINT_VIOLATION ) {
+			return rc;
+		}
+	}
+
+	for ( ocp = (*cop)->co_oc->soc_sups; ocp && *ocp; ocp++ ) {
+		ConfigOCs	co = { 0 };
+
+		co.co_name = &(*ocp)->soc_cname;
+		*cop = avl_find( CfOcTree, &co, CfOc_cmp );
+		if ( *cop == NULL ) {
+			return rc;
+		}
+
+		rc = config_add_oc( cop, last, e, ca );
+		if ( rc != LDAP_CONSTRAINT_VIOLATION ) {
+			return rc;
+		}
+	}
+
+	return rc;
+}
+
 /* Parse an LDAP entry into config directives */
 static int
 config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	int *renum, Operation *op )
 {
-	CfEntryInfo *ce, *last;
-	ConfigOCs **colst;
-	Attribute *a, *oc_at;
-	int i, ibase = -1, nocs, rc = 0;
-	struct berval pdn;
-	ConfigTable *ct;
-	char *ptr;
+	CfEntryInfo	*ce, *last = NULL;
+	ConfigOCs	co, *coptr, **colst;
+	Attribute	*a, *oc_at, *soc_at;
+	int		i, ibase = -1, nocs, rc = 0;
+	struct berval	pdn;
+	ConfigTable	*ct;
+	char		*ptr;
 
 	memset( ca, 0, sizeof(ConfigArgs));
 
@@ -4177,10 +4245,15 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	 */
 	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
 	if ( ce ) {
-		if (( op && op->o_managedsait ) ||
+		if ( ( op && op->o_managedsait ) ||
 			( ce->ce_type != Cft_Database && ce->ce_type != Cft_Overlay &&
-			  ce->ce_type != Cft_Module ))
-		return LDAP_ALREADY_EXISTS;
+			  ce->ce_type != Cft_Module ) )
+		{
+			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+				"DN=\"%s\" already exists\n",
+				op->o_log_prefix, e->e_name.bv_val, 0 );
+			return LDAP_ALREADY_EXISTS;
+		}
 	}
 
 	dnParent( &e->e_nname, &pdn );
@@ -4188,23 +4261,58 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	/* If last is NULL, the new entry is the root/suffix entry, 
 	 * otherwise last should be the parent.
 	 */
-	if ( last && !dn_match( &last->ce_entry->e_nname, &pdn )) {
-		if ( rs )
+	if ( last && !dn_match( &last->ce_entry->e_nname, &pdn ) ) {
+		if ( rs ) {
 			rs->sr_matched = last->ce_entry->e_name.bv_val;
+		}
+		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+			"DN=\"%s\" not child of DN=\"%s\"\n",
+			op ? op->o_log_prefix : "", e->e_name.bv_val,
+			last->ce_entry->e_name.bv_val );
 		return LDAP_NO_SUCH_OBJECT;
 	}
 
 	if ( op ) {
 		/* No parent, must be root. This will never happen... */
-		if ( !last && !be_isroot( op ) && !be_shadow_update( op ))
+		if ( !last && !be_isroot( op ) && !be_shadow_update( op ) ) {
 			return LDAP_NO_SUCH_OBJECT;
+		}
+
 		if ( last && !access_allowed( op, last->ce_entry,
-			slap_schema.si_ad_children, NULL, ACL_WADD, NULL ))
+			slap_schema.si_ad_children, NULL, ACL_WADD, NULL ) )
+		{
+			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+				"DN=\"%s\" no write access to \"children\" of parent\n",
+				op->o_log_prefix, e->e_name.bv_val, 0 );
 			return LDAP_INSUFFICIENT_ACCESS;
+		}
 	}
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
-	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
+	if ( !oc_at ) {
+		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+			"DN=\"%s\" no objectClass\n",
+			op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	soc_at = attr_find( e->e_attrs, slap_schema.si_ad_structuralObjectClass );
+	if ( !soc_at ) {
+		ObjectClass	*soc = NULL;
+		char		textbuf[ SLAP_TEXT_BUFLEN ];
+		const char	*text = textbuf;
+
+		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+			"DN=\"%s\" no structural objectClass\n",
+			op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
+
+		structural_class( oc_at->a_nvals, &soc, NULL, &text, textbuf, sizeof(textbuf), NULL );
+		attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &soc->soc_cname, NULL );
+		soc_at = attr_find( e->e_attrs, slap_schema.si_ad_structuralObjectClass );
+		if ( soc_at == NULL ) {
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+	}
 
 	/* Fake the coordinates based on whether we're part of an
 	 * LDAP Add or if reading the config dir
@@ -4218,13 +4326,20 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	}
 	ca->ca_op = op;
 
-	colst = count_ocs( oc_at, &nocs );
+	co.co_name = &soc_at->a_nvals[0];
+	coptr = avl_find( CfOcTree, &co, CfOc_cmp );
+	if ( coptr == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+			"DN=\"%s\" no structural objectClass in configuration table\n",
+			op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
 
 	/* Only the root can be Cft_Global, everything else must
 	 * have a parent. Only limited nesting arrangements are allowed.
 	 */
 	rc = LDAP_CONSTRAINT_VIOLATION;
-	if ( colst[0]->co_type == Cft_Global && !last ) {
+	if ( coptr->co_type == Cft_Global && !last ) {
 		cfn = cfb->cb_config;
 		ca->private = cfn;
 		ca->be = frontendDB;	/* just to get past check_vals */
@@ -4235,14 +4350,16 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	 * any necessary arg setup
 	 */
 	if ( last ) {
-		for ( i=0; i<nocs; i++ ) {
-			if ( colst[i]->co_ldadd &&
-				( rc = colst[i]->co_ldadd( last, e, ca ))
-					!= LDAP_CONSTRAINT_VIOLATION ) {
-				break;
-			}
+		rc = config_add_oc( &coptr, last, e, ca );
+		if ( rc == LDAP_CONSTRAINT_VIOLATION ) {
+			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
+				"DN=\"%s\" no structural objectClass add function\n",
+				op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
+			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
 	}
+
+	colst = count_ocs( oc_at, &nocs );
 
 	/* Add the entry but don't parse it, we already have its contents */
 	if ( rc == LDAP_COMPARE_TRUE ) {
@@ -4270,13 +4387,14 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	 * but only the other types support auto-renumbering of siblings.
 	 */
 	{
-		rc = check_name_index( last, colst[0]->co_type, e, rs, renum,
+		rc = check_name_index( last, coptr->co_type, e, rs, renum,
 			&ibase );
 		if ( rc ) {
 			goto done_noop;
 		}
-		if ( renum && *renum && colst[0]->co_type != Cft_Database &&
-			colst[0]->co_type != Cft_Overlay ) {
+		if ( renum && *renum && coptr->co_type != Cft_Database &&
+			coptr->co_type != Cft_Overlay )
+		{
 			snprintf( ca->msg, sizeof( ca->msg ),
 				"operation requires sibling renumbering" );
 			rc = LDAP_UNWILLING_TO_PERFORM;
@@ -4289,7 +4407,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	/* Make sure we process attrs in the required order */
 	sort_attrs( e, colst, nocs );
 
-	for ( a=e->e_attrs; a; a=a->a_next ) {
+	for ( a = e->e_attrs; a; a = a->a_next ) {
 		if ( a == oc_at ) continue;
 		ct = config_find_table( colst, nocs, a->a_desc, ca );
 		if ( !ct ) continue;	/* user data? */
