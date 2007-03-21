@@ -52,10 +52,10 @@ static const monitor_extra_t monitor_extra = {
 	monitor_back_get_subsys_by_dn,
 
 	monitor_back_register_subsys,
-	NULL,	/* monitor_back_register_backend */
-	NULL,	/* monitor_back_register_database */
-	NULL,	/* monitor_back_register_overlay_info */
-	NULL,	/* monitor_back_register_overlay */
+	monitor_back_register_backend,
+	monitor_back_register_database,
+	monitor_back_register_overlay_info,
+	monitor_back_register_overlay,
 	monitor_back_register_entry,
 	monitor_back_register_entry_parent,
 	monitor_back_register_entry_attrs,
@@ -290,6 +290,27 @@ int
 monitor_back_is_configured( void )
 {
 	return be_monitor != NULL;
+}
+
+int
+monitor_back_register_backend(
+	BackendInfo		*bi )
+{
+	return -1;
+}
+
+int
+monitor_back_register_overlay_info(
+	slap_overinst		*on )
+{
+	return -1;
+}
+
+int
+monitor_back_register_overlay(
+	BackendDB		*be )
+{
+	return -1;
 }
 
 int

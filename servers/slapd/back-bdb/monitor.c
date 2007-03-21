@@ -455,6 +455,8 @@ bdb_monitor_db_open( BackendDB *be )
 	cb->mc_free = bdb_monitor_free;
 	cb->mc_private = (void *)bdb;
 
+	(void)mbe->register_database( be );
+
 	rc = mbe->register_entry_attrs( NULL, a, cb,
 		base, bdb->bi_monitor.bdm_scope, filter );
 

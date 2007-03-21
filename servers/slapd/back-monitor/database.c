@@ -342,6 +342,93 @@ monitor_subsys_database_init_one(
 }
 
 int
+monitor_back_register_database(
+	BackendDB		*be )
+{
+	monitor_info_t		*mi;
+	Entry			*e_database, **ep;
+	int			i, rc;
+	monitor_entry_t		*mp;
+	monitor_subsys_t	*ms_backend,
+				*ms_database,
+				*ms_overlay;
+	struct berval		bv;
+
+	assert( be_monitor != NULL );
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+	ms_backend = monitor_back_get_subsys( SLAPD_MONITOR_BACKEND_NAME );
+	if ( ms_backend == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_database: "
+			"unable to get "
+			"\"" SLAPD_MONITOR_BACKEND_NAME "\" "
+			"subsystem\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	ms_database = monitor_back_get_subsys( SLAPD_MONITOR_DATABASE_NAME );
+	if ( ms_backend == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_database: "
+			"unable to get "
+			"\"" SLAPD_MONITOR_DATABASE_NAME "\" "
+			"subsystem\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	ms_overlay = monitor_back_get_subsys( SLAPD_MONITOR_OVERLAY_NAME );
+	if ( ms_overlay == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_database: "
+			"unable to get "
+			"\"" SLAPD_MONITOR_OVERLAY_NAME "\" "
+			"subsystem\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_cache_get( mi, &ms_database->mss_ndn, &e_database ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_database_init: "
+			"unable to get entry \"%s\"\n",
+			ms_database->mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+
+	mp = ( monitor_entry_t * )e_database->e_private;
+	for ( i = -1, ep = &mp->mp_children; *ep; i++ ) {
+		mp = ( monitor_entry_t * )(*ep)->e_private;
+
+		assert( mp != NULL );
+		ep = &mp->mp_next;
+	}
+
+	{	
+		char		buf[ BACKMONITOR_BUFSIZE ];
+
+		bv.bv_val = buf;
+		bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Database %d", i );
+		if ( bv.bv_len >= sizeof( buf ) ) {
+			return -1;
+		}
+		
+		rc = monitor_subsys_database_init_one( mi, be,
+			ms_database, ms_backend, ms_overlay, &bv, e_database, &ep );
+		if ( rc != 0 ) {
+			return rc;
+		}
+	}
+	
+	monitor_cache_release( mi, e_database );
+
+	return 0;
+}
+
+int
 monitor_subsys_database_init(
 	BackendDB		*be,
 	monitor_subsys_t	*ms )

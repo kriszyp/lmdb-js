@@ -137,6 +137,18 @@ monitor_entry_stub LDAP_P((
 extern int
 monitor_back_register_subsys LDAP_P((
 	monitor_subsys_t	*ms ));
+extern int
+monitor_back_register_backend LDAP_P((
+	BackendInfo		*bi ));
+extern int
+monitor_back_register_database LDAP_P((
+	BackendDB		*be ));
+extern int
+monitor_back_register_overlay_info LDAP_P((
+	slap_overinst		*on ));
+extern int
+monitor_back_register_overlay LDAP_P((
+	BackendDB		*be ));
 extern monitor_subsys_t *
 monitor_back_get_subsys LDAP_P((
 	const char		*name ));
