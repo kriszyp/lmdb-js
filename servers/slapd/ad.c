@@ -58,7 +58,7 @@ typedef struct Attr_option {
 	int           prefix;	/* NAME is a tag and range prefix */
 } Attr_option;
 
-static Attr_option lang_option = { { sizeof("lang-")-1, "lang-" }, 1 };
+static Attr_option lang_option = { BER_BVC("lang-"), 1 };
 
 /* Options sorted by name, and number of options */
 static Attr_option *options = &lang_option;
@@ -213,8 +213,8 @@ int slap_bv2ad(
 			*text = "zero length option is invalid";
 			return rtn;
 		
-		} else if ( optlen == sizeof("binary")-1 &&
-			strncasecmp( opt, "binary", sizeof("binary")-1 ) == 0 )
+		} else if ( optlen == STRLENOF("binary") &&
+			strncasecmp( opt, "binary", STRLENOF("binary") ) == 0 )
 		{
 			/* binary option */
 			if( slap_ad_is_binary( &desc ) ) {
@@ -356,10 +356,10 @@ done:;
 		if (desc.ad_tags.bv_len || desc.ad_flags != SLAP_DESC_NONE) {
 			dlen = desc.ad_type->sat_cname.bv_len + 1;
 			if (desc.ad_tags.bv_len) {
-				dlen += 1+desc.ad_tags.bv_len;
+				dlen += 1 + desc.ad_tags.bv_len;
 			}
-			if( slap_ad_is_binary( &desc ) ) {
-				dlen += sizeof(";binary")+desc.ad_tags.bv_len;
+			if ( slap_ad_is_binary( &desc ) ) {
+				dlen += 1 + STRLENOF(";binary") + desc.ad_tags.bv_len;
 			}
 		}
 
@@ -384,7 +384,7 @@ done:;
 				lp = NULL;
 				if( desc.ad_tags.bv_len ) {
 					lp = desc.ad_tags.bv_val;
-					while( strncasecmp(lp, "binary", sizeof("binary")-1) < 0
+					while( strncasecmp(lp, "binary", STRLENOF("binary")) < 0
 					       && (lp = strchr( lp, ';' )) != NULL )
 						++lp;
 					if( lp != desc.ad_tags.bv_val ) {
