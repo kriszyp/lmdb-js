@@ -489,7 +489,8 @@ cleanup:;
 		if ( !BER_BVISNULL( &o.o_req_ndn ) ) {
 			op->o_tmpfree( o.o_req_ndn.bv_val, op->o_tmpmemctx );
 		}
-		assert( o.ors_filterstr.bv_val != lud->lud_filter );
+		assert( BER_BVISNULL( &o.ors_filterstr )
+			|| o.ors_filterstr.bv_val != lud->lud_filter );
 		op->o_tmpfree( o.ors_filterstr.bv_val, op->o_tmpmemctx );
 		ldap_free_urldesc( lud );
 	}
