@@ -16,16 +16,19 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test $UNIQUE = uniqueno; then 
+if test $UNIQUE = uniqueno; then
 	echo "Attribute Uniqueness overlay not available, test skipped"
 	exit 0
-fi 
+fi
 
 mkdir -p $TESTDIR $DBDIR1
 
+$SLAPPASSWD -g -n >$CONFIGPWF
+echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
+
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $UNIQUECONF > $CONF1
-$SLAPADD -f $CONF1 -l $LDIFUNIQUE
+$SLAPADD -f $CONF1 -l $LDIFUNIQUE -d7
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
@@ -33,7 +36,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+mkdir testrun/confdir
+$SLAPD -f $CONF1 -F testrun/confdir -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -62,9 +66,6 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding a unique record..."
-
-#$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
-#	$TESTOUT 2>&1 << EOTUNIQ1
 $LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 	> /dev/null << EOTUNIQ1
 dn: uid=dave,ou=users,o=unique
@@ -82,7 +83,6 @@ employeeNumber: 69
 employeeType: contractor
 givenName: Dave
 EOTUNIQ1
-
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
@@ -90,11 +90,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-#echo ----------------------
-#$LDAPSEARCH -S "" -b "o=unique" -h $LOCALHOST -p $PORT1
-
 echo "Adding a non-unique record..."
-
 $LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
@@ -110,6 +106,383 @@ employeeNumber: 5150
 employeeType: contractor
 givenName: Bill
 EOTUNIQ2
+RC=$?
+if test $RC != 19 ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Dynamically retrieving initial configuration...
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >testrun/initial-config.ldif
+cat <<EOF >testrun/initial-reference.ldif
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcUniqueConfig
+olcOverlay: {0}unique
+olcUniqueBase: o=unique
+olcUniqueAttribute: employeeNumber
+olcUniqueAttribute: displayName
+
+EOF
+diff testrun/initial-config.ldif testrun/initial-reference.ldif > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+    echo "Initial configuration is not reported correctly."
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit -1
+fi
+
+echo Dynamically trying to add a URI with legacy attrs present...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueURI
+olcUniqueURI: ldap:///?employeeNumber,displayName?sub
+EOF
+RC=$?
+if test $RC != 80 ; then
+	echo "legacy and unique_uri allowed together"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Dynamically trying to add legacy ignored attrs with legacy attrs present...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueIgnore
+olcUniqueIgnore: objectClass
+EOF
+RC=$?
+if test $RC != 80 ; then
+	echo "legacy attrs and legacy ignore attrs allowed together"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Verifying initial configuration intact...
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >testrun/initial-config-recheck.ldif
+diff testrun/initial-config-recheck.ldif testrun/initial-reference.ldif > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+    echo "Initial configuration damaged by unsuccessful modifies."
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit -1
+fi
+
+echo Dynamically removing legacy base...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+delete: olcUniqueBase
+EOF
+RC=$?
+if test $RC != 0 ; then
+	echo "base removal failed"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Verifying base removal...
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >testrun/baseremoval-config.ldif
+cat >testrun/baseremoval-reference.ldif <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcUniqueConfig
+olcOverlay: {0}unique
+olcUniqueAttribute: employeeNumber
+olcUniqueAttribute: displayName
+
+EOF
+diff testrun/baseremoval-config.ldif testrun/baseremoval-reference.ldif > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+    echo "Configuration damaged by base removal"
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit -1
+fi
+
+echo "Adding a non-unique record..."
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOTUNIQ2
+dn: uid=bill,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: bill
+sn: johnson
+cn: bill
+businessCategory: rtest
+carLicense: ABC123
+departmentNumber: 42
+displayName: Bill
+employeeNumber: 5150
+employeeType: contractor
+givenName: Bill
+EOTUNIQ2
+RC=$?
+if test $RC != 19 ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Trying a legacy base outside of the backend...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueBase
+olcUniqueBase: cn=config
+EOF
+RC=$?
+if test $RC != 80 ; then
+	echo "out of backend scope base allowed"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo "Adding and removing attrs..."
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueAttribute
+olcUniqueAttribute: description
+olcUniqueAttribute: telephoneNumber
+-
+delete: olcUniqueAttribute
+olcUniqueAttribute: displayName
+EOF
+RC=$?
+if test $RC != 0 ; then
+	echo "Unable to remove an attribute"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo "Verifying we removed the right attr..."
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOTUNIQ2
+dn: uid=bill,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: bill
+sn: johnson
+cn: bill
+businessCategory: rtest
+carLicense: ABC123
+departmentNumber: 42
+displayName: Bill
+employeeNumber: 5150
+employeeType: contractor
+givenName: Bill
+EOTUNIQ2
+RC=$?
+if test $RC != 19 ; then
+	echo "olcUniqueAttribtue single deletion hit the wrong value"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Removing legacy config and adding URIs...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+delete: olcUniqueAttribute
+-
+add: olcUniqueURI
+olcUniqueURI: ldap:///?employeeNumber,displayName?sub
+olcUniqueURI: ldap:///?description?one
+EOF
+RC=$?
+if test $RC != 0 ; then
+	echo "Reconfiguration to URIs failed"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Dynamically retrieving second configuration...
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >testrun/second-config.ldif
+cat >testrun/second-reference.ldif <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcUniqueConfig
+olcOverlay: {0}unique
+olcUniqueURI: ldap:///?employeeNumber,displayName?sub
+olcUniqueURI: ldap:///?description?one
+
+EOF
+diff testrun/second-config.ldif testrun/second-reference.ldif > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+    echo "Second configuration is not reported correctly."
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit -1
+fi
+
+echo "Adding a non-unique record..."
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOTUNIQ2
+dn: uid=bill,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: bill
+sn: johnson
+cn: bill
+businessCategory: rtest
+carLicense: ABC123
+departmentNumber: 42
+displayName: Bill
+employeeNumber: 5150
+employeeType: contractor
+givenName: Bill
+EOTUNIQ2
+RC=$?
+if test $RC != 19 ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Dynamically trying to add legacy base
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueBase
+olcUniqueBase: o=unique
+EOF
+RC=$?
+if test $RC != 80 ; then
+	echo "legacy base allowed with URIs"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Dynamically trying to add legacy attrs
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueAttribute
+olcUniqueAttribute: description
+EOF
+RC=$?
+if test $RC != 80 ; then
+	echo "legacy attributes allowed with URIs"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Dynamically trying to add legacy strictness
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueStrict
+olcUniqueStrict: TRUE
+EOF
+RC=$?
+if test $RC != 80 ; then
+	echo "legacy strictness allowed with URIs"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+#echo ----------------------
+echo Dynamically trying a bad filter...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+replace: olcUniqueURI
+olcUniqueURI: ldap:///?sn?sub?((cn=e*))
+EOF
+RC=$?
+if test $RC != 80 ; then
+	echo "bad filter allowed"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Verifying second configuration intact...
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >testrun/second-config-recheck.ldif
+diff testrun/second-config-recheck.ldif testrun/second-reference.ldif > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+    echo "Second configuration damaged by rejected modifies."
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit -1
+fi
+
+#echo ----------------------
+echo Dynamically reconfiguring to use different URIs...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+add: olcUniqueURI
+olcUniqueURI: ldap:///?sn?sub?(cn=e*)
+-
+delete: olcUniqueURI
+olcUniqueURI: ldap:///?description?one
+EOF
+RC=$?
+if test $RC != 0 ; then
+	echo "unable to reconfigure"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo Dynamically retrieving third configuration...
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >testrun/third-config.ldif
+cat >testrun/third-reference.ldif <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcUniqueConfig
+olcOverlay: {0}unique
+olcUniqueURI: ldap:///?employeeNumber,displayName?sub
+olcUniqueURI: ldap:///?sn?sub?(cn=e*)
+
+EOF
+diff testrun/third-config.ldif testrun/third-reference.ldif > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+    echo "Third configuration is not reported correctly."
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit -1
+fi
+
+echo "Adding a record unique in both domains if filtered..."
+
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOF
+dn: uid=edgar,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: edgar
+sn: johnson
+cn: edgar
+EOF
+
+RC=$?
+if test $RC != 0 ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo "Adding a record unique in one domain, non-unique in the filtered domain..."
+
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOF
+dn: uid=elvis,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: elvis
+sn: johnson
+cn: elvis
+EOF
 
 RC=$?
 if test $RC != 19 ; then
@@ -118,11 +491,77 @@ if test $RC != 19 ; then
 	exit -1
 fi
 
-
 #echo ----------------------
-#$LDAPSEARCH -S "" -b "o=unique" -h $LOCALHOST -p $PORT1
+echo Dynamically reconfiguring to use attribute-ignore URIs...
+$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+    > $TESTOUT 2>&1 <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+changetype: modify
+replace: olcUniqueURI
+olcUniqueURI: ignore ldap:///?objectClass,uid,cn,sn?sub
+EOF
+RC=$?
+if test $RC != 0 ; then
+	echo "unable to reconfigure"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
 
+echo Dynamically retrieving fourth configuration...
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >testrun/fourth-config.ldif
+cat >testrun/fourth-reference.ldif <<EOF
+dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcUniqueConfig
+olcOverlay: {0}unique
+olcUniqueURI: ignore ldap:///?objectClass,uid,cn,sn?sub
 
+EOF
+diff testrun/fourth-config.ldif testrun/fourth-reference.ldif > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+    echo "Fourth configuration is not reported correctly."
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit -1
+fi
+
+echo "Adding a record unique in the ignore-domain..."
+
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOF
+dn: uid=elvis,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: elvis
+sn: johnson
+cn: elvis
+description: left the building
+EOF
+
+RC=$?
+if test $RC != 0 ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
+
+echo "Adding a record non-unique in the ignore-domain..."
+
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	 $TESTOUT 2>&1 << EOF
+dn: uid=harry,ou=users,o=unique
+objectClass: inetOrgPerson
+uid: harry
+sn: johnson
+cn: harry
+description: left the building
+EOF
+
+RC=$?
+if test $RC != 19 ; then
+	echo "unique check failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit -1
+fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
