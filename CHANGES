@@ -10,6 +10,7 @@ OpenLDAP 2.3.35 Engineering
 	Fixed slapd-meta search cleanup
 	Fixed slapd-meta/slapo-rwm filter mapping
 	Fixed slapd-sql subtree shortcut (ITS#4856)
+	Fixed slapo-dynlist crasher (ITS#4891)
 	Fixed slapo-refint config message (ITS#4853)
 	Fixed libldap time_t signedness (ITS#4872)
 	Fixed libldap_r tpool reset (ITS#4855)
