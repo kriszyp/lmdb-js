@@ -1351,12 +1351,6 @@ void bindconf_free( slap_bindconf *bc ) {
 		BER_BVZERO( &bc->sb_authzId );
 	}
 #ifdef HAVE_TLS
-#if 0
-	if ( bc->sb_tls_ctx ) {
-		SSL_CTX_free( bc->sb_tls_ctx );
-		bc->sb_tls_ctx = NULL;
-	}
-#endif
 	if ( bc->sb_tls_cert ) {
 		ch_free( bc->sb_tls_cert );
 		bc->sb_tls_cert = NULL;
@@ -1483,7 +1477,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 		int opt = 0;
 
 		if ( bc->sb_tls_ctx ) {
-			SSL_CTX_free( bc->sb_tls_ctx );
+			ldap_pvt_tls_ctx_free( bc->sb_tls_ctx );
 			bc->sb_tls_ctx = NULL;
 		}
 		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_NEWCTX, &opt );

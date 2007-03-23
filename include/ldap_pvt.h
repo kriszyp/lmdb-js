@@ -285,8 +285,7 @@ LDAP_F (int) ldap_pvt_tls_init_def_ctx LDAP_P(( int is_server ));
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
 LDAP_F (void *) ldap_pvt_tls_sb_ctx LDAP_P(( Sockbuf *sb ));
-
-LDAP_F (int) ldap_pvt_tls_init_default_ctx LDAP_P(( void ));
+LDAP_F (void) ldap_pvt_tls_ctx_free LDAP_P(( void * ));
 
 typedef int LDAPDN_rewrite_dummy LDAP_P (( void *dn, unsigned flags ));
 

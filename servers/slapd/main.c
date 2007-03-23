@@ -991,7 +991,7 @@ stop:
 
 #ifdef HAVE_TLS
 	if ( slap_tls_ld ) {
-		SSL_CTX_free( slap_tls_ctx );
+		ldap_pvt_tls_ctx_free( slap_tls_ctx );
 		ldap_unbind_ext( slap_tls_ld, NULL, NULL );
 	}
 	ldap_pvt_tls_destroy();
