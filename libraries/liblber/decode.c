@@ -471,7 +471,7 @@ nomem:
 }
 
 ber_tag_t
-ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
+ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 {
 	ber_tag_t	tag;
 
@@ -489,7 +489,7 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 		return LBER_DEFAULT;
 	}
 
-	if ( alloc ) {
+	if ( option & LBER_BV_ALLOC ) {
 		bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1,
 			ber->ber_memctx );
 		if ( bv->bv_val == NULL ) {
@@ -508,13 +508,14 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 		ber->ber_ptr += bv->bv_len;
 	}
 	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
-	bv->bv_val[bv->bv_len] = '\0';
+	if ( !( option & LBER_BV_NOTERM ))
+		bv->bv_val[bv->bv_len] = '\0';
 
 	return tag;
 }
 
 ber_tag_t
-ber_get_stringbv_null( BerElement *ber, struct berval *bv, int alloc )
+ber_get_stringbv_null( BerElement *ber, struct berval *bv, int option )
 {
 	ber_tag_t	tag;
 
@@ -538,7 +539,7 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int alloc )
 		return tag;
 	}
 
-	if ( alloc ) {
+	if ( option & LBER_BV_ALLOC ) {
 		bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1,
 			ber->ber_memctx );
 		if ( bv->bv_val == NULL ) {
@@ -557,7 +558,8 @@ ber_get_stringbv_null( BerElement *ber, struct berval *bv, int alloc )
 		ber->ber_ptr += bv->bv_len;
 	}
 	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
-	bv->bv_val[bv->bv_len] = '\0';
+	if ( !( option & LBER_BV_NOTERM ))
+		bv->bv_val[bv->bv_len] = '\0';
 
 	return tag;
 }
@@ -570,7 +572,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 
 	assert( buf != NULL );
 
-	tag = ber_get_stringbv( ber, &bv, 1 );
+	tag = ber_get_stringbv( ber, &bv, LBER_BV_ALLOC );
 	*buf = bv.bv_val;
 
 	return tag;
@@ -584,7 +586,7 @@ ber_get_stringa_null( BerElement *ber, char **buf )
 
 	assert( buf != NULL );
 
-	tag = ber_get_stringbv_null( ber, &bv, 1 );
+	tag = ber_get_stringbv_null( ber, &bv, LBER_BV_ALLOC );
 	*buf = bv.bv_val;
 
 	return tag;
@@ -604,7 +606,7 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 		return LBER_DEFAULT;
 	}
 
-	tag = ber_get_stringbv( ber, *bv, 1 );
+	tag = ber_get_stringbv( ber, *bv, LBER_BV_ALLOC );
 	if ( tag == LBER_DEFAULT ) {
 		LBER_FREE( *bv );
 		*bv = NULL;
@@ -845,7 +847,7 @@ ber_scanf ( BerElement *ber,
 
 		case 'o':	/* octet string in a supplied berval */
 			bval = va_arg( ap, struct berval * );
-			rc = ber_get_stringbv( ber, bval, 1 );
+			rc = ber_get_stringbv( ber, bval, LBER_BV_ALLOC );
 			break;
 
 		case 'O':	/* octet string - allocate & include length */
@@ -874,7 +876,7 @@ ber_scanf ( BerElement *ber,
 			bgbvr cookie = { ChArray };
 			cookie.ber = ber;
 			cookie.res.c = va_arg( ap, char *** );
-			cookie.alloc = 1;
+			cookie.alloc = LBER_BV_ALLOC;
 			rc = ber_get_stringbvl( &cookie, NULL );
 			break;
 		}
@@ -884,7 +886,7 @@ ber_scanf ( BerElement *ber,
 			bgbvr cookie = { BvVec };
 			cookie.ber = ber;
 			cookie.res.bv = va_arg( ap, struct berval *** );
-			cookie.alloc = 1;
+			cookie.alloc = LBER_BV_ALLOC;
 			rc = ber_get_stringbvl( &cookie, NULL );
 			break;
 		}
@@ -894,7 +896,7 @@ ber_scanf ( BerElement *ber,
 			bgbvr cookie = { BvArray };
 			cookie.ber = ber;
 			cookie.res.ba = va_arg( ap, struct berval ** );
-			cookie.alloc = 1;
+			cookie.alloc = LBER_BV_ALLOC;
 			rc = ber_get_stringbvl( &cookie, NULL );
 			break;
 		}
