@@ -521,6 +521,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 #ifdef HAVE_TLS
 	gopts->ldo_tls_connect_cb = NULL;
 	gopts->ldo_tls_connect_arg = NULL;
+	gopts->ldo_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
 #endif
 
 	gopts->ldo_valid = LDAP_INITIALIZED;
