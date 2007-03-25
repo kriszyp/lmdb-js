@@ -96,13 +96,19 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 # ifndef CMSG_LEN
 # define CMSG_LEN(len)		(_CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
 # endif
-	union {
+	struct {
 		struct cmsghdr cm;
-		unsigned char control[CMSG_SPACE(sizeof(int))];
-	} control_un;
+		int fd;
+	} control_st;
 	struct cmsghdr *cmsg;
 # endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL */
 	struct stat st;
+	struct sockaddr_un lname, rname;
+	socklen_t llen, rlen;
+
+	rlen = sizeof(rname);
+	llen = sizeof(lname);
+	getsockname(s, (struct sockaddr *)&lname, &llen);
 
 	msg.msg_name = NULL;
 	msg.msg_namelen = 0;
@@ -112,8 +118,8 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 # ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
-	msg.msg_control = control_un.control;
-	msg.msg_controllen = sizeof( control_un.control );
+	msg.msg_control = &control_st;
+	msg.msg_controllen = sizeof( struct cmsghdr ) + sizeof( int );	/* no padding! */
 
 	cmsg = CMSG_FIRSTHDR( &msg );
 # else
@@ -136,16 +142,21 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 		msg.msg_accrightslen == sizeof(int)
 # endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL*/
 	) {
-		/* We must receive a valid descriptor, it must be a pipe,
-		 * and it must only be accessible by its owner.
+		int mode = S_IFSOCK|S_ISUID|S_IRWXU;
+
+		/* We must receive a valid descriptor, it must be a socket,
+		 * it must only be accessible by its owner, and it must be
+		 * connected to our socket.
 		 */
 # ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 		fd = (*(int *)CMSG_DATA( cmsg ));
 # endif
 		err = fstat( fd, &st );
+		if ( err == 0 )
+			err = getpeername(fd, (struct sockaddr *)&rname, &rlen);
 		close(fd);
-		if( err == 0 && S_ISFIFO(st.st_mode) &&
-			((st.st_mode & (S_IRWXG|S_IRWXO)) == 0))
+		if( err == 0 && st.st_mode == mode &&
+			llen == rlen && !memcmp(&lname, &rname, llen))
 		{
 			*euid = st.st_uid;
 			*egid = st.st_gid;
