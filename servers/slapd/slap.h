@@ -361,7 +361,7 @@ struct OidMacro {
 	BerVarray som_subs;
 #define	SLAP_OM_HARDCODE	0x10000U	/* This is hardcoded schema */
 	int som_flags;
-	LDAP_STAILQ_ENTRY(slap_oid_macro) som_next;
+	LDAP_STAILQ_ENTRY(OidMacro) som_next;
 };
 
 typedef int slap_syntax_validate_func LDAP_P((
