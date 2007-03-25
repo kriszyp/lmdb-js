@@ -144,8 +144,8 @@ AH_BOTTOM([
 #	define WIN32_LEAN_AND_MEAN 1
 #endif
 
-#ifdef LDAP_PF_LOCAL
-#if !defined(HAVE_GETPEEREID) && \
+#if defined(LDAP_PF_LOCAL) && \
+	!defined(HAVE_GETPEEREID) && \
     !defined(HAVE_GETPEERUCRED) && \
 	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
 	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
