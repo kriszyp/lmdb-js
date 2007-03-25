@@ -224,7 +224,7 @@ ber_encode_oid( BerValue *in, BerValue *out )
 			}
 			if ( i ) {
 				len -= i;
-				memcpy( der, der+i, len );
+				AC_MEMCPY( der, der+i, len );
 			}
 			der += len;
 		}
