@@ -144,6 +144,15 @@ AH_BOTTOM([
 #	define WIN32_LEAN_AND_MEAN 1
 #endif
 
+#ifdef LDAP_PF_LOCAL
+#if !defined(HAVE_GETPEEREID) && \
+    !defined(HAVE_GETPEERUCRED) && \
+	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
+	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
+	defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
+#	define LDAP_PF_LOCAL_SENDMSG 1
+#endif
+
 #ifndef LDAP_NEEDS_PROTOTYPES
 /* force LDAP_P to always include prototypes */
 #define LDAP_NEEDS_PROTOTYPES 1
