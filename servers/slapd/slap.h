@@ -2682,7 +2682,8 @@ struct Connection {
 
 #define	CONN_IS_TLS	1
 #define	CONN_IS_UDP	2
-#define	CONN_IS_CLIENT	3
+#define	CONN_IS_CLIENT	4
+#define	CONN_IS_IPC	8
 
 #ifdef LDAP_CONNECTIONLESS
 	int	c_is_udp;		/* true if this is (C)LDAP over UDP */

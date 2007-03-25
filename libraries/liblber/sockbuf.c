@@ -726,8 +726,8 @@ sb_fd_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 		AC_MEMCPY( buf, sbiod->sbiod_sb->sb_ungetbuf, blen );
 		buf += blen;
 		len -= blen;
-		if ( blen < sbiod->sbiod_sb->sb_ungetlen ) {
-			sbiod->sbiod_sb->sb_ungetlen -= blen;
+		sbiod->sbiod_sb->sb_ungetlen -= blen;
+		if ( sbiod->sbiod_sb->sb_ungetlen ) {
 			AC_MEMCPY( sbiod->sbiod_sb->sb_ungetbuf,
 				sbiod->sbiod_sb->sb_ungetbuf+blen,
 				sbiod->sbiod_sb->sb_ungetlen );

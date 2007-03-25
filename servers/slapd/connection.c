@@ -366,7 +366,11 @@ Connection * connection_init(
 	const char* peername,
 	int flags,
 	slap_ssf_t ssf,
-	struct berval *authid )
+	struct berval *authid
+#ifdef LDAP_PF_LOCAL_SENDMSG
+	, struct berval *peerbv
+#endif
+)
 {
 	unsigned long id;
 	Connection *c;
@@ -379,7 +383,7 @@ Connection * connection_init(
 	assert( peername != NULL );
 
 #ifndef HAVE_TLS
-	assert( flags != CONN_IS_TLS );
+	assert( !( flags & CONN_IS_TLS ));
 #endif
 
 	if( s == AC_SOCKET_INVALID ) {
@@ -525,7 +529,7 @@ Connection * connection_init(
 
 	c->c_listener = listener;
 
-	if ( flags == CONN_IS_CLIENT ) {
+	if ( flags & CONN_IS_CLIENT ) {
 		c->c_connid = 0;
 		c->c_conn_state = SLAP_C_CLIENT;
 		c->c_struct_state = SLAP_C_USED;
@@ -560,7 +564,7 @@ Connection * connection_init(
 
 #ifdef LDAP_CONNECTIONLESS
 	c->c_is_udp = 0;
-	if( flags == CONN_IS_UDP ) {
+	if( flags & CONN_IS_UDP ) {
 		c->c_is_udp = 1;
 #ifdef LDAP_DEBUG
 		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
@@ -571,7 +575,21 @@ Connection * connection_init(
 		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
 			LBER_SBIOD_LEVEL_PROVIDER, NULL );
 	} else
+#endif /* LDAP_CONNECTIONLESS */
+#ifdef LDAP_PF_LOCAL
+	if ( flags & CONN_IS_IPC ) {
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void*)"ipc_" );
 #endif
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_fd,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+#ifdef LDAP_PF_LOCAL_SENDMSG
+		if ( !BER_BVISEMPTY( peerbv ))
+			ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_UNGET_BUF, peerbv );
+#endif
+	} else
+#endif /* LDAP_PF_LOCAL */
 	{
 #ifdef LDAP_DEBUG
 		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
@@ -606,7 +624,7 @@ Connection * connection_init(
 	c->c_tls_ssf = 0;
 
 #ifdef HAVE_TLS
-	if ( flags == CONN_IS_TLS ) {
+	if ( flags & CONN_IS_TLS ) {
 		c->c_is_tls = 1;
 		c->c_needs_tls_accept = 1;
 	} else {
@@ -1189,7 +1207,11 @@ int connection_client_setup(
 	Connection *c;
 
 	c = connection_init( s, (Listener *)&dummy_list, "", "",
-		CONN_IS_CLIENT, 0, NULL );
+		CONN_IS_CLIENT, 0, NULL
+#ifdef LDAP_PF_LOCAL_SENDMSG
+		, NULL
+#endif
+		);
 	if ( !c ) return -1;
 
 	c->c_clientfunc = func;

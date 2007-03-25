@@ -1592,6 +1592,7 @@ slap_listener(
 #else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
 	char peername[sizeof("IP=255.255.255.255:65336")];
 #endif /* LDAP_PF_LOCAL */
+	int cflag;
 
 	Debug( LDAP_DEBUG_TRACE,
 		">>> slap_listener(%s)\n",
@@ -1704,9 +1705,12 @@ slap_listener(
 		"daemon: listen=%ld, new connection on %ld\n",
 		(long) sl->sl_sd, (long) s, 0 );
 
+	cflag = 0;
 	switch ( from.sa_addr.sa_family ) {
 #  ifdef LDAP_PF_LOCAL
 	case AF_LOCAL:
+		cflag |= CONN_IS_IPC;
+
 		/* FIXME: apparently accept doesn't fill
 		 * the sun_path sun_path member */
 		if ( from.sa_un_addr.sun_path[0] == '\0' ) {
@@ -1818,16 +1822,17 @@ slap_listener(
 #endif /* HAVE_TCPD */
 	}
 
+#ifdef HAVE_TLS
+	if ( sl->sl_is_tls ) cflag |= CONN_IS_TLS;
+#endif
 	c = connection_init(s, sl,
 		dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
-		peername,
-#ifdef HAVE_TLS
-		sl->sl_is_tls ? CONN_IS_TLS : 0,
-#else /* ! HAVE_TLS */
-		0,
-#endif /* ! HAVE_TLS */
-		ssf,
-		authid.bv_val ? &authid : NULL );
+		peername, cflag, ssf,
+		authid.bv_val ? &authid : NULL
+#ifdef LDAP_PF_LOCAL_SENDMSG
+		, &peerbv
+#endif
+	);
 
 	if( authid.bv_val ) ch_free(authid.bv_val);
 
@@ -1838,11 +1843,6 @@ slap_listener(
 		slapd_close(s);
 		return 0;
 	}
-
-#ifdef LDAP_PF_LOCAL_SENDMSG
-	if ( !BER_BVISEMPTY( &peerbv ))
-		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_UNGET_BUF, &peerbv );
-#endif
 
 	Statslog( LDAP_DEBUG_STATS,
 		"conn=%ld fd=%ld ACCEPT from %s (%s)\n",
@@ -2537,7 +2537,11 @@ connectionless_init( void )
 		}
 
 		c = connection_init( lr->sl_sd, lr, "", "",
-			CONN_IS_UDP, (slap_ssf_t) 0, NULL );
+			CONN_IS_UDP, (slap_ssf_t) 0, NULL
+#ifdef LDAP_PF_LOCAL_SENDMSG
+			, NULL
+#endif
+			);
 
 		if ( !c ) {
 			Debug( LDAP_DEBUG_TRACE,

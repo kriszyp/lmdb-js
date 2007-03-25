@@ -21,19 +21,19 @@
 #include <sys/types.h>
 #include <ac/unistd.h>
 
+#include <ac/socket.h>
+#include <ac/errno.h>
+
+#ifdef HAVE_GETPEERUCRED
+#include <ucred.h>
+#endif
+
 #ifdef LDAP_PF_LOCAL_SENDMSG
 #include <lber.h>
 #ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
 #endif
 #include <sys/stat.h>
-#endif
-
-#include <ac/socket.h>
-#include <ac/errno.h>
-
-#ifdef HAVE_GETPEERUCRED
-#include <ucred.h>
 #endif
 
 #ifdef HAVE_SYS_UCRED_H
@@ -151,8 +151,8 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 			*egid = st.st_gid;
 			return 0;
 		}
-	} else if ( peer->bv_len < 0 ) {
-		peer->bv_len = 0;
+	} else if ( peerbv->bv_len < 0 ) {
+		peerbv->bv_len = 0;
 	}
 #elif defined(SOCKCREDSIZE)
 	struct msghdr msg;

@@ -693,7 +693,11 @@ LDAP_SLAPD_F (Connection *) connection_init LDAP_P((
 	const char* peername,
 	int use_tls,
 	slap_ssf_t ssf,
-	struct berval *id ));
+	struct berval *id
+#ifdef LDAP_PF_LOCAL_SENDMSG
+	, struct berval *peerbv
+#endif
+	));
 
 LDAP_SLAPD_F (void) connection_closing LDAP_P((
 	Connection *c, const char *why ));
