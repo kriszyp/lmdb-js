@@ -359,7 +359,7 @@ static void connection_return( Connection *c )
 	ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 }
 
-long connection_init(
+Connection * connection_init(
 	ber_socket_t s,
 	Listener *listener,
 	const char* dnsname,
@@ -385,7 +385,7 @@ long connection_init(
 	if( s == AC_SOCKET_INVALID ) {
 		Debug( LDAP_DEBUG_ANY,
 			"connection_init: init of socket %ld invalid.\n", (long)s, 0, 0 );
-		return -1;
+		return NULL;
 	}
 
 	assert( s >= 0 );
@@ -442,7 +442,7 @@ long connection_init(
 			Debug( LDAP_DEBUG_ANY,
 				"connection_init(%d): connection table full "
 				"(%d/%d)\n", s, i, dtblsize);
-			return -1;
+			return NULL;
 		}
 	}
 #endif
@@ -526,13 +526,14 @@ long connection_init(
 	c->c_listener = listener;
 
 	if ( flags == CONN_IS_CLIENT ) {
+		c->c_connid = 0;
 		c->c_conn_state = SLAP_C_CLIENT;
 		c->c_struct_state = SLAP_C_USED;
 		c->c_close_reason = "?";			/* should never be needed */
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &s );
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
-		return 0;
+		return c;
 	}
 
 	ber_str2bv( dnsname, 0, 1, &c->c_peer_domain );
@@ -622,7 +623,7 @@ long connection_init(
 
 	backend_connection_init(c);
 
-	return id;
+	return c;
 }
 
 void connection2anonymous( Connection *c )
@@ -1187,17 +1188,15 @@ int connection_client_setup(
 	int rc;
 	Connection *c;
 
-	rc = connection_init( s, (Listener *)&dummy_list, "", "",
+	c = connection_init( s, (Listener *)&dummy_list, "", "",
 		CONN_IS_CLIENT, 0, NULL );
-	if ( rc < 0 ) return -1;
+	if ( !c ) return -1;
 
-	c = connection_get( s );
 	c->c_clientfunc = func;
 	c->c_clientarg = arg;
 
 	slapd_add_internal( s, 0 );
 	slapd_set_read( s, 1 );
-	connection_return( c );
 	return 0;
 }
 

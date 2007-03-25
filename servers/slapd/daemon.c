@@ -1572,7 +1572,7 @@ slap_listener(
 
 	ber_socket_t s;
 	socklen_t len = sizeof(from);
-	long id;
+	Connection *c;
 	slap_ssf_t ssf = 0;
 	struct berval authid = BER_BVNULL;
 #ifdef SLAPD_RLOOKUPS
@@ -1583,6 +1583,10 @@ slap_listener(
 	char	*peeraddr = NULL;
 #ifdef LDAP_PF_LOCAL
 	char peername[MAXPATHLEN + sizeof("PATH=")];
+#ifdef LDAP_PF_LOCAL_SENDMSG
+	char peerbuf[8];
+	struct berval peerbv = BER_BVNULL;
+#endif
 #elif defined(LDAP_PF_INET6)
 	char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
 #else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
@@ -1716,8 +1720,13 @@ slap_listener(
 		{
 			uid_t uid;
 			gid_t gid;
+			int rc;
 
-			if( getpeereid( s, &uid, &gid ) == 0 ) {
+#ifdef LDAP_PF_LOCAL_SENDMSG
+			peerbv.bv_val = peerbuf;
+			peerbv.bv_len = sizeof( peerbuf );
+#endif
+			if( LUTIL_GETPEEREID( s, &uid, &gid, &peerbv ) == 0 ) {
 				authid.bv_val = ch_malloc(
 					STRLENOF( "gidNumber=4294967295+uidNumber=4294967295,"
 					"cn=peercred,cn=external,cn=auth" ) + 1 );
@@ -1809,7 +1818,7 @@ slap_listener(
 #endif /* HAVE_TCPD */
 	}
 
-	id = connection_init(s, sl,
+	c = connection_init(s, sl,
 		dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
 		peername,
 #ifdef HAVE_TLS
@@ -1822,7 +1831,7 @@ slap_listener(
 
 	if( authid.bv_val ) ch_free(authid.bv_val);
 
-	if( id < 0 ) {
+	if( !c ) {
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: connection_init(%ld, %s, %s) failed.\n",
 			(long) s, peername, sl->sl_name.bv_val );
@@ -1830,9 +1839,14 @@ slap_listener(
 		return 0;
 	}
 
+#ifdef LDAP_PF_LOCAL_SENDMSG
+	if ( !BER_BVISEMPTY( &peerbv ))
+		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_UNGET_BUF, &peerbv );
+#endif
+
 	Statslog( LDAP_DEBUG_STATS,
 		"conn=%ld fd=%ld ACCEPT from %s (%s)\n",
-		id, (long) s, peername, sl->sl_name.bv_val,
+		c->c_connid, (long) s, peername, sl->sl_name.bv_val,
 		0 );
 
 	return 0;
@@ -2516,16 +2530,16 @@ connectionless_init( void )
 
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 		Listener *lr = slap_listeners[l];
-		long id;
+		Connection *c;
 
 		if ( !lr->sl_is_udp ) {
 			continue;
 		}
 
-		id = connection_init( lr->sl_sd, lr, "", "",
+		c = connection_init( lr->sl_sd, lr, "", "",
 			CONN_IS_UDP, (slap_ssf_t) 0, NULL );
 
-		if ( id < 0 ) {
+		if ( !c ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"connectionless_init: failed on %s (%d)\n",
 				lr->sl_url, lr->sl_sd, 0 );

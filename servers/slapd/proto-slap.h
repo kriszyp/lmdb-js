@@ -686,7 +686,7 @@ LDAP_SLAPD_F (void) connection_client_enable LDAP_P(( ber_socket_t s ));
 LDAP_SLAPD_F (void) connection_client_stop LDAP_P(( ber_socket_t s ));
 
 
-LDAP_SLAPD_F (long) connection_init LDAP_P((
+LDAP_SLAPD_F (Connection *) connection_init LDAP_P((
 	ber_socket_t s,
 	Listener* url,
 	const char* dnsname,

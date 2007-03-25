@@ -138,8 +138,12 @@ typedef struct lber_memory_fns {
 #define LBER_SB_OPT_NEEDS_WRITE		12
 #define LBER_SB_OPT_GET_MAX_INCOMING	13
 #define LBER_SB_OPT_SET_MAX_INCOMING	14
+
+/* Only meaningful ifdef LDAP_PF_LOCAL_SENDMSG */
+#define LBER_SB_OPT_UNGET_BUF	15
+
 /* Largest option used by the library */
-#define LBER_SB_OPT_OPT_MAX		14
+#define LBER_SB_OPT_OPT_MAX		15
 
 /* LBER IO operations stacking levels */
 #define LBER_SBIOD_LEVEL_PROVIDER	10

@@ -99,9 +99,13 @@ struct sockbuf {
 #define	sb_options		sb_opts.lbo_options
 #define	sb_debug		sb_opts.lbo_debug
 	ber_socket_t		sb_fd;
+	ber_len_t			sb_max_incoming;
    	unsigned int		sb_trans_needs_read:1;
    	unsigned int		sb_trans_needs_write:1;
-	ber_len_t			sb_max_incoming;
+#ifdef LDAP_PF_LOCAL_SENDMSG
+	char				sb_ungetlen;
+	char				sb_ungetbuf[8];
+#endif
 };
 
 #define SOCKBUF_VALID( sb )	( (sb)->sb_valid == LBER_VALID_SOCKBUF )
