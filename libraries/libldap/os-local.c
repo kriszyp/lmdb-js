@@ -182,15 +182,18 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 
 #ifdef LDAP_PF_LOCAL_SENDMSG
 	/* Send a dummy message with access rights. Remote side will
-	 * obtain our uid/gid by fstat'ing this descriptor.
+	 * obtain our uid/gid by fstat'ing this descriptor. The
+	 * descriptor permissions must match exactly, and we also
+	 * send the socket name, which must also match.
 	 */
 sendcred:
 		{
-			fchmod( s, S_ISUID|S_IRWXU );
-
-			/* Abandon, noop, has no reply */
-			struct iovec iov;
-			struct msghdr msg = {0};
+			int fds[2];
+			socklen_t salen = sizeof(*sa);
+			if (pipe(fds) == 0) {
+				/* Abandon, noop, has no reply */
+				struct iovec iov;
+				struct msghdr msg = {0};
 # ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 # ifndef CMSG_SPACE
 # define CMSG_SPACE(len)	(_CMSG_ALIGN( sizeof(struct cmsghdr)) + _CMSG_ALIGN(len) )
@@ -198,38 +201,44 @@ sendcred:
 # ifndef CMSG_LEN
 # define CMSG_LEN(len)		(_CMSG_ALIGN( sizeof(struct cmsghdr)) + (len) )
 # endif
-			union {
-				struct cmsghdr cm;
-				unsigned char control[CMSG_SPACE(sizeof(int))];
-			} control_un;
-			struct cmsghdr *cmsg;
+				union {
+					struct cmsghdr cm;
+					unsigned char control[CMSG_SPACE(sizeof(int))];
+				} control_un;
+				struct cmsghdr *cmsg;
 # endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL */
-			msg.msg_name = NULL;
-			msg.msg_namelen = 0;
-			iov.iov_base = (char *) abandonPDU;
-			iov.iov_len = sizeof abandonPDU;
-			msg.msg_iov = &iov;
-			msg.msg_iovlen = 1;
+				msg.msg_name = NULL;
+				msg.msg_namelen = 0;
+				iov.iov_base = (char *) abandonPDU;
+				iov.iov_len = sizeof abandonPDU;
+				msg.msg_iov = &iov;
+				msg.msg_iovlen = 1;
 # ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
-			msg.msg_control = control_un.control;
-			msg.msg_controllen = sizeof( control_un.control );
-			msg.msg_flags = 0;
+				msg.msg_control = control_un.control;
+				msg.msg_controllen = sizeof( control_un.control );
+				msg.msg_flags = 0;
 
-			cmsg = CMSG_FIRSTHDR( &msg );
-			cmsg->cmsg_len = CMSG_LEN( sizeof(int) );
-			cmsg->cmsg_level = SOL_SOCKET;
-			cmsg->cmsg_type = SCM_RIGHTS;
+				cmsg = CMSG_FIRSTHDR( &msg );
+				cmsg->cmsg_len = CMSG_LEN( sizeof(int) );
+				cmsg->cmsg_level = SOL_SOCKET;
+				cmsg->cmsg_type = SCM_RIGHTS;
 
-			*((int *)CMSG_DATA(cmsg)) = s;
+				*((int *)CMSG_DATA(cmsg)) = fds[0];
 # else
-			msg.msg_accrights = (char *)&s;
-			msg.msg_accrightslen = sizeof(int);
+				msg.msg_accrights = (char *)fds;
+				msg.msg_accrightslen = sizeof(int);
 # endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL */
-			sendmsg( s, &msg, 0 );
-	}
+				getpeername( s, sa, &salen );
+				fchmod( fds[0], S_ISUID|S_IRWXU );
+				write( fds[1], sa, salen );
+				sendmsg( s, &msg, 0 );
+				close(fds[0]);
+				close(fds[1]);
+			}
+		}
 #endif
-	return 0;
-}
+		return 0;
+	}
 
 	if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) return -1;
 	

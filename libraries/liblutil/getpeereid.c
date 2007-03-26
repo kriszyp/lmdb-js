@@ -108,15 +108,15 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 
 	rlen = sizeof(rname);
 	llen = sizeof(lname);
+	memset( &lname, 0, sizeof( lname ));
 	getsockname(s, (struct sockaddr *)&lname, &llen);
-
-	msg.msg_name = NULL;
-	msg.msg_namelen = 0;
 
 	iov.iov_base = peerbv->bv_val;
 	iov.iov_len = peerbv->bv_len;
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
+	peerbv->bv_len = 0;
+
 # ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 	msg.msg_control = &control_st;
 	msg.msg_controllen = sizeof( struct cmsghdr ) + sizeof( int );	/* no padding! */
@@ -132,8 +132,8 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 	 * called with MSG_PEEK (is this a bug?). Hence we need
 	 * to receive the Abandon PDU.
 	 */
-	peerbv->bv_len = recvmsg( s, &msg, MSG_WAITALL );
-	if( peerbv->bv_len >= 0 &&
+	err = recvmsg( s, &msg, MSG_WAITALL );
+	if( err >= 0 &&
 # ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 	    cmsg->cmsg_len == CMSG_LEN( sizeof(int) ) &&
 	    cmsg->cmsg_level == SOL_SOCKET &&
@@ -142,18 +142,19 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 		msg.msg_accrightslen == sizeof(int)
 # endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL*/
 	) {
-		int mode = S_IFSOCK|S_ISUID|S_IRWXU;
+		int mode = S_IFIFO|S_ISUID|S_IRWXU;
 
-		/* We must receive a valid descriptor, it must be a socket,
-		 * it must only be accessible by its owner, and it must be
-		 * connected to our socket.
+		/* We must receive a valid descriptor, it must be a pipe,
+		 * it must only be accessible by its owner, and it must
+		 * have the name of our socket written on it.
 		 */
+		peerbv->bv_len = err;
 # ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 		fd = (*(int *)CMSG_DATA( cmsg ));
 # endif
 		err = fstat( fd, &st );
 		if ( err == 0 )
-			err = getpeername(fd, (struct sockaddr *)&rname, &rlen);
+			rlen = read(fd, &rname, rlen);
 		close(fd);
 		if( err == 0 && st.st_mode == mode &&
 			llen == rlen && !memcmp(&lname, &rname, llen))
@@ -162,8 +163,6 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 			*egid = st.st_gid;
 			return 0;
 		}
-	} else if ( peerbv->bv_len < 0 ) {
-		peerbv->bv_len = 0;
 	}
 #elif defined(SOCKCREDSIZE)
 	struct msghdr msg;
