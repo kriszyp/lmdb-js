@@ -30,9 +30,9 @@ SRCS = overlays.c \
 	translucent.c \
 	unique.c \
 	valsort.c
-OBJS = overlays.o \
-	statover.o \
-	@SLAPD_STATIC_OVERLAYS@
+OBJS = statover.o \
+	@SLAPD_STATIC_OVERLAYS@ \
+	overlays.o
 
 # Add here the objs that are needed by overlays, but do not make it
 # into SLAPD_STATIC_OVERLAYS...
