@@ -6070,13 +6070,85 @@ config_tool_entry_get( BackendDB *be, ID id )
 		return NULL;
 }
 
+static int entry_put_got_frontend=0;
+static int entry_put_got_config=0;
 static ID
 config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 {
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
 	ConfigArgs ca;
-
+	/* Create entry for frontend database if it does not exist already */
+	if ( !entry_put_got_frontend ) {
+		if ( !strncmp( e->e_nname.bv_val, "olcDatabase", 
+				STRLENOF( "olcDatabase" ))) {
+			if ( strncmp( e->e_nname.bv_val + 
+					STRLENOF( "olcDatabase" ), "={-1}frontend",
+					STRLENOF( "={-1}frontend" )) && 
+					strncmp( e->e_nname.bv_val + 
+					STRLENOF( "olcDatabase" ), "=frontend",
+					STRLENOF( "=frontend" ))) {
+				Entry *fe;
+				struct berval rdn;
+				memset( &ca, 0, sizeof(ConfigArgs));
+				ca.be = frontendDB;
+				ca.bi = frontendDB->bd_info;
+				ca.be->be_cf_ocs = &CFOC_FRONTEND;
+				rdn.bv_val = ca.log;
+				rdn.bv_len = snprintf(rdn.bv_val, sizeof( ca.log ),
+					"%s=" SLAP_X_ORDERED_FMT "%s",
+					cfAd_database->ad_cname.bv_val, -1,
+					ca.bi->bi_type);
+				fe = config_build_entry( NULL, NULL, cfb->cb_root, &ca, &rdn,
+						&CFOC_DATABASE, ca.be->be_cf_ocs );
+				if ( fe && bi && bi->bi_tool_entry_put && 
+						bi->bi_tool_entry_put( &cfb->cb_db, fe, text ) != NOID ) {
+					entry_put_got_frontend++;
+				} else {
+					text->bv_val = "autocreation of \"cn={-1}frontend\" failed";
+					text->bv_len = STRLENOF("autocreation of \"cn={-1}frontend\" failed");
+					return NOID;
+				}
+			} else {
+				entry_put_got_frontend++;
+			}
+		}
+	}
+	/* Create entry for config database if it does not exist already */
+	if ( !entry_put_got_config ) {
+		if ( !strncmp( e->e_nname.bv_val, "olcDatabase",
+				STRLENOF( "olcDatabase" ))) {
+			if ( strncmp( e->e_nname.bv_val +
+					STRLENOF( "olcDatabase" ), "={0}config",
+					STRLENOF( "={0}config" )) &&
+					strncmp( e->e_nname.bv_val +
+					STRLENOF( "olcDatabase" ), "=config",
+					STRLENOF( "=config" )) ) {
+				Entry *cfe;
+				struct berval rdn;
+				memset( &ca, 0, sizeof(ConfigArgs));
+				ca.be = LDAP_STAILQ_FIRST( &backendDB );
+				ca.bi = ca.be->bd_info;
+				rdn.bv_val = ca.log;
+				rdn.bv_len = snprintf(rdn.bv_val, sizeof( ca.log ),
+					"%s=" SLAP_X_ORDERED_FMT "%s",
+					cfAd_database->ad_cname.bv_val, 0,
+					ca.bi->bi_type);
+				cfe = config_build_entry( NULL, NULL, cfb->cb_root, &ca, &rdn, &CFOC_DATABASE,
+						ca.be->be_cf_ocs );
+				if (cfe && bi && bi->bi_tool_entry_put &&
+						bi->bi_tool_entry_put( &cfb->cb_db, cfe, text ) != NOID ) {
+					entry_put_got_frontend++;
+				} else {
+					text->bv_val = "autocreation of \"cn={0}config\" failed";
+					text->bv_len = STRLENOF("autocreation of \"cn={0}config\" failed");
+					return NOID;
+				}
+			} else {
+				entry_put_got_config++;
+			}
+		}
+	}
 	if ( bi && bi->bi_tool_entry_put &&
 		config_add_internal( cfb, e, &ca, NULL, NULL, NULL ) == 0 )
 		return bi->bi_tool_entry_put( &cfb->cb_db, e, text );
