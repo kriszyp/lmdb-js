@@ -6077,7 +6077,17 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 {
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
+	int rc;
+	struct berval rdn, vals[ 2 ];
 	ConfigArgs ca;
+	OperationBuffer opbuf;
+	Entry *ce;
+	Attribute *attr;
+	Connection conn = {0};
+	Operation *op = NULL;
+	SlapReply rs = {REP_RESULT};
+	void *thrctx;
+
 	/* Create entry for frontend database if it does not exist already */
 	if ( !entry_put_got_frontend ) {
 		if ( !strncmp( e->e_nname.bv_val, "olcDatabase", 
@@ -6088,9 +6098,6 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					strncmp( e->e_nname.bv_val + 
 					STRLENOF( "olcDatabase" ), "=frontend",
 					STRLENOF( "=frontend" ))) {
-				Entry *fe;
-				struct berval rdn, vals[ 2 ];
-				Attribute *attr;
 				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
 				memset( &ca, 0, sizeof(ConfigArgs));
@@ -6102,56 +6109,29 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					"%s=" SLAP_X_ORDERED_FMT "%s",
 					cfAd_database->ad_cname.bv_val, -1,
 					ca.bi->bi_type);
-				fe = config_build_entry( NULL, NULL, cfb->cb_root, &ca, &rdn,
+				ce = config_build_entry( NULL, NULL, cfb->cb_root, &ca, &rdn,
 						&CFOC_DATABASE, ca.be->be_cf_ocs );
-				if( attr_find( fe->e_attrs, slap_schema.si_ad_entryUUID ) 
-					== NULL )
-				{
-					char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
-					vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
-					vals[0].bv_val = uuidbuf;
-					attr_merge_normalize_one( fe, slap_schema.si_ad_entryUUID,
-						vals, NULL );
+				op = (Operation *) &opbuf;
+				thrctx = ldap_pvt_thread_pool_context();
+				connection_fake_init2( &conn, op, thrctx,0 );
+				op->o_bd = &cfb->cb_db;
+				op->o_tag = LDAP_REQ_ADD;
+				op->ora_e = ce;
+				op->o_dn = be->be_rootdn;
+				op->o_ndn = be->be_rootndn;
+				rc = slap_add_opattrs(op, NULL, NULL, 0, 0);
+				if ( rc != LDAP_SUCCESS ) {
+					text->bv_val = "autocreation of \"olcDatabase={-1}frontend\" failed";
+					text->bv_len = STRLENOF("autocreation of \"olcDatabase={-1}frontend\" failed");
+					return NOID;
 				}
-				if ( attr_find( fe->e_attrs, slap_schema.si_ad_entryCSN)
-					== NULL )
-				{
-					char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-					vals[0].bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ),
-							0, 0 );
-					vals[0].bv_val = csnbuf;
-					attr_merge( fe, slap_schema.si_ad_entryCSN, vals, NULL );
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_creatorsName );
-				if ( attr )
-				{
-					attr_merge( fe, slap_schema.si_ad_creatorsName, 
-							attr->a_vals, attr->a_nvals );
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_modifiersName );
-				if ( attr ) 
-				{
-					attr_merge( fe, slap_schema.si_ad_modifiersName, 
-							attr->a_vals, attr->a_nvals );
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_createTimestamp );
-				if (attr)
-				{
-					attr_merge( fe, slap_schema.si_ad_createTimestamp, 
-							attr->a_vals, attr->a_nvals );
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp );
-				if (attr)
-				{
-					attr_merge( fe, slap_schema.si_ad_modifyTimestamp, 
-							attr->a_vals, attr->a_nvals );
-				}
-				if ( fe && bi && bi->bi_tool_entry_put && 
-						bi->bi_tool_entry_put( &cfb->cb_db, fe, text ) != NOID ) {
+
+				if ( ce && bi && bi->bi_tool_entry_put && 
+						bi->bi_tool_entry_put( &cfb->cb_db, ce, text ) != NOID ) {
 					entry_put_got_frontend++;
 				} else {
-					text->bv_val = "autocreation of \"cn={-1}frontend\" failed";
-					text->bv_len = STRLENOF("autocreation of \"cn={-1}frontend\" failed");
+					text->bv_val = "autocreation of \"olcDatabase={-1}frontend\" failed";
+					text->bv_len = STRLENOF("autocreation of \"olcDatabase={-1}frontend\" failed");
 					return NOID;
 				}
 			} else {
@@ -6169,9 +6149,6 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					strncmp( e->e_nname.bv_val +
 					STRLENOF( "olcDatabase" ), "=config",
 					STRLENOF( "=config" )) ) {
-				Entry *cfe;
-				struct berval rdn, vals[ 2 ];
-				Attribute *attr;
 				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
 				memset( &ca, 0, sizeof(ConfigArgs));
@@ -6182,56 +6159,30 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					"%s=" SLAP_X_ORDERED_FMT "%s",
 					cfAd_database->ad_cname.bv_val, 0,
 					ca.bi->bi_type);
-				cfe = config_build_entry( NULL, NULL, cfb->cb_root, &ca, &rdn, &CFOC_DATABASE,
+				ce = config_build_entry( NULL, NULL, cfb->cb_root, &ca, &rdn, &CFOC_DATABASE,
 						ca.be->be_cf_ocs );
-				if( attr_find( cfe->e_attrs, slap_schema.si_ad_entryUUID ) 
-					== NULL )
-				{
-					char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
-					vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
-					vals[0].bv_val = uuidbuf;
-					attr_merge_normalize_one( cfe, slap_schema.si_ad_entryUUID,
-						vals, NULL );
+				if ( ! op ) {
+					thrctx = ldap_pvt_thread_pool_context();
+					op = (Operation *) &opbuf;
+					connection_fake_init2( &conn, op, thrctx,0 );
+					op->o_bd = &cfb->cb_db;
+					op->o_tag = LDAP_REQ_ADD;
+					op->o_dn = be->be_rootdn;
+					op->o_ndn = be->be_rootndn;
 				}
-				if ( attr_find( cfe->e_attrs, slap_schema.si_ad_entryCSN)
-					== NULL )
-				{
-					char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-					vals[0].bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ),
-							0, 0 );
-					vals[0].bv_val = csnbuf;
-					attr_merge( cfe, slap_schema.si_ad_entryCSN, vals, NULL );
+				op->ora_e = ce;
+				rc = slap_add_opattrs(op, NULL, NULL, 0, 0);
+				if ( rc != LDAP_SUCCESS ) {
+					text->bv_val = "autocreation of \"olcDatabase={0}config\" failed";
+					text->bv_len = STRLENOF("autocreation of \"olcDatabase={0}config\" failed");
+					return NOID;
 				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_creatorsName );
-				if ( attr )
-				{
-					attr_merge( cfe, slap_schema.si_ad_creatorsName, 
-							attr->a_vals, attr->a_nvals );
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_modifiersName );
-				if ( attr ) 
-				{
-					attr_merge( cfe, slap_schema.si_ad_modifiersName, 
-							attr->a_vals, attr->a_nvals );
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_createTimestamp );
-				if (attr)
-				{
-					attr_merge( cfe, slap_schema.si_ad_createTimestamp, 
-							attr->a_vals, attr->a_nvals );
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp );
-				if (attr)
-				{
-					attr_merge( cfe, slap_schema.si_ad_modifyTimestamp, 
-							attr->a_vals, attr->a_nvals );
-				}
-				if (cfe && bi && bi->bi_tool_entry_put &&
-						bi->bi_tool_entry_put( &cfb->cb_db, cfe, text ) != NOID ) {
-					entry_put_got_frontend++;
+				if (ce && bi && bi->bi_tool_entry_put &&
+						bi->bi_tool_entry_put( &cfb->cb_db, ce, text ) != NOID ) {
+					entry_put_got_config++;
 				} else {
-					text->bv_val = "autocreation of \"cn={0}config\" failed";
-					text->bv_len = STRLENOF("autocreation of \"cn={0}config\" failed");
+					text->bv_val = "autocreation of \"olcDatabase={0}config\" failed";
+					text->bv_len = STRLENOF("autocreation of \"olcDatabase={0}config\" failed");
 					return NOID;
 				}
 			} else {
