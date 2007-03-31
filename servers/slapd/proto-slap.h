@@ -685,6 +685,11 @@ LDAP_SLAPD_F (int) connection_client_setup LDAP_P((
 LDAP_SLAPD_F (void) connection_client_enable LDAP_P(( ber_socket_t s ));
 LDAP_SLAPD_F (void) connection_client_stop LDAP_P(( ber_socket_t s ));
 
+#ifdef LDAP_PF_LOCAL_SENDMSG
+#define LDAP_PF_LOCAL_SENDMSG_ARG(arg)	, arg
+#else
+#define LDAP_PF_LOCAL_SENDMSG_ARG(arg)
+#endif
 
 LDAP_SLAPD_F (Connection *) connection_init LDAP_P((
 	ber_socket_t s,
@@ -694,10 +699,7 @@ LDAP_SLAPD_F (Connection *) connection_init LDAP_P((
 	int use_tls,
 	slap_ssf_t ssf,
 	struct berval *id
-#ifdef LDAP_PF_LOCAL_SENDMSG
-	, struct berval *peerbv
-#endif
-	));
+	LDAP_PF_LOCAL_SENDMSG_ARG(struct berval *peerbv)));
 
 LDAP_SLAPD_F (void) connection_closing LDAP_P((
 	Connection *c, const char *why ));

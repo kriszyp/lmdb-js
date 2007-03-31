@@ -367,10 +367,7 @@ Connection * connection_init(
 	int flags,
 	slap_ssf_t ssf,
 	struct berval *authid
-#ifdef LDAP_PF_LOCAL_SENDMSG
-	, struct berval *peerbv
-#endif
-)
+	LDAP_PF_LOCAL_SENDMSG_ARG(struct berval *peerbv))
 {
 	unsigned long id;
 	Connection *c;
@@ -1208,10 +1205,7 @@ int connection_client_setup(
 
 	c = connection_init( s, (Listener *)&dummy_list, "", "",
 		CONN_IS_CLIENT, 0, NULL
-#ifdef LDAP_PF_LOCAL_SENDMSG
-		, NULL
-#endif
-		);
+		LDAP_PF_LOCAL_SENDMSG_ARG(NULL));
 	if ( !c ) return -1;
 
 	c->c_clientfunc = func;

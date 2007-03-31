@@ -1829,10 +1829,7 @@ slap_listener(
 		dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
 		peername, cflag, ssf,
 		authid.bv_val ? &authid : NULL
-#ifdef LDAP_PF_LOCAL_SENDMSG
-		, &peerbv
-#endif
-	);
+		LDAP_PF_LOCAL_SENDMSG_ARG(&peerbv));
 
 	if( authid.bv_val ) ch_free(authid.bv_val);
 
@@ -2538,10 +2535,7 @@ connectionless_init( void )
 
 		c = connection_init( lr->sl_sd, lr, "", "",
 			CONN_IS_UDP, (slap_ssf_t) 0, NULL
-#ifdef LDAP_PF_LOCAL_SENDMSG
-			, NULL
-#endif
-			);
+			LDAP_PF_LOCAL_SENDMSG_ARG(NULL));
 
 		if ( !c ) {
 			Debug( LDAP_DEBUG_TRACE,
