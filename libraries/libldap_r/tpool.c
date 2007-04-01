@@ -825,10 +825,25 @@ int ldap_pvt_thread_pool_setkey(
 	if ( !ctx || !key ) return EINVAL;
 
 	for ( i=0; i<MAXKEYS; i++ ) {
-		if ( !ctx->ltu_key[i].ltk_key || ctx->ltu_key[i].ltk_key == key ) {
-			ctx->ltu_key[i].ltk_key = key;
-			ctx->ltu_key[i].ltk_data = data;
-			ctx->ltu_key[i].ltk_free = kfree;
+		if (( data && !ctx->ltu_key[i].ltk_key ) || ctx->ltu_key[i].ltk_key == key ) {
+			if ( data || kfree ) {
+				ctx->ltu_key[i].ltk_key = key;
+				ctx->ltu_key[i].ltk_data = data;
+				ctx->ltu_key[i].ltk_free = kfree;
+			} else {
+				int j;
+				for ( j=i+1; j<MAXKEYS; j++ )
+					if ( !ctx->ltu_key[j].ltk_key ) break;
+				j--;
+				if ( j != i ) {
+					ctx->ltu_key[i].ltk_key = ctx->ltu_key[j].ltk_key;
+					ctx->ltu_key[i].ltk_data = ctx->ltu_key[j].ltk_data;
+					ctx->ltu_key[i].ltk_free = ctx->ltu_key[j].ltk_free;
+				}
+				ctx->ltu_key[i].ltk_key = NULL;
+				ctx->ltu_key[i].ltk_data = NULL;
+				ctx->ltu_key[i].ltk_free = NULL;
+			}
 			return 0;
 		}
 	}
