@@ -2124,8 +2124,14 @@ slapd_daemon_task(
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 		if ( rtask && cat.tv_sec ) {
-			time_t diff = difftime( cat.tv_sec, now );
-			if ( diff == 0 ) diff = tdelta;
+			/* NOTE: diff __should__ always be >= 0,
+			 * AFAI understand; however (ITS#4872),
+			 * time_t might be unsigned in some systems,
+			 * while difftime() returns a double */
+			double diff = difftime( cat.tv_sec, now );
+			if ( diff <= 0 ) {
+				diff = tdelta;
+			}
 			if ( tvp == NULL || diff < tv.tv_sec ) {
 				tv.tv_sec = diff;
 				tv.tv_usec = 0;
