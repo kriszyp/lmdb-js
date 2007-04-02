@@ -1382,6 +1382,7 @@ syncrepl_message_to_op(
 		} else {
 			op->orm_modlist = modlist;
 			rc = op->o_bd->be_modify( op, &rs );
+			modlist = op->orm_modlist;
 			Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 				"syncrepl_message_to_op: rid %03d be_modify %s (%d)\n", 
 				si->si_rid, op->o_req_dn.bv_val, rc );
