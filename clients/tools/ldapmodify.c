@@ -389,8 +389,8 @@ main( int argc, char **argv )
 			fprintf( rejfp, "\n%s\n", rejbuf );
 		}
 
-		if (rejfp) free( rejbuf );
-		free( rbuf );
+		if (rejfp) ber_memfree( rejbuf );
+		ber_memfree( rbuf );
 	}
 
 #ifdef LDAP_GROUP_TRANSACTION
@@ -519,7 +519,7 @@ process_ldif_rec( char *rbuf, int count )
 				printf(_("%s: skipping change record for entry: %s\n"),
 					prog, dn);
 				printf(_("\t(LDAP host/port does not match replica: lines)\n"));
-				free( dn );
+				ber_memfree( dn );
 				ber_memfree( type );
 				ber_memfree( val.bv_val );
 				return( 0 );
@@ -727,13 +727,13 @@ end_line:
 	}
 
 	if ( dn != NULL ) {
-		free( dn );
+		ber_memfree( dn );
 	}
 	if ( newrdn != NULL ) {
-		free( newrdn );
+		ber_memfree( newrdn );
 	}
 	if ( newsup != NULL ) {
-		free( newsup );
+		ber_memfree( newsup );
 	}
 	if ( pmods != NULL ) {
 		ldap_mods_free( pmods, 1 );
