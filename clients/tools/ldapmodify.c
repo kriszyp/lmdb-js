@@ -372,9 +372,9 @@ main( int argc, char **argv )
 			fprintf( rejfp, "\n%s\n", rejbuf );
 		}
 
-		if (rejfp) free( rejbuf );
+		if (rejfp) ber_memfree( rejbuf );
 	}
-	free( rbuf );
+	ber_memfree( rbuf );
 
 #ifdef LDAP_X_TXN
 	if( retval == 0 && txn ) {
