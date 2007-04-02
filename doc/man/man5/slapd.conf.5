@@ -1363,6 +1363,8 @@ of the order in which they were configured and the database itself
 will receive control last of all. See the
 .BR slapd.overlays (5)
 manual page for an overview of the available overlays.
+Note that all of the database's
+regular settings should be configured before any overlay settings.
 .TP
 .B readonly on | off
 This option puts the database into "read-only" mode.  Any attempts to 
