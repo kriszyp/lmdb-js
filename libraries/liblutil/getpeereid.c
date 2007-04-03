@@ -31,9 +31,10 @@
 #include <sys/ucred.h>
 #endif
 
-#if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
+/* Disabled due to ITS#4893, will revisit in release 2.4 */
+#if 0 /* !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
 	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
-		defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
+		defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL)) */
 #define DO_SENDMSG
 #ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
