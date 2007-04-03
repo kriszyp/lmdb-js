@@ -122,5 +122,7 @@ main(int argc, char *argv[])
 		}
 	}
 
+	fprintf( stdout, "URL: %s\n", ldap_url_desc2str( lud ));
+
 	return EXIT_SUCCESS;
 }
