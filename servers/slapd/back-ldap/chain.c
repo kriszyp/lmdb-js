@@ -778,7 +778,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_callback	*sc = op->o_callback,
 			sc2 = { 0 };
 	int		rc = 0;
-	char		*text = NULL;
+	const char	*text = NULL;
 	const char	*matched;
 	BerVarray	ref;
 	struct berval	ndn = op->o_ndn;
