@@ -2063,15 +2063,6 @@ monitor_back_db_init(
 	monitor_subsys_t	*ms;
 
 	/*
-	 * register subsys
-	 */
-	for ( ms = known_monitor_subsys; ms->mss_name != NULL; ms++ ) {
-		if ( monitor_back_register_subsys( ms ) ) {
-			return -1;
-		}
-	}
-
-	/*
 	 * database monitor can be defined once only
 	 */
 	if ( be_monitor != NULL ) {
@@ -2080,6 +2071,15 @@ monitor_back_db_init(
 		return( -1 );
 	}
 	be_monitor = be;
+
+	/*
+	 * register subsys
+	 */
+	for ( ms = known_monitor_subsys; ms->mss_name != NULL; ms++ ) {
+		if ( monitor_back_register_subsys( ms ) ) {
+			return -1;
+		}
+	}
 
 	/* indicate system schema supported */
 	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
