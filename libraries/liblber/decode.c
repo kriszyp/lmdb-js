@@ -49,7 +49,7 @@ static ber_len_t ber_getnint LDAP_P((
 int
 ber_decode_oid( BerValue *in, BerValue *out )
 {
-	unsigned char *der = in->bv_val;
+	unsigned char *der = (unsigned char *) in->bv_val;
 	unsigned long val, val1;
 	int i, len;
 	char *ptr;

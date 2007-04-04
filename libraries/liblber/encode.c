@@ -181,7 +181,7 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 int
 ber_encode_oid( BerValue *in, BerValue *out )
 {
-	unsigned char *der = out->bv_val;
+	unsigned char *der = (unsigned char *) out->bv_val;
 	unsigned long val, val1;
 	int i, len;
 	char *ptr, *end, *inend;
