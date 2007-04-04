@@ -191,6 +191,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	 */
 sendcred:
 		{
+#if 0	/* ITS#4893 disable all of this for now */
 			int fds[2];
 			if (pipe(fds) == 0) {
 				/* Abandon, noop, has no reply */
@@ -234,6 +235,9 @@ sendcred:
 				close(fds[0]);
 				close(fds[1]);
 			}
+# else
+			write( s, abandonPDU, sizeof( abandonPDU ));
+#endif /* ITS#4893 */
 		}
 #endif
 		return 0;
