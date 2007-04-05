@@ -727,7 +727,6 @@ unhandled_option:;
 
 	extops_init();
 	lutil_passwd_init();
-	slap_op_init();
 
 #ifdef HAVE_TLS
 	rc = ldap_create( &slap_tls_ld );
@@ -957,8 +956,6 @@ destroy:
 #ifdef SLAPD_MODULES
 	module_kill();
 #endif
-
-	slap_op_destroy();
 
 	extops_kill();
 

@@ -94,6 +94,8 @@ slap_init( int mode, const char *name )
 
 	slapMode = mode;
 
+	slap_op_init();
+
 #ifdef SLAPD_MODULES
 	if ( module_init() != 0 ) {
 		slap_debug |= LDAP_DEBUG_NONE;
@@ -310,8 +312,10 @@ int slap_destroy(void)
 
 	}
 
+	slap_op_destroy();
+
 	ldap_pvt_thread_destroy();
 
-	/* should destory the above mutex */
+	/* should destroy the above mutex */
 	return rc;
 }
