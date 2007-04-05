@@ -1613,6 +1613,7 @@ config_generic(ConfigArgs *c) {
 						return 1;
 					}
 					si = ch_malloc( sizeof(ServerID) );
+					BER_BVZERO( &si->si_url );
 					slap_serverID = num;
 				}
 				si->si_next = NULL;
