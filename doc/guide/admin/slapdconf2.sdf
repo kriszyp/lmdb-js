@@ -1384,7 +1384,7 @@ settings
 
 when you read them back using slapcat or ldapsearch they will contain
 
->	olcAccess: {0}to attr=member,entry
+>	olcAccess: {0}to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: {1}to dn.children="dc=example,dc=com"
 > 		by * search
@@ -1423,7 +1423,7 @@ This example deletes whatever rule is in value #1 of the {{EX:olcAccess}}
 attribute (regardless of its value) and adds a new value that is
 explicitly inserted as value #1. The result will be
 
->	olcAccess: {0}to attr=member,entry
+>	olcAccess: {0}to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: {1}to dn.children="dc=example,dc=com"
 > 		by * write
