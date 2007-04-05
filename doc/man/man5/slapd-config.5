@@ -672,40 +672,6 @@ Specify the referral to pass back when
 .BR slapd (8)
 cannot find a local database to handle a request.
 If multiple values are specified, each url is provided.
-.\" slurpd-related keywords are all deprecated
-.\".TP
-.\".B replica-argsfile
-.\"The ( absolute ) name of a file that will hold the 
-.\".B slurpd
-.\"server's command line options
-.\"if started without the debugging command line option.
-.\"If it appears after a
-.\".B replogfile
-.\"directive, the args file is specific to the 
-.\".BR slurpd (8)
-.\"instance that handles that replication log.
-.\".TP
-.\".B replica-pidfile
-.\"The ( absolute ) name of a file that will hold the 
-.\".B slurpd
-.\"server's process ID ( see
-.\".BR getpid (2)
-.\") if started without the debugging command line option.
-.\"If it appears after a
-.\".B replogfile
-.\"directive, the pid file is specific to the 
-.\".BR slurpd (8)
-.\"instance that handles that replication log.
-.\".TP
-.\".B replicationinterval
-.\"The number of seconds 
-.\".B slurpd 
-.\"waits before checking the replogfile for changes.
-.\"If it appears after a
-.\".B replogfile
-.\"directive, the replication interval is specific to the 
-.\".BR slurpd (8)
-.\"instance that handles that replication log.
 .TP
 .B olcReverseLookup: TRUE | FALSE
 Enable/disable client name unverified reverse lookup (default is 
@@ -1471,79 +1437,6 @@ By default, this setting is FALSE.
 Configure a SLAPI plugin. See the
 .BR slapd.plugin (5)
 manpage for more details.
-.\".HP
-.\".hy 0
-.\".B replica uri=ldap[s]://<hostname>[:port]|host=<hostname>[:port] 
-.\".B [starttls=yes|critical]
-.\".B [suffix=<suffix> [...]]
-.\".B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
-.\".B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
-.\".B [authcId=<authentication ID>] [authzId=<authorization ID>]
-.\".B [attrs[!]=<attr list>]
-.\".RS
-.\"Specify a replication site for this database.  Refer to the "OpenLDAP 
-.\"Administrator's Guide" for detailed information on setting up a replicated
-.\".B slapd
-.\"directory service. Zero or more
-.\".B suffix
-.\"instances can be used to select the subtrees that will be replicated
-.\"(defaults to all the database). 
-.\".B host
-.\"is deprecated in favor of the
-.\".B uri
-.\"option.
-.\".B uri
-.\"allows the replica LDAP server to be specified as an LDAP URI. 
-.\"A
-.\".B bindmethod
-.\"of
-.\".B simple
-.\"requires the options
-.\".B binddn 
-.\"and
-.\".B credentials  
-.\"and should only be used when adequate security services 
-.\"(e.g TLS or IPSEC) are in place. A
-.\".B bindmethod 
-.\"of
-.\".B sasl 
-.\"requires the option
-.\".B saslmech. 
-.\"Specific security properties (as with the
-.\".B sasl-secprops
-.\"keyword above) for a SASL bind can be set with the
-.\".B secprops
-.\"option. A non-default SASL realm can be set with the
-.\".B realm
-.\"option.
-.\"If the 
-.\".B mechanism
-.\"will use Kerberos, a kerberos instance should be given in 
-.\".B authcId.
-.\"An
-.\".B attr list
-.\"can be given after the 
-.\".B attrs
-.\"keyword to allow the selective replication of the listed attributes only;
-.\"if the optional 
-.\".B !
-.\"mark is used, the list is considered exclusive, i.e. the listed attributes
-.\"are not replicated.
-.\"If an objectClass is listed, all the related attributes
-.\"are (are not) replicated.
-.\".RE
-.\".TP
-.\".B replogfile <filename>
-.\"Specify the name of the replication log file to log changes to.  
-.\"The replication log is typically written by
-.\".BR slapd (8)
-.\"and read by
-.\".BR slurpd (8).
-.\"See
-.\".BR slapd.replog (5)
-.\"for more information.  The specified file should be located
-.\"in a directory with limited read/write/execute access as the replication
-.\"logs may contain sensitive information.
 .TP
 .B olcRootDN: <dn>
 Specify the distinguished name that is not subject to access control 
@@ -1816,9 +1709,8 @@ ignored.
 This option is only applicable in a slave
 database.
 It specifies the DN permitted to update (subject to access controls)
-the replica (typically, this is the DN
-.BR slurpd (8)
-binds to update the replica).  Generally, this DN
+the replica.  It is only needed in certain push-mode
+replication scenarios.  Generally, this DN
 .I should not
 be the same as the
 .B rootdn 
@@ -1963,8 +1855,7 @@ default slapd configuration directory
 .BR slapdn (8),
 .BR slapindex (8),
 .BR slappasswd (8),
-.BR slaptest (8),
-.BR slurpd (8).
+.BR slaptest (8).
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS

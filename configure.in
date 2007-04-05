@@ -378,12 +378,6 @@ OL_ARG_ENABLE(valsort,[    --enable-valsort      Value Sorting overlay],
 	no, [no yes mod], ol_enable_overlays)
 
 dnl ----------------------------------------------------------------
-dnl SLURPD OPTIONS
-AC_ARG_ENABLE(xxslurpdoptions,[
-SLURPD (Replication Daemon) Options:])
-OL_ARG_ENABLE(slurpd,[  --enable-slurpd	  enable building slurpd], auto)dnl
-
-dnl ----------------------------------------------------------------
 AC_ARG_ENABLE(xxliboptions,[
 Library Generation & Linking Options])
 AC_ENABLE_STATIC
@@ -422,9 +416,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_aci != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
 	fi
-	if test $ol_enable_slurpd = yes ; then
-		AC_MSG_ERROR([slurpd requires slapd])
-	fi
 	if test $ol_enable_rewrite = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
 	fi
@@ -450,8 +441,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_dynacl=no
 	ol_enable_aci=no
 	ol_enable_wrappers=no
-
-	ol_enable_slurpd=no
 
 	ol_enable_rewrite=no
 
@@ -482,13 +471,6 @@ if test $ol_enable_meta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
 
-if test $ol_enable_slurpd = yes ; then
-	dnl SLURPD was specifically enabled
-	if test $ol_with_threads = no ; then
-		AC_MSG_ERROR([slurpd requires threads])
-	fi
-fi
-
 if test $ol_enable_lmpasswd = yes ; then
 	if test $ol_with_tls = no ; then
 		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
@@ -512,10 +494,8 @@ LTHREAD_LIBS=
 LUTIL_LIBS=
 
 SLAPD_LIBS=
-SLURPD_LIBS=
 
 BUILD_SLAPD=no
-BUILD_SLURPD=no
 
 BUILD_THREAD=no
 
@@ -813,9 +793,11 @@ AC_CHECK_HEADERS(	\
 	sysexits.h		\
 	sys/file.h		\
 	sys/filio.h		\
+	sys/fstyp.h		\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
+	sys/privgrp.h	\
 	sys/resource.h	\
 	sys/select.h	\
 	sys/socket.h	\
@@ -824,6 +806,7 @@ AC_CHECK_HEADERS(	\
 	sys/time.h		\
 	sys/types.h		\
 	sys/uio.h		\
+	sys/vmount.h	\
 	syslog.h		\
 	termios.h		\
 	unistd.h		\
@@ -2338,6 +2321,12 @@ if test "$ac_cv_func_getpeereid" != yes; then
 #include <sys/socket.h>
 #endif])
 		fi
+		AC_CHECK_MEMBERS([struct stat.st_fstype, struct stat.st_vfstype])
+		if test "$ac_cv_member_struct_stat_st_fstype" = yes; then
+			AC_COMPILE_IFELSE([struct stat st; char *ptr=st.st_fstype;],
+				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_CHAR]),
+				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_INT]))
+		fi
 	fi
 	LIBSRCS="$LIBSRCS getpeereid.c"
 fi
@@ -2795,12 +2784,6 @@ if test "$ol_enable_valsort" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_VALSORT,$MFLAG,[define for Value Sorting overlay])
 fi
 
-if test "$ol_enable_slurpd" != no &&
-   test "$ol_link_threads" != no &&
-   test $BUILD_SLAPD = yes ; then
-	BUILD_SLURPD=yes
-fi
-
 if test "$ol_enable_rewrite" != no ; then
 	AC_DEFINE(ENABLE_REWRITE,1,[define to enable rewriting in back-ldap and back-meta])
 	BUILD_REWRITE=yes
@@ -2871,11 +2854,9 @@ dnl overlays
   AC_SUBST(BUILD_TRANSLUCENT)
   AC_SUBST(BUILD_UNIQUE)
   AC_SUBST(BUILD_VALSORT)
-AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(SLAPD_LIBS)
-AC_SUBST(SLURPD_LIBS)
 AC_SUBST(BDB_LIBS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
@@ -2956,7 +2937,6 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk]
 [servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk]
 [servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk]
-[servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk]
 [tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk]
 [tests/run]
 [tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk])

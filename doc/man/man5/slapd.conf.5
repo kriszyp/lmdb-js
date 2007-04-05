@@ -11,9 +11,7 @@ The file
 .B ETCDIR/slapd.conf
 contains configuration information for the
 .BR slapd (8)
-daemon.  This configuration file is also used by the
-.BR slurpd (8)
-replication daemon and by the SLAPD tools
+daemon.  This configuration file is also used by the SLAPD tools
 .BR slapacl (8),
 .BR slapadd (8),
 .BR slapauth (8),
@@ -720,39 +718,6 @@ Specify the referral to pass back when
 cannot find a local database to handle a request.
 If specified multiple times, each url is provided.
 .TP
-.B replica-argsfile
-The ( absolute ) name of a file that will hold the 
-.B slurpd
-server's command line options
-if started without the debugging command line option.
-If it appears after a
-.B replogfile
-directive, the args file is specific to the 
-.BR slurpd (8)
-instance that handles that replication log.
-.TP
-.B replica-pidfile
-The ( absolute ) name of a file that will hold the 
-.B slurpd
-server's process ID ( see
-.BR getpid (2)
-) if started without the debugging command line option.
-If it appears after a
-.B replogfile
-directive, the pid file is specific to the 
-.BR slurpd (8)
-instance that handles that replication log.
-.TP
-.B replicationinterval
-The number of seconds 
-.B slurpd 
-waits before checking the replogfile for changes.
-If it appears after a
-.B replogfile
-directive, the replication interval is specific to the 
-.BR slurpd (8)
-instance that handles that replication log.
-.TP
 .B require <conditions>
 Specify a set of conditions (separated by white space) to
 require (default none).
@@ -1346,7 +1311,7 @@ resolve an entry, used to avoid infinite alias loops. The default is 1.
 .B mirrormode on | off
 This option puts a replica database into "mirror" mode.  Update
 operations will be accepted from any user, not just the updatedn.  The
-database must already be configured as a slurpd or syncrepl consumer
+database must already be configured as a syncrepl consumer
 before this keyword may be set. This mode also requires a
 .B serverID
 (see above) to be configured.
@@ -1429,18 +1394,6 @@ are not replicated.
 If an objectClass is listed, all the related attributes
 are (are not) replicated.
 .RE
-.TP
-.B replogfile <filename>
-Specify the name of the replication log file to log changes to.  
-The replication log is typically written by
-.BR slapd (8)
-and read by
-.BR slurpd (8).
-See
-.BR slapd.replog (5)
-for more information.  The specified file should be located
-in a directory with limited read/write/execute access as the replication
-logs may contain sensitive information.
 .TP
 .B restrict <oplist>
 Specify a whitespace separated list of operations that are restricted.
@@ -1731,12 +1684,10 @@ ignored.
 .TP
 .B updatedn <dn>
 This option is only applicable in a slave
-database updated using
-.BR slurpd(8). 
+database.
 It specifies the DN permitted to update (subject to access controls)
-the replica (typically, this is the DN
-.BR slurpd (8)
-binds to update the replica).  Generally, this DN
+the replica.  It is only needed in certain push-mode
+replication scenarios.  Generally, this DN
 .I should not
 be the same as the
 .B rootdn 
@@ -1815,8 +1766,7 @@ default slapd configuration file
 .BR slapdn (8),
 .BR slapindex (8),
 .BR slappasswd (8),
-.BR slaptest (8),
-.BR slurpd (8).
+.BR slaptest (8).
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS

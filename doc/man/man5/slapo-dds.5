@@ -218,7 +218,7 @@ dynamic objects replicate.  Only the master takes care of handling dynamic
 object expiration, while replicas simply see the dynamic object as a plain
 object.
 
-When using slurpd replication, one needs to explicitly exclude the 
+When replicating these objects, one needs to explicitly exclude the 
 .B dynamicObject
 class and the
 .B entryTtl
@@ -227,21 +227,10 @@ This implementation of RFC 2589 introduces a new operational attribute,
 .BR entryExpireTimestamp ,
 that contains the expiration timestamp.  This must be excluded from 
 replication as well.
-In
-.BR slapd.conf (5),
-add the following \fIexclusion list\fP to each
-.B replica 
-statement:
 
-.RS
-.nf
-replica ...
-	attrs!=@dynamicObject,entryTtl,entryExpireTimestamp
-.fi
-.RE
-
-When using syncrepl, the quick and dirty solution is to set 
+The quick and dirty solution is to set 
 .B schemacheck=off
+in the syncrepl configuration
 and, optionally, exclude the operational attributes from replication, using
 
 .RS
