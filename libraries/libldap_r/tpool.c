@@ -840,9 +840,9 @@ int ldap_pvt_thread_pool_setkey(
 					ctx->ltu_key[i].ltk_data = ctx->ltu_key[j].ltk_data;
 					ctx->ltu_key[i].ltk_free = ctx->ltu_key[j].ltk_free;
 				}
-				ctx->ltu_key[i].ltk_key = NULL;
-				ctx->ltu_key[i].ltk_data = NULL;
-				ctx->ltu_key[i].ltk_free = NULL;
+				ctx->ltu_key[j].ltk_key = NULL;
+				ctx->ltu_key[j].ltk_data = NULL;
+				ctx->ltu_key[j].ltk_free = NULL;
 			}
 			return 0;
 		}
