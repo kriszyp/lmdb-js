@@ -1462,11 +1462,9 @@ resolve an entry, used to avoid infinite alias loops. The default is 1.
 This option puts a replica database into "mirror" mode.  Update
 operations will be accepted from any user, not just the updatedn.  The
 database must already be configured as syncrepl consumer
-before this keyword may be set.  This mode must be used with extreme
-care, as it does not offer any consistency guarantees.  This feature
-is intended to be used with an external frontend that guarantees that
-writes are only directed to a single master, switching to an alternate
-server only if the original master goes down.
+before this keyword may be set.  This mode also requires a
+.I olcServerID
+(see above) to be configured.
 By default, this setting is FALSE.
 .TP
 .B olcPlugin: <plugin_type> <lib_path> <init_function> [<arguments>]
