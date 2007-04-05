@@ -3958,7 +3958,7 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 {
 	CfEntryInfo *ce;
 	int index = -1, gotindex = 0, nsibs, rc = 0;
-	int renumber = 0, tailindex = 0, isfrontend = 0;
+	int renumber = 0, tailindex = 0, isfrontend = 0, isconfig = 0;
 	char *ptr1, *ptr2 = NULL;
 	struct berval rdn;
 
@@ -3973,9 +3973,14 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 
 	/* See if the rdn has an index already */
 	dnRdn( &e->e_name, &rdn );
-	if ( ce_type == Cft_Database && !strncmp( rdn.bv_val + rdn.bv_len -
-		STRLENOF("frontend"), "frontend", STRLENOF("frontend") ))
-		isfrontend = 1;
+	if ( ce_type == Cft_Database ) {
+		if ( !strncmp( rdn.bv_val + rdn.bv_len - STRLENOF("frontend"),
+				"frontend", STRLENOF("frontend") )) 
+			isfrontend = 1;
+		else if ( !strncmp( rdn.bv_val + rdn.bv_len - STRLENOF("config"),
+				"config", STRLENOF("config") )) 
+			isconfig = 1;
+	}
 	ptr1 = ber_bvchr( &e->e_name, '{' );
 	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
 		char	*next;
@@ -3993,6 +3998,9 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 			/* Special case, we allow -1 for the frontendDB */
 			if ( index != -1 || !isfrontend )
 				return LDAP_NAMING_VIOLATION;
+		}
+		if ( isconfig && index != 0 ){
+			return LDAP_NAMING_VIOLATION;
 		}
 	}
 
@@ -4013,6 +4021,10 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 				if ( index != -1 || !isfrontend )
 					renumber = 1;
 			}
+		}
+		/* config DB is always "0" */
+		if ( isconfig && index == -1 ) {
+			index = 0;
 		}
 		if ( !isfrontend && index == -1 ) {
 			index = nsibs;
