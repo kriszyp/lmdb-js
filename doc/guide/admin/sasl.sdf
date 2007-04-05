@@ -679,14 +679,14 @@ should be allowed to perform the proxy authorization.
 By default, processing of proxy authorization rules is disabled.
 The {{EX:authz-policy}} directive must be set in the
 {{slapd.conf}}(5) file to enable authorization. This directive can
-be set to {{EX:none}} for no rules (the default), {{EX:from}} for
-source rules, {{EX:to}} for destination rules, or {{EX:both}} for
+be set to {{EX:none}} for no rules (the default), {{EX:to}} for
+source rules, {{EX:from}} for destination rules, or {{EX:both}} for
 both source and destination rules.
 
-Destination rules are extremely powerful. If ordinary users have
+Source rules are extremely powerful. If ordinary users have
 access to write the {{EX:authzTo}} attribute in their own
 entries, then they can write rules that would allow them to authorize
-as anyone else.  As such, when using destination rules, the
+as anyone else.  As such, when using source rules, the
 {{EX:authzTo}} attribute should be protected with an ACL that
 only allows privileged users to set its values.
 
