@@ -1351,7 +1351,7 @@ create a group and allow people to add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
->	olcAccess: to attr=member,entry
+>	olcAccess: to attrs=member,entry
 > 		by dnattr=member selfwrite
 
 The dnattr {{EX:<who>}} selector says that the access applies to
@@ -1375,7 +1375,7 @@ tags are maintained automatically by slapd and do not need to be specified
 when originally defining the values. For example, when you create the
 settings
 
->	olcAccess: to attr=member,entry
+>	olcAccess: to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: to dn.children="dc=example,dc=com"
 > 		by * search
@@ -1513,7 +1513,7 @@ E: 29.	olcRootPW: secret
 E: 30.	olcDbIndex: uid pres,eq
 E: 31.	olcDbIndex: cn,sn,uid pres,eq,approx,sub
 E: 32.	olcDbIndex: objectClass eq
-E: 33.	olcAccess: to attr=userPassword
+E: 33.	olcAccess: to attrs=userPassword
 E: 34.	  by self write
 E: 35.	  by anonymous auth
 E: 36.	  by dn.base="cn=Admin,dc=example,dc=com" write
