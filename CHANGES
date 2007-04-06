@@ -21,6 +21,7 @@ OpenLDAP 2.3.35 Engineering
 	Fixed libldap_r tpool reset (ITS#4855,#4899)
 	Documentation
 		Fix references to deprecated attr= access statement (ITS#4863)
+		Note -s option to ldapmodrdn(1) (ITS#4877)
 
 OpenLDAP 2.3.34 Release (2007/02/16)
 	Fixed libldap missing get_option(TLS CipherSuite) (ITS#4815)
