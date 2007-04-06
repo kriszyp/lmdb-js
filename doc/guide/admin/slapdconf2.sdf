@@ -1325,7 +1325,7 @@ the access directives and the {{EX:by <who>}} clauses.  It also
 shows the use of an attribute selector to grant access to a specific
 attribute and various {{EX:<who>}} selectors.
 
->	olcAccess: to dn.subtree="dc=example,dc=com" attr=homePhone
+>	olcAccess: to dn.subtree="dc=example,dc=com" attrs=homePhone
 >		by self write
 >		by dn.children=dc=example,dc=com" search
 >		by peername.regex=IP:10\..+ read
