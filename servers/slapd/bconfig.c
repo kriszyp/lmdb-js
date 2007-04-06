@@ -2827,6 +2827,9 @@ config_updateref(ConfigArgs *c) {
 
 static int
 config_obsolete(ConfigArgs *c) {
+	if (c->op == SLAP_CONFIG_EMIT)
+		return 1;
+
 	snprintf( c->msg, sizeof( c->msg ), "<%s> keyword is obsolete (ignored)",
 		c->argv[0] );
 	Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0);
