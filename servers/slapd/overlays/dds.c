@@ -123,7 +123,7 @@ dds_expire( void *ctx, dds_info_t *di )
 	Connection	conn = { 0 };
 	OperationBuffer opbuf;
 	Operation	*op;
-	slap_callback	sc = { 0 }, sc2 = { 0 };
+	slap_callback	sc = { 0 };
 	dds_cb_t	dc = { 0 };
 	dds_expire_t	*de = NULL, **dep;
 	SlapReply	rs = { REP_RESULT };
@@ -193,10 +193,8 @@ done_search:;
 
 	op->o_tag = LDAP_REQ_DELETE;
 	op->o_callback = &sc;
-	sc.sc_response = slap_replog_cb;
+	sc.sc_response = slap_null_cb;
 	sc.sc_private = NULL;
-	sc.sc_next = &sc2;
-	sc2.sc_response = slap_null_cb;
 
 	for ( ntotdeletes = 0, ndeletes = 1; dc.dc_ndnlist != NULL  && ndeletes > 0; ) {
 		ndeletes = 0;
@@ -989,7 +987,6 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		SlapReply	rs2 = { REP_RESULT };
 		Operation	op2 = *op;
 		slap_callback	sc = { 0 };
-		slap_callback	sc2 = { 0 };
 		Modifications	ttlmod = { { 0 } };
 		struct berval	ttlvalues[ 2 ];
 		char		ttlbuf[] = "31557600";
@@ -1082,9 +1079,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		op2.o_bd = &db;
 		db.bd_info = (BackendInfo *)on->on_info;
 		op2.o_callback = &sc;
-		sc.sc_response = slap_replog_cb;
-		sc.sc_next = &sc2;
-		sc2.sc_response = slap_null_cb;
+		sc.sc_response = slap_null_cb;
 		op2.o_relax = SLAP_CONTROL_CRITICAL;
 		op2.orm_modlist = &ttlmod;
 

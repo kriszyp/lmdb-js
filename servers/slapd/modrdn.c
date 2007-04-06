@@ -306,15 +306,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 		int repl_user = be_isupdate( op );
 		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
 		{
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
-
 			op->o_bd = op_be;
-
-			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
-			{
-				cb.sc_next = op->o_callback;
-				op->o_callback = &cb;
-			}
 			op->o_bd->be_modrdn( op, rs );
 
 			if ( op->o_bd->be_delete ) {

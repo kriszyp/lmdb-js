@@ -1569,14 +1569,6 @@ typedef struct slap_bindconf {
 #endif
 } slap_bindconf;
 
-struct slap_replica_info {
-	const char *ri_host;		/* points to host part of uri */
-	BerVarray ri_nsuffix;		/* array of suffixes this replica accepts */
-	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
-	int ri_exclude;				/* 1 => exclude ri_attrs */
-	slap_bindconf ri_bindconf;	/* for back-config */
-};
-
 typedef struct slap_verbmasks {
 	struct berval word;
 	const slap_mask_t mask;
@@ -1857,11 +1849,6 @@ struct BackendDB {
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
 
 	/* Replica Information */
-	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
-	char	*be_replogfile;	/* replication log file (in master)	   */
-	char	*be_replica_argsfile; /* per-replog replica args file */
-	char	*be_replica_pidfile; /* per-replog replica pid file */
-	int	be_replicationinterval; /* per-replog replicationinterval */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
 	struct		be_pcl	*be_pending_csn_list;

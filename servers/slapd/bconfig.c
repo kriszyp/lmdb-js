@@ -125,10 +125,10 @@ static ConfigDriver config_requires;
 static ConfigDriver config_security;
 static ConfigDriver config_referral;
 static ConfigDriver config_loglevel;
-static ConfigDriver config_replica;
 static ConfigDriver config_updatedn;
 static ConfigDriver config_updateref;
 static ConfigDriver config_include;
+static ConfigDriver config_obsolete;
 #ifdef HAVE_TLS
 static ConfigDriver config_tls_option;
 static ConfigDriver config_tls_config;
@@ -160,10 +160,6 @@ enum {
 	CFG_DIT,
 	CFG_ATTR,
 	CFG_ATOPT,
-	CFG_REPLICA_ARGSFILE,
-	CFG_REPLICA_PIDFILE,
-	CFG_REPLICATIONINTERVAL,
-	CFG_REPLOG,
 	CFG_ROOTDSE,
 	CFG_LOGFILE,
 	CFG_PLUGIN,
@@ -455,20 +451,20 @@ static ConfigTable config_back_cf_table[] = {
 		&config_referral, "( OLcfgGlAt:41 NAME 'olcReferral' "
 			"SUP labeledURI SINGLE-VALUE )", NULL, NULL },
 	{ "replica", "host or uri", 2, 0, 0, ARG_DB|ARG_MAGIC,
-		&config_replica, "( OLcfgDbAt:0.7 NAME 'olcReplica' "
+		&config_obsolete, "( OLcfgDbAt:0.7 NAME 'olcReplica' "
 			"EQUALITY caseIgnoreMatch "
 			"SUP labeledURI X-ORDERED 'VALUES' )", NULL, NULL },
-	{ "replica-argsfile", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLICA_ARGSFILE,
-		&config_generic, "( OLcfgGlAt:43 NAME 'olcReplicaArgsFile' "
+	{ "replica-argsfile", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC,
+		&config_obsolete, "( OLcfgGlAt:43 NAME 'olcReplicaArgsFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "replica-pidfile", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLICA_PIDFILE,
-		&config_generic, "( OLcfgGlAt:44 NAME 'olcReplicaPidFile' "
+	{ "replica-pidfile", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC,
+		&config_obsolete, "( OLcfgGlAt:44 NAME 'olcReplicaPidFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "replicationInterval", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|ARG_INT|CFG_REPLICATIONINTERVAL,
-		&config_generic, "( OLcfgGlAt:45 NAME 'olcReplicationInterval' "
+	{ "replicationInterval", NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC,
+		&config_obsolete, "( OLcfgGlAt:45 NAME 'olcReplicationInterval' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "replogfile", "filename", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLOG,
-		&config_generic, "( OLcfgGlAt:46 NAME 'olcReplogFile' "
+	{ "replogfile", "filename", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC,
+		&config_obsolete, "( OLcfgGlAt:46 NAME 'olcReplogFile' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "require", "features", 2, 0, 7, ARG_MAY_DB|ARG_MAGIC,
 		&config_requires, "( OLcfgGlAt:47 NAME 'olcRequires' "
@@ -921,25 +917,6 @@ config_generic(ConfigArgs *c) {
 			rc = (!i);
 			break;
 		}
-		case CFG_REPLICA_ARGSFILE:
-			if ( c->be->be_replica_argsfile )
-				c->value_string = ch_strdup( c->be->be_replica_argsfile );
-			break;
-		case CFG_REPLICA_PIDFILE:
-			if ( c->be->be_replica_pidfile )
-				c->value_string = ch_strdup( c->be->be_replica_pidfile );
-			break;
-		case CFG_REPLICATIONINTERVAL:
-			if ( c->be->be_replicationinterval > 0 ) {
-				c->value_int = c->be->be_replicationinterval;
-			} else {
-				rc = 1;
-			}
-			break;
-		case CFG_REPLOG:
-			if ( c->be->be_replogfile )
-				c->value_string = ch_strdup( c->be->be_replogfile );
-			break;
 		case CFG_ROOTDSE: {
 			ConfigFile *cf = c->private;
 			if ( cf->c_dseFiles ) {
@@ -1095,25 +1072,6 @@ config_generic(ConfigArgs *c) {
 		case CFG_SALT:
 			ch_free( passwd_salt );
 			passwd_salt = NULL;
-			break;
-
-		case CFG_REPLICA_ARGSFILE:
-			ch_free( c->be->be_replica_argsfile );
-			c->be->be_replica_argsfile = NULL;
-			break;
-
-		case CFG_REPLICA_PIDFILE:
-			ch_free( c->be->be_replica_pidfile );
-			c->be->be_replica_pidfile = NULL;
-			break;
-
-		case CFG_REPLICATIONINTERVAL:
-			c->be->be_replicationinterval = 0;
-			break;
-
-		case CFG_REPLOG:
-			ch_free( c->be->be_replogfile );
-			c->be->be_replogfile = NULL;
 			break;
 
 		case CFG_LOGFILE:
@@ -1471,85 +1429,6 @@ config_generic(ConfigArgs *c) {
 			if ( parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, i ) ) {
 				return 1;
 			}
-			break;
-
-		case CFG_REPLICA_ARGSFILE:
-			if(SLAP_MONITOR(c->be)) {
-				Debug(LDAP_DEBUG_ANY, "%s: "
-					"\"replica-argsfile\" should not be used "
-					"inside monitor database\n",
-					c->log, 0, 0);
-				/* FIXME: should this be an error? */
-				return(0);
-			}
-
-			if ( c->be->be_replica_argsfile != NULL ) {
-				/* FIXME: error? */
-				Debug(LDAP_DEBUG_ANY, "%s: "
-					"\"replica-argsfile\" already provided; "
-					"replacing \"%s\" with \"%s\".\n",
-					c->log, c->be->be_replica_argsfile, c->value_string );
-				ch_free( c->be->be_replica_argsfile );
-			}
-
-			c->be->be_replica_argsfile = c->value_string;
-			break;
-
-		case CFG_REPLICA_PIDFILE:
-			if(SLAP_MONITOR(c->be)) {
-				Debug(LDAP_DEBUG_ANY, "%s: "
-					"\"replica-pidfile\" should not be used "
-					"inside monitor database\n",
-					c->log, 0, 0);
-				/* FIXME: should this be an error? */
-				return(0);
-			}
-
-			if ( c->be->be_replica_pidfile != NULL ) {
-				/* FIXME: error? */
-				Debug(LDAP_DEBUG_ANY, "%s: "
-					"\"replica-pidfile\" already provided; "
-					"replacing \"%s\" with \"%s\".\n",
-					c->log, c->be->be_replica_pidfile, c->value_string );
-				ch_free( c->be->be_replica_pidfile );
-			}
-
-			c->be->be_replica_pidfile = c->value_string;
-			break;
-
-		case CFG_REPLICATIONINTERVAL:
-			if(SLAP_MONITOR(c->be)) {
-				Debug(LDAP_DEBUG_ANY, "%s: "
-					"\"replicationinterval\" should not be used "
-					"inside monitor database\n",
-					c->log, 0, 0);
-				/* FIXME: should this be an error? */
-				return(0);
-			}
-
-			c->be->be_replicationinterval = c->value_int;
-			break;
-
-		case CFG_REPLOG:
-			if(SLAP_MONITOR(c->be)) {
-				Debug(LDAP_DEBUG_ANY, "%s: "
-					"\"replogfile\" should not be used "
-					"inside monitor database\n",
-					c->log, 0, 0);
-				/* FIXME: should this be an error? */
-				return(0);
-			}
-
-			if ( c->be->be_replogfile != NULL ) {
-				/* FIXME: error? */
-				Debug(LDAP_DEBUG_ANY, "%s: "
-					"\"replogfile\" already provided; "
-					"replacing \"%s\" with \"%s\".\n",
-					c->log, c->be->be_replogfile, c->value_string );
-				ch_free( c->be->be_replogfile );
-			}
-
-			c->be->be_replogfile = c->value_string;
 			break;
 
 		case CFG_ROOTDSE:
@@ -2850,230 +2729,6 @@ anlist_unparse( AttributeName *an, char *ptr, ber_len_t buflen ) {
 	return ptr;
 }
 
-static void
-replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
-{
-	int len;
-	char *ptr;
-	struct berval bc = BER_BVNULL;
-	char numbuf[32];
-
-	assert( !BER_BVISNULL( &ri->ri_bindconf.sb_uri ) );
-	
-	BER_BVZERO( bv );
-
-	len = snprintf(numbuf, sizeof( numbuf ), SLAP_X_ORDERED_FMT, i );
-	if ( len >= sizeof( numbuf ) ) {
-		/* FIXME: how can indicate error? */
-		return;
-	}
-
-	if ( ri->ri_nsuffix ) {
-		for (i=0; !BER_BVISNULL( &ri->ri_nsuffix[i] ); i++) {
-			len += ri->ri_nsuffix[i].bv_len + STRLENOF(" suffix=\"\"");
-		}
-	}
-	if ( ri->ri_attrs ) {
-		len += STRLENOF(" attrs");
-		if ( ri->ri_exclude ) len++;
-		for (i=0; !BER_BVISNULL( &ri->ri_attrs[i].an_name ); i++) {
-			len += 1 + ri->ri_attrs[i].an_name.bv_len;
-		}
-	}
-	bindconf_unparse( &ri->ri_bindconf, &bc );
-	len += bc.bv_len;
-
-	bv->bv_val = ch_malloc(len + 1);
-	bv->bv_len = len;
-
-	ptr = lutil_strcopy( bv->bv_val, numbuf );
-
-	/* start with URI from bindconf */
-	assert( !BER_BVISNULL( &bc ) );
-	if ( bc.bv_val ) {
-		strcpy( ptr, bc.bv_val );
-		ch_free( bc.bv_val );
-	}
-
-	if ( ri->ri_nsuffix ) {
-		for (i=0; !BER_BVISNULL( &ri->ri_nsuffix[i] ); i++) {
-			ptr = lutil_strcopy( ptr, " suffix=\"" );
-			ptr = lutil_strcopy( ptr, ri->ri_nsuffix[i].bv_val );
-			*ptr++ = '"';
-		}
-	}
-	if ( ri->ri_attrs ) {
-		ptr = lutil_strcopy( ptr, " attrs" );
-		if ( ri->ri_exclude ) *ptr++ = '!';
-		*ptr++ = '=';
-		ptr = anlist_unparse( ri->ri_attrs, ptr, 0 );
-	}
-}
-
-static int
-config_replica(ConfigArgs *c) {
-	int i, nr = -1;
-	char *replicahost = NULL, *replicauri = NULL;
-	LDAPURLDesc *ludp;
-
-	if (c->op == SLAP_CONFIG_EMIT) {
-		if (c->be->be_replica) {
-			struct berval bv;
-			for (i=0;c->be->be_replica[i]; i++) {
-				replica_unparse( c->be->be_replica[i], i, &bv );
-				ber_bvarray_add( &c->rvalue_vals, &bv );
-			}
-			return 0;
-		}
-		return 1;
-	} else if ( c->op == LDAP_MOD_DELETE ) {
-		/* FIXME: there is no replica_free function */
-		if ( c->valx < 0 ) {
-		} else {
-		}
-	}
-	if(SLAP_MONITOR(c->be)) {
-		Debug(LDAP_DEBUG_ANY, "%s: "
-			"\"replica\" should not be used inside monitor database\n",
-			c->log, 0, 0);
-		return(0);	/* FIXME: should this be an error? */
-	}
-
-	for(i = 1; i < c->argc; i++) {
-		if(!strncasecmp(c->argv[i], "host=", STRLENOF("host="))) {
-			ber_len_t	len;
-
-			if ( replicauri ) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> replica host/URI already specified", c->argv[0] );
-				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg, replicauri );
-				return(1);
-			}
-
-			replicahost = c->argv[i] + STRLENOF("host=");
-			len = strlen( replicahost ) + STRLENOF("ldap://");
-			replicauri = ch_malloc( len + 1 );
-			snprintf( replicauri, len + 1, "ldap://%s", replicahost );
-			replicahost = replicauri + STRLENOF( "ldap://");
-			nr = add_replica_info(c->be, replicauri, replicahost);
-			break;
-		} else if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
-			ber_len_t	len;
-
-			if ( replicauri ) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> replica host/URI already specified", c->argv[0] );
-				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg, replicauri );
-				return(1);
-			}
-
-			if(ldap_url_parse(c->argv[i] + STRLENOF("uri="), &ludp) != LDAP_SUCCESS) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> invalid uri", c->argv[0] );
-				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
-				return(1);
-			}
-			if(!ludp->lud_host) {
-				ldap_free_urldesc(ludp);
-				snprintf( c->msg, sizeof( c->msg ), "<%s> invalid uri - missing hostname",
-					c->argv[0] );
-				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
-				return(1);
-			}
-
-			len = strlen(ludp->lud_scheme) + strlen(ludp->lud_host) +
-				STRLENOF("://") + 1;
-			if (ludp->lud_port != LDAP_PORT) {
-				if (ludp->lud_port < 1 || ludp->lud_port > 65535) {
-					ldap_free_urldesc(ludp);
-					snprintf( c->msg, sizeof( c->msg ), "<%s> invalid port",
-						c->argv[0] );
-					Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
-					return(1);
-				}
-				len += STRLENOF(":65535");
-			}
-			replicauri = ch_malloc( len );
-			replicahost = lutil_strcopy( replicauri, ludp->lud_scheme );
-			replicahost = lutil_strcopy( replicahost, "://" );
-			if (ludp->lud_port == LDAP_PORT) {
-				strcpy( replicahost, ludp->lud_host );
-			} else {
-				sprintf( replicahost, "%s:%d",ludp->lud_host,ludp->lud_port );
-			}
-			ldap_free_urldesc(ludp);
-			nr = add_replica_info(c->be, replicauri, replicahost);
-			break;
-		}
-	}
-	if(i == c->argc) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> missing host or uri", c->argv[0] );
-		Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
-		return(1);
-	} else if(nr == -1) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> unable to add replica", c->argv[0] );
-		Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n", c->log, c->msg,
-			replicauri ? replicauri : "" );
-		return(1);
-	} else {
-		for(i = 1; i < c->argc; i++) {
-			if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
-				/* dealt with separately; don't let it get to bindconf */
-				;
-
-			} else if(!strncasecmp(c->argv[i], "host=", STRLENOF("host="))) {
-				/* dealt with separately; don't let it get to bindconf */
-				;
-
-			} else if(!strncasecmp(c->argv[i], "suffix=", STRLENOF( "suffix="))) {
-				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
-					case 1:
-						Debug( LDAP_DEBUG_ANY, "%s: "
-							"suffix \"%s\" in \"replica\" line is not valid for backend.\n",
-							c->log, c->argv[i] + STRLENOF("suffix="), 0);
-						return 1;
-						break;
-					case 2:
-						Debug( LDAP_DEBUG_ANY, "%s: "
-							"unable to normalize suffix in \"replica\" line.\n",
-							c->log, 0, 0);
-						return 1;
-						break;
-				}
-
-			} else if (!strncasecmp(c->argv[i], "attr", STRLENOF("attr"))
-				|| !strncasecmp(c->argv[i], "attrs", STRLENOF("attrs")))
-			{
-				int exclude = 0;
-				char *arg = c->argv[i] + STRLENOF("attr");
-				if (arg[0] == 's') {
-					arg++;
-				} else {
-					Debug( LDAP_DEBUG_ANY,
-						"%s: \"attr\" "
-						"is deprecated (and undocumented); "
-						"use \"attrs\" instead.\n",
-						c->log, 0, 0 );
-				}
-				if(arg[0] == '!') {
-					arg++;
-					exclude = 1;
-				}
-				if(arg[0] != '=') {
-					continue;
-				}
-				if(add_replica_attrs(c->be, nr, arg + 1, exclude)) {
-					snprintf( c->msg, sizeof( c->msg ), "<%s> unknown attribute", c->argv[0] );
-					Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-						c->log, c->msg, arg + 1);
-					return(1);
-				}
-			} else if ( bindconf_parse( c->argv[i],
-					&c->be->be_replica[nr]->ri_bindconf ) ) {
-				return(1);
-			}
-		}
-	}
-	return(0);
-}
-
 static int
 config_updatedn(ConfigArgs *c) {
 	if (c->op == SLAP_CONFIG_EMIT) {
@@ -3167,6 +2822,14 @@ config_updateref(ConfigArgs *c) {
 	}
 	ber_str2bv(c->argv[1], 0, 0, &val);
 	if(value_add_one(&c->be->be_update_refs, &val)) return(LDAP_OTHER);
+	return(0);
+}
+
+static int
+config_obsolete(ConfigArgs *c) {
+	snprintf( c->msg, sizeof( c->msg ), "<%s> keyword is obsolete (ignored)",
+		c->argv[0] );
+	Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0);
 	return(0);
 }
 

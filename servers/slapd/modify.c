@@ -287,7 +287,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		 */
 		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user ) {
 			int update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
 
@@ -298,13 +297,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 					send_ldap_result( op, rs );
 					goto cleanup;
 				}
-			}
-
-			if ( !repl_user ) {
-				/* but multimaster slapd logs only the ones 
-				 * not from a replicator user */
-				cb.sc_next = op->o_callback;
-				op->o_callback = &cb;
 			}
 			op->o_bd->be_modify( op, rs );
 

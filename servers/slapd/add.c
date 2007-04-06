@@ -290,7 +290,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 		int repl_user = be_isupdate( op );
 		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user ) {
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
-			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
 
@@ -322,9 +321,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 					send_ldap_result( op, rs );
 					goto done;
 				}
-
-				cb.sc_next = op->o_callback;
-				op->o_callback = &cb;
 			}
 
 			rc = op->o_bd->be_add( op, rs );

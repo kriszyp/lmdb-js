@@ -440,16 +440,6 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	}
 	acl_destroy( bd->be_acl, frontendDB->be_acl );
 	limits_destroy( bd->be_limits );
-	if ( bd->be_replogfile ) {
-		ch_free( bd->be_replogfile );
-	}
-	if ( bd->be_replica_argsfile ) {
-		ch_free( bd->be_replica_argsfile );
-	}
-	if ( bd->be_replica_pidfile ) {
-		ch_free( bd->be_replica_pidfile );
-	}
-	destroy_replica_info( bd );
 	if ( !BER_BVISNULL( &bd->be_update_ndn ) ) {
 		ch_free( bd->be_update_ndn.bv_val );
 	}
@@ -500,17 +490,6 @@ int backend_destroy(void)
 			free( bd->be_rootpw.bv_val );
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
-
-		if ( bd->be_replogfile != NULL ) {
-			free( bd->be_replogfile );
-		}
-		if ( bd->be_replica_argsfile ) {
-			ch_free( bd->be_replica_argsfile );
-		}
-		if ( bd->be_replica_pidfile ) {
-			ch_free( bd->be_replica_pidfile );
-		}
-		assert( bd->be_replica == NULL );
 	}
 
 	return 0;

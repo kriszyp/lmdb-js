@@ -52,14 +52,11 @@ int passwd_extop(
 	req_extended_s qext = op->oq_extended;
 	Modifications *ml;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
-	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
 	int i, nhash;
 	char **hashes;
 	int rc;
 	BackendDB *op_be;
 	int freenewpw = 0;
-
-	cb2.sc_next = &cb;
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
@@ -275,9 +272,9 @@ old_good:
 		slap_callback *sc = op->o_callback;
 
 		op->o_tag = LDAP_REQ_MODIFY;
-		op->o_callback = &cb2;
+		op->o_callback = &cb;
 		op->orm_modlist = qpw->rs_mods;
-		cb2.sc_private = qpw;	/* let Modify know this was pwdMod,
+		cb.sc_private = qpw;	/* let Modify know this was pwdMod,
 					 * if it cares... */
 
 		rs->sr_err = op->o_bd->be_modify( op, rs );

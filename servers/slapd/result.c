@@ -54,14 +54,6 @@ int slap_freeself_cb( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-int slap_replog_cb( Operation *op, SlapReply *rs )
-{
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		replog( op );
-	}
-	return SLAP_CB_CONTINUE;
-}
-
 static char *v2ref( BerVarray ref, const char *text )
 {
 	size_t len = 0, i = 0;

@@ -168,15 +168,8 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			struct berval	org_dn = BER_BVNULL;
 			struct berval	org_ndn = BER_BVNULL;
 			int		org_managedsait;
-			slap_callback 	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
-
-			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user ) {
-				cb.sc_next = op->o_callback;
-				op->o_callback = &cb;
-			}
-
 			op->o_bd->be_delete( op, rs );
 
 			org_req_dn = op->o_req_dn;

@@ -1512,7 +1512,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		slap_callback *sc;
 
 		for ( sc = op->o_callback; sc; sc=sc->sc_next ) {
-			if ( sc->sc_response == slap_replog_cb &&
+			if ( sc->sc_response == slap_null_cb &&
 				sc->sc_private ) {
 				req_pwdexop_s *qpw = sc->sc_private;
 				newpw = qpw->rs_new;

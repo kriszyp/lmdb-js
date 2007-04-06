@@ -69,8 +69,6 @@ ldap_pvt_thread_mutex_t	gmtime_mutex;
 
 slap_counters_t			slap_counters;
 
-ldap_pvt_thread_mutex_t	replog_mutex;
-
 static const char* slap_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
 
@@ -137,7 +135,6 @@ slap_init( int mode, const char *name )
 
 		ldap_pvt_thread_pool_init( &connection_pool,
 				connection_pool_max, 0);
-		ldap_pvt_thread_mutex_init( &replog_mutex );
 
 		ldap_pvt_thread_mutex_init( &slap_counters.sc_sent_mutex );
 		ldap_pvt_thread_mutex_init( &slap_counters.sc_ops_mutex );
