@@ -1093,7 +1093,7 @@ do_syncrepl(
 	int rc = LDAP_SUCCESS;
 	int dostop = 0;
 	ber_socket_t s;
-	int i, defer = 1;
+	int i, defer = 1, fail = 0;
 	Backend *be;
 
 	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt, 0, 0 );
@@ -1231,17 +1231,35 @@ reload:
 		if ( !si->si_ctype
 			|| !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
 			ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+			fail = RETRYNUM_TAIL;
 		} else if ( RETRYNUM_VALID( si->si_retrynum[i] ) ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;
+			fail = si->si_retrynum[i];
 			rtask->interval.tv_sec = si->si_retryinterval[i];
 			ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 			slap_wake_listener();
 		}
 	}
-	
+
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	ldap_pvt_thread_mutex_unlock( &si->si_mutex );
+
+	if ( rc ) {
+		if ( fail == RETRYNUM_TAIL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"do_syncrepl: rid %03d quitting\n",
+				si->si_rid, 0, 0 );
+		} else if ( fail > 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"do_syncrepl: rid %03d retrying (%d retries left)\n",
+				si->si_rid, fail, 0 );
+		} else {
+			Debug( LDAP_DEBUG_ANY,
+				"do_syncrepl: rid %03d retrying\n",
+				si->si_rid, 0, 0 );
+		}
+	}
 
 	/* Do final delete cleanup */
 	if ( !si->si_ctype ) {
