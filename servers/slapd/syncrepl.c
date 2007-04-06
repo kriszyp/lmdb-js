@@ -1152,7 +1152,7 @@ reload:
 		} else if ( RETRYNUM_VALID( si->si_retrynum[i] ) ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;
-			fail = si->si_retrynum;
+			fail = si->si_retrynum[i];
 			rtask->interval.tv_sec = si->si_retryinterval[i];
 			ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 			slap_wake_listener();
