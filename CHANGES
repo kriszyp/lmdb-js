@@ -7,6 +7,7 @@ OpenLDAP 2.3.35 Engineering
 	Fixed acl set minor typo (ITS#4874)
 	Fixed ldapmodify to use correct memory free functions (ITS#4901)
 	Fixed slapd syncrepl delta-sync modlist free (ITS#4904)
+	Added slapd syncrepl retry logging (ITS#4915)
 	Fixed slapd ldapi:// credential issue (ITS#4893)
 	Fixed slapd-bdb/hdb startup with missing shm env (ITS#4851)
 	Fixed slapd-ldap/meta consistency in referral proxying (ITS#4861)
