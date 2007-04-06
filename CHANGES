@@ -2,13 +2,13 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.35 Engineering
 	Fixed entry consistency check in str2entry2 (ITS#4852)
-	Fixed str2anlist handling of undefined attrs/OCs (ITS#4854)
-	Fixed zero-length IA5string handling (ITS#4823)
-	Fixed acl set minor typo (ITS#4874)
 	Fixed ldapmodify to use correct memory free functions (ITS#4901)
+	Fixed slapd acl set minor typo (ITS#4874)
+	Fixed slapd ldapi:// credential issue (ITS#4893)
+	Fixed slapd str2anlist handling of undefined attrs/OCs (ITS#4854)
 	Fixed slapd syncrepl delta-sync modlist free (ITS#4904)
 	Added slapd syncrepl retry logging (ITS#4915)
-	Fixed slapd ldapi:// credential issue (ITS#4893)
+	Fixed slapd zero-length IA5string handling (ITS#4823)
 	Fixed slapd-bdb/hdb startup with missing shm env (ITS#4851)
 	Fixed slapd-ldap/meta consistency in referral proxying (ITS#4861)
 	Fixed slapd-ldap bind cleanup in case of unauthorized idassert
