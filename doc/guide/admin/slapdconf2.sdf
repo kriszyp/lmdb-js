@@ -1298,7 +1298,7 @@ the access directives and the {{EX:by <who>}} clauses.  It also
 shows the use of an attribute selector to grant access to a specific
 attribute and various {{EX:<who>}} selectors.
 
->	olcAccess: to dn.subtree="dc=example,dc=com" attr=homePhone
+>	olcAccess: to dn.subtree="dc=example,dc=com" attrs=homePhone
 >		by self write
 >		by dn.children=dc=example,dc=com" search
 >		by peername.regex=IP:10\..+ read
@@ -1324,7 +1324,7 @@ create a group and allow people to add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
->	olcAccess: to attr=member,entry
+>	olcAccess: to attrs=member,entry
 > 		by dnattr=member selfwrite
 
 The dnattr {{EX:<who>}} selector says that the access applies to
@@ -1348,7 +1348,7 @@ tags are maintained automatically by slapd and do not need to be specified
 when originally defining the values. For example, when you create the
 settings
 
->	olcAccess: to attr=member,entry
+>	olcAccess: to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: to dn.children="dc=example,dc=com"
 > 		by * search
@@ -1357,7 +1357,7 @@ settings
 
 when you read them back using slapcat or ldapsearch they will contain
 
->	olcAccess: {0}to attr=member,entry
+>	olcAccess: {0}to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: {1}to dn.children="dc=example,dc=com"
 > 		by * search
@@ -1396,7 +1396,7 @@ This example deletes whatever rule is in value #1 of the {{EX:olcAccess}}
 attribute (regardless of its value) and adds a new value that is
 explicitly inserted as value #1. The result will be
 
->	olcAccess: {0}to attr=member,entry
+>	olcAccess: {0}to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: {1}to dn.children="dc=example,dc=com"
 > 		by * write
@@ -1486,7 +1486,7 @@ E: 29.	olcRootPW: secret
 E: 30.	olcDbIndex: uid pres,eq
 E: 31.	olcDbIndex: cn,sn,uid pres,eq,approx,sub
 E: 32.	olcDbIndex: objectClass eq
-E: 33.	olcAccess: to attr=userPassword
+E: 33.	olcAccess: to attrs=userPassword
 E: 34.	  by self write
 E: 35.	  by anonymous auth
 E: 36.	  by dn.base="cn=Admin,dc=example,dc=com" write
