@@ -1,9 +1,9 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.35 Engineering
-	Fixed entry consistency check in str2entry2 (ITS#4852)
 	Fixed ldapmodify to use correct memory free functions (ITS#4901)
 	Fixed slapd acl set minor typo (ITS#4874)
+	Fixed slapd entry consistency check in str2entry2 (ITS#4852)
 	Fixed slapd ldapi:// credential issue (ITS#4893)
 	Fixed slapd str2anlist handling of undefined attrs/OCs (ITS#4854)
 	Fixed slapd syncrepl delta-sync modlist free (ITS#4904)
