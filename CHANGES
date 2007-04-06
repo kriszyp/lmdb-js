@@ -20,7 +20,8 @@ OpenLDAP 2.3.35 Engineering
 	Fixed libldap time_t signedness (ITS#4872)
 	Fixed libldap_r tpool reset (ITS#4855,#4899)
 	Documentation
-		Fix references to deprecated attr= access statement (ITS#4863)
+		Fix references to deprecated attr= access statement in Admin Guide (ITS#4863)
+		Fix to/from rules statement for SASL in Admin Guide (ITS#4897)
 		Note -s option to ldapmodrdn(1) (ITS#4877)
 		Update name for result code 0x79 in ldap_result(3) (ITS#4885)
 
