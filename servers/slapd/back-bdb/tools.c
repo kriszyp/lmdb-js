@@ -74,7 +74,11 @@ static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond_main;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond_work;
 
+static ldap_pvt_thread_mutex_t bdb_tool_trickle_mutex;
+static ldap_pvt_thread_cond_t bdb_tool_trickle_cond;
+
 static void * bdb_tool_index_task( void *ctx, void *ptr );
+static void * bdb_tool_trickle_task( void *ctx, void *ptr );
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -97,24 +101,29 @@ int bdb_tool_entry_open(
 	}
 
 	/* Set up for threaded slapindex */
-	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK
-		&& bdb->bi_nattrs ) {
+	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK ) {
 		if ( !bdb_tool_info ) {
-			int i;
+			ldap_pvt_thread_mutex_init( &bdb_tool_trickle_mutex );
+			ldap_pvt_thread_cond_init( &bdb_tool_trickle_cond );
+			ldap_pvt_thread_pool_submit( &connection_pool, bdb_tool_trickle_task, bdb->bi_dbenv );
+
 			ldap_pvt_thread_mutex_init( &bdb_tool_index_mutex );
 			ldap_pvt_thread_cond_init( &bdb_tool_index_cond_main );
 			ldap_pvt_thread_cond_init( &bdb_tool_index_cond_work );
-			bdb_tool_index_threads = ch_malloc( slap_tool_thread_max * sizeof( int ));
-			bdb_tool_index_rec = ch_malloc( bdb->bi_nattrs * sizeof( IndexRec ));
-			bdb_tool_index_tcount = slap_tool_thread_max - 1;
-			for (i=1; i<slap_tool_thread_max; i++) {
-				int *ptr = ch_malloc( sizeof( int ));
-				*ptr = i;
-				ldap_pvt_thread_pool_submit( &connection_pool,
-					bdb_tool_index_task, ptr );
+			if ( bdb->bi_nattrs ) {
+				int i;
+				bdb_tool_index_threads = ch_malloc( slap_tool_thread_max * sizeof( int ));
+				bdb_tool_index_rec = ch_malloc( bdb->bi_nattrs * sizeof( IndexRec ));
+				bdb_tool_index_tcount = slap_tool_thread_max - 1;
+				for (i=1; i<slap_tool_thread_max; i++) {
+					int *ptr = ch_malloc( sizeof( int ));
+					*ptr = i;
+					ldap_pvt_thread_pool_submit( &connection_pool,
+						bdb_tool_index_task, ptr );
+				}
 			}
+			bdb_tool_info = bdb;
 		}
-		bdb_tool_info = bdb;
 	}
 
 	return 0;
@@ -125,6 +134,9 @@ int bdb_tool_entry_close(
 {
 	if ( bdb_tool_info ) {
 		slapd_shutdown = 1;
+		ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
 		bdb_tool_index_tcount = slap_tool_thread_max - 1;
 		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond_work );
@@ -520,6 +532,12 @@ ID bdb_tool_entry_put(
 	rc = bdb_tool_next_id( &op, tid, e, text, 0 );
 	if( rc != 0 ) {
 		goto done;
+	}
+
+	if (( slapMode & SLAP_TOOL_QUICK ) && (( e->e_id & 0xfff ) == 0xfff )) {
+		ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 	}
 
 	if ( !bdb->bi_linear_index )
@@ -1086,6 +1104,23 @@ int bdb_tool_idl_add(
 	return 0;
 }
 #endif
+
+static void *
+bdb_tool_trickle_task( void *ctx, void *ptr )
+{
+	DB_ENV *env = ptr;
+	int wrote;
+
+	ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+	while ( 1 ) {
+		ldap_pvt_thread_cond_wait( &bdb_tool_trickle_cond,
+			&bdb_tool_trickle_mutex );
+		if ( slapd_shutdown )
+			break;
+		env->memp_trickle( env, 30, &wrote );
+	}
+	ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
+}
 
 static void *
 bdb_tool_index_task( void *ctx, void *ptr )
