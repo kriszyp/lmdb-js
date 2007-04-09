@@ -1120,6 +1120,8 @@ bdb_tool_trickle_task( void *ctx, void *ptr )
 		env->memp_trickle( env, 30, &wrote );
 	}
 	ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
+
+	return NULL;
 }
 
 static void *
