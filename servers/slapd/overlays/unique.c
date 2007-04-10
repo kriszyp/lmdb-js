@@ -1139,12 +1139,12 @@ unique_modify(
 			if ( !ks ) continue;
 
 			if ( uri->filter && uri->filter->bv_len )
-				ks += uri->filter->bv_len;
-			key = op->o_tmpalloc(ks, op->o_tmpmemctx);
+				ks += uri->filter->bv_len + STRLENOF ("(&)");
+			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
 			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf ("(&(%s)", uri->filter->bv_val);
-			kp = key + sprintf(key, "(|");
+				kp += sprintf (kp, "(&%s", uri->filter->bv_val);
+			kp += sprintf(kp, "(|");
 
 			for(m = op->orm_modlist; m; m = m->sml_next)
 				if ( (m->sml_op & LDAP_MOD_OP)
@@ -1256,12 +1256,12 @@ unique_modrdn(
 			if ( !ks ) continue;
 
 			if ( uri->filter && uri->filter->bv_len )
-				ks += uri->filter->bv_len;
-			key = op->o_tmpalloc(ks, op->o_tmpmemctx);
+				ks += uri->filter->bv_len + STRLENOF ("(&)");
+			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
 			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf ("(&(%s)", uri->filter->bv_val);
-			kp = key + sprintf(key, "(|");
+				kp += sprintf (kp, "(&%s", uri->filter->bv_val);
+			kp += sprintf(kp, "(|");
 
 			for ( i=0; newrdn[i]; i++) {
 				bv[0] = newrdn[i]->la_value;
