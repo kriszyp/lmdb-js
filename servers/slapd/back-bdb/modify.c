@@ -588,6 +588,8 @@ retry:	/* transaction retry */
 		} else {
 			rs->sr_err = LDAP_X_NO_OPERATION;
 			ltid = NULL;
+			/* Only free attrs if they were dup'd.  */
+			if ( dummy.e_attrs == e->e_attrs ) dummy.e_attrs = NULL;
 			goto return_results;
 		}
 	} else {
