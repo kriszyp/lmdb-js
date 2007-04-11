@@ -467,7 +467,10 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 			++lc->lconn_refcnt;	/* avoid premature free */
 			ld->ld_defconn = lc;
 
-			Debug( LDAP_DEBUG_TRACE, "anonymous rebind via ldap_bind_s\n", 0, 0, 0);
+			Debug( LDAP_DEBUG_TRACE,
+				"anonymous rebind via ldap_sasl_bind(\"\")\n",
+				0, 0, 0);
+
 #ifdef LDAP_R_COMPILE
 			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 			ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
@@ -505,7 +508,13 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 						break;
 
 					default:
-						assert( 0 );
+						Debug( LDAP_DEBUG_TRACE,
+							"ldap_new_connection %p: "
+							"unexpected response %d "
+							"from BIND request id=%d\n",
+							ld, ldap_msgtype( res ), msgid );
+						err = -1;
+						break;
 					}
 				}
 			}
