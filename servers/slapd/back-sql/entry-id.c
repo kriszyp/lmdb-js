@@ -516,8 +516,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
 #ifdef BACKSQL_PRETTY_VALIDATE
-	validate = at->bam_ad->ad_type->sat_syntax->ssyn_validate;
-	pretty =  at->bam_ad->ad_type->sat_syntax->ssyn_pretty;
+	validate = at->bam_true_ad->ad_type->sat_syntax->ssyn_validate;
+	pretty =  at->bam_true_ad->ad_type->sat_syntax->ssyn_pretty;
 
 	if ( validate == NULL && pretty == NULL ) {
 		return 1;
@@ -525,8 +525,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 #endif /* BACKSQL_PRETTY_VALIDATE */
 
 #ifdef BACKSQL_COUNTQUERY
-	if ( at->bam_ad->ad_type->sat_equality ) {
-		normfunc = at->bam_ad->ad_type->sat_equality->smr_normalize;
+	if ( at->bam_true_ad->ad_type->sat_equality ) {
+		normfunc = at->bam_true_ad->ad_type->sat_equality->smr_normalize;
 	}
 
 	/* Count how many rows will be returned. This avoids memory 
@@ -583,7 +583,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		return 1;
 	}
 
-	attr = attr_find( bsi->bsi_e->e_attrs, at->bam_ad );
+	attr = attr_find( bsi->bsi_e->e_attrs, at->bam_true_ad );
 	if ( attr != NULL ) {
 		BerVarray	tmp;
 
@@ -615,7 +615,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		append = 1;
 
 		/* Make space for the array of values */
-		attr = attr_alloc( at->bam_ad );
+		attr = attr_alloc( at->bam_true_ad );
 		attr->a_vals = ch_calloc( count + 1, sizeof( struct berval ) );
 		if ( attr->a_vals == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "Out of memory!\n", 0,0,0 );
@@ -761,12 +761,12 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				if ( pretty ) {
 					struct berval	pbv;
 
-					retval = pretty( at->bam_ad->ad_type->sat_syntax,
+					retval = pretty( at->bam_true_ad->ad_type->sat_syntax,
 						&bv, &pbv, bsi->bsi_op->o_tmpmemctx );
 					bv = pbv;
 
 				} else {
-					retval = validate( at->bam_ad->ad_type->sat_syntax,
+					retval = validate( at->bam_true_ad->ad_type->sat_syntax,
 						&bv );
 				}
 
@@ -792,7 +792,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 
 #ifndef BACKSQL_COUNTQUERY
 				(void)backsql_entry_addattr( bsi->bsi_e, 
-						at->bam_ad, &bv,
+						at->bam_true_ad, &bv,
 						bsi->bsi_op->o_tmpmemctx );
 
 #else /* BACKSQL_COUNTQUERY */
@@ -800,8 +800,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 					struct berval	nbv;
 
 					retval = (*normfunc)( SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						at->bam_ad->ad_type->sat_syntax,
-						at->bam_ad->ad_type->sat_equality,
+						at->bam_true_ad->ad_type->sat_syntax,
+						at->bam_true_ad->ad_type->sat_equality,
 						&bv, &nbv,
 						bsi->bsi_op->o_tmpmemctx );
 

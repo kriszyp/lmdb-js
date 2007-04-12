@@ -331,6 +331,7 @@ typedef struct backsql_oc_map_rec {
 typedef struct backsql_at_map_rec {
 	/* Description of corresponding LDAP attribute type */
 	AttributeDescription	*bam_ad;
+	AttributeDescription	*bam_true_ad;
 	/* ObjectClass if bam_ad is objectClass */
 	ObjectClass		*bam_oc;
 
