@@ -3,6 +3,8 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.36 Engineering
 	Fixed slapd-bdb no-op crasher (ITS#4925)
 	Fixed libldap response code handling on rebind (ITS#4924)
+	Documentation
+		Updated slapadd(8) with details on -s option
 
 OpenLDAP 2.3.35 Release (2007/04/09)
 	Fixed ldapmodify to use correct memory free functions (ITS#4901)
