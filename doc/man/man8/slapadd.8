@@ -12,6 +12,7 @@ slapadd \- Add entries to a SLAPD database
 .B [\-u]
 .B [\-q]
 .B [\-w]
+.B [\-s]
 .B [\-d level]
 .B [\-b suffix]
 .B [\-n dbnum]
@@ -66,6 +67,12 @@ database will be unusable.
 write syncrepl context information.
 After all entries are added, the contextCSN
 will be updated with the greatest CSN in the database.
+.TP
+.BI \-s
+disable schema checking.  This option is intended to be used when loading
+databases containing special objects, such as fractional objects on a
+partial replica.  Loading normal objects which do not conform to
+schema may result in unexpected and ill behavior.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
