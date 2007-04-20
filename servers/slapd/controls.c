@@ -849,8 +849,8 @@ static int parseDontUseCopy (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "dontUseCopy control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "dontUseCopy control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -873,8 +873,8 @@ static int parseRelax (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "relax control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "relax control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -895,8 +895,8 @@ static int parseManageDSAit (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "manageDSAit control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "manageDSAit control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -920,6 +920,11 @@ static int parseProxyAuthz (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "proxy authorization control value absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( !( global_allows & SLAP_ALLOW_PROXY_AUTHZ_ANON )
 		&& BER_BVISEMPTY( &op->o_ndn ) )
 	{
@@ -937,7 +942,7 @@ static int parseProxyAuthz (
 		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
 		0 );
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
 		Debug( LDAP_DEBUG_TRACE,
 			"parseProxyAuthz: conn=%lu anonymous\n", 
 			op->o_connid, 0, 0 );
@@ -1036,8 +1041,13 @@ static int parsePagedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "paged results control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
-		rs->sr_text = "paged results control value is empty (or absent)";
+		rs->sr_text = "paged results control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1112,8 +1122,13 @@ static int parseSortedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "sorted results control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
-		rs->sr_text = "sorted results control value is empty (or absent)";
+		rs->sr_text = "sorted results control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1140,8 +1155,13 @@ static int parseAssert (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "assert control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "assert control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "assert control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1198,8 +1218,13 @@ static int parsePreRead (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "preread control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "preread control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "preread control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1266,8 +1291,13 @@ static int parsePostRead (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "postread control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "postread control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "postread control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1351,8 +1381,13 @@ static int parseValuesReturnFilter (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "valuesReturnFilter control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "valuesReturnFilter control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "valuesReturnFilter control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1435,8 +1470,8 @@ static int parsePermissiveModify (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "permissiveModify control value not empty";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "permissiveModify control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1457,7 +1492,7 @@ static int parseDomainScope (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
 		rs->sr_text = "domainScope control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1480,8 +1515,8 @@ static int parseTreeDelete (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "treeDelete control value not empty";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "treeDelete control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1502,8 +1537,13 @@ static int parseSearchOptions (
 	ber_int_t search_flags;
 	ber_tag_t tag;
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "searchOptions control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "searchOptions control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "searchOptions control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 

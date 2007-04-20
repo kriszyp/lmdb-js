@@ -2708,8 +2708,13 @@ static int syncprov_parseCtrl (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "Sync control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
-		rs->sr_text = "Sync control value is empty (or absent)";
+		rs->sr_text = "Sync control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 

@@ -510,8 +510,13 @@ valsort_parseCtrl(
 	BerElement *ber = (BerElement *)&berbuf;
 	ber_int_t flag = 0;
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "valSort control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "valSort control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "valSort control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 

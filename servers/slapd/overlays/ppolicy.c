@@ -2018,8 +2018,8 @@ ppolicy_parseCtrl(
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "passwordPolicyRequest control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "passwordPolicyRequest control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 	op->o_ctrlflag[ppolicy_cid] = ctrl->ldctl_iscritical
