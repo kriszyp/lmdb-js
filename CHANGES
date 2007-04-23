@@ -3,6 +3,7 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.36 Engineering
 	Fixed slapd-bdb no-op crasher (ITS#4925)
 	Fixed libldap response code handling on rebind (ITS#4924)
+	Fixed libldap SASL_MAX_BUFF_SIZE (ITS#4935)
 	Documentation
 		Updated slapadd(8) with details on -s option
 
