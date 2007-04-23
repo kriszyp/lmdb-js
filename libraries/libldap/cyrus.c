@@ -208,7 +208,7 @@ sb_sasl_pkt_length( const unsigned char *buf, int debuglevel )
 		| buf[2] << 8
 		| buf[3];
 
-	if ( size > SASL_MAX_BUFF_SIZE ) {
+	if ( size >= SASL_MAX_BUFF_SIZE ) {
 		/* somebody is trying to mess me up. */
 		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
 			"sb_sasl_pkt_length: received illegal packet length "
