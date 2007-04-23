@@ -38,7 +38,7 @@
 #include <sasl.h>
 #endif
 
-#define SASL_MAX_BUFF_SIZE	65536
+#define SASL_MAX_BUFF_SIZE	(0xffffff)
 #define SASL_MIN_BUFF_SIZE	4096
 #endif
 
