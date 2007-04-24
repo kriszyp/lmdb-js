@@ -349,7 +349,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "moduleload",	"file", 2, 0, 0,
 #ifdef SLAPD_MODULES
-		ARG_MAGIC|CFG_MODLOAD, &config_generic,
+		ARG_MAGIC|CFG_MODLOAD|ARG_NO_DELETE, &config_generic,
 #else
 		ARG_IGNORED, NULL,
 #endif
