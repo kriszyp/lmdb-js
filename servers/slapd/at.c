@@ -459,6 +459,7 @@ at_insert(
 				
 				/* Keep old oid, free new oid;
 				 * Keep old ads, free new ads;
+				 * Keep old ad_mutex, free new ad_mutex;
 				 * Keep new everything else, free old
 				 */
 				tmp = *old_sat;
@@ -467,6 +468,8 @@ at_insert(
 				tmp.sat_oid = sat->sat_oid;
 				old_sat->sat_ad = tmp.sat_ad;
 				tmp.sat_ad = sat->sat_ad;
+				old_sat->sat_ad_mutex = tmp.sat_ad_mutex;
+				tmp.sat_ad_mutex = sat->sat_ad_mutex;
 				*sat = tmp;
 
 				/* Check for basic ad pointing at old cname */
