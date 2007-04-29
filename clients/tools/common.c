@@ -207,7 +207,7 @@ N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
    "             not really controls)\n")
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
-N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
+N_("  -H URI     LDAP Uniform Resource Identifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
 N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
