@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.36 Engineering
+	Fixed slapd error code on Windows (ITS#4945, #4606)
 	Fixed slapd-config olcModuleLoad replace (ITS#4921)
 	Fixed slapd-bdb no-op crasher (ITS#4925)
 	Fixed libldap response code handling on rebind (ITS#4924)
