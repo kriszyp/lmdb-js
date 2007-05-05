@@ -2576,8 +2576,6 @@ config_loglevel(ConfigArgs *c) {
 		return 0;
 	}
 
-	config_syslog = 0;
-
 	for( i=1; i < c->argc; i++ ) {
 		int	level;
 
@@ -2596,7 +2594,11 @@ config_loglevel(ConfigArgs *c) {
 				return( 1 );
 			}
 		}
-		config_syslog |= level;
+		/* Explicitly setting a zero clears all the levels */
+		if ( level )
+			config_syslog |= level;
+		else
+			config_syslog = 0;
 	}
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		ldap_syslog = config_syslog;
