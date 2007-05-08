@@ -536,11 +536,11 @@ desc2str_len( LDAPURLDesc *u )
 	int		is_ipc = 0;
 	struct berval	scope;
 
-	if ( u == NULL ) {
+	if ( u == NULL || u->lud_scheme == NULL ) {
 		return -1;
 	}
 
-	if ( u->lud_scheme && !strcmp( "ldapi", u->lud_scheme )) {
+	if ( !strcmp( "ldapi", u->lud_scheme )) {
 		is_ipc = 1;
 	}
 
