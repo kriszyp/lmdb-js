@@ -1133,7 +1133,7 @@ file2anlist( AttributeName *an, const char *fname, const char *brkstr )
 		}
 		an = str2anlist( an, line, brkstr );
 		if ( an == NULL )
-			return NULL;
+			break;
 		lcur = line;
 	}
 	ch_free( line );
