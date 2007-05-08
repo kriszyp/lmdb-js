@@ -1121,8 +1121,12 @@ slapd_rw_apply( void *private, const char *filter, struct berval *val )
 	ptr = op->ors_filterstr.bv_val = op->o_tmpalloc( rc + 1, op->o_tmpmemctx );
 	if ( sl->filter.bv_len ) {
 		ptr = lutil_strcopy( ptr, sl->filter.bv_val );
+	} else {
+		*ptr = '\0';
 	}
-	strcpy( ptr, filter );
+	if ( filter ) {
+		strcpy( ptr, filter );
+	}
 	op->ors_filter = str2filter_x( op, op->ors_filterstr.bv_val );
 	if ( !op->ors_filter ) {
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
