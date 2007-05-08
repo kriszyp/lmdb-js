@@ -1496,9 +1496,7 @@ monitor_back_unregister_entry_attrs(
 			ber_memfree( ndn.bv_val );
 		}
 
-		if ( e ) {
-			monitor_cache_release( mi, e );
-		}
+		monitor_cache_release( mi, e );
 
 	} else {
 		entry_limbo_t	**elpp;
