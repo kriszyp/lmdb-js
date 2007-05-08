@@ -375,7 +375,7 @@ monitor_back_register_database(
 	}
 
 	ms_database = monitor_back_get_subsys( SLAPD_MONITOR_DATABASE_NAME );
-	if ( ms_backend == NULL ) {
+	if ( ms_database == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_back_register_database: "
 			"unable to get "
