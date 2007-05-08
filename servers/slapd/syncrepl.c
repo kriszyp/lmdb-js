@@ -203,10 +203,6 @@ init_syncrepl(syncinfo_t *si)
 			attrs = ( char ** ) ch_realloc( attrs, (n + 4)*sizeof( char * ) );
 		}
 
-		if ( attrs == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0, 0, 0 );
-		}
-
 		/* Add Attributes */
 		if ( si->si_allopattrs ) {
 			attrs[n++] = ch_strdup( sync_descs[0]->ad_cname.bv_val );
