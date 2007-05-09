@@ -1200,7 +1200,6 @@ int connection_client_setup(
 	ldap_pvt_thread_start_t *func,
 	void *arg )
 {
-	int rc;
 	Connection *c;
 
 	c = connection_init( s, (Listener *)&dummy_list, "", "",

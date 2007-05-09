@@ -930,7 +930,6 @@ config_generic(ConfigArgs *c) {
 			if ( sid_list ) {
 				ServerID *si;
 				struct berval bv;
-				char *ptr;
 
 				for ( si = sid_list; si; si=si->si_next ) {
 					if ( !BER_BVISEMPTY( &si->si_url )) {
@@ -5763,10 +5762,8 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 	ConfigArgs ca;
 	OperationBuffer opbuf;
 	Entry *ce;
-	Attribute *attr;
 	Connection conn = {0};
 	Operation *op = NULL;
-	SlapReply rs = {REP_RESULT};
 	void *thrctx;
 
 	/* Create entry for frontend database if it does not exist already */

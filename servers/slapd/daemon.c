@@ -1724,7 +1724,6 @@ slap_listener(
 		{
 			uid_t uid;
 			gid_t gid;
-			int rc;
 
 #ifdef LDAP_PF_LOCAL_SENDMSG
 			peerbv.bv_val = peerbuf;

@@ -41,9 +41,6 @@ do_modify(
     SlapReply	*rs )
 {
 	struct berval dn = BER_BVNULL;
-	char		*last;
-	ber_tag_t	tag;
-	ber_len_t	len;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 
