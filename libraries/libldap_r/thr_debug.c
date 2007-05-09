@@ -714,7 +714,9 @@ static void
 thread_exiting( const char *how, const char *msg )
 {
 	ldap_pvt_thread_t thread;
+#if 0 /* Detached threads may exit after ldap_debug_thread_destroy(). */
 	ERROR_IF( !threading_enabled, msg );
+#endif
 	thread = ldap_pvt_thread_self();
 	if( tracethreads ) {
 		char buf[40];
