@@ -56,15 +56,23 @@ typedef struct ldap_int_thread_userctx_s {
 
 static ldap_pvt_thread_t tid_zero;
 
-/* Thread ID -> context mapping.
+/* Thread ID -> context mapping (poor open-addressed hash table).
  * Protected by ldap_pvt_thread_pool_mutex except during pauses,
  * when it is reserved for ldap_pvt_thread_pool_purgekey().
  */
 static struct {
 	ldap_pvt_thread_t id;
-	ldap_int_thread_userctx_t *ctx;
+	ldap_int_thread_userctx_t *ctx;		/* set when id != tid_zero */
+#	define DELETED_THREAD_CTX (&ldap_int_main_thrctx + 1) /* dummy addr */
 } thread_keys[LDAP_MAXTHR];
-	
+
+#define	TID_HASH(tid, hash) do { \
+	unsigned const char *ptr_ = (unsigned const char *)&(tid); \
+	unsigned i_; \
+	for (i_ = 0, (hash) = ptr_[0]; ++i_ < sizeof(tid);) \
+		(hash) += ((hash) << 5) ^ ptr_[i_]; \
+} while(0)
+
 
 typedef struct ldap_int_thread_ctx_s {
 	union {
@@ -324,9 +332,6 @@ ldap_pvt_thread_pool_init (
 	return(0);
 }
 
-#define	TID_HASH(tid, hash) do { unsigned i; \
-	unsigned char *ptr = (unsigned char *)&(tid); \
-	for (i=0, hash=0; i<sizeof(tid); i++) hash += ptr[i]; } while(0)
 
 int
 ldap_pvt_thread_pool_submit (
@@ -634,7 +639,7 @@ ldap_int_thread_pool_wrapper (
 	struct ldap_int_thread_pool_s *pool = xpool;
 	ldap_int_thread_ctx_t *ctx;
 	ldap_int_thread_userctx_t uctx;
-	int i, keyslot, hash;
+	unsigned i, keyslot, hash;
 
 	if (pool == NULL)
 		return NULL;
@@ -734,7 +739,7 @@ ldap_int_thread_pool_wrapper (
 		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
-	thread_keys[keyslot].ctx = NULL;
+	thread_keys[keyslot].ctx = DELETED_THREAD_CTX;
 	thread_keys[keyslot].id = tid_zero;
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
@@ -876,8 +881,8 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 	ldap_int_thread_userctx_t *ctx;
 
 	for ( i=0; i<LDAP_MAXTHR; i++ ) {
-		if ( thread_keys[i].ctx ) {
-			ctx = thread_keys[i].ctx;
+		ctx = thread_keys[i].ctx;
+		if ( ctx && ctx != DELETED_THREAD_CTX ) {
 			for ( j=0; j<MAXKEYS; j++ ) {
 				if ( ctx->ltu_key[j].ltk_key == key ) {
 					if (ctx->ltu_key[j].ltk_free)
@@ -902,7 +907,7 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 void *ldap_pvt_thread_pool_context( )
 {
 	ldap_pvt_thread_t tid;
-	int i, hash;
+	unsigned i, hash;
 	ldap_int_thread_userctx_t *ctx;
 
 	tid = ldap_pvt_thread_self();
@@ -910,12 +915,16 @@ void *ldap_pvt_thread_pool_context( )
 		return &ldap_int_main_thrctx;
 
 	TID_HASH( tid, hash );
+	i = hash &= (LDAP_MAXTHR-1);
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
-	for (i = hash & (LDAP_MAXTHR-1);
-		!ldap_pvt_thread_equal(thread_keys[i].id, tid_zero) &&
-		!ldap_pvt_thread_equal(thread_keys[i].id, tid);
-		i = (i+1) & (LDAP_MAXTHR-1));
-	ctx = thread_keys[i].ctx;
+	do {
+		ctx = thread_keys[i].ctx;
+		if ( ctx != DELETED_THREAD_CTX )
+			if ( ldap_pvt_thread_equal(thread_keys[i].id, tid) || !ctx )
+				goto done;
+	} while ( (i = (i+1) & (LDAP_MAXTHR-1)) != hash );
+	ctx = NULL;
+ done:
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
 	return ctx;
