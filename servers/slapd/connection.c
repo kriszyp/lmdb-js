@@ -1453,7 +1453,7 @@ int connection_read(ber_socket_t s)
 	}
 #ifdef DATA_READY_LOOP
 	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ));
-#elif CONNECTION_INPUT_LOOP
+#elif defined CONNECTION_INPUT_LOOP
 	while(!rc);
 #else
 	while(0);

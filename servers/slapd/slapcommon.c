@@ -429,7 +429,7 @@ slap_tool_init(
 
 #ifdef LOG_LOCAL4
 		openlog( logName, OPENLOG_OPTIONS, syslogUser );
-#elif LOG_DEBUG
+#elif defined LOG_DEBUG
 		openlog( logName, OPENLOG_OPTIONS );
 #endif
 #ifdef HAVE_EBCDIC

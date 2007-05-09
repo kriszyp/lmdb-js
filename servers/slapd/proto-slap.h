@@ -1952,11 +1952,11 @@ LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
 	} while ( 0 )
 
 #else
-# if USE_MP_LONG_LONG
+# ifdef USE_MP_LONG_LONG
 #  define UI2BV_FORMAT	"%llu"
-# elif USE_MP_LONG
+# elif defined USE_MP_LONG
 #  define UI2BV_FORMAT	"%lu"
-# elif HAVE_LONG_LONG
+# elif defined HAVE_LONG_LONG
 #  define UI2BV_FORMAT	"%llu"
 # else
 #  define UI2BV_FORMAT	"%lu"

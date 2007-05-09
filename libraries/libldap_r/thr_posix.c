@@ -84,7 +84,7 @@ ldap_pvt_thread_set_concurrency(int n)
 {
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
 	return pthread_setconcurrency( n );
-#elif HAVE_THR_SETCONCURRENCY
+#elif defined(HAVE_THR_SETCONCURRENCY)
 	return thr_setconcurrency( n );
 #else
 	return 0;
@@ -98,7 +98,7 @@ ldap_pvt_thread_get_concurrency(void)
 {
 #ifdef HAVE_PTHREAD_GETCONCURRENCY
 	return pthread_getconcurrency();
-#elif HAVE_THR_GETCONCURRENCY
+#elif defined(HAVE_THR_GETCONCURRENCY)
 	return thr_getconcurrency();
 #else
 	return 0;
@@ -197,10 +197,10 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 int 
 ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
-#if ( HAVE_PTHREAD_KILL && HAVE_PTHREADS > 6 )
+#if defined(HAVE_PTHREAD_KILL) && HAVE_PTHREADS > 6
 	/* MacOS 10.1 is detected as v10 but has no pthread_kill() */
 	return pthread_kill( thread, signo );
-#elif ( HAVE_PTHREAD_KILL && HAVE_PTHREADS > 4 )
+#elif defined(HAVE_PTHREAD_KILL) && HAVE_PTHREADS > 4
 	if ( pthread_kill( thread, signo ) < 0 ) return errno;
 	return 0;
 #else
@@ -223,7 +223,7 @@ ldap_pvt_thread_yield( void )
 	select( 0, NULL, NULL, NULL, &tv );
 #endif
 	return 0;
-#elif HAVE_THR_YIELD
+#elif defined(HAVE_THR_YIELD)
 	thr_yield();
 	return 0;
 

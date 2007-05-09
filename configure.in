@@ -1472,7 +1472,7 @@ int main(argc, argv)
 #endif
 
 	/* make sure task runs first */
-#if HAVE_THR_YIELD
+#ifdef HAVE_THR_YIELD
 	thr_yield();
 #elif defined( HAVE_SCHED_YIELD )
 	sched_yield();

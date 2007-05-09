@@ -41,7 +41,7 @@
 #define	S_ISREG(m)	(((m) & _S_IFMT) == _S_IFREG)
 #endif
 
-#if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 

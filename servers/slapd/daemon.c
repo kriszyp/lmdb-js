@@ -1434,7 +1434,7 @@ slapd_daemon_init( const char *urls )
 
 #ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#elif HAVE_GETDTABLESIZE
+#elif defined(HAVE_GETDTABLESIZE)
 	dtblsize = getdtablesize();
 #else /* ! HAVE_SYSCONF && ! HAVE_GETDTABLESIZE */
 	dtblsize = FD_SETSIZE;
@@ -2651,7 +2651,7 @@ slap_sig_shutdown( int sig )
 	 * SIGBREAK is generated when a user logs out.
 	 */
 
-#if HAVE_NT_SERVICE_MANAGER && SIGBREAK
+#if defined(HAVE_NT_SERVICE_MANAGER) && defined(SIGBREAK)
 	if (is_NT_Service && sig == SIGBREAK) {
 		/* empty */;
 	} else

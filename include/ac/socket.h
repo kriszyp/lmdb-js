@@ -127,7 +127,7 @@ LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 #		define tcp_write( s, buf, len )	netwrite( s, buf, len )
 #	endif /* NCSA */
 
-#elif HAVE_CLOSESOCKET
+#elif defined(HAVE_CLOSESOCKET)
 #	define tcp_close( s )		closesocket( s )
 
 #	ifdef __BEOS__

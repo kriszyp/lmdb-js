@@ -17,15 +17,15 @@
 #ifndef _AC_UNISTD_H
 #define _AC_UNISTD_H
 
-#if HAVE_SYS_TYPES_H
+#ifdef HAVE_SYS_TYPES_H
 #	include <sys/types.h>
 #endif
 
-#if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #	include <unistd.h>
 #endif
 
-#if HAVE_PROCESS_H
+#ifdef HAVE_PROCESS_H
 #	include <process.h>
 #endif
 
@@ -45,7 +45,7 @@ LDAP_LUTIL_F(char*)(lutil_getpass) LDAP_P((const char *getpass));
 #endif
 
 /* getopt() defines may be in separate include file */
-#if HAVE_GETOPT_H
+#ifdef HAVE_GETOPT_H
 #	include <getopt.h>
 
 #elif !defined(HAVE_GETOPT)

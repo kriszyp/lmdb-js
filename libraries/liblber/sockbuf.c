@@ -339,7 +339,7 @@ ber_pvt_sb_do_write( Sockbuf_IO_Desc *sbiod, Sockbuf_Buf *buf_out )
 int
 ber_pvt_socket_set_nonblock( ber_socket_t sd, int nb )
 {
-#if HAVE_FCNTL
+#ifdef HAVE_FCNTL
 	int flags = fcntl( sd, F_GETFL);
 	if( nb ) {
 		flags |= O_NONBLOCK;

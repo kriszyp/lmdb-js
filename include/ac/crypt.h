@@ -20,7 +20,7 @@
 #include <ac/unistd.h>
 
 /* crypt() may be defined in a separate include file */
-#if HAVE_CRYPT_H
+#ifdef HAVE_CRYPT_H
 #	include <crypt.h>
 #else
 	extern char *(crypt)();

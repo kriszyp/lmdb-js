@@ -31,7 +31,7 @@
 #include <ldap.h>
 #include "lutil.h"
 #include "slap.h"
-#if SLAPD_MODULES
+#ifdef SLAPD_MODULES
 #define LIBLTDL_DLL_IMPORT	/* Win32: don't re-export libltdl's symbols */
 #include <ltdl.h>
 #endif
@@ -618,7 +618,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 	rc = LDAP_SUCCESS;
 
 	if (pp->pwdCheckModule[0]) {
-#if SLAPD_MODULES
+#ifdef SLAPD_MODULES
 		lt_dlhandle mod;
 		const char *err;
 		

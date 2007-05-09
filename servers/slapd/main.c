@@ -441,7 +441,7 @@ int main( int argc, char **argv )
 
 	while ( (i = getopt( argc, argv,
 			     "c:d:f:F:h:n:o:s:tT:V"
-#if LDAP_PF_INET6
+#ifdef LDAP_PF_INET6
 				"46"
 #endif
 #ifdef HAVE_CHROOT
@@ -686,7 +686,7 @@ unhandled_option:;
 
 #ifdef LOG_LOCAL4
 		openlog( logName, OPENLOG_OPTIONS, syslogUser );
-#elif LOG_DEBUG
+#elif defined LOG_DEBUG
 		openlog( logName, OPENLOG_OPTIONS );
 #endif
 #ifdef HAVE_EBCDIC

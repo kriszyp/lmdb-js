@@ -311,7 +311,7 @@ LDAP_END_DECL
  * If none is available, unsigned long data is used.
  */
 
-#if USE_MP_BIGNUM
+#ifdef USE_MP_BIGNUM
 /*
  * Use OpenSSL's BIGNUM
  */
@@ -337,7 +337,7 @@ typedef	BIGNUM* ldap_pvt_mp_t;
 #define ldap_pvt_mp_clear(mp) \
 	do { BN_free((mp)); (mp) = 0; } while (0)
 
-#elif USE_MP_GMP
+#elif defined(USE_MP_GMP)
 /*
  * Use GNU's multiple precision library
  */
@@ -366,13 +366,13 @@ typedef mpz_t		ldap_pvt_mp_t;
  * Use unsigned long long
  */
 
-#if USE_MP_LONG_LONG
+#ifdef USE_MP_LONG_LONG
 typedef	unsigned long long	ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0LL)
-#elif USE_MP_LONG
+#elif defined(USE_MP_LONG)
 typedef	unsigned long		ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0L)
-#elif HAVE_LONG_LONG
+#elif defined(HAVE_LONG_LONG)
 typedef	unsigned long long	ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0LL)
 #else
