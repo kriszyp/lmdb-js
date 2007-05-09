@@ -512,7 +512,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 							"ldap_new_connection %p: "
 							"unexpected response %d "
 							"from BIND request id=%d\n",
-							ld, ldap_msgtype( res ), msgid );
+							(void *) ld, ldap_msgtype( res ), msgid );
 						err = -1;
 						break;
 					}
