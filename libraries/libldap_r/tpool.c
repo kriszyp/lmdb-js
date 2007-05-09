@@ -269,6 +269,9 @@ ldap_pvt_thread_pool_init (
 	ldap_pvt_thread_pool_t pool;
 	int rc;
 
+	if (! (0 <= max_threads && max_threads <= LDAP_MAXTHR))
+		max_threads = 0;
+
 	*tpool = NULL;
 	pool = (ldap_pvt_thread_pool_t) LDAP_CALLOC(1,
 		sizeof(struct ldap_int_thread_pool_s));
@@ -383,8 +386,8 @@ ldap_pvt_thread_pool_submit (
 	}
 	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 	if (pool->ltp_open_count < pool->ltp_active_count + pool->ltp_pending_count
-		&& (pool->ltp_open_count < pool->ltp_max_count ||
-			pool->ltp_max_count <= 0 ))
+		&& (pool->ltp_open_count <
+			(pool->ltp_max_count ? pool->ltp_max_count : LDAP_MAXTHR)))
 	{
 		pool->ltp_open_count++;
 		pool->ltp_starting++;
@@ -448,6 +451,9 @@ int
 ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads )
 {
 	struct ldap_int_thread_pool_s *pool;
+
+	if (! (0 <= max_threads && max_threads <= LDAP_MAXTHR))
+		max_threads = 0;
 
 	if (tpool == NULL)
 		return(-1);
@@ -681,8 +687,8 @@ ldap_int_thread_pool_wrapper (
 			if (pool->ltp_state == LDAP_INT_THREAD_POOL_FINISHING)
 				break;
 
-			if (pool->ltp_max_count > 0
-				&& pool->ltp_open_count > pool->ltp_max_count)
+			if (pool->ltp_open_count >
+				(pool->ltp_max_count ? pool->ltp_max_count : LDAP_MAXTHR))
 			{
 				/* too many threads running (can happen if the
 				 * maximum threads value is set during ongoing
