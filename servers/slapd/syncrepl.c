@@ -519,7 +519,7 @@ do_syncrep1(
 			si->si_syncCookie.sid );
 	} else {
 		AttributeName at[2];
-		Attribute a = { slap_schema.si_ad_contextCSN };
+		Attribute a = {0};
 		Entry e = {0};
 		SlapReply rs = {0};
 		int i, j, changed = 0;
@@ -530,6 +530,7 @@ do_syncrep1(
 		 * allowed, and all changes will already be reflected in
 		 * the cookieState.
 		 */
+		a.a_desc = slap_schema.si_ad_contextCSN;
 		e.e_attrs = &a;
 		e.e_name = si->si_wbe->be_suffix[0];
 		e.e_nname = si->si_wbe->be_nsuffix[0];
@@ -2081,12 +2082,14 @@ retry_add:;
 
 			/* Setup opattrs too */
 			{
-				AttributeDescription *opattrs[] = {
-					slap_schema.si_ad_entryCSN,
-					slap_schema.si_ad_modifiersName,
-					slap_schema.si_ad_modifyTimestamp,
-					NULL
+				static AttributeDescription *nullattr = NULL;
+				static AttributeDescription **const opattrs[] = {
+					&slap_schema.si_ad_entryCSN,
+					&slap_schema.si_ad_modifiersName,
+					&slap_schema.si_ad_modifyTimestamp,
+					&nullattr
 				};
+				AttributeDescription *opattr;
 				Modifications *mod, **modtail, **ml;
 				int i;
 
@@ -2097,10 +2100,10 @@ retry_add:;
 				modtail = &mod->sml_next;
 
 				/* pull mod off incoming modlist, append to orr_modlist */
-				for ( i = 0; opattrs[i]; i++ ) {
+				for ( i = 0; (opattr = *opattrs[i]) != NULL; i++ ) {
 					for ( ml = modlist; *ml; ml = &(*ml)->sml_next )
 					{
-						if ( (*ml)->sml_desc == opattrs[i] ) {
+						if ( (*ml)->sml_desc == opattr ) {
 							mod = *ml;
 							*ml = mod->sml_next;
 							mod->sml_next = NULL;
