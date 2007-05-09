@@ -56,6 +56,10 @@ typedef struct ldap_int_thread_userctx_s {
 
 static ldap_pvt_thread_t tid_zero;
 
+/* Thread ID -> context mapping.
+ * Protected by ldap_pvt_thread_pool_mutex except during pauses,
+ * when it is reserved for ldap_pvt_thread_pool_purgekey().
+ */
 static struct {
 	ldap_pvt_thread_t id;
 	ldap_int_thread_userctx_t *ctx;
@@ -394,25 +398,12 @@ ldap_pvt_thread_pool_submit (
 
 		rc = ldap_pvt_thread_create( &thr, 1,
 			ldap_int_thread_pool_wrapper, pool );
-		if (rc == 0) {
-			int hash;
-			pool->ltp_starting--;
-
-			/* assign this thread ID to a key slot; start
-			 * at the thread ID itself (mod LDAP_MAXTHR) and
-			 * look for an empty slot.
-			 */
-			TID_HASH(thr, hash);
-			for (rc = hash & (LDAP_MAXTHR-1);
-				!ldap_pvt_thread_equal(thread_keys[rc].id, tid_zero);
-				rc = (rc+1) & (LDAP_MAXTHR-1));
-			thread_keys[rc].id = thr;
-		} else {
+		pool->ltp_starting--;
+		if (rc != 0) {
 			/* couldn't create thread.  back out of
 			 * ltp_open_count and check for even worse things.
 			 */
 			pool->ltp_open_count--;
-			pool->ltp_starting--;
 			if (pool->ltp_open_count == 0) {
 				/* no open threads at all?!?
 				 */
@@ -653,16 +644,25 @@ ldap_int_thread_pool_wrapper (
 	}
 
 	uctx.ltu_id = ldap_pvt_thread_self();
+	TID_HASH(uctx.ltu_id, hash);
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
-	/* store pointer to our keys */
-	TID_HASH(uctx.ltu_id, hash);
-	for (i = hash & (LDAP_MAXTHR-1);
-				!ldap_pvt_thread_equal(thread_keys[i].id, uctx.ltu_id);
-				i = (i+1) & (LDAP_MAXTHR-1));
-	thread_keys[i].ctx = &uctx;
-	keyslot = i;
+	/* when paused, thread_keys[] is reserved for pool_purgekey() */
+	while (pool->ltp_pause)
+		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+
+	/* find a key slot to give this thread ID and store a
+	 * pointer to our keys there; start at the thread ID
+	 * itself (mod LDAP_MAXTHR) and look for an empty slot.
+	 */
+	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
+	for (keyslot = hash & (LDAP_MAXTHR-1);
+		!ldap_pvt_thread_equal(thread_keys[keyslot].id, tid_zero);
+		keyslot = (keyslot+1) & (LDAP_MAXTHR-1));
+	thread_keys[keyslot].id = uctx.ltu_id;
+	thread_keys[keyslot].ctx = &uctx;
+	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
 	for (;;) {
 		while (pool->ltp_pause)
@@ -693,7 +693,7 @@ ldap_int_thread_pool_wrapper (
 			 * always have at least one thread open).  the check
 			 * should be like this:
 			 *   if (pool->ltp_open_count > 1 && pool->ltp_starting == 0)
-			 *       check timer, leave thread (break;)
+			 *       check timer, wait if ltp_pause, leave thread (break;)
 			 *
 			 * Just use pthread_cond_timedwait if we want to
 			 * check idle time.
@@ -729,8 +729,14 @@ ldap_int_thread_pool_wrapper (
 
 	ldap_pvt_thread_pool_context_reset(&uctx);
 
+	/* Needed if context_reset can let another thread request a pause */
+	while (pool->ltp_pause)
+		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+
+	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	thread_keys[keyslot].ctx = NULL;
 	thread_keys[keyslot].id = tid_zero;
+	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
 	pool->ltp_open_count--;
 
@@ -897,18 +903,22 @@ void *ldap_pvt_thread_pool_context( )
 {
 	ldap_pvt_thread_t tid;
 	int i, hash;
+	ldap_int_thread_userctx_t *ctx;
 
 	tid = ldap_pvt_thread_self();
 	if ( ldap_pvt_thread_equal( tid, ldap_int_main_tid ))
 		return &ldap_int_main_thrctx;
 
 	TID_HASH( tid, hash );
+	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	for (i = hash & (LDAP_MAXTHR-1);
 		!ldap_pvt_thread_equal(thread_keys[i].id, tid_zero) &&
 		!ldap_pvt_thread_equal(thread_keys[i].id, tid);
 		i = (i+1) & (LDAP_MAXTHR-1));
+	ctx = thread_keys[i].ctx;
+	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
-	return thread_keys[i].ctx;
+	return ctx;
 }
 
 void ldap_pvt_thread_pool_context_reset( void *vctx )
