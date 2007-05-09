@@ -692,7 +692,7 @@ unique_cf_uri( ConfigArgs *c )
 			 * test024 Will hit this case in such a
 			 * situation.
 			 */
-			assert (*domainp);
+			assert (*domainp != NULL);
 
 			domain = *domainp;
 			*domainp = domain->next;
