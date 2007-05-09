@@ -823,7 +823,7 @@ int ldap_pvt_thread_pool_getkey(
 	ldap_int_thread_userctx_t *ctx = xctx;
 	int i;
 
-	if ( !ctx || !data ) return EINVAL;
+	if ( !ctx || !key || !data ) return EINVAL;
 
 	for ( i=0; i<MAXKEYS && ctx->ltu_key[i].ltk_key; i++ ) {
 		if ( ctx->ltu_key[i].ltk_key == key ) {
@@ -835,6 +835,18 @@ int ldap_pvt_thread_pool_getkey(
 	return ENOENT;
 }
 
+static void
+clear_key_idx( ldap_int_thread_userctx_t *ctx, int i )
+{
+	int j = i;
+	while ( ++j < MAXKEYS && ctx->ltu_key[j].ltk_key );
+	if ( --j != i ) {
+		ctx->ltu_key[i] = ctx->ltu_key[j];
+		i = j;
+	}
+	ctx->ltu_key[i].ltk_key = NULL;
+}
+
 int ldap_pvt_thread_pool_setkey(
 	void *xctx,
 	void *key,
@@ -842,34 +854,30 @@ int ldap_pvt_thread_pool_setkey(
 	ldap_pvt_thread_pool_keyfree_t *kfree )
 {
 	ldap_int_thread_userctx_t *ctx = xctx;
-	int i;
+	int i, found;
 
 	if ( !ctx || !key ) return EINVAL;
 
-	for ( i=0; i<MAXKEYS; i++ ) {
-		if (( data && !ctx->ltu_key[i].ltk_key ) || ctx->ltu_key[i].ltk_key == key ) {
-			if ( data || kfree ) {
-				ctx->ltu_key[i].ltk_key = key;
-				ctx->ltu_key[i].ltk_data = data;
-				ctx->ltu_key[i].ltk_free = kfree;
-			} else {
-				int j;
-				for ( j=i+1; j<MAXKEYS; j++ )
-					if ( !ctx->ltu_key[j].ltk_key ) break;
-				j--;
-				if ( j != i ) {
-					ctx->ltu_key[i].ltk_key = ctx->ltu_key[j].ltk_key;
-					ctx->ltu_key[i].ltk_data = ctx->ltu_key[j].ltk_data;
-					ctx->ltu_key[i].ltk_free = ctx->ltu_key[j].ltk_free;
-				}
-				ctx->ltu_key[j].ltk_key = NULL;
-				ctx->ltu_key[j].ltk_data = NULL;
-				ctx->ltu_key[j].ltk_free = NULL;
-			}
-			return 0;
+	for ( i=found=0; i<MAXKEYS; i++ ) {
+		if ( ctx->ltu_key[i].ltk_key == key ) {
+			found = 1;
+			break;
+		} else if ( !ctx->ltu_key[i].ltk_key ) {
+			break;
 		}
 	}
-	return ENOMEM;
+
+	if ( data || kfree ) {
+		if ( i>=MAXKEYS )
+			return ENOMEM;
+		ctx->ltu_key[i].ltk_key = key;
+		ctx->ltu_key[i].ltk_data = data;
+		ctx->ltu_key[i].ltk_free = kfree;
+	} else if ( found ) {
+		clear_key_idx( ctx, i );
+	}
+
+	return 0;
 }
 
 /* Free all elements with this key, no matter which thread they're in.
@@ -880,16 +888,17 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 	int i, j;
 	ldap_int_thread_userctx_t *ctx;
 
+	assert ( key != NULL );
+
 	for ( i=0; i<LDAP_MAXTHR; i++ ) {
 		ctx = thread_keys[i].ctx;
 		if ( ctx && ctx != DELETED_THREAD_CTX ) {
-			for ( j=0; j<MAXKEYS; j++ ) {
+			for ( j=0; j<MAXKEYS && ctx->ltu_key[j].ltk_key; j++ ) {
 				if ( ctx->ltu_key[j].ltk_key == key ) {
 					if (ctx->ltu_key[j].ltk_free)
 						ctx->ltu_key[j].ltk_free( ctx->ltu_key[j].ltk_key,
 						ctx->ltu_key[j].ltk_data );
-					ctx->ltu_key[j].ltk_key = NULL;
-					ctx->ltu_key[j].ltk_free = NULL;
+					clear_key_idx( ctx, j );
 					break;
 				}
 			}
