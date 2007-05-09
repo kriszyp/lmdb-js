@@ -417,6 +417,10 @@ ldap_pvt_thread_pool_submit (
 				/* no open threads at all?!?
 				 */
 				ldap_int_thread_ctx_t *ptr;
+
+				/* let pool_destroy know there are no more threads */
+				ldap_pvt_thread_cond_signal(&pool->ltp_cond);
+
 				LDAP_STAILQ_FOREACH(ptr, &pool->ltp_pending_list, ltc_next.q)
 					if (ptr == ctx) break;
 				if (ptr == ctx) {
@@ -426,7 +430,7 @@ ldap_pvt_thread_pool_submit (
 					 */
 					LDAP_STAILQ_REMOVE(&pool->ltp_pending_list, ctx, 
 						ldap_int_thread_ctx_s, ltc_next.q);
-					pool->ltp_pending_count++;
+					pool->ltp_pending_count--;
 					ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 					LDAP_FREE(ctx);
 					return(-1);
@@ -686,12 +690,9 @@ ldap_int_thread_pool_wrapper (
 			 * check idle time.
 			 */
 
-			if (pool->ltp_state == LDAP_INT_THREAD_POOL_RUNNING
-				|| pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING)
-			{
-				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
-			}
-
+			assert(pool->ltp_state == LDAP_INT_THREAD_POOL_RUNNING
+				   || pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING);
+			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 			continue;
 		}
 
