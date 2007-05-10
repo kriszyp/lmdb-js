@@ -610,6 +610,7 @@ slap_sasl_canonicalize(
 	 */
 	if ( flags == SASL_CU_AUTHID && !auxvals[SLAP_SASL_PROP_AUTHZ].values ) {
 		conn->c_sasl_dn.bv_val = (char *) in;
+		conn->c_sasl_dn.bv_len = 0;
 	} else if ( flags == SASL_CU_AUTHZID && conn->c_sasl_dn.bv_val ) {
 		rc = strcmp( in, conn->c_sasl_dn.bv_val );
 		conn->c_sasl_dn.bv_val = NULL;
@@ -624,13 +625,13 @@ slap_sasl_canonicalize(
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
 		return SASL_NOAUTHZ;
-	}		
+	}
 
 	names[0] = slap_propnames[which];
 	names[1] = NULL;
 
 	prop_set( props, names[0], (char *)&dn, sizeof( dn ) );
-		
+
 	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: %s=\"%s\"\n",
 		conn ? conn->c_connid : -1, names[0]+1,
 		dn.bv_val ? dn.bv_val : "<EMPTY>" );
@@ -1710,6 +1711,9 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		send_ldap_sasl( op, rs );
 
 	} else {
+		if ( op->o_conn->c_sasl_dn.bv_len )
+			ch_free( op->o_conn->c_sasl_dn.bv_val );
+		BER_BVZERO( &op->o_conn->c_sasl_dn );
 #if SASL_VERSION_MAJOR >= 2
 		rs->sr_text = sasl_errdetail( ctx );
 #endif
