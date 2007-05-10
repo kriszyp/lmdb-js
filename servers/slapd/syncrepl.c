@@ -2537,7 +2537,7 @@ syncrepl_updateCookie(
 	Modifications mod[2];
 	struct berval first = BER_BVNULL;
 
-	int rc, i, j;
+	int rc, i, j, len;
 
 	slap_callback cb = { NULL };
 	SlapReply	rs_modify = {REP_RESULT};
@@ -2562,8 +2562,11 @@ syncrepl_updateCookie(
 		for ( j=0; j<si->si_cookieState->cs_num; j++ ) {
 			if ( syncCookie->sids[i] != si->si_cookieState->cs_sids[j] )
 				continue;
-			if ( ber_bvcmp( &syncCookie->ctxcsn[i],
-				&si->si_cookieState->cs_vals[j] ) > 0 ) {
+			len = syncCookie->ctxcsn[i].bv_len;
+			if ( len > si->si_cookieState->cs_vals[j].bv_len )
+				len = si->si_cookieState->cs_vals[j].bv_len;
+			if ( memcmp( syncCookie->ctxcsn[i].bv_val,
+				&si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
 				ber_bvarray_add_x( &mod[0].sml_values,
 					&si->si_cookieState->cs_vals[j], op->o_tmpmemctx );
 				ber_bvarray_add_x( &mod[1].sml_values,
@@ -2845,15 +2848,20 @@ dn_callback(
 					slap_schema.si_ad_entryCSN );
 				new = attr_find( dni->new_entry->e_attrs,
 					slap_schema.si_ad_entryCSN );
-				if ( new && old && ber_bvcmp( &old->a_vals[0],
-					&new->a_vals[0] ) >= 0 ) {
-					Debug( LDAP_DEBUG_SYNC,
-						"dn_callback : new entry is older than ours "
-						"%s ours %s, new %s\n",
-						rs->sr_entry->e_name.bv_val,
-						old->a_vals[0].bv_val,
-						new->a_vals[0].bv_val );
-					return LDAP_SUCCESS;
+				if ( new && old ) {
+					int len = old->a_vals[0].bv_len;
+					if ( len > new->a_vals[0].bv_len )
+						len = new->a_vals[0].bv_len;
+					if ( memcmp( old->a_vals[0].bv_val,
+						new->a_vals[0].bv_val, len ) >= 0 ) {
+						Debug( LDAP_DEBUG_SYNC,
+							"dn_callback : new entry is older than ours "
+							"%s ours %s, new %s\n",
+							rs->sr_entry->e_name.bv_val,
+							old->a_vals[0].bv_val,
+							new->a_vals[0].bv_val );
+						return LDAP_SUCCESS;
+					}
 				}
 
 				/* We assume that attributes are saved in the same order
