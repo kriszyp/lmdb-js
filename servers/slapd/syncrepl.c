@@ -2566,7 +2566,7 @@ syncrepl_updateCookie(
 			if ( len > si->si_cookieState->cs_vals[j].bv_len )
 				len = si->si_cookieState->cs_vals[j].bv_len;
 			if ( memcmp( syncCookie->ctxcsn[i].bv_val,
-				&si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
+				si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
 				ber_bvarray_add_x( &mod[0].sml_values,
 					&si->si_cookieState->cs_vals[j], op->o_tmpmemctx );
 				ber_bvarray_add_x( &mod[1].sml_values,
