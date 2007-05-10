@@ -154,6 +154,9 @@ struct ldaptls {
 	char		*lt_cacertfile;
 	char		*lt_cacertdir;
 	char		*lt_ciphersuite;
+#ifdef HAVE_GNUTLS
+	char		*lt_crlfile;
+#endif
 };
 #endif
 
@@ -196,6 +199,7 @@ struct ldapoptions {
 #define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
 #define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
 #define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
+#define ldo_tls_crlfile	ldo_tls_info.lt_crlfile
    	int			ldo_tls_mode;
    	int			ldo_tls_require_cert;
 #ifdef HAVE_OPENSSL_CRL

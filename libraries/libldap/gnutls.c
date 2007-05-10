@@ -18,7 +18,8 @@
 
 #include "portable.h"
 
-#if 1 /* HAVE_GNUTLS */
+#define HAVE_GNUTLS	1
+#ifdef HAVE_GNUTLS
 
 #include "ldap_config.h"
 
@@ -107,6 +108,7 @@ typedef struct ldap_pvt_tls_ctx {
 
 /* sorta replacing SSL */
 typedef struct ldap_pvt_gnutls_session {
+	ldap_pvt_tls_ctx_t *ctx;
 	gnutls_session_t session;
 	struct berval peer_der_dn;
 } ldap_pvt_gnutls_session_t;
@@ -311,6 +313,7 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 	char *certfile = lo->ldo_tls_certfile;
 	char *keyfile = lo->ldo_tls_keyfile;
 	char *dhfile = lo->ldo_tls_dhfile;
+	char *crlfile = lo->ldo_tls_crlfile;
 
 	if ( lo->ldo_tls_ctx )
 		return 0;
@@ -347,6 +350,10 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 	if ( dhfile ) {
 		dhfile = LDAP_STRDUP( dhfile );
 		__atoe( dhfile );
+	}
+	if ( crlfile ) {
+		crlfile = LDAP_STRDUP( crlfile );
+		__atoe( crlfile );
 	}
 #endif
 	lo->ldo_tls_ctx = ldap_pvt_tls_ctx_new ( lo );
@@ -403,31 +410,20 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
 		       NULL, NULL, NULL );
 	}
 
-	gnutls_dh_params_init (&((ldap_pvt_tls_ctx_t*) 
-				lo->ldo_tls_ctx)->dh_params);
-	gnutls_dh_params_generate2 (((ldap_pvt_tls_ctx_t*) 
-				     lo->ldo_tls_ctx)->dh_params, 
-				    DH_BITS);
-
-	/* fixme verify options */
-/* 	i = SSL_VERIFY_NONE; */
-/* 	if ( lo->ldo_tls_require_cert ) { */
-/* 		i = SSL_VERIFY_PEER; */
-/* 		if ( lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_DEMAND || */
-/* 			 lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_HARD ) { */
-/* 			i |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT; */
-/* 		} */
-/* 	} */
-
-/* 	SSL_CTX_set_verify( lo->ldo_tls_ctx, i, */
-/* 		lo->ldo_tls_require_cert == LDAP_OPT_X_TLS_ALLOW ? */
-/* 		tls_verify_ok : tls_verify_cb ); */
-/* 	SSL_CTX_set_tmp_rsa_callback( lo->ldo_tls_ctx, tls_tmp_rsa_cb ); */
-/* 	if ( lo->ldo_tls_dhfile ) { */
-/* 		SSL_CTX_set_tmp_dh_callback( lo->ldo_tls_ctx, tls_tmp_dh_cb ); */
-/* 	} */
-
-/* fixme crl check */
+	if ( lo->ldo_tls_crlfile ) {
+		rc = gnutls_certificate_set_x509_crl_file( 
+			((ldap_pvt_tls_ctx_t*) lo->ldo_tls_ctx)->cred,
+			lo->ldo_tls_crlfile,
+			GNUTLS_X509_FMT_PEM );
+		if ( rc < 0 ) goto error_exit;
+	}
+	if ( is_server ) {
+		gnutls_dh_params_init (&((ldap_pvt_tls_ctx_t*) 
+					lo->ldo_tls_ctx)->dh_params);
+		gnutls_dh_params_generate2 (((ldap_pvt_tls_ctx_t*) 
+						 lo->ldo_tls_ctx)->dh_params, 
+						DH_BITS);
+	}
 
 error_exit:
 #ifdef HAVE_EBCDIC
@@ -437,6 +433,7 @@ error_exit:
 	LDAP_FREE( certfile );
 	LDAP_FREE( keyfile );
 	LDAP_FREE( dhfile );
+	LDAP_FREE( crlfile );
 #endif
 	return rc;
 }
@@ -676,6 +673,37 @@ static Sockbuf_IO sb_tls_sbio =
 	sb_tls_close		/* sbi_close */
 };
 
+static int
+ldap_int_tls_cert_verify( ldap_pvt_gnutls_session_t *ssl )
+{
+	unsigned int status = 0;
+	int err;
+	time_t now = time(0);
+
+	err = gnutls_certificate_verify_peers2( ssl->session, &status );
+	if ( err < 0 ) {
+		Debug( LDAP_DEBUG_ANY,"TLS: gnutls_certificate_verify_peers2 failed %d\n",
+			err,0,0 );
+		return -1;
+	}
+	if ( status ) {
+		Debug( LDAP_DEBUG_TRACE,"TLS: peer cert untrusted or revoked (0x%x)\n",
+			status, 0,0 );
+		return -1;
+	}
+	if ( gnutls_certificate_expiration_time_peers( ssl->session ) < now ) {
+		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate is expired\n",
+			0, 0, 0 );
+		return -1;
+	}
+	if ( gnutls_certificate_activation_time_peers( ssl->session ) > now ) {
+		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate not yet active\n",
+			0, 0, 0 );
+		return -1;
+	}
+	return 0;
+}
+
 /*
  * Call this to do a TLS connect on a sockbuf. ctx_arg can be
  * a SSL_CTX * or NULL, in which case the default ctx is used.
@@ -761,8 +789,14 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 		return -1;
 	}
 
+	if ( ld->ld_options.ldo_tls_require_cert != LDAP_OPT_X_TLS_NEVER ) {
+		err = ldap_int_tls_cert_verify( ssl );
+		if ( err && ld->ld_options.ldo_tls_require_cert != LDAP_OPT_X_TLS_ALLOW )
+			return err;
+	}
 	return 0;
 }
+
 /*
  * Call this to do a TLS accept on a sockbuf.
  * Everything else is the same as with tls_connect.
@@ -806,6 +840,11 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 			LBER_SBIOD_LEVEL_TRANSPORT );
 #endif
 		return -1;
+	}
+	if ( ssl->ctx->lo->ldo_tls_require_cert != LDAP_OPT_X_TLS_NEVER ) {
+		err = ldap_int_tls_cert_verify( ssl );
+		if ( err && ssl->ctx->lo->ldo_tls_require_cert != LDAP_OPT_X_TLS_ALLOW )
+			return err;
 	}
 
 	return 0;
@@ -930,6 +969,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 #endif
 	int n, len1 = 0, len2 = 0;
 	int ntype = IS_DNS;
+	time_t now = time(0);
 
 	if( ldap_int_hostname &&
 		( !name_in || !strcasecmp( name_in, "localhost" ) ) )
@@ -1101,6 +1141,7 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 	case LDAP_OPT_X_TLS_DHFILE:
+	case LDAP_OPT_X_TLS_CRLFILE:
 		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
 
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
@@ -1185,6 +1226,10 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_DHFILE:
 		*(char **)arg = lo->ldo_tls_dhfile ?
 			LDAP_STRDUP( lo->ldo_tls_dhfile ) : NULL;
+		break;
+	case LDAP_OPT_X_TLS_CRLFILE:
+		*(char **)arg = lo->ldo_tls_crlfile ?
+			LDAP_STRDUP( lo->ldo_tls_crlfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		*(int *)arg = lo->ldo_tls_require_cert;
@@ -1296,6 +1341,10 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_DHFILE:
 		if ( lo->ldo_tls_dhfile ) LDAP_FREE( lo->ldo_tls_dhfile );
 		lo->ldo_tls_dhfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		return 0;
+	case LDAP_OPT_X_TLS_CRLFILE:
+		if ( lo->ldo_tls_crlfile ) LDAP_FREE( lo->ldo_tls_crlfile );
+		lo->ldo_tls_crlfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		return 0;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		if ( !arg ) return -1;

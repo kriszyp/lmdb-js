@@ -114,6 +114,9 @@ static const struct ol_attribute {
 #ifdef HAVE_OPENSSL_CRL
 	{0, ATTR_TLS,	"TLS_CRLCHECK",		NULL,	LDAP_OPT_X_TLS_CRLCHECK},
 #endif
+#ifdef HAVE_GNUTLS
+	{0, ATTR_TLS,	"TLS_CRL",			NULL,	LDAP_OPT_X_TLS_CRLFILE},
+#endif
         
 #endif
 
