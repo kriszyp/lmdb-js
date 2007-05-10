@@ -241,8 +241,8 @@ OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
-OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
-	auto, [auto openssl yes no] )
+OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support auto|openssl|gnutls],
+	auto, [auto openssl gnutls yes no] )
 OL_ARG_WITH(yielding_select,
 	[  --with-yielding-select  with implicitly yielding select],
 	auto, [auto yes no manual] )
@@ -1142,6 +1142,25 @@ if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 			if test $ol_cv_ssl_crl_compat = yes ; then
 				AC_DEFINE(HAVE_OPENSSL_CRL, 1, 
 					[define if you have OpenSSL with CRL checking capability])
+			fi
+		fi
+	fi
+fi
+
+if test $ol_link_tls = no ; then
+	if test $ol_with_tls = gnutls || test $ol_with_tls = auto ; then
+		AC_CHECK_HEADERS(gnutls/gnutls.h)
+
+		if test $ac_cv_header_gnutls_gnutls_h = yes ; then
+			AC_CHECK_LIB(gnutls, gnutls_init,
+				[have_gnutls=yes], [have_gnutls=no])
+
+			if test $have_gnutls = yes ; then
+				ol_with_tls=gnutls
+				ol_link_tls=yes
+
+				AC_DEFINE(HAVE_GNUTLS, 1, 
+					[define if you have GNUtls])
 			fi
 		fi
 	fi
@@ -2324,8 +2343,8 @@ if test "$ac_cv_func_getpeereid" != yes; then
 		AC_CHECK_MEMBERS([struct stat.st_fstype, struct stat.st_vfstype])
 		if test "$ac_cv_member_struct_stat_st_fstype" = yes; then
 			AC_COMPILE_IFELSE([struct stat st; char *ptr=st.st_fstype;],
-				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_CHAR]),
-				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_INT]))
+				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_CHAR],1,[define to 1 if st_fstype is char *]),
+				AC_DEFINE([HAVE_STRUCT_STAT_ST_FSTYPE_INT],1,[define to 1 if st_fstype is int]))
 		fi
 	fi
 	LIBSRCS="$LIBSRCS getpeereid.c"
