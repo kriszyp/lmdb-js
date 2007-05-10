@@ -238,6 +238,12 @@
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
+/* define if you have GNUtls */
+#undef HAVE_GNUTLS
+
+/* Define to 1 if you have the <gnutls/gnutls.h> header file. */
+#undef HAVE_GNUTLS_GNUTLS_H
+
 /* if you have GNU Pth */
 #undef HAVE_GNU_PTH
 
@@ -610,6 +616,18 @@
 /* Define to 1 if `st_blksize' is member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_BLKSIZE
 
+/* Define to 1 if `st_fstype' is member of `struct stat'. */
+#undef HAVE_STRUCT_STAT_ST_FSTYPE
+
+/* define to 1 if st_fstype is char * */
+#undef HAVE_STRUCT_STAT_ST_FSTYPE_CHAR
+
+/* define to 1 if st_fstype is int */
+#undef HAVE_STRUCT_STAT_ST_FSTYPE_INT
+
+/* Define to 1 if `st_vfstype' is member of `struct stat'. */
+#undef HAVE_STRUCT_STAT_ST_VFSTYPE
+
 /* Define to 1 if you have the <synch.h> header file. */
 #undef HAVE_SYNCH_H
 
@@ -644,6 +662,9 @@
 /* Define to 1 if you have the <sys/filio.h> header file. */
 #undef HAVE_SYS_FILIO_H
 
+/* Define to 1 if you have the <sys/fstyp.h> header file. */
+#undef HAVE_SYS_FSTYP_H
+
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
 
@@ -656,6 +677,9 @@
 
 /* Define to 1 if you have the <sys/poll.h> header file. */
 #undef HAVE_SYS_POLL_H
+
+/* Define to 1 if you have the <sys/privgrp.h> header file. */
+#undef HAVE_SYS_PRIVGRP_H
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #undef HAVE_SYS_RESOURCE_H
@@ -689,6 +713,9 @@
 
 /* Define to 1 if you have the <sys/uuid.h> header file. */
 #undef HAVE_SYS_UUID_H
+
+/* Define to 1 if you have the <sys/vmount.h> header file. */
+#undef HAVE_SYS_VMOUNT_H
 
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
@@ -864,19 +891,19 @@
 /* Define to the type of arg 5 for `select'. */
 #undef SELECT_TYPE_ARG5
 
-/* The size of a `int', as computed by sizeof. */
+/* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
-/* The size of a `long', as computed by sizeof. */
+/* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The size of a `long long', as computed by sizeof. */
+/* The size of `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
 
-/* The size of a `short', as computed by sizeof. */
+/* The size of `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
-/* The size of a `wchar_t', as computed by sizeof. */
+/* The size of `wchar_t', as computed by sizeof. */
 #undef SIZEOF_WCHAR_T
 
 /* define to support per-object ACIs */
