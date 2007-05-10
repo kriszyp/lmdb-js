@@ -37,6 +37,7 @@
 
 #include "ldap-int.h"
 #include "ldap_schema.h"
+#include "avl.h"
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -93,14 +94,27 @@ static struct gcry_thread_cbs ldap_generic_thread_cbs = {
 };
 #endif
 
+typedef struct ldap_pvt_tls_cipher_suite {
+	const char *name;
+	gnutls_kx_algorithm_t kx;
+	gnutls_cipher_algorithm_t cipher;
+	gnutls_mac_algorithm_t mac;
+	gnutls_protocol_t version;
+} ldap_pvt_tls_cipher_suite;
+
+static ldap_pvt_tls_cipher_suite *ciphers;
+static int n_ciphers;
+
 /* sorta replacing SSL_CTX */
 typedef struct ldap_pvt_tls_ctx {
 	struct ldapoptions *lo;
-	int *cipher_list;
 	gnutls_certificate_credentials_t cred;
 	gnutls_dh_params_t dh_params;
 	unsigned long verify_depth;
 	int refcount;
+	int *kx_list;
+	int *cipher_list;
+	int *mac_list;
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t ref_mutex;
 #endif
@@ -179,6 +193,7 @@ ldap_pvt_tls_ctx_free ( void *c )
 #endif
 	if ( refcount )
 		return;
+	LDAP_FREE( ctx->kx_list );
 	gnutls_certificate_free_credentials( ctx->cred );
 	ber_memfree ( ctx );
 }
@@ -204,8 +219,14 @@ ldap_pvt_gnutls_session_new ( ldap_pvt_tls_ctx_t * ctx, int is_server )
 	if ( !session )
 		return NULL;
 
+	session->ctx = ctx;
 	gnutls_init( &session->session, is_server ? GNUTLS_SERVER : GNUTLS_CLIENT );
 	gnutls_set_default_priority( session->session );
+	if ( ctx->kx_list ) {
+		gnutls_kx_set_priority( session->session, ctx->kx_list );
+		gnutls_cipher_set_priority( session->session, ctx->cipher_list );
+		gnutls_mac_set_priority( session->session, ctx->mac_list );
+	}
 	if ( ctx->cred )
 		gnutls_credentials_set( session->session, GNUTLS_CRD_CERTIFICATE, ctx->cred );
 	
@@ -280,6 +301,9 @@ ldap_pvt_tls_destroy( void )
 
 	ldap_int_tls_destroy( lo );
 
+	LDAP_FREE( ciphers );
+	ciphers = NULL;
+
 	gnutls_global_deinit();
 }
 
@@ -290,6 +314,9 @@ int
 ldap_pvt_tls_init( void )
 {
 	static int tls_initialized = 0;
+	int i;
+	ldap_pvt_tls_cipher_suite *ptr, tmp;
+	char cs_id[2];
 
 	if ( tls_initialized++ ) return 0;
 
@@ -297,6 +324,106 @@ ldap_pvt_tls_init( void )
 	tls_init_threads();
 #endif
 	gnutls_global_init ();
+
+	/* GNUtls cipher suite handling: The library ought to parse suite
+	 * names for us, but it doesn't. It will return a list of suite names
+	 * that it supports, so we can do parsing ourselves. It ought to tell
+	 * us how long the list is, but it doesn't do that either, so we just
+	 * have to count it manually...
+	 */
+	i = 0;
+	while ( gnutls_cipher_suite_info( i, cs_id, &tmp.kx, &tmp.cipher,
+		&tmp.mac, &tmp.version ))
+		i++;
+	n_ciphers = i;
+
+	/* Store a copy */
+	ciphers = LDAP_MALLOC(n_ciphers * sizeof(ldap_pvt_tls_cipher_suite));
+	if ( !ciphers )
+		return -1;
+	for ( i=0; i<n_ciphers; i++ ) {
+		ciphers[i].name = gnutls_cipher_suite_info( i, cs_id,
+			&ciphers[i].kx, &ciphers[i].cipher, &ciphers[i].mac,
+			&ciphers[i].version );
+	}
+	return 0;
+}
+
+/* suites is a string of colon-separated cipher suite names. */
+static int
+ldap_int_tls_parse_ciphers( ldap_pvt_tls_ctx_t *ctx, char *suites )
+{
+	char *ptr, *end;
+	int i, j, len, num;
+	int *list, nkx = 0, ncipher = 0, nmac = 0;
+	int *kx, *cipher, *mac;
+
+	num = 0;
+	ptr = suites;
+	do {
+		end = strchr(ptr, ':');
+		if ( end )
+			len = end - ptr;
+		else
+			len = strlen(ptr);
+		for (i=0; i<n_ciphers; i++) {
+			if ( !strncasecmp( ciphers[i].name, ptr, len )) {
+				num++;
+				break;
+			}
+		}
+		if ( i == n_ciphers ) {
+			/* unrecognized cipher suite */
+			return -1;
+		}
+	} while (end);
+
+	/* Space for all 3 lists */
+	list = LDAP_MALLOC( (num+1) * sizeof(int) * 3 );
+	if ( !list )
+		return -1;
+	kx = list;
+	cipher = kx+num+1;
+	mac = cipher+num+1;
+
+	ptr = suites;
+	do {
+		end = strchr(ptr, ':');
+		if ( end )
+			len = end - ptr;
+		else
+			len = strlen(ptr);
+		for (i=0; i<n_ciphers; i++) {
+			/* For each cipher suite, insert its algorithms into
+			 * their respective priority lists. Make sure they
+			 * only appear once in each list.
+			 */
+			if ( !strncasecmp( ciphers[i].name, ptr, len )) {
+				for (j=0; j<nkx; j++)
+					if ( kx[j] == ciphers[i].kx )
+						break;
+				if ( j == nkx )
+					kx[nkx++] = ciphers[i].kx;
+				for (j=0; j<ncipher; j++)
+					if ( cipher[j] == ciphers[i].cipher )
+						break;
+				if ( j == ncipher ) 
+					cipher[ncipher++] = ciphers[i].cipher;
+				for (j=0; j<nmac; j++)
+					if ( mac[j] == ciphers[i].mac )
+						break;
+				if ( j == nmac )
+					mac[nmac++] = ciphers[i].mac;
+				break;
+			}
+		}
+	} while (end);
+	kx[nkx] = 0;
+	cipher[ncipher] = 0;
+	mac[nmac] = 0;
+	ctx->kx_list = kx;
+	ctx->cipher_list = cipher;
+	ctx->mac_list = mac;
 	return 0;
 }
 
@@ -365,15 +492,15 @@ ldap_int_tls_init_ctx( struct ldapoptions *lo, int is_server )
                 goto error_exit;
         }
 
-	/* fixme convert ciphersuite spec formats? */
-/* 	if ( lo->ldo_tls_ciphersuite && hm ) { */
-/* 		Debug( LDAP_DEBUG_ANY, */
-/* 			   "TLS: could not set cipher list %s.\n", */
-/* 			   lo->ldo_tls_ciphersuite, 0, 0 ); */
-/* 		tls_report_error(); */
-/* 		rc = -1; */
-/* 		goto error_exit; */
-/* 	} */
+ 	if ( lo->ldo_tls_ciphersuite &&
+		ldap_int_tls_parse_ciphers( lo->ldo_tls_ctx,
+			lo->ldo_tls_ciphersuite )) {
+ 		Debug( LDAP_DEBUG_ANY,
+ 			   "TLS: could not set cipher list %s.\n",
+ 			   lo->ldo_tls_ciphersuite, 0, 0 );
+ 		rc = -1;
+ 		goto error_exit;
+ 	}
 
 	if (lo->ldo_tls_cacertdir != NULL) {
 		Debug( LDAP_DEBUG_ANY, 
