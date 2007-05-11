@@ -58,7 +58,7 @@ static ldap_pvt_thread_t tid_zero;
 
 /* Thread ID -> context mapping (poor open-addressed hash table).
  * Protected by ldap_pvt_thread_pool_mutex except during pauses,
- * when it is reserved for ldap_pvt_thread_pool_purgekey().
+ * when it is read-only (used by pool_purgekey and pool_context).
  */
 static struct {
 	ldap_pvt_thread_t id;
@@ -437,8 +437,8 @@ ldap_pvt_thread_pool_submit (
 			}
 			/* there is another open thread, so this
 			 * context will be handled eventually.
-			 * continue on and signal that the context
-			 * is waiting.
+			 * continue on, we have signalled that
+			 * the context is waiting.
 			 */
 		}
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
@@ -659,7 +659,7 @@ ldap_int_thread_pool_wrapper (
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
-	/* when paused, thread_keys[] is reserved for pool_purgekey() */
+	/* thread_keys[] is read-only when paused */
 	while (pool->ltp_pause)
 		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 
