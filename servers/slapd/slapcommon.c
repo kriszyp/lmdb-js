@@ -47,13 +47,13 @@ static FILE *leakfile;
 
 static LDIFFP dummy;
 
-#ifdef LDAP_SYSLOG
+#if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
 int start_syslog;
 static char **syslog_unknowns;
 #ifdef LOG_LOCAL4
 static int syslogUser = SLAP_DEFAULT_SYSLOG_USER;
 #endif /* LOG_LOCAL4 */
-#endif /* LDAP_SYSLOG */
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 static void
 usage( int tool, const char *progname )
@@ -165,7 +165,7 @@ parse_slapopt( void )
 	} else if ( strncasecmp( optarg, "authzDN", len ) == 0 ) {
 		ber_str2bv( p, 0, 1, &authzDN );
 
-#ifdef LDAP_SYSLOG
+#if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
 	} else if ( strncasecmp( optarg, "syslog", len ) == 0 ) {
 		if ( parse_debug_level( p, &ldap_syslog, &syslog_unknowns ) ) {
 			return -1;
@@ -185,7 +185,7 @@ parse_slapopt( void )
 		}
 		start_syslog = 1;
 #endif /* LOG_LOCAL4 */
-#endif /* LDAP_SYSLOG */
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 	} else {
 		return -1;
@@ -417,7 +417,7 @@ slap_tool_init(
 		}
 	}
 
-#ifdef LDAP_SYSLOG
+#if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
 	if ( start_syslog ) {
 		char *logName;
 #ifdef HAVE_EBCDIC
@@ -436,7 +436,7 @@ slap_tool_init(
 		free( logName );
 #endif
 	}
-#endif /* LDAP_SYSLOG */
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 	switch ( tool ) {
 	case SLAPADD:
@@ -523,7 +523,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 	}
 
-#ifdef LDAP_SYSLOG
+#if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)
 	if ( syslog_unknowns ) {
 		rc = parse_debug_unknowns( syslog_unknowns, &ldap_syslog );
 		ldap_charray_free( syslog_unknowns );

@@ -305,7 +305,7 @@ usage( char *name )
 		"\t-g group\tGroup (id or name) to run as\n"
 #endif
 		"\t-h URLs\t\tList of URLs to serve\n"
-#ifdef LOG_LOCAL4
+#ifdef SLAP_DEFAULT_SYSLOG_USER
 		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tService name\n"
@@ -348,7 +348,7 @@ int main( int argc, char **argv )
 #if defined(HAVE_CHROOT)
 	char *sandbox = NULL;
 #endif
-#ifdef LOG_LOCAL4
+#ifdef SLAP_DEFAULT_SYSLOG_USER
 	int syslogUser = SLAP_DEFAULT_SYSLOG_USER;
 #endif
 	
@@ -675,6 +675,7 @@ unhandled_option:;
 		if ( version > 1 ) goto stop;
 	}
 
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
 	{
 		char *logName;
 #ifdef HAVE_EBCDIC
@@ -693,6 +694,7 @@ unhandled_option:;
 		free( logName );
 #endif
 	}
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
 
