@@ -60,7 +60,7 @@ relay_back_select_backend( Operation *op, SlapReply *rs, int err )
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd = ri->ri_bd;
 
-	if ( bd == NULL ) {
+	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
 		bd = select_backend( &op->o_req_ndn, 0, 1 );
 		if ( bd == op->o_bd ) {
 			if ( err > LDAP_SUCCESS ) {
@@ -136,13 +136,12 @@ relay_back_op_bind( Operation *op, SlapReply *rs )
 int
 relay_back_op_unbind( Operation *op, SlapReply *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = ri->ri_bd;
+	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS );
 	if ( bd == NULL ) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		return 1;
 	}
 
 	if ( bd && bd->be_unbind ) {
