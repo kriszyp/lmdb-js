@@ -220,6 +220,7 @@ static OidRec OidMacros[] = {
  * OLcfg{Bk|Db}{Oc|At}:1		-> back-bdb(/back-hdb)
  * OLcfg{Bk|Db}{Oc|At}:2		-> back-ldif
  * OLcfg{Bk|Db}{Oc|At}:3		-> back-ldap
+ * OLcfg{Bk|Db}{Oc|At}:4		-> back-monitor
  */
 
 /*
