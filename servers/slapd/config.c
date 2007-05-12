@@ -53,10 +53,6 @@
 #include "lutil_ldap.h"
 #include "config.h"
 
-#ifdef HAVE_TLS
-#include <openssl/ssl.h>
-#endif
-
 #define ARGS_STEP	512
 
 /*
