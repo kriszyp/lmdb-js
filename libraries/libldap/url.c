@@ -928,7 +928,11 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp, unsigned flags
 			}
 			/* check for Novell kludge */
 			if ( !p ) {
-				q = next+1;
+				if ( *next != '\0' ) {
+					q = &next[1];
+				} else {
+					q = NULL;
+				}
 			}
 		}
 
