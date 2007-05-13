@@ -237,14 +237,14 @@ constraint_violation( constraint *c, struct berval *bv )
 }
 
 static char *
-print_message( const char *fmt, AttributeDescription *a )
+print_message( const char *errtext, AttributeDescription *a )
 {
     char *ret;
     int sz;
     
-    sz = strlen(fmt) + a->ad_cname.bv_len + 1;
+    sz = strlen(errtext) + sizeof(" on ") + a->ad_cname.bv_len;
     ret = ch_malloc(sz);
-    snprintf( ret, sz, fmt, a->ad_cname.bv_val );
+    snprintf( ret, sz, "%s on %s", errtext, a->ad_cname.bv_val );
     return ret;
 }
 
@@ -256,7 +256,7 @@ constraint_add( Operation *op, SlapReply *rs )
     constraint *c = on->on_bi.bi_private, *cp;
     BerVarray b = NULL;
     int i;
-    const char *rsv = "add breaks regular expression constraint on %s";
+    const char *rsv = "add breaks regular expression constraint";
     char *msg;
     
     if ((a = op->ora_e->e_attrs) == NULL) {
@@ -301,7 +301,7 @@ constraint_modify( Operation *op, SlapReply *rs )
     Modifications *m;
     BerVarray b = NULL;
     int i;
-    const char *rsv = "modify breaks regular expression constraint on %s";
+    const char *rsv = "modify breaks regular expression constraint";
     char *msg;
     
     if ((m = op->orm_modlist) == NULL) {
