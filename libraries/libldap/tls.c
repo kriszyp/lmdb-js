@@ -188,6 +188,8 @@ ldap_pvt_tls_ctx_free ( void *c )
 	int refcount;
 	tls_ctx *ctx = c;
 
+	if ( !ctx ) return;
+
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ctx->ref_mutex );
 #endif
