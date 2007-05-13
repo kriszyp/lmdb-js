@@ -278,6 +278,7 @@ certificates in separate individual files. The
 .B TLS_CACERT
 is always used before
 .B TLS_CACERTDIR.
+This parameter is ignored with GNUtls.
 .TP
 .B TLS_CERT <filename>
 Specifies the file that contains the client certificate.
@@ -300,6 +301,7 @@ e.g., HIGH:MEDIUM:+SSLv2.
 Specifies the file to obtain random bits from when /dev/[u]random is
 not available. Generally set to the name of the EGD/PRNGD socket.
 The environment variable RANDFILE can also be used to specify the filename.
+This parameter is ignored with GNUtls.
 .TP
 .B TLS_REQCERT <level>
 Specifies what checks to perform on server certificates in a TLS session,
@@ -332,7 +334,7 @@ Specifies if the Certificate Revocation List (CRL) of the CA should be
 used to verify if the server certificates have not been revoked. This
 requires
 .B TLS_CACERTDIR
-parameter to be set.
+parameter to be set. This parameter is ignored with GNUtls.
 .B <level>
 can be specified as one of the following keywords:
 .RS
@@ -346,6 +348,11 @@ Check the CRL of the peer certificate
 .B all
 Check the CRL for a whole certificate chain
 .RE
+.TP
+.B TLS_CRLFILE <filename>
+Specifies the file containing a Certificate Revocation List to be used
+to verify if the server certificates have not been revoked. This
+parameter is only supported with GNUtls.
 .SH "ENVIRONMENT VARIABLES"
 .TP
 LDAPNOINIT

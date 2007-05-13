@@ -919,7 +919,16 @@ TLSCipherSuite HIGH:MEDIUM:+SSLv2
 
 To check what ciphers a given spec selects, use:
 
-openssl ciphers -v <cipher-suite-spec>
+.nf
+	openssl ciphers -v <cipher-suite-spec>
+.fi
+
+To obtain the list of ciphers in GNUtls use:
+
+.nf
+	gnutls-cli -l
+.fi
+
 .TP
 .B TLSCACertificateFile <filename>
 Specifies the file that contains certificates for all of the Certificate
@@ -930,7 +939,8 @@ will recognize.
 .B TLSCACertificatePath <path>
 Specifies the path of a directory that contains Certificate Authority
 certificates in separate individual files. Usually only one of this
-or the TLSCACertificateFile is used.
+or the TLSCACertificateFile is used. This directive is not supported
+when using GNUtls.
 .TP
 .B TLSCertificateFile <filename>
 Specifies the file that contains the
@@ -953,12 +963,14 @@ them will be processed.  Note that setting this option may also enable
 Anonymous Diffie-Hellman key exchanges in certain non-default cipher suites.
 You should append "!ADH" to your cipher suites if you have changed them
 from the default, otherwise no certificate exchanges or verification will
-be done.
+be done. When using GNUtls these parameters are always generated randomly so
+this directive is ignored.
 .TP
 .B TLSRandFile <filename>
 Specifies the file to obtain random bits from when /dev/[u]random
 is not available.  Generally set to the name of the EGD/PRNGD socket.
 The environment variable RANDFILE can also be used to specify the filename.
+This directive is ignored with GNUtls.
 .TP
 .B TLSVerifyClient <level>
 Specifies what checks to perform on client certificates in an
@@ -1000,7 +1012,7 @@ Specifies if the Certificate Revocation List (CRL) of the CA should be
 used to verify if the client certificates have not been revoked. This
 requires
 .B TLSCACertificatePath
-parameter to be set.
+parameter to be set. This directive is ignored with GNUtls.
 .B <level>
 can be specified as one of the following keywords:
 .RS
@@ -1014,6 +1026,11 @@ Check the CRL of the peer certificate
 .B all
 Check the CRL for a whole certificate chain
 .RE
+.TP
+.B TLSCRLFile <filename>
+Specifies a file containing a Certificate Revocation List to be used
+for verifying that certificates have not been revoked. This directive is
+only valid when using GNUtls.
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the specified backend.  They are supported by every
