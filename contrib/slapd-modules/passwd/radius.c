@@ -17,6 +17,7 @@
 #include <lber.h>
 #include <lber_pvt.h>	/* BER_BVC definition */
 #include "lutil.h"
+#include <ldap_pvt_thread.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 
@@ -25,6 +26,7 @@
 static LUTIL_PASSWD_CHK_FUNC chk_radius;
 static const struct berval scheme = BER_BVC("{RADIUS}");
 static char *config_filename;
+static ldap_pvt_thread_mutex_t libradius_mutex;
 
 static int
 chk_radius(
@@ -58,8 +60,11 @@ chk_radius(
 		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 
+	ldap_pvt_thread_mutex_lock( &libradius_mutex );
+
 	h = rad_auth_open();
 	if ( h == NULL ) {
+		ldap_pvt_thread_mutex_unlock( &libradius_mutex );
 		return LUTIL_PASSWD_ERR;
 	}
 
@@ -79,14 +84,35 @@ chk_radius(
 		goto done;
 	}
 
-	if ( rad_send_request( h ) == RAD_ACCESS_ACCEPT ) {
+	switch ( rad_send_request( h ) ) {
+	case RAD_ACCESS_ACCEPT:
 		rc = LUTIL_PASSWD_OK;
+		break;
+
+	case RAD_ACCESS_REJECT:
+		rc = LUTIL_PASSWD_ERR;
+		break;
+
+	case RAD_ACCESS_CHALLENGE:
+		rc = LUTIL_PASSWD_ERR;
+		break;
+
+	case -1:
+		/* no valid response is received */
+		break;
 	}
 
 done:;
 	rad_close( h );
 
+	ldap_pvt_thread_mutex_unlock( &libradius_mutex );
 	return rc;
+}
+
+int
+term_module()
+{
+	return ldap_pvt_thread_mutex_destroy( &libradius_mutex );
 }
 
 int
@@ -108,6 +134,8 @@ init_module( int argc, char *argv[] )
 			return 1;
 		}
 	}
+
+	ldap_pvt_thread_mutex_init( &libradius_mutex );
 
 	return lutil_passwd_add( (struct berval *)&scheme, chk_radius, NULL );
 }
