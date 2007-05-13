@@ -2117,7 +2117,11 @@ IA5StringNormalize(
 	/* Ignore initial whitespace */
 	while ( ASCII_SPACE( *p ) ) p++;
 
-	normalized->bv_val = ber_strdup_x( p, ctx );
+	normalized->bv_len = val->bv_len - ( p - val->bv_val );
+	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
+	AC_MEMCPY( normalized->bv_val, p, normalized->bv_len );
+	normalized->bv_val[normalized->bv_len] = '\0';
+
 	p = q = normalized->bv_val;
 
 	while ( *p ) {
