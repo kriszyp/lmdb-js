@@ -3006,7 +3006,7 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 
 			*newRDN++ = newAVA;
 			tag = ber_skip_tag( ber, &len );
-			tag = ber_get_stringbv( ber, &Oid, 0 );
+			tag = ber_get_stringbv( ber, &Oid, LBER_BV_NOTERM );
 			if ( tag != LBER_TAG_OID ) {
 				rc = LDAP_DECODING_ERROR;
 				goto nomem;
@@ -3056,7 +3056,7 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 					newAVA->la_attr = oidname->name;
 				}
 			}
-			tag = ber_get_stringbv( ber, &Val, 0 );
+			tag = ber_get_stringbv( ber, &Val, LBER_BV_NOTERM );
 			switch(tag) {
 			case LBER_TAG_UNIVERSAL:
 				/* This uses 32-bit ISO 10646-1 */
