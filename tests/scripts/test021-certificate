@@ -16,11 +16,6 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test "$AC_WITH_TLS" != "yes" ; then
-	echo "test disabled, requires --with-tls"
-	exit 0
-fi
-
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
