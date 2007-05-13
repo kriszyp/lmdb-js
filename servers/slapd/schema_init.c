@@ -30,18 +30,6 @@
 
 #include "ldap_utf8.h"
 
-#ifdef HAVE_TLS
-#include <openssl/x509.h>
-#include <openssl/err.h>
-#include <openssl/rsa.h>
-#include <openssl/crypto.h>
-#include <openssl/pem.h>
-#include <openssl/bio.h>
-#include <openssl/asn1.h>
-#include <openssl/x509v3.h>
-#include <openssl/ssl.h>
-#endif
-
 #include "lutil.h"
 #include "lutil_hash.h"
 #define HASH_BYTES				LUTIL_HASH_BYTES
@@ -109,21 +97,72 @@ sequenceValidate(
 	return LDAP_SUCCESS;
 }
 
-
-#ifdef HAVE_TLS
+/* X.509 certificate validation */
 static int certificateValidate( Syntax *syntax, struct berval *in )
 {
-	X509 *xcert=NULL;
-	unsigned char *p = (unsigned char *)in->bv_val;
- 
-	xcert = d2i_X509(NULL, &p, in->bv_len);
-	if ( !xcert ) return LDAP_INVALID_SYNTAX;
-	X509_free(xcert);
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t i, version = 0;
+
+	ber_init2( ber, in, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_skip_tag( ber, &len );
+	if ( tag == 0xa0 ) {	/* Optional version */
+		tag = ber_get_int( ber, &version );
+		if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
+	}
+	tag = ber_get_int( ber, &i );	/* Serial */
+	if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
+	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Issuer DN */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Validity */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Subject DN */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Subject PublicKeyInfo */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	if ( tag == 0xa1 ) {	/* issuerUniqueID */
+		if ( version < 1 ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	if ( tag == 0xa2 ) {	/* subjectUniqueID */
+		if ( version < 1 ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	if ( tag == 0xa3 ) {	/* Extensions */
+		if ( version < 2 ) return LDAP_INVALID_SYNTAX;
+		tag = ber_skip_tag( ber, &len );
+		if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* signatureAlgorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Signature */
+	if ( tag != LBER_BITSTRING ) return LDAP_INVALID_SYNTAX; 
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Must be at end now */
+	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
 	return LDAP_SUCCESS;
 }
-#else
-#define certificateValidate sequenceValidate
-#endif
 
 int
 octetStringMatch(
@@ -3202,7 +3241,6 @@ serialNumberAndIssuerNormalize(
 	return LDAP_SUCCESS;
 }
 
-#ifdef HAVE_TLS
 static int
 certificateExactNormalize(
 	slap_mask_t usage,
@@ -3212,14 +3250,16 @@ certificateExactNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	int rc = LDAP_INVALID_SYNTAX;
-	unsigned char *p;
-	char *serial = NULL;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t i;
+	char serial[64];
 	ber_len_t seriallen;
-	struct berval issuer_dn = BER_BVNULL;
-	X509_NAME *name = NULL;
-	ASN1_INTEGER *sn = NULL;
-	X509 *xcert = NULL;
+	struct berval issuer_dn = BER_BVNULL, bvdn;
+	unsigned char *p;
+	int rc = LDAP_INVALID_SYNTAX;
 
 	if( BER_BVISEMPTY( val ) ) goto done;
 
@@ -3229,19 +3269,23 @@ certificateExactNormalize(
 
 	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
 
-	p = (unsigned char *)val->bv_val;
-	xcert = d2i_X509( NULL, &p, val->bv_len);
-	if( xcert == NULL ) goto done;
+	ber_init2( ber, val, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Signed Sequence */
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	tag = ber_skip_tag( ber, &len );	/* Optional version? */
+	if ( tag == 0xa0 )
+		tag = ber_get_int( ber, &i );	/* version */
+	ber_get_int( ber, &i );				/* serial */
 
-	sn=X509_get_serialNumber(xcert);
-	if ( sn == NULL ) goto done;
-	serial=i2s_ASN1_INTEGER(0, sn );
-	if( serial == NULL ) goto done;
-	seriallen=strlen(serial);
+	seriallen = snprintf( serial, sizeof(serial), "%d", i );
+	tag = ber_skip_tag( ber, &len );	/* SignatureAlg */
+	ber_skip_data( ber, len );
+	tag = ber_peek_tag( ber, &len );	/* IssuerDN */
+	len = ber_ptrlen( ber );
+	bvdn.bv_val = val->bv_val + len;
+	bvdn.bv_len = val->bv_len - len;
 
-	name=X509_get_issuer_name(xcert);
-	if( name == NULL ) goto done;
-	rc = dnX509normalize( name, &issuer_dn );
+	rc = dnX509normalize( &bvdn, &issuer_dn );
 	if( rc != LDAP_SUCCESS ) goto done;
 
 	normalized->bv_len = STRLENOF( "{ serialNumber , issuer \"\" }" )
@@ -3273,13 +3317,10 @@ certificateExactNormalize(
 	rc = LDAP_SUCCESS;
 
 done:
-	if (xcert) X509_free(xcert);
-	if (serial) ch_free(serial);
 	if (issuer_dn.bv_val) ber_memfree(issuer_dn.bv_val);
 
 	return rc;
 }
-#endif /* HAVE_TLS */
 
 
 #ifndef SUPPORT_OBSOLETE_UTC_SYNTAX
