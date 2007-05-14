@@ -1307,6 +1307,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_req_ndn = op->o_bd->be_nsuffix[0];
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
+	opm.o_no_schema_check = 1;
 	opm.o_bd->be_modify( &opm, &rsm );
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
