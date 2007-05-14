@@ -13,7 +13,9 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* ACKNOWLEDGEMENTS: GNUTLS support by Howard Chu
+/* ACKNOWLEDGEMENTS: GNUTLS support written by Howard Chu and
+ * Matt Backes; sponsored by The Written Word (thewrittenword.com)
+ * and Stanford University (stanford.edu).
  */
 
 #include "portable.h"
