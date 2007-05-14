@@ -31,9 +31,6 @@
 #include <ac/param.h>
 #include <ac/dirent.h>
 
-#define	HAVE_GNUTLS	1
-#undef HAVE_OPENSSL
-
 #include "ldap-int.h"
 
 #ifdef HAVE_TLS
