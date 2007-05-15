@@ -418,7 +418,7 @@ ldap_chain_op(
 		LDAPURLDesc	*srv = NULL;
 		struct berval	save_req_dn = op->o_req_dn,
 				save_req_ndn = op->o_req_ndn,
-				dn,
+				dn = BER_BVNULL,
 				pdn = BER_BVNULL,
 				ndn = BER_BVNULL;
 		int		temporary = 0;
@@ -449,17 +449,24 @@ Document: RFC 4511
 		}
 
 		/* normalize DN */
-		ber_str2bv( srv->lud_dn, 0, 0, &dn );
-		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
-		if ( rc == LDAP_SUCCESS ) {
-			/* remove DN essentially because later on 
-			 * ldap_initialize() will parse the URL 
-			 * as a comma-separated URL list */
+		rc = LDAP_SUCCESS;
+		srv->lud_scope = LDAP_SCOPE_DEFAULT;
+		if ( srv->lud_dn != NULL ) {
+			ber_str2bv( srv->lud_dn, 0, 0, &dn );
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+			if ( rc == LDAP_SUCCESS ) {
+				/* remove DN essentially because later on 
+				 * ldap_initialize() will parse the URL 
+				 * as a comma-separated URL list */
+				srv->lud_dn = "";
+			}
+
+		} else {
 			srv->lud_dn = "";
-			srv->lud_scope = LDAP_SCOPE_DEFAULT;
-			li.li_uri = ldap_url_desc2str( srv );
-			srv->lud_dn = dn.bv_val;
 		}
+
+		li.li_uri = ldap_url_desc2str( srv );
+		srv->lud_dn = dn.bv_val;
 		ldap_free_urldesc( srv );
 
 		if ( rc != LDAP_SUCCESS ) {
@@ -629,16 +636,19 @@ ldap_chain_search(
 		}
 
 		/* normalize DN */
-		ber_str2bv( srv->lud_dn, 0, 0, &dn );
-		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
-		if ( rc == LDAP_SUCCESS ) {
-			/* remove DN essentially because later on 
-			 * ldap_initialize() will parse the URL 
-			 * as a comma-separated URL list */
-			srv->lud_dn = "";
-			srv->lud_scope = LDAP_SCOPE_DEFAULT;
-			li.li_uri = ldap_url_desc2str( srv );
-			srv->lud_dn = dn.bv_val;
+		rc = LDAP_INVALID_SYNTAX;
+		if ( srv->lud_dn != NULL ) {
+			ber_str2bv( srv->lud_dn, 0, 0, &dn );
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+			if ( rc == LDAP_SUCCESS ) {
+				/* remove DN essentially because later on 
+				 * ldap_initialize() will parse the URL 
+				 * as a comma-separated URL list */
+				srv->lud_dn = "";
+				srv->lud_scope = LDAP_SCOPE_DEFAULT;
+				li.li_uri = ldap_url_desc2str( srv );
+				srv->lud_dn = dn.bv_val;
+			}
 		}
 		ldap_free_urldesc( srv );
 
@@ -918,6 +928,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		 * to send it... */
 		/* FIXME: what about chaining? */
 		if ( rc != SLAPD_ABANDON ) {
+			rs->sr_err = rc;
 			send_ldap_extended( op, rs );
 			rc = LDAP_SUCCESS;
 		}
