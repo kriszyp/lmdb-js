@@ -129,7 +129,7 @@ syn_add(
 )
 {
 	Syntax		*ssyn;
-	int		code;
+	int		code = 0;
 
 	ssyn = (Syntax *) SLAP_CALLOC( 1, sizeof(Syntax) );
 	if( ssyn == NULL ) {
@@ -156,7 +156,18 @@ syn_add(
 	ssyn->ssyn_str2ber = def->sd_str2ber;
 #endif
 
-	code = syn_insert(ssyn, err);
+	if ( def->sd_sup != NULL ) {
+		ssyn->ssyn_sup = syn_find( def->sd_sup );
+		if ( ssyn->ssyn_sup == NULL ) {
+			*err = def->sd_sup;
+			code = SLAP_SCHERR_SYN_SUP_NOT_FOUND;
+		}
+	}
+
+	if ( code == 0 ) {
+		code = syn_insert(ssyn, err);
+	}
+
 	return code;
 }
 

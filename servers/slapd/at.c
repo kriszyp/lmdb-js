@@ -754,9 +754,16 @@ at_add(
 			goto error_return;
 		}
 
-		if( sat->sat_syntax != NULL && sat->sat_syntax != syn ) {
-			code = SLAP_SCHERR_ATTR_BAD_SUP;
-			goto error_return;
+		if ( sat->sat_syntax != NULL && sat->sat_syntax != syn ) {
+			Syntax *supsyn = syn->ssyn_sup;
+
+			for ( ; supsyn && supsyn != sat->sat_syntax; 
+				supsyn = supsyn->ssyn_sup )
+				;
+			if ( supsyn == NULL ) {
+				code = SLAP_SCHERR_ATTR_BAD_SUP;
+				goto error_return;
+			}
 		}
 
 		sat->sat_syntax = syn;

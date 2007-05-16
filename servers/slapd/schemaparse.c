@@ -49,6 +49,7 @@ static char *const err2text[] = {
 	"Duplicate matchingRule",
 	"Syntax not found",
 	"Duplicate ldapSyntax",
+	"Superior syntax not found",
 	"OID or name required",
 	"Qualifier not supported",
 	"Invalid NAME",

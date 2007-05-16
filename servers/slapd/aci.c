@@ -676,6 +676,7 @@ aci_init( void )
 	static slap_syntax_defs_rec aci_syntax_def = {
 		"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 			SLAP_SYNTAX_HIDE,
+			NULL,
 			OpenLDAPaciValidate,
 			OpenLDAPaciPretty
 	};

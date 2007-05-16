@@ -268,7 +268,7 @@ typedef struct slap_ssf_set {
 #define SLAP_SYNTAX_ATTRIBUTETYPES_OID	 "1.3.6.1.4.1.1466.115.121.1.3"
 #define SLAP_SYNTAX_OBJECTCLASSES_OID	 "1.3.6.1.4.1.1466.115.121.1.37"
 #define SLAP_SYNTAX_MATCHINGRULEUSES_OID "1.3.6.1.4.1.1466.115.121.1.31"
-#define SLAP_SYNTAX_CONTENTRULE_OID		 "1.3.6.1.4.1.1466.115.121.1.16"
+#define SLAP_SYNTAX_CONTENTRULE_OID	 "1.3.6.1.4.1.1466.115.121.1.16"
 
 /*
  * represents schema information for a database
@@ -292,6 +292,7 @@ enum {
 	SLAP_SCHERR_MR_DUP,
 	SLAP_SCHERR_SYN_NOT_FOUND,
 	SLAP_SCHERR_SYN_DUP,
+	SLAP_SCHERR_SYN_SUP_NOT_FOUND,
 	SLAP_SCHERR_NO_NAME,
 	SLAP_SCHERR_NOT_SUPPORTED,
 	SLAP_SCHERR_BAD_DESCR,
@@ -408,6 +409,8 @@ struct Syntax {
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
 #endif
 
+	Syntax				*ssyn_sup;
+
 	slap_syntax_validate_func	*ssyn_validate;
 	slap_syntax_transform_func	*ssyn_pretty;
 
@@ -433,6 +436,7 @@ struct Syntax {
 typedef struct slap_syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
+	char *sd_sup;
 	slap_syntax_validate_func *sd_validate;
 	slap_syntax_transform_func *sd_pretty;
 #ifdef SLAPD_BINARY_CONVERSION

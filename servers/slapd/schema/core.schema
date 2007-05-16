@@ -92,9 +92,18 @@ attributetype ( 2.5.4.5 NAME 'serialNumber'
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{64} )
 
-attributetype ( 2.5.4.6 NAME ( 'c' 'countryName' )
+# RFC 4519 definition (cannot be loaded because SYNTAX conflicts
+# with that of name).
+#
+attributetype ( 2.5.4.6 NAME 'c'
 	DESC 'RFC2256: ISO-3166 country 2-letter code'
-	SUP name SINGLE-VALUE )
+	SUP name
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.11
+	SINGLE-VALUE )
+
+#attributetype ( 2.5.4.6 NAME ( 'c' 'countryName' )
+#	DESC 'RFC2256: ISO-3166 country 2-letter code'
+#	SUP name SINGLE-VALUE )
 
 attributetype ( 2.5.4.7 NAME ( 'l' 'localityName' )
 	DESC 'RFC2256: locality which this object resides in'
