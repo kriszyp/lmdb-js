@@ -750,6 +750,14 @@ if compiled with --enable-rlookups).
 Specify the name of an LDIF(5) file containing user defined attributes
 for the root DSE.  These attributes are returned in addition to the
 attributes normally produced by slapd.
+
+The root DSE is an entry with information about the server and its
+capabilities, in operational attributes.
+It has the empty DN, and can be read with e.g.:
+.ti +4
+ldapsearch -x -b "" -s base "+"
+.br
+See RFC 4512 section 5.1 for details.
 .TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
