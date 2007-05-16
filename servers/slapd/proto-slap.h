@@ -1674,6 +1674,9 @@ LDAP_SLAPD_F (int)  syncrepl_add_glue LDAP_P((
 LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( struct syncinfo_s *, int all ));
 
 /* syntax.c */
+LDAP_SLAPD_F (int) syn_is_sup LDAP_P((
+	Syntax *syn,
+	Syntax *sup ));
 LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((
 	const char *synname ));
 LDAP_SLAPD_F (Syntax *) syn_find_desc LDAP_P((

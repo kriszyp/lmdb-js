@@ -4005,6 +4005,12 @@ firstComponentNormalize(
 	return rc;
 }
 
+static char *country_gen_syn[] = {
+	"1.3.6.1.4.1.1466.115.121.1.15",
+	"1.3.6.1.4.1.1466.115.121.1.26",
+	"1.3.6.1.4.1.1466.115.121.1.44",
+	NULL
+};
 
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
@@ -4115,12 +4121,11 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
-		0, "1.3.6.1.4.1.1466.115.121.1.15",
-		printableStringValidate, NULL},
-	/* moved here because now depends on printable string */
+		0, NULL, printableStringValidate, NULL},
+	/* moved here because now depends on Directory String, IA5 String 
+	 * and Printable String */
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
-		0, "1.3.6.1.4.1.1466.115.121.1.44",
-		countryStringValidate, NULL},
+		0, country_gen_syn, countryStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.45 DESC 'SubtreeSpecification' )",
 #define subtreeSpecificationValidate UTF8StringValidate /* FIXME */
 		0, NULL, subtreeSpecificationValidate, NULL},

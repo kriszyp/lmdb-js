@@ -755,12 +755,8 @@ at_add(
 		}
 
 		if ( sat->sat_syntax != NULL && sat->sat_syntax != syn ) {
-			Syntax *supsyn = syn->ssyn_sup;
-
-			for ( ; supsyn && supsyn != sat->sat_syntax; 
-				supsyn = supsyn->ssyn_sup )
-				;
-			if ( supsyn == NULL ) {
+			/* BEWARE: no loop detection! */
+			if ( syn_is_sup( sat->sat_syntax, syn ) ) {
 				code = SLAP_SCHERR_ATTR_BAD_SUP;
 				goto error_return;
 			}

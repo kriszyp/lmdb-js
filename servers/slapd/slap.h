@@ -409,7 +409,7 @@ struct Syntax {
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
 #endif
 
-	Syntax				*ssyn_sup;
+	Syntax				**ssyn_sups;
 
 	slap_syntax_validate_func	*ssyn_validate;
 	slap_syntax_transform_func	*ssyn_pretty;
@@ -436,7 +436,7 @@ struct Syntax {
 typedef struct slap_syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
-	char *sd_sup;
+	char **sd_sups;
 	slap_syntax_validate_func *sd_validate;
 	slap_syntax_transform_func *sd_pretty;
 #ifdef SLAPD_BINARY_CONVERSION

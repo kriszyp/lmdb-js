@@ -76,6 +76,35 @@ syn_find_desc( const char *syndesc, int *len )
 	return( NULL );
 }
 
+int
+syn_is_sup( Syntax *syn, Syntax *sup )
+{
+	int	i;
+
+	assert( syn != NULL );
+	assert( sup != NULL );
+
+	if ( syn == sup ) {
+		return 1;
+	}
+
+	if ( syn->ssyn_sups == NULL ) {
+		return 0;
+	}
+
+	for ( i = 0; syn->ssyn_sups[i]; i++ ) {
+		if ( syn->ssyn_sups[i] == sup ) {
+			return 1;
+		}
+
+		if ( syn_is_sup( syn->ssyn_sups[i], sup ) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void
 syn_destroy( void )
 {
@@ -156,16 +185,26 @@ syn_add(
 	ssyn->ssyn_str2ber = def->sd_str2ber;
 #endif
 
-	if ( def->sd_sup != NULL ) {
-		ssyn->ssyn_sup = syn_find( def->sd_sup );
-		if ( ssyn->ssyn_sup == NULL ) {
-			*err = def->sd_sup;
-			code = SLAP_SCHERR_SYN_SUP_NOT_FOUND;
+	if ( def->sd_sups != NULL ) {
+		int	cnt;
+
+		for ( cnt = 0; def->sd_sups[cnt] != NULL; cnt++ )
+			;
+		
+		ssyn->ssyn_sups = (Syntax **)SLAP_CALLOC( cnt + 1,
+			sizeof(Syntax) );
+
+		for ( cnt = 0; def->sd_sups[cnt] != NULL; cnt++ ) {
+			ssyn->ssyn_sups[cnt] = syn_find( def->sd_sups[cnt] );
+			if ( ssyn->ssyn_sups[cnt] == NULL ) {
+				*err = def->sd_sups[cnt];
+				code = SLAP_SCHERR_SYN_SUP_NOT_FOUND;
+			}
 		}
 	}
 
 	if ( code == 0 ) {
-		code = syn_insert(ssyn, err);
+		code = syn_insert( ssyn, err );
 	}
 
 	return code;
