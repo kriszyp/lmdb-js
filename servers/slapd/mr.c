@@ -396,13 +396,16 @@ matching_rule_use_init( void )
 	return( 0 );
 }
 
-int mr_usable_with_at(
-	MatchingRule *mr,
-	AttributeType *at )
+int
+mr_usable_with_at(
+	MatchingRule	*mr,
+	AttributeType	*at )
 {
-	if( mr->smr_usage & SLAP_MR_EXT && ( 
+	if ( ( mr->smr_usage & SLAP_MR_EXT ) && (
 		mr->smr_syntax == at->sat_syntax ||
-		mr == at->sat_equality || mr == at->sat_approx ) )
+		mr == at->sat_equality ||
+		mr == at->sat_approx ||
+		syn_is_sup( at->sat_syntax, mr->smr_syntax ) ) )
 	{
 		return 1;
 	}
