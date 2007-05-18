@@ -55,6 +55,12 @@ static pthread_mutexattr_t mutex_attr;
 #  define LDAP_INT_THREAD_MUTEXATTR_DEFAULT &mutex_attr
 #endif
 
+#if HAVE_PTHREADS < 7
+#define ERRVAL(val)	((val) < 0 ? errno : 0)
+#else
+#define ERRVAL(val)	(val)
+#endif
+
 int
 ldap_int_thread_initialize( void )
 {
@@ -157,6 +163,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 #else
 	rtn = pthread_create( thread, &attr, start_routine, arg );
 #endif
+
 #if HAVE_PTHREADS > 5
 	pthread_attr_destroy(&attr);
 #else
@@ -183,26 +190,18 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 #if HAVE_PTHREADS < 7
 	void *dummy;
-
 	if (thread_return==NULL)
 	  thread_return=&dummy;
-
-	if ( pthread_join( thread, thread_return ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_join( thread, thread_return );
 #endif
+	return ERRVAL( pthread_join( thread, thread_return ) );
 }
 
 int 
 ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
-#if defined(HAVE_PTHREAD_KILL) && HAVE_PTHREADS > 6
+#if defined(HAVE_PTHREAD_KILL) && HAVE_PTHREADS > 4
 	/* MacOS 10.1 is detected as v10 but has no pthread_kill() */
-	return pthread_kill( thread, signo );
-#elif defined(HAVE_PTHREAD_KILL) && HAVE_PTHREADS > 4
-	if ( pthread_kill( thread, signo ) < 0 ) return errno;
-	return 0;
+	return ERRVAL( pthread_kill( thread, signo ) );
 #else
 	/* pthread package with DCE */
 	if (kill( getpid(), signo )<0)
@@ -223,6 +222,7 @@ ldap_pvt_thread_yield( void )
 	select( 0, NULL, NULL, NULL, &tv );
 #endif
 	return 0;
+
 #elif defined(HAVE_THR_YIELD)
 	thr_yield();
 	return 0;
@@ -237,6 +237,7 @@ ldap_pvt_thread_yield( void )
 #elif HAVE_PTHREADS == 6
 	pthread_yield(NULL);
 	return 0;
+
 #else
 	pthread_yield();
 	return 0;
@@ -246,114 +247,64 @@ ldap_pvt_thread_yield( void )
 int 
 ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_cond_init( cond, LDAP_INT_THREAD_CONDATTR_DEFAULT ) < 0 )
-		return errno;
-	return 0;
-#else
-	return pthread_cond_init( cond, LDAP_INT_THREAD_CONDATTR_DEFAULT );
-#endif
+	return ERRVAL( pthread_cond_init(
+		cond, LDAP_INT_THREAD_CONDATTR_DEFAULT ) );
 }
 
 int 
 ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_cond_destroy( cond ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_cond_destroy( cond );
-#endif
+	return ERRVAL( pthread_cond_destroy( cond ) );
 }
 	
 int 
 ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_cond_signal( cond ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_cond_signal( cond );
-#endif
+	return ERRVAL( pthread_cond_signal( cond ) );
 }
 
 int
 ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_cond_broadcast( cond ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_cond_broadcast( cond );
-#endif
+	return ERRVAL( pthread_cond_broadcast( cond ) );
 }
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
 		      ldap_pvt_thread_mutex_t *mutex )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_cond_wait( cond, mutex ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_cond_wait( cond, mutex );
-#endif
+	return ERRVAL( pthread_cond_wait( cond, mutex ) );
 }
 
 int 
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_mutex_init( mutex, LDAP_INT_THREAD_MUTEXATTR_DEFAULT )<0)
-		return errno;
-	return 0;
-#else
-	return pthread_mutex_init( mutex, LDAP_INT_THREAD_MUTEXATTR_DEFAULT );
-#endif
+	return ERRVAL( pthread_mutex_init(
+		mutex, LDAP_INT_THREAD_MUTEXATTR_DEFAULT ) );
 }
 
 int 
 ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_mutex_destroy( mutex ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_mutex_destroy( mutex );
-#endif
+	return ERRVAL( pthread_mutex_destroy( mutex ) );
 }
 
 int 
 ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_mutex_lock( mutex ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_mutex_lock( mutex );
-#endif
+	return ERRVAL( pthread_mutex_lock( mutex ) );
 }
 
 int 
 ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_mutex_trylock( mutex ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_mutex_trylock( mutex );
-#endif
+	return ERRVAL( pthread_mutex_trylock( mutex ) );
 }
 
 int 
 ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_mutex_unlock( mutex ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_mutex_unlock( mutex );
-#endif
+	return ERRVAL( pthread_mutex_unlock( mutex ) );
 }
 
 ldap_pvt_thread_t ldap_pvt_thread_self( void )
@@ -366,83 +317,43 @@ ldap_pvt_thread_t ldap_pvt_thread_self( void )
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_init( rw, NULL ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_init( rw, NULL );
-#endif
+	return ERRVAL( pthread_rwlock_init( rw, NULL ) );
 }
 
 int 
 ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_destroy( rw ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_destroy( rw );
-#endif
+	return ERRVAL( pthread_rwlock_destroy( rw ) );
 }
 
 int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_rdlock( rw ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_rdlock( rw );
-#endif
+	return ERRVAL( pthread_rwlock_rdlock( rw ) );
 }
 
 int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_tryrdlock( rw ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_tryrdlock( rw );
-#endif
+	return ERRVAL( pthread_rwlock_tryrdlock( rw ) );
 }
 
 int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_unlock( rw ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_unlock( rw );
-#endif
+	return ERRVAL( pthread_rwlock_unlock( rw ) );
 }
 
 int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_wrlock( rw ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_wrlock( rw );
-#endif
+	return ERRVAL( pthread_rwlock_wrlock( rw ) );
 }
 
 int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_trywrlock( rw ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_trywrlock( rw );
-#endif
+	return ERRVAL( pthread_rwlock_trywrlock( rw ) );
 }
 
 int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 {
-#if HAVE_PTHREADS < 7
-	if ( pthread_rwlock_unlock( rw ) < 0 ) return errno;
-	return 0;
-#else
-	return pthread_rwlock_unlock( rw );
-#endif
+	return ERRVAL( pthread_rwlock_unlock( rw ) );
 }
 
 #endif /* HAVE_PTHREAD_RWLOCK_DESTROY */
