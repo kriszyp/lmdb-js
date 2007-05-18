@@ -274,19 +274,16 @@ get_options( void )
 	if( s != NULL ) {
 		while( *(s += strspn( s, ", \t\r\n" )) != '\0' ) {
 			size_t optlen = strcspn( s, ", \t\r\n" );
-			const struct option_info_s *oi;
-			for( oi = option_info; oi->name; oi++ ) {
-				if( strncasecmp( oi->name, s, optlen ) == 0 ) {
-					if( oi->name && oi->name[optlen] == '\0' ) {
-						*oi->var = oi->val;
-					} else {
-						fprintf( stderr,
-							"== thr_debug: Unknown $%s option '%.*s' ==\n",
-							"LDAP_THREAD_DEBUG", (int) optlen, s );
-					}
-					break;
-				}
-			}
+			const struct option_info_s *oi = option_info;
+			while( oi->name &&
+				   (strncasecmp( oi->name, s, optlen ) || oi->name[optlen]) )
+				oi++;
+			if( oi->name )
+				*oi->var = oi->val;
+			else
+				fprintf( stderr,
+					"== thr_debug: Unknown $%s option '%.*s' ==\n",
+					"LDAP_THREAD_DEBUG", (int) optlen, s );
 			s += optlen;
 		}
 	}
@@ -383,9 +380,8 @@ ldap_debug_thread_assert_mutex_owner(
 static void debug_noop( void );
 static int debug_already_initialized( const ldap_debug_usage_info_t *usage );
 
-/* Names used to give clearer error messages */
+/* Name used for clearer error message */
 #define IS_COPY_OR_MOVED(usage) ((usage)->self != SCRAMBLE( usage ))
-enum { Is_destroyed = 1 };
 
 #define DUMMY_ADDR(usage) \
 	(wraptype == Wrap_scramble \
@@ -408,18 +404,22 @@ init_usage( ldap_debug_usage_info_t *usage, const char *msg )
 				free( dummy );
 			} );
 		}
-		usage->self = SCRAMBLE( usage );
 		if( wraptype != Wrap_noalloc ) {
 			unsigned char *dummy = malloc( 1 );
 			assert( dummy != NULL );
 			if( wraptype == Wrap_scramble ) {
 				usage->mem.num = SCRAMBLE( dummy );
+				/* Verify that ptr<->integer casts work on this host */
 				assert( UNSCRAMBLE_dummyp( usage->mem.num ) == dummy );
 			} else {
 				usage->mem.ptr = dummy + wrap_offset;
 			}
 		}
+	} else {
+		/* Unused, but set for readability in debugger */
+		usage->mem.ptr = NULL;
 	}
+	usage->self = SCRAMBLE( usage );	/* If nomem, only for debugger */
 	usage->magic = ldap_debug_magic;
 	usage->state = ldap_debug_state_inited;
 }
@@ -428,6 +428,8 @@ init_usage( ldap_debug_usage_info_t *usage, const char *msg )
 static void
 check_usage( const ldap_debug_usage_info_t *usage, const char *msg )
 {
+	enum { Is_destroyed = 1 };	/* Name used for clearer error message */
+
 	if( usage->magic != ldap_debug_magic ) {
 		ERROR( usage->magic, msg );
 		return;
@@ -474,14 +476,24 @@ debug_noop( void )
 {
 }
 
-/* Return true if the resource is initialized and not copied/realloced. */
-/* Valid programs access uninitialized memory here unless "noreinit".   */
+/*
+ * Valid programs access uninitialized memory here unless "noreinit".
+ *
+ * Returns true if the resource is initialized and not copied/realloced.
+ */
 static int
 debug_already_initialized( const ldap_debug_usage_info_t *usage )
 {
-	return (usage->state == ldap_debug_state_inited &&
-	        !IS_COPY_OR_MOVED( usage ) &&
-	        usage->magic == ldap_debug_magic);
+	/*
+	 * 'ret' keeps the Valgrind warning "Conditional jump or move
+	 * depends on uninitialised value(s)" _inside_ this function.
+	 */
+	volatile int ret = 0;
+	if( usage->state == ldap_debug_state_inited )
+		if( !IS_COPY_OR_MOVED( usage ) )
+	        if( usage->magic == ldap_debug_magic )
+				ret = 1;
+	return ret;
 }
 
 #endif /* LDAP_THREAD_DEBUG_WRAP */
@@ -489,7 +501,7 @@ debug_already_initialized( const ldap_debug_usage_info_t *usage )
 
 #if !(LDAP_THREAD_DEBUG_THREAD_ID +0)
 
-typedef int ldap_debug_thread_t;
+typedef void ldap_debug_thread_t;
 #define init_thread_info()	{}
 #define with_thread_info_lock(statements) { statements; }
 #define thread_info_detached(t)	0
@@ -578,12 +590,12 @@ remove_thread_info( ldap_debug_thread_t *t, const char *msg )
 }
 
 ldap_debug_thread_t *
-get_thread_info( ldap_pvt_thread_t *thread, const char *msg )
+get_thread_info( ldap_pvt_thread_t thread, const char *msg )
 {
 	unsigned int i;
 	ldap_debug_thread_t *t;
 	for( i = 0; i < thread_info_used; i++ ) {
-		if( ldap_pvt_thread_equal( *thread, thread_info[i]->wrapped ) )
+		if( ldap_pvt_thread_equal( thread, thread_info[i]->wrapped ) )
 			break;
 	}
 	ERROR_IF( i == thread_info_used, msg );
@@ -725,8 +737,7 @@ thread_exiting( const char *how, const char *msg )
 	}
 	if( threadID ) {
 		with_thread_info_lock({
-			ldap_debug_thread_t *t = get_thread_info(
-				&thread, msg );
+			ldap_debug_thread_t *t = get_thread_info( thread, msg );
 			if( thread_info_detached( t ) )
 				remove_thread_info( t, msg );
 		});
@@ -788,6 +799,8 @@ ldap_pvt_thread_create(
 	}
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_create" );
+		if( wrap_threads )
+			free( arg );
 	} else {
 		if( tracethreads ) {
 			char buf[40], buf2[40];
@@ -818,7 +831,7 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 	}
 	if( threadID )
 		with_thread_info_lock( {
-			t = get_thread_info( &thread, "ldap_pvt_thread_join" );
+			t = get_thread_info( thread, "ldap_pvt_thread_join" );
 			ERROR_IF( thread_info_detached( t ), "ldap_pvt_thread_join" );
 		} );
 	rc = ldap_int_thread_join( thread, thread_return );
