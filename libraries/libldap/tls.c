@@ -1639,6 +1639,7 @@ ldap_tls_inplace( LDAP *ld )
 	return ldap_pvt_tls_inplace( sb );
 }
 
+#ifdef HAVE_GNUTLS
 static void
 x509_cert_get_dn( struct berval *cert, struct berval *dn, int get_subject )
 {
@@ -1671,7 +1672,6 @@ x509_cert_get_dn( struct berval *cert, struct berval *dn, int get_subject )
 	dn->bv_len = cert->bv_len - len;
 }
 
-#ifdef HAVE_GNUTLS
 static int
 tls_get_cert_dn( tls_session *session, struct berval *dnbv )
 {
@@ -1692,7 +1692,7 @@ tls_get_cert_dn( tls_session *session, struct berval *dnbv )
 	}
 	return 0;
 }
-#else
+#else /* !HAVE_GNUTLS */
 static X509 *
 tls_get_cert( SSL *s )
 {
@@ -1712,7 +1712,6 @@ tls_get_cert_dn( tls_session *session, struct berval *dnbv )
 {
 	X509_NAME *xn;
 	X509 *x = tls_get_cert( session );
-	int len;
 
 	if ( !x )
 		return LDAP_INVALID_CREDENTIALS;
