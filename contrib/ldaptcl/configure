@@ -931,7 +931,8 @@ fi
 
 case "$with_tk" in
     yes)
-	if test -f $exec_prefix/lib/tkConfig.sh -a $exec_prefix/lib/tkxConfig.sh
+	if test -f $exec_prefix/lib/tkConfig.sh &&
+	   test -f $exec_prefix/lib/tkxConfig.sh
 	then
 	    :
 	else
