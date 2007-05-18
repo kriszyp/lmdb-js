@@ -114,7 +114,7 @@ bdb_db_cache(
 	rc = db->bdi_db->set_flags( db->bdi_db, DB_DUP | DB_DUPSORT );
 
 	file = ch_malloc( strlen( name ) + sizeof(BDB_SUFFIX) );
-	sprintf( file, "%s" BDB_SUFFIX, name );
+	sprintf( file, "%s%s", name, BDB_SUFFIX );
 
 #ifdef HAVE_EBCDIC
 	__atoe( file );

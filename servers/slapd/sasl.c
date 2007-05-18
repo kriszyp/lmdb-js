@@ -1210,8 +1210,8 @@ int slap_sasl_init( void )
 		sprintf( version, "%u.%d.%d", (unsigned)rc >> 24, (rc >> 16) & 0xff,
 			rc & 0xffff );
 		Debug( LDAP_DEBUG_ANY, "slap_sasl_init: SASL library version mismatch:"
-			" expected " SASL_VERSION_STRING ","
-			" got %s\n", version, 0, 0 );
+			" expected %s, got %s\n",
+			SASL_VERSION_STRING, version, 0 );
 		return -1;
 	}
 #endif
