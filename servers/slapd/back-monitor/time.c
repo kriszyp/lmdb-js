@@ -242,6 +242,7 @@ monitor_subsys_time_update(
 
 	} else if ( dn_match( &rdn, &bv_uptime ) ) {
 		Attribute	*a;
+		double		diff;
 		char		buf[ BACKMONITOR_BUFSIZE ];
 		struct berval	bv;
 
@@ -250,8 +251,9 @@ monitor_subsys_time_update(
 			return rs->sr_err = LDAP_OTHER;
 		}
 
+		diff = difftime( slap_get_time(), starttime );
 		bv.bv_len = snprintf( buf, sizeof( buf ), "%lu",
-			(unsigned long)difftime( slap_get_time(), starttime ) );
+			(unsigned long) diff );
 		bv.bv_val = buf;
 
 		ber_bvreplace( &a->a_vals[ 0 ], &bv );
