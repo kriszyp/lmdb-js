@@ -141,7 +141,6 @@ int *
 slap_parse_csn_sids( BerVarray csns, int numcsns, void *memctx )
 {
 	int i, *ret;
-	char *p, *q;
 
 	ret = slap_sl_malloc( numcsns * sizeof(int), memctx );
 	for ( i=0; i<numcsns; i++ ) {
@@ -158,7 +157,6 @@ slap_parse_sync_cookie(
 {
 	char *csn_ptr;
 	char *csn_str;
-	int csn_str_len;
 	char *rid_ptr;
 	char *cval;
 	char *next, *end;
