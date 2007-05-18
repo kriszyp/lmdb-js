@@ -74,6 +74,8 @@ slap_op_groups_free( Operation *op )
 void
 slap_op_free( Operation *op )
 {
+	OperationBuffer *opbuf;
+
 	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
 
 	if ( op->o_ber != NULL ) {
@@ -109,9 +111,10 @@ slap_op_free( Operation *op )
 #endif /* defined( LDAP_SLAPI ) */
 
 
-	memset( op, 0, sizeof(Operation) + sizeof(Opheader) + SLAP_MAX_CIDS * sizeof(void *) );
-	op->o_hdr = (Opheader *)(op+1);
-	op->o_controls = (void **)(op->o_hdr+1);
+	opbuf = (OperationBuffer *) op;
+	memset( opbuf, 0, sizeof(*opbuf) );
+	op->o_hdr = &opbuf->ob_hdr;
+	op->o_controls = opbuf->ob_controls;
 
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	LDAP_STAILQ_INSERT_HEAD( &slap_free_ops, op, o_next );
@@ -149,10 +152,9 @@ slap_op_alloc(
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
 
 	if (!op) {
-		op = (Operation *) ch_calloc( 1, sizeof(Operation)
-			+ sizeof(Opheader) + SLAP_MAX_CIDS * sizeof(void *) );
-		op->o_hdr = (Opheader *)(op + 1);
-		op->o_controls = (void **)(op->o_hdr+1);
+		op = (Operation *) ch_calloc( 1, sizeof(OperationBuffer) );
+		op->o_hdr = &((OperationBuffer *) op)->ob_hdr;
+		op->o_controls = ((OperationBuffer *) op)->ob_controls;
 	}
 
 	op->o_ber = ber;

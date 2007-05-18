@@ -1993,19 +1993,21 @@ connection_fake_destroy(
 void
 connection_fake_init(
 	Connection *conn,
-	Operation *op,
+	OperationBuffer *opbuf,
 	void *ctx )
 {
-	connection_fake_init2( conn, op, ctx, 1 );
+	connection_fake_init2( conn, opbuf, ctx, 1 );
 }
 
 void
 connection_fake_init2(
 	Connection *conn,
-	Operation *op,
+	OperationBuffer *opbuf,
 	void *ctx,
 	int newmem )
 {
+	Operation *op = (Operation *) opbuf;
+
 	conn->c_connid = -1;
 	conn->c_send_ldap_result = slap_send_ldap_result;
 	conn->c_send_search_entry = slap_send_search_entry;
@@ -2014,9 +2016,10 @@ connection_fake_init2(
 	conn->c_peer_domain = slap_empty_bv;
 	conn->c_peer_name = slap_empty_bv;
 
-	memset(op, 0, OPERATION_BUFFER_SIZE);
-	op->o_hdr = (Opheader *)(op+1);
-	op->o_controls = (void **)(op->o_hdr+1);
+	memset( opbuf, 0, sizeof( *opbuf ));
+	op->o_hdr = &opbuf->ob_hdr;
+	op->o_controls = opbuf->ob_controls;
+
 	/* set memory context */
 	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx,
 		newmem );

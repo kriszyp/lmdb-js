@@ -88,8 +88,8 @@ slapauth( int argc, char **argv )
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, &conn );
+	connection_fake_init( &conn, &opbuf, &conn );
+	op = &opbuf.ob_op;
 
 	conn.c_sasl_bind_mech = mech;
 

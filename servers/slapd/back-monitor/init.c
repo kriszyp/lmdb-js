@@ -813,9 +813,9 @@ monitor_search2ndn(
 		return -1;
 	}
 
-	op = (Operation *) &opbuf;
 	thrctx = ldap_pvt_thread_pool_context();
-	connection_fake_init( &conn, op, thrctx );
+	connection_fake_init( &conn, &opbuf, thrctx );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 

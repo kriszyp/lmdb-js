@@ -70,8 +70,8 @@ slapadd( int argc, char **argv )
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
 	memset( &opbuf, 0, sizeof(opbuf) );
-	op = (Operation *) &opbuf;
-	op->o_hdr = (Opheader *)(op+1);
+	op = &opbuf.ob_op;
+	op->o_hdr = &opbuf.ob_hdr;
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||

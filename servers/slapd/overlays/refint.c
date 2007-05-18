@@ -414,8 +414,8 @@ refint_qtask( void *ctx, void *arg )
 	refint_attrs *ra, *ip;
 	int rc;
 
-	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	/*
 	** build a search filter for all configured attributes;

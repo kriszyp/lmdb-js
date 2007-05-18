@@ -896,11 +896,11 @@ syncprov_qtask( void *ctx, void *arg )
 	BackendDB be;
 	int rc;
 
-	op = (Operation *) &opbuf;
+	op = &opbuf.ob_op;
 	*op = *so->s_op;
-	op->o_hdr = (Opheader *)(op+1);
-	op->o_controls = (void **)(op->o_hdr+1);
-	memset( op->o_controls, 0, SLAP_MAX_CIDS * sizeof(void *));
+	op->o_hdr = &opbuf.ob_hdr;
+	op->o_controls = opbuf.ob_controls;
+	memset( op->o_controls, 0, sizeof(opbuf.ob_controls) );
 
 	*op->o_hdr = *so->s_op->o_hdr;
 
@@ -1811,9 +1811,17 @@ syncprov_search_cleanup( Operation *op, SlapReply *rs )
 	return 0;
 }
 
+typedef struct SyncOperationBuffer {
+	Operation		sob_op;
+	Opheader		sob_hdr;
+	AttributeName	sob_extra;	/* not always present */
+	/* Further data allocated here */
+} SyncOperationBuffer;
+
 static void
 syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 {
+	SyncOperationBuffer *sopbuf2;
 	Operation *op2;
 	int i, alen = 0;
 	size_t size;
@@ -1825,14 +1833,15 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 		alen += op->ors_attrs[i].an_name.bv_len + 1;
 	}
 	/* Make a new copy of the operation */
-	size = sizeof(Operation) + sizeof(Opheader) +
+	size = offsetof( SyncOperationBuffer, sob_extra ) +
 		(i ? ( (i+1) * sizeof(AttributeName) + alen) : 0) +
 		op->o_req_dn.bv_len + 1 +
 		op->o_req_ndn.bv_len + 1 +
 		op->o_ndn.bv_len + 1 +
 		so->s_filterstr.bv_len + 1;
-	op2 = (Operation *)ch_calloc( 1, size );
-	op2->o_hdr = (Opheader *)(op2+1);
+	sopbuf2 = ch_calloc( 1, size );
+	op2 = &sopbuf2->sob_op;
+	op2->o_hdr = &sopbuf2->sob_hdr;
 
 	/* Copy the fields we care about explicitly, leave the rest alone */
 	*op2->o_hdr = *op->o_hdr;
@@ -1842,18 +1851,18 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->o_request = op->o_request;
 	op2->o_private = on;
 
+	ptr = (char *) sopbuf2 + offsetof( SyncOperationBuffer, sob_extra );
 	if ( i ) {
-		op2->ors_attrs = (AttributeName *)(op2->o_hdr + 1);
-		ptr = (char *)(op2->ors_attrs+i+1);
+		op2->ors_attrs = (AttributeName *) ptr;
+		ptr = (char *) &op2->ors_attrs[i+1];
 		for (i=0; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++) {
 			op2->ors_attrs[i] = op->ors_attrs[i];
 			op2->ors_attrs[i].an_name.bv_val = ptr;
 			ptr = lutil_strcopy( ptr, op->ors_attrs[i].an_name.bv_val ) + 1;
 		}
 		BER_BVZERO( &op2->ors_attrs[i].an_name );
-	} else {
-		ptr = (char *)(op2->o_hdr + 1);
 	}
+
 	op2->o_authz = op->o_authz;
 	op2->o_ndn.bv_val = ptr;
 	ptr = lutil_strcopy(ptr, op->o_ndn.bv_val) + 1;
@@ -2508,8 +2517,8 @@ syncprov_db_open(
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 
 	Connection conn = { 0 };
-	OperationBuffer opbuf = { 0 };
-	Operation *op = (Operation *) &opbuf;
+	OperationBuffer opbuf;
+	Operation *op;
 	Entry *e = NULL;
 	Attribute *a;
 	int rc;
@@ -2531,7 +2540,8 @@ syncprov_db_open(
 	}
 
 	thrctx = ldap_pvt_thread_pool_context();
-	connection_fake_init( &conn, op, thrctx );
+	connection_fake_init( &conn, &opbuf, thrctx );
+	op = &opbuf.ob_op;
 	op->o_bd = be;
 	op->o_dn = be->be_rootdn;
 	op->o_ndn = be->be_rootndn;
@@ -2605,12 +2615,13 @@ syncprov_db_close(
 	if ( si->si_numops ) {
 		Connection conn;
 		OperationBuffer opbuf;
-		Operation *op = (Operation *) &opbuf;
+		Operation *op;
 		SlapReply rs = {REP_RESULT};
 		void *thrctx;
 
 		thrctx = ldap_pvt_thread_pool_context();
-		connection_fake_init( &conn, op, thrctx );
+		connection_fake_init( &conn, &opbuf, thrctx );
+		op = &opbuf.ob_op;
 		op->o_bd = be;
 		op->o_dn = be->be_rootdn;
 		op->o_ndn = be->be_rootndn;

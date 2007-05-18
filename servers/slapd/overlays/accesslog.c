@@ -561,7 +561,7 @@ accesslog_purge( void *ctx, void *arg )
 
 	Connection conn = {0};
 	OperationBuffer opbuf;
-	Operation *op = (Operation *) &opbuf;
+	Operation *op;
 	SlapReply rs = {REP_RESULT};
 	slap_callback cb = { NULL, log_old_lookup, NULL, NULL };
 	Filter f;
@@ -571,7 +571,8 @@ accesslog_purge( void *ctx, void *arg )
 	char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	time_t old = slap_get_time();
 
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	f.f_choice = LDAP_FILTER_LE;
 	f.f_ava = &ava;
@@ -1522,12 +1523,13 @@ accesslog_db_root(
 
 	Connection conn = {0};
 	OperationBuffer opbuf;
-	Operation *op = (Operation *) &opbuf;
+	Operation *op;
 
 	Entry *e;
 	int rc;
 
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 	op->o_bd = li->li_db;
 	op->o_dn = li->li_db->be_rootdn;
 	op->o_ndn = li->li_db->be_rootndn;

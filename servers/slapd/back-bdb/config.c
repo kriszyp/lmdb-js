@@ -179,7 +179,7 @@ bdb_online_index( void *ctx, void *arg )
 
 	Connection conn = {0};
 	OperationBuffer opbuf;
-	Operation *op = (Operation *) &opbuf;
+	Operation *op;
 
 	DBC *curs;
 	DBT key, data;
@@ -191,7 +191,8 @@ bdb_online_index( void *ctx, void *arg )
 	int rc, getnext = 1;
 	int i;
 
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	op->o_bd = be;
 

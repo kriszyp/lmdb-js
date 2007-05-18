@@ -1123,8 +1123,8 @@ do_syncrepl(
 		return NULL;
 	}
 
-	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	/* use global malloc for now */
 	op->o_tmpmemctx = NULL;

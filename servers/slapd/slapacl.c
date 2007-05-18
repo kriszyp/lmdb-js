@@ -95,8 +95,8 @@ slapacl( int argc, char **argv )
 	argv = &argv[ optind ];
 	argc -= optind;
 
-	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, &conn );
+	connection_fake_init( &conn, &opbuf, &conn );
+	op = &opbuf.ob_op;
 
 	conn.c_listener = &listener;
 	conn.c_listener_url = listener_url;

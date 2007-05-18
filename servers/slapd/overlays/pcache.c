@@ -1641,8 +1641,8 @@ consistency_check(
 	int return_val, pause = 1;
 	QueryTemplate* templ;
 
-	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	op->o_bd = &cm->db;
 	op->o_dn = cm->db.be_rootdn;

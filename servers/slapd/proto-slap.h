@@ -724,11 +724,11 @@ LDAP_SLAPD_F (void) connection_done LDAP_P((Connection *));
 LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
 LDAP_SLAPD_F (void) connection_fake_init LDAP_P((
 	Connection *conn,
-	Operation *op,
+	OperationBuffer *opbuf,
 	void *threadctx ));
 LDAP_SLAPD_F (void) connection_fake_init2 LDAP_P((
 	Connection *conn,
-	Operation *op,
+	OperationBuffer *opbuf,
 	void *threadctx,
 	int newmem ));
 LDAP_SLAPD_F (void) connection_assign_nextid LDAP_P((Connection *));

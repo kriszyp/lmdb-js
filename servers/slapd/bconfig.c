@@ -3128,8 +3128,8 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		void *thrctx = ldap_pvt_thread_pool_context();
 		int prev_DN_strict;
 
-		op = (Operation *) &opbuf;
-		connection_fake_init( &conn, op, thrctx );
+		connection_fake_init( &conn, &opbuf, thrctx );
+		op = &opbuf.ob_op;
 
 		filter.f_desc = slap_schema.si_ad_objectClass;
 
@@ -5420,8 +5420,8 @@ config_back_db_open( BackendDB *be )
 	}
 
 	thrctx = ldap_pvt_thread_pool_context();
-	op = (Operation *) &opbuf;
-	connection_fake_init( &conn, op, thrctx );
+	connection_fake_init( &conn, &opbuf, thrctx );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
@@ -5802,9 +5802,9 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					ca.bi->bi_type);
 				ce = config_build_entry( NULL, NULL, cfb->cb_root, &ca, &rdn,
 						&CFOC_DATABASE, ca.be->be_cf_ocs );
-				op = (Operation *) &opbuf;
 				thrctx = ldap_pvt_thread_pool_context();
-				connection_fake_init2( &conn, op, thrctx,0 );
+				connection_fake_init2( &conn, &opbuf, thrctx,0 );
+				op = &opbuf.ob_op;
 				op->o_bd = &cfb->cb_db;
 				op->o_tag = LDAP_REQ_ADD;
 				op->ora_e = ce;
@@ -5854,8 +5854,8 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 						ca.be->be_cf_ocs );
 				if ( ! op ) {
 					thrctx = ldap_pvt_thread_pool_context();
-					op = (Operation *) &opbuf;
-					connection_fake_init2( &conn, op, thrctx,0 );
+					connection_fake_init2( &conn, &opbuf, thrctx,0 );
+					op = &opbuf.ob_op;
 					op->o_bd = &cfb->cb_db;
 					op->o_tag = LDAP_REQ_ADD;
 					op->o_dn = be->be_rootdn;

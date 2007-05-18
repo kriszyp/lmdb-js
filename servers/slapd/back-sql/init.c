@@ -223,8 +223,8 @@ backsql_db_open(
 	SQLHDBC 	dbh = SQL_NULL_HDBC;
 	struct berbuf	bb = BB_NULL;
 
-	OperationBuffer	opbuf;
-	Operation*	op = (Operation *) &opbuf;
+	OperationBuffer opbuf;
+	Operation*	op;
 	
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_open(): "
 		"testing RDBMS connection\n", 0, 0, 0 );
@@ -470,7 +470,8 @@ backsql_db_open(
 	}
 
 	/* This should just be to force schema loading */
-	op->o_hdr = (Opheader *)&op[ 1 ];
+	op = &opbuf.ob_op;
+	op->o_hdr = &opbuf.ob_hdr;
 	op->o_connid = (unsigned long)(-1);
 	op->o_bd = bd;
 	if ( backsql_get_db_conn( op, &dbh ) != LDAP_SUCCESS ) {
@@ -581,9 +582,9 @@ int
 backsql_connection_destroy( Backend *bd, Connection *c )
 {
 	OperationBuffer opbuf;
-	Operation*	op = (Operation *) &opbuf;
+	Operation*	op = &opbuf.ob_op;
 
-	op->o_hdr = (Opheader *)&op[ 1 ];
+	op->o_hdr = &opbuf.ob_hdr;
 	op->o_connid = c->c_connid;
 	op->o_bd = bd;
 

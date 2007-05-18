@@ -1093,8 +1093,8 @@ slapd_rw_apply( void *private, const char *filter, struct berval *val )
 	int rc;
 
 	thrctx = ldap_pvt_thread_pool_context();
-	op = (Operation *)&opbuf;
-	connection_fake_init2( &conn, op, thrctx, 0 );
+	connection_fake_init2( &conn, &opbuf, thrctx, 0 );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->o_req_dn = op->o_req_ndn = sl->base;

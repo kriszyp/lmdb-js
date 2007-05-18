@@ -134,8 +134,8 @@ dds_expire( void *ctx, dds_info_t *di )
 
 	int		ndeletes, ntotdeletes;
 
-	op = (Operation *)&opbuf;
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
@@ -1606,8 +1606,8 @@ dds_count( void *ctx, BackendDB *be )
 	slap_callback	sc = { 0 };
 	SlapReply	rs = { REP_RESULT };
 
-	op = (Operation *)&opbuf;
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	memset( &op->oq_search, 0, sizeof( op->oq_search ) );

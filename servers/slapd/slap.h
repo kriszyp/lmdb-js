@@ -2579,11 +2579,11 @@ struct Operation {
 	LDAP_STAILQ_ENTRY(Operation)	o_next;	/* next operation in list */
 };
 
-#define	OPERATION_BUFFER_SIZE	( sizeof(Operation) + sizeof(Opheader) + \
-	SLAP_MAX_CIDS*sizeof(void *) )
-
-typedef LBER_ALIGNED_BUFFER(operation_buffer_u,OPERATION_BUFFER_SIZE)
-	OperationBuffer;
+typedef struct OperationBuffer {
+	Operation	ob_op;
+	Opheader	ob_hdr;
+	void		*ob_controls[SLAP_MAX_CIDS];
+} OperationBuffer;
 
 #define send_ldap_error( op, rs, err, text ) do { \
 		(rs)->sr_err = err; (rs)->sr_text = text; \
