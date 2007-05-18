@@ -55,10 +55,10 @@ AC_THREADS=threads@BUILD_THREAD@
 AC_LIBS_DYNAMIC=lib@BUILD_LIBS_DYNAMIC@
 
 # sanitize
-if test "${AC_ldap}" = "ldapmod" -a "${AC_LIBS_DYNAMIC}" = "static" ; then
+if test "${AC_ldap}" = "ldapmod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_ldap="ldapno"
 fi
-if test "${AC_meta}" = "metamod" -a "${AC_LIBS_DYNAMIC}" = "static" ; then
+if test "${AC_meta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="metano"
 fi
 
