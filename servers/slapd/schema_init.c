@@ -27,6 +27,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "../../libraries/liblber/lber-int.h" /* get ber_ptrlen() */
 
 #include "ldap_utf8.h"
 
