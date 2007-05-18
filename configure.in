@@ -50,8 +50,11 @@ fi
 SHTOOL="$ac_cv_shtool"
 dnl AC_SUBST(SHTOOL)dnl
 
-TB="`$SHTOOL echo -e '%B' 2>/dev/null`"
-TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
+TB="" TN=""
+if test -t 1; then
+	TB="`$SHTOOL echo -e '%B' 2>/dev/null`"
+	TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
+fi
 
 OPENLDAP_CVS=""
 if test -d $ac_aux_dir/CVS; then

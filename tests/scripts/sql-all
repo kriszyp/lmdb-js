@@ -14,8 +14,13 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SHTOOL="$SRCDIR/../build/shtool"
-TB=`$SHTOOL echo -e "%B"`
-TN=`$SHTOOL echo -e "%b"`
+
+TB="" TN=""
+if test -t 1 ; then
+	TB=`$SHTOOL echo -e "%B" 2>/dev/null`
+	TN=`$SHTOOL echo -e "%b" 2>/dev/null`
+fi
+
 SLEEPTIME=10
 
 echo "#######################################################################"
