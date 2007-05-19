@@ -95,6 +95,8 @@ do_modify(
 		goto cleanup;
 	}
 
+	op->orm_no_opattrs = 0;
+
 	rs->sr_err = slap_mods_check( op, op->orm_modlist,
 		&rs->sr_text, textbuf, textlen, NULL );
 

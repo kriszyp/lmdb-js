@@ -1284,7 +1284,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 static void
 syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 {
-    syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
+	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 	Modifications mod;
 	Operation opm;
 	SlapReply rsm = { 0 };
@@ -1312,6 +1312,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}
+	opm.orm_no_opattrs = 0;
 }
 
 static void

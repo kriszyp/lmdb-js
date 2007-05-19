@@ -2134,6 +2134,7 @@ retry_add:;
 
 			rc = op->o_bd->be_modify( op, &rs_modify );
 			slap_mods_free( op->orm_modlist, 1 );
+			op->orm_no_opattrs = 0;
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s be_modify (%d)\n", 
 					si->si_ridtxt, rc, 0 );
@@ -2606,6 +2607,7 @@ syncrepl_updateCookie(
 
 	op->orm_no_opattrs = 1;
 	rc = op->o_bd->be_modify( op, &rs_modify );
+	op->orm_no_opattrs = 0;
 	op->o_msgid = 0;
 
 	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
