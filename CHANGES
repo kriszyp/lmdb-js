@@ -5,6 +5,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed slapd mutex bug after failed startup (ITS#4957)
 	Fixed slapd-config olcModuleLoad replace (ITS#4921)
 	Fixed slapd-bdb no-op crasher (ITS#4925)
+	Fixed slapo-chain RFC3062 passwd exop handling (ITS#4964)
 	Fixed libldap response code handling on rebind (ITS#4924)
 	Fixed libldap SASL_MAX_BUFF_SIZE (ITS#4935)
 	Documentation
