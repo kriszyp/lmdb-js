@@ -60,7 +60,7 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd = ri->ri_bd;
 
-	if ( bd == NULL ) {
+	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
 		bd = select_backend( &op->o_req_ndn, 0, 1 );
 		if ( bd == op->o_bd ) {
 			if ( err > LDAP_SUCCESS ) {
@@ -140,9 +140,9 @@ relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = ri->ri_bd;
+	bd = relay_back_select_backend( op, rs, -1 );
 	if ( bd == NULL ) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		return rc;
 	}
 
 	if ( bd && bd->be_unbind ) {
@@ -405,7 +405,7 @@ relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_CANNOT_CANCEL );
 	if ( bd == NULL ) {
 		return 1;
 	}
