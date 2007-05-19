@@ -274,6 +274,8 @@ old_good:
 		op->o_tag = LDAP_REQ_MODIFY;
 		op->o_callback = &cb;
 		op->orm_modlist = qpw->rs_mods;
+		op->orm_no_opattrs = 0;
+		
 		cb.sc_private = qpw;	/* let Modify know this was pwdMod,
 					 * if it cares... */
 
