@@ -304,12 +304,7 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-if test "$WITHTLS" = no ; then 
-	echo "Certificate matching not suported without TLS"
-	LDIF=$CERTIFICATEOUT
-else
-	LDIF=$CERTIFICATETLS
-fi 
+LDIF=$CERTIFICATETLS
 
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT

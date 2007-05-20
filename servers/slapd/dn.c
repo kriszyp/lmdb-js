@@ -1257,7 +1257,6 @@ int register_certificate_map_function(SLAP_CERT_MAP_FN *fn)
 	return -1;
 }
 
-#ifdef HAVE_TLS
 /*
  * Convert an X.509 DN into a normalized LDAP DN
  */
@@ -1274,6 +1273,7 @@ dnX509normalize( void *x509_name, struct berval *out )
 	return rc;
 }
 
+#ifdef HAVE_TLS
 /*
  * Get the TLS session's peer's DN into a normalized LDAP DN
  */

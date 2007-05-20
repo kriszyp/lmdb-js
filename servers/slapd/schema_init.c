@@ -4536,12 +4536,8 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.3.6.1.1.15.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
-#ifdef HAVE_TLS
 		NULL, certificateExactNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
-#else
-		NULL, NULL, NULL, NULL, NULL,
-#endif
 		NULL },
 
 	{"( 2.5.13.35 NAME 'certificateMatch' "

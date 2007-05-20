@@ -63,6 +63,8 @@
 #define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
 				(void *)&sb_tls_sbio )
 
+#endif /* HAVE_TLS */
+
 /* RFC2459 minimum required set of supported attribute types
  * in a certificate DN
  */
@@ -92,6 +94,7 @@ static oid_name oids[] = {
 	{ BER_BVNULL, BER_BVNULL }
 };
 
+#ifdef HAVE_TLS
 #ifdef HAVE_GNUTLS
 
 typedef struct tls_cipher_suite {
