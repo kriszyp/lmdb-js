@@ -397,6 +397,24 @@ static void tls_locking_cb( int mode, int type, const char *file, int line )
 	}
 }
 
+static unsigned long tls_thread_self( void )
+{
+	/* FIXME: CRYPTO_set_id_callback only works when ldap_pvt_thread_t
+	 * is an integral type that fits in an unsigned long
+	 */
+
+	/* force an error if ldap_pvt_thread_t is not such a type */
+	enum {
+		ok =
+		3 / (ldap_pvt_thread_t)2 == 1	/* integer */
+		&& (ldap_pvt_thread_t)-1 > 0UL	/* not too wide signed */
+		&& (ldap_pvt_thread_t)-2 < -1UL	/* not too wide unsigned */
+	};
+	typedef struct { int dummy: ok ? 1 : -1; } Check[ok ? 1 : -1];
+
+	return ldap_pvt_thread_self();
+}
+
 static void tls_init_threads( void )
 {
 	int i;
@@ -405,10 +423,7 @@ static void tls_init_threads( void )
 		ldap_pvt_thread_mutex_init( &tls_mutexes[i] );
 	}
 	CRYPTO_set_locking_callback( tls_locking_cb );
-	CRYPTO_set_id_callback( ldap_pvt_thread_self );
-	/* FIXME: CRYPTO_set_id_callback only works when ldap_pvt_thread_t
-	 * is an integral type that fits in an unsigned long
-	 */
+	CRYPTO_set_id_callback( tls_thread_self );
 }
 #endif /* LDAP_R_COMPILE */
 
