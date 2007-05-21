@@ -78,6 +78,20 @@ overlay is the capability to perform suffix massaging between a virtual
 and a real naming context by means of the 
 .B rwm-suffixmassage
 directive.
+This, in conjunction with proxy backends,
+.BR slapd-ldap (5)
+and
+.BR slapd-meta (5),
+or with the relay backend, 
+.BR slapd-relay (5),
+allows to create virtual views of databases.
+A distinguishing feature of this overlay is that, when instantiated
+before any database, it can modify the DN of requests
+.I before
+database selection.
+For this reason, rules that rewrite the empty DN ("") 
+or the subschemaSubentry DN (usually "cn=subschema"),
+would prevent clients from reading the root DSE or the DSA's schema.
 .TP
 .B rwm-suffixmassage "[<virtual naming context>]" "<real naming context>"
 Shortcut to implement naming context rewriting; the trailing part
