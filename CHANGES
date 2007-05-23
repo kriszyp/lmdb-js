@@ -11,6 +11,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed libldap SASL_MAX_BUFF_SIZE (ITS#4935)
 	Documentation
 		Updated slapadd(8) with details on -s option
+        Updated slapo-ppolicy(5) for pwdAccountLockedTime zero example (ITS#4978)
 
 OpenLDAP 2.3.35 Release (2007/04/09)
 	Fixed ldapmodify to use correct memory free functions (ITS#4901)
