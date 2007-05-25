@@ -447,6 +447,9 @@ valsort_modify( Operation *op, SlapReply *rs )
 		if ( !(vi->vi_sort & VALSORT_WEIGHTED ))
 			continue;
 		for (ml = op->orm_modlist; ml; ml=ml->sml_next ) {
+			/* Must be a Delete Attr op, so no values to consider */
+			if ( !ml->sml_values )
+				continue;
 			if ( ml->sml_desc == vi->vi_ad )
 				break;
 		}
