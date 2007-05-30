@@ -57,7 +57,7 @@
  *
  * Run-time configuration:
  *
- *  Setup of memory debugging tools:
+ *  Memory debugging tools:
  *   Tools that report uninitialized memory accesses should disable
  *   such warnings about the function debug_already_initialized().
  *   Alternatively, include "noreinit" (below) in $LDAP_THREAD_DEBUG.
@@ -589,7 +589,7 @@ remove_thread_info( ldap_debug_thread_t *t, const char *msg )
 		(thread_info[thread_info_used] = t   )->idx = thread_info_used;
 }
 
-ldap_debug_thread_t *
+static ldap_debug_thread_t *
 get_thread_info( ldap_pvt_thread_t thread, const char *msg )
 {
 	unsigned int i;
@@ -1174,7 +1174,7 @@ ldap_pvt_thread_pool_submit(
 {
 	int rc, has_pool;
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_submit" );
-	has_pool = (tpool != NULL && *tpool != NULL);
+	has_pool = (tpool && *tpool);
 	rc = ldap_int_thread_pool_submit( tpool, start_routine, arg );
 	if( has_pool )
 		ERROR_IF( rc, "ldap_pvt_thread_pool_submit" );
@@ -1202,7 +1202,7 @@ ldap_pvt_thread_pool_destroy( ldap_pvt_thread_pool_t *tpool, int run_pending )
 {
 	int rc, has_pool;
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_destroy" );
-	has_pool = (tpool != NULL && *tpool != NULL);
+	has_pool = (tpool && *tpool);
 	rc = ldap_int_thread_pool_destroy( tpool, run_pending );
 	if( has_pool ) {
 		if( rc ) {
