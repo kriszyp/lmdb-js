@@ -32,6 +32,7 @@ typedef struct rwm_op_state {
 	struct berval ro_ndn;
 	struct berval r_dn;
 	struct berval r_ndn;
+	AttributeName *mapped_attrs;
 	OpRequest o_request;
 } rwm_op_state;
 
@@ -88,7 +89,7 @@ rwm_op_cleanup( Operation *op, SlapReply *rs )
 			}
 			break;
 		case LDAP_REQ_SEARCH:
-			ch_free( op->ors_attrs );
+			ch_free( ros->mapped_attrs );
 			filter_free_x( op, op->ors_filter );
 			ch_free( op->ors_filterstr.bv_val );
 			op->ors_attrs = ros->ors_attrs;
@@ -779,6 +780,11 @@ rwm_swap_attrs( Operation *op, SlapReply *rs )
 	rwm_op_state *ros = cb->sc_private;
 
 	rs->sr_attrs = ros->ors_attrs;
+
+	/* other overlays might have touched op->ors_attrs, 
+	 * so we restore the original version here, otherwise
+	 * attribute-mapping might fail */
+	op->ors_attrs = ros->mapped_attrs; 
 	
  	return SLAP_CB_CONTINUE;
 }
@@ -853,6 +859,9 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	}
 
 	op->ors_attrs = an;
+	/* store the mapped Attributes for later usage, in
+	 * the case that other overlays change op->ors_attrs */
+	roc->ros.mapped_attrs = an;
 	roc->cb.sc_response = rwm_swap_attrs;
 
 	op->o_callback = &roc->cb;
