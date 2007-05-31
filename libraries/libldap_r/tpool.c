@@ -393,24 +393,27 @@ ldap_pvt_thread_pool_submit (
 		pool->ltp_starting++;
 		need_thread = 1;
 	}
-	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 #ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	ldap_lazy_sem_op_submit( thread_pool_sem );
+	/* FIXME:  Another thread can now handle and release ctx, after
+	 * which a newly submitted op can reuse ctx.  Then it is wrong for
+	 * the "if (pool->ltp_open_count == 0)" code below to release ctx.
+	 */
 #endif
 
 	if (need_thread) {
-		int rc;
-
-		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-
-		rc = ldap_pvt_thread_create( &thr, 1,
-			ldap_int_thread_pool_wrapper, pool );
-		pool->ltp_starting--;
-		if (rc != 0) {
+		if (0 != ldap_pvt_thread_create(
+			&thr, 1, ldap_int_thread_pool_wrapper, pool))
+		{
 			/* couldn't create thread.  back out of
 			 * ltp_open_count and check for even worse things.
 			 */
+#ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
+			ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+#endif
+			pool->ltp_starting--;
 			pool->ltp_open_count--;
 			if (pool->ltp_open_count == 0) {
 				/* no open threads at all?!?
@@ -435,14 +438,20 @@ ldap_pvt_thread_pool_submit (
 					return(-1);
 				}
 			}
+#ifdef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
+			ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+#endif
 			/* there is another open thread, so this
 			 * context will be handled eventually.
 			 * continue on, we have signalled that
 			 * the context is waiting.
 			 */
 		}
-		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	}
+
+#ifndef LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+#endif
 
 	return(0);
 }
@@ -674,6 +683,8 @@ ldap_int_thread_pool_wrapper (
 	thread_keys[keyslot].id = uctx.ltu_id;
 	thread_keys[keyslot].ctx = &uctx;
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
+
+	pool->ltp_starting--;
 
 	for (;;) {
 		while (pool->ltp_pause)
