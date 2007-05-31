@@ -2033,10 +2033,11 @@ connection_fake_init2(
 
 #ifdef LDAP_SLAPI
 	if ( slapi_plugins_used ) {
-		conn_fake_extblock *eb = NULL;
+		conn_fake_extblock *eb;
+		void *ebx = NULL;
 
 		/* Use thread keys to make sure these eventually get cleaned up */
-		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &eb,
+		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &ebx,
 			NULL )) {
 			eb = ch_malloc( sizeof( *eb ));
 			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
@@ -2046,6 +2047,7 @@ connection_fake_init2(
 			ldap_pvt_thread_pool_setkey( ctx, connection_fake_init, eb,
 				connection_fake_destroy );
 		} else {
+			eb = ebx;
 			conn->c_extensions = eb->eb_conn;
 			op->o_hdr->oh_extensions = eb->eb_op;
 		}
