@@ -205,18 +205,15 @@ get_options( void )
 	if( s != NULL ) {
 		while( *(s += strspn( s, ", \t\r\n" )) != '\0' ) {
 			size_t optlen = strcspn( s, ", \t\r\n" );
-			const struct option_info_s *oi;
-			for( oi = option_info; oi->name; oi++ ) {
-				if( strncasecmp( oi->name, s, optlen ) == 0 ) {
-					if( oi->name && oi->name[optlen] == '\0' ) {
-						*oi->var = oi->val;
-					} else {
-						fprintf( stderr, "Unknown $%s option '%.*s'\n",
-							"LDAP_THREAD_DEBUG", (int) optlen, s );
-					}
-					break;
-				}
-			}
+			const struct option_info_s *oi = option_info;
+			while( oi->name &&
+				   (strncasecmp( oi->name, s, optlen ) || oi->name[optlen]) )
+				oi++;
+			if( oi->name )
+				*oi->var = oi->val;
+			else
+				fprintf( stderr, "Unknown $%s option '%.*s'\n",
+					"LDAP_THREAD_DEBUG", (int) optlen, s );
 			s += optlen;
 		}
 	}
@@ -258,7 +255,7 @@ thread_name( char *buf, int bufsize, ldap_pvt_thread_t thread )
 }
 
 static void
-exit_thread_message( const ldap_pvt_thread_t thread )
+exit_thread_message( ldap_pvt_thread_t thread )
 {
 	if( tracethreads ) {
 		char buf[40];
@@ -289,11 +286,18 @@ exit_thread_message( const ldap_pvt_thread_t thread )
 #define INITED_VALUE		0x12345678UL
 #define INITED_BYTE_VALUE	0xd5
 
+/* Valid programs will access uninitialized memory here if dupinit. */
 static int
 debug_already_initialized( const LDAP_UINTPTR_T *num )
 {
-	/* Valid programs will access uninitialized memory if dupinit */
-	return dupinit && *num == INITED_VALUE;
+	/*
+	 * 'ret' keeps the Valgrind warning "Conditional jump or move
+	 * depends on uninitialised value(s)" _inside_ this function.
+	 */
+	volatile int ret = 0;
+	if( dupinit && *num == INITED_VALUE )
+		ret = 1;
+	return ret;
 }
 
 static void
@@ -310,6 +314,7 @@ alloc_usage( ldap_debug_usage_info_t *usage, const char *msg )
 		*dummy = INITED_BYTE_VALUE;
 		if( wraptype == Wrap_scramble ) {
 			usage->num = ~(LDAP_UINTPTR_T) dummy;
+			/* Check that ptr<->integer casts work on this host */
 			assert( (unsigned char *)~usage->num == dummy );
 		} else {
 			usage->ptr = dummy + wrap_offset;
@@ -407,15 +412,15 @@ remove_thread_info( ldap_debug_thread_t *t, const char *msg )
 	}
 }
 
-ldap_debug_thread_t *
-get_thread_info( ldap_pvt_thread_t *thread, const char *msg )
+static ldap_debug_thread_t *
+get_thread_info( ldap_pvt_thread_t thread, const char *msg )
 {
 	unsigned int i;
 	ldap_debug_thread_t *t;
 	if( nodebug )
 		return NULL;
 	for( i = 0; i < thread_info_used; i++ ) {
-		if( ldap_pvt_thread_equal( *thread, thread_info[i]->wrapped ) )
+		if( ldap_pvt_thread_equal( thread, thread_info[i]->wrapped ) )
 			break;
 	}
 	ERROR_IF( i == thread_info_used, msg );
@@ -432,7 +437,7 @@ exiting_thread( const char *msg )
 		thread = ldap_pvt_thread_self();
 		exit_thread_message( thread );
 		with_threads_lock({
-			ldap_debug_thread_t *t = get_thread_info( &thread, msg );
+			ldap_debug_thread_t *t = get_thread_info( thread, msg );
 			if( t->detached )
 				remove_thread_info( t, msg );
 		});
@@ -583,7 +588,9 @@ ldap_pvt_thread_create(
 void
 ldap_pvt_thread_exit( void *retval )
 {
+#if 0 /* Detached threads may exit after ldap_debug_thread_destroy(). */
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_exit" );
+#endif
 	adjust_count( Idx_unexited_thread, -1 );
 	exiting_thread( "ldap_pvt_thread_exit" );
 	ldap_int_thread_exit( retval );
@@ -601,7 +608,7 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 			thread_name( buf, sizeof(buf), thread ) );
 	}
 	with_threads_lock(
-		t = get_thread_info( &thread, "ldap_pvt_thread_join" ) );
+		t = get_thread_info( thread, "ldap_pvt_thread_join" ) );
 	rc = ldap_int_thread_join( thread, thread_return );
 	if( rc ) {
 		ERROR( rc, "ldap_pvt_thread_join" );
@@ -921,7 +928,7 @@ ldap_pvt_thread_pool_submit(
 {
 	int rc, has_pool;
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_submit" );
-	has_pool = (tpool != NULL && *tpool != NULL);
+	has_pool = (tpool && *tpool);
 	rc = ldap_int_thread_pool_submit( tpool, start_routine, arg );
 	if( has_pool )
 		ERROR_IF( rc, "ldap_pvt_thread_pool_submit" );
@@ -949,7 +956,7 @@ ldap_pvt_thread_pool_destroy( ldap_pvt_thread_pool_t *tpool, int run_pending )
 {
 	int rc, has_pool;
 	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_destroy" );
-	has_pool = (tpool != NULL && *tpool != NULL);
+	has_pool = (tpool && *tpool);
 	rc = ldap_int_thread_pool_destroy( tpool, run_pending );
 	if( has_pool ) {
 		if( rc ) {
