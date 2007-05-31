@@ -37,6 +37,7 @@ typedef enum ldap_int_thread_pool_state_e {
 	LDAP_INT_THREAD_POOL_STOPPING
 } ldap_int_thread_pool_state_t;
 
+/* Thread-specific key with data and optional free function */
 typedef struct ldap_int_thread_key_s {
 	void *ltk_key;
 	void *ltk_data;
@@ -49,14 +50,16 @@ typedef struct ldap_int_thread_key_s {
 #define	MAXKEYS	32
 #define	LDAP_MAXTHR	1024	/* must be a power of 2 */
 
+/* User context: thread ID and thread-specific keys */
 typedef struct ldap_int_thread_userctx_s {
 	ldap_pvt_thread_t ltu_id;
 	ldap_int_thread_key_t ltu_key[MAXKEYS];
 } ldap_int_thread_userctx_t;
 
-static ldap_pvt_thread_t tid_zero;
 
-/* Thread ID -> context mapping (poor open-addressed hash table).
+static const ldap_pvt_thread_t tid_zero;
+
+/* Thread ID -> user context mapping (poor open-addressed hash table).
  * Protected by ldap_pvt_thread_pool_mutex except during pauses,
  * when it is read-only (used by pool_purgekey and pool_context).
  */
@@ -74,6 +77,7 @@ static struct {
 } while(0)
 
 
+/* Thread context: operation to perform */
 typedef struct ldap_int_thread_ctx_s {
 	union {
 	LDAP_STAILQ_ENTRY(ldap_int_thread_ctx_s) q;
@@ -86,20 +90,31 @@ typedef struct ldap_int_thread_ctx_s {
 
 struct ldap_int_thread_pool_s {
 	LDAP_STAILQ_ENTRY(ldap_int_thread_pool_s) ltp_next;
+
+	/* protect members below */
 	ldap_pvt_thread_mutex_t ltp_mutex;
+
+	/* not paused and something to do for pool_<wrapper/pause/destroy>() */
 	ldap_pvt_thread_cond_t ltp_cond;
+
+	/* ltp_active_count <= 1 && ltp_pause */
 	ldap_pvt_thread_cond_t ltp_pcond;
+
 	LDAP_STAILQ_HEAD(tcq, ldap_int_thread_ctx_s) ltp_pending_list;
 	LDAP_SLIST_HEAD(tcl, ldap_int_thread_ctx_s) ltp_free_list;
 	LDAP_SLIST_HEAD(tclq, ldap_int_thread_ctx_s) ltp_active_list;
+
 	ldap_int_thread_pool_state_t ltp_state;
+
+	/* some active request needs to be the sole active request */
 	int ltp_pause;
-	long ltp_max_count;
-	long ltp_max_pending;
-	long ltp_pending_count;
-	long ltp_active_count;
-	long ltp_open_count;
-	long ltp_starting;
+
+	long ltp_max_count;			/* max number of threads in pool */
+	long ltp_max_pending;		/* max pending or paused requests */
+	long ltp_pending_count;		/* pending or paused requests */
+	long ltp_active_count;		/* active, not paused requests */
+	long ltp_open_count;		/* number of threads */
+	long ltp_starting;			/* currenlty starting threads */
 };
 
 static int ldap_int_has_thread_pool = 0;
@@ -111,8 +126,8 @@ static ldap_pvt_thread_mutex_t ldap_pvt_thread_pool_mutex;
 
 static void *ldap_int_thread_pool_wrapper( void *pool );
 
+/* Thread ID and user context of the main thread */
 static ldap_pvt_thread_t ldap_int_main_tid;
-
 static ldap_int_thread_userctx_t ldap_int_main_thrctx;
 
 int
@@ -261,6 +276,7 @@ ldap_lazy_sem_post( ldap_lazy_sem_t* ls )
 	return 0;
 }
 
+/* Create a thread pool */
 int
 ldap_pvt_thread_pool_init (
 	ldap_pvt_thread_pool_t *tpool,
@@ -343,6 +359,7 @@ ldap_pvt_thread_pool_init (
 }
 
 
+/* Submit one operation to be performed by the thread pool */
 int
 ldap_pvt_thread_pool_submit (
 	ldap_pvt_thread_pool_t *tpool,
@@ -463,6 +480,7 @@ ldap_pvt_thread_pool_submit (
 	return(0);
 }
 
+/* Set max #threads.  value <= 0 means max supported #threads (LDAP_MAXTHR) */
 int
 ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads )
 {
@@ -485,6 +503,7 @@ ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads
 	return(0);
 }
 
+/* Inspect the pool */
 int
 ldap_pvt_thread_pool_query ( ldap_pvt_thread_pool_t *tpool, ldap_pvt_thread_pool_param_t param, void *value )
 {
@@ -566,6 +585,9 @@ ldap_pvt_thread_pool_query ( ldap_pvt_thread_pool_t *tpool, ldap_pvt_thread_pool
 			count = -2;
 		}
 		} break;
+
+	case LDAP_PVT_THREAD_POOL_PARAM_UNKNOWN:
+		break;
 	}
 	ldap_pvt_thread_mutex_unlock( &pool->ltp_mutex );
 
@@ -595,6 +617,7 @@ ldap_pvt_thread_pool_backload ( ldap_pvt_thread_pool_t *tpool )
 	return rc;
 }
 
+/* Destroy the pool after making its threads finish */
 int
 ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 {
@@ -655,6 +678,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	return(0);
 }
 
+/* Thread loop.  Accept and handle submitted thread contexts. */
 static void *
 ldap_int_thread_pool_wrapper ( 
 	void *xpool )
@@ -664,8 +688,7 @@ ldap_int_thread_pool_wrapper (
 	ldap_int_thread_userctx_t uctx;
 	unsigned i, keyslot, hash;
 
-	if (pool == NULL)
-		return NULL;
+	assert(pool != NULL);
 
 	for ( i=0; i<MAXKEYS; i++ ) {
 		uctx.ltu_key[i].ltk_key = NULL;
@@ -780,6 +803,7 @@ ldap_int_thread_pool_wrapper (
 	return(NULL);
 }
 
+/* Pause the pool.  Return when all other threads are paused. */
 int
 ldap_pvt_thread_pool_pause ( 
 	ldap_pvt_thread_pool_t *tpool )
@@ -818,6 +842,7 @@ ldap_pvt_thread_pool_pause (
 	return(0);
 }
 
+/* End a pause */
 int
 ldap_pvt_thread_pool_resume ( 
 	ldap_pvt_thread_pool_t *tpool )
@@ -839,6 +864,10 @@ ldap_pvt_thread_pool_resume (
 	return(0);
 }
 
+/*
+ * Get the key's data and optionally free function in the given context.
+ * Must not be called when the pool is paused.
+ */
 int ldap_pvt_thread_pool_getkey(
 	void *xctx,
 	void *key,
@@ -868,6 +897,15 @@ clear_key_idx( ldap_int_thread_userctx_t *ctx, int i )
 	ctx->ltu_key[i].ltk_key = NULL;
 }
 
+/*
+ * Set or remove data for the key in the given context.
+ * Must not be called when the pool is paused.
+ * key can be any unique pointer.
+ * kfree() is an optional function to free the data (but not the key):
+ * pool_context_reset() and pool_purgekey() call kfree(key, data),
+ * but pool_setkey() does not.  For pool_setkey() it is the caller's
+ * responsibility to free any existing data with the same key.
+ */
 int ldap_pvt_thread_pool_setkey(
 	void *xctx,
 	void *key,
@@ -928,6 +966,7 @@ void ldap_pvt_thread_pool_purgekey( void *key )
 }
 
 /*
+ * Find the context of the current thread.
  * This is necessary if the caller does not have access to the
  * thread context handle (for example, a slapd plugin calling
  * slapi_search_internal()). No doubt it is more efficient
@@ -960,6 +999,7 @@ void *ldap_pvt_thread_pool_context( )
 	return ctx;
 }
 
+/* Free the context's keys.  Must not be called when the pool is paused. */
 void ldap_pvt_thread_pool_context_reset( void *vctx )
 {
 	ldap_int_thread_userctx_t *ctx = vctx;
