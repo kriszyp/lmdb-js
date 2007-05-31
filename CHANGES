@@ -9,6 +9,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed slapo-chain RFC3062 passwd exop handling (ITS#4964)
 	Fixed libldap response code handling on rebind (ITS#4924)
 	Fixed libldap SASL_MAX_BUFF_SIZE (ITS#4935)
+	Fixed libldap_r thread debug issues (ITS#4972)
 	Build Environment
 		Fixed --disable-overlays Makefile problem (ITS#4988)
 	Documentation
