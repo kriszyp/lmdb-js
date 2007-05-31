@@ -1252,6 +1252,18 @@ cache_entries(
 }
 
 static int
+pcache_op_cleanup( Operation *op, SlapReply *rs ) {
+	slap_callback	*cb = op->o_callback;
+	struct search_info *si = cb->sc_private;
+	if ( si->save_attrs != NULL ) {
+		rs->sr_attrs = si->save_attrs;
+		op->ors_attrs = si->save_attrs;
+	}
+	op->o_callback = op->o_callback->sc_next;
+	op->o_tmpfree( cb, op->o_tmpmemctx );
+}
+
+static int
 pcache_response(
 	Operation	*op,
 	SlapReply	*rs )
@@ -1264,7 +1276,6 @@ pcache_response(
 	if ( si->save_attrs != NULL ) {
 		rs->sr_attrs = si->save_attrs;
 		op->ors_attrs = si->save_attrs;
-		si->save_attrs = NULL;
 	}
 
 	if ( rs->sr_type == REP_SEARCH ) {
@@ -1332,8 +1343,7 @@ pcache_response(
 			filter_free( si->query.filter );
 		}
 
-		/* free self */
-		op->o_callback->sc_cleanup = slap_freeself_cb;
+		op->o_callback->sc_cleanup = pcache_op_cleanup;
 	}
 	return SLAP_CB_CONTINUE;
 }
