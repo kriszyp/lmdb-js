@@ -102,6 +102,7 @@ struct ldap_int_thread_pool_s {
 	long ltp_starting;
 };
 
+static int ldap_int_has_thread_pool = 0;
 static LDAP_STAILQ_HEAD(tpq, ldap_int_thread_pool_s)
 	ldap_int_thread_pool_list =
 	LDAP_STAILQ_HEAD_INITIALIZER(ldap_int_thread_pool_list);
@@ -269,6 +270,9 @@ ldap_pvt_thread_pool_init (
 	ldap_pvt_thread_pool_t pool;
 	int rc;
 
+	/* multiple pools are currently not supported (ITS#4943) */
+	assert(!ldap_int_has_thread_pool);
+
 	if (! (0 <= max_threads && max_threads <= LDAP_MAXTHR))
 		max_threads = 0;
 
@@ -287,6 +291,8 @@ ldap_pvt_thread_pool_init (
 	rc = ldap_pvt_thread_cond_init(&pool->ltp_pcond);
 	if (rc != 0)
 		return(rc);
+
+	ldap_int_has_thread_pool = 1;
 	pool->ltp_state = LDAP_INT_THREAD_POOL_RUNNING;
 	pool->ltp_max_count = max_threads;
 	pool->ltp_max_pending = max_pending;
@@ -322,6 +328,7 @@ ldap_pvt_thread_pool_init (
 		ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 		LDAP_STAILQ_REMOVE(ldap_int_thread_pool_list, pool, 
 			ldap_int_thread_pool_s, ltp_next);
+		ldap_int_has_thread_pool = 0;
 		ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 		ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
 		ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
@@ -644,6 +651,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		LDAP_FREE( thread_pool_sem );
 	}
 #endif
+	ldap_int_has_thread_pool = 0;
 	return(0);
 }
 
