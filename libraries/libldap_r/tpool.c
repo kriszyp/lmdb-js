@@ -844,12 +844,8 @@ int ldap_pvt_thread_pool_getkey(
 static void
 clear_key_idx( ldap_int_thread_userctx_t *ctx, int i )
 {
-	int j = i;
-	while ( ++j < MAXKEYS && ctx->ltu_key[j].ltk_key );
-	if ( --j != i ) {
-		ctx->ltu_key[i] = ctx->ltu_key[j];
-		i = j;
-	}
+	for ( ; i < MAXKEYS-1 && ctx->ltu_key[i+1].ltk_key; i++ )
+		ctx->ltu_key[i] = ctx->ltu_key[i+1];
 	ctx->ltu_key[i].ltk_key = NULL;
 }
 
