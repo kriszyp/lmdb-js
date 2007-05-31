@@ -277,7 +277,8 @@ main( int argc, char **argv )
 	char		passwd[64], dn[256], rdn[64], attr[64], value[256];
 	char		filter[256], *host, **types;
 	char		**exdn;
-	char		*usage = "usage: %s [-u] [-h host] [-d level] [-s dnsuffix] [-p port] [-t file] [-T file]\n";
+	static const char usage[] =
+		"usage: %s [-u] [-h host] [-d level] [-s dnsuffix] [-p port] [-t file] [-T file]\n";
 	int		bound, all, scope, attrsonly;
 	LDAPMessage	*res;
 	LDAPMod		**mods, **attrs;
