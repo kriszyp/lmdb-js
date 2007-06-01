@@ -1,8 +1,64 @@
-# $OpenLDAP$
-# Copyright 2003-2007 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
-H1: The Proxy Cache Engine
+H1: Overlays
+
+
+H2: Access Logging
+
+
+H3: Overview
+
+
+H3: Access Logging Configuration
+
+
+H2: Audit Logging
+   
+   
+H3: Overview
+
+
+H3: Audit Logging Configuration
+
+
+H2: Constraints
+   
+   
+H3: Overview
+
+
+H3: Constraint Configuration
+   
+   
+H2: Dynamic Directory Services
+
+
+H3: Overview
+   
+   
+H3: Dynamic Directory Service Configuration
+
+
+H2: Dynamic Groups
+
+
+H3: Overview
+
+
+H3: Dynamic Group Configuration
+
+
+H2: Dynamic Lists
+   
+   
+H3: Overview
+
+
+H3: Dynamic List Configuration
+
+
+H2: The Proxy Cache Engine
 
 {{TERM:LDAP}} servers typically hold one or more subtrees of a
 {{TERM:DIT}}. Replica (or shadow) servers hold shadow copies of
@@ -11,7 +67,7 @@ from the master server to replica (slave) servers using LDAP Sync
 replication.  An LDAP cache is a special type of replica which holds
 entries corresponding to search filters instead of subtrees.
 
-H2: Overview
+H3: Overview
 
 The proxy cache extension of slapd is designed to improve the
 responseiveness of the ldap and meta backends. It handles a search
@@ -52,14 +108,14 @@ The Proxy Cache paper
 design and implementation details.
 
 
-H2: Proxy Cache Configuration
+H3: Proxy Cache Configuration
 
 The cache configuration specific directives described below must
 appear after a {{EX:overlay proxycache}} directive within a
 {{EX:"database meta"}} or {{EX:database ldap}} section of
 the server's {{slapd.conf}}(5) file.
 
-H3: Setting cache parameters
+H4: Setting cache parameters
 
 > proxyCache <DB> <maxentries> <nattrsets> <entrylimit> <period>
 
@@ -75,7 +131,7 @@ entries in a cachable query.  The <period> specifies the consistency
 check period (in seconds).  In each period, queries with expired
 TTLs are removed.
 
-H3: Defining attribute sets
+H4: Defining attribute sets
 
 > proxyAttrset <index> <attrs...>
 
@@ -84,7 +140,7 @@ set is associated with an index number from 0 to <numattrsets>-1.
 These indices are used by the proxyTemplate directive to define
 cacheable templates.
 
-H3: Specifying cacheable templates 
+H4: Specifying cacheable templates 
 
 > proxyTemplate <prototype_string> <attrset_index> <TTL>
 
@@ -94,7 +150,7 @@ its prototype filter string and set of required attributes identified
 by <attrset_index>.
 
 
-H3: Example
+H4: Example
 
 An example {{slapd.conf}}(5) database section for a caching server
 which proxies for the {{EX:"dc=example,dc=com"}} subtree held
@@ -117,7 +173,7 @@ at server {{EX:ldap.example.com}}.
 >	index       cn,sn,uid,mail  pres,eq,sub
 
 
-H4: Cacheable Queries
+H5: Cacheable Queries
 
 A LDAP search query is cacheable when its filter matches one of the
 templates as defined in the "proxyTemplate" statements and when it references
@@ -126,7 +182,7 @@ In the example above the attribute set number 0 defines that only the
 attributes: {{EX:mail postaladdress telephonenumber}} are cached for the following
 proxyTemplates.
 
-H4: Examples:
+H5: Examples:
 
 >	Filter: (&(sn=Richard*)(givenName=jack)) 
 >	Attrs: mail telephoneNumber
@@ -145,4 +201,87 @@ H4: Examples:
 
     is not cacheable, because the filter does not match the template ( logical
     OR "|" condition instead of logical AND "&" )
+                           
+                           
+H2: Password Policies
 
+
+H3: Overview
+
+
+H3: Password Policy Configuration
+
+
+H2: Referential Integrity
+
+
+H3: Overview
+
+
+H3: Referential Integrity Configuration
+
+
+H2: Return Code
+
+
+H3: Overview
+
+
+H3: Return Code Configuration
+
+
+H2: Rewrite/Remap
+            
+            
+H3: Overview
+
+
+H3: Rewrite/Remap Configuration
+
+
+H2: Sync Provider
+
+
+H3: Overview
+
+
+H3: Sync Provider Configuration
+
+
+H2: Translucent Proxy
+
+
+H3: Overview
+
+
+H3: Translucent Proxy Configuration
+
+
+H2: Attribute Uniqueness
+
+
+H3: Overview
+
+
+H3: Attribute Uniqueness Configuration
+
+
+H2: Value Sorting
+
+
+H3: Overview
+
+
+H3: Value Sorting Configuration
+
+
+H2: Overlay Stacking
+
+
+H3: Overview
+
+
+H3: Example Senarios
+
+
+H4: Samba

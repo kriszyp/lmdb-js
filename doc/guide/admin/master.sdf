@@ -48,6 +48,12 @@ PB:
 !include "dbtools.sdf"; chapter
 PB:
 
+!include "backends.sdf"; chapter
+PB:
+
+!include "overlays.sdf"; chapter
+PB:
+
 !include "schema.sdf"; chapter
 PB:
 
@@ -60,25 +66,29 @@ PB:
 !include "tls.sdf"; chapter
 PB:
 
-!include "monitoringslapd.sdf"; chapter
-PB:
-
-#!include "tuning.sdf"; chapter
-#PB:
-
 !include "referrals.sdf"; chapter
 PB:
 
 !include "replication.sdf"; chapter
 PB:
 
-!include "syncrepl.sdf"; chapter
+!include "maintenance.sdf"; chapter
 PB:
 
-!include "proxycache.sdf"; chapter
+!include "monitoringslapd.sdf"; chapter
+PB:
+
+!include "tuning.sdf"; chapter
+PB:
+
+!include "troubleshooting.sdf"; chapter
 PB:
 
 # Appendices 
+# Config file examples
+!include "appendix-configs.sdf"; appendix
+PB:
+
 # Terms
 !include "glossary.sdf"; appendix
 PB:

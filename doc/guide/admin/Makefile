@@ -18,16 +18,19 @@ sdf-src: \
 	../plain.sdf \
 	../preamble.sdf \
 	abstract.sdf \
+	appendix-configs.sdf \
+	backends.sdf \
 	config.sdf \
 	dbtools.sdf \
 	glossary.sdf \
 	guide.sdf \
 	install.sdf \
 	intro.sdf \
+	maintenance.sdf \
 	master.sdf \
 	monitoringslapd.sdf \
+	overlays.sdf \
 	preface.sdf \
-	proxycache.sdf \
 	quickstart.sdf \
 	referrals.sdf \
 	replication.sdf \
@@ -36,9 +39,9 @@ sdf-src: \
 	schema.sdf \
 	security.sdf \
 	slapdconfig.sdf \
-	syncrepl.sdf \
 	title.sdf \
 	tls.sdf \
+	troubleshooting.sdf \
 	tuning.sdf
 
 sdf-img: \

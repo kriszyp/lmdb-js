@@ -154,6 +154,12 @@ LDAP also supports data security (integrity and confidentiality)
 services.
 
 
+H2: When should I use LDAP?
+
+
+H2: When should I not use LDAP?
+
+
 H2: How does LDAP work?
 
 LDAP utilizes a {{client-server model}}. One or more LDAP servers
@@ -219,6 +225,9 @@ implementations claiming LDAPv2 support is limited.  As LDAPv2
 differs significantly from LDAPv3, deploying both LDAPv2 and LDAPv3
 simultaneously is quite problematic.  LDAPv2 should be avoided.
 LDAPv2 is disabled by default.
+
+
+H2: LDAP vs RDBMS
 
 
 H2: What is slapd and what can it do?
