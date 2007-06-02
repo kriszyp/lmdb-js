@@ -108,13 +108,16 @@ syn_is_sup( Syntax *syn, Syntax *sup )
 void
 syn_destroy( void )
 {
-	Syntax *s;
+	Syntax	*s;
 
-	avl_free(syn_index, ldap_memfree);
-	while( !LDAP_SLIST_EMPTY(&syn_list) ) {
-		s = LDAP_SLIST_FIRST(&syn_list);
-		LDAP_SLIST_REMOVE_HEAD(&syn_list, ssyn_next);
-		ldap_syntax_free((LDAPSyntax *)s);
+	avl_free( syn_index, ldap_memfree );
+	while( !LDAP_SLIST_EMPTY( &syn_list ) ) {
+		s = LDAP_SLIST_FIRST( &syn_list );
+		LDAP_SLIST_REMOVE_HEAD( &syn_list, ssyn_next );
+		if ( s->ssyn_sups ) {
+			SLAP_FREE( s->ssyn_sups );
+		}
+		ldap_syntax_free( (LDAPSyntax *)s );
 	}
 }
 
