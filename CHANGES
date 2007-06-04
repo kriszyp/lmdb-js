@@ -7,6 +7,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed slapd-config olcModuleLoad replace (ITS#4921)
 	Fixed slapd-relay crash when no database can be selected (ITS#4958)
 	Fixed slapo-chain RFC3062 passwd exop handling (ITS#4964)
+	Fixed slapo-dynlist multiple group/url[/member] config (ITS#4989)
 	Fixed libldap response code handling on rebind (ITS#4924)
 	Fixed libldap SASL_MAX_BUFF_SIZE (ITS#4935)
 	Fixed libldap_r thread debug issues (ITS#4972)

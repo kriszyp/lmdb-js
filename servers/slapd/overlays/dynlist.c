@@ -67,12 +67,19 @@ typedef struct dynlist_info_t {
 } dynlist_info_t;
 
 static dynlist_info_t *
-dynlist_is_dynlist( Operation *op, SlapReply *rs )
+dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_info_t	*dli;
 
 	Attribute	*a;
+
+	if ( old_dli == NULL ) {
+		dli = (dynlist_info_t *)on->on_bi.bi_private;
+
+	} else {
+		dli = old_dli->dli_next;
+	}
 
 	a = attrs_find( rs->sr_entry->e_attrs, slap_schema.si_ad_objectClass );
 	if ( a == NULL ) {
@@ -198,7 +205,8 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 
 	for ( a = rs->sr_entry->e_attrs; a != NULL; a = a->a_next ) {
 		BerVarray	vals, nvals = NULL;
-		int		i, j;
+		int		i, j,
+				is_oc = a->a_desc == slap_schema.si_ad_objectClass;
 
 		/* if attribute is not requested, skip it */
 		if ( rs->sr_attrs == NULL ) {
@@ -247,6 +255,14 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 		}
 
 		for ( i = 0, j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
+			if ( is_oc ) {
+				ObjectClass	*soc = oc_bvfind( &a->a_vals[i] );
+
+				if ( soc->soc_kind == LDAP_SCHEMA_STRUCTURAL ) {
+					continue;
+				}
+			}
+
 			if ( access_allowed( op, rs->sr_entry, a->a_desc,
 						&a->a_nvals[i], ACL_READ, &acl_state ) )
 			{
@@ -297,7 +313,7 @@ done:;
 }
 	
 static int
-dynlist_send_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
+dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 {
 	Attribute	*a;
 	slap_callback	cb;
@@ -316,7 +332,11 @@ dynlist_send_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		return SLAP_CB_CONTINUE;
 	}
 
-	e = entry_dup( rs->sr_entry );
+	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
+		e = entry_dup( rs->sr_entry );
+	} else {
+		e = rs->sr_entry;
+	}
 	e_flags = rs->sr_flags | ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 
 	dlc.dlc_e = e;
@@ -359,7 +379,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 
 		if ( lud->lud_host != NULL ) {
 			/* FIXME: host not allowed; reject as illegal? */
-			Debug( LDAP_DEBUG_ANY, "dynlist_send_entry(\"%s\"): "
+			Debug( LDAP_DEBUG_ANY, "dynlist_prepare_entry(\"%s\"): "
 				"illegal URI \"%s\"\n",
 				e->e_name.bv_val, url->bv_val, 0 );
 			goto cleanup;
@@ -665,9 +685,17 @@ dynlist_response( Operation *op, SlapReply *rs )
 	case LDAP_REQ_SEARCH:
 		if ( rs->sr_type == REP_SEARCH && !get_manageDSAit( op ) )
 		{
-			dli = dynlist_is_dynlist( op, rs );
-			if ( dli != NULL ) {
-				return dynlist_send_entry( op, rs, dli );
+			int	rc = LDAP_OTHER;
+
+			for ( dli = dynlist_is_dynlist_next( op, rs, NULL );
+				dli;
+				dli = dynlist_is_dynlist_next( op, rs, dli ) )
+			{
+				rc = dynlist_prepare_entry( op, rs, dli );
+			}
+
+			if ( rc != LDAP_OTHER ) {
+				return rc;
 			}
 		}
 		break;
@@ -787,31 +815,17 @@ dynlist_db_config(
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
-			/* The check on objectClass may be relaxed */
-#if 0
-			if ( (*dlip)->dli_oc == oc ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
-					"objectClass \"%s\" already mapped.\n",
-					fname, lineno, oc->soc_cname.bv_val );
-				return 1;
-			}
-#endif
-
-			if ( (*dlip)->dli_ad == ad ) {
+			/* The same URL attribute / member attribute pair
+			 * cannot be repeated */
+			if ( (*dlip)->dli_ad == ad && (*dlip)->dli_member_ad == member_ad ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 					"URL attributeDescription \"%s\" already mapped.\n",
 					fname, lineno, ad->ad_cname.bv_val );
+#if 0
+				/* make it a warning... */
 				return 1;
-			}
-
-			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
-					"member attributeDescription \"%s\" already mapped.\n",
-					fname, lineno, member_ad->ad_cname.bv_val );
-				return 1;
+#endif
 			}
 		}
 
@@ -878,35 +892,20 @@ dynlist_db_config(
 			return 1;
 		}
 
-
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
-#if 0
-			/* The check on objectClass may be relaxed */
-			if ( (*dlip)->dli_oc == oc ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-					"objectClass \"%s\" already mapped.\n",
-					fname, lineno, oc->soc_cname.bv_val );
-				return 1;
-			}
-#endif
-
-			if ( (*dlip)->dli_ad == ad ) {
+			/* The same URL attribute / member attribute pair
+			 * cannot be repeated */
+			if ( (*dlip)->dli_ad == ad && (*dlip)->dli_member_ad == member_ad ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
 					"URL attributeDescription \"%s\" already mapped.\n",
 					fname, lineno, ad->ad_cname.bv_val );
+#if 0
+				/* make it a warning... */
 				return 1;
-			}
-
-			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-					"member attributeDescription \"%s\" already mapped.\n",
-					fname, lineno, member_ad->ad_cname.bv_val );
-				return 1;
+#endif
 			}
 		}
 
@@ -1122,37 +1121,19 @@ dl_cfgen( ConfigArgs *c )
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
-			/* The check on objectClass may be relaxed */
-#if 0
-			if ( (*dlip)->dli_oc == oc ) {
-				snprintf( c->msg, sizeof( c->msg ),
-					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
-					"objectClass \"%s\" already mapped.\n",
-					oc->soc_cname.bv_val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
-				return 1;
-			}
-#endif
-
-			if ( (*dlip)->dli_ad == ad ) {
+			/* The same URL attribute / member attribute pair
+			 * cannot be repeated */
+			if ( (*dlip)->dli_ad == ad && (*dlip)->dli_member_ad == member_ad ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 					"URL attributeDescription \"%s\" already mapped.\n",
 					ad->ad_cname.bv_val );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
 					c->log, c->msg, 0 );
+#if 0
+				/* make it a warning... */
 				return 1;
-			}
-
-			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
-				snprintf( c->msg, sizeof( c->msg ),
-					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
-					"member attributeDescription \"%s\" already mapped.\n",
-					member_ad->ad_cname.bv_val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
-				return 1;
+#endif
 			}
 		}
 
@@ -1252,37 +1233,19 @@ dl_cfgen( ConfigArgs *c )
 		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
-			/* The check on objectClass may be relaxed */
-#if 0
-			if ( (*dlip)->dli_oc == oc ) {
-				snprintf( c->msg, sizeof( c->msg ),
-					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-					"objectClass \"%s\" already mapped.\n",
-					oc->soc_cname.bv_val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
-				return 1;
-			}
-#endif
-
-			if ( (*dlip)->dli_ad == ad ) {
+			/* The same URL attribute / member attribute pair
+			 * cannot be repeated */
+			if ( (*dlip)->dli_ad == ad && (*dlip)->dli_member_ad == member_ad ) {
 				snprintf( c->msg, sizeof( c->msg ),
 					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
 					"URL attributeDescription \"%s\" already mapped.\n",
 					ad->ad_cname.bv_val );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
 					c->log, c->msg, 0 );
+#if 0
+				/* make it a warning... */
 				return 1;
-			}
-
-			if ( member_ad != NULL && (*dlip)->dli_member_ad == member_ad ) {
-				snprintf( c->msg, sizeof( c->msg ),
-					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
-					"member attributeDescription \"%s\" already mapped.\n",
-					member_ad->ad_cname.bv_val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
-				return 1;
+#endif
 			}
 		}
 
