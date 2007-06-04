@@ -50,7 +50,7 @@ typedef struct ldap_int_thread_key_s {
 #define	MAXKEYS	32
 #define	LDAP_MAXTHR	1024	/* must be a power of 2 */
 
-/* User context: thread ID and thread-specific keys */
+/* User context: thread ID and thread-specific key/data pairs */
 typedef struct ldap_int_thread_userctx_s {
 	ldap_pvt_thread_t ltu_id;
 	ldap_int_thread_key_t ltu_key[MAXKEYS];
@@ -100,7 +100,6 @@ struct ldap_int_thread_pool_s {
 
 	LDAP_STAILQ_HEAD(tcq, ldap_int_thread_ctx_s) ltp_pending_list;
 	LDAP_SLIST_HEAD(tcl, ldap_int_thread_ctx_s) ltp_free_list;
-	LDAP_SLIST_HEAD(tclq, ldap_int_thread_ctx_s) ltp_active_list;
 
 	ldap_int_thread_pool_state_t ltp_state;
 
@@ -309,7 +308,6 @@ ldap_pvt_thread_pool_init (
 	pool->ltp_max_pending = max_pending;
 	LDAP_STAILQ_INIT(&pool->ltp_pending_list);
 	LDAP_SLIST_INIT(&pool->ltp_free_list);
-	LDAP_SLIST_INIT(&pool->ltp_active_list);
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	LDAP_STAILQ_INSERT_TAIL(&ldap_int_thread_pool_list, pool, ltp_next);
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
@@ -753,8 +751,6 @@ ldap_int_thread_pool_wrapper (
 
 		LDAP_STAILQ_REMOVE_HEAD(&pool->ltp_pending_list, ltc_next.q);
 		pool->ltp_pending_count--;
-
-		LDAP_SLIST_INSERT_HEAD(&pool->ltp_active_list, ctx, ltc_next.al);
 		pool->ltp_active_count++;
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
@@ -764,11 +760,8 @@ ldap_int_thread_pool_wrapper (
 		ldap_lazy_sem_post( thread_pool_sem );
 #endif
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-		LDAP_SLIST_REMOVE(&pool->ltp_active_list, ctx,
-			ldap_int_thread_ctx_s, ltc_next.al);
 		LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, ctx, ltc_next.l);
 		pool->ltp_active_count--;
-
 		/* let pool_pause know when it is the sole active thread */
 		if (pool->ltp_active_count < 2)
 			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
@@ -814,13 +807,15 @@ ldap_pvt_thread_pool_pause (
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
 	/* If someone else has already requested a pause, we have to wait */
-	while (pool->ltp_pause) {
+	if (pool->ltp_pause) {
 		pool->ltp_pending_count++;
 		pool->ltp_active_count--;
 		/* let the other pool_pause() know when it can proceed */
 		if (pool->ltp_active_count < 2)
 			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
-		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+		do {
+			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+		} while (pool->ltp_pause);
 		pool->ltp_pending_count--;
 		pool->ltp_active_count++;
 	}
