@@ -4,17 +4,73 @@
 
 H1: Overlays
 
+Overlays are software components that provide hooks to functions analogous to 
+those provided by backends, which can be stacked on top of the backend calls 
+and as callbacks on top of backend responses to alter their behavior. 
+
+Overlays may be compiled statically into slapd, or when module support
+is enabled, they may be dynamically loaded. Most of the overlays
+are only allowed to be configured on individual databases, but some
+may also be configured globally.
+
+Essentially they represent a means to:
+
+    * customise the behavior of existing backends without changing the backend 
+      code and without requiring one to write a new custom backend with 
+      complete functionality
+    * write functionality of general usefulness that can be applied to 
+      different backend types
+
+Overlays are usually documented by separate specific man pages in section 5; 
+the naming convention is
+
+        slapo-<overlay name>
+
+Not all distributed overlays have a man page yet. Feel free to contribute one, 
+if you think you well understood the behavior of the component and the 
+implications of all the related configuration directives.
+
+Official overlays are located in
+
+        servers/slapd/overlays/
+
+That directory also contains the file slapover.txt, which describes the 
+rationale of the overlay implementation, and may serve as guideline for the 
+development of custom overlays.
+
+Contribware overlays are located in
+
+        contrib/slapd-modules/<overlay name>/
+
+along with other types of run-time loadable components; they are officially 
+distributed, but not maintained by the project.
+
+They can be stacked on the frontend as well; this means that they can be 
+executed after a request is parsed and validated, but right before the 
+appropriate database is selected. The main purpose is to affect operations 
+regardless of the database they will be handled by, and, in some cases, 
+to influence the selection of the database by massaging the request DN. 
+
+All the current overlays in 2.4 are listed and described in detail in the 
+following sections.
+
 
 H2: Access Logging
 
 
 H3: Overview
 
+This overlay can record accesses to a given backend database on another
+database.
+
 
 H3: Access Logging Configuration
 
 
 H2: Audit Logging
+
+This overlay records changes on a given backend database to an LDIF log
+file.
    
    
 H3: Overview
@@ -23,10 +79,34 @@ H3: Overview
 H3: Audit Logging Configuration
 
 
+H2: Chaining
+
+
+H2: Overview
+
+The chain overlay provides basic chaining capability to the underlying 
+database.
+
+What is chaining? It indicates the capability of a DSA to follow referrals on 
+behalf of the client, so that distributed systems are viewed as a single 
+virtual DSA by clients that are otherwise unable to "chase" (i.e. follow) 
+referrals by themselves.
+
+The chain overlay is built on top of the ldap backend; it is compiled by 
+default when --enable-ldap.
+
+
+H2: Chaining Configuration
+
+
 H2: Constraints
-   
-   
+
+
 H3: Overview
+
+This overlay enforces a regular expression constraint on all values
+of specified attributes. It is used to enforce a more rigorous
+syntax when the underlying attribute syntax is too general.
 
 
 H3: Constraint Configuration
@@ -36,6 +116,9 @@ H2: Dynamic Directory Services
 
 
 H3: Overview
+
+This overlay supports dynamic objects, which have a limited life after
+which they expire and are automatically deleted.
    
    
 H3: Dynamic Directory Service Configuration
@@ -46,6 +129,9 @@ H2: Dynamic Groups
 
 H3: Overview
 
+This overlay extends the Compare operation to detect
+members of a dynamic group.
+
 
 H3: Dynamic Group Configuration
 
@@ -54,6 +140,8 @@ H2: Dynamic Lists
    
    
 H3: Overview
+
+This overlay allows expansion of dynamic groups and more.
 
 
 H3: Dynamic List Configuration
@@ -209,6 +297,10 @@ H2: Password Policies
 
 H3: Overview
 
+This overlay provides a variety of password control mechanisms,
+e.g. password aging, password reuse and duplication control, mandatory
+password resets, etc.
+
 
 H3: Password Policy Configuration
 
@@ -217,6 +309,10 @@ H2: Referential Integrity
 
 
 H3: Overview
+
+This overlay can be used with a backend database such as slapd-bdb (5)
+to maintain the cohesiveness of a schema which utilises reference
+attributes.
 
 
 H3: Referential Integrity Configuration
@@ -227,6 +323,9 @@ H2: Return Code
 
 H3: Overview
 
+This overlay is useful to test the behavior of clients when
+server-generated erroneous and/or unusual responses occur.
+
 
 H3: Return Code Configuration
 
@@ -235,6 +334,9 @@ H2: Rewrite/Remap
             
             
 H3: Overview
+
+It performs basic DN/data rewrite and
+objectClass/attributeType mapping.
 
 
 H3: Rewrite/Remap Configuration
@@ -245,6 +347,9 @@ H2: Sync Provider
 
 H3: Overview
 
+This overlay implements the provider-side support for syncrepl
+replication, including persistent search functionality
+
 
 H3: Sync Provider Configuration
 
@@ -253,6 +358,12 @@ H2: Translucent Proxy
 
 
 H3: Overview
+
+This overlay can be used with a backend database such as slapd-bdb (5)
+to create a "translucent proxy".
+
+Content of entries retrieved from a remote LDAP server can be partially
+overridden by the database.
 
 
 H3: Translucent Proxy Configuration
@@ -263,6 +374,9 @@ H2: Attribute Uniqueness
 
 H3: Overview
 
+This overlay can be used with a backend database such as slapd-bdb (5)
+to enforce the uniqueness of some or all attributes within a subtree.
+
 
 H3: Attribute Uniqueness Configuration
 
@@ -271,6 +385,9 @@ H2: Value Sorting
 
 
 H3: Overview
+
+This overlay can be used to enforce a specific order for the values
+of an attribute when it is returned in a search.
 
 
 H3: Value Sorting Configuration

@@ -4,14 +4,30 @@
 
 H1: Replication
 
+Replicated directories are a fundamental requirement for delivering a 
+resilient enterprise deployment.
+
+OpenLDAP has various configuration options for creating a replicated 
+directory. The following sections will discuss these.
 
 H2: Replication Strategies
 
+H3: Pull Based
 
-H3: Working with Firewalls
+
+H4: syncrepl replication
 
 
-H3: Replacing Slurpd
+H4: delta-syncrepl replication
+
+
+H3: Push Based
+
+
+H4: Working with Firewalls
+
+
+H4: Replacing Slurpd
 
 
 H2: Replication Types
