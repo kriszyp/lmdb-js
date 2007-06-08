@@ -12,7 +12,9 @@ OpenLDAP 2.3.36 Engineering
 	Fixed libldap referral chasing loop (ITS#4955)
 	Fixed libldap response code handling on rebind (ITS#4924)
 	Fixed libldap SASL_MAX_BUFF_SIZE (ITS#4935)
+	Fixed libldap cldap assert (ITS#4992)
 	Fixed libldap_r thread debug issues (ITS#4972)
+	Fixed ldap client usage typo (ITS#4939)
 	Build Environment
 		Fixed --disable-overlays Makefile problem (ITS#4988)
 	Documentation
