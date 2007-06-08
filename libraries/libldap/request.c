@@ -925,7 +925,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				if ( lp == origreq ) {
 					lp = lp->lr_child;
 				} else {
-					lp = lr->lr_refnext;
+					lp = lp->lr_refnext;
 				}
 			}
 			if ( looped ) {
