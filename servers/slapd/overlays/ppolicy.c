@@ -1694,7 +1694,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-	if (pp.pwdMinAge > 0) {
+	/* Check age, but only if pwdReset is not TRUE */
+	pa = attr_find( e->e_attrs, ad_pwdReset );
+	if ((!pa || !bvmatch( &pa->a_nvals[0], &slap_true_bv )) &&
+		pp.pwdMinAge > 0) {
 		time_t pwtime = (time_t)-1, now;
 		int age;
 
