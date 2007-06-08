@@ -155,7 +155,7 @@ N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
 N_("             abandon, cancel (SIGINT sends abandon/cancel; not really controls)\n")
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
-N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
+N_("  -H URI     LDAP Uniform Resource Identifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
 N_("  -k         use Kerberos authentication\n"),
 N_("  -K         like -k, but do only step 1 of the Kerberos bind\n"),
