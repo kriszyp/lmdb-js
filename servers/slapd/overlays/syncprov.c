@@ -2628,8 +2628,8 @@ static int syncprov_parseCtrl (
 	sr->sr_rhint = rhint;
 	if (!BER_BVISNULL(&cookie)) {
 		ber_dupbv_x( &sr->sr_state.octet_str, &cookie, op->o_tmpmemctx );
-		slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx );
-		if ( sr->sr_state.rid == -1 ) {
+		if ( slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx ) ||
+			sr->sr_state.rid == -1 ) {
 			rs->sr_text = "Sync control : cookie parsing error";
 			return LDAP_PROTOCOL_ERROR;
 		}
