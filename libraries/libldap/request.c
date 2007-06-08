@@ -255,6 +255,19 @@ ldap_send_server_request(
 
 	use_connection( ld, lc );
 
+#ifdef LDAP_CONNECTIONLESS
+	if ( LDAP_IS_UDP( ld )) {
+		BerElement tmpber = *ber;
+		ber_rewind( &tmpber );
+		rc = ber_write( &tmpber, ld->ld_options.ldo_peer,
+			sizeof( struct sockaddr ), 0 );
+		if ( rc == -1 ) {
+			ld->ld_errno = LDAP_ENCODING_ERROR;
+			return rc;
+		}
+	}
+#endif
+
 	/* If we still have an incomplete write, try to finish it before
 	 * dealing with the new request. If we don't finish here, return
 	 * LDAP_BUSY and let the caller retry later. We only allow a single
