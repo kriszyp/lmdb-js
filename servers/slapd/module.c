@@ -68,7 +68,8 @@ int module_init (void)
 
 		return -1;
 	}
-	return 0;
+
+	return module_path( LDAP_LIBEXECDIR );
 }
 
 int module_kill (void)
