@@ -724,7 +724,7 @@ sb_fd_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 		if ( blen > len )
 			blen = len;
 		AC_MEMCPY( buf, sbiod->sbiod_sb->sb_ungetbuf, blen );
-		buf += blen;
+		buf = (char *) buf + blen;
 		len -= blen;
 		sbiod->sbiod_sb->sb_ungetlen -= blen;
 		if ( sbiod->sbiod_sb->sb_ungetlen ) {
@@ -914,7 +914,7 @@ sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 
 	addrlen = sizeof( struct sockaddr );
 	src = buf;
-	buf += addrlen;
+	buf = (char *) buf + addrlen;
 	len -= addrlen;
 	rc = recvfrom( sbiod->sbiod_sb->sb_fd, buf, len, 0, src, &addrlen );
 
@@ -932,7 +932,7 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	assert( buf != NULL );
 
 	dst = buf;
-	buf += sizeof( struct sockaddr );
+	buf = (char *) buf + sizeof( struct sockaddr );
 	len -= sizeof( struct sockaddr );
    
 	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst,
