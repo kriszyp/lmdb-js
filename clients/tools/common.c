@@ -957,6 +957,103 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 			url.lud_scope = LDAP_SCOPE_DEFAULT;
 
 			ldapuri = ldap_url_desc2str( &url );
+
+		} else if ( ldapuri != NULL ) {
+			LDAPURLDesc *lud;
+
+			rc = ldap_url_parse( ldapuri, &lud );
+			if ( rc != LDAP_URL_SUCCESS ) {
+				fprintf( stderr,
+					"Could not parse LDAP URI=%s (%d)\n",
+					ldapuri, rc );
+				exit( EXIT_FAILURE );
+			}
+
+			if ( lud->lud_dn != NULL && lud->lud_dn[ 0 ] != '\0' &&
+				( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) )
+			{
+				/* if no host but a DN is provided,
+				 * use DNS SRV to gather the host list
+				 * and turn it into a list of URIs
+				 * using the scheme provided */
+				char	*domain = NULL,
+					*hostlist = NULL,
+					**hosts = NULL,
+					**urls = NULL;
+				int	i,
+					len_proto = strlen( lud->lud_scheme );
+
+				ber_memfree( ldapuri );
+				ldapuri = NULL;
+
+				if ( ldap_dn2domain( lud->lud_dn, &domain )
+					|| domain == NULL )
+				{
+					fprintf( stderr,
+						"DNS SRV: Could not turn "
+						"DN=\"%s\" into a domain\n",
+						lud->lud_dn );
+					goto dnssrv_free;
+				}
+				
+				rc = ldap_domain2hostlist( domain, &hostlist );
+				if ( rc ) {
+					fprintf( stderr,
+						"DNS SRV: Could not turn "
+						"domain=%s into a hostlist\n",
+						domain );
+					goto dnssrv_free;
+				}
+
+				hosts = ldap_str2charray( hostlist, " " );
+				if ( hosts == NULL ) {
+					fprintf( stderr,
+						"DNS SRV: Could not parse "
+						"hostlist=\"%s\"\n",
+						hostlist );
+					goto dnssrv_free;
+				}
+
+				for ( i = 0; hosts[ i ] != NULL; i++ )
+					/* count'em */ ;
+
+				urls = (char **)calloc( sizeof( char * ), i + 1 );
+				if ( urls == NULL ) {
+					fprintf( stderr,
+						"DNS SRV: out of memory?\n" );
+					goto dnssrv_free;
+				}
+
+				for ( i = 0; hosts[ i ] != NULL; i++ ) {
+					size_t	len = len_proto
+						+ STRLENOF( "://" )
+						+ strlen( hosts[ i ] )
+						+ 1;
+
+					urls[ i ] = (char *)malloc( sizeof( char ) * len );
+					if ( urls[ i ] == NULL ) {
+						fprintf( stderr,
+							"DNS SRV: out of memory?\n" );
+						goto dnssrv_free;
+					}
+
+					snprintf( urls[ i ], len, "%s://%s",
+						lud->lud_scheme, hosts[ i ] );
+				}
+
+				ldapuri = ldap_charray2str( urls, " " );
+
+dnssrv_free:;
+				ber_memvfree( (void **)hosts );
+				ber_memvfree( (void **)urls );
+				ber_memfree( hostlist );
+				ber_memfree( domain );
+			}
+
+			ldap_free_urldesc( lud );
+			if ( ldapuri == NULL ) {
+				exit( EXIT_FAILURE );
+			}
 		}
 
 		if ( verbose ) {
