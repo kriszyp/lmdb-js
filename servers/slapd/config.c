@@ -1037,7 +1037,7 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 'b', 0, NULL },
 	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 's', 0, NULL },
 	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
-	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, (slap_verbmasks *)authzNormalize },
+	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 1, NULL },
 	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, (slap_verbmasks *)authzNormalize },
 #ifdef HAVE_TLS
 	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'i', 0, tlskey },
