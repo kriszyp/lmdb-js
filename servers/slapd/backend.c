@@ -663,13 +663,24 @@ select_backend(
 			if ( strcmp( be->be_nsuffix[j].bv_val,
 				&dn->bv_val[dnlen-len] ) == 0 )
 			{
-				if( b2 == NULL ) {
+				if ( b2 == NULL ) {
 					b2 = be;
 
-					if( manageDSAit && len == dnlen &&
-						!SLAP_GLUE_SUBORDINATE( be ) ) {
+#if 0
+					/* causes ITS#4986: a catchall relay
+					 * database with empty suffix points
+					 * to another database; operations
+					 * directed to a specific database
+					 * fail if manageDSAit is set.
+					 * Not clear what's the purpose
+					 * of this test */
+					if ( manageDSAit && len == dnlen &&
+						!SLAP_GLUE_SUBORDINATE( be ) )
+					{
 						continue;
 					}
+#endif
+
 				} else {
 					/* If any parts of the tree are glued, use the first
 					 * match regardless of manageDSAit. Otherwise use the
