@@ -2140,6 +2140,8 @@ monitor_back_db_open(
 		" attributes, which must be explicitly requested."),
 		BER_BVNULL };
 
+	int			retcode = 0;
+
 	assert( be_monitor != NULL );
 	if ( be != be_monitor ) {
 		be_monitor = be;
@@ -2410,12 +2412,17 @@ monitor_back_db_open(
 			tmp = el;
 			el = el->el_next;
 			ch_free( tmp );
+
+			if ( rc != 0 ) {
+				/* try all, but report error at end */
+				retcode = 1;
+			}
 		}
 
 		mi->mi_entry_limbo = NULL;
 	}
 
-	return( 0 );
+	return retcode;
 }
 
 int
