@@ -905,7 +905,7 @@ static ber_slen_t
 sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 {
 	ber_slen_t rc;
-	socklen_t  addrlen;
+	ber_socklen_t addrlen;
 	struct sockaddr *src;
    
 	assert( sbiod != NULL );

@@ -120,7 +120,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #if defined( notyet ) /* && defined( SO_ERROR ) */
 {
 	int so_errno;
-	socklen_t dummy = sizeof(so_errno);
+	ber_socklen_t dummy = sizeof(so_errno);
 	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -138,7 +138,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	/* error slippery */
 	struct sockaddr_un sa;
 	char ch;
-	socklen_t dummy = sizeof(sa);
+	ber_socklen_t dummy = sizeof(sa);
 	if ( getpeername( s, (struct sockaddr *) &sa, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -189,7 +189,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 sendcred:
 		{
 			int fds[2];
-			socklen_t salen = sizeof(*sa);
+			ber_socklen_t salen = sizeof(*sa);
 			if (pipe(fds) == 0) {
 				/* Abandon, noop, has no reply */
 				struct iovec iov;

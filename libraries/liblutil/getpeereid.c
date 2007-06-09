@@ -62,7 +62,7 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 
 #elif defined( SO_PEERCRED )
 	struct ucred peercred;
-	socklen_t peercredlen = sizeof peercred;
+	ber_socklen_t peercredlen = sizeof peercred;
 
 	if(( getsockopt( s, SOL_SOCKET, SO_PEERCRED,
 		(void *)&peercred, &peercredlen ) == 0 )
@@ -75,7 +75,7 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 
 #elif defined( LOCAL_PEERCRED )
 	struct xucred peercred;
-	socklen_t peercredlen = sizeof peercred;
+	ber_socklen_t peercredlen = sizeof peercred;
 
 	if(( getsockopt( s, LOCAL_PEERCRED, 1,
 		(void *)&peercred, &peercredlen ) == 0 )
@@ -104,7 +104,7 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 # endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL */
 	struct stat st;
 	struct sockaddr_un lname, rname;
-	socklen_t llen, rlen;
+	ber_socklen_t llen, rlen;
 
 	rlen = sizeof(rname);
 	llen = sizeof(lname);
@@ -166,7 +166,7 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 	}
 #elif defined(SOCKCREDSIZE)
 	struct msghdr msg;
-	socklen_t crmsgsize;
+	ber_socklen_t crmsgsize;
 	void *crmsg;
 	struct cmsghdr *cmp;
 	struct sockcred *sc;
