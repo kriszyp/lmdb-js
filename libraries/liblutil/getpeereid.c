@@ -85,7 +85,7 @@ int lutil_getpeereid( int s, uid_t *euid, gid_t *egid
 		*egid = peercred.cr_gid;
 		return 0;
 	}
-#elif defined( LDAP_PF_LOCAL_SENDMSG )
+#elif defined( LDAP_PF_LOCAL_SENDMSG ) && defined( MSG_WAITALL )
 	int err, fd;
 	struct iovec iov;
 	struct msghdr msg = {0};
