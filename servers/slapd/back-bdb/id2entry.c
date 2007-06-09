@@ -128,19 +128,19 @@ int bdb_id2entry(
 	data.ulen = data.dlen = sizeof(buf);
 	data.data = buf;
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
-	if ( rc ) goto leave;
+	if ( rc ) goto finish;
 
 
 	eh.bv.bv_val = buf;
 	eh.bv.bv_len = data.size;
 	rc = entry_header( &eh );
-	if ( rc ) goto leave;
+	if ( rc ) goto finish;
 
 	/* Get the size */
 	data.flags ^= DB_DBT_PARTIAL;
 	data.ulen = 0;
 	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
-	if ( rc != DB_BUFFER_SMALL ) goto leave;
+	if ( rc != DB_BUFFER_SMALL ) goto finish;
 
 	/* Allocate a block and retrieve the data */
 	off = eh.data - eh.bv.bv_val;
@@ -155,7 +155,7 @@ int bdb_id2entry(
 
 	rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
 
-leave:
+finish:
 	cursor->c_close( cursor );
 
 	if( rc != 0 ) {

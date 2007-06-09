@@ -172,7 +172,7 @@ entry_schema_check(
 			e->e_dn, textbuf, 0 );
 
 		rc = LDAP_OBJECT_CLASS_VIOLATION;
-		goto leave;
+		goto done;
 	}
 
 	if( sc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
@@ -185,7 +185,7 @@ entry_schema_check(
 			e->e_dn, textbuf, 0 );
 
 		rc = LDAP_OTHER;
-		goto leave;
+		goto done;
 	}
 
 got_soc:
@@ -199,7 +199,7 @@ got_soc:
 			e->e_dn, textbuf, 0 );
 
 		rc = LDAP_OBJECT_CLASS_VIOLATION;
-		goto leave;
+		goto done;
 	}
 
 	*text = textbuf;
@@ -209,7 +209,7 @@ got_soc:
 			"unrecognized objectClass '%s'",
 			aoc->a_vals[0].bv_val );
 		rc = LDAP_OBJECT_CLASS_VIOLATION;
-		goto leave;
+		goto done;
 
 	} else if ( sc != slap_schema.si_oc_glue && sc != oc ) {
 		snprintf( textbuf, textlen, 
@@ -217,7 +217,7 @@ got_soc:
 			"from '%s' to '%s' not allowed",
 			asc->a_vals[0].bv_val, oc->soc_cname.bv_val );
 		rc = LDAP_NO_OBJECT_CLASS_MODS;
-		goto leave;
+		goto done;
 	} else if ( sc == slap_schema.si_oc_glue ) {
 		sc = oc;
 	}
@@ -226,7 +226,7 @@ got_soc:
 	if ( !is_entry_glue ( e ) ) {
 		rc = entry_naming_check( e, manage, text, textbuf, textlen );
 		if( rc != LDAP_SUCCESS ) {
-			goto leave;
+			goto done;
 		}
 	} else {
 		/* Glue Entry */
@@ -250,7 +250,7 @@ got_soc:
 				e->e_dn, textbuf, 0 );
 
 			rc = LDAP_OBJECT_CLASS_VIOLATION;
-			goto leave;
+			goto done;
 		}
 
 		if( cr->scr_required ) for( i=0; cr->scr_required[i]; i++ ) {
@@ -274,7 +274,7 @@ got_soc:
 					e->e_dn, textbuf, 0 );
 
 				rc = LDAP_OBJECT_CLASS_VIOLATION;
-				goto leave;
+				goto done;
 			}
 		}
 
@@ -299,7 +299,7 @@ got_soc:
 					e->e_dn, textbuf, 0 );
 
 				rc = LDAP_OBJECT_CLASS_VIOLATION;
-				goto leave;
+				goto done;
 			}
 		}
 	}
@@ -318,14 +318,14 @@ got_soc:
 				e->e_dn, textbuf, 0 );
 
 			rc = LDAP_OBJECT_CLASS_VIOLATION;
-			goto leave;
+			goto done;
 		}
 
 		if ( oc->soc_check ) {
 			rc = (oc->soc_check)( op->o_bd, e, oc,
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
-				goto leave;
+				goto done;
 			}
 		}
 
@@ -365,7 +365,7 @@ got_soc:
 						e->e_dn, textbuf, 0 );
 
 					rc = LDAP_OBJECT_CLASS_VIOLATION;
-					goto leave;
+					goto done;
 				}
 			}
 
@@ -408,7 +408,7 @@ got_soc:
 						e->e_dn, textbuf, 0 );
 
 					rc = LDAP_OBJECT_CLASS_VIOLATION;
-					goto leave;
+					goto done;
 				}
 			}
 
@@ -423,7 +423,7 @@ got_soc:
 					e->e_dn, textbuf, 0 );
 
 				rc = LDAP_OBJECT_CLASS_VIOLATION;
-				goto leave;
+				goto done;
 			}
 
 			if( oc == slap_schema.si_oc_extensibleObject ) {
@@ -435,7 +435,7 @@ got_soc:
 	if( extensible ) {
 		*text = NULL;
 		rc = LDAP_SUCCESS;
-		goto leave;
+		goto done;
 	}
 
 	/* check that each attr in the entry is allowed by some oc */
@@ -476,12 +476,12 @@ got_soc:
 			    "Entry (%s), %s\n",
 			    e->e_dn, textbuf, 0 );
 
-			goto leave;
+			goto done;
 		}
 	}
 
 	*text = NULL;
-leave:
+done:
 	slap_sl_free( socs, op->o_tmpmemctx );
 	return rc;
 }

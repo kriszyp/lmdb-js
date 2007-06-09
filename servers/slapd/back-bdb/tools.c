@@ -284,7 +284,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	data.flags ^= DB_DBT_PARTIAL;
 	data.ulen = 0;
     rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
-	if ( rc != DB_BUFFER_SMALL ) goto leave;
+	if ( rc != DB_BUFFER_SMALL ) goto done;
 
 	/* Allocate a block and retrieve the data */
 	eh.bv.bv_len = eh.nvals * sizeof( struct berval ) + data.size;
@@ -297,7 +297,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	eh.data += eoff;
 
     rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
-	if ( rc ) goto leave;
+	if ( rc ) goto done;
 
 #ifdef SLAP_ZONE_ALLOC
 	/* FIXME: will add ctx later */
@@ -331,7 +331,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 		}
 #endif
 	}
-leave:
+done:
 	return e;
 }
 
