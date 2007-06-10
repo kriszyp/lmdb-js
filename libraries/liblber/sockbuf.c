@@ -873,7 +873,7 @@ static ber_slen_t
 sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 {
 	ber_slen_t rc;
-	socklen_t  addrlen;
+	ber_socklen_t addrlen;
 	struct sockaddr *src;
    
 	assert( sbiod != NULL );
@@ -882,7 +882,7 @@ sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 
 	addrlen = sizeof( struct sockaddr );
 	src = buf;
-	buf += addrlen;
+	buf = (char *) buf + addrlen;
 	len -= addrlen;
 	rc = recvfrom( sbiod->sbiod_sb->sb_fd, buf, len, 0, src, &addrlen );
 
@@ -900,7 +900,7 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	assert( buf != NULL );
 
 	dst = buf;
-	buf += sizeof( struct sockaddr );
+	buf = (char *) buf + sizeof( struct sockaddr );
 	len -= sizeof( struct sockaddr );
    
 	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst,
