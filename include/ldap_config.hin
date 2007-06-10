@@ -59,6 +59,9 @@
 #ifndef LDAP_LIBEXECDIR
 #define LDAP_LIBEXECDIR		"%LIBEXECDIR%"
 #endif
+#ifndef LDAP_MODULEDIR
+#define LDAP_MODULEDIR		"%MODULEDIR%"
+#endif
 #ifndef LDAP_RUNDIR
 #define LDAP_RUNDIR			"%RUNDIR%"
 #endif
