@@ -13,6 +13,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed slapo-ppolicy pwdReset/pwdMinAge (ITS#4970)
 	Fixed slapo-syncprov cookie parsing error (ITS#4977)
 	Fixed slapo-valsort crash on delete op (ITS#4966)
+	Fixed liblber compilation problem (ITS#5007)
 	Fixed libldap referral chasing loop (ITS#4955)
 	Fixed libldap response code handling on rebind (ITS#4924)
 	Fixed libldap SASL_MAX_BUFF_SIZE (ITS#4935)
@@ -22,6 +23,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed ldap client usage typo (ITS#4939)
 	Build Environment
 		Fixed --disable-overlays Makefile problem (ITS#4988)
+		Fixed HP-UX socklen_t problem (ITS#4629)
 	Documentation
 		Updated slapadd(8) with details on -s option
 		Updated slapo-ppolicy(5) for pwdAccountLockedTime zero example (ITS#4978)
