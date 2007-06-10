@@ -1063,6 +1063,9 @@
    first (like Motorola and SPARC, unlike Intel and VAX). */
 #undef WORDS_BIGENDIAN
 
+/* Define to the type of arg 3 for `accept'. */
+#undef ber_socklen_t
+
 /* Define to `char *' if <sys/types.h> does not define. */
 #undef caddr_t
 
@@ -1090,7 +1093,7 @@
 /* define to snprintf routine */
 #undef snprintf
 
-/* Define to `int' if <sys/socket.h> does not define. */
+/* Define like ber_socklen_t if <sys/socket.h> does not define. */
 #undef socklen_t
 
 /* Define to `signed int' if <sys/types.h> does not define. */
