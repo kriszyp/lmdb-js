@@ -174,7 +174,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #if defined( notyet ) /* && defined( SO_ERROR ) */
 {
 	int so_errno;
-	socklen_t dummy = sizeof(so_errno);
+	ber_socklen_t dummy = sizeof(so_errno);
 	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -196,7 +196,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	struct sockaddr_in sin;
 #endif
 	char ch;
-	socklen_t dummy = sizeof(sin);
+	ber_socklen_t dummy = sizeof(sin);
 	if ( getpeername( s, (struct sockaddr *) &sin, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -216,7 +216,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 
 static int
 ldap_pvt_connect(LDAP *ld, ber_socket_t s,
-	struct sockaddr *sin, socklen_t addrlen,
+	struct sockaddr *sin, ber_socklen_t addrlen,
 	int async)
 {
 	int rc, err;
@@ -326,7 +326,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		/* This means the connection failed */
 		if ( FD_ISSET(s, &efds) ) {
 		    int so_errno;
-		    int dummy = sizeof(so_errno);
+		    ber_socklen_t dummy = sizeof(so_errno);
 		    if ( getsockopt( s, SOL_SOCKET, SO_ERROR,
 				(char *) &so_errno, &dummy ) == AC_SOCKET_ERROR || !so_errno )
 		    {
@@ -574,7 +574,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 char *
 ldap_host_connected_to( Sockbuf *sb, const char *host )
 {
-	socklen_t		len;
+	ber_socklen_t	len;
 #ifdef LDAP_PF_INET6
 	struct sockaddr_storage sabuf;
 #else

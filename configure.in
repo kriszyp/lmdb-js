@@ -2378,14 +2378,43 @@ AC_CHECK_TYPE(size_t, unsigned)
 AC_CHECK_TYPES([long long])
 AC_CHECK_TYPES([ptrdiff_t])
 
-AC_CHECK_TYPE([socklen_t],,
-	[AC_DEFINE_UNQUOTED([socklen_t], [int],
-		[Define to `int' if <sys/socket.h> does not define.])],
-	[$ac_includes_default
+
+AC_CHECK_TYPE([socklen_t],,, [$ac_includes_default
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif])
+
+dnl socklen_t-like type in accept(), default socklen_t or int:
+dnl - The OS might define socklen_t without using it.  POSIX moved from
+dnl   int to size_t to socklen_t, hoping to stay at a 32-bit type, and
+dnl   HP-UX now has selectors for what to use.
+dnl - On Solaris 2.8 the prototype has void *len, but the default is OK.
+AC_MSG_CHECKING([the type of arg 3 to accept()])
+AC_CACHE_VAL(ol_cv_type_ber_socklen_t, [
+	set socklen_t int unsigned "unsigned long" long size_t
+	test "$ac_cv_type_socklen_t" = yes || shift
+	ol_cv_type_ber_socklen_t=$1 guessing="guessing "
+	for lentype in "$@" ; do for addrtype in "struct sockaddr" void ; do
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([$ac_includes_default
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
-	])
+extern int accept(int s, $addrtype *ap, $lentype *lp);
+], [
+accept(0, (struct sockaddr *) 0, ($lentype *) 0);
+])], [ol_cv_type_ber_socklen_t=$lentype guessing= ; break 2])
+	done ; done])
+AC_MSG_RESULT([$guessing$ol_cv_type_ber_socklen_t *])
+AC_DEFINE_UNQUOTED(ber_socklen_t, $ol_cv_type_ber_socklen_t,
+	[Define to the type of arg 3 for `accept'.])
+
+dnl Modules should use ber_socklen_t, not socklen_t.  Define socklen_t
+dnl for the time being anyway, for backwards compatibility.
+if test "$ac_cv_type_socklen_t" != yes; then
+	AC_DEFINE_UNQUOTED([socklen_t], [$ol_cv_type_ber_socklen_t],
+		[Define like ber_socklen_t if <sys/socket.h> does not define.])
+fi
+
 
 AC_TYPE_SIGNAL
 

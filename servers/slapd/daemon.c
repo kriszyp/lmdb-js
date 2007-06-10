@@ -1582,7 +1582,7 @@ slap_listener(
 	Sockaddr		from;
 
 	ber_socket_t s;
-	socklen_t len = sizeof(from);
+	ber_socklen_t len = sizeof(from);
 	long id;
 	slap_ssf_t ssf = 0;
 	struct berval authid = BER_BVNULL;
