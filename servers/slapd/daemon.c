@@ -1996,15 +1996,6 @@ slapd_daemon_task(
 	}
 #endif /* HAVE_NT_SERVICE_MANAGER */
 
-#ifdef SLAP_SEM_LOAD_CONTROL
-	/*
-	 * initialize count and lazyness of a semaphore
-	 */
-	(void) ldap_lazy_sem_init(
-		SLAP_MAX_WORKER_THREADS + 4 /* max workers + margin */,
-		4 /* lazyness */ );
-#endif /* SLAP_SEM_LOAD_CONTROL */
-
 	/* initialization complete. Here comes the loop. */
 
 	while ( !slapd_shutdown ) {
