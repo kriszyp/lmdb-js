@@ -406,16 +406,11 @@ static unsigned long tls_thread_self( void )
 	 * is an integral type that fits in an unsigned long
 	 */
 
-	/* force an error if ldap_pvt_thread_t is not such a type */
-	enum {
-		ok =
-		3 / (ldap_pvt_thread_t)2 == 1	/* integer */
-		&& (ldap_pvt_thread_t)-1 > 0UL	/* not too wide signed */
-		&& (ldap_pvt_thread_t)-2 < -1UL	/* not too wide unsigned */
-	};
+	/* force an error if the ldap_pvt_thread_t type is too large */
+	enum { ok = sizeof( ldap_pvt_thread_t ) <= sizeof( unsigned long ) };
 	typedef struct { int dummy: ok ? 1 : -1; } Check[ok ? 1 : -1];
 
-	return ldap_pvt_thread_self();
+	return (unsigned long) ldap_pvt_thread_self();
 }
 
 static void tls_init_threads( void )
@@ -3032,7 +3027,10 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 
 			oid2.bv_val = oidptr;
 			oid2.bv_len = oidrem;
-			ber_decode_oid( &Oid, &oid2 );
+			if ( ber_decode_oid( &Oid, &oid2 ) < 0 ) {
+				rc = LDAP_DECODING_ERROR;
+				goto nomem;
+			}
 			oidname = find_oid( &oid2 );
 			if ( !oidname ) {
 				newAVA->la_attr = oid2;
