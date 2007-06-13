@@ -848,7 +848,7 @@ ctrls_cleanup( Operation *op, SlapReply *rs, LDAPControl **oldctrls )
 	assert( rs->sr_ctrls[0] != NULL );
 
 	for ( n = 0; rs->sr_ctrls[n]; n++ ) {
-		if ( rs->sr_ctrls[n]->ldctl_oid == LDAP_CONTROL_PASSWORDPOLICYRESPONSE ) {
+		if ( !strcmp( rs->sr_ctrls[n]->ldctl_oid, LDAP_CONTROL_PASSWORDPOLICYRESPONSE) ) {
 			ch_free( rs->sr_ctrls[n]->ldctl_value.bv_val );
 			ch_free( rs->sr_ctrls[n] );
 			rs->sr_ctrls[n] = (LDAPControl *)(-1);
