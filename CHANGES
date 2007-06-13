@@ -11,6 +11,8 @@ OpenLDAP 2.3.36 Engineering
 	Fixed slapd-relay crash when no database can be selected (ITS#4958)
 	Fixed slapo-chain RFC3062 passwd exop handling (ITS#4964)
 	Fixed slapo-dynlist multiple group/url[/member] config (ITS#4989)
+	Fixed slapo-pcache handling of abandoned Operations (#5015)
+	Fixed slapo-pcache and -rwm interaction (ITS#4991)
 	Fixed slapo-ppolicy pwdReset/pwdMinAge (ITS#4970)
 	Fixed slapo-ppolicy control cleanup from ITS#4665
 	Fixed slapo-syncprov cookie parsing error (ITS#4977)
