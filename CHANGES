@@ -11,6 +11,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed slapo-chain RFC3062 passwd exop handling (ITS#4964)
 	Fixed slapo-dynlist multiple group/url[/member] config (ITS#4989)
 	Fixed slapo-ppolicy pwdReset/pwdMinAge (ITS#4970)
+	Fixed slapo-ppolicy control cleanup from ITS#4665
 	Fixed slapo-syncprov cookie parsing error (ITS#4977)
 	Fixed slapo-valsort crash on delete op (ITS#4966)
 	Fixed liblber compilation problem (ITS#5007)
