@@ -4,6 +4,7 @@ OpenLDAP 2.3.36 Engineering
 	Fixed slapd error code on Windows (ITS#4945, #4606)
 	Fixed slapd mutex bug after failed startup (ITS#4957)
 	Fixed slapd sasl failed Bind bug (ITS#4954)
+	Fixed slapd tool op init (ITS#4911)
 	Fixed slapd-bdb no-op crasher (ITS#4925)
 	Fixed slapd-config olcModuleLoad replace (ITS#4921,ITS#4923)
 	Fixed slapd-config olcLogLevel (ITS#4949)
