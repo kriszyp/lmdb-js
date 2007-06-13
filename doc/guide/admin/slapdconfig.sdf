@@ -284,69 +284,6 @@ perform" error.
 
 >	readonly off
 
-H4: replica
-
->	replica uri=ldap[s]://<hostname>[:<port>] | host=<hostname>[:<port>]
->		[bindmethod={simple|sasl}]
->		["binddn=<DN>"]
->		[saslmech=<mech>]
->		[authcid=<identity>]
->		[authzid=<identity>]
->		[credentials=<password>]
-
-This directive specifies a replication site for this database. The
-{{EX:uri=}} parameter specifies a scheme, a host and optionally a port where
-the slave slapd instance can be found. Either a domain name
-or IP address may be used for <hostname>. If <port> is not
-given, the standard LDAP port number (389 or 636) is used.
-
-{{EX:host}} is deprecated in favor of the {{EX:uri}} parameter.
-
-{{EX:uri}} allows the replica LDAP server to be specified as an LDAP 
-URI such as {{EX:ldap://slave.example.com:389}} or
-{{EX:ldaps://slave.example.com:636}}.
-
-The {{EX:binddn=}} parameter gives the DN to bind as for updates
-to the slave slapd. It should be a DN which has read/write access
-to the slave slapd's database.  It must also match the {{EX:updatedn}}
-directive in the slave slapd's config file.  Generally, this DN
-{{should not}} be the same as the {{EX:rootdn}} of the master
-database.  Since DNs are likely to contain embedded spaces, the
-entire {{EX:"binddn=<DN>"}} string should be enclosed in double
-quotes.
-
-The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}}, depending
-on whether simple password-based authentication or {{TERM:SASL}}
-authentication is to be used when connecting to the slave slapd.
-
-Simple authentication should not be used unless adequate data
-integrity and confidentiality protections are in place (e.g. TLS
-or {{TERM:IPsec}}).  Simple authentication requires specification of
-{{EX:binddn}} and {{EX:credentials}} parameters.
-
-SASL authentication is generally recommended.  SASL authentication
-requires specification of a mechanism using the {{EX:saslmech}} parameter.
-Depending on the mechanism, an authentication identity and/or
-credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
-respectively.  The {{EX:authzid}} parameter may be used to specify
-an authorization identity.
-
-See the chapter entitled {{SECT:Replication with slurpd}} for more
-information on how to use this directive.
-
-H4: replogfile <filename>
-
-This directive specifies the name of the replication log file to
-which slapd will log changes. The replication log is typically
-written by slapd and read by slurpd. Normally, this directive is
-only used if slurpd is being used to replicate the database.
-However, you can also use it to generate a transaction log, if
-slurpd is not running. In this case, you will need to periodically
-truncate the file, since it will grow indefinitely otherwise.
-
-See the chapter entitled {{SECT:Replication with slurpd}} for more
-information on how to use this directive.
-
 
 H4: rootdn <DN>
 
@@ -534,26 +471,6 @@ database backends: back-bdb and back-hdb.
 See the {{SECT:LDAP Sync Replication}} chapter of the admin guide
 for more information on how to use this directive.
 
-
-H4: updatedn <DN>
-
-This directive is only applicable in a {{slave}} (or {{shadow}})
-{{slapd(8)}} instance.  It specifies the DN allowed to make changes to
-the replica.  This may be the DN
-{{slurpd}}(8) binds as when making changes to the replica or the DN
-associated with a SASL identity.
-
-
-Entry-based Example:
-
->	updatedn "cn=Update Daemon,dc=example,dc=com"
-
-SASL-based Example:
-
->	updatedn "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
-
-See the {{SECT:Replication with slurpd}} chapter for more information
-on how to use this directive.
 
 H4: updateref <URL>
 
@@ -952,28 +869,20 @@ E:  7.	suffix "dc=example,dc=com"
 E:  8.	directory /usr/local/var/openldap-data
 E:  9.	rootdn "cn=Manager,dc=example,dc=com"
 E: 10.	rootpw secret
-E: 11.	# replication directives
-E: 12.	replogfile /usr/local/var/openldap/slapd.replog
-E: 13.	replica uri=ldap://slave1.example.com:389
-E: 14.		binddn="cn=Replicator,dc=example,dc=com"
-E: 15.		bindmethod=simple credentials=secret
-E: 16.	replica uri=ldaps://slave2.example.com:636
-E: 17.		binddn="cn=Replicator,dc=example,dc=com"
-E: 18.		bindmethod=simple credentials=secret
-E: 19.	# indexed attribute definitions
-E: 20.	index uid pres,eq
-E: 21.	index cn,sn,uid pres,eq,approx,sub
-E: 22.	index objectClass eq
-E: 23.	# database access control definitions
-E: 24.	access to attrs=userPassword
-E: 25.		by self write
-E: 26.		by anonymous auth
-E: 27.		by dn.base="cn=Admin,dc=example,dc=com" write
-E: 28.		by * none
-E: 29.	access to *
-E: 30.		by self write
-E: 31.		by dn.base="cn=Admin,dc=example,dc=com" write
-E: 32.		by * read
+E: 11.	# indexed attribute definitions
+E: 12.	index uid pres,eq
+E: 13.	index cn,sn,uid pres,eq,approx,sub
+E: 14.	index objectClass eq
+E: 15.	# database access control definitions
+E: 16.	access to attrs=userPassword
+E: 17.		by self write
+E: 18.		by anonymous auth
+E: 19.		by dn.base="cn=Admin,dc=example,dc=com" write
+E: 20.		by * none
+E: 21.	access to *
+E: 22.		by self write
+E: 23.		by dn.base="cn=Admin,dc=example,dc=com" write
+E: 24.		by * read
 
 Line 5 is a comment. The start of the database definition is marked
 by the database keyword on line 6. Line 7 specifies the DN suffix
@@ -984,19 +893,10 @@ Lines 9 and 10 identify the database {{super-user}} entry and associated
 password. This entry is not subject to access control or size or
 time limit restrictions.
 
-Lines 11 through 18 are for replication. Line 12 specifies the
-replication log file (where changes to the database are logged -
-this file is written by slapd and read by slurpd). Lines 13 through
-15 specify the hostname and port for a replicated host, the DN to
-bind as when performing updates, the bind method (simple) and the
-credentials (password) for the binddn. Lines 16 through 18 specify
-a second replication site.  See the {{SECT:Replication with slurpd}}
-chapter for more information on these directives.
-
-Lines 20 through 22 indicate the indices to maintain for various
+Lines 12 through 14 indicate the indices to maintain for various
 attributes.
 
-Lines 24 through 32 specify access control for entries in this
+Lines 16 through 24 specify access control for entries in this
 database.  As this is the first database, the controls also apply
 to entries not held in any database (such as the Root DSE).  For
 all applicable entries, the {{EX:userPassword}} attribute is writable

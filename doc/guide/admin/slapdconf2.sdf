@@ -1,4 +1,4 @@
-# $OpenLDAP$
+s# $OpenLDAP$
 # Copyright 2005-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
@@ -31,11 +31,6 @@ description of commonly used config settings.
 Note: some of the backends and of the distributed overlays
 do not support runtime configuration yet.  In those cases,
 the old style {{slapd.conf}}(5) file must be used.
-
-Note: the current version of {{slurpd}} has not been updated for
-compatibility with this new configuration engine. If you must use
-slurpd for replication at your site, you will have to maintain an
-old-style {{slapd.conf}} file for slurpd to use.
 
 
 H2: Configuration Layout
@@ -431,74 +426,6 @@ perform" error.
 >	olcReadonly: FALSE
 
 
-H4: olcReplica
-
->	olcReplica: uri=ldap[s]://<hostname>[:<port>] | host=<hostname>[:<port>]
->		[bindmethod={simple|sasl}]
->		["binddn=<DN>"]
->		[saslmech=<mech>]
->		[authcid=<identity>]
->		[authzid=<identity>]
->		[credentials=<password>]
-
-This directive specifies a replication site for this database for
-use with slurpd. The
-{{EX:uri=}} parameter specifies a scheme, a host and optionally a port where
-the slave slapd instance can be found. Either a domain name
-or IP address may be used for <hostname>. If <port> is not
-given, the standard LDAP port number (389 or 636) is used.
-
-{{EX:host}} is deprecated in favor of the {{EX:uri}} parameter.
-
-{{EX:uri}} allows the replica LDAP server to be specified as an LDAP 
-URI such as {{EX:ldap://slave.example.com:389}} or
-{{EX:ldaps://slave.example.com:636}}.
-
-The {{EX:binddn=}} parameter gives the DN to bind as for updates
-to the slave slapd. It should be a DN which has read/write access
-to the slave slapd's database.  It must also match the {{EX:updatedn}}
-directive in the slave slapd's config file.  Generally, this DN
-{{should not}} be the same as the {{EX:rootdn}} of the master
-database.  Since DNs are likely to contain embedded spaces, the
-entire {{EX:"binddn=<DN>"}} string should be enclosed in double
-quotes.
-
-The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}},
-depending on whether simple password-based authentication
-or {{TERM:SASL}} authentication is to be used when connecting
-to the slave slapd.
-
-Simple authentication should not be used unless adequate data
-integrity and confidentiality protections are in place (e.g. TLS
-or {{TERM:IPsec}}).  Simple authentication requires specification
-of {{EX:binddn}} and {{EX:credentials}} parameters.
-
-SASL authentication is generally recommended.  SASL authentication
-requires specification of a mechanism using the {{EX:saslmech}} parameter.
-Depending on the mechanism, an authentication identity and/or
-credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
-respectively.  The {{EX:authzid}} parameter may be used to specify
-an authorization identity.
-
-See the chapter entitled {{SECT:Replication with slurpd}} for more
-information on how to use this directive.
-
-
-H4: olcReplogfile: <filename>
-
-This directive specifies the name of the replication log file to
-which slapd will log changes. The replication log is typically
-written by {{slapd}}(8) and read by {{slurpd}}(8). Normally, this
-directive is only used if {{slurpd}}(8) is being used to replicate
-the database.  However, you can also use it to generate a transaction
-log, if {{slurpd}}(8) is not running. In this case, you will need to
-periodically truncate the file, since it will grow indefinitely
-otherwise.
-
-See the chapter entitled {{SECT:Replication with slurpd}} for more
-information on how to use this directive.
-
-
 H4: olcRootDN: <DN>
 
 This directive specifies the DN that is not subject to
@@ -742,24 +669,6 @@ exceeded timelimit will be returned.
 
 >	olcTimeLimit: 3600
 
-
-H4: olcUpdateDN: <DN>
-
-This directive is only applicable in a slave slapd. It specifies
-the DN allowed to make changes to the replica.  This may be the DN
-{{slurpd}}(8) binds as when making changes to the replica or the DN
-associated with a SASL identity.
-
-Entry-based Example:
-
->	olcUpdateDN: "cn=Update Daemon,dc=example,dc=com"
-
-SASL-based Example:
-
->	olcUpdateDN: "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
-
-See the {{SECT:Replication with slurpd}} chapter for more information
-on how to use this directive.
 
 H4: olcUpdateref: <URL>
 
