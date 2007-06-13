@@ -656,7 +656,6 @@ unhandled_option:;
 
 	extops_init();
 	lutil_passwd_init();
-	slap_op_init();
 
 	rc = slap_init( serverMode, serverName );
 	if ( rc ) {
@@ -882,8 +881,6 @@ destroy:
 #ifdef SLAPD_MODULES
 	module_kill();
 #endif
-
-	slap_op_destroy();
 
 	extops_kill();
 
