@@ -21,9 +21,6 @@ memory on startup, and maintained in memory thereafter. Checkpoints may be
 configured to write the contextCSN into the underlying database to minimize
 recovery time after an unclean shutdown.
 
-Note that due to deadlock constraints in the LDBM database, this overlay
-will only work in RefreshOnly mode, and cannot perform checkpoints, on LDBM.
-
 On databases that support inequality indexing, it is helpful to set an
 eq index on the entryCSN attribute when using this overlay.
 .SH CONFIGURATION
