@@ -263,9 +263,8 @@ wait4msg(
 	int		rc;
 	struct timeval	tv = { 0 },
 			tv0 = { 0 },
-			*tvp;
-	time_t		start_time = 0;
-	time_t		tmp_time;
+			start_time_tv = { 0 },
+			*tvp = NULL;
 	LDAPConn	*lc;
 
 	assert( ld != NULL );
@@ -290,13 +289,16 @@ wait4msg(
 	}
 #endif /* LDAP_DEBUG */
 
-	if ( timeout == NULL ) {
-		tvp = NULL;
-	} else {
+	if ( timeout != NULL ) {
 		tv0 = *timeout;
 		tv = *timeout;
 		tvp = &tv;
-		start_time = time( NULL );
+#ifdef HAVE_GETTIMEOFDAY
+		gettimeofday( &start_time_tv, NULL );
+#else /* ! HAVE_GETTIMEOFDAY */
+		time( &start_time_tv.tv_sec );
+		start_time_tv.tv_usec = 0;
+#endif /* ! HAVE_GETTIMEOFDAY */
 	}
 		    
 	rc = LDAP_MSG_X_KEEP_LOOKING;
@@ -423,23 +425,49 @@ wait4msg(
 		}
 
 		if ( rc == LDAP_MSG_X_KEEP_LOOKING && tvp != NULL ) {
-			time_t	delta_time;
+			struct timeval	curr_time_tv = { 0 },
+					delta_time_tv = { 0 };
 
-			tmp_time = time( NULL );
-			delta_time = tmp_time - start_time;
+#ifdef HAVE_GETTIMEOFDAY
+			gettimeofday( &curr_time_tv, NULL );
+#else /* ! HAVE_GETTIMEOFDAY */
+			time( &curr_time_tv.tv_sec );
+			curr_time_tv.tv_usec = 0;
+#endif /* ! HAVE_GETTIMEOFDAY */
 
-			/* do not assume time_t is signed */
-			if ( tv0.tv_sec <= delta_time ) {
-				rc = 0;	/* timed out */
+			/* delta_time = tmp_time - start_time */
+			delta_time_tv.tv_sec = curr_time_tv.tv_sec - start_time_tv.tv_sec;
+			delta_time_tv.tv_usec = curr_time_tv.tv_usec - start_time_tv.tv_usec;
+			if ( delta_time_tv.tv_usec < 0 ) {
+				delta_time_tv.tv_sec--;
+				delta_time_tv.tv_usec += 1000000;
+			}
+
+			/* tv0 < delta_time ? */
+			if ( ( tv0.tv_sec < delta_time_tv.tv_sec ) ||
+			     ( ( tv0.tv_sec == delta_time_tv.tv_sec ) && ( tv0.tv_usec < delta_time_tv.tv_usec ) ) )
+			{
+				rc = 0; /* timed out */
 				ld->ld_errno = LDAP_TIMEOUT;
 				break;
 			}
-			tv0.tv_sec -= delta_time;
-			tv.tv_sec = tv0.tv_sec;
 
-			Debug( LDAP_DEBUG_TRACE, "wait4msg ld %p %ld secs to go\n",
-				(void *)ld, (long) tv.tv_sec, 0 );
-			start_time = tmp_time;
+			/* tv0 -= delta_time */
+			tv0.tv_sec -= delta_time_tv.tv_sec;
+			tv0.tv_usec -= delta_time_tv.tv_usec;
+			if ( tv0.tv_usec < 0 ) {
+				tv0.tv_sec--;
+				tv0.tv_usec += 1000000;
+			}
+
+			tv.tv_sec = tv0.tv_sec;
+			tv.tv_usec = tv0.tv_usec;
+
+			Debug( LDAP_DEBUG_TRACE, "wait4msg ld %p %ld s %ld us to go\n",
+				(void *)ld, (long) tv.tv_sec, (long) tv.tv_usec );
+
+			start_time_tv.tv_sec = curr_time_tv.tv_sec;
+			start_time_tv.tv_usec = curr_time_tv.tv_usec;
 		}
 	}
 
