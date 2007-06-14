@@ -685,7 +685,8 @@ do_syncrep2(
 	struct sync_cookie	syncCookie_req = { NULL };
 	struct berval		cookie = BER_BVNULL;
 
-	int	rc, err;
+	int		rc,
+			err = LDAP_SUCCESS;
 	ber_len_t	len;
 
 	struct berval	*psub;
@@ -1048,13 +1049,14 @@ do_syncrep2(
 	}
 
 	if ( rc == -1 ) {
-		const char *errstr;
-
 		ldap_get_option( si->si_ld, LDAP_OPT_ERROR_NUMBER, &rc );
-		errstr = ldap_err2string( rc );
-		
+		err = rc;
+	}
+
+	if ( err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"do_syncrep2: %s %s\n", si->si_ridtxt, errstr, 0 );
+			"do_syncrep2: %s (%d) %s\n",
+			si->si_ridtxt, err, ldap_err2string( err ) );
 	}
 
 done:
