@@ -358,6 +358,8 @@ account_locked( Operation *op, Entry *e,
 #define PPOLICY_EXPIRE 0x80L	/* primitive + 0 */
 #define PPOLICY_GRACE  0x81L	/* primitive + 1 */
 
+static const char ppolicy_ctrl_oid[] = LDAP_CONTROL_PASSWORDPOLICYRESPONSE;
+
 static LDAPControl *
 create_passcontrol( int exptime, int grace, LDAPPasswordPolicyError err )
 {
@@ -370,7 +372,7 @@ create_passcontrol( int exptime, int grace, LDAPPasswordPolicyError err )
 	if ( c == NULL ) {
 		return NULL;
 	}
-	c->ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYRESPONSE;
+	c->ldctl_oid = (char *)ppolicy_ctrl_oid;
 	c->ldctl_iscritical = 0;
 	BER_BVZERO( &c->ldctl_value );
 
@@ -850,7 +852,7 @@ ctrls_cleanup( Operation *op, SlapReply *rs, LDAPControl **oldctrls )
 	assert( rs->sr_ctrls[0] != NULL );
 
 	for ( n = 0; rs->sr_ctrls[n]; n++ ) {
-		if ( !strcmp( rs->sr_ctrls[n]->ldctl_oid, LDAP_CONTROL_PASSWORDPOLICYRESPONSE) ) {
+		if ( rs->sr_ctrls[n]->ldctl_oid == ppolicy_ctrl_oid ) {
 			ch_free( rs->sr_ctrls[n]->ldctl_value.bv_val );
 			ch_free( rs->sr_ctrls[n] );
 			rs->sr_ctrls[n] = (LDAPControl *)(-1);
