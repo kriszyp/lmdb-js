@@ -32,8 +32,8 @@ OpenLDAP 2.3.36 Engineering
 	Documentation
 		Updated ldapsearch(1) with details on -C option (ITS#5009)
 		Updated slapadd(8) with details on -s option
-		Updated slapd.conf(5) for correct loglevel packaets (ITS#5011)
-		Updated slapo-ppolicy(5) for pwdAccountLockedTime zero example (ITS#4978)
+		Fixed slapd.conf(5) for correct loglevel packets (ITS#5011)
+		Fixed slapo-ppolicy(5) permanent pwdAccountLockedTime (ITS#4978)
 
 OpenLDAP 2.3.35 Release (2007/04/09)
 	Fixed ldapmodify to use correct memory free functions (ITS#4901)
