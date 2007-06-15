@@ -357,7 +357,7 @@ monitor_back_register_database_limbo(
 
 	el.el_be = be;
 	
-	for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+	for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
 			elpp = &(*elpp)->el_next )
 		/* go to last */;
@@ -529,7 +529,7 @@ done:;
 		el.el_mss = mss;
 		el.el_flags = flags;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 				*elpp;
 				elpp = &(*elpp)->el_next )
 			/* go to last */;
@@ -743,7 +743,7 @@ done:;
 		el.el_mss = mss;
 		el.el_flags = flags;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 				*elpp;
 				elpp = &(*elpp)->el_next )
 			/* go to last */;
@@ -1076,7 +1076,7 @@ done:;
 		el.el_a = attrs_dup( a );
 		el.el_cb = cb;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 				*elpp;
 				elpp = &(*elpp)->el_next )
 			/* go to last */;
@@ -1189,7 +1189,7 @@ monitor_back_unregister_entry(
 	} else {
 		entry_limbo_t	**elpp;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
 			elpp = &(*elpp)->el_next )
 		{
@@ -1320,7 +1320,7 @@ monitor_back_unregister_entry_parent(
 	} else {
 		entry_limbo_t	**elpp;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
 			elpp = &(*elpp)->el_next )
 		{
@@ -1501,7 +1501,7 @@ monitor_back_unregister_entry_attrs(
 	} else {
 		entry_limbo_t	**elpp;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
 			elpp = &(*elpp)->el_next )
 		{
@@ -2321,7 +2321,7 @@ monitor_back_db_open(
 	monitor_subsys_opened = 1;
 
 	if ( mi->mi_entry_limbo ) {
-		entry_limbo_t	*el = (entry_limbo_t *)mi->mi_entry_limbo;
+		entry_limbo_t	*el = mi->mi_entry_limbo;
 
 		for ( ; el; ) {
 			entry_limbo_t	*tmp;

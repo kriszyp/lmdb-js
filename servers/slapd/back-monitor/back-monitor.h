@@ -74,6 +74,8 @@ typedef struct monitor_entry_t {
 	struct monitor_callback_t	*mp_cb;		/* callback sequence */
 } monitor_entry_t;
 
+struct entry_limbo_t;			/* in init.c */
+
 typedef struct monitor_info_t {
 
 	/*
@@ -135,7 +137,7 @@ typedef struct monitor_info_t {
 	AttributeDescription	*mi_ad_readOnly;
 	AttributeDescription	*mi_ad_restrictedOperation;
 
-	void			*mi_entry_limbo;
+	struct entry_limbo_t	*mi_entry_limbo;
 } monitor_info_t;
 
 /*
