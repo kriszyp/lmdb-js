@@ -20,6 +20,9 @@
 #	suffix		"o=AnyOrg,c=US"
 #	perlModulePath	/path/to/this/file
 #	perlModule	SampleLDAP
+#
+# Note that "perlModulePath" is the directory path in which the perl module can be found
+#      not the path to the file. Please also see slapd-perl(5)
 
 package SampleLDAP;
 
