@@ -1053,13 +1053,13 @@ do_syncrep2(
 		err = rc;
 	}
 
+done:
 	if ( err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"do_syncrep2: %s (%d) %s\n",
 			si->si_ridtxt, err, ldap_err2string( err ) );
 	}
 
-done:
 	slap_sync_cookie_free( &syncCookie, 0 );
 	slap_sync_cookie_free( &syncCookie_req, 0 );
 
