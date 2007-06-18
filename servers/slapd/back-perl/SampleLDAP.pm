@@ -18,8 +18,10 @@
 #
 #	database	perl
 #	suffix		"o=AnyOrg,c=US"
-#	perlModulePath	/path/to/this/file
+#	perlModulePath	/directory/containing/this/module
 #	perlModule	SampleLDAP
+#
+# See the slapd-perl(5) manual page for details.
 
 package SampleLDAP;
 
