@@ -4,87 +4,9 @@
 
 H1: Performance Tuning
 
-Note: this chapter needs to be updated to discuss BDB tuning.
+Link for merging content into this chapter:
 
-There are several things you can do to tune the performance of
-slapd for your system. Most of them have to do with the LDBM
-backend. LDBM uses an index mechanism to store and retrieve
-information in slapd. Each entry is assigned a unique ID, used to
-refer to the entry in the indexes. A search for entries with a
-surname of "Jensen", for example, would look up the index entry
-"=JENSEN" in the surname index. The data returned is a list of
-IDs of entries having that value for the surname attribute. We
-have found several things to be useful in improving the
-performance of this indexing scheme, especially on modify
-operations.
-
-
-
-H2: The allIDs threshold
-
-Some index entries become so large as to be useless. For
-example, if every entry in your database is a person entry, the
-"=PERSON" index entry in the objectclass index contains every
-entry. This returns very little useful information, and can cause
-significant delays, especially on updates. To alleviate this
-problem, we have introduced the idea of an allIDs index entry.
-
-The allIDs entry stands for a real index entry containing the IDs
-of every entry in the database, but it takes up very little space,
-never needs updating, and can be manipulated quickly and
-efficiently. The trade-off is that it does not prune the set of
-candidate entries at all during a search. This must be done
-using other, more "high-powered" index entries.
-
-You can set the minimum number of IDs that an index entry may
-contain before it turns into an allIDs block by changing the
-{{EX: SLAPD_LDBM_MIN_MAXIDS}} variable in the
-{{EX: include/ldapconfig.h}} file. The actual number is determined at
-runtime by the LDBM backend, depending on the block size of
-the underlying device (i.e., the number you provide is rounded up
-to the nearest multiple of a block size).
-
-
-
-H2: The entry cache
-
-The LDBM backend can be configured to keep a cache of
-entries in memory. Since the LDBM database spends much of its
-time reading entries from the id2entry file into memory, this cache
-can greatly speed performance. The trade-off is that the cache
-uses some extra memory. The default cache size is 1000
-entries. See the discussion of the cachesize option in Section
-5.2.3 on LDBM configuration.
-
-
-
-H2: The DB cache
-
-The LDBM backend uses a number of disk-based index files. If
-the underlying hash or B-tree package supports in-memory
-caching of these files, performance can be greatly improved,
-especially on modifies. The size of this in-memory file cache is
-given by the dbcachesize option, discussed in more detail in
-section 5.2.3 on LDBM configuration. The default {{EX: dbcachesize}} is
-100K.
-
-
-
-H2: Maintain the right indices
-
-Finally, one of the best performance tune-ups you can do is to
-make sure you are maintaining the right indices. Too few indices
-can lead to poor search performance. Too many indices can
-lead to poor update performance. For example, the LDBM
-backend would be perfectly happy to maintain substring and
-approximate indices for the {{EX: objectclass attribute}}, but this would
-not be useful and would just slow down update operations. If
-your database has many entries and is handling queries for
-substring equality on the surname attribute, you should make
-sure to maintain a surname substring index so these queries are
-answered quickly.
-
-So, take a look at the index lines in your slapd configuration file to
-ensure that only those indices that make sense and are needed
-are being maintained.
+http://www.openldap.org/faq/data/cache/190.html
+http://www.connexitor.com/blog/pivot/entry.php?id=103#body
+http://groups.google.com/group/comp.mail.sendmail/browse_frm/thread/17c5c0b94ad1fc58/f870758659375718?lnk=gst&q=hyc&rnum=12&hl=en#f870758659375718
 

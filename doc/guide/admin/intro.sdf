@@ -229,6 +229,10 @@ LDAPv2 is disabled by default.
 
 H2: LDAP vs RDBMS
 
+To reference:
+
+http://blogs.sun.com/treydrake/entry/ldap_vs_relational_database
+http://blogs.sun.com/treydrake/entry/ldap_vs_relational_database_part
 
 H2: What is slapd and what can it do?
 
