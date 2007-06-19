@@ -320,7 +320,6 @@ ldap_sync_search(
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
 	LDAPControl c[2], *ctrls[3];
-	struct timeval timeout;
 	ber_int_t	msgid;
 	int rc;
 	int rhint;
@@ -405,12 +404,8 @@ ldap_sync_search(
 		ctrls[1] = NULL;
 	}
 
-	timeout.tv_sec = si->si_tlimit;
-	timeout.tv_usec = 0;
-
 	rc = ldap_search_ext( si->si_ld, base, scope, filter, attrs, attrsonly,
-		ctrls, NULL, si->si_tlimit > 0 ? &timeout : NULL,
-		si->si_slimit, &msgid );
+		ctrls, NULL, NULL, si->si_slimit, &msgid );
 	ber_free_buf( ber );
 	return rc;
 }
@@ -448,6 +443,8 @@ do_syncrep1(
 	ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &op->o_sasl_ssf );
 	op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf )
 		?  op->o_sasl_ssf : op->o_tls_ssf;
+
+	ldap_set_option( si->si_ld, LDAP_OPT_TIMELIMIT, &si->si_tlimit );
 
 	/* We've just started up, or the remote server hasn't sent us
 	 * any meaningful state.
