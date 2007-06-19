@@ -795,7 +795,6 @@ config_generic(ConfigArgs *c) {
 			if ( c->be->be_limits ) {
 				char buf[4096*3];
 				struct berval bv;
-				int i;
 
 				for ( i=0; c->be->be_limits[i]; i++ ) {
 					bv.bv_len = snprintf( buf, sizeof( buf ), SLAP_X_ORDERED_FMT, i );
@@ -1089,7 +1088,6 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_SERVERID: {
-			int i;
 			ServerID *si, **sip;
 
 			for ( i=0, si = sid_list, sip = &sid_list;
@@ -1151,7 +1149,6 @@ config_generic(ConfigArgs *c) {
 				cfn->c_oc_head = cfn->c_oc_tail = NULL;
 			} else {
 				ObjectClass *oc, *prev = NULL;
-				int i;
 
 				for ( i=0, oc=cfn->c_oc_head; i<c->valx; i++) {
 					prev = oc;
@@ -1186,7 +1183,6 @@ config_generic(ConfigArgs *c) {
 				cfn->c_at_head = cfn->c_at_tail = NULL;
 			} else {
 				AttributeType *at, *prev = NULL;
-				int i;
 
 				for ( i=0, at=cfn->c_at_head; i<c->valx; i++) {
 					prev = at;
