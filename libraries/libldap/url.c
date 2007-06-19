@@ -552,7 +552,7 @@ desc2str_len( LDAPURLDesc *u )
 	}
 
 	if ( u->lud_filter ) {
-		len +=  hex_escape_len( u->lud_filter, URLESC_NONE );
+		len += hex_escape_len( u->lud_filter, URLESC_NONE );
 		if ( !sep ) {
 			sep = 4;
 		}
@@ -566,7 +566,7 @@ desc2str_len( LDAPURLDesc *u )
 	}
 
 	if ( u->lud_attrs ) {
-		len +=  hex_escape_len_list( u->lud_attrs, URLESC_NONE );
+		len += hex_escape_len_list( u->lud_attrs, URLESC_NONE );
 		if ( !sep ) {
 			sep = 2;
 		}
