@@ -536,6 +536,8 @@ do_syncrep1(
 		at[0].an_name = a.a_desc->ad_cname;
 		at[0].an_desc = a.a_desc;
 		BER_BVZERO( &at[1].an_name );
+		op->o_req_dn = e.e_name;
+		op->o_req_ndn = e.e_nname;
 
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 		rc = backend_operational( op, &rs );
