@@ -411,9 +411,6 @@ main( int argc, char *argv[] )
 	ber_memfree( retoid );
 	ber_bvfree( retdata );
 
-	rc = ldap_search_s( ld, binddn, LDAP_SCOPE_BASE, "(objectclass=*)",
-		NULL, 0, &res );
-
 	rc = ( code == LDAP_SUCCESS ) ? EXIT_SUCCESS : EXIT_FAILURE;
 
 done:
