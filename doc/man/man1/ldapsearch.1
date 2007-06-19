@@ -206,9 +206,14 @@ Use complete contents of \fIpasswdfile\fP as the password for
 simple authentication.
 .TP
 .BI \-H \ ldapuri
-Specify URI(s) referring to the ldap server(s); only the protocol/host/port
-fields are allowed; a list of URI, separated by whitespace or commas
-is expected.
+Specify URI(s) referring to the ldap server(s);
+a list of URI, separated by whitespace or commas is expected;
+only the protocol/host/port fields are allowed.
+As an exception, if no host/port is specified, but a DN is,
+the DN is used to look up the corresponding host(s) using the
+DNS SRV records, according to RFC 2782.  The DN must be a non-empty
+sequence of AVAs whose attribute type is "dc" (domain component),
+and must be escaped according to RFC 2396.
 .TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
