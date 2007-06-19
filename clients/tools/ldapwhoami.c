@@ -118,6 +118,7 @@ main( int argc, char *argv[] )
 	struct berval	*retdata = NULL;
 	int		id, code = 0;
 	LDAPMessage	*res;
+	LDAPControl	**ctrls = NULL;
 
 	tool_init( TOOL_WHOAMI );
 	prog = lutil_progname( "ldapwhoami", argc, argv );
@@ -186,7 +187,7 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_result( ld, res,
-		&code, &matcheddn, &text, &refs, NULL, 0 );
+		&code, &matcheddn, &text, &refs, &ctrls, 0 );
 
 	if ( rc == LDAP_SUCCESS ) {
 		rc = code;
@@ -214,7 +215,10 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( verbose || ( code != LDAP_SUCCESS ) || matcheddn || text || refs ) {
+skip:
+	if ( verbose || ( code != LDAP_SUCCESS ) ||
+		matcheddn || text || refs || ctrls )
+	{
 		printf( _("Result: %s (%d)\n"), ldap_err2string( code ), code );
 
 		if( text && *text ) {
@@ -231,6 +235,11 @@ main( int argc, char *argv[] )
 				printf(_("Referral: %s\n"), refs[i] );
 			}
 		}
+
+		if (ctrls) {
+			tool_print_ctrls( ld, ctrls );
+			ldap_controls_free( ctrls );
+		}
 	}
 
 	ber_memfree( text );
@@ -239,7 +248,6 @@ main( int argc, char *argv[] )
 	ber_memfree( retoid );
 	ber_bvfree( retdata );
 
-skip:
 	/* disconnect from server */
 	tool_unbind( ld );
 	tool_destroy();

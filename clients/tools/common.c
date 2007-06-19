@@ -1279,7 +1279,7 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[10], **ctrls;
+	LDAPControl c[12], **ctrls;
 
 	if ( ! ( assertctl
 		|| authzid
@@ -1289,6 +1289,9 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		|| manageDIT
 		|| manageDSAit
 		|| noop
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+		|| ppolicy
+#endif
 		|| preread
 		|| postread
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -1390,6 +1393,16 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		ctrls[i] = &c[i];
 		i++;
 	}
+
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+	if ( ppolicy ) {
+		c[i].ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
+		BER_BVZERO( &c[i].ldctl_value );
+		c[i].ldctl_iscritical = 0;
+		ctrls[i] = &c[i];
+		i++;
+	}
+#endif
 
 	if ( preread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
@@ -1691,7 +1704,8 @@ print_ppolicy( LDAP *ld, LDAPControl *ctrl )
 
 		if ( pperr != PP_noError ) {
 			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-				"%serror=%s", ptr == buf ? "" : " ",
+				"%serror=%d (%s)", ptr == buf ? "" : " ",
+				pperr,
 				ldap_passwordpolicy_err2txt( pperr ) );
 		}
 

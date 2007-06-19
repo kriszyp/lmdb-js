@@ -177,6 +177,7 @@ main( int argc, char *argv[] )
 	char *matcheddn = NULL, *text = NULL, **refs = NULL;
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
+	LDAPControl **ctrls = NULL;
 
     tool_init( TOOL_PASSWD );
 	prog = lutil_progname( "ldappasswd", argc, argv );
@@ -344,7 +345,7 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_result( ld, res,
-		&code, &matcheddn, &text, &refs, NULL, 0 );
+		&code, &matcheddn, &text, &refs, &ctrls, 0 );
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_result", rc, NULL, NULL, NULL, NULL );
 		rc = EXIT_FAILURE;
@@ -386,7 +387,10 @@ main( int argc, char *argv[] )
 			" new password expected", NULL, NULL, NULL );
 	}
 
-	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
+skip:
+	if( verbose || code != LDAP_SUCCESS ||
+		matcheddn || text || refs || ctrls )
+	{
 		printf( _("Result: %s (%d)\n"), ldap_err2string( code ), code );
 
 		if( text && *text ) {
@@ -402,6 +406,11 @@ main( int argc, char *argv[] )
 			for( i=0; refs[i]; i++ ) {
 				printf(_("Referral: %s\n"), refs[i] );
 			}
+		}
+
+		if( ctrls ) {
+			tool_print_ctrls( ld, ctrls );
+			ldap_controls_free( ctrls );
 		}
 	}
 
