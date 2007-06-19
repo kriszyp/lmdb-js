@@ -180,7 +180,10 @@ slap_parse_sync_cookie(
 		if ( !strncmp( next, "rid=", STRLENOF("rid=") )) {
 			rid_ptr = next;
 			cookie->rid = strtoul( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );
-			if ( next == rid_ptr || next > end || *next != ',' ) {
+			if ( next == rid_ptr ||
+				next > end ||
+				( *next && *next != ',' ) )
+			{
 				return -1;
 			}
 			if ( *next == ',' ) {
@@ -194,7 +197,10 @@ slap_parse_sync_cookie(
 		if ( !strncmp( next, "sid=", STRLENOF("sid=") )) {
 			rid_ptr = next;
 			cookie->sid = strtoul( &rid_ptr[ STRLENOF( "sid=" ) ], &next, 16 );
-			if ( next == rid_ptr || next > end || *next != ',' ) {
+			if ( next == rid_ptr ||
+				next > end ||
+				( *next && *next != ',' ) )
+			{
 				return -1;
 			}
 			if ( *next == ',' ) {
