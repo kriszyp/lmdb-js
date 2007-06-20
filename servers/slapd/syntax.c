@@ -194,7 +194,7 @@ syn_add(
 		for ( cnt = 0; def->sd_sups[cnt] != NULL; cnt++ )
 			;
 		
-		ssyn->ssyn_sups = (Syntax **)SLAP_CALLOC( cnt + 1,
+		ssyn->ssyn_sups = (Syntax **)ch_calloc( cnt + 1,
 			sizeof(Syntax) );
 
 		for ( cnt = 0; def->sd_sups[cnt] != NULL; cnt++ ) {
