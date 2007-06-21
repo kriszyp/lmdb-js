@@ -164,9 +164,9 @@ syn_add(
 	int		code = 0;
 
 	ssyn = (Syntax *) SLAP_CALLOC( 1, sizeof(Syntax) );
-	if( ssyn == NULL ) {
+	if ( ssyn == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
-		return LDAP_OTHER;
+		return SLAP_SCHERR_OUTOFMEM;
 	}
 
 	AC_MEMCPY( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
@@ -182,6 +182,8 @@ syn_add(
 	ssyn->ssyn_flags = def->sd_flags;
 	ssyn->ssyn_validate = def->sd_validate;
 	ssyn->ssyn_pretty = def->sd_pretty;
+
+	ssyn->ssyn_sups = NULL;
 
 #ifdef SLAPD_BINARY_CONVERSION
 	ssyn->ssyn_ber2str = def->sd_ber2str;
@@ -208,6 +210,12 @@ syn_add(
 
 	if ( code == 0 ) {
 		code = syn_insert( ssyn, err );
+
+	} else if ( ssyn != NULL ) {
+		if ( ssyn->ssyn_sups != NULL ) {
+			ch_free( ssyn->ssyn_sups );
+		}
+		SLAP_FREE( ssyn );
 	}
 
 	return code;
