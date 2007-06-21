@@ -160,7 +160,7 @@ main( int argc, char *argv[] )
 	rc = ldap_whoami( ld, NULL, NULL, &id ); 
 
 	if( rc != LDAP_SUCCESS ) {
-		tool_perror( "ldap_extended_operation", rc, NULL, NULL, NULL, NULL );
+		tool_perror( "ldap_whoami", rc, NULL, NULL, NULL, NULL );
 		rc = EXIT_FAILURE;
 		goto skip;
 	}
