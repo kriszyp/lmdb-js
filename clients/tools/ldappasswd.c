@@ -311,6 +311,8 @@ main( int argc, char *argv[] )
 		goto done;
 	}
 
+	tool_server_controls( ld, NULL, 0);
+
 	rc = ldap_extended_operation( ld,
 		LDAP_EXOP_MODIFY_PASSWD, bv.bv_val ? &bv : NULL, 
 		NULL, NULL, &id );
@@ -382,7 +384,7 @@ main( int argc, char *argv[] )
 
 		ber_free( ber, 1 );
 
-	} else if ( newpw.bv_val == NULL ) {
+	} else if ( code == LDAP_SUCCESS && newpw.bv_val == NULL ) {
 		tool_perror( "ldap_parse_extended_result", LDAP_DECODING_ERROR,
 			" new password expected", NULL, NULL, NULL );
 	}
