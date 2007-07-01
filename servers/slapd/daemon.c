@@ -227,7 +227,8 @@ static struct slap_daemon {
 	(int *)(ptr) <= &slap_daemon.sd_index[dtblsize]) ? 0 : 1 )
 
 # define SLAP_EPOLL_EV_PTRFD(ptr)		(SLAP_EPOLL_EV_LISTENER(ptr) ? \
-	((Listener *)ptr)->sl_sd : (int *)(ptr) - slap_daemon.sd_index)
+	((Listener *)ptr)->sl_sd : \
+	(ber_socket_t) ((int *)(ptr) - slap_daemon.sd_index))
 
 # define SLAP_SOCK_DEL(s)		do { \
 	int fd, rc, index = SLAP_EPOLL_SOCK_IX((s)); \
