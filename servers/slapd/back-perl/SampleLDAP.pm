@@ -1,8 +1,3 @@
-package SampleLDAP;
-use strict;
-use warnings;
-use POSIX;
-
 # This is a sample Perl module for the OpenLDAP server slapd.
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
@@ -28,15 +23,20 @@ use POSIX;
 #
 # See the slapd-perl(5) manual page for details.
 
-our $VERSION = '1.00';
+package SampleLDAP;
+use strict;
+use warnings;
+use POSIX;
+
+$SampleLDAP::VERSION = '1.01';
 
 sub new {
     my $class = shift;
 
     my $this = {};
     bless $this, $class;
-    print <STDERR>, "Here in new\n";
-    print <STDERR>, 'Posix Var ' . BUFSIZ . ' and ' . FILENAME_MAX . "\n";
+    print {*STDERR} "Here in new\n";
+    print {*STDERR} 'Posix Var ' . BUFSIZ . ' and ' . FILENAME_MAX . "\n";
     return $this;
 }
 
@@ -49,7 +49,7 @@ sub search {
     my ( $base, $scope, $deref, $sizeLim, $timeLim, $filterStr, $attrOnly,
         @attrs )
       = @_;
-    print <STDERR>, "====$filterStr====\n";
+    print {*STDERR}, "====$filterStr====\n";
     $filterStr =~ s/\(|\)//gm;
     $filterStr =~ s/=/: /m;
 
@@ -150,7 +150,7 @@ sub delete {
 
     my ($dn) = @_;
 
-    print <STDERR>, "XXXXXX $dn XXXXXXX\n";
+    print {*STDERR} "XXXXXX $dn XXXXXXX\n";
     delete $this->{$dn};
     return 0;
 }
@@ -160,8 +160,8 @@ sub config {
 
     my (@args) = @_;
     local $, = ' - ';
-    print <STDERR>, @args;
-    print <STDERR>, "\n";
+    print {*STDERR} @args;
+    print {*STDERR} "\n";
     return 0;
 }
 
