@@ -48,7 +48,12 @@ typedef struct ldap_int_thread_key_s {
  * We don't expect to use many...
  */
 #define	MAXKEYS	32
+
+/* Max number of threads */
 #define	LDAP_MAXTHR	1024	/* must be a power of 2 */
+
+/* Max number of pending tasks */
+#define LDAP_MAX_PENDING (INT_MAX - LDAP_MAXTHR)
 
 /* Context: thread ID and thread-specific key/data pairs */
 typedef struct ldap_int_thread_userctx_s {
@@ -60,6 +65,7 @@ typedef struct ldap_int_thread_userctx_s {
 /* Simple {thread ID -> context} hash table; key=ctx->ltu_id.
  * Protected by ldap_pvt_thread_pool_mutex except during pauses,
  * when it is read-only (used by pool_purgekey and pool_context).
+ * Protected by tpool->ltp_mutex during pauses.
  */
 static struct {
 	ldap_int_thread_userctx_t *ctx;
@@ -88,7 +94,7 @@ typedef struct ldap_int_thread_task_s {
 struct ldap_int_thread_pool_s {
 	LDAP_STAILQ_ENTRY(ldap_int_thread_pool_s) ltp_next;
 
-	/* protect members below */
+	/* protect members below, and protect thread_keys[] during pauses */
 	ldap_pvt_thread_mutex_t ltp_mutex;
 
 	/* not paused and something to do for pool_<wrapper/pause/destroy>() */
@@ -327,7 +333,9 @@ ldap_pvt_thread_pool_submit (
 
 /* Set max #threads.  value <= 0 means max supported #threads (LDAP_MAXTHR) */
 int
-ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads )
+ldap_pvt_thread_pool_maxthreads(
+	ldap_pvt_thread_pool_t *tpool,
+	int max_threads )
 {
 	struct ldap_int_thread_pool_s *pool;
 
@@ -350,7 +358,10 @@ ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads
 
 /* Inspect the pool */
 int
-ldap_pvt_thread_pool_query ( ldap_pvt_thread_pool_t *tpool, ldap_pvt_thread_pool_param_t param, void *value )
+ldap_pvt_thread_pool_query(
+	ldap_pvt_thread_pool_t *tpool,
+	ldap_pvt_thread_pool_param_t param,
+	void *value )
 {
 	struct ldap_int_thread_pool_s	*pool;
 	int				count = -1;
@@ -611,18 +622,15 @@ ldap_int_thread_pool_wrapper (
 			ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
 	}
 
+	/* The ltp_mutex lock protects ctx->ltu_key from pool_purgekey()
+	 * during this call, since it prevents new pauses. */
 	ldap_pvt_thread_pool_context_reset(&ctx);
-
-	/* Needed if context_reset can let another thread request a pause */
-	while (pool->ltp_pause)
-		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
 
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	thread_keys[keyslot].ctx = DELETED_THREAD_CTX;
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
 	pool->ltp_open_count--;
-
 	/* let pool_destroy know we're all done */
 	if (pool->ltp_open_count < 1)
 		ldap_pvt_thread_cond_signal(&pool->ltp_cond);
@@ -698,7 +706,6 @@ ldap_pvt_thread_pool_resume (
 
 /*
  * Get the key's data and optionally free function in the given context.
- * Must not be called when the pool is paused.
  */
 int ldap_pvt_thread_pool_getkey(
 	void *xctx,
@@ -731,12 +738,12 @@ clear_key_idx( ldap_int_thread_userctx_t *ctx, int i )
 
 /*
  * Set or remove data for the key in the given context.
- * Must not be called when the pool is paused.
  * key can be any unique pointer.
  * kfree() is an optional function to free the data (but not the key):
- * pool_context_reset() and pool_purgekey() call kfree(key, data),
- * but pool_setkey() does not.  For pool_setkey() it is the caller's
- * responsibility to free any existing data with the same key.
+ *   pool_context_reset() and pool_purgekey() call kfree(key, data),
+ *   but pool_setkey() does not.  For pool_setkey() it is the caller's
+ *   responsibility to free any existing data with the same key.
+ *   kfree() must not call functions taking a tpool argument.
  */
 int ldap_pvt_thread_pool_setkey(
 	void *xctx,
@@ -832,7 +839,11 @@ void *ldap_pvt_thread_pool_context( )
 	return ctx;
 }
 
-/* Free the context's keys.  Must not be called when the pool is paused. */
+/*
+ * Free the context's keys.
+ * Must not call functions taking a tpool argument (because this
+ * thread already holds ltp_mutex when called from pool_wrapper()).
+ */
 void ldap_pvt_thread_pool_context_reset( void *vctx )
 {
 	ldap_int_thread_userctx_t *ctx = vctx;
