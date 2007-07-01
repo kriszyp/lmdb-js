@@ -180,6 +180,7 @@ St_read(
     int		rc;
     char	*hostname, *port, *timestamp, *seq, *p, *t;
     int		found;
+    long	last;
 
     if ( st == NULL ) {
 	return -1;
@@ -235,11 +236,11 @@ St_read(
 	    if ( !strcmp( hostname, sglob->st->st_data[ i ]->hostname ) &&
 		    lutil_atoi( &p, port ) == 0 && p == sglob->st->st_data[ i ]->port )
 	    {
-		found = 1;
-		if ( lutil_atol( &sglob->st->st_data[ i ]->last, timestamp ) != 0
-			|| lutil_atoi( &sglob->st->st_data[ i ]->seq, seq ) != 0 )
-		{
-		    found = 0;
+		found = (lutil_atol( &last, timestamp ) == 0);
+		if ( found ) {
+		    sglob->st->st_data[i]->last = last;
+		    if ( lutil_atoi( &sglob->st->st_data[i]->seq, seq ) != 0 )
+		        found = 0;
 		}
 		break;
 	    }
