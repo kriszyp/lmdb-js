@@ -2445,7 +2445,7 @@ int
 slap_loglevel_get( struct berval *s, int *l )
 {
 	int		rc;
-	unsigned long	i;
+	unsigned	i;
 	slap_mask_t	m;
 
 	if ( loglevel_ops == NULL ) {
@@ -2456,19 +2456,17 @@ slap_loglevel_get( struct berval *s, int *l )
 		m |= loglevel_ops[ i ].mask;
 	}
 
-	m = ~m;
-
-	for ( i = 1; i <= ( 1 << ( sizeof( int ) * 8 - 1 ) ) && !( m & i ); i <<= 1 )
+	for ( i = 1; m & i; i <<= 1 )
 		;
 
-	if ( !( m & i ) ) {
+	if ( i == 0 ) {
 		return -1;
 	}
 
 	rc = slap_verbmasks_append( &loglevel_ops, i, s, loglevel_ignore );
 
 	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "slap_loglevel_get(%lu, \"%s\") failed\n",
+		Debug( LDAP_DEBUG_ANY, "slap_loglevel_get(%u, \"%s\") failed\n",
 			i, s->bv_val, 0 );
 
 	} else {
