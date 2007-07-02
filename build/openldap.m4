@@ -91,6 +91,7 @@ EOF
 			done
 			rm -f conftest*
 		])
+		test "$ol_cv_mkdep" = no && OL_MKDEP=":"
 	else
 		cc_cv_mkdep=yes
 		OL_MKDEP_FLAGS="${MKDEP_FLAGS}"

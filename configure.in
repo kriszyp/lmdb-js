@@ -3102,7 +3102,11 @@ fi
 /* end of generated file */
 ENDX
 
-echo Please run \"make depend\" to build dependencies
+if test "${ol_cv_mkdep}" = no; then
+	echo '(Do not "make depend"; we do not know how to build dependencies)'
+else
+	echo 'Please run "make depend" to build dependencies'
+fi
 ]],[[
 STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS"
 STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS"
