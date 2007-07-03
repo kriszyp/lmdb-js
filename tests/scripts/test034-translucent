@@ -36,6 +36,12 @@ mkdir -p $TESTDIR $DBDIR1
 $SLAPPASSWD -g -n >$CONFIGPWF
 echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
 
+if test $MONITORDB = yes ; then
+	DBIX=2
+else
+	DBIX=1
+fi
+
 . $CONFFILTER $BACKEND $MONITORDB < $TRANSLUCENTREMOTECONF > $CONF1
 echo "Running slapadd to build remote slapd database..."
 $SLAPADD -f $CONF1 -l $LDIFTRANSLUCENTCONFIG
@@ -202,7 +208,7 @@ fi
 echo "Dynamically configuring local slapd without translucent_no_glue..."
 
 $LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF
-dn: olcOverlay={0}translucent,olcDatabase={2}$BACKEND,cn=config
+dn: olcOverlay={0}translucent,olcDatabase={$DBIX}$BACKEND,cn=config
 changetype: modify
 replace: olcTranslucentNoGlue
 olcTranslucentNoGlue: FALSE
@@ -621,7 +627,7 @@ fi
 echo "Dynamically configuring local slapd with translucent_no_glue and translucent_strict..."
 
 $LDAPMODIFY -D cn=config -H $URI2 -y $CONFIGPWF <<EOF
-dn: olcOverlay={0}translucent,olcDatabase={2}$BACKEND,cn=config
+dn: olcOverlay={0}translucent,olcDatabase={$DBIX}$BACKEND,cn=config
 changetype: modify
 replace: olcTranslucentNoGlue
 olcTranslucentNoGlue: TRUE
