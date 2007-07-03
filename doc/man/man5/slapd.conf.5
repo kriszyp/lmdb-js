@@ -607,10 +607,11 @@ The keyword
 .BR none ,
 or the equivalent integer representation, causes those messages
 that are logged regardless of the configured loglevel to be logged.
-In fact, if no loglevel (or a 0 level) is defined, no logging occurs, 
+In fact, if loglevel is set to 0, no logging occurs, 
 so at least the 
 .B none
 level is required to have high priority messages logged.
+The loglevel defaults to \fBstats\fP.
 .RE
 .TP
 .B moduleload <filename>

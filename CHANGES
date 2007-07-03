@@ -2,6 +2,8 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.37 Engineering
 	Clarified slapd-perl SampleLDAP.pm usage (ITS#4995)
+	Documentation
+		Fixed slapd.conf(5) for default loglevel (ITS#5027)
 
 OpenLDAP 2.3.36 Release (2007/06/17)
 	Fixed slapd error code on Windows (ITS#4945, #4606)
