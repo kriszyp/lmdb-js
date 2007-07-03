@@ -52,9 +52,6 @@ typedef struct ldap_int_thread_key_s {
 /* Max number of threads */
 #define	LDAP_MAXTHR	1024	/* must be a power of 2 */
 
-/* Max number of pending tasks */
-#define LDAP_MAX_PENDING (INT_MAX - LDAP_MAXTHR)
-
 /* Context: thread ID and thread-specific key/data pairs */
 typedef struct ldap_int_thread_userctx_s {
 	ldap_pvt_thread_t ltu_id;
@@ -112,8 +109,8 @@ struct ldap_int_thread_pool_s {
 	/* some active request needs to be the sole active request */
 	int ltp_pause;
 
-	long ltp_max_count;			/* max number of threads in pool */
-	long ltp_max_pending;		/* max pending or paused requests */
+	long ltp_max_count;			/* max number of threads in pool, or 0 */
+	long ltp_max_pending;		/* max pending or paused requests, or 0 */
 	long ltp_pending_count;		/* pending or paused requests */
 	long ltp_active_count;		/* active, not paused requests */
 	long ltp_open_count;		/* number of threads */
@@ -167,6 +164,8 @@ ldap_pvt_thread_pool_init (
 
 	if (! (0 <= max_threads && max_threads <= LDAP_MAXTHR))
 		max_threads = 0;
+	if (max_pending < 0)
+		max_pending = 0;
 
 	*tpool = NULL;
 	pool = (ldap_pvt_thread_pool_t) LDAP_CALLOC(1,
@@ -254,7 +253,7 @@ ldap_pvt_thread_pool_submit (
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 	if (pool->ltp_state != LDAP_INT_THREAD_POOL_RUNNING
-		|| (pool->ltp_max_pending > 0
+		|| (pool->ltp_max_pending
 			&& pool->ltp_pending_count >= pool->ltp_max_pending))
 	{
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
