@@ -266,7 +266,7 @@ slap_sl_malloc(
 	int i, j;
 
 #ifdef SLAP_NO_SL_MALLOC
-	return ber_malloc_x( size, NULL );
+	return ber_memalloc_x( size, NULL );
 #endif
 
 	/* ber_set_option calls us like this */
