@@ -24,7 +24,7 @@
 #include <stdio.h>
 #endif
 
-#if LDAP_MEMORY_DEBUG
+#ifdef LDAP_MEMORY_DEBUG
 /*
  * LDAP_MEMORY_DEBUG should only be enabled for the purposes of
  * debugging memory management within OpenLDAP libraries and slapd.
@@ -71,6 +71,7 @@ static const struct ber_mem_hdr ber_int_mem_hdr = { LBER_MEM_JUNK, 0, 0 };
  * put allocations/frees together.  It is then a simple matter to write a script
  * to find any allocations that don't have a buffer free function.
  */
+long ber_int_meminuse = 0;
 #ifdef LDAP_MEMORY_TRACE
 static ber_int_t sequence = 0;
 #endif
