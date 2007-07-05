@@ -53,7 +53,6 @@ sdf-img: \
 	config_x500ref.gif \
 	intro_dctree.gif \
 	intro_tree.gif \
-	replication.gif
 
 guide.html: guide.sdf sdf-src sdf-img
 	sdf -2html guide.sdf
