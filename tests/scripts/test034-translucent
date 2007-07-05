@@ -36,7 +36,7 @@ mkdir -p $TESTDIR $DBDIR1
 $SLAPPASSWD -g -n >$CONFIGPWF
 echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
 
-if test $MONITORDB = yes ; then
+if test $MONITORDB != no ; then
 	DBIX=2
 else
 	DBIX=1
