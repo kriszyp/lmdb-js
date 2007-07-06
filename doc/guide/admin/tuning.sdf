@@ -2,11 +2,74 @@
 # Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
-H1: Performance Tuning
+H1: Tuning
 
-Link for merging content into this chapter:
+This is perhaps one of the most important chapters in the guide, because if 
+you have not tunned {{slapd}}(8) correctly or grasped how to design your
+directory and environment, you can expect very poor performance.
 
-http://www.openldap.org/faq/data/cache/190.html
+Reading, understanding and experimenting using the instructions and information
+in the following sections, will enable you to fully understand how to tailor 
+your directory server to your specific requirements.
+
+Various factors can play a part in how your directory performs on your chosen 
+hardware and environment. We will attempt to discuss these here.
+
+It should be noted that the following information has been collected over time
+from our community based FAQ. So obviously the benefit of this real world experience
+and advice should be of great value to the reader.
+
+
+H2: Performance Factors
+
+We will attempt to discuss how various parts of the environment in which your 
+directory runs can play a part in how well it performs.
+
+
+H3: Memory
+
+Scale your cache to use available memory and increase system memory if you can.
+
+More info here.
+
+
+H3: Disks
+
+Use fast subsystems. Put each database and logs on separate disks.
+
+Example showing config settings
+
+
+H3: Network Topology
+
+http://www.openldap.org/faq/data/cache/363.html
+
+Drawing here.
+
+
+H3: Directory Layout Design
+
+Reference to other sections and good/bad drawing here.
+
+
+H3: Expected Usage
+
+Discussion.
+
+
+H2: Indexes
+
+http://www.openldap.org/faq/data/cache/42.html
 http://www.connexitor.com/blog/pivot/entry.php?id=103#body
 http://groups.google.com/group/comp.mail.sendmail/browse_frm/thread/17c5c0b94ad1fc58/f870758659375718?lnk=gst&q=hyc&rnum=12&hl=en#f870758659375718
 
+
+H2: Tuning Logging
+
+http://www.openldap.org/faq/data/cache/80.html
+
+
+H2: BDB/HDB database cache size
+
+http://www.openldap.org/faq/data/cache/1076.html
+http://www.openldap.org/faq/data/cache/1075.html
