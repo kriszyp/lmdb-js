@@ -109,10 +109,7 @@ int
 main( int argc, char *argv[] )
 {
 	int		rc;
-	char		*user = NULL;
-
 	LDAP		*ld = NULL;
-
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
 	char		*retoid = NULL;
 	struct berval	*retdata = NULL;
@@ -128,12 +125,8 @@ main( int argc, char *argv[] )
 
 	tool_args( argc, argv );
 
-	if( argc - optind > 1 ) {
+	if( argc - optind > 0 ) {
 		usage();
-	} else if ( argc - optind == 1 ) {
-		user = strdup( argv[optind] );
-	} else {
-		user = NULL;
 	}
 
 	if ( pw_file || want_bindpw ) {

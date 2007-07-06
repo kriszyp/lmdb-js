@@ -66,7 +66,6 @@ int
 main( int argc, char *argv[] )
 {
 	int		rc;
-	char		*user = NULL;
 
 	LDAP		*ld = NULL;
 
@@ -104,18 +103,6 @@ main( int argc, char *argv[] )
 	argc -= optind;
 
 	if ( strcasecmp( argv[ 0 ], "whoami" ) == 0 ) {
-		switch ( argc ) {
-		case 2:
-			user = argv[ 1 ];
-
-		case 1:
-			break;
-
-		default:
-			fprintf( stderr, "need [user]\n\n" );
-			usage();
-		}
-
 		tool_server_controls( ld, NULL, 0 );
 
 		rc = ldap_whoami( ld, NULL, NULL, &id ); 
