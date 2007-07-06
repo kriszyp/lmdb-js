@@ -5,7 +5,7 @@
 H1: Tuning
 
 This is perhaps one of the most important chapters in the guide, because if 
-you have not tunned {{slapd}}(8) correctly or grasped how to design your
+you have not tuned {{slapd}}(8) correctly or grasped how to design your
 directory and environment, you can expect very poor performance.
 
 Reading, understanding and experimenting using the instructions and information
