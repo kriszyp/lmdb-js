@@ -71,6 +71,24 @@ defined as using the distinguishedName syntax.
 Also, note that there are DN-related syntaxes (i.e. compound types with
 a portion that is DN-valued), like nameAndOptionalUID,
 whose values are currently not rewritten.
+.LP
+If the foreign type of an attribute mapping is not defined on the local 
+server, it might be desireable to have the attribute values normalized after
+the mapping process. Not normalizing the values can lead to wrong results, 
+when the
+.B rwm
+overlay is used together with e.g. the
+.B pcache
+overlay. This normalization can be enabled by means of the 
+.B rwm-normalize-mapped-attrs
+directive.
+.TP
+.B rwm-normalize-mapped-attrs {yes|no}
+Set this to "yes", if the
+.B rwm
+overlay should try to normalize the values of attributes that are mapped from
+an attribute type that is unknown to the local server. The default value of
+this setting is "no".
 .SH SUFFIX MASSAGING
 A basic feature of the
 .B rwm
