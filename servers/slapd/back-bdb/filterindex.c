@@ -341,10 +341,11 @@ comp_equality_candidates (
         rc = bdb_index_param( op->o_bd, mra->ma_desc, LDAP_FILTER_EQUALITY,
                 &db, &mask, &prefix );
 
-        if( rc != LDAP_SUCCESS ) {
+        if ( db == NULL ) {
                 return 0;
         }
-        if ( db == NULL ) {
+
+        if( rc != LDAP_SUCCESS ) {
                 return 0;
         }
 
@@ -650,19 +651,19 @@ presence_candidates(
 	rc = bdb_index_param( op->o_bd, desc, LDAP_FILTER_PRESENT,
 		&db, &mask, &prefix );
 
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"<= bdb_presence_candidates: (%s) index_param "
-			"returned=%d\n",
-			desc->ad_cname.bv_val, rc, 0 );
-		return 0;
-	}
-
 	if( db == NULL ) {
 		/* not indexed */
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_presence_candidates: (%s) not indexed\n",
 			desc->ad_cname.bv_val, 0, 0 );
+		return 0;
+	}
+
+	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<= bdb_presence_candidates: (%s) index_param "
+			"returned=%d\n",
+			desc->ad_cname.bv_val, rc, 0 );
 		return 0;
 	}
 
@@ -721,18 +722,18 @@ equality_candidates(
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
 
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"<= bdb_equality_candidates: (%s) not indexed\n", 
+			ava->aa_desc->ad_cname.bv_val, 0, 0 );
+		return 0;
+	}
+
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_equality_candidates: (%s) "
 			"index_param failed (%d)\n",
 			ava->aa_desc->ad_cname.bv_val, rc, 0 );
-		return 0;
-	}
-
-	if ( db == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"<= bdb_equality_candidates: (%s) not indexed\n", 
-			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 		return 0;
 	}
 
@@ -838,18 +839,18 @@ approx_candidates(
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_APPROX,
 		&db, &mask, &prefix );
 
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"<= bdb_approx_candidates: (%s) not indexed\n",
+			ava->aa_desc->ad_cname.bv_val, 0, 0 );
+		return 0;
+	}
+
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_approx_candidates: (%s) "
 			"index_param failed (%d)\n",
 			ava->aa_desc->ad_cname.bv_val, rc, 0 );
-		return 0;
-	}
-
-	if ( db == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"<= bdb_approx_candidates: (%s) not indexed\n",
-			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 		return 0;
 	}
 
@@ -958,18 +959,18 @@ substring_candidates(
 	rc = bdb_index_param( op->o_bd, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
 		&db, &mask, &prefix );
 
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"<= bdb_substring_candidates: (%s) not indexed\n",
+			sub->sa_desc->ad_cname.bv_val, 0, 0 );
+		return 0;
+	}
+
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_substring_candidates: (%s) "
 			"index_param failed (%d)\n",
 			sub->sa_desc->ad_cname.bv_val, rc, 0 );
-		return 0;
-	}
-
-	if ( db == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"<= bdb_substring_candidates: (%s) not indexed\n",
-			sub->sa_desc->ad_cname.bv_val, 0, 0 );
 		return 0;
 	}
 
@@ -1075,18 +1076,18 @@ inequality_candidates(
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
 
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"<= bdb_inequality_candidates: (%s) not indexed\n", 
+			ava->aa_desc->ad_cname.bv_val, 0, 0 );
+		return 0;
+	}
+
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_inequality_candidates: (%s) "
 			"index_param failed (%d)\n",
 			ava->aa_desc->ad_cname.bv_val, rc, 0 );
-		return 0;
-	}
-
-	if ( db == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"<= bdb_inequality_candidates: (%s) not indexed\n", 
-			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 		return 0;
 	}
 
