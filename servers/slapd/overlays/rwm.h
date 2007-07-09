@@ -82,6 +82,7 @@ struct ldaprwmap {
 	struct ldapmap rwm_at;
 
 #define	RWM_F_NONE			0x0000U
+#define	RWM_F_NORMALIZE_MAPPED_ATTRS    0x0001U
 #define	RWM_F_SUPPORT_T_F		0x4000U
 #define	RWM_F_SUPPORT_T_F_DISCOVER	0x8000U
 	unsigned	rwm_flags;

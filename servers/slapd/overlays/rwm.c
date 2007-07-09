@@ -1113,7 +1113,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 	for ( ap = a_first; *ap; ) {
 		struct ldapmapping	*mapping = NULL;
 		int			drop_missing;
-		int			last;
+		int			last=-1;
 		Attribute		*a;
 
 		if ( SLAP_OPATTRS( rs->sr_attr_flags ) && is_at_operational( (*ap)->a_desc->ad_type ) )
@@ -1134,8 +1134,46 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 			{
 				goto cleanup_attr;
 			}
-
 			if ( mapping != NULL ) {
+				assert( mapping->m_dst_ad != NULL );
+
+				/* try to normalize mapped Attributes if the original 
+				 * AttributeType was not normalized */
+				if ((rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS) && 
+					(!(*ap)->a_desc->ad_type->sat_equality || 
+					!(*ap)->a_desc->ad_type->sat_equality->smr_normalize) &&
+					mapping->m_dst_ad->ad_type->sat_equality &&
+					mapping->m_dst_ad->ad_type->sat_equality->smr_normalize )
+				{
+					int i=0;
+					for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
+						/* just count */ ;
+
+					if ( last )
+					{
+						(*ap)->a_nvals = ch_malloc( (last+1) * sizeof(struct berval) );
+
+						for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[i]); i++ ) {
+							int		rc;
+							/*
+							 * check that each value is valid per syntax
+							 * and pretty if appropriate
+							 */
+							rc = mapping->m_dst_ad->ad_type->sat_equality->smr_normalize(
+								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+								mapping->m_dst_ad->ad_type->sat_syntax,
+								mapping->m_dst_ad->ad_type->sat_equality,
+								&(*ap)->a_vals[i], &(*ap)->a_nvals[i],
+								NULL );
+
+							if ( rc != LDAP_SUCCESS ) {
+								BER_BVZERO( &(*ap)->a_nvals[i] );
+							}
+						}
+						BER_BVZERO( &(*ap)->a_nvals[i] );
+					}
+				}
+				/* rewrite the attribute description */
 				(*ap)->a_desc = mapping->m_dst_ad;
 			}
 		}
@@ -1154,8 +1192,10 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 			goto next_attr;
 		}
 
-		for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
-			/* just count */ ;
+		if ( last == -1 ) { /* not yet counted */ 
+			for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
+				/* just count */ ;
+		}
 
 		if ( last == 0 ) {
 			/* empty? leave it in place because of attrsonly and vlv */
@@ -1225,11 +1265,6 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 			}
 		}
 
-		if ( mapping != NULL ) {
-			/* rewrite the attribute description */
-			assert( mapping->m_dst_ad != NULL );
-			(*ap)->a_desc = mapping->m_dst_ad;
-		}
 
 next_attr:;
 		ap = &(*ap)->a_next;
@@ -1643,6 +1678,19 @@ rwm_db_config(
 	"%s: line %d: unknown value \"%s\" for \"t-f-support {no|yes|discover}\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
+		}
+	} else if ( strcasecmp( argv[0], "normalize-mapped-attrs" ) ==  0 ) {
+		if ( argc !=2 ) { 
+			fprintf( stderr,
+		"%s: line %d: \"normalize-mapped-attrs {no|yes}\" needs 1 argument.\n",
+					fname, lineno );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			rwmap->rwm_flags &= ~(RWM_F_NORMALIZE_MAPPED_ATTRS);
+		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			rwmap->rwm_flags |= RWM_F_NORMALIZE_MAPPED_ATTRS ;
 		}
 
 	} else {
