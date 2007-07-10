@@ -71,49 +71,137 @@ H2: BDB/HDB Database Caching
 We all know what caching is, don't we? 
 
 In brief, "A cache is a block of memory for temporary storage of data likely 
-to be used again" - http://en.wikipedia.org/wiki/Cache
+to be used again" - {{URL:http://en.wikipedia.org/wiki/Cache}}
 
-Caching - memory is good, more is better. If the entire database fits in RAM, that's ideal. There are multiple caches involved - first is BerkeleyDB's own data cache which operates on page-sized blocks of raw data. Then there's the slapd entry cache which operates on decoded entries. Note that while the BDB cache is just raw chunks of memory and configured as a memory size, the slapd entry cache holds parsed entries, and the size of each entry is variable. There is also an IDL cache which is used for Index Data Lookups. If you can fit all of your database into slapd's entry cache, and all of your index lookups fit in the IDL cache, that will provide the maximum throughput. If not, but you can fit the entire database into the BDB cache, then you should do that and shrink the slapd entry cache as appropriate. Failing that, you should balance the BDB cache against the entry cache.
+There are 3 types of caches, BerkeleyDB's own cache, {{slapd}}(8) 
+entry cache and {{TERM:IDL}} (IDL) cache.
 
-The rationale - entries in the entry cache can be used directly, giving the fastest response. If an entry isn't in the entry cache but can be extracted from the BDB page cache, that will avoid an I/O but it will still require parsing, so this will be slower. If the entry is in neither cache then BDB will have to flush some of its current cached pages and bring in the needed pages, resulting in a couple of expensive I/Os as well as parsing.
 
-As far as balancing the entry cache vs the BDB cache - parsed entries in memory are generally about twice as large as they are on disk. 
+H3: Berkeley DB Cache
 
-Not having a proper database cache size will cause performance issues. 
+BerkeleyDB's own data cache operates on page-sized blocks of raw data.
 
-These issues are not an indication of corruption occurring in the database. It is merely the fact that the cache is thrashing itself that causes performance/response time to slowdown. If you take the time to read and understand the Berkeley DB documentation, measure the library performance using db_stat, and tune your settings, you will avoid these problems.
+Note that while the {{TERM:BDB}} cache is just raw chunks of memory and 
+configured as a memory size, the {{slapd}}(8) entry cache holds parsed entries, 
+and the size of each entry is variable. 
 
-It is not absolutely necessary to configure a BerkeleyDB cache equal in size to your entire database. All that you need is a cache that's large enough for your "working set." That means, large enough to hold all of the most frequently accessed data, plus a few less-frequently accessed items.
+There is also an IDL cache which is used for Index Data Lookups. 
+If you can fit all of your database into slapd's entry cache, and all of your 
+index lookups fit in the IDL cache, that will provide the maximum throughput. 
 
-You should really read the BDB documentation referenced above, but let me spell out what that really means here, in detail. The discussion here is focused on back-bdb and back-hdb, but most of it also applies to back-ldbm when using BerkeleyDB as the underlying database engine.
+If not, but you can fit the entire database into the BDB cache, then you 
+should do that and shrink the slapd entry cache as appropriate. 
 
-Start with the most obvious - the back-bdb database lives in two main files, dn2id.bdb and id2entry.bdb. These are B-tree databases. We have never documented the back-bdb internal layout before, because it didn't seem like something anyone should have to worry about, nor was it necessarily cast in stone. But here's how it works today, in OpenLDAP 2.1 and 2.2. (All of the database files in back-ldbm are B-trees by default.)
+Failing that, you should balance the BDB cache against the entry cache.
 
-A B-tree is a balanced tree; it stores data in its leaf nodes and bookkeeping data in its interior nodes. (If you don't know what tree data structures look like in general, Google for some references, because that's getting far too elementary for the purposes of this discussion.)
+It is worth noting that it is not absolutely necessary to configure a BerkeleyDB 
+cache equal in size to your entire database. All that you need is a cache 
+that's large enough for your "working set." 
 
-For decent performance, you need enough cache memory to contain all the nodes along the path from the root of the tree down to the particular data item you're accessing. That's enough cache for a single search. For the general case, you want enough cache to contain all the internal nodes in the database. "db_stat -d" will tell you how many internal pages are present in a database. You should check this number for both dn2id and id2entry.
+That means, large enough to hold all of the most frequently accessed data, 
+plus a few less-frequently accessed items.
 
-Also note that id2entry always uses 16KB per "page", while dn2id uses whatever the underlying filesystem uses, typically 4 or 8KB. To avoid thrashing the cache and triggering these infinite hang bugs in BDB 4.1.25, your cache must be at least as large as the number of internal pages in both the dn2id and id2entry databases, plus some extra space to accomodate the actual leaf data pages.
+ORACLE LINKS HERE
 
-For example, in my OpenLDAP 2.2 test database, I have an input LDIF file that's about 360MB. With the back-hdb backend this creates a dn2id.bdb that's 68MB, and an id2entry that's 800MB. db_stat tells me that dn2id uses 4KB pages, has 433 internal pages, and 6378 leaf pages. The id2entry uses 16KB pages, has 52 internal pages, and 45912 leaf pages. In order to efficiently retrieve any single entry in this database, the cache should be at least
+H4: Calculating Cachesize
 
-(433+1) * 4KB + (52+1) * 16KB in size: 1736KB + 848KB =~ 2.5MB.
+The back-bdb database lives in two main files, {{F:dn2id.bdb}} and {{F:id2entry.bdb}}. 
+These are B-tree databases. We have never documented the back-bdb internal 
+layout before, because it didn't seem like something anyone should have to worry 
+about, nor was it necessarily cast in stone. But here's how it works today, 
+in OpenLDAP 2.4.
 
-This doesn't take into account other library overhead, so this is even lower than the barest minimum. The default cache size, when nothing is configured, is only 256KB. If you tried to do much of anything with this database and only default settings, BDB 4.1.25 would lock up in an infinite loop.
+A B-tree is a balanced tree; it stores data in its leaf nodes and bookkeeping 
+data in its interior nodes (If you don't know what tree data structures look
+ like in general, Google for some references, because that's getting far too 
+elementary for the purposes of this discussion).
 
-This 2.5MB number also doesn't take indexing into account. Each indexed attribute uses another database file of its own, using a Hash structure. (Again, in back-ldbm, the indexes also use B-trees by default, so this part of the discussion doesn't apply unless back-ldbm was explicitly compiled to use Hashes instead. Also, in OpenLDAP 2.2 onward, all of the indexes use B-trees, there are no more Hash database files. So just use the B-tree information above and ignore this Hash discussion.)
+For decent performance, you need enough cache memory to contain all the nodes 
+along the path from the root of the tree down to the particular data item 
+you're accessing. That's enough cache for a single search. For the general case, 
+you want enough cache to contain all the internal nodes in the database. 
 
-Unlike the B-trees, where you only need to touch one data page to find an entry of interest, doing an index lookup generally touches multiple keys, and the point of a hash structure is that the keys are evenly distributed across the data space. That means there's no convenient compact subset of the database that you can keep in the cache to insure quick operation, you can pretty much expect references to be scattered across the whole thing. My strategy here would be to provide enough cache for at least 50% of all of the hash data. (Number of hash buckets + number of overflow pages + number of duplicate pages) * page size / 2.
+>   db_stat -d
 
-The objectClass index for my example database is 5.9MB and uses 3 hash buckets and 656 duplicate pages. So ( 3 + 656 ) * 4KB / 2 =~ 1.3MB.
+will tell you how many internal pages are present in a database. You should 
+check this number for both dn2id and id2entry.
 
-With only this index enabled, I'd figure at least a 4MB cache for this backend. (Of course you're using a single cache shared among all of the database files, so the cache pages will most likely get used for something other than what you accounted for, but this gives you a fighting chance.)
+Also note that id2entry always uses 16KB per "page", while dn2id uses whatever 
+the underlying filesystem uses, typically 4 or 8KB. To avoid thrashing the, 
+your cache must be at least as large as the number of internal pages in both 
+the dn2id and id2entry databases, plus some extra space to accomodate the actual 
+leaf data pages.
 
-With this 4MB cache I can slapcat this entire database on my 1.3GHz PIII in 1 minute, 40 seconds. With the cache doubled to 8MB, it still takes the same 1:40s. Once you've got enough cache to fit the B-tree internal pages, increasing it further won't have any effect until the cache really is large enough to hold 100% of the data pages. I don't have enough free RAM to hold all the 800MB id2entry data, so 4MB is good enough.
+For example, in my OpenLDAP 2.4 test database, I have an input LDIF file that's 
+about 360MB. With the back-hdb backend this creates a dn2id.bdb that's 68MB, 
+and an id2entry that's 800MB. db_stat tells me that dn2id uses 4KB pages, has 
+433 internal pages, and 6378 leaf pages. The id2entry uses 16KB pages, has 52 
+internal pages, and 45912 leaf pages. In order to efficiently retrieve any 
+single entry in this database, the cache should be at least
 
-With back-bdb and back-hdb you can use "db_stat -m" to check how well the database cache is performing. Unfortunately you can't do this with back-ldbm, as the statistics are not accessible when slapd is running, nor are they saved anywhere when slapd is stopped. (Yet another reason not to use back-ldbm.)
-hyc@openldap.org, Kurt@OpenLDAP.org
-NOTE: This is unrelated to the entry cache. See also: (Xref) Can I tune the BDB entry cache?
+>   (433+1) * 4KB + (52+1) * 16KB in size: 1736KB + 848KB =~ 2.5MB.
+
+This doesn't take into account other library overhead, so this is even lower 
+than the barest minimum. The default cache size, when nothing is configured, 
+is only 256KB. 
+
+This 2.5MB number also doesn't take indexing into account. Each indexed attribute 
+uses another database file of its own, using a Hash structure. 
+
+Unlike the B-trees, where you only need to touch one data page to find an entry 
+of interest, doing an index lookup generally touches multiple keys, and the 
+point of a hash structure is that the keys are evenly distributed across the 
+data space. That means there's no convenient compact subset of the database that 
+you can keep in the cache to insure quick operation, you can pretty much expect 
+references to be scattered across the whole thing. My strategy here would be to 
+provide enough cache for at least 50% of all of the hash data. 
+
+>   (Number of hash buckets + number of overflow pages + number of duplicate pages) * page size / 2.
+
+The objectClass index for my example database is 5.9MB and uses 3 hash buckets 
+and 656 duplicate pages. So:
+
+>   ( 3 + 656 ) * 4KB / 2 =~ 1.3MB.
+
+With only this index enabled, I'd figure at least a 4MB cache for this backend. 
+(Of course you're using a single cache shared among all of the database files, 
+so the cache pages will most likely get used for something other than what you 
+accounted for, but this gives you a fighting chance.)
+
+With this 4MB cache I can slapcat this entire database on my 1.3GHz PIII in 
+1 minute, 40 seconds. With the cache doubled to 8MB, it still takes the same 1:40s. 
+Once you've got enough cache to fit the B-tree internal pages, increasing it 
+further won't have any effect until the cache really is large enough to hold 
+100% of the data pages. I don't have enough free RAM to hold all the 800MB 
+id2entry data, so 4MB is good enough.
+
+With back-bdb and back-hdb you can use "db_stat -m" to check how well the 
+database cache is performing. 
+
+
+H3: {{slapd}}(8) Entry Cache
+
+The {{slapd}}(8) entry cache operates on decoded entries. The rationale - entries 
+in the entry cache can be used directly, giving the fastest response. If an entry 
+isn't in the entry cache but can be extracted from the BDB page cache, that will 
+avoid an I/O but it will still require parsing, so this will be slower. 
+
+If the entry is in neither cache then BDB will have to flush some of its current 
+cached pages and bring in the needed pages, resulting in a couple of expensive 
+I/Os as well as parsing.
+
+As far as balancing the entry cache vs the BDB cache - parsed entries in memory 
+are generally about twice as large as they are on disk. 
+
+As we have already mentioned, not having a proper database cache size will 
+cause performance issues. These issues are not an indication of corruption 
+occurring in the database. It is merely the fact that the cache is thrashing 
+itself that causes performance/response time to slowdown. 
+
+
+MOVE BELOW AROUND:
+
+
 If you want to setup the cache size, please read:
 
  (Xref) How do I configure the BDB backend?
@@ -164,6 +252,9 @@ I try to cache the most actively used entries. Unless you expect all 400,000 ent
 The idl cache has to do with how many unique result sets of searches you want to store in memory. Setting up this cache will allow your most frequently placed searches to get results much faster, but I doubt you want to try and cache the results of every search that hits your system. ;)
 
 --Quanah
+
+
+H3: {{TERM:IDL}} Cache
 
 
 http://www.openldap.org/faq/data/cache/1076.html
