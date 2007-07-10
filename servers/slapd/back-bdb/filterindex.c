@@ -341,7 +341,7 @@ comp_equality_candidates (
         rc = bdb_index_param( op->o_bd, mra->ma_desc, LDAP_FILTER_EQUALITY,
                 &db, &mask, &prefix );
 
-        if ( db == NULL ) {
+        if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
                 return 0;
         }
 
@@ -651,7 +651,7 @@ presence_candidates(
 	rc = bdb_index_param( op->o_bd, desc, LDAP_FILTER_PRESENT,
 		&db, &mask, &prefix );
 
-	if( db == NULL ) {
+	if( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		/* not indexed */
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_presence_candidates: (%s) not indexed\n",
@@ -722,7 +722,7 @@ equality_candidates(
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
 
-	if ( db == NULL ) {
+	if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_equality_candidates: (%s) not indexed\n", 
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
@@ -839,7 +839,7 @@ approx_candidates(
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_APPROX,
 		&db, &mask, &prefix );
 
-	if ( db == NULL ) {
+	if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_approx_candidates: (%s) not indexed\n",
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
@@ -959,7 +959,7 @@ substring_candidates(
 	rc = bdb_index_param( op->o_bd, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
 		&db, &mask, &prefix );
 
-	if ( db == NULL ) {
+	if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_substring_candidates: (%s) not indexed\n",
 			sub->sa_desc->ad_cname.bv_val, 0, 0 );
@@ -1076,7 +1076,7 @@ inequality_candidates(
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
 
-	if ( db == NULL ) {
+	if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_inequality_candidates: (%s) not indexed\n", 
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
