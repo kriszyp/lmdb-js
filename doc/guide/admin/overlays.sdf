@@ -82,7 +82,7 @@ H3: Audit Logging Configuration
 H2: Chaining
 
 
-H2: Overview
+H3: Overview
 
 The chain overlay provides basic chaining capability to the underlying 
 database.
@@ -96,7 +96,7 @@ The chain overlay is built on top of the ldap backend; it is compiled by
 default when --enable-ldap.
 
 
-H2: Chaining Configuration
+H3: Chaining Configuration
 
 
 H2: Constraints
