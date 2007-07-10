@@ -11,6 +11,15 @@ H2: Checklist
 H2: User or Software errors?
 
 
+H2: 3rd party software error
+
+The OpenLDAP Project only supports OpenLDAP software. 
+
+You may however seek commerical support ({{URL:http://www.openldap.org/support/}}) or join 
+the general LDAP forum for non-commercial discussions and information relating to LDAP at: 
+{{URL:http://www.umich.edu/~dirsvcs/ldap/mailinglist.html}}
+
+
 H2: How to contact the OpenLDAP Project
 
 
@@ -21,3 +30,8 @@ H2: Debugging slapd
 
 
 H2: Commercial Support
+
+The firms listed at {{URL:http://www.openldap.org/support/}} offer technical support services catering to OpenLDAP community. 
+
+The listing of any given firm should not be viewed as an endorsement or recommendation of any kind, nor as otherwise indicating 
+there exists a business relationship or an affiliation between any listed firm and the OpenLDAP Foundation or the OpenLDAP Project or its contributors.
