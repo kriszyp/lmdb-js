@@ -246,82 +246,6 @@ over_back_response ( Operation *op, SlapReply *rs )
 	return rc;
 }
 
-#ifdef SLAP_OVERLAY_ACCESS
-static int
-over_access_allowed(
-	Operation		*op,
-	Entry			*e,
-	AttributeDescription	*desc,
-	struct berval		*val,
-	slap_access_t		access,
-	AccessControlState	*state,
-	slap_mask_t		*maskp )
-{
-	slap_overinfo *oi;
-	slap_overinst *on;
-	BackendInfo *bi;
-	BackendDB *be = op->o_bd, db;
-	int rc = SLAP_CB_CONTINUE;
-
-	/* FIXME: used to happen for instance during abandon
-	 * when global overlays are used... */
-	assert( op->o_bd != NULL );
-
-	bi = op->o_bd->bd_info;
-	/* Were we invoked on the frontend? */
-	if ( !bi->bi_access_allowed ) {
-		oi = frontendDB->bd_info->bi_private;
-	} else {
-		oi = op->o_bd->bd_info->bi_private;
-	}
-	on = oi->oi_list;
-
-	for ( ; on; on = on->on_next ) {
-		if ( on->on_bi.bi_access_allowed ) {
-			/* NOTE: do not copy the structure until required */
-		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
- 				db = *op->o_bd;
-				db.be_flags |= SLAP_DBFLAG_OVERLAY;
-				op->o_bd = &db;
-			}
-
-			op->o_bd->bd_info = (BackendInfo *)on;
-			rc = on->on_bi.bi_access_allowed( op, e,
-				desc, val, access, state, maskp );
-			if ( rc != SLAP_CB_CONTINUE ) break;
-		}
-	}
-
-	if ( rc == SLAP_CB_CONTINUE ) {
-		BI_access_allowed	*bi_access_allowed;
-
-		/* if the database structure was changed, o_bd points to a
-		 * copy of the structure; put the original bd_info in place */
-		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
-			op->o_bd->bd_info = oi->oi_orig;
-		}
-
-		if ( oi->oi_orig->bi_access_allowed ) {
-			bi_access_allowed = oi->oi_orig->bi_access_allowed;
-		} else {
-			bi_access_allowed = slap_access_allowed;
-		}
-
-		rc = bi_access_allowed( op, e,
-			desc, val, access, state, maskp );
-	}
-	/* should not fall thru this far without anything happening... */
-	if ( rc == SLAP_CB_CONTINUE ) {
-		/* access not allowed */
-		rc = 0;
-	}
-
-	op->o_bd = be;
-	op->o_bd->bd_info = bi;
-
-	return rc;
-}
-
 int
 overlay_entry_get_ov(
 	Operation		*op,
@@ -461,6 +385,82 @@ over_entry_release_rw(
 	on = oi->oi_list;
 
 	return overlay_entry_release_ov( op, e, rw, on );
+}
+
+#ifdef SLAP_OVERLAY_ACCESS
+static int
+over_access_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+	BackendInfo *bi;
+	BackendDB *be = op->o_bd, db;
+	int rc = SLAP_CB_CONTINUE;
+
+	/* FIXME: used to happen for instance during abandon
+	 * when global overlays are used... */
+	assert( op->o_bd != NULL );
+
+	bi = op->o_bd->bd_info;
+	/* Were we invoked on the frontend? */
+	if ( !bi->bi_access_allowed ) {
+		oi = frontendDB->bd_info->bi_private;
+	} else {
+		oi = op->o_bd->bd_info->bi_private;
+	}
+	on = oi->oi_list;
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_access_allowed ) {
+			/* NOTE: do not copy the structure until required */
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_access_allowed( op, e,
+				desc, val, access, state, maskp );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		BI_access_allowed	*bi_access_allowed;
+
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
+		}
+
+		if ( oi->oi_orig->bi_access_allowed ) {
+			bi_access_allowed = oi->oi_orig->bi_access_allowed;
+		} else {
+			bi_access_allowed = slap_access_allowed;
+		}
+
+		rc = bi_access_allowed( op, e,
+			desc, val, access, state, maskp );
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* access not allowed */
+		rc = 0;
+	}
+
+	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
+	return rc;
 }
 
 static int
@@ -1071,10 +1071,10 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_chk_referrals = over_aux_chk_referrals;
 		bi->bi_chk_controls = over_aux_chk_controls;
 
-#ifdef SLAP_OVERLAY_ACCESS
 		/* these have specific arglists */
 		bi->bi_entry_get_rw = over_entry_get_rw;
 		bi->bi_entry_release_rw = over_entry_release_rw;
+#ifdef SLAP_OVERLAY_ACCESS
 		bi->bi_access_allowed = over_access_allowed;
 		bi->bi_acl_group = over_acl_group;
 		bi->bi_acl_attribute = over_acl_attribute;
