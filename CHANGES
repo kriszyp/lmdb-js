@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.37 Engineering
+	Fixed slapd-glue/syncprov interaction (ITS#4623)
 	Fixed slapd-ldap search reference crash (ITS#5025)
 	Clarified slapd-perl SampleLDAP.pm usage (ITS#4995)
 	Documentation
