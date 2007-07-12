@@ -322,6 +322,147 @@ over_access_allowed(
 	return rc;
 }
 
+int
+overlay_entry_get_ov(
+	Operation		*op,
+	struct berval	*dn,
+	ObjectClass		*oc,
+	AttributeDescription	*ad,
+	int	rw,
+	Entry	**e,
+	slap_overinst *on )
+{
+	slap_overinfo *oi = on->on_info;
+	BackendDB *be = op->o_bd, db;
+	BackendInfo *bi = op->o_bd->bd_info;
+	int rc = SLAP_CB_CONTINUE;
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_entry_get_rw ) {
+			/* NOTE: do not copy the structure until required */
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_entry_get_rw( op, dn,
+				oc, ad, rw, e );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
+		}
+
+		if ( oi->oi_orig->bi_entry_get_rw ) {
+			rc = oi->oi_orig->bi_entry_get_rw( op, dn,
+				oc, ad, rw, e );
+		}
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = LDAP_UNWILLING_TO_PERFORM;
+	}
+
+	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
+	return rc;
+}
+
+static int
+over_entry_get_rw(
+	Operation		*op,
+	struct berval	*dn,
+	ObjectClass		*oc,
+	AttributeDescription	*ad,
+	int	rw,
+	Entry	**e )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+	return overlay_entry_get_ov( op, dn, oc, ad, rw, e, on );
+}
+
+int
+overlay_entry_release_ov(
+	Operation	*op,
+	Entry	*e,
+	int rw,
+	slap_overinst *on )
+{
+	slap_overinfo *oi = on->on_info;
+	BackendDB *be = op->o_bd, db;
+	BackendInfo *bi = op->o_bd->bd_info;
+	int rc = SLAP_CB_CONTINUE;
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_entry_release_rw ) {
+			/* NOTE: do not copy the structure until required */
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_entry_release_rw( op, e, rw );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
+		}
+
+		if ( oi->oi_orig->bi_entry_release_rw ) {
+			rc = oi->oi_orig->bi_entry_release_rw( op, e, rw );
+		}
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		entry_free( e );
+		rc = 0;
+	}
+
+	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
+	return rc;
+}
+
+static int
+over_entry_release_rw(
+	Operation	*op,
+	Entry	*e,
+	int rw )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+	return overlay_entry_release_ov( op, e, rw, on );
+}
+
 static int
 over_acl_group(
 	Operation		*op,
@@ -932,6 +1073,8 @@ overlay_config( BackendDB *be, const char *ov )
 
 #ifdef SLAP_OVERLAY_ACCESS
 		/* these have specific arglists */
+		bi->bi_entry_get_rw = over_entry_get_rw;
+		bi->bi_entry_release_rw = over_entry_release_rw;
 		bi->bi_access_allowed = over_access_allowed;
 		bi->bi_acl_group = over_acl_group;
 		bi->bi_acl_attribute = over_acl_attribute;

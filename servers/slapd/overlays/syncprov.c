@@ -401,6 +401,7 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		slap_callback cb = {0};
 		Operation fop;
 		SlapReply frs = { REP_RESULT };
+		BackendInfo *bi;
 		int rc;
 
 		fc->fss->s_flags ^= PS_FIND_BASE;
@@ -412,6 +413,7 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		fop.o_bd = op->o_bd;
 		fop.o_time = op->o_time;
 		fop.o_tincr = op->o_tincr;
+		bi = op->o_bd->bd_info;
 
 		cb.sc_response = findbase_cb;
 		cb.sc_private = fc;
@@ -429,9 +431,8 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 		fop.ors_filter = &generic_filter;
 		fop.ors_filterstr = generic_filterstr;
 
-		fop.o_bd->bd_info = on->on_info->oi_orig;
-		rc = fop.o_bd->be_search( &fop, &frs );
-		fop.o_bd->bd_info = (BackendInfo *)on;
+		rc = overlay_op_walk( &fop, &frs, op_search, on->on_info, on );
+		op->o_bd->bd_info = bi;
 	} else {
 		ldap_pvt_thread_mutex_unlock( &fc->fss->s_mutex );
 		fc->fbase = 1;
@@ -818,7 +819,6 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 	int rc = 0;
 
 	opc.son = on;
-	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 
 	for (;;) {
 		ldap_pvt_thread_mutex_lock( &so->s_mutex );
@@ -840,7 +840,7 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 		e = NULL;
 
 		if ( sr->s_mode != LDAP_SYNC_DELETE ) {
-			rc = be_entry_get_rw( op, &opc.sndn, NULL, NULL, 0, &e );
+			rc = overlay_entry_get_ov( op, &opc.sndn, NULL, NULL, 0, &e, on );
 			if ( rc ) {
 				Debug( LDAP_DEBUG_SYNC, "syncprov_qplay: failed to get %s, "
 					"error (%d), ignoring...\n", opc.sndn.bv_val, rc, 0 );
@@ -852,7 +852,7 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 		rc = syncprov_sendresp( op, &opc, so, &e, sr->s_mode );
 
 		if ( e ) {
-			be_entry_release_rw( op, e, 0 );
+			overlay_entry_release_ov( op, e, 0, on );
 		}
 
 		ch_free( sr );
@@ -860,7 +860,6 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 		if ( rc )
 			break;
 	}
-	op->o_bd->bd_info = (BackendInfo *)on;
 	return rc;
 }
 
@@ -1060,7 +1059,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 
 	fbase_cookie fc;
 	syncops *ss, *sprev, *snext;
-	Entry *e;
+	Entry *e = NULL;
 	Attribute *a;
 	int rc;
 	struct berval newdn;
@@ -1082,15 +1081,13 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			db = *op->o_bd;
 			op->o_bd = &db;
 		}
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		rc = be_entry_get_rw( op, fc.fdn, NULL, NULL, 0, &e );
+		rc = overlay_entry_get_ov( op, fc.fdn, NULL, NULL, 0, &e, on );
 		/* If we're sending responses now, make a copy and unlock the DB */
 		if ( e && !saveit ) {
 			Entry *e2 = entry_dup( e );
-			be_entry_release_rw( op, e, 0 );
+			overlay_entry_release_ov( op, e, 0, on );
 			e = e2;
 		}
-		op->o_bd->bd_info = (BackendInfo *)on;
 		if ( rc ) {
 			op->o_bd = b0;
 			return;
@@ -2372,7 +2369,7 @@ syncprov_db_open(
 	OperationBuffer opbuf = { 0 };
 	char ctxcsnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	Operation *op = (Operation *) &opbuf;
-	Entry *e;
+	Entry *e = NULL;
 	Attribute *a;
 	int rc;
 	void *thrctx = NULL;
@@ -2400,9 +2397,8 @@ syncprov_db_open(
 
 	ctxcsnbuf[0] = '\0';
 
-	op->o_bd->bd_info = on->on_info->oi_orig;
-	rc = be_entry_get_rw( op, be->be_nsuffix, NULL,
-		slap_schema.si_ad_contextCSN, 0, &e );
+	rc = overlay_entry_get_ov( op, be->be_nsuffix, NULL,
+		slap_schema.si_ad_contextCSN, 0, &e, on );
 
 	if ( e ) {
 		ldap_pvt_thread_t tid;
@@ -2417,9 +2413,8 @@ syncprov_db_open(
 			si->si_ctxcsnbuf[si->si_ctxcsn.bv_len] = '\0';
 			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
-		be_entry_release_rw( op, e, 0 );
+		overlay_entry_release_ov( op, e, 0, on );
 		if ( !BER_BVISEMPTY( &si->si_ctxcsn ) ) {
-			op->o_bd->bd_info = (BackendInfo *)on;
 			op->o_req_dn = be->be_suffix[0];
 			op->o_req_ndn = be->be_nsuffix[0];
 			op->ors_scope = LDAP_SCOPE_SUBTREE;
