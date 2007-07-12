@@ -768,7 +768,9 @@ rwm_filter_map_rewrite(
 	case REWRITE_REGEXEC_OK:
 		if ( !BER_BVISNULL( fstr ) ) {
 			fstr->bv_len = strlen( fstr->bv_val );
-			ch_free( ftmp.bv_val );
+			if ( fstr->bv_val != ftmp.bv_val ) {
+				ch_free( ftmp.bv_val );
+			}
 
 		} else {
 			*fstr = ftmp;
