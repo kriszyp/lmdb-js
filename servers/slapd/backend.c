@@ -629,7 +629,7 @@ select_backend(
 {
 	int		j;
 	ber_len_t	len, dnlen = dn->bv_len;
-	Backend		*be, *b2 = NULL;
+	Backend		*be;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->be_nsuffix == NULL || SLAP_DBHIDDEN( be )) {
@@ -663,39 +663,12 @@ select_backend(
 			if ( strcmp( be->be_nsuffix[j].bv_val,
 				&dn->bv_val[dnlen-len] ) == 0 )
 			{
-				if ( b2 == NULL ) {
-					b2 = be;
-
-#if 0
-					/* causes ITS#4986: a catchall relay
-					 * database with empty suffix points
-					 * to another database; operations
-					 * directed to a specific database
-					 * fail if manageDSAit is set.
-					 * Not clear what's the purpose
-					 * of this test */
-					if ( manageDSAit && len == dnlen &&
-						!SLAP_GLUE_SUBORDINATE( be ) )
-					{
-						continue;
-					}
-#endif
-
-				} else {
-					/* If any parts of the tree are glued, use the first
-					 * match regardless of manageDSAit. Otherwise use the
-					 * last match.
-					 */
-					if( !( SLAP_DBFLAGS( be ) & ( SLAP_DBFLAG_GLUE_INSTANCE |
-						SLAP_DBFLAG_GLUE_SUBORDINATE )))
-						b2 = be;
-				}
-				return b2;
+				break;
 			}
 		}
 	}
 
-	return b2;
+	return be;
 }
 
 int
