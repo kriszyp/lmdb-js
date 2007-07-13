@@ -663,7 +663,7 @@ select_backend(
 			if ( strcmp( be->be_nsuffix[j].bv_val,
 				&dn->bv_val[dnlen-len] ) == 0 )
 			{
-				break;
+				return be;
 			}
 		}
 	}
