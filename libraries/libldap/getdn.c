@@ -2368,12 +2368,12 @@ strval2DCEstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 
 /*
  * Length of the (supposedly) AD canonical string representation, 
- * accounting for escaped hex of UTF-8 chars
+ * accounting for chars that need to be escaped 
  */
 static int
 strval2ADstrlen( struct berval *val, unsigned flags, ber_len_t *len )
 {
-	ber_len_t	l;
+	ber_len_t	l, cl;
 	char		*p;
 
 	assert( val != NULL );
@@ -2384,37 +2384,31 @@ strval2ADstrlen( struct berval *val, unsigned flags, ber_len_t *len )
 		return( 0 );
 	}
 
-	if ( flags & LDAP_AVA_NONPRINTABLE ) {
-		/* 
-		 * FIXME: Turn the value into a binary encoded BER?
-		 */
-		return( -1 );
-		
-	} else {
-		for ( l = 0, p = val->bv_val; p[ 0 ]; p++ ) {
-			if ( LDAP_DN_NEEDESCAPE_AD( p[ 0 ] ) ) {
-				l += 2;
-
-			} else {
-				l++;
-			}
+	for ( l = 0, p = val->bv_val; p[ 0 ]; p += cl ) {
+		cl = LDAP_UTF8_CHARLEN2( p, cl );
+		if ( cl == 0 ) {
+			/* illegal utf-8 char */
+			return -1;
+		} else if ( (cl == 1) && LDAP_DN_NEEDESCAPE_AD( p[ 0 ] ) ) {
+			l += 2;
+		} else {
+			l += cl;
 		}
 	}
 
 	*len = l;
-	
+
 	return( 0 );
 }
 
 /*
- * convert to (supposedly) AD string representation, 
- * escaping with hex the UTF-8 stuff;
+ * convert to (supposedly) AD string representation,
  * assume the destination has enough room for escaping
  */
 static int
 strval2ADstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
-	ber_len_t	s, d;
+	ber_len_t	s, d, cl;
 
 	assert( val != NULL );
 	assert( str != NULL );
@@ -2425,24 +2419,20 @@ strval2ADstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		return( 0 );
 	}
 
-	if ( flags & LDAP_AVA_NONPRINTABLE ) {
-		/*
-		 * FIXME: Turn the value into a binary encoded BER?
-		 */
-		*len = 0;
-		return( -1 );
-		
-	} else {
+	/* 
+	 * we assume the string has enough room for the escaping
+	 * of the value
+	 */
 
-		/* 
-		 * we assume the string has enough room for the hex encoding
-		 * of the value
-		 */
-
-		for ( s = 0, d = 0; s < val->bv_len; ) {
-			if ( LDAP_DN_NEEDESCAPE_AD( val->bv_val[ s ] ) ) {
-				str[ d++ ] = '\\';
-			}
+	for ( s = 0, d = 0; s < val->bv_len; ) {
+		cl = LDAP_UTF8_CHARLEN2( val->bv_val+s, cl );
+		if ( cl == 0 ) {
+			/* illegal utf-8 char */
+			return -1;
+		} else if ( (cl == 1) && LDAP_DN_NEEDESCAPE_AD(val->bv_val[ s ]) ) {
+			str[ d++ ] = '\\';
+		}
+		for (; cl--;) {
 			str[ d++ ] = val->bv_val[ s++ ];
 		}
 	}
