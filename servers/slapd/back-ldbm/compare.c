@@ -56,8 +56,6 @@ ldbm_back_compare(
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
-		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-
 		rs->sr_err = LDAP_REFERRAL;
 		goto return_results;
 	}
