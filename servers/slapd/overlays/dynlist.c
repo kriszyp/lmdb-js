@@ -477,7 +477,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 			goto cleanup;
 		}
 		
-		o.o_bd = select_backend( &o.o_req_ndn, 0, 1 );
+		o.o_bd = select_backend( &o.o_req_ndn, 1 );
 		if ( o.o_bd && o.o_bd->be_search ) {
 #ifdef SLAP_OPATTRS
 			r.sr_attr_flags = slap_attr_flags( o.ors_attrs );
@@ -586,7 +586,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		op->o_do_not_cache = 1;
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_ndn = op->o_bd->be_rootndn;
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 
 		r.sr_err = be_entry_get_rw( op, &op->o_req_ndn,
 			dli->dli_oc, NULL, 0, &e );
@@ -615,7 +615,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		o.ors_tlimit = SLAP_NO_LIMIT;
 		o.ors_slimit = SLAP_NO_LIMIT;
 
-		o.o_bd = select_backend( &o.o_req_ndn, 0, 1 );
+		o.o_bd = select_backend( &o.o_req_ndn, 1 );
 		if ( !o.o_bd || !o.o_bd->be_search ) {
 			return SLAP_CB_CONTINUE;
 		}

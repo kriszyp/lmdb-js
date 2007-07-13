@@ -220,21 +220,18 @@ done:;
 int
 fe_op_add( Operation *op, SlapReply *rs )
 {
-	int		manageDSAit;
 	Modifications	**modtail = &op->ora_modlist;
 	int		rc = 0;
 	BackendDB	*op_be, *bd = op->o_bd;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
 
-	manageDSAit = get_manageDSAit( op );
-
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->ora_e->e_nname, manageDSAit, 1 );
+	op->o_bd = select_backend( &op->ora_e->e_nname, 1 );
 	if ( op->o_bd == NULL ) {
 		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
@@ -257,7 +254,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->ora_e->e_nname, manageDSAit, 0 );
+		op->o_bd = select_backend( &op->ora_e->e_nname, 0 );
 	}
 
 	/* check restrictions */

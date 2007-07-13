@@ -239,11 +239,7 @@ return_results:;
 int
 fe_op_search( Operation *op, SlapReply *rs )
 {
-	int			manageDSAit;
-	int			be_manageDSAit;
 	BackendDB		*bd = op->o_bd;
-
-	manageDSAit = get_manageDSAit( op );
 
 	/* fake while loop to allow breaking out */
 	while ( op->ors_scope == LDAP_SCOPE_BASE ) {
@@ -320,9 +316,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 	 * if we don't hold it.
 	 */
 
-	be_manageDSAit = manageDSAit;
-
-	op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, op->ors_scope );

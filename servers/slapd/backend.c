@@ -624,7 +624,6 @@ be_db_close( void )
 Backend *
 select_backend(
 	struct berval * dn,
-	int manageDSAit,
 	int noSubs )
 {
 	int		j;
@@ -1263,7 +1262,7 @@ fe_acl_group(
 	GroupAssertion *g;
 	Backend *be = op->o_bd;
 
-	op->o_bd = select_backend( gr_ndn, 0, 0 );
+	op->o_bd = select_backend( gr_ndn, 0 );
 
 	for ( g = op->o_groups; g; g = g->ga_next ) {
 		if ( g->ga_be != op->o_bd || g->ga_oc != group_oc ||
@@ -1381,7 +1380,7 @@ fe_acl_group(
 						if ( user == NULL ) {	
 							int rc2;
 
-							op->o_bd = select_backend( op_ndn, 0, 0 );
+							op->o_bd = select_backend( op_ndn, 0 );
 							op->o_private = NULL;
 							rc2 = be_entry_get_rw( op, op_ndn, NULL, NULL, 0, &user );
 							user_priv = op->o_private;
@@ -1500,7 +1499,7 @@ fe_acl_attribute(
 	AccessControlState	acl_state = ACL_STATE_INIT;
 	Backend			*be = op->o_bd;
 
-	op->o_bd = select_backend( edn, 0, 0 );
+	op->o_bd = select_backend( edn, 0 );
 
 	if ( target && dn_match( &target->e_nname, edn ) ) {
 		e = target;
@@ -1653,7 +1652,7 @@ backend_access(
 	assert( edn != NULL );
 	assert( access > ACL_NONE );
 
-	op->o_bd = select_backend( edn, 0, 0 );
+	op->o_bd = select_backend( edn, 0 );
 
 	if ( target && dn_match( &target->e_nname, edn ) ) {
 		e = target;
@@ -1775,7 +1774,7 @@ fe_aux_operational(
 		BackendDB		*be_orig = op->o_bd;
 
 		/* Let the overlays have a chance at this */
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 		if ( op->o_bd != NULL && !be_match( op->o_bd, frontendDB ) &&
 			( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 			op->o_bd->be_operational != NULL )

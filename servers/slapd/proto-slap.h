@@ -335,7 +335,6 @@ LDAP_SLAPD_F (void) backend_db_move LDAP_P((BackendDB *bd, int idx));
 
 LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
 	struct berval * dn,
-	int manageDSAit,
 	int noSubordinates ));
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be,

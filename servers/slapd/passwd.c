@@ -101,7 +101,7 @@ int passwd_extop(
 			rc = rs->sr_err;
 			goto error_return;
 		}
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 1 );
+		op->o_bd = select_backend( &op->o_req_ndn, 1 );
 
 	} else {
 		ber_dupbv_x( &op->o_req_dn, &op->o_dn, op->o_tmpmemctx );
@@ -136,7 +136,7 @@ int passwd_extop(
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
 
 	if (backend_check_restrictions( op, rs,

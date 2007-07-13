@@ -135,7 +135,7 @@ relay_back_db_config(
 			return 1;
 		}
 
-		bd = select_backend( &ndn, 0, 1 );
+		bd = select_backend( &ndn, 1 );
 		if ( bd == NULL ) {
 			Log3( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: line %d: "

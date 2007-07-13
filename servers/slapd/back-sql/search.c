@@ -2473,7 +2473,7 @@ send_results:;
 		slap_callback	cb = { 0 };
 
 		op2.o_tag = LDAP_REQ_ADD;
-		op2.o_bd = select_backend( &op->o_bd->be_nsuffix[0], 0, 0 );
+		op2.o_bd = select_backend( &op->o_bd->be_nsuffix[0], 0 );
 		op2.ora_e = e;
 		op2.o_callback = &cb;
 

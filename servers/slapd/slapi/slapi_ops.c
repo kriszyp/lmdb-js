@@ -296,7 +296,7 @@ slapi_int_set_operation_dn( Slapi_PBlock *pb )
 
 	if ( BER_BVISNULL( &op->o_ndn ) ) {
 		/* set to root DN */
-		be = select_backend( &op->o_req_ndn, get_manageDSAit( op ), 1 );
+		be = select_backend( &op->o_req_ndn, 1 );
 		if ( be != NULL ) {
 			ber_dupbv( &op->o_dn, &be->be_rootdn );
 			ber_dupbv( &op->o_ndn, &be->be_rootndn );

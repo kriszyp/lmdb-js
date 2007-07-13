@@ -214,7 +214,6 @@ int
 fe_op_modrdn( Operation *op, SlapReply *rs )
 {
 	Backend		*newSuperior_be = NULL;
-	int		manageDSAit;
 	struct berval	pdn = BER_BVNULL;
 	BackendDB	*op_be, *bd = op->o_bd;
 	
@@ -237,14 +236,12 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	Statslog( LDAP_DEBUG_STATS, "%s MODRDN dn=\"%s\"\n",
 	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
-	manageDSAit = get_manageDSAit( op );
-
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( op->o_bd == NULL ) {
 		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
@@ -266,7 +263,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
 
 	/* check restrictions */
@@ -284,7 +281,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	 * the same backend, otherwise we return an error.
 	 */
 	if( op->orr_newSup ) {
-		newSuperior_be = select_backend( op->orr_nnewSup, 0, 0 );
+		newSuperior_be = select_backend( op->orr_nnewSup, 0 );
 
 		if ( newSuperior_be != op->o_bd ) {
 			/* newSuperior is in different backend */
@@ -341,7 +338,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 					}
 				}
 				op->o_managedsait = org_managedsait;
-	            		op->o_dn = org_dn;
+				op->o_dn = org_dn;
 				op->o_ndn = org_ndn;
 				op->o_req_dn = org_req_dn;
 				op->o_req_ndn = org_req_ndn;

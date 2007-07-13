@@ -357,7 +357,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	 * if we don't hold it.
 	 */
 
-	if ( (op->o_bd = select_backend( &op->o_req_ndn, 0, 0 )) == NULL ) {
+	if ( (op->o_bd = select_backend( &op->o_req_ndn, 0 )) == NULL ) {
 		/* don't return referral for bind requests */
 		/* noSuchObject is not allowed to be returned by bind */
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;

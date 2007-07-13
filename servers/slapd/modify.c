@@ -129,7 +129,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 #ifdef LDAP_DEBUG
 	Modifications	*tmp;
 #endif
-	int		manageDSAit;
 	BackendDB	*op_be, *bd = op->o_bd;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
@@ -209,14 +208,12 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	}
 #endif	/* LDAP_DEBUG */
 
-	manageDSAit = get_manageDSAit( op );
-
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( op->o_bd == NULL ) {
 		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
@@ -243,7 +240,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
 
 	/* check restrictions */

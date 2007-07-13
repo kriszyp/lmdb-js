@@ -520,7 +520,7 @@ refint_qtask( void *ctx, void *arg )
 
 			op->o_req_dn	= dp->dn;
 			op->o_req_ndn	= dp->ndn;
-			op->o_bd = select_backend(&dp->ndn, 0, 1);
+			op->o_bd = select_backend(&dp->ndn, 1);
 			if(!op->o_bd) {
 				Debug( LDAP_DEBUG_TRACE,
 					"refint_response: no backend for DN %s!\n",
@@ -677,7 +677,7 @@ refint_response(
 	**
 	*/
 
-	db = select_backend(&id->dn, 0, 1);
+	db = select_backend(&id->dn, 1);
 
 	if(db) {
 		if (!db->be_search || !db->be_modify) {

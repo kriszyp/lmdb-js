@@ -763,7 +763,7 @@ slapi_over_acl_group(
 	GroupAssertion		*g;
 	SlapReply		rs = { REP_RESULT };
 
-	op->o_bd = select_backend( gr_ndn, 0, 0 );
+	op->o_bd = select_backend( gr_ndn, 0 );
 
 	for ( g = op->o_groups; g; g = g->ga_next ) {
 		if ( g->ga_be != op->o_bd || g->ga_oc != group_oc ||

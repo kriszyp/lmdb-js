@@ -283,7 +283,7 @@ meta_back_db_config(
 		 * uri MUST be a branch of suffix!
 		 */
 #if 0 /* too strict a constraint */
-		if ( select_backend( &mt->mt_nsuffix, 0, 0 ) != be ) {
+		if ( select_backend( &mt->mt_nsuffix, 0 ) != be ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: <naming context> of URI does not refer to current backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -294,7 +294,7 @@ meta_back_db_config(
 		/*
 		 * uri MUST be a branch of a suffix!
 		 */
-		if ( select_backend( &mt->mt_nsuffix, 0, 0 ) == NULL ) {
+		if ( select_backend( &mt->mt_nsuffix, 0 ) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: <naming context> of URI does not resolve to a backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -1275,7 +1275,7 @@ idassert-authzFrom	"dn:<rootdn>"
 			return 1;
 		}
 		
-		tmp_be = select_backend( &nvnc, 0, 0 );
+		tmp_be = select_backend( &nvnc, 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			Debug( LDAP_DEBUG_ANY, 
 	"%s: line %d: suffix already in use by another backend in"
@@ -1297,7 +1297,7 @@ idassert-authzFrom	"dn:<rootdn>"
 		}
 	
 #if 0	
-		tmp_be = select_backend( &nrnc, 0, 0 );
+		tmp_be = select_backend( &nrnc, 0 );
 		if ( tmp_be != NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: massaged suffix already in use by another backend in" 

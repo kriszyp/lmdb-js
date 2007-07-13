@@ -61,7 +61,7 @@ relay_back_select_backend( Operation *op, SlapReply *rs, int err, int dosend )
 	BackendDB		*bd = ri->ri_bd;
 
 	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		bd = select_backend( &op->o_req_ndn, 1 );
 		if ( bd == op->o_bd ) {
 			if ( err > LDAP_SUCCESS && dosend ) {
 				send_ldap_error( op, rs,
@@ -483,7 +483,7 @@ relay_back_entry_release_rw( Operation *op, Entry *e, int rw )
 
 	bd = ri->ri_bd;
 	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		bd = select_backend( &op->o_req_ndn, 1 );
 		if ( bd == NULL ) {
 			return 1;
 		}
@@ -511,7 +511,7 @@ relay_back_entry_get_rw( Operation *op, struct berval *ndn,
 
 	bd = ri->ri_bd;
 	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		bd = select_backend( &op->o_req_ndn, 1 );
 		if ( bd == NULL ) {
 			return 1;
 		}

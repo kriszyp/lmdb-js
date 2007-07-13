@@ -144,7 +144,7 @@ slapadd( int argc, char **argv )
 		}
 
 		/* check backend */
-		if( select_backend( &e->e_nname, is_entry_referral(e), nosubordinates )
+		if( select_backend( &e->e_nname, nosubordinates )
 			!= be )
 		{
 			fprintf( stderr, "%s: line %d: "

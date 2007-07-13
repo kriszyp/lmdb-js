@@ -2099,7 +2099,7 @@ monitor_back_db_init(
 
 	be->be_private = &monitor_info;
 
-	be2 = select_backend( &ndn, 0, 0 );
+	be2 = select_backend( &ndn, 0 );
 	if ( be2 != be ) {
 		char	*type = be2->bd_info->bi_type;
 

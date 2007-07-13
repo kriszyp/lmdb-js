@@ -1820,7 +1820,7 @@ exact_match:
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
 	   op.o_req_ndn.bv_val, op.ors_scope, 0 );
 
-	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+	op.o_bd = select_backend( &op.o_req_ndn, 1 );
 	if(( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL)) {
 		rc = LDAP_INAPPROPRIATE_AUTH;
 		goto CONCLUDED;
@@ -1953,7 +1953,7 @@ slap_sasl2dn(
 	}
 
 	/* Must do an internal search */
-	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+	op.o_bd = select_backend( &op.o_req_ndn, 1 );
 
 	switch ( op.ors_scope ) {
 	case LDAP_X_SCOPE_EXACT:

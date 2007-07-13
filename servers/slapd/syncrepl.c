@@ -1141,7 +1141,7 @@ do_syncrepl(
 	/* If we're glued, send writes through the glue parent */
 	if ( !si->si_wbe ) {
 		if ( SLAP_GLUE_SUBORDINATE( be )) {
-			si->si_wbe = select_backend( &be->be_nsuffix[0], 0, 1 );
+			si->si_wbe = select_backend( &be->be_nsuffix[0], 1 );
 		} else {
 			si->si_wbe = be;
 		}

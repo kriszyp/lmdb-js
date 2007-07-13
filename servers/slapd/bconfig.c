@@ -2117,7 +2117,7 @@ config_suffix(ConfigArgs *c)
 	if (SLAP_DBHIDDEN( c->be ))
 		tbe = NULL;
 	else
-		tbe = select_backend(&ndn, 0, 0);
+		tbe = select_backend(&ndn, 0);
 	if(tbe == c->be) {
 		Debug( LDAP_DEBUG_ANY, "%s: suffix already served by this backend!.\n",
 			c->log, 0, 0);
@@ -2202,7 +2202,7 @@ config_rootpw(ConfigArgs *c) {
 		return 0;
 	}
 
-	tbe = select_backend(&c->be->be_rootndn, 0, 0);
+	tbe = select_backend(&c->be->be_rootndn, 0);
 	if(tbe != c->be) {
 		snprintf( c->msg, sizeof( c->msg ), "<%s> can only be set when rootdn is under suffix",
 			c->argv[0] );

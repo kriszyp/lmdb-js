@@ -767,7 +767,7 @@ log_cf_gen(ConfigArgs *c)
 		switch( c->type ) {
 		case LOG_DB:
 			if ( CONFIG_ONLINE_ADD( c )) {
-				li->li_db = select_backend( &c->value_ndn, 0, 0 );
+				li->li_db = select_backend( &c->value_ndn, 0 );
 				if ( !li->li_db ) {
 					snprintf( c->msg, sizeof( c->msg ),
 						"<%s> no matching backend found for suffix",
@@ -1616,7 +1616,7 @@ accesslog_db_open(
 
 
 	if ( !BER_BVISEMPTY( &li->li_db_suffix )) {
-		li->li_db = select_backend( &li->li_db_suffix, 0, 0 );
+		li->li_db = select_backend( &li->li_db_suffix, 0 );
 		ch_free( li->li_db_suffix.bv_val );
 		BER_BVZERO( &li->li_db_suffix );
 	}

@@ -140,7 +140,7 @@ dds_expire( void *ctx, dds_info_t *di )
 	op->o_tag = LDAP_REQ_SEARCH;
 	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
 
-	op->o_bd = select_backend( &di->di_nsuffix[ 0 ], 0, 0 );
+	op->o_bd = select_backend( &di->di_nsuffix[ 0 ], 0 );
 
 	op->o_req_dn = op->o_bd->be_suffix[ 0 ];
 	op->o_req_ndn = op->o_bd->be_nsuffix[ 0 ];
@@ -1785,7 +1785,7 @@ slap_exop_refresh(
 		op->o_log_prefix, op->o_req_ndn.bv_val );
 	op->o_req_dn = op->o_req_ndn;
 
-	op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	if ( !SLAP_DYNAMIC( op->o_bd ) ) {
 		send_ldap_error( op, rs, LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 			"backend does not support dynamic directory services" );

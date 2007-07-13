@@ -97,7 +97,7 @@ relay_back_db_open( Backend *be )
 	assert( ri != NULL );
 
 	if ( !BER_BVISNULL( &ri->ri_realsuffix ) ) {
-		ri->ri_bd = select_backend( &ri->ri_realsuffix, 0, 1 );
+		ri->ri_bd = select_backend( &ri->ri_realsuffix, 1 );
 
 		/* must be there: it was during config! */
 		assert( ri->ri_bd != NULL );

@@ -326,7 +326,7 @@ slap_auxprop_lookup(
 
 		cb.sc_private = &sl;
 
-		op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+		op.o_bd = select_backend( &op.o_req_ndn, 1 );
 
 		if ( op.o_bd ) {
 			/* For rootdn, see if we can use the rootpw */
@@ -440,7 +440,7 @@ slap_auxprop_store(
 	}
 	if (!conn || !op.o_req_ndn.bv_val) return SASL_BADPARAM;
 
-	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+	op.o_bd = select_backend( &op.o_req_ndn, 1 );
 
 	if ( !op.o_bd || !op.o_bd->be_modify ) return SASL_FAIL;
 		
@@ -1098,7 +1098,7 @@ slapd_rw_apply( void *private, const char *filter, struct berval *val )
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->o_req_dn = op->o_req_ndn = sl->base;
-	op->o_bd = select_backend( &op->o_req_ndn, 0, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( !op->o_bd ) {
 		return REWRITE_ERR;
 	}

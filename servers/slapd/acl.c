@@ -304,7 +304,7 @@ fe_access_allowed(
 	be_orig = op->o_bd;
 
 	if ( op->o_bd == NULL ) {
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 		if ( op->o_bd == NULL )
 			op->o_bd = frontendDB;
 	}
@@ -2111,7 +2111,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 		goto url_done;
 	}
 
-	op2.o_bd = select_backend( &op2.o_req_ndn, 0, 1 );
+	op2.o_bd = select_backend( &op2.o_req_ndn, 1 );
 	if ( ( op2.o_bd == NULL ) || ( op2.o_bd->be_search == NULL ) ) {
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto url_done;

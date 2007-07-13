@@ -136,7 +136,6 @@ int
 fe_op_compare( Operation *op, SlapReply *rs )
 {
 	Entry			*entry = NULL;
-	int			manageDSAit;
 	AttributeAssertion	ava = *op->orc_ava;
 	BackendDB		*bd = op->o_bd;
 
@@ -201,14 +200,12 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	manageDSAit = get_manageDSAit( op );
-
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
