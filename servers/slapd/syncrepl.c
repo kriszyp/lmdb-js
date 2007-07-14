@@ -3782,6 +3782,9 @@ add_syncrepl(
 				else
 					rc = -1;
 			}
+		} else {
+			/* mirrormode still needs to see this flag in tool mode */
+			rc = config_sync_shadow( c ) ? -1 : 0;
 		}
 	}
 
