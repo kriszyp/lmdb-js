@@ -237,12 +237,13 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:7			-> distproc
  * OLcfgOv{Oc|At}:8			-> dynlist
  * OLcfgOv{Oc|At}:9			-> dds
- * OLcfgOv{Oc|At}:10		-> unique
- * OLcfgOv{Oc|At}:11		-> refint
- * OLcfgOv{Oc|At}:12 		-> ppolicy
- * OLcfgOv{Oc|At}:13		-> constraint
- * OLcfgOv{Oc|At}:14		-> translucent
- * OLcfgOv{Oc|At}:15		-> auditlog
+ * OLcfgOv{Oc|At}:10			-> unique
+ * OLcfgOv{Oc|At}:11			-> refint
+ * OLcfgOv{Oc|At}:12 			-> ppolicy
+ * OLcfgOv{Oc|At}:13			-> constraint
+ * OLcfgOv{Oc|At}:14			-> translucent
+ * OLcfgOv{Oc|At}:15			-> auditlog
+ * OLcfgOv{Oc|At}:16			-> rwm
  */
 
 /* alphabetical ordering */
