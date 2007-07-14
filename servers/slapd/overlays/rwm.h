@@ -24,10 +24,12 @@
 #ifndef RWM_H
 #define RWM_H
 
-/* String rewrite library */
-#ifdef ENABLE_REWRITE
-#include "rewrite.h"
+#ifndef ENABLE_REWRITE
+#error "librewrite must be enabled!"
 #endif /* ENABLE_REWRITE */
+
+/* String rewrite library */
+#include "rewrite.h"
 
 LDAP_BEGIN_DECL
 
@@ -67,24 +69,22 @@ struct ldaprwmap {
 	/*
 	 * DN rewriting
 	 */
-#ifdef ENABLE_REWRITE
 	struct rewrite_info *rwm_rw;
-#else /* !ENABLE_REWRITE */
-	/* some time the suffix massaging without librewrite
-	 * will be disabled */
-	BerVarray rwm_suffix_massage;
-#endif /* !ENABLE_REWRITE */
+	BerVarray rwm_bva_rewrite;
 
 	/*
 	 * Attribute/objectClass mapping
 	 */
 	struct ldapmap rwm_oc;
 	struct ldapmap rwm_at;
+	BerVarray rwm_bva_map;
 
-#define	RWM_F_NONE			0x0000U
-#define	RWM_F_NORMALIZE_MAPPED_ATTRS    0x0001U
-#define	RWM_F_SUPPORT_T_F		0x4000U
-#define	RWM_F_SUPPORT_T_F_DISCOVER	0x8000U
+#define	RWM_F_NONE			(0x0000U)
+#define	RWM_F_NORMALIZE_MAPPED_ATTRS    (0x0001U)
+#define	RWM_F_SUPPORT_T_F		(0x4000U)
+#define	RWM_F_SUPPORT_T_F_DISCOVER	(0x8000U)
+#define	RWM_F_SUPPORT_T_F_MASK		(RWM_F_SUPPORT_T_F)
+#define	RWM_F_SUPPORT_T_F_MASK2		(RWM_F_SUPPORT_T_F|RWM_F_SUPPORT_T_F_DISCOVER)
 	unsigned	rwm_flags;
 };
 
@@ -92,14 +92,9 @@ struct ldaprwmap {
 typedef struct dncookie {
 	struct ldaprwmap *rwmap;
 
-#ifdef ENABLE_REWRITE
 	Connection *conn;
 	char *ctx;
 	SlapReply *rs;
-#else /* !ENABLE_REWRITE */
-	int normalized;
-	int tofrom;
-#endif /* !ENABLE_REWRITE */
 } dncookie;
 
 int rwm_dn_massage( dncookie *dc, struct berval *in, struct berval *dn );
@@ -159,18 +154,22 @@ rwm_filter_map_rewrite(
 		struct berval		*fstr );
 
 /* suffix massaging by means of librewrite */
-#ifdef ENABLE_REWRITE
-extern int rwm_suffix_massage_config( struct rewrite_info *info,
-		struct berval *pvnc, struct berval *nvnc,
-		struct berval *prnc, struct berval *nrnc);
-#endif /* ENABLE_REWRITE */
-extern int rwm_dnattr_rewrite(
+extern int
+rwm_suffix_massage_config(
+	struct rewrite_info	*info,
+	struct berval		*pvnc,
+	struct berval		*nvnc,
+	struct berval		*prnc,
+	struct berval		*nrnc);
+extern int
+rwm_dnattr_rewrite(
 	Operation		*op,
 	SlapReply		*rs,
 	void			*cookie,
 	BerVarray		a_vals,
 	BerVarray		*pa_nvals );
-extern int rwm_referral_rewrite(
+extern int
+rwm_referral_rewrite(
 	Operation		*op,
 	SlapReply		*rs,
 	void			*cookie,

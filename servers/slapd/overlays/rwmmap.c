@@ -403,9 +403,7 @@ map_attr_value(
 			dncookie 	fdc = *dc;
 			int		rc;
 
-#ifdef ENABLE_REWRITE
 			fdc.ctx = "searchFilterAttrDN";
-#endif /* ENABLE_REWRITE */
 
 			vtmp = *value;
 			rc = rwm_dn_massage_normalize( &fdc, value, &vtmp );
@@ -751,7 +749,6 @@ rwm_filter_map_rewrite(
 
 	rc = rwm_int_filter_map_rewrite( op, dc, f, fstr );
 
-#ifdef ENABLE_REWRITE
 	if ( rc != 0 ) {
 		return rc;
 	}
@@ -798,7 +795,6 @@ rwm_filter_map_rewrite(
 		rc = LDAP_OTHER;
 		break;
 	}
-#endif /* ENABLE_REWRITE */
 
 	return rc;
 }
@@ -834,14 +830,9 @@ rwm_referral_rewrite(
 	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = (char *)cookie;
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = ((int *)cookie)[0];
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ )
 		;
@@ -1007,14 +998,9 @@ rwm_dnattr_rewrite(
 	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = (char *)cookie;
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = ((int *)cookie)[0];
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	for ( last = 0; !BER_BVISNULL( &in[last] ); last++ );
 	last--;
