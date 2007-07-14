@@ -1650,8 +1650,8 @@ done_url:;
 
 			if ( li->li_uri == NULL ) {
 				snprintf( c->msg, sizeof( c->msg ),
-					"need URI to discover \"cancel\" support "
-					"in \"cancel exop-discover\"" );
+					"need URI to discover absolute filters support "
+					"in \"t-f-support discover\"" );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
 				return 1;
 			}
