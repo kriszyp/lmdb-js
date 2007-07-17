@@ -49,8 +49,6 @@ sdf-img: \
 	config_local.gif \
 	config_ref.gif \
 	config_repl.gif \
-	config_x500fe.gif \
-	config_x500ref.gif \
 	intro_dctree.gif \
 	intro_tree.gif \
 
