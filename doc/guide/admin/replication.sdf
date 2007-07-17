@@ -12,14 +12,6 @@ directory. The following sections will discuss these.
 
 H2: Replication Strategies
 
-H3: Pull Based
-
-
-H4: syncrepl replication
-
-
-H4: delta-syncrepl replication
-
 
 H3: Push Based
 
@@ -45,47 +37,107 @@ slaves. It has been replaced for many reasons, in brief:
 
 {{What was it replaced with?}}
 
-Syncrepl is self-synchronizing; you can start with a database in any 
-state from totally empty to fully sync'd and it will automatically do 
-the right thing to achieve and maintain synchronization.
+Syncrepl.
+
+{{Why is Syncrepl better?}}
+
+ - Syncrepl is self-synchronising; you can start with a database in any 
+   state from totally empty to fully sync'd and it will automatically do 
+   the right thing to achieve and maintain synchronisation
+ - Syncrepl can operate in either direction
+ - Data updates can be minimal or maximal
+
+{{How do I implement a pushed based replication system using Syncrepl?}}
+
+The easiest way is to point an LDAP backend ({{SECT: Backends}} and {{slapd-ldap(8)}}) 
+to your slave/s directory and setup Syncrepl to point to your Master database.
+
+REFERENCE test045/048 for better explaination of above.
+
+If you imagine Syncrepl pulling down changes from the Master server, and then
+pushing those changes out to your slave servers via {{slapd-ldap(8)}}. This is 
+called proxy mode (elaborate/confirm?).
+
+DIAGRAM HERE
+
+BETTER EXAMPLE here from test045/048 for different push/multiproxy examples.
+
+Here's an example:
 
 
-* Replication via syncrepl, the LDAP content synchronization operation (LDAP sync, RFC 4533). Introduced in OpenLDAP 2.2, it operates in pull mode: the consumer pulls the updates out of the producer. When used in refreshOnly mode, the producer barely knows it's acting as a master, while the refreshAndPersist mode requires the producer to support persistent searches. Either mode requires the provider and the consumer to support the controls related to the Sync Operation.
-    
-     Can you elaborate in a reply to me? I have no 
-> braindead-automatically-attached-policy about e-mail confidentiality :-)
+>	include		./schema/core.schema
+>	include		./schema/cosine.schema
+>	include		./schema/inetorgperson.schema
+>	include		./schema/openldap.schema
+>	include		./schema/nis.schema
+>	
+>	pidfile		/home/ghenry/openldap/ldap/tests/testrun/slapd.3.pid
+>	argsfile	/home/ghenry/openldap/ldap/tests/testrun/slapd.3.args
+>	
+>	modulepath	../servers/slapd/back-bdb/
+>	moduleload	back_bdb.la
+>	modulepath  ../servers/slapd/back-monitor/
+>	moduleload  back_monitor.la
+>	modulepath  ../servers/slapd/overlays/
+>	moduleload  syncprov.la
+>	modulepath  ../servers/slapd/back-ldap/
+>	moduleload  back_ldap.la
+>	
+>	# We don't need any access to this DSA
+>	restrict	all
+>	
+>	#######################################################################
+>	# consumer proxy database definitions
+>	#######################################################################
+>	
+>	database	ldap
+>	suffix		"dc=example,dc=com"
+>	rootdn		"cn=Whoever"
+>	uri		ldap://localhost:9012/
+>	
+>	lastmod		on
+>	
+>	# HACK: use the RootDN of the monitor database as UpdateDN so ACLs apply
+>	# without the need to write the UpdateDN before starting replication
+>	acl-bind	bindmethod=simple
+>			binddn="cn=Monitor"
+>			credentials=monitor
+>	
+>	# HACK: use the RootDN of the monitor database as UpdateDN so ACLs apply
+>	# whithout the need to write the UpdateDN before starting replication
+>	syncrepl	rid=1
+>			provider=ldap://localhost:9011/
+>			binddn="cn=Manager,dc=example,dc=com"
+>			bindmethod=simple
+>			credentials=secret
+>			searchbase="dc=example,dc=com"
+>			filter="(objectClass=*)"
+>			attrs="*,structuralObjectClass,entryUUID,entryCSN,creatorsName,createTimestamp,modifiersName,modifyTimestamp"
+>			schemachecking=off
+>			scope=sub
+>			type=refreshAndPersist
+>			retry="5 5 300 5"
+>	
+>	overlay		syncprov
+>	
+>	database	monitor
 
-Sure...
-
-> I have set up something using slurpd because I understood that using
-> replsync, the replica would need an access on the master, whereas slurpd
-> allowed a pure push method, where the replicas have no right to connect to
-> the master (the master can even be firewalled)
-
-Syncrepl can operate in either direction. In the pure push/firewall 
-case, just set up a proxy backend as the syncrepl consumer. test045 and 
-test048 in the test suite both demonstrate how to configure this. Those 
-tests are in OpenLDAP 2.4, but you can do something similar in 2.3. You 
-just need to use a separate slapd instance for the consumer in 2.3.
-
-Just because the protocol was defined a particular way (consumer 
-initiated single master replication) doesn't mean it can't be used in 
-other ways. OpenLDAP is far more flexible than that. We've enhanced the 
-basic syncrepl functionality a number of different ways (delta-syncrepl, 
-proxied syncrepl, mirrormode, and multimaster) all without altering any 
-of the syncrepl protocol definition. All it takes is a little creativity 
-to assemble the pieces in the proper order.
+DETAILED EXPLAINATION OF ABOVE LIKE IN OTHER SECTIONS (line numbers?)
 
 
+ANOTHER DIAGRAM HERE
+
+As you can see, you can let your imagination go wild using Syncrepl and 
+{{slapd-ldap(8)}} tailoring your replication to fit your specific network 
+topology.
+
+H3: Pull Based
 
 
-What was it replaced with?
+H4: syncrepl replication
 
-Why is Syncrepl better?
 
-How do I implement a pushed based replication system using Syncrepl?
-
-H4: Working with Firewalls
+H4: delta-syncrepl replication
 
 
 H2: Replication Types
