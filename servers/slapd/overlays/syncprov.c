@@ -2614,7 +2614,7 @@ syncprov_db_close(
 		return 0;
 	}
 	if ( si->si_numops ) {
-		Connection conn;
+		Connection conn = {0};
 		OperationBuffer opbuf;
 		Operation *op;
 		SlapReply rs = {REP_RESULT};
