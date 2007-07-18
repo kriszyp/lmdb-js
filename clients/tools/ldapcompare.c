@@ -288,6 +288,7 @@ static int docompare(
 	char		*matcheddn;
 	char		*text;
 	char		**refs;
+	LDAPControl **ctrls = NULL;
 
 	if ( dont ) {
 		return LDAP_SUCCESS;
@@ -320,7 +321,7 @@ static int docompare(
 		}
 	}
 
-	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 1 );
+	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, &ctrls, 1 );
 
 	if( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: ldap_parse_result: %s (%d)\n",
@@ -350,10 +351,6 @@ static int docompare(
 		}
 	}
 
-	ber_memfree( text );
-	ber_memfree( matcheddn );
-	ber_memvfree( (void **) refs );
-
 	/* if we were told to be quiet, use the return value. */
 	if ( !quiet ) {
 		if ( code == LDAP_COMPARE_TRUE ) {
@@ -364,6 +361,15 @@ static int docompare(
 			printf(_("UNDEFINED\n"));
 		}
 	}
+
+	if ( ctrls ) {
+		tool_print_ctrls( ld, ctrls );
+		ldap_controls_free( ctrls );
+	}
+
+	ber_memfree( text );
+	ber_memfree( matcheddn );
+	ber_memvfree( (void **) refs );
 
 	return( code );
 }

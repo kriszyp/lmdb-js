@@ -1296,7 +1296,7 @@ static int process_response(
 	if ( matched ) ldap_memfree( matched );
 	if ( text ) ber_memvfree( (void **)refs );
 
-	if ( ctrls != NULL ) {
+	if ( ctrls ) {
 		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
 	}

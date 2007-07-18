@@ -70,6 +70,7 @@ main( int argc, char *argv[] )
 	LDAP		*ld = NULL;
 
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
+	LDAPControl **ctrls = NULL;
 	int		id, code;
 	LDAPMessage	*res;
 
@@ -240,7 +241,7 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_result( ld, res,
-		&code, &matcheddn, &text, &refs, NULL, 0 );
+		&code, &matcheddn, &text, &refs, &ctrls, 0 );
 	if ( rc == LDAP_SUCCESS ) {
 		rc = code;
 	}
@@ -343,6 +344,11 @@ main( int argc, char *argv[] )
 				printf(_("Referral: %s\n"), refs[i] );
 			}
 		}
+	}
+
+    if (ctrls) {
+		tool_print_ctrls( ld, ctrls );
+		ldap_controls_free( ctrls );
 	}
 
 	ber_memfree( text );
