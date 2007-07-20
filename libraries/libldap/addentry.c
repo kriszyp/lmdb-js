@@ -64,6 +64,9 @@ ldap_add_result_entry( LDAPMessage **list, LDAPMessage *e )
 	assert( e != NULL );
 
 	e->lm_chain = *list;
-	e->lm_chain_tail = (*list)->lm_chain_tail;
+	if ( *list )
+		e->lm_chain_tail = (*list)->lm_chain_tail;
+	else
+		e->lm_chain_tail = e;
 	*list = e;
 }
