@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.37 Release (2007/07/16)
+OpenLDAP 2.3.37 Release (2007/07/20)
 	Fixed slapd-glue/syncprov interaction (ITS#4623)
 	Fixed slapd-ldap search reference crash (ITS#5025)
 	Fixed slapd-ldbm crash on Compare op (ITS#5044)
