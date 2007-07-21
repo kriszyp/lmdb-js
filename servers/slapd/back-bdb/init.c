@@ -459,6 +459,7 @@ shm_retry:
 		ber_dupbv( &e->e_name, &slap_empty_bv );
 		ber_dupbv( &e->e_nname, &slap_empty_bv );
 	}
+	e->e_ocflags = SLAP_OC_GLUE|SLAP_OC__END;
 	e->e_private = &bdb->bi_cache.c_dntree;
 	bdb->bi_cache.c_dntree.bei_e = e;
 
