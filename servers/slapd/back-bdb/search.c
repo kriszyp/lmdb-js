@@ -360,6 +360,7 @@ bdb_search( Operation *op, SlapReply *rs )
 		ei_root.bei_parent = &ei_root;
 		e_root.e_private = &ei_root;
 		e_root.e_id = 0;
+		e_root.e_ocflags = SLAP_OC_GLUE | SLAP_OC__END;
 		BER_BVSTR( &e_root.e_nname, "" );
 		BER_BVSTR( &e_root.e_name, "" );
 		ei = &ei_root;
