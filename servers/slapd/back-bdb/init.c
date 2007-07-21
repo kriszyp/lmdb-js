@@ -83,14 +83,6 @@ bdb_db_init( BackendDB *be )
 	ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 
-	{
-		Entry *e = entry_alloc();
-		e->e_id = 0;
-		e->e_private = &bdb->bi_cache.c_dntree;
-		BER_BVSTR( &e->e_name, "" );
-		BER_BVSTR( &e->e_nname, "" );
-		bdb->bi_cache.c_dntree.bei_e = e;
-	}
 
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
@@ -112,13 +104,14 @@ bdb_db_open( BackendDB *be )
 	u_int32_t flags;
 	char path[MAXPATHLEN];
 	char *dbhome;
+	Entry *e = NULL;
 	int do_recover = 0, do_alock_recover = 0;
 	int alockt, quick = 0;
 
 	if ( be->be_suffix == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			LDAP_XSTRING(bdb_db_open) ": need suffix\n",
-			0, 0, 0 );
+			1, 0, 0 );
 		return -1;
 	}
 
@@ -453,6 +446,22 @@ shm_retry:
 		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
 	}
 
+	entry_prealloc( bdb->bi_cache.c_maxsize );
+	attr_prealloc( bdb->bi_cache.c_maxsize * 20 );
+
+	/* setup for empty-DN contexts */
+	if ( BER_BVISEMPTY( &be->be_nsuffix[0] )) {
+		rc = bdb_id2entry( be, NULL, 0, 0, &e );
+	}
+	if ( !e ) {
+		e = entry_alloc();
+		e->e_id = 0;
+		ber_dupbv( &e->e_name, &slap_empty_bv );
+		ber_dupbv( &e->e_nname, &slap_empty_bv );
+	}
+	e->e_private = &bdb->bi_cache.c_dntree;
+	bdb->bi_cache.c_dntree.bei_e = e;
+
 	/* monitor setup */
 	rc = bdb_monitor_db_open( be );
 	if ( rc != 0 ) {
@@ -461,8 +470,6 @@ shm_retry:
 
 	bdb->bi_flags |= BDB_IS_OPEN;
 
-	entry_prealloc( bdb->bi_cache.c_maxsize );
-	attr_prealloc( bdb->bi_cache.c_maxsize * 20 );
 	return 0;
 
 fail:
@@ -480,6 +487,15 @@ bdb_db_close( BackendDB *be )
 
 	/* monitor handling */
 	(void)bdb_monitor_db_close( be );
+
+	{
+		Entry *e = bdb->bi_cache.c_dntree.bei_e;
+		if ( e ) {
+			bdb->bi_cache.c_dntree.bei_e = NULL;
+			e->e_private = NULL;
+			bdb_entry_return( e );
+		}
+	}
 
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
@@ -581,16 +597,6 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
 	ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
-
-	{
-		Entry *e;
-		e = bdb->bi_cache.c_dntree.bei_e;
-		bdb->bi_cache.c_dntree.bei_e = NULL;
-		e->e_private = NULL;
-		BER_BVZERO( &e->e_name );
-		BER_BVZERO( &e->e_nname );
-		entry_free( e );
-	}
 
 	ch_free( bdb );
 	be->be_private = NULL;
