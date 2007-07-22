@@ -573,12 +573,12 @@ be_db_close( void )
 Backend *
 select_backend(
 	struct berval * dn,
-	int manageDSAit,
+	int manageDSAit, /* unused since ITS#4986 */
 	int noSubs )
 {
 	int		j;
 	ber_len_t	len, dnlen = dn->bv_len;
-	Backend		*be, *b2 = NULL;
+	Backend		*be;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->be_nsuffix == NULL ) {
@@ -612,28 +612,12 @@ select_backend(
 			if ( strcmp( be->be_nsuffix[j].bv_val,
 				&dn->bv_val[dnlen-len] ) == 0 )
 			{
-				if( b2 == NULL ) {
-					b2 = be;
-
-					if( manageDSAit && len == dnlen &&
-						!SLAP_GLUE_SUBORDINATE( be ) ) {
-						continue;
-					}
-				} else {
-					/* If any parts of the tree are glued, use the first
-					 * match regardless of manageDSAit. Otherwise use the
-					 * last match.
-					 */
-					if( !( SLAP_DBFLAGS( be ) & ( SLAP_DBFLAG_GLUE_INSTANCE |
-						SLAP_DBFLAG_GLUE_SUBORDINATE )))
-						b2 = be;
-				}
-				return b2;
+				return be;
 			}
 		}
 	}
 
-	return b2;
+	return be;
 }
 
 int
