@@ -2,7 +2,9 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.38 Engineering
 	Fixed slapd select_backend/ManageDSAit (ITS#4986)
+	Fixed slapd-bdb missing index warning (ITS#5037)
 	Fixed slapo-ppolicy operational attribute updates (ITS#5040)
+	Fixed slapo-syncprov uninit'd vars (ITS#5048,#5049)
 
 OpenLDAP 2.3.37 Release (2007/07/20)
 	Fixed slapd-glue/syncprov interaction (ITS#4623)
