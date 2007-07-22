@@ -642,6 +642,7 @@ again:
 		} else {
 			cf.f_choice = LDAP_FILTER_LE;
 			fop.ors_limit = &fc_limits;
+			memset( &fc_limits, 0, sizeof( fc_limits ));
 			fc_limits.lms_s_unchecked = 1;
 			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
 				cf.f_av_value.bv_val );
@@ -2461,7 +2462,7 @@ syncprov_db_close(
 		return 0;
 	}
 	if ( si->si_numops ) {
-		Connection conn;
+		Connection conn = {0};
 		OperationBuffer opbuf;
 		Operation *op = (Operation *) &opbuf;
 		SlapReply rs = {REP_RESULT};
