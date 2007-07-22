@@ -341,10 +341,6 @@ comp_equality_candidates (
         rc = bdb_index_param( op->o_bd, mra->ma_desc, LDAP_FILTER_EQUALITY,
                 &db, &mask, &prefix );
 
-        if ( rc == LDAP_INAPPROPRIATE_MATCHING ) {
-                return 0;
-        }
-
         if( rc != LDAP_SUCCESS ) {
                 return 0;
         }
