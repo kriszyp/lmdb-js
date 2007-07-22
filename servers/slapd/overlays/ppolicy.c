@@ -1120,6 +1120,8 @@ locked:
 		op2.o_dn = op->o_bd->be_rootdn;
 		op2.o_ndn = op->o_bd->be_rootndn;
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
+		/* Don't touch modifyTimestamp etc */
+		SLAP_DBFLAGS( op2.o_bd ) |= SLAP_DBFLAG_NOLASTMOD;
 		rc = op->o_bd->be_modify( &op2, &r2 );
 		slap_mods_free( mod, 1 );
 	}
