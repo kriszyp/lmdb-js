@@ -1,5 +1,8 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.38 Engineering
+	Fixed slapo-ppolicy operational attribute updates (ITS#5040)
+
 OpenLDAP 2.3.37 Release (2007/07/20)
 	Fixed slapd-glue/syncprov interaction (ITS#4623)
 	Fixed slapd-ldap search reference crash (ITS#5025)
