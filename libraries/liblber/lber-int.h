@@ -121,6 +121,14 @@ struct seqorset {
 
 
 /*
+ * decode.c, encode.c
+ */
+
+/* Simplest OID max-DER-component to implement in both decode and encode */
+#define LBER_OID_COMPONENT_MAX ((unsigned long)-1 - 128)
+
+
+/*
  * io.c
  */
 LBER_F( int )

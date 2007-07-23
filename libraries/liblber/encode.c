@@ -30,6 +30,7 @@
 
 #include "portable.h"
 
+#include <ctype.h>
 #include <stdio.h>
 
 #include <ac/stdlib.h>
@@ -181,59 +182,55 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 int
 ber_encode_oid( BerValue *in, BerValue *out )
 {
-	unsigned char *der = (unsigned char *) out->bv_val;
-	unsigned long val, val1;
-	int i, len;
+	unsigned char *der;
+	unsigned long val1, val;
+	int i, j, len;
 	char *ptr, *end, *inend;
 
 	assert( in != NULL );
 	assert( out != NULL );
 
-	if ( !out->bv_val || out->bv_len < in->bv_len )
+	if ( !out->bv_val || out->bv_len < in->bv_len/2 )
 		return -1;
 
-	/* OIDs must have at least two components */
-	if ( sscanf( in->bv_val, "%ld.%ld", &val, &val1 ) != 2 )
-		return -1;
+	der = (unsigned char *) out->bv_val;
+	ptr = in->bv_val;
+	inend = ptr + in->bv_len;
 
-	val *= 40;
-	val += val1;
-
-	inend = in->bv_val + in->bv_len;
-
-	ptr = strchr( in->bv_val, '.' );
-	ptr = strchr( ptr+1, '.' );
-	if ( ptr )
-		++ptr;
-	else
-		ptr = inend;
+	/* OIDs start with <0-1>.<0-39> or 2.<any>, DER-encoded 40*val1+val2 */
+	if ( !isdigit( (unsigned char) *ptr )) return -1;
+	val1 = strtoul( ptr, &end, 10 );
+	if ( end == ptr || val1 > 2 ) return -1;
+	if ( *end++ != '.' || !isdigit( (unsigned char) *end )) return -1;
+	val = strtoul( end, &ptr, 10 );
+	if ( ptr == end ) return -1;
+	if ( val > (val1 < 2 ? 39 : LBER_OID_COMPONENT_MAX - 80) ) return -1;
+	val += val1 * 40;
 
 	for (;;) {
-		if ( !val ) {
-			*der++ = 0;
-		} else {
-			int hibit = 0;
-			i = sizeof(unsigned long) + 1;
-			len = i;
-			for (;val;) {
-				i--;
-				val1 = val & 0x7f;
-				val >>= 7;
-				der[i] = val1 | hibit;
-				hibit = 0x80;
-			}
-			if ( i ) {
-				len -= i;
-				AC_MEMCPY( der, der+i, len );
-			}
-			der += len;
+		if ( ptr > inend ) return -1;
+
+		len = 0;
+		do {
+			der[len++] = (val & 0xff) | 0x80;
+		} while ( (val >>= 7) != 0 );
+		der[0] &= 0x7f;
+		for ( i = 0, j = len; i < --j; i++ ) {
+			unsigned char tmp = der[i];
+			der[i] = der[j];
+			der[j] = tmp;
 		}
-		if ( ptr >= inend ) break;
-		val = strtol( ptr, &end, 10 );
-		if ( ptr == end ) break;
-		if ( *end && *end != '.' ) break;
-		ptr = end + 1;
+		der += len;
+		if ( ptr == inend )
+			break;
+
+		if ( *ptr++ != '.' ) return -1;
+		if ( !isdigit( (unsigned char) *ptr )) return -1;
+		val = strtoul( ptr, &end, 10 );
+		if ( end == ptr || val > LBER_OID_COMPONENT_MAX ) return -1;
+		ptr = end;
 	}
+
 	out->bv_len = (char *)der - out->bv_val;
 	return 0;
 }

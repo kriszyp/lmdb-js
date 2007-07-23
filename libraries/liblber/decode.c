@@ -49,32 +49,44 @@ static ber_len_t ber_getnint LDAP_P((
 int
 ber_decode_oid( BerValue *in, BerValue *out )
 {
-	unsigned char *der = (unsigned char *) in->bv_val;
-	unsigned long val, val1;
-	int i, len;
+	const unsigned char *der;
+	unsigned long val;
+	unsigned val1;
+	ber_len_t i;
 	char *ptr;
 
 	assert( in != NULL );
 	assert( out != NULL );
 
-	/* expands by 5/2, and we add dots - call it 3 */
-	if ( !out->bv_val || out->bv_len < in->bv_len * 3 )
+	/* need 4 chars/inbyte + \0 for input={7f 7f 7f...} */
+	if ( !out->bv_val || (out->bv_len+3)/4 <= in->bv_len )
 		return -1;
 
-	val1 = der[0] / 40;
-	val = der[0] - val1 * 40;
-
-	len = sprintf( out->bv_val, "%ld.%ld", val1, val );
-	ptr = out->bv_val + len;
+	ptr = NULL;
+	der = (unsigned char *) in->bv_val;
 	val = 0;
-	for ( i=1; i<in->bv_len; i++ ) {
-		val = val << 7;
+	for ( i=0; i < in->bv_len; i++ ) {
 		val |= der[i] & 0x7f;
 		if ( !( der[i] & 0x80 )) {
-			ptr += sprintf( ptr, ".%ld", val );
+			if ( ptr == NULL ) {
+				/* Initial "x.y": val=x*40+y, x<=2, y<40 if x=2 */
+				ptr = out->bv_val;
+				val1 = (val < 80 ? val/40 : 2);
+				val -= val1*40;
+				ptr += sprintf( ptr, "%u", val1 );
+			}
+			ptr += sprintf( ptr, ".%lu", val );
 			val = 0;
+		} else if ( val - 1UL < LBER_OID_COMPONENT_MAX >> 7 ) {
+			val <<= 7;
+		} else {
+			/* val would overflow, or is 0 from invalid initial 0x80 octet */
+			return -1;
 		}
 	}
+	if ( ptr == NULL || val != 0 )
+		return -1;
+
 	out->bv_len = ptr - out->bv_val;
 	return 0;
 }
