@@ -249,7 +249,7 @@ AVA_Sort( LDAPRDN rdn, int iAVA )
 		a = strcmp( ava_in->la_attr.bv_val, ava->la_attr.bv_val );
 
 		if ( a > 0 ) {
-			break;
+			continue;
 		}
 
 		while ( a == 0 ) {
@@ -292,8 +292,6 @@ AVA_Sort( LDAPRDN rdn, int iAVA )
 			rdn[ j ] = rdn[ j - 1 ];
 		}
 		rdn[ i ] = ava_in;
-
-		return;
 	}
 }
 
