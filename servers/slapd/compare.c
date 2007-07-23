@@ -139,17 +139,17 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	AttributeAssertion	ava = *op->orc_ava;
 	BackendDB		*bd = op->o_bd;
 
+	Debug( LDAP_DEBUG_ARGS,
+		"do_compare: dn (%s) attr (%s) value (%s)\n",
+		op->o_req_dn.bv_val,
+		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
+
+	Statslog( LDAP_DEBUG_STATS,
+		"%s CMP dn=\"%s\" attr=\"%s\"\n",
+		op->o_log_prefix, op->o_req_dn.bv_val,
+		ava.aa_desc->ad_cname.bv_val, 0, 0 );
+
 	if( strcasecmp( op->o_req_ndn.bv_val, LDAP_ROOT_DSE ) == 0 ) {
-		Debug( LDAP_DEBUG_ARGS,
-			"do_compare: dn (%s) attr (%s) value (%s)\n",
-			op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-
-		Statslog( LDAP_DEBUG_STATS,
-			"%s CMP dn=\"%s\" attr=\"%s\"\n",
-			op->o_log_prefix, op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, 0, 0 );
-
 		if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
 			goto cleanup;
@@ -162,15 +162,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		}
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
-		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-			op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-
-		Statslog( LDAP_DEBUG_STATS,
-			"%s CMP dn=\"%s\" attr=\"%s\"\n",
-			op->o_log_prefix, op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, 0, 0 );
-
 		if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
 			rs->sr_err = 0;
@@ -230,14 +221,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	if( backend_check_referrals( op, rs ) != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
-
-	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    op->o_req_dn.bv_val,
-		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-
-	Statslog( LDAP_DEBUG_STATS, "%s CMP dn=\"%s\" attr=\"%s\"\n",
-		op->o_log_prefix, op->o_req_dn.bv_val,
-		ava.aa_desc->ad_cname.bv_val, 0, 0 );
 
 	op->orc_ava = &ava;
 
