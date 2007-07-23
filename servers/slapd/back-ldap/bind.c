@@ -1189,6 +1189,17 @@ done:;
 	ldap_pvt_thread_mutex_unlock( &li->li_quarantine_mutex );
 }
 
+static int
+ldap_back_dobind_cb(
+	Operation *op,
+	SlapReply *rs
+)
+{
+	ber_tag_t *tptr = op->o_callback->sc_private;
+	op->o_tag = *tptr;
+	return SLAP_CB_CONTINUE;
+}
+
 /*
  * ldap_back_dobind_int
  *
@@ -1214,6 +1225,7 @@ ldap_back_dobind_int(
 			binding = 0;
 	ber_int_t	msgid;
 	ber_tag_t	o_tag = op->o_tag;
+	slap_callback cb = {0};
 
 	assert( lcp != NULL );
 	assert( retries >= 0 );
@@ -1290,6 +1302,11 @@ retry_lock:;
 	 * It allows to use SASL bind and yet proxyAuthz users
 	 */
 	op->o_tag = LDAP_REQ_BIND;
+	cb.sc_next = op->o_callback;
+	cb.sc_private = &o_tag;
+	cb.sc_response = ldap_back_dobind_cb;
+	op->o_callback = &cb;
+
 	if ( LDAP_BACK_CONN_ISIDASSERT( lc ) ) {
 		if ( BER_BVISEMPTY( &binddn ) && BER_BVISEMPTY( &bindcred ) ) {
 			/* if we got here, it shouldn't return result */
@@ -1407,7 +1424,8 @@ retry:;
 			send_ldap_result( op, rs );
 		}
 
-		return 0;
+		rc = 0;
+		goto leave;
 	}
 
 	rc = ldap_back_op_result( lc, op, rs, msgid,
@@ -1417,7 +1435,6 @@ retry:;
 	}
 
 done:;
-	op->o_tag = o_tag;
 	LDAP_BACK_CONN_BINDING_CLEAR( lc );
 	rc = LDAP_BACK_CONN_ISBOUND( lc );
 	if ( !rc ) {
@@ -1426,6 +1443,11 @@ done:;
 	} else if ( LDAP_BACK_SAVECRED( li ) ) {
 		ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
 	}
+
+leave:
+	if ( op->o_callback == &cb )
+		op->o_callback = cb.sc_next;
+	op->o_tag = o_tag;
 
 	return rc;
 }
