@@ -49,7 +49,9 @@ do_add( Operation *op, SlapReply *rs )
 	int		rc = 0;
 	int		freevals = 1;
 
-	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s do_add\n",
+		op->o_log_prefix, 0, 0 );
+
 	/*
 	 * Parse the add request.  It looks like this:
 	 *
@@ -64,26 +66,31 @@ do_add( Operation *op, SlapReply *rs )
 
 	/* get the name */
 	if ( ber_scanf( ber, "{m", /*}*/ &dn ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_add: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
-
-	op->ora_e = entry_alloc();
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_add: invalid dn (%s)\n",
+			op->o_log_prefix, dn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto done;
 	}
 
+	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
+
+	op->ora_e = entry_alloc();
 	ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
 	ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
 
-	Debug( LDAP_DEBUG_ARGS, "do_add: dn (%s)\n", op->ora_e->e_dn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "%s do_add: dn (%s)\n",
+		op->o_log_prefix, op->ora_e->e_dn, 0 );
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -97,15 +104,16 @@ do_add( Operation *op, SlapReply *rs )
 		rtag = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_values );
 
 		if ( rtag == LBER_ERROR ) {
-			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s do_add: decoding error\n",
+				op->o_log_prefix, 0, 0 );
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto done;
 		}
 
 		if ( tmp.sml_values == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
-				tmp.sml_type.bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s do_add: no values for type %s\n",
+				op->o_log_prefix, tmp.sml_type.bv_val, 0 );
 			send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 				"no values for attribute type" );
 			goto done;
@@ -125,14 +133,16 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_add: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
 	}
 
 	if ( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_add: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		goto done;
 	} 
 
@@ -141,9 +151,6 @@ do_add( Operation *op, SlapReply *rs )
 			"no attributes provided" );
 		goto done;
 	}
-
-	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
-	    op->o_log_prefix, op->ora_e->e_name.bv_val, 0, 0, 0 );
 
 	if ( dn_match( &op->ora_e->e_nname, &slap_empty_bv ) ) {
 		/* protocolError may be a more appropriate error */

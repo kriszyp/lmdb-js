@@ -46,10 +46,11 @@ do_bind(
 	ber_tag_t tag;
 	Backend *be = NULL;
 
-	Debug( LDAP_DEBUG_TRACE, "do_bind\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s do_bind\n",
+		op->o_log_prefix, 0, 0 );
 
 	/*
-	 * Force to connection to "anonymous" until bind succeeds.
+	 * Force the connection to "anonymous" until bind succeeds.
 	 */
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	if ( op->o_conn->c_sasl_bind_in_progress ) {
@@ -101,7 +102,8 @@ do_bind(
 	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &method );
 
 	if ( tag == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_bind: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto cleanup;
@@ -134,13 +136,16 @@ do_bind(
 	}
 
 	if ( tag == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_ANY, "%s do_bind: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto cleanup;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_bind: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		goto cleanup;
 	} 
 
@@ -151,14 +156,18 @@ do_bind(
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n",
-			dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_bind: invalid dn (%s)\n",
+			op->o_log_prefix, dn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
+	Statslog( LDAP_DEBUG_STATS, "%s BIND dn=\"%s\" method=%ld\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val,
+		(unsigned long) op->orb_method, 0, 0 );
+
 	if( op->orb_method == LDAP_AUTH_SASL ) {
-		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
+		Debug( LDAP_DEBUG_TRACE, "do_bind: dn (%s) SASL mech %s\n",
 			op->o_req_dn.bv_val, mech.bv_val, NULL );
 
 	} else {
@@ -168,13 +177,9 @@ do_bind(
 			(unsigned long) op->orb_method );
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "%s BIND dn=\"%s\" method=%ld\n",
-	    op->o_log_prefix, op->o_req_dn.bv_val,
-		(unsigned long) op->orb_method, 0, 0 );
-
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
-		Debug( LDAP_DEBUG_ANY, "do_bind: unknown version=%ld\n",
-			(unsigned long) version, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_bind: unknown version=%ld\n",
+			op->o_log_prefix, (unsigned long) version, 0 );
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 			"requested protocol version not supported" );
 		goto cleanup;

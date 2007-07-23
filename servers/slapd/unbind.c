@@ -36,7 +36,8 @@
 int
 do_unbind( Operation *op, SlapReply *rs )
 {
-	Debug( LDAP_DEBUG_TRACE, "do_unbind\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s do_unbind\n",
+		op->o_log_prefix, 0, 0 );
 
 	/*
 	 * Parse the unbind request.  It looks like this:

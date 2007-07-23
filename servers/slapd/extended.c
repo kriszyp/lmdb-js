@@ -123,19 +123,20 @@ do_extended(
 	ber_tag_t tag;
 	ber_len_t len;
 
-	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s do_extended\n",
+		op->o_log_prefix, 0, 0 );
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_extended: protocol version (%d) too low\n",
-			op->o_protocol, 0 ,0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_extended: protocol version (%d) too low\n",
+			op->o_log_prefix, op->o_protocol, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "requires LDAPv3" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
 	}
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &op->ore_reqoid ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_extended: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
@@ -145,7 +146,8 @@ do_extended(
 	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
 		if( ber_scanf( op->o_ber, "m", &reqdata ) == LBER_ERROR ) {
-			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
+			Debug( LDAP_DEBUG_ANY, "%s do_extended: ber_scanf failed\n",
+				op->o_log_prefix, 0, 0 );
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto done;
@@ -153,14 +155,16 @@ do_extended(
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_extended: get_ctrls failed\n", 0, 0 ,0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_extended: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		return rs->sr_err;
 	} 
 
+	Statslog( LDAP_DEBUG_STATS, "%s EXT oid=%s\n",
+	    op->o_log_prefix, op->ore_reqoid.bv_val, 0, 0, 0 );
+
 	/* check for controls inappropriate for all extended operations */
 	if( get_manageDSAit( op ) == SLAP_CONTROL_CRITICAL ) {
-		Statslog( LDAP_DEBUG_STATS, "%s EXT oid=%s\n",
-		    op->o_log_prefix, op->ore_reqoid.bv_val, 0, 0, 0 );
 		send_ldap_error( op, rs,
 			LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 			"manageDSAit control inappropriate" );
@@ -203,10 +207,8 @@ fe_extended( Operation *op, SlapReply *rs )
 
 	ext = find_extop(supp_ext_list, &op->ore_reqoid );
 	if ( ext == NULL ) {
-		Statslog( LDAP_DEBUG_STATS, "%s EXT oid=%s\n",
-		    op->o_log_prefix, op->ore_reqoid.bv_val, 0, 0, 0 );
-		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
-			op->ore_reqoid.bv_val, 0 ,0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_extended: unsupported operation \"%s\"\n",
+			op->o_log_prefix, op->ore_reqoid.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 			"unsupported extended operation" );
 		goto done;

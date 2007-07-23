@@ -44,15 +44,10 @@ do_compare(
 	struct berval dn = BER_BVNULL;
 	struct berval desc = BER_BVNULL;
 	struct berval value = BER_BVNULL;
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion ava = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion ava = { 0 };
 
-	ava.aa_desc = NULL;
-
-	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s do_compare\n",
+		op->o_log_prefix, 0, 0 );
 	/*
 	 * Parse the compare request.  It looks like this:
 	 *
@@ -66,36 +61,45 @@ do_compare(
 	 */
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_compare: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if ( ber_scanf( op->o_ber, "{mm}", &desc, &value ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_compare: get ava failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_compare: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_compare: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		goto cleanup;
 	} 
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_compare: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_compare: invalid dn (%s)\n",
+			op->o_log_prefix, dn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
+
+	Statslog( LDAP_DEBUG_STATS,
+		"%s CMP dn=\"%s\" attr=\"%s\"\n",
+		op->o_log_prefix, op->o_req_dn.bv_val,
+		desc.bv_val, 0, 0 );
 
 	rs->sr_err = slap_bv2ad( &desc, &ava.aa_desc, &rs->sr_text );
 	if( rs->sr_err != LDAP_SUCCESS ) {
@@ -119,6 +123,11 @@ do_compare(
 
 	op->orc_ava = &ava;
 
+	Debug( LDAP_DEBUG_ARGS,
+		"do_compare: dn (%s) attr (%s) value (%s)\n",
+		op->o_req_dn.bv_val,
+		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
+
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_compare( op, rs );
 
@@ -136,18 +145,8 @@ int
 fe_op_compare( Operation *op, SlapReply *rs )
 {
 	Entry			*entry = NULL;
-	AttributeAssertion	ava = *op->orc_ava;
+	AttributeAssertion	*ava = op->orc_ava;
 	BackendDB		*bd = op->o_bd;
-
-	Debug( LDAP_DEBUG_ARGS,
-		"do_compare: dn (%s) attr (%s) value (%s)\n",
-		op->o_req_dn.bv_val,
-		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-
-	Statslog( LDAP_DEBUG_STATS,
-		"%s CMP dn=\"%s\" attr=\"%s\"\n",
-		op->o_log_prefix, op->o_req_dn.bv_val,
-		ava.aa_desc->ad_cname.bv_val, 0, 0 );
 
 	if( strcasecmp( op->o_req_ndn.bv_val, LDAP_ROOT_DSE ) == 0 ) {
 		if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
@@ -177,7 +176,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	}
 
 	if( entry ) {
-		rs->sr_err = compare_entry( op, entry, &ava );
+		rs->sr_err = compare_entry( op, entry, ava );
 		entry_free( entry );
 
 		send_ldap_result( op, rs );
@@ -222,23 +221,21 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	op->orc_ava = &ava;
-
 	if ( SLAP_SHADOW(op->o_bd) && get_dontUseCopy(op) ) {
 		/* don't use shadow copy */
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"copy not used" );
 
-	} else if ( ava.aa_desc == slap_schema.si_ad_entryDN ) {
+	} else if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"entryDN compare not supported" );
 
-	} else if ( ava.aa_desc == slap_schema.si_ad_subschemaSubentry ) {
+	} else if ( ava->aa_desc == slap_schema.si_ad_subschemaSubentry ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"subschemaSubentry compare not supported" );
 
 #ifndef SLAP_COMPARE_IN_FRONTEND
-	} else if ( ava.aa_desc == slap_schema.si_ad_hasSubordinates
+	} else if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates
 		&& op->o_bd->be_has_subordinates )
 	{
 		int	rc, hasSubordinates = LDAP_SUCCESS;
@@ -246,7 +243,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &entry );
 		if ( rc == 0 && entry ) {
 			if ( ! access_allowed( op, entry,
-				ava.aa_desc, &ava.aa_value, ACL_COMPARE, NULL ) )
+				ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
 			{	
 				rc = rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 				
@@ -260,7 +257,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		if ( rc == 0 ) {
 			int	asserted;
 
-			asserted = bvmatch( &ava.aa_value, &slap_true_bv )
+			asserted = bvmatch( &ava->aa_value, &slap_true_bv )
 				? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 			if ( hasSubordinates == asserted ) {
 				rs->sr_err = LDAP_COMPARE_TRUE;
@@ -309,7 +306,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		int		rc = LDAP_OTHER;
 
 		rs->sr_err = backend_attribute( op, NULL, &op->o_req_ndn,
-				ava.aa_desc, &vals, ACL_COMPARE );
+				ava->aa_desc, &vals, ACL_COMPARE );
 		switch ( rs->sr_err ) {
 		default:
 			/* return error only if "disclose"
@@ -327,7 +324,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				vals, &ava.aa_value, op->o_tmpmemctx ) == 0 )
+				vals, &ava->aa_value, op->o_tmpmemctx ) == 0 )
 			{
 				rs->sr_err = LDAP_COMPARE_TRUE;
 				break;

@@ -41,8 +41,8 @@ do_search(
 	struct berval base = BER_BVNULL;
 	ber_len_t	siz, off, i;
 
-	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
-
+	Debug( LDAP_DEBUG_TRACE, "%s do_search\n",
+		op->o_log_prefix, 0, 0 );
 	/*
 	 * Parse the search request.  It looks like this:
 	 *
@@ -112,8 +112,8 @@ do_search(
 
 	rs->sr_err = dnPrettyNormal( NULL, &base, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_search: invalid dn (%s)\n", base.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_search: invalid dn (%s)\n",
+			op->o_log_prefix, base.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto return_results;
 	}
@@ -163,8 +163,8 @@ do_search(
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
-
+		Debug( LDAP_DEBUG_ANY, "%s do_search: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		goto return_results;
 	}
 
