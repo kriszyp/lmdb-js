@@ -2102,8 +2102,7 @@ int
 slap_loglevel_get( struct berval *s, int *l )
 {
 	int		rc;
-	unsigned long	i;
-	slap_mask_t	m;
+	slap_mask_t	m, i;
 
 	if ( loglevel_ops == NULL ) {
 		loglevel_init();
@@ -2113,12 +2112,10 @@ slap_loglevel_get( struct berval *s, int *l )
 		m |= loglevel_ops[ i ].mask;
 	}
 
-	m = ~m;
-
-	for ( i = 1; i <= ( 1 << ( sizeof( int ) * 8 - 1 ) ) && !( m & i ); i <<= 1 )
+	for ( i = 1; m & i; i <<= 1 )
 		;
 
-	if ( !( m & i ) ) {
+	if ( i == 0 ) {
 		return -1;
 	}
 
