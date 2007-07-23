@@ -52,7 +52,7 @@ struct nonpresent_entry {
 typedef struct syncinfo_s {
 	struct slap_backend_db *si_be;
 	struct re_s			*si_re;
-	long				si_rid;
+	int					si_rid;
 	slap_bindconf		si_bindconf;
 	struct berval		si_base;
 	struct berval		si_logbase;
@@ -3316,7 +3316,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	si->si_bindconf.sb_uri = uri;
 
 	ptr = buf;
-	ptr += snprintf( ptr, sizeof( buf ), IDSTR "=%03ld " PROVIDERSTR "=%s",
+	ptr += snprintf( ptr, sizeof( buf ), IDSTR "=%03d " PROVIDERSTR "=%s",
 		si->si_rid, si->si_bindconf.sb_uri.bv_val );
 	if ( !BER_BVISNULL( &bc )) {
 		ptr = lutil_strcopy( ptr, bc.bv_val );

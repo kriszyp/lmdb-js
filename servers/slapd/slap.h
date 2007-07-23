@@ -1655,7 +1655,7 @@ struct syncinfo_s;
 struct sync_cookie {
 	struct berval ctxcsn;
 	struct berval octet_str;
-	long rid;
+	int rid;
 	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
 };
 
