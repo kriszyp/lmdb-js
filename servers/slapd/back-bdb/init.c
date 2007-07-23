@@ -456,8 +456,8 @@ shm_retry:
 	if ( !e ) {
 		e = entry_alloc();
 		e->e_id = 0;
-		ber_dupbv( &e->e_name, &slap_empty_bv );
-		ber_dupbv( &e->e_nname, &slap_empty_bv );
+		ber_dupbv( &e->e_name, (struct berval *)&slap_empty_bv );
+		ber_dupbv( &e->e_nname, (struct berval *)&slap_empty_bv );
 	}
 	e->e_ocflags = SLAP_OC_GLUE|SLAP_OC__END;
 	e->e_private = &bdb->bi_cache.c_dntree;
