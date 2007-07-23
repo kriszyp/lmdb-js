@@ -231,7 +231,7 @@ rdnValidate(
  * uses an insertion sort; should be fine since the number of AVAs in
  * a RDN should be limited.
  */
-static void
+static int
 AVA_Sort( LDAPRDN rdn, int nAVAs )
 {
 	LDAPAVA	*ava_i;
@@ -260,17 +260,22 @@ AVA_Sort( LDAPRDN rdn, int nAVAs )
 						d <= 0 ? ava_i->la_value.bv_len 
 							: ava_j->la_value.bv_len );
 
-				if ( a == 0 && d != 0 ) {
+				if ( a == 0 ) {
 					a = d;
 				}
 			}
-			if ( a >= 0 )
+			/* Duplicates are not allowed */
+			if ( a == 0 )
+				return LDAP_INVALID_DN_SYNTAX;
+
+			if ( a > 0 )
 				break;
 
 			rdn[ j+1 ] = rdn[ j ];
 		}
 		rdn[ j+1 ] = ava_i;
 	}
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -391,10 +396,13 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 			ava->la_flags |= LDAP_AVA_FREE_VALUE;
 		}
 	}
-	if ( do_sort )
-		AVA_Sort( rdn, iAVA );
+	rc = LDAP_SUCCESS;
 
-	return LDAP_SUCCESS;
+	if ( do_sort ) {
+		rc = AVA_Sort( rdn, iAVA );
+	}
+
+	return rc;
 }
 
 /*
