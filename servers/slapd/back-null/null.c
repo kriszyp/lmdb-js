@@ -68,6 +68,20 @@ null_back_false( Operation *op, SlapReply *rs )
 }
 
 
+/* for overlays */
+int null_back_entry_get(
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **ent )
+{
+	*ent = NULL;
+	return 1;
+}
+
+
 /* Slap tools */
 
 static int
@@ -193,6 +207,8 @@ null_back_initialize( BackendInfo *bi )
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_entry_get_rw = null_back_entry_get;
 
 	bi->bi_tool_entry_open = null_tool_entry_open;
 	bi->bi_tool_entry_close = null_tool_entry_close;
