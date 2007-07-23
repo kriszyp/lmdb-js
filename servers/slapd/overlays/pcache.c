@@ -1261,7 +1261,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 	}
 	op->o_callback = op->o_callback->sc_next;
 	op->o_tmpfree( cb, op->o_tmpmemctx );
-        return SLAP_CB_CONTINUE;
+	return SLAP_CB_CONTINUE;
 }
 
 static int
