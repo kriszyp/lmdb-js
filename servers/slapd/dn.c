@@ -228,70 +228,48 @@ rdnValidate(
  * Note: the sorting can be slightly improved by sorting first
  * by attribute type length, then by alphabetical order.
  *
- * uses a linear search; should be fine since the number of AVAs in
+ * uses an insertion sort; should be fine since the number of AVAs in
  * a RDN should be limited.
  */
 static void
-AVA_Sort( LDAPRDN rdn, int iAVA )
+AVA_Sort( LDAPRDN rdn, int nAVAs )
 {
+	LDAPAVA	*ava_i;
 	int		i;
-	LDAPAVA		*ava_in = rdn[ iAVA ];
 
 	assert( rdn != NULL );
-	assert( ava_in != NULL );
-	
-	for ( i = 0; i < iAVA; i++ ) {
-		LDAPAVA		*ava = rdn[ i ];
-		int		a, j;
 
-		assert( ava != NULL );
+	for ( i = 1; i < nAVAs; i++ ) {
+		LDAPAVA *ava_j;
+		int j;
 
-		a = strcmp( ava_in->la_attr.bv_val, ava->la_attr.bv_val );
+		ava_i = rdn[ i ];
+		for ( j = i-1; j >=0; j-- ) {
+			int a;
 
-		if ( a > 0 ) {
-			continue;
-		}
+			ava_j = rdn[ j ];
+			a = strcmp( ava_i->la_attr.bv_val, ava_j->la_attr.bv_val );
 
-		while ( a == 0 ) {
-			int		v, d;
+			if ( a == 0 ) {
+				int		d;
 
-			d = ava_in->la_value.bv_len - ava->la_value.bv_len;
+				d = ava_i->la_value.bv_len - ava_j->la_value.bv_len;
 
-			v = memcmp( ava_in->la_value.bv_val, 
-					ava->la_value.bv_val,
-					d <= 0 ? ava_in->la_value.bv_len 
-						: ava->la_value.bv_len );
+				a = memcmp( ava_i->la_value.bv_val, 
+						ava_j->la_value.bv_val,
+						d <= 0 ? ava_i->la_value.bv_len 
+							: ava_j->la_value.bv_len );
 
-			if ( v == 0 && d != 0 ) {
-				v = d;
+				if ( a == 0 && d != 0 ) {
+					a = d;
+				}
 			}
-
-			if ( v <= 0 ) {
-				/* 
-				 * got it!
-				 */
+			if ( a >= 0 )
 				break;
-			}
 
-			if ( ++i == iAVA ) {
-				/*
-				 * already sorted
-				 */
-				return;
-			}
-
-			ava = rdn[ i ];
-			a = strcmp( ava_in->la_attr.bv_val, 
-					ava->la_attr.bv_val );
+			rdn[ j+1 ] = rdn[ j ];
 		}
-
-		/*
-		 * move ahead
-		 */
-		for ( j = iAVA; j > i; j-- ) {
-			rdn[ j ] = rdn[ j - 1 ];
-		}
-		rdn[ i ] = ava_in;
+		rdn[ j+1 ] = ava_i;
 	}
 }
 
@@ -299,8 +277,8 @@ static int
 LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 {
 
-	int rc;
-	int		iAVA;
+	int rc, iAVA, do_sort = 0;
+
 	for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 		LDAPAVA			*ava = rdn[ iAVA ];
 		AttributeDescription	*ad;
@@ -309,7 +287,6 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 		slap_syntax_transform_func *transf = NULL;
 		MatchingRule *mr = NULL;
 		struct berval		bv = BER_BVNULL;
-		int			do_sort = 0;
 
 		assert( ava != NULL );
 
@@ -413,9 +390,10 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 			ava->la_value = bv;
 			ava->la_flags |= LDAP_AVA_FREE_VALUE;
 		}
-
-		if( do_sort ) AVA_Sort( rdn, iAVA );
 	}
+	if ( do_sort )
+		AVA_Sort( rdn, iAVA );
+
 	return LDAP_SUCCESS;
 }
 
