@@ -738,7 +738,7 @@ hdb_dn2id_parent(
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 	if ( !txn && locker ) {
-		cursor->locker = locker;
+		CURSOR_SETLOCKER(cursor, locker);
 	}
 
 	data.ulen = sizeof(diskNode) + (SLAP_LDAPDN_MAXLEN * 2);

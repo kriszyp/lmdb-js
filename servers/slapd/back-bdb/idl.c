@@ -559,7 +559,7 @@ bdb_idl_fetch_key(
 				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 			return rc;
 		}
-		cursor->locker = locker;
+		CURSOR_SETLOCKER( cursor, locker );
 	} else {
 		cursor = *saved_cursor;
 	}

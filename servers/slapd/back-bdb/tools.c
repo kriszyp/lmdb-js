@@ -319,7 +319,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 			op.o_tmpmemctx = NULL;
 			op.o_tmpmfuncs = &ch_mfuncs;
 
-			rc = bdb_cache_find_parent( &op, NULL, cursor->locker, id, &ei );
+			rc = bdb_cache_find_parent( &op, NULL, CURSOR_GETLOCKER(cursor), id, &ei );
 			if ( rc == LDAP_SUCCESS ) {
 				bdb_cache_entryinfo_unlock( ei );
 				e->e_private = ei;

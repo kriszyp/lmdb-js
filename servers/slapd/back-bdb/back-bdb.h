@@ -275,6 +275,21 @@ struct bdb_op_info {
 
 #endif
 
+/* 4.6.18 redefines cursor->locker */
+#if DB_VERSION_FULL >= 0x04060012
+
+struct __db_locker {
+	u_int32_t	id;
+};
+
+#define CURSOR_SETLOCKER(cursor, id) \
+	__lock_getlocker(cursor->dbp->dbenv->lk_handle, id, 0, &cursor->locker)
+#define	CURSOR_GETLOCKER(cursor)	cursor->locker->id
+#else
+#define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
+#define CURSOR_GETLOCKER(cursor)	cursor->locker
+#endif
+
 #ifndef DB_BUFFER_SMALL
 #define DB_BUFFER_SMALL			ENOMEM
 #endif

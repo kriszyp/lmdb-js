@@ -121,8 +121,9 @@ int bdb_id2entry(
 	if ( rc ) return rc;
 
 	/* Use our own locker if needed */
-	if ( !tid && locker )
-		cursor->locker = locker;
+	if ( !tid && locker ) {
+		CURSOR_SETLOCKER( cursor, locker );
+	}
 
 	/* Get the nattrs / nvals counts first */
 	data.ulen = data.dlen = sizeof(buf);
