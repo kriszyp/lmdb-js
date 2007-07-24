@@ -137,7 +137,7 @@ static void
 #if DB_VERSION_X < 0x040300
 ldbm_db_errcall( const char *prefix, char *message )
 #else
-ldbm_db_errcall( const DB_ENV *env, const char *prefix, char *message )
+ldbm_db_errcall( const DB_ENV *env, const char *prefix, const char *message )
 #endif
 {
 #ifdef LDAP_SYSLOG
