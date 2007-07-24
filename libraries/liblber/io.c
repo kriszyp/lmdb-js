@@ -204,11 +204,8 @@ ber_free_buf( BerElement *ber )
 void
 ber_free( BerElement *ber, int freebuf )
 {
-#ifdef LDAP_MEMORY_DEBUG
-	assert( ber != NULL );
-#endif
-
 	if( ber == NULL ) {
+		LDAP_MEMORY_DEBUG_ASSERT( ber != NULL );
 		return;
 	}
 

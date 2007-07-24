@@ -47,6 +47,11 @@ LBER_V (BER_ERRNO_FN) ber_int_errno_fn;
 #ifdef LDAP_MEMORY_DEBUG
 LBER_V (long)	ber_int_meminuse;
 #endif
+#if defined(LDAP_MEMORY_DEBUG) && ((LDAP_MEMORY_DEBUG +0) & 2)
+# define LDAP_MEMORY_DEBUG_ASSERT assert
+#else
+# define LDAP_MEMORY_DEBUG_ASSERT(expr) ((void) 0)
+#endif
 
 struct lber_options {
 	short lbo_valid;
