@@ -557,7 +557,7 @@ access control list processing
 .TP
 .B 256
 .B (0x100 stats)
-stats log connections/operations/results
+connections, LDAP operations, results (recommended)
 .TP
 .B 512
 .B (0x200 stats2)
@@ -613,7 +613,10 @@ In fact, if loglevel is set to 0, no logging occurs,
 so at least the 
 .B none
 level is required to have high priority messages logged.
+
 The loglevel defaults to \fBstats\fP.
+This level should usually also be included when using other logevels, to
+help analyze the logs.
 .RE
 .TP
 .B moduleload <filename>
