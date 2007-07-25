@@ -112,8 +112,10 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	tag = ber_skip_tag( ber, &len );	/* Sequence */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
-	tag = ber_skip_tag( ber, &len );
-	if ( tag == 0xa0 ) {	/* Optional version */
+	tag = ber_peek_tag( ber, &len );
+	/* Optional version */
+	if ( tag == 0xa0 ) {
+		tag = ber_skip_tag( ber, &len );
 		tag = ber_get_int( ber, &version );
 		if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
 	}
@@ -3277,9 +3279,11 @@ certificateExactNormalize(
 	ber_init2( ber, val, LBER_USE_DER );
 	tag = ber_skip_tag( ber, &len );	/* Signed Sequence */
 	tag = ber_skip_tag( ber, &len );	/* Sequence */
-	tag = ber_skip_tag( ber, &len );	/* Optional version? */
-	if ( tag == 0xa0 )
+	tag = ber_peek_tag( ber, &len );	/* Optional version? */
+	if ( tag == 0xa0 ) {
+		tag = ber_skip_tag( ber, &len );
 		tag = ber_get_int( ber, &i );	/* version */
+	}
 	ber_get_int( ber, &i );				/* serial */
 
 	seriallen = snprintf( serial, sizeof(serial), "%d", i );
