@@ -320,9 +320,9 @@ bdb_cf_cleanup( ConfigArgs *c )
 	
 	if ( bdb->bi_flags & BDB_RE_OPEN ) {
 		bdb->bi_flags ^= BDB_RE_OPEN;
-		rc = c->be->bd_info->bi_db_close( c->be );
+		rc = c->be->bd_info->bi_db_close( c->be, NULL );
 		if ( rc == 0 )
-			rc = c->be->bd_info->bi_db_open( c->be );
+			rc = c->be->bd_info->bi_db_open( c->be, NULL );
 		/* If this fails, we need to restart */
 		if ( rc ) {
 			slapd_shutdown = 2;

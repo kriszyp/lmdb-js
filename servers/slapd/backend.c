@@ -34,6 +34,7 @@
 #include <sys/stat.h>
 
 #include "slap.h"
+#include "config.h"
 #include "lutil.h"
 #include "lber_pvt.h"
 
@@ -189,7 +190,7 @@ backend_set_controls( BackendDB *be )
 }
 
 /* startup a specific backend database */
-int backend_startup_one(Backend *be)
+int backend_startup_one(Backend *be, ConfigArgs *ca)
 {
 	int		rc = 0;
 
@@ -209,7 +210,7 @@ int backend_startup_one(Backend *be)
 	(void)backend_set_controls( be );
 
 	if ( be->bd_info->bi_db_open ) {
-		rc = be->bd_info->bi_db_open( be );
+		rc = be->bd_info->bi_db_open( be, ca );
 		if ( rc == 0 ) {
 			(void)backend_set_controls( be );
 
@@ -251,12 +252,12 @@ int backend_startup(Backend *be)
 		/* append global access controls */
 		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
-		return backend_startup_one( be );
+		return backend_startup_one( be, NULL );
 	}
 
 	/* open frontend, if required */
 	if ( frontendDB->bd_info->bi_db_open ) {
-		rc = frontendDB->bd_info->bi_db_open( frontendDB );
+		rc = frontendDB->bd_info->bi_db_open( frontendDB, NULL );
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open(frontend) failed! (%d)\n",
@@ -300,7 +301,7 @@ int backend_startup(Backend *be)
 		/* append global access controls */
 		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
-		rc = backend_startup_one( be );
+		rc = backend_startup_one( be, NULL );
 
 		if ( rc ) return rc;
 	}
@@ -336,7 +337,7 @@ int backend_shutdown( Backend *be )
 		}
 
 		if ( be->bd_info->bi_db_close ) {
-			be->bd_info->bi_db_close( be );
+			be->bd_info->bi_db_close( be, NULL );
 		}
 
 		if( be->bd_info->bi_close ) {
@@ -349,7 +350,7 @@ int backend_shutdown( Backend *be )
 	/* close each backend database */
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->bd_info->bi_db_close ) {
-			be->bd_info->bi_db_close( be );
+			be->bd_info->bi_db_close( be, NULL );
 		}
 
 		if(rc != 0) {
@@ -373,7 +374,7 @@ int backend_shutdown( Backend *be )
 
 	/* close frontend, if required */
 	if ( frontendDB->bd_info->bi_db_close ) {
-		rc = frontendDB->bd_info->bi_db_close ( frontendDB );
+		rc = frontendDB->bd_info->bi_db_close ( frontendDB, NULL );
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_close(frontend) failed! (%d)\n",
@@ -411,7 +412,7 @@ backend_stopdown_one( BackendDB *bd )
 	}
 
 	if ( bd->bd_info->bi_db_destroy ) {
-		bd->bd_info->bi_db_destroy( bd );
+		bd->bd_info->bi_db_destroy( bd, NULL );
 	}
 }
 
@@ -476,7 +477,7 @@ int backend_destroy(void)
 	bd = frontendDB;
 	if ( bd ) {
 		if ( bd->bd_info->bi_db_destroy ) {
-			bd->bd_info->bi_db_destroy( bd );
+			bd->bd_info->bi_db_destroy( bd, NULL );
 		}
 		ber_bvarray_free( bd->be_suffix );
 		ber_bvarray_free( bd->be_nsuffix );
@@ -547,7 +548,8 @@ BackendDB *
 backend_db_init(
     const char	*type,
 	BackendDB *b0,
-	int idx )
+	int idx,
+	ConfigArgs *ca)
 {
 	BackendInfo *bi = backend_info(type);
 	BackendDB *be = b0;
@@ -586,7 +588,7 @@ backend_db_init(
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
 	if ( bi->bi_db_init ) {
-		rc = bi->bi_db_init( be );
+		rc = bi->bi_db_init( be, ca );
 	}
 
 	if ( rc != 0 ) {
@@ -611,12 +613,12 @@ be_db_close( void )
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->bd_info->bi_db_close ) {
-			be->bd_info->bi_db_close( be );
+			be->bd_info->bi_db_close( be, NULL );
 		}
 	}
 
 	if ( frontendDB->bd_info->bi_db_close ) {
-		frontendDB->bd_info->bi_db_close( frontendDB );
+		frontendDB->bd_info->bi_db_close( frontendDB, NULL );
 	}
 
 }

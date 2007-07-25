@@ -26,6 +26,7 @@
 #include <lutil.h>
 #include <ldap_rq.h>
 #include "alock.h"
+#include "config.h"
 
 static const struct bdbi_database {
 	char *file;
@@ -46,7 +47,7 @@ typedef void * db_realloc(void *, size_t);
 #define bdb_db_close BDB_SYMBOL(db_close)
 
 static int
-bdb_db_init( BackendDB *be )
+bdb_db_init( BackendDB *be, ConfigArgs *ca )
 {
 	struct bdb_info	*bdb;
 	int rc;
@@ -93,10 +94,10 @@ bdb_db_init( BackendDB *be )
 }
 
 static int
-bdb_db_close( BackendDB *be );
+bdb_db_close( BackendDB *be, ConfigArgs *ca );
 
 static int
-bdb_db_open( BackendDB *be )
+bdb_db_open( BackendDB *be, ConfigArgs *ca )
 {
 	int rc, i;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -121,8 +122,8 @@ bdb_db_open( BackendDB *be )
 
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( be->be_suffix[1].bv_val ) {
-	Debug( LDAP_DEBUG_ANY,
-		LDAP_XSTRING(bdb_db_open) ": only one suffix allowed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY,
+			LDAP_XSTRING(bdb_db_open) ": only one suffix allowed\n", 0, 0, 0 );
 		return -1;
 	}
 #endif
@@ -133,7 +134,7 @@ bdb_db_open( BackendDB *be )
 		Debug( LDAP_DEBUG_ANY,
 			LDAP_XSTRING(bdb_db_open) ": Cannot access database directory %s (%d)\n",
 			bdb->bi_dbenv_home, errno, 0 );
-			return -1;
+		return -1;
 	}
 
 	/* Perform database use arbitration/recovery logic */
@@ -474,12 +475,12 @@ shm_retry:
 	return 0;
 
 fail:
-	bdb_db_close( be );
+	bdb_db_close( be, NULL );
 	return rc;
 }
 
 static int
-bdb_db_close( BackendDB *be )
+bdb_db_close( BackendDB *be, ConfigArgs *ca )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -574,7 +575,7 @@ bdb_db_close( BackendDB *be )
 }
 
 static int
-bdb_db_destroy( BackendDB *be )
+bdb_db_destroy( BackendDB *be, ConfigArgs *ca )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 

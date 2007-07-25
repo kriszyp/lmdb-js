@@ -2050,7 +2050,8 @@ monitor_back_initialize(
 
 int
 monitor_back_db_init(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*c)
 {
 	int			rc;
 	struct berval		dn = BER_BVC( SLAPD_MONITOR_DN ),
@@ -2064,8 +2065,9 @@ monitor_back_db_init(
 	 * database monitor can be defined once only
 	 */
 	if ( be_monitor != NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"only one monitor database is allowed\n", 0, 0, 0 );
+		if (c) {
+			snprintf(c->msg, sizeof(c->msg),"only one monitor database allowed");
+		}
 		return( -1 );
 	}
 	be_monitor = be;
@@ -2108,10 +2110,12 @@ monitor_back_db_init(
 			type = oi->oi_orig->bi_type;
 		}
 
-		Debug( LDAP_DEBUG_ANY,
-			"\"monitor\" database serving namingContext \"%s\" "
-			"is hidden by \"%s\" database serving namingContext \"%s\".\n",
-			pdn.bv_val, type, be2->be_nsuffix[ 0 ].bv_val );
+		if (c) {
+			snprintf(((ConfigArgs*)c)->msg, sizeof(((ConfigArgs*)c)->msg),
+					"\"monitor\" database serving namingContext \"%s\" "
+					"is hidden by \"%s\" database serving namingContext \"%s\".\n",
+					pdn.bv_val, type, be2->be_nsuffix[ 0 ].bv_val );
+		}
 		return -1;
 	}
 
@@ -2120,7 +2124,8 @@ monitor_back_db_init(
 
 int
 monitor_back_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca)
 {
 	monitor_info_t 		*mi = (monitor_info_t *)be->be_private;
 	struct monitor_subsys_t	**ms;
@@ -2459,7 +2464,8 @@ monitor_back_db_config(
 
 int
 monitor_back_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca)
 {
 	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
 

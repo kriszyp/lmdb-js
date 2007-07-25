@@ -1272,7 +1272,8 @@ dl_cfgen( ConfigArgs *c )
 
 static int
 dynlist_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	dynlist_info_t		*dli = (dynlist_info_t *)on->on_bi.bi_private;
@@ -1329,7 +1330,8 @@ dynlist_db_open(
 
 static int
 dynlist_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 

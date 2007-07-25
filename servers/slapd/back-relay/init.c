@@ -24,6 +24,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "config.h"
 #include "back-relay.h"
 
 int
@@ -69,7 +70,7 @@ relay_back_initialize( BackendInfo *bi )
 }
 
 int
-relay_back_db_init( Backend *be )
+relay_back_db_init( Backend *be, ConfigArgs *ca)
 {
 	relay_back_info		*ri;
 
@@ -90,7 +91,7 @@ relay_back_db_init( Backend *be )
 }
 
 int
-relay_back_db_open( Backend *be )
+relay_back_db_open( Backend *be, ConfigArgs *ca )
 {
 	relay_back_info		*ri = (relay_back_info *)be->be_private;
 
@@ -114,13 +115,13 @@ relay_back_db_open( Backend *be )
 }
 
 int
-relay_back_db_close( Backend *be )
+relay_back_db_close( Backend *be, ConfigArgs *ca )
 {
 	return 0;
 }
 
 int
-relay_back_db_destroy( Backend *be )
+relay_back_db_destroy( Backend *be, ConfigArgs *ca)
 {
 	relay_back_info		*ri = (relay_back_info *)be->be_private;
 

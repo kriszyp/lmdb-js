@@ -184,7 +184,8 @@ static slap_overinst auditlog;
 
 static int
 auditlog_db_init(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -197,7 +198,8 @@ auditlog_db_init(
 
 static int
 auditlog_db_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -210,7 +212,8 @@ auditlog_db_close(
 
 static int
 auditlog_db_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;

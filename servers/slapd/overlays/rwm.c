@@ -39,7 +39,7 @@ typedef struct rwm_op_state {
 } rwm_op_state;
 
 static int
-rwm_db_destroy( BackendDB *be );
+rwm_db_destroy( BackendDB *be, ConfigArgs *ca );
 
 typedef struct rwm_op_cb {
 	slap_callback cb;
@@ -1903,7 +1903,8 @@ rwm_cf_gen( ConfigArgs *c )
 
 static int
 rwm_db_init(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap;
@@ -1934,7 +1935,7 @@ error_return:;
 	on->on_bi.bi_private = (void *)rwmap;
 
 	if ( rc ) {
-		(void)rwm_db_destroy( be );
+		(void)rwm_db_destroy( be, NULL );
 	}
 
 	return rc;
@@ -1942,7 +1943,8 @@ error_return:;
 
 static int
 rwm_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	int		rc = 0;

@@ -17,6 +17,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include<ac/string.h>
+
 typedef struct ConfigTable {
 	char *name;
 	char *what;

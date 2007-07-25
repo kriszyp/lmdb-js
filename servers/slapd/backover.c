@@ -51,14 +51,14 @@ over_db_func(
 	func = &oi->oi_orig->bi_db_open;
 	if ( func[which] ) {
 		be->bd_info = oi->oi_orig;
-		rc = func[which]( be );
+		rc = func[which]( be, NULL );
 	}
 
 	for (; on && rc == 0; on=on->on_next) {
 		be->bd_info = &on->on_bi;
 		func = &on->on_bi.bi_db_open;
 		if (func[which]) {
-			rc = func[which]( be );
+			rc = func[which]( be, NULL );
 		}
 	}
 	be->bd_info = bi_orig;
@@ -168,7 +168,8 @@ over_db_config(
 
 static int
 over_db_open(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	return over_db_func( be, db_open );
@@ -176,7 +177,8 @@ over_db_open(
 
 static int
 over_db_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinfo *oi = be->bd_info->bi_private;
@@ -187,13 +189,13 @@ over_db_close(
 	for (; on && rc == 0; on=on->on_next) {
 		be->bd_info = &on->on_bi;
 		if ( be->bd_info->bi_db_close ) {
-			rc = be->bd_info->bi_db_close( be );
+			rc = be->bd_info->bi_db_close( be, NULL );
 		}
 	}
 
 	if ( oi->oi_orig->bi_db_close ) {
 		be->bd_info = oi->oi_orig;
-		rc = be->bd_info->bi_db_close( be );
+		rc = be->bd_info->bi_db_close( be, NULL );
 	}
 
 	be->bd_info = bi_orig;
@@ -202,7 +204,8 @@ over_db_close(
 
 static int
 over_db_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinfo *oi = be->bd_info->bi_private;
@@ -1075,7 +1078,7 @@ overlay_destroy_one( BackendDB *be, slap_overinst *on )
 			if ( on->on_bi.bi_db_destroy ) {
 				BackendInfo *bi_orig = be->bd_info;
 				be->bd_info = (BackendInfo *)on;
-				on->on_bi.bi_db_destroy( be );
+				on->on_bi.bi_db_destroy( be, NULL );
 				be->bd_info = bi_orig;
 			}
 			free( on );
@@ -1281,7 +1284,7 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res )
 	if ( on2->on_bi.bi_db_init ) {
 		int rc;
 		be->bd_info = (BackendInfo *)on2;
-		rc = on2->on_bi.bi_db_init( be );
+		rc = on2->on_bi.bi_db_init( be, NULL );
 		be->bd_info = (BackendInfo *)oi;
 		if ( rc ) {
 			*prev = on2->on_next;

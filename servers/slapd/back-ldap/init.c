@@ -29,6 +29,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "config.h"
 #include "back-ldap.h"
 
 int
@@ -98,7 +99,7 @@ ldap_back_initialize( BackendInfo *bi )
 }
 
 int
-ldap_back_db_init( Backend *be )
+ldap_back_db_init( Backend *be, ConfigArgs *ca )
 {
 	ldapinfo_t	*li;
 	int		rc;
@@ -168,7 +169,7 @@ ldap_back_db_init( Backend *be )
 }
 
 int
-ldap_back_db_open( BackendDB *be )
+ldap_back_db_open( BackendDB *be, ConfigArgs *ca )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
 
@@ -255,7 +256,7 @@ ldap_back_conn_free( void *v_lc )
 }
 
 int
-ldap_back_db_close( Backend *be )
+ldap_back_db_close( Backend *be, ConfigArgs *ca )
 {
 	int		rc = 0;
 
@@ -267,7 +268,7 @@ ldap_back_db_close( Backend *be )
 }
 
 int
-ldap_back_db_destroy( Backend *be )
+ldap_back_db_destroy( Backend *be, ConfigArgs *ca )
 {
 	if ( be->be_private ) {
 		ldapinfo_t	*li = ( ldapinfo_t * )be->be_private;

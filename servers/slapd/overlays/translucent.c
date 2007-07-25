@@ -686,7 +686,7 @@ static int translucent_db_config(
 **
 */
 
-static int translucent_db_init(BackendDB *be) {
+static int translucent_db_init(BackendDB *be, ConfigArgs *ca) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov;
 
@@ -698,7 +698,7 @@ static int translucent_db_init(BackendDB *be) {
 	ov->db.be_private = NULL;
 	ov->db.be_pcl_mutexp = &ov->db.be_pcl_mutex;
 
-	if ( !backend_db_init( "ldap", &ov->db, -1 )) {
+	if ( !backend_db_init( "ldap", &ov->db, -1, NULL )) {
 		Debug( LDAP_DEBUG_CONFIG, "translucent: unable to open captive back-ldap\n", 0, 0, 0);
 		return 1;
 	}
@@ -714,7 +714,7 @@ static int translucent_db_init(BackendDB *be) {
 **
 */
 
-static int translucent_db_open(BackendDB *be) {
+static int translucent_db_open(BackendDB *be, ConfigArgs *ca) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	int rc;
@@ -727,7 +727,7 @@ static int translucent_db_open(BackendDB *be) {
 	ov->db.be_acl = be->be_acl;
 	ov->db.be_dfltaccess = be->be_dfltaccess;
 
-	rc = backend_startup_one( &ov->db );
+	rc = backend_startup_one( &ov->db, NULL );
 
 	if(rc) Debug(LDAP_DEBUG_TRACE,
 		"translucent: bi_db_open() returned error %d\n", rc, 0, 0);
@@ -743,7 +743,7 @@ static int translucent_db_open(BackendDB *be) {
 */
 
 static int
-translucent_db_close( BackendDB *be )
+translucent_db_close( BackendDB *be, ConfigArgs *ca )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
@@ -752,7 +752,7 @@ translucent_db_close( BackendDB *be )
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_close\n", 0, 0, 0);
 
 	if ( ov && ov->db.bd_info && ov->db.bd_info->bi_db_close ) {
-		rc = ov->db.bd_info->bi_db_close(&ov->db);
+		rc = ov->db.bd_info->bi_db_close(&ov->db, NULL);
 	}
 
 	return(rc);
@@ -765,7 +765,7 @@ translucent_db_close( BackendDB *be )
 */
 
 static int
-translucent_db_destroy( BackendDB *be )
+translucent_db_destroy( BackendDB *be, ConfigArgs *ca )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;

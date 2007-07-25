@@ -1874,7 +1874,8 @@ typedef int (BI_config) LDAP_P((BackendInfo *bi,
 	const char *fname, int lineno,
 	int argc, char **argv));
 
-typedef int (BI_db_func) LDAP_P((Backend *bd));
+struct config_args_s; /* config.h */
+typedef int (BI_db_func) LDAP_P((Backend *bd, struct config_args_s *ca));
 typedef BI_db_func BI_db_init;
 typedef BI_db_func BI_db_open;
 typedef BI_db_func BI_db_close;

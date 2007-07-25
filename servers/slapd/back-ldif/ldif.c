@@ -1105,7 +1105,7 @@ int ldif_back_entry_get(
 	return ( *ent == NULL ? 1 : 0 );
 }
 
-static int ldif_tool_entry_open(BackendDB * be, int mode) {
+static int ldif_tool_entry_open(BackendDB *be, int mode) {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
 	ni->li_tool_current = 0;
 	return 0;
@@ -1214,7 +1214,7 @@ static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
 }
 
 static int
-ldif_back_db_init( BackendDB *be )
+ldif_back_db_init( BackendDB *be, ConfigArgs *ca )
 {
 	struct ldif_info *ni;
 
@@ -1226,9 +1226,7 @@ ldif_back_db_init( BackendDB *be )
 }
 
 static int
-ldif_back_db_destroy(
-			   Backend	*be
-			   )
+ldif_back_db_destroy( Backend *be, ConfigArgs *ca )
 {
 	struct ldif_info *ni = be->be_private;
 
@@ -1239,9 +1237,7 @@ ldif_back_db_destroy(
 }
 
 static int
-ldif_back_db_open(
-			Backend	*be
-			)
+ldif_back_db_open( Backend *be, ConfigArgs *ca)
 {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
 	if( BER_BVISEMPTY(&ni->li_base_path)) {/* missing base path */

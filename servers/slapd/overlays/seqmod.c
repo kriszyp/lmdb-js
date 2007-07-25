@@ -22,6 +22,7 @@
 #ifdef SLAPD_OVER_SEQMOD
 
 #include "slap.h"
+#include "config.h"
 
 /* This overlay serializes concurrent attempts to modify a single entry */
 
@@ -139,7 +140,8 @@ seqmod_op_extended(
 
 static int
 seqmod_db_open(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
@@ -155,7 +157,8 @@ seqmod_db_open(
 
 static int
 seqmod_db_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;

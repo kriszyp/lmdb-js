@@ -479,7 +479,8 @@ valsort_modify( Operation *op, SlapReply *rs )
 
 static int
 valsort_db_open(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	return overlay_register_control( be, LDAP_CONTROL_VALSORT );
@@ -487,7 +488,8 @@ valsort_db_open(
 
 static int
 valsort_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;

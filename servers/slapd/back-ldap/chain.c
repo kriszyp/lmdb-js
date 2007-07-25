@@ -112,7 +112,7 @@ static int ldap_chain_db_init_common( BackendDB	*be );
 static int ldap_chain_db_init_one( BackendDB *be );
 static int ldap_chain_db_open_one( BackendDB *be );
 #define	ldap_chain_db_close_one(be)	(0)
-#define	ldap_chain_db_destroy_one(be)	(lback)->bi_db_destroy( (be) )
+#define	ldap_chain_db_destroy_one(be, rs)	(lback)->bi_db_destroy( (be), (rs) )
 
 typedef struct ldap_chain_cb_t {
 	ldap_chain_status_t	lb_status;
@@ -507,7 +507,7 @@ Document: RFC 4511
 			if ( rc != 0 ) {
 				lip->li_uri = NULL;
 				lip->li_bvuri = NULL;
-				(void)ldap_chain_db_destroy_one( op->o_bd );
+				(void)ldap_chain_db_destroy_one( op->o_bd, NULL);
 				goto cleanup;
 			}
 
@@ -546,7 +546,7 @@ cleanup:;
 			lip->li_uri = NULL;
 			lip->li_bvuri = NULL;
 			(void)ldap_chain_db_close_one( op->o_bd );
-			(void)ldap_chain_db_destroy_one( op->o_bd );
+			(void)ldap_chain_db_destroy_one( op->o_bd, NULL );
 		}
 
 further_cleanup:;
@@ -691,7 +691,7 @@ ldap_chain_search(
 			if ( rc != 0 ) {
 				lip->li_uri = NULL;
 				lip->li_bvuri = NULL;
-				(void)ldap_chain_db_destroy_one( op->o_bd );
+				(void)ldap_chain_db_destroy_one( op->o_bd, NULL );
 				goto cleanup;
 			}
 
@@ -733,7 +733,7 @@ cleanup:;
 			lip->li_uri = NULL;
 			lip->li_bvuri = NULL;
 			(void)ldap_chain_db_close_one( op->o_bd );
-			(void)ldap_chain_db_destroy_one( op->o_bd );
+			(void)ldap_chain_db_destroy_one( op->o_bd, NULL );
 		}
 		
 further_cleanup:;
@@ -1192,7 +1192,7 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 done:;
 	if ( rc != LDAP_SUCCESS ) {
-		(void)ldap_chain_db_destroy_one( ca->be );
+		(void)ldap_chain_db_destroy_one( ca->be, NULL );
 		ch_free( ca->be );
 		ca->be = NULL;
 	}
@@ -1506,7 +1506,8 @@ chain_cf_gen( ConfigArgs *c )
 
 static int
 ldap_chain_db_init(
-	BackendDB *be )
+	BackendDB *be,
+	ConfigArgs *ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_chain_t	*lc = NULL;
@@ -1637,7 +1638,7 @@ private_destroy:;
 
 				db.bd_info = lback;
 				db.be_private = (void *)lc->lc_cfg_li;
-				ldap_chain_db_destroy_one( &db );
+				ldap_chain_db_destroy_one( &db, NULL );
 				lc->lc_cfg_li = NULL;
 
 			} else {
@@ -1690,7 +1691,7 @@ ldap_chain_db_apply( void *datum, void *arg )
 
 	lca->be->be_private = (void *)li;
 
-	return lca->func( lca->be );
+	return lca->func( lca->be, NULL );
 }
 
 static int
@@ -1713,7 +1714,7 @@ ldap_chain_db_func(
 			db.bd_info = lback;
 			db.be_private = lc->lc_common_li;
 
-			rc = func( &db );
+			rc = func( &db, NULL );
 
 			if ( rc != 0 ) {
 				return rc;
@@ -1737,7 +1738,8 @@ ldap_chain_db_func(
 
 static int
 ldap_chain_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
@@ -1769,14 +1771,16 @@ ldap_chain_db_open(
 
 static int
 ldap_chain_db_close(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	return ldap_chain_db_func( be, db_close );
 }
 
 static int
 ldap_chain_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
@@ -1808,7 +1812,7 @@ ldap_chain_db_init_common(
 
 	be->bd_info = lback;
 	be->be_private = NULL;
-	rc = lback->bi_db_init( be );
+	rc = lback->bi_db_init( be, NULL );
 	if ( rc != 0 ) {
 		return rc;
 	}
@@ -1843,7 +1847,7 @@ ldap_chain_db_init_one(
 
 	be->bd_info = lback;
 	be->be_private = NULL;
-	t = lback->bi_db_init( be );
+	t = lback->bi_db_init( be, NULL );
 	if ( t != 0 ) {
 		return t;
 	}
@@ -1887,7 +1891,7 @@ ldap_chain_db_open_one(
 		}
 	}
 
-	return lback->bi_db_open( be );
+	return lback->bi_db_open( be, NULL );
 }
 
 typedef struct ldap_chain_conn_apply_t {

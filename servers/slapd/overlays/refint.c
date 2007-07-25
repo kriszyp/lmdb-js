@@ -245,7 +245,8 @@ refint_cf_gen(ConfigArgs *c)
 
 static int
 refint_db_init(
-	BackendDB	*be
+	BackendDB	*be,
+	ConfigArgs	*ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -259,7 +260,8 @@ refint_db_init(
 
 static int
 refint_db_destroy(
-	BackendDB	*be
+	BackendDB	*be,
+	ConfigArgs	*ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -280,7 +282,8 @@ refint_db_destroy(
 
 static int
 refint_open(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on	= (slap_overinst *)be->bd_info;
@@ -308,7 +311,8 @@ refint_open(
 
 static int
 refint_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on	= (slap_overinst *) be->bd_info;

@@ -23,6 +23,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "config.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
@@ -87,7 +88,8 @@ meta_back_initialize(
 
 int
 meta_back_db_init(
-	Backend		*be )
+	Backend		*be,
+	ConfigArgs	*ca)
 {
 	metainfo_t	*mi;
 	int		i;
@@ -128,7 +130,8 @@ meta_back_db_init(
 
 int
 meta_back_db_open(
-	Backend		*be )
+	Backend		*be,
+	ConfigArgs	*ca )
 {
 	metainfo_t	*mi = (metainfo_t *)be->be_private;
 
@@ -328,7 +331,8 @@ target_free(
 
 int
 meta_back_db_destroy(
-	Backend		*be )
+	Backend		*be,
+	ConfigArgs	*ca )
 {
 	metainfo_t	*mi;
 

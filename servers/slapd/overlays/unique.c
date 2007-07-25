@@ -740,7 +740,8 @@ unique_cf_uri( ConfigArgs *c )
 
 static int
 unique_db_init(
-	BackendDB	*be
+	BackendDB	*be,
+	ConfigArgs	*ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -755,7 +756,8 @@ unique_db_init(
 
 static int
 unique_db_destroy(
-	BackendDB	*be
+	BackendDB	*be,
+	ConfigArgs	*ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -779,7 +781,8 @@ unique_db_destroy(
 
 static int
 unique_open(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	Debug(LDAP_DEBUG_TRACE, "unique_open: overlay initialized\n", 0, 0, 0);
@@ -795,7 +798,8 @@ unique_open(
 
 static int
 unique_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on	= (slap_overinst *) be->bd_info;

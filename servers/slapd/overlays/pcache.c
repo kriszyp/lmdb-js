@@ -1937,7 +1937,7 @@ pc_cf_gen( ConfigArgs *c )
 			return( 1 );
 		}
 
-		if ( !backend_db_init( c->argv[1], &cm->db, -1 )) {
+		if ( !backend_db_init( c->argv[1], &cm->db, -1, NULL )) {
 			snprintf( c->msg, sizeof( c->msg ), "unknown backend type (arg #1)" );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->msg, 0 );
 			return( 1 );
@@ -2140,7 +2140,8 @@ pcache_db_config(
 
 static int
 pcache_db_init(
-	BackendDB *be )
+	BackendDB *be,
+	ConfigArgs *ca)
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm;
@@ -2182,7 +2183,8 @@ pcache_db_init(
 
 static int
 pcache_db_open(
-	BackendDB *be )
+	BackendDB *be,
+	ConfigArgs *ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager	*cm = on->on_bi.bi_private;
@@ -2230,7 +2232,7 @@ pcache_db_open(
 		SLAP_DBFLAGS( &cm->db ) &= ~SLAP_DBFLAG_MONITORING;
 	}
 
-	rc = backend_startup_one( &cm->db );
+	rc = backend_startup_one( &cm->db, NULL );
 
 	/* There is no runqueue in TOOL mode */
 	if ( slapMode & SLAP_SERVER_MODE ) {
@@ -2270,7 +2272,8 @@ pcache_free_qbase( void *v )
 
 static int
 pcache_db_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -2284,7 +2287,7 @@ pcache_db_close(
 	cm->db.be_acl = NULL;
 
 	if ( cm->db.bd_info->bi_db_close ) {
-		rc = cm->db.bd_info->bi_db_close( &cm->db );
+		rc = cm->db.bd_info->bi_db_close( &cm->db, NULL );
 	}
 	while ( (tm = qm->templates) != NULL ) {
 		CachedQuery *qc, *qn;
@@ -2311,7 +2314,8 @@ pcache_db_close(
 
 static int
 pcache_db_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;

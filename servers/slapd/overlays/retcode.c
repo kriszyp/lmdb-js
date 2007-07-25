@@ -31,6 +31,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "config.h"
 #include "lutil.h"
 #include "ldif.h"
 
@@ -725,7 +726,7 @@ retcode_response( Operation *op, SlapReply *rs )
 }
 
 static int
-retcode_db_init( BackendDB *be )
+retcode_db_init( BackendDB *be, ConfigArgs *ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	retcode_t	*rd;
@@ -1087,7 +1088,7 @@ retcode_db_config(
 }
 
 static int
-retcode_db_open( BackendDB *be )
+retcode_db_open( BackendDB *be, ConfigArgs *ca)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	retcode_t	*rd = (retcode_t *)on->on_bi.bi_private;
@@ -1211,7 +1212,7 @@ retcode_db_open( BackendDB *be )
 }
 
 static int
-retcode_db_destroy( BackendDB *be )
+retcode_db_destroy( BackendDB *be, ConfigArgs *ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	retcode_t	*rd = (retcode_t *)on->on_bi.bi_private;

@@ -29,6 +29,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "config.h"
 
 /* This overlay extends the Compare operation to detect members of a
  * dynamic group. It has no effect on any other operations. It must
@@ -133,7 +134,8 @@ static int dyngroup_config(
 
 static int
 dyngroup_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;

@@ -1517,7 +1517,8 @@ dds_cfgen( ConfigArgs *c )
 
 static int
 dds_db_init(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di;
@@ -1666,7 +1667,8 @@ done_search:;
 
 static int
 dds_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;
@@ -1731,7 +1733,8 @@ done:;
 
 static int
 dds_db_close(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;
@@ -1753,7 +1756,8 @@ dds_db_close(
 
 static int
 dds_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;

@@ -1478,7 +1478,8 @@ static slap_overinst accesslog;
 
 static int
 accesslog_db_init(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -1492,7 +1493,8 @@ accesslog_db_init(
 
 static int
 accesslog_db_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -1608,7 +1610,8 @@ accesslog_db_root(
 
 static int
 accesslog_db_open(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;

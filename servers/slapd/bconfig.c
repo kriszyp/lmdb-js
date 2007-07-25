@@ -1236,11 +1236,11 @@ config_generic(ConfigArgs *c) {
 			} else if ( !strcasecmp( c->argv[1], "frontend" )) {
 				c->be = frontendDB;
 			} else {
-				c->be = backend_db_init(c->argv[1], NULL, c->valx);
+				c->be = backend_db_init(c->argv[1], NULL, c->valx, c);
 				if ( !c->be ) {
-					snprintf( c->msg, sizeof( c->msg ), "<%s> failed init", c->argv[0] );
-					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-						c->log, c->msg, c->argv[1] );
+					if ( c->msg[0] == 0 )
+						snprintf( c->msg, sizeof( c->msg ), "<%s> failed init", c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n", c->log, c->msg, c->argv[1] );
 					return(1);
 				}
 			}
@@ -3085,7 +3085,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	if ( !cfb->cb_db.bd_info )
 		return 0;	/* FIXME: eventually this will be a fatal error */
 
-	if ( backend_db_init( "ldif", &cfb->cb_db, -1 ) == NULL )
+	if ( backend_db_init( "ldif", &cfb->cb_db, -1, NULL ) == NULL )
 		return 1;
 
 	cfb->cb_db.be_suffix = be->be_suffix;
@@ -3115,7 +3115,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	if ( config_add_vals( ct, &c ))
 		return 1;
 
-	if ( backend_startup_one( &cfb->cb_db ))
+	if ( backend_startup_one( &cfb->cb_db, NULL ))
 		return 1;
 
 	if ( readit ) {
@@ -3222,7 +3222,7 @@ read_config(const char *fname, const char *dir) {
 	int rc;
 
 	/* Setup the config backend */
-	be = backend_db_init( "config", NULL, 0 );
+	be = backend_db_init( "config", NULL, 0, NULL );
 	if ( !be )
 		return 1;
 
@@ -4152,18 +4152,20 @@ ok:
 	/* Newly added databases and overlays need to be started up */
 	if ( CONFIG_ONLINE_ADD( ca )) {
 		if ( colst[0]->co_type == Cft_Database ) {
-			rc = backend_startup_one( ca->be );
+			rc = backend_startup_one( ca->be, ca );
 
 		} else if ( colst[0]->co_type == Cft_Overlay ) {
 			if ( ca->bi->bi_db_open ) {
 				BackendInfo *bi_orig = ca->be->bd_info;
 				ca->be->bd_info = ca->bi;
-				rc = ca->bi->bi_db_open( ca->be );
+				rc = ca->bi->bi_db_open( ca->be, ca );
 				ca->be->bd_info = bi_orig;
 			}
 		}
 		if ( rc ) {
-			snprintf( ca->msg, sizeof( ca->msg ), "<%s> failed startup", ca->argv[0] );
+			if (ca->msg[0] = 0)
+				snprintf( ca->msg, sizeof( ca->msg ), "<%s> failed startup", ca->argv[0] );
+
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
 				ca->log, ca->msg, ca->argv[1] );
 			rc = LDAP_OTHER;
@@ -5388,7 +5390,7 @@ static const char *defacl[] = {
 };
 
 static int
-config_back_db_open( BackendDB *be )
+config_back_db_open( BackendDB *be, ConfigArgs *ca )
 {
 	CfBackInfo *cfb = be->be_private;
 	struct berval rdn;
@@ -5626,7 +5628,7 @@ cfb_free_entries( CfEntryInfo *ce )
 }
 
 static int
-config_back_db_close( BackendDB *be )
+config_back_db_close( BackendDB *be, ConfigArgs *ca )
 {
 	CfBackInfo *cfb = be->be_private;
 
@@ -5641,7 +5643,7 @@ config_back_db_close( BackendDB *be )
 }
 
 static int
-config_back_db_destroy( BackendDB *be )
+config_back_db_destroy( BackendDB *be, ConfigArgs *ca )
 {
 	CfBackInfo *cfb = be->be_private;
 
@@ -5666,7 +5668,7 @@ config_back_db_destroy( BackendDB *be )
 }
 
 static int
-config_back_db_init( BackendDB *be )
+config_back_db_init( BackendDB *be, ConfigArgs* ca )
 {
 	struct berval dn;
 	CfBackInfo *cfb;

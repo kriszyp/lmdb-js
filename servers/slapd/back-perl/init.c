@@ -16,6 +16,7 @@
  */
 
 #include "perl_back.h"
+#include "config.h"
 
 static void perl_back_xs_init LDAP_P((PERL_BACK_XS_INIT_PARAMS));
 EXT void boot_DynaLoader LDAP_P((PERL_BACK_BOOT_DYNALOADER_PARAMS));
@@ -85,7 +86,8 @@ perl_back_initialize(
 
 int
 perl_back_db_init(
-	BackendDB	*be
+	BackendDB	*be,
+	ConfigArgs	*ca
 )
 {
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );
@@ -100,7 +102,8 @@ perl_back_db_init(
 
 int
 perl_back_db_open(
-	BackendDB	*be
+	BackendDB	*be,
+	ConfigArgs	*ca
 )
 {
 	int count;

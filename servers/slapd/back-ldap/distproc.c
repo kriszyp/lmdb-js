@@ -237,7 +237,7 @@ static int ldap_distproc_db_init_common( BackendDB	*be );
 static int ldap_distproc_db_init_one( BackendDB *be );
 #define	ldap_distproc_db_open_one(be)		(lback)->bi_db_open( (be) )
 #define	ldap_distproc_db_close_one(be)		(0)
-#define	ldap_distproc_db_destroy_one(be)	(lback)->bi_db_destroy( (be) )
+#define	ldap_distproc_db_destroy_one(be, ca)	(lback)->bi_db_destroy( (be), (ca) )
 
 static int
 ldap_distproc_parse_ctrl(
@@ -447,7 +447,7 @@ distproc_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 done:;
 	if ( rc != LDAP_SUCCESS ) {
-		(void)ldap_distproc_db_destroy_one( ca->be );
+		(void)ldap_distproc_db_destroy_one( ca->be, NULL );
 		ch_free( ca->be );
 		ca->be = NULL;
 	}
@@ -567,7 +567,8 @@ distproc_cfgen( ConfigArgs *c )
 
 static int
 ldap_distproc_db_init(
-	BackendDB *be )
+	BackendDB *be,
+	ConfigArgs *ca )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_distproc_t	*lc = NULL;
@@ -659,7 +660,7 @@ private_destroy:;
 
 				db.bd_info = lback;
 				db.be_private = (void *)lc->lc_cfg_li;
-				ldap_distproc_db_destroy_one( &db );
+				ldap_distproc_db_destroy_one( &db, NULL );
 				lc->lc_cfg_li = NULL;
 
 			} else {
@@ -712,7 +713,7 @@ ldap_distproc_db_apply( void *datum, void *arg )
 
 	lca->be->be_private = (void *)li;
 
-	return lca->func( lca->be );
+	return lca->func( lca->be, NULL );
 }
 
 static int
@@ -735,7 +736,7 @@ ldap_distproc_db_func(
 			db.bd_info = lback;
 			db.be_private = lc->lc_common_li;
 
-			rc = func( &db );
+			rc = func( &db, NULL );
 
 			if ( rc != 0 ) {
 				return rc;
@@ -759,21 +760,24 @@ ldap_distproc_db_func(
 
 static int
 ldap_distproc_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	return ldap_distproc_db_func( be, db_open );
 }
 
 static int
 ldap_distproc_db_close(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	return ldap_distproc_db_func( be, db_close );
 }
 
 static int
 ldap_distproc_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigArgs	*ca )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_distproc_t	*lc = (ldap_distproc_t *)on->on_bi.bi_private;
@@ -804,7 +808,7 @@ ldap_distproc_db_init_common(
 
 	be->bd_info = lback;
 	be->be_private = NULL;
-	t = lback->bi_db_init( be );
+	t = lback->bi_db_init( be, NULL );
 	if ( t != 0 ) {
 		return t;
 	}
@@ -835,7 +839,7 @@ ldap_distproc_db_init_one(
 
 	be->bd_info = lback;
 	be->be_private = NULL;
-	t = lback->bi_db_init( be );
+	t = lback->bi_db_init( be, NULL );
 	if ( t != 0 ) {
 		return t;
 	}

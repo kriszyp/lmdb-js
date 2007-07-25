@@ -35,6 +35,7 @@
 
 #define SLAPD_TOOLS
 #include "slap.h"
+#include "config.h"
 
 typedef struct gluenode {
 	BackendDB *gn_be;
@@ -583,7 +584,7 @@ glue_open (
 					gi->gi_n[i].gn_be->bd_info );
 			/* Let backend.c take care of the rest of startup */
 			if ( !rc )
-				rc = backend_startup_one( gi->gi_n[i].gn_be );
+				rc = backend_startup_one( gi->gi_n[i].gn_be, NULL );
 			if ( rc ) break;
 		}
 		if ( !rc && !bsame && on->on_info->oi_orig->bi_open )
@@ -816,7 +817,8 @@ glue_tool_sync (
 
 static int
 glue_db_init(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
@@ -871,7 +873,8 @@ glue_db_init(
 
 static int
 glue_db_destroy (
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
@@ -883,7 +886,8 @@ glue_db_destroy (
 
 static int
 glue_db_close( 
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;

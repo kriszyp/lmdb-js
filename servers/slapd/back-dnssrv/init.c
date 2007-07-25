@@ -24,8 +24,11 @@
 #include <stdio.h>
 
 #include <ac/socket.h>
+#include <ac/param.h>
+#include <ac/string.h>
 
 #include "slap.h"
+#include "config.h"
 #include "proto-dnssrv.h"
 
 int
@@ -89,14 +92,16 @@ dnssrv_back_open(
 
 int
 dnssrv_back_db_init(
-    Backend	*be )
+	Backend	*be,
+	ConfigArgs *ca)
 {
 	return 0;
 }
 
 int
 dnssrv_back_db_destroy(
-    Backend	*be )
+	Backend	*be,
+	ConfigArgs *ca )
 {
 	return 0;
 }

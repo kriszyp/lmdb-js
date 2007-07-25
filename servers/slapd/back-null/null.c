@@ -24,6 +24,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "config.h"
 
 struct null_info {
 	int	ni_bind_allowed;
@@ -160,7 +161,7 @@ null_back_db_config(
 }
 
 static int
-null_back_db_init( BackendDB *be )
+null_back_db_init( BackendDB *be, ConfigArgs *ca )
 {
 	struct null_info *ni = ch_calloc( 1, sizeof(struct null_info) );
 	ni->ni_bind_allowed = 0;
@@ -170,7 +171,7 @@ null_back_db_init( BackendDB *be )
 }
 
 static int
-null_back_db_destroy( Backend *be )
+null_back_db_destroy( Backend *be, ConfigArgs *ca )
 {
 	free( be->be_private );
 	return 0;

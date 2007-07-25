@@ -16,7 +16,7 @@
  */
 
 #include "perl_back.h"
-
+#include "config.h"
 /**********************************************************
  *
  * Close
@@ -39,7 +39,8 @@ perl_back_close(
 
 int
 perl_back_db_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	free( be->be_private );

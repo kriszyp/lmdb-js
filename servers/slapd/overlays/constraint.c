@@ -343,8 +343,8 @@ constraint_modify( Operation *op, SlapReply *rs )
 
 static int
 constraint_close(
-    BackendDB *be
-    )
+	BackendDB *be,
+	ConfigArgs *ca )
 {
     slap_overinst *on = (slap_overinst *) be->bd_info;
     constraint *ap, *a2;

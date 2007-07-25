@@ -2512,7 +2512,8 @@ syncprov_db_otask(
  */
 static int
 syncprov_db_open(
-    BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst   *on = (slap_overinst *) be->bd_info;
@@ -2605,7 +2606,8 @@ out:
  */
 static int
 syncprov_db_close(
-    BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
     slap_overinst   *on = (slap_overinst *) be->bd_info;
@@ -2635,7 +2637,8 @@ syncprov_db_close(
 
 static int
 syncprov_db_init(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
@@ -2667,7 +2670,8 @@ syncprov_db_init(
 
 static int
 syncprov_db_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigArgs *ca
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
