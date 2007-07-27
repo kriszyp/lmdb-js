@@ -4,6 +4,12 @@
 
 H1: Troubleshooting
 
+If you're having trouble using OpenLDAP, get onto the
+OpenLDAP-Software mailing list. 
+
+Browse the list archives at {{URL:http://www.openldap.org/lists/}} 
+
+Chances are the problem has been solved and explained in detail many times before.
 
 H2: Checklist
 
@@ -21,6 +27,10 @@ the general LDAP forum for non-commercial discussions and information relating t
 
 
 H2: How to contact the OpenLDAP Project
+
+- Mailing Lists: {{URL:http://www.openldap.org/lists/}}
+- Project: {{URL: http://www.openldap.org/project/}}
+- Issue Tracking: {{URL:http://www.openldap.org/its/}}
 
 
 H2: How to present your problem
