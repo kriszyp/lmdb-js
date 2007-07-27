@@ -56,14 +56,99 @@ Discussion.
 
 H2: Indexes
 
-http://www.openldap.org/faq/data/cache/42.html
-http://www.connexitor.com/blog/pivot/entry.php?id=103#body
-http://groups.google.com/group/comp.mail.sendmail/browse_frm/thread/17c5c0b94ad1fc58/f870758659375718?lnk=gst&q=hyc&rnum=12&hl=en#f870758659375718
+H3: Understanding how a search works
+
+If you're searching on a filter that has been indexed, then the search reads 
+the index and pulls exactly the entries that are referenced by the index. 
+If the filter term has not been indexed, then the search must read every single
+ entry in the target scope and test to see if each entry matches the filter. 
+Obviously indexing can save a lot of work when it's used correctly.
+
+H3: What to index
+
+You should create indices to match the actual filter terms used in
+search queries. 
+
+>        index cn,sn,givenname,mail eq
+
+Each attribute index can be tuned further by selecting the set of index types to generate. For example, substring and approximate search for organizations (o) may make little sense (and isn't like done very often). And searching for {{userPassword}} likely makes no sense what so ever.
+
+General rule: don't go overboard with indexes. Unused indexes must be maintained and hence can only slow things down. 
+
+See {{slapd.conf}}(8) and {{slapdindex}}(8) for more information
+
+
+H3: Presense indexing
+
+If your client application uses presence filters and if the
+target attribute exists on the majority of entries in your target scope, then
+all of those entries are going to be read anyway, because they are valid
+members of the result set. In a subtree where 100% of the
+entries are going to contain the same attributes, the presence index does
+absolutely NOTHING to benefit the search, because 100% of the entries match
+that presence filter. 
+
+So the resource cost of generating the index is a
+complete waste of CPU time, disk, and memory. Don't do it unless you know
+that it will be used, and that the attribute in question occurs very
+infrequently in the target data. 
+
+Almost no applications use presence filters in their search queries. Presence
+indexing is pointless when the target attribute exists on the majority of
+entries in the database. In most LDAP deployments, presence indexing should
+not be done, it's just wasted overhead.
+
+See the {{Logging}} section below on what to watch our for if you have a frequently searched
+for attribute that is unindexed.
 
 
 H2: Logging
 
-http://www.openldap.org/faq/data/cache/80.html
+H3: What log level to use
+
+The default of {{loglevel 256}} is really the best bet. There's a corollary to 
+this when problems *do* arise, don't try to trace them using syslog. 
+Use the debug flag instead, and capture slapd's stderr output. syslog is too 
+slow for debug tracing, and it's inherently lossy - it will throw away messages when it
+can't keep up.
+
+Contrary to popular belief, {{loglevel 0}} is not ideal for production as you 
+won't be able to track when problems first arise.
+
+H3: What to watch out for
+
+The most common message you'll see that you should pay attention to is:
+
+>  "<= bdb_equality_candidates: (foo) index_param failed (18)"
+
+That means that some application tried to use an equality filter ({{foo=<somevalue>}}) 
+and attribute {{foo}} does not have an equality index. If you see a lot of these
+messages, you should add the index. If you see one every month or so, it may
+be acceptable to ignore it.
+
+The default syslog level is 256 which logs the basic parameters of each
+request; it usually produces 1-3 lines of output. On Solaris and systems that
+only provide synchronous syslog, you may want to turn it off completely, but
+usually you want to leave it enabled so that you'll be able to see index
+messages whenever they arise. On Linux you can configure syslogd to run
+asynchronously, in which case the performance hit for moderate syslog traffic
+pretty much disappears.
+
+H3: Improving throughput
+
+You can improve logging performance on some systems by configuring syslog not 
+to sync the file system with every write ({{man syslogd/syslog.conf}}). In Linux, 
+you can prepend the log file name with a "-" in {{syslog.conf}}. For example, 
+if you are using the default LOCAL4 logging you could try:
+
+>   # LDAP logs
+>   LOCAL4.*         -/var/log/ldap
+
+For syslog-ng, add or modify the following line in {{syslog-ng.conf}}:
+
+   options { sync(n); };
+
+where n is the number of lines which will be buffered before a write.
 
 
 H2: BDB/HDB Database Caching
@@ -126,15 +211,15 @@ you want enough cache to contain all the internal nodes in the database.
 will tell you how many internal pages are present in a database. You should 
 check this number for both dn2id and id2entry.
 
-Also note that id2entry always uses 16KB per "page", while dn2id uses whatever 
+Also note that {{id2entry}} always uses 16KB per "page", while {{dn2id}} uses whatever 
 the underlying filesystem uses, typically 4 or 8KB. To avoid thrashing the, 
 your cache must be at least as large as the number of internal pages in both 
-the dn2id and id2entry databases, plus some extra space to accomodate the actual 
+the {{dn2id}} and {{id2entry}} databases, plus some extra space to accomodate the actual 
 leaf data pages.
 
 For example, in my OpenLDAP 2.4 test database, I have an input LDIF file that's 
-about 360MB. With the back-hdb backend this creates a dn2id.bdb that's 68MB, 
-and an id2entry that's 800MB. db_stat tells me that dn2id uses 4KB pages, has 
+about 360MB. With the back-hdb backend this creates a {{dn2id.bdb}} that's 68MB, 
+and an {{id2entry}} that's 800MB. db_stat tells me that {{dn2id}} uses 4KB pages, has 
 433 internal pages, and 6378 leaf pages. The id2entry uses 16KB pages, has 52 
 internal pages, and 45912 leaf pages. In order to efficiently retrieve any 
 single entry in this database, the cache should be at least
