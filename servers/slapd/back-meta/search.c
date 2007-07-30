@@ -1997,8 +1997,12 @@ meta_send_entry(
 		attrp = &attr->a_next;
 next_attr:;
 	}
+
+	ldap_get_entry_controls( mc->mc_conns[target].msc_ld,
+		e, &rs->sr_ctrls );
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;
+	rs->sr_operational_attrs = NULL;
 	rs->sr_flags = 0;
 	rs->sr_err = LDAP_SUCCESS;
 	rc = send_search_entry( op, rs );
@@ -2009,7 +2013,10 @@ next_attr:;
 	}
 	rs->sr_entry = NULL;
 	rs->sr_attrs = NULL;
-	
+	if ( rs->sr_ctrls != NULL ) {
+		ldap_controls_free( rs->sr_ctrls );
+		rs->sr_ctrls = NULL;
+	}
 	if ( !BER_BVISNULL( &ent.e_name ) ) {
 		free( ent.e_name.bv_val );
 		BER_BVZERO( &ent.e_name );
