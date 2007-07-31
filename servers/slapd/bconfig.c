@@ -3106,6 +3106,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	argv[1] = (char *)dir;
 	argv[2] = NULL;
 	c.argv = argv;
+	c.msg[0] = '\0';
 	c.table = Cft_Database;
 
 	ct = config_find_keyword( c.be->be_cf_ocs->co_table, &c );
@@ -3115,7 +3116,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	if ( config_add_vals( ct, &c ))
 		return 1;
 
-	if ( backend_startup_one( &cfb->cb_db, NULL ))
+	if ( backend_startup_one( &cfb->cb_db, &c ))
 		return 1;
 
 	if ( readit ) {
@@ -4163,7 +4164,7 @@ ok:
 			}
 		}
 		if ( rc ) {
-			if (ca->msg[0] = 0)
+			if (ca->msg[0] == '\0')
 				snprintf( ca->msg, sizeof( ca->msg ), "<%s> failed startup", ca->argv[0] );
 
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
