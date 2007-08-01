@@ -2111,7 +2111,7 @@ monitor_back_db_init(
 		}
 
 		if (c) {
-			snprintf(((ConfigArgs*)c)->msg, sizeof(((ConfigArgs*)c)->msg),
+			snprintf(c->msg, sizeof(c->msg),
 					"\"monitor\" database serving namingContext \"%s\" "
 					"is hidden by \"%s\" database serving namingContext \"%s\".\n",
 					pdn.bv_val, type, be2->be_nsuffix[ 0 ].bv_val );
