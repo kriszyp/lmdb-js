@@ -46,11 +46,12 @@ sdf-src: \
 
 sdf-img: \
 	../images/LDAPlogo.gif \
-	config_local.gif \
-	config_ref.gif \
+	config_dit.png \
+	config_local.png \
+	config_ref.png \
 	config_repl.gif \
-	intro_dctree.gif \
-	intro_tree.gif \
+	intro_dctree.png \
+	intro_tree.png \
 
 guide.html: guide.sdf sdf-src sdf-img
 	sdf -2html guide.sdf

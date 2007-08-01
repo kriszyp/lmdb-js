@@ -41,7 +41,7 @@ carry global configuration options, schema definitions, backend and
 database definitions, and assorted other items. A sample config tree
 is shown in Figure 5.1.
 
-!import "config_dit.gif"; align="center"; title="Sample configuration tree"
+!import "config_dit.png"; align="center"; title="Sample configuration tree"
 FT[align="Center"] Figure 5.1: Sample configuration tree.
 
 Other objects may be part of the configuration but were omitted from

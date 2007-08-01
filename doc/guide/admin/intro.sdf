@@ -96,7 +96,7 @@ units, people, printers, documents, or just about anything else
 you can think of.  Figure 1.1 shows an example LDAP directory tree
 using traditional naming.
 
-!import "intro_tree.gif"; align="center"; \
+!import "intro_tree.png"; align="center"; \
 	title="LDAP directory tree (traditional naming)"
 FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
@@ -106,7 +106,7 @@ for directory services to be located using the {{DNS}}.
 Figure 1.2 shows an example LDAP directory tree using domain-based
 naming.
 
-!import "intro_dctree.gif"; align="center"; \
+!import "intro_dctree.png"; align="center"; \
 	title="LDAP directory tree (Internet naming)"
 FT[align="Center"] Figure 1.2: LDAP directory tree (Internet naming)
 
