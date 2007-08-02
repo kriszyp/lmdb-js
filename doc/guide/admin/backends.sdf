@@ -13,7 +13,7 @@ H3: Overview
 The {{bdb}} backend to {{slapd}}(8) is the recommended primary backend for a 
 normal {{slapd}} database.  It uses the Oracle Berkeley DB ({{TERM:BDB}}) 
 package to store data. It makes extensive use of indexing and caching 
-(see {{SECT:Tuning}}) to speed data access.
+(see the {{SECT:Tuning}} section) to speed data access.
 
 {{hdb}} is a variant of the {{bdb}} backend that uses a hierarchical database 
 layout which supports subtree renames. It is otherwise identical to the {{bdb}}
@@ -74,7 +74,7 @@ easy to use backend, and it is exploited by higher-level internal structures
 to provide a permanent storage.
 
 When using Dynamic configuration over LDAP via {{cn=config}}, this is where all
-configuration is stored if {{slapd}}(8) if started with {{-F}}. See {{slapd-config.5}](5)
+configuration is stored if {{slapd}}(8) if started with {{-F}}. See {{slapd-config.5}}5)
 for more information
 
 H3: back-ldif Configuration
