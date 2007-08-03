@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.38 Engineering
+	Fixed slapadd check for ';binary' when required (ITS#5071)
 	Fixed slapd AVA_Sort on multivalued RDNs (ITS#5057)
 	Fixed slapd integer/pointer types and overflow (ITS#5035)
 	Fixed slapd select_backend/ManageDSAit (ITS#4986)
