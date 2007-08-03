@@ -126,7 +126,7 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 	BerElement *ber = (BerElement *)&berbuf;
 	ber_tag_t tag;
 	ber_len_t len;
-	ber_int_t i, version = SLAP_X509_V1;
+	ber_int_t version = SLAP_X509_V1;
 
 	ber_init2( ber, in, LBER_USE_DER );
 	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
@@ -199,7 +199,7 @@ static int certificateListValidate( Syntax *syntax, struct berval *in )
 	BerElement *ber = (BerElement *)&berbuf;
 	ber_tag_t tag;
 	ber_len_t len;
-	ber_int_t i, version = SLAP_X509_V1;
+	ber_int_t version = SLAP_X509_V1;
 
 	ber_init2( ber, in, LBER_USE_DER );
 	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
