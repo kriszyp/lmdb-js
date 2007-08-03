@@ -100,6 +100,8 @@ str2entry( char *s )
 	return str2entry2( s, 1 );
 }
 
+#define bvcasematch(bv1, bv2)	(ber_bvstrcasecmp(bv1, bv2) == 0)
+
 Entry *
 str2entry2( char *s, int checkvals )
 {
@@ -180,9 +182,7 @@ str2entry2( char *s, int checkvals )
 			continue;
 		}
 
-		if ( type[i].bv_len == dn_bv.bv_len &&
-			strcasecmp( type[i].bv_val, dn_bv.bv_val ) == 0 ) {
-
+		if ( bvcasematch( &type[i], &dn_bv ) ) {
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
@@ -211,8 +211,6 @@ str2entry2( char *s, int checkvals )
 			(long) e->e_id, 0, 0 );
 		goto fail;
 	}
-
-#define bvcasematch(bv1, bv2)	( ((bv1)->bv_len == (bv2)->bv_len) && (strncasecmp((bv1)->bv_val, (bv2)->bv_val, (bv1)->bv_len) == 0) )
 
 	/* Make sure all attributes with multiple values are contiguous */
 	if ( checkvals ) {
