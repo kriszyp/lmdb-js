@@ -265,6 +265,16 @@ str2entry2( char *s, int checkvals )
 					goto fail;
 				}
 			}
+
+			/* require ';binary' when appropriate (ITS#5071) */
+			if ( slap_syntax_is_binary( ad->ad_type->sat_syntax ) && !slap_ad_is_binary( ad ) ) {
+				Debug( LDAP_DEBUG_ANY,
+					"str2entry: attributeType %s #%d: "
+					"needs ';binary' transfer as per syntax %s\n", 
+					ad->ad_cname.bv_val, 0,
+					ad->ad_type->sat_syntax->ssyn_oid );
+				goto fail;
+			}
 		}
 
 		if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
