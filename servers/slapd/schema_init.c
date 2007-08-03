@@ -119,8 +119,11 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 		tag = ber_get_int( ber, &version );
 		if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
 	}
-	tag = ber_get_int( ber, &i );	/* Serial */
+	/* NOTE: don't try to parse Serial, because it might be longer
+	 * than sizeof(ber_int_t); deferred to certificateExactNormalize() */
+	tag = ber_skip_tag( ber, &len );	/* Serial */
 	if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
 	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	ber_skip_data( ber, len );
@@ -2664,7 +2667,7 @@ serialNumberAndIssuerValidate(
 	if( rc ) return LDAP_INVALID_SYNTAX;
 
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerValidate: OKAY\n",
-		in->bv_val, 0, 0 );
+		0, 0, 0 );
 	return LDAP_SUCCESS;
 }
 
@@ -3262,7 +3265,7 @@ certificateExactNormalize(
 	ber_tag_t tag;
 	ber_len_t len;
 	ber_int_t i;
-	char serial[64];
+	char serialbuf[64], *serial = serialbuf;
 	ber_len_t seriallen;
 	struct berval issuer_dn = BER_BVNULL, bvdn;
 	unsigned char *p;
@@ -3284,9 +3287,53 @@ certificateExactNormalize(
 		tag = ber_skip_tag( ber, &len );
 		tag = ber_get_int( ber, &i );	/* version */
 	}
-	ber_get_int( ber, &i );				/* serial */
 
-	seriallen = snprintf( serial, sizeof(serial), "%d", i );
+	/* NOTE: move the test here from certificateNormalize,
+	 * so that we can validate certs with serial longer
+	 * than sizeof(ber_int_t) */
+	tag = ber_peek_tag( ber, &len );	/* serial */
+	if ( len > sizeof(ber_int_t) ) {
+		unsigned char *ptr;
+		
+		tag = ber_skip_tag( ber, &len );
+		ptr = (unsigned char *)ber->ber_ptr;
+		ber_skip_data( ber, len );
+
+		while ( ptr[0] == '\0' && len > 0 ) {
+			ptr++;
+			len--;
+		}
+
+#if defined(USE_MP_BIGNUM)
+		/* TODO */
+
+#elif defined(USE_MP_GMP)
+		/* TODO */
+		/* hint: use mpz_import(), mpz_get_str() */
+
+#elif defined(USE_MP_LONG_LONG)
+		if ( len <= sizeof( unsigned long long ) ) {
+			unsigned long long 	sn = 0;
+			int			i;
+
+			sn = ptr[0];
+
+			for ( i = 1; i < len; i++ ) {
+				sn <<= 8;
+				sn += ptr[i];
+			}
+
+			seriallen = snprintf( serialbuf, sizeof(serialbuf), "%llu", sn );
+		}
+#else
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+#endif
+
+	} else {
+		tag = ber_get_int( ber, &i );	/* serial */
+		seriallen = snprintf( serialbuf, sizeof(serialbuf), "%d", i );
+	}
 	tag = ber_skip_tag( ber, &len );	/* SignatureAlg */
 	ber_skip_data( ber, len );
 	tag = ber_peek_tag( ber, &len );	/* IssuerDN */
@@ -3326,7 +3373,8 @@ certificateExactNormalize(
 	rc = LDAP_SUCCESS;
 
 done:
-	if (issuer_dn.bv_val) ber_memfree(issuer_dn.bv_val);
+	if ( issuer_dn.bv_val ) ber_memfree( issuer_dn.bv_val );
+	if ( serial != serialbuf ) ber_memfree_x( serial, ctx );
 
 	return rc;
 }
