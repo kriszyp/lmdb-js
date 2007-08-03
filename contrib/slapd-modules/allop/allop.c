@@ -39,6 +39,7 @@ allop-URI	<ldapURI>
 #include <ac/string.h>
 
 #include "slap.h"
+#include "config.h"
 
 #define	SLAP_OVER_VERSION_REQUIRE(major,minor,patch) \
 	( \
@@ -140,7 +141,7 @@ allop_db_config(
 }
 
 static int
-allop_db_destroy( BackendDB *be )
+allop_db_destroy( BackendDB *be, ConfigReply *cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	allop_t		*ao = (allop_t *)on->on_bi.bi_private;
