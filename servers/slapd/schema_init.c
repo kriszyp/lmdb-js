@@ -98,6 +98,27 @@ sequenceValidate(
 	return LDAP_SUCCESS;
 }
 
+/* X.509 related stuff */
+
+enum {
+	SLAP_X509_V1		= 0,
+	SLAP_X509_V2		= 1,
+	SLAP_X509_V3		= 2
+};
+
+#define	SLAP_X509_OPTION	(LBER_CLASS_CONTEXT|LBER_CONSTRUCTED)
+
+enum {
+	SLAP_X509_OPT_C_VERSION		= SLAP_X509_OPTION + 0,
+	SLAP_X509_OPT_C_ISSUERUNIQUEID	= SLAP_X509_OPTION + 1,
+	SLAP_X509_OPT_C_SUBJECTUNIQUEID	= SLAP_X509_OPTION + 2,
+	SLAP_X509_OPT_C_EXTENSIONS	= SLAP_X509_OPTION + 3
+};
+
+enum {
+	SLAP_X509_OPT_CL_CRLEXTENSIONS	= SLAP_X509_OPTION + 0
+};
+
 /* X.509 certificate validation */
 static int certificateValidate( Syntax *syntax, struct berval *in )
 {
@@ -105,7 +126,7 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 	BerElement *ber = (BerElement *)&berbuf;
 	ber_tag_t tag;
 	ber_len_t len;
-	ber_int_t i, version = 0;
+	ber_int_t i, version = SLAP_X509_V1;
 
 	ber_init2( ber, in, LBER_USE_DER );
 	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
@@ -114,7 +135,7 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	tag = ber_peek_tag( ber, &len );
 	/* Optional version */
-	if ( tag == 0xa0 ) {
+	if ( tag == SLAP_X509_OPT_C_VERSION ) {
 		tag = ber_skip_tag( ber, &len );
 		tag = ber_get_int( ber, &version );
 		if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
@@ -140,18 +161,18 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	ber_skip_data( ber, len );
 	tag = ber_skip_tag( ber, &len );
-	if ( tag == 0xa1 ) {	/* issuerUniqueID */
-		if ( version < 1 ) return LDAP_INVALID_SYNTAX;
+	if ( tag == SLAP_X509_OPT_C_ISSUERUNIQUEID ) {	/* issuerUniqueID */
+		if ( version < SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
 		ber_skip_data( ber, len );
 		tag = ber_skip_tag( ber, &len );
 	}
-	if ( tag == 0xa2 ) {	/* subjectUniqueID */
-		if ( version < 1 ) return LDAP_INVALID_SYNTAX;
+	if ( tag == SLAP_X509_OPT_C_SUBJECTUNIQUEID ) {	/* subjectUniqueID */
+		if ( version < SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
 		ber_skip_data( ber, len );
 		tag = ber_skip_tag( ber, &len );
 	}
-	if ( tag == 0xa3 ) {	/* Extensions */
-		if ( version < 2 ) return LDAP_INVALID_SYNTAX;
+	if ( tag == SLAP_X509_OPT_C_EXTENSIONS ) {	/* Extensions */
+		if ( version < SLAP_X509_V3 ) return LDAP_INVALID_SYNTAX;
 		tag = ber_skip_tag( ber, &len );
 		if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 		ber_skip_data( ber, len );
@@ -169,6 +190,75 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
 	return LDAP_SUCCESS;
 }
+
+/* X.509 certificate list validation */
+#ifdef LDAP_DEVEL
+static int certificateListValidate( Syntax *syntax, struct berval *in )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t i, version = SLAP_X509_V1;
+
+	ber_init2( ber, in, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_peek_tag( ber, &len );
+	/* Optional version */
+	if ( tag == LBER_INTEGER ) {
+		tag = ber_get_int( ber, &version );
+		assert( tag == LBER_INTEGER );
+		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+	}
+	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Issuer DN */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* thisUpdate */
+	/* NOTE: in the certificates I'm playing with, the time is UTC.
+	 * maybe the tag is different from 0x17U for generalizedTime? */
+	if ( tag != 0x17U ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	/* Optional nextUpdate */
+	tag = ber_skip_tag( ber, &len );
+	if ( tag == 0x17U ) {
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* Optional revokedCertificates */
+	if ( tag == LBER_SEQUENCE ) {
+		/* Should NOT be empty */
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* Optional Extensions */
+	if ( tag == SLAP_X509_OPT_CL_CRLEXTENSIONS ) { /* ? */
+		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+		tag = ber_skip_tag( ber, &len );
+		if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* signatureAlgorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Signature */
+	if ( tag != LBER_BITSTRING ) return LDAP_INVALID_SYNTAX; 
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Must be at end now */
+	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
+	return LDAP_SUCCESS;
+}
+#else /* ! LDAP_DEVEL */
+#define certificateListValidate sequenceValidate
+#endif /* ! LDAP_DEVEL */
 
 int
 octetStringMatch(
@@ -3283,7 +3373,7 @@ certificateExactNormalize(
 	tag = ber_skip_tag( ber, &len );	/* Signed Sequence */
 	tag = ber_skip_tag( ber, &len );	/* Sequence */
 	tag = ber_peek_tag( ber, &len );	/* Optional version? */
-	if ( tag == 0xa0 ) {
+	if ( tag == SLAP_X509_OPT_C_VERSION ) {
 		tag = ber_skip_tag( ber, &len );
 		tag = ber_get_int( ber, &i );	/* version */
 	}
@@ -4093,7 +4183,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER,
-		NULL, sequenceValidate, NULL},
+		NULL, certificateListValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER,
