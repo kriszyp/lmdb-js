@@ -656,10 +656,10 @@ log_cf_gen(ConfigArgs *c)
 				value_add_one( &c->rvalue_vals, li->li_db->be_suffix );
 				value_add_one( &c->rvalue_nvals, li->li_db->be_nsuffix );
 			} else {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"accesslog: \"logdb <suffix>\" must be specified" );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->value_dn.bv_val );
+					c->log, c->cr_msg, c->value_dn.bv_val );
 				rc = 1;
 				break;
 			}
@@ -769,11 +769,11 @@ log_cf_gen(ConfigArgs *c)
 			if ( CONFIG_ONLINE_ADD( c )) {
 				li->li_db = select_backend( &c->value_ndn, 0 );
 				if ( !li->li_db ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> no matching backend found for suffix",
 						c->argv[0] );
 					Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-						c->log, c->msg, c->value_dn.bv_val );
+						c->log, c->cr_msg, c->value_dn.bv_val );
 					rc = 1;
 				}
 				ch_free( c->value_ndn.bv_val );
@@ -814,7 +814,7 @@ log_cf_gen(ConfigArgs *c)
 		case LOG_OLD:
 			li->li_oldf = str2filter( c->argv[1] );
 			if ( !li->li_oldf ) {
-				sprintf( c->msg, "bad filter!" );
+				sprintf( c->cr_msg, "bad filter!" );
 				rc = 1;
 			}
 			break;
@@ -831,10 +831,10 @@ log_cf_gen(ConfigArgs *c)
 					la->next = li->li_oldattrs;
 					li->li_oldattrs = la;
 				} else {
-					snprintf( c->msg, sizeof( c->msg ), "%s <%s>: %s",
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s <%s>: %s",
 						c->argv[0], c->argv[i], text );
 					Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-						"%s: %s\n", c->log, c->msg, 0 );
+						"%s: %s\n", c->log, c->cr_msg, 0 );
 					rc = ARG_BAD_CONF;
 					break;
 				}
@@ -1479,7 +1479,7 @@ static slap_overinst accesslog;
 static int
 accesslog_db_init(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -1494,7 +1494,7 @@ accesslog_db_init(
 static int
 accesslog_db_destroy(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -1611,7 +1611,7 @@ accesslog_db_root(
 static int
 accesslog_db_open(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;

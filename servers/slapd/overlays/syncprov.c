@@ -2370,9 +2370,9 @@ sp_cf_gen(ConfigArgs *c)
 		case SP_CHKPT:
 			if ( si->si_chkops || si->si_chktime ) {
 				struct berval bv;
-				bv.bv_len = sprintf( c->msg, "%d %d",
+				bv.bv_len = sprintf( c->cr_msg, "%d %d",
 					si->si_chkops, si->si_chktime );
-				bv.bv_val = c->msg;
+				bv.bv_val = c->cr_msg;
 				value_add_one( &c->rvalue_vals, &bv );
 			} else {
 				rc = 1;
@@ -2431,31 +2431,31 @@ sp_cf_gen(ConfigArgs *c)
 	switch ( c->type ) {
 	case SP_CHKPT:
 		if ( lutil_atoi( &si->si_chkops, c->argv[1] ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s unable to parse checkpoint ops # \"%s\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s unable to parse checkpoint ops # \"%s\"",
 				c->argv[0], c->argv[1] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		if ( si->si_chkops <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s invalid checkpoint ops # \"%d\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid checkpoint ops # \"%d\"",
 				c->argv[0], si->si_chkops );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		if ( lutil_atoi( &si->si_chktime, c->argv[2] ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s unable to parse checkpoint time \"%s\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s unable to parse checkpoint time \"%s\"",
 				c->argv[0], c->argv[1] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		if ( si->si_chktime <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s invalid checkpoint time \"%d\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid checkpoint time \"%d\"",
 				c->argv[0], si->si_chkops );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		si->si_chktime *= 60;
@@ -2465,10 +2465,10 @@ sp_cf_gen(ConfigArgs *c)
 		int size = c->value_int;
 
 		if ( size < 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s size %d is negative",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s size %d is negative",
 				c->argv[0], size );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		sl = si->si_logs;
@@ -2513,7 +2513,7 @@ syncprov_db_otask(
 static int
 syncprov_db_open(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst   *on = (slap_overinst *) be->bd_info;
@@ -2607,7 +2607,7 @@ out:
 static int
 syncprov_db_close(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
     slap_overinst   *on = (slap_overinst *) be->bd_info;
@@ -2638,7 +2638,7 @@ syncprov_db_close(
 static int
 syncprov_db_init(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
@@ -2671,7 +2671,7 @@ syncprov_db_init(
 static int
 syncprov_db_destroy(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;

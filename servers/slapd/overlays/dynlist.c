@@ -982,12 +982,12 @@ dl_cfgen( ConfigArgs *c )
 		case DL_ATTRSET:
 			for ( i = 0; dli; i++, dli = dli->dli_next ) {
 				struct berval	bv;
-				char		*ptr = c->msg;
+				char		*ptr = c->cr_msg;
 
 				assert( dli->dli_oc != NULL );
 				assert( dli->dli_ad != NULL );
 
-				ptr += snprintf( c->msg, sizeof( c->msg ),
+				ptr += snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					SLAP_X_ORDERED_FMT "%s %s", i,
 					dli->dli_oc->soc_cname.bv_val,
 					dli->dli_ad->ad_cname.bv_val );
@@ -998,7 +998,7 @@ dl_cfgen( ConfigArgs *c )
 					ptr = lutil_strcopy( ptr, dli->dli_member_ad->ad_cname.bv_val );
 				}
 
-				bv.bv_val = c->msg;
+				bv.bv_val = c->cr_msg;
 				bv.bv_len = ptr - bv.bv_val;
 				value_add_one( &c->rvalue_vals, &bv );
 			}
@@ -1076,46 +1076,46 @@ dl_cfgen( ConfigArgs *c )
 
 		oc = oc_find( c->argv[ 1 ] );
 		if ( oc == NULL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 				"unable to find ObjectClass \"%s\"",
 				c->argv[ 1 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
 		rc = slap_str2ad( c->argv[ 2 ], &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 				"unable to find AttributeDescription \"%s\"",
 				c->argv[ 2 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
 		if ( !is_at_subtype( ad->ad_type, slap_schema.si_ad_labeledURI->ad_type ) ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 				"AttributeDescription \"%s\" "
 				"must be a subtype of \"labeledURI\"",
 				c->argv[ 2 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
 		if ( c->argc == 4 ) {
 			rc = slap_str2ad( c->argv[ 3 ], &member_ad, &text );
 			if ( rc != LDAP_SUCCESS ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 					"unable to find AttributeDescription \"%s\"\n",
 					c->argv[ 3 ] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
+					c->log, c->cr_msg, 0 );
 				return 1;
 			}
 		}
@@ -1126,12 +1126,12 @@ dl_cfgen( ConfigArgs *c )
 			/* The same URL attribute / member attribute pair
 			 * cannot be repeated */
 			if ( (*dlip)->dli_ad == ad && (*dlip)->dli_member_ad == member_ad ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 					"URL attributeDescription \"%s\" already mapped.\n",
 					ad->ad_cname.bv_val );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
+					c->log, c->cr_msg, 0 );
 #if 0
 				/* make it a warning... */
 				return 1;
@@ -1146,12 +1146,12 @@ dl_cfgen( ConfigArgs *c )
 				i < c->valx; i++ )
 			{
 				if ( *dlip == NULL ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 						"invalid index {%d}\n",
 						c->valx );
 					Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-						c->log, c->msg, 0 );
+						c->log, c->cr_msg, 0 );
 					return 1;
 				}
 				dlip = &(*dlip)->dli_next;
@@ -1176,10 +1176,10 @@ dl_cfgen( ConfigArgs *c )
 		} break;
 
 	case DL_ATTRPAIR_COMPAT:
-		snprintf( c->msg, sizeof( c->msg ),
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"warning: \"attrpair\" only supported for limited "
 			"backward compatibility with overlay \"dyngroup\"" );
-		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		/* fallthru */
 
 	case DL_ATTRPAIR: {
@@ -1191,44 +1191,44 @@ dl_cfgen( ConfigArgs *c )
 
 		oc = oc_find( "groupOfURLs" );
 		if ( oc == NULL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
 				"unable to find default ObjectClass \"groupOfURLs\"" );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
 		rc = slap_str2ad( c->argv[ 1 ], &member_ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
 				"unable to find AttributeDescription \"%s\"",
 				c->argv[ 1 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
 		rc = slap_str2ad( c->argv[ 2 ], &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"dynlist-attrpair <member-ad> <URL-ad>\": "
 				"unable to find AttributeDescription \"%s\"\n",
 				c->argv[ 2 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
 		if ( !is_at_subtype( ad->ad_type, slap_schema.si_ad_labeledURI->ad_type ) ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"\"dynlist-attrset <oc> <URL-ad> [<member-ad>]\": "
 				"AttributeDescription \"%s\" "
 				"must be a subtype of \"labeledURI\"",
 				c->argv[ 2 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return 1;
 		}
 
@@ -1238,12 +1238,12 @@ dl_cfgen( ConfigArgs *c )
 			/* The same URL attribute / member attribute pair
 			 * cannot be repeated */
 			if ( (*dlip)->dli_ad == ad && (*dlip)->dli_member_ad == member_ad ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"\"dynlist-attrpair <member-ad> <URL-ad>\": "
 					"URL attributeDescription \"%s\" already mapped.\n",
 					ad->ad_cname.bv_val );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
+					c->log, c->cr_msg, 0 );
 #if 0
 				/* make it a warning... */
 				return 1;
@@ -1273,7 +1273,7 @@ dl_cfgen( ConfigArgs *c )
 static int
 dynlist_db_open(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	dynlist_info_t		*dli = (dynlist_info_t *)on->on_bi.bi_private;
@@ -1331,7 +1331,7 @@ dynlist_db_open(
 static int
 dynlist_db_destroy(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 

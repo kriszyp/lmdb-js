@@ -136,19 +136,19 @@ parse_cr(
 
 	cr = ldap_str2contentrule( line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !cr ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: %s before %s",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: %s before %s",
 			c->argv[0], ldap_scherr2str( code ), err );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		cr_usage();
 		return 1;
 	}
 
 	if ( cr->cr_oid == NULL ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: OID is missing",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: OID is missing",
 			c->argv[0] );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		cr_usage();
 		code = 1;
 		goto done;
@@ -156,10 +156,10 @@ parse_cr(
 
 	code = cr_add( cr, 1, scr, &err );
 	if ( code ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: %s: \"%s\"",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: %s: \"%s\"",
 			c->argv[0], scherr2str(code), err);
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		code = 1;
 		goto done;
 	}
@@ -188,19 +188,19 @@ parse_oc(
 
 	oc = ldap_str2objectclass(line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !oc ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: %s before %s",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: %s before %s",
 			c->argv[0], ldap_scherr2str( code ), err );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		oc_usage();
 		return 1;
 	}
 
 	if ( oc->oc_oid == NULL ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: OID is missing",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: OID is missing",
 			c->argv[0] );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		oc_usage();
 		code = 1;
 		goto done;
@@ -208,10 +208,10 @@ parse_oc(
 
 	code = oc_add( oc, 1, soc, prev, &err );
 	if ( code ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: %s: \"%s\"",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: %s: \"%s\"",
 			c->argv[0], scherr2str(code), err);
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		code = 1;
 		goto done;
 	}
@@ -283,19 +283,19 @@ parse_at(
 
 	at = ldap_str2attributetype( line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !at ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: %s before %s",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: %s before %s",
 			c->argv[0], ldap_scherr2str(code), err );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		at_usage();
 		return 1;
 	}
 
 	if ( at->at_oid == NULL ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: OID is missing",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: OID is missing",
 			c->argv[0] );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		at_usage();
 		code = 1;
 		goto done;
@@ -303,20 +303,20 @@ parse_at(
 
 	/* operational attributes should be defined internally */
 	if ( at->at_usage ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: \"%s\" is operational",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: \"%s\" is operational",
 			c->argv[0], at->at_oid );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		code = 1;
 		goto done;
 	}
 
 	code = at_add( at, 1, sat, prev, &err);
 	if ( code ) {
-		snprintf( c->msg, sizeof( c->msg ), "%s: %s: \"%s\"",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: %s: \"%s\"",
 			c->argv[0], scherr2str(code), err);
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		code = 1;
 		goto done;
 	}

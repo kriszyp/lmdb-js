@@ -161,7 +161,7 @@ null_back_db_config(
 }
 
 static int
-null_back_db_init( BackendDB *be, ConfigArgs *ca )
+null_back_db_init( BackendDB *be, ConfigReply *cr )
 {
 	struct null_info *ni = ch_calloc( 1, sizeof(struct null_info) );
 	ni->ni_bind_allowed = 0;
@@ -171,7 +171,7 @@ null_back_db_init( BackendDB *be, ConfigArgs *ca )
 }
 
 static int
-null_back_db_destroy( Backend *be, ConfigArgs *ca )
+null_back_db_destroy( Backend *be, ConfigReply *cr )
 {
 	free( be->be_private );
 	return 0;

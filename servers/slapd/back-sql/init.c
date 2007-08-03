@@ -95,7 +95,7 @@ backsql_destroy(
 int
 backsql_db_init(
 	BackendDB 	*bd,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	backsql_info	*bi;
 	int		rc = 0;
@@ -120,7 +120,7 @@ backsql_db_init(
 int
 backsql_db_destroy(
 	BackendDB 	*bd,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	backsql_info	*bi = (backsql_info*)bd->be_private;
  
@@ -221,7 +221,7 @@ backsql_db_destroy(
 int
 backsql_db_open(
 	BackendDB 	*bd,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	backsql_info 	*bi = (backsql_info*)bd->be_private;
 	SQLHDBC 	dbh = SQL_NULL_HDBC;
@@ -570,7 +570,7 @@ backsql_db_open(
 int
 backsql_db_close(
 	BackendDB	*bd,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	backsql_info 	*bi = (backsql_info*)bd->be_private;
 

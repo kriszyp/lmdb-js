@@ -40,7 +40,7 @@ perl_back_close(
 int
 perl_back_db_destroy(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	free( be->be_private );

@@ -1217,9 +1217,9 @@ ldap_chain_cfadd_apply( void *datum, void *arg )
 	struct berval			bv;
 
 	/* FIXME: should not hardcode "olcDatabase" here */
-	bv.bv_len = snprintf( lca->ca->msg, sizeof( lca->ca->msg ),
+	bv.bv_len = snprintf( lca->ca->cr_msg, sizeof( lca->ca->cr_msg ),
 		"olcDatabase={%d}%s", lca->count, lback->bi_type );
-	bv.bv_val = lca->ca->msg;
+	bv.bv_val = lca->ca->cr_msg;
 
 	lca->ca->be->be_private = (void *)li;
 	config_build_entry( lca->op, lca->rs, lca->p->e_private, lca->ca,
@@ -1479,11 +1479,11 @@ chain_cf_gen( ConfigArgs *c )
 
 	case CH_MAX_DEPTH:
 		if ( c->value_int < 0 ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"<%s> invalid max referral depth %d",
 				c->argv[0], c->value_int );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			rc = 1;
 			break;
 		}
@@ -1507,7 +1507,7 @@ chain_cf_gen( ConfigArgs *c )
 static int
 ldap_chain_db_init(
 	BackendDB *be,
-	ConfigArgs *ca )
+	ConfigReply *cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_chain_t	*lc = NULL;
@@ -1739,7 +1739,7 @@ ldap_chain_db_func(
 static int
 ldap_chain_db_open(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
@@ -1772,7 +1772,7 @@ ldap_chain_db_open(
 static int
 ldap_chain_db_close(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	return ldap_chain_db_func( be, db_close );
 }
@@ -1780,7 +1780,7 @@ ldap_chain_db_close(
 static int
 ldap_chain_db_destroy(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;

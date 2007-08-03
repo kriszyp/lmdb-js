@@ -168,10 +168,10 @@ constraint_cf_gen( ConfigArgs *c )
             switch (c->type) {
                 case CONSTRAINT_ATTRIBUTE:
                     if ( slap_str2ad( c->argv[1], &ap.ap, &text ) ) {
-						snprintf( c->msg, sizeof( c->msg ),
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
 							"%s <%s>: %s\n", c->argv[0], c->argv[1], text );
                         Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-                               "%s: %s\n", c->log, c->msg, 0 );
+                               "%s: %s\n", c->log, c->cr_msg, 0 );
                         return( ARG_BAD_CONF );
                     }
 
@@ -185,21 +185,21 @@ constraint_cf_gen( ConfigArgs *c )
                             
                             regerror( err, ap.re, errmsg, sizeof(errmsg) );
                             ch_free(ap.re);
-							snprintf( c->msg, sizeof( c->msg ),
+							snprintf( c->cr_msg, sizeof( c->cr_msg ),
                                    "%s %s: Illegal regular expression \"%s\": Error %s",
                                    c->argv[0], c->argv[1], c->argv[3], errmsg);
                             Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-									"%s: %s\n", c->log, c->msg, 0 );
+									"%s: %s\n", c->log, c->cr_msg, 0 );
                             ap.re = NULL;
                             return( ARG_BAD_CONF );
                         }
                         ap.re_str = ch_strdup( c->argv[3] );
                     } else {
-						snprintf( c->msg, sizeof( c->msg ),
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
                                "%s %s: Unknown constraint type: %s",
                                c->argv[0], c->argv[1], c->argv[2] );
                         Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-                               "%s: %s\n", c->log, c->msg, 0 );
+                               "%s: %s\n", c->log, c->cr_msg, 0 );
                         return ( ARG_BAD_CONF );
                     }
                     
@@ -344,7 +344,7 @@ constraint_modify( Operation *op, SlapReply *rs )
 static int
 constraint_close(
 	BackendDB *be,
-	ConfigArgs *ca )
+	ConfigReply *cr )
 {
     slap_overinst *on = (slap_overinst *) be->bd_info;
     constraint *ap, *a2;

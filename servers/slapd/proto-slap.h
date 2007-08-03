@@ -32,6 +32,7 @@
 LDAP_BEGIN_DECL
 
 struct config_args_s;	/* config.h */
+struct config_reply_s;	/* config.h */
 
 /*
  * aci.c
@@ -320,7 +321,7 @@ LDAP_SLAPD_F (int) backend_init LDAP_P((void));
 LDAP_SLAPD_F (int) backend_add LDAP_P((BackendInfo *aBackendInfo));
 LDAP_SLAPD_F (int) backend_num LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_startup LDAP_P((Backend *be));
-LDAP_SLAPD_F (int) backend_startup_one LDAP_P((Backend *be, struct config_args_s *ca));
+LDAP_SLAPD_F (int) backend_startup_one LDAP_P((Backend *be, struct config_reply_s *cr));
 LDAP_SLAPD_F (int) backend_sync LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_shutdown LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_destroy LDAP_P((void));
@@ -329,7 +330,7 @@ LDAP_SLAPD_F (void) backend_destroy_one LDAP_P((BackendDB *bd, int dynamic));
 
 LDAP_SLAPD_F (BackendInfo *) backend_info LDAP_P(( const char *type ));
 LDAP_SLAPD_F (BackendDB *) backend_db_init LDAP_P(( const char *type,
-	BackendDB *be, int idx, struct config_args_s *ca ));
+	BackendDB *be, int idx, struct config_reply_s *cr ));
 LDAP_SLAPD_F (void) backend_db_insert LDAP_P((BackendDB *bd, int idx));
 LDAP_SLAPD_F (void) backend_db_move LDAP_P((BackendDB *bd, int idx));
 

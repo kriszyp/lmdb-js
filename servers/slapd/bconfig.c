@@ -1220,9 +1220,9 @@ config_generic(ConfigArgs *c) {
 	switch(c->type) {
 		case CFG_BACKEND:
 			if(!(c->bi = backend_info(c->argv[1]))) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> failed init", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> failed init", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-					c->log, c->msg, c->argv[1] );
+					c->log, c->cr_msg, c->argv[1] );
 				return(1);
 			}
 			break;
@@ -1236,11 +1236,11 @@ config_generic(ConfigArgs *c) {
 			} else if ( !strcasecmp( c->argv[1], "frontend" )) {
 				c->be = frontendDB;
 			} else {
-				c->be = backend_db_init(c->argv[1], NULL, c->valx, c);
+				c->be = backend_db_init(c->argv[1], NULL, c->valx, &c->reply);
 				if ( !c->be ) {
-					if ( c->msg[0] == 0 )
-						snprintf( c->msg, sizeof( c->msg ), "<%s> failed init", c->argv[0] );
-					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n", c->log, c->msg, c->argv[1] );
+					if ( c->cr_msg[0] == 0 )
+						snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> failed init", c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n", c->log, c->cr_msg, c->argv[1] );
 					return(1);
 				}
 			}
@@ -1252,19 +1252,19 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_THREADS:
 			if ( c->value_int < 2 ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"threads=%d smaller than minimum value 2",
 					c->value_int );
 				Debug(LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
+					c->log, c->cr_msg, 0 );
 				return 1;
 
 			} else if ( c->value_int > 2 * SLAP_MAX_WORKER_THREADS ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"warning, threads=%d larger than twice the default (2*%d=%d); YMMV",
 					c->value_int, SLAP_MAX_WORKER_THREADS, 2 * SLAP_MAX_WORKER_THREADS );
 				Debug(LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->msg, 0 );
+					c->log, c->cr_msg, 0 );
 			}
 			if ( slapMode & SLAP_SERVER_MODE )
 				ldap_pvt_thread_pool_maxthreads(&connection_pool, c->value_int);
@@ -1298,9 +1298,9 @@ config_generic(ConfigArgs *c) {
 		case CFG_AZPOLICY:
 			ch_free(c->value_string);
 			if (slap_sasl_setpolicy( c->argv[1] )) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse value", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse value", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->argv[1] );
+					c->log, c->cr_msg, c->argv[1] );
 				return(1);
 			}
 			break;
@@ -1315,9 +1315,9 @@ config_generic(ConfigArgs *c) {
 			{
 			char *txt = slap_sasl_secprops( c->argv[1] );
 			if ( txt ) {
-				snprintf( c->msg, sizeof(c->msg), "<%s> %s",
+				snprintf( c->cr_msg, sizeof(c->cr_msg), "<%s> %s",
 					c->argv[0], txt );
-				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg, 0 );
 				return(1);
 			}
 			break;
@@ -1439,9 +1439,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_ROOTDSE:
 			if(root_dse_read_file(c->argv[1])) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> could not read file", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> could not read file", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-					c->log, c->msg, c->argv[1] );
+					c->log, c->cr_msg, c->argv[1] );
 				return(1);
 			}
 			{
@@ -1459,10 +1459,10 @@ config_generic(ConfigArgs *c) {
 				LDAPURLDesc *lud;
 				int num = atoi( c->argv[1] );
 				if ( num < 0 || num > SLAP_SYNC_SID_MAX ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> illegal server ID", c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-						c->log, c->msg, c->argv[1] );
+						c->log, c->cr_msg, c->argv[1] );
 					return 1;
 				}
 				/* only one value allowed if no URL is given */
@@ -1470,18 +1470,18 @@ config_generic(ConfigArgs *c) {
 					int len;
 
 					if ( sid_list && BER_BVISEMPTY( &sid_list->si_url )) {
-						snprintf( c->msg, sizeof( c->msg ),
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
 							"<%s> only one server ID allowed now", c->argv[0] );
 						Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-							c->log, c->msg, c->argv[1] );
+							c->log, c->cr_msg, c->argv[1] );
 						return 1;
 					}
 
 					if ( ldap_url_parse( c->argv[2], &lud )) {
-						snprintf( c->msg, sizeof( c->msg ),
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
 							"<%s> invalid URL", c->argv[0] );
 						Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-							c->log, c->msg, c->argv[2] );
+							c->log, c->cr_msg, c->argv[2] );
 						return 1;
 					}
 					len = strlen( c->argv[2] );
@@ -1491,10 +1491,10 @@ config_generic(ConfigArgs *c) {
 					strcpy( si->si_url.bv_val, c->argv[2] );
 				} else {
 					if ( sid_list ) {
-						snprintf( c->msg, sizeof( c->msg ),
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
 							"<%s> unqualified server ID not allowed now", c->argv[0] );
 						Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-							c->log, c->msg, c->argv[1] );
+							c->log, c->cr_msg, c->argv[1] );
 						return 1;
 					}
 					si = ch_malloc( sizeof(ServerID) );
@@ -1569,10 +1569,10 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_LASTMOD:
 			if(SLAP_NOLASTMODCMD(c->be)) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> not available for %s database",
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> not available for %s database",
 					c->argv[0], c->be->bd_info->bi_type );
 				Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-					c->log, c->msg, 0 );
+					c->log, c->cr_msg, 0 );
 				return(1);
 			}
 			if(c->value_int)
@@ -1583,10 +1583,10 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_MIRRORMODE:
 			if(!SLAP_SHADOW(c->be)) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> database is not a shadow",
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> database is not a shadow",
 					c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-					c->log, c->msg, 0 );
+					c->log, c->cr_msg, 0 );
 				return(1);
 			}
 			if(c->value_int)
@@ -1611,9 +1611,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_SSTR_IF_MAX:
 			if (c->value_int < index_substr_if_minlen) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid value", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s (%d)\n",
-					c->log, c->msg, c->value_int );
+					c->log, c->cr_msg, c->value_int );
 				return(1);
 			}
 			index_substr_if_maxlen = c->value_int;
@@ -1621,9 +1621,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_SSTR_IF_MIN:
 			if (c->value_int > index_substr_if_maxlen) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> invalid value", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid value", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s (%d)\n",
-					c->log, c->msg, c->value_int );
+					c->log, c->cr_msg, c->value_int );
 				return(1);
 			}
 			index_substr_if_minlen = c->value_int;
@@ -1638,10 +1638,10 @@ config_generic(ConfigArgs *c) {
 				modcur = c->private;
 				/* This should never fail */
 				if ( module_path( modcur->mp_path.bv_val )) {
-					snprintf( c->msg, sizeof( c->msg ), "<%s> module path no longer valid",
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> module path no longer valid",
 						c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n",
-						c->log, c->msg, modcur->mp_path.bv_val );
+						c->log, c->cr_msg, modcur->mp_path.bv_val );
 					return(1);
 				}
 			}
@@ -1829,16 +1829,16 @@ config_passwd_hash(ConfigArgs *c) {
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!lutil_passwd_scheme(c->argv[i])) {
-			snprintf( c->msg, sizeof( c->msg ), "<%s> scheme not available", c->argv[0] );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> scheme not available", c->argv[0] );
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n",
-				c->log, c->msg, c->argv[i]);
+				c->log, c->cr_msg, c->argv[i]);
 		} else {
 			ldap_charray_add(&default_passwd_hash, c->argv[i]);
 		}
 		if(!default_passwd_hash) {
-			snprintf( c->msg, sizeof( c->msg ), "<%s> no valid hashes found", c->argv[0] );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> no valid hashes found", c->argv[0] );
 			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			return(1);
 		}
 	}
@@ -1898,9 +1898,9 @@ config_sizelimit(ConfigArgs *c) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
 			rc = limits_parse_one(c->argv[i], lim);
 			if ( rc ) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse value", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse value", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->argv[i]);
+					c->log, c->cr_msg, c->argv[i]);
 				return(1);
 			}
 		} else {
@@ -1908,9 +1908,9 @@ config_sizelimit(ConfigArgs *c) {
 				lim->lms_s_soft = -1;
 			} else {
 				if ( lutil_atoix( &lim->lms_s_soft, c->argv[i], 0 ) != 0 ) {
-					snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse limit", c->argv[0]);
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse limit", c->argv[0]);
 					Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-						c->log, c->msg, c->argv[i]);
+						c->log, c->cr_msg, c->argv[i]);
 					return(1);
 				}
 			}
@@ -1945,9 +1945,9 @@ config_timelimit(ConfigArgs *c) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
 			rc = limits_parse_one(c->argv[i], lim);
 			if ( rc ) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse value", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse value", c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->argv[i]);
+					c->log, c->cr_msg, c->argv[i]);
 				return(1);
 			}
 		} else {
@@ -1955,9 +1955,9 @@ config_timelimit(ConfigArgs *c) {
 				lim->lms_t_soft = -1;
 			} else {
 				if ( lutil_atoix( &lim->lms_t_soft, c->argv[i], 0 ) != 0 ) {
-					snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse limit", c->argv[0]);
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse limit", c->argv[0]);
 					Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-						c->log, c->msg, c->argv[i]);
+						c->log, c->cr_msg, c->argv[i]);
 					return(1);
 				}
 			}
@@ -2105,10 +2105,10 @@ config_suffix(ConfigArgs *c)
 
 #ifdef SLAPD_MONITOR_DN
 	if(!strcasecmp(c->argv[1], SLAPD_MONITOR_DN)) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> DN is reserved for monitoring slapd",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> DN is reserved for monitoring slapd",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n",
-			c->log, c->msg, SLAPD_MONITOR_DN);
+			c->log, c->cr_msg, SLAPD_MONITOR_DN);
 		return(1);
 	}
 #endif
@@ -2139,11 +2139,11 @@ config_suffix(ConfigArgs *c)
 				type = oi->oi_orig->bi_type;
 			}
 
-			snprintf( c->msg, sizeof( c->msg ), "<%s> namingContext \"%s\" "
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> namingContext \"%s\" "
 				"already served by a preceding %s database",
 				c->argv[0], pdn.bv_val, type );
 			Debug(LDAP_DEBUG_ANY, "%s: %s serving namingContext \"%s\"\n",
-				c->log, c->msg, tbe->be_suffix[0].bv_val);
+				c->log, c->cr_msg, tbe->be_suffix[0].bv_val);
 			free(pdn.bv_val);
 			free(ndn.bv_val);
 			return(1);
@@ -2205,10 +2205,10 @@ config_rootpw(ConfigArgs *c) {
 
 	tbe = select_backend(&c->be->be_rootndn, 0);
 	if(tbe != c->be) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> can only be set when rootdn is under suffix",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> can only be set when rootdn is under suffix",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-			c->log, c->msg, 0);
+			c->log, c->cr_msg, 0);
 		return(1);
 	}
 	if ( !BER_BVISNULL( &c->be->be_rootpw ))
@@ -2255,9 +2255,9 @@ config_restrict(ConfigArgs *c) {
 	}
 	i = verbs_to_mask( c->argc, c->argv, restrictable_ops, &restrictops );
 	if ( i ) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> unknown operation", c->argv[0] );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unknown operation", c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-			c->log, c->msg, c->argv[i]);
+			c->log, c->cr_msg, c->argv[i]);
 		return(1);
 	}
 	if ( restrictops & SLAP_RESTRICT_OP_EXTENDED )
@@ -2291,9 +2291,9 @@ config_allows(ConfigArgs *c) {
 	}
 	i = verbs_to_mask(c->argc, c->argv, allowable_ops, &allows);
 	if ( i ) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> unknown feature", c->argv[0] );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unknown feature", c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-			c->log, c->msg, c->argv[i]);
+			c->log, c->cr_msg, c->argv[i]);
 		return(1);
 	}
 	global_allows |= allows;
@@ -2324,9 +2324,9 @@ config_disallows(ConfigArgs *c) {
 	}
 	i = verbs_to_mask(c->argc, c->argv, disallowable_ops, &disallows);
 	if ( i ) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> unknown feature", c->argv[0] );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unknown feature", c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-			c->log, c->msg, c->argv[i]);
+			c->log, c->cr_msg, c->argv[i]);
 		return(1);
 	}
 	global_disallows |= disallows;
@@ -2367,13 +2367,13 @@ config_requires(ConfigArgs *c) {
 	i = verbs_to_mask(argc, argv, requires_ops, &requires);
 	if ( i ) {
 		if (strcasecmp( c->argv[ i ], "none" ) == 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "<%s> \"none\" (#%d) must be listed first", c->argv[0], i - 1 );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> \"none\" (#%d) must be listed first", c->argv[0], i - 1 );
 			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-				c->log, c->msg, 0);
+				c->log, c->cr_msg, 0);
 		} else {
-			snprintf( c->msg, sizeof( c->msg ), "<%s> unknown feature #%d", c->argv[0], i - 1 );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unknown feature #%d", c->argv[0], i - 1 );
 			Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-				c->log, c->msg, c->argv[i]);
+				c->log, c->cr_msg, c->argv[i]);
 		}
 		return(1);
 	}
@@ -2584,16 +2584,16 @@ config_loglevel(ConfigArgs *c) {
 
 		if ( isdigit((unsigned char)c->argv[i][0]) || c->argv[i][0] == '-' ) {
 			if( lutil_atoi( &level, c->argv[i] ) != 0 ) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse level", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse level", c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->argv[i]);
+					c->log, c->cr_msg, c->argv[i]);
 				return( 1 );
 			}
 		} else {
 			if ( str2loglevel( c->argv[i], &level ) ) {
-				snprintf( c->msg, sizeof( c->msg ), "<%s> unknown level", c->argv[0] );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unknown level", c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-					c->log, c->msg, c->argv[i]);
+					c->log, c->cr_msg, c->argv[i]);
 				return( 1 );
 			}
 		}
@@ -2632,9 +2632,9 @@ config_referral(ConfigArgs *c) {
 		return 0;
 	}
 	if(validate_global_referral(c->argv[1])) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> invalid URL", c->argv[0] );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid URL", c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n",
-			c->log, c->msg, c->argv[1]);
+			c->log, c->cr_msg, c->argv[1]);
 		return(1);
 	}
 
@@ -2702,16 +2702,16 @@ config_security(ConfigArgs *c) {
 			}
 		}
 		if ( !tgt ) {
-			snprintf( c->msg, sizeof( c->msg ), "<%s> unknown factor", c->argv[0] );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unknown factor", c->argv[0] );
 			Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
-				c->log, c->msg, c->argv[i]);
+				c->log, c->cr_msg, c->argv[i]);
 			return(1);
 		}
 
 		if ( lutil_atou( tgt, src ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "<%s> unable to parse factor", c->argv[0] );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unable to parse factor", c->argv[0] );
 			Debug(LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
-				c->log, c->msg, c->argv[i]);
+				c->log, c->cr_msg, c->argv[i]);
 			return(1);
 		}
 	}
@@ -2750,9 +2750,9 @@ config_updatedn(ConfigArgs *c) {
 		return 0;
 	}
 	if(SLAP_SHADOW(c->be)) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> database already shadowed", c->argv[0] );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> database already shadowed", c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-			c->log, c->msg, 0);
+			c->log, c->cr_msg, 0);
 		return(1);
 	}
 
@@ -2812,17 +2812,17 @@ config_updateref(ConfigArgs *c) {
 		return 0;
 	}
 	if(!SLAP_SHADOW(c->be) && !c->be->be_syncinfo) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> must appear after syncrepl or updatedn",
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> must appear after syncrepl or updatedn",
 			c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-			c->log, c->msg, 0);
+			c->log, c->cr_msg, 0);
 		return(1);
 	}
 
 	if(validate_global_referral(c->argv[1])) {
-		snprintf( c->msg, sizeof( c->msg ), "<%s> invalid URL", c->argv[0] );
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> invalid URL", c->argv[0] );
 		Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n",
-			c->log, c->msg, c->argv[1]);
+			c->log, c->cr_msg, c->argv[1]);
 		return(1);
 	}
 	ber_str2bv(c->argv[1], 0, 0, &val);
@@ -2835,9 +2835,9 @@ config_obsolete(ConfigArgs *c) {
 	if (c->op == SLAP_CONFIG_EMIT)
 		return 1;
 
-	snprintf( c->msg, sizeof( c->msg ), "<%s> keyword is obsolete (ignored)",
+	snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> keyword is obsolete (ignored)",
 		c->argv[0] );
-	Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0);
+	Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg, 0);
 	return(0);
 }
 
@@ -3049,7 +3049,7 @@ ok:
 		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL, NULL );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "config error processing %s: %s\n",
-				rs->sr_entry->e_name.bv_val, sc->ca->msg, 0 );
+				rs->sr_entry->e_name.bv_val, sc->ca->cr_msg, 0 );
 		}
 	}
 	return rs->sr_err;
@@ -3106,7 +3106,8 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	argv[1] = (char *)dir;
 	argv[2] = NULL;
 	c.argv = argv;
-	c.msg[0] = '\0';
+	c.reply.err = 0;
+	c.reply.msg[0] = 0;
 	c.table = Cft_Database;
 
 	ct = config_find_keyword( c.be->be_cf_ocs->co_table, &c );
@@ -3116,7 +3117,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	if ( config_add_vals( ct, &c ))
 		return 1;
 
-	if ( backend_startup_one( &cfb->cb_db, &c ))
+	if ( backend_startup_one( &cfb->cb_db, &c.reply ))
 		return 1;
 
 	if ( readit ) {
@@ -3439,7 +3440,7 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	if ( a && ( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL )) {
 		rc = ordered_value_sort( a, 1 );
 		if ( rc ) {
-			snprintf(ca->msg, sizeof( ca->msg ), "ordered_value_sort failed on attr %s\n",
+			snprintf(ca->cr_msg, sizeof( ca->cr_msg ), "ordered_value_sort failed on attr %s\n",
 				ad->ad_cname.bv_val );
 			return rc;
 		}
@@ -4098,7 +4099,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		if ( renum && *renum && coptr->co_type != Cft_Database &&
 			coptr->co_type != Cft_Overlay )
 		{
-			snprintf( ca->msg, sizeof( ca->msg ),
+			snprintf( ca->cr_msg, sizeof( ca->cr_msg ),
 				"operation requires sibling renumbering" );
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			goto done_noop;
@@ -4153,22 +4154,22 @@ ok:
 	/* Newly added databases and overlays need to be started up */
 	if ( CONFIG_ONLINE_ADD( ca )) {
 		if ( colst[0]->co_type == Cft_Database ) {
-			rc = backend_startup_one( ca->be, ca );
+			rc = backend_startup_one( ca->be, &ca->reply );
 
 		} else if ( colst[0]->co_type == Cft_Overlay ) {
 			if ( ca->bi->bi_db_open ) {
 				BackendInfo *bi_orig = ca->be->bd_info;
 				ca->be->bd_info = ca->bi;
-				rc = ca->bi->bi_db_open( ca->be, ca );
+				rc = ca->bi->bi_db_open( ca->be, &ca->reply );
 				ca->be->bd_info = bi_orig;
 			}
 		}
 		if ( rc ) {
-			if (ca->msg[0] == '\0')
-				snprintf( ca->msg, sizeof( ca->msg ), "<%s> failed startup", ca->argv[0] );
+			if (ca->cr_msg[0] == '\0')
+				snprintf( ca->cr_msg, sizeof( ca->cr_msg ), "<%s> failed startup", ca->argv[0] );
 
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-				ca->log, ca->msg, ca->argv[1] );
+				ca->log, ca->cr_msg, ca->argv[1] );
 			rc = LDAP_OTHER;
 			goto done;
 		}
@@ -4356,7 +4357,7 @@ config_back_add( Operation *op, SlapReply *rs )
 	 */
 	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber, op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		rs->sr_text = ca.msg;
+		rs->sr_text = ca.cr_msg;
 		goto out2;
 	}
 
@@ -4480,7 +4481,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			int *idx = NULL;
 			if ( ct && ( ct->arg_type & ARG_NO_DELETE )) {
 				rc = LDAP_OTHER;
-				snprintf(ca->msg, sizeof(ca->msg), "cannot delete %s",
+				snprintf(ca->cr_msg, sizeof(ca->cr_msg), "cannot delete %s",
 					ml->sml_desc->ad_cname.bv_val );
 				goto out_noop;
 			}
@@ -4509,7 +4510,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			}
 			rc = modify_delete_vindex(e, &ml->sml_mod,
 				get_permissiveModify(op),
-				&rs->sr_text, ca->msg, sizeof(ca->msg), idx );
+				&rs->sr_text, ca->cr_msg, sizeof(ca->cr_msg), idx );
 			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 				ml->sml_values = vals;
 				ml->sml_nvalues = nvals;
@@ -4542,7 +4543,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 						j = strtol( val, &next, 0 );
 						if ( next == val || next[ 0 ] != '}' || j < navals ) {
 							rc = LDAP_OTHER;
-							snprintf(ca->msg, sizeof(ca->msg), "cannot insert %s",
+							snprintf(ca->cr_msg, sizeof(ca->cr_msg), "cannot insert %s",
 								ml->sml_desc->ad_cname.bv_val );
 							goto out_noop;
 						}
@@ -4553,7 +4554,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			}
 			rc = modify_add_values(e, &ml->sml_mod,
 				   get_permissiveModify(op),
-				   &rs->sr_text, ca->msg, sizeof(ca->msg) );
+				   &rs->sr_text, ca->cr_msg, sizeof(ca->cr_msg) );
 
 			/* If value already exists, show success here
 			 * and ignore this operation down below.
@@ -4580,7 +4581,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	if ( rc == LDAP_SUCCESS) {
 		/* check that the entry still obeys the schema */
 		rc = entry_schema_check(op, e, NULL, 0, 0,
-			&rs->sr_text, ca->msg, sizeof(ca->msg) );
+			&rs->sr_text, ca->cr_msg, sizeof(ca->cr_msg) );
 		if ( rc ) goto out_noop;
 	}
 	/* Basic syntax checks are OK. Do the actual settings. */
@@ -4787,7 +4788,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 	 */
 	rs->sr_err = config_modify_internal( ce, op, rs, &ca );
 	if ( rs->sr_err ) {
-		rs->sr_text = ca.msg;
+		rs->sr_text = ca.cr_msg;
 	} else if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL }, *scp;
@@ -5209,8 +5210,8 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	}
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
-	rc = structural_class(oc_at->a_vals, &oc, NULL, &text, c->msg,
-		sizeof(c->msg), op ? op->o_tmpmemctx : NULL );
+	rc = structural_class(oc_at->a_vals, &oc, NULL, &text, c->cr_msg,
+		sizeof(c->cr_msg), op ? op->o_tmpmemctx : NULL );
 	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &oc->soc_cname, NULL );
 	if ( op && !op->o_noop ) {
 		op->ora_e = e;
@@ -5391,7 +5392,7 @@ static const char *defacl[] = {
 };
 
 static int
-config_back_db_open( BackendDB *be, ConfigArgs *ca )
+config_back_db_open( BackendDB *be, ConfigReply *cr )
 {
 	CfBackInfo *cfb = be->be_private;
 	struct berval rdn;
@@ -5629,7 +5630,7 @@ cfb_free_entries( CfEntryInfo *ce )
 }
 
 static int
-config_back_db_close( BackendDB *be, ConfigArgs *ca )
+config_back_db_close( BackendDB *be, ConfigReply *cr )
 {
 	CfBackInfo *cfb = be->be_private;
 
@@ -5644,7 +5645,7 @@ config_back_db_close( BackendDB *be, ConfigArgs *ca )
 }
 
 static int
-config_back_db_destroy( BackendDB *be, ConfigArgs *ca )
+config_back_db_destroy( BackendDB *be, ConfigReply *cr )
 {
 	CfBackInfo *cfb = be->be_private;
 
@@ -5669,7 +5670,7 @@ config_back_db_destroy( BackendDB *be, ConfigArgs *ca )
 }
 
 static int
-config_back_db_init( BackendDB *be, ConfigArgs* ca )
+config_back_db_init( BackendDB *be, ConfigReply* cr )
 {
 	struct berval dn;
 	CfBackInfo *cfb;

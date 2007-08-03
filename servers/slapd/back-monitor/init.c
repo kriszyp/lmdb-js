@@ -2051,7 +2051,7 @@ monitor_back_initialize(
 int
 monitor_back_db_init(
 	BackendDB	*be,
-	ConfigArgs	*c)
+	ConfigReply	*c)
 {
 	int			rc;
 	struct berval		dn = BER_BVC( SLAPD_MONITOR_DN ),
@@ -2125,7 +2125,7 @@ monitor_back_db_init(
 int
 monitor_back_db_open(
 	BackendDB	*be,
-	ConfigArgs	*ca)
+	ConfigReply	*cr)
 {
 	monitor_info_t 		*mi = (monitor_info_t *)be->be_private;
 	struct monitor_subsys_t	**ms;
@@ -2465,7 +2465,7 @@ monitor_back_db_config(
 int
 monitor_back_db_destroy(
 	BackendDB	*be,
-	ConfigArgs	*ca)
+	ConfigReply	*cr)
 {
 	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
 

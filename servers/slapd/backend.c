@@ -190,7 +190,7 @@ backend_set_controls( BackendDB *be )
 }
 
 /* startup a specific backend database */
-int backend_startup_one(Backend *be, ConfigArgs *ca)
+int backend_startup_one(Backend *be, ConfigReply *cr)
 {
 	int		rc = 0;
 
@@ -210,7 +210,7 @@ int backend_startup_one(Backend *be, ConfigArgs *ca)
 	(void)backend_set_controls( be );
 
 	if ( be->bd_info->bi_db_open ) {
-		rc = be->bd_info->bi_db_open( be, ca );
+		rc = be->bd_info->bi_db_open( be, cr );
 		if ( rc == 0 ) {
 			(void)backend_set_controls( be );
 
@@ -229,6 +229,7 @@ int backend_startup(Backend *be)
 	int i;
 	int rc = 0;
 	BackendInfo *bi;
+	ConfigReply cr={0, ""};
 
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
@@ -252,7 +253,7 @@ int backend_startup(Backend *be)
 		/* append global access controls */
 		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
-		return backend_startup_one( be, NULL );
+		return backend_startup_one( be, &cr );
 	}
 
 	/* open frontend, if required */
@@ -301,7 +302,7 @@ int backend_startup(Backend *be)
 		/* append global access controls */
 		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
-		rc = backend_startup_one( be, NULL );
+		rc = backend_startup_one( be, &cr );
 
 		if ( rc ) return rc;
 	}
@@ -549,7 +550,7 @@ backend_db_init(
     const char	*type,
 	BackendDB *b0,
 	int idx,
-	ConfigArgs *ca)
+	ConfigReply *cr)
 {
 	BackendInfo *bi = backend_info(type);
 	BackendDB *be = b0;
@@ -588,7 +589,7 @@ backend_db_init(
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
 	if ( bi->bi_db_init ) {
-		rc = bi->bi_db_init( be, ca );
+		rc = bi->bi_db_init( be, cr );
 	}
 
 	if ( rc != 0 ) {

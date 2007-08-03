@@ -47,7 +47,7 @@ typedef void * db_realloc(void *, size_t);
 #define bdb_db_close BDB_SYMBOL(db_close)
 
 static int
-bdb_db_init( BackendDB *be, ConfigArgs *ca )
+bdb_db_init( BackendDB *be, ConfigReply *cr )
 {
 	struct bdb_info	*bdb;
 	int rc;
@@ -94,10 +94,10 @@ bdb_db_init( BackendDB *be, ConfigArgs *ca )
 }
 
 static int
-bdb_db_close( BackendDB *be, ConfigArgs *ca );
+bdb_db_close( BackendDB *be, ConfigReply *cr );
 
 static int
-bdb_db_open( BackendDB *be, ConfigArgs *ca )
+bdb_db_open( BackendDB *be, ConfigReply *cr )
 {
 	int rc, i;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -122,8 +122,11 @@ bdb_db_open( BackendDB *be, ConfigArgs *ca )
 
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( be->be_suffix[1].bv_val ) {
-		Debug( LDAP_DEBUG_ANY,
-			LDAP_XSTRING(bdb_db_open) ": only one suffix allowed\n", 0, 0, 0 );
+		if (cr) {
+			snprintf(cr->msg, sizeof(cr->msg), "only one suffix allowed");
+			Debug( LDAP_DEBUG_ANY,
+				LDAP_XSTRING(bdb_db_open) ": %s\n", cr->msg, 0, 0 );
+		}
 		return -1;
 	}
 #endif
@@ -480,7 +483,7 @@ fail:
 }
 
 static int
-bdb_db_close( BackendDB *be, ConfigArgs *ca )
+bdb_db_close( BackendDB *be, ConfigReply *cr )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -575,7 +578,7 @@ bdb_db_close( BackendDB *be, ConfigArgs *ca )
 }
 
 static int
-bdb_db_destroy( BackendDB *be, ConfigArgs *ca )
+bdb_db_destroy( BackendDB *be, ConfigReply *cr )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 

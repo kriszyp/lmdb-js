@@ -1363,20 +1363,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_MAXTTL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-max-ttl \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < DDS_RF2589_DEFAULT_TTL || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-max-ttl=%ld; must be between %d and %d",
 				t, DDS_RF2589_DEFAULT_TTL, DDS_RF2589_MAX_TTL );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1385,20 +1385,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_MINTTL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-min-ttl \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < 0 || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-min-ttl=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1412,20 +1412,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_DEFAULTTTL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-default-ttl \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < 0 || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-default-ttl=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1439,20 +1439,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_INTERVAL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-interval \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-interval=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1476,20 +1476,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_TOLERANCE:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-tolerance \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < 0 || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-tolerance=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1498,10 +1498,10 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_MAXDYNAMICOBJS:
 		if ( c->value_int < 0 ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-max-dynamicObjects=%d", c->value_int );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 		di->di_max_dynamicObjects = c->value_int;
@@ -1518,7 +1518,7 @@ dds_cfgen( ConfigArgs *c )
 static int
 dds_db_init(
 	BackendDB	*be,
-	ConfigArgs	*ca)
+	ConfigReply	*cr)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di;
@@ -1668,7 +1668,7 @@ done_search:;
 static int
 dds_db_open(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;
@@ -1734,7 +1734,7 @@ done:;
 static int
 dds_db_close(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;
@@ -1757,7 +1757,7 @@ dds_db_close(
 static int
 dds_db_destroy(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;

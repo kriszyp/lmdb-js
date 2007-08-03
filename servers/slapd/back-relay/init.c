@@ -70,7 +70,7 @@ relay_back_initialize( BackendInfo *bi )
 }
 
 int
-relay_back_db_init( Backend *be, ConfigArgs *ca)
+relay_back_db_init( Backend *be, ConfigReply *cr)
 {
 	relay_back_info		*ri;
 
@@ -91,7 +91,7 @@ relay_back_db_init( Backend *be, ConfigArgs *ca)
 }
 
 int
-relay_back_db_open( Backend *be, ConfigArgs *ca )
+relay_back_db_open( Backend *be, ConfigReply *cr )
 {
 	relay_back_info		*ri = (relay_back_info *)be->be_private;
 
@@ -115,13 +115,13 @@ relay_back_db_open( Backend *be, ConfigArgs *ca )
 }
 
 int
-relay_back_db_close( Backend *be, ConfigArgs *ca )
+relay_back_db_close( Backend *be, ConfigReply *cr )
 {
 	return 0;
 }
 
 int
-relay_back_db_destroy( Backend *be, ConfigArgs *ca)
+relay_back_db_destroy( Backend *be, ConfigReply *cr)
 {
 	relay_back_info		*ri = (relay_back_info *)be->be_private;
 

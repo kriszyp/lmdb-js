@@ -103,9 +103,9 @@ translucent_cfadd( Operation *op, SlapReply *rs, Entry *e, ConfigArgs *ca )
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_cfadd\n", 0, 0, 0);
 
 	/* FIXME: should not hardcode "olcDatabase" here */
-	bv.bv_len = sprintf( ca->msg, "olcDatabase=%s",
+	bv.bv_len = sprintf( ca->cr_msg, "olcDatabase=%s",
 			     ov->db.bd_info->bi_type );
-	bv.bv_val = ca->msg;
+	bv.bv_val = ca->cr_msg;
 	ca->be = &ov->db;
 
 	/* We can only create this entry if the database is table-driven
@@ -686,7 +686,7 @@ static int translucent_db_config(
 **
 */
 
-static int translucent_db_init(BackendDB *be, ConfigArgs *ca) {
+static int translucent_db_init(BackendDB *be, ConfigReply *cr) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov;
 
@@ -714,7 +714,7 @@ static int translucent_db_init(BackendDB *be, ConfigArgs *ca) {
 **
 */
 
-static int translucent_db_open(BackendDB *be, ConfigArgs *ca) {
+static int translucent_db_open(BackendDB *be, ConfigReply *cr) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	int rc;
@@ -743,7 +743,7 @@ static int translucent_db_open(BackendDB *be, ConfigArgs *ca) {
 */
 
 static int
-translucent_db_close( BackendDB *be, ConfigArgs *ca )
+translucent_db_close( BackendDB *be, ConfigReply *cr )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
@@ -765,7 +765,7 @@ translucent_db_close( BackendDB *be, ConfigArgs *ca )
 */
 
 static int
-translucent_db_destroy( BackendDB *be, ConfigArgs *ca )
+translucent_db_destroy( BackendDB *be, ConfigReply *cr )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;

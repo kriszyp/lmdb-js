@@ -99,7 +99,7 @@ ldap_back_initialize( BackendInfo *bi )
 }
 
 int
-ldap_back_db_init( Backend *be, ConfigArgs *ca )
+ldap_back_db_init( Backend *be, ConfigReply *cr )
 {
 	ldapinfo_t	*li;
 	int		rc;
@@ -169,7 +169,7 @@ ldap_back_db_init( Backend *be, ConfigArgs *ca )
 }
 
 int
-ldap_back_db_open( BackendDB *be, ConfigArgs *ca )
+ldap_back_db_open( BackendDB *be, ConfigReply *cr )
 {
 	ldapinfo_t	*li = (ldapinfo_t *)be->be_private;
 
@@ -256,7 +256,7 @@ ldap_back_conn_free( void *v_lc )
 }
 
 int
-ldap_back_db_close( Backend *be, ConfigArgs *ca )
+ldap_back_db_close( Backend *be, ConfigReply *cr )
 {
 	int		rc = 0;
 
@@ -268,7 +268,7 @@ ldap_back_db_close( Backend *be, ConfigArgs *ca )
 }
 
 int
-ldap_back_db_destroy( Backend *be, ConfigArgs *ca )
+ldap_back_db_destroy( Backend *be, ConfigReply *cr )
 {
 	if ( be->be_private ) {
 		ldapinfo_t	*li = ( ldapinfo_t * )be->be_private;

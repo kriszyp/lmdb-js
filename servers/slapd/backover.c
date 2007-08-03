@@ -169,7 +169,7 @@ over_db_config(
 static int
 over_db_open(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	return over_db_func( be, db_open );
@@ -178,7 +178,7 @@ over_db_open(
 static int
 over_db_close(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinfo *oi = be->bd_info->bi_private;
@@ -205,7 +205,7 @@ over_db_close(
 static int
 over_db_destroy(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinfo *oi = be->bd_info->bi_private;

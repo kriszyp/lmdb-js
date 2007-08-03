@@ -135,7 +135,7 @@ static int dyngroup_config(
 static int
 dyngroup_close(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;

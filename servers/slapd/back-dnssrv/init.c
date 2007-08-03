@@ -93,7 +93,7 @@ dnssrv_back_open(
 int
 dnssrv_back_db_init(
 	Backend	*be,
-	ConfigArgs *ca)
+	ConfigReply *cr)
 {
 	return 0;
 }
@@ -101,7 +101,7 @@ dnssrv_back_db_init(
 int
 dnssrv_back_db_destroy(
 	Backend	*be,
-	ConfigArgs *ca )
+	ConfigReply *cr )
 {
 	return 0;
 }

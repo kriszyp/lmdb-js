@@ -152,16 +152,16 @@ valsort_cf_func(ConfigArgs *c) {
 	vitmp.vi_ad = NULL;
 	i = slap_str2ad( c->argv[1], &vitmp.vi_ad, &text );
 	if ( i ) {
-		sprintf( c->msg, "<%s> %s", c->argv[0], text );
+		sprintf( c->cr_msg, "<%s> %s", c->argv[0], text );
 		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-			c->log, c->msg, c->argv[1] );
+			c->log, c->cr_msg, c->argv[1] );
 		return(1);
 	}
 	if ( is_at_single_value( vitmp.vi_ad->ad_type )) {
-		sprintf( c->msg, "<%s> %s is single-valued, ignoring", c->argv[0],
+		sprintf( c->cr_msg, "<%s> %s is single-valued, ignoring", c->argv[0],
 			vitmp.vi_ad->ad_cname.bv_val );
 		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-			c->log, c->msg, c->argv[1] );
+			c->log, c->cr_msg, c->argv[1] );
 		return(0);
 	}
 	is_numeric = ( vitmp.vi_ad->ad_type->sat_syntax == syn_numericString ||
@@ -170,34 +170,34 @@ valsort_cf_func(ConfigArgs *c) {
 	ber_str2bv( c->argv[2], 0, 0, &bv );
 	i = dnNormalize( 0, NULL, NULL, &bv, &vitmp.vi_dn, NULL );
 	if ( i ) {
-		sprintf( c->msg, "<%s> unable to normalize DN", c->argv[0] );
+		sprintf( c->cr_msg, "<%s> unable to normalize DN", c->argv[0] );
 		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-			c->log, c->msg, c->argv[2] );
+			c->log, c->cr_msg, c->argv[2] );
 		return(1);
 	}
 	i = verb_to_mask( c->argv[3], sorts );
 	if ( BER_BVISNULL( &sorts[i].word )) {
-		sprintf( c->msg, "<%s> unrecognized sort type", c->argv[0] );
+		sprintf( c->cr_msg, "<%s> unrecognized sort type", c->argv[0] );
 		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-			c->log, c->msg, c->argv[3] );
+			c->log, c->cr_msg, c->argv[3] );
 		return(1);
 	}
 	vitmp.vi_sort = sorts[i].mask;
 	if ( sorts[i].mask == VALSORT_WEIGHTED && c->argc == 5 ) {
 		i = verb_to_mask( c->argv[4], sorts );
 		if ( BER_BVISNULL( &sorts[i].word )) {
-			sprintf( c->msg, "<%s> unrecognized sort type", c->argv[0] );
+			sprintf( c->cr_msg, "<%s> unrecognized sort type", c->argv[0] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-				c->log, c->msg, c->argv[4] );
+				c->log, c->cr_msg, c->argv[4] );
 			return(1);
 		}
 		vitmp.vi_sort |= sorts[i].mask;
 	}
 	if (( vitmp.vi_sort & VALSORT_NUMERIC ) && !is_numeric ) {
-		sprintf( c->msg, "<%s> numeric sort specified for non-numeric syntax",
+		sprintf( c->cr_msg, "<%s> numeric sort specified for non-numeric syntax",
 			c->argv[0] );
 		Debug( LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-			c->log, c->msg, c->argv[1] );
+			c->log, c->cr_msg, c->argv[1] );
 		return(1);
 	}
 	vi = ch_malloc( sizeof(valsort_info) );
@@ -480,7 +480,7 @@ valsort_modify( Operation *op, SlapReply *rs )
 static int
 valsort_db_open(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	return overlay_register_control( be, LDAP_CONTROL_VALSORT );
@@ -489,7 +489,7 @@ valsort_db_open(
 static int
 valsort_destroy(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;

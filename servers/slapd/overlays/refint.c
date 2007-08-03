@@ -209,10 +209,10 @@ refint_cf_gen(ConfigArgs *c)
 					ip->next = dd->attrs;
 					dd->attrs = ip;
 				} else {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"%s <%s>: %s", c->argv[0], c->argv[i], text );
 					Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-						"%s: %s\n", c->log, c->msg, 0 );
+						"%s: %s\n", c->log, c->cr_msg, 0 );
 					rc = ARG_BAD_CONF;
 				}
 			}
@@ -246,7 +246,7 @@ refint_cf_gen(ConfigArgs *c)
 static int
 refint_db_init(
 	BackendDB	*be,
-	ConfigArgs	*ca
+	ConfigReply	*cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -261,7 +261,7 @@ refint_db_init(
 static int
 refint_db_destroy(
 	BackendDB	*be,
-	ConfigArgs	*ca
+	ConfigReply	*cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -283,7 +283,7 @@ refint_db_destroy(
 static int
 refint_open(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on	= (slap_overinst *)be->bd_info;
@@ -312,7 +312,7 @@ refint_open(
 static int
 refint_close(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on	= (slap_overinst *) be->bd_info;

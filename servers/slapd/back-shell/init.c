@@ -79,7 +79,7 @@ shell_back_initialize(
 int
 shell_back_db_init(
 	Backend	*be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	struct shellinfo	*si;
@@ -94,7 +94,7 @@ shell_back_db_init(
 int
 shell_back_db_destroy(
 	Backend	*be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	free( be->be_private );

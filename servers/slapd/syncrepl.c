@@ -3285,17 +3285,17 @@ parse_syncrepl_line(
 			/* '\0' string terminator accounts for '=' */
 			val = c->argv[ i ] + STRLENOF( IDSTR "=" );
 			if ( lutil_atoi( &tmp, val ) != 0 ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"unable to parse syncrepl id \"%s\"", val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 			if ( tmp >= 1000 || tmp < 0 ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"syncrepl id %d is out of range [0..999]", tmp );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 			si->si_rid = tmp;
@@ -3345,10 +3345,10 @@ parse_syncrepl_line(
 			ber_str2bv( val, 0, 0, &bv );
 			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL );
 			if ( rc != LDAP_SUCCESS ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Invalid base DN \"%s\": %d (%s)",
 					val, rc, ldap_err2string( rc ) );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 			gots |= GOT_BASE;
@@ -3365,10 +3365,10 @@ parse_syncrepl_line(
 			ber_str2bv( val, 0, 0, &bv );
 			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_logbase, NULL );
 			if ( rc != LDAP_SUCCESS ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Invalid logbase DN \"%s\": %d (%s)",
 					val, rc, ldap_err2string( rc ) );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 		} else if ( !strncasecmp( c->argv[ i ], SCOPESTR "=",
@@ -3383,10 +3383,10 @@ parse_syncrepl_line(
 				}
 			}
 			if ( BER_BVISNULL(&scopes[j].key) ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"unknown scope \"%s\"", val);
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 		} else if ( !strncasecmp( c->argv[ i ], ATTRSONLYSTR,
@@ -3463,10 +3463,10 @@ parse_syncrepl_line(
 				si->si_type = si->si_ctype = LDAP_SYNC_REFRESH_AND_PERSIST;
 				si->si_interval = 60;
 			} else {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"unknown sync type \"%s\"", val);
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 		} else if ( !strncasecmp( c->argv[ i ], INTERVALSTR "=",
@@ -3483,37 +3483,37 @@ parse_syncrepl_line(
 				 * should go before the call to strtoul() */
 				dd = strtoul( ptr, &next, 10 );
 				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse days", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					return -1;
 				}
 				ptr = next + 1;
 				hh = strtoul( ptr, &next, 10 );
 				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || hh > 24 ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse hours", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					return -1;
 				}
 				ptr = next + 1;
 				mm = strtoul( ptr, &next, 10 );
 				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || mm > 60 ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse minutes", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					return -1;
 				}
 				ptr = next + 1;
 				ss = strtoul( ptr, &next, 10 );
 				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != '\0' || ss > 60 ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse seconds", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					return -1;
 				}
 				si->si_interval = (( dd * 24 + hh ) * 60 + mm ) * 60 + ss;
@@ -3521,20 +3521,20 @@ parse_syncrepl_line(
 				unsigned long	t;
 
 				if ( lutil_parse_time( val, &t ) != 0 ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\"", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					return -1;
 				}
 				si->si_interval = (time_t)t;
 			}
 			if ( si->si_interval < 0 ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"invalid interval \"%ld\"",
 					(long) si->si_interval);
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 		} else if ( !strncasecmp( c->argv[ i ], RETRYSTR "=",
@@ -3552,9 +3552,9 @@ parse_syncrepl_line(
 			for ( k = 0; retry_list && retry_list[k]; k++ ) ;
 			n = k / 2;
 			if ( k % 2 ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: incomplete syncrepl retry list" );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				for ( k = 0; retry_list && retry_list[k]; k++ ) {
 					ch_free( retry_list[k] );
 				}
@@ -3567,10 +3567,10 @@ parse_syncrepl_line(
 			for ( j = 0; j < n; j++ ) {
 				unsigned long	t;
 				if ( lutil_atoul( &t, retry_list[j*2] ) != 0 ) {
-					snprintf( c->msg, sizeof( c->msg ),
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: invalid retry interval \"%s\" (#%d)",
 						retry_list[j*2], j );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					/* do some cleanup */
 					return 1;
 				}
@@ -3584,20 +3584,20 @@ parse_syncrepl_line(
 					if ( lutil_atoi( &si->si_retrynum_init[j], retry_list[j*2+1] ) != 0
 							|| si->si_retrynum_init[j] <= 0 )
 					{
-						snprintf( c->msg, sizeof( c->msg ),
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
 							"Error: invalid initial retry number \"%s\" (#%d)",
 							retry_list[j*2+1], j );
-						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 						/* do some cleanup */
 						return 1;
 					}
 					if ( lutil_atoi( &si->si_retrynum[j], retry_list[j*2+1] ) != 0
 							|| si->si_retrynum[j] <= 0 )
 					{
-						snprintf( c->msg, sizeof( c->msg ),
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
 							"Error: invalid retry number \"%s\" (#%d)",
 							retry_list[j*2+1], j );
-						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 						/* do some cleanup */
 						return 1;
 					}
@@ -3618,10 +3618,10 @@ parse_syncrepl_line(
 			if ( lutil_atoi( &si->si_manageDSAit, val ) != 0
 				|| si->si_manageDSAit < 0 || si->si_manageDSAit > 1 )
 			{
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"invalid manageDSAit value \"%s\".\n",
 					val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return 1;
 			}
 		} else if ( !strncasecmp( c->argv[ i ], SLIMITSTR "=",
@@ -3632,10 +3632,10 @@ parse_syncrepl_line(
 				si->si_slimit = 0;
 
 			} else if ( lutil_atoi( &si->si_slimit, val ) != 0 || si->si_slimit < 0 ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"invalid size limit value \"%s\".\n",
 					val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return 1;
 			}
 		} else if ( !strncasecmp( c->argv[ i ], TLIMITSTR "=",
@@ -3646,10 +3646,10 @@ parse_syncrepl_line(
 				si->si_tlimit = 0;
 
 			} else if ( lutil_atoi( &si->si_tlimit, val ) != 0 || si->si_tlimit < 0 ) {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"invalid time limit value \"%s\".\n",
 					val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return 1;
 			}
 		} else if ( !strncasecmp( c->argv[ i ], SYNCDATASTR "=",
@@ -3658,21 +3658,21 @@ parse_syncrepl_line(
 			val = c->argv[ i ] + STRLENOF( SYNCDATASTR "=" );
 			si->si_syncdata = verb_to_mask( val, datamodes );
 		} else if ( bindconf_parse( c->argv[i], &si->si_bindconf ) ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"Error: parse_syncrepl_line: "
 				"unable to parse \"%s\"\n", c->argv[ i ] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return -1;
 		}
 	}
 
 	if ( gots != GOT_ALL ) {
-		snprintf( c->msg, sizeof( c->msg ),
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"Error: Malformed \"syncrepl\" line in slapd config file, missing%s%s%s",
 			gots & GOT_ID ? "" : " "IDSTR,
 			gots & GOT_PROVIDER ? "" : " "PROVIDERSTR,
 			gots & GOT_BASE ? "" : " "SEARCHBASESTR );
-		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 		return -1;
 	}
 
@@ -3687,14 +3687,14 @@ add_syncrepl(
 	int	rc = 0;
 
 	if ( !( c->be->be_search && c->be->be_add && c->be->be_modify && c->be->be_delete ) ) {
-		snprintf( c->msg, sizeof(c->msg), "database %s does not support "
+		snprintf( c->cr_msg, sizeof(c->cr_msg), "database %s does not support "
 			"operations required for syncrepl", c->be->be_type );
-		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg, 0 );
 		return 1;
 	}
 	if ( BER_BVISEMPTY( &c->be->be_rootdn ) ) {
-		strcpy( c->msg, "rootDN must be defined before syncrepl may be used" );
-		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+		strcpy( c->cr_msg, "rootDN must be defined before syncrepl may be used" );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg, 0 );
 		return 1;
 	}
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );

@@ -105,22 +105,22 @@ parse_oidm(
 
 	oidv = oidm_find( c->argv[2] );
 	if( !oidv ) {
-		snprintf( c->msg, sizeof( c->msg ),
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"%s: OID %s not recognized",
 			c->argv[0], c->argv[2] );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		return 1;
 	}
 
 	oid = oidm_find( c->argv[1] );
 	if( oid != NULL ) {
 		int rc;
-		snprintf( c->msg, sizeof( c->msg ),
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"%s: \"%s\" previously defined \"%s\"",
 			c->argv[0], c->argv[1], oid );
 		Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		/* Allow duplicate if the definition is identical */
 		rc = strcmp( oid, oidv ) != 0;
 		SLAP_FREE( oid );
@@ -131,10 +131,10 @@ parse_oidm(
 
 	om = (OidMacro *) SLAP_CALLOC( sizeof(OidMacro), 1 );
 	if( om == NULL ) {
-		snprintf( c->msg, sizeof( c->msg ),
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"%s: SLAP_CALLOC failed", c->argv[0] );
 		Debug( LDAP_DEBUG_ANY,
-			"%s %s\n", c->log, c->msg, 0 );
+			"%s %s\n", c->log, c->cr_msg, 0 );
 		if ( oidv != c->argv[2] )
 			SLAP_FREE( oidv );
 		return 1;

@@ -190,7 +190,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 				     uri->ndn,
 				     NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "<%s> invalid DN %d (%s)",
 				  url_desc->lud_dn, rc, ldap_err2string( rc ));
 			rc = ARG_BAD_CONF;
@@ -198,7 +198,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 		}
 
 		if ( !dnIsSuffix ( uri->ndn, &be->be_nsuffix[0] ) ) {
-			sprintf ( c->msg,
+			sprintf ( c->cr_msg,
 				  "dn <%s> is not a suffix of backend base dn <%s>",
 				  uri->dn->bv_val,
 				  be->be_nsuffix[0].bv_val );
@@ -220,7 +220,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 				attr->next = uri->attrs;
 				uri->attrs = attr;
 			} else {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					  "unique: attribute: %s: %s",
 					  attr_str[i], text );
 				rc = ARG_BAD_CONF;
@@ -231,7 +231,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 
 	uri->scope = url_desc->lud_scope;
 	if ( !uri->scope ) {
-		snprintf( c->msg, sizeof( c->msg ),
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			  "unique: uri with base scope will always be unique");
 		rc = ARG_BAD_CONF;
 		goto exit;
@@ -242,7 +242,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 		uri->filter = ber_str2bv( url_desc->lud_filter, 0, 1, NULL);
 		f = str2filter( uri->filter->bv_val );
 		if ( !f ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "unique: bad filter");
 			rc = ARG_BAD_CONF;
 			goto exit;
@@ -255,7 +255,7 @@ exit:
 	*urip = uri;
 	if ( rc ) {
 		Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s: %s\n", c->log, c->msg, 0 );
+			"%s: %s\n", c->log, c->cr_msg, 0 );
 		unique_free_domain_uri ( uri );
 		*urip = NULL;
 	}
@@ -326,7 +326,7 @@ unique_new_domain ( unique_domain **domainp,
 	}
 	rc = ldap_url_parselist_ext ( &url_descs, uri_start, " ", 0 );
 	if ( rc ) {
-		snprintf( c->msg, sizeof( c->msg ),
+		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			  "<%s> invalid ldap urilist",
 			  uri_start );
 		rc = ARG_BAD_CONF;
@@ -352,7 +352,7 @@ exit:
 	*domainp = domain;
 	if ( rc ) {
 		Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s: %s\n", c->log, c->msg, 0 );
+			"%s: %s\n", c->log, c->cr_msg, 0 );
 		unique_free_domain ( domain );
 		*domainp = NULL;
 	}
@@ -401,19 +401,19 @@ unique_cf_base( ConfigArgs *c )
 	case LDAP_MOD_ADD:
 	case SLAP_CONFIG_ADD:
 		if ( domains ) {
-			sprintf ( c->msg,
+			sprintf ( c->cr_msg,
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->msg, NULL, NULL );
+				c->cr_msg, NULL, NULL );
 			rc = ARG_BAD_CONF;
 			break;
 		}
 		if ( !dnIsSuffix ( &c->value_ndn,
 				   &be->be_nsuffix[0] ) ) {
-			sprintf ( c->msg,
+			sprintf ( c->cr_msg,
 				  "dn is not a suffix of backend base" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->msg, NULL, NULL );
+				c->cr_msg, NULL, NULL );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -499,10 +499,10 @@ unique_cf_attrs( ConfigArgs *c )
 	case LDAP_MOD_ADD:
 	case SLAP_CONFIG_ADD:
 		if ( domains ) {
-			sprintf ( c->msg,
+			sprintf ( c->cr_msg,
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->msg, NULL, NULL );
+				c->cr_msg, NULL, NULL );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -510,10 +510,10 @@ unique_cf_attrs( ConfigArgs *c )
 		     && legacy->uri
 		     && legacy->uri->attrs
 		     && (c->type == UNIQUE_IGNORE) != legacy->ignore ) {
-			sprintf ( c->msg,
+			sprintf ( c->cr_msg,
 				  "cannot set both attrs and ignore-attrs" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->msg, NULL, NULL );
+				c->cr_msg, NULL, NULL );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -538,7 +538,7 @@ unique_cf_attrs( ConfigArgs *c )
 				attr->next = new_attrs;
 				new_attrs = attr;
 			} else {
-				snprintf( c->msg, sizeof( c->msg ),
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					  "unique: attribute: %s: %s",
 					  c->argv[i], text );
 				for ( attr = new_attrs;
@@ -575,7 +575,7 @@ unique_cf_attrs( ConfigArgs *c )
 
 	if ( rc ) {
 		Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-			"%s: %s\n", c->log, c->msg, 0 );
+			"%s: %s\n", c->log, c->cr_msg, 0 );
 	}
 	return rc;
 }
@@ -620,10 +620,10 @@ unique_cf_strict( ConfigArgs *c )
 	case LDAP_MOD_ADD:
 	case SLAP_CONFIG_ADD:
 		if ( domains ) {
-			sprintf ( c->msg,
+			sprintf ( c->cr_msg,
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->msg, NULL, NULL );
+				c->cr_msg, NULL, NULL );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -705,10 +705,10 @@ unique_cf_uri( ConfigArgs *c )
 	case SLAP_CONFIG_ADD: /* fallthrough */
 	case LDAP_MOD_ADD:
 		if ( legacy ) {
-			sprintf ( c->msg,
+			sprintf ( c->cr_msg,
 				  "cannot set Uri when legacy attrs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
-				c->msg, NULL, NULL );
+				c->cr_msg, NULL, NULL );
 			rc = ARG_BAD_CONF;
 			break;
 		}
@@ -741,7 +741,7 @@ unique_cf_uri( ConfigArgs *c )
 static int
 unique_db_init(
 	BackendDB	*be,
-	ConfigArgs	*ca
+	ConfigReply	*cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -757,7 +757,7 @@ unique_db_init(
 static int
 unique_db_destroy(
 	BackendDB	*be,
-	ConfigArgs	*ca
+	ConfigReply	*cr
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
@@ -782,7 +782,7 @@ unique_db_destroy(
 static int
 unique_open(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	Debug(LDAP_DEBUG_TRACE, "unique_open: overlay initialized\n", 0, 0, 0);
@@ -799,7 +799,7 @@ unique_open(
 static int
 unique_close(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on	= (slap_overinst *) be->bd_info;

@@ -2075,7 +2075,7 @@ attrNormalize(
 static int
 ppolicy_db_init(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
@@ -2119,7 +2119,7 @@ ppolicy_db_init(
 static int
 ppolicy_db_open(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	return overlay_register_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
@@ -2128,7 +2128,7 @@ ppolicy_db_open(
 static int
 ppolicy_close(
 	BackendDB *be,
-	ConfigArgs *ca
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;

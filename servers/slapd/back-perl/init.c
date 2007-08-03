@@ -87,7 +87,7 @@ perl_back_initialize(
 int
 perl_back_db_init(
 	BackendDB	*be,
-	ConfigArgs	*ca
+	ConfigReply	*cr
 )
 {
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );
@@ -103,7 +103,7 @@ perl_back_db_init(
 int
 perl_back_db_open(
 	BackendDB	*be,
-	ConfigArgs	*ca
+	ConfigReply	*cr
 )
 {
 	int count;

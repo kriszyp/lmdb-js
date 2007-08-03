@@ -472,9 +472,9 @@ ldap_distproc_cfadd_apply( void *datum, void *arg )
 	struct berval			bv;
 
 	/* FIXME: should not hardcode "olcDatabase" here */
-	bv.bv_len = snprintf( lca->ca->msg, sizeof( lca->ca->msg ),
+	bv.bv_len = snprintf( lca->ca->cr_msg, sizeof( lca->ca->cr_msg ),
 		"olcDatabase={%d}%s", lca->count, lback->bi_type );
-	bv.bv_val = lca->ca->msg;
+	bv.bv_val = lca->ca->cr_msg;
 
 	lca->ca->be->be_private = (void *)li;
 	config_build_entry( lca->op, lca->rs, lca->p->e_private, lca->ca,
@@ -568,7 +568,7 @@ distproc_cfgen( ConfigArgs *c )
 static int
 ldap_distproc_db_init(
 	BackendDB *be,
-	ConfigArgs *ca )
+	ConfigReply *cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_distproc_t	*lc = NULL;
@@ -761,7 +761,7 @@ ldap_distproc_db_func(
 static int
 ldap_distproc_db_open(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	return ldap_distproc_db_func( be, db_open );
 }
@@ -769,7 +769,7 @@ ldap_distproc_db_open(
 static int
 ldap_distproc_db_close(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	return ldap_distproc_db_func( be, db_close );
 }
@@ -777,7 +777,7 @@ ldap_distproc_db_close(
 static int
 ldap_distproc_db_destroy(
 	BackendDB	*be,
-	ConfigArgs	*ca )
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_distproc_t	*lc = (ldap_distproc_t *)on->on_bi.bi_private;
