@@ -442,7 +442,7 @@ LDAPRDN_rewrite( LDAPRDN rdn, unsigned flags, void *ctx )
 static int
 LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 {
-	int 		iRDN;
+	int 		iRDN, do_sort = 0;
 	int 		rc;
 
 	assert( dn != NULL );
@@ -461,7 +461,6 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr = NULL;
 			struct berval		bv = BER_BVNULL;
-			int			do_sort = 0;
 
 			assert( ava != NULL );
 
@@ -562,10 +561,13 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 				ava->la_flags |= LDAP_AVA_FREE_VALUE;
 			}
 
-			if( do_sort ) AVA_Sort( rdn, iAVA );
+		}
+		if( do_sort ) {
+			rc = AVA_Sort( rdn, iAVA );
+			if ( rc != LDAP_SUCCESS )
+				return rc;
 		}
 	}
-
 	return LDAP_SUCCESS;
 }
 
