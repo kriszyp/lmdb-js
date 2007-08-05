@@ -229,7 +229,105 @@ LDAPv2 is disabled by default.
 
 H2: LDAP vs RDBMS
 
-To reference:
+This question is raised many times, in different forms. The most common, 
+however, is: {{Why doesn't OpenLDAP drop Berkeley DB and use a relational 
+database management system (RDBM) instead?}} In general, expecting that the 
+sophisticated algorithms implemented by commercial-grade RDBM would make 
+{{OpenLDAP}} be faster or somehow better and, at the same time, permitting 
+sharing of data with other applications.
+
+The short answer is that use of an embedded database and custom indexing system 
+allows OpenLDAP to provide greater performance and scalability without loss of 
+reliability. OpenLDAP, since release 2.1, in its main storage-oriented backends 
+(back-bdb and, since 2.2, back-hdb) uses Berkeley DB concurrent / transactional 
+database software. This is the same software used by leading commercial 
+directory software.
+
+Now for the long answer. We are all confronted all the time with the choice 
+RDBMs vs. directories. It is a hard choice and no simple answer exists.
+
+It is tempting to think that having a RDBMS backend to the directory solves all 
+problems. However, it is a pig. This is because the data models are very 
+different. Representing directory data with a relational database is going to 
+require splitting data into multiple tables.
+
+Think for a moment about the person objectclass. Its definition requires 
+attribute types objectclass, sn and cn and allows attribute types userPassword, 
+telephoneNumber, seeAlso and description. All of these attributes are multivalued, 
+so a normalization requires putting each attribute type in a separate table.
+
+Now you have to decide on appropriate keys for those tables. The primary key 
+might be a combination of the DN, but this becomes rather inefficient on most 
+database implementations.
+
+The big problem now is that accessing data from one entry requires seeking on 
+different disk areas. On some applications this may be OK but in many 
+applications performance suffers.
+
+The only attribute types that can be put in the main table entry are those that 
+are mandatory and single-value. You may add also the optional single-valued 
+attributes and set them to NULL or something if not present.
+
+But wait, the entry can have multiple objectclasses and they are organized in 
+an inheritance hierarchy. An entry of objectclass organizationalPerson now has 
+the attributes from person plus a few others and some formerly optional attribute 
+types are now mandatory.
+
+What to do? Should we have different tables for the different objectclasses? 
+This way the person would have an entry on the person table, another on 
+organizationalPerson, etc. Or should we get rid of person and put everything on 
+the second table?
+
+But what do we do with a filter like (cn=*) where cn is an attribute type that 
+appears in many, many objectclasses. Should we search all possible tables for 
+matching entries? Not very attractive.
+
+Once this point is reached, three approaches come to mind. One is to do full 
+normalization so that each attribute type, no matter what, has its own separate 
+table. The simplistic approach where the DN is part of the primary key is 
+extremely wasteful, and calls for an approach where the entry has a unique 
+numeric id that is used instead for the keys and a main table that maps DNs to 
+ids. The approach, anyway, is very inefficient when several attribute types from 
+one or more entries are requested. Such a database, though cumbersomely, 
+can be managed from SQL applications.
+
+The second approach is to put the whole entry as a blob in a table shared by all 
+entries regardless of the objectclass and have additional tables that act as 
+indices for the first table. Index tables are not database indices, but are 
+fully managed by the LDAP server-side implementation. However, the database 
+becomes unusable from SQL. And, thus, a fully fledged database system provides 
+little or no advantage. The full generality of the database is unneeded. 
+Much better to use something light and fast, like Berkeley DB. 
+
+A completely different way to see this is to give up any hopes of implementing 
+the directory data model. In this case, LDAP is used as an access protocol to 
+data that provides only superficially the directory data model. For instance, 
+it may be read only or, where updates are allowed, restrictions are applied, 
+such as making single-value attribute types that would allow for multiple values. 
+Or the impossibility to add new objectclasses to an existing entry or remove 
+one of those present. The restrictions span the range from allowed restrictions 
+(that might be elsewhere the result of access control) to outright violations of 
+the data model. It can be, however, a method to provide LDAP access to preexisting 
+data that is used by other applications. But in the understanding that we don't r
+eally have a "directory".
+
+Existing commercial LDAP server implementations that use a relational database 
+are either from the first kind or the third. I don't know of any implementation 
+that uses a relational database to do inefficiently what BDB does efficiently.
+For those who are interested in "third way" (exposing EXISTING data from RDBMS 
+as LDAP tree, having some limitations compared to classic LDAP model, but making 
+it possible to interoperate between LDAP and SQL applications):
+
+OpenLDAP includes back-sql - the backend that makes it possible. It uses ODBC + 
+additional metainformation about translating LDAP queries to SQL queries in your 
+RDBMS schema, providing different levels of access - from read-only to full 
+access depending on RDBMS you use, and your schema.
+
+For more information on concept and limitations, see {{slapd-sql}}(5) man page, 
+or the {{SECT: Backends}} section. There are also several examples for several 
+RDBMSes in {{F:back-sql/rdbms_depend/*}} subdirectories. 
+
+TO REFERENCE:
 
 http://blogs.sun.com/treydrake/entry/ldap_vs_relational_database
 http://blogs.sun.com/treydrake/entry/ldap_vs_relational_database_part
