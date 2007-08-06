@@ -27,7 +27,6 @@ LDAP_BEGIN_DECL
 extern BI_init			relay_back_initialize;
 
 extern BI_db_init		relay_back_db_init;
-extern BI_db_config		relay_back_db_config;
 extern BI_db_open		relay_back_db_open;
 extern BI_db_close		relay_back_db_close;
 extern BI_db_destroy		relay_back_db_destroy;
