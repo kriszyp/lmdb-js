@@ -79,7 +79,7 @@ relay_back_db_config(
 			if ( !BER_BVISNULL( &be->be_nsuffix[ 1 ] ) ) {
 				Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 					"%s: line %d: "
-					"relayng of multiple suffix "
+					"relaying of multiple suffix "
 					"database not supported.\n",
 					fname, lineno );
 				return 1;
