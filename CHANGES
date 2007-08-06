@@ -13,6 +13,8 @@ OpenLDAP 2.3.38 Engineering
 	Removed lint
 	Build Environment
 		Fixed macro definition of open() in glibc 2.6 (ITS#5075)
+	Documentation
+		aspell --lang=en_US -c <manpage> (ITS#5076)
 
 OpenLDAP 2.3.37 Release (2007/07/20)
 	Fixed slapd-glue/syncprov interaction (ITS#4623)
