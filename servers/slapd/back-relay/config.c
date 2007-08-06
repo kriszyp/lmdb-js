@@ -48,6 +48,14 @@ relay_back_db_config(
 		int		rc;
 		BackendDB	*bd;
 
+		if ( !BER_BVISNULL( &ri->ri_realsuffix ) ) {
+			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+				"%s: line %d: "
+				"relay dn already specified.\n",
+				fname, lineno );
+			return 1;
+		}
+
 		switch ( argc ) {
 		case 3:
 			if ( strcmp( argv[ 2 ], "massage" ) != 0 ) {
@@ -92,14 +100,6 @@ relay_back_db_config(
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: line %d: extra cruft "
 				"in \"relay <dn> [massage]\" line.\n",
-				fname, lineno );
-			return 1;
-		}
-
-		if ( !BER_BVISNULL( &ri->ri_realsuffix ) ) {
-			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: line %d: "
-				"relay dn already specified.\n",
 				fname, lineno );
 			return 1;
 		}
