@@ -59,7 +59,7 @@ typedef struct cached_query_s {
 	Qbase					*qbase;
 	int						scope;
 	struct berval			q_uuid;		/* query identifier */
-	struct query_template_s *qtemp;	/* template of the query */
+	struct query_template_s		*qtemp;	/* template of the query */
 	time_t 				expiry_time;	/* time till the query is considered valid */
 	struct cached_query_s  		*next;  	/* next query in the template */
 	struct cached_query_s  		*prev;  	/* previous query in the template */
@@ -1371,8 +1371,8 @@ add_filter_attrs(
 		count++;
 	}
 
-	*new_attrs = (AttributeName*)ch_malloc((count+1)*
-		sizeof(AttributeName));
+	*new_attrs = (AttributeName*)ch_calloc( count + 1,
+		sizeof(AttributeName) );
 	for (i=0; i<attrs->count; i++) {
 		(*new_attrs)[i].an_name = attrs->attrs[i].an_name;
 		(*new_attrs)[i].an_desc = attrs->attrs[i].an_desc;
@@ -1383,13 +1383,16 @@ add_filter_attrs(
 
 	j = i;
 	for ( i=0; i<fattr_cnt; i++ ) {
-		if ( an_find(*new_attrs, &filter_attrs[i].an_name ))
+		if ( an_find(*new_attrs, &filter_attrs[i].an_name ) ) {
 			continue;
+		}
 		if ( is_at_operational(filter_attrs[i].an_desc->ad_type) ) {
-			if (allop)
+			if ( allop ) {
 				continue;
-		} else if (alluser)
+			}
+		} else if ( alluser ) {
 			continue;
+		}
 		(*new_attrs)[j].an_name = filter_attrs[i].an_name;
 		(*new_attrs)[j].an_desc = filter_attrs[i].an_desc;
 		(*new_attrs)[j].an_oc = NULL;
@@ -1456,7 +1459,7 @@ pcache_op_search(
 	AttributeName	*filter_attrs = NULL;
 
 	Query		query;
-	QueryTemplate *qtemp = NULL;
+	QueryTemplate	*qtemp = NULL;
 
 	int 		attr_set = -1;
 	CachedQuery 	*answerable = NULL;
@@ -1554,7 +1557,7 @@ pcache_op_search(
 		}
 		ldap_pvt_thread_rdwr_wunlock(&qtemp->t_rwlock);
 
-		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
+		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx );
 		cb->sc_response = pcache_response;
 		cb->sc_cleanup = NULL;
 		cb->sc_private = (cb+1);
@@ -2384,7 +2387,7 @@ pcache_db_close(
 		avl_free( tm->qbase, pcache_free_qbase );
 		free( tm->querystr.bv_val );
 		ldap_pvt_thread_rdwr_destroy( &tm->t_rwlock );
-		if (tm->t_attrs.count ) free( tm->t_attrs.attrs );
+		free( tm->t_attrs.attrs );
 		free( tm );
 	}
 
