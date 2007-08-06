@@ -56,16 +56,70 @@ relay_back_db_config(
 			return 1;
 		}
 
-		if ( argc < 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing relay suffix in \"relay <dn> [massage]\" line\n",
-			    fname, lineno );
+		switch ( argc ) {
+		case 3:
+			if ( strcmp( argv[ 2 ], "massage" ) != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: "
+					"unknown arg[#2]=\"%s\" "
+					"in \"relay <dn> [massage]\" line\n",
+					fname, lineno, argv[ 2 ] );
+				return 1;
+			}
+
+			if ( be->be_nsuffix == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: "
+					"\"relay\" directive "
+					"must appear after \"suffix\".\n",
+					fname, lineno, 0 );
+				return 1;
+			}
+
+			if ( !BER_BVISNULL( &be->be_nsuffix[ 1 ] ) ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: "
+					"relaying of multiple suffix "
+					"database not supported.\n",
+					fname, lineno, 0 );
+				return 1;
+			}
+			/* fallthru */
+
+		case 2:
+			break;
+
+		case 1:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing relay suffix "
+				"in \"relay <dn> [massage]\" line.\n",
+				fname, lineno, 0 );
 			return 1;
 
-		} else if ( argc > 3 ) {
-			fprintf( stderr,
-	"%s: line %d: too many args in \"relay <dn> [massage]\" line\n",
-			    fname, lineno );
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: extra cruft "
+				"in \"relay <dn> [massage]\" line.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		/* The man page says that the "relay" directive
+		 * automatically instantiates slapo-rwm; I don't
+		 * like this very much any more, I'd prefer to
+		 * have automatic instantiation only when "massage"
+		 * is specified, so one has better control on
+		 * where the overlay gets instantiated, but this
+		 * would break compatibility.  One can still control
+		 * where the overlay is instantiated by moving
+		 * around the "relay" directive, although this could
+		 * make slapd.conf a bit confusing. */
+		if ( overlay_config( be, "rwm" ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: unable to install "
+				"rwm overlay "
+				"in \"relay <dn> [massage]\" line\n",
+				fname, lineno, 0 );
 			return 1;
 		}
 
@@ -73,68 +127,55 @@ relay_back_db_config(
 		dn.bv_len = strlen( argv[ 1 ] );
 		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: "
-					"relay dn \"%s\" is invalid "
-					"in \"relay <dn> [massage]\" line\n",
-					fname, lineno, argv[ 1 ] );
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: "
+				"relay dn \"%s\" is invalid "
+				"in \"relay <dn> [massage]\" line\n",
+				fname, lineno, argv[ 1 ] );
 			return 1;
 		}
 
 		bd = select_backend( &ndn, 0, 1 );
 		if ( bd == NULL ) {
-			fprintf( stderr, "%s: line %d: "
-					"cannot find database "
-					"of relay dn \"%s\" "
-					"in \"relay <dn> [massage]\" line\n",
-					fname, lineno, argv[ 1 ] );
-			return 1;
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: "
+				"cannot find database "
+				"of relay dn \"%s\" "
+				"in \"relay <dn> [massage]\" line\n",
+				fname, lineno, argv[ 1 ] );
+			rc = 1;
+			goto relay_done;
 
-		} else if ( bd == be ) {
-			fprintf( stderr, "%s: line %d: "
-					"relay dn \"%s\" would call self "
-					"in \"relay <dn> [massage]\" line\n",
-					fname, lineno, pdn.bv_val );
-			return 1;
+		} else if ( bd->be_private == be->be_private ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: "
+				"relay dn \"%s\" would call self "
+				"in \"relay <dn> [massage]\" line\n",
+				fname, lineno, pdn.bv_val );
+			rc = 1;
+			goto relay_done;
 		}
 
 		ri->ri_realsuffix = ndn;
 
-		if ( overlay_config( be, "rwm" ) ) {
-			fprintf( stderr, "%s: line %d: unable to install "
-					"rwm overlay "
-					"in \"relay <dn> [massage]\" line\n",
-					fname, lineno );
-			return 1;
-		}
-
 		if ( argc == 3 ) {
 			char	*cargv[ 4 ];
-
-			if ( strcmp( argv[2], "massage" ) != 0 ) {
-				fprintf( stderr, "%s: line %d: "
-					"unknown directive \"%s\" "
-					"in \"relay <dn> [massage]\" line\n",
-					fname, lineno, argv[2] );
-				return 1;
-			}
 
 			cargv[ 0 ] = "rwm-suffixmassage";
 			cargv[ 1 ] = be->be_suffix[0].bv_val;
 			cargv[ 2 ] = pdn.bv_val;
 			cargv[ 3 ] = NULL;
 
-			if ( be->be_config( be, fname, lineno, 3, cargv ) ) {
-				return 1;
-			}
+			rc = be->be_config( be, fname, lineno, 3, cargv );
 		}
 
+relay_done:;
 		ch_free( pdn.bv_val );
 
-	/* anything else */
-	} else {
-		return SLAP_CONF_UNKNOWN;
+		return rc;
 	}
 
-	return 0;
+	/* anything else */
+	return SLAP_CONF_UNKNOWN;
 }
 
