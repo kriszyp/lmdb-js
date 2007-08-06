@@ -48,6 +48,14 @@ relay_back_db_config(
 		int		rc;
 		BackendDB	*bd;
 
+		if ( !BER_BVISNULL( &ri->ri_realsuffix ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: "
+				"relay dn already specified.\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
 		if ( argc < 2 ) {
 			fprintf( stderr,
 	"%s: line %d: missing relay suffix in \"relay <dn> [massage]\" line\n",
