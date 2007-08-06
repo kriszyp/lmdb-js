@@ -298,10 +298,10 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	home = n2;
 #endif
 #if DB_VERSION_X >= 0x030100
-	err = env->open( env, home, envFlags, 0 );
+	err = (env->open)( env, home, envFlags, 0 );
 #else
 	/* 3.0.x requires an extra argument */
-	err = env->open( env, home, NULL, envFlags, 0 );
+	err = (env->open)( env, home, NULL, envFlags, 0 );
 #endif
 
 	if ( err != 0 ) {
@@ -380,9 +380,9 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	name = n2;
 #endif
 #if DB_VERSION_X >= 0x040111
-	err = ret->open( ret, NULL, name, NULL, DB_TYPE, rw, mode);
+	err = (ret->open)( ret, NULL, name, NULL, DB_TYPE, rw, mode);
 #else
-	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
+	err = (ret->open)( ret, name, NULL, DB_TYPE, rw, mode);
 #endif
 
 	if ( err != 0 ) {

@@ -10,6 +10,8 @@ OpenLDAP 2.3.38 Engineering
 	Fixed slapo-syncprov uninit'd vars (ITS#5048,#5049)
 	Fixed libldap ldap_add_result_entry (ITS#5056)
 	Removed lint
+	Build Environment
+		Fixed macro definition of open() in glibc 2.6 (ITS#5075)
 
 OpenLDAP 2.3.37 Release (2007/07/20)
 	Fixed slapd-glue/syncprov interaction (ITS#4623)
