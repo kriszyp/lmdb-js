@@ -418,7 +418,7 @@ If we wanted to service LDAP requests with filters like
 .fi
 .LP
 (note how the telephoneNumber match is expanded in multiple wildcards
-to account for interspersed ininfluential chars like spaces, dashes
+to account for interspersed influential chars like spaces, dashes
 and so; this occurs by design because telephoneNumber is defined after 
 a specially recognized syntax).
 So, if we had information about what tables contain values for each
@@ -654,7 +654,7 @@ A directoryString value of the form "__First___Last_"
 (where underscores mean spaces, ASCII 0x20 char) corresponds
 to its prettified counterpart "First_Last"; this is not currently
 honored by back-sql if non-prettified data is written via RDBMS;
-when non-prettified data is written thru back-sql, the prettified 
+when non-prettified data is written through back-sql, the prettified 
 values are actually used instead.
 
 .LP
