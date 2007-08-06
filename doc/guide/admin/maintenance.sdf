@@ -13,7 +13,7 @@ H2: Directory Backups
 MORE
 
 You can use {{slapcat}}(8) to generate an LDIF file for each of your {{slapd}}(8) 
-back-bdb or back-hdbdatabases.
+back-bdb or back-hdb databases.
 
 >    slapcat -f slapd.conf -b "dc=example,dc=com"
 
@@ -78,7 +78,7 @@ The advantages of {{F:DB_CONFIG}} usage can be the following:
 
 To figure out the best-practice BDB backup scenario, the reader is highly 
 recommended to read the whole Chapter 9: Berkeley DB Transactional Data Store Applications. 
-This chapter is a set of small pages with examples in C language. Non-prorgamming 
+This chapter is a set of small pages with examples in C language. Non-programming 
 people can skip this examples without loss of knowledge.
 
 

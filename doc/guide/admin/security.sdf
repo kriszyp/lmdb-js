@@ -143,7 +143,7 @@ this mechanism should generally remain disabled.
 A successful user/password authenticated bind results in a user
 authorization identity, the provided name, being associated with
 the session.  User/password authenticated bind is enabled by default.
-However, as this mechanism itself offers no evesdropping protection
+However, as this mechanism itself offers no eavesdropping protection
 (e.g., the password is set in the clear), it is recommended that
 it be used only in tightly controlled systems or when the LDAP
 session is protected by other means (e.g., TLS, {{TERM:IPsec}}).

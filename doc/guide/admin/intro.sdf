@@ -57,8 +57,8 @@ support browsing and searching.
 
 While some consider the Internet {{TERM[expand]DNS}} (DNS) is an
 example of a globally distributed directory service, DNS is not
-browsable nor searchable.  It is more properly described as a
-globaly distributed {{lookup}} service.
+browseable nor searchable.  It is more properly described as a
+globally distributed {{lookup}} service.
 
 
 H2: What is LDAP?
@@ -220,7 +220,7 @@ LDAPv3 adds the following features to LDAP:
 
 LDAPv2 is historic ({{REF:RFC3494}}).  As most {{so-called}} LDAPv2
 implementations (including {{slapd}}(8)) do not conform to the
-LDAPv2 technical specification, interoperatibility amongst
+LDAPv2 technical specification, interoperability amongst
 implementations claiming LDAPv2 support is limited.  As LDAPv2
 differs significantly from LDAPv3, deploying both LDAPv2 and LDAPv3
 simultaneously is quite problematic.  LDAPv2 should be avoided.
@@ -308,8 +308,8 @@ Or the impossibility to add new objectclasses to an existing entry or remove
 one of those present. The restrictions span the range from allowed restrictions 
 (that might be elsewhere the result of access control) to outright violations of 
 the data model. It can be, however, a method to provide LDAP access to preexisting 
-data that is used by other applications. But in the understanding that we don't r
-eally have a "directory".
+data that is used by other applications. But in the understanding that we don't
+really have a "directory".
 
 Existing commercial LDAP server implementations that use a relational database 
 are either from the first kind or the third. I don't know of any implementation 

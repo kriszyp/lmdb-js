@@ -179,7 +179,7 @@ be configured on a system-wide basis, they may all be overridden by
 individual users in their {{.ldaprc}} files.
 
 The LDAP Start TLS operation is used in LDAP to initiate TLS
-negotatation.  All OpenLDAP command line tools support a {{EX:-Z}}
+negotiation.  All OpenLDAP command line tools support a {{EX:-Z}}
 and {{EX:-ZZ}} flag to indicate whether a Start TLS operation is to
 be issued.  The latter flag indicates that the tool is to cease
 processing if TLS cannot be started while the former allows the

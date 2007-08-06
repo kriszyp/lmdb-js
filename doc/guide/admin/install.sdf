@@ -21,7 +21,7 @@ directly from the project's {{TERM:FTP}} service at
 
 The project makes available two series of packages for {{general
 use}}.  The project makes {{releases}} as new features and bug fixes
-come available.  Though the project takes steps to improve stablity
+come available.  Though the project takes steps to improve stability
 of these releases, it is common for problems to arise only after
 {{release}}.  The {{stable}} release is the latest {{release}} which
 has demonstrated stability through general use.

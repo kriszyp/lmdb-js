@@ -398,7 +398,7 @@ H4: olcAccess: to <what> [ by <who> [<accesslevel>] [<control>] ]+
 
 This directive grants access (specified by <accesslevel>) to a
 set of entries and/or attributes (specified by <what>) by one or
-more requesters (specified by <who>).
+more requestors (specified by <who>).
 See the {{SECT:Access Control}} section of this chapter for a
 summary of basic usage.
 
@@ -734,7 +734,7 @@ This directive specifies how often to checkpoint the BDB transaction log.
 A checkpoint operation flushes the database buffers to disk and writes a
 checkpoint record in the log.
 The checkpoint will occur if either <kbyte> data has been written or
-<min> minutes have passed since the last checkpont. Both arguments default
+<min> minutes have passed since the last checkpoint. Both arguments default
 to zero, in which case they are ignored. When the <min> argument is
 non-zero, an internal task will run every <min> minutes to perform the
 checkpoint. See the Berkeley DB reference guide for more details.
@@ -751,7 +751,7 @@ This attribute specifies a configuration directive to be placed in the
 no such file exists yet, the {{EX:DB_CONFIG}} file will be created and the
 settings in this attribute will be written to it. If the file exists,
 its contents will be read and displayed in this attribute. The attribute
-is multi-valued, to accomodate multiple configuration directives. No default
+is multi-valued, to accommodate multiple configuration directives. No default
 is provided, but it is essential to use proper settings here to get the
 best server performance.
 
@@ -781,7 +781,7 @@ cleanup procedure removes them. See the Berkeley DB documentation for the
 
 Ideally the BDB cache must be
 at least as large as the working set of the database, the log buffer size
-should be large enough to accomodate most transactions without overflowing,
+should be large enough to accommodate most transactions without overflowing,
 and the log directory must be on a separate physical disk from the main
 database files. And both the database directory and the log directory
 should be separate from disks used for regular system activities such as
@@ -898,7 +898,7 @@ created database index files should have.
 H4: olcDbSearchStack: <integer>
 
 Specify the depth of the stack used for search filter evaluation.
-Search filters are evaluated on a stack to accomodate nested {{EX:AND}} /
+Search filters are evaluated on a stack to accommodate nested {{EX:AND}} /
 {{EX:OR}} clauses. An individual stack is allocated for each server thread.
 The depth of the stack determines how complex a filter can be evaluated
 without requiring any additional memory allocation. Filters that are

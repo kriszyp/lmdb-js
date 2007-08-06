@@ -55,7 +55,7 @@ First, ensure {{core.schema}} schema configuration file is included
 by your {{slapd.conf}}(5) file.  The {{monitor}} backend requires
 it.
 
-Second, instanticate the {{monitor backend}} by adding a
+Second, instantiate the {{monitor backend}} by adding a
 {{database monitor}} directive below your existing database
 sections.  For instance:
 
@@ -64,7 +64,7 @@ sections.  For instance:
 Lastly, add additional global or database directives as needed.
 
 Like most other database backends, the monitor backend does honor
-slapd(8) access and other adminstrative controls.   As some monitor
+slapd(8) access and other administrative controls.   As some monitor
 information may be sensitive, it is generally recommend access to
 cn=monitor be restricted to directory administrators and their
 monitoring agents.  Adding an {{access}} directive immediately below
@@ -99,7 +99,7 @@ Note that unlike general purpose database backends, the database
 suffix is hardcoded.  It's always {{EX:cn=Monitor}}.  So no {{suffix}}
 directive should be provided.  Also note that general purpose
 database backends, the monitor backend cannot be instantiated
-multiple times.  That is, there can only be one (or zero) occurances
+multiple times.  That is, there can only be one (or zero) occurrences
 of {{EX:database monitor}} in the server's configuration.
 
 

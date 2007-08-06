@@ -15,7 +15,7 @@ may also be configured globally.
 
 Essentially they represent a means to:
 
-    * customise the behavior of existing backends without changing the backend 
+    * customize the behavior of existing backends without changing the backend 
       code and without requiring one to write a new custom backend with 
       complete functionality
     * write functionality of general usefulness that can be applied to 
@@ -159,7 +159,7 @@ entries corresponding to search filters instead of subtrees.
 H3: Overview
 
 The proxy cache extension of slapd is designed to improve the
-responseiveness of the ldap and meta backends. It handles a search
+responsiveness of the ldap and meta backends. It handles a search
 request (query)
 by first determining whether it is contained in any cached search
 filter. Contained requests are answered from the proxy cache's local
@@ -216,7 +216,7 @@ total number of entries which may be held in the cache.  The
 <nattrsets> parameter specifies the total number of attribute sets
 (as specified by the {{EX:proxyAttrSet}} directive) that may be
 defined.  The <entrylimit> parameter specifies the maximum number of
-entries in a cachable query.  The <period> specifies the consistency
+entries in a cacheable query.  The <period> specifies the consistency
 check period (in seconds).  In each period, queries with expired
 TTLs are removed.
 
@@ -311,7 +311,7 @@ H2: Referential Integrity
 H3: Overview
 
 This overlay can be used with a backend database such as slapd-bdb (5)
-to maintain the cohesiveness of a schema which utilises reference
+to maintain the cohesiveness of a schema which utilizes reference
 attributes.
 
 
@@ -399,7 +399,7 @@ H2: Overlay Stacking
 H3: Overview
 
 
-H3: Example Senarios
+H3: Example Scenarios
 
 
 H4: Samba

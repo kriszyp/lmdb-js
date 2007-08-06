@@ -353,7 +353,7 @@ allows zero or more repeats of the immediately preceding character
 or pattern, and terms in parenthesis are remembered for the replacement
 pattern.
 
-The replacement pattern will produce either a DN or URL refering
+The replacement pattern will produce either a DN or URL referring
 to the user.  Anything from the authentication request DN that
 matched a string in parenthesis in the search pattern is stored in
 the variable "$1". That variable "$1" can appear in the replacement
@@ -543,7 +543,7 @@ database could then be only allowed by that DN, and in order to
 become that DN, users must first authenticate as one of the persons
 on the list. This allows for better auditing of who made changes
 to the LDAP database.  If people were allowed to authenticate
-directly to the priviliged account, possibly through the {{EX:rootpw}}
+directly to the privileged account, possibly through the {{EX:rootpw}}
 {{slapd.conf}}(5) directive or through a {{EX:userPassword}}
 attribute, then auditing becomes more difficult.
 
@@ -577,7 +577,7 @@ or
 
 In the first form, the <username> is from the same namespace as
 the authentication identities above. It is the user's username as
-it is refered to by the underlying authentication mechanism.
+it is referred to by the underlying authentication mechanism.
 Authorization identities of this form are converted into a DN format
 by the same function that the authentication process used, producing
 an {{authorization request DN}} of the form
@@ -618,7 +618,7 @@ authentication DN entry, and if none of the {{EX:authzTo}} rules
 specify the authorization is permitted, the {{EX:authzFrom}}
 rules in the authorization DN entry are then checked. If neither
 case specifies that the request be honored, the request is denied.
-Since the default behaviour is to deny authorization requests, rules
+Since the default behavior is to deny authorization requests, rules
 only specify that a request be allowed; there are no negative rules
 telling what authorizations to deny.
 
@@ -662,7 +662,7 @@ comparison can be evaluated much faster than an LDAP search for
 Also note that the values in an authorization rule must be one of
 the two forms: an LDAP URL or a DN (with or without regular expression
 characters). Anything that does not begin with "{{EX:ldap://}}" is
-taken as a DN. It is not permissable to enter another authorization
+taken as a DN. It is not permissible to enter another authorization
 identity of the form "{{EX:u:<username>}}" as an authorization rule.
 
 

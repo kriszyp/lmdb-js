@@ -18,7 +18,7 @@ special utilities provided with slapd. This method is best if you
 have many thousands of entries to create, which would take an
 unacceptably long time using the LDAP method, or if you want to
 ensure the database is not accessed while it is being created. Note
-that not all database types support these utilitites.
+that not all database types support these utilities.
 
 
 H2: Creating a database over LDAP

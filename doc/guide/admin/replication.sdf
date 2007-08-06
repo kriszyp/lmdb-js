@@ -23,7 +23,7 @@ has been completely removed from 2.4.
 
 {{Why was it replaced?}}
 
-The slurpd daemon was the original replication mechanisim inherited from 
+The slurpd daemon was the original replication mechanism inherited from 
 UMich's LDAP and operates in push mode: the master pushes changes to the 
 slaves. It has been replaced for many reasons, in brief:
 
@@ -41,9 +41,9 @@ Syncrepl.
 
 {{Why is Syncrepl better?}}
 
- - Syncrepl is self-synchronising; you can start with a database in any 
-   state from totally empty to fully sync'd and it will automatically do 
-   the right thing to achieve and maintain synchronisation
+ - Syncrepl is self-synchronizing; you can start with a database in any 
+   state from totally empty to fully synced and it will automatically do 
+   the right thing to achieve and maintain synchronization
  - Syncrepl can operate in either direction
  - Data updates can be minimal or maximal
 
@@ -52,7 +52,7 @@ Syncrepl.
 The easiest way is to point an LDAP backend ({{SECT: Backends}} and {{slapd-ldap(8)}}) 
 to your slave/s directory and setup Syncrepl to point to your Master database.
 
-REFERENCE test045/048 for better explaination of above.
+REFERENCE test045/048 for better explanation of above.
 
 If you imagine Syncrepl pulling down changes from the Master server, and then
 pushing those changes out to your slave servers via {{slapd-ldap(8)}}. This is 
@@ -104,7 +104,7 @@ Here's an example:
 >			credentials=monitor
 >	
 >	# HACK: use the RootDN of the monitor database as UpdateDN so ACLs apply
->	# whithout the need to write the UpdateDN before starting replication
+>	# without the need to write the UpdateDN before starting replication
 >	syncrepl	rid=1
 >			provider=ldap://localhost:9011/
 >			binddn="cn=Manager,dc=example,dc=com"
@@ -122,7 +122,7 @@ Here's an example:
 >	
 >	database	monitor
 
-DETAILED EXPLAINATION OF ABOVE LIKE IN OTHER SECTIONS (line numbers?)
+DETAILED EXPLANATION OF ABOVE LIKE IN OTHER SECTIONS (line numbers?)
 
 
 ANOTHER DIAGRAM HERE

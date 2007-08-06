@@ -91,7 +91,7 @@ H4: access to <what> [ by <who> [<accesslevel>] [<control>] ]+
 
 This directive grants access (specified by <accesslevel>) to a set
 of entries and/or attributes (specified by <what>) by one or more
-requesters (specified by <who>).  See the {{SECT:The access
+requestors (specified by <who>).  See the {{SECT:The access
 Configuration Directive}} section of this chapter for a summary of
 basic usage.
 

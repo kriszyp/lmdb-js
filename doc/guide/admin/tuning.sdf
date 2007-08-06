@@ -78,7 +78,7 @@ General rule: don't go overboard with indexes. Unused indexes must be maintained
 See {{slapd.conf}}(8) and {{slapdindex}}(8) for more information
 
 
-H3: Presense indexing
+H3: Presence indexing
 
 If your client application uses presence filters and if the
 target attribute exists on the majority of entries in your target scope, then
@@ -214,7 +214,7 @@ check this number for both dn2id and id2entry.
 Also note that {{id2entry}} always uses 16KB per "page", while {{dn2id}} uses whatever 
 the underlying filesystem uses, typically 4 or 8KB. To avoid thrashing the, 
 your cache must be at least as large as the number of internal pages in both 
-the {{dn2id}} and {{id2entry}} databases, plus some extra space to accomodate the actual 
+the {{dn2id}} and {{id2entry}} databases, plus some extra space to accommodate the actual 
 leaf data pages.
 
 For example, in my OpenLDAP 2.4 test database, I have an input LDIF file that's 
@@ -334,7 +334,7 @@ It will consume the memory resources of your system, and likely cause issues.
 
 I try to cache the most actively used entries. Unless you expect all 400,000 entries of your DB to be accessed regularly, there is no need to cache that many entries. My entry cache is set to 20,000 (out of a little over 400,000 entries).
 
-The idl cache has to do with how many unique result sets of searches you want to store in memory. Setting up this cache will allow your most frequently placed searches to get results much faster, but I doubt you want to try and cache the results of every search that hits your system. ;)
+The idlcache has to do with how many unique result sets of searches you want to store in memory. Setting up this cache will allow your most frequently placed searches to get results much faster, but I doubt you want to try and cache the results of every search that hits your system. ;)
 
 --Quanah
 
