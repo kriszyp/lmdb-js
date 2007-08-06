@@ -298,7 +298,7 @@ shm_retry:
 		bdb->bi_dbenv->set_shm_key( bdb->bi_dbenv, bdb->bi_shm_key );
 		flags |= DB_SYSTEM_MEM;
 	}
-	rc = bdb->bi_dbenv->open( bdb->bi_dbenv, dbhome,
+	rc = (bdb->bi_dbenv->open)( bdb->bi_dbenv, dbhome,
 			flags | do_recover, bdb->bi_dbenv_mode );
 
 	if ( rc ) {

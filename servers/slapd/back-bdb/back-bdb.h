@@ -239,7 +239,7 @@ struct bdb_op_info {
 };
 
 #define	DB_OPEN(db, file, name, type, flags, mode) \
-	(db)->open(db, file, name, type, flags, mode)
+	((db)->open)(db, file, name, type, flags, mode)
 
 #if DB_VERSION_MAJOR < 4
 #define LOCK_DETECT(env,f,t,a)		lock_detect(env, f, t, a)
@@ -270,7 +270,7 @@ struct bdb_op_info {
 #if DB_VERSION_FULL >= 0x04010011
 #undef DB_OPEN
 #define	DB_OPEN(db, file, name, type, flags, mode) \
-	(db)->open(db, NULL, file, name, type, flags, mode)
+	((db)->open)(db, NULL, file, name, type, flags, mode)
 #endif
 
 #endif

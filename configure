@@ -31147,9 +31147,9 @@ main()
 	}
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-	rc = env->open( env, NULL, flags, 0 );
+	rc = (env->open)( env, NULL, flags, 0 );
 #else
-	rc = env->open( env, NULL, NULL, flags, 0 );
+	rc = (env->open)( env, NULL, NULL, flags, 0 );
 #endif
 
 	if ( rc == 0 ) {
