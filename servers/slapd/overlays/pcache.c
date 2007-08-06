@@ -1609,28 +1609,47 @@ get_attr_set(
 		for ( ; attrs[count].an_name.bv_val; count++ );
 	}
 
-	for (i=0; i<num; i++) {
+	/* recognize a single "*" or a "1.1" */
+	if ( count == 0 ) {
+		count = 1;
+		attrs = slap_anlist_all_user_attributes;
+
+	} else if ( count == 1 && strcmp( attrs[0].an_name.bv_val, LDAP_NO_ATTRS ) == 0 ) {
+		count = 0;
+		attrs = NULL;
+	}
+
+	for ( i = 0; i < num; i++ ) {
 		AttributeName *a2;
 		int found = 1;
 
-		if ( count > qm->attr_sets[i].count )
-			continue;
-		if ( !count ) {
-			if ( !qm->attr_sets[i].count )
-				break;
+		if ( count > qm->attr_sets[i].count ) {
 			continue;
 		}
+
+		if ( !count ) {
+			if ( !qm->attr_sets[i].count ) {
+				break;
+			}
+			continue;
+		}
+
 		for ( a2 = attrs; a2->an_name.bv_val; a2++ ) {
-			if ( !an_find( qm->attr_sets[i].attrs, &a2->an_name )) {
+			if ( !an_find( qm->attr_sets[i].attrs, &a2->an_name ) ) {
 				found = 0;
 				break;
 			}
 		}
-		if ( found )
+
+		if ( found ) {
 			break;
+		}
 	}
-	if ( i == num )
+
+	if ( i == num ) {
 		i = -1;
+	}
+
 	return i;
 }
 
@@ -2005,30 +2024,96 @@ pc_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		qm->attr_sets[num].flags |= PC_CONFIGURED;
-		if ( c->argc > 2 && strcmp( c->argv[2], "*" ) ) {
+		if ( c->argc == 2 ) {
+			/* assume "1.1" */
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"need an explicit attr in attrlist; use \"*\" to indicate all attrs" );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			return 1;
+
+		} else if ( c->argc == 3 ) {
+			if ( strcmp( c->argv[2], LDAP_ALL_USER_ATTRIBUTES ) == 0 ) {
+				qm->attr_sets[num].count = 1;
+				qm->attr_sets[num].attrs = (AttributeName*)ch_calloc( 2,
+					sizeof( AttributeName ) );
+				BER_BVSTR( &qm->attr_sets[num].attrs[0].an_name, LDAP_ALL_USER_ATTRIBUTES );
+				break;
+
+			} else if ( strcmp( c->argv[2], LDAP_ALL_OPERATIONAL_ATTRIBUTES ) == 0 ) {
+				qm->attr_sets[num].count = 1;
+				qm->attr_sets[num].attrs = (AttributeName*)ch_calloc( 2,
+					sizeof( AttributeName ) );
+				BER_BVSTR( &qm->attr_sets[num].attrs[0].an_name, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
+				break;
+
+			} else if ( strcmp( c->argv[2], LDAP_NO_ATTRS ) == 0 ) {
+				break;
+			}
+			/* else: fallthru */
+
+		} else if ( c->argc == 4 ) {
+			if ( ( strcmp( c->argv[2], LDAP_ALL_USER_ATTRIBUTES ) == 0 && strcmp( c->argv[3], LDAP_ALL_OPERATIONAL_ATTRIBUTES ) == 0 )
+				|| ( strcmp( c->argv[2], LDAP_ALL_OPERATIONAL_ATTRIBUTES ) == 0 && strcmp( c->argv[3], LDAP_ALL_USER_ATTRIBUTES ) == 0 ) )
+			{
+				qm->attr_sets[num].count = 2;
+				qm->attr_sets[num].attrs = (AttributeName*)ch_calloc( 3,
+					sizeof( AttributeName ) );
+				BER_BVSTR( &qm->attr_sets[num].attrs[0].an_name, LDAP_ALL_USER_ATTRIBUTES );
+				BER_BVSTR( &qm->attr_sets[num].attrs[1].an_name, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
+				break;
+			}
+			/* else: fallthru */
+		}
+
+		if ( c->argc > 2 ) {
+			int all_user = 0, all_op = 0;
+
 			qm->attr_sets[num].count = c->argc - 2;
-			qm->attr_sets[num].attrs = (AttributeName*)ch_malloc(
-						(c->argc-1) * sizeof( AttributeName ));
+			qm->attr_sets[num].attrs = (AttributeName*)ch_calloc( c->argc - 1,
+				sizeof( AttributeName ) );
 			attr_name = qm->attr_sets[num].attrs;
 			for ( i = 2; i < c->argc; i++ ) {
 				attr_name->an_desc = NULL;
-				if ( slap_str2ad( c->argv[i], 
-						&attr_name->an_desc, &text ) )
-				{
-					strcpy( c->cr_msg, text );
+				if ( strcmp( c->argv[i], LDAP_NO_ATTRS ) == 0 ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
+						"invalid attr #%d \"%s\" in attrlist",
+						i - 2, c->argv[i] );
 					Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					ch_free( qm->attr_sets[num].attrs );
 					qm->attr_sets[num].attrs = NULL;
 					qm->attr_sets[num].count = 0;
 					return 1;
 				}
-				attr_name->an_name = attr_name->an_desc->ad_cname;
+				if ( strcmp( c->argv[i], LDAP_ALL_USER_ATTRIBUTES ) == 0 ) {
+					all_user = 1;
+					BER_BVSTR( &attr_name->an_name, LDAP_ALL_USER_ATTRIBUTES );
+				} else if ( strcmp( c->argv[i], LDAP_ALL_OPERATIONAL_ATTRIBUTES ) == 0 ) {
+					all_op = 1;
+					BER_BVSTR( &attr_name->an_name, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
+				} else {
+					if ( slap_str2ad( c->argv[i], &attr_name->an_desc, &text ) ) {
+						strcpy( c->cr_msg, text );
+						Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+						ch_free( qm->attr_sets[num].attrs );
+						qm->attr_sets[num].attrs = NULL;
+						qm->attr_sets[num].count = 0;
+						return 1;
+					}
+					attr_name->an_name = attr_name->an_desc->ad_cname;
+				}
 				attr_name->an_oc = NULL;
 				attr_name->an_oc_exclude = 0;
 				if ( attr_name->an_desc == slap_schema.si_ad_objectClass )
 					qm->attr_sets[num].flags |= PC_GOT_OC;
 				attr_name++;
 				BER_BVZERO( &attr_name->an_name );
+			}
+
+			/* warn if list contains both "*" and "+" */
+			if ( i > 4 && all_user && all_op ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"warning: attribute list contains \"*\" and \"+\"" );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			}
 		}
 		break;
@@ -2299,7 +2384,7 @@ pcache_db_close(
 		avl_free( tm->qbase, pcache_free_qbase );
 		free( tm->querystr.bv_val );
 		ldap_pvt_thread_rdwr_destroy( &tm->t_rwlock );
-		free( tm->t_attrs.attrs );
+		if (tm->t_attrs.count ) free( tm->t_attrs.attrs );
 		free( tm );
 	}
 
