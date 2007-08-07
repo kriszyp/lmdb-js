@@ -443,6 +443,15 @@ int bdb_monitor_db_open( BackendDB *be );
 int bdb_monitor_db_close( BackendDB *be );
 int bdb_monitor_db_destroy( BackendDB *be );
 
+#ifdef BDB_MONITOR_IDX
+#define bdb_monitor_idx_add	BDB_SYMBOL(monitor_idx_add)
+int
+bdb_monitor_idx_add(
+	struct bdb_info		*bdb,
+	AttributeDescription	*desc,
+	slap_mask_t		type );
+#endif /* BDB_MONITOR_IDX */
+
 /*
  * cache.c
  */

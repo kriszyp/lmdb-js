@@ -84,7 +84,6 @@ bdb_db_init( BackendDB *be, ConfigReply *cr )
 	ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
 	ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 
-
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 

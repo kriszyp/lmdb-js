@@ -208,6 +208,12 @@ struct bdb_info {
 	char		*bi_db_config_path;
 	BerVarray	bi_db_config;
 	bdb_monitor_t	bi_monitor;
+
+#ifdef BDB_MONITOR_IDX
+	ldap_pvt_thread_mutex_t	bi_idx_mutex;
+	Avlnode		*bi_idx;
+#endif /* BDB_MONITOR_IDX */
+
 	int		bi_flags;
 #define	BDB_IS_OPEN		0x01
 #define	BDB_HAS_CONFIG	0x02

@@ -35,6 +35,15 @@ static AttributeDescription	*ad_olmBDBEntryCache,
 	*ad_olmBDBEntryInfo, *ad_olmBDBIDLCache,
 	*ad_olmDbDirectory;
 
+#ifdef BDB_MONITOR_IDX
+static int
+bdb_monitor_idx_entry_add(
+	struct bdb_info	*bdb,
+	Entry		*e );
+
+static AttributeDescription	*ad_olmBDBNotIndexed;
+#endif /* BDB_MONITOR_IDX */
+
 /*
  * NOTE: there's some confusion in monitor OID arc;
  * by now, let's consider:
@@ -95,6 +104,16 @@ static struct {
 		"USAGE dSAOperation )",
 		&ad_olmDbDirectory },
 
+#ifdef BDB_MONITOR_IDX
+	{ "( olmBDBAttributes:5 "
+		"NAME ( 'olmBDBNotIndexed' ) "
+		"DESC 'Missing indexes resulting from candidate selection' "
+		"SUP monitoredInfo "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmBDBNotIndexed },
+#endif /* BDB_MONITOR_IDX */
+
 	{ NULL }
 };
 
@@ -112,6 +131,9 @@ static struct {
 			"$ olmBDBEntryInfo "
 			"$ olmBDBIDLCache "
 			"$ olmDbDirectory "
+#ifdef BDB_MONITOR_IDX
+			"$ olmBDBNotIndexed "
+#endif /* BDB_MONITOR_IDX */
 			") )",
 		&oc_olmBDBDatabase },
 
@@ -149,6 +171,10 @@ bdb_monitor_update(
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_idl_cache_size );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 	
+#ifdef BDB_MONITOR_IDX
+	bdb_monitor_idx_entry_add( bdb, e );
+#endif /* BDB_MONITOR_IDX */
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -283,6 +309,11 @@ bdb_monitor_db_init( BackendDB *be )
 		/* monitoring in back-bdb is on by default */
 		SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_MONITORING;
 	}
+
+#ifdef BDB_MONITOR_IDX
+	bdb->bi_idx = NULL;
+	ldap_pvt_thread_mutex_init( &bdb->bi_idx_mutex );
+#endif /* BDB_MONITOR_IDX */
 
 	bdb->bi_monitor.bdm_scope = -1;
 
@@ -545,5 +576,161 @@ bdb_monitor_db_destroy( BackendDB *be )
 		return 0;
 	}
 
+#ifdef BDB_MONITOR_IDX
+	{
+		struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
+
+		/* TODO: free tree */
+		ldap_pvt_thread_mutex_destroy( &bdb->bi_idx_mutex );
+		avl_free( bdb->bi_idx, ch_free );
+	}
+#endif /* BDB_MONITOR_IDX */
+
 	return 0;
 }
+
+#ifdef BDB_MONITOR_IDX
+typedef struct monitor_idx_t monitor_idx_t;
+
+struct monitor_idx_t {
+	AttributeDescription	*idx_ad;
+	slap_mask_t		idx_type;
+	unsigned long		idx_count;
+};
+
+static int
+monitor_idx_cmp( const void *p1, const void *p2 )
+{
+	const monitor_idx_t	*idx1 = (const monitor_idx_t *)p1;
+	const monitor_idx_t	*idx2 = (const monitor_idx_t *)p2;
+
+	return SLAP_PTRCMP( idx1->idx_ad, idx2->idx_ad );
+}
+
+static int
+monitor_idx_dup( void *p1, void *p2 )
+{
+	monitor_idx_t	*idx1 = (monitor_idx_t *)p1;
+	monitor_idx_t	*idx2 = (monitor_idx_t *)p2;
+
+	return SLAP_PTRCMP( idx1->idx_ad, idx2->idx_ad ) == 0 ? -1 : 0;
+}
+
+int
+bdb_monitor_idx_add(
+	struct bdb_info		*bdb,
+	AttributeDescription	*desc,
+	slap_mask_t		type )
+{
+	monitor_idx_t		idx_dummy = { 0 },
+				*idx;
+	int			rc = 0;
+
+	idx_dummy.idx_ad = desc;
+	if ( type == SLAP_INDEX_SUBSTR ) {
+		type = SLAP_INDEX_SUBSTR_DEFAULT;
+	}
+
+	ldap_pvt_thread_mutex_lock( &bdb->bi_idx_mutex );
+
+	idx = (monitor_idx_t *)avl_find( bdb->bi_idx,
+		(caddr_t)&idx_dummy, monitor_idx_cmp );
+	if ( idx == NULL ) {
+		idx = (monitor_idx_t *)ch_malloc( sizeof( monitor_idx_t ) );
+		idx->idx_ad = desc;
+		idx->idx_type = type;
+		idx->idx_count = 1;
+
+		switch ( avl_insert( &bdb->bi_idx, (caddr_t)idx, 
+			monitor_idx_cmp, monitor_idx_dup ) )
+		{
+		case 0:
+			break;
+
+		default:
+			ch_free( idx );
+			rc = -1;
+		}
+
+	} else {
+		idx->idx_type |= type;
+		idx->idx_count++;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_idx_mutex );
+
+	return rc;
+}
+
+static int
+bdb_monitor_idx_apply( void *v_idx, void *v_valp )
+{
+	monitor_idx_t	*idx = (monitor_idx_t *)v_idx;
+	BerVarray	*valp = (BerVarray *)v_valp;
+
+	struct berval	bv, index;
+	char		*ptr;
+	char		count_buf[ SLAP_TEXT_BUFLEN ];
+	ber_len_t	count_len;
+
+	count_len = snprintf( count_buf, sizeof( count_buf ), "%lu", idx->idx_count );
+	slap_index2bvlen( idx->idx_type, &index );
+
+	bv.bv_len = idx->idx_ad->ad_cname.bv_len
+		+ STRLENOF( "##" )
+		+ count_len
+		+ index.bv_len;
+	ptr = bv.bv_val = ch_malloc( bv.bv_len + 1 );
+	ptr = lutil_strcopy( ptr, idx->idx_ad->ad_cname.bv_val );
+	ptr[ 0 ] = '#';
+	++ptr;
+	ptr = lutil_strcopy( ptr, count_buf );
+	ptr[ 0 ] = '#';
+	index.bv_val = ++ptr;
+	assert( index.bv_val + index.bv_len == bv.bv_val + bv.bv_len );
+	slap_index2bv( idx->idx_type, &index );
+
+	ber_bvarray_add( valp, &bv );
+
+	return 0;
+}
+
+static int
+bdb_monitor_idx_entry_add(
+	struct bdb_info	*bdb,
+	Entry		*e )
+{
+	BerVarray	vals = NULL;
+	Attribute	*a;
+
+	a = attr_find( e->e_attrs, ad_olmBDBNotIndexed );
+
+	ldap_pvt_thread_mutex_lock( &bdb->bi_idx_mutex );
+
+	avl_apply( bdb->bi_idx, bdb_monitor_idx_apply,
+		&vals, -1, AVL_INORDER );
+
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_idx_mutex );
+
+	if ( vals != NULL ) {
+		if ( a != NULL ) {
+			assert( a->a_nvals == a->a_vals );
+
+			ber_bvarray_free( a->a_vals );
+
+		} else {
+			Attribute	**ap;
+
+			for ( ap = &e->e_attrs; *ap != NULL; ap = &(*ap)->a_next )
+				;
+			*ap = attr_alloc( ad_olmBDBNotIndexed );
+			a = *ap;
+		}
+		a->a_vals = vals;
+		a->a_nvals = a->a_vals;
+	}
+
+	return 0;
+}
+
+#endif /* BDB_MONITOR_IDX */
