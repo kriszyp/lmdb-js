@@ -3351,6 +3351,14 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
+			if ( select_backend( &si->si_base, 0 ) != c->be ) {
+				ber_memfree( si->si_base.bv_val );
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"Base DN \"%s\" is not within the database naming context",
+					val );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				return -1;
+			}
 			gots |= GOT_BASE;
 		} else if ( !strncasecmp( c->argv[ i ], LOGBASESTR "=",
 					STRLENOF( LOGBASESTR "=" ) ) )
