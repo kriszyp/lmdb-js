@@ -590,13 +590,50 @@ bdb_monitor_db_destroy( BackendDB *be )
 }
 
 #ifdef BDB_MONITOR_IDX
+
+#define BDB_MONITOR_IDX_TYPES	(4)
+
 typedef struct monitor_idx_t monitor_idx_t;
 
 struct monitor_idx_t {
 	AttributeDescription	*idx_ad;
-	slap_mask_t		idx_type;
-	unsigned long		idx_count;
+	unsigned long		idx_count[BDB_MONITOR_IDX_TYPES];
 };
+
+static int
+bdb_monitor_bitmask2key( slap_mask_t bitmask )
+{
+	int	key;
+
+	for ( key = 0; key < 8*sizeof(slap_mask_t) && !( bitmask & 0x1U ); key++ ) {
+		bitmask >>= 1;
+	}
+
+	return key;
+}
+
+static struct berval idxbv[] = {
+	BER_BVC( "present=" ),
+	BER_BVC( "equality=" ),
+	BER_BVC( "approx=" ),
+	BER_BVC( "substr=" ),
+	BER_BVNULL
+};
+
+static ber_len_t
+bdb_monitor_idx2len( monitor_idx_t *idx )
+{
+	int		i;
+	ber_len_t	len = 0;
+
+	for ( i = 0; i < BDB_MONITOR_IDX_TYPES; i++ ) {
+		if ( idx->idx_count[ i ] != 0 ) {
+			len += idxbv[i].bv_len;
+		}
+	}
+
+	return len;
+}
 
 static int
 monitor_idx_cmp( const void *p1, const void *p2 )
@@ -624,11 +661,13 @@ bdb_monitor_idx_add(
 {
 	monitor_idx_t		idx_dummy = { 0 },
 				*idx;
-	int			rc = 0;
+	int			rc = 0, key;
 
 	idx_dummy.idx_ad = desc;
-	if ( type == SLAP_INDEX_SUBSTR ) {
-		type = SLAP_INDEX_SUBSTR_DEFAULT;
+	key = bdb_monitor_bitmask2key( type ) - 1;
+	if ( key >= BDB_MONITOR_IDX_TYPES ) {
+		/* invalid index type */
+		return -1;
 	}
 
 	ldap_pvt_thread_mutex_lock( &bdb->bi_idx_mutex );
@@ -636,10 +675,9 @@ bdb_monitor_idx_add(
 	idx = (monitor_idx_t *)avl_find( bdb->bi_idx,
 		(caddr_t)&idx_dummy, monitor_idx_cmp );
 	if ( idx == NULL ) {
-		idx = (monitor_idx_t *)ch_malloc( sizeof( monitor_idx_t ) );
+		idx = (monitor_idx_t *)ch_calloc( sizeof( monitor_idx_t ), 1 );
 		idx->idx_ad = desc;
-		idx->idx_type = type;
-		idx->idx_count = 1;
+		idx->idx_count[ key ] = 1;
 
 		switch ( avl_insert( &bdb->bi_idx, (caddr_t)idx, 
 			monitor_idx_cmp, monitor_idx_dup ) )
@@ -653,8 +691,7 @@ bdb_monitor_idx_add(
 		}
 
 	} else {
-		idx->idx_type |= type;
-		idx->idx_count++;
+		idx->idx_count[ key ]++;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_idx_mutex );
@@ -668,27 +705,42 @@ bdb_monitor_idx_apply( void *v_idx, void *v_valp )
 	monitor_idx_t	*idx = (monitor_idx_t *)v_idx;
 	BerVarray	*valp = (BerVarray *)v_valp;
 
-	struct berval	bv, index;
+	struct berval	bv;
 	char		*ptr;
-	char		count_buf[ SLAP_TEXT_BUFLEN ];
-	ber_len_t	count_len;
+	char		count_buf[ BDB_MONITOR_IDX_TYPES ][ SLAP_TEXT_BUFLEN ];
+	ber_len_t	count_len[ BDB_MONITOR_IDX_TYPES ],
+			idx_len;
+	int		i, num = 0;
 
-	count_len = snprintf( count_buf, sizeof( count_buf ), "%lu", idx->idx_count );
-	slap_index2bvlen( idx->idx_type, &index );
+	idx_len = bdb_monitor_idx2len( idx );
 
-	bv.bv_len = idx->idx_ad->ad_cname.bv_len
-		+ STRLENOF( "##" )
-		+ count_len
-		+ index.bv_len;
+	bv.bv_len = 0;
+	for ( i = 0; i < BDB_MONITOR_IDX_TYPES; i++ ) {
+		if ( idx->idx_count[ i ] == 0 ) {
+			continue;
+		}
+
+		count_len[ i ] = snprintf( count_buf[ i ],
+			sizeof( count_buf[ i ] ), "%lu", idx->idx_count[ i ] );
+		bv.bv_len += count_len[ i ];
+		num++;
+	}
+
+	bv.bv_len += idx->idx_ad->ad_cname.bv_len
+		+ num
+		+ idx_len;
 	ptr = bv.bv_val = ch_malloc( bv.bv_len + 1 );
 	ptr = lutil_strcopy( ptr, idx->idx_ad->ad_cname.bv_val );
-	ptr[ 0 ] = '#';
-	++ptr;
-	ptr = lutil_strcopy( ptr, count_buf );
-	ptr[ 0 ] = '#';
-	index.bv_val = ++ptr;
-	assert( index.bv_val + index.bv_len == bv.bv_val + bv.bv_len );
-	slap_index2bv( idx->idx_type, &index );
+	for ( i = 0; i < BDB_MONITOR_IDX_TYPES; i++ ) {
+		if ( idx->idx_count[ i ] == 0 ) {
+			continue;
+		}
+
+		ptr[ 0 ] = '#';
+		++ptr;
+		ptr = lutil_strcopy( ptr, idxbv[ i ].bv_val );
+		ptr = lutil_strcopy( ptr, count_buf[ i ] );
+	}
 
 	ber_bvarray_add( valp, &bv );
 
