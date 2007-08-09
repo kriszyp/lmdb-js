@@ -67,9 +67,16 @@ returned is less than <entry_limit>. Consistency check is performed every
 .RS
 proxycache \fBbdb 10000 1 50 100\fP
 .RE
+
 .TP
 .B proxycachequeries <queries>
 Specify the maximum number of queries to cache. The default is 10000.
+
+.TP
+.B proxysavequeries { TRUE | FALSE }
+Specify whether the cached queries should be saved across restarts
+of the caching proxy, to provide hot startup of the cache.  Only non-expired
+queries are reloaded.  The default is FALSE.
 
 .TP
 .B proxyattrset <index> <attrs...>
