@@ -254,6 +254,8 @@ query2url( CachedQuery *q, struct berval *urlbv )
 	ptr = lutil_strcopy( ptr, ",x-expiry=" );
 	ptr = lutil_strcopy( ptr, expiry_buf );
 
+	ber_memfree( bv_filter.bv_val );
+
 	return 0;
 }
 
@@ -429,6 +431,7 @@ url2query(
 error:;
 	if ( query.filter != NULL ) filter_free( query.filter );
 	if ( !BER_BVISNULL( &tempstr ) ) ch_free( tempstr.bv_val );
+	if ( !BER_BVISNULL( &query.base ) ) ch_free( query.base.bv_val );
 	if ( lud != NULL ) ldap_free_urldesc( lud );
 
 	return rc;
@@ -1125,7 +1128,7 @@ add_query(
 	qbase = avl_find( templ->qbase, &qb, pcache_dn_cmp );
 	if ( !qbase ) {
 		qbase = ch_calloc( 1, sizeof(Qbase) + qb.base.bv_len + 1 );
-		qbase->base.bv_len =qb.base.bv_len;
+		qbase->base.bv_len = qb.base.bv_len;
 		qbase->base.bv_val = (char *)(qbase+1);
 		memcpy( qbase->base.bv_val, qb.base.bv_val, qb.base.bv_len );
 		qbase->base.bv_val[qbase->base.bv_len] = '\0';
@@ -2796,6 +2799,8 @@ pcache_db_close(
 			op->orm_modlist = &mod;
 
 			op->o_bd->be_modify( op, &rs );
+
+			ber_bvarray_free( vals );
 		}
 	}
 
