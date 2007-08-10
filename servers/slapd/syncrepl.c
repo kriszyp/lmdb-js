@@ -2699,7 +2699,9 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 				dels[d++] = i++;
 				continue;
 			}
-			for ( k = i + 1; k < o; k++ ) {
+			/* old value still exists, move to next */
+			i++;
+			for ( k = i; k < o; k++ ) {
 				if ( bvmatch( &old->a_vals[k], &new->a_vals[j] ) ) {
 					break;
 				}
