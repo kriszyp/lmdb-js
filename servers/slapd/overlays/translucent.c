@@ -686,7 +686,7 @@ static int translucent_db_init(BackendDB *be) {
 	overlay_stack *ov;
 	int rc;
 
-	Debug(LDAP_DEBUG_TRACE, "==> translucent_init\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_init\n", 0, 0, 0);
 
 	ov = ch_calloc(1, sizeof(overlay_stack));
 	ov->config = ch_calloc(1, sizeof(translucent_configuration));
@@ -726,11 +726,11 @@ static int translucent_db_open(BackendDB *be) {
 
 	/* "should never happen" */
 	if(!ov->info) {
-		Debug(LDAP_DEBUG_ANY, "translucent_open() called with bad ov->info\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_ANY, "translucent_db_open() called with bad ov->info\n", 0, 0, 0);
 		return(LDAP_OTHER);
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "translucent_open\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "translucent_db_open\n", 0, 0, 0);
 
 	be->be_private = ov->private;
 	rc = ov->info->bi_db_open ? ov->info->bi_db_open(be) : 0;

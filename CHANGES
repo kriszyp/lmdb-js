@@ -17,6 +17,7 @@ OpenLDAP 2.3.38 Engineering
 		Fixed macro definition of open() in glibc 2.6 (ITS#5075)
 	Documentation
 		aspell --lang=en_US -c <manpage> (ITS#5076)
+		Debug messages cleaned up (ITS#5085)
 
 OpenLDAP 2.3.37 Release (2007/07/20)
 	Fixed slapd-glue/syncprov interaction (ITS#4623)
