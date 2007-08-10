@@ -697,7 +697,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
 		 "olcLogLevel $ "
-		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
+		 "olcPasswordCryptSaltFormat $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
