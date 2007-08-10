@@ -750,7 +750,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcFrontendConfig' "
 		"DESC 'OpenLDAP frontend configuration' "
 		"AUXILIARY "
-		"MAY olcDefaultSearchBase $ olcPasswordHash )",
+		"MAY ( olcDefaultSearchBase $ olcPasswordHash ) )",
 		Cft_Database, NULL, NULL },
 #ifdef SLAPD_MODULES
 	{ "( OLcfgGlOc:8 "
