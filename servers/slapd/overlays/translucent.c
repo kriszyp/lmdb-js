@@ -771,7 +771,7 @@ translucent_db_destroy( BackendDB *be, ConfigReply *cr )
 	translucent_info *ov = on->on_bi.bi_private;
 	int rc = 0;
 
-	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_close\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_destroy\n", 0, 0, 0);
 
 	if ( ov ) {
 		if ( ov->db.be_private != NULL ) {
