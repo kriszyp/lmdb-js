@@ -2586,6 +2586,11 @@ syncrepl_updateCookie(
 				first = syncCookie->ctxcsn[i];
 		}
 	}
+	/* Should never happen, ITS#5065 */
+	if ( BER_BVISNULL( &first )) {
+		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+		return 0;
+	}
 	op->o_bd = si->si_wbe;
 	slap_queue_csn( op, &first );
 
