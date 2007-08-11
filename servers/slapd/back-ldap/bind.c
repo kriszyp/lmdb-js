@@ -1297,7 +1297,7 @@ retry_lock:;
 	 * then bind as the asserting identity and explicitly 
 	 * add the proxyAuthz control to every operation with the
 	 * dn bound to the connection as control value.
-	 * This is done also if this is the authrizing backend,
+	 * This is done also if this is the authorizing backend,
 	 * but the "override" flag is given to idassert.
 	 * It allows to use SASL bind and yet proxyAuthz users
 	 */
@@ -1420,6 +1420,9 @@ retry:;
 		if ( rs->sr_err != LDAP_SUCCESS &&
 			( sendok & LDAP_BACK_SENDERR ) )
 		{
+			if ( op->o_callback == &cb )
+				op->o_callback = cb.sc_next;
+			op->o_tag = o_tag;
 			rs->sr_text = "Internal proxy bind failure";
 			send_ldap_result( op, rs );
 		}
@@ -1444,7 +1447,7 @@ done:;
 		ldap_set_rebind_proc( lc->lc_ld, li->li_rebind_f, lc );
 	}
 
-leave:
+leave:;
 	if ( op->o_callback == &cb )
 		op->o_callback = cb.sc_next;
 	op->o_tag = o_tag;
