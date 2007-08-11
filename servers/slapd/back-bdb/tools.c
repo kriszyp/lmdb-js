@@ -174,6 +174,32 @@ int bdb_tool_entry_close(
 	return 0;
 }
 
+static int
+bdb_tool_entry_set(
+	BackendDB *be, int flag )
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	int rc;
+	char buf[16], *dptr;
+
+	/* Get the header */
+	data.ulen = data.dlen = sizeof( buf );
+	data.data = buf;
+	data.flags |= DB_DBT_PARTIAL;
+	rc = cursor->c_get( cursor, &key, &data, flag );
+	if ( rc )
+		return rc;
+
+	dptr = eh.bv.bv_val;
+	eh.bv.bv_val = buf;
+	eh.bv.bv_len = data.size;
+	rc = entry_header( &eh );
+	eoff = eh.data - eh.bv.bv_val;
+	eh.bv.bv_val = dptr;
+
+	return rc;
+}
+
 ID bdb_tool_entry_next(
 	BackendDB *be )
 {
@@ -185,12 +211,8 @@ ID bdb_tool_entry_next(
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( bdb != NULL );
-	
-	/* Get the header */
-	data.ulen = data.dlen = sizeof( buf );
-	data.data = buf;
-	data.flags |= DB_DBT_PARTIAL;
-	rc = cursor->c_get( cursor, &key, &data, DB_NEXT );
+
+	rc = bdb_tool_entry_set( be, DB_NEXT );
 
 	if( rc ) {
 		/* If we're doing linear indexing and there are more attrs to
@@ -201,23 +223,13 @@ ID bdb_tool_entry_next(
 			bdb_attr_info_free( bdb->bi_attrs[0] );
 			bdb->bi_attrs[0] = bdb->bi_attrs[index_nattrs];
 			index_nattrs--;
-			rc = cursor->c_get( cursor, &key, &data, DB_FIRST );
+			rc = bdb_tool_entry_set( be, DB_FIRST );
 			if ( rc ) {
 				return NOID;
 			}
 		} else {
 			return NOID;
 		}
-	}
-
-	dptr = eh.bv.bv_val;
-	eh.bv.bv_val = buf;
-	eh.bv.bv_len = data.size;
-	rc = entry_header( &eh );
-	eoff = eh.data - eh.bv.bv_val;
-	eh.bv.bv_val = dptr;
-	if( rc ) {
-		return NOID;
 	}
 
 	BDB_DISK2ID( key.data, &id );
@@ -256,19 +268,24 @@ int bdb_tool_id2entry_get(
 	Entry **e
 )
 {
-	int rc = bdb_id2entry( be, NULL, 0, id, e );
+	int rc;
+	ID nid;
 
-	if ( rc == DB_NOTFOUND && id == 0 ) {
-		Entry *dummy = ch_calloc( 1, sizeof(Entry) );
-		struct berval gluebv = BER_BVC("glue");
-		dummy->e_name.bv_val = ch_strdup( "" );
-		dummy->e_nname.bv_val = ch_strdup( "" );
-		attr_merge_one( dummy, slap_schema.si_ad_objectClass, &gluebv, NULL );
-		attr_merge_one( dummy, slap_schema.si_ad_structuralObjectClass,
-			&gluebv, NULL );
-		*e = dummy;
-		rc = LDAP_SUCCESS;
-	}
+	BDB_ID2DISK( id, &nid );
+	key.ulen = key.size = sizeof(ID);
+	key.flags = DB_DBT_USERMEM;
+	key.data = &nid;
+
+	rc = bdb_tool_entry_set( be, DB_SET );
+	if ( rc == 0 )
+		*e = bdb_tool_entry_get( be, id );
+	if ( *e )
+		rc = 0;
+	else
+		rc = LDAP_OTHER;
+
+	key.data = NULL;
+
 	return rc;
 }
 
