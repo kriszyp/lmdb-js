@@ -1572,10 +1572,10 @@ enum {
 	/* rewrite */
 	RWM_CF_REWRITE = 1,
 	RWM_CF_SUFFIXMASSAGE,
-	RWM_CF_T_F_SUPPORT,
 
 	/* map */
 	RWM_CF_MAP,
+	RWM_CF_T_F_SUPPORT,
 	RWM_CF_NORMALIZE_MAPPED,
 
 	RWM_CF_LAST
@@ -1706,8 +1706,15 @@ rwm_cf_gen( ConfigArgs *c )
 
 		switch ( c->type ) {
 		case RWM_CF_REWRITE:
-			slap_rewrite_unparse( rwmap->rwm_bva_rewrite, &c->rvalue_vals );
-			if ( !c->rvalue_vals ) rc = 1;
+			if ( rwmap->rwm_bva_rewrite == NULL ) {
+				rc = 1;
+
+			} else {
+				slap_rewrite_unparse( rwmap->rwm_bva_rewrite, &c->rvalue_vals );
+				if ( !c->rvalue_vals ) {
+					rc = 1;
+				}
+			}
 			break;
 
 		case RWM_CF_T_F_SUPPORT:
@@ -1749,8 +1756,9 @@ rwm_cf_gen( ConfigArgs *c )
 				/* single modification is not allowed */
 				rc = 1;
 
-			} else {
+			} else if ( rwmap->rwm_rw != NULL ) {
 				rewrite_info_delete( &rwmap->rwm_rw );
+				assert( rwmap->rwm_rw == NULL );
 
 				ber_bvarray_free( rwmap->rwm_bva_rewrite );
 				rwmap->rwm_bva_rewrite = NULL;
@@ -1894,12 +1902,6 @@ rwm_cf_gen( ConfigArgs *c )
 
 	return rc;
 }
-
-
-
-
-
-
 
 static int
 rwm_db_init(
