@@ -79,6 +79,11 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 		return 1;
 	}
 
+	/* strip ';binary' */
+	if ( slap_ad_is_binary( ad ) ) {
+		ad = ad->ad_type->sat_ad;
+	}
+
 	for ( ; !BER_BVISNULL( &bsi->bsi_attrs[ n_attrs ].an_name ); n_attrs++ ) {
 		an = &bsi->bsi_attrs[ n_attrs ];
 		
