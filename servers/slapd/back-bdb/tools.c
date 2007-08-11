@@ -27,7 +27,8 @@
 static DBC *cursor = NULL;
 static DBT key, data;
 static EntryHeader eh;
-static int eoff;
+static ID nid, previd = NOID;
+static char ehbuf[16];
 
 typedef struct dn_id {
 	ID id;
@@ -88,7 +89,9 @@ int bdb_tool_entry_open(
 	/* initialize key and data thangs */
 	DBTzero( &key );
 	DBTzero( &data );
-	key.flags = DB_DBT_REALLOC;
+	key.flags = DB_DBT_USERMEM;
+	key.data = &nid;
+	key.size = key.ulen = sizeof( nid );
 	data.flags = DB_DBT_USERMEM;
 
 	if (cursor == NULL) {
@@ -143,10 +146,6 @@ int bdb_tool_entry_close(
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 	}
 
-	if( key.data ) {
-		ch_free( key.data );
-		key.data = NULL;
-	}
 	if( eh.bv.bv_val ) {
 		ch_free( eh.bv.bv_val );
 		eh.bv.bv_val = NULL;
@@ -174,45 +173,22 @@ int bdb_tool_entry_close(
 	return 0;
 }
 
-static int
-bdb_tool_entry_set(
-	BackendDB *be, int flag )
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int rc;
-	char buf[16], *dptr;
-
-	/* Get the header */
-	data.ulen = data.dlen = sizeof( buf );
-	data.data = buf;
-	data.flags |= DB_DBT_PARTIAL;
-	rc = cursor->c_get( cursor, &key, &data, flag );
-	if ( rc )
-		return rc;
-
-	dptr = eh.bv.bv_val;
-	eh.bv.bv_val = buf;
-	eh.bv.bv_len = data.size;
-	rc = entry_header( &eh );
-	eoff = eh.data - eh.bv.bv_val;
-	eh.bv.bv_val = dptr;
-
-	return rc;
-}
-
 ID bdb_tool_entry_next(
 	BackendDB *be )
 {
 	int rc;
 	ID id;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	char buf[16], *dptr;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( bdb != NULL );
 
-	rc = bdb_tool_entry_set( be, DB_NEXT );
+	/* Get the header */
+	data.ulen = data.dlen = sizeof( ehbuf );
+	data.data = ehbuf;
+	data.flags |= DB_DBT_PARTIAL;
+	rc = cursor->c_get( cursor, &key, &data, DB_NEXT );
 
 	if( rc ) {
 		/* If we're doing linear indexing and there are more attrs to
@@ -223,7 +199,7 @@ ID bdb_tool_entry_next(
 			bdb_attr_info_free( bdb->bi_attrs[0] );
 			bdb->bi_attrs[0] = bdb->bi_attrs[index_nattrs];
 			index_nattrs--;
-			rc = bdb_tool_entry_set( be, DB_FIRST );
+			rc = cursor->c_get( cursor, &key, &data, DB_FIRST );
 			if ( rc ) {
 				return NOID;
 			}
@@ -233,6 +209,7 @@ ID bdb_tool_entry_next(
 	}
 
 	BDB_DISK2ID( key.data, &id );
+	previd = id;
 	return id;
 }
 
@@ -262,43 +239,36 @@ ID bdb_tool_dn2id_get(
 	return ei->bei_id;
 }
 
-int bdb_tool_id2entry_get(
-	Backend *be,
-	ID id,
-	Entry **e
-)
-{
-	int rc;
-	ID nid;
-
-	BDB_ID2DISK( id, &nid );
-	key.ulen = key.size = sizeof(ID);
-	key.flags = DB_DBT_USERMEM;
-	key.data = &nid;
-
-	rc = bdb_tool_entry_set( be, DB_SET );
-	if ( rc == 0 )
-		*e = bdb_tool_entry_get( be, id );
-	if ( *e )
-		rc = 0;
-	else
-		rc = LDAP_OTHER;
-
-	key.data = NULL;
-
-	return rc;
-}
-
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
-	int rc;
 	Entry *e = NULL;
+	char *dptr;
+	int rc, eoff;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 
+	if ( id != previd ) {
+		data.ulen = data.dlen = sizeof( ehbuf );
+		data.data = ehbuf;
+		data.flags |= DB_DBT_PARTIAL;
+
+		BDB_ID2DISK( id, &nid );
+		rc = cursor->c_get( cursor, &key, &data, DB_SET );
+		if ( rc ) goto done;
+	}
+
+	/* Get the header */
+	dptr = eh.bv.bv_val;
+	eh.bv.bv_val = ehbuf;
+	eh.bv.bv_len = data.size;
+	rc = entry_header( &eh );
+	eoff = eh.data - eh.bv.bv_val;
+	eh.bv.bv_val = dptr;
+	if ( rc ) goto done;
+
 	/* Get the size */
-	data.flags ^= DB_DBT_PARTIAL;
+	data.flags &= ~DB_DBT_PARTIAL;
 	data.ulen = 0;
     rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
 	if ( rc != DB_BUFFER_SMALL ) goto done;

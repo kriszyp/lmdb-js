@@ -78,7 +78,7 @@ slapadd( int argc, char **argv )
 		!be->be_entry_put ||
 		(update_ctxcsn &&
 		 (!be->be_dn2id_get ||
-		  !be->be_id2entry_get ||
+		  !be->be_entry_get ||
 		  !be->be_entry_modify)) )
 	{
 		fprintf( stderr, "%s: database doesn't support necessary operations.\n",
@@ -324,8 +324,8 @@ slapadd( int argc, char **argv )
 			fprintf( stderr, "%s: context entry is missing\n", progname );
 			rc = EXIT_FAILURE;
 		} else {
-			ret = be->be_id2entry_get( be, ctxcsn_id, &ctxcsn_e );
-			if ( ret == LDAP_SUCCESS ) {
+			ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
+			if ( ctxcsn_e != NULL ) {
 				attr = attr_find( ctxcsn_e->e_attrs,
 									slap_schema.si_ad_contextCSN );
 				if ( attr ) {

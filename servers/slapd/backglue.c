@@ -863,7 +863,6 @@ glue_db_init(
 
 	/*FIXME : need to add support */
 	oi->oi_bi.bi_tool_dn2id_get = 0;
-	oi->oi_bi.bi_tool_id2entry_get = 0;
 	oi->oi_bi.bi_tool_entry_modify = 0;
 
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;

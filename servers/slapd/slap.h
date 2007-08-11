@@ -1727,7 +1727,6 @@ struct BackendDB {
 #define		be_entry_put bd_info->bi_tool_entry_put
 #define		be_sync bd_info->bi_tool_sync
 #define		be_dn2id_get bd_info->bi_tool_dn2id_get
-#define		be_id2entry_get bd_info->bi_tool_id2entry_get
 #define		be_entry_modify	bd_info->bi_tool_entry_modify
 #endif
 
@@ -2080,7 +2079,6 @@ typedef ID (BI_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e,
 typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id, AttributeDescription **adv ));
 typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
-typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
 
@@ -2180,7 +2178,6 @@ struct BackendInfo {
 	BI_tool_entry_reindex	*bi_tool_entry_reindex;
 	BI_tool_sync		*bi_tool_sync;
 	BI_tool_dn2id_get	*bi_tool_dn2id_get;
-	BI_tool_id2entry_get	*bi_tool_id2entry_get;
 	BI_tool_entry_modify	*bi_tool_entry_modify;
 
 #define SLAP_INDEX_ADD_OP		0x0001

@@ -238,7 +238,7 @@ slapacl( int argc, char **argv )
 		if ( !be->be_entry_open ||
 			!be->be_entry_close ||
 			!be->be_dn2id_get ||
-			!be->be_id2entry_get )
+			!be->be_entry_get )
 		{
 			fprintf( stderr, "%s: target database "
 				"doesn't support necessary operations; "
@@ -264,7 +264,8 @@ slapacl( int argc, char **argv )
 			rc = 1;
 			goto destroy;
 		}
-		if ( be->be_id2entry_get( be, id, &ep ) != 0 ) {
+		ep = be->be_entry_get( be, id );
+		if ( ep == NULL ) {
 			fprintf( stderr, "%s: unable to fetch entry \"%s\" (%lu)\n",
 				progname, e.e_nname.bv_val, id );
 			rc = 1;
@@ -384,7 +385,7 @@ destroy:;
 		ber_memfree( e.e_nname.bv_val );
 	}
 	if ( !dryrun && be ) {
-		if ( ep != &e ) {
+		if ( ep && ep != &e ) {
 			be_entry_release_r( op, ep );
 		}
 		if ( doclose ) {
