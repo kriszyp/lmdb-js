@@ -1015,12 +1015,13 @@ next:;
 			|| an_find( bsi->bsi_attrs, &AllOper )
 			|| an_find( bsi->bsi_attrs, &slap_schema.si_ad_structuralObjectClass->ad_cname ) )
 	{
+		ObjectClass	*soc = NULL;
+
 		if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 			Attribute	*a;
 			const char	*text = NULL;
 			char		textbuf[ 1024 ];
 			size_t		textlen = sizeof( textbuf );
-			ObjectClass	*soc = NULL;
 			struct berval	bv[ 2 ],
 					*nvals;
 			int		rc = LDAP_SUCCESS;
@@ -1048,20 +1049,32 @@ next:;
 			}
 
 			if ( !bvmatch( &soc->soc_cname, &bsi->bsi_oc->bom_oc->soc_cname ) ) {
+				if ( !is_object_subclass( bsi->bsi_oc->bom_oc, soc ) ) {
+      					Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
+						"computed structuralObjectClass %s "
+						"does not match objectClass %s associated "
+						"to entry\n",
+						bsi->bsi_e->e_name.bv_val, soc->soc_cname.bv_val,
+						bsi->bsi_oc->bom_oc->soc_cname.bv_val );
+					backsql_entry_clean( op, bsi->bsi_e );
+					return rc;
+				}
+
       				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
 					"computed structuralObjectClass %s "
-					"does not match objectClass %s associated "
+					"is subclass of objectClass %s associated "
 					"to entry\n",
 					bsi->bsi_e->e_name.bv_val, soc->soc_cname.bv_val,
 					bsi->bsi_oc->bom_oc->soc_cname.bv_val );
-				backsql_entry_clean( op, bsi->bsi_e );
-				return rc;
 			}
+
+		} else {
+			soc = bsi->bsi_oc->bom_oc;
 		}
 
 		rc = attr_merge_normalize_one( bsi->bsi_e,
 				slap_schema.si_ad_structuralObjectClass,
-				&bsi->bsi_oc->bom_oc->soc_cname,
+				&soc->soc_cname,
 				bsi->bsi_op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
 			backsql_entry_clean( op, bsi->bsi_e );
