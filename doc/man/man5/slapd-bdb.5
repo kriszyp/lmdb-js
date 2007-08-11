@@ -107,6 +107,11 @@ results if the data comes from a transaction that is later aborted.
 In this case, the modified data is discarded and a subsequent search
 will return a different result.
 .TP
+.BI dncachesize \ <integer>
+Specify the maximum number of DNs in the in-memory DN cache. The
+default is twice the \fBcachesize\fP. Ideally this cache should be
+large enough to contain the DNs of every entry in the database.
+.TP
 .BI idlcachesize \ <integer>
 Specify the size of the in-memory index cache, in index slots. The
 default is zero. A larger value will speed up frequent searches of
