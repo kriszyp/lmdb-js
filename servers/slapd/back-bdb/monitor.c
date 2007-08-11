@@ -32,7 +32,7 @@
 static ObjectClass		*oc_olmBDBDatabase;
 
 static AttributeDescription	*ad_olmBDBEntryCache,
-	*ad_olmBDBEntryInfo, *ad_olmBDBIDLCache,
+	*ad_olmBDBDNCache, *ad_olmBDBIDLCache,
 	*ad_olmDbDirectory;
 
 #ifdef BDB_MONITOR_IDX
@@ -80,12 +80,12 @@ static struct {
 		&ad_olmBDBEntryCache },
 
 	{ "( olmBDBAttributes:2 "
-		"NAME ( 'olmBDBEntryInfo' ) "
-		"DESC 'Number of items in EntryInfo Cache' "
+		"NAME ( 'olmBDBDNCache' ) "
+		"DESC 'Number of items in DN Cache' "
 		"SUP monitorCounter "
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
-		&ad_olmBDBEntryInfo },
+		&ad_olmBDBDNCache },
 
 	{ "( olmBDBAttributes:3 "
 		"NAME ( 'olmBDBIDLCache' ) "
@@ -128,7 +128,7 @@ static struct {
 		"SUP top AUXILIARY "
 		"MAY ( "
 			"olmBDBEntryCache "
-			"$ olmBDBEntryInfo "
+			"$ olmBDBDNCache "
 			"$ olmBDBIDLCache "
 			"$ olmDbDirectory "
 #ifdef BDB_MONITOR_IDX
@@ -161,7 +161,7 @@ bdb_monitor_update(
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_cursize );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
 
-	a = attr_find( e->e_attrs, ad_olmBDBEntryInfo );
+	a = attr_find( e->e_attrs, ad_olmBDBDNCache );
 	assert( a != NULL );
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%d", bdb->bi_cache.c_eiused );
 	ber_bvreplace( &a->a_vals[ 0 ], &bv );
@@ -425,7 +425,7 @@ bdb_monitor_db_open( BackendDB *be )
 		next->a_nvals = next->a_vals;
 		next = next->a_next;
 
-		next->a_desc = ad_olmBDBEntryInfo;
+		next->a_desc = ad_olmBDBDNCache;
 		value_add_one( &next->a_vals, &bv );
 		next->a_nvals = next->a_vals;
 		next = next->a_next;

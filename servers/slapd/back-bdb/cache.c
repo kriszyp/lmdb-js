@@ -631,7 +631,7 @@ bdb_cache_lru_purge( struct bdb_info *bdb )
 	if ( slapMode & SLAP_TOOL_READONLY )
 		eimax = 0;
 	else
-		eimax = bdb->bi_cache.c_maxsize * 4;
+		eimax = bdb->bi_cache.c_eimax;
 
 	/* Look for an unused entry to remove */
 	for ( elru = bdb->bi_cache.c_lruhead; elru; elru = elnext ) {

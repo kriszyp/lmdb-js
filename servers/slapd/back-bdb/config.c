@@ -86,6 +86,11 @@ static ConfigTable bdbcfg[] = {
 		"( OLcfgDbAt:1.5 NAME 'olcDbDirtyRead' "
 		"DESC 'Allow reads of uncommitted data' "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "dncachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
+		(void *)offsetof(struct bdb_info, bi_cache.c_eimax),
+		"( OLcfgDbAt:1.12 NAME 'olcDbDNcacheSize' "
+			"DESC 'DN cache size' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "idlcachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info,bi_idl_cache_max_size),
 		"( OLcfgDbAt:1.6 NAME 'olcDbIDLcacheSize' "
@@ -140,7 +145,7 @@ static ConfigOCs bdbocs[] = {
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbShmKey $ "
-		"olcDbCacheFree ) )",
+		"olcDbCacheFree $ olcDbDNcacheSize ) )",
 		 	Cft_Database, bdbcfg },
 	{ NULL, 0, NULL }
 };

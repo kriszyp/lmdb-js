@@ -301,7 +301,7 @@ shm_retry:
 			flags | do_recover, bdb->bi_dbenv_mode );
 
 	if ( rc ) {
-		/* Regular open faied, probably a missing shm environment.
+		/* Regular open failed, probably a missing shm environment.
 		 * Start over, do a recovery.
 		 */
 		if ( !do_recover && bdb->bi_shm_key ) {
@@ -336,6 +336,11 @@ shm_retry:
 			SLAP_ZONE_DELTA, SLAP_ZONE_SIZE);
 	}
 #endif
+
+	/* Default dncache to 2x entrycache */
+	if ( bdb->bi_cache.c_maxsize && !bdb->bi_cache.c_eimax ) {
+		bdb->bi_cache.c_eimax = bdb->bi_cache.c_maxsize * 2;
+	}
 
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;

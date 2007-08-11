@@ -131,6 +131,7 @@ typedef struct bdb_cache {
 	int		c_maxsize;
 	int		c_cursize;
 	int		c_minfree;
+	int		c_eimax;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
 	int		c_purging;
@@ -287,6 +288,8 @@ struct bdb_op_info {
 struct __db_locker {
 	u_int32_t	id;
 };
+
+extern int __lock_getlocker(DB_LOCKTAB *lt, u_int32_t locker, int create, DB_LOCKER **ret);
 
 #define CURSOR_SETLOCKER(cursor, id) \
 	__lock_getlocker(cursor->dbp->dbenv->lk_handle, id, 0, &cursor->locker)
