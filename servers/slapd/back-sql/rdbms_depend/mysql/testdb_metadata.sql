@@ -118,7 +118,7 @@ insert into ldap_entry_objclasses (entry_id,oc_name)
 values (1,'dcObject');
 
 insert into ldap_entry_objclasses (entry_id,oc_name)
-values (4,'strongAuthenticationUser');
+values (4,'pkiUser');
 
 insert into ldap_entry_objclasses (entry_id,oc_name)
 values (7,'extensibleObject');

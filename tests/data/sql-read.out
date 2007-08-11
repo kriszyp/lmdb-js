@@ -8,7 +8,7 @@ dc: example
 # Testing onelevel search...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
 objectClass: inetOrgPerson
-objectClass: strongAuthenticationUser
+objectClass: pkiUser
 cn: Akakiy Zinberstein
 sn: Zinberstein
 givenName: Akakiy
@@ -67,7 +67,7 @@ telephoneNumber: 545-4563
 # Testing subtree search...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
 objectClass: inetOrgPerson
-objectClass: strongAuthenticationUser
+objectClass: pkiUser
 cn: Akakiy Zinberstein
 sn: Zinberstein
 givenName: Akakiy
@@ -132,7 +132,7 @@ telephoneNumber: 545-4563
 # Testing subtree search with manageDSAit...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
 objectClass: inetOrgPerson
-objectClass: strongAuthenticationUser
+objectClass: pkiUser
 cn: Akakiy Zinberstein
 sn: Zinberstein
 givenName: Akakiy
@@ -348,7 +348,7 @@ dc: example
 # Testing NOT search...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
 objectClass: inetOrgPerson
-objectClass: strongAuthenticationUser
+objectClass: pkiUser
 cn: Akakiy Zinberstein
 sn: Zinberstein
 givenName: Akakiy
@@ -404,7 +404,7 @@ dc: example
 # Testing NOT search on "auxiliary" objectClass...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
 objectClass: inetOrgPerson
-objectClass: strongAuthenticationUser
+objectClass: pkiUser
 cn: Akakiy Zinberstein
 sn: Zinberstein
 givenName: Akakiy
@@ -479,7 +479,7 @@ dc: example
 # Testing objectClass inheritance in filter...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
 objectClass: inetOrgPerson
-objectClass: strongAuthenticationUser
+objectClass: pkiUser
 cn: Akakiy Zinberstein
 sn: Zinberstein
 givenName: Akakiy
@@ -556,7 +556,7 @@ givenName: Mitya
 # Testing objectClass in requested attributes...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
 objectClass: inetOrgPerson
-objectClass: strongAuthenticationUser
+objectClass: pkiUser
 
 dn: documentTitle=book1,dc=example,dc=com
 objectClass: document

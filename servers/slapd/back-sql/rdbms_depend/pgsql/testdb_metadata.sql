@@ -82,7 +82,7 @@ insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (7,'ou=Referral,
 --	oc_name		the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
 insert into ldap_entry_objclasses (entry_id,oc_name) values (1,'dcObject');
 
-insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'strongAuthenticationUser');
+insert into ldap_entry_objclasses (entry_id,oc_name) values (4,'pkiUser');
 
 insert into ldap_entry_objclasses (entry_id,oc_name) values (7,'extensibleObject');
 
