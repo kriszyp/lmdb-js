@@ -74,7 +74,7 @@ easy to use backend, and it is exploited by higher-level internal structures
 to provide a permanent storage.
 
 When using Dynamic configuration over LDAP via {{cn=config}}, this is where all
-configuration is stored if {{slapd}}(8) if started with {{-F}}. See {{slapd-config.5}}5)
+configuration is stored if {{slapd}}(8) if started with {{-F}}. See {{slapd-config}}(5)
 for more information
 
 H3: back-ldif Configuration
