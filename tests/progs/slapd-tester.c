@@ -21,15 +21,15 @@
 
 #include <stdio.h>
 
-#include <ac/stdlib.h>
+#include "ac/stdlib.h"
 
-#include <ac/ctype.h>
-#include <ac/dirent.h>
-#include <ac/param.h>
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/unistd.h>
-#include <ac/wait.h>
+#include "ac/ctype.h"
+#include "ac/dirent.h"
+#include "ac/param.h"
+#include "ac/socket.h"
+#include "ac/string.h"
+#include "ac/unistd.h"
+#include "ac/wait.h"
 
 
 #include "ldap_defaults.h"
@@ -60,7 +60,7 @@
 #define TBINDFILE		"do_bind.0"
 
 static char *get_file_name( char *dirname, char *filename );
-static int  get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[] );
+static int  get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[], LDAPURLDesc *luds[] );
 static int  get_read_entries( char *filename, char *entries[], char *filters[] );
 static void fork_child( char *prog, char **args );
 static void	wait4kids( int nkidval );
@@ -133,9 +133,11 @@ main( int argc, char **argv )
 	char		*sreqs[MAXREQS];
 	char		*sattrs[MAXREQS];
 	char		*sbase[MAXREQS];
+	LDAPURLDesc	*slud[MAXREQS];
 	int		snum = 0;
 	char		*sargs[MAXARGS];
 	int		sanum;
+	int		sextra_args = 0;
 	char		scmd[MAXPATHLEN];
 	/* static so that its address can be used in initializer below. */
 	static char	sloops[] = "18446744073709551615UL";
@@ -146,6 +148,7 @@ main( int argc, char **argv )
 	char		*rargs[MAXARGS];
 	char		*rflts[MAXREQS];
 	int		ranum;
+	int		rextra_args = 0;
 	char		rcmd[MAXPATHLEN];
 	static char	rloops[] = "18446744073709551615UL";
 	/* addel */
@@ -414,7 +417,7 @@ main( int argc, char **argv )
 
 	/* look for search requests */
 	if ( sfile ) {
-		snum = get_search_filters( sfile, sreqs, sattrs, sbase );
+		snum = get_search_filters( sfile, sreqs, sattrs, sbase, slud );
 	}
 
 	/* look for read requests */
@@ -429,12 +432,12 @@ main( int argc, char **argv )
 
 	/* look for modify requests */
 	if ( mfile ) {
-		mnum = get_search_filters( mfile, mreqs, NULL, mdn );
+		mnum = get_search_filters( mfile, mreqs, NULL, mdn, NULL );
 	}
 
 	/* look for bind requests */
 	if ( bfile ) {
-		bnum = get_search_filters( bfile, bcreds, battrs, breqs );
+		bnum = get_search_filters( bfile, bcreds, battrs, breqs, NULL );
 	}
 
 	/* setup friendly option */
@@ -508,13 +511,16 @@ main( int argc, char **argv )
 	}
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
+	sargs[sanum++] = "-s";
+	sargs[sanum++] = NULL;		/* will hold the search scope */
 	sargs[sanum++] = "-f";
 	sargs[sanum++] = NULL;		/* will hold the search request */
 
 	sargs[sanum++] = NULL;
-	sargs[sanum] = NULL;		/* might hold the "attr" request */
+	sargs[sanum++] = NULL;		/* might hold the "attr" request */
+	sextra_args += 2;
 
-	sargs[sanum + 1] = NULL;
+	sargs[sanum] = NULL;
 
 	/*
 	 * generate the read clients
@@ -562,9 +568,10 @@ main( int argc, char **argv )
 	rargs[ranum++] = NULL;		/* will hold the read entry */
 
 	rargs[ranum++] = NULL;
-	rargs[ranum] = NULL;		/* might hold the filter arg */
+	rargs[ranum++] = NULL;		/* might hold the filter arg */
+	rextra_args += 2;
 
-	rargs[ranum + 1] = NULL;
+	rargs[ranum] = NULL;
 
 	/*
 	 * generate the modrdn clients
@@ -607,7 +614,7 @@ main( int argc, char **argv )
 	}
 	nargs[nanum++] = "-e";
 	nargs[nanum++] = NULL;		/* will hold the modrdn entry */
-	nargs[nanum++] = NULL;
+	nargs[nanum] = NULL;
 	
 	/*
 	 * generate the modify clients
@@ -652,7 +659,7 @@ main( int argc, char **argv )
 	margs[manum++] = NULL;		/* will hold the modify entry */
 	margs[manum++] = "-a";;
 	margs[manum++] = NULL;		/* will hold the ava */
-	margs[manum++] = NULL;
+	margs[manum] = NULL;
 
 	/*
 	 * generate the add/delete clients
@@ -695,7 +702,7 @@ main( int argc, char **argv )
 	}
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
-	aargs[aanum++] = NULL;
+	aargs[aanum] = NULL;
 
 	/*
 	 * generate the bind clients
@@ -745,56 +752,99 @@ main( int argc, char **argv )
 	bargs[banum++] = NULL;
 	bargs[banum++] = "-w";
 	bargs[banum++] = NULL;
-	bargs[banum++] = NULL;
+	bargs[banum] = NULL;
 
 #define	DOREQ(n,j) ((n) && ((maxkids > (n)) ? ((j) < maxkids ) : ((j) < (n))))
 
 	for ( j = 0; j < MAXREQS; j++ ) {
+		/* search */
 		if ( DOREQ( snum, j ) ) {
 			int	jj = j % snum;
+			int	x = sanum - sextra_args;
 
-			sargs[sanum - 2] = sreqs[jj];
-			sargs[sanum - 4] = sbase[jj];
-			if ( sattrs[jj] != NULL ) {
-				sargs[sanum - 1] = "-a";
-				sargs[sanum] = sattrs[jj];
+			/* base */
+			if ( sbase[jj] != NULL ) {
+				sargs[sanum - 7] = sbase[jj];
 
 			} else {
-				sargs[sanum - 1] = NULL;
+				sargs[sanum - 7] = slud[jj]->lud_dn;
 			}
+
+			/* scope */
+			if ( slud[jj] != NULL ) {
+				sargs[sanum - 5] = (char *)ldap_pvt_scope2str( slud[jj]->lud_scope );
+
+			} else {
+				sargs[sanum - 5] = "sub";
+			}
+
+			/* filter */
+			if ( sreqs[jj] != NULL ) {
+				sargs[sanum - 3] = sreqs[jj];
+
+			} else if ( slud[jj]->lud_filter != NULL ) {
+				sargs[sanum - 3] = slud[jj]->lud_filter;
+
+			} else {
+				sargs[sanum - 3] = "(objectClass=*)";
+			}
+
+			/* extras */
+			sargs[x] = NULL;
+
+			/* attr */
+			if ( sattrs[jj] != NULL ) {
+				sargs[x++] = "-a";
+				sargs[x++] = sattrs[jj];
+			}
+
+			/* attrs */
+			if ( slud[jj] != NULL && slud[jj]->lud_attrs != NULL ) {
+				int	i;
+
+				for ( i = 0; slud[jj]->lud_attrs[ i ] != NULL && x + i < MAXARGS - 1; i++ ) {
+					sargs[x + i] = slud[jj]->lud_attrs[ i ];
+				}
+				sargs[x + i] = NULL;
+			}
+
 			fork_child( scmd, sargs );
 		}
 
+		/* read */
 		if ( DOREQ( rnum, j ) ) {
 			int	jj = j % rnum;
+			int	x = ranum - rextra_args;
 
-			rargs[ranum - 2] = rreqs[jj];
+			rargs[ranum - 3] = rreqs[jj];
 			if ( rflts[jj] != NULL ) {
-				rargs[ranum - 1] = "-f";
-				rargs[ranum] = rflts[jj];
-
-			} else {
-				rargs[ranum - 1] = NULL;
+				rargs[x++] = "-f";
+				rargs[x++] = rflts[jj];
 			}
+			rargs[x] = NULL;
 			fork_child( rcmd, rargs );
 		}
 
+		/* rename */
 		if ( j < nnum ) {
-			nargs[nanum - 2] = nreqs[j];
+			nargs[nanum - 1] = nreqs[j];
 			fork_child( ncmd, nargs );
 		}
 
+		/* modify */
 		if ( j < mnum ) {
-			margs[manum - 4] = mdn[j];
-			margs[manum - 2] = mreqs[j];
+			margs[manum - 3] = mdn[j];
+			margs[manum - 1] = mreqs[j];
 			fork_child( mcmd, margs );
 		}
 
+		/* add/delete */
 		if ( j < anum ) {
-			aargs[aanum - 2] = afiles[j];
+			aargs[aanum - 1] = afiles[j];
 			fork_child( acmd, aargs );
 		}
 
+		/* bind */
 		if ( DOREQ( bnum, j ) ) {
 			int	jj = j % bnum;
 
@@ -808,23 +858,24 @@ main( int argc, char **argv )
 			}
 
 			if ( battrs[jj] != NULL ) {
-				bargs[banum - 4] = manager ? manager : "";
-				bargs[banum - 2] = passwd ? passwd : "";
+				bargs[banum - 3] = manager ? manager : "";
+				bargs[banum - 1] = passwd ? passwd : "";
 
-				bargs[banum - 1] = "-b";
-				bargs[banum] = breqs[jj];
-				bargs[banum + 1] = "-f";
-				bargs[banum + 2] = bcreds[jj];
-				bargs[banum + 3] = "-a";
-				bargs[banum + 4] = battrs[jj];
+				bargs[banum - 2] = "-b";
+				bargs[banum - 1] = breqs[jj];
+				bargs[banum + 0] = "-f";
+				bargs[banum + 1] = bcreds[jj];
+				bargs[banum + 2] = "-a";
+				bargs[banum + 3] = battrs[jj];
+
 			} else {
-				bargs[banum - 4] = breqs[jj];
-				bargs[banum - 2] = bcreds[jj];
-				bargs[banum - 1] = NULL;
+				bargs[banum - 3] = breqs[jj];
+				bargs[banum - 1] = bcreds[jj];
+				bargs[banum] = NULL;
 			}
 
 			fork_child( bcmd, bargs );
-			bargs[banum - 1] = NULL;
+			bargs[banum] = NULL;
 		}
 	}
 
@@ -845,7 +896,7 @@ get_file_name( char *dirname, char *filename )
 
 
 static int
-get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[] )
+get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[], LDAPURLDesc *luds[] )
 {
 	FILE    *fp;
 	int     filter = 0;
@@ -854,11 +905,32 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 		char  line[BUFSIZ];
 
 		while (( filter < MAXREQS ) && ( fgets( line, BUFSIZ, fp ))) {
-			char *nl;
+			char	*nl;
+			int	got_URL = 0;
 
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
-			bases[filter] = ArgDup( line );
+
+			if ( luds ) luds[filter] = NULL;
+
+			if ( luds && strncmp( line, "ldap:///", STRLENOF( "ldap:///" ) ) == 0 ) {
+				LDAPURLDesc	*lud;
+
+				got_URL = 1;
+				bases[filter] = NULL;
+				if ( ldap_url_parse( line, &lud ) != LDAP_URL_SUCCESS ) {
+					return 1;
+				}
+
+				if ( lud->lud_dn == NULL || lud->lud_exts != NULL ) {
+					return 1;
+				}
+
+				luds[filter] = lud;
+
+			} else {
+				bases[filter] = ArgDup( line );
+			}
 			fgets( line, BUFSIZ, fp );
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
@@ -868,15 +940,15 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 				if ( filters[filter][0] == '+') {
 					char	*sep = strchr( filters[filter], ':' );
 
+					attrs[ filter ] = &filters[ filter ][ 1 ];
 					if ( sep != NULL ) {
-						attrs[ filter ] = &filters[ filter ][ 1 ];
 						sep[ 0 ] = '\0';
 						/* NOTE: don't free this! */
 						filters[ filter ] = &sep[ 1 ];
 					}
 
 				} else {
-					attrs[ filter] = NULL;
+					attrs[ filter ] = NULL;
 				}
 			}
 			filter++;

@@ -21,12 +21,12 @@
 
 #include <stdio.h>
 
-#include <ac/stdlib.h>
-#include <ac/unistd.h>
-#include <ac/string.h>
-#include <ac/errno.h>
+#include "ac/stdlib.h"
+#include "ac/unistd.h"
+#include "ac/string.h"
+#include "ac/errno.h"
 
-#include <ldap.h>
+#include "ldap.h"
 
 #include "ldap_pvt.h"
 #include "slapd-common.h"
