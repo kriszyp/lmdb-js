@@ -340,6 +340,8 @@ LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be,
 	struct berval *suffix ));
+LDAP_SLAPD_F (int) be_issubordinate LDAP_P(( Backend *be,
+	struct berval *subordinate ));
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_isroot_dn LDAP_P(( Backend *be, struct berval *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Operation *op ));

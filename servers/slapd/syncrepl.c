@@ -3358,8 +3358,9 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			if ( select_backend( &si->si_base, 0 ) != c->be ) {
-				ber_memfree( si->si_base.bv_val );
+			if ( !be_issubordinate( c->be, &si->si_base ) ) {
+				ch_free( si->si_base.bv_val );
+				BER_BVZERO( &si->si_base );
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Base DN \"%s\" is not within the database naming context",
 					val );

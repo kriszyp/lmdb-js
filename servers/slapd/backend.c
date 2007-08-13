@@ -694,6 +694,26 @@ be_issuffix(
 }
 
 int
+be_issubordinate(
+    Backend *be,
+    struct berval *bvsubordinate )
+{
+	int	i;
+
+	if ( be->be_nsuffix == NULL ) {
+		return 0;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &be->be_nsuffix[i] ); i++ ) {
+		if ( dnIsSuffix( bvsubordinate, &be->be_nsuffix[i] ) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int
 be_isroot_dn( Backend *be, struct berval *ndn )
 {
 	if ( BER_BVISEMPTY( ndn ) || BER_BVISEMPTY( &be->be_rootndn ) ) {
