@@ -1631,7 +1631,7 @@ pcache_response(
 	return SLAP_CB_CONTINUE;
 }
 
-static void
+static int
 add_filter_attrs(
 	Operation *op,
 	AttributeName** new_attrs,
@@ -1689,6 +1689,8 @@ add_filter_attrs(
 		j++;
 	}
 	BER_BVZERO( &(*new_attrs)[j].an_name );
+
+	return count;
 }
 
 /* NOTE: this is a quick workaround to let pcache minimally interact
@@ -1833,7 +1835,8 @@ pcache_op_search(
 		query.filter = filter_dup(op->ors_filter, NULL);
 		ldap_pvt_thread_rdwr_wlock(&qtemp->t_rwlock);
 		if ( !qtemp->t_attrs.count ) {
-			add_filter_attrs(op, &qtemp->t_attrs.attrs,
+			qtemp->t_attrs.count = add_filter_attrs(op,
+				&qtemp->t_attrs.attrs,
 				&qm->attr_sets[attr_set],
 				filter_attrs, fattr_cnt, fattr_got_oc);
 		}
