@@ -1165,9 +1165,51 @@ static int process_response(
 	}
 
 	if ( ldap_msgtype( res ) != LDAP_RES_INTERMEDIATE ) {
-		rc = ldap_result2error( ld, res, 1 );
-		if( rc != LDAP_SUCCESS ) ldap_perror( ld, opstr );
-		return rc;
+		int code;
+		char *matcheddn = NULL, *text = NULL, **refs = NULL;
+		LDAPControl **ctrls = NULL;
+		rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, &ctrls, 1 );
+
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: ldap_parse_result: %s (%d)\n",
+				prog, ldap_err2string( rc ), rc );
+			return rc;
+		}
+
+		if ( code != LDAP_SUCCESS ) {
+			tool_perror( prog, code, NULL, matcheddn, text, refs );
+		} else if ( verbose && 
+			((matcheddn && *matcheddn) || (text && *text) || (refs && *refs) ))
+		{
+			printf( _("Delete Result: %s (%d)\n"),
+				ldap_err2string( code ), code );
+
+			if ( text && *text ) {
+				printf( _("Additional info: %s\n"), text );
+			}
+
+			if ( matcheddn && *matcheddn ) {
+				printf( _("Matched DN: %s\n"), matcheddn );
+			}
+
+			if ( refs ) {
+				int i;
+				for( i=0; refs[i]; i++ ) {
+					printf(_("Referral: %s\n"), refs[i] );
+				}
+			}
+		}
+
+		if (ctrls) {
+			tool_print_ctrls( ld, ctrls );
+			ldap_controls_free( ctrls );
+		}
+
+		ber_memfree( text );
+		ber_memfree( matcheddn );
+		ber_memvfree( (void **) refs );
+
+		return code;
 	}
 
 #ifdef LDAP_GROUP_TRANSACTION
