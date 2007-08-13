@@ -2539,6 +2539,7 @@ pcache_db_init(
 	cm->max_entries = 0;
 	cm->cur_entries = 0;
 	cm->max_queries = 10000;
+	cm->save_queries = 0;
 	cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
 	cm->cc_period = 1000;
 	cm->cc_paused = 0;
