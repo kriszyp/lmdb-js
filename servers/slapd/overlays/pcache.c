@@ -1196,23 +1196,50 @@ remove_from_template (CachedQuery* qc, QueryTemplate* template)
 }
 
 /* remove bottom query of LRU list from the query cache */
-static void cache_replacement(query_manager* qm, struct berval *result)
+/*
+ * NOTE: slight change in functionality.
+ *
+ * - if result->bv_val is NULL, the query at the bottom of the LRU
+ *   is removed
+ * - otherwise, the query whose UUID is *result is removed
+ *	- if not found, result->bv_val is zeroed
+ */
+static void
+cache_replacement(query_manager* qm, struct berval *result)
 {
 	CachedQuery* bottom;
 	QueryTemplate *temp;
 
 	ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
-	bottom = qm->lru_bottom;
+	if ( BER_BVISNULL( result ) ) {
+		bottom = qm->lru_bottom;
 
-	result->bv_val = NULL;
-	result->bv_len = 0;
+		if (!bottom) {
+			Debug ( pcache_debug,
+				"Cache replacement invoked without "
+				"any query in LRU list\n", 0, 0, 0 );
+			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
+			return;
+		}
 
-	if (!bottom) {
-		Debug ( pcache_debug,
-			"Cache replacement invoked without "
-			"any query in LRU list\n", 0, 0, 0 );
-		ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
-		return;
+	} else {
+		for ( bottom = qm->lru_bottom;
+			bottom != NULL;
+			bottom = bottom->lru_up )
+		{
+			if ( bvmatch( result, &bottom->q_uuid ) ) {
+				break;
+			}
+		}
+
+		if ( !bottom ) {
+			Debug ( pcache_debug,
+				"Could not find query with uuid=\"%s\""
+				"in LRU list\n", result->bv_val, 0, 0 );
+			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
+			BER_BVZERO( result );
+			return;
+		}
 	}
 
 	temp = bottom->qtemp;
@@ -1250,14 +1277,12 @@ remove_func (
 
 	if ( rs->sr_type != REP_SEARCH ) return 0;
 
-	for (attr = rs->sr_entry->e_attrs; attr!= NULL; attr = attr->a_next) {
-		if (attr->a_desc == ad_queryid) {
-			for (count=0; attr->a_vals[count].bv_val; count++)
-				;
-			break;
-		}
-	}
-	if ( count == 0 ) return 0;
+	attr = attr_find( rs->sr_entry->e_attrs,  ad_queryid );
+	if ( attr == NULL ) return 0;
+
+	for ( count = 0; !BER_BVISNULL( &attr->a_vals[count] ); count++ )
+		;
+	assert( count > 0 );
 	qi = op->o_tmpalloc( sizeof( struct query_info ), op->o_tmpmemctx );
 	qi->next = op->o_callback->sc_private;
 	op->o_callback->sc_private = qi;
@@ -1466,6 +1491,170 @@ struct search_info {
 };
 
 static int
+remove_query_and_data(
+	Operation	*op,
+	SlapReply	*rs,
+	cache_manager	*cm,
+	struct berval	*uuid )
+{
+	query_manager*		qm = cm->qm;
+
+	qm->crfunc( qm, uuid );
+	if ( !BER_BVISNULL( uuid ) ) {
+		int	return_val;
+
+		Debug( pcache_debug,
+			"Removing query UUID %s\n",
+			uuid->bv_val, 0, 0 );
+		return_val = remove_query_data( op, rs, uuid );
+		Debug( pcache_debug,
+			"QUERY REMOVED, SIZE=%d\n",
+			return_val, 0, 0);
+		ldap_pvt_thread_mutex_lock( &cm->cache_mutex );
+		cm->cur_entries -= return_val;
+		cm->num_cached_queries--;
+		Debug( pcache_debug,
+			"STORED QUERIES = %lu\n",
+			cm->num_cached_queries, 0, 0 );
+		ldap_pvt_thread_mutex_unlock( &cm->cache_mutex );
+		Debug( pcache_debug,
+			"QUERY REMOVED, CACHE ="
+			"%d entries\n",
+			cm->cur_entries, 0, 0 );
+	}
+}
+
+/*
+ * Callback used to fetch queryid values based on entryUUID;
+ * used by pcache_remove_entries_from_cache()
+ */
+static int
+fetch_queryid_cb( Operation *op, SlapReply *rs )
+{
+	int		rc = 0;
+
+	/* only care about searchEntry responses */
+	if ( rs->sr_type != REP_SEARCH ) {
+		return 0;
+	}
+
+	/* allow only one response per entryUUID */
+	if ( op->o_callback->sc_private != NULL ) {
+		rc = 1;
+
+	} else {
+		Attribute	*a;
+
+		/* copy all queryid values into callback's private data */
+		a = attr_find( rs->sr_entry->e_attrs, ad_queryid );
+		if ( a != NULL ) {
+			BerVarray	vals = NULL;
+
+			ber_bvarray_dup_x( &vals, a->a_nvals, op->o_tmpmemctx );
+			op->o_callback->sc_private = (void *)vals;
+		}
+	}
+
+	/* clear entry if required */
+	if ( rs->sr_flags & REP_ENTRY_MUSTBEFREED ) {
+		entry_free( rs->sr_entry );
+		rs->sr_entry = NULL;
+		rs->sr_flags ^= REP_ENTRY_MUSTBEFREED;
+	}
+
+	return rc;
+}
+
+/*
+ * Call that allows to remove an entry from the cache, by forcing
+ * the removal of all the related queries.
+ */
+int
+pcache_remove_entries_from_cache(
+	cache_manager		*cm,
+	BerVarray		UUIDs )
+{
+	void		*thrctx = ldap_pvt_thread_pool_context();
+
+	Connection	conn = { 0 };
+	OperationBuffer opbuf;
+	Operation	*op;
+	slap_callback	sc = { 0 };
+	SlapReply	rs = { REP_RESULT };
+	Filter		f = { 0 };
+	char		filtbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(entryUUID=)" ) ];
+#ifdef LDAP_COMP_MATCH
+	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
+#else
+	AttributeAssertion ava = { NULL, BER_BVNULL };
+#endif
+	AttributeName	attrs[ 2 ] = { 0 };
+	int		s, rc;
+
+	connection_fake_init( &conn, &opbuf, thrctx );
+	op = &opbuf.ob_op;
+
+	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
+	op->ors_scope = LDAP_SCOPE_SUBTREE;
+	op->ors_deref = LDAP_DEREF_NEVER;
+	f.f_choice = LDAP_FILTER_EQUALITY;
+	f.f_ava = &ava;
+	ava.aa_desc = slap_schema.si_ad_entryUUID;
+	op->ors_filter = &f;
+	op->ors_slimit = 1;
+	op->ors_tlimit = SLAP_NO_LIMIT;
+	attrs[ 0 ].an_desc = ad_queryid;
+	attrs[ 0 ].an_name = ad_queryid->ad_cname;
+	op->ors_attrs = attrs;
+	op->ors_attrsonly = 0;
+
+	op->o_req_dn = cm->db.be_suffix[ 0 ];
+	op->o_req_ndn = cm->db.be_nsuffix[ 0 ];
+
+	op->o_tag = LDAP_REQ_SEARCH;
+	op->o_protocol = LDAP_VERSION3;
+	op->o_managedsait = SLAP_CONTROL_CRITICAL;
+	op->o_bd = &cm->db;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+	sc.sc_response = fetch_queryid_cb;
+	op->o_callback = &sc;
+
+	for ( s = 0; !BER_BVISNULL( &UUIDs[ s ] ); s++ ) {
+		BerVarray	vals = NULL;
+		int		i;
+
+		op->ors_filterstr.bv_len = snprintf( filtbuf, sizeof( filtbuf ),
+			"(entryUUID=%s)", UUIDs[ s ].bv_val );
+		op->ors_filterstr.bv_val = filtbuf;
+		ava.aa_value = UUIDs[ s ];
+
+		rc = op->o_bd->be_search( op, &rs );
+		if ( rc != LDAP_SUCCESS ) {
+			continue;
+		}
+
+		vals = (BerVarray)op->o_callback->sc_private;
+		if ( vals != NULL ) {
+			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
+				struct berval	val = vals[ i ];
+
+				remove_query_and_data( op, &rs, cm, &val );
+
+				if ( !BER_BVISNULL( &val ) && val.bv_val != vals[ i ].bv_val ) {
+					ch_free( val.bv_val );
+				}
+			}
+
+			ber_bvarray_free_x( vals, op->o_tmpmemctx );
+			op->o_callback->sc_private = NULL;
+		}
+	}
+
+	return 0;
+}
+
+static int
 cache_entries(
 	Operation	*op,
 	SlapReply	*rs,
@@ -1495,29 +1684,8 @@ cache_entries(
 		si->head = e->e_private;
 		e->e_private = NULL;
 		while ( cm->cur_entries > (cm->max_entries) ) {
-				qm->crfunc(qm, &crp_uuid);
-				if (crp_uuid.bv_val) {
-					Debug( pcache_debug,
-						"Removing query UUID %s\n",
-						crp_uuid.bv_val, 0, 0 );
-					return_val = remove_query_data(&op_tmp, rs, &crp_uuid);
-					Debug( pcache_debug,
-						"QUERY REMOVED, SIZE=%d\n",
-						return_val, 0, 0);
-					ldap_pvt_thread_mutex_lock(
-							&cm->cache_mutex );
-					cm->cur_entries -= return_val;
-					cm->num_cached_queries--;
-					Debug( pcache_debug,
-						"STORED QUERIES = %lu\n",
-						cm->num_cached_queries, 0, 0 );
-					ldap_pvt_thread_mutex_unlock(
-							&cm->cache_mutex );
-					Debug( pcache_debug,
-						"QUERY REMOVED, CACHE ="
-						"%d entries\n",
-						cm->cur_entries, 0, 0 );
-				}
+			BER_BVZERO( &crp_uuid );
+			remove_query_and_data( &op_tmp, rs, cm, &crp_uuid );
 		}
 
 		return_val = merge_entry(&op_tmp, e, query_uuid);
