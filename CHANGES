@@ -5,6 +5,7 @@ OpenLDAP 2.3.38 Engineering
 	Fixed slapd select_backend/ManageDSAit (ITS#4986)
 	Fixed slapd integer/pointer types and overflow (ITS#5035)
 	Fixed slapd AVA_Sort on multivalued RDNs (ITS#5057)
+	Fixed slapd LDIF parsing error handling (ITS#5090)
 	Fixed slapd syncrepl searchbase scope (ITS#5073)
 	Fixed slapd-bdb missing index warning (ITS#5037)
 	Fixed slapd-bdb Quick index for ID 0 (ITS#5052)

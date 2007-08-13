@@ -278,6 +278,14 @@ str2entry2( char *s, int checkvals )
 			if ( i == lines ) break;
 		}
 
+		if ( BER_BVISNULL( &vals[i] ) ) {
+ 			Debug( LDAP_DEBUG_ANY,
+ 				"str2entry: attributeType %s #%d: "
+ 				"no values\n", 
+ 				ad->ad_cname.bv_val, attr_cnt, 0 );
+ 			goto fail;
+		}
+
 		if( slapMode & SLAP_TOOL_MODE ) {
 			struct berval pval;
 			slap_syntax_validate_func *validate =
