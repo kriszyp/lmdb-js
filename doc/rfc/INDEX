@@ -64,6 +64,7 @@ rfc4530.txt LDAP: entryUUID (PS)
 rfc4531.txt LDAP Turn Operation (E)
 rfc4532.txt LDAP Who am I? Operation (PS)
 rfc4533.txt LDAP Content Sync Operation (E)
+rfc5020.txt LDAP 'entryDN' operational attribute (PS)
 
 Legend:
 STD	Standard
