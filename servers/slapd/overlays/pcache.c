@@ -2809,6 +2809,16 @@ pcache_db_close(
 	cm->db.be_limits = NULL;
 	cm->db.be_acl = NULL;
 
+	/* stop the thread ... */
+	if ( cm->cc_arg ) {
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		if ( ldap_pvt_runqueue_isrunning( &slapd_rq, cm->cc_arg ) ) {
+			ldap_pvt_runqueue_stoptask( &slapd_rq, cm->cc_arg );
+		}
+		ldap_pvt_runqueue_remove( &slapd_rq, cm->cc_arg );
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	}
+
 	if ( cm->db.bd_info->bi_db_close ) {
 		rc = cm->db.bd_info->bi_db_close( &cm->db, NULL );
 	}
