@@ -1162,13 +1162,21 @@ static int ldif_tool_entry_close(BackendDB * be) {
 	return 0;
 }
 
+static ID ldif_tool_entry_next(BackendDB *be)
+{
+	struct ldif_info *li = (struct ldif_info *) be->be_private;
+	li->li_tool_current += 1;
+	if(li->li_tool_current > li->li_tool_cookie.eind)
+		return NOID;
+	else
+		return li->li_tool_current;
+}
+
 static ID
 ldif_tool_entry_first(BackendDB *be)
 {
 	struct ldif_info *li = (struct ldif_info *) be->be_private;
-	ID id = 1; /* first entry in the array of entries shifted by one */
 
-	li->li_tool_current = 1;
 	if(li->li_tool_cookie.entries == NULL) {
 		Operation op = {0};
 
@@ -1180,17 +1188,7 @@ ldif_tool_entry_first(BackendDB *be)
 		(void)enum_tree( &li->li_tool_cookie );
 		li->li_tool_cookie.op = NULL;
 	}
-	return id;
-}
-
-static ID ldif_tool_entry_next(BackendDB *be)
-{
-	struct ldif_info *li = (struct ldif_info *) be->be_private;
-	li->li_tool_current += 1;
-	if(li->li_tool_current > li->li_tool_cookie.eind)
-		return NOID;
-	else
-		return li->li_tool_current;
+	return ldif_tool_entry_next( be );
 }
 
 static Entry * ldif_tool_entry_get(BackendDB * be, ID id) {
