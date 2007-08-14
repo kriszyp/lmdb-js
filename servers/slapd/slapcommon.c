@@ -255,7 +255,7 @@ slap_tool_init(
 		break;
 
 	case SLAPTEST:
-		options = "d:f:F:o:uv";
+		options = "d:f:F:o:Quv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -369,6 +369,11 @@ slap_tool_init(
 				usage( tool, progname );
 			}
 			dn_mode = SLAP_TOOL_LDAPDN_PRETTY;
+			break;
+
+		case 'Q':
+			quiet++;
+			slap_debug = 0;
 			break;
 
 		case 'q':	/* turn on quick */

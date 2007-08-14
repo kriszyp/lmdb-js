@@ -35,6 +35,7 @@ enum slaptool {
 typedef struct tool_vars {
 	Backend *tv_be;
 	int tv_verbose;
+	int tv_quiet;
 	int tv_update_ctxcsn;
 	int tv_continuemode;
 	int tv_nosubordinates;
@@ -65,6 +66,7 @@ extern tool_vars tool_globals;
 
 #define	be tool_globals.tv_be
 #define verbose tool_globals.tv_verbose
+#define quiet tool_globals.tv_quiet
 #define jumpline tool_globals.tv_jumpline
 #define update_ctxcsn tool_globals.tv_update_ctxcsn
 #define continuemode tool_globals.tv_continuemode

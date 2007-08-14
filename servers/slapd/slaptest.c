@@ -104,7 +104,9 @@ slaptest( int argc, char **argv )
 		}
 	}
 
-	fprintf( stderr, "config file testing succeeded\n");
+	if ( !quiet ) {
+		fprintf( stderr, "config file testing succeeded\n");
+	}
 
 	slap_tool_destroy();
 
