@@ -103,4 +103,8 @@ minutes have passed since the checkpoint.
 This has been modified in 2.3 to indeed checkpoint every so often; in the meantime 
 a workaround is to invoke "db_checkpoint" from a cron script every so often, say 5 minutes. 
 
+H2: Migration
+
+Exporting to a new system......
+
 

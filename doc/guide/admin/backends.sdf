@@ -237,11 +237,9 @@ an RDBMS, and want to use modern solutions that expect such information in LDAP
 distribute information between different sites/applications that use RDBMSes 
 and/or LDAP. Or whatever else...
 
-It is NOT designed as a general-purpose backend that uses RDBMS instead of 
+It is {{B:NOT}} designed as a general-purpose backend that uses RDBMS instead of 
 BerkeleyDB (as the standard BDB backend does), though it can be used as such with 
-several limitations. You can take a look at {{URL:http://www.openldap.org/faq/index.cgi?file=378}}
- (OpenLDAP FAQ-O-Matic/General LDAP FAQ/Directories vs. conventional databases) 
- to find out more on this point.
+several limitations. Please see {{SECT: LDAP vs RDBMS}} for discussion.
 
 The idea is to use some meta-information to translate LDAP queries to SQL queries, 
 leaving relational schema untouched, so that old applications can continue using 

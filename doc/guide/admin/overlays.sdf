@@ -24,7 +24,7 @@ Essentially they represent a means to:
 Overlays are usually documented by separate specific man pages in section 5; 
 the naming convention is
 
-        slapo-<overlay name>
+>        slapo-<overlay name>
 
 Not all distributed overlays have a man page yet. Feel free to contribute one, 
 if you think you well understood the behavior of the component and the 
@@ -32,7 +32,7 @@ implications of all the related configuration directives.
 
 Official overlays are located in
 
-        servers/slapd/overlays/
+>        servers/slapd/overlays/
 
 That directory also contains the file slapover.txt, which describes the 
 rationale of the overlay implementation, and may serve as guideline for the 
@@ -40,7 +40,7 @@ development of custom overlays.
 
 Contribware overlays are located in
 
-        contrib/slapd-modules/<overlay name>/
+>        contrib/slapd-modules/<overlay name>/
 
 along with other types of run-time loadable components; they are officially 
 distributed, but not maintained by the project.
