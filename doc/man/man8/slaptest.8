@@ -9,6 +9,7 @@ slaptest \- Check the suitability of the OpenLDAP slapd.conf file
 .B [\-f slapd.conf]
 .B [\-F confdir]
 .B [\-o name[=value]
+.B [\-Q]
 .B [\-u]
 .B [\-v]
 .LP
@@ -65,11 +66,15 @@ Possible generic options/values are:
 
 .fi
 .TP
-.B \-u
+.BI \-Q
+Be extremely quiet: only the exit code indicates success (0) or not 
+(any other value).
+.TP
+.BI \-u
 enable dryrun mode (i.e. don't fail if databases cannot be opened,
 but config is fine).
 .TP
-.B \-v
+.BI \-v
 enable verbose mode.
 .SH EXAMPLES
 To check a 
