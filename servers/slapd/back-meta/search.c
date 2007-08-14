@@ -1720,6 +1720,7 @@ meta_send_entry(
 {
 	metainfo_t 		*mi = ( metainfo_t * )op->o_bd->be_private;
 	struct berval		a, mapped;
+	int			check_duplicate_attrs = 0;
 	Entry 			ent = { 0 };
 	BerElement 		ber = *e->lm_ber;
 	Attribute 		*attr, **attrp;
@@ -1785,6 +1786,10 @@ meta_send_entry(
 		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
 			( void )ber_scanf( &ber, "x" /* [W] */ );
 			continue;
+		}
+		if ( mapped.bv_val != a.bv_val ) {
+			/* will need to check for duplicate attrs */
+			check_duplicate_attrs++;
 		}
 		attr = ( Attribute * )ch_calloc( 1, sizeof( Attribute ) );
 		if ( attr == NULL ) {
@@ -1858,6 +1863,7 @@ meta_send_entry(
 				ldap_back_map( &mi->mi_targets[ target ]->mt_rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
 				if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0') {
+remove_oc:;
 					free( bv->bv_val );
 					BER_BVZERO( bv );
 					if ( --last < 0 ) {
@@ -1868,8 +1874,23 @@ meta_send_entry(
 					bv--;
 
 				} else if ( mapped.bv_val != bv->bv_val ) {
-					free( bv->bv_val );
-					ber_dupbv( bv, &mapped );
+					int	i;
+
+					for ( i = 0; !BER_BVISNULL( &attr->a_vals[ i ] ); i++ ) {
+						if ( &attr->a_vals[ i ] == bv ) {
+							continue;
+						}
+
+						if ( ber_bvstrcasecmp( &mapped, &attr->a_vals[ i ] ) == 0 ) {
+							break;
+						}
+					}
+
+					if ( !BER_BVISNULL( &attr->a_vals[ i ] ) ) {
+						goto remove_oc;
+					}
+
+					ber_bvreplace( bv, &mapped );
 				}
 			}
 		/*
@@ -1957,6 +1978,48 @@ meta_send_entry(
 		attrp = &attr->a_next;
 next_attr:;
 	}
+
+	/* only check if some mapping occurred */
+	if ( check_duplicate_attrs ) {
+		Attribute	**ap;
+
+		for ( ap = &ent.e_attrs; *ap != NULL; ap = &(*ap)->a_next ) {
+			Attribute	**tap;
+
+			for ( tap = &(*ap)->a_next; *tap != NULL; ) {
+				if ( (*tap)->a_desc == (*ap)->a_desc ) {
+					Entry		e = { 0 };
+					Modification	mod = { 0 };
+					const char	*text = NULL;
+					char		textbuf[ SLAP_TEXT_BUFLEN ];
+					Attribute	*next = (*tap)->a_next;
+
+					BER_BVSTR( &e.e_name, "" );
+					BER_BVSTR( &e.e_nname, "" );
+					e.e_attrs = *ap;
+					mod.sm_op = LDAP_MOD_ADD;
+					mod.sm_desc = (*ap)->a_desc;
+					mod.sm_type = mod.sm_desc->ad_cname;
+					mod.sm_values = (*tap)->a_vals;
+					mod.sm_nvalues = (*tap)->a_nvals;
+
+					(void)modify_add_values( &e, &mod,
+						/* permissive */ 1,
+						&text, textbuf, sizeof( textbuf ) );
+
+					/* should not insert new attrs! */
+					assert( e.e_attrs == *ap );
+
+					attr_free( *tap );
+					*tap = next;
+
+				} else {
+					tap = &(*tap)->a_next;
+				}
+			}
+		}
+	}
+
 	rs->sr_entry = &ent;
 	rs->sr_attrs = op->ors_attrs;
 	rs->sr_flags = 0;

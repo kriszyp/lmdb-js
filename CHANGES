@@ -13,6 +13,7 @@ OpenLDAP 2.3.38 Engineering
 	Fixed slapd-hdb slapacl behavior (ITS#5087)
 	Fixed slapd-relay configuration (ITS#4322,ITS#4340)
 	Fixed slapd-sql structuralObjectClass issue (ITS#5088)
+	Fixed slapo-rwm/slapd-meta dup attrs after mapping (ITS#5091)
 	Fixed slapo-syncprov uninit'd vars (ITS#5048,#5049)
 	Fixed libldap ldap_add_result_entry (ITS#5056)
 	Added client tools support for ppolicy response (ITS#5061)

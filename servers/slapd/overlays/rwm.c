@@ -1075,6 +1075,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 	int			rc;
 	Attribute		**ap;
 	int			isupdate;
+	int			check_duplicate_attrs = 0;
 
 	/*
 	 * Rewrite the dn attrs, if needed
@@ -1128,6 +1129,9 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 
 			if ( mapping != NULL ) {
 				(*ap)->a_desc = mapping->m_dst_ad;
+
+				/* will need to check for duplicate attrs */
+				check_duplicate_attrs++;
 			}
 		}
 
@@ -1164,6 +1168,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 
 				rwm_map( &rwmap->rwm_oc, &bv[0], &mapped, RWM_REMAP );
 				if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
+remove_oc:;
 					ch_free( bv[0].bv_val );
 					BER_BVZERO( &bv[0] );
 					if ( &(*ap)->a_vals[last] > &bv[0] ) {
@@ -1174,12 +1179,32 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 					bv--;
 
 				} else if ( mapped.bv_val != bv[0].bv_val ) {
+					int	i;
+
+					for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[ i ] ); i++ ) {
+						if ( &(*ap)->a_vals[ i ] == bv ) {
+							continue;
+						}
+
+						if ( ber_bvstrcasecmp( &mapped, &(*ap)->a_vals[ i ] ) == 0 ) {
+							break;
+						}
+					}
+
+					if ( !BER_BVISNULL( &(*ap)->a_vals[ i ] ) ) {
+						goto remove_oc;
+					}
+
 					/*
 					 * FIXME: after LBER_FREEing
 					 * the value is replaced by
 					 * ch_alloc'ed memory
 					 */
 					ber_bvreplace( &bv[0], &mapped );
+
+					/* FIXME: will need to check
+					 * if the structuralObjectClass
+					 * changed */
 				}
 			}
 
@@ -1231,6 +1256,45 @@ cleanup_attr:;
 		*ap = (*ap)->a_next;
 
 		attr_free( a );
+	}
+
+	/* only check if some mapping occurred */
+	if ( check_duplicate_attrs ) {
+		for ( ap = a_first; *ap != NULL; ap = &(*ap)->a_next ) {
+			Attribute	**tap;
+
+			for ( tap = &(*ap)->a_next; *tap != NULL; ) {
+				if ( (*tap)->a_desc == (*ap)->a_desc ) {
+					Entry		e = { 0 };
+					Modification	mod = { 0 };
+					const char	*text = NULL;
+					char		textbuf[ SLAP_TEXT_BUFLEN ];
+					Attribute	*next = (*tap)->a_next;
+
+					BER_BVSTR( &e.e_name, "" );
+					BER_BVSTR( &e.e_nname, "" );
+					e.e_attrs = *ap;
+					mod.sm_op = LDAP_MOD_ADD;
+					mod.sm_desc = (*ap)->a_desc;
+					mod.sm_type = mod.sm_desc->ad_cname;
+					mod.sm_values = (*tap)->a_vals;
+					mod.sm_nvalues = (*tap)->a_nvals;
+
+					(void)modify_add_values( &e, &mod,
+						/* permissive */ 1,
+						&text, textbuf, sizeof( textbuf ) );
+
+					/* should not insert new attrs! */
+					assert( e.e_attrs == *ap );
+
+					attr_free( *tap );
+					*tap = next;
+
+				} else {
+					tap = &(*tap)->a_next;
+				}
+			}
+		}
 	}
 
 	return 0;
