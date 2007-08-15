@@ -164,8 +164,6 @@ static int spew_file(int fd, char * spew, int len) {
 	while(len > 0) {
 		writeres = write(fd, spew, len);
 		if(writeres == -1) {
-			Debug( LDAP_DEBUG_ANY, "could not spew write: %s\n",
-				STRERROR( errno ), 0, 0 );
 			return -1;
 		}
 		else {
@@ -179,19 +177,19 @@ static int spew_file(int fd, char * spew, int len) {
 static int
 spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 {
-	int rs;
+	int rs, save_errno = 0;
 	int openres;
-	int spew_res;
+	int res, spew_res;
 	int entry_length;
 	char * entry_as_string;
 	char tmpfname[] = "tmpXXXXXX";
 
 	openres = mkstemp( tmpfname );
-	if ( save_errnop ) *save_errnop = errno;
 	if ( openres == -1 ) {
+		save_errno = errno;
 		rs = LDAP_UNWILLING_TO_PERFORM;
-		Debug( LDAP_DEBUG_ANY, "could not open \"%s\": %s\n",
-			path->bv_val, STRERROR( *save_errnop ), 0 );
+		Debug( LDAP_DEBUG_ANY, "could not create tmpfile \"%s\": %s\n",
+			tmpfname, STRERROR( save_errno ), 0 );
 
 	} else {
 		struct berval rdn;
@@ -221,7 +219,6 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 		if ( entry_as_string == NULL ) {
 			rs = LDAP_UNWILLING_TO_PERFORM;
 			close(openres);
-			unlink( tmpfname );
 
 			if ( dolock ) {
 				ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
@@ -230,21 +227,28 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 		} else {
 			spew_res = spew_file( openres,
 				entry_as_string, entry_length );
+			if ( spew_res == -1 )
+				save_errno = errno;
 
 			if ( dolock ) {
 				ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
 			}
 
-			close( openres );
+			res = close( openres );
 			rs = LDAP_UNWILLING_TO_PERFORM;
-			if ( spew_res != -1 ) {
-				int res = rename( tmpfname, path->bv_val );
-				if ( save_errnop ) *save_errnop = errno;
+			if ( res == -1 || spew_res == -1 ) {
+				if ( save_errno == 0 )
+					save_errno = errno;
+				Debug( LDAP_DEBUG_ANY, "write error to tmpfile \"%s\": %s\n",
+					tmpfname, STRERROR( save_errno ), 0 );
+			} else {
+				res = rename( tmpfname, path->bv_val );
 				if ( res == 0 ) {
 					rs = LDAP_SUCCESS;
-	
+
 				} else {
-					switch ( *save_errnop ) {
+					save_errno = errno;
+					switch ( save_errno ) {
 					case ENOENT:
 						rs = LDAP_NO_SUCH_OBJECT;
 						break;
@@ -255,8 +259,13 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 				}
 			}
 		}
+
+		if ( rs != LDAP_SUCCESS )
+			unlink( tmpfname );
 	}
 
+	if ( rs != LDAP_SUCCESS )
+		*save_errnop = save_errno;
 	return rs;
 }
 
