@@ -1174,11 +1174,10 @@ static int ldif_tool_entry_close(BackendDB * be) {
 static ID ldif_tool_entry_next(BackendDB *be)
 {
 	struct ldif_info *li = (struct ldif_info *) be->be_private;
-	li->li_tool_current += 1;
-	if(li->li_tool_current > li->li_tool_cookie.eind)
+	if(li->li_tool_current >= li->li_tool_cookie.eind)
 		return NOID;
 	else
-		return li->li_tool_current;
+		return ++li->li_tool_current;
 }
 
 static ID
