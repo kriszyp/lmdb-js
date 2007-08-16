@@ -61,6 +61,7 @@ typedef struct pw_conn {
 
 static pw_conn *pwcons;
 static int ppolicy_cid;
+static int ov_count;
 
 typedef struct pass_policy {
 	AttributeDescription *ad; /* attribute to which the policy applies */
@@ -2122,6 +2123,7 @@ ppolicy_db_open(
 	ConfigReply *cr
 )
 {
+	ov_count++;
 	return overlay_register_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
 }
 
@@ -2133,8 +2135,11 @@ ppolicy_close(
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	pp_info *pi = on->on_bi.bi_private;
-	
-	free( pwcons );
+
+	/* Perhaps backover should provide bi_destroy hooks... */
+	ov_count--;
+	if ( !ov_count )
+		free( pwcons );
 	free( pi->def_policy.bv_val );
 	free( pi );
 
