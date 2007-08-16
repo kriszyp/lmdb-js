@@ -259,6 +259,8 @@ query2url( CachedQuery *q, struct berval *urlbv )
 	return 0;
 }
 
+static Syntax *syn_UUID;
+
 /*
  * Turn an URL representing a formerly cached query into a cached query,
  * and try to cache it
@@ -336,8 +338,11 @@ url2query(
 
 	for ( i = 0; lud->lud_exts[ i ] != NULL; i++ ) {
 		if ( strncmp( lud->lud_exts[ i ], "x-uuid=", STRLENOF( "x-uuid=" ) ) == 0 ) {
-			ber_str2bv( &lud->lud_exts[ i ][ STRLENOF( "x-uuid=" ) ], 0, 0, &uuid );
-			if ( rc ) {
+			struct berval	tmpUUID;
+			ber_str2bv( &lud->lud_exts[ i ][ STRLENOF( "x-uuid=" ) ], 0, 0, &tmpUUID );
+			assert( syn_UUID->ssyn_pretty != NULL );
+			rc = syn_UUID->ssyn_pretty( syn_UUID, &tmpUUID, &uuid, NULL );
+			if ( rc != LDAP_SUCCESS ) {
 				goto error;
 			}
 			got_uuid = 1;
@@ -420,8 +425,10 @@ url2query(
 	cq = add_query( op, qm, &query, qt, 1 );
 	if ( cq != NULL ) {
 		cq->expiry_time = expiry_time;
-		ber_dupbv( &cq->q_uuid, &uuid );
+		cq->q_uuid = uuid;
+
 		/* it's now into cq->filter */
+		BER_BVZERO( &uuid );
 		query.filter = NULL;
 
 	} else {
@@ -432,6 +439,7 @@ error:;
 	if ( query.filter != NULL ) filter_free( query.filter );
 	if ( !BER_BVISNULL( &tempstr ) ) ch_free( tempstr.bv_val );
 	if ( !BER_BVISNULL( &query.base ) ) ch_free( query.base.bv_val );
+	if ( !BER_BVISNULL( &uuid ) ) ch_free( uuid.bv_val );
 	if ( lud != NULL ) ldap_free_urldesc( lud );
 
 	return rc;
@@ -3062,6 +3070,14 @@ int pcache_initialize()
 				"pcache_initialize: register_at #%d failed\n", i, 0, 0 );
 			return code;
 		}
+	}
+
+	syn_UUID = syn_find( "1.3.6.1.1.16.1 ");
+	if ( syn_UUID == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"pcache_initialize: unable to find UUID syntax\n",
+			0, 0, 0 );
+		return LDAP_OTHER;
 	}
 
 	pcache.on_bi.bi_type = "pcache";
