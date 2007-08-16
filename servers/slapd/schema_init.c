@@ -3414,8 +3414,17 @@ certificateExactNormalize(
 			}
 
 			seriallen = snprintf( serialbuf, sizeof(serialbuf), "%llu", sn );
+
+		} else {
+			/* do not accept serialNumber that requires
+			 * more than long long */
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
 		}
+
 #else
+		/* do not accept serialNumber that requires
+		 * more than long */
 		rc = LDAP_INVALID_SYNTAX;
 		goto done;
 #endif
