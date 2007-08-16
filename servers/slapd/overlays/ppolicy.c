@@ -2138,8 +2138,10 @@ ppolicy_close(
 
 	/* Perhaps backover should provide bi_destroy hooks... */
 	ov_count--;
-	if ( !ov_count )
+	if ( ov_count <=0 && pwcons ) {
 		free( pwcons );
+		pwcons = NULL;
+	}
 	free( pi->def_policy.bv_val );
 	free( pi );
 
