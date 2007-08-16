@@ -64,7 +64,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			gotit = 0,
 			isroot = 0;
 
-	SlapReply	*candidates = meta_back_candidates_get( op );
+	SlapReply	*candidates;
 
 	rs->sr_err = LDAP_SUCCESS;
 
@@ -121,6 +121,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+
+	candidates = meta_back_candidates_get( op );
 
 	/*
 	 * Each target is scanned ...
@@ -323,6 +325,9 @@ meta_back_bind_op_result(
 	Debug( LDAP_DEBUG_TRACE,
 		">>> %s meta_back_bind_op_result[%d]\n",
 		op->o_log_prefix, candidate, 0 );
+
+	/* make sure this is clean */
+	assert( rs->sr_ctrls == NULL );
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		time_t		stoptime = (time_t)(-1),
@@ -634,7 +639,7 @@ meta_back_dobind(
 				i,
 				isroot = 0;
 
-	SlapReply		*candidates = meta_back_candidates_get( op );
+	SlapReply		*candidates;
 
 	if ( be_isroot( op ) ) {
 		isroot = 1;
@@ -653,6 +658,8 @@ meta_back_dobind(
 		bound = 1;
 		goto done;
 	}
+
+	candidates = meta_back_candidates_get( op );
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t		*mt = mi->mi_targets[ i ];

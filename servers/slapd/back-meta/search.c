@@ -680,7 +680,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	dncookie	dc;
 	int		is_ok = 0;
 	void		*savepriv;
-	SlapReply	*candidates = meta_back_candidates_get( op );
+	SlapReply	*candidates = NULL;
 
 	/*
 	 * controls are set in ldap_back_dobind()
@@ -697,6 +697,7 @@ getconn:;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 
+	if ( candidates == NULL ) candidates = meta_back_candidates_get( op );
 	/*
 	 * Inits searches
 	 */
