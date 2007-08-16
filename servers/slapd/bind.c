@@ -199,7 +199,7 @@ do_bind(
 	op->o_conn->c_protocol = version;
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
-	op->orb_tmp_mech = mech;
+	op->orb_mech = mech;
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_bind( op, rs );
@@ -247,7 +247,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			goto cleanup;
 		}
 
-		if( BER_BVISNULL( &op->orb_tmp_mech ) || BER_BVISEMPTY( &op->orb_tmp_mech ) ) {
+		if( BER_BVISNULL( &op->orb_mech ) || BER_BVISEMPTY( &op->orb_mech ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
 				0, 0, 0 );
@@ -257,19 +257,19 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		}
 
 		/* check restrictions */
-		if( backend_check_restrictions( op, rs, &op->orb_tmp_mech ) != LDAP_SUCCESS ) {
+		if( backend_check_restrictions( op, rs, &op->orb_mech ) != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
 			goto cleanup;
 		}
 
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		if ( op->o_conn->c_sasl_bind_in_progress ) {
-			if( !bvmatch( &op->o_conn->c_sasl_bind_mech, &op->orb_tmp_mech ) ) {
+			if( !bvmatch( &op->o_conn->c_sasl_bind_mech, &op->orb_mech ) ) {
 				/* mechanism changed between bind steps */
 				slap_sasl_reset(op->o_conn);
 			}
 		} else {
-			ber_dupbv(&op->o_conn->c_sasl_bind_mech, &op->orb_tmp_mech);
+			ber_dupbv(&op->o_conn->c_sasl_bind_mech, &op->orb_mech);
 		}
 
 		/* Set the bindop for the benefit of in-directory SASL lookups */
@@ -296,7 +296,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
-		BER_BVSTR( &op->orb_tmp_mech, "SIMPLE" );
+		BER_BVSTR( &op->orb_mech, "SIMPLE" );
 		/* accept "anonymous" binds */
 		if ( BER_BVISEMPTY( &op->orb_cred ) || BER_BVISEMPTY( &op->o_req_ndn ) ) {
 			rs->sr_err = LDAP_SUCCESS;
@@ -321,7 +321,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				rs->sr_text = "anonymous bind disallowed";
 
 			} else {
-				backend_check_restrictions( op, rs, &op->orb_tmp_mech );
+				backend_check_restrictions( op, rs, &op->orb_mech );
 			}
 
 			/*
@@ -428,7 +428,7 @@ fe_op_bind_success( Operation *op, SlapReply *rs )
 	Statslog( LDAP_DEBUG_STATS,
 		"%s BIND dn=\"%s\" mech=%s ssf=0\n",
 		op->o_log_prefix,
-		op->o_conn->c_dn.bv_val, op->orb_tmp_mech.bv_val, 0, 0 );
+		op->o_conn->c_dn.bv_val, op->orb_mech.bv_val, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"do_bind: v%d bind: \"%s\" to \"%s\"\n",

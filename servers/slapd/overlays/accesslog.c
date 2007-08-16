@@ -1254,10 +1254,10 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
 			attr_merge_one( e, ad_reqMethod, &simple, NULL );
 		} else {
-			bv.bv_len = STRLENOF("SASL()") + op->orb_tmp_mech.bv_len;
+			bv.bv_len = STRLENOF("SASL()") + op->orb_mech.bv_len;
 			bv.bv_val = op->o_tmpalloc( bv.bv_len + 1, op->o_tmpmemctx );
 			ptr = lutil_strcopy( bv.bv_val, "SASL(" );
-			ptr = lutil_strcopy( ptr, op->orb_tmp_mech.bv_val );
+			ptr = lutil_strcopy( ptr, op->orb_mech.bv_val );
 			*ptr++ = ')';
 			*ptr = '\0';
 			attr_merge_one( e, ad_reqMethod, &bv, NULL );

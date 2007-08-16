@@ -1888,7 +1888,7 @@ typedef struct req_bind_s {
 	struct berval rb_cred;
 	struct berval rb_edn;
 	slap_ssf_t rb_ssf;
-	struct berval rb_tmp_mech;	/* FIXME: temporary */
+	struct berval rb_mech;
 } req_bind_s;
 
 typedef struct req_search_s {
