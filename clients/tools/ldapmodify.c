@@ -92,7 +92,6 @@ static struct berval BV_MODOPADD = BER_BVC("add");
 static struct berval BV_MODOPREPLACE = BER_BVC("replace");
 static struct berval BV_MODOPDELETE = BER_BVC("delete");
 static struct berval BV_MODOPINCREMENT = BER_BVC("increment");
-static struct berval BV_MODSEP = BER_BVC("-");
 static struct berval BV_NEWRDN = BER_BVC("newrdn");
 static struct berval BV_DELETEOLDRDN = BER_BVC("deleteoldrdn");
 static struct berval BV_NEWSUP = BER_BVC("newsuperior");
