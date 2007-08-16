@@ -2438,7 +2438,7 @@ struct Operation {
 #define orb_cred oq_bind.rb_cred
 #define orb_edn oq_bind.rb_edn
 #define orb_ssf oq_bind.rb_ssf
-#define orb_tmp_mech oq_bind.rb_tmp_mech
+#define orb_mech oq_bind.rb_mech
 
 #define ors_scope oq_search.rs_scope
 #define ors_deref oq_search.rs_deref
