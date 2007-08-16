@@ -57,6 +57,10 @@ ldap_url_parse_ext LDAP_P((
 	struct ldap_url_desc **ludpp,
 	unsigned flags ));
 
+LDAP_F (int) ldap_url_parselist LDAP_P((	/* deprecated, use ldap_url_parselist_ext() */
+	struct ldap_url_desc **ludlist,
+	const char *url ));
+
 LDAP_F (int) ldap_url_parselist_ext LDAP_P((
 	struct ldap_url_desc **ludlist,
 	const char *url,

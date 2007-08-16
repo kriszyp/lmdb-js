@@ -1238,7 +1238,7 @@ tool_bind( LDAP *ld )
 		rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
 			&ctrls, 1 );
 		if ( rc != LDAP_SUCCESS ) {
-			tool_perror( "ldap_bind parse result", rc, NULL, NULL, NULL, NULL );
+			tool_perror( "ldap_bind parse result", rc, NULL, matched, info, refs );
 			exit( LDAP_LOCAL_ERROR );
 		}
 

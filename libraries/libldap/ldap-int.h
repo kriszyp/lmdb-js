@@ -599,10 +599,6 @@ LDAP_F (LDAPURLDesc *) ldap_url_dup LDAP_P((
 LDAP_F (LDAPURLDesc *) ldap_url_duplist LDAP_P((
 	LDAPURLDesc *ludlist ));
 
-LDAP_F (int) ldap_url_parselist LDAP_P((
-	LDAPURLDesc **ludlist,
-	const char *url ));
-
 LDAP_F (int) ldap_url_parsehosts LDAP_P((
 	LDAPURLDesc **ludlist,
 	const char *hosts,
