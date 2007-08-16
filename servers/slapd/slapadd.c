@@ -60,7 +60,6 @@ slapadd( int argc, char **argv )
 	Operation *op;
 
 	int match;
-	int ret;
 	int checkvals;
 	int lineno, nextline;
 	int lmax;

@@ -1801,7 +1801,6 @@ syncrepl_entry(
 	slap_callback	cb = { NULL, NULL, NULL, NULL };
 	struct berval	*syncuuid_bv = NULL;
 	struct berval	syncUUID_strrep = BER_BVNULL;
-	struct berval	uuid_bv = BER_BVNULL;
 
 	SlapReply	rs_search = {REP_RESULT};
 	SlapReply	rs_delete = {REP_RESULT};
@@ -2815,7 +2814,7 @@ dn_callback(
 			if ( dni->new_entry ) {
 				Modifications **modtail, **ml;
 				Attribute *old, *new;
-				int i, is_ctx;
+				int is_ctx;
 
 				is_ctx = dn_match( &rs->sr_entry->e_nname,
 					&op->o_bd->be_nsuffix[0] );
