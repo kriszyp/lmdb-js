@@ -1498,7 +1498,7 @@ struct search_info {
 	Entry *head, *tail;
 };
 
-static int
+static void
 remove_query_and_data(
 	Operation	*op,
 	SlapReply	*rs,
@@ -1671,7 +1671,6 @@ cache_entries(
 	struct search_info *si = op->o_callback->sc_private;
 	slap_overinst *on = si->on;
 	cache_manager *cm = on->on_bi.bi_private;
-	query_manager*		qm = cm->qm;
 	int		return_val = 0;
 	Entry		*e;
 	struct berval	crp_uuid;
@@ -3072,7 +3071,7 @@ int pcache_initialize()
 		}
 	}
 
-	syn_UUID = syn_find( "1.3.6.1.1.16.1 ");
+	syn_UUID = syn_find( "1.3.6.1.1.16.1");
 	if ( syn_UUID == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"pcache_initialize: unable to find UUID syntax\n",
