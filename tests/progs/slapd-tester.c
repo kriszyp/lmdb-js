@@ -418,26 +418,46 @@ main( int argc, char **argv )
 	/* look for search requests */
 	if ( sfile ) {
 		snum = get_search_filters( sfile, sreqs, sattrs, sbase, slud );
+		if ( snum == -1 ) {
+			fprintf( stderr, "unable to parse file \"%s\"\n", sfile );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	/* look for read requests */
 	if ( rfile ) {
 		rnum = get_read_entries( rfile, rreqs, rflts );
+		if ( rnum == -1 ) {
+			fprintf( stderr, "unable to parse file \"%s\"\n", rfile );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	/* look for modrdn requests */
 	if ( nfile ) {
 		nnum = get_read_entries( nfile, nreqs, NULL );
+		if ( nnum == -1 ) {
+			fprintf( stderr, "unable to parse file \"%s\"\n", nfile );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	/* look for modify requests */
 	if ( mfile ) {
 		mnum = get_search_filters( mfile, mreqs, NULL, mdn, NULL );
+		if ( mnum == -1 ) {
+			fprintf( stderr, "unable to parse file \"%s\"\n", mfile );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	/* look for bind requests */
 	if ( bfile ) {
 		bnum = get_search_filters( bfile, bcreds, battrs, breqs, NULL );
+		if ( bnum == -1 ) {
+			fprintf( stderr, "unable to parse file \"%s\"\n", bfile );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	/* setup friendly option */
@@ -919,11 +939,13 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 				got_URL = 1;
 				bases[filter] = NULL;
 				if ( ldap_url_parse( line, &lud ) != LDAP_URL_SUCCESS ) {
-					return 1;
+					filter = -1;
+					break;
 				}
 
 				if ( lud->lud_dn == NULL || lud->lud_exts != NULL ) {
-					return 1;
+					filter = -1;
+					break;
 				}
 
 				luds[filter] = lud;
@@ -957,7 +979,7 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 		fclose( fp );
 	}
 
-	return( filter );
+	return filter;
 }
 
 
