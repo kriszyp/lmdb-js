@@ -1002,9 +1002,9 @@ slap_parse_modlist(
 	ber_tag_t	tag;
 	ber_len_t	len;
 	char		*last;
-	Modifications	**modtail = &ms->rs_modlist;
+	Modifications	**modtail = &ms->rs_mods.rs_modlist;
 
-	ms->rs_modlist = NULL;
+	ms->rs_mods.rs_modlist = NULL;
 	ms->rs_increment = 0;
 
 	rs->sr_err = LDAP_SUCCESS;
@@ -1082,8 +1082,8 @@ slap_parse_modlist(
 
 done:
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		slap_mods_free( ms->rs_modlist, 1 );
-		ms->rs_modlist = NULL;
+		slap_mods_free( ms->rs_mods.rs_modlist, 1 );
+		ms->rs_mods.rs_modlist = NULL;
 		ms->rs_increment = 0;
 	}
 

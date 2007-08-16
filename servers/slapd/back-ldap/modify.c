@@ -52,7 +52,7 @@ ldap_back_modify(
 		return rs->sr_err;
 	}
 
-	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; i++, ml = ml->sml_next )
+	for ( i = 0, ml = op->orm_modlist; ml; i++, ml = ml->sml_next )
 		/* just count mods */ ;
 
 	modv = (LDAPMod **)ch_malloc( ( i + 1 )*sizeof( LDAPMod * )
@@ -64,7 +64,7 @@ ldap_back_modify(
 	mods = (LDAPMod *)&modv[ i + 1 ];
 
 	isupdate = be_shadow_update( op );
-	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
+	for ( i = 0, ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		if ( !isupdate && !get_relax( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
 			continue;

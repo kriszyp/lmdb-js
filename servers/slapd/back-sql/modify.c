@@ -127,14 +127,14 @@ backsql_modify( Operation *op, SlapReply *rs )
 	oc = backsql_id2oc( bi, bsi.bsi_base_id.eid_oc_id );
 	assert( oc != NULL );
 
-	if ( !acl_check_modlist( op, &m, op->oq_modify.rs_modlist ) ) {
+	if ( !acl_check_modlist( op, &m, op->orm_modlist ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		e = &m;
 		goto done;
 	}
 
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc,
-			&bsi.bsi_base_id, op->oq_modify.rs_modlist );
+			&bsi.bsi_base_id, op->orm_modlist );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		e = &m;
 		goto do_transact;

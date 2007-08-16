@@ -522,7 +522,7 @@ retry:	/* transaction retry */
 	}
 	/* Modify the entry */
 	dummy = *e;
-	rs->sr_err = bdb_modify_internal( op, lt2, op->oq_modify.rs_modlist,
+	rs->sr_err = bdb_modify_internal( op, lt2, op->orm_modlist,
 		&dummy, &rs->sr_text, textbuf, textlen );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {

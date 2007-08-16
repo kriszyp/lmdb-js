@@ -46,7 +46,7 @@ shell_back_modify(
 	Modification *mod;
 	struct shellinfo	*si = (struct shellinfo *) op->o_bd->be_private;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
-	Modifications *ml  = op->oq_modify.rs_modlist;
+	Modifications *ml  = op->orm_modlist;
 	Entry e;
 	FILE			*rfp, *wfp;
 	int			i;

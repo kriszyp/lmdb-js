@@ -502,7 +502,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	}
 
 	isupdate = be_shadow_update( op );
-	for ( mlp = &op->oq_modify.rs_modlist; *mlp; ) {
+	for ( mlp = &op->orm_modlist; *mlp; ) {
 		int			is_oc = 0;
 		Modifications		*ml;
 		struct ldapmapping	*mapping = NULL;

@@ -1908,23 +1908,27 @@ typedef struct req_compare_s {
 	AttributeAssertion *rs_ava;
 } req_compare_s;
 
-typedef struct req_modify_s {
+typedef struct req_modifications_s {
 	Modifications *rs_modlist;
-	int rs_increment;		/* FIXME: temporary */
 	char rs_no_opattrs;		/* don't att modify operational attrs */
+} req_modifications_s;
+
+typedef struct req_modify_s {
+	req_modifications_s rs_mods;	/* NOTE: must be first in req_modify_s & req_modrdn_s */
+	int rs_increment;
 } req_modify_s;
 
 typedef struct req_modrdn_s {
-	Modifications *rs_modlist;
+	req_modifications_s rs_mods;	/* NOTE: must be first in req_modify_s & req_modrdn_s */
+	int rs_deleteoldrdn;
 	struct berval rs_newrdn;
 	struct berval rs_nnewrdn;
 	struct berval *rs_newSup;
 	struct berval *rs_nnewSup;
-	int rs_deleteoldrdn;
 } req_modrdn_s;
 
 typedef struct req_add_s {
-	Modifications *rs_modlist;	/* FIXME: temporary */
+	Modifications *rs_modlist;
 	Entry *rs_e;
 } req_add_s;
 
@@ -2450,20 +2454,24 @@ struct Operation {
 #define ors_filter oq_search.rs_filter
 #define ors_filterstr oq_search.rs_filterstr
 
+#define orr_modlist oq_modrdn.rs_mods.rs_modlist
+#define orr_no_opattrs oq_modrdn.rs_mods.rs_no_opattrs
+#define orr_deleteoldrdn oq_modrdn.rs_deleteoldrdn
 #define orr_newrdn oq_modrdn.rs_newrdn
 #define orr_nnewrdn oq_modrdn.rs_nnewrdn
 #define orr_newSup oq_modrdn.rs_newSup
 #define orr_nnewSup oq_modrdn.rs_nnewSup
-#define orr_deleteoldrdn oq_modrdn.rs_deleteoldrdn
-#define orr_modlist oq_modrdn.rs_modlist
 
 #define orc_ava oq_compare.rs_ava
+
 #define ora_e oq_add.rs_e
 #define ora_modlist oq_add.rs_modlist
+
 #define orn_msgid oq_abandon.rs_msgid
-#define orm_modlist oq_modify.rs_modlist
+
+#define orm_modlist oq_modify.rs_mods.rs_modlist
+#define orm_no_opattrs oq_modify.rs_mods.rs_no_opattrs
 #define orm_increment oq_modify.rs_increment
-#define orm_no_opattrs oq_modify.rs_no_opattrs
 
 #define ore_reqoid oq_extended.rs_reqoid
 #define ore_flags oq_extended.rs_flags
