@@ -3306,7 +3306,7 @@ done:
 static int
 config_back_bind( Operation *op, SlapReply *rs )
 {
-	if ( op->orb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op )) {
+	if ( be_isroot_pw( op ) ) {
 		ber_dupbv( &op->orb_edn, be_root_dn( op->o_bd ));
 		/* frontend sends result */
 		return LDAP_SUCCESS;

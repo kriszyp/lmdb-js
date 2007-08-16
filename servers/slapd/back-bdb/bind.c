@@ -40,10 +40,14 @@ bdb_bind( Operation *op, SlapReply *rs )
 		op->o_req_dn.bv_val, 0, 0);
 
 	/* allow noauth binds */
-	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op )) {
-		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
-		/* front end will send result */
-		return LDAP_SUCCESS;
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		/* in case of success, frontend will send result;
+		 * otherwise, be_rootdn_bind() did */
+		return rs->sr_err;
 	}
 
 	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);

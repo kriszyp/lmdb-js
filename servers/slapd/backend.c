@@ -765,14 +765,40 @@ be_isroot( Operation *op )
 int
 be_isroot_pw( Operation *op )
 {
-	int result;
+	return be_rootdn_bind( op, NULL ) == LDAP_SUCCESS;
+}
 
-	if ( ! be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
-		return 0;
+/*
+ * checks if binding as rootdn
+ *
+ * return value:
+ *	SLAP_CB_CONTINUE		if not the rootdn
+ *	LDAP_SUCCESS			if rootdn & rootpw
+ *	LDAP_INVALID_CREDENTIALS	if rootdn & !rootpw
+ *
+ * if rs != NULL
+ *	if LDAP_SUCCESS, op->orb_edn is set
+ *	if LDAP_INVALID_CREDENTIALS, response is sent to client
+ */
+int
+be_rootdn_bind( Operation *op, SlapReply *rs )
+{
+	int		rc;
+
+	assert( op->o_tag == LDAP_REQ_BIND );
+	assert( op->orb_method == LDAP_AUTH_SIMPLE );
+
+	if ( !be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
+		return SLAP_CB_CONTINUE;
 	}
 
 	if ( BER_BVISEMPTY( &op->o_bd->be_rootpw ) ) {
-		return 0;
+		rc = LDAP_INVALID_CREDENTIALS;
+		if ( rs ) {
+			goto send_result;
+		}
+
+		return rc;
 	}
 
 #ifdef SLAPD_SPASSWD
@@ -780,13 +806,31 @@ be_isroot_pw( Operation *op )
 		op->o_conn->c_sasl_authctx, NULL );
 #endif
 
-	result = lutil_passwd( &op->o_bd->be_rootpw, &op->orb_cred, NULL, NULL );
+	rc = lutil_passwd( &op->o_bd->be_rootpw, &op->orb_cred, NULL, NULL );
 
 #ifdef SLAPD_SPASSWD
 	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind, NULL, NULL );
 #endif
 
-	return result == 0;
+	rc = ( rc == 0 ? LDAP_SUCCESS : LDAP_INVALID_CREDENTIALS );
+	if ( rs ) {
+send_result:;
+		rs->sr_err = rc;
+
+		Debug( LDAP_DEBUG_TRACE, "%s: rootdn=\"%s\" bind%s\n", 
+			op->o_log_prefix, op->o_bd->be_rootdn.bv_val,
+			rc == LDAP_SUCCESS ? " succeeded" : " failed" );
+
+		if ( rc == LDAP_SUCCESS ) {
+			/* Set to the pretty rootdn */
+     			ber_dupbv( &op->orb_edn, &op->o_bd->be_rootdn );
+
+		} else {
+			send_ldap_result( op, rs );
+		}
+	}
+
+	return rc;
 }
 
 int

@@ -177,6 +177,16 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	ber_int_t		msgid;
 	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 
+	/* allow rootdn as a means to auth without the need to actually
+ 	 * contact the proxied DSA */
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		return rs->sr_err;
+	}
+
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_BIND_SERR, NULL, NULL );
 	if ( !lc ) {
 		return rs->sr_err;

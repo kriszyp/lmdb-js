@@ -35,11 +35,8 @@ monitor_back_bind( Operation *op, SlapReply *rs )
 {
 	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n", 
 			op->o_req_dn.bv_val, 0, 0 );
-	
-	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE 
-			&& be_isroot_pw( op ) )
-	{
-		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
+
+	if ( be_isroot_pw( op ) ) {
 		return LDAP_SUCCESS;
 	}
 

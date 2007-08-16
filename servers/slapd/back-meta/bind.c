@@ -72,24 +72,22 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		op->o_log_prefix, op->o_req_dn.bv_val, 0 );
 
 	/* the test on the bind method should be superfluous */
-	if ( op->orb_method == LDAP_AUTH_SIMPLE
-		&& be_isroot_dn( op->o_bd, &op->o_req_ndn ) )
-	{
-		if ( !be_isroot_pw( op ) ) {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			rs->sr_text = NULL;
-			send_ldap_result( op, rs );
-			return rs->sr_err;
-		}
-
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case LDAP_SUCCESS:
 		if ( META_BACK_DEFER_ROOTDN_BIND( mi ) ) {
-			rs->sr_err = LDAP_SUCCESS;
-			rs->sr_text = NULL;
 			/* frontend will return success */
 			return rs->sr_err;
 		}
 
 		isroot = 1;
+		/* fallthru */
+
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		/* be_rootdn_bind() sent result */
+		return rs->sr_err;
 	}
 
 	/* we need meta_back_getconn() not send result even on error,

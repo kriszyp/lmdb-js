@@ -773,17 +773,23 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 	int return_val = 0;
 	Entry * entry = NULL;
 
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		/* in case of success, front end will send result;
+		 * otherwise, be_rootdn_bind() did */
+		return rs->sr_err;
+	}
+
 	li = (struct ldif_info *) op->o_bd->be_private;
 	ldap_pvt_thread_rdwr_rlock(&li->li_rdwr);
 	entry = get_entry(op, &li->li_base_path);
 
 	/* no object is found for them */
 	if(entry == NULL) {
-		if(be_isroot_pw(op)) {
-			rs->sr_err = return_val = LDAP_SUCCESS;
-		} else {
-			rs->sr_err = return_val = LDAP_INVALID_CREDENTIALS;
-		}
+		rs->sr_err = return_val = LDAP_INVALID_CREDENTIALS;
 		goto return_result;
 	}
 

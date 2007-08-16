@@ -345,6 +345,7 @@ LDAP_SLAPD_F (int) be_issubordinate LDAP_P(( Backend *be,
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_isroot_dn LDAP_P(( Backend *be, struct berval *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Operation *op ));
+LDAP_SLAPD_F (int) be_rootdn_bind LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) be_slurp_update LDAP_P(( Operation *op ));
 #define be_isupdate( op ) be_slurp_update( (op) )
 LDAP_SLAPD_F (int) be_shadow_update LDAP_P(( Operation *op ));

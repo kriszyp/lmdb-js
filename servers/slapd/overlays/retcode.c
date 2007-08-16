@@ -305,6 +305,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 
 			case LDAP_REQ_BIND:
 				/* skip if rootdn */
+				/* FIXME: better give the db a chance? */
 				if ( be_isroot_pw( op ) ) {
 					return LDAP_SUCCESS;
 				}

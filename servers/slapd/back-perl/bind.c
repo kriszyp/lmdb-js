@@ -32,6 +32,16 @@ perl_back_bind(
 
 	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 
+	/* allow rootdn as a means to auth without the need to actually
+ 	 * contact the proxied DSA */
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		return rs->sr_err;
+	}
+
 #if defined(HAVE_WIN32_ASPERL) || defined(USE_ITHREADS)
 	PERL_SET_CONTEXT( PERL_INTERPRETER );
 #endif

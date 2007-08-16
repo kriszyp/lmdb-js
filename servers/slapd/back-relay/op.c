@@ -111,6 +111,16 @@ relay_back_op_bind( Operation *op, SlapReply *rs )
 	BackendDB		*bd;
 	int			rc = 1;
 
+	/* allow rootdn as a means to auth without the need to actually
+ 	 * contact the proxied DSA */
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		return rs->sr_err;
+	}
+
 	bd = relay_back_select_backend( op, rs, LDAP_INVALID_CREDENTIALS, 1 );
 	if ( bd == NULL ) {
 		return rc;
