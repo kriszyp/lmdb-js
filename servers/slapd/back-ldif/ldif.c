@@ -182,7 +182,11 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 	int res, spew_res;
 	int entry_length;
 	char * entry_as_string;
-	char tmpfname[] = "tmpXXXXXX";
+	char *tmpfname = NULL;
+
+	tmpfname = ch_malloc( path->bv_len + STRLENOF( "XXXXXX" ) + 1 );
+	AC_MEMCPY( tmpfname, path->bv_val, path->bv_len );
+	AC_MEMCPY( &tmpfname[ path->bv_len ], "XXXXXX", STRLENOF( "XXXXXX" ) + 1 );
 
 	openres = mkstemp( tmpfname );
 	if ( openres == -1 ) {
@@ -264,8 +268,11 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 			unlink( tmpfname );
 	}
 
-	if ( rs != LDAP_SUCCESS )
+	ch_free( tmpfname );
+
+	if ( rs != LDAP_SUCCESS && save_errnop != NULL )
 		*save_errnop = save_errno;
+
 	return rs;
 }
 
@@ -341,7 +348,7 @@ typedef struct bvlist {
 	struct bvlist *next;
 	struct berval bv;
 	struct berval num;
-	unsigned int inum;
+	int inum;
 	int off;
 } bvlist;
 
@@ -470,7 +477,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				if ( ptr ) {
 					itmp.bv_len = ptr - itmp.bv_val;
 					ber_dupbv( &bvl->num, &itmp );
-					bvl->inum = strtoul( itmp.bv_val, NULL, 0 );
+					bvl->inum = strtol( itmp.bv_val, NULL, 0 );
 					itmp.bv_val[0] = '\0';
 					bvl->off = itmp.bv_val - bvl->bv.bv_val;
 				}
