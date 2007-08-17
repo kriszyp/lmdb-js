@@ -62,6 +62,7 @@ bdb_bind( Operation *op, SlapReply *rs )
 		/* give the database a chanche */
 		break;
 	}
+#endif /* traditional */
 
 	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);
 	switch(rs->sr_err) {
@@ -72,7 +73,6 @@ bdb_bind( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
-#endif /* traditional */
 
 dn2entry_retry:
 	/* get entry with reader lock */
