@@ -35,6 +35,19 @@
 
 #include "config.h"
 
+#ifdef LDAP_DEVEL
+/*
+ * Control that allows to access the private DB
+ * instead of the public one
+ */
+#define	PCACHE_CONTROL_PRIVDB		"1.3.6.1.4.1.4203.666.11.9.5.1"
+
+/*
+ * Extended Operation that allows to remove a query from the cache
+ */
+#define PCACHE_EXOP_QUERY_DELETE	"1.3.6.1.4.1.4203.666.11.9.6.1"
+#endif
+
 /* query cache structs */
 /* query */
 
@@ -170,18 +183,22 @@ typedef struct cache_manager_s {
 
 static int pcache_debug;
 
-static AttributeDescription *ad_queryid, *ad_cachedQueryURL;
+#ifdef PCACHE_CONTROL_PRIVDB
+static int privDB_cid;
+#endif /* PCACHE_CONTROL_PRIVDB */
+
+static AttributeDescription *ad_queryId, *ad_cachedQueryURL;
 static struct {
 	char	*desc;
 	AttributeDescription **adp;
 } as[] = {
-	{ "( 1.3.6.1.4.1.4203.666.1.12 NAME 'queryid' "
-		"DESC 'list of queries the entry belongs to' "
+	{ "( 1.3.6.1.4.1.4203.666.11.9.1.1 NAME 'queryId' "
+		"DESC 'List of queries the entry belongs to' "
 		"EQUALITY octetStringMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 		"NO-USER-MODIFICATION USAGE directoryOperation )",
-		&ad_queryid },
-	{ "(1.3.6.1.4.1.4203.666.1.999999 NAME 'cachedQueryURL' "
+		&ad_queryId },
+	{ "( 1.3.6.1.4.1.4203.666.11.9.1.2 NAME 'cachedQueryURL' "
 		"DESC 'URI describing a cached query' "
 		"EQUALITY caseExactMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
@@ -477,8 +494,8 @@ merge_entry(
 	attr = e->e_attrs;
 	e->e_attrs = NULL;
 
-	/* add queryid attribute */
-	attr_merge_one( e, ad_queryid, query_uuid, NULL );
+	/* add queryId attribute */
+	attr_merge_one( e, ad_queryId, query_uuid, NULL );
 
 	/* append the attribute list from the fetched entry */
 	e->e_attrs->a_next = attr;
@@ -1296,7 +1313,7 @@ remove_func (
 
 	if ( rs->sr_type != REP_SEARCH ) return 0;
 
-	attr = attr_find( rs->sr_entry->e_attrs,  ad_queryid );
+	attr = attr_find( rs->sr_entry->e_attrs,  ad_queryId );
 	if ( attr == NULL ) return 0;
 
 	for ( count = 0; !BER_BVISNULL( &attr->a_vals[count] ); count++ )
@@ -1318,7 +1335,7 @@ remove_query_data(
 	struct berval	*query_uuid )
 {
 	struct query_info	*qi, *qnext;
-	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryid=)" ) ];
+	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
 #ifdef LDAP_COMP_MATCH
 	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
 #else
@@ -1332,9 +1349,9 @@ remove_query_data(
 	sreply.sr_entry = NULL;
 	sreply.sr_nentries = 0;
 	op->ors_filterstr.bv_len = snprintf(filter_str, sizeof(filter_str),
-		"(%s=%s)", ad_queryid->ad_cname.bv_val, query_uuid->bv_val);
+		"(%s=%s)", ad_queryId->ad_cname.bv_val, query_uuid->bv_val);
 	filter.f_ava = &ava;
-	filter.f_av_desc = ad_queryid;
+	filter.f_av_desc = ad_queryId;
 	filter.f_av_value = *query_uuid;
 
 	op->o_tag = LDAP_REQ_SEARCH;
@@ -1382,8 +1399,8 @@ remove_query_data(
 			vals[1].bv_len = 0;
 			mod.sml_op = LDAP_MOD_DELETE;
 			mod.sml_flags = 0;
-			mod.sml_desc = ad_queryid;
-			mod.sml_type = ad_queryid->ad_cname;
+			mod.sml_desc = ad_queryId;
+			mod.sml_type = ad_queryId->ad_cname;
 			mod.sml_values = vals;
 			mod.sml_nvalues = NULL;
 			mod.sml_next = NULL;
@@ -1545,11 +1562,11 @@ remove_query_and_data(
 }
 
 /*
- * Callback used to fetch queryid values based on entryUUID;
+ * Callback used to fetch queryId values based on entryUUID;
  * used by pcache_remove_entries_from_cache()
  */
 static int
-fetch_queryid_cb( Operation *op, SlapReply *rs )
+fetch_queryId_cb( Operation *op, SlapReply *rs )
 {
 	int		rc = 0;
 
@@ -1565,8 +1582,8 @@ fetch_queryid_cb( Operation *op, SlapReply *rs )
 	} else {
 		Attribute	*a;
 
-		/* copy all queryid values into callback's private data */
-		a = attr_find( rs->sr_entry->e_attrs, ad_queryid );
+		/* copy all queryId values into callback's private data */
+		a = attr_find( rs->sr_entry->e_attrs, ad_queryId );
 		if ( a != NULL ) {
 			BerVarray	vals = NULL;
 
@@ -1630,8 +1647,8 @@ pcache_remove_entries_from_cache(
 	op->ors_filter = &f;
 	op->ors_slimit = 1;
 	op->ors_tlimit = SLAP_NO_LIMIT;
-	attrs[ 0 ].an_desc = ad_queryid;
-	attrs[ 0 ].an_name = ad_queryid->ad_cname;
+	attrs[ 0 ].an_desc = ad_queryId;
+	attrs[ 0 ].an_name = ad_queryId->ad_cname;
 	op->ors_attrs = attrs;
 	op->ors_attrsonly = 0;
 
@@ -1644,7 +1661,7 @@ pcache_remove_entries_from_cache(
 	op->o_bd = &cm->db;
 	op->o_dn = op->o_bd->be_rootdn;
 	op->o_ndn = op->o_bd->be_rootndn;
-	sc.sc_response = fetch_queryid_cb;
+	sc.sc_response = fetch_queryId_cb;
 	op->o_callback = &sc;
 
 	for ( s = 0; !BER_BVISNULL( &UUIDs[ s ] ); s++ ) {
@@ -1698,7 +1715,7 @@ pcache_remove_entry_queries_from_cache(
 	slap_callback		sc = { 0 };
 	SlapReply		rs = { REP_RESULT };
 	Filter			f = { 0 };
-	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryid=)" ) ];
+	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
 #ifdef LDAP_COMP_MATCH
 	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
 #else
@@ -1731,17 +1748,17 @@ pcache_remove_entry_queries_from_cache(
 	} else {
 		op->ors_filterstr.bv_len = snprintf( filter_str,
 			sizeof( filter_str ), "(%s=%s)",
-			ad_queryid->ad_cname.bv_val, uuid->bv_val );
+			ad_queryId->ad_cname.bv_val, uuid->bv_val );
 		f.f_choice = LDAP_FILTER_EQUALITY;
 		f.f_ava = &ava;
-		f.f_av_desc = ad_queryid;
+		f.f_av_desc = ad_queryId;
 		f.f_av_value = *uuid;
 	}
 	op->ors_filter = &f;
 	op->ors_slimit = 1;
 	op->ors_tlimit = SLAP_NO_LIMIT;
-	attrs[ 0 ].an_desc = ad_queryid;
-	attrs[ 0 ].an_name = ad_queryid->ad_cname;
+	attrs[ 0 ].an_desc = ad_queryId;
+	attrs[ 0 ].an_name = ad_queryId->ad_cname;
 	op->ors_attrs = attrs;
 	op->ors_attrsonly = 0;
 
@@ -1754,7 +1771,7 @@ pcache_remove_entry_queries_from_cache(
 	op->o_bd = &cm->db;
 	op->o_dn = op->o_bd->be_rootdn;
 	op->o_ndn = op->o_bd->be_rootndn;
-	sc.sc_response = fetch_queryid_cb;
+	sc.sc_response = fetch_queryId_cb;
 	op->o_callback = &sc;
 
 	rc = op->o_bd->be_search( op, &rs );
@@ -2024,6 +2041,60 @@ pcache_chk_controls(
 	return rs->sr_err;
 }
 
+#ifdef PCACHE_CONTROL_PRIVDB
+static int
+pcache_op_privdb(
+	Operation		*op,
+	SlapReply		*rs )
+{
+	slap_overinst 	*on = (slap_overinst *)op->o_bd->bd_info;
+	cache_manager 	*cm = on->on_bi.bi_private;
+	slap_callback	*save_cb;
+	slap_op_t	type;
+
+	/* skip if control is unset */
+	if ( op->o_ctrlflag[ privDB_cid ] != SLAP_CONTROL_CRITICAL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	/* FIXME: might be a little bit exaggerated... */
+	if ( !be_isroot( op ) ) {
+		save_cb = op->o_callback;
+		op->o_callback = NULL;
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"pcachePrivDB: operation not allowed" );
+		op->o_callback = save_cb;
+
+		return rs->sr_err;
+	}
+
+	/* map tag to operation */
+	type = slap_req2op( op->o_tag );
+	if ( type != SLAP_OP_LAST ) {
+		BI_op_func	**func;
+
+		/* execute, if possible */
+		func = &cm->db.be_bind;
+		if ( func[ type ] != NULL ) {
+			Operation	op2 = *op;
+	
+			op2.o_bd = &cm->db;
+
+			return func[ type ]( &op2, rs );
+		}
+	}
+
+	/* otherwise fall back to error */
+	save_cb = op->o_callback;
+	op->o_callback = NULL;
+	send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+		"operation not supported with pcachePrivDB control" );
+	op->o_callback = save_cb;
+
+	return rs->sr_err;
+}
+#endif /* PCACHE_CONTROL_PRIVDB */
+
 static int
 pcache_op_search(
 	Operation	*op,
@@ -2046,7 +2117,13 @@ pcache_op_search(
 	int		fattr_cnt=0;
 	int		fattr_got_oc = 0;
 
-	struct berval tempstr;
+	struct berval	tempstr;
+
+#ifdef PCACHE_CONTROL_PRIVDB
+	if ( op->o_ctrlflag[ privDB_cid ] == SLAP_CONTROL_CRITICAL ) {
+		return pcache_op_privdb( op, rs );
+	}
+#endif /* PCACHE_CONTROL_PRIVDB */
 
 	tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1, op->o_tmpmemctx );
 	tempstr.bv_len = 0;
@@ -3166,6 +3243,323 @@ pcache_db_destroy(
 	return 0;
 }
 
+#ifdef PCACHE_CONTROL_PRIVDB
+static int
+parse_privdb_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	LDAPControl	*ctrl )
+{
+	if ( op->o_ctrlflag[ privDB_cid ] != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "pcachePrivDB control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( !BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "pcachePrivDB control value not absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( !ctrl->ldctl_iscritical ) {
+		rs->sr_text = "pcachePrivDB: criticality required";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_ctrlflag[ privDB_cid ] = SLAP_CONTROL_CRITICAL;
+
+	return LDAP_SUCCESS;
+}
+
+static char *extops[] = {
+	LDAP_EXOP_MODIFY_PASSWD,
+	NULL
+};
+#endif /* PCACHE_CONTROL_PRIVDB */
+
+#ifdef PCACHE_EXOP_QUERY_DELETE
+static struct berval pcache_exop_QUERY_DELETE = BER_BVC( PCACHE_EXOP_QUERY_DELETE );
+
+#define	LDAP_TAG_EXOP_QUERY_DELETE_BASE	((LBER_CLASS_CONTEXT|LBER_CONSTRUCTED) + 0)
+#define	LDAP_TAG_EXOP_QUERY_DELETE_DN	((LBER_CLASS_CONTEXT|LBER_CONSTRUCTED) + 1)
+#define	LDAP_TAG_EXOP_QUERY_DELETE_UUID	((LBER_CLASS_CONTEXT|LBER_CONSTRUCTED) + 2)
+
+/*
+        ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
+             requestName      [0] LDAPOID,
+             requestValue     [1] OCTET STRING OPTIONAL }
+
+        requestName ::= TBA
+
+        requestValue ::= SEQUENCE {
+             baseDN           [0] LDAPDN OPTIONAL,
+             entryDN          [1] LDAPDN OPTIONAL,
+             queryID          [2] OCTET STRING (SIZE(16)) }
+
+ * baseDN and entryDN are mutually exclusive, but one of them must be present
+ * (to allow appropriate database selection).
+ *
+ * 1. if baseDN and queryID are present, then the query corresponding
+ *    to queryID is deleted;
+ * 2. if baseDN is present and queryID is absent, then all queries
+ *    are deleted;
+ * 3. if entryDN is present and queryID is absent, then all queries
+ *    corresponding to the queryID values present in entryDN are deleted;
+ * 4. if entryDN and queryID are present, then all queries
+ *    corresponding to the queryID values present in entryDN are deleted,
+ *    but only if the value of queryID is contained in the entry;
+ *
+ * Currently, only 1, 3 and 4 are implemented.  2 can be obtained by either
+ * recursively deleting the database (ldapdelete -r) with PRIVDB control,
+ * or by removing the database files.
+
+        ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+             COMPONENTS OF LDAPResult,
+             responseName     [10] LDAPOID OPTIONAL,
+             responseValue    [11] OCTET STRING OPTIONAL }
+
+ * responseName and responseValue are empty.
+ */
+
+static int
+pcache_parse_query_delete(
+	struct berval	*in,
+	ber_tag_t	*tagp,
+	struct berval	*ndn,
+	struct berval	*uuid,
+	const char	**text,
+	void		*ctx )
+{
+	int			rc = LDAP_SUCCESS;
+	ber_tag_t		tag;
+	ber_len_t		len = -1;
+	BerElementBuffer	berbuf;
+	BerElement		*ber = (BerElement *)&berbuf;
+	struct berval		reqdata = BER_BVNULL;
+
+	*text = NULL;
+
+	if ( ndn ) {
+		BER_BVZERO( ndn );
+	}
+
+	if ( uuid ) {
+		BER_BVZERO( uuid );
+	}
+
+	if ( in == NULL || in->bv_len == 0 ) {
+		*text = "empty request data field in queryDelete exop";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	ber_dupbv_x( &reqdata, in, ctx );
+
+	/* ber_init2 uses reqdata directly, doesn't allocate new buffers */
+	ber_init2( ber, &reqdata, 0 );
+
+	tag = ber_scanf( ber, "{" /*}*/ );
+
+	if ( tag == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"pcache_parse_query_delete: decoding error.\n",
+			0, 0, 0 );
+		goto decoding_error;
+	}
+
+	tag = ber_peek_tag( ber, &len );
+	if ( tag == LDAP_TAG_EXOP_QUERY_DELETE_BASE
+		|| tag == LDAP_TAG_EXOP_QUERY_DELETE_DN )
+	{
+		*tagp = tag;
+
+		if ( ndn != NULL ) {
+			struct berval	dn;
+
+			tag = ber_scanf( ber, "m", &dn );
+			if ( tag == LBER_ERROR ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"pcache_parse_query_delete: DN parse failed.\n",
+					0, 0, 0 );
+				goto decoding_error;
+			}
+
+			rc = dnNormalize( 0, NULL, NULL, &dn, ndn, ctx );
+			if ( rc != LDAP_SUCCESS ) {
+				*text = "invalid DN in queryDelete exop request data";
+				goto done;
+			}
+
+		} else {
+			tag = ber_scanf( ber, "x" /* "m" */ );
+			if ( tag == LBER_DEFAULT ) {
+				goto decoding_error;
+			}
+		}
+
+		tag = ber_peek_tag( ber, &len );
+	}
+
+	if ( tag == LDAP_TAG_EXOP_QUERY_DELETE_UUID ) {
+		if ( uuid != NULL ) {
+			struct berval	bv;
+			Syntax		*syn_UUID = slap_schema.si_ad_entryUUID->ad_type->sat_syntax;
+
+			tag = ber_scanf( ber, "m", &bv );
+			if ( tag == LBER_ERROR ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"pcache_parse_query_delete: UUID parse failed.\n",
+					0, 0, 0 );
+				goto decoding_error;
+			}
+
+			rc = syn_UUID->ssyn_pretty( syn_UUID, &bv, uuid, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+				*text = "invalid UUID in queryDelete exop request data";
+				goto done;
+			}
+
+		} else {
+			tag = ber_scanf( ber, "x" /* "m" */ );
+			if ( tag == LBER_DEFAULT ) {
+				goto decoding_error;
+			}
+		}
+
+		tag = ber_peek_tag( ber, &len );
+	}
+
+	if ( tag != LBER_DEFAULT || len != 0 ) {
+decoding_error:;
+		Debug( LDAP_DEBUG_TRACE,
+			"pcache_parse_query_delete: decoding error\n",
+			0, 0, 0 );
+		rc = LDAP_PROTOCOL_ERROR;
+		*text = "queryDelete data decoding error";
+
+done:;
+		if ( ndn && !BER_BVISNULL( ndn ) ) {
+			slap_sl_free( ndn->bv_val, ctx );
+			BER_BVZERO( ndn );
+		}
+
+		if ( uuid && !BER_BVISNULL( uuid ) ) {
+			slap_sl_free( uuid->bv_val, ctx );
+			BER_BVZERO( uuid );
+		}
+	}
+
+	if ( !BER_BVISNULL( &reqdata ) ) {
+		ber_memfree_x( reqdata.bv_val, ctx );
+	}
+
+	return rc;
+}
+
+static int
+pcache_exop_query_delete(
+	Operation	*op,
+	SlapReply	*rs )
+{
+	BackendDB	*bd = op->o_bd;
+
+	struct berval	uuid = BER_BVNULL;
+	char		buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
+	int		len = 0;
+	ber_tag_t	tag = LBER_DEFAULT;
+
+	rs->sr_err = pcache_parse_query_delete( op->ore_reqdata,
+		&tag, &op->o_req_ndn, &uuid,
+		&rs->sr_text, op->o_tmpmemctx );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		return rs->sr_err;
+	}
+
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		len = snprintf( buf, sizeof( buf ), " dn=\"%s\"", op->o_req_ndn.bv_val );
+	}
+
+	if ( !BER_BVISNULL( &uuid ) ) {
+		snprintf( &buf[ len ], sizeof( buf ) - len, " UUID=\"%s\"", uuid.bv_val );
+	}
+
+	Debug( LDAP_DEBUG_STATS, "%s QUERY DELETE %s\n",
+		op->o_log_prefix, buf, 0 );
+	op->o_req_dn = op->o_req_ndn;
+
+	op->o_bd = select_backend( &op->o_req_ndn, 0 );
+	rs->sr_err = backend_check_restrictions( op, rs,
+		(struct berval *)&pcache_exop_QUERY_DELETE );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	if ( op->o_bd->be_extended == NULL ) {
+		send_ldap_error( op, rs, LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
+			"backend does not support extended operations" );
+		goto done;
+	}
+
+	op->o_bd->be_extended( op, rs );
+
+done:;
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_ndn );
+		BER_BVZERO( &op->o_req_dn );
+	}
+
+	if ( !BER_BVISNULL( &uuid ) ) {
+		op->o_tmpfree( uuid.bv_val, op->o_tmpmemctx );
+	}
+
+	op->o_bd = bd;
+
+        return rs->sr_err;
+}
+
+static int
+pcache_op_extended( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	cache_manager	*cm = on->on_bi.bi_private;
+
+#ifdef PCACHE_CONTROL_PRIVDB
+	if ( op->o_ctrlflag[ privDB_cid ] == SLAP_CONTROL_CRITICAL ) {
+		return pcache_op_privdb( op, rs );
+	}
+#endif /* PCACHE_CONTROL_PRIVDB */
+
+	if ( bvmatch( &op->ore_reqoid, &pcache_exop_QUERY_DELETE ) ) {
+		struct berval	uuid = BER_BVNULL;
+		ber_tag_t	tag = LBER_DEFAULT;
+
+		rs->sr_err = pcache_parse_query_delete( op->ore_reqdata,
+			&tag, NULL, &uuid, &rs->sr_text, op->o_tmpmemctx );
+		assert( rs->sr_err == LDAP_SUCCESS );
+
+		if ( tag == LDAP_TAG_EXOP_QUERY_DELETE_DN ) {
+			/* remove all queries related to the selected entry */
+			rs->sr_err = pcache_remove_entry_queries_from_cache( op,
+				cm, &op->o_req_ndn, &uuid );
+
+		} else if ( tag == LDAP_TAG_EXOP_QUERY_DELETE_BASE ) {
+			if ( !BER_BVISNULL( &uuid ) ) {
+				/* remove the selected query */
+				remove_query_and_data( op, rs, cm, &uuid );
+				op->o_tmpfree( uuid.bv_val, op->o_tmpmemctx );
+				rs->sr_err = LDAP_SUCCESS;
+
+			} else {
+				/* TODO: remove all queries */
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "deletion of all queries not implemented";
+			}
+		}
+	}
+
+	return rs->sr_err;
+}
+#endif /* PCACHE_EXOP_QUERY_DELETE */
+
 static slap_overinst pcache;
 
 static char *obsolete_names[] = {
@@ -3187,6 +3581,30 @@ pcache_initialize()
 		return code;
 	}
 
+#ifdef PCACHE_CONTROL_PRIVDB
+	code = register_supported_control( PCACHE_CONTROL_PRIVDB,
+		SLAP_CTRL_BIND|SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, extops,
+		parse_privdb_ctrl, &privDB_cid );
+	if ( code != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"pcache_initialize: failed to register control %s (%d)\n",
+			PCACHE_CONTROL_PRIVDB, code, 0 );
+		return code;
+	}
+#endif /* PCACHE_CONTROL_PRIVDB */
+
+#ifdef PCACHE_EXOP_QUERY_DELETE
+	code = load_extop2( (struct berval *)&pcache_exop_QUERY_DELETE,
+		SLAP_EXOP_WRITES|SLAP_EXOP_HIDE, pcache_exop_query_delete,
+		0 );
+	if ( code != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"pcache_initialize: unable to register queryDelete exop: %d.\n",
+			code, 0, 0 );
+		return code;
+	}
+#endif /* PCACHE_EXOP_QUERY_DELETE */
+
 	for ( i = 0; as[i].desc != NULL; i++ ) {
 		code = register_at( as[i].desc, as[i].adp, 0 );
 		if ( code ) {
@@ -3205,6 +3623,19 @@ pcache_initialize()
 	pcache.on_bi.bi_db_destroy = pcache_db_destroy;
 
 	pcache.on_bi.bi_op_search = pcache_op_search;
+#ifdef PCACHE_CONTROL_PRIVDB
+	pcache.on_bi.bi_op_bind = pcache_op_privdb;
+	pcache.on_bi.bi_op_compare = pcache_op_privdb;
+	pcache.on_bi.bi_op_modrdn = pcache_op_privdb;
+	pcache.on_bi.bi_op_modify = pcache_op_privdb;
+	pcache.on_bi.bi_op_add = pcache_op_privdb;
+	pcache.on_bi.bi_op_delete = pcache_op_privdb;
+#endif /* PCACHE_CONTROL_PRIVDB */
+#ifdef PCACHE_EXOP_QUERY_DELETE
+	pcache.on_bi.bi_extended = pcache_op_extended;
+#elif defined( PCACHE_CONTROL_PRIVDB )
+	pcache.on_bi.bi_extended = pcache_op_privdb;
+#endif
 
 	pcache.on_bi.bi_chk_controls = pcache_chk_controls;
 
