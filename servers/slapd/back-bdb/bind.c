@@ -39,6 +39,7 @@ bdb_bind( Operation *op, SlapReply *rs )
 		"==> " LDAP_XSTRING(bdb_bind) ": dn: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 
+#ifdef LDAP_DEVEL
 	/* allow noauth binds */
 	switch ( be_rootdn_bind( op, rs ) ) {
 	case SLAP_CB_CONTINUE:
@@ -50,6 +51,18 @@ bdb_bind( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
+#else /* traditional */
+	/* allow noauth binds */
+	switch ( be_rootdn_bind( op, NULL ) ) {
+	case LDAP_SUCCESS:
+		/* frontend will send result */
+		return rs->sr_err;
+
+	default:
+		/* give the database a chanche */
+		break;
+	}
+
 	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);
 	switch(rs->sr_err) {
 	case 0:
@@ -59,6 +72,7 @@ bdb_bind( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+#endif /* traditional */
 
 dn2entry_retry:
 	/* get entry with reader lock */
