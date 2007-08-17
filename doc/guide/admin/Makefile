@@ -63,6 +63,7 @@ admin.html: admin.sdf sdf-src sdf-img
 	sdf -DPDF -2html admin.sdf
 
 guide.pdf: admin.html
-	htmldoc --book --duplex --bottom 36 --top 36 \
-		--toclevels 2 \
-		-f guide.pdf admin.html
+	htmldoc --batch guide.book
+
+clean: 
+	rm -f *.pdf *.html
