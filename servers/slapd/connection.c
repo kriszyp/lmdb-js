@@ -1038,12 +1038,12 @@ void connection_done( Connection *c )
 static BI_op_func *opfun[] = {
 	do_bind,
 	do_unbind,
+	do_search,
+	do_compare,
+	do_modify,
+	do_modrdn,
 	do_add,
 	do_delete,
-	do_modrdn,
-	do_modify,
-	do_compare,
-	do_search,
 	do_abandon,
 	do_extended,
 	NULL

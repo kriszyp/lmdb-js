@@ -1696,9 +1696,9 @@ struct BackendDB {
 #define		be_modrdn	bd_info->bi_op_modrdn
 #define		be_search	bd_info->bi_op_search
 #define		be_abandon	bd_info->bi_op_abandon
-#define		be_cancel	bd_info->bi_op_cancel
 
 #define		be_extended	bd_info->bi_extended
+#define		be_cancel	bd_info->bi_op_cancel
 
 #define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_chk_controls		bd_info->bi_chk_controls
@@ -2048,8 +2048,8 @@ typedef BI_op_func BI_op_modrdn;
 typedef BI_op_func BI_op_add;
 typedef BI_op_func BI_op_delete;
 typedef BI_op_func BI_op_abandon;
-typedef BI_op_func BI_op_cancel;
 typedef BI_op_func BI_op_extended;
+typedef BI_op_func BI_op_cancel;
 typedef BI_op_func BI_chk_referrals;
 typedef BI_op_func BI_chk_controls;
 typedef int (BI_entry_release_rw)
@@ -2152,10 +2152,10 @@ struct BackendInfo {
 	BI_op_add	*bi_op_add;
 	BI_op_delete	*bi_op_delete;
 	BI_op_abandon	*bi_op_abandon;
-	BI_op_cancel	*bi_op_cancel;
 
 	/* Extended Operations Helper */
 	BI_op_extended	*bi_extended;
+	BI_op_cancel	*bi_op_cancel;
 
 	/* Auxilary Functions */
 	BI_operational		*bi_operational;
@@ -2271,8 +2271,8 @@ typedef enum slap_operation_e {
 	op_add,
 	op_delete,
 	op_abandon,
-	op_cancel,
 	op_extended,
+	op_cancel,
 	op_aux_operational,
 	op_aux_chk_referrals,
 	op_aux_chk_controls,
@@ -2784,12 +2784,12 @@ struct slap_listener {
 typedef enum {
 	SLAP_OP_BIND = 0,
 	SLAP_OP_UNBIND,
+	SLAP_OP_SEARCH,
+	SLAP_OP_COMPARE,
+	SLAP_OP_MODIFY,
+	SLAP_OP_MODRDN,
 	SLAP_OP_ADD,
 	SLAP_OP_DELETE,
-	SLAP_OP_MODRDN,
-	SLAP_OP_MODIFY,
-	SLAP_OP_COMPARE,
-	SLAP_OP_SEARCH,
 	SLAP_OP_ABANDON,
 	SLAP_OP_EXTENDED,
 	SLAP_OP_LAST
