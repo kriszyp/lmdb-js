@@ -158,6 +158,10 @@ static char * slurp_file(int fd) {
 	return entry;
 }
 
+/*
+ * return number of bytes written, or -1 in case of error
+ * do not return numbers less than -1
+ */
 static int spew_file(int fd, char * spew, int len) {
 	int writeres = 0;
 	
@@ -208,11 +212,23 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 			rdn.bv_len = tmp;
 		}
 
+		spew_res = -2;
 		if ( dolock ) {
 			ldap_pvt_thread_mutex_lock(&entry2str_mutex);
 		}
 
 		entry_as_string = entry2str(e, &entry_length);
+		if ( entry_as_string != NULL ) {
+			spew_res = spew_file( openres,
+				entry_as_string, entry_length );
+			if ( spew_res == -1 ) {
+				save_errno = errno;
+			}
+		}
+
+		if ( dolock ) {
+			ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
+		}
 
 		/* Restore full DN */
 		if ( rdn.bv_len != e->e_name.bv_len ) {
@@ -220,31 +236,17 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 			e->e_name.bv_len = rdn.bv_len;
 		}
 
-		if ( entry_as_string == NULL ) {
-			rs = LDAP_UNWILLING_TO_PERFORM;
-			close(openres);
+		res = close( openres );
+		rs = LDAP_UNWILLING_TO_PERFORM;
 
-			if ( dolock ) {
-				ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
-			}
-
-		} else {
-			spew_res = spew_file( openres,
-				entry_as_string, entry_length );
-			if ( spew_res == -1 )
-				save_errno = errno;
-
-			if ( dolock ) {
-				ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
-			}
-
-			res = close( openres );
-			rs = LDAP_UNWILLING_TO_PERFORM;
+		if ( spew_res > -2 ) {
 			if ( res == -1 || spew_res == -1 ) {
-				if ( save_errno == 0 )
+				if ( save_errno == 0 ) {
 					save_errno = errno;
+				}
 				Debug( LDAP_DEBUG_ANY, "write error to tmpfile \"%s\": %s\n",
 					tmpfname, STRERROR( save_errno ), 0 );
+
 			} else {
 				res = rename( tmpfname, path->bv_val );
 				if ( res == 0 ) {
@@ -264,14 +266,16 @@ spew_entry( Entry * e, struct berval * path, int dolock, int *save_errnop )
 			}
 		}
 
-		if ( rs != LDAP_SUCCESS )
+		if ( rs != LDAP_SUCCESS ) {
 			unlink( tmpfname );
+		}
 	}
 
 	ch_free( tmpfname );
 
-	if ( rs != LDAP_SUCCESS && save_errnop != NULL )
+	if ( rs != LDAP_SUCCESS && save_errnop != NULL ) {
 		*save_errnop = save_errno;
+	}
 
 	return rs;
 }
