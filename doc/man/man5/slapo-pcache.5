@@ -78,6 +78,18 @@ Specify whether the cached queries should be saved across restarts
 of the caching proxy, to provide hot startup of the cache.  Only non-expired
 queries are reloaded.  The default is FALSE.
 
+.BR CAVEAT :
+of course, the configuration of the proxycache must not change
+across restarts; the pcache overlay does not perform any consistency
+checks in this sense.
+In detail, this option should be disabled unless the existing
+.B proxyattrset
+and
+.B proxytemplate
+directives are not changed neither in order nor in contents.
+If new sets and templates are added, or if other details of the pcache
+overlay configuration changed, this feature should not be affected.
+
 .TP
 .B proxyattrset <index> <attrs...>
 Used to associate a set of attributes <attrs..> with an <index>. Each attribute
