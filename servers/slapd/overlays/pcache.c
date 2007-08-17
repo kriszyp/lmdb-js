@@ -193,7 +193,7 @@ static struct {
 } as[] = {
 	{ "( 1.3.6.1.4.1.4203.666.11.9.1.1 "
 		"NAME 'queryId' "
-		"DESC 'List of queries the entry belongs to' "
+		"DESC 'ID of query the entry belongs to, formatted as a UUID' "
 		"EQUALITY octetStringMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 		"NO-USER-MODIFICATION "
@@ -2961,6 +2961,20 @@ pcache_cachedquery_open_cb( Operation *op, SlapReply *rs )
 }
 
 static int
+pcache_cachedquery_count_cb( Operation *op, SlapReply *rs )
+{
+	assert( op->o_tag == LDAP_REQ_SEARCH );
+
+	if ( rs->sr_type == REP_SEARCH ) {
+		int	*countp = (int *)op->o_callback->sc_private;
+
+		(*countp)++;
+	}
+
+	return 0;
+}
+
+static int
 pcache_db_open(
 	BackendDB *be,
 	ConfigReply *cr )
@@ -3042,7 +3056,12 @@ pcache_db_open(
 			slap_callback	cb = { 0 };
 			SlapReply	rs = { 0 };
 			BerVarray	vals = NULL;
-			Filter		f = { 0 };
+			Filter		f = { 0 }, f2 = { 0 };
+#ifdef LDAP_COMP_MATCH
+			AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
+#else
+			AttributeAssertion	ava = { NULL, BER_BVNULL };
+#endif
 			AttributeName	attrs[ 2 ] = { 0 };
 
 			connection_fake_init( &conn, &opbuf, thrctx );
@@ -3089,6 +3108,27 @@ pcache_db_open(
 
 				ber_bvarray_free_x( vals, op->o_tmpmemctx );
 			}
+
+			/* count cached entries */
+			f.f_choice = LDAP_FILTER_NOT;
+			f.f_not = &f2;
+			f2.f_choice = LDAP_FILTER_EQUALITY;
+			f2.f_ava = &ava;
+			f2.f_av_desc = slap_schema.si_ad_objectClass;
+			BER_BVSTR( &f2.f_av_value, "glue" );
+			ber_str2bv( "(!(objectClass=glue))", 0, 0, &op->ors_filterstr );
+
+			op->ors_slimit = SLAP_NO_LIMIT;
+			op->ors_scope = LDAP_SCOPE_SUBTREE;
+			op->ors_attrs = slap_anlist_no_attrs;
+
+			op->o_callback->sc_response = pcache_cachedquery_count_cb;
+			rs.sr_nentries = 0;
+			op->o_callback->sc_private = &rs.sr_nentries;
+
+			rc = op->o_bd->be_search( op, &rs );
+
+			cm->cur_entries = rs.sr_nentries;
 
 			/* ignore errors */
 			rc = 0;
