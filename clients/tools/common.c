@@ -537,9 +537,10 @@ tool_args( int argc, char **argv )
 				}
 
 				tmpctrls = (LDAPControl *)realloc( unknown_ctrls,
-					(unknown_ctrls_num + 2)*sizeof( LDAPControl ) );
+					(unknown_ctrls_num + 1)*sizeof( LDAPControl ) );
 				if ( tmpctrls == NULL ) {
-
+					fprintf( stderr, "%s: no memory?\n", prog );
+					exit( EXIT_FAILURE );
 				}
 				unknown_ctrls = tmpctrls;
 				ctrl.ldctl_oid = control;
@@ -1594,8 +1595,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	while ( count-- ) {
 		ctrls[i++] = extra_c++;
 	}
-	count = 0;
-	while ( unknown_ctrls_num-- ) {
+	for ( count = 0; count < unknown_ctrls_num; count++ ) {
 		ctrls[i++] = &unknown_ctrls[count++];
 	}
 	ctrls[i] = NULL;
