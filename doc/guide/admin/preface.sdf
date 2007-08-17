@@ -71,5 +71,5 @@ This document was produced using the {{TERM[expand]SDF}} ({{TERM:SDF}})
 documentation system
 ({{URL:http://search.cpan.org/src/IANC/sdf-2.001/doc/catalog.html}})
 developed by {{Ian Clatworthy}}.  Tools for SDF are available from
-{{ORG:CPAN}} ({{URL:http://search.cpan.org/search?query=SDF}}).
+{{ORG:CPAN}} ({{URL:http://search.cpan.org/search?query=SDF&mode=dist}}).
 
