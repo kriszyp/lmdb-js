@@ -948,7 +948,7 @@ slap_parse_refresh(
 
 	tag = ber_peek_tag( ber, &len );
 
-	if ( len != 0 ) {
+	if ( tag != LBER_DEFAULT || len != 0 ) {
 decoding_error:;
 		Log1( LDAP_DEBUG_TRACE, LDAP_LEVEL_ERR,
 			"slap_parse_refresh: decoding error, len=%ld\n",
