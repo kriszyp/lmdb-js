@@ -192,17 +192,21 @@ static struct {
 	char	*desc;
 	AttributeDescription **adp;
 } as[] = {
-	{ "( 1.3.6.1.4.1.4203.666.11.9.1.1 NAME 'queryId' "
+	{ "( 1.3.6.1.4.1.4203.666.11.9.1.1 "
+		"NAME 'queryId' "
 		"DESC 'List of queries the entry belongs to' "
-		"EQUALITY octetStringMatch "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
-		"NO-USER-MODIFICATION USAGE directoryOperation )",
+		"EQUALITY UUIDMatch "
+		"SYNTAX 1.3.6.1.1.16.1 "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )",
 		&ad_queryId },
-	{ "( 1.3.6.1.4.1.4203.666.11.9.1.2 NAME 'cachedQueryURL' "
+	{ "( 1.3.6.1.4.1.4203.666.11.9.1.2 "
+		"NAME 'cachedQueryURL' "
 		"DESC 'URI describing a cached query' "
 		"EQUALITY caseExactMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
-		"NO-USER-MODIFICATION USAGE directoryOperation )",
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )",
 		&ad_cachedQueryURL },
 	{ NULL }
 };
