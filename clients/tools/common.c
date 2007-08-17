@@ -114,6 +114,9 @@ static int	chainingResolve = -1;
 static int	chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+LDAPControl	*unknown_ctrls = NULL;
+int		unknown_ctrls_num = 0;
+
 /* options */
 struct timeval	nettimeout = { -1 , 0 };
 
@@ -298,7 +301,7 @@ tool_args( int argc, char **argv )
 			}
 			binddn = ber_strdup( optarg );
 			break;
-		case 'e': /* general extensions (controls and such) */
+		case 'e':	/* general extensions (controls and such) */
 			/* should be extended to support comma separated list of
 			 *	[!]key[=value] parameters, e.g.  -e !foo,bar=567
 			 */
@@ -520,9 +523,54 @@ tool_args( int argc, char **argv )
 				}
 
 			} else {
-				fprintf( stderr, "Invalid general control name: %s\n",
-					control );
-				usage();
+				char		*ptr;
+				LDAPControl	*tmpctrls, ctrl;
+
+				for ( ptr = control; ptr[0] != '\0'; ptr++ ) {
+					if ( ptr[0] == '.' || isdigit( ptr[0] ) ) {
+						continue;
+					}
+
+					fprintf( stderr, "Invalid general control name: %s\n",
+						control );
+					usage();
+				}
+
+				tmpctrls = (LDAPControl *)realloc( unknown_ctrls,
+					(unknown_ctrls_num + 2)*sizeof( LDAPControl ) );
+				if ( tmpctrls == NULL ) {
+
+				}
+				unknown_ctrls = tmpctrls;
+				ctrl.ldctl_oid = control;
+				ctrl.ldctl_value.bv_val = NULL;
+				ctrl.ldctl_value.bv_len = 0;
+				ctrl.ldctl_iscritical = crit;
+
+				if ( cvalue != NULL ) {
+					struct berval	bv;
+					size_t		len = strlen( cvalue );
+					int		retcode;
+
+					bv.bv_len = LUTIL_BASE64_DECODE_LEN( len );
+					bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+					retcode = lutil_b64_pton( cvalue,
+						(unsigned char *)bv.bv_val,
+						bv.bv_len );
+
+					if ( retcode == -1 || retcode > bv.bv_len ) {
+						fprintf( stderr, "Unable to parse value of general control %s\n",
+							control );
+						usage();
+					}
+
+					bv.bv_len = retcode;
+					ctrl.ldctl_value = bv;
+				}
+
+				unknown_ctrls[ unknown_ctrls_num ] = ctrl;
+				unknown_ctrls_num++;
 			}
 			break;
 		case 'f':	/* read from file */
@@ -1335,7 +1383,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		return;
 	}
 
-	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
+	ctrls = (LDAPControl**) malloc(sizeof(c) + (count + unknown_ctrls_num + 1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
 		fprintf( stderr, "No memory\n" );
 		exit( EXIT_FAILURE );
@@ -1545,6 +1593,10 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 	while ( count-- ) {
 		ctrls[i++] = extra_c++;
+	}
+	count = 0;
+	while ( unknown_ctrls_num-- ) {
+		ctrls[i++] = &unknown_ctrls[count++];
 	}
 	ctrls[i] = NULL;
 
