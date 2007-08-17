@@ -29,34 +29,6 @@
 #include "ldap-int.h"
 
 #ifdef LDAP_SYNC_TRACE
-/*
- * used for debug purposes
- */
-static char *
-print_UUID( char *buf, size_t len, unsigned char *UUID )
-{
-	snprintf( buf, len,
-		"%02x%02x%02x%02x-%02x%02x-%02x%02x-"
-		"%02x%02x-%02x%02x%02x%02x%02x%02x",
-		UUID[0],
-		UUID[1],
-		UUID[2],
-		UUID[3],
-		UUID[4],
-		UUID[5],
-		UUID[6],
-		UUID[7],
-		UUID[8],
-		UUID[9],
-		UUID[10],
-		UUID[11],
-		UUID[12],
-		UUID[13],
-		UUID[14],
-		UUID[15] );
-	return buf;
-}
-
 static const char *
 ldap_sync_state2str( int state )
 {
@@ -600,8 +572,9 @@ ldap_sync_search_intermediate( ldap_sync_t *ls, LDAPMessage *res, int *refreshDo
 			for ( i = 0; syncUUIDs[ i ].bv_val != NULL; i++ ) {
 				char	buf[ BUFSIZ ];
 				fprintf( stderr, "\t\t%s\n", 
-					print_UUID( buf, sizeof( buf ),
-						(unsigned char *)syncUUIDs[ i ].bv_val ) );
+					lutil_uuidstr_from_normalized(
+						syncUUIDs[ i ].bv_val, syncUUIDs[ i ].bv_len,
+						buf, sizeof( buf ) ) );
 			}
 		}
 #endif /* LDAP_SYNC_TRACE */

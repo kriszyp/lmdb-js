@@ -3032,6 +3032,7 @@ slap_uuidstr_from_normalized(
 	struct berval* normalized,
 	void *ctx )
 {
+#if 0
 	struct berval *new;
 	unsigned char nibble;
 	int i, d = 0;
@@ -3079,6 +3080,49 @@ slap_uuidstr_from_normalized(
 	}
 
 	new->bv_val[new->bv_len] = '\0';
+	return new;
+#endif
+
+	struct berval	*new;
+	int		rc = 0;
+
+	if ( normalized == NULL ) return NULL;
+	if ( normalized->bv_len != 16 ) return NULL;
+
+	if ( uuidstr ) {
+		new = uuidstr;
+
+	} else {
+		new = (struct berval *)slap_sl_malloc( sizeof(struct berval), ctx );
+		if ( new == NULL ) {
+			return NULL;
+		}
+	}
+
+	new->bv_len = 36;
+
+	if ( ( new->bv_val = slap_sl_malloc( new->bv_len + 1, ctx ) ) == NULL ) {
+		rc = 1;
+		goto done;
+	}
+
+	rc = lutil_uuidstr_from_normalized( normalized->bv_val,
+		normalized->bv_len, new->bv_val, new->bv_len + 1 );
+
+done:;
+	if ( rc != 0 ) {
+		if ( new != NULL ) {
+			if ( new->bv_val != NULL ) {
+				slap_sl_free( new->bv_val, ctx );
+			}
+
+			if ( new != uuidstr ) {
+				slap_sl_free( new, ctx );
+			}
+		}
+		new = NULL;
+	}
+
 	return new;
 }
 
