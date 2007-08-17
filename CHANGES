@@ -1,6 +1,6 @@
 OpenLDAP 2.3 Change Log
 
-OpenLDAP 2.3.38 Engineering
+OpenLDAP 2.3.38 Release (2007/08/17)
 	Fixed slapadd check for ';binary' when required (ITS#5071)
 	Fixed slapd select_backend/ManageDSAit (ITS#4986)
 	Fixed slapd integer/pointer types and overflow (ITS#5035)
