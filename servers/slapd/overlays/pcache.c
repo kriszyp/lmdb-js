@@ -1613,7 +1613,7 @@ int
 pcache_remove_entries_from_cache(
 	Operation	*op,
 	cache_manager	*cm,
-	BerVarray	UUIDs )
+	BerVarray	entryUUIDs )
 {
 	Connection	conn = { 0 };
 	OperationBuffer opbuf;
@@ -1667,13 +1667,13 @@ pcache_remove_entries_from_cache(
 	sc.sc_response = fetch_queryId_cb;
 	op->o_callback = &sc;
 
-	for ( s = 0; !BER_BVISNULL( &UUIDs[ s ] ); s++ ) {
+	for ( s = 0; !BER_BVISNULL( &entryUUIDs[ s ] ); s++ ) {
 		BerVarray	vals = NULL;
 
 		op->ors_filterstr.bv_len = snprintf( filtbuf, sizeof( filtbuf ),
-			"(entryUUID=%s)", UUIDs[ s ].bv_val );
+			"(entryUUID=%s)", entryUUIDs[ s ].bv_val );
 		op->ors_filterstr.bv_val = filtbuf;
-		ava.aa_value = UUIDs[ s ];
+		ava.aa_value = entryUUIDs[ s ];
 
 		rc = op->o_bd->be_search( op, &rs );
 		if ( rc != LDAP_SUCCESS ) {
@@ -1703,14 +1703,36 @@ pcache_remove_entries_from_cache(
 }
 
 /*
- * Call that allows to remove a set of queries from the cache
+ * Call that allows to remove a query from the cache.
+ */
+int
+pcache_remove_query_from_cache(
+	Operation	*op,
+	cache_manager	*cm,
+	struct berval	*queryid )
+{
+	Operation	op2 = *op;
+	SlapReply	rs2 = { 0 };
+
+	op2.o_bd = &cm->db;
+
+	/* remove the selected query */
+	remove_query_and_data( &op2, &rs2, cm, queryid );
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * Call that allows to remove a set of queries related to an entry 
+ * from the cache; if queryid is not null, the entry must belong to
+ * the query indicated by queryid.
  */
 int
 pcache_remove_entry_queries_from_cache(
 	Operation	*op,
 	cache_manager	*cm,
 	struct berval	*ndn,
-	struct berval	*uuid )
+	struct berval	*queryid )
 {
 	Connection		conn = { 0 };
 	OperationBuffer 	opbuf;
@@ -1743,7 +1765,7 @@ pcache_remove_entry_queries_from_cache(
 	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
 	op->ors_scope = LDAP_SCOPE_BASE;
 	op->ors_deref = LDAP_DEREF_NEVER;
-	if ( uuid == NULL || BER_BVISNULL( uuid ) ) {
+	if ( queryid == NULL || BER_BVISNULL( queryid ) ) {
 		BER_BVSTR( &op->ors_filterstr, "(objectClass=*)" );
 		f.f_choice = LDAP_FILTER_PRESENT;
 		f.f_desc = slap_schema.si_ad_objectClass;
@@ -1751,11 +1773,11 @@ pcache_remove_entry_queries_from_cache(
 	} else {
 		op->ors_filterstr.bv_len = snprintf( filter_str,
 			sizeof( filter_str ), "(%s=%s)",
-			ad_queryId->ad_cname.bv_val, uuid->bv_val );
+			ad_queryId->ad_cname.bv_val, queryid->bv_val );
 		f.f_choice = LDAP_FILTER_EQUALITY;
 		f.f_ava = &ava;
 		f.f_av_desc = ad_queryId;
-		f.f_av_value = *uuid;
+		f.f_av_value = *queryid;
 	}
 	op->ors_filter = &f;
 	op->ors_slimit = 1;
@@ -3630,16 +3652,9 @@ pcache_op_extended( Operation *op, SlapReply *rs )
 
 		} else if ( tag == LDAP_TAG_EXOP_QUERY_DELETE_BASE ) {
 			if ( !BER_BVISNULL( &uuid ) ) {
-				Operation	op2 = *op;
-				SlapReply	rs2 = { 0 };
-
-				op2.o_bd = &cm->db;
-
 				/* remove the selected query */
-				remove_query_and_data( &op2, &rs2, cm, &uuid );
-
-				op->o_tmpfree( uuid.bv_val, op->o_tmpmemctx );
-				rs->sr_err = LDAP_SUCCESS;
+				rs->sr_err = pcache_remove_query_from_cache( op,
+					cm, &uuid );
 
 			} else {
 				/* TODO: remove all queries */
@@ -3647,6 +3662,8 @@ pcache_op_extended( Operation *op, SlapReply *rs )
 				rs->sr_text = "deletion of all queries not implemented";
 			}
 		}
+
+		op->o_tmpfree( uuid.bv_val, op->o_tmpmemctx );
 	}
 
 	return rs->sr_err;
