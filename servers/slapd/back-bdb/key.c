@@ -30,7 +30,7 @@ int
 bdb_key_read(
 	Backend	*be,
 	DB *db,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	struct berval *k,
 	ID *ids,
 	DBC **saved_cursor,

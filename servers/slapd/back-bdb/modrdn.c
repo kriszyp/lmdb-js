@@ -46,7 +46,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int		manageDSAit = get_manageDSAit( op );
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock, plock, nplock;
 
 	int		num_retries = 0;

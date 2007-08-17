@@ -93,7 +93,7 @@ int bdb_id2entry_update(
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	ID id,
 	Entry **e )
 {
@@ -318,7 +318,7 @@ int bdb_entry_get(
 	int	rc;
 	const char *at_name = at ? at->ad_cname.bv_val : "(null)";
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
 	int		free_lock_id = 0;
 

@@ -281,7 +281,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	Entry		dummy = {0};
 	int			fakeroot = 0;
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
 
 	int		num_retries = 0;

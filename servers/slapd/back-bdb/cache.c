@@ -155,11 +155,17 @@ bdb_cache_lru_link( struct bdb_info *bdb, EntryInfo *ei )
  * alternatives though.
  */
 
+#if DB_VERSION_FULL >= 0x04060012
+#define BDB_LOCKID(locker)	locker->id
+#else
+#define BDB_LOCKID(locker)	locker
+#endif
+
 /* Atomically release and reacquire a lock */
 int
 bdb_cache_entry_db_relock(
 	struct bdb_info *bdb,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	EntryInfo *ei,
 	int rw,
 	int tryOnly,
@@ -183,7 +189,7 @@ bdb_cache_entry_db_relock(
 	list[1].lock = *lock;
 	list[1].mode = rw ? DB_LOCK_WRITE : DB_LOCK_READ;
 	list[1].obj = &lockobj;
-	rc = bdb->bi_dbenv->lock_vec(bdb->bi_dbenv, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
+	rc = bdb->bi_dbenv->lock_vec(bdb->bi_dbenv, BDB_LOCKID(locker), tryOnly ? DB_LOCK_NOWAIT : 0,
 		list, 2, NULL );
 
 	if (rc && !tryOnly) {
@@ -198,7 +204,7 @@ bdb_cache_entry_db_relock(
 }
 
 static int
-bdb_cache_entry_db_lock( struct bdb_info *bdb, u_int32_t locker, EntryInfo *ei,
+bdb_cache_entry_db_lock( struct bdb_info *bdb, BDB_LOCKER locker, EntryInfo *ei,
 	int rw, int tryOnly, DB_LOCK *lock )
 {
 #ifdef NO_DB_LOCK
@@ -218,7 +224,7 @@ bdb_cache_entry_db_lock( struct bdb_info *bdb, u_int32_t locker, EntryInfo *ei,
 	lockobj.data = &ei->bei_id;
 	lockobj.size = sizeof(ei->bei_id) + 1;
 
-	rc = LOCK_GET(bdb->bi_dbenv, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
+	rc = LOCK_GET(bdb->bi_dbenv, BDB_LOCKID(locker), tryOnly ? DB_LOCK_NOWAIT : 0,
 					&lockobj, db_rw, lock);
 	if (rc && !tryOnly) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -457,7 +463,7 @@ int
 hdb_cache_find_parent(
 	Operation *op,
 	DB_TXN *txn,
-	u_int32_t	locker,
+	BDB_LOCKER	locker,
 	ID id,
 	EntryInfo **res )
 {
@@ -742,7 +748,7 @@ bdb_cache_find_id(
 	ID				id,
 	EntryInfo	**eip,
 	int		islocked,
-	u_int32_t	locker,
+	BDB_LOCKER	locker,
 	DB_LOCK		*lock )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
@@ -963,7 +969,7 @@ bdb_cache_add(
 	EntryInfo *eip,
 	Entry *e,
 	struct berval *nrdn,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock )
 {
 	EntryInfo *new, ei;
@@ -1038,7 +1044,7 @@ bdb_cache_modify(
 	struct bdb_info *bdb,
 	Entry *e,
 	Attribute *newAttrs,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e);
@@ -1068,7 +1074,7 @@ bdb_cache_modrdn(
 	struct berval *nrdn,
 	Entry *new,
 	EntryInfo *ein,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e), *pei;
@@ -1163,7 +1169,7 @@ int
 bdb_cache_delete(
 	struct bdb_info *bdb,
     Entry		*e,
-    u_int32_t	locker,
+    BDB_LOCKER	locker,
     DB_LOCK	*lock )
 {
 	EntryInfo *ei = BEI(e);
@@ -1354,9 +1360,15 @@ static void
 bdb_locker_id_free( void *key, void *data )
 {
 	DB_ENV *env = key;
-	u_int32_t lockid = (long)data;
+	u_int32_t lockid;
 	int rc;
 
+#if DB_VERSION_FULL >= 0x04060012
+	BDB_LOCKER lptr = data;
+	lockid = lptr->id;
+#else
+	lockid = (long)data;
+#endif
 	rc = XLOCK_ID_FREE( env, lockid );
 	if ( rc == EINVAL ) {
 		DB_LOCKREQ lr;
@@ -1385,7 +1397,7 @@ bdb_locker_flush( DB_ENV *env )
 }
 
 int
-bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
+bdb_locker_id( Operation *op, DB_ENV *env, BDB_LOCKER *locker )
 {
 	int i, rc;
 	u_int32_t lockid;
@@ -1415,7 +1427,14 @@ bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
 		if ( rc != 0) {
 			return rc;
 		}
+#if DB_VERSION_FULL >= 0x04060012
+		{ BDB_LOCKER lptr;
+		__lock_getlocker( env->lk_handle, lockid, 0, &lptr );
+		data = lptr;
+		}
+#else
 		data = (void *)((long)lockid);
+#endif
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, env,
 			data, bdb_locker_id_free ) ) ) {
 			XLOCK_ID_FREE( env, lockid );
@@ -1427,7 +1446,11 @@ bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
 	} else {
 		lockid = (long)data;
 	}
+#if DB_VERSION_FULL >= 0x04060012
+	*locker = data;
+#else
 	*locker = lockid;
+#endif
 	return 0;
 }
 #endif /* BDB_REUSE_LOCKERS */

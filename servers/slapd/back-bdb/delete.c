@@ -38,7 +38,7 @@ bdb_delete( Operation *op, SlapReply *rs )
 	struct bdb_op_info opinfo = {0};
 	ID	eid;
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock, plock;
 
 	int		num_retries = 0;

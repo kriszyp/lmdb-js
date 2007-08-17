@@ -28,7 +28,7 @@ bdb_referrals( Operation *op, SlapReply *rs )
 	EntryInfo *ei;
 	int rc = LDAP_SUCCESS;
 
-	u_int32_t	locker;
+	BDB_LOCKER	locker;
 	DB_LOCK		lock;
 
 	if( op->o_tag == LDAP_REQ_SEARCH ) {

@@ -190,7 +190,7 @@ bdb_online_index( void *ctx, void *arg )
 	DBT key, data;
 	DB_TXN *txn;
 	DB_LOCK lock;
-	u_int32_t locker;
+	BDB_LOCKER locker;
 	ID id, nid;
 	EntryInfo *ei;
 	int rc, getnext = 1;

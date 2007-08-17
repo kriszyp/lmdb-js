@@ -32,7 +32,7 @@ bdb_bind( Operation *op, SlapReply *rs )
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
-	u_int32_t	locker;
+	BDB_LOCKER	locker;
 	DB_LOCK		lock;
 
 	Debug( LDAP_DEBUG_ARGS,

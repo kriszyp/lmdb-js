@@ -451,7 +451,13 @@ shm_retry:
 	}
 
 	if ( !quick ) {
+#if DB_VERSION_FULL >= 0x04060012
+		u_int32_t lid;
+		XLOCK_ID(bdb->bi_dbenv, &lid);
+		__lock_getlocker(bdb->bi_dbenv->lk_handle, lid, 0, &bdb->bi_cache.c_locker);
+#else
 		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+#endif
 	}
 
 	entry_prealloc( bdb->bi_cache.c_maxsize );
@@ -543,7 +549,11 @@ bdb_db_close( BackendDB *be, ConfigReply *cr )
 	if( bdb->bi_dbenv ) {
 		/* Free cache locker if we enabled locking */
 		if ( !( slapMode & SLAP_TOOL_QUICK )) {
+#if DB_VERSION_FULL >= 0x04060012
+			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker->id);
+#else
 			XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+#endif
 			bdb->bi_cache.c_locker = 0;
 		}
 #ifdef BDB_REUSE_LOCKERS

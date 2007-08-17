@@ -30,7 +30,7 @@ bdb_compare( Operation *op, SlapReply *rs )
 	Attribute	*a;
 	int		manageDSAit = get_manageDSAit( op );
 
-	u_int32_t	locker;
+	BDB_LOCKER	locker;
 	DB_LOCK		lock;
 
 	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);

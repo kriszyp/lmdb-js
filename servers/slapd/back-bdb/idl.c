@@ -480,7 +480,7 @@ int
 bdb_idl_fetch_key(
 	BackendDB	*be,
 	DB			*db,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DBT			*key,
 	ID			*ids,
 	DBC                     **saved_cursor,
