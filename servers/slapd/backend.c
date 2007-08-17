@@ -209,6 +209,17 @@ int backend_startup_one(Backend *be, ConfigReply *cr)
 	/* set database controls */
 	(void)backend_set_controls( be );
 
+#if 0
+	if ( !BER_BVISEMPTY( &be->be_rootndn )
+		&& select_backend( &be->be_rootndn, 0 ) == be
+		&& BER_BVISNULL( &be->be_rootpw ) )
+	{
+		/* warning: if rootdn entry is created,
+		 * it can take rootdn privileges;
+		 * set empty rootpw to prevent */
+	}
+#endif
+
 	if ( be->bd_info->bi_db_open ) {
 		rc = be->bd_info->bi_db_open( be, cr );
 		if ( rc == 0 ) {
@@ -792,7 +803,13 @@ be_rootdn_bind( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
+	if ( BER_BVISNULL( &op->o_bd->be_rootpw ) ) {
+		/* give the database a chance */
+		return SLAP_CB_CONTINUE;
+	}
+
 	if ( BER_BVISEMPTY( &op->o_bd->be_rootpw ) ) {
+		/* rootdn bind explicitly disallowed */
 		rc = LDAP_INVALID_CREDENTIALS;
 		if ( rs ) {
 			goto send_result;
