@@ -3542,37 +3542,35 @@ pcache_exop_query_delete(
 {
 	BackendDB	*bd = op->o_bd;
 
-	struct berval	uuid = BER_BVNULL;
+	struct berval	uuid = BER_BVNULL,
+			*uuidp = NULL;
 	char		buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 	int		len = 0;
 	ber_tag_t	tag = LBER_DEFAULT;
 
+	if ( LogTest( LDAP_DEBUG_STATS ) ) {
+		uuidp = &uuid;
+	}
+
 	rs->sr_err = pcache_parse_query_delete( op->ore_reqdata,
-		&tag, &op->o_req_ndn, &uuid,
+		&tag, &op->o_req_ndn, uuidp,
 		&rs->sr_text, op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return rs->sr_err;
 	}
 
 	if ( LogTest( LDAP_DEBUG_STATS ) ) {
-		if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
-			len = snprintf( buf, sizeof( buf ), " dn=\"%s\"", op->o_req_ndn.bv_val );
-		}
+		assert( !BER_BVISNULL( &op->o_req_ndn ) );
+		len = snprintf( buf, sizeof( buf ), " dn=\"%s\"", op->o_req_ndn.bv_val );
 
 		if ( !BER_BVISNULL( &uuid ) ) {
-			char	uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
-
-			lutil_uuidstr_from_normalized(
-				uuid.bv_val, uuid.bv_len,
-				uuidbuf, sizeof( uuidbuf ) );
-
-			snprintf( &buf[ len ], sizeof( buf ) - len, " UUID=\"%s\"", uuidbuf );
+			snprintf( &buf[ len ], sizeof( buf ) - len, " queryId=\"%s\"", uuid.bv_val );
 		}
 
 		Debug( LDAP_DEBUG_STATS, "%s QUERY DELETE%s\n",
 			op->o_log_prefix, buf, 0 );
-		op->o_req_dn = op->o_req_ndn;
 	}
+	op->o_req_dn = op->o_req_ndn;
 
 	op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	rs->sr_err = backend_check_restrictions( op, rs,
@@ -3632,8 +3630,14 @@ pcache_op_extended( Operation *op, SlapReply *rs )
 
 		} else if ( tag == LDAP_TAG_EXOP_QUERY_DELETE_BASE ) {
 			if ( !BER_BVISNULL( &uuid ) ) {
+				Operation	op2 = *op;
+				SlapReply	rs2 = { 0 };
+
+				op2.o_bd = &cm->db;
+
 				/* remove the selected query */
-				remove_query_and_data( op, rs, cm, &uuid );
+				remove_query_and_data( &op2, &rs2, cm, &uuid );
+
 				op->o_tmpfree( uuid.bv_val, op->o_tmpmemctx );
 				rs->sr_err = LDAP_SUCCESS;
 
