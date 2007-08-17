@@ -89,8 +89,7 @@ typedef struct cached_query_s {
  * <scope> ::= CachedQuery.scope
  * <filter> ::= filter2bv(CachedQuery.filter)
  * <uuid> ::= CachedQuery.q_uuid
- * <template> ::= CachedQuery.qtemp->querystr		[FIXME: better give it an ID?]
- * <attrset> ::= CachedQuery.qtemp->attr_set_index	[FIXME: better give it an ID?]
+ * <attrset> ::= CachedQuery.qtemp->attr_set_index
  * <expiry> ::= CachedQuery.expiry_time
  *
  * quick hack: parse URI, call add_query() and then fix
@@ -195,8 +194,8 @@ static struct {
 	{ "( 1.3.6.1.4.1.4203.666.11.9.1.1 "
 		"NAME 'queryId' "
 		"DESC 'List of queries the entry belongs to' "
-		"EQUALITY UUIDMatch "
-		"SYNTAX 1.3.6.1.1.16.1 "
+		"EQUALITY octetStringMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )",
 		&ad_queryId },
@@ -3426,7 +3425,7 @@ pcache_parse_query_delete(
 	if ( tag == LDAP_TAG_EXOP_QUERY_DELETE_UUID ) {
 		if ( uuid != NULL ) {
 			struct berval	bv;
-			Syntax		*syn_UUID = slap_schema.si_ad_entryUUID->ad_type->sat_syntax;
+			char		uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 
 			tag = ber_scanf( ber, "m", &bv );
 			if ( tag == LBER_ERROR ) {
@@ -3443,7 +3442,10 @@ pcache_parse_query_delete(
 				goto decoding_error;
 			}
 
-			ber_dupbv_x( uuid, &bv, ctx );
+			lutil_uuidstr_from_normalized(
+				bv.bv_val, bv.bv_len,
+				uuidbuf, sizeof( uuidbuf ) );
+			ber_str2bv( uuidbuf, 36, 1, uuid );
 
 		} else {
 			tag = ber_skip_tag( ber, &len );
