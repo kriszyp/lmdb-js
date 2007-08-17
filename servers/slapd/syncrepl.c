@@ -3110,7 +3110,7 @@ slap_uuidstr_from_normalized(
 		normalized->bv_len, new->bv_val, new->bv_len + 1 );
 
 done:;
-	if ( rc != 0 ) {
+	if ( rc == -1 ) {
 		if ( new != NULL ) {
 			if ( new->bv_val != NULL ) {
 				slap_sl_free( new->bv_val, ctx );
@@ -3121,6 +3121,9 @@ done:;
 			}
 		}
 		new = NULL;
+
+	} else {
+		new->bv_len = rc;
 	}
 
 	return new;

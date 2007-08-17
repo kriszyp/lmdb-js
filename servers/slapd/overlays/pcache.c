@@ -3442,10 +3442,14 @@ pcache_parse_query_delete(
 				goto decoding_error;
 			}
 
-			lutil_uuidstr_from_normalized(
+			rc = lutil_uuidstr_from_normalized(
 				bv.bv_val, bv.bv_len,
 				uuidbuf, sizeof( uuidbuf ) );
-			ber_str2bv( uuidbuf, 36, 1, uuid );
+			if ( rc == -1 ) {
+				goto decoding_error;
+			}
+			ber_str2bv( uuidbuf, rc, 1, uuid );
+			rc = LDAP_SUCCESS;
 
 		} else {
 			tag = ber_skip_tag( ber, &len );

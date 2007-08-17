@@ -418,7 +418,7 @@ lutil_uuidstr_from_normalized(
 	}
 
 	if ( buflen > 36 ) buf[36] = '\0';
-	return 0;
+	return 36;
 }
 
 #ifdef TEST
