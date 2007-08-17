@@ -207,11 +207,17 @@ add_query(
 	QueryTemplate *templ,
 	int positive);
 
+static int
+remove_query_data(
+	Operation	*op,
+	SlapReply	*rs,
+	struct berval	*query_uuid );
+
 /*
  * Turn a cached query into its URL representation
  */
 static int
-query2url( CachedQuery *q, struct berval *urlbv )
+query2url( Operation *op, CachedQuery *q, struct berval *urlbv )
 {
 	struct berval	bv_scope,
 			bv_filter;
@@ -222,7 +228,7 @@ query2url( CachedQuery *q, struct berval *urlbv )
 			expiry_len;
 
 	ldap_pvt_scope2bv( q->scope, &bv_scope );
-	filter2bv( q->filter, &bv_filter );
+	filter2bv_x( op, q->filter, &bv_filter );
 	attrset_len = snprintf( attrset_buf, sizeof( attrset_buf ),
 		"%lu", (unsigned long)q->qtemp->attr_set_index );
 	expiry_len = snprintf( expiry_buf, sizeof( expiry_buf ),
@@ -240,7 +246,7 @@ query2url( CachedQuery *q, struct berval *urlbv )
 		+ attrset_len
 		+ STRLENOF( ",x-expiry=" )
 		+ expiry_len;
-	ptr = urlbv->bv_val = ch_malloc( urlbv->bv_len + 1 );
+	ptr = urlbv->bv_val = ber_memalloc_x( urlbv->bv_len + 1, op->o_tmpmemctx );
 	ptr = lutil_strcopy( ptr, "ldap:///" );
 	ptr = lutil_strcopy( ptr, q->qbase->base.bv_val );
 	ptr = lutil_strcopy( ptr, "??" );
@@ -254,12 +260,10 @@ query2url( CachedQuery *q, struct berval *urlbv )
 	ptr = lutil_strcopy( ptr, ",x-expiry=" );
 	ptr = lutil_strcopy( ptr, expiry_buf );
 
-	ber_memfree( bv_filter.bv_val );
+	ber_memfree_x( bv_filter.bv_val, op->o_tmpmemctx );
 
 	return 0;
 }
-
-static Syntax *syn_UUID;
 
 /*
  * Turn an URL representing a formerly cached query into a cached query,
@@ -339,8 +343,9 @@ url2query(
 	for ( i = 0; lud->lud_exts[ i ] != NULL; i++ ) {
 		if ( strncmp( lud->lud_exts[ i ], "x-uuid=", STRLENOF( "x-uuid=" ) ) == 0 ) {
 			struct berval	tmpUUID;
+			Syntax		*syn_UUID = slap_schema.si_ad_entryUUID->ad_type->sat_syntax;
+
 			ber_str2bv( &lud->lud_exts[ i ][ STRLENOF( "x-uuid=" ) ], 0, 0, &tmpUUID );
-			assert( syn_UUID->ssyn_pretty != NULL );
 			rc = syn_UUID->ssyn_pretty( syn_UUID, &tmpUUID, &uuid, NULL );
 			if ( rc != LDAP_SUCCESS ) {
 				goto error;
@@ -364,12 +369,6 @@ url2query(
 			expiry_time = (time_t)l;
 			got_expiry = 1;
 
-			/* ignore expired queries */
-			if ( expiry_time <= slap_get_time()) {
-				rc = 0;
-				goto error;
-			}
-
 		} else {
 			rc = -1;
 			goto error;
@@ -391,48 +390,60 @@ url2query(
 		goto error;
 	}
 
-	ber_str2bv( lud->lud_dn, 0, 0, &base );
-	rc = dnNormalize( 0, NULL, NULL, &base, &query.base, NULL );
-	if ( rc != LDAP_SUCCESS ) {
-		goto error;
-	}
-	query.scope = lud->lud_scope;
-	query.filter = str2filter( lud->lud_filter );
+	/* ignore expired queries */
+	if ( expiry_time <= slap_get_time()) {
+		Operation	op2 = *op;
+		SlapReply	rs2 = { 0 };
 
-	tempstr.bv_val = ch_malloc( strlen( lud->lud_filter ) + 1 );
-	tempstr.bv_len = 0;
-	if ( filter2template( op, query.filter, &tempstr, NULL, NULL, NULL ) ) {
-		ch_free( tempstr.bv_val );
-		rc = -1;
-		goto error;
-	}
+		memset( &op2.oq_search, 0, sizeof( op2.oq_search ) );
 
-	/* check for query containment */
-	qt = qm->attr_sets[attrset].templates;
-	for ( ; qt; qt = qt->qtnext ) {
-		/* find if template i can potentially answer tempstr */
-		if ( bvmatch( &qt->querystr, &tempstr ) ) {
-			break;
-		}
-	}
+		(void)remove_query_data( &op2, &rs2, &uuid );
 
-	if ( qt == NULL ) {
-		rc = 1;
-		goto error;
-	}
-
-
-	cq = add_query( op, qm, &query, qt, 1 );
-	if ( cq != NULL ) {
-		cq->expiry_time = expiry_time;
-		cq->q_uuid = uuid;
-
-		/* it's now into cq->filter */
-		BER_BVZERO( &uuid );
-		query.filter = NULL;
+		rc = 0;
 
 	} else {
-		rc = 1;
+		ber_str2bv( lud->lud_dn, 0, 0, &base );
+		rc = dnNormalize( 0, NULL, NULL, &base, &query.base, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			goto error;
+		}
+		query.scope = lud->lud_scope;
+		query.filter = str2filter( lud->lud_filter );
+
+		tempstr.bv_val = ch_malloc( strlen( lud->lud_filter ) + 1 );
+		tempstr.bv_len = 0;
+		if ( filter2template( op, query.filter, &tempstr, NULL, NULL, NULL ) ) {
+			ch_free( tempstr.bv_val );
+			rc = -1;
+			goto error;
+		}
+
+		/* check for query containment */
+		qt = qm->attr_sets[attrset].templates;
+		for ( ; qt; qt = qt->qtnext ) {
+			/* find if template i can potentially answer tempstr */
+			if ( bvmatch( &qt->querystr, &tempstr ) ) {
+				break;
+			}
+		}
+
+		if ( qt == NULL ) {
+			rc = 1;
+			goto error;
+		}
+
+		cq = add_query( op, qm, &query, qt, 1 );
+		if ( cq != NULL ) {
+			cq->expiry_time = expiry_time;
+			cq->q_uuid = uuid;
+
+			/* it's now into cq->filter */
+			BER_BVZERO( &uuid );
+			query.filter = NULL;
+
+		} else {
+			rc = 1;
+		}
 	}
 
 error:;
@@ -1301,13 +1312,13 @@ remove_func (
 }
 
 static int
-remove_query_data (
+remove_query_data(
 	Operation	*op,
 	SlapReply	*rs,
-	struct berval* query_uuid)
+	struct berval	*query_uuid )
 {
 	struct query_info	*qi, *qnext;
-	char			filter_str[64];
+	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryid=)" ) ];
 #ifdef LDAP_COMP_MATCH
 	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
 #else
@@ -1352,7 +1363,7 @@ remove_query_data (
 		op->o_req_dn = qi->xdn;
 		op->o_req_ndn = qi->xdn;
 
-		if ( qi->del) {
+		if ( qi->del ) {
 			Debug( pcache_debug, "DELETING ENTRY TEMPLATE=%s\n",
 				query_uuid->bv_val, 0, 0 );
 
@@ -1361,6 +1372,7 @@ remove_query_data (
 			if (op->o_bd->be_delete(op, &sreply) == LDAP_SUCCESS) {
 				deleted++;
 			}
+
 		} else {
 			Modifications mod;
 			struct berval vals[2];
@@ -1574,19 +1586,18 @@ fetch_queryid_cb( Operation *op, SlapReply *rs )
 }
 
 /*
- * Call that allows to remove an entry from the cache, by forcing
- * the removal of all the related queries.
+ * Call that allows to remove a set of entries from the cache,
+ * by forcing the removal of all the related queries.
  */
 int
 pcache_remove_entries_from_cache(
-	cache_manager		*cm,
-	BerVarray		UUIDs )
+	Operation	*op,
+	cache_manager	*cm,
+	BerVarray	UUIDs )
 {
-	void		*thrctx = ldap_pvt_thread_pool_context();
-
 	Connection	conn = { 0 };
 	OperationBuffer opbuf;
-	Operation	*op;
+	Operation	op2;
 	slap_callback	sc = { 0 };
 	SlapReply	rs = { REP_RESULT };
 	Filter		f = { 0 };
@@ -1599,8 +1610,16 @@ pcache_remove_entries_from_cache(
 	AttributeName	attrs[ 2 ] = { 0 };
 	int		s, rc;
 
-	connection_fake_init( &conn, &opbuf, thrctx );
-	op = &opbuf.ob_op;
+	if ( op == NULL ) {
+		void	*thrctx = ldap_pvt_thread_pool_context();
+
+		connection_fake_init( &conn, &opbuf, thrctx );
+		op = &opbuf.ob_op;
+
+	} else {
+		op2 = *op;
+		op = &op2;
+	}
 
 	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
@@ -1630,7 +1649,6 @@ pcache_remove_entries_from_cache(
 
 	for ( s = 0; !BER_BVISNULL( &UUIDs[ s ] ); s++ ) {
 		BerVarray	vals = NULL;
-		int		i;
 
 		op->ors_filterstr.bv_len = snprintf( filtbuf, sizeof( filtbuf ),
 			"(entryUUID=%s)", UUIDs[ s ].bv_val );
@@ -1644,6 +1662,8 @@ pcache_remove_entries_from_cache(
 
 		vals = (BerVarray)op->o_callback->sc_private;
 		if ( vals != NULL ) {
+			int		i;
+
 			for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
 				struct berval	val = vals[ i ];
 
@@ -1662,11 +1682,111 @@ pcache_remove_entries_from_cache(
 	return 0;
 }
 
+/*
+ * Call that allows to remove a set of queries from the cache
+ */
+int
+pcache_remove_entry_queries_from_cache(
+	Operation	*op,
+	cache_manager	*cm,
+	struct berval	*ndn,
+	struct berval	*uuid )
+{
+	Connection		conn = { 0 };
+	OperationBuffer 	opbuf;
+	Operation		op2;
+	slap_callback		sc = { 0 };
+	SlapReply		rs = { REP_RESULT };
+	Filter			f = { 0 };
+	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryid=)" ) ];
+#ifdef LDAP_COMP_MATCH
+	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
+#else
+	AttributeAssertion	ava = { NULL, BER_BVNULL };
+#endif
+	AttributeName		attrs[ 2 ] = { 0 };
+	int			rc;
+
+	BerVarray		vals = NULL;
+
+	if ( op == NULL ) {
+		void	*thrctx = ldap_pvt_thread_pool_context();
+
+		connection_fake_init( &conn, &opbuf, thrctx );
+		op = &opbuf.ob_op;
+
+	} else {
+		op2 = *op;
+		op = &op2;
+	}
+
+	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
+	op->ors_scope = LDAP_SCOPE_BASE;
+	op->ors_deref = LDAP_DEREF_NEVER;
+	if ( uuid == NULL || BER_BVISNULL( uuid ) ) {
+		BER_BVSTR( &op->ors_filterstr, "(objectClass=*)" );
+		f.f_choice = LDAP_FILTER_PRESENT;
+		f.f_desc = slap_schema.si_ad_objectClass;
+
+	} else {
+		op->ors_filterstr.bv_len = snprintf( filter_str,
+			sizeof( filter_str ), "(%s=%s)",
+			ad_queryid->ad_cname.bv_val, uuid->bv_val );
+		f.f_choice = LDAP_FILTER_EQUALITY;
+		f.f_ava = &ava;
+		f.f_av_desc = ad_queryid;
+		f.f_av_value = *uuid;
+	}
+	op->ors_filter = &f;
+	op->ors_slimit = 1;
+	op->ors_tlimit = SLAP_NO_LIMIT;
+	attrs[ 0 ].an_desc = ad_queryid;
+	attrs[ 0 ].an_name = ad_queryid->ad_cname;
+	op->ors_attrs = attrs;
+	op->ors_attrsonly = 0;
+
+	op->o_req_dn = *ndn;
+	op->o_req_ndn = *ndn;
+
+	op->o_tag = LDAP_REQ_SEARCH;
+	op->o_protocol = LDAP_VERSION3;
+	op->o_managedsait = SLAP_CONTROL_CRITICAL;
+	op->o_bd = &cm->db;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+	sc.sc_response = fetch_queryid_cb;
+	op->o_callback = &sc;
+
+	rc = op->o_bd->be_search( op, &rs );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	vals = (BerVarray)op->o_callback->sc_private;
+	if ( vals != NULL ) {
+		int		i;
+
+		for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
+			struct berval	val = vals[ i ];
+
+			remove_query_and_data( op, &rs, cm, &val );
+
+			if ( !BER_BVISNULL( &val ) && val.bv_val != vals[ i ].bv_val ) {
+				ch_free( val.bv_val );
+			}
+		}
+
+		ber_bvarray_free_x( vals, op->o_tmpmemctx );
+	}
+
+	return LDAP_SUCCESS;
+}
+
 static int
 cache_entries(
 	Operation	*op,
 	SlapReply	*rs,
-	struct berval *query_uuid)
+	struct berval *query_uuid )
 {
 	struct search_info *si = op->o_callback->sc_private;
 	slap_overinst *on = si->on;
@@ -2842,6 +2962,7 @@ pcache_db_open(
 			slap_callback	cb = { 0 };
 			SlapReply	rs = { 0 };
 			BerVarray	vals = NULL;
+			Filter		f = { 0 };
 			AttributeName	attrs[ 2 ] = { 0 };
 
 			connection_fake_init( &conn, &opbuf, thrctx );
@@ -2868,27 +2989,25 @@ pcache_db_open(
 			op->ors_slimit = 1;
 			op->ors_tlimit = SLAP_NO_LIMIT;
 			ber_str2bv( "(cachedQueryURL=*)", 0, 0, &op->ors_filterstr );
-			op->ors_filter = str2filter_x( op, op->ors_filterstr.bv_val );
-			if ( op->ors_filter != NULL ) {
-				attrs[ 0 ].an_desc = ad_cachedQueryURL;
-				attrs[ 0 ].an_name = ad_cachedQueryURL->ad_cname;
-				op->ors_attrs = attrs;
-				op->ors_attrsonly = 0;
+			f.f_choice = LDAP_FILTER_PRESENT;
+			f.f_desc = ad_cachedQueryURL;
+			op->ors_filter = &f;
+			attrs[ 0 ].an_desc = ad_cachedQueryURL;
+			attrs[ 0 ].an_name = ad_cachedQueryURL->ad_cname;
+			op->ors_attrs = attrs;
+			op->ors_attrsonly = 0;
 
-				rc = op->o_bd->be_search( op, &rs );
-				if ( rc == LDAP_SUCCESS && vals != NULL ) {
-					int	i;
+			rc = op->o_bd->be_search( op, &rs );
+			if ( rc == LDAP_SUCCESS && vals != NULL ) {
+				int	i;
 
-					for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
-						if ( url2query( vals[ i ].bv_val, op, qm ) == 0 ) {
-							cm->num_cached_queries++;
-						}
+				for ( i = 0; !BER_BVISNULL( &vals[ i ] ); i++ ) {
+					if ( url2query( vals[ i ].bv_val, op, qm ) == 0 ) {
+						cm->num_cached_queries++;
 					}
-
-					ber_bvarray_free_x( vals, op->o_tmpmemctx );
 				}
 
-				filter_free_x( op, op->ors_filter );
+				ber_bvarray_free_x( vals, op->o_tmpmemctx );
 			}
 
 			/* ignore errors */
@@ -2922,65 +3041,67 @@ pcache_db_close(
 	QueryTemplate *tm;
 	int i, rc = 0;
 
-	if ( cm->save_queries && qm->templates != NULL ) {
+	if ( cm->save_queries ) {
 		CachedQuery	*qc;
 		BerVarray	vals = NULL;
 
-		for ( tm = qm->templates; tm != NULL; tm = tm->qmnext ) {
-			for ( qc = tm->query; qc; qc = qc->next ) {
-				struct berval	bv;
+		void		*thrctx;
+		Connection	conn = { 0 };
+		OperationBuffer	opbuf;
+		Operation	*op;
+		slap_callback	cb = { 0 };
 
-				if ( query2url( qc, &bv ) == 0 ) {
-					ber_bvarray_add( &vals, &bv );
+		SlapReply	rs = { REP_RESULT };
+		Modifications	mod = { 0 };
+
+		thrctx = ldap_pvt_thread_pool_context();
+
+		connection_fake_init( &conn, &opbuf, thrctx );
+		op = &opbuf.ob_op;
+
+		if ( qm->templates != NULL ) {
+			for ( tm = qm->templates; tm != NULL; tm = tm->qmnext ) {
+				for ( qc = tm->query; qc; qc = qc->next ) {
+					struct berval	bv;
+
+					if ( query2url( op, qc, &bv ) == 0 ) {
+						ber_bvarray_add_x( &vals, &bv, op->o_tmpmemctx );
+					}
 				}
 			}
 		}
 
-		if ( vals != NULL ) {
-			void		*thrctx = ldap_pvt_thread_pool_context();
-			Connection	conn = { 0 };
-			OperationBuffer	opbuf;
-			Operation	*op;
-			slap_callback	cb = { 0 };
+		op->o_bd = &cm->db;
+		op->o_dn = cm->db.be_rootdn;
+		op->o_ndn = cm->db.be_rootndn;
 
-			SlapReply	rs = { REP_RESULT };
-			Modifications	mod = { 0 };
+		op->o_tag = LDAP_REQ_MODIFY;
+		op->o_protocol = LDAP_VERSION3;
+		cb.sc_response = slap_null_cb;
+		op->o_callback = &cb;
+		op->o_time = slap_get_time();
+		op->o_do_not_cache = 1;
+		op->o_managedsait = SLAP_CONTROL_CRITICAL;
 
-			connection_fake_init( &conn, &opbuf, thrctx );
-			op = &opbuf.ob_op;
+		op->o_req_dn = op->o_bd->be_suffix[0];
+		op->o_req_ndn = op->o_bd->be_nsuffix[0];
 
-			op->o_bd = &cm->db;
-			op->o_dn = cm->db.be_rootdn;
-			op->o_ndn = cm->db.be_rootndn;
+		mod.sml_op = LDAP_MOD_REPLACE;
+		mod.sml_flags = 0;
+		mod.sml_desc = ad_cachedQueryURL;
+		mod.sml_type = ad_cachedQueryURL->ad_cname;
+		mod.sml_values = vals;
+		mod.sml_nvalues = NULL;
+		mod.sml_next = NULL;
+		Debug( pcache_debug,
+			"%sSETTING CACHED QUERY URLS\n",
+			vals == NULL ? "RE" : "", 0, 0 );
 
-			op->o_tag = LDAP_REQ_MODIFY;
-			op->o_protocol = LDAP_VERSION3;
-			cb.sc_response = slap_null_cb;
-			op->o_callback = &cb;
-			op->o_time = slap_get_time();
-			op->o_do_not_cache = 1;
-			op->o_managedsait = SLAP_CONTROL_CRITICAL;
+		op->orm_modlist = &mod;
 
-			op->o_req_dn = op->o_bd->be_suffix[0];
-			op->o_req_ndn = op->o_bd->be_nsuffix[0];
+		op->o_bd->be_modify( op, &rs );
 
-			mod.sml_op = LDAP_MOD_REPLACE;
-			mod.sml_flags = 0;
-			mod.sml_desc = ad_cachedQueryURL;
-			mod.sml_type = ad_cachedQueryURL->ad_cname;
-			mod.sml_values = vals;
-			mod.sml_nvalues = NULL;
-			mod.sml_next = NULL;
-			Debug( pcache_debug,
-				"SETTING CACHED QUERY URLS\n",
-				0, 0, 0 );
-
-			op->orm_modlist = &mod;
-
-			op->o_bd->be_modify( op, &rs );
-
-			ber_bvarray_free( vals );
-		}
+		ber_bvarray_free_x( vals, op->o_tmpmemctx );
 	}
 
 	/* cleanup stuff inherited from the original database... */
@@ -3052,7 +3173,11 @@ static char *obsolete_names[] = {
 	NULL
 };
 
-int pcache_initialize()
+#if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_DYNAMIC
+static
+#endif /* SLAPD_OVER_PROXYCACHE == SLAPD_MOD_DYNAMIC */
+int
+pcache_initialize()
 {
 	int i, code;
 	struct berval debugbv = BER_BVC("pcache");
@@ -3069,14 +3194,6 @@ int pcache_initialize()
 				"pcache_initialize: register_at #%d failed\n", i, 0, 0 );
 			return code;
 		}
-	}
-
-	syn_UUID = syn_find( "1.3.6.1.1.16.1");
-	if ( syn_UUID == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"pcache_initialize: unable to find UUID syntax\n",
-			0, 0, 0 );
-		return LDAP_OTHER;
 	}
 
 	pcache.on_bi.bi_type = "pcache";
