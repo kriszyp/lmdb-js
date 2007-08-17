@@ -3303,10 +3303,10 @@ static struct berval pcache_exop_QUERY_DELETE = BER_BVC( PCACHE_EXOP_QUERY_DELET
         requestValue ::= SEQUENCE { CHOICE {
                   baseDN           [0] LDAPDN
                   entryDN          [1] LDAPDN },
-             queryID          [2] OCTET STRING (SIZE(16)) }
+             queryID          [2] OCTET STRING (SIZE(16))
+                  -- constrained to UUID }
 
- * baseDN and entryDN are mutually exclusive, but one of them must be present
- * (to allow appropriate database selection).
+ * Either baseDN or entryDN must be present, to allow database selection.
  *
  * 1. if baseDN and queryID are present, then the query corresponding
  *    to queryID is deleted;
@@ -3330,6 +3330,17 @@ static struct berval pcache_exop_QUERY_DELETE = BER_BVC( PCACHE_EXOP_QUERY_DELET
  * responseName and responseValue must be absent.
  */
 
+/*
+ * - on success, *tagp is either LDAP_TAG_EXOP_QUERY_DELETE_BASE
+ *   or LDAP_TAG_EXOP_QUERY_DELETE_DN.
+ * - if ndn != NULL, it is set to the normalized DN in the request
+ *   corresponding to either the baseDN or the entryDN, according
+ *   to *tagp; memory is malloc'ed on the Operation's slab, and must
+ *   be freed by the caller.
+ * - if uuid != NULL, it is set to point to the normalized UUID;
+ *   memory is malloc'ed on the Operation's slab, and must
+ *   be freed by the caller.
+ */
 static int
 pcache_parse_query_delete(
 	struct berval	*in,
@@ -3421,15 +3432,25 @@ pcache_parse_query_delete(
 				goto decoding_error;
 			}
 
-			rc = syn_UUID->ssyn_pretty( syn_UUID, &bv, uuid, NULL );
-			if ( rc != LDAP_SUCCESS ) {
-				*text = "invalid UUID in queryDelete exop request data";
-				goto done;
+			if ( bv.bv_len != 16 ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"pcache_parse_query_delete: invalid UUID length %lu.\n",
+					(unsigned long)bv.bv_len, 0, 0 );
+				goto decoding_error;
 			}
 
+			ber_dupbv_x( uuid, &bv, ctx );
+
 		} else {
-			tag = ber_scanf( ber, "x" /* "m" */ );
+			tag = ber_skip_tag( ber, &len );
 			if ( tag == LBER_DEFAULT ) {
+				goto decoding_error;
+			}
+
+			if ( len != 16 ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"pcache_parse_query_delete: invalid UUID length %lu.\n",
+					(unsigned long)len, 0, 0 );
 				goto decoding_error;
 			}
 		}
@@ -3483,17 +3504,25 @@ pcache_exop_query_delete(
 		return rs->sr_err;
 	}
 
-	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
-		len = snprintf( buf, sizeof( buf ), " dn=\"%s\"", op->o_req_ndn.bv_val );
-	}
+	if ( LogTest( LDAP_DEBUG_STATS ) ) {
+		if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+			len = snprintf( buf, sizeof( buf ), " dn=\"%s\"", op->o_req_ndn.bv_val );
+		}
 
-	if ( !BER_BVISNULL( &uuid ) ) {
-		snprintf( &buf[ len ], sizeof( buf ) - len, " UUID=\"%s\"", uuid.bv_val );
-	}
+		if ( !BER_BVISNULL( &uuid ) ) {
+			char	uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 
-	Debug( LDAP_DEBUG_STATS, "%s QUERY DELETE %s\n",
-		op->o_log_prefix, buf, 0 );
-	op->o_req_dn = op->o_req_ndn;
+			lutil_uuidstr_from_normalized(
+				uuid.bv_val, uuid.bv_len,
+				uuidbuf, sizeof( uuidbuf ) );
+
+			snprintf( &buf[ len ], sizeof( buf ) - len, " UUID=\"%s\"", uuidbuf );
+		}
+
+		Debug( LDAP_DEBUG_STATS, "%s QUERY DELETE%s\n",
+			op->o_log_prefix, buf, 0 );
+		op->o_req_dn = op->o_req_ndn;
+	}
 
 	op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	rs->sr_err = backend_check_restrictions( op, rs,
