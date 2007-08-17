@@ -3244,6 +3244,16 @@ pcache_db_destroy(
 }
 
 #ifdef PCACHE_CONTROL_PRIVDB
+/*
+        Control ::= SEQUENCE {
+             controlType             LDAPOID,
+             criticality             BOOLEAN DEFAULT FALSE,
+             controlValue            OCTET STRING OPTIONAL }
+
+        controlType ::= 1.3.6.1.4.1.4203.666.11.9.5.1
+
+ * criticality must be TRUE; controlValue must be absent.
+ */
 static int
 parse_privdb_ctrl(
 	Operation	*op,
@@ -3251,17 +3261,17 @@ parse_privdb_ctrl(
 	LDAPControl	*ctrl )
 {
 	if ( op->o_ctrlflag[ privDB_cid ] != SLAP_CONTROL_NONE ) {
-		rs->sr_text = "pcachePrivDB control specified multiple times";
+		rs->sr_text = "privateDB control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	if ( !BER_BVISNULL( &ctrl->ldctl_value ) ) {
-		rs->sr_text = "pcachePrivDB control value not absent";
+		rs->sr_text = "privateDB control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	if ( !ctrl->ldctl_iscritical ) {
-		rs->sr_text = "pcachePrivDB: criticality required";
+		rs->sr_text = "privateDB control criticality required";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -3288,7 +3298,7 @@ static struct berval pcache_exop_QUERY_DELETE = BER_BVC( PCACHE_EXOP_QUERY_DELET
              requestName      [0] LDAPOID,
              requestValue     [1] OCTET STRING OPTIONAL }
 
-        requestName ::= TBA
+        requestName ::= 1.3.6.1.4.1.4203.666.11.9.6.1
 
         requestValue ::= SEQUENCE {
              baseDN           [0] LDAPDN OPTIONAL,
@@ -3317,7 +3327,7 @@ static struct berval pcache_exop_QUERY_DELETE = BER_BVC( PCACHE_EXOP_QUERY_DELET
              responseName     [10] LDAPOID OPTIONAL,
              responseValue    [11] OCTET STRING OPTIONAL }
 
- * responseName and responseValue are empty.
+ * responseName and responseValue must be absent.
  */
 
 static int
