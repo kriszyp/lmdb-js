@@ -3300,9 +3300,9 @@ static struct berval pcache_exop_QUERY_DELETE = BER_BVC( PCACHE_EXOP_QUERY_DELET
 
         requestName ::= 1.3.6.1.4.1.4203.666.11.9.6.1
 
-        requestValue ::= SEQUENCE {
-             baseDN           [0] LDAPDN OPTIONAL,
-             entryDN          [1] LDAPDN OPTIONAL,
+        requestValue ::= SEQUENCE { CHOICE {
+                  baseDN           [0] LDAPDN
+                  entryDN          [1] LDAPDN },
              queryID          [2] OCTET STRING (SIZE(16)) }
 
  * baseDN and entryDN are mutually exclusive, but one of them must be present
