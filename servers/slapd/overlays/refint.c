@@ -48,8 +48,12 @@ static BerValue refint_dn = BER_BVC("cn=Referential Integrity Overlay");
 static BerValue refint_ndn = BER_BVC("cn=referential integrity overlay");
 
 typedef struct refint_attrs_s {
-	struct refint_attrs_s *next;
-	AttributeDescription *attr;
+	struct refint_attrs_s	*next;
+	AttributeDescription	*attr;
+	BerVarray		old_vals;
+	BerVarray		old_nvals;
+	BerVarray		new_vals;
+	BerVarray		new_nvals;
 } refint_attrs;
 
 typedef struct dependents_s {
@@ -83,6 +87,8 @@ typedef struct refint_data_s {
 } refint_data;
 
 #define	RUNQ_INTERVAL	36000	/* a long time */
+
+static MatchingRule	*mr_dnSubtreeMatch;
 
 enum {
 	REFINT_ATTRS = 1,
@@ -377,28 +383,104 @@ refint_search_cb(
 	rq->attrs = ip;
 	ip->attrs = NULL;
 	for(ia = da; ia; ia = ia->next) {
-	    if ( (a = attr_find(rs->sr_entry->e_attrs, ia->attr) ) )
-		for(i = 0, b = a->a_nvals; b[i].bv_val; i++)
-		    if(bvmatch(&rq->oldndn, &b[i])) {
-			na = op->o_tmpalloc(sizeof( refint_attrs ), op->o_tmpmemctx );
-			na->next = ip->attrs;
-			ip->attrs = na;
-			na->attr = ia->attr;
-			/* If this is a delete and there's only one value, and
-			 * we have a nothing DN configured, allocate the attr again.
-			 */
-			if(!b[1].bv_val && BER_BVISEMPTY( &rq->newdn ) &&
-				dd->nothing.bv_val) {
-				na = op->o_tmpalloc(sizeof( refint_attrs ), op->o_tmpmemctx );
-				na->next = ip->attrs;
-				ip->attrs = na;
-				na->attr = ia->attr;
+		if ( (a = attr_find(rs->sr_entry->e_attrs, ia->attr) ) ) {
+			int		first = -1, count = 0, deleted = 0;
+
+			na = NULL;
+
+			for(i = 0, b = a->a_nvals; b[i].bv_val; i++) {
+				count++;
+
+				if(dnIsSuffix(&b[i], &rq->oldndn)) {
+					/* first match? create structure */
+					if ( na == NULL ) {
+						na = op->o_tmpcalloc( 1,
+							sizeof( refint_attrs ),
+							op->o_tmpmemctx );
+						na->next = ip->attrs;
+						ip->attrs = na;
+						na->attr = ia->attr;
+
+						/* delete, or exact match? note it's first match */
+						if ( BER_BVISEMPTY( &rq->newdn ) &&
+							b[i].bv_len == rq->oldndn.bv_len )
+						{
+							first = i;
+						}
+					}
+
+					/* if it's a rename, or a subordinate match,
+					 * save old and build new dn */
+					if ( !BER_BVISEMPTY( &rq->newdn ) &&
+						b[i].bv_len != rq->oldndn.bv_len )
+					{
+						struct berval	newsub, newdn;
+
+						/* if not first, save first as well */
+						if ( first != -1 ) {
+							ber_bvarray_add_x( &na->old_vals, &a->a_vals[first], op->o_tmpmemctx );
+							ber_bvarray_add_x( &na->old_nvals, &a->a_nvals[first], op->o_tmpmemctx );
+
+							newsub = a->a_vals[first];
+							newsub.bv_len -= rq->olddn.bv_len + 1;
+
+							build_new_dn( &newdn, &rq->newdn, &newsub, op->o_tmpmemctx );
+
+							ber_bvarray_add_x( &na->new_vals, &newdn, op->o_tmpmemctx );
+
+							newsub = a->a_nvals[first];
+							newsub.bv_len -= rq->oldndn.bv_len + 1;
+
+							build_new_dn( &newdn, &rq->newndn, &newsub, op->o_tmpmemctx );
+
+							ber_bvarray_add_x( &na->new_nvals, &newdn, op->o_tmpmemctx );
+							
+							first = -1;
+						}
+
+						ber_bvarray_add_x( &na->old_vals, &a->a_vals[i], op->o_tmpmemctx );
+						ber_bvarray_add_x( &na->old_nvals, &a->a_nvals[i], op->o_tmpmemctx );
+
+						newsub = a->a_vals[i];
+						newsub.bv_len -= rq->olddn.bv_len + 1;
+
+						build_new_dn( &newdn, &rq->newdn, &newsub, op->o_tmpmemctx );
+
+						ber_bvarray_add_x( &na->new_vals, &newdn, op->o_tmpmemctx );
+
+						newsub = a->a_nvals[i];
+						newsub.bv_len -= rq->oldndn.bv_len + 1;
+
+						build_new_dn( &newdn, &rq->newndn, &newsub, op->o_tmpmemctx );
+
+						ber_bvarray_add_x( &na->new_nvals, &newdn, op->o_tmpmemctx );
+					}
+
+					/* count deteles */
+					if ( BER_BVISEMPTY( &rq->newdn ) ) {
+						deleted++;
+					}
+				}
+
+				/* If this is a delete and no value would be left, and
+				 * we have a nothing DN configured, allocate the attr again.
+				 */
+				if ( count == deleted && !BER_BVISNULL(&dd->nothing) )
+				{
+					na = op->o_tmpcalloc( 1,
+						sizeof( refint_attrs ),
+						op->o_tmpmemctx );
+					na->next = ip->attrs;
+					ip->attrs = na;
+					na->attr = ia->attr;
+				}
+
+				Debug( LDAP_DEBUG_TRACE, "refint_search_cb: %s: %s (#%d)\n",
+					a->a_desc->ad_cname.bv_val, rq->olddn.bv_val, count );
 			}
-			Debug(LDAP_DEBUG_TRACE, "refint_search_cb: %s: %s\n",
-				a->a_desc->ad_cname.bv_val, rq->olddn.bv_val, 0);
-			break;
-	    }
+		}
 	}
+
 	return(0);
 }
 
@@ -414,7 +496,7 @@ refint_qtask( void *ctx, void *arg )
 	slap_callback cb = { NULL, NULL, NULL, NULL };
 	Filter ftop, *fptr;
 	refint_q *rq;
-	dependent_data *dp;
+	dependent_data *dp, *dp_next;
 	refint_attrs *ra, *ip;
 	int rc;
 
@@ -436,11 +518,16 @@ refint_qtask( void *ctx, void *arg )
 	ftop.f_or = NULL;
 	op->ors_filter = &ftop;
 	for(ip = id->attrs; ip; ip = ip->next) {
-		fptr = op->o_tmpalloc( sizeof(Filter) + sizeof(AttributeAssertion),
-			op->o_tmpmemctx );
-		fptr->f_choice = LDAP_FILTER_EQUALITY;
-		fptr->f_ava = (AttributeAssertion *)(fptr+1);
-		fptr->f_ava->aa_desc = ip->attr;
+		fptr = op->o_tmpcalloc( sizeof(Filter) + sizeof(MatchingRuleAssertion),
+			1, op->o_tmpmemctx );
+		/* Use (attr:dnSubtreeMatch:=value) to catch subtree rename
+		 * and subtree delete where supported */
+		fptr->f_choice = LDAP_FILTER_EXT;
+		fptr->f_mra = (MatchingRuleAssertion *)(fptr+1);
+		fptr->f_mr_rule = mr_dnSubtreeMatch;
+		fptr->f_mr_rule_text = mr_dnSubtreeMatch->smr_str;
+		fptr->f_mr_desc = ip->attr;
+		fptr->f_mr_dnattrs = 0;
 		fptr->f_next = ftop.f_or;
 		ftop.f_or = fptr;
 	}
@@ -459,7 +546,7 @@ refint_qtask( void *ctx, void *arg )
 			break;
 
 		for (fptr = ftop.f_or; fptr; fptr=fptr->f_next )
-			fptr->f_av_value = rq->oldndn;
+			fptr->f_mr_value = rq->oldndn;
 
 		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 
@@ -517,8 +604,10 @@ refint_qtask( void *ctx, void *arg )
 		**
 		*/
 
-		for(dp = rq->attrs; dp; dp = dp->next) {
+		for(dp = rq->attrs; dp; dp = dp_next) {
 			Modifications *m, *first = NULL;
+
+			dp_next = dp->next;
 
 			op->orm_modlist = NULL;
 
@@ -533,6 +622,8 @@ refint_qtask( void *ctx, void *arg )
 			}
 			rs.sr_type	= REP_RESULT;
 			for (ra = dp->attrs; ra; ra = dp->attrs) {
+				size_t	len;
+
 				dp->attrs = ra->next;
 				/* Set our ModifiersName */
 				if ( SLAP_LASTMOD( op->o_bd )) {
@@ -554,9 +645,15 @@ refint_qtask( void *ctx, void *arg )
 					m->sml_nvalues[0] = refint_ndn;
 				}
 				if ( !BER_BVISEMPTY( &rq->newdn ) || ( ra->next &&
-					ra->attr == ra->next->attr )) {
-					m = op->o_tmpalloc( sizeof(Modifications) +
-						4*sizeof(BerValue), op->o_tmpmemctx );
+					ra->attr == ra->next->attr ))
+				{
+					len = sizeof(Modifications);
+
+					if ( ra->new_vals == NULL ) {
+						len += 4*sizeof(BerValue);
+					}
+
+					m = op->o_tmpalloc( len, op->o_tmpmemctx );
 					m->sml_next = op->orm_modlist;
 					if ( !first )
 						first = m;
@@ -565,23 +662,33 @@ refint_qtask( void *ctx, void *arg )
 					m->sml_flags = 0;
 					m->sml_desc = ra->attr;
 					m->sml_type = ra->attr->ad_cname;
-					m->sml_values = (BerVarray)(m+1);
-					m->sml_nvalues = m->sml_values+2;
-					BER_BVZERO( &m->sml_values[1] );
-					BER_BVZERO( &m->sml_nvalues[1] );
-					if ( BER_BVISEMPTY( &rq->newdn )) {
-						op->o_tmpfree( ra, op->o_tmpmemctx );
-						ra = dp->attrs;
-						dp->attrs = ra->next;
-						m->sml_values[0] = id->nothing;
-						m->sml_nvalues[0] = id->nnothing;
+					if ( ra->new_vals == NULL ) {
+						m->sml_values = (BerVarray)(m+1);
+						m->sml_nvalues = m->sml_values+2;
+						BER_BVZERO( &m->sml_values[1] );
+						BER_BVZERO( &m->sml_nvalues[1] );
+						if ( BER_BVISEMPTY( &rq->newdn )) {
+							op->o_tmpfree( ra, op->o_tmpmemctx );
+							ra = dp->attrs;
+							dp->attrs = ra->next;
+							m->sml_values[0] = id->nothing;
+							m->sml_nvalues[0] = id->nnothing;
+						} else {
+							m->sml_values[0] = rq->newdn;
+							m->sml_nvalues[0] = rq->newndn;
+						}
 					} else {
-						m->sml_values[0] = rq->newdn;
-						m->sml_nvalues[0] = rq->newndn;
+						m->sml_values = ra->new_vals;
+						m->sml_nvalues = ra->new_nvals;
 					}
 				}
-				m = op->o_tmpalloc( sizeof(Modifications) + 4*sizeof(BerValue),
-					op->o_tmpmemctx );
+
+				len = sizeof(Modifications);
+				if ( ra->old_vals == NULL ) {
+					len += 4*sizeof(BerValue);
+				}
+
+				m = op->o_tmpalloc( len, op->o_tmpmemctx );
 				m->sml_next = op->orm_modlist;
 				op->orm_modlist = m;
 				if ( !first )
@@ -590,12 +697,17 @@ refint_qtask( void *ctx, void *arg )
 				m->sml_flags = 0;
 				m->sml_desc = ra->attr;
 				m->sml_type = ra->attr->ad_cname;
-				m->sml_values = (BerVarray)(m+1);
-				m->sml_nvalues = m->sml_values+2;
-				m->sml_values[0] = rq->olddn;
-				m->sml_nvalues[0] = rq->oldndn;
-				BER_BVZERO( &m->sml_values[1] );
-				BER_BVZERO( &m->sml_nvalues[1] );
+				if ( ra->old_vals == NULL ) {
+					m->sml_values = (BerVarray)(m+1);
+					m->sml_nvalues = m->sml_values+2;
+					m->sml_values[0] = rq->olddn;
+					m->sml_nvalues[0] = rq->oldndn;
+					BER_BVZERO( &m->sml_values[1] );
+					BER_BVZERO( &m->sml_nvalues[1] );
+				} else {
+					m->sml_values = ra->old_vals;
+					m->sml_nvalues = ra->old_nvals;
+				}
 				op->o_tmpfree( ra, op->o_tmpmemctx );
 			}
 
@@ -610,6 +722,10 @@ refint_qtask( void *ctx, void *arg )
 
 			while (( m = op->orm_modlist )) {
 				op->orm_modlist = m->sml_next;
+				if ( m->sml_values && m->sml_values != (BerVarray)(m+1) ) {
+					ber_bvarray_free_x( m->sml_values, op->o_tmpmemctx );
+					ber_bvarray_free_x( m->sml_nvalues, op->o_tmpmemctx );
+				}
 				op->o_tmpfree( m, op->o_tmpmemctx );
 				if ( m == first ) break;
 			}
@@ -626,6 +742,13 @@ done:
 		ch_free( rq->oldndn.bv_val );
 		ch_free( rq->olddn.bv_val );
 		ch_free( rq );
+	}
+
+	/* free filter */
+	for ( fptr = ftop.f_or; fptr; ) {
+		Filter *f_next = fptr->f_next;
+		op->o_tmpfree( fptr, op->o_tmpmemctx );
+		fptr = f_next;
 	}
 
 	/* wait until we get explicitly scheduled again */
@@ -757,6 +880,14 @@ refint_response(
 
 int refint_initialize() {
 	int rc;
+
+	mr_dnSubtreeMatch = mr_find( "dnSubtreeMatch" );
+	if ( mr_dnSubtreeMatch == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "refint_initialize: "
+			"unable to find MatchingRule 'dnSubtreeMatch'.\n",
+			0, 0, 0 );
+		return 1;
+	}
 
 	/* statically declared just after the #includes at top */
 	refint.on_bi.bi_type = "refint";
