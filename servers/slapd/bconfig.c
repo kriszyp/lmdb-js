@@ -3925,7 +3925,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	int		i, ibase = -1, nocs, rc = 0;
 	struct berval	pdn;
 	ConfigTable	*ct;
-	char		*ptr;
+	char		*ptr, *log_prefix = op ? op->o_log_prefix : "";
 
 	memset( ca, 0, sizeof(ConfigArgs));
 
@@ -3941,7 +3941,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		{
 			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 				"DN=\"%s\" already exists\n",
-				op->o_log_prefix, e->e_name.bv_val, 0 );
+				log_prefix, e->e_name.bv_val, 0 );
 			return LDAP_ALREADY_EXISTS;
 		}
 	}
@@ -3957,7 +3957,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		}
 		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 			"DN=\"%s\" not child of DN=\"%s\"\n",
-			op ? op->o_log_prefix : "", e->e_name.bv_val,
+			log_prefix, e->e_name.bv_val,
 			last->ce_entry->e_name.bv_val );
 		return LDAP_NO_SUCH_OBJECT;
 	}
@@ -3973,7 +3973,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		{
 			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 				"DN=\"%s\" no write access to \"children\" of parent\n",
-				op->o_log_prefix, e->e_name.bv_val, 0 );
+				log_prefix, e->e_name.bv_val, 0 );
 			return LDAP_INSUFFICIENT_ACCESS;
 		}
 	}
@@ -3982,7 +3982,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	if ( !oc_at ) {
 		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 			"DN=\"%s\" no objectClass\n",
-			op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
+			log_prefix, e->e_name.bv_val, 0 );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
@@ -3998,7 +3998,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 				"DN=\"%s\" no structural objectClass (%s)\n",
-				op ? op->o_log_prefix : "", e->e_name.bv_val, text );
+				log_prefix, e->e_name.bv_val, text );
 			return rc;
 		}
 		attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &soc->soc_cname, NULL );
@@ -4007,7 +4007,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 				"DN=\"%s\" no structural objectClass; "
 				"unable to merge computed class %s\n",
-				op ? op->o_log_prefix : "", e->e_name.bv_val,
+				log_prefix, e->e_name.bv_val,
 				soc->soc_cname.bv_val );
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
@@ -4015,7 +4015,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 			"DN=\"%s\" no structural objectClass; "
 			"computed objectClass %s merged\n",
-			op ? op->o_log_prefix : "", e->e_name.bv_val,
+			log_prefix, e->e_name.bv_val,
 			soc->soc_cname.bv_val );
 	}
 
@@ -4036,7 +4036,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 	if ( coptr == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 			"DN=\"%s\" no structural objectClass in configuration table\n",
-			op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
+			log_prefix, e->e_name.bv_val, 0 );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
@@ -4059,7 +4059,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		if ( rc == LDAP_CONSTRAINT_VIOLATION ) {
 			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 				"DN=\"%s\" no structural objectClass add function\n",
-				op ? op->o_log_prefix : "", e->e_name.bv_val, 0 );
+				log_prefix, e->e_name.bv_val, 0 );
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
 	}
