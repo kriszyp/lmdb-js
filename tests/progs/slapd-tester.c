@@ -960,6 +960,7 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 
 				if ( lud->lud_dn == NULL || lud->lud_exts != NULL ) {
 					filter = -filter - 1;
+					ldap_free_urldesc( lud );
 					break;
 				}
 
