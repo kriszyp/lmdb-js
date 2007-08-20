@@ -2707,6 +2707,8 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 			}
 			if ( k == o ) {
 				adds[a++] = j++;
+			} else {
+				j++;
 			}
 		}
 		while ( i < o )
