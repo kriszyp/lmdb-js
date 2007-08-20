@@ -36,7 +36,35 @@ struct berval backsql_baseObject_bv = BER_BVC( BACKSQL_BASEOBJECT_IDSTR );
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 backsql_entryID *
-backsql_free_entryID( Operation *op, backsql_entryID *id, int freeit )
+backsql_entryID_dup( backsql_entryID *src, void *ctx )
+{
+	backsql_entryID	*dst;
+
+	if ( src == NULL ) return NULL;
+
+	dst = slap_sl_calloc( 1, sizeof( backsql_entryID ), ctx );
+	ber_dupbv_x( &dst->eid_ndn, &src->eid_ndn, ctx );
+	if ( src->eid_dn.bv_val == src->eid_ndn.bv_val ) {
+		dst->eid_dn = dst->eid_ndn;
+	} else {
+		ber_dupbv_x( &dst->eid_dn, &src->eid_dn, ctx );
+	}
+
+#ifdef BACKSQL_ARBITRARY_KEY
+	ber_dupbv_x( &dst->eid_id, &src->eid_id, ctx );
+	ber_dupbv_x( &dst->eid_keyval, &src->eid_keyval, ctx );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	dst->eid_id = src->eid_id;
+	dst->eid_keyval = src->eid_keyval;
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	dst->eid_oc_id = src->eid_oc_id;
+
+	return dst;
+}
+
+backsql_entryID *
+backsql_free_entryID( backsql_entryID *id, int freeit, void *ctx )
 {
 	backsql_entryID 	*next;
 
@@ -48,28 +76,28 @@ backsql_free_entryID( Operation *op, backsql_entryID *id, int freeit )
 		if ( !BER_BVISNULL( &id->eid_dn )
 				&& id->eid_dn.bv_val != id->eid_ndn.bv_val )
 		{
-			op->o_tmpfree( id->eid_dn.bv_val, op->o_tmpmemctx );
+			slap_sl_free( id->eid_dn.bv_val, ctx );
 			BER_BVZERO( &id->eid_dn );
 		}
 
-		op->o_tmpfree( id->eid_ndn.bv_val, op->o_tmpmemctx );
+		slap_sl_free( id->eid_ndn.bv_val, ctx );
 		BER_BVZERO( &id->eid_ndn );
 	}
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	if ( !BER_BVISNULL( &id->eid_id ) ) {
-		op->o_tmpfree( id->eid_id.bv_val, op->o_tmpmemctx );
+		slap_sl_free( id->eid_id.bv_val, ctx );
 		BER_BVZERO( &id->eid_id );
 	}
 
 	if ( !BER_BVISNULL( &id->eid_keyval ) ) {
-		op->o_tmpfree( id->eid_keyval.bv_val, op->o_tmpmemctx );
+		slap_sl_free( id->eid_keyval.bv_val, ctx );
 		BER_BVZERO( &id->eid_keyval );
 	}
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 	if ( freeit ) {
-		op->o_tmpfree( id, op->o_tmpmemctx );
+		slap_sl_free( id, ctx );
 	}
 
 	return next;
@@ -291,7 +319,7 @@ backsql_dn2id(
 					ldap_err2string( res ) );
 
 				/* cleanup... */
-				(void)backsql_free_entryID( op, id, 0 );
+				(void)backsql_free_entryID( id, 0, op->o_tmpmemctx );
 			}
 
 			if ( dn.bv_val != row.cols[ 3 ] ) {

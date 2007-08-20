@@ -53,7 +53,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	}
 
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
-	if ( !dbh ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
      		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
 			"could not get connection handle - exiting\n",
 			0, 0, 0 );
@@ -94,7 +94,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 
 error_return:;
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &e.e_nname ) ) {

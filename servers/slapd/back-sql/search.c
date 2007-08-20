@@ -1512,6 +1512,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 					(ber_len_t)STRLENOF( "9=9"), "9=9");
 
 		} else if ( !BER_BVISNULL( &bi->sql_subtree_cond ) ) {
+			/* This should always be true... */
 			backsql_strfcat_x( &bsi->bsi_join_where,
 					bsi->bsi_op->o_tmpmemctx,
 					"b",
@@ -1548,11 +1549,13 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		{
 			lowid = PAGECOOKIE_TO_SQL_ID( ((PagedResultsState *)bsi->bsi_op->o_pagedresults_state)->ps_cookie );
 		}
+
 		if ( lowid ) {
 			char lowidstring[48];
 			int  lowidlen;
 
-			lowidlen = snprintf( lowidstring, 48, " AND ldap_entries.id>%d", lowid );
+			lowidlen = snprintf( lowidstring, sizeof( lowidstring ),
+				" AND ldap_entries.id>%lu", lowid );
 			backsql_strfcat_x( &bsi->bsi_join_where,
 					bsi->bsi_op->o_tmpmemctx,
 					"l",
@@ -2112,7 +2115,6 @@ backsql_search( Operation *op, SlapReply *rs )
 
 	/* If paged results are in effect, check the paging cookie */
 	if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED ) {
-		PagedResultsState *ps = op->o_pagedresults_state;
 		rs->sr_err = parse_paged_cookie( op, rs );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
@@ -2175,9 +2177,9 @@ backsql_search( Operation *op, SlapReply *rs )
 	 * and then send to client; don't free entry_id if baseObject...
 	 */
 	for ( eid = bsi.bsi_id_list;
-			eid != NULL; 
-			eid = backsql_free_entryID( op,
-				eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
+		eid != NULL; 
+		eid = backsql_free_entryID( 
+			eid, eid == &bsi.bsi_base_id ? 0 : 1, op->o_tmpmemctx ) )
 	{
 		int		rc;
 		Attribute	*a_hasSubordinate = NULL,
@@ -2405,9 +2407,11 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;
 			rs->sr_entry = e;
+			e->e_private = (void *)eid;
 			rs->sr_flags = ( e == &user_entry ) ? REP_ENTRY_MODIFIABLE : 0;
 			/* FIXME: need the whole entry (ITS#3480) */
 			rs->sr_err = send_search_entry( op, rs );
+			e->e_private = NULL;
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;
 			rs->sr_operational_attrs = NULL;
@@ -2456,8 +2460,8 @@ send_results:;
 
 	/* cleanup in case of abandon */
 	for ( ; eid != NULL; 
-			eid = backsql_free_entryID( op,
-				eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
+		eid = backsql_free_entryID(
+			eid, eid == &bsi.bsi_base_id ? 0 : 1, op->o_tmpmemctx ) )
 		;
 
 	backsql_entry_clean( op, &base_entry );
@@ -2495,7 +2499,7 @@ send_results:;
 #endif /* BACKSQL_SYNCPROV */
 
 done:;
-	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 
 	if ( bsi.bsi_attrs != NULL ) {
 		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
@@ -2538,8 +2542,8 @@ backsql_entry_get(
 	*ent = NULL;
 
 	rc = backsql_get_db_conn( op, &dbh );
-	if ( !dbh ) {
-		return LDAP_OTHER;
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
 
 	if ( at ) {
@@ -2557,7 +2561,7 @@ backsql_entry_get(
 			BACKSQL_ISF_GET_ENTRY );
 
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {

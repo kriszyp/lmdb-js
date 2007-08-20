@@ -197,7 +197,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	if ( newSuperior ) {
-		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 		
 		/*
 		 * namingContext "" is not supported
@@ -407,7 +407,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
 		backsql_entry_clean( op, &r );
-		(void)backsql_free_entryID( op, &e_id, 0 );
+		(void)backsql_free_entryID( &e_id, 0, op->o_tmpmemctx );
 
 		bsi.bsi_e = &r;
 		rs->sr_err = backsql_init_search( &bsi, &new_ndn,
@@ -510,11 +510,11 @@ done:;
 	}
 	
 	if ( !BER_BVISNULL( &e_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &e_id, 0 );
+		(void)backsql_free_entryID( &e_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &n_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &n_id, 0 );
+		(void)backsql_free_entryID( &n_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &r.e_nname ) ) {

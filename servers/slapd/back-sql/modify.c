@@ -197,7 +197,7 @@ done:;
 	slap_graduate_commit_csn( op );
 
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &m.e_nname ) ) {

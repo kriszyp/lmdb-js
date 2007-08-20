@@ -111,24 +111,32 @@ extern struct berval	backsql_baseObject_bv;
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 /* stores in *id the ID in table ldap_entries corresponding to DN, if any */
-int backsql_dn2id( Operation *op, SlapReply *rs, SQLHDBC dbh,
+extern int
+backsql_dn2id( Operation *op, SlapReply *rs, SQLHDBC dbh,
 		struct berval *ndn, backsql_entryID *id,
 		int matched, int muck );
 
 /* stores in *nchildren the count of children for an entry */
-int backsql_count_children( Operation *op, SQLHDBC dbh,
+extern int
+backsql_count_children( Operation *op, SQLHDBC dbh,
 		struct berval *dn, unsigned long *nchildren );
 
 /* returns LDAP_COMPARE_TRUE/LDAP_COMPARE_FALSE if the entry corresponding
  * to DN has/has not children */
-int backsql_has_children( Operation *op, SQLHDBC dbh, struct berval *dn );
+extern int
+backsql_has_children( Operation *op, SQLHDBC dbh, struct berval *dn );
 
-/* frees *id and returns next in list */
-backsql_entryID *backsql_free_entryID( Operation *op, backsql_entryID *id,
-		int freeit );
+/* free *id and return next in list */
+extern backsql_entryID *
+backsql_free_entryID( backsql_entryID *id, int freeit, void *ctx );
 
-/* turns an ID into an entry */
-int backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *id );
+/* turn an ID into an entry */
+extern int
+backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *id );
+
+/* duplicate an entryID */
+extern backsql_entryID *
+backsql_entryID_dup( backsql_entryID *eid, void *ctx );
 
 /*
  * operational.c
@@ -219,9 +227,9 @@ int backsql_init_db_env( backsql_info *si );
 
 int backsql_free_db_env( backsql_info *si );
 
-int backsql_get_db_conn( Operation *op, SQLHDBC *dbh );
+int backsql_get_db_conn( Operation *op, SQLHDBC	*dbh );
 
-int backsql_free_db_conn( Operation *op );
+int backsql_free_db_conn( Operation *op, SQLHDBC dbh );
 
 /*
  * util.c

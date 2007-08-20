@@ -235,7 +235,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			goto done;
 		}
 
-		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 
 		/* check parent for "children" acl */
 		if ( !access_allowed( op, &p, slap_schema.si_ad_children, 
@@ -472,7 +472,7 @@ done:;
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_delete()\n", 0, 0, 0 );
 
 	if ( !BER_BVISNULL( &e_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &e_id, 0 );
+		(void)backsql_free_entryID( &e_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &d.e_nname ) ) {

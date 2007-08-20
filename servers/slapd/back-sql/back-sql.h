@@ -473,14 +473,16 @@ typedef struct backsql_info {
 	 */
 	struct berval	sql_subtree_cond;
 	struct berval	sql_children_cond;
-	char		*sql_oc_query,
-			*sql_at_query;
-	char		*sql_insentry_stmt,
-			*sql_delentry_stmt,
-			*sql_renentry_stmt,
-			*sql_delobjclasses_stmt;
+	struct berval	sql_dn_match_cond;
+	char		*sql_oc_query;
+	char		*sql_at_query;
+	char		*sql_insentry_stmt;
+	char		*sql_delentry_stmt;
+	char		*sql_renentry_stmt;
+	char		*sql_delobjclasses_stmt;
 	char		*sql_id_query;
 	char		*sql_has_children_query;
+	char		*sql_list_children_query;
 
 	MatchingRule	*sql_caseIgnoreMatch;
 	MatchingRule	*sql_telephoneNumberMatch;
@@ -558,9 +560,10 @@ typedef struct backsql_info {
 #define BACKSQL_BASEOBJECT_OC		0
 	
 	Avlnode		*sql_db_conns;
+	SQLHDBC		sql_dbh;
+	ldap_pvt_thread_mutex_t		sql_dbconn_mutex;
 	Avlnode		*sql_oc_by_oc;
 	Avlnode		*sql_oc_by_id;
-	ldap_pvt_thread_mutex_t		sql_dbconn_mutex;
 	ldap_pvt_thread_mutex_t		sql_schema_mutex;
  	SQLHENV		sql_db_env;
 
