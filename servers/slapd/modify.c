@@ -877,6 +877,7 @@ void slap_mods_opattrs(
 		timestamp.bv_val = timebuf;
 		for ( modtail = modsp; *modtail; modtail = &(*modtail)->sml_next ) {
 			if ( (*modtail)->sml_op != LDAP_MOD_ADD &&
+				(*modtail)->sml_op != SLAP_MOD_SOFTADD &&
 				(*modtail)->sml_op != LDAP_MOD_REPLACE )
 			{
 				continue;
