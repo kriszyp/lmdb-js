@@ -396,8 +396,13 @@ retry:;
 			chaserefs ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 		if ( do_retry == maxretries ) {
-			fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
-					(long) pid, innerloop, sbase, filter );
+			fprintf( stderr,
+				"PID=%ld - Search(%d): "
+				"base=\"%s\" scope=%s filter=\"%s\" "
+				"attrs=%s%s.\n",
+				(long) pid, innerloop,
+				sbase, ldap_pvt_scope2str( scope ), filter,
+				attrs[0], attrs[1] ? " (more...)" : "" );
 		}
 
 		if ( nobind == 0 ) {

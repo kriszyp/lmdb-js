@@ -415,11 +415,18 @@ main( int argc, char **argv )
 		passwd = pw.bv_val;
 	}
 
+	if ( !sfile && !rfile && !nfile && !mfile && !bfile && !anum ) {
+		fprintf( stderr, "no data files found.\n" );
+		exit( EXIT_FAILURE );
+	}
+
 	/* look for search requests */
 	if ( sfile ) {
 		snum = get_search_filters( sfile, sreqs, sattrs, sbase, slud );
-		if ( snum == -1 ) {
-			fprintf( stderr, "unable to parse file \"%s\"\n", sfile );
+		if ( snum < 0 ) {
+			fprintf( stderr,
+				"unable to parse file \"%s\" line %d\n",
+				sfile, -2*(snum + 1));
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -427,8 +434,10 @@ main( int argc, char **argv )
 	/* look for read requests */
 	if ( rfile ) {
 		rnum = get_read_entries( rfile, rreqs, rflts );
-		if ( rnum == -1 ) {
-			fprintf( stderr, "unable to parse file \"%s\"\n", rfile );
+		if ( rnum < 0 ) {
+			fprintf( stderr,
+				"unable to parse file \"%s\" line %d\n",
+				rfile, -2*(rnum + 1) );
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -436,8 +445,10 @@ main( int argc, char **argv )
 	/* look for modrdn requests */
 	if ( nfile ) {
 		nnum = get_read_entries( nfile, nreqs, NULL );
-		if ( nnum == -1 ) {
-			fprintf( stderr, "unable to parse file \"%s\"\n", nfile );
+		if ( nnum < 0 ) {
+			fprintf( stderr,
+				"unable to parse file \"%s\" line %d\n",
+				nfile, -2*(nnum + 1) );
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -445,8 +456,10 @@ main( int argc, char **argv )
 	/* look for modify requests */
 	if ( mfile ) {
 		mnum = get_search_filters( mfile, mreqs, NULL, mdn, NULL );
-		if ( mnum == -1 ) {
-			fprintf( stderr, "unable to parse file \"%s\"\n", mfile );
+		if ( mnum < 0 ) {
+			fprintf( stderr,
+				"unable to parse file \"%s\" line %d\n",
+				mfile, -2*(mnum + 1) );
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -454,8 +467,10 @@ main( int argc, char **argv )
 	/* look for bind requests */
 	if ( bfile ) {
 		bnum = get_search_filters( bfile, bcreds, battrs, breqs, NULL );
-		if ( bnum == -1 ) {
-			fprintf( stderr, "unable to parse file \"%s\"\n", bfile );
+		if ( bnum < 0 ) {
+			fprintf( stderr,
+				"unable to parse file \"%s\" line %d\n",
+				bfile, -2*(bnum + 1) );
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -939,12 +954,12 @@ get_search_filters( char *filename, char *filters[], char *attrs[], char *bases[
 				got_URL = 1;
 				bases[filter] = NULL;
 				if ( ldap_url_parse( line, &lud ) != LDAP_URL_SUCCESS ) {
-					filter = -1;
+					filter = -filter - 1;
 					break;
 				}
 
 				if ( lud->lud_dn == NULL || lud->lud_exts != NULL ) {
-					filter = -1;
+					filter = -filter - 1;
 					break;
 				}
 
@@ -1001,13 +1016,13 @@ get_read_entries( char *filename, char *entries[], char *filters[] )
 				LDAPURLDesc	*lud;
 
 				if ( ldap_url_parse( &line[1], &lud ) != LDAP_URL_SUCCESS ) {
-					entry = -1;
+					entry = -entry - 1;
 					break;
 				}
 
 				if ( lud->lud_dn == NULL || lud->lud_dn[ 0 ] == '\0' ) {
 					ldap_free_urldesc( lud );
-					entry = -1;
+					entry = -entry - 1;
 					break;
 				}
 
