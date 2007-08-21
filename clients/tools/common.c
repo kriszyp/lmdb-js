@@ -1816,6 +1816,13 @@ void tool_print_ctrls(
 		char *str;
 		int j;
 
+		/* FIXME: there might be cases where a control has NULL OID;
+		 * this makes little sense, especially when returned by the
+		 * server, but libldap happily allows it */
+		if ( ctrls[i]->ldctl_oid == NULL ) {
+			continue;
+		}
+
 		len = ldif ? 2 : 0;
 		len += strlen( ctrls[i]->ldctl_oid );
 
@@ -1824,7 +1831,7 @@ void tool_print_ctrls(
 			? sizeof("true") : sizeof("false");
 
 		/* convert to base64 */
-		if ( ctrls[i]->ldctl_value.bv_len ) {
+		if ( !BER_BVISNULL( &ctrls[i]->ldctl_value ) ) {
 			b64.bv_len = LUTIL_BASE64_ENCODE_LEN(
 				ctrls[i]->ldctl_value.bv_len ) + 1;
 			b64.bv_val = ber_memalloc( b64.bv_len + 1 );

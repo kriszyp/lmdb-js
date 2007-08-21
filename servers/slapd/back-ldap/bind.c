@@ -1352,6 +1352,14 @@ retry_lock:;
 				li->li_acl_authcID.bv_val,
 				li->li_acl_passwd.bv_val,
 				NULL );
+		if ( defaults == NULL ) {
+			rs->sr_err = LDAP_OTHER;
+			LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
+			if ( sendok & LDAP_BACK_SENDERR ) {
+				send_ldap_result( op, rs );
+			}
+			goto done;
+		}
 
 		rs->sr_err = ldap_sasl_interactive_bind_s( lc->lc_ld,
 				li->li_acl_authcDN.bv_val,
@@ -2091,6 +2099,14 @@ ldap_back_proxy_authz_bind(
 				li->li_idassert_authcID.bv_val,
 				li->li_idassert_passwd.bv_val,
 				authzID.bv_val );
+		if ( defaults == NULL ) {
+			rs->sr_err = LDAP_OTHER;
+			LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
+			if ( sendok & LDAP_BACK_SENDERR ) {
+				send_ldap_result( op, rs );
+			}
+			goto done;
+		}
 
 		rs->sr_err = ldap_sasl_interactive_bind_s( lc->lc_ld, binddn->bv_val,
 				li->li_idassert_sasl_mech.bv_val, NULL, NULL,

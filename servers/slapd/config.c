@@ -1584,6 +1584,10 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 			sb->sb_authcId.bv_val,
 			sb->sb_cred.bv_val,
 			sb->sb_authzId.bv_val );
+		if ( defaults == NULL ) {
+			rc = LDAP_OTHER;
+			goto done;
+		}
 
 		rc = ldap_sasl_interactive_bind_s( ld,
 				sb->sb_binddn.bv_val,

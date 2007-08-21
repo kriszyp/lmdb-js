@@ -49,6 +49,8 @@ lutil_sasl_freedefs(
 	void *defaults )
 {
 	lutilSASLdefaults *defs = defaults;
+
+	assert( defs != NULL );
 	
 	if (defs->mech) ber_memfree(defs->mech);
 	if (defs->realm) ber_memfree(defs->realm);

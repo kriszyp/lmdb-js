@@ -231,7 +231,7 @@ int ldap_pvt_get_controls(
 		if( tag == LBER_OCTETSTRING ) {
 			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
 		} else {
-			tctrl->ldctl_value.bv_val = NULL;
+			BER_BVZERO( &tctrl->ldctl_value );
 		}
 
 		*ctrls = tctrls;
@@ -350,6 +350,7 @@ ldap_control_dup( const LDAPControl *c )
 		}
 
 	} else {
+		/* FIXME: how can a control have null OID? */
 		new->ldctl_oid = NULL;
 	}
 
