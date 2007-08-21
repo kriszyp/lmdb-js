@@ -2452,13 +2452,15 @@ next_entry2:;
 	}
 
 end_of_search:;
-	if ( rs->sr_nentries > 0 ) {
-		rs->sr_ref = rs->sr_v2ref;
-		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
-			: LDAP_REFERRAL;
-
-	} else {
-		rs->sr_err = bsi.bsi_status;
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		if ( rs->sr_nentries > 0 ) {
+			rs->sr_ref = rs->sr_v2ref;
+			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
+				: LDAP_REFERRAL;
+	
+		} else {
+			rs->sr_err = bsi.bsi_status;
+		}
 	}
 
 send_results:;
