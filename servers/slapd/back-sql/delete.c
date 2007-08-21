@@ -499,10 +499,12 @@ backsql_delete( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_COMPARE_TRUE:
+#ifdef SLAP_CONTROL_X_TREE_DELETE
 		if ( get_treeDelete( op ) ) {
 			rs->sr_err = LDAP_SUCCESS;
 			break;
 		}
+#endif /* SLAP_CONTROL_X_TREE_DELETE */
 
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"entry \"%s\" has children\n",
@@ -567,6 +569,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 
 	e = &d;
+#ifdef SLAP_CONTROL_X_TREE_DELETE
 	if ( get_treeDelete( op ) ) {
 		backsql_tree_delete( op, rs, dbh, &sth );
 		if ( rs->sr_err == LDAP_OTHER || rs->sr_err == LDAP_SUCCESS )
@@ -574,7 +577,9 @@ backsql_delete( Operation *op, SlapReply *rs )
 			e = NULL;
 		}
 
-	} else {
+	} else
+#endif /* SLAP_CONTROL_X_TREE_DELETE */
+	{
 		backsql_delete_int( op, rs, dbh, &sth, &e_id, &e );
 	}
 

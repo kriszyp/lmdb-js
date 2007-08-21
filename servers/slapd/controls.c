@@ -35,7 +35,7 @@ static SLAP_CTRL_PARSE_FN parsePreRead, parsePostRead;
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseRelax;
 static SLAP_CTRL_PARSE_FN parseSearchOptions;
-#ifdef SLAP_SORTEDRESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 static SLAP_CTRL_PARSE_FN parseSortedResults;
 #endif
 static SLAP_CTRL_PARSE_FN parseSubentries;
@@ -130,7 +130,7 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_SEARCH,
 		NULL, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef SLAP_SORTEDRESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 	{ LDAP_CONTROL_SORTREQUEST,
  		(int)offsetof(struct slap_control_ids, sc_sortedResults),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE,
@@ -1109,7 +1109,7 @@ done:;
 	return rc;
 }
 
-#ifdef SLAP_SORTEDRESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 static int parseSortedResults (
 	Operation *op,
 	SlapReply *rs,
