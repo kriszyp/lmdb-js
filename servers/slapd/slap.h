@@ -65,6 +65,7 @@ LDAP_BEGIN_DECL
 #define LDAP_COMP_MATCH
 #define LDAP_SYNC_TIMESTAMP
 #define SLAP_CONTROL_X_SORTEDRESULTS
+#define SLAP_CONTROL_X_SESSION_TRACKING
 #endif
 
 #define LDAP_DYNAMIC_OBJECTS
@@ -2357,6 +2358,9 @@ struct slap_control_ids {
 #ifdef LDAP_X_TXN
 	int sc_txnSpec;
 #endif
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	int sc_sessionTracking;
+#endif
 	int sc_valuesReturnFilter;
 };
 
@@ -2377,7 +2381,7 @@ typedef struct Opheader {
 	void	*oh_tmpmemctx;		/* slab malloc context */
 	BerMemoryFunctions *oh_tmpmfuncs;
 
-	char		oh_log_prefix[sizeof("conn=18446744073709551615 op=18446744073709551615")];
+	char		oh_log_prefix[ /* sizeof("conn=18446744073709551615 op=18446744073709551615") */ SLAP_TEXT_BUFLEN ];
 
 #ifdef LDAP_SLAPI
 	void	*oh_extensions;		/* NS-SLAPI plugin */
@@ -2569,6 +2573,12 @@ struct Operation {
 
 #ifdef LDAP_X_TXN
 #define o_txnSpec		o_ctrlflag[slap_cids.sc_txnSpec]
+#endif
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+#define o_session_tracking	o_ctrlflag[slap_cids.sc_sessionTracking]
+#define o_tracked_sessions	o_controls[slap_cids.sc_sessionTracking]
+#define get_sessionTracking(op)			((int)(op)->o_session_tracking)
 #endif
 
 #define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]
