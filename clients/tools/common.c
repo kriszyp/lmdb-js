@@ -522,19 +522,8 @@ tool_args( int argc, char **argv )
 					gotintr = abcan;
 				}
 
-			} else {
-				char		*ptr;
+			} else if ( tool_is_oid( control ) ) {
 				LDAPControl	*tmpctrls, ctrl;
-
-				for ( ptr = control; ptr[0] != '\0'; ptr++ ) {
-					if ( ptr[0] == '.' || isdigit( ptr[0] ) ) {
-						continue;
-					}
-
-					fprintf( stderr, "Invalid general control name: %s\n",
-						control );
-					usage();
-				}
 
 				tmpctrls = (LDAPControl *)realloc( unknown_ctrls,
 					(unknown_ctrls_num + 1)*sizeof( LDAPControl ) );
@@ -572,6 +561,11 @@ tool_args( int argc, char **argv )
 
 				unknown_ctrls[ unknown_ctrls_num ] = ctrl;
 				unknown_ctrls_num++;
+
+			} else {
+				fprintf( stderr, "Invalid general control name: %s\n",
+					control );
+				usage();
 			}
 			break;
 		case 'f':	/* read from file */
@@ -1379,7 +1373,8 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 		|| chaining
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-		|| count ) )
+		|| count
+		|| unknown_ctrls_num ) )
 	{
 		return;
 	}
