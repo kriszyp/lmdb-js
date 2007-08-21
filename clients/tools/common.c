@@ -33,6 +33,7 @@
 #include <ac/unistd.h>
 #include <ac/errno.h>
 #include <ac/time.h>
+#include <ac/socket.h>
 
 #ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_SASL_H
@@ -113,6 +114,10 @@ int		chaining = 0;
 static int	chainingResolve = -1;
 static int	chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+static int	sessionTracking = 0;
+struct berval	stValue;
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 LDAPControl	*unknown_ctrls = NULL;
 int		unknown_ctrls_num = 0;
@@ -204,6 +209,9 @@ N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n")
 #ifdef LDAP_DEVEL
 N_("             [!]relax\n")
 #endif
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+N_("             [!]sessiontracking\n")
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
    "             or ignores response; if critical, doesn't wait for SIGINT.\n"
    "             not really controls)\n")
@@ -521,6 +529,15 @@ tool_args( int argc, char **argv )
 				if ( crit ) {
 					gotintr = abcan;
 				}
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+			} else if ( strcasecmp( control, "sessiontracking" ) == 0 ) {
+				if ( sessionTracking ) {
+					fprintf( stderr, "%s: session tracking can be only specified once\n", prog );
+					exit( EXIT_FAILURE );
+				}
+				sessionTracking = 1;
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 			} else if ( tool_is_oid( control ) ) {
 				LDAPControl	*tmpctrls, ctrl;
@@ -935,6 +952,9 @@ tool_args( int argc, char **argv )
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			chaining ||
 #endif
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+			sessionTracking ||
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 			noop || ppolicy || preread || postread )
 		{
 			fprintf( stderr, "%s: -e/-M incompatible with LDAPv2\n", prog );
@@ -1355,7 +1375,7 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[12], **ctrls;
+	LDAPControl c[16], **ctrls;
 
 	if ( ! ( assertctl
 		|| authzid
@@ -1373,6 +1393,9 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 		|| chaining
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+		|| sessionTracking
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 		|| count
 		|| unknown_ctrls_num ) )
 	{
@@ -1586,6 +1609,59 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		i++;
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+	if ( sessionTracking ) {
+		if ( stValue.bv_val == NULL ) {
+			char		*ip = NULL, *name = NULL;
+			struct berval	id = { 0 };
+			char		namebuf[ HOST_NAME_MAX ];
+
+			if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
+				struct hostent	*h;
+				struct in_addr	addr;
+
+				name = namebuf;
+
+				h = gethostbyname( name );
+				if ( h != NULL ) {
+					AC_MEMCPY( &addr, h->h_addr, sizeof( addr ) );
+					ip = inet_ntoa( addr );
+				}
+			}
+
+#ifdef HAVE_CYRUS_SASL
+			if ( sasl_authz_id != NULL ) {
+				ber_str2bv( sasl_authz_id, 0, 0, &id );
+
+			} else if ( sasl_authc_id != NULL ) {
+				ber_str2bv( sasl_authc_id, 0, 0, &id );
+
+			} else 
+#endif /* HAVE_CYRUS_SASL */
+			if ( binddn != NULL ) {
+				ber_str2bv( binddn, 0, 0, &id );
+
+			} else {
+				ber_str2bv( "anonymous", 0, 0, &id );
+			}
+
+			if ( ldap_create_session_tracking_value( ld,
+				ip, name, "1.3.6.1.4.1.21008.108.63.1.3", &id,
+				&stValue ) )
+			{
+				fprintf( stderr, _("Session tracking control encoding error!\n") );
+				exit( EXIT_FAILURE );
+			}
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
+		c[i].ldctl_iscritical = 0;
+		ber_dupbv( &c[i].ldctl_value, &stValue );
+		ctrls[i] = &c[i];
+		i++;
+	}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 	while ( count-- ) {
 		ctrls[i++] = extra_c++;
