@@ -2097,6 +2097,7 @@ pcache_op_privdb(
 	type = slap_req2op( op->o_tag );
 	if ( type != SLAP_OP_LAST ) {
 		BI_op_func	**func;
+		int		rc;
 
 		/* execute, if possible */
 		func = &cm->db.be_bind;
@@ -2105,7 +2106,10 @@ pcache_op_privdb(
 	
 			op2.o_bd = &cm->db;
 
-			return func[ type ]( &op2, rs );
+			rc = func[ type ]( &op2, rs );
+			if ( type == SLAP_OP_BIND && rc == LDAP_SUCCESS ) {
+				op->o_conn->c_authz_cookie = cm->db.be_private;
+			}
 		}
 	}
 
