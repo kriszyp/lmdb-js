@@ -1012,7 +1012,7 @@ static int parseNoOp (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
+	if ( !BER_BVISNULL( &ctrl->ldctl_value ) ) {
 		rs->sr_text = "noop control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1515,7 +1515,7 @@ static int parseTreeDelete (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
 		rs->sr_text = "treeDelete control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
