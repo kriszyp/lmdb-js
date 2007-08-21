@@ -1591,7 +1591,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		ctrls[i++] = extra_c++;
 	}
 	for ( count = 0; count < unknown_ctrls_num; count++ ) {
-		ctrls[i++] = &unknown_ctrls[count++];
+		ctrls[i++] = &unknown_ctrls[count];
 	}
 	ctrls[i] = NULL;
 
