@@ -339,6 +339,17 @@ backsql_init_search(
 				rs->sr_err = rc;
 			}
 		}
+
+		if ( gotit && BACKSQL_IS_GET_OC( flags ) ) {
+			bsi->bsi_base_id.eid_oc = backsql_id2oc( bi,
+				bsi->bsi_base_id.eid_oc_id );
+			if ( bsi->bsi_base_id.eid_oc == NULL ) {
+				/* error? */
+				backsql_free_entryID( &bsi->bsi_base_id, 1,
+					op->o_tmpmemctx );
+				rc = rs->sr_err = LDAP_OTHER;
+			}
+		}
 	}
 
 	bsi->bsi_status = rc;
@@ -1915,6 +1926,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			goto cleanup;
 		}
 #endif /* ! BACKSQL_ARBITRARY_KEY */
+		c_id->eid_oc = bsi->bsi_oc;
 		c_id->eid_oc_id = bsi->bsi_oc->bom_id;
 
 		c_id->eid_dn = pdn;
@@ -2643,7 +2655,7 @@ backsql_entry_release(
 {
 	backsql_entry_clean( op, e );
 
-	ch_free( e );
+	entry_free( e );
 
 	return 0;
 }

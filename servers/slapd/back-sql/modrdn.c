@@ -72,7 +72,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 			LDAP_SCOPE_BASE, 
 			(time_t)(-1), NULL, dbh, op, rs,
 			slap_anlist_all_attributes,
-			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
+			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY | BACKSQL_ISF_GET_OC ) );
 	switch ( rs->sr_err ) {
 	case LDAP_SUCCESS:
 		break;
@@ -164,6 +164,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	 */
 	bsi.bsi_e = &p;
 	e_id = bsi.bsi_base_id;
+	memset( &bsi.bsi_base_id, 0, sizeof( bsi.bsi_base_id ) );
 	rs->sr_err = backsql_init_search( &bsi, &pndn,
 			LDAP_SCOPE_BASE, 
 			(time_t)(-1), NULL, dbh, op, rs,
@@ -258,6 +259,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		new_pdn = &pdn;
 		new_npdn = &pndn;
 	}
+
+	memset( &bsi.bsi_base_id, 0, sizeof( bsi.bsi_base_id ) );
 
 	if ( newSuperior && dn_match( &pndn, new_npdn ) ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -395,7 +398,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	slap_mods_opattrs( op, &op->orr_modlist, 1 );
 
-	oc = backsql_id2oc( bi, e_id.eid_oc_id );
+	assert( e_id.eid_oc != NULL );
+	oc = e_id.eid_oc;
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, op->orr_modlist );
 	slap_graduate_commit_csn( op );
 	if ( rs->sr_err != LDAP_SUCCESS ) {

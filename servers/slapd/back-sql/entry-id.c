@@ -58,6 +58,7 @@ backsql_entryID_dup( backsql_entryID *src, void *ctx )
 	dst->eid_keyval = src->eid_keyval;
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
+	dst->eid_oc = src->eid_oc;
 	dst->eid_oc_id = src->eid_oc_id;
 
 	return dst;
@@ -953,8 +954,11 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	bsi->bsi_e->e_attrs = NULL;
 	bsi->bsi_e->e_private = NULL;
 
-	bsi->bsi_oc = backsql_id2oc( bsi->bsi_op->o_bd->be_private,
+	if ( eid->eid_oc == NULL ) {
+		eid->eid_oc = backsql_id2oc( bsi->bsi_op->o_bd->be_private,
 			eid->eid_oc_id );
+	}
+	bsi->bsi_oc = eid->eid_oc;
 	bsi->bsi_c_eid = eid;
 
 #ifndef BACKSQL_ARBITRARY_KEY	
