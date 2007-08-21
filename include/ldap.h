@@ -289,9 +289,9 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
 #define LDAP_SEARCH_FLAG_DOMAIN_SCOPE 1 /* do not generate referrals */
 #define LDAP_SEARCH_FLAG_PHANTOM_ROOT 2 /* search all subordinate NCs */
+#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 
 /* MS Active Directory controls - not implemented in slapd(8) */
-#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
 
 /* various expired works */
