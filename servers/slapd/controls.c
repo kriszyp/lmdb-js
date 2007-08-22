@@ -1606,6 +1606,17 @@ static int parseSearchOptions (
 }
 
 #ifdef SLAP_CONTROL_X_SESSION_TRACKING
+struct berval session_tracking_formats[] = {
+	BER_BVC( "LDAP_CONTROL_X_SESSION_TRACKING_RADIUS_ACCT_SESSION_ID" ),
+		BER_BVC( "RADIUS-Acct-Session-Id" ),
+	BER_BVC( LDAP_CONTROL_X_SESSION_TRACKING_RADIUS_ACCT_MULTI_SESSION_ID ),
+		BER_BVC( "RADIUS-Acct-Multi-Session-Id" ),
+	BER_BVC( LDAP_CONTROL_X_SESSION_TRACKING_USERNAME ),
+		BER_BVC( "USERNAME" ),
+
+	BER_BVNULL
+};
+
 static int parseSessionTracking(
 	Operation *op,
 	SlapReply *rs,
@@ -1614,7 +1625,7 @@ static int parseSessionTracking(
 	BerElement		*ber;
 	ber_tag_t		tag;
 	ber_len_t		len;
-	int			rc;
+	int			i, rc;
 
 	struct berval		sessionSourceIp = BER_BVNULL,
 				sessionSourceName = BER_BVNULL,
@@ -1723,6 +1734,14 @@ static int parseSessionTracking(
 		goto error;
 	}
 
+	for ( i = 0; !BER_BVISNULL( &session_tracking_formats[ i ] ); i += 2 )
+	{
+		if ( bvmatch( &formatOID, &session_tracking_formats[ i ] ) ) {
+			formatOID = session_tracking_formats[ i + 1 ];
+			break;
+		}
+	}
+
 	/* sessionTrackingIdentifier */
 	tag = ber_peek_tag( ber, &len );
 	if ( tag == LBER_DEFAULT ) {
@@ -1739,7 +1758,8 @@ static int parseSessionTracking(
 	}
 
 	if ( ldif_is_not_printable( sessionTrackingIdentifier.bv_val, sessionTrackingIdentifier.bv_len ) ) {
-		BER_BVZERO( &sessionTrackingIdentifier );
+		/* we want the OID printed, at least */
+		BER_BVSTR( &sessionTrackingIdentifier, "" );
 	}
 
 	/* closure */
@@ -1758,7 +1778,8 @@ static int parseSessionTracking(
 	}
 	if ( !BER_BVISNULL( &sessionTrackingIdentifier ) ) {
 		if ( st_len ) st_len++;
-		st_len += STRLENOF( "ID=" ) + sessionTrackingIdentifier.bv_len;
+		st_len += formatOID.bv_len + STRLENOF( "=" )
+			+ sessionTrackingIdentifier.bv_len;
 	}
 
 	if ( st_len == 0 ) {
@@ -1789,7 +1810,8 @@ static int parseSessionTracking(
 
 		if ( !BER_BVISNULL( &sessionTrackingIdentifier ) ) {
 			if ( st_len ) *ptr++ = ' ';
-			ptr = lutil_strcopy( ptr, "ID=" );
+			ptr = lutil_strcopy( ptr, formatOID.bv_val );
+			*ptr++ = '=';
 			ptr = lutil_strcopy( ptr, sessionTrackingIdentifier.bv_val );
 		}
 
