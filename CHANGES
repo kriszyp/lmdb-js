@@ -1,5 +1,9 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.39 Engineering
+	Documentation
+		Document slapd-sql workaround to ITS#4785
+
 OpenLDAP 2.3.38 Release (2007/08/20)
 	Fixed slapadd check for ';binary' when required (ITS#5071)
 	Fixed slapd select_backend/ManageDSAit (ITS#4986)

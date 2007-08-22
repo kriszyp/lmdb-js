@@ -657,6 +657,17 @@ to its prettified counterpart "First_Last"; this is not currently
 honored by back-sql if non-prettified data is written via RDBMS;
 when non-prettified data is written thru back-sql, the prettified 
 values are actually used instead.
+
+.LP
+.SH BUGS
+When the
+.B ldap_entry_objclasses
+table is empty, filters on the 
+.B objectClass
+attribute erroneously result in no candidates.
+A workaround consists in adding at least one row to that table,
+no matter if valid or not.
+
 .LP
 .SH PROXY CACHE OVERLAY
 The proxy cache overlay 
