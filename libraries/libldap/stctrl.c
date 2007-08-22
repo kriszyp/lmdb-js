@@ -128,7 +128,7 @@ done:;
  * NOTE: this API is bad; it could be much more efficient...
  */
 int
-ldap_create_session_tracking(
+ldap_create_session_tracking_control(
 	LDAP		*ld,
 	char		*sessionSourceIp,
 	char		*sessionSourceName,
@@ -148,21 +148,14 @@ ldap_create_session_tracking(
 		sessionSourceIp, sessionSourceName, formatOID,
 		sessionTrackingIdentifier, &value );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
-		ber = ldap_alloc_ber_with_options( ld );
-		if ( ber == NULL ) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return LDAP_NO_MEMORY;
-		}
-
 		ld->ld_errno = ldap_create_control( LDAP_CONTROL_X_SESSION_TRACKING,
-			ber, 0, ctrlp );
+			NULL, 0, ctrlp );
 		if ( ld->ld_errno == LDAP_SUCCESS ) {
 			(*ctrlp)->ldctl_value = value;
 
 		} else {
 			LDAP_FREE( value.bv_val );
 		}
-		ber_free( ber, 1 );
 	}
 
 	return ld->ld_errno;
@@ -198,14 +191,10 @@ ldap_parse_session_tracking_control(
 		return LDAP_PARAM_ERROR;
 	}
 
-	ip->bv_val = NULL;
-	ip->bv_len = 0;
-	name->bv_val = NULL;
-	name->bv_len = 0;
-	oid->bv_val = NULL;
-	oid->bv_len = 0;
-	id->bv_val = NULL;
-	id->bv_len = 0;
+	BER_BVZERO( ip );
+	BER_BVZERO( name );
+	BER_BVZERO( oid );
+	BER_BVZERO( id );
 
 	ber = ber_init( &ctrl->ldctl_value );
 
