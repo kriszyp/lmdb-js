@@ -294,6 +294,11 @@ typedef struct ldapcontrol {
 /* MS Active Directory controls - not implemented in slapd(8) */
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
 
+#ifdef LDAP_DEVEL
+/* <draft-wahl-ldap-session> */
+#define LDAP_CONTROL_X_SESSION_TRACKING		"1.3.6.1.4.1.21008.108.63.1"
+#endif /* LDAP_DEVEL */
+
 /* various expired works */
 /* LDAP Duplicated Entry Control Extension *//* not implemented in slapd(8) */
 #define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
@@ -2273,6 +2278,40 @@ ldap_sync_init_refresh_and_persist LDAP_P((
 LDAP_F( int )
 ldap_sync_poll LDAP_P((
 	ldap_sync_t	*ls ));
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+
+/*
+ * in stctrl.c
+ */
+LDAP_F( int )
+ldap_create_session_tracking_value LDAP_P((
+	LDAP		*ld,
+	char		*sessionSourceIp,
+	char		*sessionSourceName,
+	char		*formatOID,
+	struct berval	*sessionTrackingIdentifier,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_session_tracking LDAP_P((
+	LDAP		*ld,
+	char		*sessionSourceIp,
+	char		*sessionSourceName,
+	char		*formatOID,
+	struct berval	*sessionTrackingIdentifier,
+	LDAPControl	**ctrlp ));
+
+LDAP_F( int )
+ldap_parse_session_tracking_control LDAP_P((
+	LDAP *ld,
+	LDAPControl *ctrl,
+	struct berval *ip,
+	struct berval *name,
+	struct berval *oid,
+	struct berval *id ));
+
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 LDAP_END_DECL
 #endif /* _LDAP_H */
