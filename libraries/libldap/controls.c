@@ -442,7 +442,8 @@ ldap_create_control(
 		return LDAP_NO_MEMORY;
 	}
 
-	if ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
+	BER_BVZERO( &ctrl->ldctl_value );
+	if ( ber != NULL && ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
 		LDAP_FREE( ctrl );
 		return LDAP_NO_MEMORY;
 	}
