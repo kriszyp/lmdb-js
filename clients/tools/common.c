@@ -1234,7 +1234,7 @@ tool_bind( LDAP *ld )
 		LDAPControl c;
 		char		*ip = NULL, *name = NULL;
 		struct berval	id = { 0 }, prefix_id;
-		char		namebuf[ HOST_NAME_MAX ];
+		char		namebuf[ MAXHOSTNAMELEN ];
 		char		*ptr;
 
 		if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
@@ -1676,7 +1676,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		if ( stValue.bv_val == NULL ) {
 			char		*ip = NULL, *name = NULL;
 			struct berval	id = { 0 };
-			char		namebuf[ HOST_NAME_MAX ];
+			char		namebuf[ MAXHOSTNAMELEN ];
 
 			if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
 				struct hostent	*h;
