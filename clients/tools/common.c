@@ -152,6 +152,53 @@ static struct tool_ctrls_t {
 static int	gotintr;
 static int	abcan;
 
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+static int
+st_value( LDAP *ld, struct berval *value )
+{
+	char		*ip = NULL, *name = NULL;
+	struct berval	id = { 0 };
+	char		namebuf[ MAXHOSTNAMELEN ];
+
+	if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
+		struct hostent	*h;
+		struct in_addr	addr;
+
+		name = namebuf;
+
+		h = gethostbyname( name );
+		if ( h != NULL ) {
+			AC_MEMCPY( &addr, h->h_addr, sizeof( addr ) );
+			ip = inet_ntoa( addr );
+		}
+	}
+
+#ifdef HAVE_CYRUS_SASL
+	if ( sasl_authz_id != NULL ) {
+		ber_str2bv( sasl_authz_id, 0, 0, &id );
+
+	} else if ( sasl_authc_id != NULL ) {
+		ber_str2bv( sasl_authc_id, 0, 0, &id );
+
+	} else 
+#endif /* HAVE_CYRUS_SASL */
+	if ( binddn != NULL ) {
+		ber_str2bv( binddn, 0, 0, &id );
+	}
+
+	if ( ldap_create_session_tracking_value( ld,
+		ip, name, LDAP_CONTROL_X_SESSION_TRACKING_USERNAME,
+		&id, &stValue ) )
+	{
+		fprintf( stderr, _("Session tracking control encoding error!\n") );
+		return -1;
+	}
+
+	return 0;
+}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+
 RETSIGTYPE
 do_sig( int sig )
 {
@@ -1232,55 +1279,14 @@ tool_bind( LDAP *ld )
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
 	if ( sessionTracking ) {
 		LDAPControl c;
-		char		*ip = NULL, *name = NULL;
-		struct berval	id = { 0 }, prefix_id;
-		char		namebuf[ MAXHOSTNAMELEN ];
-		char		*ptr;
 
-		if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
-			struct hostent	*h;
-			struct in_addr	addr;
-
-			name = namebuf;
-
-			h = gethostbyname( name );
-			if ( h != NULL ) {
-				AC_MEMCPY( &addr, h->h_addr, sizeof( addr ) );
-				ip = inet_ntoa( addr );
-			}
-		}
-
-#ifdef HAVE_CYRUS_SASL
-		if ( sasl_authz_id != NULL ) {
-			ber_str2bv( sasl_authz_id, 0, 0, &id );
-
-		} else if ( sasl_authc_id != NULL ) {
-			ber_str2bv( sasl_authc_id, 0, 0, &id );
-
-		} else 
-#endif /* HAVE_CYRUS_SASL */
-		if ( binddn != NULL ) {
-			ber_str2bv( binddn, 0, 0, &id );
-
-		} else {
-			ber_str2bv( "anonymous", 0, 0, &id );
-		}
-
-		prefix_id.bv_len = STRLENOF( "binding:" ) + id.bv_len;
-		ptr = prefix_id.bv_val = malloc ( prefix_id.bv_len + 1 );
-		ptr = lutil_strcopy( ptr, "binding:" );
-		ptr = lutil_strcopy(ptr, id.bv_val );
-
-		if ( ldap_create_session_tracking_value( ld,
-			ip, name, LDAP_CONTROL_X_SESSION_TRACKING_USERNAME,
-			&prefix_id, &c.ldctl_value ) )
-		{
-			fprintf( stderr, _("Session tracking control encoding error!\n") );
+		if (stValue.bv_val == NULL && st_value( ld, &stValue ) ) {
 			exit( EXIT_FAILURE );
 		}
 
 		c.ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
 		c.ldctl_iscritical = 0;
+		ber_dupbv( &c.ldctl_value, &stValue );
 
 		sctrl[nsctrls] = c;
 		sctrls[nsctrls] = &sctrl[nsctrls];
@@ -1673,52 +1679,14 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
 	if ( sessionTracking ) {
-		if ( stValue.bv_val == NULL ) {
-			char		*ip = NULL, *name = NULL;
-			struct berval	id = { 0 };
-			char		namebuf[ MAXHOSTNAMELEN ];
-
-			if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
-				struct hostent	*h;
-				struct in_addr	addr;
-
-				name = namebuf;
-
-				h = gethostbyname( name );
-				if ( h != NULL ) {
-					AC_MEMCPY( &addr, h->h_addr, sizeof( addr ) );
-					ip = inet_ntoa( addr );
-				}
-			}
-
-#ifdef HAVE_CYRUS_SASL
-			if ( sasl_authz_id != NULL ) {
-				ber_str2bv( sasl_authz_id, 0, 0, &id );
-
-			} else if ( sasl_authc_id != NULL ) {
-				ber_str2bv( sasl_authc_id, 0, 0, &id );
-
-			} else 
-#endif /* HAVE_CYRUS_SASL */
-			if ( binddn != NULL ) {
-				ber_str2bv( binddn, 0, 0, &id );
-
-			} else {
-				ber_str2bv( "anonymous", 0, 0, &id );
-			}
-
-			if ( ldap_create_session_tracking_value( ld,
-				ip, name, LDAP_CONTROL_X_SESSION_TRACKING_USERNAME,
-				&id, &stValue ) )
-			{
-				fprintf( stderr, _("Session tracking control encoding error!\n") );
-				exit( EXIT_FAILURE );
-			}
+		if ( stValue.bv_val == NULL && st_value( ld, &stValue ) ) {
+			exit( EXIT_FAILURE );
 		}
 
 		c[i].ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
 		c[i].ldctl_iscritical = 0;
 		ber_dupbv( &c[i].ldctl_value, &stValue );
+
 		ctrls[i] = &c[i];
 		i++;
 	}
