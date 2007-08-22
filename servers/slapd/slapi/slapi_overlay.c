@@ -27,6 +27,7 @@
 
 #include "slap.h"
 #include "slapi.h"
+#include "config.h"
 
 #ifdef LDAP_SLAPI
 
@@ -848,7 +849,9 @@ done:
 }
 
 static int
-slapi_over_db_open( BackendDB *be )
+slapi_over_db_open(
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	Slapi_PBlock		*pb;
 	int			rc;
@@ -863,7 +866,9 @@ slapi_over_db_open( BackendDB *be )
 }
 
 static int
-slapi_over_db_close( BackendDB *be )
+slapi_over_db_close(
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	Slapi_PBlock		*pb;
 	int			rc;
