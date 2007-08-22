@@ -722,9 +722,9 @@ slap_sasl_authorize(
 ok:
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND authcid=\"%s\" authzid=\"%s\"\n",
-			conn->c_connid, conn->c_sasl_bindop->o_opid, 
-			auth_identity, requested_user, 0);
+			"%s BIND authcid=\"%s\" authzid=\"%s\"\n",
+			conn->c_sasl_bindop->o_log_prefix, 
+			auth_identity, requested_user, 0, 0 );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
@@ -826,9 +826,9 @@ ok:
 
 	if ( conn->c_sasl_bindop ) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND authcid=\"%s\" authzid=\"%s\"\n",
-			conn->c_connid, conn->c_sasl_bindop->o_opid, 
-			authcid, authzid ? authzid : "", 0);
+			"%s BIND authcid=\"%s\" authzid=\"%s\"\n",
+			conn->c_sasl_bindop->o_log_prefix, 
+			authcid, authzid ? authzid : "", 0, 0 );
 	}
 
 	*errstr = NULL;
