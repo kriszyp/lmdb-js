@@ -125,6 +125,7 @@ ldap_back_exop_passwd(
 			ndn = op->o_req_ndn;
 
 	assert( lc != NULL );
+	assert( rs->sr_ctrls == NULL );
 
 	if ( BER_BVISNULL( &ndn ) && op->ore_reqdata != NULL ) {
 		/* NOTE: most of this code is mutuated
@@ -190,6 +191,7 @@ retry:
 		op->o_ctrls, NULL, &msgid );
 
 	if ( rc == LDAP_SUCCESS ) {
+		/* TODO: set timeout? */
 		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, NULL, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 			rs->sr_err = rc;
@@ -206,7 +208,7 @@ retry:
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					(char **)&rs->sr_matched,
 					&text,
-					NULL, NULL, 0 );
+					NULL, &rs->sr_ctrls, 0 );
 
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -270,6 +272,11 @@ retry:
 		rs->sr_matched = NULL;
 	}
 
+	if ( rs->sr_ctrls ) {
+		ldap_controls_free( rs->sr_ctrls );
+		rs->sr_ctrls = NULL;
+	}
+
 	if ( text ) {
 		free( text );
 		rs->sr_text = NULL;
@@ -299,6 +306,7 @@ ldap_back_exop_generic(
 	char		*text = NULL;
 
 	assert( lc != NULL );
+	assert( rs->sr_ctrls == NULL );
 
 	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_exop_generic(%s, \"%s\")\n",
 		op->ore_reqoid.bv_val, op->o_req_dn.bv_val, 0 );
@@ -309,6 +317,7 @@ retry:
 		op->o_ctrls, NULL, &msgid );
 
 	if ( rc == LDAP_SUCCESS ) {
+		/* TODO: set timeout? */
 		if ( ldap_result( lc->lc_ld, msgid, LDAP_MSG_ALL, NULL, &res ) == -1 ) {
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 			rs->sr_err = rc;
@@ -325,7 +334,7 @@ retry:
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					(char **)&rs->sr_matched,
 					&text,
-					NULL, NULL, 0 );
+					NULL, &rs->sr_ctrls, 0 );
 			if ( rc == LDAP_SUCCESS ) {
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					rc = ldap_parse_extended_result( lc->lc_ld, res,
@@ -368,6 +377,11 @@ retry:
 	if ( rs->sr_matched ) {
 		free( (char *)rs->sr_matched );
 		rs->sr_matched = NULL;
+	}
+
+	if ( rs->sr_ctrls ) {
+		ldap_controls_free( rs->sr_ctrls );
+		rs->sr_ctrls = NULL;
 	}
 
 	if ( text ) {
