@@ -742,10 +742,19 @@ do_syncrep2(
 				/* we can't work without the control */
 				rctrlp = NULL;
 				if ( rctrls ) {
+					LDAPControl **next;
 					/* NOTE: make sure we use the right one;
 					 * a better approach would be to run thru
 					 * the whole list and take care of all */
-					rctrlp = ldap_find_control( LDAP_CONTROL_SYNC_STATE, rctrls );
+					rctrlp = ldap_control_find( LDAP_CONTROL_SYNC_STATE, rctrls, &next );
+					if ( next && ldap_control_find( LDAP_CONTROL_SYNC_STATE, next, NULL ) )
+					{
+						Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
+							"got search entry with multiple "
+							"Sync State control\n", si->si_ridtxt, 0, 0 );
+						rc = -1;
+						goto done;
+					}
 				}
 				if ( rctrlp == NULL ) {
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "

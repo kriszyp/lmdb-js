@@ -941,17 +941,33 @@ ldap_set_urllist_proc LDAP_P((
 /*
  * in controls.c:
  */
+#if LDAP_DEPRECATED	
 LDAP_F( int )
-ldap_create_control LDAP_P((
+ldap_create_control LDAP_P((	/* deprecated, use ldap_control_create */
 	LDAP_CONST char *requestOID,
 	BerElement *ber,
 	int iscritical,
 	LDAPControl **ctrlp ));
 
 LDAP_F( LDAPControl * )
-ldap_find_control LDAP_P((
+ldap_find_control LDAP_P((	/* deprecated, use ldap_control_find */
 	LDAP_CONST char *oid,
 	LDAPControl **ctrls ));
+#endif
+
+LDAP_F( int )
+ldap_control_create LDAP_P((
+	LDAP_CONST char *requestOID,
+	int iscritical,
+	struct berval *value,
+	int dupval,
+	LDAPControl **ctrlp ));
+
+LDAP_F( LDAPControl * )
+ldap_control_find LDAP_P((
+	LDAP_CONST char *oid,
+	LDAPControl **ctrls,
+	LDAPControl ***nextctrlp ));
 
 LDAP_F( void )
 ldap_control_free LDAP_P((
@@ -960,6 +976,14 @@ ldap_control_free LDAP_P((
 LDAP_F( void )
 ldap_controls_free LDAP_P((
 	LDAPControl **ctrls ));
+
+LDAP_F( LDAPControl ** )
+ldap_controls_dup LDAP_P((
+	LDAPControl *LDAP_CONST *controls ));
+
+LDAP_F( LDAPControl * )
+ldap_control_dup LDAP_P((
+	LDAP_CONST LDAPControl *c ));
 
 /*
  * in dnssrv.c:

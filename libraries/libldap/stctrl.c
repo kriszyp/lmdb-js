@@ -137,7 +137,6 @@ ldap_create_session_tracking_control(
 	LDAPControl	**ctrlp )
 {
 	struct berval	value;
-	BerElement	*ber;
 
 	if ( ctrlp == NULL ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
@@ -148,12 +147,9 @@ ldap_create_session_tracking_control(
 		sessionSourceIp, sessionSourceName, formatOID,
 		sessionTrackingIdentifier, &value );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
-		ld->ld_errno = ldap_create_control( LDAP_CONTROL_X_SESSION_TRACKING,
-			NULL, 0, ctrlp );
-		if ( ld->ld_errno == LDAP_SUCCESS ) {
-			(*ctrlp)->ldctl_value = value;
-
-		} else {
+		ld->ld_errno = ldap_control_create( LDAP_CONTROL_X_SESSION_TRACKING,
+			0, &value, 0, ctrlp );
+		if ( ld->ld_errno != LDAP_SUCCESS ) {
 			LDAP_FREE( value.bv_val );
 		}
 	}

@@ -65,10 +65,10 @@ ldap_create_passwordpolicy_control( LDAP *ld,
 	assert( LDAP_VALID( ld ) );
 	assert( ctrlp != NULL );
 
-	ld->ld_errno = ldap_create_control( LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-		NULL, 0, ctrlp);
+	ld->ld_errno = ldap_control_create( LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+		0, NULL, 0, ctrlp );
 
-	return(ld->ld_errno);
+	return ld->ld_errno;
 }
 
 
@@ -80,8 +80,9 @@ ldap_create_passwordpolicy_control( LDAP *ld,
    ld           (IN)   An LDAP session handle.
    
    ctrl         (IN)   The address of an
-					   LDAPControl structure, typically obtained 
-					   by a call to ldap_find_control().
+					   LDAPControl structure, either obtained 
+					   by running thorugh the list of response controls or
+					   by a call to ldap_control_find().
 
    exptimep     (OUT)  This result parameter is filled in with the number of seconds before
                                            the password will expire, if expiration is imminent
