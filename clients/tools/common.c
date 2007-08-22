@@ -1212,20 +1212,81 @@ void
 tool_bind( LDAP *ld )
 {
 	LDAPControl	**sctrlsp = NULL;
-	LDAPControl	*sctrls[2];
+	LDAPControl	*sctrls[3];
+	LDAPControl	sctrl[3];
 	int		nsctrls = 0;
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-	LDAPControl c;
 	if ( ppolicy ) {
+		LDAPControl c;
 		c.ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
 		c.ldctl_value.bv_val = NULL;
 		c.ldctl_value.bv_len = 0;
 		c.ldctl_iscritical = 0;
-		sctrls[nsctrls] = &c;
+		sctrl[nsctrls] = c;
+		sctrls[nsctrls] = &sctrl[nsctrls];
 		sctrls[++nsctrls] = NULL;
 	}
 #endif
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+	if ( sessionTracking ) {
+		LDAPControl c;
+		char		*ip = NULL, *name = NULL;
+		struct berval	id = { 0 }, prefix_id;
+		char		namebuf[ HOST_NAME_MAX ];
+		char		*ptr;
+
+		if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
+			struct hostent	*h;
+			struct in_addr	addr;
+
+			name = namebuf;
+
+			h = gethostbyname( name );
+			if ( h != NULL ) {
+				AC_MEMCPY( &addr, h->h_addr, sizeof( addr ) );
+				ip = inet_ntoa( addr );
+			}
+		}
+
+#ifdef HAVE_CYRUS_SASL
+		if ( sasl_authz_id != NULL ) {
+			ber_str2bv( sasl_authz_id, 0, 0, &id );
+
+		} else if ( sasl_authc_id != NULL ) {
+			ber_str2bv( sasl_authc_id, 0, 0, &id );
+
+		} else 
+#endif /* HAVE_CYRUS_SASL */
+		if ( binddn != NULL ) {
+			ber_str2bv( binddn, 0, 0, &id );
+
+		} else {
+			ber_str2bv( "anonymous", 0, 0, &id );
+		}
+
+		prefix_id.bv_len = STRLENOF( "binding:" ) + id.bv_len;
+		ptr = prefix_id.bv_val = malloc ( prefix_id.bv_len + 1 );
+		ptr = lutil_strcopy( ptr, "binding:" );
+		ptr = lutil_strcopy(ptr, id.bv_val );
+
+		if ( ldap_create_session_tracking_value( ld,
+			ip, name, LDAP_CONTROL_X_SESSION_TRACKING_USERNAME,
+			&prefix_id, &c.ldctl_value ) )
+		{
+			fprintf( stderr, _("Session tracking control encoding error!\n") );
+			exit( EXIT_FAILURE );
+		}
+
+		c.ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
+		c.ldctl_iscritical = 0;
+
+		sctrl[nsctrls] = c;
+		sctrls[nsctrls] = &sctrl[nsctrls];
+		sctrls[++nsctrls] = NULL;
+	}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 	if ( nsctrls ) {
 		sctrlsp = sctrls;
@@ -1647,8 +1708,8 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 			}
 
 			if ( ldap_create_session_tracking_value( ld,
-				ip, name, "1.3.6.1.4.1.21008.108.63.1.3", &id,
-				&stValue ) )
+				ip, name, LDAP_CONTROL_X_SESSION_TRACKING_USERNAME,
+				&id, &stValue ) )
 			{
 				fprintf( stderr, _("Session tracking control encoding error!\n") );
 				exit( EXIT_FAILURE );
