@@ -53,11 +53,7 @@
 # include <tcpd.h>
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
-
-# define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
-#else /* ! TCP Wrappers */
-# define SLAP_STRING_UNKNOWN	"unknown"
-#endif /* ! TCP Wrappers */
+#endif /* TCP Wrappers */
 
 #ifdef LDAP_PF_LOCAL
 # include <sys/stat.h>

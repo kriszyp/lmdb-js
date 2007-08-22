@@ -598,8 +598,7 @@ meta_back_search_start(
 
 retry:;
 	ctrls = op->o_ctrls;
-	if ( ldap_back_proxy_authz_ctrl( &msc->msc_bound_ndn,
-		mt->mt_version, &mt->mt_idassert, op, rs, &ctrls )
+	if ( meta_back_controls_add( op, rs, *mcp, candidate, &ctrls )
 		!= LDAP_SUCCESS )
 	{
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
@@ -625,7 +624,7 @@ retry:;
 		if ( nretries && meta_back_retry( op, rs, mcp, candidate, LDAP_BACK_DONTSEND ) ) {
 			nretries = 0;
 			/* if the identity changed, there might be need to re-authz */
-			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+			(void)ldap_back_controls_free( op, rs, &ctrls );
 			goto retry;
 		}
 
@@ -642,7 +641,7 @@ retry:;
 	}
 
 done:;
-	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+	(void)ldap_back_controls_free( op, rs, &ctrls );
 
 	if ( mapped_attrs ) {
 		free( mapped_attrs );

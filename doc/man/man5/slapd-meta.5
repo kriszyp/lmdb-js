@@ -173,6 +173,15 @@ is set to
 .IR yes .
 
 .TP
+.B session\-tracking\-request {NO|yes}
+Adds session tracking control for all requests.
+The client's IP and hostname, and the identity associated to each request,
+if known, are sent to the remote server for informational purposes.
+This directive is incompatible with setting \fIprotocol\-version\fP to 2.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
+
+.TP
 .B single\-conn {NO|yes}
 Discards current cached connection when the client rebinds.
 

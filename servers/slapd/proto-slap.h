@@ -629,6 +629,20 @@ LDAP_SLAPD_F (int) slap_remove_control LDAP_P((
 	int		ctrl,
 	BI_chk_controls	fnc ));
 
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+LDAP_SLAPD_F (int)
+slap_ctrl_session_tracking_add LDAP_P((
+	Operation *op,
+	SlapReply *rs,
+	struct berval *ip,
+	struct berval *name,
+	struct berval *id,
+	LDAPControl *ctrl ));
+LDAP_SLAPD_F (int)
+slap_ctrl_session_tracking_request_add LDAP_P((
+	Operation *op, SlapReply *rs, LDAPControl *ctrl ));
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+
 /*
  * config.c
  */

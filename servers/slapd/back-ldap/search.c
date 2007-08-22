@@ -205,8 +205,7 @@ ldap_back_search(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
-		li->li_version, &li->li_idassert, op, rs, &ctrls );
+	rc = ldap_back_controls_add( op, rs, lc, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto finish;
 	}
@@ -529,7 +528,7 @@ finish:;
 		send_ldap_result( op, rs );
 	}
 
-	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+	(void)ldap_back_controls_free( op, rs, &ctrls );
 
 	if ( rs->sr_ctrls ) {
 		ldap_controls_free( rs->sr_ctrls );
@@ -819,8 +818,7 @@ ldap_back_entry_get(
 
 retry:
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
-		li->li_version, &li->li_idassert, op, &rs, &ctrls );
+	rc = ldap_back_controls_add( op, &rs, lc, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -833,7 +831,7 @@ retry:
 			do_retry = 0;
 			if ( ldap_back_retry( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 				/* if the identity changed, there might be need to re-authz */
-				(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+				(void)ldap_back_controls_free( op, &rs, &ctrls );
 				goto retry;
 			}
 		}
@@ -860,7 +858,7 @@ retry:
 	}
 
 cleanup:
-	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+	(void)ldap_back_controls_free( op, &rs, &ctrls );
 
 	if ( result ) {
 		ldap_msgfree( result );

@@ -47,7 +47,7 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, ldap_back_exop_f exop )
 	ldapinfo_t	*li = (ldapinfo_t *) op->o_bd->be_private;
 
 	ldapconn_t	*lc = NULL;
-	LDAPControl	**oldctrls = NULL;
+	LDAPControl	**ctrls = NULL, **oldctrls = NULL;
 	int		rc;
 
 	/* FIXME: this needs to be called here, so it is
@@ -58,9 +58,8 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, ldap_back_exop_f exop )
 		return -1;
 	}
 
-	oldctrls = op->o_ctrls;
-	if ( ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
-		li->li_version, &li->li_idassert, op, rs, &op->o_ctrls ) )
+	ctrls = op->o_ctrls;
+	if ( ldap_back_controls_add( op, rs, lc, &ctrls ) )
 	{
 		op->o_ctrls = oldctrls;
 		send_ldap_extended( op, rs );
@@ -70,13 +69,11 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, ldap_back_exop_f exop )
 		goto done;
 	}
 
+	op->o_ctrls = ctrls;
 	rc = exop( op, rs, &lc );
 
-	if ( op->o_ctrls && op->o_ctrls != oldctrls ) {
-		free( op->o_ctrls[ 0 ] );
-		free( op->o_ctrls );
-	}
 	op->o_ctrls = oldctrls;
+	(void)ldap_back_controls_free( op, rs, &ctrls );
 
 done:;
 	if ( lc != NULL ) {

@@ -173,7 +173,10 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	ldapinfo_t		*li = (ldapinfo_t *) op->o_bd->be_private;
 	ldapconn_t		*lc;
 
-	int			rc = 0;
+	LDAPControl		**ctrls = NULL;
+	struct berval		save_o_dn;
+	int			save_o_do_not_cache,
+				rc = 0;
 	ber_int_t		msgid;
 	ldap_back_send_t	retrying = LDAP_BACK_RETRYING;
 
@@ -205,11 +208,27 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	}
 	LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
 
+	/* don't add proxyAuthz; set the bindDN */
+	save_o_dn = op->o_dn;
+	save_o_do_not_cache = op->o_do_not_cache;
+	op->o_dn = op->o_req_dn;
+	op->o_do_not_cache = 1;
+
+	ctrls = op->o_ctrls;
+	rc = ldap_back_controls_add( op, rs, lc, &ctrls );
+	op->o_dn = save_o_dn;
+	op->o_do_not_cache = save_o_do_not_cache;
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		ldap_back_release_conn( li, lc );
+		return( rc );
+	}
+
 retry:;
 	/* method is always LDAP_AUTH_SIMPLE if we got here */
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld, op->o_req_dn.bv_val,
 			LDAP_SASL_SIMPLE,
-			&op->orb_cred, op->o_ctrls, NULL, &msgid );
+			&op->orb_cred, ctrls, NULL, &msgid );
 	/* FIXME: should we always retry, or only when piping the bind
 	 * in the "override" connection pool? */
 	rc = ldap_back_op_result( lc, op, rs, msgid,
@@ -221,6 +240,8 @@ retry:;
 			goto retry;
 		}
 	}
+
+	ldap_back_controls_free( op, rs, &ctrls );
 
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
@@ -2210,38 +2231,19 @@ done:;
  */
 int
 ldap_back_proxy_authz_ctrl(
+		Operation	*op,
+		SlapReply	*rs,
 		struct berval	*bound_ndn,
 		int		version,
 		slap_idassert_t	*si,
-		Operation	*op,
-		SlapReply	*rs,
-		LDAPControl	***pctrls )
+		LDAPControl	*ctrl )
 {
-	LDAPControl		**ctrls = NULL;
-	int			i = 0;
 	slap_idassert_mode_t	mode;
 	struct berval		assertedID,
 				ndn;
 	int			isroot = 0;
 
-	*pctrls = NULL;
-
-	rs->sr_err = LDAP_SUCCESS;
-
-	/* don't proxyAuthz if protocol is not LDAPv3 */
-	switch ( version ) {
-	case LDAP_VERSION3:
-		break;
-
-	case 0:
-		if ( op->o_protocol == 0 || op->o_protocol == LDAP_VERSION3 ) {
-			break;
-		}
-		/* fall thru */
-
-	default:
-		goto done;
-	}
+	rs->sr_err = SLAP_CB_CONTINUE;
 
 	/* FIXME: SASL/EXTERNAL over ldapi:// doesn't honor the authcID,
 	 * but if it is not set this test fails.  We need a different
@@ -2391,32 +2393,20 @@ ldap_back_proxy_authz_ctrl(
 		goto done;
 	}
 
-	if ( op->o_ctrls ) {
-		for ( i = 0; op->o_ctrls[ i ]; i++ )
-			/* just count ctrls */ ;
-	}
-
-	ctrls = op->o_tmpalloc( sizeof( LDAPControl * ) * (i + 2) + sizeof( LDAPControl ),
-			op->o_tmpmemctx );
-	ctrls[ 0 ] = (LDAPControl *)&ctrls[ i + 2 ];
-	
-	ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-	ctrls[ 0 ]->ldctl_iscritical = 1;
-
 	switch ( si->si_mode ) {
 	/* already in u:ID or dn:DN form */
 	case LDAP_BACK_IDASSERT_OTHERID:
 	case LDAP_BACK_IDASSERT_OTHERDN:
-		ber_dupbv_x( &ctrls[ 0 ]->ldctl_value, &assertedID, op->o_tmpmemctx );
+		ber_dupbv_x( &ctrl->ldctl_value, &assertedID, op->o_tmpmemctx );
 		break;
 
 	/* needs the dn: prefix */
 	default:
-		ctrls[ 0 ]->ldctl_value.bv_len = assertedID.bv_len + STRLENOF( "dn:" );
-		ctrls[ 0 ]->ldctl_value.bv_val = op->o_tmpalloc( ctrls[ 0 ]->ldctl_value.bv_len + 1,
+		ctrl->ldctl_value.bv_len = assertedID.bv_len + STRLENOF( "dn:" );
+		ctrl->ldctl_value.bv_val = op->o_tmpalloc( ctrl->ldctl_value.bv_len + 1,
 				op->o_tmpmemctx );
-		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
-		AC_MEMCPY( &ctrls[ 0 ]->ldctl_value.bv_val[ STRLENOF( "dn:" ) ],
+		AC_MEMCPY( ctrl->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
+		AC_MEMCPY( &ctrl->ldctl_value.bv_val[ STRLENOF( "dn:" ) ],
 				assertedID.bv_val, assertedID.bv_len + 1 );
 		break;
 	}
@@ -2426,7 +2416,7 @@ ldap_back_proxy_authz_ctrl(
 	 * this hack provides compatibility with those DSAs that
 	 * implement it this way */
 	if ( si->si_flags & LDAP_BACK_AUTH_OBSOLETE_ENCODING_WORKAROUND ) {
-		struct berval		authzID = ctrls[ 0 ]->ldctl_value;
+		struct berval		authzID = ctrl->ldctl_value;
 		BerElementBuffer	berbuf;
 		BerElement		*ber = (BerElement *)&berbuf;
 		ber_tag_t		tag;
@@ -2440,7 +2430,7 @@ ldap_back_proxy_authz_ctrl(
 			goto free_ber;
 		}
 
-		if ( ber_flatten2( ber, &ctrls[ 0 ]->ldctl_value, 1 ) == -1 ) {
+		if ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
 			rs->sr_err = LDAP_OTHER;
 			goto free_ber;
 		}
@@ -2450,22 +2440,17 @@ free_ber:;
 		ber_free_buf( ber );
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
-			op->o_tmpfree( ctrls, op->o_tmpmemctx );
-			ctrls = NULL;
 			goto done;
 		}
 
 	} else if ( si->si_flags & LDAP_BACK_AUTH_OBSOLETE_PROXY_AUTHZ ) {
-		struct berval		authzID = ctrls[ 0 ]->ldctl_value,
+		struct berval		authzID = ctrl->ldctl_value,
 					tmp;
 		BerElementBuffer	berbuf;
 		BerElement		*ber = (BerElement *)&berbuf;
 		ber_tag_t		tag;
 
 		if ( strncasecmp( authzID.bv_val, "dn:", STRLENOF( "dn:" ) ) != 0 ) {
-			op->o_tmpfree( ctrls[ 0 ]->ldctl_value.bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( ctrls, op->o_tmpmemctx );
-			ctrls = NULL;
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
 		}
@@ -2485,7 +2470,7 @@ free_ber:;
 			goto free_ber2;
 		}
 
-		if ( ber_flatten2( ber, &ctrls[ 0 ]->ldctl_value, 1 ) == -1 ) {
+		if ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
 			rs->sr_err = LDAP_OTHER;
 			goto free_ber2;
 		}
@@ -2495,20 +2480,119 @@ free_ber2:;
 		ber_free_buf( ber );
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
-			op->o_tmpfree( ctrls, op->o_tmpmemctx );
-			ctrls = NULL;
 			goto done;
 		}
 
-		ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
+		ctrl->ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
+	}
+
+done:;
+
+	return rs->sr_err;
+}
+
+/*
+ * Add controls;
+ *
+ * if any needs to be added, it is prepended to existing ones,
+ * in a newly allocated array.  The companion function
+ * ldap_back_controls_free() must be used to restore the original
+ * status of op->o_ctrls.
+ */
+int
+ldap_back_controls_add(
+		Operation	*op,
+		SlapReply	*rs,
+		ldapconn_t	*lc,
+		LDAPControl	***pctrls )
+{
+	ldapinfo_t	*li = (ldapinfo_t *)op->o_bd->be_private;
+
+	LDAPControl	**ctrls = NULL;
+	/* set to the maximum number of controls this backend can add */
+	LDAPControl	c[ 2 ] = { 0 };
+	int		i = 0, j = 0;
+
+	*pctrls = NULL;
+
+	rs->sr_err = LDAP_SUCCESS;
+
+	/* don't add controls if protocol is not LDAPv3 */
+	switch ( li->li_version ) {
+	case LDAP_VERSION3:
+		break;
+
+	case 0:
+		if ( op->o_protocol == 0 || op->o_protocol == LDAP_VERSION3 ) {
+			break;
+		}
+		/* fall thru */
+
+	default:
+		goto done;
+	}
+
+	/* proxyAuthz for identity assertion */
+	switch ( ldap_back_proxy_authz_ctrl( op, rs, &lc->lc_bound_ndn,
+		li->li_version, &li->li_idassert, &c[ j ] ) )
+	{
+	case SLAP_CB_CONTINUE:
+		break;
+
+	case LDAP_SUCCESS:
+		j++;
+		break;
+
+	default:
+		goto done;
+	}
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	/* session tracking */
+	if ( LDAP_BACK_ST_REQUEST( li ) ) {
+		switch ( slap_ctrl_session_tracking_request_add( op, rs, &c[ j ] ) ) {
+		case SLAP_CB_CONTINUE:
+			break;
+
+		case LDAP_SUCCESS:
+			j++;
+			break;
+
+		default:
+			goto done;
+		}
+	}
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+
+	if ( rs->sr_err == SLAP_CB_CONTINUE ) {
+		rs->sr_err = LDAP_SUCCESS;
+	}
+
+	if ( j == 0 ) {
+		goto done;
 	}
 
 	if ( op->o_ctrls ) {
+		for ( i = 0; op->o_ctrls[ i ]; i++ )
+			/* just count ctrls */ ;
+	}
+
+	ctrls = op->o_tmpalloc( sizeof( LDAPControl * ) * (i + j + 1) + j * sizeof( LDAPControl ),
+			op->o_tmpmemctx );
+	ctrls[ 0 ] = (LDAPControl *)&ctrls[ i + j + 1 ];
+	*ctrls[ 0 ] = c[ 0 ];
+	for ( i = 1; i < j; i++ ) {
+		ctrls[ i ] = &ctrls[ 0 ][ i ];
+		*ctrls[ i ] = c[ i ];
+	}
+
+	i = 0;
+	if ( op->o_ctrls ) {
 		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
-			ctrls[ i + 1 ] = op->o_ctrls[ i ];
+			ctrls[ i + j ] = op->o_ctrls[ i ];
 		}
 	}
-	ctrls[ i + 1 ] = NULL;
+	ctrls[ i + j ] = NULL;
 
 done:;
 	if ( ctrls == NULL ) {
@@ -2521,18 +2605,25 @@ done:;
 }
 
 int
-ldap_back_proxy_authz_ctrl_free( Operation *op, LDAPControl ***pctrls )
+ldap_back_controls_free( Operation *op, SlapReply *rs, LDAPControl ***pctrls )
 {
 	LDAPControl	**ctrls = *pctrls;
 
-	/* we assume that the first control is the proxyAuthz
-	 * added by back-ldap, so it's the only one we explicitly 
-	 * free */
+	/* we assume that the controls added by the proxy come first,
+	 * so as soon as we find op->o_ctrls[ 0 ] we can stop */
 	if ( ctrls && ctrls != op->o_ctrls ) {
+		int	i;
+
 		assert( ctrls[ 0 ] != NULL );
 
-		if ( !BER_BVISNULL( &ctrls[ 0 ]->ldctl_value ) ) {
-			op->o_tmpfree( ctrls[ 0 ]->ldctl_value.bv_val, op->o_tmpmemctx );
+		for ( i = 0; ctrls[ i ] != NULL; i++ ) {
+			if ( op->o_ctrls && ctrls[ i ] == op->o_ctrls[ 0 ] ) {
+				break;
+			}
+
+			if ( !BER_BVISNULL( &ctrls[ i ]->ldctl_value ) ) {
+				op->o_tmpfree( ctrls[ i ]->ldctl_value.bv_val, op->o_tmpmemctx );
+			}
 		}
 
 		op->o_tmpfree( ctrls, op->o_tmpmemctx );

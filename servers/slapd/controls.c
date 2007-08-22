@@ -21,6 +21,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "ldif.h"
 #include "lutil.h"
 
 #include "../../libraries/liblber/lber-int.h"
@@ -1755,18 +1756,19 @@ static int parseSessionTracking(
 	} else {
 		/* note: should not be more than 65536... */
 		tag = ber_scanf( ber, "m", &sessionTrackingIdentifier );
-	}
-
-	if ( ldif_is_not_printable( sessionTrackingIdentifier.bv_val, sessionTrackingIdentifier.bv_len ) ) {
-		/* we want the OID printed, at least */
-		BER_BVSTR( &sessionTrackingIdentifier, "" );
+		if ( ldif_is_not_printable( sessionTrackingIdentifier.bv_val, sessionTrackingIdentifier.bv_len ) ) {
+			/* we want the OID printed, at least */
+			BER_BVSTR( &sessionTrackingIdentifier, "" );
+		}
 	}
 
 	/* closure */
 	tag = ber_skip_tag( ber, &len );
-	if ( tag == LBER_DEFAULT && len == 0 ) {
-		tag = 0;
+	if ( tag != LBER_DEFAULT || len != 0 ) {
+		tag = LBER_ERROR;
+		goto error;
 	}
+	tag = 0;
 
 	st_len = 0;
 	if ( !BER_BVISNULL( &sessionSourceIp ) ) {
@@ -1829,5 +1831,74 @@ error:;
 
 
 	return rs->sr_err;
+}
+
+int
+slap_ctrl_session_tracking_add(
+	Operation *op,
+	SlapReply *rs,
+	struct berval *ip,
+	struct berval *name,
+	struct berval *id,
+	LDAPControl *ctrl )
+{
+	BerElementBuffer berbuf;
+	BerElement	*ber = (BerElement *)&berbuf;
+
+	static struct berval	oid = BER_BVC( LDAP_CONTROL_X_SESSION_TRACKING_USERNAME );
+
+	assert( ctrl != NULL );
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+
+	ber_printf( ber, "{OOOO}", ip, name, &oid, id ); 
+
+	if ( ber_flatten2( ber, &ctrl->ldctl_value, 0 ) == -1 ) {
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
+	ctrl->ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
+	ctrl->ldctl_iscritical = 0;
+
+	rs->sr_err = LDAP_SUCCESS;
+
+done:;
+	return rs->sr_err;
+}
+
+int
+slap_ctrl_session_tracking_request_add( Operation *op, SlapReply *rs, LDAPControl *ctrl )
+{
+	static struct berval	bv_unknown = BER_BVC( SLAP_STRING_UNKNOWN );
+	struct berval		ip = BER_BVNULL,
+				name = BER_BVNULL,
+				id = BER_BVNULL;
+
+	if ( !BER_BVISNULL( &op->o_conn->c_peer_name ) &&
+		memcmp( op->o_conn->c_peer_name.bv_val, "IP=", STRLENOF( "IP=" ) ) == 0 )
+	{
+		char	*ptr;
+
+		ip.bv_val = op->o_conn->c_peer_name.bv_val + STRLENOF( "IP=" );
+		ip.bv_len = op->o_conn->c_peer_name.bv_len - STRLENOF( "IP=" );
+
+		ptr = ber_bvchr( &ip, ':' );
+		if ( ptr ) {
+			ip.bv_len = ptr - ip.bv_val;
+		}
+	}
+
+	if ( !BER_BVISNULL( &op->o_conn->c_peer_domain ) &&
+		!bvmatch( &op->o_conn->c_peer_domain, &bv_unknown ) )
+	{
+		name = op->o_conn->c_peer_domain;
+	}
+
+	if ( !BER_BVISNULL( &op->o_dn ) && !BER_BVISEMPTY( &op->o_dn ) ) {
+		id = op->o_dn;
+	}
+
+	return slap_ctrl_session_tracking_add( op, rs, &ip, &name, &id, ctrl );
 }
 #endif

@@ -69,6 +69,7 @@ enum {
 	LDAP_BACK_CFG_CONNPOOLMAX,
 	LDAP_BACK_CFG_CANCEL,
 	LDAP_BACK_CFG_QUARANTINE,
+	LDAP_BACK_CFG_ST_REQUEST,
 	LDAP_BACK_CFG_REWRITE,
 
 	LDAP_BACK_CFG_LAST
@@ -183,7 +184,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
-	{ "rebind-as-user", "NO|yes", 1, 2, 0,
+	{ "rebind-as-user", "true|FALSE", 1, 2, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_REBIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.10 "
 			"NAME 'olcDbRebindAsUser' "
@@ -191,7 +192,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "chase-referrals", "YES|no", 2, 2, 0,
+	{ "chase-referrals", "true|FALSE", 2, 2, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_CHASE,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.11 "
 			"NAME 'olcDbChaseReferrals' "
@@ -199,7 +200,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "t-f-support", "NO|yes|discover", 2, 2, 0,
+	{ "t-f-support", "true|FALSE|discover", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_T_F,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.12 "
 			"NAME 'olcDbTFSupport' "
@@ -207,7 +208,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "proxy-whoami", "NO|yes", 1, 2, 0,
+	{ "proxy-whoami", "true|FALSE", 1, 2, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_WHOAMI,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.13 "
 			"NAME 'olcDbProxyWhoAmI' "
@@ -223,7 +224,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "idle-timeout", "timeout", 2, 0, 0,
+	{ "idle-timeout", "timeout", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_IDLE_TIMEOUT,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.15 "
 			"NAME 'olcDbIdleTimeout' "
@@ -231,7 +232,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "conn-ttl", "ttl", 2, 0, 0,
+	{ "conn-ttl", "ttl", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_CONN_TTL,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.16 "
 			"NAME 'olcDbConnTtl' "
@@ -239,7 +240,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "network-timeout", "timeout", 2, 0, 0,
+	{ "network-timeout", "timeout", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_NETWORK_TIMEOUT,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.17 "
 			"NAME 'olcDbNetworkTimeout' "
@@ -247,7 +248,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "protocol-version", "version", 2, 0, 0,
+	{ "protocol-version", "version", 2, 2, 0,
 		ARG_MAGIC|ARG_INT|LDAP_BACK_CFG_VERSION,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.18 "
 			"NAME 'olcDbProtocolVersion' "
@@ -255,7 +256,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "single-conn", "TRUE/FALSE", 2, 0, 0,
+	{ "single-conn", "true|FALSE", 2, 2, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_SINGLECONN,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.19 "
 			"NAME 'olcDbSingleConn' "
@@ -263,7 +264,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "cancel", "ABANDON|ignore|exop", 2, 0, 0,
+	{ "cancel", "ABANDON|ignore|exop", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_CANCEL,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.20 "
 			"NAME 'olcDbCancel' "
@@ -271,7 +272,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "quarantine", "retrylist", 2, 0, 0,
+	{ "quarantine", "retrylist", 2, 2, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_QUARANTINE,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.21 "
 			"NAME 'olcDbQuarantine' "
@@ -279,7 +280,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "use-temporary-conn", "TRUE/FALSE", 2, 0, 0,
+	{ "use-temporary-conn", "true|FALSE", 2, 2, 0,
 		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_USETEMP,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.22 "
 			"NAME 'olcDbUseTemporaryConn' "
@@ -287,7 +288,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "conn-pool-max", "<n>", 2, 0, 0,
+	{ "conn-pool-max", "<n>", 2, 2, 0,
 		ARG_MAGIC|ARG_INT|LDAP_BACK_CFG_CONNPOOLMAX,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.23 "
 			"NAME 'olcDbConnectionPoolMax' "
@@ -295,6 +296,16 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsInteger "
 			"SINGLE-VALUE )",
 		NULL, NULL },
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	{ "session-tracking-request", "true|FALSE", 2, 2, 0,
+		ARG_MAGIC|ARG_ON_OFF|LDAP_BACK_CFG_ST_REQUEST,
+		ldap_back_cf_gen, "( OLcfgDbAt:3.24 "
+			"NAME 'olcDbSessionTrackingRequest' "
+			"DESC 'Add session tracking control to proxied requests' "
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 	{ "suffixmassage", "[virtual]> <real", 2, 3, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REWRITE,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -1117,6 +1128,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 			break;
 
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+		case LDAP_BACK_CFG_ST_REQUEST:
+			c->value_int = LDAP_BACK_ST_REQUEST( li );
+			break;
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+
 		default:
 			/* FIXME: we need to handle all... */
 			assert( 0 );
@@ -1232,6 +1249,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 			li->li_isquarantined = 0;
 			li->li_flags &= ~LDAP_BACK_F_QUARANTINE;
 			break;
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+		case LDAP_BACK_CFG_ST_REQUEST:
+			li->li_flags &= ~LDAP_BACK_F_ST_REQUEST;
+			break;
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
 		default:
 			/* FIXME: we need to handle all... */
@@ -1865,6 +1888,17 @@ done_url:;
 			li->li_flags |= LDAP_BACK_F_QUARANTINE;
 		}
 		break;
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	case LDAP_BACK_CFG_ST_REQUEST:
+		if ( c->value_int ) {
+			li->li_flags |= LDAP_BACK_F_ST_REQUEST;
+
+		} else {
+			li->li_flags &= ~LDAP_BACK_F_ST_REQUEST;
+		}
+		break;
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
 	case LDAP_BACK_CFG_REWRITE:
 		snprintf( c->cr_msg, sizeof( c->cr_msg ),

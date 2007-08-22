@@ -101,6 +101,13 @@ LDAP_BEGIN_DECL
 #define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
 #define SLAPD_ANONYMOUS ""
 
+#ifdef HAVE_TCPD
+# include <tcpd.h>
+# define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
+#else /* ! TCP Wrappers */
+# define SLAP_STRING_UNKNOWN	"unknown"
+#endif /* ! TCP Wrappers */
+
 /* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
  * This is a value used internally by the backends. It is needed to allow
  * adding values that already exist without getting an error as required by
