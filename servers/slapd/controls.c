@@ -107,6 +107,15 @@ static char *manageDSAit_extops[] = {
 	NULL
 };
 
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+static char *session_tracking_extops[] = {
+	LDAP_EXOP_MODIFY_PASSWD,
+	LDAP_EXOP_WHO_AM_I,
+	LDAP_EXOP_REFRESH,
+	NULL
+};
+#endif
+
 static struct slap_control control_defs[] = {
 	{  LDAP_CONTROL_ASSERT,
  		(int)offsetof(struct slap_control_ids, sc_assert),
@@ -204,7 +213,7 @@ static struct slap_control control_defs[] = {
 	{ LDAP_CONTROL_X_SESSION_TRACKING,
  		(int)offsetof(struct slap_control_ids, sc_sessionTracking),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS|SLAP_CTRL_BIND|SLAP_CTRL_HIDE,
-		NULL, NULL,
+		session_tracking_extops, NULL,
 		parseSessionTracking, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ NULL, 0, 0, NULL, 0, NULL, LDAP_SLIST_ENTRY_INITIALIZER(next) }
