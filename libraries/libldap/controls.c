@@ -427,7 +427,6 @@ ldap_create_control(
 	LDAPControl *ctrl;
 
 	assert( requestOID != NULL );
-	assert( ber != NULL );
 	assert( ctrlp != NULL );
 
 	ctrl = (LDAPControl *) LDAP_MALLOC( sizeof(LDAPControl) );
@@ -435,7 +434,8 @@ ldap_create_control(
 		return LDAP_NO_MEMORY;
 	}
 
-	if ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
+    ctrl->ldctl_value = NULL;
+	if ( ber && ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 )) {
 		LDAP_FREE( ctrl );
 		return LDAP_NO_MEMORY;
 	}
