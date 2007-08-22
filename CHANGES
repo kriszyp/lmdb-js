@@ -1,6 +1,7 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.39 Engineering
+	Fixed slapd-sql concurrency issue (ITS#5095)
 	Fixed libldap ppolicy control creation (ITS#5103)
 	Documentation
 		Added slapd-sql empty oc mapping workaround (ITS#4785)

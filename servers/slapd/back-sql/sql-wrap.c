@@ -345,6 +345,7 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 {
 	/* TimesTen */
 	char			DBMSName[ 32 ];
+	SQLHDBC			dbh = SQL_NULL_HDBC;
 	backsql_db_conn		*dbc;
 	int			rc;
 
@@ -354,9 +355,7 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_open_db_conn(%lu)\n",
 		ldap_cid, 0, 0 );
 
-	dbc = (backsql_db_conn *)ch_calloc( 1, sizeof( backsql_db_conn ) );
-	dbc->ldap_cid = ldap_cid;
-	rc = SQLAllocConnect( bi->sql_db_env, &dbc->dbh );
+	rc = SQLAllocConnect( bi->sql_db_env, &dbh );
 	if ( !BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
 			"SQLAllocConnect() failed:\n", ldap_cid, 0, 0 );
@@ -365,7 +364,7 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 		return LDAP_UNAVAILABLE;
 	}
 
-	rc = SQLConnect( dbc->dbh,
+	rc = SQLConnect( dbh,
 			(SQLCHAR*)bi->sql_dbname, SQL_NTS,
 			(SQLCHAR*)bi->sql_dbuser, SQL_NTS,
 			(SQLCHAR*)bi->sql_dbpasswd, SQL_NTS );
@@ -375,8 +374,9 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 			ldap_cid, bi->sql_dbname,
 			rc == SQL_SUCCESS_WITH_INFO ?
 			"succeeded with info" : "failed" );
-		backsql_PrintErrors( bi->sql_db_env, dbc->dbh, SQL_NULL_HENV, rc );
+		backsql_PrintErrors( bi->sql_db_env, dbh, SQL_NULL_HENV, rc );
 		if ( rc != SQL_SUCCESS_WITH_INFO ) {
+			SQLFreeConnect( dbh );
 			return LDAP_UNAVAILABLE;
 		}
 	}
@@ -385,7 +385,7 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 	 * TimesTen : Turn off autocommit.  We must explicitly
 	 * commit any transactions. 
 	 */
-	SQLSetConnectOption( dbc->dbh, SQL_AUTOCOMMIT, SQL_AUTOCOMMIT_OFF );
+	SQLSetConnectOption( dbh, SQL_AUTOCOMMIT, SQL_AUTOCOMMIT_OFF );
 
 	/* 
 	 * See if this connection is to TimesTen.  If it is,
@@ -394,7 +394,7 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 	/* Assume until proven otherwise */
 	bi->sql_flags &= ~BSQLF_USE_REVERSE_DN;
 	DBMSName[ 0 ] = '\0';
-	rc = SQLGetInfo( dbc->dbh, SQL_DBMS_NAME, (PTR)&DBMSName,
+	rc = SQLGetInfo( dbh, SQL_DBMS_NAME, (PTR)&DBMSName,
 			sizeof( DBMSName ), NULL );
 	if ( rc == SQL_SUCCESS ) {
 		if ( strcmp( DBMSName, "TimesTen" ) == 0 ||
@@ -403,28 +403,23 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 				"TimesTen database!\n", ldap_cid, 0, 0 );
 			bi->sql_flags |= BSQLF_USE_REVERSE_DN;
 		}
+
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
 			"SQLGetInfo() failed.\n", ldap_cid, 0, 0 );
-		backsql_PrintErrors( bi->sql_db_env, dbc->dbh, SQL_NULL_HENV, rc );
-		return rc;
+		backsql_PrintErrors( bi->sql_db_env, dbh, SQL_NULL_HENV, rc );
 	}
 	/* end TimesTen */
 
-	Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
-		"connected, adding to tree.\n", ldap_cid, 0, 0 );
-	ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
-	if ( avl_insert( &bi->sql_db_conns, dbc, backsql_cmp_connid, avl_dup_error ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
-			"duplicate connection ID.\n", ldap_cid, 0, 0 );
-		return LDAP_OTHER;
-	}
-	ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn(%lu)\n", ldap_cid, 0, 0 );
+	dbc = (backsql_db_conn *)ch_calloc( 1, sizeof( backsql_db_conn ) );
+	dbc->ldap_cid = ldap_cid;
+	dbc->dbh = dbh;
 
 	*pdbc = dbc;
 
-	return LDAP_SUCCESS;
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn(%lu)\n", ldap_cid, 0, 0 );
+
+	return rc;
 }
 
 int
@@ -475,7 +470,9 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 	 * we have one thread per connection, as I understand -- 
 	 * so we do not need locking here
 	 */
+	ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
 	dbc = avl_find( bi->sql_db_conns, &tmp, backsql_cmp_connid );
+	ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
 	if ( !dbc ) {
 		rc = backsql_open_db_conn( bi, op->o_connid, &dbc );
 		if ( rc != LDAP_SUCCESS) {
@@ -483,21 +480,26 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 				"could not get connection handle "
 				"-- returning NULL\n", 0, 0, 0 );
 			return rc;
-		}
-	}
 
-	ldap_pvt_thread_mutex_lock( &bi->sql_schema_mutex );
-	if ( !BACKSQL_SCHEMA_LOADED( bi ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
-			"first call -- reading schema map\n", 0, 0, 0 );
-		rc = backsql_load_schema_map( bi, dbc->dbh );
-		if ( rc != LDAP_SUCCESS ) {
-			ldap_pvt_thread_mutex_unlock( &bi->sql_schema_mutex );
-			backsql_free_db_conn( op );
-			return rc;
+		} else {
+			int	ret;
+
+			Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+				"connected, adding to tree.\n",
+				op->o_connid, 0, 0 );
+			ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
+			ret = avl_insert( &bi->sql_db_conns, dbc, backsql_cmp_connid, avl_dup_error );
+			ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
+			if ( ret != 0 ) {
+				Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(%lu): "
+					"duplicate connection ID.\n",
+					op->o_connid, 0, 0 );
+				backsql_close_db_conn( (void *)dbc );
+				dbc = NULL;
+				return LDAP_OTHER;
+			}
 		}
 	}
-	ldap_pvt_thread_mutex_unlock( &bi->sql_schema_mutex );
 
 	*dbh = dbc->dbh;
 

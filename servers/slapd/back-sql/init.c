@@ -477,7 +477,11 @@ backsql_db_open(
 			"connection failed, exiting\n", 0, 0, 0 );
 		return 1;
 	}
-
+	if ( backsql_load_schema_map( bi, dbh ) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"schema mapping failed, exiting\n", 0, 0, 0 );
+		return 1;
+	}
 	if ( backsql_free_db_conn( op ) != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"connection free failed\n", 0, 0, 0 );
