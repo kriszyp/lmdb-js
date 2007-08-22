@@ -72,25 +72,8 @@ do_add( Operation *op, SlapReply *rs )
 		return SLAPD_DISCONNECT;
 	}
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
-		op->o_tmpmemctx );
-
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "%s do_add: invalid dn (%s)\n",
-			op->o_log_prefix, dn.bv_val, 0 );
-		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
-		goto done;
-	}
-
-	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
-	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
-
-	op->ora_e = entry_alloc();
-	ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
-	ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
-
 	Debug( LDAP_DEBUG_ARGS, "%s do_add: dn (%s)\n",
-		op->o_log_prefix, op->ora_e->e_dn, 0 );
+		op->o_log_prefix, dn.bv_val, 0 );
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -145,6 +128,23 @@ do_add( Operation *op, SlapReply *rs )
 			op->o_log_prefix, 0, 0 );
 		goto done;
 	} 
+
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
+		op->o_tmpmemctx );
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "%s do_add: invalid dn (%s)\n",
+			op->o_log_prefix, dn.bv_val, 0 );
+		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
+		goto done;
+	}
+
+	op->ora_e = entry_alloc();
+	ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
+	ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
+
+	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
 	if ( modlist == NULL ) {
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
