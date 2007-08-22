@@ -414,12 +414,15 @@ refint_search_cb(
 					if ( !BER_BVISEMPTY( &rq->newdn ) &&
 						b[i].bv_len != rq->oldndn.bv_len )
 					{
-						struct berval	newsub, newdn;
+						struct berval	newsub, newdn, olddn, oldndn;
 
 						/* if not first, save first as well */
 						if ( first != -1 ) {
-							ber_bvarray_add_x( &na->old_vals, &a->a_vals[first], op->o_tmpmemctx );
-							ber_bvarray_add_x( &na->old_nvals, &a->a_nvals[first], op->o_tmpmemctx );
+
+							ber_dupbv_x( &olddn, &a->a_vals[first], op->o_tmpmemctx );
+							ber_bvarray_add_x( &na->old_vals, &olddn, op->o_tmpmemctx );
+							ber_dupbv_x( &oldndn, &a->a_nvals[first], op->o_tmpmemctx );
+							ber_bvarray_add_x( &na->old_nvals, &oldndn, op->o_tmpmemctx );
 
 							newsub = a->a_vals[first];
 							newsub.bv_len -= rq->olddn.bv_len + 1;
@@ -438,8 +441,10 @@ refint_search_cb(
 							first = -1;
 						}
 
-						ber_bvarray_add_x( &na->old_vals, &a->a_vals[i], op->o_tmpmemctx );
-						ber_bvarray_add_x( &na->old_nvals, &a->a_nvals[i], op->o_tmpmemctx );
+						ber_dupbv_x( &olddn, &a->a_vals[i], op->o_tmpmemctx );
+						ber_bvarray_add_x( &na->old_vals, &olddn, op->o_tmpmemctx );
+						ber_dupbv_x( &oldndn, &a->a_nvals[i], op->o_tmpmemctx );
+						ber_bvarray_add_x( &na->old_nvals, &oldndn, op->o_tmpmemctx );
 
 						newsub = a->a_vals[i];
 						newsub.bv_len -= rq->olddn.bv_len + 1;
