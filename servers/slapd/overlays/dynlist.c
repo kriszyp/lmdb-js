@@ -58,6 +58,8 @@ static AttributeName anlist_no_attrs[] = {
 static AttributeName *slap_anlist_no_attrs = anlist_no_attrs;
 #endif
 
+static AttributeDescription *ad_dgIdentity;
+
 typedef struct dynlist_info_t {
 	ObjectClass		*dli_oc;
 	AttributeDescription	*dli_ad;
@@ -315,7 +317,7 @@ done:;
 static int
 dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 {
-	Attribute	*a;
+	Attribute	*a, *id = NULL;
 	slap_callback	cb;
 	Operation	o = *op;
 	SlapReply	r = { REP_SEARCH };
@@ -338,6 +340,12 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		e = rs->sr_entry;
 	}
 	e_flags = rs->sr_flags | ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
+
+	if ( ad_dgIdentity && ( id = attrs_find( e->e_attrs, ad_dgIdentity ))) {
+		o.o_dn = id->a_vals[0];
+		o.o_ndn = id->a_nvals[0];
+		o.o_groups = NULL;
+	}
 
 	dlc.dlc_e = e;
 	dlc.dlc_dli = dli;
@@ -486,6 +494,9 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		}
 
 cleanup:;
+		if ( id ) {
+			slap_op_groups_free( &o );
+		}
 		if ( o.ors_filter ) {
 			filter_free_x( &o, o.ors_filter );
 		}
@@ -531,6 +542,8 @@ dynlist_compare( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	Operation o = *op;
+	Entry *e;
 
 	for ( ; dli != NULL; dli = dli->dli_next ) {
 		if ( op->oq_compare.rs_ava->aa_desc == dli->dli_member_ad ) {
@@ -538,12 +551,18 @@ dynlist_compare( Operation *op, SlapReply *rs )
 			 * interested in. We'll use slapd's existing dyngroup
 			 * evaluator to get the answer we want.
 			 */
-			int cache = op->o_do_not_cache;
-				
-			op->o_do_not_cache = 1;
-			rs->sr_err = backend_group( op, NULL, &op->o_req_ndn,
-				&op->oq_compare.rs_ava->aa_value, dli->dli_oc, dli->dli_ad );
-			op->o_do_not_cache = cache;
+			struct berval *id = NULL;
+
+			o.o_do_not_cache = 1;
+
+			if ( ad_dgIdentity && backend_attribute( &o, NULL, &o.o_req_ndn,
+				ad_dgIdentity, &id, ACL_READ ) == LDAP_SUCCESS ) {
+				o.o_dn = *id;
+				o.o_ndn = *id;
+				o.o_groups = NULL; /* authz changed, invalidate cached groups */
+			}
+			rs->sr_err = backend_group( &o, NULL, &o.o_req_ndn,
+				&o.oq_compare.rs_ava->aa_value, dli->dli_oc, dli->dli_ad );
 			switch ( rs->sr_err ) {
 			case LDAP_SUCCESS:
 				rs->sr_err = LDAP_COMPARE_TRUE;
@@ -561,45 +580,35 @@ dynlist_compare( Operation *op, SlapReply *rs )
 				break;
 			}
 
+			if ( id ) ber_bvarray_free_x( id, o.o_tmpmemctx );
+
 			return SLAP_CB_CONTINUE;
 		}
 	}
 
+	if ( be_entry_get_rw( &o, &o.o_req_ndn, NULL, NULL, 0, &e ) !=
+		LDAP_SUCCESS || e == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+	if ( ad_dgIdentity ) {
+		Attribute *id = attrs_find( e->e_attrs, ad_dgIdentity );
+		if ( id ) {
+			o.o_dn = id->a_vals[0];
+			o.o_ndn = id->a_nvals[0];
+			o.o_groups = NULL;
+		}
+	}
 	dli = (dynlist_info_t *)on->on_bi.bi_private;
 	for ( ; dli != NULL && rs->sr_err != LDAP_COMPARE_TRUE; dli = dli->dli_next ) {
 		Attribute	*a;
 		slap_callback	cb;
-		Operation	o = *op;
 		SlapReply	r = { REP_SEARCH };
 		AttributeName	an[2];
 		int		rc;
 		dynlist_sc_t	dlc = { 0 };
-		Entry		*e;
 
-		int cache = op->o_do_not_cache;
-		struct berval	op_dn = op->o_dn,
-				op_ndn = op->o_ndn;
-		BackendDB	*op_bd = op->o_bd;
-
-		/* fetch the entry as rootdn (a hack to see if it exists
-		 * and if it has the right objectClass) */
-		op->o_do_not_cache = 1;
-		op->o_dn = op->o_bd->be_rootdn;
-		op->o_ndn = op->o_bd->be_rootndn;
-		op->o_bd = select_backend( &op->o_req_ndn, 0 );
-
-		r.sr_err = be_entry_get_rw( op, &op->o_req_ndn,
-			dli->dli_oc, NULL, 0, &e );
-		if ( e != NULL ) {
-			be_entry_release_r( op, e );
-		}
-		op->o_do_not_cache = cache;
-		op->o_dn = op_dn;
-		op->o_ndn = op_ndn;
-		op->o_bd = op_bd;
-		if ( r.sr_err != LDAP_SUCCESS ) {
+		if ( !is_entry_objectclass_or_sub( e, dli->dli_oc ))
 			continue;
-		}
 
 		/* if the entry has the right objectClass, generate
 		 * the dynamic list and compare */
@@ -639,6 +648,10 @@ dynlist_compare( Operation *op, SlapReply *rs )
 
 		rc = o.o_bd->be_search( &o, &r );
 		filter_free_x( &o, o.ors_filter );
+
+		if ( o.o_dn.bv_val != op->o_dn.bv_val ) {
+			slap_op_groups_free( &o );
+		}
 
 		if ( rc != 0 ) {
 			return rc;
@@ -1279,6 +1292,8 @@ dynlist_db_open(
 	dynlist_info_t		*dli = (dynlist_info_t *)on->on_bi.bi_private;
 	ObjectClass		*oc = NULL;
 	AttributeDescription	*ad = NULL;
+	const char	*text;
+	int rc;
 
 	if ( dli == NULL ) {
 		dli = ch_calloc( 1, sizeof( dynlist_info_t ) );
@@ -1286,16 +1301,12 @@ dynlist_db_open(
 	}
 
 	for ( ; dli; dli = dli->dli_next ) {
-		const char	*text;
-		int		rc;
-
 		if ( dli->dli_oc == NULL ) {
 			if ( oc == NULL ) {
 				oc = oc_find( "groupOfURLs" );
 				if ( oc == NULL ) {
-					Debug( LDAP_DEBUG_ANY, "dynlist_db_open: "
-						"unable to fetch objectClass \"groupOfURLs\".\n",
-						0, 0, 0 );
+					sprintf( cr->msg, "unable to fetch objectClass \"groupOfURLs\"" );
+					Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s.\n", cr->msg, 0, 0 );
 					return 1;
 				}
 			}
@@ -1307,9 +1318,9 @@ dynlist_db_open(
 			if ( ad == NULL ) {
 				rc = slap_str2ad( "memberURL", &ad, &text );
 				if ( rc != LDAP_SUCCESS ) {
-					Debug( LDAP_DEBUG_ANY, "dynlist_db_open: "
-						"unable to fetch attributeDescription \"memberURL\": %d (%s).\n",
-						rc, text, 0 );
+					sprintf( cr->msg, "unable to fetch attributeDescription \"memberURL\": %d (%s)",
+						rc, text );
+					Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s.\n", cr->msg, 0, 0 );
 					return 1;
 				}
 			}
@@ -1323,6 +1334,14 @@ dynlist_db_open(
 				return rc;
 			}
 		}
+	}
+
+	rc = slap_str2ad( "dgIdentity", &ad_dgIdentity, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		sprintf( cr->msg, "unable to fetch attributeDescription \"dgIdentity\": %d (%s)",
+			rc, text );
+		Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
+		/* Just a warning */
 	}
 
 	return 0;
