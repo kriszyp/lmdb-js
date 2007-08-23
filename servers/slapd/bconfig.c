@@ -245,6 +245,7 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:14			-> translucent
  * OLcfgOv{Oc|At}:15			-> auditlog
  * OLcfgOv{Oc|At}:16			-> rwm
+ * OLcfgOv{Oc|At}:17			-> dyngroup
  */
 
 /* alphabetical ordering */
