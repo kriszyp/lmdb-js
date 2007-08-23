@@ -1378,8 +1378,8 @@ tool_bind( LDAP *ld )
 			int expire, grace, len = 0;
 			LDAPPasswordPolicyError pErr = -1;
 			
-			ctrl = ldap_find_control( LDAP_CONTROL_PASSWORDPOLICYRESPONSE,
-				ctrls );
+			ctrl = ldap_control_find( LDAP_CONTROL_PASSWORDPOLICYRESPONSE,
+				ctrls, NULL );
 
 			if ( ctrl && ldap_parse_passwordpolicy_control( ld, ctrl,
 				&expire, &grace, &pErr ) == LDAP_SUCCESS )
