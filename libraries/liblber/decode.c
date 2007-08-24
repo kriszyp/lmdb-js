@@ -419,7 +419,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 	case BvOff:
 		*b->res.ba = ber_memalloc_x( (n+1) * b->siz, b->ber->ber_memctx );
 		if ( *b->res.ba == NULL ) return LBER_DEFAULT;
-		((struct berval *)((long)(*b->res.ba) + n*b->siz +
+		((struct berval *)((char *)(*b->res.ba) + n*b->siz +
 			b->off))->bv_val = NULL;
 		break;
 	}
@@ -452,7 +452,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 			*bvp = bv;
 			break;
 		case BvOff:
-			*(BerVarray)((long)(*b->res.ba)+n*b->siz+b->off) = bv;
+			*(BerVarray)((char *)(*b->res.ba)+n*b->siz+b->off) = bv;
 			break;
 		}
 	}
