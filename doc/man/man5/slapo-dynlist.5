@@ -89,6 +89,18 @@ In case the URI expansion is very resource-intensive and occurs frequently
 with well-defined patterns, one should consider adding a proxycache
 later on in the overlay stack.
 
+.SH AUTHORIZATION
+By default the expansions are performed using the identity of the current
+LDAP user. This identity may be overridden by setting the
+.B dgIdentity
+attribute to the DN of another LDAP user. In that case the dgIdentity
+will be used when expanding the URIs in the object. Setting the dgIdentity
+to a zero-length string will cause the expansions to be performed
+anonymously. Note that the dgIdentity attribute is defined in the
+.B dyngroup
+schema, and this schema must be loaded before the dgIdentity
+authorization feature may be used.
+
 .SH EXAMPLE
 This example collects all the email addresses of a database into a single
 entry; first of all, make sure that slapd.conf contains the directives:
@@ -134,6 +146,18 @@ attribute:
     dynlist-attrset groupOfURLs memberURL member
 .fi
 .LP
+
+A dynamic group with dgIdentity authorization could be created with an
+entry like
+.LP
+.nf
+    dn: cn=Dynamic Group,ou=Groups,dc=example,dc=com
+    objectClass: groupOfURLs
+    objectClass: dgIdentityAux
+    cn: Dynamic Group
+    memberURL: ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)
+    dgIdentity: cn=Group Proxy,ou=Services,dc=example,dc=com
+.fi
 
 .SH FILES
 .TP
