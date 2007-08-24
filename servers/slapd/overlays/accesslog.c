@@ -168,6 +168,7 @@ static ObjectClass *log_ocs[LOG_EN__COUNT], *log_container;
 
 #define LOG_SCHEMA_AT LOG_SCHEMA_ROOT ".1"
 #define LOG_SCHEMA_OC LOG_SCHEMA_ROOT ".2"
+#define LOG_SCHEMA_SYN LOG_SCHEMA_ROOT ".3"
 
 static AttributeDescription *ad_reqDN, *ad_reqStart, *ad_reqEnd, *ad_reqType,
 	*ad_reqSession, *ad_reqResult, *ad_reqAuthzID, *ad_reqControls,
@@ -177,6 +178,31 @@ static AttributeDescription *ad_reqDN, *ad_reqStart, *ad_reqEnd, *ad_reqType,
 	*ad_reqSizeLimit, *ad_reqTimeLimit, *ad_reqAttrsOnly, *ad_reqData,
 	*ad_reqId, *ad_reqMessage, *ad_reqVersion, *ad_reqDerefAliases,
 	*ad_reqReferral, *ad_reqOld, *ad_auditContext;
+
+static int
+logSchemaControlValidate(
+	Syntax		*syntax,
+	struct berval	*val );
+
+char	*mrControl[] = {
+	"objectIdentifierFirstComponentMatch",
+	NULL
+};
+
+static struct {
+	char			*oid;
+	slap_syntax_defs_rec	syn;
+	char			**mrs;
+} lsyntaxes[] = {
+	{ LOG_SCHEMA_SYN ".1" ,
+		{ "( " LOG_SCHEMA_SYN ".1 DESC 'Control' )",
+			SLAP_SYNTAX_HIDE,
+			NULL,
+			logSchemaControlValidate,
+			NULL },
+		mrControl },
+	{ NULL }
+};
 
 static struct {
 	char *at;
@@ -231,11 +257,13 @@ static struct {
 		"SUP labeledURI )", &ad_reqReferral },
 	{ "( " LOG_SCHEMA_AT ".10 NAME 'reqControls' "
 		"DESC 'Request controls' "
-		"SYNTAX OMsOctetString "
+		"EQUALITY objectIdentifierFirstComponentMatch "
+		"SYNTAX " LOG_SCHEMA_SYN ".1 "
 		"X-ORDERED 'VALUES' )", &ad_reqControls },
 	{ "( " LOG_SCHEMA_AT ".11 NAME 'reqRespControls' "
 		"DESC 'Response controls of request' "
-		"SYNTAX OMsOctetString "
+		"EQUALITY objectIdentifierFirstComponentMatch "
+		"SYNTAX " LOG_SCHEMA_SYN ".1 "
 		"X-ORDERED 'VALUES' )", &ad_reqRespControls },
 	{ "( " LOG_SCHEMA_AT ".12 NAME 'reqId' "
 		"DESC 'ID of Request to Abandon' "
@@ -850,50 +878,269 @@ log_cf_gen(ConfigArgs *c)
 }
 
 static int
-accesslog_ctrls( LDAPControl **ctrls, BerVarray *valsp, void *memctx )
+logSchemaControlValidate(
+	Syntax		*syntax,
+	struct berval	*valp )
 {
-	int			i, rc = 0;
+	struct berval	val, bv;
+	int		i;
+	int		rc = LDAP_SUCCESS;
+
+	assert( valp != NULL );
+
+	val = *valp;
+
+	/* check minimal size */
+	if ( val.bv_len < STRLENOF( "{*}" ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	val.bv_len--;
+
+	/* check SEQUENCE boundaries */
+	if ( val.bv_val[ 0 ] != '{' /*}*/ ||
+		val.bv_val[ val.bv_len ] != /*{*/ '}' )
+	{
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/* extract and check OID */
+	for ( i = 1; i < val.bv_len; i++ ) {
+		if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
+			break;
+		}
+	}
+
+	bv.bv_val = &val.bv_val[ i ];
+
+	for ( i++; i < val.bv_len; i++ ) {
+		if ( ASCII_SPACE( val.bv_val[ i ] ) )
+		{
+			break;
+		}
+	}
+
+	bv.bv_len = &val.bv_val[ i ] - bv.bv_val;
+
+	rc = numericoidValidate( NULL, &bv );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	if ( i == val.bv_len ) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( val.bv_val[ i ] != ' ' ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	for ( i++; i < val.bv_len; i++ ) {
+		if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
+			break;
+		}
+	}
+
+	if ( i == val.bv_len ) {
+		return LDAP_SUCCESS;
+	}
+
+	/* extract and check criticality */
+	if ( strncasecmp( &val.bv_val[ i ], "criticality ", STRLENOF( "criticality " ) ) == 0 )
+	{
+		i += STRLENOF( "criticality " );
+		for ( ; i < val.bv_len; i++ ) {
+			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
+				break;
+			}
+		}
+
+		if ( i == val.bv_len ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		bv.bv_val = &val.bv_val[ i ];
+
+		for ( ; i < val.bv_len; i++ ) {
+			if ( ASCII_SPACE( val.bv_val[ i ] ) ) {
+				break;
+			}
+		}
+
+		bv.bv_len = &val.bv_val[ i ] - bv.bv_val;
+
+		if ( !bvmatch( &bv, &slap_true_bv ) && !bvmatch( &bv, &slap_false_bv ) ) 
+		{
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		if ( i == val.bv_len ) {
+			return LDAP_SUCCESS;
+		}
+
+		if ( val.bv_val[ i ] != ' ' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		for ( i++; i < val.bv_len; i++ ) {
+			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
+				break;
+			}
+		}
+
+		if ( i == val.bv_len ) {
+			return LDAP_SUCCESS;
+		}
+	}
+
+	/* extract and check controlValue */
+	if ( strncasecmp( &val.bv_val[ i ], "controlValue ", STRLENOF( "controlValue " ) ) == 0 )
+	{
+		i += STRLENOF( "controlValue " );
+		for ( ; i < val.bv_len; i++ ) {
+			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
+				break;
+			}
+		}
+
+		if ( i == val.bv_len ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		if ( val.bv_val[ i ] != '"' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		for ( ; i < val.bv_len; i++ ) {
+			if ( val.bv_val[ i ] == '"' ) {
+				break;
+			}
+
+			if ( !ASCII_HEX( val.bv_val[ i ] ) ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
+
+		if ( val.bv_val[ i ] != '"' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		for ( ; i < val.bv_len; i++ ) {
+			if ( !ASCII_SPACE( val.bv_val[ i ] ) ) {
+				break;
+			}
+		}
+
+		if ( i == val.bv_len ) {
+			return LDAP_SUCCESS;
+		}
+	}
+
+	return LDAP_INVALID_SYNTAX;
+}
+
+static int
+accesslog_ctrls(
+	LDAPControl **ctrls,
+	BerVarray *valsp,
+	BerVarray *nvalsp,
+	void *memctx )
+{
+	long		i, rc = 0;
 
 	assert( valsp != NULL );
 	assert( ctrls != NULL );
 
 	*valsp = NULL;
+	*nvalsp = NULL;
 
 	for ( i = 0; ctrls[ i ] != NULL; i++ ) {
-		BerElementBuffer	berbuf;
-		BerElement		*ber = (BerElement *)&berbuf;
+		struct berval	idx,
+				oid,
+				noid,
+				bv;
+		char		*ptr,
+				buf[ 32 ];
 
-		ber_init2( ber, NULL, LBER_USE_DER );
-
-		if ( ldap_pvt_put_control( ctrls[ i ], ber ) != LDAP_SUCCESS ) {
-			rc++;
-
-		} else {
-			struct berval		ctrlbv;
-
-			if ( ber_flatten2( ber, &ctrlbv, 0 ) == -1 ) {
-				rc++;
-
-			} else {
-				struct berval	bv;
-				char		buf[ 32 ], *ptr;
-
-				bv.bv_len = snprintf( buf,
-					sizeof( buf ), "{%d}", i );
-				bv.bv_len += ctrlbv.bv_len;
-				ptr = bv.bv_val = ch_malloc( bv.bv_len + 1 );
-				ptr = lutil_strcopy( ptr, buf );
-				AC_MEMCPY( ptr, ctrlbv.bv_val, ctrlbv.bv_len );
-				bv.bv_val[ bv.bv_len ] = '\0';
-
-				ber_bvarray_add_x( valsp, &bv, memctx );
-			}
+		if ( ctrls[ i ]->ldctl_oid == NULL ) {
+			return LDAP_PROTOCOL_ERROR;
 		}
 
-		(void)ber_free_buf( ber );
+		idx.bv_len = snprintf( buf, sizeof( buf ), "{%ld}", i );
+		idx.bv_val = buf;
+
+		ber_str2bv( ctrls[ i ]->ldctl_oid, 0, 0, &oid );
+		noid.bv_len = idx.bv_len + oid.bv_len;
+		ptr = noid.bv_val = ber_memalloc_x( noid.bv_len + 1, memctx );
+		ptr = lutil_strcopy( ptr, idx.bv_val );
+		ptr = lutil_strcopy( ptr, oid.bv_val );
+
+		bv.bv_len = idx.bv_len + STRLENOF( "{}" ) + oid.bv_len;
+
+		if ( ctrls[ i ]->ldctl_iscritical ) {
+			bv.bv_len += STRLENOF( " criticality TRUE" );
+		}
+
+		if ( !BER_BVISNULL( &ctrls[ i ]->ldctl_value ) ) {
+			bv.bv_len += STRLENOF( " controlValue \"\"" )
+				+ 2 * ctrls[ i ]->ldctl_value.bv_len;
+		}
+
+		ptr = bv.bv_val = ber_memalloc_x( bv.bv_len + 1, memctx );
+		if ( ptr == NULL ) {
+			ber_bvarray_free( *valsp );
+			*valsp = NULL;
+			ber_bvarray_free( *nvalsp );
+			*nvalsp = NULL;
+			return LDAP_OTHER;
+		}
+
+		ptr = lutil_strcopy( ptr, idx.bv_val );
+
+		*ptr++ = '{' /*}*/ ;
+		ptr = lutil_strcopy( ptr, oid.bv_val );
+
+		if ( ctrls[ i ]->ldctl_iscritical ) {
+			ptr = lutil_strcopy( ptr, " criticality TRUE" );
+		}
+		
+		if ( !BER_BVISNULL( &ctrls[ i ]->ldctl_value ) ) {
+			int	j;
+
+			ptr = lutil_strcopy( ptr, " controlValue \"" );
+			for ( j = 0; j < ctrls[ i ]->ldctl_value.bv_len; j++ )
+			{
+				unsigned char	o;
+
+				o = ( ( ctrls[ i ]->ldctl_value.bv_val[ j ] >> 4 ) & 0xF );
+				if ( o < 10 ) {
+					*ptr++ = '0' + o;
+
+				} else {
+					*ptr++ = 'A' + o;
+				}
+
+				o = ( ctrls[ i ]->ldctl_value.bv_val[ j ] & 0xF );
+				if ( o < 10 ) {
+					*ptr++ = '0' + o;
+
+				} else {
+					*ptr++ = 'A' + o;
+				}
+			}
+
+			*ptr++ = '"';
+		}
+
+		*ptr++ = '}';
+		*ptr = '\0';
+
+		ber_bvarray_add_x( valsp, &bv, memctx );
+		ber_bvarray_add_x( nvalsp, &noid, memctx );
 	}
 
 	return rc;
+	
 }
 
 static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
@@ -974,22 +1221,28 @@ static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
 
 	/* FIXME: need to add reqControls and reqRespControls */
 	if ( op->o_ctrls ) {
-		BerVarray	vals = NULL;
+		BerVarray	vals = NULL,
+				nvals = NULL;
 
-		(void)accesslog_ctrls( op->o_ctrls, &vals, op->o_tmpmemctx );
-		if ( vals != NULL ) {
-			attr_merge( e, ad_reqControls, vals, NULL );
+		if ( accesslog_ctrls( op->o_ctrls, &vals, &nvals,
+			op->o_tmpmemctx ) == LDAP_SUCCESS && vals )
+		{
+			attr_merge( e, ad_reqControls, vals, nvals );
 			ber_bvarray_free_x( vals, op->o_tmpmemctx );
+			ber_bvarray_free_x( nvals, op->o_tmpmemctx );
 		}
 	}
 
 	if ( rs->sr_ctrls ) {
-		BerVarray	vals = NULL;
+		BerVarray	vals = NULL,
+				nvals = NULL;
 
-		(void)accesslog_ctrls( rs->sr_ctrls, &vals, op->o_tmpmemctx );
-		if ( vals != NULL ) {
-			attr_merge( e, ad_reqRespControls, vals, NULL );
+		if ( accesslog_ctrls( rs->sr_ctrls, &vals, &nvals,
+			op->o_tmpmemctx ) == LDAP_SUCCESS && vals )
+		{
+			attr_merge( e, ad_reqRespControls, vals, nvals );
 			ber_bvarray_free_x( vals, op->o_tmpmemctx );
+			ber_bvarray_free_x( nvals, op->o_tmpmemctx );
 		}
 
 	}
@@ -1741,23 +1994,51 @@ int accesslog_initialize()
 	if ( rc ) return rc;
 
 	/* log schema integration */
+	for ( i=0; lsyntaxes[i].oid; i++ ) {
+		int code;
+
+		code = register_syntax( &lsyntaxes[ i ].syn );
+		if ( code != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"accesslog_init: register_syntax failed\n",
+				0, 0, 0 );
+			return code;
+		}
+
+		if ( lsyntaxes[i].mrs != NULL ) {
+			code = mr_make_syntax_compat_with_mrs(
+				lsyntaxes[i].oid, lsyntaxes[i].mrs );
+			if ( code < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"accesslog_init: "
+					"mr_make_syntax_compat_with_mrs "
+					"failed\n",
+					0, 0, 0 );
+				return code;
+			}
+		}
+	}
+
 	for ( i=0; lattrs[i].at; i++ ) {
 		int code;
 
 		code = register_at( lattrs[i].at, lattrs[i].ad, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"accesslog_init: register_at failed\n", 0, 0, 0 );
+				"accesslog_init: register_at failed\n",
+				0, 0, 0 );
 			return -1;
 		}
 	}
+
 	for ( i=0; locs[i].ot; i++ ) {
 		int code;
 
 		code = register_oc( locs[i].ot, locs[i].oc, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"accesslog_init: register_oc failed\n", 0, 0, 0 );
+				"accesslog_init: register_oc failed\n",
+				0, 0, 0 );
 			return -1;
 		}
 	}
