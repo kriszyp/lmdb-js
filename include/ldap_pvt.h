@@ -194,6 +194,7 @@ LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 								LDAP_HEXLOWER(c) || LDAP_HEXUPPER(c))
 
 /* controls.c */
+struct ldapcontrol;
 LDAP_F (int)
 ldap_pvt_put_control LDAP_P((
 	const struct ldapcontrol *c,
