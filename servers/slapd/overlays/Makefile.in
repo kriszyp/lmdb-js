@@ -20,6 +20,7 @@ SRCS = overlays.c \
 	dds.c \
 	dyngroup.c \
 	dynlist.c \
+	memberof.c \
 	pcache.c \
 	ppolicy.c \
 	refint.c \
@@ -75,6 +76,9 @@ dyngroup.la : dyngroup.lo
 
 dynlist.la : dynlist.lo
 	$(LTLINK_MOD) -module -o $@ dynlist.lo version.lo $(LINK_LIBS)
+
+memberof.la : memberof.lo
+	$(LTLINK_MOD) -module -o $@ memberof.lo version.lo $(LINK_LIBS)
 
 pcache.la : pcache.lo
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)

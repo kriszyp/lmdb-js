@@ -966,6 +966,9 @@
 /* define for Dynamic List overlay */
 #undef SLAPD_OVER_DYNLIST
 
+/* define for Reverse Group Membership overlay */
+#undef SLAPD_OVER_MEMBEROF
+
 /* define for Password Policy overlay */
 #undef SLAPD_OVER_PPOLICY
 

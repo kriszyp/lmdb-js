@@ -331,6 +331,7 @@ Overlays="accesslog \
 	dds \
 	dyngroup \
 	dynlist \
+	memberof \
 	ppolicy \
 	proxycache \
 	refint \
@@ -358,6 +359,8 @@ OL_ARG_ENABLE(dds,[    --enable-dds  	  Dynamic Directory Services overlay],
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(dynlist,[    --enable-dynlist	  Dynamic List overlay],
+	no, [no yes mod], ol_enable_overlays)
+OL_ARG_ENABLE(memberof,[    --enable-memberof	  Reverse Group Membership overlay],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay],
 	no, [no yes mod], ol_enable_overlays)
@@ -2714,6 +2717,18 @@ if test "$ol_enable_dynlist" != no ; then
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dynlist.o"
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNLIST,$MFLAG,[define for Dynamic List overlay])
+fi
+
+if test "$ol_enable_memberof" != no ; then
+	BUILD_MEMBEROF=$ol_enable_memberof
+	if test "$ol_enable_memberof" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS memberof.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS memberof.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_MEMBEROF,$MFLAG,[define for Reverse Group Membership overlay])
 fi
 
 if test "$ol_enable_ppolicy" != no ; then
