@@ -231,10 +231,12 @@ static struct {
 		"SUP labeledURI )", &ad_reqReferral },
 	{ "( " LOG_SCHEMA_AT ".10 NAME 'reqControls' "
 		"DESC 'Request controls' "
-		"SYNTAX OMsOctetString )", &ad_reqControls },
+		"SYNTAX OMsOctetString "
+		"X-ORDERED 'VALUES' )", &ad_reqControls },
 	{ "( " LOG_SCHEMA_AT ".11 NAME 'reqRespControls' "
 		"DESC 'Response controls of request' "
-		"SYNTAX OMsOctetString )", &ad_reqRespControls },
+		"SYNTAX OMsOctetString "
+		"X-ORDERED 'VALUES' )", &ad_reqRespControls },
 	{ "( " LOG_SCHEMA_AT ".12 NAME 'reqId' "
 		"DESC 'ID of Request to Abandon' "
 		"EQUALITY integerMatch "
@@ -847,7 +849,54 @@ log_cf_gen(ConfigArgs *c)
 	return rc;
 }
 
-static Entry *accesslog_entry( Operation *op, int logop,
+static int
+accesslog_ctrls( LDAPControl **ctrls, BerVarray *valsp, void *memctx )
+{
+	int			i, rc = 0;
+
+	assert( valsp != NULL );
+	assert( ctrls != NULL );
+
+	*valsp = NULL;
+
+	for ( i = 0; ctrls[ i ] != NULL; i++ ) {
+		BerElementBuffer	berbuf;
+		BerElement		*ber = (BerElement *)&berbuf;
+
+		ber_init2( ber, NULL, LBER_USE_DER );
+
+		if ( ldap_pvt_put_control( ctrls[ i ], ber ) != LDAP_SUCCESS ) {
+			rc++;
+
+		} else {
+			struct berval		ctrlbv;
+
+			if ( ber_flatten2( ber, &ctrlbv, 0 ) == -1 ) {
+				rc++;
+
+			} else {
+				struct berval	bv;
+				char		buf[ 32 ], *ptr;
+
+				bv.bv_len = snprintf( buf,
+					sizeof( buf ), "{%d}", i );
+				bv.bv_len += ctrlbv.bv_len;
+				ptr = bv.bv_val = ch_malloc( bv.bv_len + 1 );
+				ptr = lutil_strcopy( ptr, buf );
+				AC_MEMCPY( ptr, ctrlbv.bv_val, ctrlbv.bv_len );
+				bv.bv_val[ bv.bv_len ] = '\0';
+
+				ber_bvarray_add_x( valsp, &bv, memctx );
+			}
+		}
+
+		(void)ber_free_buf( ber );
+	}
+
+	return rc;
+}
+
+static Entry *accesslog_entry( Operation *op, SlapReply *rs, int logop,
 	Operation *op2 ) {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	log_info *li = on->on_bi.bi_private;
@@ -916,13 +965,34 @@ static Entry *accesslog_entry( Operation *op, int logop,
 	rdn.bv_len = sprintf( rdn.bv_val, "%lu", op->o_connid );
 	attr_merge_one( e, ad_reqSession, &rdn, NULL );
 
-	if ( BER_BVISNULL( &op->o_dn )) 
+	if ( BER_BVISNULL( &op->o_dn ) ) {
 		attr_merge_one( e, ad_reqAuthzID, (struct berval *)&slap_empty_bv,
 			(struct berval *)&slap_empty_bv );
-	else
+	} else {
 		attr_merge_one( e, ad_reqAuthzID, &op->o_dn, &op->o_ndn );
+	}
 
 	/* FIXME: need to add reqControls and reqRespControls */
+	if ( op->o_ctrls ) {
+		BerVarray	vals = NULL;
+
+		(void)accesslog_ctrls( op->o_ctrls, &vals, op->o_tmpmemctx );
+		if ( vals != NULL ) {
+			attr_merge( e, ad_reqControls, vals, NULL );
+			ber_bvarray_free_x( vals, op->o_tmpmemctx );
+		}
+	}
+
+	if ( rs->sr_ctrls ) {
+		BerVarray	vals = NULL;
+
+		(void)accesslog_ctrls( rs->sr_ctrls, &vals, op->o_tmpmemctx );
+		if ( vals != NULL ) {
+			attr_merge( e, ad_reqRespControls, vals, NULL );
+			ber_bvarray_free_x( vals, op->o_tmpmemctx );
+		}
+
+	}
 
 	return e;
 }
@@ -1008,7 +1078,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( li->li_success && rs->sr_err != LDAP_SUCCESS )
 		goto done;
 
-	e = accesslog_entry( op, logop, &op2 );
+	e = accesslog_entry( op, rs, logop, &op2 );
 
 	attr_merge_one( e, ad_reqDN, &op->o_req_dn, &op->o_req_ndn );
 
@@ -1387,7 +1457,7 @@ accesslog_unbind( Operation *op, SlapReply *rs )
 		if ( !( li->li_ops & LOG_OP_UNBIND ))
 			return SLAP_CB_CONTINUE;
 
-		e = accesslog_entry( op, LOG_EN_UNBIND, &op2 );
+		e = accesslog_entry( op, rs, LOG_EN_UNBIND, &op2 );
 		op2.o_hdr = op->o_hdr;
 		op2.o_tag = LDAP_REQ_ADD;
 		op2.o_bd = li->li_db;
@@ -1422,7 +1492,7 @@ accesslog_abandon( Operation *op, SlapReply *rs )
 	if ( !op->o_time || !( li->li_ops & LOG_OP_ABANDON ))
 		return SLAP_CB_CONTINUE;
 
-	e = accesslog_entry( op, LOG_EN_ABANDON, &op2 );
+	e = accesslog_entry( op, rs, LOG_EN_ABANDON, &op2 );
 	bv.bv_val = buf;
 	bv.bv_len = sprintf( buf, "%d", op->orn_msgid );
 	attr_merge_one( e, ad_reqId, &bv, NULL );
