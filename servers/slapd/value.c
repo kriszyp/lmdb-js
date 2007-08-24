@@ -430,19 +430,26 @@ ordered_value_validate(
 
 		/* Skip past the assertion index */
 		if ( bv.bv_val[0] == '{' ) {
-			char	*ptr;
+			char		*ptr;
 
 			ptr = ber_bvchr( &bv, '}' );
-			if ( ptr == NULL ) {
-				return LDAP_INVALID_SYNTAX;
+			if ( ptr != NULL ) {
+				struct berval	ns;
+
+				ns.bv_val = bv.bv_val + 1;
+				ns.bv_len = ptr - ns.bv_val;
+
+				if ( numericStringValidate( NULL, &ns ) == LDAP_SUCCESS ) {
+					ptr++;
+					bv.bv_len -= ptr - bv.bv_val;
+					bv.bv_val = ptr;
+					in = &bv;
+					/* If deleting by index, just succeed */
+					if ( mop == LDAP_MOD_DELETE && BER_BVISEMPTY( &bv ) ) {
+						return LDAP_SUCCESS;
+					}
+				}
 			}
-			ptr++;
-			bv.bv_len -= ptr - bv.bv_val;
-			bv.bv_val = ptr;
-			in = &bv;
-			/* If deleting by index, just succeed */
-			if ( mop == LDAP_MOD_DELETE && BER_BVISEMPTY( &bv ))
-				return LDAP_SUCCESS;
 		}
 	}
 
@@ -478,18 +485,24 @@ ordered_value_pretty(
 			char	*ptr;
 
 			ptr = ber_bvchr( &bv, '}' );
-			if ( ptr == NULL ) {
-				return LDAP_INVALID_SYNTAX;
+			if ( ptr != NULL ) {
+				struct berval	ns;
+
+				ns.bv_val = bv.bv_val + 1;
+				ns.bv_len = ptr - ns.bv_val;
+
+				if ( numericStringValidate( NULL, &ns ) == LDAP_SUCCESS ) {
+					ptr++;
+
+					idx = bv;
+					idx.bv_len = ptr - bv.bv_val;
+
+					bv.bv_len -= idx.bv_len;
+					bv.bv_val = ptr;
+
+					val = &bv;
+				}
 			}
-			ptr++;
-
-			idx = bv;
-			idx.bv_len = ptr - bv.bv_val;
-
-			bv.bv_len -= idx.bv_len;
-			bv.bv_val = ptr;
-
-			val = &bv;
 		}
 	}
 
@@ -541,23 +554,29 @@ ordered_value_normalize(
 			char	*ptr;
 
 			ptr = ber_bvchr( &bv, '}' );
-			if ( ptr == NULL ) {
-				return LDAP_INVALID_SYNTAX;
+			if ( ptr != NULL ) {
+				struct berval	ns;
+
+				ns.bv_val = bv.bv_val + 1;
+				ns.bv_len = ptr - ns.bv_val;
+
+				if ( numericStringValidate( NULL, &ns ) == LDAP_SUCCESS ) {
+					ptr++;
+
+					idx = bv;
+					idx.bv_len = ptr - bv.bv_val;
+
+					bv.bv_len -= idx.bv_len;
+					bv.bv_val = ptr;
+
+					/* validator will already prevent this for Adds */
+					if ( BER_BVISEMPTY( &bv )) {
+						ber_dupbv_x( normalized, &idx, ctx );
+						return LDAP_SUCCESS;
+					}
+					val = &bv;
+				}
 			}
-			ptr++;
-
-			idx = bv;
-			idx.bv_len = ptr - bv.bv_val;
-
-			bv.bv_len -= idx.bv_len;
-			bv.bv_val = ptr;
-
-			/* validator will already prevent this for Adds */
-			if ( BER_BVISEMPTY( &bv )) {
-				ber_dupbv_x( normalized, &idx, ctx );
-				return LDAP_SUCCESS;
-			}
-			val = &bv;
 		}
 	}
 
@@ -609,54 +628,57 @@ ordered_value_match(
 	 */
 	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 		char *ptr;
-		struct berval iv;
+		struct berval ns1 = BER_BVNULL, ns2 = BER_BVNULL;
 
 		bv1 = *v1;
 		bv2 = *v2;
-		iv = bv2;
 
 		/* Skip past the assertion index */
 		if ( bv2.bv_val[0] == '{' ) {
 			ptr = ber_bvchr( &bv2, '}' );
-			if ( ptr == NULL ) {
-				return LDAP_INVALID_SYNTAX;
+			if ( ptr != NULL ) {
+				ns2.bv_val = bv2.bv_val + 1;
+				ns2.bv_len = ptr - ns2.bv_val;
+
+				if ( numericStringValidate( NULL, &ns2 ) == LDAP_SUCCESS ) {
+					ptr++;
+					bv2.bv_len -= ptr - bv2.bv_val;
+					bv2.bv_val = ptr;
+					v2 = &bv2;
+				}
 			}
-			ptr++;
-			bv2.bv_len -= ptr - bv2.bv_val;
-			bv2.bv_val = ptr;
-			v2 = &bv2;
+		}
+
+		/* Skip past the attribute index */
+		if ( bv1.bv_val[0] == '{' ) {
+			ptr = ber_bvchr( &bv1, '}' );
+			if ( ptr != NULL ) {
+				ns1.bv_val = bv1.bv_val + 1;
+				ns1.bv_len = ptr - ns1.bv_val;
+
+				if ( numericStringValidate( NULL, &ns1 ) == LDAP_SUCCESS ) {
+					ptr++;
+					bv1.bv_len -= ptr - bv1.bv_val;
+					bv1.bv_val = ptr;
+					v1 = &bv1;
+				}
+			}
 		}
 
 		if ( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( flags )) {
-			if ( iv.bv_val[0] == '{' && bv1.bv_val[0] == '{' ) {
-			/* compare index values first */
-				long l1, l2, ret;
-
-				l1 = strtol( bv1.bv_val+1, NULL, 0 );
-				l2 = strtol( iv.bv_val+1, &ptr, 0 );
-
-				ret = l1 - l2;
+			if ( !BER_BVISNULL( &ns2 ) && !BER_BVISNULL( &ns1 ) ) {
+				/* compare index values first */
+				(void)octetStringOrderingMatch( match, 0, NULL, NULL, &ns1, &ns2 );
 
 				/* If not equal, or we're only comparing the index,
 				 * return result now.
 				 */
-				if ( ret || ptr == iv.bv_val + iv.bv_len - 1 ) {
-					*match = ( ret < 0 ) ? -1 : (ret > 0 );
+				if ( *match != 0 || BER_BVISEMPTY( &bv2 ) ) {
 					return LDAP_SUCCESS;
 				}
 			}
 		}
-		/* Skip past the attribute index */
-		if ( bv1.bv_val[0] == '{' ) {
-			ptr = ber_bvchr( &bv1, '}' );
-			if ( ptr == NULL ) {
-				return LDAP_INVALID_SYNTAX;
-			}
-			ptr++;
-			bv1.bv_len -= ptr - bv1.bv_val;
-			bv1.bv_val = ptr;
-			v1 = &bv1;
-		}
+
 	}
 
 	if ( !mr || !mr->smr_match ) {
@@ -712,6 +734,7 @@ ordered_value_add(
 
 		k = -1;
 		if ( vals[i].bv_val[0] == '{' ) {
+			/* FIXME: strtol() could go past end... */
 			k = strtol( vals[i].bv_val + 1, &next, 0 );
 			if ( next == vals[i].bv_val + 1 ||
 				next[ 0 ] != '}' ||

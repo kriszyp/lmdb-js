@@ -280,7 +280,7 @@ octetStringMatch(
 	return LDAP_SUCCESS;
 }
 
-static int
+int
 octetStringOrderingMatch(
 	int *matchp,
 	slap_mask_t flags,
@@ -2385,7 +2385,7 @@ UUIDNormalize(
 
 
 
-static int
+int
 numericStringValidate(
 	Syntax *syntax,
 	struct berval *in )

@@ -1618,7 +1618,17 @@ LDAP_SLAPD_F( slap_mr_filter_func ) octetStringFilter;
 LDAP_SLAPD_F( int ) numericoidValidate LDAP_P((
 	Syntax *syntax,
         struct berval *in ));
+LDAP_SLAPD_F( int ) numericStringValidate LDAP_P((
+	Syntax *syntax,
+	struct berval *in ));
 LDAP_SLAPD_F( int ) octetStringMatch LDAP_P((
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue ));
+LDAP_SLAPD_F( int ) octetStringOrderingMatch LDAP_P((
 	int *matchp,
 	slap_mask_t flags,
 	Syntax *syntax,
