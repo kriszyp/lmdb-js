@@ -51,6 +51,36 @@
  *	}
  */
 
+int
+ldap_pvt_put_control(
+	const LDAPControl *c,
+	BerElement *ber )
+{
+	if ( ber_printf( ber, "{s" /*}*/, c->ldctl_oid ) == -1 ) {
+		return LDAP_ENCODING_ERROR;
+	}
+
+	if ( c->ldctl_iscritical /* only if true */
+		&&  ( ber_printf( ber, "b",
+			(ber_int_t) c->ldctl_iscritical ) == -1 ) )
+	{
+		return LDAP_ENCODING_ERROR;
+	}
+
+	if ( !BER_BVISNULL( &c->ldctl_value ) /* only if we have a value */
+		&&  ( ber_printf( ber, "O", &c->ldctl_value ) == -1 ) )
+	{
+		return LDAP_ENCODING_ERROR;
+	}
+
+	if ( ber_printf( ber, /*{*/"N}" ) == -1 ) {
+		return LDAP_ENCODING_ERROR;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+
 /*
  * ldap_int_put_controls
  */
@@ -97,32 +127,8 @@ ldap_int_put_controls(
 	}
 
 	for( c = ctrls ; *c != NULL; c++ ) {
-		if ( ber_printf( ber, "{s" /*}*/,
-			(*c)->ldctl_oid ) == -1 )
-		{
-			ld->ld_errno = LDAP_ENCODING_ERROR;
-			return ld->ld_errno;
-		}
-
-		if( (*c)->ldctl_iscritical /* only if true */
-			&&  ( ber_printf( ber, "b",
-				(ber_int_t) (*c)->ldctl_iscritical ) == -1 ) )
-		{
-			ld->ld_errno = LDAP_ENCODING_ERROR;
-			return ld->ld_errno;
-		}
-
-		if( (*c)->ldctl_value.bv_val != NULL /* only if we have a value */
-			&&  ( ber_printf( ber, "O",
-				&((*c)->ldctl_value) ) == -1 ) )
-		{
-			ld->ld_errno = LDAP_ENCODING_ERROR;
-			return ld->ld_errno;
-		}
-
-
-		if( ber_printf( ber, /*{*/"N}" ) == -1 ) {
-			ld->ld_errno = LDAP_ENCODING_ERROR;
+		ld->ld_errno = ldap_pvt_put_control( *c, ber );
+		if ( ld->ld_errno != LDAP_SUCCESS ) {
 			return ld->ld_errno;
 		}
 	}

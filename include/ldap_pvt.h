@@ -194,13 +194,10 @@ LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 								LDAP_HEXLOWER(c) || LDAP_HEXUPPER(c))
 
 /* controls.c */
-struct ldapcontrol;
-LDAP_F (struct ldapcontrol *) ldap_control_dup LDAP_P((
-	const struct ldapcontrol *ctrl ));
-
-LDAP_F (struct ldapcontrol **) ldap_controls_dup LDAP_P((
-	struct ldapcontrol *const *ctrls ));
-
+LDAP_F (int)
+ldap_pvt_put_control LDAP_P((
+	const struct ldapcontrol *c,
+	BerElement *ber ));
 LDAP_F (int) ldap_pvt_get_controls LDAP_P((
 	BerElement *be,
 	struct ldapcontrol ***ctrlsp));
