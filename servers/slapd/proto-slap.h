@@ -1238,11 +1238,17 @@ LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
 LDAP_SLAPD_F (void) mru_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (int) matching_rule_use_init LDAP_P(( void ));
 
-LDAP_SLAPD_F (int) mr_schema_info( Entry *e );
-LDAP_SLAPD_F (int) mru_schema_info( Entry *e );
+LDAP_SLAPD_F (int) mr_schema_info LDAP_P(( Entry *e ));
+LDAP_SLAPD_F (int) mru_schema_info LDAP_P(( Entry *e ));
 
-LDAP_SLAPD_F (int) mr_usable_with_at( MatchingRule *mr,
-	AttributeType *at );
+LDAP_SLAPD_F (int) mr_usable_with_at LDAP_P(( MatchingRule *mr,
+	AttributeType *at ));
+LDAP_SLAPD_F (int) mr_make_syntax_compat_with_mr LDAP_P((
+	Syntax		*syn,
+	MatchingRule	*mr ));
+LDAP_SLAPD_F (int) mr_make_syntax_compat_with_mrs LDAP_P((
+	const char *syntax,
+	char *const *mrs ));
 
 /*
  * mra.c
