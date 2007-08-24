@@ -586,7 +586,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if ( be_entry_get_rw( &o, &o.o_req_ndn, NULL, NULL, 0, &e ) !=
+	if ( overlay_entry_get_ov( &o, &o.o_req_ndn, NULL, NULL, 0, &e, on ) !=
 		LDAP_SUCCESS || e == NULL ) {
 		return SLAP_CB_CONTINUE;
 	}
