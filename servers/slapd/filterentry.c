@@ -729,7 +729,7 @@ test_ava_filter(
 			} else 
 #endif
 			{
-				ret = value_match( &match, a->a_desc, mr, use,
+				ret = ordered_value_match( &match, a->a_desc, mr, use,
 					bv, &ava->aa_value, &text );
 			}
 
