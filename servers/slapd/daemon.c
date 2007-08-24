@@ -50,7 +50,6 @@
 #endif /* ! epoll && ! /dev/poll */
 
 #ifdef HAVE_TCPD
-# include <tcpd.h>
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* TCP Wrappers */
