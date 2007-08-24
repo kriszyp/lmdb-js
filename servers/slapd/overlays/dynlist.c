@@ -1075,7 +1075,7 @@ dl_cfgen( ConfigArgs *c )
 			break;
 		}
 
-		return 1;	/* FIXME */
+		return rc;
 	}
 
 	switch( c->type ) {
