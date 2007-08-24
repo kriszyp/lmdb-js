@@ -211,12 +211,12 @@ H2: What is the difference between LDAPv2 and LDAPv3?
 LDAPv3 was developed in the late 1990's to replace LDAPv2.
 LDAPv3 adds the following features to LDAP:
 
- - Strong authentication and data security services via {{TERM:SASL}}
- - Certificate authentication and data security services via {{TERM:TLS}} (SSL)
- - Internationalization through the use of Unicode
- - Referrals and Continuations
- - Schema Discovery
- - Extensibility (controls, extended operations, and more)
+ * Strong authentication and data security services via {{TERM:SASL}}
+ * Certificate authentication and data security services via {{TERM:TLS}} (SSL)
+ * Internationalization through the use of Unicode
+ * Referrals and Continuations
+ * Schema Discovery
+ * Extensibility (controls, extended operations, and more)
 
 LDAPv2 is historic ({{REF:RFC3494}}).  As most {{so-called}} LDAPv2
 implementations (including {{slapd}}(8)) do not conform to the

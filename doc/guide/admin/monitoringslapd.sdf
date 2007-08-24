@@ -498,3 +498,8 @@ Write waiters:
 >   entryDN: cn=Write,cn=Waiters,cn=Monitor
 >   subschemaSubentry: cn=Subschema
 >   hasSubordinates: FALSE
+
+Add new monitored things here and discuss, referencing man pages and present
+examples
+
+

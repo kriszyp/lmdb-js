@@ -31,7 +31,10 @@ The following checklist can help track down your problem. Please try to use if {
 posting to the list, or in the rare circumstances of reporting a bug.
 
 .{{S: }}
-^{{B: Is {{slapd}} running?}}
+^{{B: Use the {{slaptest}} tool to verify configurations before starting {{slapd}}}}
+
+.{{S: }}
++{{B: Verify that {{slapd}} is listening to the specified port(s) (389 and 636, generally) before trying the {{ldapsearch}}}}
 
 .{{S: }}
 +{{B: Can you issue an {{ldapsearch}}?}}
@@ -60,9 +63,9 @@ the general LDAP forum for non-commercial discussions and information relating t
 
 H2: How to contact the OpenLDAP Project
 
-- Mailing Lists: {{URL:http://www.openldap.org/lists/}}
-- Project: {{URL: http://www.openldap.org/project/}}
-- Issue Tracking: {{URL:http://www.openldap.org/its/}}
+* Mailing Lists: {{URL:http://www.openldap.org/lists/}}
+* Project: {{URL: http://www.openldap.org/project/}}
+* Issue Tracking: {{URL:http://www.openldap.org/its/}}
 
 
 H2: How to present your problem
@@ -70,6 +73,10 @@ H2: How to present your problem
 
 H2: Debugging {{slapd}}(8)
 
+* Loglevel 256 is generally a good first loglevel to try for getting 
+  information useful to list members on issues
+* Running {{slapd -d -1}} can often track down fairly simple issues, such as 
+  missing schemas and incorrect file permissions for the {{slapd}} user to things like certs
 
 H2: Commercial Support
 

@@ -300,13 +300,13 @@ A default config can be found in the answer:
 just change the set_lg_dir to point to your .log directory or comment that line.
 
 Quick guide:
-- Create a DB_CONFIG file in your ldap home directory (/var/lib/ldap/DB_CONFIG) with the correct "set_cachesize" value
-- stop your ldap server and run db_recover -h /var/lib/ldap
-- start your ldap server and check the new cache size with:
+* Create a DB_CONFIG file in your ldap home directory (/var/lib/ldap/DB_CONFIG) with the correct "set_cachesize" value
+* stop your ldap server and run db_recover -h /var/lib/ldap
+* start your ldap server and check the new cache size with:
 
   db_stat -h /var/lib/ldap -m | head -n 2
 
-- this procedure is only needed if you use OpenLDAP 2.2 with the BDB or HDB backends; In OpenLDAP 2.3 DB recovery is performed automatically whenever the DB_CONFIG file is changed or when an unclean shutdown is detected.
+* this procedure is only needed if you use OpenLDAP 2.2 with the BDB or HDB backends; In OpenLDAP 2.3 DB recovery is performed automatically whenever the DB_CONFIG file is changed or when an unclean shutdown is detected.
 
 
 --On Tuesday, February 22, 2005 12:15 PM -0500 Dusty Doris <openldap@mail.doris.cc> wrote:

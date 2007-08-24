@@ -146,11 +146,11 @@ H3: Overview
 
 The Null backend to {{slapd}}(8) is surely the most useful part of slapd:
 
-- Searches return success but no entries.
-- Compares return compareFalse.
-- Updates return success (unless readonly is on) but do nothing.
-- Binds other than as the rootdn fail unless the database option "bind on" is given.
-- The slapadd(8) and slapcat(8) tools are equally exciting.
+* Searches return success but no entries.
+* Compares return compareFalse.
+* Updates return success (unless readonly is on) but do nothing.
+* Binds other than as the rootdn fail unless the database option "bind on" is given.
+* The slapadd(8) and slapcat(8) tools are equally exciting.
 
 Inspired by the {{F:/dev/null}} device.
 

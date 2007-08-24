@@ -66,4 +66,4 @@ guide.pdf: admin.html
 	htmldoc --batch guide.book
 
 clean: 
-	rm -f *.pdf *.html
+	rm -f *.pdf *.html *~

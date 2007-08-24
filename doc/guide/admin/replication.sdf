@@ -27,11 +27,11 @@ The slurpd daemon was the original replication mechanism inherited from
 UMich's LDAP and operates in push mode: the master pushes changes to the 
 slaves. It has been replaced for many reasons, in brief:
 
- - It is not reliable
- - It is extremely sensitive to the ordering of records in the replog
- - It can easily go out of sync, at which point manual intervention is 
+ * It is not reliable
+ * It is extremely sensitive to the ordering of records in the replog
+ * It can easily go out of sync, at which point manual intervention is 
    required to resync the slave database with the master directory
- - It isn't very tolerant of unavailable servers. If a slave goes down 
+ * It isn't very tolerant of unavailable servers. If a slave goes down 
    for a long time, the replog may grow to a size that's too large for 
    slurpd to process
 
@@ -41,11 +41,11 @@ Syncrepl.
 
 {{Why is Syncrepl better?}}
 
- - Syncrepl is self-synchronizing; you can start with a database in any 
+ * Syncrepl is self-synchronizing; you can start with a database in any 
    state from totally empty to fully synced and it will automatically do 
    the right thing to achieve and maintain synchronization
- - Syncrepl can operate in either direction
- - Data updates can be minimal or maximal
+ * Syncrepl can operate in either direction
+ * Data updates can be minimal or maximal
 
 {{How do I implement a pushed based replication system using Syncrepl?}}
 

@@ -1,0 +1,54 @@
+# $OpenLDAP$
+# Copyright 2007 The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+H1: Changes Since Previous Release
+
+Nice intro here to praise everyones hard work!
+
+H2: New Guide Sections
+
+* Overlays
+* Backends
+* Tuning
+* complete later.........
+
+H2: New Features in 2.4
+
+Another nice intro here
+
+H3: More overlays
+
+* slapo-dds (Dynamic Directory Services, RFC 2589)
+* slapo-memberof (reverse group membership maintenance)
+
+H3: New features in existing ones
+
+* slapo-pcache allows cache inspection/maintenance/hot restart
+* slapo-rwm can safely interoperate with other overlays
+* Dyngroup/Dynlist merge, plus security enhancements
+
+H3: New features in slapd
+
+* monitoring of back-{b,h}db: cache fill-in, non-indexed searches,
+* session tracking control (draft-wahl-ldap-session)
+* subtree delete in back-sql (draft-armijo-ldap-treedelete)
+
+H3: New features in libldap
+
+* ldap_sync client API (LDAP Content Sync Operation, RFC 4533)
+
+H3: New clients and tools
+
+* ldapexop for arbitrary extended operations
+* complete support of controls in request/response for all clients
+
+H3: New build options
+
+* Support for building against GnuTLS
+* Advertisement of LDAP server in DNS
+
+
+H2: Obsolete Features in 2.4
+
+H3: Slurpd

@@ -85,6 +85,9 @@ PB:
 PB:
 
 # Appendices 
+!include "appendix-changes.sdf"; appendix
+PB:
+
 # Config file examples
 !include "appendix-configs.sdf"; appendix
 PB:

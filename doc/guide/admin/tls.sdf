@@ -10,6 +10,8 @@ integrity and confidentiality protections and to support
 LDAP authentication using the {{TERM:SASL}} {{TERM:EXTERNAL}} mechanism. 
 TLS is defined in {{REF:RFC4346}}.
 
+Note: For generating certifcates, please reference {{URL:http://www.openldap.org/faq/data/cache/185.html}}
+
 H2: TLS Certificates
 
 TLS uses {{TERM:X.509}} certificates to carry client and server
