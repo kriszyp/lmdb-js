@@ -1891,8 +1891,8 @@ static struct {
 		"DESC 'Group that the entry belongs to' "
 		"SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' "
 		"EQUALITY distinguishedNameMatch "	/* added */
-		"USAGE directoryOperation "		/* questioned */
-		/* "NO-USER-MODIFICATION " */
+		"USAGE dSAOperation "			/* added; questioned */
+		/* "NO-USER-MODIFICATION " */		/* add? */
 		"X-ORIGIN 'iPlanet Delegated Administrator' )",
 		&ad_memberOf },
 	{ NULL }
