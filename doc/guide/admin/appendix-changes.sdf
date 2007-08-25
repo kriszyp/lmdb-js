@@ -179,6 +179,8 @@ H3: New build options
 
 H2: Obsolete Features Removed From 2.4
 
+These features were strongly deprecated in 2.3 and removed in 2.4.
+
 H3: Slurpd
 
 Please read the {{SECT:Replication}} section as to why this is no longer in
