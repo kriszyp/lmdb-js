@@ -22,6 +22,9 @@ fi
 
 mkdir -p $TESTDIR $DBDIR1
 
+$SLAPPASSWD -g -n >$CONFIGPWF
+echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
+
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $MCONF > $ADDCONF
 $SLAPADD -f $ADDCONF -l $LDIFORDERED
@@ -32,15 +35,6 @@ if test $RC != 0 ; then
 fi
 
 . $CONFFILTER $BACKEND $MONITORDB < $DYNLISTCONF > $CONF1
-echo "dynlist-attrset	groupOfURLs memberURL" >> $CONF1
-
-echo "Running slapindex to index slapd database..."
-$SLAPINDEX -f $CONF1
-RC=$?
-if test $RC != 0 ; then
-	echo "warning: slapindex failed ($RC)"
-	echo "  assuming no indexing support"
-fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
@@ -250,44 +244,20 @@ case $RC in
 esac
 echo "" >> $SEARCHOUT
 
-echo "Stopping slapd..."
-kill -HUP $KILLPIDS
-wait $KILLPIDS
-
 echo "Reconfiguring slapd..."
-. $CONFFILTER $BACKEND $MONITORDB < $DYNLISTCONF > $CONF1
-echo "dynlist-attrset	groupOfURLs memberURL member" >> $CONF1
+$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+	$TESTOUT 2>&1 << EOMODS
+version: 1
+dn: olcOverlay={0}dynlist,olcDatabase={2}$BACKEND,cn=config
+changetype: modify
+delete: olcDLattrSet
+olcDLattrSet: {0}
+-
+add: olcDLattrSet
+olcDLattrSet: groupOfURLs memberURL member
+EOMODS
 
 echo "==========================================================" >> $LOG1
-
-echo "Starting slapd on TCP/IP port $PORT1..."
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
-PID=$!
-if test $WAIT != 0 ; then
-    echo PID $PID
-    read foo
-fi
-KILLPIDS="$PID"
-
-sleep 1
-
-echo "Testing slapd searching..."
-for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
-		'(objectclass=*)' > /dev/null 2>&1
-	RC=$?
-	if test $RC = 0 ; then
-		break
-	fi
-	echo "Waiting 5 seconds for slapd to start..."
-	sleep 5
-done
-
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
 
 echo "Adding a dynamic list..."
 $LDAPADD -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
@@ -430,6 +400,56 @@ case $RC in
 	;;
 esac
 echo "" >> $SEARCHOUT
+
+echo "==========================================================" >> $LOG1
+
+echo "Testing dgIdentity..."
+
+# Set ACL, require authentication to get list contents
+$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+	$TESTOUT 2>&1 << EOMODS
+version: 1
+dn: olcDatabase={2}$BACKEND,cn=config
+changetype: modify
+add: olcAccess
+olcAccess: to dn.base="cn=Dynamic List of Members,$LISTDN" by * read
+olcAccess: to * by users read by * search
+EOMODS
+
+echo "Testing list search without dgIdentity..."
+echo "# Testing list search without dgIdentity..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+	'(cn=Dynamic List of Members)' '*' \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+	> $TESTOUT 2>&1 << EOMODS
+dn: cn=Dynamic List of Members,$LISTDN
+changetype: modify
+add: objectClass
+objectClass: dgIdentityAux
+-
+add: dgIdentity
+dgIdentity: $CMPDN
+EOMODS
+
+echo "Testing list search with dgIdentity..."
+echo "# Testing list search with dgIdentity..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+	'(cn=Dynamic List of Members)' '*' \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
