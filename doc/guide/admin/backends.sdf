@@ -5,7 +5,7 @@
 H1: Backends
 
 
-H2: Berkley DB Backends
+H2: Berkeley DB Backends
 
 
 H3: Overview
@@ -70,11 +70,10 @@ H3: Overview
 The LDIF backend to {{slapd}}(8) is a basic storage backend that stores 
 entries in text files in LDIF format, and exploits the filesystem to create 
 the tree structure of the database. It is intended as a cheap, low performance 
-easy to use backend, and it is exploited by higher-level internal structures 
-to provide a permanent storage.
+easy to use backend.
 
-When using Dynamic configuration over LDAP via {{cn=config}}, this is where all
-configuration is stored if {{slapd}}(8) if started with {{-F}}. See {{slapd-config}}(5)
+When using the {{cn=config}} dynamic configuration database with persistent
+storage, the configuration data is stored using this backend. See {{slapd-config}}(5)
 for more information
 
 H3: back-ldif Configuration
