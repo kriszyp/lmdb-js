@@ -35,8 +35,8 @@
 # between structural and auxiliary classes. This fact is noted here:
 # http://forum.java.sun.com/thread.jspa?threadID=5016864&messageID=9034636
 #
-# In accordance with the actual usage in practice, we define it as an
-# auxiliary class.
+# In accordance with other existing implementations, we define it as a
+# structural class.
 #
 # Our definition of memberURL also does not match theirs but again
 # their published definition and what works in practice do not agree.
