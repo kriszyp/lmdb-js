@@ -130,7 +130,9 @@ H2: Dynamic Groups
 H3: Overview
 
 This overlay extends the Compare operation to detect
-members of a dynamic group.
+members of a dynamic group. This overlay is now deprecated
+as all of its functions are available using the
+{{SECT:Dynamic Lists}} overlay.
 
 
 H3: Dynamic Group Configuration
