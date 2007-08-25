@@ -2677,78 +2677,63 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 	modtail = *mret;
 
 	if ( old ) {
-		int n, o, d, a, *adds, *dels;
+		int n, o, nn, no;
+		struct berval **adds, **dels;
 		/* count old and new */
 		for ( o=0; old->a_vals[o].bv_val; o++ ) ;
 		for ( n=0; new->a_vals[n].bv_val; n++ ) ;
 
-		adds = op->o_tmpalloc( sizeof(int) * n, op->o_tmpmemctx );
-		dels = op->o_tmpalloc( sizeof(int) * o, op->o_tmpmemctx );
-		d = 0;
-		a = 0;
-		i = 0;
-		j = 0;
+		adds = op->o_tmpalloc( sizeof(struct berval *) * n, op->o_tmpmemctx );
+		dels = op->o_tmpalloc( sizeof(struct berval *) * o, op->o_tmpmemctx );
 
-		while ( i < o && j < n ) {
-			int k;
-			if ( bvmatch( &old->a_vals[i], &new->a_vals[j] ) ) {
-				i++;
-				j++;
-				continue;
-			}
-			for ( k = j + 1; k<n; k++ ) {
-				if ( bvmatch( &old->a_vals[i], &new->a_vals[k] ) ) {
+		for ( i=0; i<o; i++ ) dels[i] = &old->a_vals[i];
+		for ( i=0; i<n; i++ ) adds[i] = &new->a_vals[i];
+
+		nn = n; no = o;
+
+		for ( i=0; i<o; i++ ) {
+			for ( j=0; j<n; j++ ) {
+				if ( !adds[j] )
+					continue;
+				if ( bvmatch( dels[i], adds[j] ) ) {
+					no--;
+					nn--;
+					adds[j] = NULL;
+					dels[i] = NULL;
 					break;
 				}
-			}
-			/* an old value was deleted */
-			if ( k == n ) {
-				dels[d++] = i++;
-				continue;
-			}
-			/* old value still exists, move to next */
-			i++;
-			for ( k = i; k < o; k++ ) {
-				if ( bvmatch( &old->a_vals[k], &new->a_vals[j] ) ) {
-					break;
-				}
-			}
-			if ( k == o ) {
-				adds[a++] = j++;
-			} else {
-				j++;
 			}
 		}
-		while ( i < o )
-			dels[d++] = i++;
-		while ( j < n )
-			adds[a++] = j++;
 
+		i = j;
 		/* all old values were deleted, just use the replace op */
-		if ( d == o ) {
+		if ( no == o ) {
 			i = j-1;
-		} else if ( d ) {
+		} else if ( no ) {
 		/* delete some values */
 			mod = ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = LDAP_MOD_DELETE;
 			mod->sml_flags = 0;
 			mod->sml_desc = old->a_desc;
 			mod->sml_type = mod->sml_desc->ad_cname;
-			mod->sml_values = ch_malloc( ( d + 1 ) * sizeof(struct berval) );
+			mod->sml_values = ch_malloc( ( o - no + 1 ) * sizeof(struct berval) );
 			if ( old->a_vals != old->a_nvals ) {
-				mod->sml_nvalues = ch_malloc( ( d + 1 ) * sizeof(struct berval) );
+				mod->sml_nvalues = ch_malloc( ( o - no + 1 ) * sizeof(struct berval) );
 			} else {
 				mod->sml_nvalues = NULL;
 			}
-			for ( i = 0; i < d; i++ ) {
-				ber_dupbv( &mod->sml_values[i], &old->a_vals[dels[i]] );
+			j = 0;
+			for ( i = 0; i < o; i++ ) {
+				if ( !dels[i] ) continue;
+				ber_dupbv( &mod->sml_values[j], &old->a_vals[i] );
 				if ( mod->sml_nvalues ) {
-					ber_dupbv( &mod->sml_nvalues[i], &old->a_nvals[dels[i]] );
+					ber_dupbv( &mod->sml_nvalues[j], &old->a_nvals[i] );
 				}
+				j++;
 			}
-			BER_BVZERO( &mod->sml_values[i] );
+			BER_BVZERO( &mod->sml_values[j] );
 			if ( mod->sml_nvalues ) {
-				BER_BVZERO( &mod->sml_nvalues[i] );
+				BER_BVZERO( &mod->sml_nvalues[j] );
 			}
 			*modtail = mod;
 			modtail = &mod->sml_next;
@@ -2756,27 +2741,30 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 		}
 		op->o_tmpfree( dels, op->o_tmpmemctx );
 		/* some values were added */
-		if ( a && d < o ) {
+		if ( nn && no < o ) {
 			mod = ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = LDAP_MOD_ADD;
 			mod->sml_flags = 0;
 			mod->sml_desc = old->a_desc;
 			mod->sml_type = mod->sml_desc->ad_cname;
-			mod->sml_values = ch_malloc( ( a + 1 ) * sizeof(struct berval) );
+			mod->sml_values = ch_malloc( ( n - nn + 1 ) * sizeof(struct berval) );
 			if ( old->a_vals != old->a_nvals ) {
-				mod->sml_nvalues = ch_malloc( ( a + 1 ) * sizeof(struct berval) );
+				mod->sml_nvalues = ch_malloc( ( n - nn + 1 ) * sizeof(struct berval) );
 			} else {
 				mod->sml_nvalues = NULL;
 			}
-			for ( i = 0; i < a; i++ ) {
-				ber_dupbv( &mod->sml_values[i], &new->a_vals[adds[i]] );
+			j = 0;
+			for ( i = 0; i < n; i++ ) {
+				if ( !adds[i] ) continue;
+				ber_dupbv( &mod->sml_values[j], &new->a_vals[i] );
 				if ( mod->sml_nvalues ) {
-					ber_dupbv( &mod->sml_nvalues[i], &new->a_nvals[adds[i]] );
+					ber_dupbv( &mod->sml_nvalues[j], &new->a_nvals[i] );
 				}
+				j++;
 			}
-			BER_BVZERO( &mod->sml_values[i] );
+			BER_BVZERO( &mod->sml_values[j] );
 			if ( mod->sml_nvalues ) {
-				BER_BVZERO( &mod->sml_nvalues[i] );
+				BER_BVZERO( &mod->sml_nvalues[j] );
 			}
 			*modtail = mod;
 			modtail = &mod->sml_next;
