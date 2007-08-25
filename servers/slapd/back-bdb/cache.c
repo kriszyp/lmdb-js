@@ -63,11 +63,9 @@ bdb_cache_entryinfo_new( Cache *cache )
 		if ( cache->c_eifree ) {
 			ei = cache->c_eifree;
 			cache->c_eifree = ei->bei_lrunext;
-		}
-		ldap_pvt_thread_mutex_unlock( &cache->c_eifree_mutex );
-		if ( ei ) {
 			ei->bei_finders = 0;
 		}
+		ldap_pvt_thread_mutex_unlock( &cache->c_eifree_mutex );
 	}
 	if ( !ei ) {
 		ei = ch_calloc(1, sizeof(EntryInfo));
