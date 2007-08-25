@@ -43,7 +43,7 @@
 # In other words, the Netscape definitions are broken and interoperability
 # is not guaranteed.
 #
-# Also see the new DynGroup prposed spec at
+# Also see the new DynGroup proposed spec at
 # http://tools.ietf.org/html/draft-haripriya-dynamicgroup-02
 
 objectIdentifier NetscapeRoot 2.16.840.1.113730
