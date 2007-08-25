@@ -1,4 +1,4 @@
-﻿# $OpenLDAP$
+# $OpenLDAP$
 # Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
@@ -50,7 +50,7 @@ Syncrepl.
 {{How do I implement a pushed based replication system using Syncrepl?}}
 
 The easiest way is to point an LDAP backend ({{SECT: Backends}} and {{slapd-ldap(8)}}) 
-to your slave/s directory and setup Syncrepl to point to your Master database.
+to your slave directory and setup Syncrepl to point to your Master database.
 
 REFERENCE test045/048 for better explanation of above.
 
@@ -158,6 +158,16 @@ http://www.openldap.org/lists/openldap-software/200602/msg00064.html
 
 H3: MirrorMode
 
+MirrorMode is a hybrid configuration that provides all of the consistency
+guarantees of single-master replication while also providing the high
+availability of multi-master. In MirrorMode two masters are set up to
+replicate from each other (as a multi-master configuration) but an
+external frontend is employed to direct all writes to only one of
+the two servers. The second master will only be used for writes if
+the first master crashes, at which point the frontend will switch to
+directing all writes to the second master. When a crashed master is
+repaired and restarted it will automatically catch up to any changes
+on the running master and resync.
 
 H2: LDAP Sync Replication
 
