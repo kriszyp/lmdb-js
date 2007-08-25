@@ -1254,7 +1254,7 @@ idassert-authzFrom	"dn:<rootdn>"
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
-		BackendDB 	*tmp_be;
+		BackendDB 	*tmp_bd;
 		int 		i = mi->mi_ntargets - 1, rc;
 		struct berval	dn, nvnc, pvnc, nrnc, prnc;
 
@@ -1286,17 +1286,17 @@ idassert-authzFrom	"dn:<rootdn>"
 		ber_str2bv( argv[ 1 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"suffix '%s' is invalid\n",
+					"suffix \"%s\" is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
 		
-		tmp_be = select_backend( &nvnc, 0 );
-		if ( tmp_be != NULL && tmp_be != be ) {
+		tmp_bd = select_backend( &nvnc, 0 );
+		if ( tmp_bd != NULL && tmp_bd->be_private != be->be_private ) {
 			Debug( LDAP_DEBUG_ANY, 
-	"%s: line %d: suffix already in use by another backend in"
-	" \"suffixMassage <suffix> <massaged suffix>\"\n",
-				fname, lineno, 0 );
+	"%s: line %d: <suffix> \"%s\" already in use by another database, in "
+	"\"suffixMassage <suffix> <massaged suffix>\"\n",
+				fname, lineno, pvnc.bv_val );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
 			return 1;						
@@ -1305,33 +1305,27 @@ idassert-authzFrom	"dn:<rootdn>"
 		ber_str2bv( argv[ 2 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"massaged suffix '%s' is invalid\n",
+				"massaged suffix \"%s\" is invalid\n",
 				fname, lineno, argv[ 2 ] );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
 			return 1;
 		}
 	
-#if 0	
-		tmp_be = select_backend( &nrnc, 0 );
-		if ( tmp_be != NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: massaged suffix already in use by another backend in" 
-	" \"suffixMassage <suffix> <massaged suffix>\"\n",
-                                fname, lineno, 0 );
+		tmp_bd = select_backend( &nrnc, 0 );
+		if ( tmp_bd != NULL && tmp_bd->be_private == be->be_private ) {
+			Debug( LDAP_DEBUG_ANY, 
+	"%s: line %d: warning: <massaged suffix> \"%s\" point to this database, in "
+	"\"suffixMassage <suffix> <massaged suffix>\"\n",
+				fname, lineno, prnc.bv_val );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
-			free( prnc.bv_val );
-			free( nrnc.bv_val );
-                        return 1;
+			return 1;						
 		}
-#endif
-		
+
 		/*
 		 * The suffix massaging is emulated by means of the
 		 * rewrite capabilities
-		 * FIXME: no extra rewrite capabilities should be added
-		 * to the database
 		 */
 	 	rc = suffix_massage_config( mi->mi_targets[ i ]->mt_rwmap.rwm_rw,
 				&pvnc, &nvnc, &prnc, &nrnc );
