@@ -132,3 +132,10 @@ or with {{ldapsearch}}(1):
 Note: the {{EX:ref}} attribute is operational and must be explicitly
 requested when desired in search results.
 
+Note: the use of referrals to construct a Distributed Directory Service is
+extremely clumsy and not well supported by common clients. If an existing
+installation has already been built using referrals, the use of the
+{{chain}} overlay to hide the referrals will greatly improve the usability
+of the Directory system. A better approach would be to use explicitly
+defined local and proxy databases in {{subordinate}} configurations to
+provide a seamless view of the Distributed Directory.
