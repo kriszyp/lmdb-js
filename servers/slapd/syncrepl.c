@@ -2716,9 +2716,9 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 			mod->sml_flags = 0;
 			mod->sml_desc = old->a_desc;
 			mod->sml_type = mod->sml_desc->ad_cname;
-			mod->sml_values = ch_malloc( ( o - no + 1 ) * sizeof(struct berval) );
+			mod->sml_values = ch_malloc( ( no + 1 ) * sizeof(struct berval) );
 			if ( old->a_vals != old->a_nvals ) {
-				mod->sml_nvalues = ch_malloc( ( o - no + 1 ) * sizeof(struct berval) );
+				mod->sml_nvalues = ch_malloc( ( no + 1 ) * sizeof(struct berval) );
 			} else {
 				mod->sml_nvalues = NULL;
 			}
@@ -2747,9 +2747,9 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 			mod->sml_flags = 0;
 			mod->sml_desc = old->a_desc;
 			mod->sml_type = mod->sml_desc->ad_cname;
-			mod->sml_values = ch_malloc( ( n - nn + 1 ) * sizeof(struct berval) );
+			mod->sml_values = ch_malloc( ( nn + 1 ) * sizeof(struct berval) );
 			if ( old->a_vals != old->a_nvals ) {
-				mod->sml_nvalues = ch_malloc( ( n - nn + 1 ) * sizeof(struct berval) );
+				mod->sml_nvalues = ch_malloc( ( nn + 1 ) * sizeof(struct berval) );
 			} else {
 				mod->sml_nvalues = NULL;
 			}
