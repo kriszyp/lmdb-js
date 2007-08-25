@@ -127,7 +127,7 @@ H3: Performance enhancements
 Too many to list. Some notable changes - ldapadd used to be a couple of orders 
 of magnitude slower than "slapadd -q". It's now at worst only about half the 
 speed of slapadd -q. Some comparisons of all the 2.x OpenLDAP releases are available 
-at {{URL:http://www.highlandsun.com/hyc/scale2007.pdf}}
+at {{URL:http://www.openldap.org/pub/hyc/scale2007.pdf}}
 
 That compared 2.0.27, 2.1.30, 2.2.30, 2.3.33, and HEAD). Toward the latter end 
 of the "Cached Search Performance" chart it gets hard to see the difference 
