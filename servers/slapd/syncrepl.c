@@ -126,6 +126,26 @@ static int null_callback( Operation *, SlapReply * );
 
 static AttributeDescription *sync_descs[4];
 
+static const char *
+syncrepl_state2str( int state )
+{
+	switch ( state ) {
+	case LDAP_SYNC_PRESENT:
+		return "PRESENT";
+
+	case LDAP_SYNC_ADD:
+		return "ADD";
+
+	case LDAP_SYNC_MODIFY:
+		return "MODIFY";
+
+	case LDAP_SYNC_DELETE:
+		return "DELETE";
+	}
+
+	return "UNKNOWN";
+}
+
 static void
 init_syncrepl(syncinfo_t *si)
 {
@@ -769,7 +789,9 @@ do_syncrep2(
 				 * (happens with back-sql...) */
 				if ( BER_BVISEMPTY( &syncUUID ) ) {
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
-						"got empty syncUUID\n", si->si_ridtxt, 0, 0 );
+						"got empty syncUUID with LDAP_SYNC_%s\n",
+						si->si_ridtxt,
+						syncrepl_state2str( syncstate ), 0 );
 					ldap_controls_free( rctrls );
 					rc = -1;
 					goto done;
@@ -1827,32 +1849,9 @@ syncrepl_entry(
 	dninfo dni = {0};
 	int	retry = 1;
 
-	switch( syncstate ) {
-	case LDAP_SYNC_PRESENT:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s %s\n",
-					si->si_ridtxt,
-					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_PRESENT)", 0 );
-		break;
-	case LDAP_SYNC_ADD:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s %s\n",
-					si->si_ridtxt,
-					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_ADD)", 0 );
-		break;
-	case LDAP_SYNC_DELETE:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s %s\n",
-					si->si_ridtxt,
-					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_DELETE)", 0 );
-		break;
-	case LDAP_SYNC_MODIFY:
-		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s %s\n",
-					si->si_ridtxt,
-					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_MODIFY)", 0 );
-		break;
-	default:
-		Debug( LDAP_DEBUG_ANY, "syncrepl_entry: %s %s\n",
-					si->si_ridtxt,
-					"LDAP_RES_SEARCH_ENTRY(UNKNOWN syncstate)", 0 );
-	}
+	Debug( LDAP_DEBUG_SYNC,
+		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s)\n",
+		si->si_ridtxt, syncrepl_state2str( syncstate ), 0 );
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ) ) {
 		if ( !si->si_refreshPresent ) {
