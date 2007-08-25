@@ -694,8 +694,8 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 		rs->sr_matched = NULL;
 		if ( entry != NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"ldif_back_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-				(long) op->o_tag, op->o_req_dn.bv_val, entry->e_name.bv_val );
+				"ldif_back_referrals: tag=%lu target=\"%s\" matched=\"%s\"\n",
+				(unsigned long) op->o_tag, op->o_req_dn.bv_val, entry->e_name.bv_val );
 
 			if ( is_entry_referral( entry ) ) {
 				rc = LDAP_OTHER;
@@ -744,8 +744,8 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 			refs, &entry->e_name, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"ldif_back_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, op->o_req_dn.bv_val, entry->e_name.bv_val );
+			"ldif_back_referrals: tag=%lu target=\"%s\" matched=\"%s\"\n",
+			(unsigned long) op->o_tag, op->o_req_dn.bv_val, entry->e_name.bv_val );
 
 		rs->sr_matched = entry->e_name.bv_val;
 		if ( rs->sr_ref != NULL ) {

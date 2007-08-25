@@ -87,8 +87,8 @@ dn2entry_retry:
 		if ( e != NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
 				LDAP_XSTRING(bdb_referrals)
-				": op=%ld target=\"%s\" matched=\"%s\"\n",
-				(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
+				": tag=%lu target=\"%s\" matched=\"%s\"\n",
+				(unsigned long)op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 
 			if( is_entry_referral( e ) ) {
 				BerVarray ref = get_entry_referrals( op, e );
@@ -138,8 +138,8 @@ dn2entry_retry:
 
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_referrals)
-			": op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
+			": tag=%lu target=\"%s\" matched=\"%s\"\n",
+			(unsigned long)op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 
 		rs->sr_matched = e->e_name.bv_val;
 		if( rs->sr_ref != NULL ) {
