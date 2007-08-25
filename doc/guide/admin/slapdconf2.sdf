@@ -1459,16 +1459,16 @@ Line 42 is a blank line, indicating the end of this entry.
 The next section of the example configuration file defines another
 BDB database. This one handles queries involving the
 {{EX:dc=example,dc=net}} subtree but is managed by the same entity
-as the first database.  Note that without line 51, the read access
+as the first database.  Note that without line 52, the read access
 would be allowed due to the global access rule at line 19.
 
-E: 42.	# BDB definition for example.net
-E: 43.	dn: olcDatabase=bdb,cn=config
-E: 44.	objectClass: olcDatabaseConfig
-E: 45.	objectClass: olcBdbConfig
-E: 46.	olcDatabase: bdb
-E: 47.	olcSuffix: "dc=example,dc=net"
-E: 48.	olcDbDirectory: /usr/local/var/openldap-data-net
-E: 49.	olcRootDN: "cn=Manager,dc=example,dc=com"
-E: 50.	olcDbIndex: objectClass eq
-E: 51.	olcAccess: to * by users read
+E: 43.	# BDB definition for example.net
+E: 44.	dn: olcDatabase=bdb,cn=config
+E: 45.	objectClass: olcDatabaseConfig
+E: 46.	objectClass: olcBdbConfig
+E: 47.	olcDatabase: bdb
+E: 48.	olcSuffix: "dc=example,dc=net"
+E: 49.	olcDbDirectory: /usr/local/var/openldap-data-net
+E: 50.	olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 51.	olcDbIndex: objectClass eq
+E: 52.	olcAccess: to * by users read
