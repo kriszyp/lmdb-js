@@ -231,8 +231,8 @@ H2: LDAP vs RDBMS
 
 This question is raised many times, in different forms. The most common, 
 however, is: {{Why doesn't OpenLDAP drop Berkeley DB and use a relational 
-database management system (RDBM) instead?}} In general, expecting that the 
-sophisticated algorithms implemented by commercial-grade RDBM would make 
+database management system (RDBMS) instead?}} In general, expecting that the 
+sophisticated algorithms implemented by commercial-grade RDBMS would make 
 {{OpenLDAP}} be faster or somehow better and, at the same time, permitting 
 sharing of data with other applications.
 
@@ -244,7 +244,7 @@ database software. This is the same software used by leading commercial
 directory software.
 
 Now for the long answer. We are all confronted all the time with the choice 
-RDBMs vs. directories. It is a hard choice and no simple answer exists.
+RDBMSes vs. directories. It is a hard choice and no simple answer exists.
 
 It is tempting to think that having a RDBMS backend to the directory solves all 
 problems. However, it is a pig. This is because the data models are very 
@@ -354,7 +354,7 @@ SASL}} software which supports a number of mechanisms including
 {{B:{{TERM[expand]TLS}}}}: {{slapd}} supports certificate-based
 authentication and data security (integrity and confidentiality)
 services through the use of TLS (or SSL).  {{slapd}}'s TLS
-implementation utilizes {{PRD:OpenSSL}} software.
+implementation can utilize either {{PRD:OpenSSL}} or {{PRD:GnuTLS}} software.
 
 {{B:Topology control}}: {{slapd}} can be configured to restrict
 access at the socket layer based upon network topology information.
@@ -405,8 +405,10 @@ required while providing high performance.
 {{B:Replication}}: {{slapd}} can be configured to maintain shadow
 copies of directory information.  This {{single-master/multiple-slave}}
 replication scheme is vital in high-volume environments where a
-single {{slapd}} just doesn't provide the necessary availability
-or reliability.  {{slapd}} includes support for {{LDAP Sync}}-based
+single {{slapd}} installation just doesn't provide the necessary availability
+or reliability.  For extremely demanding environments where a
+single point of failure is not acceptable, {{multi-master}} replication
+is also available.  {{slapd}} includes support for {{LDAP Sync}}-based
 replication.
 
 {{B:Proxy Cache}}: {{slapd}} can be configured as a caching
@@ -415,5 +417,7 @@ LDAP proxy service.
 {{B:Configuration}}: {{slapd}} is highly configurable through a
 single configuration file which allows you to change just about
 everything you'd ever want to change.  Configuration options have
-reasonable defaults, making your job much easier.
+reasonable defaults, making your job much easier. Configuration can
+also be performed dynamically using LDAP itself, which greatly
+improves manageability.
 
