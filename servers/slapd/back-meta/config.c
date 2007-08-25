@@ -111,13 +111,11 @@ meta_back_db_config(
 	/* URI of server to query */
 	if ( strcasecmp( argv[ 0 ], "uri" ) == 0 ) {
 		int 		i = mi->mi_ntargets;
-#if 0
-		int 		j;
-#endif /* uncomment if uri MUST be a branch of suffix */
 		LDAPURLDesc 	*ludp, *tmpludp;
 		struct berval	dn;
 		int		rc;
 		int		c;
+		BackendDB	*tmp_bd;
 
 		metatarget_t	*mt;
 		
@@ -282,26 +280,14 @@ meta_back_db_config(
 		/*
 		 * uri MUST be a branch of suffix!
 		 */
-#if 0 /* too strict a constraint */
-		if ( select_backend( &mt->mt_nsuffix, 0 ) != be ) {
+		tmp_bd = select_backend( &mt->mt_nsuffix, 0 );
+		if ( tmp_bd == NULL || tmp_bd->be_private != be->be_private )
+		{
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: <naming context> of URI does not refer to current backend"
-	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+	"%s: line %d: <naming context> of URI does not resolve to this database.\n",
 				fname, lineno, 0 );
 			return 1;
 		}
-#else
-		/*
-		 * uri MUST be a branch of a suffix!
-		 */
-		if ( select_backend( &mt->mt_nsuffix, 0 ) == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: <naming context> of URI does not resolve to a backend"
-	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno, 0 );
-			return 1;
-		}
-#endif
 
 	/* subtree-exclude */
 	} else if ( strcasecmp( argv[ 0 ], "subtree-exclude" ) == 0 ) {
