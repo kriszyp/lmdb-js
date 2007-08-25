@@ -145,10 +145,6 @@ processing time is almost invisible; the runtime is limited only by the memory
 bandwidth of the machine. (The search data rate corresponds to about 3.5GB/sec; 
 the memory bandwidth on the machine is only about 4GB/sec due to ECC and register latency.)
 
-No other Directory Server in the world is this fast or this efficient. Couple 
-that with the scalability, manageability, flexibility, and just the sheer 
-know-how behind this software, and nothing else is even remotely comparable.
-
 H3: New overlays
 
 * slapo-dds (Dynamic Directory Services, RFC 2589)
@@ -181,9 +177,19 @@ H3: New build options
 * Advertisement of LDAP server in DNS
 
 
-H2: Obsolete Features in 2.4
+H2: Obsolete Features Removed From 2.4
 
 H3: Slurpd
 
 Please read the {{SECT:Replication}} section as to why this is no longer in
 OpenLDAP
+
+H3: back-ldbm
+
+back-ldbm was both slow and unreliable. Its byzantine indexing code was
+prone to spontaneous corruption, as were the underlying database libraries
+that were commonly used (e.g. GDBM or NDBM). back-bdb and back-hdb are
+superior in every aspect, with simplified indexing to avoid index corruption,
+fine-grained locking for greater concurrency, hierarchical caching for
+greater performance, streamlined on-disk format for greater efficiency
+and portability, and full transaction support for greater reliability.
