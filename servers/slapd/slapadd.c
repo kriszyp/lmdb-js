@@ -39,7 +39,7 @@
 #include "slapcommon.h"
 
 static char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-static char maxcsnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+static char maxcsnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE * ( SLAP_SYNC_SID_MAX + 1 ) ];
 
 int
 slapadd( int argc, char **argv )
@@ -51,7 +51,9 @@ slapadd( int argc, char **argv )
 	const char *progname = "slapadd";
 
 	struct berval csn;
-	struct berval maxcsn;
+	struct berval maxcsn[ SLAP_SYNC_SID_MAX + 1 ];
+	MatchingRule *mr_csnsid;
+	unsigned long sid;
 	struct berval bvtext;
 	Attribute *attr;
 	Entry *ctxcsn_e;
@@ -102,8 +104,13 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( update_ctxcsn ) {
-		maxcsn.bv_val = maxcsnbuf;
-		maxcsn.bv_len = 0;
+		mr_csnsid = mr_find( "CSNSIDMatch" );
+		assert( mr_csnsid != NULL );
+		maxcsn[ 0 ].bv_val = maxcsnbuf;
+		for ( sid = 1; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
+			maxcsn[ sid ].bv_val = maxcsn[ sid - 1 ].bv_val + LDAP_LUTIL_CSNSTR_BUFSIZE;
+			maxcsn[ sid ].bv_len = 0;
+		}
 	}
 
 	/* nextline is the line number of the end of the current entry */
@@ -273,19 +280,37 @@ slapadd( int argc, char **argv )
 			}
 
 			if ( update_ctxcsn ) {
+				struct berval	nsid;
+
 				attr = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
-				if ( maxcsn.bv_len != 0 ) {
-					match = 0;
-					value_match( &match, slap_schema.si_ad_entryCSN,
-						slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
-						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						&maxcsn, &attr->a_nvals[0], &text );
+				assert( attr != NULL );
+				
+				rc = mr_csnsid->smr_normalize( SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					NULL, NULL, &attr->a_nvals[ 0 ], &nsid, NULL );
+				assert( rc == LDAP_SUCCESS );
+				rc = lutil_atoulx( &sid, nsid.bv_val, 16 );
+				ber_memfree( nsid.bv_val );
+				if ( rc ) {
+					Debug( LDAP_DEBUG_ANY, "%s: could not "
+						"extract SID from entryCSN=%s\n",
+						progname, attr->a_nvals[ 0 ].bv_val, 0 );
+
 				} else {
-					match = -1;
-				}
-				if ( match < 0 ) {
-					strcpy( maxcsn.bv_val, attr->a_nvals[0].bv_val );
-					maxcsn.bv_len = attr->a_nvals[0].bv_len;
+					assert( sid <= SLAP_SYNC_SID_MAX );
+
+					if ( maxcsn[ sid ].bv_len != 0 ) {
+						match = 0;
+						value_match( &match, slap_schema.si_ad_entryCSN,
+							slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							&maxcsn[ sid ], &attr->a_nvals[0], &text );
+					} else {
+						match = -1;
+					}
+					if ( match < 0 ) {
+						strcpy( maxcsn[ sid ].bv_val, attr->a_nvals[0].bv_val );
+						maxcsn[ sid ].bv_len = attr->a_nvals[0].bv_len;
+					}
 				}
 			}
 		}
@@ -317,7 +342,7 @@ slapadd( int argc, char **argv )
 	bvtext.bv_val = textbuf;
 	bvtext.bv_val[0] = '\0';
 
-	if ( rc == EXIT_SUCCESS && update_ctxcsn && !dryrun && maxcsn.bv_len ) {
+	if ( rc == EXIT_SUCCESS && update_ctxcsn && !dryrun && sid != SLAP_SYNC_SID_MAX + 1 ) {
 		ctxcsn_id = be->be_dn2id_get( be, be->be_nsuffix );
 		if ( ctxcsn_id == NOID ) {
 			fprintf( stderr, "%s: context entry is missing\n", progname );
@@ -325,32 +350,77 @@ slapadd( int argc, char **argv )
 		} else {
 			ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
 			if ( ctxcsn_e != NULL ) {
-				attr = attr_find( ctxcsn_e->e_attrs,
-									slap_schema.si_ad_contextCSN );
+				attr = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
 				if ( attr ) {
-					value_match( &match, slap_schema.si_ad_entryCSN,
-						slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
-						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						&maxcsn, &attr->a_nvals[0], &text );
-					if ( match > 0 ) {
-						AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
-						attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
-						attr->a_vals[0].bv_len = maxcsn.bv_len;
+					int		i;
+
+					for ( i = 0; !BER_BVISNULL( &attr->a_vals[ i ] ); i++ ) {
+						struct berval	nsid;
+
+						rc = mr_csnsid->smr_normalize( SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							NULL, NULL, &attr->a_nvals[ i ], &nsid, NULL );
+
+						/* must succeed, since it passed
+						 * validation/normalization */
+						assert( rc == LDAP_SUCCESS );
+
+						rc = lutil_atoulx( &sid, nsid.bv_val, 16 );
+						ber_memfree( nsid.bv_val );
+
+						if ( rc ) {
+							Debug( LDAP_DEBUG_ANY,
+								"%s: unable to extract SID "
+								"from #%d contextCSN=%s\n",
+								progname, i,
+								attr->a_nvals[ i ].bv_val );
+							continue;
+						}
+
+						if ( maxcsn[ sid ].bv_len == 0 ) {
+							match = -1;
+
+						} else {
+							value_match( &match, slap_schema.si_ad_entryCSN,
+								slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+								&maxcsn[ sid ], &attr->a_nvals[i], &text );
+						}
+
+						if ( match < 0 ) {
+							AC_MEMCPY( maxcsn[ sid ].bv_val,
+								attr->a_nvals[ i ].bv_val,
+								attr->a_nvals[ i ].bv_len );
+							maxcsn[ sid ].bv_val[ attr->a_nvals[ i ].bv_len ] = '\0';
+							maxcsn[ sid ].bv_len = attr->a_nvals[ i ].bv_len;
+						}
 					}
-				} else {
-					match = 1;
-					attr_merge_one( ctxcsn_e, slap_schema.si_ad_contextCSN, &maxcsn, NULL );
+
+#if 0
+					if ( attr->a_nvals && attr->a_nvals != attr->a_vals ) {
+						ber_bvarray_free( attr->a_nvals );
+					}
+					ber_bvarray_free( attr->a_vals );
+#endif
+
+					attr->a_vals = NULL;
+					attr->a_nvals = NULL;
 				}
-				if ( match > 0 ) {
-					ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
-					if( ctxcsn_id == NOID ) {
-						fprintf( stderr, "%s: could not modify ctxcsn\n",
-										progname);
-						rc = EXIT_FAILURE;
-					} else if ( verbose ) {
-						fprintf( stderr, "modified: \"%s\" (%08lx)\n",
-										 ctxcsn_e->e_dn, (long) ctxcsn_id );
+
+				for ( sid = 0; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
+					if ( maxcsn[ sid ].bv_len ) {
+						attr_merge_one( ctxcsn_e, slap_schema.si_ad_contextCSN,
+							&maxcsn[ sid], NULL );
 					}
+				}
+			
+				ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
+				if( ctxcsn_id == NOID ) {
+					fprintf( stderr, "%s: could not modify ctxcsn\n",
+						progname);
+					rc = EXIT_FAILURE;
+				} else if ( verbose ) {
+					fprintf( stderr, "modified: \"%s\" (%08lx)\n",
+						ctxcsn_e->e_dn, (long) ctxcsn_id );
 				}
 			}
 		} 

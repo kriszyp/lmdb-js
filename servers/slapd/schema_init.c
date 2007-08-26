@@ -2431,7 +2431,7 @@ numericStringNormalize(
 		}
 	}
 
-	/* we should have copied no more then is in val */
+	/* we should have copied no more than is in val */
 	assert( (q - normalized->bv_val) <= (p - val->bv_val) );
 
 	/* null terminate */
@@ -3478,6 +3478,84 @@ done:
 	return rc;
 }
 
+/* Normalize a SID as used inside a CSN:
+ * three-digit numeric string */
+static int
+SIDNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	if ( val->bv_len != 3 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if ( !ASCII_DIGIT( val->bv_val[ 0 ] ) || 
+		!ASCII_DIGIT( val->bv_val[ 1 ] ) ||
+		!ASCII_DIGIT( val->bv_val[ 2 ] ) )
+	{
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	ber_dupbv_x( normalized, val, ctx );
+
+	return LDAP_SUCCESS;
+}
+
+/* Normalize a SID as used inside a CSN, either as-is
+ * (assertion value) or extracted from the CSN
+ * (attribute value) */
+static int
+csnSIDNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	struct berval	bv;
+	char		*ptr;
+
+	if ( BER_BVISEMPTY( val ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if ( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX(usage) ) {
+		return SIDNormalize( 0, NULL, NULL, val, normalized, ctx );
+	}
+
+	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
+
+	ptr = ber_bvchr( val, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = val->bv_len - ( ptr + 1 - val->bv_val );
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = val->bv_len - ( ptr + 1 - val->bv_val );
+		
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+
+	return SIDNormalize( 0, NULL, NULL, &bv, normalized, ctx );
+}
+
 
 #ifndef SUPPORT_OBSOLETE_UTC_SYNTAX
 /* slight optimization - does not need the start parameter */
@@ -4352,6 +4430,10 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{NULL, 0, NULL, NULL, NULL}
 };
 
+char *csnSIDMatchSyntaxes[] = {
+	"1.3.6.1.4.1.4203.666.11.2.1" /* csn */,
+	NULL
+};
 char *certificateExactMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.8" /* certificate */,
 	NULL
@@ -4776,6 +4858,13 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL, csnOrderingMatch,
 		NULL, NULL,
 		"CSNMatch" },
+
+	{"( 1.3.6.1.4.1.4203.666.11.2.4 NAME 'CSNSIDMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, csnSIDMatchSyntaxes,
+		NULL, csnSIDNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
+		NULL },
 
 	/* FIXME: OID is unused, but not registered yet */
 	{"( 1.3.6.1.4.1.4203.666.4.12 NAME 'authzMatch' "

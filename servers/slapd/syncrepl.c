@@ -2856,13 +2856,22 @@ dn_callback(
 				new = attr_find( dni->new_entry->e_attrs,
 					slap_schema.si_ad_entryCSN );
 				if ( new && old ) {
-					int len = old->a_vals[0].bv_len;
+					int rc, len = old->a_vals[0].bv_len;
 					if ( len > new->a_vals[0].bv_len )
 						len = new->a_vals[0].bv_len;
-					if ( memcmp( old->a_vals[0].bv_val,
-						new->a_vals[0].bv_val, len ) >= 0 ) {
+					rc = memcmp( old->a_vals[0].bv_val,
+						new->a_vals[0].bv_val, len );
+					if ( rc > 0 ) {
 						Debug( LDAP_DEBUG_SYNC,
 							"dn_callback : new entry is older than ours "
+							"%s ours %s, new %s\n",
+							rs->sr_entry->e_name.bv_val,
+							old->a_vals[0].bv_val,
+							new->a_vals[0].bv_val );
+						return LDAP_SUCCESS;
+					} else if ( rc == 0 ) {
+						Debug( LDAP_DEBUG_SYNC,
+							"dn_callback : entries have identical CSN "
 							"%s ours %s, new %s\n",
 							rs->sr_entry->e_name.bv_val,
 							old->a_vals[0].bv_val,
