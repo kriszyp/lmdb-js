@@ -2316,7 +2316,7 @@ ldap_back_proxy_authz_ctrl(
 			authcDN = ndn;
 		}
 		rc = slap_sasl_matches( op, si->si_authz,
-				&authcDN, & authcDN );
+				&authcDN, &authcDN );
 		if ( rc != LDAP_SUCCESS ) {
 			if ( si->si_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
 				/* ndn is not authorized
