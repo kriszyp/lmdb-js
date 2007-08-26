@@ -39,7 +39,7 @@ DOCUMENTATION
     The OpenLDAP Administrator's Guide is available in the
     guide.html file in the doc/guide/admin directory.  The
     guide and a number of other documents are available at
-    <http://www.openldap.org/doc/guide/admin/guide.html>.
+    <http://www.openldap.org/doc/admin/guide.html>.
 
     The distribution also includes manual pages for most programs
     and library APIs.  See ldap(3) for details.
