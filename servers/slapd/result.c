@@ -562,7 +562,7 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 	} else {
 		rs->sr_rspoid = LDAP_NOTICE_DISCONNECT;
 		rs->sr_tag = LDAP_RES_EXTENDED;
-		rs->sr_msgid = 0;
+		rs->sr_msgid = LDAP_RES_UNSOLICITED;
 	}
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
