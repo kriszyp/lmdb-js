@@ -660,6 +660,15 @@ loop_begin:
 			goto done;
 		}
 
+		/* mostly needed by internal searches,
+		 * e.g. related to syncrepl, for whom
+		 * abandon does not get set... */
+		if ( slapd_shutdown ) {
+			rs->sr_err = LDAP_UNAVAILABLE;
+			send_ldap_disconnect( op, rs );
+			goto done;
+		}
+
 		/* check time limit */
 		if ( op->ors_tlimit != SLAP_NO_LIMIT
 				&& slap_get_time() > stoptime )
