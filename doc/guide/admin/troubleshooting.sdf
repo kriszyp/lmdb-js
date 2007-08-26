@@ -73,10 +73,21 @@ H2: How to present your problem
 
 H2: Debugging {{slapd}}(8)
 
+After reading through the above sections and before e-mailing the OpenLDAP lists, you
+might want to try out some of the following to track down the cause of your problems:
+
 * Loglevel 256 is generally a good first loglevel to try for getting 
   information useful to list members on issues
 * Running {{slapd -d -1}} can often track down fairly simple issues, such as 
   missing schemas and incorrect file permissions for the {{slapd}} user to things like certs
+
+For those of you so inclined, a great LDAP Protocol Dissector is available in {[PRD:Wireshark}} 
+and is discussed at:
+
+{{URL:http://wiki.wireshark.org/LDAP}}
+
+It's very interesting to look inside the LDAP Protocol, but please do not try to use this tool
+in debugging normal problems.
 
 H2: Commercial Support
 
