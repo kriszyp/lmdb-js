@@ -945,6 +945,7 @@ config_generic(ConfigArgs *c) {
 				struct berval bv;
 
 				for ( si = sid_list; si; si=si->si_next ) {
+					assert( si->si_num >= 0 && si->si_num <= SLAP_SYNC_SID_MAX );
 					if ( !BER_BVISEMPTY( &si->si_url )) {
 						bv.bv_len = si->si_url.bv_len + 6;
 						bv.bv_val = ch_malloc( bv.bv_len );
@@ -1460,8 +1461,10 @@ config_generic(ConfigArgs *c) {
 			{
 				ServerID *si, **sip;
 				LDAPURLDesc *lud;
-				int num = atoi( c->argv[1] );
-				if ( num < 0 || num > SLAP_SYNC_SID_MAX ) {
+				int num;
+				if ( lutil_atoi( &num, c->argv[1] ) ||
+					num < 0 || num > SLAP_SYNC_SID_MAX )
+				{
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"<%s> illegal server ID", c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",

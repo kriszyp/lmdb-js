@@ -52,7 +52,6 @@ slapadd( int argc, char **argv )
 
 	struct berval csn;
 	struct berval maxcsn[ SLAP_SYNC_SID_MAX + 1 ];
-	MatchingRule *mr_csnsid;
 	unsigned long sid;
 	struct berval bvtext;
 	Attribute *attr;
@@ -104,8 +103,6 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( update_ctxcsn ) {
-		mr_csnsid = mr_find( "CSNSIDMatch" );
-		assert( mr_csnsid != NULL );
 		maxcsn[ 0 ].bv_val = maxcsnbuf;
 		for ( sid = 1; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
 			maxcsn[ sid ].bv_val = maxcsn[ sid - 1 ].bv_val + LDAP_LUTIL_CSNSTR_BUFSIZE;
@@ -280,24 +277,21 @@ slapadd( int argc, char **argv )
 			}
 
 			if ( update_ctxcsn ) {
-				struct berval	nsid;
+				int rc_sid;
 
 				attr = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
 				assert( attr != NULL );
-				
-				rc = mr_csnsid->smr_normalize( SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					NULL, NULL, &attr->a_nvals[ 0 ], &nsid, NULL );
-				assert( rc == LDAP_SUCCESS );
-				rc = lutil_atoulx( &sid, nsid.bv_val, 16 );
-				ber_memfree( nsid.bv_val );
-				if ( rc ) {
+
+				rc_sid = slap_parse_csn_sid( &attr->a_nvals[ 0 ] );
+				if ( rc_sid < 0 ) {
 					Debug( LDAP_DEBUG_ANY, "%s: could not "
 						"extract SID from entryCSN=%s\n",
 						progname, attr->a_nvals[ 0 ].bv_val, 0 );
 
 				} else {
-					assert( sid <= SLAP_SYNC_SID_MAX );
+					assert( rc_sid <= SLAP_SYNC_SID_MAX );
 
+					sid = (unsigned)rc_sid;
 					if ( maxcsn[ sid ].bv_len != 0 ) {
 						match = 0;
 						value_match( &match, slap_schema.si_ad_entryCSN,
@@ -355,19 +349,10 @@ slapadd( int argc, char **argv )
 					int		i;
 
 					for ( i = 0; !BER_BVISNULL( &attr->a_vals[ i ] ); i++ ) {
-						struct berval	nsid;
+						int rc_sid;
 
-						rc = mr_csnsid->smr_normalize( SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-							NULL, NULL, &attr->a_nvals[ i ], &nsid, NULL );
-
-						/* must succeed, since it passed
-						 * validation/normalization */
-						assert( rc == LDAP_SUCCESS );
-
-						rc = lutil_atoulx( &sid, nsid.bv_val, 16 );
-						ber_memfree( nsid.bv_val );
-
-						if ( rc ) {
+						rc_sid = slap_parse_csn_sid( &attr->a_nvals[ i ] );
+						if ( rc_sid < 0 ) {
 							Debug( LDAP_DEBUG_ANY,
 								"%s: unable to extract SID "
 								"from #%d contextCSN=%s\n",
@@ -375,6 +360,10 @@ slapadd( int argc, char **argv )
 								attr->a_nvals[ i ].bv_val );
 							continue;
 						}
+
+						assert( rc_sid <= SLAP_SYNC_SID_MAX );
+
+						sid = (unsigned)rc_sid;
 
 						if ( maxcsn[ sid ].bv_len == 0 ) {
 							match = -1;

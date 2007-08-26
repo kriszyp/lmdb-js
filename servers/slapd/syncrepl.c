@@ -63,7 +63,7 @@ typedef struct syncinfo_s {
 	BackendDB		*si_wbe;
 	struct re_s		*si_re;
 	int			si_rid;
-	char			si_ridtxt[8];
+	char			si_ridtxt[ STRLENOF("rid=4095") + 1 ];
 	slap_bindconf		si_bindconf;
 	struct berval		si_base;
 	struct berval		si_logbase;
@@ -3351,15 +3351,15 @@ parse_syncrepl_line(
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
-			if ( tmp >= 1000 || tmp < 0 ) {
+			if ( tmp > SLAP_SYNC_SID_MAX || tmp < 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
-					"syncrepl id %d is out of range [0..999]", tmp );
+					"syncrepl id %d is out of range [0..4095]", tmp );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
 				return -1;
 			}
 			si->si_rid = tmp;
-			sprintf( si->si_ridtxt, IDSTR "=%03d", si->si_rid );
+			sprintf( si->si_ridtxt, IDSTR "=%d", si->si_rid );
 			gots |= GOT_ID;
 		} else if ( !strncasecmp( c->argv[ i ], PROVIDERSTR "=",
 					STRLENOF( PROVIDERSTR "=" ) ) )
@@ -3905,7 +3905,8 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	si->si_bindconf.sb_version = LDAP_VERSION3;
 
 	ptr = buf;
-	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03d " PROVIDERSTR "=%s",
+	assert( si->si_rid >= 0 && si->si_rid <= SLAP_SYNC_SID_MAX );
+	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%d " PROVIDERSTR "=%s",
 		si->si_rid, si->si_bindconf.sb_uri.bv_val );
 	if ( ptr - buf >= sizeof( buf ) ) return;
 	if ( !BER_BVISNULL( &bc ) ) {
