@@ -147,6 +147,7 @@ the memory bandwidth on the machine is only about 4GB/sec due to ECC and registe
 
 H3: New overlays
 
+* slapo-constraint (Attribute value constraints)
 * slapo-dds (Dynamic Directory Services, RFC 2589)
 * slapo-memberof (reverse group membership maintenance)
 
@@ -164,6 +165,7 @@ H3: New features in existing Overlays
 
 * slapo-rwm can safely interoperate with other overlays
 * Dyngroup/Dynlist merge, plus security enhancements
+  - added dgIdentity support (draft-haripriya-dynamicgroup)
 
 H3: New features in slapd
 
