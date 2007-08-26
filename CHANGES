@@ -5,6 +5,7 @@ OpenLDAP 2.3.39 Engineering
 	Fixed libldap ppolicy control creation (ITS#5103)
 	Documentation
 		Added slapd-sql empty oc mapping workaround (ITS#4785)
+		Fixed Admin Guide URL in README (ITS#5107)
 
 OpenLDAP 2.3.38 Release (2007/08/20)
 	Fixed slapadd check for ';binary' when required (ITS#5071)
