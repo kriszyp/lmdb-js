@@ -152,7 +152,16 @@ H3: New overlays
 
 H3: New features in existing Overlays
 
-* slapo-pcache allows cache inspection/maintenance/hot restart
+* slapo-pcache
+  - Inspection/Maintenance 
+    -- the cache database can be directly accessed via
+       LDAP by adding a specific control to each LDAP request; a specific
+       extended operation allows to consistently remove cached entries and entire
+       cached queries
+  - Hot Restart
+    -- cached queries are saved on disk at shutdown, and reloaded if
+      not expired yet at subsequent restart
+
 * slapo-rwm can safely interoperate with other overlays
 * Dyngroup/Dynlist merge, plus security enhancements
 
