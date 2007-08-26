@@ -843,7 +843,7 @@ load1:
 				bdb_cache_entryinfo_unlock( *eip );
 				islocked = 0;
 			}
-			rc = bdb_cache_entry_db_lock( bdb, locker, *eip, 0, 0, lock );
+			rc = bdb_cache_entry_db_lock( bdb, locker, *eip, load, 0, lock );
 			if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 				rc = DB_NOTFOUND;
 				bdb_cache_entry_db_unlock( bdb, lock );
@@ -864,7 +864,11 @@ load1:
 						ep = NULL;
 						bdb_cache_lru_link( bdb, *eip );
 					}
-					if ( rc ) {
+					if ( rc == 0 ) {
+						/* If we succeeded, downgrade back to a readlock. */
+						rc = bdb_cache_entry_db_relock( bdb, locker,
+							*eip, 0, 0, lock );
+					} else {
 						/* Otherwise, release the lock. */
 						bdb_cache_entry_db_unlock( bdb, lock );
 					}
