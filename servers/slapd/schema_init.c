@@ -3696,6 +3696,82 @@ csnValidate(
 	return hexValidate( NULL, &bv );
 }
 
+/* Normalize a CSN in OpenLDAP 2.3 format */
+static int
+csnNormalize23(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	struct berval	gt, cnt, sid, mod;
+	char		*ptr;
+	int		i;
+
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
+	assert( !BER_BVISEMPTY( val ) );
+
+	gt = *val;
+
+	ptr = ber_bvchr( &gt, '#' );
+	if ( ptr == NULL || ptr - gt.bv_val == gt.bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	gt.bv_len = ptr - gt.bv_val;
+	assert( gt.bv_len == STRLENOF( "YYYYmmddHHMMSSZ" ) );
+
+	cnt.bv_val = ptr + 1;
+	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
+
+	ptr = ber_bvchr( &cnt, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	cnt.bv_len = ptr - cnt.bv_val;
+	assert( cnt.bv_len == STRLENOF( "000000" ) );
+
+	sid.bv_val = ptr + 1;
+	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
+		
+	ptr = ber_bvchr( &sid, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	sid.bv_len = ptr - sid.bv_val;
+	assert( sid.bv_len == STRLENOF( "00" ) );
+
+	mod.bv_val = ptr + 1;
+	mod.bv_len = val->bv_len - ( mod.bv_val - val->bv_val );
+	assert( mod.bv_len == STRLENOF( "000000" ) );
+
+	normalized->bv_len = STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" );
+	normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
+
+	ptr = normalized->bv_val;
+	ptr = lutil_strncopy( ptr, gt.bv_val, gt.bv_len - 1 );
+	ptr = lutil_strcopy( ptr, ".000000Z#" );
+	ptr = lutil_strncopy( ptr, cnt.bv_val, cnt.bv_len );
+	*ptr++ = '#';
+	*ptr++ = '0';
+	for ( i = 0; i < sid.bv_len; i++ ) {
+		*ptr++ = TOLOWER( sid.bv_val[ i ] );
+	}
+	*ptr++ = '#';
+	for ( i = 0; i < mod.bv_len; i++ ) {
+		*ptr++ = TOLOWER( mod.bv_val[ i ] );
+	}
+	*ptr = '\0';
+
+	assert( ptr - normalized->bv_val == normalized->bv_len );
+
+	return LDAP_SUCCESS;
+}
+
 /* Normalize a CSN */
 static int
 csnNormalize(
@@ -3706,9 +3782,9 @@ csnNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	struct berval	bv;
+	struct berval	cnt, sid, mod;
 	char		*ptr;
-	int		i, rc;
+	int		i;
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
@@ -3716,47 +3792,57 @@ csnNormalize(
 		return LDAP_INVALID_SYNTAX;
 	}
 
+	if ( val->bv_len == STRLENOF( "YYYYmmddHHMMSSZ#SSSSSS#ID#ssssss" ) ) {
+		/* Openldap <= 2.3 */
+
+		return csnNormalize23( usage, syntax, mr, val, normalized, ctx );
+	}
+
+	assert( val->bv_len == STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" ) );
+
+	ptr = ber_bvchr( val, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	assert( ptr - val->bv_val == STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ" ) );
+
+	cnt.bv_val = ptr + 1;
+	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
+
+	ptr = ber_bvchr( &cnt, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	assert( ptr - cnt.bv_val == STRLENOF( "000000" ) );
+
+	sid.bv_val = ptr + 1;
+	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
+		
+	ptr = ber_bvchr( &sid, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	sid.bv_len = ptr - sid.bv_val;
+	assert( sid.bv_len == STRLENOF( "000" ) );
+
+	mod.bv_val = ptr + 1;
+	mod.bv_len = val->bv_len - ( mod.bv_val - val->bv_val );
+
+	assert( mod.bv_len == STRLENOF( "000000" ) );
+
 	ber_dupbv_x( normalized, val, ctx );
 
-	ptr = ber_bvchr( normalized, '#' );
-	if ( ptr == NULL || ptr - normalized->bv_val == normalized->bv_len ) {
-		rc = LDAP_INVALID_SYNTAX;
-		goto done;
-	}
-
-	bv.bv_val = ptr + 1;
-	bv.bv_len = normalized->bv_len - ( ptr + 1 - normalized->bv_val );
-
-	ptr = ber_bvchr( &bv, '#' );
-	if ( ptr == NULL || ptr - normalized->bv_val == normalized->bv_len ) {
-		rc = LDAP_INVALID_SYNTAX;
-		goto done;
-	}
-
-	bv.bv_val = ptr + 1;
-	bv.bv_len = normalized->bv_len - ( ptr + 1 - normalized->bv_val );
-		
-	ptr = ber_bvchr( &bv, '#' );
-	if ( ptr == NULL || ptr - normalized->bv_val == normalized->bv_len ) {
-		rc = LDAP_INVALID_SYNTAX;
-		goto done;
-	}
-
-	bv.bv_len = ptr - bv.bv_val;
-	for ( i = 0; i < bv.bv_len; i++ ) {
+	for ( i = STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#" );
+		i < normalized->bv_len; i++ )
+	{
 		/* assume it's already validated that's all hex digits */
-		bv.bv_val[ i ] = TOLOWER( bv.bv_val[ i ] );
+		normalized->bv_val[ i ] = TOLOWER( normalized->bv_val[ i ] );
 	}
 
-	rc = LDAP_SUCCESS;
-
-done:;
-	if ( rc != LDAP_SUCCESS ) {
-		ber_memfree_x( normalized->bv_val, ctx );
-		BER_BVZERO( normalized );
-	}
-
-	return rc;
+	return LDAP_SUCCESS;
 }
 
 #ifndef SUPPORT_OBSOLETE_UTC_SYNTAX
