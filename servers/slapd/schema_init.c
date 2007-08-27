@@ -3562,6 +3562,16 @@ sidNormalize(
 	return hexNormalize( 0, NULL, NULL, val, normalized, ctx );
 }
 
+static int
+sidPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	return sidNormalize( SLAP_MR_VALUE_OF_SYNTAX, NULL, NULL, val, out, ctx );
+}
+
 /* Normalize a SID as used inside a CSN, either as-is
  * (assertion value) or extracted from the CSN
  * (attribute value) */
@@ -3575,7 +3585,9 @@ csnSidNormalize(
 	void *ctx )
 {
 	struct berval	bv;
-	char		*ptr;
+	char		*ptr,
+			buf[ 4 ];
+
 
 	if ( BER_BVISEMPTY( val ) ) {
 		return LDAP_INVALID_SYNTAX;
@@ -3609,6 +3621,17 @@ csnSidNormalize(
 	}
 
 	bv.bv_len = ptr - bv.bv_val;
+
+	if ( bv.bv_len == 2 ) {
+		/* OpenLDAP 2.3 SID */
+		buf[ 0 ] = '0';
+		buf[ 1 ] = bv.bv_val[ 0 ];
+		buf[ 2 ] = bv.bv_val[ 1 ];
+		buf[ 3 ] = '\0';
+
+		bv.bv_val = buf;
+		bv.bv_len = 3;
+	}
 
 	return sidNormalize( 0, NULL, NULL, &bv, normalized, ctx );
 }
@@ -3843,6 +3866,16 @@ csnNormalize(
 	}
 
 	return LDAP_SUCCESS;
+}
+
+static int
+csnPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	return csnNormalize( SLAP_MR_VALUE_OF_SYNTAX, NULL, NULL, val, out, ctx );
 }
 
 #ifndef SUPPORT_OBSOLETE_UTC_SYNTAX
@@ -4705,10 +4738,10 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		0, NULL, UUIDValidate, UUIDPretty},
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.1 DESC 'CSN' )",
-		SLAP_SYNTAX_HIDE, NULL, csnValidate, NULL},
+		SLAP_SYNTAX_HIDE, NULL, csnValidate, csnPretty },
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.4 DESC 'CSN SID' )",
-		SLAP_SYNTAX_HIDE, NULL, sidValidate, NULL},
+		SLAP_SYNTAX_HIDE, NULL, sidValidate, sidPretty },
 
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
