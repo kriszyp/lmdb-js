@@ -963,10 +963,8 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	return( an );
 
 reterr:
-	for ( i = 0; an[i].an_name.bv_val; i++ ) {
-		free( an[i].an_name.bv_val );
-	}
-	free( an );
+	anlist_free( an, 1, NULL );
+
 	/*
 	 * overwrites input string
 	 * on error!
@@ -974,6 +972,24 @@ reterr:
 	strcpy( in, s );
 	free( str );
 	return NULL;
+}
+
+void
+anlist_free( AttributeName *an, int freename, void *ctx )
+{
+	if ( an == NULL ) {
+		return;
+	}
+
+	if ( freename ) {
+		int	i;
+
+		for ( i = 0; an[i].an_name.bv_val; i++ ) {
+			ber_memfree_x( an[i].an_name.bv_val, ctx );
+		}
+	}
+
+	ber_memfree_x( an, ctx );
 }
 
 char **anlist2charray_x( AttributeName *an, int dup, void *ctx )

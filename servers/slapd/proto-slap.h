@@ -168,6 +168,9 @@ LDAP_SLAPD_F (AttributeDescription *) ad_find_tags LDAP_P((
 
 LDAP_SLAPD_F (AttributeName *) str2anlist LDAP_P(( AttributeName *an,
 	char *str, const char *brkstr ));
+LDAP_SLAPD_F (void) anlist_free LDAP_P(( AttributeName *an,
+	int freename, void *ctx ));
+
 LDAP_SLAPD_F (char **) anlist2charray_x LDAP_P((
 									AttributeName *an, int dup, void *ctx ));
 LDAP_SLAPD_F (char **) anlist2charray LDAP_P(( AttributeName *an, int dup ));
