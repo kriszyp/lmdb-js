@@ -1203,6 +1203,9 @@ monitor_back_unregister_entry(
 				for ( cb = elp->el_cb; cb; cb = next ) {
 					/* FIXME: call callbacks? */
 					next = cb->mc_next;
+					if ( cb->mc_dispose ) {
+						cb->mc_dispose( &cb->mc_private );
+					}
 					ch_free( cb );
 				}
 				assert( elp->el_e != NULL );
@@ -1337,6 +1340,9 @@ monitor_back_unregister_entry_parent(
 				for ( cb = elp->el_cb; cb; cb = next ) {
 					/* FIXME: call callbacks? */
 					next = cb->mc_next;
+					if ( cb->mc_dispose ) {
+						cb->mc_dispose( &cb->mc_private );
+					}
 					ch_free( cb );
 				}
 				assert( elp->el_e != NULL );
@@ -1517,6 +1523,9 @@ monitor_back_unregister_entry_attrs(
 				for ( cb = elp->el_cb; cb; cb = next ) {
 					/* FIXME: call callbacks? */
 					next = cb->mc_next;
+					if ( cb->mc_dispose ) {
+						cb->mc_dispose( &cb->mc_private );
+					}
 					ch_free( cb );
 				}
 				assert( elp->el_e == NULL );
@@ -2121,6 +2130,44 @@ monitor_back_db_init(
 	return 0;
 }
 
+static void
+monitor_back_destroy_limbo_entry(
+	entry_limbo_t	*el,
+	int		dispose )
+{
+	if ( el->el_e ) {
+		entry_free( el->el_e );
+	}
+	if ( el->el_a ) {
+		attrs_free( el->el_a );
+	}
+	if ( !BER_BVISNULL( &el->el_ndn ) ) {
+		ber_memfree( el->el_ndn.bv_val );
+	}
+	if ( !BER_BVISNULL( &el->el_nbase ) ) {
+		ber_memfree( el->el_nbase.bv_val );
+	}
+	if ( !BER_BVISNULL( &el->el_filter ) ) {
+		ber_memfree( el->el_filter.bv_val );
+	}
+
+	/* NOTE: callbacks are not copied; so only free them
+	 * if disposing of */
+	if ( el->el_cb && dispose != 0 ) {
+		monitor_callback_t *next;
+
+		for ( ; el->el_cb; el->el_cb = next ) {
+			next = el->el_cb->mc_next;
+			if ( el->el_cb->mc_dispose ) {
+				el->el_cb->mc_dispose( &el->el_cb->mc_private );
+			}
+			ch_free( el->el_cb );
+		}
+	}
+
+	ch_free( el );
+}
+
 int
 monitor_back_db_open(
 	BackendDB	*be,
@@ -2391,31 +2438,9 @@ monitor_back_db_open(
 				assert( 0 );
 			}
 
-			if ( el->el_e ) {
-				entry_free( el->el_e );
-			}
-			if ( el->el_a ) {
-				attrs_free( el->el_a );
-			}
-			if ( !BER_BVISNULL( &el->el_ndn ) ) {
-				ber_memfree( el->el_ndn.bv_val );
-			}
-			if ( !BER_BVISNULL( &el->el_nbase ) ) {
-				ber_memfree( el->el_nbase.bv_val );
-			}
-			if ( !BER_BVISNULL( &el->el_filter ) ) {
-				ber_memfree( el->el_filter.bv_val );
-			}
-			if ( el->el_cb && rc != 0 ) {
-				if ( el->el_cb->mc_dispose ) {
-					el->el_cb->mc_dispose( &el->el_cb->mc_private );
-				}
-				ch_free( el->el_cb );
-			}
-
 			tmp = el;
 			el = el->el_next;
-			ch_free( tmp );
+			monitor_back_destroy_limbo_entry( tmp, rc );
 
 			if ( rc != 0 ) {
 				/* try all, but report error at end */
@@ -2493,6 +2518,16 @@ monitor_back_db_destroy(
 		}
 
 		ch_free( monitor_subsys );
+	}
+
+	if ( mi->mi_entry_limbo ) {
+		entry_limbo_t	*el = mi->mi_entry_limbo;
+
+		for ( ; el; ) {
+			entry_limbo_t *tmp = el;
+			el = el->el_next;
+			monitor_back_destroy_limbo_entry( tmp, 1 );
+		}
 	}
 	
 	ldap_pvt_thread_mutex_destroy( &monitor_info.mi_cache_mutex );
