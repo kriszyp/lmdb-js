@@ -760,4 +760,8 @@ void slap_tool_destroy( void )
 	if ( !BER_BVISNULL( &authcDN ) ) {
 		ch_free( authcDN.bv_val );
 	}
+
+	if ( ldiffp && ldiffp != &dummy ) {
+		ldif_close( ldiffp );
+	}
 }
