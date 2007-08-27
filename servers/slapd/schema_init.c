@@ -50,7 +50,6 @@
 #define IA5StringApproxFilter			approxFilter
 
 /* Change Sequence Number (CSN) - much of this will change */
-#define csnValidate				blobValidate
 #define csnMatch				octetStringMatch
 #define csnOrderingMatch		octetStringOrderingMatch
 #define csnIndexer				generalizedTimeIndexer
@@ -66,6 +65,11 @@ unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
 
 ldap_pvt_thread_mutex_t	ad_undef_mutex;
 ldap_pvt_thread_mutex_t	oc_undef_mutex;
+
+static int
+generalizedTimeValidate(
+	Syntax *syntax,
+	struct berval *in );
 
 static int
 inValidate(
@@ -3478,10 +3482,72 @@ done:
 	return rc;
 }
 
+static int
+hexValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int	i;
+
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+
+	for ( i = 0; i < in->bv_len; i++ ) {
+		if ( !ASCII_HEX( in->bv_val[ i ] ) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
 /* Normalize a SID as used inside a CSN:
  * three-digit numeric string */
 static int
-SIDNormalize(
+hexNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	int	i;
+
+	ber_dupbv_x( normalized, val, ctx );
+
+	for ( i = 0; i < normalized->bv_len; i++ ) {
+		if ( !ASCII_HEX( normalized->bv_val[ i ] ) ) {
+			ber_memfree_x( normalized->bv_val, ctx );
+			BER_BVZERO( normalized );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		normalized->bv_val[ i ] = TOLOWER( normalized->bv_val[ i ] );
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+sidValidate (
+	Syntax *syntax,
+	struct berval *in )
+{
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+
+	if ( in->bv_len != 3 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return hexValidate( NULL, in );
+}
+
+/* Normalize a SID as used inside a CSN:
+ * three-digit numeric string */
+static int
+sidNormalize(
 	slap_mask_t usage,
 	Syntax *syntax,
 	MatchingRule *mr,
@@ -3493,23 +3559,14 @@ SIDNormalize(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	if ( !ASCII_HEX( val->bv_val[ 0 ] ) || 
-		!ASCII_HEX( val->bv_val[ 1 ] ) ||
-		!ASCII_HEX( val->bv_val[ 2 ] ) )
-	{
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	ber_dupbv_x( normalized, val, ctx );
-
-	return LDAP_SUCCESS;
+	return hexNormalize( 0, NULL, NULL, val, normalized, ctx );
 }
 
 /* Normalize a SID as used inside a CSN, either as-is
  * (assertion value) or extracted from the CSN
  * (attribute value) */
 static int
-csnSIDNormalize(
+csnSidNormalize(
 	slap_mask_t usage,
 	Syntax *syntax,
 	MatchingRule *mr,
@@ -3525,7 +3582,7 @@ csnSIDNormalize(
 	}
 
 	if ( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX(usage) ) {
-		return SIDNormalize( 0, NULL, NULL, val, normalized, ctx );
+		return sidNormalize( 0, NULL, NULL, val, normalized, ctx );
 	}
 
 	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
@@ -3553,9 +3610,154 @@ csnSIDNormalize(
 
 	bv.bv_len = ptr - bv.bv_val;
 
-	return SIDNormalize( 0, NULL, NULL, &bv, normalized, ctx );
+	return sidNormalize( 0, NULL, NULL, &bv, normalized, ctx );
 }
 
+static int
+csnValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	struct berval	bv;
+	char		*ptr;
+	int		rc;
+
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+
+	if ( BER_BVISEMPTY( in ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv = *in;
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - bv.bv_val == bv.bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+	if ( bv.bv_len != STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ" ) &&
+		bv.bv_len != STRLENOF( "YYYYmmddHHMMSSZ" ) )
+	{
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = generalizedTimeValidate( NULL, &bv );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - in->bv_val == in->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+	if ( bv.bv_len != 6 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = hexValidate( NULL, &bv );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - in->bv_val == in->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+	if ( bv.bv_len == 2 ) {
+		/* tolerate old 2-digit replica-id */
+		rc = hexValidate( NULL, &bv );
+
+	} else {
+		rc = sidValidate( NULL, &bv );
+	}
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
+
+	if ( bv.bv_len != 6 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return hexValidate( NULL, &bv );
+}
+
+/* Normalize a CSN */
+static int
+csnNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	struct berval	bv;
+	char		*ptr;
+	int		i, rc;
+
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
+
+	if ( BER_BVISEMPTY( val ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	ber_dupbv_x( normalized, val, ctx );
+
+	ptr = ber_bvchr( normalized, '#' );
+	if ( ptr == NULL || ptr - normalized->bv_val == normalized->bv_len ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = normalized->bv_len - ( ptr + 1 - normalized->bv_val );
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - normalized->bv_val == normalized->bv_len ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = normalized->bv_len - ( ptr + 1 - normalized->bv_val );
+		
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - normalized->bv_val == normalized->bv_len ) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+	for ( i = 0; i < bv.bv_len; i++ ) {
+		/* assume it's already validated that's all hex digits */
+		bv.bv_val[ i ] = TOLOWER( bv.bv_val[ i ] );
+	}
+
+	rc = LDAP_SUCCESS;
+
+done:;
+	if ( rc != LDAP_SUCCESS ) {
+		ber_memfree_x( normalized->bv_val, ctx );
+		BER_BVZERO( normalized );
+	}
+
+	return rc;
+}
 
 #ifndef SUPPORT_OBSOLETE_UTC_SYNTAX
 /* slight optimization - does not need the start parameter */
@@ -4419,6 +4621,9 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.11.2.1 DESC 'CSN' )",
 		SLAP_SYNTAX_HIDE, NULL, csnValidate, NULL},
 
+	{"( 1.3.6.1.4.1.4203.666.11.2.4 DESC 'CSN SID' )",
+		SLAP_SYNTAX_HIDE, NULL, sidValidate, NULL},
+
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
 		SLAP_SYNTAX_HIDE, NULL, inValidate, NULL},
@@ -4848,7 +5053,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.11.2.2 NAME 'CSNMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY | SLAP_MR_ORDERED_INDEX, NULL,
-		NULL, NULL, csnMatch,
+		NULL, csnNormalize, csnMatch,
 		csnIndexer, csnFilter,
 		NULL},
 
@@ -4859,10 +5064,10 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL,
 		"CSNMatch" },
 
-	{"( 1.3.6.1.4.1.4203.666.11.2.4 NAME 'CSNSIDMatch' "
-		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
+	{"( 1.3.6.1.4.1.4203.666.11.2.5 NAME 'CSNSIDMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.4 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, csnSIDMatchSyntaxes,
-		NULL, csnSIDNormalize, octetStringMatch,
+		NULL, csnSidNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
