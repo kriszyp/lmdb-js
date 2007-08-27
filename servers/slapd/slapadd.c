@@ -344,7 +344,8 @@ slapadd( int argc, char **argv )
 		} else {
 			ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
 			if ( ctxcsn_e != NULL ) {
-				attr = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
+				Entry *e = entry_dup( ctxcsn_e );
+				attr = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
 				if ( attr ) {
 					int		i;
 
@@ -384,33 +385,31 @@ slapadd( int argc, char **argv )
 						}
 					}
 
-#if 0
-					if ( attr->a_nvals && attr->a_nvals != attr->a_vals ) {
-						ber_bvarray_free( attr->a_nvals );
+					if ( attr->a_nvals != attr->a_vals ) {
+						ber_bvarray_free( attr->a_vals );
 					}
-					ber_bvarray_free( attr->a_vals );
-#endif
-
-					attr->a_vals = NULL;
 					attr->a_nvals = NULL;
+					ber_bvarray_free( attr->a_vals );
+					attr->a_vals = NULL;
 				}
 
 				for ( sid = 0; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
 					if ( maxcsn[ sid ].bv_len ) {
-						attr_merge_one( ctxcsn_e, slap_schema.si_ad_contextCSN,
+						attr_merge_one( e, slap_schema.si_ad_contextCSN,
 							&maxcsn[ sid], NULL );
 					}
 				}
 			
-				ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
+				ctxcsn_id = be->be_entry_modify( be, e, &bvtext );
 				if( ctxcsn_id == NOID ) {
 					fprintf( stderr, "%s: could not modify ctxcsn\n",
 						progname);
 					rc = EXIT_FAILURE;
 				} else if ( verbose ) {
 					fprintf( stderr, "modified: \"%s\" (%08lx)\n",
-						ctxcsn_e->e_dn, (long) ctxcsn_id );
+						e->e_dn, (long) ctxcsn_id );
 				}
+				entry_free( e );
 			}
 		} 
 	}
