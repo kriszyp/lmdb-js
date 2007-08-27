@@ -349,7 +349,7 @@ slapadd( int argc, char **argv )
 				if ( attr ) {
 					int		i;
 
-					for ( i = 0; !BER_BVISNULL( &attr->a_vals[ i ] ); i++ ) {
+					for ( i = 0; !BER_BVISNULL( &attr->a_nvals[ i ] ); i++ ) {
 						int rc_sid;
 
 						rc_sid = slap_parse_csn_sid( &attr->a_nvals[ i ] );
@@ -385,8 +385,8 @@ slapadd( int argc, char **argv )
 						}
 					}
 
-					if ( attr->a_nvals != attr->a_vals ) {
-						ber_bvarray_free( attr->a_vals );
+					if ( attr->a_nvals != attr->a_nvals ) {
+						ber_bvarray_free( attr->a_nvals );
 					}
 					attr->a_nvals = NULL;
 					ber_bvarray_free( attr->a_vals );
