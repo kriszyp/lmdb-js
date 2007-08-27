@@ -3493,9 +3493,9 @@ SIDNormalize(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	if ( !ASCII_DIGIT( val->bv_val[ 0 ] ) || 
-		!ASCII_DIGIT( val->bv_val[ 1 ] ) ||
-		!ASCII_DIGIT( val->bv_val[ 2 ] ) )
+	if ( !ASCII_HEX( val->bv_val[ 0 ] ) || 
+		!ASCII_HEX( val->bv_val[ 1 ] ) ||
+		!ASCII_HEX( val->bv_val[ 2 ] ) )
 	{
 		return LDAP_INVALID_SYNTAX;
 	}
