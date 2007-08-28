@@ -241,7 +241,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:F:gj:l:n:o:qstuvw";
+		options = "b:cd:f:F:gj:l:n:o:qsS:tuvw";
 		break;
 
 	case SLAPCAT:
@@ -382,6 +382,14 @@ slap_tool_init(
 
 		case 'R':
 			realm = optarg;
+			break;
+
+		case 'S':
+			if ( lutil_atoul( &csnsid, optarg )
+				|| csnsid > SLAP_SYNC_SID_MAX )
+			{
+				usage( tool, progname );
+			}
 			break;
 
 		case 's':	/* dump subtree */

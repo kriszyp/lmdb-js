@@ -67,6 +67,9 @@ slapadd( int argc, char **argv )
 	int rc = EXIT_SUCCESS;
 	int manage = 0;	
 
+	/* default "000" */
+	csnsid = 0;
+
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
 	memset( &opbuf, 0, sizeof(opbuf) );
@@ -220,7 +223,7 @@ slapadd( int argc, char **argv )
 			nvals[1].bv_len = 0;
 			nvals[1].bv_val = NULL;
 
-			csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), 0, 0 );
+			csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), csnsid, 0 );
 			csn.bv_val = csnbuf;
 
 			timestamp.bv_val = timebuf;
