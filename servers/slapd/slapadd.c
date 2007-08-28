@@ -96,6 +96,11 @@ slapadd( int argc, char **argv )
 	lmax = 0;
 	nextline = 0;
 
+	/* enforce schema checking unless not disabled */
+	if ( (slapMode & SLAP_TOOL_NO_SCHEMA_CHECK) == 0) {
+		SLAP_DBFLAGS(be) &= ~(SLAP_DBFLAG_NO_SCHEMA_CHECK);
+	}
+
 	if( !dryrun && be->be_entry_open( be, 1 ) != 0 ) {
 		fprintf( stderr, "%s: could not open database.\n",
 			progname );
