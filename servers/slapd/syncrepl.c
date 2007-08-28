@@ -1644,7 +1644,7 @@ syncrepl_message_to_entry(
 {
 	Entry		*e = NULL;
 	BerElement	*ber = NULL;
-	Modifications	tmp;
+	Modifications	tmp = { 0 };
 	Modifications	*mod;
 	Modifications	**modtail = modlist;
 
