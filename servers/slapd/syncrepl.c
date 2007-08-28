@@ -1709,6 +1709,7 @@ syncrepl_message_to_entry(
 		 */
 		if ( is_ctx && !strcasecmp( tmp.sml_type.bv_val,
 			slap_schema.si_ad_contextCSN->ad_cname.bv_val )) {
+			if ( tmp.sml_nvalues ) ber_bvarray_free( tmp.sml_nvalues );
 			ber_bvarray_free( tmp.sml_values );
 			continue;
 		}

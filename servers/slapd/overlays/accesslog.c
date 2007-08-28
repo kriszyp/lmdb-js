@@ -1906,8 +1906,11 @@ accesslog_db_root(
 
 			a = attr_find( e_ctx->e_attrs, slap_schema.si_ad_contextCSN );
 			if ( a ) {
-				attr_merge( e, slap_schema.si_ad_entryCSN, a->a_vals, NULL );
-				attr_merge( e, a->a_desc, a->a_vals, NULL );
+				/* FIXME: contextCSN could have multiple values!
+				 * should select the one with the server's SID */
+				attr_merge_one( e, slap_schema.si_ad_entryCSN,
+					&a->a_vals[0], &a->a_nvals[0] );
+				attr_merge( e, a->a_desc, a->a_vals, a->a_nvals );
 			}
 			be_entry_release_rw( op, e_ctx, 0 );
 		}
