@@ -2,6 +2,7 @@ OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.39 Engineering
 	Fixed slapd-sql concurrency issue (ITS#5095)
+        Fixed slapo-pcache and -rwm interaction fix (ITS#4991) 
 	Fixed liblber Windows x64 portability (ITS#5105)
 	Fixed libldap ppolicy control creation (ITS#5103)
 	Documentation

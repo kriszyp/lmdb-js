@@ -1050,7 +1050,6 @@ pcache_response(
 	if ( si->query.save_attrs != NULL ) {
 		rs->sr_attrs = si->query.save_attrs;
 		op->ors_attrs = si->query.save_attrs;
-		si->query.save_attrs = NULL;
 	}
 
 	if ( rs->sr_type == REP_SEARCH ) {
