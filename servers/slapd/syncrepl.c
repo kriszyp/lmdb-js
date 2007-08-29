@@ -1848,6 +1848,7 @@ syncrepl_entry(
 	struct berval pdn = BER_BVNULL;
 	dninfo dni = {0};
 	int	retry = 1;
+	int	freecsn = 1;
 
 	Debug( LDAP_DEBUG_SYNC,
 		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s)\n",
@@ -1959,6 +1960,8 @@ syncrepl_entry(
 				si->si_ridtxt, dni.dn.bv_val ? dni.dn.bv_val : "(null)", 0 );
 	}
 
+	assert( BER_BVISNULL( &op->o_csn ) );
+
 	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
@@ -1973,6 +1976,7 @@ syncrepl_entry(
 				 */
 				assert( BER_BVISNULL( &op->o_csn ) );
 				op->o_csn = a->a_vals[0];
+				freecsn = 0;
 			}
 		}
 retry_add:;
@@ -2205,8 +2209,12 @@ done:
 	if ( !BER_BVISNULL( &dni.dn ) ) {
 		op->o_tmpfree( dni.dn.bv_val, op->o_tmpmemctx );
 	}
-	if ( entry )
+	if ( entry ) {
 		entry_free( entry );
+	}
+	if ( !BER_BVISNULL( &op->o_csn ) && freecsn ) {
+		op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
+	}
 	BER_BVZERO( &op->o_csn );
 	return rc;
 }
