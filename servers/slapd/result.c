@@ -239,7 +239,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 		if( rc == -1 ) return rc;
 	}
 
-#ifdef SLAP_SORTED_RESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 	/* this is a hack to avoid having to modify op->s_ctrls */
 	if( o->o_sortedresults ) {
 		BerElementBuffer berbuf;
