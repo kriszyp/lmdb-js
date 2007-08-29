@@ -1508,6 +1508,9 @@ config_generic(ConfigArgs *c) {
 					si = ch_malloc( sizeof(ServerID) );
 					BER_BVZERO( &si->si_url );
 					slap_serverID = num;
+					Debug( LDAP_DEBUG_CONFIG,
+						"%s: SID=%d\n",
+						c->log, slap_serverID, 0 );
 				}
 				si->si_next = NULL;
 				si->si_num = num;
@@ -1558,6 +1561,10 @@ config_generic(ConfigArgs *c) {
 							ldap_free_urldesc( lu2 );
 							if ( isMe ) {
 								slap_serverID = si->si_num;
+								Debug( LDAP_DEBUG_CONFIG,
+									"%s: SID=%d (listener=%s)\n",
+									c->log, slap_serverID,
+									l[i]->sl_url.bv_val );
 								break;
 							}
 						}
