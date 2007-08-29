@@ -1874,12 +1874,15 @@ static int
 pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 	slap_callback	*cb = op->o_callback;
 	struct search_info *si = cb->sc_private;
-	if ( si->save_attrs != NULL ) {
-		rs->sr_attrs = si->save_attrs;
-		op->ors_attrs = si->save_attrs;
+	if ( rs->sr_type == REP_RESULT || op->o_abandon || 
+			rs->sr_err == SLAPD_ABANDON ) {
+		if ( si->save_attrs != NULL ) {
+			rs->sr_attrs = si->save_attrs;
+			op->ors_attrs = si->save_attrs;
+		}
+		op->o_callback = op->o_callback->sc_next;
+		op->o_tmpfree( cb, op->o_tmpmemctx );
 	}
-	op->o_callback = op->o_callback->sc_next;
-	op->o_tmpfree( cb, op->o_tmpmemctx );
 	return SLAP_CB_CONTINUE;
 }
 
@@ -1962,8 +1965,6 @@ pcache_response(
 		} else {
 			filter_free( si->query.filter );
 		}
-
-		op->o_callback->sc_cleanup = pcache_op_cleanup;
 	}
 	return SLAP_CB_CONTINUE;
 }
@@ -2245,7 +2246,7 @@ pcache_op_search(
 
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx );
 		cb->sc_response = pcache_response;
-		cb->sc_cleanup = NULL;
+		cb->sc_cleanup = pcache_op_cleanup;
 		cb->sc_private = (cb+1);
 		si = cb->sc_private;
 		si->on = on;
