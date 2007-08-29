@@ -253,9 +253,7 @@ N_("             ppolicy\n")
 #endif
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n")
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n")
-#ifdef LDAP_DEVEL
 N_("             [!]relax\n")
-#endif
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
 N_("             [!]sessiontracking\n")
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
