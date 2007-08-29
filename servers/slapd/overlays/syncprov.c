@@ -2308,10 +2308,15 @@ syncprov_operational(
 						a = attr_find( rs->sr_entry->e_attrs,
 							slap_schema.si_ad_contextCSN );
 					}
-					free( a->a_vals );
+					if ( a->a_nvals != a->a_vals ) {
+						ber_bvarray_free( a->a_nvals );
+					}
+					a->a_nvals = NULL;
+					ber_bvarray_free( a->a_vals );
+					a->a_vals = NULL;
 				}
 				ber_bvarray_dup_x( &a->a_vals, si->si_ctxcsn, NULL );
-				a->a_nvals = a->a_vals;
+				ber_bvarray_dup_x( &a->a_nvals, si->si_ctxcsn, NULL );
 			}
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
