@@ -100,7 +100,7 @@ txnReturn:
 	ctrls[num_ctrls] = 0;
 
 	/* allocate CSN */
-	if ( BER_BVISEMPTY( &op->o_csn )) {
+	if ( BER_BVISNULL( &op->o_csn ) ) {
 		struct berval csn;
 		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 
