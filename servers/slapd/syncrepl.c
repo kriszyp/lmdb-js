@@ -2384,6 +2384,10 @@ syncrepl_del_nonpresent(
 			ber_bvfree( np_prev->npe_name );
 			ber_bvfree( np_prev->npe_nname );
 			ch_free( np_prev );
+
+			if ( slapd_shutdown ) {
+				break;
+			}
 		}
 
 		slap_graduate_commit_csn( op );
