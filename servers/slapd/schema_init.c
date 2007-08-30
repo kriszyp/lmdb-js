@@ -196,7 +196,6 @@ static int certificateValidate( Syntax *syntax, struct berval *in )
 }
 
 /* X.509 certificate list validation */
-#ifdef LDAP_DEVEL
 static int certificateListValidate( Syntax *syntax, struct berval *in )
 {
 	BerElementBuffer berbuf;
@@ -260,9 +259,6 @@ static int certificateListValidate( Syntax *syntax, struct berval *in )
 	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
 	return LDAP_SUCCESS;
 }
-#else /* ! LDAP_DEVEL */
-#define certificateListValidate sequenceValidate
-#endif /* ! LDAP_DEVEL */
 
 int
 octetStringMatch(
