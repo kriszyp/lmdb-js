@@ -1373,6 +1373,10 @@ retcode_initialize( void )
 				"retcode: register_at failed\n", 0, 0, 0 );
 			return code;
 		}
+
+#ifndef LDAP_DEVEL
+		(*retcode_at[ i ].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
+#endif /* LDAP_DEVEL */
 	}
 
 	for ( i = 0; retcode_oc[ i ].desc != NULL; i++ ) {
@@ -1382,6 +1386,10 @@ retcode_initialize( void )
 				"retcode: register_oc failed\n", 0, 0, 0 );
 			return code;
 		}
+
+#ifndef LDAP_DEVEL
+		(*retcode_oc[ i ].oc)->soc_flags |= SLAP_OC_HIDE;
+#endif /* LDAP_DEVEL */
 	}
 
 	retcode.on_bi.bi_type = "retcode";
