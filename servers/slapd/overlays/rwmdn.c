@@ -157,27 +157,31 @@ rwm_dn_massage(
 	int		rc = 0;
 	struct berval	mdn;
 	static char	*dmy = "";
+	char *in_val;
 
 	assert( dc != NULL );
 	assert( in != NULL );
 	assert( dn != NULL );
 
+	/* protect from NULL berval */
+	in_val = in->bv_val ? in->bv_val : dmy;
+
 	rc = rewrite_session( dc->rwmap->rwm_rw, dc->ctx,
-			( in->bv_val ? in->bv_val : dmy ), 
-			dc->conn, &mdn.bv_val );
+			in_val, dc->conn, &mdn.bv_val );
 	switch ( rc ) {
 	case REWRITE_REGEXEC_OK:
-		if ( !BER_BVISNULL( &mdn ) && mdn.bv_val != in->bv_val ) {
+		if ( !BER_BVISNULL( &mdn ) && mdn.bv_val != in_val ) {
 			mdn.bv_len = strlen( mdn.bv_val );
 			*dn = mdn;
 		} else {
-			*dn = *in;
+			dn->bv_len = in->bv_len;
+			dn->bv_val = in_val;
 		}
 		rc = LDAP_SUCCESS;
 
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, in->bv_val, dn->bv_val );
+			dc->ctx, in_val, dn->bv_val );
 		break;
  		
  	case REWRITE_REGEXEC_UNWILLING:
