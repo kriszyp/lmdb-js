@@ -1,3 +1,4 @@
+# $OpenLDAP$
 # Copyright 1999-2007 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
@@ -8,6 +9,8 @@ OpenLDAP clients and servers are capable of using the
 integrity and confidentiality protections and to support
 LDAP authentication using the {{TERM:SASL}} {{TERM:EXTERNAL}} mechanism. 
 TLS is defined in {{REF:RFC4346}}.
+
+Note: For generating certifcates, please reference {{URL:http://www.openldap.org/faq/data/cache/185.html}}
 
 H2: TLS Certificates
 
@@ -178,7 +181,7 @@ be configured on a system-wide basis, they may all be overridden by
 individual users in their {{.ldaprc}} files.
 
 The LDAP Start TLS operation is used in LDAP to initiate TLS
-negotatation.  All OpenLDAP command line tools support a {{EX:-Z}}
+negotiation.  All OpenLDAP command line tools support a {{EX:-Z}}
 and {{EX:-ZZ}} flag to indicate whether a Start TLS operation is to
 be issued.  The latter flag indicates that the tool is to cease
 processing if TLS cannot be started while the former allows the

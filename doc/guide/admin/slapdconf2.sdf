@@ -32,11 +32,6 @@ Note: some of the backends and of the distributed overlays
 do not support runtime configuration yet.  In those cases,
 the old style {{slapd.conf}}(5) file must be used.
 
-Note: the current version of {{slurpd}} has not been updated for
-compatibility with this new configuration engine. If you must use
-slurpd for replication at your site, you will have to maintain an
-old-style {{slapd.conf}} file for slurpd to use.
-
 
 H2: Configuration Layout
 
@@ -46,7 +41,7 @@ carry global configuration options, schema definitions, backend and
 database definitions, and assorted other items. A sample config tree
 is shown in Figure 5.1.
 
-!import "config_dit.gif"; align="center"; title="Sample configuration tree"
+!import "config_dit.png"; align="center"; title="Sample configuration tree"
 FT[align="Center"] Figure 5.1: Sample configuration tree.
 
 Other objects may be part of the configuration but were omitted from
@@ -403,7 +398,7 @@ H4: olcAccess: to <what> [ by <who> [<accesslevel>] [<control>] ]+
 
 This directive grants access (specified by <accesslevel>) to a
 set of entries and/or attributes (specified by <what>) by one or
-more requesters (specified by <who>).
+more requestors (specified by <who>).
 See the {{SECT:Access Control}} section of this chapter for a
 summary of basic usage.
 
@@ -429,74 +424,6 @@ perform" error.
 \Default:
 
 >	olcReadonly: FALSE
-
-
-H4: olcReplica
-
->	olcReplica: uri=ldap[s]://<hostname>[:<port>] | host=<hostname>[:<port>]
->		[bindmethod={simple|sasl}]
->		["binddn=<DN>"]
->		[saslmech=<mech>]
->		[authcid=<identity>]
->		[authzid=<identity>]
->		[credentials=<password>]
-
-This directive specifies a replication site for this database for
-use with slurpd. The
-{{EX:uri=}} parameter specifies a scheme, a host and optionally a port where
-the slave slapd instance can be found. Either a domain name
-or IP address may be used for <hostname>. If <port> is not
-given, the standard LDAP port number (389 or 636) is used.
-
-{{EX:host}} is deprecated in favor of the {{EX:uri}} parameter.
-
-{{EX:uri}} allows the replica LDAP server to be specified as an LDAP 
-URI such as {{EX:ldap://slave.example.com:389}} or
-{{EX:ldaps://slave.example.com:636}}.
-
-The {{EX:binddn=}} parameter gives the DN to bind as for updates
-to the slave slapd. It should be a DN which has read/write access
-to the slave slapd's database.  It must also match the {{EX:updatedn}}
-directive in the slave slapd's config file.  Generally, this DN
-{{should not}} be the same as the {{EX:rootdn}} of the master
-database.  Since DNs are likely to contain embedded spaces, the
-entire {{EX:"binddn=<DN>"}} string should be enclosed in double
-quotes.
-
-The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}},
-depending on whether simple password-based authentication
-or {{TERM:SASL}} authentication is to be used when connecting
-to the slave slapd.
-
-Simple authentication should not be used unless adequate data
-integrity and confidentiality protections are in place (e.g. TLS
-or {{TERM:IPsec}}).  Simple authentication requires specification
-of {{EX:binddn}} and {{EX:credentials}} parameters.
-
-SASL authentication is generally recommended.  SASL authentication
-requires specification of a mechanism using the {{EX:saslmech}} parameter.
-Depending on the mechanism, an authentication identity and/or
-credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
-respectively.  The {{EX:authzid}} parameter may be used to specify
-an authorization identity.
-
-See the chapter entitled {{SECT:Replication with slurpd}} for more
-information on how to use this directive.
-
-
-H4: olcReplogfile: <filename>
-
-This directive specifies the name of the replication log file to
-which slapd will log changes. The replication log is typically
-written by {{slapd}}(8) and read by {{slurpd}}(8). Normally, this
-directive is only used if {{slurpd}}(8) is being used to replicate
-the database.  However, you can also use it to generate a transaction
-log, if {{slurpd}}(8) is not running. In this case, you will need to
-periodically truncate the file, since it will grow indefinitely
-otherwise.
-
-See the chapter entitled {{SECT:Replication with slurpd}} for more
-information on how to use this directive.
 
 
 H4: olcRootDN: <DN>
@@ -743,24 +670,6 @@ exceeded timelimit will be returned.
 >	olcTimeLimit: 3600
 
 
-H4: olcUpdateDN: <DN>
-
-This directive is only applicable in a slave slapd. It specifies
-the DN allowed to make changes to the replica.  This may be the DN
-{{slurpd}}(8) binds as when making changes to the replica or the DN
-associated with a SASL identity.
-
-Entry-based Example:
-
->	olcUpdateDN: "cn=Update Daemon,dc=example,dc=com"
-
-SASL-based Example:
-
->	olcUpdateDN: "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
-
-See the {{SECT:Replication with slurpd}} chapter for more information
-on how to use this directive.
-
 H4: olcUpdateref: <URL>
 
 This directive is only applicable in a slave slapd. It
@@ -825,7 +734,7 @@ This directive specifies how often to checkpoint the BDB transaction log.
 A checkpoint operation flushes the database buffers to disk and writes a
 checkpoint record in the log.
 The checkpoint will occur if either <kbyte> data has been written or
-<min> minutes have passed since the last checkpont. Both arguments default
+<min> minutes have passed since the last checkpoint. Both arguments default
 to zero, in which case they are ignored. When the <min> argument is
 non-zero, an internal task will run every <min> minutes to perform the
 checkpoint. See the Berkeley DB reference guide for more details.
@@ -842,7 +751,7 @@ This attribute specifies a configuration directive to be placed in the
 no such file exists yet, the {{EX:DB_CONFIG}} file will be created and the
 settings in this attribute will be written to it. If the file exists,
 its contents will be read and displayed in this attribute. The attribute
-is multi-valued, to accomodate multiple configuration directives. No default
+is multi-valued, to accommodate multiple configuration directives. No default
 is provided, but it is essential to use proper settings here to get the
 best server performance.
 
@@ -872,7 +781,7 @@ cleanup procedure removes them. See the Berkeley DB documentation for the
 
 Ideally the BDB cache must be
 at least as large as the working set of the database, the log buffer size
-should be large enough to accomodate most transactions without overflowing,
+should be large enough to accommodate most transactions without overflowing,
 and the log directory must be on a separate physical disk from the main
 database files. And both the database directory and the log directory
 should be separate from disks used for regular system activities such as
@@ -989,7 +898,7 @@ created database index files should have.
 H4: olcDbSearchStack: <integer>
 
 Specify the depth of the stack used for search filter evaluation.
-Search filters are evaluated on a stack to accomodate nested {{EX:AND}} /
+Search filters are evaluated on a stack to accommodate nested {{EX:AND}} /
 {{EX:OR}} clauses. An individual stack is allocated for each server thread.
 The depth of the stack determines how complex a filter can be evaluated
 without requiring any additional memory allocation. Filters that are
@@ -1325,7 +1234,7 @@ the access directives and the {{EX:by <who>}} clauses.  It also
 shows the use of an attribute selector to grant access to a specific
 attribute and various {{EX:<who>}} selectors.
 
->	olcAccess: to dn.subtree="dc=example,dc=com" attr=homePhone
+>	olcAccess: to dn.subtree="dc=example,dc=com" attrs=homePhone
 >		by self write
 >		by dn.children=dc=example,dc=com" search
 >		by peername.regex=IP:10\..+ read
@@ -1351,7 +1260,7 @@ create a group and allow people to add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
->	olcAccess: to attr=member,entry
+>	olcAccess: to attrs=member,entry
 > 		by dnattr=member selfwrite
 
 The dnattr {{EX:<who>}} selector says that the access applies to
@@ -1375,7 +1284,7 @@ tags are maintained automatically by slapd and do not need to be specified
 when originally defining the values. For example, when you create the
 settings
 
->	olcAccess: to attr=member,entry
+>	olcAccess: to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: to dn.children="dc=example,dc=com"
 > 		by * search
@@ -1384,7 +1293,7 @@ settings
 
 when you read them back using slapcat or ldapsearch they will contain
 
->	olcAccess: {0}to attr=member,entry
+>	olcAccess: {0}to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: {1}to dn.children="dc=example,dc=com"
 > 		by * search
@@ -1423,7 +1332,7 @@ This example deletes whatever rule is in value #1 of the {{EX:olcAccess}}
 attribute (regardless of its value) and adds a new value that is
 explicitly inserted as value #1. The result will be
 
->	olcAccess: {0}to attr=member,entry
+>	olcAccess: {0}to attrs=member,entry
 > 		by dnattr=member selfwrite
 >	olcAccess: {1}to dn.children="dc=example,dc=com"
 > 		by * write
@@ -1513,7 +1422,7 @@ E: 29.	olcRootPW: secret
 E: 30.	olcDbIndex: uid pres,eq
 E: 31.	olcDbIndex: cn,sn,uid pres,eq,approx,sub
 E: 32.	olcDbIndex: objectClass eq
-E: 33.	olcAccess: to attr=userPassword
+E: 33.	olcAccess: to attrs=userPassword
 E: 34.	  by self write
 E: 35.	  by anonymous auth
 E: 36.	  by dn.base="cn=Admin,dc=example,dc=com" write
@@ -1550,16 +1459,16 @@ Line 42 is a blank line, indicating the end of this entry.
 The next section of the example configuration file defines another
 BDB database. This one handles queries involving the
 {{EX:dc=example,dc=net}} subtree but is managed by the same entity
-as the first database.  Note that without line 51, the read access
+as the first database.  Note that without line 52, the read access
 would be allowed due to the global access rule at line 19.
 
-E: 42.	# BDB definition for example.net
-E: 43.	dn: olcDatabase=bdb,cn=config
-E: 44.	objectClass: olcDatabaseConfig
-E: 45.	objectClass: olcBdbConfig
-E: 46.	olcDatabase: bdb
-E: 47.	olcSuffix: "dc=example,dc=net"
-E: 48.	olcDbDirectory: /usr/local/var/openldap-data-net
-E: 49.	olcRootDN: "cn=Manager,dc=example,dc=com"
-E: 50.	olcDbIndex: objectClass eq
-E: 51.	olcAccess: to * by users read
+E: 43.	# BDB definition for example.net
+E: 44.	dn: olcDatabase=bdb,cn=config
+E: 45.	objectClass: olcDatabaseConfig
+E: 46.	objectClass: olcBdbConfig
+E: 47.	olcDatabase: bdb
+E: 48.	olcSuffix: "dc=example,dc=net"
+E: 49.	olcDbDirectory: /usr/local/var/openldap-data-net
+E: 50.	olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 51.	olcDbIndex: objectClass eq
+E: 52.	olcAccess: to * by users read

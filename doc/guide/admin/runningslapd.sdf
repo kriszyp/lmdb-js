@@ -104,9 +104,9 @@ H2: Starting slapd
 
 In general, slapd is run like this:
 
->	/usr/local/etc/libexec/slapd [<option>]*
+>	/usr/local/libexec/slapd [<option>]*
 
-where {{F:/usr/local/etc/libexec}} is determined by {{EX:configure}}
+where {{F:/usr/local/libexec}} is determined by {{EX:configure}}
 and <option> is one of the options described above (or in {{slapd}}(8)).
 Unless you have specified a debugging level (including level {{EX:0}}),
 slapd will automatically fork and detach itself from its controlling

@@ -18,16 +18,19 @@ sdf-src: \
 	../plain.sdf \
 	../preamble.sdf \
 	abstract.sdf \
+	appendix-configs.sdf \
+	backends.sdf \
 	config.sdf \
 	dbtools.sdf \
 	glossary.sdf \
 	guide.sdf \
 	install.sdf \
 	intro.sdf \
+	maintenance.sdf \
 	master.sdf \
 	monitoringslapd.sdf \
+	overlays.sdf \
 	preface.sdf \
-	proxycache.sdf \
 	quickstart.sdf \
 	referrals.sdf \
 	replication.sdf \
@@ -36,21 +39,19 @@ sdf-src: \
 	schema.sdf \
 	security.sdf \
 	slapdconfig.sdf \
-	syncrepl.sdf \
 	title.sdf \
 	tls.sdf \
+	troubleshooting.sdf \
 	tuning.sdf
 
 sdf-img: \
 	../images/LDAPlogo.gif \
-	config_local.gif \
-	config_ref.gif \
+	config_dit.png \
+	config_local.png \
+	config_ref.png \
 	config_repl.gif \
-	config_x500fe.gif \
-	config_x500ref.gif \
-	intro_dctree.gif \
-	intro_tree.gif \
-	replication.gif
+	intro_dctree.png \
+	intro_tree.png \
 
 guide.html: guide.sdf sdf-src sdf-img
 	sdf -2html guide.sdf
@@ -62,6 +63,7 @@ admin.html: admin.sdf sdf-src sdf-img
 	sdf -DPDF -2html admin.sdf
 
 guide.pdf: admin.html
-	htmldoc --book --duplex --bottom 36 --top 36 \
-		--toclevels 2 \
-		-f guide.pdf admin.html
+	htmldoc --batch guide.book
+
+clean: 
+	rm -f *.pdf *.html *~

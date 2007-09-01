@@ -15,7 +15,7 @@ directory service for your local domain only. It does not interact
 with other directory servers in any way. This configuration is shown
 in Figure 3.1.
 
-!import "config_local.gif"; align="center"; title="Local service via slapd(8) configuration"
+!import "config_local.png"; align="center"; title="Local service via slapd(8) configuration"
 FT[align="Center"] Figure 3.1: Local service configuration.
 
 Use this configuration if you are just starting out (it's the one the
@@ -32,7 +32,7 @@ referrals to other servers capable of handling requests.  You may
 run this service (or services) yourself or use one provided to you.
 This configuration is shown in Figure 3.2.
 
-!import "config_ref.gif"; align="center"; title="Local service with referrals"
+!import "config_ref.png"; align="center"; title="Local service with referrals"
 FT[align="Center"] Figure 3.2: Local service with referrals 
 
 Use this configuration if you want to provide local service and
