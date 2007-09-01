@@ -74,7 +74,7 @@ struct aindexrec {
 
 static Avlnode	*attr_index = NULL;
 static Avlnode	*attr_cache = NULL;
-static LDAP_STAILQ_HEAD(ATList, slap_attribute_type) attr_list
+static LDAP_STAILQ_HEAD(ATList, AttributeType) attr_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(attr_list);
 
 /* Last hardcoded attribute registered */
@@ -253,7 +253,7 @@ at_delete( AttributeType *at )
 {
 	at->sat_flags |= SLAP_AT_DELETED;
 
-	LDAP_STAILQ_REMOVE(&attr_list,at,slap_attribute_type,sat_next);
+	LDAP_STAILQ_REMOVE(&attr_list, at, AttributeType, sat_next);
 
 	at_delete_names( at );
 }
@@ -459,6 +459,7 @@ at_insert(
 				
 				/* Keep old oid, free new oid;
 				 * Keep old ads, free new ads;
+				 * Keep old ad_mutex, free new ad_mutex;
 				 * Keep new everything else, free old
 				 */
 				tmp = *old_sat;
@@ -467,6 +468,8 @@ at_insert(
 				tmp.sat_oid = sat->sat_oid;
 				old_sat->sat_ad = tmp.sat_ad;
 				tmp.sat_ad = sat->sat_ad;
+				old_sat->sat_ad_mutex = tmp.sat_ad_mutex;
+				tmp.sat_ad_mutex = sat->sat_ad_mutex;
 				*sat = tmp;
 
 				/* Check for basic ad pointing at old cname */
@@ -751,9 +754,12 @@ at_add(
 			goto error_return;
 		}
 
-		if( sat->sat_syntax != NULL && sat->sat_syntax != syn ) {
-			code = SLAP_SCHERR_ATTR_BAD_SUP;
-			goto error_return;
+		if ( sat->sat_syntax != NULL && sat->sat_syntax != syn ) {
+			/* BEWARE: no loop detection! */
+			if ( syn_is_sup( sat->sat_syntax, syn ) ) {
+				code = SLAP_SCHERR_ATTR_BAD_SUP;
+				goto error_return;
+			}
 		}
 
 		sat->sat_syntax = syn;

@@ -108,6 +108,18 @@ Use \fIpasswd\fP as the password for simple authentication.
 .BI \-y \ passwdfile
 Use complete contents of \fIpasswdfile\fP as the password for
 simple authentication.
+Note that \fIcomplete\fP means that any leading or trailing whitespaces,
+including newlines, will be considered part of the password and,
+unlike other software, they will not be stripped.
+As a consequence, passwords stored in files by commands like
+.BR echo (1)
+will not behave as expected, since
+.BR echo (1)
+by default appends a trailing newline to the echoed string.
+The recommended portable way to store a cleartext password in a file
+for use with this option is to use
+.BR slappasswd (8)
+with \fI{CLEARTEXT}\fP as hash and the option \fI\-n\fP.
 .TP
 .BI \-H \ ldapuri
 Specify URI(s) referring to the ldap server(s); only the protocol/host/port

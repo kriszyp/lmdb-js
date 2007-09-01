@@ -17,6 +17,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include<ac/string.h>
+
 typedef struct ConfigTable {
 	char *name;
 	char *what;
@@ -105,6 +107,11 @@ typedef struct ConfigOCs {
 
 typedef int (ConfigDriver)(struct config_args_s *c);
 
+typedef struct config_reply_s {
+	int err;
+	char msg[SLAP_TEXT_BUFLEN];
+} ConfigReply;
+
 typedef struct config_args_s {
 	int argc;
 	char **argv;
@@ -114,7 +121,8 @@ typedef struct config_args_s {
 	const char *fname;
 	int lineno;
 	char log[MAXPATHLEN + STRLENOF(": line 18446744073709551615") + 1];
-	char msg[SLAP_TEXT_BUFLEN];
+#define cr_msg reply.msg
+	ConfigReply reply;
 	int depth;
 	int valx;	/* multi-valued value index */
 	/* parsed first val for simple cases */
@@ -142,6 +150,7 @@ typedef struct config_args_s {
 	Entry *ca_entry;	/* entry being modified */
 	void *private;	/* anything */
 	ConfigDriver *cleanup;
+	ConfigType table;	/* which config table did we come from */
 } ConfigArgs;
 
 /* If lineno is zero, we have an actual LDAP Add request from a client.

@@ -210,6 +210,7 @@ static int dodelete(
 	int id;
 	int	rc, code;
 	char *matcheddn = NULL, *text = NULL, **refs = NULL;
+	LDAPControl **ctrls = NULL;
 	LDAPMessage *res;
 
 	if ( verbose ) {
@@ -254,7 +255,7 @@ static int dodelete(
 		}
 	}
 
-	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 1 );
+	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, &ctrls, 1 );
 
 	if( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: ldap_parse_result: %s (%d)\n",
@@ -285,6 +286,11 @@ static int dodelete(
 			}
 		}
 	}
+
+	if (ctrls) {
+		tool_print_ctrls( ld, ctrls );
+		ldap_controls_free( ctrls );
+    }
 
 	ber_memfree( text );
 	ber_memfree( matcheddn );

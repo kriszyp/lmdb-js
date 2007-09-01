@@ -113,13 +113,14 @@ ldap_refresh(
 	rc = ber_flatten2( ber, &bv, 0 );
 
 	if ( rc < 0 ) {
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		return ld->ld_errno;
+		rc = ld->ld_errno = LDAP_ENCODING_ERROR;
+		goto done;
 	}
 
 	rc = ldap_extended_operation( ld, LDAP_EXOP_REFRESH, &bv,
 		sctrls, cctrls, msgidp );
 
+done:;
         ber_free( ber, 1 );
 
 	return rc;

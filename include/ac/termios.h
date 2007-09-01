@@ -17,7 +17,7 @@
 #ifndef _AC_TERMIOS_H
 #define _AC_TERMIOS_H
 
-#ifdef HAVE_POSIX_TERMIOS
+#ifdef HAVE_TERMIOS_H
 #include <termios.h>
 
 #ifdef GCWINSZ_IN_SYS_IOCTL

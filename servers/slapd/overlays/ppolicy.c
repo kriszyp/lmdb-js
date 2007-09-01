@@ -31,7 +31,7 @@
 #include <ldap.h>
 #include "lutil.h"
 #include "slap.h"
-#if SLAPD_MODULES
+#ifdef SLAPD_MODULES
 #define LIBLTDL_DLL_IMPORT	/* Win32: don't re-export libltdl's symbols */
 #include <ltdl.h>
 #endif
@@ -61,6 +61,7 @@ typedef struct pw_conn {
 
 static pw_conn *pwcons;
 static int ppolicy_cid;
+static int ov_count;
 
 typedef struct pass_policy {
 	AttributeDescription *ad; /* attribute to which the policy applies */
@@ -358,6 +359,8 @@ account_locked( Operation *op, Entry *e,
 #define PPOLICY_EXPIRE 0x80L	/* primitive + 0 */
 #define PPOLICY_GRACE  0x81L	/* primitive + 1 */
 
+static const char ppolicy_ctrl_oid[] = LDAP_CONTROL_PASSWORDPOLICYRESPONSE;
+
 static LDAPControl *
 create_passcontrol( int exptime, int grace, LDAPPasswordPolicyError err )
 {
@@ -370,7 +373,7 @@ create_passcontrol( int exptime, int grace, LDAPPasswordPolicyError err )
 	if ( c == NULL ) {
 		return NULL;
 	}
-	c->ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYRESPONSE;
+	c->ldctl_oid = (char *)ppolicy_ctrl_oid;
 	c->ldctl_iscritical = 0;
 	BER_BVZERO( &c->ldctl_value );
 
@@ -618,7 +621,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 	rc = LDAP_SUCCESS;
 
 	if (pp->pwdCheckModule[0]) {
-#if SLAPD_MODULES
+#ifdef SLAPD_MODULES
 		lt_dlhandle mod;
 		const char *err;
 		
@@ -850,7 +853,7 @@ ctrls_cleanup( Operation *op, SlapReply *rs, LDAPControl **oldctrls )
 	assert( rs->sr_ctrls[0] != NULL );
 
 	for ( n = 0; rs->sr_ctrls[n]; n++ ) {
-		if ( rs->sr_ctrls[n]->ldctl_oid == LDAP_CONTROL_PASSWORDPOLICYRESPONSE ) {
+		if ( rs->sr_ctrls[n]->ldctl_oid == ppolicy_ctrl_oid ) {
 			ch_free( rs->sr_ctrls[n]->ldctl_value.bv_val );
 			ch_free( rs->sr_ctrls[n] );
 			rs->sr_ctrls[n] = (LDAPControl *)(-1);
@@ -1512,7 +1515,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		slap_callback *sc;
 
 		for ( sc = op->o_callback; sc; sc=sc->sc_next ) {
-			if ( sc->sc_response == slap_replog_cb &&
+			if ( sc->sc_response == slap_null_cb &&
 				sc->sc_private ) {
 				req_pwdexop_s *qpw = sc->sc_private;
 				newpw = qpw->rs_new;
@@ -1694,7 +1697,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-	if (pp.pwdMinAge > 0) {
+	/* Check age, but only if pwdReset is not TRUE */
+	pa = attr_find( e->e_attrs, ad_pwdReset );
+	if ((!pa || !bvmatch( &pa->a_nvals[0], &slap_true_bv )) &&
+		pp.pwdMinAge > 0) {
 		time_t pwtime = (time_t)-1, now;
 		int age;
 
@@ -2018,8 +2024,8 @@ ppolicy_parseCtrl(
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "passwordPolicyRequest control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "passwordPolicyRequest control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 	op->o_ctrlflag[ppolicy_cid] = ctrl->ldctl_iscritical
@@ -2069,7 +2075,8 @@ attrNormalize(
 
 static int
 ppolicy_db_init(
-	BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
@@ -2112,21 +2119,29 @@ ppolicy_db_init(
 
 static int
 ppolicy_db_open(
-    BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
+	ov_count++;
 	return overlay_register_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
 }
 
 static int
 ppolicy_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	pp_info *pi = on->on_bi.bi_private;
-	
-	free( pwcons );
+
+	/* Perhaps backover should provide bi_destroy hooks... */
+	ov_count--;
+	if ( ov_count <=0 && pwcons ) {
+		free( pwcons );
+		pwcons = NULL;
+	}
 	free( pi->def_policy.bv_val );
 	free( pi );
 

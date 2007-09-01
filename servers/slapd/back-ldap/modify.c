@@ -52,7 +52,7 @@ ldap_back_modify(
 		return rs->sr_err;
 	}
 
-	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; i++, ml = ml->sml_next )
+	for ( i = 0, ml = op->orm_modlist; ml; i++, ml = ml->sml_next )
 		/* just count mods */ ;
 
 	modv = (LDAPMod **)ch_malloc( ( i + 1 )*sizeof( LDAPMod * )
@@ -64,7 +64,7 @@ ldap_back_modify(
 	mods = (LDAPMod *)&modv[ i + 1 ];
 
 	isupdate = be_shadow_update( op );
-	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
+	for ( i = 0, ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		if ( !isupdate && !get_relax( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
 			continue;
@@ -99,8 +99,7 @@ ldap_back_modify(
 
 retry:;
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
-		li->li_version, &li->li_idassert, op, rs, &ctrls );
+	rc = ldap_back_controls_add( op, rs, lc, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		rc = -1;
@@ -116,13 +115,13 @@ retry:;
 		retrying &= ~LDAP_BACK_RETRYING;
 		if ( ldap_back_retry( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			/* if the identity changed, there might be need to re-authz */
-			(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+			(void)ldap_back_controls_free( op, rs, &ctrls );
 			goto retry;
 		}
 	}
 
 cleanup:;
-	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+	(void)ldap_back_controls_free( op, rs, &ctrls );
 
 	for ( i = 0; modv[ i ]; i++ ) {
 		ch_free( modv[ i ]->mod_bvalues );

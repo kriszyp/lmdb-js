@@ -27,20 +27,9 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "../../libraries/liblber/lber-int.h" /* get ber_ptrlen() */
 
 #include "ldap_utf8.h"
-
-#ifdef HAVE_TLS
-#include <openssl/x509.h>
-#include <openssl/err.h>
-#include <openssl/rsa.h>
-#include <openssl/crypto.h>
-#include <openssl/pem.h>
-#include <openssl/bio.h>
-#include <openssl/asn1.h>
-#include <openssl/x509v3.h>
-#include <openssl/ssl.h>
-#endif
 
 #include "lutil.h"
 #include "lutil_hash.h"
@@ -61,7 +50,6 @@
 #define IA5StringApproxFilter			approxFilter
 
 /* Change Sequence Number (CSN) - much of this will change */
-#define csnValidate				blobValidate
 #define csnMatch				octetStringMatch
 #define csnOrderingMatch		octetStringOrderingMatch
 #define csnIndexer				generalizedTimeIndexer
@@ -77,6 +65,11 @@ unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
 
 ldap_pvt_thread_mutex_t	ad_undef_mutex;
 ldap_pvt_thread_mutex_t	oc_undef_mutex;
+
+static int
+generalizedTimeValidate(
+	Syntax *syntax,
+	struct berval *in );
 
 static int
 inValidate(
@@ -109,21 +102,163 @@ sequenceValidate(
 	return LDAP_SUCCESS;
 }
 
+/* X.509 related stuff */
 
-#ifdef HAVE_TLS
+enum {
+	SLAP_X509_V1		= 0,
+	SLAP_X509_V2		= 1,
+	SLAP_X509_V3		= 2
+};
+
+#define	SLAP_X509_OPTION	(LBER_CLASS_CONTEXT|LBER_CONSTRUCTED)
+
+enum {
+	SLAP_X509_OPT_C_VERSION		= SLAP_X509_OPTION + 0,
+	SLAP_X509_OPT_C_ISSUERUNIQUEID	= SLAP_X509_OPTION + 1,
+	SLAP_X509_OPT_C_SUBJECTUNIQUEID	= SLAP_X509_OPTION + 2,
+	SLAP_X509_OPT_C_EXTENSIONS	= SLAP_X509_OPTION + 3
+};
+
+enum {
+	SLAP_X509_OPT_CL_CRLEXTENSIONS	= SLAP_X509_OPTION + 0
+};
+
+/* X.509 certificate validation */
 static int certificateValidate( Syntax *syntax, struct berval *in )
 {
-	X509 *xcert=NULL;
-	unsigned char *p = (unsigned char *)in->bv_val;
- 
-	xcert = d2i_X509(NULL, &p, in->bv_len);
-	if ( !xcert ) return LDAP_INVALID_SYNTAX;
-	X509_free(xcert);
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t version = SLAP_X509_V1;
+
+	ber_init2( ber, in, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_peek_tag( ber, &len );
+	/* Optional version */
+	if ( tag == SLAP_X509_OPT_C_VERSION ) {
+		tag = ber_skip_tag( ber, &len );
+		tag = ber_get_int( ber, &version );
+		if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
+	}
+	/* NOTE: don't try to parse Serial, because it might be longer
+	 * than sizeof(ber_int_t); deferred to certificateExactNormalize() */
+	tag = ber_skip_tag( ber, &len );	/* Serial */
+	if ( tag != LBER_INTEGER ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Issuer DN */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Validity */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Subject DN */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Subject PublicKeyInfo */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	if ( tag == SLAP_X509_OPT_C_ISSUERUNIQUEID ) {	/* issuerUniqueID */
+		if ( version < SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	if ( tag == SLAP_X509_OPT_C_SUBJECTUNIQUEID ) {	/* subjectUniqueID */
+		if ( version < SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	if ( tag == SLAP_X509_OPT_C_EXTENSIONS ) {	/* Extensions */
+		if ( version < SLAP_X509_V3 ) return LDAP_INVALID_SYNTAX;
+		tag = ber_skip_tag( ber, &len );
+		if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* signatureAlgorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Signature */
+	if ( tag != LBER_BITSTRING ) return LDAP_INVALID_SYNTAX; 
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Must be at end now */
+	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
 	return LDAP_SUCCESS;
 }
-#else
-#define certificateValidate sequenceValidate
-#endif
+
+/* X.509 certificate list validation */
+static int certificateListValidate( Syntax *syntax, struct berval *in )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t version = SLAP_X509_V1;
+
+	ber_init2( ber, in, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	tag = ber_peek_tag( ber, &len );
+	/* Optional version */
+	if ( tag == LBER_INTEGER ) {
+		tag = ber_get_int( ber, &version );
+		assert( tag == LBER_INTEGER );
+		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+	}
+	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* Issuer DN */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );	/* thisUpdate */
+	/* NOTE: in the certificates I'm playing with, the time is UTC.
+	 * maybe the tag is different from 0x17U for generalizedTime? */
+	if ( tag != 0x17U ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	/* Optional nextUpdate */
+	tag = ber_skip_tag( ber, &len );
+	if ( tag == 0x17U ) {
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* Optional revokedCertificates */
+	if ( tag == LBER_SEQUENCE ) {
+		/* Should NOT be empty */
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* Optional Extensions */
+	if ( tag == SLAP_X509_OPT_CL_CRLEXTENSIONS ) { /* ? */
+		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+		tag = ber_skip_tag( ber, &len );
+		if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+		ber_skip_data( ber, len );
+		tag = ber_skip_tag( ber, &len );
+	}
+	/* signatureAlgorithm */
+	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Signature */
+	if ( tag != LBER_BITSTRING ) return LDAP_INVALID_SYNTAX; 
+	ber_skip_data( ber, len );
+	tag = ber_skip_tag( ber, &len );
+	/* Must be at end now */
+	if ( len || tag != LBER_DEFAULT ) return LDAP_INVALID_SYNTAX;
+	return LDAP_SUCCESS;
+}
 
 int
 octetStringMatch(
@@ -145,7 +280,7 @@ octetStringMatch(
 	return LDAP_SUCCESS;
 }
 
-static int
+int
 octetStringOrderingMatch(
 	int *matchp,
 	slap_mask_t flags,
@@ -2078,7 +2213,11 @@ IA5StringNormalize(
 	/* Ignore initial whitespace */
 	while ( ASCII_SPACE( *p ) ) p++;
 
-	normalized->bv_val = ber_strdup_x( p, ctx );
+	normalized->bv_len = val->bv_len - ( p - val->bv_val );
+	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
+	AC_MEMCPY( normalized->bv_val, p, normalized->bv_len );
+	normalized->bv_val[normalized->bv_len] = '\0';
+
 	p = q = normalized->bv_val;
 
 	while ( *p ) {
@@ -2246,7 +2385,7 @@ UUIDNormalize(
 
 
 
-static int
+int
 numericStringValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -2292,7 +2431,7 @@ numericStringNormalize(
 		}
 	}
 
-	/* we should have copied no more then is in val */
+	/* we should have copied no more than is in val */
 	assert( (q - normalized->bv_val) <= (p - val->bv_val) );
 
 	/* null terminate */
@@ -2618,7 +2757,7 @@ serialNumberAndIssuerValidate(
 	if( rc ) return LDAP_INVALID_SYNTAX;
 
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerValidate: OKAY\n",
-		in->bv_val, 0, 0 );
+		0, 0, 0 );
 	return LDAP_SUCCESS;
 }
 
@@ -3202,7 +3341,6 @@ serialNumberAndIssuerNormalize(
 	return LDAP_SUCCESS;
 }
 
-#ifdef HAVE_TLS
 static int
 certificateExactNormalize(
 	slap_mask_t usage,
@@ -3212,14 +3350,16 @@ certificateExactNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	int rc = LDAP_INVALID_SYNTAX;
-	unsigned char *p;
-	char *serial = NULL;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t i;
+	char serialbuf[64], *serial = serialbuf;
 	ber_len_t seriallen;
-	struct berval issuer_dn = BER_BVNULL;
-	X509_NAME *name = NULL;
-	ASN1_INTEGER *sn = NULL;
-	X509 *xcert = NULL;
+	struct berval issuer_dn = BER_BVNULL, bvdn;
+	unsigned char *p;
+	int rc = LDAP_INVALID_SYNTAX;
 
 	if( BER_BVISEMPTY( val ) ) goto done;
 
@@ -3229,19 +3369,78 @@ certificateExactNormalize(
 
 	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
 
-	p = (unsigned char *)val->bv_val;
-	xcert = d2i_X509( NULL, &p, val->bv_len);
-	if( xcert == NULL ) goto done;
+	ber_init2( ber, val, LBER_USE_DER );
+	tag = ber_skip_tag( ber, &len );	/* Signed Sequence */
+	tag = ber_skip_tag( ber, &len );	/* Sequence */
+	tag = ber_peek_tag( ber, &len );	/* Optional version? */
+	if ( tag == SLAP_X509_OPT_C_VERSION ) {
+		tag = ber_skip_tag( ber, &len );
+		tag = ber_get_int( ber, &i );	/* version */
+	}
 
-	sn=X509_get_serialNumber(xcert);
-	if ( sn == NULL ) goto done;
-	serial=i2s_ASN1_INTEGER(0, sn );
-	if( serial == NULL ) goto done;
-	seriallen=strlen(serial);
+	/* NOTE: move the test here from certificateNormalize,
+	 * so that we can validate certs with serial longer
+	 * than sizeof(ber_int_t) */
+	tag = ber_peek_tag( ber, &len );	/* serial */
+	if ( len > sizeof(ber_int_t) ) {
+		unsigned char *ptr;
+		
+		tag = ber_skip_tag( ber, &len );
+		ptr = (unsigned char *)ber->ber_ptr;
+		ber_skip_data( ber, len );
 
-	name=X509_get_issuer_name(xcert);
-	if( name == NULL ) goto done;
-	rc = dnX509normalize( name, &issuer_dn );
+		while ( ptr[0] == '\0' && len > 0 ) {
+			ptr++;
+			len--;
+		}
+
+#if defined(USE_MP_BIGNUM)
+		/* TODO */
+
+#elif defined(USE_MP_GMP)
+		/* TODO */
+		/* hint: use mpz_import(), mpz_get_str() */
+
+#elif defined(USE_MP_LONG_LONG)
+		if ( len <= sizeof( unsigned long long ) ) {
+			unsigned long long 	sn = 0;
+			int			i;
+
+			sn = ptr[0];
+
+			for ( i = 1; i < len; i++ ) {
+				sn <<= 8;
+				sn += ptr[i];
+			}
+
+			seriallen = snprintf( serialbuf, sizeof(serialbuf), "%llu", sn );
+
+		} else {
+			/* do not accept serialNumber that requires
+			 * more than long long */
+			rc = LDAP_INVALID_SYNTAX;
+			goto done;
+		}
+
+#else
+		/* do not accept serialNumber that requires
+		 * more than long */
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
+#endif
+
+	} else {
+		tag = ber_get_int( ber, &i );	/* serial */
+		seriallen = snprintf( serialbuf, sizeof(serialbuf), "%d", i );
+	}
+	tag = ber_skip_tag( ber, &len );	/* SignatureAlg */
+	ber_skip_data( ber, len );
+	tag = ber_peek_tag( ber, &len );	/* IssuerDN */
+	len = ber_ptrlen( ber );
+	bvdn.bv_val = val->bv_val + len;
+	bvdn.bv_len = val->bv_len - len;
+
+	rc = dnX509normalize( &bvdn, &issuer_dn );
 	if( rc != LDAP_SUCCESS ) goto done;
 
 	normalized->bv_len = STRLENOF( "{ serialNumber , issuer \"\" }" )
@@ -3273,14 +3472,407 @@ certificateExactNormalize(
 	rc = LDAP_SUCCESS;
 
 done:
-	if (xcert) X509_free(xcert);
-	if (serial) ch_free(serial);
-	if (issuer_dn.bv_val) ber_memfree(issuer_dn.bv_val);
+	if ( issuer_dn.bv_val ) ber_memfree( issuer_dn.bv_val );
+	if ( serial != serialbuf ) ber_memfree_x( serial, ctx );
 
 	return rc;
 }
-#endif /* HAVE_TLS */
 
+static int
+hexValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int	i;
+
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+
+	for ( i = 0; i < in->bv_len; i++ ) {
+		if ( !ASCII_HEX( in->bv_val[ i ] ) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+/* Normalize a SID as used inside a CSN:
+ * three-digit numeric string */
+static int
+hexNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	int	i;
+
+	ber_dupbv_x( normalized, val, ctx );
+
+	for ( i = 0; i < normalized->bv_len; i++ ) {
+		if ( !ASCII_HEX( normalized->bv_val[ i ] ) ) {
+			ber_memfree_x( normalized->bv_val, ctx );
+			BER_BVZERO( normalized );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		normalized->bv_val[ i ] = TOLOWER( normalized->bv_val[ i ] );
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+sidValidate (
+	Syntax *syntax,
+	struct berval *in )
+{
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+
+	if ( in->bv_len != 3 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return hexValidate( NULL, in );
+}
+
+/* Normalize a SID as used inside a CSN:
+ * three-digit numeric string */
+static int
+sidNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	if ( val->bv_len != 3 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return hexNormalize( 0, NULL, NULL, val, normalized, ctx );
+}
+
+static int
+sidPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	return sidNormalize( SLAP_MR_VALUE_OF_SYNTAX, NULL, NULL, val, out, ctx );
+}
+
+/* Normalize a SID as used inside a CSN, either as-is
+ * (assertion value) or extracted from the CSN
+ * (attribute value) */
+static int
+csnSidNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	struct berval	bv;
+	char		*ptr,
+			buf[ 4 ];
+
+
+	if ( BER_BVISEMPTY( val ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if ( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX(usage) ) {
+		return sidNormalize( 0, NULL, NULL, val, normalized, ctx );
+	}
+
+	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) != 0 );
+
+	ptr = ber_bvchr( val, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = val->bv_len - ( ptr + 1 - val->bv_val );
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = val->bv_len - ( ptr + 1 - val->bv_val );
+		
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+
+	if ( bv.bv_len == 2 ) {
+		/* OpenLDAP 2.3 SID */
+		buf[ 0 ] = '0';
+		buf[ 1 ] = bv.bv_val[ 0 ];
+		buf[ 2 ] = bv.bv_val[ 1 ];
+		buf[ 3 ] = '\0';
+
+		bv.bv_val = buf;
+		bv.bv_len = 3;
+	}
+
+	return sidNormalize( 0, NULL, NULL, &bv, normalized, ctx );
+}
+
+static int
+csnValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	struct berval	bv;
+	char		*ptr;
+	int		rc;
+
+	assert( in != NULL );
+	assert( !BER_BVISNULL( in ) );
+
+	if ( BER_BVISEMPTY( in ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv = *in;
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - bv.bv_val == bv.bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+	if ( bv.bv_len != STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ" ) &&
+		bv.bv_len != STRLENOF( "YYYYmmddHHMMSSZ" ) )
+	{
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = generalizedTimeValidate( NULL, &bv );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - in->bv_val == in->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+	if ( bv.bv_len != 6 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = hexValidate( NULL, &bv );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
+
+	ptr = ber_bvchr( &bv, '#' );
+	if ( ptr == NULL || ptr - in->bv_val == in->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	bv.bv_len = ptr - bv.bv_val;
+	if ( bv.bv_len == 2 ) {
+		/* tolerate old 2-digit replica-id */
+		rc = hexValidate( NULL, &bv );
+
+	} else {
+		rc = sidValidate( NULL, &bv );
+	}
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	bv.bv_val = ptr + 1;
+	bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
+
+	if ( bv.bv_len != 6 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return hexValidate( NULL, &bv );
+}
+
+/* Normalize a CSN in OpenLDAP 2.3 format */
+static int
+csnNormalize23(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	struct berval	gt, cnt, sid, mod;
+	char		*ptr;
+	int		i;
+
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
+	assert( !BER_BVISEMPTY( val ) );
+
+	gt = *val;
+
+	ptr = ber_bvchr( &gt, '#' );
+	if ( ptr == NULL || ptr - gt.bv_val == gt.bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	gt.bv_len = ptr - gt.bv_val;
+	assert( gt.bv_len == STRLENOF( "YYYYmmddHHMMSSZ" ) );
+
+	cnt.bv_val = ptr + 1;
+	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
+
+	ptr = ber_bvchr( &cnt, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	cnt.bv_len = ptr - cnt.bv_val;
+	assert( cnt.bv_len == STRLENOF( "000000" ) );
+
+	sid.bv_val = ptr + 1;
+	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
+		
+	ptr = ber_bvchr( &sid, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	sid.bv_len = ptr - sid.bv_val;
+	assert( sid.bv_len == STRLENOF( "00" ) );
+
+	mod.bv_val = ptr + 1;
+	mod.bv_len = val->bv_len - ( mod.bv_val - val->bv_val );
+	assert( mod.bv_len == STRLENOF( "000000" ) );
+
+	normalized->bv_len = STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" );
+	normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
+
+	ptr = normalized->bv_val;
+	ptr = lutil_strncopy( ptr, gt.bv_val, gt.bv_len - 1 );
+	ptr = lutil_strcopy( ptr, ".000000Z#" );
+	ptr = lutil_strncopy( ptr, cnt.bv_val, cnt.bv_len );
+	*ptr++ = '#';
+	*ptr++ = '0';
+	for ( i = 0; i < sid.bv_len; i++ ) {
+		*ptr++ = TOLOWER( sid.bv_val[ i ] );
+	}
+	*ptr++ = '#';
+	for ( i = 0; i < mod.bv_len; i++ ) {
+		*ptr++ = TOLOWER( mod.bv_val[ i ] );
+	}
+	*ptr = '\0';
+
+	assert( ptr - normalized->bv_val == normalized->bv_len );
+
+	return LDAP_SUCCESS;
+}
+
+/* Normalize a CSN */
+static int
+csnNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	struct berval	cnt, sid, mod;
+	char		*ptr;
+	int		i;
+
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
+
+	if ( BER_BVISEMPTY( val ) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if ( val->bv_len == STRLENOF( "YYYYmmddHHMMSSZ#SSSSSS#ID#ssssss" ) ) {
+		/* Openldap <= 2.3 */
+
+		return csnNormalize23( usage, syntax, mr, val, normalized, ctx );
+	}
+
+	assert( val->bv_len == STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#SID#ssssss" ) );
+
+	ptr = ber_bvchr( val, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	assert( ptr - val->bv_val == STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ" ) );
+
+	cnt.bv_val = ptr + 1;
+	cnt.bv_len = val->bv_len - ( cnt.bv_val - val->bv_val );
+
+	ptr = ber_bvchr( &cnt, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	assert( ptr - cnt.bv_val == STRLENOF( "000000" ) );
+
+	sid.bv_val = ptr + 1;
+	sid.bv_len = val->bv_len - ( sid.bv_val - val->bv_val );
+		
+	ptr = ber_bvchr( &sid, '#' );
+	if ( ptr == NULL || ptr - val->bv_val == val->bv_len ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	sid.bv_len = ptr - sid.bv_val;
+	assert( sid.bv_len == STRLENOF( "000" ) );
+
+	mod.bv_val = ptr + 1;
+	mod.bv_len = val->bv_len - ( mod.bv_val - val->bv_val );
+
+	assert( mod.bv_len == STRLENOF( "000000" ) );
+
+	ber_dupbv_x( normalized, val, ctx );
+
+	for ( i = STRLENOF( "YYYYmmddHHMMSS.uuuuuuZ#SSSSSS#" );
+		i < normalized->bv_len; i++ )
+	{
+		/* assume it's already validated that's all hex digits */
+		normalized->bv_val[ i ] = TOLOWER( normalized->bv_val[ i ] );
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+csnPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	return csnNormalize( SLAP_MR_VALUE_OF_SYNTAX, NULL, NULL, val, out, ctx );
+}
 
 #ifndef SUPPORT_OBSOLETE_UTC_SYNTAX
 /* slight optimization - does not need the start parameter */
@@ -3960,6 +4552,12 @@ firstComponentNormalize(
 	return rc;
 }
 
+static char *country_gen_syn[] = {
+	"1.3.6.1.4.1.1466.115.121.1.15",
+	"1.3.6.1.4.1.1466.115.121.1.26",
+	"1.3.6.1.4.1.1466.115.121.1.44",
+	NULL
+};
 
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
@@ -3967,178 +4565,195 @@ firstComponentNormalize(
 static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.2 DESC 'Access Point' " X_NOT_H_R ")",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'Attribute Type Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' "
 		X_NOT_H_R ")",
-		SLAP_SYNTAX_BLOB, blobValidate, NULL},
+		SLAP_SYNTAX_BLOB, NULL, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' "
 		X_NOT_H_R ")",
-		SLAP_SYNTAX_BER, berValidate, NULL},
+		SLAP_SYNTAX_BER, NULL, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
-		0, bitStringValidate, NULL },
+		0, NULL, bitStringValidate, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
-		0, booleanValidate, NULL},
+		0, NULL, booleanValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, certificateValidate, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER,
+		NULL, certificateValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, sequenceValidate, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER,
+		NULL, certificateListValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, sequenceValidate, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER,
+		NULL, sequenceValidate, NULL},
+#if 0	/* need to go __after__ printableString */
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
-		0, countryStringValidate, NULL},
+		0, "1.3.6.1.4.1.1466.115.121.1.44",
+		countryStringValidate, NULL},
+#endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, dnValidate, dnPretty},
+		0, NULL, dnValidate, dnPretty},
 	{"( 1.2.36.79672281.1.5.0 DESC 'RDN' )",
-		0, rdnValidate, rdnPretty},
+		0, NULL, rdnValidate, rdnPretty},
 #ifdef LDAP_COMP_MATCH
 	{"( 1.2.36.79672281.1.5.3 DESC 'allComponents' )",
-		0, allComponentsValidate, NULL},
+		0, NULL, allComponentsValidate, NULL},
  	{"( 1.2.36.79672281.1.5.2 DESC 'componentFilterMatch assertion') ",
-		0, componentFilterValidate, NULL},
+		0, NULL, componentFilterValidate, NULL},
 #endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
-		0, deliveryMethodValidate, NULL},
+		0, NULL, deliveryMethodValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )",
-		0, UTF8StringValidate, NULL},
+		0, NULL, UTF8StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DIT Content Rule Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DIT Structure Rule Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.19 DESC 'DSA Quality' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.20 DESC 'DSE Type' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
-		0, printablesStringValidate, NULL},
+		0, NULL, printablesStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
-		SLAP_SYNTAX_BLOB, NULL, NULL},
+		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
-		0, generalizedTimeValidate, NULL},
+		0, NULL, generalizedTimeValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
-		0, IA5StringValidate, NULL},
+		0, NULL, IA5StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		0, integerValidate, NULL},
+		0, NULL, integerValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
-		SLAP_SYNTAX_BLOB, blobValidate, NULL},
+		SLAP_SYNTAX_BLOB, NULL, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'Matching Rule Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'Matching Rule Use Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'Mail Preference' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, nameUIDValidate, nameUIDPretty },
+		0, NULL, nameUIDValidate, nameUIDPretty },
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
-		0, numericStringValidate, NULL},
+		0, NULL, numericStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
-		0, numericoidValidate, NULL},
+		0, NULL, numericoidValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )",
-		0, IA5StringValidate, NULL},
+		0, NULL, IA5StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
-		0, blobValidate, NULL},
+		0, NULL, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )",
-		0, UTF8StringValidate, NULL},
+		0, NULL, UTF8StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
-		0, printableStringValidate, NULL},
+		0, NULL, printableStringValidate, NULL},
+	/* moved here because now depends on Directory String, IA5 String 
+	 * and Printable String */
+	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
+		0, country_gen_syn, countryStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.45 DESC 'SubtreeSpecification' )",
 #define subtreeSpecificationValidate UTF8StringValidate /* FIXME */
-		0, subtreeSpecificationValidate, NULL},
+		0, NULL, subtreeSpecificationValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, printableStringValidate, NULL},
+		0, NULL, printableStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
-		0, printablesStringValidate, NULL},
+		0, NULL, printablesStringValidate, NULL},
 #ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
-		0, utcTimeValidate, NULL},
+		0, NULL, utcTimeValidate, NULL},
 #endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.55 DESC 'Modify Rights' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.56 DESC 'LDAP Schema Definition' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.57 DESC 'LDAP Schema Description' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'Substring Assertion' )",
-		0, NULL, NULL},
+		0, NULL, NULL, NULL},
 
 	/* RFC 2307 NIS Syntaxes */
 	{"( 1.3.6.1.1.1.0.0  DESC 'RFC2307 NIS Netgroup Triple' )",
-		0, nisNetgroupTripleValidate, NULL},
+		0, NULL, nisNetgroupTripleValidate, NULL},
 	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
-		0, bootParameterValidate, NULL},
+		0, NULL, bootParameterValidate, NULL},
 
 	/* draft-zeilenga-ldap-x509 */
 	{"( 1.3.6.1.1.15.1 DESC 'Certificate Exact Assertion' )",
-		SLAP_SYNTAX_HIDE,
+		SLAP_SYNTAX_HIDE, NULL,
 		serialNumberAndIssuerValidate,
 		serialNumberAndIssuerPretty},
 	{"( 1.3.6.1.1.15.2 DESC 'Certificate Assertion' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 	{"( 1.3.6.1.1.15.3 DESC 'Certificate Pair Exact Assertion' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 	{"( 1.3.6.1.1.15.4 DESC 'Certificate Pair Assertion' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 	{"( 1.3.6.1.1.15.5 DESC 'Certificate List Exact Assertion' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 	{"( 1.3.6.1.1.15.6 DESC 'Certificate List Assertion' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 	{"( 1.3.6.1.1.15.7 DESC 'Algorithm Identifier' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 
 #ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
 #endif
 
 	{"( 1.3.6.1.1.16.1 DESC 'UUID' )",
-		0, UUIDValidate, UUIDPretty},
+		0, NULL, UUIDValidate, UUIDPretty},
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.1 DESC 'CSN' )",
-		SLAP_SYNTAX_HIDE, csnValidate, NULL},
+		SLAP_SYNTAX_HIDE, NULL, csnValidate, csnPretty },
+
+	{"( 1.3.6.1.4.1.4203.666.11.2.4 DESC 'CSN SID' )",
+		SLAP_SYNTAX_HIDE, NULL, sidValidate, sidPretty },
 
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
-		SLAP_SYNTAX_HIDE, inValidate, NULL},
+		SLAP_SYNTAX_HIDE, NULL, inValidate, NULL},
 
 	/* FIXME: OID is unused, but not registered yet */
 	{"( 1.3.6.1.4.1.4203.666.2.7 DESC 'OpenLDAP authz' )",
-		SLAP_SYNTAX_HIDE, authzValidate, authzPretty},
+		SLAP_SYNTAX_HIDE, NULL, authzValidate, authzPretty},
 
-	{NULL, 0, NULL, NULL}
+	{NULL, 0, NULL, NULL, NULL}
 };
 
+char *csnSIDMatchSyntaxes[] = {
+	"1.3.6.1.4.1.4203.666.11.2.1" /* csn */,
+	NULL
+};
 char *certificateExactMatchSyntaxes[] = {
 	"1.3.6.1.4.1.1466.115.121.1.8" /* certificate */,
 	NULL
@@ -4474,12 +5089,8 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.3.6.1.1.15.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
-#ifdef HAVE_TLS
 		NULL, certificateExactNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
-#else
-		NULL, NULL, NULL, NULL, NULL,
-#endif
 		NULL },
 
 	{"( 2.5.13.35 NAME 'certificateMatch' "
@@ -4557,7 +5168,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.11.2.2 NAME 'CSNMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY | SLAP_MR_ORDERED_INDEX, NULL,
-		NULL, NULL, csnMatch,
+		NULL, csnNormalize, csnMatch,
 		csnIndexer, csnFilter,
 		NULL},
 
@@ -4567,6 +5178,13 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL, csnOrderingMatch,
 		NULL, NULL,
 		"CSNMatch" },
+
+	{"( 1.3.6.1.4.1.4203.666.11.2.5 NAME 'CSNSIDMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.4 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, csnSIDMatchSyntaxes,
+		NULL, csnSidNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
+		NULL },
 
 	/* FIXME: OID is unused, but not registered yet */
 	{"( 1.3.6.1.4.1.4203.666.4.12 NAME 'authzMatch' "

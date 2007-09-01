@@ -13,8 +13,8 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SRCS	= init.c config.c op.c
-OBJS	= init.lo config.lo op.lo
+SRCS	= init.c op.c
+OBJS	= init.lo op.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

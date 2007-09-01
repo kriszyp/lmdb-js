@@ -185,9 +185,10 @@ comp_tree_free( Attribute *a )
 void
 attrs_free( Attribute *a )
 {
-	Attribute *b, *tail, *next;
-
 	if ( a ) {
+		Attribute *b = (Attribute *)0xBAD, *tail, *next;
+
+		/* save tail */
 		tail = a;
 		do {
 			next = a->a_next;
@@ -198,6 +199,8 @@ attrs_free( Attribute *a )
 		} while ( next );
 
 		ldap_pvt_thread_mutex_lock( &attr_mutex );
+		/* replace NULL with current attr list and let attr list
+		 * start from last attribute returned to list */
 		tail->a_next = attr_list;
 		attr_list = b;
 		ldap_pvt_thread_mutex_unlock( &attr_mutex );

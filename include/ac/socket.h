@@ -127,7 +127,7 @@ LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 #		define tcp_write( s, buf, len )	netwrite( s, buf, len )
 #	endif /* NCSA */
 
-#elif HAVE_CLOSESOCKET
+#elif defined(HAVE_CLOSESOCKET)
 #	define tcp_close( s )		closesocket( s )
 
 #	ifdef __BEOS__
@@ -213,8 +213,24 @@ LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #	endif
 #endif
 
-#ifndef HAVE_GETPEEREID
-LDAP_LUTIL_F( int ) getpeereid( int s, uid_t *, gid_t * );
+#if defined(LDAP_PF_LOCAL) && \
+	!defined(HAVE_GETPEEREID) && \
+	!defined(HAVE_GETPEERUCRED) && \
+	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
+	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
+	defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
+#	define LDAP_PF_LOCAL_SENDMSG 1
+#endif
+
+#ifdef HAVE_GETPEEREID
+#define	LUTIL_GETPEEREID( s, uid, gid, bv )	getpeereid( s, uid, gid )
+#elif defined(LDAP_PF_LOCAL_SENDMSG)
+struct berval;
+LDAP_LUTIL_F( int ) lutil_getpeereid( int s, uid_t *, gid_t *, struct berval *bv );
+#define	LUTIL_GETPEEREID( s, uid, gid, bv )	lutil_getpeereid( s, uid, gid, bv )
+#else
+LDAP_LUTIL_F( int ) lutil_getpeereid( int s, uid_t *, gid_t * );
+#define	LUTIL_GETPEEREID( s, uid, gid, bv )	lutil_getpeereid( s, uid, gid )
 #endif
 
 /* DNS RFC defines max host name as 255. New systems seem to use 1024 */

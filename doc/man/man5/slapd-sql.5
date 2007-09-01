@@ -100,7 +100,7 @@ see \fBupper_func\fP, \fBupper_needs_cast\fP, \fBconcat_pattern\fP
 and \fBstrcast_func\fP in "HELPER CONFIGURATION" for details.
 
 .TP
-.B use_subtree_shortcut { NO | yes }
+.B use_subtree_shortcut { YES | no }
 Do not use the subtree condition when the searchBase is the database
 suffix, and the scope is subtree; rather collect all entries.
 
@@ -654,7 +654,7 @@ A directoryString value of the form "__First___Last_"
 (where underscores mean spaces, ASCII 0x20 char) corresponds
 to its prettified counterpart "First_Last"; this is not currently
 honored by back-sql if non-prettified data is written via RDBMS;
-when non-prettified data is written thru back-sql, the prettified 
+when non-prettified data is written through back-sql, the prettified 
 values are actually used instead.
 
 .LP

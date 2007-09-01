@@ -33,6 +33,7 @@
 #include <ac/unistd.h>
 #include <ac/errno.h>
 #include <ac/time.h>
+#include <ac/socket.h>
 
 #ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_SASL_H
@@ -113,6 +114,13 @@ int		chaining = 0;
 static int	chainingResolve = -1;
 static int	chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+static int	sessionTracking = 0;
+struct berval	stValue;
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+
+LDAPControl	*unknown_ctrls = NULL;
+int		unknown_ctrls_num = 0;
 
 /* options */
 struct timeval	nettimeout = { -1 , 0 };
@@ -143,6 +151,53 @@ static struct tool_ctrls_t {
 /* "features" */
 static int	gotintr;
 static int	abcan;
+
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+static int
+st_value( LDAP *ld, struct berval *value )
+{
+	char		*ip = NULL, *name = NULL;
+	struct berval	id = { 0 };
+	char		namebuf[ MAXHOSTNAMELEN ];
+
+	if ( gethostname( namebuf, sizeof( namebuf ) ) == 0 ) {
+		struct hostent	*h;
+		struct in_addr	addr;
+
+		name = namebuf;
+
+		h = gethostbyname( name );
+		if ( h != NULL ) {
+			AC_MEMCPY( &addr, h->h_addr, sizeof( addr ) );
+			ip = inet_ntoa( addr );
+		}
+	}
+
+#ifdef HAVE_CYRUS_SASL
+	if ( sasl_authz_id != NULL ) {
+		ber_str2bv( sasl_authz_id, 0, 0, &id );
+
+	} else if ( sasl_authc_id != NULL ) {
+		ber_str2bv( sasl_authc_id, 0, 0, &id );
+
+	} else 
+#endif /* HAVE_CYRUS_SASL */
+	if ( binddn != NULL ) {
+		ber_str2bv( binddn, 0, 0, &id );
+	}
+
+	if ( ldap_create_session_tracking_value( ld,
+		ip, name, LDAP_CONTROL_X_SESSION_TRACKING_USERNAME,
+		&id, &stValue ) )
+	{
+		fprintf( stderr, _("Session tracking control encoding error!\n") );
+		return -1;
+	}
+
+	return 0;
+}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 RETSIGTYPE
 do_sig( int sig )
@@ -175,7 +230,6 @@ tool_common_usage( void )
 {
 	static const char *const descriptions[] = {
 N_("  -c         continuous operation mode (do not stop on errors)\n"),
-N_("  -C         chase referrals (anonymously)\n"),
 N_("  -d level   set LDAP debugging level to `level'\n"),
 N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
@@ -199,15 +253,16 @@ N_("             ppolicy\n")
 #endif
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n")
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n")
-#ifdef LDAP_DEVEL
 N_("             [!]relax\n")
-#endif
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+N_("             [!]sessiontracking\n")
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
    "             or ignores response; if critical, doesn't wait for SIGINT.\n"
    "             not really controls)\n")
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
-N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
+N_("  -H URI     LDAP Uniform Resource Identifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
 N_("  -M         enable Manage DSA IT control (-MM to make critical)\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
@@ -215,7 +270,7 @@ N_("  -O props   SASL security properties\n"),
 N_("  -o <opt>[=<optparam] general options\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
 N_("  -p port    port on LDAP server\n"),
-N_("  -P version procotol version (default: 3)\n"),
+N_("  -P version protocol version (default: 3)\n"),
 N_("  -Q         use SASL Quiet mode\n"),
 N_("  -R realm   SASL realm\n"),
 N_("  -U authcid SASL authentication identity\n"),
@@ -299,7 +354,7 @@ tool_args( int argc, char **argv )
 			}
 			binddn = ber_strdup( optarg );
 			break;
-		case 'e': /* general extensions (controls and such) */
+		case 'e':	/* general extensions (controls and such) */
 			/* should be extended to support comma separated list of
 			 *	[!]key[=value] parameters, e.g.  -e !foo,bar=567
 			 */
@@ -519,6 +574,55 @@ tool_args( int argc, char **argv )
 				if ( crit ) {
 					gotintr = abcan;
 				}
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+			} else if ( strcasecmp( control, "sessiontracking" ) == 0 ) {
+				if ( sessionTracking ) {
+					fprintf( stderr, "%s: session tracking can be only specified once\n", prog );
+					exit( EXIT_FAILURE );
+				}
+				sessionTracking = 1;
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+
+			} else if ( tool_is_oid( control ) ) {
+				LDAPControl	*tmpctrls, ctrl;
+
+				tmpctrls = (LDAPControl *)realloc( unknown_ctrls,
+					(unknown_ctrls_num + 1)*sizeof( LDAPControl ) );
+				if ( tmpctrls == NULL ) {
+					fprintf( stderr, "%s: no memory?\n", prog );
+					exit( EXIT_FAILURE );
+				}
+				unknown_ctrls = tmpctrls;
+				ctrl.ldctl_oid = control;
+				ctrl.ldctl_value.bv_val = NULL;
+				ctrl.ldctl_value.bv_len = 0;
+				ctrl.ldctl_iscritical = crit;
+
+				if ( cvalue != NULL ) {
+					struct berval	bv;
+					size_t		len = strlen( cvalue );
+					int		retcode;
+
+					bv.bv_len = LUTIL_BASE64_DECODE_LEN( len );
+					bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+					retcode = lutil_b64_pton( cvalue,
+						(unsigned char *)bv.bv_val,
+						bv.bv_len );
+
+					if ( retcode == -1 || retcode > bv.bv_len ) {
+						fprintf( stderr, "Unable to parse value of general control %s\n",
+							control );
+						usage();
+					}
+
+					bv.bv_len = retcode;
+					ctrl.ldctl_value = bv;
+				}
+
+				unknown_ctrls[ unknown_ctrls_num ] = ctrl;
+				unknown_ctrls_num++;
 
 			} else {
 				fprintf( stderr, "Invalid general control name: %s\n",
@@ -893,6 +997,9 @@ tool_args( int argc, char **argv )
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			chaining ||
 #endif
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+			sessionTracking ||
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 			noop || ppolicy || preread || postread )
 		{
 			fprintf( stderr, "%s: -e/-M incompatible with LDAPv2\n", prog );
@@ -957,6 +1064,137 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 			url.lud_scope = LDAP_SCOPE_DEFAULT;
 
 			ldapuri = ldap_url_desc2str( &url );
+
+		} else if ( ldapuri != NULL ) {
+			LDAPURLDesc	*ludlist, **ludp;
+			char		**urls = NULL;
+			int		nurls = 0;
+
+			rc = ldap_url_parselist( &ludlist, ldapuri );
+			if ( rc != LDAP_URL_SUCCESS ) {
+				fprintf( stderr,
+					"Could not parse LDAP URI(s)=%s (%d)\n",
+					ldapuri, rc );
+				exit( EXIT_FAILURE );
+			}
+
+			for ( ludp = &ludlist; *ludp != NULL; ) {
+				LDAPURLDesc	*lud = *ludp;
+				char		**tmp;
+
+				if ( lud->lud_dn != NULL && lud->lud_dn[ 0 ] != '\0' &&
+					( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) )
+				{
+					/* if no host but a DN is provided,
+					 * use DNS SRV to gather the host list
+					 * and turn it into a list of URIs
+					 * using the scheme provided */
+					char	*domain = NULL,
+						*hostlist = NULL,
+						**hosts = NULL;
+					int	i,
+						len_proto = strlen( lud->lud_scheme );
+
+					if ( ldap_dn2domain( lud->lud_dn, &domain )
+						|| domain == NULL )
+					{
+						fprintf( stderr,
+							"DNS SRV: Could not turn "
+							"DN=\"%s\" into a domain\n",
+							lud->lud_dn );
+						goto dnssrv_free;
+					}
+					
+					rc = ldap_domain2hostlist( domain, &hostlist );
+					if ( rc ) {
+						fprintf( stderr,
+							"DNS SRV: Could not turn "
+							"domain=%s into a hostlist\n",
+							domain );
+						goto dnssrv_free;
+					}
+
+					hosts = ldap_str2charray( hostlist, " " );
+					if ( hosts == NULL ) {
+						fprintf( stderr,
+							"DNS SRV: Could not parse "
+							"hostlist=\"%s\"\n",
+							hostlist );
+						goto dnssrv_free;
+					}
+
+					for ( i = 0; hosts[ i ] != NULL; i++ )
+						/* count'em */ ;
+
+					tmp = (char **)realloc( urls, sizeof( char * ) * ( nurls + i + 1 ) );
+					if ( tmp == NULL ) {
+						fprintf( stderr,
+							"DNS SRV: out of memory?\n" );
+						goto dnssrv_free;
+					}
+					urls = tmp;
+					urls[ nurls ] = NULL;
+
+					for ( i = 0; hosts[ i ] != NULL; i++ ) {
+						size_t	len = len_proto
+							+ STRLENOF( "://" )
+							+ strlen( hosts[ i ] )
+							+ 1;
+
+						urls[ nurls + i + 1 ] = NULL;
+						urls[ nurls + i ] = (char *)malloc( sizeof( char ) * len );
+						if ( urls[ nurls + i ] == NULL ) {
+							fprintf( stderr,
+								"DNS SRV: out of memory?\n" );
+							goto dnssrv_free;
+						}
+
+						snprintf( urls[ nurls + i ], len, "%s://%s",
+							lud->lud_scheme, hosts[ i ] );
+					}
+					nurls += i;
+
+dnssrv_free:;
+					ber_memvfree( (void **)hosts );
+					ber_memfree( hostlist );
+					ber_memfree( domain );
+
+				} else {
+					tmp = (char **)realloc( urls, sizeof( char * ) * ( nurls + 2 ) );
+					if ( tmp == NULL ) {
+						fprintf( stderr,
+							"DNS SRV: out of memory?\n" );
+						break;
+					}
+					urls = tmp;
+					urls[ nurls + 1 ] = NULL;
+
+					urls[ nurls ] = ldap_url_desc2str( lud );
+					if ( urls[ nurls ] == NULL ) {
+						fprintf( stderr,
+							"DNS SRV: out of memory?\n" );
+						break;
+					}
+					nurls++;
+				}
+
+				*ludp = lud->lud_next;
+
+				lud->lud_next = NULL;
+				ldap_free_urldesc( lud );
+			}
+
+			if ( ludlist != NULL ) {
+				ldap_free_urllist( ludlist );
+				exit( EXIT_FAILURE );
+
+			} else if ( urls == NULL ) {
+				exit( EXIT_FAILURE );
+			}
+
+			ldap_memfree( ldapuri );
+			ldapuri = ldap_charray2str( urls, " " );
+			ber_memvfree( (void **)urls );
 		}
 
 		if ( verbose ) {
@@ -1019,20 +1257,40 @@ void
 tool_bind( LDAP *ld )
 {
 	LDAPControl	**sctrlsp = NULL;
-	LDAPControl	*sctrls[2];
+	LDAPControl	*sctrls[3];
+	LDAPControl	sctrl[3];
 	int		nsctrls = 0;
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-	LDAPControl c;
 	if ( ppolicy ) {
+		LDAPControl c;
 		c.ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
 		c.ldctl_value.bv_val = NULL;
 		c.ldctl_value.bv_len = 0;
 		c.ldctl_iscritical = 0;
-		sctrls[nsctrls] = &c;
+		sctrl[nsctrls] = c;
+		sctrls[nsctrls] = &sctrl[nsctrls];
 		sctrls[++nsctrls] = NULL;
 	}
 #endif
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+	if ( sessionTracking ) {
+		LDAPControl c;
+
+		if (stValue.bv_val == NULL && st_value( ld, &stValue ) ) {
+			exit( EXIT_FAILURE );
+		}
+
+		c.ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
+		c.ldctl_iscritical = 0;
+		ber_dupbv( &c.ldctl_value, &stValue );
+
+		sctrl[nsctrls] = c;
+		sctrls[nsctrls] = &sctrl[nsctrls];
+		sctrls[++nsctrls] = NULL;
+	}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 	if ( nsctrls ) {
 		sctrlsp = sctrls;
@@ -1108,7 +1366,7 @@ tool_bind( LDAP *ld )
 		rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
 			&ctrls, 1 );
 		if ( rc != LDAP_SUCCESS ) {
-			tool_perror( "ldap_bind parse result", rc, NULL, NULL, NULL, NULL );
+			tool_perror( "ldap_bind parse result", rc, NULL, matched, info, refs );
 			exit( LDAP_LOCAL_ERROR );
 		}
 
@@ -1118,8 +1376,8 @@ tool_bind( LDAP *ld )
 			int expire, grace, len = 0;
 			LDAPPasswordPolicyError pErr = -1;
 			
-			ctrl = ldap_find_control( LDAP_CONTROL_PASSWORDPOLICYRESPONSE,
-				ctrls );
+			ctrl = ldap_control_find( LDAP_CONTROL_PASSWORDPOLICYRESPONSE,
+				ctrls, NULL );
 
 			if ( ctrl && ldap_parse_passwordpolicy_control( ld, ctrl,
 				&expire, &grace, &pErr ) == LDAP_SUCCESS )
@@ -1182,7 +1440,7 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[10], **ctrls;
+	LDAPControl c[16], **ctrls;
 
 	if ( ! ( assertctl
 		|| authzid
@@ -1192,17 +1450,24 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		|| manageDIT
 		|| manageDSAit
 		|| noop
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+		|| ppolicy
+#endif
 		|| preread
 		|| postread
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 		|| chaining
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
-		|| count ) )
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+		|| sessionTracking
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+		|| count
+		|| unknown_ctrls_num ) )
 	{
 		return;
 	}
 
-	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
+	ctrls = (LDAPControl**) malloc(sizeof(c) + (count + unknown_ctrls_num + 1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
 		fprintf( stderr, "No memory\n" );
 		exit( EXIT_FAILURE );
@@ -1293,6 +1558,16 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		ctrls[i] = &c[i];
 		i++;
 	}
+
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+	if ( ppolicy ) {
+		c[i].ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
+		BER_BVZERO( &c[i].ldctl_value );
+		c[i].ldctl_iscritical = 0;
+		ctrls[i] = &c[i];
+		i++;
+	}
+#endif
 
 	if ( preread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
@@ -1400,8 +1675,26 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+	if ( sessionTracking ) {
+		if ( stValue.bv_val == NULL && st_value( ld, &stValue ) ) {
+			exit( EXIT_FAILURE );
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
+		c[i].ldctl_iscritical = 0;
+		ber_dupbv( &c[i].ldctl_value, &stValue );
+
+		ctrls[i] = &c[i];
+		i++;
+	}
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
+
 	while ( count-- ) {
 		ctrls[i++] = extra_c++;
+	}
+	for ( count = 0; count < unknown_ctrls_num; count++ ) {
+		ctrls[i++] = &unknown_ctrls[count];
 	}
 	ctrls[i] = NULL;
 
@@ -1594,7 +1887,8 @@ print_ppolicy( LDAP *ld, LDAPControl *ctrl )
 
 		if ( pperr != PP_noError ) {
 			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-				"%serror=%s", ptr == buf ? "" : " ",
+				"%serror=%d (%s)", ptr == buf ? "" : " ",
+				pperr,
 				ldap_passwordpolicy_err2txt( pperr ) );
 		}
 
@@ -1620,6 +1914,13 @@ void tool_print_ctrls(
 		char *str;
 		int j;
 
+		/* FIXME: there might be cases where a control has NULL OID;
+		 * this makes little sense, especially when returned by the
+		 * server, but libldap happily allows it */
+		if ( ctrls[i]->ldctl_oid == NULL ) {
+			continue;
+		}
+
 		len = ldif ? 2 : 0;
 		len += strlen( ctrls[i]->ldctl_oid );
 
@@ -1628,7 +1929,7 @@ void tool_print_ctrls(
 			? sizeof("true") : sizeof("false");
 
 		/* convert to base64 */
-		if ( ctrls[i]->ldctl_value.bv_len ) {
+		if ( !BER_BVISNULL( &ctrls[i]->ldctl_value ) ) {
 			b64.bv_len = LUTIL_BASE64_ENCODE_LEN(
 				ctrls[i]->ldctl_value.bv_len ) + 1;
 			b64.bv_val = ber_memalloc( b64.bv_len + 1 );

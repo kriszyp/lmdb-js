@@ -27,7 +27,8 @@
 static DBC *cursor = NULL;
 static DBT key, data;
 static EntryHeader eh;
-static int eoff;
+static ID nid, previd = NOID;
+static char ehbuf[16];
 
 typedef struct dn_id {
 	ID id;
@@ -74,7 +75,11 @@ static ldap_pvt_thread_mutex_t bdb_tool_index_mutex;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond_main;
 static ldap_pvt_thread_cond_t bdb_tool_index_cond_work;
 
+static ldap_pvt_thread_mutex_t bdb_tool_trickle_mutex;
+static ldap_pvt_thread_cond_t bdb_tool_trickle_cond;
+
 static void * bdb_tool_index_task( void *ctx, void *ptr );
+static void * bdb_tool_trickle_task( void *ctx, void *ptr );
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -84,7 +89,9 @@ int bdb_tool_entry_open(
 	/* initialize key and data thangs */
 	DBTzero( &key );
 	DBTzero( &data );
-	key.flags = DB_DBT_REALLOC;
+	key.flags = DB_DBT_USERMEM;
+	key.data = &nid;
+	key.size = key.ulen = sizeof( nid );
 	data.flags = DB_DBT_USERMEM;
 
 	if (cursor == NULL) {
@@ -97,24 +104,29 @@ int bdb_tool_entry_open(
 	}
 
 	/* Set up for threaded slapindex */
-	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK
-		&& bdb->bi_nattrs ) {
+	if (( slapMode & (SLAP_TOOL_QUICK|SLAP_TOOL_READONLY)) == SLAP_TOOL_QUICK ) {
 		if ( !bdb_tool_info ) {
-			int i;
+			ldap_pvt_thread_mutex_init( &bdb_tool_trickle_mutex );
+			ldap_pvt_thread_cond_init( &bdb_tool_trickle_cond );
+			ldap_pvt_thread_pool_submit( &connection_pool, bdb_tool_trickle_task, bdb->bi_dbenv );
+
 			ldap_pvt_thread_mutex_init( &bdb_tool_index_mutex );
 			ldap_pvt_thread_cond_init( &bdb_tool_index_cond_main );
 			ldap_pvt_thread_cond_init( &bdb_tool_index_cond_work );
-			bdb_tool_index_threads = ch_malloc( slap_tool_thread_max * sizeof( int ));
-			bdb_tool_index_rec = ch_malloc( bdb->bi_nattrs * sizeof( IndexRec ));
-			bdb_tool_index_tcount = slap_tool_thread_max - 1;
-			for (i=1; i<slap_tool_thread_max; i++) {
-				int *ptr = ch_malloc( sizeof( int ));
-				*ptr = i;
-				ldap_pvt_thread_pool_submit( &connection_pool,
-					bdb_tool_index_task, ptr );
+			if ( bdb->bi_nattrs ) {
+				int i;
+				bdb_tool_index_threads = ch_malloc( slap_tool_thread_max * sizeof( int ));
+				bdb_tool_index_rec = ch_malloc( bdb->bi_nattrs * sizeof( IndexRec ));
+				bdb_tool_index_tcount = slap_tool_thread_max - 1;
+				for (i=1; i<slap_tool_thread_max; i++) {
+					int *ptr = ch_malloc( sizeof( int ));
+					*ptr = i;
+					ldap_pvt_thread_pool_submit( &connection_pool,
+						bdb_tool_index_task, ptr );
+				}
 			}
+			bdb_tool_info = bdb;
 		}
-		bdb_tool_info = bdb;
 	}
 
 	return 0;
@@ -125,16 +137,15 @@ int bdb_tool_entry_close(
 {
 	if ( bdb_tool_info ) {
 		slapd_shutdown = 1;
+		ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 		ldap_pvt_thread_mutex_lock( &bdb_tool_index_mutex );
 		bdb_tool_index_tcount = slap_tool_thread_max - 1;
 		ldap_pvt_thread_cond_broadcast( &bdb_tool_index_cond_work );
 		ldap_pvt_thread_mutex_unlock( &bdb_tool_index_mutex );
 	}
 
-	if( key.data ) {
-		ch_free( key.data );
-		key.data = NULL;
-	}
 	if( eh.bv.bv_val ) {
 		ch_free( eh.bv.bv_val );
 		eh.bv.bv_val = NULL;
@@ -168,15 +179,14 @@ ID bdb_tool_entry_next(
 	int rc;
 	ID id;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	char buf[16], *dptr;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( bdb != NULL );
-	
+
 	/* Get the header */
-	data.ulen = data.dlen = sizeof( buf );
-	data.data = buf;
+	data.ulen = data.dlen = sizeof( ehbuf );
+	data.data = ehbuf;
 	data.flags |= DB_DBT_PARTIAL;
 	rc = cursor->c_get( cursor, &key, &data, DB_NEXT );
 
@@ -198,17 +208,8 @@ ID bdb_tool_entry_next(
 		}
 	}
 
-	dptr = eh.bv.bv_val;
-	eh.bv.bv_val = buf;
-	eh.bv.bv_len = data.size;
-	rc = entry_header( &eh );
-	eoff = eh.data - eh.bv.bv_val;
-	eh.bv.bv_val = dptr;
-	if( rc ) {
-		return NOID;
-	}
-
 	BDB_DISK2ID( key.data, &id );
+	previd = id;
 	return id;
 }
 
@@ -238,41 +239,39 @@ ID bdb_tool_dn2id_get(
 	return ei->bei_id;
 }
 
-int bdb_tool_id2entry_get(
-	Backend *be,
-	ID id,
-	Entry **e
-)
-{
-	int rc = bdb_id2entry( be, NULL, 0, id, e );
-
-	if ( rc == DB_NOTFOUND && id == 0 ) {
-		Entry *dummy = ch_calloc( 1, sizeof(Entry) );
-		struct berval gluebv = BER_BVC("glue");
-		dummy->e_name.bv_val = ch_strdup( "" );
-		dummy->e_nname.bv_val = ch_strdup( "" );
-		attr_merge_one( dummy, slap_schema.si_ad_objectClass, &gluebv, NULL );
-		attr_merge_one( dummy, slap_schema.si_ad_structuralObjectClass,
-			&gluebv, NULL );
-		*e = dummy;
-		rc = LDAP_SUCCESS;
-	}
-	return rc;
-}
-
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 {
-	int rc;
 	Entry *e = NULL;
+	char *dptr;
+	int rc, eoff;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 
+	if ( id != previd ) {
+		data.ulen = data.dlen = sizeof( ehbuf );
+		data.data = ehbuf;
+		data.flags |= DB_DBT_PARTIAL;
+
+		BDB_ID2DISK( id, &nid );
+		rc = cursor->c_get( cursor, &key, &data, DB_SET );
+		if ( rc ) goto done;
+	}
+
+	/* Get the header */
+	dptr = eh.bv.bv_val;
+	eh.bv.bv_val = ehbuf;
+	eh.bv.bv_len = data.size;
+	rc = entry_header( &eh );
+	eoff = eh.data - eh.bv.bv_val;
+	eh.bv.bv_val = dptr;
+	if ( rc ) goto done;
+
 	/* Get the size */
-	data.flags ^= DB_DBT_PARTIAL;
+	data.flags &= ~DB_DBT_PARTIAL;
 	data.ulen = 0;
     rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
-	if ( rc != DB_BUFFER_SMALL ) goto leave;
+	if ( rc != DB_BUFFER_SMALL ) goto done;
 
 	/* Allocate a block and retrieve the data */
 	eh.bv.bv_len = eh.nvals * sizeof( struct berval ) + data.size;
@@ -285,7 +284,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	eh.data += eoff;
 
     rc = cursor->c_get( cursor, &key, &data, DB_CURRENT );
-	if ( rc ) goto leave;
+	if ( rc ) goto done;
 
 #ifdef SLAP_ZONE_ALLOC
 	/* FIXME: will add ctx later */
@@ -307,7 +306,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 			op.o_tmpmemctx = NULL;
 			op.o_tmpmfuncs = &ch_mfuncs;
 
-			rc = bdb_cache_find_parent( &op, NULL, cursor->locker, id, &ei );
+			rc = bdb_cache_find_parent( &op, NULL, CURSOR_GETLOCKER(cursor), id, &ei );
 			if ( rc == LDAP_SUCCESS ) {
 				bdb_cache_entryinfo_unlock( ei );
 				e->e_private = ei;
@@ -319,7 +318,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 		}
 #endif
 	}
-leave:
+done:
 	return e;
 }
 
@@ -520,6 +519,12 @@ ID bdb_tool_entry_put(
 	rc = bdb_tool_next_id( &op, tid, e, text, 0 );
 	if( rc != 0 ) {
 		goto done;
+	}
+
+	if (( slapMode & SLAP_TOOL_QUICK ) && (( e->e_id & 0xfff ) == 0xfff )) {
+		ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+		ldap_pvt_thread_cond_signal( &bdb_tool_trickle_cond );
+		ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
 	}
 
 	if ( !bdb->bi_linear_index )
@@ -1086,6 +1091,25 @@ int bdb_tool_idl_add(
 	return 0;
 }
 #endif
+
+static void *
+bdb_tool_trickle_task( void *ctx, void *ptr )
+{
+	DB_ENV *env = ptr;
+	int wrote;
+
+	ldap_pvt_thread_mutex_lock( &bdb_tool_trickle_mutex );
+	while ( 1 ) {
+		ldap_pvt_thread_cond_wait( &bdb_tool_trickle_cond,
+			&bdb_tool_trickle_mutex );
+		if ( slapd_shutdown )
+			break;
+		env->memp_trickle( env, 30, &wrote );
+	}
+	ldap_pvt_thread_mutex_unlock( &bdb_tool_trickle_mutex );
+
+	return NULL;
+}
 
 static void *
 bdb_tool_index_task( void *ctx, void *ptr )

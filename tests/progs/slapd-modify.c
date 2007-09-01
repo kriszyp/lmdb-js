@@ -17,17 +17,17 @@
 
 #include <stdio.h>
 
-#include <ac/stdlib.h>
+#include "ac/stdlib.h"
 
-#include <ac/ctype.h>
-#include <ac/param.h>
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/unistd.h>
-#include <ac/wait.h>
+#include "ac/ctype.h"
+#include "ac/param.h"
+#include "ac/socket.h"
+#include "ac/string.h"
+#include "ac/unistd.h"
+#include "ac/wait.h"
 
-#include <ldap.h>
-#include <lutil.h>
+#include "ldap.h"
+#include "lutil.h"
 
 #include "slapd-common.h"
 

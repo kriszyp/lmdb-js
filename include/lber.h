@@ -138,8 +138,12 @@ typedef struct lber_memory_fns {
 #define LBER_SB_OPT_NEEDS_WRITE		12
 #define LBER_SB_OPT_GET_MAX_INCOMING	13
 #define LBER_SB_OPT_SET_MAX_INCOMING	14
+
+/* Only meaningful ifdef LDAP_PF_LOCAL_SENDMSG */
+#define LBER_SB_OPT_UNGET_BUF	15
+
 /* Largest option used by the library */
-#define LBER_SB_OPT_OPT_MAX		14
+#define LBER_SB_OPT_OPT_MAX		15
 
 /* LBER IO operations stacking levels */
 #define LBER_SBIOD_LEVEL_PROVIDER	10
@@ -267,11 +271,14 @@ ber_get_stringb LDAP_P((
 	char *buf,
 	ber_len_t *len ));
 
+#define	LBER_BV_ALLOC	0x01	/* allocate/copy result, otherwise in-place */
+#define	LBER_BV_NOTERM	0x02	/* omit NUL-terminator if parsing in-place */
+
 LBER_F( ber_tag_t )
 ber_get_stringbv LDAP_P((
 	BerElement *ber,
 	struct berval *bv,
-	int alloc ));
+	int options ));
 
 LBER_F( ber_tag_t )
 ber_get_stringa LDAP_P((
@@ -316,9 +323,19 @@ ber_scanf LDAP_P((
 	LDAP_CONST char *fmt,
 	... ));
 
+LBER_F( int )
+ber_decode_oid LDAP_P((
+	struct berval *in,
+	struct berval *out ));
+
 /*
  * in encode.c
  */
+LBER_F( int )
+ber_encode_oid LDAP_P((
+	struct berval *in,
+	struct berval *out ));
+
 typedef int (*BEREncodeCallback) LDAP_P((
 	BerElement *ber,
 	void *data ));
@@ -400,6 +417,11 @@ ber_printf LDAP_P((
 /*
  * in io.c:
  */
+
+LBER_F( ber_slen_t )
+ber_skip_data LDAP_P((
+	BerElement *ber,
+	ber_len_t len ));
 
 LBER_F( ber_slen_t )
 ber_read LDAP_P((

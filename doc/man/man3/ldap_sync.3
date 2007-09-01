@@ -10,11 +10,11 @@ OpenLDAP LDAP (libldap, -lldap)
 .nf
 .B #include <ldap_sync.h>
 .LP
-.BI "int ldap_sync_init(ldap_sync_t *" ls ", int " mode ", int " cancel ");"
+.BI "int ldap_sync_init(ldap_sync_t *" ls ", int " mode ");"
 .LP
-.BI "int ldap_sync_init_refresh_only(ldap_sync_t *" ls ", int " cancel ");"
+.BI "int ldap_sync_init_refresh_only(ldap_sync_t *" ls ");"
 .LP
-.BI "int ldap_sync_init_refresh_and_persist(ldap_sync_t *" ls ", int " cancel ");"
+.BI "int ldap_sync_init_refresh_and_persist(ldap_sync_t *" ls  ");"
 .LP
 .BI "int ldap_sync_poll(ldap_sync_t *" ls ");"
 .LP
@@ -198,7 +198,8 @@ to indicate that the refresh phase of refreshAndPersist is over, and
 the client should start polling.
 Except for the
 .BR LDAP_SYNC_CAPI_PRESENTS_IDSET
-and LDAP_SYNC_CAPI_DELETES_IDSET
+and
+.BR LDAP_SYNC_CAPI_DELETES_IDSET
 cases,
 .BR syncUUIDs
 is NULL.
@@ -239,7 +240,7 @@ structure, and sets appropriate values for some members.
 After that, the caller is responsible for setting up the
 connection (member
 .BR ls_ld ),
-evetually setting up transport security (TLS),
+eventually setting up transport security (TLS),
 for binding and any other initialization.
 The caller must also fill all the documented search-related fields
 of the

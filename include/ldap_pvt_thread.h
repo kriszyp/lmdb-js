@@ -36,11 +36,6 @@ typedef ldap_int_thread_rdwr_t		ldap_pvt_thread_rdwr_t;
 typedef ldap_int_thread_rmutex_t	ldap_pvt_thread_rmutex_t;
 #endif /* !LDAP_PVT_THREAD_H_DONE */
 
-#if 0 && defined(LDAP_DEVEL)
-/* must also be defined in slapd.h */
-#define LDAP_PVT_THREAD_POOL_SEM_LOAD_CONTROL
-#endif
-
 #define ldap_pvt_thread_equal		ldap_int_thread_equal
 
 LDAP_F( int )

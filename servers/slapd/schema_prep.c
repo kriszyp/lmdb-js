@@ -85,9 +85,9 @@ oidValidate(
 
 
 static int objectClassPretty(
-	struct slap_syntax *syntax,
-	struct berval * in,
-	struct berval * out,
+	Syntax *syntax,
+	struct berval *in,
+	struct berval *out,
 	void *ctx )
 {
 	ObjectClass *oc;
@@ -241,8 +241,8 @@ objectSubClassMatch(
 static int objectSubClassIndexer( 
 	slap_mask_t use,
 	slap_mask_t mask,
-	struct slap_syntax *syntax,
-	struct slap_matching_rule *mr,
+	Syntax *syntax,
+	MatchingRule *mr,
 	struct berval *prefix,
 	BerVarray values,
 	BerVarray *keysp,
@@ -532,12 +532,12 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_collectiveExclusions) },
 #endif
 
-	{ "entryDN", "( 1.3.6.1.4.1.4203.666.1.33 NAME 'entryDN' "   
+	{ "entryDN", "( 1.3.6.1.1.20 NAME 'entryDN' "   
 			"DESC 'DN of the entry' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, SLAP_AT_HIDE|SLAP_AT_DYNAMIC,
+		NULL, SLAP_AT_DYNAMIC,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryDN) },

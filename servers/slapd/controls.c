@@ -21,6 +21,8 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "ldif.h"
+#include "lutil.h"
 
 #include "../../libraries/liblber/lber-int.h"
 
@@ -35,7 +37,7 @@ static SLAP_CTRL_PARSE_FN parsePreRead, parsePostRead;
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseRelax;
 static SLAP_CTRL_PARSE_FN parseSearchOptions;
-#ifdef SLAP_SORTEDRESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 static SLAP_CTRL_PARSE_FN parseSortedResults;
 #endif
 static SLAP_CTRL_PARSE_FN parseSubentries;
@@ -43,6 +45,9 @@ static SLAP_CTRL_PARSE_FN parseSubentries;
 static SLAP_CTRL_PARSE_FN parseTreeDelete;
 #endif
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+static SLAP_CTRL_PARSE_FN parseSessionTracking;
+#endif
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
@@ -103,6 +108,15 @@ static char *manageDSAit_extops[] = {
 	NULL
 };
 
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+static char *session_tracking_extops[] = {
+	LDAP_EXOP_MODIFY_PASSWD,
+	LDAP_EXOP_WHO_AM_I,
+	LDAP_EXOP_REFRESH,
+	NULL
+};
+#endif
+
 static struct slap_control control_defs[] = {
 	{  LDAP_CONTROL_ASSERT,
  		(int)offsetof(struct slap_control_ids, sc_assert),
@@ -130,7 +144,7 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_SEARCH,
 		NULL, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef SLAP_SORTEDRESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 	{ LDAP_CONTROL_SORTREQUEST,
  		(int)offsetof(struct slap_control_ids, sc_sortedResults),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE,
@@ -196,6 +210,13 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS,
 		proxy_authz_extops, NULL,
 		parseProxyAuthz, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	{ LDAP_CONTROL_X_SESSION_TRACKING,
+ 		(int)offsetof(struct slap_control_ids, sc_sessionTracking),
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_ACCESS|SLAP_CTRL_BIND|SLAP_CTRL_HIDE,
+		session_tracking_extops, NULL,
+		parseSessionTracking, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
 	{ NULL, 0, 0, NULL, 0, NULL, LDAP_SLIST_ENTRY_INITIALIZER(next) }
 };
 
@@ -849,8 +870,8 @@ static int parseDontUseCopy (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "dontUseCopy control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "dontUseCopy control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -873,8 +894,8 @@ static int parseRelax (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "relax control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "relax control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -895,8 +916,8 @@ static int parseManageDSAit (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "manageDSAit control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "manageDSAit control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -920,6 +941,11 @@ static int parseProxyAuthz (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "proxy authorization control value absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( !( global_allows & SLAP_ALLOW_PROXY_AUTHZ_ANON )
 		&& BER_BVISEMPTY( &op->o_ndn ) )
 	{
@@ -937,7 +963,7 @@ static int parseProxyAuthz (
 		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
 		0 );
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
 		Debug( LDAP_DEBUG_TRACE,
 			"parseProxyAuthz: conn=%lu anonymous\n", 
 			op->o_connid, 0, 0 );
@@ -1007,7 +1033,7 @@ static int parseNoOp (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
+	if ( !BER_BVISNULL( &ctrl->ldctl_value ) ) {
 		rs->sr_text = "noop control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1036,8 +1062,13 @@ static int parsePagedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "paged results control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
-		rs->sr_text = "paged results control value is empty (or absent)";
+		rs->sr_text = "paged results control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1099,7 +1130,7 @@ done:;
 	return rc;
 }
 
-#ifdef SLAP_SORTEDRESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 static int parseSortedResults (
 	Operation *op,
 	SlapReply *rs,
@@ -1112,8 +1143,13 @@ static int parseSortedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "sorted results control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
-		rs->sr_text = "sorted results control value is empty (or absent)";
+		rs->sr_text = "sorted results control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1140,8 +1176,13 @@ static int parseAssert (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "assert control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "assert control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "assert control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1198,8 +1239,13 @@ static int parsePreRead (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "preread control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "preread control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "preread control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1266,8 +1312,13 @@ static int parsePostRead (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "postread control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "postread control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "postread control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1351,8 +1402,13 @@ static int parseValuesReturnFilter (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "valuesReturnFilter control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "valuesReturnFilter control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "valuesReturnFilter control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1435,8 +1491,8 @@ static int parsePermissiveModify (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "permissiveModify control value not empty";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "permissiveModify control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1457,7 +1513,7 @@ static int parseDomainScope (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
 		rs->sr_text = "domainScope control value not empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -1480,8 +1536,8 @@ static int parseTreeDelete (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len ) {
-		rs->sr_text = "treeDelete control value not empty";
+	if ( !BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "treeDelete control value not absent";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1502,8 +1558,13 @@ static int parseSearchOptions (
 	ber_int_t search_flags;
 	ber_tag_t tag;
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "searchOptions control value is empty (or absent)";
+	if ( BER_BVISNULL( &ctrl->ldctl_value )) {
+		rs->sr_text = "searchOptions control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value )) {
+		rs->sr_text = "searchOptions control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1545,3 +1606,299 @@ static int parseSearchOptions (
 	return LDAP_SUCCESS;
 }
 
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+struct berval session_tracking_formats[] = {
+	BER_BVC( LDAP_CONTROL_X_SESSION_TRACKING_RADIUS_ACCT_SESSION_ID ),
+		BER_BVC( "RADIUS-Acct-Session-Id" ),
+	BER_BVC( LDAP_CONTROL_X_SESSION_TRACKING_RADIUS_ACCT_MULTI_SESSION_ID ),
+		BER_BVC( "RADIUS-Acct-Multi-Session-Id" ),
+	BER_BVC( LDAP_CONTROL_X_SESSION_TRACKING_USERNAME ),
+		BER_BVC( "USERNAME" ),
+
+	BER_BVNULL
+};
+
+static int parseSessionTracking(
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	BerElement		*ber;
+	ber_tag_t		tag;
+	ber_len_t		len;
+	int			i, rc;
+
+	struct berval		sessionSourceIp = BER_BVNULL,
+				sessionSourceName = BER_BVNULL,
+				formatOID = BER_BVNULL,
+				sessionTrackingIdentifier = BER_BVNULL;
+
+	size_t			st_len, st_pos;
+
+	if ( ctrl->ldctl_iscritical ) {
+		rs->sr_text = "sessionTracking criticality is TRUE";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "sessionTracking control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "sessionTracking control value is empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	ber = ber_init( &ctrl->ldctl_value );
+	if ( ber == NULL ) {
+		rs->sr_text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	tag = ber_skip_tag( ber, &len );
+	if ( tag != LBER_SEQUENCE ) {
+		tag = LBER_ERROR;
+		goto error;
+	}
+
+	/* sessionSourceIp */
+	tag = ber_peek_tag( ber, &len );
+	if ( tag == LBER_DEFAULT ) {
+		tag = LBER_ERROR;
+		goto error;
+	}
+
+	if ( len == 0 ) {
+		tag = ber_skip_tag( ber, &len );
+
+	} else if ( len > 128 ) {
+		rs->sr_text = "sessionTracking.sessionSourceIp too long";
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto error;
+
+	} else {
+		tag = ber_scanf( ber, "m", &sessionSourceIp );
+	}
+
+	if ( ldif_is_not_printable( sessionSourceIp.bv_val, sessionSourceIp.bv_len ) ) {
+		BER_BVZERO( &sessionSourceIp );
+	}
+
+	/* sessionSourceName */
+	tag = ber_peek_tag( ber, &len );
+	if ( tag == LBER_DEFAULT ) {
+		tag = LBER_ERROR;
+		goto error;
+	}
+
+	if ( len == 0 ) {
+		tag = ber_skip_tag( ber, &len );
+
+	} else if ( len > 65536 ) {
+		rs->sr_text = "sessionTracking.sessionSourceName too long";
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto error;
+
+	} else {
+		tag = ber_scanf( ber, "m", &sessionSourceName );
+	}
+
+	if ( ldif_is_not_printable( sessionSourceName.bv_val, sessionSourceName.bv_len ) ) {
+		BER_BVZERO( &sessionSourceName );
+	}
+
+	/* formatOID */
+	tag = ber_peek_tag( ber, &len );
+	if ( tag == LBER_DEFAULT ) {
+		tag = LBER_ERROR;
+		goto error;
+	}
+
+	if ( len == 0 ) {
+		rs->sr_text = "sessionTracking.formatOID empty";
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto error;
+
+	} else if ( len > 1024 ) {
+		rs->sr_text = "sessionTracking.formatOID too long";
+		rs->sr_err = LDAP_PROTOCOL_ERROR;
+		goto error;
+
+	} else {
+		tag = ber_scanf( ber, "m", &formatOID );
+	}
+
+	rc = numericoidValidate( NULL, &formatOID );
+	if ( rc != LDAP_SUCCESS ) {
+		rs->sr_text = "sessionTracking.formatOID invalid";
+		goto error;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &session_tracking_formats[ i ] ); i += 2 )
+	{
+		if ( bvmatch( &formatOID, &session_tracking_formats[ i ] ) ) {
+			formatOID = session_tracking_formats[ i + 1 ];
+			break;
+		}
+	}
+
+	/* sessionTrackingIdentifier */
+	tag = ber_peek_tag( ber, &len );
+	if ( tag == LBER_DEFAULT ) {
+		tag = LBER_ERROR;
+		goto error;
+	}
+
+	if ( len == 0 ) {
+		tag = ber_skip_tag( ber, &len );
+
+	} else {
+		/* note: should not be more than 65536... */
+		tag = ber_scanf( ber, "m", &sessionTrackingIdentifier );
+		if ( ldif_is_not_printable( sessionTrackingIdentifier.bv_val, sessionTrackingIdentifier.bv_len ) ) {
+			/* we want the OID printed, at least */
+			BER_BVSTR( &sessionTrackingIdentifier, "" );
+		}
+	}
+
+	/* closure */
+	tag = ber_skip_tag( ber, &len );
+	if ( tag != LBER_DEFAULT || len != 0 ) {
+		tag = LBER_ERROR;
+		goto error;
+	}
+	tag = 0;
+
+	st_len = 0;
+	if ( !BER_BVISNULL( &sessionSourceIp ) ) {
+		st_len += STRLENOF( "IP=" ) + sessionSourceIp.bv_len;
+	}
+	if ( !BER_BVISNULL( &sessionSourceName ) ) {
+		if ( st_len ) st_len++;
+		st_len += STRLENOF( "NAME=" ) + sessionSourceName.bv_len;
+	}
+	if ( !BER_BVISNULL( &sessionTrackingIdentifier ) ) {
+		if ( st_len ) st_len++;
+		st_len += formatOID.bv_len + STRLENOF( "=" )
+			+ sessionTrackingIdentifier.bv_len;
+	}
+
+	if ( st_len == 0 ) {
+		goto error;
+	}
+
+	st_len += STRLENOF( " []" );
+	st_pos = strlen( op->o_log_prefix );
+
+	if ( sizeof( op->o_log_prefix ) - st_pos > st_len ) {
+		char	*ptr = &op->o_log_prefix[ st_pos ];
+
+		ptr = lutil_strcopy( ptr, " [" /*]*/ );
+
+		st_len = 0;
+		if ( !BER_BVISNULL( &sessionSourceIp ) ) {
+			ptr = lutil_strcopy( ptr, "IP=" );
+			ptr = lutil_strcopy( ptr, sessionSourceIp.bv_val );
+			st_len++;
+		}
+
+		if ( !BER_BVISNULL( &sessionSourceName ) ) {
+			if ( st_len ) *ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, "NAME=" );
+			ptr = lutil_strcopy( ptr, sessionSourceName.bv_val );
+			st_len++;
+		}
+
+		if ( !BER_BVISNULL( &sessionTrackingIdentifier ) ) {
+			if ( st_len ) *ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, formatOID.bv_val );
+			*ptr++ = '=';
+			ptr = lutil_strcopy( ptr, sessionTrackingIdentifier.bv_val );
+		}
+
+		*ptr++ = /*[*/ ']';
+		*ptr = '\0';
+	}
+
+error:;
+	(void)ber_free( ber, 1 );
+
+	if ( tag == LBER_ERROR ) {
+		rs->sr_text = "sessionTracking control decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+
+	return rs->sr_err;
+}
+
+int
+slap_ctrl_session_tracking_add(
+	Operation *op,
+	SlapReply *rs,
+	struct berval *ip,
+	struct berval *name,
+	struct berval *id,
+	LDAPControl *ctrl )
+{
+	BerElementBuffer berbuf;
+	BerElement	*ber = (BerElement *)&berbuf;
+
+	static struct berval	oid = BER_BVC( LDAP_CONTROL_X_SESSION_TRACKING_USERNAME );
+
+	assert( ctrl != NULL );
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+
+	ber_printf( ber, "{OOOO}", ip, name, &oid, id ); 
+
+	if ( ber_flatten2( ber, &ctrl->ldctl_value, 0 ) == -1 ) {
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
+	ctrl->ldctl_oid = LDAP_CONTROL_X_SESSION_TRACKING;
+	ctrl->ldctl_iscritical = 0;
+
+	rs->sr_err = LDAP_SUCCESS;
+
+done:;
+	return rs->sr_err;
+}
+
+int
+slap_ctrl_session_tracking_request_add( Operation *op, SlapReply *rs, LDAPControl *ctrl )
+{
+	static struct berval	bv_unknown = BER_BVC( SLAP_STRING_UNKNOWN );
+	struct berval		ip = BER_BVNULL,
+				name = BER_BVNULL,
+				id = BER_BVNULL;
+
+	if ( !BER_BVISNULL( &op->o_conn->c_peer_name ) &&
+		memcmp( op->o_conn->c_peer_name.bv_val, "IP=", STRLENOF( "IP=" ) ) == 0 )
+	{
+		char	*ptr;
+
+		ip.bv_val = op->o_conn->c_peer_name.bv_val + STRLENOF( "IP=" );
+		ip.bv_len = op->o_conn->c_peer_name.bv_len - STRLENOF( "IP=" );
+
+		ptr = ber_bvchr( &ip, ':' );
+		if ( ptr ) {
+			ip.bv_len = ptr - ip.bv_val;
+		}
+	}
+
+	if ( !BER_BVISNULL( &op->o_conn->c_peer_domain ) &&
+		!bvmatch( &op->o_conn->c_peer_domain, &bv_unknown ) )
+	{
+		name = op->o_conn->c_peer_domain;
+	}
+
+	if ( !BER_BVISNULL( &op->o_dn ) && !BER_BVISEMPTY( &op->o_dn ) ) {
+		id = op->o_dn;
+	}
+
+	return slap_ctrl_session_tracking_add( op, rs, &ip, &name, &id, ctrl );
+}
+#endif

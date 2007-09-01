@@ -37,6 +37,14 @@ create table phones (
 	pers_id int not null
 );
 
+drop table certs;
+drop sequence certs_id_seq;
+CREATE TABLE certs (
+	id int not null primary key,
+	cert bytea not null,
+	pers_id int not null 
+);
+ 
 drop table referrals;
 drop sequence referrals_id_seq;
 create table referrals (

@@ -27,6 +27,7 @@
 
 #include "slap.h"
 #include "slapi.h"
+#include "config.h"
 
 #ifdef LDAP_SLAPI
 
@@ -280,8 +281,8 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, int prc )
 				op->o_log_prefix,
 				BER_BVISNULL( &op->o_conn->c_dn )
 					? "<empty>" : op->o_conn->c_dn.bv_val,
-				BER_BVISNULL( &op->orb_tmp_mech )
-					? "<empty>" : op->orb_tmp_mech.bv_val, 0, 0 );
+				BER_BVISNULL( &op->orb_mech )
+					? "<empty>" : op->orb_mech.bv_val, 0, 0 );
 
 			return -1;
 		}
@@ -763,7 +764,7 @@ slapi_over_acl_group(
 	GroupAssertion		*g;
 	SlapReply		rs = { REP_RESULT };
 
-	op->o_bd = select_backend( gr_ndn, 0, 0 );
+	op->o_bd = select_backend( gr_ndn, 0 );
 
 	for ( g = op->o_groups; g; g = g->ga_next ) {
 		if ( g->ga_be != op->o_bd || g->ga_oc != group_oc ||
@@ -848,7 +849,9 @@ done:
 }
 
 static int
-slapi_over_db_open( BackendDB *be )
+slapi_over_db_open(
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	Slapi_PBlock		*pb;
 	int			rc;
@@ -863,7 +866,9 @@ slapi_over_db_open( BackendDB *be )
 }
 
 static int
-slapi_over_db_close( BackendDB *be )
+slapi_over_db_close(
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	Slapi_PBlock		*pb;
 	int			rc;

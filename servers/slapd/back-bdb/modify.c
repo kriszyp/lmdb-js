@@ -281,7 +281,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	Entry		dummy = {0};
 	int			fakeroot = 0;
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
 
 	int		num_retries = 0;
@@ -522,7 +522,7 @@ retry:	/* transaction retry */
 	}
 	/* Modify the entry */
 	dummy = *e;
-	rs->sr_err = bdb_modify_internal( op, lt2, op->oq_modify.rs_modlist,
+	rs->sr_err = bdb_modify_internal( op, lt2, op->orm_modlist,
 		&dummy, &rs->sr_text, textbuf, textlen );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
@@ -588,6 +588,8 @@ retry:	/* transaction retry */
 		} else {
 			rs->sr_err = LDAP_X_NO_OPERATION;
 			ltid = NULL;
+			/* Only free attrs if they were dup'd.  */
+			if ( dummy.e_attrs == e->e_attrs ) dummy.e_attrs = NULL;
 			goto return_results;
 		}
 	} else {

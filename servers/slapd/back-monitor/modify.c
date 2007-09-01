@@ -62,7 +62,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	if ( !acl_check_modlist( op, e, op->oq_modify.rs_modlist )) {
+	if ( !acl_check_modlist( op, e, op->orm_modlist )) {
 		rc = LDAP_INSUFFICIENT_ACCESS;
 
 	} else {

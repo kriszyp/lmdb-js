@@ -97,12 +97,32 @@ int bdb_index_param(
 {
 	AttrInfo *ai;
 	int rc;
-	slap_mask_t mask;
+	slap_mask_t mask, type = 0;
 	DB *db;
 
 	ai = index_mask( be, desc, prefixp );
 
-	if( !ai ) {
+	if ( !ai ) {
+#ifdef BDB_MONITOR_IDX
+		switch ( ftype ) {
+		case LDAP_FILTER_PRESENT:
+			type = SLAP_INDEX_PRESENT;
+			break;
+		case LDAP_FILTER_APPROX:
+			type = SLAP_INDEX_APPROX;
+			break;
+		case LDAP_FILTER_EQUALITY:
+			type = SLAP_INDEX_EQUALITY;
+			break;
+		case LDAP_FILTER_SUBSTRINGS:
+			type = SLAP_INDEX_SUBSTR;
+			break;
+		default:
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
+		bdb_monitor_idx_add( be->be_private, desc, type );
+#endif /* BDB_MONITOR_IDX */
+
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 	mask = ai->ai_indexmask;
@@ -115,6 +135,7 @@ int bdb_index_param(
 
 	switch( ftype ) {
 	case LDAP_FILTER_PRESENT:
+		type = SLAP_INDEX_PRESENT;
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
 			*prefixp = presence_key;
 			goto done;
@@ -122,6 +143,7 @@ int bdb_index_param(
 		break;
 
 	case LDAP_FILTER_APPROX:
+		type = SLAP_INDEX_APPROX;
 		if ( desc->ad_type->sat_approx ) {
 			if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) ) {
 				goto done;
@@ -133,12 +155,14 @@ int bdb_index_param(
 		/* fall thru */
 
 	case LDAP_FILTER_EQUALITY:
+		type = SLAP_INDEX_EQUALITY;
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
 			goto done;
 		}
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
+		type = SLAP_INDEX_SUBSTR;
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_SUBSTR ) ) {
 			goto done;
 		}
@@ -147,6 +171,10 @@ int bdb_index_param(
 	default:
 		return LDAP_OTHER;
 	}
+
+#ifdef BDB_MONITOR_IDX
+	bdb_monitor_idx_add( be->be_private, desc, type );
+#endif /* BDB_MONITOR_IDX */
 
 	return LDAP_INAPPROPRIATE_MATCHING;
 
@@ -435,6 +463,10 @@ int bdb_index_recrun(
 	AttrList *al;
 	int i, rc = 0;
 
+	/* Never index ID 0 */
+	if ( id == 0 )
+		return 0;
+
 	for (i=base; i<bdb->bi_nattrs; i+=slap_tool_thread_max) {
 		ir = ir0 + i;
 		if ( !ir->ai ) continue;
@@ -471,6 +503,10 @@ bdb_index_entry(
 	void* mem_op;
 	struct berval value = {0};
 #endif
+
+	/* Never index ID 0 */
+	if ( e->e_id == 0 )
+		return 0;
 
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		opid == SLAP_INDEX_DELETE_OP ? "del" : "add",

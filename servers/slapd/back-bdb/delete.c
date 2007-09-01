@@ -38,7 +38,7 @@ bdb_delete( Operation *op, SlapReply *rs )
 	struct bdb_op_info opinfo = {0};
 	ID	eid;
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock, plock;
 
 	int		num_retries = 0;
@@ -100,7 +100,7 @@ txnReturn:
 	ctrls[num_ctrls] = 0;
 
 	/* allocate CSN */
-	if ( BER_BVISEMPTY( &op->o_csn )) {
+	if ( BER_BVISNULL( &op->o_csn ) ) {
 		struct berval csn;
 		char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 

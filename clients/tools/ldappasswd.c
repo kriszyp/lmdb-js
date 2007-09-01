@@ -177,6 +177,7 @@ main( int argc, char *argv[] )
 	char *matcheddn = NULL, *text = NULL, **refs = NULL;
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
+	LDAPControl **ctrls = NULL;
 
     tool_init( TOOL_PASSWD );
 	prog = lutil_progname( "ldappasswd", argc, argv );
@@ -310,6 +311,8 @@ main( int argc, char *argv[] )
 		goto done;
 	}
 
+	tool_server_controls( ld, NULL, 0);
+
 	rc = ldap_extended_operation( ld,
 		LDAP_EXOP_MODIFY_PASSWD, bv.bv_val ? &bv : NULL, 
 		NULL, NULL, &id );
@@ -344,7 +347,7 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_result( ld, res,
-		&code, &matcheddn, &text, &refs, NULL, 0 );
+		&code, &matcheddn, &text, &refs, &ctrls, 0 );
 	if( rc != LDAP_SUCCESS ) {
 		tool_perror( "ldap_parse_result", rc, NULL, NULL, NULL, NULL );
 		rc = EXIT_FAILURE;
@@ -381,12 +384,15 @@ main( int argc, char *argv[] )
 
 		ber_free( ber, 1 );
 
-	} else if ( newpw.bv_val == NULL ) {
+	} else if ( code == LDAP_SUCCESS && newpw.bv_val == NULL ) {
 		tool_perror( "ldap_parse_extended_result", LDAP_DECODING_ERROR,
 			" new password expected", NULL, NULL, NULL );
 	}
 
-	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
+skip:
+	if( verbose || code != LDAP_SUCCESS ||
+		matcheddn || text || refs || ctrls )
+	{
 		printf( _("Result: %s (%d)\n"), ldap_err2string( code ), code );
 
 		if( text && *text ) {
@@ -403,6 +409,11 @@ main( int argc, char *argv[] )
 				printf(_("Referral: %s\n"), refs[i] );
 			}
 		}
+
+		if( ctrls ) {
+			tool_print_ctrls( ld, ctrls );
+			ldap_controls_free( ctrls );
+		}
 	}
 
 	ber_memfree( text );
@@ -410,9 +421,6 @@ main( int argc, char *argv[] )
 	ber_memvfree( (void **) refs );
 	ber_memfree( retoid );
 	ber_bvfree( retdata );
-
-	rc = ldap_search_s( ld, binddn, LDAP_SCOPE_BASE, "(objectclass=*)",
-		NULL, 0, &res );
 
 	rc = ( code == LDAP_SUCCESS ) ? EXIT_SUCCESS : EXIT_FAILURE;
 

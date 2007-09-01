@@ -36,6 +36,8 @@
 
 #include "slap.h"
 
+#include "config.h"
+
 #include "shell.h"
 
 int
@@ -76,7 +78,8 @@ shell_back_initialize(
 
 int
 shell_back_db_init(
-    Backend	*be
+	Backend	*be,
+	ConfigReply *cr
 )
 {
 	struct shellinfo	*si;
@@ -90,7 +93,8 @@ shell_back_db_init(
 
 int
 shell_back_db_destroy(
-    Backend	*be
+	Backend	*be,
+	ConfigReply *cr
 )
 {
 	free( be->be_private );

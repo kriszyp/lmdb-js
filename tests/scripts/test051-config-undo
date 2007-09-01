@@ -18,6 +18,9 @@ echo "running defines.sh"
 
 mkdir -p $TESTDIR $DBDIR1
 
+$SLAPPASSWD -g -n >$CONFIGPWF
+echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
+
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $UNDOCONF > $CONF1
 $SLAPADD -f $CONF1 <<EOF
@@ -33,8 +36,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-mkdir testrun/confdir
-$SLAPD -f $CONF1 -F testrun/confdir -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+mkdir $TESTDIR/confdir
+$SLAPD -f $CONF1 -F $TESTDIR/confdir -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -91,7 +94,7 @@ if test $RC != 80 ; then
 fi
 
 echo Surveying the damage
-$LDAPMODIFY -D cn=manager,o=undo -w secret -h $LOCALHOST -p $PORT1 <<EOF
+$LDAPMODIFY -D "cn=manager,o=undo" -w secret -h $LOCALHOST -p $PORT1 <<EOF
 dn: o=foo,o=undo
 changetype: add
 objectClass: organization

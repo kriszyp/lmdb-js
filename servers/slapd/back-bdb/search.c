@@ -31,7 +31,7 @@ static int search_candidates(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	ID	*ids,
 	ID	*scopes );
 
@@ -51,7 +51,7 @@ static Entry * deref_base (
 	SlapReply *rs,
 	Entry *e,
 	Entry **matched,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock,
 	ID	*tmp,
 	ID	*visited )
@@ -143,7 +143,7 @@ static int search_aliases(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	ID *ids,
 	ID *scopes,
 	ID *stack )
@@ -321,7 +321,7 @@ bdb_search( Operation *op, SlapReply *rs )
 	ID		lastid = NOID;
 	AttributeName	*attrs;
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
 	struct	bdb_op_info	*opinfo = NULL;
 	DB_TXN			*ltid = NULL;
@@ -657,6 +657,15 @@ loop_begin:
 		/* check for abandon */
 		if ( op->o_abandon ) {
 			rs->sr_err = SLAPD_ABANDON;
+			goto done;
+		}
+
+		/* mostly needed by internal searches,
+		 * e.g. related to syncrepl, for whom
+		 * abandon does not get set... */
+		if ( slapd_shutdown ) {
+			rs->sr_err = LDAP_UNAVAILABLE;
+			send_ldap_disconnect( op, rs );
 			goto done;
 		}
 
@@ -1011,7 +1020,7 @@ static int search_candidates(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	ID	*ids,
 	ID	*scopes )
 {

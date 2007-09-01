@@ -618,16 +618,16 @@ simple:
 			len = fstr->bv_len;
 
 			filter_escape_value_x( &f->f_sub_initial, &tmp, op->o_tmpmemctx );
-			tmplen = tmp.bv_len ? tmp.bv_len : STRLENOF( "(null)" );
+			tmplen = tmp.bv_len;
 
 			fstr->bv_len += tmplen;
 			fstr->bv_val = op->o_tmprealloc( fstr->bv_val,
 				fstr->bv_len + 1, op->o_tmpmemctx );
 
-			snprintf( &fstr->bv_val[len-2],
+			snprintf( &fstr->bv_val[len - 2],
 				tmplen + STRLENOF( /*(*/ "*)" ) + 1,
 				/* "(attr=" */ "%s*)",
-				tmp.bv_len ? tmp.bv_val : "(null)");
+				tmp.bv_len ? tmp.bv_val : "");
 
 			ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		}
@@ -639,16 +639,16 @@ simple:
 				len = fstr->bv_len;
 				filter_escape_value_x( &f->f_sub_any[i],
 					&tmp, op->o_tmpmemctx );
-				tmplen = tmp.bv_len ? tmp.bv_len : STRLENOF( "(null)" );
+				tmplen = tmp.bv_len;
 
 				fstr->bv_len += tmplen + STRLENOF( /*(*/ ")" );
 				fstr->bv_val = op->o_tmprealloc( fstr->bv_val,
 					fstr->bv_len + 1, op->o_tmpmemctx );
 
-				snprintf( &fstr->bv_val[len-1],
+				snprintf( &fstr->bv_val[len - 1],
 					tmplen + STRLENOF( /*(*/ "*)" ) + 1,
 					/* "(attr=[init]*[any*]" */ "%s*)",
-					tmp.bv_len ? tmp.bv_val : "(null)");
+					tmp.bv_len ? tmp.bv_val : "");
 				ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 			}
 		}
@@ -659,16 +659,16 @@ simple:
 			len = fstr->bv_len;
 
 			filter_escape_value_x( &f->f_sub_final, &tmp, op->o_tmpmemctx );
-			tmplen = tmp.bv_len ? tmp.bv_len : STRLENOF( "(null)" );
+			tmplen = tmp.bv_len;
 
 			fstr->bv_len += tmplen;
 			fstr->bv_val = op->o_tmprealloc( fstr->bv_val,
 				fstr->bv_len + 1, op->o_tmpmemctx );
 
-			snprintf( &fstr->bv_val[len-1],
+			snprintf( &fstr->bv_val[len - 1],
 				tmplen + STRLENOF( /*(*/ ")" ) + 1,
 				/* "(attr=[init*][any*]" */ "%s)",
-				tmp.bv_len ? tmp.bv_val : "(null)");
+				tmp.bv_len ? tmp.bv_val : "");
 
 			ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		}

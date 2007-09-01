@@ -114,6 +114,9 @@ static const struct ol_attribute {
 #ifdef HAVE_OPENSSL_CRL
 	{0, ATTR_TLS,	"TLS_CRLCHECK",		NULL,	LDAP_OPT_X_TLS_CRLCHECK},
 #endif
+#ifdef HAVE_GNUTLS
+	{0, ATTR_TLS,	"TLS_CRL",			NULL,	LDAP_OPT_X_TLS_CRLFILE},
+#endif
         
 #endif
 
@@ -521,6 +524,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 #ifdef HAVE_TLS
 	gopts->ldo_tls_connect_cb = NULL;
 	gopts->ldo_tls_connect_arg = NULL;
+	gopts->ldo_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
 #endif
 
 	gopts->ldo_valid = LDAP_INITIALIZED;

@@ -8,7 +8,7 @@
 .\" and maybe manual pages for librewrite.
 .\"
 .SH NAME
-slapd-meta \- metadirectory backend
+slapd-meta \- metadirectory backend to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
@@ -171,6 +171,15 @@ or when chasing a referral, if
 .B chase-referrals
 is set to
 .IR yes .
+
+.TP
+.B session\-tracking\-request {NO|yes}
+Adds session tracking control for all requests.
+The client's IP and hostname, and the identity associated to each request,
+if known, are sent to the remote server for informational purposes.
+This directive is incompatible with setting \fIprotocol\-version\fP to 2.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
 
 .TP
 .B single\-conn {NO|yes}
@@ -532,7 +541,7 @@ The rule
 .LP
 .RS
 .nf
-access to dn="<dn>" attr=<attr>
+access to dn="<dn>" attrs=<attr>
        by dnattr=<dnattr> read
        by * none
 .fi

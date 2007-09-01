@@ -326,7 +326,7 @@ slap_auxprop_lookup(
 
 		cb.sc_private = &sl;
 
-		op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+		op.o_bd = select_backend( &op.o_req_ndn, 1 );
 
 		if ( op.o_bd ) {
 			/* For rootdn, see if we can use the rootpw */
@@ -440,7 +440,7 @@ slap_auxprop_store(
 	}
 	if (!conn || !op.o_req_ndn.bv_val) return SASL_BADPARAM;
 
-	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+	op.o_bd = select_backend( &op.o_req_ndn, 1 );
 
 	if ( !op.o_bd || !op.o_bd->be_modify ) return SASL_FAIL;
 		
@@ -610,6 +610,7 @@ slap_sasl_canonicalize(
 	 */
 	if ( flags == SASL_CU_AUTHID && !auxvals[SLAP_SASL_PROP_AUTHZ].values ) {
 		conn->c_sasl_dn.bv_val = (char *) in;
+		conn->c_sasl_dn.bv_len = 0;
 	} else if ( flags == SASL_CU_AUTHZID && conn->c_sasl_dn.bv_val ) {
 		rc = strcmp( in, conn->c_sasl_dn.bv_val );
 		conn->c_sasl_dn.bv_val = NULL;
@@ -624,13 +625,13 @@ slap_sasl_canonicalize(
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
 		return SASL_NOAUTHZ;
-	}		
+	}
 
 	names[0] = slap_propnames[which];
 	names[1] = NULL;
 
 	prop_set( props, names[0], (char *)&dn, sizeof( dn ) );
-		
+
 	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: %s=\"%s\"\n",
 		conn ? conn->c_connid : -1, names[0]+1,
 		dn.bv_val ? dn.bv_val : "<EMPTY>" );
@@ -721,9 +722,9 @@ slap_sasl_authorize(
 ok:
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND authcid=\"%s\" authzid=\"%s\"\n",
-			conn->c_connid, conn->c_sasl_bindop->o_opid, 
-			auth_identity, requested_user, 0);
+			"%s BIND authcid=\"%s\" authzid=\"%s\"\n",
+			conn->c_sasl_bindop->o_log_prefix, 
+			auth_identity, requested_user, 0, 0 );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
@@ -825,9 +826,9 @@ ok:
 
 	if ( conn->c_sasl_bindop ) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND authcid=\"%s\" authzid=\"%s\"\n",
-			conn->c_connid, conn->c_sasl_bindop->o_opid, 
-			authcid, authzid ? authzid : "", 0);
+			"%s BIND authcid=\"%s\" authzid=\"%s\"\n",
+			conn->c_sasl_bindop->o_log_prefix, 
+			authcid, authzid ? authzid : "", 0, 0 );
 	}
 
 	*errstr = NULL;
@@ -1092,12 +1093,12 @@ slapd_rw_apply( void *private, const char *filter, struct berval *val )
 	int rc;
 
 	thrctx = ldap_pvt_thread_pool_context();
-	op = (Operation *)&opbuf;
-	connection_fake_init2( &conn, op, thrctx, 0 );
+	connection_fake_init2( &conn, &opbuf, thrctx, 0 );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->o_req_dn = op->o_req_ndn = sl->base;
-	op->o_bd = select_backend( &op->o_req_ndn, 0, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( !op->o_bd ) {
 		return REWRITE_ERR;
 	}
@@ -1121,8 +1122,12 @@ slapd_rw_apply( void *private, const char *filter, struct berval *val )
 	ptr = op->ors_filterstr.bv_val = op->o_tmpalloc( rc + 1, op->o_tmpmemctx );
 	if ( sl->filter.bv_len ) {
 		ptr = lutil_strcopy( ptr, sl->filter.bv_val );
+	} else {
+		*ptr = '\0';
 	}
-	strcpy( ptr, filter );
+	if ( filter ) {
+		strcpy( ptr, filter );
+	}
 	op->ors_filter = str2filter_x( op, op->ors_filterstr.bv_val );
 	if ( !op->ors_filter ) {
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
@@ -1205,8 +1210,8 @@ int slap_sasl_init( void )
 		sprintf( version, "%u.%d.%d", (unsigned)rc >> 24, (rc >> 16) & 0xff,
 			rc & 0xffff );
 		Debug( LDAP_DEBUG_ANY, "slap_sasl_init: SASL library version mismatch:"
-			" expected " SASL_VERSION_STRING ","
-			" got %s\n", version, 0, 0 );
+			" expected %s, got %s\n",
+			SASL_VERSION_STRING, version, 0 );
 		return -1;
 	}
 #endif
@@ -1706,6 +1711,9 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		send_ldap_sasl( op, rs );
 
 	} else {
+		if ( op->o_conn->c_sasl_dn.bv_len )
+			ch_free( op->o_conn->c_sasl_dn.bv_val );
+		BER_BVZERO( &op->o_conn->c_sasl_dn );
 #if SASL_VERSION_MAJOR >= 2
 		rs->sr_text = sasl_errdetail( ctx );
 #endif

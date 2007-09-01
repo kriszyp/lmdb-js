@@ -30,9 +30,9 @@ struct mindexrec {
 };
 
 static Avlnode	*mr_index = NULL;
-static LDAP_SLIST_HEAD(MRList, slap_matching_rule) mr_list
+static LDAP_SLIST_HEAD(MRList, MatchingRule) mr_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&mr_list);
-static LDAP_SLIST_HEAD(MRUList, slap_matching_rule_use) mru_list
+static LDAP_SLIST_HEAD(MRUList, MatchingRuleUse) mru_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&mru_list);
 
 static int
@@ -143,6 +143,67 @@ mr_insert(
 		}
 	}
 	return 0;
+}
+
+int
+mr_make_syntax_compat_with_mr(
+	Syntax		*syn,
+	MatchingRule	*mr )
+{
+	int		n = 0;
+
+	assert( syn != NULL );
+	assert( mr != NULL );
+
+	if ( mr->smr_compat_syntaxes ) {
+		/* count esisting */
+		for ( n = 0;
+			mr->smr_compat_syntaxes[ n ];
+			n++ )
+		{
+			if ( mr->smr_compat_syntaxes[ n ] == syn ) {
+				/* already compatible; mmmmh... */
+				return 1;
+			}
+		}
+	}
+
+	mr->smr_compat_syntaxes = ch_realloc(
+		mr->smr_compat_syntaxes,
+		sizeof( Syntax * )*(n + 2) );
+	mr->smr_compat_syntaxes[ n ] = syn;
+	mr->smr_compat_syntaxes[ n + 1 ] = NULL;
+
+	return 0;
+}
+
+int
+mr_make_syntax_compat_with_mrs(
+	const char *syntax,
+	char *const *mrs )
+{
+	int	r, rc = 0;
+	Syntax	*syn;
+
+	assert( syntax != NULL );
+	assert( mrs != NULL );
+
+	syn = syn_find( syntax );
+	if ( syn == NULL ) {
+		return -1;
+	}
+
+	for ( r = 0; mrs[ r ] != NULL; r++ ) {
+		MatchingRule	*mr = mr_find( mrs[ r ] );
+		if ( mr == NULL ) {
+			/* matchingRule not found -- ignore by now */
+			continue;
+		}
+
+		rc += mr_make_syntax_compat_with_mr( syn, mr );
+	}
+
+	return rc;
 }
 
 int
@@ -316,7 +377,8 @@ matching_rule_use_init( void )
 
 	LDAP_SLIST_FOREACH( mr, &mr_list, smr_next ) {
 		AttributeType	*at;
-		MatchingRuleUse	mru_storage, *mru = &mru_storage;
+		MatchingRuleUse	mru_storage = { 0 },
+				*mru = &mru_storage;
 
 		char		**applies_oids = NULL;
 
@@ -340,8 +402,6 @@ matching_rule_use_init( void )
 		{
 			continue;
 		}
-
-		memset( mru, 0, sizeof( MatchingRuleUse ) );
 
 		/*
 		 * Note: we're using the same values of the corresponding 
@@ -396,13 +456,16 @@ matching_rule_use_init( void )
 	return( 0 );
 }
 
-int mr_usable_with_at(
-	MatchingRule *mr,
-	AttributeType *at )
+int
+mr_usable_with_at(
+	MatchingRule	*mr,
+	AttributeType	*at )
 {
-	if( mr->smr_usage & SLAP_MR_EXT && ( 
+	if ( ( mr->smr_usage & SLAP_MR_EXT ) && (
 		mr->smr_syntax == at->sat_syntax ||
-		mr == at->sat_equality || mr == at->sat_approx ) )
+		mr == at->sat_equality ||
+		mr == at->sat_approx ||
+		syn_is_sup( at->sat_syntax, mr->smr_syntax ) ) )
 	{
 		return 1;
 	}

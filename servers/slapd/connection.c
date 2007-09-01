@@ -359,14 +359,15 @@ static void connection_return( Connection *c )
 	ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 }
 
-long connection_init(
+Connection * connection_init(
 	ber_socket_t s,
 	Listener *listener,
 	const char* dnsname,
 	const char* peername,
 	int flags,
 	slap_ssf_t ssf,
-	struct berval *authid )
+	struct berval *authid
+	LDAP_PF_LOCAL_SENDMSG_ARG(struct berval *peerbv))
 {
 	unsigned long id;
 	Connection *c;
@@ -379,13 +380,13 @@ long connection_init(
 	assert( peername != NULL );
 
 #ifndef HAVE_TLS
-	assert( flags != CONN_IS_TLS );
+	assert( !( flags & CONN_IS_TLS ));
 #endif
 
 	if( s == AC_SOCKET_INVALID ) {
 		Debug( LDAP_DEBUG_ANY,
 			"connection_init: init of socket %ld invalid.\n", (long)s, 0, 0 );
-		return -1;
+		return NULL;
 	}
 
 	assert( s >= 0 );
@@ -442,7 +443,7 @@ long connection_init(
 			Debug( LDAP_DEBUG_ANY,
 				"connection_init(%d): connection table full "
 				"(%d/%d)\n", s, i, dtblsize);
-			return -1;
+			return NULL;
 		}
 	}
 #endif
@@ -525,14 +526,15 @@ long connection_init(
 
 	c->c_listener = listener;
 
-	if ( flags == CONN_IS_CLIENT ) {
+	if ( flags & CONN_IS_CLIENT ) {
+		c->c_connid = 0;
 		c->c_conn_state = SLAP_C_CLIENT;
 		c->c_struct_state = SLAP_C_USED;
 		c->c_close_reason = "?";			/* should never be needed */
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &s );
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
-		return 0;
+		return c;
 	}
 
 	ber_str2bv( dnsname, 0, 1, &c->c_peer_domain );
@@ -559,7 +561,7 @@ long connection_init(
 
 #ifdef LDAP_CONNECTIONLESS
 	c->c_is_udp = 0;
-	if( flags == CONN_IS_UDP ) {
+	if( flags & CONN_IS_UDP ) {
 		c->c_is_udp = 1;
 #ifdef LDAP_DEBUG
 		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
@@ -570,7 +572,21 @@ long connection_init(
 		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
 			LBER_SBIOD_LEVEL_PROVIDER, NULL );
 	} else
+#endif /* LDAP_CONNECTIONLESS */
+#ifdef LDAP_PF_LOCAL
+	if ( flags & CONN_IS_IPC ) {
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void*)"ipc_" );
 #endif
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_fd,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+#ifdef LDAP_PF_LOCAL_SENDMSG
+		if ( !BER_BVISEMPTY( peerbv ))
+			ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_UNGET_BUF, peerbv );
+#endif
+	} else
+#endif /* LDAP_PF_LOCAL */
 	{
 #ifdef LDAP_DEBUG
 		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
@@ -605,7 +621,7 @@ long connection_init(
 	c->c_tls_ssf = 0;
 
 #ifdef HAVE_TLS
-	if ( flags == CONN_IS_TLS ) {
+	if ( flags & CONN_IS_TLS ) {
 		c->c_is_tls = 1;
 		c->c_needs_tls_accept = 1;
 	} else {
@@ -622,7 +638,7 @@ long connection_init(
 
 	backend_connection_init(c);
 
-	return id;
+	return c;
 }
 
 void connection2anonymous( Connection *c )
@@ -1022,12 +1038,12 @@ void connection_done( Connection *c )
 static BI_op_func *opfun[] = {
 	do_bind,
 	do_unbind,
+	do_search,
+	do_compare,
+	do_modify,
+	do_modrdn,
 	do_add,
 	do_delete,
-	do_modrdn,
-	do_modify,
-	do_compare,
-	do_search,
 	do_abandon,
 	do_extended,
 	NULL
@@ -1157,7 +1173,7 @@ operations_error:
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
-	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
+	LDAP_STAILQ_REMOVE( &conn->c_ops, op, Operation, o_next);
 	LDAP_STAILQ_NEXT(op, o_next) = NULL;
 	slap_op_free( op );
 	conn->c_n_ops_executing--;
@@ -1184,20 +1200,18 @@ int connection_client_setup(
 	ldap_pvt_thread_start_t *func,
 	void *arg )
 {
-	int rc;
 	Connection *c;
 
-	rc = connection_init( s, (Listener *)&dummy_list, "", "",
-		CONN_IS_CLIENT, 0, NULL );
-	if ( rc < 0 ) return -1;
+	c = connection_init( s, (Listener *)&dummy_list, "", "",
+		CONN_IS_CLIENT, 0, NULL
+		LDAP_PF_LOCAL_SENDMSG_ARG(NULL));
+	if ( !c ) return -1;
 
-	c = connection_get( s );
 	c->c_clientfunc = func;
 	c->c_clientarg = arg;
 
 	slapd_add_internal( s, 0 );
 	slapd_set_read( s, 1 );
-	connection_return( c );
 	return 0;
 }
 
@@ -1438,7 +1452,7 @@ int connection_read(ber_socket_t s)
 	}
 #ifdef DATA_READY_LOOP
 	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ));
-#elif CONNECTION_INPUT_LOOP
+#elif defined CONNECTION_INPUT_LOOP
 	while(!rc);
 #else
 	while(0);
@@ -1801,13 +1815,14 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"%s BIND dn=\"%s\" mech=%s ssf=%d\n",
+				"%s BIND dn=\"%s\" mech=%s sasl_ssf=%d ssf=%d\n",
 				op->o_log_prefix,
 				BER_BVISNULL( &op->o_conn->c_dn ) ? "<empty>" : op->o_conn->c_dn.bv_val,
-				op->o_conn->c_authmech.bv_val, op->orb_ssf, 0 );
+				op->o_conn->c_authmech.bv_val,
+				op->orb_ssf, op->o_conn->c_ssf );
 
 			Debug( LDAP_DEBUG_TRACE,
-				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
+				"do_bind: SASL/%s bind: dn=\"%s\" sasl_ssf=%d\n",
 				op->o_conn->c_authmech.bv_val,
 				BER_BVISNULL( &op->o_conn->c_dn ) ? "<empty>" : op->o_conn->c_dn.bv_val,
 				op->orb_ssf );
@@ -1979,19 +1994,21 @@ connection_fake_destroy(
 void
 connection_fake_init(
 	Connection *conn,
-	Operation *op,
+	OperationBuffer *opbuf,
 	void *ctx )
 {
-	connection_fake_init2( conn, op, ctx, 1 );
+	connection_fake_init2( conn, opbuf, ctx, 1 );
 }
 
 void
 connection_fake_init2(
 	Connection *conn,
-	Operation *op,
+	OperationBuffer *opbuf,
 	void *ctx,
 	int newmem )
 {
+	Operation *op = (Operation *) opbuf;
+
 	conn->c_connid = -1;
 	conn->c_send_ldap_result = slap_send_ldap_result;
 	conn->c_send_search_entry = slap_send_search_entry;
@@ -2000,9 +2017,10 @@ connection_fake_init2(
 	conn->c_peer_domain = slap_empty_bv;
 	conn->c_peer_name = slap_empty_bv;
 
-	memset(op, 0, OPERATION_BUFFER_SIZE);
-	op->o_hdr = (Opheader *)(op+1);
-	op->o_controls = (void **)(op->o_hdr+1);
+	memset( opbuf, 0, sizeof( *opbuf ));
+	op->o_hdr = &opbuf->ob_hdr;
+	op->o_controls = opbuf->ob_controls;
+
 	/* set memory context */
 	op->o_tmpmemctx = slap_sl_mem_create(SLAP_SLAB_SIZE, SLAP_SLAB_STACK, ctx,
 		newmem );
@@ -2016,10 +2034,11 @@ connection_fake_init2(
 
 #ifdef LDAP_SLAPI
 	if ( slapi_plugins_used ) {
-		conn_fake_extblock *eb = NULL;
+		conn_fake_extblock *eb;
+		void *ebx = NULL;
 
 		/* Use thread keys to make sure these eventually get cleaned up */
-		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &eb,
+		if ( ldap_pvt_thread_pool_getkey( ctx, connection_fake_init, &ebx,
 			NULL )) {
 			eb = ch_malloc( sizeof( *eb ));
 			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
@@ -2029,6 +2048,7 @@ connection_fake_init2(
 			ldap_pvt_thread_pool_setkey( ctx, connection_fake_init, eb,
 				connection_fake_destroy );
 		} else {
+			eb = ebx;
 			conn->c_extensions = eb->eb_conn;
 			op->o_hdr->oh_extensions = eb->eb_op;
 		}

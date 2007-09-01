@@ -41,8 +41,8 @@ do_delete(
 {
 	struct berval dn = BER_BVNULL;
 
-	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
-
+	Debug( LDAP_DEBUG_TRACE, "%s do_delete\n",
+		op->o_log_prefix, 0, 0 );
 	/*
 	 * Parse the delete request.  It looks like this:
 	 *
@@ -50,42 +50,46 @@ do_delete(
 	 */
 
 	if ( ber_scanf( op->o_ber, "m", &dn ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_delete: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_delete: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		goto cleanup;
 	} 
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_delete: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_delete: invalid dn (%s)\n",
+			op->o_log_prefix, dn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
+	Statslog( LDAP_DEBUG_STATS, "%s DEL dn=\"%s\"\n",
+		op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
+
 	if( op->o_req_ndn.bv_len == 0 ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: root dse!\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_delete: root dse!\n",
+			op->o_log_prefix, 0, 0 );
 		/* protocolError would likely be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot delete the root DSE" );
 		goto cleanup;
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: subschema subentry!\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_delete: subschema subentry!\n",
+			op->o_log_prefix, 0, 0 );
 		/* protocolError would likely be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot delete the root DSE" );
 		goto cleanup;
 	}
-
-	Statslog( LDAP_DEBUG_STATS, "%s DEL dn=\"%s\"\n",
-		op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_delete( op, rs );
@@ -107,17 +111,14 @@ int
 fe_op_delete( Operation *op, SlapReply *rs )
 {
 	struct berval	pdn = BER_BVNULL;
-	int		manageDSAit;
 	BackendDB	*op_be, *bd = op->o_bd;
 	
-	manageDSAit = get_manageDSAit( op );
-
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( op->o_bd == NULL ) {
 		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
@@ -139,7 +140,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
 
 	/* check restrictions */
@@ -168,15 +169,8 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			struct berval	org_dn = BER_BVNULL;
 			struct berval	org_ndn = BER_BVNULL;
 			int		org_managedsait;
-			slap_callback 	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
-
-			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user ) {
-				cb.sc_next = op->o_callback;
-				op->o_callback = &cb;
-			}
-
 			op->o_bd->be_delete( op, rs );
 
 			org_req_dn = op->o_req_dn;

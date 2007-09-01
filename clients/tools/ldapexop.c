@@ -66,11 +66,11 @@ int
 main( int argc, char *argv[] )
 {
 	int		rc;
-	char		*user = NULL;
 
 	LDAP		*ld = NULL;
 
 	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
+	LDAPControl **ctrls = NULL;
 	int		id, code;
 	LDAPMessage	*res;
 
@@ -104,18 +104,6 @@ main( int argc, char *argv[] )
 	argc -= optind;
 
 	if ( strcasecmp( argv[ 0 ], "whoami" ) == 0 ) {
-		switch ( argc ) {
-		case 2:
-			user = argv[ 1 ];
-
-		case 1:
-			break;
-
-		default:
-			fprintf( stderr, "need [user]\n\n" );
-			usage();
-		}
-
 		tool_server_controls( ld, NULL, 0 );
 
 		rc = ldap_whoami( ld, NULL, NULL, &id ); 
@@ -253,7 +241,7 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_parse_result( ld, res,
-		&code, &matcheddn, &text, &refs, NULL, 0 );
+		&code, &matcheddn, &text, &refs, &ctrls, 0 );
 	if ( rc == LDAP_SUCCESS ) {
 		rc = code;
 	}
@@ -356,6 +344,11 @@ main( int argc, char *argv[] )
 				printf(_("Referral: %s\n"), refs[i] );
 			}
 		}
+	}
+
+    if (ctrls) {
+		tool_print_ctrls( ld, ctrls );
+		ldap_controls_free( ctrls );
 	}
 
 	ber_memfree( text );

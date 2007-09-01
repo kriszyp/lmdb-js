@@ -80,6 +80,10 @@ values (13,4,'ou','referrals.name','referrals',NULL,NULL,NULL,3,0);
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (14,4,'ref','referrals.url','referrals',NULL,NULL,NULL,3,0);
 
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (15,1,'userCertificate','certs.cert','persons,certs',
+        'certs.pers_id=persons.id',NULL,NULL,3,0);
+
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry
 --	dn		the DN of the entry, in "pretty" form
@@ -112,6 +116,9 @@ values (7,'ou=Referral,dc=example,dc=com',4,1,1);
 --	oc_name		the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
 insert into ldap_entry_objclasses (entry_id,oc_name)
 values (1,'dcObject');
+
+insert into ldap_entry_objclasses (entry_id,oc_name)
+values (4,'pkiUser');
 
 insert into ldap_entry_objclasses (entry_id,oc_name)
 values (7,'extensibleObject');

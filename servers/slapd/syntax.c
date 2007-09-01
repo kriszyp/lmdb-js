@@ -30,7 +30,7 @@ struct sindexrec {
 };
 
 static Avlnode	*syn_index = NULL;
-static LDAP_SLIST_HEAD(SyntaxList, slap_syntax) syn_list
+static LDAP_SLIST_HEAD(SyntaxList, Syntax) syn_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&syn_list);
 
 static int
@@ -76,16 +76,48 @@ syn_find_desc( const char *syndesc, int *len )
 	return( NULL );
 }
 
+int
+syn_is_sup( Syntax *syn, Syntax *sup )
+{
+	int	i;
+
+	assert( syn != NULL );
+	assert( sup != NULL );
+
+	if ( syn == sup ) {
+		return 1;
+	}
+
+	if ( syn->ssyn_sups == NULL ) {
+		return 0;
+	}
+
+	for ( i = 0; syn->ssyn_sups[i]; i++ ) {
+		if ( syn->ssyn_sups[i] == sup ) {
+			return 1;
+		}
+
+		if ( syn_is_sup( syn->ssyn_sups[i], sup ) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void
 syn_destroy( void )
 {
-	Syntax *s;
+	Syntax	*s;
 
-	avl_free(syn_index, ldap_memfree);
-	while( !LDAP_SLIST_EMPTY(&syn_list) ) {
-		s = LDAP_SLIST_FIRST(&syn_list);
-		LDAP_SLIST_REMOVE_HEAD(&syn_list, ssyn_next);
-		ldap_syntax_free((LDAPSyntax *)s);
+	avl_free( syn_index, ldap_memfree );
+	while( !LDAP_SLIST_EMPTY( &syn_list ) ) {
+		s = LDAP_SLIST_FIRST( &syn_list );
+		LDAP_SLIST_REMOVE_HEAD( &syn_list, ssyn_next );
+		if ( s->ssyn_sups ) {
+			SLAP_FREE( s->ssyn_sups );
+		}
+		ldap_syntax_free( (LDAPSyntax *)s );
 	}
 }
 
@@ -129,12 +161,12 @@ syn_add(
 )
 {
 	Syntax		*ssyn;
-	int		code;
+	int		code = 0;
 
 	ssyn = (Syntax *) SLAP_CALLOC( 1, sizeof(Syntax) );
-	if( ssyn == NULL ) {
+	if ( ssyn == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
-		return LDAP_OTHER;
+		return SLAP_SCHERR_OUTOFMEM;
 	}
 
 	AC_MEMCPY( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
@@ -151,12 +183,48 @@ syn_add(
 	ssyn->ssyn_validate = def->sd_validate;
 	ssyn->ssyn_pretty = def->sd_pretty;
 
+	ssyn->ssyn_sups = NULL;
+
 #ifdef SLAPD_BINARY_CONVERSION
 	ssyn->ssyn_ber2str = def->sd_ber2str;
 	ssyn->ssyn_str2ber = def->sd_str2ber;
 #endif
 
-	code = syn_insert(ssyn, err);
+	if ( def->sd_sups != NULL ) {
+		int	cnt;
+
+		for ( cnt = 0; def->sd_sups[cnt] != NULL; cnt++ )
+			;
+		
+		ssyn->ssyn_sups = (Syntax **)SLAP_CALLOC( cnt + 1,
+			sizeof( Syntax * ) );
+		if ( ssyn->ssyn_sups == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
+			code = SLAP_SCHERR_OUTOFMEM;
+
+		} else {
+			for ( cnt = 0; def->sd_sups[cnt] != NULL; cnt++ ) {
+				ssyn->ssyn_sups[cnt] = syn_find( def->sd_sups[cnt] );
+				if ( ssyn->ssyn_sups[cnt] == NULL ) {
+					*err = def->sd_sups[cnt];
+					code = SLAP_SCHERR_SYN_SUP_NOT_FOUND;
+				}
+			}
+		}
+	}
+
+	if ( code == 0 ) {
+		code = syn_insert( ssyn, err );
+
+	}
+
+	if ( code != 0 && ssyn != NULL ) {
+		if ( ssyn->ssyn_sups != NULL ) {
+			SLAP_FREE( ssyn->ssyn_sups );
+		}
+		SLAP_FREE( ssyn );
+	}
+
 	return code;
 }
 

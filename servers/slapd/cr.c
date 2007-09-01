@@ -30,7 +30,7 @@ struct cindexrec {
 };
 
 static Avlnode	*cr_index = NULL;
-static LDAP_STAILQ_HEAD(CRList, slap_content_rule) cr_list
+static LDAP_STAILQ_HEAD(CRList, ContentRule) cr_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(cr_list);
 
 static int

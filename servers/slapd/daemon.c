@@ -50,14 +50,9 @@
 #endif /* ! epoll && ! /dev/poll */
 
 #ifdef HAVE_TCPD
-# include <tcpd.h>
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
-
-# define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
-#else /* ! TCP Wrappers */
-# define SLAP_STRING_UNKNOWN	"unknown"
-#endif /* ! TCP Wrappers */
+#endif /* TCP Wrappers */
 
 #ifdef LDAP_PF_LOCAL
 # include <sys/stat.h>
@@ -227,7 +222,8 @@ static struct slap_daemon {
 	(int *)(ptr) <= &slap_daemon.sd_index[dtblsize]) ? 0 : 1 )
 
 # define SLAP_EPOLL_EV_PTRFD(ptr)		(SLAP_EPOLL_EV_LISTENER(ptr) ? \
-	((Listener *)ptr)->sl_sd : (int *)(ptr) - slap_daemon.sd_index)
+	((Listener *)ptr)->sl_sd : \
+	(ber_socket_t) ((int *)(ptr) - slap_daemon.sd_index))
 
 # define SLAP_SOCK_DEL(s)		do { \
 	int fd, rc, index = SLAP_EPOLL_SOCK_IX((s)); \
@@ -1434,7 +1430,7 @@ slapd_daemon_init( const char *urls )
 
 #ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#elif HAVE_GETDTABLESIZE
+#elif defined(HAVE_GETDTABLESIZE)
 	dtblsize = getdtablesize();
 #else /* ! HAVE_SYSCONF && ! HAVE_GETDTABLESIZE */
 	dtblsize = FD_SETSIZE;
@@ -1571,8 +1567,8 @@ slap_listener(
 	Sockaddr		from;
 
 	ber_socket_t s;
-	socklen_t len = sizeof(from);
-	long id;
+	ber_socklen_t len = sizeof(from);
+	Connection *c;
 	slap_ssf_t ssf = 0;
 	struct berval authid = BER_BVNULL;
 #ifdef SLAPD_RLOOKUPS
@@ -1583,11 +1579,16 @@ slap_listener(
 	char	*peeraddr = NULL;
 #ifdef LDAP_PF_LOCAL
 	char peername[MAXPATHLEN + sizeof("PATH=")];
+#ifdef LDAP_PF_LOCAL_SENDMSG
+	char peerbuf[8];
+	struct berval peerbv = BER_BVNULL;
+#endif
 #elif defined(LDAP_PF_INET6)
 	char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
 #else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
 	char peername[sizeof("IP=255.255.255.255:65336")];
 #endif /* LDAP_PF_LOCAL */
+	int cflag;
 
 	Debug( LDAP_DEBUG_TRACE,
 		">>> slap_listener(%s)\n",
@@ -1700,9 +1701,12 @@ slap_listener(
 		"daemon: listen=%ld, new connection on %ld\n",
 		(long) sl->sl_sd, (long) s, 0 );
 
+	cflag = 0;
 	switch ( from.sa_addr.sa_family ) {
 #  ifdef LDAP_PF_LOCAL
 	case AF_LOCAL:
+		cflag |= CONN_IS_IPC;
+
 		/* FIXME: apparently accept doesn't fill
 		 * the sun_path sun_path member */
 		if ( from.sa_un_addr.sun_path[0] == '\0' ) {
@@ -1717,7 +1721,11 @@ slap_listener(
 			uid_t uid;
 			gid_t gid;
 
-			if( getpeereid( s, &uid, &gid ) == 0 ) {
+#ifdef LDAP_PF_LOCAL_SENDMSG
+			peerbv.bv_val = peerbuf;
+			peerbv.bv_len = sizeof( peerbuf );
+#endif
+			if( LUTIL_GETPEEREID( s, &uid, &gid, &peerbv ) == 0 ) {
 				authid.bv_val = ch_malloc(
 					STRLENOF( "gidNumber=4294967295+uidNumber=4294967295,"
 					"cn=peercred,cn=external,cn=auth" ) + 1 );
@@ -1809,20 +1817,18 @@ slap_listener(
 #endif /* HAVE_TCPD */
 	}
 
-	id = connection_init(s, sl,
-		dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
-		peername,
 #ifdef HAVE_TLS
-		sl->sl_is_tls ? CONN_IS_TLS : 0,
-#else /* ! HAVE_TLS */
-		0,
-#endif /* ! HAVE_TLS */
-		ssf,
-		authid.bv_val ? &authid : NULL );
+	if ( sl->sl_is_tls ) cflag |= CONN_IS_TLS;
+#endif
+	c = connection_init(s, sl,
+		dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
+		peername, cflag, ssf,
+		authid.bv_val ? &authid : NULL
+		LDAP_PF_LOCAL_SENDMSG_ARG(&peerbv));
 
 	if( authid.bv_val ) ch_free(authid.bv_val);
 
-	if( id < 0 ) {
+	if( !c ) {
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: connection_init(%ld, %s, %s) failed.\n",
 			(long) s, peername, sl->sl_name.bv_val );
@@ -1832,7 +1838,7 @@ slap_listener(
 
 	Statslog( LDAP_DEBUG_STATS,
 		"conn=%ld fd=%ld ACCEPT from %s (%s)\n",
-		id, (long) s, peername, sl->sl_name.bv_val,
+		c->c_connid, (long) s, peername, sl->sl_name.bv_val,
 		0 );
 
 	return 0;
@@ -1986,15 +1992,6 @@ slapd_daemon_task(
 	}
 #endif /* HAVE_NT_SERVICE_MANAGER */
 
-#ifdef SLAP_SEM_LOAD_CONTROL
-	/*
-	 * initialize count and lazyness of a semaphore
-	 */
-	(void) ldap_lazy_sem_init(
-		SLAP_MAX_WORKER_THREADS + 4 /* max workers + margin */,
-		4 /* lazyness */ );
-#endif /* SLAP_SEM_LOAD_CONTROL */
-
 	/* initialization complete. Here comes the loop. */
 
 	while ( !slapd_shutdown ) {
@@ -2113,8 +2110,14 @@ slapd_daemon_task(
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 		if ( rtask && cat.tv_sec ) {
-			time_t diff = difftime( cat.tv_sec, now );
-			if ( diff == 0 ) diff = tdelta;
+			/* NOTE: diff __should__ always be >= 0,
+			 * AFAI understand; however (ITS#4872),
+			 * time_t might be unsigned in some systems,
+			 * while difftime() returns a double */
+			double diff = difftime( cat.tv_sec, now );
+			if ( diff <= 0 ) {
+				diff = tdelta;
+			}
 			if ( tvp == NULL || diff < tv.tv_sec ) {
 				tv.tv_sec = diff;
 				tv.tv_usec = 0;
@@ -2510,16 +2513,17 @@ connectionless_init( void )
 
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 		Listener *lr = slap_listeners[l];
-		long id;
+		Connection *c;
 
 		if ( !lr->sl_is_udp ) {
 			continue;
 		}
 
-		id = connection_init( lr->sl_sd, lr, "", "",
-			CONN_IS_UDP, (slap_ssf_t) 0, NULL );
+		c = connection_init( lr->sl_sd, lr, "", "",
+			CONN_IS_UDP, (slap_ssf_t) 0, NULL
+			LDAP_PF_LOCAL_SENDMSG_ARG(NULL));
 
-		if ( id < 0 ) {
+		if ( !c ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"connectionless_init: failed on %s (%d)\n",
 				lr->sl_url, lr->sl_sd, 0 );
@@ -2633,7 +2637,7 @@ slap_sig_shutdown( int sig )
 	 * SIGBREAK is generated when a user logs out.
 	 */
 
-#if HAVE_NT_SERVICE_MANAGER && SIGBREAK
+#if defined(HAVE_NT_SERVICE_MANAGER) && defined(SIGBREAK)
 	if (is_NT_Service && sig == SIGBREAK) {
 		/* empty */;
 	} else

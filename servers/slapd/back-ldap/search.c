@@ -158,6 +158,8 @@ ldap_back_search(
 	int		freetext = 0;
 	int		do_retry = 1, dont_retry = 0;
 	LDAPControl	**ctrls = NULL;
+	char		**references = NULL;
+
 	/* FIXME: shouldn't this be null? */
 	const char	*save_matched = rs->sr_matched;
 
@@ -203,8 +205,7 @@ ldap_back_search(
 	}
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
-		li->li_version, &li->li_idassert, op, rs, &ctrls );
+	rc = ldap_back_controls_add( op, rs, lc, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto finish;
 	}
@@ -328,12 +329,18 @@ retry:
 			e = ldap_first_entry( lc->lc_ld, res );
 			rc = ldap_build_entry( op, e, &ent, &bdn );
 			if ( rc == LDAP_SUCCESS ) {
+				ldap_get_entry_controls( lc->lc_ld, res, &rs->sr_ctrls );
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_flags = 0;
 				rs->sr_err = LDAP_SUCCESS;
 				rc = rs->sr_err = send_search_entry( op, rs );
+				if ( rs->sr_ctrls ) {
+					ldap_controls_free( rs->sr_ctrls );
+					rs->sr_ctrls = NULL;
+				}
+				rs->sr_entry = NULL;
 				if ( !BER_BVISNULL( &ent.e_name ) ) {
 					assert( ent.e_name.bv_val != bdn.bv_val );
 					op->o_tmpfree( ent.e_name.bv_val, op->o_tmpmemctx );
@@ -356,8 +363,6 @@ retry:
 			}
 
 		} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
-			char		**references = NULL;
-
 			do_retry = 0;
 			rc = ldap_parse_reference( lc->lc_ld, res,
 					&references, &rs->sr_ctrls, 1 );
@@ -383,6 +388,7 @@ retry:
 				BER_BVZERO( &rs->sr_ref[ cnt ] );
 
 				/* ignore return value by now */
+				rs->sr_entry = NULL;
 				( void )send_search_reference( op, rs );
 
 			} else {
@@ -398,6 +404,7 @@ retry:
 				ber_memvfree( (void **)references );
 				op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 				rs->sr_ref = NULL;
+				references = NULL;
 			}
 
 			if ( rs->sr_ctrls ) {
@@ -406,7 +413,7 @@ retry:
 			}
 
 		} else {
-			char		**references = NULL, *err = NULL;
+			char		*err = NULL;
 
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match.bv_val, &err,
@@ -420,39 +427,48 @@ retry:
 				freetext = 1;
 			}
 
-			if ( references && references[ 0 ] && references[ 0 ][ 0 ] ) {
-				int	cnt;
-
+			/* RFC 4511: referrals can only appear
+			 * if result code is LDAP_REFERRAL */
+			if ( references 
+				&& references[ 0 ]
+				&& references[ 0 ][ 0 ] )
+			{
 				if ( rs->sr_err != LDAP_REFERRAL ) {
-					/* FIXME: error */
 					Debug( LDAP_DEBUG_ANY,
 						"%s ldap_back_search: "
-						"got referrals with %d\n",
+						"got referrals with err=%d\n",
 						op->o_log_prefix,
 						rs->sr_err, 0 );
-					rs->sr_err = LDAP_REFERRAL;
-				}
 
-				for ( cnt = 0; references[ cnt ]; cnt++ )
-					/* NO OP */ ;
+				} else {
+					int	cnt;
+
+					for ( cnt = 0; references[ cnt ]; cnt++ )
+						/* NO OP */ ;
 				
-				rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
-					op->o_tmpmemctx );
+					rs->sr_ref = op->o_tmpalloc( ( cnt + 1 ) * sizeof( struct berval ),
+						op->o_tmpmemctx );
 
-				for ( cnt = 0; references[ cnt ]; cnt++ ) {
-					/* duplicating ...*/
-					ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
+					for ( cnt = 0; references[ cnt ]; cnt++ ) {
+						/* duplicating ...*/
+						ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
+					}
+					BER_BVZERO( &rs->sr_ref[ cnt ] );
 				}
-				BER_BVZERO( &rs->sr_ref[ cnt ] );
+
+			} else if ( rs->sr_err == LDAP_REFERRAL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s ldap_back_search: "
+					"got err=%d with null "
+					"or empty referrals\n",
+					op->o_log_prefix,
+					rs->sr_err, 0 );
+
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}
 
 			if ( match.bv_val != NULL ) {
 				match.bv_len = strlen( match.bv_val );
-			}
-
-			/* cleanup */
-			if ( references ) {
-				ber_memvfree( (void **)references );
 			}
 
 			rc = 0;
@@ -512,7 +528,7 @@ finish:;
 		send_ldap_result( op, rs );
 	}
 
-	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+	(void)ldap_back_controls_free( op, rs, &ctrls );
 
 	if ( rs->sr_ctrls ) {
 		ldap_controls_free( rs->sr_ctrls );
@@ -541,8 +557,12 @@ finish:;
 	}
 
 	if ( rs->sr_ref ) {
-		ber_bvarray_free_x( rs->sr_ref, op->o_tmpmemctx );
+		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
 		rs->sr_ref = NULL;
+	}
+
+	if ( references ) {
+		ber_memvfree( (void **)references );
 	}
 
 	if ( attrs ) {
@@ -798,8 +818,7 @@ ldap_back_entry_get(
 
 retry:
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( &lc->lc_bound_ndn,
-		li->li_version, &li->li_idassert, op, &rs, &ctrls );
+	rc = ldap_back_controls_add( op, &rs, lc, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -812,7 +831,7 @@ retry:
 			do_retry = 0;
 			if ( ldap_back_retry( &lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 				/* if the identity changed, there might be need to re-authz */
-				(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+				(void)ldap_back_controls_free( op, &rs, &ctrls );
 				goto retry;
 			}
 		}
@@ -839,7 +858,7 @@ retry:
 	}
 
 cleanup:
-	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+	(void)ldap_back_controls_free( op, &rs, &ctrls );
 
 	if ( result ) {
 		ldap_msgfree( result );

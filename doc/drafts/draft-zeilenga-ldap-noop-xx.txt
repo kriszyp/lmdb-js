@@ -5,13 +5,13 @@
 
 
 INTERNET-DRAFT                                      Kurt D. Zeilenga
-Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                   5 March 2006
+Intended Category: Standard Track                      Isode Limited
+Expires in six months                               14 February 2007
 
 
 
                           The LDAP No-Op Control
-                    <draft-zeilenga-ldap-noop-08.txt>
+                    <draft-zeilenga-ldap-noop-10.txt>
 
 
 Status of this Memo
@@ -21,7 +21,7 @@ Status of this Memo
   document.  Distribution of this memo is unlimited.  Technical
   discussion of this document will take place on the IETF LDAP
   Extensions mailing list <ldapext@ietf.org>.  Please send editorial
-  comments directly to the author <Kurt@OpenLDAP.org>.
+  comments directly to the author <Kurt.Zeilenga@Isode.COM>.
 
   By submitting this Internet-Draft, each author represents that any
   applicable patent or other IPR claims of which he or she is aware have
@@ -38,13 +38,13 @@ Status of this Memo
   or to cite them other than as "work in progress."
 
   The list of current Internet-Drafts can be accessed at
-  http://www.ietf.org/1id-abstracts.html
+  http://www.ietf.org/1id-abstracts.html.
 
   The list of Internet-Draft Shadow Directories can be accessed at
-  http://www.ietf.org/shadow.html
+  http://www.ietf.org/shadow.html.
 
 
-  Copyright (C) The Internet Society (2006).  All Rights Reserved.
+  Copyright (C) The IETF Trust (2007).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -57,7 +57,7 @@ Status of this Memo
 
 Zeilenga                   LDAP No-Op Control                   [Page 1]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-10      14 February 2007
 
 
 Abstract
@@ -71,7 +71,7 @@ Abstract
 1.  Overview
 
   It is often desirable to be able to determine if a directory operation
-  [Protocol] would successful complete or not without having the normal
+  [RFC4511] would successful complete or not without having the normal
   effect of the operation take place.  For example, an administrative
   client might want to verify that new user could update their entry
   (and not other entries) without the directory actually being updated.
@@ -79,7 +79,7 @@ Abstract
   auditing tools.
 
   This document defines the Lightweight Directory Access Protocol (LDAP)
-  [Roadmap] No-Op control extension.  The presence of the No-Op control
+  [RFC4510] No-Op control extension.  The presence of the No-Op control
   in an operation request message disables its normal effect upon the
   directory which operation would otherwise have.  Instead of updating
   the directory and returning the normal indication of success, the
@@ -87,7 +87,7 @@ Abstract
   noOperation resultCode (introduced below).
 
   For example, when the No-Op control is present in a LDAP modify
-  operation [Protocol], the server is do all processing necessary to
+  operation [RFC4511], the server is do all processing necessary to
   perform the operation without actually updating the directory.  If it
   detects an error during this processing, it returns a non-success
   (other than noOperation) resultCode as it normally would.  Otherwise,
@@ -113,18 +113,18 @@ Abstract
 
 Zeilenga                   LDAP No-Op Control                   [Page 2]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-10      14 February 2007
 
 
 2.  No-Op Control
 
-  The No-Op control is an LDAP Control [Protocol] whose controlType is
+  The No-Op control is an LDAP Control [RFC4511] whose controlType is
   IANA-ASSIGNED-OID and controlValue is absent.  Clients MUST provide a
   criticality value of TRUE to prevent unintended modification of the
   directory.
 
   The control is appropriate for request messages of LDAP Add, Delete,
-  Modify and ModifyDN operations [Protocol].  The control is also
+  Modify and ModifyDN operations [RFC4511].  The control is also
   appropriate for requests of extended operations which update the
   directory (or other data stores), such as Password Modify Extended
   Operation [RFC3062].  There is no corresponding response control.
@@ -145,7 +145,7 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
   Servers SHOULD indicate their support for this control by providing
   IANA-ASSIGNED-OID as a value of the 'supportedControl' attribute type
-  [Models] in their root DSE entry.  A server MAY choose to advertise
+  [RFC4512] in their root DSE entry.  A server MAY choose to advertise
   this extension only when the client is authorized to use this
   operation.
 
@@ -159,8 +159,8 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
   tools.
 
   Implementors of this LDAP extension should be familiar with security
-  considerations applicable to the LDAP operations [Protocol] extended
-  by this control, as well as general LDAP security considerations
+  considerations applicable to the LDAP operations [RFC4511] extended by
+  this control, as well as general LDAP security considerations
   [Roadmap].
 
 
@@ -169,19 +169,19 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 Zeilenga                   LDAP No-Op Control                   [Page 3]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-10      14 February 2007
 
 
 4.  IANA Considerations
 
 4.1.  Object Identifier
 
-  It is requested that IANA assign an LDAP Object Identifier [BCP64bis]
+  It is requested that IANA assign an LDAP Object Identifier [RFC4520]
   to identify the LDAP No-Op Control defined in this document.
 
       Subject: Request for LDAP Object Identifier Registration
       Person & email address to contact for further information:
-          Kurt Zeilenga <kurt@OpenLDAP.org>
+          Kurt Zeilenga <Kurt.Zeilenga@Isode.COM>
       Specification: RFC XXXX
       Author/Change Controller: IESG
       Comments:
@@ -190,13 +190,13 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 4.2  LDAP Protocol Mechanism
 
-  Registration of this protocol mechanism is requested [RFC3383].
+  Registration of this protocol mechanism is requested [RFC4520].
 
   Subject: Request for LDAP Protocol Mechanism Registration
   Object Identifier: IANA-ASSIGNED-OID
   Description: No-Op Control
   Person & email address to contact for further information:
-      Kurt Zeilenga <kurt@openldap.org>
+      Kurt Zeilenga <Kurt.Zeilenga@Isode.COM>
   Usage: Control
   Specification: RFC XXXX
   Author/Change Controller: IESG
@@ -209,7 +209,7 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
       Subject: LDAP Result Code Registration
       Person & email address to contact for further information:
-          Kurt Zeilenga <kurt@OpenLDAP.org>
+          Kurt Zeilenga <Kurt.Zeilenga@Isode.COM>
       Result Code Name: noOperation
       Specification: RFC XXXX
       Author/Change Controller: IESG
@@ -219,16 +219,16 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 5.  Author's Address
 
   Kurt D. Zeilenga
-  OpenLDAP Foundation
+  Isode Limited
 
 
 
 Zeilenga                   LDAP No-Op Control                   [Page 4]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-10      14 February 2007
 
 
-  Email: Kurt@OpenLDAP.org
+  Email: Kurt.Zeilenga@Isode.COM
 
 
 6. References
@@ -243,16 +243,14 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
   [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
                 Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
-  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
-                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+  [RFC4510]     Zeilenga, K. (editor), "LDAP: Technical Specification
+                Road Map", RFC 4510, June 2006.
 
-  [Roadmap]     Zeilenga, K. (editor), "LDAP: Technical Specification
-                Road Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in
-                progress.
+  [RFC4511]     Sermersheim, J. (editor), "LDAP: The Protocol", RFC
+                4511, June 2006.
 
-  [Models]      Zeilenga, K. (editor), "LDAP: Directory Information
-                Models", draft-ietf-ldapbis-models-xx.txt, a work in
-                progress.
+  [RFC4512]     Zeilenga, K. (editor), "LDAP: Directory Information
+                Models", RFC 4512, June 2006.
 
 
 6.2. Informative References
@@ -268,23 +266,24 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
   [RFC3062]     Zeilenga, K., "LDAP Password Modify Extended Operation",
                 RFC 3062, February 2000.
 
-  [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP",
-                draft-ietf-ldapbis-bcp64-xx.txt, a work in progress.
+  [RFC4520]     Zeilenga, K., "Internet Assigned Numbers Authority
+                (IANA) Considerations for the Lightweight Directory
+                Access Protocol (LDAP)", RFC 4520, BCP 64, June 2006.
 
 
 
-Intellectual Property Rights
+Intellectual Property
 
   The IETF takes no position regarding the validity or scope of any
+  Intellectual Property Rights or other rights that might be claimed to
 
 
 
 Zeilenga                   LDAP No-Op Control                   [Page 5]
 
-INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
+INTERNET-DRAFT         draft-zeilenga-ldap-noop-10      14 February 2007
 
 
-  Intellectual Property Rights or other rights that might be claimed to
   pertain to the implementation or use of the technology described in
   this document or the extent to which any license under such rights
   might or might not be available; nor does it represent that it has
@@ -309,7 +308,7 @@ INTERNET-DRAFT         draft-zeilenga-ldap-noop-08          5 March 2006
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2006).
+  Copyright (C) The IETF Trust (2007).
 
   This document is subject to the rights, licenses and restrictions
   contained in BCP 78, and except as set forth therein, the authors
@@ -317,11 +316,12 @@ Full Copyright
 
   This document and the information contained herein are provided on an
   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
-  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
-  ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
-  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY, THE IETF TRUST AND
+  THE INTERNET ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF
+  THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
 
 
 

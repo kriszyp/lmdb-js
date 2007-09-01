@@ -480,7 +480,7 @@ int
 bdb_idl_fetch_key(
 	BackendDB	*be,
 	DB			*db,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DBT			*key,
 	ID			*ids,
 	DBC                     **saved_cursor,
@@ -559,7 +559,7 @@ bdb_idl_fetch_key(
 				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 			return rc;
 		}
-		cursor->locker = locker;
+		CURSOR_SETLOCKER( cursor, locker );
 	} else {
 		cursor = *saved_cursor;
 	}

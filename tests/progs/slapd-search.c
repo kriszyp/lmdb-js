@@ -21,17 +21,18 @@
 
 #include <stdio.h>
 
-#include <ac/stdlib.h>
+#include "ac/stdlib.h"
 
-#include <ac/ctype.h>
-#include <ac/param.h>
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/unistd.h>
-#include <ac/wait.h>
+#include "ac/ctype.h"
+#include "ac/param.h"
+#include "ac/socket.h"
+#include "ac/string.h"
+#include "ac/unistd.h"
+#include "ac/wait.h"
 
-#include <ldap.h>
-#include <lutil.h>
+#include "ldap.h"
+#include "lutil.h"
+#include "ldap_pvt.h"
 
 #include "slapd-common.h"
 
@@ -40,23 +41,30 @@
 
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, LDAP **ldp, int noattrs, int nobind,
+	char *sbase, int scope, char *filter, LDAP **ldp,
+	char **attrs, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs );
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, char *attr, int noattrs, int nobind,
+	char *sbase, int scope, char *filter, char *attr,
+	char **attrs, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs );
 
 static void
-usage( char *name )
+usage( char *name, char o )
 {
+	if ( o != '\0' ) {
+		fprintf( stderr, "unknown/incorrect option \"%c\"\n", o );
+	}
+
         fprintf( stderr,
 		"usage: %s "
 		"-H <uri> | ([-h <host>] -p <port>) "
 		"-D <manager> "
 		"-w <passwd> "
 		"-b <searchbase> "
+		"-s <scope> "
 		"-f <searchfilter> "
 		"[-a <attr>] "
 		"[-A] "
@@ -67,7 +75,9 @@ usage( char *name )
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
-		"[-t <delay>]\n",
+		"[-t <delay>] "
+		"[<attrs>] "
+		"\n",
 			name );
 	exit( EXIT_FAILURE );
 }
@@ -82,8 +92,11 @@ main( int argc, char **argv )
 	char		*manager = NULL;
 	struct berval	passwd = { 0, NULL };
 	char		*sbase = NULL;
+	int		scope = LDAP_SCOPE_SUBTREE;
 	char		*filter  = NULL;
 	char		*attr = NULL;
+	char		*srchattrs[] = { "cn", "sn", NULL };
+	char		**attrs = srchattrs;
 	int		loops = LOOPS;
 	int		outerloops = 1;
 	int		retries = RETRIES;
@@ -98,7 +111,7 @@ main( int argc, char **argv )
 	/* by default, tolerate referrals and no such object */
 	tester_ignore_str2errlist( "REFERRAL,NO_SUCH_OBJECT" );
 
-	while ( ( i = getopt( argc, argv, "Aa:b:CD:f:FH:h:i:l:L:Np:r:t:w:" ) ) != EOF )
+	while ( ( i = getopt( argc, argv, "Aa:b:CD:f:FH:h:i:l:L:Np:r:s:t:T:w:" ) ) != EOF )
 	{
 		switch ( i ) {
 		case 'A':
@@ -127,7 +140,7 @@ main( int argc, char **argv )
 
 		case 'p':		/* the servers port */
 			if ( lutil_atoi( &port, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], i );
 			}
 			break;
 
@@ -159,36 +172,50 @@ main( int argc, char **argv )
 
 		case 'l':		/* number of loops */
 			if ( lutil_atoi( &loops, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], i );
 			}
 			break;
 
 		case 'L':		/* number of loops */
 			if ( lutil_atoi( &outerloops, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], i );
 			}
 			break;
 
 		case 'r':		/* number of retries */
 			if ( lutil_atoi( &retries, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], i );
 			}
 			break;
 
 		case 't':		/* delay in seconds */
 			if ( lutil_atoi( &delay, optarg ) != 0 ) {
-				usage( argv[0] );
+				usage( argv[0], i );
+			}
+			break;
+
+		case 'T':
+			attrs = ldap_str2charray( optarg, "," );
+			if ( attrs == NULL ) {
+				usage( argv[0], i );
+			}
+			break;
+
+		case 's':
+			scope = ldap_pvt_str2scope( optarg );
+			if ( scope == -1 ) {
+				usage( argv[0], i );
 			}
 			break;
 
 		default:
-			usage( argv[0] );
+			usage( argv[0], i );
 			break;
 		}
 	}
 
 	if (( sbase == NULL ) || ( filter == NULL ) || ( port == -1 && uri == NULL ))
-		usage( argv[0] );
+		usage( argv[0], '\0' );
 
 	if ( *filter == '\0' ) {
 
@@ -198,16 +225,24 @@ main( int argc, char **argv )
 
 	}
 
+	if ( argv[optind] != NULL ) {
+		attrs = &argv[optind];
+	}
+
 	uri = tester_uri( uri, host, port );
 
 	for ( i = 0; i < outerloops; i++ ) {
 		if ( attr != NULL ) {
-			do_random( uri, manager, &passwd, sbase, filter, attr,
-				noattrs, nobind, loops, retries, delay, force, chaserefs );
+			do_random( uri, manager, &passwd,
+				sbase, scope, filter, attr,
+				attrs, noattrs, nobind,
+				loops, retries, delay, force, chaserefs );
 
 		} else {
-			do_search( uri, manager, &passwd, sbase, filter, NULL,
-				noattrs, nobind, loops, retries, delay, force, chaserefs );
+			do_search( uri, manager, &passwd,
+				sbase, scope, filter, NULL,
+				attrs, noattrs, nobind,
+				loops, retries, delay, force, chaserefs );
 		}
 	}
 
@@ -217,7 +252,8 @@ main( int argc, char **argv )
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, char *attr, int noattrs, int nobind,
+	char *sbase, int scope, char *filter, char *attr,
+	char **srchattrs, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = NULL;
@@ -315,8 +351,10 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 			snprintf( buf, sizeof( buf ), "(%s=%s)", attr, values[ r ] );
 
-			do_search( uri, manager, passwd, sbase, buf, &ld, noattrs, nobind,
-					1, maxretries, delay, force, chaserefs );
+			do_search( uri, manager, passwd,
+				sbase, scope, buf, &ld,
+				srchattrs, noattrs, nobind,
+				1, maxretries, delay, force, chaserefs );
 		}
 		break;
 
@@ -334,12 +372,12 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 static void
 do_search( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, LDAP **ldp, int noattrs, int nobind,
+	char *sbase, int scope, char *filter, LDAP **ldp,
+	char **attrs, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	int  	i = 0, do_retry = maxretries;
-	char	*attrs[] = { "cn", "sn", NULL };
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 	char	buf[ BUFSIZ ];
@@ -358,8 +396,13 @@ retry:;
 			chaserefs ? LDAP_OPT_ON : LDAP_OPT_OFF );
 
 		if ( do_retry == maxretries ) {
-			fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
-					(long) pid, innerloop, sbase, filter );
+			fprintf( stderr,
+				"PID=%ld - Search(%d): "
+				"base=\"%s\" scope=%s filter=\"%s\" "
+				"attrs=%s%s.\n",
+				(long) pid, innerloop,
+				sbase, ldap_pvt_scope2str( scope ), filter,
+				attrs[0], attrs[1] ? " (more...)" : "" );
 		}
 
 		if ( nobind == 0 ) {
@@ -373,6 +416,7 @@ retry:;
 				case LDAP_UNAVAILABLE:
 					if ( do_retry > 0 ) {
 						ldap_unbind_ext( ld, NULL, NULL );
+						ld = NULL;
 						do_retry--;
 						if ( delay != 0 ) {
 						    sleep( delay );
@@ -391,7 +435,7 @@ retry:;
 	for ( ; i < innerloop; i++ ) {
 		LDAPMessage *res = NULL;
 
-		rc = ldap_search_ext_s( ld, sbase, LDAP_SCOPE_SUBTREE,
+		rc = ldap_search_ext_s( ld, sbase, scope,
 				filter, attrs, noattrs, NULL, NULL,
 				NULL, LDAP_NO_LIMIT, &res );
 		if ( res != NULL ) {

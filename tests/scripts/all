@@ -13,9 +13,14 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SHTOOL="$SRCDIR/../build/shtool"
-TB=`$SHTOOL echo -e "%B"`
-TN=`$SHTOOL echo -e "%b"`
+. $SRCDIR/scripts/defines.sh
+
+TB="" TN=""
+if test -t 1 ; then
+	TB=`$SHTOOL echo -e "%B" 2>/dev/null`
+	TN=`$SHTOOL echo -e "%b" 2>/dev/null`
+fi
+
 SLEEPTIME=10
 
 echo ">>>>> Executing all LDAP tests for $BACKEND"
@@ -23,9 +28,9 @@ echo ">>>>> Executing all LDAP tests for $BACKEND"
 for CMD in $SRCDIR/scripts/test*; do
 	# remove cruft from prior test
 	if test $PRESERVE = yes ; then
-		/bin/rm -rf testrun/db.*
+		/bin/rm -rf $TESTDIR/db.*
 	else
-		/bin/rm -rf testrun
+		/bin/rm -rf $TESTDIR
 	fi
 
 	echo ">>>>> Starting ${TB}`basename $CMD`${TN} ..."

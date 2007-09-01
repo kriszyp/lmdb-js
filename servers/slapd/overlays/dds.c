@@ -123,7 +123,7 @@ dds_expire( void *ctx, dds_info_t *di )
 	Connection	conn = { 0 };
 	OperationBuffer opbuf;
 	Operation	*op;
-	slap_callback	sc = { 0 }, sc2 = { 0 };
+	slap_callback	sc = { 0 };
 	dds_cb_t	dc = { 0 };
 	dds_expire_t	*de = NULL, **dep;
 	SlapReply	rs = { REP_RESULT };
@@ -134,13 +134,13 @@ dds_expire( void *ctx, dds_info_t *di )
 
 	int		ndeletes, ntotdeletes;
 
-	op = (Operation *)&opbuf;
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
 
-	op->o_bd = select_backend( &di->di_nsuffix[ 0 ], 0, 0 );
+	op->o_bd = select_backend( &di->di_nsuffix[ 0 ], 0 );
 
 	op->o_req_dn = op->o_bd->be_suffix[ 0 ];
 	op->o_req_ndn = op->o_bd->be_nsuffix[ 0 ];
@@ -193,10 +193,8 @@ done_search:;
 
 	op->o_tag = LDAP_REQ_DELETE;
 	op->o_callback = &sc;
-	sc.sc_response = slap_replog_cb;
+	sc.sc_response = slap_null_cb;
 	sc.sc_private = NULL;
-	sc.sc_next = &sc2;
-	sc2.sc_response = slap_null_cb;
 
 	for ( ntotdeletes = 0, ndeletes = 1; dc.dc_ndnlist != NULL  && ndeletes > 0; ) {
 		ndeletes = 0;
@@ -950,7 +948,7 @@ slap_parse_refresh(
 
 	tag = ber_peek_tag( ber, &len );
 
-	if ( len != 0 ) {
+	if ( tag != LBER_DEFAULT || len != 0 ) {
 decoding_error:;
 		Log1( LDAP_DEBUG_TRACE, LDAP_LEVEL_ERR,
 			"slap_parse_refresh: decoding error, len=%ld\n",
@@ -989,7 +987,6 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		SlapReply	rs2 = { REP_RESULT };
 		Operation	op2 = *op;
 		slap_callback	sc = { 0 };
-		slap_callback	sc2 = { 0 };
 		Modifications	ttlmod = { { 0 } };
 		struct berval	ttlvalues[ 2 ];
 		char		ttlbuf[] = "31557600";
@@ -1082,9 +1079,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		op2.o_bd = &db;
 		db.bd_info = (BackendInfo *)on->on_info;
 		op2.o_callback = &sc;
-		sc.sc_response = slap_replog_cb;
-		sc.sc_next = &sc2;
-		sc2.sc_response = slap_null_cb;
+		sc.sc_response = slap_null_cb;
 		op2.o_relax = SLAP_CONTROL_CRITICAL;
 		op2.orm_modlist = &ttlmod;
 
@@ -1368,20 +1363,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_MAXTTL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-max-ttl \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < DDS_RF2589_DEFAULT_TTL || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-max-ttl=%ld; must be between %d and %d",
 				t, DDS_RF2589_DEFAULT_TTL, DDS_RF2589_MAX_TTL );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1390,20 +1385,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_MINTTL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-min-ttl \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < 0 || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-min-ttl=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1417,20 +1412,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_DEFAULTTTL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-default-ttl \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < 0 || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-default-ttl=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1444,20 +1439,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_INTERVAL:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-interval \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-interval=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1481,20 +1476,20 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_TOLERANCE:
 		if ( lutil_parse_time( c->argv[ 1 ], &t ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg),
+			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"DDS unable to parse dds-tolerance \"%s\"",
 				c->argv[ 1 ] );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
 		if ( t < 0 || t > DDS_RF2589_MAX_TTL ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-tolerance=%ld",
 				t );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -1503,10 +1498,10 @@ dds_cfgen( ConfigArgs *c )
 
 	case DDS_MAXDYNAMICOBJS:
 		if ( c->value_int < 0 ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"DDS invalid dds-max-dynamicObjects=%d", c->value_int );
 			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
-				"%s: %s.\n", c->log, c->msg );
+				"%s: %s.\n", c->log, c->cr_msg );
 			return 1;
 		}
 		di->di_max_dynamicObjects = c->value_int;
@@ -1522,7 +1517,8 @@ dds_cfgen( ConfigArgs *c )
 
 static int
 dds_db_init(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di;
@@ -1611,8 +1607,8 @@ dds_count( void *ctx, BackendDB *be )
 	slap_callback	sc = { 0 };
 	SlapReply	rs = { REP_RESULT };
 
-	op = (Operation *)&opbuf;
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	memset( &op->oq_search, 0, sizeof( op->oq_search ) );
@@ -1671,7 +1667,8 @@ done_search:;
 
 static int
 dds_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;
@@ -1736,7 +1733,8 @@ done:;
 
 static int
 dds_db_close(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;
@@ -1758,7 +1756,8 @@ dds_db_close(
 
 static int
 dds_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	dds_info_t	*di = on->on_bi.bi_private;
@@ -1790,7 +1789,7 @@ slap_exop_refresh(
 		op->o_log_prefix, op->o_req_ndn.bv_val );
 	op->o_req_dn = op->o_req_ndn;
 
-	op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+	op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	if ( !SLAP_DYNAMIC( op->o_bd ) ) {
 		send_ldap_error( op, rs, LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 			"backend does not support dynamic directory services" );

@@ -478,7 +478,7 @@ slapi_entry_has_children( const Slapi_Entry *e )
 
 	slapi_pblock_set( pb, SLAPI_TARGET_DN, slapi_entry_get_dn( (Entry *)e ) );
 
-	pb->pb_op->o_bd = select_backend( (struct berval *)&e->e_nname, 0, 0 );
+	pb->pb_op->o_bd = select_backend( (struct berval *)&e->e_nname, 0 );
 	if ( pb->pb_op->o_bd != NULL ) {
 		pb->pb_op->o_bd->be_has_subordinates( pb->pb_op, (Entry *)e, &hasSubordinates );
 	}
@@ -946,7 +946,7 @@ int slapi_dn_isbesuffix( Slapi_PBlock *pb, char *ldn )
 	ndn.bv_len = strlen( ldn );
 	ndn.bv_val = ldn;
 
-	be = select_backend( &pb->pb_op->o_req_ndn, 0, 0 );
+	be = select_backend( &pb->pb_op->o_req_ndn, 0 );
 	if ( be == NULL ) {
 		return 0;
 	}
@@ -983,7 +983,7 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *ldn )
 		return NULL;
 	}
 
-	be = select_backend( &pb->pb_op->o_req_ndn, 0, 0 );
+	be = select_backend( &pb->pb_op->o_req_ndn, 0 );
 
 	if ( be == NULL || be_issuffix( be, &normalizedDN ) == 0 ) {
 		dnParent( &prettyDN, &parentDN );
@@ -3116,7 +3116,7 @@ int slapi_entry_schema_check( Slapi_PBlock *pb, Slapi_Entry *e )
 
 	be_orig = pb->pb_op->o_bd;
 
-	pb->pb_op->o_bd = select_backend( &e->e_nname, 0, 0 );
+	pb->pb_op->o_bd = select_backend( &e->e_nname, 0 );
 	if ( pb->pb_op->o_bd != NULL ) {
 		rc = entry_schema_check( pb->pb_op, e, NULL, 0, 0,
 			&text, textbuf, textlen );
@@ -3402,7 +3402,7 @@ Slapi_Backend *slapi_be_select( const Slapi_DN *sdn )
 
 	slapi_sdn_get_ndn( sdn );
 
-	be = select_backend( (struct berval *)&sdn->ndn, 0, 0 );
+	be = select_backend( (struct berval *)&sdn->ndn, 0 );
 
 	return be;
 }

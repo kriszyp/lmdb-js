@@ -11,9 +11,7 @@ The file
 .B ETCDIR/slapd.conf
 contains configuration information for the
 .BR slapd (8)
-daemon.  This configuration file is also used by the
-.BR slurpd (8)
-replication daemon and by the SLAPD tools
+daemon.  This configuration file is also used by the SLAPD tools
 .BR slapacl (8),
 .BR slapadd (8),
 .BR slapauth (8),
@@ -497,13 +495,6 @@ for the segments of a filter string that are processed for a subany index
 lookup. The default is 2. For example, with the default values, a search
 using this filter "cn=*abcdefgh*" would generate index lookups for
 "abcd", "cdef", and "efgh".
-
-.\"-- NEW_LOGGING option --
-.\".TP
-.\".B logfile <filename>
-.\"Specify a file for recording debug log messages. By default these messages
-.\"only go to stderr and are not recorded anywhere else. Specifying a logfile
-.\"copies messages to both stderr and the logfile.
 .TP
 .B localSSF <SSF>
 Specifies the Security Strength Factor (SSF) to be given local LDAP sessions,
@@ -513,6 +504,11 @@ see
 .B minssf
 option description.  The default is 71.
 .TP
+.B logfile <filename>
+Specify a file for recording debug log messages. By default these messages
+only go to stderr and are not recorded anywhere else. Specifying a logfile
+copies messages to both stderr and the logfile.
+.TP
 .B loglevel <integer> [...]
 Specify the level at which debugging statements and operation 
 statistics should be syslogged (currently logged to the
@@ -521,8 +517,7 @@ LOG_LOCAL4 facility).
 They must be considered subsystems rather than increasingly verbose 
 log levels.
 Some messages with higher priority are logged regardless 
-of the configured loglevel as soon as some logging is configured,
-otherwise anything is logged at all.
+of the configured loglevel as soon as any logging is configured.
 Log levels are additive, and available levels are:
 .RS
 .RS
@@ -562,7 +557,7 @@ access control list processing
 .TP
 .B 256
 .B (0x100 stats)
-stats log connections/operations/results
+connections, LDAP operations, results (recommended)
 .TP
 .B 512
 .B (0x200 stats2)
@@ -614,10 +609,14 @@ The keyword
 .BR none ,
 or the equivalent integer representation, causes those messages
 that are logged regardless of the configured loglevel to be logged.
-In fact, if no loglevel (or a 0 level) is defined, no logging occurs, 
+In fact, if loglevel is set to 0, no logging occurs, 
 so at least the 
 .B none
 level is required to have high priority messages logged.
+
+The loglevel defaults to \fBstats\fP.
+This level should usually also be included when using other loglevels, to
+help analyze the logs.
 .RE
 .TP
 .B moduleload <filename>
@@ -723,39 +722,6 @@ Specify the referral to pass back when
 cannot find a local database to handle a request.
 If specified multiple times, each url is provided.
 .TP
-.B replica-argsfile
-The ( absolute ) name of a file that will hold the 
-.B slurpd
-server's command line options
-if started without the debugging command line option.
-If it appears after a
-.B replogfile
-directive, the args file is specific to the 
-.BR slurpd (8)
-instance that handles that replication log.
-.TP
-.B replica-pidfile
-The ( absolute ) name of a file that will hold the 
-.B slurpd
-server's process ID ( see
-.BR getpid (2)
-) if started without the debugging command line option.
-If it appears after a
-.B replogfile
-directive, the pid file is specific to the 
-.BR slurpd (8)
-instance that handles that replication log.
-.TP
-.B replicationinterval
-The number of seconds 
-.B slurpd 
-waits before checking the replogfile for changes.
-If it appears after a
-.B replogfile
-directive, the replication interval is specific to the 
-.BR slurpd (8)
-instance that handles that replication log.
-.TP
 .B require <conditions>
 Specify a set of conditions (separated by white space) to
 require (default none).
@@ -788,6 +754,14 @@ if compiled with --enable-rlookups).
 Specify the name of an LDIF(5) file containing user defined attributes
 for the root DSE.  These attributes are returned in addition to the
 attributes normally produced by slapd.
+
+The root DSE is an entry with information about the server and its
+capabilities, in operational attributes.
+It has the empty DN, and can be read with e.g.:
+.ti +4
+ldapsearch -x -b "" -s base "+"
+.br
+See RFC 4512 section 5.1 for details.
 .TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
@@ -880,7 +854,9 @@ factor is measure of security provided by the underlying transport,
 e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .TP
 .B serverID <integer> [<URL>]
-Specify an integer ID from 0 to 4095 for this server. These IDs are
+Specify an integer ID from 0 to 4095 for this server (limited
+to 3 hexadecimal digits).
+These IDs are
 required when using multimaster replication and each master must have a
 unique ID. If the URL is provided, this directive may be specified
 multiple times, providing a complete list of participating servers
@@ -957,7 +933,16 @@ TLSCipherSuite HIGH:MEDIUM:+SSLv2
 
 To check what ciphers a given spec selects, use:
 
-openssl ciphers -v <cipher-suite-spec>
+.nf
+	openssl ciphers -v <cipher-suite-spec>
+.fi
+
+To obtain the list of ciphers in GNUtls use:
+
+.nf
+	gnutls-cli -l
+.fi
+
 .TP
 .B TLSCACertificateFile <filename>
 Specifies the file that contains certificates for all of the Certificate
@@ -968,7 +953,8 @@ will recognize.
 .B TLSCACertificatePath <path>
 Specifies the path of a directory that contains Certificate Authority
 certificates in separate individual files. Usually only one of this
-or the TLSCACertificateFile is used.
+or the TLSCACertificateFile is used. This directive is not supported
+when using GNUtls.
 .TP
 .B TLSCertificateFile <filename>
 Specifies the file that contains the
@@ -991,12 +977,14 @@ them will be processed.  Note that setting this option may also enable
 Anonymous Diffie-Hellman key exchanges in certain non-default cipher suites.
 You should append "!ADH" to your cipher suites if you have changed them
 from the default, otherwise no certificate exchanges or verification will
-be done.
+be done. When using GNUtls these parameters are always generated randomly so
+this directive is ignored.
 .TP
 .B TLSRandFile <filename>
 Specifies the file to obtain random bits from when /dev/[u]random
 is not available.  Generally set to the name of the EGD/PRNGD socket.
 The environment variable RANDFILE can also be used to specify the filename.
+This directive is ignored with GNUtls.
 .TP
 .B TLSVerifyClient <level>
 Specifies what checks to perform on client certificates in an
@@ -1038,7 +1026,7 @@ Specifies if the Certificate Revocation List (CRL) of the CA should be
 used to verify if the client certificates have not been revoked. This
 requires
 .B TLSCACertificatePath
-parameter to be set.
+parameter to be set. This directive is ignored with GNUtls.
 .B <level>
 can be specified as one of the following keywords:
 .RS
@@ -1052,6 +1040,11 @@ Check the CRL of the peer certificate
 .B all
 Check the CRL for a whole certificate chain
 .RE
+.TP
+.B TLSCRLFile <filename>
+Specifies a file containing a Certificate Revocation List to be used
+for verifying that certificates have not been revoked. This directive is
+only valid when using GNUtls.
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the specified backend.  They are supported by every
@@ -1065,7 +1058,6 @@ should be one of
 .BR dnssrv ,
 .BR hdb ,
 .BR ldap ,
-.BR ldbm ,
 .BR ldif ,
 .BR meta ,
 .BR monitor ,
@@ -1095,7 +1087,6 @@ should be one of
 .BR dnssrv ,
 .BR hdb ,
 .BR ldap ,
-.BR ldbm ,
 .BR ldif ,
 .BR meta ,
 .BR monitor ,
@@ -1107,6 +1098,13 @@ should be one of
 or
 .BR sql ,
 depending on which backend will serve the database.
+.TP
+.B hidden on | off
+Controls whether the database will be used to answer
+queries. A database that is hidden will never be
+selected to answer any queries, and any suffix configured
+on the database will be ignored in checks for conflicts
+with other databases. By default, hidden is off.
 .TP
 .B lastmod on | off
 Controls whether
@@ -1342,12 +1340,10 @@ resolve an entry, used to avoid infinite alias loops. The default is 1.
 .B mirrormode on | off
 This option puts a replica database into "mirror" mode.  Update
 operations will be accepted from any user, not just the updatedn.  The
-database must already be configured as a slurpd or syncrepl consumer
-before this keyword may be set.  This mode must be used with extreme
-care, as it does not offer any consistency guarantees.  This feature
-is intended to be used with an external frontend that guarantees that
-writes are only directed to a single master, switching to an alternate
-server only if the original master goes down.
+database must already be configured as a syncrepl consumer
+before this keyword may be set. This mode also requires a
+.B serverID
+(see above) to be configured.
 By default, mirrormode is off.
 .TP
 .B overlay <overlay-name>
@@ -1359,6 +1355,8 @@ of the order in which they were configured and the database itself
 will receive control last of all. See the
 .BR slapd.overlays (5)
 manual page for an overview of the available overlays.
+Note that all of the database's
+regular settings should be configured before any overlay settings.
 .TP
 .B readonly on | off
 This option puts the database into "read-only" mode.  Any attempts to 
@@ -1425,18 +1423,6 @@ are not replicated.
 If an objectClass is listed, all the related attributes
 are (are not) replicated.
 .RE
-.TP
-.B replogfile <filename>
-Specify the name of the replication log file to log changes to.  
-The replication log is typically written by
-.BR slapd (8)
-and read by
-.BR slurpd (8).
-See
-.BR slapd.replog (5)
-for more information.  The specified file should be located
-in a directory with limited read/write/execute access as the replication
-logs may contain sensitive information.
 .TP
 .B restrict <oplist>
 Specify a whitespace separated list of operations that are restricted.
@@ -1600,7 +1586,8 @@ replication engine.
 identifies the current
 .B syncrepl
 directive within the replication consumer site.
-It is a non-negative integer having no more than three digits.
+It is a non-negative integer not greater than 4095 (limited
+to three hexadecimal digits).
 
 .B provider
 specifies the replication provider site containing the master content
@@ -1670,6 +1657,7 @@ and
 .B credentials
 and should only be used when adequate security services
 (e.g. TLS or IPSEC) are in place.
+.B REMEMBER: simple bind credentials must be in cleartext!
 A
 .B bindmethod
 of
@@ -1726,12 +1714,10 @@ ignored.
 .TP
 .B updatedn <dn>
 This option is only applicable in a slave
-database updated using
-.BR slurpd(8). 
+database.
 It specifies the DN permitted to update (subject to access controls)
-the replica (typically, this is the DN
-.BR slurpd (8)
-binds to update the replica).  Generally, this DN
+the replica.  It is only needed in certain push-mode
+replication scenarios.  Generally, this DN
 .I should not
 be the same as the
 .B rootdn 
@@ -1810,8 +1796,7 @@ default slapd configuration file
 .BR slapdn (8),
 .BR slapindex (8),
 .BR slappasswd (8),
-.BR slaptest (8),
-.BR slurpd (8).
+.BR slaptest (8).
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS

@@ -865,6 +865,9 @@ ldif_read_record(
 						fp2 = ldif_open_url( ptr );
 						if ( fp2 ) {
 							LDIFFP *lnew = ber_memalloc( sizeof( LDIFFP ));
+							if ( lnew == NULL ) {
+								return 0;
+							}
 							lnew->prev = lfp->prev;
 							lnew->fp = lfp->fp;
 							lfp->prev = lnew;

@@ -15,6 +15,8 @@
 
 umask 077
 
+TESTWD=`pwd`
+
 # backends
 MONITORDB=${AC_monitor-no}
 BACKLDAP=${AC_ldap-ldapno}
@@ -41,14 +43,13 @@ VALSORT=${AC_valsort-valsortno}
 # misc
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
-WITHTLS=${AC_WITHTLS-yes}
 ACI=${AC_ACI_ENABLED-acino}
 THREADS=${AC_THREADS-threadsno}
 
 # dirs
 PROGDIR=./progs
 DATADIR=${USER_DATADIR-./testdata}
-TESTDIR=${USER_TESTDIR-./testrun}
+TESTDIR=${USER_TESTDIR-$TESTWD/testrun}
 SCHEMADIR=${USER_SCHEMADIR-./schema}
 
 DBDIR1A=$TESTDIR/db.1.a
@@ -77,11 +78,9 @@ PWCONF=$DATADIR/slapd-pw.conf
 WHOAMICONF=$DATADIR/slapd-whoami.conf
 ACLCONF=$DATADIR/slapd-acl.conf
 RCONF=$DATADIR/slapd-referrals.conf
-MASTERCONF=$DATADIR/slapd-repl-master.conf
 SRMASTERCONF=$DATADIR/slapd-syncrepl-master.conf
 DSRMASTERCONF=$DATADIR/slapd-deltasync-master.conf
 DSRSLAVECONF=$DATADIR/slapd-deltasync-slave.conf
-SLAVECONF=$DATADIR/slapd-repl-slave.conf
 PPOLICYCONF=$DATADIR/slapd-ppolicy.conf
 PROXYCACHECONF=$DATADIR/slapd-proxycache.conf
 CACHEMASTERCONF=$DATADIR/slapd-cache-master.conf
@@ -135,6 +134,7 @@ CONF4=$TESTDIR/slapd.4.conf
 CONF5=$TESTDIR/slapd.5.conf
 CONF6=$TESTDIR/slapd.6.conf
 ADDCONF=$TESTDIR/slapadd.conf
+CONFLDIF=$TESTDIR/slapd-dynamic.ldif
 
 LOG1=$TESTDIR/slapd.1.log
 LOG2=$TESTDIR/slapd.2.log
@@ -145,7 +145,7 @@ LOG6=$TESTDIR/slapd.6.log
 SLAPADDLOG1=$TESTDIR/slapadd.1.log
 SLURPLOG=$TESTDIR/slurp.log
 
-CONFIGPWF=./configpw
+CONFIGPWF=$TESTDIR/configpw
 
 # args
 TOOLARGS="-x $LDAP_TOOLARGS"
@@ -155,10 +155,10 @@ TOOLPROTO="-P 3"
 LDIFFILTER=$SRCDIR/scripts/acfilter.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
 
-SLAPADD="`pwd`/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
-SLAPCAT="`pwd`/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
-SLAPINDEX="`pwd`/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
-SLAPPASSWD="`pwd`/../servers/slapd/slapd -Tpasswd"
+SLAPADD="$TESTWD/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
+SLAPCAT="$TESTWD/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
+SLAPINDEX="$TESTWD/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
+SLAPPASSWD="$TESTWD/../servers/slapd/slapd -Tpasswd"
 
 unset DIFF_OPTIONS
 # NOTE: -u/-c is not that portable...
@@ -166,8 +166,7 @@ DIFF="diff -i"
 CMP="diff -i"
 BCMP="diff -iB"
 CMPOUT=/dev/null
-SLAPD="`pwd`/../servers/slapd/slapd -s0"
-SLURPD="`pwd`/../servers/slurpd/slurpd"
+SLAPD="$TESTWD/../servers/slapd/slapd -s0"
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
 LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $LDAP_TOOLARGS -LLL"
 LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
@@ -325,6 +324,7 @@ SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 ACIOUT=$DATADIR/aci.out
 DYNLISTOUT=$DATADIR/dynlist.out
 DDSOUT=$DATADIR/dds.out
+SHTOOL="$SRCDIR/../build/shtool"
 
 # Just in case we linked the binaries dynamically
-LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH
+LD_LIBRARY_PATH=$TESTWD/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

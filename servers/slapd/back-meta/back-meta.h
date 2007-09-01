@@ -31,6 +31,7 @@
 
 /* String rewrite library */
 #include "rewrite.h"
+
 LDAP_BEGIN_DECL
 
 /*
@@ -39,9 +40,6 @@ LDAP_BEGIN_DECL
 #ifndef META_BACK_PRINT_CONNTREE
 #define META_BACK_PRINT_CONNTREE 0
 #endif /* !META_BACK_PRINT_CONNTREE */
-
-struct slap_conn;
-struct slap_op;
 
 /* from back-ldap.h before rwm removal */
 struct ldapmap {
@@ -223,7 +221,7 @@ typedef struct metasingleconn_t {
 } metasingleconn_t;
 
 typedef struct metaconn_t {
-	struct slap_conn	*mc_conn;
+	Connection		*mc_conn;
 #define	lc_conn			mc_conn
 	unsigned		mc_refcnt;
 
@@ -311,6 +309,11 @@ typedef struct metatarget_t {
 #define	META_BACK_TGT_CANCEL(mt)		META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK, LDAP_BACK_F_CANCEL_EXOP )
 #define	META_BACK_TGT_CANCEL_DISCOVER(mt)	META_BACK_TGT_ISMASK( (mt), LDAP_BACK_F_CANCEL_MASK2, LDAP_BACK_F_CANCEL_EXOP_DISCOVER )
 #define	META_BACK_TGT_QUARANTINE(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_QUARANTINE )
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+#define	META_BACK_TGT_ST_REQUEST(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_ST_REQUEST )
+#define	META_BACK_TGT_ST_RESPONSE(mt)		META_BACK_TGT_ISSET( (mt), LDAP_BACK_F_ST_RESPONSE )
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 
 	int			mt_version;
 	time_t			mt_network_timeout;

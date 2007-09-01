@@ -49,6 +49,16 @@ shell_back_bind(
 	FILE			*rfp, *wfp;
 	int			rc;
 
+	/* allow rootdn as a means to auth without the need to actually
+ 	 * contact the proxied DSA */
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		return rs->sr_err;
+	}
+
 	if ( si->si_bind == NULL ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 		    "bind not implemented" );

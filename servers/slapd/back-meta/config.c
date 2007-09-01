@@ -111,13 +111,11 @@ meta_back_db_config(
 	/* URI of server to query */
 	if ( strcasecmp( argv[ 0 ], "uri" ) == 0 ) {
 		int 		i = mi->mi_ntargets;
-#if 0
-		int 		j;
-#endif /* uncomment if uri MUST be a branch of suffix */
 		LDAPURLDesc 	*ludp, *tmpludp;
 		struct berval	dn;
 		int		rc;
 		int		c;
+		BackendDB	*tmp_bd;
 
 		metatarget_t	*mt;
 		
@@ -282,26 +280,14 @@ meta_back_db_config(
 		/*
 		 * uri MUST be a branch of suffix!
 		 */
-#if 0 /* too strict a constraint */
-		if ( select_backend( &mt->mt_nsuffix, 0, 0 ) != be ) {
+		tmp_bd = select_backend( &mt->mt_nsuffix, 0 );
+		if ( tmp_bd == NULL || tmp_bd->be_private != be->be_private )
+		{
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: <naming context> of URI does not refer to current backend"
-	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+	"%s: line %d: <naming context> of URI does not resolve to this database.\n",
 				fname, lineno, 0 );
 			return 1;
 		}
-#else
-		/*
-		 * uri MUST be a branch of a suffix!
-		 */
-		if ( select_backend( &mt->mt_nsuffix, 0, 0 ) == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: <naming context> of URI does not resolve to a backend"
-	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno, 0 );
-			return 1;
-		}
-#endif
 
 	/* subtree-exclude */
 	} else if ( strcasecmp( argv[ 0 ], "subtree-exclude" ) == 0 ) {
@@ -1235,10 +1221,42 @@ idassert-authzFrom	"dn:<rootdn>"
 		} else {
 			mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags |= LDAP_BACK_F_QUARANTINE;
 		}
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	/* session tracking request */
+	} else if ( strcasecmp( argv[ 0 ], "session-tracking-request" ) == 0 ) {
+		unsigned	*flagsp = mi->mi_ntargets ?
+				&mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags
+				: &mi->mi_flags;
+
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: \"session-tracking-request {TRUE|false}\" needs 1 argument.\n",
+				fname, lineno, 0 );
+			return( 1 );
+		}
+
+		/* this is the default; we add it because the default might change... */
+		switch ( check_true_false( argv[ 1 ] ) ) {
+		case 1:
+			*flagsp |= LDAP_BACK_F_ST_REQUEST;
+			break;
+
+		case 0:
+			*flagsp &= ~LDAP_BACK_F_ST_REQUEST;
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+		"%s: line %d: \"session-tracking-request {TRUE|false}\": unknown argument \"%s\".\n",
+				fname, lineno, argv[ 1 ] );
+			return( 1 );
+		}
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
-		BackendDB 	*tmp_be;
+		BackendDB 	*tmp_bd;
 		int 		i = mi->mi_ntargets - 1, rc;
 		struct berval	dn, nvnc, pvnc, nrnc, prnc;
 
@@ -1270,17 +1288,17 @@ idassert-authzFrom	"dn:<rootdn>"
 		ber_str2bv( argv[ 1 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"suffix '%s' is invalid\n",
+					"suffix \"%s\" is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
 		
-		tmp_be = select_backend( &nvnc, 0, 0 );
-		if ( tmp_be != NULL && tmp_be != be ) {
+		tmp_bd = select_backend( &nvnc, 0 );
+		if ( tmp_bd != NULL && tmp_bd->be_private != be->be_private ) {
 			Debug( LDAP_DEBUG_ANY, 
-	"%s: line %d: suffix already in use by another backend in"
-	" \"suffixMassage <suffix> <massaged suffix>\"\n",
-				fname, lineno, 0 );
+	"%s: line %d: <suffix> \"%s\" already in use by another database, in "
+	"\"suffixMassage <suffix> <massaged suffix>\"\n",
+				fname, lineno, pvnc.bv_val );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
 			return 1;						
@@ -1289,33 +1307,27 @@ idassert-authzFrom	"dn:<rootdn>"
 		ber_str2bv( argv[ 2 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"massaged suffix '%s' is invalid\n",
+				"massaged suffix \"%s\" is invalid\n",
 				fname, lineno, argv[ 2 ] );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
 			return 1;
 		}
 	
-#if 0	
-		tmp_be = select_backend( &nrnc, 0, 0 );
-		if ( tmp_be != NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: massaged suffix already in use by another backend in" 
-	" \"suffixMassage <suffix> <massaged suffix>\"\n",
-                                fname, lineno, 0 );
+		tmp_bd = select_backend( &nrnc, 0 );
+		if ( tmp_bd != NULL && tmp_bd->be_private == be->be_private ) {
+			Debug( LDAP_DEBUG_ANY, 
+	"%s: line %d: warning: <massaged suffix> \"%s\" point to this database, in "
+	"\"suffixMassage <suffix> <massaged suffix>\"\n",
+				fname, lineno, prnc.bv_val );
 			free( pvnc.bv_val );
 			free( nvnc.bv_val );
-			free( prnc.bv_val );
-			free( nrnc.bv_val );
-                        return 1;
+			return 1;						
 		}
-#endif
-		
+
 		/*
 		 * The suffix massaging is emulated by means of the
 		 * rewrite capabilities
-		 * FIXME: no extra rewrite capabilities should be added
-		 * to the database
 		 */
 	 	rc = suffix_massage_config( mi->mi_targets[ i ]->mt_rwmap.rwm_rw,
 				&pvnc, &nvnc, &prnc, &nrnc );

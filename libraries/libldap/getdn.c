@@ -2368,12 +2368,12 @@ strval2DCEstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 
 /*
  * Length of the (supposedly) AD canonical string representation, 
- * accounting for escaped hex of UTF-8 chars
+ * accounting for chars that need to be escaped 
  */
 static int
 strval2ADstrlen( struct berval *val, unsigned flags, ber_len_t *len )
 {
-	ber_len_t	l;
+	ber_len_t	l, cl;
 	char		*p;
 
 	assert( val != NULL );
@@ -2384,37 +2384,31 @@ strval2ADstrlen( struct berval *val, unsigned flags, ber_len_t *len )
 		return( 0 );
 	}
 
-	if ( flags & LDAP_AVA_NONPRINTABLE ) {
-		/* 
-		 * FIXME: Turn the value into a binary encoded BER?
-		 */
-		return( -1 );
-		
-	} else {
-		for ( l = 0, p = val->bv_val; p[ 0 ]; p++ ) {
-			if ( LDAP_DN_NEEDESCAPE_AD( p[ 0 ] ) ) {
-				l += 2;
-
-			} else {
-				l++;
-			}
+	for ( l = 0, p = val->bv_val; p[ 0 ]; p += cl ) {
+		cl = LDAP_UTF8_CHARLEN2( p, cl );
+		if ( cl == 0 ) {
+			/* illegal utf-8 char */
+			return -1;
+		} else if ( (cl == 1) && LDAP_DN_NEEDESCAPE_AD( p[ 0 ] ) ) {
+			l += 2;
+		} else {
+			l += cl;
 		}
 	}
 
 	*len = l;
-	
+
 	return( 0 );
 }
 
 /*
- * convert to (supposedly) AD string representation, 
- * escaping with hex the UTF-8 stuff;
+ * convert to (supposedly) AD string representation,
  * assume the destination has enough room for escaping
  */
 static int
 strval2ADstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
-	ber_len_t	s, d;
+	ber_len_t	s, d, cl;
 
 	assert( val != NULL );
 	assert( str != NULL );
@@ -2425,24 +2419,20 @@ strval2ADstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		return( 0 );
 	}
 
-	if ( flags & LDAP_AVA_NONPRINTABLE ) {
-		/*
-		 * FIXME: Turn the value into a binary encoded BER?
-		 */
-		*len = 0;
-		return( -1 );
-		
-	} else {
+	/* 
+	 * we assume the string has enough room for the escaping
+	 * of the value
+	 */
 
-		/* 
-		 * we assume the string has enough room for the hex encoding
-		 * of the value
-		 */
-
-		for ( s = 0, d = 0; s < val->bv_len; ) {
-			if ( LDAP_DN_NEEDESCAPE_AD( val->bv_val[ s ] ) ) {
-				str[ d++ ] = '\\';
-			}
+	for ( s = 0, d = 0; s < val->bv_len; ) {
+		cl = LDAP_UTF8_CHARLEN2( val->bv_val+s, cl );
+		if ( cl == 0 ) {
+			/* illegal utf-8 char */
+			return -1;
+		} else if ( (cl == 1) && LDAP_DN_NEEDESCAPE_AD(val->bv_val[ s ]) ) {
+			str[ d++ ] = '\\';
+		}
+		for (; cl--;) {
 			str[ d++ ] = val->bv_val[ s++ ];
 		}
 	}
@@ -3308,203 +3298,4 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 return_results:;
 	return( rc );
 }
-
-#ifdef HAVE_TLS
-#include <openssl/x509.h>
-#include <openssl/err.h>
-
-/* Convert a structured DN from an X.509 certificate into an LDAPV3 DN.
- * x509_name must be an (X509_NAME *). If func is non-NULL, the
- * constructed DN will use numeric OIDs to identify attributeTypes,
- * and the func() will be invoked to rewrite the DN with the given
- * flags.
- *
- * Otherwise the DN will use shortNames as defined in the OpenSSL
- * library.
- *
- * It's preferable to let slapd do the OID to attributeType mapping,
- * because the OpenSSL tables are known to have many typos in versions
- * up to (at least) 0.9.6c. However, the LDAP client has no schema tables,
- * so we're forced to use OpenSSL's mapping there.
- *  -- Howard Chu 2002-04-18
- */
-
-int
-ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
-	unsigned flags )
-{
-	LDAPDN	newDN;
-	LDAPRDN	newRDN;
-	LDAPAVA *newAVA, *baseAVA;
-	X509_NAME_ENTRY *ne;
-	ASN1_OBJECT *obj;
-	ASN1_STRING *str;
-	char oids[8192], *oidptr = oids, *oidbuf = NULL;
-	void *ptrs[2048];
-	int i, j, k = 0, navas, nrdns, rc = LDAP_SUCCESS;
-	int set = -1;
-	size_t dnsize, oidrem = sizeof(oids), oidsize = 0;
-	int csize;
-
-	struct berval	Val;
-
-	assert( bv != NULL );
-	bv->bv_len = 0;
-	bv->bv_val = NULL;
-
-	/* Get the number of AVAs. This is not necessarily the same as
-	 * the number of RDNs.
-	 */
-	navas = X509_NAME_entry_count( x509_name );
-
-	/* Get the last element, to see how many RDNs there are */
-	ne = X509_NAME_get_entry( x509_name, navas - 1 );
-	nrdns = ne->set + 1;
-
-	/* Allocate the DN/RDN/AVA stuff as a single block */    
-	dnsize = sizeof(LDAPRDN) * (nrdns+1);
-	dnsize += sizeof(LDAPAVA *) * (navas+nrdns);
-	dnsize += sizeof(LDAPAVA) * navas;
-	if (dnsize > sizeof(ptrs)) {
-		newDN = (LDAPDN)LDAP_MALLOC( dnsize );
-		if ( newDN == NULL )
-			return LDAP_NO_MEMORY;
-	} else {
-		newDN = (LDAPDN)(char *)ptrs;
-	}
-	
-	newDN[nrdns] = NULL;
-	newRDN = (LDAPRDN)(newDN + nrdns+1);
-	newAVA = (LDAPAVA *)(newRDN + navas + nrdns);
-	baseAVA = newAVA;
-
-	/* Retrieve RDNs in reverse order; LDAP is backwards from X.500. */
-	for ( i = nrdns - 1, j = 0; i >= 0; i-- ) {
-		ne = X509_NAME_get_entry( x509_name, i );
-		obj = X509_NAME_ENTRY_get_object( ne );
-		str = X509_NAME_ENTRY_get_data( ne );
-
-		/* If set changed, move to next RDN */
-		if ( set != ne->set ) {
-			/* If this is not the first time, end the
-			 * previous RDN and advance.
-			 */
-			if ( j > 0 ) {
-				newRDN[k] = NULL;
-				newRDN += k+1;
-			}
-			newDN[j++] = newRDN;
-
-			k = 0;
-			set = ne->set;
-		}
-		newAVA->la_private = NULL;
-		newAVA->la_flags = LDAP_AVA_STRING;
-
-		if ( !func ) {
-			int n = OBJ_obj2nid( obj );
-
-			if (n == NID_undef)
-				goto get_oid;
-			newAVA->la_attr.bv_val = (char *)OBJ_nid2sn( n );
-			newAVA->la_attr.bv_len = strlen( newAVA->la_attr.bv_val );
-#ifdef HAVE_EBCDIC
-			newAVA->la_attr.bv_val = LDAP_STRDUP( newAVA->la_attr.bv_val );
-			__etoa( newAVA->la_attr.bv_val );
-			newAVA->la_flags |= LDAP_AVA_FREE_ATTR;
-#endif
-		} else {
-get_oid:		newAVA->la_attr.bv_val = oidptr;
-			newAVA->la_attr.bv_len = OBJ_obj2txt( oidptr, oidrem, obj, 1 );
-#ifdef HAVE_EBCDIC
-			__etoa( newAVA->la_attr.bv_val );
-#endif
-			oidptr += newAVA->la_attr.bv_len + 1;
-			oidrem -= newAVA->la_attr.bv_len + 1;
-
-			/* Running out of OID buffer space? */
-			if (oidrem < 128) {
-				if ( oidsize == 0 ) {
-					oidsize = sizeof(oids) * 2;
-					oidrem = oidsize;
-					oidbuf = LDAP_MALLOC( oidsize );
-					if ( oidbuf == NULL ) goto nomem;
-					oidptr = oidbuf;
-				} else {
-					char *old = oidbuf;
-					oidbuf = LDAP_REALLOC( oidbuf, oidsize*2 );
-					if ( oidbuf == NULL ) goto nomem;
-					/* Buffer moved! Fix AVA pointers */
-					if ( old != oidbuf ) {
-						LDAPAVA *a;
-						long dif = oidbuf - old;
-
-						for (a=baseAVA; a<=newAVA; a++){
-							if (a->la_attr.bv_val >= old &&
-								a->la_attr.bv_val <= (old + oidsize))
-								a->la_attr.bv_val += dif;
-						}
-					}
-					oidptr = oidbuf + oidsize - oidrem;
-					oidrem += oidsize;
-					oidsize *= 2;
-				}
-			}
-		}
-		Val.bv_val = (char *) str->data;
-		Val.bv_len = str->length;
-		switch( str->type ) {
-		case V_ASN1_UNIVERSALSTRING:
-			/* This uses 32-bit ISO 10646-1 */
-			csize = 4; goto to_utf8;
-		case V_ASN1_BMPSTRING:
-			/* This uses 16-bit ISO 10646-1 */
-			csize = 2; goto to_utf8;
-		case V_ASN1_T61STRING:
-			/* This uses 8-bit, assume ISO 8859-1 */
-			csize = 1;
-to_utf8:		rc = ldap_ucs_to_utf8s( &Val, csize, &newAVA->la_value );
-			newAVA->la_flags |= LDAP_AVA_FREE_VALUE;
-			if (rc != LDAP_SUCCESS) goto nomem;
-			newAVA->la_flags = LDAP_AVA_NONPRINTABLE;
-			break;
-		case V_ASN1_UTF8STRING:
-			newAVA->la_flags = LDAP_AVA_NONPRINTABLE;
-			/* This is already in UTF-8 encoding */
-		case V_ASN1_IA5STRING:
-		case V_ASN1_PRINTABLESTRING:
-			/* These are always 7-bit strings */
-			newAVA->la_value = Val;
-		default:
-			;
-		}
-		newRDN[k] = newAVA;
-		newAVA++;
-		k++;
-	}
-	newRDN[k] = NULL;
-
-	if ( func ) {
-		rc = func( newDN, flags, NULL );
-		if ( rc != LDAP_SUCCESS )
-			goto nomem;
-	}
-
-	rc = ldap_dn2bv_x( newDN, bv, LDAP_DN_FORMAT_LDAPV3, NULL );
-
-nomem:
-	for (;baseAVA < newAVA; baseAVA++) {
-		if (baseAVA->la_flags & LDAP_AVA_FREE_ATTR)
-			LDAP_FREE( baseAVA->la_attr.bv_val );
-		if (baseAVA->la_flags & LDAP_AVA_FREE_VALUE)
-			LDAP_FREE( baseAVA->la_value.bv_val );
-	}
-
-	if ( oidsize != 0 )
-		LDAP_FREE( oidbuf );
-	if ( newDN != (LDAPDN)(char *) ptrs )
-		LDAP_FREE( newDN );
-	return rc;
-}
-#endif /* HAVE_TLS */
 

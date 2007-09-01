@@ -21,17 +21,19 @@
 
 #include <stdio.h>
 
-#include <ac/stdlib.h>
+#include "ac/stdlib.h"
 
-#include <ac/ctype.h>
-#include <ac/param.h>
-#include <ac/socket.h>
-#include <ac/string.h>
-#include <ac/unistd.h>
-#include <ac/wait.h>
+#include "ac/ctype.h"
+#include "ac/param.h"
+#include "ac/socket.h"
+#include "ac/string.h"
+#include "ac/unistd.h"
+#include "ac/wait.h"
 
-#include <ldap.h>
-#include <lutil.h>
+#include "ldap.h"
+#include "lutil.h"
+
+#include "ldap_pvt.h"
 
 #include "slapd-common.h"
 
@@ -40,12 +42,13 @@
 
 static void
 do_read( char *uri, char *manager, struct berval *passwd,
-	char *entry, LDAP **ld, int noattrs, int nobind, int maxloop,
+	char *entry, LDAP **ld,
+	char **attrs, int noattrs, int nobind, int maxloop,
 	int maxretries, int delay, int force, int chaserefs );
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, int noattrs, int nobind,
+	char *sbase, char *filter, char **attrs, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs );
 
 static void
@@ -66,7 +69,10 @@ usage( char *name )
 		"[-l <loops>] "
 		"[-L <outerloops>] "
 		"[-r <maxretries>] "
-		"[-t <delay>]\n",
+		"[-t <delay>] "
+		"[-T <attrs>] "
+		"[<attrs>] "
+		"\n",
 		name );
 	exit( EXIT_FAILURE );
 }
@@ -88,6 +94,8 @@ main( int argc, char **argv )
 	int		delay = 0;
 	int		force = 0;
 	int		chaserefs = 0;
+	char		*srchattrs[] = { "1.1", NULL };
+	char		**attrs = srchattrs;
 	int		noattrs = 0;
 	int		nobind = 0;
 
@@ -96,7 +104,7 @@ main( int argc, char **argv )
 	/* by default, tolerate referrals and no such object */
 	tester_ignore_str2errlist( "REFERRAL,NO_SUCH_OBJECT" );
 
-	while ( (i = getopt( argc, argv, "ACD:e:Ff:H:h:i:L:l:p:r:t:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "ACD:e:Ff:H:h:i:L:l:p:r:t:T:w:" )) != EOF ) {
 		switch ( i ) {
 		case 'A':
 			noattrs++;
@@ -174,6 +182,13 @@ main( int argc, char **argv )
 			}
 			break;
 
+		case 'T':
+			attrs = ldap_str2charray( optarg, "," );
+			if ( attrs == NULL ) {
+				usage( argv[0] );
+			}
+			break;
+
 		default:
 			usage( argv[0] );
 			break;
@@ -189,17 +204,22 @@ main( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
+	if ( argv[optind] != NULL ) {
+		attrs = &argv[optind];
+	}
+
 	uri = tester_uri( uri, host, port );
 
 	for ( i = 0; i < outerloops; i++ ) {
 		if ( filter != NULL ) {
-			do_random( uri, manager, &passwd, entry, filter,
+			do_random( uri, manager, &passwd, entry, filter, attrs,
 				noattrs, nobind, loops, retries, delay, force,
 				chaserefs );
 
 		} else {
-			do_read( uri, manager, &passwd, entry, NULL, noattrs, nobind,
-				loops, retries, delay, force, chaserefs );
+			do_read( uri, manager, &passwd, entry, NULL, attrs,
+				noattrs, nobind, loops, retries, delay, force,
+				chaserefs );
 		}
 	}
 
@@ -208,7 +228,7 @@ main( int argc, char **argv )
 
 static void
 do_random( char *uri, char *manager, struct berval *passwd,
-	char *sbase, char *filter, int noattrs, int nobind,
+	char *sbase, char *filter, char **srchattrs, int noattrs, int nobind,
 	int innerloop, int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = NULL;
@@ -288,8 +308,8 @@ do_random( char *uri, char *manager, struct berval *passwd,
 			int	r = ((double)nvalues)*rand()/(RAND_MAX + 1.0);
 
 			do_read( uri, manager, passwd, values[ r ], &ld,
-				noattrs, nobind, 1, maxretries, delay, force,
-				chaserefs );
+				srchattrs, noattrs, nobind, 1, maxretries,
+				delay, force, chaserefs );
 		}
 		free( values );
 		break;
@@ -308,12 +328,11 @@ do_random( char *uri, char *manager, struct berval *passwd,
 
 static void
 do_read( char *uri, char *manager, struct berval *passwd, char *entry,
-	LDAP **ldp, int noattrs, int nobind, int maxloop,
+	LDAP **ldp, char **attrs, int noattrs, int nobind, int maxloop,
 	int maxretries, int delay, int force, int chaserefs )
 {
 	LDAP	*ld = ldp ? *ldp : NULL;
 	int  	i = 0, do_retry = maxretries;
-	char	*attrs[] = { "1.1", NULL };
 	int     rc = LDAP_SUCCESS;
 	int	version = LDAP_VERSION3;
 
@@ -343,6 +362,7 @@ retry:;
 				case LDAP_UNAVAILABLE:
 					if ( do_retry > 0 ) {
 						ldap_unbind_ext( ld, NULL, NULL );
+						ld = NULL;
 						do_retry--;
 						if ( delay != 0 ) {
 						    sleep( delay );

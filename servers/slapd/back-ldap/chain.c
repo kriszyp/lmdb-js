@@ -112,7 +112,7 @@ static int ldap_chain_db_init_common( BackendDB	*be );
 static int ldap_chain_db_init_one( BackendDB *be );
 static int ldap_chain_db_open_one( BackendDB *be );
 #define	ldap_chain_db_close_one(be)	(0)
-#define	ldap_chain_db_destroy_one(be)	(lback)->bi_db_destroy( (be) )
+#define	ldap_chain_db_destroy_one(be, rs)	(lback)->bi_db_destroy( (be), (rs) )
 
 typedef struct ldap_chain_cb_t {
 	ldap_chain_status_t	lb_status;
@@ -418,7 +418,7 @@ ldap_chain_op(
 		LDAPURLDesc	*srv = NULL;
 		struct berval	save_req_dn = op->o_req_dn,
 				save_req_ndn = op->o_req_ndn,
-				dn,
+				dn = BER_BVNULL,
 				pdn = BER_BVNULL,
 				ndn = BER_BVNULL;
 		int		temporary = 0;
@@ -449,17 +449,24 @@ Document: RFC 4511
 		}
 
 		/* normalize DN */
-		ber_str2bv( srv->lud_dn, 0, 0, &dn );
-		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
-		if ( rc == LDAP_SUCCESS ) {
-			/* remove DN essentially because later on 
-			 * ldap_initialize() will parse the URL 
-			 * as a comma-separated URL list */
+		rc = LDAP_SUCCESS;
+		srv->lud_scope = LDAP_SCOPE_DEFAULT;
+		if ( srv->lud_dn != NULL ) {
+			ber_str2bv( srv->lud_dn, 0, 0, &dn );
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+			if ( rc == LDAP_SUCCESS ) {
+				/* remove DN essentially because later on 
+				 * ldap_initialize() will parse the URL 
+				 * as a comma-separated URL list */
+				srv->lud_dn = "";
+			}
+
+		} else {
 			srv->lud_dn = "";
-			srv->lud_scope = LDAP_SCOPE_DEFAULT;
-			li.li_uri = ldap_url_desc2str( srv );
-			srv->lud_dn = dn.bv_val;
 		}
+
+		li.li_uri = ldap_url_desc2str( srv );
+		srv->lud_dn = dn.bv_val;
 		ldap_free_urldesc( srv );
 
 		if ( rc != LDAP_SUCCESS ) {
@@ -500,7 +507,7 @@ Document: RFC 4511
 			if ( rc != 0 ) {
 				lip->li_uri = NULL;
 				lip->li_bvuri = NULL;
-				(void)ldap_chain_db_destroy_one( op->o_bd );
+				(void)ldap_chain_db_destroy_one( op->o_bd, NULL);
 				goto cleanup;
 			}
 
@@ -539,7 +546,7 @@ cleanup:;
 			lip->li_uri = NULL;
 			lip->li_bvuri = NULL;
 			(void)ldap_chain_db_close_one( op->o_bd );
-			(void)ldap_chain_db_destroy_one( op->o_bd );
+			(void)ldap_chain_db_destroy_one( op->o_bd, NULL );
 		}
 
 further_cleanup:;
@@ -629,16 +636,19 @@ ldap_chain_search(
 		}
 
 		/* normalize DN */
-		ber_str2bv( srv->lud_dn, 0, 0, &dn );
-		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
-		if ( rc == LDAP_SUCCESS ) {
-			/* remove DN essentially because later on 
-			 * ldap_initialize() will parse the URL 
-			 * as a comma-separated URL list */
-			srv->lud_dn = "";
-			srv->lud_scope = LDAP_SCOPE_DEFAULT;
-			li.li_uri = ldap_url_desc2str( srv );
-			srv->lud_dn = dn.bv_val;
+		rc = LDAP_INVALID_SYNTAX;
+		if ( srv->lud_dn != NULL ) {
+			ber_str2bv( srv->lud_dn, 0, 0, &dn );
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, op->o_tmpmemctx );
+			if ( rc == LDAP_SUCCESS ) {
+				/* remove DN essentially because later on 
+				 * ldap_initialize() will parse the URL 
+				 * as a comma-separated URL list */
+				srv->lud_dn = "";
+				srv->lud_scope = LDAP_SCOPE_DEFAULT;
+				li.li_uri = ldap_url_desc2str( srv );
+				srv->lud_dn = dn.bv_val;
+			}
 		}
 		ldap_free_urldesc( srv );
 
@@ -681,7 +691,7 @@ ldap_chain_search(
 			if ( rc != 0 ) {
 				lip->li_uri = NULL;
 				lip->li_bvuri = NULL;
-				(void)ldap_chain_db_destroy_one( op->o_bd );
+				(void)ldap_chain_db_destroy_one( op->o_bd, NULL );
 				goto cleanup;
 			}
 
@@ -723,7 +733,7 @@ cleanup:;
 			lip->li_uri = NULL;
 			lip->li_bvuri = NULL;
 			(void)ldap_chain_db_close_one( op->o_bd );
-			(void)ldap_chain_db_destroy_one( op->o_bd );
+			(void)ldap_chain_db_destroy_one( op->o_bd, NULL );
 		}
 		
 further_cleanup:;
@@ -778,7 +788,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_callback	*sc = op->o_callback,
 			sc2 = { 0 };
 	int		rc = 0;
-	char		*text = NULL;
+	const char	*text = NULL;
 	const char	*matched;
 	BerVarray	ref;
 	struct berval	ndn = op->o_ndn;
@@ -918,6 +928,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		 * to send it... */
 		/* FIXME: what about chaining? */
 		if ( rc != SLAPD_ABANDON ) {
+			rs->sr_err = rc;
 			send_ldap_extended( op, rs );
 			rc = LDAP_SUCCESS;
 		}
@@ -1181,7 +1192,7 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 done:;
 	if ( rc != LDAP_SUCCESS ) {
-		(void)ldap_chain_db_destroy_one( ca->be );
+		(void)ldap_chain_db_destroy_one( ca->be, NULL );
 		ch_free( ca->be );
 		ca->be = NULL;
 	}
@@ -1206,9 +1217,9 @@ ldap_chain_cfadd_apply( void *datum, void *arg )
 	struct berval			bv;
 
 	/* FIXME: should not hardcode "olcDatabase" here */
-	bv.bv_len = snprintf( lca->ca->msg, sizeof( lca->ca->msg ),
+	bv.bv_len = snprintf( lca->ca->cr_msg, sizeof( lca->ca->cr_msg ),
 		"olcDatabase={%d}%s", lca->count, lback->bi_type );
-	bv.bv_val = lca->ca->msg;
+	bv.bv_val = lca->ca->cr_msg;
 
 	lca->ca->be->be_private = (void *)li;
 	config_build_entry( lca->op, lca->rs, lca->p->e_private, lca->ca,
@@ -1468,11 +1479,11 @@ chain_cf_gen( ConfigArgs *c )
 
 	case CH_MAX_DEPTH:
 		if ( c->value_int < 0 ) {
-			snprintf( c->msg, sizeof( c->msg ),
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"<%s> invalid max referral depth %d",
 				c->argv[0], c->value_int );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->msg, 0 );
+				c->log, c->cr_msg, 0 );
 			rc = 1;
 			break;
 		}
@@ -1495,7 +1506,8 @@ chain_cf_gen( ConfigArgs *c )
 
 static int
 ldap_chain_db_init(
-	BackendDB *be )
+	BackendDB *be,
+	ConfigReply *cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	ldap_chain_t	*lc = NULL;
@@ -1626,7 +1638,7 @@ private_destroy:;
 
 				db.bd_info = lback;
 				db.be_private = (void *)lc->lc_cfg_li;
-				ldap_chain_db_destroy_one( &db );
+				ldap_chain_db_destroy_one( &db, NULL );
 				lc->lc_cfg_li = NULL;
 
 			} else {
@@ -1679,7 +1691,7 @@ ldap_chain_db_apply( void *datum, void *arg )
 
 	lca->be->be_private = (void *)li;
 
-	return lca->func( lca->be );
+	return lca->func( lca->be, NULL );
 }
 
 static int
@@ -1702,7 +1714,7 @@ ldap_chain_db_func(
 			db.bd_info = lback;
 			db.be_private = lc->lc_common_li;
 
-			rc = func( &db );
+			rc = func( &db, NULL );
 
 			if ( rc != 0 ) {
 				return rc;
@@ -1726,7 +1738,8 @@ ldap_chain_db_func(
 
 static int
 ldap_chain_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
@@ -1758,14 +1771,16 @@ ldap_chain_db_open(
 
 static int
 ldap_chain_db_close(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	return ldap_chain_db_func( be, db_close );
 }
 
 static int
 ldap_chain_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
@@ -1797,7 +1812,7 @@ ldap_chain_db_init_common(
 
 	be->bd_info = lback;
 	be->be_private = NULL;
-	rc = lback->bi_db_init( be );
+	rc = lback->bi_db_init( be, NULL );
 	if ( rc != 0 ) {
 		return rc;
 	}
@@ -1832,7 +1847,7 @@ ldap_chain_db_init_one(
 
 	be->bd_info = lback;
 	be->be_private = NULL;
-	t = lback->bi_db_init( be );
+	t = lback->bi_db_init( be, NULL );
 	if ( t != 0 ) {
 		return t;
 	}
@@ -1876,7 +1891,7 @@ ldap_chain_db_open_one(
 		}
 	}
 
-	return lback->bi_db_open( be );
+	return lback->bi_db_open( be, NULL );
 }
 
 typedef struct ldap_chain_conn_apply_t {

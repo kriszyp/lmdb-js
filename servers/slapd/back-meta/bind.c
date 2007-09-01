@@ -64,7 +64,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			gotit = 0,
 			isroot = 0;
 
-	SlapReply	*candidates = meta_back_candidates_get( op );
+	SlapReply	*candidates;
 
 	rs->sr_err = LDAP_SUCCESS;
 
@@ -72,24 +72,22 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		op->o_log_prefix, op->o_req_dn.bv_val, 0 );
 
 	/* the test on the bind method should be superfluous */
-	if ( op->orb_method == LDAP_AUTH_SIMPLE
-		&& be_isroot_dn( op->o_bd, &op->o_req_ndn ) )
-	{
-		if ( !be_isroot_pw( op ) ) {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			rs->sr_text = NULL;
-			send_ldap_result( op, rs );
-			return rs->sr_err;
-		}
-
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case LDAP_SUCCESS:
 		if ( META_BACK_DEFER_ROOTDN_BIND( mi ) ) {
-			rs->sr_err = LDAP_SUCCESS;
-			rs->sr_text = NULL;
 			/* frontend will return success */
 			return rs->sr_err;
 		}
 
 		isroot = 1;
+		/* fallthru */
+
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		/* be_rootdn_bind() sent result */
+		return rs->sr_err;
 	}
 
 	/* we need meta_back_getconn() not send result even on error,
@@ -123,6 +121,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+
+	candidates = meta_back_candidates_get( op );
 
 	/*
 	 * Each target is scanned ...
@@ -326,6 +326,9 @@ meta_back_bind_op_result(
 		">>> %s meta_back_bind_op_result[%d]\n",
 		op->o_log_prefix, candidate, 0 );
 
+	/* make sure this is clean */
+	assert( rs->sr_ctrls == NULL );
+
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		time_t		stoptime = (time_t)(-1),
 				timeout;
@@ -457,6 +460,9 @@ meta_back_single_bind(
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			msgid;
 	dncookie		dc;
+	struct berval		save_o_dn;
+	int			save_o_do_not_cache;
+	LDAPControl		**ctrls = NULL;
 	
 	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
 		ch_free( msc->msc_bound_ndn.bv_val );
@@ -484,6 +490,20 @@ meta_back_single_bind(
 		return rs->sr_err;
 	}
 
+	/* don't add proxyAuthz; set the bindDN */
+	save_o_dn = op->o_dn;
+	save_o_do_not_cache = op->o_do_not_cache;
+	op->o_do_not_cache = 1;
+	op->o_dn = op->o_req_dn;
+
+	ctrls = op->o_ctrls;
+	rs->sr_err = meta_back_controls_add( op, rs, mc, candidate, &ctrls );
+	op->o_dn = save_o_dn;
+	op->o_do_not_cache = save_o_do_not_cache;
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		goto return_results;
+	}
+
 	/* FIXME: this fixes the bind problem right now; we need
 	 * to use the asynchronous version to get the "matched"
 	 * and more in case of failure ... */
@@ -492,12 +512,15 @@ meta_back_single_bind(
 	for (;;) {
 		rs->sr_err = ldap_sasl_bind( msc->msc_ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->orb_cred,
-			op->o_ctrls, NULL, &msgid );
+			ctrls, NULL, &msgid );
 		if ( rs->sr_err != LDAP_X_CONNECTING ) {
 			break;
 		}
 		ldap_pvt_thread_yield();
 	}
+
+	ldap_back_controls_free( op, rs, &ctrls );
+
 	meta_back_bind_op_result( op, rs, mc, candidate, msgid, LDAP_BACK_DONTSEND );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto return_results;
@@ -636,7 +659,7 @@ meta_back_dobind(
 				i,
 				isroot = 0;
 
-	SlapReply		*candidates = meta_back_candidates_get( op );
+	SlapReply		*candidates;
 
 	if ( be_isroot( op ) ) {
 		isroot = 1;
@@ -655,6 +678,8 @@ meta_back_dobind(
 		bound = 1;
 		goto done;
 	}
+
+	candidates = meta_back_candidates_get( op );
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		metatarget_t		*mt = mi->mi_targets[ i ];
@@ -1018,18 +1043,44 @@ retry:;
 				if ( rc != LDAP_SUCCESS ) {
 					rs->sr_err = rc;
 				}
-				if ( refs != NULL ) {
-					int	i;
+
+				/* RFC 4511: referrals can only appear
+				 * if result code is LDAP_REFERRAL */
+				if ( refs != NULL
+					&& refs[ 0 ] != NULL
+					&& refs[ 0 ][ 0 ] != '\0' )
+				{
+					if ( rs->sr_err != LDAP_REFERRAL ) {
+						Debug( LDAP_DEBUG_ANY,
+							"%s meta_back_op_result[%d]: "
+							"got referrals with err=%d\n",
+							op->o_log_prefix,
+							candidate, rs->sr_err );
+
+					} else {
+						int	i;
 	
-					for ( i = 0; refs[ i ] != NULL; i++ )
-						/* count */ ;
-					rs->sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( i + 1 ),
-						op->o_tmpmemctx );
-					for ( i = 0; refs[ i ] != NULL; i++ ) {
-						ber_str2bv( refs[ i ], 0, 0, &rs->sr_ref[ i ] );
+						for ( i = 0; refs[ i ] != NULL; i++ )
+							/* count */ ;
+						rs->sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( i + 1 ),
+							op->o_tmpmemctx );
+						for ( i = 0; refs[ i ] != NULL; i++ ) {
+							ber_str2bv( refs[ i ], 0, 0, &rs->sr_ref[ i ] );
+						}
+						BER_BVZERO( &rs->sr_ref[ i ] );
 					}
-					BER_BVZERO( &rs->sr_ref[ i ] );
+
+				} else if ( rs->sr_err == LDAP_REFERRAL ) {
+					Debug( LDAP_DEBUG_ANY,
+						"%s meta_back_op_result[%d]: "
+						"got err=%d with null "
+						"or empty referrals\n",
+						op->o_log_prefix,
+						candidate, rs->sr_err );
+
+					rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				}
+
 				if ( ctrls != NULL ) {
 					rs->sr_ctrls = ctrls;
 				}
@@ -1173,9 +1224,11 @@ retry:;
 		ldap_memfree( text );
 	}
 	if ( rs->sr_ref ) {
-		assert( refs != NULL );
-		ber_memvfree( (void **)refs );
 		op->o_tmpfree( rs->sr_ref, op->o_tmpmemctx );
+		rs->sr_ref = NULL;
+	}
+	if ( refs ) {
+		ber_memvfree( (void **)refs );
 	}
 	if ( ctrls ) {
 		assert( rs->sr_ctrls != NULL );
@@ -1392,6 +1445,14 @@ meta_back_proxy_authz_cred(
 				mt->mt_idassert_authcID.bv_val,
 				mt->mt_idassert_passwd.bv_val,
 				authzID.bv_val );
+		if ( defaults == NULL ) {
+			rs->sr_err = LDAP_OTHER;
+			LDAP_BACK_CONN_ISBOUND_CLEAR( msc );
+			if ( sendok & LDAP_BACK_SENDERR ) {
+				send_ldap_result( op, rs );
+			}
+			goto done;
+		}
 
 		rs->sr_err = ldap_sasl_interactive_bind_s( msc->msc_ld, binddn->bv_val,
 				mt->mt_idassert_sasl_mech.bv_val, NULL, NULL,
@@ -1496,3 +1557,120 @@ meta_back_proxy_authz_bind( metaconn_t *mc, int candidate, Operation *op, SlapRe
 
 	return LDAP_BACK_CONN_ISBOUND( msc );
 }
+
+/*
+ * Add controls;
+ *
+ * if any needs to be added, it is prepended to existing ones,
+ * in a newly allocated array.  The companion function
+ * ldap_back_controls_free() must be used to restore the original
+ * status of op->o_ctrls.
+ */
+int
+meta_back_controls_add(
+		Operation	*op,
+		SlapReply	*rs,
+		metaconn_t	*mc,
+		int		candidate,
+		LDAPControl	***pctrls )
+{
+	metainfo_t		*mi = (metainfo_t *)op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+
+	LDAPControl		**ctrls = NULL;
+	/* set to the maximum number of controls this backend can add */
+	LDAPControl		c[ 2 ] = { 0 };
+	int			i = 0, j = 0;
+
+	*pctrls = NULL;
+
+	rs->sr_err = LDAP_SUCCESS;
+
+	/* don't add controls if protocol is not LDAPv3 */
+	switch ( mt->mt_version ) {
+	case LDAP_VERSION3:
+		break;
+
+	case 0:
+		if ( op->o_protocol == 0 || op->o_protocol == LDAP_VERSION3 ) {
+			break;
+		}
+		/* fall thru */
+
+	default:
+		goto done;
+	}
+
+	/* proxyAuthz for identity assertion */
+	switch ( ldap_back_proxy_authz_ctrl( op, rs, &msc->msc_bound_ndn,
+		mt->mt_version, &mt->mt_idassert, &c[ j ] ) )
+	{
+	case SLAP_CB_CONTINUE:
+		break;
+
+	case LDAP_SUCCESS:
+		j++;
+		break;
+
+	default:
+		goto done;
+	}
+
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	/* session tracking */
+	if ( META_BACK_TGT_ST_REQUEST( mt ) ) {
+		switch ( slap_ctrl_session_tracking_request_add( op, rs, &c[ j ] ) ) {
+		case SLAP_CB_CONTINUE:
+			break;
+
+		case LDAP_SUCCESS:
+			j++;
+			break;
+
+		default:
+			goto done;
+		}
+	}
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
+
+	if ( rs->sr_err == SLAP_CB_CONTINUE ) {
+		rs->sr_err = LDAP_SUCCESS;
+	}
+
+	if ( j == 0 ) {
+		goto done;
+	}
+
+	if ( op->o_ctrls ) {
+		for ( i = 0; op->o_ctrls[ i ]; i++ )
+			/* just count ctrls */ ;
+	}
+
+	ctrls = op->o_tmpalloc( sizeof( LDAPControl * ) * (i + j + 1) + j * sizeof( LDAPControl ),
+			op->o_tmpmemctx );
+	ctrls[ 0 ] = (LDAPControl *)&ctrls[ i + j + 1 ];
+	*ctrls[ 0 ] = c[ 0 ];
+	for ( i = 1; i < j; i++ ) {
+		ctrls[ i ] = &ctrls[ 0 ][ i ];
+		*ctrls[ i ] = c[ i ];
+	}
+
+	i = 0;
+	if ( op->o_ctrls ) {
+		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
+			ctrls[ i + j ] = op->o_ctrls[ i ];
+		}
+	}
+	ctrls[ i + j ] = NULL;
+
+done:;
+	if ( ctrls == NULL ) {
+		ctrls = op->o_ctrls;
+	}
+
+	*pctrls = ctrls;
+	
+	return rs->sr_err;
+}
+

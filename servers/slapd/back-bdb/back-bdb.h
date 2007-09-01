@@ -58,6 +58,28 @@ LDAP_BEGIN_DECL
 #define	BDB_PAGESIZE	4096	/* BDB's original default */
 #endif
 
+/* 4.6.18 redefines cursor->locker */
+#if DB_VERSION_FULL >= 0x04060012
+
+struct __db_locker {
+	u_int32_t	id;
+};
+
+typedef struct __db_locker * BDB_LOCKER;
+
+extern int __lock_getlocker(DB_LOCKTAB *lt, u_int32_t locker, int create, DB_LOCKER **ret);
+
+#define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
+#define	CURSOR_GETLOCKER(cursor)	cursor->locker
+#else
+
+typedef u_int32_t BDB_LOCKER;
+
+#define CURSOR_SETLOCKER(cursor, id)	cursor->locker = id
+#define CURSOR_GETLOCKER(cursor)	cursor->locker
+
+#endif
+
 #define DEFAULT_CACHE_SIZE     1000
 
 /* The default search IDL stack cache depth */
@@ -131,10 +153,11 @@ typedef struct bdb_cache {
 	int		c_maxsize;
 	int		c_cursize;
 	int		c_minfree;
+	int		c_eimax;
 	int		c_eiused;	/* EntryInfo's in use */
 	int		c_leaves;	/* EntryInfo leaf nodes */
 	int		c_purging;
-	u_int32_t	c_locker;	/* used by lru cleaner */
+	BDB_LOCKER	c_locker;	/* used by lru cleaner */
 	ldap_pvt_thread_rdwr_t c_rwlock;
 	ldap_pvt_thread_mutex_t c_lru_mutex;
 	ldap_pvt_thread_mutex_t c_count_mutex;
@@ -208,6 +231,12 @@ struct bdb_info {
 	char		*bi_db_config_path;
 	BerVarray	bi_db_config;
 	bdb_monitor_t	bi_monitor;
+
+#ifdef BDB_MONITOR_IDX
+	ldap_pvt_thread_mutex_t	bi_idx_mutex;
+	Avlnode		*bi_idx;
+#endif /* BDB_MONITOR_IDX */
+
 	int		bi_flags;
 #define	BDB_IS_OPEN		0x01
 #define	BDB_HAS_CONFIG	0x02
@@ -223,6 +252,7 @@ struct bdb_info {
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
 #define bi_dn2id	bi_databases[BDB_DN2ID]
 
+
 struct bdb_lock_info {
 	struct bdb_lock_info *bli_next;
 	ID		bli_id;
@@ -232,14 +262,14 @@ struct bdb_lock_info {
 struct bdb_op_info {
 	BackendDB*	boi_bdb;
 	DB_TXN*		boi_txn;
+	BDB_LOCKER	boi_locker;
 	u_int32_t	boi_err;
-	u_int32_t	boi_locker;
 	int		boi_acl_cache;
 	struct bdb_lock_info *boi_locks;	/* used when no txn */
 };
 
 #define	DB_OPEN(db, file, name, type, flags, mode) \
-	(db)->open(db, file, name, type, flags, mode)
+	((db)->open)(db, file, name, type, flags, mode)
 
 #if DB_VERSION_MAJOR < 4
 #define LOCK_DETECT(env,f,t,a)		lock_detect(env, f, t, a)
@@ -270,7 +300,13 @@ struct bdb_op_info {
 #if DB_VERSION_FULL >= 0x04010011
 #undef DB_OPEN
 #define	DB_OPEN(db, file, name, type, flags, mode) \
-	(db)->open(db, NULL, file, name, type, flags, mode)
+	((db)->open)(db, NULL, file, name, type, flags, mode)
+#endif
+
+/* BDB 4.6.18 makes locker a struct instead of an int */
+#if DB_VERSION_FULL >= 0x04060012
+#undef TXN_ID
+#define TXN_ID(txn)	(txn)->locker
 #endif
 
 #endif

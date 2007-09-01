@@ -120,7 +120,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #if defined( notyet ) /* && defined( SO_ERROR ) */
 {
 	int so_errno;
-	socklen_t dummy = sizeof(so_errno);
+	ber_socklen_t dummy = sizeof(so_errno);
 	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -138,7 +138,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	/* error slippery */
 	struct sockaddr_un sa;
 	char ch;
-	socklen_t dummy = sizeof(sa);
+	ber_socklen_t dummy = sizeof(sa);
 	if ( getpeername( s, (struct sockaddr *) &sa, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -154,12 +154,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 }
 #undef TRACE
 
-#if !defined(HAVE_GETPEEREID) && \
-	!defined(HAVE_GETPEERUCRED) && \
-	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
-	defined(HAVE_SENDMSG) && (defined(HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN) || \
-		defined(HAVE_STRUCT_MSGHDR_MSG_CONTROL))
-#define DO_SENDMSG
+#ifdef LDAP_PF_LOCAL_SENDMSG
 static const char abandonPDU[] = {LDAP_TAG_MESSAGE, 6,
 	LDAP_TAG_MSGID, 1, 0, LDAP_REQ_ABANDON, 1, 0};
 #endif
@@ -185,13 +180,16 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	{
 		if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
 
-#ifdef DO_SENDMSG
+#ifdef LDAP_PF_LOCAL_SENDMSG
 	/* Send a dummy message with access rights. Remote side will
-	 * obtain our uid/gid by fstat'ing this descriptor.
+	 * obtain our uid/gid by fstat'ing this descriptor. The
+	 * descriptor permissions must match exactly, and we also
+	 * send the socket name, which must also match.
 	 */
 sendcred:
 		{
 			int fds[2];
+			ber_socklen_t salen = sizeof(*sa);
 			if (pipe(fds) == 0) {
 				/* Abandon, noop, has no reply */
 				struct iovec iov;
@@ -230,6 +228,9 @@ sendcred:
 				msg.msg_accrights = (char *)fds;
 				msg.msg_accrightslen = sizeof(int);
 # endif /* HAVE_STRUCT_MSGHDR_MSG_CONTROL */
+				getpeername( s, sa, &salen );
+				fchmod( fds[0], S_ISUID|S_IRWXU );
+				write( fds[1], sa, salen );
 				sendmsg( s, &msg, 0 );
 				close(fds[0]);
 				close(fds[1]);
@@ -266,7 +267,7 @@ sendcred:
 		if( fd.revents & POLL_WRITE ) {
 			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
 			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
-#ifdef DO_SENDMSG
+#ifdef LDAP_PF_LOCAL_SENDMSG
 			goto sendcred;
 #else
 			return ( 0 );
@@ -297,7 +298,7 @@ sendcred:
 		if ( FD_ISSET(s, &wfds) ) {
 			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
 			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
-#ifdef DO_SENDMSG
+#ifdef LDAP_PF_LOCAL_SENDMSG
 			goto sendcred;
 #else
 			return ( 0 );

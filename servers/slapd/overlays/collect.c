@@ -29,7 +29,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-
+#include "config.h"
 
 /* This is a cheap hack to implement a collective attribute.
  *
@@ -47,6 +47,124 @@ typedef struct collect_info {
 } collect_info;
 
 static int
+collect_cf( ConfigArgs *c )
+{
+	slap_overinst *on = (slap_overinst *)c->bi;
+	int rc = 1;
+
+	switch( c->op ) {
+	case SLAP_CONFIG_EMIT:
+		{
+		collect_info *ci;
+		for ( ci = on->on_bi.bi_private; ci; ci = ci->ci_next ) {
+			struct berval bv;
+
+			bv.bv_len = ci->ci_dn.bv_len + 3 +
+				ci->ci_ad->ad_cname.bv_len;
+			bv.bv_val = ch_malloc( bv.bv_len + 1 );
+			sprintf( bv.bv_val, "\"%s\" %s", ci->ci_dn.bv_val,
+				ci->ci_ad->ad_cname.bv_val );
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+			rc = 0;
+		}
+		}
+		break;
+	case LDAP_MOD_DELETE:
+		if ( c->valx == -1 ) {
+		/* Delete entire attribute */
+			collect_info *ci;
+			while (( ci = on->on_bi.bi_private )) {
+				on->on_bi.bi_private = ci->ci_next;
+				ch_free( ci->ci_dn.bv_val );
+				ch_free( ci );
+			}
+		} else {
+		/* Delete just one value */
+			collect_info **cip, *ci;
+			int i;
+			cip = (collect_info **)&on->on_bi.bi_private;
+			for ( i=0; i <= c->valx; i++, cip = &ci->ci_next ) ci = *cip;
+			*cip = ci->ci_next;
+			ch_free( ci->ci_dn.bv_val );
+			ch_free( ci );
+		}
+		rc = 0;
+		break;
+	case SLAP_CONFIG_ADD:
+	case LDAP_MOD_ADD:
+		{
+		collect_info *ci;
+		struct berval bv, dn;
+		const char *text;
+		AttributeDescription *ad = NULL;
+
+		ber_str2bv( c->argv[1], 0, 0, &bv );
+		if ( dnNormalize( 0, NULL, NULL, &bv, &dn, NULL ) ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid DN: \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+				"%s: %s\n", c->log, c->cr_msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( slap_str2ad( c->argv[2], &ad, &text ) ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s attribute description unknown: \"%s\"",
+				c->argv[0], c->argv[2] );
+			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+				"%s: %s\n", c->log, c->cr_msg, 0 );
+			return ARG_BAD_CONF;
+		}
+
+		/* The on->on_bi.bi_private pointer can be used for
+		 * anything this instance of the overlay needs.
+		 */
+		ci = ch_malloc( sizeof( collect_info ));
+		ci->ci_ad = ad;
+		ci->ci_dn = dn;
+		ci->ci_next = on->on_bi.bi_private;
+		on->on_bi.bi_private = ci;
+		rc = 0;
+		}
+	}
+	return rc;
+}
+
+static ConfigTable collectcfg[] = {
+	{ "collectinfo", "dn> <attribute", 3, 3, 0,
+	  ARG_MAGIC, collect_cf,
+	  "( OLcfgOvAt:19.1 NAME 'olcCollectInfo' "
+	  "DESC 'DN of entry and attribute to distribute' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs collectocs[] = {
+	{ "( OLcfgOvOc:19.1 "
+	  "NAME 'olcCollectConfig' "
+	  "DESC 'Collective Attribute configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY olcCollectInfo )",
+	  Cft_Overlay, collectcfg },
+	{ NULL, 0, NULL }
+};
+
+static int
+collect_destroy(
+	BackendDB *be,
+	ConfigReply *cr
+)
+{
+	slap_overinst *on = (slap_overinst *)be->bd_info;
+	collect_info *ci;
+
+	while (( ci = on->on_bi.bi_private )) {
+		on->on_bi.bi_private = ci->ci_next;
+		ch_free( ci->ci_dn.bv_val );
+		ch_free( ci );
+	}
+	return 0;
+}
+
+static int
 collect_response( Operation *op, SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
@@ -56,7 +174,6 @@ collect_response( Operation *op, SlapReply *rs )
 	 * a search entry
 	 */
 	if ( ci && rs->sr_type == REP_SEARCH ) {
-		Entry *new = NULL;
 		int rc;
 
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -65,9 +182,8 @@ collect_response( Operation *op, SlapReply *rs )
 			BerVarray vals = NULL;
 
 			/* Is our configured entry an ancestor of this one? */
-			rc = rs->sr_entry->e_nname.bv_len - ci->ci_dn.bv_len;
-			if ( rc < 1 || strcmp( rs->sr_entry->e_nname.bv_val + rc,
-				ci->ci_dn.bv_val )) continue;
+			if ( !dnIsSuffix( &rs->sr_entry->e_nname, &ci->ci_dn ))
+				continue;
 
 			/* Extract the values of the desired attribute from
 			 * the ancestor entry
@@ -82,81 +198,32 @@ collect_response( Operation *op, SlapReply *rs )
 				 * don't modify it directly. Make a copy and
 				 * work with that instead.
 				 */
-				if ( !new ) {
-					new = entry_dup( rs->sr_entry );
+				if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE )) {
+					rs->sr_entry = entry_dup( rs->sr_entry );
+					rs->sr_flags |= REP_ENTRY_MODIFIABLE |
+						REP_ENTRY_MUSTBEFREED;
 				}
-				attr_merge( new, ci->ci_ad, vals, NULL );
+				attr_merge( rs->sr_entry, ci->ci_ad, vals, NULL );
 				ber_bvarray_free_x( vals, op->o_tmpmemctx );
 			}
-		}
-
-		if ( new ) {
-			rs->sr_entry = new;
-			rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
 		}
 	}
 	/* Default is to just fall through to the normal processing */
 	return SLAP_CB_CONTINUE;
 }
 
-static int collect_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	AttributeDescription *ad = NULL;
-
-	/* The config syntax is "collectinfo <dn> <attribute-description>"
-	 * and only one directive may be specified per overlay instance.
-	 */
-
-	if ( strcasecmp( argv[0], "collectinfo" ) == 0 ) {
-		collect_info *ci;
-		struct berval bv, dn;
-		const char *text;
-		if ( argc != 3 ) {
-			Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: argument missing in \"collectinfo <dn> <attribute-description>\" line.\n",
-			fname, lineno, 0 );
-		    	return( 1 );
-		}
-		ber_str2bv( argv[1], 0, 0, &bv );
-		if ( dnNormalize( 0, NULL, NULL, &bv, &dn, NULL ) ) {
-			Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: invalid DN in \"collectinfo\" line: %s.\n",
-			fname, lineno, text );
-			return( 1 );
-		}
-		if ( slap_str2ad( argv[2], &ad, &text ) ) {
-			Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: attribute description unknown in \"collectinfo\" line: %s.\n",
-			fname, lineno, text );
-			return( 1 );
-		}
-
-		/* The on->on_bi.bi_private pointer can be used for
-		 * anything this instance of the overlay needs.
-		 */
-		ci = ch_malloc( sizeof( collect_info ));
-		ci->ci_ad = ad;
-		ci->ci_dn = dn;
-		ci->ci_next = on->on_bi.bi_private;
-		on->on_bi.bi_private = ci;
-		return 0;
-	}
-	return SLAP_CONF_UNKNOWN;
-}
-
 static slap_overinst collect;
 
 int collect_initialize() {
+	int code;
+
 	collect.on_bi.bi_type = "collect";
-	collect.on_bi.bi_db_config = collect_config;
+	collect.on_bi.bi_db_destroy = collect_destroy;
 	collect.on_response = collect_response;
+
+	collect.on_bi.bi_cf_ocs = collectocs;
+	code = config_register_schema( collectcfg, collectocs );
+	if ( code ) return code;
 
 	return overlay_register( &collect );
 }

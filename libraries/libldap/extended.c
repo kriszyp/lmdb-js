@@ -315,6 +315,7 @@ ldap_parse_intermediate (
 
 	if( retoidp != NULL ) *retoidp = NULL;
 	if( retdatap != NULL ) *retdatap = NULL;
+	if( serverctrls != NULL ) *serverctrls = NULL;
 
 	ber = ber_dup( res->lm_ber );
 

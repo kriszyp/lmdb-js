@@ -57,9 +57,8 @@ do_modrdn(
 
 	ber_len_t	length;
 
-	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
-
-
+	Debug( LDAP_DEBUG_TRACE, "%s do_modrdn\n",
+			op->o_log_prefix, 0, 0 );
 	/*
 	 * Parse the modrdn request.  It looks like this:
 	 *
@@ -74,8 +73,8 @@ do_modrdn(
 	if ( ber_scanf( op->o_ber, "{mmb", &dn, &newrdn, &deloldrdn )
 	    == LBER_ERROR )
 	{
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
@@ -84,12 +83,12 @@ do_modrdn(
 
 	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
 		if ( op->o_protocol < LDAP_VERSION3 ) {
-			/* Conection record indicates v2 but field 
+			/* Connection record indicates v2 but field 
 			 * newSuperior is present: report error.
 			 */
 			Debug( LDAP_DEBUG_ANY,
-			    "modrdn(v2): invalid field newSuperior!\n",
-			    0, 0, 0 );
+				"%s do_modrdn: newSuperior requires LDAPv3\n",
+				op->o_log_prefix, 0, 0 );
 
 			send_ldap_discon( op, rs,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
@@ -100,8 +99,8 @@ do_modrdn(
 		if ( ber_scanf( op->o_ber, "m", &newSuperior ) 
 		     == LBER_ERROR ) {
 
-			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"m\") failed\n",
-				0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s do_modrdn: ber_scanf(\"m\") failed\n",
+				op->o_log_prefix, 0, 0 );
 
 			send_ldap_discon( op, rs,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -118,8 +117,8 @@ do_modrdn(
 		newSuperior.bv_len ? newSuperior.bv_val : "" );
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
-
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
@@ -127,16 +126,16 @@ do_modrdn(
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
-
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		/* get_ctrls has sent results.	Now clean up. */
 		goto cleanup;
 	} 
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_modrdn: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: invalid dn (%s)\n",
+			op->o_log_prefix, dn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
@@ -145,16 +144,15 @@ do_modrdn(
 
 	rs->sr_err = dnPrettyNormal( NULL, &newrdn, &op->orr_newrdn, &op->orr_nnewrdn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_modrdn: invalid newrdn (%s)\n", newrdn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: invalid newrdn (%s)\n",
+			op->o_log_prefix, newrdn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid new RDN" );
 		goto cleanup;
 	}
 
 	if( rdn_validate( &op->orr_newrdn ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n",
-			op->orr_newrdn.bv_val, 0, 0 );
-
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: invalid rdn (%s)\n",
+			op->o_log_prefix, op->orr_newrdn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid new RDN" );
 		goto cleanup;
 	}
@@ -164,12 +162,15 @@ do_modrdn(
 			&nnewSuperior, op->o_tmpmemctx );
 		if( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_modrdn: invalid newSuperior (%s)\n",
-				newSuperior.bv_val, 0, 0 );
+				"%s do_modrdn: invalid newSuperior (%s)\n",
+				op->o_log_prefix, newSuperior.bv_val, 0 );
 			send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid newSuperior" );
 			goto cleanup;
 		}
 	}
+
+	Statslog( LDAP_DEBUG_STATS, "%s MODRDN dn=\"%s\"\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
 	op->orr_deleteoldrdn = deloldrdn;
 	op->orr_modlist = NULL;
@@ -214,37 +215,31 @@ int
 fe_op_modrdn( Operation *op, SlapReply *rs )
 {
 	Backend		*newSuperior_be = NULL;
-	int		manageDSAit;
 	struct berval	pdn = BER_BVNULL;
 	BackendDB	*op_be, *bd = op->o_bd;
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
-
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: root dse!\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot rename the root DSE" );
 		goto cleanup;
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: subschema subentry: %s (%ld)\n",
-			frontendDB->be_schemandn.bv_val, (long)frontendDB->be_schemandn.bv_len, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: subschema subentry: %s (%ld)\n",
+			op->o_log_prefix, frontendDB->be_schemandn.bv_val, (long)frontendDB->be_schemandn.bv_len );
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot rename subschema subentry" );
 		goto cleanup;
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "%s MODRDN dn=\"%s\"\n",
-	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
-
-	manageDSAit = get_manageDSAit( op );
-
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( op->o_bd == NULL ) {
 		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
@@ -266,7 +261,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
 
 	/* check restrictions */
@@ -284,7 +279,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	 * the same backend, otherwise we return an error.
 	 */
 	if( op->orr_newSup ) {
-		newSuperior_be = select_backend( op->orr_nnewSup, 0, 0 );
+		newSuperior_be = select_backend( op->orr_nnewSup, 0 );
 
 		if ( newSuperior_be != op->o_bd ) {
 			/* newSuperior is in different backend */
@@ -306,15 +301,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 		int repl_user = be_isupdate( op );
 		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user )
 		{
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
-
 			op->o_bd = op_be;
-
-			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
-			{
-				cb.sc_next = op->o_callback;
-				op->o_callback = &cb;
-			}
 			op->o_bd->be_modrdn( op, rs );
 
 			if ( op->o_bd->be_delete ) {
@@ -349,7 +336,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 					}
 				}
 				op->o_managedsait = org_managedsait;
-	            		op->o_dn = org_dn;
+				op->o_dn = org_dn;
 				op->o_ndn = org_ndn;
 				op->o_req_dn = org_req_dn;
 				op->o_req_ndn = org_req_ndn;
@@ -399,8 +386,9 @@ slap_modrdn2mods(
 	if ( ldap_bv2rdn_x( &op->oq_modrdn.rs_newrdn, &new_rdn,
 		(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"slap_modrdn2mods: can't figure out "
-			"type(s)/value(s) of newrdn\n", 0, 0, 0 );
+			"%s slap_modrdn2mods: can't figure out "
+			"type(s)/value(s) of newrdn\n",
+			op->o_log_prefix, 0, 0 );
 		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
 		rs->sr_text = "unknown type(s) used in RDN";
 		goto done;
@@ -410,8 +398,9 @@ slap_modrdn2mods(
 		if ( ldap_bv2rdn_x( &op->o_req_dn, &old_rdn,
 			(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"slap_modrdn2mods: can't figure out "
-				"type(s)/value(s) of oldrdn\n", 0, 0, 0 );
+				"%s slap_modrdn2mods: can't figure out "
+				"type(s)/value(s) of oldrdn\n",
+				op->o_log_prefix, 0, 0 );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "cannot parse RDN from old DN";
 			goto done;
@@ -428,9 +417,10 @@ slap_modrdn2mods(
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"slap_modrdn2mods: %s: %s (new)\n",
+				"%s slap_modrdn2mods: %s: %s (new)\n",
+				op->o_log_prefix,
 				rs->sr_text, 
-				new_rdn[ a_cnt ]->la_attr.bv_val, 0 );
+				new_rdn[ a_cnt ]->la_attr.bv_val );
 			goto done;		
 		}
 
@@ -468,10 +458,10 @@ slap_modrdn2mods(
 			rs->sr_err = slap_bv2ad( &old_rdn[d_cnt]->la_attr, &desc, &rs->sr_text );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
-					"slap_modrdn2mods: %s: %s (old)\n",
+					"%s slap_modrdn2mods: %s: %s (old)\n",
+					op->o_log_prefix,
 					rs->sr_text, 
-					old_rdn[d_cnt]->la_attr.bv_val, 
-					0 );
+					old_rdn[d_cnt]->la_attr.bv_val );
 				goto done;		
 			}
 

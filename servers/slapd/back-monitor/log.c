@@ -111,7 +111,7 @@ monitor_subsys_log_modify(
 	int		rc = LDAP_OTHER;
 	int		newlevel = ldap_syslog;
 	Attribute	*save_attrs;
-	Modifications	*modlist = op->oq_modify.rs_modlist;
+	Modifications	*modlist = op->orm_modlist;
 	Modifications	*ml;
 
 	ldap_pvt_thread_mutex_lock( &monitor_log_mutex );

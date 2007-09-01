@@ -305,7 +305,7 @@ usage( char *name )
 		"\t-g group\tGroup (id or name) to run as\n"
 #endif
 		"\t-h URLs\t\tList of URLs to serve\n"
-#ifdef LOG_LOCAL4
+#ifdef SLAP_DEFAULT_SYSLOG_USER
 		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tService name\n"
@@ -348,7 +348,7 @@ int main( int argc, char **argv )
 #if defined(HAVE_CHROOT)
 	char *sandbox = NULL;
 #endif
-#ifdef LOG_LOCAL4
+#ifdef SLAP_DEFAULT_SYSLOG_USER
 	int syslogUser = SLAP_DEFAULT_SYSLOG_USER;
 #endif
 	
@@ -396,7 +396,7 @@ int main( int argc, char **argv )
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	{
-		int *i;
+		int *ip;
 		char *newConfigFile;
 		char *newConfigDir;
 		char *newUrls;
@@ -408,9 +408,9 @@ int main( int argc, char **argv )
 			    regService = serverName;
 		}
 
-		i = (int*)lutil_getRegParam( regService, "DebugLevel" );
-		if ( i != NULL ) {
-			slap_debug = *i;
+		ip = (int*)lutil_getRegParam( regService, "DebugLevel" );
+		if ( ip != NULL ) {
+			slap_debug = *ip;
 			Debug( LDAP_DEBUG_ANY,
 				"new debug level from registry is: %d\n", slap_debug, 0, 0 );
 		}
@@ -441,7 +441,7 @@ int main( int argc, char **argv )
 
 	while ( (i = getopt( argc, argv,
 			     "c:d:f:F:h:n:o:s:tT:V"
-#if LDAP_PF_INET6
+#ifdef LDAP_PF_INET6
 				"46"
 #endif
 #ifdef HAVE_CHROOT
@@ -532,7 +532,6 @@ int main( int argc, char **argv )
 		case 'o': {
 			char		*val = strchr( optarg, '=' );
 			struct berval	opt;
-			int		i;
 
 			opt.bv_val = optarg;
 			
@@ -676,6 +675,7 @@ unhandled_option:;
 		if ( version > 1 ) goto stop;
 	}
 
+#if defined(LDAP_DEBUG) && defined(LDAP_SYSLOG)
 	{
 		char *logName;
 #ifdef HAVE_EBCDIC
@@ -687,13 +687,14 @@ unhandled_option:;
 
 #ifdef LOG_LOCAL4
 		openlog( logName, OPENLOG_OPTIONS, syslogUser );
-#elif LOG_DEBUG
+#elif defined LOG_DEBUG
 		openlog( logName, OPENLOG_OPTIONS );
 #endif
 #ifdef HAVE_EBCDIC
 		free( logName );
 #endif
 	}
+#endif /* LDAP_DEBUG && LDAP_SYSLOG */
 
 	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
 
@@ -728,7 +729,6 @@ unhandled_option:;
 
 	extops_init();
 	lutil_passwd_init();
-	slap_op_init();
 
 #ifdef HAVE_TLS
 	rc = ldap_create( &slap_tls_ld );
@@ -959,8 +959,6 @@ destroy:
 	module_kill();
 #endif
 
-	slap_op_destroy();
-
 	extops_kill();
 
 	supported_feature_destroy();
@@ -992,7 +990,7 @@ stop:
 
 #ifdef HAVE_TLS
 	if ( slap_tls_ld ) {
-		SSL_CTX_free( slap_tls_ctx );
+		ldap_pvt_tls_ctx_free( slap_tls_ctx );
 		ldap_unbind_ext( slap_tls_ld, NULL, NULL );
 	}
 	ldap_pvt_tls_destroy();

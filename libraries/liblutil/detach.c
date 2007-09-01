@@ -56,7 +56,7 @@ lutil_detach( int debug, int do_close )
 
 #ifdef HAVE_SYSCONF
 	nbits = sysconf( _SC_OPEN_MAX );
-#elif HAVE_GETDTABLESIZE
+#elif defined(HAVE_GETDTABLESIZE)
 	nbits = getdtablesize();
 #else
 	nbits = FD_SETSIZE;
@@ -70,7 +70,7 @@ lutil_detach( int debug, int do_close )
 
 	if ( debug == 0 ) {
 		for ( i = 0; i < 5; i++ ) {
-#if HAVE_THR
+#ifdef HAVE_THR
 			switch ( fork1() )
 #else
 			switch ( fork() )

@@ -86,6 +86,11 @@ static ConfigTable bdbcfg[] = {
 		"( OLcfgDbAt:1.5 NAME 'olcDbDirtyRead' "
 		"DESC 'Allow reads of uncommitted data' "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "dncachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
+		(void *)offsetof(struct bdb_info, bi_cache.c_eimax),
+		"( OLcfgDbAt:1.12 NAME 'olcDbDNcacheSize' "
+			"DESC 'DN cache size' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "idlcachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info,bi_idl_cache_max_size),
 		"( OLcfgDbAt:1.6 NAME 'olcDbIDLcacheSize' "
@@ -140,7 +145,7 @@ static ConfigOCs bdbocs[] = {
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbShmKey $ "
-		"olcDbCacheFree ) )",
+		"olcDbCacheFree $ olcDbDNcacheSize ) )",
 		 	Cft_Database, bdbcfg },
 	{ NULL, 0, NULL }
 };
@@ -179,19 +184,20 @@ bdb_online_index( void *ctx, void *arg )
 
 	Connection conn = {0};
 	OperationBuffer opbuf;
-	Operation *op = (Operation *) &opbuf;
+	Operation *op;
 
 	DBC *curs;
 	DBT key, data;
 	DB_TXN *txn;
 	DB_LOCK lock;
-	u_int32_t locker;
+	BDB_LOCKER locker;
 	ID id, nid;
 	EntryInfo *ei;
 	int rc, getnext = 1;
 	int i;
 
-	connection_fake_init( &conn, op, ctx );
+	connection_fake_init( &conn, &opbuf, ctx );
+	op = &opbuf.ob_op;
 
 	op->o_bd = be;
 
@@ -319,9 +325,9 @@ bdb_cf_cleanup( ConfigArgs *c )
 	
 	if ( bdb->bi_flags & BDB_RE_OPEN ) {
 		bdb->bi_flags ^= BDB_RE_OPEN;
-		rc = c->be->bd_info->bi_db_close( c->be );
+		rc = c->be->bd_info->bi_db_close( c->be, NULL );
 		if ( rc == 0 )
-			rc = c->be->bd_info->bi_db_open( c->be );
+			rc = c->be->bd_info->bi_db_open( c->be, NULL );
 		/* If this fails, we need to restart */
 		if ( rc ) {
 			slapd_shutdown = 2;
@@ -472,7 +478,6 @@ bdb_cf_gen( ConfigArgs *c )
 			bdb->bi_db_config_path = NULL;
 			c->cleanup = bdb_cf_cleanup;
 			ldap_pvt_thread_pool_purgekey( bdb->bi_dbenv );
-			ldap_pvt_thread_pool_purgekey( ((char *)bdb->bi_dbenv) + 1 );
 			break;
 		case BDB_NOSYNC:
 			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC, 0 );

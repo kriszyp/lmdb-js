@@ -79,7 +79,8 @@ fi
 
 echo "Testing baseobject search..."
 echo "# Testing baseobject search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -s base >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -s base -S "" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -90,7 +91,8 @@ fi
 
 echo "Testing onelevel search..."
 echo "# Testing onelevel search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -s one >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -s one -S "" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -101,7 +103,8 @@ fi
 
 echo "Testing subtree search..."
 echo "# Testing subtree search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -112,7 +115,8 @@ fi
 
 echo "Testing subtree search with manageDSAit..."
 echo "# Testing subtree search with manageDSAit..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M '*' ref >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M -S "" '*' ref \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -123,8 +127,8 @@ fi
 
 echo "Testing invalid filter..."
 echo "# Testing invalid filter..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(foo=)" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" "(foo=)" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -135,8 +139,8 @@ fi
 
 echo "Testing exact search..."
 echo "# Testing exact search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(sn=Kovalev)" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" "(sn=Kovalev)" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -147,8 +151,8 @@ fi
 
 echo "Testing substrings initial search..."
 echo "# Testing substrings initial search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(cn=m*)" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" "(cn=m*)" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -159,8 +163,8 @@ fi
 
 echo "Testing substrings any search..."
 echo "# Testing substrings any search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(cn=*m*)" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" "(cn=*m*)" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -171,8 +175,8 @@ fi
 
 echo "Testing substrings final search..."
 echo "# Testing substrings final search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(cn=*v)" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" "(cn=*v)" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -183,8 +187,8 @@ fi
 
 echo "Testing approx search..."
 echo "# Testing approx search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(sn~=kovalev)" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" "(sn~=kovalev)" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -195,7 +199,7 @@ fi
 
 echo "Testing extensible filter search..."
 echo "# Testing extensible filter search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(sn:caseExactMatch:=Kovalev)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -207,7 +211,7 @@ fi
 
 echo "Testing search for telephoneNumber..."
 echo "# Testing search for telephoneNumber..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(telephoneNumber=3322334)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -219,7 +223,7 @@ fi
 
 echo "Testing AND search..."
 echo "# Testing AND search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(&(sn=kovalev)(givenName=mitya))" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -231,7 +235,7 @@ fi
 
 echo "Testing AND search on objectClass..."
 echo "# Testing AND search on objectClass..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(&(objectClass=organization)(objectClass=dcObject))" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -243,7 +247,7 @@ fi
 
 echo "Testing OR search..."
 echo "# Testing OR search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(|(sn=kovalev)(givenName=mitya))" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -255,8 +259,9 @@ fi
 
 echo "Testing OR search on objectClass..."
 echo "# Testing OR search on objectClass..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(|(objectClass=document)(objectClass=organization))" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
+	 "(|(objectClass=document)(objectClass=organization))" \
+	>> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -267,7 +272,7 @@ fi
 
 echo "Testing NOT search..."
 echo "# Testing NOT search..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 '(!(sn=kovalev))' >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -279,7 +284,7 @@ fi
 
 echo "Testing NOT search on objectClass..."
 echo "# Testing NOT search on objectClass..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 '(!(objectClass=inetOrgPerson))' >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -291,7 +296,7 @@ fi
 
 echo "Testing NOT search on \"auxiliary\" objectClass..."
 echo "# Testing NOT search on \"auxiliary\" objectClass..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 '(!(objectClass=dcObject))' >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -304,7 +309,7 @@ fi
 #### Needs work...
 echo "Testing NOT presence search... (disabled)"
 ###echo "# Testing NOT presence search..." >> $SEARCHOUT
-###$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+###$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 ###	 '(!(sn=*))' >> $SEARCHOUT 2>&1
 ###
 ###RC=$?
@@ -316,7 +321,7 @@ echo "Testing NOT presence search... (disabled)"
 
 echo "Testing attribute inheritance in filter..."
 echo "# Testing attribute inheritance in filter..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(name=example)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -329,7 +334,7 @@ fi
 # ITS#4604
 echo "Testing undefined attribute in filter..."
 echo "# Testing undefined attribute in filter..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(|(o=example)(foobar=x))" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -341,7 +346,7 @@ fi
 
 echo "Testing objectClass inheritance in filter..."
 echo "# Testing objectClass inheritance in filter..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(objectClass=person)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -353,7 +358,7 @@ fi
 
 echo "Testing \"auxiliary\" objectClass in filter..."
 echo "# Testing \"auxiliary\" objectClass in filter..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(objectClass=dcObject)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -365,7 +370,7 @@ fi
 
 echo "Testing hasSubordinates in filter..."
 echo "# Testing hasSubordinates in filter..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(hasSubordinates=TRUE)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -377,7 +382,7 @@ fi
 
 echo "Testing entryUUID in filter..."
 echo "# Testing entryUUID in filter..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(entryUUID=00000001-0000-0001-0000-000000000000)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -389,7 +394,7 @@ fi
 
 echo "Testing attribute inheritance in requested attributes..."
 echo "# Testing attribute inheritance in requested attributes..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 "(sn=kovalev)" name >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -401,7 +406,7 @@ fi
 
 echo "Testing objectClass in requested attributes..."
 echo "# Testing objectClass in requested attributes..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 objectClass >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -413,7 +418,7 @@ fi
 
 echo "Testing operational attributes in request..."
 echo "# Testing operational attributes in request..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -S "" \
 	 '+' 2>&1 > $SEARCHFLT
 
 RC=$?

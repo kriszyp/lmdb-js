@@ -54,14 +54,6 @@ int slap_freeself_cb( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-int slap_replog_cb( Operation *op, SlapReply *rs )
-{
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		replog( op );
-	}
-	return SLAP_CB_CONTINUE;
-}
-
 static char *v2ref( BerVarray ref, const char *text )
 {
 	size_t len = 0, i = 0;
@@ -247,7 +239,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 		if( rc == -1 ) return rc;
 	}
 
-#ifdef SLAP_SORTED_RESULTS
+#ifdef SLAP_CONTROL_X_SORTEDRESULTS
 	/* this is a hack to avoid having to modify op->s_ctrls */
 	if( o->o_sortedresults ) {
 		BerElementBuffer berbuf;
@@ -570,7 +562,7 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 	} else {
 		rs->sr_rspoid = LDAP_NOTICE_DISCONNECT;
 		rs->sr_tag = LDAP_RES_EXTENDED;
-		rs->sr_msgid = 0;
+		rs->sr_msgid = LDAP_RES_UNSOLICITED;
 	}
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {

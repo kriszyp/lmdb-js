@@ -35,7 +35,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {0};
 	int subentry;
-	u_int32_t	locker = 0, rlocker = 0;
+	BDB_LOCKER	locker = 0, rlocker = 0;
 	DB_LOCK		lock;
 
 	int		num_retries = 0;

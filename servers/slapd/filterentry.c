@@ -583,7 +583,7 @@ test_ava_filter(
 
 	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
 		MatchingRule *mr;
-		int rc, match;
+		int match;
 		const char *text;
 
 		if( type != LDAP_FILTER_EQUALITY &&
@@ -729,7 +729,7 @@ test_ava_filter(
 			} else 
 #endif
 			{
-				ret = value_match( &match, a->a_desc, mr, use,
+				ret = ordered_value_match( &match, a->a_desc, mr, use,
 					bv, &ava->aa_value, &text );
 			}
 

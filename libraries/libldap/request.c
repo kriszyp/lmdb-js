@@ -255,6 +255,19 @@ ldap_send_server_request(
 
 	use_connection( ld, lc );
 
+#ifdef LDAP_CONNECTIONLESS
+	if ( LDAP_IS_UDP( ld )) {
+		BerElement tmpber = *ber;
+		ber_rewind( &tmpber );
+		rc = ber_write( &tmpber, ld->ld_options.ldo_peer,
+			sizeof( struct sockaddr ), 0 );
+		if ( rc == -1 ) {
+			ld->ld_errno = LDAP_ENCODING_ERROR;
+			return rc;
+		}
+	}
+#endif
+
 	/* If we still have an incomplete write, try to finish it before
 	 * dealing with the new request. If we don't finish here, return
 	 * LDAP_BUSY and let the caller retry later. We only allow a single
@@ -377,11 +390,13 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 		async = LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_CONNECT_ASYNC );
 
 		for ( srvp = srvlist; *srvp != NULL; srvp = &(*srvp)->lud_next ) {
-			if ( ldap_int_open_connection( ld, lc, *srvp, async) != -1 )
-			{
+			int		rc;
+
+			rc = ldap_int_open_connection( ld, lc, *srvp, async );
+			if ( rc != -1 ) {
 				srv = *srvp;
 
-				if ( ld->ld_urllist_proc ) {
+				if ( ld->ld_urllist_proc && ( !async || rc != -2 ) ) {
 					ld->ld_urllist_proc( ld, srvlist, srvp, ld->ld_urllist_params );
 				}
 
@@ -465,7 +480,10 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 			++lc->lconn_refcnt;	/* avoid premature free */
 			ld->ld_defconn = lc;
 
-			Debug( LDAP_DEBUG_TRACE, "anonymous rebind via ldap_bind_s\n", 0, 0, 0);
+			Debug( LDAP_DEBUG_TRACE,
+				"anonymous rebind via ldap_sasl_bind(\"\")\n",
+				0, 0, 0);
+
 #ifdef LDAP_R_COMPILE
 			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 			ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
@@ -503,7 +521,13 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc **srvlist, int use_ldsb,
 						break;
 
 					default:
-						assert( 0 );
+						Debug( LDAP_DEBUG_TRACE,
+							"ldap_new_connection %p: "
+							"unexpected response %d "
+							"from BIND request id=%d\n",
+							(void *) ld, ldap_msgtype( res ), msgid );
+						err = -1;
+						break;
 					}
 				}
 			}
@@ -991,7 +1015,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				if ( lp == origreq ) {
 					lp = lp->lr_child;
 				} else {
-					lp = lr->lr_refnext;
+					lp = lp->lr_refnext;
 				}
 			}
 			if ( looped ) {

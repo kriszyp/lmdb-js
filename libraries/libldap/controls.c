@@ -51,6 +51,36 @@
  *	}
  */
 
+int
+ldap_pvt_put_control(
+	const LDAPControl *c,
+	BerElement *ber )
+{
+	if ( ber_printf( ber, "{s" /*}*/, c->ldctl_oid ) == -1 ) {
+		return LDAP_ENCODING_ERROR;
+	}
+
+	if ( c->ldctl_iscritical /* only if true */
+		&&  ( ber_printf( ber, "b",
+			(ber_int_t) c->ldctl_iscritical ) == -1 ) )
+	{
+		return LDAP_ENCODING_ERROR;
+	}
+
+	if ( !BER_BVISNULL( &c->ldctl_value ) /* only if we have a value */
+		&&  ( ber_printf( ber, "O", &c->ldctl_value ) == -1 ) )
+	{
+		return LDAP_ENCODING_ERROR;
+	}
+
+	if ( ber_printf( ber, /*{*/"N}" ) == -1 ) {
+		return LDAP_ENCODING_ERROR;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+
 /*
  * ldap_int_put_controls
  */
@@ -97,32 +127,8 @@ ldap_int_put_controls(
 	}
 
 	for( c = ctrls ; *c != NULL; c++ ) {
-		if ( ber_printf( ber, "{s" /*}*/,
-			(*c)->ldctl_oid ) == -1 )
-		{
-			ld->ld_errno = LDAP_ENCODING_ERROR;
-			return ld->ld_errno;
-		}
-
-		if( (*c)->ldctl_iscritical /* only if true */
-			&&  ( ber_printf( ber, "b",
-				(ber_int_t) (*c)->ldctl_iscritical ) == -1 ) )
-		{
-			ld->ld_errno = LDAP_ENCODING_ERROR;
-			return ld->ld_errno;
-		}
-
-		if( (*c)->ldctl_value.bv_val != NULL /* only if we have a value */
-			&&  ( ber_printf( ber, "O",
-				&((*c)->ldctl_value) ) == -1 ) )
-		{
-			ld->ld_errno = LDAP_ENCODING_ERROR;
-			return ld->ld_errno;
-		}
-
-
-		if( ber_printf( ber, /*{*/"N}" ) == -1 ) {
-			ld->ld_errno = LDAP_ENCODING_ERROR;
+		ld->ld_errno = ldap_pvt_put_control( *c, ber );
+		if ( ld->ld_errno != LDAP_SUCCESS ) {
 			return ld->ld_errno;
 		}
 	}
@@ -231,7 +237,7 @@ int ldap_pvt_get_controls(
 		if( tag == LBER_OCTETSTRING ) {
 			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
 		} else {
-			tctrl->ldctl_value.bv_val = NULL;
+			BER_BVZERO( &tctrl->ldctl_value );
 		}
 
 		*ctrls = tctrls;
@@ -246,9 +252,7 @@ int ldap_pvt_get_controls(
 void
 ldap_control_free( LDAPControl *c )
 {
-#ifdef LDAP_MEMORY_DEBUG
-	assert( c != NULL );
-#endif
+	LDAP_MEMORY_DEBUG_ASSERT( c != NULL );
 
 	if ( c != NULL ) {
 		if( c->ldctl_oid != NULL) {
@@ -269,9 +273,7 @@ ldap_control_free( LDAPControl *c )
 void
 ldap_controls_free( LDAPControl **controls )
 {
-#ifdef LDAP_MEMORY_DEBUG
-	assert( controls != NULL );
-#endif
+	LDAP_MEMORY_DEBUG_ASSERT( controls != NULL );
 
 	if ( controls != NULL ) {
 		int i;
@@ -354,6 +356,7 @@ ldap_control_dup( const LDAPControl *c )
 		}
 
 	} else {
+		/* FIXME: how can a control have null OID? */
 		new->ldctl_oid = NULL;
 	}
 
@@ -385,7 +388,9 @@ ldap_control_dup( const LDAPControl *c )
 	return new;
 }
 
-
+/*
+ * Find a LDAPControl - deprecated
+ */
 LDAPControl *
 ldap_find_control(
 	LDAP_CONST char *oid,
@@ -405,21 +410,38 @@ ldap_find_control(
 }
 
 /*
-   ldap_create_control
-   
-   Internal function to create an LDAP control from the encoded BerElement.
+ * Find a LDAPControl
+ */
+LDAPControl *
+ldap_control_find(
+	LDAP_CONST char *oid,
+	LDAPControl **ctrls,
+	LDAPControl ***nextctrlp )
+{
+	if ( oid == NULL || ctrls == NULL || *ctrls == NULL ) {
+		return NULL;
+	}
 
-   requestOID  (IN) The OID to use in creating the control.
-   
-   ber         (IN) The encoded BerElement to use in creating the control.
-   
-   iscritical  (IN) 0 - Indicates the control is not critical to the operation.
-					non-zero - The control is critical to the operation.
-				  
-   ctrlp      (OUT) Returns a pointer to the LDAPControl created.  This control
-					SHOULD be freed by calling ldap_control_free() when done.
----*/
+	for( ; *ctrls != NULL; ctrls++ ) {
+		if( strcmp( (*ctrls)->ldctl_oid, oid ) == 0 ) {
+			if ( nextctrlp != NULL ) {
+				*nextctrlp = ctrls + 1;
+			}
 
+			return *ctrls;
+		}
+	}
+
+	if ( nextctrlp != NULL ) {
+		*nextctrlp = NULL;
+	}
+
+	return NULL;
+}
+
+/*
+ * Create a LDAPControl, optionally from ber - deprecated
+ */
 int
 ldap_create_control(
 	LDAP_CONST char *requestOID,
@@ -430,7 +452,6 @@ ldap_create_control(
 	LDAPControl *ctrl;
 
 	assert( requestOID != NULL );
-	assert( ber != NULL );
 	assert( ctrlp != NULL );
 
 	ctrl = (LDAPControl *) LDAP_MALLOC( sizeof(LDAPControl) );
@@ -438,7 +459,8 @@ ldap_create_control(
 		return LDAP_NO_MEMORY;
 	}
 
-	if ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
+	BER_BVZERO(&ctrl->ldctl_value);
+	if ( ber && ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 )) {
 		LDAP_FREE( ctrl );
 		return LDAP_NO_MEMORY;
 	}
@@ -452,6 +474,54 @@ ldap_create_control(
 	}
 
 	*ctrlp = ctrl;
+	return LDAP_SUCCESS;
+}
+
+/*
+ * Create a LDAPControl, optionally from value
+ */
+int
+ldap_control_create(
+	LDAP_CONST char *requestOID,
+	int iscritical,
+	struct berval *value,
+	int dupval,
+	LDAPControl **ctrlp )
+{
+	LDAPControl *ctrl;
+
+	assert( requestOID != NULL );
+	assert( ctrlp != NULL );
+
+	ctrl = (LDAPControl *) LDAP_CALLOC( sizeof(LDAPControl), 1 );
+	if ( ctrl == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	ctrl->ldctl_iscritical = iscritical;
+	if ( requestOID != NULL ) {
+		ctrl->ldctl_oid = LDAP_STRDUP( requestOID );
+		if ( ctrl->ldctl_oid == NULL ) {
+			ldap_control_free( ctrl );
+			return LDAP_NO_MEMORY;
+		}
+	}
+
+	if ( value && !BER_BVISNULL( value ) ) {
+		if ( dupval ) {
+			ber_dupbv( &ctrl->ldctl_value, value );
+			if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+				ldap_control_free( ctrl );
+				return LDAP_NO_MEMORY;
+			}
+
+		} else {
+			ctrl->ldctl_value = *value;
+		}
+	}
+
+	*ctrlp = ctrl;
+
 	return LDAP_SUCCESS;
 }
 

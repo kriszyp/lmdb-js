@@ -52,14 +52,11 @@ int passwd_extop(
 	req_extended_s qext = op->oq_extended;
 	Modifications *ml;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
-	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
 	int i, nhash;
 	char **hashes;
 	int rc;
 	BackendDB *op_be;
 	int freenewpw = 0;
-
-	cb2.sc_next = &cb;
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
@@ -104,7 +101,7 @@ int passwd_extop(
 			rc = rs->sr_err;
 			goto error_return;
 		}
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 1 );
+		op->o_bd = select_backend( &op->o_req_ndn, 1 );
 
 	} else {
 		ber_dupbv_x( &op->o_req_dn, &op->o_dn, op->o_tmpmemctx );
@@ -139,7 +136,7 @@ int passwd_extop(
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
 
 	if (backend_check_restrictions( op, rs,
@@ -275,9 +272,11 @@ old_good:
 		slap_callback *sc = op->o_callback;
 
 		op->o_tag = LDAP_REQ_MODIFY;
-		op->o_callback = &cb2;
+		op->o_callback = &cb;
 		op->orm_modlist = qpw->rs_mods;
-		cb2.sc_private = qpw;	/* let Modify know this was pwdMod,
+		op->orm_no_opattrs = 0;
+		
+		cb.sc_private = qpw;	/* let Modify know this was pwdMod,
 					 * if it cares... */
 
 		rs->sr_err = op->o_bd->be_modify( op, rs );

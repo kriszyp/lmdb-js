@@ -659,6 +659,7 @@ again:
 		} else {
 			cf.f_choice = LDAP_FILTER_LE;
 			fop.ors_limit = &fc_limits;
+			memset( &fc_limits, 0, sizeof( fc_limits ));
 			fc_limits.lms_s_unchecked = 1;
 			fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
 				cf.f_av_value.bv_val );
@@ -896,11 +897,11 @@ syncprov_qtask( void *ctx, void *arg )
 	BackendDB be;
 	int rc;
 
-	op = (Operation *) &opbuf;
+	op = &opbuf.ob_op;
 	*op = *so->s_op;
-	op->o_hdr = (Opheader *)(op+1);
-	op->o_controls = (void **)(op->o_hdr+1);
-	memset( op->o_controls, 0, SLAP_MAX_CIDS * sizeof(void *));
+	op->o_hdr = &opbuf.ob_hdr;
+	op->o_controls = opbuf.ob_controls;
+	memset( op->o_controls, 0, sizeof(opbuf.ob_controls) );
 
 	*op->o_hdr = *so->s_op->o_hdr;
 
@@ -1030,7 +1031,7 @@ syncprov_drop_psearch( syncops *so, int lock )
 			ldap_pvt_thread_mutex_lock( &so->s_op->o_conn->c_mutex );
 		so->s_op->o_conn->c_n_ops_executing--;
 		so->s_op->o_conn->c_n_ops_completed++;
-		LDAP_STAILQ_REMOVE( &so->s_op->o_conn->c_ops, so->s_op, slap_op,
+		LDAP_STAILQ_REMOVE( &so->s_op->o_conn->c_ops, so->s_op, Operation,
 			o_next );
 		if ( lock )
 			ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
@@ -1284,7 +1285,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 static void
 syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 {
-    syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
+	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 	Modifications mod;
 	Operation opm;
 	SlapReply rsm = { 0 };
@@ -1307,10 +1308,12 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.o_req_ndn = op->o_bd->be_nsuffix[0];
 	opm.o_bd->bd_info = on->on_info->oi_orig;
 	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
+	opm.o_no_schema_check = 1;
 	opm.o_bd->be_modify( &opm, &rsm );
 	if ( mod.sml_next != NULL ) {
 		slap_mods_free( mod.sml_next, 1 );
 	}
+	opm.orm_no_opattrs = 0;
 }
 
 static void
@@ -1810,9 +1813,17 @@ syncprov_search_cleanup( Operation *op, SlapReply *rs )
 	return 0;
 }
 
+typedef struct SyncOperationBuffer {
+	Operation		sob_op;
+	Opheader		sob_hdr;
+	AttributeName	sob_extra;	/* not always present */
+	/* Further data allocated here */
+} SyncOperationBuffer;
+
 static void
 syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 {
+	SyncOperationBuffer *sopbuf2;
 	Operation *op2;
 	int i, alen = 0;
 	size_t size;
@@ -1824,14 +1835,15 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 		alen += op->ors_attrs[i].an_name.bv_len + 1;
 	}
 	/* Make a new copy of the operation */
-	size = sizeof(Operation) + sizeof(Opheader) +
+	size = offsetof( SyncOperationBuffer, sob_extra ) +
 		(i ? ( (i+1) * sizeof(AttributeName) + alen) : 0) +
 		op->o_req_dn.bv_len + 1 +
 		op->o_req_ndn.bv_len + 1 +
 		op->o_ndn.bv_len + 1 +
 		so->s_filterstr.bv_len + 1;
-	op2 = (Operation *)ch_calloc( 1, size );
-	op2->o_hdr = (Opheader *)(op2+1);
+	sopbuf2 = ch_calloc( 1, size );
+	op2 = &sopbuf2->sob_op;
+	op2->o_hdr = &sopbuf2->sob_hdr;
 
 	/* Copy the fields we care about explicitly, leave the rest alone */
 	*op2->o_hdr = *op->o_hdr;
@@ -1841,18 +1853,18 @@ syncprov_detach_op( Operation *op, syncops *so, slap_overinst *on )
 	op2->o_request = op->o_request;
 	op2->o_private = on;
 
+	ptr = (char *) sopbuf2 + offsetof( SyncOperationBuffer, sob_extra );
 	if ( i ) {
-		op2->ors_attrs = (AttributeName *)(op2->o_hdr + 1);
-		ptr = (char *)(op2->ors_attrs+i+1);
+		op2->ors_attrs = (AttributeName *) ptr;
+		ptr = (char *) &op2->ors_attrs[i+1];
 		for (i=0; !BER_BVISNULL( &op->ors_attrs[i].an_name ); i++) {
 			op2->ors_attrs[i] = op->ors_attrs[i];
 			op2->ors_attrs[i].an_name.bv_val = ptr;
 			ptr = lutil_strcopy( ptr, op->ors_attrs[i].an_name.bv_val ) + 1;
 		}
 		BER_BVZERO( &op2->ors_attrs[i].an_name );
-	} else {
-		ptr = (char *)(op2->o_hdr + 1);
 	}
+
 	op2->o_authz = op->o_authz;
 	op2->o_ndn.bv_val = ptr;
 	ptr = lutil_strcopy(ptr, op->o_ndn.bv_val) + 1;
@@ -2296,10 +2308,15 @@ syncprov_operational(
 						a = attr_find( rs->sr_entry->e_attrs,
 							slap_schema.si_ad_contextCSN );
 					}
-					free( a->a_vals );
+					if ( a->a_nvals != a->a_vals ) {
+						ber_bvarray_free( a->a_nvals );
+					}
+					a->a_nvals = NULL;
+					ber_bvarray_free( a->a_vals );
+					a->a_vals = NULL;
 				}
 				ber_bvarray_dup_x( &a->a_vals, si->si_ctxcsn, NULL );
-				a->a_nvals = a->a_vals;
+				ber_bvarray_dup_x( &a->a_nvals, si->si_ctxcsn, NULL );
 			}
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
@@ -2358,9 +2375,9 @@ sp_cf_gen(ConfigArgs *c)
 		case SP_CHKPT:
 			if ( si->si_chkops || si->si_chktime ) {
 				struct berval bv;
-				bv.bv_len = sprintf( c->msg, "%d %d",
+				bv.bv_len = sprintf( c->cr_msg, "%d %d",
 					si->si_chkops, si->si_chktime );
-				bv.bv_val = c->msg;
+				bv.bv_val = c->cr_msg;
 				value_add_one( &c->rvalue_vals, &bv );
 			} else {
 				rc = 1;
@@ -2419,31 +2436,31 @@ sp_cf_gen(ConfigArgs *c)
 	switch ( c->type ) {
 	case SP_CHKPT:
 		if ( lutil_atoi( &si->si_chkops, c->argv[1] ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s unable to parse checkpoint ops # \"%s\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s unable to parse checkpoint ops # \"%s\"",
 				c->argv[0], c->argv[1] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		if ( si->si_chkops <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s invalid checkpoint ops # \"%d\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid checkpoint ops # \"%d\"",
 				c->argv[0], si->si_chkops );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		if ( lutil_atoi( &si->si_chktime, c->argv[2] ) != 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s unable to parse checkpoint time \"%s\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s unable to parse checkpoint time \"%s\"",
 				c->argv[0], c->argv[1] );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		if ( si->si_chktime <= 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s invalid checkpoint time \"%d\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s invalid checkpoint time \"%d\"",
 				c->argv[0], si->si_chkops );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		si->si_chktime *= 60;
@@ -2453,10 +2470,10 @@ sp_cf_gen(ConfigArgs *c)
 		int size = c->value_int;
 
 		if ( size < 0 ) {
-			snprintf( c->msg, sizeof( c->msg ), "%s size %d is negative",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s size %d is negative",
 				c->argv[0], size );
 			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-				"%s: %s\n", c->log, c->msg, 0 );
+				"%s: %s\n", c->log, c->cr_msg, 0 );
 			return ARG_BAD_CONF;
 		}
 		sl = si->si_logs;
@@ -2500,15 +2517,16 @@ syncprov_db_otask(
  */
 static int
 syncprov_db_open(
-    BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
 	slap_overinst   *on = (slap_overinst *) be->bd_info;
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 
 	Connection conn = { 0 };
-	OperationBuffer opbuf = { 0 };
-	Operation *op = (Operation *) &opbuf;
+	OperationBuffer opbuf;
+	Operation *op;
 	Entry *e = NULL;
 	Attribute *a;
 	int rc;
@@ -2530,7 +2548,8 @@ syncprov_db_open(
 	}
 
 	thrctx = ldap_pvt_thread_pool_context();
-	connection_fake_init( &conn, op, thrctx );
+	connection_fake_init( &conn, &opbuf, thrctx );
+	op = &opbuf.ob_op;
 	op->o_bd = be;
 	op->o_dn = be->be_rootdn;
 	op->o_ndn = be->be_rootndn;
@@ -2592,7 +2611,8 @@ out:
  */
 static int
 syncprov_db_close(
-    BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
     slap_overinst   *on = (slap_overinst *) be->bd_info;
@@ -2602,14 +2622,15 @@ syncprov_db_close(
 		return 0;
 	}
 	if ( si->si_numops ) {
-		Connection conn;
+		Connection conn = {0};
 		OperationBuffer opbuf;
-		Operation *op = (Operation *) &opbuf;
+		Operation *op;
 		SlapReply rs = {REP_RESULT};
 		void *thrctx;
 
 		thrctx = ldap_pvt_thread_pool_context();
-		connection_fake_init( &conn, op, thrctx );
+		connection_fake_init( &conn, &opbuf, thrctx );
+		op = &opbuf.ob_op;
 		op->o_bd = be;
 		op->o_dn = be->be_rootdn;
 		op->o_ndn = be->be_rootndn;
@@ -2621,7 +2642,8 @@ syncprov_db_close(
 
 static int
 syncprov_db_init(
-	BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
@@ -2653,7 +2675,8 @@ syncprov_db_init(
 
 static int
 syncprov_db_destroy(
-	BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
@@ -2708,8 +2731,13 @@ static int syncprov_parseCtrl (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "Sync control value is absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
-		rs->sr_text = "Sync control value is empty (or absent)";
+		rs->sr_text = "Sync control value is empty";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -2767,8 +2795,8 @@ static int syncprov_parseCtrl (
 	sr->sr_rhint = rhint;
 	if (!BER_BVISNULL(&cookie)) {
 		ber_dupbv_x( &sr->sr_state.octet_str, &cookie, op->o_tmpmemctx );
-		slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx );
-		if ( sr->sr_state.rid == -1 ) {
+		if ( slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx ) ||
+			sr->sr_state.rid == -1 ) {
 			rs->sr_text = "Sync control : cookie parsing error";
 			return LDAP_PROTOCOL_ERROR;
 		}

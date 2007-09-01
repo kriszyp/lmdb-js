@@ -326,7 +326,7 @@ ldap_back_int_filter_map_rewrite(
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ber_memfree( vtmp.bv_val );
 		break;
@@ -343,7 +343,7 @@ ldap_back_int_filter_map_rewrite(
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ber_memfree( vtmp.bv_val );
 		break;
@@ -360,7 +360,7 @@ ldap_back_int_filter_map_rewrite(
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ber_memfree( vtmp.bv_val );
 		break;
@@ -377,7 +377,7 @@ ldap_back_int_filter_map_rewrite(
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ber_memfree( vtmp.bv_val );
 		break;
@@ -407,7 +407,7 @@ ldap_back_int_filter_map_rewrite(
 
 			snprintf( &fstr->bv_val[len - 2], vtmp.bv_len + 3,
 				/* "(attr=" */ "%s*)",
-				vtmp.bv_val );
+				vtmp.bv_len ? vtmp.bv_val : "" );
 
 			ber_memfree( vtmp.bv_val );
 		}
@@ -422,7 +422,7 @@ ldap_back_int_filter_map_rewrite(
 
 				snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
-					vtmp.bv_val );
+					vtmp.bv_len ? vtmp.bv_val : "" );
 				ber_memfree( vtmp.bv_val );
 			}
 		}
@@ -437,7 +437,7 @@ ldap_back_int_filter_map_rewrite(
 
 			snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
 				/* "(attr=[init*][any*]" */ "%s)",
-				vtmp.bv_val );
+				vtmp.bv_len ? vtmp.bv_val : "" );
 
 			ber_memfree( vtmp.bv_val );
 		}
@@ -482,7 +482,7 @@ ldap_back_int_filter_map_rewrite(
 			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
 
 			snprintf( &fstr->bv_val[len-1], vtmp.bv_len + 2, 
-				/*"("*/ "%s)", vtmp.bv_val );
+				/*"("*/ "%s)", vtmp.bv_len ? vtmp.bv_val : "" );
 
 			ch_free( vtmp.bv_val );
 		}
@@ -514,7 +514,7 @@ ldap_back_int_filter_map_rewrite(
 			f->f_mr_dnattrs ? ":dn" : "",
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? ":" : "",
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_val : "",
-			vtmp.bv_val );
+			vtmp.bv_len ? vtmp.bv_val : "" );
 		ber_memfree( vtmp.bv_val );
 		break;
 

@@ -943,7 +943,7 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 }
 
 static int
-smbk5pwd_db_init(BackendDB *be)
+smbk5pwd_db_init(BackendDB *be, ConfigReply *cr)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	smbk5pwd_t	*pi;
@@ -958,7 +958,7 @@ smbk5pwd_db_init(BackendDB *be)
 }
 
 static int
-smbk5pwd_db_open(BackendDB *be)
+smbk5pwd_db_open(BackendDB *be, ConfigReply *cr)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	smbk5pwd_t	*pi = (smbk5pwd_t *)on->on_bi.bi_private;
@@ -978,7 +978,7 @@ smbk5pwd_db_open(BackendDB *be)
 }
 
 static int
-smbk5pwd_db_destroy(BackendDB *be)
+smbk5pwd_db_destroy(BackendDB *be, ConfigReply *cr)
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	smbk5pwd_t	*pi = (smbk5pwd_t *)on->on_bi.bi_private;

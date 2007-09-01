@@ -34,7 +34,7 @@ bdb_dn2entry(
 	struct berval *dn,
 	EntryInfo **e,
 	int matched,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = NULL;

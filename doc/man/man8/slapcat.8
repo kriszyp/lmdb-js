@@ -134,10 +134,18 @@ option is given.
 .B \-v
 Enable verbose mode.
 .SH LIMITATIONS
-In general, your
+For some backend types, your
 .BR slapd (8)
 should not be running (at least, not in read-write
-mode) when you do this to ensure consistency of the database.
+mode) when you do this to ensure consistency of the database. It is
+always safe to run 
+.B slapcat
+with the
+.BR slapd-bdb (5),
+.BR slapd-hdb (5),
+and
+.BR slapd-null (5)
+backends.
 .SH EXAMPLES
 To make a text backup of your SLAPD database and put it in a file called
 .BR ldif ,

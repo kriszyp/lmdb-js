@@ -32,19 +32,37 @@ bdb_bind( Operation *op, SlapReply *rs )
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
-	u_int32_t	locker;
+	BDB_LOCKER	locker;
 	DB_LOCK		lock;
 
 	Debug( LDAP_DEBUG_ARGS,
 		"==> " LDAP_XSTRING(bdb_bind) ": dn: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 
+#ifdef LDAP_DEVEL
 	/* allow noauth binds */
-	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op )) {
-		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
-		/* front end will send result */
-		return LDAP_SUCCESS;
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		/* in case of success, frontend will send result;
+		 * otherwise, be_rootdn_bind() did */
+		return rs->sr_err;
 	}
+
+#else /* traditional */
+	/* allow noauth binds */
+	switch ( be_rootdn_bind( op, NULL ) ) {
+	case LDAP_SUCCESS:
+		/* frontend will send result */
+		return rs->sr_err;
+
+	default:
+		/* give the database a chanche */
+		break;
+	}
+#endif /* traditional */
 
 	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);
 	switch(rs->sr_err) {

@@ -24,6 +24,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "config.h"
 
 struct null_info {
 	int	ni_bind_allowed;
@@ -65,6 +66,20 @@ null_back_false( Operation *op, SlapReply *rs )
 	rs->sr_err = LDAP_COMPARE_FALSE;
 	send_ldap_result( op, rs );
 	return 0;
+}
+
+
+/* for overlays */
+int null_back_entry_get(
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **ent )
+{
+	*ent = NULL;
+	return 1;
 }
 
 
@@ -146,7 +161,7 @@ null_back_db_config(
 }
 
 static int
-null_back_db_init( BackendDB *be )
+null_back_db_init( BackendDB *be, ConfigReply *cr )
 {
 	struct null_info *ni = ch_calloc( 1, sizeof(struct null_info) );
 	ni->ni_bind_allowed = 0;
@@ -156,7 +171,7 @@ null_back_db_init( BackendDB *be )
 }
 
 static int
-null_back_db_destroy( Backend *be )
+null_back_db_destroy( Backend *be, ConfigReply *cr )
 {
 	free( be->be_private );
 	return 0;
@@ -193,6 +208,8 @@ null_back_initialize( BackendInfo *bi )
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_entry_get_rw = null_back_entry_get;
 
 	bi->bi_tool_entry_open = null_tool_entry_open;
 	bi->bi_tool_entry_close = null_tool_entry_close;

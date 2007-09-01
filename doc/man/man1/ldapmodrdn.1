@@ -9,6 +9,8 @@ ldapmodrdn \- LDAP rename entry tool
 [\c
 .BR \-r ]
 [\c
+.BI \-s \ newsup\fR]
+[\c
 .BR \-n ]
 [\c
 .BR \-v ]
@@ -73,6 +75,10 @@ option, or from the command-line pair \fIdn\fP and
 .TP
 .B \-r
 Remove old RDN values from the entry.  Default is to keep old values.
+.TP
+.BI \-s \ newsup
+Specify a new superior entry. (I.e., move the target entry and make it a
+child of the new superior.)  This option is not supported in LDAPv2.
 .TP
 .B \-n
 Show what would be done, but don't actually change entries.  Useful for

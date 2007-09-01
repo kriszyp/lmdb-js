@@ -120,20 +120,37 @@ slap_sync_cookie_free(
 }
 
 int
-slap_parse_csn_sid( struct berval *csn )
+slap_parse_csn_sid( struct berval *csnp )
 {
 	char *p, *q;
+	struct berval csn = *csnp;
 	int i;
 
-	p = memchr( csn->bv_val, '#', csn->bv_len );
-	if ( p )
-		p = strchr( p+1, '#' );
+	p = ber_bvchr( &csn, '#' );
 	if ( !p )
 		return -1;
 	p++;
-	i = strtoul( p, &q, 10 );
-	if ( p == q || i > SLAP_SYNC_SID_MAX )
+	csn.bv_len -= p - csn.bv_val;
+	csn.bv_val = p;
+
+	p = ber_bvchr( &csn, '#' );
+	if ( !p )
+		return -1;
+	p++;
+	csn.bv_len -= p - csn.bv_val;
+	csn.bv_val = p;
+
+	q = ber_bvchr( &csn, '#' );
+	if ( !q )
+		return -1;
+
+	csn.bv_len = q - p;
+
+	i = (int)strtoul( p, &q, 16 );
+	if ( p == q || q != p + csn.bv_len || i > SLAP_SYNC_SID_MAX ) {
 		i = -1;
+	}
+
 	return i;
 }
 
@@ -141,7 +158,6 @@ int *
 slap_parse_csn_sids( BerVarray csns, int numcsns, void *memctx )
 {
 	int i, *ret;
-	char *p, *q;
 
 	ret = slap_sl_malloc( numcsns * sizeof(int), memctx );
 	for ( i=0; i<numcsns; i++ ) {
@@ -158,7 +174,6 @@ slap_parse_sync_cookie(
 {
 	char *csn_ptr;
 	char *csn_str;
-	int csn_str_len;
 	char *rid_ptr;
 	char *cval;
 	char *next, *end;
@@ -182,7 +197,10 @@ slap_parse_sync_cookie(
 		if ( !strncmp( next, "rid=", STRLENOF("rid=") )) {
 			rid_ptr = next;
 			cookie->rid = strtoul( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );
-			if ( next == rid_ptr || next > end || *next != ',' ) {
+			if ( next == rid_ptr ||
+				next > end ||
+				( *next && *next != ',' ) )
+			{
 				return -1;
 			}
 			if ( *next == ',' ) {
@@ -196,7 +214,10 @@ slap_parse_sync_cookie(
 		if ( !strncmp( next, "sid=", STRLENOF("sid=") )) {
 			rid_ptr = next;
 			cookie->sid = strtoul( &rid_ptr[ STRLENOF( "sid=" ) ], &next, 16 );
-			if ( next == rid_ptr || next > end || *next != ',' ) {
+			if ( next == rid_ptr ||
+				next > end ||
+				( *next && *next != ',' ) )
+			{
 				return -1;
 			}
 			if ( *next == ',' ) {

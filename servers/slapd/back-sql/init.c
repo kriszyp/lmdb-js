@@ -27,6 +27,7 @@
 #include "ac/string.h"
 
 #include "slap.h"
+#include "config.h"
 #include "proto-sql.h"
 
 int
@@ -37,9 +38,10 @@ sql_back_initialize(
 		LDAP_CONTROL_ASSERT,
 		LDAP_CONTROL_MANAGEDSAIT,
 		LDAP_CONTROL_NOOP,
-#if 0 /* SLAP_CONTROL_X_TREE_DELETE */
+#ifdef SLAP_CONTROL_X_TREE_DELETE
 		SLAP_CONTROL_X_TREE_DELETE,
 #endif /* SLAP_CONTROL_X_TREE_DELETE */
+		LDAP_CONTROL_PAGEDRESULTS,
 		NULL
 	};
 
@@ -75,7 +77,6 @@ sql_back_initialize(
 	bi->bi_entry_release_rw = backsql_entry_release;
  
 	bi->bi_connection_init = 0;
-	bi->bi_connection_destroy = backsql_connection_destroy;
 
 	Debug( LDAP_DEBUG_TRACE,"<==sql_back_initialize()\n", 0, 0, 0 );
 	return 0;
@@ -92,7 +93,8 @@ backsql_destroy(
 
 int
 backsql_db_init(
-	BackendDB 	*bd )
+	BackendDB 	*bd,
+	ConfigReply	*cr )
 {
 	backsql_info	*bi;
 	int		rc = 0;
@@ -116,19 +118,16 @@ backsql_db_init(
 
 int
 backsql_db_destroy(
-	BackendDB 	*bd )
+	BackendDB 	*bd,
+	ConfigReply	*cr )
 {
 	backsql_info	*bi = (backsql_info*)bd->be_private;
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_destroy()\n", 0, 0, 0 );
 
-	ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
 	backsql_free_db_env( bi );
-	ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
 	ldap_pvt_thread_mutex_destroy( &bi->sql_dbconn_mutex );
-	ldap_pvt_thread_mutex_lock( &bi->sql_schema_mutex );
 	backsql_destroy_schema_map( bi );
-	ldap_pvt_thread_mutex_unlock( &bi->sql_schema_mutex );
 	ldap_pvt_thread_mutex_destroy( &bi->sql_schema_mutex );
 
 	if ( bi->sql_dbname ) {
@@ -156,6 +155,9 @@ backsql_db_destroy(
 	}
 	if ( !BER_BVISNULL( &bi->sql_children_cond ) ) {
 		ch_free( bi->sql_children_cond.bv_val );
+	}
+	if ( !BER_BVISNULL( &bi->sql_dn_match_cond ) ) {
+		ch_free( bi->sql_dn_match_cond.bv_val );
 	}
 	if ( !BER_BVISNULL( &bi->sql_subtree_cond ) ) {
 		ch_free( bi->sql_subtree_cond.bv_val );
@@ -216,15 +218,18 @@ backsql_db_destroy(
 
 int
 backsql_db_open(
-	BackendDB 	*bd )
+	BackendDB 	*bd,
+	ConfigReply	*cr )
 {
 	backsql_info 	*bi = (backsql_info*)bd->be_private;
-	SQLHDBC 	dbh = SQL_NULL_HDBC;
 	struct berbuf	bb = BB_NULL;
 
-	OperationBuffer	opbuf;
-	Operation*	op = (Operation *) &opbuf;
-	
+	Connection	conn = { 0 };
+	OperationBuffer opbuf;
+	Operation*	op;
+	SQLHDBC		dbh = SQL_NULL_HDBC;
+	void		*thrctx = ldap_pvt_thread_pool_context();
+
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_open(): "
 		"testing RDBMS connection\n", 0, 0, 0 );
 	if ( bi->sql_dbname == NULL ) {
@@ -315,18 +320,20 @@ backsql_db_open(
 		};
 		struct berbuf	bb = BB_NULL;
 
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"subtree search SQL condition not specified "
+			"(use \"subtree_cond\" directive in slapd.conf); "
+			"preparing default\n", 
+			0, 0, 0);
+
 		if ( backsql_prepare_pattern( bi->sql_concat_func, values, 
 				&concat ) ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-				"unable to prepare CONCAT pattern", 0, 0, 0 );
+				"unable to prepare CONCAT pattern for subtree search",
+				0, 0, 0 );
 			return 1;
 		}
 			
-		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"subtree search SQL condition not specified "
-			"(use \"subtree_cond\" directive in slapd.conf)\n", 
-			0, 0, 0);
-
 		if ( bi->sql_upper_func.bv_val ) {
 
 			/*
@@ -358,25 +365,48 @@ backsql_db_open(
 		bi->sql_subtree_cond = bb.bb_val;
 			
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting \"%s\" as default\n",
+			"setting \"%s\" as default \"subtree_cond\"\n",
 			bi->sql_subtree_cond.bv_val, 0, 0 );
 	}
 
 	if ( bi->sql_children_cond.bv_val == NULL ) {
+		/*
+		 * Prepare concat function for children search condition
+		 */
+		struct berval	concat;
+		struct berval	values[] = {
+			BER_BVC( "'%,'" ),
+			BER_BVC( "?" ),
+			BER_BVNULL
+		};
 		struct berbuf	bb = BB_NULL;
 
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"children search SQL condition not specified "
+			"(use \"children_cond\" directive in slapd.conf); "
+			"preparing default\n", 
+			0, 0, 0);
+
+		if ( backsql_prepare_pattern( bi->sql_concat_func, values, 
+				&concat ) ) {
+			Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+				"unable to prepare CONCAT pattern for children search", 0, 0, 0 );
+			return 1;
+		}
+			
 		if ( bi->sql_upper_func.bv_val ) {
 
 			/*
 			 * UPPER(ldap_entries.dn) LIKE UPPER(CONCAT('%,',?))
 			 */
 
-			backsql_strfcat_x( &bb, NULL, "blbl",
+			backsql_strfcat_x( &bb, NULL, "blbbb",
 					&bi->sql_upper_func,
-					(ber_len_t)STRLENOF( "(ldap_entries.dn)=" ),
-						"(ldap_entries.dn)=",
-					&bi->sql_upper_func,
-					(ber_len_t)STRLENOF( "(?)" ), "(?)" );
+					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE " ),
+						"(ldap_entries.dn) LIKE ",
+					&bi->sql_upper_func_open,
+					&concat,
+					&bi->sql_upper_func_close );
 
 		} else {
 
@@ -384,16 +414,63 @@ backsql_db_open(
 			 * ldap_entries.dn LIKE CONCAT('%,',?)
 			 */
 
-			backsql_strfcat_x( &bb, NULL, "l",
-					(ber_len_t)STRLENOF( "ldap_entries.dn=?" ),
-						"ldap_entries.dn=?");
+			backsql_strfcat_x( &bb, NULL, "lb",
+					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE " ),
+						"ldap_entries.dn LIKE ",
+					&concat );
 		}
+
+		ch_free( concat.bv_val );
 
 		bi->sql_children_cond = bb.bb_val;
 			
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting \"%s\" as default\n",
+			"setting \"%s\" as default \"children_cond\"\n",
 			bi->sql_children_cond.bv_val, 0, 0 );
+	}
+
+	if ( bi->sql_dn_match_cond.bv_val == NULL ) {
+		/*
+		 * Prepare concat function for dn match search condition
+		 */
+		struct berbuf	bb = BB_NULL;
+
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"DN match search SQL condition not specified "
+			"(use \"dn_match_cond\" directive in slapd.conf); "
+			"preparing default\n", 
+			0, 0, 0);
+
+		if ( bi->sql_upper_func.bv_val ) {
+
+			/*
+			 * UPPER(ldap_entries.dn)=?
+			 */
+
+			backsql_strfcat_x( &bb, NULL, "blbcb",
+					&bi->sql_upper_func,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn)=" ),
+						"(ldap_entries.dn)=",
+					&bi->sql_upper_func_open,
+					'?',
+					&bi->sql_upper_func_close );
+
+		} else {
+
+			/*
+			 * ldap_entries.dn=?
+			 */
+
+			backsql_strfcat_x( &bb, NULL, "l",
+					(ber_len_t)STRLENOF( "ldap_entries.dn=?" ),
+						"ldap_entries.dn=?" );
+		}
+
+		bi->sql_dn_match_cond = bb.bb_val;
+			
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting \"%s\" as default \"dn_match_cond\"\n",
+			bi->sql_dn_match_cond.bv_val, 0, 0 );
 	}
 
 	if ( bi->sql_oc_query == NULL ) {
@@ -469,16 +546,20 @@ backsql_db_open(
 	}
 
 	/* This should just be to force schema loading */
-	op->o_hdr = (Opheader *)&op[ 1 ];
-	op->o_connid = (unsigned long)(-1);
+	connection_fake_init( &conn, &opbuf, thrctx );
+	op = &opbuf.ob_op;
 	op->o_bd = bd;
 	if ( backsql_get_db_conn( op, &dbh ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"connection failed, exiting\n", 0, 0, 0 );
 		return 1;
 	}
-
-	if ( backsql_free_db_conn( op ) != SQL_SUCCESS ) {
+	if ( backsql_load_schema_map( bi, dbh ) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"schema mapping failed, exiting\n", 0, 0, 0 );
+		return 1;
+	}
+	if ( backsql_free_db_conn( op, dbh ) != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"connection free failed\n", 0, 0, 0 );
 	}
@@ -522,7 +603,7 @@ backsql_db_open(
 	}
 
 	/*
-	 * Prepare children ID selection query
+	 * Prepare children count query
 	 */
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
@@ -531,7 +612,7 @@ backsql_db_open(
 			"FROM ldap_entries,ldap_entries ",
 			&bi->sql_aliasing, "subordinates "
 			"WHERE subordinates.parent=ldap_entries.id AND ",
-			&bi->sql_children_cond );
+			&bi->sql_dn_match_cond );
 	bi->sql_has_children_query = bb.bb_val.bv_val;
  
 	/*
@@ -563,7 +644,8 @@ backsql_db_open(
 
 int
 backsql_db_close(
-	BackendDB	*bd )
+	BackendDB	*bd,
+	ConfigReply	*cr )
 {
 	backsql_info 	*bi = (backsql_info*)bd->be_private;
 
@@ -572,23 +654,6 @@ backsql_db_close(
 	backsql_conn_destroy( bi );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_close()\n", 0, 0, 0 );
-
-	return 0;
-}
-
-int
-backsql_connection_destroy( Backend *bd, Connection *c )
-{
-	OperationBuffer opbuf;
-	Operation*	op = (Operation *) &opbuf;
-
-	op->o_hdr = (Opheader *)&op[ 1 ];
-	op->o_connid = c->c_connid;
-	op->o_bd = bd;
-
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_connection_destroy()\n", 0, 0, 0 );
-	backsql_free_db_conn( op );
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_connection_destroy()\n", 0, 0, 0 );
 
 	return 0;
 }

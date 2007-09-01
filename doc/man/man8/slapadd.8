@@ -8,15 +8,17 @@ slapadd \- Add entries to a SLAPD database
 .B SBINDIR/slapadd
 .B [\-b suffix]
 .B [\-c]
-.B [\-g]
 .B [\-d level]
 .B [\-f slapd.conf]
 .B [\-F confdir]
+.B [\-g]
 .B [\-j lineno]
 .B [\-l ldif-file]
 .B [\-n dbnum]
 .B [\-o name[=value]
 .B [\-q]
+.B [\-s]
+.B [\-S SID]
 .B [\-u]
 .B [\-v]
 .B [\-w]
@@ -117,6 +119,10 @@ disable schema checking.  This option is intended to be used when loading
 databases containing special objects, such as fractional objects on a
 partial replica.  Loading normal objects which do not conform to
 schema may result in unexpected and ill behavior.
+.TP
+.B \-S " SID"
+Server ID to use in generated entryCSN.  Also used for contextCSN
+if `\-w' is set as well.  Defaults to 0.
 .TP
 .B \-u
 enable dry-run (don't write to backend) mode.

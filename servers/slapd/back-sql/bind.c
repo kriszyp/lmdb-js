@@ -40,27 +40,20 @@ backsql_bind( Operation *op, SlapReply *rs )
  
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_bind()\n", 0, 0, 0 );
 
-	if ( be_isroot_pw( op ) ) {
-     		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_bind() root bind\n", 
-				0, 0, 0 );
-		return LDAP_SUCCESS;
-	}
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
 
-	ber_dupbv( &op->oq_bind.rb_edn, &op->o_req_ndn );
-
-	if ( op->oq_bind.rb_method != LDAP_AUTH_SIMPLE ) {
-		rs->sr_err = LDAP_STRONG_AUTH_NOT_SUPPORTED;
-		rs->sr_text = "authentication method not supported"; 
-		send_ldap_result( op, rs );
+	default:
+		/* in case of success, front end will send result;
+		 * otherwise, be_rootdn_bind() did */
+ 		Debug( LDAP_DEBUG_TRACE, "<==backsql_bind(%d)\n",
+			rs->sr_err, 0, 0 );
 		return rs->sr_err;
 	}
 
-	/*
-	 * method = LDAP_AUTH_SIMPLE
-	 */
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
-	if ( !dbh ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
      		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
 			"could not get connection handle - exiting\n",
 			0, 0, 0 );
@@ -101,7 +94,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 
 error_return:;
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &e.e_nname ) ) {

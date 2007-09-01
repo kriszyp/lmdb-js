@@ -44,7 +44,7 @@ lutil_get_filed_password(
 	}
 
 	passwd->bv_val = NULL;
-	passwd->bv_len = 4196;
+	passwd->bv_len = 4096;
 
 #ifdef HAVE_FSTAT
 	{
@@ -56,7 +56,8 @@ lutil_get_filed_password(
 					filename );
 			}
 
-			passwd->bv_len = sb.st_size;
+			if ( sb.st_size )
+				passwd->bv_len = sb.st_size;
 		}
 	}
 #endif /* HAVE_FSTAT */

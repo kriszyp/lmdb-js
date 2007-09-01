@@ -92,7 +92,6 @@ static struct berval BV_MODOPADD = BER_BVC("add");
 static struct berval BV_MODOPREPLACE = BER_BVC("replace");
 static struct berval BV_MODOPDELETE = BER_BVC("delete");
 static struct berval BV_MODOPINCREMENT = BER_BVC("increment");
-static struct berval BV_MODSEP = BER_BVC("-");
 static struct berval BV_NEWRDN = BER_BVC("newrdn");
 static struct berval BV_DELETEOLDRDN = BER_BVC("deleteoldrdn");
 static struct berval BV_NEWSUP = BER_BVC("newsuperior");
@@ -372,9 +371,9 @@ main( int argc, char **argv )
 			fprintf( rejfp, "\n%s\n", rejbuf );
 		}
 
-		if (rejfp) free( rejbuf );
+		if (rejfp) ber_memfree( rejbuf );
 	}
-	free( rbuf );
+	ber_memfree( rbuf );
 
 #ifdef LDAP_X_TXN
 	if( retval == 0 && txn ) {
@@ -1296,7 +1295,7 @@ static int process_response(
 	if ( matched ) ldap_memfree( matched );
 	if ( text ) ber_memvfree( (void **)refs );
 
-	if ( ctrls != NULL ) {
+	if ( ctrls ) {
 		tool_print_ctrls( ld, ctrls );
 		ldap_controls_free( ctrls );
 	}

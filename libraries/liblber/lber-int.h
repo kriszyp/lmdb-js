@@ -47,6 +47,11 @@ LBER_V (BER_ERRNO_FN) ber_int_errno_fn;
 #ifdef LDAP_MEMORY_DEBUG
 LBER_V (long)	ber_int_meminuse;
 #endif
+#if defined(LDAP_MEMORY_DEBUG) && ((LDAP_MEMORY_DEBUG +0) & 2)
+# define LDAP_MEMORY_DEBUG_ASSERT assert
+#else
+# define LDAP_MEMORY_DEBUG_ASSERT(expr) ((void) 0)
+#endif
 
 struct lber_options {
 	short lbo_valid;
@@ -99,9 +104,13 @@ struct sockbuf {
 #define	sb_options		sb_opts.lbo_options
 #define	sb_debug		sb_opts.lbo_debug
 	ber_socket_t		sb_fd;
+	ber_len_t			sb_max_incoming;
    	unsigned int		sb_trans_needs_read:1;
    	unsigned int		sb_trans_needs_write:1;
-	ber_len_t			sb_max_incoming;
+#ifdef LDAP_PF_LOCAL_SENDMSG
+	char				sb_ungetlen;
+	char				sb_ungetbuf[8];
+#endif
 };
 
 #define SOCKBUF_VALID( sb )	( (sb)->sb_valid == LBER_VALID_SOCKBUF )
@@ -114,6 +123,14 @@ struct seqorset {
 	char		*sos_ptr;
 	struct seqorset	*sos_next;
 };
+
+
+/*
+ * decode.c, encode.c
+ */
+
+/* Simplest OID max-DER-component to implement in both decode and encode */
+#define LBER_OID_COMPONENT_MAX ((unsigned long)-1 - 128)
 
 
 /*

@@ -84,7 +84,7 @@ bdb_db_cache(
 
 int bdb_dn2entry LDAP_P(( Operation *op, DB_TXN *tid,
 	struct berval *dn, EntryInfo **e, int matched,
-	u_int32_t locker, DB_LOCK *lock ));
+	BDB_LOCKER locker, DB_LOCK *lock ));
 
 /*
  * dn2id.c
@@ -120,7 +120,7 @@ int bdb_dn2id_children(
 
 int bdb_dn2idl(
 	Operation *op,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	struct berval *ndn,
 	EntryInfo *ei,
 	ID *ids,
@@ -133,7 +133,7 @@ int bdb_dn2idl(
 int bdb_dn2id_parent(
 	Operation *op,
 	DB_TXN *txn,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	EntryInfo *ei,
 	ID *idp );
 
@@ -168,7 +168,7 @@ char *ebcdic_dberror( int rc );
 
 int bdb_filter_candidates(
 	Operation *op,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	Filter	*f,
 	ID *ids,
 	ID *tmp,
@@ -202,7 +202,7 @@ int bdb_id2entry_delete(
 int bdb_id2entry(
 	BackendDB *be,
 	DB_TXN *tid,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	ID id,
 	Entry **e);
 #endif
@@ -285,7 +285,7 @@ unsigned bdb_idl_search( ID *ids, ID id );
 int bdb_idl_fetch_key(
 	BackendDB	*be,
 	DB			*db,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DBT			*key,
 	ID			*ids,
 	DBC                     **saved_cursor,
@@ -391,7 +391,7 @@ extern int
 bdb_key_read(
     Backend	*be,
 	DB *db,
-	u_int32_t locker,
+	BDB_LOCKER locker,
     struct berval *k,
 	ID *ids,
     DBC **saved_cursor,
@@ -442,6 +442,15 @@ int bdb_monitor_db_init( BackendDB *be );
 int bdb_monitor_db_open( BackendDB *be );
 int bdb_monitor_db_close( BackendDB *be );
 int bdb_monitor_db_destroy( BackendDB *be );
+
+#ifdef BDB_MONITOR_IDX
+#define bdb_monitor_idx_add	BDB_SYMBOL(monitor_idx_add)
+int
+bdb_monitor_idx_add(
+	struct bdb_info		*bdb,
+	AttributeDescription	*desc,
+	slap_mask_t		type );
+#endif /* BDB_MONITOR_IDX */
 
 /*
  * cache.c
@@ -504,7 +513,7 @@ int bdb_cache_add(
 	EntryInfo *pei,
 	Entry   *e,
 	struct berval *nrdn,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock
 );
 int bdb_cache_modrdn(
@@ -513,14 +522,14 @@ int bdb_cache_modrdn(
 	struct berval *nrdn,
 	Entry	*new,
 	EntryInfo *ein,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock
 );
 int bdb_cache_modify(
 	struct bdb_info *bdb,
 	Entry *e,
 	Attribute *newAttrs,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK *lock
 );
 int bdb_cache_find_ndn(
@@ -539,21 +548,21 @@ int bdb_cache_find_id(
 	ID		id,
 	EntryInfo **eip,
 	int	islocked,
-	u_int32_t	locker,
+	BDB_LOCKER	locker,
 	DB_LOCK		*lock
 );
 int
 bdb_cache_find_parent(
 	Operation *op,
 	DB_TXN *txn,
-	u_int32_t	locker,
+	BDB_LOCKER	locker,
 	ID id,
 	EntryInfo **res
 );
 int bdb_cache_delete(
 	struct bdb_info *bdb,
 	Entry	*e,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	DB_LOCK	*lock
 );
 void bdb_cache_delete_cleanup(
@@ -573,7 +582,7 @@ int hdb_cache_load(
 #define bdb_cache_entry_db_relock		BDB_SYMBOL(cache_entry_db_relock)
 int bdb_cache_entry_db_relock(
 	struct bdb_info *bdb,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	EntryInfo *ei,
 	int rw,
 	int tryOnly,
@@ -587,7 +596,7 @@ int bdb_cache_entry_db_unlock(
 
 #define bdb_locker_id				BDB_SYMBOL(locker_id)
 #define bdb_locker_flush			BDB_SYMBOL(locker_flush)
-int bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker );
+int bdb_locker_id( Operation *op, DB_ENV *env, BDB_LOCKER *locker );
 void bdb_locker_flush( DB_ENV *env );
 
 #define	LOCK_ID_FREE(env, locker)	((void)0)
@@ -632,7 +641,6 @@ bdb_trans_backoff( int num_retries );
 #define bdb_tool_entry_put		BDB_SYMBOL(tool_entry_put)
 #define bdb_tool_entry_reindex		BDB_SYMBOL(tool_entry_reindex)
 #define bdb_tool_dn2id_get		BDB_SYMBOL(tool_dn2id_get)
-#define bdb_tool_id2entry_get		BDB_SYMBOL(tool_id2entry_get)
 #define bdb_tool_entry_modify		BDB_SYMBOL(tool_entry_modify)
 #define bdb_tool_idl_add		BDB_SYMBOL(tool_idl_add)
 
@@ -663,7 +671,6 @@ extern BI_tool_entry_get		bdb_tool_entry_get;
 extern BI_tool_entry_put		bdb_tool_entry_put;
 extern BI_tool_entry_reindex		bdb_tool_entry_reindex;
 extern BI_tool_dn2id_get		bdb_tool_dn2id_get;
-extern BI_tool_id2entry_get		bdb_tool_id2entry_get;
 extern BI_tool_entry_modify		bdb_tool_entry_modify;
 
 int bdb_tool_idl_add( BackendDB *be, DB *db, DB_TXN *txn, DBT *key, ID id );

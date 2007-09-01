@@ -80,7 +80,7 @@ and they cannot be NULL. Using a struct with seconds set to -1 results
 in an infinite timeout, which is the default.
 .TP
 .B LDAP_OPT_DEREF
-Sets/gets the value that defines when alias deferencing must occur.
+Sets/gets the value that defines when alias dereferencing must occur.
 .BR outvalue 
 and 
 .BR invalue
@@ -187,7 +187,7 @@ the library duplicates the controls passed via
 .B LDAP_OPT_HOST_NAME
 Sets/gets a space-separated list of hosts to be contacted by the library 
 when trying to establish a connection.
-This is now deprecated in favour of
+This is now deprecated in favor of
 .BR LDAP_OPT_URI .
 .BR outvalue
 must be a 

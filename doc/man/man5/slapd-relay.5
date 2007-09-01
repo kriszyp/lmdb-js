@@ -12,8 +12,8 @@ running in the same
 instance into a virtual naming context, with attributeType
 and objectClass manipulation, if required.
 It requires the
-.B rwm
-.BR overlay .
+.BR slapo-rwm (5)
+overlay.
 .LP
 This backend and the above mentioned overlay are experimental.
 .SH CONFIGURATION
@@ -26,27 +26,30 @@ Other database options are described in the
 .BR slapd.conf (5)
 manual page; only the
 .B suffix
-directive is required by the 
+directive is allowed by the 
 .I relay
 backend.
 .TP
-.B relay <real naming context> [massage]
+.B relay <real naming context>
 The naming context of the database that is presented 
 under a virtual naming context.
 The presence of this directive implies that one specific database,
 i.e. the one serving the
 .BR "real naming context" ,
 will be presented under a virtual naming context.
-This directive automatically instantiates the 
-.IR "rwm overlay" .
-If the optional
-.B massage
-keyword is present, the suffix massaging is automatically
-configured as well; otherwise, specific massaging instructions
-are required by means of the
-.I rewrite
-directives described in
-.BR slapo-rwm (5).
+
+.SH MASSAGING
+The
+.B relay
+database does not automatically rewrite the naming context
+of requests and responses.
+For this purpose, the
+.BR slapo-rwm (5)
+overlay must be explicitly instantiated, and configured
+as appropriate.
+Usually, the
+.B rwm-suffixmassage
+directive suffices if only naming context rewriting is required.
 
 .SH ACCESS RULES
 One important issue is that access rules are based on the identity
@@ -57,7 +60,7 @@ real naming context.
 Moreover, since
 .B back-relay
 bypasses the real database frontend operations by short-circuiting
-operations thru the internal backend API, the original database
+operations through the internal backend API, the original database
 access rules do not apply but in selected cases, i.e. when the
 backend itself applies access control.
 As a consequence, the instances of the relay database must provide
@@ -88,29 +91,26 @@ Another possibility is to map the same operation to different
 databases based on details of the virtual naming context,
 e.g. groups on one database and persons on another.
 .LP
-.SH Caveats
-The
-.B rwm overlay
-is experimental.
-.LP
 .SH EXAMPLES
 To implement a plain virtual naming context mapping
 that refers to a single database, use
 .LP
 .nf
-  database        relay
-  suffix          "dc=virtual,dc=naming,dc=context"
-  relay           "dc=real,dc=naming,dc=context" massage
+  database                relay
+  suffix                  "dc=virtual,dc=naming,dc=context"
+  relay                   "dc=real,dc=naming,dc=context"
+  overlay                 rwm
+  rwm-suffixmassage       "dc=real,dc=naming,dc=context"
 .fi
 .LP
 To implement a plain virtual naming context mapping
 that looks up the real naming context for each operation, use
 .LP
 .nf
-  database        relay
-  suffix          "dc=virtual,dc=naming,dc=context"
-  overlay         rwm
-  suffixmassage   "dc=real,dc=naming,dc=context"
+  database                relay
+  suffix                  "dc=virtual,dc=naming,dc=context"
+  overlay                 rwm
+  rwm-suffixmassage       "dc=real,dc=naming,dc=context"
 .fi
 .LP
 This is useful, for instance, to relay different databases that
@@ -122,39 +122,43 @@ the virtual to the real naming context, but not the results
 back from the real to the virtual naming context, use
 .LP
 .nf
-  database        relay
-  suffix          "dc=virtual,dc=naming,dc=context"
-  relay           "dc=real,dc=naming,dc=context"
-  rewriteEngine   on
-  rewriteContext  default
-  rewriteRule     "dc=virtual,dc=naming,dc=context"
-          "dc=real,dc=naming,dc=context" ":@"
-  rewriteContext  searchFilter
-  rewriteContext  searchEntryDN
-  rewriteContext  searchAttrDN
-  rewriteContext  matchedDN
+  database                relay
+  suffix                  "dc=virtual,dc=naming,dc=context"
+  relay                   "dc=real,dc=naming,dc=context"
+  overlay                 rwm
+  rwm-rewriteEngine       on
+  rwm-rewriteContext      default
+  rwm-rewriteRule         "dc=virtual,dc=naming,dc=context"
+                          "dc=real,dc=naming,dc=context" ":@"
+  rwm-rewriteContext      searchFilter
+  rwm-rewriteContext      searchEntryDN
+  rwm-rewriteContext      searchAttrDN
+  rwm-rewriteContext      matchedDN
 .fi
 .LP
-Note that the virtual database is bound to a single real database,
-so the 
-.B rwm overlay
-is automatically instantiated, but the rewrite rules 
-are written explicitly to map all the virtual to real 
-naming context data flow, but none of the real to virtual.
+Note that the 
+.BR slapo-rwm (5)
+overlay is instantiated, but the rewrite rules are written explicitly,
+rather than automatically as with the
+.B rwm-suffixmassage
+statement, to map all the virtual to real naming context data flow,
+but none of the real to virtual.
 .LP
 Access rules:
 .LP
 .nf
-  database        bdb
-  suffix          "dc=example,dc=com"
+  database                bdb
+  suffix                  "dc=example,dc=com"
   # skip...
   access to dn.subtree="dc=example,dc=com"
           by dn.exact="cn=Supervisor,dc=example,dc=com" write
           by * read
 
-  database        relay
-  suffix          "o=Example,c=US"
-  relay           "dc=example,dc=com" massage
+  database                relay
+  suffix                  "o=Example,c=US"
+  relay                   "dc=example,dc=com"
+  overlay                 rwm
+  rwm-suffixmassage       "dc=example,dc=com"
   # skip ...
   access to dn.subtree="o=Example,c=US"
           by dn.exact="cn=Supervisor,dc=example,dc=com" write

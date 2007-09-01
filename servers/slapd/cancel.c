@@ -56,18 +56,18 @@ int cancel_extop( Operation *op, SlapReply *rs )
 
 	(void) ber_free( ber, 1 );
 
+	Statslog( LDAP_DEBUG_STATS, "%s CANCEL msg=%d\n",
+		op->o_log_prefix, opid, 0, 0, 0 );
+
 	if ( opid < 0 ) {
 		rs->sr_text = "message ID invalid";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "%s CANCEL msg=%d\n",
-		op->o_log_prefix, opid, 0, 0, 0 );
-
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == opid ) {
-			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops, o, slap_op, o_next );
+			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops, o, Operation, o_next );
 			LDAP_STAILQ_NEXT(o, o_next) = NULL;
 			op->o_conn->c_n_ops_pending--;
 			slap_op_free( o );

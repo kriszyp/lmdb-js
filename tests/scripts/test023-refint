@@ -186,6 +186,81 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+if test $BACKEND = "hdb" ; then
+	$LDAPMODIFY -v -D "$REFINTDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+		$TESTOUT 2>&1 << EDEL
+version: 1
+dn: cn=group,o=refint
+changetype: add
+objectClass: groupOfNames
+cn: group
+member: uid=bill,ou=users,o=refint
+member: uid=bob,ou=users,o=refint
+member: uid=dave,ou=users,o=refint
+member: uid=jorge,ou=users,o=refint
+member: uid=theman,ou=users,o=refint
+member: uid=richard,ou=users,o=refint
+EDEL
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapmodify failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	sleep 1;
+
+	$LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 \
+		manager member secretary > $SEARCHOUT 2>&1
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	$EGREP_CMD "(manager|member|secretary):" $SEARCHOUT \
+		| sed "s/ou=users/ou=people/g" | \
+		sort > $TESTOUT 2>&1
+
+	echo "testing subtree rename"
+	$LDAPMODRDN -D "$REFINTDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+		/dev/null 2>&1 'ou=users,o=refint' 'ou=people'
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapmodrdn failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	sleep 1;
+
+	echo "Using ldapsearch to check dependents new rdn..."
+
+	$LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 \
+		manager member secretary > $SEARCHOUT 2>&1
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	$EGREP_CMD "(manager|member|secretary):" $SEARCHOUT \
+		| sort > $SEARCHFLT 2>&1
+
+	echo "Comparing ldapsearch results against original..."
+	$CMP $TESTOUT $SEARCHFLT > $CMPOUT
+
+	if test $? != 0 ; then
+		echo "comparison failed - subtree rename operations did not complete correctly"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit 1
+	fi
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"

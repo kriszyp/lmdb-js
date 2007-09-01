@@ -238,6 +238,12 @@
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
+/* define if you have GNUtls */
+#undef HAVE_GNUTLS
+
+/* Define to 1 if you have the <gnutls/gnutls.h> header file. */
+#undef HAVE_GNUTLS_GNUTLS_H
+
 /* if you have GNU Pth */
 #undef HAVE_GNU_PTH
 
@@ -610,6 +616,18 @@
 /* Define to 1 if `st_blksize' is member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_BLKSIZE
 
+/* Define to 1 if `st_fstype' is member of `struct stat'. */
+#undef HAVE_STRUCT_STAT_ST_FSTYPE
+
+/* define to 1 if st_fstype is char * */
+#undef HAVE_STRUCT_STAT_ST_FSTYPE_CHAR
+
+/* define to 1 if st_fstype is int */
+#undef HAVE_STRUCT_STAT_ST_FSTYPE_INT
+
+/* Define to 1 if `st_vfstype' is member of `struct stat'. */
+#undef HAVE_STRUCT_STAT_ST_VFSTYPE
+
 /* Define to 1 if you have the <synch.h> header file. */
 #undef HAVE_SYNCH_H
 
@@ -644,6 +662,9 @@
 /* Define to 1 if you have the <sys/filio.h> header file. */
 #undef HAVE_SYS_FILIO_H
 
+/* Define to 1 if you have the <sys/fstyp.h> header file. */
+#undef HAVE_SYS_FSTYP_H
+
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
 
@@ -656,6 +677,9 @@
 
 /* Define to 1 if you have the <sys/poll.h> header file. */
 #undef HAVE_SYS_POLL_H
+
+/* Define to 1 if you have the <sys/privgrp.h> header file. */
+#undef HAVE_SYS_PRIVGRP_H
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #undef HAVE_SYS_RESOURCE_H
@@ -689,6 +713,9 @@
 
 /* Define to 1 if you have the <sys/uuid.h> header file. */
 #undef HAVE_SYS_UUID_H
+
+/* Define to 1 if you have the <sys/vmount.h> header file. */
+#undef HAVE_SYS_VMOUNT_H
 
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
@@ -729,8 +756,14 @@
 /* Define to 1 if you have the <utime.h> header file. */
 #undef HAVE_UTIME_H
 
+/* define if you have uuid_generate() */
+#undef HAVE_UUID_GENERATE
+
 /* define if you have uuid_to_str() */
 #undef HAVE_UUID_TO_STR
+
+/* Define to 1 if you have the <uuid/uuid.h> header file. */
+#undef HAVE_UUID_UUID_H
 
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
@@ -933,6 +966,9 @@
 /* define for Dynamic List overlay */
 #undef SLAPD_OVER_DYNLIST
 
+/* define for Reverse Group Membership overlay */
+#undef SLAPD_OVER_MEMBEROF
+
 /* define for Password Policy overlay */
 #undef SLAPD_OVER_PPOLICY
 
@@ -1015,6 +1051,9 @@
    first (like Motorola and SPARC, unlike Intel and VAX). */
 #undef WORDS_BIGENDIAN
 
+/* Define to the type of arg 3 for `accept'. */
+#undef ber_socklen_t
+
 /* Define to `char *' if <sys/types.h> does not define. */
 #undef caddr_t
 
@@ -1042,7 +1081,7 @@
 /* define to snprintf routine */
 #undef snprintf
 
-/* Define to `int' if <sys/socket.h> does not define. */
+/* Define like ber_socklen_t if <sys/socket.h> does not define. */
 #undef socklen_t
 
 /* Define to `signed int' if <sys/types.h> does not define. */

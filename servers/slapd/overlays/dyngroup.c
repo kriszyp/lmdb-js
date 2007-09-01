@@ -28,7 +28,9 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "lutil.h"
 #include "slap.h"
+#include "config.h"
 
 /* This overlay extends the Compare operation to detect members of a
  * dynamic group. It has no effect on any other operations. It must
@@ -42,6 +44,100 @@ typedef struct adpair {
 	AttributeDescription *ap_mem;
 	AttributeDescription *ap_uri;
 } adpair;
+
+static int dgroup_cf( ConfigArgs *c )
+{
+	slap_overinst *on = (slap_overinst *)c->bi;
+	int rc = 1;
+
+	switch( c->op ) {
+	case SLAP_CONFIG_EMIT:
+		{
+		adpair *ap;
+		for ( ap = on->on_bi.bi_private; ap; ap = ap->ap_next ) {
+			struct berval bv;
+			char *ptr;
+			bv.bv_len = ap->ap_mem->ad_cname.bv_len + 1 +
+				ap->ap_uri->ad_cname.bv_len;
+			bv.bv_val = ch_malloc( bv.bv_len + 1 );
+			ptr = lutil_strcopy( bv.bv_val, ap->ap_mem->ad_cname.bv_val );
+			*ptr++ = ' ';
+			strcpy( ptr, ap->ap_uri->ad_cname.bv_val );
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+			rc = 0;
+		}
+		}
+		break;
+	case LDAP_MOD_DELETE:
+		if ( c->valx == -1 ) {
+			adpair *ap;
+			while (( ap = on->on_bi.bi_private )) {
+				on->on_bi.bi_private = ap->ap_next;
+				ch_free( ap );
+			}
+		} else {
+			adpair **app, *ap;
+			int i;
+			app = (adpair **)&on->on_bi.bi_private;
+			for (i=0; i<=c->valx; i++, app = &ap->ap_next) {
+				ap = *app;
+			}
+			*app = ap->ap_next;
+			ch_free( ap );
+		}
+		rc = 0;
+		break;
+	case SLAP_CONFIG_ADD:
+	case LDAP_MOD_ADD:
+		{
+		adpair ap = { NULL, NULL, NULL }, *a2;
+		const char *text;
+		if ( slap_str2ad( c->argv[1], &ap.ap_mem, &text ) ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s attribute description unknown: \"%s\"",
+				c->argv[0], c->argv[1] );
+			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+				"%s: %s\n", c->log, c->cr_msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		if ( slap_str2ad( c->argv[2], &ap.ap_uri, &text ) ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s attribute description unknown: \"%s\"",
+				c->argv[0], c->argv[2] );
+			Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
+				"%s: %s\n", c->log, c->cr_msg, 0 );
+			return ARG_BAD_CONF;
+		}
+		/* The on->on_bi.bi_private pointer can be used for
+		 * anything this instance of the overlay needs.
+		 */
+		a2 = ch_malloc( sizeof(adpair) );
+		a2->ap_next = on->on_bi.bi_private;
+		a2->ap_mem = ap.ap_mem;
+		a2->ap_uri = ap.ap_uri;
+		on->on_bi.bi_private = a2;
+		rc = 0;
+		}
+	}
+	return rc;
+}
+
+static ConfigTable dgroupcfg[] = {
+	{ "attrpair", "member-attribute> <URL-attribute", 3, 3, 0,
+	  ARG_MAGIC, dgroup_cf,
+	  "( OLcfgOvAt:17.1 NAME 'olcDGAttrPair' "
+	  "DESC 'Member and MemberURL attribute pair' "
+	  "SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs dgroupocs[] = {
+	{ "( OLcfgOvOc:17.1 "
+	  "NAME 'olcDGConfig' "
+	  "DESC 'Dynamic Group configuration' "
+	  "SUP olcOverlayConfig "
+	  "MAY olcDGAttrPair )",
+	  Cft_Overlay, dgroupcfg },
+	{ NULL, 0, NULL }
+};
 
 static int
 dyngroup_response( Operation *op, SlapReply *rs )
@@ -84,56 +180,10 @@ dyngroup_response( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-static int dyngroup_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	adpair ap = { NULL, NULL, NULL }, *a2;
-
-	if ( strcasecmp( argv[0], "attrpair" ) == 0 ) {
-		const char *text;
-		if ( argc != 3 ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"attribute description missing in "
-				"\"attrpair <member-attribute> <URL-attribute>\" line.\n",
-				fname, lineno, 0 );
-	    	return( 1 );
-		}
-		if ( slap_str2ad( argv[1], &ap.ap_mem, &text ) ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"attribute description unknown \"attrpair\" line: %s.\n",
-				fname, lineno, text );
-			return( 1 );
-		}
-		if ( slap_str2ad( argv[2], &ap.ap_uri, &text ) ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"attribute description unknown \"attrpair\" line: %s.\n",
-				fname, lineno, text );
-			return( 1 );
-		}
-		/* The on->on_bi.bi_private pointer can be used for
-		 * anything this instance of the overlay needs.
-		 */
-
-		a2 = ch_malloc( sizeof(adpair) );
-		a2->ap_next = on->on_bi.bi_private;
-		a2->ap_mem = ap.ap_mem;
-		a2->ap_uri = ap.ap_uri;
-		on->on_bi.bi_private = a2;
-	} else {
-		return SLAP_CONF_UNKNOWN;
-	}
-	return 0;
-}
-
 static int
 dyngroup_close(
-	BackendDB *be
+	BackendDB *be,
+	ConfigReply *cr
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
@@ -154,10 +204,15 @@ static slap_overinst dyngroup;
  */
 
 int dyngroup_initialize() {
+	int code;
+
 	dyngroup.on_bi.bi_type = "dyngroup";
-	dyngroup.on_bi.bi_db_config = dyngroup_config;
 	dyngroup.on_bi.bi_db_close = dyngroup_close;
 	dyngroup.on_response = dyngroup_response;
+
+	dyngroup.on_bi.bi_cf_ocs = dgroupocs;
+	code = config_register_schema( dgroupcfg, dgroupocs );
+	if ( code ) return code;
 
 	return overlay_register( &dyngroup );
 }

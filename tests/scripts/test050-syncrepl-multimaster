@@ -27,10 +27,10 @@ DBPRO=$PRODIR/db
 DBCON=$CONDIR/db
 CFPRO=$PRODIR/slapd.d
 CFCON=$CONDIR/slapd.d
-LOG1=slapd.1.log
-LOG2=slapd.2.log
 
 mkdir -p $TESTDIR $PRODIR $CONDIR $DBPRO $DBCON $CFPRO $CFCON
+
+$SLAPPASSWD -g -n >$CONFIGPWF
 
 #
 # Test replication of dynamic config:
@@ -52,7 +52,7 @@ olcServerID: 2
 dn: olcDatabase={0}config,cn=config
 objectClass: olcDatabaseConfig
 olcDatabase: {0}config
-olcRootPW:< file:configpw
+olcRootPW:< file://$CONFIGPWF
 EOF
 
 $SLAPADD -F $CFPRO -n 0 <<EOF
@@ -64,19 +64,19 @@ olcServerID: 1
 dn: olcDatabase={0}config,cn=config
 objectClass: olcDatabaseConfig
 olcDatabase: {0}config
-olcRootPW:< file:configpw
+olcRootPW:< file://$CONFIGPWF
 EOF
 
 echo "Starting producer slapd on TCP/IP port $PORT1..."
 cd $PRODIR
-$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING > ../$LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
 KILLPIDS="$PID"
-cd ../..
+cd $TESTWD
 
 sleep 1
 
@@ -121,7 +121,7 @@ fi
 # neither server will progress. The timeout will drop the syncrepl
 # attempt and allow the modifies to complete.
 #
-CONFIGPW=`cat $CONFIGPWF`
+read CONFIGPW < $CONFIGPWF
 $LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: cn=config
 changetype: modify
@@ -157,14 +157,14 @@ fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
 cd $CONDIR
-$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING > ../$LOG2 2>&1 &
+$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
     echo SLAVEPID $SLAVEPID
     read foo
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
-cd ../..
+cd $TESTWD
 
 sleep 1
 
@@ -379,15 +379,15 @@ test $KILLSERVERS != no && wait
 echo "Restarting servers..."
 echo "Starting producer slapd on TCP/IP port $PORT1..."
 cd $PRODIR
-echo "======================= RESTART =======================" >> ../$LOG1
-$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING >> ../$LOG1 2>&1 &
+echo "======================= RESTART =======================" >> $LOG1
+$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
 KILLPIDS="$PID"
-cd ../..
+cd $TESTWD
 echo "Using ldapsearch to check that producer slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "" -H $URI1 \
@@ -408,15 +408,15 @@ fi
 #exit 0
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
 cd $CONDIR
-echo "======================= RESTART =======================" >> ../$LOG2
-$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING >> ../$LOG2 2>&1 &
+echo "======================= RESTART =======================" >> $LOG2
+$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
     echo SLAVEPID $SLAVEPID
     read foo
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
-cd ../..
+cd $TESTWD
 
 sleep 1
 

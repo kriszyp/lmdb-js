@@ -8,7 +8,7 @@
 .\" and maybe manual pages for librewrite.
 .\"
 .SH NAME
-slapo-rwm \- rewrite/remap overlay
+slapo-rwm \- rewrite/remap overlay to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
@@ -71,6 +71,24 @@ defined as using the distinguishedName syntax.
 Also, note that there are DN-related syntaxes (i.e. compound types with
 a portion that is DN-valued), like nameAndOptionalUID,
 whose values are currently not rewritten.
+.LP
+If the foreign type of an attribute mapping is not defined on the local 
+server, it might be desirable to have the attribute values normalized after
+the mapping process. Not normalizing the values can lead to wrong results, 
+when the
+.B rwm
+overlay is used together with e.g. the
+.B pcache
+overlay. This normalization can be enabled by means of the 
+.B rwm-normalize-mapped-attrs
+directive.
+.TP
+.B rwm-normalize-mapped-attrs {yes|no}
+Set this to "yes", if the
+.B rwm
+overlay should try to normalize the values of attributes that are mapped from
+an attribute type that is unknown to the local server. The default value of
+this setting is "no".
 .SH SUFFIX MASSAGING
 A basic feature of the
 .B rwm
@@ -78,6 +96,20 @@ overlay is the capability to perform suffix massaging between a virtual
 and a real naming context by means of the 
 .B rwm-suffixmassage
 directive.
+This, in conjunction with proxy backends,
+.BR slapd-ldap (5)
+and
+.BR slapd-meta (5),
+or with the relay backend, 
+.BR slapd-relay (5),
+allows to create virtual views of databases.
+A distinguishing feature of this overlay is that, when instantiated
+before any database, it can modify the DN of requests
+.I before
+database selection.
+For this reason, rules that rewrite the empty DN ("") 
+or the subschemaSubentry DN (usually "cn=subschema"),
+would prevent clients from reading the root DSE or the DSA's schema.
 .TP
 .B rwm-suffixmassage "[<virtual naming context>]" "<real naming context>"
 Shortcut to implement naming context rewriting; the trailing part

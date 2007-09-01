@@ -34,12 +34,12 @@ struct monitor_ops_t {
 } monitor_op[] = {
 	{ BER_BVC( "cn=Bind" ),		BER_BVNULL },
 	{ BER_BVC( "cn=Unbind" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Search" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Compare" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Modify" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Modrdn" ),	BER_BVNULL },
 	{ BER_BVC( "cn=Add" ),		BER_BVNULL },
 	{ BER_BVC( "cn=Delete" ),	BER_BVNULL },
-	{ BER_BVC( "cn=Modrdn" ),	BER_BVNULL },
-	{ BER_BVC( "cn=Modify" ),	BER_BVNULL },
-	{ BER_BVC( "cn=Compare" ),	BER_BVNULL },
-	{ BER_BVC( "cn=Search" ),	BER_BVNULL },
 	{ BER_BVC( "cn=Abandon" ),	BER_BVNULL },
 	{ BER_BVC( "cn=Extended" ),	BER_BVNULL },
 	{ BER_BVNULL,			BER_BVNULL }

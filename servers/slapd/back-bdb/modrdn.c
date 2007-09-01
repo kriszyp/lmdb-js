@@ -46,7 +46,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int		manageDSAit = get_manageDSAit( op );
 
-	u_int32_t	locker = 0;
+	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock, plock, nplock;
 
 	int		num_retries = 0;
@@ -542,6 +542,8 @@ retry:	/* transaction retry */
 		struct berval bv = {0, NULL};
 		dnNormalize( 0, NULL, NULL, &new_dn, &bv, op->o_tmpmemctx );
 		ber_dupbv( &new_ndn, &bv );
+		/* FIXME: why not call dnNormalize() w/o ctx? */
+		op->o_tmpfree( bv.bv_val, op->o_tmpmemctx );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modrdn) ": new ndn=%s\n",

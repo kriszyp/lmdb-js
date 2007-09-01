@@ -26,7 +26,7 @@
 #include "back-relay.h"
 
 static int
-relay_back_swap_bd( struct slap_op *op, struct slap_rep *rs )
+relay_back_swap_bd( Operation *op, SlapReply *rs )
 {
 	slap_callback	*cb = op->o_callback;
 	BackendDB	*be = op->o_bd;
@@ -38,7 +38,7 @@ relay_back_swap_bd( struct slap_op *op, struct slap_rep *rs )
 }
 
 static void
-relay_back_add_cb( slap_callback *cb, struct slap_op *op )
+relay_back_add_cb( slap_callback *cb, Operation *op )
 {
 	cb->sc_next = op->o_callback;
 	cb->sc_response = relay_back_swap_bd;
@@ -55,15 +55,15 @@ relay_back_add_cb( slap_callback *cb, struct slap_op *op )
  *	any valid error 	send as error result
  */
 static BackendDB *
-relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
+relay_back_select_backend( Operation *op, SlapReply *rs, int err, int dosend )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd = ri->ri_bd;
 
-	if ( bd == NULL ) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+	if ( bd == NULL && !BER_BVISNULL( &op->o_req_ndn ) ) {
+		bd = select_backend( &op->o_req_ndn, 1 );
 		if ( bd == op->o_bd ) {
-			if ( err > LDAP_SUCCESS ) {
+			if ( err > LDAP_SUCCESS && dosend ) {
 				send_ldap_error( op, rs,
 						LDAP_UNWILLING_TO_PERFORM, 
 						"back-relay would call self" );
@@ -74,17 +74,21 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 
 	if ( bd == NULL && err > -1 ) {
 		if ( default_referral ) {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
-			if ( !rs->sr_ref ) {
-				rs->sr_ref = default_referral;
-			}
-
 			rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
+			if ( dosend ) {
+				rs->sr_ref = referral_rewrite(
+					default_referral,
+					NULL, &op->o_req_dn,
+					LDAP_SCOPE_DEFAULT );
+				if ( !rs->sr_ref ) {
+					rs->sr_ref = default_referral;
+				}
 
-			if ( rs->sr_ref != default_referral ) {
-				ber_bvarray_free( rs->sr_ref );
+				send_ldap_result( op, rs );
+
+				if ( rs->sr_ref != default_referral ) {
+					ber_bvarray_free( rs->sr_ref );
+				}
 			}
 
 		} else {
@@ -92,7 +96,9 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 			 * LDAP_NO_SUCH_OBJECT for other operations.
 			 * noSuchObject cannot be returned by bind */
 			rs->sr_err = err;
-			send_ldap_result( op, rs );
+			if ( dosend ) {
+				send_ldap_result( op, rs );
+			}
 		}
 	}
 
@@ -100,12 +106,22 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 }
 
 int
-relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_bind( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_INVALID_CREDENTIALS );
+	/* allow rootdn as a means to auth without the need to actually
+ 	 * contact the proxied DSA */
+	switch ( be_rootdn_bind( op, rs ) ) {
+	case SLAP_CB_CONTINUE:
+		break;
+
+	default:
+		return rs->sr_err;
+	}
+
+	bd = relay_back_select_backend( op, rs, LDAP_INVALID_CREDENTIALS, 1 );
 	if ( bd == NULL ) {
 		return rc;
 	}
@@ -117,7 +133,7 @@ relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_bind )( op, rs );
+		rc = bd->be_bind( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -134,15 +150,14 @@ relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_unbind( Operation *op, SlapReply *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = ri->ri_bd;
+	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS, 0 );
 	if ( bd == NULL ) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		return 1;
 	}
 
 	if ( bd && bd->be_unbind ) {
@@ -152,7 +167,7 @@ relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_unbind )( op, rs );
+		rc = bd->be_unbind( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -165,12 +180,12 @@ relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_search( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -182,7 +197,7 @@ relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_search )( op, rs );
+		rc = bd->be_search( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -200,12 +215,12 @@ relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_compare( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -217,7 +232,7 @@ relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_compare )( op, rs );
+		rc = bd->be_compare( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -235,12 +250,12 @@ relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_modify( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -252,7 +267,7 @@ relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_modify )( op, rs );
+		rc = bd->be_modify( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -270,12 +285,12 @@ relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_modrdn( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -287,7 +302,7 @@ relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_modrdn )( op, rs );
+		rc = bd->be_modrdn( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -305,12 +320,12 @@ relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_add( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -322,7 +337,7 @@ relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_add )( op, rs );
+		rc = bd->be_add( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -340,12 +355,12 @@ relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_delete( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 1 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -357,7 +372,7 @@ relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_delete )( op, rs );
+		rc = bd->be_delete( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -370,12 +385,12 @@ relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_abandon( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, -1 );
+	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS, 0 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -387,7 +402,7 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_abandon )( op, rs );
+		rc = bd->be_abandon( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -400,12 +415,12 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_cancel( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_CANNOT_CANCEL, 0 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -417,7 +432,7 @@ relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_cancel )( op, rs );
+		rc = bd->be_cancel( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -435,12 +450,12 @@ relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
+relay_back_op_extended( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT, 0 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -452,7 +467,7 @@ relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_extended )( op, rs );
+		rc = bd->be_extended( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -470,7 +485,7 @@ relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_entry_release_rw( struct slap_op *op, Entry *e, int rw )
+relay_back_entry_release_rw( Operation *op, Entry *e, int rw )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
@@ -478,7 +493,7 @@ relay_back_entry_release_rw( struct slap_op *op, Entry *e, int rw )
 
 	bd = ri->ri_bd;
 	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		bd = select_backend( &op->o_req_ndn, 1 );
 		if ( bd == NULL ) {
 			return 1;
 		}
@@ -488,7 +503,7 @@ relay_back_entry_release_rw( struct slap_op *op, Entry *e, int rw )
 		BackendDB	*be = op->o_bd;
 
 		op->o_bd = bd;
-		rc = ( bd->be_release )( op, e, rw );
+		rc = bd->be_release( op, e, rw );
 		op->o_bd = be;
 	}
 
@@ -497,7 +512,7 @@ relay_back_entry_release_rw( struct slap_op *op, Entry *e, int rw )
 }
 
 int
-relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
+relay_back_entry_get_rw( Operation *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
@@ -506,7 +521,7 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
 
 	bd = ri->ri_bd;
 	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		bd = select_backend( &op->o_req_ndn, 1 );
 		if ( bd == NULL ) {
 			return 1;
 		}
@@ -516,7 +531,7 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
 		BackendDB	*be = op->o_bd;
 
 		op->o_bd = bd;
-		rc = ( bd->be_fetch )( op, ndn, oc, at, rw, e );
+		rc = bd->be_fetch( op, ndn, oc, at, rw, e );
 		op->o_bd = be;
 	}
 
@@ -532,12 +547,12 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
  * naming context... mmmh.
  */
 int
-relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
+relay_back_chk_referrals( Operation *op, SlapReply *rs )
 {
 	BackendDB		*bd;
 	int			rc = 0;
 
-	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS );
+	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS, 1 );
 	/* FIXME: this test only works if there are no overlays, so
 	 * it is nearly useless; if made stricter, no nested back-relays
 	 * can be instantiated... too bad. */
@@ -561,7 +576,7 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_chk_referrals )( op, rs );
+		rc = bd->be_chk_referrals( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -574,18 +589,17 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_operational( struct slap_op *op, struct slap_rep *rs )
+relay_back_operational( Operation *op, SlapReply *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = ri->ri_bd;
-	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
-		if ( bd == NULL ) {
-			return 1;
-		}
+	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS, 0 );
+	/* FIXME: this test only works if there are no overlays, so
+	 * it is nearly useless; if made stricter, no nested back-relays
+	 * can be instantiated... too bad. */
+	if ( bd == NULL || bd == op->o_bd ) {
+		return 0;
 	}
 
 	if ( bd->be_operational ) {
@@ -595,7 +609,7 @@ relay_back_operational( struct slap_op *op, struct slap_rep *rs )
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_operational )( op, rs );
+		rc = bd->be_operational( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {
@@ -608,25 +622,25 @@ relay_back_operational( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_has_subordinates( struct slap_op *op, Entry *e, int *hasSubs )
+relay_back_has_subordinates( Operation *op, Entry *e, int *hasSubs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	SlapReply		rs = { 0 };
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = ri->ri_bd;
-	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
-		if ( bd == NULL ) {
-			return 1;
-		}
+	bd = relay_back_select_backend( op, &rs, LDAP_SUCCESS, 0 );
+	/* FIXME: this test only works if there are no overlays, so
+	 * it is nearly useless; if made stricter, no nested back-relays
+	 * can be instantiated... too bad. */
+	if ( bd == NULL || bd == op->o_bd ) {
+		return 0;
 	}
 
 	if ( bd->be_has_subordinates ) {
 		BackendDB	*be = op->o_bd;
 
 		op->o_bd = bd;
-		rc = ( bd->be_has_subordinates )( op, e, hasSubs );
+		rc = bd->be_has_subordinates( op, e, hasSubs );
 		op->o_bd = be;
 	}
 
@@ -635,7 +649,7 @@ relay_back_has_subordinates( struct slap_op *op, Entry *e, int *hasSubs )
 }
 
 int
-relay_back_connection_init( BackendDB *bd, struct slap_conn *c )
+relay_back_connection_init( BackendDB *bd, Connection *c )
 {
 	relay_back_info		*ri = (relay_back_info *)bd->be_private;
 
@@ -645,24 +659,24 @@ relay_back_connection_init( BackendDB *bd, struct slap_conn *c )
 	}
 
 	if ( bd->be_connection_init ) {
-		return ( bd->be_connection_init )( bd, c );
+		return bd->be_connection_init( bd, c );
 	}
 
 	return 0;
 }
 
 int
-relay_back_connection_destroy( BackendDB *bd, struct slap_conn *c )
+relay_back_connection_destroy( BackendDB *bd, Connection *c )
 {
 	relay_back_info		*ri = (relay_back_info *)bd->be_private;
 
 	bd = ri->ri_bd;
-	if ( bd == NULL) {
+	if ( bd == NULL ) {
 		return 0;
 	}
 
 	if ( bd->be_connection_destroy ) {
-		return ( bd->be_connection_destroy )( bd, c );
+		return bd->be_connection_destroy( bd, c );
 	}
 
 	return 0;

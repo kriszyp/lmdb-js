@@ -4,7 +4,7 @@
 .\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
 .\" $OpenLDAP$
 .SH NAME
-slapo-pcache \- proxycache overlay
+slapo-pcache \- proxycache overlay to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
@@ -67,15 +67,39 @@ returned is less than <entry_limit>. Consistency check is performed every
 .RS
 proxycache \fBbdb 10000 1 50 100\fP
 .RE
+
 .TP
 .B proxycachequeries <queries>
 Specify the maximum number of queries to cache. The default is 10000.
+
+.TP
+.B proxysavequeries { TRUE | FALSE }
+Specify whether the cached queries should be saved across restarts
+of the caching proxy, to provide hot startup of the cache.  Only non-expired
+queries are reloaded.  The default is FALSE.
+
+.BR CAVEAT :
+of course, the configuration of the proxycache must not change
+across restarts; the pcache overlay does not perform any consistency
+checks in this sense.
+In detail, this option should be disabled unless the existing
+.B proxyattrset
+and
+.B proxytemplate
+directives are not changed neither in order nor in contents.
+If new sets and templates are added, or if other details of the pcache
+overlay configuration changed, this feature should not be affected.
 
 .TP
 .B proxyattrset <index> <attrs...>
 Used to associate a set of attributes <attrs..> with an <index>. Each attribute
 set is associated with an integer from 0 to <numattrsets>-1. These indices are
 used by the \fBproxytemplate\fP directive to define cacheable templates. 
+A set of attributes cannot be empty.  A set of attributes can contain the
+special attributes "*" (all user attributes), "+" (all operational attributes)
+or both; in the latter case, any other attribute is redundant and should
+be avoided for clarity.  A set of attributes can contain "1.1" as the only
+attribute; in this case, only the presence of the entries is cached.
 
 .TP
 .B proxytemplate <template_string> <attrset_index> <ttl> [<negttl>]

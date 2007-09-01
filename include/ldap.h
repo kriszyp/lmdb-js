@@ -141,6 +141,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_CONNECT_ARG	0x600d
 #define LDAP_OPT_X_TLS_DHFILE		0x600e
 #define LDAP_OPT_X_TLS_NEWCTX		0x600f
+#define LDAP_OPT_X_TLS_CRLFILE		0x6010	/* GNUtls only */
 
 #define LDAP_OPT_X_TLS_NEVER	0
 #define LDAP_OPT_X_TLS_HARD		1
@@ -288,10 +289,21 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
 #define LDAP_SEARCH_FLAG_DOMAIN_SCOPE 1 /* do not generate referrals */
 #define LDAP_SEARCH_FLAG_PHANTOM_ROOT 2 /* search all subordinate NCs */
+#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 
 /* MS Active Directory controls - not implemented in slapd(8) */
-#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
+
+#ifdef LDAP_DEVEL
+/* <draft-wahl-ldap-session> */
+#define LDAP_CONTROL_X_SESSION_TRACKING		"1.3.6.1.4.1.21008.108.63.1"
+#define LDAP_CONTROL_X_SESSION_TRACKING_RADIUS_ACCT_SESSION_ID \
+						LDAP_CONTROL_X_SESSION_TRACKING ".1"
+#define LDAP_CONTROL_X_SESSION_TRACKING_RADIUS_ACCT_MULTI_SESSION_ID \
+						LDAP_CONTROL_X_SESSION_TRACKING ".2"
+#define LDAP_CONTROL_X_SESSION_TRACKING_USERNAME \
+						LDAP_CONTROL_X_SESSION_TRACKING ".3"
+#endif /* LDAP_DEVEL */
 
 /* various expired works */
 /* LDAP Duplicated Entry Control Extension *//* not implemented in slapd(8) */
@@ -929,17 +941,33 @@ ldap_set_urllist_proc LDAP_P((
 /*
  * in controls.c:
  */
+#if LDAP_DEPRECATED	
 LDAP_F( int )
-ldap_create_control LDAP_P((
+ldap_create_control LDAP_P((	/* deprecated, use ldap_control_create */
 	LDAP_CONST char *requestOID,
 	BerElement *ber,
 	int iscritical,
 	LDAPControl **ctrlp ));
 
 LDAP_F( LDAPControl * )
-ldap_find_control LDAP_P((
+ldap_find_control LDAP_P((	/* deprecated, use ldap_control_find */
 	LDAP_CONST char *oid,
 	LDAPControl **ctrls ));
+#endif
+
+LDAP_F( int )
+ldap_control_create LDAP_P((
+	LDAP_CONST char *requestOID,
+	int iscritical,
+	struct berval *value,
+	int dupval,
+	LDAPControl **ctrlp ));
+
+LDAP_F( LDAPControl * )
+ldap_control_find LDAP_P((
+	LDAP_CONST char *oid,
+	LDAPControl **ctrls,
+	LDAPControl ***nextctrlp ));
 
 LDAP_F( void )
 ldap_control_free LDAP_P((
@@ -948,6 +976,14 @@ ldap_control_free LDAP_P((
 LDAP_F( void )
 ldap_controls_free LDAP_P((
 	LDAPControl **ctrls ));
+
+LDAP_F( LDAPControl ** )
+ldap_controls_dup LDAP_P((
+	LDAPControl *LDAP_CONST *controls ));
+
+LDAP_F( LDAPControl * )
+ldap_control_dup LDAP_P((
+	LDAP_CONST LDAPControl *c ));
 
 /*
  * in dnssrv.c:
@@ -2272,6 +2308,40 @@ ldap_sync_init_refresh_and_persist LDAP_P((
 LDAP_F( int )
 ldap_sync_poll LDAP_P((
 	ldap_sync_t	*ls ));
+
+#ifdef LDAP_CONTROL_X_SESSION_TRACKING
+
+/*
+ * in stctrl.c
+ */
+LDAP_F( int )
+ldap_create_session_tracking_value LDAP_P((
+	LDAP		*ld,
+	char		*sessionSourceIp,
+	char		*sessionSourceName,
+	char		*formatOID,
+	struct berval	*sessionTrackingIdentifier,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_session_tracking LDAP_P((
+	LDAP		*ld,
+	char		*sessionSourceIp,
+	char		*sessionSourceName,
+	char		*formatOID,
+	struct berval	*sessionTrackingIdentifier,
+	LDAPControl	**ctrlp ));
+
+LDAP_F( int )
+ldap_parse_session_tracking_control LDAP_P((
+	LDAP *ld,
+	LDAPControl *ctrl,
+	struct berval *ip,
+	struct berval *name,
+	struct berval *oid,
+	struct berval *id ));
+
+#endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 LDAP_END_DECL
 #endif /* _LDAP_H */

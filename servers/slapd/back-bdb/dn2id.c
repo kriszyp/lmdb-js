@@ -332,7 +332,7 @@ bdb_dn2id_children(
 int
 bdb_dn2idl(
 	Operation *op,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	struct berval *ndn,
 	EntryInfo *ei,
 	ID *ids,
@@ -712,7 +712,7 @@ int
 hdb_dn2id_parent(
 	Operation *op,
 	DB_TXN *txn,
-	u_int32_t	locker,
+	BDB_LOCKER	locker,
 	EntryInfo *ei,
 	ID *idp )
 {
@@ -738,7 +738,7 @@ hdb_dn2id_parent(
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 	if ( !txn && locker ) {
-		cursor->locker = locker;
+		CURSOR_SETLOCKER(cursor, locker);
 	}
 
 	data.ulen = sizeof(diskNode) + (SLAP_LDAPDN_MAXLEN * 2);
@@ -833,7 +833,7 @@ hdb_dn2id_children(
 struct dn2id_cookie {
 	struct bdb_info *bdb;
 	Operation *op;
-	u_int32_t locker;
+	BDB_LOCKER locker;
 	EntryInfo *ei;
 	ID *ids;
 	ID *tmp;
@@ -1064,7 +1064,7 @@ gotit:
 int
 hdb_dn2idl(
 	Operation	*op,
-	u_int32_t locker,
+	BDB_LOCKER locker,
 	struct berval *ndn,
 	EntryInfo	*ei,
 	ID *ids,

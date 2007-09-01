@@ -38,7 +38,7 @@
 #include <sasl.h>
 #endif
 
-#define SASL_MAX_BUFF_SIZE	65536
+#define SASL_MAX_BUFF_SIZE	(0xffffff)
 #define SASL_MIN_BUFF_SIZE	4096
 #endif
 
@@ -154,6 +154,9 @@ struct ldaptls {
 	char		*lt_cacertfile;
 	char		*lt_cacertdir;
 	char		*lt_ciphersuite;
+#ifdef HAVE_GNUTLS
+	char		*lt_crlfile;
+#endif
 };
 #endif
 
@@ -196,6 +199,7 @@ struct ldapoptions {
 #define ldo_tls_cacertfile	ldo_tls_info.lt_cacertfile
 #define ldo_tls_cacertdir	ldo_tls_info.lt_cacertdir
 #define ldo_tls_ciphersuite	ldo_tls_info.lt_ciphersuite
+#define ldo_tls_crlfile	ldo_tls_info.lt_crlfile
    	int			ldo_tls_mode;
    	int			ldo_tls_require_cert;
 #ifdef HAVE_OPENSSL_CRL
@@ -594,10 +598,6 @@ LDAP_F (LDAPURLDesc *) ldap_url_dup LDAP_P((
 
 LDAP_F (LDAPURLDesc *) ldap_url_duplist LDAP_P((
 	LDAPURLDesc *ludlist ));
-
-LDAP_F (int) ldap_url_parselist LDAP_P((
-	LDAPURLDesc **ludlist,
-	const char *url ));
 
 LDAP_F (int) ldap_url_parsehosts LDAP_P((
 	LDAPURLDesc **ludlist,

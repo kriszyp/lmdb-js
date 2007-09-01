@@ -181,6 +181,7 @@ typedef struct {
 	SWORD		ncols;
 	BerVarray	col_names;
 	UDWORD		*col_prec;
+	SQLSMALLINT	*col_type;
 	char		**cols;
 	SQLINTEGER	*value_len;
 } BACKSQL_ROW_NTS;
@@ -265,31 +266,6 @@ typedef struct backsql_api {
 	struct backsql_api	*ba_next;
 } backsql_api;
 
-/*
- * Entry ID structure
- */
-typedef struct backsql_entryID {
-	/* #define BACKSQL_ARBITRARY_KEY to allow a non-numeric key.
-	 * It is required by some special applications that use
-	 * strings as keys for the main table.
-	 * In this case, #define BACKSQL_MAX_KEY_LEN consistently
-	 * with the key size definition */
-#ifdef BACKSQL_ARBITRARY_KEY
-	struct berval		eid_id;
-	struct berval		eid_keyval;
-#define BACKSQL_MAX_KEY_LEN	64
-#else /* ! BACKSQL_ARBITRARY_KEY */
-	/* The original numeric key is maintained as default. */
-	unsigned long		eid_id;
-	unsigned long		eid_keyval;
-#endif /* ! BACKSQL_ARBITRARY_KEY */
-
-	unsigned long		eid_oc_id;
-	struct berval		eid_dn;
-	struct berval		eid_ndn;
-	struct backsql_entryID	*eid_next;
-} backsql_entryID;
-
 #ifdef BACKSQL_ARBITRARY_KEY
 #define BACKSQL_ENTRYID_INIT { BER_BVNULL, BER_BVNULL, 0, BER_BVNULL, BER_BVNULL, NULL }
 #else /* ! BACKSQL_ARBITRARY_KEY */
@@ -330,6 +306,7 @@ typedef struct backsql_oc_map_rec {
 typedef struct backsql_at_map_rec {
 	/* Description of corresponding LDAP attribute type */
 	AttributeDescription	*bam_ad;
+	AttributeDescription	*bam_true_ad;
 	/* ObjectClass if bam_ad is objectClass */
 	ObjectClass		*bam_oc;
 
@@ -395,14 +372,43 @@ typedef struct berbuf {
 
 #define BB_NULL		{ BER_BVNULL, 0 }
 
+/*
+ * Entry ID structure
+ */
+typedef struct backsql_entryID {
+	/* #define BACKSQL_ARBITRARY_KEY to allow a non-numeric key.
+	 * It is required by some special applications that use
+	 * strings as keys for the main table.
+	 * In this case, #define BACKSQL_MAX_KEY_LEN consistently
+	 * with the key size definition */
+#ifdef BACKSQL_ARBITRARY_KEY
+	struct berval		eid_id;
+	struct berval		eid_keyval;
+#define BACKSQL_MAX_KEY_LEN	64
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	/* The original numeric key is maintained as default. */
+	unsigned long		eid_id;
+	unsigned long		eid_keyval;
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	unsigned long		eid_oc_id;
+	backsql_oc_map_rec	*eid_oc;
+	struct berval		eid_dn;
+	struct berval		eid_ndn;
+	struct backsql_entryID	*eid_next;
+} backsql_entryID;
+
 /* the function must collect the entry associated to nbase */
 #define BACKSQL_ISF_GET_ID	0x1U
 #define BACKSQL_ISF_GET_ENTRY	( 0x2U | BACKSQL_ISF_GET_ID )
-#define BACKSQL_ISF_MATCHED	0x4U
+#define BACKSQL_ISF_GET_OC	( 0x4U | BACKSQL_ISF_GET_ID )
+#define BACKSQL_ISF_MATCHED	0x8U
 #define BACKSQL_IS_GET_ID(f) \
 	( ( (f) & BACKSQL_ISF_GET_ID ) == BACKSQL_ISF_GET_ID )
 #define BACKSQL_IS_GET_ENTRY(f) \
 	( ( (f) & BACKSQL_ISF_GET_ENTRY ) == BACKSQL_ISF_GET_ENTRY )
+#define BACKSQL_IS_GET_OC(f) \
+	( ( (f) & BACKSQL_ISF_GET_OC ) == BACKSQL_ISF_GET_OC )
 #define BACKSQL_IS_MATCHED(f) \
 	( ( (f) & BACKSQL_ISF_MATCHED ) == BACKSQL_ISF_MATCHED )
 typedef struct backsql_srch_info {
@@ -471,14 +477,16 @@ typedef struct backsql_info {
 	 */
 	struct berval	sql_subtree_cond;
 	struct berval	sql_children_cond;
-	char		*sql_oc_query,
-			*sql_at_query;
-	char		*sql_insentry_stmt,
-			*sql_delentry_stmt,
-			*sql_renentry_stmt,
-			*sql_delobjclasses_stmt;
+	struct berval	sql_dn_match_cond;
+	char		*sql_oc_query;
+	char		*sql_at_query;
+	char		*sql_insentry_stmt;
+	char		*sql_delentry_stmt;
+	char		*sql_renentry_stmt;
+	char		*sql_delobjclasses_stmt;
 	char		*sql_id_query;
 	char		*sql_has_children_query;
+	char		*sql_list_children_query;
 
 	MatchingRule	*sql_caseIgnoreMatch;
 	MatchingRule	*sql_telephoneNumberMatch;
@@ -556,9 +564,10 @@ typedef struct backsql_info {
 #define BACKSQL_BASEOBJECT_OC		0
 	
 	Avlnode		*sql_db_conns;
+	SQLHDBC		sql_dbh;
+	ldap_pvt_thread_mutex_t		sql_dbconn_mutex;
 	Avlnode		*sql_oc_by_oc;
 	Avlnode		*sql_oc_by_id;
-	ldap_pvt_thread_mutex_t		sql_dbconn_mutex;
 	ldap_pvt_thread_mutex_t		sql_schema_mutex;
  	SQLHENV		sql_db_env;
 
@@ -581,6 +590,11 @@ typedef struct backsql_info {
 	  || LDAP_UPDATE_ERROR( (rc) ) )
 #define BACKSQL_SANITIZE_ERROR( rc ) \
 	( BACKSQL_LEGAL_ERROR( (rc) ) ? (rc) : LDAP_OTHER )
+
+#define BACKSQL_IS_BINARY(ct) \
+	( (ct) == SQL_BINARY \
+	  || (ct) == SQL_VARBINARY \
+	  || (ct) == SQL_LONGVARBINARY)
 
 #endif /* __BACKSQL_H__ */
 

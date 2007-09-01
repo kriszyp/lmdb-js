@@ -100,6 +100,8 @@ str2entry( char *s )
 	return str2entry2( s, 1 );
 }
 
+#define bvcasematch(bv1, bv2)	(ber_bvstrcasecmp(bv1, bv2) == 0)
+
 Entry *
 str2entry2( char *s, int checkvals )
 {
@@ -166,6 +168,11 @@ str2entry2( char *s, int checkvals )
 			break;
 		}
 		i++;
+		if (i >= lines) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<= str2entry ran past end of entry\n", 0, 0, 0 );
+			goto fail;
+		}
 
 		rc = ldif_parse_line2( s, type+i, vals+i, &freev );
 		freeval[i] = freev;
@@ -175,9 +182,7 @@ str2entry2( char *s, int checkvals )
 			continue;
 		}
 
-		if ( type[i].bv_len == dn_bv.bv_len &&
-			strcasecmp( type[i].bv_val, dn_bv.bv_val ) == 0 ) {
-
+		if ( bvcasematch( &type[i], &dn_bv ) ) {
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
@@ -206,8 +211,6 @@ str2entry2( char *s, int checkvals )
 			(long) e->e_id, 0, 0 );
 		goto fail;
 	}
-
-#define bvcasematch(bv1, bv2)	( ((bv1)->bv_len == (bv2)->bv_len) && (strncasecmp((bv1)->bv_val, (bv2)->bv_val, (bv1)->bv_len) == 0) )
 
 	/* Make sure all attributes with multiple values are contiguous */
 	if ( checkvals ) {
@@ -260,6 +263,16 @@ str2entry2( char *s, int checkvals )
 					goto fail;
 				}
 			}
+
+			/* require ';binary' when appropriate (ITS#5071) */
+			if ( slap_syntax_is_binary( ad->ad_type->sat_syntax ) && !slap_ad_is_binary( ad ) ) {
+				Debug( LDAP_DEBUG_ANY,
+					"str2entry: attributeType %s #%d: "
+					"needs ';binary' transfer as per syntax %s\n", 
+					ad->ad_cname.bv_val, 0,
+					ad->ad_type->sat_syntax->ssyn_oid );
+				goto fail;
+			}
 		}
 
 		if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
@@ -295,6 +308,14 @@ str2entry2( char *s, int checkvals )
 			}
 			attr_cnt = 0;
 			if ( i == lines ) break;
+		}
+
+		if ( BER_BVISNULL( &vals[i] ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"str2entry: attributeType %s #%d: "
+				"no value\n", 
+				ad->ad_cname.bv_val, attr_cnt, 0 );
+			goto fail;
 		}
 
 		if( slapMode & SLAP_TOOL_MODE ) {

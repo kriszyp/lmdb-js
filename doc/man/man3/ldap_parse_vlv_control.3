@@ -3,8 +3,7 @@
 .\" Copyright 1998-2007 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_parse_vlv_control \- Decodes the information returned from a search operation that
-used a VLV (virtual list view) control.
+ldap_parse_vlv_control \- Decode the information returned from a search operation that used a VLV (virtual list view) control
 .SH LIBRARY
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
@@ -39,7 +38,7 @@ in this parameter. If this parameter is set to NULL, the context identifier is
 not returned. You should use this returned context in the next call to
 create a VLV control. When the berval structure is no longer needed, you should
 free the memory by calling the \fIber_bvfree function.e\fP
-\fIerrcodep\fP is an output paremeter, which points to the result code returned
+\fIerrcodep\fP is an output parameter, which points to the result code returned
 by the server. If this parameter is NULL, the result code is not returned.
 .LP 
 See

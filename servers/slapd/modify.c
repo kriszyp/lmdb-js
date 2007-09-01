@@ -41,14 +41,14 @@ do_modify(
     SlapReply	*rs )
 {
 	struct berval dn = BER_BVNULL;
-	char		*last;
-	ber_tag_t	tag;
-	ber_len_t	len;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );
+#ifdef LDAP_DEBUG
+	Modifications	*tmp;
+#endif
 
-	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
-
+	Debug( LDAP_DEBUG_TRACE, "%s do_modify\n",
+		op->o_log_prefix, 0, 0 );
 	/*
 	 * Parse the modify request.  It looks like this:
 	 *
@@ -69,89 +69,42 @@ do_modify(
 	 */
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
-
+		Debug( LDAP_DEBUG_ANY, "%s do_modify: ber_scanf failed\n",
+			op->o_log_prefix, 0, 0 );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
-	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "%s do_modify: dn (%s)\n",
+		op->o_log_prefix, dn.bv_val, 0 );
 
 	rs->sr_err = slap_parse_modlist( op, rs, op->o_ber, &op->oq_modify );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: slap_parse_modlist failed err=%d msg=%s\n",
-			rs->sr_err, rs->sr_text, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_modify: slap_parse_modlist failed err=%d msg=%s\n",
+			op->o_log_prefix, rs->sr_err, rs->sr_text );
 		goto cleanup;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_modify: get_ctrls failed\n",
+			op->o_log_prefix, 0, 0 );
 		goto cleanup;
 	}
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"do_modify: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s do_modify: invalid dn (%s)\n",
+			op->o_log_prefix, dn.bv_val, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_check( op, op->orm_modlist,
-		&rs->sr_text, textbuf, textlen, NULL );
-
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		send_ldap_result( op, rs );
-		goto cleanup;
-	}
-
-	op->o_bd = frontendDB;
-	rs->sr_err = frontendDB->be_modify( op, rs );
-
-#ifdef LDAP_X_TXN
-	if( rs->sr_err == LDAP_X_TXN_SPECIFY_OKAY ) {
-		/* skip cleanup */
-		return rs->sr_err;
-	}
-#endif
-
-cleanup:
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( op->orm_modlist != NULL ) slap_mods_free( op->orm_modlist, 1 );
-
-	return rs->sr_err;
-}
-
-int
-fe_op_modify( Operation *op, SlapReply *rs )
-{
-#ifdef LDAP_DEBUG
-	Modifications	*tmp;
-#endif
-	int		manageDSAit;
-	BackendDB	*op_be, *bd = op->o_bd;
-	char		textbuf[ SLAP_TEXT_BUFLEN ];
-	size_t		textlen = sizeof( textbuf );
-	
-	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
-
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"modify upon the root DSE not supported" );
-		goto cleanup;
-
-	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: subschema subentry!\n", 0, 0, 0 );
-
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"modification of subschema subentry not supported" );
-		goto cleanup;
-	}
+	op->orm_no_opattrs = 0;
 
 #ifdef LDAP_DEBUG
-	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "%s modifications:\n",
+			op->o_log_prefix, 0, 0 );
 
 	for ( tmp = op->orm_modlist; tmp != NULL; tmp = tmp->sml_next ) {
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
@@ -210,14 +163,60 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	}
 #endif	/* LDAP_DEBUG */
 
-	manageDSAit = get_manageDSAit( op );
+	rs->sr_err = slap_mods_check( op, op->orm_modlist,
+		&rs->sr_text, textbuf, textlen, NULL );
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto cleanup;
+	}
+
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_modify( op, rs );
+
+#ifdef LDAP_X_TXN
+	if( rs->sr_err == LDAP_X_TXN_SPECIFY_OKAY ) {
+		/* skip cleanup */
+		return rs->sr_err;
+	}
+#endif
+
+cleanup:
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if ( op->orm_modlist != NULL ) slap_mods_free( op->orm_modlist, 1 );
+
+	return rs->sr_err;
+}
+
+int
+fe_op_modify( Operation *op, SlapReply *rs )
+{
+	BackendDB	*op_be, *bd = op->o_bd;
+	char		textbuf[ SLAP_TEXT_BUFLEN ];
+	size_t		textlen = sizeof( textbuf );
+	
+	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
+		Debug( LDAP_DEBUG_ANY, "%s do_modify: root dse!\n",
+			op->o_log_prefix, 0, 0 );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"modify upon the root DSE not supported" );
+		goto cleanup;
+
+	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
+		Debug( LDAP_DEBUG_ANY, "%s do_modify: subschema subentry!\n",
+			op->o_log_prefix, 0, 0 );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"modification of subschema subentry not supported" );
+		goto cleanup;
+	}
 
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 1 );
+	op->o_bd = select_backend( &op->o_req_ndn, 1 );
 	if ( op->o_bd == NULL ) {
 		op->o_bd = bd;
 		rs->sr_ref = referral_rewrite( default_referral,
@@ -244,7 +243,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+		op->o_bd = select_backend( &op->o_req_ndn, 0 );
 	}
 
 	/* check restrictions */
@@ -287,7 +286,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		 */
 		if ( !SLAP_SINGLE_SHADOW(op->o_bd) || repl_user ) {
 			int update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
 
@@ -298,13 +296,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 					send_ldap_result( op, rs );
 					goto cleanup;
 				}
-			}
-
-			if ( !repl_user ) {
-				/* but multimaster slapd logs only the ones 
-				 * not from a replicator user */
-				cb.sc_next = op->o_callback;
-				op->o_callback = &cb;
 			}
 			op->o_bd->be_modify( op, rs );
 
@@ -695,7 +686,7 @@ int slap_mods_check(
 
 					MatchingRule *mr = ad->ad_type->sat_equality;
 					int istack[sizeof(int)*16];
-					int i,j,k,l,ir,jstack, rc, match, *ix, itmp;
+					int i, j, k, l, ir, jstack, match, *ix, itmp;
 					struct berval a, *cv;
 
 /* If PRESERVE_ORDER is defined only the index array is sorted; the
@@ -886,6 +877,7 @@ void slap_mods_opattrs(
 		timestamp.bv_val = timebuf;
 		for ( modtail = modsp; *modtail; modtail = &(*modtail)->sml_next ) {
 			if ( (*modtail)->sml_op != LDAP_MOD_ADD &&
+				(*modtail)->sml_op != SLAP_MOD_SOFTADD &&
 				(*modtail)->sml_op != LDAP_MOD_REPLACE )
 			{
 				continue;
@@ -1011,9 +1003,9 @@ slap_parse_modlist(
 	ber_tag_t	tag;
 	ber_len_t	len;
 	char		*last;
-	Modifications	**modtail = &ms->rs_modlist;
+	Modifications	**modtail = &ms->rs_mods.rs_modlist;
 
-	ms->rs_modlist = NULL;
+	ms->rs_mods.rs_modlist = NULL;
 	ms->rs_increment = 0;
 
 	rs->sr_err = LDAP_SUCCESS;
@@ -1049,10 +1041,6 @@ slap_parse_modlist(
 		switch( mop ) {
 		case LDAP_MOD_ADD:
 			if ( mod->sml_values == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "slap_parse_modlist: "
-					"modify/add operation (%ld) requires values\n",
-					(long) mop, 0, 0 );
-
 				rs->sr_text = "modify/add operation requires values";
 				rs->sr_err = LDAP_PROTOCOL_ERROR;
 				goto done;
@@ -1068,20 +1056,12 @@ slap_parse_modlist(
 			if( op->o_protocol >= LDAP_VERSION3 ) {
 				ms->rs_increment++;
 				if ( mod->sml_values == NULL ) {
-					Debug( LDAP_DEBUG_ANY, "slap_parse_modlist: "
-						"modify/increment operation (%ld) requires value\n",
-						(long) mop, 0, 0 );
-
 					rs->sr_text = "modify/increment operation requires value";
 					rs->sr_err = LDAP_PROTOCOL_ERROR;
 					goto done;
 				}
 
 				if ( !BER_BVISNULL( &mod->sml_values[ 1 ] ) ) {
-					Debug( LDAP_DEBUG_ANY,  "slap_parse_modlist: modify/increment "
-						"operation (%ld) requires single value\n",
-						(long) mop, 0, 0 );
-
 					rs->sr_text = "modify/increment operation requires single value";
 					rs->sr_err = LDAP_PROTOCOL_ERROR;
 					goto done;
@@ -1092,10 +1072,6 @@ slap_parse_modlist(
 			/* fall thru */
 
 		default:
-			Debug( LDAP_DEBUG_ANY, "slap_parse_modlist: "
-				"unrecognized modify operation (%ld)\n",
-				(long) mop, 0, 0 );
-
 			rs->sr_text = "unrecognized modify operation";
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto done;
@@ -1107,8 +1083,8 @@ slap_parse_modlist(
 
 done:
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		slap_mods_free( ms->rs_modlist, 1 );
-		ms->rs_modlist = NULL;
+		slap_mods_free( ms->rs_mods.rs_modlist, 1 );
+		ms->rs_mods.rs_modlist = NULL;
 		ms->rs_increment = 0;
 	}
 

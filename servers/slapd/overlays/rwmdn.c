@@ -142,7 +142,6 @@ rwm_dn_massage_pretty_normalize(
 	return rc;
 }
 
-#ifdef ENABLE_REWRITE
 /*
  * massages "in" into "dn"
  * 
@@ -208,112 +207,5 @@ rwm_dn_massage(
 
 	return rc;
 }
-
-#else /* ! ENABLE_REWRITE */
-/*
- * rwm_dn_massage
- * 
- * Aliases the suffix; based on suffix_alias (servers/slapd/suffixalias.c).
- */
-int
-rwm_dn_massage(
-	dncookie *dc,
-	struct berval *in,
-	struct berval *dn
-)
-{
-	int     	i, src, dst;
-	struct berval	tmpin;
-
-	assert( dc != NULL );
-	assert( in != NULL );
-	assert( dn != NULL );
-
-	BER_BVZERO( dn );
-
-	if ( BER_BVISNULL( in ) ) {
-		return LDAP_SUCCESS;
-	}
-
-	if ( dc->rwmap == NULL || dc->rwmap->rwm_suffix_massage == NULL ) {
-		*dn = *in;
-		return LDAP_SUCCESS;
-	}
-
-	if ( dc->tofrom ) {
-		src = 0 + dc->normalized;
-		dst = 2 + dc->normalized;
-
-		tmpin = *in;
-
-	} else {
-		int	rc;
-
-		src = 2 + dc->normalized;
-		dst = 0 + dc->normalized;
-
-		/* DN from remote server may be in arbitrary form.
-		 * Pretty it so we can parse reliably.
-		 */
-		if ( dc->normalized ) {
-			rc = dnNormalize( 0, NULL, NULL, in, &tmpin, NULL );
-
-		} else {
-			rc = dnPretty( NULL, in, &tmpin, NULL );
-		}
-
-		if ( rc != LDAP_SUCCESS ) {
-			return rc;
-		}
-	}
-
-	for ( i = 0;
-			!BER_BVISNULL( &dc->rwmap->rwm_suffix_massage[i] );
-			i += 4 )
-	{
-		int aliasLength = dc->rwmap->rwm_suffix_massage[i+src].bv_len;
-		int diff = tmpin.bv_len - aliasLength;
-
-		if ( diff < 0 ) {
-			/* alias is longer than dn */
-			continue;
-
-		} else if ( diff > 0 && ( !DN_SEPARATOR(tmpin.bv_val[diff-1])))
-		{
-			/* FIXME: DN_SEPARATOR() is intended to work
-			 * on a normalized/pretty DN, so that ';'
-			 * is never used as a DN separator */
-			continue;
-			/* At a DN Separator */
-		}
-
-		if ( !strcmp( dc->rwmap->rwm_suffix_massage[i+src].bv_val,
-					&tmpin.bv_val[diff] ) )
-		{
-			dn->bv_len = diff + dc->rwmap->rwm_suffix_massage[i+dst].bv_len;
-			dn->bv_val = ch_malloc( dn->bv_len + 1 );
-			strncpy( dn->bv_val, tmpin.bv_val, diff );
-			strcpy( &dn->bv_val[diff], dc->rwmap->rwm_suffix_massage[i+dst].bv_val );
-			Debug( LDAP_DEBUG_ARGS,
-				"rwm_dn_massage:"
-				" converted \"%s\" to \"%s\"\n",
-				in->bv_val, dn->bv_val, 0 );
-
-			break;
-		}
-	}
-
-	if ( tmpin.bv_val != in->bv_val ) {
-		ch_free( tmpin.bv_val );
-	}
-
-	/* Nothing matched, just return the original DN */
-	if ( BER_BVISNULL( dn ) ) {
-		*dn = *in;
-	}
-
-	return LDAP_SUCCESS;
-}
-#endif /* ! ENABLE_REWRITE */
 
 #endif /* SLAPD_OVER_RWM */

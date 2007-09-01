@@ -1408,7 +1408,7 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
 	}
 	ldap = ldap_init (ldapHost, ldapPort);
 
-#if LDAP_OPT_PROTOCOL_VERSION
+#ifdef LDAP_OPT_PROTOCOL_VERSION
 	if (version != -1)
 	    ldap_set_option(ldap, LDAP_OPT_PROTOCOL_VERSION, &version);
 #endif
@@ -1426,7 +1426,7 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
 	return TCL_ERROR;
     }
 
-#if UMICH_LDAP
+#ifdef UMICH_LDAP
     ldap->ld_deref = LDAP_DEREF_NEVER;  /* Turn off alias dereferencing */
 #endif
 

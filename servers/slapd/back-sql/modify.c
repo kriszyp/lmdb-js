@@ -67,7 +67,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 			LDAP_SCOPE_BASE, 
 			(time_t)(-1), NULL, dbh, op, rs,
 			slap_anlist_all_attributes,
-			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
+			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY | BACKSQL_ISF_GET_OC ) );
 	switch ( rs->sr_err ) {
 	case LDAP_SUCCESS:
 		break;
@@ -124,17 +124,17 @@ backsql_modify( Operation *op, SlapReply *rs )
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
-	oc = backsql_id2oc( bi, bsi.bsi_base_id.eid_oc_id );
-	assert( oc != NULL );
+	assert( bsi.bsi_base_id.eid_oc != NULL );
+	oc = bsi.bsi_base_id.eid_oc;
 
-	if ( !acl_check_modlist( op, &m, op->oq_modify.rs_modlist ) ) {
+	if ( !acl_check_modlist( op, &m, op->orm_modlist ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		e = &m;
 		goto done;
 	}
 
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc,
-			&bsi.bsi_base_id, op->oq_modify.rs_modlist );
+			&bsi.bsi_base_id, op->orm_modlist );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		e = &m;
 		goto do_transact;
@@ -197,7 +197,7 @@ done:;
 	slap_graduate_commit_csn( op );
 
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
-		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &m.e_nname ) ) {

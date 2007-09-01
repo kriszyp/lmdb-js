@@ -408,12 +408,14 @@ ldap_create_sort_control(
 	LDAPControl **ctrlp )
 {
 	struct berval	value;
-	BerElement	*ber;
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 
-	if ( ld == NULL ) return LDAP_PARAM_ERROR;
+	if ( ld == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
+
 	if ( ctrlp == NULL ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;
@@ -421,19 +423,11 @@ ldap_create_sort_control(
 
 	ld->ld_errno = ldap_create_sort_control_value( ld, keyList, &value );
 	if ( ld->ld_errno == LDAP_SUCCESS ) {
-		if ((ber = ldap_alloc_ber_with_options(ld)) == NULL) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return LDAP_NO_MEMORY;
-		}
-	
-		ld->ld_errno = ldap_create_control( LDAP_CONTROL_SORTREQUEST,
-			ber, isCritical, ctrlp );
-		if ( ld->ld_errno == LDAP_SUCCESS ) {
-			(*ctrlp)->ldctl_value = value;
-		} else {
+		ld->ld_errno = ldap_control_create( LDAP_CONTROL_SORTREQUEST,
+			isCritical, &value, 0, ctrlp );
+		if ( ld->ld_errno != LDAP_SUCCESS ) {
 			LDAP_FREE( value.bv_val );
 		}
-		ber_free(ber, 1);
 	}
 
 	return ld->ld_errno;

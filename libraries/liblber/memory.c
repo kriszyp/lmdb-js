@@ -24,13 +24,15 @@
 #include <stdio.h>
 #endif
 
-#if LDAP_MEMORY_DEBUG
+#ifdef LDAP_MEMORY_DEBUG
 /*
  * LDAP_MEMORY_DEBUG should only be enabled for the purposes of
  * debugging memory management within OpenLDAP libraries and slapd.
- * It should only be enabled by an experienced developer as it
- * causes the inclusion of numerous assert()'s, many of which may
- * be triggered by a prefectly valid program.
+ *
+ * It should only be enabled by an experienced developer as it causes
+ * the inclusion of numerous assert()'s, many of which may be triggered
+ * by a prefectly valid program.  If LDAP_MEMORY_DEBUG & 2 is true,
+ * that includes asserts known to break both slapd and current clients.
  *
  * The code behind this macro is subject to change as needed to
  * support this testing.
@@ -71,6 +73,7 @@ static const struct ber_mem_hdr ber_int_mem_hdr = { LBER_MEM_JUNK, 0, 0 };
  * put allocations/frees together.  It is then a simple matter to write a script
  * to find any allocations that don't have a buffer free function.
  */
+long ber_int_meminuse = 0;
 #ifdef LDAP_MEMORY_TRACE
 static ber_int_t sequence = 0;
 #endif
@@ -191,11 +194,8 @@ ber_memalloc_x( ber_len_t s, void *ctx )
 {
 	void *new;
 
-#ifdef LDAP_MEMORY_DEBUG
-	assert( s != 0 );
-#endif
-
 	if( s == 0 ) {
+		LDAP_MEMORY_DEBUG_ASSERT( s != 0 );
 		return NULL;
 	}
 
@@ -247,11 +247,8 @@ ber_memcalloc_x( ber_len_t n, ber_len_t s, void *ctx )
 {
 	void *new;
 
-#ifdef LDAP_MEMORY_DEBUG
-	assert( n != 0 && s != 0);
-#endif
-
 	if( n == 0 || s == 0 ) {
+		LDAP_MEMORY_DEBUG_ASSERT( n != 0 && s != 0);
 		return NULL;
 	}
 

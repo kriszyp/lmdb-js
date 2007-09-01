@@ -187,9 +187,9 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 
 	LDAP_STAILQ_INIT( &conn->c_pending_ops );
 
-	op = (Operation *) slapi_ch_calloc( 1, OPERATION_BUFFER_SIZE );
-	op->o_hdr = (Opheader *)(op + 1);
-	op->o_controls = (void **)(op->o_hdr + 1);
+	op = (Operation *) slapi_ch_calloc( 1, sizeof(OperationBuffer) );
+	op->o_hdr = &((OperationBuffer *) op)->ob_hdr;
+	op->o_controls = ((OperationBuffer *) op)->ob_controls;
 
 	op->o_callback = (slap_callback *) slapi_ch_calloc( 1, sizeof(slap_callback) );
 	op->o_callback->sc_response = slapi_int_response;
@@ -296,7 +296,7 @@ slapi_int_set_operation_dn( Slapi_PBlock *pb )
 
 	if ( BER_BVISNULL( &op->o_ndn ) ) {
 		/* set to root DN */
-		be = select_backend( &op->o_req_ndn, get_manageDSAit( op ), 1 );
+		be = select_backend( &op->o_req_ndn, 1 );
 		if ( be != NULL ) {
 			ber_dupbv( &op->o_dn, &be->be_rootdn );
 			ber_dupbv( &op->o_ndn, &be->be_rootndn );

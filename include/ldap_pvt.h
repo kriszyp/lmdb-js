@@ -47,12 +47,19 @@ struct ldap_url_desc; /* avoid pulling in <ldap.h> */
 #define LDAP_PVT_URL_PARSE_DEF_PORT		(0x02U)
 #define LDAP_PVT_URL_PARSE_NOEMPTY_DN		(0x04U)
 #define LDAP_PVT_URL_PARSE_NODEF_SCOPE		(0x08U)
-#define	LDAP_PVT_URL_PARSE_HISTORIC		(LDAP_PVT_URL_PARSE_NODEF_SCOPE | LDAP_PVT_URL_PARSE_NOEMPTY_HOST | LDAP_PVT_URL_PARSE_DEF_PORT)
+#define	LDAP_PVT_URL_PARSE_HISTORIC		(LDAP_PVT_URL_PARSE_NODEF_SCOPE | \
+						 LDAP_PVT_URL_PARSE_NOEMPTY_HOST | \
+						 LDAP_PVT_URL_PARSE_DEF_PORT)
+
 LDAP_F( int )
 ldap_url_parse_ext LDAP_P((
 	LDAP_CONST char *url,
 	struct ldap_url_desc **ludpp,
 	unsigned flags ));
+
+LDAP_F (int) ldap_url_parselist LDAP_P((	/* deprecated, use ldap_url_parselist_ext() */
+	struct ldap_url_desc **ludlist,
+	const char *url ));
 
 LDAP_F (int) ldap_url_parselist_ext LDAP_P((
 	struct ldap_url_desc **ludlist,
@@ -188,12 +195,10 @@ LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 
 /* controls.c */
 struct ldapcontrol;
-LDAP_F (struct ldapcontrol *) ldap_control_dup LDAP_P((
-	const struct ldapcontrol *ctrl ));
-
-LDAP_F (struct ldapcontrol **) ldap_controls_dup LDAP_P((
-	struct ldapcontrol *const *ctrls ));
-
+LDAP_F (int)
+ldap_pvt_put_control LDAP_P((
+	const struct ldapcontrol *c,
+	BerElement *ber ));
 LDAP_F (int) ldap_pvt_get_controls LDAP_P((
 	BerElement *be,
 	struct ldapcontrol ***ctrlsp));
@@ -285,8 +290,7 @@ LDAP_F (int) ldap_pvt_tls_init_def_ctx LDAP_P(( int is_server ));
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
 LDAP_F (void *) ldap_pvt_tls_sb_ctx LDAP_P(( Sockbuf *sb ));
-
-LDAP_F (int) ldap_pvt_tls_init_default_ctx LDAP_P(( void ));
+LDAP_F (void) ldap_pvt_tls_ctx_free LDAP_P(( void * ));
 
 typedef int LDAPDN_rewrite_dummy LDAP_P (( void *dn, unsigned flags ));
 
@@ -312,7 +316,7 @@ LDAP_END_DECL
  * If none is available, unsigned long data is used.
  */
 
-#if USE_MP_BIGNUM
+#ifdef USE_MP_BIGNUM
 /*
  * Use OpenSSL's BIGNUM
  */
@@ -338,7 +342,7 @@ typedef	BIGNUM* ldap_pvt_mp_t;
 #define ldap_pvt_mp_clear(mp) \
 	do { BN_free((mp)); (mp) = 0; } while (0)
 
-#elif USE_MP_GMP
+#elif defined(USE_MP_GMP)
 /*
  * Use GNU's multiple precision library
  */
@@ -367,13 +371,13 @@ typedef mpz_t		ldap_pvt_mp_t;
  * Use unsigned long long
  */
 
-#if USE_MP_LONG_LONG
+#ifdef USE_MP_LONG_LONG
 typedef	unsigned long long	ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0LL)
-#elif USE_MP_LONG
+#elif defined(USE_MP_LONG)
 typedef	unsigned long		ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0L)
-#elif HAVE_LONG_LONG
+#elif defined(HAVE_LONG_LONG)
 typedef	unsigned long long	ldap_pvt_mp_t;
 #define	LDAP_PVT_MP_INIT	(0LL)
 #else

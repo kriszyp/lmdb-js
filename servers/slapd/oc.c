@@ -37,16 +37,16 @@ int is_object_subclass(
 		sup->soc_oid, sub->soc_oid, sup == sub );
 #endif
 
-	if( sup == sub ) {
+	if ( sup == sub ) {
 		return 1;
 	}
 
-	if( sub->soc_sups == NULL ) {
+	if ( sub->soc_sups == NULL ) {
 		return 0;
 	}
 
-	for( i=0; sub->soc_sups[i] != NULL; i++ ) {
-		if( is_object_subclass( sup, sub->soc_sups[i] ) ) {
+	for ( i = 0; sub->soc_sups[i] != NULL; i++ ) {
+		if ( is_object_subclass( sup, sub->soc_sups[i] ) ) {
 			return 1;
 		}
 	}
@@ -71,11 +71,11 @@ int is_entry_objectclass(
 	assert( !( e == NULL || oc == NULL ) );
 	assert( ( flags & SLAP_OCF_MASK ) != SLAP_OCF_MASK );
 
-	if( e == NULL || oc == NULL ) {
+	if ( e == NULL || oc == NULL ) {
 		return 0;
 	}
 
-	if( flags == SLAP_OCF_SET_FLAGS && ( e->e_ocflags & SLAP_OC__END ) )
+	if ( flags == SLAP_OCF_SET_FLAGS && ( e->e_ocflags & SLAP_OC__END ) )
 	{
 		/* flags are set, use them */
 		return (e->e_ocflags & oc->soc_flags & SLAP_OC__MASK) != 0;
@@ -85,7 +85,7 @@ int is_entry_objectclass(
 	 * find objectClass attribute
 	 */
 	attr = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
-	if( attr == NULL ) {
+	if ( attr == NULL ) {
 		/* no objectClass attribute */
 		Debug( LDAP_DEBUG_ANY, "is_entry_objectclass(\"%s\", \"%s\") "
 			"no objectClass attribute\n",
@@ -95,7 +95,7 @@ int is_entry_objectclass(
 		return 0;
 	}
 
-	for( bv=attr->a_vals; bv->bv_val; bv++ ) {
+	for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
 		ObjectClass *objectClass = oc_bvfind( bv );
 
 		if ( objectClass == NULL ) {
@@ -132,7 +132,7 @@ struct oindexrec {
 
 static Avlnode	*oc_index = NULL;
 static Avlnode	*oc_cache = NULL;
-static LDAP_STAILQ_HEAD(OCList, slap_object_class) oc_list
+static LDAP_STAILQ_HEAD(OCList, ObjectClass) oc_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(oc_list);
 
 ObjectClass *oc_sys_tail;
@@ -193,7 +193,7 @@ oc_bvfind( struct berval *ocname )
 	return( NULL );
 }
 
-static LDAP_STAILQ_HEAD(OCUList, slap_object_class) oc_undef_list
+static LDAP_STAILQ_HEAD(OCUList, ObjectClass) oc_undef_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(oc_undef_list);
 
 ObjectClass *
@@ -414,7 +414,7 @@ oc_delete( ObjectClass *oc )
 {
 	oc->soc_flags |= SLAP_OC_DELETED;
 
-	LDAP_STAILQ_REMOVE(&oc_list,oc,slap_object_class,soc_next);
+	LDAP_STAILQ_REMOVE(&oc_list, oc, ObjectClass, soc_next);
 
 	oc_delete_names( oc );
 }

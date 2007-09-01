@@ -48,6 +48,25 @@
 #include "ldap_log.h"
 
 ber_slen_t
+ber_skip_data(
+	BerElement *ber,
+	ber_len_t len )
+{
+	ber_len_t	actuallen, nleft;
+
+	assert( ber != NULL );
+
+	assert( LBER_VALID( ber ) );
+
+	nleft = ber_pvt_ber_remaining( ber );
+	actuallen = nleft < len ? nleft : len;
+	ber->ber_ptr += actuallen;
+	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+
+	return( (ber_slen_t) actuallen );
+}
+
+ber_slen_t
 ber_read(
 	BerElement *ber,
 	char *buf,
@@ -185,11 +204,8 @@ ber_free_buf( BerElement *ber )
 void
 ber_free( BerElement *ber, int freebuf )
 {
-#ifdef LDAP_MEMORY_DEBUG
-	assert( ber != NULL );
-#endif
-
 	if( ber == NULL ) {
+		LDAP_MEMORY_DEBUG_ASSERT( ber != NULL );
 		return;
 	}
 

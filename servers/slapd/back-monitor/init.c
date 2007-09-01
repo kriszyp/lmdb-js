@@ -52,6 +52,10 @@ static const monitor_extra_t monitor_extra = {
 	monitor_back_get_subsys_by_dn,
 
 	monitor_back_register_subsys,
+	monitor_back_register_backend,
+	monitor_back_register_database,
+	monitor_back_register_overlay_info,
+	monitor_back_register_overlay,
 	monitor_back_register_entry,
 	monitor_back_register_entry_parent,
 	monitor_back_register_entry_attrs,
@@ -222,6 +226,12 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 };
 
 int
+monitor_subsys_is_opened( void )
+{
+	return monitor_subsys_opened;
+}
+
+int
 monitor_back_register_subsys(
 	monitor_subsys_t	*ms )
 {
@@ -245,7 +255,7 @@ monitor_back_register_subsys(
 	/* if a subsystem is registered __AFTER__ subsystem 
 	 * initialization (depending on the sequence the databases
 	 * are listed in slapd.conf), init it */
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 
 		/* FIXME: this should only be possible
 		 * if be_monitor is already initialized */
@@ -265,11 +275,20 @@ enum {
 	LIMBO_ENTRY,
 	LIMBO_ENTRY_PARENT,
 	LIMBO_ATTRS,
-	LIMBO_CB
+	LIMBO_CB,
+	LIMBO_BACKEND,
+	LIMBO_DATABASE,
+	LIMBO_OVERLAY_INFO,
+	LIMBO_OVERLAY,
+
+	LIMBO_LAST
 };
 
 typedef struct entry_limbo_t {
 	int			el_type;
+	BackendInfo		*el_bi;
+	BackendDB		*el_be;
+	slap_overinst		*el_on;
 	Entry			*el_e;
 	Attribute		*el_a;
 	struct berval		el_ndn;
@@ -286,6 +305,83 @@ int
 monitor_back_is_configured( void )
 {
 	return be_monitor != NULL;
+}
+
+int
+monitor_back_register_backend(
+	BackendInfo		*bi )
+{
+	return -1;
+}
+
+int
+monitor_back_register_overlay_info(
+	slap_overinst		*on )
+{
+	return -1;
+}
+
+int
+monitor_back_register_overlay(
+	BackendDB		*be )
+{
+	return -1;
+}
+
+int
+monitor_back_register_backend_limbo(
+	BackendInfo		*bi )
+{
+	return -1;
+}
+
+int
+monitor_back_register_database_limbo(
+	BackendDB		*be )
+{
+	entry_limbo_t	**elpp, el = { 0 };
+	monitor_info_t 	*mi;
+
+	if ( be_monitor == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_database_limbo: "
+			"monitor database not configured.\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	mi = ( monitor_info_t * )be_monitor->be_private;
+
+
+	el.el_type = LIMBO_DATABASE;
+
+	el.el_be = be;
+	
+	for ( elpp = &mi->mi_entry_limbo;
+			*elpp;
+			elpp = &(*elpp)->el_next )
+		/* go to last */;
+
+	*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
+
+	el.el_next = NULL;
+	**elpp = el;
+
+	return 0;
+}
+
+int
+monitor_back_register_overlay_info_limbo(
+	slap_overinst		*on )
+{
+	return -1;
+}
+
+int
+monitor_back_register_overlay_limbo(
+	BackendDB		*be )
+{
+	return -1;
 }
 
 int
@@ -311,7 +407,7 @@ monitor_back_register_entry(
 	assert( e != NULL );
 	assert( e->e_private == NULL );
 	
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry		*e_parent = NULL,
 				*e_new = NULL,
 				**ep = NULL;
@@ -433,7 +529,7 @@ done:;
 		el.el_mss = mss;
 		el.el_flags = flags;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 				*elpp;
 				elpp = &(*elpp)->el_next )
 			/* go to last */;
@@ -490,7 +586,7 @@ monitor_back_register_entry_parent(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry		*e_parent = NULL,
 				*e_new = NULL,
 				**ep = NULL;
@@ -647,7 +743,7 @@ done:;
 		el.el_mss = mss;
 		el.el_flags = flags;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 				*elpp;
 				elpp = &(*elpp)->el_next )
 			/* go to last */;
@@ -717,9 +813,9 @@ monitor_search2ndn(
 		return -1;
 	}
 
-	op = (Operation *) &opbuf;
 	thrctx = ldap_pvt_thread_pool_context();
-	connection_fake_init( &conn, op, thrctx );
+	connection_fake_init( &conn, &opbuf, thrctx );
+	op = &opbuf.ob_op;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 
@@ -858,7 +954,7 @@ monitor_back_register_entry_attrs(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		Attribute		**atp = NULL;
 		monitor_entry_t 	*mp = NULL;
@@ -980,7 +1076,7 @@ done:;
 		el.el_a = attrs_dup( a );
 		el.el_cb = cb;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 				*elpp;
 				elpp = &(*elpp)->el_next )
 			/* go to last */;
@@ -1058,7 +1154,7 @@ monitor_back_unregister_entry(
 
 	assert( mi != NULL );
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		monitor_entry_t 	*mp = NULL;
 		monitor_callback_t	*cb = NULL;
@@ -1093,7 +1189,7 @@ monitor_back_unregister_entry(
 	} else {
 		entry_limbo_t	**elpp;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
 			elpp = &(*elpp)->el_next )
 		{
@@ -1107,6 +1203,9 @@ monitor_back_unregister_entry(
 				for ( cb = elp->el_cb; cb; cb = next ) {
 					/* FIXME: call callbacks? */
 					next = cb->mc_next;
+					if ( cb->mc_dispose ) {
+						cb->mc_dispose( &cb->mc_private );
+					}
 					ch_free( cb );
 				}
 				assert( elp->el_e != NULL );
@@ -1171,7 +1270,7 @@ monitor_back_unregister_entry_parent(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		monitor_entry_t 	*mp = NULL;
 
@@ -1224,7 +1323,7 @@ monitor_back_unregister_entry_parent(
 	} else {
 		entry_limbo_t	**elpp;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
 			elpp = &(*elpp)->el_next )
 		{
@@ -1241,6 +1340,9 @@ monitor_back_unregister_entry_parent(
 				for ( cb = elp->el_cb; cb; cb = next ) {
 					/* FIXME: call callbacks? */
 					next = cb->mc_next;
+					if ( cb->mc_dispose ) {
+						cb->mc_dispose( &cb->mc_private );
+					}
 					ch_free( cb );
 				}
 				assert( elp->el_e != NULL );
@@ -1326,7 +1428,7 @@ monitor_back_unregister_entry_attrs(
 		return -1;
 	}
 
-	if ( monitor_subsys_opened ) {
+	if ( monitor_subsys_is_opened() ) {
 		Entry			*e = NULL;
 		monitor_entry_t 	*mp = NULL;
 		int			freeit = 0;
@@ -1400,14 +1502,12 @@ monitor_back_unregister_entry_attrs(
 			ber_memfree( ndn.bv_val );
 		}
 
-		if ( e ) {
-			monitor_cache_release( mi, e );
-		}
+		monitor_cache_release( mi, e );
 
 	} else {
 		entry_limbo_t	**elpp;
 
-		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+		for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
 			elpp = &(*elpp)->el_next )
 		{
@@ -1423,6 +1523,9 @@ monitor_back_unregister_entry_attrs(
 				for ( cb = elp->el_cb; cb; cb = next ) {
 					/* FIXME: call callbacks? */
 					next = cb->mc_next;
+					if ( cb->mc_dispose ) {
+						cb->mc_dispose( &cb->mc_private );
+					}
 					ch_free( cb );
 				}
 				assert( elp->el_e == NULL );
@@ -1933,7 +2036,6 @@ monitor_back_initialize(
 	bi->bi_tool_entry_reindex = 0;
 	bi->bi_tool_sync = 0;
 	bi->bi_tool_dn2id_get = 0;
-	bi->bi_tool_id2entry_get = 0;
 	bi->bi_tool_entry_modify = 0;
 
 	bi->bi_connection_init = 0;
@@ -1956,7 +2058,8 @@ monitor_back_initialize(
 
 int
 monitor_back_db_init(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*c)
 {
 	int			rc;
 	struct berval		dn = BER_BVC( SLAPD_MONITOR_DN ),
@@ -1967,6 +2070,17 @@ monitor_back_db_init(
 	monitor_subsys_t	*ms;
 
 	/*
+	 * database monitor can be defined once only
+	 */
+	if ( be_monitor != NULL ) {
+		if (c) {
+			snprintf(c->msg, sizeof(c->msg),"only one monitor database allowed");
+		}
+		return( -1 );
+	}
+	be_monitor = be;
+
+	/*
 	 * register subsys
 	 */
 	for ( ms = known_monitor_subsys; ms->mss_name != NULL; ms++ ) {
@@ -1974,16 +2088,6 @@ monitor_back_db_init(
 			return -1;
 		}
 	}
-
-	/*
-	 * database monitor can be defined once only
-	 */
-	if ( be_monitor != NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"only one monitor database is allowed\n", 0, 0, 0 );
-		return( -1 );
-	}
-	be_monitor = be;
 
 	/* indicate system schema supported */
 	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
@@ -2005,7 +2109,7 @@ monitor_back_db_init(
 
 	be->be_private = &monitor_info;
 
-	be2 = select_backend( &ndn, 0, 0 );
+	be2 = select_backend( &ndn, 0 );
 	if ( be2 != be ) {
 		char	*type = be2->bd_info->bi_type;
 
@@ -2014,19 +2118,60 @@ monitor_back_db_init(
 			type = oi->oi_orig->bi_type;
 		}
 
-		Debug( LDAP_DEBUG_ANY,
-			"\"monitor\" database serving namingContext \"%s\" "
-			"is hidden by \"%s\" database serving namingContext \"%s\".\n",
-			pdn.bv_val, type, be2->be_nsuffix[ 0 ].bv_val );
+		if (c) {
+			snprintf(c->msg, sizeof(c->msg),
+					"\"monitor\" database serving namingContext \"%s\" "
+					"is hidden by \"%s\" database serving namingContext \"%s\".\n",
+					pdn.bv_val, type, be2->be_nsuffix[ 0 ].bv_val );
+		}
 		return -1;
 	}
 
 	return 0;
 }
 
+static void
+monitor_back_destroy_limbo_entry(
+	entry_limbo_t	*el,
+	int		dispose )
+{
+	if ( el->el_e ) {
+		entry_free( el->el_e );
+	}
+	if ( el->el_a ) {
+		attrs_free( el->el_a );
+	}
+	if ( !BER_BVISNULL( &el->el_ndn ) ) {
+		ber_memfree( el->el_ndn.bv_val );
+	}
+	if ( !BER_BVISNULL( &el->el_nbase ) ) {
+		ber_memfree( el->el_nbase.bv_val );
+	}
+	if ( !BER_BVISNULL( &el->el_filter ) ) {
+		ber_memfree( el->el_filter.bv_val );
+	}
+
+	/* NOTE: callbacks are not copied; so only free them
+	 * if disposing of */
+	if ( el->el_cb && dispose != 0 ) {
+		monitor_callback_t *next;
+
+		for ( ; el->el_cb; el->el_cb = next ) {
+			next = el->el_cb->mc_next;
+			if ( el->el_cb->mc_dispose ) {
+				el->el_cb->mc_dispose( &el->el_cb->mc_private );
+			}
+			ch_free( el->el_cb );
+		}
+	}
+
+	ch_free( el );
+}
+
 int
 monitor_back_db_open(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr)
 {
 	monitor_info_t 		*mi = (monitor_info_t *)be->be_private;
 	struct monitor_subsys_t	**ms;
@@ -2045,6 +2190,8 @@ monitor_back_db_open(
 		BER_BVC("Most of the information is held in operational"
 		" attributes, which must be explicitly requested."),
 		BER_BVNULL };
+
+	int			retcode = 0;
 
 	assert( be_monitor != NULL );
 	if ( be != be_monitor ) {
@@ -2225,7 +2372,7 @@ monitor_back_db_open(
 	monitor_subsys_opened = 1;
 
 	if ( mi->mi_entry_limbo ) {
-		entry_limbo_t	*el = (entry_limbo_t *)mi->mi_entry_limbo;
+		entry_limbo_t	*el = mi->mi_entry_limbo;
 
 		for ( ; el; ) {
 			entry_limbo_t	*tmp;
@@ -2271,41 +2418,40 @@ monitor_back_db_open(
 						&el->el_filter );
 				break;
 
+			case LIMBO_BACKEND:
+				rc = monitor_back_register_backend( el->el_bi );
+				break;
+
+			case LIMBO_DATABASE:
+				rc = monitor_back_register_database( el->el_be );
+				break;
+
+			case LIMBO_OVERLAY_INFO:
+				rc = monitor_back_register_overlay_info( el->el_on );
+				break;
+
+			case LIMBO_OVERLAY:
+				rc = monitor_back_register_overlay( el->el_be );
+				break;
+
 			default:
 				assert( 0 );
 			}
 
-			if ( el->el_e ) {
-				entry_free( el->el_e );
-			}
-			if ( el->el_a ) {
-				attrs_free( el->el_a );
-			}
-			if ( !BER_BVISNULL( &el->el_ndn ) ) {
-				ber_memfree( el->el_ndn.bv_val );
-			}
-			if ( !BER_BVISNULL( &el->el_nbase ) ) {
-				ber_memfree( el->el_nbase.bv_val );
-			}
-			if ( !BER_BVISNULL( &el->el_filter ) ) {
-				ber_memfree( el->el_filter.bv_val );
-			}
-			if ( el->el_cb && rc != 0 ) {
-				if ( el->el_cb->mc_dispose ) {
-					el->el_cb->mc_dispose( &el->el_cb->mc_private );
-				}
-				ch_free( el->el_cb );
-			}
-
 			tmp = el;
 			el = el->el_next;
-			ch_free( tmp );
+			monitor_back_destroy_limbo_entry( tmp, rc );
+
+			if ( rc != 0 ) {
+				/* try all, but report error at end */
+				retcode = 1;
+			}
 		}
 
 		mi->mi_entry_limbo = NULL;
 	}
 
-	return( 0 );
+	return retcode;
 }
 
 int
@@ -2342,7 +2488,8 @@ monitor_back_db_config(
 
 int
 monitor_back_db_destroy(
-	BackendDB	*be )
+	BackendDB	*be,
+	ConfigReply	*cr)
 {
 	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
 
@@ -2371,6 +2518,16 @@ monitor_back_db_destroy(
 		}
 
 		ch_free( monitor_subsys );
+	}
+
+	if ( mi->mi_entry_limbo ) {
+		entry_limbo_t	*el = mi->mi_entry_limbo;
+
+		for ( ; el; ) {
+			entry_limbo_t *tmp = el;
+			el = el->el_next;
+			monitor_back_destroy_limbo_entry( tmp, 1 );
+		}
 	}
 	
 	ldap_pvt_thread_mutex_destroy( &monitor_info.mi_cache_mutex );

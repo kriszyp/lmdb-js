@@ -403,9 +403,7 @@ map_attr_value(
 			dncookie 	fdc = *dc;
 			int		rc;
 
-#ifdef ENABLE_REWRITE
 			fdc.ctx = "searchFilterAttrDN";
-#endif /* ENABLE_REWRITE */
 
 			vtmp = *value;
 			rc = rwm_dn_massage_normalize( &fdc, value, &vtmp );
@@ -499,7 +497,7 @@ rwm_int_filter_map_rewrite(
 		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ch_free( vtmp.bv_val );
 		break;
@@ -516,7 +514,7 @@ rwm_int_filter_map_rewrite(
 		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ch_free( vtmp.bv_val );
 		break;
@@ -533,7 +531,7 @@ rwm_int_filter_map_rewrite(
 		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ch_free( vtmp.bv_val );
 		break;
@@ -550,7 +548,7 @@ rwm_int_filter_map_rewrite(
 		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
-			atmp.bv_val, vtmp.bv_val );
+			atmp.bv_val, vtmp.bv_len ? vtmp.bv_val : "" );
 
 		ch_free( vtmp.bv_val );
 		break;
@@ -581,7 +579,7 @@ rwm_int_filter_map_rewrite(
 
 			snprintf( &fstr->bv_val[len - 2], vtmp.bv_len + 3,
 				/* "(attr=" */ "%s*)",
-				vtmp.bv_val );
+				vtmp.bv_len ? vtmp.bv_val : "" );
 
 			ch_free( vtmp.bv_val );
 		}
@@ -596,7 +594,7 @@ rwm_int_filter_map_rewrite(
 
 				snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
-					vtmp.bv_val );
+					vtmp.bv_len ? vtmp.bv_val : "" );
 				ch_free( vtmp.bv_val );
 			}
 		}
@@ -611,7 +609,7 @@ rwm_int_filter_map_rewrite(
 
 			snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
 				/* "(attr=[init*][any*]" */ "%s)",
-				vtmp.bv_val );
+				vtmp.bv_len ? vtmp.bv_val : "" );
 
 			ch_free( vtmp.bv_val );
 		}
@@ -657,7 +655,7 @@ rwm_int_filter_map_rewrite(
 			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
 
 			snprintf( &fstr->bv_val[len-1], vtmp.bv_len + 2, 
-				/*"("*/ "%s)", vtmp.bv_val );
+				/*"("*/ "%s)", vtmp.bv_len ? vtmp.bv_val : "" );
 
 			ch_free( vtmp.bv_val );
 		}
@@ -690,7 +688,7 @@ rwm_int_filter_map_rewrite(
 			f->f_mr_dnattrs ? ":dn" : "",
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? ":" : "",
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_val : "",
-			vtmp.bv_val );
+			vtmp.bv_len ? vtmp.bv_val : "" );
 		ch_free( vtmp.bv_val );
 		break;
 	}
@@ -751,7 +749,6 @@ rwm_filter_map_rewrite(
 
 	rc = rwm_int_filter_map_rewrite( op, dc, f, fstr );
 
-#ifdef ENABLE_REWRITE
 	if ( rc != 0 ) {
 		return rc;
 	}
@@ -768,7 +765,9 @@ rwm_filter_map_rewrite(
 	case REWRITE_REGEXEC_OK:
 		if ( !BER_BVISNULL( fstr ) ) {
 			fstr->bv_len = strlen( fstr->bv_val );
-			ch_free( ftmp.bv_val );
+			if ( fstr->bv_val != ftmp.bv_val ) {
+				ch_free( ftmp.bv_val );
+			}
 
 		} else {
 			*fstr = ftmp;
@@ -796,7 +795,6 @@ rwm_filter_map_rewrite(
 		rc = LDAP_OTHER;
 		break;
 	}
-#endif /* ENABLE_REWRITE */
 
 	return rc;
 }
@@ -832,14 +830,9 @@ rwm_referral_rewrite(
 	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = (char *)cookie;
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = ((int *)cookie)[0];
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ )
 		;
@@ -1005,14 +998,9 @@ rwm_dnattr_rewrite(
 	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = (char *)cookie;
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = ((int *)cookie)[0];
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	for ( last = 0; !BER_BVISNULL( &in[last] ); last++ );
 	last--;
