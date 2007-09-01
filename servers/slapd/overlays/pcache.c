@@ -3727,6 +3727,7 @@ pcache_initialize()
 				"pcache_initialize: register_at #%d failed\n", i, 0, 0 );
 			return code;
 		}
+		(*as[i].adp)->ad_type->sat_flags |= SLAP_AT_HIDE;
 	}
 
 	pcache.on_bi.bi_type = "pcache";

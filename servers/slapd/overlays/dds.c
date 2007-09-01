@@ -1842,6 +1842,7 @@ dds_initialize()
 	if ( !do_not_load_schema ) {
 		static struct {
 			char			*desc;
+			slap_mask_t		flags;
 			AttributeDescription	**ad;
 		}		s_at[] = {
 			{ "( 1.3.6.1.4.1.4203.666.1.57 "
@@ -1854,6 +1855,7 @@ dds_initialize()
 				"SINGLE-VALUE "
 				"NO-USER-MODIFICATION "
 				"USAGE dSAOperation )",
+				SLAP_AT_HIDE,
 				&ad_entryExpireTimestamp },
 			{ NULL }
 		};
@@ -1865,6 +1867,7 @@ dds_initialize()
 					"dds_initialize: register_at failed\n", 0, 0, 0 );
 				return code;
 			}
+			(*s_at[ i ].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
 		}
 	}
 

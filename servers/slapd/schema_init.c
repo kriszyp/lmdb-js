@@ -5181,7 +5181,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.5 NAME 'CSNSIDMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.4 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT, csnSIDMatchSyntaxes,
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY | SLAP_MR_EXT, csnSIDMatchSyntaxes,
 		NULL, csnSidNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
