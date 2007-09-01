@@ -16,7 +16,7 @@
  */
 
 #include "perl_back.h"
-#include "config.h"
+#include "../config.h"
 /**********************************************************
  *
  * Close
