@@ -1222,6 +1222,7 @@ idassert-authzFrom	"dn:<rootdn>"
 			mi->mi_targets[ mi->mi_ntargets - 1 ]->mt_flags |= LDAP_BACK_F_QUARANTINE;
 		}
 
+#ifdef SLAP_CONTROL_X_SESSION_TRACKING
 	/* session tracking request */
 	} else if ( strcasecmp( argv[ 0 ], "session-tracking-request" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
@@ -1251,6 +1252,7 @@ idassert-authzFrom	"dn:<rootdn>"
 				fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
+#endif /* SLAP_CONTROL_X_SESSION_TRACKING */
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
