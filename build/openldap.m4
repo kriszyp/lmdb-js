@@ -487,31 +487,31 @@ __db_version
 ])
 
 if test $ol_cv_bdb_major = 4 ; then
-	if test $ol_cv_bdb_minor = 5 ; then
+	if test $ol_cv_bdb_minor = 6 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_6,[-ldb-4.6])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db46,[-ldb46])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_46,[-ldb-46])
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_6,[-ldb-4-6])
+	elif test $ol_cv_bdb_minor = 5 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_5,[-ldb-4.5])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db45,[-ldb45])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_45,[-ldb-45])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_5,[-ldb-4.5])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_5,[-ldb-4-5])
 	elif test $ol_cv_bdb_minor = 4 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db44,[-ldb44])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_44,[-ldb-44])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_4,[-ldb-4-4])
 	elif test $ol_cv_bdb_minor = 3 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db43,[-ldb43])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-43])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_3,[-ldb-4-3])
 	elif test $ol_cv_bdb_minor = 2 ; then
+		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db42,[-ldb42])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_42,[-ldb-42])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
 		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_2,[-ldb-4-2])
-	elif test $ol_cv_bdb_minor = 1 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db41,[-ldb41])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_41,[-ldb-41])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_1,[-ldb-4.1])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_1,[-ldb-4-1])
 	fi
 	OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
