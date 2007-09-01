@@ -162,7 +162,8 @@ enum {
 	LOG_EN__COUNT
 };
 
-static ObjectClass *log_ocs[LOG_EN__COUNT], *log_container;
+static ObjectClass *log_ocs[LOG_EN__COUNT], *log_container,
+	*log_oc_read, *log_oc_write;
 
 #define LOG_SCHEMA_ROOT	"1.3.6.1.4.1.4203.666.11.5"
 
@@ -400,10 +401,10 @@ static struct {
 				&log_ocs[LOG_EN_UNBIND] },
 	{ "( " LOG_SCHEMA_OC ".2 NAME 'auditReadObject' "
 		"DESC 'OpenLDAP read request record' "
-		"SUP auditObject STRUCTURAL )", NULL },
+		"SUP auditObject STRUCTURAL )", &log_oc_read },
 	{ "( " LOG_SCHEMA_OC ".3 NAME 'auditWriteObject' "
 		"DESC 'OpenLDAP write request record' "
-		"SUP auditObject STRUCTURAL )", NULL },
+		"SUP auditObject STRUCTURAL )", &log_oc_write },
 	{ "( " LOG_SCHEMA_OC ".4 NAME 'auditAbandon' "
 		"DESC 'Abandon operation' "
 		"SUP auditObject STRUCTURAL "
@@ -2032,6 +2033,9 @@ int accesslog_initialize()
 				0, 0, 0 );
 			return -1;
 		}
+#ifndef LDAP_DEVEL
+		(*lattrs[i].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
+#endif
 	}
 
 	for ( i=0; locs[i].ot; i++ ) {
@@ -2044,6 +2048,9 @@ int accesslog_initialize()
 				0, 0, 0 );
 			return -1;
 		}
+#ifndef LDAP_DEVEL
+		(*locs[i].oc)->soc_flags |= SLAP_OC_HIDE;
+#endif
 	}
 
 	return overlay_register(&accesslog);
