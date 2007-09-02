@@ -204,15 +204,15 @@ EOF
 
 echo "Adding schema and databases on producer..."
 $LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
-include: file:$SCHEMADIR/core.ldif
+include: file://$ABS_SCHEMADIR/core.ldif
 
-include: file:$SCHEMADIR/cosine.ldif
+include: file://$ABS_SCHEMADIR/cosine.ldif
 
-include: file:$SCHEMADIR/inetorgperson.ldif
+include: file://$ABS_SCHEMADIR/inetorgperson.ldif
 
-include: file:$SCHEMADIR/openldap.ldif
+include: file://$ABS_SCHEMADIR/openldap.ldif
 
-include: file:$SCHEMADIR/nis.ldif
+include: file://$ABS_SCHEMADIR/nis.ldif
 EOF
 RC=$?
 if test $RC != 0 ; then
