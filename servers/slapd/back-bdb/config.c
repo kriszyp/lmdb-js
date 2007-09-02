@@ -369,8 +369,7 @@ bdb_cf_gen( ConfigArgs *c )
 			break;
 
 		case BDB_CONFIG:
-			if ( ( slapMode & SLAP_SERVER_MODE )
-				&& !( bdb->bi_flags & BDB_IS_OPEN )
+			if ( !( bdb->bi_flags & BDB_IS_OPEN )
 				&& !bdb->bi_db_config )
 			{
 				char	buf[SLAP_TEXT_BUFLEN];
