@@ -355,7 +355,8 @@ static ConfigTable config_back_cf_table[] = {
 		&global_idletimeout, "( OLcfgGlAt:18 NAME 'olcIdleTimeout' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "include", "file", 2, 2, 0, ARG_MAGIC,
-		&config_include, NULL, NULL, NULL },
+		&config_include, "( OLcfgGlAt:19 NAME 'olcInclude' "
+			"SUP labeledURI )", NULL, NULL },
 	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_SSTR_IF_MIN,
 		&config_generic, "( OLcfgGlAt:20 NAME 'olcIndexSubstrIfMinLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -669,7 +670,7 @@ static ConfigTable config_back_cf_table[] = {
 };
 
 /* Routines to check if a child can be added to this type */
-static ConfigLDAPadd cfAddSchema, cfAddDatabase,
+static ConfigLDAPadd cfAddSchema, cfAddInclude, cfAddDatabase,
 	cfAddBackend, cfAddModule, cfAddOverlay;
 
 /* NOTE: be careful when defining array members
@@ -679,9 +680,10 @@ static ConfigLDAPadd cfAddSchema, cfAddDatabase,
 #define CFOC_BACKEND	cf_ocs[3]
 #define CFOC_DATABASE	cf_ocs[4]
 #define CFOC_OVERLAY	cf_ocs[5]
-#define CFOC_FRONTEND	cf_ocs[6]
+#define CFOC_INCLUDE	cf_ocs[6]
+#define CFOC_FRONTEND	cf_ocs[7]
 #ifdef SLAPD_MODULES
-#define CFOC_MODULE	cf_ocs[7]
+#define CFOC_MODULE	cf_ocs[8]
 #endif /* SLAPD_MODULES */
 
 static ConfigOCs cf_ocs[] = {
@@ -746,6 +748,14 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcOverlay )", Cft_Overlay, NULL, cfAddOverlay },
+	{ "( OLcfgGlOc:6 "
+		"NAME 'olcIncludeFile' "
+		"DESC 'OpenLDAP configuration include file' "
+		"SUP olcConfig STRUCTURAL "
+		"MUST olcInclude "
+		"MAY ( cn $ olcRootDSE ) )",
+		/* Used to be Cft_Include, that def has been removed */
+		Cft_Abstract, NULL, cfAddInclude },
 	/* This should be STRUCTURAL like all the other database classes, but
 	 * that would mean inheriting all of the olcDatabaseConfig attributes,
 	 * which causes them to be merged twice in config_build_entry.
@@ -2864,7 +2874,10 @@ config_include(ConfigArgs *c) {
 	ConfigFile *cfsave = cfn;
 	ConfigFile *cf2 = NULL;
 
-	/* No dynamic config for include files */
+	/* Leftover from RE23. No dynamic config for include files */
+	if ( c->op == SLAP_CONFIG_EMIT || c->op == LDAP_MOD_DELETE )
+		return 1;
+
 	cf = ch_calloc( 1, sizeof(ConfigFile));
 	if ( cfn->c_kids ) {
 		for (cf2=cfn->c_kids; cf2 && cf2->c_sibs; cf2=cf2->c_sibs) ;
@@ -3791,6 +3804,13 @@ count_ocs( Attribute *oc_at, int *nocs )
 	}
 
 	return colst;
+}
+
+static int
+cfAddInclude( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
+{
+	/* Leftover from RE23. Never parse this entry */
+	return LDAP_COMPARE_TRUE;
 }
 
 static int
