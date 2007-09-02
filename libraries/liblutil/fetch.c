@@ -43,10 +43,7 @@ ldif_open_url(
 	LDAP_CONST char *urlstr )
 {
 	FILE *url;
-#ifdef HAVE_FETCH
-	url = fetchGetURL( (char*) urlstr, "" );
 
-#else
 	if( strncasecmp( "file:", urlstr, sizeof("file:")-1 ) == 0 ) {
 		char *p;
 		urlstr += sizeof("file:")-1;
@@ -66,9 +63,12 @@ ldif_open_url(
 
 		ber_memfree( p );
 	} else {
-		return NULL;
-	}
+#ifdef HAVE_FETCH
+		url = fetchGetURL( (char*) urlstr, "" );
+#else
+		url = NULL;
 #endif
+	}
 	return url;
 }
 
