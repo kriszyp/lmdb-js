@@ -703,7 +703,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
 		 "olcLogLevel $ "
-		 "olcPasswordCryptSaltFormat $ olcPidFile $ "
+		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
@@ -1824,17 +1824,27 @@ config_search_base(ConfigArgs *c) {
 	return(0);
 }
 
+/* For RE23 compatibility we allow this in the global entry
+ * but we now defer it to the frontend entry to allow modules
+ * to load new hash types.
+ */
 static int
 config_passwd_hash(ConfigArgs *c) {
 	int i;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		struct berval bv;
+		/* Don't generate it in the global entry */
+		if ( c->table == Cft_Global )
+			return 1;
 		for (i=0; default_passwd_hash && default_passwd_hash[i]; i++) {
 			ber_str2bv(default_passwd_hash[i], 0, 0, &bv);
 			value_add_one(&c->rvalue_vals, &bv);
 		}
 		return i ? 0 : 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
+		/* Deleting from global is a no-op, only the frontendDB entry matters */
+		if ( c->table == Cft_Global )
+			return 0;
 		if ( c->valx < 0 ) {
 			ldap_charray_free( default_passwd_hash );
 			default_passwd_hash = NULL;
@@ -1846,12 +1856,6 @@ config_passwd_hash(ConfigArgs *c) {
 		}
 		return 0;
 	}
-	if(default_passwd_hash) {
-		Debug(LDAP_DEBUG_ANY, "%s: "
-			"already set default password_hash\n",
-			c->log, 0, 0);
-		return(1);
-	}
 	for(i = 1; i < c->argc; i++) {
 		if(!lutil_passwd_scheme(c->argv[i])) {
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> scheme not available", c->argv[0] );
@@ -1860,12 +1864,12 @@ config_passwd_hash(ConfigArgs *c) {
 		} else {
 			ldap_charray_add(&default_passwd_hash, c->argv[i]);
 		}
-		if(!default_passwd_hash) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> no valid hashes found", c->argv[0] );
-			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-				c->log, c->cr_msg, 0 );
-			return(1);
-		}
+	}
+	if(!default_passwd_hash) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> no valid hashes found", c->argv[0] );
+		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+			c->log, c->cr_msg, 0 );
+		return(1);
 	}
 	return(0);
 }
