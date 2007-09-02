@@ -879,7 +879,9 @@ ldif_read_record(
 							/* We failed to open the file, this should
 							 * be reported as an error somehow.
 							 */
-							break;
+							ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+								_("ldif_read_record: include %s failed\n"), ptr );
+							return 0;
 						}
 					}
 				}
