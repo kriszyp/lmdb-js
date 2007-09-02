@@ -707,7 +707,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcFrontendConfig' "
 		"DESC 'OpenLDAP frontend configuration' "
 		"AUXILIARY "
-		"MAY olcDefaultSearchBase )",
+		"MAY ( olcDefaultSearchBase $ olcPasswordHash ) )",
 		Cft_Database, NULL, NULL },
 #ifdef SLAPD_MODULES
 	{ "( OLcfgGlOc:8 "
@@ -1459,17 +1459,27 @@ config_search_base(ConfigArgs *c) {
 	return(0);
 }
 
+/* For backward compatibility we allow this in the global entry
+ * but we now defer it to the frontend entry to allow modules
+ * to load new hash types.
+ */
 static int
 config_passwd_hash(ConfigArgs *c) {
 	int i;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		struct berval bv;
+		/* Don't generate it in the global entry */
+		if ( c->table == Cft_Global )
+			return 1;
 		for (i=0; default_passwd_hash && default_passwd_hash[i]; i++) {
 			ber_str2bv(default_passwd_hash[i], 0, 0, &bv);
 			value_add_one(&c->rvalue_vals, &bv);
 		}
 		return i ? 0 : 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
+		/* Deleting from global is a no-op, only the frontendDB entry matters */
+		if ( c->table == Cft_Global )
+			return 0;
 		if ( c->valx < 0 ) {
 			ldap_charray_free( default_passwd_hash );
 			default_passwd_hash = NULL;
@@ -1481,12 +1491,6 @@ config_passwd_hash(ConfigArgs *c) {
 		}
 		return 0;
 	}
-	if(default_passwd_hash) {
-		Debug(LDAP_DEBUG_ANY, "%s: "
-			"already set default password_hash\n",
-			c->log, 0, 0);
-		return(1);
-	}
 	for(i = 1; i < c->argc; i++) {
 		if(!lutil_passwd_scheme(c->argv[i])) {
 			snprintf( c->msg, sizeof( c->msg ), "<%s> scheme not available", c->argv[0] );
@@ -1495,12 +1499,12 @@ config_passwd_hash(ConfigArgs *c) {
 		} else {
 			ldap_charray_add(&default_passwd_hash, c->argv[i]);
 		}
-		if(!default_passwd_hash) {
-			snprintf( c->msg, sizeof( c->msg ), "<%s> no valid hashes found", c->argv[0] );
-			Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-				c->log, c->msg, 0 );
-			return(1);
-		}
+	}
+	if(!default_passwd_hash) {
+		snprintf( c->msg, sizeof( c->msg ), "<%s> no valid hashes found", c->argv[0] );
+		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+			c->log, c->msg, 0 );
+		return(1);
 	}
 	return(0);
 }
@@ -2924,6 +2928,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	argv[1] = (char *)dir;
 	argv[2] = NULL;
 	c.argv = argv;
+	c.table = Cft_Database;
 
 	ct = config_find_keyword( c.be->be_cf_ocs->co_table, &c );
 	if ( !ct )
@@ -3137,14 +3142,17 @@ config_send( Operation *op, SlapReply *rs, CfEntryInfo *ce, int depth )
 }
 
 static ConfigTable *
-config_find_table( ConfigOCs **colst, int nocs, AttributeDescription *ad )
+config_find_table( ConfigOCs **colst, int nocs, AttributeDescription *ad,
+	ConfigArgs *ca )
 {
 	int i, j;
 
 	for (j=0; j<nocs; j++) {
 		for (i=0; colst[j]->co_table[i].name; i++)
-			if ( colst[j]->co_table[i].ad == ad )
+			if ( colst[j]->co_table[i].ad == ad ) {
+				ca->table = colst[j]->co_type;
 				return &colst[j]->co_table[i];
+			}
 	}
 	return NULL;
 }
@@ -3590,7 +3598,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 
 	for ( a=e->e_attrs; a; a=a->a_next ) {
 		if ( a == oc_at ) continue;
-		ct = config_find_table( colst, nocs, a->a_desc );
+		ct = config_find_table( colst, nocs, a->a_desc, ca );
 		if ( !ct ) continue;	/* user data? */
 		rc = check_vals( ct, ca, a, 1 );
 		if ( rc ) goto done;
@@ -3599,7 +3607,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	/* Basic syntax checks are OK. Do the actual settings. */
 	for ( a=e->e_attrs; a; a=a->a_next ) {
 		if ( a == oc_at ) continue;
-		ct = config_find_table( colst, nocs, a->a_desc );
+		ct = config_find_table( colst, nocs, a->a_desc, ca );
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
 			ca->line = a->a_vals[i].bv_val;
@@ -3769,7 +3777,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	strcpy( ca->log, "back-config" );
 
 	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
-		ct = config_find_table( colst, nocs, ml->sml_desc );
+		ct = config_find_table( colst, nocs, ml->sml_desc, ca );
 		switch (ml->sml_op) {
 		case LDAP_MOD_DELETE:
 		case LDAP_MOD_REPLACE: {
@@ -3882,7 +3890,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	if ( rc == LDAP_SUCCESS ) {
 		/* Basic syntax checks are OK. Do the actual settings. */
 		for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
-			ct = config_find_table( colst, nocs, ml->sml_desc );
+			ct = config_find_table( colst, nocs, ml->sml_desc, ca );
 			if ( !ct ) continue;
 
 			switch (ml->sml_op) {
@@ -4237,6 +4245,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	attr_merge_normalize_one(e, ad, &val, NULL );
 
 	oc = main->co_oc;
+	c->table = main->co_type;
 	if ( oc->soc_required )
 		config_build_attrs( e, oc->soc_required, ad, main->co_table, c );
 
@@ -4245,6 +4254,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 
 	if ( extra ) {
 		oc = extra->co_oc;
+		c->table = extra->co_type;
 		if ( oc->soc_required )
 			config_build_attrs( e, oc->soc_required, ad, extra->co_table, c );
 

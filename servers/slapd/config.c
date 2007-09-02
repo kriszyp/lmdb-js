@@ -308,8 +308,7 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 		return(0);
 	}
 	if(arg_type & ARG_OFFSET) {
-		if (c->be && (!overlay_is_over(c->be) || 
-			((slap_overinfo *)c->be->bd_info)->oi_orig == c->bi))
+		if (c->be && c->table == Cft_Database)
 			ptr = c->be->be_private;
 		else if (c->bi)
 			ptr = c->bi->bi_private;
@@ -400,8 +399,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		if ( rc ) return rc;
 	} else {
 		if ( cf->arg_type & ARG_OFFSET ) {
-			if (c->be && (!overlay_is_over(c->be) || 
-				((slap_overinfo *)c->be->bd_info)->oi_orig == c->bi))
+			if (c->be && c->table == Cft_Database)
 				ptr = c->be->be_private;
 			else if ( c->bi )
 				ptr = c->bi->bi_private;
@@ -752,6 +750,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 
 		ct = config_find_keyword( cft, c );
 		if ( ct ) {
+			c->table = Cft_Global;
 			rc = config_add_vals( ct, c );
 			if ( !rc ) continue;
 
@@ -772,6 +771,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 			if ( c->bi->bi_cf_ocs ) {
 				ct = config_find_keyword( c->bi->bi_cf_ocs->co_table, c );
 				if ( ct ) {
+					c->table = c->bi->bi_cf_ocs->co_type;
 					rc = config_add_vals( ct, c );
 				}
 			}
@@ -800,6 +800,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 			if ( c->be->be_cf_ocs ) {
 				ct = config_find_keyword( c->be->be_cf_ocs->co_table, c );
 				if ( ct ) {
+					c->table = c->be->be_cf_ocs->co_type;
 					rc = config_add_vals( ct, c );
 				}
 			}
@@ -1526,7 +1527,9 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 
 	rc = SLAP_CONF_UNKNOWN;
 	ct = config_find_keyword( be->be_cf_ocs->co_table, &c );
-	if ( ct )
+	if ( ct ) {
+		c.table = be->be_cf_ocs->co_type;
 		rc = config_add_vals( ct, &c );
+	}
 	return rc;
 }
