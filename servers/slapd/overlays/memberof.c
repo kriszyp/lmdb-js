@@ -1441,14 +1441,12 @@ memberof_db_init(
 	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	memberof_t	*mo;
+	memberof_t	tmp_mo = { 0 }, *mo;
 
 	int		rc;
 	const char	*text = NULL;
 
-	mo = (memberof_t *)ch_calloc( 1, sizeof( memberof_t ) );
-
-	rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &mo->mo_ad_memberof, &text );
+	rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &tmp_mo.mo_ad_memberof, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"memberof_db_init: "
@@ -1457,7 +1455,7 @@ memberof_db_init(
 		return rc;
 	}
 
-	rc = slap_str2ad( SLAPD_GROUP_ATTR, &mo->mo_ad_member, &text );
+	rc = slap_str2ad( SLAPD_GROUP_ATTR, &tmp_mo.mo_ad_member, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"memberof_db_init: "
@@ -1466,14 +1464,17 @@ memberof_db_init(
 		return rc;
 	}
 
-	mo->mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
-	if ( mo->mo_oc_group == NULL ) {
+	tmp_mo.mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
+	if ( tmp_mo.mo_oc_group == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"memberof_db_init: "
 			"unable to find objectClass=\"%s\"\n",
 			SLAPD_GROUP_CLASS, 0, 0 );
 		return 1;
 	}
+
+	mo = (memberof_t *)ch_calloc( 1, sizeof( memberof_t ) );
+	*mo = tmp_mo;
 
 	on->on_bi.bi_private = (void *)mo;
 
