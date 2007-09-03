@@ -1445,12 +1445,11 @@ PrintableString
   In ASN.1, Printable string is just a string of printable characters
   and can be empty.  In X.500, semantics much like NumericString (see
   serialNumber for a like example) excepting uses insignificant space
-  handling instead of ignore all spaces.  
+  handling instead of ignore all spaces.  They must be non-empty.
 
 IA5String
   Basically same as PrintableString.  There are no examples in X.500,
-  but same logic applies.  So we require them to be non-empty as
-  well.
+  but same logic applies.  Empty strings are allowed.
 
 -------------------------------------------------------------------*/
 
