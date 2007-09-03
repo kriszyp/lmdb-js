@@ -866,6 +866,7 @@ ldif_read_record(
 						if ( fp2 ) {
 							LDIFFP *lnew = ber_memalloc( sizeof( LDIFFP ));
 							if ( lnew == NULL ) {
+								fclose( fp2 );
 								return 0;
 							}
 							lnew->prev = lfp->prev;
