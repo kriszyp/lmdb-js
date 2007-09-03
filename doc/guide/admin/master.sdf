@@ -88,6 +88,10 @@ PB:
 !include "appendix-changes.sdf"; appendix
 PB:
 
+# Upgrade from 2.3.x
+!include "appendix-upgrading.sdf"; appendix
+PB:
+
 # Config file examples
 !include "appendix-configs.sdf"; appendix
 PB:
