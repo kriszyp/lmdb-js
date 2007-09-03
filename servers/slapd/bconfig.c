@@ -1149,10 +1149,14 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_OC: {
-			CfEntryInfo *ce = c->ca_entry->e_private;
-			/* can't modify the hardcoded schema */
-			if ( ce->ce_parent->ce_type == Cft_Global )
-				return 1;
+			CfEntryInfo *ce;
+			/* Can be NULL when undoing a failed add */
+			if ( c->ca_entry ) {
+				ce = c->ca_entry->e_private;
+				/* can't modify the hardcoded schema */
+				if ( ce->ce_parent->ce_type == Cft_Global )
+					return 1;
+				}
 			}
 			cfn = c->private;
 			if ( c->valx < 0 ) {
@@ -1183,10 +1187,14 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_ATTR: {
-			CfEntryInfo *ce = c->ca_entry->e_private;
-			/* can't modify the hardcoded schema */
-			if ( ce->ce_parent->ce_type == Cft_Global )
-				return 1;
+			CfEntryInfo *ce;
+			/* Can be NULL when undoing a failed add */
+			if ( c->ca_entry ) {
+				ce = c->ca_entry->e_private;
+				/* can't modify the hardcoded schema */
+				if ( ce->ce_parent->ce_type == Cft_Global )
+					return 1;
+				}
 			}
 			cfn = c->private;
 			if ( c->valx < 0 ) {
