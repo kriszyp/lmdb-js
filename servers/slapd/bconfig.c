@@ -208,6 +208,7 @@ static OidRec OidMacros[] = {
 	{ "OMsBoolean", "OMsyn:7" },
 	{ "OMsDN", "OMsyn:12" },
 	{ "OMsDirectoryString", "OMsyn:15" },
+	{ "OMsIA5String", "OMsyn:26" },
 	{ "OMsInteger", "OMsyn:27" },
 	{ "OMsOID", "OMsyn:38" },
 	{ "OMsOctetString", "OMsyn:40" },
