@@ -444,6 +444,7 @@ memberof_value_modify(
 		assert( !BER_BVISNULL( new_dn ) );
 		assert( !BER_BVISNULL( new_ndn ) );
 
+		ml = &mod[ 1 ];
 		ml->sml_op = LDAP_MOD_ADD;
 
 		ml->sml_values[ 0 ] = *new_dn;
@@ -463,6 +464,7 @@ memberof_value_modify(
 		assert( !BER_BVISNULL( old_dn ) );
 		assert( !BER_BVISNULL( old_ndn ) );
 
+		ml = &mod[ 1 ];
 		ml->sml_op = LDAP_MOD_DELETE;
 
 		ml->sml_values[ 0 ] = *old_dn;
