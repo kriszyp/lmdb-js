@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1405 
+personal_ws-1.1 en 1406 
 nattrsets
 inappropriateAuthentication
 api
@@ -648,6 +648,7 @@ olcBackendConfig
 dn
 fd
 LDAPSync
+olcReplicationInterval
 fG
 fi
 eq

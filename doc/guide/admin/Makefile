@@ -18,7 +18,9 @@ sdf-src: \
 	../plain.sdf \
 	../preamble.sdf \
 	abstract.sdf \
+	appendix-changes.sdf \
 	appendix-configs.sdf \
+	appendix-upgrading.sdf \
 	backends.sdf \
 	config.sdf \
 	dbtools.sdf \
@@ -66,4 +68,4 @@ guide.pdf: admin.html
 	htmldoc --batch guide.book
 
 clean: 
-	rm -f *.pdf *.html *~
+	rm -f *.pdf *.html *~ *.bak
