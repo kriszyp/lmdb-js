@@ -27,11 +27,24 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
-#define IDL_LRU_DELETE( bdb, e ) do { 					\
-	if ( e == bdb->bi_idl_lru_head ) bdb->bi_idl_lru_head = e->idl_lru_next; \
-	if ( e == bdb->bi_idl_lru_tail ) bdb->bi_idl_lru_tail = e->idl_lru_prev; \
-	e->idl_lru_next->idl_lru_prev = e->idl_lru_prev; \
-	e->idl_lru_prev->idl_lru_next = e->idl_lru_next; \
+#define IDL_LRU_DELETE( bdb, e ) do { \
+	if ( (e) == (bdb)->bi_idl_lru_head ) { \
+		if ( (e)->idl_lru_next == (bdb)->bi_idl_lru_head ) { \
+			(bdb)->bi_idl_lru_head = NULL; \
+		} else { \
+			(bdb)->bi_idl_lru_head = (e)->idl_lru_next; \
+		} \
+	} \
+	if ( (e) == (bdb)->bi_idl_lru_tail ) { \
+		if ( (e)->idl_lru_prev == (bdb)->bi_idl_lru_tail ) { \
+			assert( (bdb)->bi_idl_lru_head == NULL ); \
+			(bdb)->bi_idl_lru_tail = NULL; \
+		} else { \
+			(bdb)->bi_idl_lru_tail = (e)->idl_lru_prev; \
+		} \
+	} \
+	(e)->idl_lru_next->idl_lru_prev = (e)->idl_lru_prev; \
+	(e)->idl_lru_prev->idl_lru_next = (e)->idl_lru_next; \
 } while ( 0 )
 
 static int
@@ -349,6 +362,10 @@ bdb_idl_cache_put(
 	ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 	/* LRU_ADD */
 	if ( bdb->bi_idl_lru_head ) {
+		assert( bdb->bi_idl_lru_tail != NULL );
+		assert( bdb->bi_idl_lru_head->idl_lru_prev != NULL );
+		assert( bdb->bi_idl_lru_head->idl_lru_next != NULL );
+
 		ee->idl_lru_next = bdb->bi_idl_lru_head;
 		ee->idl_lru_prev = bdb->bi_idl_lru_head->idl_lru_prev;
 		bdb->bi_idl_lru_head->idl_lru_prev->idl_lru_next = ee;
@@ -364,6 +381,9 @@ bdb_idl_cache_put(
 		ee = bdb->bi_idl_lru_tail;
 		for ( i = 0; i < 10; i++, ee = eprev ) {
 			eprev = ee->idl_lru_prev;
+			if ( eprev == ee ) {
+				eprev = NULL;
+			}
 			if ( ee->idl_flags & CACHE_ENTRY_REFERENCED ) {
 				ee->idl_flags ^= CACHE_ENTRY_REFERENCED;
 				continue;
@@ -382,6 +402,8 @@ bdb_idl_cache_put(
 			ch_free( ee );
 		}
 		bdb->bi_idl_lru_tail = eprev;
+		assert( bdb->bi_idl_lru_tail != NULL
+			|| bdb->bi_idl_lru_head == NULL );
 	}
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
