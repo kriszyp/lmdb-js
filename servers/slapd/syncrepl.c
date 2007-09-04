@@ -2695,6 +2695,11 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 		for ( o=0; old->a_vals[o].bv_val; o++ ) ;
 		for ( n=0; new->a_vals[n].bv_val; n++ ) ;
 
+		/* there MUST be both onld and new values
+		 * (otherwise j is used uninitialized) */
+		assert( o != 0 );
+		assert( n != 0 );
+
 		adds = op->o_tmpalloc( sizeof(struct berval *) * n, op->o_tmpmemctx );
 		dels = op->o_tmpalloc( sizeof(struct berval *) * o, op->o_tmpmemctx );
 
