@@ -3508,6 +3508,9 @@ hexNormalize(
 {
 	int	i;
 
+	assert( val != NULL );
+	assert( normalized != NULL );
+
 	ber_dupbv_x( normalized, val, ctx );
 
 	for ( i = 0; i < normalized->bv_len; i++ ) {
@@ -3802,6 +3805,9 @@ csnNormalize(
 	struct berval	cnt, sid, mod;
 	char		*ptr;
 	int		i;
+
+	assert( val != NULL );
+	assert( normalized != NULL )
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
