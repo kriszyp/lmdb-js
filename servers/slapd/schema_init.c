@@ -3807,7 +3807,7 @@ csnNormalize(
 	int		i;
 
 	assert( val != NULL );
-	assert( normalized != NULL )
+	assert( normalized != NULL );
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) != 0 );
 
