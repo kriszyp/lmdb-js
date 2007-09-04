@@ -628,6 +628,7 @@ int slap_mods_check(
 							"%s: value #%ld normalization failed",
 							ml->sml_type.bv_val, (long) nvals );
 						*text = textbuf;
+						BER_BVZERO( &ml->sml_nvalues[nvals] );
 						return rc;
 					}
 				}
