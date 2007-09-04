@@ -458,20 +458,6 @@ done:
 	return( rc );
 }
 
-#if 0
-int
-authzMatch(
-	int		*matchp,
-	slap_mask_t	flags,
-	Syntax		*syntax,
-	MatchingRule	*mr,
-	struct berval	*value,
-	void		*assertedValue )
-{
-	return octetStringMatch( matchp, flags, syntax, mr, value, assertedValue );
-}
-#endif
-
 static int
 authzPrettyNormal(
 	struct berval	*val,

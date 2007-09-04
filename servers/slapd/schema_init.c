@@ -55,7 +55,6 @@
 #define csnIndexer				generalizedTimeIndexer
 #define csnFilter				generalizedTimeFilter
 
-/* FIXME: temporary */
 #define authzMatch				octetStringMatch
 
 unsigned int index_substr_if_minlen = SLAP_INDEX_SUBSTR_IF_MINLEN_DEFAULT;
