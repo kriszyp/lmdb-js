@@ -55,6 +55,7 @@ typedef enum {
 #define ARG_STRING	0x00005000
 #define ARG_BERVAL	0x00006000
 #define ARG_DN		0x00007000
+#define ARG_UINT	0x00008000
 
 #define ARGS_SYNTAX	0xffff0000
 #define ARG_IGNORED	0x00080000
@@ -128,6 +129,7 @@ typedef struct config_args_s {
 	/* parsed first val for simple cases */
 	union {
 		int v_int;
+		unsigned v_uint;
 		long v_long;
 		ber_len_t v_ber_t;
 		char *v_string;
@@ -159,6 +161,7 @@ typedef struct config_args_s {
 #define CONFIG_ONLINE_ADD(ca)	(!((ca)->lineno))
 
 #define value_int values.v_int
+#define value_uint values.v_uint
 #define value_long values.v_long
 #define value_ber_t values.v_ber_t
 #define value_string values.v_string

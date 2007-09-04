@@ -124,6 +124,7 @@ ConfigTable *config_find_keyword(ConfigTable *Conf, ConfigArgs *c) {
 
 int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 	int rc, arg_user, arg_type, arg_syn, iarg;
+	unsigned uiarg;
 	long larg;
 	ber_len_t barg;
 	
@@ -227,6 +228,16 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 					return(ARG_BAD_CONF);
 				}
 				break;
+			case ARG_UINT:
+				if ( lutil_atoux( &uiarg, c->argv[1], 0 ) != 0 ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
+						"<%s> unable to parse \"%s\" as unsigned int",
+						c->argv[0], c->argv[1] );
+					Debug(LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "%s: %s\n",
+						c->log, c->cr_msg, 0);
+					return(ARG_BAD_CONF);
+				}
+				break;
 			case ARG_LONG:
 				if ( lutil_atolx( &larg, c->argv[1], 0 ) != 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
@@ -283,6 +294,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		switch(arg_type) {
 			case ARG_ON_OFF:
 			case ARG_INT:		c->value_int = iarg;		break;
+			case ARG_UINT:		c->value_uint = uiarg;		break;
 			case ARG_LONG:		c->value_long = larg;		break;
 			case ARG_BER_LEN_T:	c->value_ber_t = barg;		break;
 		}
@@ -333,6 +345,7 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 		switch(arg_type & ARGS_TYPES) {
 			case ARG_ON_OFF:
 			case ARG_INT: 		*(int*)ptr = c->value_int;			break;
+			case ARG_UINT: 		*(unsigned*)ptr = c->value_uint;			break;
 			case ARG_LONG:  	*(long*)ptr = c->value_long;			break;
 			case ARG_BER_LEN_T: 	*(ber_len_t*)ptr = c->value_ber_t;			break;
 			case ARG_STRING: {
@@ -419,6 +432,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		switch(cf->arg_type & ARGS_TYPES) {
 		case ARG_ON_OFF:
 		case ARG_INT:	c->value_int = *(int *)ptr; break;
+		case ARG_UINT:	c->value_uint = *(unsigned *)ptr; break;
 		case ARG_LONG:	c->value_long = *(long *)ptr; break;
 		case ARG_BER_LEN_T:	c->value_ber_t = *(ber_len_t *)ptr; break;
 		case ARG_STRING:
@@ -434,6 +448,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		bv.bv_val = c->log;
 		switch(cf->arg_type & ARGS_TYPES) {
 		case ARG_INT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%d", c->value_int); break;
+		case ARG_UINT: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%u", c->value_uint); break;
 		case ARG_LONG: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_long); break;
 		case ARG_BER_LEN_T: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%ld", c->value_ber_t); break;
 		case ARG_ON_OFF: bv.bv_len = snprintf(bv.bv_val, sizeof( c->log ), "%s",
