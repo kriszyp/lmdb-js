@@ -111,16 +111,13 @@ definitions:
 >                                   credentials="<secret>" 
 >                                   mode="self"
 >        chain-tls                  start
->        chain-idassert-authzFrom   "*"
 >        chain-return-error         TRUE 
 >        updateref                  "ldap://ldapmaster.example.com/"
 
 The {{B:chain-tls}} statement enables TLS from the slave to the ldap master. 
-The {{B:chain-idassert-authzFrom}} statement will assert the identity of whatever 
-bound dn on the slave is making the update request. The DITs are exactly the 
-same between these machines, therefore whatever user bound to the slave will 
-also exist on the master. If that DN does not have update privileges on the master,
-nothing will happen.
+The DITs are exactly the same between these machines, therefore whatever user 
+bound to the slave will also exist on the master. If that DN does not have 
+update privileges on the master, nothing will happen.
 
 You will need to restart the slave after these changes. Then, if you are using 
 {{loglevel 256}}, you can monitor an {{ldapmodify}} on the slave and the master.
