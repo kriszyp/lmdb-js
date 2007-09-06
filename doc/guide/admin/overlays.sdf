@@ -112,6 +112,7 @@ definitions:
 >                                   mode="self"
 >        chain-tls                  start
 >        chain-idassert-authzFrom   "*"
+>        chain-return-error         TRUE 
 >        updateref                  "ldap://ldapmaster.example.com/"
 
 The {{B:chain-tls}} statement enables TLS from the slave to the ldap master. 
