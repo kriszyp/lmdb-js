@@ -1,3 +1,4 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.6 Engineering
+	Fixed slapo-rwm modlist handling (ITS#5124)

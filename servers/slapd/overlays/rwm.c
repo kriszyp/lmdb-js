@@ -504,14 +504,10 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	isupdate = be_shadow_update( op );
 	for ( mlp = &op->orm_modlist; *mlp; ) {
 		int			is_oc = 0;
-		Modifications		*ml;
+		Modifications		*ml = *mlp;
 		struct ldapmapping	*mapping = NULL;
 
-		/* duplicate the modlist */
-		ml = ch_malloc( sizeof( Modifications ));
-		*ml = **mlp;
-		*mlp = ml;
-
+		/* ml points to a temporary mod until needs duplication */
 		if ( ml->sml_desc == slap_schema.si_ad_objectClass 
 				|| ml->sml_desc == slap_schema.si_ad_structuralObjectClass )
 		{
@@ -519,6 +515,15 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 
 		} else if ( !isupdate && !get_relax( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
+			ml = ch_malloc( sizeof( Modifications ) );
+			*ml = **mlp;
+			if ( (*mlp)->sml_values ) {
+				ber_bvarray_dup_x( &ml->sml_values, (*mlp)->sml_values, NULL );
+				if ( (*mlp)->sml_nvalues ) {
+					ber_bvarray_dup_x( &ml->sml_nvalues, (*mlp)->sml_nvalues, NULL );
+				}
+			}
+			*mlp = ml;
 			goto next_mod;
 
 		} else {
@@ -532,6 +537,11 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 				goto cleanup_mod;
 			}
 		}
+
+		/* duplicate the modlist */
+		ml = ch_malloc( sizeof( Modifications ));
+		*ml = **mlp;
+		*mlp = ml;
 
 		if ( ml->sml_values != NULL ) {
 			int i, num;
