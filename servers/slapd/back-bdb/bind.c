@@ -39,19 +39,6 @@ bdb_bind( Operation *op, SlapReply *rs )
 		"==> " LDAP_XSTRING(bdb_bind) ": dn: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 
-#ifdef LDAP_DEVEL
-	/* allow noauth binds */
-	switch ( be_rootdn_bind( op, rs ) ) {
-	case SLAP_CB_CONTINUE:
-		break;
-
-	default:
-		/* in case of success, frontend will send result;
-		 * otherwise, be_rootdn_bind() did */
-		return rs->sr_err;
-	}
-
-#else /* traditional */
 	/* allow noauth binds */
 	switch ( be_rootdn_bind( op, NULL ) ) {
 	case LDAP_SUCCESS:
@@ -60,9 +47,13 @@ bdb_bind( Operation *op, SlapReply *rs )
 
 	default:
 		/* give the database a chanche */
+		/* NOTE: this behavior departs from that of other backends,
+		 * since the others, in case of password checking failure
+		 * do not give the database a chance.  If an entry with
+		 * rootdn's name does not exist in the database the result
+		 * will be the same.  See ITS#4962 for discussion. */
 		break;
 	}
-#endif /* traditional */
 
 	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);
 	switch(rs->sr_err) {
