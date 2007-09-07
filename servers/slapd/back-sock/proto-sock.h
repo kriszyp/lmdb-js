@@ -12,6 +12,10 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Brian Candler for inclusion
+ * in OpenLDAP Software.
+ */
 
 #ifndef _PROTO_SOCK_H
 #define _PROTO_SOCK_H

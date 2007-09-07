@@ -13,6 +13,10 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Brian Candler for inclusion
+ * in OpenLDAP Software.
+ */
 
 #ifndef SLAPD_SOCK_H
 #define SLAPD_SOCK_H
