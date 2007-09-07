@@ -516,6 +516,34 @@ rwm_op_delete( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+/* imported from HEAD */
+static int
+ber_bvarray_dup_x( BerVarray *dst, BerVarray src, void *ctx )
+{
+	int i, j;
+	BerVarray new;
+
+	if ( !src ) {
+		*dst = NULL;
+		return 0;
+	}
+
+	for (i=0; !BER_BVISNULL( &src[i] ); i++) ;
+	new = ber_memalloc_x(( i+1 ) * sizeof(BerValue), ctx );
+	if ( !new )
+		return -1;
+	for (j=0; j<i; j++) {
+		ber_dupbv_x( &new[j], &src[j], ctx );
+		if ( BER_BVISNULL( &new[j] )) {
+			ber_bvarray_free_x( new, ctx );
+			return -1;
+		}
+	}
+	BER_BVZERO( &new[j] );
+	*dst = new;
+	return 0;
+}
+
 static int
 rwm_op_modify( Operation *op, SlapReply *rs )
 {
@@ -544,21 +572,26 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	isupdate = be_shadow_update( op );
 	for ( mlp = &op->oq_modify.rs_modlist; *mlp; ) {
 		int			is_oc = 0;
-		Modifications		*ml;
+		Modifications		*ml = *mlp;
 		struct ldapmapping	*mapping = NULL;
 
-		/* duplicate the modlist */
-		ml = ch_malloc( sizeof( Modifications ));
-		*ml = **mlp;
-		*mlp = ml;
-
+		/* ml points to a temporary mod until needs duplication */
 		if ( ml->sml_desc == slap_schema.si_ad_objectClass 
 				|| ml->sml_desc == slap_schema.si_ad_structuralObjectClass )
 		{
 			is_oc = 1;
 
-		} else if ( !isupdate && !get_manageDIT( op ) && (*mlp)->sml_desc->ad_type->sat_no_user_mod  )
+		} else if ( !isupdate && !get_manageDIT( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
+			ml = ch_malloc( sizeof( Modifications ) );
+			*ml = **mlp;
+			if ( (*mlp)->sml_values ) {
+				ber_bvarray_dup_x( &ml->sml_values, (*mlp)->sml_values, NULL );
+				if ( (*mlp)->sml_nvalues ) {
+					ber_bvarray_dup_x( &ml->sml_nvalues, (*mlp)->sml_nvalues, NULL );
+				}
+			}
+			*mlp = ml;
 			goto next_mod;
 
 		} else {
@@ -572,6 +605,11 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 				goto cleanup_mod;
 			}
 		}
+
+		/* duplicate the modlist */
+		ml = ch_malloc( sizeof( Modifications ));
+		*ml = **mlp;
+		*mlp = ml;
 
 		if ( ml->sml_values != NULL ) {
 			int i, num;
