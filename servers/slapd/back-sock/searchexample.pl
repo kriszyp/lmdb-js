@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w -T
 
-# See: http://search.cpan.org/~rhandom/Net-Server-0.97/
+# See: http://search.cpan.org/dist/Net-Server/
 
 package ExampleDB;
 
