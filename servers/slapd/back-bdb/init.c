@@ -195,9 +195,11 @@ bdb_db_open( BackendDB *be, ConfigReply *cr )
 							be->be_suffix[0].bv_val, 0, 0 );
 					if ( quick ) {
 						Debug( LDAP_DEBUG_ANY,
-							"Cannot use Quick mode, perform manual recovery first.\n",
+							"Cannot use Quick mode; perform manual recovery first.\n",
 							0, 0, 0 );
-						return -1;
+						slapMode ^= SLAP_TOOL_QUICK;
+						rc = -1;
+						goto fail;
 					} else {
 						Debug( LDAP_DEBUG_ANY,
 							"Performing database recovery to activate new settings.\n",
@@ -614,7 +616,7 @@ bdb_db_close( BackendDB *be, ConfigReply *cr )
 		}
 	}
 
-	rc = alock_close( &bdb->bi_alock_info );
+	rc = alock_close( &bdb->bi_alock_info, slapMode & SLAP_TOOL_QUICK );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_close: database \"%s\": alock_close failed\n",
