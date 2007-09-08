@@ -191,9 +191,18 @@ bdb_db_open( BackendDB *be, ConfigReply *cr )
 			if( stat( path, &stat2 ) == 0 ) {
 				if( stat2.st_mtime < stat1.st_mtime ) {
 					Debug( LDAP_DEBUG_ANY,
-						LDAP_XSTRING(bdb_db_open) ": DB_CONFIG for suffix \"%s\" has changed.\n"
-						"Performing database recovery to activate new settings.\n",
-						be->be_suffix[0].bv_val, 0, 0 );
+						LDAP_XSTRING(bdb_db_open) ": DB_CONFIG for suffix \"%s\" has changed.\n",
+							be->be_suffix[0].bv_val, 0, 0 );
+					if ( quick ) {
+						Debug( LDAP_DEBUG_ANY,
+							"Cannot use Quick mode, perform manual recovery first.\n",
+							0, 0, 0 );
+						return -1;
+					} else {
+						Debug( LDAP_DEBUG_ANY,
+							"Performing database recovery to activate new settings.\n",
+							0, 0, 0 );
+					}
 					do_recover = DB_RECOVER;
 				}
 			}
