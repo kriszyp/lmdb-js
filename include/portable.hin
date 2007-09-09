@@ -1014,6 +1014,9 @@
 /* define to support SHELL backend */
 #undef SLAPD_SHELL
 
+/* define to support SOCK backend */
+#undef SLAPD_SOCK
+
 /* define to support SASL passwords */
 #undef SLAPD_SPASSWD
 
