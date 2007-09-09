@@ -1,4 +1,5 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.6 Engineering
+	Fixed slapd-ldap SASL idassert w/o autchId
 	Fixed slapo-rwm modlist handling (ITS#5124)
