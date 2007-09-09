@@ -5,6 +5,7 @@ OpenLDAP 2.3.39 Engineering
 	Fixed slapd password_hash config order (ITS#5082)
 	Fixed slapd slap_mods_check bug (ITS#5119)
 	Fixed slapd-bdb DB_CONFIG conversion bug (ITS#5118)
+	Fixed slapd-ldap SASL idassert w/o autchId
 	Fixed slapd-sql concurrency issue (ITS#5095)
 	Fixed slapo-pcache and -rwm interaction fix (ITS#4991) 
 	Fixed slapo-rwm modlist handling (ITS#5124)

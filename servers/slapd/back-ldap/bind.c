@@ -2133,7 +2133,8 @@ ldap_back_proxy_authz_ctrl(
 	 * but if it is not set this test fails.  We need a different
 	 * means to detect if idassert is enabled */
 	if ( ( BER_BVISNULL( &si->si_bc.sb_authcId ) || BER_BVISEMPTY( &si->si_bc.sb_authcId ) )
-			&& ( BER_BVISNULL( &si->si_bc.sb_binddn ) || BER_BVISEMPTY( &si->si_bc.sb_binddn ) ) )
+		&& ( BER_BVISNULL( &si->si_bc.sb_binddn ) || BER_BVISEMPTY( &si->si_bc.sb_binddn ) )
+		&& BER_BVISNULL( &si->si_bc.sb_saslmech ) )
 	{
 		goto done;
 	}
