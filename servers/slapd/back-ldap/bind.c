@@ -2393,11 +2393,14 @@ ldap_back_proxy_authz_ctrl(
 		goto done;
 	}
 
+	ctrl->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+
 	switch ( si->si_mode ) {
 	/* already in u:ID or dn:DN form */
 	case LDAP_BACK_IDASSERT_OTHERID:
 	case LDAP_BACK_IDASSERT_OTHERDN:
 		ber_dupbv_x( &ctrl->ldctl_value, &assertedID, op->o_tmpmemctx );
+		rs->sr_err = LDAP_SUCCESS;
 		break;
 
 	/* needs the dn: prefix */
@@ -2408,6 +2411,7 @@ ldap_back_proxy_authz_ctrl(
 		AC_MEMCPY( ctrl->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
 		AC_MEMCPY( &ctrl->ldctl_value.bv_val[ STRLENOF( "dn:" ) ],
 				assertedID.bv_val, assertedID.bv_len + 1 );
+		rs->sr_err = LDAP_SUCCESS;
 		break;
 	}
 
@@ -2434,6 +2438,8 @@ ldap_back_proxy_authz_ctrl(
 			rs->sr_err = LDAP_OTHER;
 			goto free_ber;
 		}
+
+		rs->sr_err = LDAP_SUCCESS;
 
 free_ber:;
 		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
@@ -2475,6 +2481,9 @@ free_ber:;
 			goto free_ber2;
 		}
 
+		ctrl->ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
+		rs->sr_err = LDAP_SUCCESS;
+
 free_ber2:;
 		op->o_tmpfree( authzID.bv_val, op->o_tmpmemctx );
 		ber_free_buf( ber );
@@ -2482,8 +2491,6 @@ free_ber2:;
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			goto done;
 		}
-
-		ctrl->ldctl_oid = LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ;
 	}
 
 done:;
