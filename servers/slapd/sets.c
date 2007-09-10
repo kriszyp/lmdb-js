@@ -24,20 +24,22 @@
 static BerVarray set_chase( SLAP_SET_GATHER gatherer,
 	SetCookie *cookie, BerVarray set, AttributeDescription *desc, int closure );
 
+/* Count the array members */
 static long
 slap_set_size( BerVarray set )
 {
-	long	i;
+	long	i = 0;
 
-	i = 0;
 	if ( set != NULL ) {
 		while ( !BER_BVISNULL( &set[ i ] ) ) {
 			i++;
 		}
 	}
+
 	return i;
 }
 
+/* Return 0 if there is at least one array member, non-zero otherwise */
 static int
 slap_set_isempty( BerVarray set )
 {
@@ -52,6 +54,14 @@ slap_set_isempty( BerVarray set )
 	return 1;
 }
 
+/* Dispose of the contents of the array and the array itself according
+ * to the flags value.  If SLAP_SET_REFVAL, don't dispose of values;
+ * if SLAP_SET_REFARR, don't dispose of the array itself.  In case of
+ * binary operators, there are LEFT flags and RIGHT flags, referring to
+ * the first and the second operator arguments, respectively.  In this
+ * case, flags must be transformed using macros SLAP_SET_LREF2REF() and
+ * SLAP_SET_RREF2REF() before calling this function.
+ */
 static void
 slap_set_dispose( SetCookie *cp, BerVarray set, unsigned flags )
 {
@@ -65,6 +75,10 @@ slap_set_dispose( SetCookie *cp, BerVarray set, unsigned flags )
 	}
 }
 
+/* Duplicate a set.  If SLAP_SET_REFARR, is not set, the original array
+ * with the original values is returned, otherwise the array is duplicated;
+ * if SLAP_SET_REFVAL is set, also the values are duplicated.
+ */
 static BerVarray
 set_dup( SetCookie *cp, BerVarray set, unsigned flags )
 {
@@ -103,6 +117,19 @@ set_dup( SetCookie *cp, BerVarray set, unsigned flags )
 	return newset;
 }
 
+/* Join two sets according to operator op and flags op_flags.
+ * op can be:
+ *	'|' (or):	the union between the two sets is returned,
+ *		 	eliminating diplicates
+ *	'&' (and):	the intersection between the two sets
+ *			is returned
+ *	'+' (add):	the inner product of the two sets is returned,
+ *			namely a set containing the concatenation of
+ *			all combinations of the two sets members,
+ *			except for duplicates.
+ * The two sets are disposed of according to the flags as described
+ * for slap_set_dispose().
+ */
 BerVarray
 slap_set_join(
 	SetCookie	*cp,
@@ -111,19 +138,19 @@ slap_set_join(
 	BerVarray	rset )
 {
 	BerVarray	set;
-	long		i, j, last;
+	long		i, j, last, rlast;
 	unsigned	op = ( op_flags & SLAP_SET_OPMASK );
 
 	set = NULL;
 	switch ( op ) {
 	case '|':	/* union */
-		if ( lset == NULL || BER_BVISNULL( lset ) ) {
+		if ( lset == NULL || BER_BVISNULL( &lset[ 0 ] ) ) {
 			if ( rset == NULL ) {
 				if ( lset == NULL ) {
 					set = cp->set_op->o_tmpcalloc( 1,
 							sizeof( struct berval ),
 							cp->set_op->o_tmpmemctx );
-					BER_BVZERO( set );
+					BER_BVZERO( &set[ 0 ] );
 					return set;
 				}
 				return set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
@@ -131,12 +158,14 @@ slap_set_join(
 			slap_set_dispose( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
 			return set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
 		}
-		if ( rset == NULL || BER_BVISNULL( rset ) ) {
+		if ( rset == NULL || BER_BVISNULL( &rset[ 0 ] ) ) {
 			slap_set_dispose( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
 			return set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
 		}
 
-		i = slap_set_size( lset ) + slap_set_size( rset ) + 1;
+		/* worst scenario: no duplicates */
+		rlast = slap_set_size( rset );
+		i = slap_set_size( lset ) + rlast + 1;
 		set = cp->set_op->o_tmpcalloc( i, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 		if ( set != NULL ) {
 			/* set_chase() depends on this routine to
@@ -163,11 +192,12 @@ slap_set_join(
 					{
 						if ( !( op_flags & SLAP_SET_RREFVAL ) ) {
 							cp->set_op->o_tmpfree( rset[ i ].bv_val, cp->set_op->o_tmpmemctx );
-							BER_BVZERO( &rset[ i ] );
+							rset[ i ] = rset[ --rlast ];
+							BER_BVZERO( &rset[ rlast ] );
 						}
 						exists = 1;
-						break;		
-					}	
+						break;
+					}
 				}
 
 				if ( !exists ) {
@@ -185,32 +215,49 @@ slap_set_join(
 		break;
 
 	case '&':	/* intersection */
-		if ( lset == NULL || BER_BVISNULL( lset )
-				|| rset == NULL || BER_BVISNULL( rset ) )
+		if ( lset == NULL || BER_BVISNULL( &lset[ 0 ] )
+			|| rset == NULL || BER_BVISNULL( &rset[ 0 ] ) )
 		{
 			set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
 					cp->set_op->o_tmpmemctx );
-			BER_BVZERO( set );
+			BER_BVZERO( &set[ 0 ] );
+			break;
 
 		} else {
-			set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+			long llen, rlen;
+			BerVarray sset;
+
+			llen = slap_set_size( lset );
+			rlen = slap_set_size( rset );
+
+			/* dup the shortest */
+			if ( llen < rlen ) {
+				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				lset = NULL;
+				sset = rset;
+
+			} else {
+				set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+				rset = NULL;
+				sset = lset;
+			}
+
 			if ( set == NULL ) {
 				break;
 			}
-			lset = NULL;
-			last = slap_set_size( set ) - 1;
+
+			last = slap_set_size( set );
 			for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
-				for ( j = 0; !BER_BVISNULL( &rset[ j ] ); j++ ) {
-					if ( bvmatch( &set[ i ], &rset[ j ] ) ) {
+				for ( j = 0; !BER_BVISNULL( &sset[ j ] ); j++ ) {
+					if ( bvmatch( &set[ i ], &sset[ j ] ) ) {
 						break;
 					}
 				}
 
-				if ( BER_BVISNULL( &rset[ j ] ) ) {
+				if ( BER_BVISNULL( &sset[ j ] ) ) {
 					cp->set_op->o_tmpfree( set[ i ].bv_val, cp->set_op->o_tmpmemctx );
-					set[ i ] = set[ last ];
+					set[ i ] = set[ --last ];
 					BER_BVZERO( &set[ last ] );
-					last--;
 					i--;
 				}
 			}
@@ -236,7 +283,7 @@ slap_set_join(
 				bv.bv_val = cp->set_op->o_tmpalloc( bv.bv_len + 1,
 						cp->set_op->o_tmpmemctx );
 				if ( bv.bv_val == NULL ) {
-					slap_set_dispose( cp, set, 0 );
+					ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 					set = NULL;
 					goto done;
 				}
@@ -264,17 +311,8 @@ slap_set_join(
 	}
 
 done:;
-	if ( !( op_flags & SLAP_SET_LREFARR ) && lset != NULL ) {
-		if ( !( op_flags & SLAP_SET_LREFVAL ))
-			cp->set_op->o_tmpfree( lset->bv_val, cp->set_op->o_tmpmemctx );
-		cp->set_op->o_tmpfree( lset, cp->set_op->o_tmpmemctx );
-	}
-
-	if ( !( op_flags & SLAP_SET_RREFARR ) && rset != NULL ) {
-		if ( !( op_flags & SLAP_SET_RREFVAL ))
-			cp->set_op->o_tmpfree( rset->bv_val, cp->set_op->o_tmpmemctx );
-		cp->set_op->o_tmpfree( rset, cp->set_op->o_tmpmemctx );
-	}
+	if ( lset ) slap_set_dispose( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+	if ( rset ) slap_set_dispose( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
 
 	return set;
 }
@@ -289,7 +327,9 @@ set_chase( SLAP_SET_GATHER gatherer,
 	if ( set == NULL ) {
 		set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
 				cp->set_op->o_tmpmemctx );
-		BER_BVZERO( set );
+		if ( set != NULL ) {
+			BER_BVZERO( &set[ 0 ] );
+		}
 		return set;
 	}
 
@@ -299,7 +339,7 @@ set_chase( SLAP_SET_GATHER gatherer,
 
 	nset = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 	if ( nset == NULL ) {
-		slap_set_dispose( cp, set, 0 );
+		ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 		return NULL;
 	}
 	for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
@@ -308,7 +348,7 @@ set_chase( SLAP_SET_GATHER gatherer,
 			nset = slap_set_join( cp, nset, '|', vals );
 		}
 	}
-	slap_set_dispose( cp, set, 0 );
+	ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 
 	if ( closure ) {
 		for ( i = 0; !BER_BVISNULL( &nset[ i ] ); i++ ) {
@@ -348,7 +388,7 @@ set_parents( SetCookie *cp, BerVarray set )
 
 	nset = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 	if ( nset == NULL ) {
-		slap_set_dispose( cp, set, 0 );
+		ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 		return NULL;
 	}
 
@@ -365,8 +405,8 @@ set_parents( SetCookie *cp, BerVarray set )
 
 		vals = cp->set_op->o_tmpcalloc( level + 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 		if ( vals == NULL ) {
-			slap_set_dispose( cp, set, 0 );
-			slap_set_dispose( cp, nset, 0 );
+			ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
+			ber_bvarray_free_x( nset, cp->set_op->o_tmpmemctx );
 			return NULL;
 		}
 		BER_BVZERO( &vals[ 0 ] );
@@ -383,7 +423,7 @@ set_parents( SetCookie *cp, BerVarray set )
 		nset = slap_set_join( cp, nset, '|', vals );
 	}
 
-	slap_set_dispose( cp, set, 0 );
+	ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 
 	return nset;
 }
@@ -412,7 +452,7 @@ set_parent( SetCookie *cp, BerVarray set, int level )
 
 	nset = cp->set_op->o_tmpcalloc( slap_set_size( set ) + 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 	if ( nset == NULL ) {
-		slap_set_dispose( cp, set, 0 );
+		ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 		return NULL;
 	}
 
@@ -441,7 +481,7 @@ set_parent( SetCookie *cp, BerVarray set, int level )
 
 	BER_BVZERO( &nset[ last ] );
 
-	slap_set_dispose( cp, set, 0 );
+	ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 
 	return nset;
 }
@@ -721,11 +761,11 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 
 _error:
 	if ( IS_SET( set ) ) {
-		slap_set_dispose( cp, set, 0 );
+		ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 	}
 	while ( ( set = SF_POP() ) ) {
 		if ( IS_SET( set ) ) {
-			slap_set_dispose( cp, set, 0 );
+			ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 		}
 	}
 	return rc;
