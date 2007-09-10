@@ -650,27 +650,33 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 
 		case '-':
 			if ( ( SF_TOP() == (void *)'/' )
-					&& ( *filter >= '0' || *filter <= '9' ) )
+				&& ( *filter == '*' || ASCII_DIGIT( *filter ) ) )
 			{
-				int parent = 0;
-				int count = 1;
-				int i;
-				for ( len = 1;
-						( c = filter[ len ] )
-							&& ( c >= '0' && c <= '9' );
-						len++ )
-					/* count */ ;
-				for ( i = len ; i > 0 ; i-- ) {
-					parent += (int)( filter[ i - 1 ] - '0' ) * count;
-					count *= 10;
-				}
 				SF_POP();
-				if ( parent == 0 ) {
+
+				if ( *filter == '*' ) {
 					set = set_parents( cp, SF_POP() );
+					filter++;
+
 				} else {
-					set = set_parent( cp, SF_POP(), parent );
+					char *next = NULL;
+					long parent = strtol( filter, &next, 10 );
+
+					if ( next == filter ) {
+						SF_ERROR( syntax );
+					}
+
+					set = SF_POP();
+					if ( parent != 0 ) {
+						set = set_parent( cp, set, parent );
+					}
+					filter = next;
 				}
-				filter += len;
+
+				if ( set == NULL ) {
+					SF_ERROR( memory );
+				}
+
 				SF_PUSH( set );
 				set = NULL;
 				break;
