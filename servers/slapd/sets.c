@@ -268,6 +268,27 @@ slap_set_join(
 		i = slap_set_size( rset );
 		j = slap_set_size( lset );
 
+		/* handle empty set cases */
+		if ( i == 0 ) {
+			if ( j == 0 ) {
+				set = cp->set_op->o_tmpcalloc( i * j + 1, sizeof( struct berval ),
+						cp->set_op->o_tmpmemctx );
+				if ( set == NULL ) {
+					break;
+				}
+				BER_BVZERO( &set[ 0 ] );
+				break;
+
+			} else {
+				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				break;
+			}
+
+		} else if ( j == 0 ) {
+			set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+			break;
+		}
+
 		set = cp->set_op->o_tmpcalloc( i * j + 1, sizeof( struct berval ),
 				cp->set_op->o_tmpmemctx );
 		if ( set == NULL ) {
@@ -279,17 +300,36 @@ slap_set_join(
 				struct berval	bv;
 				long		k;
 
-				bv.bv_len = lset[ i ].bv_len + rset[ j ].bv_len;
-				bv.bv_val = cp->set_op->o_tmpalloc( bv.bv_len + 1,
-						cp->set_op->o_tmpmemctx );
-				if ( bv.bv_val == NULL ) {
-					ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
-					set = NULL;
-					goto done;
+				/* don't concatenate with the empty string */
+				if ( BER_BVISEMPTY( &lset[ i ] ) ) {
+					ber_dupbv_x( &bv, &rset[ j ], cp->set_op->o_tmpmemctx );
+					if ( bv.bv_val == NULL ) {
+						ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
+						set = NULL;
+						goto done;
+					}
+
+				} else if ( BER_BVISEMPTY( &rset[ j ] ) ) {
+					ber_dupbv_x( &bv, &lset[ i ], cp->set_op->o_tmpmemctx );
+					if ( bv.bv_val == NULL ) {
+						ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
+						set = NULL;
+						goto done;
+					}
+
+				} else {
+					bv.bv_len = lset[ i ].bv_len + rset[ j ].bv_len;
+					bv.bv_val = cp->set_op->o_tmpalloc( bv.bv_len + 1,
+							cp->set_op->o_tmpmemctx );
+					if ( bv.bv_val == NULL ) {
+						ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
+						set = NULL;
+						goto done;
+					}
+					AC_MEMCPY( bv.bv_val, lset[ i ].bv_val, lset[ i ].bv_len );
+					AC_MEMCPY( &bv.bv_val[ lset[ i ].bv_len ], rset[ j ].bv_val, rset[ j ].bv_len );
+					bv.bv_val[ bv.bv_len ] = '\0';
 				}
-				AC_MEMCPY( bv.bv_val, lset[ i ].bv_val, lset[ i ].bv_len );
-				AC_MEMCPY( &bv.bv_val[ lset[ i ].bv_len ], rset[ j ].bv_val, rset[ j ].bv_len );
-				bv.bv_val[ bv.bv_len ] = '\0';
 
 				for ( k = 0; k < last; k++ ) {
 					if ( bvmatch( &set[ k ], &bv ) ) {
