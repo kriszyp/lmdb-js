@@ -325,6 +325,127 @@ set_chase( SLAP_SET_GATHER gatherer,
 	return nset;
 }
 
+
+static BerVarray
+set_parents( SetCookie *cp, BerVarray set )
+{
+	int		i, j, last;
+	struct berval	bv, pbv;
+	BerVarray	nset, vals;
+
+	if ( set == NULL ) {
+		set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
+				cp->set_op->o_tmpmemctx );
+		if ( set != NULL ) {
+			BER_BVZERO( &set[ 0 ] );
+		}
+		return set;
+	}
+
+	if ( BER_BVISNULL( &set[ 0 ] ) ) {
+		return set;
+	}
+
+	nset = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
+	if ( nset == NULL ) {
+		slap_set_dispose( cp, set, 0 );
+		return NULL;
+	}
+
+	BER_BVZERO( &nset[ 0 ] );
+
+	for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
+		int	level = 1;
+
+		pbv = bv = set[ i ];
+		for ( ; !BER_BVISEMPTY( &pbv ); dnParent( &bv, &pbv ) ) {
+			level++;
+			bv = pbv;
+		}
+
+		vals = cp->set_op->o_tmpcalloc( level + 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
+		if ( vals == NULL ) {
+			slap_set_dispose( cp, set, 0 );
+			slap_set_dispose( cp, nset, 0 );
+			return NULL;
+		}
+		BER_BVZERO( &vals[ 0 ] );
+		last = 0;
+
+		bv = set[ i ];
+		for ( j = 0 ; j < level ; j++ ) {
+			ber_dupbv_x( &vals[ last ], &bv, cp->set_op->o_tmpmemctx );
+			last++;
+			dnParent( &bv, &bv );
+		}
+		BER_BVZERO( &vals[ last ] );
+
+		nset = slap_set_join( cp, nset, '|', vals );
+	}
+
+	slap_set_dispose( cp, set, 0 );
+
+	return nset;
+}
+
+
+
+static BerVarray
+set_parent( SetCookie *cp, BerVarray set, int level )
+{
+	int		i, j, last;
+	struct berval	bv;
+	BerVarray	nset;
+
+	if ( set == NULL ) {
+		set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
+				cp->set_op->o_tmpmemctx );
+		if ( set != NULL ) {
+			BER_BVZERO( &set[ 0 ] );
+		}
+		return set;
+	}
+
+	if ( BER_BVISNULL( &set[ 0 ] ) ) {
+		return set;
+	}
+
+	nset = cp->set_op->o_tmpcalloc( slap_set_size( set ) + 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
+	if ( nset == NULL ) {
+		slap_set_dispose( cp, set, 0 );
+		return NULL;
+	}
+
+	BER_BVZERO( &nset[ 0 ] );
+	last = 0;
+
+	for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
+		bv = set[ i ];
+
+		for ( j = 0 ; j < level ; j++ ) {
+			dnParent( &bv, &bv );
+		}
+
+		for ( j = 0; !BER_BVISNULL( &nset[ j ] ); j++ ) {
+			if ( bvmatch( &bv, &nset[ j ] ) )
+			{
+				break;		
+			}	
+		}
+
+		if ( BER_BVISNULL( &nset[ j ] ) ) {
+			ber_dupbv_x( &nset[ last ], &bv, cp->set_op->o_tmpmemctx );
+			last++;
+		}
+	}
+
+	BER_BVZERO( &nset[ last ] );
+
+	slap_set_dispose( cp, set, 0 );
+
+	return nset;
+}
+
 int
 slap_set_filter( SLAP_SET_GATHER gatherer,
 	SetCookie *cp, struct berval *fbv,
@@ -448,11 +569,38 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 			break;
 
 		case '-':
-			c = *filter++;
-			if ( c != '>' ) {
-				SF_ERROR( syntax );
+			if ( ( SF_TOP() == (void *)'/' )
+					&& ( *filter >= '0' || *filter <= '9' ) )
+			{
+				int parent = 0;
+				int count = 1;
+				int i;
+				for ( len = 1;
+						( c = filter[ len ] )
+							&& ( c >= '0' && c <= '9' );
+						len++ )
+					/* count */ ;
+				for ( i = len ; i > 0 ; i-- ) {
+					parent += (int)( filter[ i - 1 ] - '0' ) * count;
+					count *= 10;
+				}
+				SF_POP();
+				if ( parent == 0 ) {
+					set = set_parents( cp, SF_POP() );
+				} else {
+					set = set_parent( cp, SF_POP(), parent );
+				}
+				filter += len;
+				SF_PUSH( set );
+				set = NULL;
+				break;
+			} else {
+				c = *filter++;
+				if ( c != '>' ) {
+					SF_ERROR( syntax );
+				}
+				/* fall through to next case */
 			}
-			/* fall through to next case */
 
 		case '/':
 			if ( IS_OP( SF_TOP() ) ) {
