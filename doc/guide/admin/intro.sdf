@@ -156,8 +156,40 @@ services.
 
 H2: When should I use LDAP?
 
+This is a very good question. In general, you should use a Directory
+server when you require data to be centrally managed, stored and accessible via
+standards based methods. 
+
+Some common examples found throughout the industry are, but not limited to:
+
+* Machine Authentication
+* User Authentication
+* User/System Groups
+* Address book
+* Organization Representation
+* Asset Tracking
+* Telephony Information Store
+* User resource management
+* E-mail address lookups
+* Application Configuration store
+* PBX Configuration store
+* etc.....
+
+There are always new ways to use a Directory and apply LDAP principles to address
+certain problems, therefore there is no simple answer to this question.
+
+If in doubt, join the general LDAP forum for non-commercial discussions and 
+information relating to LDAP at: 
+{{URL:http://www.umich.edu/~dirsvcs/ldap/mailinglist.html}} and ask
 
 H2: When should I not use LDAP?
+
+When you start finding yourself bending the directory to do what you require,
+maybe a redesign is needed. Or if you only require one application to use and 
+manipulate your data (for discussion of LDAP vs RDBMS, please read the 
+{{SECT:LDAP vs RDBMS}} section).
+
+It will become obvious when LDAP is the right tool for the job.
 
 
 H2: How does LDAP work?
