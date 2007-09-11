@@ -23,6 +23,7 @@ asked on the OpenLDAP mailing lists and scenarios discussed there, we have added
 * {{SECT:Tuning}}
 * {{SECT:Troubleshooting}}
 * {{SECT:Changes Since Previous Release}}
+* {{SECT:Upgrading from 2.3.x}}
 * {{SECT:Configuration File Examples}}
 * {{SECT:Glossary}}
 
