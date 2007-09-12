@@ -124,6 +124,7 @@ PLSRMASTERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
 DDSCONF=$DATADIR/slapd-dds.conf
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 UNDOCONF=$DATADIR/slapd-config-undo.conf
+NAKEDCONF=$DATADIR/slapd-config-naked.conf
 
 DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
 
@@ -325,6 +326,7 @@ SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 ACIOUT=$DATADIR/aci.out
 DYNLISTOUT=$DATADIR/dynlist.out
 DDSOUT=$DATADIR/dds.out
+MEMBEROFOUT=$DATADIR/memberof.out
 SHTOOL="$SRCDIR/../build/shtool"
 
 # Just in case we linked the binaries dynamically
