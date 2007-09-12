@@ -71,6 +71,8 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@PORT6@;${PORT6};"			\
 	-e "s/@SASL_MECH@/${SASL_MECH}/"		\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
+	-e "s/@NCACHETTL@/${NCACHETTL}/"		\
+	-e "s/@SCACHETTL@/${SCACHETTL}/"		\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"	\
 	-e "s;@TESTDIR@;${TESTDIR};"			\
 	-e "s;@DATADIR@;${DATADIR};"			\
