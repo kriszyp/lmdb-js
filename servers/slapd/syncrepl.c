@@ -1064,7 +1064,9 @@ do_syncrep2(
 
 			default:
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
-					"unknown message\n", si->si_ridtxt, 0, 0 );
+					"unknown message (0x%02lx)\n",
+					si->si_ridtxt,
+					(unsigned long)ldap_msgtype( msg ), 0 );
 				break;
 
 			}
