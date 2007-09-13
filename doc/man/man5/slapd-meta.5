@@ -196,16 +196,15 @@ for a shared one; otherwise, wait until the shared connection is available.
 Target specification starts with a "uri" directive:
 
 .TP
-.B uri <protocol>://[<host>[:<port>]]/<naming context>
-The "server" directive that was allowed in the LDAP backend (although
-deprecated) has been completely discarded in the Meta backend.
+.B uri <protocol>://[<host>]/<naming context> [...]
 The <protocol> part can be anything
 .BR ldap_initialize (3)
-accepts ({ldap|ldaps|ldapi} and variants); <host> and <port> may be
+accepts ({ldap|ldaps|ldapi} and variants); the <host> may be
 omitted, defaulting to whatever is set in
 .BR ldap.conf (5).
-The <naming context> part is mandatory.
-It must end with one of the naming contexts defined for the backend,
+The <naming context> part is \fImandatory\fP for the first URI,
+but it \fImust be omitted\fP for subsequent ones, if any.
+The naming context part must be within the naming context defined for the backend,
 e.g.:
 .LP
 .RS
@@ -218,25 +217,25 @@ uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
 .RS
 The <naming context> part doesn't need to be unique across the targets;
 it may also match one of the values of the "suffix" directive.
-Multiple URIs may be defined in a single argument.  The URIs must
-be separated by TABs (e.g. '\\t'; commas or spaces, unlike back-ldap,
-will not work,
-because they are legal in the <naming context>, and we don't want to use
-URL-encoded <naming context>s), and the additional URIs must have
-no <naming context> part.  This causes the underlying library
+Multiple URIs may be defined in a single URI statement.
+The URIs must be separate arguments and must not have any
+<naming context> part.  This causes the underlying library
 to contact the first server of the list that responds.
 For example, if \fIl1.foo.com\fP and \fIl2.foo.com\fP are shadows
 of the same server, the directive
 .LP
 .nf
 suffix "\fBdc=foo,dc=com\fP"
-uri    "ldap://l1.foo.com/\fBdc=foo,dc=com\fP	ldap://l2.foo.com/"
+uri    "ldap://l1.foo.com/\fBdc=foo,dc=com\fP" "ldap://l2.foo.com/"
 .fi
 
 .RE
 .RS
 causes \fIl2.foo.com\fP to be contacted whenever \fIl1.foo.com\fP
 does not respond.
+In that case, the URI list is internally rearranged, by moving unavailable
+URIs to the end, so that further connection attempts occur with respect to
+the last URI that succeeded.
 .RE
 
 .TP
