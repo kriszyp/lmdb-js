@@ -111,19 +111,19 @@ slap_set_join(
 	BerVarray	rset )
 {
 	BerVarray	set;
-	long		i, j, last;
+	long		i, j, last, rlast;
 	unsigned	op = ( op_flags & SLAP_SET_OPMASK );
 
 	set = NULL;
 	switch ( op ) {
 	case '|':	/* union */
-		if ( lset == NULL || BER_BVISNULL( lset ) ) {
+		if ( lset == NULL || BER_BVISNULL( &lset[ 0 ] ) ) {
 			if ( rset == NULL ) {
 				if ( lset == NULL ) {
 					set = cp->set_op->o_tmpcalloc( 1,
 							sizeof( struct berval ),
 							cp->set_op->o_tmpmemctx );
-					BER_BVZERO( set );
+					BER_BVZERO( &set[ 0 ] );
 					return set;
 				}
 				return set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
@@ -131,12 +131,14 @@ slap_set_join(
 			slap_set_dispose( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
 			return set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
 		}
-		if ( rset == NULL || BER_BVISNULL( rset ) ) {
+		if ( rset == NULL || BER_BVISNULL( &rset[ 0 ] ) ) {
 			slap_set_dispose( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
 			return set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
 		}
 
-		i = slap_set_size( lset ) + slap_set_size( rset ) + 1;
+		/* worst scenario: no duplicates */
+		rlast = slap_set_size( rset );
+		i = slap_set_size( lset ) + rlast + 1;
 		set = cp->set_op->o_tmpcalloc( i, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 		if ( set != NULL ) {
 			/* set_chase() depends on this routine to
@@ -153,6 +155,9 @@ slap_set_join(
 				}
 			}
 
+			/* pointers to values have been used in set - don't free twice */
+			op_flags |= SLAP_SET_LREFVAL;
+
 			last = i;
 
 			for ( i = 0; !BER_BVISNULL( &rset[ i ] ); i++ ) {
@@ -163,11 +168,12 @@ slap_set_join(
 					{
 						if ( !( op_flags & SLAP_SET_RREFVAL ) ) {
 							cp->set_op->o_tmpfree( rset[ i ].bv_val, cp->set_op->o_tmpmemctx );
-							BER_BVZERO( &rset[ i ] );
+							rset[ i ] = rset[ --rlast ];
+							BER_BVZERO( &rset[ rlast ] );
 						}
 						exists = 1;
-						break;		
-					}	
+						break;
+					}
 				}
 
 				if ( !exists ) {
@@ -180,37 +186,58 @@ slap_set_join(
 					last++;
 				}
 			}
+
+			/* pointers to values have been used in set - don't free twice */
+			op_flags |= SLAP_SET_RREFVAL;
+
 			BER_BVZERO( &set[ last ] );
 		}
 		break;
 
 	case '&':	/* intersection */
-		if ( lset == NULL || BER_BVISNULL( lset )
-				|| rset == NULL || BER_BVISNULL( rset ) )
+		if ( lset == NULL || BER_BVISNULL( &lset[ 0 ] )
+			|| rset == NULL || BER_BVISNULL( &rset[ 0 ] ) )
 		{
 			set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
 					cp->set_op->o_tmpmemctx );
-			BER_BVZERO( set );
+			BER_BVZERO( &set[ 0 ] );
+			break;
 
 		} else {
-			set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+			long llen, rlen;
+			BerVarray sset;
+
+			llen = slap_set_size( lset );
+			rlen = slap_set_size( rset );
+
+			/* dup the shortest */
+			if ( llen < rlen ) {
+				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				lset = NULL;
+				sset = rset;
+
+			} else {
+				set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+				rset = NULL;
+				sset = lset;
+			}
+
 			if ( set == NULL ) {
 				break;
 			}
-			lset = NULL;
-			last = slap_set_size( set ) - 1;
+
+			last = slap_set_size( set );
 			for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
-				for ( j = 0; !BER_BVISNULL( &rset[ j ] ); j++ ) {
-					if ( bvmatch( &set[ i ], &rset[ j ] ) ) {
+				for ( j = 0; !BER_BVISNULL( &sset[ j ] ); j++ ) {
+					if ( bvmatch( &set[ i ], &sset[ j ] ) ) {
 						break;
 					}
 				}
 
-				if ( BER_BVISNULL( &rset[ j ] ) ) {
+				if ( BER_BVISNULL( &sset[ j ] ) ) {
 					cp->set_op->o_tmpfree( set[ i ].bv_val, cp->set_op->o_tmpmemctx );
-					set[ i ] = set[ last ];
+					set[ i ] = set[ --last ];
 					BER_BVZERO( &set[ last ] );
-					last--;
 					i--;
 				}
 			}
@@ -220,6 +247,27 @@ slap_set_join(
 	case '+':	/* string concatenation */
 		i = slap_set_size( rset );
 		j = slap_set_size( lset );
+
+		/* handle empty set cases */
+		if ( i == 0 ) {
+			if ( j == 0 ) {
+				set = cp->set_op->o_tmpcalloc( i * j + 1, sizeof( struct berval ),
+						cp->set_op->o_tmpmemctx );
+				if ( set == NULL ) {
+					break;
+				}
+				BER_BVZERO( &set[ 0 ] );
+				break;
+
+			} else {
+				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				break;
+			}
+
+		} else if ( j == 0 ) {
+			set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+			break;
+		}
 
 		set = cp->set_op->o_tmpcalloc( i * j + 1, sizeof( struct berval ),
 				cp->set_op->o_tmpmemctx );
@@ -232,17 +280,36 @@ slap_set_join(
 				struct berval	bv;
 				long		k;
 
-				bv.bv_len = lset[ i ].bv_len + rset[ j ].bv_len;
-				bv.bv_val = cp->set_op->o_tmpalloc( bv.bv_len + 1,
-						cp->set_op->o_tmpmemctx );
-				if ( bv.bv_val == NULL ) {
-					slap_set_dispose( cp, set, 0 );
-					set = NULL;
-					goto done;
+				/* don't concatenate with the empty string */
+				if ( BER_BVISEMPTY( &lset[ i ] ) ) {
+					ber_dupbv_x( &bv, &rset[ j ], cp->set_op->o_tmpmemctx );
+					if ( bv.bv_val == NULL ) {
+						ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
+						set = NULL;
+						goto done;
+					}
+
+				} else if ( BER_BVISEMPTY( &rset[ j ] ) ) {
+					ber_dupbv_x( &bv, &lset[ i ], cp->set_op->o_tmpmemctx );
+					if ( bv.bv_val == NULL ) {
+						ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
+						set = NULL;
+						goto done;
+					}
+
+				} else {
+					bv.bv_len = lset[ i ].bv_len + rset[ j ].bv_len;
+					bv.bv_val = cp->set_op->o_tmpalloc( bv.bv_len + 1,
+							cp->set_op->o_tmpmemctx );
+					if ( bv.bv_val == NULL ) {
+						ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
+						set = NULL;
+						goto done;
+					}
+					AC_MEMCPY( bv.bv_val, lset[ i ].bv_val, lset[ i ].bv_len );
+					AC_MEMCPY( &bv.bv_val[ lset[ i ].bv_len ], rset[ j ].bv_val, rset[ j ].bv_len );
+					bv.bv_val[ bv.bv_len ] = '\0';
 				}
-				AC_MEMCPY( bv.bv_val, lset[ i ].bv_val, lset[ i ].bv_len );
-				AC_MEMCPY( &bv.bv_val[ lset[ i ].bv_len ], rset[ j ].bv_val, rset[ j ].bv_len );
-				bv.bv_val[ bv.bv_len ] = '\0';
 
 				for ( k = 0; k < last; k++ ) {
 					if ( bvmatch( &set[ k ], &bv ) ) {
@@ -264,17 +331,8 @@ slap_set_join(
 	}
 
 done:;
-	if ( !( op_flags & SLAP_SET_LREFARR ) && lset != NULL ) {
-		if ( !( op_flags & SLAP_SET_LREFVAL ))
-			cp->set_op->o_tmpfree( lset->bv_val, cp->set_op->o_tmpmemctx );
-		cp->set_op->o_tmpfree( lset, cp->set_op->o_tmpmemctx );
-	}
-
-	if ( !( op_flags & SLAP_SET_RREFARR ) && rset != NULL ) {
-		if ( !( op_flags & SLAP_SET_RREFVAL ))
-			cp->set_op->o_tmpfree( rset->bv_val, cp->set_op->o_tmpmemctx );
-		cp->set_op->o_tmpfree( rset, cp->set_op->o_tmpmemctx );
-	}
+	if ( lset ) slap_set_dispose( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+	if ( rset ) slap_set_dispose( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
 
 	return set;
 }
@@ -289,7 +347,9 @@ set_chase( SLAP_SET_GATHER gatherer,
 	if ( set == NULL ) {
 		set = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ),
 				cp->set_op->o_tmpmemctx );
-		BER_BVZERO( set );
+		if ( set != NULL ) {
+			BER_BVZERO( &set[ 0 ] );
+		}
 		return set;
 	}
 
@@ -299,7 +359,7 @@ set_chase( SLAP_SET_GATHER gatherer,
 
 	nset = cp->set_op->o_tmpcalloc( 1, sizeof( struct berval ), cp->set_op->o_tmpmemctx );
 	if ( nset == NULL ) {
-		slap_set_dispose( cp, set, 0 );
+		ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 		return NULL;
 	}
 	for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
@@ -308,7 +368,7 @@ set_chase( SLAP_SET_GATHER gatherer,
 			nset = slap_set_join( cp, nset, '|', vals );
 		}
 	}
-	slap_set_dispose( cp, set, 0 );
+	ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 
 	if ( closure ) {
 		for ( i = 0; !BER_BVISNULL( &nset[ i ] ); i++ ) {
@@ -573,11 +633,11 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 
 _error:
 	if ( IS_SET( set ) ) {
-		slap_set_dispose( cp, set, 0 );
+		ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 	}
 	while ( ( set = SF_POP() ) ) {
 		if ( IS_SET( set ) ) {
-			slap_set_dispose( cp, set, 0 );
+			ber_bvarray_free_x( set, cp->set_op->o_tmpmemctx );
 		}
 	}
 	return rc;
