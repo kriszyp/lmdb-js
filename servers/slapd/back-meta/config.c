@@ -195,6 +195,7 @@ meta_back_db_config(
 		}
 
 		for ( c = 0; uris[ c ] != NULL; c++ ) {
+			char *tmpuri = NULL;
 
 			/*
 			 * uri MUST be legal!
@@ -207,6 +208,7 @@ meta_back_db_config(
 		"%s: line %d: unable to parse URI #%d"
 		" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
 					fname, lineno, c );
+				ldap_charray_free( uris );
 				return 1;
 			}
 
@@ -220,6 +222,8 @@ meta_back_db_config(
 			"%s: line %d: missing <naming context> "
 			" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
 						fname, lineno, 0 );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
 					return 1;
 				}
 
@@ -233,6 +237,8 @@ meta_back_db_config(
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"target \"%s\" DN is invalid\n",
 						fname, lineno, argv[ 1 ] );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
 					return( 1 );
 				}
 
@@ -252,6 +258,8 @@ meta_back_db_config(
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"invalid scope for target \"%s\"\n",
 						fname, lineno, argv[ 1 ] );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
 					return( 1 );
 				}
 
@@ -262,14 +270,23 @@ meta_back_db_config(
 						"multiple URIs must have "
 						"no DN part\n",
 						fname, lineno, 0 );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
 					return( 1 );
 
 				}
 			}
 
-			ldap_memfree( uris[ c ] );
-			uris[ c ] = ldap_url_list2urls( ludp );
+			tmpuri = ldap_url_list2urls( ludp );
 			ldap_free_urllist( ludp );
+			if ( tmpuri == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: no memory?\n",
+					fname, lineno, 0 );
+				ldap_charray_free( uris );
+				return( 1 );
+			}
+			ldap_memfree( uris[ c ] );
+			uris[ c ] = tmpuri;
 		}
 
 		mt->mt_uri = ldap_charray2str( uris, " " );
