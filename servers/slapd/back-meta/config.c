@@ -111,28 +111,18 @@ meta_back_db_config(
 	/* URI of server to query */
 	if ( strcasecmp( argv[ 0 ], "uri" ) == 0 ) {
 		int 		i = mi->mi_ntargets;
-		LDAPURLDesc 	*ludp, *tmpludp;
+		LDAPURLDesc 	*ludp;
 		struct berval	dn;
 		int		rc;
 		int		c;
-		BackendDB	*tmp_bd;
 
 		metatarget_t	*mt;
+
+		char		**uris = NULL;
 		
-		switch ( argc ) {
-		case 1:
+		if ( argc == 1 ) {
 			Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: missing URI "
-	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno, 0 );
-			return 1;
-
-		case 2:
-			break;
-
-		default:
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: too many args "
 	"in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
 				fname, lineno, 0 );
 			return 1;
@@ -184,93 +174,123 @@ meta_back_db_config(
 			mt->mt_timeout[ c ] = mi->mi_timeout[ c ];
 		}
 
-		/*
-		 * uri MUST be legal!
-		 */
-		if ( ldap_url_parselist_ext( &ludp, argv[ 1 ], "\t",
-			LDAP_PVT_URL_PARSE_NONE ) != LDAP_SUCCESS )
-		{
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: unable to parse URI"
+		for ( c = 1; c < argc; c++ ) {
+			char	**tmpuris = ldap_str2charray( argv[ c ], "\t" );
+
+			if ( tmpuris == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+	"%s: line %d: unable to parse URIs #%d"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno, 0 );
-			return 1;
+				fname, lineno, c - 1 );
+				return 1;
+			}
+
+			if ( c == 0 ) {
+				uris = tmpuris;
+
+			} else {
+				ldap_charray_merge( &uris, tmpuris );
+				ldap_charray_free( tmpuris );
+			}
 		}
 
-		/*
-		 * uri MUST have the <dn> part!
-		 */
-		if ( ludp->lud_dn == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: missing <naming context> "
-	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
-				fname, lineno, 0 );
-			return 1;
+		for ( c = 0; uris[ c ] != NULL; c++ ) {
+			char *tmpuri = NULL;
 
-		} else if ( ludp->lud_dn[ 0 ] == '\0' ) {
-			int	j = -1;
+			/*
+			 * uri MUST be legal!
+			 */
+			if ( ldap_url_parselist_ext( &ludp, uris[ c ], "\t",
+					LDAP_PVT_URL_PARSE_NONE ) != LDAP_SUCCESS
+				|| ludp->lud_next != NULL )
+			{
+				Debug( LDAP_DEBUG_ANY,
+		"%s: line %d: unable to parse URI #%d"
+		" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+					fname, lineno, c );
+				ldap_charray_free( uris );
+				return 1;
+			}
 
-			for ( j = 0; !BER_BVISNULL( &be->be_nsuffix[ j ] ); j++ ) {
-				if ( BER_BVISEMPTY( &be->be_nsuffix[ j ] ) ) {
+			if ( c == 0 ) {
+
+				/*
+				 * uri MUST have the <dn> part!
+				 */
+				if ( ludp->lud_dn == NULL ) {
+					Debug( LDAP_DEBUG_ANY,
+			"%s: line %d: missing <naming context> "
+			" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+						fname, lineno, 0 );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
+					return 1;
+				}
+
+				/*
+				 * copies and stores uri and suffix
+				 */
+				ber_str2bv( ludp->lud_dn, 0, 0, &dn );
+				rc = dnPrettyNormal( NULL, &dn, &mt->mt_psuffix,
+					&mt->mt_nsuffix, NULL );
+				if ( rc != LDAP_SUCCESS ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"target \"%s\" DN is invalid\n",
+						fname, lineno, argv[ 1 ] );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
+					return( 1 );
+				}
+
+				ludp->lud_dn[ 0 ] = '\0';
+
+				switch ( ludp->lud_scope ) {
+				case LDAP_SCOPE_DEFAULT:
+					mt->mt_scope = LDAP_SCOPE_SUBTREE;
 					break;
+
+				case LDAP_SCOPE_SUBTREE:
+				case LDAP_SCOPE_SUBORDINATE:
+					mt->mt_scope = ludp->lud_scope;
+					break;
+
+				default:
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"invalid scope for target \"%s\"\n",
+						fname, lineno, argv[ 1 ] );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
+					return( 1 );
+				}
+
+			} else {
+				/* check all, to apply the scope check on the first one */
+				if ( ludp->lud_dn != NULL && ludp->lud_dn[ 0 ] != '\0' ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"multiple URIs must have "
+						"no DN part\n",
+						fname, lineno, 0 );
+					ldap_free_urllist( ludp );
+					ldap_charray_free( uris );
+					return( 1 );
+
 				}
 			}
 
-			if ( BER_BVISNULL( &be->be_nsuffix[ j ] ) ) {
-				Debug( LDAP_DEBUG_ANY,
-		"%s: line %d: missing <naming context> "
-		" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
+			tmpuri = ldap_url_list2urls( ludp );
+			ldap_free_urllist( ludp );
+			if ( tmpuri == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: no memory?\n",
 					fname, lineno, 0 );
-				return 1;
-			}
-		}
-
-		/*
-		 * copies and stores uri and suffix
-		 */
-		ber_str2bv( ludp->lud_dn, 0, 0, &dn );
-		rc = dnPrettyNormal( NULL, &dn, &mt->mt_psuffix,
-			&mt->mt_nsuffix, NULL );
-		if( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"target \"%s\" DN is invalid\n",
-				fname, lineno, argv[ 1 ] );
-			return( 1 );
-		}
-
-		ludp->lud_dn[ 0 ] = '\0';
-
-		switch ( ludp->lud_scope ) {
-		case LDAP_SCOPE_DEFAULT:
-			mt->mt_scope = LDAP_SCOPE_SUBTREE;
-			break;
-
-		case LDAP_SCOPE_SUBTREE:
-		case LDAP_SCOPE_SUBORDINATE:
-			mt->mt_scope = ludp->lud_scope;
-			break;
-
-		default:
-			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-				"invalid scope for target \"%s\"\n",
-				fname, lineno, argv[ 1 ] );
-			return( 1 );
-		}
-
-		/* check all, to apply the scope check on the first one */
-		for ( tmpludp = ludp; tmpludp; tmpludp = tmpludp->lud_next ) {
-			if ( tmpludp->lud_dn != NULL && tmpludp->lud_dn[ 0 ] != '\0' ) {
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"multiple URIs must have "
-					"no DN part\n",
-					fname, lineno, 0 );
+				ldap_charray_free( uris );
 				return( 1 );
-
 			}
+			ldap_memfree( uris[ c ] );
+			uris[ c ] = tmpuri;
 		}
 
-		mt->mt_uri = ldap_url_list2urls( ludp );
-		ldap_free_urllist( ludp );
+		mt->mt_uri = ldap_charray2str( uris, " " );
+		ldap_charray_free( uris );
 		if ( mt->mt_uri == NULL) {
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: no memory?\n",
 				fname, lineno, 0 );
@@ -280,11 +300,15 @@ meta_back_db_config(
 		/*
 		 * uri MUST be a branch of suffix!
 		 */
-		tmp_bd = select_backend( &mt->mt_nsuffix, 0 );
-		if ( tmp_bd == NULL || tmp_bd->be_private != be->be_private )
-		{
+		for ( c = 0; !BER_BVISNULL( &be->be_nsuffix[ c ] ); c++ ) {
+			if ( dnIsSuffix( &mt->mt_nsuffix, &be->be_nsuffix[ c ] ) ) {
+				break;
+			}
+		}
+
+		if ( BER_BVISNULL( &be->be_nsuffix[ c ] ) ) {
 			Debug( LDAP_DEBUG_ANY,
-	"%s: line %d: <naming context> of URI does not resolve to this database.\n",
+	"%s: line %d: <naming context> of URI must be within the naming context of this database.\n",
 				fname, lineno, 0 );
 			return 1;
 		}
@@ -1257,7 +1281,7 @@ idassert-authzFrom	"dn:<rootdn>"
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
 		BackendDB 	*tmp_bd;
-		int 		i = mi->mi_ntargets - 1, rc;
+		int 		i = mi->mi_ntargets - 1, c, rc;
 		struct berval	dn, nvnc, pvnc, nrnc, prnc;
 
 		if ( i < 0 ) {
@@ -1292,11 +1316,16 @@ idassert-authzFrom	"dn:<rootdn>"
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
-		
-		tmp_bd = select_backend( &nvnc, 0 );
-		if ( tmp_bd != NULL && tmp_bd->be_private != be->be_private ) {
-			Debug( LDAP_DEBUG_ANY, 
-	"%s: line %d: <suffix> \"%s\" already in use by another database, in "
+
+		for ( c = 0; !BER_BVISNULL( &be->be_nsuffix[ c ] ); c++ ) {
+			if ( dnIsSuffix( &nvnc, &be->be_nsuffix[ 0 ] ) ) {
+				break;
+			}
+		}
+
+		if ( BER_BVISNULL( &be->be_nsuffix[ c ] ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+	"%s: line %d: <suffix> \"%s\" must be within the database naming context, in "
 	"\"suffixMassage <suffix> <massaged suffix>\"\n",
 				fname, lineno, pvnc.bv_val );
 			free( pvnc.bv_val );
@@ -1317,12 +1346,9 @@ idassert-authzFrom	"dn:<rootdn>"
 		tmp_bd = select_backend( &nrnc, 0 );
 		if ( tmp_bd != NULL && tmp_bd->be_private == be->be_private ) {
 			Debug( LDAP_DEBUG_ANY, 
-	"%s: line %d: warning: <massaged suffix> \"%s\" point to this database, in "
+	"%s: line %d: warning: <massaged suffix> \"%s\" resolves to this database, in "
 	"\"suffixMassage <suffix> <massaged suffix>\"\n",
 				fname, lineno, prnc.bv_val );
-			free( pvnc.bv_val );
-			free( nvnc.bv_val );
-			return 1;						
 		}
 
 		/*
