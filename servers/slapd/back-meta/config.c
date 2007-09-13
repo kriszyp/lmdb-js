@@ -1292,11 +1292,10 @@ idassert-authzFrom	"dn:<rootdn>"
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
-		
-		tmp_bd = select_backend( &nvnc, 0 );
-		if ( tmp_bd != NULL && tmp_bd->be_private != be->be_private ) {
-			Debug( LDAP_DEBUG_ANY, 
-	"%s: line %d: <suffix> \"%s\" already in use by another database, in "
+
+		if (!dnIsSuffix( &nvnc, &be->be_nsuffix[ 0 ] ) ) {
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+	"%s: line %d: <suffix> \"%s\" must be within the database naming context, in "
 	"\"suffixMassage <suffix> <massaged suffix>\"\n",
 				fname, lineno, pvnc.bv_val );
 			free( pvnc.bv_val );
@@ -1317,12 +1316,9 @@ idassert-authzFrom	"dn:<rootdn>"
 		tmp_bd = select_backend( &nrnc, 0 );
 		if ( tmp_bd != NULL && tmp_bd->be_private == be->be_private ) {
 			Debug( LDAP_DEBUG_ANY, 
-	"%s: line %d: warning: <massaged suffix> \"%s\" point to this database, in "
+	"%s: line %d: warning: <massaged suffix> \"%s\" resolves to this database, in "
 	"\"suffixMassage <suffix> <massaged suffix>\"\n",
 				fname, lineno, prnc.bv_val );
-			free( pvnc.bv_val );
-			free( nvnc.bv_val );
-			return 1;						
 		}
 
 		/*
