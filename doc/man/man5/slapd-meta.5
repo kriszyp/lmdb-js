@@ -218,7 +218,7 @@ uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
 The <naming context> part doesn't need to be unique across the targets;
 it may also match one of the values of the "suffix" directive.
 Multiple URIs may be defined in a single URI statement.
-The URIs must be separate arguments and must not have any
+The additional URIs must be separate arguments and must not have any
 <naming context> part.  This causes the underlying library
 to contact the first server of the list that responds.
 For example, if \fIl1.foo.com\fP and \fIl2.foo.com\fP are shadows
