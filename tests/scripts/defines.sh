@@ -30,6 +30,7 @@ BACKSQL=${AC_sql-sqlno}
 ACCESSLOG=${AC_accesslog-accesslogno}
 DDS=${AC_dds-ddsno}
 DYNLIST=${AC_dynlist-dynlistno}
+MEMBEROF=${AC_memberof-memberofno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}

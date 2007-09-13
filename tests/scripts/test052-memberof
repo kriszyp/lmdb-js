@@ -16,6 +16,11 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test $MEMBEROF = memberofno; then 
+	echo "Memberof overlay not available, test skipped"
+	exit 0
+fi 
+
 mkdir -p $TESTDIR $DBDIR1 $TESTDIR/confdir
 
 $SLAPPASSWD -g -n >$CONFIGPWF
@@ -49,6 +54,23 @@ if test $RC != 0 ; then
 fi
 
 cat /dev/null > $TESTOUT
+
+if [ "$MEMBEROF" = memberofmod ]; then
+	echo "Inserting memberof overlay on producer..."
+	$LDAPADD -D cn=config -H $URI1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: ../../../servers/slapd/overlays
+olcModuleLoad: memberof.la
+EOF
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapadd failed for moduleLoad ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+fi
 
 echo "Running ldapadd to build slapd config database..."
 $LDAPADD -h $LOCALHOST -p $PORT1 -D 'cn=config' -w `cat $CONFIGPWF` \
