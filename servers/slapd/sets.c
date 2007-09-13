@@ -182,6 +182,9 @@ slap_set_join(
 				}
 			}
 
+			/* pointers to values have been used in set - don't free twice */
+			op_flags |= SLAP_SET_LREFVAL;
+
 			last = i;
 
 			for ( i = 0; !BER_BVISNULL( &rset[ i ] ); i++ ) {
@@ -210,6 +213,10 @@ slap_set_join(
 					last++;
 				}
 			}
+
+			/* pointers to values have been used in set - don't free twice */
+			op_flags |= SLAP_SET_RREFVAL;
+
 			BER_BVZERO( &set[ last ] );
 		}
 		break;
