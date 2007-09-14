@@ -2043,11 +2043,6 @@ acl_set_cb_gather( Operation *op, SlapReply *rs )
 
 				a = attr_find( rs->sr_entry->e_attrs, desc );
 				if ( a != NULL ) {
-					int	i;
-
-					for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ )
-						;
-
 					bvalsp = a->a_nvals;
 				}
 			}
