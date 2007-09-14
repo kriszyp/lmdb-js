@@ -58,7 +58,7 @@ static AttributeName anlist_no_attrs[] = {
 static AttributeName *slap_anlist_no_attrs = anlist_no_attrs;
 #endif
 
-static AttributeDescription *ad_dgIdentity;
+static AttributeDescription *ad_dgIdentity, *ad_dgAuthz;
 
 typedef struct dynlist_info_t {
 	ObjectClass		*dli_oc;
@@ -347,18 +347,32 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		return SLAP_CB_CONTINUE;
 	}
 
+	if ( ad_dgIdentity && ( id = attrs_find( rs->sr_entry->e_attrs, ad_dgIdentity ))) {
+		Attribute *authz = NULL;
+
+		/* if not rootdn and dgAuthz is present,
+		 * check if user can be authorized as dgIdentity */
+		if ( ad_dgAuthz && !BER_BVISEMPTY( &id->a_nvals[0] ) && !be_isroot( op )
+			&& ( authz = attrs_find( rs->sr_entry->e_attrs, ad_dgAuthz ) ) )
+		{
+			if ( slap_sasl_matches( op, authz->a_nvals,
+				&o.o_ndn, &o.o_ndn ) != LDAP_SUCCESS )
+			{
+				return SLAP_CB_CONTINUE;
+			}
+		}
+
+		o.o_dn = id->a_vals[0];
+		o.o_ndn = id->a_nvals[0];
+		o.o_groups = NULL;
+	}
+
 	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		e = entry_dup( rs->sr_entry );
 	} else {
 		e = rs->sr_entry;
 	}
 	e_flags = rs->sr_flags | ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
-
-	if ( ad_dgIdentity && ( id = attrs_find( e->e_attrs, ad_dgIdentity ))) {
-		o.o_dn = id->a_vals[0];
-		o.o_ndn = id->a_nvals[0];
-		o.o_groups = NULL;
-	}
 
 	dlc.dlc_e = e;
 	dlc.dlc_dli = dli;
@@ -556,16 +570,33 @@ dynlist_compare( Operation *op, SlapReply *rs )
 			 * interested in. We'll use slapd's existing dyngroup
 			 * evaluator to get the answer we want.
 			 */
-			struct berval *id = NULL;
+			BerVarray id = NULL, authz = NULL;
 
 			o.o_do_not_cache = 1;
 
 			if ( ad_dgIdentity && backend_attribute( &o, NULL, &o.o_req_ndn,
-				ad_dgIdentity, &id, ACL_READ ) == LDAP_SUCCESS ) {
+				ad_dgIdentity, &id, ACL_READ ) == LDAP_SUCCESS )
+			{
+				/* if not rootdn and dgAuthz is present,
+				 * check if user can be authorized as dgIdentity */
+				if ( ad_dgAuthz && !BER_BVISEMPTY( id ) && !be_isroot( op )
+					&& backend_attribute( &o, NULL, &o.o_req_ndn,
+						ad_dgAuthz, &authz, ACL_READ ) == LDAP_SUCCESS )
+				{
+					
+					rs->sr_err = slap_sasl_matches( op, authz,
+						&o.o_ndn, &o.o_ndn );
+					ber_bvarray_free_x( authz, op->o_tmpmemctx );
+					if ( rs->sr_err != LDAP_SUCCESS ) {
+						goto done;
+					}
+				}
+
 				o.o_dn = *id;
 				o.o_ndn = *id;
 				o.o_groups = NULL; /* authz changed, invalidate cached groups */
 			}
+
 			rs->sr_err = backend_group( &o, NULL, &o.o_req_ndn,
 				&o.oq_compare.rs_ava->aa_value, dli->dli_oc, dli->dli_ad );
 			switch ( rs->sr_err ) {
@@ -585,6 +616,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 				break;
 			}
 
+done:;
 			if ( id ) ber_bvarray_free_x( id, o.o_tmpmemctx );
 
 			return SLAP_CB_CONTINUE;
@@ -592,17 +624,34 @@ dynlist_compare( Operation *op, SlapReply *rs )
 	}
 
 	if ( overlay_entry_get_ov( &o, &o.o_req_ndn, NULL, NULL, 0, &e, on ) !=
-		LDAP_SUCCESS || e == NULL ) {
+		LDAP_SUCCESS || e == NULL )
+	{
 		return SLAP_CB_CONTINUE;
 	}
+
 	if ( ad_dgIdentity ) {
 		Attribute *id = attrs_find( e->e_attrs, ad_dgIdentity );
 		if ( id ) {
+			Attribute *authz;
+
+			/* if not rootdn and dgAuthz is present,
+			 * check if user can be authorized as dgIdentity */
+			if ( ad_dgAuthz && !BER_BVISEMPTY( &id->a_nvals[0] ) && !be_isroot( op )
+				&& ( authz = attrs_find( e->e_attrs, ad_dgAuthz ) ) )
+			{
+				if ( slap_sasl_matches( op, authz->a_nvals,
+					&o.o_ndn, &o.o_ndn ) != LDAP_SUCCESS )
+				{
+					goto release;
+				}
+			}
+
 			o.o_dn = id->a_vals[0];
 			o.o_ndn = id->a_nvals[0];
 			o.o_groups = NULL;
 		}
 	}
+
 	dli = (dynlist_info_t *)on->on_bi.bi_private;
 	for ( ; dli != NULL && rs->sr_err != LDAP_COMPARE_TRUE; dli = dli->dli_next ) {
 		Attribute	*a;
@@ -1350,6 +1399,15 @@ dynlist_db_open(
 	if ( rc != LDAP_SUCCESS ) {
 		snprintf( cr->msg, sizeof( cr->msg),
 			"unable to fetch attributeDescription \"dgIdentity\": %d (%s)",
+			rc, text );
+		Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
+		/* Just a warning */
+	}
+
+	rc = slap_str2ad( "dgAuthz", &ad_dgAuthz, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		snprintf( cr->msg, sizeof( cr->msg),
+			"unable to fetch attributeDescription \"dgAuthz\": %d (%s)",
 			rc, text );
 		Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
 		/* Just a warning */
