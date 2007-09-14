@@ -726,9 +726,6 @@ cleanup:;
 		ldap_memfree( li.li_uri );
 		li.li_uri = NULL;
 
-		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-
 		if ( temporary ) {
 			lip->li_uri = NULL;
 			lip->li_bvuri = NULL;
