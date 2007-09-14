@@ -3,5 +3,6 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.6 Engineering
 	Fixed slapd ACL sets memory handling (ITS#4873)
 	Added slapd ACL sets DN ancestors operator (ITS#4860)
+	Fixed slapd ordered values add normalization issue (ITS#5136)
 	Fixed slapd-ldap SASL idassert w/o autchId
 	Fixed slapo-rwm modlist handling (ITS#5124)
