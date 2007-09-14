@@ -548,7 +548,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
 	Operation o = *op;
-	Entry *e;
+	Entry *e = NULL;
 
 	for ( ; dli != NULL; dli = dli->dli_next ) {
 		if ( op->oq_compare.rs_ava->aa_desc == dli->dli_member_ad ) {
@@ -631,14 +631,14 @@ dynlist_compare( Operation *op, SlapReply *rs )
 
 		o.o_bd = select_backend( &o.o_req_ndn, 1 );
 		if ( !o.o_bd || !o.o_bd->be_search ) {
-			return SLAP_CB_CONTINUE;
+			goto release;
 		}
 
 		BER_BVSTR( &o.ors_filterstr, "(objectClass=*)" );
 		o.ors_filter = str2filter_x( op, o.ors_filterstr.bv_val );
 		if ( o.ors_filter == NULL ) {
 			/* FIXME: error? */
-			return SLAP_CB_CONTINUE;
+			goto release;
 		}
 
 		o.ors_scope = LDAP_SCOPE_BASE;
@@ -659,7 +659,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		}
 
 		if ( rc != 0 ) {
-			return rc;
+			goto release;
 		}
 
 		if ( dlc.dlc_e != NULL ) {
@@ -668,7 +668,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 
 		if ( r.sr_err != LDAP_SUCCESS || r.sr_entry == NULL ) {
 			/* error? */
-			return SLAP_CB_CONTINUE;
+			goto release;
 		}
 
 		for ( a = attrs_find( r.sr_entry->e_attrs, op->orc_ava->aa_desc );
@@ -691,6 +691,11 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		if ( r.sr_flags & REP_ENTRY_MUSTBEFREED ) {
 			entry_free( r.sr_entry );
 		}
+	}
+
+release:;
+	if ( e != NULL ) {
+		overlay_entry_release_ov( &o, e, 0, on );
 	}
 
 	return SLAP_CB_CONTINUE;
@@ -1343,7 +1348,8 @@ dynlist_db_open(
 
 	rc = slap_str2ad( "dgIdentity", &ad_dgIdentity, &text );
 	if ( rc != LDAP_SUCCESS ) {
-		sprintf( cr->msg, "unable to fetch attributeDescription \"dgIdentity\": %d (%s)",
+		snprintf( cr->msg, sizeof( cr->msg),
+			"unable to fetch attributeDescription \"dgIdentity\": %d (%s)",
 			rc, text );
 		Debug( LDAP_DEBUG_ANY, "dynlist_db_open: %s\n", cr->msg, 0, 0 );
 		/* Just a warning */
