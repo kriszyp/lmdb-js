@@ -718,7 +718,7 @@ ordered_value_add(
 	}
 
 	new = ch_malloc( (anum+vnum+1) * sizeof(struct berval));
-	if ( a->a_nvals && a->a_nvals != a->a_vals ) {
+	if ( ( a->a_nvals && a->a_nvals != a->a_vals ) || ( nvals != NULL && nvals != vals ) ) {
 		nnew = ch_malloc( (anum+vnum+1) * sizeof(struct berval));
 		/* Shouldn't happen... */
 		if ( !nvals ) nvals = vals;
