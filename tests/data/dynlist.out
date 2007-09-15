@@ -139,8 +139,44 @@ objectClass: groupOfURLs
 objectClass: dgIdentityAux
 cn: Dynamic List of Members
 memberURL: ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)
-dgIdentity: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=ex
+dgIdentity: cn=Bjorn Jensen,ou=Information Technology DivisioN,ou=People,dc=ex
  ample,dc=com
+member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=exam
+ ple,dc=com
+member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=exampl
+ e,dc=com
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=exa
+ mple,dc=com
+member: cn=Jane Doe,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc
+ =com
+member: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
+member: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
+
+# Testing list search with dgIdentity and dgAuthz anonymously...
+dn: cn=Dynamic List of Members,ou=Dynamic Lists,dc=example,dc=com
+objectClass: groupOfURLs
+objectClass: dgIdentityAux
+cn: Dynamic List of Members
+memberURL: ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)
+dgIdentity: cn=Bjorn Jensen,ou=Information Technology DivisioN,ou=People,dc=ex
+ ample,dc=com
+dgAuthz: {0}dn:cn=Barbara Jensen,ou=Information Technology DivisioN,ou=People,
+ dc=example,dc=com
+
+# Testing list search with dgIdentity and dgAuthz as the authorized identity...
+dn: cn=Dynamic List of Members,ou=Dynamic Lists,dc=example,dc=com
+objectClass: groupOfURLs
+objectClass: dgIdentityAux
+cn: Dynamic List of Members
+memberURL: ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)
+dgIdentity: cn=Bjorn Jensen,ou=Information Technology DivisioN,ou=People,dc=ex
+ ample,dc=com
+dgAuthz: {0}dn:cn=Barbara Jensen,ou=Information Technology DivisioN,ou=People,
+ dc=example,dc=com
 member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=exam
  ple,dc=com
 member: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=exampl
