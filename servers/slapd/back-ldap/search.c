@@ -588,12 +588,14 @@ ldap_build_entry(
 	Attribute	*attr, **attrp;
 	const char	*text;
 	int		last;
+	char *lastb;
+	ber_len_t len;
 
 	/* safe assumptions ... */
 	assert( ent != NULL );
 	BER_BVZERO( &ent->e_bv );
 
-	if ( ber_scanf( &ber, "{m{", bdn ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{m", bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;
 	}
 
@@ -608,14 +610,18 @@ ldap_build_entry(
 	 * change, should we massage them as well?
 	 */
 	if ( dnPrettyNormal( NULL, bdn, &ent->e_name, &ent->e_nname,
-		op->o_tmpmemctx ) != LDAP_SUCCESS )
-	{
+		op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 
 	attrp = &ent->e_attrs;
 
-	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
+	if ( ber_first_element( &ber, &len, &lastb ) != LBER_SEQUENCE ) {
+		return LDAP_DECODING_ERROR;
+	}
+
+	while ( ber_next_element( &ber, &len, lastb ) == LBER_SEQUENCE &&
+		ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		int				i;
 		slap_syntax_validate_func	*validate;
 		slap_syntax_transform_func	*pretty;
