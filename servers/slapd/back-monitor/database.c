@@ -343,7 +343,8 @@ monitor_subsys_database_init_one(
 
 int
 monitor_back_register_database(
-	BackendDB		*be )
+	BackendDB		*be,
+	struct berval	*ndn )
 {
 	monitor_info_t		*mi;
 	Entry			*e_database, **ep;
@@ -358,7 +359,7 @@ monitor_back_register_database(
 	assert( be_monitor != NULL );
 
 	if ( !monitor_subsys_is_opened() ) {
-		return monitor_back_register_database_limbo( be );
+		return monitor_back_register_database_limbo( be, ndn );
 	}
 
 	mi = ( monitor_info_t * )be_monitor->be_private;
@@ -443,6 +444,9 @@ monitor_back_register_database(
 
 done:;
 	monitor_cache_release( mi, e_database );
+	if ( rc == 0 && ndn && ep && *ep ) {
+		*ndn = (*ep)->e_nname;
+	}
 
 	return rc;
 }

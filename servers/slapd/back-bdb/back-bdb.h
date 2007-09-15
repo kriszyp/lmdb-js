@@ -183,9 +183,7 @@ struct bdb_db_info {
 
 typedef struct bdb_monitor_t {
 	void		*bdm_cb;
-	struct berval	bdm_nbase;
-	int		bdm_scope;
-	struct berval	bdm_filter;
+	struct berval	bdm_ndn;
 } bdb_monitor_t;
 
 /* From ldap_rq.h */
