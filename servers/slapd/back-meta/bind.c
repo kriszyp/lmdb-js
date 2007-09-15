@@ -1602,6 +1602,8 @@ meta_back_controls_add(
 		goto done;
 	}
 
+	/* put controls that go __before__ existing ones here */
+
 	/* proxyAuthz for identity assertion */
 	switch ( ldap_back_proxy_authz_ctrl( op, rs, &msc->msc_bound_ndn,
 		mt->mt_version, &mt->mt_idassert, &c[ j1 ] ) )
@@ -1616,6 +1618,8 @@ meta_back_controls_add(
 	default:
 		goto done;
 	}
+
+	/* put controls that go __after__ existing ones here */
 
 #ifdef SLAP_CONTROL_X_SESSION_TRACKING
 	/* session tracking */
@@ -1638,11 +1642,12 @@ meta_back_controls_add(
 		rs->sr_err = LDAP_SUCCESS;
 	}
 
-	assert( j1 + j1 <= sizeof( c )/sizeof(LDAPControl) );
-
+	/* if nothing to do, just bail out */
 	if ( j1 == 0 && j2 == 0 ) {
 		goto done;
 	}
+
+	assert( j1 + j1 <= sizeof( c )/sizeof(LDAPControl) );
 
 	if ( op->o_ctrls ) {
 		for ( n = 0; op->o_ctrls[ n ]; n++ )
@@ -1667,8 +1672,8 @@ meta_back_controls_add(
 		}
 	}
 
+	n += j1;
 	if ( j2 ) {
-		n += j1;
 		ctrls[ n ] = (LDAPControl *)&ctrls[ n + j2 + 1 ] + j1;
 		*ctrls[ n ] = c[ j1 ];
 		for ( i = 1; i < j2; i++ ) {
