@@ -815,9 +815,9 @@ ldap_back_entry_get(
 	if ( oc ) {
 		char	*ptr;
 
-		filter = ch_malloc( STRLENOF( "(objectclass=)" ) 
-				+ oc->soc_cname.bv_len + 1 );
-		ptr = lutil_strcopy( filter, "(objectclass=" );
+		filter = op->o_tmpalloc( STRLENOF( "(objectClass=" ")" ) 
+				+ oc->soc_cname.bv_len + 1, op->o_tmpmemctx );
+		ptr = lutil_strcopy( filter, "(objectClass=" );
 		ptr = lutil_strcopy( ptr, oc->soc_cname.bv_val );
 		*ptr++ = ')';
 		*ptr++ = '\0';
@@ -829,7 +829,8 @@ retry:
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
-	
+
+	/* TODO: timeout? */
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
 				attrp, 0, ctrls, NULL,
 				NULL, LDAP_NO_LIMIT, &result );
@@ -872,7 +873,7 @@ cleanup:
 	}
 
 	if ( filter ) {
-		ch_free( filter );
+		op->o_tmpfree( filter, op->o_tmpmemctx );
 	}
 
 	if ( lc != NULL ) {
