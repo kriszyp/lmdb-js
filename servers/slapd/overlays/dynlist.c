@@ -683,12 +683,8 @@ done:;
 			goto release;
 		}
 
-		BER_BVSTR( &o.ors_filterstr, "(objectClass=*)" );
-		o.ors_filter = str2filter_x( op, o.ors_filterstr.bv_val );
-		if ( o.ors_filter == NULL ) {
-			/* FIXME: error? */
-			goto release;
-		}
+		o.ors_filterstr = *slap_filterstr_objectClass_pres;
+		o.ors_filter = slap_filter_objectClass_pres;
 
 		o.ors_scope = LDAP_SCOPE_BASE;
 		o.ors_deref = LDAP_DEREF_NEVER;
@@ -701,7 +697,6 @@ done:;
 		o.o_acl_priv = ACL_COMPARE;
 
 		rc = o.o_bd->be_search( &o, &r );
-		filter_free_x( &o, o.ors_filter );
 
 		if ( o.o_dn.bv_val != op->o_dn.bv_val ) {
 			slap_op_groups_free( &o );

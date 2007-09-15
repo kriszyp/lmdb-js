@@ -336,7 +336,6 @@ backsql_tree_delete(
 	Operation		op2 = *op;
 	slap_callback		sc = { 0 };
 	SlapReply		rs2 = { 0 };
-	Filter			f = { 0 };
 	backsql_tree_delete_t	btd = { 0 };
 
 	int			rc;
@@ -368,10 +367,8 @@ backsql_tree_delete(
 	op2.ors_deref = LDAP_DEREF_NEVER;
 	op2.ors_slimit = SLAP_NO_LIMIT;
 	op2.ors_tlimit = SLAP_NO_LIMIT;
-	op2.ors_filter = &f;
-	f.f_choice = LDAP_FILTER_PRESENT;
-	f.f_desc = slap_schema.si_ad_objectClass;
-	BER_BVSTR( &op2.ors_filterstr, "(objectClass=*)" );
+	op2.ors_filter = slap_filter_objectClass_pres;
+	op2.ors_filterstr = *slap_filterstr_objectClass_pres;
 	op2.ors_attrs = slap_anlist_all_attributes;
 	op2.ors_attrsonly = 0;
 

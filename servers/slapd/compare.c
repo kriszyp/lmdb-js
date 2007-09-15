@@ -44,7 +44,7 @@ do_compare(
 	struct berval dn = BER_BVNULL;
 	struct berval desc = BER_BVNULL;
 	struct berval value = BER_BVNULL;
-	AttributeAssertion ava = { 0 };
+	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_compare\n",
 		op->o_log_prefix, 0, 0 );

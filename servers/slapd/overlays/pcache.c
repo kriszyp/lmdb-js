@@ -1380,11 +1380,7 @@ remove_query_data(
 {
 	struct query_info	*qi, *qnext;
 	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion	ava = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
 	slap_callback cb = { NULL, remove_func, NULL, NULL };
@@ -1665,11 +1661,7 @@ pcache_remove_entries_from_cache(
 	SlapReply	rs = { REP_RESULT };
 	Filter		f = { 0 };
 	char		filtbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(entryUUID=)" ) ];
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion ava = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 	AttributeName	attrs[ 2 ] = { 0 };
 	int		s, rc;
 
@@ -1784,11 +1776,7 @@ pcache_remove_entry_queries_from_cache(
 	SlapReply		rs = { REP_RESULT };
 	Filter			f = { 0 };
 	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion	ava = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	AttributeName		attrs[ 2 ] = { 0 };
 	int			rc;
 
@@ -3192,11 +3180,7 @@ pcache_db_open(
 			SlapReply	rs = { 0 };
 			BerVarray	vals = NULL;
 			Filter		f = { 0 }, f2 = { 0 };
-#ifdef LDAP_COMP_MATCH
-			AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
-#else
-			AttributeAssertion	ava = { NULL, BER_BVNULL };
-#endif
+			AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 			AttributeName	attrs[ 2 ] = { 0 };
 
 			connection_fake_init( &conn, &opbuf, thrctx );

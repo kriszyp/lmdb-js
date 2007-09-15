@@ -112,6 +112,14 @@ slap_init( int mode, const char *name )
 		return 1;
 	}
 
+	if ( filter_init() != 0 ) {
+		slap_debug |= LDAP_DEBUG_NONE;
+		Debug( LDAP_DEBUG_ANY,
+		    "%s: filter_init failed\n",
+		    name, 0, 0 );
+		return 1;
+	}
+
 	if ( entry_init() != 0 ) {
 		slap_debug |= LDAP_DEBUG_NONE;
 		Debug( LDAP_DEBUG_ANY,

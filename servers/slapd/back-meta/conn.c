@@ -849,7 +849,6 @@ meta_back_get_candidate(
 		rs->sr_text = "No suitable candidate target found";
 
 	} else if ( candidate == META_TARGET_MULTIPLE ) {
-		Filter		f = { 0 };
 		Operation	op2 = *op;
 		SlapReply	rs2 = { 0 };
 		slap_callback	cb2 = { 0 };
@@ -868,10 +867,8 @@ meta_back_get_candidate(
 		op2.ors_slimit = 1;
 		op2.ors_tlimit = SLAP_NO_LIMIT;
 
-		f.f_choice = LDAP_FILTER_PRESENT;
-		f.f_desc = slap_schema.si_ad_objectClass;
-		op2.ors_filter = &f;
-		BER_BVSTR( &op2.ors_filterstr, "(objectClass=*)" );
+		op2.ors_filter = slap_filter_objectClass_pres;
+		op2.ors_filterstr = *slap_filterstr_objectClass_pres;
 
 		op2.o_callback = &cb2;
 		cb2.sc_response = meta_back_conn_cb;
