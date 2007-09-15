@@ -441,6 +441,9 @@ monitor_back_register_database(
 	if ( rc != 0 ) {
 		goto done;
 	}
+	/* database_init_one advanced ep past where we want.
+	 * But it stored the entry we want in mp->mp_next.
+	 */
 	ep = &mp->mp_next;
 
 done:;
