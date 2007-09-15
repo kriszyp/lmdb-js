@@ -1650,6 +1650,9 @@ static int parseSessionTracking(
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	/* TODO: add the capability to determine if a client is allowed
+	 * to use this control, based on identity, ip and so */
+
 	ber = ber_init( &ctrl->ldctl_value );
 	if ( ber == NULL ) {
 		rs->sr_text = "internal error";

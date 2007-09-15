@@ -1581,7 +1581,7 @@ meta_back_controls_add(
 	LDAPControl		**ctrls = NULL;
 	/* set to the maximum number of controls this backend can add */
 	LDAPControl		c[ 2 ] = { 0 };
-	int			i = 0, j = 0;
+	int			n = 0, i, j1 = 0, j2 = 0;
 
 	*pctrls = NULL;
 
@@ -1604,13 +1604,13 @@ meta_back_controls_add(
 
 	/* proxyAuthz for identity assertion */
 	switch ( ldap_back_proxy_authz_ctrl( op, rs, &msc->msc_bound_ndn,
-		mt->mt_version, &mt->mt_idassert, &c[ j ] ) )
+		mt->mt_version, &mt->mt_idassert, &c[ j1 ] ) )
 	{
 	case SLAP_CB_CONTINUE:
 		break;
 
 	case LDAP_SUCCESS:
-		j++;
+		j1++;
 		break;
 
 	default:
@@ -1620,12 +1620,12 @@ meta_back_controls_add(
 #ifdef SLAP_CONTROL_X_SESSION_TRACKING
 	/* session tracking */
 	if ( META_BACK_TGT_ST_REQUEST( mt ) ) {
-		switch ( slap_ctrl_session_tracking_request_add( op, rs, &c[ j ] ) ) {
+		switch ( slap_ctrl_session_tracking_request_add( op, rs, &c[ j1 + j2 ] ) ) {
 		case SLAP_CB_CONTINUE:
 			break;
 
 		case LDAP_SUCCESS:
-			j++;
+			j2++;
 			break;
 
 		default:
@@ -1638,31 +1638,46 @@ meta_back_controls_add(
 		rs->sr_err = LDAP_SUCCESS;
 	}
 
-	if ( j == 0 ) {
+	assert( j1 + j1 <= sizeof( c )/sizeof(LDAPControl) );
+
+	if ( j1 == 0 && j2 == 0 ) {
 		goto done;
 	}
 
 	if ( op->o_ctrls ) {
-		for ( i = 0; op->o_ctrls[ i ]; i++ )
+		for ( n = 0; op->o_ctrls[ n ]; n++ )
 			/* just count ctrls */ ;
 	}
 
-	ctrls = op->o_tmpalloc( sizeof( LDAPControl * ) * (i + j + 1) + j * sizeof( LDAPControl ),
+	ctrls = op->o_tmpalloc( (n + j1 + j2 + 1) * sizeof( LDAPControl * ) + ( j1 + j2 ) * sizeof( LDAPControl ),
 			op->o_tmpmemctx );
-	ctrls[ 0 ] = (LDAPControl *)&ctrls[ i + j + 1 ];
-	*ctrls[ 0 ] = c[ 0 ];
-	for ( i = 1; i < j; i++ ) {
-		ctrls[ i ] = &ctrls[ 0 ][ i ];
-		*ctrls[ i ] = c[ i ];
+	if ( j1 ) {
+		ctrls[ 0 ] = (LDAPControl *)&ctrls[ n + j1 + j2 + 1 ];
+		*ctrls[ 0 ] = c[ 0 ];
+		for ( i = 1; i < j1; i++ ) {
+			ctrls[ i ] = &ctrls[ 0 ][ i ];
+			*ctrls[ i ] = c[ i ];
+		}
 	}
 
 	i = 0;
 	if ( op->o_ctrls ) {
 		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
-			ctrls[ i + j ] = op->o_ctrls[ i ];
+			ctrls[ i + j1 ] = op->o_ctrls[ i ];
 		}
 	}
-	ctrls[ i + j ] = NULL;
+
+	if ( j2 ) {
+		n += j1;
+		ctrls[ n ] = (LDAPControl *)&ctrls[ n + j2 + 1 ] + j1;
+		*ctrls[ n ] = c[ j1 ];
+		for ( i = 1; i < j2; i++ ) {
+			ctrls[ n + i ] = &ctrls[ n ][ i ];
+			*ctrls[ n + i ] = c[ i ];
+		}
+	}
+
+	ctrls[ n + j2 ] = NULL;
 
 done:;
 	if ( ctrls == NULL ) {
