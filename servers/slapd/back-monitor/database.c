@@ -441,6 +441,7 @@ monitor_back_register_database(
 	if ( rc != 0 ) {
 		goto done;
 	}
+	ep = &mp->mp_next;
 
 done:;
 	monitor_cache_release( mi, e_database );
