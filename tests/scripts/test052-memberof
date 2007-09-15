@@ -61,7 +61,7 @@ if [ "$MEMBEROF" = memberofmod ]; then
 dn: cn=module,cn=config
 objectClass: olcModuleList
 cn: module
-olcModulePath: ../../../servers/slapd/overlays
+olcModulePath: ../servers/slapd/overlays
 olcModuleLoad: memberof.la
 EOF
 	RC=$?
