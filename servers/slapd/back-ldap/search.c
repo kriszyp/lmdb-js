@@ -610,16 +610,17 @@ ldap_build_entry(
 	 * change, should we massage them as well?
 	 */
 	if ( dnPrettyNormal( NULL, bdn, &ent->e_name, &ent->e_nname,
-		op->o_tmpmemctx ) != LDAP_SUCCESS ) {
+		op->o_tmpmemctx ) != LDAP_SUCCESS )
+	{
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 
-	attrp = &ent->e_attrs;
-
+	ent->e_attrs = NULL;
 	if ( ber_first_element( &ber, &len, &lastb ) != LBER_SEQUENCE ) {
-		return LDAP_DECODING_ERROR;
+		return LDAP_SUCCESS;
 	}
 
+	attrp = &ent->e_attrs;
 	while ( ber_next_element( &ber, &len, lastb ) == LBER_SEQUENCE &&
 		ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		int				i;
