@@ -75,10 +75,10 @@ fi
 echo "Running ldapadd to build slapd config database..."
 $LDAPADD -h $LOCALHOST -p $PORT1 -D 'cn=config' -w `cat $CONFIGPWF` \
 	>> $TESTOUT 2>&1 <<EOF
-dn: olcDatabase={1}bdb,cn=config
+dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
-objectClass: olcBdbConfig
-olcDatabase: {1}bdb
+objectClass: olc${BACKEND}Config
+olcDatabase: {1}$BACKEND
 olcSuffix: $BASEDN
 olcRootDN: cn=Manager,$BASEDN
 olcRootPW:: c2VjcmV0
@@ -91,8 +91,8 @@ olcDbIndex: uid pres,eq,sub
 olcDbIndex: sn pres,eq,sub
 olcDbMode: 384
 
-# {0}memberof, {1}bdb, config
-dn: olcOverlay={0}memberof,olcDatabase={1}bdb,cn=config
+# {0}memberof, {1}$BACKEND, config
+dn: olcOverlay={0}memberof,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
 objectClass: olcMemberOf
 olcOverlay: {0}memberof
