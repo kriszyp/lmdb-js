@@ -72,13 +72,14 @@ typedef struct cached_query_s {
 	Qbase					*qbase;
 	int						scope;
 	struct berval			q_uuid;		/* query identifier */
-	int				q_sizelimit;
+	int						q_sizelimit;
 	struct query_template_s		*qtemp;	/* template of the query */
-	time_t 				expiry_time;	/* time till the query is considered valid */
+	time_t						expiry_time;	/* time till the query is considered valid */
 	struct cached_query_s  		*next;  	/* next query in the template */
 	struct cached_query_s  		*prev;  	/* previous query in the template */
-	struct cached_query_s           *lru_up;	/* previous query in the LRU list */
-	struct cached_query_s           *lru_down;	/* next query in the LRU list */
+	struct cached_query_s		*lru_up;	/* previous query in the LRU list */
+	struct cached_query_s		*lru_down;	/* next query in the LRU list */
+	ldap_pvt_thread_rdwr_t		rwlock;
 } CachedQuery;
 
 /*
@@ -156,7 +157,7 @@ struct query_manager_s;
 typedef CachedQuery *(QCfunc)(Operation *op, struct query_manager_s*,
 	Query*, QueryTemplate*);
 typedef CachedQuery *(AddQueryfunc)(Operation *op, struct query_manager_s*,
-	Query*, QueryTemplate*, pc_caching_reason_t);
+	Query*, QueryTemplate*, pc_caching_reason_t, int wlock);
 typedef void (CRfunc)(struct query_manager_s*, struct berval*);
 
 /* LDAP query cache */
@@ -245,7 +246,8 @@ add_query(
 	query_manager* qm,
 	Query* query,
 	QueryTemplate *templ,
-	pc_caching_reason_t why );
+	pc_caching_reason_t why,
+	int wlock);
 
 static int
 remove_query_data(
@@ -472,7 +474,7 @@ url2query(
 			goto error;
 		}
 
-		cq = add_query( op, qm, &query, qt, PC_POSITIVE );
+		cq = add_query( op, qm, &query, qt, PC_POSITIVE, 0 );
 		if ( cq != NULL ) {
 			cq->expiry_time = expiry_time;
 			cq->q_uuid = uuid;
@@ -1152,14 +1154,15 @@ free_query (CachedQuery* qc)
 }
 
 
-/* Add query to query cache */
+/* Add query to query cache, the returned Query is locked for writing */
 static CachedQuery *
 add_query(
 	Operation *op,
 	query_manager* qm,
 	Query* query,
 	QueryTemplate *templ,
-	pc_caching_reason_t why )
+	pc_caching_reason_t why,
+	int wlock)
 {
 	CachedQuery* new_cached_query = (CachedQuery*) ch_malloc(sizeof(CachedQuery));
 	Qbase *qbase, qb;
@@ -1198,6 +1201,10 @@ add_query(
 	new_cached_query->scope = query->scope;
 	new_cached_query->filter = query->filter;
 	new_cached_query->first = first = filter_first( query->filter );
+	
+	ldap_pvt_thread_rdwr_init(&new_cached_query->rwlock);
+	if (wlock)
+		ldap_pvt_thread_rdwr_wlock(&new_cached_query->rwlock);
 
 	qb.base = query->base;
 
@@ -1966,7 +1973,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 			op->o_tmpfree( cb, op->o_tmpmemctx );
 		} else if ( si->caching_reason != PC_IGNORE ) {
 			CachedQuery *qc = qm->addfunc(op, qm, &si->query,
-				si->qtemp, si->caching_reason );
+				si->qtemp, si->caching_reason, 1 );
 
 			if ( qc != NULL ) {
 				switch ( si->caching_reason ) {
@@ -1978,6 +1985,7 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 					qc->q_sizelimit = rs->sr_nentries;
 					break;
 				}
+				ldap_pvt_thread_rdwr_wunlock(&qc->rwlock);
 				ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
 				cm->num_cached_queries++;
 				Debug( pcache_debug, "STORED QUERIES = %lu\n",
@@ -2293,6 +2301,7 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY ANSWERABLE\n", 0, 0, 0 );
 		op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
+		ldap_pvt_thread_rdwr_rlock(&answerable->rwlock);
 		if ( BER_BVISNULL( &answerable->q_uuid )) {
 			/* No entries cached, just an empty result set */
 			i = rs->sr_err = 0;
@@ -2302,6 +2311,7 @@ pcache_op_search(
 			op->o_callback = NULL;
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
+		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
 		ldap_pvt_thread_rdwr_runlock(&qtemp->t_rwlock);
 		op->o_bd = save_bd;
 		op->o_callback = save_cb;
