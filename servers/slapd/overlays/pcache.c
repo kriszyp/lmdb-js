@@ -1566,6 +1566,7 @@ struct search_info {
 	int count;
 	int slimit;
 	int slimit_exceeded;
+	pc_caching_reason_t caching_reason;
 	Entry *head, *tail;
 };
 
@@ -1905,46 +1906,18 @@ static int
 pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 	slap_callback	*cb = op->o_callback;
 	struct search_info *si = cb->sc_private;
-
-	if ( rs->sr_type == REP_SEARCH ) {
-		/* don't return more entries than requested by the client */
-		if ( si->slimit && rs->sr_nentries >= si->slimit ) {
-			si->slimit_exceeded = 1;
-		}
-	}
-
-	if ( rs->sr_type == REP_RESULT || 
-		op->o_abandon || 
-		rs->sr_err == SLAPD_ABANDON )
-	{
-		if ( si->save_attrs != NULL ) {
-			rs->sr_attrs = si->save_attrs;
-			op->ors_attrs = si->save_attrs;
-		}
-		op->o_callback = op->o_callback->sc_next;
-		op->o_tmpfree( cb, op->o_tmpmemctx );
-	}
-
-	return SLAP_CB_CONTINUE;
-}
-
-static int
-pcache_response(
-	Operation	*op,
-	SlapReply	*rs )
-{
-	struct search_info *si = op->o_callback->sc_private;
 	slap_overinst *on = si->on;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager*		qm = cm->qm;
 
-	if ( si->save_attrs != NULL ) {
-		rs->sr_attrs = si->save_attrs;
-		op->ors_attrs = si->save_attrs;
-	}
-
 	if ( rs->sr_type == REP_SEARCH ) {
 		Entry *e;
+
+		/* don't return more entries than requested by the client */
+		if ( si->slimit && rs->sr_nentries >= si->slimit ) {
+			si->slimit_exceeded = 1;
+		}
+
 		/* If we haven't exceeded the limit for this query,
 		 * build a chain of answers to store. If we hit the
 		 * limit, empty the chain and ignore the rest.
@@ -1969,36 +1942,34 @@ pcache_response(
 			}
 		}
 
-		/* don't return more entries than requested by the client */
-		if ( si->slimit_exceeded ) {
-			return 0;
+	}
+
+	if ( rs->sr_type == REP_RESULT || 
+		op->o_abandon || rs->sr_err == SLAPD_ABANDON )
+	{
+		if ( si->save_attrs != NULL ) {
+			rs->sr_attrs = si->save_attrs;
+			op->ors_attrs = si->save_attrs;
 		}
-
-	} else if ( rs->sr_type == REP_RESULT ) {
-		pc_caching_reason_t why = PC_IGNORE;
-
-		if ( si->count ) {
-			if ( rs->sr_err == LDAP_SUCCESS ) {
-				why = PC_POSITIVE;
-
-			} else if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED
-				&& si->qtemp->limitttl )
-			{
-				why = PC_SIZELIMIT;
+		if ( op->o_abandon || rs->sr_err == SLAPD_ABANDON ) {
+			filter_free( si->query.filter );
+			if ( si->count ) {
+				/* duplicate query, free it */
+				Entry *e;
+				for (;si->head; si->head=e) {
+					e = si->head->e_private;
+					si->head->e_private = NULL;
+					entry_free(si->head);
+				}
 			}
-
-		} else if ( si->qtemp->negttl && !si->count && !si->over &&
-				rs->sr_err == LDAP_SUCCESS )
-		{
-			why = PC_NEGATIVE;
-		}
-
-		if ( why != PC_IGNORE ) {
+			op->o_callback = op->o_callback->sc_next;
+			op->o_tmpfree( cb, op->o_tmpmemctx );
+		} else if ( si->caching_reason != PC_IGNORE ) {
 			CachedQuery *qc = qm->addfunc(op, qm, &si->query,
-				si->qtemp, why );
+				si->qtemp, si->caching_reason );
 
 			if ( qc != NULL ) {
-				switch ( why ) {
+				switch ( si->caching_reason ) {
 				case PC_POSITIVE:
 					cache_entries( op, rs, &qc->q_uuid );
 					break;
@@ -2038,6 +2009,47 @@ pcache_response(
 		} else {
 			filter_free( si->query.filter );
 		}
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+pcache_response(
+	Operation	*op,
+	SlapReply	*rs )
+{
+	struct search_info *si = op->o_callback->sc_private;
+
+	if ( si->save_attrs != NULL ) {
+		rs->sr_attrs = si->save_attrs;
+		op->ors_attrs = si->save_attrs;
+	}
+
+	if ( rs->sr_type == REP_SEARCH ) {
+		/* don't return more entries than requested by the client */
+		if ( si->slimit_exceeded ) {
+			return 0;
+		}
+
+	} else if ( rs->sr_type == REP_RESULT ) {
+
+		if ( si->count ) {
+			if ( rs->sr_err == LDAP_SUCCESS ) {
+				si->caching_reason = PC_POSITIVE;
+
+			} else if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED
+				&& si->qtemp->limitttl )
+			{
+				si->caching_reason = PC_SIZELIMIT;
+			}
+
+		} else if ( si->qtemp->negttl && !si->count && !si->over &&
+				rs->sr_err == LDAP_SUCCESS )
+		{
+			si->caching_reason = PC_NEGATIVE;
+		}
+
 
 		if ( si->slimit_exceeded ) {
 			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
@@ -2335,6 +2347,7 @@ pcache_op_search(
 		si->count = 0;
 		si->slimit = 0;
 		si->slimit_exceeded = 0;
+		si->caching_reason = PC_IGNORE;
 		if ( op->ors_slimit && op->ors_slimit < cm->num_entries_limit ) {
 			si->slimit = op->ors_slimit;
 			op->ors_slimit = cm->num_entries_limit;
