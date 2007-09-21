@@ -684,7 +684,7 @@ done:;
 		}
 
 		o.ors_filterstr = *slap_filterstr_objectClass_pres;
-		o.ors_filter = slap_filter_objectClass_pres;
+		o.ors_filter = (Filter *) slap_filter_objectClass_pres;
 
 		o.ors_scope = LDAP_SCOPE_BASE;
 		o.ors_deref = LDAP_DEREF_NEVER;
