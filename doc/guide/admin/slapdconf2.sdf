@@ -1472,3 +1472,8 @@ E: 49.	olcDbDirectory: /usr/local/var/openldap-data-net
 E: 50.	olcRootDN: "cn=Manager,dc=example,dc=com"
 E: 51.	olcDbIndex: objectClass eq
 E: 52.	olcAccess: to * by users read
+
+
+H2: Converting from slapd.conf(8) to a {{B:cn=config}} directory format
+
+Discuss slap* -f slapd.conf -F slapd.d/  (man slapd-config)
