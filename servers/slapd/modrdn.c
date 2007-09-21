@@ -428,6 +428,7 @@ slap_modrdn2mods(
 		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
 		mod_tmp->sml_desc = desc;
 		BER_BVZERO( &mod_tmp->sml_type );
+		mod_tmp->sml_numvals = 1;
 		mod_tmp->sml_values = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod_tmp->sml_values[0], &new_rdn[a_cnt]->la_value );
 		mod_tmp->sml_values[1].bv_val = NULL;
@@ -469,6 +470,7 @@ slap_modrdn2mods(
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
 			mod_tmp->sml_desc = desc;
 			BER_BVZERO( &mod_tmp->sml_type );
+			mod_tmp->sml_numvals = 1;
 			mod_tmp->sml_values = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod_tmp->sml_values[0], &old_rdn[d_cnt]->la_value );
 			mod_tmp->sml_values[1].bv_val = NULL;

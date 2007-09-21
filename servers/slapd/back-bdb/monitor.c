@@ -371,26 +371,22 @@ bdb_monitor_db_open( BackendDB *be )
 	}
 
 	a->a_desc = slap_schema.si_ad_objectClass;
-	value_add_one( &a->a_vals, &oc_olmBDBDatabase->soc_cname );
-	a->a_nvals = a->a_vals;
+	attr_valadd( a, &oc_olmBDBDatabase->soc_cname, NULL, 1 );
 	next = a->a_next;
 
 	{
 		struct berval	bv = BER_BVC( "0" );
 
 		next->a_desc = ad_olmBDBEntryCache;
-		value_add_one( &next->a_vals, &bv );
-		next->a_nvals = next->a_vals;
+		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 
 		next->a_desc = ad_olmBDBDNCache;
-		value_add_one( &next->a_vals, &bv );
-		next->a_nvals = next->a_vals;
+		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 
 		next->a_desc = ad_olmBDBIDLCache;
-		value_add_one( &next->a_vals, &bv );
-		next->a_nvals = next->a_vals;
+		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 	}
 
@@ -432,6 +428,7 @@ bdb_monitor_db_open( BackendDB *be )
 		next->a_desc = ad_olmDbDirectory;
 		next->a_vals = ch_calloc( sizeof( struct berval ), 2 );
 		next->a_vals[ 0 ] = bv;
+		next->a_numvals = 1;
 
 		if ( BER_BVISNULL( &nbv ) ) {
 			next->a_nvals = next->a_vals;

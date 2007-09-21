@@ -1118,11 +1118,13 @@ struct Attribute {
 	ComponentData		*a_comp_data;	/* component values */
 #endif
 	Attribute		*a_next;
+	unsigned		a_numvals;	/* number of vals */
 	unsigned		a_flags;
 #define SLAP_ATTR_IXADD			0x1U
 #define SLAP_ATTR_IXDEL			0x2U
 #define SLAP_ATTR_DONT_FREE_DATA	0x4U
 #define SLAP_ATTR_DONT_FREE_VALS	0x8U
+#define	SLAP_ATTR_SORTED_VALS		0x10U
 };
 
 
@@ -1183,6 +1185,7 @@ struct Modification {
 	struct berval sm_type;
 	BerVarray sm_values;
 	BerVarray sm_nvalues;
+	unsigned sm_numvals;
 };
 
 struct Modifications {
@@ -1193,15 +1196,8 @@ struct Modifications {
 #define	sml_type	sml_mod.sm_type
 #define sml_values	sml_mod.sm_values
 #define sml_nvalues	sml_mod.sm_nvalues
+#define sml_numvals	sml_mod.sm_numvals
 	Modifications	*sml_next;
-};
-
-struct LDAPModList {
-	LDAPMod		ml_mod;
-	LDAPModList	*ml_next;
-#define ml_op		ml_mod.mod_op
-#define ml_type		ml_mod.mod_type
-#define ml_values	ml_mod.mod_values
 };
 
 /*

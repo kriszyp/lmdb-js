@@ -5384,6 +5384,7 @@ config_check_schema(Operation *op, CfBackInfo *cfb)
 				ber_bvarray_free( a->a_vals );
 				a->a_vals = NULL;
 				a->a_nvals = NULL;
+				a->a_numvals = 0;
 			}
 			oidm_unparse( &bv, NULL, NULL, 1 );
 			attr_merge_normalize( e, cfAd_om, bv, NULL );
@@ -5398,6 +5399,7 @@ config_check_schema(Operation *op, CfBackInfo *cfb)
 				ber_bvarray_free( a->a_vals );
 				a->a_vals = NULL;
 				a->a_nvals = NULL;
+				a->a_numvals = 0;
 			}
 			at_unparse( &bv, NULL, NULL, 1 );
 			attr_merge_normalize( e, cfAd_attr, bv, NULL );
@@ -5412,6 +5414,7 @@ config_check_schema(Operation *op, CfBackInfo *cfb)
 				ber_bvarray_free( a->a_vals );
 				a->a_vals = NULL;
 				a->a_nvals = NULL;
+				a->a_numvals = 0;
 			}
 			oc_unparse( &bv, NULL, NULL, 1 );
 			attr_merge_normalize( e, cfAd_oc, bv, NULL );

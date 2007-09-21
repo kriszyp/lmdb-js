@@ -1383,6 +1383,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		vals[i].bv_val = NULL;
 		vals[i].bv_len = 0;
 		a = attr_alloc( logop == LOG_EN_ADD ? ad_reqMod : ad_reqOld );
+		a->a_numvals = i;
 		a->a_vals = vals;
 		a->a_nvals = vals;
 		last_attr->a_next = a;
@@ -1478,6 +1479,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		if ( i > 0 ) {
 			BER_BVZERO( &vals[i] );
 			a = attr_alloc( ad_reqMod );
+			a->a_numvals = i;
 			a->a_vals = vals;
 			a->a_nvals = vals;
 			last_attr->a_next = a;
@@ -1509,6 +1511,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			vals[i].bv_val = NULL;
 			vals[i].bv_len = 0;
 			a = attr_alloc( ad_reqOld );
+			a->a_numvals = i;
 			a->a_vals = vals;
 			a->a_nvals = vals;
 			last_attr->a_next = a;
@@ -1788,10 +1791,9 @@ accesslog_operational( Operation *op, SlapReply *rs )
 				ad_inlist( ad_auditContext, rs->sr_attrs ) )
 		{
 			*ap = attr_alloc( ad_auditContext );
-			value_add_one( &(*ap)->a_vals,
-				&li->li_db->be_suffix[0] );
-			value_add_one( &(*ap)->a_nvals,
-				&li->li_db->be_nsuffix[0] );
+			attr_valadd( *ap,
+				&li->li_db->be_suffix[0],
+				&li->li_db->be_nsuffix[0], 1 );
 		}
 	}
 

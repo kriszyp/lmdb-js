@@ -289,6 +289,7 @@ modify_delete_vindex(
 				free( a->a_nvals[j].bv_val );
 				a->a_nvals[j].bv_val = &dummy;
 			}
+			a->a_numvals--;
 
 			break;
 		}

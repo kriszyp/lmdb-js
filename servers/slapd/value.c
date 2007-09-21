@@ -263,7 +263,7 @@ int value_find_ex(
 
 /* assign new indexes to an attribute's ordered values */
 void
-ordered_value_renumber( Attribute *a, int vals )
+ordered_value_renumber( Attribute *a )
 {
 	char *ptr, ibuf[64];	/* many digits */
 	struct berval ibv, tmp, vtmp;
@@ -271,7 +271,7 @@ ordered_value_renumber( Attribute *a, int vals )
 
 	ibv.bv_val = ibuf;
 
-	for (i=0; i<vals; i++) {
+	for (i=0; i<a->a_numvals; i++) {
 		ibv.bv_len = sprintf(ibv.bv_val, "{%d}", i);
 		vtmp = a->a_vals[i];
 		if ( vtmp.bv_val[0] == '{' ) {
@@ -405,7 +405,7 @@ ordered_value_sort( Attribute *a, int do_renumber )
 	}
 
 	if ( do_renumber && renumber )
-		ordered_value_renumber( a, vals );
+		ordered_value_renumber( a );
 
 	return 0;
 }
@@ -706,16 +706,14 @@ ordered_value_add(
 	vnum = i;
 
 	if ( a ) {
-		for (i=0; !BER_BVISNULL( a->a_vals+i ); i++) ;
-		anum = i;
 		ordered_value_sort( a, 0 );
 	} else {
 		Attribute **ap;
-		anum = 0;
 		for ( ap=&e->e_attrs; *ap; ap = &(*ap)->a_next ) ;
 		a = attr_alloc( ad );
 		*ap = a;
 	}
+	anum = a->a_numvals;
 
 	new = ch_malloc( (anum+vnum+1) * sizeof(struct berval));
 
@@ -789,7 +787,8 @@ ordered_value_add(
 		a->a_nvals = a->a_vals;
 	}
 
-	ordered_value_renumber( a, anum );
+	a->a_numvals = anum;
+	ordered_value_renumber( a );
 
 	return 0;
 }

@@ -461,7 +461,7 @@ refint_search_cb(
 						ber_bvarray_add_x( &na->new_nvals, &newdn, op->o_tmpmemctx );
 					}
 
-					/* count deteles */
+					/* count deletes */
 					if ( BER_BVISEMPTY( &rq->newdn ) ) {
 						deleted++;
 					}
@@ -642,6 +642,7 @@ refint_qtask( void *ctx, void *arg )
 					m->sml_flags = SLAP_MOD_INTERNAL;
 					m->sml_desc = slap_schema.si_ad_modifiersName;
 					m->sml_type = m->sml_desc->ad_cname;
+					m->sml_numvals = 1;
 					m->sml_values = (BerVarray)(m+1);
 					m->sml_nvalues = m->sml_values+2;
 					BER_BVZERO( &m->sml_values[1] );
@@ -672,6 +673,7 @@ refint_qtask( void *ctx, void *arg )
 						m->sml_nvalues = m->sml_values+2;
 						BER_BVZERO( &m->sml_values[1] );
 						BER_BVZERO( &m->sml_nvalues[1] );
+						m->sml_numvals = 1;
 						if ( BER_BVISEMPTY( &rq->newdn )) {
 							op->o_tmpfree( ra, op->o_tmpmemctx );
 							ra = dp->attrs;

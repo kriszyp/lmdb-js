@@ -645,13 +645,13 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 
 		/* Make space for the array of values */
 		attr = attr_alloc( at->bam_true_ad );
+		attr->a_numvals = count;
 		attr->a_vals = ch_calloc( count + 1, sizeof( struct berval ) );
 		if ( attr->a_vals == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "Out of memory!\n", 0,0,0 );
 			ch_free( attr );
 			return 1;
 		}
-		memset( attr->a_vals, 0, ( count + 1 ) * sizeof( struct berval ) );
 		if ( normfunc ) {
 			attr->a_nvals = ch_calloc( count + 1, sizeof( struct berval ) );
 			if ( attr->a_nvals == NULL ) {
@@ -659,8 +659,6 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				ch_free( attr );
 				return 1;
 
-			} else {
-				memset( attr->a_nvals, 0, ( count + 1 ) * sizeof( struct berval ) );
 			}
 
 		} else {

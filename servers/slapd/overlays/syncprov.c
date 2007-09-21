@@ -2306,9 +2306,9 @@ syncprov_operational(
 					a->a_nvals = NULL;
 					ber_bvarray_free( a->a_vals );
 					a->a_vals = NULL;
+					a->a_numvals = 0;
 				}
-				ber_bvarray_dup_x( &a->a_vals, si->si_ctxcsn, NULL );
-				ber_bvarray_dup_x( &a->a_nvals, si->si_ctxcsn, NULL );
+				attr_valadd( a, si->si_ctxcsn, si->si_ctxcsn, si->si_numcsns );
 			}
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}

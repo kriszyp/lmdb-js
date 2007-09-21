@@ -585,6 +585,7 @@ int slap_mods_check(
 					ml->sml_values[nvals] = pval;
 				}
 			}
+			ml->sml_numvals = nvals;
 
 			/*
 			 * a rough single value check... an additional check is needed
@@ -946,6 +947,7 @@ void slap_mods_opattrs(
 			mod->sml_next = NULL;
 			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_entryCSN;
+			mod->sml_numvals = 1;
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &csn );
 			BER_BVZERO( &mod->sml_values[1] );
@@ -963,6 +965,7 @@ void slap_mods_opattrs(
 			mod->sml_next = NULL;
 			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_modifiersName;
+			mod->sml_numvals = 1;
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &name );
 			BER_BVZERO( &mod->sml_values[1] );
@@ -983,6 +986,7 @@ void slap_mods_opattrs(
 			mod->sml_next = NULL;
 			BER_BVZERO( &mod->sml_type );
 			mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
+			mod->sml_numvals = 1;
 			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &timestamp );
 			BER_BVZERO( &mod->sml_values[1] );

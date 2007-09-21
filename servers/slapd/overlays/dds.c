@@ -788,6 +788,7 @@ done:;
 			tmpmod->sml_op = LDAP_MOD_REPLACE;
 			value_add_one( &tmpmod->sml_values, &bv );
 			value_add_one( &tmpmod->sml_nvalues, &bv );
+			tmpmod->sml_numvals = 1;
 		}
 	}
 

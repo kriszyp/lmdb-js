@@ -2720,6 +2720,7 @@ Modifications *slapi_int_ldapmods2modifications ( Operation *op, LDAPMod **mods 
 					i++;
 			}
 		}
+		mod->sml_numvals = i;
 
 		if ( i == 0 ) {
 			mod->sml_values = NULL;

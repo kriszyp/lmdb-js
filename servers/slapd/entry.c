@@ -280,6 +280,7 @@ str2entry2( char *s, int checkvals )
 			atail->a_next = attr_alloc( NULL );
 			atail = atail->a_next;
 			atail->a_flags = 0;
+			atail->a_numvals = attr_cnt;
 			atail->a_desc = ad_prev;
 			atail->a_vals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
 			if( ad_prev->ad_type->sat_equality &&
@@ -744,6 +745,7 @@ int entry_encode(Entry *e, struct berval *bv)
 		*ptr++ = '\0';
 		if (a->a_vals) {
 			for (i=0; a->a_vals[i].bv_val; i++);
+			assert( i == a->a_numvals );
 			entry_putlen(&ptr, i);
 			for (i=0; a->a_vals[i].bv_val; i++) {
 				entry_putlen(&ptr, a->a_vals[i].bv_len);
@@ -805,7 +807,7 @@ int entry_decode(EntryHeader *eh, Entry **e, void *ctx)
 int entry_decode(EntryHeader *eh, Entry **e)
 #endif
 {
-	int i, j, count, nattrs, nvals;
+	int i, j, nattrs, nvals;
 	int rc;
 	Attribute *a;
 	Entry *x;
@@ -857,7 +859,8 @@ int entry_decode(EntryHeader *eh, Entry **e)
 		ptr += i + 1;
 		a->a_desc = ad;
 		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
-		count = j = entry_getlen(&ptr);
+		j = entry_getlen(&ptr);
+		a->a_numvals = j;
 		a->a_vals = bptr;
 
 		while (j) {
@@ -962,6 +965,7 @@ Entry *entry_dup_bv( Entry *e )
 		dst->a_desc = src->a_desc;
 		dst->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
 		dst->a_vals = bvl;
+		dst->a_numvals = src->a_numvals;
 		for ( i=0; src->a_vals[i].bv_val; i++ ) {
 			bvl->bv_len = src->a_vals[i].bv_len;
 			bvl->bv_val = ptr;

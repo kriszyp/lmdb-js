@@ -682,6 +682,7 @@ ldap_build_entry(
 			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); last++ )
 				/* just count vals */ ;
 		}
+		attr->a_numvals = last;
 
 		validate = attr->a_desc->ad_type->sat_syntax->ssyn_validate;
 		pretty = attr->a_desc->ad_type->sat_syntax->ssyn_pretty;

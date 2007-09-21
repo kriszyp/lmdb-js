@@ -31,6 +31,7 @@ slap_operational_subschemaSubentry( Backend *be )
 
 	a = attr_alloc( slap_schema.si_ad_subschemaSubentry );
 
+	a->a_numvals = 1;
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( a->a_vals, &frontendDB->be_schemadn );
 	a->a_vals[1].bv_len = 0;
@@ -55,6 +56,7 @@ slap_operational_entryDN( Entry *e )
 
 	a = attr_alloc( slap_schema.si_ad_entryDN );
 
+	a->a_numvals = 1;
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( &a->a_vals[ 0 ], &e->e_name );
 	BER_BVZERO( &a->a_vals[ 1 ] );
@@ -75,6 +77,7 @@ slap_operational_hasSubordinate( int hs )
 	val = hs ? slap_true_bv : slap_false_bv;
 
 	a = attr_alloc( slap_schema.si_ad_hasSubordinates );
+	a->a_numvals = 1;
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
 
 	ber_dupbv( &a->a_vals[0], &val );

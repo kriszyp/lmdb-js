@@ -1383,6 +1383,7 @@ syncrepl_accesslog_mods(
 			mod->sml_type = ad->ad_cname;
 			mod->sml_values = NULL;
 			mod->sml_nvalues = NULL;
+			mod->sml_numvals = 0;
 
 			*modtail = mod;
 			modtail = &mod->sml_next;
@@ -1392,6 +1393,7 @@ syncrepl_accesslog_mods(
 			bv.bv_len = vals[i].bv_len - ( bv.bv_val - vals[i].bv_val );
 			ber_dupbv( &bv2, &bv );
 			ber_bvarray_add( &mod->sml_values, &bv2 );
+			mod->sml_numvals++;
 		}
 	}
 	return modlist;
@@ -1724,6 +1726,7 @@ syncrepl_message_to_entry(
 		mod->sml_type = tmp.sml_type;
 		mod->sml_values = tmp.sml_values;
 		mod->sml_nvalues = NULL;
+		mod->sml_numvals = 0;	/* slap_mods_check will set this */
 
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -2337,6 +2340,7 @@ syncrepl_del_nonpresent(
 				mod1.sml_flags = 0;
 				mod1.sml_desc = slap_schema.si_ad_objectClass;
 				mod1.sml_type = mod1.sml_desc->ad_cname;
+				mod1.sml_numvals = 2;
 				mod1.sml_values = &gcbva[0];
 				mod1.sml_nvalues = NULL;
 				mod1.sml_next = &mod2;
@@ -2345,6 +2349,7 @@ syncrepl_del_nonpresent(
 				mod2.sml_flags = 0;
 				mod2.sml_desc = slap_schema.si_ad_structuralObjectClass;
 				mod2.sml_type = mod2.sml_desc->ad_cname;
+				mod1.sml_numvals = 1;
 				mod2.sml_values = &gcbva[1];
 				mod2.sml_nvalues = NULL;
 				mod2.sml_next = NULL;
@@ -2472,6 +2477,7 @@ syncrepl_add_glue(
 
 		a = attr_alloc( slap_schema.si_ad_objectClass );
 
+		a->a_numvals = 2;
 		a->a_vals = ch_calloc( 3, sizeof( struct berval ) );
 		ber_dupbv( &a->a_vals[0], &gcbva[0] );
 		ber_dupbv( &a->a_vals[1], &gcbva[1] );
@@ -2484,6 +2490,7 @@ syncrepl_add_glue(
 
 		a = attr_alloc( slap_schema.si_ad_structuralObjectClass );
 
+		a->a_numvals = 1;
 		a->a_vals = ch_calloc( 2, sizeof( struct berval ) );
 		ber_dupbv( &a->a_vals[0], &gcbva[1] );
 		ber_dupbv( &a->a_vals[1], &gcbva[2] );
@@ -2727,6 +2734,7 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 			mod->sml_flags = 0;
 			mod->sml_desc = old->a_desc;
 			mod->sml_type = mod->sml_desc->ad_cname;
+			mod->sml_numvals = no;
 			mod->sml_values = ch_malloc( ( no + 1 ) * sizeof(struct berval) );
 			if ( old->a_vals != old->a_nvals ) {
 				mod->sml_nvalues = ch_malloc( ( no + 1 ) * sizeof(struct berval) );
@@ -2758,6 +2766,7 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 			mod->sml_flags = 0;
 			mod->sml_desc = old->a_desc;
 			mod->sml_type = mod->sml_desc->ad_cname;
+			mod->sml_numvals = nn;
 			mod->sml_values = ch_malloc( ( nn + 1 ) * sizeof(struct berval) );
 			if ( old->a_vals != old->a_nvals ) {
 				mod->sml_nvalues = ch_malloc( ( nn + 1 ) * sizeof(struct berval) );
@@ -2937,6 +2946,7 @@ dn_callback(
 							mod->sml_flags = 0;
 							mod->sml_desc = old->a_desc;
 							mod->sml_type = mod->sml_desc->ad_cname;
+							mod->sml_numvals = 0;
 							mod->sml_values = NULL;
 							mod->sml_nvalues = NULL;
 							*modtail = mod;

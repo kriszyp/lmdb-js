@@ -153,6 +153,7 @@ attr_clean( Attribute *a )
 	a->a_comp_data = NULL;
 #endif
 	a->a_flags = 0;
+	a->a_numvals = 0;
 }
 
 void
@@ -213,12 +214,9 @@ attr_dup2( Attribute *tmp, Attribute *a )
 	if ( a->a_vals != NULL ) {
 		int	i;
 
-		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
-			/* EMPTY */ ;
-		}
-
-		tmp->a_vals = ch_malloc( (i + 1) * sizeof(struct berval) );
-		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
+		tmp->a_numvals = a->a_numvals;
+		tmp->a_vals = ch_malloc( (tmp->a_numvals + 1) * sizeof(struct berval) );
+		for ( i = 0; i < tmp->a_numvals; i++ ) {
 			ber_dupbv( &tmp->a_vals[i], &a->a_vals[i] );
 			if ( BER_BVISNULL( &tmp->a_vals[i] ) ) break;
 			/* FIXME: error? */
@@ -231,7 +229,7 @@ attr_dup2( Attribute *tmp, Attribute *a )
 		if ( a->a_nvals != a->a_vals ) {
 			int	j;
 
-			tmp->a_nvals = ch_malloc( (i + 1) * sizeof(struct berval) );
+			tmp->a_nvals = ch_malloc( (tmp->a_numvals + 1) * sizeof(struct berval) );
 			for ( j = 0; !BER_BVISNULL( &a->a_nvals[j] ); j++ ) {
 				assert( j < i );
 				ber_dupbv( &tmp->a_nvals[j], &a->a_nvals[j] );
@@ -283,6 +281,55 @@ attrs_dup( Attribute *a )
 	return anew;
 }
 
+int
+attr_valadd(
+	Attribute *a,
+	BerVarray vals,
+	BerVarray nvals,
+	int nn )
+{
+	int		i;
+	BerVarray	v2;
+
+	v2 = (BerVarray) SLAP_REALLOC( (char *) a->a_vals,
+		    (a->a_numvals + nn + 1) * sizeof(struct berval) );
+	if( v2 == NULL ) {
+		Debug(LDAP_DEBUG_TRACE,
+		  "attr_valadd: SLAP_REALLOC failed.\n", 0, 0, 0 );
+		return LBER_ERROR_MEMORY;
+	}
+	a->a_vals = v2;
+	if ( nvals ) {
+		v2 = (BerVarray) SLAP_REALLOC( (char *) a->a_nvals,
+				(a->a_numvals + nn + 1) * sizeof(struct berval) );
+		if( v2 == NULL ) {
+			Debug(LDAP_DEBUG_TRACE,
+			  "attr_valadd: SLAP_REALLOC failed.\n", 0, 0, 0 );
+			return LBER_ERROR_MEMORY;
+		}
+		a->a_nvals = v2;
+	} else {
+		a->a_nvals = a->a_vals;
+	}
+
+	v2 = &a->a_vals[a->a_numvals];
+	for ( i = 0 ; i < nn; i++ ) {
+		ber_dupbv( &v2[i], &vals[i] );
+		if ( BER_BVISNULL( &v2[i] ) ) break;
+	}
+	BER_BVZERO( &v2[i] );
+
+	if ( nvals ) {
+		v2 = &a->a_nvals[a->a_numvals];
+		for ( i = 0 ; i < nn; i++ ) {
+			ber_dupbv( &v2[i], &nvals[i] );
+			if ( BER_BVISNULL( &v2[i] ) ) break;
+		}
+		BER_BVZERO( &v2[i] );
+	}
+	a->a_numvals += i;
+	return 0;
+}
 
 /*
  * attr_merge - merge the given type and value with the list of
@@ -302,7 +349,7 @@ attr_merge(
 	BerVarray	vals,
 	BerVarray	nvals )
 {
-	int rc;
+	int i = 0;
 
 	Attribute	**a;
 
@@ -325,18 +372,10 @@ attr_merge(
 					|| ( (*a)->a_nvals != (*a)->a_vals ) ) ) );
 	}
 
-	rc = value_add( &(*a)->a_vals, vals );
-
-	if ( rc == LDAP_SUCCESS ) {
-		if ( nvals ) {
-			rc = value_add( &(*a)->a_nvals, nvals );
-			/* FIXME: what if rc != LDAP_SUCCESS ? */
-		} else {
-			(*a)->a_nvals = (*a)->a_vals;
-		}
+	if ( vals != NULL ) {
+		for ( ; !BER_BVISNULL( &vals[i] ); i++ ) ;
 	}
-
-	return rc;
+	return attr_valadd( *a, vals, nvals, i );
 }
 
 /*
@@ -415,7 +454,6 @@ attr_merge_one(
 	struct berval	*val,
 	struct berval	*nval )
 {
-	int rc;
 	Attribute	**a;
 
 	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
@@ -428,17 +466,7 @@ attr_merge_one(
 		*a = attr_alloc( desc );
 	}
 
-	rc = value_add_one( &(*a)->a_vals, val );
-
-	if ( rc == LDAP_SUCCESS ) {
-		if ( nval ) {
-			rc = value_add_one( &(*a)->a_nvals, nval );
-			/* FIXME: what if rc != LDAP_SUCCESS ? */
-		} else {
-			(*a)->a_nvals = (*a)->a_vals;
-		}
-	}
-	return rc;
+	return attr_valadd( *a, val, nval, 1 );
 }
 
 /*
