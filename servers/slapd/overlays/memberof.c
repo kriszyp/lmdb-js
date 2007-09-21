@@ -195,7 +195,7 @@ memberof_saved_member_get( Operation *op, void *keyp )
 	BerVarray	vals;
 	BerVarray	*key = (BerVarray *)keyp;
 
-	assert( op );
+	assert( op != NULL );
 
 	if ( op->o_threadctx == NULL ) {
 		vals = *key;
@@ -217,7 +217,7 @@ memberof_saved_member_set( Operation *op, void *keyp, BerVarray vals )
 	BerVarray	saved_vals = NULL;
 	BerVarray	*key = (BerVarray*)keyp;
 
-	assert( op );
+	assert( op != NULL );
 
 	if ( vals ) {
 		ber_bvarray_dup_x( &saved_vals, vals, NULL );
@@ -268,8 +268,8 @@ memberof_saveMember_cb( Operation *op, SlapReply *rs )
 		mc = (memberof_cookie_t *)op->o_callback->sc_private;
 		mc->foundit = 1;
 
-		assert( rs->sr_entry );
-		assert( rs->sr_entry->e_attrs );
+		assert( rs->sr_entry != NULL );
+		assert( rs->sr_entry->e_attrs != NULL );
 
 		a = attr_find( rs->sr_entry->e_attrs, mc->ad );
 
@@ -778,7 +778,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 			case LDAP_MOD_ADD:
 				/* NOTE: right now, the attributeType we use
 				 * for member must have a normalized value */
-				assert( ml->sml_nvalues );
+				assert( ml->sml_nvalues != NULL );
 	
 				for ( i = 0; !BER_BVISNULL( &ml->sml_nvalues[ i ] ); i++ ) {
 					int		rc;
