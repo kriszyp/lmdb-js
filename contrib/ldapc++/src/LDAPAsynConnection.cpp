@@ -53,7 +53,7 @@ void LDAPAsynConnection::init(const string& hostname, int port){
     LDAPURLDesc url;
     memset( &url, 0, sizeof(url));
 
-    url.lud_scheme = "ldap";
+    url.lud_scheme = strdup("ldap");
     url.lud_host = strdup(hostname.c_str());
     url.lud_port = port;
     url.lud_scope = LDAP_SCOPE_DEFAULT;

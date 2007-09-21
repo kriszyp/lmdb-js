@@ -3,8 +3,8 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-#include<iostream.h>
-#include<strstream>
+#include<iostream>
+#include<sstream>
 #include "LDAPConnection.h"
 #include "LDAPConstraints.h"
 #include "LDAPSearchReference.h"
@@ -25,13 +25,13 @@ int main(){
     cons->setServerControls(ctrls);
     LDAPConnection *lc=new LDAPConnection("localhost",9009);
     lc->setConstraints(cons);
-    cout << "----------------------doing bind...." <<  endl;
+    std::cout << "----------------------doing bind...." << std::endl;
     try{
         lc->bind("cn=Manager,o=Organisation,c=DE" , "secret",cons);
-        cout << lc->getHost() << endl;    
+        std::cout << lc->getHost() << std::endl;    
         bool result = lc->compare("cn=Manager,o=Organisation,c=DE", 
                 LDAPAttribute("cn","Manaer"));
-        cout << "Compare: " << result << endl;
+        std::cout << "Compare: " << result << std::endl;
     
         LDAPAttributeList* attrs=new LDAPAttributeList();
         StringList values;
@@ -52,17 +52,17 @@ int main(){
         if (entries != 0){
             LDAPEntry* entry = entries->getNext();
             if(entry != 0){
-                cout << *(entry) << endl;
+                std::cout << *(entry) << std::endl;
             }
             while(entry){
                 try{
                     entry = entries->getNext();
                     if(entry != 0){
-                        cout << *(entry) << endl;
+                        std::cout << *(entry) << std::endl;
                     }
                     delete entry;
                 }catch(LDAPReferralException e){
-                    cout << "Caught Referral" << endl;
+                    std::cout << "Caught Referral" << std::endl;
                 }
             }
         }
@@ -70,12 +70,12 @@ int main(){
         lc->unbind();
         delete lc;
    }catch (LDAPException e){
-        cout << "------------------------- caught Exception ---------"<< endl;
-        cout << e << endl;
+        std::cout << "-------------- caught Exception ---------"<< std::endl;
+        std::cout << e << std::endl;
     }
 
     /*
-    cout << "--------------------starting search" << endl;
+    std::cout << "--------------------starting search" << std::endl;
     LDAPAttributeList* attrs=new LDAPAttributeList();
     StringList values;
     values.add("top");
@@ -105,28 +105,28 @@ int main(){
                 case LDAP_RES_SEARCH_ENTRY :
                     res2= (LDAPSearchResult*)res;
                     entry=  res2->getEntry();
-                    cout << "Entry:            " << *entry << endl; 
+                    std::cout << "Entry:            " << *entry << std::endl; 
                     delete res;
                     res=q->getNext();
                 break;
                 case LDAP_RES_SEARCH_REFERENCE :
-                    cout << "Reference:         "  << endl;
+                    std::cout << "Reference:         "  << std::endl;
                     delete res;
                     res=q->getNext();
                 break;
                 default :
-                    cout << ( *(LDAPResult*) res) << endl;
+                    std::cout << ( *(LDAPResult*) res) << std::endl;
                     delete res;
-                    cout  << "-----------------search done" << endl;
+                    std::cout  << "-----------------search done" << std::endl;
                     cont=false;
                 break;
             }
         }
         delete q;
     }catch (LDAPException e){
-        cout << "----------------error during search" << endl;
+        std::cout << "----------------error during search" << std::endl;
         delete q;
-        cout << e << endl;
+        std::cout << e << std::endl;
     }
     lc->unbind();
     */
