@@ -604,23 +604,23 @@ enum {
 static ConfigDriver smbk5pwd_cf_func;
 
 /*
- * NOTE: uses OID arcs OLcfgOvAt:6 and OLcfgOvOc:6
+ * NOTE: uses OID arcs OLcfgCtAt:1 and OLcfgCtOc:1
  */
 
 static ConfigTable smbk5pwd_cfats[] = {
 	{ "smbk5pwd-enable", "arg",
 		2, 0, 0, ARG_MAGIC|PC_SMB_ENABLE, smbk5pwd_cf_func,
-		"( OLcfgOvAt:6.1 NAME 'olcSmbK5PwdEnable' "
+		"( OLcfgCtAt:1.1 NAME 'olcSmbK5PwdEnable' "
 		"DESC 'Modules to be enabled' "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "smbk5pwd-must-change", "time",
 		2, 2, 0, ARG_MAGIC|ARG_INT|PC_SMB_MUST_CHANGE, smbk5pwd_cf_func,
-		"( OLcfgOvAt:6.2 NAME 'olcSmbK5PwdMustChange' "
+		"( OLcfgCtAt:1.2 NAME 'olcSmbK5PwdMustChange' "
 		"DESC 'Credentials validity interval' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
         { "smbk5pwd-can-change", "time",
                 2, 2, 0, ARG_MAGIC|ARG_INT|PC_SMB_CAN_CHANGE, smbk5pwd_cf_func,
-                "( OLcfgOvAt:6.3 NAME 'olcSmbK5PwdCanChange' "
+                "( OLcfgCtAt:1.3 NAME 'olcSmbK5PwdCanChange' "
                 "DESC 'Credentials minimum validity interval' "
                 "SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 
@@ -628,7 +628,7 @@ static ConfigTable smbk5pwd_cfats[] = {
 };
 
 static ConfigOCs smbk5pwd_cfocs[] = {
-	{ "( OLcfgOvOc:6.1 "
+	{ "( OLcfgCtOc:1.1 "
 		"NAME 'olcSmbK5PwdConfig' "
 		"DESC 'smbk5pwd overlay configuration' "
 		"SUP olcOverlayConfig "
