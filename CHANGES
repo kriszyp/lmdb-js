@@ -14,6 +14,8 @@ OpenLDAP 2.3.39 Engineering
 	Fixed slapo-rwm modlist handling (ITS#5124)
 	Fixed liblber Windows x64 portability (ITS#5105)
 	Fixed libldap ppolicy control creation (ITS#5103)
+	Build Environment
+		Fixed termios macro check (ITS#4880)
 	Documentation
 		Added slapd-sql empty oc mapping workaround (ITS#4785)
 		Added max-depth/return-error to slapo-chain(5)
