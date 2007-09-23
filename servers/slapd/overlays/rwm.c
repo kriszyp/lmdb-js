@@ -844,8 +844,11 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 	}
 
 	if ( !BER_BVISNULL( &id ) ) {
+		char idNul = id.bv_val[id.bv_len];
+		id.bv_val[id.bv_len] = '\0';
 		rs->sr_err = dnPrettyNormal( NULL, &id, &op->o_req_dn,
 				&op->o_req_ndn, op->o_tmpmemctx );
+		id.bv_val[id.bv_len] = idNul;
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "Invalid DN";
 			return rs->sr_err;
@@ -864,27 +867,6 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, rc, "extendedDN massage error" );
 		return -1;
 	}
-
-	ber = ber_alloc_t( LBER_USE_DER );
-	if ( !ber ) {
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "No memory";
-		return rs->sr_err;
-	}
-	ber_printf( ber, "{" );
-	if ( !BER_BVISNULL( &id )) {
-		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_ID, 
-			&op->o_req_dn );
-	}
-	if ( !BER_BVISNULL( &pwold )) {
-		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, &pwold );
-	}
-	if ( !BER_BVISNULL( &pwnew )) {
-		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, &pwnew );
-	}
-	ber_printf( ber, "N}" );
-	ber_flatten( ber, &op->ore_reqdata );
-	ber_free( ber, 1 );
 
 	op->o_callback = &roc->cb;
 

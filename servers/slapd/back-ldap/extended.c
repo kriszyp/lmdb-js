@@ -125,11 +125,9 @@ ldap_back_exop_passwd(
 	assert( rs->sr_ctrls == NULL );
 
 	if ( BER_BVISNULL( &ndn ) && op->ore_reqdata != NULL ) {
-		/* NOTE: most of this code is mutuated
-		 * from slap_passwd_parse(); we can't call
-		 * that function since now the request data
-		 * has been destroyed by NULL-terminating
-		 * the bervals.  Luckily enough, we only need
+		/* NOTE: most of this code is mutated
+		 * from slap_passwd_parse();
+		 * But here we only need
 		 * the first berval... */
 
 		ber_tag_t tag;
@@ -154,7 +152,7 @@ ldap_back_exop_passwd(
 
 		tag = ber_peek_tag( ber, &len );
 		if ( tag == LDAP_TAG_EXOP_MODIFY_PASSWD_ID ) {
-			tag = ber_scanf( ber, "m", &tmpid );
+			tag = ber_get_stringbv( ber, &tmpid, LBER_BV_NOTERM );
 
 			if ( tag == LBER_ERROR ) {
 				return LDAP_PROTOCOL_ERROR;
@@ -162,8 +160,11 @@ ldap_back_exop_passwd(
 		}
 
 		if ( !BER_BVISEMPTY( &tmpid ) ) {
+			char idNull = tmpid.bv_val[tmpid.bv_len];
+			tmpid.bv_val[tmpid.bv_len] = '\0';
 			rs->sr_err = dnPrettyNormal( NULL, &tmpid, &dn,
 				&ndn, op->o_tmpmemctx );
+			tmpid.bv_val[tmpid.bv_len] = idNull;
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				/* should have been successfully parsed earlier! */
 				return rs->sr_err;
