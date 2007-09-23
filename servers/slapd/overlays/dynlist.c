@@ -248,8 +248,7 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 		}
 
 		/* test access to attribute */
-		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
-			/* just count */ ;
+		i = a->a_numvals;
 
 		vals = op->o_tmpalloc( ( i + 1 ) * sizeof( struct berval ), op->o_tmpmemctx );
 		if ( a->a_nvals != a->a_vals ) {

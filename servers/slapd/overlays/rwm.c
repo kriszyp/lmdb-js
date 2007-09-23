@@ -226,9 +226,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 		{
 			int		j, last;
 
-			for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[ last ] ); last++ )
-					/* count values */ ;
-			last--;
+			last = (*ap)->a_numvals - 1;
 			for ( j = 0; !BER_BVISNULL( &(*ap)->a_vals[ j ] ); j++ ) {
 				struct ldapmapping	*mapping = NULL;
 
@@ -245,6 +243,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 							(*ap)->a_vals[ j ] = (*ap)->a_vals[ last ];
 						}
 						BER_BVZERO( &(*ap)->a_vals[ last ] );
+						(*ap)->a_numvals--;
 						last--;
 						j--;
 					}
@@ -1054,9 +1053,8 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 					mapping->m_dst_ad->ad_type->sat_equality->smr_normalize )
 				{
 					int i = 0;
-					for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
-						/* just count */ ;
 
+					last = (*ap)->a_numvals;
 					if ( last )
 					{
 						(*ap)->a_nvals = ch_malloc( (last+1) * sizeof(struct berval) );
@@ -1105,8 +1103,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 		}
 
 		if ( last == -1 ) { /* not yet counted */ 
-			for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
-				/* just count */ ;
+			last = (*ap)->a_numvals;
 		}
 
 		if ( last == 0 ) {

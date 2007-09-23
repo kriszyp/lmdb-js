@@ -2554,11 +2554,9 @@ syncprov_db_open(
 
 		a = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
 		if ( a ) {
-			int i;
 			ber_bvarray_dup_x( &si->si_ctxcsn, a->a_vals, NULL );
-			for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ );
-			si->si_numcsns = i;
-			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, i, NULL );
+			si->si_numcsns = a->a_numvals;
+			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, a->a_numvals, NULL );
 		}
 		overlay_entry_release_ov( op, e, 0, on );
 		if ( si->si_ctxcsn ) {

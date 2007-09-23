@@ -676,13 +676,7 @@ ldap_build_entry(
 			 * values result filter
 			 */
 			attr->a_vals = (struct berval *)&slap_dummy_bv;
-			last = 0;
-
-		} else {
-			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); last++ )
-				/* just count vals */ ;
 		}
-		attr->a_numvals = last;
 
 		validate = attr->a_desc->ad_type->sat_syntax->ssyn_validate;
 		pretty = attr->a_desc->ad_type->sat_syntax->ssyn_pretty;
@@ -693,7 +687,7 @@ ldap_build_entry(
 			goto next_attr;
 		}
 
-		for ( i = 0; i < last; i++ ) {
+		for ( i = 0; !BER_BVISNULL( &attr->a_vals[i] ); i++ ) {
 			struct berval	pval;
 			int		rc;
 
@@ -725,6 +719,7 @@ ldap_build_entry(
 				attr->a_vals[i] = pval;
 			}
 		}
+		attr->a_numvals = last = i;
 
 		if ( last && attr->a_desc->ad_type->sat_equality &&
 				attr->a_desc->ad_type->sat_equality->smr_normalize )

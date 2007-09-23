@@ -562,9 +562,7 @@ do_syncrep1(
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 		rc = backend_operational( op, &rs );
 		if ( rc == LDAP_SUCCESS && a.a_vals ) {
-			int num;
-			for (i=0; !BER_BVISNULL( &a.a_vals[i] ); i++) ;
-			num = i;
+			int num = a.a_numvals;
 			/* check for differences */
 			if ( num != si->si_cookieState->cs_num ) {
 				changed = 1;

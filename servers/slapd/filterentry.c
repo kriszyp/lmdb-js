@@ -212,12 +212,7 @@ static int test_mra_filter(
 			if ( mra->ma_cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
 				num_attr_vals = 0;
 				if ( !a->a_comp_data ) {
-					for ( ;
-						!BER_BVISNULL( &a->a_vals[num_attr_vals] );
-						num_attr_vals++ )
-					{
-						/* empty */;
-					}
+					num_attr_vals = a->a_numvals;
 					if ( num_attr_vals <= 0 ) {
 						/* no attribute value */
 						return LDAP_INAPPROPRIATE_MATCHING;

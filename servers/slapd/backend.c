@@ -1648,9 +1648,7 @@ fe_acl_attribute(
 				goto freeit;
 			}
 
-			for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
-				;
-			
+			i = a->a_numvals;
 			v = op->o_tmpalloc( sizeof(struct berval) * ( i + 1 ),
 				op->o_tmpmemctx );
 			for ( i = 0, j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )

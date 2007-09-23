@@ -1365,11 +1365,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		/* count all the vals */
 		i = 0;
 		for ( a=e2->e_attrs; a; a=a->a_next ) {
-			if ( a->a_vals ) {
-				for (b=a->a_vals; !BER_BVISNULL( b ); b++) {
-					i++;
-				}
-			}
+			i += a->a_numvals;
 		}
 		vals = ch_malloc( (i+1) * sizeof( struct berval ));
 		i = 0;
@@ -1396,9 +1392,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		i = 0;
 		for ( m = op->orm_modlist; m; m = m->sml_next ) {
 			if ( m->sml_values ) {
-				for ( b = m->sml_values; !BER_BVISNULL( b ); b++ ) {
-					i++;
-				}
+				i += m->sml_numvals;
 			} else if ( m->sml_op == LDAP_MOD_DELETE ||
 				m->sml_op == LDAP_MOD_REPLACE )
 			{
@@ -1494,9 +1488,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			i = 0;
 			for ( a = old->e_attrs; a != NULL; a = a->a_next ) {
 				if ( a->a_vals && a->a_flags ) {
-					for ( b = a->a_vals; !BER_BVISNULL( b ); b++ ) {
-						i++;
-					}
+					i += a->a_numvals;
 				}
 			}
 			vals = ch_malloc( (i + 1) * sizeof( struct berval ) );

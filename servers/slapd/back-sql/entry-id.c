@@ -617,8 +617,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		BerVarray	tmp;
 
 		if ( attr->a_vals != NULL ) {
-			for ( ; !BER_BVISNULL( &attr->a_vals[ oldcount ] ); oldcount++ )
-				/* just count */ ;
+			oldcount = attr->a_numvals;
 		}
 
 		tmp = ch_realloc( attr->a_vals, ( oldcount + count + 1 ) * sizeof( struct berval ) );
@@ -639,6 +638,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
+		attr->a_numvals += count;
 
 	} else {
 		append = 1;
