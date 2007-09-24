@@ -3380,8 +3380,15 @@ certificateExactNormalize(
 	 * so that we can validate certs with serial longer
 	 * than sizeof(ber_int_t) */
 	tag = ber_peek_tag( ber, &len );	/* serial */
+
+	/* Just spit out colon-separated hex octets, like OpenSSL does.
+	 * Don't try to make special cases for multi-precision math
+	 * support here, normalized values need to be canonical and
+	 * consistent from machine to machine.
+	 */
 	if ( len > sizeof(ber_int_t) ) {
 		unsigned char *ptr;
+		char *sptr;
 		
 		tag = ber_skip_tag( ber, &len );
 		ptr = (unsigned char *)ber->ber_ptr;
@@ -3392,40 +3399,17 @@ certificateExactNormalize(
 			len--;
 		}
 
-#if defined(USE_MP_BIGNUM)
-		/* TODO */
-
-#elif defined(USE_MP_GMP)
-		/* TODO */
-		/* hint: use mpz_import(), mpz_get_str() */
-
-#elif defined(USE_MP_LONG_LONG)
-		if ( len <= sizeof( unsigned long long ) ) {
-			unsigned long long 	sn = 0;
-			int			i;
-
-			sn = ptr[0];
-
-			for ( i = 1; i < len; i++ ) {
-				sn <<= 8;
-				sn += ptr[i];
-			}
-
-			seriallen = snprintf( serialbuf, sizeof(serialbuf), "%llu", sn );
-
-		} else {
-			/* do not accept serialNumber that requires
-			 * more than long long */
-			rc = LDAP_INVALID_SYNTAX;
-			goto done;
+		seriallen = len * 3;
+		if ( seriallen > sizeof( serialbuf ))
+			serial = slap_sl_malloc( seriallen, ctx );
+		sptr = serial;
+		sprintf( sptr, "%02x", ptr[0] );
+		sptr += 2;
+		for ( i = 1; i<len; i++ ) {
+			sprintf( sptr, ":%02x", ptr[i] );
+			sptr += 3;
 		}
-
-#else
-		/* do not accept serialNumber that requires
-		 * more than long */
-		rc = LDAP_INVALID_SYNTAX;
-		goto done;
-#endif
+		seriallen--;
 
 	} else {
 		tag = ber_get_int( ber, &i );	/* serial */
