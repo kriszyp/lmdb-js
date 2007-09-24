@@ -479,6 +479,8 @@ lookup. The default is 2. For example, with the default values, a search
 using this filter "cn=*abcdefgh*" would generate index lookups for
 "abcd", "cdef", and "efgh".
 
+Note: Indexing support depends on the particular backend in use.
+
 .TP
 .B olcLocalSSF: <SSF>
 Specifies the Security Strength Factor (SSF) to be given local LDAP sessions,
@@ -615,42 +617,6 @@ provides a two character salt and "$1$%.8s" tells some
 versions of crypt(3) to use an MD5 algorithm and provides
 8 random characters of salt.  The default is "%s", which
 provides 31 characters of salt.
-.TP
-.B olcPasswordHash: <hash> [<hash>...]
-This option configures one or more hashes to be used in generation of user
-passwords stored in the userPassword attribute during processing of
-LDAP Password Modify Extended Operations (RFC 3062).
-The <hash> must be one of
-.BR {SSHA} ,
-.BR {SHA} ,
-.BR {SMD5} ,
-.BR {MD5} ,
-.BR {CRYPT} ,
-and
-.BR {CLEARTEXT} .
-The default is
-.BR {SSHA} .
-
-.B {SHA}
-and
-.B {SSHA}
-use the SHA-1 algorithm (FIPS 160-1), the latter with a seed.
-
-.B {MD5}
-and
-.B {SMD5}
-use the MD5 algorithm (RFC 1321), the latter with a seed.
-
-.B {CRYPT}
-uses the
-.BR crypt (3).
-
-.B {CLEARTEXT}
-indicates that the new password should be
-added to userPassword as clear text.
-
-Note that this option does not alter the normal user applications
-handling of userPassword during LDAP Add, Modify, or other LDAP operations.
 .TP
 .B olcPidFile: <filename>
 The ( absolute ) name of a file that will hold the 
@@ -1079,6 +1045,43 @@ non-base search request with an empty base DN.
 Base scoped search requests with an empty base DN are not affected.
 This setting is only allowed in the frontend entry.
 .TP
+.B olcPasswordHash: <hash> [<hash>...]
+This option configures one or more hashes to be used in generation of user
+passwords stored in the userPassword attribute during processing of
+LDAP Password Modify Extended Operations (RFC 3062).
+The <hash> must be one of
+.BR {SSHA} ,
+.BR {SHA} ,
+.BR {SMD5} ,
+.BR {MD5} ,
+.BR {CRYPT} ,
+and
+.BR {CLEARTEXT} .
+The default is
+.BR {SSHA} .
+
+.B {SHA}
+and
+.B {SSHA}
+use the SHA-1 algorithm (FIPS 160-1), the latter with a seed.
+
+.B {MD5}
+and
+.B {SMD5}
+use the MD5 algorithm (RFC 1321), the latter with a seed.
+
+.B {CRYPT}
+uses the
+.BR crypt (3).
+
+.B {CLEARTEXT}
+indicates that the new password should be
+added to userPassword as clear text.
+
+Note that this option does not alter the normal user applications
+handling of userPassword during LDAP Add, Modify, or other LDAP operations.
+This setting is only allowed in the frontend entry.
+.TP
 .B olcReadOnly: TRUE | FALSE
 This option puts the database into "read-only" mode.  Any attempts to 
 modify the database will return an "unwilling to perform" error.  By
@@ -1188,6 +1191,15 @@ Extra args can be added in the same value or as additional values.
 See
 .BR olcLimits
 for an explanation of the different flags.
+.TP
+.B olcSortVals <attr> [...]
+Specify a list of multi-valued attributes whose values will always
+be maintained in sorted order. Using this option will allow Modify,
+Compare, and filter evaluations on these attributes to be performed
+more efficiently. The resulting sort order depends on the
+attributes' syntax and matching rules and may not correspond to
+lexical order or any other recognizable order.
+This setting is only allowed in the frontend entry.
 .TP
 .B olcTimeLimit: {<integer>|unlimited}
 .TP
