@@ -384,7 +384,7 @@ str2entry2( char *s, int checkvals )
 
 			if ( rc ) {
 				Debug( LDAP_DEBUG_ANY,
-			   		"<= str2entry NULL (smr_normalize %d)\n", rc, 0, 0 );
+			   		"<= str2entry NULL (smr_normalize %s %d)\n", ad->ad_cname.bv_val, rc, 0 );
 				goto fail;
 			}
 		}
