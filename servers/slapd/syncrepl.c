@@ -2567,6 +2567,7 @@ syncrepl_updateCookie(
 	mod[0].sml_type = mod[0].sml_desc->ad_cname;
 	mod[0].sml_values = NULL;
 	mod[0].sml_nvalues = NULL;
+	mod[0].sml_numvals = 0;
 	mod[0].sml_next = &mod[1];
 
 	mod[1].sml_op = LDAP_MOD_ADD;
@@ -2574,6 +2575,7 @@ syncrepl_updateCookie(
 	mod[1].sml_type = mod[0].sml_desc->ad_cname;
 	mod[1].sml_values = NULL;
 	mod[1].sml_nvalues = NULL;
+	mod[1].sml_numvals = 0;
 	mod[1].sml_next = NULL;
 
 	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
@@ -2589,8 +2591,10 @@ syncrepl_updateCookie(
 				si->si_cookieState->cs_vals[j].bv_val, len ) > 0 ) {
 				ber_bvarray_add_x( &mod[0].sml_values,
 					&si->si_cookieState->cs_vals[j], op->o_tmpmemctx );
+				mod[0].sml_numvals++;
 				ber_bvarray_add_x( &mod[1].sml_values,
 					&syncCookie->ctxcsn[i], op->o_tmpmemctx );
+				mod[1].sml_numvals++;
 				if ( BER_BVISNULL( &first ))
 					first = syncCookie->ctxcsn[i];
 			}
@@ -2600,6 +2604,7 @@ syncrepl_updateCookie(
 		if ( j == si->si_cookieState->cs_num ) {
 			ber_bvarray_add_x( &mod[1].sml_values,
 				&syncCookie->ctxcsn[i], op->o_tmpmemctx );
+			mod[1].sml_numvals++;
 			if ( BER_BVISNULL( &first ))
 				first = syncCookie->ctxcsn[i];
 		}

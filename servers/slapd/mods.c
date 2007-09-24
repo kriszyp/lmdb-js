@@ -56,11 +56,21 @@ modify_add_values(
 		assert( 0 );
 	}
 
+	/* FIXME: Catch old code that doesn't set sm_numvals.
+	 */
+	if ( !BER_BVISNULL( &mod->sm_values[mod->sm_numvals] )) {
+		int i;
+		for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ );
+		assert( mod->sm_numvals == i );
+	}
+
 	/* check if values to add exist in attribute */
 	a = attr_find( e->e_attrs, mod->sm_desc );
 	if ( a != NULL ) {
-		int		rc, i, j, p;
 		MatchingRule	*mr;
+		struct berval *cvals;
+		int		rc, i, j, p;
+		unsigned flags;
 
 		mr = mod->sm_desc->ad_type->sat_equality;
 		if( mr == NULL || !mr->smr_match ) {
@@ -74,10 +84,7 @@ modify_add_values(
 		}
 
 		if ( permissive ) {
-			for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ ) {
-				/* EMPTY -- just counting 'em */;
-			}
-
+			i = mod->sm_numvals;
 			pmod.sm_values = (BerVarray)ch_malloc(
 				(i + 1) * sizeof( struct berval ));
 			if ( pmod.sm_nvalues != NULL ) {
@@ -92,39 +99,32 @@ modify_add_values(
 		 * server (whether from LDAP or from the underlying
 		 * database).
 		 */
-		for ( p = i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ ) {
-			int	match;
+		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX;
+		if ( mod->sm_nvalues ) {
+			flags |= SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH;
+			cvals = mod->sm_nvalues;
+		} else {
+			cvals = mod->sm_values;
+		}
+		for ( p = i = 0; i < mod->sm_numvals; i++ ) {
+			unsigned	slot;
 
-			assert( a->a_vals[0].bv_val != NULL );
-			for ( j = 0; !BER_BVISNULL( &a->a_vals[j] ); j++ ) {
-				if ( mod->sm_nvalues ) {
-					rc = ordered_value_match( &match, mod->sm_desc, mr,
-						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
-							| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-							| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-						&a->a_nvals[j], &mod->sm_nvalues[i], text );
-				} else {
-					rc = ordered_value_match( &match, mod->sm_desc, mr,
-						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-						&a->a_vals[j], &mod->sm_values[i], text );
-				}
-
-				if ( rc == LDAP_SUCCESS && match == 0 ) {
+			rc = attr_valfind( a, flags, &cvals[i], &slot, NULL );
+			if ( rc == LDAP_SUCCESS ) {
+				if ( !permissive ) {
 					/* value already exists */
-					if ( permissive ) break;
-
 					*text = textbuf;
 					snprintf( textbuf, textlen,
 						"modify/%s: %s: value #%d already exists",
 						op, mod->sm_desc->ad_cname.bv_val, i );
 					return LDAP_TYPE_OR_VALUE_EXISTS;
-
-				} else if ( rc != LDAP_SUCCESS ) {
-					return rc;
 				}
+			} else if ( rc != LDAP_NO_SUCH_ATTRIBUTE ) {
+				return rc;
 			}
 
-			if ( permissive && match != 0 ) {
+			if ( permissive && rc ) {
 				if ( pmod.sm_nvalues ) {
 					pmod.sm_nvalues[p] = mod->sm_nvalues[i];
 				}
@@ -164,8 +164,8 @@ modify_add_values(
 		/* this should return result of attr_merge */
 		*text = textbuf;
 		snprintf( textbuf, textlen,
-			"modify/%s: %s: merge error",
-			op, mod->sm_desc->ad_cname.bv_val );
+			"modify/%s: %s: merge error (%d)",
+			op, mod->sm_desc->ad_cname.bv_val, rc );
 		return LDAP_OTHER;
 	}
 
@@ -192,11 +192,13 @@ modify_delete_vindex(
 	char *textbuf, size_t textlen,
 	int *idx )
 {
-	int		i, j, k, rc = LDAP_SUCCESS;
 	Attribute	*a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
+	struct berval *cvals;
+	int		*id2 = NULL;
+	int		i, j, rc;
+	unsigned flags;
 	char		dummy = '\0';
-	int		match = 0;
 
 	/*
 	 * If permissive is set, then the non-existence of an 
@@ -219,6 +221,17 @@ modify_delete_vindex(
 		return rc;
 	}
 
+	/* FIXME: Catch old code that doesn't set sm_numvals.
+	 */
+	if ( !BER_BVISNULL( &mod->sm_values[mod->sm_numvals] )) {
+		for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ );
+		assert( mod->sm_numvals == i );
+	}
+	if ( !idx ) {
+		id2 = ch_malloc( mod->sm_numvals * sizeof( int ));
+		idx = id2;
+	}
+
 	if( mr == NULL || !mr->smr_match ) {
 		/* disallow specific attributes from being deleted if
 			no equality rule */
@@ -226,102 +239,90 @@ modify_delete_vindex(
 		snprintf( textbuf, textlen,
 			"modify/delete: %s: no equality matching rule",
 			mod->sm_desc->ad_cname.bv_val );
-		return LDAP_INAPPROPRIATE_MATCHING;
+		rc = LDAP_INAPPROPRIATE_MATCHING;
+		goto return_result;
 	}
 
 	/* delete specific values - find the attribute first */
 	if ( (a = attr_find( e->e_attrs, mod->sm_desc )) == NULL ) {
 		if( permissive ) {
-			return LDAP_SUCCESS;
+			rc = LDAP_SUCCESS;
+			goto return_result;
 		}
 		*text = textbuf;
 		snprintf( textbuf, textlen,
 			"modify/delete: %s: no such attribute",
 			mod->sm_desc->ad_cname.bv_val );
-		return LDAP_NO_SUCH_ATTRIBUTE;
+		rc = LDAP_NO_SUCH_ATTRIBUTE;
+		goto return_result;
 	}
 
+	if ( mod->sm_nvalues ) {
+		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
+			| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+			| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH;
+		cvals = mod->sm_nvalues;
+	} else {
+		flags = SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX;
+		cvals = mod->sm_values;
+	}
+
+	/* Locate values to delete */
 	for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ ) {
-		int	found = 0;
-		for ( j = 0; !BER_BVISNULL( &a->a_vals[j] ); j++ ) {
-			/* skip already deleted values */
-			if ( a->a_vals[j].bv_val == &dummy ) {
+		unsigned sort;
+		rc = attr_valfind( a, flags, &cvals[i], &sort, NULL );
+		if ( rc == LDAP_SUCCESS ) {
+			idx[i] = sort;
+		} else if ( rc == LDAP_NO_SUCH_ATTRIBUTE ) {
+			if ( permissive ) {
+				idx[i] = -1;
 				continue;
 			}
-
-			if( mod->sm_nvalues ) {
-				assert( a->a_nvals != NULL );
-				rc = ordered_value_match( &match, a->a_desc, mr,
-					SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
-						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-					&a->a_nvals[j], &mod->sm_nvalues[i], text );
-			} else {
-#if 0
-				assert( a->a_nvals == NULL );
-#endif
-				rc = ordered_value_match( &match, a->a_desc, mr,
-					SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-					&a->a_vals[j], &mod->sm_values[i], text );
-			}
-
-			if ( rc != LDAP_SUCCESS ) {
-				*text = textbuf;
-				snprintf( textbuf, textlen,
-					"%s: matching rule failed",
-					mod->sm_desc->ad_cname.bv_val );
-				break;
-			}
-
-			if ( match != 0 ) {
-				continue;
-			}
-
-			found = 1;
-
-			if ( idx )
-				idx[i] = j;
-
-			/* delete value and mark it as dummy */
-			free( a->a_vals[j].bv_val );
-			a->a_vals[j].bv_val = &dummy;
-			if( a->a_nvals != a->a_vals ) {
-				free( a->a_nvals[j].bv_val );
-				a->a_nvals[j].bv_val = &dummy;
-			}
-			a->a_numvals--;
-
-			break;
-		}
-
-		if ( found == 0 ) {
 			*text = textbuf;
 			snprintf( textbuf, textlen,
 				"modify/delete: %s: no such value",
 				mod->sm_desc->ad_cname.bv_val );
-			rc = LDAP_NO_SUCH_ATTRIBUTE;
-			if ( i > 0 ) {
-				break;
-			} else {
-				goto return_results;
-			}
+			goto return_result;
+		} else {
+			*text = textbuf;
+			snprintf( textbuf, textlen,
+				"modify/delete: %s: matching rule failed",
+				mod->sm_desc->ad_cname.bv_val );
+			goto return_result;
 		}
 	}
 
+	/* Delete the values */
+	for ( i = 0; i < mod->sm_numvals; i++ ) {
+		/* Skip permissive values that weren't found */
+		if ( idx[i] < 0 )
+			continue;
+		/* Skip duplicate delete specs */
+		if ( a->a_vals[idx[i]].bv_val == &dummy )
+			continue;
+		/* delete value and mark it as gone */
+		free( a->a_vals[idx[i]].bv_val );
+		a->a_vals[idx[i]].bv_val = &dummy;
+		if( a->a_nvals != a->a_vals ) {
+			free( a->a_nvals[idx[i]].bv_val );
+			a->a_nvals[idx[i]].bv_val = &dummy;
+		}
+		a->a_numvals--;
+	}
+
 	/* compact array skipping dummies */
-	for ( k = 0, j = 0; !BER_BVISNULL( &a->a_vals[k] ); k++ ) {
+	for ( i = 0, j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
 		/* skip dummies */
-		if( a->a_vals[k].bv_val == &dummy ) {
-			assert( a->a_nvals[k].bv_val == &dummy );
+		if( a->a_vals[i].bv_val == &dummy ) {
+			assert( a->a_nvals[i].bv_val == &dummy );
 			continue;
 		}
-		if ( j != k ) {
-			a->a_vals[ j ] = a->a_vals[ k ];
+		if ( j != i ) {
+			a->a_vals[ j ] = a->a_vals[ i ];
 			if (a->a_nvals != a->a_vals) {
-				a->a_nvals[ j ] = a->a_nvals[ k ];
+				a->a_nvals[ j ] = a->a_nvals[ i ];
 			}
 		}
-
 		j++;
 	}
 
@@ -331,8 +332,9 @@ modify_delete_vindex(
 	}
 
 	/* if no values remain, delete the entire attribute */
-	if ( BER_BVISNULL( &a->a_vals[0] ) ) {
+	if ( !a->a_numvals ) {
 		if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
+			/* Can never happen */
 			*text = textbuf;
 			snprintf( textbuf, textlen,
 				"modify/delete: %s: no such attribute",
@@ -343,9 +345,9 @@ modify_delete_vindex(
 		/* For an ordered attribute, renumber the value indices */
 		ordered_value_sort( a, 1 );
 	}
-
-return_results:;
-
+return_result:
+	if ( id2 )
+		ch_free( id2 );
 	return rc;
 }
 

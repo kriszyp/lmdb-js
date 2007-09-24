@@ -1287,6 +1287,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
 
+	mod.sml_numvals = si->si_numcsns;
 	mod.sml_values = si->si_ctxcsn;
 	mod.sml_nvalues = NULL;
 	mod.sml_desc = slap_schema.si_ad_contextCSN;

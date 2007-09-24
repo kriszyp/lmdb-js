@@ -690,9 +690,18 @@ struct AttributeType {
 
 #define SLAP_AT_MANAGEABLE		0x0800U	/* no-user-mod can be by-passed */
 
+/* Note: ORDERED values have an ordering specifically set by the
+ * user, denoted by the {x} ordering prefix on the values.
+ *
+ * SORTED values are simply sorted by memcmp. SORTED values can
+ * be efficiently located by binary search. ORDERED values have no
+ * such advantage. An attribute cannot have both properties.
+ */
 #define	SLAP_AT_ORDERED_VAL		0x0001U /* values are ordered */
 #define	SLAP_AT_ORDERED_SIB		0x0002U /* siblings are ordered */
 #define	SLAP_AT_ORDERED			0x0003U /* value has order index */
+
+#define	SLAP_AT_SORTED_VAL		0x0010U	/* values should be sorted */
 
 #define	SLAP_AT_HARDCODE		0x10000U	/* hardcoded schema */
 #define	SLAP_AT_DELETED			0x20000U
@@ -1109,22 +1118,23 @@ struct ValuesReturnFilter {
 
 /*
  * represents an attribute (description + values)
+ * desc, vals, nvals, numvals fields must align with Modification
  */
 struct Attribute {
 	AttributeDescription	*a_desc;
 	BerVarray		a_vals;		/* preserved values */
 	BerVarray		a_nvals;	/* normalized values */
-#ifdef LDAP_COMP_MATCH
-	ComponentData		*a_comp_data;	/* component values */
-#endif
-	Attribute		*a_next;
 	unsigned		a_numvals;	/* number of vals */
 	unsigned		a_flags;
 #define SLAP_ATTR_IXADD			0x1U
 #define SLAP_ATTR_IXDEL			0x2U
 #define SLAP_ATTR_DONT_FREE_DATA	0x4U
 #define SLAP_ATTR_DONT_FREE_VALS	0x8U
-#define	SLAP_ATTR_SORTED_VALS		0x10U
+#define	SLAP_ATTR_SORTED_VALS		0x10U	/* values are sorted */
+	Attribute		*a_next;
+#ifdef LDAP_COMP_MATCH
+	ComponentData		*a_comp_data;	/* component values */
+#endif
 };
 
 
@@ -1171,8 +1181,13 @@ struct Entry {
 
 /*
  * A list of LDAPMods
+ * desc, values, nvalues, numvals must align with Attribute
  */
 struct Modification {
+	AttributeDescription *sm_desc;
+	BerVarray sm_values;
+	BerVarray sm_nvalues;
+	unsigned sm_numvals;
 	short sm_op;
 	short sm_flags;
 /* Set for internal mods, will bypass ACL checks. Only needed when
@@ -1180,12 +1195,7 @@ struct Modification {
  */
 #define	SLAP_MOD_INTERNAL	0x01
 #define	SLAP_MOD_MANAGING	0x02
-
-	AttributeDescription *sm_desc;
 	struct berval sm_type;
-	BerVarray sm_values;
-	BerVarray sm_nvalues;
-	unsigned sm_numvals;
 };
 
 struct Modifications {

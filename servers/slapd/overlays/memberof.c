@@ -416,6 +416,7 @@ memberof_value_modify(
 	op2.o_ndn = op->o_bd->be_rootndn;
 
 	ml = &mod[ 0 ];
+	ml->sml_numvals = 1;
 	ml->sml_values = &values[ 0 ];
 	ml->sml_values[ 0 ] = mo->mo_dn;
 	BER_BVZERO( &ml->sml_values[ 1 ] );
@@ -430,6 +431,7 @@ memberof_value_modify(
 	op2.orm_modlist = ml;
 
 	ml = &mod[ 1 ];
+	ml->sml_numvals = 1;
 	ml->sml_values = &values[ 2 ];
 	BER_BVZERO( &ml->sml_values[ 1 ] );
 	ml->sml_nvalues = &nvalues[ 2 ];
@@ -812,6 +814,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 						BER_BVZERO( &ml->sml_values[ i ] );
 						ber_memfree( ml->sml_nvalues[ i ].bv_val );
 						BER_BVZERO( &ml->sml_nvalues[ i ] );
+						ml->sml_numvals--;
 						if ( j - i == 1 ) {
 							break;
 						}
@@ -909,6 +912,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 								ber_memfree( ml->sml_nvalues[ i ].bv_val );
 								BER_BVZERO( &ml->sml_nvalues[ i ] );
 							}
+							ml->sml_numvals--;
 							if ( j - i == 1 ) {
 								break;
 							}
@@ -1019,6 +1023,7 @@ memberof_op_modify( Operation *op, SlapReply *rs )
 							ber_memfree( ml->sml_nvalues[ i ].bv_val );
 							BER_BVZERO( &ml->sml_nvalues[ i ] );
 						}
+						ml->sml_numvals--;
 						if ( j - i == 1 ) {
 							break;
 						}

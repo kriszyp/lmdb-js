@@ -640,77 +640,54 @@ int slap_mods_check(
 			/* check for duplicates, but ignore Deletes.
 			 */
 			if( nvals > 1 && ml->sml_op != LDAP_MOD_DELETE ) {
-#define	SLAP_MODS_CHECK_QUICKSORT
-#ifndef SLAP_MODS_CHECK_QUICKSORT
-				int		i, j, rc, match;
-				MatchingRule *mr = ad->ad_type->sat_equality;
-
-				for ( i = 1; i < nvals ; i++ ) {
-					/* test asserted values against themselves */
-					for( j = 0; j < i; j++ ) {
-						rc = ordered_value_match( &match, ml->sml_desc, mr,
-							SLAP_MR_EQUALITY
-								| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
-								| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-								| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-							ml->sml_nvalues
-								? &ml->sml_nvalues[i]
-								: &ml->sml_values[i],
-							ml->sml_nvalues
-								? &ml->sml_nvalues[j]
-								: &ml->sml_values[j],
-							text );
-						if ( rc == LDAP_SUCCESS && match == 0 ) {
-							/* value exists already */
-							snprintf( textbuf, textlen,
-								"%s: value #%d provided more than once",
-								ml->sml_desc->ad_cname.bv_val, j );
-							*text = textbuf;
-							return LDAP_TYPE_OR_VALUE_EXISTS;
-
-						} else if ( rc != LDAP_SUCCESS ) {
-							return rc;
-						}
-					}
+				int i;
+				rc = slap_sort_vals( ml, text, &i, ctx );
+				if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+					/* value exists already */
+					snprintf( textbuf, textlen,
+						"%s: value #%d provided more than once",
+						ml->sml_desc->ad_cname.bv_val, i );
+					*text = textbuf;
 				}
-#else	/* SLAP_MODS_CHECK_QUICKSORT */
+				if ( rc )
+					return rc;
+			}
+		} else {
+			ml->sml_numvals = 0;
+		}
+	}
 
-/* Quicksort + Insertion sort for small arrays */
+	return LDAP_SUCCESS;
+}
+
+/* Sort a set of values. An (Attribute *) may be used interchangeably here
+ * instead of a (Modifications *) structure.
+ *
+ * Uses Quicksort + Insertion sort for small arrays
+ */
+
+int
+slap_sort_vals(
+	Modifications *ml,
+	const char **text,
+	int *dup,
+	void *ctx )
+{
+	AttributeDescription *ad;
+	MatchingRule *mr;
+	int istack[sizeof(int)*16];
+	int i, j, k, l, ir, jstack, match, *ix, itmp, nvals, rc;
+	int is_norm;
+	struct berval a, *cv;
 
 #define SMALL	8
 #define	SWAP(a,b,tmp)	tmp=(a);(a)=(b);(b)=tmp
 #define	COMP(a,b)	match=0; rc = ordered_value_match( &match, \
-						ml->sml_desc, mr, SLAP_MR_EQUALITY \
+						ad, mr, SLAP_MR_EQUALITY \
 								| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX \
 								| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH \
 								| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH, \
 								&(a), &(b), text );
-
-					MatchingRule *mr = ad->ad_type->sat_equality;
-					int istack[sizeof(int)*16];
-					int i, j, k, l, ir, jstack, match, *ix, itmp;
-					struct berval a, *cv;
-
-/* If PRESERVE_ORDER is defined only the index array is sorted; the
- * actual values are left in their incoming order. Otherwise, the
- * only reason to keep the index array is to identify the offending
- * value when duplicates are found.
- */
-#define	PRESERVE_ORDER
-#ifndef PRESERVE_ORDER
-					struct berval va, *v, *nv, bvtmp;
-
-#define	IX(x)	x
-#define	EXCH(x,y)	SWAP(ix[x],ix[y],itmp); SWAP(cv[x],cv[y],bvtmp); \
-	if (nv) {SWAP(v[x],v[y],bvtmp);}
-#define	SETA(x)	itmp = ix[x]; a = cv[x]; if (nv) va=v[x]
-#define	GETA(x)	ix[x] = itmp; cv[x] = a; if (nv) v[x]=va
-#define	SET(x,y)	ix[x] = ix[y]; cv[x] = cv[y]; if (nv) v[x]=v[y]
-
-					v = ml->sml_values;
-					nv = ml->sml_nvalues;
-
-#else	/* PRESERVE_ORDER */
 
 #define	IX(x)	ix[x]
 #define	EXCH(x,y)	SWAP(ix[x],ix[y],itmp)
@@ -718,122 +695,145 @@ int slap_mods_check(
 #define	GETA(x)	ix[x] = itmp;
 #define	SET(x,y)	ix[x] = ix[y]
 
-#endif	/* PRESERVE_ORDER */
+	ad = ml->sml_desc;
+	nvals = ml->sml_numvals;
 
-					cv = ml->sml_nvalues ? ml->sml_nvalues : ml->sml_values;
-					if ( ad == slap_schema.si_ad_objectClass )
-						mr = NULL;	/* shortcut matching */
+	/* For Modifications, sml_nvalues is NULL if normalization wasn't needed.
+	 * For Attributes, sml_nvalues == sml_values when normalization isn't needed.
+	 */
+	if ( ml->sml_nvalues && ml->sml_nvalues != ml->sml_values ) {
+		cv = ml->sml_nvalues;
+		is_norm = 1;
+	} else {
+		cv = ml->sml_values;
+		is_norm = 0;
+	}
 
-					/* record indices to preserve input ordering */
-					ix = slap_sl_malloc( nvals * sizeof(int), ctx );
-					for (i=0; i<nvals; i++) ix[i] = i;
+	if ( ad == slap_schema.si_ad_objectClass )
+		mr = NULL;	/* shortcut matching */
+	else
+		mr = ad->ad_type->sat_equality;
 
-					ir = nvals-1;
-					l = 0;
-					jstack = 0;
+	/* record indices to preserve input ordering */
+	ix = slap_sl_malloc( nvals * sizeof(int), ctx );
+	for (i=0; i<nvals; i++) ix[i] = i;
 
-					for(;;) {
-						if (ir - l < SMALL) {	/* Insertion sort */
-							match=1;
-							for (j=l+1;j<=ir;j++) {
-								SETA(j);
-								for (i=j-1;i>=0;i--) {
-									COMP(cv[IX(i)], a);
-									if ( match <= 0 )
-										break;
-									SET(i+1,i);
-								}
-								GETA(i+1);
-								if ( match == 0 ) goto done;
-							}
-							if ( jstack == 0 ) break;
-							if ( match == 0 ) break;
-							ir = istack[jstack--];
-							l = istack[jstack--];
-						} else {
-							k = (l + ir) >> 1;	/* Choose median of left, center, right */
-							EXCH(k, l+1);
-							COMP( cv[IX(l)], cv[IX(ir)] );
-							if ( match > 0 ) {
-								EXCH(l, ir);
-							} else if ( match == 0 ) {
-								i = ir;
-								break;
-							}
-							COMP( cv[IX(l+1)], cv[IX(ir)] );
-							if ( match > 0 ) {
-								EXCH(l+1, ir);
-							} else if ( match == 0 ) {
-								i = ir;
-								break;
-							}
-							COMP( cv[IX(l)], cv[IX(l+1)] );
-							if ( match > 0 ) {
-								EXCH(l, l+1);
-							} else if ( match == 0 ) {
-								i = l;
-								break;
-							}
-							i = l+1;
-							j = ir;
-							a = cv[IX(i)];
-							for(;;) {
-								do {
-									i++;
-									COMP( cv[IX(i)], a );
-								} while( match < 0 );
-								while( match > 0 ) {
-									j--;
-									COMP( cv[IX(j)], a );
-								}
-								if (j < i) {
-									match = 1;
-									break;
-								}
-								if ( match == 0 ) {
-									i = l+1;
-									break;
-								}
-								EXCH(i,j);
-							}
-							if ( match == 0 )
-								break;
-							EXCH(l+1,j);
-							jstack += 2;
-							if (ir-i+1 >= j) {
-								istack[jstack] = ir;
-								istack[jstack-1] = i;
-								ir = j;
-							} else {
-								istack[jstack] = j;
-								istack[jstack-1] = l;
-								l = i;
-						}
-					}
+	ir = nvals-1;
+	l = 0;
+	jstack = 0;
+
+	for(;;) {
+		if (ir - l < SMALL) {	/* Insertion sort */
+			match=1;
+			for (j=l+1;j<=ir;j++) {
+				SETA(j);
+				for (i=j-1;i>=0;i--) {
+					COMP(cv[IX(i)], a);
+					if ( match <= 0 )
+						break;
+					SET(i+1,i);
 				}
-done:
-				if ( i >= 0 )
-					j = ix[i];
-
-				slap_sl_free( ix, ctx );
-
-				if ( rc != LDAP_SUCCESS ) {
-					return rc;
-				} else if ( match == 0 ) {
-					/* value exists already */
-					assert( i >= 0 );
-					assert( i < nvals );
-					snprintf( textbuf, textlen,
-						"%s: value #%d provided more than once",
-						ml->sml_desc->ad_cname.bv_val, j );
-					*text = textbuf;
-					return LDAP_TYPE_OR_VALUE_EXISTS;
+				GETA(i+1);
+				if ( match == 0 ) goto done;
+			}
+			if ( jstack == 0 ) break;
+			if ( match == 0 ) break;
+			ir = istack[jstack--];
+			l = istack[jstack--];
+		} else {
+			k = (l + ir) >> 1;	/* Choose median of left, center, right */
+			EXCH(k, l+1);
+			COMP( cv[IX(l)], cv[IX(ir)] );
+			if ( match > 0 ) {
+				EXCH(l, ir);
+			} else if ( match == 0 ) {
+				i = ir;
+				break;
+			}
+			COMP( cv[IX(l+1)], cv[IX(ir)] );
+			if ( match > 0 ) {
+				EXCH(l+1, ir);
+			} else if ( match == 0 ) {
+				i = ir;
+				break;
+			}
+			COMP( cv[IX(l)], cv[IX(l+1)] );
+			if ( match > 0 ) {
+				EXCH(l, l+1);
+			} else if ( match == 0 ) {
+				i = l;
+				break;
+			}
+			i = l+1;
+			j = ir;
+			a = cv[IX(i)];
+			for(;;) {
+				do {
+					i++;
+					COMP( cv[IX(i)], a );
+				} while( match < 0 );
+				while( match > 0 ) {
+					j--;
+					COMP( cv[IX(j)], a );
 				}
-#endif	/* SLAP_MODS_CHECK_QUICKSORT */
+				if (j < i) {
+					match = 1;
+					break;
+				}
+				if ( match == 0 ) {
+					i = l+1;
+					break;
+				}
+				EXCH(i,j);
+			}
+			if ( match == 0 )
+				break;
+			EXCH(l+1,j);
+			jstack += 2;
+			if (ir-i+1 >= j) {
+				istack[jstack] = ir;
+				istack[jstack-1] = i;
+				ir = j;
+			} else {
+				istack[jstack] = j;
+				istack[jstack-1] = l;
+				l = i;
 			}
 		}
 	}
+	done:
+	if ( i >= 0 )
+		*dup = ix[i];
 
+	/* For sorted attributes, put the values in index order */
+	if ( rc == LDAP_SUCCESS && match &&
+		( ad->ad_type->sat_flags & SLAP_AT_SORTED_VAL )) {
+		BerVarray tmpv = slap_sl_malloc( sizeof( struct berval ) * nvals, ctx );
+		for ( i = 0; i<nvals; i++ )
+			tmpv[i] = cv[ix[i]];
+		for ( i = 0; i<nvals; i++ )
+			cv[i] = tmpv[i];
+		/* Check if the non-normalized array needs to move too */
+		if ( is_norm ) {
+			cv = ml->sml_values;
+			for ( i = 0; i<nvals; i++ )
+				tmpv[i] = cv[ix[i]];
+			for ( i = 0; i<nvals; i++ )
+				cv[i] = tmpv[i];
+		}
+		slap_sl_free( tmpv, ctx );
+	}
+
+	slap_sl_free( ix, ctx );
+
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	} else if ( match == 0 ) {
+		/* value exists already */
+		assert( i >= 0 );
+		assert( i < nvals );
+		return LDAP_TYPE_OR_VALUE_EXISTS;
+	}
 	return LDAP_SUCCESS;
 }
 

@@ -210,6 +210,7 @@ bdb_monitor_free(
 	mod.sm_op = LDAP_MOD_DELETE;
 	mod.sm_desc = slap_schema.si_ad_objectClass;
 	mod.sm_values = values;
+	mod.sm_numvals = 1;
 	values[ 0 ] = oc_olmBDBDatabase->soc_cname;
 	BER_BVZERO( &values[ 1 ] );
 
@@ -218,9 +219,10 @@ bdb_monitor_free(
 	/* don't care too much about return code... */
 
 	/* remove attrs */
+	mod.sm_values = NULL;
+	mod.sm_numvals = 0;
 	for ( i = 0; s_at[ i ].desc != NULL; i++ ) {
 		mod.sm_desc = *s_at[ i ].ad;
-		mod.sm_values = NULL;
 		rc = modify_delete_values( e, &mod, 1, &text,
 			textbuf, sizeof( textbuf ) );
 		/* don't care too much about return code... */

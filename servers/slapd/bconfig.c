@@ -177,6 +177,7 @@ enum {
 	CFG_HIDDEN,
 	CFG_MONITORING,
 	CFG_SERVERID,
+	CFG_SORTVALS,
 
 	CFG_LAST
 };
@@ -552,6 +553,11 @@ static ConfigTable config_back_cf_table[] = {
 	{ "sockbuf_max_incoming_auth", "max", 2, 2, 0, ARG_BER_LEN_T,
 		&sockbuf_max_incoming_auth, "( OLcfgGlAt:62 NAME 'olcSockbufMaxIncomingAuth' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "sortvals", "attr", 2, 0, 0, ARG_MAGIC|CFG_SORTVALS,
+		&config_generic, "( OLcfgGlAt:83 NAME 'olcSortVals' "
+			"DESC 'Attributes whose values will always be sorted' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "subordinate", "[advertise]", 1, 2, 0, ARG_DB|ARG_MAGIC,
 		&config_subordinate, "( OLcfgDbAt:0.15 NAME 'olcSubordinate' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
@@ -765,7 +771,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcFrontendConfig' "
 		"DESC 'OpenLDAP frontend configuration' "
 		"AUXILIARY "
-		"MAY ( olcDefaultSearchBase $ olcPasswordHash ) )",
+		"MAY ( olcDefaultSearchBase $ olcPasswordHash $ olcSortVals ) )",
 		Cft_Database, NULL, NULL },
 #ifdef SLAPD_MODULES
 	{ "( OLcfgGlOc:8 "
@@ -785,6 +791,13 @@ typedef struct ServerID {
 } ServerID;
 
 static ServerID *sid_list;
+
+typedef struct ADlist {
+	struct ADlist *al_next;
+	AttributeDescription *al_desc;
+} ADlist;
+
+static ADlist *sortVals;
 
 static int
 config_generic(ConfigArgs *c) {
@@ -1000,6 +1013,14 @@ config_generic(ConfigArgs *c) {
 		case CFG_SSTR_IF_MIN:
 			c->value_int = index_substr_if_minlen;
 			break;
+		case CFG_SORTVALS: {
+			ADlist *sv;
+			rc = 1;
+			for ( sv = sortVals; sv; sv = sv->al_next ) {
+				value_add_one( &c->rvalue_vals, &sv->al_desc->ad_cname );
+				rc = 0;
+			}
+			} break;
 #ifdef SLAPD_MODULES
 		case CFG_MODLOAD: {
 			ModPaths *mp = c->private;
@@ -1224,6 +1245,27 @@ config_generic(ConfigArgs *c) {
 				}
 			}
 			break;
+		case CFG_SORTVALS:
+			if ( c->valx < 0 ) {
+				ADlist *sv;
+				for ( sv = sortVals; sv; sv = sortVals ) {
+					sortVals = sv->al_next;
+					sv->al_desc->ad_type->sat_flags &= ~SLAP_AT_SORTED_VAL;
+					ch_free( sv );
+				}
+			} else {
+				ADlist *sv, **prev;
+				int i = 0;
+
+				for ( prev = &sortVals, sv = sortVals; i < c->valx; i++ ) {
+					prev = &sv->al_next;
+					sv = sv->al_next;
+				}
+				sv->al_desc->ad_type->sat_flags &= ~SLAP_AT_SORTED_VAL;
+				*prev = sv->al_next;
+				ch_free( sv );
+			}
+			break;
 
 		case CFG_LIMITS:
 			/* FIXME: there is no limits_free function */
@@ -1445,6 +1487,52 @@ config_generic(ConfigArgs *c) {
 			for(i = 1; i < c->argc; i++)
 				if(ad_define_option(c->argv[i], c->fname, c->lineno))
 					return(1);
+			break;
+
+		case CFG_SORTVALS: {
+			ADlist *svnew = NULL, *svtail, *sv;
+
+			for ( i = 1; i < c->argc; i++ ) {
+				AttributeDescription *ad = NULL;
+				const char *text;
+				int rc;
+
+				rc = slap_str2ad( c->argv[i], &ad, &text );
+				if ( rc ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> unknown attribute type #%d",
+						c->argv[0], i );
+sortval_reject:
+					Debug(LDAP_DEBUG_ANY, "%s: %s %s\n",
+						c->log, c->cr_msg, c->argv[i] );
+					for ( sv = svnew; sv; sv = svnew ) {
+						svnew = sv->al_next;
+						ch_free( sv );
+					}
+					return 1;
+				}
+				if (( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) ||
+					ad->ad_type->sat_single_value ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> inappropriate attribute type #%d",
+						c->argv[0], i );
+					goto sortval_reject;
+				}
+				sv = ch_malloc( sizeof( ADlist ));
+				sv->al_desc = ad;
+				if ( !svnew ) {
+					svnew = sv;
+				} else {
+					svtail->al_next = sv;
+				}
+				svtail = sv;
+			}
+			for ( sv = svnew; sv; sv = sv->al_next )
+				sv->al_desc->ad_type->sat_flags |= SLAP_AT_SORTED_VAL;
+			for ( sv = sortVals; sv && sv->al_next; sv = sv->al_next );
+			if ( sv )
+				sv->al_next = svnew;
+			else
+				sortVals = svnew;
+			}
 			break;
 
 		case CFG_ACL:
@@ -4544,7 +4632,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			 */
 			if ( ct && ml->sml_values ) {
 				delrec *d;
-				for (i=0; ml->sml_values[i].bv_val; i++);
+				i = ml->sml_numvals;
 				d = ch_malloc( sizeof(delrec) + (i - 1)* sizeof(int));
 				d->nidx = i;
 				d->next = NULL;
@@ -4577,8 +4665,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				if ( ct->arg_type & ARG_NO_INSERT ) {
 					Attribute *a = attr_find( e->e_attrs, ml->sml_desc );
 					if ( a ) {
-						for (i = 0; a->a_vals[i].bv_val; i++ );
-						navals = i;
+						navals = a->a_numvals;
 					}
 				}
 				for ( i=0; !BER_BVISNULL( &ml->sml_values[i] ); i++ ) {

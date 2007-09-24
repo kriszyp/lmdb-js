@@ -189,6 +189,7 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 			mod.sm_type = dlc->dlc_dli->dli_member_ad->ad_cname;
 			mod.sm_values = vals;
 			mod.sm_nvalues = nvals;
+			mod.sm_numvals = 1;
 
 			(void)modify_add_values( e, &mod, /* permissive */ 1,
 					&text, textbuf, sizeof( textbuf ) );
@@ -292,6 +293,7 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 			mod.sm_type = a->a_desc->ad_cname;
 			mod.sm_values = vals;
 			mod.sm_nvalues = nvals;
+			mod.sm_numvals = j;
 
 			(void)modify_add_values( e, &mod, /* permissive */ 1,
 					&text, textbuf, sizeof( textbuf ) );

@@ -268,6 +268,11 @@ LDAP_SLAPD_F (void) comp_tree_free LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (Attribute *) attr_alloc LDAP_P(( AttributeDescription *ad ));
 LDAP_SLAPD_F (Attribute *) attrs_alloc LDAP_P(( int num ));
 LDAP_SLAPD_F (int) attr_prealloc LDAP_P(( int num ));
+LDAP_SLAPD_F (int) attr_valfind LDAP_P(( Attribute *a,
+	unsigned flags,
+	struct berval *val,
+	unsigned *slot,
+	void *ctx ));
 LDAP_SLAPD_F (int) attr_valadd LDAP_P(( Attribute *a,
 	BerVarray vals,
 	BerVarray nvals,
@@ -1165,6 +1170,12 @@ LDAP_SLAPD_F( int ) slap_mods_check(
 	Modifications *ml,
 	const char **text,
 	char *textbuf, size_t textlen, void *ctx );
+
+LDAP_SLAPD_F( int ) slap_sort_vals(
+	Modifications *ml,
+	const char **text,
+	int *dup,
+	void *ctx );
 
 LDAP_SLAPD_F( void ) slap_timestamp(
 	time_t *tm,

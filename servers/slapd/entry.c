@@ -277,6 +277,18 @@ str2entry2( char *s, int checkvals )
 
 		if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
 			int j, k;
+			/* FIXME: we only need this when migrating from an unsorted DB */
+			if ( atail != &ahead && atail->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+				rc = slap_sort_vals( (Modifications *)atail, &text, &j, NULL );
+				if ( rc == LDAP_SUCCESS ) {
+					atail->a_flags |= SLAP_ATTR_SORTED_VALS;
+				} else if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+					Debug( LDAP_DEBUG_ANY,
+						"str2entry: attributeType %s value #%d provided more than once\n",
+						atail->a_desc->ad_cname.bv_val, j, 0 );
+					goto fail;
+				}
+			}
 			atail->a_next = attr_alloc( NULL );
 			atail = atail->a_next;
 			atail->a_flags = 0;
@@ -891,6 +903,19 @@ int entry_decode(EntryHeader *eh, Entry **e)
 			bptr++;
 		} else {
 			a->a_nvals = a->a_vals;
+		}
+		/* FIXME: This is redundant once a sorted entry is saved into the DB */
+		if ( a->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+			rc = slap_sort_vals( (Modifications *)a, &text, &j, NULL );
+			if ( rc == LDAP_SUCCESS ) {
+				a->a_flags |= SLAP_ATTR_SORTED_VALS;
+			} else if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+				/* should never happen */
+				Debug( LDAP_DEBUG_ANY,
+					"entry_decode: attributeType %s value #%d provided more than once\n",
+					a->a_desc->ad_cname.bv_val, j, 0 );
+				return rc;
+			}
 		}
 		a = a->a_next;
 		nattrs--;
