@@ -222,21 +222,23 @@ static int certificateListValidate( Syntax *syntax, struct berval *in )
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	ber_skip_data( ber, len );
 	tag = ber_skip_tag( ber, &len );	/* thisUpdate */
-	/* NOTE: in the certificates I'm playing with, the time is UTC.
-	 * maybe the tag is different from 0x17U for generalizedTime? */
-	if ( tag != 0x17U ) return LDAP_INVALID_SYNTAX;
+	/* Time is a CHOICE { UTCTime, GeneralizedTime } */
+	if ( tag != 0x17U && tag != 0x18U ) return LDAP_INVALID_SYNTAX;
 	ber_skip_data( ber, len );
 	/* Optional nextUpdate */
 	tag = ber_skip_tag( ber, &len );
-	if ( tag == 0x17U ) {
+	if ( tag == 0x17U || tag == 0x18U ) {
 		ber_skip_data( ber, len );
 		tag = ber_skip_tag( ber, &len );
 	}
-	/* Optional revokedCertificates */
+	/* revokedCertificates - Sequence of Sequence, Optional */
 	if ( tag == LBER_SEQUENCE ) {
-		/* Should NOT be empty */
-		ber_skip_data( ber, len );
-		tag = ber_skip_tag( ber, &len );
+		ber_len_t seqlen;
+		if ( ber_peek_tag( ber, &seqlen ) == LBER_SEQUENCE ) {
+			/* Should NOT be empty */
+			ber_skip_data( ber, len );
+			tag = ber_skip_tag( ber, &len );
+		}
 	}
 	/* Optional Extensions */
 	if ( tag == SLAP_X509_OPT_CL_CRLEXTENSIONS ) { /* ? */
