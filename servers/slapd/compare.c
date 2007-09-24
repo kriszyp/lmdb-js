@@ -384,10 +384,10 @@ static int compare_entry(
 			break;
 		}
 
-		if ( value_find_ex( ava->aa_desc,
+		if ( attr_valfind( a, 
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			a->a_nvals, &ava->aa_value, op->o_tmpmemctx ) == 0 )
+			&ava->aa_value, NULL, op->o_tmpmemctx ) == 0 )
 		{
 			rc = LDAP_COMPARE_TRUE;
 			break;

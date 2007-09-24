@@ -657,6 +657,29 @@ test_ava_filter(
 			continue;
 		}
 
+		if ( a->a_flags & SLAP_ATTR_SORTED_VALS ) {
+			unsigned slot;
+			rc = attr_valfind( a, use | SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH, 
+				&ava->aa_value, &slot, NULL );
+			if ( rc == LDAP_SUCCESS )
+				return LDAP_COMPARE_TRUE;
+			if ( rc == LDAP_NO_SUCH_ATTRIBUTE ) {
+				/* If insertion point is not the end of the list, there was
+				 * at least one value greater than the assertion.
+				 */
+				if ( type == LDAP_FILTER_GE && slot < a->a_numvals )
+					return LDAP_COMPARE_TRUE;
+				/* Likewise, if insertion point is not the head of the list,
+				 * there was at least one value less than the assertion.
+				 */
+				if ( type == LDAP_FILTER_LE && slot > 0 )
+					return LDAP_COMPARE_TRUE;
+				return LDAP_COMPARE_FALSE;
+			}
+			return rc;
+		}
+
 #ifdef LDAP_COMP_MATCH
 		if ( nibble_mem_allocator && ava->aa_cf && !a->a_comp_data ) {
 			/* Component Matching */

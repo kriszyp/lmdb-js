@@ -974,11 +974,10 @@ acl_mask_dnattr(
 		at != NULL;
 		at = attrs_find( at->a_next, bdn->a_at ) )
 	{
-		if ( value_find_ex( bdn->a_at,
+		if ( attr_valfind( at,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			at->a_nvals,
-			&bv, op->o_tmpmemctx ) == 0 )
+			&bv, NULL, op->o_tmpmemctx ) == 0 )
 		{
 			/* found it */
 			match = 1;

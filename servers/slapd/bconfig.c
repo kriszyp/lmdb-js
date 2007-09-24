@@ -1525,6 +1525,7 @@ sortval_reject:
 				}
 				svtail = sv;
 			}
+			sv->al_next = NULL;
 			for ( sv = svnew; sv; sv = sv->al_next )
 				sv->al_desc->ad_type->sat_flags |= SLAP_AT_SORTED_VAL;
 			for ( sv = sortVals; sv && sv->al_next; sv = sv->al_next );

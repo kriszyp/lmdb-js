@@ -211,6 +211,7 @@ attrs_free( Attribute *a )
 static void
 attr_dup2( Attribute *tmp, Attribute *a )
 {
+	tmp->a_flags = a->a_flags & SLAP_ATTR_PERSISTENT_FLAGS;
 	if ( a->a_vals != NULL ) {
 		int	i;
 
@@ -290,10 +291,15 @@ attr_valfind(
 	void *ctx )
 {
 	struct berval nval = BER_BVNULL, *cval;
-	MatchingRule *mr = a->a_desc->ad_type->sat_equality;
+	MatchingRule *mr;
 	const char *text;
 	int match = -1, rc;
 	unsigned i;
+
+	if ( flags & SLAP_MR_ORDERING )
+		mr = a->a_desc->ad_type->sat_ordering;
+	else
+		mr = a->a_desc->ad_type->sat_equality;
 
 	if( !SLAP_IS_MR_ASSERTED_VALUE_NORMALIZED_MATCH( flags ) &&
 		mr->smr_normalize )
@@ -319,15 +325,19 @@ attr_valfind(
 		while ( 0 < n ) {
 			unsigned pivot = n >> 1;
 			i = base + pivot;
+			if ( i >= a->a_numvals ) {
+				i = a->a_numvals - 1;
+				break;
+			}
 			rc = value_match( &match, a->a_desc, mr, flags,
 				&a->a_nvals[i], cval, &text );
 			if ( rc == LDAP_SUCCESS && match == 0 )
 				break;
 			n = pivot;
-			if ( match > 0 )
+			if ( match < 0 )
 				base = i+1;
 		}
-		if ( match > 0 )
+		if ( match < 0 )
 			i++;
 	} else {
 	/* Linear search */
@@ -340,7 +350,8 @@ attr_valfind(
 				break;
 		}
 	}
-	*slot = i;
+	if ( slot )
+		*slot = i;
 	if ( match )
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
 	if ( nval.bv_val )
@@ -395,14 +406,14 @@ attr_valadd(
 					rc = LDAP_TYPE_OR_VALUE_EXISTS;
 				return rc;
 			}
-			for ( j = a->a_numvals; j > slot; j-- ) {
+			for ( j = a->a_numvals; j >= slot; j-- ) {
 				a->a_vals[j+1] = a->a_vals[j];
 				if ( nvals )
 					a->a_nvals[j+1] = a->a_nvals[j];
 			}
-			ber_dupbv( &a->a_nvals[j], &v2[i] );
+			ber_dupbv( &a->a_nvals[slot], &v2[i] );
 			if ( nvals )
-				ber_dupbv( &a->a_vals[j], &vals[i] );
+				ber_dupbv( &a->a_vals[slot], &vals[i] );
 			a->a_numvals++;
 		}
 		BER_BVZERO( &a->a_vals[a->a_numvals] );

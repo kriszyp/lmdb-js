@@ -1131,6 +1131,11 @@ struct Attribute {
 #define SLAP_ATTR_DONT_FREE_DATA	0x4U
 #define SLAP_ATTR_DONT_FREE_VALS	0x8U
 #define	SLAP_ATTR_SORTED_VALS		0x10U	/* values are sorted */
+
+/* These flags persist across an attr_dup() */
+#define	SLAP_ATTR_PERSISTENT_FLAGS \
+	SLAP_ATTR_SORTED_VALS
+
 	Attribute		*a_next;
 #ifdef LDAP_COMP_MATCH
 	ComponentData		*a_comp_data;	/* component values */

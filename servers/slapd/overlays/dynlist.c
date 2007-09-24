@@ -92,10 +92,10 @@ dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
 	}
 
 	for ( ; dli; dli = dli->dli_next ) {
-		if ( value_find_ex( slap_schema.si_ad_objectClass, 
+		if ( attr_valfind( a,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a->a_nvals, &dli->dli_oc->soc_cname,
+				&dli->dli_oc->soc_cname, NULL,
 				op->o_tmpmemctx ) == 0 )
 		{
 			return dli;
@@ -723,10 +723,10 @@ done:;
 			/* if we're here, we got a match... */
 			rs->sr_err = LDAP_COMPARE_FALSE;
 
-			if ( value_find_ex( op->orc_ava->aa_desc,
+			if ( attr_valfind( a,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a->a_nvals, &op->orc_ava->aa_value, op->o_tmpmemctx ) == 0 )
+				&op->orc_ava->aa_value, NULL, op->o_tmpmemctx ) == 0 )
 			{
 				rs->sr_err = LDAP_COMPARE_TRUE;
 				break;

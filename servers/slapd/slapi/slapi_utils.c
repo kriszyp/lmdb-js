@@ -2152,28 +2152,15 @@ int slapi_attr_value_cmp( const Slapi_Attr *a, const struct berval *v1, const st
 
 int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
 {
-	MatchingRule *mr;
-	struct berval *bv;
-	int j;
-	const char *text;
 	int rc;
 	int ret;
 
 	if ( a ->a_vals == NULL ) {
 		return -1;
 	}
-	mr = a->a_desc->ad_type->sat_equality;
-	for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
-		rc = value_match( &ret, a->a_desc, mr,
-			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX, bv, v, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			return -1;
-		}
-		if ( ret == 0 ) {
-			return 0;
-		}
-	}
-	return -1;
+	rc = attr_valfind( (Attribute *)a, SLAP_MR_VALUE_OF_ASSERTION_SYNTAX, v,
+		NULL, NULL );
+	return rc == 0 ? 0 : -1;
 }
 
 int slapi_attr_type_cmp( const char *t1, const char *t2, int opt )

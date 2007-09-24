@@ -1680,10 +1680,10 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_COMPARE_FALSE;
 
-		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
+		if ( attr_valfind( &a,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a.a_nvals, &op->oq_compare.rs_ava->aa_value, op->o_tmpmemctx ) == 0 )
+				&op->oq_compare.rs_ava->aa_value, NULL, op->o_tmpmemctx ) == 0 )
 		{
 			rs->sr_err = LDAP_COMPARE_TRUE;
 		}

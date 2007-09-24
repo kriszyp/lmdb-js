@@ -592,11 +592,10 @@ aci_mask(
 				at != NULL;
 				at = attrs_find( at->a_next, ad ) )
 		{
-			if ( value_find_ex( ad,
+			if ( attr_valfind( at, 
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				at->a_nvals,
-				&op->o_ndn, op->o_tmpmemctx ) == 0 )
+				&op->o_ndn, NULL, op->o_tmpmemctx ) == 0 )
 			{
 				rc = 1;
 				break;

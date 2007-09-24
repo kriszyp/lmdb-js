@@ -1501,10 +1501,10 @@ loopit:
 				op->o_bd = b2;
 
 			} else {
-				rc = value_find_ex( group_at,
+				rc = attr_valfind( a,
 					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-					a->a_nvals, op_ndn, op->o_tmpmemctx );
+					op_ndn, NULL, op->o_tmpmemctx );
 				if ( rc == LDAP_NO_SUCH_ATTRIBUTE ) {
 					rc = LDAP_COMPARE_FALSE;
 				}

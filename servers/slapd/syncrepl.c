@@ -2858,11 +2858,11 @@ dn_callback(
 					oldRDN.bv_len -= oldVal.bv_len + 2;
 					slap_bv2ad( &oldRDN, &ad, &rs->sr_text );
 					a = attr_find( dni->new_entry->e_attrs, ad );
-					if ( !a || value_find_ex( ad,
+					if ( !a || attr_valfind( a,
 						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
 						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_VALUE_OF_SYNTAX, a->a_nvals,
-						&oldVal, op->o_tmpmemctx ) != LDAP_SUCCESS )
+						SLAP_MR_VALUE_OF_SYNTAX,
+						&oldVal, NULL, op->o_tmpmemctx ) != LDAP_SUCCESS )
 					{
 						dni->delOldRDN = 1;
 					}

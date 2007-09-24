@@ -856,9 +856,9 @@ entry_naming_check(
 			break;
 		}
 
-		rc = value_find_ex( desc, SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|
+		rc = attr_valfind( attr, SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			attr->a_nvals, &ava->la_value, NULL );
+			&ava->la_value, NULL, NULL );
 
 		if( rc != 0 ) {
 			switch( rc ) {
