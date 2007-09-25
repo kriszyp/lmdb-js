@@ -657,14 +657,40 @@ test_ava_filter(
 			continue;
 		}
 
-		if ( a->a_flags & SLAP_ATTR_SORTED_VALS ) {
+		/* We have no Sort optimization for Approx matches */
+		if (( a->a_flags & SLAP_ATTR_SORTED_VALS ) && type != LDAP_FILTER_APPROX ) {
 			unsigned slot;
-			rc = attr_valfind( a, use | SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
+			int ret;
+
+			/* For Ordering matches, we just need to do one comparison with
+			 * either the first (least) or last (greatest) value.
+			 */
+			if ( use == SLAP_MR_ORDERING ) {
+				const char *text;
+				int match, which;
+				which = (type == LDAP_FILTER_LE) ? 0 : a->a_numvals-1;
+				ret = value_match( &match, a->a_desc, mr, use,
+					&a->a_nvals[which], &ava->aa_value, &text );
+				if ( ret != LDAP_SUCCESS ) return ret;
+				if (( type == LDAP_FILTER_LE && match <= 0 ) ||
+					( type == LDAP_FILTER_GE && match >= 0 ))
+					return LDAP_COMPARE_TRUE;
+				continue;
+			}
+			/* Only Equality will get here */
+			ret = attr_valfind( a, use | SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH, 
 				&ava->aa_value, &slot, NULL );
-			if ( rc == LDAP_SUCCESS )
+			if ( ret == LDAP_SUCCESS )
 				return LDAP_COMPARE_TRUE;
-			if ( rc == LDAP_NO_SUCH_ATTRIBUTE ) {
+			else if ( ret != LDAP_NO_SUCH_ATTRIBUTE )
+				return ret;
+#if 0
+			/* The following is useful if we want to know which values
+			 * matched an ordering test. But here we don't care, we just
+			 * want to know if any value did, and that is checked above.
+			 */
+			if ( ret == LDAP_NO_SUCH_ATTRIBUTE ) {
 				/* If insertion point is not the end of the list, there was
 				 * at least one value greater than the assertion.
 				 */
@@ -677,7 +703,8 @@ test_ava_filter(
 					return LDAP_COMPARE_TRUE;
 				return LDAP_COMPARE_FALSE;
 			}
-			return rc;
+#endif
+			continue;
 		}
 
 #ifdef LDAP_COMP_MATCH
