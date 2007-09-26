@@ -71,7 +71,8 @@ to allow all necessary configuration to be set in the
 file.
 The options set using this directive will only be written to the 
 .B DB_CONFIG
-file if no such file existed at server startup time. This allows one
+file if no such file existed at server startup time, otherwise
+they are completely ignored. This allows one
 to set initial values without overwriting/destroying a 
 .B DB_CONFIG 
 file that was already customized through other means. 
