@@ -379,7 +379,7 @@ bdb_idl_cache_put(
 	if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
 		int i;
 		ee = bdb->bi_idl_lru_tail;
-		for ( i = 0; i < 10; i++, ee = eprev ) {
+		for ( i = 0; ee != NULL && i < 10; i++, ee = eprev ) {
 			eprev = ee->idl_lru_prev;
 			if ( eprev == ee ) {
 				eprev = NULL;
