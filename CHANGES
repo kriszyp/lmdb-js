@@ -3,8 +3,12 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.6 Engineering
 	Fixed slapd ACL sets memory handling (ITS#4873)
 	Added slapd ACL sets DN ancestors operator (ITS#4860)
+	Fixed slapd alock_close with Quick mode (ITS#5129)
 	Fixed slapd ordered values add normalization issue (ITS#5136)
+	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-ldap SASL idassert w/o autchId
 	Fixed slapo-chain double-free (ITS#5137)
 	Fixed slapo-dynlist entry release (ITS#5135)
 	Fixed slapo-rwm modlist handling (ITS#5124)
+	Documentation
+		Update note about dbconfig directives (ITS#5134)
