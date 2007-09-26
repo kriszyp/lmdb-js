@@ -181,7 +181,7 @@ if test $RC != 0 ; then
 fi
 
 CNT=`expr $CNT + 1`
-FILTER="(uid=bjorn)"
+FILTER="(uid=johnd)"
 ATTRS="mail postaladdress telephonenumber cn uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
