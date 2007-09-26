@@ -896,12 +896,12 @@ main( int argc, char **argv )
 				bargs[banum - 3] = manager ? manager : "";
 				bargs[banum - 1] = passwd ? passwd : "";
 
-				bargs[banum - 2] = "-b";
-				bargs[banum - 1] = breqs[jj];
-				bargs[banum + 0] = "-f";
-				bargs[banum + 1] = bcreds[jj];
-				bargs[banum + 2] = "-a";
-				bargs[banum + 3] = battrs[jj];
+				bargs[banum + 0] = "-b";
+				bargs[banum + 1] = breqs[jj];
+				bargs[banum + 2] = "-f";
+				bargs[banum + 3] = bcreds[jj];
+				bargs[banum + 4] = "-a";
+				bargs[banum + 5] = battrs[jj];
 
 			} else {
 				bargs[banum - 3] = breqs[jj];
