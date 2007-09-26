@@ -2644,7 +2644,7 @@ ldap_back_controls_free( Operation *op, SlapReply *rs, LDAPControl ***pctrls )
 	/* we assume that the controls added by the proxy come first,
 	 * so as soon as we find op->o_ctrls[ 0 ] we can stop */
 	if ( ctrls && ctrls != op->o_ctrls ) {
-		int	i, n = 0, n_added;
+		int	i = 0, n = 0, n_added;
 		void	*lower, *upper;
 
 		assert( ctrls[ 0 ] != NULL );
