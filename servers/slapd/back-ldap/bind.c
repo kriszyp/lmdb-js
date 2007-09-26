@@ -1462,7 +1462,7 @@ retry:;
 			if ( op->o_callback == &cb )
 				op->o_callback = cb.sc_next;
 			op->o_tag = o_tag;
-			rs->sr_text = "Internal proxy bind failure";
+			rs->sr_text = "Proxy can't contact remote server";
 			send_ldap_result( op, rs );
 		}
 
