@@ -737,7 +737,7 @@ ordered_value_add(
 	}
 	if ( anum ) {
 		AC_MEMCPY( new, a->a_vals, anum * sizeof(struct berval));
-		if ( nnew )
+		if ( nnew && a->a_nvals )
 			AC_MEMCPY( nnew, a->a_nvals, anum * sizeof(struct berval));
 	}
 
