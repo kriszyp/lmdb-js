@@ -8,6 +8,7 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-ldap SASL idassert w/o authcId
 	Fixed slapd-meta conn caching on bind failure (ITS#5154)
+	Fixed slapd-meta leak when binding as rootdn (ITS#5155)
 	Fixed slapo-chain double-free (ITS#5137)
 	Fixed slapo-dynlist entry release (ITS#5135)
 	Fixed slapo-rwm modlist handling (ITS#5124)

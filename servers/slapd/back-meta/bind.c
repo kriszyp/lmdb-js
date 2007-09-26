@@ -206,7 +206,6 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	if ( rc == LDAP_SUCCESS ) {
 		if ( isroot ) {
 			mc->mc_authz_target = META_BOUND_ALL;
-			ber_dupbv( &op->orb_edn, be_root_dn( op->o_bd ) );
 		}
 
 		if ( !LDAP_BACK_PCONN_ISPRIV( mc )
