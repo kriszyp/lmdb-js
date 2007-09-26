@@ -11,4 +11,4 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapo-dynlist entry release (ITS#5135)
 	Fixed slapo-rwm modlist handling (ITS#5124)
 	Documentation
-		Update note about dbconfig directives (ITS#5134)
+		Fixed slapd-bdb(5) note about dbconfig directives (ITS#5134)
