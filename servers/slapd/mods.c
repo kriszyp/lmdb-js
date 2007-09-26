@@ -196,7 +196,7 @@ modify_delete_vindex(
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
 	struct berval *cvals;
 	int		*id2 = NULL;
-	int		i, j, rc;
+	int		i, j, rc = 0;
 	unsigned flags;
 	char		dummy = '\0';
 
