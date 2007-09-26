@@ -516,7 +516,7 @@ alock_scan ( alock_info_t * info )
 }
 
 int
-alock_close ( alock_info_t * info )
+alock_close ( alock_info_t * info, int nosave )
 {
 	alock_slot_t slot_data;
 	int res;
@@ -540,7 +540,9 @@ alock_close ( alock_info_t * info )
 			free (slot_data.al_appname);
 		return ALOCK_UNSTABLE;
 	}
-	slot_data.al_lock = ALOCK_UNLOCKED | (slot_data.al_lock & ALOCK_NOSAVE);
+	slot_data.al_lock = ALOCK_UNLOCKED;
+	if ( nosave )
+		slot_data.al_lock |= ALOCK_NOSAVE;
 	res = alock_write_slot (info, &slot_data);
 	if (res == -1) {
 		close (info->al_fd);
