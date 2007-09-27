@@ -213,6 +213,7 @@ usn_db_init(
 	}
 
 	ui = ch_calloc(1, sizeof(usn_info_t));
+	ldap_pvt_thread_mutex_init( &ui->ui_mutex );
 	on->on_bi.bi_private = ui;
 	return 0;
 }
@@ -278,7 +279,11 @@ usn_db_destroy(
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	ch_free( on->on_bi.bi_private );
+	usn_info_t	*ui = on->on_bi.bi_private;
+
+	ldap_pvt_thread_mutex_destroy( &ui->ui_mutex );
+	ch_free( ui );
+	on->on_bi.bi_private = NULL;
 	return 0;
 }
 
