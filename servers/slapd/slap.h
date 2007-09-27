@@ -979,6 +979,11 @@ struct AttributeAssertion {
 	ComponentFilter		*aa_cf;		/* for attribute aliasing */
 #endif
 };
+#ifdef LDAP_COMP_MATCH
+#define ATTRIBUTEASSERTION_INIT { NULL, BER_BVNULL, NULL }
+#else
+#define ATTRIBUTEASSERTION_INIT { NULL, BER_BVNULL }
+#endif
 
 struct SubstringsAssertion {
 	AttributeDescription	*sa_desc;

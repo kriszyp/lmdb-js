@@ -33,6 +33,9 @@
 
 #include "slap.h"
 
+const Filter *slap_filter_objectClass_pres;
+const struct berval *slap_filterstr_objectClass_pres;
+
 static int	get_filter_list(
 	Operation *op,
 	BerElement *ber,
@@ -55,6 +58,26 @@ static int	get_simple_vrFilter(
 	BerElement *ber,
 	ValuesReturnFilter **f,
 	const char **text );
+
+int
+filter_init( void )
+{
+	static Filter filter_objectClass_pres = { LDAP_FILTER_PRESENT };
+	static struct berval filterstr_objectClass_pres = BER_BVC("(objectClass=*)");
+
+	filter_objectClass_pres.f_desc = slap_schema.si_ad_objectClass;
+
+	slap_filter_objectClass_pres = &filter_objectClass_pres;
+	slap_filterstr_objectClass_pres = &filterstr_objectClass_pres;
+
+	return 0;
+}
+
+void
+filter_destroy( void )
+{
+	return;
+}
 
 int
 get_filter(

@@ -1,4 +1,4 @@
-# Query 1: filter:(sn=Jon) attrs: all
+# Query 1: filter:(sn=Jon) attrs:all (expect nothing)
 # Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 cn: James A Jones 1
@@ -24,7 +24,7 @@ sn: Doe
 uid: johnd
 title: System Administrator, Information Technology Division
 
-# Query 3: filter:(sn=Smith*) attrs:cn sn title uid
+# Query 3: filter:(sn=Smith*) attrs:cn sn uid
 dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
 cn: Jennifer Smith
 cn: Jen Smith
@@ -55,17 +55,16 @@ sn: Doe
 uid: johnd
 title: System Administrator, Information Technology Division
 
-# Query 5: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid
-dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc
- =com
-cn: Bjorn Jensen
-cn: Biiff Jensen
-uid: bjorn
-postalAddress: Info Tech Division $ 535 W. William St. $ Anytown, MI 48103
-mail: bjorn@mailgw.example.com
-telephoneNumber: +1 313 555 0355
+# Query 5: filter:(uid=johnd) attrs:mail postaladdress telephonenumber cn uid
+dn: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
+cn: John Doe
+cn: Jonathon Doe
+uid: johnd
+postalAddress: ITD $ 535 W. William $ Anytown, MI 48109
+mail: johnd@mailgw.example.com
+telephoneNumber: +1 313 555 9394
 
-# Query 6: filter:(mail=*@mail.alumni.example.com) cn sn title uid
+# Query 6: filter:(mail=*@mail.alumni.example.com) attrs:cn sn title uid
 dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
 cn: Dorothy Stevens
 cn: Dot Stevens
@@ -101,7 +100,7 @@ sn: Hampster
 uid: uham
 title: Secretary, UM Alumni Association
 
-# Query 7: filter:(mail=*) cn sn title uid
+# Query 7: filter:(mail=*) attrs:cn sn title uid
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
  dc=com
 cn: Barbara Jensen
@@ -176,7 +175,21 @@ sn: Hampster
 uid: uham
 title: Secretary, UM Alumni Association
 
-# Query 8: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid
+# Query 8: filter:(mail=*example.com) attrs:cn sn title uid
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
+ dc=com
+cn: Barbara Jensen
+cn: Babs Jensen
+sn:: IEplbnNlbiA=
+uid: bjensen
+title: Mythical Manager, Research Systems
+
+# Query 9: filter:(uid=b*) attrs:mail
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
+ dc=com
+mail: bjensen@mailgw.example.com
+
+# Query 10: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 cn: James A Jones 1
 cn: James Jones
@@ -194,7 +207,7 @@ sn: Doe
 uid: jjones
 title: Senior Manager, Information Technology Division
 
-# Query 9: filter:(sn=Smith) attrs:cn sn title uid
+# Query 11: filter:(sn=Smith) attrs:cn sn title uid
 dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
 cn: Jennifer Smith
 cn: Jen Smith
@@ -202,7 +215,7 @@ sn: Smith
 uid: jen
 title: Telemarketer, UM Alumni Association
 
-# Query 10: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid
+# Query 12: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc
  =com
 cn: Bjorn Jensen
@@ -212,7 +225,7 @@ postalAddress: Info Tech Division $ 535 W. William St. $ Anytown, MI 48103
 mail: bjorn@mailgw.example.com
 telephoneNumber: +1 313 555 0355
 
-# Query 11: filter:(mail=jaj@mail.alumni.example.com) cn sn title uid
+# Query 13: filter:(mail=jaj@mail.alumni.example.com) attrs:cn sn title uid
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 cn: James A Jones 1
 cn: James Jones
@@ -220,4 +233,18 @@ cn: Jim Jones
 sn: Jones
 uid: jaj
 title: Mad Cow Researcher, UM Alumni Association
+
+# Query 14: filter:(mail=*example.com) attrs:cn sn title uid
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
+ dc=com
+cn: Barbara Jensen
+cn: Babs Jensen
+sn:: IEplbnNlbiA=
+uid: bjensen
+title: Mythical Manager, Research Systems
+
+# Query 15: filter:(uid=b*) attrs:mail
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
+ dc=com
+mail: bjensen@mailgw.example.com
 

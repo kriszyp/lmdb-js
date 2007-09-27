@@ -585,11 +585,7 @@ syncprov_findcsn( Operation *op, find_csn_t mode )
 	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	struct berval maxcsn;
 	Filter cf;
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion eq = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion eq = ATTRIBUTEASSERTION_INIT;
 	fpres_cookie pcookie;
 	sync_control *srs = NULL;
 	struct slap_limits_set fc_limits;
@@ -1483,11 +1479,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		SlapReply frs = { REP_RESULT };
 		int rc;
 		Filter mf, af;
-#ifdef LDAP_COMP_MATCH
-		AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
-#else
-		AttributeAssertion eq;
-#endif
+		AttributeAssertion eq = ATTRIBUTEASSERTION_INIT;
 		slap_callback cb = {0};
 
 		fop = *op;

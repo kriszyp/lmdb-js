@@ -984,6 +984,8 @@ stop:
 
 	controls_destroy();
 
+	filter_destroy();
+
 	schema_destroy();
 
 	lutil_passwd_destroy();

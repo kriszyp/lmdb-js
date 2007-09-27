@@ -596,7 +596,7 @@ accesslog_purge( void *ctx, void *arg )
 	SlapReply rs = {REP_RESULT};
 	slap_callback cb = { NULL, log_old_lookup, NULL, NULL };
 	Filter f;
-	AttributeAssertion ava = {0};
+	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 	purge_data pd = {0};
 	char timebuf[LDAP_LUTIL_GENTIME_BUFSIZE];
 	char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];

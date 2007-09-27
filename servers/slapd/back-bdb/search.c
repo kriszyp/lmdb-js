@@ -154,11 +154,7 @@ static int search_aliases(
 	Entry *matched, *a;
 	EntryInfo *ei;
 	struct berval bv_alias = BER_BVC( "alias" );
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion aa_alias = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion aa_alias = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion aa_alias = ATTRIBUTEASSERTION_INIT;
 	Filter	af;
 	DB_LOCK locka, lockr;
 	int first = 1;
@@ -1028,17 +1024,9 @@ static int search_candidates(
 	int rc, depth = 1;
 	Filter		f, rf, xf, nf;
 	ID		*stack;
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion aa_ref = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion aa_ref = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion aa_ref = ATTRIBUTEASSERTION_INIT;
 	Filter	sf;
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion aa_subentry = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion aa_subentry = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion aa_subentry = ATTRIBUTEASSERTION_INIT;
 
 	/*
 	 * This routine takes as input a filter (user-filter)

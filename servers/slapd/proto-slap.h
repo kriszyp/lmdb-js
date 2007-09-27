@@ -1016,6 +1016,11 @@ LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));
 #define filter_escape_value( in, out )		ldap_bv2escaped_filter_value_x( (in), (out), 0, NULL )
 #define filter_escape_value_x( in, out, ctx )	ldap_bv2escaped_filter_value_x( (in), (out), 0, ctx )
 
+LDAP_SLAPD_V (const Filter *) slap_filter_objectClass_pres;
+LDAP_SLAPD_V (const struct berval *) slap_filterstr_objectClass_pres;
+
+LDAP_SLAPD_F (int) filter_init LDAP_P(( void ));
+LDAP_SLAPD_F (void) filter_destroy LDAP_P(( void ));
 /*
  * filterentry.c
  */

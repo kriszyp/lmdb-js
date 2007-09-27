@@ -14,7 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 CACHETTL="1m"
-CACHE_ENTRY_LIMIT=10
+NCACHETTL="1m"
+SCACHETTL="1m"
+CACHE_ENTRY_LIMIT=6
 
 . $SRCDIR/scripts/defines.sh
 
@@ -109,13 +111,17 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-cat /dev/null > $SLAVEOUT
+cat /dev/null > $SEARCHOUT
 
 echo "Making queries on the proxy cache..." 
-echo "Query 1: filter:(sn=Jon) attrs: all" 
-echo "# Query 1: filter:(sn=Jon) attrs: all" >> $SLAVEOUT
+CNT=0
+
+CNT=`expr $CNT + 1`
+FILTER="(sn=Jon)"
+echo "Query $CNT: filter:$FILTER attrs:all (expect nothing)" 
+echo "# Query $CNT: filter:$FILTER attrs:all (expect nothing)" >> $SEARCHOUT
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'sn=Jon' >> $SLAVEOUT 2>&1
+	"$FILTER" >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -132,10 +138,13 @@ if test $RC != 0 ; then
 	exit 0
 fi
 
-echo "Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid"  
-echo "# Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(|(cn=*Jon*)(sn=Jon*))"
+ATTRS="cn sn title uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(|(cn=*Jon*)(sn=Jon*))' cn sn title uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -143,10 +152,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 3: filter:(sn=Smith*) attrs:cn sn uid"  
-echo "# Query 3: filter:(sn=Smith*) attrs:cn sn uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(sn=Smith*)"
+ATTRS="cn sn uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'sn=Smith*' cn sn uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -154,21 +166,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 4: filter:(sn=Doe*) attrs:cn sn title uid"  
-echo "# Query 4: filter:(sn=Doe*) attrs:cn sn title uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(sn=Doe*)"
+ATTRS="cn sn title uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'sn=Doe' cn sn title uid >> $SLAVEOUT 2>&1
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
- 
-echo "Query 5: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid"  
-echo "# Query 5: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid" >> $SLAVEOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'uid=bjorn' mail postaladdress telephonenumber cn uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -176,10 +180,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 6: filter:(mail=*@mail.alumni.example.com) cn sn title uid"  
-echo "# Query 6: filter:(mail=*@mail.alumni.example.com) cn sn title uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(uid=johnd)"
+ATTRS="mail postaladdress telephonenumber cn uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'mail=*@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -187,10 +194,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 7: filter:(mail=*) cn sn title uid"  
-echo "# Query 7: filter:(mail=*) cn sn title uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(mail=*@mail.alumni.example.com)"
+ATTRS="cn sn title uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'mail=*' cn sn title uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -198,8 +208,78 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-# queries 2-6 are cacheable
-CACHEABILITY=0111110
+CNT=`expr $CNT + 1`
+FILTER="(mail=*)"
+ATTRS="cn sn title uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+CNT=`expr $CNT + 1`
+FILTER="(mail=*example.com)"
+ATTRS="cn sn title uid"
+USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+PASSWD="bjorn"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	-D "$USERDN" -w "$PASSWD" \
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+case $RC in
+0)
+	echo "ldapsearch should have failed!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+4)
+	echo "ldapsearch failed ($RC)"
+	;;
+*)
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+CNT=`expr $CNT + 1`
+FILTER="(uid=b*)"
+ATTRS="mail"
+USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+PASSWD="bjorn"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	-D "$USERDN" -w "$PASSWD" \
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+case $RC in
+0)
+	echo "ldapsearch should have failed!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+4)
+	echo "ldapsearch failed ($RC)"
+	;;
+*)
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+FIRST=$CNT
+
+# queries 2-6,8-9 are cacheable
+CACHEABILITY=011111011
 grep CACHEABLE $LOG2 | awk '{ 
 		if ($2 == "NOT") 
 			printf "Query %d not cacheable\n",NR
@@ -221,10 +301,13 @@ else
 	exit 1
 fi
 
-echo "Query 8: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid"  
-echo "# Query 8: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(|(cn=*Jones)(sn=Jones))"
+ATTRS="cn sn title uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'(|(cn=*Jones)(sn=Jones))' cn sn title uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -232,10 +315,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 9: filter:(sn=Smith) attrs:cn sn title uid"  
-echo "# Query 9: filter:(sn=Smith) attrs:cn sn title uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(sn=Smith)"
+ATTRS="cn sn title uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'sn=Smith' cn sn title uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -243,10 +329,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 10: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid"  
-echo "# Query 10: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(uid=bjorn)"
+ATTRS="mail postaladdress telephonenumber cn uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'uid=bjorn' mail postaladdress telephonenumber cn uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -254,10 +343,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 11: filter:(mail=jaj@mail.alumni.example.com) cn sn title uid"  
-echo "# Query 11: filter:(mail=jaj@mail.alumni.example.com) cn sn title uid" >> $SLAVEOUT
+CNT=`expr $CNT + 1`
+FILTER="(mail=jaj@mail.alumni.example.com)"
+ATTRS="cn sn title uid"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
-	'mail=jaj@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 
 if test $RC != 0 ; then
@@ -266,18 +358,75 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-#queries 8-11 are answerable
-ANSWERABILITY=1111
-grep ANSWERABLE $LOG2 | awk '{ 
-		if (NR > 7) { 
+CNT=`expr $CNT + 1`
+FILTER="(mail=*example.com)"
+ATTRS="cn sn title uid"
+USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+PASSWD="bjorn"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	-D "$USERDN" -w "$PASSWD" \
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+case $RC in
+0)
+	echo "ldapsearch should have failed!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+4)
+	echo "ldapsearch failed ($RC)"
+	;;
+*)
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+CNT=`expr $CNT + 1`
+FILTER="(uid=b*)"
+ATTRS="mail"
+USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+PASSWD="bjorn"
+echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
+echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	-D "$USERDN" -w "$PASSWD" \
+	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
+RC=$?
+case $RC in
+0)
+	echo "ldapsearch should have failed!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+4)
+	echo "ldapsearch failed ($RC)"
+	;;
+*)
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+#queries 10-12,15 are answerable, 13-14 are not
+#actually, 12 would be answerable, but since 8 made mail=*example.com
+#not answerable because of sizelimit, queries contained in it are no longer
+#answerable as well
+ANSWERABILITY=111001
+grep ANSWERABLE $LOG2 | awk -vFIRST=$FIRST '{ 
+		if (NR > FIRST) { 
 			if ($2 == "NOT") 
 				printf "Query %d not answerable\n",NR
 			else 
 				printf "Query %d answerable\n",NR 
 		}
 	}' 
-ANSWERED=`grep ANSWERABLE $LOG2 | awk '{ 
-		if (NR > 7) { 
+ANSWERED=`grep ANSWERABLE $LOG2 | awk -vFIRST=$FIRST '{ 
+		if (NR > FIRST) { 
 			if ($2 == "NOT") 
 				printf "0" 
 			else 
@@ -295,7 +444,7 @@ else
 fi
 
 echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SLAVEOUT > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
 . $LDIFFILTER < $PROXYCACHEOUT > $LDIFFLT
 echo "Comparing filter output..."

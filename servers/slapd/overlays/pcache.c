@@ -72,12 +72,14 @@ typedef struct cached_query_s {
 	Qbase					*qbase;
 	int						scope;
 	struct berval			q_uuid;		/* query identifier */
+	int						q_sizelimit;
 	struct query_template_s		*qtemp;	/* template of the query */
-	time_t 				expiry_time;	/* time till the query is considered valid */
+	time_t						expiry_time;	/* time till the query is considered valid */
 	struct cached_query_s  		*next;  	/* next query in the template */
 	struct cached_query_s  		*prev;  	/* previous query in the template */
-	struct cached_query_s           *lru_up;	/* previous query in the LRU list */
-	struct cached_query_s           *lru_down;	/* next query in the LRU list */
+	struct cached_query_s		*lru_up;	/* previous query in the LRU list */
+	struct cached_query_s		*lru_down;	/* next query in the LRU list */
+	ldap_pvt_thread_rdwr_t		rwlock;
 } CachedQuery;
 
 /*
@@ -127,17 +129,36 @@ typedef struct query_template_s {
 	int 		no_of_queries;  /* Total number of queries in the template */
 	time_t		ttl;		/* TTL for the queries of this template */
 	time_t		negttl;		/* TTL for negative results */
+	time_t		limitttl;	/* TTL for sizelimit exceeding results */
 	struct attr_set t_attrs;	/* filter attrs + attr_set */
 } QueryTemplate;
+
+typedef enum {
+	PC_IGNORE = 0,
+	PC_POSITIVE,
+	PC_NEGATIVE,
+	PC_SIZELIMIT
+} pc_caching_reason_t;
+
+static const char *pc_caching_reason_str[] = {
+	"IGNORE",
+	"POSITIVE",
+	"NEGATIVE",
+	"SIZELIMIT",
+
+	NULL
+};
 
 struct query_manager_s;
 
 /* prototypes for functions for 1) query containment
  * 2) query addition, 3) cache replacement
  */
-typedef CachedQuery * 	(QCfunc)(Operation *op, struct query_manager_s*, Query*, QueryTemplate*);
-typedef CachedQuery *	(AddQueryfunc)(Operation *op, struct query_manager_s*, Query*, QueryTemplate*, int positive);
-typedef void	(CRfunc)(struct query_manager_s*, struct berval * );
+typedef CachedQuery *(QCfunc)(Operation *op, struct query_manager_s*,
+	Query*, QueryTemplate*);
+typedef CachedQuery *(AddQueryfunc)(Operation *op, struct query_manager_s*,
+	Query*, QueryTemplate*, pc_caching_reason_t, int wlock);
+typedef void (CRfunc)(struct query_manager_s*, struct berval*);
 
 /* LDAP query cache */
 typedef struct query_manager_s {
@@ -225,7 +246,8 @@ add_query(
 	query_manager* qm,
 	Query* query,
 	QueryTemplate *templ,
-	int positive);
+	pc_caching_reason_t why,
+	int wlock);
 
 static int
 remove_query_data(
@@ -452,7 +474,7 @@ url2query(
 			goto error;
 		}
 
-		cq = add_query( op, qm, &query, qt, 1 );
+		cq = add_query( op, qm, &query, qt, PC_POSITIVE, 0 );
 		if ( cq != NULL ) {
 			cq->expiry_time = expiry_time;
 			cq->q_uuid = uuid;
@@ -1093,6 +1115,10 @@ query_containment(Operation *op, query_manager *qm,
 					qc = find_filter( op, qbptr->scopes[tscope],
 							query->filter, first );
 					if ( qc ) {
+						if ( qc->q_sizelimit ) {
+							ldap_pvt_thread_rdwr_runlock(&templa->t_rwlock);
+							return NULL;
+						}
 						ldap_pvt_thread_mutex_lock(&qm->lru_mutex);
 						if (qm->lru_top != qc) {
 							remove_query(qm, qc);
@@ -1128,35 +1154,57 @@ free_query (CachedQuery* qc)
 }
 
 
-/* Add query to query cache */
+/* Add query to query cache, the returned Query is locked for writing */
 static CachedQuery *
 add_query(
 	Operation *op,
 	query_manager* qm,
 	Query* query,
 	QueryTemplate *templ,
-	int positive)
+	pc_caching_reason_t why,
+	int wlock)
 {
 	CachedQuery* new_cached_query = (CachedQuery*) ch_malloc(sizeof(CachedQuery));
 	Qbase *qbase, qb;
 	Filter *first;
 	int rc;
+	time_t ttl = 0;;
 
 	new_cached_query->qtemp = templ;
 	BER_BVZERO( &new_cached_query->q_uuid );
-	if ( positive ) {
-		new_cached_query->expiry_time = slap_get_time() + templ->ttl;
-	} else {
-		new_cached_query->expiry_time = slap_get_time() + templ->negttl;
+	new_cached_query->q_sizelimit = 0;
+
+	switch ( why ) {
+	case PC_POSITIVE:
+		ttl = templ->ttl;
+		break;
+
+	case PC_NEGATIVE:
+		ttl = templ->negttl;
+		break;
+
+	case PC_SIZELIMIT:
+		ttl = templ->limitttl;
+		break;
+
+	default:
+		assert( 0 );
+		break;
 	}
+	new_cached_query->expiry_time = slap_get_time() + ttl;
 	new_cached_query->lru_up = NULL;
 	new_cached_query->lru_down = NULL;
-	Debug( pcache_debug, "Added query expires at %ld\n",
-			(long) new_cached_query->expiry_time, 0, 0 );
+	Debug( pcache_debug, "Added query expires at %ld (%s)\n",
+			(long) new_cached_query->expiry_time,
+			pc_caching_reason_str[ why ], 0 );
 
 	new_cached_query->scope = query->scope;
 	new_cached_query->filter = query->filter;
 	new_cached_query->first = first = filter_first( query->filter );
+	
+	ldap_pvt_thread_rdwr_init(&new_cached_query->rwlock);
+	if (wlock)
+		ldap_pvt_thread_rdwr_wlock(&new_cached_query->rwlock);
 
 	qb.base = query->base;
 
@@ -1286,7 +1334,7 @@ cache_replacement(query_manager* qm, struct berval *result)
 	ldap_pvt_thread_mutex_unlock(&qm->lru_mutex);
 
 	*result = bottom->q_uuid;
-	bottom->q_uuid.bv_val = NULL;
+	BER_BVZERO( &bottom->q_uuid );
 
 	Debug( pcache_debug, "Lock CR index = %p\n", (void *) temp, 0, 0 );
 	ldap_pvt_thread_rdwr_wlock(&temp->t_rwlock);
@@ -1339,11 +1387,7 @@ remove_query_data(
 {
 	struct query_info	*qi, *qnext;
 	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion	ava = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
 	slap_callback cb = { NULL, remove_func, NULL, NULL };
@@ -1527,6 +1571,9 @@ struct search_info {
 	int max;
 	int over;
 	int count;
+	int slimit;
+	int slimit_exceeded;
+	pc_caching_reason_t caching_reason;
 	Entry *head, *tail;
 };
 
@@ -1622,11 +1669,7 @@ pcache_remove_entries_from_cache(
 	SlapReply	rs = { REP_RESULT };
 	Filter		f = { 0 };
 	char		filtbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(entryUUID=)" ) ];
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion ava = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 	AttributeName	attrs[ 2 ] = { 0 };
 	int		s, rc;
 
@@ -1741,11 +1784,7 @@ pcache_remove_entry_queries_from_cache(
 	SlapReply		rs = { REP_RESULT };
 	Filter			f = { 0 };
 	char			filter_str[ LDAP_LUTIL_UUIDSTR_BUFSIZE + STRLENOF( "(queryId=)" ) ];
-#ifdef LDAP_COMP_MATCH
-	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
-#else
-	AttributeAssertion	ava = { NULL, BER_BVNULL };
-#endif
+	AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 	AttributeName		attrs[ 2 ] = { 0 };
 	int			rc;
 
@@ -1874,35 +1913,18 @@ static int
 pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 	slap_callback	*cb = op->o_callback;
 	struct search_info *si = cb->sc_private;
-	if ( rs->sr_type == REP_RESULT || op->o_abandon || 
-			rs->sr_err == SLAPD_ABANDON ) {
-		if ( si->save_attrs != NULL ) {
-			rs->sr_attrs = si->save_attrs;
-			op->ors_attrs = si->save_attrs;
-		}
-		op->o_callback = op->o_callback->sc_next;
-		op->o_tmpfree( cb, op->o_tmpmemctx );
-	}
-	return SLAP_CB_CONTINUE;
-}
-
-static int
-pcache_response(
-	Operation	*op,
-	SlapReply	*rs )
-{
-	struct search_info *si = op->o_callback->sc_private;
 	slap_overinst *on = si->on;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager*		qm = cm->qm;
 
-	if ( si->save_attrs != NULL ) {
-		rs->sr_attrs = si->save_attrs;
-		op->ors_attrs = si->save_attrs;
-	}
-
 	if ( rs->sr_type == REP_SEARCH ) {
 		Entry *e;
+
+		/* don't return more entries than requested by the client */
+		if ( si->slimit && rs->sr_nentries >= si->slimit ) {
+			si->slimit_exceeded = 1;
+		}
+
 		/* If we haven't exceeded the limit for this query,
 		 * build a chain of answers to store. If we hit the
 		 * limit, empty the chain and ignore the rest.
@@ -1914,6 +1936,7 @@ pcache_response(
 				if ( !si->head ) si->head = e;
 				if ( si->tail ) si->tail->e_private = e;
 				si->tail = e;
+
 			} else {
 				si->over = 1;
 				si->count = 0;
@@ -1926,16 +1949,43 @@ pcache_response(
 			}
 		}
 
-	} else if ( rs->sr_type == REP_RESULT ) {
-		if ( si->count ||
-			( si->qtemp->negttl && !si->count && !si->over &&
-				rs->sr_err == LDAP_SUCCESS )) {
-			CachedQuery *qc = qm->addfunc(op, qm, &si->query, si->qtemp,
-				si->count);
+	}
+
+	if ( rs->sr_type == REP_RESULT || 
+		op->o_abandon || rs->sr_err == SLAPD_ABANDON )
+	{
+		if ( si->save_attrs != NULL ) {
+			rs->sr_attrs = si->save_attrs;
+			op->ors_attrs = si->save_attrs;
+		}
+		if ( op->o_abandon || rs->sr_err == SLAPD_ABANDON ) {
+			filter_free( si->query.filter );
+			if ( si->count ) {
+				/* duplicate query, free it */
+				Entry *e;
+				for (;si->head; si->head=e) {
+					e = si->head->e_private;
+					si->head->e_private = NULL;
+					entry_free(si->head);
+				}
+			}
+			op->o_callback = op->o_callback->sc_next;
+			op->o_tmpfree( cb, op->o_tmpmemctx );
+		} else if ( si->caching_reason != PC_IGNORE ) {
+			CachedQuery *qc = qm->addfunc(op, qm, &si->query,
+				si->qtemp, si->caching_reason, 1 );
 
 			if ( qc != NULL ) {
-				if ( si->count )
+				switch ( si->caching_reason ) {
+				case PC_POSITIVE:
 					cache_entries( op, rs, &qc->q_uuid );
+					break;
+
+				case PC_SIZELIMIT:
+					qc->q_sizelimit = rs->sr_nentries;
+					break;
+				}
+				ldap_pvt_thread_rdwr_wunlock(&qc->rwlock);
 				ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
 				cm->num_cached_queries++;
 				Debug( pcache_debug, "STORED QUERIES = %lu\n",
@@ -1953,6 +2003,7 @@ pcache_response(
 					}
 					ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 				}
+
 			} else if ( si->count ) {
 				/* duplicate query, free it */
 				Entry *e;
@@ -1962,10 +2013,57 @@ pcache_response(
 					entry_free(si->head);
 				}
 			}
+
 		} else {
 			filter_free( si->query.filter );
 		}
 	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+pcache_response(
+	Operation	*op,
+	SlapReply	*rs )
+{
+	struct search_info *si = op->o_callback->sc_private;
+
+	if ( si->save_attrs != NULL ) {
+		rs->sr_attrs = si->save_attrs;
+		op->ors_attrs = si->save_attrs;
+	}
+
+	if ( rs->sr_type == REP_SEARCH ) {
+		/* don't return more entries than requested by the client */
+		if ( si->slimit_exceeded ) {
+			return 0;
+		}
+
+	} else if ( rs->sr_type == REP_RESULT ) {
+
+		if ( si->count ) {
+			if ( rs->sr_err == LDAP_SUCCESS ) {
+				si->caching_reason = PC_POSITIVE;
+
+			} else if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED
+				&& si->qtemp->limitttl )
+			{
+				si->caching_reason = PC_SIZELIMIT;
+			}
+
+		} else if ( si->qtemp->negttl && !si->count && !si->over &&
+				rs->sr_err == LDAP_SUCCESS )
+		{
+			si->caching_reason = PC_NEGATIVE;
+		}
+
+
+		if ( si->slimit_exceeded ) {
+			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+		}
+	}
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -2203,6 +2301,7 @@ pcache_op_search(
 
 		Debug( pcache_debug, "QUERY ANSWERABLE\n", 0, 0, 0 );
 		op->o_tmpfree( filter_attrs, op->o_tmpmemctx );
+		ldap_pvt_thread_rdwr_rlock(&answerable->rwlock);
 		if ( BER_BVISNULL( &answerable->q_uuid )) {
 			/* No entries cached, just an empty result set */
 			i = rs->sr_err = 0;
@@ -2212,6 +2311,7 @@ pcache_op_search(
 			op->o_callback = NULL;
 			i = cm->db.bd_info->bi_op_search( op, rs );
 		}
+		ldap_pvt_thread_rdwr_runlock(&answerable->rwlock);
 		ldap_pvt_thread_rdwr_runlock(&qtemp->t_rwlock);
 		op->o_bd = save_bd;
 		op->o_callback = save_cb;
@@ -2255,6 +2355,13 @@ pcache_op_search(
 		si->max = cm->num_entries_limit ;
 		si->over = 0;
 		si->count = 0;
+		si->slimit = 0;
+		si->slimit_exceeded = 0;
+		si->caching_reason = PC_IGNORE;
+		if ( op->ors_slimit && op->ors_slimit < cm->num_entries_limit ) {
+			si->slimit = op->ors_slimit;
+			op->ors_slimit = cm->num_entries_limit;
+		}
 		si->head = NULL;
 		si->tail = NULL;
 		si->save_attrs = op->ors_attrs;
@@ -2455,9 +2562,10 @@ static ConfigTable pccfg[] = {
 			"DESC 'A set of attributes to cache' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "proxytemplate", "filter> <attrset-index> <TTL> <negTTL",
-		4, 5, 0, ARG_MAGIC|PC_TEMP, pc_cf_gen,
+		4, 6, 0, ARG_MAGIC|PC_TEMP, pc_cf_gen,
 		"( OLcfgOvAt:2.3 NAME 'olcProxyTemplate' "
-			"DESC 'Filter template, attrset, cache TTL, optional negative TTL' "
+			"DESC 'Filter template, attrset, cache TTL, "
+				"optional negative TTL, optional sizelimit TTL' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "response-callback", "head|tail(default)",
 		2, 2, 0, ARG_MAGIC|PC_RESP, pc_cf_gen,
@@ -2580,17 +2688,14 @@ pc_cf_gen( ConfigArgs *c )
 			break;
 		case PC_TEMP:
 			for (temp=qm->templates; temp; temp=temp->qmnext) {
-				if ( temp->negttl ) {
-					bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ),
-						" %d %ld %ld",
-						temp->attr_set_index,
-						temp->ttl,
-						temp->negttl );
-				} else {
-					bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ), " %d %ld",
-						temp->attr_set_index,
-						temp->ttl );
-				}
+				/* HEADS-UP: always print all;
+				 * if optional == 0, ignore */
+				bv.bv_len = snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					" %d %ld %ld %ld",
+					temp->attr_set_index,
+					temp->ttl,
+					temp->negttl,
+					temp->limitttl );
 				bv.bv_len += temp->querystr.bv_len + 2;
 				bv.bv_val = ch_malloc( bv.bv_len+1 );
 				ptr = bv.bv_val;
@@ -2839,23 +2944,37 @@ pc_cf_gen( ConfigArgs *c )
 		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
 		temp->query = temp->query_last = NULL;
 		if ( lutil_parse_time( c->argv[3], &t ) != 0 ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ), "unable to parse template ttl=\"%s\"",
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"unable to parse template ttl=\"%s\"",
 				c->argv[3] );
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return( 1 );
 		}
 		temp->ttl = (time_t)t;
-		if ( c->argc == 5 ) {
+		temp->negttl = (time_t)0;
+		temp->limitttl = (time_t)0;
+		switch ( c->argc ) {
+		case 6:
+			if ( lutil_parse_time( c->argv[5], &t ) != 0 ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"unable to parse template sizelimit ttl=\"%s\"",
+					c->argv[5] );
+				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					return( 1 );
+			}
+			temp->limitttl = (time_t)t;
+			/* fallthru */
+
+		case 5:
 			if ( lutil_parse_time( c->argv[4], &t ) != 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"unable to parse template negttl=\"%s\"",
+					"unable to parse template negative ttl=\"%s\"",
 					c->argv[4] );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 					return( 1 );
 			}
 			temp->negttl = (time_t)t;
-		} else {
-			temp->negttl = 0;
+			break;
 		}
 
 		temp->no_of_queries = 0;
@@ -3084,11 +3203,7 @@ pcache_db_open(
 			SlapReply	rs = { 0 };
 			BerVarray	vals = NULL;
 			Filter		f = { 0 }, f2 = { 0 };
-#ifdef LDAP_COMP_MATCH
-			AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
-#else
-			AttributeAssertion	ava = { NULL, BER_BVNULL };
-#endif
+			AttributeAssertion	ava = ATTRIBUTEASSERTION_INIT;
 			AttributeName	attrs[ 2 ] = { 0 };
 
 			connection_fake_init( &conn, &opbuf, thrctx );

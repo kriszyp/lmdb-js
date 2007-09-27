@@ -2078,7 +2078,6 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	slap_callback		cb = { NULL, acl_set_cb_gather, NULL, NULL };
 	acl_set_gather_t	p = { 0 };
 	const char		*text = NULL;
-	static struct berval	defaultFilter_bv = BER_BVC( "(objectClass=*)" );
 
 	/* this routine needs to return the bervals instead of
 	 * plain strings, since syntax is not known.  It should
@@ -2121,16 +2120,17 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	if ( ludp->lud_filter ) {
 		ber_str2bv_x( ludp->lud_filter, 0, 0, &op2.ors_filterstr,
 				cp->asc_op->o_tmpmemctx );
+		op2.ors_filter = str2filter_x( cp->asc_op, op2.ors_filterstr.bv_val );
+		if ( op2.ors_filter == NULL ) {
+			rc = LDAP_PROTOCOL_ERROR;
+			goto url_done;
+		}
 		
 	} else {
-		op2.ors_filterstr = defaultFilter_bv;
+		op2.ors_filterstr = *slap_filterstr_objectClass_pres;
+		op2.ors_filter = slap_filter_objectClass_pres;
 	}
 
-	op2.ors_filter = str2filter_x( cp->asc_op, op2.ors_filterstr.bv_val );
-	if ( op2.ors_filter == NULL ) {
-		rc = LDAP_PROTOCOL_ERROR;
-		goto url_done;
-	}
 
 	/* Grab the scope */
 	op2.ors_scope = ludp->lud_scope;
@@ -2186,7 +2186,7 @@ acl_set_gather( SetCookie *cookie, struct berval *name, AttributeDescription *de
 	}
 
 url_done:;
-	if ( op2.ors_filter ) {
+	if ( op2.ors_filter && op2.ors_filter != slap_filter_objectClass_pres ) {
 		filter_free_x( cp->asc_op, op2.ors_filter );
 	}
 	if ( !BER_BVISNULL( &op2.o_req_ndn ) ) {
