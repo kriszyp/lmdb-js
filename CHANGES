@@ -7,6 +7,7 @@ OpenLDAP 2.3.39 Engineering
 	Fixed slapd ACL sets memory handling (ITS#4873)
 	Fixed slapd ordered values add normalization issue (ITS#5136)
 	Fixed slapd-bdb DB_CONFIG conversion bug (ITS#5118)
+	Fixed slapd-ldap search control parsing (ITS#5138)
 	Fixed slapd-ldap SASL idassert w/o authcId
 	Fixed slapd-meta conn caching on bind failure (ITS#5154)
 	Fixed slapd-sql concurrency issue (ITS#5095)
