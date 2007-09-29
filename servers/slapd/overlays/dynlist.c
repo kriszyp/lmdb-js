@@ -334,6 +334,19 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		return SLAP_CB_CONTINUE;
 	}
 
+#ifndef SLAP_OPATTRS
+	opattrs = ( rs->sr_attrs == NULL ) ? 0 : an_find( rs->sr_attrs, &AllOper );
+	userattrs = ( rs->sr_attrs == NULL ) ? 1 : an_find( rs->sr_attrs, &AllUser );
+#else /* SLAP_OPATTRS */
+	opattrs = SLAP_OPATTRS( rs->sr_attr_flags );
+	userattrs = SLAP_USERATTRS( rs->sr_attr_flags );
+#endif /* SLAP_OPATTRS */
+
+	/* Don't generate member list if it wasn't requested */
+	if ( dli->dli_member_ad && !userattrs && !ad_inlist( dli->dli_member_ad, rs->sr_attrs ) ) {
+		return SLAP_CB_CONTINUE;
+	}
+
 	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		e = entry_dup( rs->sr_entry );
 	} else {
@@ -359,14 +372,6 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 	o.ors_limit = NULL;
 	o.ors_tlimit = SLAP_NO_LIMIT;
 	o.ors_slimit = SLAP_NO_LIMIT;
-
-#ifndef SLAP_OPATTRS
-	opattrs = ( rs->sr_attrs == NULL ) ? 0 : an_find( rs->sr_attrs, &AllOper );
-	userattrs = ( rs->sr_attrs == NULL ) ? 1 : an_find( rs->sr_attrs, &AllUser );
-#else /* SLAP_OPATTRS */
-	opattrs = SLAP_OPATTRS( rs->sr_attr_flags );
-	userattrs = SLAP_USERATTRS( rs->sr_attr_flags );
-#endif /* SLAP_OPATTRS */
 
 	for ( url = a->a_nvals; !BER_BVISNULL( url ); url++ ) {
 		LDAPURLDesc	*lud = NULL;
