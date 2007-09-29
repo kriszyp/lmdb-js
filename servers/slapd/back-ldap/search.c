@@ -603,12 +603,14 @@ ldap_build_entry(
 	Attribute	*attr, **attrp;
 	const char	*text;
 	int		last;
+	char *lastb;
+	ber_len_t len;
 
 	/* safe assumptions ... */
 	assert( ent != NULL );
 	BER_BVZERO( &ent->e_bv );
 
-	if ( ber_scanf( &ber, "{m{", bdn ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{m", bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;
 	}
 
@@ -628,9 +630,14 @@ ldap_build_entry(
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 
-	attrp = &ent->e_attrs;
+	ent->e_attrs = NULL;
+	if ( ber_first_element( &ber, &len, &lastb ) != LBER_SEQUENCE ) {
+		return LDAP_SUCCESS;
+	}
 
-	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
+	attrp = &ent->e_attrs;
+	while ( ber_next_element( &ber, &len, lastb ) == LBER_SEQUENCE &&
+		ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		int				i;
 		slap_syntax_validate_func	*validate;
 		slap_syntax_transform_func	*pretty;
@@ -826,9 +833,9 @@ ldap_back_entry_get(
 	if ( oc ) {
 		char	*ptr;
 
-		filter = ch_malloc( STRLENOF( "(objectclass=)" ) 
-				+ oc->soc_cname.bv_len + 1 );
-		ptr = lutil_strcopy( filter, "(objectclass=" );
+		filter = op->o_tmpalloc( STRLENOF( "(objectClass=" ")" ) 
+				+ oc->soc_cname.bv_len + 1, op->o_tmpmemctx );
+		ptr = lutil_strcopy( filter, "(objectClass=" );
 		ptr = lutil_strcopy( ptr, oc->soc_cname.bv_val );
 		*ptr++ = ')';
 		*ptr++ = '\0';
@@ -841,7 +848,8 @@ retry:
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
-	
+
+	/* TODO: timeout? */
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
 				attrp, 0, ctrls, NULL,
 				NULL, LDAP_NO_LIMIT, &result );
@@ -884,7 +892,7 @@ cleanup:
 	}
 
 	if ( filter ) {
-		ch_free( filter );
+		op->o_tmpfree( filter, op->o_tmpmemctx );
 	}
 
 	if ( lc != NULL ) {
