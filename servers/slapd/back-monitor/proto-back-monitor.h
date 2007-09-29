@@ -145,7 +145,8 @@ monitor_back_register_backend LDAP_P((
 	BackendInfo		*bi ));
 extern int
 monitor_back_register_database LDAP_P((
-	BackendDB		*be ));
+	BackendDB		*be,
+	struct berval	*ndn ));
 extern int
 monitor_back_register_overlay_info LDAP_P((
 	slap_overinst		*on ));
@@ -157,7 +158,8 @@ monitor_back_register_backend_limbo LDAP_P((
 	BackendInfo		*bi ));
 extern int
 monitor_back_register_database_limbo LDAP_P((
-	BackendDB		*be ));
+	BackendDB		*be,
+	struct berval	*ndn ));
 extern int
 monitor_back_register_overlay_info_limbo LDAP_P((
 	slap_overinst		*on ));

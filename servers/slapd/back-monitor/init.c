@@ -291,7 +291,7 @@ typedef struct entry_limbo_t {
 	slap_overinst		*el_on;
 	Entry			*el_e;
 	Attribute		*el_a;
-	struct berval		el_ndn;
+	struct berval		*el_ndn;
 	struct berval		el_nbase;
 	int			el_scope;
 	struct berval		el_filter;
@@ -337,7 +337,8 @@ monitor_back_register_backend_limbo(
 
 int
 monitor_back_register_database_limbo(
-	BackendDB		*be )
+	BackendDB		*be,
+	struct berval	*ndn )
 {
 	entry_limbo_t	**elpp, el = { 0 };
 	monitor_info_t 	*mi;
@@ -356,6 +357,7 @@ monitor_back_register_database_limbo(
 	el.el_type = LIMBO_DATABASE;
 
 	el.el_be = be;
+	el.el_ndn = ndn;
 	
 	for ( elpp = &mi->mi_entry_limbo;
 			*elpp;
@@ -1062,9 +1064,7 @@ done:;
 		entry_limbo_t	**elpp, el = { 0 };
 
 		el.el_type = LIMBO_ATTRS;
-		if ( !BER_BVISNULL( &ndn ) ) {
-			ber_dupbv( &el.el_ndn, &ndn );
-		}
+		el.el_ndn = ndn_in;
 		if ( !BER_BVISNULL( nbase ) ) {
 			ber_dupbv( &el.el_nbase, nbase);
 		}
@@ -1101,9 +1101,6 @@ done:;
 			}
 			if ( !BER_BVISNULL( &el.el_nbase ) ) {
 				ch_free( &el.el_nbase.bv_val );
-			}
-			if ( !BER_BVISNULL( &el.el_ndn ) ) {
-				ch_free( el.el_ndn.bv_val );
 			}
 			return -1;
 		}
@@ -2141,9 +2138,6 @@ monitor_back_destroy_limbo_entry(
 	if ( el->el_a ) {
 		attrs_free( el->el_a );
 	}
-	if ( !BER_BVISNULL( &el->el_ndn ) ) {
-		ber_memfree( el->el_ndn.bv_val );
-	}
 	if ( !BER_BVISNULL( &el->el_nbase ) ) {
 		ber_memfree( el->el_nbase.bv_val );
 	}
@@ -2401,7 +2395,7 @@ monitor_back_db_open(
 
 			case LIMBO_ATTRS:
 				rc = monitor_back_register_entry_attrs(
-						&el->el_ndn,
+						el->el_ndn,
 						el->el_a,
 						el->el_cb,
 						&el->el_nbase,
@@ -2411,7 +2405,7 @@ monitor_back_db_open(
 
 			case LIMBO_CB:
 				rc = monitor_back_register_entry_callback(
-						&el->el_ndn,
+						el->el_ndn,
 						el->el_cb,
 						&el->el_nbase,
 						el->el_scope,
@@ -2423,7 +2417,7 @@ monitor_back_db_open(
 				break;
 
 			case LIMBO_DATABASE:
-				rc = monitor_back_register_database( el->el_be );
+				rc = monitor_back_register_database( el->el_be, el->el_ndn );
 				break;
 
 			case LIMBO_OVERLAY_INFO:

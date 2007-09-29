@@ -317,8 +317,6 @@ bdb_monitor_db_init( BackendDB *be )
 	ldap_pvt_thread_mutex_init( &bdb->bi_idx_mutex );
 #endif /* BDB_MONITOR_IDX */
 
-	bdb->bi_monitor.bdm_scope = -1;
-
 	return 0;
 }
 
@@ -331,11 +329,10 @@ bdb_monitor_db_open( BackendDB *be )
 	struct bdb_info		*bdb = (struct bdb_info *) be->be_private;
 	Attribute		*a, *next;
 	monitor_callback_t	*cb = NULL;
-	struct berval		suffix, *filter, *base;
-	char			*ptr;
 	int			rc = 0;
 	BackendInfo		*mi;
 	monitor_extra_t		*mbe;
+	struct berval dummy = BER_BVC("");
 
 	if ( !SLAP_DBMONITORING( be ) ) {
 		return 0;
@@ -364,47 +361,6 @@ bdb_monitor_db_open( BackendDB *be )
 		}
 
 		return 0;
-	}
-
-	if ( bdb->bi_monitor.bdm_scope == -1 ) {
-		bdb->bi_monitor.bdm_scope = LDAP_SCOPE_ONELEVEL;
-	}
-	base = &bdb->bi_monitor.bdm_nbase;
-	BER_BVSTR( base, "cn=databases,cn=monitor" );
-	filter = &bdb->bi_monitor.bdm_filter;
-	BER_BVZERO( filter );
-
-	suffix.bv_len = ldap_bv2escaped_filter_value_len( &be->be_nsuffix[ 0 ] );
-	if ( suffix.bv_len == be->be_nsuffix[ 0 ].bv_len ) {
-		suffix = be->be_nsuffix[ 0 ];
-
-	} else {
-		ldap_bv2escaped_filter_value( &be->be_nsuffix[ 0 ], &suffix );
-	}
-
-	if ( BER_BVISEMPTY( &suffix ) ) {
-		/* frontend also has empty suffix, sigh! */
-		filter->bv_len = STRLENOF( "(&(namingContexts:distinguishedNameMatch:=" )
-			+ suffix.bv_len + STRLENOF( ")(!(cn=frontend)))" );
-		ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
-		ptr = lutil_strcopy( ptr, "(&(namingContexts:distinguishedNameMatch:=" );
-		ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
-		ptr = lutil_strcopy( ptr, ")(!(cn=frontend)))" );
-
-	} else {
-		/* just look for the naming context */
-		filter->bv_len = STRLENOF( "(namingContexts:distinguishedNameMatch:=" )
-			+ suffix.bv_len + STRLENOF( ")" );
-		ptr = filter->bv_val = ch_malloc( filter->bv_len + 1 );
-		ptr = lutil_strcopy( ptr, "(namingContexts:distinguishedNameMatch:=" );
-		ptr = lutil_strncopy( ptr, suffix.bv_val, suffix.bv_len );
-		ptr = lutil_strcopy( ptr, ")" );
-	}
-	ptr[ 0 ] = '\0';
-	assert( filter->bv_len == ptr - filter->bv_val );
-	
-	if ( suffix.bv_val != be->be_nsuffix[ 0 ].bv_val ) {
-		ch_free( suffix.bv_val );
 	}
 
 	/* alloc as many as required (plus 1 for objectClass) */
@@ -497,10 +453,10 @@ bdb_monitor_db_open( BackendDB *be )
 	cb->mc_private = (void *)bdb;
 
 	/* make sure the database is registered; then add monitor attributes */
-	rc = mbe->register_database( be );
+	rc = mbe->register_database( be, &bdb->bi_monitor.bdm_ndn );
 	if ( rc == 0 ) {
-		rc = mbe->register_entry_attrs( NULL, a, cb,
-			base, bdb->bi_monitor.bdm_scope, filter );
+		rc = mbe->register_entry_attrs( &bdb->bi_monitor.bdm_ndn, a, cb,
+			&dummy, 0, &dummy );
 	}
 
 cleanup:;
@@ -513,11 +469,6 @@ cleanup:;
 		if ( a != NULL ) {
 			attrs_free( a );
 			a = NULL;
-		}
-
-		if ( !BER_BVISNULL( filter ) ) {
-			ch_free( filter->bv_val );
-			BER_BVZERO( filter );
 		}
 	}
 
@@ -545,21 +496,15 @@ bdb_monitor_db_close( BackendDB *be )
 		return 0;
 	}
 
-	if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
+	if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_ndn ) ) {
 		BackendInfo		*mi = backend_info( "monitor" );
 		monitor_extra_t		*mbe;
 
 		if ( mi && &mi->bi_extra ) {
 			mbe = mi->bi_extra;
-			mbe->unregister_entry_callback( NULL,
+			mbe->unregister_entry_callback( &bdb->bi_monitor.bdm_ndn,
 				(monitor_callback_t *)bdb->bi_monitor.bdm_cb,
-				&bdb->bi_monitor.bdm_nbase,
-				bdb->bi_monitor.bdm_scope,
-				&bdb->bi_monitor.bdm_filter );
-		}
-
-		if ( !BER_BVISNULL( &bdb->bi_monitor.bdm_filter ) ) {
-			ch_free( bdb->bi_monitor.bdm_filter.bv_val );
+				NULL, 0, NULL );
 		}
 
 		memset( &bdb->bi_monitor, 0, sizeof( bdb->bi_monitor ) );

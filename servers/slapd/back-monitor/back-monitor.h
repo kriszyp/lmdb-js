@@ -288,7 +288,7 @@ typedef struct monitor_extra_t {
 
 	int (*register_subsys)( monitor_subsys_t *ms );
 	int (*register_backend)( BackendInfo *bi );
-	int (*register_database)( BackendDB *be );
+	int (*register_database)( BackendDB *be, struct berval *ndn );
 	int (*register_overlay_info)( slap_overinst *on );
 	int (*register_overlay)( BackendDB *be );
 	int (*register_entry)( Entry *e, monitor_callback_t *cb,
