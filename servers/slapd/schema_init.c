@@ -222,21 +222,23 @@ static int certificateListValidate( Syntax *syntax, struct berval *in )
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
 	ber_skip_data( ber, len );
 	tag = ber_skip_tag( ber, &len );	/* thisUpdate */
-	/* NOTE: in the certificates I'm playing with, the time is UTC.
-	 * maybe the tag is different from 0x17U for generalizedTime? */
-	if ( tag != 0x17U ) return LDAP_INVALID_SYNTAX;
+	/* Time is a CHOICE { UTCTime, GeneralizedTime } */
+	if ( tag != 0x17U && tag != 0x18U ) return LDAP_INVALID_SYNTAX;
 	ber_skip_data( ber, len );
 	/* Optional nextUpdate */
 	tag = ber_skip_tag( ber, &len );
-	if ( tag == 0x17U ) {
+	if ( tag == 0x17U || tag == 0x18U ) {
 		ber_skip_data( ber, len );
 		tag = ber_skip_tag( ber, &len );
 	}
-	/* Optional revokedCertificates */
+	/* revokedCertificates - Sequence of Sequence, Optional */
 	if ( tag == LBER_SEQUENCE ) {
-		/* Should NOT be empty */
-		ber_skip_data( ber, len );
-		tag = ber_skip_tag( ber, &len );
+		ber_len_t seqlen;
+		if ( ber_peek_tag( ber, &seqlen ) == LBER_SEQUENCE ) {
+			/* Should NOT be empty */
+			ber_skip_data( ber, len );
+			tag = ber_skip_tag( ber, &len );
+		}
 	}
 	/* Optional Extensions */
 	if ( tag == SLAP_X509_OPT_CL_CRLEXTENSIONS ) { /* ? */
@@ -3380,52 +3382,48 @@ certificateExactNormalize(
 	 * so that we can validate certs with serial longer
 	 * than sizeof(ber_int_t) */
 	tag = ber_peek_tag( ber, &len );	/* serial */
+
+	/* Use hex format. [-]0x123456789abcdef
+	 * Don't try to make special cases for multi-precision math
+	 * support here, normalized values need to be canonical and
+	 * consistent from machine to machine.
+	 */
 	if ( len > sizeof(ber_int_t) ) {
 		unsigned char *ptr;
+		char *sptr;
+		char sign = 0;
 		
 		tag = ber_skip_tag( ber, &len );
 		ptr = (unsigned char *)ber->ber_ptr;
 		ber_skip_data( ber, len );
 
-		while ( ptr[0] == '\0' && len > 0 ) {
+		/* Check for minimal encodings */
+		if ( ptr[0] & 0x80 ) {
+			if (( ptr[0] == 0xff ) && ( ptr[1] & 0x80 ))
+				return LDAP_INVALID_SYNTAX;
+			sign = -1;
+		} else if ( ptr[0] == 0 ) {
+			if (!( ptr[1] & 0x80 ))
+				return LDAP_INVALID_SYNTAX;
 			ptr++;
 			len--;
 		}
 
-#if defined(USE_MP_BIGNUM)
-		/* TODO */
-
-#elif defined(USE_MP_GMP)
-		/* TODO */
-		/* hint: use mpz_import(), mpz_get_str() */
-
-#elif defined(USE_MP_LONG_LONG)
-		if ( len <= sizeof( unsigned long long ) ) {
-			unsigned long long 	sn = 0;
-			int			i;
-
-			sn = ptr[0];
-
-			for ( i = 1; i < len; i++ ) {
-				sn <<= 8;
-				sn += ptr[i];
-			}
-
-			seriallen = snprintf( serialbuf, sizeof(serialbuf), "%llu", sn );
-
-		} else {
-			/* do not accept serialNumber that requires
-			 * more than long long */
-			rc = LDAP_INVALID_SYNTAX;
-			goto done;
+		seriallen = len * 2 + 3;	/* leading 0x, NUL */
+		if ( sign )
+			seriallen++;
+		if ( seriallen > sizeof( serialbuf ))
+			serial = slap_sl_malloc( seriallen, ctx );
+		sptr = serial;
+		if ( sign )
+			*sptr++ = '-';
+		*sptr++ = '0';
+		*sptr++ = 'x';
+		for ( i = 0; i<len; i++ ) {
+			sprintf( sptr, "%02x", sign ? 256 - ptr[i] : ptr[i] );
+			sptr += 2;
 		}
-
-#else
-		/* do not accept serialNumber that requires
-		 * more than long */
-		rc = LDAP_INVALID_SYNTAX;
-		goto done;
-#endif
+		seriallen--;
 
 	} else {
 		tag = ber_get_int( ber, &i );	/* serial */
