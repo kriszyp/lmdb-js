@@ -53,7 +53,7 @@ int passwd_extop(
 	Modifications *ml;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	int i, nhash;
-	char **hashes;
+	char **hashes, idNul;
 	int rc;
 	BackendDB *op_be;
 	int freenewpw = 0;
@@ -77,6 +77,10 @@ int passwd_extop(
 	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id,
 		&qpw->rs_old, &qpw->rs_new, &rs->sr_text );
 
+	if ( !BER_BVISNULL( &id )) {
+		idNul = id.bv_val[id.bv_len];
+		id.bv_val[id.bv_len] = '\0';
+	}
 	if ( rs->sr_err == LDAP_SUCCESS && !BER_BVISEMPTY( &id ) ) {
 		Statslog( LDAP_DEBUG_STATS, "%s PASSMOD id=\"%s\"%s%s\n",
 			op->o_log_prefix, id.bv_val,
@@ -90,12 +94,15 @@ int passwd_extop(
 	}
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+		if ( !BER_BVISNULL( &id ))
+			id.bv_val[id.bv_len] = idNul;
 		return rs->sr_err;
 	}
 
 	if ( !BER_BVISEMPTY( &id ) ) {
 		rs->sr_err = dnPrettyNormal( NULL, &id, &op->o_req_dn,
 				&op->o_req_ndn, op->o_tmpmemctx );
+		id.bv_val[id.bv_len] = idNul;
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "Invalid DN";
 			rc = rs->sr_err;
@@ -317,6 +324,10 @@ error_return:;
 	return rc;
 }
 
+/* NOTE: The DN in *id is NOT NUL-terminated here. dnNormalize will
+ * reject it in this condition, the caller must NUL-terminate it.
+ * FIXME: should dnNormalize still be complaining about that?
+ */
 int slap_passwd_parse( struct berval *reqdata,
 	struct berval *id,
 	struct berval *oldpass,
@@ -341,9 +352,9 @@ int slap_passwd_parse( struct berval *reqdata,
 	/* ber_init2 uses reqdata directly, doesn't allocate new buffers */
 	ber_init2( ber, reqdata, 0 );
 
-	tag = ber_scanf( ber, "{" /*}*/ );
+	tag = ber_skip_tag( ber, &len );
 
-	if( tag == LBER_ERROR ) {
+	if( tag != LBER_SEQUENCE ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_passwd_parse: decoding error\n", 0, 0, 0 );
 		rc = LDAP_PROTOCOL_ERROR;
@@ -361,7 +372,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "m", id );
+		tag = ber_get_stringbv( ber, id, LBER_BV_NOTERM );
 
 		if( tag == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID parse failed.\n",
@@ -383,7 +394,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "m", oldpass );
+		tag = ber_get_stringbv( ber, oldpass, LBER_BV_NOTERM );
 
 		if( tag == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD parse failed.\n",
@@ -414,7 +425,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "m", newpass );
+		tag = ber_get_stringbv( ber, newpass, LBER_BV_NOTERM );
 
 		if( tag == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: NEW parse failed.\n",

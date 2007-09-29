@@ -845,8 +845,11 @@ rwm_exop_passwd( Operation *op, SlapReply *rs )
 	}
 
 	if ( !BER_BVISNULL( &id ) ) {
+		char idNul = id.bv_val[id.bv_len];
+		id.bv_val[id.bv_len] = '\0';
 		rs->sr_err = dnPrettyNormal( NULL, &id, &op->o_req_dn,
 				&op->o_req_ndn, op->o_tmpmemctx );
+		id.bv_val[id.bv_len] = idNul;
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "Invalid DN";
 			return rs->sr_err;
