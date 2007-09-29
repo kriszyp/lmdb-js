@@ -558,6 +558,14 @@ nextresp3:
 		if ( sock_errno() == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 		ld->ld_errno = LDAP_SERVER_DOWN;
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+		ldap_free_connection( ld, lc, 1, 0 );
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+		lc = *lcp = NULL;
 		return -1;
 
 	default:
