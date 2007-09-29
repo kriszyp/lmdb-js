@@ -193,11 +193,13 @@ static OidRec OidMacros[] = {
 	{ "OLcfgBkAt", "OLcfgAt:1" },
 	{ "OLcfgDbAt", "OLcfgAt:2" },
 	{ "OLcfgOvAt", "OLcfgAt:3" },
+	{ "OLcfgCtAt", "OLcfgAt:4" },	/* contrib modules */
 	{ "OLcfgOc", "OLcfg:4" },
 	{ "OLcfgGlOc", "OLcfgOc:0" },
 	{ "OLcfgBkOc", "OLcfgOc:1" },
 	{ "OLcfgDbOc", "OLcfgOc:2" },
 	{ "OLcfgOvOc", "OLcfgOc:3" },
+	{ "OLcfgCtOc", "OLcfgOc:4" },	/* contrib modules */
 
 	/* Syntaxes. We should just start using the standard names and
 	 * document that they are predefined and available for users
@@ -235,8 +237,6 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:3			-> chain
  * OLcfgOv{Oc|At}:4			-> accesslog
  * OLcfgOv{Oc|At}:5			-> valsort
- * (FIXME: separate arc for contribware?)
- * OLcfgOv{Oc|At}:6			-> smbk5pwd
  * OLcfgOv{Oc|At}:7			-> distproc
  * OLcfgOv{Oc|At}:8			-> dynlist
  * OLcfgOv{Oc|At}:9			-> dds
