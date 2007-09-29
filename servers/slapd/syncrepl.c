@@ -3002,7 +3002,7 @@ nonpresent_callback(
 
 	} else if ( rs->sr_type == REP_SEARCH ) {
 		if ( !( si->si_refreshDelete & NP_DELETE_ONE ) ) {
-			char buf[sizeof("rid=000 not")];
+			char buf[sizeof("rid=4096 not")];
 
 			a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
 
@@ -3012,7 +3012,7 @@ nonpresent_callback(
 			}
 
 			if ( slap_debug & LDAP_DEBUG_SYNC ) {
-				sprintf( buf, "%s %s", si->si_ridtxt,
+				snprintf( buf, sizeof(buf), "%s %s", si->si_ridtxt,
 					present_uuid ? "got" : "not" );
 			}
 
