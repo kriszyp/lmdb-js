@@ -1885,6 +1885,7 @@ meta_send_entry(
 			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); ++last )
 				;
 		}
+		attr->a_numvals = last;
 
 		validate = attr->a_desc->ad_type->sat_syntax->ssyn_validate;
 		pretty = attr->a_desc->ad_type->sat_syntax->ssyn_pretty;

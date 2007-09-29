@@ -1287,6 +1287,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	SlapReply rsm = { 0 };
 	slap_callback cb = {0};
 
+	mod.sml_numvals = si->si_numcsns;
 	mod.sml_values = si->si_ctxcsn;
 	mod.sml_nvalues = NULL;
 	mod.sml_desc = slap_schema.si_ad_contextCSN;
@@ -1679,10 +1680,10 @@ syncprov_op_compare( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_COMPARE_FALSE;
 
-		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
+		if ( attr_valfind( &a,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a.a_nvals, &op->oq_compare.rs_ava->aa_value, op->o_tmpmemctx ) == 0 )
+				&op->oq_compare.rs_ava->aa_value, NULL, op->o_tmpmemctx ) == 0 )
 		{
 			rs->sr_err = LDAP_COMPARE_TRUE;
 		}
@@ -2306,9 +2307,9 @@ syncprov_operational(
 					a->a_nvals = NULL;
 					ber_bvarray_free( a->a_vals );
 					a->a_vals = NULL;
+					a->a_numvals = 0;
 				}
-				ber_bvarray_dup_x( &a->a_vals, si->si_ctxcsn, NULL );
-				ber_bvarray_dup_x( &a->a_nvals, si->si_ctxcsn, NULL );
+				attr_valadd( a, si->si_ctxcsn, si->si_ctxcsn, si->si_numcsns );
 			}
 			ldap_pvt_thread_rdwr_runlock( &si->si_csn_rwlock );
 		}
@@ -2554,11 +2555,9 @@ syncprov_db_open(
 
 		a = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
 		if ( a ) {
-			int i;
 			ber_bvarray_dup_x( &si->si_ctxcsn, a->a_vals, NULL );
-			for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ );
-			si->si_numcsns = i;
-			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, i, NULL );
+			si->si_numcsns = a->a_numvals;
+			si->si_sids = slap_parse_csn_sids( si->si_ctxcsn, a->a_numvals, NULL );
 		}
 		overlay_entry_release_ov( op, e, 0, on );
 		if ( si->si_ctxcsn ) {

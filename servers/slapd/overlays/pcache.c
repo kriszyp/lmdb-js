@@ -1367,8 +1367,7 @@ remove_func (
 	attr = attr_find( rs->sr_entry->e_attrs,  ad_queryId );
 	if ( attr == NULL ) return 0;
 
-	for ( count = 0; !BER_BVISNULL( &attr->a_vals[count] ); count++ )
-		;
+	count = attr->a_numvals;
 	assert( count > 0 );
 	qi = op->o_tmpalloc( sizeof( struct query_info ), op->o_tmpmemctx );
 	qi->next = op->o_callback->sc_private;
@@ -1450,6 +1449,7 @@ remove_query_data(
 			mod.sml_type = ad_queryId->ad_cname;
 			mod.sml_values = vals;
 			mod.sml_nvalues = NULL;
+                        mod.sml_numvals = 1;
 			mod.sml_next = NULL;
 			Debug( pcache_debug,
 				"REMOVING TEMP ATTR : TEMPLATE=%s\n",
@@ -3354,6 +3354,7 @@ pcache_db_close(
 		mod.sml_type = ad_cachedQueryURL->ad_cname;
 		mod.sml_values = vals;
 		mod.sml_nvalues = NULL;
+                mod.sml_numvals = 1;
 		mod.sml_next = NULL;
 		Debug( pcache_debug,
 			"%sSETTING CACHED QUERY URLS\n",

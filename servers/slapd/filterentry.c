@@ -212,12 +212,7 @@ static int test_mra_filter(
 			if ( mra->ma_cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
 				num_attr_vals = 0;
 				if ( !a->a_comp_data ) {
-					for ( ;
-						!BER_BVISNULL( &a->a_vals[num_attr_vals] );
-						num_attr_vals++ )
-					{
-						/* empty */;
-					}
+					num_attr_vals = a->a_numvals;
 					if ( num_attr_vals <= 0 ) {
 						/* no attribute value */
 						return LDAP_INAPPROPRIATE_MATCHING;
@@ -659,6 +654,56 @@ test_ava_filter(
 
 		if( mr == NULL ) {
 			rc = LDAP_INAPPROPRIATE_MATCHING;
+			continue;
+		}
+
+		/* We have no Sort optimization for Approx matches */
+		if (( a->a_flags & SLAP_ATTR_SORTED_VALS ) && type != LDAP_FILTER_APPROX ) {
+			unsigned slot;
+			int ret;
+
+			/* For Ordering matches, we just need to do one comparison with
+			 * either the first (least) or last (greatest) value.
+			 */
+			if ( use == SLAP_MR_ORDERING ) {
+				const char *text;
+				int match, which;
+				which = (type == LDAP_FILTER_LE) ? 0 : a->a_numvals-1;
+				ret = value_match( &match, a->a_desc, mr, use,
+					&a->a_nvals[which], &ava->aa_value, &text );
+				if ( ret != LDAP_SUCCESS ) return ret;
+				if (( type == LDAP_FILTER_LE && match <= 0 ) ||
+					( type == LDAP_FILTER_GE && match >= 0 ))
+					return LDAP_COMPARE_TRUE;
+				continue;
+			}
+			/* Only Equality will get here */
+			ret = attr_valfind( a, use | SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH, 
+				&ava->aa_value, &slot, NULL );
+			if ( ret == LDAP_SUCCESS )
+				return LDAP_COMPARE_TRUE;
+			else if ( ret != LDAP_NO_SUCH_ATTRIBUTE )
+				return ret;
+#if 0
+			/* The following is useful if we want to know which values
+			 * matched an ordering test. But here we don't care, we just
+			 * want to know if any value did, and that is checked above.
+			 */
+			if ( ret == LDAP_NO_SUCH_ATTRIBUTE ) {
+				/* If insertion point is not the end of the list, there was
+				 * at least one value greater than the assertion.
+				 */
+				if ( type == LDAP_FILTER_GE && slot < a->a_numvals )
+					return LDAP_COMPARE_TRUE;
+				/* Likewise, if insertion point is not the head of the list,
+				 * there was at least one value less than the assertion.
+				 */
+				if ( type == LDAP_FILTER_LE && slot > 0 )
+					return LDAP_COMPARE_TRUE;
+				return LDAP_COMPARE_FALSE;
+			}
+#endif
 			continue;
 		}
 

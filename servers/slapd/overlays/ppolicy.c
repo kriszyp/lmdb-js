@@ -921,6 +921,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 		m->sml_flags = 0;
 		m->sml_type = ad_pwdFailureTime->ad_cname;
 		m->sml_desc = ad_pwdFailureTime;
+		m->sml_numvals = 1;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 
@@ -970,6 +971,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 			m->sml_flags = 0;
 			m->sml_type = ad_pwdAccountLockedTime->ad_cname;
 			m->sml_desc = ad_pwdAccountLockedTime;
+			m->sml_numvals = 1;
 			m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 			m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 			ber_dupbv( &m->sml_values[0], &timestamp );
@@ -1062,6 +1064,7 @@ grace:
 		m->sml_flags = 0;
 		m->sml_type = ad_pwdGraceUseTime->ad_cname;
 		m->sml_desc = ad_pwdGraceUseTime;
+		m->sml_numvals = 1;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
 		ber_dupbv( &m->sml_values[0], &timestamp );
@@ -1469,6 +1472,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				ml->sml_flags = SLAP_MOD_INTERNAL;
 				ml->sml_type.bv_val = NULL;
 				ml->sml_desc = ad_pwdGraceUseTime;
+				ml->sml_numvals = 0;
 				ml->sml_values = NULL;
 				ml->sml_nvalues = NULL;
 				ml->sml_next = NULL;
@@ -1481,6 +1485,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				ml->sml_flags = SLAP_MOD_INTERNAL;
 				ml->sml_type.bv_val = NULL;
 				ml->sml_desc = ad_pwdAccountLockedTime;
+				ml->sml_numvals = 0;
 				ml->sml_values = NULL;
 				ml->sml_nvalues = NULL;
 				ml->sml_next = NULL;
@@ -1492,6 +1497,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				ml->sml_flags = SLAP_MOD_INTERNAL;
 				ml->sml_type.bv_val = NULL;
 				ml->sml_desc = ad_pwdFailureTime;
+				ml->sml_numvals = 0;
 				ml->sml_values = NULL;
 				ml->sml_nvalues = NULL;
 				ml->sml_next = NULL;
@@ -1671,6 +1677,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		ml->sml_flags = SLAP_MOD_INTERNAL;
 		ml->sml_desc = pp.ad;
 		ml->sml_type = pp.ad->ad_cname;
+		ml->sml_numvals = 1;
 		ml->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &ml->sml_values[0], &oldpw );
 		BER_BVZERO( &ml->sml_values[1] );
@@ -1838,6 +1845,7 @@ do_modify:
 		mods->sml_desc = ad_pwdChangedTime;
 		if (pwmop != LDAP_MOD_DELETE) {
 			mods->sml_op = LDAP_MOD_REPLACE;
+			mods->sml_numvals = 1;
 			mods->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mods->sml_values[0], &timestamp );
 			BER_BVZERO( &mods->sml_values[1] );
@@ -1914,6 +1922,7 @@ do_modify:
 				mods->sml_op = LDAP_MOD_DELETE;
 				mods->sml_flags = SLAP_MOD_INTERNAL;
 				mods->sml_desc = ad_pwdHistory;
+				mods->sml_numvals = hsize - pp.pwdInHistory + 1;
 				mods->sml_values = ch_calloc( sizeof( struct berval ),
 					hsize - pp.pwdInHistory + 2 );
 				BER_BVZERO( &mods->sml_values[ hsize - pp.pwdInHistory + 1 ] );
@@ -1945,6 +1954,7 @@ do_modify:
 				mods->sml_type.bv_val = NULL;
 				mods->sml_desc = ad_pwdHistory;
 				mods->sml_nvalues = NULL;
+				mods->sml_numvals = 1;
 				mods->sml_values = ch_calloc( sizeof( struct berval ), 2 );
 				mods->sml_values[ 1 ].bv_val = NULL;
 				mods->sml_values[ 1 ].bv_len = 0;

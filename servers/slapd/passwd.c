@@ -252,6 +252,7 @@ old_good:
 		nhash = 1;
 		hashes = (char **)defhash;
 	}
+	ml->sml_numvals = nhash;
 	ml->sml_values = ch_malloc( (nhash+1)*sizeof(struct berval) );
 	for ( i=0; hashes[i]; i++ ) {
 		slap_passwd_hash_type( &qpw->rs_new, &hash, hashes[i], &rs->sr_text );

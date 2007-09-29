@@ -1365,11 +1365,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		/* count all the vals */
 		i = 0;
 		for ( a=e2->e_attrs; a; a=a->a_next ) {
-			if ( a->a_vals ) {
-				for (b=a->a_vals; !BER_BVISNULL( b ); b++) {
-					i++;
-				}
-			}
+			i += a->a_numvals;
 		}
 		vals = ch_malloc( (i+1) * sizeof( struct berval ));
 		i = 0;
@@ -1383,6 +1379,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		vals[i].bv_val = NULL;
 		vals[i].bv_len = 0;
 		a = attr_alloc( logop == LOG_EN_ADD ? ad_reqMod : ad_reqOld );
+		a->a_numvals = i;
 		a->a_vals = vals;
 		a->a_nvals = vals;
 		last_attr->a_next = a;
@@ -1395,9 +1392,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		i = 0;
 		for ( m = op->orm_modlist; m; m = m->sml_next ) {
 			if ( m->sml_values ) {
-				for ( b = m->sml_values; !BER_BVISNULL( b ); b++ ) {
-					i++;
-				}
+				i += m->sml_numvals;
 			} else if ( m->sml_op == LDAP_MOD_DELETE ||
 				m->sml_op == LDAP_MOD_REPLACE )
 			{
@@ -1478,6 +1473,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 		if ( i > 0 ) {
 			BER_BVZERO( &vals[i] );
 			a = attr_alloc( ad_reqMod );
+			a->a_numvals = i;
 			a->a_vals = vals;
 			a->a_nvals = vals;
 			last_attr->a_next = a;
@@ -1492,9 +1488,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			i = 0;
 			for ( a = old->e_attrs; a != NULL; a = a->a_next ) {
 				if ( a->a_vals && a->a_flags ) {
-					for ( b = a->a_vals; !BER_BVISNULL( b ); b++ ) {
-						i++;
-					}
+					i += a->a_numvals;
 				}
 			}
 			vals = ch_malloc( (i + 1) * sizeof( struct berval ) );
@@ -1509,6 +1503,7 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 			vals[i].bv_val = NULL;
 			vals[i].bv_len = 0;
 			a = attr_alloc( ad_reqOld );
+			a->a_numvals = i;
 			a->a_vals = vals;
 			a->a_nvals = vals;
 			last_attr->a_next = a;
@@ -1788,10 +1783,9 @@ accesslog_operational( Operation *op, SlapReply *rs )
 				ad_inlist( ad_auditContext, rs->sr_attrs ) )
 		{
 			*ap = attr_alloc( ad_auditContext );
-			value_add_one( &(*ap)->a_vals,
-				&li->li_db->be_suffix[0] );
-			value_add_one( &(*ap)->a_nvals,
-				&li->li_db->be_nsuffix[0] );
+			attr_valadd( *ap,
+				&li->li_db->be_suffix[0],
+				&li->li_db->be_nsuffix[0], 1 );
 		}
 	}
 

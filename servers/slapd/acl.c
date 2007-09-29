@@ -974,11 +974,10 @@ acl_mask_dnattr(
 		at != NULL;
 		at = attrs_find( at->a_next, bdn->a_at ) )
 	{
-		if ( value_find_ex( bdn->a_at,
+		if ( attr_valfind( at,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			at->a_nvals,
-			&bv, op->o_tmpmemctx ) == 0 )
+			&bv, NULL, op->o_tmpmemctx ) == 0 )
 		{
 			/* found it */
 			match = 1;
@@ -2043,11 +2042,6 @@ acl_set_cb_gather( Operation *op, SlapReply *rs )
 
 				a = attr_find( rs->sr_entry->e_attrs, desc );
 				if ( a != NULL ) {
-					int	i;
-
-					for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ )
-						;
-
 					bvalsp = a->a_nvals;
 				}
 			}

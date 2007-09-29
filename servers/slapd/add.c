@@ -380,6 +380,7 @@ slap_mods2entry(
 	char *textbuf, size_t textlen )
 {
 	Attribute **tail;
+	int i;
 
 	if ( initial ) {
 		assert( (*e)->e_attrs == NULL );
@@ -400,7 +401,7 @@ slap_mods2entry(
 		if( attr != NULL ) {
 #define SLURPD_FRIENDLY
 #ifdef SLURPD_FRIENDLY
-			ber_len_t i,j;
+			int j;
 
 			if ( !initial ) {
 				/*	
@@ -413,12 +414,9 @@ slap_mods2entry(
 				return LDAP_SUCCESS;
 			}
 
-			for( i=0; attr->a_vals[i].bv_val; i++ ) {
-				/* count them */
-			}
-			for( j=0; mods->sml_values[j].bv_val; j++ ) {
-				/* count them */
-			}
+			i = attr->a_numvals;
+			j = mods->sml_numvals;
+			attr->a_numvals += j;
 			j++;	/* NULL */
 			
 			attr->a_vals = ch_realloc( attr->a_vals,
@@ -466,9 +464,9 @@ slap_mods2entry(
 		attr = attr_alloc( mods->sml_desc );
 
 		/* move values to attr structure */
+		i = mods->sml_numvals;
+		attr->a_numvals = mods->sml_numvals;
 		if ( dup ) { 
-			int i;
-			for ( i = 0; mods->sml_values[i].bv_val; i++ ) /* EMPTY */;
 			attr->a_vals = (BerVarray) ch_calloc( i+1, sizeof( BerValue ));
 			for ( i = 0; mods->sml_values[i].bv_val; i++ ) {
 				ber_dupbv( &attr->a_vals[i], &mods->sml_values[i] );
@@ -480,8 +478,7 @@ slap_mods2entry(
 
 		if ( mods->sml_nvalues ) {
 			if ( dup ) {
-				int i;
-				for ( i = 0; mods->sml_nvalues[i].bv_val; i++ ) /* EMPTY */;
+				i = mods->sml_numvals;
 				attr->a_nvals = (BerVarray) ch_calloc( i+1, sizeof( BerValue ));
 				for ( i = 0; mods->sml_nvalues[i].bv_val; i++ ) {
 					ber_dupbv( &attr->a_nvals[i], &mods->sml_nvalues[i] );
@@ -493,6 +490,9 @@ slap_mods2entry(
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
+		/* slap_mods_check() gives us sorted results */
+		if ( attr->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL )
+			attr->a_flags |= SLAP_ATTR_SORTED_VALS;
 
 		*tail = attr;
 		tail = &attr->a_next;
@@ -528,7 +528,8 @@ slap_entry2mods(
 
 		mod->sml_type = a_new_desc->ad_cname;
 
-		for ( count = 0; a_new->a_vals[count].bv_val; count++ ) /* EMPTY */;
+		count = a_new->a_numvals;
+		mod->sml_numvals = a_new->a_numvals;
 
 		mod->sml_values = (struct berval*) malloc(
 			(count+1) * sizeof( struct berval) );

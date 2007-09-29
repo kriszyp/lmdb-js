@@ -55,6 +55,7 @@ backsql_operational_entryUUID( backsql_info *bi, backsql_entryID *id )
 
 	a = attr_alloc( desc );
 
+	a->a_numvals = 1;
 	a->a_vals = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	a->a_vals[ 0 ] = val;
 	BER_BVZERO( &a->a_vals[ 1 ] );
@@ -74,6 +75,7 @@ backsql_operational_entryCSN( Operation *op )
 	Attribute	*a;
 
 	a = attr_alloc( slap_schema.si_ad_entryCSN );
+	a->a_numvals = 1;
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
 	BER_BVZERO( &a->a_vals[ 1 ] );
 

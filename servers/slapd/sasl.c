@@ -455,6 +455,7 @@ slap_auxprop_store(
 		mod->sml_op = LDAP_MOD_REPLACE;
 		mod->sml_flags = 0;
 		ber_str2bv( pr[i].name, 0, 0, &mod->sml_type );
+		mod->sml_numvals = pr[i].nvalues;
 		mod->sml_values = (struct berval *)ch_malloc( (pr[i].nvalues + 1) *
 			sizeof(struct berval));
 		for (j=0; j<pr[i].nvalues; j++) {

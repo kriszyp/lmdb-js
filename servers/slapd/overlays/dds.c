@@ -788,6 +788,7 @@ done:;
 			tmpmod->sml_op = LDAP_MOD_REPLACE;
 			value_add_one( &tmpmod->sml_values, &bv );
 			value_add_one( &tmpmod->sml_nvalues, &bv );
+			tmpmod->sml_numvals = 1;
 		}
 	}
 
@@ -1087,6 +1088,7 @@ dds_op_extended( Operation *op, SlapReply *rs )
 		ttlmod.sml_flags = SLAP_MOD_MANAGING;
 		ttlmod.sml_desc = slap_schema.si_ad_entryTtl;
 		ttlmod.sml_values = ttlvalues;
+		ttlmod.sml_numvals = 1;
 		ttlvalues[ 0 ].bv_val = ttlbuf;
 		ttlvalues[ 0 ].bv_len = snprintf( ttlbuf, sizeof( ttlbuf ), "%ld", ttl );
 		BER_BVZERO( &ttlvalues[ 1 ] );

@@ -617,8 +617,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		BerVarray	tmp;
 
 		if ( attr->a_vals != NULL ) {
-			for ( ; !BER_BVISNULL( &attr->a_vals[ oldcount ] ); oldcount++ )
-				/* just count */ ;
+			oldcount = attr->a_numvals;
 		}
 
 		tmp = ch_realloc( attr->a_vals, ( oldcount + count + 1 ) * sizeof( struct berval ) );
@@ -639,19 +638,20 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
+		attr->a_numvals += count;
 
 	} else {
 		append = 1;
 
 		/* Make space for the array of values */
 		attr = attr_alloc( at->bam_true_ad );
+		attr->a_numvals = count;
 		attr->a_vals = ch_calloc( count + 1, sizeof( struct berval ) );
 		if ( attr->a_vals == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "Out of memory!\n", 0,0,0 );
 			ch_free( attr );
 			return 1;
 		}
-		memset( attr->a_vals, 0, ( count + 1 ) * sizeof( struct berval ) );
 		if ( normfunc ) {
 			attr->a_nvals = ch_calloc( count + 1, sizeof( struct berval ) );
 			if ( attr->a_nvals == NULL ) {
@@ -659,8 +659,6 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				ch_free( attr );
 				return 1;
 
-			} else {
-				memset( attr->a_nvals, 0, ( count + 1 ) * sizeof( struct berval ) );
 			}
 
 		} else {

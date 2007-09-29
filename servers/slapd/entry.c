@@ -277,9 +277,22 @@ str2entry2( char *s, int checkvals )
 
 		if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
 			int j, k;
+			/* FIXME: we only need this when migrating from an unsorted DB */
+			if ( atail != &ahead && atail->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+				rc = slap_sort_vals( (Modifications *)atail, &text, &j, NULL );
+				if ( rc == LDAP_SUCCESS ) {
+					atail->a_flags |= SLAP_ATTR_SORTED_VALS;
+				} else if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+					Debug( LDAP_DEBUG_ANY,
+						"str2entry: attributeType %s value #%d provided more than once\n",
+						atail->a_desc->ad_cname.bv_val, j, 0 );
+					goto fail;
+				}
+			}
 			atail->a_next = attr_alloc( NULL );
 			atail = atail->a_next;
 			atail->a_flags = 0;
+			atail->a_numvals = attr_cnt;
 			atail->a_desc = ad_prev;
 			atail->a_vals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
 			if( ad_prev->ad_type->sat_equality &&
@@ -371,7 +384,7 @@ str2entry2( char *s, int checkvals )
 
 			if ( rc ) {
 				Debug( LDAP_DEBUG_ANY,
-			   		"<= str2entry NULL (smr_normalize %d)\n", rc, 0, 0 );
+			   		"<= str2entry NULL (smr_normalize %s %d)\n", ad->ad_cname.bv_val, rc, 0 );
 				goto fail;
 			}
 		}
@@ -744,6 +757,7 @@ int entry_encode(Entry *e, struct berval *bv)
 		*ptr++ = '\0';
 		if (a->a_vals) {
 			for (i=0; a->a_vals[i].bv_val; i++);
+			assert( i == a->a_numvals );
 			entry_putlen(&ptr, i);
 			for (i=0; a->a_vals[i].bv_val; i++) {
 				entry_putlen(&ptr, a->a_vals[i].bv_len);
@@ -805,7 +819,7 @@ int entry_decode(EntryHeader *eh, Entry **e, void *ctx)
 int entry_decode(EntryHeader *eh, Entry **e)
 #endif
 {
-	int i, j, count, nattrs, nvals;
+	int i, j, nattrs, nvals;
 	int rc;
 	Attribute *a;
 	Entry *x;
@@ -857,7 +871,8 @@ int entry_decode(EntryHeader *eh, Entry **e)
 		ptr += i + 1;
 		a->a_desc = ad;
 		a->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
-		count = j = entry_getlen(&ptr);
+		j = entry_getlen(&ptr);
+		a->a_numvals = j;
 		a->a_vals = bptr;
 
 		while (j) {
@@ -888,6 +903,19 @@ int entry_decode(EntryHeader *eh, Entry **e)
 			bptr++;
 		} else {
 			a->a_nvals = a->a_vals;
+		}
+		/* FIXME: This is redundant once a sorted entry is saved into the DB */
+		if ( a->a_desc->ad_type->sat_flags & SLAP_AT_SORTED_VAL ) {
+			rc = slap_sort_vals( (Modifications *)a, &text, &j, NULL );
+			if ( rc == LDAP_SUCCESS ) {
+				a->a_flags |= SLAP_ATTR_SORTED_VALS;
+			} else if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
+				/* should never happen */
+				Debug( LDAP_DEBUG_ANY,
+					"entry_decode: attributeType %s value #%d provided more than once\n",
+					a->a_desc->ad_cname.bv_val, j, 0 );
+				return rc;
+			}
 		}
 		a = a->a_next;
 		nattrs--;
@@ -962,6 +990,7 @@ Entry *entry_dup_bv( Entry *e )
 		dst->a_desc = src->a_desc;
 		dst->a_flags = SLAP_ATTR_DONT_FREE_DATA | SLAP_ATTR_DONT_FREE_VALS;
 		dst->a_vals = bvl;
+		dst->a_numvals = src->a_numvals;
 		for ( i=0; src->a_vals[i].bv_val; i++ ) {
 			bvl->bv_len = src->a_vals[i].bv_len;
 			bvl->bv_val = ptr;

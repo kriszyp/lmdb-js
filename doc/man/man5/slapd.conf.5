@@ -495,6 +495,9 @@ for the segments of a filter string that are processed for a subany index
 lookup. The default is 2. For example, with the default values, a search
 using this filter "cn=*abcdefgh*" would generate index lookups for
 "abcd", "cdef", and "efgh".
+
+Note: Indexing support depends on the particular backend in use.
+
 .TP
 .B localSSF <SSF>
 Specifies the Security Strength Factor (SSF) to be given local LDAP sessions,
@@ -890,6 +893,14 @@ The default is 262143.
 .B sockbuf_max_incoming_auth <integer>
 Specify the maximum incoming LDAP PDU size for authenticated sessions.
 The default is 4194303.
+.TP
+.B sortvals <attr> [...]
+Specify a list of multi-valued attributes whose values will always
+be maintained in sorted order. Using this option will allow Modify,
+Compare, and filter evaluations on these attributes to be performed
+more efficiently. The resulting sort order depends on the
+attributes' syntax and matching rules and may not correspond to
+lexical order or any other recognizable order.
 .TP
 .B threads <integer>
 Specify the maximum size of the primary thread pool.

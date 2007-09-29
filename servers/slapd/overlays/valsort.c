@@ -304,9 +304,7 @@ valsort_response( Operation *op, SlapReply *rs )
 			a = attr_find( rs->sr_entry->e_attrs, vi->vi_ad );
 		}
 
-		/* count values */
-		for ( n = 0; !BER_BVISNULL( &a->a_vals[n] ); n++ );
-
+		n = a->a_numvals;
 		if ( vi->vi_sort & VALSORT_WEIGHTED ) {
 			int j, gotnvals;
 			long *index = op->o_tmpalloc( n * sizeof(long), op->o_tmpmemctx );

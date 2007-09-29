@@ -92,10 +92,10 @@ dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
 	}
 
 	for ( ; dli; dli = dli->dli_next ) {
-		if ( value_find_ex( slap_schema.si_ad_objectClass, 
+		if ( attr_valfind( a,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a->a_nvals, &dli->dli_oc->soc_cname,
+				&dli->dli_oc->soc_cname, NULL,
 				op->o_tmpmemctx ) == 0 )
 		{
 			return dli;
@@ -189,6 +189,7 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 			mod.sm_type = dlc->dlc_dli->dli_member_ad->ad_cname;
 			mod.sm_values = vals;
 			mod.sm_nvalues = nvals;
+			mod.sm_numvals = 1;
 
 			(void)modify_add_values( e, &mod, /* permissive */ 1,
 					&text, textbuf, sizeof( textbuf ) );
@@ -248,8 +249,7 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 		}
 
 		/* test access to attribute */
-		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
-			/* just count */ ;
+		i = a->a_numvals;
 
 		vals = op->o_tmpalloc( ( i + 1 ) * sizeof( struct berval ), op->o_tmpmemctx );
 		if ( a->a_nvals != a->a_vals ) {
@@ -293,6 +293,7 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 			mod.sm_type = a->a_desc->ad_cname;
 			mod.sm_values = vals;
 			mod.sm_nvalues = nvals;
+			mod.sm_numvals = j;
 
 			(void)modify_add_values( e, &mod, /* permissive */ 1,
 					&text, textbuf, sizeof( textbuf ) );
@@ -635,7 +636,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 		}
 
 		o.ors_filterstr = *slap_filterstr_objectClass_pres;
-		o.ors_filter = slap_filter_objectClass_pres;
+		o.ors_filter = (Filter *) slap_filter_objectClass_pres;
 
 		o.ors_scope = LDAP_SCOPE_BASE;
 		o.ors_deref = LDAP_DEREF_NEVER;
@@ -673,10 +674,10 @@ dynlist_compare( Operation *op, SlapReply *rs )
 			/* if we're here, we got a match... */
 			rs->sr_err = LDAP_COMPARE_FALSE;
 
-			if ( value_find_ex( op->orc_ava->aa_desc,
+			if ( attr_valfind( a,
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				a->a_nvals, &op->orc_ava->aa_value, op->o_tmpmemctx ) == 0 )
+				&op->orc_ava->aa_value, NULL, op->o_tmpmemctx ) == 0 )
 			{
 				rs->sr_err = LDAP_COMPARE_TRUE;
 				break;

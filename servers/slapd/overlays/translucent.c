@@ -147,6 +147,7 @@ void glue_parent(Operation *op) {
 	ber_dupbv(&e->e_nname, &ndn);
 
 	a = attr_alloc( slap_schema.si_ad_objectClass );
+	a->a_numvals = 2;
 	a->a_vals = ch_malloc(sizeof(struct berval) * 3);
 	ber_dupbv(&a->a_vals[0], &glue[0]);
 	ber_dupbv(&a->a_vals[1], &glue[1]);
@@ -156,6 +157,7 @@ void glue_parent(Operation *op) {
 	e->e_attrs = a;
 
 	a = attr_alloc( slap_schema.si_ad_structuralObjectClass );
+	a->a_numvals = 1;
 	a->a_vals = ch_malloc(sizeof(struct berval) * 2);
 	ber_dupbv(&a->a_vals[0], &glue[1]);
 	ber_dupbv(&a->a_vals[1], &glue[2]);
@@ -428,6 +430,8 @@ release:
 		atmp.a_desc = m->sml_desc;
 		atmp.a_vals = m->sml_values;
 		atmp.a_nvals = m->sml_nvalues ? m->sml_nvalues : atmp.a_vals;
+		atmp.a_numvals = m->sml_numvals;
+		atmp.a_flags = 0;
 		a = attr_dup( &atmp );
 		a->a_next  = ax;
 		ax = a;

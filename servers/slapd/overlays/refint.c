@@ -54,6 +54,7 @@ typedef struct refint_attrs_s {
 	BerVarray		old_nvals;
 	BerVarray		new_vals;
 	BerVarray		new_nvals;
+	int				ra_numvals;
 } refint_attrs;
 
 typedef struct dependents_s {
@@ -423,6 +424,7 @@ refint_search_cb(
 							ber_bvarray_add_x( &na->old_vals, &olddn, op->o_tmpmemctx );
 							ber_dupbv_x( &oldndn, &a->a_nvals[first], op->o_tmpmemctx );
 							ber_bvarray_add_x( &na->old_nvals, &oldndn, op->o_tmpmemctx );
+							na->ra_numvals++;
 
 							newsub = a->a_vals[first];
 							newsub.bv_len -= rq->olddn.bv_len + 1;
@@ -445,6 +447,7 @@ refint_search_cb(
 						ber_bvarray_add_x( &na->old_vals, &olddn, op->o_tmpmemctx );
 						ber_dupbv_x( &oldndn, &a->a_nvals[i], op->o_tmpmemctx );
 						ber_bvarray_add_x( &na->old_nvals, &oldndn, op->o_tmpmemctx );
+						na->ra_numvals++;
 
 						newsub = a->a_vals[i];
 						newsub.bv_len -= rq->olddn.bv_len + 1;
@@ -461,7 +464,7 @@ refint_search_cb(
 						ber_bvarray_add_x( &na->new_nvals, &newdn, op->o_tmpmemctx );
 					}
 
-					/* count deteles */
+					/* count deletes */
 					if ( BER_BVISEMPTY( &rq->newdn ) ) {
 						deleted++;
 					}
@@ -642,6 +645,7 @@ refint_qtask( void *ctx, void *arg )
 					m->sml_flags = SLAP_MOD_INTERNAL;
 					m->sml_desc = slap_schema.si_ad_modifiersName;
 					m->sml_type = m->sml_desc->ad_cname;
+					m->sml_numvals = 1;
 					m->sml_values = (BerVarray)(m+1);
 					m->sml_nvalues = m->sml_values+2;
 					BER_BVZERO( &m->sml_values[1] );
@@ -672,6 +676,7 @@ refint_qtask( void *ctx, void *arg )
 						m->sml_nvalues = m->sml_values+2;
 						BER_BVZERO( &m->sml_values[1] );
 						BER_BVZERO( &m->sml_nvalues[1] );
+						m->sml_numvals = 1;
 						if ( BER_BVISEMPTY( &rq->newdn )) {
 							op->o_tmpfree( ra, op->o_tmpmemctx );
 							ra = dp->attrs;
@@ -685,6 +690,7 @@ refint_qtask( void *ctx, void *arg )
 					} else {
 						m->sml_values = ra->new_vals;
 						m->sml_nvalues = ra->new_nvals;
+						m->sml_numvals = ra->ra_numvals;
 					}
 				}
 
@@ -703,6 +709,7 @@ refint_qtask( void *ctx, void *arg )
 				m->sml_desc = ra->attr;
 				m->sml_type = ra->attr->ad_cname;
 				if ( ra->old_vals == NULL ) {
+					m->sml_numvals = 1;
 					m->sml_values = (BerVarray)(m+1);
 					m->sml_nvalues = m->sml_values+2;
 					m->sml_values[0] = rq->olddn;
@@ -712,6 +719,7 @@ refint_qtask( void *ctx, void *arg )
 				} else {
 					m->sml_values = ra->old_vals;
 					m->sml_nvalues = ra->old_nvals;
+					m->sml_numvals = ra->ra_numvals;
 				}
 				op->o_tmpfree( ra, op->o_tmpmemctx );
 			}
