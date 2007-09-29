@@ -114,7 +114,8 @@ SQLSRMASTERCONF=$DATADIR/slapd-sql-syncrepl-master.conf
 TRANSLUCENTLOCALCONF=$DATADIR/slapd-translucent-local.conf
 TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
-METACONF2=$DATADIR/slapd-meta2.conf
+METACONF1=$DATADIR/slapd-meta-target1.conf
+METACONF2=$DATADIR/slapd-meta-target2.conf
 GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
 VALSORTCONF=$DATADIR/slapd-valsort.conf
@@ -241,8 +242,8 @@ BASEDN="dc=example,dc=com"
 MANAGERDN="cn=Manager,$BASEDN"
 UPDATEDN="cn=Replica,$BASEDN"
 PASSWD=secret
-BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,$BASEDN"
-BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,$BASEDN"
+BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,ou=People,$BASEDN"
+BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,ou=People,$BASEDN"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,$BASEDN"
 JOHNDDN="cn=John Doe,ou=Information Technology Division,ou=People,$BASEDN"
 MELLIOTDN="cn=Mark Elliot,ou=Alumni Association,ou=People,$BASEDN"

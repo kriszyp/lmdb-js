@@ -189,9 +189,6 @@ meta_back_bind( Operation *op, SlapReply *rs )
 
 		if ( lerr != LDAP_SUCCESS ) {
 			rc = rs->sr_err = lerr;
-			/* Mark the meta_conn struct as tainted so
-			 * it'll be freed by meta_conn_back_destroy below */
-			LDAP_BACK_CONN_TAINTED_SET( mc );
 
 			/* FIXME: in some cases (e.g. unavailable)
 			 * do not assume it's not candidate; rather
@@ -211,28 +208,19 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		if ( !LDAP_BACK_PCONN_ISPRIV( mc )
 			&& !dn_match( &op->o_req_ndn, &mc->mc_local_ndn ) )
 		{
-			metaconn_t	*tmpmc;
 			int		lerr;
 
 			/* wait for all other ops to release the connection */
-retry_lock:;
 			ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
-			if ( mc->mc_refcnt > 1 ) {
-				ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-				ldap_pvt_thread_yield();
-				goto retry_lock;
-			}
-
 			assert( mc->mc_refcnt == 1 );
 #if META_BACK_PRINT_CONNTREE > 0
 			meta_back_print_conntree( mi, ">>> meta_back_bind" );
 #endif /* META_BACK_PRINT_CONNTREE */
-			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
-				meta_back_conndn_cmp );
-			assert( tmpmc == mc );
 
 			/* delete all cached connections with the current connection */
 			if ( LDAP_BACK_SINGLECONN( mi ) ) {
+				metaconn_t	*tmpmc;
+
 				while ( ( tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc, meta_back_conn_cmp ) ) != NULL )
 				{
 					Debug( LDAP_DEBUG_TRACE,
@@ -255,23 +243,22 @@ retry_lock:;
 			}
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
-			if ( isroot ) {
-				LDAP_BACK_CONN_ISPRIV_SET( mc );
-				LDAP_BACK_PCONN_SET( mc, op );
-			}
 			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );
 #if META_BACK_PRINT_CONNTREE > 0
 			meta_back_print_conntree( mi, "<<< meta_back_bind" );
 #endif /* META_BACK_PRINT_CONNTREE */
-			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
-			if ( lerr == -1 ) {
-				/* we can do this because mc_refcnt == 1 */
-				assert( mc->mc_refcnt == 1 );
-				mc->mc_refcnt = 0;
-				meta_back_conn_free( mc );
-				mc = NULL;
+			if ( lerr == 0 ) {
+				if ( isroot ) {
+					LDAP_BACK_CONN_ISPRIV_SET( mc );
+					LDAP_BACK_PCONN_SET( mc, op );
+				}
+				LDAP_BACK_CONN_CACHED_SET( mc );
+
+			} else {
+				LDAP_BACK_CONN_CACHED_CLEAR( mc );
 			}
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 		}
 	}
 
