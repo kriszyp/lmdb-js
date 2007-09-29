@@ -55,12 +55,12 @@ static ConfigTable bdbcfg[] = {
 			"DESC 'Directory for database content' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "cachefree", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
+	{ "cachefree", "size", 2, 2, 0, ARG_UINT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_minfree),
 		"( OLcfgDbAt:1.11 NAME 'olcDbCacheFree' "
 			"DESC 'Number of extra entries to free when max is reached' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "cachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
+	{ "cachesize", "size", 2, 2, 0, ARG_UINT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_maxsize),
 		"( OLcfgDbAt:1.1 NAME 'olcDbCacheSize' "
 			"DESC 'Entry cache size in entries' "
@@ -86,13 +86,13 @@ static ConfigTable bdbcfg[] = {
 		"( OLcfgDbAt:1.5 NAME 'olcDbDirtyRead' "
 		"DESC 'Allow reads of uncommitted data' "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
-	{ "dncachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
+	{ "dncachesize", "size", 2, 2, 0, ARG_UINT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_eimax),
 		"( OLcfgDbAt:1.12 NAME 'olcDbDNcacheSize' "
 			"DESC 'DN cache size' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "idlcachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
-		(void *)offsetof(struct bdb_info,bi_idl_cache_max_size),
+	{ "idlcachesize", "size", 2, 2, 0, ARG_UINT|ARG_OFFSET,
+		(void *)offsetof(struct bdb_info, bi_idl_cache_max_size),
 		"( OLcfgDbAt:1.6 NAME 'olcDbIDLcacheSize' "
 		"DESC 'IDL cache size in IDLs' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -119,7 +119,7 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "shm_key", "key", 2, 2, 0, ARG_INT|ARG_OFFSET,
+	{ "shm_key", "key", 2, 2, 0, ARG_LONG|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_shm_key), 
 		"( OLcfgDbAt:1.10 NAME 'olcDbShmKey' "
 		"DESC 'Key for shared memory region' "
