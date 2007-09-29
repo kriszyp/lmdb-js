@@ -3383,7 +3383,7 @@ certificateExactNormalize(
 	 * than sizeof(ber_int_t) */
 	tag = ber_peek_tag( ber, &len );	/* serial */
 
-	/* Just spit out colon-separated hex octets, like OpenSSL does.
+	/* Use hex format. [-]0x123456789abcdef
 	 * Don't try to make special cases for multi-precision math
 	 * support here, normalized values need to be canonical and
 	 * consistent from machine to machine.
@@ -3391,25 +3391,37 @@ certificateExactNormalize(
 	if ( len > sizeof(ber_int_t) ) {
 		unsigned char *ptr;
 		char *sptr;
+		char sign = 0;
 		
 		tag = ber_skip_tag( ber, &len );
 		ptr = (unsigned char *)ber->ber_ptr;
 		ber_skip_data( ber, len );
 
-		while ( ptr[0] == '\0' && len > 0 ) {
+		/* Check for minimal encodings */
+		if ( ptr[0] & 0x80 ) {
+			if (( ptr[0] == 0xff ) && ( ptr[1] & 0x80 ))
+				return LDAP_INVALID_SYNTAX;
+			sign = -1;
+		} else if ( ptr[0] == 0 ) {
+			if (!( ptr[1] & 0x80 ))
+				return LDAP_INVALID_SYNTAX;
 			ptr++;
 			len--;
 		}
 
-		seriallen = len * 3;
+		seriallen = len * 2 + 3;	/* leading 0x, NUL */
+		if ( sign )
+			seriallen++;
 		if ( seriallen > sizeof( serialbuf ))
 			serial = slap_sl_malloc( seriallen, ctx );
 		sptr = serial;
-		sprintf( sptr, "%02x", ptr[0] );
-		sptr += 2;
-		for ( i = 1; i<len; i++ ) {
-			sprintf( sptr, ":%02x", ptr[i] );
-			sptr += 3;
+		if ( sign )
+			*sptr++ = '-';
+		*sptr++ = '0';
+		*sptr++ = 'x';
+		for ( i = 0; i<len; i++ ) {
+			sprintf( sptr, "%02x", sign ? 256 - ptr[i] : ptr[i] );
+			sptr += 2;
 		}
 		seriallen--;
 
