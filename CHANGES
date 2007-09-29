@@ -5,11 +5,13 @@ OpenLDAP 2.4.6 Engineering
 	Added slapd ACL sets DN ancestors operator (ITS#4860)
 	Fixed slapd alock_close with Quick mode (ITS#5129)
 	Fixed slapd ordered values add normalization issue (ITS#5136)
+	Fixed slapd X509 parsing (ITS#5070, #5151)
 	Fixed slapd slap_passwd_parse (ITS#5159)
 	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-bdb/hdb IDL LRU handling (ITS#5121)
 	Fixed slapd-bdb/hdb cachesize config check (ITS#5122)
 	Fixed slapd-ldap SASL idassert w/o authcId
+	Fixed slapd-ldap search control parsing (ITS#5138)
 	Fixed slapd-meta leak when binding as rootdn (ITS#5155)
 	Fixed slapd-meta conn caching on bind failure (ITS#5154)
 	Fixed slapo-chain double-free (ITS#5137)
