@@ -1482,67 +1482,91 @@ filter2template(
 	int*			filter_got_oc )
 {
 	AttributeDescription *ad;
+	int len, ret;
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
 		ad = f->f_av_desc;
-		sprintf( fstr->bv_val+fstr->bv_len, "(%s=)", ad->ad_cname.bv_val );
-		fstr->bv_len += ad->ad_cname.bv_len + ( sizeof("(=)") - 1 );
+		len = STRLENOF( "(=)" ) + ad->ad_cname.bv_len;
+		ret = snprintf( fstr->bv_val+fstr->bv_len, len + 1, "(%s=)", ad->ad_cname.bv_val );
+		assert( ret == len );
+		fstr->bv_len += len;
 		break;
 
 	case LDAP_FILTER_GE:
 		ad = f->f_av_desc;
-		sprintf( fstr->bv_val+fstr->bv_len, "(%s>=)", ad->ad_cname.bv_val);
-		fstr->bv_len += ad->ad_cname.bv_len + ( sizeof("(>=)") - 1 );
+		len = STRLENOF( "(>=)" ) + ad->ad_cname.bv_len;
+		ret = snprintf( fstr->bv_val+fstr->bv_len, len + 1, "(%s>=)", ad->ad_cname.bv_val);
+		assert( ret == len );
+		fstr->bv_len += len;
 		break;
 
 	case LDAP_FILTER_LE:
 		ad = f->f_av_desc;
-		sprintf( fstr->bv_val+fstr->bv_len, "(%s<=)", ad->ad_cname.bv_val);
-		fstr->bv_len += ad->ad_cname.bv_len + ( sizeof("(<=)") - 1 );
+		len = STRLENOF( "(<=)" ) + ad->ad_cname.bv_len;
+		ret = snprintf( fstr->bv_val+fstr->bv_len, len + 1, "(%s<=)", ad->ad_cname.bv_val);
+		assert( ret == len );
+		fstr->bv_len += len;
 		break;
 
 	case LDAP_FILTER_APPROX:
 		ad = f->f_av_desc;
-		sprintf( fstr->bv_val+fstr->bv_len, "(%s~=)", ad->ad_cname.bv_val);
-		fstr->bv_len += ad->ad_cname.bv_len + ( sizeof("(~=)") - 1 );
+		len = STRLENOF( "(~=)" ) + ad->ad_cname.bv_len;
+		ret = snprintf( fstr->bv_val+fstr->bv_len, len + 1, "(%s~=)", ad->ad_cname.bv_val);
+		assert( ret == len );
+		fstr->bv_len += len;
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		ad = f->f_sub_desc;
-		sprintf( fstr->bv_val+fstr->bv_len, "(%s=)", ad->ad_cname.bv_val );
-		fstr->bv_len += ad->ad_cname.bv_len + ( sizeof("(=)") - 1 );
+		len = STRLENOF( "(=)" ) + ad->ad_cname.bv_len;
+		ret = snprintf( fstr->bv_val+fstr->bv_len, len + 1, "(%s=)", ad->ad_cname.bv_val );
+		assert( ret == len );
+		fstr->bv_len += len;
 		break;
 
 	case LDAP_FILTER_PRESENT:
 		ad = f->f_desc;
-		sprintf( fstr->bv_val+fstr->bv_len, "(%s=*)", ad->ad_cname.bv_val );
-		fstr->bv_len += ad->ad_cname.bv_len + ( sizeof("(=*)") - 1 );
+		len = STRLENOF( "(=*)" ) + ad->ad_cname.bv_len;
+		ret = snprintf( fstr->bv_val+fstr->bv_len, len + 1, "(%s=*)", ad->ad_cname.bv_val );
+		assert( ret == len );
+		fstr->bv_len += len;
 		break;
 
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT: {
 		int rc = 0;
-		sprintf( fstr->bv_val+fstr->bv_len, "(%c",
-			f->f_choice == LDAP_FILTER_AND ? '&' :
-			f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
-		fstr->bv_len += sizeof("(%") - 1;
+		fstr->bv_val[fstr->bv_len++] = '(';
+		switch ( f->f_choice ) {
+		case LDAP_FILTER_AND:
+			fstr->bv_val[fstr->bv_len] = '&';
+			break;
+		case LDAP_FILTER_OR:
+			fstr->bv_val[fstr->bv_len] = '|';
+			break;
+		case LDAP_FILTER_NOT:
+			fstr->bv_val[fstr->bv_len] = '!';
+			break;
+		}
+		fstr->bv_len++;
 
 		for ( f = f->f_list; f != NULL; f = f->f_next ) {
 			rc = filter2template( op, f, fstr, filter_attrs, filter_cnt,
 				filter_got_oc );
 			if ( rc ) break;
 		}
-		sprintf( fstr->bv_val+fstr->bv_len, ")" );
-		fstr->bv_len += sizeof(")") - 1;
+		fstr->bv_val[fstr->bv_len++] = ')';
+		fstr->bv_val[fstr->bv_len] = '\0';
 
 		return rc;
 		}
 
 	default:
-		strcpy( fstr->bv_val, "(?=?)" );
-		fstr->bv_len += sizeof("(?=?)")-1;
+		/* a filter should at least have room for "()",
+		 * an "=" and for a 1-char attr */
+		strcpy( fstr->bv_val, "(?=)" );
+		fstr->bv_len += STRLENOF("(?=)");
 		return -1;
 	}
 
@@ -2626,7 +2650,11 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	struct berval bv;
 
 	/* FIXME: should not hardcode "olcDatabase" here */
-	bv.bv_len = sprintf( ca->cr_msg, "olcDatabase=%s", cm->db.bd_info->bi_type );
+	bv.bv_len = snprintf( ca->cr_msg, sizeof( ca->cr_msg ),
+		"olcDatabase=%s", cm->db.bd_info->bi_type );
+	if ( bv.bv_len < 0 || bv.bv_len >= sizeof( ca->cr_msg ) ) {
+		return -1;
+	}
 	bv.bv_val = ca->cr_msg;
 	ca->be = &cm->db;
 

@@ -144,8 +144,6 @@ pw2entry( struct ldop *op, struct passwd *pw )
     struct ldattr	*attr;
     int			i;
 
-    entry = (struct ldentry *) ecalloc( 1, sizeof( struct ldentry ));
-
     /* 
      * construct the DN from pw_name
      */
@@ -153,13 +151,19 @@ pw2entry( struct ldop *op, struct passwd *pw )
 	/*
 	 * X.500 style DN
 	 */
-	sprintf( tmpbuf, "cn=%s, %s", pw->pw_name, op->ldop_suffixes[ 0 ] );
+	i = snprintf( tmpbuf, sizeof( tmpbuf ), "cn=%s, %s", pw->pw_name, op->ldop_suffixes[ 0 ] );
     } else {
 	/*
 	 * RFC-822 style DN
 	 */
-	sprintf( tmpbuf, "%s@%s", pw->pw_name, op->ldop_suffixes[ 0 ] );
+	i = snprintf( tmpbuf, sizeof( tmpbuf ), "%s@%s", pw->pw_name, op->ldop_suffixes[ 0 ] );
     }
+
+    if ( i < 0 || i >= sizeof( tmpbuf ) ) {
+        return NULL;
+    }
+
+    entry = (struct ldentry *) ecalloc( 1, sizeof( struct ldentry ));
     entry->lde_dn = estrdup( tmpbuf );
 
     /*

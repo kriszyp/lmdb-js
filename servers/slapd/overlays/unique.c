@@ -198,7 +198,7 @@ unique_new_domain_uri ( unique_domain_uri **urip,
 		}
 
 		if ( !dnIsSuffix ( uri->ndn, &be->be_nsuffix[0] ) ) {
-			sprintf ( c->cr_msg,
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "dn <%s> is not a suffix of backend base dn <%s>",
 				  uri->dn->bv_val,
 				  be->be_nsuffix[0].bv_val );
@@ -401,7 +401,7 @@ unique_cf_base( ConfigArgs *c )
 	case LDAP_MOD_ADD:
 	case SLAP_CONFIG_ADD:
 		if ( domains ) {
-			sprintf ( c->cr_msg,
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
 				c->cr_msg, NULL, NULL );
@@ -410,7 +410,7 @@ unique_cf_base( ConfigArgs *c )
 		}
 		if ( !dnIsSuffix ( &c->value_ndn,
 				   &be->be_nsuffix[0] ) ) {
-			sprintf ( c->cr_msg,
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "dn is not a suffix of backend base" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
 				c->cr_msg, NULL, NULL );
@@ -499,7 +499,7 @@ unique_cf_attrs( ConfigArgs *c )
 	case LDAP_MOD_ADD:
 	case SLAP_CONFIG_ADD:
 		if ( domains ) {
-			sprintf ( c->cr_msg,
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
 				c->cr_msg, NULL, NULL );
@@ -510,7 +510,7 @@ unique_cf_attrs( ConfigArgs *c )
 		     && legacy->uri
 		     && legacy->uri->attrs
 		     && (c->type == UNIQUE_IGNORE) != legacy->ignore ) {
-			sprintf ( c->cr_msg,
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set both attrs and ignore-attrs" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
 				c->cr_msg, NULL, NULL );
@@ -620,7 +620,7 @@ unique_cf_strict( ConfigArgs *c )
 	case LDAP_MOD_ADD:
 	case SLAP_CONFIG_ADD:
 		if ( domains ) {
-			sprintf ( c->cr_msg,
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set legacy attrs when URIs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
 				c->cr_msg, NULL, NULL );
@@ -705,7 +705,7 @@ unique_cf_uri( ConfigArgs *c )
 	case SLAP_CONFIG_ADD: /* fallthrough */
 	case LDAP_MOD_ADD:
 		if ( legacy ) {
-			sprintf ( c->cr_msg,
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				  "cannot set Uri when legacy attrs are present" );
 			Debug ( LDAP_DEBUG_CONFIG, "unique config: %s\n",
 				c->cr_msg, NULL, NULL );
@@ -902,6 +902,7 @@ build_filter(
 	AttributeDescription *ad,
 	BerVarray b,
 	char *kp,
+	int ks,
 	void *ctx
 )
 {
@@ -923,15 +924,21 @@ build_filter(
 		if ( b && b[0].bv_val ) {
 			for ( i = 0; b[i].bv_val; i++ ) {
 				struct berval	bv;
+				int len;
 
 				ldap_bv2escaped_filter_value_x( &b[i], &bv, 1, ctx );
-				kp += sprintf( kp, "(%s=%s)", ad->ad_cname.bv_val, bv.bv_val );
+				len = snprintf( kp, ks, "(%s=%s)", ad->ad_cname.bv_val, bv.bv_val );
+				assert( len >= 0 && len < ks );
+				kp += len;
 				if ( bv.bv_val != b[i].bv_val ) {
 					ber_memfree_x( bv.bv_val, ctx );
 				}
 			}
 		} else if ( domain->strict ) {
-			kp += sprintf( kp, "(%s=*)", ad->ad_cname.bv_val );
+			int len;
+			len = snprintf( kp, ks, "(%s=*)", ad->ad_cname.bv_val );
+			assert( len >= 0 && len < ks );
+			kp += len;
 		}
 		break;
 	}
@@ -1020,13 +1027,16 @@ unique_add(
 
 	for ( domain = legacy ? legacy : domains;
 	      domain;
-	      domain = domain->next ) {
+	      domain = domain->next )
+	{
 		unique_domain_uri *uri;
 		int ks = 0;
 
 		for ( uri = domain->uri;
 		      uri;
-		      uri = uri->next ) {
+		      uri = uri->next )
+		{
+			int len;
 
 			if ( uri->ndn
 			     && !dnIsSuffix( &op->o_req_ndn, uri->ndn ))
@@ -1055,9 +1065,14 @@ unique_add(
 				ks += uri->filter->bv_len + STRLENOF ("(&)");
 			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
-			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf (kp, "(&%s", uri->filter->bv_val);
-			kp += sprintf(kp, "(|");
+			if ( uri->filter && uri->filter->bv_len ) {
+				len = snprintf (kp, ks, "(&%s", uri->filter->bv_val);
+				assert( len >= 0 && len < ks );
+				kp += len;
+			}
+			len = snprintf(kp, ks - (kp - key), "(|");
+			assert( len >= 0 && len < ks - (kp - key) );
+			kp += len;
 
 			for(a = op->ora_e->e_attrs; a; a = a->a_next)
 				kp = build_filter(domain,
@@ -1065,11 +1080,17 @@ unique_add(
 						  a->a_desc,
 						  a->a_vals,
 						  kp,
+						  ks - ( kp - key ),
 						  op->o_tmpmemctx);
 
-			kp += sprintf(kp, ")");
-			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf (kp, ")");
+			len = snprintf(kp, ks - (kp - key), ")");
+			assert( len >= 0 && len < ks - (kp - key) );
+			kp += len;
+			if ( uri->filter && uri->filter->bv_len ) {
+				len = snprintf(kp, ks - (kp - key), ")");
+				assert( len >= 0 && len < ks - (kp - key) );
+				kp += len;
+			}
 
 			rc = unique_search ( op,
 					     &nop,
@@ -1110,13 +1131,16 @@ unique_modify(
 
 	for ( domain = legacy ? legacy : domains;
 	      domain;
-	      domain = domain->next ) {
+	      domain = domain->next )
+	{
 		unique_domain_uri *uri;
 		int ks = 0;
 
 		for ( uri = domain->uri;
 		      uri;
-		      uri = uri->next ) {
+		      uri = uri->next )
+		{
+			int len;
 
 			if ( uri->ndn
 			     && !dnIsSuffix( &op->o_req_ndn, uri->ndn ))
@@ -1146,9 +1170,14 @@ unique_modify(
 				ks += uri->filter->bv_len + STRLENOF ("(&)");
 			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
-			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf (kp, "(&%s", uri->filter->bv_val);
-			kp += sprintf(kp, "(|");
+			if ( uri->filter && uri->filter->bv_len ) {
+				len = snprintf(kp, ks, "(&%s", uri->filter->bv_val);
+				assert( len >= 0 && len < ks );
+				kp += len;
+			}
+			len = snprintf(kp, ks - (kp - key), "(|");
+			assert( len >= 0 && len < ks - (kp - key) );
+			kp += len;
 
 			for(m = op->orm_modlist; m; m = m->sml_next)
 				if ( (m->sml_op & LDAP_MOD_OP)
@@ -1158,11 +1187,17 @@ unique_modify(
 							    m->sml_desc,
 							    m->sml_values,
 							    kp,
+							    ks - (kp - key),
 							    op->o_tmpmemctx );
 
-			kp += sprintf (kp, ")");
-			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf (kp, ")");
+			len = snprintf(kp, ks - (kp - key), ")");
+			assert( len >= 0 && len < ks - (kp - key) );
+			kp += len;
+			if ( uri->filter && uri->filter->bv_len ) {
+				len = snprintf (kp, ks - (kp - key), ")");
+				assert( len >= 0 && len < ks - (kp - key) );
+				kp += len;
+			}
 
 			rc = unique_search ( op,
 					     &nop,
@@ -1204,14 +1239,16 @@ unique_modrdn(
 
 	for ( domain = legacy ? legacy : domains;
 	      domain;
-	      domain = domain->next ) {
+	      domain = domain->next )
+	{
 		unique_domain_uri *uri;
 		int ks = 0;
 
 		for ( uri = domain->uri;
 		      uri;
-		      uri = uri->next ) {
-			int i;
+		      uri = uri->next )
+		{
+			int i, len;
 
 			if ( uri->ndn
 			     && !dnIsSuffix( &op->o_req_ndn, uri->ndn )
@@ -1263,9 +1300,14 @@ unique_modrdn(
 				ks += uri->filter->bv_len + STRLENOF ("(&)");
 			kp = key = op->o_tmpalloc(ks, op->o_tmpmemctx);
 
-			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf (kp, "(&%s", uri->filter->bv_val);
-			kp += sprintf(kp, "(|");
+			if ( uri->filter && uri->filter->bv_len ) {
+				len = snprintf(kp, ks, "(&%s", uri->filter->bv_val);
+				assert( len >= 0 && len < ks );
+				kp += len;
+			}
+			len = snprintf(kp, ks - (kp - key), "(|");
+			assert( len >= 0 && len < ks - (kp - key) );
+			kp += len;
 
 			for ( i=0; newrdn[i]; i++) {
 				bv[0] = newrdn[i]->la_value;
@@ -1274,12 +1316,18 @@ unique_modrdn(
 						    newrdn[i]->la_private,
 						    bv,
 						    kp,
+						    ks - (kp - key ),
 						    op->o_tmpmemctx);
 			}
 
-			kp += sprintf(kp, ")");
-			if ( uri->filter && uri->filter->bv_len )
-				kp += sprintf (kp, ")");
+			len = snprintf(kp, ks - (kp - key), ")");
+			assert( len >= 0 && len < ks - (kp - key) );
+			kp += len;
+			if ( uri->filter && uri->filter->bv_len ) {
+				len = snprintf (kp, ks - (kp - key), ")");
+				assert( len >= 0 && len < ks - (kp - key) );
+				kp += len;
+			}
 
 			rc = unique_search ( op,
 					     &nop,

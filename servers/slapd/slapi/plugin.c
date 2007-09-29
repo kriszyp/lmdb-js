@@ -722,7 +722,11 @@ slapi_int_plugin_unparse(
 		slapi_pblock_get( pp, SLAPI_X_CONFIG_ARGV, &argv );
 		if ( argv == NULL ) /* could be dynamic plugin */
 			continue;
-		idx.bv_len = sprintf( idx.bv_val, "{%d}", i );
+		idx.bv_len = snprintf( idx.bv_val, sizeof( ibuf ), "{%d}", i );
+		if ( idx.bv_len >= sizeof( ibuf ) ) {
+			/* FIXME: just truncating by now */
+			idx.bv_len = sizeof( ibuf ) - 1;
+		}
 		bv.bv_len = idx.bv_len;
 		for (j=1; argv[j]; j++) {
 			bv.bv_len += strlen(argv[j]);
