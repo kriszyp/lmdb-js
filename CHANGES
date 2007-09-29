@@ -5,6 +5,7 @@ OpenLDAP 2.4.6 Engineering
 	Added slapd ACL sets DN ancestors operator (ITS#4860)
 	Fixed slapd alock_close with Quick mode (ITS#5129)
 	Fixed slapd ordered values add normalization issue (ITS#5136)
+	Fixed slapd slap_passwd_parse (ITS#5159)
 	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-bdb/hdb IDL LRU handling (ITS#5121)
 	Fixed slapd-bdb/hdb cachesize config check (ITS#5122)
@@ -15,5 +16,7 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapo-dynlist entry release (ITS#5135)
 	Fixed slapo-dynlist member processing (ITS#5157)
 	Fixed slapo-rwm modlist handling (ITS#5124)
+	Build Environment
+		Use separate config OID arc for contrib (ITS#5158)
 	Documentation
 		Fixed slapd-bdb(5) note about dbconfig directives (ITS#5134)
