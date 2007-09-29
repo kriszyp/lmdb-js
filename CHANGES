@@ -7,6 +7,7 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapd ordered values add normalization issue (ITS#5136)
 	Fixed slapd X509 parsing (ITS#5070, #5151)
 	Fixed slapd slap_passwd_parse (ITS#5159)
+	Added slapd attribute value sorting (ITS#5153)
 	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-bdb/hdb IDL LRU handling (ITS#5121)
 	Fixed slapd-bdb/hdb cachesize config check (ITS#5122)
