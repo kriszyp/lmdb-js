@@ -244,7 +244,7 @@ chkResponseList(
 			"ldap_chkResponseList returns ld %p NULL\n", (void *)ld, 0, 0);
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"ldap_chkResponseList returns ld %p msgid %d, type 0x%02lu\n",
+			"ldap_chkResponseList returns ld %p msgid %d, type 0x%02lx\n",
 			(void *)ld, lm->lm_msgid, (unsigned long)lm->lm_msgtype );
 	}
 #endif
