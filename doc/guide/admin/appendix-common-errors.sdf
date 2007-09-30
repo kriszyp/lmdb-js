@@ -1,0 +1,87 @@
+# $OpenLDAP$
+# Copyright 2007 The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+H1: Common errors encountered when using OpenLDAP Software
+
+The following sections attempt to summarize the most common causes of LDAP errors 
+when using OpenLDAP
+
+H2: Common causes of LDAP errors
+
+Port answers from http://www.openldap.org/faq/data/cache/53.html
+
+H3: ldap_*: Can't contact LDAP server
+
+H3: ldap_*: No such object
+
+H3: ldap_*: Can't chase referral
+
+H3: ldap_*: server is unwilling to perform
+
+H3: ldap_*: Insufficient access
+
+H3: ldap_*: Invalid DN syntax
+
+H3: ldap_*: Referral hop limit exceeded
+
+H3: ldap_*: operations error
+
+H3: ldap_*: other error
+
+H2: Causes specific to specific LDAP operations:
+
+H3: ldap_add/modify: Invalid syntax
+
+H3: ldap_add/modify: Object class violation
+
+H3: ldap_add: No such object
+
+H3: ldap add: invalid structural object class chain
+
+H3: ldap_add: no structuralObjectClass operational attribute
+
+H3: ldap_add/modify/rename: Naming violation
+
+H3: ldap_add/delete/modify/rename: no global superior knowledge
+
+H3: ldap_bind: Insufficient access
+
+H3: ldap_bind: Invalid credentials
+
+H3: ldap_bind: No such object
+
+H3: ldap_bind: Protocol error
+
+H3: ldap_modify: cannot modify object class
+
+H3: ldap_sasl_interactive_bind_s: ...
+
+H3: ldap_sasl_interactive_bind_s: No such Object
+
+H3: ldap_sasl_interactive_bind_s: No such attribute
+
+H3: ldap_sasl_interactive_bind_s: Unknown authentication method
+
+H3: ldap_sasl_interactive_bind_s: Local error (82)
+
+H3: ldap_search: Partial results and referral received
+
+H3: ldap_start_tls: Operations error
+
+H2: Other errors:
+
+H3: ber_get_next on fd X failed errno=34 (Numerical result out of range)
+
+H3: ber_get_next on fd X failed errno=11 (Resource temporarily unavailable)
+
+H3: daemon: socket() failed errno=97 (Address family not supported)
+
+H3: GSSAPI: gss_acquire_cred: Miscellaneous failure; Permission denied;
+
+H3: access from unknown denied
+
+H3: ldap_read: want=# error=Resource temporarily unavailable
+
+H3: `make test' fails
+
