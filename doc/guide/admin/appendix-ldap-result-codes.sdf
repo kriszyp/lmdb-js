@@ -1,0 +1,9 @@
+# $OpenLDAP$
+# Copyright 2007 The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+H1:  LDAP Result Codes
+
+Port "Appendix A.  LDAP Result Codes" from rfc4511 and add a small explanation
+in addition to current one for ldap*/slap* tools, with the aim of fending off simple, recurring 
+questions on the lists.
