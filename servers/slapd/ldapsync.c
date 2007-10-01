@@ -51,7 +51,7 @@ slap_compose_sync_cookie(
 			len = 0;
 		} else {
 			len = snprintf( cookiestr, sizeof( cookiestr ),
-					"rid=%03d", rid );
+					"rid=%03x", rid );
 			if ( sid >= 0 ) {
 				len += sprintf( cookiestr+len, ",sid=%03x", sid );
 			}
@@ -72,7 +72,7 @@ slap_compose_sync_cookie(
 
 		cookie->bv_val = slap_sl_malloc( len, op ? op->o_tmpmemctx : NULL );
 
-		len = sprintf( cookie->bv_val, "rid=%03d,", rid );
+		len = sprintf( cookie->bv_val, "rid=%03x,", rid );
 		ptr = cookie->bv_val + len;
 		if ( sid >= 0 ) {
 			ptr += sprintf( ptr, "sid=%03x,", sid );
