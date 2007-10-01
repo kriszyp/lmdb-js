@@ -306,6 +306,10 @@ lutil_atoulx( unsigned long *v, const char *s, int x );
 
 /* Parse and unparse time intervals */
 LDAP_LUTIL_F (int)
+lutil_str2bin( struct berval *in, struct berval *out );
+
+/* Parse and unparse time intervals */
+LDAP_LUTIL_F (int)
 lutil_parse_time( const char *in, unsigned long *tp );
 
 LDAP_LUTIL_F (int)
