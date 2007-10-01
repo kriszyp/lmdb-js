@@ -3045,14 +3045,14 @@ certificateExactNormalize(
 		ber_skip_data( ber, len );
 
 		/* Check for minimal encodings */
-		if ( ptr[0] & 0x80 ) {
-			if (( ptr[0] == 0xff ) && ( ptr[1] & 0x80 ))
-				return LDAP_INVALID_SYNTAX;
-		} else if ( ptr[0] == 0 ) {
-			if (!( ptr[1] & 0x80 ))
-				return LDAP_INVALID_SYNTAX;
-			ptr++;
-			len--;
+		if ( len > 1 ) {
+			if ( ptr[0] & 0x80 ) {
+				if (( ptr[0] == 0xff ) && ( ptr[1] & 0x80 ))
+					return LDAP_INVALID_SYNTAX;
+			} else if ( ptr[0] == 0 ) {
+				if (!( ptr[1] & 0x80 ))
+					return LDAP_INVALID_SYNTAX;
+			}
 		}
 
 		seriallen = len * 2 + 4;	/* quotes, H, NUL */
