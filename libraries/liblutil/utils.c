@@ -21,6 +21,7 @@
 #include <ac/ctype.h>
 #include <ac/unistd.h>
 #include <ac/time.h>
+#include <ac/errno.h>
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
@@ -600,6 +601,169 @@ lutil_atoulx( unsigned long *v, const char *s, int x )
 	*v = ul;
 
 	return 0;
+}
+
+/* Multiply an integer by 100000000 and add new */
+typedef struct _decnum {
+	unsigned char *buf;
+	int bufsiz;
+	int beg;
+	int len;
+} _decnum;
+
+#define	FACTOR1	(100000000&0xffff)
+#define FACTOR2 (100000000>>16)
+
+static void
+scale( int new, _decnum *prev, unsigned char *tmp )
+{
+	int i, j;
+	unsigned char *in = prev->buf+prev->beg;
+	unsigned int part;
+	unsigned char *out = tmp + prev->bufsiz - prev->len;
+
+	memset( tmp, 0, prev->bufsiz );
+	if ( prev->len ) {
+		for ( i = prev->len-1; i>=0; i-- ) {
+			part = in[i] * FACTOR1;
+			for ( j = i; part; j-- ) {
+				part += out[j];
+				out[j] = part & 0xff;
+				part >>= 8;
+			}
+			part = in[i] * FACTOR2;
+			for ( j = i-2; part; j-- ) {
+				part += out[j];
+				out[j] = part & 0xff;
+				part >>= 8;
+			}
+		}
+		j++;
+		prev->beg += j;
+		prev->len -= j;
+	}
+
+	out = tmp + prev->bufsiz - 1;
+	for ( i = 0; new ; i-- ) {
+		new += out[i];
+		out[i] = new & 0xff;
+		new >>= 8;
+		if (!new ) {
+			if ( !prev->len ) {
+				prev->beg += i;
+				prev->len = -i;
+				prev->len++;
+			}
+			break;
+		}
+	}
+	AC_MEMCPY( prev->buf+prev->beg, tmp+prev->beg, prev->len );
+}
+
+/* Convert unlimited length decimal or hex string to binary.
+ * Output buffer must be provided, bv_len must indicate buffer size
+ * Hex input can be "0x1234" or "'1234'H"
+ */
+int
+lutil_str2bin( struct berval *in, struct berval *out )
+{
+	char *pin, *pout, ctmp;
+	char *end;
+	long l;
+	int i, chunk, len, rc = 0, hex = 0;
+	if ( !out || !out->bv_val || out->bv_len < in->bv_len )
+		return -1;
+
+	pout = out->bv_val;
+	/* Leading "0x" for hex input */
+	if ( in->bv_len > 2 && in->bv_val[0] == '0' &&
+		( in->bv_val[1] == 'x' || in->bv_val[1] == 'X' )) {
+		len = in->bv_len - 2;
+		pin = in->bv_val + 2;
+		hex = 1;
+	} else if ( in->bv_len > 3 && in->bv_val[0] == '\'' &&
+		( in->bv_val[in->bv_len-2] == '\'' &&
+		in->bv_val[in->bv_len-1] == 'H' )) {
+		len = in->bv_len - 3;
+		pin = in->bv_val + 1;
+		hex = 1;
+	}
+	if ( hex ) {
+#define HEXMAX	(2 * sizeof(long))
+		/* Convert a longword at a time, but handle leading
+		 * odd bytes first
+		 */
+		chunk = len & (HEXMAX-1);
+		if ( !chunk )
+			chunk = HEXMAX;
+
+		while ( len ) {
+			ctmp = pin[chunk];
+			pin[chunk] = '\0';
+			errno = 0;
+			l = strtol( pin, &end, 16 );
+			pin[chunk] = ctmp;
+			if ( errno )
+				return -1;
+			chunk++;
+			chunk >>= 1;
+			for ( i = chunk; i>=0; i-- ) {
+				pout[i] = l & 0xff;
+				l >>= 8;
+			}
+			pin += chunk;
+			pout += sizeof(long);
+			len -= chunk;
+			chunk = HEXMAX;
+		}
+		out->bv_len = pout + len - out->bv_val;
+	} else {
+	/* Decimal */
+		char tmpbuf[64], *tmp;
+		_decnum num;
+
+		len = in->bv_len;
+		pin = in->bv_val;
+		num.buf = out->bv_val;
+		num.bufsiz = out->bv_len;
+		num.beg = num.bufsiz-1;
+		num.len = 0;
+
+#define	DECMAX	8	/* 8 digits at a time */
+
+		if ( len > sizeof(tmpbuf)) {
+			tmp = ber_memalloc( len );
+		} else {
+			tmp = tmpbuf;
+		}
+		chunk = len & (DECMAX-1);
+		if ( !chunk )
+			chunk = DECMAX;
+
+		while ( len ) {
+			ctmp = pin[chunk];
+			pin[chunk] = '\0';
+			errno = 0;
+			l = strtol( pin, &end, 10 );
+			pin[chunk] = ctmp;
+			if ( errno ) {
+				rc = -1;
+				goto decfail;
+			}
+			scale( l, &num, tmp );
+			pin += chunk;
+			len -= chunk;
+			chunk = HEXMAX;
+		}
+		if ( num.beg )
+			AC_MEMCPY( num.buf, num.buf+num.beg, num.len );
+		out->bv_len = num.len;
+decfail:
+		if ( tmp != tmpbuf ) {
+			ber_memfree( tmp );
+		}
+	}
+	return rc;
 }
 
 static	char		time_unit[] = "dhms";
