@@ -1134,8 +1134,8 @@ add_filter_attrs(
 		count++;
 	}
 
-	*new_attrs = (AttributeName*)ch_malloc((count+1)*
-		sizeof(AttributeName));
+	*new_attrs = (AttributeName*)ch_calloc( count + 1,
+		sizeof(AttributeName) );
 	for (i=0; i<attrs->count; i++) {
 		(*new_attrs)[i].an_name = attrs->attrs[i].an_name;
 		(*new_attrs)[i].an_desc = attrs->attrs[i].an_desc;
@@ -1155,18 +1155,13 @@ add_filter_attrs(
 			continue;
 		(*new_attrs)[j].an_name = filter_attrs[i].an_name;
 		(*new_attrs)[j].an_desc = filter_attrs[i].an_desc;
-		(*new_attrs)[j].an_oc = NULL;
-		(*new_attrs)[j].an_oc_exclude = 0;
 		j++;
 	}
 	if ( addoc ) {
 		(*new_attrs)[j].an_name = slap_schema.si_ad_objectClass->ad_cname;
 		(*new_attrs)[j].an_desc = slap_schema.si_ad_objectClass;
-		(*new_attrs)[j].an_oc = NULL;
-		(*new_attrs)[j].an_oc_exclude = 0;
 		j++;
 	}
-	BER_BVZERO( &(*new_attrs)[j].an_name );
 }
 
 /* NOTE: this is a quick workaround to let pcache minimally interact
