@@ -103,7 +103,7 @@ typedef struct syncinfo_s {
 } syncinfo_t;
 
 static int syncuuid_cmp( const void *, const void * );
-static void avl_ber_bvfree( void * );
+static int avl_presentlist_insert( syncinfo_t* si, struct berval *syncUUID );
 static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray, struct berval * );
 static int syncrepl_message_to_op(
 					syncinfo_t *, Operation *, LDAPMessage * );
@@ -908,7 +908,7 @@ do_syncrep2(
 						syncrepl_del_nonpresent( op, si, NULL,
 							&syncCookie.ctxcsn[m] );
 					} else {
-						avl_free( si->si_presentlist, avl_ber_bvfree );
+						avl_free( si->si_presentlist, ch_free );
 						si->si_presentlist = NULL;
 					}
 				}
@@ -1018,15 +1018,8 @@ do_syncrep2(
 						} else {
 							int i;
 							for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
-								struct berval *syncuuid_bv;
-								syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
-								slap_sl_free( syncUUIDs[i].bv_val,op->o_tmpmemctx );
-								if ( avl_insert( &si->si_presentlist,
-									(caddr_t) syncuuid_bv,
-									syncuuid_cmp, avl_dup_error ) )
-								{
-									ber_bvfree( syncuuid_bv );
-								}
+								(void)avl_presentlist_insert( si, &syncUUIDs[i] );
+								slap_sl_free( syncUUIDs[i].bv_val, op->o_tmpmemctx );
 							}
 							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
@@ -1838,6 +1831,29 @@ typedef struct dninfo {
 	Modifications *mods;	/* the modlist we compared */
 } dninfo;
 
+/* return 1 if inserted, 0 otherwise */
+static int
+avl_presentlist_insert(
+	syncinfo_t* si,
+	struct berval *syncUUID )
+{
+	struct berval *syncuuid_bv = ch_malloc( sizeof( struct berval ) + syncUUID->bv_len + 1 );
+
+	syncuuid_bv->bv_len = syncUUID->bv_len;
+	syncuuid_bv->bv_val = (char *)&syncuuid_bv[1];
+	AC_MEMCPY( syncuuid_bv->bv_val, syncUUID->bv_val, syncUUID->bv_len );
+	syncuuid_bv->bv_val[ syncuuid_bv->bv_len ] = '\0';
+
+	if ( avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
+		syncuuid_cmp, avl_dup_error ) )
+	{
+		ch_free( syncuuid_bv );
+		return 0;
+	}
+
+	return 1;
+}
+
 static int
 syncrepl_entry(
 	syncinfo_t* si,
@@ -1849,7 +1865,7 @@ syncrepl_entry(
 {
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL, NULL, NULL, NULL };
-	struct berval	*syncuuid_bv = NULL;
+	int syncuuid_inserted = 0;
 	struct berval	syncUUID_strrep = BER_BVNULL;
 
 	SlapReply	rs_search = {REP_RESULT};
@@ -1871,13 +1887,7 @@ syncrepl_entry(
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ) ) {
 		if ( !si->si_refreshPresent ) {
-			syncuuid_bv = ber_dupbv( NULL, syncUUID );
-			if ( avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
-				syncuuid_cmp, avl_dup_error ) )
-			{
-				ber_bvfree( syncuuid_bv );
-				syncuuid_bv = NULL;
-			}
+			syncuuid_inserted = avl_presentlist_insert( si, syncUUID );
 		}
 	}
 
@@ -1914,7 +1924,7 @@ syncrepl_entry(
 	ava.aa_desc = slap_schema.si_ad_entryUUID;
 	ava.aa_value = *syncUUID;
 
-	if ( syncuuid_bv ) {
+	if ( syncuuid_inserted ) {
 		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s inserted UUID %s\n",
 			si->si_ridtxt, syncUUID_strrep.bv_val, 0 );
 	}
@@ -3013,7 +3023,7 @@ nonpresent_callback(
 	struct nonpresent_entry *np_entry;
 
 	if ( rs->sr_type == REP_RESULT ) {
-		count = avl_free( si->si_presentlist, avl_ber_bvfree );
+		count = avl_free( si->si_presentlist, ch_free );
 		si->si_presentlist = NULL;
 
 	} else if ( rs->sr_type == REP_SEARCH ) {
@@ -3047,8 +3057,7 @@ nonpresent_callback(
 
 		} else {
 			avl_delete( &si->si_presentlist,
-					&a->a_nvals[0], syncuuid_cmp );
-			ch_free( present_uuid->bv_val );
+				&a->a_nvals[0], syncuuid_cmp );
 			ch_free( present_uuid );
 		}
 	}
@@ -3186,18 +3195,6 @@ syncuuid_cmp( const void* v_uuid1, const void* v_uuid2 )
 	return ( memcmp( uuid1->bv_val, uuid2->bv_val, uuid1->bv_len ) );
 }
 
-static void
-avl_ber_bvfree( void *v_bv )
-{
-	struct berval	*bv = (struct berval *)v_bv;
-	
-	if( v_bv == NULL ) return;
-	if ( !BER_BVISNULL( bv ) ) {
-		ch_free( bv->bv_val );
-	}
-	ch_free( (char *) bv );
-}
-
 void
 syncinfo_free( syncinfo_t *sie, int free_all )
 {
@@ -3289,7 +3286,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		}
 		slap_sync_cookie_free( &sie->si_syncCookie, 0 );
 		if ( sie->si_presentlist ) {
-		    avl_free( sie->si_presentlist, avl_ber_bvfree );
+		    avl_free( sie->si_presentlist, ch_free );
 		}
 		while ( !LDAP_LIST_EMPTY( &sie->si_nonpresentlist ) ) {
 			struct nonpresent_entry* npe;
