@@ -3583,12 +3583,10 @@ parse_syncrepl_line(
 				si->si_interval = 0;
 			} else if ( strchr( val, ':' ) != NULL ) {
 				char *next, *ptr = val;
-				unsigned dd, hh, mm, ss;
+				int dd, hh, mm, ss;
 
-				/* NOTE: the test for ptr[ 0 ] == '-'
-				 * should go before the call to strtoul() */
-				dd = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' ) {
+				dd = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || dd < 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse days", val );
@@ -3596,8 +3594,8 @@ parse_syncrepl_line(
 					return -1;
 				}
 				ptr = next + 1;
-				hh = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || hh > 24 ) {
+				hh = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || hh < 0 || hh > 24 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse hours", val );
@@ -3605,8 +3603,8 @@ parse_syncrepl_line(
 					return -1;
 				}
 				ptr = next + 1;
-				mm = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || mm > 60 ) {
+				mm = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || mm < 0 || mm > 60 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse minutes", val );
@@ -3614,8 +3612,8 @@ parse_syncrepl_line(
 					return -1;
 				}
 				ptr = next + 1;
-				ss = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != '\0' || ss > 60 ) {
+				ss = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != '\0' || ss < 0 || ss > 60 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse seconds", val );

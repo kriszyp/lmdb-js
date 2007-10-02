@@ -146,8 +146,8 @@ slap_parse_csn_sid( struct berval *csnp )
 
 	csn.bv_len = q - p;
 
-	i = (int)strtoul( p, &q, 16 );
-	if ( p == q || q != p + csn.bv_len || i > SLAP_SYNC_SID_MAX ) {
+	i = strtol( p, &q, 16 );
+	if ( p == q || q != p + csn.bv_len || i < 0 || i > SLAP_SYNC_SID_MAX ) {
 		i = -1;
 	}
 
