@@ -3234,6 +3234,8 @@ LDAP *slapi_ldap_init( char *ldaphost, int ldapport, int secure, int shared )
 
 	if ( rc > 0 && rc < size ) {
 		rc = ldap_initialize( &ld, url );
+	} else {
+		ld = NULL;
 	}
 
 	slapi_ch_free_string( &url );
