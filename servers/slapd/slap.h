@@ -1675,7 +1675,7 @@ typedef BackendDB Backend;
 
 struct syncinfo_s;
 
-#define SLAP_SYNC_RID_SIZE	3
+#define SLAP_SYNC_RID_MAX	999
 #define SLAP_SYNC_SID_MAX	4095	/* based on liblutil/csn.c field width */
 #define SLAP_SYNCUUID_SET_SIZE 256
 

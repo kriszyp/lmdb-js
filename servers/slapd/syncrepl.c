@@ -63,7 +63,7 @@ typedef struct syncinfo_s {
 	BackendDB		*si_wbe;
 	struct re_s		*si_re;
 	int			si_rid;
-	char			si_ridtxt[ STRLENOF("rid=4095") + 1 ];
+	char			si_ridtxt[ STRLENOF("rid=999") + 1 ];
 	slap_bindconf		si_bindconf;
 	struct berval		si_base;
 	struct berval		si_logbase;
@@ -1277,16 +1277,16 @@ reload:
 	if ( rc ) {
 		if ( fail == RETRYNUM_TAIL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: rid %03d quitting\n",
-				si->si_rid, 0, 0 );
+				"do_syncrepl: %s quitting\n",
+				si->si_ridtxt, 0, 0 );
 		} else if ( fail > 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: rid %03d retrying (%d retries left)\n",
-				si->si_rid, fail, 0 );
+				"do_syncrepl: %s retrying (%d retries left)\n",
+				si->si_ridtxt, fail, 0 );
 		} else {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: rid %03d retrying\n",
-				si->si_rid, 0, 0 );
+				"do_syncrepl: %s retrying\n",
+				si->si_ridtxt, 0, 0 );
 		}
 	}
 
@@ -3002,8 +3002,6 @@ nonpresent_callback(
 
 	} else if ( rs->sr_type == REP_SEARCH ) {
 		if ( !( si->si_refreshDelete & NP_DELETE_ONE ) ) {
-			char buf[sizeof("rid=4096 not")];
-
 			a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
 
 			if ( a ) {
@@ -3011,13 +3009,15 @@ nonpresent_callback(
 					syncuuid_cmp );
 			}
 
-			if ( slap_debug & LDAP_DEBUG_SYNC ) {
+			if ( LogTest( LDAP_DEBUG_SYNC ) ) {
+				char buf[sizeof("rid=999 not")];
+
 				snprintf( buf, sizeof(buf), "%s %s", si->si_ridtxt,
 					present_uuid ? "got" : "not" );
-			}
 
-			Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %s UUID %s, dn %s\n",
-				buf, a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val );
+				Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %s UUID %s, dn %s\n",
+					buf, a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val );
+			}
 
 			if ( a == NULL ) return 0;
 		}
@@ -3383,7 +3383,7 @@ parse_syncrepl_line(
 				return -1;
 			}
 			si->si_rid = tmp;
-			sprintf( si->si_ridtxt, IDSTR "=%d", si->si_rid );
+			sprintf( si->si_ridtxt, IDSTR "=%03d", si->si_rid );
 			gots |= GOT_ID;
 		} else if ( !strncasecmp( c->argv[ i ], PROVIDERSTR "=",
 					STRLENOF( PROVIDERSTR "=" ) ) )
@@ -3930,7 +3930,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 
 	ptr = buf;
 	assert( si->si_rid >= 0 && si->si_rid <= SLAP_SYNC_SID_MAX );
-	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%d " PROVIDERSTR "=%s",
+	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03d " PROVIDERSTR "=%s",
 		si->si_rid, si->si_bindconf.sb_uri.bv_val );
 	if ( ptr - buf >= sizeof( buf ) ) return;
 	if ( !BER_BVISNULL( &bc ) ) {

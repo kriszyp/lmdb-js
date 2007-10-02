@@ -51,7 +51,7 @@ slap_compose_sync_cookie(
 			len = 0;
 		} else {
 			len = snprintf( cookiestr, sizeof( cookiestr ),
-					"rid=%03x", rid );
+					"rid=%03d", rid );
 			if ( sid >= 0 ) {
 				len += sprintf( cookiestr+len, ",sid=%03x", sid );
 			}
@@ -72,7 +72,7 @@ slap_compose_sync_cookie(
 
 		cookie->bv_val = slap_sl_malloc( len, op ? op->o_tmpmemctx : NULL );
 
-		len = sprintf( cookie->bv_val, "rid=%03x,", rid );
+		len = sprintf( cookie->bv_val, "rid=%03d,", rid );
 		ptr = cookie->bv_val + len;
 		if ( sid >= 0 ) {
 			ptr += sprintf( ptr, "sid=%03x,", sid );
@@ -174,7 +174,6 @@ slap_parse_sync_cookie(
 {
 	char *csn_ptr;
 	char *csn_str;
-	char *rid_ptr;
 	char *cval;
 	char *next, *end;
 	AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
@@ -195,11 +194,13 @@ slap_parse_sync_cookie(
 
 	for ( next=cookie->octet_str.bv_val; next < end; ) {
 		if ( !strncmp( next, "rid=", STRLENOF("rid=") )) {
-			rid_ptr = next;
-			cookie->rid = strtoul( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );
+			char *rid_ptr = next;
+			cookie->rid = strtol( &rid_ptr[ STRLENOF( "rid=" ) ], &next, 10 );
 			if ( next == rid_ptr ||
 				next > end ||
-				( *next && *next != ',' ) )
+				( *next && *next != ',' ) ||
+				cookie->rid < 0 ||
+				cookie->rid > SLAP_SYNC_RID_MAX )
 			{
 				return -1;
 			}
@@ -212,11 +213,14 @@ slap_parse_sync_cookie(
 			continue;
 		}
 		if ( !strncmp( next, "sid=", STRLENOF("sid=") )) {
-			rid_ptr = next;
-			cookie->sid = strtoul( &rid_ptr[ STRLENOF( "sid=" ) ], &next, 16 );
-			if ( next == rid_ptr ||
+			char *sid_ptr = next;
+			sid_ptr = next;
+			cookie->sid = strtol( &sid_ptr[ STRLENOF( "sid=" ) ], &next, 16 );
+			if ( next == sid_ptr ||
 				next > end ||
-				( *next && *next != ',' ) )
+				( *next && *next != ',' ) ||
+				cookie->sid < 0 ||
+				cookie->sid > SLAP_SYNC_SID_MAX )
 			{
 				return -1;
 			}
