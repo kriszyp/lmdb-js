@@ -19,6 +19,9 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapo-chain double-free (ITS#5137)
 	Fixed slapo-dynlist entry release (ITS#5135)
 	Fixed slapo-dynlist member processing (ITS#5157)
+        Fixed slapo-pcache memory leak (ITS#5112)
+        Fixed slapo-pcache returning incomplete results (ITS#5113)
+        Fixed slapo-pcache sizelimit handling (ITS#5114)
 	Fixed slapo-rwm modlist handling (ITS#5124)
 	Build Environment
 		Use separate config OID arc for contrib (ITS#5158)
