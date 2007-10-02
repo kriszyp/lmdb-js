@@ -776,6 +776,8 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	BER_BVZERO( &csns[1] );
 	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, so->s_sid );
 
+	Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n", cookie.bv_val, 0, 0 );
+
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
 	a_uuid.a_nvals = &opc->suuid;
@@ -1533,6 +1535,9 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 		slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid,
 			srs->sr_state.sid );
+
+		Debug( LDAP_DEBUG_SYNC, "syncprov_playlog: cookie=%s\n", cookie.bv_val, 0, 0 );
+
 		uuids[ndel].bv_val = NULL;
 		syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, &cookie, 0, uuids, 1 );
 		op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
@@ -1985,6 +1990,8 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 		slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
 			srs->sr_state.rid, srs->sr_state.sid );
+
+		Debug( LDAP_DEBUG_SYNC, "syncprov_search_response: cookie=%s\n", cookie.bv_val, 0, 0 );
 
 		/* Is this a regular refresh? */
 		if ( !ss->ss_so ) {
