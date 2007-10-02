@@ -30,7 +30,12 @@ LDAPException::LDAPException(const LDAPAsynConnection *lc){
         m_res_string = "";
     }
     const char* err_string;
-    ldap_get_option(l,LDAP_OPT_DIAGNOSTIC_MESSAGE,&err_string);
+
+#ifdef LDAP_OPT_DIAGNOSTIC_MESSAGE
+    ldap_get_option(l,LDAP_OPT_DIAGNOSTIC_MESSAGE ,&err_string);
+#else
+    ldap_get_option(l,LDAP_OPT_ERROR_STRING,&err_string);
+#endif
     if ( err_string ) {
         m_err_string = string(err_string);
     } else {

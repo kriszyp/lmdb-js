@@ -1,5 +1,5 @@
-#include<iostream.h>
-#include<strstream>
+#include<iostream>
+#include<sstream>
 #include "LDAPConnection.h"
 #include "LDAPConstraints.h"
 #include "LDAPSearchReference.h"
@@ -16,10 +16,10 @@
 
 int main(){
     LDAPConnection *lc=new LDAPConnection("192.168.3.128",389);
-    cout << "----------------------doing bind...." <<  endl;
+    std::cout << "----------------------doing bind...." <<  std::endl;
     try{
         lc->bind("uid=admin,dc=home,dc=local" , "secret");
-        cout << lc->getHost() << endl;
+        std::cout << lc->getHost() << std::endl;
         StringList tmp;
         tmp.add("subschemasubentry");
         LDAPSearchResults* entries = lc->search("", 
@@ -45,14 +45,14 @@ int main(){
                 LDAPSchema schema;
                 schema.setObjectClasses((oc->getValues()));
                 LDAPObjClass test = schema.getObjectClassByName("inetOrgPerson");
-                cout << test.getDesc() << endl;
+                std::cout << test.getDesc() << std::endl;
 //                StringList mustAttr = test.getMay();
 //                for( StringList::const_iterator i = mustAttr.begin(); i != mustAttr.end(); i++ ){
-//                    cout << *i << endl;
+//                    std::cout << *i << std::endl;
 //                }
                 StringList sup = test.getSup();
                 for( StringList::const_iterator i = sup.begin(); i != sup.end(); i++ ){
-                    cout << *i << endl;
+                    std::cout << *i << std::endl;
                 }
             }
         }
@@ -60,8 +60,8 @@ int main(){
         lc->unbind();
         delete lc;
    }catch (LDAPException e){
-        cout << "------------------------- caught Exception ---------"<< endl;
-        cout << e << endl;
+        std::cout << "---------------- caught Exception ---------"<< std::endl;
+        std::cout << e << std::endl;
     }
 
 }

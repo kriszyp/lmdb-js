@@ -2,6 +2,7 @@
 # Copyright 2003, OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
+AM_CPPFLAGS = -I$(top_srcdir)/src
 noinst_PROGRAMS = main readSchema urlTest
 
 main_SOURCES = main.cpp

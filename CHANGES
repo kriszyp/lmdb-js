@@ -25,5 +25,6 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapo-rwm modlist handling (ITS#5124)
 	Build Environment
 		Use separate config OID arc for contrib (ITS#5158)
+                Updated contrib/ldapc++ build enviroment
 	Documentation
 		Fixed slapd-bdb(5) note about dbconfig directives (ITS#5134)
