@@ -982,15 +982,18 @@ static int
 syncprov_qresp( opcookie *opc, syncops *so, int mode )
 {
 	syncres *sr;
-	int sid;
+	int sid, srsize;
 
 	/* Don't send changes back to their originator */
 	sid = slap_parse_csn_sid( &opc->sctxcsn );
 	if ( sid >= 0 && sid == so->s_sid )
 		return LDAP_SUCCESS;
 
-	sr = ch_malloc(sizeof(syncres) + opc->suuid.bv_len + 1 +
-		opc->sdn.bv_len + 1 + opc->sndn.bv_len + 1 + opc->sctxcsn.bv_len + 1 );
+	srsize = sizeof(syncres) + opc->suuid.bv_len + 1 +
+		opc->sdn.bv_len + 1 + opc->sndn.bv_len + 1;
+	if ( opc->sctxcsn.bv_len )
+		srsize += opc->sctxcsn.bv_len + 1;
+	sr = ch_malloc( srsize );
 	sr->s_next = NULL;
 	sr->s_dn.bv_val = (char *)(sr + 1);
 	sr->s_dn.bv_len = opc->sdn.bv_len;
@@ -1003,9 +1006,13 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		 opc->sndn.bv_val ) + 1;
 	sr->s_uuid.bv_len = opc->suuid.bv_len;
 	AC_MEMCPY( sr->s_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
-	sr->s_csn.bv_val = sr->s_uuid.bv_val + sr->s_uuid.bv_len + 1;
+	if ( opc->sctxcsn.bv_len ) {
+		sr->s_csn.bv_val = sr->s_uuid.bv_val + sr->s_uuid.bv_len + 1;
+		strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
+	} else {
+		sr->s_csn.bv_val = NULL;
+	}
 	sr->s_csn.bv_len = opc->sctxcsn.bv_len;
-	strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
 	if ( !so->s_res ) {
