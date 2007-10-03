@@ -902,6 +902,7 @@ main( int argc, char **argv )
 				bargs[banum + 3] = bcreds[jj];
 				bargs[banum + 4] = "-a";
 				bargs[banum + 5] = battrs[jj];
+				bargs[banum + 6] = NULL;
 
 			} else {
 				bargs[banum - 3] = breqs[jj];
@@ -1077,6 +1078,13 @@ fork_child( char *prog, char **args )
 #endif
 		execvp( prog, args );
 		tester_perror( "execvp", NULL );
+		{ int i;
+			for (i=0; args[i]; i++);
+			fprintf(stderr,"%d args\n", i);
+			for (i=0; args[i]; i++)
+				fprintf(stderr,"%d %s\n", i, args[i]);
+		}
+
 		exit( EXIT_FAILURE );
 		break;
 
