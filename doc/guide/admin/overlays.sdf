@@ -206,8 +206,80 @@ H3: Dynamic List Configuration
 
 H2: Reverse Group Membership Maintenance
 
+H3: Overview
+
+In some scenarios, it may be desirable for a client to be able to determine
+which groups an entry is a member of, without performing an additional search.
+Examples of this are applications using the {{TERM:DIT}} for access control
+based on group authorization.
+
+The {{B:memberof}} overlay updates an attribute (by default {{B:memberOf}}) whenever
+changes occur to the membership attribute (by default {{B:member}}) of entries of the
+objectclass (by default {{B:groupOfNames}}) configured to trigger updates.
+
+Thus, it provides maintenance of the list of groups an entry is a member of,
+when usual maintenance of groups is done by modifying the members on the group
+entry.
 
 H3: Member Of Configuration
+
+The typical use of this overlay requires just enabling the overlay for a
+specific database. For example, with the following minimal slapd.conf:
+
+>        include /usr/share/openldap/schema/core.schema
+>        include /usr/share/openldap/schema/cosine.schema
+>        modulepath      /usr/lib/openldap
+>        moduleload      memberof.la
+>        authz-regexp "gidNumber=0\\\+uidNumber=0,cn=peercred,cn=external,cn=auth"
+>                "cn=Manager,dc=example,dc=com"
+>        database        bdb
+>        suffix          "dc=example,dc=com"
+>        rootdn          "cn=Manager,dc=example,dc=com"
+>        rootpw          secret
+>        directory       /var/lib/ldap2.4
+>        checkpoint 256 5
+>        index   objectClass   eq
+>        index   uid           eq,sub
+>        
+>        overlay memberof
+
+adding the following ldif:
+
+>        cat memberof.ldif
+>        dn: dc=example,dc=com
+>        objectclass: domain
+>        dc: example
+>        
+>        dn: ou=Group,dc=example,dc=com
+>        objectclass: organizationalUnit
+>        ou: Group
+>        
+>        dn: ou=People,dc=example,dc=com
+>        objectclass: organizationalUnit
+>        ou: People
+>        
+>        dn: uid=test1,ou=People,dc=example,dc=com
+>        objectclass: account
+>        uid: test1
+>        
+>        dn: cn=testgroup,ou=Group,dc=example,dc=com
+>        objectclass: groupOfNames
+>        cn: testgroup
+>        member: uid=test1,ou=People,dc=example,dc=com
+
+Results in the following output from a search on the test1 user:
+
+> # ldapsearch -LL -Y EXTERNAL -H ldapi:/// "(uid=test1)" -b dc=example,dc=com memberOf
+> SASL/EXTERNAL authentication started
+> SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+> SASL SSF: 0
+> version: 1
+> 
+> dn: uid=test1,ou=People,dc=example,dc=com
+> memberOf: cn=testgroup,ou=Group,dc=example,dc=com
+
+Note that the {{B:memberOf}} attribute is an operational attribute, so it must be
+requested explicitly.
 
 
 H2: The Proxy Cache Engine
