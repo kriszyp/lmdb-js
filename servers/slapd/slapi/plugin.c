@@ -598,7 +598,7 @@ slapi_int_call_plugins(
 	rc = slapi_int_get_plugins( be, funcType, &tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* Nothing to do, front-end should ignore. */
-		return 1;
+		return rc;
 	}
 
 	for ( pGetPlugin = tmpPlugin ; *pGetPlugin != NULL; pGetPlugin++ ) {
