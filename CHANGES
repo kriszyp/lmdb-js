@@ -28,3 +28,4 @@ OpenLDAP 2.4.6 Engineering
                 Updated contrib/ldapc++ build enviroment
 	Documentation
 		Fixed slapd-bdb(5) note about dbconfig directives (ITS#5134)
+		Fixed slapadd(8)/slapindex/8) about file ownership (ITS#5166)
