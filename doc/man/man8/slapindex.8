@@ -31,6 +31,21 @@ of all entries.
 Databases configured as
 .B subordinate
 of this one are also re-indexed, unless \fB-g\fP is specified.
+
+All files eventually created by
+.BR slapindex (8)
+will belong to the identity
+.BR slapindex (8)
+is run as, so make sure you either run
+.BR slapindex (8)
+with the same identity
+.BR slapd (8)
+will be run as (see option
+.B \-u
+in
+.BR slapd (8)),
+or change file ownership before running
+.BR slapd (8).
 .SH OPTIONS
 .TP
 .BI \-b " suffix" 
