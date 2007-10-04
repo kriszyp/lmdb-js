@@ -212,6 +212,13 @@ lutil_pair( ber_socket_t sd[2] );
 LDAP_LUTIL_F( size_t )
 lutil_uuidstr( char *buf, size_t len );
 
+LDAP_LUTIL_F( int )
+lutil_uuidstr_from_normalized(
+	char		*uuid,
+	size_t		uuidlen,
+	char		*buf,
+	size_t		buflen );
+
 /* csn.c */
 /* use this macro to allocate buffer for lutil_csnstr */
 #define LDAP_LUTIL_CSNSTR_BUFSIZE	64
