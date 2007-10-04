@@ -23,6 +23,7 @@ OpenLDAP 2.4.6 Engineering
         Fixed slapo-pcache returning incomplete results (ITS#5113)
         Fixed slapo-pcache sizelimit handling (ITS#5114)
 	Fixed slapo-rwm modlist handling (ITS#5124)
+	Fixed slapo-rwm UUID in filter (ITS#5168)
 	Build Environment
 		Use separate config OID arc for contrib (ITS#5158)
                 Updated contrib/ldapc++ build enviroment
