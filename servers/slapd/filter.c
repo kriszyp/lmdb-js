@@ -567,7 +567,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 {
 	int		i;
 	Filter		*p;
-	struct berval	tmp;
+	struct berval	tmp, value;
 	static struct berval
 			ber_bvfalse = BER_BVC( "(?=false)" ),
 			ber_bvtrue = BER_BVC( "(?=true)" ),
@@ -592,13 +592,6 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 	case LDAP_FILTER_EQUALITY:
 		fstr->bv_len = STRLENOF("(=)");
 		sign = "=";
-		if ( f->f_av_desc->ad_type->sat_syntax == slap_schema.si_ad_entryUUID->ad_type->sat_syntax ) {
-			tmp.bv_val = op->o_tmpalloc( LDAP_LUTIL_UUIDSTR_BUFSIZE, op->o_tmpmemctx );
-			tmp.bv_len = lutil_uuidstr_from_normalized( f->f_av_value.bv_val,
-				f->f_av_value.bv_len, tmp.bv_val, LDAP_LUTIL_UUIDSTR_BUFSIZE );
-			assert( tmp.bv_len > 0 );
-			goto escaped;
-		}
 		goto simple;
 	case LDAP_FILTER_GE:
 		fstr->bv_len = STRLENOF("(>=)");
@@ -613,13 +606,19 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 		sign = "~=";
 
 simple:
-		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
+		value = f->f_av_value;
+		if ( f->f_av_desc->ad_type->sat_equality->smr_usage & SLAP_MR_MUTATION_NORMALIZER ) {
+			f->f_av_desc->ad_type->sat_equality->smr_normalize(
+				(SLAP_MR_DENORMALIZE|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX),
+				NULL, NULL, &f->f_av_value, &value, op->o_tmpmemctx );
+		}
+
+		filter_escape_value_x( &value, &tmp, op->o_tmpmemctx );
 		/* NOTE: tmp can legitimately be NULL (meaning empty) 
 		 * since in a Filter values in AVAs are supposed
 		 * to have been normalized, meaning that an empty value
 		 * is legal for that attribute's syntax */
 
-escaped:
 		fstr->bv_len += f->f_av_desc->ad_cname.bv_len + tmp.bv_len;
 		if ( undef )
 			fstr->bv_len++;
@@ -629,6 +628,10 @@ escaped:
 			undef ? "?" : "",
 			f->f_av_desc->ad_cname.bv_val, sign,
 			tmp.bv_len ? tmp.bv_val : "" );
+
+		if ( value.bv_val != f->f_av_value.bv_val ) {
+			ber_memfree_x( value.bv_val, op->o_tmpmemctx );
+		}
 
 		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
