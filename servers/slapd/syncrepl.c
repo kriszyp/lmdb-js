@@ -112,7 +112,8 @@ static int syncrepl_message_to_entry(
 					Modifications **, Entry **, int );
 static int syncrepl_entry(
 					syncinfo_t *, Operation*, Entry*,
-					Modifications**,int, struct berval* );
+					Modifications**,int, struct berval*,
+					struct berval *cookieCSN );
 static int syncrepl_updateCookie(
 					syncinfo_t *, Operation *, struct berval *,
 					struct sync_cookie * );
@@ -817,7 +818,7 @@ do_syncrep2(
 					&modlist, &entry, syncstate ) ) == LDAP_SUCCESS )
 				{
 					if ( ( rc = syncrepl_entry( si, op, entry, &modlist,
-						syncstate, &syncUUID ) ) == LDAP_SUCCESS &&
+						syncstate, &syncUUID, syncCookie.ctxcsn ) ) == LDAP_SUCCESS &&
 						syncCookie.ctxcsn )
 					{
 						rc = syncrepl_updateCookie( si, op, psub, &syncCookie );
@@ -1829,7 +1830,8 @@ syncrepl_entry(
 	Entry* entry,
 	Modifications** modlist,
 	int syncstate,
-	struct berval* syncUUID )
+	struct berval* syncUUID,
+	struct berval* syncCSN )
 {
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL, NULL, NULL, NULL };
@@ -1960,12 +1962,17 @@ syncrepl_entry(
 	}
 
 	assert( BER_BVISNULL( &op->o_csn ) );
+	if ( syncCSN ) {
+		slap_queue_csn( op, syncCSN );
+	}
 
 	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
+		if ( BER_BVISNULL( &op->o_csn ))
 		{
+
 			Attribute *a = attr_find( entry->e_attrs, slap_schema.si_ad_entryCSN );
 			if ( a ) {
 				/* FIXME: op->o_csn is assumed to be
@@ -2210,6 +2217,9 @@ done:
 	}
 	if ( entry ) {
 		entry_free( entry );
+	}
+	if ( syncCSN ) {
+		slap_graduate_commit_csn( op );
 	}
 	if ( !BER_BVISNULL( &op->o_csn ) && freecsn ) {
 		op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
