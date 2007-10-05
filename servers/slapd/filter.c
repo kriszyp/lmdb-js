@@ -32,6 +32,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 const Filter *slap_filter_objectClass_pres;
 const struct berval *slap_filterstr_objectClass_pres;
@@ -567,6 +568,7 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 	int		i;
 	Filter		*p;
 	struct berval	tmp;
+	char		uuid[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 	static struct berval
 			ber_bvfalse = BER_BVC( "(?=false)" ),
 			ber_bvtrue = BER_BVC( "(?=true)" ),
@@ -591,6 +593,13 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 	case LDAP_FILTER_EQUALITY:
 		fstr->bv_len = STRLENOF("(=)");
 		sign = "=";
+		if ( f->f_av_desc->ad_type->sat_syntax == slap_schema.si_ad_entryUUID->ad_type->sat_syntax ) {
+			tmp.bv_len = lutil_uuidstr_from_normalized( f->f_av_value.bv_val,
+				f->f_av_value.bv_len, uuid, LDAP_LUTIL_UUIDSTR_BUFSIZE );
+			assert( tmp.bv_len > 0 );
+			tmp.bv_val = uuid;
+			goto escaped;
+		}
 		goto simple;
 	case LDAP_FILTER_GE:
 		fstr->bv_len = STRLENOF("(>=)");
@@ -611,6 +620,7 @@ simple:
 		 * to have been normalized, meaning that an empty value
 		 * is legal for that attribute's syntax */
 
+escaped:
 		fstr->bv_len += f->f_av_desc->ad_cname.bv_len + tmp.bv_len;
 		if ( undef )
 			fstr->bv_len++;
