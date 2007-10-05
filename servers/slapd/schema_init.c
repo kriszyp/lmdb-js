@@ -2598,7 +2598,13 @@ serialNumberAndIssuerCheck(
 			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
 				/* empty */;
 			}
-			
+
+			/* For backward compatibility, this part is optional */
+			if( !strncasecmp( x.bv_val, "rdnSequence:", STRLENOF("rdnSequence:"))) {
+				x.bv_val += STRLENOF("rdnSequence:");
+				x.bv_len -= STRLENOF("rdnSequence:");
+			}
+
 			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
 			x.bv_val++; x.bv_len--;
 
@@ -2710,7 +2716,13 @@ serialNumberAndIssuerCheck(
 			for( ; (x.bv_val[0] == ' ') && x.bv_len; x.bv_val++, x.bv_len--) {
 				 /* empty */;
 			}
-			
+
+			/* For backward compatibility, this part is optional */
+			if( !strncasecmp( x.bv_val, "rdnSequence:", STRLENOF("rdnSequence:"))) {
+				x.bv_val += STRLENOF("rdnSequence:");
+				x.bv_len -= STRLENOF("rdnSequence:");
+			}
+
 			if( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
 			x.bv_val++; x.bv_len--;
 
@@ -2862,7 +2874,7 @@ serialNumberAndIssuerPretty(
 	if( rc ) return LDAP_INVALID_SYNTAX;
 
 	/* make room from sn + "$" */
-	out->bv_len = STRLENOF("{ serialNumber , issuer \"\" }")
+	out->bv_len = STRLENOF("{ serialNumber , issuer rdnSequence:\"\" }")
 		+ sn.bv_len + ni.bv_len;
 	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
 
@@ -2880,8 +2892,8 @@ serialNumberAndIssuerPretty(
 	AC_MEMCPY( &out->bv_val[n], sn.bv_val, sn.bv_len );
 	n += sn.bv_len;
 
-	AC_MEMCPY( &out->bv_val[n], ", issuer \"", STRLENOF(", issuer \""));
-	n += STRLENOF(", issuer \"");
+	AC_MEMCPY( &out->bv_val[n], ", issuer rdnSequence:\"", STRLENOF(", issuer rdnSequence:\""));
+	n += STRLENOF(", issuer rdnSequence:\"");
 
 	AC_MEMCPY( &out->bv_val[n], ni.bv_val, ni.bv_len );
 	n += ni.bv_len;
@@ -2952,7 +2964,7 @@ serialNumberAndIssuerNormalize(
 	}
 
 	/* make room for sn + "$" */
-	out->bv_len = STRLENOF( "{ serialNumber , issuer \"\" }" )
+	out->bv_len = STRLENOF( "{ serialNumber , issuer rdnSequence:\"\" }" )
 		+ ( sn2.bv_len * 2 + 3 ) + ni.bv_len;
 	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
 
@@ -2974,15 +2986,15 @@ serialNumberAndIssuerNormalize(
 		unsigned char *v = sn2.bv_val;
 		out->bv_val[n++] = '\'';
 		for ( j = 0; j < sn2.bv_len; j++ ) {
-			sprintf( &out->bv_val[n], "%02x", v[j] );
+			sprintf( &out->bv_val[n], "%02X", v[j] );
 			n += 2;
 		}
 		out->bv_val[n++] = '\'';
 		out->bv_val[n++] = 'H';
 	}
 
-	AC_MEMCPY( &out->bv_val[n], ", issuer \"", STRLENOF( ", issuer \"" ));
-	n += STRLENOF( ", issuer \"" );
+	AC_MEMCPY( &out->bv_val[n], ", issuer rdnSequence:\"", STRLENOF( ", issuer rdnSequence:\"" ));
+	n += STRLENOF( ", issuer rdnSequence:\"" );
 
 	AC_MEMCPY( &out->bv_val[n], ni.bv_val, ni.bv_len );
 	n += ni.bv_len;
@@ -3074,7 +3086,7 @@ certificateExactNormalize(
 		sptr = serial;
 		*sptr++ = '\'';
 		for ( i = 0; i<len; i++ ) {
-			sprintf( sptr, "%02x", ptr[i] );
+			sprintf( sptr, "%02X", ptr[i] );
 			sptr += 2;
 		}
 		*sptr++ = '\'';
@@ -3091,7 +3103,7 @@ certificateExactNormalize(
 	rc = dnX509normalize( &bvdn, &issuer_dn );
 	if( rc != LDAP_SUCCESS ) goto done;
 
-	normalized->bv_len = STRLENOF( "{ serialNumber , issuer \"\" }" )
+	normalized->bv_len = STRLENOF( "{ serialNumber , issuer rdnSequence:\"\" }" )
 		+ seriallen + issuer_dn.bv_len;
 	normalized->bv_val = ch_malloc(normalized->bv_len+1);
 
@@ -3103,8 +3115,8 @@ certificateExactNormalize(
 	AC_MEMCPY(p, serial, seriallen);
 	p += seriallen;
 
-	AC_MEMCPY(p, ", issuer \"", STRLENOF( ", issuer \"" ));
-	p += STRLENOF( ", issuer \"" );
+	AC_MEMCPY(p, ", issuer rdnSequence:\"", STRLENOF( ", issuer rdnSequence:\"" ));
+	p += STRLENOF( ", issuer rdnSequence:\"" );
 
 	AC_MEMCPY(p, issuer_dn.bv_val, issuer_dn.bv_len);
 	p += issuer_dn.bv_len;
