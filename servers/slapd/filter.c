@@ -568,7 +568,6 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 	int		i;
 	Filter		*p;
 	struct berval	tmp;
-	char		uuid[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 	static struct berval
 			ber_bvfalse = BER_BVC( "(?=false)" ),
 			ber_bvtrue = BER_BVC( "(?=true)" ),
@@ -594,10 +593,10 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 		fstr->bv_len = STRLENOF("(=)");
 		sign = "=";
 		if ( f->f_av_desc->ad_type->sat_syntax == slap_schema.si_ad_entryUUID->ad_type->sat_syntax ) {
+			tmp.bv_val = op->o_tmpalloc( LDAP_LUTIL_UUIDSTR_BUFSIZE, op->o_tmpmemctx );
 			tmp.bv_len = lutil_uuidstr_from_normalized( f->f_av_value.bv_val,
-				f->f_av_value.bv_len, uuid, LDAP_LUTIL_UUIDSTR_BUFSIZE );
+				f->f_av_value.bv_len, tmp.bv_val, LDAP_LUTIL_UUIDSTR_BUFSIZE );
 			assert( tmp.bv_len > 0 );
-			tmp.bv_val = uuid;
 			goto escaped;
 		}
 		goto simple;
