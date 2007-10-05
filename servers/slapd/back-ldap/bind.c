@@ -2518,7 +2518,7 @@ ldap_back_controls_add(
 
 	LDAPControl	**ctrls = NULL;
 	/* set to the maximum number of controls this backend can add */
-	LDAPControl	c[ 2 ] = { 0 };
+	LDAPControl	c[ 2 ] = { { 0 } };
 	int		n = 0, i, j1 = 0, j2 = 0;
 
 	*pctrls = NULL;
@@ -2644,8 +2644,8 @@ ldap_back_controls_free( Operation *op, SlapReply *rs, LDAPControl ***pctrls )
 	/* we assume that the controls added by the proxy come first,
 	 * so as soon as we find op->o_ctrls[ 0 ] we can stop */
 	if ( ctrls && ctrls != op->o_ctrls ) {
-		int	i = 0, n = 0, n_added;
-		void	*lower, *upper;
+		int		i = 0, n = 0, n_added;
+		LDAPControl	*lower, *upper;
 
 		assert( ctrls[ 0 ] != NULL );
 
@@ -2658,8 +2658,8 @@ ldap_back_controls_free( Operation *op, SlapReply *rs, LDAPControl ***pctrls )
 		}
 
 		n_added = n - i;
-		lower = ctrls + n;
-		upper = lower + sizeof( LDAPControl ) * n_added;
+		lower = (LDAPControl *)&ctrls[ n ];
+		upper = &lower[ n_added ];
 
 		for ( i = 0; ctrls[ i ] != NULL; i++ ) {
 			if ( ctrls[ i ] < lower || ctrls[ i ] >= upper ) {
