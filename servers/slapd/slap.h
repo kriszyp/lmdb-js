@@ -556,7 +556,8 @@ struct MatchingRule {
  */
 #define SLAP_MR_VALUE_OF_ASSERTION_SYNTAX	0x0001U
 #define SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX	0x0002U
-#define SLAP_MR_VALUE_OF_SYNTAX			0x0003U
+#define SLAP_MR_VALUE_OF_SYNTAX			(SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX)
+#define SLAP_MR_DENORMALIZE			(SLAP_MR_MUTATION_NORMALIZER)
 
 #define SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX( usage ) \
 	((usage) & SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX )
@@ -568,6 +569,8 @@ struct MatchingRule {
 #else
 #define SLAP_MR_IS_VALUE_OF_SYNTAX( usage )	(1)
 #endif
+#define SLAP_MR_IS_DENORMALIZE( usage ) \
+	((usage) & SLAP_MR_DENORMALIZE )
 
 /* either or both the asserted value or attribute value
  * may be provided in normalized form

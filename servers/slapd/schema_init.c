@@ -2348,6 +2348,19 @@ UUIDNormalize(
 	unsigned char octet = '\0';
 	int i;
 	int j;
+
+	if ( SLAP_MR_IS_DENORMALIZE( usage ) ) {
+		/* NOTE: must be a normalized UUID */
+		assert( val->bv_len == 16 );
+
+		normalized->bv_val = slap_sl_malloc( LDAP_LUTIL_UUIDSTR_BUFSIZE, ctx );
+		normalized->bv_len = lutil_uuidstr_from_normalized( val->bv_val,
+			val->bv_len, normalized->bv_val, LDAP_LUTIL_UUIDSTR_BUFSIZE );
+		assert( normalized->bv_len == STRLENOF( "BADBADBA-DBAD-0123-4567-BADBADBADBAD" ) );
+
+		return LDAP_SUCCESS;
+	}
+
 	normalized->bv_len = 16;
 	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
 
