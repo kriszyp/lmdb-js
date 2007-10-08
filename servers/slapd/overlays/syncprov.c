@@ -1503,7 +1503,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn = BER_BVNULL;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-		int do_check=0;
+		int do_check = 0, have_psearches;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
@@ -1548,7 +1548,10 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		opc->sctxcsn.bv_val = cbuf;
 
 		/* Handle any persistent searches */
-		if ( si->si_ops ) {
+		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		have_psearches = ( si->si_ops != NULL );
+		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+		if ( have_psearches ) {
 			switch(op->o_tag) {
 			case LDAP_REQ_ADD:
 			case LDAP_REQ_MODIFY:
@@ -1653,12 +1656,19 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
+	slap_callback *cb;
+	opcookie *opc;
+	int have_psearches, cbsize;
 
-	slap_callback *cb = op->o_tmpcalloc(1, sizeof(slap_callback)+
-		sizeof(opcookie) +
-		(si->si_ops ? sizeof(modinst) : 0 ),
-		op->o_tmpmemctx);
-	opcookie *opc = (opcookie *)(cb+1);
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+	have_psearches = ( si->si_ops != NULL );
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+
+	cbsize = sizeof(slap_callback) + sizeof(opcookie) +
+		(have_psearches ? sizeof(modinst) : 0 );
+
+	cb = op->o_tmpcalloc(1, cbsize, op->o_tmpmemctx);
+	opc = (opcookie *)(cb+1);
 	opc->son = on;
 	cb->sc_response = syncprov_op_response;
 	cb->sc_cleanup = syncprov_op_cleanup;
@@ -1669,7 +1679,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 	/* If there are active persistent searches, lock this operation.
 	 * See seqmod.c for the locking logic on its own.
 	 */
-	if ( si->si_ops ) {
+	if ( have_psearches ) {
 		modtarget *mt, mtdummy;
 		modinst *mi;
 
@@ -1716,7 +1726,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if (( si->si_ops || si->si_logs ) && op->o_tag != LDAP_REQ_ADD )
+	if (( have_psearches || si->si_logs ) && op->o_tag != LDAP_REQ_ADD )
 		syncprov_matchops( op, opc, 1 );
 
 	return SLAP_CB_CONTINUE;
@@ -1865,8 +1875,9 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			a = attr_find( rs->sr_operational_attrs, slap_schema.si_ad_entryCSN );
 		}
 		if ( a ) {
+			/* If not a persistent search */
 			/* Make sure entry is less than the snapshot'd contextCSN */
-			if ( ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 ) {
+			if ( !ss->ss_so && ber_bvcmp( &a->a_nvals[0], &ss->ss_ctxcsn ) > 0 ) {
 				Debug( LDAP_DEBUG_SYNC, "Entry %s CSN %s greater than snapshot %s\n",
 					rs->sr_entry->e_name.bv_val,
 					a->a_nvals[0].bv_val,
