@@ -12,6 +12,7 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-bdb/hdb IDL LRU handling (ITS#5121)
 	Fixed slapd-bdb/hdb cachesize config check (ITS#5122)
+	Fixed slapd-config objectclass handling (ITS#4884)
 	Fixed slapd-ldap SASL idassert w/o authcId
 	Fixed slapd-ldap search control parsing (ITS#5138)
 	Fixed slapd-meta leak when binding as rootdn (ITS#5155)
@@ -20,9 +21,10 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapo-chain double-free (ITS#5137)
 	Fixed slapo-dynlist entry release (ITS#5135)
 	Fixed slapo-dynlist member processing (ITS#5157)
-        Fixed slapo-pcache memory leak (ITS#5112)
-        Fixed slapo-pcache returning incomplete results (ITS#5113)
-        Fixed slapo-pcache sizelimit handling (ITS#5114)
+	Fixed slapo-pcache memory leak (ITS#5112)
+	Fixed slapo-pcache returning incomplete results (ITS#5113)
+	Fixed slapo-pcache sizelimit handling (ITS#5114)
+	Fixed slapo-pcache/translucent cn=config add (ITS#5173)
 	Fixed slapo-rwm modlist handling (ITS#5124)
 	Fixed slapo-rwm UUID in filter (ITS#5168)
 	Fixed slapi SEARCH_RESULT_ENTRY leak (ITS#5060)
@@ -31,7 +33,7 @@ OpenLDAP 2.4.6 Engineering
 	Fixed openldap.schema sequence in objectClass definition (ITS#5174)
 	Build Environment
 		Use separate config OID arc for contrib (ITS#5158)
-                Updated contrib/ldapc++ build enviroment
+		Updated contrib/ldapc++ build enviroment
 	Documentation
 		Fixed slapd-bdb(5) note about dbconfig directives (ITS#5134)
 		slapadd/slapindex note about file ownership (ITS#5166)
