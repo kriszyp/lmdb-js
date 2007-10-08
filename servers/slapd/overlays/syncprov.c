@@ -2208,6 +2208,8 @@ no_change:		nochange = 1;
 			if ( si->si_usehint && srs->sr_rhint == 0 ) {
 				if ( ctxcsn )
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
+				if ( sids )
+					op->o_tmpfree( sids, op->o_tmpmemctx );
 				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
 				return rs->sr_err;
 			}
@@ -2218,6 +2220,8 @@ no_change:		nochange = 1;
 				LDAP_SUCCESS ) {
 				if ( ctxcsn )
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
+				if ( sids )
+					op->o_tmpfree( sids, op->o_tmpmemctx );
 				send_ldap_result( op, rs );
 				return rs->sr_err;
 			}
