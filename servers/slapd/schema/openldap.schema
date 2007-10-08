@@ -50,4 +50,5 @@ objectClass ( OpenLDAPobjectClass:5
 objectClass ( OpenLDAPobjectClass:6
 	NAME 'OpenLDAPdisplayableObject'
 	DESC 'OpenLDAP Displayable Object'
-	MAY displayName AUXILIARY )
+	AUXILIARY
+	MAY displayName )
