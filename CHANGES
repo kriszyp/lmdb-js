@@ -16,6 +16,7 @@ OpenLDAP 2.3.39 Engineering
 	Fixed slapo-pcache non-null terminated array crasher (ITS#5163)
 	Fixed slapo-rwm modlist handling (ITS#5124)
 	Fixed slapo-rwm UUID in filter (ITS#5168)
+	Fixed sasl SASL_SSF_EXTERNAL type (ITS#3864)
 	Fixed liblber Windows x64 portability (ITS#5105)
 	Fixed libldap ppolicy control creation (ITS#5103)
 	Build Environment
