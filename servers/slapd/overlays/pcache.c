@@ -2206,6 +2206,13 @@ pcache_op_privdb(
 		return SLAP_CB_CONTINUE;
 	}
 
+	/* The cache DB isn't open yet */
+	if ( cm->defer_db_open ) {
+		send_ldap_error( op, rs, LDAP_UNAVAILABLE,
+			"pcachePrivDB: cacheDB not available" );
+		return rs->sr_err;
+	}
+
 	/* FIXME: might be a little bit exaggerated... */
 	if ( !be_isroot( op ) ) {
 		save_cb = op->o_callback;
@@ -2277,6 +2284,13 @@ pcache_op_search(
 		return pcache_op_privdb( op, rs );
 	}
 #endif /* PCACHE_CONTROL_PRIVDB */
+
+	/* The cache DB isn't open yet */
+	if ( cm->defer_db_open ) {
+		send_ldap_error( op, rs, LDAP_UNAVAILABLE,
+			"pcachePrivDB: cacheDB not available" );
+		return rs->sr_err;
+	}
 
 	tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1, op->o_tmpmemctx );
 	tempstr.bv_len = 0;
@@ -3184,9 +3198,12 @@ pcache_db_open2(
 	int rc;
 
 	rc = backend_startup_one( &cm->db, NULL );
+	if ( rc == 0 ) {
+		cm->defer_db_open = 0;
+	}
 
 	/* There is no runqueue in TOOL mode */
-	if ( slapMode & SLAP_SERVER_MODE ) {
+	if (( slapMode & SLAP_SERVER_MODE ) && rc == 0 ) {
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		ldap_pvt_runqueue_insert( &slapd_rq, cm->cc_period,
 			consistency_check, on,
