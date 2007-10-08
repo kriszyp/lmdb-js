@@ -1968,16 +1968,20 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 					rs->sr_entry->e_name.bv_val, 0, 0 );
 				return LDAP_SUCCESS;
 			}
-			/* Make sure entry is less than the snapshot'd contextCSN */
-			for ( i=0; i<ss->ss_numcsns; i++ ) {
-				if ( sid == ss->ss_sids[i] && ber_bvcmp( &a->a_nvals[0],
-					&ss->ss_ctxcsn[i] ) > 0 ) {
-					Debug( LDAP_DEBUG_SYNC,
-						"Entry %s CSN %s greater than snapshot %s\n",
-						rs->sr_entry->e_name.bv_val,
-						a->a_nvals[0].bv_val,
-						ss->ss_ctxcsn[i].bv_val );
-					return LDAP_SUCCESS;
+
+			/* If not a persistent search */
+			if ( !ss->ss_so ) {
+				/* Make sure entry is less than the snapshot'd contextCSN */
+				for ( i=0; i<ss->ss_numcsns; i++ ) {
+					if ( sid == ss->ss_sids[i] && ber_bvcmp( &a->a_nvals[0],
+						&ss->ss_ctxcsn[i] ) > 0 ) {
+						Debug( LDAP_DEBUG_SYNC,
+							"Entry %s CSN %s greater than snapshot %s\n",
+							rs->sr_entry->e_name.bv_val,
+							a->a_nvals[0].bv_val,
+							ss->ss_ctxcsn[i].bv_val );
+						return LDAP_SUCCESS;
+					}
 				}
 			}
 
