@@ -131,6 +131,7 @@ translucent_cfadd( Operation *op, SlapReply *rs, Entry *e, ConfigArgs *ca )
 	}
 	bv.bv_val = ca->cr_msg;
 	ca->be = &ov->db;
+	ov->defer_db_open = 0;
 
 	/* We can only create this entry if the database is table-driven
 	 */
@@ -717,19 +718,15 @@ static int translucent_db_config(
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
-	int rc = SLAP_CONF_UNKNOWN;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_config: %s\n",
 	      argc ? argv[0] : "", 0, 0);
 
 	/* Something for the captive database? */
-	if ( ov->db.bd_info && ov->db.bd_info->bi_db_config ) {
-		rc = ov->db.bd_info->bi_db_config( &ov->db, fname, lineno,
+	if ( ov->db.bd_info && ov->db.bd_info->bi_db_config )
+		return ov->db.bd_info->bi_db_config( &ov->db, fname, lineno,
 			argc, argv );
-		if ( rc == 0 )
-			ov->defer_db_open = 0;
-	}
-	return rc;
+	return SLAP_CONF_UNKNOWN;
 }
 
 /*

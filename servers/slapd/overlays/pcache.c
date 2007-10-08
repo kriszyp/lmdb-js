@@ -2692,6 +2692,7 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	}
 	bv.bv_val = ca->cr_msg;
 	ca->be = &cm->db;
+	cm->defer_db_open = 0;
 
 	/* We can only create this entry if the database is table-driven
 	 */
@@ -2861,8 +2862,6 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return( 1 );
 		}
-		if ( CONFIG_ONLINE_ADD( c ))
-			cm->defer_db_open = 1;
 
 		cm->cc_period = (time_t)t;
 		Debug( pcache_debug,
@@ -3131,7 +3130,7 @@ pcache_db_init(
 	cm->max_queries = 10000;
 	cm->save_queries = 0;
 	cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
-	cm->defer_db_open = 0;
+	cm->defer_db_open = 1;
 	cm->cc_period = 1000;
 	cm->cc_paused = 0;
 	cm->cc_arg = NULL;
