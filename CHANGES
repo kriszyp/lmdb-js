@@ -247,6 +247,7 @@ OpenLDAP 2.3.28 Release (2006/10/21)
 
 OpenLDAP 2.3.27 Release (2006/08/19)
 	Fixed libldap dangling pointer issue (previous fix was broken) (ITS#4405)
+	Fixed slapd-sql noop handling (ITS#4563)
 
 OpenLDAP 2.3.26 Release (2006/08/17)
 	Fixed libldap dnssrv bug with "not present" positive statement (ITS#4610)
