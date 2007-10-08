@@ -185,15 +185,16 @@ typedef struct cache_manager_s {
 	int 	numattrsets;			/* number of attribute sets */
 	int 	cur_entries;			/* current number of entries cached */
 	int 	max_entries;			/* max number of entries cached */
-        int     num_entries_limit;		/* max # of entries in a cacheable query */
+	int 	num_entries_limit;		/* max # of entries in a cacheable query */
 
 	char	response_cb;			/* install the response callback
 						 * at the tail of the callback list */
 #define PCACHE_RESPONSE_CB_HEAD	0
 #define PCACHE_RESPONSE_CB_TAIL	1
+	char	defer_db_open;			/* defer open for online add */
 
 	time_t	cc_period;		/* interval between successive consistency checks (sec) */
-	int	cc_paused;
+	int 	cc_paused;
 	void	*cc_arg;
 
 	ldap_pvt_thread_mutex_t		cache_mutex;
@@ -2181,6 +2182,13 @@ pcache_op_privdb(
 		return SLAP_CB_CONTINUE;
 	}
 
+	/* The cache DB isn't open yet */
+	if ( cm->defer_db_open ) {
+		send_ldap_error( op, rs, LDAP_UNAVAILABLE,
+			"pcachePrivDB: cacheDB not available" );
+		return rs->sr_err;
+	}
+
 	/* FIXME: might be a little bit exaggerated... */
 	if ( !be_isroot( op ) ) {
 		save_cb = op->o_callback;
@@ -2252,6 +2260,13 @@ pcache_op_search(
 		return pcache_op_privdb( op, rs );
 	}
 #endif /* PCACHE_CONTROL_PRIVDB */
+
+	/* The cache DB isn't open yet */
+	if ( cm->defer_db_open ) {
+		send_ldap_error( op, rs, LDAP_UNAVAILABLE,
+			"pcachePrivDB: cacheDB not available" );
+		return rs->sr_err;
+	}
 
 	tempstr.bv_val = op->o_tmpalloc( op->ors_filterstr.bv_len+1, op->o_tmpmemctx );
 	tempstr.bv_len = 0;
@@ -2475,7 +2490,7 @@ consistency_check(
 	op->o_dn = cm->db.be_rootdn;
 	op->o_ndn = cm->db.be_rootndn;
 
-      	cm->cc_arg = arg;
+	cm->cc_arg = arg;
 
 	for (templ = qm->templates; templ; templ=templ->qmnext) {
 		query = templ->query_last;
@@ -2586,6 +2601,15 @@ static ConfigTable pccfg[] = {
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
+/* Need to no-op this keyword for dynamic config */
+static ConfigTable pcdummy[] = {
+	{ "", "", 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgGlAt:13 NAME 'olcDatabase' "
+			"DESC 'The backend type for a database instance' "
+			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
 static ConfigOCs pcocs[] = {
 	{ "( OLcfgOvOc:2.1 "
 		"NAME 'olcPcacheConfig' "
@@ -2597,9 +2621,18 @@ static ConfigOCs pcocs[] = {
 	{ "( OLcfgOvOc:2.2 "
 		"NAME 'olcPcacheDatabase' "
 		"DESC 'Cache database configuration' "
-		"AUXILIARY )", Cft_Misc, pccfg, pc_ldadd },
+		"AUXILIARY )", Cft_Misc, pcdummy, pc_ldadd },
 	{ NULL, 0, NULL }
 };
+
+static int pcache_db_open2( slap_overinst *on, ConfigReply *cr );
+
+static int
+pc_ldadd_cleanup( ConfigArgs *c )
+{
+	slap_overinst *on = c->private;
+	return pcache_db_open2( on, &c->reply );
+}
 
 static int
 pc_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
@@ -2614,6 +2647,8 @@ pc_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 	on = (slap_overinst *)p->ce_bi;
 	cm = on->on_bi.bi_private;
 	ca->be = &cm->db;
+	ca->cleanup = pc_ldadd_cleanup;
+	ca->private = on;
 	return LDAP_SUCCESS;
 }
 
@@ -2629,6 +2664,7 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	bv.bv_len = sprintf( ca->cr_msg, "olcDatabase=%s", cm->db.bd_info->bi_type );
 	bv.bv_val = ca->cr_msg;
 	ca->be = &cm->db;
+	cm->defer_db_open = 0;
 
 	/* We can only create this entry if the database is table-driven
 	 */
@@ -2798,6 +2834,7 @@ pc_cf_gen( ConfigArgs *c )
 			Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n", c->log, c->cr_msg, 0 );
 			return( 1 );
 		}
+
 		cm->cc_period = (time_t)t;
 		Debug( pcache_debug,
 				"Total # of attribute sets to be cached = %d.\n",
@@ -3065,8 +3102,10 @@ pcache_db_init(
 	cm->max_queries = 10000;
 	cm->save_queries = 0;
 	cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
+	cm->defer_db_open = 1;
 	cm->cc_period = 1000;
 	cm->cc_paused = 0;
+	cm->cc_arg = NULL;
 
 	qm->attr_sets = NULL;
 	qm->templates = NULL;
@@ -3121,64 +3160,25 @@ pcache_cachedquery_count_cb( Operation *op, SlapReply *rs )
 }
 
 static int
-pcache_db_open(
-	BackendDB *be,
+pcache_db_open2(
+	slap_overinst *on,
 	ConfigReply *cr )
 {
-	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager	*cm = on->on_bi.bi_private;
 	query_manager*  qm = cm->qm;
-	int		i, ncf = 0, rf = 0, nrf = 0, rc = 0;
-
-	/* check attr sets */
-	for ( i = 0; i < cm->numattrsets; i++) {
-		if ( !( qm->attr_sets[i].flags & PC_CONFIGURED ) ) {
-			if ( qm->attr_sets[i].flags & PC_REFERENCED ) {
-				Debug( LDAP_DEBUG_CONFIG, "pcache: attr set #%d not configured but referenced.\n", i, 0, 0 );
-				rf++;
-
-			} else {
-				Debug( LDAP_DEBUG_CONFIG, "pcache: warning, attr set #%d not configured.\n", i, 0, 0 );
-			}
-			ncf++;
-
-		} else if ( !( qm->attr_sets[i].flags & PC_REFERENCED ) ) {
-			Debug( LDAP_DEBUG_CONFIG, "pcache: attr set #%d configured but not referenced.\n", i, 0, 0 );
-			nrf++;
-		}
-	}
-
-	if ( ncf || rf || nrf ) {
-		Debug( LDAP_DEBUG_CONFIG, "pcache: warning, %d attr sets configured but not referenced.\n", nrf, 0, 0 );
-		Debug( LDAP_DEBUG_CONFIG, "pcache: warning, %d attr sets not configured.\n", ncf, 0, 0 );
-		Debug( LDAP_DEBUG_CONFIG, "pcache: %d attr sets not configured but referenced.\n", rf, 0, 0 );
-
-		if ( rf > 0 ) {
-			return 1;
-		}
-	}
-
-	/* need to inherit something from the original database... */
-	cm->db.be_def_limit = be->be_def_limit;
-	cm->db.be_limits = be->be_limits;
-	cm->db.be_acl = be->be_acl;
-	cm->db.be_dfltaccess = be->be_dfltaccess;
-
-	if ( SLAP_DBMONITORING( be ) ) {
-		SLAP_DBFLAGS( &cm->db ) |= SLAP_DBFLAG_MONITORING;
-
-	} else {
-		SLAP_DBFLAGS( &cm->db ) &= ~SLAP_DBFLAG_MONITORING;
-	}
+	int rc;
 
 	rc = backend_startup_one( &cm->db, NULL );
+	if ( rc == 0 ) {
+		cm->defer_db_open = 0;
+	}
 
 	/* There is no runqueue in TOOL mode */
-	if ( slapMode & SLAP_SERVER_MODE ) {
+	if (( slapMode & SLAP_SERVER_MODE ) && rc == 0 ) {
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		ldap_pvt_runqueue_insert( &slapd_rq, cm->cc_period,
 			consistency_check, on,
-			"pcache_consistency", be->be_suffix[0].bv_val );
+			"pcache_consistency", cm->db.be_suffix[0].bv_val );
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 		/* Cached database must have the rootdn */
@@ -3276,6 +3276,62 @@ pcache_db_open(
 			rc = 0;
 		}
 	}
+	return rc;
+}
+
+static int
+pcache_db_open(
+	BackendDB *be,
+	ConfigReply *cr )
+{
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	cache_manager	*cm = on->on_bi.bi_private;
+	query_manager*  qm = cm->qm;
+	int		i, ncf = 0, rf = 0, nrf = 0, rc = 0;
+
+	/* check attr sets */
+	for ( i = 0; i < cm->numattrsets; i++) {
+		if ( !( qm->attr_sets[i].flags & PC_CONFIGURED ) ) {
+			if ( qm->attr_sets[i].flags & PC_REFERENCED ) {
+				Debug( LDAP_DEBUG_CONFIG, "pcache: attr set #%d not configured but referenced.\n", i, 0, 0 );
+				rf++;
+
+			} else {
+				Debug( LDAP_DEBUG_CONFIG, "pcache: warning, attr set #%d not configured.\n", i, 0, 0 );
+			}
+			ncf++;
+
+		} else if ( !( qm->attr_sets[i].flags & PC_REFERENCED ) ) {
+			Debug( LDAP_DEBUG_CONFIG, "pcache: attr set #%d configured but not referenced.\n", i, 0, 0 );
+			nrf++;
+		}
+	}
+
+	if ( ncf || rf || nrf ) {
+		Debug( LDAP_DEBUG_CONFIG, "pcache: warning, %d attr sets configured but not referenced.\n", nrf, 0, 0 );
+		Debug( LDAP_DEBUG_CONFIG, "pcache: warning, %d attr sets not configured.\n", ncf, 0, 0 );
+		Debug( LDAP_DEBUG_CONFIG, "pcache: %d attr sets not configured but referenced.\n", rf, 0, 0 );
+
+		if ( rf > 0 ) {
+			return 1;
+		}
+	}
+
+	/* need to inherit something from the original database... */
+	cm->db.be_def_limit = be->be_def_limit;
+	cm->db.be_limits = be->be_limits;
+	cm->db.be_acl = be->be_acl;
+	cm->db.be_dfltaccess = be->be_dfltaccess;
+
+	if ( SLAP_DBMONITORING( be ) ) {
+		SLAP_DBFLAGS( &cm->db ) |= SLAP_DBFLAG_MONITORING;
+
+	} else {
+		SLAP_DBFLAGS( &cm->db ) &= ~SLAP_DBFLAG_MONITORING;
+	}
+
+	if ( !cm->defer_db_open )
+		rc = pcache_db_open2( on, cr );
 
 	return rc;
 }
@@ -3876,6 +3932,11 @@ pcache_initialize()
 	code = config_register_schema( pccfg, pcocs );
 	if ( code ) return code;
 
+	{
+		const char *text;
+		code = slap_str2ad( "olcDatabase", &pcdummy[0].ad, &text );
+		if ( code ) return code;
+	}
 	return overlay_register( &pcache );
 }
 
