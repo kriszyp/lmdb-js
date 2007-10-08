@@ -38,6 +38,7 @@ typedef struct translucent_info {
 	BackendDB db;			/* captive backend */
 	int strict;
 	int no_glue;
+	int defer_db_open;
 } translucent_info;
 
 static ConfigLDAPadd translucent_ldadd;
@@ -59,6 +60,14 @@ static ConfigTable translucentcfg[] = {
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
 
+static ConfigTable transdummy[] = {
+	{ "", "", 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgGlAt:13 NAME 'olcDatabase' "
+			"DESC 'The backend type for a database instance' "
+			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
 static ConfigOCs translucentocs[] = {
 	{ "( OLcfgOvOc:14.1 "
 	  "NAME 'olcTranslucentConfig' "
@@ -69,10 +78,20 @@ static ConfigOCs translucentocs[] = {
 	{ "( OLcfgOvOc:14.2 "
 	  "NAME 'olcTranslucentDatabase' "
 	  "DESC 'Translucent target database configuration' "
-	  "AUXILIARY )", Cft_Misc, translucentcfg, translucent_ldadd },
+	  "AUXILIARY )", Cft_Misc, transdummy, translucent_ldadd },
 	{ NULL, 0, NULL }
 };
 /* for translucent_init() */
+
+static int
+translucent_ldadd_cleanup( ConfigArgs *ca )
+{
+	slap_overinst *on = ca->private;
+	translucent_info *ov = on->on_bi.bi_private;
+
+	ov->defer_db_open = 0;
+	return backend_startup_one( ca->be, &ca->reply );
+}
 
 static int
 translucent_ldadd( CfEntryInfo *cei, Entry *e, ConfigArgs *ca )
@@ -89,6 +108,8 @@ translucent_ldadd( CfEntryInfo *cei, Entry *e, ConfigArgs *ca )
 	on = (slap_overinst *)cei->ce_bi;
 	ov = on->on_bi.bi_private;
 	ca->be = &ov->db;
+	ca->private = on;
+	ca->cleanup = translucent_ldadd_cleanup;
 	return LDAP_SUCCESS;
 }
 
@@ -314,6 +335,11 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_modify: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 
+	if(ov->defer_db_open) {
+		send_ldap_error(op, rs, LDAP_UNAVAILABLE,
+			"remote DB not available");
+		return(rs->sr_err);
+	}
 /*
 ** fetch entry from the captive backend;
 ** if it did not exist, fail;
@@ -505,6 +531,11 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 	}
 	op->o_bd->bd_info = (BackendInfo *) on;
 
+	if(ov->defer_db_open) {
+		send_ldap_error(op, rs, LDAP_UNAVAILABLE,
+			"remote DB not available");
+		return(rs->sr_err);
+	}
 /*
 ** call compare() in the captive backend;
 ** return the result;
@@ -613,6 +644,11 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search: <%s> %s\n",
 		op->o_req_dn.bv_val, op->ors_filterstr.bv_val, 0);
 
+	if(ov->defer_db_open) {
+		send_ldap_error(op, rs, LDAP_UNAVAILABLE,
+			"remote DB not available");
+		return(rs->sr_err);
+	}
 	cb.sc_response = (slap_response *) translucent_search_cb;
 	cb.sc_private = op;
 	cb.sc_next = nop.o_callback;
@@ -637,6 +673,11 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 	Debug(LDAP_DEBUG_TRACE, "translucent_bind: <%s> method %d\n",
 		op->o_req_dn.bv_val, op->orb_method, 0);
 
+	if(ov->defer_db_open) {
+		send_ldap_error(op, rs, LDAP_UNAVAILABLE,
+			"remote DB not available");
+		return(rs->sr_err);
+	}
 	nop.o_bd = &ov->db;
 	return (ov->db.bd_info->bi_op_bind(&nop, rs));
 }
@@ -676,15 +717,19 @@ static int translucent_db_config(
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
+	int rc = SLAP_CONF_UNKNOWN;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_db_config: %s\n",
 	      argc ? argv[0] : "", 0, 0);
 
 	/* Something for the captive database? */
-	if ( ov->db.bd_info && ov->db.bd_info->bi_db_config )
-		return ov->db.bd_info->bi_db_config( &ov->db, fname, lineno,
+	if ( ov->db.bd_info && ov->db.bd_info->bi_db_config ) {
+		rc = ov->db.bd_info->bi_db_config( &ov->db, fname, lineno,
 			argc, argv );
-	return SLAP_CONF_UNKNOWN;
+		if ( rc == 0 )
+			ov->defer_db_open = 0;
+	}
+	return rc;
 }
 
 /*
@@ -704,6 +749,7 @@ static int translucent_db_init(BackendDB *be, ConfigReply *cr) {
 	ov->db = *be;
 	ov->db.be_private = NULL;
 	ov->db.be_pcl_mutexp = &ov->db.be_pcl_mutex;
+	ov->defer_db_open = 1;
 
 	if ( !backend_db_init( "ldap", &ov->db, -1, NULL )) {
 		Debug( LDAP_DEBUG_CONFIG, "translucent: unable to open captive back-ldap\n", 0, 0, 0);
@@ -733,6 +779,9 @@ static int translucent_db_open(BackendDB *be, ConfigReply *cr) {
 	ov->db.be_limits = be->be_limits;
 	ov->db.be_acl = be->be_acl;
 	ov->db.be_dfltaccess = be->be_dfltaccess;
+
+	if ( ov->defer_db_open )
+		return 0;
 
 	rc = backend_startup_one( &ov->db, NULL );
 
