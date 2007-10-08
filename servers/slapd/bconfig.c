@@ -4313,6 +4313,8 @@ ok:
 				rc = ca->bi->bi_db_open( ca->be, &ca->reply );
 				ca->be->bd_info = bi_orig;
 			}
+		} else if ( ca->cleanup ) {
+			rc = ca->cleanup( ca );
 		}
 		if ( rc ) {
 			if (ca->cr_msg[0] == '\0')
