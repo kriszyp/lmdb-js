@@ -1191,12 +1191,13 @@ int slap_sasl_external(
 #if SASL_VERSION_MAJOR >= 2
 	int sc;
 	sasl_conn_t *ctx = conn->c_sasl_authctx;
+	sasl_ssf_t sasl_ssf = ssf;
 
 	if ( ctx == NULL ) {
 		return LDAP_UNAVAILABLE;
 	}
 
-	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL, &ssf );
+	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL, &sasl_ssf );
 
 	if ( sc != SASL_OK ) {
 		return LDAP_OTHER;
@@ -1365,7 +1366,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 	if ( !op->o_conn->c_sasl_bind_in_progress ) {
 		/* If we already authenticated once, must use a new context */
 		if ( op->o_conn->c_sasl_done ) {
-			slap_ssf_t ssf = 0;
+			sasl_ssf_t ssf = 0;
 			const char *authid = NULL;
 #if SASL_VERSION_MAJOR >= 2
 			sasl_getprop( ctx, SASL_SSF_EXTERNAL, (void *)&ssf );
