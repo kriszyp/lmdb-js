@@ -25,6 +25,8 @@ OpenLDAP 2.4.6 Engineering
         Fixed slapo-pcache sizelimit handling (ITS#5114)
 	Fixed slapo-rwm modlist handling (ITS#5124)
 	Fixed slapo-rwm UUID in filter (ITS#5168)
+	Fixed slapi db_open failure (ITS#5164)
+	Fixed sasl SASL_SSF_EXTERNAL type (ITS#3864)
 	Fixed openldap.schema sequence in objectClass definition (ITS#5174)
 	Build Environment
 		Use separate config OID arc for contrib (ITS#5158)
