@@ -136,6 +136,7 @@ OpenLDAP 2.3.34 Release (2007/02/16)
 	Fixed slapo-syncprov contextCSN checkpoint again (ITS#4720)
 	Added slapo-ppolicy cn=config support (ITS#4836)
 	Added slapo-auditlog cn=config support
+	Fixed slapi late initialization (ITS#4468)
 	Build environment
 		Added Berkeley DB 4.5 detection
 	Documentation
