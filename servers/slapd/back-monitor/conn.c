@@ -391,7 +391,7 @@ conn_create(
 			
 			buf2,
 			buf3 );
-	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
 #endif /* MONITOR_LEGACY_CONN */
 
 	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", c->c_connid );

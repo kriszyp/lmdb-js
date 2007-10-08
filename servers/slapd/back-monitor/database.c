@@ -151,7 +151,7 @@ monitor_subsys_database_init_one(
 	}
 
 	ber_str2bv( bi->bi_type, 0, 0, &bv );
-	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
 	attr_merge_one( e, mi->mi_ad_monitorIsShadow,
 		SLAP_SHADOW( be ) ? (struct berval *)&slap_true_bv :
 			(struct berval *)&slap_false_bv, NULL );
@@ -295,7 +295,7 @@ monitor_subsys_database_init_one(
 				return( -1 );
 			}
 			ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
-			attr_merge_one( e_overlay, mi->mi_ad_monitoredInfo, &bv, NULL );
+			attr_merge_normalize_one( e_overlay, mi->mi_ad_monitoredInfo, &bv, NULL );
 
 			bv.bv_len = snprintf( buf, sizeof( buf ), "cn=Overlay %d,%s",
 				j, ms_overlay->mss_dn.bv_val );
@@ -926,17 +926,21 @@ monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e_database )
 		if ( rc != LDAP_SUCCESS ) {
 			goto done;
 		}
-
-		snprintf( buf, sizeof(buf),
-				"plugin %d name: %s; "
-				"vendor: %s; "
-				"version: %s; "
-				"description: %s", 
-				i,
-				srchdesc->spd_id,
-				srchdesc->spd_vendor,
-				srchdesc->spd_version,
-				srchdesc->spd_description );
+		if ( srchdesc ) {
+			snprintf( buf, sizeof(buf),
+					"plugin %d name: %s; "
+					"vendor: %s; "
+					"version: %s; "
+					"description: %s", 
+					i,
+					srchdesc->spd_id,
+					srchdesc->spd_vendor,
+					srchdesc->spd_version,
+					srchdesc->spd_description );
+		} else {
+			snprintf( buf, sizeof(buf),
+					"plugin %d name: <no description available>", i );
+		}
 
 		ber_str2bv( buf, 0, 0, &bv );
 		attr_merge_normalize_one( e_database,
