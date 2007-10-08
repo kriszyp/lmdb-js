@@ -4187,11 +4187,26 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 		rc = LDAP_SUCCESS;
 	}
 
+	colst = count_ocs( oc_at, &nocs );
+
 	/* Check whether the Add is allowed by its parent, and do
 	 * any necessary arg setup
 	 */
 	if ( last ) {
 		rc = config_add_oc( &coptr, last, e, ca );
+		if ( rc == LDAP_CONSTRAINT_VIOLATION ) {
+			for ( i = 0; i<nocs; i++ ) {
+				/* Already checked these */
+				if ( colst[i]->co_oc->soc_kind == LDAP_SCHEMA_STRUCTURAL )
+					continue;
+				if ( colst[i]->co_ldadd &&
+					( rc = colst[i]->co_ldadd( last, e, ca ))
+						!= LDAP_CONSTRAINT_VIOLATION ) {
+					coptr = colst[i];
+					break;
+				}
+			}
+		}
 		if ( rc == LDAP_CONSTRAINT_VIOLATION ) {
 			Debug( LDAP_DEBUG_TRACE, "%s: config_add_internal: "
 				"DN=\"%s\" no structural objectClass add function\n",
@@ -4199,8 +4214,6 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs,
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
 	}
-
-	colst = count_ocs( oc_at, &nocs );
 
 	/* Add the entry but don't parse it, we already have its contents */
 	if ( rc == LDAP_COMPARE_TRUE ) {
@@ -4300,6 +4313,8 @@ ok:
 				rc = ca->bi->bi_db_open( ca->be, &ca->reply );
 				ca->be->bd_info = bi_orig;
 			}
+		} else if ( ca->cleanup ) {
+			rc = ca->cleanup( ca );
 		}
 		if ( rc ) {
 			if (ca->cr_msg[0] == '\0')
