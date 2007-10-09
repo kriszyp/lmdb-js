@@ -337,7 +337,7 @@ ldap_control_dup( const LDAPControl *c )
 {
 	LDAPControl *new;
 
-	if ( c == NULL ) {
+	if ( c == NULL || c->ldctl_oid == NULL ) {
 		return NULL;
 	}
 
@@ -347,17 +347,11 @@ ldap_control_dup( const LDAPControl *c )
 		return NULL;
 	}
 
-	if( c->ldctl_oid != NULL ) {
-		new->ldctl_oid = LDAP_STRDUP( c->ldctl_oid );
+	new->ldctl_oid = LDAP_STRDUP( c->ldctl_oid );
 
-		if(new->ldctl_oid == NULL) {
-			LDAP_FREE( new );
-			return NULL;
-		}
-
-	} else {
-		/* FIXME: how can a control have null OID? */
-		new->ldctl_oid = NULL;
+	if(new->ldctl_oid == NULL) {
+		LDAP_FREE( new );
+		return NULL;
 	}
 
 	if( c->ldctl_value.bv_val != NULL ) {
