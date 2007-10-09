@@ -431,6 +431,7 @@ static int smbk5pwd_exop_passwd(
 #ifdef SLAP_MOD_INTERNAL
 		ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
+		ml->sml_numvals = i;
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 		
@@ -443,6 +444,7 @@ static int smbk5pwd_exop_passwd(
 #ifdef SLAP_MOD_INTERNAL
 		ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
+		ml->sml_numvals = 1;
 		ml->sml_values = ch_malloc( 2 * sizeof(struct berval));
 		ml->sml_values[0].bv_val = ch_malloc( 64 );
 		ml->sml_values[0].bv_len = sprintf(ml->sml_values[0].bv_val,
@@ -492,6 +494,7 @@ static int smbk5pwd_exop_passwd(
 #ifdef SLAP_MOD_INTERNAL
 		ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
+		ml->sml_numvals = 1;
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 
@@ -518,6 +521,7 @@ static int smbk5pwd_exop_passwd(
 #ifdef SLAP_MOD_INTERNAL
 		ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
+		ml->sml_numvals = 1;
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 
@@ -539,6 +543,7 @@ static int smbk5pwd_exop_passwd(
 #ifdef SLAP_MOD_INTERNAL
 		ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
+		ml->sml_numvals = 1;
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 
@@ -560,6 +565,7 @@ static int smbk5pwd_exop_passwd(
 #ifdef SLAP_MOD_INTERNAL
 			ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
+			ml->sml_numvals = 1;
 			ml->sml_values = keys;
 			ml->sml_nvalues = NULL;
 		}
@@ -582,6 +588,7 @@ static int smbk5pwd_exop_passwd(
 #ifdef SLAP_MOD_INTERNAL
                         ml->sml_flags = SLAP_MOD_INTERNAL;
 #endif
+						ml->sml_numvals = 1;
                         ml->sml_values = keys;
                         ml->sml_nvalues = NULL;
                 }
