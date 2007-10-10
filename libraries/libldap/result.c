@@ -900,7 +900,7 @@ nextresp2:
 			{
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
-				Debug( LDAP_DEBUG_ANY, "request done: ld %p msgid %ld\n",
+				Debug( LDAP_DEBUG_TRACE, "request done: ld %p msgid %ld\n",
 					(void *)ld, (long) id, 0 );
 				Debug( LDAP_DEBUG_TRACE,
 					"res_errno: %d, res_error: <%s>, "
