@@ -82,25 +82,56 @@ static ConfigOCs ldifocs[] = {
 };
 
 static void
-dn2path(struct berval * dn, struct berval * suffixdn, struct berval * base_path,
+dn2path(struct berval * orig_dn, struct berval * suffixdn, struct berval * base_path,
 	struct berval *res)
 {
 	char *ptr, *sep, *end;
+	int nsep = 0;
+	struct berval dn;
 
-	assert( dn != NULL );
-	assert( !BER_BVISNULL( dn ) );
+	assert( orig_dn != NULL );
+	assert( !BER_BVISNULL( orig_dn ) );
 	assert( suffixdn != NULL );
 	assert( !BER_BVISNULL( suffixdn ) );
-	assert( dnIsSuffix( dn, suffixdn ) );
+	assert( dnIsSuffix( orig_dn, suffixdn ) );
 
-	res->bv_len = dn->bv_len + base_path->bv_len + 1 + STRLENOF( LDIF );
+	dn = *orig_dn;
+
+	for ( ptr = dn.bv_val, end = &dn.bv_val[dn.bv_len]; ptr < end; ptr++) {
+		if ( ptr[0] == LDAP_DIRSEP[0] ) {
+			nsep++;
+		}
+	}
+
+	if ( nsep ) {
+		char	*p;
+
+		dn.bv_len += 2*nsep;
+		dn.bv_val = ch_malloc( dn.bv_len + 1 );
+
+		for ( ptr = orig_dn->bv_val, end = &orig_dn->bv_val[orig_dn->bv_len], p = dn.bv_val;
+			ptr < end; ptr++, p++)
+		{
+			static const char hex[] = "0123456789ABCDEF";
+			if ( ptr[0] == LDAP_DIRSEP[0] ) {
+				*p++ = '\\';	/* FIXME: fs-escape */
+				*p++ = hex[(LDAP_DIRSEP[0] & 0xF0U) >> 4];
+				*p = hex[LDAP_DIRSEP[0] & 0x0FU];
+			} else {
+				p[0] = ptr[0];
+			}
+		}
+		p[0] = '\0';
+	}
+
+	res->bv_len = dn.bv_len + base_path->bv_len + 1 + STRLENOF( LDIF );
 	res->bv_val = ch_malloc( res->bv_len + 1 );
 	ptr = lutil_strcopy( res->bv_val, base_path->bv_val );
 	*ptr++ = LDAP_DIRSEP[0];
 	ptr = lutil_strcopy( ptr, suffixdn->bv_val );
-	end = dn->bv_val + dn->bv_len - suffixdn->bv_len - 1;
-	while ( end > dn->bv_val ) {
-		for (sep = end-1; sep >=dn->bv_val && !DN_SEPARATOR( *sep ); sep--);
+	end = dn.bv_val + dn.bv_len - suffixdn->bv_len - 1;
+	while ( end > dn.bv_val ) {
+		for (sep = end-1; sep >= dn.bv_val && !DN_SEPARATOR( *sep ); sep--);
 		*ptr++ = LDAP_DIRSEP[0];
 		ptr = lutil_strncopy( ptr, sep+1, end-sep-1 );
 		end = sep;
@@ -117,6 +148,9 @@ dn2path(struct berval * dn, struct berval * suffixdn, struct berval * base_path,
 			break;
 	}
 #endif
+	if ( dn.bv_val != orig_dn->bv_val ) {
+		ch_free( dn.bv_val );
+	}
 }
 
 static char * slurp_file(int fd) {
