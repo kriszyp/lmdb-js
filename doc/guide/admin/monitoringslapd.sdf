@@ -354,13 +354,12 @@ be in the list of admittable log switches:
 >   Conns
 >   BER
 >   Filter
->   Config		(useless)
+>   Config
 >   ACL
 >   Stats
 >   Stats2
 >   Shell
 >   Parse
->   Cache		(deprecated)
 >   Index
 
 These values can be added, replaced or deleted; they affect what 
