@@ -1473,7 +1473,8 @@ when initially populating a database).  If the rootdn is within
 a namingContext (suffix) of the database, a simple bind password
 may also be provided using the
 .B rootpw
-directive. Note that the rootdn is always needed when using syncrepl.
+directive. Many optional features, including syncrepl, require the
+rootdn to be defined for the database.
 .TP
 .B rootpw <password>
 Specify a password (or hash of the password) for the rootdn.  The
