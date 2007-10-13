@@ -1357,6 +1357,14 @@ before this keyword may be set. This mode also requires a
 (see above) to be configured.
 By default, mirrormode is off.
 .TP
+.B monitoring on | off
+This option enables database-specific monitoring in the entry related
+to the current database in the "cn=Databases,cn=Monitor" subtree 
+of the monitor database, if the monitor database is enabled.
+Currently, only the BDB and the HDB databases provide database-specific
+monitoring.
+The default depends on the backend type.
+.TP
 .B overlay <overlay-name>
 Add the specified overlay to this database. An overlay is a piece of
 code that intercepts database operations in order to extend or change
