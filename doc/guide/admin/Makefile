@@ -24,6 +24,7 @@ sdf-src: \
 	appendix-contrib.sdf \
 	appendix-deployments.sdf \
 	appendix-ldap-result-codes.sdf \
+	appendix-recommended-versions.sdf \
 	appendix-upgrading.sdf \
 	backends.sdf \
 	config.sdf \

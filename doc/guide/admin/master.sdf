@@ -96,6 +96,10 @@ PB:
 !include "appendix-common-errors.sdf"; appendix
 PB:
 
+# What versions we recommend 
+!include "appendix-recommended-versions.sdf"; appendix
+PB:
+
 # Real Deployments
 !include "appendix-deployments.sdf"; appendix
 PB:
