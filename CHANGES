@@ -18,6 +18,7 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapd-ldif directory separators in DN (ITS#5172)
 	Fixed slapd-meta leak when binding as rootdn (ITS#5155)
 	Fixed slapd-meta conn caching on bind failure (ITS#5154)
+	Fixed slapd-meta bind timeout assertion (ITS#5185)
 	Fixed slapd-monitor database registration (ITS#4965)
 	Fixed slapo-chain double-free (ITS#5137)
 	Fixed slapo-dynlist entry release (ITS#5135)
