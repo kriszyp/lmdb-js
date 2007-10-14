@@ -7,7 +7,7 @@ H1: Replication
 Replicated directories are a fundamental requirement for delivering a 
 resilient enterprise deployment.
 
-OpenLDAP has various configuration options for creating a replicated 
+{{PRD:OpenLDAP}} has various configuration options for creating a replicated 
 directory. The following sections will discuss these.
 
 H2: Replication Strategies
@@ -18,12 +18,12 @@ H3: Push Based
 
 H5: Replacing Slurpd
 
-Slurpd replication has been deprecated in favor of Syncrepl replication and 
-has been completely removed from 2.4.
+{{Slurpd}} replication has been deprecated in favor of Syncrepl replication and 
+has been completely removed from OpenLDAP 2.4.
 
 {{Why was it replaced?}}
 
-The slurpd daemon was the original replication mechanism inherited from 
+The {{slurpd}} daemon was the original replication mechanism inherited from 
 UMich's LDAP and operates in push mode: the master pushes changes to the 
 slaves. It has been replaced for many reasons, in brief:
 
