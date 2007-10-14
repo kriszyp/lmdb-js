@@ -10,21 +10,21 @@ that OpenLDAP depends on.
 Please read the {{SECT:Prerequisite software}} section for more 
 information on the following software dependencies.
 
-H2: Version Table
+H2: Dependency Versions
 
 !block table; align=Center; coltags="N,EX,EX"; title="Table 8.5: OpenLDAP Software Dependency Versions"
-Feature						Software									Version
+Feature|Software|Version
 {{TERM[expand]TLS}}:
-							{{PRD:OpenSSL}}								0.9.7
-							{{PRD:GnuTLS}}								2.0.1
-{{TERM[expand]SASL}} 	    {{PRD:Cyrus SASL}}							2.1.22
+|{{PRD:OpenSSL}}|0.9.7
+|{{PRD:GnuTLS}}|2.0.1
+{{TERM[expand]SASL}}|{{PRD:Cyrus SASL}}|2.1.22
 {{TERM[expand]Kerberos}}:
-							{{PRD:Heimdal}}								Version
-							{{PRD:MIT Kerberos}}						Version
-Database Software			{{ORG[expand]Oracle}} {{PRD:Berkeley DB}}	Versions
+|{{PRD:Heimdal}}|Version
+|{{PRD:MIT Kerberos}}|Version
+Database Software|{{ORG[expand]Oracle}} {{PRD:Berkeley DB}}|Versions
 Threads:
-							POSIX {{pthreads}}							Version
-							Mach {{CThreads}}							Version
-TCP Wrappers				Name										Version
+|POSIX {{pthreads}}|Version
+|Mach {{CThreads}}|Version
+TCP Wrappers|Name|Version
 !endblock
 
