@@ -24,7 +24,12 @@ asked on the OpenLDAP mailing lists and scenarios discussed there, we have added
 * {{SECT:Troubleshooting}}
 * {{SECT:Changes Since Previous Release}}
 * {{SECT:Upgrading from 2.3.x}}
+* {{SECT:Common errors encountered when using OpenLDAP Software}}
+* {{SECT:Recommended OpenLDAP Software Dependency Versions}}
+* {{SECT:Real World OpenLDAP Deployments and Examples}}
+* {{SECT:OpenLDAP Software Contributions}}
 * {{SECT:Configuration File Examples}}
+* {{SECT:LDAP Result Codes}}
 * {{SECT:Glossary}}
 
 Also, the table of contents is now 3 levels deep to ease navigation.

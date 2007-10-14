@@ -47,7 +47,7 @@ If you have a suffix specified in slapd.conf eg.
 
 You should use
 
-  ldapsearch -b 'dc=example,dc=com' '(cn=jane*)'
+>      ldapsearch -b 'dc=example,dc=com' '(cn=jane*)'
 
 to tell it where to start the search.
 
@@ -66,7 +66,7 @@ H3: ldap_*: Can't chase referral
 
 This is caused by the line
 
-referral        ldap://root.openldap.org
+>      referral        ldap://root.openldap.org
 
 in slapd.conf, It was provided as an example for how to use referrals in the original file. however if your machine is not permanently connected to the Internet, it will fail to find the server, and hence produce an error message.
 
@@ -112,9 +112,9 @@ This error is reported when a value of an attribute does not conform to syntax r
 
 Common causes include:
 
- extraneous white space (especially trailing white space)
- improperly encoded characters (LDAPv3 uses UTF-8 encoded Unicode)
- empty values (few syntaxes allow empty values)
+* extraneous white space (especially trailing white space)
+* improperly encoded characters (LDAPv3 uses UTF-8 encoded Unicode)
+* empty values (few syntaxes allow empty values)
 
 
 For certain syntax, like OBJECT IDENTIFIER (OID), this error can indicate that the OID descriptor (a "short name") provided is unrecognized. For instance, this error is returned if the objectClass value provided is unrecognized.
@@ -125,28 +125,28 @@ This error is returned with the entry to be added or the entry as modified viola
 
 Violations related to the entry's attributes:
 
-    Attribute not allowed
+>      Attribute not allowed
         A provided attribute is not allowed by the entry's object class(es). 
-    Missing required attribute
+>      Missing required attribute
         An attribute required by the entry's object class(es) was not provided. 
 
 Violations related to the entry's class(es):
 
-    Entry has no objectClass attribute
+>      Entry has no objectClass attribute
         The entry did not state which object classes it belonged to. 
-    Unrecognized objectClass
+>      Unrecognized objectClass
         One (or more) of the listed objectClass values is not recognized. 
-    No structural object class provided
+>      No structural object class provided
         None of the listed objectClass values is structural. 
-    Invalid structural object class chain
+>      Invalid structural object class chain
         Two or more structural objectClass values are not in same structural object class chain. See also (Xref) ldap add: invalid structural object class chain. 
-    Structural object class modification
+>      Structural object class modification
         Modify operation attempts to change the structural class of the entry. See also (Xref) ldap_modify: cannot modify object class. 
-    Instanstantiation of abstract objectClass.
+>      Instanstantiation of abstract objectClass.
         An abstract class is not subordinate to any listed structural or auxiliary class. 
-    Invalid structural object class
+>      Invalid structural object class
         Other structural object class problem. 
-    No structuralObjectClass operational attribute
+>      No structuralObjectClass operational attribute
         This is commonly returned when a shadow server is provided an entry which does not contain the structuralObjectClass operational attribute. 
 
 
@@ -158,11 +158,11 @@ The "ldap_add: No such object" error is commonly returned if parent of the entry
 
 For example, if you are adding "cn=bob,dc=domain,dc=com" and you get:
 
-  ldap_add: No such object
+>      ldap_add: No such object
 
 The entry "dc=domain,dc=com" likely doesn't exist. You can use ldapsearch to see if does exist:
 
-  ldapsearch -b 'dc=domain,dc=com' -s base '(objectclass=*)'
+>      ldapsearch -b 'dc=domain,dc=com' -s base '(objectclass=*)'
 
 If it doesn't, add it. See the Quick Start Guide (http://www.openldap.org/doc/admin/quickstart.html) for assistance.
 
@@ -186,9 +186,9 @@ H3: ldap_add: no structuralObjectClass operational attribute
 
 ldapadd(1) may error:
 
-  adding new entry "uid=XXX,ou=People,o=campus,c=ru"
-  ldap_add: Internal (implementation specific) error (80)
-     additional info: no structuralObjectClass operational attribute
+>      adding new entry "uid=XXX,ou=People,o=campus,c=ru"
+>        ldap_add: Internal (implementation specific) error (80)
+>           additional info: no structuralObjectClass operational attribute
 
 when slapd(8) cannot determine, based upon the contents of the objectClass attribute, what the structural class of the object should be.
 
@@ -203,7 +203,7 @@ OpenLDAP's slapd checks for naming attributes and distinguished values consisten
 
 Naming attributes are those attributeTypes that appear in an entry's RDN; distinguished values are the values of the naming attributes that appear in an entry's RDN, e.g, in
 
-    cn=Someone+mail=someone@example.com,dc=example,dc=com
+>      cn=Someone+mail=someone@example.com,dc=example,dc=com
 
 the naming attributes are cn and mail, and the distinguished values are Someone and someone@example.com.
 
@@ -217,10 +217,10 @@ Possible causes of error are:
 
     * the naming attributes are not present in the entry; for example:
 
-          dn: dc=example,dc=com
-          objectClass: organization
-          o: Example
-          # note: "dc: example" is missing
+>                dn: dc=example,dc=com
+>                objectClass: organization
+>                o: Example
+>                # note: "dc: example" is missing
 
     * the naming attributes are present in the entry, but in the attributeType definition they are marked as:
           o collective
@@ -228,10 +228,10 @@ Possible causes of error are:
           o obsolete
     * the naming attributes are present in the entry, but the distinguished values are not; for example:
 
-          dn: dc=example,dc=com
-          objectClass: domain
-          dc: foobar
-          # note: "dc" is present, but the value is not "example"
+>                dn: dc=example,dc=com
+>                objectClass: domain
+>                dc: foobar
+>                # note: "dc" is present, but the value is not "example"
 
     * the naming attributes are present in the entry, with the distinguished values, but the naming attributes:
           o do not have an equality field, so equality cannot be asserted
@@ -264,13 +264,13 @@ In the example ACL below grants the following access:
 
 All other access is denied.
 
-  access to attr=userPassword
-    by self =w
-    by anonymous auth
+>        access to attr=userPassword
+>          by self =w
+>          by anonymous auth
 
-  access *
-    by self write
-    by users read
+>        access *
+>          by self write
+>          by users read
 
 
 Note that latest versions of slapd(8) will report invalid credentials in cases where the client has insufficient access to complete the operation. This is avoid inappropriate disclosure of the validity of the user's name.
@@ -352,8 +352,8 @@ H3: ldap_start_tls: Operations error
 
 ldapsearch(1) and other tools will return
 
-  ldap_start_tls: Operations error (1)
-        additional info: TLS already started
+>        ldap_start_tls: Operations error (1)
+>              additional info: TLS already started
 
 when the user (though command line options and/or ldap.conf(5)) has requested TLS (SSL) be started twice. For instance, when specifying both "-H ldaps://server.do.main" and "-ZZ".
 
