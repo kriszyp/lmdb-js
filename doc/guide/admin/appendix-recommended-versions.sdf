@@ -15,13 +15,18 @@ H2: Dependency Versions
 !block table; align=Center; coltags="N,EX,EX"; title="Table 8.5: OpenLDAP Software Dependency Versions"
 Feature|Software|Version
 {{TERM[expand]TLS}}:
-|{{PRD:OpenSSL}}|0.9.7
+|{{PRD:OpenSSL}}|0.9.7+
 |{{PRD:GnuTLS}}|2.0.1
-{{TERM[expand]SASL}}|{{PRD:Cyrus SASL}}|2.1.22
+{{TERM[expand]SASL}}|{{PRD:Cyrus SASL}}|2.1.21+
 {{TERM[expand]Kerberos}}:
 |{{PRD:Heimdal}}|Version
 |{{PRD:MIT Kerberos}}|Version
-Database Software|{{ORG[expand]Oracle}} {{PRD:Berkeley DB}}|Versions
+Database Software|{{PRD:Berkeley DB}}:|
+||4.2
+||4.4
+||4.5
+||4.6
+||Note: It is highly recommended to apply the patches from for a given release.
 Threads:
 |POSIX {{pthreads}}|Version
 |Mach {{CThreads}}|Version
