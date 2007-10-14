@@ -175,6 +175,9 @@ Some common examples found throughout the industry are, but not limited to:
 * PBX Configuration store
 * etc.....
 
+There are various {{SECT:Distributed Schema Files}} that are standards based, but
+you can always create your own {{SECT:Schema Specification}}.
+
 There are always new ways to use a Directory and apply LDAP principles to address
 certain problems, therefore there is no simple answer to this question.
 
@@ -270,8 +273,7 @@ sharing of data with other applications.
 
 The short answer is that use of an embedded database and custom indexing system 
 allows OpenLDAP to provide greater performance and scalability without loss of 
-reliability. OpenLDAP, since release 2.1, in its main storage-oriented backends 
-(back-bdb and, since 2.2, back-hdb) uses Berkeley DB concurrent / transactional 
+reliability. OpenLDAP uses Berkeley DB concurrent / transactional 
 database software. This is the same software used by leading commercial 
 directory software.
 
