@@ -4865,7 +4865,7 @@ out:
 	}
 
 	if ( ca->cleanup )
-		ca->cleanup( ca );
+		rc = ca->cleanup( ca );
 out_noop:
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
