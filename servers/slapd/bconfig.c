@@ -4928,8 +4928,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
-	if ( !slapd_shutdown )
-		ldap_pvt_thread_pool_pause( &connection_pool );
+	ldap_pvt_thread_pool_pause( &connection_pool );
 
 	/* Strategy:
 	 * 1) perform the Modify on the cached Entry.
@@ -4961,8 +4960,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 		op->o_ndn = ndn;
 	}
 
-	if ( !slapd_shutdown )
-		ldap_pvt_thread_pool_resume( &connection_pool );
+	ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
