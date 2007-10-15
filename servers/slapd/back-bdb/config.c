@@ -633,8 +633,9 @@ bdb_cf_gen( ConfigArgs *c )
 		}
 		ch_free( testpath );
 		if ( !f ) {
-			snprintf( c->cr_msg, sizeof( c->cr_msg ), "invalid path: %s", strerror( errno ));
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg, 0 );
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: invalid path: %s",
+				c->log, strerror( errno ));
+			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg, 0, 0 );
 			return -1;
 		}
 

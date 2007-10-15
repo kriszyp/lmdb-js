@@ -4826,6 +4826,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 out:
 	/* Undo for a failed operation */
 	if ( rc != LDAP_SUCCESS ) {
+		ConfigReply msg = ca->reply;
 		for ( s = save_attrs; s; s = s->a_next ) {
 			if ( s->a_flags & SLAP_ATTR_IXDEL ) {
 				s->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
@@ -4862,6 +4863,7 @@ out:
 				}
 			}
 		}
+		ca->reply = msg;
 	}
 
 	if ( ca->cleanup )
