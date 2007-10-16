@@ -2671,7 +2671,11 @@ pc_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 	on = (slap_overinst *)p->ce_bi;
 	cm = on->on_bi.bi_private;
 	ca->be = &cm->db;
-	ca->cleanup = pc_ldadd_cleanup;
+	/* Defer open if this is an LDAPadd */
+	if ( CONFIG_ONLINE_ADD( ca ))
+		ca->cleanup = pc_ldadd_cleanup;
+	else
+		cm->defer_db_open = 0;
 	ca->private = on;
 	return LDAP_SUCCESS;
 }
