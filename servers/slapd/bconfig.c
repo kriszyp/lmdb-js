@@ -77,6 +77,7 @@ typedef struct {
 static CfBackInfo cfBackInfo;
 
 static char	*passwd_salt;
+static FILE *logfile;
 static char	*logfileName;
 #ifdef SLAP_AUTH_REWRITE
 static BerVarray authz_rewrites;
@@ -1124,6 +1125,10 @@ config_generic(ConfigArgs *c) {
 		case CFG_LOGFILE:
 			ch_free( logfileName );
 			logfileName = NULL;
+			if ( logfile ) {
+				fclose( logfile );
+				logfile = NULL;
+			}
 			break;
 
 		case CFG_SERVERID: {
@@ -1683,7 +1688,6 @@ sortval_reject:
 			}
 			break;
 		case CFG_LOGFILE: {
-				FILE *logfile;
 				if ( logfileName ) ch_free( logfileName );
 				logfileName = c->value_string;
 				logfile = fopen(logfileName, "w");
