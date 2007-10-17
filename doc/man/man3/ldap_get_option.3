@@ -58,6 +58,10 @@ This is a read-only, handler-specific option.
 .B LDAP_OPT_TIMEOUT
 Sets/gets a timeout value for the synchronous API calls.
 .B outvalue
+must be a 
+.BR "struct timeval **"
+(the caller has to free
+.BR *outvalue ) ,
 and
 .B invalue
 must be a 
@@ -72,6 +76,10 @@ following a
 .BR connect (2) 
 returns in case of no activity.
 .B outvalue
+must be a 
+.BR "struct timeval **"
+(the caller has to free
+.BR *outvalue ) ,
 and
 .B invalue
 must be a 

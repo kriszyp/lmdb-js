@@ -39,3 +39,4 @@ OpenLDAP 2.4.6 Engineering
 	Documentation
 		Fixed slapd-bdb(5) note about dbconfig directives (ITS#5134)
 		slapadd/slapindex note about file ownership (ITS#5166)
+		Fixed ldap_get_option(3) *_TIMEOUT API (ITS#5188)
