@@ -234,13 +234,13 @@ slap_access_allowed(
 				( state->as_recorded & ACL_STATE_RECORDED_NV ) )
 			{
 				Debug( LDAP_DEBUG_ACL,
-					"=> slap_access_allowed: result from state (%s)\n",
+					"=> slap_access_allowed: result was in cache (%s)\n",
 					attr, 0, 0 );
 				ret = state->as_result;
 				goto done;
 			} else {
 				Debug( LDAP_DEBUG_ACL,
-					"=> slap_access_allowed: no res from state (%s)\n",
+					"=> slap_access_allowed: result not in cache (%s)\n",
 					attr, 0, 0 );
 			}
 		}
