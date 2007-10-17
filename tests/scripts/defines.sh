@@ -30,6 +30,7 @@ BACKSQL=${AC_sql-sqlno}
 ACCESSLOG=${AC_accesslog-accesslogno}
 DDS=${AC_dds-ddsno}
 DYNLIST=${AC_dynlist-dynlistno}
+MEMBEROF=${AC_memberof-memberofno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
@@ -124,6 +125,7 @@ PLSRMASTERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
 DDSCONF=$DATADIR/slapd-dds.conf
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 UNDOCONF=$DATADIR/slapd-config-undo.conf
+NAKEDCONF=$DATADIR/slapd-config-naked.conf
 
 DYNAMICCONF=$DATADIR/slapd-dynamic.ldif
 
@@ -236,14 +238,14 @@ SQLADD=$DATADIR/sql-add.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="dc=example,dc=com"
-MANAGERDN="cn=Manager,dc=example,dc=com"
-UPDATEDN="cn=Replica,dc=example,dc=com"
+MANAGERDN="cn=Manager,$BASEDN"
+UPDATEDN="cn=Replica,$BASEDN"
 PASSWD=secret
-BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
-BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
-JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
-JOHNDDN="cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com"
-MELLIOTDN="cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com"
+BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,$BASEDN"
+BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,$BASEDN"
+JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,$BASEDN"
+JOHNDDN="cn=John Doe,ou=Information Technology Division,ou=People,$BASEDN"
+MELLIOTDN="cn=Mark Elliot,ou=Alumni Association,ou=People,$BASEDN"
 REFINTDN="cn=Manager,o=refint"
 RETCODEDN="ou=RetCodes,$BASEDN"
 UNIQUEDN="cn=Manager,o=unique"
@@ -252,7 +254,7 @@ TRANSLUCENTROOT="o=translucent"
 TRANSLUCENTUSER="ou=users,o=translucent"
 TRANSLUCENTDN="uid=binder,o=translucent"
 TRANSLUCENTPASSWD="bindtest"
-METABASEDN="ou=Meta,dc=example,dc=com"
+METABASEDN="ou=Meta,$BASEDN"
 METAMANAGERDN="cn=Manager,$METABASEDN"
 VALSORTDN="cn=Manager,o=valsort"
 VALSORTBASEDN="o=valsort"
@@ -325,6 +327,7 @@ SUBTREERENAMEOUT=$DATADIR/subtree-rename.out
 ACIOUT=$DATADIR/aci.out
 DYNLISTOUT=$DATADIR/dynlist.out
 DDSOUT=$DATADIR/dds.out
+MEMBEROFOUT=$DATADIR/memberof.out
 SHTOOL="$SRCDIR/../build/shtool"
 
 # Just in case we linked the binaries dynamically
