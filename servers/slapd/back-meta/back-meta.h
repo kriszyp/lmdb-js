@@ -505,6 +505,14 @@ meta_back_op_result(
 	ldap_back_send_t	sendok );
 
 extern int
+meta_back_controls_add(
+	Operation	*op,
+	SlapReply	*rs,
+	metaconn_t	*mc,
+	int		candidate,
+	LDAPControl	***pctrls );
+
+extern int
 back_meta_LTX_init_module(
 	int			argc,
 	char			*argv[] );
