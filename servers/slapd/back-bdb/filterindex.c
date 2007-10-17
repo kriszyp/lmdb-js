@@ -546,6 +546,7 @@ ext_candidates(
 					op->ors_scope = scope;
 					rc = bdb_dn2idl( op, locker, &mra->ma_value, ei, ids,
 						stack );
+					op->ors_scope = sc;
 				}
 				return 0;
 			}
