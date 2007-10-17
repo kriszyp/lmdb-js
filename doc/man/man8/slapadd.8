@@ -127,7 +127,8 @@ Possible generic options/values are:
 enable quick (fewer integrity checks) mode.  Does fewer consistency checks
 on the input data, and no consistency checks when writing the database.
 Improves the load time but if any errors or interruptions occur the resulting
-database will be unusable.
+database will be unusable.  Note that slapd must be run once before the db_stat
+command can be used with the resulting database.
 .TP
 .B -s
 disable schema checking.  This option is intended to be used when loading
