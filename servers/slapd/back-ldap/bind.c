@@ -2518,8 +2518,8 @@ ldap_back_controls_add(
 
 	LDAPControl	**ctrls = NULL;
 	/* set to the maximum number of controls this backend can add */
-	LDAPControl	c[ 2 ] = { 0 };
-	int		i = 0, j = 0;
+	LDAPControl	c[ 2 ] = { { 0 } };
+	int		n = 0, i, j1 = 0, j2 = 0;
 
 	*pctrls = NULL;
 
@@ -2540,30 +2540,38 @@ ldap_back_controls_add(
 		goto done;
 	}
 
+	/* put controls that go __before__ existing ones here */
+
 	/* proxyAuthz for identity assertion */
 	switch ( ldap_back_proxy_authz_ctrl( op, rs, &lc->lc_bound_ndn,
-		li->li_version, &li->li_idassert, &c[ j ] ) )
+		li->li_version, &li->li_idassert, &c[ j1 ] ) )
 	{
 	case SLAP_CB_CONTINUE:
 		break;
 
 	case LDAP_SUCCESS:
-		j++;
+		j1++;
 		break;
 
 	default:
 		goto done;
 	}
 
+	/* put controls that go __after__ existing ones here */
+
 #ifdef SLAP_CONTROL_X_SESSION_TRACKING
+	/* FIXME: according to <draft-wahl-ldap-session>, 
+	 * the server should check if the control can be added
+	 * based on the identity of the client and so */
+
 	/* session tracking */
 	if ( LDAP_BACK_ST_REQUEST( li ) ) {
-		switch ( slap_ctrl_session_tracking_request_add( op, rs, &c[ j ] ) ) {
+		switch ( slap_ctrl_session_tracking_request_add( op, rs, &c[ j1 + j2 ] ) ) {
 		case SLAP_CB_CONTINUE:
 			break;
 
 		case LDAP_SUCCESS:
-			j++;
+			j2++;
 			break;
 
 		default:
@@ -2576,31 +2584,47 @@ ldap_back_controls_add(
 		rs->sr_err = LDAP_SUCCESS;
 	}
 
-	if ( j == 0 ) {
+	/* if nothing to do, just bail out */
+	if ( j1 == 0 && j2 == 0 ) {
 		goto done;
 	}
 
+	assert( j1 + j1 <= sizeof( c )/sizeof(LDAPControl) );
+
 	if ( op->o_ctrls ) {
-		for ( i = 0; op->o_ctrls[ i ]; i++ )
+		for ( n = 0; op->o_ctrls[ n ]; n++ )
 			/* just count ctrls */ ;
 	}
 
-	ctrls = op->o_tmpalloc( sizeof( LDAPControl * ) * (i + j + 1) + j * sizeof( LDAPControl ),
+	ctrls = op->o_tmpalloc( (n + j1 + j2 + 1) * sizeof( LDAPControl * ) + ( j1 + j2 ) * sizeof( LDAPControl ),
 			op->o_tmpmemctx );
-	ctrls[ 0 ] = (LDAPControl *)&ctrls[ i + j + 1 ];
-	*ctrls[ 0 ] = c[ 0 ];
-	for ( i = 1; i < j; i++ ) {
-		ctrls[ i ] = &ctrls[ 0 ][ i ];
-		*ctrls[ i ] = c[ i ];
+	if ( j1 ) {
+		ctrls[ 0 ] = (LDAPControl *)&ctrls[ n + j1 + j2 + 1 ];
+		*ctrls[ 0 ] = c[ 0 ];
+		for ( i = 1; i < j1; i++ ) {
+			ctrls[ i ] = &ctrls[ 0 ][ i ];
+			*ctrls[ i ] = c[ i ];
+		}
 	}
 
 	i = 0;
 	if ( op->o_ctrls ) {
 		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
-			ctrls[ i + j ] = op->o_ctrls[ i ];
+			ctrls[ i + j1 ] = op->o_ctrls[ i ];
 		}
 	}
-	ctrls[ i + j ] = NULL;
+
+	n += j1;
+	if ( j2 ) {
+		ctrls[ n ] = (LDAPControl *)&ctrls[ n + j2 + 1 ] + j1;
+		*ctrls[ n ] = c[ j1 ];
+		for ( i = 1; i < j2; i++ ) {
+			ctrls[ n + i ] = &ctrls[ n ][ i ];
+			*ctrls[ n + i ] = c[ i ];
+		}
+	}
+
+	ctrls[ n + j2 ] = NULL;
 
 done:;
 	if ( ctrls == NULL ) {
@@ -2620,13 +2644,27 @@ ldap_back_controls_free( Operation *op, SlapReply *rs, LDAPControl ***pctrls )
 	/* we assume that the controls added by the proxy come first,
 	 * so as soon as we find op->o_ctrls[ 0 ] we can stop */
 	if ( ctrls && ctrls != op->o_ctrls ) {
-		int	i;
+		int		i = 0, n = 0, n_added;
+		LDAPControl	*lower, *upper;
 
 		assert( ctrls[ 0 ] != NULL );
 
+		for ( n = 0; ctrls[ n ] != NULL; n++ )
+			/* count 'em */ ;
+
+		if ( op->o_ctrls ) {
+			for ( i = 0; op->o_ctrls[ i ] != NULL; i++ )
+				/* count 'em */ ;
+		}
+
+		n_added = n - i;
+		lower = (LDAPControl *)&ctrls[ n ];
+		upper = &lower[ n_added ];
+
 		for ( i = 0; ctrls[ i ] != NULL; i++ ) {
-			if ( op->o_ctrls && ctrls[ i ] == op->o_ctrls[ 0 ] ) {
-				break;
+			if ( ctrls[ i ] < lower || ctrls[ i ] >= upper ) {
+				/* original; don't touch */
+				continue;
 			}
 
 			if ( !BER_BVISNULL( &ctrls[ i ]->ldctl_value ) ) {
