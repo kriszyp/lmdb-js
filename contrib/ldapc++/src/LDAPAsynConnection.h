@@ -89,6 +89,15 @@ class LDAPAsynConnection{
         void init(const std::string& hostname, int port);
 
         /**
+         * Initializes a connection to a server. 
+         * 
+         * There actually no communication to the server. Just the
+         * object is initialized 
+         * @param uri  The LDAP-Uri for the destination
+         */ 
+        void initialize(const std::string& uri);
+
+        /**
          * Start TLS on this connection.  This isn't in the constructor,
          * because it could fail (i.e. server doesn't have SSL cert, client
          * api wasn't compiled against OpenSSL, etc.). 
@@ -306,14 +315,9 @@ class LDAPAsynConnection{
         LDAPConstraints *m_constr;
 
         /**
-         * The name of the destination host
+         * The URI of this connection
          */
-        std::string m_host;
-
-        /**
-         * The port the destination server is running on.
-         */
-        int m_port;
+        LDAPUrl m_uri;
 
  protected:
         /**

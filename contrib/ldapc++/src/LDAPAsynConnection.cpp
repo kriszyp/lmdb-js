@@ -49,22 +49,26 @@ void LDAPAsynConnection::init(const string& hostname, int port){
             "   hostname:" << hostname << endl
             << "   port:" << port << endl);
 
-    char* ldapuri;
-    LDAPURLDesc url;
-    memset( &url, 0, sizeof(url));
-
-    url.lud_scheme = strdup("ldap");
-    url.lud_host = strdup(hostname.c_str());
-    url.lud_port = port;
-    url.lud_scope = LDAP_SCOPE_DEFAULT;
-
-    ldapuri = ldap_url_desc2str( &url );
+    m_uri.setScheme("ldap");
+    m_uri.setHost(hostname);
+    m_uri.setPort(port);
+    
+    const char *ldapuri = m_uri.getURLString().c_str();
     int ret = ldap_initialize(&cur_session, ldapuri);
     if ( ret != LDAP_SUCCESS ) {
         throw LDAPException( ret );
     }
-    m_host=hostname;
-    m_port=port;
+    int opt=3;
+    ldap_set_option(cur_session, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
+    ldap_set_option(cur_session, LDAP_OPT_PROTOCOL_VERSION, &opt);
+}
+
+void LDAPAsynConnection::initialize(const std::string& uri){
+	m_uri.setURLString(uri);
+    int ret = ldap_initialize(&cur_session, m_uri.getURLString().c_str());
+    if ( ret != LDAP_SUCCESS ) {
+        throw LDAPException( ret );
+    }
     int opt=3;
     ldap_set_option(cur_session, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
     ldap_set_option(cur_session, LDAP_OPT_PROTOCOL_VERSION, &opt);
@@ -250,12 +254,12 @@ LDAP* LDAPAsynConnection::getSessionHandle() const{
 
 const string& LDAPAsynConnection::getHost() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAsynConnection::setHost()" << endl);
-    return m_host;
+    return m_uri.getHost();
 }
 
 int LDAPAsynConnection::getPort() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAsynConnection::getPort()" << endl);
-    return m_port;
+    return m_uri.getPort();
 }
 
 LDAPAsynConnection* LDAPAsynConnection::referralConnect(
