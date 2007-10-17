@@ -385,7 +385,7 @@ slap_tool_init(
 			break;
 
 		case 'S':
-			if ( lutil_atoul( &csnsid, optarg )
+			if ( lutil_atou( &csnsid, optarg )
 				|| csnsid > SLAP_SYNC_SID_MAX )
 			{
 				usage( tool, progname );
