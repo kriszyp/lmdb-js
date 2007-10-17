@@ -244,7 +244,7 @@ chkResponseList(
 			"ldap_chkResponseList returns ld %p NULL\n", (void *)ld, 0, 0);
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"ldap_chkResponseList returns ld %p msgid %d, type 0x%02lu\n",
+			"ldap_chkResponseList returns ld %p msgid %d, type 0x%02lx\n",
 			(void *)ld, lm->lm_msgid, (unsigned long)lm->lm_msgtype );
 	}
 #endif
@@ -558,6 +558,14 @@ nextresp3:
 		if ( sock_errno() == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
 #endif
 		ld->ld_errno = LDAP_SERVER_DOWN;
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
+		ldap_free_connection( ld, lc, 1, 0 );
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
+		lc = *lcp = NULL;
 		return -1;
 
 	default:
@@ -892,7 +900,7 @@ nextresp2:
 			{
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
-				Debug( LDAP_DEBUG_ANY, "request done: ld %p msgid %ld\n",
+				Debug( LDAP_DEBUG_TRACE, "request done: ld %p msgid %ld\n",
 					(void *)ld, (long) id, 0 );
 				Debug( LDAP_DEBUG_TRACE,
 					"res_errno: %d, res_error: <%s>, "
