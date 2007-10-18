@@ -780,9 +780,11 @@ ber_scanf ( BerElement *ber,
 
 	fmt_reset = fmt;
 
-	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
-		"ber_scanf fmt (%s) ber:\n", fmt );
-	ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
+	if ( ber->ber_debug & (LDAP_DEBUG_TRACE|LDAP_DEBUG_BER)) {
+		ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+			"ber_scanf fmt (%s) ber:\n", fmt );
+		ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
+	}
 
 	for ( rc = 0; *fmt && rc != LBER_DEFAULT; fmt++ ) {
 		/* When this is modified, remember to update
