@@ -153,6 +153,16 @@ Note: You can clearly see the PROXYAUTHZ line on the master, indicating the
 proper identity assertion for the update on the master. Also note the slave 
 immediately receiving the Syncrepl update from the master.
 
+H3: Handling Chaining Errors
+
+By default, if chaining fails, the original referral is returned to the client
+under the assumption that the client might want to try and follow the referral.
+
+With the following directive however, if the chaining fails at the provider 
+side, the actual error is returned to the client.
+
+>        chain-return-error TRUE
+
 
 H2: Constraints
 
