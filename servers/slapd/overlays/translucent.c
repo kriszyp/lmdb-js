@@ -109,7 +109,11 @@ translucent_ldadd( CfEntryInfo *cei, Entry *e, ConfigArgs *ca )
 	ov = on->on_bi.bi_private;
 	ca->be = &ov->db;
 	ca->private = on;
-	ca->cleanup = translucent_ldadd_cleanup;
+	if ( CONFIG_ONLINE_ADD( ca ))
+		ca->cleanup = translucent_ldadd_cleanup;
+	else
+		ov->defer_db_open = 0;
+
 	return LDAP_SUCCESS;
 }
 
