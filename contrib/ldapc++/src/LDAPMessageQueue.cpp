@@ -149,7 +149,7 @@ LDAPMsg *LDAPMessageQueue::getNext(){
 // TODO Maybe moved to LDAPRequest::followReferral seems more reasonable
 //there
 LDAPRequest* LDAPMessageQueue::chaseReferral(LDAPMsg* ref){
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPMessageQueue::chaseReferra()" << endl);
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPMessageQueue::chaseReferral()" << endl);
     LDAPRequest *req=m_activeReq.top();
     LDAPRequest *refReq=req->followReferral(ref);
     if(refReq !=0){
