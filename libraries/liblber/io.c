@@ -488,8 +488,10 @@ ber_get_next(
 	assert( SOCKBUF_VALID( sb ) );
 	assert( LBER_VALID( ber ) );
 
-	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
-		"ber_get_next\n" );
+	if ( ber->ber_debug & LDAP_DEBUG_TRACE ) {
+		ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+			"ber_get_next\n" );
+	}
 
 	/*
 	 * Any ber element looks like this: tag length contents.
