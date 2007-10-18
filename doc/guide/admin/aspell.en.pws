@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1448 
+personal_ws-1.1 en 1451 
 nattrsets
 inappropriateAuthentication
 api
@@ -198,6 +198,7 @@ syslogd
 dataflow
 subentries
 attrpair
+balancer
 BerkeleyDB's
 singleLevel
 entryDN
@@ -231,8 +232,8 @@ reqMod
 ldb
 srcdir
 pwdExpireWarning
-localstatedir
 ldd
+localstatedir
 sockbuf
 PENs
 ipv
@@ -634,6 +635,7 @@ extparam
 auditWriteObject
 colaligns
 Diffie
+offsite
 attributevalue
 AttributeValue
 SIGTERM
@@ -1264,6 +1266,7 @@ attrtype
 LIBVERSION
 proto
 endif
+logfiles
 reqNewRDN
 ldapi
 notoc
