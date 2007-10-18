@@ -702,7 +702,8 @@ ldap_pvt_thread_pool_resume (
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 	pool->ltp_pause = 0;
-	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
+	if (pool->ltp_state == LDAP_INT_THREAD_POOL_RUNNING)
+		ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	return(0);
 }
