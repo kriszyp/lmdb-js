@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <ac/ctype.h>
 #include <ac/string.h>
+#include <ac/errno.h>
 
 #include "back-bdb.h"
 
@@ -331,8 +332,11 @@ bdb_cf_cleanup( ConfigArgs *c )
 		/* If this fails, we need to restart */
 		if ( rc ) {
 			slapd_shutdown = 2;
+			snprintf( c->cr_msg, sizeof( c->cr_msg ),
+				"failed to reopen database, rc=%d", rc );
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_cf_cleanup)
-				": failed to reopen database, rc=%d", rc, 0, 0 );
+				": %s\n", c->cr_msg, 0, 0 );
+			rc = LDAP_OTHER;
 		}
 	}
 	return rc;
@@ -614,7 +618,26 @@ bdb_cf_gen( ConfigArgs *c )
 
 	case BDB_DIRECTORY: {
 		FILE *f;
-		char *ptr;
+		char *ptr, *testpath;
+		int len;
+
+		len = strlen( c->value_string );
+		testpath = ch_malloc( len + STRLENOF(LDAP_DIRSEP) + STRLENOF("DUMMY") + 1 );
+		ptr = lutil_strcopy( testpath, c->value_string );
+		*ptr++ = LDAP_DIRSEP[0];
+		strcpy( ptr, "DUMMY" );
+		f = fopen( testpath, "w" );
+		if ( f ) {
+			fclose( f );
+			unlink( testpath );
+		}
+		ch_free( testpath );
+		if ( !f ) {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: invalid path: %s",
+				c->log, strerror( errno ));
+			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg, 0, 0 );
+			return -1;
+		}
 
 		if ( bdb->bi_dbenv_home )
 			ch_free( bdb->bi_dbenv_home );
@@ -623,7 +646,7 @@ bdb_cf_gen( ConfigArgs *c )
 		/* See if a DB_CONFIG file already exists here */
 		if ( bdb->bi_db_config_path )
 			ch_free( bdb->bi_db_config_path );
-		bdb->bi_db_config_path = ch_malloc( strlen( bdb->bi_dbenv_home ) +
+		bdb->bi_db_config_path = ch_malloc( len +
 			STRLENOF(LDAP_DIRSEP) + STRLENOF("DB_CONFIG") + 1 );
 		ptr = lutil_strcopy( bdb->bi_db_config_path, bdb->bi_dbenv_home );
 		*ptr++ = LDAP_DIRSEP[0];

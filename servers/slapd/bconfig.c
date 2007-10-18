@@ -77,6 +77,7 @@ typedef struct {
 static CfBackInfo cfBackInfo;
 
 static char	*passwd_salt;
+static FILE *logfile;
 static char	*logfileName;
 #ifdef SLAP_AUTH_REWRITE
 static BerVarray authz_rewrites;
@@ -1124,6 +1125,10 @@ config_generic(ConfigArgs *c) {
 		case CFG_LOGFILE:
 			ch_free( logfileName );
 			logfileName = NULL;
+			if ( logfile ) {
+				fclose( logfile );
+				logfile = NULL;
+			}
 			break;
 
 		case CFG_SERVERID: {
@@ -1683,7 +1688,6 @@ sortval_reject:
 			}
 			break;
 		case CFG_LOGFILE: {
-				FILE *logfile;
 				if ( logfileName ) ch_free( logfileName );
 				logfileName = c->value_string;
 				logfile = fopen(logfileName, "w");
@@ -4826,6 +4830,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 out:
 	/* Undo for a failed operation */
 	if ( rc != LDAP_SUCCESS ) {
+		ConfigReply msg = ca->reply;
 		for ( s = save_attrs; s; s = s->a_next ) {
 			if ( s->a_flags & SLAP_ATTR_IXDEL ) {
 				s->a_flags &= ~(SLAP_ATTR_IXDEL|SLAP_ATTR_IXADD);
@@ -4862,6 +4867,7 @@ out:
 				}
 			}
 		}
+		ca->reply = msg;
 	}
 
 	if ( ca->cleanup )
@@ -4928,8 +4934,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
-	if ( !slapd_shutdown )
-		ldap_pvt_thread_pool_pause( &connection_pool );
+	ldap_pvt_thread_pool_pause( &connection_pool );
 
 	/* Strategy:
 	 * 1) perform the Modify on the cached Entry.
@@ -4961,8 +4966,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 		op->o_ndn = ndn;
 	}
 
-	if ( !slapd_shutdown )
-		ldap_pvt_thread_pool_resume( &connection_pool );
+	ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
