@@ -743,6 +743,13 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		return LDAP_SIZELIMIT_EXCEEDED;
 	}
 
+	/* Every 64 entries, check for thread pool pause */
+	if (( rs->sr_nentries & 0x3f == 0x3f ) &&
+		ldap_pvt_thread_pool_query( &connection_pool,
+			LDAP_PVT_THREAD_POOL_PARAM_PAUSING, &i ) == 0 && i ) {
+		return LDAP_BUSY;
+	}
+
 	rs->sr_type = REP_SEARCH;
 
 	/* eventually will loop through generated operational attribute types

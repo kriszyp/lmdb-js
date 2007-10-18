@@ -397,6 +397,10 @@ ldap_pvt_thread_pool_query(
 		count = pool->ltp_active_count;
 		break;
 
+	case LDAP_PVT_THREAD_POOL_PARAM_PAUSING:
+		count = pool->ltp_pause;
+		break;
+
 	case LDAP_PVT_THREAD_POOL_PARAM_PENDING:
 		count = pool->ltp_pending_count;
 		break;
