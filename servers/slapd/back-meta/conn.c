@@ -1592,6 +1592,7 @@ done:;
 		meta_back_print_conntree( mi, ">>> meta_back_getconn" );
 #endif /* META_BACK_PRINT_CONNTREE */
 
+		err = 0;
 		if ( LDAP_BACK_PCONN_ISPRIV( mc ) ) {
 			if ( mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_num < mi->mi_conn_priv_max ) {
 				LDAP_TAILQ_INSERT_TAIL( &mi->mi_conn_priv[ LDAP_BACK_CONN2PRIV( mc ) ].mic_priv, mc, mc_q );
@@ -1603,7 +1604,7 @@ done:;
 			}
 			rs->sr_err = 0;
 
-		} else {
+		} else if ( !( sendok & LDAP_BACK_BINDING ) ) {
 			err = avl_insert( &mi->mi_conninfo.lai_tree, ( caddr_t )mc,
 			       	meta_back_conndn_cmp, meta_back_conndn_dup );
 			LDAP_BACK_CONN_CACHED_SET( mc );
@@ -1689,7 +1690,7 @@ meta_back_release_conn_lock(
 	 * that are not privileged would live forever and pollute
 	 * the connection space (and eat up resources).  Maybe this
 	 * should be configurable... */
-	if ( LDAP_BACK_CONN_TAINTED( mc ) ) {
+	if ( LDAP_BACK_CONN_TAINTED( mc ) || !LDAP_BACK_CONN_CACHED( mc ) ) {
 #if META_BACK_PRINT_CONNTREE > 0
 		meta_back_print_conntree( mi, ">>> meta_back_release_conn" );
 #endif /* META_BACK_PRINT_CONNTREE */
@@ -1706,7 +1707,7 @@ meta_back_release_conn_lock(
 				assert( !LDAP_BACK_CONN_CACHED( mc ) );
 			}
 
-		} else {
+		} else if ( LDAP_BACK_CONN_CACHED( mc ) ) {
 			metaconn_t	*tmpmc;
 
 			tmpmc = avl_delete( &mi->mi_conninfo.lai_tree,
