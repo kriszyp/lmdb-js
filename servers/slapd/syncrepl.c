@@ -63,7 +63,7 @@ typedef struct syncinfo_s {
 	BackendDB		*si_wbe;
 	struct re_s		*si_re;
 	int			si_rid;
-	char			si_ridtxt[ STRLENOF("rid=4095") + 1 ];
+	char			si_ridtxt[ STRLENOF("rid=999") + 1 ];
 	slap_bindconf		si_bindconf;
 	struct berval		si_base;
 	struct berval		si_logbase;
@@ -103,7 +103,7 @@ typedef struct syncinfo_s {
 } syncinfo_t;
 
 static int syncuuid_cmp( const void *, const void * );
-static void avl_ber_bvfree( void * );
+static int avl_presentlist_insert( syncinfo_t* si, struct berval *syncUUID );
 static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray, struct berval * );
 static int syncrepl_message_to_op(
 					syncinfo_t *, Operation *, LDAPMessage * );
@@ -797,6 +797,10 @@ do_syncrep2(
 				}
 				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 					ber_scanf( ber, /*"{"*/ "m}", &cookie );
+
+					Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
+						BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+
 					if ( !BER_BVISNULL( &cookie ) ) {
 						ch_free( syncCookie.octet_str.bv_val );
 						ber_dupbv( &syncCookie.octet_str, &cookie );
@@ -864,6 +868,10 @@ do_syncrep2(
 					ber_scanf( ber, "{" /*"}"*/);
 					if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 						ber_scanf( ber, "m", &cookie );
+
+						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
+							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+
 						if ( !BER_BVISNULL( &cookie ) ) {
 							ch_free( syncCookie.octet_str.bv_val );
 							ber_dupbv( &syncCookie.octet_str, &cookie);
@@ -901,7 +909,7 @@ do_syncrep2(
 						syncrepl_del_nonpresent( op, si, NULL,
 							&syncCookie.ctxcsn[m] );
 					} else {
-						avl_free( si->si_presentlist, avl_ber_bvfree );
+						avl_free( si->si_presentlist, ch_free );
 						si->si_presentlist = NULL;
 					}
 				}
@@ -952,6 +960,10 @@ do_syncrep2(
 						if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE )
 						{
 							ber_scanf( ber, "m", &cookie );
+
+							Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
+								BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+
 							if ( !BER_BVISNULL( &cookie ) ) {
 								ch_free( syncCookie.octet_str.bv_val );
 								ber_dupbv( &syncCookie.octet_str, &cookie );
@@ -979,6 +991,10 @@ do_syncrep2(
 							LDAP_TAG_SYNC_COOKIE )
 						{
 							ber_scanf( ber, "m", &cookie );
+
+							Debug( LDAP_DEBUG_SYNC, "do_syncrep2: cookie=%s\n",
+								BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0, 0 );
+
 							if ( !BER_BVISNULL( &cookie ) ) {
 								ch_free( syncCookie.octet_str.bv_val );
 								ber_dupbv( &syncCookie.octet_str, &cookie );
@@ -1003,15 +1019,8 @@ do_syncrep2(
 						} else {
 							int i;
 							for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
-								struct berval *syncuuid_bv;
-								syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
-								slap_sl_free( syncUUIDs[i].bv_val,op->o_tmpmemctx );
-								if ( avl_insert( &si->si_presentlist,
-									(caddr_t) syncuuid_bv,
-									syncuuid_cmp, avl_dup_error ) )
-								{
-									ber_bvfree( syncuuid_bv );
-								}
+								(void)avl_presentlist_insert( si, &syncUUIDs[i] );
+								slap_sl_free( syncUUIDs[i].bv_val, op->o_tmpmemctx );
 							}
 							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
@@ -1278,16 +1287,16 @@ reload:
 	if ( rc ) {
 		if ( fail == RETRYNUM_TAIL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: rid %03d quitting\n",
-				si->si_rid, 0, 0 );
+				"do_syncrepl: %s quitting\n",
+				si->si_ridtxt, 0, 0 );
 		} else if ( fail > 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: rid %03d retrying (%d retries left)\n",
-				si->si_rid, fail, 0 );
+				"do_syncrepl: %s retrying (%d retries left)\n",
+				si->si_ridtxt, fail, 0 );
 		} else {
 			Debug( LDAP_DEBUG_ANY,
-				"do_syncrepl: rid %03d retrying\n",
-				si->si_rid, 0, 0 );
+				"do_syncrepl: %s retrying\n",
+				si->si_ridtxt, 0, 0 );
 		}
 	}
 
@@ -1823,6 +1832,29 @@ typedef struct dninfo {
 	Modifications *mods;	/* the modlist we compared */
 } dninfo;
 
+/* return 1 if inserted, 0 otherwise */
+static int
+avl_presentlist_insert(
+	syncinfo_t* si,
+	struct berval *syncUUID )
+{
+	struct berval *syncuuid_bv = ch_malloc( sizeof( struct berval ) + syncUUID->bv_len + 1 );
+
+	syncuuid_bv->bv_len = syncUUID->bv_len;
+	syncuuid_bv->bv_val = (char *)&syncuuid_bv[1];
+	AC_MEMCPY( syncuuid_bv->bv_val, syncUUID->bv_val, syncUUID->bv_len );
+	syncuuid_bv->bv_val[ syncuuid_bv->bv_len ] = '\0';
+
+	if ( avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
+		syncuuid_cmp, avl_dup_error ) )
+	{
+		ch_free( syncuuid_bv );
+		return 0;
+	}
+
+	return 1;
+}
+
 static int
 syncrepl_entry(
 	syncinfo_t* si,
@@ -1835,7 +1867,7 @@ syncrepl_entry(
 {
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL, NULL, NULL, NULL };
-	struct berval	*syncuuid_bv = NULL;
+	int syncuuid_inserted = 0;
 	struct berval	syncUUID_strrep = BER_BVNULL;
 
 	SlapReply	rs_search = {REP_RESULT};
@@ -1857,13 +1889,7 @@ syncrepl_entry(
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ) ) {
 		if ( !si->si_refreshPresent ) {
-			syncuuid_bv = ber_dupbv( NULL, syncUUID );
-			if ( avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
-				syncuuid_cmp, avl_dup_error ) )
-			{
-				ber_bvfree( syncuuid_bv );
-				syncuuid_bv = NULL;
-			}
+			syncuuid_inserted = avl_presentlist_insert( si, syncUUID );
 		}
 	}
 
@@ -1900,7 +1926,7 @@ syncrepl_entry(
 	ava.aa_desc = slap_schema.si_ad_entryUUID;
 	ava.aa_value = *syncUUID;
 
-	if ( syncuuid_bv ) {
+	if ( syncuuid_inserted ) {
 		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s inserted UUID %s\n",
 			si->si_ridtxt, syncUUID_strrep.bv_val, 0 );
 	}
@@ -3004,13 +3030,11 @@ nonpresent_callback(
 	struct nonpresent_entry *np_entry;
 
 	if ( rs->sr_type == REP_RESULT ) {
-		count = avl_free( si->si_presentlist, avl_ber_bvfree );
+		count = avl_free( si->si_presentlist, ch_free );
 		si->si_presentlist = NULL;
 
 	} else if ( rs->sr_type == REP_SEARCH ) {
 		if ( !( si->si_refreshDelete & NP_DELETE_ONE ) ) {
-			char buf[sizeof("rid=000 not")];
-
 			a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
 
 			if ( a ) {
@@ -3018,13 +3042,15 @@ nonpresent_callback(
 					syncuuid_cmp );
 			}
 
-			if ( slap_debug & LDAP_DEBUG_SYNC ) {
-				sprintf( buf, "%s %s", si->si_ridtxt,
-					present_uuid ? "got" : "not" );
-			}
+			if ( LogTest( LDAP_DEBUG_SYNC ) ) {
+				char buf[sizeof("rid=999 not")];
 
-			Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %s UUID %s, dn %s\n",
-				buf, a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val );
+				snprintf( buf, sizeof(buf), "%s %s", si->si_ridtxt,
+					present_uuid ? "got" : "not" );
+
+				Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %s UUID %s, dn %s\n",
+					buf, a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val );
+			}
 
 			if ( a == NULL ) return 0;
 		}
@@ -3038,8 +3064,7 @@ nonpresent_callback(
 
 		} else {
 			avl_delete( &si->si_presentlist,
-					&a->a_nvals[0], syncuuid_cmp );
-			ch_free( present_uuid->bv_val );
+				&a->a_nvals[0], syncuuid_cmp );
 			ch_free( present_uuid );
 		}
 	}
@@ -3177,18 +3202,6 @@ syncuuid_cmp( const void* v_uuid1, const void* v_uuid2 )
 	return ( memcmp( uuid1->bv_val, uuid2->bv_val, uuid1->bv_len ) );
 }
 
-static void
-avl_ber_bvfree( void *v_bv )
-{
-	struct berval	*bv = (struct berval *)v_bv;
-	
-	if( v_bv == NULL ) return;
-	if ( !BER_BVISNULL( bv ) ) {
-		ch_free( bv->bv_val );
-	}
-	ch_free( (char *) bv );
-}
-
 void
 syncinfo_free( syncinfo_t *sie, int free_all )
 {
@@ -3280,7 +3293,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 		}
 		slap_sync_cookie_free( &sie->si_syncCookie, 0 );
 		if ( sie->si_presentlist ) {
-		    avl_free( sie->si_presentlist, avl_ber_bvfree );
+		    avl_free( sie->si_presentlist, ch_free );
 		}
 		while ( !LDAP_LIST_EMPTY( &sie->si_nonpresentlist ) ) {
 			struct nonpresent_entry* npe;
@@ -3390,7 +3403,7 @@ parse_syncrepl_line(
 				return -1;
 			}
 			si->si_rid = tmp;
-			sprintf( si->si_ridtxt, IDSTR "=%d", si->si_rid );
+			sprintf( si->si_ridtxt, IDSTR "=%03d", si->si_rid );
 			gots |= GOT_ID;
 		} else if ( !strncasecmp( c->argv[ i ], PROVIDERSTR "=",
 					STRLENOF( PROVIDERSTR "=" ) ) )
@@ -3577,12 +3590,10 @@ parse_syncrepl_line(
 				si->si_interval = 0;
 			} else if ( strchr( val, ':' ) != NULL ) {
 				char *next, *ptr = val;
-				unsigned dd, hh, mm, ss;
+				int dd, hh, mm, ss;
 
-				/* NOTE: the test for ptr[ 0 ] == '-'
-				 * should go before the call to strtoul() */
-				dd = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' ) {
+				dd = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || dd < 0 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse days", val );
@@ -3590,8 +3601,8 @@ parse_syncrepl_line(
 					return -1;
 				}
 				ptr = next + 1;
-				hh = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || hh > 24 ) {
+				hh = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || hh < 0 || hh > 24 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse hours", val );
@@ -3599,8 +3610,8 @@ parse_syncrepl_line(
 					return -1;
 				}
 				ptr = next + 1;
-				mm = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != ':' || mm > 60 ) {
+				mm = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != ':' || mm < 0 || mm > 60 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse minutes", val );
@@ -3608,8 +3619,8 @@ parse_syncrepl_line(
 					return -1;
 				}
 				ptr = next + 1;
-				ss = strtoul( ptr, &next, 10 );
-				if ( ptr[ 0 ] == '-' || next == ptr || next[0] != '\0' || ss > 60 ) {
+				ss = strtol( ptr, &next, 10 );
+				if ( next == ptr || next[0] != '\0' || ss < 0 || ss > 60 ) {
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse seconds", val );
@@ -3937,7 +3948,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 
 	ptr = buf;
 	assert( si->si_rid >= 0 && si->si_rid <= SLAP_SYNC_SID_MAX );
-	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%d " PROVIDERSTR "=%s",
+	ptr += snprintf( ptr, WHATSLEFT, IDSTR "=%03d " PROVIDERSTR "=%s",
 		si->si_rid, si->si_bindconf.sb_uri.bv_val );
 	if ( ptr - buf >= sizeof( buf ) ) return;
 	if ( !BER_BVISNULL( &bc ) ) {

@@ -10,6 +10,8 @@ OpenLDAP 2.4.6 Engineering
 	Added slapd attribute value sorting (ITS#5153)
 	Added slapd checking for long-running tasks (ITS#4188)
 	Fixed slapd syncrepl cookie propagation (ITS#5170)
+	Fixed slapd certificateExactAssertion (ITS#5072)
+	Fixed slapd Multi-Master Replication with refreshAndPersist (ITS#5192)
 	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-bdb/hdb IDL LRU handling (ITS#5121)
 	Fixed slapd-bdb/hdb cachesize config check (ITS#5122)

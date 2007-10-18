@@ -770,6 +770,8 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so,
 	BER_BVZERO( &csns[1] );
 	slap_compose_sync_cookie( op, &cookie, csns, so->s_rid, so->s_sid );
 
+	Debug( LDAP_DEBUG_SYNC, "syncprov_sendresp: cookie=%s\n", cookie.bv_val, 0, 0 );
+
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
 	a_uuid.a_nvals = &opc->suuid;
@@ -974,15 +976,18 @@ static int
 syncprov_qresp( opcookie *opc, syncops *so, int mode )
 {
 	syncres *sr;
-	int sid;
+	int sid, srsize;
 
 	/* Don't send changes back to their originator */
 	sid = slap_parse_csn_sid( &opc->sctxcsn );
 	if ( sid >= 0 && sid == so->s_sid )
 		return LDAP_SUCCESS;
 
-	sr = ch_malloc(sizeof(syncres) + opc->suuid.bv_len + 1 +
-		opc->sdn.bv_len + 1 + opc->sndn.bv_len + 1 + opc->sctxcsn.bv_len + 1 );
+	srsize = sizeof(syncres) + opc->suuid.bv_len + 1 +
+		opc->sdn.bv_len + 1 + opc->sndn.bv_len + 1;
+	if ( opc->sctxcsn.bv_len )
+		srsize += opc->sctxcsn.bv_len + 1;
+	sr = ch_malloc( srsize );
 	sr->s_next = NULL;
 	sr->s_dn.bv_val = (char *)(sr + 1);
 	sr->s_dn.bv_len = opc->sdn.bv_len;
@@ -995,9 +1000,13 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 		 opc->sndn.bv_val ) + 1;
 	sr->s_uuid.bv_len = opc->suuid.bv_len;
 	AC_MEMCPY( sr->s_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
-	sr->s_csn.bv_val = sr->s_uuid.bv_val + sr->s_uuid.bv_len + 1;
+	if ( opc->sctxcsn.bv_len ) {
+		sr->s_csn.bv_val = sr->s_uuid.bv_val + sr->s_uuid.bv_len + 1;
+		strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
+	} else {
+		sr->s_csn.bv_val = NULL;
+	}
 	sr->s_csn.bv_len = opc->sctxcsn.bv_len;
-	strcpy( sr->s_csn.bv_val, opc->sctxcsn.bv_val );
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
 	if ( !so->s_res ) {
@@ -1527,6 +1536,9 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 		slap_compose_sync_cookie( op, &cookie, delcsn, srs->sr_state.rid,
 			srs->sr_state.sid );
+
+		Debug( LDAP_DEBUG_SYNC, "syncprov_playlog: cookie=%s\n", cookie.bv_val, 0, 0 );
+
 		uuids[ndel].bv_val = NULL;
 		syncprov_sendinfo( op, rs, LDAP_TAG_SYNC_ID_SET, &cookie, 0, uuids, 1 );
 		op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
@@ -1546,7 +1558,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	{
 		struct berval maxcsn = BER_BVNULL;
 		char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-		int do_check = 0;
+		int do_check = 0, have_psearches;
 
 		/* Update our context CSN */
 		cbuf[0] = '\0';
@@ -1605,7 +1617,10 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		opc->sctxcsn.bv_val = cbuf;
 
 		/* Handle any persistent searches */
-		if ( si->si_ops ) {
+		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		have_psearches = ( si->si_ops != NULL );
+		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+		if ( have_psearches ) {
 			switch(op->o_tag) {
 			case LDAP_REQ_ADD:
 			case LDAP_REQ_MODIFY:
@@ -1708,12 +1723,19 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
+	slap_callback *cb;
+	opcookie *opc;
+	int have_psearches, cbsize;
 
-	slap_callback *cb = op->o_tmpcalloc(1, sizeof(slap_callback)+
-		sizeof(opcookie) +
-		(si->si_ops ? sizeof(modinst) : 0 ),
-		op->o_tmpmemctx);
-	opcookie *opc = (opcookie *)(cb+1);
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+	have_psearches = ( si->si_ops != NULL );
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+
+	cbsize = sizeof(slap_callback) + sizeof(opcookie) +
+		(have_psearches ? sizeof(modinst) : 0 );
+
+	cb = op->o_tmpcalloc(1, cbsize, op->o_tmpmemctx);
+	opc = (opcookie *)(cb+1);
 	opc->son = on;
 	cb->sc_response = syncprov_op_response;
 	cb->sc_cleanup = syncprov_op_cleanup;
@@ -1724,7 +1746,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 	/* If there are active persistent searches, lock this operation.
 	 * See seqmod.c for the locking logic on its own.
 	 */
-	if ( si->si_ops ) {
+	if ( have_psearches ) {
 		modtarget *mt, mtdummy;
 		modinst *mi;
 
@@ -1771,7 +1793,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if (( si->si_ops || si->si_logs ) && op->o_tag != LDAP_REQ_ADD )
+	if (( have_psearches || si->si_logs ) && op->o_tag != LDAP_REQ_ADD )
 		syncprov_matchops( op, opc, 1 );
 
 	return SLAP_CB_CONTINUE;
@@ -1940,16 +1962,20 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 					rs->sr_entry->e_name.bv_val, 0, 0 );
 				return LDAP_SUCCESS;
 			}
-			/* Make sure entry is less than the snapshot'd contextCSN */
-			for ( i=0; i<ss->ss_numcsns; i++ ) {
-				if ( sid == ss->ss_sids[i] && ber_bvcmp( &a->a_nvals[0],
-					&ss->ss_ctxcsn[i] ) > 0 ) {
-					Debug( LDAP_DEBUG_SYNC,
-						"Entry %s CSN %s greater than snapshot %s\n",
-						rs->sr_entry->e_name.bv_val,
-						a->a_nvals[0].bv_val,
-						ss->ss_ctxcsn[i].bv_val );
-					return LDAP_SUCCESS;
+
+			/* If not a persistent search */
+			if ( !ss->ss_so ) {
+				/* Make sure entry is less than the snapshot'd contextCSN */
+				for ( i=0; i<ss->ss_numcsns; i++ ) {
+					if ( sid == ss->ss_sids[i] && ber_bvcmp( &a->a_nvals[0],
+						&ss->ss_ctxcsn[i] ) > 0 ) {
+						Debug( LDAP_DEBUG_SYNC,
+							"Entry %s CSN %s greater than snapshot %s\n",
+							rs->sr_entry->e_name.bv_val,
+							a->a_nvals[0].bv_val,
+							ss->ss_ctxcsn[i].bv_val );
+						return LDAP_SUCCESS;
+					}
 				}
 			}
 
@@ -1979,6 +2005,8 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 		slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
 			srs->sr_state.rid, srs->sr_state.sid );
+
+		Debug( LDAP_DEBUG_SYNC, "syncprov_search_response: cookie=%s\n", cookie.bv_val, 0, 0 );
 
 		/* Is this a regular refresh? */
 		if ( !ss->ss_so ) {
@@ -2188,6 +2216,8 @@ no_change:		nochange = 1;
 			if ( si->si_usehint && srs->sr_rhint == 0 ) {
 				if ( ctxcsn )
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
+				if ( sids )
+					op->o_tmpfree( sids, op->o_tmpmemctx );
 				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
 				return rs->sr_err;
 			}
@@ -2198,6 +2228,8 @@ no_change:		nochange = 1;
 				LDAP_SUCCESS ) {
 				if ( ctxcsn )
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
+				if ( sids )
+					op->o_tmpfree( sids, op->o_tmpmemctx );
 				send_ldap_result( op, rs );
 				return rs->sr_err;
 			}
