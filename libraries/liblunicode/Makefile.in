@@ -23,7 +23,7 @@ SRCS	= ucstr.c
 OBJS	= ucdata.o ure.o urestubs.o ucstr.o
 
 XLIB = $(LIBRARY)
-XLIBS = $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
+XLIBS = $(LDAP_LIBLUTIL_A) $(LDAP_LIBLBER_LA)
 #PROGRAMS = ucgendat
 
 LDAP_INCDIR= ../../include       
