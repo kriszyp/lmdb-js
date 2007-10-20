@@ -132,7 +132,7 @@ $(LIBRARY): $(OBJS) version.lo
 	$(AR) rs $@ $(OBJS)
 
 # Must fixup depends for non-libtool objects
-depend-local:
+depend-local: depend-common
 	@if test -n "$(OBJS)"; then \
 	OBJ2=`echo $(OBJS) $(OBJDEP) | $(SED) -e 's/\.o//g'`; \
 	SCR=''; for i in $$OBJ2; do SCR="$$SCR -e s/^$$i.lo:/$$i.o:/"; done; \
