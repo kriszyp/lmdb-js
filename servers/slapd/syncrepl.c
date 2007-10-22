@@ -2380,7 +2380,7 @@ syncrepl_del_nonpresent(
 				mod2.sml_flags = 0;
 				mod2.sml_desc = slap_schema.si_ad_structuralObjectClass;
 				mod2.sml_type = mod2.sml_desc->ad_cname;
-				mod1.sml_numvals = 1;
+				mod2.sml_numvals = 1;
 				mod2.sml_values = &gcbva[1];
 				mod2.sml_nvalues = NULL;
 				mod2.sml_next = NULL;
