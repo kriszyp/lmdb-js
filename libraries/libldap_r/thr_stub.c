@@ -173,6 +173,14 @@ ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads
 }
 
 int
+ldap_pvt_thread_pool_query( ldap_pvt_thread_pool_t *tpool,
+	ldap_pvt_thread_pool_param_t param, void *value )
+{
+	*(int *)value = -1;
+	return(-1);
+}
+
+int
 ldap_pvt_thread_pool_backload (
 	ldap_pvt_thread_pool_t *pool )
 {
