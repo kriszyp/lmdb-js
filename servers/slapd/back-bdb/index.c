@@ -20,6 +20,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/errno.h>
 
 #include "slap.h"
 #include "back-bdb.h"
