@@ -508,10 +508,10 @@ send_ldap_response(
 		goto cleanup;
 	}
 
-	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+	/* ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex ); */
 	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
 	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
-	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+	/* ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex ); */
 
 cleanup:;
 	/* Tell caller that we did this for real, as opposed to being
@@ -743,12 +743,14 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		return LDAP_SIZELIMIT_EXCEEDED;
 	}
 
+#ifndef NO_THREADS
 	/* Every 64 entries, check for thread pool pause */
 	if (( rs->sr_nentries & 0x3f == 0x3f ) &&
 		ldap_pvt_thread_pool_query( &connection_pool,
 			LDAP_PVT_THREAD_POOL_PARAM_PAUSING, &i ) == 0 && i ) {
 		return LDAP_BUSY;
 	}
+#endif
 
 	rs->sr_type = REP_SEARCH;
 
@@ -1194,11 +1196,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		}
 		rs->sr_nentries++;
 
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+		/* ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex ); */
 		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
 		ldap_pvt_mp_add_ulong( slap_counters.sc_entries, 1 );
 		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+		/* ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex ); */
 	}
 
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
@@ -1361,11 +1363,11 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	if ( bytes < 0 ) {
 		rc = LDAP_UNAVAILABLE;
 	} else {
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+		/* ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex ); */
 		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
 		ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
 		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+		/* ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex ); */
 	}
 #ifdef LDAP_CONNECTIONLESS
 	}
