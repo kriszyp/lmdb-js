@@ -23,6 +23,7 @@ OpenLDAP 2.3.39 Engineering
 	Fixed libldap ppolicy control creation (ITS#5103)
 	Build Environment
 		Fixed termios macro check (ITS#4880)
+		Updated Makefiles
 	Documentation
 		Fixed slapd-bdb(5) note about dbconfig directives (ITS#5134)
 		Added slapd-sql(5) empty oc mapping workaround (ITS#4785)
