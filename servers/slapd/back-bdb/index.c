@@ -20,7 +20,6 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
-#include <ac/errno.h>
 
 #include "slap.h"
 #include "back-bdb.h"
@@ -289,11 +288,7 @@ done:
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		break;
-	/* BDB also returns standard errno values */
-	case ENOMEM:
-		rc = LDAP_NO_MEMORY;
-		break;
-	/* Don't let any other BDB-specific errors thru */
+	/* Anything else is bad news */
 	default:
 		rc = LDAP_OTHER;
 	}
