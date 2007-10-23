@@ -354,17 +354,17 @@ be in the list of admittable log switches:
 >   Conns
 >   BER
 >   Filter
->   Config		(useless)
+>   Config
 >   ACL
 >   Stats
 >   Stats2
 >   Shell
 >   Parse
->   Cache		(deprecated)
->   Index
+>   Sync
 
 These values can be added, replaced or deleted; they affect what 
 messages are sent to the syslog device.
+Custom values could be added by custom modules.
 
 H3: Operations
 

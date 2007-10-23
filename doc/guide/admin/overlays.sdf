@@ -98,6 +98,71 @@ default when --enable-ldap.
 
 H3: Chaining Configuration
 
+In order to demonstrate how this overlay works, we shall discuss a typical 
+scenario which might be one master server and three Syncrepl slaves. 
+
+On each replica, add this near the top of the file (global), before any database 
+definitions:
+
+>        overlay                    chain
+>        chain-uri                  "ldap://ldapmaster.example.com"
+>        chain-idassert-bind        bindmethod="simple"
+>                                   binddn="cn=Manager,dc=example,dc=com"
+>                                   credentials="<secret>" 
+>                                   mode="self"
+>        chain-tls                  start
+>        chain-return-error         TRUE 
+>        updateref                  "ldap://ldapmaster.example.com/"
+
+The {{B:chain-tls}} statement enables TLS from the slave to the ldap master. 
+The DITs are exactly the same between these machines, therefore whatever user 
+bound to the slave will also exist on the master. If that DN does not have 
+update privileges on the master, nothing will happen.
+
+You will need to restart the slave after these changes. Then, if you are using 
+{{loglevel 256}}, you can monitor an {{ldapmodify}} on the slave and the master.
+
+Now start an {{ldapmodify}} on the slave and watch the logs. You should expect 
+something like:
+
+>        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 fd=31 ACCEPT from IP=143.199.102.216:45181 (IP=143.199.102.216:389)
+>        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 op=0 STARTTLS
+>        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 op=0 RESULT oid= err=0 text=
+>        Sep  6 09:27:25 slave1 slapd[29274]: conn=11 fd=31 TLS established tls_ssf=256 ssf=256
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=1 BIND dn="uid=user1,ou=people,dc=example,dc=com" method=128
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=1 BIND dn="uid=user1,ou=People,dc=example,dc=com" mech=SIMPLE ssf=0
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=1 RESULT tag=97 err=0 text=
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=2 MOD dn="uid=user1,ou=People,dc=example,dc=com"
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=2 MOD attr=mail
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=2 RESULT tag=103 err=0 text=
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 op=3 UNBIND
+>        Sep  6 09:27:28 slave1 slapd[29274]: conn=11 fd=31 closed
+>        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_MODIFY)
+>        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: be_search (0)
+>        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: uid=user1,ou=People,dc=example,dc=com
+>        Sep  6 09:27:28 slave1 slapd[29274]: syncrepl_entry: be_modify (0)
+
+And on the master you will see this:
+
+>        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 PROXYAUTHZ dn="uid=user1,ou=people,dc=example,dc=com"
+>        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 MOD dn="uid=user1,ou=People,dc=example,dc=com"
+>        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 MOD attr=mail
+>        Sep  6 09:23:57 ldapmaster slapd[2961]: conn=55902 op=3 RESULT tag=103 err=0 text=
+
+Note: You can clearly see the PROXYAUTHZ line on the master, indicating the 
+proper identity assertion for the update on the master. Also note the slave 
+immediately receiving the Syncrepl update from the master.
+
+H3: Handling Chaining Errors
+
+By default, if chaining fails, the original referral is returned to the client
+under the assumption that the client might want to try and follow the referral.
+
+With the following directive however, if the chaining fails at the provider 
+side, the actual error is returned to the client.
+
+>        chain-return-error TRUE
+
 
 H2: Constraints
 
@@ -151,8 +216,80 @@ H3: Dynamic List Configuration
 
 H2: Reverse Group Membership Maintenance
 
+H3: Overview
+
+In some scenarios, it may be desirable for a client to be able to determine
+which groups an entry is a member of, without performing an additional search.
+Examples of this are applications using the {{TERM:DIT}} for access control
+based on group authorization.
+
+The {{B:memberof}} overlay updates an attribute (by default {{B:memberOf}}) whenever
+changes occur to the membership attribute (by default {{B:member}}) of entries of the
+objectclass (by default {{B:groupOfNames}}) configured to trigger updates.
+
+Thus, it provides maintenance of the list of groups an entry is a member of,
+when usual maintenance of groups is done by modifying the members on the group
+entry.
 
 H3: Member Of Configuration
+
+The typical use of this overlay requires just enabling the overlay for a
+specific database. For example, with the following minimal slapd.conf:
+
+>        include /usr/share/openldap/schema/core.schema
+>        include /usr/share/openldap/schema/cosine.schema
+>        modulepath      /usr/lib/openldap
+>        moduleload      memberof.la
+>        authz-regexp "gidNumber=0\\\+uidNumber=0,cn=peercred,cn=external,cn=auth"
+>                "cn=Manager,dc=example,dc=com"
+>        database        bdb
+>        suffix          "dc=example,dc=com"
+>        rootdn          "cn=Manager,dc=example,dc=com"
+>        rootpw          secret
+>        directory       /var/lib/ldap2.4
+>        checkpoint 256 5
+>        index   objectClass   eq
+>        index   uid           eq,sub
+>        
+>        overlay memberof
+
+adding the following ldif:
+
+>        cat memberof.ldif
+>        dn: dc=example,dc=com
+>        objectclass: domain
+>        dc: example
+>        
+>        dn: ou=Group,dc=example,dc=com
+>        objectclass: organizationalUnit
+>        ou: Group
+>        
+>        dn: ou=People,dc=example,dc=com
+>        objectclass: organizationalUnit
+>        ou: People
+>        
+>        dn: uid=test1,ou=People,dc=example,dc=com
+>        objectclass: account
+>        uid: test1
+>        
+>        dn: cn=testgroup,ou=Group,dc=example,dc=com
+>        objectclass: groupOfNames
+>        cn: testgroup
+>        member: uid=test1,ou=People,dc=example,dc=com
+
+Results in the following output from a search on the test1 user:
+
+> # ldapsearch -LL -Y EXTERNAL -H ldapi:/// "(uid=test1)" -b dc=example,dc=com memberOf
+> SASL/EXTERNAL authentication started
+> SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+> SASL SSF: 0
+> version: 1
+> 
+> dn: uid=test1,ou=People,dc=example,dc=com
+> memberOf: cn=testgroup,ou=Group,dc=example,dc=com
+
+Note that the {{B:memberOf}} attribute is an operational attribute, so it must be
+requested explicitly.
 
 
 H2: The Proxy Cache Engine

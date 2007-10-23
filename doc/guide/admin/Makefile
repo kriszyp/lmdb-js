@@ -19,7 +19,12 @@ sdf-src: \
 	../preamble.sdf \
 	abstract.sdf \
 	appendix-changes.sdf \
+	appendix-common-errors.sdf \
 	appendix-configs.sdf \
+	appendix-contrib.sdf \
+	appendix-deployments.sdf \
+	appendix-ldap-result-codes.sdf \
+	appendix-recommended-versions.sdf \
 	appendix-upgrading.sdf \
 	backends.sdf \
 	config.sdf \

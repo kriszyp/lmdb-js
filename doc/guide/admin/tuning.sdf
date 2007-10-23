@@ -146,7 +146,7 @@ if you are using the default LOCAL4 logging you could try:
 
 For syslog-ng, add or modify the following line in {{syslog-ng.conf}}:
 
-   options { sync(n); };
+>   options { sync(n); };
 
 where n is the number of lines which will be buffered before a write.
 

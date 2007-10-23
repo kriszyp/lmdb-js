@@ -187,6 +187,15 @@ format}} section).
 Specifies the slapd configuration file that tells where to create
 the indices, what indices to create, etc.
 
+>	-F <slapdconfdirectory>
+
+Specifies a config directory.  If both {{EX:-f}} and {{EX:-F}} are specified, 
+the config file will be read and converted to config  directory format and 
+written to the specified directory.  If neither option is specified, an attempt 
+to read the default config directory will be made before trying to use the 
+default config file. If a valid config directory exists then the default 
+config file is ignored. If dryrun mode is also specified, no conversion will occur.
+
 >	-d <debuglevel>
 
 Turn on debugging, as specified by {{EX:<debuglevel>}}. The debug

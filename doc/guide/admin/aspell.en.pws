@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1406 
+personal_ws-1.1 en 1451 
 nattrsets
 inappropriateAuthentication
 api
@@ -190,7 +190,7 @@ RELEASEDATE
 baseDN
 basedn
 argv
-GSS
+gss
 schemachecking
 whoami
 WhoAmI
@@ -198,6 +198,7 @@ syslogd
 dataflow
 subentries
 attrpair
+balancer
 BerkeleyDB's
 singleLevel
 entryDN
@@ -206,6 +207,7 @@ includedir
 inplace
 LDAPAPIFeatureInfo
 logbase
+ldapmaster
 ing
 moduleload
 IPC
@@ -230,6 +232,7 @@ reqMod
 ldb
 srcdir
 pwdExpireWarning
+ldd
 localstatedir
 sockbuf
 PENs
@@ -249,6 +252,7 @@ whitespaces
 ISP
 ldp
 monitorInfo
+PDUs
 bjensen
 newPasswd
 irresponsive
@@ -305,10 +309,13 @@ desc
 LTCOMPILE
 bindmethod
 olcDbCheckpoint
+addprinc
 modme
 refreshOnly
 PIII
 pwdPolicySubentry
+supportedSASLmechanism
+supportedSASLMechanism
 FIXME
 realanonymous
 caseExactMatch
@@ -345,6 +352,7 @@ strdup
 gsMatch
 adamson
 UniqueName
+LVL
 ppErrStr
 DESTDIR
 oid
@@ -376,6 +384,7 @@ sharedstatedir
 OLP
 LDFLAGS
 dereferencing
+allop
 errcodep
 xeXBkeFxlZ
 accessor's
@@ -409,6 +418,7 @@ OSI
 subschemaSubentry
 cond
 conf
+rfc
 bvec
 rdn
 ECHOPROMPT
@@ -435,6 +445,7 @@ olcReadonly
 olcReadOnly
 pwdChangedTime
 mySQL
+DITs
 sdf
 suffixmassage
 referralDN
@@ -451,6 +462,7 @@ telephonenumber
 telephoneNumber
 DLDAP
 peernamestyle
+Sep
 SHA
 filename
 rpath
@@ -471,6 +483,7 @@ subdir
 searchAttrDN
 cctrls
 tcp
+kadmin
 strlen
 spellcheck
 ludpp
@@ -482,6 +495,7 @@ SMD
 UCD
 cancelled
 crit
+organizationalUnit
 lucyB
 slp
 rdns
@@ -594,6 +608,7 @@ initgroups
 auditCompare
 GDBM
 DSA's
+dsaschema
 compareFalse
 resultCode
 resultcode
@@ -620,6 +635,7 @@ extparam
 auditWriteObject
 colaligns
 Diffie
+offsite
 attributevalue
 AttributeValue
 SIGTERM
@@ -650,6 +666,7 @@ fd
 LDAPSync
 olcReplicationInterval
 fG
+gidNumber
 fi
 eq
 FIPS
@@ -755,6 +772,8 @@ errSleepTime
 INSTALLFLAGS
 pthread
 pwdHistory
+x's
+Debian
 slen
 errUnsolicitedOID
 dyngroup
@@ -782,6 +801,7 @@ sbindir
 apache's
 noidlen
 monitorContext
+testrun
 resync
 fqdn
 authPassword
@@ -822,7 +842,9 @@ pwdSafeModify
 contrib
 FQDNs
 bjorn
+myldap
 myLDAP
+peercred
 SNMP
 myObjectClass
 thru
@@ -841,9 +863,11 @@ ldapmodrdn
 ldapbis
 attributeoptions
 serverID
+memberOf
 memberof
 pseudorootpw
 CFLAGS
+operationsError
 substr
 pwdAllowUserChange
 rewriteRule
@@ -880,6 +904,7 @@ SSHA
 func
 filterlist
 modifyDN
+jane
 syncuser
 Masarati
 LDAPSyntax
@@ -901,6 +926,8 @@ slapacl
 multiclassing
 monitoredInfo
 LTLINK
+addrdnvalues
+KTNAME
 ETCDIR
 reqId
 setspec
@@ -919,6 +946,7 @@ subr
 cachesize
 olcRootPW
 SSLv
+proxyOld
 domainScope
 LDAPMessage
 LTVERSION
@@ -951,13 +979,16 @@ libtool
 servercredp
 AttributeTypeDescription
 LTFLAGS
+simplebinddn
 authcDN
 TLSCipherSuite
 supportedSASLMechanisms
+rootdse
 rootDSE
 dsaparam
 cachefree
 UMich's
+uidNumber
 schemadir
 attribute's
 extern
@@ -980,10 +1011,12 @@ Supr
 olcDatabaseConfig
 rwxrwxrwx
 aeeiib
+SUPs
 reqStart
 sasldb
 somevalue
 LIBRELEASE
+randkey
 starttls
 StartTLS
 LDAPSchemaExtensionItem
@@ -995,6 +1028,7 @@ backend
 portnumber
 subjectAltName
 errObject
+gsskrb
 valsort
 bervals
 berval's
@@ -1008,6 +1042,7 @@ dbnum
 olcLdapConfig
 sessionlog
 attrset
+organizationPerson
 entryCSN
 strcast
 kbyte
@@ -1027,6 +1062,7 @@ memvfree
 tuple
 superset
 directoryString
+ktadd
 proxyTemplate
 proxytemplate
 wildcards
@@ -1059,6 +1095,7 @@ Subbarao
 setstyle
 subdirectories
 errlist
+addpartial
 slapdn
 uncached
 ldapapiinfo
@@ -1096,6 +1133,7 @@ noprompt
 databasenumber
 hasSubordintes
 URIs
+denyop
 lang
 auditSearch
 ldapdelete
@@ -1120,6 +1158,7 @@ ldbm
 ursula
 LDAPModifying
 slapdconfig
+sysconfig
 dnSubtreeMatch
 olcSaslSecProps
 olcSaslSecprops
@@ -1154,6 +1193,7 @@ sleeptime
 pwdCheckQuality
 msgidp
 pwdAttribute
+chown
 PRNGD
 LDAPRDN
 entryUUIDs
@@ -1182,6 +1222,7 @@ dryrun
 noplain
 exattrs
 Jong
+ldaptcl
 proxied
 firstName
 accesslevel
@@ -1219,11 +1260,13 @@ woid
 numericStringOrderingMatch
 clientctrls
 RetCodes
+ldapc
 pwdAccountLockedTime
 attrtype
 LIBVERSION
 proto
 endif
+logfiles
 reqNewRDN
 ldapi
 notoc
@@ -1333,6 +1376,7 @@ DHAVE
 caseIgnoreSubstringsMatch
 monitorIsShadow
 syncdata
+BDB's
 olcPidFile
 hostport
 backload
@@ -1384,6 +1428,7 @@ objectIdentifierMatch
 Blowfish
 mkln
 numericStringSubstringsMatch
+testgroup
 openssl
 OpenSSL
 ModName

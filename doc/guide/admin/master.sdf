@@ -92,9 +92,30 @@ PB:
 !include "appendix-upgrading.sdf"; appendix
 PB:
 
+# Common Errors
+!include "appendix-common-errors.sdf"; appendix
+PB:
+
+# What versions we recommend 
+!include "appendix-recommended-versions.sdf"; appendix
+PB:
+
+# Real Deployments
+!include "appendix-deployments.sdf"; appendix
+PB:
+
+# Contributions
+!include "appendix-contrib.sdf"; appendix
+PB:
+
 # Config file examples
 !include "appendix-configs.sdf"; appendix
 PB:
+
+# LDAP Result Codes
+!include "appendix-ldap-result-codes.sdf"; appendix
+PB:
+
 
 # Terms
 !include "glossary.sdf"; appendix

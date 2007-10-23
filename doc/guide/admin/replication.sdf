@@ -7,7 +7,7 @@ H1: Replication
 Replicated directories are a fundamental requirement for delivering a 
 resilient enterprise deployment.
 
-OpenLDAP has various configuration options for creating a replicated 
+{{PRD:OpenLDAP}} has various configuration options for creating a replicated 
 directory. The following sections will discuss these.
 
 H2: Replication Strategies
@@ -18,12 +18,12 @@ H3: Push Based
 
 H5: Replacing Slurpd
 
-Slurpd replication has been deprecated in favor of Syncrepl replication and 
-has been completely removed from 2.4.
+{{Slurpd}} replication has been deprecated in favor of Syncrepl replication and 
+has been completely removed from OpenLDAP 2.4.
 
 {{Why was it replaced?}}
 
-The slurpd daemon was the original replication mechanism inherited from 
+The {{slurpd}} daemon was the original replication mechanism inherited from 
 UMich's LDAP and operates in push mode: the master pushes changes to the 
 slaves. It has been replaced for many reasons, in brief:
 
@@ -37,7 +37,7 @@ slaves. It has been replaced for many reasons, in brief:
 
 {{What was it replaced with?}}
 
-Syncrepl.
+Syncrepl
 
 {{Why is Syncrepl better?}}
 
@@ -159,7 +159,7 @@ http://www.openldap.org/lists/openldap-software/200602/msg00064.html
 H3: MirrorMode
 
 MirrorMode is a hybrid configuration that provides all of the consistency
-guarantees of single-master replication while also providing the high
+guarantees of single-master replication, while also providing the high
 availability of multi-master. In MirrorMode two masters are set up to
 replicate from each other (as a multi-master configuration) but an
 external frontend is employed to direct all writes to only one of
@@ -168,6 +168,8 @@ the first master crashes, at which point the frontend will switch to
 directing all writes to the second master. When a crashed master is
 repaired and restarted it will automatically catch up to any changes
 on the running master and resync.
+
+This is discussed in full in the {{SECT:MirrorMode}} section below
 
 H2: LDAP Sync Replication
 
@@ -575,5 +577,105 @@ H2: N-Way Multi-Master
 
 
 H2: MirrorMode
+
+H3: Arguments for MirrorMode
+
+* Provides a high-availability (HA) solution for directory writes (replicas handle reads)
+* As long as one Master is operational, writes can safely be excepted
+* Master nodes replicate from each other, so they are always up to date and
+can be ready to take over (hot standby)
+* Syncrepl also allows the master nodes to re-synchronize after any downtime
+* Delta-Syncrepl can be used
+
+
+H3: Arguments against MirrorMode
+
+* MirrorMode is not what is termed as a Multi-Master solution. This is because 
+writes have to go to one of the mirror nodes at a time
+* MirrorMode can be termed as Active-Active Hot-Standby, therefor an external 
+server (slapd in proxy mode) or device (hardware load balancer) to manage which 
+master is currently active
+* While syncrepl can recover from a completely empty database, slapadd is much 
+faster
+* Does not provide faster or more scalable write performance (neither could 
+  any Multi-Master solution)
+* Backups are managed slightly differently
+- If backing up the Berkeley database itself and periodically backing up the 
+transaction log files, then the same member of the mirror pair needs to be 
+used to collect logfiles until the next database backup is taken 
+- To ensure that both databases are consistent, each database might have to be 
+put in read-only mode while performing a slapcat. 
+- When using slapcat, the generated LDIF files can be rather large. This can 
+happen with a non-MirrorMode deployment also.
+
+H3: MirrorMode Configuration
+
+MirrorMode configuration is actually very easy. If you have ever setup a normal
+slapd syncrepl provider, then the only change is the directive:
+
+>       mirrormode  on
+
+You also need to make you the {{rid}} of each mirror node pair is different and
+that the {{provider}} syncrepl directive points to the other mirror pair.
+
+H4: Mirror Node Configuration
+
+This is the same as the {{SECT:Set up the provider slapd}} section, referencing
+{{SECT:delta-syncrepl replication}} if using {{delta-syncrepl}}.
+
+Here's a specific cut down example:
+
+MirrorMode node 1:
+
+>       # syncrepl directives
+>       syncrepl      rid=1
+>                     provider=ldap://ldap-rid2.example.com
+>                     bindmethod=simple
+>                     binddn="cn=mirrormode,dc=example,dc=com"
+>                     credentials=mirrormode
+>                     searchbase="dc=example,dc=com"
+>                     schemachecking=on
+>                     type=refreshAndPersist
+>                     retry="60 +"
+>       
+>       mirrormode on
+
+MirrorMode node 2:
+
+>       # syncrepl directives
+>       syncrepl      rid=2
+>                     provider=ldap://ldap-rid1.example.com
+>                     bindmethod=simple
+>                     binddn="cn=mirrormode,dc=example,dc=com"
+>                     credentials=mirrormode
+>                     searchbase="dc=example,dc=com"
+>                     schemachecking=on
+>                     type=refreshAndPersist
+>                     retry="60 +"
+>       
+>       mirrormode on
+
+It's simple really; each MirrorMode node is setup {{B:exactly}} the same, except
+that the {{B:provider}} directive is set to point to the other MirrorMode node.
+
+H4: Failover Configuration
+
+There are generally 2 choices for this; 1.  Hardware proxies/load-balancing or 
+dedicated proxy software, 2. using a Back-LDAP proxy as a syncrepl provider
+
+MORE HERE and a nice PICTURE
+
+
+H4: Normal Consumer Configuration
+
+This is exactly the same as the {{SECT:Set up the consumer slapd}} section. It
+can either setup in normal {{SECT:syncrepl replication}} mode, or in 
+{{SECT:delta-syncrepl replication}} mode.
+
+H3: MirrorMode Summary
+
+Hopefully you will now have a directory architecture that provides all of the 
+consistency guarantees of single-master replication, whilst also providing the 
+high availability of multi-master replication.
 
 
