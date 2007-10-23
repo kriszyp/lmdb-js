@@ -59,7 +59,7 @@ LIBBASE = back_hdb
 XINCPATH = -I.. -I$(srcdir)/.. -I$(srcdir) -I$(XXDIR)
 XDEFS = $(MODULES_CPPFLAGS)
 
-depend-common: .links
+depend-local-lib: .links
 
 all-local-lib:	../.backend
 
