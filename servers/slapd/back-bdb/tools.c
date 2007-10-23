@@ -532,6 +532,7 @@ ID bdb_tool_entry_put(
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_add failed: %s (%d)",
+				rc == LDAP_OTHER ? "Internal error" :
 				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
@@ -571,6 +572,7 @@ done:
 		TXN_ABORT( tid );
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
+			rc == LDAP_OTHER ? "Internal error" :
 			db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",

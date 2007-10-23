@@ -15,6 +15,7 @@ OpenLDAP 2.4.6 Engineering
 	Fixed slapd-bdb/hdb suffix logging (ITS#5128)
 	Fixed slapd-bdb/hdb IDL LRU handling (ITS#5121)
 	Fixed slapd-bdb/hdb cachesize config check (ITS#5122)
+	Fixed slapd-bdb/hdb ldap result code as system errno (ITS#5189)
 	Fixed slapd-config objectclass handling (ITS#4884)
 	Fixed slapd-ldap SASL idassert w/o authcId
 	Fixed slapd-ldap search control parsing (ITS#5138)
