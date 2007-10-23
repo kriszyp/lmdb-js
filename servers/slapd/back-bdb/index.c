@@ -288,7 +288,11 @@ done:
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		break;
-	/* Anything else is bad news */
+	/* BDB also returns standard errno values */
+	case ENOMEM:
+		rc = LDAP_NO_MEMORY;
+		break;
+	/* Don't let any other BDB-specific errors thru */
 	default:
 		rc = LDAP_OTHER;
 	}
