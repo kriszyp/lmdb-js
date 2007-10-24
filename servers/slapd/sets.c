@@ -289,11 +289,13 @@ slap_set_join(
 
 			} else {
 				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				lset = NULL;
 				break;
 			}
 
 		} else if ( j == 0 ) {
 			set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+			rset = NULL;
 			break;
 		}
 
