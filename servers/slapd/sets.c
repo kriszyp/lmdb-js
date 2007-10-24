@@ -212,11 +212,13 @@ slap_set_join(
 
 			/* dup the shortest */
 			if ( llen < rlen ) {
+				last = llen;
 				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
 				lset = NULL;
 				sset = rset;
 
 			} else {
+				last = rlen;
 				set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
 				rset = NULL;
 				sset = lset;
@@ -226,7 +228,6 @@ slap_set_join(
 				break;
 			}
 
-			last = slap_set_size( set );
 			for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
 				for ( j = 0; !BER_BVISNULL( &sset[ j ] ); j++ ) {
 					if ( bvmatch( &set[ i ], &sset[ j ] ) ) {
@@ -261,11 +262,13 @@ slap_set_join(
 
 			} else {
 				set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
+				lset = NULL;
 				break;
 			}
 
 		} else if ( j == 0 ) {
 			set = set_dup( cp, rset, SLAP_SET_RREF2REF( op_flags ) );
+			rset = NULL;
 			break;
 		}
 
