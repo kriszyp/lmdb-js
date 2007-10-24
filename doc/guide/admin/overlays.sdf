@@ -112,6 +112,9 @@ definitions:
 >                                   mode="self"
 >        chain-tls                  start
 >        chain-return-error         TRUE 
+
+Add this below your {{syncrepl}} statement:
+
 >        updateref                  "ldap://ldapmaster.example.com/"
 
 The {{B:chain-tls}} statement enables TLS from the slave to the ldap master. 

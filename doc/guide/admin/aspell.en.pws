@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1451 
+personal_ws-1.1 en 1483 
 nattrsets
 inappropriateAuthentication
 api
@@ -145,11 +145,14 @@ mkversion
 objectClasses
 objectclasses
 searchResultReference
+adminLimitExceeded
 fmt
 qdescrs
 olcSuffix
+objectClassModsProhibited
 supportedControl
 GHz
+unavailableCriticalExtension
 libpath
 INADDR
 compareDN
@@ -157,6 +160,7 @@ sizelimit
 unixODBC
 APIs
 blen
+notAllowedOnNonLeaf
 attrsOnly
 attrsonly
 slappasswd
@@ -168,6 +172,7 @@ syncIdSet
 olcTLSCipherSuite
 username
 sizeLimitExceeded
+aliasProblem
 subst
 idl
 chroot
@@ -178,6 +183,7 @@ ZKKuqbEKJfKSXhUbHG
 reqRespControls
 TLSCertificateKeyFile
 olcAccess
+aliasDereferencingProblem
 proxyTemplates
 neverDerefaliases
 RootDN
@@ -199,8 +205,10 @@ dataflow
 subentries
 attrpair
 balancer
+entryAlreadyExists
 BerkeleyDB's
 singleLevel
+notAllowedOnRDN
 entryDN
 dSAOperation
 includedir
@@ -296,6 +304,7 @@ newPasswdFile
 ucdata
 LLL
 confdir
+invalidCredentials
 BerValues
 olcDbLinearIndex
 Elfrink
@@ -484,12 +493,14 @@ searchAttrDN
 cctrls
 tcp
 kadmin
+undefinedAttributeType
 strlen
 spellcheck
 ludpp
 typedef
 olcDbIDLcacheSize
 ostring
+toolsets
 mwrscdx
 SMD
 UCD
@@ -517,6 +528,7 @@ src
 lastName
 ufn
 cron
+RelativeLDAPDN
 sql
 pwdPolicyChecker
 uid
@@ -574,6 +586,7 @@ pwdPolicy
 slapd
 sasl
 slapauth
+affectsMultipleDSAs
 MANCOMPRESS
 octetStringOrderingStringMatch
 updatedn
@@ -607,6 +620,7 @@ freemods
 initgroups
 auditCompare
 GDBM
+DSAs
 DSA's
 dsaschema
 compareFalse
@@ -651,6 +665,7 @@ de
 reqAuthzID
 backend's
 backends
+requestName
 cn
 lcrypto
 infodir
@@ -709,9 +724,11 @@ syslogged
 mk
 ng
 oc
+invalidAttributeSyntax
 errOp
 pwdMaxAge
 truelies
+insufficientAccessRights
 NL
 mr
 reindex
@@ -735,6 +752,7 @@ slapover
 RL
 sockname
 MANCOMPRESSSUFFIX
+noSuchAttribute
 makeinfo
 coltags
 ro
@@ -764,9 +782,10 @@ xf
 param
 MChAODQ
 caseExactIA
-Vu
 Za
+Vu
 idlecachesize
+objectClassViolation
 ws
 errSleepTime
 INSTALLFLAGS
@@ -1049,6 +1068,7 @@ kbyte
 modifiersName
 keytbl
 olcHdbConfig
+constraintViolation
 README
 memcalloc
 inet
@@ -1076,6 +1096,7 @@ Locators
 bvalues
 reqResult
 impl
+strongerAuthRequired
 outvalue
 returnCode
 returncode
@@ -1085,6 +1106,7 @@ dnssrv
 ciphersuite
 auditlog
 reqControls
+protocolError
 notypes
 myAttributeType
 stringbv
@@ -1153,6 +1175,7 @@ http
 uppercased
 Poobah
 libldap
+invalidDNSyntax
 ldap
 ldbm
 ursula
@@ -1192,7 +1215,9 @@ bvfree
 sleeptime
 pwdCheckQuality
 msgidp
+confidentialityRequired
 pwdAttribute
+authMethodNotSupported
 chown
 PRNGD
 LDAPRDN
@@ -1259,6 +1284,7 @@ databasetype
 woid
 numericStringOrderingMatch
 clientctrls
+inappropriateMatching
 RetCodes
 ldapc
 pwdAccountLockedTime
@@ -1297,10 +1323,12 @@ olcObjectIdentifier
 endblock
 proxyAuthz
 pagedResults
+saslBindInProgress
 bitstring
 ACLs
 berptr
 olcModuleLoad
+namingViolation
 attributetype
 attributeType
 auditModRDN
@@ -1357,6 +1385,7 @@ bindDn
 bindDN
 binddn
 methodp
+timeLimitExceeded
 timelimitExceeded
 pwdInHistory
 LTSTATIC
@@ -1373,6 +1402,7 @@ GnuTLS
 postread
 timeval
 DHAVE
+loopDetect
 caseIgnoreSubstringsMatch
 monitorIsShadow
 syncdata
@@ -1397,6 +1427,7 @@ RANDFILE
 attrlist
 aci
 directoryOperation
+compareTrue
 selfwrite
 pwdReset
 acl
@@ -1416,6 +1447,7 @@ userid
 Kumar
 AES
 bdb
+attributeOrValueExists
 manageDSAit
 ManageDsaIT
 bindpw
