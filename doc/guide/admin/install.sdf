@@ -125,9 +125,14 @@ install it yourself.
 
 {{PRD:Berkeley DB}} is available from {{ORG[expand]Oracle}}'s Berkeley DB
 download page
-{{URL: http://www.oracle.com/technology/software/products/berkeley-db/index.html}}.  There are several versions available.  Generally, the most recent
-release (with published patches) is recommended.  This package is required
+{{URL: http://www.oracle.com/technology/software/products/berkeley-db/index.html}}.  
+
+There are several versions available. Generally, the most recent
+release (with published patches) is recommended. This package is required
 if you wish to use the {{TERM:BDB}} or {{TERM:HDB}} database backends.
+
+Note: Please see {{SECT:Recommended OpenLDAP Software Dependency Versions}} for
+more information.
 
 
 H3: Threads
