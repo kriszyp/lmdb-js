@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.6 Engineering
+OpenLDAP 2.4.6 Release (2007/10/24)
 	Fixed slapd ACL sets memory handling (ITS#4860,ITS#4873)
 	Added slapd ACL sets DN ancestors operator (ITS#4860)
 	Fixed slapd alock_close with Quick mode (ITS#5129)
