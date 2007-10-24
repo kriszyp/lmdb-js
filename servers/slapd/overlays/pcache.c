@@ -1258,7 +1258,7 @@ pcache_op_search(
 				continue;
 			cacheable = 1;
 			template_id = i;
-			Debug( LDAP_DEBUG_NONE, "Entering QC, querystr = %s\n",
+			Debug( pcache_debug, "Entering QC, querystr = %s\n",
 			 		op->ors_filterstr.bv_val, 0, 0 );
 			answerable = (*(qm->qcfunc))(op, qm, &query, i);
 
