@@ -623,7 +623,8 @@ H4: Mirror Node Configuration
 This is the same as the {{SECT:Set up the provider slapd}} section, referencing
 {{SECT:delta-syncrepl replication}} if using {{delta-syncrepl}}.
 
-Here's a specific cut down example:
+Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
+{{refreshAndPersist}} mode ({{delta-syncrepl}} can be used also):
 
 MirrorMode node 1:
 
