@@ -38,11 +38,11 @@ typedef enum ldap_int_thread_pool_state_e {
 } ldap_int_thread_pool_state_t;
 
 /* Thread-specific key with data and optional free function */
-typedef struct ldap_int_thread_key_s {
+typedef struct ldap_int_tpool_key_s {
 	void *ltk_key;
 	void *ltk_data;
 	ldap_pvt_thread_pool_keyfree_t *ltk_free;
-} ldap_int_thread_key_t;
+} ldap_int_tpool_key_t;
 
 /* Max number of thread-specific keys we store per thread.
  * We don't expect to use many...
@@ -55,7 +55,7 @@ typedef struct ldap_int_thread_key_s {
 /* Context: thread ID and thread-specific key/data pairs */
 typedef struct ldap_int_thread_userctx_s {
 	ldap_pvt_thread_t ltu_id;
-	ldap_int_thread_key_t ltu_key[MAXKEYS];
+	ldap_int_tpool_key_t ltu_key[MAXKEYS];
 } ldap_int_thread_userctx_t;
 
 

@@ -159,6 +159,31 @@ ldap_pvt_thread_self( void )
 	return pth_self();
 }
 
+int
+ldap_pvt_thread_key_create( ldap_pvt_thread_key_t *key )
+{
+	return pth_key_create( key, NULL );
+}
+
+int
+ldap_pvt_thread_key_destroy( ldap_pvt_thread_key_t key )
+{
+	return pth_key_delete( key );
+}
+
+int
+ldap_pvt_thread_key_setdata( ldap_pvt_thread_key_t key, void *data )
+{
+	return pth_key_setdata( key, data );
+}
+
+int
+ldap_pvt_thread_key_getdata( ldap_pvt_thread_key_t key, void **data )
+{
+	*data = pth_key_getdata( key );
+	return 0;
+}
+
 #ifdef LDAP_THREAD_HAVE_RDWR
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )

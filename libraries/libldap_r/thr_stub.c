@@ -237,6 +237,30 @@ ldap_pvt_thread_self( void )
 	return(0);
 }
 
+int
+ldap_pvt_thread_key_create( ldap_pvt_thread_key_t *key )
+{
+	return(0);
+}
+
+int
+ldap_pvt_thread_key_destroy( ldap_pvt_thread_key_t key )
+{
+	return(0);
+}
+
+int
+ldap_pvt_thread_key_setdata( ldap_pvt_thread_key_t key, void *data )
+{
+	return(0);
+}
+
+int
+ldap_pvt_thread_key_getdata( ldap_pvt_thread_key_t key, void **data )
+{
+	return(0);
+}
+
 ldap_pvt_thread_t
 ldap_pvt_thread_pool_tid( void *vctx )
 {
