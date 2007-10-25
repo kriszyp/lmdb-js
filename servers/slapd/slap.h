@@ -58,8 +58,6 @@
 
 LDAP_BEGIN_DECL
 
-#define SLAP_LIGHTWEIGHT_DISPATCHER /* experimental slapd architecture */
-
 #ifdef LDAP_DEVEL
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define LDAP_COMP_MATCH
@@ -2668,11 +2666,11 @@ struct Connection {
 	int			c_struct_state; /* structure management state */
 	int			c_conn_state;	/* connection state */
 	int			c_conn_idx;		/* slot in connections array */
+	ber_socket_t	c_sd;
 	const char	*c_close_reason; /* why connection is closing */
 
 	ldap_pvt_thread_mutex_t	c_mutex; /* protect the connection */
 	Sockbuf		*c_sb;			/* ber connection stuff		  */
-	ber_socket_t	c_sd;
 
 	/* only can be changed by connect_init */
 	time_t		c_starttime;	/* when the connection was opened */
@@ -2686,7 +2684,6 @@ struct Connection {
 #define c_sock_name c_listener->sl_name	/* sock name (trans=addr:port) */
 
 	/* only can be changed by binding thread */
-	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	struct berval	c_sasl_bind_mech;			/* mech in progress */
 	struct berval	c_sasl_dn;	/* temporary storage */
 	struct berval	c_sasl_authz_dn;	/* SASL proxy authz */
@@ -2713,7 +2710,10 @@ struct Connection {
 	ldap_pvt_thread_cond_t	c_write_cv;		/* used to wait for sd write-ready*/
 
 	BerElement	*c_currentber;	/* ber we're attempting to read */
-	int		c_writewaiter;	/* true if writer is waiting */
+
+	char		c_sasl_bind_in_progress;	/* multi-op bind in progress */
+
+	char		c_writewaiter;	/* true if writer is waiting */
 
 #define	CONN_IS_TLS	1
 #define	CONN_IS_UDP	2
@@ -2721,14 +2721,14 @@ struct Connection {
 #define	CONN_IS_IPC	8
 
 #ifdef LDAP_CONNECTIONLESS
-	int	c_is_udp;		/* true if this is (C)LDAP over UDP */
+	char	c_is_udp;		/* true if this is (C)LDAP over UDP */
 #endif
 #ifdef HAVE_TLS
-	int	c_is_tls;		/* true if this LDAP over raw TLS */
-	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
+	char	c_is_tls;		/* true if this LDAP over raw TLS */
+	char	c_needs_tls_accept;	/* true if SSL_accept should be called */
 #endif
-	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
-	int	c_sasl_done;		/* SASL completed once */
+	char	c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
+	char	c_sasl_done;		/* SASL completed once */
 	void	*c_sasl_authctx;	/* SASL authentication context */
 	void	*c_sasl_sockctx;	/* SASL security layer context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
@@ -2811,9 +2811,7 @@ struct slap_listener {
 	int	sl_is_udp;		/* UDP listener is also data port */
 #endif
 	int	sl_mute;	/* Listener is temporarily disabled due to emfile */
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 	int	sl_busy;	/* Listener is busy (accept thread activated) */
-#endif
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
