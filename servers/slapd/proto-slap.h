@@ -736,11 +736,7 @@ LDAP_SLAPD_F (int) connection_state_closing LDAP_P(( Connection *c ));
 LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 	LDAP_GCCATTR((const));
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 LDAP_SLAPD_F (int) connection_read_activate LDAP_P((ber_socket_t s));
-#else
-LDAP_SLAPD_F (int) connection_read LDAP_P((ber_socket_t s));
-#endif
 LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
 
 LDAP_SLAPD_F (unsigned long) connections_nextid(void);
@@ -1067,6 +1063,8 @@ LDAP_SLAPD_F (int)	slap_init LDAP_P((int mode, const char* name));
 LDAP_SLAPD_F (int)	slap_startup LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_shutdown LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_destroy LDAP_P((void));
+LDAP_SLAPD_F (void) slap_counters_init LDAP_P((slap_counters_t *sc));
+LDAP_SLAPD_F (void) slap_counters_destroy LDAP_P((slap_counters_t *sc));
 
 LDAP_SLAPD_V (char *)	slap_known_controls[];
 

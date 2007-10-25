@@ -2389,6 +2389,39 @@ struct slap_control_ids {
 };
 
 /*
+ * Operation indices
+ */
+typedef enum {
+	SLAP_OP_BIND = 0,
+	SLAP_OP_UNBIND,
+	SLAP_OP_SEARCH,
+	SLAP_OP_COMPARE,
+	SLAP_OP_MODIFY,
+	SLAP_OP_MODRDN,
+	SLAP_OP_ADD,
+	SLAP_OP_DELETE,
+	SLAP_OP_ABANDON,
+	SLAP_OP_EXTENDED,
+	SLAP_OP_LAST
+} slap_op_t;
+
+typedef struct slap_counters_t {
+	struct slap_counters_t	*sc_next;
+	ldap_pvt_thread_mutex_t	sc_mutex;
+	ldap_pvt_mp_t		sc_bytes;
+	ldap_pvt_mp_t		sc_pdu;
+	ldap_pvt_mp_t		sc_entries;
+	ldap_pvt_mp_t		sc_refs;
+
+	ldap_pvt_mp_t		sc_ops_completed;
+	ldap_pvt_mp_t		sc_ops_initiated;
+#ifdef SLAPD_MONITOR
+	ldap_pvt_mp_t		sc_ops_completed_[SLAP_OP_LAST];
+	ldap_pvt_mp_t		sc_ops_initiated_[SLAP_OP_LAST];
+#endif /* SLAPD_MONITOR */
+} slap_counters_t;
+
+/*
  * represents an operation pending from an ldap client
  */
 typedef struct Opheader {
@@ -2404,6 +2437,8 @@ typedef struct Opheader {
 	void	*oh_threadctx;		/* thread pool thread context */
 	void	*oh_tmpmemctx;		/* slab malloc context */
 	BerMemoryFunctions *oh_tmpmfuncs;
+
+	slap_counters_t	*oh_counters;
 
 	char		oh_log_prefix[ /* sizeof("conn=18446744073709551615 op=18446744073709551615") */ SLAP_TEXT_BUFLEN ];
 
@@ -2437,6 +2472,7 @@ struct Operation {
 #define o_threadctx o_hdr->oh_threadctx
 #define o_tmpmemctx o_hdr->oh_tmpmemctx
 #define o_tmpmfuncs o_hdr->oh_tmpmfuncs
+#define o_counters o_hdr->oh_counters
 
 #define	o_tmpalloc	o_tmpmfuncs->bmf_malloc
 #define o_tmpcalloc	o_tmpmfuncs->bmf_calloc
@@ -2816,39 +2852,6 @@ struct slap_listener {
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
 };
-
-/*
- * Operation indices
- */
-typedef enum {
-	SLAP_OP_BIND = 0,
-	SLAP_OP_UNBIND,
-	SLAP_OP_SEARCH,
-	SLAP_OP_COMPARE,
-	SLAP_OP_MODIFY,
-	SLAP_OP_MODRDN,
-	SLAP_OP_ADD,
-	SLAP_OP_DELETE,
-	SLAP_OP_ABANDON,
-	SLAP_OP_EXTENDED,
-	SLAP_OP_LAST
-} slap_op_t;
-
-typedef struct slap_counters_t {
-	ldap_pvt_thread_mutex_t	sc_sent_mutex;
-	ldap_pvt_mp_t		sc_bytes;
-	ldap_pvt_mp_t		sc_pdu;
-	ldap_pvt_mp_t		sc_entries;
-	ldap_pvt_mp_t		sc_refs;
-
-	ldap_pvt_thread_mutex_t	sc_ops_mutex;
-	ldap_pvt_mp_t		sc_ops_completed;
-	ldap_pvt_mp_t		sc_ops_initiated;
-#ifdef SLAPD_MONITOR
-	ldap_pvt_mp_t		sc_ops_completed_[SLAP_OP_LAST];
-	ldap_pvt_mp_t		sc_ops_initiated_[SLAP_OP_LAST];
-#endif /* SLAPD_MONITOR */
-} slap_counters_t;
 
 /*
  * Better know these all around slapd

@@ -83,8 +83,6 @@ connection_state2str( int state )
 
 static Connection* connection_get( ber_socket_t s );
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-
 typedef struct conn_readinfo {
 	Operation *op;
 	ldap_pvt_thread_start_t *func;
@@ -94,15 +92,10 @@ typedef struct conn_readinfo {
 } conn_readinfo;
 
 static int connection_input( Connection *c, conn_readinfo *cri );
-#else
-static int connection_input( Connection *c );
-#endif
 static void connection_close( Connection *c );
 
 static int connection_op_activate( Operation *op );
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 static void connection_op_queue( Operation *op );
-#endif
 static int connection_resched( Connection *conn );
 static void connection_abandon( Connection *conn );
 static void connection_destroy( Connection *c );
@@ -983,24 +976,24 @@ void connection_done( Connection *c )
 /* FIXME: returns 0 in case of failure */
 #define INCR_OP_INITIATED(index) \
 	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_initiated_[(index)], 1); \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex ); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_initiated_[(index)], 1); \
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
 	} while (0)
 #define INCR_OP_COMPLETED(index) \
 	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed, 1); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed_[(index)], 1); \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex ); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed, 1); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed_[(index)], 1); \
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
 	} while (0)
 #else /* !SLAPD_MONITOR */
 #define INCR_OP_INITIATED(index) do { } while (0)
 #define INCR_OP_COMPLETED(index) \
 	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed, 1); \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex ); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed, 1); \
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
 	} while (0)
 #endif /* !SLAPD_MONITOR */
 
@@ -1021,6 +1014,62 @@ static BI_op_func *opfun[] = {
 	NULL
 };
 
+/* Counters are per-thread, not per-connection.
+ */
+static void
+conn_counter_destroy( void *key, void *data )
+{
+	slap_counters_t **prev, *sc;
+
+	ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
+	for ( prev = &slap_counters.sc_next, sc = slap_counters.sc_next; sc;
+		prev = &sc->sc_next, sc = sc->sc_next ) {
+		if ( sc == data ) {
+			int i;
+
+			*prev = sc->sc_next;
+			/* Copy data to main counter */
+			ldap_pvt_mp_add( slap_counters.sc_bytes, sc->sc_bytes );
+			ldap_pvt_mp_add( slap_counters.sc_pdu, sc->sc_pdu );
+			ldap_pvt_mp_add( slap_counters.sc_entries, sc->sc_entries );
+			ldap_pvt_mp_add( slap_counters.sc_refs, sc->sc_refs );
+			ldap_pvt_mp_add( slap_counters.sc_ops_initiated, sc->sc_ops_initiated );
+			ldap_pvt_mp_add( slap_counters.sc_ops_completed, sc->sc_ops_completed );
+#ifdef SLAPD_MONITOR
+			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+				ldap_pvt_mp_add( slap_counters.sc_ops_initiated_[ i ], sc->sc_ops_initiated_[ i ] );
+				ldap_pvt_mp_add( slap_counters.sc_ops_initiated_[ i ], sc->sc_ops_completed_[ i ] );
+			}
+#endif /* SLAPD_MONITOR */
+			slap_counters_destroy( sc );
+			ber_memfree_x( data, NULL );
+			break;
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_mutex );
+}
+
+static void
+conn_counter_init( Operation *op, void *ctx )
+{
+	slap_counters_t *sc;
+	void *vsc = NULL;
+
+	if ( ldap_pvt_thread_pool_getkey( ctx, conn_counter_init, &vsc, NULL ) || !vsc ) {
+		vsc = ch_malloc( sizeof( slap_counters_t ));
+		sc = vsc;
+		slap_counters_init( sc );
+		ldap_pvt_thread_pool_setkey( ctx, conn_counter_init, vsc,
+			conn_counter_destroy );
+
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
+		sc->sc_next = slap_counters.sc_next;
+		slap_counters.sc_next = sc;
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_mutex );
+	}
+	op->o_counters = vsc;
+}
+
 static void *
 connection_operation( void *ctx, void *arg_v )
 {
@@ -1034,10 +1083,11 @@ connection_operation( void *ctx, void *arg_v )
 	void *memctx_null = NULL;
 	ber_len_t memsiz;
 
-	ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
+	conn_counter_init( op, ctx );
+	ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex );
 	/* FIXME: returns 0 in case of failure */
-	ldap_pvt_mp_add_ulong(slap_counters.sc_ops_initiated, 1);
-	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
+	ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_initiated, 1);
+	ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex );
 
 	op->o_threadctx = ctx;
 	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
@@ -1219,8 +1269,6 @@ void connection_client_stop(
 	connection_return( c );
 }
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-
 static int connection_read( ber_socket_t s, conn_readinfo *cri );
 
 static void* connection_read_thread( void* ctx, void* argv )
@@ -1273,14 +1321,9 @@ int connection_read_activate( ber_socket_t s )
 
 	return rc;
 }
-#endif
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 static int
 connection_read( ber_socket_t s, conn_readinfo *cri )
-#else
-int connection_read(ber_socket_t s)
-#endif
 {
 	int rc = 0;
 	Connection *c;
@@ -1309,15 +1352,9 @@ int connection_read(ber_socket_t s)
 	}
 
 	if ( c->c_conn_state == SLAP_C_CLIENT ) {
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		cri->func = c->c_clientfunc;
 		cri->arg = c->c_clientarg;
 		/* read should already be cleared */
-#else
-		slapd_clr_read( s, 0 );
-		ldap_pvt_thread_pool_submit( &connection_pool,
-			c->c_clientfunc, c->c_clientarg );
-#endif
 		connection_return( c );
 		return 0;
 	}
@@ -1372,10 +1409,7 @@ int connection_read(ber_socket_t s)
 		/* if success and data is ready, fall thru to data input loop */
 		if( !ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) )
 		{
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			slapd_set_read( s, 1 );
-#endif
-
 			connection_return( c );
 			return 0;
 		}
@@ -1386,10 +1420,7 @@ int connection_read(ber_socket_t s)
 	if ( c->c_sasl_layers ) {
 		/* If previous layer is not removed yet, give up for now */
 		if ( !c->c_sasl_sockctx ) {
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			slapd_set_read( s, 1 );
-#endif
-
 			connection_return( c );
 			return 0;
 		}
@@ -1417,11 +1448,7 @@ int connection_read(ber_socket_t s)
 
 	do {
 		/* How do we do this without getting into a busy loop ? */
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		rc = connection_input( c, cri );
-#else
-		rc = connection_input( c );
-#endif
 	}
 #ifdef DATA_READY_LOOP
 	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ));
@@ -1443,33 +1470,18 @@ int connection_read(ber_socket_t s)
 		return 0;
 	}
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
 		slapd_set_write( s, 0 );
 	}
 
 	slapd_set_read( s, 1 );
-#else
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
-		slapd_set_read( s, 1 );
-	}
-
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
-		slapd_set_write( s, 1 );
-	}
-#endif
-
 	connection_return( c );
 
 	return 0;
 }
 
 static int
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 connection_input( Connection *conn , conn_readinfo *cri )
-#else
-connection_input( Connection *conn )
-#endif
 {
 	Operation *op;
 	ber_tag_t	tag;
@@ -1563,11 +1575,7 @@ connection_input( Connection *conn )
 		connection_abandon( conn );
 	}
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 	ctx = cri->ctx;
-#else
-	ctx = NULL;
-#endif
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++, ctx );
 
 	op->o_conn = conn;
@@ -1658,7 +1666,6 @@ connection_input( Connection *conn )
 	} else {
 		conn->c_n_ops_executing++;
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		/*
 		 * The first op will be processed in the same thread context,
 		 * as long as there is only one op total.
@@ -1677,9 +1684,6 @@ connection_input( Connection *conn )
 			}
 			connection_op_activate( op );
 		}
-#else
-		connection_op_activate( op );
-#endif
 	}
 
 #ifdef NO_THREADS
@@ -2002,6 +2006,7 @@ connection_fake_init2(
 	op->o_threadctx = ctx;
 	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
 
+	op->o_counters = &slap_counters;
 	op->o_conn = conn;
 	op->o_connid = op->o_conn->c_connid;
 	connection_init_log_prefix( op );
