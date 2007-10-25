@@ -2672,6 +2672,7 @@ struct Connection {
 
 	ldap_pvt_thread_mutex_t	c_mutex; /* protect the connection */
 	Sockbuf		*c_sb;			/* ber connection stuff		  */
+	ber_socket_t	c_sd;
 
 	/* only can be changed by connect_init */
 	time_t		c_starttime;	/* when the connection was opened */

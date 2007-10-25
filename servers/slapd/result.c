@@ -149,7 +149,6 @@ static long send_ldap_ber(
 	/* write the pdu */
 	while( 1 ) {
 		int err;
-		ber_socket_t	sd;
 
 		if ( connection_state_closing( conn ) ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -184,8 +183,7 @@ static long send_ldap_ber(
 
 		/* wait for socket to be write-ready */
 		conn->c_writewaiter = 1;
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
-		slapd_set_write( sd, 1 );
+		slapd_set_write( conn->c_sd, 1 );
 
 		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
 		conn->c_writewaiter = 0;
