@@ -556,7 +556,7 @@ ldap_int_thread_pool_wrapper (
 	ctx.ltu_id = ldap_pvt_thread_self();
 	TID_HASH(ctx.ltu_id, hash);
 
-	ldap_pvt_thread_setdata( ldap_tpool_key, &ctx );
+	ldap_pvt_thread_key_setdata( ldap_tpool_key, &ctx );
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
