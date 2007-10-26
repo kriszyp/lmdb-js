@@ -1,5 +1,7 @@
 OpenLDAP 2.3 Change Log
 
+OpenLDAP 2.3.40 Engineering
+
 OpenLDAP 2.3.39 Release (2007/10/26)
 	Fixed slapd database/overlay config conflict (ITS#4848)
 	Fixed slapd password_hash config order (ITS#5082)
