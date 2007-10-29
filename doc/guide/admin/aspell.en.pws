@@ -1,4 +1,4 @@
-personal_ws-1.1 en 1483 
+personal_ws-1.1 en 1484 
 nattrsets
 inappropriateAuthentication
 api
@@ -144,23 +144,23 @@ dbcache
 mkversion
 objectClasses
 objectclasses
-searchResultReference
 adminLimitExceeded
+searchResultReference
 fmt
 qdescrs
 olcSuffix
 objectClassModsProhibited
+unavailableCriticalExtension
 supportedControl
 GHz
-unavailableCriticalExtension
 libpath
 INADDR
 compareDN
 sizelimit
 unixODBC
+notAllowedOnNonLeaf
 APIs
 blen
-notAllowedOnNonLeaf
 attrsOnly
 attrsonly
 slappasswd
@@ -171,8 +171,8 @@ wBDARESEhgVG
 syncIdSet
 olcTLSCipherSuite
 username
-sizeLimitExceeded
 aliasProblem
+sizeLimitExceeded
 subst
 idl
 chroot
@@ -207,8 +207,8 @@ attrpair
 balancer
 entryAlreadyExists
 BerkeleyDB's
-singleLevel
 notAllowedOnRDN
+singleLevel
 entryDN
 dSAOperation
 includedir
@@ -584,9 +584,9 @@ oldPasswd
 sys
 pwdPolicy
 slapd
+affectsMultipleDSAs
 sasl
 slapauth
-affectsMultipleDSAs
 MANCOMPRESS
 octetStringOrderingStringMatch
 updatedn
@@ -683,6 +683,7 @@ olcReplicationInterval
 fG
 gidNumber
 fi
+Instanstantiation
 eq
 FIPS
 dx
@@ -727,8 +728,8 @@ oc
 invalidAttributeSyntax
 errOp
 pwdMaxAge
-truelies
 insufficientAccessRights
+truelies
 NL
 mr
 reindex
@@ -751,8 +752,8 @@ NOSYNC
 slapover
 RL
 sockname
-MANCOMPRESSSUFFIX
 noSuchAttribute
+MANCOMPRESSSUFFIX
 makeinfo
 coltags
 ro
