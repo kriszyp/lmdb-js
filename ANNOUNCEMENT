@@ -47,7 +47,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.4
 ACKNOWLEDGEMENTS
 
     OpenLDAP Software is developed by the OpenLDAP Project.  The
-    Project consists of a team of volunteers whose use the
+    Project consists of a team of volunteers who use the
     Internet to coordinate their activities.  The Project is
     an organized activity of the OpenLDAP Foundation.
 
@@ -58,7 +58,7 @@ ACKNOWLEDGEMENTS
 AVAILABILITY
 
     This software is available under the OpenLDAP Public License,
-    an non-restrictive, "free", open-source license.  For download
+    an non-restrictive, "free", open-source license.  Download
     information is available at:
 
         http://www.OpenLDAP.org/software/download/
@@ -80,7 +80,7 @@ SUPPORT
         http://www.openldap.org/faq/
 
     In addition, there are also a number of discussion lists
-    related OpenLDAP Software.  A list of mailing lists is
+    related to OpenLDAP Software.  A list of mailing lists is
     available at:
 
         http://www.OpenLDAP.org/lists/
