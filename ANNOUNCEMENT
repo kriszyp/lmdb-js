@@ -7,27 +7,27 @@ A N N O U N C E M E N T -- OpenLDAP 2.4
 
     This release contains the following major enhancements:
 
-		* Slapd(8) enhancements
-		 	- Syncrepl enhancements, including push-mode and
-			  Multi-Master support
-			- Dynamic configuration enhancements, including
-			  online schema editing and full access control
-			- Dynamic monitoring enhancements, including
-			  cache usage information
-		* New overlays
-			- Attribute value constraints
-			- Dynamic Directory Services (RFC2589)
-			- Reverse Group Membership maintenance (memberof)
-		* Clients and tools
-			- Full support of request/response controls
-			- New ldapexop tool for arbitrary extend operations
-			- Support of DNS SRV records for default server
-		* Significant performance enhancements throughout
-			the client and server code base
-		* Multiple new features in libldap and liblber
-		* Expanded documentation
-			- Function-complete manual pages
-			- Numerous new examples in the Admin Guide
+        * Slapd(8) enhancements
+             - Syncrepl enhancements, including push-mode and
+              Multi-Master support
+            - Dynamic configuration enhancements, including
+              online schema editing and full access control
+            - Dynamic monitoring enhancements, including
+              cache usage information
+        * New overlays
+            - Attribute value constraints
+            - Dynamic Directory Services (RFC2589)
+            - Reverse Group Membership maintenance (memberof)
+        * Clients and tools
+            - Full support of request/response controls
+            - New ldapexop tool for arbitrary extend operations
+            - Support of DNS SRV records for default server
+        * Significant performance enhancements throughout
+            the client and server code base
+        * Multiple new features in libldap and liblber
+        * Expanded documentation
+            - Function-complete manual pages
+            - Numerous new examples in the Admin Guide
 
     This release includes the following major components:
 
