@@ -1820,7 +1820,9 @@ typedef struct searchstate {
 	BerVarray ss_ctxcsn;
 	int *ss_sids;
 	int ss_numcsns;
-	int ss_present;
+#define	SS_PRESENT	0x01
+#define	SS_CHANGED	0x02
+	int ss_flags;
 } searchstate;
 
 static int
@@ -2009,26 +2011,32 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		struct berval cookie;
 
-		slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
-			srs->sr_state.rid, srs->sr_state.sid );
+		if ( ss->ss_flags & SS_CHANGED ) {
+			slap_compose_sync_cookie( op, &cookie, ss->ss_ctxcsn,
+				srs->sr_state.rid, srs->sr_state.sid );
 
-		Debug( LDAP_DEBUG_SYNC, "syncprov_search_response: cookie=%s\n", cookie.bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_SYNC, "syncprov_search_response: cookie=%s\n", cookie.bv_val, 0, 0 );
+		}
 
-		/* Is this a regular refresh? */
+		/* Is this a regular refresh?
+		 * Note: refresh never gets here if there were no changes
+		 */
 		if ( !ss->ss_so ) {
 			rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 				op->o_tmpmemctx );
 			rs->sr_ctrls[1] = NULL;
 			rs->sr_err = syncprov_done_ctrl( op, rs, rs->sr_ctrls,
-				0, 1, &cookie, ss->ss_present ?  LDAP_SYNC_REFRESH_PRESENTS :
+				0, 1, &cookie, ( ss->ss_flags & SS_PRESENT ) ?  LDAP_SYNC_REFRESH_PRESENTS :
 					LDAP_SYNC_REFRESH_DELETES );
 			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 		} else {
 		/* It's RefreshAndPersist, transition to Persist phase */
-			syncprov_sendinfo( op, rs, ss->ss_present ?
+			syncprov_sendinfo( op, rs, ( ss->ss_flags & SS_PRESENT ) ?
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
-				&cookie, 1, NULL, 0 );
-			op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
+				( ss->ss_flags & SS_CHANGED ) ? &cookie : NULL,
+				1, NULL, 0 );
+			if ( ss->ss_flags & SS_CHANGED )
+				op->o_tmpfree( cookie.bv_val, op->o_tmpmemctx );
 
 			/* Detach this Op from frontend control */
 			ldap_pvt_thread_mutex_lock( &ss->ss_so->s_mutex );
@@ -2056,7 +2064,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
 	slap_callback	*cb;
-	int gotstate = 0, nochange = 0, do_present;
+	int gotstate = 0, changed = 0, do_present;
 	syncops *sop = NULL;
 	searchstate *ss;
 	sync_control *srs;
@@ -2071,7 +2079,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	do_present = si->si_nopres ? 0 : 1;
+	do_present = si->si_nopres ? 0 : SS_PRESENT;
 
 	srs = op->o_controls[slap_cids.sc_LDAPsync];
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
@@ -2170,21 +2178,20 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 
 		/* If nothing has changed, shortcut it */
 		if ( srs->sr_state.numcsns == numcsns ) {
-			int i, j, changed = 0;
+			int i, j;
 			for ( i=0; i<srs->sr_state.numcsns; i++ ) {
 				for ( j=0; j<numcsns; j++ ) {
 					if ( srs->sr_state.sids[i] != sids[j] )
 						continue;
 					if ( !bvmatch( &srs->sr_state.ctxcsn[i], &ctxcsn[j] ))
-						changed = 1;
+						changed = SS_CHANGED;
 					break;
 				}
 				if ( changed )
 					break;
 			}
 			if ( !changed ) {
-no_change:		nochange = 1;
-				if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
+no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					LDAPControl	*ctrls[2];
 
 					ctrls[0] = NULL;
@@ -2240,6 +2247,9 @@ no_change:		nochange = 1;
 				return rs->sr_err;
 			}
 		}
+	} else {
+		/* No consumer state, assume something has changed */
+		changed = SS_CHANGED;
 	}
 
 shortcut:
@@ -2251,7 +2261,7 @@ shortcut:
 	}
 
 	/* If something changed, find the changes */
-	if ( gotstate && !nochange ) {
+	if ( gotstate && changed ) {
 		Filter *fand, *fava;
 
 		fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
@@ -2278,7 +2288,7 @@ shortcut:
 	ss = (searchstate *)(cb+1);
 	ss->ss_on = on;
 	ss->ss_so = sop;
-	ss->ss_present = do_present;
+	ss->ss_flags = do_present | changed;
 	ss->ss_ctxcsn = ctxcsn;
 	ss->ss_numcsns = numcsns;
 	ss->ss_sids = sids;
@@ -2292,7 +2302,7 @@ shortcut:
 	 * the refresh phase, just invoke the response callback to transition
 	 * us into persist phase
 	 */
-	if ( nochange ) {
+	if ( !changed ) {
 		rs->sr_err = LDAP_SUCCESS;
 		rs->sr_nentries = 0;
 		send_ldap_result( op, rs );
