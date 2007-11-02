@@ -2064,7 +2064,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
 	slap_callback	*cb;
-	int gotstate = 0, changed = 0, do_present;
+	int gotstate = 0, changed = 0, do_present = 0;
 	syncops *sop = NULL;
 	searchstate *ss;
 	sync_control *srs;
@@ -2078,8 +2078,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "illegal value for derefAliases" );
 		return rs->sr_err;
 	}
-
-	do_present = si->si_nopres ? 0 : SS_PRESENT;
 
 	srs = op->o_controls[slap_cids.sc_LDAPsync];
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
@@ -2148,6 +2146,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		if ( !numcsns )
 			goto no_change;
 
+		if ( !si->si_nopres )
+			do_present = SS_PRESENT;
+
 		/* If there are SIDs we don't recognize in the cookie, drop them */
 		for (i=0; i<srs->sr_state.numcsns; ) {
 			for (j=0; j<numcsns; j++) {
@@ -2191,6 +2192,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 					break;
 			}
 			if ( !changed ) {
+				do_present = 0;
 no_change:		if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 					LDAPControl	*ctrls[2];
 
