@@ -2840,10 +2840,14 @@ static int syncprov_parseCtrl (
 	sr->sr_rhint = rhint;
 	if (!BER_BVISNULL(&cookie)) {
 		ber_dupbv_x( &sr->sr_state.octet_str, &cookie, op->o_tmpmemctx );
+		/* If parse fails, pretend no cookie was sent */
 		if ( slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx ) ||
 			sr->sr_state.rid == -1 ) {
-			rs->sr_text = "Sync control : cookie parsing error";
-			return LDAP_PROTOCOL_ERROR;
+			if ( sr->sr_state.ctxcsn ) {
+				ber_bvarray_free_x( sr->sr_state.ctxcsn, op->o_tmpmemctx );
+				sr->sr_state.ctxcsn = NULL;
+			}
+			sr->sr_state.numcsns = 0;
 		}
 	}
 
