@@ -1572,7 +1572,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				 */
 				assert( ml->sml_values != NULL );
 				assert( !BER_BVISNULL( &ml->sml_values[ 0 ] ) );
-				if ( !BER_BVISNULL( addmod || &ml->sml_values[ 1 ] ) ) {
+				if ( addmod || !BER_BVISNULL( &ml->sml_values[ 1 ] ) ) {
 					rs->sr_err = LDAP_CONSTRAINT_VIOLATION; 
 					rs->sr_text = "Password policy only allows one password value";
 					goto return_results;
