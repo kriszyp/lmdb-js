@@ -8,7 +8,7 @@ dnl disable config.cache
 dnl define([AC_CACHE_LOAD], )
 dnl define([AC_CACHE_SAVE], )
 
-AC_INIT(ldapcpplib, 0.0.4)
+AC_INIT(ldapcpplib, 0.0.5)
 AC_CONFIG_SRCDIR(src/LDAPConnection.h)
 AM_INIT_AUTOMAKE(foreign)
 AM_CONFIG_HEADER(src/config.h)
