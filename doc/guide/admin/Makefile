@@ -56,12 +56,15 @@ sdf-src: \
 
 sdf-img: \
 	../images/LDAPlogo.gif \
+	allmail-en.png \
+	allusersgroup-en.png \
 	config_dit.png \
 	config_local.png \
 	config_ref.png \
 	config_repl.gif \
 	intro_dctree.png \
 	intro_tree.png \
+	refint.png 
 
 guide.html: guide.sdf sdf-src sdf-img
 	sdf -2html guide.sdf
