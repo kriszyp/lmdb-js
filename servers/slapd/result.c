@@ -149,7 +149,6 @@ static long send_ldap_ber(
 	/* write the pdu */
 	while( 1 ) {
 		int err;
-		ber_socket_t	sd;
 
 		if ( connection_state_closing( conn ) ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -184,8 +183,7 @@ static long send_ldap_ber(
 
 		/* wait for socket to be write-ready */
 		conn->c_writewaiter = 1;
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
-		slapd_set_write( sd, 1 );
+		slapd_set_write( conn->c_sd, 1 );
 
 		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
 		conn->c_writewaiter = 0;
@@ -508,10 +506,10 @@ send_ldap_response(
 		goto cleanup;
 	}
 
-	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
-	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
-	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+	ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex );
+	ldap_pvt_mp_add_ulong( op->o_counters->sc_pdu, 1 );
+	ldap_pvt_mp_add_ulong( op->o_counters->sc_bytes, (unsigned long)bytes );
+	ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex );
 
 cleanup:;
 	/* Tell caller that we did this for real, as opposed to being
@@ -1194,11 +1192,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		}
 		rs->sr_nentries++;
 
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
-		ldap_pvt_mp_add_ulong( slap_counters.sc_entries, 1 );
-		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex );
+		ldap_pvt_mp_add_ulong( op->o_counters->sc_bytes, (unsigned long)bytes );
+		ldap_pvt_mp_add_ulong( op->o_counters->sc_entries, 1 );
+		ldap_pvt_mp_add_ulong( op->o_counters->sc_pdu, 1 );
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex );
 	}
 
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
@@ -1361,11 +1359,11 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	if ( bytes < 0 ) {
 		rc = LDAP_UNAVAILABLE;
 	} else {
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
-		ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
-		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex );
+		ldap_pvt_mp_add_ulong( op->o_counters->sc_bytes, (unsigned long)bytes );
+		ldap_pvt_mp_add_ulong( op->o_counters->sc_refs, 1 );
+		ldap_pvt_mp_add_ulong( op->o_counters->sc_pdu, 1 );
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex );
 	}
 #ifdef LDAP_CONNECTIONLESS
 	}

@@ -67,7 +67,7 @@ int			connection_pool_max = SLAP_MAX_WORKER_THREADS;
 int		slap_tool_thread_max = 1;
 ldap_pvt_thread_mutex_t	gmtime_mutex;
 
-slap_counters_t			slap_counters;
+slap_counters_t			slap_counters, *slap_counters_list;
 
 static const char* slap_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
@@ -76,7 +76,6 @@ int
 slap_init( int mode, const char *name )
 {
 	int rc;
-	int i;
 
 	assert( mode );
 
@@ -144,26 +143,11 @@ slap_init( int mode, const char *name )
 		ldap_pvt_thread_pool_init( &connection_pool,
 				connection_pool_max, 0);
 
-		ldap_pvt_thread_mutex_init( &slap_counters.sc_sent_mutex );
-		ldap_pvt_thread_mutex_init( &slap_counters.sc_ops_mutex );
-		ldap_pvt_mp_init( slap_counters.sc_bytes );
-		ldap_pvt_mp_init( slap_counters.sc_pdu );
-		ldap_pvt_mp_init( slap_counters.sc_entries );
-		ldap_pvt_mp_init( slap_counters.sc_refs );
-
-		ldap_pvt_mp_init( slap_counters.sc_ops_initiated );
-		ldap_pvt_mp_init( slap_counters.sc_ops_completed );
+		slap_counters_init( &slap_counters );
 
 		ldap_pvt_thread_mutex_init( &slapd_rq.rq_mutex );
 		LDAP_STAILQ_INIT( &slapd_rq.task_list );
 		LDAP_STAILQ_INIT( &slapd_rq.run_list );
-
-#ifdef SLAPD_MONITOR
-		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			ldap_pvt_mp_init( slap_counters.sc_ops_initiated_[ i ] );
-			ldap_pvt_mp_init( slap_counters.sc_ops_completed_[ i ] );
-		}
-#endif /* SLAPD_MONITOR */
 
 		ldap_pvt_thread_mutex_init( &gmtime_mutex );
 		slap_passwd_init();
@@ -264,7 +248,6 @@ int slap_shutdown( Backend *be )
 int slap_destroy(void)
 {
 	int rc;
-	int i;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"%s destroy: freeing system resources.\n",
@@ -288,24 +271,8 @@ int slap_destroy(void)
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
-
 	case SLAP_TOOL_MODE:
-
-		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_sent_mutex );
-		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_ops_mutex );
-		ldap_pvt_mp_clear( slap_counters.sc_bytes );
-		ldap_pvt_mp_clear( slap_counters.sc_pdu );
-		ldap_pvt_mp_clear( slap_counters.sc_entries );
-		ldap_pvt_mp_clear( slap_counters.sc_refs );
-		ldap_pvt_mp_clear( slap_counters.sc_ops_initiated );
-		ldap_pvt_mp_clear( slap_counters.sc_ops_completed );
-
-#ifdef SLAPD_MONITOR
-		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			ldap_pvt_mp_clear( slap_counters.sc_ops_initiated_[ i ] );
-			ldap_pvt_mp_clear( slap_counters.sc_ops_completed_[ i ] );
-		}
-#endif /* SLAPD_MONITOR */
+		slap_counters_destroy( &slap_counters );
 		break;
 
 	default:
@@ -324,3 +291,46 @@ int slap_destroy(void)
 	/* should destroy the above mutex */
 	return rc;
 }
+
+void slap_counters_init( slap_counters_t *sc )
+{
+	int i;
+
+	ldap_pvt_thread_mutex_init( &sc->sc_mutex );
+	ldap_pvt_mp_init( sc->sc_bytes );
+	ldap_pvt_mp_init( sc->sc_pdu );
+	ldap_pvt_mp_init( sc->sc_entries );
+	ldap_pvt_mp_init( sc->sc_refs );
+
+	ldap_pvt_mp_init( sc->sc_ops_initiated );
+	ldap_pvt_mp_init( sc->sc_ops_completed );
+
+#ifdef SLAPD_MONITOR
+	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+		ldap_pvt_mp_init( sc->sc_ops_initiated_[ i ] );
+		ldap_pvt_mp_init( sc->sc_ops_completed_[ i ] );
+	}
+#endif /* SLAPD_MONITOR */
+}
+
+void slap_counters_destroy( slap_counters_t *sc )
+{
+	int i;
+
+	ldap_pvt_thread_mutex_destroy( &sc->sc_mutex );
+	ldap_pvt_mp_clear( sc->sc_bytes );
+	ldap_pvt_mp_clear( sc->sc_pdu );
+	ldap_pvt_mp_clear( sc->sc_entries );
+	ldap_pvt_mp_clear( sc->sc_refs );
+
+	ldap_pvt_mp_clear( sc->sc_ops_initiated );
+	ldap_pvt_mp_clear( sc->sc_ops_completed );
+
+#ifdef SLAPD_MONITOR
+	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+		ldap_pvt_mp_clear( sc->sc_ops_initiated_[ i ] );
+		ldap_pvt_mp_clear( sc->sc_ops_completed_[ i ] );
+	}
+#endif /* SLAPD_MONITOR */
+}
+

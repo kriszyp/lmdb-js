@@ -34,6 +34,7 @@ typedef ldap_int_thread_cond_t		ldap_pvt_thread_cond_t;
 typedef ldap_int_thread_rdwr_t		ldap_pvt_thread_rdwr_t;
 #endif
 typedef ldap_int_thread_rmutex_t	ldap_pvt_thread_rmutex_t;
+typedef ldap_int_thread_key_t	ldap_pvt_thread_key_t;
 #endif /* !LDAP_PVT_THREAD_H_DONE */
 
 #define ldap_pvt_thread_equal		ldap_int_thread_equal
@@ -168,6 +169,18 @@ ldap_pvt_thread_rdwr_wtrylock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
 LDAP_F( int )
 ldap_pvt_thread_rdwr_wunlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
+
+LDAP_F( int )
+ldap_pvt_thread_key_create LDAP_P((ldap_pvt_thread_key_t *keyp));
+
+LDAP_F( int )
+ldap_pvt_thread_key_destroy LDAP_P((ldap_pvt_thread_key_t key));
+
+LDAP_F( int )
+ldap_pvt_thread_key_setdata LDAP_P((ldap_pvt_thread_key_t key, void *data));
+
+LDAP_F( int )
+ldap_pvt_thread_key_getdata LDAP_P((ldap_pvt_thread_key_t key, void **data));
 
 #ifdef LDAP_DEBUG
 LDAP_F( int )

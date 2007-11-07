@@ -83,25 +83,19 @@ connection_state2str( int state )
 
 static Connection* connection_get( ber_socket_t s );
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-
 typedef struct conn_readinfo {
 	Operation *op;
 	ldap_pvt_thread_start_t *func;
 	void *arg;
+	void *ctx;
 	int nullop;
 } conn_readinfo;
 
 static int connection_input( Connection *c, conn_readinfo *cri );
-#else
-static int connection_input( Connection *c );
-#endif
 static void connection_close( Connection *c );
 
 static int connection_op_activate( Operation *op );
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 static void connection_op_queue( Operation *op );
-#endif
 static int connection_resched( Connection *conn );
 static void connection_abandon( Connection *conn );
 static void connection_destroy( Connection *c );
@@ -267,8 +261,6 @@ static Connection* connection_get( ber_socket_t s )
 #else
 	c = NULL;
 	{
-		ber_socket_t i, sd;
-
 		ldap_pvt_thread_mutex_lock( &connections_mutex );
 		for(i=0; i<dtblsize; i++) {
 			if( connections[i].c_struct_state == SLAP_C_PENDING )
@@ -280,12 +272,9 @@ static Connection* connection_get( ber_socket_t s )
 				break;
 			}
 
-			ber_sockbuf_ctrl( connections[i].c_sb,
-				LBER_SB_OPT_GET_FD, &sd );
-
 			if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
 				assert( connections[i].c_conn_state == SLAP_C_INVALID );
-				assert( sd == AC_SOCKET_INVALID );
+				assert( connections[i].c_sd == AC_SOCKET_INVALID );
 				continue;
 			}
 
@@ -293,7 +282,7 @@ static Connection* connection_get( ber_socket_t s )
 			 * so don't assert details here.
 			 */
 
-			if( sd == s ) {
+			if( connections[i].c_sd == s ) {
 				c = &connections[i];
 				break;
 			}
@@ -303,18 +292,15 @@ static Connection* connection_get( ber_socket_t s )
 #endif
 
 	if( c != NULL ) {
-		ber_socket_t	sd;
-
 		ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
 		assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
-		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
 #ifdef HAVE_WINSOCK
 		/* Avoid race condition after releasing
 		 * connections_mutex
 		 */
-		if ( sd != s ) {
+		if ( c->c_sd != s ) {
 			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			return NULL;
 		}
@@ -323,7 +309,7 @@ static Connection* connection_get( ber_socket_t s )
 			/* connection must have been closed due to resched */
 
 			assert( c->c_conn_state == SLAP_C_INVALID );
-			assert( sd == AC_SOCKET_INVALID );
+			assert( c->c_sd == AC_SOCKET_INVALID );
 
 			Debug( LDAP_DEBUG_TRACE,
 				"connection_get(%d): connection not used\n",
@@ -341,7 +327,7 @@ static Connection* connection_get( ber_socket_t s )
 
 		assert( c->c_struct_state == SLAP_C_USED );
 		assert( c->c_conn_state != SLAP_C_INVALID );
-		assert( sd != AC_SOCKET_INVALID );
+		assert( c->c_sd != AC_SOCKET_INVALID );
 
 #ifndef SLAPD_MONITOR
 		if ( global_idletimeout > 0 )
@@ -405,8 +391,6 @@ Connection * connection_init(
 
 		ldap_pvt_thread_mutex_lock( &connections_mutex );
 		for( i=0; i < dtblsize; i++) {
-			ber_socket_t	sd;
-
 			if ( connections[i].c_struct_state == SLAP_C_PENDING )
 				continue;
 
@@ -418,14 +402,7 @@ Connection * connection_init(
 				break;
 			}
 
-			sd = AC_SOCKET_INVALID;
-			if (connections[i].c_sb != NULL) {
-				ber_sockbuf_ctrl( connections[i].c_sb,
-					LBER_SB_OPT_GET_FD, &sd );
-			}
-
 			if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
-				assert( sd == AC_SOCKET_INVALID );
 				c = &connections[i];
 				c->c_struct_state = SLAP_C_PENDING;
 				break;
@@ -435,7 +412,6 @@ Connection * connection_init(
 
 			assert( connections[i].c_struct_state == SLAP_C_USED );
 			assert( connections[i].c_conn_state != SLAP_C_INVALID );
-			assert( sd != AC_SOCKET_INVALID );
 		}
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 
@@ -525,6 +501,7 @@ Connection * connection_init(
 	assert( c->c_writewaiter == 0);
 
 	c->c_listener = listener;
+	c->c_sd = s;
 
 	if ( flags & CONN_IS_CLIENT ) {
 		c->c_connid = 0;
@@ -677,7 +654,6 @@ void connection2anonymous( Connection *c )
 static void
 connection_destroy( Connection *c )
 {
-	ber_socket_t	sd;
 	unsigned long	connid;
 	const char		*close_reason;
 	Sockbuf			*sb;
@@ -754,21 +730,20 @@ connection_destroy( Connection *c )
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
-	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
-
 	/* c must be fully reset by this point; when we call slapd_remove
 	 * it may get immediately reused by a new connection.
 	 */
-	if ( sd != AC_SOCKET_INVALID ) {
-		slapd_remove( sd, sb, 1, 0, 0 );
+	if ( c->c_sd != AC_SOCKET_INVALID ) {
+		slapd_remove( c->c_sd, sb, 1, 0, 0 );
 
 		if ( close_reason == NULL ) {
 			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed\n",
-				connid, (long) sd, 0, 0, 0 );
+				connid, (long) c->c_sd, 0, 0, 0 );
 		} else {
 			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed (%s)\n",
-				connid, (long) sd, close_reason, 0, 0 );
+				connid, (long) c->c_sd, close_reason, 0, 0 );
 		}
+		c->c_sd = AC_SOCKET_INVALID;
 	}
 }
 
@@ -813,7 +788,7 @@ static void connection_abandon( Connection *c )
 	while ( (o = LDAP_STAILQ_FIRST( &c->c_txn_ops )) != NULL) {
 		LDAP_STAILQ_REMOVE_HEAD( &c->c_txn_ops, o_next );
 		LDAP_STAILQ_NEXT(o, o_next) = NULL;
-		slap_op_free( o );
+		slap_op_free( o, NULL );
 	}
 
 	/* clear transaction */
@@ -825,7 +800,7 @@ static void connection_abandon( Connection *c )
 	while ( (o = LDAP_STAILQ_FIRST( &c->c_pending_ops )) != NULL) {
 		LDAP_STAILQ_REMOVE_HEAD( &c->c_pending_ops, o_next );
 		LDAP_STAILQ_NEXT(o, o_next) = NULL;
-		slap_op_free( o );
+		slap_op_free( o, NULL );
 	}
 }
 
@@ -839,18 +814,15 @@ void connection_closing( Connection *c, const char *why )
 	/* c_mutex must be locked by caller */
 
 	if( c->c_conn_state != SLAP_C_CLOSING ) {
-		ber_socket_t	sd;
-
-		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_closing: readying conn=%lu sd=%d for close\n",
-			c->c_connid, sd, 0 );
+			c->c_connid, c->c_sd, 0 );
 		/* update state to closing */
 		c->c_conn_state = SLAP_C_CLOSING;
 		c->c_close_reason = why;
 
 		/* don't listen on this port anymore */
-		slapd_clr_read( sd, 0 );
+		slapd_clr_read( c->c_sd, 0 );
 
 		/* abandon active operations */
 		connection_abandon( c );
@@ -862,13 +834,13 @@ void connection_closing( Connection *c, const char *why )
 			 * connection_resched / connection_close before we
 			 * finish, but that's OK.
 			 */
-			slapd_clr_write( sd, 1 );
+			slapd_clr_write( c->c_sd, 1 );
 			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			ldap_pvt_thread_mutex_lock( &c->c_write_mutex );
 			ldap_pvt_thread_mutex_lock( &c->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &c->c_write_mutex );
 		} else {
-			slapd_clr_write( sd, 1 );
+			slapd_clr_write( c->c_sd, 1 );
 		}
 
 	} else if( why == NULL && c->c_close_reason == conn_lost_str ) {
@@ -880,8 +852,6 @@ void connection_closing( Connection *c, const char *why )
 static void
 connection_close( Connection *c )
 {
-	ber_socket_t	sd = AC_SOCKET_INVALID;
-
 	assert( connections != NULL );
 	assert( c != NULL );
 
@@ -894,22 +864,17 @@ connection_close( Connection *c )
 
 	/* NOTE: c_mutex should be locked by caller */
 
-	/* NOTE: don't get the file descriptor if not needed */
-	if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
-	}
-
 	if ( !LDAP_STAILQ_EMPTY(&c->c_ops) ||
 		!LDAP_STAILQ_EMPTY(&c->c_pending_ops) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_close: deferring conn=%lu sd=%d\n",
-			c->c_connid, sd, 0 );
+			c->c_connid, c->c_sd, 0 );
 		return;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%lu sd=%d\n",
-		c->c_connid, sd, 0 );
+		c->c_connid, c->c_sd, 0 );
 
 	connection_destroy( c );
 }
@@ -1011,24 +976,24 @@ void connection_done( Connection *c )
 /* FIXME: returns 0 in case of failure */
 #define INCR_OP_INITIATED(index) \
 	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_initiated_[(index)], 1); \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex ); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_initiated_[(index)], 1); \
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
 	} while (0)
 #define INCR_OP_COMPLETED(index) \
 	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed, 1); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed_[(index)], 1); \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex ); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed, 1); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed_[(index)], 1); \
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
 	} while (0)
 #else /* !SLAPD_MONITOR */
 #define INCR_OP_INITIATED(index) do { } while (0)
 #define INCR_OP_COMPLETED(index) \
 	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed, 1); \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex ); \
+		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed, 1); \
+		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
 	} while (0)
 #endif /* !SLAPD_MONITOR */
 
@@ -1049,6 +1014,62 @@ static BI_op_func *opfun[] = {
 	NULL
 };
 
+/* Counters are per-thread, not per-connection.
+ */
+static void
+conn_counter_destroy( void *key, void *data )
+{
+	slap_counters_t **prev, *sc;
+
+	ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
+	for ( prev = &slap_counters.sc_next, sc = slap_counters.sc_next; sc;
+		prev = &sc->sc_next, sc = sc->sc_next ) {
+		if ( sc == data ) {
+			int i;
+
+			*prev = sc->sc_next;
+			/* Copy data to main counter */
+			ldap_pvt_mp_add( slap_counters.sc_bytes, sc->sc_bytes );
+			ldap_pvt_mp_add( slap_counters.sc_pdu, sc->sc_pdu );
+			ldap_pvt_mp_add( slap_counters.sc_entries, sc->sc_entries );
+			ldap_pvt_mp_add( slap_counters.sc_refs, sc->sc_refs );
+			ldap_pvt_mp_add( slap_counters.sc_ops_initiated, sc->sc_ops_initiated );
+			ldap_pvt_mp_add( slap_counters.sc_ops_completed, sc->sc_ops_completed );
+#ifdef SLAPD_MONITOR
+			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+				ldap_pvt_mp_add( slap_counters.sc_ops_initiated_[ i ], sc->sc_ops_initiated_[ i ] );
+				ldap_pvt_mp_add( slap_counters.sc_ops_initiated_[ i ], sc->sc_ops_completed_[ i ] );
+			}
+#endif /* SLAPD_MONITOR */
+			slap_counters_destroy( sc );
+			ber_memfree_x( data, NULL );
+			break;
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_mutex );
+}
+
+static void
+conn_counter_init( Operation *op, void *ctx )
+{
+	slap_counters_t *sc;
+	void *vsc = NULL;
+
+	if ( ldap_pvt_thread_pool_getkey( ctx, conn_counter_init, &vsc, NULL ) || !vsc ) {
+		vsc = ch_malloc( sizeof( slap_counters_t ));
+		sc = vsc;
+		slap_counters_init( sc );
+		ldap_pvt_thread_pool_setkey( ctx, conn_counter_init, vsc,
+			conn_counter_destroy );
+
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
+		sc->sc_next = slap_counters.sc_next;
+		slap_counters.sc_next = sc;
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_mutex );
+	}
+	op->o_counters = vsc;
+}
+
 static void *
 connection_operation( void *ctx, void *arg_v )
 {
@@ -1062,10 +1083,11 @@ connection_operation( void *ctx, void *arg_v )
 	void *memctx_null = NULL;
 	ber_len_t memsiz;
 
-	ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
+	conn_counter_init( op, ctx );
+	ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex );
 	/* FIXME: returns 0 in case of failure */
-	ldap_pvt_mp_add_ulong(slap_counters.sc_ops_initiated, 1);
-	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
+	ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_initiated, 1);
+	ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex );
 
 	op->o_threadctx = ctx;
 	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
@@ -1175,7 +1197,6 @@ operations_error:
 
 	LDAP_STAILQ_REMOVE( &conn->c_ops, op, Operation, o_next);
 	LDAP_STAILQ_NEXT(op, o_next) = NULL;
-	slap_op_free( op );
 	conn->c_n_ops_executing--;
 	conn->c_n_ops_completed++;
 
@@ -1190,6 +1211,7 @@ operations_error:
 
 	connection_resched( conn );
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	slap_op_free( op, ctx );
 	return NULL;
 }
 
@@ -1247,8 +1269,6 @@ void connection_client_stop(
 	connection_return( c );
 }
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
-
 static int connection_read( ber_socket_t s, conn_readinfo *cri );
 
 static void* connection_read_thread( void* ctx, void* argv )
@@ -1261,6 +1281,7 @@ static void* connection_read_thread( void* ctx, void* argv )
 	 * read incoming LDAP requests. If there is more than one,
 	 * the first one is returned with new_op
 	 */
+	cri.ctx = ctx;
 	if( ( rc = connection_read( s, &cri ) ) < 0 ) {
 		Debug( LDAP_DEBUG_CONNS, "connection_read(%d) error\n", s, 0, 0 );
 		return (void*)(long)rc;
@@ -1300,14 +1321,9 @@ int connection_read_activate( ber_socket_t s )
 
 	return rc;
 }
-#endif
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 static int
 connection_read( ber_socket_t s, conn_readinfo *cri )
-#else
-int connection_read(ber_socket_t s)
-#endif
 {
 	int rc = 0;
 	Connection *c;
@@ -1336,15 +1352,9 @@ int connection_read(ber_socket_t s)
 	}
 
 	if ( c->c_conn_state == SLAP_C_CLIENT ) {
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		cri->func = c->c_clientfunc;
 		cri->arg = c->c_clientarg;
 		/* read should already be cleared */
-#else
-		slapd_clr_read( s, 0 );
-		ldap_pvt_thread_pool_submit( &connection_pool,
-			c->c_clientfunc, c->c_clientarg );
-#endif
 		connection_return( c );
 		return 0;
 	}
@@ -1399,10 +1409,7 @@ int connection_read(ber_socket_t s)
 		/* if success and data is ready, fall thru to data input loop */
 		if( !ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) )
 		{
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			slapd_set_read( s, 1 );
-#endif
-
 			connection_return( c );
 			return 0;
 		}
@@ -1413,10 +1420,7 @@ int connection_read(ber_socket_t s)
 	if ( c->c_sasl_layers ) {
 		/* If previous layer is not removed yet, give up for now */
 		if ( !c->c_sasl_sockctx ) {
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 			slapd_set_read( s, 1 );
-#endif
-
 			connection_return( c );
 			return 0;
 		}
@@ -1444,11 +1448,7 @@ int connection_read(ber_socket_t s)
 
 	do {
 		/* How do we do this without getting into a busy loop ? */
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		rc = connection_input( c, cri );
-#else
-		rc = connection_input( c );
-#endif
 	}
 #ifdef DATA_READY_LOOP
 	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ));
@@ -1470,33 +1470,18 @@ int connection_read(ber_socket_t s)
 		return 0;
 	}
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
 		slapd_set_write( s, 0 );
 	}
 
 	slapd_set_read( s, 1 );
-#else
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
-		slapd_set_read( s, 1 );
-	}
-
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
-		slapd_set_write( s, 1 );
-	}
-#endif
-
 	connection_return( c );
 
 	return 0;
 }
 
 static int
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 connection_input( Connection *conn , conn_readinfo *cri )
-#else
-connection_input( Connection *conn )
-#endif
 {
 	Operation *op;
 	ber_tag_t	tag;
@@ -1509,6 +1494,7 @@ connection_input( Connection *conn )
 	char 		*cdn = NULL;
 #endif
 	char *defer = NULL;
+	void *ctx;
 
 	if ( conn->c_currentber == NULL &&
 		( conn->c_currentber = ber_alloc()) == NULL )
@@ -1538,15 +1524,12 @@ connection_input( Connection *conn )
 	tag = ber_get_next( conn->c_sb, &len, conn->c_currentber );
 	if ( tag != LDAP_TAG_MESSAGE ) {
 		int err = sock_errno();
-		ber_socket_t	sd;
-
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			/* log, close and send error */
 			Debug( LDAP_DEBUG_TRACE,
 				"ber_get_next on fd %d failed errno=%d (%s)\n",
-			sd, err, sock_errstr(err) );
+			conn->c_sd, err, sock_errstr(err) );
 			ber_free( conn->c_currentber, 1 );
 			conn->c_currentber = NULL;
 
@@ -1592,7 +1575,8 @@ connection_input( Connection *conn )
 		connection_abandon( conn );
 	}
 
-	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
+	ctx = cri->ctx;
+	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++, ctx );
 
 	op->o_conn = conn;
 	/* clear state if the connection is being reused from inactive */
@@ -1682,7 +1666,6 @@ connection_input( Connection *conn )
 	} else {
 		conn->c_n_ops_executing++;
 
-#ifdef SLAP_LIGHTWEIGHT_DISPATCHER
 		/*
 		 * The first op will be processed in the same thread context,
 		 * as long as there is only one op total.
@@ -1701,9 +1684,6 @@ connection_input( Connection *conn )
 			}
 			connection_op_activate( op );
 		}
-#else
-		connection_op_activate( op );
-#endif
 	}
 
 #ifdef NO_THREADS
@@ -1723,12 +1703,9 @@ connection_resched( Connection *conn )
 	Operation *op;
 
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
-		ber_socket_t	sd;
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
-
 		Debug( LDAP_DEBUG_TRACE, "connection_resched: "
 			"attempting closing conn=%lu sd=%d\n",
-			conn->c_connid, sd, 0 );
+			conn->c_connid, conn->c_sd, 0 );
 		connection_close( conn );
 		return 0;
 	}
@@ -2010,6 +1987,7 @@ connection_fake_init2(
 	Operation *op = (Operation *) opbuf;
 
 	conn->c_connid = -1;
+	conn->c_conn_idx = -1;
 	conn->c_send_ldap_result = slap_send_ldap_result;
 	conn->c_send_search_entry = slap_send_search_entry;
 	conn->c_send_search_reference = slap_send_search_reference;
@@ -2028,6 +2006,7 @@ connection_fake_init2(
 	op->o_threadctx = ctx;
 	op->o_tid = ldap_pvt_thread_pool_tid( ctx );
 
+	op->o_counters = &slap_counters;
 	op->o_conn = conn;
 	op->o_connid = op->o_conn->c_connid;
 	connection_init_log_prefix( op );

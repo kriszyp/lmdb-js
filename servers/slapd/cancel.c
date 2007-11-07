@@ -70,7 +70,7 @@ int cancel_extop( Operation *op, SlapReply *rs )
 			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops, o, Operation, o_next );
 			LDAP_STAILQ_NEXT(o, o_next) = NULL;
 			op->o_conn->c_n_ops_pending--;
-			slap_op_free( o );
+			slap_op_free( o, NULL );
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 			return LDAP_SUCCESS;
 		}

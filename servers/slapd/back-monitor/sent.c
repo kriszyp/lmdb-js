@@ -166,6 +166,7 @@ monitor_subsys_sent_update(
 	struct berval		nrdn;
 	ldap_pvt_mp_t		n;
 	Attribute		*a;
+	slap_counters_t *sc;
 	int			i;
 
 	assert( mi != NULL );
@@ -183,28 +184,48 @@ monitor_subsys_sent_update(
 		return SLAP_CB_CONTINUE;
 	}
 
-	ldap_pvt_thread_mutex_lock(&slap_counters.sc_sent_mutex);
+	ldap_pvt_thread_mutex_lock(&slap_counters.sc_mutex);
 	switch ( i ) {
 	case MONITOR_SENT_ENTRIES:
 		ldap_pvt_mp_init_set( n, slap_counters.sc_entries );
+		for ( sc = slap_counters.sc_next; sc; sc = sc->sc_next ) {
+			ldap_pvt_thread_mutex_lock( &sc->sc_mutex );
+			ldap_pvt_mp_add( n, sc->sc_entries );
+			ldap_pvt_thread_mutex_unlock( &sc->sc_mutex );
+		}
 		break;
 
 	case MONITOR_SENT_REFERRALS:
 		ldap_pvt_mp_init_set( n, slap_counters.sc_refs );
+		for ( sc = slap_counters.sc_next; sc; sc = sc->sc_next ) {
+			ldap_pvt_thread_mutex_lock( &sc->sc_mutex );
+			ldap_pvt_mp_add( n, sc->sc_refs );
+			ldap_pvt_thread_mutex_unlock( &sc->sc_mutex );
+		}
 		break;
 
 	case MONITOR_SENT_PDU:
 		ldap_pvt_mp_init_set( n, slap_counters.sc_pdu );
+		for ( sc = slap_counters.sc_next; sc; sc = sc->sc_next ) {
+			ldap_pvt_thread_mutex_lock( &sc->sc_mutex );
+			ldap_pvt_mp_add( n, sc->sc_pdu );
+			ldap_pvt_thread_mutex_unlock( &sc->sc_mutex );
+		}
 		break;
 
 	case MONITOR_SENT_BYTES:
 		ldap_pvt_mp_init_set( n, slap_counters.sc_bytes );
+		for ( sc = slap_counters.sc_next; sc; sc = sc->sc_next ) {
+			ldap_pvt_thread_mutex_lock( &sc->sc_mutex );
+			ldap_pvt_mp_add( n, sc->sc_bytes );
+			ldap_pvt_thread_mutex_unlock( &sc->sc_mutex );
+		}
 		break;
 
 	default:
 		assert(0);
 	}
-	ldap_pvt_thread_mutex_unlock(&slap_counters.sc_sent_mutex);
+	ldap_pvt_thread_mutex_unlock(&slap_counters.sc_mutex);
 	
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
 	assert( a != NULL );

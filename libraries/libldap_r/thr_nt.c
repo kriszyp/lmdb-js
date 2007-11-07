@@ -198,4 +198,37 @@ ldap_pvt_thread_self( void )
 	return GetCurrentThreadId();
 }
 
+int
+ldap_pvt_thread_key_create( ldap_pvt_thread_key_t *keyp )
+{
+	DWORD key = TlsAlloc();
+	if ( key != TLS_OUT_OF_INDEXES ) {
+		*keyp = key;
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+int
+ldap_pvt_thread_key_destroy( ldap_pvt_thread_key_t key )
+{
+	/* TlsFree returns 0 on failure */
+	return( TlsFree( key ) == 0 );
+}
+
+int
+ldap_pvt_thread_key_setdata( ldap_pvt_thread_key_t key, void *data )
+{
+	return ( TlsSetValue( key, data ) == 0 );
+}
+
+int
+ldap_pvt_thread_key_getdata( ldap_pvt_thread_key_t key, void **data )
+{
+	void *ptr = TlsGetValue( key );
+	*data = ptr;
+	return( ptr ? GetLastError() : 0 );
+}
+
 #endif
