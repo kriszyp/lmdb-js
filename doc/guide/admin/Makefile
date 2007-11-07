@@ -14,6 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 all: guide.html index.html
 
+# for website building (for webmaster use, don't change)
+www: guide.html index.html guide.pdf
+
 sdf-src: \
 	../plain.sdf \
 	../preamble.sdf \
