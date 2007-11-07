@@ -15,7 +15,7 @@
 all: guide.html index.html
 
 # for website building (for webmaster use, don't change)
-www: guide.html index.html guide.pdf
+www: guide.html index.html OpenLDAP-Admin-Guide.pdf
 
 sdf-src: \
 	../plain.sdf \
