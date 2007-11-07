@@ -1,5 +1,5 @@
 /*
- * Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2007, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -12,7 +12,7 @@
 
 
 #include <ldap.h> 
-//#include <ctype.h>
+#include <cstdlib>
 
 #include "debug.h"
 #include "StringList.h"
