@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.7 Engineering
+	Documentation
+		Fixed grammar errors (ITS#5223)
 
 OpenLDAP 2.4.6 Release (2007/10/31)
 	Initial release for "general use".

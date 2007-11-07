@@ -615,8 +615,8 @@ slapd syncrepl provider, then the only change is the directive:
 
 >       mirrormode  on
 
-You also need to make you the {{rid}} of each mirror node pair is different and
-that the {{provider}} syncrepl directive points to the other mirror pair.
+You also need to make sure the {{rid}} of each mirror node pair is different and
+that the {{provider}} syncrepl directive points to the opposite mirror node.
 
 H4: Mirror Node Configuration
 
