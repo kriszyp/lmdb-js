@@ -1,6 +1,8 @@
 OpenLDAP 2.3 Change Log
 
 OpenLDAP 2.3.40 Engineering
+	Documentation
+		Fixed maxderefdepth default value typo (ITS#5200)
 
 OpenLDAP 2.3.39 Release (2007/10/26)
 	Fixed slapd backglue compilation problem (ITS#5214)
