@@ -607,7 +607,8 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 
 simple:
 		value = f->f_av_value;
-		if ( f->f_av_desc->ad_type->sat_equality->smr_usage & SLAP_MR_MUTATION_NORMALIZER ) {
+		if ( f->f_av_desc->ad_type->sat_equality &&
+			f->f_av_desc->ad_type->sat_equality->smr_usage & SLAP_MR_MUTATION_NORMALIZER ) {
 			f->f_av_desc->ad_type->sat_equality->smr_normalize(
 				(SLAP_MR_DENORMALIZE|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX),
 				NULL, NULL, &f->f_av_value, &value, op->o_tmpmemctx );

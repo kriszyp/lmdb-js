@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.7 Engineering
 	Fixed slapd paged results control handling (ITS#5191)
 	Fixed slapd sasl-host parsing (ITS#5209)
+	Fixed slapd filter normalization (ITS#5212)
 	Fixed slapo-syncprov refresh and persist cookie sending (ITS#5210)
 	Fixed slapo-syncprov ignore invalid cookies (ITS#5211)
 	Documentation
