@@ -2244,8 +2244,17 @@ config_suffix(ConfigArgs *c)
 	}
 #endif
 
+	if (SLAP_DB_ONE_SUFFIX( c->be ) && c->be->be_suffix ) {
+		snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> Only one suffix is allowed on this %s backend",
+			c->argv[0], c->be->bd_info->bi_type );
+		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
+			c->log, c->cr_msg, 0);
+		return(1);
+	}
+
 	pdn = c->value_dn;
 	ndn = c->value_ndn;
+
 	if (SLAP_DBHIDDEN( c->be ))
 		tbe = NULL;
 	else

@@ -87,6 +87,10 @@ bdb_db_init( BackendDB *be, ConfigReply *cr )
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
+#ifndef BDB_MULTIPLE_SUFFIXES
+	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_ONE_SUFFIX;
+#endif
+
 	rc = bdb_monitor_db_init( be );
 
 	return rc;
@@ -118,19 +122,6 @@ bdb_db_open( BackendDB *be, ConfigReply *cr )
 	Debug( LDAP_DEBUG_ARGS,
 		LDAP_XSTRING(bdb_db_open) ": \"%s\"\n",
 		be->be_suffix[0].bv_val, 0, 0 );
-
-#ifndef BDB_MULTIPLE_SUFFIXES
-	if ( be->be_suffix[1].bv_val ) {
-		if (cr) {
-			snprintf(cr->msg, sizeof(cr->msg),
-				"database \"%s\": only one suffix allowed.",
-				be->be_suffix[0].bv_val);
-			Debug( LDAP_DEBUG_ANY,
-				LDAP_XSTRING(bdb_db_open) ": %s\n", cr->msg, 0, 0 );
-		}
-		return -1;
-	}
-#endif
 
 	/* Check existence of dbenv_home. Any error means trouble */
 	rc = stat( bdb->bi_dbenv_home, &stat1 );
