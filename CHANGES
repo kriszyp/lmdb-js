@@ -9,6 +9,9 @@ OpenLDAP 2.4.7 Engineering
 		Fixed grammar errors (ITS#5223)
 		Refint overlay doc contribution (ITS#5217)
 		Dynamic Lists doc contribution to the admin guide (ITS#5216)
+                Fixed slapd.conf(5) maxderefdepth default value typo (ITS#5200)
+                Fixed slapd-config(5) maxderefdepth default value typo (ITS#5200)
+
 
 OpenLDAP 2.4.6 Release (2007/10/31)
 	Initial release for "general use".
