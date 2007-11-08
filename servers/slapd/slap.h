@@ -2330,8 +2330,9 @@ typedef unsigned long PagedResultsCookie;
 typedef struct PagedResultsState {
 	Backend *ps_be;
 	ber_int_t ps_size;
-	PagedResultsCookie ps_cookie;
 	int ps_count;
+	PagedResultsCookie ps_cookie;
+	struct berval ps_cookieval;
 } PagedResultsState;
 
 struct slap_csn_entry {

@@ -161,6 +161,31 @@ glue_op_response ( Operation *op, SlapReply *rs )
 			if (!j) {
 				newctrls = ch_malloc((i+1)*sizeof(LDAPControl *));
 			} else {
+				/* Forget old pagedResults response if we're sending
+				 * a new one now
+				 */
+				if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED ) {
+					int newpage = 0;
+					for ( k=0; k<i; k++ ) {
+						if ( !strcmp(rs->sr_ctrls[k]->ldctl_oid,
+							LDAP_CONTROL_PAGEDRESULTS )) {
+							newpage = 1;
+							break;
+						}
+					}
+					if ( newpage ) {
+						for ( k=0; k<j; k++ ) {
+							if ( !strcmp(gs->ctrls[k]->ldctl_oid,
+								LDAP_CONTROL_PAGEDRESULTS )) {
+									gs->ctrls[k]->ldctl_oid = NULL;
+									ldap_control_free( gs->ctrls[k] );
+									gs->ctrls[k] = gs->ctrls[--j];
+									gs->ctrls[j] = NULL;
+									break;
+							}
+						}
+					}
+				}
 				newctrls = ch_realloc(gs->ctrls,
 					(j+i+1)*sizeof(LDAPControl *));
 			}
@@ -321,7 +346,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
-	BackendDB *b1 = NULL, *btmp;
+	BackendDB *btmp;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int i;
 	long stoptime = 0, starttime;
@@ -360,7 +385,6 @@ glue_op_search ( Operation *op, SlapReply *rs )
 		tlimit0 = op->ors_tlimit;
 		dn = op->o_req_dn;
 		ndn = op->o_req_ndn;
-		b1 = op->o_bd;
 
 		/*
 		 * Execute in reverse order, most specific first 
@@ -375,9 +399,16 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			}
 			if (!btmp || !btmp->be_search)
 				continue;
-			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b1->be_nsuffix[0]))
+			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b0->be_nsuffix[0]))
 				continue;
-			if (get_no_subordinate_glue(op) && btmp != b1)
+			if (get_no_subordinate_glue(op) && btmp != b0)
+				continue;
+			/* If we remembered which backend we were on before,
+			 * skip down to it now
+			 */
+			if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED &&
+				op->o_conn->c_pagedresults_state.ps_be &&
+				op->o_conn->c_pagedresults_state.ps_be != btmp )
 				continue;
 
 			if (tlimit0 != SLAP_NO_LIMIT) {
@@ -449,7 +480,41 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			case LDAP_X_CANNOT_CHAIN:
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 				goto end_of_loop;
-			
+
+			case LDAP_SUCCESS:
+				if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED ) {
+					PagedResultsState *ps = op->o_pagedresults_state;
+
+					/* Assume this backend can be forgotten now */
+					op->o_conn->c_pagedresults_state.ps_be = NULL;
+
+					/* If we have a full page, exit the loop. We may
+					 * need to remember this backend so we can continue
+					 * from here on a subsequent request.
+					 */
+					if ( rs->sr_nentries >= ps->ps_size ) {
+						/* Don't bother to remember the first backend.
+						 * Only remember the last one if there's more state left.
+						 */
+						if ( op->o_bd != b0 &&
+							( op->o_conn->c_pagedresults_state.ps_cookie ||
+							op->o_bd != gi->gi_n[0].gn_be ))
+							op->o_conn->c_pagedresults_state.ps_be = op->o_bd;
+						goto end_of_loop;
+					}
+
+					/* This backend has run out of entries, but more responses
+					 * can fit in the page. Fake a reset of the state so the
+					 * next backend will start up properly. Only back-[bh]db
+					 * and back-sql look at this state info.
+					 */
+					if ( ps->ps_cookieval.bv_len == sizeof( PagedResultsCookie )) {
+						ps->ps_cookie = 0;
+						memset( ps->ps_cookieval.bv_val, 0,
+							sizeof( PagedResultsCookie ));
+					}
+				}
+				
 			default:
 				break;
 			}

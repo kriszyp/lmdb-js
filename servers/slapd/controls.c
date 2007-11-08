@@ -1050,12 +1050,13 @@ static int parsePagedResults (
 	SlapReply *rs,
 	LDAPControl *ctrl )
 {
+	BerElementBuffer berbuf;
+	BerElement	*ber = (BerElement *)&berbuf;
+	struct berval	cookie;
+	PagedResultsState	*ps;
 	int		rc = LDAP_SUCCESS;
 	ber_tag_t	tag;
 	ber_int_t	size;
-	BerElement	*ber;
-	struct berval	cookie = BER_BVNULL;
-	PagedResultsState	*ps;
 
 	if ( op->o_pagedresults != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "paged results control specified multiple times";
@@ -1080,11 +1081,7 @@ static int parsePagedResults (
 	 *		cookie	OCTET STRING
 	 * }
 	 */
-	ber = ber_init( &ctrl->ldctl_value );
-	if ( ber == NULL ) {
-		rs->sr_text = "internal error";
-		return LDAP_OTHER;
-	}
+	ber_init2( ber, &ctrl->ldctl_value, LBER_USE_DER );
 
 	tag = ber_scanf( ber, "{im}", &size, &cookie );
 
@@ -1103,6 +1100,7 @@ static int parsePagedResults (
 	ps = op->o_tmpalloc( sizeof(PagedResultsState), op->o_tmpmemctx );
 	*ps = op->o_conn->c_pagedresults_state;
 	ps->ps_size = size;
+	ps->ps_cookieval = cookie;
 	op->o_pagedresults_state = ps;
 
 	/* NOTE: according to RFC 2696 3.:
@@ -1126,7 +1124,6 @@ static int parsePagedResults (
 	}
 
 done:;
-	(void)ber_free( ber, 1 );
 	return rc;
 }
 
