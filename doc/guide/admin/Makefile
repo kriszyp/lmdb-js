@@ -14,6 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 all: guide.html index.html
 
+# for website building (for webmaster use, don't change)
+www: guide.html index.html OpenLDAP-Admin-Guide.pdf
+
 sdf-src: \
 	../plain.sdf \
 	../preamble.sdf \
@@ -53,12 +56,15 @@ sdf-src: \
 
 sdf-img: \
 	../images/LDAPlogo.gif \
+	allmail-en.png \
+	allusersgroup-en.png \
 	config_dit.png \
 	config_local.png \
 	config_ref.png \
 	config_repl.gif \
 	intro_dctree.png \
 	intro_tree.png \
+	refint.png 
 
 guide.html: guide.sdf sdf-src sdf-img
 	sdf -2html guide.sdf
@@ -69,8 +75,11 @@ index.html: index.sdf sdf-src sdf-img
 admin.html: admin.sdf sdf-src sdf-img
 	sdf -DPDF -2html admin.sdf
 
-guide.pdf: admin.html
-	htmldoc --batch guide.book
+guide.pdf: admin.html guide.book
+	htmldoc --batch guide.book -f guide.pdf
+
+OpenLDAP-Admin-Guide.pdf: admin.html guide.book
+	htmldoc --batch guide.book -f OpenLDAP-Admin-Guide.pdf
 
 clean: 
 	rm -f *.pdf *.html *~ *.bak

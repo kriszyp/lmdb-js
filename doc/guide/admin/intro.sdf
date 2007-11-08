@@ -361,10 +361,6 @@ For more information on concept and limitations, see {{slapd-sql}}(5) man page,
 or the {{SECT: Backends}} section. There are also several examples for several 
 RDBMSes in {{F:back-sql/rdbms_depend/*}} subdirectories. 
 
-TO REFERENCE:
-
-http://blogs.sun.com/treydrake/entry/ldap_vs_relational_database
-http://blogs.sun.com/treydrake/entry/ldap_vs_relational_database_part
 
 H2: What is slapd and what can it do?
 

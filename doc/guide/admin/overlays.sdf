@@ -211,11 +211,86 @@ H2: Dynamic Lists
    
 H3: Overview
 
-This overlay allows expansion of dynamic groups and more.
-
+This overlay allows expansion of dynamic groups and lists. Instead of having the
+group members or list attributes hard coded, this overlay allows us to define
+an LDAP search whose results will make up the group or list.
 
 H3: Dynamic List Configuration
 
+This module can behave both as a dynamic list and dynamic group, depending on
+the configuration. The syntax is as follows:
+
+>       overlay dynlist
+>       dynlist-attrset <group-oc> <URL-ad> [member-ad]
+
+The parameters to the {{F:dynlist-attrset}} directive have the following meaning:
+* {{F:<group-oc>}}: specifies which object class triggers the subsequent LDAP search.
+Whenever an entry with this object class is retrieved, the search is performed.
+* {{F:<URL-ad>}}: is the name of the attribute which holds the search URI. It
+has to be a subtype of {{F:labeledURI}}. The attributes and values present in
+the search result are added to the entry unless {{F:member-ad}} is used (see
+below).
+* {{F:member-ad}}: if present, changes the overlay behaviour into a dynamic group.
+Instead of inserting the results of the search in the entry, the distinguished name
+of the results are added as values of this attribute.
+
+Here is an example which will allow us to have an email alias which automatically
+expands to all user's emails according to our LDAP filter:
+
+In {{slapd.conf}}(5):
+>       overlay dynlist
+>       dynlist-attrset nisMailAlias labeledURI
+
+This means that whenever an entry which has the {{F:nisMailAlias}} object class is
+retrieved, the search specified in the {{F:labeledURI}} attribute is performed.
+
+Let's say we have this entry in our directory:
+>       cn=all,ou=aliases,dc=example,dc=com
+>       cn: all
+>       objectClass: nisMailAlias
+>       labeledURI: ldap:///ou=People,dc=example,dc=com?mail?one?(objectClass=inetOrgPerson)
+
+If this entry is retrieved, the search specified in {{F:labeledURI}} will be
+performed and the results will be added to the entry just as if they have always
+been there. In this case, the search filter selects all entries directly
+under {{F:ou=People}} that have the {{F:inetOrgPerson}} object class and retrieves
+the {{F:mail}} attribute, if it exists.
+
+This is what gets added to the entry when we have two users under {{F:ou=People}}
+that match the filter:
+!import "allmail-en.png"; align="center"; title="Dynamic list for email aliases"
+FT[align="Center"] Figure X.Y: Dynamic List for all emails
+
+The configuration for a dynamic group is similar. Let's see an example which would
+automatically populate an {{F:allusers}} group with all the user accounts in the
+directory.
+
+In {{F:slapd.conf}}(5):
+>       overlay dynlist
+>       dynlist-attrset groupOfNames labeledURI member
+
+Let's apply it to the following entry:
+>       cn=allusers,ou=group,dc=example,dc=com
+>       cn: all
+>       objectClass: groupOfNames
+>       labeledURI: ldap:///ou=people,dc=example,dc=com??one?(objectClass=inetOrgPerson)
+
+The behaviour is similar to the dynamic list configuration we had before:
+whenever an entry with the {{F:groupOfNames}} object class is retrieved, the
+search specified in the {{F:labeledURI}} attribute is performed. But this time,
+only the distinguished names of the results are added, and as values of the
+{{F:member}} attribute.
+
+This is what we get:
+!import "allusersgroup-en.png"; align="center"; title="Dynamic group for all users"
+FT[align="Center"] Figure X.Y: Dynamic Group for all users
+
+Note that a side effect of this scheme of dymamic groups is that the members
+need to be specified as full DNs. So, if you are planning in using this for
+{{F:posixGroup}}s, be sure to use RFC2307bis and some attribute which can hold
+distinguished names. The {{F:memberUid}} attribute used in the {{F:posixGroup}}
+object class can hold only names, not DNs, and is therefore not suitable for
+dynamic groups.
 
 H2: Reverse Group Membership Maintenance
 
@@ -458,13 +533,70 @@ H2: Referential Integrity
 
 H3: Overview
 
-This overlay can be used with a backend database such as slapd-bdb (5)
+This overlay can be used with a backend database such as slapd-bdb(5)
 to maintain the cohesiveness of a schema which utilizes reference
 attributes.
 
+Whenever a {{modrdn}} or {{delete}} is performed, that is, when an entry's DN
+is renamed or an entry is removed, the server will search the directory for
+references to this DN (in selected attributes: see below) and update them
+accordingly. If it was a {{delete}} operation, the reference is deleted. If it
+was a {{modrdn}} operation, then the reference is updated with the new DN.
+
+For example, a very common administration task is to maintain group membership
+lists, specially when users are removed from the directory. When an
+user account is deleted or renamed, all groups this user is a member of have to be
+updated. LDAP administrators usually have scripts for that. But we can use the
+{{F:refint}} overlay to automate this task. In this example, if the user is
+removed from the directory, the overlay will take care to remove the user from
+all the groups he/she was a member of. No more scripting for this.
 
 H3: Referential Integrity Configuration
 
+The configuration for this overlay is as follows:
+>       overlay refint
+>       refint_attributes <attribute [attribute ...]>
+>       refint_nothing <string>
+
+* {{F:refint_attributes}}: this parameter specifies a space separated list of
+attributes which will have the referential integrity maintained. When an entry is
+removed or has its DN renamed, the server will do an internal search for any of the
+{{F:refint_attributes}} that point to the affected DN and update them accordingly. IMPORTANT:
+the attributes listed here must have the {{F:distinguishedName}} syntax, that is,
+hold DNs as values.
+* {{F:refint_nothing}}: some times, while trying to maintain the referential
+integrity, the server has to remove the last attribute of its kind from an
+entry. This may be prohibited by the schema: for example, the
+{{F:groupOfNames}} object class requires at least one member. In these cases,
+the server will add the attribute value specified in {{F:refint_nothing}}
+to the entry.
+
+To illustrate this overlay, we will use the group membership scenario.
+
+In {{F:slapd.conf}}:
+>       overlay refint
+>       refint_attributes member
+>       refint_nothing "cn=admin,dc=example,dc=com"
+
+This configuration tells the overlay to maintain the referential integrity of the {{F:member}}
+attribute. This attribute is used in the {{F:groupOfNames}} object class which always needs
+a member, so we add the {{F:refint_nothing}} directive to fill in the group with a standard
+member should all the members vanish.
+
+If we have the following group membership, the refint overlay will
+automatically remove {{F:john}} from the group if his entry is removed from the
+directory:
+
+!import "refint.png"; align="center"; title="Group membership"
+FT[align="Center"] Figure X.Y: Maintaining referential integrity in groups
+
+Notice that if we rename ({{F:modrdn}}) the {{F:john}} entry to, say, {{F:jsmith}}, the refint
+overlay will also rename the reference in the {{F:member}} attribute, so the group membership
+stays correct.
+
+If we removed all users from the directory who are a member of this group, then the end result
+would be a single member in the group: {{F:cn=admin,dc=example,dc=com}}. This is the
+{{F:refint_nothing}} parameter kicking into action so that the schema is not violated.
 
 H2: Return Code
 
