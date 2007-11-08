@@ -832,6 +832,12 @@ unhandled_option:;
 	}
 #endif
 
+#ifdef HAVE_CYRUS_SASL
+	if( sasl_host == NULL ) {
+		sasl_host = ch_strdup( global_host );
+	}
+#endif
+
 	(void) SIGNAL( LDAP_SIGUSR1, slap_sig_wake );
 	(void) SIGNAL( LDAP_SIGUSR2, slap_sig_shutdown );
 

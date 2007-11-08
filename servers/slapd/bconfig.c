@@ -508,7 +508,7 @@ static ConfigTable config_back_cf_table[] = {
 		&config_generic, NULL, NULL, NULL },
 	{ "sasl-host", "host", 2, 2, 0,
 #ifdef HAVE_CYRUS_SASL
-		ARG_STRING|ARG_UNIQUE, &global_host,
+		ARG_STRING|ARG_UNIQUE, &sasl_host,
 #else
 		ARG_IGNORED, NULL,
 #endif

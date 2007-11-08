@@ -1279,8 +1279,8 @@ int slap_sasl_destroy( void )
 #ifdef HAVE_CYRUS_SASL
 	sasl_done();
 #endif
-	free( global_host );
-	global_host = NULL;
+	free( sasl_host );
+	sasl_host = NULL;
 
 	return 0;
 }
@@ -1389,7 +1389,7 @@ int slap_sasl_open( Connection *conn, int reopen )
 		ipremoteport = slap_sasl_peer2ipport( &conn->c_peer_name );
 	}
 
-	sc = sasl_server_new( "ldap", global_host, global_realm,
+	sc = sasl_server_new( "ldap", sasl_host, global_realm,
 		iplocalport, ipremoteport, session_callbacks, SASL_SUCCESS_DATA, &ctx );
 	if ( iplocalport != NULL ) {
 		ch_free( iplocalport );
@@ -1398,7 +1398,7 @@ int slap_sasl_open( Connection *conn, int reopen )
 		ch_free( ipremoteport );
 	}
 #else
-	sc = sasl_server_new( "ldap", global_host, global_realm,
+	sc = sasl_server_new( "ldap", sasl_host, global_realm,
 		session_callbacks, SASL_SECURITY_LAYER, &ctx );
 #endif
 
