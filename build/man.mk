@@ -23,7 +23,7 @@ all-common:
 	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
 	for page in $$PAGES; do \
 		$(SED) -e "s%LDVERSION%$(VERSION)%" \
-			-e 's%ETCDIR%$(sysconfdir)%' \
+			-e 's%ETCDIR%$(sysconfdir)%g' \
 			-e 's%LOCALSTATEDIR%$(localstatedir)%' \
 			-e 's%SYSCONFDIR%$(sysconfdir)%' \
 			-e 's%DATADIR%$(datadir)%' \
