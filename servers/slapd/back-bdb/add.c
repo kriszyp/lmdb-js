@@ -285,10 +285,11 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 
-		if ( subentry ) {
-			/* FIXME: */
-			/* parent must be an administrative point of the required kind */
-		}
+	}
+
+	if ( subentry ) {
+		/* FIXME: */
+		/* parent must be an administrative point of the required kind */
 	}
 
 	/* free parent and reader lock */
