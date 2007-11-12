@@ -54,7 +54,7 @@ bdb_dn2entry(
 			*e = ei;
 			if ( ei && ei->bei_id ) {
 				rc2 = bdb_cache_find_id( op, tid, ei->bei_id,
-					&ei, 1, locker, lock );
+					&ei, ID_LOCKED, locker, lock );
 				if ( rc2 ) rc = rc2;
 			} else if ( ei ) {
 				bdb_cache_entryinfo_unlock( ei );
@@ -65,7 +65,7 @@ bdb_dn2entry(
 			bdb_cache_entryinfo_unlock( ei );
 		}
 	} else {
-		rc = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 1,
+		rc = bdb_cache_find_id( op, tid, ei->bei_id, &ei, ID_LOCKED,
 			locker, lock );
 		if ( rc == 0 ) {
 			*e = ei;
@@ -73,7 +73,7 @@ bdb_dn2entry(
 			/* always return EntryInfo */
 			if ( ei->bei_parent ) {
 				ei = ei->bei_parent;
-				rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 1,
+				rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, ID_LOCKED,
 					locker, lock );
 				if ( rc2 ) rc = rc2;
 			}

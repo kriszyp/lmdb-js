@@ -303,19 +303,20 @@ int
 bdb_search( Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	time_t		stoptime;
 	ID		id, cursor;
+	ID		lastid = NOID;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	ID		scopes[BDB_IDL_DB_SIZE];
 	Entry		*e = NULL, base, *e_root;
 	Entry		*matched = NULL;
 	EntryInfo	*ei;
+	AttributeName	*attrs;
 	struct berval	realbase = BER_BVNULL;
 	slap_mask_t	mask;
+	time_t		stoptime;
 	int		manageDSAit;
-	int		tentries = 0;
-	ID		lastid = NOID;
-	AttributeName	*attrs;
+	int		tentries = 0, nentries = 0;
+	int		idflag = 0;
 
 	BDB_LOCKER	locker = 0;
 	DB_LOCK		lock;
@@ -640,6 +641,7 @@ dn2entry_retry:
 			rs->sr_err = LDAP_OTHER;
 			goto done;
 		}
+		nentries = ps->ps_count;
 		goto loop_begin;
 	}
 
@@ -676,11 +678,19 @@ loop_begin:
 			goto done;
 		}
 
+		/* If we inspect more entries than will
+		 * fit into the entry cache, stop caching
+		 * any subsequent entries
+		 */
+		nentries++;
+		if ( nentries > bdb->bi_cache.c_maxsize && !idflag )
+			idflag = ID_NOCACHE;
+
 fetch_entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
 			rs->sr_err = bdb_cache_find_id( op, ltid,
-				id, &ei, 0, locker, &lock );
+				id, &ei, idflag, locker, &lock );
 
 			if (rs->sr_err == LDAP_BUSY) {
 				rs->sr_text = "ldap server busy";
