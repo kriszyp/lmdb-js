@@ -266,8 +266,8 @@ bdb_monitor_initialize( void )
 		argv[ 2 ] = s_oid[ i ].oid;
 
 		if ( parse_oidm( &c, 0, NULL ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: unable to add "
+			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
+				": unable to add "
 				"objectIdentifier \"%s=%s\"\n",
 				s_oid[ i ].name, s_oid[ i ].oid, 0 );
 			return 1;
@@ -277,8 +277,8 @@ bdb_monitor_initialize( void )
 	for ( i = 0; s_at[ i ].desc != NULL; i++ ) {
 		code = register_at( s_at[ i ].desc, s_at[ i ].ad, 1 );
 		if ( code != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: register_at failed\n",
+			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
+				": register_at failed\n",
 				0, 0, 0 );
 		}
 		(*s_at[ i ].ad)->ad_type->sat_flags |= SLAP_AT_HIDE;
@@ -287,8 +287,8 @@ bdb_monitor_initialize( void )
 	for ( i = 0; s_oc[ i ].desc != NULL; i++ ) {
 		code = register_oc( s_oc[ i ].desc, s_oc[ i ].oc, 1 );
 		if ( code != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_monitor_initialize: register_oc failed\n",
+			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_initialize)
+				": register_oc failed\n",
 				0, 0, 0 );
 		}
 		(*s_oc[ i ].oc)->soc_flags |= SLAP_OC_HIDE;
@@ -356,8 +356,8 @@ bdb_monitor_db_open( BackendDB *be )
 		static int warning = 0;
 
 		if ( warning++ == 0 ) {
-			Debug( LDAP_DEBUG_ANY, "bdb_monitor_open: "
-				"monitoring disabled; "
+			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_monitor_db_open)
+				": monitoring disabled; "
 				"configure monitor database to enable\n",
 				0, 0, 0 );
 		}
