@@ -746,17 +746,21 @@ ID bdb_tool_entry_modify(
 		(long) e->e_id, e->e_dn, 0 );
 
 	if (! (slapMode & SLAP_TOOL_QUICK)) {
-	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
-		bdb->bi_db_opflags );
-	if( rc != 0 ) {
-		snprintf( text->bv_val, text->bv_len,
-			"txn_begin failed: %s (%d)",
-			db_strerror(rc), rc );
-		Debug( LDAP_DEBUG_ANY,
-			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
-			 text->bv_val, 0, 0 );
-		return NOID;
-	}
+		if( cursor ) {
+			cursor->c_close( cursor );
+			cursor = NULL;
+		}
+		rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
+			bdb->bi_db_opflags );
+		if( rc != 0 ) {
+			snprintf( text->bv_val, text->bv_len,
+				"txn_begin failed: %s (%d)",
+				db_strerror(rc), rc );
+			Debug( LDAP_DEBUG_ANY,
+				"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
+				 text->bv_val, 0, 0 );
+			return NOID;
+		}
 	}
 
 	op.o_hdr = &ohdr;
