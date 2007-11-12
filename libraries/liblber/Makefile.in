@@ -37,6 +37,7 @@ LDAP_LIBDIR= ../../libraries
 XLIBS = $(LIBRARY) $(LDAP_LIBLUTIL_A)
 XXLIBS = 
 NT_LINK_LIBS = $(AC_LIBS)
+UNIX_LINK_LIBS = $(AC_LIBS)
 
 dtest:    $(XLIBS) dtest.o
 	$(LTLINK) -o $@ dtest.o $(LIBS)
