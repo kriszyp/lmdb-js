@@ -257,6 +257,7 @@ bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 	EntryInfo *ei;
 	int free = 0;
 
+	bdb_cache_entry_db_unlock( bdb, lock );
 	ei = e->e_private;
 	bdb_cache_entryinfo_lock( ei );
 	if ( ei->bei_state & CACHE_ENTRY_NOT_CACHED ) {
@@ -265,7 +266,6 @@ bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 		free = 1;
 	}
 	bdb_cache_entryinfo_unlock( ei );
-	bdb_cache_entry_db_unlock( bdb, lock );
 	if ( free ) {
 		e->e_private = NULL;
 		bdb_entry_return( e );
