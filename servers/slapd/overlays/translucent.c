@@ -560,10 +560,10 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 */
 
 static int translucent_search_cb(Operation *op, SlapReply *rs) {
+	BackendDB *db;
 	slap_overinst *on;
 	Entry *e, *re = NULL;
 	Attribute *a, *ax, *an, *as = NULL;
-	Operation * original_op, local_op;
 	int rc;
 
 	if(!op || !rs || rs->sr_type != REP_SEARCH || !rs->sr_entry)
@@ -572,13 +572,11 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search_cb: %s\n",
 		rs->sr_entry->e_name.bv_val, 0, 0);
 
-	original_op = op->o_callback->sc_private;
-	on = (slap_overinst *) original_op->o_bd->bd_info;
-	local_op = *original_op;
+	db = op->o_bd;
+	op->o_bd = op->o_callback->sc_private;
+	on = (slap_overinst *) op->o_bd->bd_info;
 
-	local_op.o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
-	rc = be_entry_get_rw(&local_op, &rs->sr_entry->e_nname, NULL, NULL, 0, &e);
-	local_op.o_bd->bd_info = (BackendInfo *) on;
+	rc = overlay_entry_get_ov(op, &rs->sr_entry->e_nname, NULL, NULL, 0, &e, on);
 
 /*
 ** if we got an entry from local backend:
@@ -613,9 +611,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 			an->a_next = as;
 			as = an;
 		}
-		local_op.o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
-		be_entry_release_r(&local_op, e);
-		local_op.o_bd->bd_info = (BackendInfo *) on;
+		overlay_entry_release_ov(op, e, 0, on);
 
 		/* literally append, so locals are always last */
 		if(as) {
@@ -630,6 +626,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
 	}
 
+	op->o_bd = db;
 	return(SLAP_CB_CONTINUE);
 }
 
@@ -642,9 +639,9 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 
 static int translucent_search(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	Operation nop = *op;
 	translucent_info *ov = on->on_bi.bi_private;
 	slap_callback cb = { NULL, NULL, NULL, NULL };
+	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search: <%s> %s\n",
 		op->o_req_dn.bv_val, op->ors_filterstr.bv_val, 0);
@@ -655,12 +652,15 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 		return(rs->sr_err);
 	}
 	cb.sc_response = (slap_response *) translucent_search_cb;
-	cb.sc_private = op;
-	cb.sc_next = nop.o_callback;
+	cb.sc_private = op->o_bd;
+	cb.sc_next = op->o_callback;
 
-	nop.o_callback = &cb;
-	nop.o_bd = &ov->db;
-	return (ov->db.bd_info->bi_op_search(&nop, rs));
+	op->o_callback = &cb;
+	op->o_bd = &ov->db;
+	rc = ov->db.bd_info->bi_op_search(op, rs);
+	op->o_bd = cb.sc_private;
+
+	return rc;
 }
 
 
