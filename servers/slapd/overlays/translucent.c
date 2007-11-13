@@ -540,8 +540,6 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 */
 
 static int translucent_search(Operation *op, SlapReply *rs) {
-	Operation nop = *op;
-
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	slap_callback cb = { NULL, NULL, NULL, NULL };
 	overlay_stack *ov = on->on_bi.bi_private;
@@ -553,11 +551,11 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	cb.sc_response = (slap_response *) translucent_search_cb;
 	cb.sc_private = private;
 
-	cb.sc_next = nop.o_callback;
-	nop.o_callback = &cb;
+	cb.sc_next = op->o_callback;
+	op->o_callback = &cb;
 
 	op->o_bd->be_private = ov->private;
-	rc = ov->info->bi_op_search(&nop, rs);
+	rc = ov->info->bi_op_search(op, rs);
 	op->o_bd->be_private = private;
 
 	return(rs->sr_err);
