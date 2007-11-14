@@ -1,6 +1,6 @@
-OPENLDAP_SRC=/usr/local/src/openldap-2.3.32
+OPENLDAP_SRC=/usr/local/src/openldap-2.4.6
 CPPFLAGS+=-I${OPENLDAP_SRC}/include -I${OPENLDAP_SRC}/servers/slapd
-LDFLAGS+=-L/usr/local/openldap-2.3.32/lib
+LDFLAGS+=-L/usr/local/openldap-2.4.6
 CC=gcc
 
 all: addpartial-overlay.so
