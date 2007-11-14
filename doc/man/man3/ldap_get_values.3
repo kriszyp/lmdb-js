@@ -17,32 +17,32 @@ char **ldap_get_values(ld, entry, attr)
 .ft
 LDAP *ld;
 LDAPMessage *entry;
-char *attr
+char *attr;
 .LP
 .ft B
 struct berval **ldap_get_values_len(ld, entry, attr)
 .ft
 LDAP *ld;
 LDAPMessage *entry;
-char *attr
+char *attr;
 .LP
 .ft B
-ldap_count_values(vals)
+int ldap_count_values(vals)
 .ft
 char **vals;
 .LP
 .ft B
-ldap_count_values_len(vals)
+int ldap_count_values_len(vals)
 .ft
 struct berval **vals;
 .LP
 .ft B
-ldap_value_free(vals)
+void ldap_value_free(vals)
 .ft
 char **vals;
 .LP
 .ft B
-ldap_value_free_len(vals)
+void ldap_value_free_len(vals)
 .ft
 struct berval **vals;
 .SH DESCRIPTION
