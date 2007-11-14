@@ -7,6 +7,7 @@ OpenLDAP 2.4.7 Engineering
 	Fixed slapd multiple sufix checking (ITS#5186)
 	Fixed slapo-syncprov refresh and persist cookie sending (ITS#5210)
 	Fixed slapo-syncprov ignore invalid cookies (ITS#5211)
+	Updated contrib addpartial module (ITS#3593)
 	Documentation
 		Fixed grammar errors (ITS#5223)
 		Refint overlay doc contribution (ITS#5217)

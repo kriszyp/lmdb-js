@@ -1,5 +1,5 @@
 /**
- * $Id: addpartial-overlay.c 5376 2007-01-26 20:03:13Z dhawes $
+ * $Id: addpartial-overlay.c 6588 2007-11-07 18:29:25Z dhawes $
  *
  * Copyright (C) 2004 Virginia Tech, David Hawes.
  * All rights reserved.
@@ -16,8 +16,8 @@
  *
  * Author:  David H. Hawes, Jr.
  * Email:   dhawes@vt.edu
- * Version: $Revision: 5376 $
- * Updated: $Date: 2007-01-26 15:03:13 -0500 (Fri, 26 Jan 2007) $
+ * Version: $Revision: 6588 $
+ * Updated: $Date: 2007-11-07 13:29:25 -0500 (Wed, 07 Nov 2007) $
  * 
  * addpartial-overlay
  *
@@ -31,12 +31,7 @@
  */
 
 #include "portable.h" 
-#include <stdio.h>
-#include <ac/string.h>
-#include <ac/socket.h>
 #include "slap.h"
-#include <unistd.h>
-#include <lutil.h>
 
 static int addpartial_search_cb( Operation *op, SlapReply *rs);
 static int collect_error_msg_cb( Operation *op, SlapReply *rs);
@@ -159,6 +154,7 @@ static int addpartial_add( Operation *op, SlapReply *rs)
                     mod->sml_type.bv_len = strlen(mod->sml_type.bv_val);
                     mod->sml_values = attr->a_vals;
                     mod->sml_nvalues = attr->a_nvals;
+                    mod->sml_numvals = attr->a_numvals;
                     *modtail = mod;
                     modtail = &mod->sml_next;
                 }
@@ -198,6 +194,7 @@ static int addpartial_add( Operation *op, SlapReply *rs)
                         mod->sml_type.bv_len = strlen(mod->sml_type.bv_val);
                         mod->sml_values = attr->a_vals;
                         mod->sml_nvalues = attr->a_nvals;
+                        mod->sml_numvals = attr->a_numvals;
                         *modtail = mod;
                         modtail = &mod->sml_next;
                         continue;
@@ -253,6 +250,7 @@ static int addpartial_add( Operation *op, SlapReply *rs)
                             mod->sml_type.bv_len = strlen(mod->sml_type.bv_val);
                             mod->sml_values = attr->a_vals;
                             mod->sml_nvalues = attr->a_nvals;
+                            mod->sml_numvals = attr->a_numvals;
                             *modtail = mod;
                             modtail = &mod->sml_next;
                             break;
@@ -285,6 +283,7 @@ static int addpartial_add( Operation *op, SlapReply *rs)
                     mod->sml_type.bv_len = strlen(mod->sml_type.bv_val);
                     mod->sml_values = NULL;
                     mod->sml_nvalues = NULL;
+                    mod->sml_numvals = 0;
                     *modtail = mod;
                     modtail = &mod->sml_next;
                 }
@@ -305,7 +304,6 @@ static int addpartial_add( Operation *op, SlapReply *rs)
                 {
                     Modifications *m = NULL;
                     int modcount;
-                    slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
                     slap_callback nullcb = { NULL, collect_error_msg_cb, 
                                              NULL, NULL };
                     char textbuf[SLAP_TEXT_BUFLEN];
@@ -319,8 +317,7 @@ static int addpartial_add( Operation *op, SlapReply *rs)
 
                     nop.o_tag = LDAP_REQ_MODIFY;
                     nop.orm_modlist = mods;
-                    cb2.sc_next = &nullcb;
-                    nop.o_callback = &cb2;
+                    nop.o_callback = &nullcb;
                     nop.o_bd->bd_info = (BackendInfo *) on->on_info;
 
                     for(m = mods, modcount = 0; m; m = m->sml_next, 
@@ -372,7 +369,7 @@ static int addpartial_add( Operation *op, SlapReply *rs)
                       addpartial.on_bi.bi_type, 0, 0);
             }
 
-            if(found != NULL) ;
+            if(found != NULL)
                 entry_free(found);
         }
         else
