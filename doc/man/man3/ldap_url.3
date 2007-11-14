@@ -31,7 +31,7 @@ typedef struct ldap_url_desc {
 } LDAPURLDesc;
 .LP
 .ft B
-ldap_free_urldesc( LDAPURLDesc *ludp )
+void ldap_free_urldesc( LDAPURLDesc *ludp );
 .SH DESCRIPTION
 These routines support the use of LDAP URLs (Uniform Resource Locators)
 as detailed in RFC 4516.  LDAP URLs look like this:
