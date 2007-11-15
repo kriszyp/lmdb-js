@@ -11,6 +11,7 @@ OpenLDAP 2.4.7 Engineering
 	Fixed slapo-ppolicy single password check on modify (ITS#5146)
 	Fixed slapo-syncprov refresh and persist cookie sending (ITS#5210)
 	Fixed slapo-syncprov ignore invalid cookies (ITS#5211)
+	Fixed slapo-translucent interaction with slapo-rwm (ITS#4889)
 	Updated contrib addpartial module (ITS#3593)
 	Build Environment
 		Fixed liblber socket library linking (ITS#5224)

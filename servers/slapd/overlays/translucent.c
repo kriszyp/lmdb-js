@@ -279,7 +279,11 @@ static int translucent_modrdn(Operation *op, SlapReply *rs) {
 		op->o_bd->bd_info = (BackendInfo *) on;
 		return(rs->sr_err);
 	}
-	if(!ov->no_glue) glue_parent(op);
+	if(!ov->no_glue) {
+		op->o_tag = LDAP_REQ_ADD;
+		glue_parent(op);
+		op->o_tag = LDAP_REQ_MODRDN;
+	}
 	return(SLAP_CB_CONTINUE);
 }
 
@@ -324,13 +328,13 @@ translucent_tag_cb( Operation *op, SlapReply *rs )
 
 static int translucent_modify(Operation *op, SlapReply *rs) {
 	SlapReply nrs = { REP_RESULT };
-	Operation nop = *op;
 
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	Entry *e = NULL, *re = NULL;
 	Attribute *a, *ax;
 	Modifications *m, **mm;
+	BackendDB *db;
 	int del, rc, erc = 0;
 	slap_callback cb = { 0 };
 
@@ -349,14 +353,15 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 **
 */
 
-	nop.o_bd = &ov->db;
-	rc = ov->db.bd_info->bi_entry_get_rw(&nop, &nop.o_req_ndn, NULL, NULL, 0, &re);
+	db = op->o_bd;
+	op->o_bd = &ov->db;
+	rc = ov->db.bd_info->bi_entry_get_rw(op, &op->o_req_ndn, NULL, NULL, 0, &re);
 	if(rc != LDAP_SUCCESS || re == NULL ) {
-		send_ldap_error((&nop), rs, LDAP_NO_SUCH_OBJECT,
+		send_ldap_error((op), rs, LDAP_NO_SUCH_OBJECT,
 			"attempt to modify nonexistent local record");
 		return(rs->sr_err);
 	}
-	nop = *op;
+	op->o_bd = db;
 /*
 ** fetch entry from local backend;
 ** if it exists:
@@ -410,9 +415,11 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 		erc = SLAP_CB_CONTINUE;
 release:
 		if(re) {
-			if(ov->db.bd_info->bi_entry_release_rw)
-				ov->db.bd_info->bi_entry_release_rw(&nop, re, 0);
-			else
+			if(ov->db.bd_info->bi_entry_release_rw) {
+				op->o_bd = &ov->db;
+				ov->db.bd_info->bi_entry_release_rw(op, re, 0);
+				op->o_bd = db;
+			} else
 				entry_free(re);
 		}
 		op->o_bd->bd_info = (BackendInfo *) on->on_info;
@@ -429,9 +436,11 @@ release:
 
 	/* don't leak remote entry copy */
 	if(re) {
-		if(ov->db.bd_info->bi_entry_release_rw)
-			ov->db.bd_info->bi_entry_release_rw(&nop, re, 0);
-		else
+		if(ov->db.bd_info->bi_entry_release_rw) {
+			op->o_bd = &ov->db;
+			ov->db.bd_info->bi_entry_release_rw(op, re, 0);
+			op->o_bd = db;
+		} else
 			entry_free(re);
 	}
 /*
@@ -492,28 +501,28 @@ release:
 	ber_dupbv( &e->e_nname, &op->o_req_ndn );
 	e->e_attrs = a;
 
-	nop.o_tag	= LDAP_REQ_ADD;
-	nop.oq_add.rs_e	= e;
-
-	glue_parent(&nop);
-
+	op->o_tag	= LDAP_REQ_ADD;
 	cb.sc_response = translucent_tag_cb;
 	cb.sc_private = op->orm_modlist;
-	cb.sc_next = nop.o_callback;
-	nop.o_callback = &cb;
-	rc = on->on_info->oi_orig->bi_op_add(&nop, &nrs);
-	if ( nop.ora_e == e )
+	op->oq_add.rs_e	= e;
+
+	glue_parent(op);
+
+	cb.sc_next = op->o_callback;
+	op->o_callback = &cb;
+	rc = on->on_info->oi_orig->bi_op_add(op, &nrs);
+	if ( op->ora_e == e )
 		entry_free( e );
 
 	return(rc);
 }
 
 static int translucent_compare(Operation *op, SlapReply *rs) {
-	Operation nop = *op;
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	translucent_info *ov = on->on_bi.bi_private;
 	AttributeAssertion *ava = op->orc_ava;
 	Entry *e;
+	BackendDB *db;
 	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_compare: <%s> %s:%s\n",
@@ -524,14 +533,11 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 **	CONTINUE and let it do the compare;
 **
 */
-	op->o_bd->bd_info = (BackendInfo *) on->on_info;
-	rc = be_entry_get_rw(op, &op->o_req_ndn, NULL, ava->aa_desc, 0, &e);
+	rc = overlay_entry_get_ov(op, &op->o_req_ndn, NULL, ava->aa_desc, 0, &e, on);
 	if(e && rc == LDAP_SUCCESS) {
-		be_entry_release_r(op, e);
-		op->o_bd->bd_info = (BackendInfo *) on;
+		overlay_entry_release_ov(op, e, 0, on);
 		return(SLAP_CB_CONTINUE);
 	}
-	op->o_bd->bd_info = (BackendInfo *) on;
 
 	if(ov->defer_db_open) {
 		send_ldap_error(op, rs, LDAP_UNAVAILABLE,
@@ -543,9 +549,11 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 ** return the result;
 **
 */
-	nop.o_bd = &ov->db;
-	nop.o_callback = NULL;
-	rc = ov->db.bd_info->bi_op_compare(&nop, rs);
+	db = op->o_bd;
+	op->o_bd = &ov->db;
+	op->o_callback = NULL;
+	rc = ov->db.bd_info->bi_op_compare(op, rs);
+	op->o_bd = db;
 
 	return(rc);
 }
@@ -557,10 +565,10 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 */
 
 static int translucent_search_cb(Operation *op, SlapReply *rs) {
+	BackendDB *db;
 	slap_overinst *on;
 	Entry *e, *re = NULL;
 	Attribute *a, *ax, *an, *as = NULL;
-	Operation * original_op, local_op;
 	int rc;
 
 	if(!op || !rs || rs->sr_type != REP_SEARCH || !rs->sr_entry)
@@ -569,13 +577,11 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search_cb: %s\n",
 		rs->sr_entry->e_name.bv_val, 0, 0);
 
-	original_op = op->o_callback->sc_private;
-	on = (slap_overinst *) original_op->o_bd->bd_info;
-	local_op = *original_op;
+	db = op->o_bd;
+	op->o_bd = op->o_callback->sc_private;
+	on = (slap_overinst *) op->o_bd->bd_info;
 
-	local_op.o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
-	rc = be_entry_get_rw(&local_op, &rs->sr_entry->e_nname, NULL, NULL, 0, &e);
-	local_op.o_bd->bd_info = (BackendInfo *) on;
+	rc = overlay_entry_get_ov(op, &rs->sr_entry->e_nname, NULL, NULL, 0, &e, on);
 
 /*
 ** if we got an entry from local backend:
@@ -610,9 +616,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 			an->a_next = as;
 			as = an;
 		}
-		local_op.o_bd->bd_info = (BackendInfo *) on->on_info->oi_orig;
-		be_entry_release_r(&local_op, e);
-		local_op.o_bd->bd_info = (BackendInfo *) on;
+		overlay_entry_release_ov(op, e, 0, on);
 
 		/* literally append, so locals are always last */
 		if(as) {
@@ -627,6 +631,7 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 		rs->sr_flags |= REP_ENTRY_MUSTBEFREED;
 	}
 
+	op->o_bd = db;
 	return(SLAP_CB_CONTINUE);
 }
 
@@ -639,9 +644,9 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 
 static int translucent_search(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	Operation nop = *op;
 	translucent_info *ov = on->on_bi.bi_private;
 	slap_callback cb = { NULL, NULL, NULL, NULL };
+	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_search: <%s> %s\n",
 		op->o_req_dn.bv_val, op->ors_filterstr.bv_val, 0);
@@ -652,12 +657,15 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 		return(rs->sr_err);
 	}
 	cb.sc_response = (slap_response *) translucent_search_cb;
-	cb.sc_private = op;
-	cb.sc_next = nop.o_callback;
+	cb.sc_private = op->o_bd;
+	cb.sc_next = op->o_callback;
 
-	nop.o_callback = &cb;
-	nop.o_bd = &ov->db;
-	return (ov->db.bd_info->bi_op_search(&nop, rs));
+	op->o_callback = &cb;
+	op->o_bd = &ov->db;
+	rc = ov->db.bd_info->bi_op_search(op, rs);
+	op->o_bd = cb.sc_private;
+
+	return rc;
 }
 
 
@@ -669,8 +677,9 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 
 static int translucent_bind(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	Operation nop = *op;
 	translucent_info *ov = on->on_bi.bi_private;
+	BackendDB *db;
+	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "translucent_bind: <%s> method %d\n",
 		op->o_req_dn.bv_val, op->orb_method, 0);
@@ -680,8 +689,11 @@ static int translucent_bind(Operation *op, SlapReply *rs) {
 			"remote DB not available");
 		return(rs->sr_err);
 	}
-	nop.o_bd = &ov->db;
-	return (ov->db.bd_info->bi_op_bind(&nop, rs));
+	db = op->o_bd;
+	op->o_bd = &ov->db;
+	rc = ov->db.bd_info->bi_op_bind(op, rs);
+	op->o_bd = db;
+	return rc;
 }
 
 /*
