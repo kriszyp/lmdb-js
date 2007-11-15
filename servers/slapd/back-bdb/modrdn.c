@@ -303,11 +303,11 @@ retry:	/* transaction retry */
 		dnParent( &e->e_nname, &p_ndn );
 	}
 	np_ndn = &p_ndn;
-	if ( p_ndn.bv_len != 0 ) {
+	eip = ei->bei_parent;
+	if ( eip && eip->bei_id ) {
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
-		eip = ei->bei_parent;
 		rs->sr_err = bdb_cache_find_id( op, ltid,
 			eip->bei_id, &eip, 0, locker, &plock );
 
