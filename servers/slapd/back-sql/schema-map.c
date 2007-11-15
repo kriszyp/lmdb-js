@@ -352,7 +352,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		at_map->bam_ad = ad;
 
 		ber_str2bv( at_row.cols[ 1 ], 0, 1, &at_map->bam_sel_expr );
-		if ( at_row.value_len[ 8 ] < 0 ) {
+		if ( at_row.value_len[ 8 ] <= 0 ) {
 			BER_BVZERO( &at_map->bam_sel_expr_u );
 
 		} else {
@@ -363,7 +363,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		ber_str2bv( at_row.cols[ 2 ], 0, 0, &bv );
 		backsql_merge_from_clause( bas->bas_bi, &bb, &bv );
 		at_map->bam_from_tbls = bb.bb_val;
-		if ( at_row.value_len[ 3 ] < 0 ) {
+		if ( at_row.value_len[ 3 ] <= 0 ) {
 			BER_BVZERO( &at_map->bam_join_where );
 
 		} else {
@@ -499,16 +499,16 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 		
 		ber_str2bv( oc_row.cols[ 2 ], 0, 1, &oc_map->bom_keytbl );
 		ber_str2bv( oc_row.cols[ 3 ], 0, 1, &oc_map->bom_keycol );
-		oc_map->bom_create_proc = ( oc_row.value_len[ 4 ] < 0 ) ? NULL 
+		oc_map->bom_create_proc = ( oc_row.value_len[ 4 ] <= 0 ) ? NULL 
 			: ch_strdup( oc_row.cols[ 4 ] );
 
 		colnum = 5;
 		if ( BACKSQL_CREATE_NEEDS_SELECT( bi ) ) {
 			colnum = 6;
-			oc_map->bom_create_keyval = ( oc_row.value_len[ 5 ] < 0 ) 
+			oc_map->bom_create_keyval = ( oc_row.value_len[ 5 ] <= 0 ) 
 				? NULL : ch_strdup( oc_row.cols[ 5 ] );
 		}
-		oc_map->bom_delete_proc = ( oc_row.value_len[ colnum ] < 0 ) ? NULL 
+		oc_map->bom_delete_proc = ( oc_row.value_len[ colnum ] <= 0 ) ? NULL 
 			: ch_strdup( oc_row.cols[ colnum ] );
 		if ( lutil_atoix( &oc_map->bom_expect_return, oc_row.cols[ colnum + 1 ], 0 ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
