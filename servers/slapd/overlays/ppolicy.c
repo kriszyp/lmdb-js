@@ -1559,8 +1559,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			if ((ml->sml_op == LDAP_MOD_ADD) ||
 				(ml->sml_op == LDAP_MOD_REPLACE))
 			{
-				addmod = ml;
-
 				/* FIXME: there's no easy way to ensure
 				 * that add does not cause multiple
 				 * userPassword values; one way (that 
@@ -1572,13 +1570,15 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				 * Let's check at least that a single value
 				 * is being added
 				 */
-				assert( addmod->sml_values != NULL );
-				assert( !BER_BVISNULL( &addmod->sml_values[ 0 ] ) );
-				if ( !BER_BVISNULL( &addmod->sml_values[ 1 ] ) ) {
+				assert( ml->sml_values != NULL );
+				assert( !BER_BVISNULL( &ml->sml_values[ 0 ] ) );
+				if ( addmod || !BER_BVISNULL( &ml->sml_values[ 1 ] ) ) {
 					rs->sr_err = LDAP_CONSTRAINT_VIOLATION; 
 					rs->sr_text = "Password policy only allows one password value";
 					goto return_results;
 				}
+
+				addmod = ml;
 			}
 
 		} else if ( !is_at_operational( ml->sml_desc->ad_type ) ) {
