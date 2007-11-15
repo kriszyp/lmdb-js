@@ -1118,6 +1118,18 @@ limits_check( Operation *op, SlapReply *rs )
 			op->ors_slimit = SLAP_NO_LIMIT;
 		}
 
+		/* if paged results and slimit are requested */	
+		if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED &&
+			op->ors_slimit != SLAP_NO_LIMIT ) {
+			PagedResultsState *ps = op->o_pagedresults_state;
+			int total = op->ors_slimit - ps->ps_count;
+			if ( total > 0 ) {
+				op->ors_slimit = total;
+			} else {
+				op->ors_slimit = 0;
+			}
+		}
+
 	/* if not root, get appropriate limits */
 	} else {
 		( void ) limits_get( op, &op->o_ndn, &op->ors_limit );
