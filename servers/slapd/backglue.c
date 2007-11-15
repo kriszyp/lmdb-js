@@ -346,7 +346,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
-	BackendDB *btmp;
+	BackendDB *b1 = NULL, *btmp;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int i;
 	long stoptime = 0, starttime;
@@ -385,6 +385,7 @@ glue_op_search ( Operation *op, SlapReply *rs )
 		tlimit0 = op->ors_tlimit;
 		dn = op->o_req_dn;
 		ndn = op->o_req_ndn;
+		b1 = op->o_bd;
 
 		/*
 		 * Execute in reverse order, most specific first 
@@ -399,9 +400,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			}
 			if (!btmp || !btmp->be_search)
 				continue;
-			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b0->be_nsuffix[0]))
+			if (!dnIsSuffix(&btmp->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
-			if (get_no_subordinate_glue(op) && btmp != b0)
+			if (get_no_subordinate_glue(op) && btmp != b1)
 				continue;
 			/* If we remembered which backend we were on before,
 			 * skip down to it now
