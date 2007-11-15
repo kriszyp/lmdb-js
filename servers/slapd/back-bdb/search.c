@@ -612,26 +612,15 @@ dn2entry_retry:
 			goto done;
 		}
 
-		if ( (ID)( ps->ps_cookie ) == 0 ) {
-			id = bdb_idl_first( candidates, &cursor );
-
-		} else {
-			if ( ps->ps_size == 0 ) {
-				rs->sr_err = LDAP_SUCCESS;
-				rs->sr_text = "search abandoned by pagedResult size=0";
-				send_ldap_result( op, rs );
-				goto done;
-			}
-			for ( id = bdb_idl_first( candidates, &cursor );
-				id != NOID &&
-					id <= (ID)( ps->ps_cookie );
-				id = bdb_idl_next( candidates, &cursor ) )
-			{
-				/* empty */;
-			}
+		cursor = (ID) ps->ps_cookie;
+		if ( cursor && ps->ps_size == 0 ) {
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_text = "search abandoned by pagedResult size=0";
+			send_ldap_result( op, rs );
+			goto done;
 		}
-
-		if ( cursor == NOID ) {
+		id = bdb_idl_first( candidates, &cursor );
+		if ( id == NOID ) {
 			Debug( LDAP_DEBUG_TRACE, 
 				LDAP_XSTRING(bdb_search)
 				": no paged results candidates\n",
@@ -642,6 +631,8 @@ dn2entry_retry:
 			goto done;
 		}
 		nentries = ps->ps_count;
+		if ( id == (ID)ps->ps_cookie )
+			id = bdb_idl_next( candidates, &cursor );
 		goto loop_begin;
 	}
 
