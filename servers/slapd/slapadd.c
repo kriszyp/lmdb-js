@@ -353,9 +353,12 @@ slapadd( int argc, char **argv )
 			ctxcsn_e = be->be_entry_get( be, ctxcsn_id );
 			if ( ctxcsn_e != NULL ) {
 				Entry *e = entry_dup( ctxcsn_e );
+				int change;
 				attr = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
 				if ( attr ) {
 					int		i;
+
+					change = 0;
 
 					for ( i = 0; !BER_BVISNULL( &attr->a_nvals[ i ] ); i++ ) {
 						int rc_sid;
@@ -384,7 +387,9 @@ slapadd( int argc, char **argv )
 								&maxcsn[ sid ], &attr->a_nvals[i], &text );
 						}
 
-						if ( match < 0 ) {
+						if ( match > 0 ) {
+							change = 1;
+						} else {
 							AC_MEMCPY( maxcsn[ sid ].bv_val,
 								attr->a_nvals[ i ].bv_val,
 								attr->a_nvals[ i ].bv_len );
@@ -393,29 +398,36 @@ slapadd( int argc, char **argv )
 						}
 					}
 
-					if ( attr->a_nvals != attr->a_nvals ) {
-						ber_bvarray_free( attr->a_nvals );
+					if ( change ) {
+						if ( attr->a_nvals != attr->a_vals ) {
+							ber_bvarray_free( attr->a_nvals );
+						}
+						attr->a_nvals = NULL;
+						ber_bvarray_free( attr->a_vals );
+						attr->a_vals = NULL;
+						attr->a_numvals = 0;
 					}
-					attr->a_nvals = NULL;
-					ber_bvarray_free( attr->a_vals );
-					attr->a_vals = NULL;
+				} else {
+					change = 1;
 				}
 
-				for ( sid = 0; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
-					if ( maxcsn[ sid ].bv_len ) {
-						attr_merge_one( e, slap_schema.si_ad_contextCSN,
-							&maxcsn[ sid], NULL );
+				if ( change ) {
+					for ( sid = 0; sid <= SLAP_SYNC_SID_MAX; sid++ ) {
+						if ( maxcsn[ sid ].bv_len ) {
+							attr_merge_one( e, slap_schema.si_ad_contextCSN,
+								&maxcsn[ sid], NULL );
+						}
 					}
-				}
-			
-				ctxcsn_id = be->be_entry_modify( be, e, &bvtext );
-				if( ctxcsn_id == NOID ) {
-					fprintf( stderr, "%s: could not modify ctxcsn\n",
-						progname);
-					rc = EXIT_FAILURE;
-				} else if ( verbose ) {
-					fprintf( stderr, "modified: \"%s\" (%08lx)\n",
-						e->e_dn, (long) ctxcsn_id );
+
+					ctxcsn_id = be->be_entry_modify( be, e, &bvtext );
+					if( ctxcsn_id == NOID ) {
+						fprintf( stderr, "%s: could not modify ctxcsn\n",
+							progname);
+						rc = EXIT_FAILURE;
+					} else if ( verbose ) {
+						fprintf( stderr, "modified: \"%s\" (%08lx)\n",
+							e->e_dn, (long) ctxcsn_id );
+					}
 				}
 				entry_free( e );
 			}

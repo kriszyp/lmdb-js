@@ -5,6 +5,7 @@ OpenLDAP 2.4.7 Engineering
 	Fixed slapd sasl-host parsing (ITS#5209)
 	Fixed slapd filter normalization (ITS#5212)
 	Fixed slapd multiple sufix checking (ITS#5186)
+	Fixed slapd contextCSN updating from old releases (ITS#5225)
 	Fixed slapo-ppolicy single password check on modify (ITS#5146)
 	Fixed slapo-syncprov refresh and persist cookie sending (ITS#5210)
 	Fixed slapo-syncprov ignore invalid cookies (ITS#5211)
