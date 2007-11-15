@@ -5943,6 +5943,7 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 	Connection conn = {0};
 	Operation *op = NULL;
 	void *thrctx;
+	int isFrontend = 0;
 
 	/* Create entry for frontend database if it does not exist already */
 	if ( !entry_put_got_frontend ) {
@@ -5992,11 +5993,12 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 				}
 			} else {
 				entry_put_got_frontend++;
+				isFrontend = 1;
 			}
 		}
 	}
 	/* Create entry for config database if it does not exist already */
-	if ( !entry_put_got_config ) {
+	if ( !entry_put_got_config && !isFrontend ) {
 		if ( !strncmp( e->e_nname.bv_val, "olcDatabase",
 				STRLENOF( "olcDatabase" ))) {
 			if ( strncmp( e->e_nname.bv_val +
