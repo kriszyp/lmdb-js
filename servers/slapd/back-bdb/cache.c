@@ -119,13 +119,13 @@ static void
 bdb_cache_lru_link( struct bdb_info *bdb, EntryInfo *ei )
 {
 
+	/* Already linked, ignore */
+	if ( ei->bei_lruprev )
+		return;
+
 	/* Insert into circular LRU list */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_lru_mutex );
 
-	/* Still linked, remove */
-	if ( ei->bei_lruprev ) {
-		LRU_DEL( &bdb->bi_cache, ei );
-	}
 	ei->bei_lruprev = bdb->bi_cache.c_lrutail;
 	if ( bdb->bi_cache.c_lrutail ) {
 		ei->bei_lrunext = bdb->bi_cache.c_lrutail->bei_lrunext;
@@ -248,6 +248,28 @@ bdb_cache_entry_db_unlock ( struct bdb_info *bdb, DB_LOCK *lock )
 	rc = LOCK_PUT ( bdb->bi_dbenv, lock );
 	return rc;
 #endif
+}
+
+void
+bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
+	int rw, DB_LOCK *lock )
+{
+	EntryInfo *ei;
+	int free = 0;
+
+	bdb_cache_entry_db_unlock( bdb, lock );
+	ei = e->e_private;
+	bdb_cache_entryinfo_lock( ei );
+	if ( ei->bei_state & CACHE_ENTRY_NOT_CACHED ) {
+		ei->bei_e = NULL;
+		ei->bei_state ^= CACHE_ENTRY_NOT_CACHED;
+		free = 1;
+	}
+	bdb_cache_entryinfo_unlock( ei );
+	if ( free ) {
+		e->e_private = NULL;
+		bdb_entry_return( e );
+	}
 }
 
 static int
@@ -541,6 +563,7 @@ hdb_cache_find_parent(
 
 		/* Got the parent, link in and we're done. */
 		if ( ei2 ) {
+			bdb_cache_entryinfo_lock( eir );
 			bdb_cache_entryinfo_lock( ei2 );
 			ein->bei_parent = ei2;
 
@@ -553,7 +576,6 @@ hdb_cache_find_parent(
 				ein->bei_state &= ~CACHE_ENTRY_NOT_LINKED;
 
 			bdb_cache_entryinfo_unlock( ei2 );
-			bdb_cache_entryinfo_lock( eir );
 
 			*res = eir;
 			break;
@@ -737,7 +759,7 @@ bdb_cache_find_info(
 
 /*
  * cache_find_id - find an entry in the cache, given id.
- * The entry is locked for Read upon return. Call with islocked TRUE if
+ * The entry is locked for Read upon return. Call with flag ID_LOCKED if
  * the supplied *eip was already locked.
  */
 
@@ -747,7 +769,7 @@ bdb_cache_find_id(
 	DB_TXN	*tid,
 	ID				id,
 	EntryInfo	**eip,
-	int		islocked,
+	int		flag,
 	BDB_LOCKER	locker,
 	DB_LOCK		*lock )
 {
@@ -789,7 +811,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 				ldap_pvt_thread_yield();
 				goto again;
 			}
-			islocked = 1;
+			flag |= ID_LOCKED;
 		}
 		ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
 	}
@@ -801,7 +823,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		if ( rc == 0 ) {
 			rc = bdb_cache_find_ndn( op, tid,
 				&ep->e_nname, eip );
-			if ( *eip ) islocked = 1;
+			if ( *eip ) flag |= ID_LOCKED;
 			if ( rc ) {
 				ep->e_private = NULL;
 #ifdef SLAP_ZONE_ALLOC
@@ -814,7 +836,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		}
 #else
 		rc = hdb_cache_find_parent(op, tid, locker, id, eip );
-		if ( rc == 0 ) islocked = 1;
+		if ( rc == 0 ) flag |= ID_LOCKED;
 #endif
 	}
 
@@ -839,9 +861,18 @@ load1:
 				(*eip)->bei_state |= CACHE_ENTRY_LOADING;
 			}
 
-			if ( islocked ) {
+			/* If the entry was loaded before but uncached, and we need
+			 * it again, clear the uncached state
+			 */
+			if ( (*eip)->bei_state & CACHE_ENTRY_NOT_CACHED ) {
+				(*eip)->bei_state ^= CACHE_ENTRY_NOT_CACHED;
+				if ( flag & ID_NOCACHE )
+					flag ^= ID_NOCACHE;
+			}
+
+			if ( flag & ID_LOCKED ) {
 				bdb_cache_entryinfo_unlock( *eip );
-				islocked = 0;
+				flag ^= ID_LOCKED;
 			}
 			rc = bdb_cache_entry_db_lock( bdb, locker, *eip, load, 0, lock );
 			if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
@@ -863,6 +894,11 @@ load1:
 #endif
 						ep = NULL;
 						bdb_cache_lru_link( bdb, *eip );
+						if ( flag & ID_NOCACHE ) {
+							bdb_cache_entryinfo_lock( *eip );
+							(*eip)->bei_state |= CACHE_ENTRY_NOT_CACHED;
+							bdb_cache_entryinfo_unlock( *eip );
+						}
 					}
 					if ( rc == 0 ) {
 						/* If we succeeded, downgrade back to a readlock. */
@@ -878,7 +914,7 @@ load1:
 					 */
 					bdb_cache_entry_db_unlock( bdb, lock );
 					bdb_cache_entryinfo_lock( *eip );
-					islocked = 1;
+					flag |= ID_LOCKED;
 					goto load1;
 #ifdef BDB_HIER
 				} else {
@@ -904,7 +940,7 @@ load1:
 			}
 		}
 	}
-	if ( islocked ) {
+	if ( flag & ID_LOCKED ) {
 		bdb_cache_entryinfo_unlock( *eip );
 	}
 	if ( ep ) {
@@ -919,14 +955,16 @@ load1:
 		int purge = 0;
 
 		if ( load ) {
-			ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
-			bdb->bi_cache.c_cursize++;
-			if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
-				!bdb->bi_cache.c_purging ) {
-				purge = 1;
-				bdb->bi_cache.c_purging = 1;
+			if ( !( flag & ID_NOCACHE )) {
+				ldap_pvt_thread_mutex_lock( &bdb->bi_cache.c_count_mutex );
+				bdb->bi_cache.c_cursize++;
+				if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize &&
+					!bdb->bi_cache.c_purging ) {
+					purge = 1;
+					bdb->bi_cache.c_purging = 1;
+				}
+				ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 			}
-			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.c_count_mutex );
 		}
 		if ( purge )
 			bdb_cache_lru_purge( bdb );

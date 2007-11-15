@@ -456,6 +456,7 @@ bdb_monitor_idx_add(
  * cache.c
  */
 #define bdb_cache_entry_db_unlock	BDB_SYMBOL(cache_entry_db_unlock)
+#define bdb_cache_return_entry_rw	BDB_SYMBOL(cache_return_entry_rw)
 
 #define	bdb_cache_entryinfo_lock(e) \
 	ldap_pvt_thread_mutex_lock( &(e)->bei_kids_mutex )
@@ -467,15 +468,8 @@ bdb_monitor_idx_add(
 /* What a mess. Hopefully the current cache scheme will stabilize
  * and we can trim out all of this stuff.
  */
-#if 0
 void bdb_cache_return_entry_rw( struct bdb_info *bdb, Entry *e,
 	int rw, DB_LOCK *lock );
-#else
-#define bdb_cache_return_entry_rw( bdb, e, rw, lock ) \
-	bdb_cache_entry_db_unlock( bdb, lock )
-#define	bdb_cache_return_entry( bdb, lock ) \
-	bdb_cache_entry_db_unlock( bdb, lock )
-#endif
 #define bdb_cache_return_entry_r(bdb, e, l) \
 	bdb_cache_return_entry_rw((bdb), (e), 0, (l))
 #define bdb_cache_return_entry_w(bdb, e, l) \
@@ -542,12 +536,15 @@ EntryInfo * bdb_cache_find_info(
 	struct bdb_info *bdb,
 	ID id
 );
+
+#define	ID_LOCKED	1
+#define	ID_NOCACHE	2
 int bdb_cache_find_id(
 	Operation *op,
 	DB_TXN	*tid,
 	ID		id,
 	EntryInfo **eip,
-	int	islocked,
+	int	flag,
 	BDB_LOCKER	locker,
 	DB_LOCK		*lock
 );

@@ -117,6 +117,7 @@ typedef struct bdb_entry_info {
 #define	CACHE_ENTRY_WALKING	0x20
 #define	CACHE_ENTRY_ONELEVEL	0x40
 #define	CACHE_ENTRY_REFERENCED	0x80
+#define	CACHE_ENTRY_NOT_CACHED	0x100
 	int bei_finders;
 
 	/*
