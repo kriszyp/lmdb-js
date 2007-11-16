@@ -149,14 +149,14 @@ H3: syncrepl replication
 H3: delta-syncrepl replication
 
 
-H3: N-Way Multi-Master
+H3: N-Way Multi-Master replication
 
 http://www.connexitor.com/blog/pivot/entry.php?id=105#body
 http://www.openldap.org/lists/openldap-software/200702/msg00006.html
 http://www.openldap.org/lists/openldap-software/200602/msg00064.html
 
 
-H3: MirrorMode
+H3: MirrorMode replication
 
 MirrorMode is a hybrid configuration that provides all of the consistency
 guarantees of single-master replication, while also providing the high
@@ -611,16 +611,18 @@ happen with a non-MirrorMode deployment also.
 H3: MirrorMode Configuration
 
 MirrorMode configuration is actually very easy. If you have ever setup a normal
-slapd syncrepl provider, then the only change is the directive:
+slapd syncrepl provider, then the only change is the following two directives:
 
 >       mirrormode  on
+>       serverID    1
 
-You also need to make sure the {{rid}} of each mirror node pair is different and
-that the {{provider}} syncrepl directive points to the opposite mirror node.
+Note: You need to make sure that the {{sererID}} of each mirror node pair is 
+different and that the {{provider}} syncrepl directive points to the opposite 
+mirror node.
 
 H4: Mirror Node Configuration
 
-This is the same as the {{SECT:Set up the provider slapd}} section, referencing
+This is the same as the {{SECT:Set up the provider slapd}} section, reference
 {{SECT:delta-syncrepl replication}} if using {{delta-syncrepl}}.
 
 Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
@@ -628,7 +630,7 @@ Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
 
 MirrorMode node 1:
 
->       # syncrepl directives
+>       # syncrepl directives    
 >       syncrepl      rid=1
 >                     provider=ldap://ldap-rid2.example.com
 >                     bindmethod=simple
@@ -640,11 +642,12 @@ MirrorMode node 1:
 >                     retry="60 +"
 >       
 >       mirrormode on
+>       serverID    1
 
 MirrorMode node 2:
 
 >       # syncrepl directives
->       syncrepl      rid=2
+>       syncrepl      rid=1
 >                     provider=ldap://ldap-rid1.example.com
 >                     bindmethod=simple
 >                     binddn="cn=mirrormode,dc=example,dc=com"
@@ -655,16 +658,18 @@ MirrorMode node 2:
 >                     retry="60 +"
 >       
 >       mirrormode on
+>       serverID    2
 
 It's simple really; each MirrorMode node is setup {{B:exactly}} the same, except
-that the {{B:provider}} directive is set to point to the other MirrorMode node.
+that the {{B:provider}} directive is set to point to the other MirrorMode node
+and the {{serverID}} is unique.
 
 H4: Failover Configuration
 
 There are generally 2 choices for this; 1.  Hardware proxies/load-balancing or 
 dedicated proxy software, 2. using a Back-LDAP proxy as a syncrepl provider
 
-MORE HERE and a nice PICTURE
+A typical enterprise example might be:
 
 
 H4: Normal Consumer Configuration
