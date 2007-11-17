@@ -94,9 +94,12 @@ olcAttributeTypes: ( 2.5.4.5 NAME 'serialNumber'
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{64} )
 #
-olcAttributeTypes: ( 2.5.4.6 NAME ( 'c' 'countryName' )
-  DESC 'RFC2256: ISO-3166 country 2-letter code'
-  SUP name SINGLE-VALUE )
+# RFC 4519 definition ('countryName' in X.500 and RFC2256)
+olcAttributeTypes: ( 2.5.4.6 NAME 'c'
+  DESC 'RFC4519: two-letter ISO-3166 country code'
+  SUP name
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.11
+  SINGLE-VALUE )
 #
 olcAttributeTypes: ( 2.5.4.7 NAME ( 'l' 'localityName' )
   DESC 'RFC2256: locality which this object resides in'
