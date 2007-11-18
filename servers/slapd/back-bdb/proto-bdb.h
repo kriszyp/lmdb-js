@@ -335,7 +335,7 @@ int bdb_idl_append_one( ID *ids, ID id );
 #define bdb_index_recset			BDB_SYMBOL(index_recset)
 #define bdb_index_recrun			BDB_SYMBOL(index_recrun)
 
-extern int
+extern AttrInfo *
 bdb_index_mask LDAP_P((
 	Backend *be,
 	AttributeDescription *desc,
