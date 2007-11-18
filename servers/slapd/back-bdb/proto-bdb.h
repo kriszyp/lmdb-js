@@ -74,7 +74,7 @@ int bdb_back_init_cf( BackendInfo *bi );
 int
 bdb_db_cache(
     Backend	*be,
-    const char *name,
+    struct berval *name,
 	DB **db );
 
 /*
@@ -328,7 +328,7 @@ int bdb_idl_append_one( ID *ids, ID id );
 /*
  * index.c
  */
-#define bdb_index_is_indexed		BDB_SYMBOL(index_is_indexed)
+#define bdb_index_mask				BDB_SYMBOL(index_mask)
 #define bdb_index_param				BDB_SYMBOL(index_param)
 #define bdb_index_values			BDB_SYMBOL(index_values)
 #define bdb_index_entry				BDB_SYMBOL(index_entry)
@@ -336,9 +336,10 @@ int bdb_idl_append_one( ID *ids, ID id );
 #define bdb_index_recrun			BDB_SYMBOL(index_recrun)
 
 extern int
-bdb_index_is_indexed LDAP_P((
+bdb_index_mask LDAP_P((
 	Backend *be,
-	AttributeDescription *desc ));
+	AttributeDescription *desc,
+	struct berval *name ));
 
 extern int
 bdb_index_param LDAP_P((

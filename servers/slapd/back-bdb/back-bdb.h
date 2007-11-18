@@ -174,7 +174,7 @@ typedef struct bdb_cache {
 #define BDB_INDICES		128
 
 struct bdb_db_info {
-	char		*bdi_name;
+	struct berval	bdi_name;
 	DB			*bdi_db;
 };
 

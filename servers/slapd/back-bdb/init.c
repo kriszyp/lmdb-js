@@ -30,13 +30,13 @@
 
 static const struct bdbi_database {
 	char *file;
-	char *name;
+	struct berval name;
 	int type;
 	int flags;
 } bdbi_databases[] = {
-	{ "id2entry" BDB_SUFFIX, "id2entry", DB_BTREE, 0 },
-	{ "dn2id" BDB_SUFFIX, "dn2id", DB_BTREE, 0 },
-	{ NULL, NULL, 0, 0 }
+	{ "id2entry" BDB_SUFFIX, BER_BVC("id2entry"), DB_BTREE, 0 },
+	{ "dn2id" BDB_SUFFIX, BER_BVC("dn2id"), DB_BTREE, 0 },
+	{ NULL, BER_BVNULL, 0, 0 }
 };
 
 typedef void * db_malloc(size_t);
@@ -373,7 +373,7 @@ shm_retry:
 		BDB_INDICES * sizeof(struct bdb_db_info *) );
 
 	/* open (and create) main database */
-	for( i = 0; bdbi_databases[i].name; i++ ) {
+	for( i = 0; bdbi_databases[i].name.bv_val; i++ ) {
 		struct bdb_db_info *db;
 
 		db = (struct bdb_db_info *) ch_calloc(1, sizeof(struct bdb_db_info));
@@ -546,7 +546,7 @@ bdb_db_close( BackendDB *be, ConfigReply *cr )
 		rc = db->bdi_db->close( db->bdi_db, 0 );
 		/* Lower numbered names are not strdup'd */
 		if( bdb->bi_ndatabases >= BDB_NDB )
-			free( db->bdi_name );
+			free( db->bdi_name.bv_val );
 		free( db );
 	}
 	free( bdb->bi_databases );
