@@ -10,6 +10,7 @@ OpenLDAP 2.4.7 Engineering
 	Fixed slapd syncrepl presentlist handling (ITS#5231)
 	Fixed slapd core schema 'c' definition for RFC4519 (ITS#5236)
 	Fixed slapd-bdb to report and fail on internal errors (ITS#5232)
+	Fixed slapo-pcache op->o_abandon handling (ITS#5187)
 	Fixed slapo-ppolicy single password check on modify (ITS#5146)
 	Fixed slapo-syncprov refresh and persist cookie sending (ITS#5210)
 	Fixed slapo-syncprov ignore invalid cookies (ITS#5211)

@@ -1877,14 +1877,19 @@ cache_entries(
 	Entry		*e;
 	struct berval	crp_uuid;
 	char		uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
-	Operation op_tmp = *op;
+	Operation	*op_tmp;
+	Connection	conn = {0};
+	OperationBuffer opbuf;
+	void		*thrctx = ldap_pvt_thread_pool_context();
 
 	query_uuid->bv_len = lutil_uuidstr(uuidbuf, sizeof(uuidbuf));
 	ber_str2bv(uuidbuf, query_uuid->bv_len, 1, query_uuid);
 
-	op_tmp.o_bd = &cm->db;
-	op_tmp.o_dn = cm->db.be_rootdn;
-	op_tmp.o_ndn = cm->db.be_rootndn;
+	connection_fake_init2( &conn, &opbuf, thrctx, 0 );
+	op_tmp = &opbuf.ob_op;
+	op_tmp->o_bd = &cm->db;
+	op_tmp->o_dn = cm->db.be_rootdn;
+	op_tmp->o_ndn = cm->db.be_rootndn;
 
 	Debug( pcache_debug, "UUID for query being added = %s\n",
 			uuidbuf, 0, 0 );
@@ -1894,10 +1899,10 @@ cache_entries(
 		e->e_private = NULL;
 		while ( cm->cur_entries > (cm->max_entries) ) {
 			BER_BVZERO( &crp_uuid );
-			remove_query_and_data( &op_tmp, rs, cm, &crp_uuid );
+			remove_query_and_data( op_tmp, rs, cm, &crp_uuid );
 		}
 
-		return_val = merge_entry(&op_tmp, e, query_uuid);
+		return_val = merge_entry(op_tmp, e, query_uuid);
 		ldap_pvt_thread_mutex_lock(&cm->cache_mutex);
 		cm->cur_entries += return_val;
 		Debug( pcache_debug,
@@ -1959,7 +1964,8 @@ pcache_op_cleanup( Operation *op, SlapReply *rs ) {
 			rs->sr_attrs = si->save_attrs;
 			op->ors_attrs = si->save_attrs;
 		}
-		if ( op->o_abandon || rs->sr_err == SLAPD_ABANDON ) {
+		if ( (op->o_abandon || rs->sr_err == SLAPD_ABANDON) && 
+				si->caching_reason == PC_IGNORE ) {
 			filter_free( si->query.filter );
 			if ( si->count ) {
 				/* duplicate query, free it */
