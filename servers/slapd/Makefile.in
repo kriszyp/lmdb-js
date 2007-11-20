@@ -138,7 +138,7 @@ SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 # for functions, but it is required for variables.
 #
 # The symdummy.c file basically references EVERY symbol available to slapd.exe,
-# including symbols that slapd.exe never actually refereneced. The file
+# including symbols that slapd.exe never actually referenced. The file
 # is compiled and included at link time. Without this object file, slapd.exe
 # would NOT export symbols that it never referenced. The reason that these
 # symbols must still be exported is because a dynamic module may want to
@@ -155,7 +155,7 @@ SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 # on its own very long list of dependencies.
 #
 slapd.def: libbackends.a liboverlays.a version.o
-	@for i in $(LDFLAGS) ; do \
+	@for i in XX $(LDFLAGS) ; do \
 	    path=`expr "$$i" : "-L\(.*\)"`; \
 	    if test $$? != 0; then continue; fi; \
 	    paths="$$paths $$path"; \
@@ -167,7 +167,7 @@ slapd.def: libbackends.a liboverlays.a version.o
 		-l*) \
 		    done="" ;\
 		    base=`expr "$$i" : "-l\(.*\)"`; \
-		    for p in $$paths ; do \
+		    for p in . $$paths ; do \
 			for ext in la dll dll.a a ; do \
 			    path=$$p/lib$$base.$$ext; \
 			    test ! -f $$path && continue; \
