@@ -4909,6 +4909,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 	struct berval rdn;
 	char *ptr;
 	AttributeDescription *rad = NULL;
+	int do_pause = 1;
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
 
@@ -4939,11 +4940,17 @@ config_back_modify( Operation *op, SlapReply *rs )
 			rs->sr_text = "Use modrdn to change the entry name";
 			goto out;
 		}
+		/* Internal update of contextCSN? */
+		if ( ml->sml_desc == slap_schema.si_ad_contextCSN && op->o_conn->c_conn_idx == -1 ) {
+			do_pause = 0;
+			break;
+		}
 	}
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
-	ldap_pvt_thread_pool_pause( &connection_pool );
+	if ( do_pause )
+		ldap_pvt_thread_pool_pause( &connection_pool );
 
 	/* Strategy:
 	 * 1) perform the Modify on the cached Entry.
@@ -4975,7 +4982,8 @@ config_back_modify( Operation *op, SlapReply *rs )
 		op->o_ndn = ndn;
 	}
 
-	ldap_pvt_thread_pool_resume( &connection_pool );
+	if ( do_pause )
+		ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
