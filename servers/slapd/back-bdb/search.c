@@ -692,6 +692,10 @@ fetch_entry_retry:
 				|| rs->sr_err == DB_LOCK_NOTGRANTED )
 			{
 				goto fetch_entry_retry;
+			} else if ( rs->sr_err == LDAP_OTHER ) {
+				rs->sr_text = "internal error";
+				send_ldap_result( op, rs );
+				goto done;
 			}
 
 			if ( ei && rs->sr_err == LDAP_SUCCESS ) {
