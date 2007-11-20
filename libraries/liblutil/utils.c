@@ -755,7 +755,7 @@ lutil_str2bin( struct berval *in, struct berval *out )
 			scale( l, &num, tmp );
 			pin += chunk;
 			len -= chunk;
-			chunk = HEXMAX;
+			chunk = DECMAX;
 		}
 		if ( num.beg )
 			AC_MEMCPY( num.buf, num.buf+num.beg, num.len );
