@@ -660,7 +660,7 @@ the group entry).
 
 Some factors may not be appropriate in all environments (or any).
 For example, the domain factor relies on IP to domain name lookups.
-As these can easily spoofed, the domain factor should not be avoided.
+As these can easily spoofed, the domain factor should be avoided.
 
 
 H3: The access to grant
