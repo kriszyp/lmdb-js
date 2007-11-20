@@ -17,6 +17,7 @@ OpenLDAP 2.4.7 Engineering
 	Updated contrib addpartial module (ITS#3593)
 	Build Environment
 		Fixed liblber socket library linking (ITS#5224)
+		Fixed Windows slapd.def rules (ITS#5215)
 	Documentation
 		Fixed grammar errors (ITS#5223)
 		Refint overlay doc contribution (ITS#5217)
