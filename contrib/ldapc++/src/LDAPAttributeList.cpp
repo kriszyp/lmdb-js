@@ -13,6 +13,8 @@
 #include "LDAPAsynConnection.h"
 #include "LDAPMessage.h"
 
+#include <cstdlib>
+
 using namespace std;
 
 // little helper function for doing case insensitve string comparison

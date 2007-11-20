@@ -7,6 +7,8 @@
 #include "LDAPModList.h"
 #include "debug.h"
 
+#include <cstdlib>
+
 using namespace std;
 
 LDAPModList::LDAPModList(){

@@ -10,6 +10,8 @@
 #include "LDAPBindRequest.h"
 #include "LDAPException.h"
 
+#include <cstdlib>
+
 using namespace std;
 
 LDAPBindRequest::LDAPBindRequest(const LDAPBindRequest& req) :

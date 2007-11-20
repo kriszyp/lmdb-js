@@ -10,6 +10,8 @@
 #include "LDAPRequest.h"
 #include "LDAPException.h"
 
+#include <cstdlib>
+
 using namespace std;
 
 LDAPResult::LDAPResult(const LDAPRequest *req, LDAPMessage *msg) : 

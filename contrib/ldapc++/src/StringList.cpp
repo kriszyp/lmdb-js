@@ -6,6 +6,8 @@
 #include "StringList.h"
 #include "debug.h"
 
+#include <cstdlib>
+
 using namespace std;
 
 StringList::StringList(){

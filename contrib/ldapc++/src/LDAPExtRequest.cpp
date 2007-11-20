@@ -12,6 +12,8 @@
 #include "LDAPException.h"
 #include "LDAPResult.h"
 
+#include <cstdlib>
+
 using namespace std;
 
 LDAPExtRequest::LDAPExtRequest(const LDAPExtRequest& req) :

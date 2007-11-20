@@ -1,5 +1,6 @@
 #include <LDAPUrl.h>
 #include <LDAPException.h>
+#include <cstdlib>
 #include <iostream>
 
 int main(int argc, char *argv[]) {
