@@ -9,6 +9,7 @@ OpenLDAP 2.4.7 Engineering
 	Fixed slapd paged results handling when using rootdn (ITS#5230)
 	Fixed slapd syncrepl presentlist handling (ITS#5231)
 	Fixed slapd core schema 'c' definition for RFC4519 (ITS#5236)
+	Fixed slapd 3-way Multi-Master Replication (ITS#5238)
 	Fixed slapd-bdb to report and fail on internal errors (ITS#5232)
 	Fixed slapo-pcache op->o_abandon handling (ITS#5187)
 	Fixed slapo-ppolicy single password check on modify (ITS#5146)

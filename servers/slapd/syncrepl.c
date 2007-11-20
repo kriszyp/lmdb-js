@@ -522,6 +522,7 @@ do_syncrep1(
 				if ( ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
 					si->si_cookieState->cs_vals, NULL )) {
 					rc = LDAP_NO_MEMORY;
+					ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 					goto done;
 				}
 				si->si_syncCookie.numcsns = si->si_cookieState->cs_num;

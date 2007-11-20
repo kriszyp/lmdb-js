@@ -1257,6 +1257,7 @@ void connection_client_stop(
 	c->c_listener = NULL;
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
+	c->c_sd = AC_SOCKET_INVALID;
 	c->c_close_reason = "?";			/* should never be needed */
 	sb = c->c_sb;
 	c->c_sb = ber_sockbuf_alloc( );
