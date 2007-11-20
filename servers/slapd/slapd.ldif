@@ -28,6 +28,7 @@ olcPidFile:		%LOCALSTATEDIR%/run/slapd.pid
 #
 #dn: cn=module,cn=config
 #objectClass: olcModuleList
+#cn: module
 #olcModulepath:	%MODULEDIR%
 #olcModuleload:	back_bdb.la
 #olcModuleload:	back_hdb.la
@@ -82,7 +83,7 @@ olcDatabase: bdb
 olcSuffix:		dc=my-domain,dc=com
 olcRootDN:		cn=Manager,dc=my-domain,dc=com
 # Cleartext passwords, especially for the rootdn, should
-# be avoided.  See slappasswd(8) and slapd.d(5) for details.
+# be avoided.  See slappasswd(8) and slapd-config(5) for details.
 # Use of strong authentication encouraged.
 olcRootPW:		secret
 # The database directory MUST exist prior to running slapd AND 
