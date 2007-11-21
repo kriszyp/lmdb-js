@@ -1510,10 +1510,14 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_IX_INTLEN:
-			if ( c->value_int < 4 )
-				c->value_int = 4;
+			if ( !c->value_int ) {
+				slap_schema.si_mr_integerMatch->smr_usage &= ~SLAP_MR_ORDERED_INDEX;
+			} else {
+				if ( c->value_int < 4 )
+					c->value_int = 4;
+				slap_schema.si_mr_integerMatch->smr_usage |= SLAP_MR_ORDERED_INDEX;
+			}
 			index_intlen = c->value_int;
-			slap_schema.si_mr_integerMatch->smr_usage |= SLAP_MR_ORDERED_INDEX;
 			break;
 			
 		case CFG_SORTVALS: {
