@@ -15,6 +15,7 @@ slapindex \- SLAPD index to LDIF utility
 .B [\-n dbnum]
 .B [\-o name[=value]]
 .B [\-q]
+.B [\-t]
 .B [\-v]
 .B [attr] [...]
 .B 
@@ -115,6 +116,10 @@ when writing the database. Improves indexing time,
 .B however
 the database will most likely be unusable if any errors or
 interruptions occur.
+.TP
+.B \-t
+enable truncate mode. Truncates (empties) an index database before indexing
+any entries. May only be used with Quick mode.
 .TP
 .B \-v
 enable verbose mode.
