@@ -416,34 +416,32 @@ esac
 #actually, 12 would be answerable, but since 8 made mail=*example.com
 #not answerable because of sizelimit, queries contained in it are no longer
 #answerable as well
-
-#FIXME: Anwerability test is currently disabled due to ITS#5187
-#ANSWERABILITY=111001
-#grep ANSWERABLE $LOG2 | awk -vFIRST=$FIRST '{ 
-#		if (NR > FIRST) { 
-#			if ($2 == "NOT") 
-#				printf "Query %d not answerable\n",NR
-#			else 
-#				printf "Query %d answerable\n",NR 
-#		}
-#	}' 
-#ANSWERED=`grep ANSWERABLE $LOG2 | awk -vFIRST=$FIRST '{ 
-#		if (NR > FIRST) { 
-#			if ($2 == "NOT") 
-#				printf "0" 
-#			else 
-#				printf "1"
-#		} 
-#	}'`
+ANSWERABILITY=111001
+grep ANSWERABLE $LOG2 | awk -vFIRST=$FIRST '{ 
+		if (NR > FIRST) { 
+			if ($2 == "NOT") 
+				printf "Query %d not answerable\n",NR
+			else 
+				printf "Query %d answerable\n",NR 
+		}
+	}' 
+ANSWERED=`grep ANSWERABLE $LOG2 | awk -vFIRST=$FIRST '{ 
+		if (NR > FIRST) { 
+			if ($2 == "NOT") 
+				printf "0" 
+			else 
+				printf "1"
+		} 
+	}'`
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-#if test "$ANSWERABILITY" = "$ANSWERED" ; then
-#	echo "Successfully verified answerability"
-#else 
-#	echo "Error in verifying answerability"
-#	exit 1
-#fi
+if test "$ANSWERABILITY" = "$ANSWERED" ; then
+	echo "Successfully verified answerability"
+else 
+	echo "Error in verifying answerability"
+	exit 1
+fi
 
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
