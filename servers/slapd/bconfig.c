@@ -1515,6 +1515,8 @@ config_generic(ConfigArgs *c) {
 			} else {
 				if ( c->value_int < 4 )
 					c->value_int = 4;
+				else if ( c->value_int > 255 )
+					c->value_int = 255;
 				slap_schema.si_mr_integerMatch->smr_usage |= SLAP_MR_ORDERED_INDEX;
 			}
 			index_intlen = c->value_int;
