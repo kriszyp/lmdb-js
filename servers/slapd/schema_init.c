@@ -62,6 +62,9 @@ unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
 unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
 unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
 
+/* Default to no ordered integer indexing */
+unsigned int index_intlen = 0;
+
 ldap_pvt_thread_mutex_t	ad_undef_mutex;
 ldap_pvt_thread_mutex_t	oc_undef_mutex;
 
@@ -2109,7 +2112,148 @@ integerMatch(
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
-	
+
+/* Index generation function */
+static int
+integerIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	BerVarray values,
+	BerVarray *keysp,
+	void *ctx )
+{
+	char ibuf[64];
+	struct berval iv, itmp;
+	BerVarray keys;
+	int i, rc;
+
+	if ( !index_intlen ) {
+		return octetStringIndexer( use, flags, syntax, mr,
+			prefix, values, keysp, ctx );
+	}
+
+	for( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
+		/* just count them */
+	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
+
+	keys = slap_sl_malloc( sizeof( struct berval ) * (i+1), ctx );
+	for ( i = 0; !BER_BVISNULL( &values[i] ); i++ ) {
+		keys[i].bv_len = index_intlen+1;
+		keys[i].bv_val = slap_sl_malloc( index_intlen+1, ctx );
+	}
+	keys[i].bv_len = 0;
+	keys[i].bv_val = NULL;
+
+	itmp.bv_val = ibuf;
+	itmp.bv_len = sizeof(ibuf);
+
+	for ( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
+		if ( values[i].bv_len > itmp.bv_len ) {
+			itmp.bv_len = values[i].bv_len;
+			if ( itmp.bv_val == ibuf ) {
+				itmp.bv_val = slap_sl_malloc( itmp.bv_len, ctx );
+			} else {
+				itmp.bv_val = slap_sl_realloc( itmp.bv_val, itmp.bv_len, ctx );
+			}
+		}
+		iv = itmp;
+		if ( lutil_str2bin( &values[i], &iv )) {
+			rc = LDAP_INVALID_SYNTAX;
+			goto leave;
+		}
+		/* If too small, pad with zeros */
+		if ( iv.bv_len < index_intlen ) {
+			int j, k;
+			keys[i].bv_val[0] = index_intlen;
+			k = index_intlen - iv.bv_len + 1;
+			for ( j=1; j<k; j++)
+				keys[i].bv_val[j] = 0;
+			for ( j = 0; j<iv.bv_len; j++ )
+				keys[i].bv_val[j+k] = iv.bv_val[j];
+		} else {
+			keys[i].bv_val[0] = iv.bv_len;
+			memcpy( keys[i].bv_val+1, iv.bv_val, index_intlen );
+		}
+	}
+	*keysp = keys;
+	rc = 0;
+leave:
+	if ( itmp.bv_val != ibuf ) {
+		slap_sl_free( itmp.bv_val, ctx );
+	}
+	return rc;
+}
+
+/* Index generation function */
+static int
+integerFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertedValue,
+	BerVarray *keysp,
+	void *ctx )
+{
+	char ibuf[64];
+	struct berval iv;
+	BerVarray keys;
+	struct berval *value;
+	int i, rc;
+
+	if ( !index_intlen ) {
+		return octetStringFilter( use, flags, syntax, mr,
+			prefix, assertedValue, keysp, ctx );
+	}
+
+	value = (struct berval *) assertedValue;
+
+	keys = slap_sl_malloc( sizeof( struct berval ) * 2, ctx );
+
+	keys[0].bv_len = index_intlen + 1;
+	keys[0].bv_val = slap_sl_malloc( index_intlen+1, ctx );
+
+	if ( value->bv_len > sizeof( ibuf )) {
+		iv.bv_val = slap_sl_malloc( value->bv_len, ctx );
+		iv.bv_len = value->bv_len;
+	} else {
+		iv.bv_val = ibuf;
+		iv.bv_len = sizeof(ibuf);
+	}
+
+	if ( lutil_str2bin( value, &iv )) {
+		rc = LDAP_INVALID_SYNTAX;
+		goto leave;
+	}
+	/* If too small, pad with zeros */
+	if ( iv.bv_len < index_intlen ) {
+		int j, k;
+		keys[0].bv_val[0] = index_intlen;
+		k = index_intlen - iv.bv_len + 1;
+		for ( j=1; j<k; j++)
+			keys[0].bv_val[j] = 0;
+		for ( j = 0; j<iv.bv_len; j++ )
+			keys[0].bv_val[j+k] = iv.bv_val[j];
+	} else {
+		keys[0].bv_val[0] = iv.bv_len;
+		memcpy( keys[0].bv_val+1, iv.bv_val, index_intlen );
+	}
+	rc = 0;
+	*keysp = keys;
+leave:
+	if ( iv.bv_val != ibuf ) {
+		slap_sl_free( iv.bv_val, ctx );
+	}
+	return rc;
+}
+
 static int
 countryStringValidate(
 	Syntax *syntax,
@@ -4652,7 +4796,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, NULL, integerMatch,
-		octetStringIndexer, octetStringFilter,
+		integerIndexer, integerFilter,
 		NULL },
 
 	{"( 2.5.13.15 NAME 'integerOrderingMatch' "

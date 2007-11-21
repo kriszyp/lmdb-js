@@ -179,6 +179,7 @@ enum {
 	CFG_MONITORING,
 	CFG_SERVERID,
 	CFG_SORTVALS,
+	CFG_IX_INTLEN,
 
 	CFG_LAST
 };
@@ -371,6 +372,9 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "index_substr_any_step", "step", 2, 2, 0, ARG_INT|ARG_NONZERO,
 		&index_substr_any_step, "( OLcfgGlAt:23 NAME 'olcIndexSubstrAnyStep' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ "index_intlen", "len", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_IX_INTLEN,
+		&config_generic, "( OLcfgGlAt:84 NAME 'olcIndexIntLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "lastmod", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD,
 		&config_generic, "( OLcfgDbAt:0.4 NAME 'olcLastMod' "
@@ -709,8 +713,8 @@ static ConfigOCs cf_ocs[] = {
 		 "olcConnMaxPending $ olcConnMaxPendingAuth $ "
 		 "olcDisallows $ olcGentleHUP $ olcIdleTimeout $ "
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
-		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
-		 "olcLogLevel $ "
+		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcIndexIntLen $ "
+		 "olcLocalSSF $ olcLogLevel $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
@@ -1014,6 +1018,12 @@ config_generic(ConfigArgs *c) {
 		case CFG_SSTR_IF_MIN:
 			c->value_int = index_substr_if_minlen;
 			break;
+		case CFG_IX_INTLEN:
+			if ( index_intlen )
+				c->value_int = index_intlen;
+			else
+				rc = 1;
+			break;
 		case CFG_SORTVALS: {
 			ADlist *sv;
 			rc = 1;
@@ -1149,6 +1159,11 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_HIDDEN:
 			c->be->be_flags &= ~SLAP_DBFLAG_HIDDEN;
+			break;
+
+		case CFG_IX_INTLEN:
+			index_intlen = 0;
+			slap_schema.si_mr_integerMatch->smr_usage &= ~SLAP_MR_ORDERED_INDEX;
 			break;
 
 		case CFG_ACL:
@@ -1494,6 +1509,13 @@ config_generic(ConfigArgs *c) {
 					return(1);
 			break;
 
+		case CFG_IX_INTLEN:
+			if ( c->value_int < 4 )
+				c->value_int = 4;
+			index_intlen = c->value_int;
+			slap_schema.si_mr_integerMatch->smr_usage |= SLAP_MR_ORDERED_INDEX;
+			break;
+			
 		case CFG_SORTVALS: {
 			ADlist *svnew = NULL, *svtail, *sv;
 
