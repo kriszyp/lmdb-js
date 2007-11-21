@@ -58,7 +58,7 @@ class LDAPUrl{
         /**
          * @return The complete URL as a string
          */
-        const std::string& getURLString();
+        const std::string& getURLString() const;
 
         /**
          * Set the URL member attribute
@@ -140,7 +140,7 @@ class LDAPUrl{
          */
         void percentEncode( const std::string& src, 
                     std::string& dest, 
-                    int flags=0 );
+                    int flags=0 ) const;
    
     protected : 
         /**
@@ -158,13 +158,13 @@ class LDAPUrl{
          * (this function is mostly for internal use and gets called 
          * automatically whenever necessary)
          */
-        void components2Url();
+        void components2Url() const;
         
         void string2list(const std::string &src, StringList& sl,
                 bool percentDecode=false);
 
     protected :
-        bool regenerate;
+        mutable bool regenerate;
         int m_Port;
         int m_Scope;
         std::string m_Host;
@@ -172,7 +172,7 @@ class LDAPUrl{
         std::string m_Filter;
         StringList m_Attrs;
         StringList m_Extensions;
-        std::string m_urlString;
+        mutable std::string m_urlString;
         std::string m_Scheme;
         enum mode { base, attrs, scope, filter, extensions };
 };

@@ -70,7 +70,7 @@ void LDAPUrl::setScope( const std::string &scope )
     regenerate = true;
 }
 
-const string& LDAPUrl::getURLString()
+const string& LDAPUrl::getURLString() const
 {
     if (regenerate){
         this->components2Url();
@@ -323,7 +323,7 @@ void LDAPUrl::string2list(const std::string &src, StringList& sl,
 }
 
 
-void LDAPUrl::components2Url()
+void LDAPUrl::components2Url() const
 {
     std::ostringstream url; 
     std::string encoded = "";
@@ -395,7 +395,7 @@ void LDAPUrl::components2Url()
 
 void LDAPUrl::percentEncode( const std::string &src, 
         std::string &dest, 
-        int flags)
+        int flags) const
 {
     std::ostringstream o;
     o.setf(std::ios::hex, std::ios::basefield);
