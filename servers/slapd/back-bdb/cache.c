@@ -1183,16 +1183,15 @@ bdb_cache_modrdn(
 #ifdef BDB_HIER
 	/* parent might now have grandkids */
 	if ( ein->bei_state & CACHE_ENTRY_NO_GRANDKIDS &&
-		!(ei->bei_state & (CACHE_ENTRY_NO_KIDS)))
+		!(ei->bei_state & CACHE_ENTRY_NO_KIDS))
 		ein->bei_state ^= CACHE_ENTRY_NO_GRANDKIDS;
 
-	{
-		/* Record the generation number of this change */
-		ldap_pvt_thread_mutex_lock( &bdb->bi_modrdns_mutex );
-		bdb->bi_modrdns++;
-		ei->bei_modrdns = bdb->bi_modrdns;
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_modrdns_mutex );
-	}
+	/* Record the generation number of this change */
+	ldap_pvt_thread_mutex_lock( &bdb->bi_modrdns_mutex );
+	bdb->bi_modrdns++;
+	ei->bei_modrdns = bdb->bi_modrdns;
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_modrdns_mutex );
+
 	ein->bei_ckids++;
 	if ( ein->bei_dkids ) ein->bei_dkids++;
 #endif
