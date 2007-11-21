@@ -2180,6 +2180,8 @@ integerIndexer(
 			keys[i].bv_val[0] = iv.bv_len;
 			memcpy( keys[i].bv_val+1, iv.bv_val, index_intlen );
 		}
+		/* convert signed to unsigned */
+		keys[i].bv_val[1] ^= 0x80;
 	}
 	*keysp = keys;
 	rc = 0;
@@ -2245,6 +2247,9 @@ integerFilter(
 		keys[0].bv_val[0] = iv.bv_len;
 		memcpy( keys[0].bv_val+1, iv.bv_val, index_intlen );
 	}
+	/* convert signed to unsigned */
+	keys[0].bv_val[1] ^= 0x80;
+
 	rc = 0;
 	*keysp = keys;
 leave:
