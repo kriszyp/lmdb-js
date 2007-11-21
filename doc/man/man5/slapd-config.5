@@ -453,6 +453,12 @@ Specify the number of seconds to wait before forcibly closing
 an idle client connection.  A setting of 0 disables this
 feature.  The default is 0.
 .TP
+.B olcIndexIntLen: <integer>
+Specify the key length for ordered integer indices. The most significant
+bytes of the binary integer will be used for index keys. The minimum
+value is 4, which provides exact indexing for 32 bit values.
+The default is 0, which disables the use of ordered indexing.
+.TP
 .B olcIndexSubstrIfMaxlen: <integer>
 Specify the maximum length for subinitial and subfinal indices. Only
 this many characters of an attribute value will be processed by the
@@ -479,7 +485,10 @@ lookup. The default is 2. For example, with the default values, a search
 using this filter "cn=*abcdefgh*" would generate index lookups for
 "abcd", "cdef", and "efgh".
 
-Note: Indexing support depends on the particular backend in use.
+.LP
+Note: Indexing support depends on the particular backend in use. Also,
+changing these settings will generally require deleting any indices that
+depend on these parameters and recreating them with slapindex.
 
 .TP
 .B olcLocalSSF: <SSF>
