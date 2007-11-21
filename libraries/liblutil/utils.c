@@ -648,14 +648,13 @@ scale( int new, _decnum *prev, unsigned char *tmp )
 		new += out[i];
 		out[i] = new & 0xff;
 		new >>= 8;
-		if (!new ) {
-			if ( !prev->len ) {
-				prev->beg += i;
-				prev->len = -i;
-				prev->len++;
-			}
+		if (!new )
 			break;
-		}
+	}
+	if ( !prev->len ) {
+		prev->beg += i;
+		prev->len = -i;
+		prev->len++;
 	}
 	AC_MEMCPY( prev->buf+prev->beg, tmp+prev->beg, prev->len );
 }
