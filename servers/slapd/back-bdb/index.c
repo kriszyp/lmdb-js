@@ -28,7 +28,7 @@
 static char presence_keyval[LUTIL_HASH_BYTES] = {0,0,0,1};
 static struct berval presence_key = {LUTIL_HASH_BYTES, presence_keyval};
 
-static AttrInfo *index_mask(
+AttrInfo *bdb_index_mask(
 	Backend *be,
 	AttributeDescription *desc,
 	struct berval *atname )
@@ -70,21 +70,6 @@ static AttrInfo *index_mask(
 	return 0;
 }
 
-int bdb_index_is_indexed(
-	Backend *be,
-	AttributeDescription *desc )
-{
-	AttrInfo *ai;
-	struct berval prefix;
-
-	ai = index_mask( be, desc, &prefix );
-
-	if( !ai )
-		return LDAP_INAPPROPRIATE_MATCHING;
-
-	return LDAP_SUCCESS;
-}
-
 /* This function is only called when evaluating search filters.
  */
 int bdb_index_param(
@@ -100,7 +85,7 @@ int bdb_index_param(
 	slap_mask_t mask, type = 0;
 	DB *db;
 
-	ai = index_mask( be, desc, prefixp );
+	ai = bdb_index_mask( be, desc, prefixp );
 
 	if ( !ai ) {
 #ifdef BDB_MONITOR_IDX
@@ -127,7 +112,7 @@ int bdb_index_param(
 	}
 	mask = ai->ai_indexmask;
 
-	rc = bdb_db_cache( be, prefixp->bv_val, &db );
+	rc = bdb_db_cache( be, prefixp, &db );
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
@@ -200,7 +185,7 @@ static int indexer(
 
 	assert( mask != 0 );
 
-	rc = bdb_db_cache( op->o_bd, atname->bv_val, &db );
+	rc = bdb_db_cache( op->o_bd, atname, &db );
 	
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,

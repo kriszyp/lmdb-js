@@ -60,7 +60,7 @@ bdb_db_hash(
 int
 bdb_db_cache(
 	Backend	*be,
-	const char *name,
+	struct berval *name,
 	DB **dbout )
 {
 	int i, flags;
@@ -72,7 +72,7 @@ bdb_db_cache(
 	*dbout = NULL;
 
 	for( i=BDB_NDB; i < bdb->bi_ndatabases; i++ ) {
-		if( !strcmp( bdb->bi_databases[i]->bdi_name, name) ) {
+		if( !ber_bvcmp( &bdb->bi_databases[i]->bdi_name, name) ) {
 			*dbout = bdb->bi_databases[i]->bdi_db;
 			return 0;
 		}
@@ -82,7 +82,7 @@ bdb_db_cache(
 
 	/* check again! may have been added by another thread */
 	for( i=BDB_NDB; i < bdb->bi_ndatabases; i++ ) {
-		if( !strcmp( bdb->bi_databases[i]->bdi_name, name) ) {
+		if( !ber_bvcmp( &bdb->bi_databases[i]->bdi_name, name) ) {
 			*dbout = bdb->bi_databases[i]->bdi_db;
 			ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 			return 0;
@@ -96,7 +96,7 @@ bdb_db_cache(
 
 	db = (struct bdb_db_info *) ch_calloc(1, sizeof(struct bdb_db_info));
 
-	db->bdi_name = ch_strdup( name );
+	ber_dupbv( &db->bdi_name, name );
 
 	rc = db_create( &db->bdi_db, bdb->bi_dbenv, 0 );
 	if( rc != 0 ) {
@@ -113,8 +113,9 @@ bdb_db_cache(
 #endif
 	rc = db->bdi_db->set_flags( db->bdi_db, DB_DUP | DB_DUPSORT );
 
-	file = ch_malloc( strlen( name ) + sizeof(BDB_SUFFIX) );
-	sprintf( file, "%s%s", name, BDB_SUFFIX );
+	file = ch_malloc( db->bdi_name.bv_len + sizeof(BDB_SUFFIX) );
+	strcpy( file, db->bdi_name.bv_val );
+	strcpy( file+db->bdi_name.bv_len, BDB_SUFFIX );
 
 #ifdef HAVE_EBCDIC
 	__atoe( file );

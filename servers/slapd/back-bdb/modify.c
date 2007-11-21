@@ -42,6 +42,8 @@ int bdb_modify_internal(
 	Attribute	*save_attrs;
 	Attribute 	*ap;
 	int			glue_attr_delete = 0;
+	int			got_delete;
+	AttrInfo *ai;
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_modify_internal: 0x%08lx: %s\n",
 		e->e_id, e->e_dn, 0);
@@ -87,7 +89,9 @@ int bdb_modify_internal(
 	}
 
 	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		struct berval ix_at;
 		mod = &ml->sml_mod;
+		got_delete = 0;
 
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
@@ -117,6 +121,8 @@ int bdb_modify_internal(
 			if( err != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 					err, *text, 0);
+			} else {
+				got_delete = 1;
 			}
 			break;
 
@@ -129,6 +135,8 @@ int bdb_modify_internal(
 			if( err != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ARGS, "bdb_modify_internal: %d %s\n",
 					err, *text, 0);
+			} else {
+				got_delete = 1;
 			}
 			break;
 
@@ -142,6 +150,8 @@ int bdb_modify_internal(
 				Debug(LDAP_DEBUG_ARGS,
 					"bdb_modify_internal: %d %s\n",
 					err, *text, 0);
+			} else {
+				got_delete = 1;
 			}
 			break;
 
@@ -194,13 +204,24 @@ int bdb_modify_internal(
 
 		/* check if modified attribute was indexed
 		 * but not in case of NOOP... */
-		err = bdb_index_is_indexed( op->o_bd, mod->sm_desc );
-		if ( err == LDAP_SUCCESS && !op->o_noop ) {
-			ap = attr_find( save_attrs, mod->sm_desc );
-			if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
+		ai = bdb_index_mask( op->o_bd, mod->sm_desc, &ix_at );
+		if ( ai && !op->o_noop ) {
+			if ( got_delete ) {
+				struct berval ix2;
 
-			ap = attr_find( e->e_attrs, mod->sm_desc );
-			if ( ap ) ap->a_flags |= SLAP_ATTR_IXADD;
+				ap = attr_find( save_attrs, mod->sm_desc );
+				if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
+
+				/* Find all other attrs that index to same slot */
+				for ( ap = e->e_attrs; ap; ap=ap->a_next ) {
+					ai = bdb_index_mask( op->o_bd, ap->a_desc, &ix2 );
+					if ( ai && ix2.bv_val == ix_at.bv_val )
+						ap->a_flags |= SLAP_ATTR_IXADD;
+				}
+			} else {
+				ap = attr_find( e->e_attrs, mod->sm_desc );
+				if ( ap ) ap->a_flags |= SLAP_ATTR_IXADD;
+			}
 		}
 	}
 
@@ -230,24 +251,57 @@ int bdb_modify_internal(
 	/* start with deleting the old index entries */
 	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
-			rc = bdb_index_values( op, tid, ap->a_desc,
-				ap->a_nvals,
-				e->e_id, SLAP_INDEX_DELETE_OP );
-			if ( rc != LDAP_SUCCESS ) {
-				attrs_free( e->e_attrs );
-				e->e_attrs = save_attrs;
-				Debug( LDAP_DEBUG_ANY,
-				       "Attribute index delete failure",
-				       0, 0, 0 );
-				return rc;
-			}
+			struct berval tmp, *vals;
+			Attribute *a2;
 			ap->a_flags &= ~SLAP_ATTR_IXDEL;
+			a2 = attr_find( e->e_attrs, ap->a_desc );
+			if ( a2 ) {
+				/* need to detect which values were deleted */
+				int i, j;
+				struct berval tmp;
+				j = ap->a_numvals;
+				for ( i=0; i<j; ) {
+					rc = attr_valfind( a2, SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+						&ap->a_nvals[i], NULL, op->o_tmpmemctx );
+					/* Move deleted values to end of array */
+					if ( rc == LDAP_NO_SUCH_ATTRIBUTE ) {
+						j--;
+						if ( i != j ) {
+							tmp = ap->a_nvals[j];
+							ap->a_nvals[j] = ap->a_nvals[i];
+							ap->a_nvals[i] = tmp;
+							tmp = ap->a_vals[j];
+							ap->a_vals[j] = ap->a_vals[i];
+							ap->a_vals[i] = tmp;
+						}
+						continue;
+					}
+					i++;
+				}
+				vals = &ap->a_nvals[j];
+			} else {
+				/* attribute was completely deleted */
+				vals = ap->a_nvals;
+			}
+			if ( !BER_BVISEMPTY( vals )) {
+				rc = bdb_index_values( op, tid, ap->a_desc,
+					vals, e->e_id, SLAP_INDEX_DELETE_OP );
+				if ( rc != LDAP_SUCCESS ) {
+					attrs_free( e->e_attrs );
+					e->e_attrs = save_attrs;
+					Debug( LDAP_DEBUG_ANY,
+						   "Attribute index delete failure",
+						   0, 0, 0 );
+					return rc;
+				}
+			}
 		}
 	}
 
 	/* add the new index entries */
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
 		if (ap->a_flags & SLAP_ATTR_IXADD) {
+			ap->a_flags &= ~SLAP_ATTR_IXADD;
 			rc = bdb_index_values( op, tid, ap->a_desc,
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_ADD_OP );
@@ -259,7 +313,6 @@ int bdb_modify_internal(
 				       0, 0, 0 );
 				return rc;
 			}
-			ap->a_flags &= ~SLAP_ATTR_IXADD;
 		}
 	}
 
