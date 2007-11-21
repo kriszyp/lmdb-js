@@ -1148,9 +1148,6 @@ bdb_cache_modrdn(
 	free( ei->bei_nrdn.bv_val );
 	ber_dupbv( &ei->bei_nrdn, nrdn );
 
-	if ( !pei->bei_kids )
-		pei->bei_state |= CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
-
 #ifdef BDB_HIER
 	free( ei->bei_rdn.bv_val );
 
@@ -1162,7 +1159,11 @@ bdb_cache_modrdn(
 	}
 	ber_dupbv( &ei->bei_rdn, &rdn );
 	pei->bei_ckids--;
-	if ( pei->bei_dkids ) pei->bei_dkids--;
+	if ( pei->bei_dkids ) {
+		pei->bei_dkids--;
+		if ( pei->bei_kids < 2 )
+			pei->bei_state |= CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
+	}
 #endif
 
 	if (!ein) {
@@ -1175,6 +1176,9 @@ bdb_cache_modrdn(
 	/* parent now has kids */
 	if ( ein->bei_state & CACHE_ENTRY_NO_KIDS )
 		ein->bei_state ^= CACHE_ENTRY_NO_KIDS;
+	/* grandparent has grandkids */
+	if ( ein->bei_parent )
+		ein->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
 
 #ifdef BDB_HIER
 	/* parent might now have grandkids */
