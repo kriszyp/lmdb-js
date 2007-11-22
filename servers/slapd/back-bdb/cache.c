@@ -1164,7 +1164,7 @@ bdb_cache_modrdn(
 		pei->bei_ckids--;
 		if ( pei->bei_dkids ) {
 			pei->bei_dkids--;
-			if ( pei->bei_kids < 2 )
+			if ( pei->bei_dkids < 2 )
 				pei->bei_state |= CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 		}
 	}
