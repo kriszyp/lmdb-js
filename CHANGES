@@ -3,7 +3,8 @@ OpenLDAP 2.3 Change Log
 OpenLDAP 2.3.40 Engineering
 	Fixed slapo-translucent interactions with slapo-rwm (ITS#4889)
 	Documentation
-		Fixed slapd-conf(5) maxderefdepth default value typo (ITS#5200)
+		Fixed slapd.conf(5) maxderefdepth default value typo (ITS#5200)
+		Clarified slapd.conf(5) limits issues in syncrepl (ITS#5243)
 
 OpenLDAP 2.3.39 Release (2007/10/26)
 	Fixed slapd backglue compilation problem (ITS#5214)
