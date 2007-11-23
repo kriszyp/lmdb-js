@@ -28,6 +28,7 @@ OpenLDAP 2.4.7 Engineering
 		Dynamic Lists doc contribution to the admin guide (ITS#5216)
 		Fixed domain factor typos (ITS#5237)
 		Fixed slapd.conf(5) maxderefdepth default value typo (ITS#5200)
+		Clarified slapd.conf(5) limits issues in syncrepl (ITS#5243)
 		Fixed slapd-config(5) maxderefdepth default value typo (ITS#5200)
 		Patches for minor typos in man pages (ITS#5228)
 

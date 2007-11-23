@@ -1342,6 +1342,12 @@ is requested cannot exceed the
 size limit of regular searches unless extended by the
 .B prtotal
 switch.
+
+The \fBlimits\fP statement is typically used to let an unlimited
+number of entries be returned by searches performed
+with the identity used by the consumer for synchronization purposes
+by means of the RFC 4533 LDAP Content Synchronization protocol
+(see \fBsyncrepl\fP for details).
 .RE
 .TP
 .B maxderefdepth <depth>
@@ -1622,16 +1628,21 @@ specification as its result set. The consumer
 will send search requests to the provider
 .B slapd
 according to the search specification. The search specification includes
-.B searchbase, scope, filter, attrs, attrsonly, sizelimit,
+.BR searchbase ", " scope ", " filter ", " attrs ", " attrsonly ", " sizelimit ", "
 and
 .B timelimit
 parameters as in the normal search specification. 
 The \fBscope\fP defaults to \fBsub\fP, the \fBfilter\fP defaults to
-\fB(objectclass=*)\fP, and there is no default \fBsearchbase\fP. The
+\fB(objectclass=*)\fP, while there is no default \fBsearchbase\fP. The
 \fBattrs\fP list defaults to \fB"*,+"\fP to return all user and operational
 attributes, and \fBattrsonly\fP is unset by default.
 The \fBsizelimit\fP and \fBtimelimit\fP only
 accept "unlimited" and positive integers, and both default to "unlimited".
+The \fBsizelimit\fP and \fBtimelimit\fP parameters define
+a consumer requested limitation on the number of entries that can be returned
+by the LDAP Content Synchronization operation; as such, it is intended
+to implement partial replication based on the size of the replicated database
+and on the time required by the synchronization.
 Note, however, that any provider-side limits for the replication identity
 will be enforced by the provider regardless of the limits requested
 by the LDAP Content Synchronization operation, much like for any other
@@ -1665,7 +1676,13 @@ number of retries until success.
 The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
 .B schemachecking
-parameter. The default is off.
+parameter. The default is \fBoff\fP.
+Schema checking \fBon\fP means that replicated entries must have
+a structural objectClass, must obey to objectClass requirements
+in terms of required/allowed attributes, and that naming attributes
+and distinguished values must be present.
+As a consequence, schema checking should be \fBoff\fP when partial
+replication is used.
 
 A
 .B bindmethod
@@ -1699,11 +1716,16 @@ keyword above) for a SASL bind can be set with the
 option. A non default SASL realm can be set with the
 .B realm 
 option.
+The identity used for synchronization by the consumer should be allowed
+to receive an unlimited number of entries in response to a search request.
 The provider, other than allow authentication of the syncrepl identity,
 should grant that identity appropriate access privileges to the data 
 that is being replicated (\fBaccess\fP directive), and appropriate time 
-and size limits (\fBlimits\fP directive).
-
+and size limits.
+This can be accomplished by either allowing unlimited \fBsizelimit\fP
+and \fBtimelimit\fP, or by setting an appropriate \fBlimits\fP statement
+in the consumer's configuration (see \fBsizelimit\fP and \fBlimits\fP
+for details).
 
 The
 .B starttls
