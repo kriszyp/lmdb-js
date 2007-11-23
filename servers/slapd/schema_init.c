@@ -2208,7 +2208,7 @@ integerFilter(
 	struct berval iv;
 	BerVarray keys;
 	struct berval *value;
-	int i, rc;
+	int rc;
 
 	if ( !index_intlen ) {
 		return octetStringFilter( use, flags, syntax, mr,
@@ -3081,7 +3081,6 @@ serialNumberAndIssuerNormalize(
 	char sbuf[64], *stmp = sbuf;
 	int rc;
 	ber_len_t n;
-	int is_hex = 0;
 
 	assert( in != NULL );
 	assert( out != NULL );
@@ -3132,10 +3131,11 @@ serialNumberAndIssuerNormalize(
 	AC_MEMCPY( &out->bv_val[n], sn.bv_val, sn.bv_len );
 	{
 		int j;
-		unsigned char *v = sn2.bv_val;
+		unsigned char *v = (unsigned char *)sn2.bv_val;
 		out->bv_val[n++] = '\'';
 		for ( j = 0; j < sn2.bv_len; j++ ) {
-			sprintf( &out->bv_val[n], "%02X", v[j] );
+			snprintf( &out->bv_val[n], out->bv_len - n + 1,
+				"%02X", v[j] );
 			n += 2;
 		}
 		out->bv_val[n++] = '\'';

@@ -604,18 +604,18 @@ lutil_atoulx( unsigned long *v, const char *s, int x )
 }
 
 /* Multiply an integer by 100000000 and add new */
-typedef struct _decnum {
+typedef struct lutil_int_decnum {
 	unsigned char *buf;
 	int bufsiz;
 	int beg;
 	int len;
-} _decnum;
+} lutil_int_decnum;
 
 #define	FACTOR1	(100000000&0xffff)
 #define FACTOR2 (100000000>>16)
 
 static void
-scale( int new, _decnum *prev, unsigned char *tmp )
+scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
 {
 	int i, j;
 	unsigned char *in = prev->buf+prev->beg;
@@ -726,12 +726,12 @@ lutil_str2bin( struct berval *in, struct berval *out )
 	} else {
 	/* Decimal */
 		char tmpbuf[64], *tmp;
-		_decnum num;
+		lutil_int_decnum num;
 		int neg = 0;
 
 		len = in->bv_len;
 		pin = in->bv_val;
-		num.buf = out->bv_val;
+		num.buf = (unsigned char *)out->bv_val;
 		num.bufsiz = out->bv_len;
 		num.beg = num.bufsiz-1;
 		num.len = 0;
@@ -762,7 +762,7 @@ lutil_str2bin( struct berval *in, struct berval *out )
 				rc = -1;
 				goto decfail;
 			}
-			scale( l, &num, tmp );
+			scale( l, &num, (unsigned char *)tmp );
 			pin += chunk;
 			len -= chunk;
 			chunk = DECMAX;

@@ -266,12 +266,6 @@ typedef struct backsql_api {
 	struct backsql_api	*ba_next;
 } backsql_api;
 
-#ifdef BACKSQL_ARBITRARY_KEY
-#define BACKSQL_ENTRYID_INIT { BER_BVNULL, BER_BVNULL, 0, BER_BVNULL, BER_BVNULL, NULL }
-#else /* ! BACKSQL_ARBITRARY_KEY */
-#define BACKSQL_ENTRYID_INIT { 0, 0, 0, BER_BVNULL, BER_BVNULL, NULL }
-#endif /* BACKSQL_ARBITRARY_KEY */
-
 /*
  * "structural" objectClass mapping structure
  */
@@ -397,6 +391,12 @@ typedef struct backsql_entryID {
 	struct berval		eid_ndn;
 	struct backsql_entryID	*eid_next;
 } backsql_entryID;
+
+#ifdef BACKSQL_ARBITRARY_KEY
+#define BACKSQL_ENTRYID_INIT { BER_BVNULL, BER_BVNULL, 0, NULL, BER_BVNULL, BER_BVNULL, NULL }
+#else /* ! BACKSQL_ARBITRARY_KEY */
+#define BACKSQL_ENTRYID_INIT { 0, 0, 0, NULL, BER_BVNULL, BER_BVNULL, NULL }
+#endif /* BACKSQL_ARBITRARY_KEY */
 
 /* the function must collect the entry associated to nbase */
 #define BACKSQL_ISF_GET_ID	0x1U

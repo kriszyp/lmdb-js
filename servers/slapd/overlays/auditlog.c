@@ -224,6 +224,7 @@ auditlog_db_destroy(
 	return 0;
 }
 
+#if 0
 static int
 auditlog_config(
 	BackendDB	*be,
@@ -249,6 +250,7 @@ auditlog_config(
 	}
 	return SLAP_CONF_UNKNOWN;
 }
+#endif /* 0 */
 
 int auditlog_initialize() {
 	int rc;

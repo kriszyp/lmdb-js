@@ -139,7 +139,7 @@ bdb_db_cache(
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_cache: db_open(%s) failed: %s (%d)\n",
-			name, db_strerror(rc), rc );
+			name->bv_val, db_strerror(rc), rc );
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 		return rc;
 	}

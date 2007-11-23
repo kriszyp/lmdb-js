@@ -318,9 +318,8 @@ attr_valfind(
 	}
 
 	if ( a->a_flags & SLAP_ATTR_SORTED_VALS ) {
-	/* Binary search */
+		/* Binary search */
 		unsigned base = 0, n = a->a_numvals;
-		int val = 0;
 
 		while ( 0 < n ) {
 			unsigned pivot = n >> 1;
