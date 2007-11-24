@@ -657,6 +657,7 @@ connection_destroy( Connection *c )
 	unsigned long	connid;
 	const char		*close_reason;
 	Sockbuf			*sb;
+	ber_socket_t	sd;
 
 	assert( connections != NULL );
 	assert( c != NULL );
@@ -719,6 +720,8 @@ connection_destroy( Connection *c )
 	}
 #endif
 
+	sd = c->c_sd;
+	c->c_sd = AC_SOCKET_INVALID;
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
 	c->c_close_reason = "?";			/* should never be needed */
@@ -733,17 +736,16 @@ connection_destroy( Connection *c )
 	/* c must be fully reset by this point; when we call slapd_remove
 	 * it may get immediately reused by a new connection.
 	 */
-	if ( c->c_sd != AC_SOCKET_INVALID ) {
-		slapd_remove( c->c_sd, sb, 1, 0, 0 );
+	if ( sd != AC_SOCKET_INVALID ) {
+		slapd_remove( sd, sb, 1, 0, 0 );
 
 		if ( close_reason == NULL ) {
 			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed\n",
-				connid, (long) c->c_sd, 0, 0, 0 );
+				connid, (long) sd, 0, 0, 0 );
 		} else {
 			Statslog( LDAP_DEBUG_STATS, "conn=%lu fd=%ld closed (%s)\n",
-				connid, (long) c->c_sd, close_reason, 0, 0 );
+				connid, (long) sd, close_reason, 0, 0 );
 		}
-		c->c_sd = AC_SOCKET_INVALID;
 	}
 }
 
