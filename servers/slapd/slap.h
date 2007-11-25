@@ -252,6 +252,9 @@ typedef struct slap_ssf_set {
 #define SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT		4
 #define SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT		2
 
+/* default for ordered integer index keys */
+#define SLAP_INDEX_INTLEN_DEFAULT	4
+
 #define SLAP_INDEX_FLAGS         0xF000UL
 #define SLAP_INDEX_NOSUBTYPES    0x1000UL /* don't use index w/ subtypes */
 #define SLAP_INDEX_NOTAGS        0x2000UL /* don't use index w/ tags */

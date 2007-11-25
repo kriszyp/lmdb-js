@@ -62,8 +62,7 @@ unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
 unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
 unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
 
-/* Default to no ordered integer indexing */
-unsigned int index_intlen = 0;
+unsigned int index_intlen = SLAP_INDEX_INTLEN_DEFAULT;
 
 ldap_pvt_thread_mutex_t	ad_undef_mutex;
 ldap_pvt_thread_mutex_t	oc_undef_mutex;
@@ -2130,11 +2129,6 @@ integerIndexer(
 	BerVarray keys;
 	int i, rc;
 
-	if ( !index_intlen ) {
-		return octetStringIndexer( use, flags, syntax, mr,
-			prefix, values, keysp, ctx );
-	}
-
 	for( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
 		/* just count them */
 	}
@@ -2209,11 +2203,6 @@ integerFilter(
 	BerVarray keys;
 	struct berval *value;
 	int rc;
-
-	if ( !index_intlen ) {
-		return octetStringFilter( use, flags, syntax, mr,
-			prefix, assertedValue, keysp, ctx );
-	}
 
 	value = (struct berval *) assertedValue;
 
@@ -4799,14 +4788,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_ORDERED_INDEX, NULL,
 		NULL, NULL, integerMatch,
 		integerIndexer, integerFilter,
 		NULL },
 
 	{"( 2.5.13.15 NAME 'integerOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_ORDERING, NULL,
+		SLAP_MR_ORDERING | SLAP_MR_ORDERED_INDEX, NULL,
 		NULL, NULL, integerMatch,
 		NULL, NULL,
 		"integerMatch" },

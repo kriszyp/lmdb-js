@@ -1019,10 +1019,7 @@ config_generic(ConfigArgs *c) {
 			c->value_int = index_substr_if_minlen;
 			break;
 		case CFG_IX_INTLEN:
-			if ( index_intlen )
-				c->value_int = index_intlen;
-			else
-				rc = 1;
+			c->value_int = index_intlen;
 			break;
 		case CFG_SORTVALS: {
 			ADlist *sv;
@@ -1162,8 +1159,7 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_IX_INTLEN:
-			index_intlen = 0;
-			slap_schema.si_mr_integerMatch->smr_usage &= ~SLAP_MR_ORDERED_INDEX;
+			index_intlen = SLAP_INDEX_INTLEN_DEFAULT;
 			break;
 
 		case CFG_ACL:
@@ -1510,15 +1506,10 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_IX_INTLEN:
-			if ( !c->value_int ) {
-				slap_schema.si_mr_integerMatch->smr_usage &= ~SLAP_MR_ORDERED_INDEX;
-			} else {
-				if ( c->value_int < 4 )
-					c->value_int = 4;
-				else if ( c->value_int > 255 )
-					c->value_int = 255;
-				slap_schema.si_mr_integerMatch->smr_usage |= SLAP_MR_ORDERED_INDEX;
-			}
+			if ( c->value_int < SLAP_INDEX_INTLEN_DEFAULT )
+				c->value_int = SLAP_INDEX_INTLEN_DEFAULT;
+			else if ( c->value_int > 255 )
+				c->value_int = 255;
 			index_intlen = c->value_int;
 			break;
 			
