@@ -707,12 +707,12 @@ LDAP_SLAPD_F (int) connections_shutdown LDAP_P((void));
 LDAP_SLAPD_F (int) connections_destroy LDAP_P((void));
 LDAP_SLAPD_F (int) connections_timeout_idle LDAP_P((time_t));
 
-LDAP_SLAPD_F (int) connection_client_setup LDAP_P((
+LDAP_SLAPD_F (Connection *) connection_client_setup LDAP_P((
 	ber_socket_t s,
 	ldap_pvt_thread_start_t *func,
 	void *arg ));
-LDAP_SLAPD_F (void) connection_client_enable LDAP_P(( ber_socket_t s ));
-LDAP_SLAPD_F (void) connection_client_stop LDAP_P(( ber_socket_t s ));
+LDAP_SLAPD_F (void) connection_client_enable LDAP_P(( Connection *c ));
+LDAP_SLAPD_F (void) connection_client_stop LDAP_P(( Connection *c ));
 
 #ifdef LDAP_PF_LOCAL_SENDMSG
 #define LDAP_PF_LOCAL_SENDMSG_ARG(arg)	, arg
@@ -821,6 +821,19 @@ LDAP_SLAPD_V (int) slapd_register_slp;
 LDAP_SLAPD_V (const char *) slapd_slp_attrs;
 LDAP_SLAPD_V (slap_ssf_t) local_ssf;
 LDAP_SLAPD_V (struct runqueue_s) slapd_rq;
+
+#ifdef HAVE_WINSOCK
+LDAP_SLAPD_F (ber_socket_t) slapd_socknew(ber_socket_t s);
+LDAP_SLAPD_F (ber_socket_t) slapd_sock2fd(ber_socket_t s);
+LDAP_SLAPD_V (SOCKET *) slapd_ws_sockets;
+#define	SLAP_FD2SOCK(s)	slapd_ws_sockets[s]
+#define	SLAP_SOCK2FD(s)	slapd_sock2fd(s)
+#define	SLAP_SOCKNEW(s)	slapd_socknew(s)
+#else
+#define	SLAP_FD2SOCK(s)	s
+#define	SLAP_SOCK2FD(s)	s
+#define	SLAP_SOCKNEW(s)	s
+#endif
 
 /*
  * dn.c
