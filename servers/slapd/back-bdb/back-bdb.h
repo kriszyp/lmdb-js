@@ -178,6 +178,10 @@ struct bdb_db_info {
 	DB			*bdi_db;
 };
 
+#ifdef LDAP_DEVEL
+#define BDB_MONITOR_IDX
+#endif /* LDAP_DEVEL */
+
 typedef struct bdb_monitor_t {
 	void		*bdm_cb;
 	struct berval	bdm_ndn;
