@@ -604,18 +604,18 @@ lutil_atoulx( unsigned long *v, const char *s, int x )
 }
 
 /* Multiply an integer by 100000000 and add new */
-typedef struct _decnum {
+typedef struct lutil_int_decnum {
 	unsigned char *buf;
 	int bufsiz;
 	int beg;
 	int len;
-} _decnum;
+} lutil_int_decnum;
 
 #define	FACTOR1	(100000000&0xffff)
 #define FACTOR2 (100000000>>16)
 
 static void
-scale( int new, _decnum *prev, unsigned char *tmp )
+scale( int new, lutil_int_decnum *prev, unsigned char *tmp )
 {
 	int i, j;
 	unsigned char *in = prev->buf+prev->beg;
@@ -648,14 +648,13 @@ scale( int new, _decnum *prev, unsigned char *tmp )
 		new += out[i];
 		out[i] = new & 0xff;
 		new >>= 8;
-		if (!new ) {
-			if ( !prev->len ) {
-				prev->beg += i;
-				prev->len = -i;
-				prev->len++;
-			}
+		if (!new )
 			break;
-		}
+	}
+	if ( !prev->len ) {
+		prev->beg += i;
+		prev->len = -i;
+		prev->len++;
 	}
 	AC_MEMCPY( prev->buf+prev->beg, tmp+prev->beg, prev->len );
 }
@@ -663,6 +662,11 @@ scale( int new, _decnum *prev, unsigned char *tmp )
 /* Convert unlimited length decimal or hex string to binary.
  * Output buffer must be provided, bv_len must indicate buffer size
  * Hex input can be "0x1234" or "'1234'H"
+ *
+ * Note: High bit of binary form is always the sign bit. If the number
+ * is supposed to be positive but has the high bit set, a zero byte
+ * is prepended. It is assumed that this has already been handled on
+ * any hex input.
  */
 int
 lutil_str2bin( struct berval *in, struct berval *out )
@@ -722,14 +726,20 @@ lutil_str2bin( struct berval *in, struct berval *out )
 	} else {
 	/* Decimal */
 		char tmpbuf[64], *tmp;
-		_decnum num;
+		lutil_int_decnum num;
+		int neg = 0;
 
 		len = in->bv_len;
 		pin = in->bv_val;
-		num.buf = out->bv_val;
+		num.buf = (unsigned char *)out->bv_val;
 		num.bufsiz = out->bv_len;
 		num.beg = num.bufsiz-1;
 		num.len = 0;
+		if ( pin[0] == '-' ) {
+			neg = 1;
+			len--;
+			pin++;
+		}
 
 #define	DECMAX	8	/* 8 digits at a time */
 
@@ -752,10 +762,45 @@ lutil_str2bin( struct berval *in, struct berval *out )
 				rc = -1;
 				goto decfail;
 			}
-			scale( l, &num, tmp );
+			scale( l, &num, (unsigned char *)tmp );
 			pin += chunk;
 			len -= chunk;
 			chunk = DECMAX;
+		}
+		/* Negate the result */
+		if ( neg ) {
+			int i, j;
+			unsigned char *ptr;
+
+			ptr = num.buf+num.beg;
+
+			/* flip all bits */
+			for ( i=0; i<num.len; i++ )
+				ptr[i] ^= 0xff;
+
+			/* Add 1, with carry */
+			i--;
+			j = 1;
+			for ( ; i>=0; i-- ) {
+				j += ptr[i];
+				ptr[i] = j & 0xff;
+				j >>= 8;
+				if (!j)
+					break;
+			}
+			/* If we overflowed and there's still room,
+			 * set an explicit sign byte
+			 */
+			if ( !(  ptr[0] & 0x80 ) && num.beg ) {
+				num.beg--;
+				num.len++;
+				num.buf[num.beg] = 0x80;
+			}
+		} else if (( num.buf[num.beg] & 0x80 ) && num.beg ) {
+			/* positive int with high bit set, prepend 0 */
+			num.beg--;
+			num.len++;
+			num.buf[num.beg] = 0;
 		}
 		if ( num.beg )
 			AC_MEMCPY( num.buf, num.buf+num.beg, num.len );
